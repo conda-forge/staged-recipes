@@ -37,7 +37,9 @@ conda clean --lock
 conda install anaconda-client
 conda info
 unset LANG
-yum install -y expat-devel git autoconf libtool texinfo check-devel
+
+# These are some standard tools. But they aren't available to a recipe at this point (we need to figure out how a recipe should define OS level deps)
+#yum install -y expat-devel git autoconf libtool texinfo check-devel
 
 obvci_conda_build_dir.py /conda-recipes $UPLOAD_OWNER --build-condition "numpy >=1.8" "python >=2.7,<3|>=3.4"
     
