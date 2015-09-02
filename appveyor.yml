@@ -1,0 +1,52 @@
+environment:
+
+  CONDA_INSTALL_LOCN: "C:\\conda"
+
+  # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
+  # /E:ON and /V:ON options are not enabled in the batch script interpreter
+  # See: http://stackoverflow.com/a/13751649/163740
+  CMD_IN_ENV: "cmd /E:ON /V:ON /C obvci_appveyor_python_build_env.cmd"
+
+  BINSTAR_TOKEN:
+    # Generated with "binstar auth --create --name ScitoolsRecipesAppVeyor -o conda-forge" and encrypted on ci.appveyor.com/tools/encrypt. 
+    secure: wtylLGtp/ID3G3DFT2uxuLFXuijFqmxI6phj60izpNC3pxd585bR6k2oonf5iGGb
+
+  matrix:
+    # Note: Because we have to separate the py2 and py3 components due to compiler version, we have a race condition for non-python packages.
+    # Not sure how to resolve this, but maybe we should be tracking the VS version in the build string anyway? 
+    - TARGET_ARCH: "x86"
+      CONDA_PY: "27"
+      PY_CONDITION: "python >=2.7,<3"
+    - TARGET_ARCH: "x86"
+      CONDA_PY: "3"
+      PY_CONDITION: "python >=3.4"
+    - TARGET_ARCH: "x64"
+      CONDA_PY: "27"
+      PY_CONDITION: "python >=2.7,<3"
+    - TARGET_ARCH: "x64"
+      CONDA_PY: "3"
+      PY_CONDITION: "python >=3.4"
+
+# We always use a 64-bit machine, but can build x86 distributions
+# with the TARGET_ARCH variable (which is used by CMD_IN_ENV).
+platform:
+    - x64
+
+install:
+    - cmd: python -c "from urllib2 import urlopen; open('bootstrap-obvious-ci-and-miniconda.py', 'w').write(urlopen('https://raw.githubusercontent.com/pelson/Obvious-CI/master/bootstrap-obvious-ci-and-miniconda.py').read())"
+    - cmd: python bootstrap-obvious-ci-and-miniconda.py %CONDA_INSTALL_LOCN% %TARGET_ARCH% %CONDA_PY:~0,1% --without-obvci
+    - cmd: set PATH=%PATH%;%CONDA_INSTALL_LOCN%;%CONDA_INSTALL_LOCN%\scripts
+    - cmd: set PYTHONUNBUFFERED=1
+
+    - cmd: conda install -c http://conda.binstar.org/pelson/channel/development --yes --quiet obvious-ci
+    - cmd: obvci_install_conda_build_tools.py
+
+    - cmd: conda config --add channels conda-forge
+    - cmd: conda config --set show_channel_urls yes
+    - cmd: conda info
+
+# Skip .NET project specific build phase.
+build: off
+
+test_script:
+    - '%CMD_IN_ENV% obvci_conda_build_dir.py .\ conda-forge --channel main  --build-condition "numpy >=1.8" "%PY_CONDITION%"'
