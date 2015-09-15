@@ -7,13 +7,18 @@ if [ `uname` == Linux ]; then
     popd
 fi
 
-#if [ `uname` == Darwin ]; then
+if [ `uname` == Darwin ]; then
 #    sed s:'#ifdef WITH_NEXT_FRAMEWORK':'#if 1':g -i src/_macosx.m
-#fi
+
+    # Disable the macos backend. It doesn't seem to build correctly with travis yet.
+    sed -i.bak "s|#macosx = auto|macosx = false|" setup.cfg.template
+
+    sed -i.bak "s|#tkagg = auto|tkagg = true|" setup.cfg.template
+fi
 
 cp setup.cfg.template setup.cfg || exit 1
 
-sed -i.bak 's|/usr/local|$PREFIX|' setupext.py
+sed -i.bak "s|/usr/local|$PREFIX|" setupext.py
 
 $PYTHON setup.py install
 
