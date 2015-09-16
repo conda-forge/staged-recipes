@@ -14,13 +14,12 @@ if errorlevel 1 exit 1
 python setup.py install
 if errorlevel 1 exit 1
 
-rd /s /q %SP_DIR%\dateutil
-rd /s /q %SP_DIR%\numpy
 
-if "%ARCH%"=="64" (
-    set PLAT=win-amd64
-) else (
-    set PLAT=win32
-)
-
-copy C:\Tcl%ARCH%\bin\t*.dll %SP_DIR%\matplotlib-%PKG_VERSION%-py%PY_VER%-%PLAT%.egg\matplotlib\backends
+:: Anaconda seems to ship ActiveState's Tcl. We disable that behaviour. Ideally there would be a Tcl package upon which we can depend.
+:: if "%ARCH%"=="64" (
+::    set PLAT=win-amd64
+::) else (
+::    set PLAT=win32
+::)
+::
+::copy C:\Tcl%ARCH%\bin\t*.dll %SP_DIR%\matplotlib-%PKG_VERSION%-py%PY_VER%-%PLAT%.egg\matplotlib\backends
