@@ -27,6 +27,10 @@ if [ "${BINSTAR_TOKEN}" ];then
     export BINSTAR_TOKEN=${BINSTAR_TOKEN}
 fi
 
+
+# Unused, but needed by conda-build currently... :(
+export CONDA_NPY='19'
+
 export PYTHONUNBUFFERED=1
 echo "$config" > ~/.condarc
 
@@ -46,7 +50,7 @@ unset LANG
 # state the build dependencies at OS level, too.
 yum install -y libXext libXrender libSM tk libX11-devel
 
-obvci_conda_build_dir.py /conda-recipes $UPLOAD_OWNER --build-condition "numpy >=1.8" "python >=2.7,<3|>=3.4,<3.5"
+obvci_conda_build_dir /conda-recipes $UPLOAD_OWNER --build-condition "numpy >=1.8" "python >=2.7,<3|>=3.4,<3.5"
     
 EOF
 
