@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Remove the baseline test images, they are just too big.
-rm -rf lib/matplotlib/tests/baseline_images/*
-
 if [ `uname` == Linux ]; then
     pushd $PREFIX/lib
     ln -s libtcl8.5.so libtcl.so
@@ -10,22 +7,31 @@ if [ `uname` == Linux ]; then
     popd
 fi
 
+cat <<EOF > setup.cfg
+[directories]
+basedirlist = $PREFIX
+
+[packages]
+tests = False
+toolkit_tests = False
+sample_data = False
+
+EOF
+
+# The macosx backend isn't building with conda at this stage.
 if [ `uname` == Darwin ]; then
-#    sed s:'#ifdef WITH_NEXT_FRAMEWORK':'#if 1':g -i src/_macosx.m
+cat << EOF >> setup.cfg
 
-    # Disable the macos backend. It doesn't seem to build correctly with travis yet.
-    sed -i.bak "s|#macosx = auto|macosx = false|" setup.cfg.template
+[gui_support]
+tkagg = true
+macosx = false
 
-    sed -i.bak "s|#tkagg = auto|tkagg = true|" setup.cfg.template
+EOF
 fi
 
-cp setup.cfg.template setup.cfg || exit 1
-
+cat setup.cfg
 sed -i.bak "s|/usr/local|$PREFIX|" setupext.py
 
-$PYTHON setup.py install
 
-rm -rf $SP_DIR/PySide
-rm -rf $SP_DIR/__pycache__
-rm -rf $PREFIX/bin/nose*
+$PYTHON setup.py install
 

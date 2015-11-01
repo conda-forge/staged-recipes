@@ -8,9 +8,13 @@ set LIB=%LIBRARY_LIB%;.\lib
 set LIBPATH=%LIBRARY_LIB%;.\lib
 set INCLUDE=%LIBRARY_INC%
 
-rmdir lib\matplotlib\tests\baseline_images\* /s /q
+ECHO [directories] > setup.cfg
+ECHO basedirlist = %PREFIX% >> setup.cfg
+ECHO [packages] >> setup.cfg
+ECHO tests = False >> setup.cfg
+ECHO sample_data = False >> setup.cfg
+ECHO toolkits_tests = False >> setup.cfg
 
-copy setup.cfg.template setup.cfg
 if errorlevel 1 exit 1
 
 python setup.py install
