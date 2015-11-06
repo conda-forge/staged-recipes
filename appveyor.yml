@@ -1,7 +1,5 @@
 environment:
 
-  CONDA_INSTALL_LOCN: "C:\\conda"
-
   # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
   # /E:ON and /V:ON options are not enabled in the batch script interpreter
   # See: http://stackoverflow.com/a/13751649/163740
@@ -30,6 +28,10 @@ environment:
       CONDA_PY: "34"
       PY_CONDITION: "python >=3.4,<3.5"
 
+artifacts:
+    # Store built conda packages as artifacts
+    - path: 'conda_packages\*.bz2'
+
 # We always use a 64-bit machine, but can build x86 distributions
 # with the TARGET_ARCH variable (which is used by CMD_IN_ENV).
 platform:
@@ -39,9 +41,13 @@ install:
     # Set the CONDA_NPY, although it has no impact on the actual build. We need this because of a test within conda-build.
     - cmd: set CONDA_NPY=19
 
-    - appveyor DownloadFile "https://raw.githubusercontent.com/pelson/Obvious-CI/master/bootstrap-obvious-ci-and-miniconda.py"
-    - cmd: python bootstrap-obvious-ci-and-miniconda.py %CONDA_INSTALL_LOCN% %TARGET_ARCH% %CONDA_PY:~0,1% --without-obvci
-    - cmd: set PATH=%PATH%;%CONDA_INSTALL_LOCN%;%CONDA_INSTALL_LOCN%\scripts
+    # Use the pre-installed Miniconda for the desired arch
+    - ps: if($env:TARGET_ARCH -eq 'x86') 
+            {$root = "C:\Miniconda"}
+          else 
+            {$root = "C:\Miniconda-x64"}
+          $env:path="$root;$root\Scripts;$root\Library\bin;$($env:path)"
+    - cmd: conda update --yes --quiet conda
     - cmd: set PYTHONUNBUFFERED=1
 
     - cmd: conda config --set show_channel_urls yes
@@ -56,3 +62,7 @@ build: off
 
 test_script:
     - '%CMD_IN_ENV% obvci_conda_build_dir recipes conda-forge --channel main  --build-condition "numpy >=1.8" "%PY_CONDITION%"'
+    # copy any newly created conda packages into the conda_packages dir
+    - cmd: mkdir conda_packages
+    - cmd: 'copy /Y C:\Miniconda\conda-bld\win-32\*.bz2 conda_packages || cmd /c "exit /b 0"'
+    - cmd: 'copy /Y C:\Miniconda-x64\conda-bld\win-64\*.bz2 conda_packages || cmd /c "exit /b 0"'
