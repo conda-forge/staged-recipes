@@ -49,7 +49,7 @@ unset LANG
 # state the build dependencies at OS level, too.
 yum install -y libXext libXrender libSM tk libX11-devel
 
-obvci_conda_build_dir /conda-recipes conda-forge --build-condition "numpy >=1.8" "python >=2.7,<3|>=3.4,<3.5"
+obvci_conda_build_dir /conda-recipes conda-forge --build-condition "numpy >=1.8" "python >=2.7,<3|>=3.4"
     
 EOF
 
