@@ -7,8 +7,10 @@
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
   ARCH="-m64"
-else
+elif [ ${MACHINE_TYPE} == 'x86_32' ]; then
   ARCH="-m32"
+else
+  ARCH=""
 fi
 
 CFLAGS=${ARCH} CPPFLAGS=${ARCH} CXXFLAGS=${ARCH} LDFLAGS=${ARCH} FFLAGS=${ARCH} \
