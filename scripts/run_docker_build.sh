@@ -38,6 +38,9 @@ conda clean --lock
 conda update --yes conda conda-build
 conda install --yes anaconda-client obvious-ci
 
+# Workaround latest conda-build.
+conda install --yes conda-build=1.18.2
+
 conda info
 unset LANG
 
@@ -50,6 +53,5 @@ unset LANG
 yum install -y libXext libXrender libSM tk libX11-devel
 
 obvci_conda_build_dir /conda-recipes conda-forge --build-condition "numpy >=1.8" "python >=2.7,<3|>=3.4"
-    
-EOF
 
+EOF
