@@ -17,7 +17,7 @@ CONDARC
 )
 
 cat << EOF | docker run -i \
-                        -v ${REPO_ROOT}/recipes:/conda-recipes \
+                        -v ${REPO_ROOT}/ready_recipes:/conda-recipes \
                         -a stdin -a stdout -a stderr \
                         $IMAGE_NAME \
                         bash || exit $?
@@ -37,6 +37,7 @@ conda clean --lock
 
 conda update --yes conda conda-build
 conda install --yes anaconda-client obvious-ci
+conda install --yes conda-build-all
 
 # Workaround latest conda-build.
 conda install --yes conda-build=1.18.2
@@ -52,6 +53,6 @@ unset LANG
 # state the build dependencies at OS level, too.
 yum install -y libXext libXrender libSM tk libX11-devel
 
-obvci_conda_build_dir /conda-recipes conda-forge --build-condition "numpy >=1.8" "python >=2.7,<3|>=3.4"
+conda-build-all /conda-recipes --matrix-conditions "numpy >=1.8" "python >=2.7,<3|>=3.4"
 
 EOF
