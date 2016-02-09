@@ -1,4 +1,3 @@
 #!/usr/bin/env bash
 
-mkdir -p $PREFIX/share
-$PYTHON -c "print('Testing an example package.')" > $PREFIX/share/example.txt
+echo "print('Testing an example package.')" > $SP_DIR/example.py
