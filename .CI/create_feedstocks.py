@@ -24,7 +24,7 @@ DEBUG = False
 
 
 def list_recipes():
-    recipe_directory_name = 'ready_recipes'
+    recipe_directory_name = 'recipes'
     if os.path.isdir(recipe_directory_name):
         recipes = os.listdir(recipe_directory_name)
     else:
