@@ -130,9 +130,6 @@ if __name__ == '__main__':
             if is_merged_pr:
                 subprocess.check_call(['git', 'rm', '-r', recipe_dir])
 
-            if len(removed_recipes) >= 2:
-                break
-
     # Commit any removed packages.
     subprocess.check_call(['git', 'status'])
     if removed_recipes:
