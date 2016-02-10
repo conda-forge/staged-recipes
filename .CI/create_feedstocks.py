@@ -63,7 +63,7 @@ def repo_exists(organization, name):
 
 
 if __name__ == '__main__':
-    is_merged_pr = (os.environ.get('TRAVIS_BRANCH') == 'master' and os.environ.get('TRAVIS_PULL_REQUEST') == 'false')
+    is_merged_pr = (os.environ.get('TRAVIS_BRANCH') == 'create_feedstocks' and os.environ.get('TRAVIS_PULL_REQUEST') == 'false')
 
     smithy_conf = os.path.expanduser('~/.conda-smithy')
     if not os.path.exists(smithy_conf):
@@ -136,6 +136,7 @@ if __name__ == '__main__':
     # Commit any removed packages.
     subprocess.check_call(['git', 'status'])
     if removed_recipes:
+        subprocess.check_call(['git', 'checkout', os.environ.get('TRAVIS_BRANCH')])
         msg = ('Removed recipe{s} ({}) after converting into feedstock{s}.'
                ''.format(', '.join(removed_recipes),
                          s='s' if len(removed_recipes) > 1 else ''))
