@@ -136,6 +136,7 @@ if __name__ == '__main__':
     # Commit any removed packages.
     subprocess.check_call(['git', 'status'])
     if removed_recipes:
+        subprocess.check_call(['git', 'checkout', os.environ.get('TRAVIS_BRANCH')])
         msg = ('Removed recipe{s} ({}) after converting into feedstock{s}.'
                ''.format(', '.join(removed_recipes),
                          s='s' if len(removed_recipes) > 1 else ''))
