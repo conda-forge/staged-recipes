@@ -12,6 +12,7 @@ cmake \
     -DENABLE_MATCH=OFF \
     -DENABLE_PETSC=OFF \
     -DENABLE_SLEPC=OFF \
+    -DBLAS_LAPACK_LIBRARIES=${PREFIX}/lib/libopenblas.so \
     .. | tee cmake.log 2>&1
 
 make | tee make.log 2>&1
