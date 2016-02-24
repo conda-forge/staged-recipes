@@ -17,7 +17,7 @@ CONDARC
 )
 
 cat << EOF | docker run -i \
-                        -v ${REPO_ROOT}/ready_recipes:/conda-recipes \
+                        -v ${REPO_ROOT}/recipes:/conda-recipes \
                         -a stdin -a stdout -a stderr \
                         $IMAGE_NAME \
                         bash || exit $?
