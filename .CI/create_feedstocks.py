@@ -88,7 +88,6 @@ if __name__ == '__main__':
         for recipe_dir, name in list_recipes():
             feedstock_dir = os.path.join(feedstocks_dir, name + '-feedstock')
             os.mkdir(feedstock_dir)
-            feedstock_dirs.append([feedstock_dir, name, recipe_dir])
             print('Making feedstock for {}'.format(name))
 
             subprocess.check_call(['conda', 'smithy', 'recipe-lint', recipe_dir])
@@ -98,6 +97,8 @@ if __name__ == '__main__':
             if not is_merged_pr:
                 # We just want to check that conda-smithy is doing its thing without having any metadata issues.
                 continue
+
+            feedstock_dirs.append([feedstock_dir, name, recipe_dir])
 
             subprocess.check_call(['git', 'remote', 'add', 'upstream_with_token',
                                    'https://conda-forge-admin:{}@github.com/conda-forge/{}'.format(os.environ['GH_TOKEN'],
