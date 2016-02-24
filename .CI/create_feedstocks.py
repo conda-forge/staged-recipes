@@ -43,7 +43,7 @@ def list_recipes():
 def tmp_dir(*args, **kwargs):
     temp_dir = tempfile.mkdtemp(*args, **kwargs)
     try:
-        yield temp_dir 
+        yield temp_dir
     finally:
         shutil.rmtree(temp_dir)
 
@@ -54,7 +54,7 @@ def repo_exists(organization, name):
     # Use the organization provided.
     org = gh.get_organization(organization)
     try:
-        gh_repo = org.get_repo(name)
+        org.get_repo(name)
         return True
     except GithubException as e:
         if e.status == 404:
@@ -68,6 +68,7 @@ if __name__ == '__main__':
     smithy_conf = os.path.expanduser('~/.conda-smithy')
     if not os.path.exists(smithy_conf):
         os.mkdir(smithy_conf)
+
     def write_token(name, token):
         with open(os.path.join(smithy_conf, name + '.token'), 'w') as fh:
             fh.write(token)
@@ -78,18 +79,17 @@ if __name__ == '__main__':
     if 'GH_TOKEN' in os.environ:
         write_token('github', os.environ['GH_TOKEN'])
 
+    owner_info = ['--organization', 'conda-forge']
+
     print('Calculating the recipes which need to be turned into feedstocks.')
     removed_recipes = []
     with tmp_dir('__feedstocks') as feedstocks_dir:
+        feedstock_dirs = []
         for recipe_dir, name in list_recipes():
             feedstock_dir = os.path.join(feedstocks_dir, name + '-feedstock')
             os.mkdir(feedstock_dir)
+            feedstock_dirs.append([feedstock_dir, name, recipe_dir])
             print('Making feedstock for {}'.format(name))
-
-            owner_info = ['--organization', 'conda-forge']
-            if DEBUG:
-                # owner_info = ['--user', 'pelson']
-                pass
 
             subprocess.check_call(['conda', 'smithy', 'recipe-lint', recipe_dir])
 
@@ -102,8 +102,7 @@ if __name__ == '__main__':
             subprocess.check_call(['git', 'remote', 'add', 'upstream_with_token',
                                    'https://conda-forge-admin:{}@github.com/conda-forge/{}'.format(os.environ['GH_TOKEN'],
                                                                                                    os.path.basename(feedstock_dir))],
-                                   cwd=feedstock_dir)
-
+                                  cwd=feedstock_dir)
 
             # Sometimes we already have the feedstock created. We need to deal with that case.
             if repo_exists('conda-forge', os.path.basename(feedstock_dir)):
@@ -117,6 +116,9 @@ if __name__ == '__main__':
             else:
                 subprocess.check_call(['conda', 'smithy', 'github-create', feedstock_dir] + owner_info)
 
+        # Break the previous loop to allow the TravisCI registering to take place only once per function call.
+        # Without this, intermittent failiures to synch the TravisCI repos ensue.
+        for feedstock_dir, name, recipe_dir in feedstock_dirs:
             subprocess.check_call(['conda', 'smithy', 'register-feedstock-ci', feedstock_dir] + owner_info)
 
             subprocess.check_call(['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
@@ -136,7 +138,7 @@ if __name__ == '__main__':
         subprocess.check_call(['git', 'checkout', os.environ.get('TRAVIS_BRANCH')])
         msg = ('Removed recipe{s} ({}) after converting into feedstock{s}.'
                ''.format(', '.join(removed_recipes),
-                         s='s' if len(removed_recipes) > 1 else ''))
+                         s=('s' if len(removed_recipes) > 1 else '')))
         if is_merged_pr:
             subprocess.check_call(['git', 'remote', 'add', 'upstream_with_token',
                                    'https://conda-forge-admin:{}@github.com/conda-forge/staged-recipes'.format(os.environ['GH_TOKEN'])])
@@ -146,4 +148,3 @@ if __name__ == '__main__':
                                           stderr=subprocess.STDOUT)
         else:
             print('Would git commit, with the following message: \n   {}'.format(msg))
-
