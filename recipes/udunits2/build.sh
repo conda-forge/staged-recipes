@@ -10,8 +10,10 @@ then
    autoreconf -i --force
 fi
 
-export LDFLAGS="-L$PREFIX/lib"
-export CFLAGS="-fPIC -I$PREFIX/include"
+if [[ $(uname) != Darwin ]]; then
+    export LDFLAGS="-L$PREFIX/lib"
+    export CFLAGS="-fPIC -I$PREFIX/include"
+fi
 
 ./configure --prefix=$PREFIX
 
