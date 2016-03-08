@@ -1,15 +1,20 @@
 #!/bin/bash
 
 if [[ $(uname) != Darwin ]]; then
-    yum install -y automake libtool expat-devel texinfo
+    yum install -y automake libtool texinfo
 fi
+
 
 if [ ! -f configure ];
 then
    autoreconf -i --force
 fi
 
+export LDFLAGS="-L$PREFIX/lib"
+export CFLAGS="-fPIC -I$PREFIX/include"
+
 ./configure --prefix=$PREFIX
+
 make
 make check
 make install
