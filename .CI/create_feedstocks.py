@@ -115,7 +115,7 @@ if __name__ == '__main__':
                     # Sometimes, we have a repo, but there are no commits on it! Just catch that case.
                     subprocess.check_call(['git', 'checkout', '-b' 'master'], cwd=feedstock_dir)
             else:
-                subprocess.check_call(['conda', 'smithy', 'github-create', feedstock_dir] + owner_info)
+                subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info)
 
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
         # Without this, intermittent failiures to synch the TravisCI repos ensue.
