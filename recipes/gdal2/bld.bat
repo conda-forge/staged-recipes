@@ -1,9 +1,4 @@
 
-REM echo %PREFIX%
-REM echo %LIBRARY_INC%
-REM echo %LIBRARY_LIB%
-REM exit 1
-
 if %ARCH% == 64 (
     set WIN64FLAG=WIN64=YES
 ) else (
@@ -43,16 +38,3 @@ copy data\*wkt %PREFIX%\share\gdal\
 
 move %PREFIX%\bin\*.* %PREFIX%
 if errorlevel 1 exit 1
-
-REM PG_INC_DIR=%PREFIX% ^
-REM PG_LIB=%PREFIX%\libpq.lib ^
-rem NETCDF_PLUGIN=NO ^
-rem NETCDF_SETTING=yes ^
-rem NETCDF_LIB=%PREFIX%\netcdf.lib ^
-rem NETCDF_INC_DIR=%PREFIX% ^
-rem CURL_DIR=%PREFIX% ^
-rem CURL_INC=-I%PREFIX% ^
-rem CURL_LIB="%PREFIX%\libcurl.lib %PREFIX%\libeay32.lib %PREFIX%\ssleay32.lib" ^
-rem CURL_CFLAGS=-DCURL_STATICLIB
-
-
