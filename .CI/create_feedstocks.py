@@ -120,7 +120,7 @@ if __name__ == '__main__':
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
         # Without this, intermittent failiures to synch the TravisCI repos ensue.
         for feedstock_dir, name, recipe_dir in feedstock_dirs:
-            subprocess.check_call(['conda', 'smithy', 'register-ci', feedstock_dir] + owner_info)
+            subprocess.check_call(['conda', 'smithy', 'register-ci', '--feedstock_directory', feedstock_dir] + owner_info)
 
             subprocess.check_call(['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             subprocess.check_call(['git', 'commit', '-am', "Re-render the feedstock after CI registration."], cwd=feedstock_dir)
