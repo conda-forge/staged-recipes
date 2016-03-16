@@ -50,6 +50,9 @@ unset LANG
 # state the build dependencies at OS level, too.
 yum install -y libXext libXrender libSM tk libX11-devel
 
+# We don't need to build the example recipe.
+rm -rf /conda-recipes/example
+
 conda-build-all /conda-recipes --matrix-conditions "numpy >=1.8" "python >=2.7,<3|>=3.4"
 
 EOF
