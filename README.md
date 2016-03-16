@@ -1,6 +1,8 @@
 About
 -----
 
+[![Join the chat at https://gitter.im/conda-forge/staged-recipes](https://badges.gitter.im/conda-forge/staged-recipes.svg)](https://gitter.im/conda-forge/staged-recipes?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 This repo is a holding area for recipes destined for a conda-forge feedstock repo. To find out more about conda-forge, see https://github.com/conda-forge/conda-smithy.
 
 
