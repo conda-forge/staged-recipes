@@ -1,6 +1,11 @@
 #!/bin/bash
 
-SRC=$SYS_PREFIX/lib
+if [ $ARCH == 32 ]; then
+  ARCH=""
+fi
+
+# This is meant to be run on a docker image where gcc is installed to /usr/local
+SRC=/usr/local/lib${ARCH}
 DST=$PREFIX/lib
 
 mkdir $DST
