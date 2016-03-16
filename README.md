@@ -11,4 +11,4 @@ Build status
 
 [![Build Status](https://travis-ci.org/conda-forge/staged-recipes.svg?branch=master)](https://travis-ci.org/conda-forge/staged-recipes)
 
-[![Build status](https://ci.appveyor.com/api/projects/status/47716ba4hkginhp2/branch/master?svg=true)](https://ci.appveyor.com/project/pelson/staged-recipes/branch/master)
+[![Build status](https://ci.appveyor.com/api/projects/status/3lju80dibkmowsj5/branch/master?svg=true)](https://ci.appveyor.com/project/conda-forge/staged-recipes/branch/master)
