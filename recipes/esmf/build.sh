@@ -17,7 +17,11 @@ make check
 make install
 
 # Ideally these files should be moved.
-ln --symbolic ${PREFIX}/bin/binO/*.default/* ${PREFIX}/bin
-ln --symbolic ${PREFIX}/lib/libO/*.default/*.a ${PREFIX}/lib
-ln --symbolic ${PREFIX}/lib/libO/*.default/*.so ${PREFIX}/lib
-ln --symbolic ${PREFIX}/mod/modO/*.default/* ${PREFIX}/mod
+ln -s ${PREFIX}/bin/binO/*.default/* ${PREFIX}/bin
+ln -s ${PREFIX}/lib/libO/*.default/*.a ${PREFIX}/lib
+ln -s ${PREFIX}/mod/modO/*.default/* ${PREFIX}/mod
+if [[ $(uname) == Darwin ]]; then
+ln -s ${PREFIX}/lib/libO/*.default/*.dylib ${PREFIX}/lib
+else
+ln -s ${PREFIX}/lib/libO/*.default/*.so ${PREFIX}/lib
+fi
