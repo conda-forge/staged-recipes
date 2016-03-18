@@ -16,7 +16,7 @@ show_channel_urls: True
 CONDARC
 )
 
-cat << EOF | docker run -i -t \
+cat << EOF | docker run -i \
                         -v ${REPO_ROOT}/recipes:/conda-recipes \
                         -a stdin -a stdout -a stderr \
                         $IMAGE_NAME \
