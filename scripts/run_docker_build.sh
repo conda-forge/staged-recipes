@@ -16,7 +16,11 @@ show_channel_urls: True
 CONDARC
 )
 
-script=$(cat <<EOF
+cat << EOF | docker run -i \
+                        -v ${REPO_ROOT}/recipes:/conda-recipes \
+                        -a stdin -a stdout -a stderr \
+                        $IMAGE_NAME \
+                        bash || exit $?
 
 if [ "${BINSTAR_TOKEN}" ];then
     export BINSTAR_TOKEN=${BINSTAR_TOKEN}
@@ -52,11 +56,3 @@ rm -rf /conda-recipes/example
 conda-build-all /conda-recipes --matrix-conditions "numpy >=1.8" "python >=2.7,<3|>=3.4"
 
 EOF
-)
-
-docker run \
-           -v ${REPO_ROOT}/recipes:/conda-recipes \
-           -a stdin -a stdout -a stderr \
-	   -i -t \
-           $IMAGE_NAME \
-           bash "$script" || exit $?
