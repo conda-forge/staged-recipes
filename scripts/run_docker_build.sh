@@ -5,23 +5,15 @@
 REPO_ROOT=$(cd "$(dirname "$0")/.."; pwd;)
 IMAGE_NAME="pelson/obvious-ci:latest_x64"
 
-config=$(cat <<CONDARC
-
+cat > .condarc << EOF
 channels:
- - conda-forge
- - defaults
+  - conda-forge
+  - defaults
 
-show_channel_urls: True
+  show_channel_urls: True
+EOF
 
-CONDARC
-)
-
-cat << EOF | docker run \
-                        -v ${REPO_ROOT}/recipes:/conda-recipes \
-                        -a stdin -a stdout -a stderr \
-			-i -t \
-                        $IMAGE_NAME \
-                        bash || exit $?
+cat > run.sh << EOF
 
 if [ "${BINSTAR_TOKEN}" ];then
     export BINSTAR_TOKEN=${BINSTAR_TOKEN}
@@ -31,7 +23,7 @@ fi
 export CONDA_NPY='19'
 
 export PYTHONUNBUFFERED=1
-echo "$config" > ~/.condarc
+mv /conda-recipes/.condarc ~/.condarc
 
 # A lock sometimes occurs with incomplete builds. The lock file is stored in build_artefacts.
 conda clean --lock
@@ -57,3 +49,13 @@ rm -rf /conda-recipes/example
 conda-build-all /conda-recipes --matrix-conditions "numpy >=1.8" "python >=2.7,<3|>=3.4"
 
 EOF
+
+docker run \
+           -v ${REPO_ROOT}/recipes:/conda-recipes \
+           -a stdin -a stdout -a stderr \
+	   -i -t \
+           $IMAGE_NAME \
+           bash /conda-recipes/run.sh || exit $?
+
+rm run.sh
+rm .condarc
