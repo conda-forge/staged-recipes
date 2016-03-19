@@ -40,6 +40,10 @@ conda install --yes anaconda-client obvious-ci
 conda install --yes conda-build-all
 
 conda info
+
+### Make sure we are using UTF-8 encoding.
+# This has generally been found to be a good move especially when handling Python code or text
+# that ends up having UTF-8 characters. We should improve on this by configuring `locales`.
 export LANG=en_US.UTF-8
 
 # These are some standard tools. But they aren't available to a recipe at this point (we need to figure out how a recipe should define OS level deps)
