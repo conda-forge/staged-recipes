@@ -137,8 +137,8 @@ if __name__ == '__main__':
     subprocess.check_call(['git', 'status'])
     if removed_recipes:
         subprocess.check_call(['git', 'checkout', os.environ.get('TRAVIS_BRANCH')])
-        msg = ('Removed recipe{s} ({}) after converting into feedstock{s}.'
-               ''.format(', '.join(removed_recipes),
+        msg = ('Removed recipe{s} ({}) after converting into feedstock{s}. '
+               '[ci skip]'.format(', '.join(removed_recipes),
                          s=('s' if len(removed_recipes) > 1 else '')))
         if is_merged_pr:
             subprocess.check_call(['git', 'remote', 'add', 'upstream_with_token',
