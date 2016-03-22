@@ -1,6 +1,6 @@
 :: Ensure our geos will be used.
-rem  rmdir %SRC_DIR%\geos-3.3.3 /s /q || exit 1  !!FIXME!!
-rem  set GEOS_DIR=%LIBRARY_PREFIX%
+set GEOS_DIR=%LIBRARY_PREFIX%
+rmdir %SRC_DIR%\geos-3.3.3 /s /q || exit 1
 
 "%PYTHON%" setup.py install
 if errorlevel 1 exit 1
@@ -9,11 +9,18 @@ if errorlevel 1 exit 1
 rmdir %SP_DIR%\mpl_toolkits\basemap\data /s /q || exit 1
 
 :: Create the data directory.
-set DATADIR="%PREFIX%\share\basemap"
+set DATADIR="%LIBRARY_PREFIX%\share\basemap"
+mkdir %DATADIR% || exit 1
 
 :: Copy all the data.
-copy %SRC_DIR%\lib\mpl_toolkits\basemap\data\ %DATADIR%
+xcopy %SRC_DIR%\lib\mpl_toolkits\basemap\data\* %DATADIR% /s /e || exit 1
 
 :: But remove the high resolution data. (Packaged separately.)
-rmdir %DATADIR%\*_h.dat
-rmdir %DATADIR%\*_f.dat
+del %DATADIR%\*_i.dat
+del %DATADIR%\*_h.dat
+del %DATADIR%\*_f.dat
+del %DATADIR%\UScounties.*
+del %DATADIR%\test27
+del %DATADIR%\test83
+del %DATADIR%\testntv2
+del %DATADIR%\testvarious

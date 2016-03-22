@@ -16,5 +16,8 @@ DATADIR="$PREFIX/share/basemap"
 cp -a $SRC_DIR/lib/mpl_toolkits/basemap/data/ $DATADIR
 
 # But remove the high resolution data. (Packaged separately.)
-rm -rf $DATADIR/*_h.dat
-rm -rf $DATADIR/*_f.dat
+rm -f $DATADIR/*_i.dat
+rm -f $DATADIR/*_h.dat
+rm -f $DATADIR/*_f.dat
+rm -f $DATADIR/UScounties.*
+rm -f $DATADIR/{test27,testvarious,test83,testntv2}
