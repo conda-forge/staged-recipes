@@ -1,0 +1,79 @@
+--- django/contrib/gis/gdal/libgdal.py	2016-03-05 11:14:16.000000000 -0300
++++ django/contrib/gis/gdal/libgdal.py	2016-03-12 06:55:40.601440867 -0300
+@@ -2,58 +2,34 @@
+ 
+ import logging
+ import os
++import sys
+ import re
+ from ctypes import CDLL, CFUNCTYPE, c_char_p, c_int
+-from ctypes.util import find_library
+ 
+ from django.contrib.gis.gdal.error import GDALException
+ from django.core.exceptions import ImproperlyConfigured
+ 
+ logger = logging.getLogger('django.contrib.gis')
+ 
+-# Custom library path set?
+-try:
+-    from django.conf import settings
+-    lib_path = settings.GDAL_LIBRARY_PATH
+-except (AttributeError, EnvironmentError,
+-        ImportError, ImproperlyConfigured):
+-    lib_path = None
+-
+-if lib_path:
+-    lib_names = None
++# This loads the GDAL/OGR C library.
++if os.name == 'posix':
++    platform = os.uname()[0]
++    if platform == 'Linux':
++        libname = 'libgdal.so'
++    elif platform == 'Darwin':
++        libname = 'libgdal.1.dylib'
++    lgdal = CDLL(os.path.join(sys.prefix, 'lib', libname))
+ elif os.name == 'nt':
+-    # Windows NT shared libraries
+-    lib_names = ['gdal111', 'gdal110', 'gdal19', 'gdal18', 'gdal17']
+-elif os.name == 'posix':
+-    # *NIX library names.
+-    lib_names = ['gdal', 'GDAL', 'gdal1.11.0', 'gdal1.10.0', 'gdal1.9.0',
+-        'gdal1.8.0', 'gdal1.7.0']
+-else:
+-    raise GDALException('Unsupported OS "%s"' % os.name)
+-
+-# Using the ctypes `find_library` utility  to find the
+-# path to the GDAL library from the list of library names.
+-if lib_names:
+-    for lib_name in lib_names:
+-        lib_path = find_library(lib_name)
+-        if lib_path is not None:
+-            break
+-
+-if lib_path is None:
+-    raise GDALException('Could not find the GDAL library (tried "%s"). '
+-                       'Try setting GDAL_LIBRARY_PATH in your settings.' %
+-                       '", "'.join(lib_names))
+-
+-# This loads the GDAL/OGR C library
+-lgdal = CDLL(lib_path)
+-
+-# On Windows, the GDAL binaries have some OSR routines exported with
+-# STDCALL, while others are not.  Thus, the library will also need to
+-# be loaded up as WinDLL for said OSR functions that require the
+-# different calling convention.
+-if os.name == 'nt':
++    # On Windows, the GDAL binaries have some OSR routines exported with
++    # STDCALL, while others are not.  Thus, the library will also need to
++    # be loaded up as WinDLL for said OSR functions that require the
++    # different calling convention.
+     from ctypes import WinDLL
+-    lwingdal = WinDLL(lib_path)
++    libname = os.path.join(sys.prefix, 'Library', 'bin', 'gdal111.dll')
++    lgdal = CDLL(libname)
++    lwingdal = WinDLL(libname)
++else:
++    raise Exception('No valid platform name. Found {}'.format(os.name))
+ 
+ 
+ def std_call(func):
