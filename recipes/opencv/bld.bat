@@ -42,7 +42,7 @@ cmake .. -G%CMAKE_GENERATOR%                        ^
     -DWITH_CUDA=0                                   ^
     -DWITH_OPENCL=0                                 ^
     -DWITH_OPENNI=0                                 ^
-    -DWITH_FFMPEG=1                                 ^
+    -DWITH_FFMPEG=0                                 ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%"
 
 cmake --build . --config %CMAKE_CONFIG% --target ALL_BUILD
