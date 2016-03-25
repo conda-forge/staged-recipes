@@ -2,4 +2,6 @@
 
 set -e
 
-icu-config --help
+genrb de.txt
+echo "de.res" > list.txt
+pkgdata -p mybundle list.txt

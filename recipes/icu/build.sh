@@ -7,9 +7,10 @@ chmod +x configure install-sh
     --disable-samples \
     --disable-extras \
     --disable-layout \
+    --disable-tests \
     --enable-static
 
-make
+make -j$CPU_COUNT
 make check
 make install
 
