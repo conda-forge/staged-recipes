@@ -15,4 +15,3 @@ if errorlevel 1 exit 1
 REM Install step
 nmake install
 if errorlevel 1 exit 1
-
