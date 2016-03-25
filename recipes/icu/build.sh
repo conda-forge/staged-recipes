@@ -5,7 +5,9 @@ chmod +x configure install-sh
 
 ./configure --prefix="$PREFIX" \
     --disable-samples \
-    --disable-tests \
+    --disable-extras \
+    --disable-icuio \
+    --disable-layout \
     --enable-static
 
 make
