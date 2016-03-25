@@ -24,5 +24,4 @@ cmake .. -G"%GENERATOR%"             ^
  -DBIN_INSTALL_DIR=%LIBRARY_BIN%
 
 cmake --build . --config %CMAKE_CONFIG% --target ALL_BUILD
-ctest
 cmake --build . --config %CMAKE_CONFIG% --target INSTALL
