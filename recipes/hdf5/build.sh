@@ -2,7 +2,8 @@
 
 ./configure --prefix=$PREFIX \
     --enable-linux-lfs --with-zlib \
-    --with-pthread=yes  --enable-cxx --with-default-plugindir=$PREFIX/lib/hdf5/plugin
+    --with-pthread=yes  --enable-cxx --with-default-plugindir=$PREFIX/lib/hdf5/plugin \
+    --disable-silent-rules  # To make Travis happy with the level of activity.
 
 make
 make check
