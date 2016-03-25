@@ -13,3 +13,6 @@ chmod +x configure install-sh
 make
 make check
 make install
+
+mv $PREFIX/sbin/* $PREFIX/bin/
+rmdir $PREFIX/sbin
