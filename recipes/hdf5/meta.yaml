@@ -9,6 +9,14 @@ source:
   url: http://www.hdfgroup.org/ftp/HDF5/current/src/hdf5-{{version}}.tar.gz
   md5: b8ed9a36ae142317f88b0c7ef4b9c618
   patches:
+    # Patches the test suite to skip the `cache` test.
+    # This test has been found to rather resource intensive.
+    # In particular, it caused Travis CI's Mac builds to hang.
+    # Given that we simply skip the test on all platforms.
+    # For more details, see the PR where this was proposed.
+    #
+    # https://github.com/conda-forge/staged-recipes/pull/199
+    #
     - test_Makefile.in.patch
 
 build:
@@ -25,6 +33,49 @@ requirements:
     - zlib
   run:
     - zlib
+
+test:
+  commands:
+    # Verify CLI tools.
+    {% set hdf5_cmds = [
+        "gif2h5",
+        "h52gif",
+        "h5c++",
+        "h5cc",
+        "h5copy",
+        "h5debug",
+        "h5diff",
+        "h5dump",
+        "h5import",
+        "h5jam",
+        "h5ls",
+        "h5mkgrp",
+        "h5perf_serial",
+        "h5redeploy",
+        "h5repack",
+        "h5repart",
+        "h5stat",
+        "h5unjam"
+    ] %}
+    {% for each_hdf5_cmd in hdf5_cmds %}
+    - command -v {{ each_hdf5_cmd }}        # [unix]
+    - where {{ each_hdf5_cmd }}             # [win]
+    {% endfor %}
+
+    # Verify libraries.
+    {% set hdf5_libs = [
+        "hdf5",
+        "hdf5_cpp",
+        "hdf5_hl",
+        "hdf5_hl_cpp"
+    ] %}
+    {% for each_hdf5_lib in hdf5_libs %}
+    - test -f $PREFIX/lib/lib{{ each_hdf5_lib }}.a                           # [unix]
+    - test -f $PREFIX/lib/lib{{ each_hdf5_lib }}.dylib                       # [osx]
+    - test -f $PREFIX/lib/lib{{ each_hdf5_lib }}.so                          # [linux]
+    - if not exist %PREFIX%\\Library\\lib\\{{ each_hdf5_lib }}.lib exit 1    # [win]
+    - if not exist %PREFIX%\\Library\\bin\\{{ each_hdf5_lib }}.dll exit 1    # [win]
+    {% endfor %}
 
 about:
   home: http://www.hdfgroup.org/HDF5/
