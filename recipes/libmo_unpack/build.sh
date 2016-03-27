@@ -14,5 +14,9 @@ fi
 ./configure --prefix=$PREFIX CFLAGS="$CFLAGS"
 
 make
-make check
+
+if [[ $(uname) == Linux ]]; then
+    make check
+fi
+
 make install
