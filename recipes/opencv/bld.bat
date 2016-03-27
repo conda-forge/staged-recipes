@@ -45,7 +45,7 @@ rem I had to take out the PNG_LIBRARY because it included
 rem a Windows path which caused it to be wrongly escaped
 rem and thus an error. Somehow though, CMAKE still finds
 rem the correct png library...
-cmake .. -G%CMAKE_GENERATOR%                        ^
+cmake .. -G"%GENERATOR%"                            ^
     -DBUILD_TESTS=0                                 ^
     -DBUILD_DOCS=0                                  ^
     -DBUILD_PERF_TESTS=0                            ^
@@ -59,8 +59,8 @@ cmake .. -G%CMAKE_GENERATOR%                        ^
     -DPYTHON_INCLUDE_PATH="%PREFIX%\include"        ^
     -DPYTHON_LIBRARY="%PREFIX%\libs\python27.lib"   ^
     -DPYTHON_PACKAGES_PATH="%SP_DIR%"               ^
+	-DWITH_EIGEN=1                                  ^
     -DWITH_CUDA=0                                   ^
-    -DWITH_OPENCL=0                                 ^
     -DWITH_OPENNI=0                                 ^
     -DWITH_FFMPEG=0                                 ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%"
@@ -79,3 +79,15 @@ rmdir "%LIBRARY_PREFIX%\%OPENCV_ARCH%" /S /Q
 rem By default cv.py is installed directly in site-packages
 rem Therefore, we have to copy all of the dlls directly into it!
 xcopy "%LIBRARY_BIN%\opencv*.dll" "%SP_DIR%"
+
+goto :eof
+
+:TRIM
+  SetLocal EnableDelayedExpansion
+  Call :TRIMSUB %%%1%%
+  EndLocal & set %1=%tempvar%
+  GOTO :eof
+
+  :TRIMSUB
+  set tempvar=%*
+  GOTO :eof
