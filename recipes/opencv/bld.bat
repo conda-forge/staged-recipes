@@ -3,22 +3,42 @@
 mkdir build
 cd build
 
-rem Python 3.x not supported by OpenCV 2.x
-if %ARCH%==32 (
-  if %PY_VER% LSS 3 (
-    set CMAKE_GENERATOR="Visual Studio 9 2008"
-    set CMAKE_CONFIG="Release"
-	set OPENCV_ARCH=x86
-	set OPENCV_VC=vc9
-  )
+set CMAKE_CONFIG="Release"
+
+:: Set the right msvc version according to Python version
+REM write a temporary batch file to map cl.exe version to visual studio version
+echo @echo 15=9 > msvc_versions.bat
+echo @echo 16=10 >> msvc_versions.bat
+echo @echo 17=11 >> msvc_versions.bat
+echo @echo 18=12 >> msvc_versions.bat
+echo @echo 19=14 >> msvc_versions.bat
+
+REM Run cl.exe to find which version our compiler is
+for /f "delims=" %%A in ('cl /? 2^>^&1 ^| findstr /C:"Version"') do set "CL_TEXT=%%A"
+FOR /F "tokens=1,2 delims==" %%i IN ('msvc_versions.bat') DO echo %CL_TEXT% | findstr /C:"Version %%i" > nul && set VSTRING=%%j && goto FOUND
+EXIT 1
+:FOUND
+
+call :TRIM VSTRING %VSTRING%
+
+set OPENCV_ARCH=x86
+if "%VSTRING%" == "9" (
+    set GENERATOR=Visual Studio 9 2008
+    set OPENCV_VC=vc9
 )
-if %ARCH%==64 (
-  if %PY_VER% LSS 3 (
-    set CMAKE_GENERATOR="Visual Studio 9 2008 Win64"
-    set CMAKE_CONFIG="Release"
-	set OPENCV_ARCH=x64
-	set OPENCV_VC=vc9
-  )
+if "%VSTRING%" == "10" (
+    set GENERATOR=Visual Studio 10 2010
+    set OPENCV_VC=vc10
+)
+if "%VSTRING%" == "14" (
+    set GENERATOR=Visual Studio 14 2015
+    set OPENCV_VC=vc14
+)
+if not defined GENERATOR EXIT 1
+
+if %ARCH% EQU 64 (
+    set GENERATOR=%GENERATOR% Win64
+    set OPENCV_ARCH=x64
 )
 
 rem I had to take out the PNG_LIBRARY because it included
