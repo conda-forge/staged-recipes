@@ -3,5 +3,9 @@
 ./configure --prefix=${PREFIX}
 
 make
-make check
+
+if [[ $(uname) == Linux ]]; then
+    make check
+fi
+
 make install
