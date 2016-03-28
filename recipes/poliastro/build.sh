@@ -1,3 +1,3 @@
 #!/bin/bash
 
-pip install --no-deps .
+${PYTHON} setup.py install --single-version-externally-managed --record record.txt

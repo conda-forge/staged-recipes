@@ -1,4 +1,3 @@
 CD %SRC_DIR%
-py.test poliastro
+py.test -vv
 IF %ERRORLEVEL% NEQ 0 EXIT /B %ERRORLEVEL%
-
