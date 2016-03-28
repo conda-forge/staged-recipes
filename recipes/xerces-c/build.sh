@@ -1,8 +1,7 @@
 #!/bin/bash
 
 ./configure --prefix=$PREFIX \
-    --disable-network \
-    --disable-static
+    --disable-network 
 
 make
 make check
