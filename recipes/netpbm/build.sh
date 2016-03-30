@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Generated from configure on the build machine, and then modified to pick up
 # the shared libraries in /usr/local (which is replaced with $PREFIX)
 
