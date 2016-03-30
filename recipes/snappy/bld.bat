@@ -1,3 +1,4 @@
+REM Microsoft Visual Studio Project files from https://github.com/kmanley/snappy-msvc
 cp $RECIPE_DIR/snappy.sln $SRC_DIR
 cp $RECIPE_DIR/snappy.vcproj $SRC_DIR
 
