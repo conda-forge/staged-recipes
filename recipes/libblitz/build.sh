@@ -1,6 +1,5 @@
 #!/bin/bash
 
-autoreconf -fi
 ./configure \
   --prefix="${PREFIX}" \
   --enable-static \
@@ -11,4 +10,5 @@ autoreconf -fi
   CPPFLAGS="-I${PREFIX}/include -pthread" \
   LDFLAGS="-L${PREFIX}/lib"
 make
+make check
 make install
