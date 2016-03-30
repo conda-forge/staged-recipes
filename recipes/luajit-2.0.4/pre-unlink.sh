@@ -1,1 +1,0 @@
-rm $PREFIX/bin/lua
