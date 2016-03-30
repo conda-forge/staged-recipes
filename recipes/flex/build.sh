@@ -2,5 +2,9 @@
 
 ./configure --prefix="$PREFIX"
 make
-make check
+# Skipped as this requires bison.
+# Bison requires flex to build.
+# So, will have to do the first
+#  round of builds without this.
+#make check
 make install
