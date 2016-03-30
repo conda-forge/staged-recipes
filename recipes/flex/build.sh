@@ -1,5 +1,6 @@
 #!/bin/bash
 
+autoreconf
 ./configure --prefix="$PREFIX"
 make
 # Skipped as this requires bison.
