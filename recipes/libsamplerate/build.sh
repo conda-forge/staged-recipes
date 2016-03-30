@@ -2,4 +2,5 @@
 
 ./autogen.sh
 make
+make check
 make install
