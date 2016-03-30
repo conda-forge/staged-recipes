@@ -1,7 +1,13 @@
 #!/bin/bash
 
-./autogen.sh
-./configure --quiet --enable-shared --enable-mat73 --enable-extended-sparse --prefix="${PREFIX}" --with-zlib="${PREFIX}" --with-hdf5="${PREFIX}"
+./configure --enable-mat73 --enable-extended-sparse --prefix="${PREFIX}" --with-zlib="${PREFIX}" --with-hdf5="${PREFIX}"
 make
-eval ${LIBRARY_SEARCH_VAR}=$PREFIX/lib make check
+
+if [[ `uname` == 'Darwin' ]];
+then
+	eval DYLD_FALLBACK_LIBRARY_PATH=$PREFIX/lib make check
+else
+	make check
+fi
+
 make install
