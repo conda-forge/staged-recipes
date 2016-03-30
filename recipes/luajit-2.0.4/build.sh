@@ -1,0 +1,2 @@
+make PREFIX=$PREFIX LUAJIT_LIB=$PREFIX/lib/libluajit-5.1.a INSTALL_INC=$PREFIX/include
+make install PREFIX=$PREFIX INSTALL_INC=$PREFIX/include

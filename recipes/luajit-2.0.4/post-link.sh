@@ -1,0 +1,1 @@
+ln -s $PREFIX/bin/luajit $PREFIX/bin/lua
