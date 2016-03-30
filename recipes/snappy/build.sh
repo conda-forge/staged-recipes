@@ -1,7 +1,6 @@
 #!/bin/env bash
 
-
-cp -r $RECIPE_DIR/autogen/* $SRC_DIR
+./autogen.sh
 ./configure --prefix=$PREFIX
 make
 make check
