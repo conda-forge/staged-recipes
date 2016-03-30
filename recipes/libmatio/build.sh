@@ -1,6 +1,11 @@
 #!/bin/bash
 
-./configure --enable-mat73 --enable-extended-sparse --prefix="${PREFIX}" --with-zlib="${PREFIX}" --with-hdf5="${PREFIX}"
+./configure \
+  --enable-mat73 \
+  --enable-extended-sparse \
+  --prefix="${PREFIX}" \
+  --with-zlib="${PREFIX}" \
+  --with-hdf5="${PREFIX}"
 make
 
 if [[ `uname` == 'Darwin' ]];
