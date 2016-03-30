@@ -1,6 +1,5 @@
-cd %SRC_DIR%
-git clone https://github.com/kmanley/snappy-msvc
-cd snappy-msvc
+cp $RECIPE_DIR/snappy.sln $SRC_DIR
+cp $RECIPE_DIR/snappy.vcproj $SRC_DIR
 
 set SLN_FILE=snappy.sln
 set SLN_CFG=Release
