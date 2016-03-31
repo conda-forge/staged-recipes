@@ -21,6 +21,14 @@ call :TRIM VSTRING %VSTRING%
 
 if "%VSTRING%" == "9" (
     set GENERATOR=Visual Studio 9 2008
+
+    if %ARCH% EQU 64 (
+      rem Handle the case whereby Visual Studio 2008 Express does not properly
+      rem support the x64 compiler.
+      call %RECIPE_DIR%\vs2008\setup_x64.bat
+      md "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\bin\amd64"
+      copy "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\bin\vcvars64.bat" "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\bin\amd64\vcvarsamd64.bat"
+    )
 )
 if "%VSTRING%" == "10" (
     set GENERATOR=Visual Studio 10 2010
