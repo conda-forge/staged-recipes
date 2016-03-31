@@ -4,3 +4,8 @@
 make
 make check
 make install
+
+if [[ $(uname) == Linux ]]; then
+  mkdir -p ${PREFIX}/lib
+  mv ${PREFIX}/lib64/* ${PREFIX}/lib/
+fi
