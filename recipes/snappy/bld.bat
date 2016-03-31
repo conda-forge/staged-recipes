@@ -1,6 +1,6 @@
 REM Microsoft Visual Studio Project files from https://github.com/kmanley/snappy-msvc
-copy $RECIPE_DIR\snappy.sln $SRC_DIR
-copy $RECIPE_DIR\snappy.vcproj $SRC_DIR
+copy %RECIPE_DIR%\snappy.sln %SRC_DIR%
+copy %RECIPE_DIR%\snappy.vcproj %SRC_DIR%
 
 set SLN_FILE=snappy.sln
 set SLN_CFG=Release
