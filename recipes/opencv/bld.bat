@@ -59,7 +59,7 @@ cmake .. -G"%GENERATOR%"                            ^
     -DPYTHON_INCLUDE_PATH="%PREFIX%\include"        ^
     -DPYTHON_LIBRARY="%PREFIX%\libs\python27.lib"   ^
     -DPYTHON_PACKAGES_PATH="%SP_DIR%"               ^
-	-DWITH_EIGEN=1                                  ^
+    -DWITH_EIGEN=1                                  ^
     -DWITH_CUDA=0                                   ^
     -DWITH_OPENNI=0                                 ^
     -DWITH_FFMPEG=0                                 ^
