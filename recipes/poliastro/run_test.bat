@@ -1,3 +1,0 @@
-CD %SRC_DIR%
-py.test -vv
-IF %ERRORLEVEL% NEQ 0 EXIT /B %ERRORLEVEL%
