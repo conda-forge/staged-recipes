@@ -1,9 +1,29 @@
 #!/bin/bash
 
+# This part of script is taken from opensuse to remove some non free code
+cd converter/ppm/hpcdtoppm || exit 1
+rm -rf *
+echo all: >> Makefile
+echo install.bin: >> Makefile
+echo install.man: >> Makefile
+echo install.data: >> Makefile
+echo install.manweb: >> Makefile
+echo clean: >> Makefile
+cd ../../..
+
+cd converter/ppm/ppmtompeg || exit 1
+rm -rf *
+echo all: >> Makefile
+echo install.bin: >> Makefile
+echo install.man: >> Makefile
+echo install.data: >> Makefile
+echo install.manweb: >> Makefile
+echo clean: >> Makefile
+cd ../../..
+
 # Generated from configure on the build machine, and then modified to pick up
 # the shared libraries in /usr/local (which is replaced with $PREFIX)
-
-# ./configure
+# the ./configure is interactive so don't bother.
 if [ "$(uname)" == "Darwin" ]; then
 	cp $RECIPE_DIR/config.mk.mac config.mk
 fi
@@ -20,7 +40,7 @@ make package pkgdir=$SRC_DIR/pkg
 
 if [[ `uname` == 'Darwin' ]];
 then
-	eval DYLD_FALLBACK_LIBRARY_PATH=$PREFIX/lib make check pkgdir=$SRC_DIR/pkg
+	eval DYLD_FALLBACK_LIBRARY_PATH=$PREFIX/lib:$SRC_DIR/lib make check pkgdir=$SRC_DIR/pkg
 else
 	make check pkgdir=$SRC_DIR/pkg
 fi
