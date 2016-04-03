@@ -17,7 +17,13 @@ sed -i -e "s:/usr/local:$PREFIX:g" config.mk
 
 make
 make package pkgdir=$SRC_DIR/pkg
-make check pkgdir=$SRC_DIR/pkg
+
+if [[ `uname` == 'Darwin' ]];
+then
+	eval DYLD_FALLBACK_LIBRARY_PATH=$PREFIX/lib make check pkgdir=$SRC_DIR/pkg
+else
+	make check pkgdir=$SRC_DIR/pkg
+fi
 
 # The netpbm install script is interactive, so just install it manually
 # ./installnetpbm
