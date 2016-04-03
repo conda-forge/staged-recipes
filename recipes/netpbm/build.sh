@@ -26,7 +26,7 @@ cd ../../..
 # the ./configure is interactive so don't bother.
 if [ "$(uname)" == "Darwin" ]; then
 	cp $RECIPE_DIR/config.mk.mac config.mk
-	export LDFLAGS=$LDFLAGS -headerpad_max_install_names
+	export LDFLAGS="$LDFLAGS -headerpad_max_install_names"
 fi
 if [ "$(uname)" == "Linux" ]; then
 	cp $RECIPE_DIR/config.mk.linux config.mk
