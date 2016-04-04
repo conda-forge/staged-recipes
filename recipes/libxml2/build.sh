@@ -16,5 +16,7 @@ fi
             $OPTS
 
 make
-make check
+if [ $(uname) != Darwin ]; then
+  make check
+fi
 make install
