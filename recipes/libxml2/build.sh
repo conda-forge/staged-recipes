@@ -16,5 +16,13 @@ fi
             --with-python="${PREFIX}" \
             --with-zlib="${PREFIX}"
 make
+# Correct weirdly linked library paths.
+if [[ `uname` == 'Darwin' ]];
+then
+    LIBDIR="${PREFIX}/lib"
+    LIBICUDATA="`cd ${LIBDIR} && ls libicudata.*.*.dylib`"
+    find "${SRC_DIR}/.libs" -type f | xargs -I {} install_name_tool -change "../lib/${LIBICUDATA}" "${PREFIX}/lib/${LIBICUDATA}" {} || true
+    find "${SRC_DIR}/python/.libs" -type f | xargs -I {} install_name_tool -change "../lib/${LIBICUDATA}" "${PREFIX}/lib/${LIBICUDATA}" {} || true
+fi
 eval ${LIBRARY_SEARCH_VAR}=$PREFIX/lib make check
 make install
