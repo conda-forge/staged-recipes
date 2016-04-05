@@ -1,4 +1,5 @@
 import nose
+import sys
 
 print(sys.platform)
 print(sys.version)
