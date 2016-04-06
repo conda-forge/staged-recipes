@@ -3,7 +3,8 @@
 mkdir build
 cd build
 
-set PYLIB=python27.lib
+:: CONDA_PY is the right way to do this, but we don't have that in a release yet.
+set PYLIB=python%PY_VER:.=%.lib
 
 cmake .. -G "NMake Makefiles" ^
     -Wno-dev ^

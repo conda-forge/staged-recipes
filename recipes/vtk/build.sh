@@ -4,13 +4,9 @@ mkdir build
 cd build
 
 if [ `uname` == Linux ]; then
-    CC=gcc44
-    CXX=g++44
     PY_LIB="libpython${PY_VER}.so"
 
     cmake .. \
-        -DCMAKE_C_COMPILER=$CC \
-        -DCMAKE_CXX_COMPILER=$CXX \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
         -DCMAKE_INSTALL_RPATH:STRING="${PREFIX}/lib" \
@@ -29,18 +25,13 @@ if [ `uname` == Linux ]; then
 fi
 
 if [ `uname` == Darwin ]; then
-    CC=cc
-    CXX=c++
     PY_LIB="libpython${PY_VER}.dylib"
-    SDK_PATH="/Developer/SDKs/MacOSX10.6.sdk"
+    MACOSX_DEPLOYMENT_TARGET=10.7
 
     cmake .. \
-        -DCMAKE_C_COMPILER=$CC \
-        -DCMAKE_CXX_COMPILER=$CXX \
         -DVTK_REQUIRED_OBJCXX_FLAGS='' \
         -DVTK_USE_CARBON=OFF \
         -DVTK_USE_TK=OFF \
-        -DIOKit:FILEPATH=${SDK_PATH}/System/Library/Frameworks/IOKit.framework \
         -DVTK_USE_COCOA=ON \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="$PREFIX" \
