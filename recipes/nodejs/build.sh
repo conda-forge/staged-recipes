@@ -1,13 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-if [ `uname` == Darwin ]; then
-    export MACOSX_DEPLOYMENT_TARGET=10.7
-fi
+# The without snapshot comes from the error in
+# https://github.com/nodejs/node/issues/4212.
+./configure --prefix=$PREFIX --without-snapshot
+make
+make install
 
-# This is a relocatable build of node.
-#    Standard builds with configure/make/make install are broken.
-make -j$CPU_COUNT binary
-for i in $(ls -d node-v*.tar.gz)
-do
-    tar -zxf $i -C $PREFIX/ --strip-components=1
-done
