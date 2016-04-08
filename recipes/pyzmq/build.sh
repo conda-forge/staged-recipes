@@ -12,5 +12,5 @@ if [ "$(uname)" == "Darwin" ]; then
 fi
 
 
-"$PYTHON" setup.py configure --zmq "$PREFIX"
-"$PYTHON" setup.py install
+"${PYTHON}" setup.py configure --zmq "${PREFIX}"
+"${PYTHON}" setup.py install
