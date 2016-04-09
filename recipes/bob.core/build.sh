@@ -8,5 +8,3 @@ if [[ `uname` == 'Darwin' ]]; then
 else
 	$PYTHON -B setup.py install --single-version-externally-managed --record record.txt
 fi
-
-
