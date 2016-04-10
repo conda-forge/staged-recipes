@@ -1,9 +1,12 @@
 import nose
 import sys
+import re
+
 splatform = sys.platform
 if splatform.startswith('win32'):
     # Installation of data files for script testing a bit rickety on Appveyor:
-    config = nose.config.Config(verbosity=2, exclude="test_scripts")
+    config = nose.config.Config(verbosity=2,
+                                exclude=[re.compile("test_scripts")])
 else:
     config = nose.config.Config(verbosity=2)
 
