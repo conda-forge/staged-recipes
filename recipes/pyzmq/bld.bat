@@ -6,11 +6,12 @@ set DISTUTILS_USE_SDK=1
 :: src\stdint.hpp not being available.
 :: https://github.com/conda-forge/staged-recipes/pull/292 has some more detail.
 
-SET ZMQ=%LIBRARY_PREFIX%
-IF "%CONDA_PY% == "27" SET ZMQ=bundled
-IF "%CONDA_PY% == "34" SET ZMQ=bundled
+set ZMQ=%LIBRARY_PREFIX%
+IF %CONDA_PY% LSS 35 (
+    SET ZMQ=bundled
+)
 
-"%PYTHON%" setup.py configure --zmq=%ZMQ%
+"%PYTHON%" setup.py configure --zmq "%ZMQ%"
 if errorlevel 1 exit 1
 
 "%PYTHON%" setup.py install
