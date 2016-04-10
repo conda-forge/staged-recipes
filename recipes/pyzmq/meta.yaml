@@ -1,4 +1,4 @@
-{% set version = "14.5.0" %}
+{% set version = "14.7.0" %}
 package:
   name: pyzmq
   version: {{ version }}
@@ -7,20 +7,26 @@ source:
   fn: pyzmq-{{ version }}.tar.gz
   # We use the pypi URL as it includes the prepared Cython files.
   url: https://pypi.python.org/packages/source/p/pyzmq/pyzmq-{{ version }}.tar.gz
-  md5: 8d3351a8ca2ca2a272a3f96bcb963e41
+  md5: 87e3abb33af5794db5ae85c667bbf324
 
 build:
   number: 0
 
+# On Windows ZeroMQ is bundled with pyzmq.
+# On Windows pyzmq includes tweetnacl so libsodium is not used.
+# We should revisit these in the future. However, packaging libsodium
+# on Windows is complicated by the fact that they ship project files,
+# but don't include one for VS 2008, which we would need for Python 2.7.
 requirements:
   build:
+    - pkg-config  # [not win]
     - python
-    - zeromq  # [not win]
-    - zeromq  # [win and py>=35]
+    - zeromq      # [not win or (win and py35)]
+    - libsodium   # [not win]
   run:
     - python
-    - zeromq  # [not win]
-    - zeromq  # [win and py>=35]
+    - zeromq      # [not win or (win and py35)]
+    - libsodium   # [not win]
 
 test:
   imports:
@@ -32,6 +38,9 @@ test:
   requires:
     - nose
 
+  commands:
+    - nosetests zmq.tests
+
 about:
   home: https://github.com/zeromq/pyzmq
   summary: Python bindings for zeromq
@@ -39,5 +48,6 @@ about:
 
 extra:
   recipe-maintainers:
-    - pelson
+    - jakirkham
     - minrk
+    - pelson
