@@ -52,7 +52,7 @@ export LANG=en_US.UTF-8
 # These were specific to installing matplotlib. I really want to avoid doing this if possible, but in some cases it
 # is inevitable (without re-implementing a full OS), so I also really want to ensure we can annotate our recipes to
 # state the build dependencies at OS level, too.
-yum install -y libXext libXrender libSM tk libX11-devel
+yum install -y libXext libXrender libSM tk libX11-devel mesa-libGL-devel
 
 # We don't need to build the example recipe.
 rm -rf /conda-recipes/example
