@@ -1,2 +1,11 @@
 #!/usr/bin/env bash
-$PYTHON -c "import OpenGL.GL" && echo OpenGL OK || echo Warning: Missing OpenGL driver, install with yum install mesa-libGL-devel or equivalent
+
+# Test for OpenGL Driver on Linux
+if [ `uname` == Linux ]; then
+    $PYTHON -c "import OpenGL.GL"
+    rc=$?;
+    if [[ $rc != 0 ]]; then
+        echo Warning: Missing OpenGL driver, install with yum install mesa-libGL-devel or equivalent
+        exit 1
+    fi
+fi
