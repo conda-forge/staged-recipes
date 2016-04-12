@@ -18,9 +18,3 @@ REM %PYTHON% setup.py install --blosc=%LIBRARY_PREFIX% --hdf5=%LIBRARY_PREFIX% -
 REM Proceed without external blosc
 
 %PYTHON% setup.py install --hdf5=%LIBRARY_PREFIX% --bzip2=%LIBRARY_PREFIX%
-
-if %PY3K%==1 (
-    rd /s /q %SP_DIR%\numpy
-    rd /s /q %SP_DIR%\__pycache__
-    rd /s /q %SP_DIR%\Cython
-)
