@@ -57,6 +57,9 @@ yum install -y libXext libXrender libSM tk libX11-devel mesa-libGL-devel
 # We don't need to build the example recipe.
 rm -rf /conda-recipes/example
 
+# A better way to handle yum requirements.
+find conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" | xargs -n1 cat | xargs -r yum install -y
+
 conda-build-all /conda-recipes --matrix-conditions "numpy >=1.9" "python >=2.7,<3|>=3.4"
 
 EOF
