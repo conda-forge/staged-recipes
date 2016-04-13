@@ -8,5 +8,5 @@ if errorlevel 1 exit 1
 REM Install step
 copy windows\libsvm.dll %LIBRARY_LIB%\
 if errorlevel 1 exit 1
-copy windows\svm.h %LIBRARY_INC%\
+copy svm.h %LIBRARY_INC%\
 if errorlevel 1 exit 1
