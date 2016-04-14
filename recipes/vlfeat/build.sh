@@ -15,10 +15,8 @@ if [ "$(uname -s)" == "Darwin" ]; then
   OPENMP=0
 fi
 
-export CFLAGS="-DVL_DISABLE_AVX=1 -DVL_DISABLE_OPENMP=$OPENMP"
-
 # Turn off all intrinsics.
-make ARCH=${VL_ARCH} DISABLE_AVX=yes DISABLE_OPENMP=$OPENMP MKOCTFILE="" MEX=""
+make ARCH=${VL_ARCH} DISABLE_AVX=yes DISABLE_OPENMP=$OPENMP MKOCTFILE="" MEX="" VERB=1
 
 # Run tests
 ./bin/${VL_ARCH}/test_gauss_elimination
