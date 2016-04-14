@@ -1,5 +1,8 @@
 environment:
 
+  # Version of MSYS2 to use.
+  MSYS2_BASEVER: 20150916
+
   # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
   # /E:ON and /V:ON options are not enabled in the batch script interpreter
   # See: http://stackoverflow.com/a/13751649/163740
@@ -14,21 +17,39 @@ environment:
     - TARGET_ARCH: "x86"
       CONDA_PY: "27"
       PY_CONDITION: "python >=2.7,<3"
+      MSYS2_ARCH: i686
+      MSYS2_BITS: 32
+      MSYSTEM: MINGW32
     - TARGET_ARCH: "x86"
       CONDA_PY: "34"
       PY_CONDITION: "python >=3.4,<3.5"
+      MSYS2_ARCH: i686
+      MSYS2_BITS: 32
+      MSYSTEM: MINGW32
     - TARGET_ARCH: "x86"
       CONDA_PY: "35"
       PY_CONDITION: "python >=3.5"
+      MSYS2_ARCH: i686
+      MSYS2_BITS: 32
+      MSYSTEM: MINGW32
     - TARGET_ARCH: "x64"
       CONDA_PY: "27"
       PY_CONDITION: "python >=2.7,<3"
+      MSYS2_ARCH: x86_64
+      MSYS2_BITS: 64
+      MSYSTEM: MINGW64
     - TARGET_ARCH: "x64"
       CONDA_PY: "34"
       PY_CONDITION: "python >=3.4,<3.5"
+      MSYS2_ARCH: x86_64
+      MSYS2_BITS: 64
+      MSYSTEM: MINGW64
     - TARGET_ARCH: "x64"
       CONDA_PY: "35"
       PY_CONDITION: "python >=3.5"
+      MSYS2_ARCH: x86_64
+      MSYS2_BITS: 64
+      MSYSTEM: MINGW64
 
 artifacts:
     # Store built conda packages as artifacts
@@ -65,6 +86,22 @@ install:
 
     # Install workaround 64-bit support for VS 2008.
     - cmd: if "%TARGET_ARCH%" == "x64" if "%CONDA_PY%" == "27" call .CI\vs2008\setup_x64.bat
+
+    # Install pacman.
+    - SET MSYS_PATH=%APPVEYOR_BUILD_FOLDER%\msys%MSYS2_BITS%
+    - appveyor DownloadFile http://kent.dl.sourceforge.net/project/msys2/Base/%MSYS2_ARCH%/msys2-base-%MSYS2_ARCH%-%MSYS2_BASEVER%.tar.xz
+    - 7z x msys2-base-%MSYS2_ARCH%-%MSYS2_BASEVER%.tar.xz > nul
+    - 7z x msys2-base-%MSYS2_ARCH%-%MSYS2_BASEVER%.tar > nul
+    - SET PATH=%MSYS_PATH%\usr\bin;%PATH%
+    - SET PATH=%MSYS_PATH%\mingw%MSYS2_BITS%\bin;%PATH%
+    - !!str bash -lc "pacman-key --init" > nul
+    #- !!str bash -lc "pacman-key --populate msys2" > nul
+    #- !!str bash -lc "pacman-key --refresh-keys" > nul
+    #- pacman --noconfirm -Syu
+    #- pacman --noconfirm -Syu
+
+    # Install a Fortran compiler.
+    - cmd: pacman --sync --noconfirm gcc-fortran
 
     # Use the pre-installed Miniconda for the desired arch
     - ps: if($env:TARGET_ARCH -eq 'x86')
