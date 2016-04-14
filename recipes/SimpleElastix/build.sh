@@ -1,10 +1,5 @@
 #!/usr/bin/env bash
 
-# Tell the build to use conda's Python
-SET PYTHON_EXECUTABLE=$PYTHON
-SET PYTHON_INCLUDE_DIR=$PREFIX/include
-SET PYTHON_LIBRARY=$PREFIX/lib
-
 # Build
 mkdir build
 cd build
