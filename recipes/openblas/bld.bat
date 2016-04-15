@@ -10,7 +10,7 @@ cmake -G "NMake Makefiles" ^
          -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
          -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
          -DDYNAMIC_ARCH=ON ^
-         -DBUILD_WITHOUT_LAPACK=OFF ^
+         -DBUILD_WITHOUT_LAPACK=ON ^
          ..
 if errorlevel 1 exit 1
 nmake
