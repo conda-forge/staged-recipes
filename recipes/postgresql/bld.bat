@@ -14,8 +14,8 @@ if "%ARCH%" == "32" (
    set ARCH=x64
 )
 
-call perl mkvcbuild.pl
-call msbuild pgsql.sln /p:Configuration=Release /p:Platform="%ARCH%"
+perl mkvcbuild.pl
+call msbuild %SRC_DIR%\pgsql.sln /p:Configuration=Release /p:Platform="%ARCH%" /verbosity:detailed
 if errorlevel 1 exit 1
 call install.bat "%LIBRARY_PREFIX%"
 if errorlevel 1 exit 1
