@@ -3,7 +3,7 @@
 # Build
 mkdir build
 cd build
-cmake ../SimpleElastix/SuperBuild
+cmake ../SuperBuild
 make -j4
 
 # Install in Python
