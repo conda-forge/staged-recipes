@@ -23,7 +23,8 @@ cmake .. -G "NMake Makefiles" ^
     -DPYTHON_INCLUDE_PATH=%PREFIX%\\include ^
     -DPYTHON_LIBRARY=%PREFIX%\\libs\\%PYLIB% ^
     -DVTK_INSTALL_PYTHON_MODULE_DIR=%PREFIX%\\Lib\\site-packages ^
-    -DModule_vtkRenderingMatplotlib=ON
+    -DModule_vtkRenderingMatplotlib=ON ^
+    -DVTK_PYTHON_VERSION=%PY_VER:~0,1%
 
 cmake --build . --target INSTALL --config Release
 if errorlevel 1 exit 1
