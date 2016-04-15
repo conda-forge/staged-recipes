@@ -1,3 +1,6 @@
+#!/bin/bash
+
+
 # Depending on our platform, shared libraries end with either .so or .dylib
 if [[ `uname` == 'Darwin' ]]; then
      export LIBRARY_SEARCH_VAR=DYLD_FALLBACK_LIBRARY_PATH
