@@ -1,6 +1,6 @@
 
 ./configure --prefix=$PREFIX \
     --enable-shared=yes \
-    --enable-static=no 
+    --enable-static=yes
 make
 make install
