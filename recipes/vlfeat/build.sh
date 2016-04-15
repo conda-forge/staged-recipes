@@ -51,7 +51,7 @@ cp vl/*.h $PREFIX/include/vl/
 
 # For some reason the instal_name_tool fails, so I do it manually here
 if [ "$(uname -s)" == "Darwin" ]; then
-  install_name_tool -change @loader_path/libvl.dylib @loader_path/../lib/libvl.dylib $PREFIX/bin/sift
-  install_name_tool -change @loader_path/libvl.dylib @loader_path/../lib/libvl.dylib $PREFIX/bin/mser
-  install_name_tool -change @loader_path/libvl.dylib @loader_path/../lib/libvl.dylib $PREFIX/bin/aib
+  install_name_tool -change @loader_path/libvl.dylib @rpath/../lib/libvl.dylib $PREFIX/bin/sift
+  install_name_tool -change @loader_path/libvl.dylib @rpath/../lib/libvl.dylib $PREFIX/bin/mser
+  install_name_tool -change @loader_path/libvl.dylib @rpath/../lib/libvl.dylib $PREFIX/bin/aib
 fi
