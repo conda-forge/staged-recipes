@@ -1,9 +1,7 @@
 #!/bin/bash
 
-if [[ $(uname) == 'Darwin' ]]; then
-  export LIBRARY_SEARCH_VAR=DYLD_FALLBACK_LIBRARY_PATH
-elif [[ $(uname) == 'Linux' ]]; then
-  export LIBRARY_SEARCH_VAR=LD_LIBRARY_PATH
+if [[ $(uname) == Darwin ]]; then
+  export DYLD_FALLBACK_LIBRARY_PATH=$PREFIX/lib
 fi
 
 export CXXFLAGS="${CFLAGS}"
@@ -23,7 +21,7 @@ chmod +x configure
             --disable-fortran
 
 make
-eval ${LIBRARY_SEARCH_VAR}=$PREFIX/lib make check
+make check
 make install
 
 # Remove man pages.
