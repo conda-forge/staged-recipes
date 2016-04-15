@@ -1,25 +1,31 @@
-mkdir build
-cd build
+set LIB=%LIBRARY_LIB%;%LIB%
+set LIBPATH=%LIBRARY_LIB%;%LIBPATH%
+set INCLUDE=%LIBRARY_INC%;%INCLUDE%;%RECIPE_DIR%
 
-REM Configure step
-cmake -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release ^
--DHDF4_BUILD_HL_LIB=ON ^
--DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
--DZLIB_LIBRARY=%LIBRARY_LIB%\zlibstatic.lib ^
--DZLIB_INCLUDE_DIR=%LIBRARY_INC% ^
--DJPEG_LIBRARY=%LIBRARY_LIB%\jpeg.lib ^
--DJPEG_INCLUDE_DIR=%LIBRARY_INC% ^
--DHDF4_BUILD_FORTRAN=NO ^
--DHDF4_ENABLE_NETCDF=NO ^
--DBUILD_SHARED_LIBS:BOOL=ON ^
--DCMAKE_INSTALL_PREFIX:PATH=%LIBRARY_PREFIX% %SRC_DIR%
-
+:: Configure step.
+cmake -G "NMake Makefiles" ^
+      -D CMAKE_BUILD_TYPE=Release ^
+      -D HDF4_BUILD_HL_LIB=ON ^
+      -D CMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
+      -D ZLIB_LIBRARY=%LIBRARY_LIB%\zlibstatic.lib ^
+      -D ZLIB_INCLUDE_DIR=%LIBRARY_INC% ^
+      -D JPEG_LIBRARY=%LIBRARY_LIB%\jpeg.lib ^
+      -D JPEG_INCLUDE_DIR=%LIBRARY_INC% ^
+      -D HDF4_BUILD_FORTRAN=NO ^
+      -D HDF4_ENABLE_NETCDF=NO ^
+      -D BUILD_SHARED_LIBS:BOOL=ON ^
+      -D CMAKE_INSTALL_PREFIX:PATH=%LIBRARY_PREFIX% ^
+      %SRC_DIR%
 if errorlevel 1 exit 1
 
-REM Build step
+:: Build.
 nmake
 if errorlevel 1 exit 1
 
-REM Install step
+:: Test.
+ctest
+if errorlevel 1 exit 1
+
+:: Install.
 nmake install
 if errorlevel 1 exit 1
