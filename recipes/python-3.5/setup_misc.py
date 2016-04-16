@@ -40,5 +40,18 @@ setup(
             include_dirs = [sys.prefix + '/include', '/usr/X11R6/include'],
             library_dirs = [sys.prefix + '/lib'],
         ),
+        Extension(
+            'readline', ['readline.c'],
+            libraries=['readline', 'termcap'],
+            include_dirs = [sys.prefix + '/include'],
+            library_dirs = [sys.prefix + '/lib'],
+        ),
+        Extension(
+            '_lzma', ['_lzmamodule.c'],
+            libraries=['lzma'],
+            include_dirs = [sys.prefix + '/include'],
+            library_dirs = [sys.prefix + '/lib'],
+        ),
+
     ],
 )

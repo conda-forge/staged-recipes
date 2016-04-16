@@ -39,10 +39,12 @@ if [ `uname` == Darwin ]; then
        $SRC_DIR/Modules/build/lib.macosx-*/_ssl*.so \
        $SRC_DIR/Modules/build/lib.macosx-*/_sqlite3*.so \
        $SRC_DIR/Modules/build/lib.macosx-*/_tkinter*.so \
-       $SRC_DIR/build/lib.macosx-*/_lzma*.so \
+       $SRC_DIR/Modules/build/lib.macosx-*/readline*.so \
+       $SRC_DIR/Modules/build/lib.macosx-*/_lzma*.so \
            $DYNLOAD_DIR
     popd
     pushd $DYNLOAD_DIR
-    mv _lzma*.so _lzma.so
+    ls
+    rm -f *failed*.so
     popd
 fi
