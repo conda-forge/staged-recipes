@@ -36,7 +36,6 @@ if [ `uname` == Darwin ]; then
     $PYTHON setup_misc.py build
     mkdir -p $DYNLOAD_DIR
     cp $SRC_DIR/Modules/build/lib.macosx-*/_hashlib*.so \
-       $SRC_DIR/Modules/build/lib.macosx-*/readline*.so \
        $SRC_DIR/Modules/build/lib.macosx-*/_ssl*.so \
        $SRC_DIR/Modules/build/lib.macosx-*/_sqlite3*.so \
        $SRC_DIR/Modules/build/lib.macosx-*/_tkinter*.so \
@@ -44,7 +43,6 @@ if [ `uname` == Darwin ]; then
            $DYNLOAD_DIR
     popd
     pushd $DYNLOAD_DIR
-    mv readline*.so readline.so
     mv _lzma*.so _lzma.so
     popd
 fi
