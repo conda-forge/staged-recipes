@@ -1,2 +1,0 @@
-import pywt
-pywt.test()
