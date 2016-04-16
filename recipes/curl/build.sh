@@ -9,4 +9,5 @@ export DYLD_LIBRARY_PATH=$PREFIX/lib
     --with-zlib="${PREFIX}" \
 
 make
+make test
 make install
