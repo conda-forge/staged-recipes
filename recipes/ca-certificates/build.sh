@@ -1,8 +1,9 @@
 #!/bin/sh
 
+MK_CA_BUNDLE_SHA256="6fbdd1c76a41b7ab41cd616b19e52522e2b7efb636120950f053ef2c22de44af"
+
 curl -O https://raw.githubusercontent.com/curl/curl/master/lib/mk-ca-bundle.pl
-shasum -a 256 mk-ca-bundle.pl |
-    awk '$1=="6fbdd1c76a41b7ab41cd616b19e52522e2b7efb636120950f053ef2c22de44af"{print "mk-ca-bundle downloaded OK"}'
+openssl sha256 mk-ca-bundle.pl | grep "${MK_CA_BUNDLE_SHA256}"
 if [ $? -neq 0 ]; then
     echo "mk-ca-bundle did not pass checksum verification.  Has it changed at cURL's source?"
     exit 1
