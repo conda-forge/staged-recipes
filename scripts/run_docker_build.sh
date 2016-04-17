@@ -26,6 +26,9 @@ if [ "${BINSTAR_TOKEN}" ];then
     export BINSTAR_TOKEN=${BINSTAR_TOKEN}
 fi
 
+# Unused, but needed by conda-build currently... :(
+export CONDA_NPY='19'
+
 export PYTHONUNBUFFERED=1
 echo "$config" > ~/.condarc
 
