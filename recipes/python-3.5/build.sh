@@ -29,20 +29,15 @@ ln -s $PREFIX/bin/pydoc3.5 $PREFIX/bin/pydoc
 export PYTHON=$PYTHON_BAK
 
 if [ `uname` == Darwin ]; then
-    DYNLOAD_DIR=$PREFIX/lib/python3.5/lib-dynload
-    pushd Modules
-    rm -rf build
-    cp $RECIPE_DIR/setup_misc.py .
-    $PYTHON setup_misc.py build
-    mkdir -p $DYNLOAD_DIR
-    cp $SRC_DIR/Modules/build/lib.macosx-*/_hashlib*.so \
-       $SRC_DIR/Modules/build/lib.macosx-*/_ssl*.so \
-       $SRC_DIR/Modules/build/lib.macosx-*/readline*.so \
-       $SRC_DIR/Modules/build/lib.macosx-*/_lzma*.so \
-           $DYNLOAD_DIR
-    popd
-    pushd $DYNLOAD_DIR
-    ls
-    rm -f *failed*.so
+    # Some extension modules are renamed when importing fails do to a missing
+    # or incorrect shared library. These libraries are available through conda,
+    # but their locations must first be corrected in the post-build step using
+    # install_name_tool. Un-do this renaming so that the modules can be
+    # imported after the library locations are corrected.
+    pushd $PREFIX/lib/python3.5/lib-dynload
+    for filename in *_failed.so; do
+        [ -f "$filename" ] || continue;
+        mv $filename ${filename//_failed/};
+    done
     popd
 fi
