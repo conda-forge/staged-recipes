@@ -29,7 +29,7 @@ ln -s $PREFIX/bin/pydoc3.5 $PREFIX/bin/pydoc
 export PYTHON=$PYTHON_BAK
 
 if [ `uname` == Darwin ]; then
-    DYNLOAD_DIR=$STDLIB_DIR/lib-dynload
+    DYNLOAD_DIR=$PREFIX/lib/python3.5/lib-dynload
     pushd Modules
     rm -rf build
     cp $RECIPE_DIR/setup_misc.py .
