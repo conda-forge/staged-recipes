@@ -33,7 +33,7 @@ echo "$config" > ~/.condarc
 conda clean --lock
 
 conda update --yes conda conda-build
-conda install --yes anaconda-client obvious-ci conda-build-all
+conda install --yes anaconda-client conda-build-all
 conda info
 
 # We don't need to build the example recipe.
