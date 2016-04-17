@@ -6,8 +6,7 @@ export DYLD_LIBRARY_PATH=$PREFIX/lib
     --prefix="${PREFIX}" \
     --disable-ldap \
     --with-ssl="${PREFIX}" \
-    --with-zlib="${PREFIX}" \
-
+    --with-zlib="${PREFIX}"
 make
 make test
 make install
