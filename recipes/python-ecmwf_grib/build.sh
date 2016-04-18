@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# This is just ecmwf_grib/recipe/build.sh with the `--enable-python` turned on.
+
 if [[ $(uname) == Darwin ]]; then
   export LIBRARY_SEARCH_VAR=DYLD_FALLBACK_LIBRARY_PATH
 elif [[ $(uname) == Linux ]]; then
