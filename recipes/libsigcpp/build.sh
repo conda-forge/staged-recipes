@@ -2,16 +2,17 @@
 
 # set and verify flags
 echo $CXX
-CXXFLAGS=
-LDFLAGS=
-CFLAGS=
+export CXXFLAGS=
+export LDFLAGS=
+export CFLAGS=
 if [ "$(uname)" == "Darwin" ]; then
-  CC=clang
-  CXX=clang++
+  export CC=clang
+  export CXX=clang++
 else
-  CC=
-  CXX=
+  export CC=
+  export CXX=
 fi
+
 echo  $CPP
 echo  $CXXCPP
 echo  $M4
@@ -20,7 +21,7 @@ echo  $DOT
 echo  $DOXYGEN
 echo  $XSLTPROC
 echo  $PKG_CONFIG
-PKG_CONFIG_PATH=
+export PKG_CONFIG_PATH=
 echo  $PKG_CONFIG_LIBDIR
 echo $ACLOCAL_FLAGS
 echo 'int main(){return 0;}'>examples/hello_world.cc
