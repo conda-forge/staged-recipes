@@ -4,8 +4,14 @@
 echo $CXX
 CXXFLAGS=
 LDFLAGS=
-CC=
 CFLAGS=
+if [ "$(uname)" == "Darwin" ]; then
+  CC=clang
+  CXX=clang++
+else
+  CC=
+  CXX=
+fi
 echo  $CPP
 echo  $CXXCPP
 echo  $M4
