@@ -4,12 +4,6 @@ if [ `uname` == Darwin ]; then
     export CFLAGS="-I$PREFIX/include $CFLAGS"
     export LDFLAGS="-L$PREFIX/lib -headerpad_max_install_names $LDFLAGS"
     sed -i -e "s/@OSX_ARCH@/$ARCH/g" Lib/distutils/unixccompiler.py
-fi
-
-PYTHON_BAK=$PYTHON
-unset PYTHON
-
-if [ `uname` == Darwin ]; then
     ./configure --enable-shared --enable-ipv6 --with-ensurepip=no \
         --prefix=$PREFIX
 fi
@@ -26,7 +20,6 @@ make
 make install
 ln -s $PREFIX/bin/python3.5 $PREFIX/bin/python
 ln -s $PREFIX/bin/pydoc3.5 $PREFIX/bin/pydoc
-export PYTHON=$PYTHON_BAK
 
 if [ `uname` == Darwin ]; then
     # Some extension modules are renamed when importing fails do to a missing
