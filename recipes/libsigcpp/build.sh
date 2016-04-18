@@ -27,7 +27,7 @@ echo $ACLOCAL_FLAGS
 echo 'int main(){return 0;}'>examples/hello_world.cc
 
 # configure, make, install, check
-CC=${CC} CXX=${CXX} ./configure  --prefix=$PREFIX CFLAGS='-g -O2' CXXFLAGS='-g -O2' --enable-cxx11
+CC=${CC} CXX=${CXX} ./configure  --prefix=$PREFIX CFLAGS='-g -O2' CXXFLAGS='-g -O2' --enable-cxx11 --enable-libcpp
 make
 make install
 make check
