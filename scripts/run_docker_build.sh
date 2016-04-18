@@ -11,7 +11,7 @@ channels:
  - conda-forge
  - defaults
 
-show_channel_urls: True
+show_channel_urls: true
 
 CONDARC
 )
