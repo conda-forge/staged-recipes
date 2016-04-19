@@ -8,7 +8,12 @@ if "%ARCH%"=="64" (
    set VC_PATH=x86
 )
 
-msbuild PCbuild\pcbuild.sln /t:python;pythoncore;pythonw;python3dll /p:Configuration=Release /p:Platform=%PLATFORM% /m /p:OutDir=%SRC_DIR%\PCBuild\
+msbuild PCbuild\pcbuild.sln /t:Build /p:Configuration=Release /p:Platform=%PLATFORM% /m /p:OutDir=%SRC_DIR%\PCBuild\build\
+
+
+mkdir %PREFIX%\DLLs
+xcopy /s /y %SRC_DIR%\PCBuild\build\*.pyd %PREFIX%\DLLs\
+if errorlevel 1 exit 1
 
 REM ========== add stuff from official python.org installer
 
@@ -18,8 +23,8 @@ REM     xcopy /s /y %MSI_DIR%\%%x %PREFIX%\%%x\
 REM     if errorlevel 1 exit 1
 REM )
 
-REM copy %MSI_DIR%\LICENSE.txt %PREFIX%\LICENSE_PYTHON.txt
-REM if errorlevel 1 exit 1
+copy %SRC_DIR%\LICENSE %PREFIX%\LICENSE_PYTHON.txt
+if errorlevel 1 exit 1
 
 REM ========== add stuff from our own build
 
@@ -30,10 +35,10 @@ copy /Y %SRC_DIR%\PC\pyconfig.h %PREFIX%\include\
 if errorlevel 1 exit 1
 
 for %%x in (python35.dll python.exe pythonw.exe) do (
-    copy /Y %SRC_DIR%\PCbuild\%%x %PREFIX%
+    copy /Y %SRC_DIR%\PCbuild\build\%%x %PREFIX%
     if errorlevel 1 exit 1
 )
-REM copy /Y %SRC_DIR%\PCbuild\python35.lib %PREFIX%\libs\
+REM copy /Y %SRC_DIR%\PCbuild\build\python35.lib %PREFIX%\libs\
 REM if errorlevel 1 exit 1
 
 del %PREFIX%\libs\libpython*.a
