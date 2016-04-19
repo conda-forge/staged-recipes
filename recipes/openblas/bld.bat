@@ -1,13 +1,9 @@
-:: Setup a build directory.
-mkdir build
-if errorlevel 1 exit 1
-cd build
-if errorlevel 1 exit 1
+
+:: Set $HOME to the current dir so msys runs here
+set HOME=%cd%
 
 :: Configure, build, test, and install using `nmake`.
 bash -lc "make"
 if errorlevel 1 exit 1
-bash -lc "make check"
-if errorlevel 1 exit 1
-bash -lc "make install"
+bash -lc "make PREFIX=$LIBRARY_PREFIX install"
 if errorlevel 1 exit 1
