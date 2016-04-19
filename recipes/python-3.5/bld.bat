@@ -48,8 +48,10 @@ for %%x in (python35.dll python.exe pythonw.exe) do (
     copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\%%x %PREFIX%
     if errorlevel 1 exit 1
 )
-REM copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\python35.lib %PREFIX%\libs\
-REM if errorlevel 1 exit 1
+
+mkdir %PREFIX%\libs
+copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\python35.lib %PREFIX%\libs\
+if errorlevel 1 exit 1
 
 del %PREFIX%\libs\libpython*.a
 
