@@ -8,12 +8,22 @@ if "%ARCH%"=="64" (
    set VC_PATH=x86
 )
 
+cd PCbuild
+call get_externals.bat
+if errorlevel 1 exit 1
+cd ..
+
 msbuild PCbuild\pcbuild.sln /t:Build /p:Configuration=Release /p:Platform=%PLATFORM% /m /p:OutDir=%SRC_DIR%\PCBuild\build\
 
 
 mkdir %PREFIX%\DLLs
 xcopy /s /y %SRC_DIR%\PCBuild\build\*.pyd %PREFIX%\DLLs\
 if errorlevel 1 exit 1
+copy /Y %SRC_DIR%\PCbuild\build\sqlite3.dll %PREFIX%\DLLs\
+if errorlevel 1 exit 1
+xcopy /s /y %SRC_DIR%\PCBuild\build\bin\*.dll %PREFIX%\DLLs\
+if errorlevel 1 exit 1
+
 
 REM ========== add stuff from official python.org installer
 
