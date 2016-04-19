@@ -23,7 +23,6 @@ scons \
         --prefix="${PREFIX}" \
         --cpppath="${PREFIX}/include" \
         --libpath="${PREFIX}/lib" \
-        --use-system-boost="${PREFIX}" \
         --use-system-pcre="${PREFIX}" \
         --use-system-snappy="${PREFIX}" \
         all
