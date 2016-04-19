@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
 # set and verify flags
-echo $CXX
 export LIBRARY_PATH="${PREFIX}/lib"
 export INCLUDE_PATH="${PREFIX}/include"
 export LDFLAGS=
-export CFLAGS="-g -O2"
-export CXXFLAGS="-g -O2"
+export CFLAGS="-O2"
+export CXXFLAGS="-O2"
 if [ "$(uname)" == "Darwin" ]; then
+  # for Mac OSX
   export CC=clang
   export CXX=clang++
   export MACOSX_VERSION_MIN="10.7"
@@ -17,21 +17,11 @@ if [ "$(uname)" == "Darwin" ]; then
   export LDFLAGS="${LDFLAGS} -stdlib=libc++ -std=c++11"
   export LINKFLAGS="${LDFLAGS}"
 else
+  # for linux
   export CC=
   export CXX=
 fi
-
-echo  $CPP
-echo  $CXXCPP
-echo  $M4
-echo  $PERL
-echo  $DOT
-echo  $DOXYGEN
-echo  $XSLTPROC
-echo  $PKG_CONFIG
 export PKG_CONFIG_PATH=
-echo  $PKG_CONFIG_LIBDIR
-echo $ACLOCAL_FLAGS
 echo 'int main(){return 0;}'>examples/hello_world.cc
 
 # configure, make, install, check
