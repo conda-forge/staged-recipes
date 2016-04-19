@@ -2,12 +2,14 @@
 
 # set and verify flags
 echo $CXX
-export CXXFLAGS=
 export LDFLAGS=
-export CFLAGS=
+export CFLAGS="-g -O2"
+export CXXFLAGS="-g -O2"
 if [ "$(uname)" == "Darwin" ]; then
   export CC=clang
   export CXX=clang++
+  export CXXFLAGS="${CXXFLAGS} -stdlib=libc++ -std=c++11"
+  export LDFLAGS="${LDFLAGS} -stdlib=libc++ -std=c++11"
 else
   export CC=
   export CXX=
@@ -27,8 +29,8 @@ echo $ACLOCAL_FLAGS
 echo 'int main(){return 0;}'>examples/hello_world.cc
 
 # configure, make, install, check
-CC=${CC} CXX=${CXX} ./configure --help
-CC=${CC} CXX=${CXX} ./configure --prefix=$PREFIX CFLAGS='-g -O2' CXXFLAGS='-g -O2' --enable-c++11 --enable-libcpp
+#CC=${CC} CXX=${CXX} ./configure --prefix=$PREFIX CFLAGS='-g -O2' CXXFLAGS='-g -O2'
+CC=${CC} CXX=${CXX} ./configure --prefix=$PREFIX
 make
 make install
 make check
