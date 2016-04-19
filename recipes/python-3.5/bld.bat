@@ -61,8 +61,8 @@ REM ========== bytecode compile standard library
 rd /s /q %STDLIB_DIR%\lib2to3\tests\
 if errorlevel 1 exit 1
 
-REM %PYTHON% -Wi %STDLIB_DIR%\compileall.py -f -q -x "bad_coding|badsyntax|py2_" %STDLIB_DIR%
-REM if errorlevel 1 exit 1
+%PYTHON% -Wi %STDLIB_DIR%\compileall.py -f -q -x "bad_coding|badsyntax|py2_" %STDLIB_DIR%
+if errorlevel 1 exit 1
 
 REM ========== add scripts
 
