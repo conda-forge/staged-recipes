@@ -1,27 +1,29 @@
-REM ========== actual compile step
+ReM ========== actual compile step
 
 if "%ARCH%"=="64" (
    set PLATFORM=x64
    set VC_PATH=x64
+   set BUILD_PATH=amd64
 ) else (
    set PLATFORM=Win32
    set VC_PATH=x86
+   set BUILD_PATH=win32
 )
 
+
 cd PCbuild
-call get_externals.bat
+call build.bat -e -p %PLATFORM%
 if errorlevel 1 exit 1
 cd ..
 
-msbuild PCbuild\pcbuild.sln /t:Build /p:Configuration=Release /p:Platform=%PLATFORM% /m /p:OutDir=%SRC_DIR%\PCBuild\build\
-
-
 mkdir %PREFIX%\DLLs
-xcopy /s /y %SRC_DIR%\PCBuild\build\*.pyd %PREFIX%\DLLs\
+xcopy /s /y %SRC_DIR%\PCBuild\%BUILD_PATH%\*.pyd %PREFIX%\DLLs\
 if errorlevel 1 exit 1
-copy /Y %SRC_DIR%\PCbuild\build\sqlite3.dll %PREFIX%\DLLs\
+copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\sqlite3.dll %PREFIX%\DLLs\
 if errorlevel 1 exit 1
-xcopy /s /y %SRC_DIR%\PCBuild\build\bin\*.dll %PREFIX%\DLLs\
+copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\tcl86t.dll %PREFIX%\DLLs\
+if errorlevel 1 exit 1
+copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\tk86t.dll %PREFIX%\DLLs\
 if errorlevel 1 exit 1
 
 
@@ -45,10 +47,10 @@ copy /Y %SRC_DIR%\PC\pyconfig.h %PREFIX%\include\
 if errorlevel 1 exit 1
 
 for %%x in (python35.dll python.exe pythonw.exe) do (
-    copy /Y %SRC_DIR%\PCbuild\build\%%x %PREFIX%
+    copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\%%x %PREFIX%
     if errorlevel 1 exit 1
 )
-REM copy /Y %SRC_DIR%\PCbuild\build\python35.lib %PREFIX%\libs\
+REM copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\python35.lib %PREFIX%\libs\
 REM if errorlevel 1 exit 1
 
 del %PREFIX%\libs\libpython*.a
