@@ -21,9 +21,9 @@ if [ "$(uname)" == "Darwin" ]; then
   export CXXFLAGS="${CXXFLAGS} -m64"
   export LDFLAGS="${LDFLAGS} -m64"
   export LINKFLAGS="${LDFLAGS}"
-  export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH}"
+  #export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH}"
   export DYLD_LIBRARY_PATH="${PREFIX}/lib:${DYLD_LIBRARY_PATH}"
-  export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib:${DYLD_FALLBACK_LIBRARY_PATH}"
+  #export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib:${DYLD_FALLBACK_LIBRARY_PATH}"
 else
   # for linux
   export CC=
