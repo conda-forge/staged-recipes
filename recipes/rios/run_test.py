@@ -18,5 +18,7 @@ else:
 
 os.environ['GDAL_DATA'] = gdalData
 
-from rios.riostests import riostestutils
-riostestutils.testAll()
+if __name__ == '__main__':
+    # this if is important since some of the tests use the multiprocessing module
+    from rios.riostests import riostestutils
+    riostestutils.testAll()
