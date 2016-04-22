@@ -28,7 +28,7 @@ else
 fi
 
 CC=${CC} CXX=${CXX} ./configure --prefix="${PREFIX}" \
-  --with-python="${PYTHON}" \
+  --with-python="${PYTHON}" --with-libiconv=gnu\
   CFLAGS="${CFLAGS}" CXXFLAGS="${CXXFLAGS}" LDFLAGS="${LDFLAGS}" \
   INCLUDE_PATH="${INCLUDE_PATH}" C_INCLUDE_PATH="${C_INCLUDE_PATH}" \
   PKG_CONFIG="${PKG_CONFIG}" PKG_CONFIG_PATH="${PKG_CONFIG_PATH}" || \
