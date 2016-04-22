@@ -12,10 +12,14 @@ if [ "$(uname)" == "Darwin" ]; then
   export CC=clang
   export CXX=clang++
   export MACOSX_VERSION_MIN="10.7"
+  export CFLAGS="${CFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
   export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
   #export CXXFLAGS="${CXXFLAGS} -stdlib=libc++ -std=c++11"
   export LDFLAGS="${LDFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
   #export LDFLAGS="${LDFLAGS} -stdlib=libc++ -std=c++11"
+  export CFLAGS="${CFLAGS} -m64"
+  export CXXFLAGS="${CXXFLAGS} -m64"
+  export LDFLAGS="${LDFLAGS} -m64"
   export LINKFLAGS="${LDFLAGS}"
 else
   # for linux
