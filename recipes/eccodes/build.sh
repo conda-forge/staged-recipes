@@ -10,5 +10,6 @@ cmake .. -DCMAKE_INSTALL_PREFIX=$PREFIX \
          -DENABLE_FORTRAN=0
 
 make
-make install
+export ECCODES_TEST_VERBOSE_OUTPUT=1
 ctest
+make install
