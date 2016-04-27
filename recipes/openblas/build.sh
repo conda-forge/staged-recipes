@@ -19,7 +19,6 @@ fi
 # Enable threading. This can be controlled to a certain number by
 # setting OPENBLAS_NUM_THREADS before loading the library.
 make QUIET_MAKE=1 DYNAMIC_ARCH=1 BINARY=${ARCH} NO_LAPACK=0 NO_AFFINITY=1 USE_THREAD=1 CFLAGS="${CF}"
-eval ${LIBRARY_SEARCH_VAR}=$PREFIX/lib make test
 # Fix paths to ensure they have the $PREFIX in them.
 if [[ `uname` == 'Darwin' ]]; then
     install_name_tool -change \
@@ -34,6 +33,8 @@ if [[ `uname` == 'Darwin' ]]; then
 	    @rpath/./libgcc_s.1.dylib \
 	    "${PREFIX}/lib/libgcc_s.1.dylib" \
 	    "${PREFIX}/lib/libopenblas.dylib"
+else
+    eval ${LIBRARY_SEARCH_VAR}=$PREFIX/lib make test
 fi
 make install PREFIX=$PREFIX
 
