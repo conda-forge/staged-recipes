@@ -30,6 +30,13 @@ export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
 #  export CXX=
 #fi
 
+echo
+echo
+echo "CC -V"
+cc -v
+echo
+echo
+
 #CC=${CC} CXX=${CXX} ./configure --prefix="${PREFIX}" \
 ./configure --prefix="${PREFIX}" \
   --with-python="${PYTHON}" --with-libiconv=gnu\
