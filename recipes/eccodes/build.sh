@@ -10,5 +10,5 @@ cmake .. -DCMAKE_INSTALL_PREFIX=$PREFIX \
          -DENABLE_FORTRAN=0
 
 make
-ctest
 make install
+ctest
