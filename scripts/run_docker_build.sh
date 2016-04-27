@@ -47,6 +47,6 @@ find conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" 
     | xargs -n1 cat | grep -v -e "^#" -e "^$" | \
     xargs -r yum install -y
 
-conda-build-all /conda-recipes --matrix-conditions "numpy >=1.9" "python >=2.7,<3|>=3.4"
+conda-build-all /conda-recipes --matrix-conditions "numpy >=1.10" "python >=2.7,<3|>=3.4"
 
 EOF
