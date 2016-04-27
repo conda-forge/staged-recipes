@@ -24,18 +24,18 @@ if [ "$(uname)" == "Darwin" ]; then
   #export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH}"
   export DYLD_LIBRARY_PATH="${PREFIX}/lib:${DYLD_LIBRARY_PATH}"
   #export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib:${DYLD_FALLBACK_LIBRARY_PATH}"
+
+  #echo
+  #echo
+  #echo "CC -V"
+  #${CC} -v
+  #echo
+  #echo
 else
   # for linux
   export CC=
   export CXX=
 fi
-
-echo
-echo
-echo "CC -V"
-${CC} -v
-echo
-echo
 
 #./configure --prefix="${PREFIX}" \
 CC=${CC} CXX=${CXX} ./configure --prefix="${PREFIX}" \
