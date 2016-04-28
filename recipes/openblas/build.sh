@@ -22,21 +22,23 @@ eval export ${LIBRARY_SEARCH_VAR}="${PREFIX}/lib"
 make QUIET_MAKE=1 DYNAMIC_ARCH=1 BINARY=${ARCH} NO_LAPACK=0 NO_AFFINITY=1 USE_THREAD=0 CFLAGS="${CF}"
 # Fix paths to ensure they have the $PREFIX in them.
 if [[ `uname` == 'Darwin' ]]; then
-    install_name_tool -change \
-	    @rpath/./libgfortran.3.dylib \
-	    "${PREFIX}/lib/libgfortran.3.dylib" \
-	    "${PREFIX}/lib/libopenblas.dylib"
-    install_name_tool -change \
-	    @rpath/./libquadmath.0.dylib \
-	    "${PREFIX}/lib/libquadmath.0.dylib" \
-	    "${PREFIX}/lib/libopenblas.dylib"
-    install_name_tool -change \
-	    @rpath/./libgcc_s.1.dylib \
-	    "${PREFIX}/lib/libgcc_s.1.dylib" \
-	    "${PREFIX}/lib/libopenblas.dylib"
+    for OPENBLAS_LIB in $( find "${PREFIX}/lib" -name "libopenblas*.dylib" ); do
+        install_name_tool -change \
+                @rpath/./libgfortran.3.dylib \
+                "${PREFIX}/lib/libgfortran.3.dylib" \
+                "${OPENBLAS_LIB}"
+        install_name_tool -change \
+                @rpath/./libquadmath.0.dylib \
+                "${PREFIX}/lib/libquadmath.0.dylib" \
+                "${OPENBLAS_LIB}"
+        install_name_tool -change \
+                @rpath/./libgcc_s.1.dylib \
+                "${PREFIX}/lib/libgcc_s.1.dylib" \
+                "${OPENBLAS_LIB}"
+    done
 fi
 make test
-make install PREFIX=$PREFIX
+make install PREFIX="${PREFIX}"
 
 # As OpenBLAS, now will have all symbols that BLAS or LAPACK have,
 # create libraries with the standard names that are linked back to
