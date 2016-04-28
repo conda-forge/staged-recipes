@@ -1,6 +1,7 @@
 rem latex packages which are needed by nbconvert and other pdf producers
-%PREFIX%\Library\miktex-portable\miktex\bin\mpm --update-db && if errorlevel 1 exit 1
+rem don't check for errors so that this succeeds even if offline, etc...
+%PREFIX%\Library\miktex-portable\miktex\bin\mpm --update-db --quiet
 for %%x in (adjustbox booktabs collectbox fancyvrb ifoddpage mptopdf ucs url) do (
-	%PREFIX%\Library\miktex-portable\miktex\bin\mpm --install %%x  && if errorlevel 1 exit 1
+	%PREFIX%\Library\miktex-portable\miktex\bin\mpm --quiet --install %%x
 )
-if errorlevel 1 exit 1
+rem No final check as this should succeed even if the conda package is updated and the latex packages already installed
