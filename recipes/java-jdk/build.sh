@@ -14,7 +14,8 @@ else
   URL="http://download.oracle.com/otn-pub/java/jdk/8u25-b17/jdk-8u25-macosx-x64.dmg"
   JDK="jdk.dmg"
   NSTRIP=3
-  LINKLOC="${PREFIX}/lib/jli"
+  #LINKLOC="${PREFIX}/lib/jli"
+  LINKLOC="${PREFIX}/lib/*/jli"
 fi
 
 # this must exist because ln does not have the -r option in Mac. Apple, unix - but not!
@@ -53,9 +54,9 @@ else
   rm -rf ${PREFIX}/tmp
 fi
 JLI_REL=$(relpath $(ls ${LINKLOC}/*jli.*) ${PREFIX}/lib)
-#ln -s ${JLI_REL} ${PREFIX}/lib
+ln -s ${JLI_REL} ${PREFIX}/lib
 #ln ${JLI_REL} ${PREFIX}/lib
-ln ${LINKLOC}/*jli.* ${PREFIX}/lib
+#ln ${LINKLOC}/*jli.* ${PREFIX}/lib
 
 # Some clean up
 rm -rf ${PREFIX}/release ${PREFIX}/README ${PREFIX}/Welcome.html ${PREFIX}/*jli.*
