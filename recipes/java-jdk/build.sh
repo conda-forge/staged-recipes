@@ -53,7 +53,8 @@ else
   rm -rf ${PREFIX}/tmp
 fi
 JLI_REL=$(relpath $(ls ${LINKLOC}/*jli.*) ${PREFIX}/lib)
-ln -s ${JLI_REL} ${PREFIX}/lib
+#ln -s ${JLI_REL} ${PREFIX}/lib
+ln ${JLI_REL} ${PREFIX}/lib
 
 # Some clean up
 rm -rf ${PREFIX}/release ${PREFIX}/README ${PREFIX}/Welcome.html ${PREFIX}/*jli.*
@@ -65,5 +66,5 @@ mv ${PREFIX}/THIRDPARTYLICENSEREADME.txt ${PREFIX}/THIRDPARTYLICENSEREADME-JDK.t
 # Mac specific cleanup
 if [[ ${UNAME} == "Darwin" ]]; then
   rm -rf ${PREFIX}/lib/lib
-  rm -f ${PREFIX}/lib/visualvm/profiler/lib/deployed/jdk15/mac/*.jnilib
+  rm -f ${PREFIX}/lib/visualvm/profiler/lib/deployed/jdk*/mac/*.jnilib
 fi
