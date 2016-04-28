@@ -13,6 +13,7 @@ else
      export LIBRARY_SEARCH_VAR=LD_LIBRARY_PATH
 #    DYLIB_EXT=so
 fi
+eval export ${LIBRARY_SEARCH_VAR}="${PREFIX}/lib"
 
 # Build all CPU targets and allow dynamic configuration
 # Build LAPACK.
@@ -33,9 +34,8 @@ if [[ `uname` == 'Darwin' ]]; then
 	    @rpath/./libgcc_s.1.dylib \
 	    "${PREFIX}/lib/libgcc_s.1.dylib" \
 	    "${PREFIX}/lib/libopenblas.dylib"
-else
-    eval ${LIBRARY_SEARCH_VAR}=$PREFIX/lib make test
 fi
+make test
 make install PREFIX=$PREFIX
 
 # As OpenBLAS, now will have all symbols that BLAS or LAPACK have,
