@@ -62,7 +62,8 @@ mv ${PREFIX}/COPYRIGHT ${PREFIX}/COPYRIGHT-JDK
 mv ${PREFIX}/LICENSE $PREFIX/LICENSE-JDK
 mv ${PREFIX}/THIRDPARTYLICENSEREADME.txt ${PREFIX}/THIRDPARTYLICENSEREADME-JDK.txt
 
-# I have no idea why this broken symlink appears on BaTLab, but it does.
+# Mac specific cleanup
 if [[ ${UNAME} == "Darwin" ]]; then
   rm -rf ${PREFIX}/lib/lib
+  rm -f ${PREFIX}/lib/visualvm/profiler/lib/deployed/jdk*/mac/*.jnilib
 fi
