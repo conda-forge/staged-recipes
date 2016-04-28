@@ -65,5 +65,5 @@ mv ${PREFIX}/THIRDPARTYLICENSEREADME.txt ${PREFIX}/THIRDPARTYLICENSEREADME-JDK.t
 # Mac specific cleanup
 if [[ ${UNAME} == "Darwin" ]]; then
   rm -rf ${PREFIX}/lib/lib
-  rm -f ${PREFIX}/lib/visualvm/profiler/lib/deployed/jdk*/mac/*.jnilib
+  rm -f ${PREFIX}/lib/visualvm/profiler/lib/deployed/jdk15/mac/*.jnilib
 fi
