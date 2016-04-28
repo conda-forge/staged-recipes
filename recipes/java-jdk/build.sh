@@ -54,7 +54,8 @@ else
 fi
 JLI_REL=$(relpath $(ls ${LINKLOC}/*jli.*) ${PREFIX}/lib)
 #ln -s ${JLI_REL} ${PREFIX}/lib
-ln ${JLI_REL} ${PREFIX}/lib
+#ln ${JLI_REL} ${PREFIX}/lib
+ln ${LINKLOC}/*jli.* ${PREFIX}/lib
 
 # Some clean up
 rm -rf ${PREFIX}/release ${PREFIX}/README ${PREFIX}/Welcome.html ${PREFIX}/*jli.*
