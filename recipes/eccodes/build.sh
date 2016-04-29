@@ -10,9 +10,11 @@ export PYTHON=
 export LDFLAGS="$LDFLAGS -L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 export CFLAGS="$CFLAGS -fPIC -I$PREFIX/include"
 
-mkdir build
-cd build
-cmake .. -DCMAKE_INSTALL_PREFIX=$PREFIX \
+src_dir="$(pwd)"
+mkdir ..\build
+cd ..\build
+cmake $scr_dir \
+         -DCMAKE_INSTALL_PREFIX=$PREFIX \
          -DENABLE_JASPER=1 \
          -DENABLE_NETCDF=1 \
          -DENABLE_PNG=1 \
