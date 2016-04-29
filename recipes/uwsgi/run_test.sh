@@ -1,8 +1,6 @@
 #!/bin/bash
 
-# set +x
-
-printenv
+set +x
 
 if [[ -n "$TERM" && "$TERM" != dumb ]]; then
     txtund=$(tput sgr 0 1)          # underline
