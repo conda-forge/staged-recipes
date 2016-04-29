@@ -25,5 +25,5 @@ cmake $src_dir \
 make
 export ECCODES_TEST_VERBOSE_OUTPUT=1
 eval ${LIBRARY_SEARCH_VAR}=$PREFIX/lib
-ctest ctestarg
+ctest $ctestarg
 make install
