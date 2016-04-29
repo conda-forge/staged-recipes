@@ -16,7 +16,7 @@ mkdir ../build
 cd ../build
 cmake $src_dir \
          -DCMAKE_INSTALL_PREFIX=$PREFIX \
-         -DENABLE_JASPER=1 \
+         -DENABLE_JPG=1 \
          -DENABLE_NETCDF=1 \
          -DENABLE_PNG=1 \
          -DENABLE_PYTHON=0 \
