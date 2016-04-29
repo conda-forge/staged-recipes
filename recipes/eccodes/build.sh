@@ -13,7 +13,7 @@ export CFLAGS="$CFLAGS -fPIC -I$PREFIX/include"
 src_dir="$(pwd)"
 mkdir ../build
 cd ../build
-cmake $scr_dir \
+cmake $src_dir \
          -DCMAKE_INSTALL_PREFIX=$PREFIX \
          -DENABLE_JASPER=1 \
          -DENABLE_NETCDF=1 \
