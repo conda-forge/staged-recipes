@@ -1,14 +1,20 @@
-set +x
+#!/bin/bash
 
-txtund=$(tput sgr 0 1)          # underline
-txtbld=$(tput bold)             # bold
-bldred=${txtbld}$(tput setaf 1) # red
-bldgre=${txtbld}$(tput setaf 2) # green
-bldyel=${txtbld}$(tput setaf 3) # yellow
-bldblu=${txtbld}$(tput setaf 4) # blue
-txtcya=$(tput setaf 6)          # cyan
-bldwht=${txtbld}$(tput setaf 7) # white
-txtrst=$(tput sgr0)             # reset
+# set +x
+
+printenv
+
+if [[ -n "$TERM" && "$TERM" != dumb ]]; then
+    txtund=$(tput sgr 0 1)          # underline
+    txtbld=$(tput bold)             # bold
+    bldred=${txtbld}$(tput setaf 1) # red
+    bldgre=${txtbld}$(tput setaf 2) # green
+    bldyel=${txtbld}$(tput setaf 3) # yellow
+    bldblu=${txtbld}$(tput setaf 4) # blue
+    txtcya=$(tput setaf 6)          # cyan
+    bldwht=${txtbld}$(tput setaf 7) # white
+    txtrst=$(tput sgr0)             # reset
+fi
 
 ERROR=0
 SUCCESS=0
