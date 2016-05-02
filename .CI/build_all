@@ -4,14 +4,23 @@
 # Set the numpy variable. This isn't used, but conda-build complains if we haven't set it already.
 export CONDA_NPY=19
 
-wget https://raw.githubusercontent.com/pelson/Obvious-CI/master/bootstrap-obvious-ci-and-miniconda.py
-python bootstrap-obvious-ci-and-miniconda.py ~/miniconda x64 2 --without-obvci && source ~/miniconda/bin/activate root
-conda config --set show_channel_urls True
-conda config --add channels conda-forge
-conda install --yes --quiet conda-build-all
-conda install --yes --quiet conda-build jinja2 anaconda-client setuptools
-# Workaround latest conda-build.
-conda install --yes conda-build=1.18.2
+# We only build if we aren't a merged PR (that is, only build for PRs).
+if [ -z "$GH_TOKEN" ]; then
+    wget https://raw.githubusercontent.com/pelson/Obvious-CI/master/bootstrap-obvious-ci-and-miniconda.py
+    python bootstrap-obvious-ci-and-miniconda.py ~/miniconda x64 3 --without-obvci && source ~/miniconda/bin/activate root
+    conda config --set show_channel_urls true
+    conda config --add channels conda-forge
+    conda install --yes --quiet conda-build-all
+    conda install --yes --quiet conda-build=1.20.0 jinja2 anaconda-client setuptools
 
-# We just want to build all of the recipes.
-conda-build-all ./recipes --matrix-condition "numpy >=1.8" "python >=2.7,<3|>=3.4"
+    # We don't need to build the example recipe.
+    rm -rf ./recipes/example
+
+    # Remove homebrew.
+    brew remove --force $(brew list)
+    brew cleanup -s
+    rm -rf $(brew --cache)
+
+    # We just want to build all of the recipes.
+    conda-build-all ./recipes --matrix-condition "numpy >=1.9" "python >=2.7,<3|>=3.4"
+fi
