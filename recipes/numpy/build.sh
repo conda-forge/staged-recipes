@@ -18,4 +18,3 @@ siteconfig
 $PYTHON setup.py config
 $PYTHON setup.py build -j $CPU_COUNT --fcompiler=gfortran
 $PYTHON setup.py install --old-and-unmanageable
-
