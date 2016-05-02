@@ -20,4 +20,3 @@ import numpy.random.mtrand
 
 
 numpy.test()
-
