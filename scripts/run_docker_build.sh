@@ -40,7 +40,7 @@ conda install --yes anaconda-client obvious-ci
 conda install --yes conda-build-all
 
 # Workaround latest conda-build.
-conda install --yes conda-build=1.18.2
+# conda install --yes conda-build=1.18.2
 
 conda info
 unset LANG
