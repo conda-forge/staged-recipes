@@ -3,6 +3,9 @@
 
 if [[ `uname` == "Darwin" ]]
 then
+    export CC=clang
+    export CXX=clang++
+    export CXXFLAGS="${CXXFLAGS} -stdlib=libc++ -std=c++11"
     export MACOSX_DEPLOYMENT_TARGET=10.7
     export MAC_FLAGS="--enable-macos-target=${MACOSX_DEPLOYMENT_TARGET}"
 fi
