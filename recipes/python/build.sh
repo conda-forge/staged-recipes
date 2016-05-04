@@ -1,7 +1,5 @@
 #!/bin/bash
 
-python ${RECIPE_DIR}/brand_python.py
-
 if [ `uname` == Darwin ]; then
     export CFLAGS="-I$PREFIX/include $CFLAGS"
     export LDFLAGS="-L$PREFIX/lib -headerpad_max_install_names $LDFLAGS"
