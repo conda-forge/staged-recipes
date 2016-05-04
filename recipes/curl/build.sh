@@ -1,12 +1,15 @@
 #!/bin/bash
 
+export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
 export DYLD_LIBRARY_PATH=$PREFIX/lib
 
 ./configure \
-    --prefix="${PREFIX}" \
     --disable-ldap \
-    --with-ssl="${PREFIX}" \
-    --with-zlib="${PREFIX}"
+    --prefix=${PREFIX}
+    --with-ca-bundle=${PREFIX}/ssl/cacert.pem \
+    --with-ssl=${PREFIX} \
+    --with-zlib=${PREFIX} \
+
 make
 make test
 make install
