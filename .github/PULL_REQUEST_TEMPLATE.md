@@ -23,7 +23,7 @@ If recipe builds a library:
 If recipe builds some C/C++, Fortran or OMP code:
 * [ ] I have not included `gcc` or `libgcc` in `requirements`. Exceptions can be made but must be tested first with `gcc`/`clang` that is already installed in our CI machines.
 
-If it is Python PyPI package:
+If it is a Python PyPI package:
 * [ ] I have used `pip` to install it and my recipe has these elements:
 ```yaml
 build:
