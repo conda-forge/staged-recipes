@@ -4,7 +4,6 @@ export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
 
 if [[ `uname` == "Darwin" ]]
 then
-    export DYLD_LIBRARY_PATH="${PREFIX}/lib"
     export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib"
     export CC=clang
     export CXX=clang++
