@@ -90,8 +90,6 @@ if __name__ == '__main__':
             os.mkdir(feedstock_dir)
             print('Making feedstock for {}'.format(name))
 
-            subprocess.check_call(['conda', 'smithy', 'recipe-lint', recipe_dir])
-
             subprocess.check_call(['conda', 'smithy', 'init', recipe_dir,
                                    '--feedstock-directory', feedstock_dir])
             if not is_merged_pr:
@@ -115,12 +113,12 @@ if __name__ == '__main__':
                     # Sometimes, we have a repo, but there are no commits on it! Just catch that case.
                     subprocess.check_call(['git', 'checkout', '-b' 'master'], cwd=feedstock_dir)
             else:
-                subprocess.check_call(['conda', 'smithy', 'github-create', feedstock_dir] + owner_info)
+                subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info)
 
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
         # Without this, intermittent failiures to synch the TravisCI repos ensue.
         for feedstock_dir, name, recipe_dir in feedstock_dirs:
-            subprocess.check_call(['conda', 'smithy', 'register-feedstock-ci', feedstock_dir] + owner_info)
+            subprocess.check_call(['conda', 'smithy', 'register-ci', '--feedstock_directory', feedstock_dir] + owner_info)
 
             subprocess.check_call(['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             subprocess.check_call(['git', 'commit', '-am', "Re-render the feedstock after CI registration."], cwd=feedstock_dir)
@@ -137,12 +135,14 @@ if __name__ == '__main__':
     subprocess.check_call(['git', 'status'])
     if removed_recipes:
         subprocess.check_call(['git', 'checkout', os.environ.get('TRAVIS_BRANCH')])
-        msg = ('Removed recipe{s} ({}) after converting into feedstock{s}.'
-               ''.format(', '.join(removed_recipes),
+        msg = ('Removed recipe{s} ({}) after converting into feedstock{s}. '
+               '[ci skip]'.format(', '.join(removed_recipes),
                          s=('s' if len(removed_recipes) > 1 else '')))
         if is_merged_pr:
-            subprocess.check_call(['git', 'remote', 'add', 'upstream_with_token',
-                                   'https://conda-forge-admin:{}@github.com/conda-forge/staged-recipes'.format(os.environ['GH_TOKEN'])])
+            # Capture the output, as it may contain the GH_TOKEN.
+            out = subprocess.check_output(['git', 'remote', 'add', 'upstream_with_token',
+                                           'https://conda-forge-admin:{}@github.com/conda-forge/staged-recipes'.format(os.environ['GH_TOKEN'])],
+                                          stderr=subprocess.STDOUT)
             subprocess.check_call(['git', 'commit', '-m', msg])
             # Capture the output, as it may contain the GH_TOKEN.
             out = subprocess.check_output(['git', 'push', 'upstream_with_token', os.environ.get('TRAVIS_BRANCH')],
