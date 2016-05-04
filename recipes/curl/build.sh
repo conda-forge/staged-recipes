@@ -9,6 +9,7 @@ export DYLD_LIBRARY_PATH=$PREFIX/lib
     --with-ca-bundle=${PREFIX}/ssl/cacert.pem \
     --with-ssl=${PREFIX} \
     --with-zlib=${PREFIX} \
+|| cat config.log
 
 make
 make test
