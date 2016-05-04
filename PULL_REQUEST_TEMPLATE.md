@@ -14,16 +14,16 @@ I have checked the following in my recipes:
 If you build for Windows too:
 * [ ] I have read [VC features](https://github.com/conda-forge/staged-recipes/wiki/VC-features) 
 
-If recipe uses make:
+If recipe uses make or cmake or ctest:
 * [ ] I have also added `make check` or similar if applicable.
 
 If recipe builds a library:
 * [ ] I have enabled both static and shared libraries.
 
-If recipe builds some C/C++ code:
+If recipe builds some C/C++, Fortran or OMP code:
 * [ ] I have not included `gcc` or `libgcc` in `requirements`. Exceptions can be made but must be tested first with `gcc`/`clang` that is already installed in our CI machines.
 
-If it is Python Pypi package:
+If it is Python PyPI package:
 * [ ] I have used `pip` to install it and my recipe has these elements:
 ```yaml
 build:
