@@ -1,6 +1,7 @@
 #!/bin/bash
 
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
+export C_INCLUDE_PATH="${PREFIX}/include"
 
 if [[ `uname` == "Darwin" ]]
 then
