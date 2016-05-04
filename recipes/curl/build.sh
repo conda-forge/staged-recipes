@@ -1,7 +1,8 @@
 #!/bin/bash
 
-export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
-export DYLD_LIBRARY_PATH=$PREFIX/lib
+export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
+export DYLD_LIBRARY_PATH="${PREFIX}/lib"
+export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib"
 
 ./configure \
     --disable-ldap \
