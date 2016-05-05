@@ -10,6 +10,8 @@ if [ "$(uname)" = "Darwin" ]; then
 fi
 
 cmake \
+    -G"$CMAKE_GENERATOR" \
+    -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_TESTING=OFF \
     -DCMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS" \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
