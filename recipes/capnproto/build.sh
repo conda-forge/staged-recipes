@@ -5,7 +5,8 @@ cd build
 
 CMAKE_CXX_FLAGS="-fPIC"
 if [ "$(uname)" = "Darwin" ]; then
-    CMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS -stdlib=libc++"
+    # "-stdlib=libc++ -mmacosx-version-min=10.7" are required to enable C++11 features
+    CMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS -stdlib=libc++ -mmacosx-version-min=10.7"
 fi
 
 cmake \
