@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python setup.py install --prefix=$PREFIX
+$PYTHON setup.py install --prefix=$PREFIX
