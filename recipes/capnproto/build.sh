@@ -15,5 +15,5 @@ cmake \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
     ../c++
 
-make
-make install
+cmake --build .
+cmake --build . --target install

@@ -4,5 +4,5 @@ cd build
 :: https://github.com/sandstorm-io/capnproto/issues/227
 cmake -DCAPNP_LITE=ON -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=%PREFIX% ..\c++
 
-nmake
-nmake install
+cmake --build .
+cmake --build . --target install
