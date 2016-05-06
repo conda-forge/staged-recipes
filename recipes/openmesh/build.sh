@@ -3,19 +3,15 @@
 mkdir build
 cd build
 
-if test `uname` = "Darwin"
+if [ "$(uname)" == "Linux" ]
 then
     export SONAME='so'
     export CC=${PREFIX}/bin/gcc
     export CXX=${PREFIX}/bin/g++
-    export EXTRA_CMAKE_OPTS=""
 else
     export SONAME='dylib'
     export CC=${PREFIX}/bin/clang
     export CXX=${PREFIX}/bin/clang++
-    export EXTRA_CMAKE_OPTS="\
-    -DCMAKE_C_COMPILER=$CC \
-    -DCMAKE_CXX_COMPILER=$CXX "
 fi
 
 include_path=${PREFIX}/include/python${PY_VER}
@@ -32,7 +28,8 @@ then
 fi
 
 cmake .. \
-    ${EXTRA_CMAKE_OPTS} 
+    -DCMAKE_C_COMPILER=$CC \
+    -DCMAKE_CXX_COMPILER=$CXX "
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_C_COMPILER=$CC \
     -DCMAKE_CXX_COMPILER=$CXX \
