@@ -3,29 +3,36 @@
 mkdir build
 cd build
 
-if [$(uname) == Linux ];
+if test `uname` = "Darwin"
 then
     export SONAME='so'
     export CC=${PREFIX}/bin/gcc
     export CXX=${PREFIX}/bin/g++
+    export EXTRA_CMAKE_OPTS=""
 else
     export SONAME='dylib'
     export CC=${PREFIX}/bin/clang
     export CXX=${PREFIX}/bin/clang++
+    export EXTRA_CMAKE_OPTS="\
+    -DCMAKE_C_COMPILER=$CC \
+    -DCMAKE_CXX_COMPILER=$CXX "
 fi
 
 include_path=${PREFIX}/include/python${PY_VER}
-if [ ! -d $include_path ]; then
+if [ ! -d $include_path ];
+then
   include_path=${PREFIX}/include/python${PY_VER}m
 fi
 
 PY_LIB="libpython${PY_VER}.{SONAME}"
 library_file_path=${PREFIX}/lib/${PY_LIB}
-if [ ! -f $library_file_path ]; then
+if [ ! -f $library_file_path ];
+then
     library_file_path=${PREFIX}/lib/libpython${PY_VER}m.{SONAME}
 fi
 
 cmake .. \
+    ${EXTRA_CMAKE_OPTS} 
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_C_COMPILER=$CC \
     -DCMAKE_CXX_COMPILER=$CXX \
