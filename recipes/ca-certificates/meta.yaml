@@ -1,0 +1,50 @@
+{% set version = "2016.2.28" %}
+
+package:
+  name: ca-certificates
+  version: {{ version }}
+
+# This does not have a source because it pulls these from certifi at present.
+
+build:
+  number: 0
+  skip: true  # [not py35]
+  # As openssl includes these (dependency of Python), they will be removed afterwards.
+  # This is our way of ensuring these files are kept anyways. Once conda-forge has its
+  # own openssl, this will no longer be necessary.
+  #
+  # Note: The Windows copy of openssl does not include these.
+  always_include_files:
+    - ssl/cert.pem      # [unix]
+    - ssl/cacert.pem    # [unix]
+
+requirements:
+  build:
+    - python
+    - certifi {{ version }}
+
+test:
+  requires:
+    - curl
+
+  commands:
+    # Verify the certificates are there.
+    - test -f "${PREFIX}/ssl/cacert.pem"                                      # [unix]
+    - test -f "${PREFIX}/ssl/cert.pem"                                        # [unix]
+    - if not exist %LIBRARY_PREFIX%\\ssl\\cacert.pem exit 1                   # [win]
+    - if not exist %LIBRARY_PREFIX%\\ssl\\cert.pem exit 1                     # [win]
+
+    # Use the certificates to download something.
+    - curl --cacert "${PREFIX}/ssl/cacert.pem" https://www.google.com         # [unix]
+    - curl --cacert %LIBRARY_PREFIX%\\ssl\\cacert.pem https://www.google.com  # [win]
+
+about:
+  home: https://github.com/conda-forge/ca-certificates-feedstock
+  license: ISC
+  summary: Certificates for use with other packages.
+
+extra:
+  recipe-maintainers:
+     - jakirkham
+     - msarahan
+     - pelson
