@@ -12,11 +12,11 @@ fi
 
 cmake \
     -DCMAKE_BUILD_TYPE=Release \
-    -DBUILD_TESTING=OFF \
     -DCMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS" \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
     $CMAKE_EXTRA_ARGS \
     ../c++
 
 cmake --build .
+cmake --build . --target check
 cmake --build . --target install
