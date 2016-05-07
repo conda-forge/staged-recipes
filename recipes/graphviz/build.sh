@@ -8,11 +8,14 @@ export LDFLAGS="-L${PREFIX}/lib"
 if [ `uname` == Darwin ]; then
     ./configure --prefix=$PREFIX \
                 --with-quartz \
+                --disable-debug \
+                --disable-dependency-tracking \
                 --disable-java \
                 --disable-php \
                 --disable-perl \
                 --disable-tcl \
-                --without-x
+                --without-x \
+                --without-qt
 else
     ./configure --prefix=$PREFIX \
                 --disable-java \
