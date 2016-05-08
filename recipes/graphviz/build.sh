@@ -1,10 +1,5 @@
 #!/bin/bash
 
-export CFLAGS="-Wall -g -m${ARCH} -pipe -O2 -fPIC"
-export CXXLAGS="${CFLAGS}"
-export CPPFLAGS="-I${PREFIX}/include"
-export LDFLAGS="-L${PREFIX}/lib"
-
 if [ `uname` == Darwin ]; then
     ./configure --prefix=$PREFIX \
                 --with-quartz \
@@ -26,7 +21,8 @@ else
 fi
 
 make
-# This is failing for R tests
+# This is failing for rtest.
+# Doesn't do anythoing for the rest
 # make check
 make install
 
