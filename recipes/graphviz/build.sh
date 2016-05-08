@@ -22,7 +22,8 @@ else
                 --disable-php \
                 --disable-perl \
                 --disable-tcl \
-                --without-x
+                --without-x \
+                --without-gtk
 fi
 
 make
