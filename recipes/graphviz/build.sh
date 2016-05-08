@@ -23,9 +23,7 @@ else
                 --disable-perl \
                 --disable-tcl \
                 --without-x \
-                --with-gtk=no \
-                --with-gdk=yes \
-                --with-gdk-pixbuf=yes
+                --without-gtk
 fi
 
 make
