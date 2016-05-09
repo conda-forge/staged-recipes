@@ -24,7 +24,7 @@ else
   export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
 fi
 
-./configure --prefix=${PREFIX} --with-libiconv=gnu \
+./configure --prefix=${PREFIX} --with-python="${PYTHON}" --with-libiconv=gnu \
   || { cat config.log; exit 1; }
 make
 make install
