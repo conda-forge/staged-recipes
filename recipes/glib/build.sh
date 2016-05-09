@@ -25,5 +25,4 @@ fi
 ./configure --prefix=${PREFIX} --with-python="${PYTHON}" --with-libiconv=gnu \
   || { cat config.log; exit 1; }
 make
-make check
 make install
