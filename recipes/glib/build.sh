@@ -11,22 +11,20 @@ if [ "$(uname)" == "Darwin" ] ; then
   export CXX=clang++
   # Cf. the discussion in meta.yaml -- we require 10.7.
   export MACOSX_DEPLOYMENT_TARGET="10.7"
-  sdk=/
-  export CFLAGS="${CFLAGS} -isysroot ${sdk}"
-  export LDFLAGS="${LDFLAGS} -Wl,-syslibroot,${sdk}"
+  SDK=/
+  export CFLAGS="${CFLAGS} -isysroot ${SDK}"
+  export LDFLAGS="${LDFLAGS} -Wl,-syslibroot,${SDK}"
   # Pick up the Conda version of gettext/libintl:
   export CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include"
   export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib"
 else
   # for linux
-  export CC=
-  export CXX=
   # Pick up the Conda version of gettext/libintl:
   export CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include"
   export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
 fi
 
-./configure --prefix=${PREFIX} --with-python="${PYTHON}" --with-libiconv=gnu \
-  || { cat config.log ; exit 1 ; }
+./configure --prefix=${PREFIX} --with-libiconv=gnu \
+  || { cat config.log; exit 1; }
 make
 make install
