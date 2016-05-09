@@ -9,6 +9,8 @@ config=$(cat <<CONDARC
 
 channels:
  - conda-forge
+ - conda-team
+ - conda-team/label/dev
  - defaults
 
 show_channel_urls: true
@@ -35,7 +37,7 @@ echo "$config" > ~/.condarc
 # A lock sometimes occurs with incomplete builds. The lock file is stored in build_artefacts.
 conda clean --lock
 
-conda update --yes conda conda-build
+conda update --yes --all
 conda install --yes anaconda-client conda-build-all
 conda info
 
