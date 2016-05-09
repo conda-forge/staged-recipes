@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # don't get locally installed pkg-config entries:
-export PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig"
+#export PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig"
 
 # Needed to get appropriate response to g_get_system_data_dirs():
 export CFLAGS="-DCONDA_SYSTEM_DATA_DIRS=\\\"${PREFIX}/share\\\""
