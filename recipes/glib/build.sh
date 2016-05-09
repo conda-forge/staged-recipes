@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# Needed to get appropriate response to g_get_system_data_dirs():
+# Need to get appropriate response to g_get_system_data_dirs()
+# See the system-data-dirs.patch file
 export CFLAGS="-DCONDA_SYSTEM_DATA_DIRS=\\\"${PREFIX}/share\\\""
 
 if [ "$(uname)" == "Darwin" ] ; then
