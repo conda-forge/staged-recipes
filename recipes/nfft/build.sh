@@ -12,5 +12,5 @@
 # --with-apple-gcc-arch=
 
 make
-make check
+# make check
 make install
