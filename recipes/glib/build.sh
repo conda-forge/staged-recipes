@@ -9,8 +9,10 @@ export PKG_CONFIG="${PREFIX}/bin/pkg-config"
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
 if [ "$(uname)" == "Darwin" ]; then
    # for Mac OSX
-  export CC=clang
-  export CXX=clang++
+  #export CC=clang
+  #export CXX=clang++
+  export CC=
+  export CXX=
   export MACOSX_VERSION_MIN="10.7"
   export CFLAGS="${CFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
   export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
