@@ -10,14 +10,17 @@ if [ `uname` == Darwin ]; then
                 --disable-perl \
                 --disable-tcl \
                 --without-x \
-                --without-qt
+                --without-qt \
+                --without-gtk
 else
     ./configure --prefix=$PREFIX \
+                --disable-debug \
                 --disable-java \
                 --disable-php \
                 --disable-perl \
                 --disable-tcl \
                 --without-x \
+                --without-qt \
                 --without-gtk
 fi
 
