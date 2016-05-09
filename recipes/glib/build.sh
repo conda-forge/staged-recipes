@@ -14,7 +14,6 @@ if [ "$(uname)" == "Darwin" ] ; then
   sdk=/
   export CFLAGS="${CFLAGS} -isysroot ${sdk}"
   export LDFLAGS="${LDFLAGS} -Wl,-syslibroot,${sdk}"
-
   # Pick up the Conda version of gettext/libintl:
   export CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include"
   export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib"
@@ -22,6 +21,9 @@ else
   # for linux
   export CC=
   export CXX=
+  # Pick up the Conda version of gettext/libintl:
+  export CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include"
+  export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
 fi
 
 ./configure --prefix=${PREFIX} --with-python="${PYTHON}" --with-libiconv=gnu \
