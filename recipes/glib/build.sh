@@ -1,48 +1,29 @@
 #!/usr/bin/env bash
-export CFLAGS="-O3"
-export CXXFLAGS="-O3"
-export LIBRARY_PATH="${PREFIX}/lib"
-export INCLUDE_PATH="${PREFIX}/include"
-export C_INCLUDE_PATH="${PREFIX}/include"
-export LDFLAGS="-L/${PREFIX}/lib"
-export PKG_CONFIG="${PREFIX}/bin/pkg-config"
-export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
-if [ "$(uname)" == "Darwin" ]; then
-   # for Mac OSX
+# don't get locally installed pkg-config entries:
+export PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig"
+
+# Needed to get appropriate response to g_get_system_data_dirs():
+export CFLAGS="-DCONDA_SYSTEM_DATA_DIRS=\\\"${PREFIX}/share\\\""
+
+if [ "$(uname)" == "Darwin" ] ; then
+  # for Mac OSX
   export CC=clang
   export CXX=clang++
-  #export MACOSX_VERSION_MIN="10.7"
-  #export CFLAGS="${CFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
-  #export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
-  #export CXXFLAGS="${CXXFLAGS} -stdlib=libc++ -std=c++11"
-  #export LDFLAGS="${LDFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
-  #export LDFLAGS="${LDFLAGS} -stdlib=libc++ -std=c++11"
-#  export CFLAGS="${CFLAGS} -m64"
-#  export CXXFLAGS="${CXXFLAGS} -m64"
-#  export LDFLAGS="${LDFLAGS} -m64"
-  #export LINKFLAGS="${LDFLAGS}"
-  #export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH}"
-  #export DYLD_LIBRARY_PATH="${PREFIX}/lib:${DYLD_LIBRARY_PATH}"
-  #export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib:${DYLD_FALLBACK_LIBRARY_PATH}"
+  # Cf. the discussion in meta.yaml -- we require 10.7.
+  export MACOSX_DEPLOYMENT_TARGET="10.7"
+  sdk=/
+  export CFLAGS="${CFLAGS} -isysroot ${sdk}"
+  export LDFLAGS="${LDFLAGS} -Wl,-syslibroot,${sdk}"
 
-  #echo
-  #echo
-  #echo "CC -V"
-  #${CC} -v
-  #echo
-  #echo
+  # Pick up the Conda version of gettext/libintl:
+  export CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include"
+  export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib"
 else
   # for linux
   export CC=
   export CXX=
 fi
 
-#./configure --prefix="${PREFIX}" \
-# CFLAGS="${CFLAGS}" CXXFLAGS="${CXXFLAGS}" LDFLAGS="${LDFLAGS}" \
-CC=${CC} CXX=${CXX} ./configure --prefix="${PREFIX}" \
-  --with-python="${PYTHON}" --with-libiconv=gnu\
-  INCLUDE_PATH="${INCLUDE_PATH}" C_INCLUDE_PATH="${C_INCLUDE_PATH}" \
-  PKG_CONFIG="${PKG_CONFIG}" PKG_CONFIG_PATH="${PKG_CONFIG_PATH}" || \
-  cat config.log
+./configure --prefix=${PREFIX} || { cat config.log ; exit 1 ; }
 make
 make install
