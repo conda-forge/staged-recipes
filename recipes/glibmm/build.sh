@@ -4,7 +4,7 @@ export CFLAGS="-O3"
 export CXXFLAGS="-O3"
 export LIBRARY_PATH="${PREFIX}/lib"
 export INCLUDE_PATH="${PREFIX}/include"
-export LDFLAGS="-L/${PREFIX}/lib"
+export LDFLAGS="-L${PREFIX}/lib"
 #export PKG_CONFIG="${PREFIX}/bin/pkg-config"
 #export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
 if [ "$(uname)" == "Darwin" ]; then
