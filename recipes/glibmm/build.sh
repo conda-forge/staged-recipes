@@ -29,6 +29,7 @@ fi
 #  PKG_CONFIG="${PKG_CONFIG}" PKG_CONFIG_PATH="${PKG_CONFIG_PATH}" \
 #sed -e '/^libdocdir =/ s/$(book_name)/glibmm-${PKG_VERSION}/' -i docs/Makefile.in
 ./configure --prefix="${PREFIX}" --exec-prefix="${PREFIX}" \
+  --with-sysroot="${PREFIX}" \
   || { cat config.log; exit 1; }
 make
 make check
