@@ -23,6 +23,7 @@ if errorlevel 1 exit 1
 
 pushd %LIBRARY_BIN%
 for /r "%LIBRARY_BIN%\graphviz" %%f in (*.exe) do (
-    echo %%f %* > %%~nf.bat
+    echo @echo off > %%~nf.bat
+    echo %%~dp0.\graphviz\%%~nf.exe %%* >> %%~nf.bat
     if errorlevel 1 exit 1
 )
