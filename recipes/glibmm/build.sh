@@ -25,11 +25,11 @@ if [ "$(uname)" == "Darwin" ]; then
 fi
 
 # configure, make, install, check
+#  CFLAGS="${CFLAGS}" CXXFLAGS="${CXXFLAGS}" LDFLAGS="${LDFLAGS}" \
+#  PKG_CONFIG="${PKG_CONFIG}" PKG_CONFIG_PATH="${PKG_CONFIG_PATH}" \
 #sed -e '/^libdocdir =/ s/$(book_name)/glibmm-${PKG_VERSION}/' -i docs/Makefile.in
-./configure --prefix="${PREFIX}" \
-  CFLAGS="${CFLAGS}" CXXFLAGS="${CXXFLAGS}" LDFLAGS="${LDFLAGS}" \
-  PKG_CONFIG="${PKG_CONFIG}" PKG_CONFIG_PATH="${PKG_CONFIG_PATH}" || \
-  { cat config.log; exit 1; }
+./configure --prefix="${PREFIX}" --exec-prefix="${PREFIX}" \
+  || { cat config.log; exit 1; }
 make
 make check
 make install
