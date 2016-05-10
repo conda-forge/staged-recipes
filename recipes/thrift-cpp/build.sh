@@ -21,6 +21,7 @@ if [ "$(uname)" == "Darwin" ]; then
 fi
 
 cmake \
+	-DCMAKE_INSTALL_PREFIX=$PREFIX \
 	-DBUILD_PYTHON=off \
 	-DBUILD_JAVA=off \
 	-DBUILD_C_GLIB=off \
