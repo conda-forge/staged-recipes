@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
-set -x
-set -e
 
-export CFLAGS="-O2"
-export CXXFLAGS="-O2"
+export CFLAGS="-O3"
+export CXXFLAGS="-O3"
 export LIBRARY_PATH="${PREFIX}/lib"
 export INCLUDE_PATH="${PREFIX}/include"
 export LDFLAGS="-L/${PREFIX}/lib"
@@ -22,15 +20,15 @@ if [ "$(uname)" == "Darwin" ]; then
   export LINKFLAGS="${LDFLAGS}"
 else
   # for linux
-  export CC=
-  export CXX=
+  #export CC=
+  #export CXX=
 fi
 
 # configure, make, install, check
-CC=${CC} CXX=${CXX} ./configure --prefix="${PREFIX}" \
+./configure --prefix="${PREFIX}" \
   CFLAGS="${CFLAGS}" CXXFLAGS="${CXXFLAGS}" LDFLAGS="${LDFLAGS}" \
   PKG_CONFIG="${PKG_CONFIG}" PKG_CONFIG_PATH="${PKG_CONFIG_PATH}" || \
-  cat config.log
+  { cat config.log; exit 1; }
 make
-make install
 make check
+make install
