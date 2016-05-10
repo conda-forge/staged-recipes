@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # C++11 finagling
 if [ "$(uname)" == "Darwin" ]; then
   # for Mac OSX
@@ -14,6 +16,7 @@ if [ "$(uname)" == "Darwin" ]; then
   export MACOSX_DEPLOYMENT_TARGET=10.7
 fi
 
-cmake -DCMAKE_INSTALL_PREFIX:PATH=$PREFIX -DFLATBUFFERS_BUILD_TESTS=OFF .
+cmake -DCMAKE_INSTALL_PREFIX:PATH=$PREFIX
 make
+ctest
 make install
