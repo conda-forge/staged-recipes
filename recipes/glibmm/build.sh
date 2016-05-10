@@ -12,11 +12,11 @@ if [ "$(uname)" == "Darwin" ]; then
   export CXX=clang++
   export MACOSX_VERSION_MIN="10.7"
   export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
-  #export CXXFLAGS="${CXXFLAGS} -stdlib=libc++ -std=c++11"
+  export CXXFLAGS="${CXXFLAGS} -stdlib=libc++ -std=c++11"
   export LDFLAGS="${LDFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
-  #export LDFLAGS="${LDFLAGS} -stdlib=libc++ -std=c++11"
+  export LDFLAGS="${LDFLAGS} -stdlib=libc++ -std=c++11"
   #export LDFLAGS="${LDFLAGS} -L/${PREFIX}/lib"
-  export LINKFLAGS="${LDFLAGS}"
+  #export LINKFLAGS="${LDFLAGS}"
 fi
 
 # configure, make, install, check
