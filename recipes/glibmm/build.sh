@@ -19,7 +19,8 @@ if [ "$(uname)" == "Darwin" ]; then
 fi
 
 # configure, make, install, check
-sed -e '/^libdocdir =/ s/$(book_name)/glibmm-'"${PKG_VERSION}"'/' -i docs/Makefile.in
+sed -e '/^libdocdir =/ s/$(book_name)/glibmm-'"${PKG_VERSION}"'/' \
+    --in-place='' docs/Makefile.in
 ./configure --prefix="${PREFIX}" --exec-prefix="${PREFIX}" \
   || { cat config.log; exit 1; }
 make
