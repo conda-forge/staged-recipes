@@ -24,7 +24,7 @@ if [ "$(uname)" == "Darwin" ]; then
   #export CXX=
 fi
 
-ls "${PREFIX}/lib"
+cat "${PREFIX}/lib/libffi.la"
 
 # configure, make, install, check
 #  CFLAGS="${CFLAGS}" CXXFLAGS="${CXXFLAGS}" LDFLAGS="${LDFLAGS}" \
