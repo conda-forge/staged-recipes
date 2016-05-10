@@ -18,7 +18,7 @@ if [ "$(uname)" == "Darwin" ]; then
   export LDFLAGS="${LDFLAGS} -stdlib=libc++ -std=c++11"
   #export LDFLAGS="${LDFLAGS} -L/${PREFIX}/lib"
   export LINKFLAGS="${LDFLAGS}"
-else
+#else
   # for linux
   #export CC=
   #export CXX=
