@@ -11,6 +11,7 @@ if [ "$(uname)" == "Darwin" ]; then
   export LDFLAGS="${LDFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
   export LDFLAGS="${LDFLAGS} -stdlib=libc++ -std=c++11"
   export LINKFLAGS="${LDFLAGS}"
+  export MACOSX_DEPLOYMENT_TARGET=10.7
 fi
 
 cmake -DCMAKE_INSTALL_PREFIX:PATH=$PREFIX -DFLATBUFFERS_BUILD_TESTS=OFF .
