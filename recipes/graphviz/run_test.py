@@ -17,3 +17,5 @@ if not os.name == 'nt':
 else:
     import subprocess
     subprocess.call(["dot", "-Tpng", "-o", "sample.png", "sample.dot"], shell=True)
+    subprocess.call(["dot", "-Tpdf", "-o", "sample.pdf", "sample.dot"], shell=True)
+    subprocess.call(["dot", "-Tsvg", "-o", "sample.svg", "sample.dot"], shell=True)
