@@ -23,6 +23,13 @@ call build.bat -e -p %PLATFORM%
 if errorlevel 1 exit 1
 cd ..
 
+copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\python.pdb %PREFIX%\
+if errorlevel 1 exit 1
+copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\python35.pdb %PREFIX%\
+if errorlevel 1 exit 1
+copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\pythonw.pdb %PREFIX%\
+if errorlevel 1 exit 1
+
 mkdir %PREFIX%\DLLs
 xcopy /s /y %SRC_DIR%\PCBuild\%BUILD_PATH%\*.pyd %PREFIX%\DLLs\
 if errorlevel 1 exit 1
@@ -32,9 +39,25 @@ copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\tcl86t.dll %PREFIX%\DLLs\
 if errorlevel 1 exit 1
 copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\tk86t.dll %PREFIX%\DLLs\
 if errorlevel 1 exit 1
+
 copy /Y %SRC_DIR%\PC\py.ico %PREFIX%\DLLs\
 if errorlevel 1 exit 1
 copy /Y %SRC_DIR%\PC\pyc.ico %PREFIX%\DLLs\
+if errorlevel 1 exit 1
+
+copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\_ctypes_test.pdb %PREFIX%\DLLs\
+if errorlevel 1 exit 1
+copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\_testbuffer.pdb %PREFIX%\DLLs\
+if errorlevel 1 exit 1
+copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\_testcapi.pdb %PREFIX%\DLLs\
+if errorlevel 1 exit 1
+copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\_testimportmultiple.pdb %PREFIX%\DLLs\
+if errorlevel 1 exit 1
+copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\_testmultiphase.pdb %PREFIX%\DLLs\
+if errorlevel 1 exit 1
+copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\_tkinter.pdb %PREFIX%\DLLs\
+if errorlevel 1 exit 1
+copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\sqlite3.pdb %PREFIX%\DLLs\
 if errorlevel 1 exit 1
 
 REM Copy Tools subdirectories
@@ -76,6 +99,10 @@ for %%x in (python35.dll python.exe pythonw.exe) do (
 
 mkdir %PREFIX%\libs
 copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\python35.lib %PREFIX%\libs\
+if errorlevel 1 exit 1
+copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\python3.lib %PREFIX%\libs\
+if errorlevel 1 exit 1
+copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\_tkinter.lib %PREFIX%\libs\
 if errorlevel 1 exit 1
 
 del %PREFIX%\libs\libpython*.a
