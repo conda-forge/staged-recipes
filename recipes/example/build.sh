@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-$PYTHON setup.py install
+echo "print('Testing an example package.')" > $SP_DIR/example.py
