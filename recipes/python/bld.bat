@@ -27,6 +27,23 @@ copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\tcl86t.dll %PREFIX%\DLLs\
 if errorlevel 1 exit 1
 copy /Y %SRC_DIR%\PCbuild\%BUILD_PATH%\tk86t.dll %PREFIX%\DLLs\
 if errorlevel 1 exit 1
+copy /Y %SRC_DIR%\PC\py.ico %PREFIX%\DLLs\
+if errorlevel 1 exit 1
+copy /Y %SRC_DIR%\PC\pyc.ico %PREFIX%\DLLs\
+if errorlevel 1 exit 1
+
+REM Copy Tools subdirectories
+mkdir %PREFIX%\Tools
+xcopy /s /y /i %SRC_DIR%\Tools\demo %PREFIX%\demo
+if errorlevel 1 exit 1
+xcopy /s /y /i %SRC_DIR%\Tools\i18n %PREFIX%\i18n
+if errorlevel 1 exit 1
+xcopy /s /y /i %SRC_DIR%\Tools\parser %PREFIX%\parser
+if errorlevel 1 exit 1
+xcopy /s /y /i %SRC_DIR%\Tools\pynche %PREFIX%\pynche
+if errorlevel 1 exit 1
+xcopy /s /y /i %SRC_DIR%\Tools\scripts %PREFIX%\scripts
+if errorlevel 1 exit 1
 
 REM ========== add stuff from official python.org installer
 
