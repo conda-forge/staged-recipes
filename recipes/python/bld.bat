@@ -2,6 +2,11 @@ REM brand Python
 python %RECIPE_DIR%\brand_python.py
 if errorlevel 1 exit 1
 
+mkdir %PREFIX%\Doc
+powershell -Command "(New-Object Net.WebClient).DownloadFile('https://www.python.org/ftp/python/3.5.1/python351.chm', 'python351.chm')"
+copy /Y %SRC_DIR%\python351.chm %PREFIX%\Doc\
+if errorlevel 1 exit 1
+
 REM ========== actual compile step
 if "%ARCH%"=="64" (
    set PLATFORM=x64
