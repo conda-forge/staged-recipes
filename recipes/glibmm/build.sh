@@ -26,8 +26,8 @@ fi
 sed -e '/^libdocdir =/ s/$(book_name)/glibmm-'"${PKG_VERSION}"'/' \
     docs/Makefile.in > docs/Makefile.in.new
 mv docs/Makefile.in.new docs/Makefile.in
+#  --disable-dependency-tracking \
 ./configure --prefix="${PREFIX}" --exec-prefix="${PREFIX}" \
-  --disable-dependency-tracking \
   || { cat config.log; exit 1; }
 make
 make install
