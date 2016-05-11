@@ -3,8 +3,8 @@ set -e
 
 export CFLAGS="-O3"
 export CXXFLAGS="-O3"
-export LIBRARY_PATH="${PREFIX}/lib"
-export INCLUDE_PATH="${PREFIX}/include"
+#export LIBRARY_PATH="${PREFIX}/lib"
+#export INCLUDE_PATH="${PREFIX}/include"
 #export LDFLAGS="-L${PREFIX}/lib"
 export LDFLAGS=""
 if [ "$(uname)" == "Darwin" ]; then
