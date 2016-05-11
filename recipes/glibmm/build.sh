@@ -3,10 +3,6 @@ set -e
 
 export CFLAGS="-O3"
 export CXXFLAGS="-O3"
-#export LIBRARY_PATH="${PREFIX}/lib"
-#export INCLUDE_PATH="${PREFIX}/include"
-#export LDFLAGS="-L${PREFIX}/lib"
-#export CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include"
 if [ "$(uname)" == "Darwin" ]; then
   # for Mac OSX
   export CC=clang
@@ -14,9 +10,9 @@ if [ "$(uname)" == "Darwin" ]; then
   export MACOSX_VERSION_MIN="10.7"
   export MACOSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}"
   export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
-  export CXXFLAGS="${CXXFLAGS} -stdlib=libc++ -std=c++11"
+  export CXXFLAGS="${CXXFLAGS} -stdlib=libc++"
   export LDFLAGS="${LDFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
-  export LDFLAGS="${LDFLAGS} -stdlib=libc++ -std=c++11 -lc++"
+  export LDFLAGS="${LDFLAGS} -stdlib=libc++ -lc++"
   export LINKFLAGS="${LDFLAGS}"
 fi
 
