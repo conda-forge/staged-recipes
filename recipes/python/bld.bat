@@ -1,5 +1,9 @@
 ReM ========== actual compile step
 
+
+python ${RECIPE_DIR}/brand_python.py
+if errorlevel 1 exit 1
+
 if "%ARCH%"=="64" (
    set PLATFORM=x64
    set VC_PATH=x64
