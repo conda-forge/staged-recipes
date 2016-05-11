@@ -11,7 +11,7 @@ channels:
  - conda-forge
  - defaults
 
-show_channel_urls: True
+show_channel_urls: true
 
 CONDARC
 )
@@ -36,27 +36,17 @@ echo "$config" > ~/.condarc
 conda clean --lock
 
 conda update --yes conda conda-build
-conda install --yes anaconda-client obvious-ci
-conda install --yes conda-build-all
-
+conda install --yes anaconda-client conda-build-all
 conda info
-
-### Make sure we are using UTF-8 encoding.
-# This has generally been found to be a good move especially when handling Python code or text
-# that ends up having UTF-8 characters. We should improve on this by configuring `locales`.
-export LANG=en_US.UTF-8
-
-# These are some standard tools. But they aren't available to a recipe at this point (we need to figure out how a recipe should define OS level deps)
-#yum install -y expat-devel git autoconf libtool texinfo check-devel
-
-# These were specific to installing matplotlib. I really want to avoid doing this if possible, but in some cases it
-# is inevitable (without re-implementing a full OS), so I also really want to ensure we can annotate our recipes to
-# state the build dependencies at OS level, too.
-yum install -y libXext libXrender libSM tk libX11-devel
 
 # We don't need to build the example recipe.
 rm -rf /conda-recipes/example
 
-conda-build-all /conda-recipes --matrix-conditions "numpy >=1.8" "python >=2.7,<3|>=3.4"
+# yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
+find conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" \
+    | xargs -n1 cat | grep -v -e "^#" -e "^$" | \
+    xargs -r yum install -y
+
+conda-build-all /conda-recipes --matrix-conditions "numpy >=1.9" "python >=2.7,<3|>=3.4"
 
 EOF

@@ -90,8 +90,6 @@ if __name__ == '__main__':
             os.mkdir(feedstock_dir)
             print('Making feedstock for {}'.format(name))
 
-            subprocess.check_call(['conda', 'smithy', 'recipe-lint', recipe_dir])
-
             subprocess.check_call(['conda', 'smithy', 'init', recipe_dir,
                                    '--feedstock-directory', feedstock_dir])
             if not is_merged_pr:
