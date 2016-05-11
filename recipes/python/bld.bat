@@ -1,9 +1,8 @@
-ReM ========== actual compile step
-
-
-python ${RECIPE_DIR}/brand_python.py
+REM brand Python
+python %RECIPE_DIR%\brand_python.py
 if errorlevel 1 exit 1
 
+REM ========== actual compile step
 if "%ARCH%"=="64" (
    set PLATFORM=x64
    set VC_PATH=x64
