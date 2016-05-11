@@ -3,7 +3,7 @@
 import os
 
 # This is failing for now on Windows. We need to submit
-# a patch to the graphviz package to fix it
+# a patch to the Python graphviz package to fix it
 if not os.name == 'nt':
     # Install graphviz Python package
     import pip
