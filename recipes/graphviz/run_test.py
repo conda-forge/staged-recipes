@@ -14,8 +14,3 @@ if not os.name == 'nt':
     x = da.ones(4, chunks=(2,))
     for fmt in ['pdf', 'png', 'dot', 'svg']:
         (x + 1).sum().visualize(filename='graph.%s' % fmt)
-else:
-    import subprocess
-    subprocess.call(["dot", "-Tpng", "-o", "sample.png", "sample.dot"], shell=True)
-    subprocess.call(["dot", "-Tpdf", "-o", "sample.pdf", "sample.dot"], shell=True)
-    subprocess.call(["dot", "-Tsvg", "-o", "sample.svg", "sample.dot"], shell=True)
