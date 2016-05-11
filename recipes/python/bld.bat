@@ -122,6 +122,9 @@ if errorlevel 1 exit 1
 %PYTHON% -Wi %STDLIB_DIR%\compileall.py -f -q -x "bad_coding|badsyntax|py2_" %STDLIB_DIR%
 if errorlevel 1 exit 1
 
+REM Pickle lib2to3 Grammar
+%PYTHON% -m lib2to3 --help
+
 REM ========== add scripts
 
 IF NOT exist %SCRIPTS% (mkdir %SCRIPTS%)
