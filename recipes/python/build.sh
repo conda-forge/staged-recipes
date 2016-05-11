@@ -1,6 +1,5 @@
 #!/bin/bash
 
-which python
 python ${RECIPE_DIR}/brand_python.py
 
 if [ `uname` == Darwin ]; then
