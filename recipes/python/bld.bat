@@ -73,6 +73,26 @@ if errorlevel 1 exit 1
 xcopy /s /y /i %SRC_DIR%\Tools\scripts %PREFIX%\Tools\scripts
 if errorlevel 1 exit 1
 
+del %PREFIX%\Tools\demo\README
+if errorlevel 1 exit 1
+del %PREFIX%\Tools\pynche\README
+if errorlevel 1 exit 1
+del %PREFIX%\Tools\pynche\pynche
+if errorlevel 1 exit 1
+del %PREFIX%\Tools\scripts\README
+if errorlevel 1 exit 1
+del %PREFIX%\Tools\scripts\dutree.doc
+if errorlevel 1 exit 1
+del %PREFIX%\Tools\scripts\idle3
+if errorlevel 1 exit 1
+
+move /y %PREFIX%\Tools\scripts\2to3 %PREFIX%\Tools\scripts\2to3.py
+if errorlevel 1 exit 1
+move /y %PREFIX%\Tools\scripts\pydoc3 %PREFIX%\Tools\scripts\pydoc3.py
+if errorlevel 1 exit 1
+move /y %PREFIX%\Tools\scripts\pyvenv %PREFIX%\Tools\scripts\pyvenv.py
+if errorlevel 1 exit 1
+
 REM Copy tcl directory
 xcopy /s /y /i %SRC_DIR%\externals\tcltk64\lib %PREFIX%\tcl
 if errorlevel 1 exit 1
