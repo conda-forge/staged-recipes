@@ -26,7 +26,7 @@ fi
 
 make
 # This is failing for rtest.
-# Doesn't do anythoing for the rest
+# Doesn't do anything for the rest
 # make check
 make install
 
