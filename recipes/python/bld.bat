@@ -73,6 +73,10 @@ if errorlevel 1 exit 1
 xcopy /s /y /i %SRC_DIR%\Tools\scripts %PREFIX%\Tools\scripts
 if errorlevel 1 exit 1
 
+REM Copy tcl directory
+xcopy /s /y /i %SRC_DIR%\externals\tcltk64\lib %PREFIX%\tcl
+if errorlevel 1 exit 1
+
 REM ========== add stuff from official python.org installer
 
 REM set MSI_DIR=\Pythons\3.5.0-%ARCH%
