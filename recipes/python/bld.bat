@@ -91,7 +91,7 @@ if "%ARCH%"=="64" (
    xcopy /s /y /i %SRC_DIR%\externals\tcltk64\lib %PREFIX%\tcl
    if errorlevel 1 exit 1
 ) else (
-   xcopy /s /y /i %SRC_DIR%\externals\tcltk32\lib %PREFIX%\tcl
+   xcopy /s /y /i %SRC_DIR%\externals\tcltk\lib %PREFIX%\tcl
    if errorlevel 1 exit 1
 )
 
