@@ -26,10 +26,12 @@ if [ "${UNAME}" == "Darwin" ]; then
   WITH_LAPACK_LIB="-L${PREFIX}/lib -lopenblas"
 else
   # for Linux
+  export CC=
+  export CXX=
   WITH_BLAS_LIB="-L${PREFIX}/lib -lopenblas"
   WITH_LAPACK_LIB="-L${PREFIX}/lib -lopenblas"
 fi
-
+CC="${CC}" CXX="${CXX}" \
 ./configure --prefix="${PREFIX}" --exec-prefix="${PREFIX}" \
   --with-blas-lib="${WITH_BLAS_LIB}" \
   --with-lapack-lib="${WITH_LAPACK_LIB}" \
