@@ -7,5 +7,4 @@ cmake ../SuperBuild
 make -j4
 
 # Install in Python
-cd SimpleITK-build/Wrapping/PythonPackage
-$PYTHON setup.py install
+$PYTHON ./SimpleITK-build/Wrapping/PythonPackage/setup.py install
