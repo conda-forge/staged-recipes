@@ -6,8 +6,10 @@ export CFLAGS="-O3"
 export CXXFLAGS="-O3"
 if [ "${UNAME}" == "Darwin" ]; then
   # for Mac OSX
-  export CC=clang
-  export CXX=clang++
+  #export CC=clang
+  #export CXX=clang++
+  export CC=gcc
+  export CXX=g++
   export MACOSX_VERSION_MIN="10.7"
   export MACOSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}"
   export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
