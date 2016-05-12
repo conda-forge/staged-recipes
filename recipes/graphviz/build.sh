@@ -4,7 +4,6 @@ if [ `uname` == Darwin ]; then
     ./configure --prefix=$PREFIX \
                 --with-quartz \
                 --disable-debug \
-                --disable-dependency-tracking \
                 --disable-java \
                 --disable-php \
                 --disable-perl \
