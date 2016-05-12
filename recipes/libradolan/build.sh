@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
-src_dir="$(pwd)"
 mkdir ../build
 cd ../build
-cmake $src_dir -DCMAKE_INSTALL_PREFIX=$PREFIX
+cmake $SRC_DIR \
+    -DCMAKE_INSTALL_PREFIX=$PREFIX \
+    -DWITH_TESTS
 make
 make install
