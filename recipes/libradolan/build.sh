@@ -2,7 +2,7 @@
 
 mkdir ../build
 cd ../build
-cmake $SRC_DIR \
+cmake --debug-output $SRC_DIR \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DWITH_TESTS=YES
 make
