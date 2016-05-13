@@ -10,13 +10,13 @@ if [ "${UNAME}" == "Darwin" ]; then
   #export CXX=clang++
   export CC=gcc
   export CXX=g++
-  export MACOSX_VERSION_MIN="10.7"
-  export MACOSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}"
-  export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
+  #export MACOSX_VERSION_MIN="10.7"
+  #export MACOSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}"
+  #export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
   #export CXXFLAGS="${CXXFLAGS} -stdlib=libc++"
-  export LDFLAGS="${LDFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
+  #export LDFLAGS="${LDFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
   #export LDFLAGS="${LDFLAGS} -stdlib=libc++ -lc++"
-  export LINKFLAGS="${LDFLAGS}"
+  #export LINKFLAGS="${LDFLAGS}"
 
   # Coin options
   export CFLAGS="${CFLAGS} -headerpad_max_install_names -headerpad"
