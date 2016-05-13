@@ -25,20 +25,20 @@ if [ "${UNAME}" == "Darwin" ]; then
   WITH_BLAS_LIB="-L${PREFIX}/lib -lopenblas"
   WITH_LAPACK_LIB="-L${PREFIX}/lib -lopenblas"
 
-#    for OPENBLAS_LIB in $( find "${PREFIX}/lib" -name "libopenblas*.dylib" ); do
-#        install_name_tool -change \
-#                @rpath/./libgfortran.3.dylib \
-#                "${PREFIX}/lib/libgfortran.3.dylib" \
-#                "${OPENBLAS_LIB}"
-#        install_name_tool -change \
-#                @rpath/./libquadmath.0.dylib \
-#                "${PREFIX}/lib/libquadmath.0.dylib" \
-#                "${OPENBLAS_LIB}"
-#        install_name_tool -change \
-#                @rpath/./libgcc_s.1.dylib \
-#                "${PREFIX}/lib/libgcc_s.1.dylib" \
-#                "${OPENBLAS_LIB}"
-#    done
+    for OPENBLAS_LIB in $( find "${PREFIX}/lib" -name "libopenblas*.dylib" ); do
+        install_name_tool -change \
+                @rpath/./libgfortran.3.dylib \
+                "${PREFIX}/lib/libgfortran.3.dylib" \
+                "${OPENBLAS_LIB}"
+        install_name_tool -change \
+                @rpath/./libquadmath.0.dylib \
+                "${PREFIX}/lib/libquadmath.0.dylib" \
+                "${OPENBLAS_LIB}"
+        install_name_tool -change \
+                @rpath/./libgcc_s.1.dylib \
+                "${PREFIX}/lib/libgcc_s.1.dylib" \
+                "${OPENBLAS_LIB}"
+    done
 else
   # for Linux
   export CC=
