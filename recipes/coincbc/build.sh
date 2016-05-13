@@ -17,6 +17,8 @@ fi
 WITH_BLAS_LIB="-L${PREFIX}/lib -lopenblas"
 WITH_LAPACK_LIB="-L${PREFIX}/lib -lopenblas"
 
+ls
+
 CC="${CC}" CXX="${CXX}" ./configure --prefix="${PREFIX}" --exec-prefix="${PREFIX}" \
   --with-blas-lib="${WITH_BLAS_LIB}" \
   --with-lapack-lib="${WITH_LAPACK_LIB}" \
