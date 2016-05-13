@@ -19,9 +19,9 @@ if [ "${UNAME}" == "Darwin" ]; then
   #export LINKFLAGS="${LDFLAGS}"
 
   # Coin options
-  export CFLAGS="${CFLAGS} -headerpad_max_install_names -headerpad"
-  export CXXFLAGS="${CXXFLAGS} -headerpad_max_install_names -headerpad"
-  export LDFLAGS="${LDFLAGS} -headerpad_max_install_names -headerpad"
+  #export CFLAGS="${CFLAGS} -headerpad_max_install_names -headerpad"
+  #export CXXFLAGS="${CXXFLAGS} -headerpad_max_install_names -headerpad"
+  #export LDFLAGS="${LDFLAGS} -headerpad_max_install_names -headerpad"
   WITH_BLAS_LIB="-L${PREFIX}/lib -lopenblas"
   WITH_LAPACK_LIB="-L${PREFIX}/lib -lopenblas"
 
