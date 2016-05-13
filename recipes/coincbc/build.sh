@@ -8,17 +8,14 @@ if [ "${UNAME}" == "Darwin" ]; then
   # for Mac OSX
   export CC=gcc
   export CXX=g++
-
-  # Coin options
-  WITH_BLAS_LIB="-L${PREFIX}/lib -lopenblas"
-  WITH_LAPACK_LIB="-L${PREFIX}/lib -lopenblas"
 else
   # for Linux
   export CC=
   export CXX=
-  WITH_BLAS_LIB="-L${PREFIX}/lib -lopenblas"
-  WITH_LAPACK_LIB="-L${PREFIX}/lib -lopenblas"
 fi
+
+WITH_BLAS_LIB="-L${PREFIX}/lib -lopenblas"
+WITH_LAPACK_LIB="-L${PREFIX}/lib -lopenblas"
 
 CC="${CC}" CXX="${CXX}" ./configure --prefix="${PREFIX}" --exec-prefix="${PREFIX}" \
   --with-blas-lib="${WITH_BLAS_LIB}" \
