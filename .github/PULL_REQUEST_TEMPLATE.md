@@ -35,3 +35,12 @@ requirements:
   run:
     - python
 ```
+* [ ] Test commands such as `nosetests package` or `py.test` are added:
+```yaml
+test:
+  requires:
+  - nose
+
+  commands:
+  - nosetests -sv package
+```
