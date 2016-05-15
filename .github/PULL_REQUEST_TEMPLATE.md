@@ -1,4 +1,4 @@
-Recipes added with this pull request (max 5):
+Recipes added with this pull request (We prefer to have one pull request per package):
  
  - package1
  - package2
@@ -12,7 +12,7 @@ I have checked the following in my recipes:
 * [ ] The `summary` just explains the package and does not include the package name. (e.g. Instead of saying `Jupyterhub is a multi-user server for Jupyter notebooks` just say `Multi-user server for Jupyter notebooks`)
 
 If you build for Windows too:
-* [ ] I have read [VC features](https://github.com/conda-forge/staged-recipes/wiki/VC-features) 
+* [ ] I have read [VC features](https://github.com/conda-forge/staged-recipes/wiki/VC-features) and implemented.
 
 If recipe uses make or cmake or ctest:
 * [ ] I have also added `make check` or similar if applicable.
@@ -20,18 +20,18 @@ If recipe uses make or cmake or ctest:
 If recipe builds a library:
 * [ ] I have enabled both static and shared libraries.
 
-If recipe builds some C/C++, Fortran or OMP code:
+If recipe builds some C/C++:
 * [ ] I have not included `gcc` or `libgcc` in `requirements`. Exceptions can be made but must be tested first with `gcc`/`clang` that is already installed in our CI machines.
 
 If it is a Python PyPI package:
-* [ ] I have used `pip` to install it and my recipe has these elements:
+* [ ] I have used `python` to install it and my recipe has these elements:
 ```yaml
 build:
-  script: pip install --no-deps .
+  script: python setup.py install --single-version-externally-managed --record=record.txt
 requirements:
   build:
     - python
-    - pip
+    - setuptools
   run:
     - python
 ```
