@@ -2,6 +2,14 @@
 set -e
 
 SRC_ROOT="$(pwd)"
+UNAME="$(uname)"
+if [ "${UNAME}" == "Darwin" ]; then
+  # for Mac OSX
+  LIBEXT=".dylib"
+else
+  # for Linux
+  LIBEXT=".so"
+fi
 
 # test code
 mkdir -p build-test
@@ -20,4 +28,4 @@ cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
 make
 # no make install, must proceed manually
 cp -a "${SRC_ROOT}/include/gtest" "${PREFIX}/include"
-cp -a libgtest_main.so libgtest.so "${PREFIX}/lib/"
+cp -a "libgtest_main${LIBEXT}" "libgtest${LIBEXT}" "${PREFIX}/lib/"
