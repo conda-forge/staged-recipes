@@ -8,7 +8,7 @@ then
     export MACOSX_VERSION_MIN="10.7"
     export MACOSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}"
     export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
-    export CXXFLAGS="${CXXFLAGS} -stdlib=libc++"
+    export CXXFLAGS="${CXXFLAGS} -stdlib=libc++ -std=c++11"
     export LDFLAGS="${LDFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
     export LDFLAGS="${LDFLAGS} -stdlib=libc++ -lc++"
     export LINKFLAGS="${LDFLAGS}"
