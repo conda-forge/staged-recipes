@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-SRC_ROOT="$(pwd)"
 UNAME="$(uname)"
+SRC_ROOT="$(pwd)"
 export CFLAGS="${CFLAGS} -O3"
 export CXXFLAGS="${CXXFLAGS} -O3"
 export LIBRARY_PATH="${PREFIX}/lib"
@@ -23,6 +23,8 @@ else
   LIBEXT=".so"
   export CC=
   export CXX=
+  export CXXFLAGS="${CXXFLAGS} -std=c++11"
+  export LDFLAGS="${LDFLAGS} -std=c++11"
 fi
 
 # make code
@@ -34,7 +36,7 @@ cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
   -DCOIN_ROOT_DIR="${PREFIX}" \
   -DBOOST_ROOT="${PREFIX}" \
   -DLAPACK_LIBRARIES="${PREFIX}/lib/libopenblas${LIBEXT}" \
-  -DBLAS_LIBRARIES="${PREFIX}/lib/libopenblas${LIBEXT}"
+  -DBLAS_LIBRARIES="${PREFIX}/lib/libopenblas${LIBEXT}" \
   "${SRC_ROOT}"
 make
 make install
