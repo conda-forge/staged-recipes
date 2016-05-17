@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -e
+
+SRC_ROOT="$(pwd)"
+UNAME="$(uname)"
+export CFLAGS="${CFLAGS} -O3"
+export CXXFLAGS="${CXXFLAGS} -O3"
+export LIBRARY_PATH="${PREFIX}/lib"
+export INCLUDE_PATH="${PREFIX}/include"
+if [ "${UNAME}" == "Darwin" ]; then
+  # for Mac OSX
+  LIBEXT=".dylib"
+  export CC=clang
+  export CXX=clang++
+  export MACOSX_VERSION_MIN="10.7"
+  export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
+  export CXXFLAGS="${CXXFLAGS} -stdlib=libc++"
+  export LDFLAGS="${LDFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
+  export LDFLAGS="${LDFLAGS} -stdlib=libc++ -lc++"
+  export LINKFLAGS="${LDFLAGS}"
+else
+  # for Linux
+  LIBEXT=".so"
+  export CC=
+  export CXX=
+fi
+
+# make code
+mkdir -p build
+cd build
+cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DHDF5_ROOT="${PREFIX}" \
+  -DCOIN_ROOT_DIR="${PREFIX}" \
+  -DBOOST_ROOT="${PREFIX}" \
+  -DLAPACK_LIBRARIES="${PREFIX}/lib/libopenblas${LIBEXT}" \
+  -DBLAS_LIBRARIES="${PREFIX}/lib/libopenblas${LIBEXT}"
+  "${SRC_ROOT}"
+make
+make install
