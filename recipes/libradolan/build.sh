@@ -17,7 +17,7 @@ then
     # for Linux
     export CC=gcc
     export CXX=g++
-    export CXXFLAGS="${CXXFLAGS}"
+    export CXXFLAGS="${CXXFLAGS} -DBOOST_MATH_DISABLE_FLOAT128"
     export LDFLAGS="${LDFLAGS}"
     export LINKFLAGS="${LDFLAGS}"
 else
