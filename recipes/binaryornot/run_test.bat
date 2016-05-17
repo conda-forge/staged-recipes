@@ -1,4 +1,4 @@
 pip install -r requirements.txt
 cd "%SRC_DIR%"
-nosetests
+python setup.py test
 if errorlevel 1 exit 1
