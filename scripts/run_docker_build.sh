@@ -13,6 +13,7 @@ channels:
 
 always_yes: true
 show_channel_urls: true
+add_pip_as_python_depedency: false
 
 CONDARC
 )
