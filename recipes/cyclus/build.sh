@@ -7,6 +7,12 @@ export CFLAGS="${CFLAGS} -O3"
 export CXXFLAGS="${CXXFLAGS} -O3"
 export LIBRARY_PATH="${PREFIX}/lib"
 export INCLUDE_PATH="${PREFIX}/include"
+
+export LD_LIBRARY_PATH="${PREFIX}/lib"
+export CMAKE_LIBRARY_PATH="${PREFIX}/lib"
+export PATH="${PREFIX}/bin:${PATH}"
+
+
 if [ "${UNAME}" == "Darwin" ]; then
   # for Mac OSX
   LIBEXT=".dylib"
@@ -23,13 +29,14 @@ else
   LIBEXT=".so"
   export CC=
   export CXX=
-  export CXXFLAGS="${CXXFLAGS} -std=c++11"
-  export LDFLAGS="${LDFLAGS} -std=c++11"
+  #export CXXFLAGS="${CXXFLAGS} -std=c++11"
+  #export LDFLAGS="${LDFLAGS} -std=c++11"
 fi
 
 # make code
 mkdir -p build
 cd build
+which python
 cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
   -DCMAKE_BUILD_TYPE=Release \
   -DHDF5_ROOT="${PREFIX}" \
@@ -40,3 +47,12 @@ cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
   "${SRC_ROOT}"
 make
 make install
+
+#${PYTHON} install.py --prefix="${PREFIX}" \
+#  --build_type="Release" \
+#  --coin_root="${PREFIX}" \
+#  --boost_root="${PREFIX}" \
+#  -DHDF5_ROOT="${PREFIX}" \
+#  -DLAPACK_LIBRARIES="${PREFIX}/lib/libopenblas${LIBEXT}" \
+#  -DBLAS_LIBRARIES="${PREFIX}/lib/libopenblas${LIBEXT}" \
+#  --clean
