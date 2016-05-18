@@ -30,6 +30,10 @@ fi
 # Unused, but needed by conda-build currently... :(
 export CONDA_NPY='19'
 
+# MAKEFLAGS is passed through conda build: https://github.com/conda/conda-build/pull/917
+# 2 cores are available: https://discuss.circleci.com/t/what-runs-on-the-node-container-by-default/1443
+export MAKEFLAGS="-j2 ${MAKEFLAGS}"
+
 export PYTHONUNBUFFERED=1
 echo "$config" > ~/.condarc
 
