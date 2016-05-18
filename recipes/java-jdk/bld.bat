@@ -1,6 +1,7 @@
 :: Setup
-set JDK_VER=8u25
-set URL=http://download.oracle.com/otn-pub/java/jdk/8u25-b17/jdk-%JDK_VER%-windows-x64.exe
+set JDK_VER=8u45
+set JDK_BLD=14
+set URL=http://download.oracle.com/otn-pub/java/jdk/%JDK_VER%-b%JDK_BLD%/jdk-%JDK_VER%-windows-x64.exe
 set JDK=jdk-%JDK_VER%-windows-x64.exe
 
 set BUILD_CACHE=%RECIPE_DIR%\\..\\build\\cache

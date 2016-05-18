@@ -5,13 +5,13 @@ mkdir -p ${BUILD_CACHE}
 UNAME=$(uname)
 if [[ ${UNAME} == "Linux" ]]; then
   # Linux
-  URL="http://download.oracle.com/otn-pub/java/jdk/8u25-b17/jdk-8u25-linux-x64.tar.gz"
+  URL="http://download.oracle.com/otn-pub/java/jdk/8u45-b14/jdk-8u45-linux-x64.tar.gz"
   JDK="jdk.tar.gz"
   NSTRIP=1
   LINKLOC="${PREFIX}/lib/*/jli"
 else
   # MacOSX
-  URL="http://download.oracle.com/otn-pub/java/jdk/8u25-b17/jdk-8u25-macosx-x64.dmg"
+  URL="http://download.oracle.com/otn-pub/java/jdk/8u45-b14/jdk-8u45-macosx-x64.dmg"
   JDK="jdk.dmg"
   NSTRIP=3
   #LINKLOC="${PREFIX}/lib/jli"
