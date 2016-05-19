@@ -2,9 +2,8 @@
 install -d $PREFIX/bin
 install -d $PREFIX/lib
 install -d $PREFIX/epics
-
-#make -j$(getconf _NPROCESSORS_ONLN)
-make
+# Need to add LDFLAGS so that ld can find libreadline
+make LDFLAGS=-L$LD_RUN_PATH
 
 EPICS_BASE=$PREFIX/epics
 EPICS_HOST_ARCH=$(startup/EpicsHostArch)
