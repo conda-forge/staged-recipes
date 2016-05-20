@@ -69,5 +69,4 @@ import scipy.stats
 import scipy.special
 
 import sys
-if sys.platform.startswith('linux'):
-    scipy.test('full')
+scipy.test()
