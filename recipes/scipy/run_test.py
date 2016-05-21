@@ -1,3 +1,6 @@
+import sys
+
+import scipy
 import scipy.cluster._hierarchy
 import scipy.cluster._vq
 import scipy.fftpack._fftpack
@@ -68,5 +71,5 @@ import scipy.stats.vonmises_cython
 import scipy.stats
 import scipy.special
 
-import sys
-scipy.test()
+
+sys.exit(not scipy.test().wasSuccessful())
