@@ -12,8 +12,9 @@ cmake -D CMAKE_INSTALL_PREFIX=$PREFIX \
       -D ENABLE_DOXYGEN=OFF \
       $SRC_DIR
 make
-# ctest  # Save some time.
+# ctest  # Run only for the shared lib build to save time.
 make install
+make clean
 
 # Build shared.
 cmake -D CMAKE_INSTALL_PREFIX=$PREFIX \
