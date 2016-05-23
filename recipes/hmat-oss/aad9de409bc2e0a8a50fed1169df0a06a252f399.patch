@@ -1,0 +1,44 @@
+From aad9de409bc2e0a8a50fed1169df0a06a252f399 Mon Sep 17 00:00:00 2001
+From: Denis Barbier <bouzim@gmail.com>
+Date: Tue, 10 May 2016 14:27:52 +0200
+Subject: [PATCH] Fix compilation with older OSX compilers
+
+It seems that compilations on conda fails because OSX compiler
+installed there have unordered_map in tr1; thus build fails
+if -std=c++11 option is passed.
+But if this option is omitted, compiler complains:
+
+  .../examples/cylinder.cpp:127:10: error: no matching member function for call to 'real'
+  result.real(cos(k * distance) / (4 * M_PI * distance));
+
+  ~~~~~~~^~~~
+
+Replace this C++11 function by a standard constructor.
+---
+ examples/cylinder.cpp | 8 ++------
+ 1 file changed, 2 insertions(+), 6 deletions(-)
+
+diff --git a/examples/cylinder.cpp b/examples/cylinder.cpp
+index aa983b9..73e9319 100644
+--- examples/cylinder.cpp
++++ examples/cylinder.cpp
+@@ -123,17 +123,13 @@ Types<D_t>::dp TestAssemblyFunction<D_t>::interaction(int i, int j) const {
+ template<>
+ Types<C_t>::dp TestAssemblyFunction<C_t>::interaction(int i, int j) const {
+   double distance = this->distanceTo(i, j) + 1e-10;
+-  Z_t result = Constants<Z_t>::zero;
+-  result.real(cos(k * distance) / (4 * M_PI * distance));
+-  result.imag(sin(k * distance) / (4 * M_PI * distance));
++  Z_t result(cos(k * distance) / (4 * M_PI * distance), sin(k * distance) / (4 * M_PI * distance));
+   return result;
+ }
+ template<>
+ Types<Z_t>::dp TestAssemblyFunction<Z_t>::interaction(int i, int j) const {
+   double distance = this->distanceTo(i, j) + 1e-10;
+-  Z_t result = Constants<Z_t>::zero;
+-  result.real(cos(k * distance) / (4 * M_PI * distance));
+-  result.imag(sin(k * distance) / (4 * M_PI * distance));
++  Z_t result(cos(k * distance) / (4 * M_PI * distance), sin(k * distance) / (4 * M_PI * distance));
+   return result;
+ }
+ 
