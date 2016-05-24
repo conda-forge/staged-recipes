@@ -1,3 +1,5 @@
+set "PHANTOMJS_EXECUTABLE=%SRC_DIR%\node_modules\.bin\phantomjs"
+
 CALL npm install || EXIT /B 1
 IF %ERRORLEVEL% NEQ 0 EXIT /B %ERRORLEVEL%
 
