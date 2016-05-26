@@ -26,15 +26,18 @@ if [ "${UNAME}" == "Darwin" ]; then
   export LDFLAGS="${LDFLAGS} -std=c++11 -lc++"
   export LINKFLAGS="${LDFLAGS}"
   export CMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}"
+
+  export CFLAGS="${CFLAGS} -m${ARCH} -arch x86"
+  export CXXFLAGS="${CXXFLAGS} -m${ARCH} -arch x86"
 else
   # for Linux
   export CXXFLAGS="${CXXFLAGS} -DBOOST_MATH_DISABLE_FLOAT128"
   export CC=
   export CXX=
-fi
 
-export CFLAGS="${CFLAGS} -m${ARCH}"
-export CXXFLAGS="${CXXFLAGS} -m${ARCH}"
+  export CFLAGS="${CFLAGS} -m${ARCH}"
+  export CXXFLAGS="${CXXFLAGS} -m${ARCH}"
+fi
 
 #
 # Build and install
