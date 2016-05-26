@@ -34,25 +34,25 @@ else
 fi
 
 # make code
-mkdir -p build
-cd build
-which python
-cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DHDF5_ROOT="${PREFIX}" \
-  -DCOIN_ROOT_DIR="${PREFIX}" \
-  -DBOOST_ROOT="${PREFIX}" \
-  -DLAPACK_LIBRARIES="${PREFIX}/lib/libopenblas${LIBEXT}" \
-  -DBLAS_LIBRARIES="${PREFIX}/lib/libopenblas${LIBEXT}" \
-  "${SRC_ROOT}"
-make
-make install
-
-#${PYTHON} install.py --prefix="${PREFIX}" \
-#  --build_type="Release" \
-#  --coin_root="${PREFIX}" \
-#  --boost_root="${PREFIX}" \
+#mkdir -p build
+#cd build
+#which python
+#cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+#  -DCMAKE_BUILD_TYPE=Release \
 #  -DHDF5_ROOT="${PREFIX}" \
+#  -DCOIN_ROOT_DIR="${PREFIX}" \
+#  -DBOOST_ROOT="${PREFIX}" \
 #  -DLAPACK_LIBRARIES="${PREFIX}/lib/libopenblas${LIBEXT}" \
 #  -DBLAS_LIBRARIES="${PREFIX}/lib/libopenblas${LIBEXT}" \
-#  --clean
+#  "${SRC_ROOT}"
+#make
+#make install
+
+${PYTHON} install.py --prefix="${PREFIX}" \
+  --build_type="Release" \
+  --coin_root="${PREFIX}" \
+  --boost_root="${PREFIX}" \
+  --hdf5_root="${PREFIX}" \
+  --clean
+#  -DLAPACK_LIBRARIES="${PREFIX}/lib/libopenblas${LIBEXT}" \
+#  -DBLAS_LIBRARIES="${PREFIX}/lib/libopenblas${LIBEXT}" \
