@@ -30,6 +30,10 @@ fi
 # Unused, but needed by conda-build currently... :(
 export CONDA_NPY='19'
 
+# MAKEFLAGS is passed through conda build: https://github.com/conda/conda-build/pull/917
+# 2 cores are available: https://discuss.circleci.com/t/what-runs-on-the-node-container-by-default/1443
+export MAKEFLAGS="-j2 ${MAKEFLAGS}"
+
 export PYTHONUNBUFFERED=1
 echo "$config" > ~/.condarc
 
@@ -48,6 +52,6 @@ find conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" 
     | xargs -n1 cat | grep -v -e "^#" -e "^$" | \
     xargs -r yum install -y
 
-conda-build-all /conda-recipes --matrix-conditions "numpy >=1.9" "python >=2.7,<3|>=3.4"
+conda-build-all /conda-recipes --matrix-conditions "numpy >=1.10" "python >=2.7,<3|>=3.4"
 
 EOF
