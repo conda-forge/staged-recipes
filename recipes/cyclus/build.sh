@@ -28,9 +28,13 @@ if [ "${UNAME}" == "Darwin" ]; then
   export CMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}"
 else
   # for Linux
+  export CXXFLAGS="${CXXFLAGS} -DBOOST_MATH_DISABLE_FLOAT128"
   export CC=
   export CXX=
 fi
+
+export CFLAGS="${CFLAGS} -m${ARCH}"
+export CXXFLAGS="${CXXFLAGS} -m${ARCH}"
 
 #
 # Build and install
