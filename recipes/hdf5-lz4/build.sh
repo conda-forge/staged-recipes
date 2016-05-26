@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PPATH="/user/local/hdf5/lib/plugin"
+PPATH="/usr/local/hdf5/lib/plugin"
 
 mkdir -vp ${PREFIX}/$PPATH
 
@@ -8,7 +8,7 @@ export CXXLAGS="${CFLAGS}"
 export CPPFLAGS="-I${PREFIX}/include"
 export LDFLAGS="-L${PREFIX}/lib"
 
-make -e HDF5_INSTALL="${PREFIX}"
+make -e HDF5_INSTALL="${PREFIX}/$PPATH"
 cp lib* ${PREFIX}/$PPATH
 
 mkdir -p $PREFIX/etc/conda/activate.d
