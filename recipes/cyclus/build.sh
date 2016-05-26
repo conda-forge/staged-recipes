@@ -22,6 +22,7 @@ if [ "${UNAME}" == "Darwin" ]; then
   export LDFLAGS="${LDFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
   export LDFLAGS="${LDFLAGS} -stdlib=libc++ -lc++"
   export LINKFLAGS="${LDFLAGS}"
+  export CMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}"
 else
   # for Linux
   LIBEXT=".so"
@@ -38,6 +39,7 @@ ${PYTHON} install.py --prefix="${PREFIX}" \
   --coin_root="${PREFIX}" \
   --boost_root="${PREFIX}" \
   --hdf5_root="${PREFIX}" \
+  -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}" \
   --clean
 
 #
