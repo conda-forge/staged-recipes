@@ -1,4 +1,5 @@
-set "PHANTOMJS_EXECUTABLE=%SRC_DIR%\node_modules\.bin\phantomjs"
+REM seems to find _build, still
+rmdir /s /q "%PREFIX%\share\jupyter\kernels"
 
 cd /D "%SRC_DIR%"
 
