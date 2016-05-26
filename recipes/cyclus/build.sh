@@ -13,19 +13,19 @@ export CMAKE_LIBRARY_PATH="${PREFIX}/lib:${CMAKE_LIBRARY_PATH}"
 
 if [ "${UNAME}" == "Darwin" ]; then
   # for Mac OSX
-  LIBEXT=".dylib"
-  export CC=clang
-  export CXX=clang++
-  export MACOSX_VERSION_MIN="10.7"
-  export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
-  export CXXFLAGS="${CXXFLAGS} -stdlib=libc++"
-  export LDFLAGS="${LDFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
-  export LDFLAGS="${LDFLAGS} -stdlib=libc++ -lc++"
-  export LINKFLAGS="${LDFLAGS}"
+  export CC=gcc
+  export CXX=g++
+  #export CC=clang
+  #export CXX=clang++
+  #export MACOSX_VERSION_MIN="10.7"
+  #export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
+  #export CXXFLAGS="${CXXFLAGS} -stdlib=libc++"
+  #export LDFLAGS="${LDFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
+  #export LDFLAGS="${LDFLAGS} -stdlib=libc++ -lc++"
+  #export LINKFLAGS="${LDFLAGS}"
   export CMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}"
 else
   # for Linux
-  LIBEXT=".so"
   export CC=
   export CXX=
 fi
