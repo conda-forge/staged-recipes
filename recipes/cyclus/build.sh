@@ -4,12 +4,12 @@ set -e
 UNAME="$(uname)"
 export CFLAGS="${CFLAGS} -O3"
 export CXXFLAGS="${CXXFLAGS} -O3"
-export LIBRARY_PATH="${PREFIX}/lib"
-export INCLUDE_PATH="${PREFIX}/include"
+export LIBRARY_PATH="${PREFIX}/lib:${LIBRARY_PATH}"
+export INCLUDE_PATH="${PREFIX}/include:${INCLUDE_PATH}"
 
 export PATH="${PREFIX}/bin:${PATH}"
-export LD_LIBRARY_PATH="${PREFIX}/lib"
-export CMAKE_LIBRARY_PATH="${PREFIX}/lib"
+export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH}"
+export CMAKE_LIBRARY_PATH="${PREFIX}/lib:${CMAKE_LIBRARY_PATH}"
 
 if [ "${UNAME}" == "Darwin" ]; then
   # for Mac OSX
