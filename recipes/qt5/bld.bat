@@ -16,16 +16,20 @@ IF "%DXSDK_DIR%" == "" (
     exit 1
 )
 
-rem curl -LO "http://download.qt.io/community_releases/%SHORT_VERSION%/%PKG_VERSION%/qtwebkit-opensource-src-%PKG_VERSION%.tar.xz"
-rem if errorlevel 1 exit 1
-rem 7za x -so qtwebkit-opensource-src-%PKG_VERSION%.tar.xz | 7za x -si -aoa -ttar
-rem if errorlevel 1 exit 1
-rem MOVE qtwebkit-opensource-src-%PKG_VERSION% qtwebkit
+curl -LO "http://download.qt.io/community_releases/%SHORT_VERSION%/%PKG_VERSION%/qtwebkit-opensource-src-%PKG_VERSION%.tar.xz"
+if errorlevel 1 exit 1
+7za x -so qtwebkit-opensource-src-%PKG_VERSION%.tar.xz | 7za x -si -aoa -ttar
+if errorlevel 1 exit 1
+MOVE qtwebkit-opensource-src-%PKG_VERSION% qtwebkit
 
-:: Shorten our build path as much as possible
-:: cd ..
-:: Copy all files except bld.bat, which needs to stay in place while script runs
-:: robocopy %SRC_DIR%\ .\ *.* /E /move /NFL /NDL /xf bld.bat
+if "%DIRTY%" == "" (
+    :: Shorten our build path as much as possible
+    :: cd ..
+    mkdir C:\qt5
+    :: Copy all files except bld.bat, which needs to stay in place while script runs
+    robocopy %SRC_DIR%\ C:\qt5\ *.* /E /move /NFL /NDL /xf bld.bat
+)
+cd C:\qt5
 
 :: set path to find resources shipped with qt-5
 :: see http://doc-snapshot.qt-project.org/qt5-5.4/windows-building.html
@@ -71,6 +75,10 @@ set SQLITE3SRCDIR=%CD%\qtbase\src\3rdparty\sqlite
 :: debugging: show env vars
 set
 
+:: Patch does not apply cleanly.  Copy file.
+:: https://codereview.qt-project.org/#/c/141019/
+COPY %RECIPE_DIR%\tst_compiler.cpp qtbase\tests\auto\other\compiler\
+
 :: See http://doc-snapshot.qt-project.org/qt5-5.4/windows-requirements.html
 
 :: this needs to be CALLed due to an exit statement at the end of configure:
@@ -103,9 +111,8 @@ CALL configure ^
 
 :: jom is nmake alternative with multicore support, uses all cores by default
 jom release
-:: jom install
-:: nmake
-:: nmake install
+if errorlevel 1 exit 1
+jom install
 
 conda remove -y -n python27_qt5_build --all
 
@@ -113,3 +120,6 @@ conda remove -y -n python27_qt5_build --all
 rmdir %PREFIX%\Library\share\qt5 /s /q
 
 %PYTHON% %RECIPE_DIR%\patch_prefix_files.py
+
+cd %SRC_DIR%
+RD /S /Q C:\qt5
