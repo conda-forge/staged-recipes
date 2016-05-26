@@ -27,8 +27,8 @@ if [ "${UNAME}" == "Darwin" ]; then
   export LINKFLAGS="${LDFLAGS}"
   export CMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}"
 
-  export CFLAGS="${CFLAGS} -m${ARCH} -arch x86"
-  export CXXFLAGS="${CXXFLAGS} -m${ARCH} -arch x86"
+  export CFLAGS="${CFLAGS} -m${ARCH} -arch i386"
+  export CXXFLAGS="${CXXFLAGS} -m${ARCH} -arch i386"
 else
   # for Linux
   export CXXFLAGS="${CXXFLAGS} -DBOOST_MATH_DISABLE_FLOAT128"
