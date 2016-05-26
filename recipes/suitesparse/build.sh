@@ -5,15 +5,15 @@ if [ "$(uname)" == "Linux" ]; then
 
   # build using OpenBLAS
   BLAS='BLAS=-lopenblas'
-  BLAS='LAPACK=-llapack'
+  LAPACK='LAPACK=-llapack'
 fi
 
 if [ "$(uname)" == "Darwin" ]; then
   DYNAMIC_EXT=".dylib"
 
   # if unspecified on OSX BLAS & LAPACK will be get to "-framework Accelerate"
-  BLAS='BLAS=-lopenblas'
-  LAPACK='LAPACK=-llapack'
+  BLAS='' # 'BLAS=-lopenblas'
+  LAPACK='' # 'LAPACK=-llapack'
 fi
 
 # This recipe is currently building the version of METIS included with
