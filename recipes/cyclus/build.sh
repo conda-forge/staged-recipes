@@ -11,7 +11,7 @@ export INCLUDE_PATH="${PREFIX}/include"
 export LD_LIBRARY_PATH="${PREFIX}/lib"
 export CMAKE_LIBRARY_PATH="${PREFIX}/lib"
 export PATH="${PREFIX}/bin:${PATH}"
-
+export VERBOSE=1
 
 if [ "${UNAME}" == "Darwin" ]; then
   # for Mac OSX
@@ -54,5 +54,14 @@ ${PYTHON} install.py --prefix="${PREFIX}" \
   --boost_root="${PREFIX}" \
   --hdf5_root="${PREFIX}" \
   --clean
+
 #  -DLAPACK_LIBRARIES="${PREFIX}/lib/libopenblas${LIBEXT}" \
 #  -DBLAS_LIBRARIES="${PREFIX}/lib/libopenblas${LIBEXT}" \
+
+#
+# Test install
+#
+cd tests
+${PREFIX}/cyclus_unit_tests
+nosetests
+cd
