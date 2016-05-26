@@ -19,9 +19,11 @@ if [ "${UNAME}" == "Darwin" ]; then
   #export CXX=clang++
   export MACOSX_VERSION_MIN="10.7"
   export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
-  export CXXFLAGS="${CXXFLAGS} -stdlib=libc++"
+  #export CXXFLAGS="${CXXFLAGS} -stdlib=libc++"
+  export CXXFLAGS="${CXXFLAGS} -std=c++11"
   export LDFLAGS="${LDFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
-  export LDFLAGS="${LDFLAGS} -stdlib=libc++ -lc++"
+  #export LDFLAGS="${LDFLAGS} -stdlib=libc++ -lc++"
+  export LDFLAGS="${LDFLAGS} -std=c++11 -lc++"
   export LINKFLAGS="${LDFLAGS}"
   export CMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}"
 else
