@@ -31,13 +31,14 @@ if [ "${UNAME}" == "Darwin" ]; then
   export CXXFLAGS="${CXXFLAGS} -m${ARCH} -arch i386"
 else
   # for Linux
-  export CXXFLAGS="${CXXFLAGS} -DBOOST_MATH_DISABLE_FLOAT128"
   export CC=
   export CXX=
 
   export CFLAGS="${CFLAGS} -m${ARCH}"
   export CXXFLAGS="${CXXFLAGS} -m${ARCH}"
 fi
+
+export CXXFLAGS="${CXXFLAGS} -DBOOST_MATH_DISABLE_FLOAT128"
 
 #
 # Build and install
