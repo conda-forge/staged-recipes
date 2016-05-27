@@ -3,7 +3,7 @@ cd "${SRC_DIR}"
 
 # On circle-ci, we are building in a container, so CIRCLE_CI is not set
 # So this will have to do.
-if [ `python -c 'import sys; print(sys.platform)'` == "linux" ]; then
+if [ `python -c 'import sys; print(sys.platform)'` == "linux2" ]; then
   npm uninstall phantomjs-prebuilt
   curl --output "${PREFIX}/bin/phantomjs" \
     https://s3.amazonaws.com/circle-downloads/phantomjs-2.1.1
