@@ -53,6 +53,12 @@ ${PYTHON} install.py --prefix="${PREFIX}" \
 #
 # Run tests
 #
+if [ "${UNAME}" == "Darwin" ]; then
+  export DYLD_LIBRARY_PATH="${PREFIX}/lib:${DYLD_LIBRARY_PATH}"
+  export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib:${DYLD_FALLBACK_LIBRARY_PATH}"
+else
+  export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH}"
+fi
 cd tests
 ${PREFIX}/bin/cyclus_unit_tests
 nosetests cycpp_tests.py
