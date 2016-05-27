@@ -5,7 +5,7 @@ if [ "$(uname)" == "Linux" ]; then
 
   # build using OpenBLAS
   BLAS='BLAS=-lopenblas'
-  LAPACK='LAPACK=-llapack'
+  LAPACK='LAPACK=-lopenblas'  # llapack'
 fi
 
 if [ "$(uname)" == "Darwin" ]; then
