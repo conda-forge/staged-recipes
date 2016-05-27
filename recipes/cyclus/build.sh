@@ -26,18 +26,14 @@ if [ "${UNAME}" == "Darwin" ]; then
   export LDFLAGS="${LDFLAGS} -std=c++11 -lc++"
   export LINKFLAGS="${LDFLAGS}"
   export CMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}"
-
-  export CFLAGS="${CFLAGS} -m${ARCH} -arch i386"
-  export CXXFLAGS="${CXXFLAGS} -m${ARCH} -arch i386"
 else
   # for Linux
   export CC=
   export CXX=
-
-  export CFLAGS="${CFLAGS} -m${ARCH}"
-  export CXXFLAGS="${CXXFLAGS} -m${ARCH}"
 fi
 
+export CFLAGS="${CFLAGS} -m${ARCH}"
+export CXXFLAGS="${CXXFLAGS} -m${ARCH}"
 export CXXFLAGS="${CXXFLAGS} -DBOOST_MATH_DISABLE_FLOAT128"
 
 #
@@ -50,7 +46,6 @@ ${PYTHON} install.py --prefix="${PREFIX}" \
   --boost_root="${PREFIX}" \
   --hdf5_root="${PREFIX}" \
   -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}" \
-  -DBOOST_MATH_DISABLE_FLOAT128=ON \
   --clean
 
 #
