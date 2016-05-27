@@ -5,7 +5,7 @@ if [ "$(uname)" == "Linux" ]; then
 
   # build using OpenBLAS
   BLAS='BLAS=-lopenblas'
-  LAPACK='LAPACK=-lopenblas'  # llapack'
+  LAPACK='LAPACK=-lopenblas' # llapack'
 fi
 
 if [ "$(uname)" == "Darwin" ]; then
@@ -32,11 +32,13 @@ fi
 # (optional) write out various make variable settings for debugging purposes
 make config \
     $BLAS \
+    $LAPACK \
     CUDA=no \
     TBB=-ltbb 2>&1 | tee make_config.txt
 
 # enable TBB, disable CUDA
 make $BLAS \
+     $LAPACK \
      CUDA=no \
      TBB=-ltbb
 
