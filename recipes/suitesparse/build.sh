@@ -46,5 +46,11 @@ make install metis INSTALL_LIB=$PREFIX/lib \
              INSTALL_DOC=$PREFIX/suitesparse_docs \
              CUDA=no
 
+if [ "$(uname)" == "Darwin" ]; then
+
+  install_name_tool -change $SRC_DIR/lib/libmetis.dylib @rpath/libmetis.dylib $PREFIX/lib/libcholmod.dylib
+
+fi
+
 # remove docs
 rm -rf $PREFIX/suitesparse_docs
