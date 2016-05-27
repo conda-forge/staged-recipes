@@ -13,10 +13,11 @@ cp -av $PREFIX/epics/lib/$EPICS_HOST_ARCH/lib*so* $PREFIX/lib
 
 # Setup symlinks for utilities
 BINS="caget caput camonitor softIoc"
-cd $PREFIX/bin
+pushd $PREFIX/bin
 for file in $BINS ; do
 	ln -s ../epics/bin/$EPICS_HOST_ARCH/$file .
 done
+popd
 
 # deal with env export
 mkdir -p $PREFIX/etc/conda/activate.d
@@ -38,3 +39,5 @@ echo "unset EPICS_HOST_ARCH" >> $DEACTIVATE
 unset ACTIVATE
 unset DEACTIVATE
 unset ETC
+
+cp LICENSE build/
