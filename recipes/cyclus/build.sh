@@ -19,7 +19,7 @@ if [ "${UNAME}" == "Darwin" ]; then
   #export CXX=g++
   #export CC=clang
   #export CXX=clang++
-  export MACOSX_VERSION_MIN="10.7"
+  #export MACOSX_VERSION_MIN="10.7"
   #export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
   #export CXXFLAGS="${CXXFLAGS} -stdlib=libc++"
   #export CXXFLAGS="${CXXFLAGS} -std=c++11"
