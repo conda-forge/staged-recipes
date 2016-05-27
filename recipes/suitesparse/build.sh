@@ -14,6 +14,9 @@ if [ "$(uname)" == "Darwin" ]; then
   # if unspecified on OSX BLAS & LAPACK will be get to "-framework Accelerate"
   BLAS='' # 'BLAS=-lopenblas'
   LAPACK='' # 'LAPACK=-llapack'
+
+  # some tests fail to link TBB unless $PREFIX/lib is added to rpath
+  LDFLAGS="$LDFLAGS -Wl,-rpath,${PREFIX}/lib"
 fi
 
 # This recipe is currently building the version of METIS included with
