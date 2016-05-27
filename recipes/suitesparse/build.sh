@@ -4,7 +4,7 @@ if [ "$(uname)" == "Linux" ]; then
   DYNAMIC_EXT=".so"
 
   # build using OpenBLAS
-  BLAS='BLAS=-lopenblas'
+  BLAS='BLAS=-lopenblas -lgfortran'
   LAPACK='LAPACK=-lopenblas' # llapack'
 fi
 
