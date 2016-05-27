@@ -1,40 +1,42 @@
 #!/usr/bin/env bash
 set -e
 
-UNAME="$(uname)"
-export CFLAGS="${CFLAGS} -O3"
-export CXXFLAGS="${CXXFLAGS} -O3"
-export LIBRARY_PATH="${PREFIX}/lib:${LIBRARY_PATH}"
-export INCLUDE_PATH="${PREFIX}/include:${INCLUDE_PATH}"
+source activate "${CONDA_DEFAULT_ENV}"
 
-export PATH="${PREFIX}/bin:${PATH}"
-export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH}"
-export CMAKE_LIBRARY_PATH="${PREFIX}/lib:${CMAKE_LIBRARY_PATH}"
+UNAME="$(uname)"
+#export CFLAGS="${CFLAGS} -O3"
+#export CXXFLAGS="${CXXFLAGS} -O3"
+#export LIBRARY_PATH="${PREFIX}/lib:${LIBRARY_PATH}"
+#export INCLUDE_PATH="${PREFIX}/include:${INCLUDE_PATH}"
+
+#export PATH="${PREFIX}/bin:${PATH}"
+#export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH}"
+#export CMAKE_LIBRARY_PATH="${PREFIX}/lib:${CMAKE_LIBRARY_PATH}"
 
 if [ "${UNAME}" == "Darwin" ]; then
   # for Mac OSX
-  export CC=gcc
-  export CXX=g++
+  #export CC=gcc
+  #export CXX=g++
   #export CC=clang
   #export CXX=clang++
   export MACOSX_VERSION_MIN="10.7"
-  export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
+  #export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
   #export CXXFLAGS="${CXXFLAGS} -stdlib=libc++"
-  export CXXFLAGS="${CXXFLAGS} -std=c++11"
-  export LDFLAGS="${LDFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
+  #export CXXFLAGS="${CXXFLAGS} -std=c++11"
+  #export LDFLAGS="${LDFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
   #export LDFLAGS="${LDFLAGS} -stdlib=libc++ -lc++"
-  export LDFLAGS="${LDFLAGS} -std=c++11 -lc++"
-  export LINKFLAGS="${LDFLAGS}"
+  #export LDFLAGS="${LDFLAGS} -std=c++11 -lc++"
+  #export LINKFLAGS="${LDFLAGS}"
   export CMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}"
-else
+#else
   # for Linux
-  export CC=
-  export CXX=
+  #export CC=
+  #export CXX=
 fi
 
-export CFLAGS="${CFLAGS} -m${ARCH}"
-export CXXFLAGS="${CXXFLAGS} -m${ARCH}"
-export CXXFLAGS="${CXXFLAGS} -DBOOST_MATH_DISABLE_FLOAT128"
+#export CFLAGS="${CFLAGS} -m${ARCH}"
+#export CXXFLAGS="${CXXFLAGS} -m${ARCH}"
+#export CXXFLAGS="${CXXFLAGS} -DBOOST_MATH_DISABLE_FLOAT128"
 
 #
 # Build and install
