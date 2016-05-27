@@ -50,7 +50,7 @@ ${PYTHON} install.py --prefix="${PREFIX}" \
   --boost_root="${PREFIX}" \
   --hdf5_root="${PREFIX}" \
   -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}" \
-  -DBOOST_MATH_DISABLE_FLOAT128 \
+  -DBOOST_MATH_DISABLE_FLOAT128=ON \
   --clean
 
 #
