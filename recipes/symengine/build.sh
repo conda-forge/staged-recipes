@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 source activate "${CONDA_DEFAULT_ENV}"
-export MACOSX_DEPLOYMENT_TARGET=10.9
 
 mkdir build
 cd build
