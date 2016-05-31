@@ -1,0 +1,122 @@
+From 8b1ce12466d82e1ed865a48a4abe933ce3b137c6 Mon Sep 17 00:00:00 2001
+From: Ray Donnelly <mingw.android@gmail.com>
+Date: Wed, 1 Jun 2016 11:51:15 +0100
+Subject: [PATCH] angle: Split DirectX headers and libraries out from
+ common.pri
+
+... so translator.pro can use it.
+
+translator.pro needs to include DirectX headers, but can't
+include common.pri since that does a lot of inappropriate
+things (like causing shared libraries to be built).
+
+Therefore we split the DirectX headers/libs part out into
+a separate file, common_dx.pri and include that from both
+common.pri and translator.pro
+
+Change-Id: I6b1dd5a4a6e98697732236fbf660e92a8354b6a4
+---
+ src/angle/src/common/common.pri       | 34 +---------------------------------
+ src/angle/src/common/dx_common.pri    | 33 +++++++++++++++++++++++++++++++++
+ src/angle/src/compiler/translator.pro |  1 +
+ 3 files changed, 35 insertions(+), 33 deletions(-)
+ create mode 100644 src/angle/src/common/dx_common.pri
+
+diff --git a/src/angle/src/common/common.pri b/src/angle/src/common/common.pri
+index 50dde63..b00319f 100644
+--- qtbase/src/angle/src/common/common.pri
++++ qtbase/src/angle/src/common/common.pri
+@@ -14,39 +14,7 @@ lib_replace.replace = \$\$\$\$[QT_INSTALL_LIBS]
+ lib_replace.CONFIG = path
+ QMAKE_PRL_INSTALL_REPLACE += lib_replace
+ 
+-# DirectX is included in the Windows 8 Kit, but everything else requires the DX SDK.
+-winrt|if(msvc:!win32-msvc2005:!win32-msvc2008:!win32-msvc2010) {
+-    FXC = fxc.exe
+-} else {
+-    DX_DIR = $$(DXSDK_DIR)
+-    isEmpty(DX_DIR) {
+-        error("Cannot determine DirectX SDK location. Please set DXSDK_DIR environment variable.")
+-    }
+-
+-    DXINC_DIR = $${DX_DIR}Include
+-    contains(QT_ARCH, x86_64) {
+-        DXLIB_DIR = $${DX_DIR}Lib\\x64
+-    } else {
+-        DXLIB_DIR = $${DX_DIR}Lib\\x86
+-    }
+-
+-    equals(QMAKE_TARGET.arch, x86_64) {
+-        FXC = \"$${DX_DIR}Utilities\\bin\\x64\\fxc.exe\"
+-    } else {
+-        FXC = \"$${DX_DIR}Utilities\\bin\\x86\\fxc.exe\"
+-    }
+-
+-    msvc {
+-        # Unfortunately MinGW cannot use the DirectX headers from the DX SDK because d3d11shader.h uses
+-        # buffer annotation macros (eg: __out, __in) which are not defined in the MinGW copy of
+-        # specstrings_strict.h
+-        INCLUDEPATH += $$DXINC_DIR
+-
+-        # Similarly we want the MinGW linker to use the import libraries shipped with the compiler
+-        # instead of those from the SDK which cause a crash on startup.
+-        LIBS_PRIVATE += -L$$DXLIB_DIR
+-    }
+-}
++include(dx_common.pri)
+ 
+ # static builds should still link ANGLE dynamically when dynamic GL is enabled
+ static:contains(QT_CONFIG, dynamicgl) {
+diff --git a/src/angle/src/common/dx_common.pri b/src/angle/src/common/dx_common.pri
+new file mode 100644
+index 0000000..f825cb5
+--- /dev/null
++++ qtbase/src/angle/src/common/dx_common.pri
+@@ -0,0 +1,33 @@
++# DirectX is included in the Windows 8 Kit, but everything else requires the DX SDK.
++winrt|if(msvc:!win32-msvc2005:!win32-msvc2008:!win32-msvc2010) {
++    FXC = fxc.exe
++} else {
++    DX_DIR = $$(DXSDK_DIR)
++    isEmpty(DX_DIR) {
++        error("Cannot determine DirectX SDK location. Please set DXSDK_DIR environment variable.")
++    }
++
++    DXINC_DIR = $${DX_DIR}Include
++    contains(QT_ARCH, x86_64) {
++        DXLIB_DIR = $${DX_DIR}Lib\\x64
++    } else {
++        DXLIB_DIR = $${DX_DIR}Lib\\x86
++    }
++
++    equals(QMAKE_TARGET.arch, x86_64) {
++        FXC = \"$${DX_DIR}Utilities\\bin\\x64\\fxc.exe\"
++    } else {
++        FXC = \"$${DX_DIR}Utilities\\bin\\x86\\fxc.exe\"
++    }
++
++    msvc {
++        # Unfortunately MinGW cannot use the DirectX headers from the DX SDK because d3d11shader.h uses
++        # buffer annotation macros (eg: __out, __in) which are not defined in the MinGW copy of
++        # specstrings_strict.h
++        INCLUDEPATH += $$DXINC_DIR
++
++        # Similarly we want the MinGW linker to use the import libraries shipped with the compiler
++        # instead of those from the SDK which cause a crash on startup.
++        LIBS_PRIVATE += -L$$DXLIB_DIR
++    }
++}
+diff --git a/src/angle/src/compiler/translator.pro b/src/angle/src/compiler/translator.pro
+index b40aa96..430a409 100644
+--- qtbase/src/angle/src/compiler/translator.pro
++++ qtbase/src/angle/src/compiler/translator.pro
+@@ -1,5 +1,6 @@
+ CONFIG += static
+ include(../config.pri)
++include(../common/dx_common.pri)
+ 
+ INCLUDEPATH += \
+     $$ANGLE_DIR/src \
+-- 
+2.8.2
+
