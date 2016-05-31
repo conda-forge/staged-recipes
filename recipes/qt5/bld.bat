@@ -68,6 +68,13 @@ IF %VS_MAJOR% LSS 14 GOTO NOWEBENGINE
     RD /s /q qtwebengine
 :WEBENGINEDONE
 
+IF %VS_MAJOR% LSS 10 GOTO NOANGLE
+    set OPENGLVER=dynamic
+    GOTO ANGLEDONE
+:NOANGLE
+    set OPENGLVER=desktop
+:ANGLEDONE
+
 :: make sure we can find sqlite3:
 set SQLITE3SRCDIR=%CD%\qtbase\src\3rdparty\sqlite
 
@@ -97,7 +104,7 @@ CALL configure ^
      -nomake examples ^
      -nomake tests ^
      -no-warnings-are-errors ^
-     -opengl dynamic ^
+     -opengl %OPENGLVER% ^
      -opensource ^
      -openssl ^
      -platform win32-msvc%VS_YEAR% ^
