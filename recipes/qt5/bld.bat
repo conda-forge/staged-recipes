@@ -16,15 +16,14 @@ IF "%DXSDK_DIR%" == "" (
     exit 1
 )
 
-curl -LO "http://download.qt.io/community_releases/%SHORT_VERSION%/%PKG_VERSION%/qtwebkit-opensource-src-%PKG_VERSION%.tar.xz"
-if errorlevel 1 exit 1
-7za x -so qtwebkit-opensource-src-%PKG_VERSION%.tar.xz | 7za x -si -aoa -ttar
-if errorlevel 1 exit 1
-MOVE qtwebkit-opensource-src-%PKG_VERSION% qtwebkit
-
 if "%DIRTY%" == "" (
     :: Shorten our build path as much as possible
     :: cd ..
+    curl -LO "http://download.qt.io/community_releases/%SHORT_VERSION%/%PKG_VERSION%/qtwebkit-opensource-src-%PKG_VERSION%.tar.xz"
+    if errorlevel 1 exit 1
+    7za x -so qtwebkit-opensource-src-%PKG_VERSION%.tar.xz | 7za x -si -aoa -ttar
+    if errorlevel 1 exit 1
+    MOVE qtwebkit-opensource-src-%PKG_VERSION% qtwebkit
     mkdir C:\qt5
     :: Copy all files except bld.bat, which needs to stay in place while script runs
     robocopy %SRC_DIR%\ C:\qt5\ *.* /E /move /NFL /NDL /xf bld.bat
@@ -111,7 +110,7 @@ CALL configure ^
 
 :: jom is nmake alternative with multicore support, uses all cores by default
 jom release
-if errorlevel 1 exit 1
+if errorlevel 1 exit /b 1
 jom install
 
 conda remove -y -n python27_qt5_build --all
