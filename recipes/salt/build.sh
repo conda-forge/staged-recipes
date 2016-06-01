@@ -2,7 +2,7 @@
 
 SRC_DIR="."
 
-$PYTHON setup.py install --single-version-externally-managed --record record.txt
+$PYTHON setup.py install
 
 # Create directory structure for salt
 # These are ENV safe, because we created a custom
