@@ -8,6 +8,7 @@ IMAGE_NAME="condaforge/linux-anvil"
 config=$(cat <<CONDARC
 
 channels:
+ - r
  - conda-forge
  - defaults
 
