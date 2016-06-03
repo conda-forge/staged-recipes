@@ -21,8 +21,8 @@ You need the following packages to build Qt5 on CentOS 6
 - To build Qt5 you need XCode in your system, Command Line Tools is not
   accepted. See this [Qt bug](https://bugreports.qt.io/browse/QTBUG-41908)
   for details.
-- The right XCode version for your OS X version is listed
-  [here](https://github.com/Homebrew/homebrew/blob/master/Library/Homebrew/os/mac/xcode.rb)
+- The minimal XCode version accepted is 6.1
+- The minimal OS X version accepted is 10.9 (Mavericks)
 
 ## Notes concerning Windows:
 
