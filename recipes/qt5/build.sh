@@ -1,8 +1,13 @@
 #!/bin/bash
 
+# Main variables
+# --------------
 BIN=$PREFIX/lib/qt5/bin
 QTCONF=$BIN/qt.conf
 
+
+# Compile
+# -------
 chmod +x configure
 
 if [ `uname` == Linux ]; then
@@ -23,17 +28,30 @@ if [ `uname` == Linux ]; then
                 -nomake examples \
                 -nomake tests \
                 -verbose \
-                -no-libudev \
-                -gtkstyle \
-                -qt-xcb \
-                -qt-pcre \
-                -openssl \
+                -skip enginio \
+                -skip location \
+                -skip sensors \
+                -skip serialport \
+                -skip script \
+                -skip serialbus \
+                -skip quickcontrols2 \
+                -skip wayland \
+                -skip canvas3d \
+                -skip 3d \
                 -system-libjpeg \
                 -system-libpng \
                 -system-zlib \
+                -qt-pcre \
+                -qt-xcb \
                 -qt-xkbcommon \
                 -xkb-config-root $PREFIX/lib \
-                -dbus
+                -dbus \
+                -c++11 \
+                -no-linuxfb \
+                -no-libudev
+
+    LD_LIBRARY_PATH=$PREFIX/lib make -j $MAKE_JOBS
+    make install
 fi
 
 if [ `uname` == Darwin ]; then
@@ -61,14 +79,22 @@ if [ `uname` == Darwin ]; then
                 -nomake examples \
                 -nomake tests \
                 -verbose \
-                -skip qtwebengine \
-                -openssl \
+                -skip enginio \
+                -skip location \
+                -skip sensors \
+                -skip serialport \
+                -skip script \
+                -skip serialbus \
+                -skip quickcontrols2 \
+                -skip wayland \
+                -skip canvas3d \
+                -skip 3d \
                 -system-libjpeg \
                 -system-libpng \
                 -system-zlib \
                 -qt-pcre \
-                -platform macx-g++ \
-                -no-c++11 \
+                -qt-freetype \
+                -c++11 \
                 -no-framework \
                 -no-dbus \
                 -no-mtdev \
@@ -77,28 +103,28 @@ if [ `uname` == Darwin ]; then
                 -no-xcb-xlib \
                 -no-libudev \
                 -no-egl
+
+    DYLD_FALLBACK_LIBRARY_PATH=$PREFIX/lib make -j $MAKE_JOBS
+    make install
 fi
 
-make -j $MAKE_JOBS
-make install
 
+
+# Post build setup
+# ----------------
+
+# Remove unneeded files
+rm -rf $PREFIX/share/qt5
+
+# Make symlinks of binaries in $BIN to $PREFIX/bin
 for file in $BIN/*
 do
     ln -sfv ../lib/qt5/bin/$(basename $file) $PREFIX/bin/$(basename $file)-qt5
 done
 
-#removes doc, phrasebooks, and translations
-rm -rf $PREFIX/share/qt5
-
 # Remove static libs
 rm -rf $PREFIX/lib/*.a
 
 # Add qt.conf file to the package to make it fully relocatable
-cat <<EOF >$QTCONF
-[Paths]
-Prefix = $PREFIX/lib/qt5
-Libraries = $PREFIX/lib
-Headers = $PREFIX/include/qt5
-
-EOF
+cp $RECIPE_DIR/qt.conf $BIN/
 
