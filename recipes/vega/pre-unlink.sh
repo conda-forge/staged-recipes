@@ -1,1 +1,1 @@
-"${PREFIX}/bin/jupyter-nbextension" disable vega --py --sys-prefix
+"${PREFIX}/bin/jupyter-nbextension" uninstall vega --py --sys-prefix
