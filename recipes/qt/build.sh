@@ -31,7 +31,7 @@ if [ `uname` == Darwin ]; then
     # will occur
     for x in OSX_ARCH CFLAGS CXXFLAGS LDFLAGS
     do
-	unset $x
+    	unset $x
     done
 
     chmod +x configure
@@ -43,20 +43,21 @@ if [ `uname` == Darwin ]; then
 fi
 
 ./configure -prefix $PREFIX/lib/qt4 \
-	    -libdir $PREFIX/lib \
-	    -bindir $PREFIX/lib/qt4/bin \
-	    -headerdir $PREFIX/include/qt4 \
-	    -datadir $PREFIX/lib/qt4 \
-	    -L $PREFIX/lib \
-	    -I $PREFIX/include \
-	    -release \
-	    -fast \
-	    -no-qt3support \
-	    -nomake examples \
-	    -nomake demos \
-	    -nomake docs \
-	    -opensource \
-	    -openssl \
+            -libdir $PREFIX/lib \
+            -bindir $PREFIX/lib/qt4/bin \
+            -headerdir $PREFIX/include/qt4 \
+            -datadir $PREFIX/lib/qt4 \
+            -L $PREFIX/lib \
+            -I $PREFIX/include \
+            -release \
+            -fast \
+            -verbose \
+            -no-qt3support \
+            -nomake examples \
+            -nomake demos \
+            -nomake docs \
+            -opensource \
+            -openssl \
             -system-libpng \
             -system-zlib \
             -system-libtiff \
