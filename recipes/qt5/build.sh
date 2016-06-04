@@ -89,11 +89,11 @@ if [ `uname` == Darwin ]; then
                 -skip wayland \
                 -skip canvas3d \
                 -skip 3d \
-                -system-libjpeg \
-                -system-libpng \
                 -system-zlib \
                 -qt-pcre \
                 -qt-freetype \
+                -qt-libjpeg \
+                -qt-libpng \
                 -c++11 \
                 -no-framework \
                 -no-dbus \
@@ -102,7 +102,8 @@ if [ `uname` == Darwin ]; then
                 -no-xinput2 \
                 -no-xcb-xlib \
                 -no-libudev \
-                -no-egl
+                -no-egl \
+                -no-openssl
 
     DYLD_FALLBACK_LIBRARY_PATH=$PREFIX/lib make -j $MAKE_JOBS
     make install
