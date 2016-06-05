@@ -1,6 +1,6 @@
 cd test
 
-sip word.sip
+sip -c . word.sip
 if errorlevel 1 exit 1
 
 %PYTHON% configure.py
