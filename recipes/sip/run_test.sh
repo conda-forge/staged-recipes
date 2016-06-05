@@ -1,6 +1,6 @@
 #!/bin/bash
 
 cd test
-sip -c . word.sip
+sip -c . -b word.sbf word.sip
 python configure.py
 make
