@@ -7,5 +7,4 @@ else
 fi
 
 make
-make check
 make install
