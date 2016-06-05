@@ -113,9 +113,6 @@ fi
 # Post build setup
 # ----------------
 
-# Remove unneeded files
-rm -rf $PREFIX/share/qt5
-
 # Make symlinks of binaries in $BIN to $PREFIX/bin
 for file in $BIN/*
 do
@@ -127,4 +124,3 @@ rm -rf $PREFIX/lib/*.a
 
 # Add qt.conf file to the package to make it fully relocatable
 cp $RECIPE_DIR/qt.conf $BIN/
-
