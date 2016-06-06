@@ -1,5 +1,5 @@
 
-set UMFPACK=%PREFIX%\lib
+set UMFPACK=%LIBRARY_LIB%
 
 %PYTHON% setup.py install --single-version-externally-managed --record record.txt
 
