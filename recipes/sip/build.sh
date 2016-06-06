@@ -1,9 +1,9 @@
 #!/bin/bash
 
 if [ `uname` == Darwin ]; then
-    pythonw configure.py
+    pythonw --sysroot=$PREFIX configure.py
 else
-    python configure.py
+    python --sysroot=$PREFIX configure.py
 fi
 
 make
