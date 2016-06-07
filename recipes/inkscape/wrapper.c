@@ -207,10 +207,7 @@ int run(int argc, char **argv, int is_gui)
         *ext = '\0';
     }
 
-    strcpy(newpath, path);
-    strcat(newpath, RELATIVE_PATH);
-    strcat(newpath, fn);
-    strcat(newpath, EXEC_EXTENSION);
+    sprintf(newpath, "%s%s%s%s", path, RELATIVE_PATH, fn, EXEC_EXTENSION);
 
 #if DEBUG
     printf("fn ==%s==\n", fn);
