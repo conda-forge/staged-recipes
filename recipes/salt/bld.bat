@@ -1,14 +1,14 @@
 %PYTHON% setup.py install
 if errorlevel 1 exit 1
 
-for %%DIR in (
-       etc/salt
-       var/cache/salt
-       var/run/salt
-       srv/salt
-       srv/pillar
-       var/log/salt
-       var/run
+for %%D in (
+       etc\salt
+       var\cache\salt
+       var\run\salt
+       srv\salt
+       srv\pillar
+       var\log\salt
+       var\run
 ) do (
-       mkdir %PREFIX%\%%DIR
+       if not exist  %PREFIX%\"%%D" mkdir %PREFIX%\"%%D"
 )
