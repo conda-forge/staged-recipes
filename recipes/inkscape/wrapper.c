@@ -36,9 +36,12 @@ Slashes are need to be included here!
 <path env> really means one dir below the dir where the wrapper is. Which is
 true for <env>\Scripts and <env>\bin
 */
+
 #define RELATIVE_PATH   "\\Library\\inkscape\\"
-#define EXEC_EXTENSION  ".com"
-#define DEBUG 0
+#define EXEC_EXTENSION   ".com"
+#if !defined(DEBUG)
+    #define DEBUG 0
+#endif
 
 
 /* Only change soemthing below where the path is set in the end.. */
@@ -46,17 +49,16 @@ true for <env>\Scripts and <env>\bin
 int child_pid=0;
 
 
-int fail(char *format, char *data)
-{
+int fail(const char *format, const char *data) {
     /* Print error message to stderr and return 2 */
     fprintf(stderr, format, data);
     return 2;
 }
 
 
-char *quoted(char *data)
-{
-    int i, ln = strlen(data), nb;
+char *quoted(const char *data) {
+    size_t i, ln = strlen(data);
+    int nb; /* we check this for negative values */
 
     /* We allocate twice as much space as needed to deal with worse-case
        of having to escape everything. */
@@ -64,23 +66,22 @@ char *quoted(char *data)
     char *presult = result;
 
     *presult++ = '"';
-    for (nb=0, i=0; i < ln; i++)
-    {
-        if (data[i] == '\\')
+    for (nb=0, i=0; i < ln; i++) {
+        if (data[i] == '\\') {
             nb += 1;
-        else if (data[i] == '"')
-        {
+        } else if (data[i] == '"') {
             for (; nb > 0; nb--)
                 *presult++ = '\\';
             *presult++ = '\\';
-        }
-        else
+        } else {
             nb = 0;
+        }
         *presult++ = data[i];
     }
 
-    for (; nb > 0; nb--)        /* Deal w trailing slashes */
+    for (; nb > 0; nb--) {       /* Deal w trailing slashes */
         *presult++ = '\\';
+    }
 
     *presult++ = '"';
     *presult++ = 0;
@@ -89,8 +90,7 @@ char *quoted(char *data)
 
 
 
-void pass_control_to_child(DWORD control_type)
-{
+void pass_control_to_child(DWORD control_type) {
     /*
      * distribute-issue207
      * passes the control event to child process (Python)
@@ -102,8 +102,7 @@ void pass_control_to_child(DWORD control_type)
 }
 
 
-BOOL control_handler(DWORD control_type)
-{
+BOOL control_handler(DWORD control_type) {
     /*
      * distribute-issue207
      * control event handler callback function
@@ -132,36 +131,33 @@ int create_and_wait_for_subprocess(char* command) {
     // set-up control handler callback funciotn
     SetConsoleCtrlHandler((PHANDLER_ROUTINE) control_handler, TRUE);
     if (!CreateProcessA(NULL, commandline, NULL, NULL, TRUE, 0, NULL,
-                        NULL, &s_info, &p_info))
-    {
+                        NULL, &s_info, &p_info)) {
         fprintf(stderr, "failed to create process.\n");
         return 1;
     }
     child_pid = p_info.dwProcessId;
     // wait for Python to exit
     WaitForSingleObject(p_info.hProcess, INFINITE);
-    if (!GetExitCodeProcess(p_info.hProcess, &return_value))
-    {
+    if (!GetExitCodeProcess(p_info.hProcess, &return_value)) {
         fprintf(stderr, "failed to get exit code from process.\n");
-        return 0;
+        return 1;
     }
-    return return_value;
+    return (int) return_value;
 }
 
 
-char* join_executable_and_args(char *executable, char **args, int argc)
-{
+char* join_executable_and_args(char *executable, char **args, int argc) {
     /*
      * distribute-issue207
      * CreateProcess needs a long string of the executable and command-line arguments,
      * so we need to convert it from the args that was built
      */
-    int len, counter;
+    size_t len;
+    int counter;
     char* cmdline;
 
     len = strlen(executable) + 2;
-    for (counter=1; counter<argc; counter++)
-    {
+    for (counter=1; counter<argc; counter++) {
         len += strlen(args[counter]) + 1;
     }
 
@@ -198,7 +194,7 @@ int run(int argc, char **argv, int is_gui)
     }
     fn++;
     end = fn - 2;
-    while (end > path && *end != '\\'){
+    while (end > path && *end != '\\') {
         end--;
     }
     *end = '\0';
@@ -225,14 +221,16 @@ int run(int argc, char **argv, int is_gui)
     newargsp = newargs;
 
     *newargsp++ = quoted(newpath);
-    for (i = 1; i < argc; i++)
+    for (i = 1; i < argc; i++){
         *newargsp++ = quoted(argv[i]);
+    }
 
     *newargsp++ = NULL;
 
 #if DEBUG
-    for (i = 0; i <= argc; i++)
+    for (i = 0; i <= argc; i++){
         printf("- %s\n", newargs[i]);
+    }
     printf("argc=%d\n", argc);
 #endif
 
@@ -250,13 +248,11 @@ int run(int argc, char **argv, int is_gui)
 }
 
 
-int WINAPI WinMain(HINSTANCE hI, HINSTANCE hP, LPSTR lpCmd, int nShow)
-{
+int WINAPI WinMain(HINSTANCE hI, HINSTANCE hP, LPSTR lpCmd, int nShow) {
     return run(__argc, __argv, GUI);
 }
 
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     return run(argc, argv, GUI);
 }
