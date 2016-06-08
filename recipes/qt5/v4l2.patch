@@ -1,0 +1,156 @@
+--- qtwebengine/src/3rdparty/chromium/media/media.gyp
++++ qtwebengine/src/3rdparty/chromium/media/media.gyp
+@@ -750,6 +750,12 @@
+         }],
+         ['OS=="linux"', {
+           'conditions': [
++            ['use_qt==1', {
++              'sources!': [
++                'video/capture/linux/v4l2_capture_delegate_multi_plane.cc',
++                'video/capture/linux/v4l2_capture_delegate_multi_plane.h',
++              ],
++            }],
+             ['use_x11==1', {
+               'dependencies': [
+                 '../build/linux/system.gyp:x11',
+--- qtwebengine/src/3rdparty/chromium/media/video/capture/linux/video_capture_device_linux.cc
++++ qtwebengine/src/3rdparty/chromium/media/video/capture/linux/video_capture_device_linux.cc
+@@ -140,8 +140,12 @@
+     case kPowerLine60Hz:
+       return V4L2_CID_POWER_LINE_FREQUENCY_60HZ;
+     default:
++#if !defined(TOOLKIT_QT)
+       // If we have no idea of the frequency, at least try and set it to AUTO.
+       return V4L2_CID_POWER_LINE_FREQUENCY_AUTO;
++#else
++      return V4L2_CID_POWER_LINE_FREQUENCY_DISABLED;
++#endif
+   }
+ }
+ 
+--- qtwebengine/src/3rdparty/chromium/media/video/capture/linux/video_capture_device_factory_linux.cc
++++ qtwebengine/src/3rdparty/chromium/media/video/capture/linux/video_capture_device_factory_linux.cc
+@@ -33,7 +33,9 @@
+     v4l2_buf_type buf_type;
+   } kCapabilityAndBufferTypes[] = {
+     {V4L2_CAP_VIDEO_CAPTURE, V4L2_BUF_TYPE_VIDEO_CAPTURE},
++#if !defined(TOOLKIT_QT)
+     {V4L2_CAP_VIDEO_CAPTURE_MPLANE, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE}
++#endif
+   };
+ 
+   for (const auto& capability_and_buffer_type : kCapabilityAndBufferTypes) {
+@@ -178,16 +180,25 @@
+     // http://crbug.com/139356.
+     v4l2_capability cap;
+     if ((HANDLE_EINTR(ioctl(fd.get(), VIDIOC_QUERYCAP, &cap)) == 0) &&
++#if !defined(TOOLKIT_QT)
+         ((cap.capabilities & V4L2_CAP_VIDEO_CAPTURE ||
+          cap.capabilities & V4L2_CAP_VIDEO_CAPTURE_MPLANE) &&
+          !(cap.capabilities & V4L2_CAP_VIDEO_OUTPUT) &&
+          !(cap.capabilities & V4L2_CAP_VIDEO_OUTPUT_MPLANE)) &&
++#else
++        (cap.capabilities & V4L2_CAP_VIDEO_CAPTURE) &&
++        !(cap.capabilities & V4L2_CAP_VIDEO_OUTPUT) &&
++#endif
+         HasUsableFormats(fd.get(), cap.capabilities)) {
+       device_names->push_back(VideoCaptureDevice::Name(
+           base::StringPrintf("%s", cap.card), unique_id,
++#if !defined(TOOLKIT_QT)
+           (cap.capabilities & V4L2_CAP_VIDEO_CAPTURE_MPLANE)
+               ? VideoCaptureDevice::Name::V4L2_MULTI_PLANE
+               : VideoCaptureDevice::Name::V4L2_SINGLE_PLANE));
++#else
++          VideoCaptureDevice::Name::V4L2_SINGLE_PLANE));
++#endif
+     }
+   }
+ }
+@@ -206,9 +217,13 @@
+   DCHECK_NE(device.capture_api_type(),
+             VideoCaptureDevice::Name::API_TYPE_UNKNOWN);
+   const v4l2_buf_type buf_type =
++#if !defined(TOOLKIT_QT)
+       (device.capture_api_type() == VideoCaptureDevice::Name::V4L2_MULTI_PLANE)
+           ? V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
+           : V4L2_BUF_TYPE_VIDEO_CAPTURE;
++#else
++      V4L2_BUF_TYPE_VIDEO_CAPTURE;
++#endif
+   GetSupportedFormatsForV4L2BufferType(fd.get(), buf_type, supported_formats);
+ 
+   return;
+--- qtwebengine/src/3rdparty/chromium/media/video/capture/linux/v4l2_capture_delegate.cc
++++ qtwebengine/src/3rdparty/chromium/media/video/capture/linux/v4l2_capture_delegate.cc
+@@ -46,7 +46,7 @@
+   {V4L2_PIX_FMT_YUYV, PIXEL_FORMAT_YUY2, 1},
+   {V4L2_PIX_FMT_UYVY, PIXEL_FORMAT_UYVY, 1},
+   {V4L2_PIX_FMT_RGB24, PIXEL_FORMAT_RGB24, 1},
+-#if !defined(OS_OPENBSD)
++#if !defined(OS_OPENBSD) && !defined(TOOLKIT_QT)
+   // TODO(mcasas): add V4L2_PIX_FMT_YVU420M when available in bots.
+   {V4L2_PIX_FMT_YUV420M, PIXEL_FORMAT_I420, 3},
+ #endif
+@@ -71,14 +71,14 @@
+       return make_scoped_refptr(new V4L2CaptureDelegateSinglePlane(
+           device_name, v4l2_task_runner, power_line_frequency));
+     case VideoCaptureDevice::Name::V4L2_MULTI_PLANE:
+-#if !defined(OS_OPENBSD)
++#if !defined(OS_OPENBSD) && !defined(TOOLKIT_QT)
+       return make_scoped_refptr(new V4L2CaptureDelegateMultiPlane(
+           device_name, v4l2_task_runner, power_line_frequency));
+-    default:
+ #endif
++    default:
+       NOTIMPLEMENTED() << "Unknown V4L2 capture API type";
+       return scoped_refptr<V4L2CaptureDelegate>();
+-  }
++  }	
+ }
+ 
+ // static
+@@ -149,10 +149,14 @@
+     const VideoCaptureDevice::Name& device_name,
+     const scoped_refptr<base::SingleThreadTaskRunner>& v4l2_task_runner,
+     int power_line_frequency)
++#if !defined(TOOLKIT_QT)
+     : capture_type_((device_name.capture_api_type() ==
+                      VideoCaptureDevice::Name::V4L2_SINGLE_PLANE)
+                         ? V4L2_BUF_TYPE_VIDEO_CAPTURE
+                         : V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE),
++#else
++    : capture_type_(V4L2_BUF_TYPE_VIDEO_CAPTURE),
++#endif
+       v4l2_task_runner_(v4l2_task_runner),
+       device_name_(device_name),
+       power_line_frequency_(power_line_frequency),
+@@ -182,10 +186,15 @@
+ 
+   v4l2_capability cap = {};
+   if (!((HANDLE_EINTR(ioctl(device_fd_.get(), VIDIOC_QUERYCAP, &cap)) == 0) &&
++#if !defined(TOOLKIT_QT)
+         ((cap.capabilities & V4L2_CAP_VIDEO_CAPTURE ||
+           cap.capabilities & V4L2_CAP_VIDEO_CAPTURE_MPLANE) &&
+          !(cap.capabilities & V4L2_CAP_VIDEO_OUTPUT) &&
+          !(cap.capabilities & V4L2_CAP_VIDEO_OUTPUT_MPLANE)))) {
++#else
++        (cap.capabilities & V4L2_CAP_VIDEO_CAPTURE &&
++         !(cap.capabilities & V4L2_CAP_VIDEO_OUTPUT)))) {
++#endif
+     device_fd_.reset();
+     SetErrorState("This is not a V4L2 video capture device");
+     return;
+@@ -257,8 +266,11 @@
+   // Set anti-banding/anti-flicker to 50/60Hz. May fail due to not supported
+   // operation (|errno| == EINVAL in this case) or plain failure.
+   if ((power_line_frequency_ == V4L2_CID_POWER_LINE_FREQUENCY_50HZ) ||
+-      (power_line_frequency_ == V4L2_CID_POWER_LINE_FREQUENCY_60HZ) ||
+-      (power_line_frequency_ == V4L2_CID_POWER_LINE_FREQUENCY_AUTO)) {
++      (power_line_frequency_ == V4L2_CID_POWER_LINE_FREQUENCY_60HZ)
++#if !defined(TOOLKIT_QT)
++      || (power_line_frequency_ == V4L2_CID_POWER_LINE_FREQUENCY_AUTO)
++#endif
++     ) {
+     struct v4l2_control control = {};
+     control.id = V4L2_CID_POWER_LINE_FREQUENCY;
+     control.value = power_line_frequency_;

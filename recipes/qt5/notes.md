@@ -1,28 +1,10 @@
-Building a conda qt5 package is a slow process. Its a big package, and it takes
-a long time to even unpack the compressed source. In fact, it takes about as
-long to delete an old qt5 source directory and unpack a new one as it does to
-compile qt5 on a 48-core machine. Its currently not possible for conda to use a
-git checkout, because conda caches a bare repository, almost all of the source
-exists as submodules, and conda tries to clone the submodules from nonexistent
-directories in its cache. So we are stuck with the compressed source files.
-
-## Notes concerning Linux
-
-You need the following packages to build Qt5 on CentOS 6
-
-- xcb-util-devel
-- gtk2-devel
-- freeglut-devel
-- ruby
-- gperf
-
 ## Notes concerning OS X
 
 - To build Qt5 you need XCode in your system, Command Line Tools is not
   accepted. See this [Qt bug](https://bugreports.qt.io/browse/QTBUG-41908)
   for details.
 - The minimal XCode version accepted is 6.1
-- The minimal OS X version accepted is 10.9 (Mavericks)
+- The minimal OS X version accepted for building is 10.9 (Mavericks)
 
 ## Notes concerning Windows:
 
