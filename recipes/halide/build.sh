@@ -7,8 +7,4 @@ if [[ `uname` == Darwin ]]; then
      export CXX=g++
 fi
 
-cd python_bindings
-mkdir build
-cd build
-cmake -DHALIDE_LIBRARIES=${HOME}/src/halide-binary/lib -DHALIDE_INCLUDE_DIR=${HOME}/src/halide-binary/include ..
 make
