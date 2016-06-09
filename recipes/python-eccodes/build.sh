@@ -23,7 +23,6 @@ cmake $src_dir \
          -DENABLE_FORTRAN=0
 
 make
-eval ${LIBRARY_SEARCH_VAR}=$PREFIX/lib
 make install
 
 if [[ $(uname) == Darwin ]]; then
