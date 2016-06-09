@@ -38,7 +38,7 @@ conda clean --lock
 conda update conda conda-build
 conda install conda-build-all
 conda install conda-forge-build-setup
-source "\`conda info --root\`/bin/run_conda_forge_build_setup"
+source run_conda_forge_build_setup
 
 # We don't need to build the example recipe.
 rm -rf /conda-recipes/example
