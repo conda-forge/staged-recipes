@@ -31,5 +31,5 @@ make install
 # The install instructions in python/README include the suggestion:
 # Add this folder to your PYTHONPATH and you are ready to go. Instead of that,
 # we just rename the directory and make it a package.
-mv $SP_DIR/grib_api $SP_DIR/gribapi
-mv $SP_DIR/gribapi/gribapi.py $SP_DIR/gribapi/__init__.py
+# mv $SP_DIR/grib_api $SP_DIR/gribapi
+# mv $SP_DIR/gribapi/gribapi.py $SP_DIR/gribapi/__init__.py
