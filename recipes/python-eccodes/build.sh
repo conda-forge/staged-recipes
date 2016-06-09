@@ -25,3 +25,5 @@ cmake $src_dir \
 make
 eval ${LIBRARY_SEARCH_VAR}=$PREFIX/lib
 make install
+
+ln -s $SP_DIR/gribapi/_gribapi_swig.dylib $SP_DIR/gribapi/_gribapi_swig.so
