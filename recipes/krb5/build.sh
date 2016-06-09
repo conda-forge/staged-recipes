@@ -7,5 +7,7 @@ autoreconf -i
 ./configure --prefix=$PREFIX
 
 make
-make check
+if [ "$PY_VER" == "2.7" ]; then
+  make check
+fi
 make install
