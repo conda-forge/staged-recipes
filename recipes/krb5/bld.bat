@@ -1,17 +1,15 @@
-mkdir build
-cd build
+:: First, make sure you have sed, gawk, cat, and cp
 
-cmake -G "NMake Makefiles" ^
-      -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
-      -D CMAKE_BUILD_TYPE=Release ^
-      %SRC_DIR%\src
+cd src
+
+:: Create Makefile for Windows.
+nmake -f Makefile.in prep-windows
 if errorlevel 1 exit 1
 
-nmake
+:: Build the sources
+nmake [NODEBUG=1]
 if errorlevel 1 exit 1
 
-ctest
-if errorlevel 1 exit 1
-
-nmake install
+:: Copy headers, libs, executables.
+nmake install [NODEBUG=1]
 if errorlevel 1 exit 1
