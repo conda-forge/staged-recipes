@@ -20,7 +20,7 @@ var/run
 for path in $DIRECTORIES
 do
     mkdir -p $PREFIX/$path
-    touch $PREFIX/$path/.gitkeep
+    touch $PREFIX/$path/.condakeep
 done
 
 # Copy default config files
