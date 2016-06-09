@@ -30,19 +30,15 @@ fi
 # Unused, but needed by conda-build currently... :(
 export CONDA_NPY='19'
 
-# MAKEFLAGS is passed through conda build: https://github.com/conda/conda-build/pull/917
-# 2 cores are available: https://discuss.circleci.com/t/what-runs-on-the-node-container-by-default/1443
-export MAKEFLAGS="-j2 ${MAKEFLAGS}"
-
-export PYTHONUNBUFFERED=1
 echo "$config" > ~/.condarc
 
 # A lock sometimes occurs with incomplete builds. The lock file is stored in build_artefacts.
 conda clean --lock
 
 conda update conda conda-build
-conda install anaconda-client conda-build-all
-conda info
+conda install conda-build-all
+conda install conda-forge-build-setup
+source "\`conda info --root\`/bin/run_conda_forge_build_setup"
 
 # We don't need to build the example recipe.
 rm -rf /conda-recipes/example
