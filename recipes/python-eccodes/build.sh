@@ -24,12 +24,3 @@ cmake $src_dir \
 make
 eval ${LIBRARY_SEARCH_VAR}=$PREFIX/lib
 make install
-
-# see https://github.com/conda-forge/python-ecmwf_grib-feedstock/blob/master/recipe/build.sh#L26
-# For some reason the installer places the Python files in a sub-directory of
-# site-packages called "grib_api". (NB. The sub-directory is not a package.)
-# The install instructions in python/README include the suggestion:
-# Add this folder to your PYTHONPATH and you are ready to go. Instead of that,
-# we just rename the directory and make it a package.
-# mv $SP_DIR/grib_api $SP_DIR/gribapi
-# mv $SP_DIR/gribapi/gribapi.py $SP_DIR/gribapi/__init__.py
