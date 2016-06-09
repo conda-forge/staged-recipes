@@ -1,7 +1,5 @@
 #!/bin/bash
 
-SRC_DIR="."
-
 $PYTHON setup.py install
 
 # Create directory structure for salt
