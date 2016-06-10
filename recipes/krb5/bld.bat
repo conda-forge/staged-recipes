@@ -1,5 +1,8 @@
-:: First, make sure you have sed, gawk, cat, and cp
-PATH C:\msys64\%MSYSTEM%\bin;C:\msys64\usr\bin;%PATH%
+:: Finds stdint.h from msinttypes.
+set INCLUDE=%LIBRARY_INC%;%INCLUDE%
+
+:: Make sure you have sed, gawk, cat, and cp.
+PATH %PATH%;C:\msys64\%MSYSTEM%\bin;C:\msys64\usr\bin
 
 cd src
 
