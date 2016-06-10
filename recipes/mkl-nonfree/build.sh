@@ -93,3 +93,11 @@ rm -rf ${xe_build_dir}/opt/intel/${_composer_xe_dir}/linux/mkl/benchmarks
 echo -e " # intel-mkl: Move package"
 mv ${xe_build_dir}/opt ${PREFIX}
 # mv ${xe_build_dir}/etc ${PREFIX}
+
+# Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
+# This will allow them to be run on environment activation.
+for CHANGE in "activate" "deactivate"
+do
+    mkdir -p "${PREFIX}/etc/conda/${CHANGE}.d"
+    cp "${RECIPE_DIR}/${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/mkl-nonfree_${CHANGE}.sh"
+done
