@@ -10,6 +10,7 @@ config=$(cat <<CONDARC
 channels:
  - conda-forge
  - defaults
+ - r
 
 always_yes: true
 show_channel_urls: true
