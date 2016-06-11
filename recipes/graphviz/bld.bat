@@ -24,7 +24,7 @@ del %LIBRARY_PREFIX%\bld.bat
 if errorlevel 1 exit 1
 
 :: Create bat links for all exe files in %LIBRARY_BIN%\graphviz
-pushd %LIBRARY_BIN%
+cd %LIBRARY_BIN%
 for /r "%LIBRARY_BIN%\graphviz" %%f in (*.exe) do (
     echo @echo off > %%~nf.bat
     echo %%~dp0.\graphviz\%%~nf.exe %%* >> %%~nf.bat
