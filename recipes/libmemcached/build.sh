@@ -13,5 +13,4 @@ then
     export LIBTOOL="libtool"
 fi
 
-./configure --prefix="$PREFIX"
-make && make install
+./configure --prefix="$PREFIX" && make && make install
