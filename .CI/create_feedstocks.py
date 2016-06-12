@@ -10,10 +10,12 @@ Such as:
 """
 from __future__ import print_function
 
+from conda_build.metadata import MetaData
 from conda_smithy.github import gh_token
 from contextlib import contextmanager
 from github import Github, GithubException
 import os.path
+from random import choice
 import shutil
 import subprocess
 import tempfile
@@ -21,6 +23,12 @@ import tempfile
 
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
 DEBUG = False
+
+
+superlative = ['awesome', 'slick', 'formidable', 'awe-inspiring', 'breathtaking',
+               'magnificent', 'wonderous', 'stunning', 'astonishing', 'superb',
+               'splendid', 'impressive', 'unbeatable', 'excellent', 'top', 'outstanding',
+               'exalted', 'standout', 'smashing']
 
 
 def list_recipes():
@@ -60,6 +68,23 @@ def repo_exists(organization, name):
         if e.status == 404:
             return False
         raise
+
+
+def create_team(org, name, description, repos):
+    # PyGithub creates secret teams, and has no way of turning that off! :(
+    post_parameters = {
+        "name": name,
+        "description": description,
+        "privacy": "closed",
+        "permission": "push",
+    }
+    post_parameters["repo_names"] = [element._identity for element in repos]
+    headers, data = org._requester.requestJsonAndCheck(
+        "POST",
+        org.url + "/teams",
+        input=post_parameters
+    )
+    return github.Team.Team(org._requester, headers, data, completed=True)
 
 
 if __name__ == '__main__':
@@ -115,6 +140,12 @@ if __name__ == '__main__':
             else:
                 subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info)
 
+        gh = None
+        conda_forge = None
+        if 'GH_TOKEN' in os.environ:
+            gh = Github(os.environ['GH_TOKEN'])
+            conda_forge = gh.get_organization('conda-forge')
+
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
         # Without this, intermittent failiures to synch the TravisCI repos ensue.
         for feedstock_dir, name, recipe_dir in feedstock_dirs:
@@ -125,6 +156,19 @@ if __name__ == '__main__':
             # Capture the output, as it may contain the GH_TOKEN.
             out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'master'], cwd=feedstock_dir,
                                           stderr=subprocess.STDOUT)
+
+            # Add team members as maintainers.
+            if conda_forge:
+                meta = MetaData(recipe_dir)
+                maintainers = meta.meta.get('extra', {}).get('recipe-maintainers', [])
+                team = create_team(
+                    conda_forge,
+                    name.lower(),
+                    'The {} {} contributors!'.format(choice(superlative), name),
+                    repo_names=['conda-forge/{}'.format(os.path.basename(feedstock_dir))]
+                )
+                for each_maintainer in maintainers:
+                    team.add_membership(each_maintainer)
 
             # Remove this recipe from the repo.
             removed_recipes.append(name)
