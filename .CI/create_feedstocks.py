@@ -70,15 +70,15 @@ def repo_exists(organization, name):
         raise
 
 
-def create_team(org, name, description, repos):
+def create_team(org, name, description, repo_names):
     # PyGithub creates secret teams, and has no way of turning that off! :(
     post_parameters = {
         "name": name,
         "description": description,
         "privacy": "closed",
         "permission": "push",
+        "repo_names": repo_names
     }
-    post_parameters["repo_names"] = [element._identity for element in repos]
     headers, data = org._requester.requestJsonAndCheck(
         "POST",
         org.url + "/teams",
@@ -165,7 +165,7 @@ if __name__ == '__main__':
                     conda_forge,
                     name.lower(),
                     'The {} {} contributors!'.format(choice(superlative), name),
-                    repos=['conda-forge/{}'.format(os.path.basename(feedstock_dir))]
+                    repo_names=['conda-forge/{}'.format(os.path.basename(feedstock_dir))]
                 )
                 for each_maintainer in maintainers:
                     team.add_membership(each_maintainer)
