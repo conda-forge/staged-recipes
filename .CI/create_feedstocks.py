@@ -164,6 +164,7 @@ if __name__ == '__main__':
                 meta = MetaData(recipe_dir)
                 maintainers = meta.meta.get('extra', {}).get('recipe-maintainers', [])
                 team_name = name.lower()
+                repo_name = 'conda-forge/{}'.format(os.path.basename(feedstock_dir))
 
                 # Try to get team or create it if it doesn't exist.
                 if team_name not in teams:
@@ -171,13 +172,22 @@ if __name__ == '__main__':
                         conda_forge,
                         team_name,
                         'The {} {} contributors!'.format(choice(superlative), team_name),
-                        repo_names=['conda-forge/{}'.format(os.path.basename(feedstock_dir))]
+                        repo_names=[repo_name]
                     )
                 else:
                     team = teams[team_name]
 
-                for each_maintainer in maintainers:
-                    team.add_membership(each_maintainer)
+                # Add only the new maintainers to the team.
+                current_maintainers = team.get_members()
+                current_maintainers_handles = set([each_maintainers.login.lower() for each_maintainers in current_maintainers])
+                for new_maintainer in maintainers - current_maintainers_handles:
+                    headers, data = team._requester.requestJsonAndCheck(
+                        "PUT",
+                        team.url + "/memberships/" + new_maintainer
+                    )
+                # Mention any maintainers that need to be removed (unlikely here).
+                for old_maintainer in current_maintainers_handles - maintainers:
+                    print("AN OLD MEMBER ({}) NEEDS TO BE REMOVED FROM {}".format(old_maintainer, repo_name))
 
             # Remove this recipe from the repo.
             removed_recipes.append(name)
