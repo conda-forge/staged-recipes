@@ -142,9 +142,11 @@ if __name__ == '__main__':
 
         gh = None
         conda_forge = None
+        teams = None
         if 'GH_TOKEN' in os.environ:
             gh = Github(os.environ['GH_TOKEN'])
             conda_forge = gh.get_organization('conda-forge')
+            teams = {team.name: team for team in conda_forge.get_teams()}
 
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
         # Without this, intermittent failiures to synch the TravisCI repos ensue.
@@ -161,12 +163,19 @@ if __name__ == '__main__':
             if conda_forge:
                 meta = MetaData(recipe_dir)
                 maintainers = meta.meta.get('extra', {}).get('recipe-maintainers', [])
-                team = create_team(
-                    conda_forge,
-                    name.lower(),
-                    'The {} {} contributors!'.format(choice(superlative), name),
-                    repo_names=['conda-forge/{}'.format(os.path.basename(feedstock_dir))]
-                )
+                team_name = name.lower()
+
+                # Try to get team or create it if it doesn't exist.
+                if team_name not in teams:
+                    team = create_team(
+                        conda_forge,
+                        team_name,
+                        'The {} {} contributors!'.format(choice(superlative), team_name),
+                        repo_names=['conda-forge/{}'.format(os.path.basename(feedstock_dir))]
+                    )
+                else:
+                    team = teams[team_name]
+
                 for each_maintainer in maintainers:
                     team.add_membership(each_maintainer)
 
