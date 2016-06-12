@@ -162,7 +162,7 @@ if __name__ == '__main__':
             # Add team members as maintainers.
             if conda_forge:
                 meta = MetaData(recipe_dir)
-                maintainers = meta.meta.get('extra', {}).get('recipe-maintainers', [])
+                maintainers = set(meta.meta.get('extra', {}).get('recipe-maintainers', []))
                 team_name = name.lower()
                 repo_name = 'conda-forge/{}'.format(os.path.basename(feedstock_dir))
 
