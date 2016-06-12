@@ -165,7 +165,7 @@ if __name__ == '__main__':
                     conda_forge,
                     name.lower(),
                     'The {} {} contributors!'.format(choice(superlative), name),
-                    repo_names=['conda-forge/{}'.format(os.path.basename(feedstock_dir))]
+                    repos=['conda-forge/{}'.format(os.path.basename(feedstock_dir))]
                 )
                 for each_maintainer in maintainers:
                     team.add_membership(each_maintainer)
