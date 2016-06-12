@@ -1,3 +1,5 @@
+#!/bin/bash
+
 if [ "$(uname)" == "Darwin" ];
 then
     export CC=clang
