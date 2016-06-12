@@ -13,7 +13,7 @@ from __future__ import print_function
 from conda_build.metadata import MetaData
 from conda_smithy.github import gh_token
 from contextlib import contextmanager
-from github import Github, GithubException
+from github import Github, GithubException, Team
 import os.path
 from random import choice
 import shutil
@@ -84,7 +84,7 @@ def create_team(org, name, description, repo_names):
         org.url + "/teams",
         input=post_parameters
     )
-    return github.Team.Team(org._requester, headers, data, completed=True)
+    return Team.Team(org._requester, headers, data, completed=True)
 
 
 if __name__ == '__main__':
