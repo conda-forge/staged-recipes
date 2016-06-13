@@ -150,6 +150,7 @@ if __name__ == '__main__':
 
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
         # Without this, intermittent failiures to synch the TravisCI repos ensue.
+        all_maintainers = set()
         for feedstock_dir, name, recipe_dir in feedstock_dirs:
             subprocess.check_call(['conda', 'smithy', 'register-ci', '--feedstock_directory', feedstock_dir] + owner_info)
 
@@ -163,6 +164,7 @@ if __name__ == '__main__':
             if conda_forge:
                 meta = MetaData(recipe_dir)
                 maintainers = set(meta.meta.get('extra', {}).get('recipe-maintainers', []))
+                all_maintainers.update(maintainers)
                 team_name = name.lower()
                 repo_name = 'conda-forge/{}'.format(os.path.basename(feedstock_dir))
 
@@ -193,6 +195,25 @@ if __name__ == '__main__':
             removed_recipes.append(name)
             if is_merged_pr:
                 subprocess.check_call(['git', 'rm', '-r', recipe_dir])
+
+    # Add new conda-forge members to all-members team. Welcome! :)
+    if conda_forge:
+        team = teams.get('all-members')
+        if not team:
+            team = create_team(
+                conda_forge,
+                'all-members',
+                'All of the awesome conda-forge contributors!',
+                []
+            )
+        current_members = team.get_members()
+        current_members_handles = set([each_member.login.lower() for each_member in current_members])
+        for new_member in all_maintainers - current_members_handles:
+            print("Adding a new member ({}) to conda-forge. Welcome! :)".format(new_member))
+            headers, data = team._requester.requestJsonAndCheck(
+                "PUT",
+                team.url + "/memberships/" + new_member
+            )
 
     # Commit any removed packages.
     subprocess.check_call(['git', 'status'])
