@@ -29,8 +29,20 @@ def rebuild_travis(gh_token, repo_slug):
     
     encoded_slug = six.moves.urllib.parse.quote(repo_slug, safe='')
     url = 'https://api.travis-ci.org/repo/{}/requests'.format(encoded_slug)
-    response = requests.post(url, json={"request": {"branch": "master"}},
-                             headers=headers)
+    response = requests.post(
+        url,
+        json={
+            "request": {
+                "branch": "master",
+                "config": {
+                    "env": {
+                        "matrix": ['ACTION="update_docs"']
+                    }
+                }
+            }
+        },
+        headers=headers
+    )
     if response.status_code != 201:
         response.raise_for_status()
 
