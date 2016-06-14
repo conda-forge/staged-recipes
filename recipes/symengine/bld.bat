@@ -2,7 +2,7 @@ mkdir build
 cd build
 
 cmake ^
-    -G "%CMAKE_GENERATOR%" ^
+    -G %CMAKE_GENERATOR% ^
     -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
     -DBUILD_BENCHMARKS=no ^
