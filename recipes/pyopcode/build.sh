@@ -1,6 +1,4 @@
 #!/bin/bash
-
-
 BUILD_CONFIG=Release
 
 if [ `uname` == Linux ]; then
