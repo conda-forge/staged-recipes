@@ -10,10 +10,12 @@ Such as:
 """
 from __future__ import print_function
 
+from conda_build.metadata import MetaData
 from conda_smithy.github import gh_token
 from contextlib import contextmanager
-from github import Github, GithubException
+from github import Github, GithubException, Team
 import os.path
+from random import choice
 import shutil
 import subprocess
 import tempfile
@@ -21,6 +23,12 @@ import tempfile
 
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
 DEBUG = False
+
+
+superlative = ['awesome', 'slick', 'formidable', 'awe-inspiring', 'breathtaking',
+               'magnificent', 'wonderous', 'stunning', 'astonishing', 'superb',
+               'splendid', 'impressive', 'unbeatable', 'excellent', 'top', 'outstanding',
+               'exalted', 'standout', 'smashing']
 
 
 def list_recipes():
@@ -60,6 +68,23 @@ def repo_exists(organization, name):
         if e.status == 404:
             return False
         raise
+
+
+def create_team(org, name, description, repo_names):
+    # PyGithub creates secret teams, and has no way of turning that off! :(
+    post_parameters = {
+        "name": name,
+        "description": description,
+        "privacy": "closed",
+        "permission": "push",
+        "repo_names": repo_names
+    }
+    headers, data = org._requester.requestJsonAndCheck(
+        "POST",
+        org.url + "/teams",
+        input=post_parameters
+    )
+    return Team.Team(org._requester, headers, data, completed=True)
 
 
 if __name__ == '__main__':
@@ -115,8 +140,17 @@ if __name__ == '__main__':
             else:
                 subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info)
 
+        gh = None
+        conda_forge = None
+        teams = None
+        if 'GH_TOKEN' in os.environ:
+            gh = Github(os.environ['GH_TOKEN'])
+            conda_forge = gh.get_organization('conda-forge')
+            teams = {team.name: team for team in conda_forge.get_teams()}
+
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
         # Without this, intermittent failiures to synch the TravisCI repos ensue.
+        all_maintainers = set()
         for feedstock_dir, name, recipe_dir in feedstock_dirs:
             subprocess.check_call(['conda', 'smithy', 'register-ci', '--feedstock_directory', feedstock_dir] + owner_info)
 
@@ -126,10 +160,60 @@ if __name__ == '__main__':
             out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'master'], cwd=feedstock_dir,
                                           stderr=subprocess.STDOUT)
 
+            # Add team members as maintainers.
+            if conda_forge:
+                meta = MetaData(recipe_dir)
+                maintainers = set(meta.meta.get('extra', {}).get('recipe-maintainers', []))
+                all_maintainers.update(maintainers)
+                team_name = name.lower()
+                repo_name = 'conda-forge/{}'.format(os.path.basename(feedstock_dir))
+
+                # Try to get team or create it if it doesn't exist.
+                if team_name not in teams:
+                    team = create_team(
+                        conda_forge,
+                        team_name,
+                        'The {} {} contributors!'.format(choice(superlative), team_name),
+                        repo_names=[repo_name]
+                    )
+                else:
+                    team = teams[team_name]
+
+                # Add only the new maintainers to the team.
+                current_maintainers = team.get_members()
+                current_maintainers_handles = set([each_maintainers.login.lower() for each_maintainers in current_maintainers])
+                for new_maintainer in maintainers - current_maintainers_handles:
+                    headers, data = team._requester.requestJsonAndCheck(
+                        "PUT",
+                        team.url + "/memberships/" + new_maintainer
+                    )
+                # Mention any maintainers that need to be removed (unlikely here).
+                for old_maintainer in current_maintainers_handles - maintainers:
+                    print("AN OLD MEMBER ({}) NEEDS TO BE REMOVED FROM {}".format(old_maintainer, repo_name))
+
             # Remove this recipe from the repo.
             removed_recipes.append(name)
             if is_merged_pr:
                 subprocess.check_call(['git', 'rm', '-r', recipe_dir])
+
+    # Add new conda-forge members to all-members team. Welcome! :)
+    if conda_forge:
+        team = teams.get('all-members')
+        if not team:
+            team = create_team(
+                conda_forge,
+                'all-members',
+                'All of the awesome conda-forge contributors!',
+                []
+            )
+        current_members = team.get_members()
+        current_members_handles = set([each_member.login.lower() for each_member in current_members])
+        for new_member in all_maintainers - current_members_handles:
+            print("Adding a new member ({}) to conda-forge. Welcome! :)".format(new_member))
+            headers, data = team._requester.requestJsonAndCheck(
+                "PUT",
+                team.url + "/memberships/" + new_member
+            )
 
     # Commit any removed packages.
     subprocess.check_call(['git', 'status'])
