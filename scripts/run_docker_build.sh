@@ -36,7 +36,7 @@ echo "$config" > ~/.condarc
 conda clean --lock
 
 conda update conda conda-build
-conda install conda-build-all
+conda install conda-build-all=0.12.0
 conda install conda-forge-build-setup
 source run_conda_forge_build_setup
 
