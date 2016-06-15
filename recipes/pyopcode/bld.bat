@@ -9,7 +9,7 @@ mkdir build
 cd build
 
 
-cmake ../src -G"NMake Makefiles%" ^
+cmake ../src -G "NMake Makefiles%" ^
     -Wno-dev ^
     -DCMAKE_BUILD_TYPE=%BUILD_CONFIG% ^
     -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
@@ -20,7 +20,7 @@ cmake ../src -G"NMake Makefiles%" ^
 
 cd..
 
-cmake --build ./build --clean-first --target ALL_BUILD --config %BUILD_CONFIG%
+cmake --build ./build --target INSTALL --config %BUILD_CONFIG%
 
 if %errorlevel% neq 0 exit /b %errorlevel%
 
