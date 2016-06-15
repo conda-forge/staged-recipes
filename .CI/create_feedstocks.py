@@ -206,6 +206,8 @@ if __name__ == '__main__':
                 'All of the awesome conda-forge contributors!',
                 []
             )
+
+        # Add only the new members to the team.
         current_members = team.get_members()
         current_members_handles = set([each_member.login.lower() for each_member in current_members])
         for new_member in all_maintainers - current_members_handles:
