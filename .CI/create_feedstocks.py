@@ -169,15 +169,14 @@ if __name__ == '__main__':
                 repo_name = 'conda-forge/{}'.format(os.path.basename(feedstock_dir))
 
                 # Try to get team or create it if it doesn't exist.
-                if team_name not in teams:
+                team = teams.get(team_name)
+                if not team:
                     team = create_team(
                         conda_forge,
                         team_name,
                         'The {} {} contributors!'.format(choice(superlative), team_name),
                         repo_names=[repo_name]
                     )
-                else:
-                    team = teams[team_name]
 
                 # Add only the new maintainers to the team.
                 current_maintainers = team.get_members()
