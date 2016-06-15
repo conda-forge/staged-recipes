@@ -198,11 +198,12 @@ if __name__ == '__main__':
 
     # Add new conda-forge members to all-members team. Welcome! :)
     if conda_forge:
-        team = teams.get('all-members')
+        team_name = 'all-members'
+        team = teams.get(team_name)
         if not team:
             team = create_team(
                 conda_forge,
-                'all-members',
+                team_name,
                 'All of the awesome conda-forge contributors!',
                 []
             )
