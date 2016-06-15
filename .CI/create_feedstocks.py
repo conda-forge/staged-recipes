@@ -169,18 +169,20 @@ if __name__ == '__main__':
                 repo_name = 'conda-forge/{}'.format(os.path.basename(feedstock_dir))
 
                 # Try to get team or create it if it doesn't exist.
-                if team_name not in teams:
+                team = teams.get(team_name)
+                if not team:
                     team = create_team(
                         conda_forge,
                         team_name,
                         'The {} {} contributors!'.format(choice(superlative), team_name),
                         repo_names=[repo_name]
                     )
+                    teams[team_name] = team
+                    current_maintainers = []
                 else:
-                    team = teams[team_name]
+                    current_maintainers = team.get_members()
 
                 # Add only the new maintainers to the team.
-                current_maintainers = team.get_members()
                 current_maintainers_handles = set([each_maintainers.login.lower() for each_maintainers in current_maintainers])
                 for new_maintainer in maintainers - current_maintainers_handles:
                     headers, data = team._requester.requestJsonAndCheck(
@@ -198,15 +200,21 @@ if __name__ == '__main__':
 
     # Add new conda-forge members to all-members team. Welcome! :)
     if conda_forge:
-        team = teams.get('all-members')
+        team_name = 'all-members'
+        team = teams.get(team_name)
         if not team:
             team = create_team(
                 conda_forge,
-                'all-members',
+                team_name,
                 'All of the awesome conda-forge contributors!',
                 []
             )
-        current_members = team.get_members()
+            teams[team_name] = team
+            current_maintainers = []
+        else:
+            current_maintainers = team.get_members()
+
+        # Add only the new members to the team.
         current_members_handles = set([each_member.login.lower() for each_member in current_members])
         for new_member in all_maintainers - current_members_handles:
             print("Adding a new member ({}) to conda-forge. Welcome! :)".format(new_member))
