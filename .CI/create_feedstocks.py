@@ -177,6 +177,7 @@ if __name__ == '__main__':
                         'The {} {} contributors!'.format(choice(superlative), team_name),
                         repo_names=[repo_name]
                     )
+                    teams[team_name] = team
 
                 # Add only the new maintainers to the team.
                 current_maintainers = team.get_members()
@@ -206,6 +207,7 @@ if __name__ == '__main__':
                 'All of the awesome conda-forge contributors!',
                 []
             )
+            teams[team_name] = team
 
         # Add only the new members to the team.
         current_members = team.get_members()
