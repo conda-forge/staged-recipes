@@ -8,7 +8,6 @@ cd pyopcode
 mkdir build
 cd build
 
-
 cmake ../src -G "NMake Makefiles" ^
     -Wno-dev ^
     -DCMAKE_BUILD_TYPE=%BUILD_CONFIG% ^
@@ -19,10 +18,13 @@ cmake ../src -G "NMake Makefiles" ^
     -DBOOST_ROOT:PATH="%PREFIX%/Library"
 if errorlevel 1 exit 1
 
+echo dir /p
 cmake --build . --target INSTALL --config %BUILD_CONFIG%
 if errorlevel 1 exit 1
 
-copy .\build\release\_pyopcode.pyd "%PREFIX%\dlls\_pyopcode.pyd"
+copy .\release\_pyopcode.pyd "%PREFIX%\dlls\_pyopcode.pyd"
+REM We have to CD twice, because we're still inside build
+cd..
 cd..
 
 python setup.py bdist
