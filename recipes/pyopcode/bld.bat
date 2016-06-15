@@ -9,7 +9,7 @@ mkdir build
 cd build
 
 
-cmake ../src -G "NMake Makefiles%" ^
+cmake ../src -G "NMake Makefiles" ^
     -Wno-dev ^
     -DCMAKE_BUILD_TYPE=%BUILD_CONFIG% ^
     -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
@@ -17,15 +17,14 @@ cmake ../src -G "NMake Makefiles%" ^
     -DPYTHON_LIBRARY:FILEPATH="%PYTHON_LIBRARY%" ^
     -DNUMPY_INCLUDE_DIR:PATH="%SP_DIR%/numpy/core/include" ^
     -DBOOST_ROOT:PATH="%PREFIX%/Library"
+if errorlevel 1 exit 1
 
-cd..
-
-cmake --build ./build --target INSTALL --config %BUILD_CONFIG%
-
-if %errorlevel% neq 0 exit /b %errorlevel%
+cmake --build . --target INSTALL --config %BUILD_CONFIG%
+if errorlevel 1 exit 1
 
 copy .\build\release\_pyopcode.pyd "%PREFIX%\dlls\_pyopcode.pyd"
 cd..
 
 python setup.py bdist
 python setup.py install
+exit 0
