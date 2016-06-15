@@ -145,8 +145,11 @@ if __name__ == '__main__':
         teams = None
         if 'GH_TOKEN' in os.environ:
             gh = Github(os.environ['GH_TOKEN'])
-            conda_forge = gh.get_organization('conda-forge')
-            teams = {team.name: team for team in conda_forge.get_teams()}
+
+            # Only get the org and teams if there is stuff to add.
+            if feedstock_dirs:
+                conda_forge = gh.get_organization('conda-forge')
+                teams = {team.name: team for team in conda_forge.get_teams()}
 
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
         # Without this, intermittent failiures to synch the TravisCI repos ensue.
