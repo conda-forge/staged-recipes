@@ -178,9 +178,11 @@ if __name__ == '__main__':
                         repo_names=[repo_name]
                     )
                     teams[team_name] = team
+                    current_maintainers = []
+                else:
+                    current_maintainers = team.get_members()
 
                 # Add only the new maintainers to the team.
-                current_maintainers = team.get_members()
                 current_maintainers_handles = set([each_maintainers.login.lower() for each_maintainers in current_maintainers])
                 for new_maintainer in maintainers - current_maintainers_handles:
                     headers, data = team._requester.requestJsonAndCheck(
@@ -208,9 +210,11 @@ if __name__ == '__main__':
                 []
             )
             teams[team_name] = team
+            current_members = []
+        else:
+            current_members = team.get_members()
 
         # Add only the new members to the team.
-        current_members = team.get_members()
         current_members_handles = set([each_member.login.lower() for each_member in current_members])
         for new_member in all_maintainers - current_members_handles:
             print("Adding a new member ({}) to conda-forge. Welcome! :)".format(new_member))
