@@ -210,9 +210,9 @@ if __name__ == '__main__':
                 []
             )
             teams[team_name] = team
-            current_maintainers = []
+            current_members = []
         else:
-            current_maintainers = team.get_members()
+            current_members = team.get_members()
 
         # Add only the new members to the team.
         current_members_handles = set([each_member.login.lower() for each_member in current_members])
