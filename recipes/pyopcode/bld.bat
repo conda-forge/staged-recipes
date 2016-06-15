@@ -25,6 +25,11 @@ cd pyopcode
 mkdir build
 cd build
 
+REM Taken from https://github.com/matplotlib/matplotlib/blob/master/appveyor.yml#L69
+if %PY_VER%==2.7 if %ARCH%==64 (
+    copy "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\bin\vcvars64.bat" "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\bin\amd64\vcvarsamd64.bat"
+)
+
 cmake ../src -G"%GENERATOR_NAME%" ^
     -Wno-dev ^
     -DCMAKE_BUILD_TYPE=%BUILD_CONFIG% ^
