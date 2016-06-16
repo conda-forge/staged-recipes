@@ -13,6 +13,7 @@ from __future__ import print_function
 from conda_build.metadata import MetaData
 from conda_smithy.github import gh_token
 from contextlib import contextmanager
+from datetime import datetime
 from github import Github, GithubException, Team
 import os.path
 from random import choice
@@ -145,8 +146,33 @@ if __name__ == '__main__':
         teams = None
         if 'GH_TOKEN' in os.environ:
             gh = Github(os.environ['GH_TOKEN'])
-            conda_forge = gh.get_organization('conda-forge')
-            teams = {team.name: team for team in conda_forge.get_teams()}
+
+            # Compute some info about our GitHub API Rate Limit.
+            # Note that it doesn't count against our limit to
+            # get this info. So, we should be doing this regularly
+            # to better know when it is going to run out. Also,
+            # this will help us better understand where we are
+            # spending it and how to better optimize it.
+
+            # Get GitHub API Rate Limit usage and total
+            gh_api_used, gh_api_total = gh.rate_limiting()
+
+            # Compute time until GitHub API Rate Limit reset
+            gh_api_reset_time = gh.rate_limiting_resettime()
+            gh_api_reset_time = datetime.datetime.utcfromtimestamp(gh_api_reset_time)
+            gh_api_reset_time -= datetime.datetime.utcnow()
+
+            print("")
+            print("GitHub API Rate Limit Info:")
+            print("---------------------------")
+            print("Currently used {used} out of {total}.".format(gh_api_used, gh_api_total))
+            print("Will reset in {time}.".format(gh_api_reset_time))
+            print("")
+
+            # Only get the org and teams if there is stuff to add.
+            if feedstock_dirs:
+                conda_forge = gh.get_organization('conda-forge')
+                teams = {team.name: team for team in conda_forge.get_teams()}
 
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
         # Without this, intermittent failiures to synch the TravisCI repos ensue.
