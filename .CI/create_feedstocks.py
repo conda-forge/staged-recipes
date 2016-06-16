@@ -165,8 +165,8 @@ if __name__ == '__main__':
             print("")
             print("GitHub API Rate Limit Info:")
             print("---------------------------")
-            print("Currently used {used} out of {total}.".format(gh_api_used, gh_api_total))
-            print("Will reset in {time}.".format(gh_api_reset_time))
+            print("Currently used {used} out of {total}.".format(used=gh_api_used, total=gh_api_total))
+            print("Will reset in {time}.".format(time=gh_api_reset_time))
             print("")
 
             # Only get the org and teams if there is stuff to add.
