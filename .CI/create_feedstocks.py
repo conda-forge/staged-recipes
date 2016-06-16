@@ -159,8 +159,8 @@ if __name__ == '__main__':
 
             # Compute time until GitHub API Rate Limit reset
             gh_api_reset_time = gh.rate_limiting_resettime
-            gh_api_reset_time = datetime.datetime.utcfromtimestamp(gh_api_reset_time)
-            gh_api_reset_time -= datetime.datetime.utcnow()
+            gh_api_reset_time = datetime.utcfromtimestamp(gh_api_reset_time)
+            gh_api_reset_time -= datetime.utcnow()
 
             print("")
             print("GitHub API Rate Limit Info:")
