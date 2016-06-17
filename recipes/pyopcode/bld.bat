@@ -19,6 +19,7 @@ cmake ../src -G "NMake Makefiles" ^
 if errorlevel 1 exit 1
 
 nmake
+nmake install
 if errorlevel 1 exit 1
 
 copy .\release\_pyopcode.pyd "%PREFIX%\dlls\_pyopcode.pyd"
