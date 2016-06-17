@@ -18,8 +18,7 @@ cmake ../src -G "NMake Makefiles" ^
     -DBOOST_ROOT:PATH="%PREFIX%/Library"
 if errorlevel 1 exit 1
 
-echo dir /p
-cmake --build . --target INSTALL --config %BUILD_CONFIG%
+nmake
 if errorlevel 1 exit 1
 
 copy .\release\_pyopcode.pyd "%PREFIX%\dlls\_pyopcode.pyd"
