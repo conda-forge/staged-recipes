@@ -21,7 +21,7 @@ if errorlevel 1 exit 1
 nmake
 if errorlevel 1 exit 1
 
-copy .\release\_pyopcode.pyd "%PREFIX%\dlls\_pyopcode.pyd"
+copy .\build\_pyopcode.pyd "%PREFIX%\dlls\_pyopcode.pyd"
 REM We have to CD twice, because we're still inside build
 cd..
 cd..
