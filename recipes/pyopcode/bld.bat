@@ -21,7 +21,10 @@ if errorlevel 1 exit 1
 nmake
 if errorlevel 1 exit 1
 
-copy .\build\_pyopcode.pyd "%PREFIX%\dlls\_pyopcode.pyd"
+REM The file get's created in the current directory
+copy .\_pyopcode.pyd "%PREFIX%\dlls\_pyopcode.pyd"
+if errorlevel 1 exit 1
+
 REM We have to CD twice, because we're still inside build
 cd..
 cd..
