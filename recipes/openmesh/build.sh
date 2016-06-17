@@ -3,33 +3,29 @@
 mkdir build
 cd build
 
-if [ "$(uname)" == "Linux" ]
-then
-    export SONAME='so'
+if [ "$(uname)" == "Linux" ]; then
+    export SO_EXT='so'
     export CC=${PREFIX}/bin/gcc
     export CXX=${PREFIX}/bin/g++
 else
-    export SONAME='dylib'
+    export SO_EXT='dylib'
     export CC=${PREFIX}/bin/clang
     export CXX=${PREFIX}/bin/clang++
 fi
 
 include_path=${PREFIX}/include/python${PY_VER}
-if [ ! -d $include_path ];
-then
+if [ ! -d $include_path ]; then
   include_path=${PREFIX}/include/python${PY_VER}m
 fi
 
-PY_LIB="libpython${PY_VER}.{SONAME}"
+PY_LIB="libpython${PY_VER}.$SO_EXT"
 library_file_path=${PREFIX}/lib/${PY_LIB}
 if [ ! -f $library_file_path ];
 then
-    library_file_path=${PREFIX}/lib/libpython${PY_VER}m.{SONAME}
+    library_file_path=${PREFIX}/lib/libpython${PY_VER}m.$SO_EXT
 fi
 
 cmake .. \
-    -DCMAKE_C_COMPILER=$CC \
-    -DCMAKE_CXX_COMPILER=$CXX "
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_C_COMPILER=$CC \
     -DCMAKE_CXX_COMPILER=$CXX \
@@ -43,4 +39,4 @@ cmake .. \
 make install
 
 # Copy openmesh.so back to \lib\python from \lib\python3.5
-mv "${PREFIX}/lib/python/openmesh.so" "${PREFIX}/lib/python${PY_VER}/openmesh.so"
+mv "${PREFIX}/lib/python/openmesh.$SO_EXT" "${PREFIX}/lib/python${PY_VER}/openmesh.$SO_EXT"
