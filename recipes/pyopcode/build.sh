@@ -1,10 +1,6 @@
 #!/bin/bash
 
-source activate "${CONDA_DEFAULT_ENV}"
-
-cd pyopcode
-mkdir build
-cd build
+BUILD_CONFIG=Release
 
 if [ `uname` == Linux ]; then
     # FIXME refactor to reuse the python name (e.g. python3.5m)
@@ -21,6 +17,10 @@ if [ `uname` == Linux ]; then
         PYTHON_LIBRARY=${PREFIX}/lib/libpython${PY_VER}m.so
     fi
 fi
+
+cd pyopcode
+mkdir build
+cd build
 
 cmake ../src \
         -Wno-dev \
