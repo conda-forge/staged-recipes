@@ -2,6 +2,10 @@
 
 source activate "${CONDA_DEFAULT_ENV}"
 
+cd pyopcode
+mkdir build
+cd build
+
 cmake ../src \
         -Wno-dev \
         -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} \
