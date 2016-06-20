@@ -18,9 +18,6 @@ if not "%SP%" == "%PKG_VERSION%" (
 )
 
 
-dir "%LIBRARY_BIN%\*.dll"
-dir "%PREFIX%*.dll"
-
 REM ========== REQUIRES Win 10 SDK be installed, or files otherwise copied to location below!
 
 robocopy "C:\Program Files (x86)\Windows Kits\10\Redist\ucrt\DLLs\%VC_PATH%" ^
@@ -30,9 +27,6 @@ robocopy "C:\Program Files (x86)\Windows Kits\10\Redist\ucrt\DLLs\%VC_PATH%" ^
   "%PREFIX%" *.dll /E
 
 if %ERRORLEVEL% GEQ 8 exit 1
-
-dir "%LIBRARY_BIN%\*.dll"
-dir "%PREFIX%*.dll"
 
 REM ========== This one comes from visual studio 2015
 robocopy "C:\Program Files (x86)\Microsoft Visual Studio %MSC_VER%.0\VC\redist\%VC_PATH%\Microsoft.VC%MSC_VER%0.CRT" "%LIBRARY_BIN%" *.dll /E
@@ -44,6 +38,3 @@ robocopy "C:\Program Files (x86)\Microsoft Visual Studio %MSC_VER%.0\VC\redist\%
 robocopy "C:\Program Files (x86)\Microsoft Visual Studio %MSC_VER%.0\VC\redist\%VC_PATH%\Microsoft.VC%MSC_VER%0.OpenMP" "%PREFIX%" *.dll /E
 
 if %ERRORLEVEL% LSS 8 exit 0
-
-dir "%LIBRARY_BIN%\*.dll"
-dir "%PREFIX%*.dll"
