@@ -9,4 +9,4 @@ cmake .. \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DU3D_SHARED:BOOL=TRUE
 
-make -j${CPU_COUNT} install
+make install
