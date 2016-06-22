@@ -7,8 +7,7 @@ cmake .. -G "NMake Makefiles" ^
     -Wno-dev ^
     -DCMAKE_BUILD_TYPE=%BUILD_CONFIG% ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%"
-
 if errorlevel 1 exit 1
 
-nmake
+nmake install
 if errorlevel 1 exit 1
