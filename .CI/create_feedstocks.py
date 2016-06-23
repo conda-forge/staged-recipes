@@ -124,17 +124,22 @@ if __name__ == '__main__':
 
             feedstock_dirs.append([feedstock_dir, name, recipe_dir])
 
-            subprocess.check_call(['git', 'remote', 'add', 'upstream_with_token',
-                                   'https://conda-forge-admin:{}@github.com/conda-forge/{}'.format(os.environ['GH_TOKEN'],
-                                                                                                   os.path.basename(feedstock_dir))],
-                                  cwd=feedstock_dir)
+            if 'GH_TOKEN' in os.environ:
+                subprocess.check_call(['git', 'remote', 'add', 'upstream',
+                                       'https://conda-forge-admin:{}@github.com/conda-forge/{}'.format(os.environ['GH_TOKEN'],
+                                                                                                       os.path.basename(feedstock_dir))],
+                                      cwd=feedstock_dir)
+            else:
+                subprocess.check_call(['git', 'remote', 'add', 'upstream',
+                                       'https://conda-forge-admin@github.com/conda-forge/{}'.format(os.path.basename(feedstock_dir))],
+                                      cwd=feedstock_dir)
 
             # Sometimes we already have the feedstock created. We need to deal with that case.
             if repo_exists('conda-forge', os.path.basename(feedstock_dir)):
-                subprocess.check_call(['git', 'fetch', 'upstream_with_token'], cwd=feedstock_dir)
+                subprocess.check_call(['git', 'fetch', 'upstream'], cwd=feedstock_dir)
                 subprocess.check_call(['git', 'branch', '-m', 'master', 'old'], cwd=feedstock_dir)
                 try:
-                    subprocess.check_call(['git', 'checkout', '-b', 'master', 'upstream_with_token/master'], cwd=feedstock_dir)
+                    subprocess.check_call(['git', 'checkout', '-b', 'master', 'upstream/master'], cwd=feedstock_dir)
                 except subprocess.CalledProcessError:
                     # Sometimes, we have a repo, but there are no commits on it! Just catch that case.
                     subprocess.check_call(['git', 'checkout', '-b' 'master'], cwd=feedstock_dir)
@@ -183,7 +188,7 @@ if __name__ == '__main__':
             subprocess.check_call(['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             subprocess.check_call(['git', 'commit', '-am', "Re-render the feedstock after CI registration."], cwd=feedstock_dir)
             # Capture the output, as it may contain the GH_TOKEN.
-            out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'master'], cwd=feedstock_dir,
+            out = subprocess.check_output(['git', 'push', 'upstream', 'master'], cwd=feedstock_dir,
                                           stderr=subprocess.STDOUT)
 
             # Add team members as maintainers.
@@ -258,12 +263,12 @@ if __name__ == '__main__':
                          s=('s' if len(removed_recipes) > 1 else '')))
         if is_merged_pr:
             # Capture the output, as it may contain the GH_TOKEN.
-            out = subprocess.check_output(['git', 'remote', 'add', 'upstream_with_token',
+            out = subprocess.check_output(['git', 'remote', 'add', 'upstream',
                                            'https://conda-forge-admin:{}@github.com/conda-forge/staged-recipes'.format(os.environ['GH_TOKEN'])],
                                           stderr=subprocess.STDOUT)
             subprocess.check_call(['git', 'commit', '-m', msg])
             # Capture the output, as it may contain the GH_TOKEN.
-            out = subprocess.check_output(['git', 'push', 'upstream_with_token', os.environ.get('TRAVIS_BRANCH')],
+            out = subprocess.check_output(['git', 'push', 'upstream', os.environ.get('TRAVIS_BRANCH')],
                                           stderr=subprocess.STDOUT)
         else:
             print('Would git commit, with the following message: \n   {}'.format(msg))
