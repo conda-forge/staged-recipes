@@ -4,9 +4,6 @@ mkdir build
 cd build
 
 if [ `uname` == Linux ]; then
-    CC=${PREFIX}/bin/gcc
-    CXX=${PREFIX}/bin/g++
-
     # FIXME refactor to reuse the python name (e.g. python3.5m)
     # FIXME detect any kind of suffix (m, or d)
     include_path=${PREFIX}/include/python${PY_VER}
@@ -22,8 +19,6 @@ if [ `uname` == Linux ]; then
     fi
 
     cmake .. \
-        -DCMAKE_C_COMPILER=$CC \
-        -DCMAKE_CXX_COMPILER=$CXX \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
         -DCMAKE_INSTALL_RPATH:STRING="${PREFIX}/lib" \
