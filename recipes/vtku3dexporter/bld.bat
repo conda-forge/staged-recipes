@@ -10,7 +10,7 @@ cd build
 
 cmake .. -G "NMake Makefiles" ^
     -Wno-dev ^
-    -DPYTHON_INCLUDE_DIR:PATH="%CENV%/include" ^
+    -DPYTHON_INCLUDE_DIR:PATH="%PREFIX%/include" ^
     -DPYTHON_LIBRARY:FILEPATH="%PYTHON_LIBRARY%" ^
     -DCMAKE_BUILD_TYPE=%BUILD_CONFIG% ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%"
