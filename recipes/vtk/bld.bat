@@ -5,26 +5,10 @@ cd build
 
 set BUILD_CONFIG=Release
 
-REM pick generator based on python version
-if %PY_VER%==2.7 (
-    set GENERATOR_NAME=Visual Studio 9 2008
-)
-if %PY_VER%==3.4 (
-    set GENERATOR_NAME=Visual Studio 10 2010
-)
-if %PY_VER%==3.5 (
-    set GENERATOR_NAME=Visual Studio 14 2015
-)
-
-REM pick architecture
-if %ARCH%==64 (
-	set GENERATOR_NAME=%GENERATOR_NAME% Win64
-)
-
 REM tell cmake where Python is
 set PYTHON_LIBRARY=%PREFIX%\libs\python%PY_VER:~0,1%%PY_VER:~2,1%.lib
 
-cmake .. -G"%GENERATOR_NAME%" ^
+cmake .. -G "NMake Makefiles" ^
     -Wno-dev ^
     -DCMAKE_CONFIGURATION_TYPES:STRING="Debug;Release;MinSizeRel;RelWithDebInfo" ^
     -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
@@ -45,5 +29,5 @@ cmake .. -G"%GENERATOR_NAME%" ^
     -DINSTALL_PKGCONFIG_DIR:PATH="%LIBRARY_PREFIX%/pkgconfig"
 if errorlevel 1 exit 1
 
-cmake --build . --target INSTALL --config %BUILD_CONFIG%
+nmake install
 if errorlevel 1 exit 1
