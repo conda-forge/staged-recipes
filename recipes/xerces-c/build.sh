@@ -15,5 +15,5 @@ fi
 
 ./configure --prefix=$PREFIX --with-icu
 make
+make check
 make install
-
