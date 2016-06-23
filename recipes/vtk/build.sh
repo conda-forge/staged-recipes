@@ -34,4 +34,4 @@ if [ `uname` == Linux ]; then
         -DPYTHON_LIBRARY:FILEPATH=$library_file_path
 fi
 
-cmake --build . --target INSTALL --config $BUILD_CONFIG
+cmake --build . --target install --config $BUILD_CONFIG
