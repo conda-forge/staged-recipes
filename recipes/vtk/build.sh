@@ -1,5 +1,7 @@
 #!/bin/bash
 
+BUILD_CONFIG=Release
+
 mkdir build
 cd build
 
@@ -19,11 +21,11 @@ if [ `uname` == Linux ]; then
     fi
 
     cmake .. \
-        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_BUILD_TYPE=$BUILD_CONFIG \
         -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
         -DCMAKE_INSTALL_RPATH:STRING="${PREFIX}/lib" \
         -DBUILD_DOCUMENTATION=OFF \
-        -DBUILD_TESTING=OFF \
+        -DBUILD_TESTING=ON \
         -DBUILD_EXAMPLES=OFF \
         -DBUILD_SHARED_LIBS=ON \
         -DVTK_WRAP_PYTHON=ON \
@@ -32,5 +34,4 @@ if [ `uname` == Linux ]; then
         -DPYTHON_LIBRARY:FILEPATH=$library_file_path
 fi
 
-make -j${CPU_COUNT}
-make install
+cmake --build . --target INSTALL --config $BUILD_CONFIG
