@@ -1,34 +1,39 @@
 #!/bin/bash
-BUILD_CONFIG=Release
-
 mkdir build
 cd build
 
-# FIXME refactor to reuse the python name (e.g. python3.5m)
-# FIXME detect any kind of suffix (m, or d)
-include_path=${PREFIX}/include/python${PY_VER}
-if [ ! -d $include_path ]; then
-  # Control will enter here if $DIRECTORY doesn't exist.
-  include_path=${PREFIX}/include/python${PY_VER}m
+BUILD_CONFIG=Release
+
+# sometimes python is suffixed, this is a quick fix
+# in a future PR we should probably switch to cmake find python scripting
+PYTHON_INCLUDE=${PREFIX}/include/python${PY_VER}
+if [ ! -d $PYTHON_INCLUDE ]; then
+  PYTHON_INCLUDE=${PREFIX}/include/python${PY_VER}m
 fi
 
-PY_LIB="libpython${PY_VER}.so"
-library_file_path=${PREFIX}/lib/${PY_LIB}
-if [ ! -f $library_file_path ]; then
-    library_file_path=${PREFIX}/lib/libpython${PY_VER}m.so
+PYTHON_LIBRARY="libpython${PY_VER}.so"
+PYTHON_LIBRARY=${PREFIX}/lib/${PYTHON_LIBRARY}
+if [ ! -f $PYTHON_LIBRARY ]; then
+    PYTHON_LIBRARY=${PREFIX}/lib/libpython${PY_VER}m.so
 fi
 
-cmake .. \
-        -DCMAKE_BUILD_TYPE=$BUILD_CONFIG \
-        -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-        -DCMAKE_INSTALL_RPATH:STRING="${PREFIX}/lib" \
-        -DBUILD_DOCUMENTATION=OFF \
-        -DBUILD_TESTING=ON \
-        -DBUILD_EXAMPLES=OFF \
-        -DBUILD_SHARED_LIBS=ON \
-        -DVTK_WRAP_PYTHON=ON \
-        -DPYTHON_EXECUTABLE=${PYTHON} \
-        -DPYTHON_INCLUDE_PATH:PATH=$include_path \
-        -DPYTHON_LIBRARY:FILEPATH=$library_file_path
-
+cmake .. -G "Unix Makefiles" \
+    -Wno-dev \
+    -DCMAKE_BUILD_TYPE=$BUILD_CONFIG \
+    -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+    -DCMAKE_INSTALL_RPATH:STRING="${PREFIX}/lib" \
+    -DINSTALL_PKGCONFIG_DIR:PATH=$PKG_CONFIG_PATH \
+    -DBUILD_DOCUMENTATION:BOOL=OFF \
+    -DBUILD_TESTING:BOOL=OFF \
+    -DBUILD_EXAMPLES:BOOL=OFF \
+    -DBUILD_SHARED_LIBS:BOOL=ON \
+    -DVTK_ENABLE_VTKPYTHON:BOOL=OFF \
+    -DVTK_WRAP_PYTHON:BOOL=ON \
+    -DVTK_PYTHON_VERSION="%PY_VER%" \
+    -DVTK_INSTALL_PYTHON_MODULE_DIR:PATH="%SP_DIR%" \
+    -DModule_vtkWrappingPythonCore:BOOL=OFF \
+    -DPYTHON_EXECUTABLE=$PYTHON \
+    -DPYTHON_INCLUDE_DIR:PATH=$PYTHON_INCLUDE \
+    -DPYTHON_LIBRARY:FILEPATH=$PYTHON_LIBRARY
+        
 make install
