@@ -1,1 +1,1 @@
-"${PREFIX}/bin/jupyter_nbextensions_configurator" disable --sys-prefix
+"${PREFIX}/bin/jupyter" nbextensions_configurator disable --sys-prefix

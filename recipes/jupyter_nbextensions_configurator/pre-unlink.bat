@@ -1,2 +1,2 @@
-"%PREFIX%\Scripts\jupyter_nbextensions_configurator.exe" disable --sys-prefix
+"%PREFIX%\Scripts\jupyter.exe" nbextensions_configurator disable --sys-prefix
 if errorlevel 1 exit 1
