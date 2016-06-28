@@ -23,7 +23,7 @@ fi
 
 # end of quick fixes
 
-cmake .. -G "Unix Makefiles" \
+cmake . -G "Unix Makefiles" \
     -DCMAKE_BUILD_TYPE=$BUILD_CONFIG \
     -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
     -DCMAKE_INSTALL_RPATH:PATH="${PREFIX}/lib" \
