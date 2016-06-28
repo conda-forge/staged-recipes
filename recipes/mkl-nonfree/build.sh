@@ -69,7 +69,7 @@ done
 echo -e " # intel-mkl: Editing variables"
 cd ${xe_build_dir}/opt/intel/${_composer_xe_dir}/linux/mkl/bin
 rm mklvars.csh
-sed -i "s:<INSTALLDIR>:$PREFIX:g" mklvars.sh
+sed -i "s:<INSTALLDIR>:$PREFIX/${_composer_xe_dir}:g" mklvars.sh
 
 rm -rf ./${_not_arch}
 
