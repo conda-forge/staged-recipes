@@ -3,7 +3,7 @@ set BUILD_CONFIG=Release
 REM tell cmake where Python is
 set PYTHON_LIBRARY=%CENV%\libs\python%PY_VER:~0,1%%PY_VER:~2,1%.lib
 
-:: cd Samples\SampleCode
+cd Samples\SampleCode
 
 cmake . -G "NMake Makefiles" ^
     -Wno-dev ^

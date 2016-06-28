@@ -3,9 +3,6 @@ BUILD_CONFIG=Release
 
 cd Samples/SampleCode
 
-mkdir build
-cd build
-
 # sometimes python is suffixed, these are quick fixes
 # in a future PR we should probably switch to cmake find python scripting
 
@@ -30,10 +27,8 @@ cmake .. -G "Unix Makefiles" \
     -DCMAKE_BUILD_TYPE=$BUILD_CONFIG \
     -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
     -DCMAKE_INSTALL_RPATH:PATH="${PREFIX}/lib" \
-    -DVTK_WRAP_PYTHON:BOOL=ON \
-    -DVTK_PYTHON_VERSION:STRING="${PY_VER}" \
-    -DVTK_INSTALL_PYTHON_MODULE_DIR:PATH="${SP_DIR}" \
-    -DPYTHON_EXECUTABLE:FILEPATH=$PYTHON \
+    -DWRAP_PYTHON:BOOL=ON \
+    -DINSTALL_PYTHON_MODULE_DIR:PATH="${SP_DIR}" \
     -DPYTHON_INCLUDE_DIR:PATH=$PYTHON_INCLUDE \
     -DPYTHON_LIBRARY:FILEPATH=$PYTHON_LIBRARY
 
