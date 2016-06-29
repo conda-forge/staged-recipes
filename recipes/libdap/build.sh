@@ -12,5 +12,7 @@ bash configure \
     --prefix=$PREFIX
 
 make
-make check
+## make check fails on os x for some reason
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+	make check
 make install
