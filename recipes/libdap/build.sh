@@ -15,4 +15,5 @@ make
 ## make check fails on os x for some reason
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
 	make check
+fi
 make install
