@@ -1,57 +1,57 @@
 #!/bin/bash
 
-# mkdir build
-# cd build
+# FIXME: This is a hack to make sure the environment is activated.
+# The reason this is required is due to the conda-build issue
+# mentioned below.
+#
+# https://github.com/conda/conda-build/issues/910
+#
+source activate "${CONDA_DEFAULT_ENV}"
 
-if [ `uname` == Linux ]; then
-    CC=${PREFIX}/bin/gcc
-    CXX=${PREFIX}/bin/g++
-    CMAKE=cmake
+mkdir build
+cd build
 
-    # FIXME refactor to reuse the python name (e.g. python3.5m)
-    # FIXME detect any kind of suffix (m, or d)
-    include_path=${PREFIX}/include/python${PY_VER}
-    if [ ! -d $include_path ]; then
-      # Control will enter here if $DIRECTORY doesn't exist.
-      include_path=${PREFIX}/include/python${PY_VER}m
-    fi
+BUILD_CONFIG=Release
 
-    PY_LIB="libpython${PY_VER}.so"
-    library_file_path=${PREFIX}/lib/${PY_LIB}
-    if [ ! -f $library_file_path ]; then
-        library_file_path=${PREFIX}/lib/libpython${PY_VER}m.so
-    fi
+# sometimes python is suffixed, these are quick fixes
+# in a future PR we should probably switch to cmake find python scripting
 
-    # we're in gdcm-2.4.4 == $SRC_DIR
-    mkdir ../gdcm-build
-    cd ../gdcm-build
-
-    # deactivated OFFSCREEN and activated X instead
-    # also switching to the new programmable pipeline OpenGL2 renderer
-    $CMAKE \
-        -DCMAKE_INSTALL_PREFIX:PATH="$PREFIX" \
-        -DCMAKE_INSTALL_RPATH:STRING="$PREFIX/lib" \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DGDCM_BUILD_SHARED_LIBS:BOOL=ON \
-        -DGDCM_USE_VTK:BOOL=OFF \
-        -DGDCM_USE_PVRG:BOOL=ON \
-        -DGDCM_WRAP_PYTHON:BOOL=ON \
-        -DGDCM_WRAP_CSHARP=OFF \
-        -DGDCM_WRAP_JAVA=OFF \
-        -DGDCM_BUILD_TESTING:BOOL=OFF \
-        -DGDCM_BUILD_EXAMPLES:BOOL=OFF \
-        -DGDCM_BUILD_APPLICATIONS=OFF \
-        -DGDCM_DOCUMENTATION:BOOL=OFF \
-        -DGDCM_DOCUMENTATION_SKIP_MANPAGES:BOOL=ON \
-        -DSWIG_EXECUTABLE:FILEPATH=$PREFIX/bin/swig \
-        -DPYTHON_EXECUTABLE:FILEPATH=$PYTHON \
-        -DPYTHON_INCLUDE_PATH:PATH=$include_path \
-        -DPYTHON_LIBRARY:FILEPATH=$library_file_path \
-        -DGDCM_INSTALL_PYTHONMODULE_DIR:PATH=$SP_DIR \
-        $SRC_DIR
-
+PYTHON_INCLUDE="${PREFIX}/include/python${PY_VER}"
+if [ ! -d $PYTHON_INCLUDE ]; then
+    PYTHON_INCLUDE="${PREFIX}/include/python${PY_VER}m"
 fi
 
-# make the build use 8 concurrent processes
-make -j${CPU_COUNT}
-make install
+PYTHON_LIBRARY_EXT="so"
+if [ `uname` = "Darwin" ] ; then
+    PYTHON_LIBRARY_EXT="dylib"
+fi
+
+PYTHON_LIBRARY="${PREFIX}/lib/libpython${PY_VER}.${PYTHON_LIBRARY_EXT}"
+if [ ! -f $PYTHON_LIBRARY ]; then
+    PYTHON_LIBRARY="${PREFIX}/lib/libpython${PY_VER}m.${PYTHON_LIBRARY_EXT}"
+fi
+
+# end of quick fixes
+
+cmake .. -G "Ninja" \
+    -Wno-dev \
+    -DCMAKE_BUILD_TYPE=$BUILD_CONFIG \
+    -DCMAKE_INSTALL_PREFIX:PATH="$PREFIX" \
+    -DCMAKE_INSTALL_RPATH:PATH="$PREFIX/lib" \
+    -DGDCM_BUILD_SHARED_LIBS:BOOL=ON \
+    -DGDCM_BUILD_APPLICATIONS:BOOL=ON \
+    -DGDCM_BUILD_TESTING:BOOL=OFF \
+    -DGDCM_BUILD_EXAMPLES:BOOL=OFF \
+    -DGDCM_BUILD_APPLICATIONS=OFF \
+    -DGDCM_USE_VTK:BOOL=OFF \
+    -DGDCM_WRAP_PYTHON:BOOL=ON \
+    -DGDCM_DOCUMENTATION:BOOL=OFF \
+    -DSWIG_EXECUTABLE:FILEPATH=$PREFIX/bin/swig \
+    -DPYTHON_EXECUTABLE:FILEPATH=$PYTHON \
+    -DPYTHON_INCLUDE_DIR:PATH=$PYTHON_INCLUDE \
+    -DPYTHON_LIBRARY:FILEPATH=$PYTHON_LIBRARY \
+    -DGDCM_INSTALL_PYTHONMODULE_DIR:PATH=$SP_DIR \
+    -DGDCM_INSTALL_NO_DOCUMENTATION:BOOL=ON \
+    -DGDCM_INSTALL_NO_DEVELOPMENT:BOOL=ON
+
+ninja install
