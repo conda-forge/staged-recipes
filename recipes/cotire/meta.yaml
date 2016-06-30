@@ -1,0 +1,68 @@
+{% set version = "1.7.8" %}
+{% set sha256 = "84be4ff66248ba629666bed5c2b76b869db7f04425e44bba3555bbc25d5701c1" %}
+
+package:
+  name: cotire
+  version: {{ version }}
+
+source:
+  fn: cotire-{{ version }}.tar.gz
+  url: https://github.com/sakra/cotire/archive/cotire-{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+  patches:
+    # Include cotire in example CMakeLists.txt.
+    #
+    # https://github.com/sakra/cotire/pull/100
+    #
+    - PR_100.diff
+
+build:
+  number: 0
+  features:
+    - vc9   # [win and py27]
+    - vc10  # [win and py34]
+    - vc14  # [win and py35]
+  script:
+    - cp "${SRC_DIR}/CMake/cotire.cmake" "${PREFIX}"/share/cmake*/Modules                   # [unix]
+    - cd %LIBRARY_PREFIX%\\share\\cmake*\\Modules && copy %SRC_DIR%\\CMake\\cotire.cmake .  # [win]
+
+requirements:
+  build:
+    - python  # [win]
+    - cmake
+
+  run:
+    - cmake
+
+test:
+  requires:
+     - python 2.7.*  # [win and py27]
+     - python 3.4.*  # [win and py34]
+     - python 3.5.*  # [win and py35]
+  commands:
+    # Verify that the cotire CMake file is in place.
+    - test -f "${PREFIX}"/share/cmake*/Modules/cotire.cmake                            # [unix]
+    - cd %LIBRARY_PREFIX%\\share\\cmake*\\Modules && if not exist cotire.cmake exit 1  # [win]
+
+
+    # Use cotire in a simple test to make sure it works.
+    - cd "${SRC_DIR}/src" && mkdir build && cd build                                  # [unix]
+    - cd "%SRC_DIR%/src" && mkdir build && cd build                                   # [win]
+    - cmake -G "Unix Makefiles" ..                                                    # [unix]
+    # Cannot find `cl` on Windows during tests.
+    # Please see this issue.
+    #
+    # https://github.com/conda/conda-build/issues/1059
+    #
+    #- cmake -G "NMake Makefiles" ..                                                  # [win]
+    - cmake --build .                                                                 # [unix]
+
+
+about:
+  home: https://github.com/sakra/cotire
+  license: MIT
+  summary: A CMake module that speeds up the build process of CMake based build.
+
+extra:
+  recipe-maintainers:
+    - jakirkham
