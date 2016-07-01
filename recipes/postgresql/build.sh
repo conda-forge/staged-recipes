@@ -1,19 +1,18 @@
 #!/bin/bash
 
-if [ "$(uname)" == "Darwin" ]; then
-    # At first attempt, openssl-enabled fails to build on Mac.  Needs further investigation.
-    ./configure --without-readline \
-                --prefix=$PREFIX \
-                --with-libraries=$PREFIX/lib \
-                --with-includes=$PREFIX/include
+if [ "$(uname)" == "Linux" ]; then
+  OPTS="--with-openssl"
 else
-    ./configure --without-readline \
-                --prefix=$PREFIX \
-                --with-libraries=$PREFIX/lib \
-                --with-includes=$PREFIX/include \
-                --with-openssl
+    # At first attempt, openssl-enabled fails to build on Mac.  Needs further investigation.
+    OPTS=""
 fi
 
-make -j${CPU_COUNT}
-make check
+./configure --prefix=$PREFIX \
+            --without-readline \
+            --with-libraries=$PREFIX/lib \
+            --with-includes=$PREFIX/include \
+            $OPTS
+
+make
+# make check # Failing with 'initdb: cannot be run as root'.
 make install
