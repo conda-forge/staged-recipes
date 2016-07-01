@@ -9,11 +9,16 @@ if [ `uname` == Linux ]; then
     MAKE_JOBS=$CPU_COUNT
 fi
 
+mkdir $PREFIX/qt/bin
+cp $PREFIX/bin/moc $PREFIX/qt/bin/
+
 $PYTHON configure.py \
         --verbose \
         --confirm-license \
         --assume-shared \
-        -q $PREFIX/bin/qmake-qt5
+        -q $PREFIX/bin/qmake
 
 make -j $MAKE_JOBS
 make install
+
+rm -rf $PREFIX/qt/bin
