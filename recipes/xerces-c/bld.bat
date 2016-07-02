@@ -1,9 +1,4 @@
 
-REM workaround to pick up right version of msbuild.exe
-if %VS_MAJOR% == 9 (
-    SET FrameworkVersion=3.5
-)
-
 if %ARCH% == 64 (
     set PLATF=x64
 	set OUTDIR=Win64
