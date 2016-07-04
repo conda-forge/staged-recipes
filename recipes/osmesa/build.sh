@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-find . -type f -name '*configure*'
+autoconf
 
-configure --prefix=$PREFIX --enable-osmesa --disable-gallium --disable-egl --with-drivers=osmesa
+./configure --prefix=$PREFIX --enable-osmesa --disable-gallium --disable-egl --disable-dri
 
 make install
