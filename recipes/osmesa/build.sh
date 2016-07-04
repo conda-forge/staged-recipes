@@ -3,6 +3,6 @@
 aclocal
 autoconf
 
-./configure --prefix=$PREFIX --enable-osmesa --disable-gallium --disable-egl --disable-dri
+./configure --prefix=$PREFIX --enable-osmesa
 
 make install
