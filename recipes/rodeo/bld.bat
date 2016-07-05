@@ -10,6 +10,6 @@ if errorlevel 1 exit 1
 copy %RECIPE_DIR%\menu-windows.json %MENU_DIR%\rodeo.json
 if errorlevel 1 exit 1
 
-%PYTHON% setup.py install
+%PYTHON% setup.py install --single-version-externally-managed --record record.txt
 if errorlevel 1 exit 1
 
