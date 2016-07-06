@@ -1,3 +1,3 @@
 mingw-get install msys-flex msys-bison
 
-scons prefix=%LIBRARY_PREFIX% osmesa
+scons llvm=no build=release osmesa mesa libgl-xlib
