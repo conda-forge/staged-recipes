@@ -1,11 +1,16 @@
-::CALL "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64
-
+:: Note: QtNfc is failing, so we are disabling it for now
 %PYTHON% configure.py ^
-        --spec=win32-msvc2010 ^
-        --assume-shared ^
         --verbose ^
         --confirm-license ^
-        --bindir=%PREFIX%\Scripts
+        --assume-shared ^
+        --qmake=%LIBRARY_BIN%\qmake.exe ^
+        --bindir=%SCRIPTS% ^
+        --spec=win32-msvc%VS_YEAR% ^
+        --disable QtNfc
+if errorlevel 1 exit 1
 
 jom
+if errorlevel 1 exit 1
+
 jom install
+if errorlevel 1 exit 1
