@@ -3,8 +3,8 @@
         --verbose ^
         --confirm-license ^
         --assume-shared ^
-        --qmake=%LIBRARY_BIN%\qmake.exe ^
-        --bindir=%LIBRARY_BIN% ^
+        --qmake="%LIBRARY_BIN%\qmake.exe" ^
+        --bindir="%LIBRARY_BIN%" ^
         --spec=win32-msvc%VS_YEAR% ^
         --disable QtNfc
 if errorlevel 1 exit 1
