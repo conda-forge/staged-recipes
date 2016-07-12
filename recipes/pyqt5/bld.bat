@@ -4,7 +4,7 @@
         --confirm-license ^
         --assume-shared ^
         --qmake=%LIBRARY_BIN%\qmake.exe ^
-        --bindir=%SCRIPTS% ^
+        --bindir=%LIBRARY_BIN% ^
         --spec=win32-msvc%VS_YEAR% ^
         --disable QtNfc
 if errorlevel 1 exit 1
