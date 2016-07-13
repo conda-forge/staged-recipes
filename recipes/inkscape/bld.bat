@@ -1,8 +1,7 @@
 rem I want to see my commands when they go wrong...
 echo on
 
-mkdir %SCRIPTS%
-if errorlevel 1 exit 1
+if not exist %SCRIPTS% mkdir %SCRIPTS% || exit 1
 
 rem inkscape.exe is the GUI, the .com is the commandline utility we need in other packages
 
