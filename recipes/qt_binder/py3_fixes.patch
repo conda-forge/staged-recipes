@@ -1,0 +1,82 @@
+diff --git a/qt_binder/binder.py b/qt_binder/binder.py
+index a849d4f..c48ee66 100644
+--- qt_binder/binder.py
++++ qt_binder/binder.py
+@@ -33,6 +33,19 @@
+ }
+
+
++def _to_str(t):
++    if isinstance(t, QtCore.QByteArray):
++        try:
++            # PyQt4
++            t = bytes(t).decode()
++        except TypeError:
++            # PySide
++            t = str(t)
++    else:
++        t = str(t)
++    return t
++
++
+ def _slot_name(name):
+     return '_{}_property_changed'.format(name)
+
+@@ -553,7 +566,7 @@ def _initialize_binder_class(self):
+                 name = renamings.get(qname, qname)
+                 if method_name_counts[name] > 1:
+                     # Add the argument types to the name to disambiguate.
+-                    arg_types = [str(t).rstrip('*')
++                    arg_types = [_to_str(t).rstrip('*')
+                                  for t in meta_meth.parameterTypes()]
+                     name = '_'.join([name] + arg_types)
+                 if name not in seen:
+diff --git a/qt_binder/raw_widgets.py b/qt_binder/raw_widgets.py
+index 5a9395a..0310c27 100644
+--- qt_binder/raw_widgets.py
++++ qt_binder/raw_widgets.py
+@@ -693,7 +693,7 @@ def add_buttons_from_context(self, context):
+ ]
+
+
+-for obj in vars().values():
++for obj in list(vars().values()):
+     if obj in _EXCLUDE_FROM_REGISTRY:
+         continue
+     if (isinstance(obj, type) and
+diff --git a/qt_binder/tests/dummies.py b/qt_binder/tests/dummies.py
+index d8d2864..f21d35f 100644
+--- qt_binder/tests/dummies.py
++++ qt_binder/tests/dummies.py
+@@ -15,6 +15,7 @@
+ """
+
+ import abc
++import six
+
+
+ class A(object):
+@@ -37,8 +38,9 @@ class Mixed(A, D):
+     pass
+
+
++@six.add_metaclass(abc.ABCMeta)
+ class Abstract(object):
+-    __metaclass__ = abc.ABCMeta
++    pass
+
+
+ class Concrete(object):
+diff --git a/qt_binder/type_registry.py b/qt_binder/type_registry.py
+index e89239f..fb33136 100644
+--- qt_binder/type_registry.py
++++ qt_binder/type_registry.py
+@@ -226,7 +226,7 @@ def lookup_all_by_type(self, typ):
+                     return objs
+
+         # None of the concrete superclasses. Check the ABCs.
+-        for abstract, objs in self.abc_map.iteritems():
++        for abstract, objs in six.iteritems(self.abc_map):
+             if issubclass(typ, abstract) and objs:
+                 return objs
+
