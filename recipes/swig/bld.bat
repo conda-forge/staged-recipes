@@ -1,4 +1,0 @@
-COPY swig.exe %LIBRARY_BIN%\
-mkdir %LIBRARY_BIN%\Lib
-robocopy Lib %LIBRARY_BIN%\Lib\ * /E
-COPY LICENSE %LIBRARY_BIN%\SWIG_LICENSE
