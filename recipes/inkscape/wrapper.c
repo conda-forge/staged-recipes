@@ -18,7 +18,9 @@
 
 // http://www.catch22.net/tuts/reducing-executable-size
 // Favour small code
+#ifdef _MSC_VER
 #pragma optimize("gsy", on)
+#endif
 
 
 /*if you need it: here is a way to get specific path for different arch... */
