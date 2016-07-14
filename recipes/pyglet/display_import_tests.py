@@ -1,6 +1,5 @@
 # The import tests in here should be only those that
-# 1. Should run on all platforms,
-# 2. Require an X11 display on linux
+# 1. Require an X11 display on linux
 
 import pyglet.font
 import pyglet.gl
@@ -14,3 +13,10 @@ import pyglet.media.drivers.directsound
 import pyglet.window
 import pyglet.text
 import pyglet.text.formats
+
+# Handle an import that should only happen on linux and requires
+# a display.
+import sys
+
+if sys.platform.startswith('linux'):
+    import pyglet.window.xlib
