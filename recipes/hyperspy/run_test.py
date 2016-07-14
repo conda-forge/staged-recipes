@@ -10,5 +10,5 @@ if __name__ == '__main__':
     import matplotlib
     matplotlib.use("Agg")
 
-    sys.argv.append('hyperspy')
+    sys.argv.append('hyperspy.tests')
     sys.exit(run_exit())
