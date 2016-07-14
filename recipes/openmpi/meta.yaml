@@ -1,31 +1,73 @@
-{% set version="1.10.2" %}
-{% set minor_version=".".join(version.split(".")[:2]) %}
+{% set version = "2.0.0" %}
+{% set major = ".".join(version.split(".")[:2]) %}
 
 package:
-  name: openmpi
-  version: {{ version }}
+    name: openmpi
+    version: {{ version }}
 
 source:
-  fn: openmpi-{{ version }}.tar.bz2
-  url: http://www.open-mpi.org/software/ompi/v{{ minor_version }}/downloads/openmpi-{{ version }}.tar.bz2
-  sha1: 03934fc0a2dd0d0d2d0459d714a976eabca938fb
+    fn: openmpi-{{ version }}.tar.bz2
+    url: https://www.open-mpi.org/software/ompi/v{{ major }}/downloads/openmpi-{{ version }}.tar.bz2
+    sha1: a34f07a0e94af4ccd8080d74827befd61824c6c3
 
 build:
-  number: 0
+    number: 0
+    skip: True  # [win]
+    binary_relocation: true
+    detect_binary_files_with_prefix: true
+
+requirements:
+    build:
+        - perl
+        - gcc  # [linux]
+    run:
+        - libgcc  # [linux]
+
+test:
+    files:
+        - tests/helloworld.c
+        - tests/helloworld.cxx
+    commands:
+        - command -v ompi_info
+        - ompi_info
+
+        - command -v mpirun
+        - mpirun --allow-run-as-root --help
+
+        - command -v mpicc
+        - mpicc --allow-run-as-root -show
+
+        - command -v mpicxx
+        - mpicxx --allow-run-as-root -show
+
+        - command -v mpif90  # [linux]
+        - mpif90 --allow-run-as-root -show  # [linux]
+
+        - export DYLD_LIBRARY_PATH=$PREFIX/lib  # [osx]
+        - command -v mpiexec
+        - mpicc $RECIPE_DIR/tests/helloworld.c -o helloworld_c
+        - mpiexec -mca plm isolated --allow-run-as-root -n 4 helloworld_c
+
+        - conda inspect linkages -n _test openmpi  # [not win]
+        - conda inspect objects -n _test openmpi  # [osx]
+
 
 about:
-  home: http://www.open-mpi.org/
-  license: 3-clause BSD  (http://www.open-mpi.org/community/license.php)
-  license_family: BSD
-  license_file: LICENSE
-  summary: An open source Message Passing Interface implementation
-  description: |
-    The Open MPI Project is an open source Message Passing Interface
-    implementation that is developed and maintained by a consortium of academic,
-    research, and industry partners.
-  doc_url: https://www.open-mpi.org/doc/
-  dev_url: https://github.com/open-mpi/ompi
+    home: http://www.open-mpi.org/
+    license: BSD 3-Clause
+    license_family: BSD
+    license_file: LICENSE
+    summary: 'An open source Message Passing Interface implementation.'
+    description: |
+        The Open MPI Project is an open source Message Passing Interface
+        implementation that is developed and maintained by a consortium of academic,
+        research, and industry partners.
+    doc_url: https://www.open-mpi.org/doc/
+    dev_url: https://github.com/open-mpi/ompi
 
 extra:
-  recipe-maintainers:
-    - msarahan
+    recipe-maintainers:
+        - astrofrog
+        - bekozi
+        - msarahan
+        - ocefpaf
