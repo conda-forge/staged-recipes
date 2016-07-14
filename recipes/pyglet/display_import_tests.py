@@ -18,6 +18,7 @@ test_imports = [
 
 def expected_fail(module):
     try:
+        print('Importing {}'.format(module))
         __import__(module)
     except Exception as e:
         # Yes, make the exception general, because we can't import the specific
