@@ -2,20 +2,9 @@
 
 # Compile
 # -------
+chmod +x configure
+
 if [ `uname` == Linux ]; then
-    chmod +x configure
-
-    if [ $ARCH == 64 ]; then
-        MARCH=x86-64
-    else
-        MARCH=i686
-    fi
-
-    # Building QtWebKit on CentOS 5 fails without setting these flags
-    # explicitly. This is caused by using an old gcc version
-    # See https://bugs.webkit.org/show_bug.cgi?id=25836#c5
-    CFLAGS="-march=${MARCH}" CXXFLAGS="-march=${MARCH}" \
-    CPPFLAGS="-march=${MARCH}" LDFLAGS="-march=${MARCH}" \
     ./configure -prefix $PREFIX \
                 -libdir $PREFIX/lib \
                 -bindir $PREFIX/bin \
@@ -30,7 +19,6 @@ if [ `uname` == Linux ]; then
                 -nomake demos \
                 -nomake docs \
                 -opensource \
-                -verbose \
                 -openssl \
                 -webkit \
                 -system-zlib \
@@ -43,8 +31,7 @@ if [ `uname` == Linux ]; then
     # Build on RPM based distros fails without setting LD_LIBRARY_PATH
     # to the build lib dir
     # See https://bugreports.qt.io/browse/QTBUG-5385
-    LD_LIBRARY_PATH=$SRC_DIR/lib make -j $CPU_COUNT
-
+    LD_LIBRARY_PATH=$SRC_DIR/lib make
     make install
 fi
 
@@ -71,17 +58,16 @@ if [ `uname` == Darwin ]; then
                 -nomake demos \
                 -nomake docs \
                 -opensource \
-                -verbose \
                 -openssl \
                 -system-zlib \
                 -system-libpng \
                 -system-libtiff \
                 -system-libjpeg \
                 -no-framework \
-                -platform macx-g++ \
-                -arch `uname -m` 
+                -arch `uname -m`
+                #-platform macx-g++
 
-    make -j $(sysctl -n hw.ncpu)
+    make
     make install
 fi
 
