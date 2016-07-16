@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
+pwd
+ls
 cd "$RECIPE_DIR/.."
 
 mkdir build
