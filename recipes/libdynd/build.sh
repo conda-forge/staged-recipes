@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 
-pwd
-ls
-cd "$RECIPE_DIR/.."
+#pwd
+#ls
+#cd "$RECIPE_DIR/.."
 
 mkdir build
 cd build
