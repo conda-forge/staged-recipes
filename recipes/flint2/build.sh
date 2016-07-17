@@ -7,6 +7,12 @@ chmod +x configure
 ./configure --prefix=$PREFIX --with-gmp=$PREFIX --with-mpfr=$PREFIX
 
 make
-make check
+
+# Travis timeouts when running tests on OS X.
+if [ "$(uname)" == "Linux" ]
+then
+    make check
+fi
+
 make install
 
