@@ -5,6 +5,7 @@ set -e
 UNAME="$(uname)"
 export CFLAGS="-O3"
 export CXXFLAGS="-O3"
+
 if [ "${UNAME}" == "Darwin" ]; then
     # for Mac OSX
     export CC=clang

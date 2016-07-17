@@ -1,3 +1,35 @@
+About Sparsehash
+----------------
+
+Home: https://github.com/sparsehash/sparsehash
+
+License: BSD
+
+Summary: Google sparsehash is an extremely memory-efficient hash_map implementation
+
+Installing Sparsehash
+---------------------
+
+Installing Sparsehash from the conda-forge channel can be achieved by adding conda-forge to your channels with:
+
+```bash
+conda config --add channels conda-forge
+```
+
+Once the conda-forge channel has been enabled, boost can be installed with:
+
+```bash
+conda install sparsehash
+```
+
+It is possible to list all of the versions of boost available on your platform with:
+
+```bash
+conda search sparsehash --channel conda-forge
+```
+
+
+
 About
 -----
 
@@ -14,4 +46,3 @@ Build status
 [![Build Status](https://travis-ci.org/conda-forge/staged-recipes.svg?branch=master)](https://travis-ci.org/conda-forge/staged-recipes)
 
 [![Build status](https://ci.appveyor.com/api/projects/status/3lju80dibkmowsj5/branch/master?svg=true)](https://ci.appveyor.com/project/conda-forge/staged-recipes/branch/master)
-
