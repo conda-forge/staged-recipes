@@ -2,4 +2,4 @@
 
 ./configure --prefix=$PREFIX
 make
-make check && make install
+make -j 1 check && make install
