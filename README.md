@@ -5,7 +5,7 @@ Home: https://github.com/sparsehash/sparsehash
 
 License: BSD
 
-Summary: Google sparsehash is a C++ library implementation of an extremely memory-efficient hash_map implementation
+Summary: Google sparsehash is a C++ library of an extremely memory-efficient hash_map implementation
 
 Installing Sparsehash
 ---------------------
