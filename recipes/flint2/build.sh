@@ -4,7 +4,7 @@ source activate "${CONDA_DEFAULT_ENV}"
 
 chmod +x configure
 
-./configure --prefix=$PREFIX
+./configure --prefix=$PREFIX --with-gmp=$PREFIX --with-mpfr=$PREFIX
 
 make
 make check
