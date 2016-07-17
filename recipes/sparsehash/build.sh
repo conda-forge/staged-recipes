@@ -3,6 +3,7 @@
 set -e
 
 UNAME="$(uname)"
+
 export CFLAGS="-O3"
 export CXXFLAGS="-O3"
 
