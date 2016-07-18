@@ -1,4 +1,4 @@
-cd %RECIPE_DIR%/..
+:: cd %RECIPE_DIR%/..
 
 mkdir build
 cd build
