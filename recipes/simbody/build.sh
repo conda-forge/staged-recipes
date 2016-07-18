@@ -12,7 +12,7 @@ cd build
 cmake .. \
 	-LAH \
 	-DCMAKE_INSTALL_PREFIX="$PREFIX" \
-	-DBUILD_USING_OTHER_LAPACK="$PREFIX/lib/libopenblas.so;$PREFIX/lib/liblapack.so" \
+	-DBUILD_USING_OTHER_LAPACK="$PREFIX/lib/libopenblas.so" \
 	-DBUILD_VISUALIZER=off
 make -j$(nproc)
 ctest -j$(nproc)
