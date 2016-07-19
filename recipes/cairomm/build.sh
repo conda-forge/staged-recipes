@@ -1,7 +1,16 @@
 #!/usr/bin/env bash
 
+# FIXME: This is a hack to make sure the environment is activated.
+# The reason this is required is due to the conda-build issue
+# mentioned below.
+#
+# https://github.com/conda/conda-build/issues/910
+#
 source activate "${CONDA_DEFAULT_ENV}"
 
+# This is a hack to setup the correct libc/libc++ environment
+# when using clang on osx.
+#
 if [[ $(uname) == Darwin ]]; then
     # for Mac OSX
     export CC=clang
@@ -15,8 +24,8 @@ if [[ $(uname) == Darwin ]]; then
     export LINKFLAGS="${LDFLAGS}"
 fi
 
-# Setup the boost building, this is fairly simple.
-./configure --prefix=${PREFIX}
+# Setup the building
+./configure --prefix=${PREFIX} || { cat config.log; exit 1; }
 make
 make check
 make install
