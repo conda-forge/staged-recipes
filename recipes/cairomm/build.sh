@@ -9,7 +9,10 @@
 source activate "${CONDA_DEFAULT_ENV}"
 
 # Setup the building
-./configure --prefix=${PREFIX}  || { cat config.log; exit 1; }
+./configure --prefix=${PREFIX} \
+            --enable-static=yes \
+|| { cat config.log; exit 1; }
+
 make
 make check
 make install
