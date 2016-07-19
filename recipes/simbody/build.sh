@@ -7,8 +7,6 @@
 # https://github.com/conda/conda-build/issues/910
 source activate "${CONDA_DEFAULT_ENV}"
 
-bash --version
-
 mkdir build
 cd build
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
@@ -32,5 +30,5 @@ make
 # NOTE: Run the tests here in the build directory to make sure things are built
 # correctly. This cannot be specified in the meta.yml:test section because it
 # won't be run in the build directory.
-ctest $SKIP_TEST
+eval "ctest ${SKIP_TEST}"
 make install
