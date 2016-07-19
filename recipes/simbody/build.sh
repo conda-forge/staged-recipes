@@ -26,11 +26,10 @@ fi
 cmake .. \
 	-LAH \
 	-DCMAKE_INSTALL_PREFIX="$PREFIX" \
-	-DBUILD_USING_OTHER_LAPACK="$PREFIX/lib/libopenblas.$SHARED_EXT" \
-	$GLUT_OVERRIDE
-make
+	-DBUILD_USING_OTHER_LAPACK="$PREFIX/lib/libopenblas.$SHARED_EXT" $GLUT_OVERRIDE
+make -j$(nproc)
 # NOTE: Run the tests here in the build directory to make sure things are built
 # correctly. This cannot be specified in the meta.yml:test section because it
 # won't be run in the build directory.
 ctest $SKIP_TEST
-make install
+make -j$(nproc) install
