@@ -14,7 +14,7 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
 	# TODO: This test is failing for a yet-to-be-determined reason. See
 	# https://github.com/simbody/simbody/issues/400 for more details. Once
 	# that is figured out then this test should be enabled.
-	SKIP_TEST=("-E TestCustomConstraints")
+	SKIP_TEST=(--exclude-regex="TestCustomConstraints")
 	# The CMAKE_CXX_FLAGS is required due to this bug in Simbody:
 	# https://github.com/simbody/simbody/issues/511
 	GLUT_OVERRIDE=(-DCMAKE_CXX_FLAGS="-I$PREFIX/include")
