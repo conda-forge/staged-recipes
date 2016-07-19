@@ -14,6 +14,12 @@ cmake .. \
 	-DCMAKE_INSTALL_PREFIX="$PREFIX" \
 	-DBUILD_USING_OTHER_LAPACK="$PREFIX/lib/libopenblas.so" \
 	-DBUILD_VISUALIZER=off
-make -j$(nproc)
-ctest -j$(nproc)
-make -j$(nproc) install
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+	make -j$(nproc)
+	ctest -j$(nproc)
+	make -j$(nproc) install
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+	make
+	ctest
+	make install
+fi
