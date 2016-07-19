@@ -11,6 +11,7 @@ source activate "${CONDA_DEFAULT_ENV}"
 # Setup the building
 ./configure --prefix=${PREFIX} \
             --enable-static=yes \
+            --enable-shared=yes \
 || { cat config.log; exit 1; }
 
 make
