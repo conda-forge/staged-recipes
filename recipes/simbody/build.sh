@@ -25,7 +25,9 @@ cmake .. \
 	-LAH \
 	-DCMAKE_INSTALL_PREFIX="$PREFIX" \
 	-DBUILD_USING_OTHER_LAPACK="$PREFIX/lib/libopenblas.$SHARED_EXT" \
-	-DCMAKE_VERBOSE_MAKEFILE=on
+	-DCMAKE_VERBOSE_MAKEFILE=on \
+	-DGLUT_INCLUDE_DIR="$PREFIX/include" \
+	-DCMAKE_CXX_FLAGS="-I$PREFIX/include"
 make
 # NOTE: Run the tests here in the build directory to make sure things are built
 # correctly. This cannot be specified in the meta.yml:test section because it
