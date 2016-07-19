@@ -1,6 +1,6 @@
 mkdir build
 cd build
-cmake -G "%CMAKE_GENERATOR%" -DBUILD_VISUALIZER=OFF -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%"
+cmake -G "%CMAKE_GENERATOR%" -DBUILD_VISUALIZER=OFF -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ..
 cmake --build . --target install --config Release -- /verbosity:quiet
 REM NOTE: Run the tests here in the build directory to make sure things are
 REM built correctly. This cannot be specified in the meta.yml:test section
