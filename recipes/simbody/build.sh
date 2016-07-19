@@ -7,6 +7,8 @@
 # https://github.com/conda/conda-build/issues/910
 source activate "${CONDA_DEFAULT_ENV}"
 
+bash --version
+
 mkdir build
 cd build
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
