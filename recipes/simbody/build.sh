@@ -25,6 +25,7 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
 fi
 cmake .. \
 	-DCMAKE_INSTALL_PREFIX="$PREFIX" \
+	-DCMAKE_INSTALL_LIBDIR="lib" \
 	-DBUILD_USING_OTHER_LAPACK="$PREFIX/lib/libopenblas.$SHARED_EXT" $GLUT_OVERRIDE
 make
 # NOTE: Run the tests here in the build directory to make sure things are built
