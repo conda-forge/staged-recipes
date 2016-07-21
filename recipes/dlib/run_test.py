@@ -2,11 +2,12 @@ import os
 import sys
 import bz2
 import unittest
+from functools import partial
 
 import dlib
 import numpy as np
 from PIL import Image
-from progressbar import Percentage, Bar, ProgressBar
+from tqdm import tqdm
 
 
 SHAPE_PREDICTOR_FNAME = 'shape_predictor_68_face_landmarks.dat'
@@ -20,17 +21,17 @@ def _download_file(url, out_path):
     except ImportError:
         from urllib.request import urlretrieve  # Python 3
 
-    # Fake maxval of 1.0 to avoid division by zero
-    pbar = ProgressBar(widgets=[Percentage(), Bar()], maxval=1.0).start()
-    def reporthook(block_num, block_size, total_size):
-        read_so_far = block_num * block_size
-        if total_size > 0 and read_so_far < total_size:
-            pbar.maxval = total_size
-            pbar.update(read_so_far)
-        if read_so_far >= total_size:
-            pbar.finish()
+    # Wrap tqdm instance with urlretrieve compatible function
+    # Abuse mutable [] argument to give function 'memory'
+    # First argument will be supplied using partial (an instance of tqdm)
+    def reporthook(t, b=1, bsize=1, tsize=None, last_b=[0]):
+        if tsize is not None:
+            t.total = tsize
+        t.update((b - last_b[0]) * bsize)
+        last_b[0] = b
 
-    urlretrieve(url, filename=out_path, reporthook=reporthook)
+    with tqdm(unit='B', unit_scale=True, miniters=1, desc=out_path) as t:
+        urlretrieve(url, filename=out_path, reporthook=partial(reporthook, t))
 
 
 def _bz2_decompress_inplace(path, out_path):
