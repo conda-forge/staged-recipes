@@ -20,7 +20,7 @@ if sys.platform.startswith('linux'):
 
 
 if __name__ == "__main__":
-    # skip tests on python 3 for windows
+    # Skip tests on python 3 for windows.
     if not (os.name == "nt" and sys.version_info[0] == 3):
         from multiprocessing import freeze_support
         freeze_support()

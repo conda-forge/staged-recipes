@@ -1,20 +1,21 @@
-REM Would be nice to include blosc support, but building this with external blosc is currently broken.
-REM    See https://github.com/PyTables/PyTables/issues/451
+:: Would be nice to include blosc support, but building this with external blosc is currently broken.
+::    See https://github.com/PyTables/PyTables/issues/451
 
 
-REM rd /s /q c-blosc
-REM git clone https://github.com/Blosc/c-blosc
-REM cd c-blosc
-REM git checkout v1.7.0
-REM git clone https://github.com/Blosc/hdf5-blosc
-REM move hdf5-blosc\src hdf5
-REM rd /s /q hdf5-blosc
+:: rd /s /q c-blosc
+:: git clone https://github.com/Blosc/c-blosc
+:: cd c-blosc
+:: git checkout v1.7.0
+:: git clone https://github.com/Blosc/hdf5-blosc
+:: move hdf5-blosc\src hdf5
+:: rd /s /q hdf5-blosc
 
-REM cd ..
+:: cd ..
 
-REM %PYTHON% setup.py install --blosc=%LIBRARY_PREFIX% --hdf5=%LIBRARY_PREFIX% --bzip2=%LIBRARY_PREFIX%
+:: %PYTHON% setup.py install --blosc=%LIBRARY_PREFIX% --hdf5=%LIBRARY_PREFIX% --bzip2=%LIBRARY_PREFIX%
 
 
-REM Proceed without external blosc
+:: Proceed without external blosc
 
-%PYTHON% setup.py install --hdf5=%LIBRARY_PREFIX% --bzip2=%LIBRARY_PREFIX%
+%PYTHON% setup.py install --hdf5=%LIBRARY_PREFIX% --bzip2=%LIBRARY_PREFIX% ^
+                          --single-version-externally-managed --record record.txt
