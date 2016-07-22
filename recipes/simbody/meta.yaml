@@ -1,0 +1,82 @@
+{% set version = "3.5.3" %}
+{% set variant = "openblas" %}
+
+package:
+    name: simbody
+    version: {{ version }}
+
+source:
+    fn: Simbody-{{ version }}.tar.gz
+    url: https://github.com/simbody/simbody/archive/Simbody-{{ version }}.tar.gz
+    sha256: 8005fbdb16c6475f98e13b8f1423b0e9951c193681c2b0d19ae5b711d7e24ec1
+
+build:
+    number: 200
+    skip: true                # [win]
+    features:
+        - vc14                # [win and py35]
+        - blas_{{ variant }}  # [unix]
+    # NOTE : This is needed to ensure the paths to Simbody's binaries, like
+    # simbody-visualizer, are corrected.
+    detect_binary_files_with_prefix: true
+
+# NOTE: This installs Simbody and the optional visualizer on Linux, Windows, and
+# OSX. We build against the openblas available in conda-forge which includes
+# lapack on Linux and OSX. blas and lapack are not needed on Windows because
+# Simbody includes them. For the visualizer, FreeGLUT is available via
+# anaconda.org and conda-forge but libXi and libXmu are not, so the user will
+# need those to be installed via their Linux package manager. Glut is included
+# with Simbody for Windows and OSX includes a Glut implementation. TODO:
+# Doxygen is the only dependency that is omitted here, so the rendered
+# documentation is not built.
+requirements:
+    build:
+        - toolchain
+        - cmake
+        - blas 1.1 {{ variant }}  # [not win]
+        - openblas 0.2.18*        # [not win]
+        - freeglut                # [linux]
+        - python                  # [win]
+    run:
+        - blas 1.1 {{ variant }}  # [not win]
+        - openblas 0.2.18*        # [not win]
+        - freeglut                # [linux]
+test:
+  requires:
+    - python 3.5.*  # [win and py35]
+  commands:
+    - if not exist %LIBRARY_BIN%\\simbody\\simbody-visualizer exit 1  # [win]
+    - if not exist %LIBRARY_INC%\\simbody\\Simbody.h exit 1           # [win]
+    - if not exist %LIBRARY_INC%\\simbody\\SimTKcommon.h exit 1       # [win]
+    - if not exist %LIBRARY_INC%\\simbody\\SimTKlapack.h exit 1       # [win]
+    - if not exist %LIBRARY_INC%\\simbody\\SimTKmath.h exit 1         # [win]
+    - if not exist %LIBRARY_INC%\\simbody\\SimTKsimbody_aux.h exit 1  # [win]
+    - if not exist %LIBRARY_INC%\\simbody\\SimTKsimbody.h exit 1      # [win]
+    - test -f $PREFIX/libexec/simbody/simbody-visualizer              # [unix]
+    - test -f $PREFIX/include/simbody/Simbody.h                       # [unix]
+    - test -f $PREFIX/include/simbody/SimTKcommon.h                   # [unix]
+    - test -f $PREFIX/include/simbody/SimTKlapack.h                   # [unix]
+    - test -f $PREFIX/include/simbody/SimTKmath.h                     # [unix]
+    - test -f $PREFIX/include/simbody/SimTKsimbody_aux.h              # [unix]
+    - test -f $PREFIX/include/simbody/SimTKsimbody.h                  # [unix]
+    - if not exist %LIBRARY_LIB%\\libSimTKcommon.dll exit 1           # [win]
+    - if not exist %LIBRARY_LIB%\\libSimTKmath.dll exit 1             # [win]
+    - if not exist %LIBRARY_LIB%\\libSimTKsimbody.dll exit 1          # [win]
+    - test -f $PREFIX/lib/libSimTKcommon.so                           # [linux]
+    - test -f $PREFIX/lib/libSimTKmath.so                             # [linux]
+    - test -f $PREFIX/lib/libSimTKsimbody.so                          # [linux]
+    - test -f $PREFIX/lib/libSimTKcommon.dylib                        # [osx]
+    - test -f $PREFIX/lib/libSimTKmath.dylib                          # [osx]
+    - test -f $PREFIX/lib/libSimTKsimbody.dylib                       # [osx]
+
+about:
+    home: https://simtk.org/home/simbody
+    license: Apache-2.0
+    summary: >
+        High-performance C++ multibody dynamics/physics library for simulating
+        articulated biomechanical and mechanical systems like vehicles, robots,
+        and the human skeleton.
+
+extra:
+    recipe-maintainers:
+        - moorepants
