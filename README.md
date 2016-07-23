@@ -1,3 +1,11 @@
+Adding your package to conda-forge
+----------------------------------
+
+1. Fork this repository.
+2. Make a new folder in `recipes` for your package. Look at the example recipe and our [FAQ](https://github.com/conda-forge/staged-recipes/wiki/Frequently-asked-questions) for help.
+3. Open a pull request. Building of your package will be tested on Windows, Mac and Linux.
+4. When your pull request is merged a new repository, called a feedstock, will be create in the github conda-forge organization, and build/upload of your package will automatically be triggered. Once complete, the package is available on conda-forge.
+
 About
 -----
 

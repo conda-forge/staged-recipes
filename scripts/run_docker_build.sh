@@ -30,15 +30,15 @@ fi
 # Unused, but needed by conda-build currently... :(
 export CONDA_NPY='19'
 
-export PYTHONUNBUFFERED=1
 echo "$config" > ~/.condarc
 
 # A lock sometimes occurs with incomplete builds. The lock file is stored in build_artefacts.
 conda clean --lock
 
 conda update conda conda-build
-conda install anaconda-client conda-build-all
-conda info
+conda install conda-build-all
+conda install conda-forge-build-setup
+source run_conda_forge_build_setup
 
 # We don't need to build the example recipe.
 rm -rf /conda-recipes/example
@@ -48,6 +48,6 @@ find conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" 
     | xargs -n1 cat | grep -v -e "^#" -e "^$" | \
     xargs -r yum install -y
 
-conda-build-all /conda-recipes --matrix-conditions "numpy >=1.9" "python >=2.7,<3|>=3.4"
+conda-build-all /conda-recipes --matrix-conditions "numpy >=1.10" "python >=2.7,<3|>=3.4"
 
 EOF
