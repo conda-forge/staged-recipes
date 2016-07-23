@@ -1,0 +1,79 @@
+{% set name = "PyInstaller" %}
+{% set version = "3.2" %}
+
+package:
+  name: {{ name.lower() }}
+  version: {{ version }}
+
+source:
+  fn: PyInstaller-{{ version }}.tar.gz
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  md5: ad924928983014e6b8ce5422d7687832
+  patches:
+    # Fixes an issue where libpython would not be found
+    # if it had a suffix (e.g. `m`). The PR used is
+    # linked below.
+    #
+    # https://github.com/pyinstaller/pyinstaller/pull/1971
+    #
+    - PR_1971.diff
+
+build:
+  number: 0
+  skip: true  # [win]
+  features:
+    - vc9     # [win and py27]
+    - vc10    # [win and py34]
+    - vc14    # [win and py35]
+  entry_points:
+    - pyinstaller = PyInstaller.__main__:run
+    - pyi-archive_viewer = PyInstaller.utils.cliutils.archive_viewer:run
+    - pyi-bindepend = PyInstaller.utils.cliutils.bindepend:run
+    - pyi-grab_version = PyInstaller.utils.cliutils.grab_version:run
+    - pyi-makespec = PyInstaller.utils.cliutils.makespec:run
+    - pyi-set_version = PyInstaller.utils.cliutils.set_version:run
+  script:
+    - export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"               # [linux]
+    - pushd bootloader
+    - waf --prefix="${PREFIX}" --clang distclean all            # [osx]
+    - waf --prefix="${PREFIX}" --gcc --no-lsb distclean all     # [linux]
+    - waf --prefix="%LIBRARY_PREFIX%" distclean all             # [win]
+    - popd
+    - python setup.py install --single-version-externally-managed --record=record.txt
+  preserve_egg_dir: True
+
+requirements:
+  build:
+    - toolchain
+    - python
+    - setuptools
+    - waf
+    - zlib 1.2.*
+
+  run:
+    - python
+    - setuptools
+    - pycrypto
+    - zlib 1.2.*
+
+test:
+  imports:
+    - PyInstaller
+
+  commands:
+    - pyinstaller --help
+    - pyi-archive_viewer --help
+    - pyi-bindepend --help
+    - pyi-makespec --help
+    # These are designed for Windows only.
+    - pyi-grab_version --help     # [win]
+    - pyi-set_version --help      # [win]
+
+about:
+  home: http://www.pyinstaller.org
+  license: GPL 2
+  summary: PyInstaller bundles a Python application and all its dependencies into a single package.
+
+extra:
+  recipe-maintainers:
+    - jakirkham
