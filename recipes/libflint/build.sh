@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-source activate "${CONDA_DEFAULT_ENV}"
-
 chmod +x configure
 
 # This is set to reduce the number of random tests run so that CIs can run 
