@@ -14,21 +14,27 @@ environment:
     - TARGET_ARCH: "x86"
       CONDA_PY: "27"
       PY_CONDITION: "python >=2.7,<3"
+      CONDA_INSTALL_LOCN: "C:\\Miniconda"
     - TARGET_ARCH: "x86"
       CONDA_PY: "34"
       PY_CONDITION: "python >=3.4,<3.5"
+      CONDA_INSTALL_LOCN: "C:\\Miniconda3"
     - TARGET_ARCH: "x86"
       CONDA_PY: "35"
       PY_CONDITION: "python >=3.5"
+      CONDA_INSTALL_LOCN: "C:\\Miniconda35"
     - TARGET_ARCH: "x64"
       CONDA_PY: "27"
       PY_CONDITION: "python >=2.7,<3"
+      CONDA_INSTALL_LOCN: "C:\\Miniconda-x64"
     - TARGET_ARCH: "x64"
       CONDA_PY: "34"
       PY_CONDITION: "python >=3.4,<3.5"
+      CONDA_INSTALL_LOCN: "C:\\Miniconda3-x64"
     - TARGET_ARCH: "x64"
       CONDA_PY: "35"
       PY_CONDITION: "python >=3.5"
+      CONDA_INSTALL_LOCN: "C:\\Miniconda35-x64"
 
 artifacts:
     # Store built conda packages as artifacts
@@ -64,23 +70,24 @@ install:
     - cmd: rmdir C:\cygwin /s /q
 
     # Use the pre-installed Miniconda for the desired arch
-    - ps: if($env:TARGET_ARCH -eq 'x86')
-            {$root = "C:\Miniconda"}
-          else
-            {$root = "C:\Miniconda-x64"}
-          $env:path="$root;$root\Scripts;$root\Library\bin;$($env:path)"
+    #
+    # However, it is really old. So, we need to update some
+    # things before we proceed. That seems to require it being
+    # on the path. So, we temporarily put conda on the path
+    # so that we can update it. Then we remove it so that
+    # we can do a proper activation.
+    - cmd: set "OLDPATH=%PATH%"
+    - cmd: set "PATH=%CONDA_INSTALL_LOCN%\\Scripts;%CONDA_INSTALL_LOCN%\\Library\\bin;%PATH%"
+    - cmd: conda update --yes --quiet conda
+    - cmd: set "PATH=%OLDPATH%"
+    - cmd: call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
+    - cmd: conda config --add channels conda-forge
     - cmd: conda config --set show_channel_urls true
     - cmd: conda update --yes --quiet conda
-    - cmd: set PYTHONUNBUFFERED=1
 
-    - cmd: conda config --add channels conda-forge
     - cmd: conda install --yes --quiet obvious-ci conda-build-all
-    - cmd: obvci_install_conda_build_tools.py
-    # Workaround for Python 3.4 and x64 bug in latest conda-build.
-    # FIXME: Remove once there is a release that fixes the upstream issue
-    # ( https://github.com/conda/conda-build/issues/895 ).
-    - cmd: if "%TARGET_ARCH%" == "x64" if "%CONDA_PY%" == "34" conda install conda-build=1.20.0 --yes
-    - cmd: conda info
+    - cmd: conda install --yes --quiet conda-forge-build-setup
+    - cmd: run_conda_forge_build_setup
 
 # Skip .NET project specific build phase.
 build: off
