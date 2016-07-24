@@ -47,14 +47,18 @@ install:
         Where-Object pullRequestId -eq $env:APPVEYOR_PULL_REQUEST_NUMBER)[0].buildNumber) { `
           throw "There are newer queued builds for this pull request, failing early." }
 
+    # Simplify check for whether we need to skip the build.
+    - cmd: set APPVEYOR_SKIP=0
+    - cmd: if "%APPVEYOR_REPO_NAME%" == "conda-forge/staged-recipes" if not defined APPVEYOR_PULL_REQUEST_NUMBER set APPVEYOR_SKIP=1
+
     # Run the AppVeyor script.
-    - cmd: call scripts\appveyor_setup.bat
+    - cmd: if %APPVEYOR_SKIP% neq 1 call scripts\appveyor_setup.bat
 
 # Skip .NET project specific build phase.
 build: off
 
 test_script:
-    - cmd: call scripts\build_windows.bat
+    - cmd: if %APPVEYOR_SKIP% neq 1 call scripts\build_windows.bat
     # copy any newly created conda packages into the conda_packages dir
     - cmd: mkdir conda_packages
     # Uncomment the following two lines to make any conda packages created
