@@ -56,39 +56,8 @@ install:
         Where-Object pullRequestId -eq $env:APPVEYOR_PULL_REQUEST_NUMBER)[0].buildNumber) { `
           throw "There are newer queued builds for this pull request, failing early." }
 
-    # Find the recipes from master in this PR and remove them.
-    - cmd: echo Finding recipes merged in master and removing them.
-    - cmd: cd recipes
-    - cmd: git fetch https://github.com/conda-forge/staged-recipes.git master
-    - cmd: |
-             for /f "tokens=*" %%a in ('git ls-tree --name-only FETCH_HEAD -- .') do rmdir /s /q %%a && echo Removing recipe: %%a
-    - cmd: cd ..
-
-    # Set the CONDA_NPY, although it has no impact on the actual build. We need this because of a test within conda-build.
-    - cmd: set CONDA_NPY=19
-
-    # Remove cygwin (and therefore the git that comes with it).
-    - cmd: rmdir C:\cygwin /s /q
-
-    # Use the pre-installed Miniconda for the desired arch
-    #
-    # However, it is really old. So, we need to update some
-    # things before we proceed. That seems to require it being
-    # on the path. So, we temporarily put conda on the path
-    # so that we can update it. Then we remove it so that
-    # we can do a proper activation.
-    - cmd: set "OLDPATH=%PATH%"
-    - cmd: set "PATH=%CONDA_INSTALL_LOCN%\\Scripts;%CONDA_INSTALL_LOCN%\\Library\\bin;%PATH%"
-    - cmd: conda update --yes --quiet conda
-    - cmd: set "PATH=%OLDPATH%"
-    - cmd: call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
-    - cmd: conda config --add channels conda-forge
-    - cmd: conda config --set show_channel_urls true
-    - cmd: conda update --yes --quiet conda
-
-    - cmd: conda install --yes --quiet obvious-ci conda-build-all
-    - cmd: conda install --yes --quiet conda-forge-build-setup
-    - cmd: run_conda_forge_build_setup
+    # Run the AppVeyor script.
+    - cmd: call scripts\appveyor_setup.bat
 
 # Skip .NET project specific build phase.
 build: off
