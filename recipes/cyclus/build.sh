@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
-source activate "${CONDA_DEFAULT_ENV}"
+#source activate "${CONDA_DEFAULT_ENV}"
 
-UNAME="$(uname)"
+#UNAME="$(uname)"
 #export CFLAGS="${CFLAGS} -O3"
 #export CXXFLAGS="${CXXFLAGS} -O3"
 #export LIBRARY_PATH="${PREFIX}/lib:${LIBRARY_PATH}"
@@ -13,7 +13,7 @@ UNAME="$(uname)"
 #export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH}"
 #export CMAKE_LIBRARY_PATH="${PREFIX}/lib:${CMAKE_LIBRARY_PATH}"
 
-if [ "${UNAME}" == "Darwin" ]; then
+#if [ "${UNAME}" == "Darwin" ]; then
   # for Mac OSX
   #export CC=gcc
   #export CXX=g++
@@ -27,12 +27,12 @@ if [ "${UNAME}" == "Darwin" ]; then
   #export LDFLAGS="${LDFLAGS} -stdlib=libc++ -lc++"
   #export LDFLAGS="${LDFLAGS} -std=c++11 -lc++"
   #export LINKFLAGS="${LDFLAGS}"
-  export CMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}"
+#  export CMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}"
 #else
   # for Linux
   #export CC=
   #export CXX=
-fi
+#fi
 
 #export CFLAGS="${CFLAGS} -m${ARCH}"
 #export CXXFLAGS="${CXXFLAGS} -m${ARCH}"
