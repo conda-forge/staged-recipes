@@ -48,7 +48,7 @@ ${PYTHON} install.py --prefix="${PREFIX}" \
   --boost_root="${PREFIX}" \
   --hdf5_root="${PREFIX}" \
   -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}" \
-  --clean
+  --clean -j 3
 
 #
 # Run tests
