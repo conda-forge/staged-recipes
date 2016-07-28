@@ -1,8 +1,10 @@
+@echo on
 :: seems to find _build, still
 cd /D "%SRC_DIR%"
 
 :: yeah, this is really dirty. but we're testing lots of conda...
-conda clean --lock
+conda clean --lock || EXIT /B 1
+IF %ERRORLEVEL% NEQ 0 EXIT /B %ERRORLEVEL%
 
 CALL npm install || EXIT /B 1
 IF %ERRORLEVEL% NEQ 0 EXIT /B %ERRORLEVEL%
