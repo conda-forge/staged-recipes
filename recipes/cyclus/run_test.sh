@@ -9,7 +9,8 @@ fi
 
 UNAME="$(uname)"
 if [ "${UNAME}" == "Darwin" ]; then
-  export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib:${PREFIX}/lib/cyclus:${DYLD_FALLBACK_LIBRARY_PATH}"
+  echo "Not changing library paths"
+  #export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib:${PREFIX}/lib/cyclus:${DYLD_FALLBACK_LIBRARY_PATH}"
 else
   export LD_LIBRARY_PATH="${PREFIX}/lib:${PREFIX}/lib/cyclus:${LD_LIBRARY_PATH}"
 fi
