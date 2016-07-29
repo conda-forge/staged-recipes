@@ -9,10 +9,9 @@ fi
 
 UNAME="$(uname)"
 if [ "${UNAME}" == "Darwin" ]; then
-  export DYLD_LIBRARY_PATH="${DYLD_LIBRARY_PATH}:${PREFIX}/lib:${PREFIX}/lib/cyclus"
   export DYLD_FALLBACK_LIBRARY_PATH="${DYLD_FALLBACK_LIBRARY_PATH}:${PREFIX}/lib:${PREFIX}/lib/cyclus"
 else
-  export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${PREFIX}/lib/cyclus"
+  export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${PREFIX}/lib:${PREFIX}/lib/cyclus"
 fi
 
 # check that the files exist
