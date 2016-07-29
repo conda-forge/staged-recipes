@@ -7,6 +7,14 @@ if [ -z "$CYCLUS_NUC_DATA" ]; then
   export CYCLUS_NUC_DATA="${PREFIX}/share/cyclus/cyclus_nuc_data.h5"
 fi
 
+UNAME="$(uname)"
+if [ "${UNAME}" == "Darwin" ]; then
+  export DYLD_LIBRARY_PATH="${DYLD_LIBRARY_PATH}:${PREFIX}/lib:${PREFIX}/lib/cyclus"
+  export DYLD_FALLBACK_LIBRARY_PATH="${DYLD_FALLBACK_LIBRARY_PATH}:${PREFIX}/lib:${PREFIX}/lib/cyclus"
+else
+  export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${PREFIX}/lib/cyclus"
+fi
+
 # check that the files exist
 test -f ${PREFIX}/bin/cyclus
 test -f ${PREFIX}/bin/cycpp.py
@@ -30,12 +38,6 @@ ${PREFIX}/bin/cyclus -l :agents
 ${PREFIX}/bin/cyclus -a
 
 # run unit tests
-UNAME="$(uname)"
-if [ "${UNAME}" == "Darwin" ]; then
-  export DYLD_FALLBACK_LIBRARY_PATH="${DYLD_FALLBACK_LIBRARY_PATH}:${PREFIX}/lib/cyclus"
-else
-  export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${PREFIX}/lib/cyclus"
-fi
 ${PREFIX}/bin/cyclus_unit_tests
 
 # run integration tests
