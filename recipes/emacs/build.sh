@@ -4,4 +4,4 @@ else
     ./configure  --prefix=$PREFIX --x-includes=$PREFIX/include --x-libraries=$PREFIX/lib
 fi
 
-make -j4  && make -j4  install
+make && make install
