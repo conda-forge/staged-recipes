@@ -1,7 +1,13 @@
+#!/bin/bash
+
 if [ "$(uname)" == "Darwin" ]; then
-    ./configure  --prefix=$PREFIX --without-x
+  OPTS="--without-x"
 else
-    ./configure  --prefix=$PREFIX --x-includes=$PREFIX/include --x-libraries=$PREFIX/lib
+  OPTS="--x-includes=$PREFIX/include --x-libraries=$PREFIX/lib"
 fi
 
-make && make install
+bash configure  --prefix=$PREFIX $OPTS
+
+make
+make check
+make install
