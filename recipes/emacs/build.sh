@@ -1,3 +1,6 @@
+# DEBUGGING
+ls -al
+
 if [ "$(uname)" == "Darwin" ]; then
     ./configure  --prefix=$PREFIX --without-x
 else
