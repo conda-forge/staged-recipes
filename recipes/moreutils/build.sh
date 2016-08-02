@@ -1,0 +1,2 @@
+make PREFIX=$PREFIX MANS=;
+make install PREFIX=$PREFIX MANS=README
