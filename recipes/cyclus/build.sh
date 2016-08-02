@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-if [ "${UNAME}" == "Darwin" ]; then
+if [ "$(uname)" == "Darwin" ]; then
   libext=".dylib"
 else
   libext=".so"
