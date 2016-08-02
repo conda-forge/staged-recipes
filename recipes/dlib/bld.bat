@@ -17,7 +17,6 @@ cmake ..\tools\python -LAH -G"NMake Makefiles"              ^
 -DBoost_USE_STATIC_LIBS=0                                   ^
 -DBoost_USE_STATIC_RUNTIME=0                                ^
 -DBOOST_ROOT="%LIBRARY_PREFIX%"                             ^
--DBoost_DEBUG=1                                             ^
 -DBOOST_INCLUDEDIR="%LIBRARY_INC%"                          ^
 -DBOOST_LIBRARYDIR="%LIBRARY_LIB%"                          ^
 -DPYTHON3=%PY3K%                                            ^
