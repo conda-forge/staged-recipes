@@ -57,6 +57,6 @@ cmake -LAH ../tools/python                              \
   -DDLIB_USE_CUDA=0                                     \
   -DDLIB_GIF_SUPPORT=0
 
-make -j8
+make
 # Non-standard installation - copy manually
 cp dlib.so $SP_DIR
