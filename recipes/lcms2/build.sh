@@ -1,5 +1,3 @@
-cd $SRC_DIR
-
 ./configure                     \
             --prefix=$PREFIX    \
             --with-jpeg=$PREFIX \

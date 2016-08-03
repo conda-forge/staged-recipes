@@ -1,4 +1,3 @@
-cd %SRC_DIR%
 md build
 cd build
 
