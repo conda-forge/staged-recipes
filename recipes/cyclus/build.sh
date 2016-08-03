@@ -2,10 +2,6 @@
 set -e
 
 if [ "$(uname)" == "Darwin" ]; then
-  libext=".dylib"
-  export LDFLAGS="-rpath ${PREFIX}/lib ${LDFLAGS}"
-  skiprpath="-DCMAKE_SKIP_RPATH=TRUE"
-
   # toolchain copy
   export CC=clang
   export CXX=clang++
@@ -21,6 +17,11 @@ if [ "$(uname)" == "Darwin" ]; then
   export LINKFLAGS="${LDFLAGS}"
   export CFLAGS="${CFLAGS} -m${ARCH}"
   export CXXFLAGS="${CXXFLAGS} -m${ARCH}"
+  # other
+  libext=".dylib"
+  export LDFLAGS="-rpath ${PREFIX}/lib ${LDFLAGS}"
+  export LINKFLAGS="${LDFLAGS}"
+  skiprpath="-DCMAKE_SKIP_RPATH=TRUE"
 else
   libext=".so"
   skiprpath=""
