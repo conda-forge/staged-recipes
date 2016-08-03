@@ -3,6 +3,7 @@ set -e
 
 if [ "$(uname)" == "Darwin" ]; then
   libext=".dylib"
+  export LDFLAGS="-rpath ${PREFIX}/lib ${LDFLAGS}"
 else
   libext=".so"
 fi
