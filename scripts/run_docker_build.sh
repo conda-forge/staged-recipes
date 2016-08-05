@@ -39,6 +39,22 @@ export CONDA_NPY='19'
 echo "$config" > ~/.condarc
 mkdir -p `conda info -e 2> /dev/null | grep '\*' | sed 's#.* ##'`/conda-meta
 echo "$pinning" > `conda info -e 2> /dev/null | grep '\*' | sed 's#.* ##'`/conda-meta/pinned
+echo `conda info -e 2> /dev/null | grep '\*' | sed 's#.* ##'`/conda-meta
+ls -l `conda info -e 2> /dev/null | grep '\*' | sed 's#.* ##'`/conda-meta
+cat `conda info -e 2> /dev/null | grep '\*' | sed 's#.* ##'`/conda-meta/pinned
+
+mkdir -p /opt/conda/conda-meta
+echo "$pinning" > /opt/conda/conda-meta/pinned
+ls -l /opt/conda/conda-meta
+cat /opt/conda/conda-meta/pinned
+
+for DIR in `ls -l /opt/conda/envs/*`
+do
+    mkdir -p $DIR/conda-meta
+    echo "$pinning" > $DIR/conda-meta/pinned
+    ls -l $DIR/conda-meta
+    cat $DIR/conda-meta/pinned
+done
 
 # A lock sometimes occurs with incomplete builds. The lock file is stored in build_artefacts.
 conda clean --lock
