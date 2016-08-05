@@ -16,6 +16,12 @@ show_channel_urls: true
 
 CONDARC
 )
+pinning=$(cat <<CONDAPINNING
+conda-build 1.21.7
+setuptools 23.0.0
+
+CONDAPINNING
+)
 
 cat << EOF | docker run -i \
                         -v ${REPO_ROOT}/recipes:/conda-recipes \
@@ -31,6 +37,8 @@ fi
 export CONDA_NPY='19'
 
 echo "$config" > ~/.condarc
+mkdir -p `conda info -e 2> /dev/null | grep '\*' | sed 's#.* ##'`/conda-meta
+echo "$pinning" > `conda info -e 2> /dev/null | grep '\*' | sed 's#.* ##'`/conda-meta/pinned
 
 # A lock sometimes occurs with incomplete builds. The lock file is stored in build_artefacts.
 conda clean --lock
