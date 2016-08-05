@@ -16,12 +16,6 @@ show_channel_urls: true
 
 CONDARC
 )
-pinning=$(cat <<CONDAPINNING
-conda-build 1.21.7
-setuptools 23.0.0
-
-CONDAPINNING
-)
 
 cat << EOF | docker run -i \
                         -v ${REPO_ROOT}/recipes:/conda-recipes \
@@ -37,24 +31,6 @@ fi
 export CONDA_NPY='19'
 
 echo "$config" > ~/.condarc
-mkdir -p `conda info -e 2> /dev/null | grep '\*' | sed 's#.* ##'`/conda-meta
-echo "$pinning" > `conda info -e 2> /dev/null | grep '\*' | sed 's#.* ##'`/conda-meta/pinned
-echo `conda info -e 2> /dev/null | grep '\*' | sed 's#.* ##'`/conda-meta
-ls -l `conda info -e 2> /dev/null | grep '\*' | sed 's#.* ##'`/conda-meta
-cat `conda info -e 2> /dev/null | grep '\*' | sed 's#.* ##'`/conda-meta/pinned
-
-mkdir -p /opt/conda/conda-meta
-echo "$pinning" > /opt/conda/conda-meta/pinned
-ls -l /opt/conda/conda-meta
-cat /opt/conda/conda-meta/pinned
-
-for DIR in `ls -l /opt/conda/envs/*`
-do
-    mkdir -p $DIR/conda-meta
-    echo "$pinning" > $DIR/conda-meta/pinned
-    ls -l $DIR/conda-meta
-    cat $DIR/conda-meta/pinned
-done
 
 # A lock sometimes occurs with incomplete builds. The lock file is stored in build_artefacts.
 conda clean --lock
@@ -66,6 +42,9 @@ source run_conda_forge_build_setup
 
 # We don't need to build the example recipe.
 rm -rf /conda-recipes/example
+
+# revert conda-build to 1.21.7, to get ObsPy 1.0.2 built, see conda-forge/staged-recipes#582
+conda install --yes conda-build=1.21.7
 
 # yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
 find conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" \
