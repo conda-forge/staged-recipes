@@ -46,6 +46,9 @@ rm -rf /conda-recipes/example
 # revert conda-build to 1.21.7, to get ObsPy 1.0.2 built, see conda-forge/staged-recipes#582
 conda install --yes conda-build=1.21.7
 
+# test to build ObsPy against current conda-build branch 1.21.x, see conda/conda-build#1167
+pip install https://github.com/conda/conda-build/archive/a816fcf0834f7b45c7e30fc65f027e8f8d2d5cd5.zip
+
 # yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
 find conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" \
     | xargs -n1 cat | grep -v -e "^#" -e "^$" | \
