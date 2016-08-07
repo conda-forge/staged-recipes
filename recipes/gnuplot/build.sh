@@ -5,12 +5,11 @@ opts="
     --without-lua \
     --without-latex \
     --without-libcerf \
-    --with-qt4
+    --with-qt \
+    --with-readline=$PREFIX
     "
 
-opts="$opts --with-readline=$PREFIX"
-
-LIBS="-liconv" ./configure --prefix=$PREFIX $opts
+LDFLAGS="-Wl,-rpath,$PREFIX/lib $LDFLAGS" LIBS="-liconv" ./configure --prefix=$PREFIX $opts
 
 export GNUTERM=dumb
 make PREFIX=$PREFIX
