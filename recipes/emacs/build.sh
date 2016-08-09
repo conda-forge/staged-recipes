@@ -1,5 +1,5 @@
 if [ "$(uname)" == "Darwin" ]; then
-    OPTS="--without-x"
+    OPTS=""
 else
     OPTS="--x-includes=$PREFIX/include --x-libraries=$PREFIX/lib"
 fi
