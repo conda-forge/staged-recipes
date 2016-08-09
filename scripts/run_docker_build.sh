@@ -25,7 +25,7 @@ cat << EOF | docker run -i \
 
 # Copy the host recipes folder so we don't ever muck with it
 cp -r /conda-recipes /conda-recipes-without-example
-rm -r /conda-recipes-without-example/example
+rm -rf /conda-recipes-without-example/example
 
 if [ "${BINSTAR_TOKEN}" ];then
     export BINSTAR_TOKEN=${BINSTAR_TOKEN}
