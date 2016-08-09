@@ -16,18 +16,16 @@ show_channel_urls: true
 
 CONDARC
 )
-TEMP_EXAMPLES_LOCATION="/tmp/$LOGNAME/staged-recipes/recipes/examples"
-if [ -d $TEMP_EXAMPLES_LOCATION ]; then
-    rm -r $TEMP_EXAMPLES_LOCATION
-fi;
-mkdir -p `dirname $TEMP_EXAMPLES_LOCATION`
-mv ${REPO_ROOT}/recipes/example $TEMP_EXAMPLES_LOCATION
 
 cat << EOF | docker run -i \
                         -v ${REPO_ROOT}/recipes:/conda-recipes \
                         -a stdin -a stdout -a stderr \
                         $IMAGE_NAME \
                         bash || exit $?
+
+# Copy the host recipes folder so we don't ever muck with it
+cp -r /conda-recipes /conda-recipes-without-example
+rm -r /conda-recipes-without-example/example
 
 if [ "${BINSTAR_TOKEN}" ];then
     export BINSTAR_TOKEN=${BINSTAR_TOKEN}
@@ -51,8 +49,6 @@ find conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" 
     | xargs -n1 cat | grep -v -e "^#" -e "^$" | \
     xargs -r yum install -y
 
-conda-build-all /conda-recipes --matrix-conditions "numpy >=1.10" "python >=2.7,<3|>=3.4"
+conda-build-all /conda-recipes-without-example --matrix-conditions "numpy >=1.10" "python >=2.7,<3|>=3.4"
 
 EOF
-# Now move the examples directory back into the git repo
-mv $TEMP_EXAMPLES_LOCATION ${REPO_ROOT}/recipes/example
