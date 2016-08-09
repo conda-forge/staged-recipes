@@ -28,8 +28,7 @@ cat << EOF | docker run -i \
                         -a stdin -a stdout -a stderr \
                         $IMAGE_NAME \
                         bash || exit $?
-echo "Will attempt to build recipes in the following directories"
-ls /conda-recipes
+
 if [ "${BINSTAR_TOKEN}" ];then
     export BINSTAR_TOKEN=${BINSTAR_TOKEN}
 fi
