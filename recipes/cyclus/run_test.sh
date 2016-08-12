@@ -28,6 +28,7 @@ test -f ${PREFIX}/share/cyclus/dbtypes.json
 
 # output cyclus info
 which cyclus
+ldd $(which cyclus)
 ${PREFIX}/bin/cyclus --version
 ${PREFIX}/bin/cyclus --path
 ${PREFIX}/bin/cyclus --include
