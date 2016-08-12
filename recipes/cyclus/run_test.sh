@@ -28,7 +28,10 @@ test -f ${PREFIX}/share/cyclus/dbtypes.json
 
 # output cyclus info
 which cyclus
-ldd $(which cyclus)
+if [ "${UNAME}" == "Darwin" ]; then
+  otool -l $(which cyclus)
+  otool -L $(which cyclus)
+fi
 ${PREFIX}/bin/cyclus --version
 ${PREFIX}/bin/cyclus --path
 ${PREFIX}/bin/cyclus --include
