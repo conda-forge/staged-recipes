@@ -37,4 +37,4 @@ ${PYTHON} install.py --prefix="${PREFIX}" \
   -DBLAS_LIBRARIES="${PREFIX}/lib/libopenblas${libext}" \
   -DLAPACK_LIBRARIES="${PREFIX}/lib/liblapack${libext}" \
   ${skiprpath} \
-  --clean
+  --clean -j 3
