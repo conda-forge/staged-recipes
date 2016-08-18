@@ -34,7 +34,10 @@ ${PYTHON} install.py --prefix="${PREFIX}" \
   --boost_root="${PREFIX}" \
   --hdf5_root="${PREFIX}" \
   -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}" \
-  -DBLAS_LIBRARIES="${PREFIX}/lib/libopenblas${libext}" \
-  -DLAPACK_LIBRARIES="${PREFIX}/lib/liblapack${libext}" \
+  -DBLAS_LIBRARIES="-L${PREFIX}/lib -lopenblas" \
+  -DLAPACK_LIBRARIES="-L${PREFIX}/lib -llapack" \
   ${skiprpath} \
   --clean -j 3
+
+#  -DBLAS_LIBRARIES="${PREFIX}/lib/libopenblas${libext}" \
+#  -DLAPACK_LIBRARIES="${PREFIX}/lib/liblapack${libext}" \
