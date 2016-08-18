@@ -47,7 +47,7 @@ ${PREFIX}/bin/cyclus -l :agents
 ${PREFIX}/bin/cyclus -a
 
 # run unit tests
-${PREFIX}/bin/cyclus_unit_tests
+${PREFIX}/bin/cyclus_unit_tests --gtest_filter=-ProgTranslatorTests.translation
 
 # run integration tests
 nosetests cycpp_tests.py
