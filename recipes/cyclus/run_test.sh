@@ -9,11 +9,12 @@ fi
 
 UNAME="$(uname)"
 if [ "${UNAME}" == "Darwin" ]; then
-  export DYLD_LIBRARY_PATH="${PREFIX}/lib/cyclus:${PREFIX}/lib:${DYLD_LIBRARY_PATH}"
+  export DYLD_LIBRARY_PATH="${PREFIX}/lib:${PREFIX}/lib/cyclus:${DYLD_LIBRARY_PATH}"
+  #export DYLD_LIBRARY_PATH="${PREFIX}/lib/cyclus:${PREFIX}/lib:${DYLD_LIBRARY_PATH}"
 
   #echo "Not changing library paths"
-  #export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib:${PREFIX}/lib/cyclus:${DYLD_FALLBACK_LIBRARY_PATH}"
-  export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib/cyclus:${PREFIX}/lib:${DYLD_FALLBACK_LIBRARY_PATH}"
+  export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib:${PREFIX}/lib/cyclus:${DYLD_FALLBACK_LIBRARY_PATH}"
+  #export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib/cyclus:${PREFIX}/lib:${DYLD_FALLBACK_LIBRARY_PATH}"
   #export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib/cyclus:${DYLD_FALLBACK_LIBRARY_PATH}"
 else
   export LD_LIBRARY_PATH="${PREFIX}/lib/cyclus:${PREFIX}/lib:${LD_LIBRARY_PATH}"
@@ -31,7 +32,7 @@ test -f ${PREFIX}/share/cyclus/dbtypes.json
 # output cyclus info
 which cyclus
 if [ "${UNAME}" == "Darwin" ]; then
-  otool -l $(which cyclus)
+  #otool -l $(which cyclus)
   otool -L $(which cyclus)
 fi
 ${PREFIX}/bin/cyclus --version
