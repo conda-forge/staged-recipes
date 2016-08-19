@@ -4,6 +4,7 @@ export CXX=${PREFIX}/bin/g++
 
 ./configure \
   --prefix=$PREFIX \
+  --with-zlib=$PREFIX \
 
 make
 
