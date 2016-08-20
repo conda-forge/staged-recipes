@@ -17,7 +17,7 @@ This repo is a holding area for recipes destined for a conda-forge feedstock rep
 Build status
 ------------
 
-[![Circle CI](https://circleci.com/gh/conda-forge/staged-recipes/tree/master.svg?style=svg)](https://circleci.com/gh/conda-forge/staged-recipes/tree/master)
+[![Circle CI](https://circleci.com/gh/conda-forge/staged-recipes/tree/master.svg?style=shield)](https://circleci.com/gh/conda-forge/staged-recipes/tree/master)
 
 [![Build Status](https://travis-ci.org/conda-forge/staged-recipes.svg?branch=master)](https://travis-ci.org/conda-forge/staged-recipes)
 
