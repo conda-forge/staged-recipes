@@ -30,6 +30,7 @@ fi
 export VERBOSE=1
 ${PYTHON} install.py --prefix="${PREFIX}" \
   --build_type="Release" \
+  --dont-allow-milps \
   --coin_root="${PREFIX}" \
   --boost_root="${PREFIX}" \
   --hdf5_root="${PREFIX}" \
