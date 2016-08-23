@@ -9,12 +9,12 @@ fi
 
 UNAME="$(uname)"
 if [ "${UNAME}" == "Darwin" ]; then
-  export DYLD_LIBRARY_PATH="${PREFIX}/lib:${PREFIX}/lib/cyclus:${DYLD_LIBRARY_PATH}"
-  #export DYLD_LIBRARY_PATH="${PREFIX}/lib/cyclus:${PREFIX}/lib:${DYLD_LIBRARY_PATH}"
+  #export DYLD_LIBRARY_PATH="${PREFIX}/lib:${PREFIX}/lib/cyclus:${DYLD_LIBRARY_PATH}"
+  export DYLD_LIBRARY_PATH="${PREFIX}/lib/cyclus:${PREFIX}/lib:${DYLD_LIBRARY_PATH}"
 
   #echo "Not changing library paths"
-  export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib:${PREFIX}/lib/cyclus:${DYLD_FALLBACK_LIBRARY_PATH}"
-  #export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib/cyclus:${PREFIX}/lib:${DYLD_FALLBACK_LIBRARY_PATH}"
+  #export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib:${PREFIX}/lib/cyclus:${DYLD_FALLBACK_LIBRARY_PATH}"
+  export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib/cyclus:${PREFIX}/lib:${DYLD_FALLBACK_LIBRARY_PATH}"
   #export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib/cyclus:${DYLD_FALLBACK_LIBRARY_PATH}"
 else
   export LD_LIBRARY_PATH="${PREFIX}/lib/cyclus:${PREFIX}/lib:${LD_LIBRARY_PATH}"
@@ -47,7 +47,7 @@ ${PREFIX}/bin/cyclus -l :agents
 ${PREFIX}/bin/cyclus -a
 
 # run unit tests
-${PREFIX}/bin/cyclus_unit_tests --gtest_filter=-ProgTranslatorTests.translation
+${PREFIX}/bin/cyclus_unit_tests
 
 # run integration tests
 nosetests cycpp_tests.py
