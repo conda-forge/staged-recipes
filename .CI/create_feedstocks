@@ -2,24 +2,21 @@
 
 set -e
 
+wget https://raw.githubusercontent.com/pelson/Obvious-CI/master/bootstrap-obvious-ci-and-miniconda.py
+python bootstrap-obvious-ci-and-miniconda.py ~/miniconda x64 3 --without-obvci && source ~/miniconda/bin/activate root
+conda config --set show_channel_urls true
+conda config --add channels conda-forge
+conda install --yes --quiet conda-smithy
 
-if [ -n "$GH_TOKEN" ]; then
-    wget https://raw.githubusercontent.com/pelson/Obvious-CI/master/bootstrap-obvious-ci-and-miniconda.py
-    python bootstrap-obvious-ci-and-miniconda.py ~/miniconda x64 3 --without-obvci && source ~/miniconda/bin/activate root
-    conda config --set show_channel_urls true
-    conda config --add channels conda-forge
-    conda install --yes --quiet conda-smithy
+# Pinned to workaround an incompatibility between
+# `conda-smithy` and `conda-build >=1.21.12`.
+# Please see the linked issue below for details.
+#
+# https://github.com/conda-forge/conda-smithy/issues/260
+#
+conda install --yes --quiet conda-build=1.21.11
 
-    # Pinned to workaround an incompatibility between
-    # `conda-smithy` and `conda-build >=1.21.12`.
-    # Please see the linked issue below for details.
-    #
-    # https://github.com/conda-forge/conda-smithy/issues/260
-    #
-    conda install --yes --quiet conda-build=1.21.11
+mkdir -p ~/.conda-smithy
+echo $TRAVIS_TOKEN > ~/.conda-smithy/travis.token
 
-    mkdir -p ~/.conda-smithy
-    echo $TRAVIS_TOKEN > ~/.conda-smithy/travis.token
-
-    python .CI/create_feedstocks.py
-fi
+python .CI/create_feedstocks.py
