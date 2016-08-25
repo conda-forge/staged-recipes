@@ -23,6 +23,10 @@ cat << EOF | docker run -i \
                         $IMAGE_NAME \
                         bash || exit $?
 
+# Copy the host recipes folder so we don't ever muck with it
+cp -r /conda-recipes /conda-recipes-without-example
+rm -rf /conda-recipes-without-example/example
+
 if [ "${BINSTAR_TOKEN}" ];then
     export BINSTAR_TOKEN=${BINSTAR_TOKEN}
 fi
@@ -40,14 +44,11 @@ conda install conda-build-all
 conda install conda-forge-build-setup
 source run_conda_forge_build_setup
 
-# We don't need to build the example recipe.
-rm -rf /conda-recipes/example
-
 # yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
 find conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" \
     | xargs -n1 cat | grep -v -e "^#" -e "^$" | \
     xargs -r yum install -y
 
-conda-build-all /conda-recipes --matrix-conditions "numpy >=1.10" "python >=2.7,<3|>=3.4"
+conda-build-all /conda-recipes-without-example --matrix-conditions "numpy >=1.10" "python >=2.7,<3|>=3.4"
 
 EOF
