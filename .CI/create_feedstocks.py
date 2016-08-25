@@ -87,6 +87,30 @@ def create_team(org, name, description, repo_names):
     )
     return Team.Team(org._requester, headers, data, completed=True)
 
+def print_rate_limiting_info(gh):
+    # Compute some info about our GitHub API Rate Limit.
+    # Note that it doesn't count against our limit to
+    # get this info. So, we should be doing this regularly
+    # to better know when it is going to run out. Also,
+    # this will help us better understand where we are
+    # spending it and how to better optimize it.
+
+    # Get GitHub API Rate Limit usage and total
+    gh_api_remaining, gh_api_total = gh.rate_limiting
+
+    # Compute time until GitHub API Rate Limit reset
+    gh_api_reset_time = gh.rate_limiting_resettime
+    gh_api_reset_time = datetime.utcfromtimestamp(gh_api_reset_time)
+    gh_api_reset_time -= datetime.utcnow()
+
+    print("")
+    print("GitHub API Rate Limit Info:")
+    print("---------------------------")
+    print("Currently remaining {remaining} out of {total}.".format(remaining=gh_api_remaining, total=gh_api_total))
+    print("Will reset in {time}.".format(time=gh_api_reset_time))
+    print("")
+
+
 
 if __name__ == '__main__':
     is_merged_pr = (os.environ.get('TRAVIS_BRANCH') == 'master' and os.environ.get('TRAVIS_PULL_REQUEST') == 'false')
@@ -102,8 +126,14 @@ if __name__ == '__main__':
         write_token('appveyor', os.environ['APPVEYOR_TOKEN'])
     if 'CIRCLE_TOKEN' in os.environ:
         write_token('circle', os.environ['CIRCLE_TOKEN'])
+    gh = None
     if 'GH_TOKEN' in os.environ:
         write_token('github', os.environ['GH_TOKEN'])
+        gh = Github(os.environ['GH_TOKEN'])
+
+        # Get our initial rate limit info.
+        print_rate_limiting_info(gh)
+
 
     owner_info = ['--organization', 'conda-forge']
 
@@ -125,8 +155,8 @@ if __name__ == '__main__':
             feedstock_dirs.append([feedstock_dir, name, recipe_dir])
 
             subprocess.check_call(['git', 'remote', 'add', 'upstream_with_token',
-                                   'https://conda-forge-admin:{}@github.com/conda-forge/{}'.format(os.environ['GH_TOKEN'],
-                                                                                                   os.path.basename(feedstock_dir))],
+                                   'https://conda-forge-manager:{}@github.com/conda-forge/{}'.format(os.environ['GH_TOKEN'],
+                                                                                                     os.path.basename(feedstock_dir))],
                                   cwd=feedstock_dir)
 
             # Sometimes we already have the feedstock created. We need to deal with that case.
@@ -141,34 +171,9 @@ if __name__ == '__main__':
             else:
                 subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info)
 
-        gh = None
         conda_forge = None
         teams = None
-        if 'GH_TOKEN' in os.environ:
-            gh = Github(os.environ['GH_TOKEN'])
-
-            # Compute some info about our GitHub API Rate Limit.
-            # Note that it doesn't count against our limit to
-            # get this info. So, we should be doing this regularly
-            # to better know when it is going to run out. Also,
-            # this will help us better understand where we are
-            # spending it and how to better optimize it.
-
-            # Get GitHub API Rate Limit usage and total
-            gh_api_used, gh_api_total = gh.rate_limiting
-
-            # Compute time until GitHub API Rate Limit reset
-            gh_api_reset_time = gh.rate_limiting_resettime
-            gh_api_reset_time = datetime.utcfromtimestamp(gh_api_reset_time)
-            gh_api_reset_time -= datetime.utcnow()
-
-            print("")
-            print("GitHub API Rate Limit Info:")
-            print("---------------------------")
-            print("Currently used {used} out of {total}.".format(used=gh_api_used, total=gh_api_total))
-            print("Will reset in {time}.".format(time=gh_api_reset_time))
-            print("")
-
+        if gh:
             # Only get the org and teams if there is stuff to add.
             if feedstock_dirs:
                 conda_forge = gh.get_organization('conda-forge')
@@ -259,7 +264,7 @@ if __name__ == '__main__':
         if is_merged_pr:
             # Capture the output, as it may contain the GH_TOKEN.
             out = subprocess.check_output(['git', 'remote', 'add', 'upstream_with_token',
-                                           'https://conda-forge-admin:{}@github.com/conda-forge/staged-recipes'.format(os.environ['GH_TOKEN'])],
+                                           'https://conda-forge-manager:{}@github.com/conda-forge/staged-recipes'.format(os.environ['GH_TOKEN'])],
                                           stderr=subprocess.STDOUT)
             subprocess.check_call(['git', 'commit', '-m', msg])
             # Capture the output, as it may contain the GH_TOKEN.
@@ -267,3 +272,7 @@ if __name__ == '__main__':
                                           stderr=subprocess.STDOUT)
         else:
             print('Would git commit, with the following message: \n   {}'.format(msg))
+
+    if gh:
+        # Get our final rate limit info.
+        print_rate_limiting_info(gh)
