@@ -18,14 +18,20 @@ CONDARC
 )
 
 cat << EOF | docker run -i \
-                        -v ${REPO_ROOT}/recipes:/conda-recipes \
+	                -v ${REPO_ROOT}:/staged-recipes \
                         -a stdin -a stdout -a stderr \
                         $IMAGE_NAME \
                         bash || exit $?
 
 # Copy the host recipes folder so we don't ever muck with it
-cp -r /conda-recipes /conda-recipes-without-example
-rm -rf /conda-recipes-without-example/example
+cp -r /staged-recipes/recipes /conda-recipes
+
+# Find the recipes from master in this PR and remove them.
+echo "Finding recipes merged in master and removing them from the build."
+pushd /staged-recipes/recipes > /dev/null
+git fetch https://github.com/conda-forge/staged-recipes.git master
+git ls-tree --name-only FETCH_HEAD -- . | xargs -I {} sh -c "rm -rf /conda-recipes/{} && echo Removing recipe: {}"
+popd > /dev/null
 
 if [ "${BINSTAR_TOKEN}" ];then
     export BINSTAR_TOKEN=${BINSTAR_TOKEN}
@@ -49,6 +55,6 @@ find conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" 
     | xargs -n1 cat | grep -v -e "^#" -e "^$" | \
     xargs -r yum install -y
 
-conda-build-all /conda-recipes-without-example --matrix-conditions "numpy >=1.10" "python >=2.7,<3|>=3.4"
+conda-build-all /conda-recipes --matrix-conditions "numpy >=1.10" "python >=2.7,<3|>=3.4"
 
 EOF
