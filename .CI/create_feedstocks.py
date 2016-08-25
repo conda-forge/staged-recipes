@@ -155,8 +155,8 @@ if __name__ == '__main__':
             feedstock_dirs.append([feedstock_dir, name, recipe_dir])
 
             subprocess.check_call(['git', 'remote', 'add', 'upstream_with_token',
-                                   'https://conda-forge-admin:{}@github.com/conda-forge/{}'.format(os.environ['GH_TOKEN'],
-                                                                                                   os.path.basename(feedstock_dir))],
+                                   'https://conda-forge-manager:{}@github.com/conda-forge/{}'.format(os.environ['GH_TOKEN'],
+                                                                                                     os.path.basename(feedstock_dir))],
                                   cwd=feedstock_dir)
 
             # Sometimes we already have the feedstock created. We need to deal with that case.
@@ -264,7 +264,7 @@ if __name__ == '__main__':
         if is_merged_pr:
             # Capture the output, as it may contain the GH_TOKEN.
             out = subprocess.check_output(['git', 'remote', 'add', 'upstream_with_token',
-                                           'https://conda-forge-admin:{}@github.com/conda-forge/staged-recipes'.format(os.environ['GH_TOKEN'])],
+                                           'https://conda-forge-manager:{}@github.com/conda-forge/staged-recipes'.format(os.environ['GH_TOKEN'])],
                                           stderr=subprocess.STDOUT)
             subprocess.check_call(['git', 'commit', '-m', msg])
             # Capture the output, as it may contain the GH_TOKEN.
