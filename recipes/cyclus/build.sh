@@ -36,10 +36,10 @@ test -f "${PREFIX}/lib/libopenblas.a" && \
   ln -fs "${PREFIX}/lib/libopenblas.a" "${PREFIX}/lib/libblas.a"
 test -f "${PREFIX}/lib/libopenblas.a" && \
   ln -fs "${PREFIX}/lib/libopenblas.a" "${PREFIX}/lib/liblapack.a"
-test -f "${PREFIX}/lib/libopenblas.${libext}" && \
-  ln -fs "${PREFIX}/lib/libopenblas.${libext}" "${PREFIX}/lib/libblas.${libext}"
-test -f "${PREFIX}/lib/libopenblas.${libext}" && \
-  ln -fs "${PREFIX}/lib/libopenblas.${libext}" "${PREFIX}/lib/liblapack.${libext}"
+test -f "${PREFIX}/lib/libopenblas${libext}" && \
+  ln -fs "${PREFIX}/lib/libopenblas${libext}" "${PREFIX}/lib/libblas${libext}"
+test -f "${PREFIX}/lib/libopenblas${libext}" && \
+  ln -fs "${PREFIX}/lib/libopenblas${libext}" "${PREFIX}/lib/liblapack${libext}"
 
 # Install Cyclus
 export VERBOSE=1
@@ -60,5 +60,5 @@ ${PYTHON} install.py --prefix="${PREFIX}" \
 # ignored packaging those files anyways.
 rm -f "${PREFIX}/lib/libblas.a"
 rm -f "${PREFIX}/lib/liblapack.a"
-rm -f "${PREFIX}/lib/libblas.${libext}"
-rm -f "${PREFIX}/lib/liblapack.${libext}"
+rm -f "${PREFIX}/lib/libblas${libext}"
+rm -f "${PREFIX}/lib/liblapack${libext}"
