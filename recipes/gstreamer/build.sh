@@ -8,6 +8,7 @@ cp -r $PREFIX/lib/libffi* $PREFIX/lib64
 # be included in the package (it is about 12MB).
 ./configure --disable-examples --prefix="$PREFIX" --datarootdir=`pwd`/tmpshare
 make
+make update-exports
 make check
 make install
 
