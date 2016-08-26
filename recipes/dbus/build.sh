@@ -5,7 +5,8 @@ LDFLAGS=-L${PREFIX}/lib      \
   ./configure --prefix=${PREFIX} \
               --with-launchd-agent-dir=${PREFIX} \
               --disable-systemd \
-              --disable-selinux
+              --disable-selinux \
+              --disable-xml-docs
 make
 make check
 make install
