@@ -7,6 +7,7 @@ LDFLAGS=-L${PREFIX}/lib      \
               --disable-systemd \
               --disable-selinux
 make
+make check
 make install
 
 if [[ -f ${RECIPE_DIR}/post-link.sh.$(uname) ]]; then
