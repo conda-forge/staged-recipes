@@ -9,4 +9,5 @@ for /f "tokens=4" %%i in ('%LIBRARY_BIN%\qmake -v ^| find "Qt version"') do (
 )
 if [!QT_MAJOR_VER!] == [] Exit /B 1
 
-%PYTHON% -c "import PyQt!QT_MAJOR_VER!.Qsci"
+:: %PYTHON% -c "import PyQt!QT_MAJOR_VER!.Qsci"
+python -c "import PyQt!QT_MAJOR_VER!.Qsci"
