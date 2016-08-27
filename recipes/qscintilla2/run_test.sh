@@ -13,4 +13,5 @@ else
 fi
 
 # Try to import Qsci from the retrieved Qt version
-${PYTHON} -c "import PyQt${QT_MAJOR_VER}.Qsci"
+# ${PYTHON} -c "import PyQt${QT_MAJOR_VER}.Qsci"
+python -c "import PyQt${QT_MAJOR_VER}.Qsci"
