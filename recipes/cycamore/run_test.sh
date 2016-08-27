@@ -18,4 +18,4 @@ fi
 ${PREFIX}/bin/cyclus -l :cycamore
 
 # run unit tests
-${PREFIX}/bin/cycamore_unit_tests
+${PREFIX}/bin/cycamore_unit_tests --gtest_filter=-MixerTests.*
