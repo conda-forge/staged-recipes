@@ -23,3 +23,6 @@ Build status
 
 [![Build status](https://ci.appveyor.com/api/projects/status/3lju80dibkmowsj5/branch/master?svg=true)](https://ci.appveyor.com/project/conda-forge/staged-recipes/branch/master)
 
+FAQ
+---
+See https://github.com/conda-forge/staged-recipes/wiki/Frequently-asked-questions
