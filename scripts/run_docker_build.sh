@@ -18,7 +18,7 @@ CONDARC
 )
 
 cat << EOF | docker run -i \
-	                -v ${REPO_ROOT}:/staged-recipes \
+                        -v ${REPO_ROOT}:/staged-recipes \
                         -a stdin -a stdout -a stderr \
                         $IMAGE_NAME \
                         bash || exit $?
