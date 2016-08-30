@@ -26,6 +26,7 @@ else
   libext=".so"
   export LDFLAGS="-Wl,-rpath,${PREFIX}/lib ${LDFLAGS}"
   export LINKFLAGS="${LDFLAGS}"
+  export LD_LIBRARY_PATH="${PREFIX}/lib/cyclus:${PREFIX}/lib:${LD_LIBRARY_PATH}"
   skiprpath=""
 fi
 
