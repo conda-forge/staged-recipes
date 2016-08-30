@@ -25,9 +25,8 @@ if [ "$(uname)" == "Darwin" ]; then
 else
   libext=".so"
   export LDFLAGS=" ${LDFLAGS} -Wl,-rpath,${PREFIX}/lib"
-  export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
+  #export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
   export LINKFLAGS="${LDFLAGS}"
-  #export LD_LIBRARY_PATH="${PREFIX}/lib/cyclus:${PREFIX}/lib:${LD_LIBRARY_PATH}"
   skiprpath=""
 fi
 
