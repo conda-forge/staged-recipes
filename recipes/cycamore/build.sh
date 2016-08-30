@@ -24,6 +24,8 @@ if [ "$(uname)" == "Darwin" ]; then
   skiprpath="-DCMAKE_SKIP_RPATH=TRUE"
 else
   libext=".so"
+  export LDFLAGS="-Wl,-rpath,${PREFIX}/lib ${LDFLAGS}"
+  export LINKFLAGS="${LDFLAGS}"
   skiprpath=""
 fi
 
