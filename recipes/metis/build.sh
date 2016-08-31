@@ -19,5 +19,3 @@ cp partdmesh $PREFIX/bin/
 cp pmetis $PREFIX/bin/
 cp Graphs/mtest $PREFIX/bin/
 cp Lib/*.h $PREFIX/include/
-
-
