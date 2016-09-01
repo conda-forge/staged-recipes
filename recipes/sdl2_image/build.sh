@@ -1,24 +1,8 @@
 #!/bin/bash
 
-BIN=$PREFIX/bin
-
 cd ${SRC_DIR}
 
-# Build SDL2
-./configure
+# Build
+./configure --disable-dependency-tracking  --enable-imageio=no
 make
 make install
-
-# Build sdl2gfx
-
-
-
-# Build sdl2mixer
-
-
-
-# Build sdl2image
-
-
-
-# Build sdl2ttf
