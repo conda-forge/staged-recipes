@@ -253,9 +253,12 @@ if __name__ == '__main__':
             )
 
     # Update status based on remote
-    subprocess.check_call(['git', 'checkout', os.environ.get('TRAVIS_BRANCH')])
-    subprocess.check_call(['git', 'config', 'rebase.autoStash', 'true'])
+    subprocess.check_call(['git', 'stash', '--keep-index'])
+    subprocess.check_call(['git', 'stash'])
     subprocess.check_call(['git', 'pull', '--rebase'])
+    subprocess.check_call(['git', 'stash', 'pop'])
+    subprocess.check_call(['git', 'add', '.'])
+    subprocess.check_call(['git', 'stash', 'pop'])
 
     # Generate a fresh listing of recipes removed.
     # This gets pretty ugly as we parse `git status --porcelain`.
