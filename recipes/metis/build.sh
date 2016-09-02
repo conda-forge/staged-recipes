@@ -1,41 +1,23 @@
 #!/bin/bash
 
+make config
 make
-
-# Run tests.
-pushd Graphs
-# Use mtest
-./mtest 4elt.graph
-#./mtest metis.mesh
-./mtest test.mgraph
-
-# Try some example programs.
-../kmetis 4elt.graph 40
-../onmetis 4elt.graph
-../pmetis test.mgraph 2
-../kmetis test.mgraph 2
-../kmetis test.mgraph 5
-../partnmesh metis.mesh 10
-../partdmesh metis.mesh 10
-../mesh2dual metis.mesh
-../kmetis metis.mesh.dgraph 10
-
-popd
-
 # install.
 mkdir -p $PREFIX/lib/
 mkdir -p $PREFIX/bin/
 mkdir -p $PREFIX/include/
 
-cp libmetis.a $PREFIX/lib/
-cp graphchk $PREFIX/bin/
-cp partnmesh $PREFIX/bin/
-cp kmetis $PREFIX/bin/
-cp mesh2dual $PREFIX/bin/
-cp mesh2nodal $PREFIX/bin/
-cp oemetis $PREFIX/bin/
-cp onmetis $PREFIX/bin/
-cp partdmesh $PREFIX/bin/
-cp pmetis $PREFIX/bin/
-cp Graphs/mtest $PREFIX/bin/
-cp Lib/*.h $PREFIX/include/
+if [ `uname` == "Darwin" ]; then
+  PREFIX2="build/Darwin-x86_64"
+else
+  PREFIX2="build/Linux-x86_64"
+fi
+
+cp $PREFIX2/libmetis/libmetis.a $PREFIX/lib/
+cp $PREFIX2/programs/cmpfillin $PREFIX/bin/
+cp $PREFIX2/programs/gpmetis $PREFIX/bin/
+cp $PREFIX2/programs/graphchk $PREFIX/bin/
+cp $PREFIX2/programs/m2gmetis $PREFIX/bin/
+cp $PREFIX2/programs/ndmetis $PREFIX/bin/
+cp $PREFIX2/programs/mpmetis $PREFIX/bin/
+cp include/metis.h $PREFIX/include/
