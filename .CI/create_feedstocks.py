@@ -32,8 +32,8 @@ superlative = ['awesome', 'slick', 'formidable', 'awe-inspiring', 'breathtaking'
                'exalted', 'standout', 'smashing']
 
 
+recipe_directory_name = 'recipes'
 def list_recipes():
-    recipe_directory_name = 'recipes'
     if os.path.isdir(recipe_directory_name):
         recipes = os.listdir(recipe_directory_name)
     else:
@@ -138,7 +138,6 @@ if __name__ == '__main__':
     owner_info = ['--organization', 'conda-forge']
 
     print('Calculating the recipes which need to be turned into feedstocks.')
-    removed_recipes = []
     with tmp_dir('__feedstocks') as feedstocks_dir:
         feedstock_dirs = []
         for recipe_dir, name in list_recipes():
@@ -225,7 +224,6 @@ if __name__ == '__main__':
                     print("AN OLD MEMBER ({}) NEEDS TO BE REMOVED FROM {}".format(old_maintainer, repo_name))
 
             # Remove this recipe from the repo.
-            removed_recipes.append(name)
             if is_merged_pr:
                 subprocess.check_call(['git', 'rm', '-r', recipe_dir])
 
@@ -254,10 +252,24 @@ if __name__ == '__main__':
                 team.url + "/memberships/" + new_member
             )
 
+    # Update status based on remote
+    subprocess.check_call(['git', 'checkout', os.environ.get('TRAVIS_BRANCH')])
+    subprocess.check_call(['git', 'pull', '--rebase', '--autostash'])
+
+    # Generate a fresh listing of recipes removed.
+    # This gets pretty ugly as we parse `git status --porcelain`.
+    #
+    # * Each line we get back is a change to a file in the recipe directory.
+    # * We narrow the list down to recipes that are staged for deletion (ignores examples).
+    # * Then we clean up the list so that it only has the recipe names.
+    removed_recipes = subprocess.check_output(['git', 'status', '--porcelain', recipe_directory_name])
+    removed_recipes = removed_recipes.splitlines()
+    removed_recipes = filter(lambda _: _.startswith("D "), removed_recipes)
+    removed_recipes = map(lambda _ : _.replace("D", "", 1).lstrip(), removed_recipes)
+
     # Commit any removed packages.
     subprocess.check_call(['git', 'status'])
     if removed_recipes:
-        subprocess.check_call(['git', 'checkout', os.environ.get('TRAVIS_BRANCH')])
         msg = ('Removed recipe{s} ({}) after converting into feedstock{s}. '
                '[ci skip]'.format(', '.join(removed_recipes),
                          s=('s' if len(removed_recipes) > 1 else '')))
