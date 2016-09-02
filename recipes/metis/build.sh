@@ -4,7 +4,7 @@ make config
 make
 
 # Run tests.
-pushd Graphs
+
 # Use mtest
 ./mtest 4elt.graph
 #./mtest metis.mesh
