@@ -263,7 +263,8 @@ if __name__ == '__main__':
     # * Each line we get back is a change to a file in the recipe directory.
     # * We narrow the list down to recipes that are staged for deletion (ignores examples).
     # * Then we clean up the list so that it only has the recipe names.
-    removed_recipes = subprocess.check_output(['git', 'status', '--porcelain', recipe_directory_name])
+    removed_recipes = subprocess.check_output(['git', 'status', '--porcelain', recipe_directory_name],
+                                              universal_newlines=True)
     removed_recipes = removed_recipes.splitlines()
     removed_recipes = filter(lambda _: _.startswith("D "), removed_recipes)
     removed_recipes = list(map(lambda _ : _.replace("D", "", 1).lstrip(), removed_recipes))
