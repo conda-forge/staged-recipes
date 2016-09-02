@@ -179,7 +179,7 @@ if __name__ == '__main__':
                 teams = {team.name: team for team in conda_forge.get_teams()}
 
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
-        # Without this, intermittent failiures to synch the TravisCI repos ensue.
+        # Without this, intermittent failures to synch the TravisCI repos ensue.
         all_maintainers = set()
         for feedstock_dir, name, recipe_dir in feedstock_dirs:
             subprocess.check_call(['conda', 'smithy', 'register-ci', '--feedstock_directory', feedstock_dir] + owner_info)
