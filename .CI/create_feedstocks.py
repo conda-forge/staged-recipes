@@ -266,7 +266,7 @@ if __name__ == '__main__':
     removed_recipes = subprocess.check_output(['git', 'status', '--porcelain', recipe_directory_name])
     removed_recipes = removed_recipes.splitlines()
     removed_recipes = filter(lambda _: _.startswith("D "), removed_recipes)
-    removed_recipes = map(lambda _ : _.replace("D", "", 1).lstrip(), removed_recipes)
+    removed_recipes = list(map(lambda _ : _.replace("D", "", 1).lstrip(), removed_recipes))
 
     # Commit any removed packages.
     subprocess.check_call(['git', 'status'])
