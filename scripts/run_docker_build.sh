@@ -18,10 +18,19 @@ CONDARC
 )
 
 cat << EOF | docker run -i \
-                        -v ${REPO_ROOT}/recipes:/conda-recipes \
+                        -v ${REPO_ROOT}:/staged-recipes \
                         -a stdin -a stdout -a stderr \
                         $IMAGE_NAME \
                         bash || exit $?
+
+# Copy the host recipes folder so we don't ever muck with it
+cp -r /staged-recipes/recipes /conda-recipes
+
+# Find the recipes from master in this PR and remove them.
+echo "Finding recipes merged in master and removing them from the build."
+pushd /staged-recipes/recipes > /dev/null
+git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf /conda-recipes/{} && echo Removing recipe: {}"
+popd > /dev/null
 
 if [ "${BINSTAR_TOKEN}" ];then
     export BINSTAR_TOKEN=${BINSTAR_TOKEN}
@@ -39,9 +48,6 @@ conda update conda conda-build
 conda install conda-build-all
 conda install conda-forge-build-setup
 source run_conda_forge_build_setup
-
-# We don't need to build the example recipe.
-rm -rf /conda-recipes/example
 
 # yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
 find conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" \
