@@ -29,8 +29,7 @@ cp -r /staged-recipes/recipes /conda-recipes
 # Find the recipes from master in this PR and remove them.
 echo "Finding recipes merged in master and removing them from the build."
 pushd /staged-recipes/recipes > /dev/null
-git fetch https://github.com/conda-forge/staged-recipes.git master
-git ls-tree --name-only FETCH_HEAD -- . | xargs -I {} sh -c "rm -rf /conda-recipes/{} && echo Removing recipe: {}"
+git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf /conda-recipes/{} && echo Removing recipe: {}"
 popd > /dev/null
 
 if [ "${BINSTAR_TOKEN}" ];then
