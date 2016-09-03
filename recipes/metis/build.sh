@@ -13,11 +13,11 @@ else
   PREFIX2="build/Linux-x86_64"
 fi
 
-$PREFIX2/programs/mpmetis metis.mesh 10
-$PREFIX2/programs/gpmetis mdual.graph 10
-$PREFIX2/programs/ndmetis mdual.graph 10
-$PREFIX2/programs/gpmetis test.mgraph 10
-$PREFIX2/programs/m2gmetis metis.mesh 10
+$PREFIX2/programs/mpmetis graphs/metis.mesh 10
+$PREFIX2/programs/gpmetis graphs/mdual.graph 10
+$PREFIX2/programs/ndmetis graphs/mdual.graph 10
+$PREFIX2/programs/gpmetis graphs/test.mgraph 10
+$PREFIX2/programs/m2gmetis graphs/metis.mesh 10
 
 cp $PREFIX2/libmetis/libmetis.a $PREFIX/lib/
 cp $PREFIX2/programs/cmpfillin $PREFIX/bin/
