@@ -252,10 +252,17 @@ if __name__ == '__main__':
                 team.url + "/memberships/" + new_member
             )
 
-    # Update status based on remote
-    subprocess.check_call(['git', 'stash'])
-    subprocess.check_call(['git', 'pull', '--rebase'])
-    subprocess.check_call(['git', 'stash', 'pop', '--index'])
+    # Update status based on the remote.
+    subprocess.check_call(['git', 'stash', '--keep-index', '--include-untracked'])
+    subprocess.check_call(['git', 'fetch'])
+    subprocess.check_call(['git', 'rebase', '--autostash'])
+    subprocess.check_call(['git', 'add', '.'])
+    try:
+        subprocess.check_call(['git', 'stash', 'pop'])
+    except subprocess.CalledProcessError:
+        # In case there was nothing to stash.
+        # Finish quietly.
+        pass
 
     # Generate a fresh listing of recipes removed.
     # This gets pretty ugly as we parse `git status --porcelain`.
