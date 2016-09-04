@@ -12,5 +12,5 @@ else
 fi
 
 make
-#make check
+make check
 make install
