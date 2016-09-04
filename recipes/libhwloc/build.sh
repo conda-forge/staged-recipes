@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 chmod +x configure
 
 DISABLES="--disable-cairo --disable-libxml2 --disable-opencl --disable-cuda --disable-nvml"
@@ -12,5 +14,5 @@ else
 fi
 
 make
-make check
+cd tests; make check
 make install
