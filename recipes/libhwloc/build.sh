@@ -14,5 +14,5 @@ else
 fi
 
 make
-cd tests; make check
+make check
 make install
