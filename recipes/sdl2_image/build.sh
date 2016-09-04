@@ -1,8 +1,4 @@
 #!/bin/bash
-
 cd ${SRC_DIR}
-
-# Build
-./configure --disable-dependency-tracking  --enable-imageio=no
-make
+./configure --disable-dependency-tracking  --enable-imageio=no --prefix=${PREFIX}
 make install
