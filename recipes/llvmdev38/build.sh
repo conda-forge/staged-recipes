@@ -34,9 +34,5 @@ else
     cmake $CMAKE_COMMON_VARIABLES ..
 fi
 
-if [ -z "$CPU_COUNT"]; then
-  CPU_COUNT=8
-fi
-
-make -j $CPU_COUNT
+make -j 8
 make install
