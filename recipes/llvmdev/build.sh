@@ -34,5 +34,5 @@ else
     cmake $CMAKE_COMMON_VARIABLES ..
 fi
 
-make -j8
+make -j $CPU_COUNT
 make install
