@@ -7,5 +7,5 @@ cmake \
   -DBUILD_SHARED_LIBS=ON \
   -DCMAKE_INSTALL_PREFIX=$PREFIX \
   ..
-cmake --build . -- -j 8
+cmake --build . -- -j $CPU_COUNT
 cmake --build . --target install
