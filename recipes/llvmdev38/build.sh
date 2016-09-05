@@ -35,7 +35,7 @@ else
 fi
 
 if [ -z "$CPU_COUNT"]; then
-  CPU_COUNT=4
+  CPU_COUNT=8
 fi
 
 make -j $CPU_COUNT
