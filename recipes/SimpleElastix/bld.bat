@@ -1,6 +1,6 @@
 mkdir build
 cd build
-cmake ../SuperBuild -G "%CMAKE_GENERATOR%"
+cmake ../SuperBuild -G "NMake Makefiles"
 ls
 msbuild ./ALL_BUILD.vcxproj
 
