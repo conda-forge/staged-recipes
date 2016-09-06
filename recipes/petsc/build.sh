@@ -3,7 +3,7 @@
 export PETSC_DIR=$SRC_DIR
 export PETSC_ARCH=arch-conda-c-opt
 
-python2 ./configure \
+$PYTHON ./configure \
   --with-fc=0 \
   --with-debugging=0 \
   --COPTFLAGS=-O3 \
@@ -34,7 +34,7 @@ then
 else
     library=$PREFIX/lib/lib$PKG_NAME.so
 fi
-$RECIPE_DIR/replace-binary.py $(dirname $SRC_DIR) "" $library
+$PYTHON $RECIPE_DIR/replace-binary.py $(dirname $SRC_DIR) "" $library
 
 rm -fr $PREFIX/bin
 rm -fr $PREFIX/share
