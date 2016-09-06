@@ -1,6 +1,6 @@
 mkdir build
 cd build
-cmake ../SuperBuild -G "NMake Makefiles"
-msbuild ./ALL_BUILD.vcxproj
+cmake ../SuperBuild -LAH -G "NMake Makefiles"
+cmake --build . --target INSTALL --config Release
 
 "%PYTHON%" ./SimpleITK-build/Wrapping/PythonPackage/setup.py install --single-version-externally-managed --record record.txt
