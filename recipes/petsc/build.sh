@@ -27,10 +27,6 @@ make install
 if [[ $(uname) == Darwin ]];
 then
     library=$PREFIX/lib/lib$PKG_NAME.dylib
-    pathlist=$(otool -l $library | grep ' path /' | awk '{print $2}')
-    for path in $pathlist; do
-        install_name_tool -delete_rpath $path $library
-    done
 else
     library=$PREFIX/lib/lib$PKG_NAME.so
 fi
