@@ -24,14 +24,6 @@ done
 make
 make install
 
-if [[ $(uname) == Darwin ]];
-then
-    library=$PREFIX/lib/lib$PKG_NAME.dylib
-else
-    library=$PREFIX/lib/lib$PKG_NAME.so
-fi
-$PYTHON $RECIPE_DIR/replace-binary.py $(dirname $SRC_DIR) "" $library
-
 rm -fr $PREFIX/bin
 rm -fr $PREFIX/share
 rm -fr $PREFIX/lib/lib$PKG_NAME.*.dylib.dSYM
