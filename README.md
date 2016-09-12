@@ -98,3 +98,7 @@ The maintainers "job" is to:
 - keep the feedstock updated by merging eventual maintenance PRs from conda-forge's bots;
 - keep the package updated by bumping the version whenever there is a new release;
 - answer eventual question about the package on the feedstock issue tracker.
+
+### 11. Why are there recipes already in the `recipes` directory? Should I do something about it?
+
+When a PR of recipe(s) is ready to go, it is merged into `master`. This will trigger a CI build specially designed to convert the recipe(s). However, for any number of reasons the recipe(s) may not be converted right away. In the interim, the recipe(s) will remain in `master` until they can be converted. There is no action required on the part of recipe contributors to resolve this. Also it should have no impact on any other PRs being proposed. If these recipe(s) pending conversion do cause issues for your submission, please ping `conda-forge/core` for help.
