@@ -274,7 +274,7 @@ if __name__ == '__main__':
                                               universal_newlines=True)
     removed_recipes = removed_recipes.splitlines()
     removed_recipes = filter(lambda _: _.startswith("D "), removed_recipes)
-    removed_recipes = list(map(lambda _ : _.replace("D", "", 1).lstrip(), removed_recipes))
+    removed_recipes = map(lambda _ : _.replace("D", "", 1).lstrip(), removed_recipes)
     removed_recipes = list(set(map(lambda _ : os.path.basename(os.path.dirname(_)), removed_recipes)))
 
     # Commit any removed packages.
