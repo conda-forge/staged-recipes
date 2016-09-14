@@ -276,7 +276,7 @@ if __name__ == '__main__':
     removed_recipes = filter(lambda _: _.startswith("D "), removed_recipes)
     removed_recipes = map(lambda _ : _.replace("D", "", 1).lstrip(), removed_recipes)
     removed_recipes = map(lambda _ : os.path.basename(os.path.dirname(_)), removed_recipes)
-    removed_recipes = list(set(removed_recipes))
+    removed_recipes = sorted(set(removed_recipes))
 
     # Commit any removed packages.
     subprocess.check_call(['git', 'status'])
