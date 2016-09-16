@@ -1,0 +1,72 @@
+diff --git a/WildMagic5/LibApplications/Wm5Application.cpp b/WildMagic5/LibApplications/Wm5Application.cpp
+index ece5787..41cfbbd 100644
+--- a/WildMagic5/LibApplications/Wm5Application.cpp
++++ b/WildMagic5/LibApplications/Wm5Application.cpp
+@@ -35,37 +35,14 @@ int main (int numArguments, char* arguments[])
+     Memory::Initialize();
+ #endif
+ 
+-    // The Wild Magic 5 application layer depends on the directory structure
+-    // structure that ships with the libraries.  You need to create the
+-    // WM5_PATH environment variable in order for the applications to find
+-    // various data files.
+-#ifndef __APPLE__
+-    Application::WM5Path = Environment::GetVariable("WM5_PATH");
+-#else
+-    // Mac OS X Lion returns NULL on any getenv call (such as the one in
+-    // Environment::GetVariable).  This hack works around the problem.
+-    if (system("cp ~/.MacOSX/wm5path.txt tempwm5path.txt") == 0)
+-    {
+-        std::ifstream inFile("tempwm5path.txt");
+-        if (inFile)
+-        {
+-            getline(inFile, Application::WM5Path);
+-            inFile.close();
+-            system("rm tempwm5path.txt");
+-        }
+-    }
+-#endif
+-    if (Application::WM5Path == "")
+-    {
+-        assertion(false, "Please set the WM5_PATH environment variable.\n");
+-        std::ofstream outFile("ApplicationError.txt");
+-        if (outFile)
+-        {
+-            outFile << "Please set the WM5_PATH environment variable.\n";
+-            outFile.close();
+-        }
+-        return INT_MAX;
+-    }
++    // conda packaging path.
++    // Hardcode the path to the data files to the PREFIX at compile time
++    // and tell conda to replace this to the install time prefix in
++    // meta.yaml
++
++    #define conda_xstr(a) conda_str(a)
++    #define conda_str(a) #a
++    Application::WM5Path = conda_xstr(WM5_PATH);
+     Application::WM5Path += "/";
+ 
+     InitTerm::ExecuteInitializers();
+diff --git a/WildMagic5/LibApplications/makefile.wm5 b/WildMagic5/LibApplications/makefile.wm5
+index 521e077..5e8d3ab 100644
+--- a/WildMagic5/LibApplications/makefile.wm5
++++ b/WildMagic5/LibApplications/makefile.wm5
+@@ -1,7 +1,7 @@
+ CFG ?= Debug
+ 
+ CC := /usr/bin/g++
+-CFLAGS := -c -D__LINUX__ -DWM5_USE_OPENGL
++CFLAGS := -c -D__LINUX__ -DWM5_USE_OPENGL -DWM5_PATH="$(PREFIX)/share/libwildmagic"
+ 
+ ifeq (Debug,$(findstring Debug,$(CFG)))
+ CFLAGS += -g -D_DEBUG
+@@ -45,7 +45,7 @@ OBJ := $(SRC:%.cpp=$(OBJDIR)/%.o)
+ 
+ build : $(OBJ) $(OBJDIR)/Wm5GlxApplication.o
+ 	$(AR) $(ARFLAGS) $(LIB) $(OBJ) $(OBJDIR)/Wm5GlxApplication.o
+-	cp -fp $(INC) $(INCDIR) 
++	cp -fp $(INC) $(INCDIR)
+ 	ln -sf -T libWm5Applications.so.$(RELVER) ../SDK/Library/$(OBJDIR)/libWm5Applications.so
+ 	ln -sf -T libWm5Applications.so.$(RELVER) ../SDK/Library/$(OBJDIR)/libWm5Applications.so.$(SOVER)
+ 
