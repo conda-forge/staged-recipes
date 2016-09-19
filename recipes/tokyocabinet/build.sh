@@ -7,7 +7,5 @@ set -e
 	    --with-bzip=$PREFIX
 
 make
-if [[ $(uname) == Linux ]]; then
-    make check
-fi
+make check &> make_check.log || { cat make_check.log; exit 1; }
 make install
