@@ -1,10 +1,14 @@
+from __future__ import print_function
 import argparse
+import hashlib
 import os
 import shutil
 import subprocess as sp
 import tempfile
-from urllib.request import urlopen
-import hashlib
+try:
+    from urllib.request import urlopen
+except ImportError:
+    from urllib import urlopen
 
 PACKAGES = ('B-Tax',
             'Tax-Calculator',
@@ -89,27 +93,26 @@ def get_latest_packages(btax_branch=None, btax_version=None,
         print(source_url)
         tmp = tempfile.mkdtemp()
         try:
-            with urlopen(source_url) as f:
-                tar_file_contents = f.read()
-                meta_var['sha256'] = hashlib.sha256(tar_file_contents).hexdigest()
-                tar_file = os.path.join(tmp, '{version}.tar.gz'.format(**meta_var))
-                with open(tar_file, 'wb') as f:
-                    f.write(tar_file_contents)
-                proc_wrapper(['tar', '-xvf', tar_file], cwd=tmp)
-                repo_clone = os.path.join(tmp, '{repo_name}-{version}'.format(**meta_var))
-                recipe = os.path.join(repo_clone, meta_var['rel_recipe'])
-                local_recipe = os.path.join(RECIPES_DIR, package)
-                shutil.copytree(recipe, local_recipe)
-                meta_yaml = os.path.join(local_recipe, 'meta.yaml')
-                with open(meta_yaml) as f:
-                    contents = [x for x in f.readlines() if not x.lstrip().startswith('#')]
-                new_lines = []
-                for k, v in meta_var.items():
-                    line = '% set {0} = "{1}" %'.format(k, v)
-                    new_lines.append('{' + line + '}')
-                contents = "\n".join(new_lines) + '\n' + '\n'.join(contents)
-                with open(meta_yaml, 'w') as f:
-                    f.write(contents)
+            tar_file_contents = urlopen(source_url).read()
+            meta_var['sha256'] = hashlib.sha256(tar_file_contents).hexdigest()
+            tar_file = os.path.join(tmp, '{version}.tar.gz'.format(**meta_var))
+            with open(tar_file, 'wb') as f:
+                f.write(tar_file_contents)
+            proc_wrapper(['tar', '-xvf', tar_file], cwd=tmp)
+            repo_clone = os.path.join(tmp, '{repo_name}-{version}'.format(**meta_var))
+            recipe = os.path.join(repo_clone, meta_var['rel_recipe'])
+            local_recipe = os.path.join(RECIPES_DIR, package)
+            shutil.copytree(recipe, local_recipe)
+            meta_yaml = os.path.join(local_recipe, 'meta.yaml')
+            with open(meta_yaml) as f:
+                contents = [x for x in f.readlines() if not x.lstrip().startswith('#')]
+            new_lines = []
+            for k, v in meta_var.items():
+                line = '% set {0} = "{1}" %'.format(k, v)
+                new_lines.append('{' + line + '}')
+            contents = "\n".join(new_lines) + '\n' + '\n'.join(contents)
+            with open(meta_yaml, 'w') as f:
+                f.write(contents)
         finally:
             if os.path.exists(tmp):
                 shutil.rmtree(tmp)
