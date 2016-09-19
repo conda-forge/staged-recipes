@@ -110,7 +110,7 @@ def get_latest_packages(btax_branch=None, btax_version=None,
             for k, v in meta_var.items():
                 line = '% set {0} = "{1}" %'.format(k, v)
                 new_lines.append('{' + line + '}')
-            contents = "\n".join(new_lines) + '\n' + '\n'.join(contents)
+            contents = "\n".join(new_lines) + '\n' + ''.join(contents)
             with open(meta_yaml, 'w') as f:
                 f.write(contents)
         finally:
