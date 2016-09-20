@@ -264,17 +264,28 @@ if __name__ == '__main__':
         # Finish quietly.
         pass
 
+    # Parse `git status --porcelain` to handle some merge conflicts and generate the removed recipe list.
+    changed_files = subprocess.check_output(['git', 'status', '--porcelain', recipe_directory_name],
+                                            universal_newlines=True)
+    changed_files = changed_files.splitlines()
+
+    # Add all files from AU conflicts. They are new files that we weren't tracking previously.
+    # Adding them resolves the conflict and doesn't actually add anything to the index.
+    new_file_conflicts = filter(lambda _: _.startswith("AU "), changed_files)
+    new_file_conflicts = map(lambda _ : _.replace("AU", "", 1).lstrip(), new_file_conflicts)
+    for each_new_file in new_file_conflicts:
+        subprocess.check_call(['git', 'add', each_new_file])
+
     # Generate a fresh listing of recipes removed.
-    # This gets pretty ugly as we parse `git status --porcelain`.
     #
     # * Each line we get back is a change to a file in the recipe directory.
     # * We narrow the list down to recipes that are staged for deletion (ignores examples).
     # * Then we clean up the list so that it only has the recipe names.
-    removed_recipes = subprocess.check_output(['git', 'status', '--porcelain', recipe_directory_name],
-                                              universal_newlines=True)
-    removed_recipes = removed_recipes.splitlines()
-    removed_recipes = filter(lambda _: _.startswith("D "), removed_recipes)
-    removed_recipes = list(map(lambda _ : _.replace("D", "", 1).lstrip(), removed_recipes))
+    removed_recipes = filter(lambda _: _.startswith("D "), changed_files)
+    removed_recipes = map(lambda _ : _.replace("D", "", 1).lstrip(), removed_recipes)
+    removed_recipes = map(lambda _ : os.path.relpath(_, recipe_directory_name), removed_recipes)
+    removed_recipes = map(lambda _ : _.split(os.path.sep)[0], removed_recipes)
+    removed_recipes = sorted(set(removed_recipes))
 
     # Commit any removed packages.
     subprocess.check_call(['git', 'status'])
