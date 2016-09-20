@@ -84,6 +84,7 @@ def get_latest_packages(btax_branch=None, btax_version=None,
                 version = ogusa_version
         rm_recipes_dir_contents(package)
         meta_var = META_VARIABLES[package]
+        meta_var['taxcalc_version'] = taxcalc_version
         meta_var['git_org'] = git_org
         meta_var['version'] = version
         source_url = 'https://github.com/{git_org}/{repo_name}/archive/{version}.tar.gz'
