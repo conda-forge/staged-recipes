@@ -4,13 +4,16 @@ set -x
 
 if [ "$(uname)" == "Darwin" ]; then
   withmpi="--with-mpi=${PREFIX}"
+  enablefortran="--disable-fortran"
 else
   withmpi=""
+  enablefortran=""
 fi
 
 autoreconf -fi
 ./configure --prefix="${PREFIX}" \
   ${withmpi} \
+  ${enablefortran} \
   --with-hdf5="${PREFIX}" \
   --enable-shared \
   --enable-dagmc \
