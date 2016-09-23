@@ -9,6 +9,6 @@ autoreconf -fi
   --enable-dagmc \
   --enable-tools \
   || { cat config.log; exit 1; }
-make
+make -j "${CPU_COUNT}"
 make check
 make install
