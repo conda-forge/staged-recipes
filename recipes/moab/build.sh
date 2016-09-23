@@ -3,7 +3,8 @@ set -e
 set -x
 
 if [ "$(uname)" == "Darwin" ]; then
-  withmpi="--with-mpi=${PREFIX}"
+  #withmpi="--with-mpi=${PREFIX}"
+  withmpi=""
   enablefortran="--disable-fortran"
 else
   withmpi=""
