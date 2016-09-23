@@ -5,7 +5,8 @@ set -x
 if [ "$(uname)" == "Darwin" ]; then
   #withmpi="--with-mpi=${PREFIX}"
   withmpi=""
-  enablefortran="--disable-fortran"
+  #enablefortran="--disable-fortran"
+  enablefortran=""
 else
   withmpi=""
   enablefortran=""
@@ -21,5 +22,6 @@ autoreconf -fi
   --enable-tools \
   || { cat config.log; exit 1; }
 make -j "${CPU_COUNT}"
-make check
+make check \
+  || { cat itaps/imesh/test-suite.log; exit 1; }
 make install
