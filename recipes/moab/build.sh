@@ -4,6 +4,7 @@ set -x
 
 autoreconf -fi
 ./configure --prefix="${PREFIX}" \
+  --with-mpi="${PREFIX}" \
   --with-hdf5="${PREFIX}" \
   --enable-shared \
   --enable-dagmc \
