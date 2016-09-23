@@ -3,9 +3,9 @@ set -e
 set -x
 
 if [ "$(uname)" == "Darwin" ]; then
-  withmpi="--without-mpi"
+  withmpi="--with-mpi=${PREFIX}"
 else
-  withmpi="--with-mpi"
+  withmpi=""
 fi
 
 autoreconf -fi
