@@ -11,6 +11,8 @@ else
   skiprpath=""
 fi
 
+export FC=gfortran
+
 # Avoid accelerate
 # If OpenBLAS is being used, we should be able to find the libraries.
 # As OpenBLAS now will have all symbols that BLAS or LAPACK have,
@@ -33,8 +35,16 @@ ${PYTHON} setup.py install \
   --hdf5="${PREFIX}" \
   --moab="${PREFIX}" \
   -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}" \
+  -DFC=gfortran \
+  -DHDF5_ROOT="${PREFIX}" \
+  -DHDF5_LIBRARY="${PREFIX}/lib" \
+  -DHDF5_INCLUDE_DIR="${PREFIX}/include" \
+  -DMOAB_ROOT="${PREFIX}" \
+  -DMOAB_LIBRARY="${PREFIX}/lib" \
+  -DMOAB_INCLUDE_DIR="${PREFIX}/include" \
   ${skiprpath} \
-  --clean -j "${CPU_COUNT}"
+  --clean
+#-j "${CPU_COUNT}"
 
 # Create data library
 scripts/nuc_data_make
