@@ -7,4 +7,4 @@ cmake ^
 	-DINCLUDE_INSTALL_DIR=%LIBRARY_INC% ^
 	..
 
-cmake --build . --target install
+cmake --build . --config Release --target INSTALL
