@@ -20,11 +20,6 @@ fi
 # Note you may need to enable RH devtoolset-2 if building on an
 # old RH or CentOS system
 
-if [ -n "$MACOSX_DEPLOYMENT_TARGET" ]; then
-    # OSX needs 10.7 or above with libc++ enabled
-    export MACOSX_DEPLOYMENT_TARGET=10.9
-fi
-
 # Use CMake-based build procedure
 mkdir build
 cd build
