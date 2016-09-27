@@ -3,15 +3,18 @@ set -e
 
 if [ "$(uname)" == "Darwin" ]; then
   #libext=".dylib"
-  #export LDFLAGS="-rpath ${PREFIX}/lib ${LDFLAGS}"
-  #export LINKFLAGS="${LDFLAGS}"
+  export LDFLAGS="-rpath ${PREFIX}/lib ${LDFLAGS}"
+  export LINKFLAGS="${LDFLAGS}"
   skiprpath="-DCMAKE_SKIP_RPATH=TRUE"
 else
   #libext=".so"
+  export LDFLAGS=" ${LDFLAGS} -Wl,-rpath,${PREFIX}/lib"
+  export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
+  export LINKFLAGS="${LDFLAGS}"
   skiprpath=""
 fi
 
-#export FC=gfortran
+export FC=gfortran
 #export HDF5_ROOT="${PREFIX}"
 #export MOAB_ROOT="${PREFIX}"
 #export HDF5_USE_STATIC_LIBRARIES=FALSE
@@ -37,21 +40,21 @@ ${PYTHON} setup.py install \
   --prefix="${PREFIX}" \
   --hdf5="${PREFIX}" \
   --moab="${PREFIX}" \
+  -DMOAB_INCLUDE_DIR="${PREFIX}/include" \
   -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}" \
   ${skiprpath} \
-  --clean
+  --clean \
+#  -j "${CPU_COUNT}"
 
 #  -DHDF5_ROOT="${PREFIX}" \
 #  -DHDF5_INCLUDE_DIR="${PREFIX}/include" \
 #  -DHDF5_USE_STATIC_LIBRARIES=FALSE
 #  -DMOAB_ROOT="${PREFIX}" \
 #  -DMOAB_LIBRARY="${PREFIX}/lib" \
-#  -DMOAB_INCLUDE_DIR="${PREFIX}/include" \
 
 #  -DCMAKE_PREFIX_PATH="${PREFIX}/share/cmake-3.6" \
 #  -DHDF5_LIBRARY="${PREFIX}/lib" \
 #  -DFC=gfortran \
-#-j "${CPU_COUNT}"
 
 # Create data library
 scripts/nuc_data_make
