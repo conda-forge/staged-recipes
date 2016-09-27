@@ -11,7 +11,10 @@ else
   skiprpath=""
 fi
 
-export FC=gfortran
+#export FC=gfortran
+#export HDF5_ROOT="${PREFIX}"
+#export MOAB_ROOT="${PREFIX}"
+#export HDF5_USE_STATIC_LIBRARIES=FALSE
 
 # Avoid accelerate
 # If OpenBLAS is being used, we should be able to find the libraries.
@@ -35,15 +38,19 @@ ${PYTHON} setup.py install \
   --hdf5="${PREFIX}" \
   --moab="${PREFIX}" \
   -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}" \
-  -DFC=gfortran \
-  -DHDF5_ROOT="${PREFIX}" \
-  -DHDF5_LIBRARY="${PREFIX}/lib" \
-  -DHDF5_INCLUDE_DIR="${PREFIX}/include" \
-  -DMOAB_ROOT="${PREFIX}" \
-  -DMOAB_LIBRARY="${PREFIX}/lib" \
-  -DMOAB_INCLUDE_DIR="${PREFIX}/include" \
   ${skiprpath} \
   --clean
+
+#  -DHDF5_ROOT="${PREFIX}" \
+#  -DHDF5_INCLUDE_DIR="${PREFIX}/include" \
+#  -DHDF5_USE_STATIC_LIBRARIES=FALSE
+#  -DMOAB_ROOT="${PREFIX}" \
+#  -DMOAB_LIBRARY="${PREFIX}/lib" \
+#  -DMOAB_INCLUDE_DIR="${PREFIX}/include" \
+
+#  -DCMAKE_PREFIX_PATH="${PREFIX}/share/cmake-3.6" \
+#  -DHDF5_LIBRARY="${PREFIX}/lib" \
+#  -DFC=gfortran \
 #-j "${CPU_COUNT}"
 
 # Create data library
