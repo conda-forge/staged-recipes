@@ -11,6 +11,9 @@ channels:
  - conda-forge
  - defaults
 
+conda-build:
+ root-dir: /staged-recipes/build_artefacts
+
 always_yes: true
 show_channel_urls: true
 
