@@ -56,8 +56,13 @@ ${PYTHON} setup.py install \
 #  -DHDF5_LIBRARY="${PREFIX}/lib" \
 #  -DFC=gfortran \
 
+# PyNE's build system is wack
+# softlink the shared object to the standard location
+ln -s "${SP_DIR}/../lib/libpyne.*" "${PREFIX}/lib"
+
 # Create data library
 scripts/nuc_data_make
+
 
 #  -DBLAS_LIBRARIES="-L${PREFIX}/lib -lopenblas" \
 #  -DLAPACK_LIBRARIES="-L${PREFIX}/lib -llapack" \
