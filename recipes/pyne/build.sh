@@ -59,15 +59,24 @@ ${PYTHON} setup.py install \
 # PyNE's build system is wack
 # mv the shared object to the standard location and then softlink it back
 # likewise for the headers
-ls "${SP_DIR}/lib"
-mv "${SP_DIR}/lib/libpyne${libext}" "${PREFIX}/lib/libpyne${libext}"
-ln -s "${PREFIX}/lib/libpyne${libext}" "${SP_DIR}/lib/libpyne${libext}"
-mv "${SP_DIR}/include/pyne" "${PREFIX}/include"
-ln -s "${PREFIX}/include/pyne" "${SP_DIR}/include"
+# Create data library
+eggname=$(ls build/dist)
+egglib=$(ls -d "${SP_DIR}/${eggname}/lib")
+if [ -d "${egglib}" ]; then
+  eggdir=$(dirname "${egglib}")
+else
+  eggdir="${SP_DIR}"
+fi
+ls "${eggdir}"
+mv "${eggdir}/lib/libpyne${libext}" "${PREFIX}/lib/libpyne${libext}"
+ln -s "${PREFIX}/lib/libpyne${libext}" "${eggdir}/lib/libpyne${libext}"
+mv "${eggdir}/include/pyne" "${PREFIX}/include"
+ln -s "${PREFIX}/include/pyne" "${eggdir}/include"
 
 
 # Create data library
 scripts/nuc_data_make
+
 
 
 #  -DBLAS_LIBRARIES="-L${PREFIX}/lib -lopenblas" \
