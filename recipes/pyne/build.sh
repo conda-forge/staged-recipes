@@ -2,12 +2,12 @@
 set -e
 
 if [ "$(uname)" == "Darwin" ]; then
-  #libext=".dylib"
+  libext=".dylib"
   export LDFLAGS="-rpath ${PREFIX}/lib ${LDFLAGS}"
   export LINKFLAGS="${LDFLAGS}"
   skiprpath="-DCMAKE_SKIP_RPATH=TRUE"
 else
-  #libext=".so"
+  libext=".so"
   export LDFLAGS=" ${LDFLAGS} -Wl,-rpath,${PREFIX}/lib"
   export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
   export LINKFLAGS="${LDFLAGS}"
@@ -44,7 +44,7 @@ ${PYTHON} setup.py install \
   -DCMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}" \
   ${skiprpath} \
   --clean \
-#  -j "${CPU_COUNT}"
+  -j "${CPU_COUNT}"
 
 #  -DHDF5_ROOT="${PREFIX}" \
 #  -DHDF5_INCLUDE_DIR="${PREFIX}/include" \
@@ -57,8 +57,14 @@ ${PYTHON} setup.py install \
 #  -DFC=gfortran \
 
 # PyNE's build system is wack
-# softlink the shared object to the standard location
-ln -s "${SP_DIR}/../lib/libpyne.*" "${PREFIX}/lib"
+# mv the shared object to the standard location and then softlink it back
+# likewise for the headers
+ls "${SP_DIR}/lib"
+mv "${SP_DIR}/lib/libpyne${libext}" "${PREFIX}/lib/libpyne${libext}"
+ln -s "${PREFIX}/lib/libpyne${libext}" "${SP_DIR}/lib/libpyne${libext}"
+mv "${SP_DIR}/include/pyne" "${PREFIX}/include"
+ln -s "${PREFIX}/include/pyne" "${SP_DIR}/include"
+
 
 # Create data library
 scripts/nuc_data_make
