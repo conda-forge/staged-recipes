@@ -6,6 +6,9 @@ import json
 
 
 def make_xsdlib():
+    # This test is mostly translated from homebrew:
+    # https://github.com/Homebrew/homebrew-core/blob/7a4dabfc1a2a/Formula/xsd.rb
+
     xsd_path = "schema.xsd"
     with open(xsd_path, 'w') as xsd_file:
         xsd_file.write(
