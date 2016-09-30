@@ -1,3 +1,4 @@
+if "%CONDA_PY%" == "27" copy %RECIPE_DIR%\\pstdint.h %SRC_DIR%\\src\\stdint.h
 mkdir build && cd build
 cmake ^
 	-G "%CMAKE_GENERATOR%"                   ^
