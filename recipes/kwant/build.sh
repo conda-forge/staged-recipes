@@ -6,5 +6,6 @@ if [[ "$unamestr" == 'Darwin' ]]; then
 else
    cp $RECIPE_DIR/build_linux.conf build.conf
 fi
+sed -i -e "s:PREFIX:$PREFIX:g" build.conf
 $PYTHON setup.py build
 $PYTHON setup.py install
