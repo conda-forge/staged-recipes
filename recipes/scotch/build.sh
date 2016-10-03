@@ -5,7 +5,7 @@ cd src/
 if [ `uname` == "Darwin" ]; then
     cp $RECIPE_DIR/Makefile.inc.i686_mac_darwin10 Makefile.inc
 else
-  cp $RECIPE_DIR/Makefile.inc.x86-64_pc_linux2.shlib Makefile.inc
+  cp $RECIPE_DIR/Makefile.inc.x86-64_pc_linux2 Makefile.inc
   sed -i 's#-l$(SCOTCHLIB)errexit#-l$(SCOTCHLIB)errexit -lm#g' esmumps/Makefile
 fi
 
