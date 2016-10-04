@@ -2,8 +2,10 @@
 set -e
 
 if [ "$(uname)" == "Darwin" ]; then
+  libext=".dylib"
   skiprpath="-DCMAKE_SKIP_RPATH=TRUE"
 else
+  libext=".so"
   skiprpath=""
 fi
 export FC=gfortran
