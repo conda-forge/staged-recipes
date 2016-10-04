@@ -3,14 +3,14 @@ set -e
 
 if [ "$(uname)" == "Darwin" ]; then
   libext=".dylib"
-  export LDFLAGS="-rpath ${PREFIX}/lib ${LDFLAGS}"
-  export LINKFLAGS="${LDFLAGS}"
+  #export LDFLAGS="-rpath ${PREFIX}/lib ${LDFLAGS}"
+  #export LINKFLAGS="${LDFLAGS}"
   skiprpath="-DCMAKE_SKIP_RPATH=TRUE"
 else
   libext=".so"
-  export LDFLAGS=" ${LDFLAGS} -Wl,-rpath,${PREFIX}/lib"
-  export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
-  export LINKFLAGS="${LDFLAGS}"
+  #export LDFLAGS=" ${LDFLAGS} -Wl,-rpath,${PREFIX}/lib"
+  #export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
+  #export LINKFLAGS="${LDFLAGS}"
   skiprpath=""
 fi
 
