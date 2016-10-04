@@ -201,7 +201,7 @@ if __name__ == '__main__':
 
             subprocess.check_call(['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             subprocess.check_call(['git', 'commit', '-am', "Re-render the feedstock after CI registration."], cwd=feedstock_dir)
-            while True:
+            for i in range(5):
                 try:
                     # Capture the output, as it may contain the GH_TOKEN.
                     out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'master'], cwd=feedstock_dir,
