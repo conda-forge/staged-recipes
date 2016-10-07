@@ -3,8 +3,11 @@ cd build
 
 cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_PREFIX_PATH=$PREFIX \
-      -DUSE_TCL=NO \
-      -BUILD_MODULE_DRAW=NO \
+      -DCMAKE_3RDPARTY_DIR=$PREFIX \
+      -D3RDPARTY_TK_DIR=$PREFIX \
+      -D3RDPARTY_TCL_DIR=$PREFIX \
+      -D3RDPARTY_TK_LIBRARY_DIR=$PREFIX/lib \
+      -D3RDPARTY_TCL_LIBRARY_DIR=$PREFIX/lib \
       ..
 
 make -j2 2>&1 | tee output.txt
