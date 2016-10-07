@@ -1,1 +1,0 @@
-copy clcache.py %PREFIX%\Scripts
