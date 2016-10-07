@@ -3,7 +3,9 @@ cd build
 
 
 cmake ^
+    -G "%CMAKE_GENERATOR%" ^
     -DCMAKE_PREFIX_PATH=$PREFIX ^
+	-DCMAKE_3RDPARTY_DIR="%LIBRARY_LIB%"
     -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ..
 
-make install
+msbuild /m
