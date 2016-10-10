@@ -1,3 +1,3 @@
 #!/bin/bash
 
-$PYTHON -m estnltk.run_tests
+"${PREFIX}/bin/python" -m estnltk.run_tests
