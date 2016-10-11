@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+set -e
+set -x
 
 BUILD_CACHE="${RECIPE_DIR}/../build/cache"
 mkdir -p ${BUILD_CACHE}
@@ -49,7 +51,20 @@ else
   PREV_DIR=$(pwd)
   cd ${PREFIX}/tmp-jdkpkg
   cpio -i < ./jdk*.pkg/Payload
-  mv Contents/Home/* ${PREFIX}
+  # basically mv Contents/Home/* ${PREFIX}
+  cp Contents/Home/COPYRIGHT ${PREFIX}
+  cp Contents/Home/LICENSE ${PREFIX}
+  cp Contents/Home/*.html ${PREFIX}
+  cp Contents/Home/*.txt ${PREFIX}
+  cp Contents/Home/*.zip ${PREFIX}
+  mkdir -p ${PREFIX}/bin ${PREFIX}/db ${PREFIX}/include ${PREFIX}/jre \
+           ${PREFIX}/lib ${PREFIX}/man
+  cp -r Contents/Home/bin/* ${PREFIX}/bin
+  cp -r Contents/Home/db/* ${PREFIX}/db
+  cp -r Contents/Home/include/* ${PREFIX}/include
+  cp -r Contents/Home/jre/* ${PREFIX}/jre
+  cp -r Contents/Home/lib/* ${PREFIX}/lib
+  cp -r Contents/Home/man/* ${PREFIX}/man
   cd ${PREV_DIR}
   rm -rf ${PREFIX}/tmp
 fi
