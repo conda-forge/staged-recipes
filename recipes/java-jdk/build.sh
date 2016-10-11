@@ -16,7 +16,6 @@ else
   URL="http://download.oracle.com/otn-pub/java/jdk/8u45-b14/jdk-8u45-macosx-x64.dmg"
   JDK="jdk.dmg"
   NSTRIP=3
-  #LINKLOC="${PREFIX}/lib/jli"
   LINKLOC="${PREFIX}/lib/*/jli"
 fi
 
@@ -70,15 +69,14 @@ else
 fi
 JLI_REL=$(relpath $(ls ${LINKLOC}/*jli.*) ${PREFIX}/lib)
 ln -s ${JLI_REL} ${PREFIX}/lib
-#ln ${JLI_REL} ${PREFIX}/lib
-#ln ${LINKLOC}/*jli.* ${PREFIX}/lib
 
 # Some clean up
 rm -rf ${PREFIX}/release ${PREFIX}/README ${PREFIX}/Welcome.html ${PREFIX}/*jli.*
 chmod og+w ${PREFIX}/COPYRIGHT ${PREFIX}/LICENSE ${PREFIX}/THIRDPARTYLICENSEREADME.txt
-mv ${PREFIX}/COPYRIGHT ${PREFIX}/COPYRIGHT-JDK
-mv ${PREFIX}/LICENSE $PREFIX/LICENSE-JDK
-mv ${PREFIX}/THIRDPARTYLICENSEREADME.txt ${PREFIX}/THIRDPARTYLICENSEREADME-JDK.txt
+mkdir -p ${PREFIX}/share/java-jdk
+mv ${PREFIX}/COPYRIGHT ${PREFIX}/share/java-jdk/COPYRIGHT
+mv ${PREFIX}/LICENSE ${PREFIX}/share/java-jdk/LICENSE
+mv ${PREFIX}/THIRDPARTYLICENSEREADME.txt ${PREFIX}/share/java-jdk/THIRDPARTYLICENSEREADME.txt
 
 # Mac specific cleanup
 if [[ ${UNAME} == "Darwin" ]]; then
