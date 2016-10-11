@@ -66,7 +66,7 @@ else
   cp -r Contents/Home/lib/* ${PREFIX}/lib
   cp -r Contents/Home/man/* ${PREFIX}/man
   cd ${PREV_DIR}
-  rm -rf ${PREFIX}/tmp
+  rm -rf ${PREFIX}/tmp*
 fi
 JLI_REL=$(relpath $(ls ${LINKLOC}/*jli.*) ${PREFIX}/lib)
 ln -s ${JLI_REL} ${PREFIX}/lib
