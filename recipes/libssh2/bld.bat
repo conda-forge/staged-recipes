@@ -5,5 +5,3 @@ cmake .. ^
 	-DCMAKE_BUILD_TYPE=Release 
 
 cmake --build . --config Release --target INSTALL
-ctest -VV -C Release --output-on-failure
-cmake --build . --config Release --target RUN_TESTS
