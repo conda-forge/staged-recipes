@@ -1,3 +1,5 @@
+call setup_x64.bat
+
 mkdir build && cd build
 cmake .. ^
 	-G "%CMAKE_GENERATOR%"                     ^
