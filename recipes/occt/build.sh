@@ -1,7 +1,7 @@
 mkdir build
 cd build
 
-if [ 'uname' == Darwin]; then
+if [ `uname` == Darwin]; then
     CXXFLAGS=$CXXFLAGS-std=c++11
 fi
 

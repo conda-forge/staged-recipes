@@ -16,4 +16,4 @@ cmake ^
     -D3DPARTY_TK_INCLUDE_DIR=%LIBRARY_INC% ^
     -D3DPARTY_TK_LIBRARY_DIR=%LIBRARY_LIB% ^
 
-msbuild /m
+make install
