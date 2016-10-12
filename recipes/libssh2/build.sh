@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mkdir bin && cd bin
+mkdir build && cd build
 cmake .. -DCMAKE_INSTALL_PREFIX=$PREFIX
 
 cmake --build . --config Release --target install
