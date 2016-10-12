@@ -5,3 +5,4 @@ cmake .. ^
 	-DCMAKE_BUILD_TYPE=Release 
 
 cmake --build . --config Release --target INSTALL
+cmake --build . --config Release --target RUN_TESTS
