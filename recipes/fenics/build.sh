@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# debug
 env
 
 if [[ "$(uname)" == "Darwin" ]]; then
@@ -26,6 +27,7 @@ if [[ "$(uname)" == "Darwin" ]]; then
 fi
 
 # DOLFIN
+rm -rf build
 mkdir build
 cd build
 
@@ -35,10 +37,15 @@ export INCLUDE_PATH=$PREFIX/include
 export BLAS_DIR=$LIBRARY_PATH
 
 cmake .. \
+  -DDOLFIN_ENABLE_OPENMP=off \
+  -DDOLFIN_ENABLE_MPI=off \
+  -DDOLFIN_ENABLE_PETSC=off \
+  -DDOLFIN_ENABLE_HDF5=off \
+  -DDOLFIN_ENABLE_VTK=off \
   -DCMAKE_INSTALL_PREFIX=$PREFIX \
   -DCMAKE_INCLUDE_PATH=$INCLUDE_PATH \
   -DCMAKE_LIBRARY_PATH=$LIBRARY_PATH \
-  -DPYTHON_EXECUTABLE=$PYTHON
+  -DPYTHON_EXECUTABLE=$PYTHON || (cat CMakeFiles/CMakeError.log && exit 1)
 
 make VERBOSE=1 -j${CPU_COUNT}
 make install
