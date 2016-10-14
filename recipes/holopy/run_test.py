@@ -19,9 +19,12 @@
 from subprocess import call
 import sys
 import multiprocessing
+import nose
 
-t = ['nosetests']
-t.extend(['--processes={0}'.format(multiprocessing.cpu_count())] + sys.argv[2:])
+config = nose.config.Config(verbosity=2)
+nose.runmodule('holopy', config=config)
+#t = ['nosetests' '-v']
+#t.extend(['--processes={0}'.format(multiprocessing.cpu_count())] + sys.argv[2:])
 
-print((' '.join(t)))
-call(t)
+#print((' '.join(t)))
+#call(t)
