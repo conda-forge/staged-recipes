@@ -5,6 +5,7 @@
     --disable-dependency-tracking
 
 make
+
 make install
 
 exit 0
