@@ -16,15 +16,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with HoloPy.  If not, see <http://www.gnu.org/licenses/>.
-from subprocess import call
-import sys
-import multiprocessing
+
 import nose
-
-#config = nose.config.Config(verbosity=2)
-#nose.runmodule('holopy', config=config)
-t = ['nosetests' '-v']
-t.extend(['--processes={0}'.format(multiprocessing.cpu_count())] + sys.argv[2:])
-
-print((' '.join(t)))
-call(t)
+config = nose.config.Config(verbosity=2)
+nose.runmodule('holopy', config=config)
