@@ -26,5 +26,5 @@ import nose
 t = ['nosetests' '-v']
 t.extend(['--processes={0}'.format(multiprocessing.cpu_count())] + sys.argv[2:])
 
-#print((' '.join(t)))
-#call(t)
+print((' '.join(t)))
+call(t)
