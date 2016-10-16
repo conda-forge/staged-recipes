@@ -1,6 +1,12 @@
 mkdir build
 cd build
 
+ECHO "%PREFIX%"
+ECHO "%LIBRARY_PREFIX%"
+ECHO "%LIBRARY_BIN%"
+ECHO "%LIBRARY_INC%"
+ECHO "%LIBRARY_LIB%"
+
 cmake .. ^
     -G "%CMAKE_GENERATOR%" ^
     -DCMAKE_PREFIX_PATH:FILEPATH="%PREFIX%" ^
