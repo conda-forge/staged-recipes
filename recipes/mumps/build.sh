@@ -5,6 +5,7 @@ if [ `uname` == "Darwin" ]; then
   export LDFLAGS="${LDFLAGS} -Wl,-rpath,$PREFIX/lib"
 else
   cp $RECIPE_DIR/Makefile.debian.SEQ Makefile.inc
+  export LDFLAGS="${LDFLAGS} -Wl,-rpath=$PREFIX/lib"
 fi
 
 make all
