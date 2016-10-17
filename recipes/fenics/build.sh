@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# debug
-env
 
 if [[ "$(uname)" == "Darwin" ]]; then
   export MACOSX_DEPLOYMENT_TARGET=10.9
