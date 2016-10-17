@@ -3,8 +3,6 @@ set -e
 
 cd "$SRC_DIR"
 
-conda inspect linkages "$PKG_NAME"
-
 pushd instant/test
 python run_tests.py
 popd

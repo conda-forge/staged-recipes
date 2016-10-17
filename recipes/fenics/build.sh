@@ -21,6 +21,9 @@ git clone -q --depth 1 -b ${pkg}-${PKG_VERSION} https://bitbucket.org/fenics-pro
 pushd $pkg
 # apply patches
 git apply "${RECIPE_DIR}/swig-py3.patch"
+if [[ "$(uname)" == "Darwin" ]]; then
+    git apply "${RECIPE_DIR}/clang6-explicit-in-copy.patch"
+fi
 
 # DOLFIN
 mkdir build
