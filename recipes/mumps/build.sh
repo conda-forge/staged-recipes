@@ -2,6 +2,7 @@
 
 if [ `uname` == "Darwin" ]; then
   cp $RECIPE_DIR/Makefile.debian.SEQ_mac Makefile.inc
+  export LDFLAGS="${LDFLAGS} -Wl,-rpath,$PREFIX/lib"
 else
   cp $RECIPE_DIR/Makefile.debian.SEQ Makefile.inc
 fi
