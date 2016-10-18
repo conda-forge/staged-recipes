@@ -1,7 +1,7 @@
 CXX = gcc -std=c99
 INCLUDE_DIRS = $(PREFIX)/include/asl
 CXX_OPTS = $(addprefix -I,$(INCLUDE_DIRS))
-LIBS = -L$(PREFIX)/lib -lasl  -lm -ldl
+LIBS = -Wl,-rpath,$(PREFIX)/lib -L$(PREFIX)/lib -lasl  -lm -ldl
 
 OBJDIR = .objects
 BINDIR = bin
