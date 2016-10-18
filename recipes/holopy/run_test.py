@@ -19,4 +19,4 @@
 
 import nose
 config = nose.config.Config(verbosity=3)
-nose.runmodule('holopy.fitting', config=config)
+nose.runmodule('holopy', config=config)
