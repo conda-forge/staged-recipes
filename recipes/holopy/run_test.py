@@ -18,5 +18,5 @@
 # along with HoloPy.  If not, see <http://www.gnu.org/licenses/>.
 
 import nose
-config = nose.config.Config(verbosity=3)
+config = nose.config.Config(verbosity=2)
 nose.runmodule('holopy', config=config)
