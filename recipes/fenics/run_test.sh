@@ -26,14 +26,11 @@ pushd fiat/test/unit
 python test.py
 popd
 
-rm -rf $HOME/.instant
 
-pushd ffc/test/unit
-python test.py || (
-    find $HOME/.instant/error -name '*.log' -print -exec cat '{}' \;
-    exit 1
-)
-popd
+# skip ffc tests for now, which take forever
+# rm -rf $HOME/.instant
+# pushd ffc/demo
+# popd
 
 rm -rf $HOME/.instant
 
