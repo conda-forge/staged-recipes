@@ -1,14 +1,7 @@
 mkdir build
 cd build
 
-ECHO "%PREFIX%"
-ECHO "%LIBRARY_PREFIX%"
-ECHO "%LIBRARY_BIN%"
-ECHO "%LIBRARY_INC%"
-ECHO "%LIBRARY_LIB%"
-
-cmake .. ^
-    -G "%CMAKE_GENERATOR%" ^
+cmake .. -G "Ninja" ^
     -DCMAKE_PREFIX_PATH:FILEPATH="%PREFIX%" ^
     -DCMAKE_INSTALL_PREFIX:FILEPATH="%LIBRARY_PREFIX%" ^
     -D3DPARTY_TCL_DIR:FILEPATH="%LIBRARY_PREFIX%" ^
@@ -21,4 +14,7 @@ cmake .. ^
     -D3DPARTY_TK_LIBRARY_DIR:FILEPATH="%LIBRARY_LIB%" ^
     -DTK_LIBRARY_PATH:FILEPATH="%LIBRARY_PREFIX%"
 
-msbuild /m OCCT.sln
+if errorlevel 1 exit 1
+
+ninja install
+if errorlevel 1 exit 1
