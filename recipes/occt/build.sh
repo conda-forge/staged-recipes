@@ -13,6 +13,7 @@ cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -D3RDPARTY_TK_LIBRARY_DIR=$PREFIX/lib \
       -D3RDPARTY_TCL_LIBRARY_DIR=$PREFIX/lib \
       -DUSE_TBB=ON \
+      -DUSE_FREEIMAGE=ON \
       ..
 
 make -j2 2>&1 | tee output.txt
