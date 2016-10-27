@@ -13,7 +13,7 @@ export CPATH="${PREFIX}/include"
 
 export LIBDIR="${PREFIX}/lib"
 
-sed -i "43 a CMAKE_EXTRA_FLAGS := -DCMAKE_INSTALL_PREFIX=$PREFIX" Makefile > Makefile.new
+sed "43 a CMAKE_EXTRA_FLAGS := -DCMAKE_INSTALL_PREFIX=$PREFIX" Makefile > Makefile.new
 mv Makefile Makefile.orig
 mv Makefile.new Makefile
 
