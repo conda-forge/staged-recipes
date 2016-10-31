@@ -9,7 +9,7 @@ fi
 
 pushd $SRC_DIR/tests
 
-command -v mpiexec
-mpiexec -mca plm isolated --allow-run-as-root -np 8 py.test
+command -v mpirun
+mpirun -np 8 py.test
 
 popd
