@@ -29,3 +29,6 @@ make
 #eval ${LIBRARY_SEARCH_VAR}="${PREFIX}/lib" make check
 
 make install
+
+# Remove Python script to avoid confusion and a Python dependency.
+rm -fv "${PREFIX}/bin/event_rpcgen.py"
