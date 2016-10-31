@@ -9,7 +9,6 @@ fi
 
 pushd $SRC_DIR/tests
 
-command -v mpirun
-mpirun -np 8 py.test
+py.test
 
 popd
