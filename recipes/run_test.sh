@@ -9,6 +9,6 @@ fi
 
 pushd $SRC_DIR/tests
 
-py.test
+mpiexec -n 8 python -b -m pytest
 
 popd
