@@ -9,7 +9,7 @@ export CPPFLAGS="-I${PREFIX}/include ${CPPFLAGS}"
 export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS}"
 
 # Set the fallback library environment variable.
-if [[ `uname` == 'Darwin' ]];
+if [[ "$(uname)" == "Darwin" ]];
 then
     export LIBRARY_SEARCH_VAR=DYLD_FALLBACK_LIBRARY_PATH
 else
