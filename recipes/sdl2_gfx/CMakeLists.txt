@@ -5,6 +5,9 @@
 #    %LIBRARY_BIN%\cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ..
 # 
 # to be correctly configured
+# 
+# This file is intended to be used for Windows only!
+
 
 set(PROJECT_NAME "SDL2_gfx")
 project(${PROJECT_NAME})
@@ -21,20 +24,10 @@ FIND_PATH(SDL2_INCLUDE_DIR
     PATH_SUFFIXES include/SDL2 include
 )
 
-if (SDL2_INCLUDE_DIR-NOTFOUND)
-    message(SEND_ERROR "SDL2 headers not found!")
-    return()
-endif (SDL2_INCLUDE_DIR-NOTFOUND)
-
 FIND_LIBRARY(SDL2_LIBRARIES
     NAMES SDL2
     PATH_SUFFIXES lib64 lib lib/x64 lib/x86
 )
-
-if (SDL2_LIBRARIES-NOTFOUND)
-    message(SEND_ERROR "SDL2 libraries not found!")
-    return()
-endif (SDL2_LIBRARIES-NOTFOUND)
 
 message(STATUS "Include dir: ${SDL2_INCLUDE_DIR}")
 message(STATUS "Library location: ${SDL2_LIBRARIES}")
@@ -50,15 +43,11 @@ include_directories(${SDL2_INCLUDE_DIR})
 
 # Dynamic libraries
 add_library(${PROJECT_NAME} SHARED ${SRCS})
+set_target_properties(${PROJECT_NAME} PROPERTIES DEFINE_SYMBOL "DLL_EXPORT")
 target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES})
 
-# Static library
-add_library(${PROJECT_NAME}-static STATIC ${SRCS})
-set_target_properties(${PROJECT_NAME}-static PROPERTIES OUTPUT_NAME "SDL2")
-target_link_libraries(${PROJECT_NAME}-static ${SDL2_LIBRARIES})
-
 ##### Installation targets #####
-install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}-static
+install(TARGETS ${PROJECT_NAME}
   LIBRARY DESTINATION "lib${LIB_SUFFIX}"
   ARCHIVE DESTINATION "lib${LIB_SUFFIX}"
   RUNTIME DESTINATION bin)
