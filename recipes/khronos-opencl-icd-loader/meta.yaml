@@ -1,0 +1,49 @@
+{% set version = "cb4acb99df3441e147bd859c20d9c3533ec95ce8" %}
+{% set sha256 = "e1cc1697d33d8662a0f082603ac8192b5feaa3f97afd3b4ff929ed41fd2fea13" %}
+
+package:
+  name: khronos-opencl-icd-loader
+  version: 2016.10.12
+
+source:
+  fn: {{ version }}.zip
+  url: https://github.com/KhronosGroup/OpenCL-ICD-Loader/archive/{{ version }}.zip
+  sha256: {{ sha256 }}
+
+  patches:
+  # Khronos don't ship those headers, but they require them to build.
+  # See https://github.com/KhronosGroup/OpenCL-ICD-Loader/blob/master/inc/README.txt
+  - add-khronos-headers.patch
+  # Khronos doesn't have an install target in their CMake. Add one.
+  - add-cmake-install.patch
+
+build:
+  number: 0
+
+  # We've got ocl-icd on Linux and the built-in loader on OS X.  No need to use
+  # this ... fantastic piece of software ... anywhere else.
+  skip: true  # [not win]
+
+requirements:
+  build:
+    - cmake
+    - python
+
+test:
+  commands:
+    - if not exist %LIBRARY_INC%\\CL\\cl.h exit 1     # [win]
+    - if not exist %LIBRARY_BIN%\\OpenCL.dll exit 1     # [win]
+
+    # This crashes with a segfault. Likely for a lack of ICD to talk to.
+    # - cd %SRC_DIR%/build && ctest
+
+about:
+  home: https://www.khronos.org/registry/cl/
+  dev_url: https://github.com/KhronosGroup/OpenCL-ICD-Loader
+  license: Potentially non-free semi-copyleft dumpster fire
+  license_file: LICENSE.txt
+  summary: A driver loader for OpenCL
+
+extra:
+  recipe-maintainers:
+    - inducer
