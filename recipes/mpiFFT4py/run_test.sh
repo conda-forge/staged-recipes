@@ -2,6 +2,6 @@
 
 pushd $SRC_DIR/tests
 
-mpiexec -n $CPU_COUNT python -b -m pytest
+python -b -m pytest
 
 popd
