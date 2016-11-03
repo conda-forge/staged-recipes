@@ -1,3 +1,4 @@
 #!/bin/bash
 
-pip install --no-deps .
+$PYTHON setup.py build_ext --inplace
+$PYTHON setup.py install --prefix=$PREFIX
