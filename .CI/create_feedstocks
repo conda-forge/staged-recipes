@@ -2,16 +2,27 @@
 
 set -e
 
+# Ensure we are on the latest commit
+# of the branch where we are converting
+# recipes from. Currently this is `master`.
+git checkout "${TRAVIS_BRANCH}"
 
-if [ -n "$GH_TOKEN" ]; then
-    wget https://raw.githubusercontent.com/pelson/Obvious-CI/master/bootstrap-obvious-ci-and-miniconda.py
-    python bootstrap-obvious-ci-and-miniconda.py ~/miniconda x64 3 --without-obvci && source ~/miniconda/bin/activate root
-    conda config --set show_channel_urls true
-    conda config --add channels conda-forge
-    conda install --yes --quiet conda-smithy
+# Download and setup Miniconda
+mkdir -p ~/miniconda_staging
+pushd ~/miniconda_staging
+curl -L -O https://raw.githubusercontent.com/conda-forge/conda-smithy/master/bootstrap-obvious-ci-and-miniconda.py
+python bootstrap-obvious-ci-and-miniconda.py ~/miniconda x64 3 --without-obvci && source ~/miniconda/bin/activate root
+popd
+rm -rf ~/miniconda_staging
 
-    mkdir -p ~/.conda-smithy
-    echo $TRAVIS_TOKEN > ~/.conda-smithy/travis.token
+conda config --set show_channel_urls true
+conda config --add channels conda-forge
+conda install --yes --quiet git
+conda install --yes --quiet conda-smithy
+conda install --yes --quiet conda-forge-build-setup
+source run_conda_forge_build_setup
 
-    python .CI/create_feedstocks.py
-fi
+mkdir -p ~/.conda-smithy
+echo $TRAVIS_TOKEN > ~/.conda-smithy/travis.token
+
+python .CI/create_feedstocks.py

@@ -19,7 +19,9 @@ import os.path
 from random import choice
 import shutil
 import subprocess
+import sys
 import tempfile
+import traceback
 
 
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
@@ -32,8 +34,8 @@ superlative = ['awesome', 'slick', 'formidable', 'awe-inspiring', 'breathtaking'
                'exalted', 'standout', 'smashing']
 
 
+recipe_directory_name = 'recipes'
 def list_recipes():
-    recipe_directory_name = 'recipes'
     if os.path.isdir(recipe_directory_name):
         recipes = os.listdir(recipe_directory_name)
     else:
@@ -113,6 +115,8 @@ def print_rate_limiting_info(gh):
 
 
 if __name__ == '__main__':
+    exit_code = 0
+
     is_merged_pr = (os.environ.get('TRAVIS_BRANCH') == 'master' and os.environ.get('TRAVIS_PULL_REQUEST') == 'false')
 
     smithy_conf = os.path.expanduser('~/.conda-smithy')
@@ -138,7 +142,6 @@ if __name__ == '__main__':
     owner_info = ['--organization', 'conda-forge']
 
     print('Calculating the recipes which need to be turned into feedstocks.')
-    removed_recipes = []
     with tmp_dir('__feedstocks') as feedstocks_dir:
         feedstock_dirs = []
         for recipe_dir, name in list_recipes():
@@ -180,16 +183,43 @@ if __name__ == '__main__':
                 teams = {team.name: team for team in conda_forge.get_teams()}
 
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
-        # Without this, intermittent failiures to synch the TravisCI repos ensue.
+        # Without this, intermittent failures to synch the TravisCI repos ensue.
         all_maintainers = set()
+        # Hang on to any CI registration errors that occur and raise them at the end.
         for feedstock_dir, name, recipe_dir in feedstock_dirs:
-            subprocess.check_call(['conda', 'smithy', 'register-ci', '--feedstock_directory', feedstock_dir] + owner_info)
+            # Try to register each feedstock with CI.
+            # However sometimes their APIs have issues for whatever reason.
+            # In order to bank our progress, we note the error and handle it.
+            # After going through all the recipes and removing the converted ones,
+            # we fail the build so that people are aware that things did not clear.
+            try:
+                subprocess.check_call(['conda', 'smithy', 'register-ci', '--feedstock_directory', feedstock_dir] + owner_info)
+            except subprocess.CalledProcessError:
+                exit_code = 1
+                traceback.print_exception(*sys.exc_info())
+                continue
 
             subprocess.check_call(['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             subprocess.check_call(['git', 'commit', '-am', "Re-render the feedstock after CI registration."], cwd=feedstock_dir)
-            # Capture the output, as it may contain the GH_TOKEN.
-            out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'master'], cwd=feedstock_dir,
-                                          stderr=subprocess.STDOUT)
+            for i in range(5):
+                try:
+                    # Capture the output, as it may contain the GH_TOKEN.
+                    out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'master'], cwd=feedstock_dir,
+                                                  stderr=subprocess.STDOUT)
+                    break
+                except subprocess.CalledProcessError:
+                    pass
+
+                # Likely another job has already pushed to this repo.
+                # Place our changes on top of theirs and try again.
+                out = subprocess.check_output(['git', 'fetch', 'upstream_with_token', 'master'], cwd=feedstock_dir,
+                                              stderr=subprocess.STDOUT)
+                try:
+                    subprocess.check_call(['git', 'rebase', 'upstream_with_token/master', 'master'], cwd=feedstock_dir)
+                except subprocess.CalledProcessError:
+                    # Handle rebase failure by choosing the changes in `master`.
+                    subprocess.check_call(['git', 'checkout', 'master', '--', '.'], cwd=feedstock_dir)
+                    subprocess.check_call(['git', 'rebase', '--continue'], cwd=feedstock_dir)
 
             # Add team members as maintainers.
             if conda_forge:
@@ -225,7 +255,6 @@ if __name__ == '__main__':
                     print("AN OLD MEMBER ({}) NEEDS TO BE REMOVED FROM {}".format(old_maintainer, repo_name))
 
             # Remove this recipe from the repo.
-            removed_recipes.append(name)
             if is_merged_pr:
                 subprocess.check_call(['git', 'rm', '-r', recipe_dir])
 
@@ -254,13 +283,48 @@ if __name__ == '__main__':
                 team.url + "/memberships/" + new_member
             )
 
+    # Update status based on the remote.
+    subprocess.check_call(['git', 'stash', '--keep-index', '--include-untracked'])
+    subprocess.check_call(['git', 'fetch'])
+    subprocess.check_call(['git', 'rebase', '--autostash'])
+    subprocess.check_call(['git', 'add', '.'])
+    try:
+        subprocess.check_call(['git', 'stash', 'pop'])
+    except subprocess.CalledProcessError:
+        # In case there was nothing to stash.
+        # Finish quietly.
+        pass
+
+    # Parse `git status --porcelain` to handle some merge conflicts and generate the removed recipe list.
+    changed_files = subprocess.check_output(['git', 'status', '--porcelain', recipe_directory_name],
+                                            universal_newlines=True)
+    changed_files = changed_files.splitlines()
+
+    # Add all files from AU conflicts. They are new files that we weren't tracking previously.
+    # Adding them resolves the conflict and doesn't actually add anything to the index.
+    new_file_conflicts = filter(lambda _: _.startswith("AU "), changed_files)
+    new_file_conflicts = map(lambda _ : _.replace("AU", "", 1).lstrip(), new_file_conflicts)
+    for each_new_file in new_file_conflicts:
+        subprocess.check_call(['git', 'add', each_new_file])
+
+    # Generate a fresh listing of recipes removed.
+    #
+    # * Each line we get back is a change to a file in the recipe directory.
+    # * We narrow the list down to recipes that are staged for deletion (ignores examples).
+    # * Then we clean up the list so that it only has the recipe names.
+    removed_recipes = filter(lambda _: _.startswith("D "), changed_files)
+    removed_recipes = map(lambda _ : _.replace("D", "", 1).lstrip(), removed_recipes)
+    removed_recipes = map(lambda _ : os.path.relpath(_, recipe_directory_name), removed_recipes)
+    removed_recipes = map(lambda _ : _.split(os.path.sep)[0], removed_recipes)
+    removed_recipes = sorted(set(removed_recipes))
+
     # Commit any removed packages.
     subprocess.check_call(['git', 'status'])
     if removed_recipes:
-        subprocess.check_call(['git', 'checkout', os.environ.get('TRAVIS_BRANCH')])
-        msg = ('Removed recipe{s} ({}) after converting into feedstock{s}. '
-               '[ci skip]'.format(', '.join(removed_recipes),
+        msg = ('Removed recipe{s} ({}) after converting into feedstock{s}.'
+               ''.format(', '.join(removed_recipes),
                          s=('s' if len(removed_recipes) > 1 else '')))
+        msg += ' [ci skip]' if exit_code == 0 else ''
         if is_merged_pr:
             # Capture the output, as it may contain the GH_TOKEN.
             out = subprocess.check_output(['git', 'remote', 'add', 'upstream_with_token',
@@ -276,3 +340,5 @@ if __name__ == '__main__':
     if gh:
         # Get our final rate limit info.
         print_rate_limiting_info(gh)
+
+    sys.exit(exit_code)
