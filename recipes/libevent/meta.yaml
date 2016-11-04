@@ -1,0 +1,79 @@
+{% set version = "2.0.22" %}
+
+package:
+  name: libevent
+  version: {{ version }}
+
+source:
+  fn: libevent-{{ version }}.tar.gz
+  url: https://github.com/libevent/libevent/archive/release-{{ version }}-stable.tar.gz
+  sha256: ab89639b0819befb1d8b293d52047c6955f8d1c9150c2b22a0e6247930eb9128
+
+build:
+  number: 0
+  skip: True  # [win]
+
+requirements:
+  build:
+    - toolchain
+    - autoconf
+    - automake
+    - libtool
+    - pkg-config
+    - openssl 1.0.*
+
+  run:
+    - openssl 1.0.*
+
+test:
+  requires:
+    - python 2.*
+
+  files:
+    - {{ SRC_DIR }}/event_rpcgen.py
+    - {{ SRC_DIR }}/test/regress.rpc
+
+  commands:
+    # Check for headers.
+    - test -d "${PREFIX}/include/event2"
+
+    # Check for libraries.
+    {% set libs = [
+        "libevent",
+        "libevent_core",
+        "libevent_extra",
+        "libevent_openssl",
+        "libevent_pthreads"
+    ] %}
+
+    {% for each_lib in libs %}
+    - test -f "${PREFIX}/lib/{{ each_lib }}.a"
+    - test -f "${PREFIX}/lib/{{ each_lib }}.dylib"         # [osx]
+    - test -f "${PREFIX}/lib/{{ each_lib }}.so"            # [linux]
+    - test -f "${PREFIX}/lib/{{ each_lib }}.la"
+    {% endfor %}
+
+    {% set pkgconfigs = [
+        "libevent",
+        "libevent_openssl",
+        "libevent_pthreads"
+    ] %}
+
+    # Check for pkg-config files.
+    {% for each_pkgconfig in pkgconfigs %}
+    - test -f "${PREFIX}/lib/pkgconfig/{{ each_pkgconfig }}.pc"
+    {% endfor %}
+
+    # Run included Python script.
+    - python event_rpcgen.py regress.rpc regress.gen.h regress.gen.c
+
+about:
+  home: http://libevent.org/
+  license: BSD 3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: An event notification library.
+
+extra:
+  recipe-maintainers:
+    - jakirkham
