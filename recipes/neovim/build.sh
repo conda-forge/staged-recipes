@@ -10,5 +10,7 @@ export CPATH="${PREFIX}/include"
 
 export LIBDIR="${PREFIX}/lib"
 
+export LIBTOOLIZE="${PREFIX}/bin/libtoolize"
+
 make
 make install
