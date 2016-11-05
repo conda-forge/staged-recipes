@@ -15,6 +15,7 @@ if [ `uname -m` == Darwin ]; then
 fi
 
 ln -s ${PREFIX}/bin/libtoolize ${PREFIX}/bin/glibtoolize
+ln -s ${PREFIX}/bin/libtoolize ${PREFIX}/bin/glibtool
 
 make
 make install
