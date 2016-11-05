@@ -17,5 +17,7 @@ fi
 ln -s ${PREFIX}/bin/libtoolize ${PREFIX}/bin/glibtoolize
 ln -s ${PREFIX}/bin/libtoolize ${PREFIX}/bin/glibtool
 
+glibtool --help
+
 make
 make install
