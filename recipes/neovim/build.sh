@@ -15,7 +15,7 @@ if [ `uname -m` == Darwin ]; then
 fi
 
 ln -s ${PREFIX}/bin/libtoolize ${PREFIX}/bin/glibtoolize
-ln -s ${PREFIX}/bin/libtoolize ${PREFIX}/bin/glibtool
+ln -s ${PREFIX}/bin/libtool ${PREFIX}/bin/glibtool
 
 glibtool --help
 
