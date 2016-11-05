@@ -10,7 +10,11 @@ export CPATH="${PREFIX}/include"
 
 export LIBDIR="${PREFIX}/lib"
 
-export LIBTOOLIZE="${PREFIX}/bin/libtoolize"
+if [ `uname -m` == Darwin ]; then
+    export LIBTOOLIZE="${PREFIX}/bin/libtoolize"
+fi
+
+ln -s ${PREFIX}/bin/libtoolize ${PREFIX}/bin/glibtoolize
 
 make
 make install
