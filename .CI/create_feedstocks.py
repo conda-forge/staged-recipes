@@ -324,7 +324,7 @@ if __name__ == '__main__':
         msg = ('Removed recipe{s} ({}) after converting into feedstock{s}.'
                ''.format(', '.join(removed_recipes),
                          s=('s' if len(removed_recipes) > 1 else '')))
-        msg += ' [ci skip]' if exit_code == 0 else ''
+        msg += ' [ci skip]' if exit_code == 0 else '[skip appveyor]'
         if is_merged_pr:
             # Capture the output, as it may contain the GH_TOKEN.
             out = subprocess.check_output(['git', 'remote', 'add', 'upstream_with_token',
