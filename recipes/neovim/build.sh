@@ -10,6 +10,7 @@ export CPPFLAGS="-I${PREFIX}/include"
 export CPATH="${PREFIX}/include"
 
 export LIBDIR="${PREFIX}/lib"
+export CFLAGS="-fPIC $CFLAGS"
 
 if [ `uname -m` == Darwin ]; then
 	export LIBTOOLIZE="${PREFIX}/bin/libtoolize"
