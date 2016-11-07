@@ -4,7 +4,7 @@ set -x -e
 export PATH=${PREFIX}/bin:$PATH
 export INCLUDE_PATH="${PREFIX}/include"
 
-export LDFLAGS="-L${PREFIX}/lib"
+export LDFLAGS="-L${PREFIX}/lib -liconv"
 
 export CPPFLAGS="-I${PREFIX}/include"
 export CPATH="${PREFIX}/include"
