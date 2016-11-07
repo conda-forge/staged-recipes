@@ -9,42 +9,45 @@
 # This file is intended to be used for Windows only! For other platforms, the supplied makefiles work very well.
 
 
-set(PROJECT_NAME "SDL2_gfx")
+set(PROJECT_NAME "SDL2_image")
 project(${PROJECT_NAME})
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0.0)
 
 set(IS_LIBRARY true)
 set(CMAKE_INCLUDE_CURRENT_DIR TRUE)
 
-include(GenerateExportHeader)
-message(STATUS "Search prefix: ${CMAKE_PREFIX_PATH}")
+# General source files
+file(GLOB SDL2_IMAGE_SOURCE_FILES  ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
+file(GLOB SDL2_IMAGE_INCLUDE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
+include(GenerateExportHeader)
+
+## Try to find SDL2 libraries
+# SDL.h
 FIND_PATH(SDL2_INCLUDE_DIR
     SDL.h
     PATH_SUFFIXES include/SDL2 include
 )
 
-FIND_LIBRARY(SDL2_LIBRARIES
+# SDL2.lib
+FIND_LIBRARY(SDL2_LIBRARY
     NAMES SDL2
     PATH_SUFFIXES lib64 lib lib/x64 lib/x86
 )
 
-message(STATUS "Include dir: ${SDL2_INCLUDE_DIR}")
-message(STATUS "Library location: ${SDL2_LIBRARIES}")
+if(SDL2_LIBRARY)
+	message(STATUS "Found SDL2: ${SDL2_LIBRARY}")
+else()
+	message(FATAL_ERROR "SDL2 libraries could not be located." )
+endif()
 
-set(SRCS
-    SDL2_framerate.c
-    SDL2_gfxPrimitives.c
-    SDL2_imageFilter.c
-    SDL2_rotozoom.c
-)
-
+# Set include dirs
 include_directories(${SDL2_INCLUDE_DIR})
 
-# Dynamic libraries
-add_library(${PROJECT_NAME} SHARED ${SRCS})
+# Create target library specs
+add_library(${PROJECT_NAME} SHARED ${SDL2_IMAGE_SOURCE_FILES})
 set_target_properties(${PROJECT_NAME} PROPERTIES DEFINE_SYMBOL "DLL_EXPORT")
-target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARY})
 
 ##### Installation targets #####
 install(TARGETS ${PROJECT_NAME}
@@ -52,5 +55,5 @@ install(TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION "lib${LIB_SUFFIX}"
   RUNTIME DESTINATION bin)
 
-file(GLOB INCLUDE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
-install(FILES ${INCLUDE_FILES} DESTINATION include/SDL2)
+# Copy .h files to include dir.
+install(FILES ${SDL2_IMAGE_INCLUDE_FILES} DESTINATION include/SDL2)
