@@ -15,7 +15,8 @@ export CFLAGS="-fPIC $CFLAGS"
 if [ `uname -m` == Darwin ]; then
 	export LIBTOOLIZE="${PREFIX}/bin/libtoolize"
 	export LD_LIBRARY_PATH="${PREFIX}/lib"
-	export DYLD_LIBRARY_PATH="${PREFIX}/lib"
+	#export DYLD_LIBRARY_PATH="${PREFIX}/lib"
+	unset DYLD_LIBRARY_PATH
 	export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib"
 fi
 
