@@ -7,11 +7,11 @@ cmake -DBUILD_SHARED_LIBS=ON ^
       %SRC_DIR%
 if errorlevel 1 exit 1
 
-nmake -j %CPU_COUNT%
+nmake
 if errorlevel 1 exit 1
 
-nmake -j %CPU_COUNT% test
+nmake test
 if errorlevel 1 exit 1
 
-nmake -j %CPU_COUNT% install
+nmake install
 if errorlevel 1 exit 1
