@@ -18,13 +18,6 @@ include_directories("${OGG_SOURCE_DIR}/include")
 
 add_library(OGG SHARED ${OGG_SOURCES})
 
-set_target_properties(OGG
-    PROPERTIES
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-)
-
 if(WIN32)
 	if(MSVC)
 		configure_file(	${CMAKE_CURRENT_SOURCE_DIR}/win32/ogg.def ${CMAKE_CURRENT_BINARY_DIR}/win32/ogg.def @ONLY)
@@ -32,15 +25,14 @@ if(WIN32)
 	endif()
 endif()
 
-
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY build)
 set_target_properties(OGG PROPERTIES PREFIX "" OUTPUT_NAME "libogg")
 set_target_properties(OGG PROPERTIES DEFINE_SYMBOL "DLL_EXPORT")
 
 ##### Installation targets #####
 install(TARGETS OGG
-  LIBRARY DESTINATION "lib${LIB_SUFFIX}"
-  ARCHIVE DESTINATION "lib${LIB_SUFFIX}"
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin)
 
 # Copy .h files to include dir.
