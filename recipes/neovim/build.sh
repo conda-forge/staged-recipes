@@ -13,6 +13,7 @@ export LIBDIR="${PREFIX}/lib"
 export CFLAGS="-fPIC $CFLAGS"
 
 if [ `uname -m` == Darwin ]; then
+	brew uninstall libiconv
 	export LIBTOOLIZE="${PREFIX}/bin/libtoolize"
 	export LD_LIBRARY_PATH="${PREFIX}/lib"
 	#export DYLD_LIBRARY_PATH="${PREFIX}/lib"
