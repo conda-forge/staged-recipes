@@ -7,6 +7,7 @@ export INCLUDE_PATH="${PREFIX}/include"
 export LDFLAGS="-L${PREFIX}/lib -liconv"
 
 export CPPFLAGS="-I${PREFIX}/include"
+export CLAGS="-I${PREFIX}/include"
 export CPATH="${PREFIX}/include"
 
 export LIBDIR="${PREFIX}/lib"
