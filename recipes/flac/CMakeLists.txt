@@ -3,10 +3,6 @@ cmake_minimum_required (VERSION 3.1.0)
 
 project (FLAC)
 
-include(CheckLibraryExists)
-include(CheckIncludeFiles)
-include(CheckIncludeFile)
-
 # Ogg Vorbis
 
 FIND_PATH(OGG_INCLUDE_DIR
@@ -25,8 +21,6 @@ message(STATUS "Found ogg libs at ${OGG_LIBRARIES}")
 include_directories(OGG_INCLUDE_DIR)
 
 add_definitions(-DVERSION="1.3.1" -DFLAC_API_EXPORTS)
-
-set(FLAC_CPU_X86_64 OFF CACHE BOOL "Use 64-bit architecture")
 
 if (NOT FLAC_CPU_X86_64)
     set(FLAC_USE_ASM OFF CACHE BOOL "Use assembler")
