@@ -2,8 +2,9 @@
 set -e
 set -x
 
-mkdir -p "${SRC_DIR}/build"
-cd "${SRC_DIR}/build"
+builddir="${SRC_DIR}/cmake-build"
+mkdir -p ${builddir}
+cd ${builddir}
 cmake -DBUILD_SHARED_LIBS=ON \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=${PREFIX} \
