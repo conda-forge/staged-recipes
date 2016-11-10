@@ -15,6 +15,7 @@ export CFLAGS="-I${PREFIX}/include"
 export CFLAGS="-fPIC $CFLAGS"
 
 if [ `uname -m` == Darwin ]; then
+	brew remove pkg-config
 	brew remove libiconv
 	#brew uninstall libiconv
 	export LIBTOOLIZE="${PREFIX}/bin/libtoolize"
@@ -26,8 +27,6 @@ fi
 
 ln -s ${PREFIX}/bin/libtoolize ${PREFIX}/bin/glibtoolize
 ln -s ${PREFIX}/bin/libtool ${PREFIX}/bin/glibtool
-
-glibtool --help
 
 make
 make install
