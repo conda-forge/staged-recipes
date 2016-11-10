@@ -61,32 +61,24 @@ FIND_LIBRARY(SDL2_LIBRARIES
     PATH_SUFFIXES lib64 lib lib/x64 lib/x86
 )
 
-if(SDL2_LIBRARY)
-	message(STATUS "Found SDL2: ${SDL2_LIBRARY}")
+if(SDL2_LIBRARIES)
+	message(STATUS "Found SDL2: ${SDL2_LIBRARIES}")
 else()
 	message(FATAL_ERROR "SDL2 libraries could not be located." )
 endif()
 
-# # =============================================================================================
+# Create target library specs
+include_directories(${SDL2_MIXER_INCLUDE_FILES} ${SDL2_INCLUDE_DIRS})
 
-# include(CheckSymbolExists)
-# include(CheckLibraryExists)
-# include(CheckIncludeFiles)
-# include(CheckIncludeFile)
-
-# set(SDL2_LIBRARIES "${SDL2_LIBRARY}")
-# set(SDL2_INCLUDE_DIRS "${SDL2_INCLUDE_DIR}")
-# set(SDLMIXER_LIBRARIES "")
+add_library(${PROJECT_NAME} SHARED ${SDL2_MIXER_SOURCE_FILES})
 
 set(SDLMIXER_SUPPORT_WAV_MUSIC ON CACHE BOOL "Support for WAV music")
-set(SDLMIXER_SUPPORT_MODPLUG_MUSIC ON CACHE BOOL "Support for ModPlug music")
-set(SDLMIXER_SUPPORT_MOD_MUSIC ON CACHE BOOL "Support for Mod music")
-set(SDLMIXER_SUPPORT_MID_MUSIC ON CACHE BOOL "Support for MIDI music")
+set(SDLMIXER_SUPPORT_MID_MUSIC OFF CACHE BOOL "Support for MIDI music")
 	set(SDLMIXER_SUPPORT_MID_MUSIC_TIMIDITY ON CACHE BOOL "Support for MIDI over TIMIDITI music")
 	set(SDLMIXER_SUPPORT_MID_MUSIC_FLUIDSYNTH OFF CACHE BOOL "Support for MIDI over FluidSynth music")
 	set(SDLMIXER_SUPPORT_MID_MUSIC_NATIVE ON CACHE BOOL "Support for native MIDI music")
 set(SDLMIXER_SUPPORT_OGG_MUSIC ON CACHE BOOL "Support for OggVorbis music")
-set(SDLMIXER_SUPPORT_MP3_MUSIC ON CACHE BOOL "Support for MP3 music")
+set(SDLMIXER_SUPPORT_MP3_MUSIC OFF CACHE BOOL "Support for MP3 music")
 set(SDLMIXER_SUPPORT_MP3_MAD_MUSIC ON CACHE BOOL "Support for MP3 MAD music")
 set(SDLMIXER_SUPPORT_FLAC_MUSIC ON CACHE BOOL "Support for FLAC music")
 
@@ -94,24 +86,9 @@ if(SDLMIXER_SUPPORT_WAV_MUSIC)
 	add_definitions(-DWAV_MUSIC)
 endif()
 
-if(SDLMIXER_SUPPORT_MODPLUG_MUSIC)
-	add_definitions(-DMODPLUG_MUSIC)
-	add_subdirectory(external/libmodplug-0.8.8.4)
-	include_directories(external/libmodplug-0.8.8.4/include)
-	list(APPEND SDLMIXER_LIBRARIES MODPLUG)
-endif()
-
-if(SDLMIXER_SUPPORT_MOD_MUSIC)
-	add_definitions(-DMOD_MUSIC)
-	if (NOT TARGET MIKMOD)
-		add_subdirectory(external/libmikmod-3.1.12)
-	endif()
-	include_directories(external/libmikmod-3.1.12/include)
-	list(APPEND SDLMIXER_LIBRARIES MIKMOD)
-endif()
-
 if(SDLMIXER_SUPPORT_MID_MUSIC)
 	add_definitions(-DMID_MUSIC)
+
 	if(SDLMIXER_SUPPORT_MID_MUSIC_TIMIDITY)
 		add_definitions(-DUSE_TIMIDITY_MIDI)
 		include_directories("${CMAKE_CURRENT_SOURCE_DIR}/timidity")
@@ -131,7 +108,6 @@ if(SDLMIXER_SUPPORT_MID_MUSIC)
 			timidity/timidity.c
 		)
 		list(APPEND SDLMIXER_ADDITIONAL_SRC ${SDLMIXER_TIMIDITY_SRC})
-
 	endif()
 	if(SDLMIXER_SUPPORT_MID_MUSIC_FLUIDSYNTH)
 		add_definitions(-DUSE_FLUIDSYNTH_MIDI)
@@ -150,24 +126,50 @@ endif()
 
 if(SDLMIXER_SUPPORT_OGG_MUSIC)
 	add_definitions(-DOGG_MUSIC)
-	if (NOT TARGET OGG)
-		add_subdirectory(external/libogg-1.3.1)
+	
+	FIND_PATH(OGG_INCLUDE_DIR
+	    ogg.h
+	    PATH_SUFFIXES include/ogg
+	)
+	FIND_LIBRARY(OGG_LIBRARIES
+	    NAMES ogg libogg
+	    PATH_SUFFIXES lib
+	)
+
+	if(SDL2_LIBRARIES-NOTFOUND)
+		message(FATAL_ERROR "OGG libraries could not be located." )
+	else()
+		message(STATUS "Found OGG: ${OGG_LIBRARIES}")
 	endif()
-	include_directories(external/libogg-1.3.1/include)
-	list(APPEND SDLMIXER_LIBRARIES OGG)
 
-	add_subdirectory(external/libvorbis-1.3.3)
-	include_directories(external/libvorbis-1.3.3/include)
-	list(APPEND SDLMIXER_LIBRARIES VORBIS_FILE)
 
+	include_directories(${OGG_INCLUDE_DIR})
+	target_link_libraries(${PROJECT_NAME} ${OGG_LIBRARIES})
+
+	FIND_PATH(VORBIS_INCLUDE_DIR
+	    vorbisenc.h
+	    PATH_SUFFIXES include/vorbis
+	)
+	FIND_LIBRARY(VORBIS_LIBRARIES
+	    NAMES libvorbis vorbis
+	    PATH_SUFFIXES lib
+	)
+
+	FIND_LIBRARY(VORBISFILE_LIBRARIES
+		NAMES libvorbisfile vorbisfile
+	    PATH_SUFFIXES lib
+	)
+
+	include_directories(${VORBIS_INCLUDE_DIR})
+	target_link_libraries(${PROJECT_NAME} ${VORBIS_LIBRARIES} ${VORBISFILE_LIBRARIES})
 endif()
 
-if(SDLMIXER_SUPPORT_MP3_MUSIC)
-	add_definitions(-DMP3_MUSIC)
-	add_subdirectory(external/smpeg2-2.0.0)
-	include_directories(external/smpeg2-2.0.0)
-	list(APPEND SDLMIXER_LIBRARIES SMPEG)
-endif()
+# if(SDLMIXER_SUPPORT_MP3_MUSIC)
+# 	add_definitions(-DMP3_MUSIC)
+# 	# add_subdirectory(external/smpeg2-2.0.0)
+# 	include_directories(external/smpeg2-2.0.0)
+# 	target_link_libraries(${PROJECT_NAME} VisualC/external/lib/x64/smpeg2.dll)
+# endif()
 
 if(SDLMIXER_SUPPORT_MP3_MAD_MUSIC)
 	add_definitions(-DMP3_MAD_MUSIC)
@@ -180,36 +182,41 @@ if(SDLMIXER_SUPPORT_MP3_MAD_MUSIC)
 		message("Unknown architecture: ${CMAKE_SYSTEM_PROCESSOR}")
 	endif()
 
-	add_subdirectory(external/libmad-0.15.1b)
-	include_directories(external/libmad-0.15.1b)
-	list(APPEND SDLMIXER_LIBRARIES LIBMAD)
+	FIND_PATH(MAD_INCLUDE_DIR
+	    mad.h
+	    PATH_SUFFIXES include/libmad include
+	)
+	FIND_LIBRARY(MAD_LIBRARIES
+	    NAMES libmad
+	    PATH_SUFFIXES lib
+	)
+	include_directories(${MAD_INCLUDE_DIR})
+	target_link_libraries(${PROJECT_NAME} ${MAD_LIBRARIES})
 endif()
 
 if(SDLMIXER_SUPPORT_FLAC_MUSIC)
 	add_definitions(-DFLAC_MUSIC)
-	add_subdirectory(external/flac-1.3.1)
-	include_directories(external/flac-1.3.1/include)
-	list(APPEND SDLMIXER_LIBRARIES FLAC)
+
+	FIND_PATH(FLAC_INCLUDE_DIR
+	    all.h
+	    PATH_SUFFIXES include/FLAC include
+	)
+	FIND_LIBRARY(FLAC_LIBRARIES
+	    NAMES libFLAC
+	    PATH_SUFFIXES lib
+	)
+
+	include_directories(${FLAC_INCLUDE_DIR})
+	target_link_libraries(${PROJECT_NAME} ${FLAC_LIBRARIES})
 endif()
 
-# # Set include dirs
-# include_directories(${SDL2_INCLUDE_DIR})
-
-# Set include dirs
-include_directories(${SDL2_INCLUDE_DIRS})
-
-set(SDLMIXER_SOURCES ${SDL2_MIXER_SOURCE_FILES} ${SDLMIXER_ADDITIONAL_SRC})
+set_target_properties(${PROJECT_NAME} PROPERTIES DEFINE_SYMBOL "DLL_EXPORT")
+target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES})
 
 # # Create target library specs
 # add_library(${PROJECT_NAME} SHARED ${SDLMIXER_SOURCES})
 # set_target_properties(${PROJECT_NAME} PROPERTIES DEFINE_SYMBOL "DLL_EXPORT")
 # target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} ${SDLMIXER_LIBRARIES})
-
-
-# Create target library specs
-add_library(${PROJECT_NAME} SHARED ${SDLMIXER_SOURCES})
-set_target_properties(${PROJECT_NAME} PROPERTIES DEFINE_SYMBOL "DLL_EXPORT")
-target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES})
 
 ##### Installation targets #####
 install(TARGETS ${PROJECT_NAME}
