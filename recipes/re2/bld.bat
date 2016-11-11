@@ -1,5 +1,5 @@
-mkdir -p build
-cd build
+mkdir -p cmake-build
+cd cmake-build
 cmake -DBUILD_SHARED_LIBS=ON ^
       -DCMAKE_BUILD_TYPE=Release ^
       -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
