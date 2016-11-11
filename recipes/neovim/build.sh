@@ -14,10 +14,11 @@ export LIBDIR="${PREFIX}/lib"
 export CFLAGS="-I${PREFIX}/include"
 export CFLAGS="-fPIC $CFLAGS"
 
-	brew uninstall pkg-config
-	#brew remove libiconv
-	brew uninstall libiconv
-
+if [ `uname -m` == Darwin ]; then
+	
+	brew remove pkg-config
+	brew remove libiconv
+	
 	export LIBTOOLIZE="${PREFIX}/bin/libtoolize"
 	export LD_LIBRARY_PATH="${PREFIX}/lib"
 	#export DYLD_LIBRARY_PATH="${PREFIX}/lib"
