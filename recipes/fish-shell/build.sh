@@ -1,6 +1,9 @@
 #!/bin/sh
 
+export   CFLAGS="-I$PREFIX/include -I$PREFIX/include/ncursesw"
+export CXXFLAGS="-I$PREFIX/include -I$PREFIX/include/ncursesw"
+
 autoconf
-./configure --prefix=$PREFIX --includedir=$PREFIX/include/ncursesw:$PREFIX/include
+./configure --prefix=$PREFIX
 make -j4
 make install
