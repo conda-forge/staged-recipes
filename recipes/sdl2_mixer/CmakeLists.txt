@@ -17,6 +17,7 @@ include(GenerateExportHeader)
 
 set(IS_LIBRARY true)
 set(CMAKE_INCLUDE_CURRENT_DIR TRUE)
+set(LIBRARIES_TO_LINK )
 
 # General source files
 set(SDL2_MIXER_SOURCE_FILES
@@ -61,19 +62,16 @@ FIND_LIBRARY(SDL2_LIBRARIES
     PATH_SUFFIXES lib64 lib lib/x64 lib/x86
 )
 
-if(SDL2_LIBRARIES)
-	message(STATUS "Found SDL2: ${SDL2_LIBRARIES}")
-else()
+if(SDL2_LIBRARIES-NOTFOUND)
 	message(FATAL_ERROR "SDL2 libraries could not be located." )
+else()
+	message(STATUS "Found SDL2: ${SDL2_LIBRARIES}")
 endif()
 
-# Create target library specs
 include_directories(${SDL2_MIXER_INCLUDE_FILES} ${SDL2_INCLUDE_DIRS})
 
-add_library(${PROJECT_NAME} SHARED ${SDL2_MIXER_SOURCE_FILES})
-
 set(SDLMIXER_SUPPORT_WAV_MUSIC ON CACHE BOOL "Support for WAV music")
-set(SDLMIXER_SUPPORT_MID_MUSIC OFF CACHE BOOL "Support for MIDI music")
+set(SDLMIXER_SUPPORT_MID_MUSIC ON CACHE BOOL "Support for MIDI music")
 	set(SDLMIXER_SUPPORT_MID_MUSIC_TIMIDITY ON CACHE BOOL "Support for MIDI over TIMIDITI music")
 	set(SDLMIXER_SUPPORT_MID_MUSIC_FLUIDSYNTH OFF CACHE BOOL "Support for MIDI over FluidSynth music")
 	set(SDLMIXER_SUPPORT_MID_MUSIC_NATIVE ON CACHE BOOL "Support for native MIDI music")
@@ -91,7 +89,9 @@ if(SDLMIXER_SUPPORT_MID_MUSIC)
 
 	if(SDLMIXER_SUPPORT_MID_MUSIC_TIMIDITY)
 		add_definitions(-DUSE_TIMIDITY_MIDI)
+
 		include_directories("${CMAKE_CURRENT_SOURCE_DIR}/timidity")
+		include_directories("${SDLMIXER_SOURCE_DIR}/timidity")
 		set(SDLMIXER_TIMIDITY_SRC
 			timidity/common.c
 			timidity/ctrlmode.c
@@ -119,10 +119,13 @@ if(SDLMIXER_SUPPORT_MID_MUSIC)
 			native_midi/native_midi_common.c
 		)
 		list(APPEND SDLMIXER_NATIVEMIDI_SRC native_midi/native_midi_win32.c)
-		list(APPEND SDLMIXER_LIBRARIES winmm.lib)	
+		list(APPEND LIBRARIES_TO_LINK winmm.lib)	
 		list(APPEND SDLMIXER_ADDITIONAL_SRC ${SDLMIXER_NATIVEMIDI_SRC})
 	endif()
 endif()
+
+# Create target library specs
+add_library(${PROJECT_NAME} SHARED ${SDL2_MIXER_SOURCE_FILES} ${SDLMIXER_ADDITIONAL_SRC})
 
 if(SDLMIXER_SUPPORT_OGG_MUSIC)
 	add_definitions(-DOGG_MUSIC)
@@ -144,7 +147,7 @@ if(SDLMIXER_SUPPORT_OGG_MUSIC)
 
 
 	include_directories(${OGG_INCLUDE_DIR})
-	target_link_libraries(${PROJECT_NAME} ${OGG_LIBRARIES})
+	list(APPEND LIBRARIES_TO_LINK ${OGG_LIBRARIES})
 
 	FIND_PATH(VORBIS_INCLUDE_DIR
 	    vorbisenc.h
@@ -161,15 +164,15 @@ if(SDLMIXER_SUPPORT_OGG_MUSIC)
 	)
 
 	include_directories(${VORBIS_INCLUDE_DIR})
-	target_link_libraries(${PROJECT_NAME} ${VORBIS_LIBRARIES} ${VORBISFILE_LIBRARIES})
+	list(APPEND LIBRARIES_TO_LINK ${VORBIS_LIBRARIES} ${VORBISFILE_LIBRARIES})
 endif()
 
-# if(SDLMIXER_SUPPORT_MP3_MUSIC)
-# 	add_definitions(-DMP3_MUSIC)
-# 	# add_subdirectory(external/smpeg2-2.0.0)
-# 	include_directories(external/smpeg2-2.0.0)
-# 	target_link_libraries(${PROJECT_NAME} VisualC/external/lib/x64/smpeg2.dll)
-# endif()
+if(SDLMIXER_SUPPORT_MP3_MUSIC)
+	add_definitions(-DMP3_MUSIC)
+	# add_subdirectory(external/smpeg2-2.0.0)
+	include_directories(external/smpeg2-2.0.0)
+	target_link_libraries(${PROJECT_NAME} VisualC/external/lib/x64/smpeg2.dll)
+endif()
 
 if(SDLMIXER_SUPPORT_MP3_MAD_MUSIC)
 	add_definitions(-DMP3_MAD_MUSIC)
@@ -191,7 +194,7 @@ if(SDLMIXER_SUPPORT_MP3_MAD_MUSIC)
 	    PATH_SUFFIXES lib
 	)
 	include_directories(${MAD_INCLUDE_DIR})
-	target_link_libraries(${PROJECT_NAME} ${MAD_LIBRARIES})
+	list(APPEND LIBRARIES_TO_LINK ${MAD_LIBRARIES})
 endif()
 
 if(SDLMIXER_SUPPORT_FLAC_MUSIC)
@@ -207,16 +210,11 @@ if(SDLMIXER_SUPPORT_FLAC_MUSIC)
 	)
 
 	include_directories(${FLAC_INCLUDE_DIR})
-	target_link_libraries(${PROJECT_NAME} ${FLAC_LIBRARIES})
+	list(APPEND LIBRARIES_TO_LINK ${FLAC_LIBRARIES})
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES DEFINE_SYMBOL "DLL_EXPORT")
-target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES})
-
-# # Create target library specs
-# add_library(${PROJECT_NAME} SHARED ${SDLMIXER_SOURCES})
-# set_target_properties(${PROJECT_NAME} PROPERTIES DEFINE_SYMBOL "DLL_EXPORT")
-# target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} ${SDLMIXER_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} ${LIBRARIES_TO_LINK})
 
 ##### Installation targets #####
 install(TARGETS ${PROJECT_NAME}

@@ -1,4 +1,4 @@
-# Written by Daniel Schreij (dschreij@gmail.com) on 1 Nov 2016
+# Written by Daniel Schreij (dschreij@gmail.com) on 11 Nov 2016
 # This procedure is configured to work in an Anaconda build environment (contiuum.io)
 # In this environment, it should be called like 
 # 
@@ -9,16 +9,17 @@
 # This file is intended to be used for Windows only! For other platforms, the supplied makefiles work very well.
 
 
-set(PROJECT_NAME "SDL2_image")
+set(PROJECT_NAME "SDL2_ttf")
 project(${PROJECT_NAME})
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0.0)
 
 set(IS_LIBRARY true)
 set(CMAKE_INCLUDE_CURRENT_DIR TRUE)
 
-# General source files
-file(GLOB SDL2_IMAGE_SOURCE_FILES  ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
-file(GLOB SDL2_IMAGE_INCLUDE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+#source files
+set(SDLTTF_SOURCES
+	SDL_ttf.c
+)
 
 include(GenerateExportHeader)
 
@@ -28,7 +29,6 @@ FIND_PATH(SDL2_INCLUDE_DIR
     SDL.h
     PATH_SUFFIXES include/SDL2 include
 )
-
 # SDL2.lib
 FIND_LIBRARY(SDL2_LIBRARY
     NAMES SDL2
@@ -41,13 +41,32 @@ else()
 	message(FATAL_ERROR "SDL2 libraries could not be located." )
 endif()
 
+## Try to find freetype libraries
+# SDL.h
+FIND_PATH(FREETYPE_INCLUDE_DIR
+    freetype.h
+    PATH_SUFFIXES include/freetype include
+)
+# SDL2.lib
+FIND_LIBRARY(FREETYPE_LIBRARY
+    NAMES freetype libfreetype
+    PATH_SUFFIXES lib
+)
+
+if(FREETYPE_LIBRARY-NOTFOUND)
+	message(FATAL_ERROR "Freetype libraries could not be located." )
+else()
+	message(STATUS "Found freeype: ${FREETYPE_LIBRARY}")
+endif()
+
 # Set include dirs
+# include_directories(./)
 include_directories(${SDL2_INCLUDE_DIR})
 
 # Create target library specs
-add_library(${PROJECT_NAME} SHARED ${SDL2_IMAGE_SOURCE_FILES})
+add_library(${PROJECT_NAME} SHARED ${SDLTTF_SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES DEFINE_SYMBOL "DLL_EXPORT")
-target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARY})
+target_link_libraries (${PROJECT_NAME} ${SDL2_LIBRARY} ${FREETYPE_LIBRARY})
 
 ##### Installation targets #####
 install(TARGETS ${PROJECT_NAME}
@@ -56,4 +75,5 @@ install(TARGETS ${PROJECT_NAME}
   RUNTIME DESTINATION bin)
 
 # Copy .h files to include dir.
-install(FILES ${SDL2_IMAGE_INCLUDE_FILES} DESTINATION include/SDL2)
+file(GLOB SDL2_TTF_INCLUDE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+install(FILES ${SDL2_TTF_INCLUDE_FILES} DESTINATION include/SDL2)
