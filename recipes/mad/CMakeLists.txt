@@ -14,17 +14,6 @@ include(TestBigEndian)
 include_directories(BEFORE ${CMAKE_CURRENT_BINARY_DIR}/)
 include_directories(BEFORE ./)
 
-FIND_LIBRARY(SDL2_LIBRARY
-    NAMES SDL2
-    PATH_SUFFIXES lib64 lib lib/x64 lib/x86
-)
-
-if(SDL2_LIBRARY-NOTFOUND)
-  message(FATAL_ERROR "SDL2 libraries could not be located.")
-else()
-  message(STATUS "Found SDL2: ${SDL2_LIBRARY}")
-endif()
-
 set(LIBMAD_SRC
     bit.c
     decoder.c
@@ -123,15 +112,10 @@ if(WIN32)
     endif()
 endif()
 
-target_link_libraries (LIBMAD
-    ${SDL2_LIBRARY}
-)
-
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY build)
 set_target_properties(LIBMAD
     PROPERTIES PREFIX "" OUTPUT_NAME "libmad"
 )
-
 
 ##### Installation targets #####
 install(TARGETS LIBMAD
