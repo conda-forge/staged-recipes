@@ -45,27 +45,27 @@ set(FLAC_SRC_FLAC
 )
 
 set(FLAC_SRC_LIBFLAC
-    src/libflac/bitmath.c
-    src/libflac/bitreader.c
-    src/libflac/bitwriter.c
-    src/libflac/cpu.c
-    src/libflac/crc.c
-    src/libflac/fixed.c
-    src/libflac/float.c
-    src/libflac/format.c
-    src/libflac/lpc.c
-    src/libflac/md5.c
-    src/libflac/memory.c
-    src/libflac/metadata_iterators.c
-    src/libflac/metadata_object.c
-    src/libflac/ogg_decoder_aspect.c
-    src/libflac/ogg_encoder_aspect.c
-    src/libflac/ogg_helper.c
-    src/libflac/ogg_mapping.c
-    src/libflac/stream_decoder.c
-    src/libflac/stream_encoder.c
-    src/libflac/stream_encoder_framing.c
-    src/libflac/window.c
+    src/libFLAC/bitmath.c
+    src/libFLAC/bitreader.c
+    src/libFLAC/bitwriter.c
+    src/libFLAC/cpu.c
+    src/libFLAC/crc.c
+    src/libFLAC/fixed.c
+    src/libFLAC/float.c
+    src/libFLAC/format.c
+    src/libFLAC/lpc.c
+    src/libFLAC/md5.c
+    src/libFLAC/memory.c
+    src/libFLAC/metadata_iterators.c
+    src/libFLAC/metadata_object.c
+    src/libFLAC/ogg_decoder_aspect.c
+    src/libFLAC/ogg_encoder_aspect.c
+    src/libFLAC/ogg_helper.c
+    src/libFLAC/ogg_mapping.c
+    src/libFLAC/stream_decoder.c
+    src/libFLAC/stream_encoder.c
+    src/libFLAC/stream_encoder_framing.c
+    src/libFLAC/window.c
 )
 
 set(FLAC_SRC_SHARE
