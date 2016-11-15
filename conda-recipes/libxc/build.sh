@@ -1,19 +1,18 @@
 
-#if [ "$(uname)" == "Darwin" ]; then
-#
-#    # configure
-#    ${PREFIX}/bin/cmake \
-#        -H${SRC_DIR} \
-#        -Bbuild \
-#        -DCMAKE_INSTALL_PREFIX=${PREFIX} \
-#        -DCMAKE_BUILD_TYPE=Release \
-#        -DCMAKE_C_COMPILER="${PREFIX}/bin/gcc" \
-#        -DCMAKE_INSTALL_LIBDIR=lib \
-#        -DBUILD_SHARED_LIBS=ON \
-#        -DENABLE_OPENMP=OFF \
-#        -DFRAGLIB_UNDERSCORE_L=OFF \
-#        -DFRAGLIB_DEEP=OFF
-#fi
+if [ "$(uname)" == "Darwin" ]; then
+
+    # configure
+    ${PREFIX}/bin/cmake \
+        -H${SRC_DIR} \
+        -Bbuild \
+        -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_C_COMPILER=clang \
+        -DCMAKE_INSTALL_LIBDIR=lib \
+        -DNAMESPACE_INSTALL_INCLUDEDIR="/libxc" \
+        -DBUILD_SHARED_LIBS=ON \
+        -DBUILD_TESTING=ON
+fi
 
 if [ "$(uname)" == "Linux" ]; then
 
