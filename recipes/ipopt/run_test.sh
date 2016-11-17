@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 # Test the ipopt binary
 ipopt mytoy.nl | grep -q "Optimal Solution"
