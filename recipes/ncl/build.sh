@@ -1,10 +1,10 @@
 #!/bin/sh
 
 export CC=${PREFIX}/bin/gcc
-export CXXFLAGS="-fPIC"
-export LDFLAGS="-L${PREFIX}/lib"
-export CPPFLAGS="-I${PREFIX}/include"
-export CFLAGS="-I${PREFIX}/include"
+export CXXFLAGS="-fPIC $CXXFLAGS"
+export LDFLAGS="-L${PREFIX}/lib $LDFLAGS"
+export CPPFLAGS="-I${PREFIX}/include $CPPFLAGS"
+export CFLAGS="-I${PREFIX}/include $CFLAGS"
 
 if [ "$(uname)" = "Darwin" ]; then
     if [ -d "/opt/X11" ]; then
