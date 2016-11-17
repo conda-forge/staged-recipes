@@ -25,11 +25,6 @@ mkdir triangle_tmp && cd triangle_tmp && curl -q http://www.netlib.org/voronoi/t
 # add "-std=c99" to compile config files -- not needed after NCL 6.3.0
 sed -e "s/^\(#define CcOptions.*\)$/\1 -std=c99/" -i.backup "${conf_file}"
 
-# install csh on CircleCI builds
-if [ "${CIRCLE_BUILD_IMAGE}" = "ubuntu-12.04" ]; then
-    sudo apt-get install csh
-fi
-
 echo "/*
  *  This file was created by the Configure script.
  */
