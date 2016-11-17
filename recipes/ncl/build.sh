@@ -28,6 +28,9 @@ sed -e "s/^\(#define CcOptions.*\)$/\1 -std=c99/" -i.backup "${conf_file}"
 # fix path to cpp in ymake -- we should fix this in NCL
 sed -e "s|^\(  set cpp = \)/lib/cpp$|\1${PREFIX}/bin/cpp|g" -i.backup config/ymake
 
+# fix path to cpp in $conf_file
+sed -e "s|/usr/bin/cpp$|${PREFIX}/bin/cpp|g" -i.backup ${conf_file}
+
 sed -e "s|\${PREFIX}|${PREFIX}|g" -e "s|\${x11_inc}|${x11_inc}|g" -e "s|\${x11_lib}|${x11_lib}|g" "${RECIPE_DIR}/Site.local.template" > config/Site.local
 
 echo -e "n\n" | ./Configure
