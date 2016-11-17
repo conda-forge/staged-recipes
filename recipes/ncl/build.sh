@@ -25,27 +25,7 @@ mkdir triangle_tmp && cd triangle_tmp && curl -q http://www.netlib.org/voronoi/t
 # add "-std=c99" to compile config files -- not needed after NCL 6.3.0
 sed -e "s/^\(#define CcOptions.*\)$/\1 -std=c99/" -i.backup "${conf_file}"
 
-echo "/*
- *  This file was created by the Configure script.
- */
-
-#ifdef FirstSite
-
-#endif /* FirstSite */
-
-#ifdef SecondSite
-
-#define YmakeRoot ${PREFIX}
-
-#define LibSearch ${x11_lib} -L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib
-#define IncSearch ${x11_inc} -I${PREFIX}/include -I${PREFIX}/include/freetype2
-
-#define BuildGDAL 1
-
-#define HDF5lib -lhdf5_hl -lhdf5 -lz
-#define NetCDF4lib  -lhdf5_hl -lhdf5
-
-#endif /* SecondSite */" > config/Site.local
+sed -e "s|\${PREFIX}|${PREFIX}|g" -e "s|\${x11_inc}|${x11_inc}|g" -e "s|\${x11_lib}|${x11_lib}|g" "${RECIPE_DIR}/Site.local.template" > config/Site.local
 
 echo -e "n\n" | ./Configure
 make Everything
