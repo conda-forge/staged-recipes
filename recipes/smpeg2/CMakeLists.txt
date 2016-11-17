@@ -55,6 +55,10 @@ set(SMPEG_SRC
     smpeg.cpp
 )
 
+set(PLAYMPEG_SOURCES
+    plaympeg.c
+)
+
 set(SMPEG_SOURCES
     ${SMPEG_SRC}
     ${SMPEG_AUDIO_SRC}
@@ -73,6 +77,10 @@ add_library(SMPEG SHARED
     ${SMPEG_SOURCES}
 )
 
+# add_executable(plaympeg
+#     ${PLAYMPEG_SOURCES}
+# )
+
 set_target_properties(SMPEG
     PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
@@ -80,17 +88,26 @@ set_target_properties(SMPEG
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
-if(WIN32)
-    if(MSVC)
-        #add_definitions(-DDECLSPEC="_declspec(dllexport)")
-    endif()
-endif()
-
-target_link_libraries (SMPEG
-    ${SDL2_LIBRARY}
+target_link_libraries(SMPEG
+    ${SDL2_LIBRARIES}
 )
+
+# target_link_libraries(plaympeg
+#     SMPEG ${SDL2_LIBRARIES}
+# )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY build)
 set_target_properties(SMPEG
-    PROPERTIES PREFIX "" OUTPUT_NAME "libsmpeg2"
+    PROPERTIES PREFIX "" OUTPUT_NAME "smpeg2"
 )
+set_target_properties(SMPEG PROPERTIES DEFINE_SYMBOL "DLL_EXPORT")
+
+##### Installation targets #####
+install(TARGETS SMPEG # plaympeg
+  LIBRARY DESTINATION "lib${LIB_SUFFIX}"
+  ARCHIVE DESTINATION "lib${LIB_SUFFIX}"
+  RUNTIME DESTINATION bin)
+
+# Copy .h files to include dir.
+file(GLOB SMPEG_INCLUDE_FILES ${SMPEG_SOURCE_DIR}/*.h)
+install(FILES ${SMPEG_INCLUDE_FILES} DESTINATION include/smpeg2)
