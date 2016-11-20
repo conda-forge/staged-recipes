@@ -5,7 +5,7 @@ then
     export CC=clang
     export CXX=clang++
     export CXXFLAGS="-mmacosx-version-min=${MACOSX_VERSION_MIN}"
-    export CXXFLAGS="${CXXFLAGS} -stdlib=libc++ -std=c++11"
+    export CXXFLAGS="${CXXFLAGS} -stdlib=libc++ -std=c++11 -I${PREFIX}/include"
     export LIBS="-lc++"
 elif [ "$(uname)" == "Linux" ];
 then
