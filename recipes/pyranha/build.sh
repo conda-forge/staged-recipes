@@ -11,6 +11,6 @@ cmake \
     -DBUILD_PYRANHA=yes \
     ..
 
-make -j4
+make
 make install
 
