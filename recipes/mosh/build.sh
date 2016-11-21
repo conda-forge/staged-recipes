@@ -1,6 +1,7 @@
-export CXXFLAGS="${CXXFLAGS} -I${PREFIX}/include"
+# See https://github.com/conda-forge/toolchain-feedstock/pull/11
+export CXXFLAGS="${CXXFLAGS} -I${PREFIX}/include `pkg-config --cflags zlib`"
+export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib `pkg-config --libs zlib`"
 
-ZLIB_ROOT=$PREFIX
 ./configure --prefix="${PREFIX}"
 make -j"${CPU_COUNT}"
 make install
