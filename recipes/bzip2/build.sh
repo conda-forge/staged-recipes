@@ -6,10 +6,10 @@ if [ `uname` == Darwin ]; then
 else    
     # Build binaries    
     make
-    make install PREFIX=$PREFIX
     make check
     # Build shared libraries
     make -f Makefile-libbz2_so
+    make install PREFIX=$PREFIX
     cp -i libbz2.so.* $PREFIX/lib/
 fi
 
