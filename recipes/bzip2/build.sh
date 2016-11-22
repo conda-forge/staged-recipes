@@ -10,4 +10,3 @@ else
     make install PREFIX=$PREFIX
     cp -i libbz2.so.* $PREFIX/lib/
 fi
-
