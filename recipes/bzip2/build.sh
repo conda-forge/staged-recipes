@@ -2,8 +2,8 @@
 
 if [ `uname` == Darwin ]; then
     make install PREFIX=$PREFIX CFLAGS="$CFLAGS"
-else    
-    # Build binaries & check 
+else
+    # Build binaries & check
     make
     # Build shared libraries
     make -f Makefile-libbz2_so
