@@ -1,7 +1,10 @@
 # See https://github.com/conda-forge/toolchain-feedstock/pull/11
-export CXXFLAGS="${CXXFLAGS} -I${PREFIX}/include $(pkg-config --cflags zlib)"
-export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib $(pkg-config --libs zlib)"
+export CXXFLAGS="${CXXFLAGS} -I${PREFIX}/include"
+export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
 
-./configure --prefix="${PREFIX}"
+./configure --prefix="${PREFIX}" \
+            --with-ncurses \
+            --with-curses=$PREFIX \
+            --with-crypto-library=openssl
 make -j"${CPU_COUNT}"
 make install
