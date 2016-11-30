@@ -22,6 +22,8 @@ elif [ "$(uname)" == "Linux" ]; then
     TOOLSET=gcc
 fi
 
+LINKFLAGS="${LINKFLAGS} -L${LIBRARY_PATH}"
+
 ./bootstrap.sh \
     --prefix="${PREFIX}" \
     --without-libraries=python \
