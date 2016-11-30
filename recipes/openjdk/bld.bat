@@ -1,4 +1,4 @@
-xcopy bin %LIBRARY_BIN% /E
-xcopy include %LIBRARY_INC% /E
-xcopy jre %LIBRARY_PREFIX% /E
-xcopy lib "%LIBRARY_LIB% /E
+xcopy bin/* %LIBRARY_BIN% /e /y
+xcopy include/* %LIBRARY_INC% /e /y
+xcopy jre %LIBRARY_PREFIX% /e /y
+xcopy lib/* "%LIBRARY_LIB% /e /y
