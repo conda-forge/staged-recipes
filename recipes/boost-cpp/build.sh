@@ -17,56 +17,30 @@ LIBRARY_PATH="${PREFIX}/lib"
 CXXFLAGS="${CXXFLAGS} -fPIC"
 
 if [ "$(uname)" == "Darwin" ]; then
-    MACOSX_VERSION_MIN=10.9
-    CXXFLAGS="-mmacosx-version-min=${MACOSX_VERSION_MIN}"
-    CXXFLAGS="${CXXFLAGS} -stdlib=libc++ -std=c++11"
-    LINKFLAGS="-mmacosx-version-min=${MACOSX_VERSION_MIN}"
-    LINKFLAGS="${LINKFLAGS} -stdlib=libc++ -std=c++11 -L${LIBRARY_PATH}"
-
-    ./bootstrap.sh \
-        --prefix="${PREFIX}" \
-        --without-libraries=python \
-        --with-icu="${PREFIX}" \
-        | tee bootstrap.log 2>&1
-
-    ./b2 -q \
-        variant=release \
-        address-model=64 \
-        architecture=x86 \
-        debug-symbols=off \
-        threading=multi \
-        link=static,shared \
-        toolset=clang \
-        include="${INCLUDE_PATH}" \
-        cxxflags="${CXXFLAGS}" \
-        linkflags="${LINKFLAGS}" \
-        -j"$(sysctl -n hw.ncpu)" \
-        install | tee b2.log 2>&1
+    TOOLSET=clang
+elif [ "$(uname)" == "Linux" ]; then
+    TOOLSET=gcc
 fi
 
-if [ "$(uname)" == "Linux" ]; then
-    CXXFLAGS="${CXXFLAGS} -std=c++11"
-    LINKFLAGS="${LINKFLAGS} -std=c++11 -L${LIBRARY_PATH}"
+./bootstrap.sh \
+    --prefix="${PREFIX}" \
+    --without-libraries=python \
+    --with-icu="${PREFIX}" \
+    | tee bootstrap.log 2>&1
 
-    ./bootstrap.sh \
-        --prefix="${PREFIX}" \
-        --without-libraries=python \
-        --with-icu="${PREFIX}" \
-        | tee bootstrap.log 2>&1
+./b2 -q \
+    variant=release \
+    address-model="${ARCH}" \
+    architecture=x86 \
+    debug-symbols=off \
+    threading=multi \
+    runtime-link=shared \
+    link=static,shared \
+    toolset=${TOOLSET} \
+    include="${INCLUDE_PATH}" \
+    cxxflags="${CXXFLAGS}" \
+    linkflags="${LINKFLAGS}" \
+    --layout=system \
+    -j"${CPU_COUNT}" \
+    install | tee b2.log 2>&1
 
-    ./b2 -q \
-        variant=release \
-        address-model="${ARCH}" \
-        architecture=x86 \
-        debug-symbols=off \
-        threading=multi \
-        runtime-link=shared \
-        link=static,shared \
-        toolset=gcc \
-        include="${INCLUDE_PATH}" \
-        cxxflags="${CXXFLAGS}" \
-        linkflags="${LINKFLAGS}" \
-        --layout=system \
-        -j"${CPU_COUNT}" \
-        install | tee b2.log 2>&1
-fi
