@@ -11,3 +11,10 @@ cp -r bin $PREFIX
 cp -r include $PREFIX
 cp -r jre $PREFIX
 cp -r lib $PREFIX
+
+for action in activate deactivate
+do
+    dir=$PREFIX/etc/conda/$action.d
+    mkdir -p $dir
+    cp $RECIPE_DIR/scripts/$action.sh $dir/java_home.sh
+done
