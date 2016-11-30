@@ -12,7 +12,6 @@ if errorlevel 1 exit 1
     threading=multi ^
     link=static,shared ^
     --without-python
-    -j%CPU_COUNT%
 if errorlevel 1 exit 1
 
 :: Get the major minor version info (e.g. `1_61`)
