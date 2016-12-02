@@ -12,7 +12,7 @@ if(APPLE)
 endif()
 
 # Extract project version from configure.ac
-file(READ configure.ac CONFIGURE_AC_CONTENTS)
+file(READ configure.in CONFIGURE_AC_CONTENTS)
 string(REGEX MATCH "AC_INIT\\(\\[libogg\\],\\[([0-9]*).([0-9]*).([0-9]*)" DUMMY ${CONFIGURE_AC_CONTENTS})
 set(PROJECT_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(PROJECT_VERSION_MINOR ${CMAKE_MATCH_2})
