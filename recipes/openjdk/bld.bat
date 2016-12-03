@@ -4,8 +4,8 @@ MOVE jre %LIBRARY_PREFIX%\jre
 MOVE lib\* %LIBRARY_LIB%
 
 :: ensure that JAVA_HOME is set correctly
-for %%x in (activate deactivate) do (
-    set "dir=%PREFIX%\etc\conda\%%x.d"
-    mkdir "!dir!"
-    copy "%RECIPE_DIR%\scripts\%%x.bat" "!dir!"
-)
+mkdir %PREFIX%\etc\conda\activate.d
+echo set "JAVA_HOME_CONDA_BACKUP=%%JAVA_HOME%%" > "%PREFIX%\etc\conda\activate.d\java_home.bat"
+echo set "JAVA_HOME=%%CONDA_PREFIX%%\Library" >> "%PREFIX%\etc\conda\activate.d\java_home.bat"
+mkdir %PREFIX%\etc\conda\deactivate.d
+echo set "JAVA_HOME=%%JAVA_HOME_CONDA_BACKUP%%" > "%PREFIX%\etc\conda\deactivate.d\java_home.bat"
