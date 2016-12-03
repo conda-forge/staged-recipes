@@ -8,6 +8,16 @@ mv include $PREFIX/include
 if [ -e jre/lib/jspawnhelper ]; then
     chmod +x jre/lib/jspawnhelper
 fi
+
+if [[ `uname` == "Linux" ]]
+then
+    mv lib/amd64/jli/*.so lib
+    mv lib/amd64/*.so lib
+    rm -r lib/amd64
+    # libnio.so does not find this within jre/lib/amd64 subdirectory
+    cp jre/lib/amd64/libnet.so lib
+fi
+
 mv jre $PREFIX/
 mv lib $PREFIX/lib
 
