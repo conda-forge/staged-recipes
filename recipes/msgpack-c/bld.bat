@@ -4,7 +4,7 @@ cd build
 IF "%ARCH%"=="32" (
     SET EXTRA_COMPILE_FLAGS=
 ) ELSE (
-    SET EXTRA_COMPILE_FLAGS=/wd4267
+    SET EXTRA_COMPILE_FLAGS=/wd4267 /wd4244
 )
 
 cmake ^
