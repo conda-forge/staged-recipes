@@ -2,9 +2,9 @@ mkdir build
 cd build
 
 IF "%ARCH%"=="32" (
-    SET ENABLE32=YES
+    SET COMPILE_FLAGS="/wd4267"
 ) ELSE (
-    SET ENABLE32=NO
+    SET COMPILE_FLAGS=""
 )
 
 cmake ^
@@ -15,7 +15,8 @@ cmake ^
     -DMSGPACK_BOOST_DIR=%LIBRARY_PREFIX%\include ^
     -DMSGPACK_BOOST=YES ^
     -DCMAKE_BUILD_TYPE=Release ^
-    -DMSGPACK_32BIT=%ENABLE32% ^
+    -DCMAKE_CXX_FLAGS="%COMPILE_FLAGS%" ^
+    -DCMAKE_C_FLAGS="%COMPILE_FLAGS%" ^
     ..
 
 cmake --build . --config Release
