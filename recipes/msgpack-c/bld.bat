@@ -10,6 +10,12 @@ IF "%ARCH%"=="32" (
     IF "%CONDA_PY%"=="27" SET GENERATOR=NMake Makefiles
 )
 
+IF "%CONDA_PY%"=="35" (
+    SET ENABLE_CXX11=YES
+) ELSE (
+    SET ENABLE_CXX11=NO
+)
+
 cmake ^
     -G "%GENERATOR%" ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
@@ -18,6 +24,7 @@ cmake ^
     -DBoost_INCLUDE_DIRS=%LIBRARY_PREFIX%\include ^
     -DMSGPACK_BOOST_DIR=%LIBRARY_PREFIX%\include ^
     -DMSGPACK_BOOST=YES ^
+    -DMSGPACK_CXX11=%ENABLE_CXX11% ^
     -DCMAKE_BUILD_TYPE=Release ^
     ..
 
