@@ -201,9 +201,25 @@ if __name__ == '__main__':
 
             subprocess.check_call(['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             subprocess.check_call(['git', 'commit', '-am', "Re-render the feedstock after CI registration."], cwd=feedstock_dir)
-            # Capture the output, as it may contain the GH_TOKEN.
-            out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'master'], cwd=feedstock_dir,
-                                          stderr=subprocess.STDOUT)
+            for i in range(5):
+                try:
+                    # Capture the output, as it may contain the GH_TOKEN.
+                    out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'master'], cwd=feedstock_dir,
+                                                  stderr=subprocess.STDOUT)
+                    break
+                except subprocess.CalledProcessError:
+                    pass
+
+                # Likely another job has already pushed to this repo.
+                # Place our changes on top of theirs and try again.
+                out = subprocess.check_output(['git', 'fetch', 'upstream_with_token', 'master'], cwd=feedstock_dir,
+                                              stderr=subprocess.STDOUT)
+                try:
+                    subprocess.check_call(['git', 'rebase', 'upstream_with_token/master', 'master'], cwd=feedstock_dir)
+                except subprocess.CalledProcessError:
+                    # Handle rebase failure by choosing the changes in `master`.
+                    subprocess.check_call(['git', 'checkout', 'master', '--', '.'], cwd=feedstock_dir)
+                    subprocess.check_call(['git', 'rebase', '--continue'], cwd=feedstock_dir)
 
             # Add team members as maintainers.
             if conda_forge:
@@ -308,7 +324,7 @@ if __name__ == '__main__':
         msg = ('Removed recipe{s} ({}) after converting into feedstock{s}.'
                ''.format(', '.join(removed_recipes),
                          s=('s' if len(removed_recipes) > 1 else '')))
-        msg += ' [ci skip]' if exit_code == 0 else ''
+        msg += ' [ci skip]' if exit_code == 0 else '[skip appveyor]'
         if is_merged_pr:
             # Capture the output, as it may contain the GH_TOKEN.
             out = subprocess.check_output(['git', 'remote', 'add', 'upstream_with_token',
