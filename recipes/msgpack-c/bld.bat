@@ -26,4 +26,4 @@ cmake --build . --config Release --target install
 
 cd "%LIBRARY_PREFIX%/lib"
 ren msgpackc.lib msgpackc_static.lib
-ren msgpackc_import.lib mspackc.lib
+ren msgpackc_import.lib msgpackc.lib
