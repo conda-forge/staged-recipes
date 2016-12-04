@@ -1,15 +1,14 @@
 mkdir build
 cd build
 
+SET GENERATOR=%CMAKE_GENERATOR%
+
 IF "%ARCH%"=="32" (
     SET EXTRA_COMPILE_FLAGS=
 ) ELSE (
     SET EXTRA_COMPILE_FLAGS=/wd4267 /wd4244
+    IF "%CONDA_PY%"=="27" SET GENERATOR=NMake Makefiles
 )
-
-SET GENERATOR=%CMAKE_GENERATOR%
-
-IF "%TARGET_ARCH%"=="x64" IF "%CONDA_PY%"=="27" SET GENERATOR=NMake Makefiles
 
 cmake ^
     -G "%GENERATOR%" ^
