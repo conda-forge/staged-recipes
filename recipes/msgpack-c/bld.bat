@@ -25,6 +25,8 @@ cmake ^
     -DMSGPACK_BOOST_DIR=%LIBRARY_PREFIX%\include ^
     -DMSGPACK_BOOST=YES ^
     -DMSGPACK_CXX11=%ENABLE_CXX11% ^
+    -DGTEST_LIBRARY=%LIBRARY_BIN%\gtest_dll.lib ^
+    -DGTEST_MAIN_LIBRARY=%LIBRARY_BIN%\gtest_main.lib ^
     -DCMAKE_BUILD_TYPE=Release ^
     ..
 
