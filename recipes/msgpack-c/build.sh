@@ -13,6 +13,7 @@ cmake \
     -DMSGPACK_BOOST=YES \
     ..
 
-make
+cmake --build .
+cmake --build . --target install
 
-make install
+ctest

@@ -31,6 +31,8 @@ cmake ^
 cmake --build . --config Release
 cmake --build . --config Release --target install
 
+ctest
+
 cd "%LIBRARY_PREFIX%/lib"
 ren msgpackc.lib msgpackc_static.lib
 ren msgpackc_import.lib msgpackc.lib
