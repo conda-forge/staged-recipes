@@ -1,0 +1,90 @@
+From 39ba1b6910bef6d70728264a0e896f41c50ab814 Mon Sep 17 00:00:00 2001
+From: Ray Donnelly <mingw.android@gmail.com>
+Date: Mon, 22 Feb 2016 00:47:26 +0000
+Subject: [PATCH] Win32: Stop confusing PECOFF_SHLIBS with CYGWIN_BUILD
+
+Because they're not the same. You might want to build on a different
+shell to Cygwin and not have link errors.
+---
+ R-src/configure                                | 18 +++++++++---------
+ R-src/configure.ac                             |  2 +-
+ R-src/src/extra/blas/Makefile.in               |  4 ++--
+ RRO-src/files/common/configure.patch           | 16 ++++++++--------
+ RRO-src/files/common/connector/configure.patch | 16 ++++++++--------
+ 5 files changed, 28 insertions(+), 28 deletions(-)
+
+diff --git a/R-src/configure b/R-src/configure
+index 12be376..fa3d610 100755
+--- configure
++++ configure
+@@ -923,8 +923,8 @@ USE_EXPORTFILES_FALSE
+ USE_EXPORTFILES_TRUE
+ SHLIB_EXT
+ SHLIB_LIBADD
+-BUILD_CYGWIN_FALSE
+-BUILD_CYGWIN_TRUE
++PECOFF_SHLIBS_FALSE
++PECOFF_SHLIBS_TRUE
+ DYLIB_UNDEFINED_ALLOWED_FALSE
+ DYLIB_UNDEFINED_ALLOWED_TRUE
+ INTERNET_LIBS
+@@ -26819,12 +26819,12 @@ else
+   DYLIB_UNDEFINED_ALLOWED_FALSE=
+ fi
+ 
+- if test "x${is_cygwin}" = xyes; then
+-  BUILD_CYGWIN_TRUE=
+-  BUILD_CYGWIN_FALSE='#'
++ if test "x${SHLIB_EXT}" = "x.dll"; then
++  PECOFF_SHLIBS_TRUE=
++  PECOFF_SHLIBS_FALSE='#'
+ else
+-  BUILD_CYGWIN_TRUE='#'
+-  BUILD_CYGWIN_FALSE=
++  PECOFF_SHLIBS_TRUE='#'
++  PECOFF_SHLIBS_FALSE=
+ fi
+ 
+ 
+@@ -43532,8 +43532,8 @@ if test -z "${DYLIB_UNDEFINED_ALLOWED_TRUE}" && test -z "${DYLIB_UNDEFINED_ALLOW
+   as_fn_error $? "conditional \"DYLIB_UNDEFINED_ALLOWED\" was never defined.
+ Usually this means the macro was only invoked conditionally." "$LINENO" 5
+ fi
+-if test -z "${BUILD_CYGWIN_TRUE}" && test -z "${BUILD_CYGWIN_FALSE}"; then
+-  as_fn_error $? "conditional \"BUILD_CYGWIN\" was never defined.
++if test -z "${PECOFF_SHLIBS_TRUE}" && test -z "${PECOFF_SHLIBS_FALSE}"; then
++  as_fn_error $? "conditional \"PECOFF_SHLIBS\" was never defined.
+ Usually this means the macro was only invoked conditionally." "$LINENO" 5
+ fi
+ if test -z "${USE_EXPORTFILES_TRUE}" && test -z "${USE_EXPORTFILES_FALSE}"; then
+diff --git a/R-src/configure.ac b/R-src/configure.ac
+index a91405d..b34a010 100644
+--- configure.ac
++++ configure.ac
+@@ -1742,7 +1742,7 @@ fi
+ AC_SUBST(INTERNET_LIBS)
+ 
+ AM_CONDITIONAL(DYLIB_UNDEFINED_ALLOWED, [test "x${dylib_undefined_allowed}" = xyes])
+-AM_CONDITIONAL(BUILD_CYGWIN, [test "x${is_cygwin}" = xyes])
++AM_CONDITIONAL(PECOFF_SHLIBS, [test "x${SHLIB_EXT}" = "x.dll"])
+ 
+ AC_SUBST(MAIN_LD)
+ AC_SUBST(MAIN_LDFLAGS)
+diff --git a/R-src/src/extra/blas/Makefile.in b/R-src/src/extra/blas/Makefile.in
+index 3d12908..9475a6d 100644
+--- src/extra/blas/Makefile.in
++++ src/extra/blas/Makefile.in
+@@ -33,8 +33,8 @@ R:
+ 	@$(MAKE) rhome="$(abs_top_builddir)" Rblas_install
+ 
+ blas_OBJS=blas.o @COMPILE_FORTRAN_DOUBLE_COMPLEX_FALSE@ cmplxblas.o
+-@USE_EXTERNAL_BLAS_FALSE@$(Rblas_la): $(blas_OBJS) @BUILD_CYGWIN_TRUE@ xerbla.o
+-@USE_EXTERNAL_BLAS_FALSE@	$(DYLIB_LINK) -o $(Rblas_la) $(blas_OBJS) $(Rblas_la_LIBADD) @BUILD_CYGWIN_TRUE@ xerbla.o
++@USE_EXTERNAL_BLAS_FALSE@$(Rblas_la): $(blas_OBJS) @PECOFF_SHLIBS_TRUE@ xerbla.o
++@USE_EXTERNAL_BLAS_FALSE@	$(DYLIB_LINK) -o $(Rblas_la) $(blas_OBJS) $(Rblas_la_LIBADD) @PECOFF_SHLIBS_TRUE@ xerbla.o
+ 
+ @USE_EXTERNAL_BLAS_TRUE@$(Rblas_la): blas00.o
+ @USE_EXTERNAL_BLAS_TRUE@	$(DYLIB_LINK) -o $(Rblas_la) $^ @BLAS_LIBS0@ $(Rblas_la_LIBADD0)
+-- 
+2.7.1
+
