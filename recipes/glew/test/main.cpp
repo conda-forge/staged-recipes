@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 int main() {
+    fprintf(stdout, "Start of main()\n");
     GLenum err = glewInit();
     if (GLEW_OK != err)
     {
