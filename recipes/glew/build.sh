@@ -17,19 +17,22 @@ fi
 
 if [ -f "${PREFIX}/lib64/pkgconfig/glew.pc" ]; then
     mv "${PREFIX}/lib64/pkgconfig/glew.pc" "${PREFIX}/lib/pkgconfig/glew.pc"
+
+    # The generated pkg-config file references /lib64
+    sed -i s/lib64/lib/ ${PREFIX}/lib/pkgconfig/glew.pc
 fi
 
+# Don't install the cmake files for 2 reasons:
+#   1 - cmake already provides a FindGLEW.cmake
+#   2 - the generated file contains hardcoded paths to /usr/lib64, to reference the files
+#       GL.so and GLU.so libraries.
+#       Other distros don't use this nomenclature (eg.: Ubuntu) making these files unsuitable for use
+#       in other distros other than redhat/centos.
 if [ -d "${PREFIX}/lib64/cmake/glew/" ]; then
-    mkdir -p "${PREFIX}/lib/cmake/"
-    mv "${PREFIX}/lib64/cmake/glew" "${PREFIX}/lib/cmake/glew"
-
-    if [ "$(ls -A ${PREFIX}/lib64/cmake)" ]; then
-        rm -rf "${PREFIX}/lib64/cmake"
-    fi
+    rm -rf $PREFIX/lib64/cmake/glew/
 fi
 
-# Check if the lib64 is empty (cmake might have created it) and if so,
-# delete it
+# Ensures that lib64 is empty
 if [ -d "${PREFIX}/lib64/" ]; then
     if [ "$(ls -A ${PREFIX}/lib64)" ]; then
         rm -rf "${PREFIX}/lib64/"
