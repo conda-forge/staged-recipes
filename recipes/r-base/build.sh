@@ -283,7 +283,7 @@ Mingw_w64_makefiles() {
     cp -Rf R "${PREFIX}"/
     # Remove the recommeded libraries, we package them separately as-per the other platforms now.
     rm -Rf "${PREFIX}"/R/library/{MASS,lattice,Matrix,nlme,survival,boot,cluster,codetools,foreign,KernSmooth,rpart,class,nnet,spatial,mgcv}
-    # * Here we force our MSYS2/mingw-w64 sysroot to be looked in for libraies during r-packages builds.
+    # * Here we force our MSYS2/mingw-w64 sysroot to be looked in for libraries during r-packages builds.
     for _makeconf in $(find "${PREFIX}"/R -name Makeconf); do
         sed -i 's|LOCAL_SOFT = |LOCAL_SOFT = \$(R_HOME)/../Library/mingw-w64|g' ${_makeconf}
         sed -i 's|^BINPREF ?= .*$|BINPREF ?= \$(R_HOME)/../Library/mingw-w64/bin/|g' ${_makeconf}
