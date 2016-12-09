@@ -1,5 +1,5 @@
-CXXFLAGS = -std=c++14 -g -fPIC 
-LDDFLAGS = -std=c++14 -g -bundle 
+CXXFLAGS = -std=c++11 -g -fPIC 
+LDDFLAGS = -std=c++11 -g -bundle 
 
 PY2ROOT = ${PREFIX}
 BOOST2ROOT = ${PREFIX}
