@@ -1,7 +1,5 @@
-# tests currently don't build properly inside Docker inside CircleCI
-if [[ $(uname) == Linux ]]; then
-  exit 0
-fi
+conda install --yes nodejs
+# FIXME: Same hack as build.sh
 
 cd "${SRC_DIR}"
 "${PREFIX}/bin/npm" install .
