@@ -5,7 +5,7 @@ opts="
     --without-lua \
     --without-latex \
     --without-libcerf \
-    --with-qt \
+    --with-qt=qt4
     --with-readline=$PREFIX
     "
 
