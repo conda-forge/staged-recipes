@@ -4,7 +4,8 @@ LDDFLAGS = -std=c++11 -g -bundle
 PY2ROOT = ${PREFIX}
 BOOST2ROOT = ${PREFIX}
 PY2FLAGS = -I${PY2ROOT}/lib/python2.7/site-packages/numpy/core/include -I${PY2ROOT}/include/python2.7 -I${BOOST2ROOT}/include
-PY2LIBS = ${BOOST2ROOT}/lib/libboost_python.dylib ${PY2ROOT}/lib/python2.7/config/libpython2.7.a
+#PY2LIBS = ${BOOST2ROOT}/lib/libboost_python.dylib ${PY2ROOT}/lib/python2.7/config/libpython2.7.dylib
+PY2LIBS = ${BOOST2ROOT}/lib/libboost_python.dylib ${PY2ROOT}/lib/libpython2.7.dylib
 
 all: test2.so test
 
