@@ -70,6 +70,16 @@ add_library(LIBMAD STATIC
     ${LIBMAD_SOURCES}
 )
 
+add_library(LIBMAD-SHARED SHARED
+    ${LIBMAD_SOURCES}
+)
+set_target_properties(LIBMAD-SHARED 
+    PROPERTIES DEFINE_SYMBOL "DLL_EXPORT"
+)
+set_target_properties(LIBMAD-SHARED
+    PROPERTIES PREFIX "" OUTPUT_NAME "libmad"
+)
+
 TEST_BIG_ENDIAN(BIGENDIAN)
 
 if(BIGENDIAN)
@@ -118,7 +128,7 @@ set_target_properties(LIBMAD
 )
 
 ##### Installation targets #####
-install(TARGETS LIBMAD
+install(TARGETS LIBMAD LIBMAD-SHARED
   LIBRARY DESTINATION "lib${LIB_SUFFIX}"
   ARCHIVE DESTINATION "lib${LIB_SUFFIX}"
   RUNTIME DESTINATION bin)
