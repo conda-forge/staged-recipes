@@ -53,5 +53,5 @@ cp xcb-proto-*/missing xextproto-*/
 (cd gccmakedep-* && ./configure --prefix=$PREFIX && make && make install) || exit $?
 
 cd $PREFIX
-rm -rf share/aclocal share/doc share/man share/pkgconfig lib/python2.7
+rm -rf share/doc share/man lib/python2.7/site-packages/xcbgen
 rm -f lib/*.a lib/*.la
