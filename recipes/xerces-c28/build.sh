@@ -3,7 +3,7 @@
 set -e
 
 if [ -n "$OSX_ARCH" ] ; then
-    export CXXFLAGS="-stdlib=libc++"
+    export CXXFLAGS="$CXXFLAGS -stdlib=libc++"
     platform=macosx
     soext=dylib
 else
