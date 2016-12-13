@@ -36,4 +36,4 @@ make install
 cd $PREFIX
 find . '(' -name '*.la' -o -name '*.a' ')' -delete
 mv include/xercesc include/xercesc28
-rm -f lib/libxerces*.$soext
+rm -f lib/libxerces-c.$soext lib/libxerces-depdom.$soext
