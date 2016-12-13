@@ -77,10 +77,6 @@ add_library(SMPEG SHARED
     ${SMPEG_SOURCES}
 )
 
-# add_executable(plaympeg
-#     ${PLAYMPEG_SOURCES}
-# )
-
 set_target_properties(SMPEG
     PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
@@ -91,10 +87,6 @@ set_target_properties(SMPEG
 target_link_libraries(SMPEG
     ${SDL2_LIBRARIES}
 )
-
-# target_link_libraries(plaympeg
-#     SMPEG ${SDL2_LIBRARIES}
-# )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY build)
 set_target_properties(SMPEG
