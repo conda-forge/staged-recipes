@@ -86,7 +86,7 @@ fi
 ##Build
 make -j $(num_cores)
 ## Test
-ctest --output-on-failure
+ctest --output-on-failure -E test_vector
 ## Install
 make install
 ## Install pyalps to correct path
