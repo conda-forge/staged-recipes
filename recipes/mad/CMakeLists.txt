@@ -73,9 +73,11 @@ add_library(LIBMAD STATIC
 add_library(LIBMAD-SHARED SHARED
     ${LIBMAD_SOURCES}
 )
+
 set_target_properties(LIBMAD-SHARED 
     PROPERTIES DEFINE_SYMBOL "DLL_EXPORT"
 )
+
 set_target_properties(LIBMAD-SHARED
     PROPERTIES PREFIX "" OUTPUT_NAME "libmad"
 )
