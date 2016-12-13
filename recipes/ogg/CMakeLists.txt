@@ -84,6 +84,7 @@ include_directories(include)
 add_library(ogg ${OGG_HEADERS} ${OGG_SOURCES})
 
 get_version_info(OGG_VERSION_INFO "LIB_CURRENT" "LIB_AGE" "LIB_REVISION")
+
 set_target_properties(
     ogg PROPERTIES
     SOVERSION ${OGG_VERSION_INFO}
