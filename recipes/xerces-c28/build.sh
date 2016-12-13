@@ -3,12 +3,7 @@
 set -e
 
 if [ -n "$OSX_ARCH" ] ; then
-    export MACOSX_DEPLOYMENT_TARGET=10.7 # C++ libc++ needs this
-    sdk=/
-    export CFLAGS="$CFLAGS -isysroot $sdk"
-    export CXXFLAGS="$CXXFLAGS -isysroot $sdk -stdlib=libc++"
-    export LDFLAGS="$LDFLAGS -Wl,-syslibroot,$sdk"
-
+    export CXXFLAGS="-stdlib=libc++"
     platform=macosx
     soext=dylib
 else
