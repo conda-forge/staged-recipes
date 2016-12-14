@@ -1,6 +1,5 @@
 
-mkdir build
-cd build
+mkdir build && cd build
 
 set CMAKE_CONFIG="Release"
 
@@ -14,17 +13,17 @@ if errorlevel 1 exit 1
 cmake --build . --config %CMAKE_CONFIG% --target INSTALL
 if errorlevel 1 exit 1
 
-cd ..
-cd ..
+cd ..\..
 
 :: language bindings are in a separate repo without releases
 git clone https://github.com/CGAL/cgal-swig-bindings.git csb
 cd csb
 
+:: https://github.com/CGAL/cgal-swig-bindings/pull/79
 :: https://github.com/CGAL/cgal-swig-bindings/pull/80
 git remote add xantares https://github.com/xantares/cgal-swig-bindings.git
 git fetch xantares
-git cherry-pick e21de9d
+git cherry-pick e21de9d b38eab6
 
 :: this test requires numpy and we do not want to build-depend on it
 del examples\python\test_aabb2.py
@@ -32,8 +31,7 @@ del examples\python\test_aabb2.py
 :: https://github.com/CGAL/cgal-swig-bindings/issues/77
 del examples\python\test_polyline_simplification_2.py
 
-mkdir build
-cd build
+mkdir build && cd build
 
 cmake -LAH -G"NMake Makefiles"                ^
   -DCMAKE_BUILD_TYPE="%CMAKE_CONFIG%"         ^
@@ -47,6 +45,3 @@ cmake --build . --config %CMAKE_CONFIG% --target INSTALL
 if errorlevel 1 exit 1
 ctest --output-on-failure
 if errorlevel 1 exit 1
-
-:: https://github.com/CGAL/cgal-swig-bindings/pull/79
-move "%LIBRARY_PREFIX%\Lib\site-packages\CGAL" "%SP_DIR%"
