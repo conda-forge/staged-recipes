@@ -1,0 +1,173 @@
+diff -urN R-3.3.2.orig/configure R-3.3.2/configure
+--- R-3.3.2.orig/configure	2016-12-06 14:50:35.000000000 +0000
++++ R-3.3.2/configure	2016-12-06 14:50:35.000000000 +0000
+@@ -777,6 +777,7 @@
+ USE_EXPORTFILES_TRUE
+ SHLIB_EXT
+ SHLIB_LIBADD
++RPATH_LDFLAGS
+ DYLIB_UNDEFINED_ALLOWED_FALSE
+ DYLIB_UNDEFINED_ALLOWED_TRUE
+ INTERNET_LIBS
+@@ -22363,7 +22364,7 @@
+ 
+ ### * Checks for libraries.
+ 
+-## Set up LD_LIBRARY_PATH or equivalent.
++## Add -Wl,-rpath, entries to RPATH_LDFLAGS.
+ ## <FIXME>
+ ## What is this doing *HERE*?
+ ## Should be needed for tests using AC_RUN_IFELSE()?
+@@ -22396,6 +22397,13 @@
+ else
+   R_LD_LIBRARY_PATH="${R_LD_LIBRARY_PATH}${separator}${lib}"
+ fi
++          separator=""
++test -z "${separator}" && separator=" "
++if test -z "${RPATH_LDFLAGS}"; then
++  RPATH_LDFLAGS="-Wl,-rpath,${lib}"
++else
++  RPATH_LDFLAGS="${RPATH_LDFLAGS}${separator}-Wl,-rpath,${lib}"
++fi
+ 	  ;;
+       esac
+     done
+@@ -22415,13 +22423,20 @@
+     Rshlibpath_var=${shlibpath_var}
+ esac
+ 
+-## Export LD_LIBRARY_PATH or equivalent.
++## Export LD_LIBRARY_PATH or equivalent (except we do not want to do that
++## instead we want to use -Wl,-rpath .. only doing this for Linux for now).
+ if eval "test -z \"\${${Rshlibpath_var}}\""; then
+   eval "${Rshlibpath_var}=\"${R_LD_LIBRARY_PATH}\""
+ else
+   eval "${Rshlibpath_var}=\"${R_LD_LIBRARY_PATH}${PATH_SEPARATOR}\${${Rshlibpath_var}}\""
+ fi
+-eval "export ${Rshlibpath_var}"
++case "${host_os}" in
++  linux*)
++    ;;
++  *)
++    eval "export ${Rshlibpath_var}"
++    ;;
++esac
+ 
+ 
+ ## record how to strip shared/dynamic libraries.
+@@ -25082,7 +25097,7 @@
+ # flags.
+ r_save_CFLAGS=$CFLAGS
+ CFLAGS="$CFLAGS $r_verb"
+-(eval echo $as_me:25068: \"$ac_link\") >&5
++(eval echo $as_me:25117: \"$ac_link\") >&5
+ r_c_v_output=`eval $ac_link 5>&1 2>&1 | grep -v 'Driving:'`
+ echo "$r_c_v_output" >&5
+ CFLAGS=$r_save_CFLAGS
+@@ -25157,7 +25172,7 @@
+ # flags.
+ r_save_CFLAGS=$CFLAGS
+ CFLAGS="$CFLAGS $r_cv_prog_c_v"
+-(eval echo $as_me:25143: \"$ac_link\") >&5
++(eval echo $as_me:25192: \"$ac_link\") >&5
+ r_c_v_output=`eval $ac_link 5>&1 2>&1 | grep -v 'Driving:'`
+ echo "$r_c_v_output" >&5
+ CFLAGS=$r_save_CFLAGS
+diff -urN R-3.3.2.orig/configure.ac R-3.3.2/configure.ac
+--- R-3.3.2.orig/configure.ac	2016-12-06 14:50:35.000000000 +0000
++++ R-3.3.2/configure.ac	2016-12-06 14:50:35.000000000 +0000
+@@ -668,7 +668,7 @@
+ 
+ ### * Checks for libraries.
+ 
+-## Set up LD_LIBRARY_PATH or equivalent.
++## Add -Wl,-rpath, entries to RPATH_LDFLAGS.
+ ## <FIXME>
+ ## What is this doing *HERE*?
+ ## Should be needed for tests using AC_RUN_IFELSE()?
+@@ -695,6 +695,7 @@
+         -L*)
+ 	  lib=`echo ${arg} | sed "s/^-L//"`
+ 	  R_SH_VAR_ADD(R_LD_LIBRARY_PATH, [${lib}], [${PATH_SEPARATOR}])
++          R_SH_VAR_ADD(RPATH_LDFLAGS, [-Wl,-rpath,${lib}])
+ 	  ;;
+       esac
+     done
+@@ -714,13 +715,20 @@
+     Rshlibpath_var=${shlibpath_var}
+ esac
+ AC_SUBST(shlibpath_var)
+-## Export LD_LIBRARY_PATH or equivalent.
++## Export LD_LIBRARY_PATH or equivalent (except we do not want to do that
++## instead we want to use -Wl,-rpath .. only doing this for Linux for now).
+ if eval "test -z \"\${${Rshlibpath_var}}\""; then
+   eval "${Rshlibpath_var}=\"${R_LD_LIBRARY_PATH}\""
+ else
+   eval "${Rshlibpath_var}=\"${R_LD_LIBRARY_PATH}${PATH_SEPARATOR}\${${Rshlibpath_var}}\""
+ fi
+-eval "export ${Rshlibpath_var}"
++case "${host_os}" in
++  linux*)
++    ;;
++  *)
++    eval "export ${Rshlibpath_var}"
++    ;;
++esac
+ AC_SUBST(Rshlibpath_var)
+ 
+ ## record how to strip shared/dynamic libraries.
+@@ -1714,6 +1722,7 @@
+ 
+ AC_SUBST(MAIN_LD)
+ AC_SUBST(MAIN_LDFLAGS)
++AC_SUBST(RPATH_LDFLAGS)
+ AC_SUBST(CPICFLAGS)
+ AC_SUBST(CXXPICFLAGS)
+ AC_SUBST(DYLIB_LD)
+diff -urN R-3.3.2.orig/etc/ldpaths.in R-3.3.2/etc/ldpaths.in
+--- R-3.3.2.orig/etc/ldpaths.in	2016-12-06 14:50:35.000000000 +0000
++++ R-3.3.2/etc/ldpaths.in	2016-12-06 14:50:35.000000000 +0000
+@@ -1,3 +1,17 @@
++# https://github.com/conda/conda/issues/1679:
++#  Internally R_system() calls system() which
++# uses /bin/sh to launch various programs. If
++# /bin/sh is called with LD_LIBRARY_PATH that
++# loads condas shared libraries things break.
++#  It may be that not setting LD_LIBRARY_PATH
++# causes other things to break, in which case
++# R_system() will need to be modified so that
++# it calls execve() with an environment which
++# has these modifications to LD_LIBRARY_PATH
++# removed which may be tricky to orchestrate
++if [ "$(uname -s)" = "Linux" ]; then
++  return 0
++fi
+ : ${JAVA_HOME=@JAVA_HOME@}
+ : ${R_JAVA_LD_LIBRARY_PATH=@R_JAVA_LD_LIBRARY_PATH@}
+ if test -n "@R_LD_LIBRARY_PATH@"; then
+diff -urN R-3.3.2.orig/etc/Makeconf.in R-3.3.2/etc/Makeconf.in
+--- R-3.3.2.orig/etc/Makeconf.in	2016-12-06 14:50:35.000000000 +0000
++++ R-3.3.2/etc/Makeconf.in	2016-12-06 14:50:35.000000000 +0000
+@@ -71,7 +71,8 @@
+ ## needed to build applications linking to static libR
+ MAIN_LD = @MAIN_LD@
+ MAIN_LDFLAGS = @MAIN_LDFLAGS@
+-MAIN_LINK = $(MAIN_LD) $(MAIN_LDFLAGS) $(LDFLAGS)
++RPATH_LDFLAGS = -Wl,-rpath,$(abs_top_builddir)/lib @RPATH_LDFLAGS@
++MAIN_LINK = $(MAIN_LD) $(MAIN_LDFLAGS) $(LDFLAGS) $(RPATH_LDFLAGS)
+ MKINSTALLDIRS = $(R_HOME)/bin/mkinstalldirs
+ OBJC = @OBJC@
+ OBJCFLAGS = @OBJCFLAGS@ $(LTO)
+diff -urN R-3.3.2.orig/Makeconf.in R-3.3.2/Makeconf.in
+--- R-3.3.2.orig/Makeconf.in	2016-12-06 14:50:35.000000000 +0000
++++ R-3.3.2/Makeconf.in	2016-12-06 14:50:35.000000000 +0000
+@@ -63,7 +63,8 @@
+ MAIN_FFLAGS = @MAIN_FFLAGS@
+ MAIN_LD = @MAIN_LD@@BUILD_LTO_TRUE@ $(CFLAGS)
+ MAIN_LDFLAGS = @MAIN_LDFLAGS@ @WANT_R_SHLIB_FALSE@ @USE_EXPORTFILES_TRUE@ -Wl,-bE:$(top_builddir)/etc/R.exp
+-MAIN_LINK = $(MAIN_LD) $(MAIN_LDFLAGS) $(LIBR0) $(LDFLAGS)
++RPATH_LDFLAGS = -Wl,-rpath,$(abs_top_builddir)/lib @RPATH_LDFLAGS@
++MAIN_LINK = $(MAIN_LD) $(MAIN_LDFLAGS) $(LIBR0) $(LDFLAGS) $(RPATH_LDFLAGS)
+ ## need this for bootstrapping
+ MKINSTALLDIRS = @R_SHELL@ $(top_srcdir)/src/scripts/mkinstalldirs.in
+ NOTANGLE = @NOTANGLE@

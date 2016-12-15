@@ -1,0 +1,37 @@
+--- src/main/main.c	2016-01-29 23:15:10.000000000 +0000
++++ src/main/main.c.new	2016-04-10 23:36:02.158013600 +0100
+@@ -770,6 +770,34 @@
+ 	} else setlocale(LC_MONETARY, Rlocale);
+ 	/* Windows does not have LC_MESSAGES */
+ 
++	/* Prevent conversion of R_ARCH to an absolute Windows path
++	   when calling from POSIX (sh.exe) to Windows (R.exe) as
++	   happens in configure.win scripts while building packages
++	   using MSYS2. MSYS2_ENV_CONV_EXCL was added for R initially,
++	   and follows from MSYS2_ARG_CONV_EXCL on which it was modelled.
++	*/
++
++	char MSYS2ECE_equals[1000+strlen("MSYS2_ENV_CONV_EXCL=")];
++	strcpy(MSYS2ECE_equals, "MSYS2_ENV_CONV_EXCL=");
++	char *MSYS2ECE = &MSYS2ECE_equals[strlen("MSYS2_ENV_CONV_EXCL=")];
++	p = getenv("MSYS2_ENV_CONV_EXCL");
++	/* The strstr will match other things that use R_ARCH as a substring
++	   .. let's assume none do. That part isn't strictly necessary. */
++	if (!p || !strstr(p, "R_ARCH")) {
++	    if (!p) {
++		sprintf(MSYS2ECE, "R_ARCH");
++		putenv(MSYS2ECE_equals);
++	    }
++	    else if (strlen(p) + strlen(";R_ARCH") < 1000) {
++		strncpy(MSYS2ECE, p ? p : "", 1000);
++		strcat(MSYS2ECE, ";R_ARCH");
++		MSYS2ECE[1000 - 1] = '\0';
++		putenv(MSYS2ECE_equals);
++	    }
++	    else
++		snprintf(deferred_warnings[ndeferred_warnings++], 250,
++			 "Adding R_ARCH to MSYS2_ENV_CONV_EXCL failed\n");
++	}
+ 	/* We set R_ARCH here: Unix does it in the shell front-end */
+ 	char Rarch[30];
+ 	strcpy(Rarch, "R_ARCH=/");
