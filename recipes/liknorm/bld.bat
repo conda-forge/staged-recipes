@@ -9,5 +9,7 @@ cmake -G "NMake Makefiles" ^
 if errorlevel 1 exit 1
 nmake
 if errorlevel 1 exit 1
+nmake test
+if errorlevel 1 exit 1
 nmake install
 if errorlevel 1 exit 1
