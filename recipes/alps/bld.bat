@@ -5,7 +5,7 @@ cd build
 if errorlevel 1 exit 1
 
 :: Env variable for MKL linking (from mkl linker advisor)
-SET MKL="mkl_intel_lp64_dll.lib mkl_sequential_dll.lib mkl_core_dll.lib"
+SET MKL="-L%LIBRARY_BIN% mkl_intel_lp64_dll.lib mkl_sequential_dll.lib mkl_core_dll.lib"
 
 cmake .. ^
         -G "%CMAKE_GENERATOR%" ^
