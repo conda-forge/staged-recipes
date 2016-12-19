@@ -1,10 +1,10 @@
 #!/bin/bash
 
 if [ `uname` == Darwin ]; then
-	EXTRA_FLAGS=--disable-oggtest
+	export LDFLAGS="${LDFLAGS} -Wl,-rpath,$PREFIX/lib"
 fi
 
-./configure --prefix=${PREFIX} --disable-dependency-tracking ${EXTRA_FLAGS}
+./configure --prefix=${PREFIX} --disable-dependency-tracking
 make 
 make check
 make install
