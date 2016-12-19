@@ -5,7 +5,7 @@ cd build
 if errorlevel 1 exit 1
 
 :: Env variable for MKL linking (from mkl linker advisor)
-SET MKL="%LIBRARY_BIN%\mkl_intel_lp64_dll.lib %LIBRARY_BIN%\mkl_sequential_dll.lib %LIBRARY_BIN%\mkl_core_dll.lib"
+SET MKL="C:/Miniconda/envs/_build/Library/bin/mkl_rt.dll"
 
 cmake .. ^
         -G "%CMAKE_GENERATOR%" ^
