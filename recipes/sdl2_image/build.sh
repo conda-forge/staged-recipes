@@ -1,4 +1,9 @@
 #!/bin/bash
-./autogen.sh
-./configure --disable-sdltest --disable-dependency-tracking --enable-imageio=no --prefix=${PREFIX} --with-sdl-prefix=${PREFIX}
+
+# Make sure TravisCI can find SDL2
+if [ `uname` == Darwin ]; then
+	export LDFLAGS="${LDFLAGS} -Wl,-rpath,$PREFIX/lib"
+fi
+
+./configure --disable-dependency-tracking --enable-imageio=no --prefix=${PREFIX}
 make install
