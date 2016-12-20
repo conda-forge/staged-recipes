@@ -5,5 +5,5 @@ except ImportError:
 urlretrieve('http://alps.comp-phys.org/static/software/releases/clapack.zip', 'clapack.zip')
 
 import zipfile
-with zipfile.Zipfile('clapack.zip') as fz:
+with zipfile.ZipFile('clapack.zip') as fz:
     fz.extractall()
