@@ -8,10 +8,11 @@ if errorlevel 1 exit 1
 cd build_clapack
 if errorlevel 1 exit 1
 
-cmake .. ^
-        -G "%CMAKE_GENERATOR%" ^
-        -DCMAKE_INSTALL_PREFIX="%SRC_DIR%\ext" ^
-        -DBoost_ROOT_DIR="%LIBRARY_INC%" ^
+cmake ^
+    -G "%CMAKE_GENERATOR%" ^
+    -DCMAKE_INSTALL_PREFIX="%SRC_DIR%\ext" ^
+    -DBoost_ROOT_DIR="%LIBRARY_INC%" ^
+    ../clapack
 if errorlevel 1 exit 1
 
 cmake --build . --config Release
