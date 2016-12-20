@@ -1,11 +1,38 @@
+
+:: Compile clapack
+%PYTHON% %RECIPE_DIR%\get_clapack_src.py
+if errorlevel 1 exit 1
+
+Call :UnZipFile . clapack.zip
+if errorlevel 1 exit 1
+
+mkdir build_clapack
+if errorlevel 1 exit 1
+cd build_clapack
+if errorlevel 1 exit 1
+
+cmake .. ^
+        -G "%CMAKE_GENERATOR%" ^
+        -DCMAKE_INSTALL_PREFIX="%SRC_DIR%\ext" ^
+        -DBoost_ROOT_DIR="%LIBRARY_INC%" ^
+if errorlevel 1 exit 1
+
+cmake --build . --config Release
+if errorlevel 1 exit 1
+
+cmake --build . --config Release --target install
+if errorlevel 1 exit 1
+
+
+
+
+
 mkdir build
 if errorlevel 1 exit 1
 
 cd build
 if errorlevel 1 exit 1
 
-:: Env variable for MKL linking (from mkl linker advisor)
-SET MKL="C:/Miniconda/envs/_build/Library/bin/mkl_rt.dll"
 
 cmake .. ^
         -G "%CMAKE_GENERATOR%" ^
@@ -20,6 +47,9 @@ cmake .. ^
         -DBoost_NO_SYSTEM_PATHS=ON ^
         -DBOOST_INCLUDEDIR="%LIBRARY_INC%" ^
         -DBOOST_LIBRARYDIR="%LIBRARY_BIN%" ^
+        -DLAPACK_FOUND=TRUE ^
+        -DBLAS_LIBRARY="" ^
+        -DLAPACK_LIBRARY="%SRC_DIR%\ext\lib\blas.lib %SRC_DIR%\ext\lib\lapack.lib" ^
         -DPYTHON_EXECUTABLE="%PYTHON%"
 if errorlevel 1 exit 1
 
