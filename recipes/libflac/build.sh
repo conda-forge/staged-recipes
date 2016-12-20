@@ -7,5 +7,7 @@ fi
 ./configure --prefix=${PREFIX} --enable-sse --disable-dependency-tracking
 
 make
-make check
+if [ `uname` == Darwin ]; then
+	make check
+fi
 make install
