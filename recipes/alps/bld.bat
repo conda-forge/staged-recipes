@@ -3,9 +3,6 @@
 %PYTHON% %RECIPE_DIR%\get_clapack_src.py
 if errorlevel 1 exit 1
 
-Call :UnZipFile . clapack.zip
-if errorlevel 1 exit 1
-
 mkdir build_clapack
 if errorlevel 1 exit 1
 cd build_clapack
@@ -25,6 +22,9 @@ if errorlevel 1 exit 1
 
 
 
+:: Start actual ALPS build
+cd %SRC_DIR%
+if errorlevel 1 exit 1
 
 
 mkdir build
