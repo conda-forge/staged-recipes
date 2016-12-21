@@ -1,3 +1,5 @@
+dir "%LIBRARY_BIN%"
+exit 1
 
 :: Compile clapack
 %PYTHON% %RECIPE_DIR%\get_clapack_src.py
