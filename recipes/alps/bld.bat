@@ -57,7 +57,7 @@ cmake ^
       -DPYTHON_EXECUTABLE="%PYTHON%" ^
       -DPYTHON_INCLUDE_DIR:PATH="%PREFIX%/include" ^
       -DPYTHON_LIBRARY:FILEPATH="%PYTHON_LIBRARY%" ^
-      -DNUMPY_INCLUDE_DIR:PATH="%SP_DIR%/numpy/core/include" ^
+      -DPYTHON_NUMPY_INCLUDE_DIR:PATH="%SP_DIR%/numpy/core/include" ^
       ..
 if errorlevel 1 exit 1
 
