@@ -37,7 +37,7 @@ if errorlevel 1 exit 1
 set PYTHON_LIBRARY=%PREFIX%\libs\python%PY_VER:~0,1%%PY_VER:~2,1%.lib
 
 
-cmake
+cmake ^
       -Wno-dev ^
       -G "%CMAKE_GENERATOR%" ^
       -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
