@@ -49,8 +49,8 @@ cmake .. ^
         -DBOOST_INCLUDEDIR="%LIBRARY_INC%" ^
         -DBOOST_LIBRARYDIR="%LIBRARY_BIN%" ^
         -DLAPACK_FOUND=TRUE ^
-        -DBLAS_LIBRARY="" ^
-        -DLAPACK_LIBRARY="%SRC_DIR%\ext\lib\blas.lib %SRC_DIR%\ext\lib\lapack.lib" ^
+        -DBLAS_LIBRARY="%SRC_DIR%\ext\lib\blas.lib" ^
+        -DLAPACK_LIBRARY="%SRC_DIR%\ext\lib\lapack.lib" ^
         -DPYTHON_EXECUTABLE="%PYTHON%"
 if errorlevel 1 exit 1
 
