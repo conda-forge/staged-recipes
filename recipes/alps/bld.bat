@@ -51,7 +51,7 @@ cmake ^
       -DBOOST_ROOT="%PREFIX%" ^
       -DBoost_NO_SYSTEM_PATHS=ON ^
       -DBOOST_INCLUDEDIR="%LIBRARY_INC%" ^
-      -DBOOST_LIBRARYDIR="%LIBRARY_BIN%" ^
+      -DBOOST_LIBRARYDIR="%LIBRARY_LIB%" ^
       -DLAPACK_FOUND=TRUE ^
       -DBLAS_LIBRARY="%SRC_DIR%\ext\lib\blas.lib" ^
       -DLAPACK_LIBRARY="%SRC_DIR%\ext\lib\lapack.lib" ^
