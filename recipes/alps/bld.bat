@@ -1,5 +1,4 @@
 dir "%LIBRARY_BIN%"
-exit 1
 
 :: Compile clapack
 %PYTHON% %RECIPE_DIR%\get_clapack_src.py
@@ -62,6 +61,8 @@ cmake ^
       -DPYTHON_NUMPY_INCLUDE_DIR:PATH="%SP_DIR%/numpy/core/include" ^
       ..
 if errorlevel 1 exit 1
+
+type CMakeCache.txt
 
 cmake --build . --config Release --target alps
 if errorlevel 1 exit 1
