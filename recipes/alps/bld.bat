@@ -64,7 +64,7 @@ if errorlevel 1 exit 1
 
 type CMakeCache.txt
 
-cmake --build . --config Release --target alps
+cmake --build . --config Release
 if errorlevel 1 exit 1
 
 cmake --build . --config Release --target install
