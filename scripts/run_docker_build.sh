@@ -62,7 +62,4 @@ find conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" 
     xargs -r yum install -y
 
 conda-build-all /conda-recipes --matrix-conditions "numpy >=1.10" "python >=2.7,<3|>=3.4"
-
-# Inspect the prefix lengths of the built packages.
-conda inspect prefix-lengths /feedstock_root/build_artefacts/linux-64/*.tar.bz2
 EOF
