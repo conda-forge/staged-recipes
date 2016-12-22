@@ -52,6 +52,10 @@ conda install conda-build-all
 conda install conda-forge-build-setup
 source run_conda_forge_build_setup
 
+# Install conda-build 2.x to build a long prefix.
+conda install --yes --quiet conda-build=2
+conda info
+
 # yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
 find conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" \
     | xargs -n1 cat | grep -v -e "^#" -e "^$" | \
@@ -59,4 +63,6 @@ find conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" 
 
 conda-build-all /conda-recipes --matrix-conditions "numpy >=1.10" "python >=2.7,<3|>=3.4"
 
+# Inspect the prefix lengths of the built packages.
+conda inspect prefix-lengths /feedstock_root/build_artefacts/linux-64/*.tar.bz2
 EOF
