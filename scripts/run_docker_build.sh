@@ -11,6 +11,9 @@ channels:
  - conda-forge
  - defaults
 
+conda-build:
+ root-dir: /staged-recipes/build_artefacts
+
 always_yes: true
 show_channel_urls: true
 
@@ -18,14 +21,19 @@ CONDARC
 )
 
 cat << EOF | docker run -i \
-                        -v ${REPO_ROOT}/recipes:/conda-recipes \
+                        -v ${REPO_ROOT}:/staged-recipes \
                         -a stdin -a stdout -a stderr \
                         $IMAGE_NAME \
                         bash || exit $?
 
 # Copy the host recipes folder so we don't ever muck with it
-cp -r /conda-recipes /conda-recipes-without-example
-rm -rf /conda-recipes-without-example/example
+cp -r /staged-recipes/recipes /conda-recipes
+
+# Find the recipes from master in this PR and remove them.
+echo "Finding recipes merged in master and removing them from the build."
+pushd /staged-recipes/recipes > /dev/null
+git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf /conda-recipes/{} && echo Removing recipe: {}"
+popd > /dev/null
 
 if [ "${BINSTAR_TOKEN}" ];then
     export BINSTAR_TOKEN=${BINSTAR_TOKEN}
@@ -44,11 +52,17 @@ conda install conda-build-all
 conda install conda-forge-build-setup
 source run_conda_forge_build_setup
 
+# Install conda-build 2.x to build a long prefix.
+conda install --yes --quiet conda-build=2
+conda info
+
 # yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
 find conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" \
     | xargs -n1 cat | grep -v -e "^#" -e "^$" | \
     xargs -r yum install -y
 
-conda-build-all /conda-recipes-without-example --matrix-conditions "numpy >=1.10" "python >=2.7,<3|>=3.4"
+conda-build-all /conda-recipes --matrix-conditions "numpy >=1.10" "python >=2.7,<3|>=3.4"
 
+# Inspect the prefix lengths of the built packages.
+conda inspect prefix-lengths /feedstock_root/build_artefacts/linux-64/*.tar.bz2
 EOF
