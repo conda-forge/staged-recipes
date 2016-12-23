@@ -52,11 +52,14 @@ conda install conda-build-all
 conda install conda-forge-build-setup
 source run_conda_forge_build_setup
 
+# Install conda-build 2.x to build a long prefix.
+conda install --yes --quiet conda-build=2
+conda info
+
 # yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
 find conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" \
     | xargs -n1 cat | grep -v -e "^#" -e "^$" | \
     xargs -r yum install -y
 
 conda-build-all /conda-recipes --matrix-conditions "numpy >=1.10" "python >=2.7,<3|>=3.4" "r-base ==3.3.2"
-
 EOF
