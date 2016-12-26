@@ -1,3 +1,3 @@
 @echo off
 
-python -m octave_kernel.install
+"%PREFIX%\python.exe" -m octave_kernel.install
