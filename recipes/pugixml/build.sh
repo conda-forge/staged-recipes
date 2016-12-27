@@ -5,7 +5,7 @@ set -x
 mkdir build
 cd build
 
-cmake ../scripts \
+cmake .. \
  -DCMAKE_BUILD_TYPE=Release \
  -DCMAKE_INSTALL_PREFIX=$PREFIX
 
