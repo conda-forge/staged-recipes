@@ -3,7 +3,6 @@ cd build
 cmake -G "%CMAKE_GENERATOR%"^
  -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%"^
  -DSIMBODY_HOME="%LIBRARY_PREFIX%"^
- -DOPENSIM_STANDARD_11="ON"^
  ..\OpenSim33-source
 cmake --build . --target install --config Release --
 REM NOTE: Run the tests here in the build directory to make sure things are

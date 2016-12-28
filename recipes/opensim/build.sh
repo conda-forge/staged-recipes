@@ -45,5 +45,5 @@ make
 # correctly. This cannot be specified in the meta.yml:test section because it
 # won't be run in the build directory. The tests are skipped because they take
 # an extremely long time to run and cause the CI services to time out.
-ctest -E testCMC -E testOptimizationExampleRuns -E testMomentArms
+ctest -E "testCMC|testOptimizationExampleRuns|testMomentArms"
 make install
