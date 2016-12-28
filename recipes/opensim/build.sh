@@ -21,7 +21,7 @@
 # FIXME: This is a hack to make sure the environment is activated. The reason
 # this is required is due to the conda-build issue mentioned below:
 # https://github.com/conda/conda-build/issues/910
-source activate "${CONDA_DEFAULT_ENV}"
+#source activate "${CONDA_DEFAULT_ENV}"
 
 mkdir build
 cd build
@@ -43,6 +43,7 @@ cmake ../OpenSim33-source \
 make
 # NOTE: Run the tests here in the build directory to make sure things are built
 # correctly. This cannot be specified in the meta.yml:test section because it
-# won't be run in the build directory.
-ctest
+# won't be run in the build directory. The tests are skipped because they take
+# an extremely long time to run and cause the CI services to time out.
+ctest -E testCMC -E testOptimizationExampleRuns -E testMomentArms
 make install
