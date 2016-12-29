@@ -19,7 +19,9 @@ import os.path
 from random import choice
 import shutil
 import subprocess
+import sys
 import tempfile
+import traceback
 
 
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
@@ -113,6 +115,8 @@ def print_rate_limiting_info(gh):
 
 
 if __name__ == '__main__':
+    exit_code = 0
+
     is_merged_pr = (os.environ.get('TRAVIS_BRANCH') == 'master' and os.environ.get('TRAVIS_PULL_REQUEST') == 'false')
 
     smithy_conf = os.path.expanduser('~/.conda-smithy')
@@ -181,14 +185,41 @@ if __name__ == '__main__':
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
         # Without this, intermittent failures to synch the TravisCI repos ensue.
         all_maintainers = set()
+        # Hang on to any CI registration errors that occur and raise them at the end.
         for feedstock_dir, name, recipe_dir in feedstock_dirs:
-            subprocess.check_call(['conda', 'smithy', 'register-ci', '--feedstock_directory', feedstock_dir] + owner_info)
+            # Try to register each feedstock with CI.
+            # However sometimes their APIs have issues for whatever reason.
+            # In order to bank our progress, we note the error and handle it.
+            # After going through all the recipes and removing the converted ones,
+            # we fail the build so that people are aware that things did not clear.
+            try:
+                subprocess.check_call(['conda', 'smithy', 'register-ci', '--feedstock_directory', feedstock_dir] + owner_info)
+            except subprocess.CalledProcessError:
+                exit_code = 1
+                traceback.print_exception(*sys.exc_info())
+                continue
 
             subprocess.check_call(['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             subprocess.check_call(['git', 'commit', '-am', "Re-render the feedstock after CI registration."], cwd=feedstock_dir)
-            # Capture the output, as it may contain the GH_TOKEN.
-            out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'master'], cwd=feedstock_dir,
-                                          stderr=subprocess.STDOUT)
+            for i in range(5):
+                try:
+                    # Capture the output, as it may contain the GH_TOKEN.
+                    out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'master'], cwd=feedstock_dir,
+                                                  stderr=subprocess.STDOUT)
+                    break
+                except subprocess.CalledProcessError:
+                    pass
+
+                # Likely another job has already pushed to this repo.
+                # Place our changes on top of theirs and try again.
+                out = subprocess.check_output(['git', 'fetch', 'upstream_with_token', 'master'], cwd=feedstock_dir,
+                                              stderr=subprocess.STDOUT)
+                try:
+                    subprocess.check_call(['git', 'rebase', 'upstream_with_token/master', 'master'], cwd=feedstock_dir)
+                except subprocess.CalledProcessError:
+                    # Handle rebase failure by choosing the changes in `master`.
+                    subprocess.check_call(['git', 'checkout', 'master', '--', '.'], cwd=feedstock_dir)
+                    subprocess.check_call(['git', 'rebase', '--continue'], cwd=feedstock_dir)
 
             # Add team members as maintainers.
             if conda_forge:
@@ -290,9 +321,10 @@ if __name__ == '__main__':
     # Commit any removed packages.
     subprocess.check_call(['git', 'status'])
     if removed_recipes:
-        msg = ('Removed recipe{s} ({}) after converting into feedstock{s}. '
-               '[ci skip]'.format(', '.join(removed_recipes),
+        msg = ('Removed recipe{s} ({}) after converting into feedstock{s}.'
+               ''.format(', '.join(removed_recipes),
                          s=('s' if len(removed_recipes) > 1 else '')))
+        msg += ' [ci skip]' if exit_code == 0 else '[skip appveyor]'
         if is_merged_pr:
             # Capture the output, as it may contain the GH_TOKEN.
             out = subprocess.check_output(['git', 'remote', 'add', 'upstream_with_token',
@@ -308,3 +340,5 @@ if __name__ == '__main__':
     if gh:
         # Get our final rate limit info.
         print_rate_limiting_info(gh)
+
+    sys.exit(exit_code)

@@ -48,9 +48,13 @@ echo "$config" > ~/.condarc
 conda clean --lock
 
 conda update conda conda-build
-conda install conda-build-all
+conda install conda-build-all=1.0.0
 conda install conda-forge-build-setup
 source run_conda_forge_build_setup
+
+# Install conda-build 2.x to build a long prefix.
+conda install --yes --quiet conda-build=2
+conda info
 
 # yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
 find conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" \
@@ -58,5 +62,4 @@ find conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" 
     xargs -r yum install -y
 
 conda-build-all /conda-recipes --matrix-conditions "numpy >=1.10" "python >=2.7,<3|>=3.4"
-
 EOF
