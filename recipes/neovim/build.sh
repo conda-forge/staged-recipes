@@ -18,6 +18,7 @@ if [ `uname -m` == Darwin ]; then
 	
 	brew remove pkg-config
 	brew remove libiconv
+    brew remove libuv
 	
 	export LIBTOOLIZE="${PREFIX}/bin/libtoolize"
 	export LD_LIBRARY_PATH="${PREFIX}/lib"
@@ -30,4 +31,5 @@ ln -s ${PREFIX}/bin/libtoolize ${PREFIX}/bin/glibtoolize
 ln -s ${PREFIX}/bin/libtool ${PREFIX}/bin/glibtool
 
 make
+patch ${RECIPE_DIR}/.deps.Makefile.patch .deps/Makefile
 make install
