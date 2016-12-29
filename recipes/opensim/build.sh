@@ -47,3 +47,13 @@ make
 # an extremely long time to run and cause the CI services to time out.
 #ctest -E "testCMC|testOptimizationExampleRuns|testMomentArms|testWrapping"
 make install
+# NOTE: Some of the executable names installed by OpenSim conflict with
+# standard Unix tools. The folllowing renames all then such that they have
+# `opensim-` prepended to the executable name.
+for filename in analyze forward scale ik id cmc rra versionUpdate
+do
+	mv $PREFIX/bin/$filename $PREFIX/bin/opensim-$filename
+done
+# NOTE: This file should be installed so that an enduser can properly link to
+# the installed header files which are in a non-standard place on Unix.
+cp ../OpenSim33-source/FindOpenSim.cmake $PREFIX/sdk/FindOpenSim.cmake
