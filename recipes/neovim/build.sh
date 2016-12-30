@@ -25,6 +25,8 @@ if [ `uname -m` == Darwin ]; then
 	#export DYLD_LIBRARY_PATH="${PREFIX}/lib"
 	unset DYLD_LIBRARY_PATH
 	export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib"
+else
+    ln -s ${PREFIX}/bin/perl /usr/bin/perl
 fi
 
 ln -s ${PREFIX}/bin/libtoolize ${PREFIX}/bin/glibtoolize
