@@ -1,10 +1,4 @@
 #!/bin/bash
-export CC=${PREFIX}/bin/gcc
-export CXXFLAGS="-fPIC $CXXFLAGS"
-export LDFLAGS="-L${PREFIX}/lib $LDFLAGS"
-export CPPFLAGS="-I${PREFIX}/include $CPPFLAGS"
-export CFLAGS="-I${PREFIX}/include $CFLAGS"
-
 if [ "$(uname)" = "Darwin" ]; then
     if [ -d "/opt/X11" ]; then
         OPTS="--x-includes=/usr/X11/include --x-libraries=/usr/X11/lib"
