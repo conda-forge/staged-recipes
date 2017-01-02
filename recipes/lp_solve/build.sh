@@ -39,3 +39,4 @@ cd ..
 # install headers
 cp *.h ${PREFIX}/include/
 cp *.h ${PREFIX}/include/lpsolve/
+
