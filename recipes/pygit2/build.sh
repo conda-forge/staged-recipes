@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export LIBGIT2=${PREFIX}
+
 $PYTHON setup.py install 
 
 # Add more build steps here, if they are necessary.
