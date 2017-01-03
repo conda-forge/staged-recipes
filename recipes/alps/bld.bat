@@ -60,6 +60,7 @@ cmake ^
       -DPYTHON_INCLUDE_DIR:PATH="%PREFIX%/include" ^
       -DPYTHON_LIBRARY:FILEPATH="%PYTHON_LIBRARY%" ^
       -DPYTHON_NUMPY_INCLUDE_DIR:PATH="%SP_DIR%/numpy/core/include" ^
+      -DALPS_HAS_CMAKE_PI_MACROS=OFF ^
       ..
 if errorlevel 1 exit 1
 
