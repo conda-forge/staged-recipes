@@ -16,7 +16,7 @@ cmake ^
     ../clapack
 if errorlevel 1 exit 1
 
-cmake --build . --config Release
+cmake --build . --config Release -- /consoleloggerparameters:ErrorsOnly;Summary /verbosity:minimal
 if errorlevel 1 exit 1
 
 cmake --build . --config Release --target install
@@ -66,7 +66,7 @@ if errorlevel 1 exit 1
 
 type CMakeCache.txt
 
-cmake --build . --config Release
+cmake --build . --config Release -- /consoleloggerparameters:ErrorsOnly;Summary /verbosity:minimal
 if errorlevel 1 exit 1
 
 cmake --build . --config Release --target install
