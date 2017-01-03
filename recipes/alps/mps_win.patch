@@ -1,7 +1,19 @@
+Index: applications/dmrg/mps/framework/dmrg/models/op_handler.h
+===================================================================
+--- applications/dmrg/mps/framework/dmrg/models/op_handler.h	(revision 7814)
++++ applications/dmrg/mps/framework/dmrg/models/op_handler.h	(working copy)
+@@ -143,6 +143,7 @@
+     typedef TagHandler<Matrix, SymmGroup> base;
+     typedef typename OPTable<Matrix, SymmGroup>::tag_type tag_type;
+     typedef typename base::op_t op_t;
++    typedef typename base::pair_map_it_t pair_map_it_t;
+ 
+ public:
+ 
 Index: applications/dmrg/mps/framework/dmrg/models/op_handler.hpp
 ===================================================================
 --- applications/dmrg/mps/framework/dmrg/models/op_handler.hpp	(revision 7814)
-+++ applications/dmrg/mps/framework/dmrg/models/op_handler.hpp	(revision 7819)
++++ applications/dmrg/mps/framework/dmrg/models/op_handler.hpp	(working copy)
 @@ -94,14 +94,10 @@
  
      // return tag of product, if already there
@@ -39,22 +51,10 @@ Index: applications/dmrg/mps/framework/dmrg/models/op_handler.hpp
      }
      // compute and register the product, then return the new tag
      catch(const std::out_of_range& e) {
-Index: applications/dmrg/mps/framework/dmrg/models/op_handler.h
-===================================================================
---- applications/dmrg/mps/framework/dmrg/models/op_handler.h	(revision 7814)
-+++ applications/dmrg/mps/framework/dmrg/models/op_handler.h	(revision 7819)
-@@ -143,6 +143,7 @@
-     typedef TagHandler<Matrix, SymmGroup> base;
-     typedef typename OPTable<Matrix, SymmGroup>::tag_type tag_type;
-     typedef typename base::op_t op_t;
-+    typedef typename base::pair_map_it_t pair_map_it_t;
- 
- public:
- 
 Index: applications/dmrg/mps/framework/dmrg/sim/sim.hpp
 ===================================================================
 --- applications/dmrg/mps/framework/dmrg/sim/sim.hpp	(revision 7814)
-+++ applications/dmrg/mps/framework/dmrg/sim/sim.hpp	(revision 7819)
++++ applications/dmrg/mps/framework/dmrg/sim/sim.hpp	(working copy)
 @@ -148,12 +148,8 @@
  {
      std::ostringstream oss;
@@ -71,9 +71,21 @@ Index: applications/dmrg/mps/framework/dmrg/sim/sim.hpp
 Index: applications/dmrg/mps/framework/dmrg/mp_tensors/mps_initializers.h
 ===================================================================
 --- applications/dmrg/mps/framework/dmrg/mp_tensors/mps_initializers.h	(revision 7814)
-+++ applications/dmrg/mps/framework/dmrg/mp_tensors/mps_initializers.h	(revision 7819)
-@@ -462,7 +462,7 @@
-         std::vector<boost::tuple<charge, size_t> > state(mps.length());
++++ applications/dmrg/mps/framework/dmrg/mp_tensors/mps_initializers.h	(working copy)
+@@ -443,6 +443,7 @@
+ class basis_mps_init : public mps_initializer<Matrix, SymmGroup>
+ {
+ public:
++    typedef std::vector<boost::tuple<typename SymmGroup::charge, std::size_t> > state_type;
+     basis_mps_init(BaseParameters & params,
+                    std::vector<Index<SymmGroup> > const& phys_dims_,
+                    std::vector<int> const& site_type_)
+@@ -459,10 +460,10 @@
+         typedef typename SymmGroup::charge charge;
+         charge C = SymmGroup::IdentityCharge;
+         
+-        std::vector<boost::tuple<charge, size_t> > state(mps.length());
++        state_type state(mps.length());
          for (int i=0; i<mps.length(); ++i)
              state[i] = boost::make_tuple(C, occupation[i]);
 -        mps = state_mps<Matrix>(state, phys_dims, site_type);
@@ -81,8 +93,12 @@ Index: applications/dmrg/mps/framework/dmrg/mp_tensors/mps_initializers.h
      }
      
  private:
-@@ -497,7 +497,7 @@
-         std::vector<boost::tuple<charge, size_t> > state(mps.length());
+@@ -494,10 +495,10 @@
+         using std::sqrt;
+         size_t N = sqrt(double(phys_rho_dims[0][0].second));
+         
+-        std::vector<boost::tuple<charge, size_t> > state(mps.length());
++        std::vector<boost::tuple<charge, std::size_t> > state(mps.length());
          for (int i=0; i<mps.length(); ++i)
              state[i] = boost::make_tuple(C, occupation[i] + occupation[i]*N);
 -        mps = state_mps<Matrix>(state, phys_rho_dims, site_type);
@@ -90,7 +106,16 @@ Index: applications/dmrg/mps/framework/dmrg/mp_tensors/mps_initializers.h
      }
      
  private:
-@@ -546,7 +546,7 @@
+@@ -510,7 +511,7 @@
+ class basis_mps_init_generic : public mps_initializer<Matrix, SymmGroup>
+ {
+ public:
+-    typedef std::vector<boost::tuple<typename SymmGroup::charge, size_t> > state_type;
++    typedef std::vector<boost::tuple<typename SymmGroup::charge, std::size_t> > state_type;
+     basis_mps_init_generic(BaseParameters & params,
+                            std::vector<Index<SymmGroup> > const& phys_dims_,
+                            typename SymmGroup::charge right_end_,
+@@ -546,7 +547,7 @@
          if (mps.length() != state.size())
              throw std::runtime_error("Size of the initial state does not match the MPS size.");
          
@@ -99,3 +124,16 @@ Index: applications/dmrg/mps/framework/dmrg/mp_tensors/mps_initializers.h
          if (mps[mps.length()-1].col_dim()[0].first != right_end)
              throw std::runtime_error("Initial state does not satisfy total quantum numbers.");
      }
+Index: applications/dmrg/mps/framework/dmrg/mp_tensors/state_mps.h
+===================================================================
+--- applications/dmrg/mps/framework/dmrg/mp_tensors/state_mps.h	(revision 7814)
++++ applications/dmrg/mps/framework/dmrg/mp_tensors/state_mps.h	(working copy)
+@@ -32,7 +32,7 @@
+ #include <boost/tuple/tuple.hpp>
+ 
+ template <class Matrix, class SymmGroup>
+-MPS<Matrix, SymmGroup> state_mps(std::vector<boost::tuple<typename SymmGroup::charge, size_t> > const & state,
++MPS<Matrix, SymmGroup> state_mps(std::vector<boost::tuple<typename SymmGroup::charge, std::size_t> > const & state,
+                                  std::vector<Index<SymmGroup> > const& phys_dims, std::vector<int> const& site_type)
+ {
+     typedef typename SymmGroup::charge charge;
