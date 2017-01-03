@@ -6,4 +6,5 @@ cmake \
 	-DCMAKE_BUILD_TYPE=Release              \
 	..
 make
+make tests
 make install
