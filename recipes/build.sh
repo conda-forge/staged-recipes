@@ -4,4 +4,6 @@
             $OPTS
 
 
+make
+make check
 make install
