@@ -16,7 +16,7 @@ cmake ^
     ../clapack
 if errorlevel 1 exit 1
 
-cmake --build . --config Release -- /p:NoWarn=true /p:NoWarn=1-3000 /p:RunCodeAnalysis=false /verbosity:minimal
+cmake --build . --config Release -- /verbosity:minimal
 if errorlevel 1 exit 1
 
 cmake --build . --config Release --target install
