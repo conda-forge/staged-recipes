@@ -11,6 +11,7 @@ if errorlevel 1 exit 1
     variant=release ^
     threading=multi ^
     link=static,shared ^
+    -j%CPU_COUNT% ^
     --without-python
 if errorlevel 1 exit 1
 
