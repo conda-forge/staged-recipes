@@ -1,6 +1,6 @@
 
 :: Compile clapack
-%PYTHON% %RECIPE_DIR%\get_clapack_src.py
+"%PYTHON%" "%RECIPE_DIR%\get_clapack_src.py"
 if errorlevel 1 exit 1
 
 mkdir build_clapack
