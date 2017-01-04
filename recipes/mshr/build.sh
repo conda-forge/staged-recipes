@@ -1,6 +1,9 @@
 INCLUDE_PATH="$PREFIX/include"
 LIBRARY_PATH="$PREFIX/lib"
 
+export LDFLAGS="-Wl,-rpath,$LIBRARY_PATH $LDFLAGS"
+
+
 mkdir build
 cd build
 
@@ -14,4 +17,3 @@ cmake \
 
 make -j${CPU_COUNT}
 make install
-     
