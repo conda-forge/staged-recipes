@@ -53,7 +53,7 @@ conda install conda-forge-build-setup
 source run_conda_forge_build_setup
 
 # Install conda-build 2.x to build a long prefix.
-conda install --yes --quiet conda-build=2
+conda install --yes --quiet conda-build=2.0.12
 conda info
 
 # yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
