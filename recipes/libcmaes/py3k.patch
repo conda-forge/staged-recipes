@@ -1,0 +1,64 @@
+From edf66ad87248018e8f564ec11e74e64146dbc3f4 Mon Sep 17 00:00:00 2001
+From: Julien Schueller <schueller@phimeca.com>
+Date: Thu, 15 Dec 2016 17:33:05 +0100
+Subject: [PATCH 1/2] Fix numpy detection
+
+---
+ configure.ac | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+index a43c0c4..448e518 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -134,7 +134,7 @@ fi
+ if test x"$python" = x"true"; then
+ AC_MSG_CHECKING([for Numpy include directory])
+ CPPFLAGS=$PYTHON_CPPFLAGS $CPPFLAGS
+-NUMPY_INCLUDE_DIR=`echo "import numpy; print numpy.get_include()" | $PYTHON - 2>/dev/null`
++NUMPY_INCLUDE_DIR=`echo "import numpy; print(numpy.get_include())" | $PYTHON - 2>/dev/null`
+ AC_SUBST(NUMPY_INCLUDE_DIR)
+ AC_CHECK_HEADER([${NUMPY_INCLUDE_DIR}/numpy/arrayobject.h],
+                 [NUMPY_HEADER=yes],
+
+From 44710f0bdac82ba99c2235fa7ce77551b8cf5be0 Mon Sep 17 00:00:00 2001
+From: Julien Schueller <schueller@phimeca.com>
+Date: Thu, 15 Dec 2016 17:33:41 +0100
+Subject: [PATCH 2/2] Fix import_array return type error
+
+---
+ python/lcmaes.cc | 16 ++++++++++++++--
+ 1 file changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/python/lcmaes.cc b/python/lcmaes.cc
+index ac95acb..3881b73 100644
+--- a/python/lcmaes.cc
++++ b/python/lcmaes.cc
+@@ -224,13 +224,25 @@ BOOST_PYTHON_FUNCTION_OVERLOADS(make_parameters_default_pwqb,make_parameters<Gen
+ //BOOST_PYTHON_FUNCTION_OVERLOADS(make_parameters_default_ls,make_parameters<GenoPheno<NoBoundStrategy,linScalingStrategy>>,3,5) // prevented by bug in Boost Python
+ //BOOST_PYTHON_FUNCTION_OVERLOADS(make_parameters_default_pwb_ls,make_parameters<GenoPheno<pwqBoundStrategy,linScalingStrategy>>,3,5)
+ 
++
++#if PY_VERSION_HEX >= 0x03000000
++int
++#else
++void
++#endif
++init_numpy()
++{
++  import_array();
++}
++
++
+ BOOST_PYTHON_MODULE(lcmaes)
+ {
+   // disables C++ signatures in the Python module documentation
+   docstring_options local_docstring_options(true,true,false);
+ 
+-  import_array(); // numpy.
+-  
++  init_numpy();
++
+   /*- parameters object and maker -*/
+   class_<CMAParameters<GenoPheno<NoBoundStrategy>>>("CMAParametersNB","CMAParameters object for problems with unbounded function parameters")
+     .def("initialize_parameters", &CMAParameters<GenoPheno<NoBoundStrategy>>::initialize_parameters,"initialize required CMA parameters based on dim, lambda, x0 and sigma")
