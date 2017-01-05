@@ -71,7 +71,7 @@ if errorlevel 1 exit 1
 cmake --build . --config Release --target install
 if errorlevel 1 exit 1
 
-ctest --output-on-failure
+ctest --output-on-failure  -E "python_|lattice_example1"
 :: if errorlevel 1 exit 1
 
 :: Move pyalps to site packages
