@@ -6,4 +6,6 @@ if [ `uname` == Darwin ]; then
 fi
 
 ./configure --disable-dependency-tracking --enable-imageio=no --prefix=${PREFIX}
+make 
+make check
 make install
