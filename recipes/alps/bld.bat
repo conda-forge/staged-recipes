@@ -76,3 +76,9 @@ if errorlevel 1 exit 1
 
 :: Move pyalps to site packages
 move %LIBRARY_LIB%\pyalps "%SP_DIR%"
+
+:: Enviroment variables for relocation
+mkdir "%PREFIX%\etc\conda\activate.d"
+mkdir "%PREFIX%\etc\conda\deactivate.d"
+@echo SET ALPS_XML_PATH="%PREFIX%/lib/xml" > "%PREFIX%\etc\conda\activate.d\alps_vars.bat"
+@echo SET ALPS_XML_PATH= > "%PREFIX%\etc\conda\deactivate.d\alps_vars.bat"
