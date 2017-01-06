@@ -163,4 +163,3 @@ install(TARGETS ${PROJECT_NAME}
 
 # Copy .h files to include dir.
 install(FILES ${SDL2_IMAGE_INCLUDE_FILES} DESTINATION include/SDL2)
-
