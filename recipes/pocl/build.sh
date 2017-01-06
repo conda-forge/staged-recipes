@@ -1,5 +1,10 @@
 mkdir build
 cd build
+
+# FIXME: Not currently using vecmathlib due to clang++ returning an
+# error on configure (not finding <iostream>)
+# add something KERNEL_CLANGXX_FLAGS
+
 cmake \
   -D CMAKE_INSTALL_PREFIX="${PREFIX}" \
   -D POCL_INSTALL_ICD_VENDORDIR="${PREFIX}/etc/OpenCL/vendors" \
