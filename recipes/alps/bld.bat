@@ -1,3 +1,5 @@
+:: Fix Visual Studio 2008 for x64
+call setup_x64
 
 :: Compile clapack
 "%PYTHON%" "%RECIPE_DIR%\get_clapack_src.py"
