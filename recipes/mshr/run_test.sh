@@ -1,2 +1,2 @@
-$PYTHON "$RECIPE_DIR/test/test-meshes.py"
-$PYTHON "$RECIPE_DIR/test/test-mesh-generation.py"
+$PYTHON "test/test-meshes.py"
+$PYTHON "test/test-mesh-generation.py"
