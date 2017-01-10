@@ -1,41 +1,40 @@
 #! /bin/bash
 
+# The invocation of this script is preceded by a `source activate` of the
+# Conda environment. In conda ~ 4.2 (at least 4.2.13, probably other
+# versions), the activate script can reset the important $IFS variable if
+# there are any files in $PREFIX/etc/conda/activate.d. The `toolchain` package
+# installs just such a file, and therefore this script ends up with a
+# clobbered $IFS. So:
+IFS=$' \t\n'
+
 set -e
 
-# Temporary builder environment diagnostics.
-
-echo "============================================"
-env |sort
-echo "============================================"
-
 # Sigh, the easiest option is to just compile it all ourselves.
+#
+# The preset $CFLAGS are all ones that can/should be passed to gfortran.
 
-FFLAGS="-g -O -fno-automatic -Wall -fPIC"
-CFLAGS="-g -O -Wall -fPIC"
+FC=gfortran
+FFLAGS="-g -O -fno-automatic -Wall -fPIC $CFLAGS"
+CFLAGS="-g -O -Wall -fPIC $CFLAGS"
 
 mkdir -p $PREFIX/bin $PREFIX/lib $PREFIX/include
 
 if [ -n "$OSX_ARCH" ] ; then
-    sdk=/
-    FC=gfortran-4.2
-    SOEXT=dylib
+    SOEXT=dylib # see other choice; there's a reason we're not using $SHLIB_EXT
     SOFLAGS=(
 	-dynamiclib
 	-static-libgfortran
 	-install_name '@rpath/librpfits.dylib'
-	-arch $OSX_ARCH
 	-compatibility_version 1.0.0
 	-current_version 1.0.0
 	-headerpad_max_install_names
-	-isysroot $sdk
-	-mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET
     )
     EXEFLAGS=(
 	-dynamic
     )
 else
-    FC=gfortran
-    SOEXT=so.0
+    SOEXT=so.0 # note: the ".0" makes this not the same as $SHLIB_EXT
     SOFLAGS=(
 	-shared
 	-fPIC
