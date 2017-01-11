@@ -15,5 +15,5 @@ cmake \
   -DMSHR_ENABLE_VTK=0 \
   ..
 
-make -j${CPU_COUNT}
+make -j${CPU_COUNT} VERBOSE=1
 make install
