@@ -1,0 +1,87 @@
+Index: config/FindHDF5.cmake
+===================================================================
+--- config/FindHDF5.cmake	(revision 7814)
++++ config/FindHDF5.cmake	(working copy)
+@@ -82,7 +82,7 @@
+ ENDIF(Hdf5_INCLUDE_DIRS)
+ 
+ IF (WIN32 AND NOT UNIX)
+-  SET(HDF5_DEFINITIONS "-D_HDF5USEDLL_" CACHE STRING "HDF5 defintions")
++  SET(HDF5_DEFINITIONS "-D_HDF5USEDLL_;-DH5_BUILT_AS_DYNAMIC_LIB" CACHE STRING "HDF5 defintions")
+ ENDIF (WIN32 AND NOT UNIX)
+ 
+ 
+Index: applications/dmrg/mps/CMakeLists.txt
+===================================================================
+--- applications/dmrg/mps/CMakeLists.txt	(revision 7814)
++++ applications/dmrg/mps/CMakeLists.txt	(working copy)
+@@ -18,6 +18,9 @@
+ 
+   list(APPEND ALPS_MPS_DEFINITIONS "-DDISABLE_MATRIX_ELEMENT_ITERATOR_WARNING")
+   list(APPEND ALPS_MPS_DEFINITIONS "-DALPS_DISABLE_MATRIX_ELEMENT_ITERATOR_WARNING")
++  if(HDF5_DEFINITIONS)
++    list(APPEND ALPS_MPS_DEFINITIONS ${HDF5_DEFINITIONS})
++  endif(HDF5_DEFINITIONS)
+ 
+   set(ALPS_MPS_LINKER_FLAGS "${LAPACK_LINKER_FLAGS}")
+ 
+Index: applications/dmrg/tebd/CMakeLists.txt
+===================================================================
+--- applications/dmrg/tebd/CMakeLists.txt	(revision 7814)
++++ applications/dmrg/tebd/CMakeLists.txt	(working copy)
+@@ -11,6 +11,13 @@
+   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LAPACK_LINKER_FLAGS}")
+   add_executable(tebd ${SOURCES})
+   target_link_libraries(tebd ${HDF5_STATIC_LIBRARIES} ${HDF5_LIBRARIES} ${LAPACK_LIBRARY} ${BLAS_LIBRARY})
++  if(HDF5_DEFINITIONS)
++    foreach (_hdf5_def ${HDF5_DEFINITIONS})
++      string(REPLACE "-D" "" _escaped_def ${_hdf5_def})
++      list(APPEND ALPS_TEBD_DEFINITIONS ${_escaped_def})
++    endforeach(_hdf5_def)
++    set_target_properties(tebd PROPERTIES COMPILE_DEFINITIONS "${ALPS_TEBD_DEFINITIONS}")
++  endif(HDF5_DEFINITIONS)
+   install(TARGETS tebd RUNTIME DESTINATION bin COMPONENT applications)
+ else(LAPACK_FOUND AND ALPS_BUILD_FORTRAN)
+   message(STATUS "tebd will not be built")
+Index: src/alps/CMakeLists.txt
+===================================================================
+--- src/alps/CMakeLists.txt	(revision 7814)
++++ src/alps/CMakeLists.txt	(working copy)
+@@ -102,11 +102,19 @@
+ endif (Boost_FOUND)
+ 
+ if(BUILD_SHARED_LIBS)
++  if(HDF5_DEFINITIONS)
++    foreach (_hdf5_def ${HDF5_DEFINITIONS})
++      string(REPLACE "-D" "" _escaped_def ${_hdf5_def})
++      list(APPEND ALPS_SHARED_CPPFLAGS ${_escaped_def})
++    endforeach(_hdf5_def)
++  endif(HDF5_DEFINITIONS)
++  
+   set_target_properties(alps PROPERTIES COMPILE_DEFINITIONS "${ALPS_SHARED_CPPFLAGS}")
+ else(BUILD_SHARED_LIBS)
+   set_target_properties(alps PROPERTIES COMPILE_DEFINITIONS "${ALPS_STATIC_CPPFLAGS}")
+ endif(BUILD_SHARED_LIBS)
+ 
++
+ if(MSVC)
+   get_target_property(LIB_NAME alps LOCATION)
+   add_custom_command(TARGET alps POST_BUILD
+Index: test/alea/CMakeLists.txt
+===================================================================
+--- test/alea/CMakeLists.txt	(revision 7819)
++++ test/alea/CMakeLists.txt	(working copy)
+@@ -17,4 +17,11 @@
+ ENDIF(NOT ALPS_LLVM_WORKAROUND)
+ 
+ add_executable(dumpbench dumpbench.C)
+-target_link_libraries(dumpbench alps)
++target_link_libraries(dumpbench alps ${HDF5_LIBRARIES})
++if(HDF5_DEFINITIONS)
++   foreach (_hdf5_def ${HDF5_DEFINITIONS})
++     string(REPLACE "-D" "" _escaped_def ${_hdf5_def})
++     list(APPEND ALPS_TEBD_DEFINITIONS ${_escaped_def})
++   endforeach(_hdf5_def)
++   set_target_properties(dumpbench PROPERTIES COMPILE_DEFINITIONS "${ALPS_TEBD_DEFINITIONS}")
++endif(HDF5_DEFINITIONS)
+\ No newline at end of file
