@@ -1,5 +1,6 @@
 #! /bin/bash
 
+IFS=$' \t\n' # workaround bad conda/toolchain interaction
 set -e
 
 configure_args=(
