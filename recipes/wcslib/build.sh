@@ -3,6 +3,8 @@
 IFS=$' \t\n' # workaround bad conda/toolchain interaction
 set -e
 
+export LDFLAGS="-Wl,-rpath,$PREFIX/lib $LDFLAGS"
+
 configure_args=(
     --prefix=$PREFIX
     --enable-fortran
