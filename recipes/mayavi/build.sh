@@ -1,3 +1,5 @@
 #!/bin/bash
 
-$PYTHON setup.py install --single-version-externally-managed --record record.txt
+CMD="$PYTHON setup.py install --single-version-externally-managed --record record.txt"
+
+DISPLAY=localhost:1.0 xvfb-run -a bash -c $CMD
