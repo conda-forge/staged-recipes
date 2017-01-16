@@ -3,6 +3,9 @@
 set -e
 IFS=$' \t\n' # workaround for conda 4.2.13+toolchain bug
 
+# Adopt a Unix-friendly path if we're on Windows (see bld.bat).
+[ -n "$PATH_OVERRIDE" ] && export PATH="$PATH_OVERRIDE"
+
 # Fresh OS-guessing scripts from xorg-util-macros for win64
 for f in config.guess config.sub ; do
     cp -p $PREFIX/share/util-macros/$f .
