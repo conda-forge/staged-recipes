@@ -18,6 +18,12 @@ configure_args=(
     --disable-selective-werror
     --disable-silent-rules
 )
+
+# Unix domain sockets aren't gonna work on Windows
+if [ -n "$VS_MAJOR" ] ; then
+    configure_args+=(--disable-unix-transport)
+fi
+
 ./configure "${configure_args[@]}"
 make -j$CPU_COUNT
 make install
