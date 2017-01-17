@@ -5,6 +5,6 @@ if [ `uname` == Darwin ]; then
 fi
 
 
-pip install --global-option install --global-option --single-version-externally-managed --global-option --record=record.txt .
+python setup.py install --global-option --single-version-externally-managed --global-option --record=record.txt
 
 
