@@ -12,10 +12,10 @@ configure_args=(
 )
 
 if [ -n "$OSX_ARCH" ] ; then
-    LDFLAGS="$LDFLAGS -Wl,-rpath-link,$PREFIX/lib"
+    LDFLAGS="$LDFLAGS -Wl,-rpath,$PREFIX/lib"
 fi
 
-./configure "${configure_args[@]}"
+./configure "${configure_args[@]}" || { cat config.log ; exit 1 ; }
 make -j$CPU_COUNT
 make install
 make check
