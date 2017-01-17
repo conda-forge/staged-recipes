@@ -1,0 +1,50 @@
+From 5a7a8580b3065faad46758470923150e4c8cf26c Mon Sep 17 00:00:00 2001
+From: Matt Wala <wala1@illinois.edu>
+Date: Tue, 17 Jan 2017 14:02:37 -0600
+Subject: [PATCH] Fix clEnqueueFillBuffer memory leak.
+
+---
+ include/pocl.h               | 1 +
+ lib/CL/clEnqueueFillBuffer.c | 1 +
+ lib/CL/clFinish.c            | 1 +
+ 3 files changed, 3 insertions(+)
+
+diff --git a/include/pocl.h b/include/pocl.h
+index 99bb156..4132391 100644
+--- a/include/pocl.h
++++ b/include/pocl.h
+@@ -170,6 +170,7 @@ typedef struct
+ 
+ typedef struct
+ {
++  cl_mem buffer;
+   void* ptr;
+   size_t size, offset;
+   void* pattern;
+diff --git a/lib/CL/clEnqueueFillBuffer.c b/lib/CL/clEnqueueFillBuffer.c
+index 4e0edad..8bd83b2 100644
+--- a/lib/CL/clEnqueueFillBuffer.c
++++ b/lib/CL/clEnqueueFillBuffer.c
+@@ -90,6 +90,7 @@ CL_API_SUFFIX__VERSION_1_2
+   if (errcode != CL_SUCCESS)
+     return errcode;
+ 
++  cmd->command.memfill.buffer = buffer;
+   cmd->command.memfill.ptr =
+       buffer->device_ptrs[command_queue->device->dev_id].mem_ptr;
+   cmd->command.memfill.size = size;
+diff --git a/lib/CL/clFinish.c b/lib/CL/clFinish.c
+index 22bdb8f..268f974 100644
+--- a/lib/CL/clFinish.c
++++ b/lib/CL/clFinish.c
+@@ -282,6 +282,7 @@ static void exec_commands (_cl_command_node *node_list)
+           POCL_MEM_FREE(node->command.memfill.pattern);
+           POCL_UPDATE_EVENT_COMPLETE(event);
+           POCL_DEBUG_EVENT_TIME(event, "Fill Buffer           ");
++          POname(clReleaseMemObject) (node->command.memfill.buffer);
+           break;
+         case CL_COMMAND_MARKER:
+           POCL_UPDATE_EVENT_RUNNING(event);
+-- 
+2.1.4
+
