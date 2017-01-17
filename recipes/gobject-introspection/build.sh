@@ -11,6 +11,10 @@ configure_args=(
     --with-cairo
 )
 
+if [ -n "$OSX_ARCH" ] ; then
+    LDFLAGS="$LDFLAGS -Wl,-rpath-link,$PREFIX/lib"
+fi
+
 ./configure "${configure_args[@]}"
 make -j$CPU_COUNT
 make install
