@@ -26,7 +26,6 @@ else
     make check-local check-TESTS
     (cd tests && make check-TESTS) || exit 1
     (cd tests/offsets && make check) || exit 1
-    (cd tests/repository && make check) || exit 1
     (cd tests/warn && make check) || exit 1
 fi
 
