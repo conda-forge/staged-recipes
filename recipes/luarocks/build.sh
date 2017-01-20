@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-
+set -x -e
 
 # TODO
 # - Would be good if luarocks would offer the ability to use only a user rockspec, instead of system.
@@ -11,3 +11,4 @@
     --rocks-tree=$PREFIX
 
 make bootstrap
+
