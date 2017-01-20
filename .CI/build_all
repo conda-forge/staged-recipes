@@ -5,11 +5,15 @@
 export CONDA_NPY=19
 
 # Remove homebrew.
+echo ""
+echo "Removing homebrew from Travis CI to avoid conflicts."
 brew remove --force --ignore-dependencies $(brew list)
 brew cleanup -s
 rm -rf $(brew --cache)
 
 # Install and configure conda environment.
+echo ""
+echo "Installing a fresh version of Miniconda."
 curl -L -O https://raw.githubusercontent.com/conda-forge/conda-smithy/e976c7e84bb3c4846e7562afd1a42c4b535b51f5/bootstrap-obvious-ci-and-miniconda.py
 python bootstrap-obvious-ci-and-miniconda.py ~/miniconda x64 3 --without-obvci && source ~/miniconda/bin/activate root
 conda config --add channels conda-forge
@@ -19,10 +23,12 @@ conda install --yes --quiet conda-forge-build-setup
 source run_conda_forge_build_setup
 
 # Find the recipes from master in this PR and remove them.
-pushd ./recipes > /dev/null
+echo ""
 echo "Finding recipes merged in master and removing them from the build."
+pushd ./recipes > /dev/null
 git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf {} && echo Removing recipe: {}"
 popd > /dev/null
+echo ""
 
 # We just want to build all of the recipes.
 conda-build-all ./recipes --matrix-condition "numpy >=1.11" "python >=2.7,<3|>=3.5"
