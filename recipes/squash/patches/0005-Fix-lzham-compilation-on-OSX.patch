@@ -1,0 +1,44 @@
+From 017c7c22f75a5731f0fb6aaa0922f823296370f3 Mon Sep 17 00:00:00 2001
+From: Rolando Espinoza <rndmax84@gmail.com>
+Date: Sun, 5 Feb 2017 15:20:28 -0400
+Subject: [PATCH 5/9] Fix lzham compilation on OSX.
+
+Backported from https://github.com/richgel999/lzham_codec/issues/6
+---
+ plugins/lzham/lzham/lzhamdecomp/lzham_platform.cpp | 2 +-
+ plugins/lzham/lzham/lzhamdecomp/lzham_traits.h     | 6 +++++-
+ 2 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/plugins/lzham/lzham/lzhamdecomp/lzham_platform.cpp b/plugins/lzham/lzham/lzhamdecomp/lzham_platform.cpp
+index cd4f9dd..172dc60 100644
+--- a/plugins/lzham/lzham/lzhamdecomp/lzham_platform.cpp
++++ b/plugins/lzham/lzham/lzhamdecomp/lzham_platform.cpp
+@@ -62,7 +62,7 @@ void lzham_debug_break(void)
+ #if LZHAM_USE_WIN32_API
+    DebugBreak();
+ #elif (TARGET_OS_MAC == 1) && (TARGET_IPHONE_SIMULATOR == 0) && (TARGET_OS_IPHONE == 0)
+-   __asm {int 3}
++   __asm__("int $3");
+ #else
+    assert(0);
+ #endif
+diff --git a/plugins/lzham/lzham/lzhamdecomp/lzham_traits.h b/plugins/lzham/lzham/lzhamdecomp/lzham_traits.h
+index 950c3fd..3a36ecd 100644
+--- a/plugins/lzham/lzham/lzhamdecomp/lzham_traits.h
++++ b/plugins/lzham/lzham/lzhamdecomp/lzham_traits.h
+@@ -67,7 +67,11 @@ namespace lzham
+    // Defines type Q as bitwise copyable.
+ #define LZHAM_DEFINE_BITWISE_COPYABLE(Q) template<> struct bitwise_copyable<Q> { enum { cFlag = true }; };
+ 
+-#if defined(__APPLE__) || defined(__NetBSD__)
++#if defined(__APPLE__) && defined(__MACH__)
++    #include <TargetConditionals.h>
++#endif
++
++#if (defined(__APPLE__) && TARGET_OS_MAC != 1) || defined(__NetBSD__)
+    #define LZHAM_IS_POD(T) std::__is_pod<T>::__value
+ #else
+    #define LZHAM_IS_POD(T) __is_pod(T)
+-- 
+2.6.2
+
