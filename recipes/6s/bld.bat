@@ -1,5 +1,5 @@
 :: Configure.
-cmake -D CMAKE_INSTALL_PREFIX=%PREFIX% .
+cmake -G "NMake Makefiles" -D CMAKE_INSTALL_PREFIX=%PREFIX% .
 if errorlevel 1 exit 1
 
 :: Build.
