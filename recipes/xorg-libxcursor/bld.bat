@@ -1,6 +1,10 @@
 :: Trailing semicolon in this variable as set by current (2017/01)
 :: conda-build breaks us. Manual fix:
 set "MSYS2_ARG_CONV_EXCL=/AI;/AL;/OUT;/out"
+
+:: But libXcursor actually needs some special treatment!
+set "MSYS2_ARG_CONV_EXCL=%MSYS2_ARG_CONV_EXCL%;-DICONDIR;-DXCURSORPATH"
+
 :: Delegate to the Unixy script. We need to translate the key path variables
 :: to be Unix-y rather than Windows-y, though.
 set "saved_recipe_dir=%RECIPE_DIR%"
