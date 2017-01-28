@@ -16,6 +16,7 @@ conda-build:
 
 always_yes: true
 show_channel_urls: true
+ssl_verify: false
 
 CONDARC
 )
