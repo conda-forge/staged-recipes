@@ -1,0 +1,232 @@
+--- grexec.awk.orig	1997-03-23 02:11:23.000000000 -0500
++++ grexec.awk	2007-03-02 13:56:22.000000000 -0500
+@@ -25,17 +25,17 @@
+   printf("      CHARACTER*10 MSG\n");
+   printf("C---\n");
+   printf("      GOTO(");
+-  for(i=1; i<=ndev; i++) {
++  nlbdriv = 3;
++  for(i=1; i<=ndev+nlbdriv; i++) {
+     if(i%15 == 0)
+       printf("\n     +     ");
+     printf("%d", i);
+-    if(i<ndev)
++    if(i<ndev+nlbdriv)
+       printf(",");
+   };
+   printf(") IDEV\n");
+   printf("      IF (IDEV.EQ.0) THEN\n");
+-  printf("          RBUF(1) = NDEV\n");
+-  printf("          NBUF = 1\n");
++  printf("          CALL LBDRIVCNT(RBUF,NBUF,NDEV)\n");
+   printf("      ELSE\n");
+   printf("          WRITE (MSG,'(I10)') IDEV\n");
+   printf("          CALL GRWARN('Unknown device code in GREXEC: '//MSG)\n");
+@@ -50,6 +50,11 @@
+       printf(")\n");
+     printf("      RETURN\n");
+   };
++  for(i=1; i<=nlbdriv; i++ ) {
++    printf("%-5d CALL LBDRIV%d(IFUNC,RBUF,NBUF,CHR,LCHR)\n", ndev + i, i );
++    printf("      RETURN\n");
++  };
++    
+   printf("C\n");
+   printf("      END\n");
+ }
+--- makemake.orig	2015-12-22 06:08:41.000000000 -0800
++++ makemake	2015-12-22 06:11:51.000000000 -0800
+@@ -795,11 +795,14 @@
+ # reading the "drivers.list" file.
+ #-----------------------------------------------------------------------
+ 
+-DISPATCH_ROUTINE=grexec.o
++DISPATCH_ROUTINE=grexec.o lbdriv.o
+ 
+ grexec.o: grexec.f
+ 	$(FCOMPL) -c $(FFLAGC) grexec.f
+ 
++lbdriv.o: lbdriv.c
++	$(CCOMPL) -c $(CFLAGC) $(XINCL) lbdriv.c
++
+ #-----------------------------------------------------------------------
+ # Target "lib" is used to built the PGPLOT subroutine library.
+ # libpgplot.a is the primary PGPLOT object library.
+--- /dev/null	2015-12-22 00:15:00.000000000 -0800
++++ lbdriv.c	2015-12-22 06:15:27.000000000 -0800
+@@ -0,0 +1,175 @@
++#include <stdio.h>
++
++#ifndef convex
++#include <string.h>
++#endif
++
++/*
++ * VAX VMS includes etc..
++ */
++#ifdef VMS
++#include <descrip.h>
++#include <ssdef.h>
++typedef struct dsc$descriptor_s VMS_string;
++#define VMS_STRING(dsc, string) \
++  dsc.dsc$w_length = strlen(string); \
++  dsc.dsc$b_dtype = DSC$K_DTYPE_T; \
++  dsc.dsc$b_class = DSC$K_CLASS_S; \
++  dsc.dsc$a_pointer = string;
++#endif
++
++/*
++ * Allow lbdriv1 to be calleable by FORTRAN using the two commonest
++ * calling conventions. Both conventions append length arguments for
++ * each FORTRAN string at the end of the argument list, and convert the
++ * name to lower-case, but one post-pends an underscore to the function
++ * name (PG_PPU) while the other doesn't. Note the VMS is handled
++ * separately below. For other calling conventions you must write a
++ * C wrapper routine to call lbdriv1() or lbdriv1_().
++ */
++#ifdef PG_PPU
++#define LBDRIV1   lbdriv1_
++#define LBDRIV2   lbdriv2_
++#define LBDRIV3   lbdriv3_
++#define LBDRIVCNT lbdrivcnt_
++#else
++#define LBDRIV1 lbdriv1
++#define LBDRIV2 lbdriv2
++#define LBDRIV3 lbdriv3
++#define LBDRIVCNT lbdrivcnt
++#endif
++
++void (*late_binding_pgplot_driver_1)(int *, float *, int *, char *, int *, int *, int) = 0;
++void (*late_binding_pgplot_driver_2)(int *, float *, int *, char *, int *, int *, int) = 0;
++void (*late_binding_pgplot_driver_3)(int *, float *, int *, char *, int *, int *, int) = 0;
++
++void add_late_binding_pgdriver(void (*driver)(int *, float *, int *, char *, int *, int *, int)) {
++    if ( late_binding_pgplot_driver_1 == 0 ) {
++        late_binding_pgplot_driver_1 = driver;
++    } else if ( late_binding_pgplot_driver_2 == 0 ) {
++        late_binding_pgplot_driver_2 = driver;
++    } else if ( late_binding_pgplot_driver_3 == 0 ) {
++        late_binding_pgplot_driver_3 = driver;
++    } else {
++        fprintf( stderr, "Late Binding PGPLOT Driver Overflow!\n" );
++    }
++}
++
++/**********************************************************************************
++ ****  Late Binding PGPLOT Driver #1                                           ****
++ **********************************************************************************/
++#ifdef VMS
++void lbdriv1(ifunc, rbuf, nbuf, chrdsc, lchr)
++     int *ifunc;
++     float rbuf[];
++     int *nbuf;
++     struct dsc$descriptor_s *chrdsc; /* VMS FORTRAN string descriptor */
++     int *lchr;
++{
++  int len = chrdsc->dsc$w_length;
++  char *chr = chrdsc->dsc$a_pointer;
++#else
++void LBDRIV1(ifunc, rbuf, nbuf, chr, lchr, len)
++ int   *ifunc, *nbuf, *lchr;
++ int   len;
++ float rbuf[];
++ char  *chr;
++{
++#endif
++  int mode = 0;
++  if ( ! late_binding_pgplot_driver_1 ) {
++    fprintf( stderr, "Late Binding PGPLOT Driver #1 called when not initialized\n" );
++    *nbuf = -1;
++    return;
++  }
++  (*late_binding_pgplot_driver_1)( ifunc, rbuf, nbuf, chr, lchr, &mode, len );
++  return;
++}
++
++/**********************************************************************************
++ ****  Late Binding PGPLOT Driver #2                                           ****
++ **********************************************************************************/
++#ifdef VMS
++void lbdriv2(ifunc, rbuf, nbuf, chrdsc, lchr)
++     int *ifunc;
++     float rbuf[];
++     int *nbuf;
++     struct dsc$descriptor_s *chrdsc; /* VMS FORTRAN string descriptor */
++     int *lchr;
++{
++  int len = chrdsc->dsc$w_length;
++  char *chr = chrdsc->dsc$a_pointer;
++#else
++void LBDRIV2(ifunc, rbuf, nbuf, chr, lchr, len)
++ int   *ifunc, *nbuf, *lchr;
++ int   len;
++ float rbuf[];
++ char  *chr;
++{
++#endif
++  int mode = 0;
++  if ( ! late_binding_pgplot_driver_2 ) {
++    fprintf( stderr, "Late Binding PGPLOT Driver #2 called when not initialized\n" );
++    *nbuf = -1;
++    return;
++  }
++  (*late_binding_pgplot_driver_2)( ifunc, rbuf, nbuf, chr, lchr, &mode, len );
++  return;
++}
++
++/**********************************************************************************
++ ****  Late Binding PGPLOT Driver #3                                           ****
++ **********************************************************************************/
++#ifdef VMS
++void lbdriv3(ifunc, rbuf, nbuf, chrdsc, lchr)
++     int *ifunc;
++     float rbuf[];
++     int *nbuf;
++     struct dsc$descriptor_s *chrdsc; /* VMS FORTRAN string descriptor */
++     int *lchr;
++{
++  int len = chrdsc->dsc$w_length;
++  char *chr = chrdsc->dsc$a_pointer;
++#else
++void LBDRIV3(ifunc, rbuf, nbuf, chr, lchr, len)
++ int   *ifunc, *nbuf, *lchr;
++ int   len;
++ float rbuf[];
++ char  *chr;
++{
++#endif
++  int mode = 0;
++  if ( ! late_binding_pgplot_driver_3 ) {
++    fprintf( stderr, "Late Binding PGPLOT Driver #3 called when not initialized\n" );
++    *nbuf = -1;
++    return;
++  }
++  (*late_binding_pgplot_driver_3)( ifunc, rbuf, nbuf, chr, lchr, &mode, len );
++  return;
++}
++
++#ifdef VMS
++void lbdrivcnt(rbuf, nbuf, ndev)
++     float rbuf[];
++     int *nbuf;
++     int *ndev;
++{
++#else
++void LBDRIVCNT(rbuf, nbuf, ndev)
++ int   *nbuf, *ndev;
++ float rbuf[];
++{
++#endif
++  *nbuf = 1;
++  rbuf[0] = *ndev;
++  if ( late_binding_pgplot_driver_1 ) {
++    rbuf[0] += 1;
++    if ( late_binding_pgplot_driver_2 ) {
++      rbuf[0] += 1;
++      if ( late_binding_pgplot_driver_3 ) {
++	rbuf[0] += 1;
++      }
++    }
++  }
++  return;
++}
