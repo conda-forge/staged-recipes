@@ -41,8 +41,6 @@ fi
 
 # Unused, but needed by conda-build currently... :(
 export CONDA_NPY='19'
-# Needed because conda-build-all does not set CONDA_R due to a bug (see SciTools/conda-build-all#73).
-export CONDA_R='3.3.2'
 
 echo "$config" > ~/.condarc
 
