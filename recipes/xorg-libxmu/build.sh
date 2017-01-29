@@ -28,5 +28,11 @@ fi
 make -j$CPU_COUNT
 make install
 make check
-rm -rf $PREFIX/share/doc/${PKG_NAME#xorg-}
-rm -f $PREFIX/lib/libXmu.a $PREFIX/lib/libXmu.la
+rm -rf $PREFIX/share/man $PREFIX/share/doc/${PKG_NAME#xorg-}
+
+# Prefer dynamic libraries to static, and dump libtool helper files
+for lib_ident in Xmu Xmuu; do
+    if [ -e $PREFIX/lib/lib${lib_ident}$SHLIB_EXT ] ; then
+        rm -f $PREFIX/lib/lib${lib_ident}.a $PREFIX/lib/lib${lib_ident}.la
+    fi
+done
