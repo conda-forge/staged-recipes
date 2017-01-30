@@ -11,7 +11,7 @@ else
     echo "Mac  "${PREFIX}
 fi
 cd lib
-sed "s#@cdat_EXTERNALS@#${PREFIX}#g;" ${MAKEFILE}.in > ${MAKEFILE}
-make  -f ${MAKEFILE}
-make -f ${MAKEFILE} install
+sed "s#@cdat_EXTERNALS@#${PREFIX}#g;" ${MAKEFILE}.in > Makefile
+make  
+make  install
 
