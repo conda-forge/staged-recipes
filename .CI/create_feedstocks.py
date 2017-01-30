@@ -47,7 +47,7 @@ def list_recipes():
         if recipe_dir.startswith('example'):
             continue
         path = os.path.abspath(os.path.join(recipe_directory_name, recipe_dir))
-        yield path, recipe_dir
+        yield path, MetaData(path).name()
 
 
 @contextmanager
