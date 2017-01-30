@@ -1,7 +1,7 @@
 set PATH=%PATH:C:\Program Files\Git\usr\bin;=%
 
 :: Configure.
-cmake -G "MinGW Makefiles" -D CMAKE_INSTALL_PREFIX=%PREFIX% .
+cmake -G "MinGW Makefiles" -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% .
 if errorlevel 1 exit 1
 
 :: Build.
