@@ -5,9 +5,9 @@ cmake -G "MinGW Makefiles" -D CMAKE_INSTALL_PREFIX=%PREFIX% .
 if errorlevel 1 exit 1
 
 :: Build.
-mingw-make
+mingw32-make
 if errorlevel 1 exit 1
 
 :: Install.
-mingw-make install
+mingw32-make install
 if errorlevel 1 exit 1
