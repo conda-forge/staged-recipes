@@ -1,3 +1,7 @@
+REM Avoid the the message printed to stderr about what problems are found
+REM which confuses py6s
+set FFLAGS="-ffpe-summary=none"
+
 set PATH=%PATH:C:\Program Files\Git\usr\bin;=%
 
 :: Configure.
