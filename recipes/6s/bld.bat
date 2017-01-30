@@ -1,5 +1,7 @@
+move C:/Program Files/Git/usr/bin/sh.exe C:/Program Files/Git/usr/bin/shOLD.exe
+
 :: Configure.
-cmake -G "MSYS Makefiles" -D CMAKE_INSTALL_PREFIX=%PREFIX% .
+cmake -G "MinGW Makefiles" -D CMAKE_INSTALL_PREFIX=%PREFIX% .
 if errorlevel 1 exit 1
 
 :: Build.
