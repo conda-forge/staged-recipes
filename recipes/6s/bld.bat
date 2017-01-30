@@ -1,4 +1,4 @@
-move C:/Program Files/Git/usr/bin/sh.exe C:/Program Files/Git/usr/bin/shOLD.exe
+move "C:/Program Files/Git/usr/bin/sh.exe" "C:/Program Files/Git/usr/bin/shOLD.exe"
 
 :: Configure.
 cmake -G "MinGW Makefiles" -D CMAKE_INSTALL_PREFIX=%PREFIX% .
