@@ -11,3 +11,5 @@ if errorlevel 1 exit 1
 :: Install.
 mingw32-make install
 if errorlevel 1 exit 1
+
+sixs < Example_In_1.txt
