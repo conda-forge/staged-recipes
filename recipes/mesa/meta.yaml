@@ -1,0 +1,66 @@
+{% set name = "mesa" %}
+{% set version = "13.0.5" %}
+{% set sha256 = "bfcea7e2c801525a60895c8aff11aa68457ee9aa35d01a4638e1f310a3f5ef87" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: mesa-{{ version }}.tar.xz
+  url: https://mesa.freedesktop.org/archive/{{ version }}/mesa-{{ version }}.tar.xz
+  sha256: {{ sha256 }}
+  patches:
+    - windows-md-flag.patch  # [win]
+
+build:
+  number: 0
+  # Mesa build needs python2, but we also need to use vc14 feature
+  skip: True  # [win and not py35]
+  # Mesa build needs python2
+  skip: True  # [linux and not py27]
+  skip: True  # [osx]
+  # It does not seem necessary to declare vc features as the OpenGL API is not
+  # C++ (although Mesa's internals are)
+
+requirements:
+  build:
+    - automake >=1.15  # [unix]
+    - binutils >=2.27  # [unix]
+    - llvmdev 3.9.*
+    - python  # [unix]
+    - m2-flex  # [win]
+    - m2-bison  # [win]
+    - m2-xz  # [win32]
+    - m2w64-xz  # [win64]
+    - vc 14  # [win]
+  run:  # [win]
+    - vs2015_runtime  # [win]
+
+test:
+  commands:
+    - test -f ${PREFIX}/lib/libGL.so  # [linux]
+    - if not exist %PREFIX%\Library\bin\opengl32.dll exit 1  # [win]
+
+about:
+  home: http://www.mesa3d.org/
+  license: MIT
+  license_family: MIT
+  # It is strongly encouraged to include a license file in the package,
+  # (even if the license doesn't require it) using the license_file entry.
+  # See http://conda.pydata.org/docs/building/meta-yaml.html#license-file
+#   license_file: LICENSE.txt
+  summary: 'Mesa is an open-source implementation of the OpenGL specification'
+
+  description: |
+    This package includes Mesa software renderers only.
+    The Gallium llvmpipe driver is a software rasterizer that uses LLVM to do
+    runtime code generation. Shaders, point/line/triangle rasterization and
+    vertex processing are implemented with LLVM IR which is translated to x86
+    or x86-64 machine code. Also, the driver is multithreaded to take advantage
+    of multiple CPU cores (up to 8 at this time).
+  dev_url: https://cgit.freedesktop.org/mesa/mesa/
+
+extra:
+  recipe-maintainers:
+    - gqmelo
