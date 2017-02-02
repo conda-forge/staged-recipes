@@ -37,6 +37,7 @@ export ESMF_INSTALL_PREFIX=${PREFIX}
 
 export ESMF_MOAB="OFF"
 export ESMF_ARRAYLITE="TRUE"
+chmod -Rv a+rx esmf/scripts/*
 cd esmf
 make  -j
 make install
