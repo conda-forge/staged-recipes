@@ -40,7 +40,7 @@ echo "ESMF_mkfile: ${ESMFMKFILE}"
 
 if [ `uname` == Darwin ]; then
     cat > src/ESMP_Config.py << EOF
-    ESMFMKFILE = "libO/Darwin.gfortran.64.mpiuni.default/esmf.mk"
+ESMFMKFILE = "libO/Darwin.gfortran.64.mpiuni.default/esmf.mk"
 EOF
 
 else
