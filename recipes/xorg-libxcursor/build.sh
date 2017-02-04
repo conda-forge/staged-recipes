@@ -42,6 +42,11 @@ configure_args=(
     --disable-silent-rules
 )
 
+if [ -n "$VS_MAJOR" ] ; then
+    # Another path-like variable that needs custom setup
+    configure_args+=(--with-cursorpath="~/.icons:$uprefix/share/icons:$uprefix/share/pixmaps")
+fi
+
 ./configure "${configure_args[@]}"
 make -j$CPU_COUNT
 make install
