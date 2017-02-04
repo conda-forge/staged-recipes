@@ -42,6 +42,11 @@ configure_args=(
     --disable-silent-rules
 )
 
+if [ -n "$VS_MAJOR" ] ; then
+    # The default value for this argument messes up Libtool on Windows
+    configure_args+=(--with-xfile-search-path="$uprefix/etc/X11/%L/%T/%N%C%S:$uprefix/share/X11/%L/%T/%N%C%S:$uprefix/lib/X11/%L/%T/%N%C%S")
+fi
+
 ./configure "${configure_args[@]}"
 make -j$CPU_COUNT
 make install
