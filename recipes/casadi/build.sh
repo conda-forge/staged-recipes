@@ -27,7 +27,7 @@ cmake $CMAKE_FLAG \
   -DWITH_JSON=ON \
   -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX}\
   -DPYTHON_PREFIX=${SP_DIR} \
-  ..
+  $SRC_DIR
 
 make VERBOSE=1
 make install
