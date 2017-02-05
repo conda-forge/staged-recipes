@@ -48,7 +48,7 @@ echo "$config" > ~/.condarc
 conda clean --lock
 
 conda update conda conda-build
-conda install conda-build-all=1.0.0
+conda install conda-build-all
 conda install conda-forge-build-setup
 source run_conda_forge_build_setup
 
@@ -57,5 +57,5 @@ find conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" 
     | xargs -n1 cat | grep -v -e "^#" -e "^$" | \
     xargs -r yum install -y
 
-conda-build-all /conda-recipes --matrix-conditions "numpy >=1.11" "python >=2.7,<3|>=3.5"
+conda-build-all /conda-recipes --matrix-conditions "numpy >=1.11" "python >=2.7,<3|>=3.5" "r-base >=3.3.2"
 EOF
