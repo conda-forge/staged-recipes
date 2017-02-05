@@ -30,7 +30,6 @@ export ESMF_ARRAYLITE="TRUE"
 chmod -Rv a+rx esmf/scripts/*
 cd esmf
 make  -j
-make check
 make install
 cd ../ESMP
 export FILES=`find ../../../.. -name "e*.mk" | tail -n1 `
