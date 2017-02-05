@@ -4,6 +4,11 @@ else
   PYTHONVERSION=27 PSF="" CMAKE_FLAG="" TESTCOMMIT=ON
 fi
 
+if [ "$(uname)" == "Linux" ]
+then
+    export CXXFLAGS="${CXXFLAGS} -DBOOST_MATH_DISABLE_FLOAT128"
+fi
+
 mkdir build
 pushd build
 
