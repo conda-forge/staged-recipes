@@ -6,7 +6,7 @@ fi
 
 if [ "$(uname)" == "Linux" ]
 then
-    export CXXFLAGS="${CXXFLAGS} -DBOOST_MATH_DISABLE_FLOAT128"
+    export CXXFLAGS="${CXXFLAGS} -L${PREFIX}/lib -lquadmath -lgfortran"
 fi
 
 mkdir build
