@@ -7,7 +7,7 @@ cd build
 
 cmake .. \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-    -DCMAKE_INSTALL_NAME_DIR="${PREFIX}/lib" \
+    -DCMAKE_INSTALL_LIBDIR="${PREFIX}/lib" \
     -Denable_blaslib=OFF \
     -Denable_single=ON \
     -Denable_double=ON \
