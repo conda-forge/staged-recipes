@@ -1,7 +1,8 @@
 #!/bin/bash
 
 export LD_LIBRARY_PATH=$PREFIX/lib:$LD_LIBRARY_PATH
-export CFLAGS="-O3 -g -fPIC $CFLAGS"
+export LDFLAGS="-L$PREFIX/lib $LDFLAGS"
+export CFLAGS="-O3 -g -fPIC -I$PREFIX/include $CFLAGS"
 
 chmod +x configure
 
