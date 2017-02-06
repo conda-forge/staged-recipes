@@ -5,6 +5,7 @@ chmod +x configure
 
 export CFLAGS="-O2 -g $CFLAGS"
 export CXXFLAGS="-O2 -g $CXXFLAGS"
+export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH}"
 
 if [ "$(uname)" == "Darwin" ]; then
     CXXFLAGS="$CXXFLAGS -fno-common"
