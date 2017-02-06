@@ -6,7 +6,7 @@ fi
 
 if [ "$(uname)" == "Linux" ]
 then
-    export CXXFLAGS="${CXXFLAGS} -DBOOST_MATH_DISABLE_FLOAT128"
+    export CXXFLAGS="${CXXFLAGS} -L${PREFIX}/lib -lquadmath -lgfortran"
 fi
 
 mkdir build
@@ -27,7 +27,7 @@ cmake $CMAKE_FLAG \
   -DWITH_JSON=ON \
   -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX}\
   -DPYTHON_PREFIX=${SP_DIR} \
-  ..
+  $SRC_DIR
 
-make VERBOSE=1
+make VERBOSE=0
 make install
