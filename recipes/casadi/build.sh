@@ -29,5 +29,5 @@ cmake $CMAKE_FLAG \
   -DPYTHON_PREFIX=${SP_DIR} \
   $SRC_DIR
 
-make VERBOSE=1
+make VERBOSE=0
 make install
