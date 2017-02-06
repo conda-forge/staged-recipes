@@ -16,7 +16,6 @@ conda-build:
 
 always_yes: true
 show_channel_urls: true
-ssl_verify: false
 
 CONDARC
 )
@@ -49,7 +48,7 @@ echo "$config" > ~/.condarc
 conda clean --lock
 
 conda update conda conda-build
-conda install conda-build-all=1.0.0
+conda install conda-build-all
 conda install conda-forge-build-setup
 source run_conda_forge_build_setup
 

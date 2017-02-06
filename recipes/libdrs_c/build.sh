@@ -1,7 +1,7 @@
-export CFLAGS="-Wall -g -m64 -pipe -O2  -fPIC $CFLAGS"
-export CXXLAGS="${CFLAGS}"
-export CPPFLAGS="-I${PREFIX}/include"
-export LDFLAGS="-L${PREFIX}/lib"
+export CFLAGS="-Wall -g -m64 -pipe -O2  -fPIC ${CFLAGS}"
+export CXXLAGS="${CFLAGS} ${CXXLAGS}"
+export CPPFLAGS="-I${PREFIX}/include ${CPPFLAGS}"
+export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS}"
 
 if [ `uname` == Linux ]; then
     MAKEFILE=libdrs_Makefile.Linux.gfortran
@@ -14,4 +14,3 @@ cd lib
 sed "s#@cdat_EXTERNALS@#${PREFIX}#g;" ${MAKEFILE}.in > Makefile
 make  
 make  install
-
