@@ -1,6 +1,3 @@
-REM Restore original PATH from storage used in appeyor.yml
-SET "PATH=%OLDPATH%"
-
 REM Share VC version
 SET VSINSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio 14.0
 SET VCINSTALLDIR=C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC
