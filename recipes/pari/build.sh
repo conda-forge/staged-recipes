@@ -29,7 +29,12 @@ chmod +x Configure
         --graphic=none
 
 make gp
-make test-all
+
+if [ "$(uname)" == "Linux" ]
+then
+    make test-all;
+fi
+
 make install install-lib-sta
 
 cp "src/language/anal.h" "$PREFIX/include/pari/anal.h"
