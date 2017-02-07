@@ -1,11 +1,7 @@
 #!/bin/bash
 
-if [ ARCH = 32 ]; then
-    TARGET="--target=i386"
-fi
+./configure --prefix=$PREFIX
 
-./configure $TARGET --prefix=$PREFIX
 make
+make check
 make install
-
-rm -rf $PREFIX/doc
