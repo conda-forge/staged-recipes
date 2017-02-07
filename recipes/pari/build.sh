@@ -2,6 +2,7 @@
 
 export CPPFLAGS="-I$PREFIX/include $CPPFLAGS"
 export LDFLAGS="-L$PREFIX/lib $LDFLAGS"
+export LD_LIBRARY_PATH="$PREFIX/lib:$LD_LIBRARY_PATH"
 export CFLAGS="-g $CFLAGS"
 export CXXFLAGS="-g $CXXFLAGS"
 
