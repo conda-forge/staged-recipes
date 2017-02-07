@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export CPPFLAGS="-I$PREFIX/include"
-export LDFLAGS="-L$PREFIX/lib"
+export LDFLAGS="-L$PREFIX/lib -stdlib=libc++"
 export CFLAGS="-fPIC -O2 $CFLAGS"
 export CXXFLAGS="-fPIC -O2 $CXXFLAGS"
 
