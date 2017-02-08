@@ -10,6 +10,7 @@ else
     MAKEFILE=libdrs_Makefile.Mac.gfortran
     echo "Mac  "${PREFIX}
 fi
+
 cd lib
 sed "s#@cdat_EXTERNALS@#${PREFIX}#g;" ${MAKEFILE}.in > Makefile
 make  
