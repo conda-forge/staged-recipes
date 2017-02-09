@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+export REPO_BASE_DIR=`pwd`
 python setup.py install 
 
 # Add more build steps here, if they are necessary.
