@@ -1,0 +1,380 @@
+From 2af7f9f9a0fb4e6043fbf71158f3b386d44ad871 Mon Sep 17 00:00:00 2001
+From: Ray Donnelly <mingw.android@gmail.com>
+Date: Thu, 9 Feb 2017 19:21:55 +0000
+Subject: [PATCH 1/2] Mach-O: Copy any dynamic libraries and symlinks to the
+ correct relative location
+
+This is done exhaustively (i.e. recursively). Files that would end
+up being located outside of home_dir are not copied to prevent any
+security issues. An implementation for elf will be added soon.
+---
+ virtualenv.py | 324 +++++++++++++++++++++++++++++++++++++++++++++++++---------
+ 1 file changed, 275 insertions(+), 49 deletions(-)
+
+diff --git a/virtualenv.py b/virtualenv.py
+index 8f29a04..24d0208 100755
+--- a/virtualenv.py
++++ b/virtualenv.py
+@@ -1228,7 +1228,7 @@ def install_python(home_dir, lib_dir, inc_dir, bin_dir, site_packages, clear, sy
+     if sys.executable != py_executable:
+         ## FIXME: could I just hard link?
+         executable = sys.executable
+-        shutil.copyfile(executable, py_executable)
++        copy_exe_shared_libs_and_symlinks(executable, py_executable, home_dir)
+         make_exe(py_executable)
+         if is_win or is_cygwin:
+             pythonw = os.path.join(os.path.dirname(sys.executable), 'pythonw.exe')
+@@ -2183,6 +2183,11 @@ g6Hgf7WBt6lzMeiyyWVn3P1WVbwaczHmTzE9A5SyItTVgFYyvs/L/fXlaNgbw8v3azT+0eikVlWD
+ MZWF36ryyXXf3yBIz6nzqz8Muyz0m5Qj7OexfYo/Ph3LqvkHUg7AuA==
+ """)
+ 
++
++##############################################
++# Constants used in the Mach-O specification #
++##############################################
++
+ MH_MAGIC = 0xfeedface
+ MH_CIGAM = 0xcefaedfe
+ MH_MAGIC_64 = 0xfeedfacf
+@@ -2191,6 +2196,8 @@ FAT_MAGIC = 0xcafebabe
+ BIG_ENDIAN = '>'
+ LITTLE_ENDIAN = '<'
+ LC_LOAD_DYLIB = 0xc
++LC_REQ_DYLD = 0x80000000
++LC_RPATH = 0x1c | LC_REQ_DYLD
+ maxint = majver == 3 and getattr(sys, 'maxsize') or getattr(sys, 'maxint')
+ 
+ 
+@@ -2265,63 +2272,282 @@ def read_data(file, endian, num=1):
+     return res
+ 
+ 
++def replace_lc_load_dylib(file, where, bits, endian, cmd, cmdsize, what, value):
++    if cmd == LC_LOAD_DYLIB:
++        # The first data field in LC_LOAD_DYLIB commands is the
++        # offset of the name, starting from the beginning of the
++        # command.
++        name_offset = read_data(file, endian)
++        file.seek(where + name_offset, os.SEEK_SET)
++        # Read the NUL terminated string
++        load = file.read(cmdsize - name_offset).decode()
++        load = load[:load.index('\0')]
++        # If the string is what is being replaced, overwrite it.
++        if load == what:
++            file.seek(where + name_offset, os.SEEK_SET)
++            file.write(value.encode() + '\0'.encode())
++            return True
++    return False
++
++
++def find_lc_load_dylib(file, where, bits, endian, cmd, cmdsize, what):
++    if cmd == LC_LOAD_DYLIB:
++        # The first data field in LC_LOAD_DYLIB commands is the
++        # offset of the name, starting from the beginning of the
++        # command.
++        name_offset = read_data(file, endian)
++        file.seek(where + name_offset, os.SEEK_SET)
++        # Read the NUL terminated string
++        load = file.read(cmdsize - name_offset).decode()
++        load = load[:load.index('\0')]
++        # If the string is what is being replaced, overwrite it.
++        if re.match(what, load):
++            return load
++
++
++def find_lc_rpath(file, where, bits, endian, cmd, cmdsize):
++    if cmd == LC_RPATH:
++        # The first data field in LC_LOAD_DYLIB commands is the
++        # offset of the name, starting from the beginning of the
++        # command.
++        name_offset = read_data(file, endian)
++        file.seek(where + name_offset, os.SEEK_SET)
++        # Read the NUL terminated string
++        load = file.read(cmdsize - name_offset).decode()
++        load = load[:load.index('\0')]
++        return load
++
++
++def do_macho(file, bits, endian, lc_operation, *args):
++    # Read Mach-O header (the magic number is assumed read by the caller)
++    cputype, cpusubtype, filetype, ncmds, sizeofcmds, flags = read_data(file, endian, 6)
++    # 64-bits header has one more field.
++    if bits == 64:
++        read_data(file, endian)
++    # The header is followed by ncmds commands
++    results = []
++    for n in range(ncmds):
++        where = file.tell()
++        # Read command header
++        cmd, cmdsize = read_data(file, endian, 2)
++        results.append(lc_operation(file, where, bits, endian, cmd, cmdsize, *args))
++        # Seek to the next command
++        file.seek(where + cmdsize, os.SEEK_SET)
++    return filetype, results
++
++
++class offset_size(object):
++    def __init__(self, offset=0, size=maxint):
++        self.offset = offset
++        self.size = size
++
++
++def do_file(file, lc_operation, off_sz, results, *args):
++    file = fileview(file, off_sz.offset, off_sz.size)
++    # Read magic number
++    magic = read_data(file, BIG_ENDIAN)
++    if magic == FAT_MAGIC:
++        # Fat binaries contain nfat_arch Mach-O binaries
++        nfat_arch = read_data(file, BIG_ENDIAN)
++        for n in range(nfat_arch):
++            # Read arch header
++            cputype, cpusubtype, offset, size, align = read_data(file, BIG_ENDIAN, 5)
++            do_file(file, offset_size(offset, size), *args)
++    elif magic == MH_MAGIC:
++        results.append(do_macho(file, 32, BIG_ENDIAN, lc_operation, *args))
++    elif magic == MH_CIGAM:
++        results.append(do_macho(file, 32, LITTLE_ENDIAN, lc_operation, *args))
++    elif magic == MH_MAGIC_64:
++        results.append(do_macho(file, 64, BIG_ENDIAN, lc_operation, *args))
++    elif magic == MH_CIGAM_64:
++        results.append(do_macho(file, 64, LITTLE_ENDIAN, lc_operation, *args))
++
++
+ def mach_o_change(path, what, value):
+     """
+     Replace a given name (what) in any LC_LOAD_DYLIB command found in
+     the given binary with a new name (value), provided it's shorter.
+     """
+ 
+-    def do_macho(file, bits, endian):
+-        # Read Mach-O header (the magic number is assumed read by the caller)
+-        cputype, cpusubtype, filetype, ncmds, sizeofcmds, flags = read_data(file, endian, 6)
+-        # 64-bits header has one more field.
+-        if bits == 64:
+-            read_data(file, endian)
+-        # The header is followed by ncmds commands
+-        for n in range(ncmds):
+-            where = file.tell()
+-            # Read command header
+-            cmd, cmdsize = read_data(file, endian, 2)
+-            if cmd == LC_LOAD_DYLIB:
+-                # The first data field in LC_LOAD_DYLIB commands is the
+-                # offset of the name, starting from the beginning of the
+-                # command.
+-                name_offset = read_data(file, endian)
+-                file.seek(where + name_offset, os.SEEK_SET)
+-                # Read the NUL terminated string
+-                load = file.read(cmdsize - name_offset).decode()
+-                load = load[:load.index('\0')]
+-                # If the string is what is being replaced, overwrite it.
+-                if load == what:
+-                    file.seek(where + name_offset, os.SEEK_SET)
+-                    file.write(value.encode() + '\0'.encode())
+-            # Seek to the next command
+-            file.seek(where + cmdsize, os.SEEK_SET)
+-
+-    def do_file(file, offset=0, size=maxint):
+-        file = fileview(file, offset, size)
+-        # Read magic number
+-        magic = read_data(file, BIG_ENDIAN)
+-        if magic == FAT_MAGIC:
+-            # Fat binaries contain nfat_arch Mach-O binaries
+-            nfat_arch = read_data(file, BIG_ENDIAN)
+-            for n in range(nfat_arch):
+-                # Read arch header
+-                cputype, cpusubtype, offset, size, align = read_data(file, BIG_ENDIAN, 5)
+-                do_file(file, offset, size)
+-        elif magic == MH_MAGIC:
+-            do_macho(file, 32, BIG_ENDIAN)
+-        elif magic == MH_CIGAM:
+-            do_macho(file, 32, LITTLE_ENDIAN)
+-        elif magic == MH_MAGIC_64:
+-            do_macho(file, 64, BIG_ENDIAN)
+-        elif magic == MH_CIGAM_64:
+-            do_macho(file, 64, LITTLE_ENDIAN)
+-
+     assert(len(what) >= len(value))
+ 
++    results = []
+     with open(path, 'r+b') as f:
+-        do_file(f)
++        do_file(f, replace_lc_load_dylib, offset_size(), results, what, value)
++    return results
++
++
++def mach_o_find_dylibs(ofile, regex='.*'):
++    """
++    Finds the executable's view of where any dylibs live
++    without resolving any macros (@rpath, @loader_path, @executable_path)
++    """
++    results = []
++    do_file(ofile, find_lc_load_dylib, offset_size(), results, regex)
++    return results
++
++
++def mach_o_find_rpaths(ofile):
++    """
++    Finds ofile's list of rpaths
++    """
++    results = []
++    do_file(ofile, find_lc_rpath, offset_size(), results)
++    return results
++
++
++def _get_resolved_location(codefile, so, src_exedir, src_selfdir, dst_exedir, dst_selfdir):
++    if so.startswith('$RPATH/'):
++        for rpath in codefile.get_rpaths_transitive() + codefile.get_rpaths_nontransitive():
++            resolved = so.replace('$RPATH/', rpath) \
++                         .replace('$SELFDIR/', src_selfdir) \
++                         .replace('$EXEDIR/', src_exedir)
++            if os.path.exists(resolved):
++                dst_resolved = so.replace('$RPATH/', rpath) \
++                                 .replace('$SELFDIR/', dst_selfdir) \
++                                 .replace('$EXEDIR/', dst_exedir)
++                return resolved, dst_resolved
++    else:
++        resolved = so.replace('$SELFDIR/', src_selfdir) \
++                     .replace('$EXEDIR/', src_exedir)
++        if os.path.exists(resolved):
++            dst_resolved = so.replace('$SELFDIR/', dst_selfdir) \
++                             .replace('$EXEDIR/', dst_exedir)
++            return resolved, dst_resolved
++    return None, None
++
++
++class machofile(object):
++    def __init__(self, file, initial_rpaths_transitive=[]):
++        _, sos = zip(*mach_o_find_dylibs(file))
++        file.seek(0)
++        self.rpaths_transitive = initial_rpaths_transitive
++        self.shared_libraries = []
++        filetypes, rpaths = zip(*mach_o_find_rpaths(file))
++        self.rpaths_transitive.extend(
++            [rpath.replace('@loader_path', '$SELFDIR')
++                  .replace('@executable_path', '$EXEDIR')
++                  .replace('@rpath', '$RPATH') for rpath in rpaths[0] if rpath])
++        self.rpaths_nontransitive = []
++        self.shared_libraries.extend(
++            [so.replace('@loader_path', '$SELFDIR')
++               .replace('@executable_path', '$EXEDIR')
++               .replace('@rpath', '$RPATH') for so in sos[0] if so])
++        file.seek(0)
++        # Not actually used ..
++        self.selfdir = os.path.dirname(file.name)
++
++    def get_rpaths_transitive(self):
++        return self.rpaths_transitive
++
++    def get_rpaths_nontransitive(self):
++        return []
++
++    def get_shared_libraries(self):
++        return self.shared_libraries
++
++    def get_resolved_shared_libraries(self, src_exedir, src_selfdir, dst_exedir, dst_selfdir):
++        result = []
++        for so in self.shared_libraries:
++            resolved, dst_resolved = _get_resolved_location(self,
++                                                            so,
++                                                            src_exedir,
++                                                            src_selfdir,
++                                                            dst_exedir,
++                                                            dst_selfdir)
++            result.append((so, resolved, dst_resolved))
++        return result
++
++    def is_executable(self):
++        return True
++
++
++class inscrutablefile(object):
++    def __init__(self, file, initial_rpaths_transitive=[]):
++        return
++
++    def get_rpaths_transitive(self):
++        return []
++
++    def get_resolved_shared_libraries(self, src_exedir, src_selfdir, dst_exedir, dst_selfdir):
++        return []
++
++    def is_executable(self):
++        return True
++
++    def selfdir(self):
++        return None
++
++
++def codefile(file, initial_rpaths_transitive=[]):
++    magic, = struct.unpack(BIG_ENDIAN+'L', file.read(4))
++    file.seek(0)
++    if magic in (FAT_MAGIC, MH_MAGIC, MH_CIGAM, MH_CIGAM_64):
++        return machofile(file, list(initial_rpaths_transitive))
++    else:
++        return inscrutablefile(file, list(initial_rpaths_transitive))
++
++
++def copy_exe_shared_libs_and_symlinks(exe_src, exe_dst, home_dir):
++    '''Copies all $EXEDIR-relative shared libraries (and symlinks to
++       shared libraries) to the same relative location (and type) in
++       dirname(exe_dst) such that they will get found by the dynamic
++       loader lookup logic when relocated, while preventing escaping
++       the home_dir
++    '''
++    srcs = [exe_src]
++    dsts = [exe_dst]
++    all_srcs = set(srcs)
++    all_done = set()
++    dir_exe_src = os.path.dirname(exe_src)+os.sep
++    dir_exe_dst = os.path.dirname(exe_dst)+os.sep
++    src_to_dst_rpath = dict({exe_src: (exe_dst, [])})
++    rpaths = []
++    while all_srcs != all_done:
++        for src in all_srcs - all_done:
++            dst, rpaths = src_to_dst_rpath[src]
++            dir_src = os.path.dirname(src)+os.sep
++            dir_dst = os.path.dirname(dst)+os.sep
++            with open(src, 'rb') as f:
++                new_srcs = set()
++                of = codefile(f, rpaths)
++                sos = of.get_resolved_shared_libraries(dir_exe_src,
++                                                       dir_src,
++                                                       dir_exe_dst,
++                                                       dir_dst)
++                for so_orig, so_resolved, so_relocated in sos:
++                    # We only want to relocate files that are not absolute
++                    if (so_orig.startswith('$') or not
++                       so_orig.startswith(os.sep)):
++                        while so_resolved and os.path.exists(so_resolved):
++                            srcs.append(so_resolved)
++                            dsts.append(so_relocated)
++                            if os.path.islink(so_resolved):
++                                link = os.readlink(so_resolved)
++                                # Figure out the relative link.
++                                if os.path.isabs(link):
++                                    link = os.path.relpath(link, dir_src)
++                                so_resolved = os.path.join(dir_src, link)
++                                so_relocated = os.path.join(dir_dst, link)
++                            else:
++                                new_srcs.add(so_resolved)
++                                src_to_dst_rpath[so_resolved] = \
++                                    (so_relocated, of.get_rpaths_transitive())
++                                so_resolved = None
++            all_done.add(src)
++        all_srcs.update(new_srcs)
++    for src, dst in zip(srcs, dsts):
++        dst = os.path.realpath(dst)
++        if not dst.startswith(os.path.realpath(home_dir)):
++            print('skipping {} => {}, as {} is not under home_dir {}'.format(
++                src, dst, dst, home_dir))
++        else:
++            print('copying {} => {}'.format(src, dst))
++            try:
++                os.makedirs(os.path.dirname(dst))
++            except:
++                pass
++            shutil.copyfile(src, dst)
+ 
+ 
+ if __name__ == '__main__':
+-- 
+2.10.1

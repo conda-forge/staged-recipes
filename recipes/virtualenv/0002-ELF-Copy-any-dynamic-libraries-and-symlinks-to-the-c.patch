@@ -1,0 +1,351 @@
+From b543b4f432d1631c9c69b1980225335636ae3102 Mon Sep 17 00:00:00 2001
+From: Ray Donnelly <mingw.android@gmail.com>
+Date: Thu, 9 Feb 2017 19:25:40 +0000
+Subject: [PATCH 2/2] ELF: Copy any dynamic libraries and symlinks to the
+ correct relative location
+
+This (and the Macho-O version) need more testing. It should be possible
+to reimplement 'ldd' and 'otool -L' with this and verify that they give
+the same results in all cases, but for the purposes of virtualenv, this
+code seems to work well enough.
+
+Tested this with both big and little-endian ELF files.
+---
+ virtualenv.py | 315 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 315 insertions(+)
+
+diff --git a/virtualenv.py b/virtualenv.py
+index 24d0208..18f02f6 100755
+--- a/virtualenv.py
++++ b/virtualenv.py
+@@ -2462,6 +2462,319 @@ class machofile(object):
+         return True
+ 
+ 
++###########################################
++# Constants used in the ELF specification #
++###########################################
++
++ELF_HDR = 0x7f454c46
++E_TYPE_RELOCATABLE = 1
++E_TYPE_EXECUTABLE = 2
++E_TYPE_SHARED = 3
++E_TYPE_CORE = 4
++E_MACHINE_UNSPECIFIED = 0x00
++E_MACHINE_SPARC = 0x02
++E_MACHINE_X86 = 0x03
++E_MACHINE_MIPS = 0x08
++E_MACHINE_POWERPC = 0x14
++E_MACHINE_ARM = 0x28
++E_MACHINE_SUPERH = 0x2a
++E_MACHINE_IA_64 = 0x32
++E_MACHINE_X86_64 = 0x3e
++E_MACHINE_AARCH64 = 0xb7
++E_MACHINE_RISC_V = 0xf3
++
++SHT_PROGBITS = 0x1
++SHT_SYMTAB = 0x2
++SHT_STRTAB = 0x3
++SHT_RELA = 0x4
++SHT_HASH = 0x5
++SHT_DYNAMIC = 0x6
++SHT_NOTE = 0x7
++SHT_NOBITS = 0x8
++SHT_REL = 0x9
++SHT_SHLIB = 0x0A
++SHT_DYNSYM = 0x0B
++SHT_INIT_ARRAY = 0x0E
++SHT_FINI_ARRAY = 0x0F
++SHT_PREINIT_ARRAY = 0x10
++SHT_GROUP = 0x11
++SHT_SYMTAB_SHNDX = 0x12
++SHT_NUM = 0x13
++SHT_LOOS = 0x60000000
++
++SHF_WRITE = 0x1
++SHF_ALLOC = 0x2
++SHF_EXECINSTR = 0x4
++SHF_MERGE = 0x10
++SHF_STRINGS = 0x20
++SHF_INFO_LINK = 0x40
++SHF_LINK_ORDER = 0x80
++SHF_OS_NONCONFORMING = 0x100
++SHF_GROUP = 0x200
++SHF_TLS = 0x400
++SHF_MASKOS = 0x0ff00000
++SHF_MASKPROC = 0xf0000000
++SHF_ORDERED = 0x4000000
++SHF_EXCLUDE = 0x8000000
++
++DT_NULL = 0
++DT_NEEDED = 1
++DT_PLTRELSZ = 2
++DT_PLTGOT = 3
++DT_HASH = 4
++DT_STRTAB = 5
++DT_SYMTAB = 6
++DT_RELA = 7
++DT_RELASZ = 8
++DT_RELAENT = 9
++DT_STRSZ = 10
++DT_SYMENT = 11
++DT_INIT = 12
++DT_FINI = 13
++DT_SONAME = 14
++DT_RPATH = 15
++DT_SYMBOLIC = 16
++DT_REL = 17
++DT_RELSZ = 18
++DT_RELENT = 19
++DT_PLTREL = 20
++DT_DEBUG = 21
++DT_TEXTREL = 22
++DT_JMPREL = 23
++DT_BIND_NOW = 24
++DT_INIT_ARRAY = 25
++DT_FINI_ARRAY = 26
++DT_INIT_ARRAYSZ = 27
++DT_FINI_ARRAYSZ = 28
++DT_RUNPATH = 29
++DT_LOOS = 0x60000000
++DT_HIOS = 0x6fffffff
++DT_LOPROC = 0x70000000
++DT_HIPROC = 0x7fffffff
++
++
++class elfheader(object):
++    def __init__(self, file):
++        self.hdr, = struct.unpack(BIG_ENDIAN + 'L', file.read(4))
++        self.dt_needed = []
++        self.dt_rpath = []
++        if self.hdr != ELF_HDR:
++            return
++        bitness, = struct.unpack(LITTLE_ENDIAN + 'B', file.read(1))
++        bitness = 32 if bitness == 1 else 64
++        sz_ptr = int(bitness / 8)
++        ptr_type = 'Q' if sz_ptr == 8 else 'L'
++        self.bitness = bitness
++        self.sz_ptr = sz_ptr
++        self.ptr_type = ptr_type
++        endian, = struct.unpack(LITTLE_ENDIAN + 'B', file.read(1))
++        endian = LITTLE_ENDIAN if endian == 1 else BIG_ENDIAN
++        self.endian = endian
++        self.version, = struct.unpack(endian+'B', file.read(1))
++        self.osabi, = struct.unpack(endian+'B', file.read(1))
++        self.abiver, = struct.unpack(endian+'B', file.read(1))
++        struct.unpack(endian+'B'*7, file.read(7))
++        self.type, = struct.unpack(endian+'H', file.read(2))
++        self.machine, = struct.unpack(endian+'H', file.read(2))
++        self.version, = struct.unpack(endian+'L', file.read(4))
++        self.entry, = struct.unpack(endian+ptr_type, file.read(sz_ptr))
++        self.phoff, = struct.unpack(endian+ptr_type, file.read(sz_ptr))
++        self.shoff, = struct.unpack(endian+ptr_type, file.read(sz_ptr))
++        self.flags, = struct.unpack(endian+'L', file.read(4))
++        self.ehsize, = struct.unpack(endian+'H', file.read(2))
++        self.phentsize, = struct.unpack(endian+'H', file.read(2))
++        self.phnum, = struct.unpack(endian+'H', file.read(2))
++        self.shentsize, = struct.unpack(endian+'H', file.read(2))
++        self.shnum, = struct.unpack(endian+'H', file.read(2))
++        self.shstrndx, = struct.unpack(endian+'H', file.read(2))
++        loc = file.tell()
++        if loc != self.ehsize:
++            print('Weird, file.tell()={} disagrees with ehsize={}'.format(loc, self.ehsize))
++
++    def __str__(self):
++        return 'bitness {}, endian {}, version {}, type {}, machine {}, entry {}'.format(
++            self.bitness,
++            self.endian,
++            self.version,
++            self.type,
++            hex(self.machine),
++            hex(self.entry))
++
++
++class elfsection(object):
++    def __init__(self, eh, file):
++        ptr_type = eh.ptr_type
++        sz_ptr = eh.sz_ptr
++        endian = eh.endian
++        # It'd be quicker to use struct.calcsize here and a single
++        # struct.unpack but it would be ugly and harder to maintain.
++        self.sh_name, = struct.unpack(endian+'L', file.read(4))
++        self.sh_type, = struct.unpack(endian+'L', file.read(4))
++        self.sh_flags, = struct.unpack(endian+ptr_type, file.read(sz_ptr))
++        self.sh_addr, = struct.unpack(endian+ptr_type, file.read(sz_ptr))
++        self.sh_offset, = struct.unpack(endian+ptr_type, file.read(sz_ptr))
++        self.sh_size, = struct.unpack(endian+ptr_type, file.read(sz_ptr))
++        self.sh_link, = struct.unpack(endian+'L', file.read(4))
++        self.sh_info, = struct.unpack(endian+'L', file.read(4))
++        self.sh_addralign, = struct.unpack(endian+ptr_type, file.read(sz_ptr))
++        self.sh_entsize, = struct.unpack(endian+ptr_type, file.read(sz_ptr))
++        # Lower priority == post processed earlier so that those
++        # with higher priority can assume already initialized.
++        if self.sh_type == SHT_STRTAB:
++            self.priority = 0
++        else:
++            self.priority = 1
++
++    def postprocess(self, elffile, file):
++        ptr_type = elffile.ehdr.ptr_type
++        sz_ptr = elffile.ehdr.sz_ptr
++        endian = elffile.ehdr.endian
++        if self.sh_type == SHT_STRTAB:
++            file.seek(self.sh_offset)
++            self.table = file.read(self.sh_size).decode()
++        elif self.sh_type == SHT_DYNAMIC:
++            #
++            # Required reading 1:
++            # http://blog.qt.io/blog/2011/10/28/rpath-and-runpath/
++            #
++            # Unless loading object has RUNPATH:
++            #   RPATH of the loading object,
++            #     then the RPATH of its loader (unless it has a RUNPATH), ...,
++            #     until the end of the chain, which is either the executable
++            #     or an object loaded by dlopen
++            #   Unless executable has RUNPATH:
++            #     RPATH of the executable
++            # LD_LIBRARY_PATH
++            # RUNPATH of the loading object
++            # ld.so.cache
++            # default dirs
++            #
++            # Required reading 2:
++            # http://www.lumiera.org/documentation/technical/code/linkingStructure.html
++            #
++            # the $ORIGIN token
++            #
++            # To support flexible RUNPATH (and RPATH) settings, the GNU ld.so
++            # (also the SUN and Irix linkers) allow the usage of some "magic"
++            # tokens in the .dynamic section of ELF binaries (both libraries
++            # and executables):
++            #
++            # $ORIGIN
++            #
++            # the directory containing the executable or library actually
++            # triggering the current (innermost) resolution step. Not to be
++            # confused with the entity causing the whole linking procedure
++            # (an executable to be executed or a dlopen() call)
++            #
++            # $PLATFORM
++            #
++            # expands to the architecture/platform tag as provided by the OS
++            # kernel
++            #
++            # $LIB
++            #
++            # the system libraries directory, which is /lib for the native
++            # architecture on FHS compliant GNU/Linux systems.
++            #
++            dt_strtab_ptr = None
++            dt_needed = []
++            dt_rpath = []
++            dt_runpath = []
++            for m in range(int(self.sh_size / self.sh_entsize)):
++                file.seek(self.sh_offset + (m * self.sh_entsize))
++                d_tag, = struct.unpack(endian+ptr_type, file.read(sz_ptr))
++                d_val_ptr, = struct.unpack(endian+ptr_type, file.read(sz_ptr))
++                if d_tag == DT_NEEDED:
++                    dt_needed.append(d_val_ptr)
++                elif d_tag == DT_RPATH:
++                    dt_rpath.append(d_val_ptr)
++                elif d_tag == DT_RPATH:
++                    dt_runpath.append(d_val_ptr)
++                elif d_tag == DT_STRTAB:
++                    dt_strtab_ptr = d_val_ptr
++            if dt_strtab_ptr:
++                strsec, offset = elffile.find_section_and_offset(dt_strtab_ptr)
++                if strsec and strsec.sh_type == SHT_STRTAB:
++                    for n in dt_needed:
++                        end = n + strsec.table[n:].index('\0')
++                        elffile.dt_needed.append(strsec.table[n:end])
++                    for r in dt_rpath:
++                        end = r + strsec.table[r:].index('\0')
++                        path = strsec.table[r:end]
++                        rpaths = [path for path in path.split(':') if path]
++                        elffile.dt_rpath.extend([path if path.endswith(os.sep)
++                                                 else path+os.sep
++                                                 for path in rpaths])
++                    for r in dt_runpath:
++                        end = r + strsec.table[r:].index('\0')
++                        path = strsec.table[r:end]
++                        rpaths = [path for path in path.split(':') if path]
++                        elffile.dt_runpath.extend([path if path.endswith(os.sep)
++                                                   else path+os.sep
++                                                   for path in rpaths])
++            # runpath always takes precedence.
++            if len(elffile.dt_runpath):
++                elffile.dt_rpath = []
++
++
++class elffile(object):
++    def __init__(self, file, initial_rpaths_transitive=[]):
++        self.ehdr = elfheader(file)
++        self.dt_needed = []
++        self.dt_rpath = []
++        self.dt_runpath = []
++        self.elfsections = []
++        # Not actually used ..
++        self.selfdir = os.path.dirname(file.name)
++        for n in range(self.ehdr.shnum):
++            file.seek(self.ehdr.shoff + (n * self.ehdr.shentsize))
++            self.elfsections.append(elfsection(self.ehdr, file))
++        self.elfsections.sort(key=lambda x: x.priority)
++        for es in self.elfsections:
++            es.postprocess(self, file)
++        self.rpaths_transitive = [rpath.replace('$ORIGIN', '$SELFDIR')
++                                       .replace('$LIB', '/usr/lib')
++                                  for rpath in self.dt_rpath]
++        self.rpaths_nontransitive = [rpath.replace('$ORIGIN', '$SELFDIR')
++                                          .replace('$LIB', '/usr/lib')
++                                     for rpath in self.dt_runpath]
++        # This is implied. Making it explicit allows sharing the
++        # same _get_resolved_location() function with macho-o
++        self.shared_libraries = ['$RPATH/' + needed
++                                 for needed in self.dt_needed]
++
++    def find_section_and_offset(self, addr):
++        'Can be called immediately after the elfsections have been constructed'
++        for es in self.elfsections:
++            if addr >= es.sh_addr and addr < es.sh_addr + es.sh_size:
++                return es, addr - es.sh_addr
++        return None, None
++
++    def get_rpaths_transitive(self):
++        return self.rpaths_transitive
++
++    def get_rpaths_nontransitive(self):
++        return self.rpaths_nontransitive
++
++    def get_resolved_shared_libraries(self, src_exedir, src_selfdir, dst_exedir, dst_selfdir):
++        result = []
++        for so in self.shared_libraries:
++            resolved, dst_resolved = _get_resolved_location(self,
++                                                            so,
++                                                            src_exedir,
++                                                            src_selfdir,
++                                                            dst_exedir,
++                                                            dst_selfdir)
++            result.append((so, resolved, dst_resolved))
++        return result
++
++    def is_executable(self):
++        return True
++
++    def selfdir(self):
++        return None
++
++
+ class inscrutablefile(object):
+     def __init__(self, file, initial_rpaths_transitive=[]):
+         return
+@@ -2484,6 +2797,8 @@ def codefile(file, initial_rpaths_transitive=[]):
+     file.seek(0)
+     if magic in (FAT_MAGIC, MH_MAGIC, MH_CIGAM, MH_CIGAM_64):
+         return machofile(file, list(initial_rpaths_transitive))
++    elif magic == ELF_HDR:
++        return elffile(file, list(initial_rpaths_transitive))
+     else:
+         return inscrutablefile(file, list(initial_rpaths_transitive))
+ 
+-- 
+2.10.1
