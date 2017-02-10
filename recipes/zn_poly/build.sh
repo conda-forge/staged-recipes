@@ -12,11 +12,6 @@ fi
 
 chmod +x configure
 
-./configure --prefix="$SAGE_LOCAL" \
-            --cflags="$CFLAGS" --ldflags="$LDFLAGS" \
-            --cppflags="$CPPFLAGS" --cxxflags="$CXXFLAGS" \
-            --gmp-prefix="$SAGE_LOCAL"
-
 ./configure \
         --prefix="$PREFIX" \
         --gmp-prefix="$PREFIX" \
