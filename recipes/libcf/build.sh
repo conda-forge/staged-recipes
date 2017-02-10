@@ -1,8 +1,8 @@
-export CFLAGS="-Wall -g -m64 -pipe -O2  -fPIC"
-export CXXLAGS="${CFLAGS}"
-export CPPFLAGS="-I${PREFIX}/include"
-export LDFLAGS="-L${PREFIX}/lib"
-export LFLAGS="-fPIC"
+export CFLAGS="-Wall -g -m64 -pipe -O2  -fPIC ${CFLAGS}"
+export CXXLAGS="${CFLAGS} ${CXXLAGS}"
+export CPPFLAGS="-I${PREFIX}/include ${CPPFLAGS}"
+export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS}"
+export LFLAGS="-fPIC ${LFLAGS}"
 
 CONDA_LST=`conda list`
 if [[ ${CONDA_LST}'y' == *'openmpi'* ]]; then
