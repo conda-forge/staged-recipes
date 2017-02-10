@@ -30,7 +30,7 @@ tune/tune > src/tuning.c
 make
 make check
 
-if [ "$UNAME" != Darwin ]; then
+if [  "$(uname)" != "Darwin" ]; then
     make libzn_poly.so
 else
     make libzn_poly.dylib
