@@ -1,0 +1,451 @@
+From 92cadd3894172d818aa9eb34b52a9973d7776d28 Mon Sep 17 00:00:00 2001
+From: Isuru Fernando <isuruf@gmail.com>
+Date: Thu, 9 Feb 2017 22:27:43 +0530
+Subject: [PATCH 2/2] compute reduced H and V representation of polytope
+
+by Volker Braun <vbraun@stp.dias.ie>
+taken from https://github.com/sagemath/sage
+---
+ src-gmp/Makefile.in     |  39 +++++---
+ src-gmp/cdd_both_reps.c |   1 +
+ src/Makefile.in         |  29 ++++--
+ src/cdd_both_reps.c     | 255 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 299 insertions(+), 25 deletions(-)
+ create mode 100644 src-gmp/cdd_both_reps.c
+ create mode 100644 src/cdd_both_reps.c
+
+diff --git a/src-gmp/Makefile.in b/src-gmp/Makefile.in
+index f88c83f..fc073ca 100644
+--- a/src-gmp/Makefile.in
++++ b/src-gmp/Makefile.in
+@@ -37,7 +37,8 @@ bin_PROGRAMS = scdd_gmp$(EXEEXT) lcdd_gmp$(EXEEXT) \
+ 	projection_gmp$(EXEEXT) adjacency_gmp$(EXEEXT) \
+ 	allfaces_gmp$(EXEEXT) testshoot_gmp$(EXEEXT) \
+ 	testcdd1_gmp$(EXEEXT) testcdd2_gmp$(EXEEXT) \
+-	testlp1_gmp$(EXEEXT) testlp2_gmp$(EXEEXT) testlp3_gmp$(EXEEXT)
++	testlp1_gmp$(EXEEXT) testlp2_gmp$(EXEEXT) testlp3_gmp$(EXEEXT) \
++	cdd_both_reps_gmp$(EXEEXT)
+ subdir = src-gmp
+ DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+@@ -57,6 +58,10 @@ am_allfaces_gmp_OBJECTS = allfaces.$(OBJEXT)
+ allfaces_gmp_OBJECTS = $(am_allfaces_gmp_OBJECTS)
+ allfaces_gmp_LDADD = $(LDADD)
+ allfaces_gmp_DEPENDENCIES = ../lib-src-gmp/libcddgmp.la
++am_cdd_both_reps_gmp_OBJECTS = cdd_both_reps.$(OBJEXT)
++cdd_both_reps_gmp_OBJECTS = $(am_cdd_both_reps_gmp_OBJECTS)
++cdd_both_reps_gmp_LDADD = $(LDADD)
++cdd_both_reps_gmp_DEPENDENCIES = ../lib-src-gmp/libcddgmp.la
+ am_fourier_gmp_OBJECTS = fourier.$(OBJEXT)
+ fourier_gmp_OBJECTS = $(am_fourier_gmp_OBJECTS)
+ fourier_gmp_LDADD = $(LDADD)
+@@ -114,19 +119,19 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
+ 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
+ 	$(LDFLAGS) -o $@
+ SOURCES = $(adjacency_gmp_SOURCES) $(allfaces_gmp_SOURCES) \
+-	$(fourier_gmp_SOURCES) $(lcdd_gmp_SOURCES) \
+-	$(projection_gmp_SOURCES) $(redcheck_gmp_SOURCES) \
+-	$(scdd_gmp_SOURCES) $(testcdd1_gmp_SOURCES) \
+-	$(testcdd2_gmp_SOURCES) $(testlp1_gmp_SOURCES) \
+-	$(testlp2_gmp_SOURCES) $(testlp3_gmp_SOURCES) \
+-	$(testshoot_gmp_SOURCES)
++	$(cdd_both_reps_gmp_SOURCES) $(fourier_gmp_SOURCES) \
++	$(lcdd_gmp_SOURCES) $(projection_gmp_SOURCES) \
++	$(redcheck_gmp_SOURCES) $(scdd_gmp_SOURCES) \
++	$(testcdd1_gmp_SOURCES) $(testcdd2_gmp_SOURCES) \
++	$(testlp1_gmp_SOURCES) $(testlp2_gmp_SOURCES) \
++	$(testlp3_gmp_SOURCES) $(testshoot_gmp_SOURCES)
+ DIST_SOURCES = $(adjacency_gmp_SOURCES) $(allfaces_gmp_SOURCES) \
+-	$(fourier_gmp_SOURCES) $(lcdd_gmp_SOURCES) \
+-	$(projection_gmp_SOURCES) $(redcheck_gmp_SOURCES) \
+-	$(scdd_gmp_SOURCES) $(testcdd1_gmp_SOURCES) \
+-	$(testcdd2_gmp_SOURCES) $(testlp1_gmp_SOURCES) \
+-	$(testlp2_gmp_SOURCES) $(testlp3_gmp_SOURCES) \
+-	$(testshoot_gmp_SOURCES)
++	$(cdd_both_reps_gmp_SOURCES) $(fourier_gmp_SOURCES) \
++	$(lcdd_gmp_SOURCES) $(projection_gmp_SOURCES) \
++	$(redcheck_gmp_SOURCES) $(scdd_gmp_SOURCES) \
++	$(testcdd1_gmp_SOURCES) $(testcdd2_gmp_SOURCES) \
++	$(testlp1_gmp_SOURCES) $(testlp2_gmp_SOURCES) \
++	$(testlp3_gmp_SOURCES) $(testshoot_gmp_SOURCES)
+ ETAGS = etags
+ CTAGS = ctags
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+@@ -254,10 +259,10 @@ testcdd2_gmp_SOURCES = testcdd2.c
+ testlp1_gmp_SOURCES = testlp1.c
+ testlp2_gmp_SOURCES = testlp2.c
+ testlp3_gmp_SOURCES = testlp3.c
++cdd_both_reps_gmp_SOURCES = cdd_both_reps.c
+ # cddmathlink_SOURCES                = cddmathlink.c cddmlio.h cddmlio.c
+ LDADD = ../lib-src-gmp/libcddgmp.la
+-AM_LDFLAGS = -L$(gmplibdir)
+-INCLUDES = -I../lib-src-gmp -I$(gmpincludedir)
++INCLUDES = -I../lib-src-gmp
+ AM_CPPFLAGS = -DGMPRATIONAL
+ all: all-am
+ 
+@@ -326,6 +331,9 @@ adjacency_gmp$(EXEEXT): $(adjacency_gmp_OBJECTS) $(adjacency_gmp_DEPENDENCIES)
+ allfaces_gmp$(EXEEXT): $(allfaces_gmp_OBJECTS) $(allfaces_gmp_DEPENDENCIES) 
+ 	@rm -f allfaces_gmp$(EXEEXT)
+ 	$(LINK) $(allfaces_gmp_OBJECTS) $(allfaces_gmp_LDADD) $(LIBS)
++cdd_both_reps_gmp$(EXEEXT): $(cdd_both_reps_gmp_OBJECTS) $(cdd_both_reps_gmp_DEPENDENCIES) 
++	@rm -f cdd_both_reps_gmp$(EXEEXT)
++	$(LINK) $(cdd_both_reps_gmp_OBJECTS) $(cdd_both_reps_gmp_LDADD) $(LIBS)
+ fourier_gmp$(EXEEXT): $(fourier_gmp_OBJECTS) $(fourier_gmp_DEPENDENCIES) 
+ 	@rm -f fourier_gmp$(EXEEXT)
+ 	$(LINK) $(fourier_gmp_OBJECTS) $(fourier_gmp_LDADD) $(LIBS)
+@@ -368,6 +376,7 @@ distclean-compile:
+ 
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/adjacency.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/allfaces.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cdd_both_reps.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fourier.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lcdd.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/projection.Po@am__quote@
+diff --git a/src-gmp/cdd_both_reps.c b/src-gmp/cdd_both_reps.c
+new file mode 100644
+index 0000000..990d19b
+--- /dev/null
++++ b/src-gmp/cdd_both_reps.c
+@@ -0,0 +1 @@
++#include "../src/cdd_both_reps.c"
+diff --git a/src/Makefile.in b/src/Makefile.in
+index 8385e4d..b9f6a26 100644
+--- a/src/Makefile.in
++++ b/src/Makefile.in
+@@ -36,7 +36,7 @@ bin_PROGRAMS = scdd$(EXEEXT) lcdd$(EXEEXT) redcheck$(EXEEXT) \
+ 	fourier$(EXEEXT) projection$(EXEEXT) adjacency$(EXEEXT) \
+ 	allfaces$(EXEEXT) testcdd1$(EXEEXT) testshoot$(EXEEXT) \
+ 	testcdd2$(EXEEXT) testlp1$(EXEEXT) testlp2$(EXEEXT) \
+-	testlp3$(EXEEXT)
++	testlp3$(EXEEXT) cdd_both_reps$(EXEEXT)
+ subdir = src
+ DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
+ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
+@@ -56,6 +56,10 @@ am_allfaces_OBJECTS = allfaces.$(OBJEXT)
+ allfaces_OBJECTS = $(am_allfaces_OBJECTS)
+ allfaces_LDADD = $(LDADD)
+ allfaces_DEPENDENCIES = ../lib-src/libcdd.la
++am_cdd_both_reps_OBJECTS = cdd_both_reps.$(OBJEXT)
++cdd_both_reps_OBJECTS = $(am_cdd_both_reps_OBJECTS)
++cdd_both_reps_LDADD = $(LDADD)
++cdd_both_reps_DEPENDENCIES = ../lib-src/libcdd.la
+ am_fourier_OBJECTS = fourier.$(OBJEXT)
+ fourier_OBJECTS = $(am_fourier_OBJECTS)
+ fourier_LDADD = $(LDADD)
+@@ -112,16 +116,16 @@ CCLD = $(CC)
+ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
+ 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
+ 	$(LDFLAGS) -o $@
+-SOURCES = $(adjacency_SOURCES) $(allfaces_SOURCES) $(fourier_SOURCES) \
+-	$(lcdd_SOURCES) $(projection_SOURCES) $(redcheck_SOURCES) \
+-	$(scdd_SOURCES) $(testcdd1_SOURCES) $(testcdd2_SOURCES) \
+-	$(testlp1_SOURCES) $(testlp2_SOURCES) $(testlp3_SOURCES) \
+-	$(testshoot_SOURCES)
++SOURCES = $(adjacency_SOURCES) $(allfaces_SOURCES) \
++	$(cdd_both_reps_SOURCES) $(fourier_SOURCES) $(lcdd_SOURCES) \
++	$(projection_SOURCES) $(redcheck_SOURCES) $(scdd_SOURCES) \
++	$(testcdd1_SOURCES) $(testcdd2_SOURCES) $(testlp1_SOURCES) \
++	$(testlp2_SOURCES) $(testlp3_SOURCES) $(testshoot_SOURCES)
+ DIST_SOURCES = $(adjacency_SOURCES) $(allfaces_SOURCES) \
+-	$(fourier_SOURCES) $(lcdd_SOURCES) $(projection_SOURCES) \
+-	$(redcheck_SOURCES) $(scdd_SOURCES) $(testcdd1_SOURCES) \
+-	$(testcdd2_SOURCES) $(testlp1_SOURCES) $(testlp2_SOURCES) \
+-	$(testlp3_SOURCES) $(testshoot_SOURCES)
++	$(cdd_both_reps_SOURCES) $(fourier_SOURCES) $(lcdd_SOURCES) \
++	$(projection_SOURCES) $(redcheck_SOURCES) $(scdd_SOURCES) \
++	$(testcdd1_SOURCES) $(testcdd2_SOURCES) $(testlp1_SOURCES) \
++	$(testlp2_SOURCES) $(testlp3_SOURCES) $(testshoot_SOURCES)
+ ETAGS = etags
+ CTAGS = ctags
+ DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+@@ -249,6 +253,7 @@ testcdd2_SOURCES = testcdd2.c
+ testlp1_SOURCES = testlp1.c
+ testlp2_SOURCES = testlp2.c
+ testlp3_SOURCES = testlp3.c
++cdd_both_reps_SOURCES = cdd_both_reps.c
+ # cddmathlink_SOURCES                = cddmathlink.c cddmlio.h cddmlio.c
+ LDADD = ../lib-src/libcdd.la
+ INCLUDES = -I../lib-src
+@@ -320,6 +325,9 @@ adjacency$(EXEEXT): $(adjacency_OBJECTS) $(adjacency_DEPENDENCIES)
+ allfaces$(EXEEXT): $(allfaces_OBJECTS) $(allfaces_DEPENDENCIES) 
+ 	@rm -f allfaces$(EXEEXT)
+ 	$(LINK) $(allfaces_OBJECTS) $(allfaces_LDADD) $(LIBS)
++cdd_both_reps$(EXEEXT): $(cdd_both_reps_OBJECTS) $(cdd_both_reps_DEPENDENCIES) 
++	@rm -f cdd_both_reps$(EXEEXT)
++	$(LINK) $(cdd_both_reps_OBJECTS) $(cdd_both_reps_LDADD) $(LIBS)
+ fourier$(EXEEXT): $(fourier_OBJECTS) $(fourier_DEPENDENCIES) 
+ 	@rm -f fourier$(EXEEXT)
+ 	$(LINK) $(fourier_OBJECTS) $(fourier_LDADD) $(LIBS)
+@@ -362,6 +370,7 @@ distclean-compile:
+ 
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/adjacency.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/allfaces.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cdd_both_reps.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fourier.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lcdd.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/projection.Po@am__quote@
+diff --git a/src/cdd_both_reps.c b/src/cdd_both_reps.c
+new file mode 100644
+index 0000000..3de4247
+--- /dev/null
++++ b/src/cdd_both_reps.c
+@@ -0,0 +1,255 @@
++/* cdd_both_reps.c: compute reduced H and V representation of polytope
++   by Volker Braun <vbraun@stp.dias.ie>
++   
++   The input is taken from stdin and can be either a 
++   H or V representation, not necessarily reduced.
++
++   based on testcdd1.c, redcheck.c, and of course the cdd library
++   written by Komei Fukuda, fukuda@ifor.math.ethz.ch
++   Standard ftp site: ftp.ifor.math.ethz.ch, Directory: pub/fukuda/cdd
++*/
++
++/*  This program is free software; you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation; either version 2 of the License, or
++    (at your option) any later version.
++
++    This program is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with this program; if not, write to the Free Software
++    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
++*/
++
++#include "setoper.h"
++#include "cdd.h"
++#include <stdio.h>
++#include <stdlib.h>
++#include <time.h>
++#include <math.h>
++#include <string.h>
++
++
++
++
++
++void compute_adjacency(dd_MatrixPtr Rep, dd_ErrorType* err_ptr)
++{
++  dd_SetFamilyPtr AdjacencyGraph;
++  if (*err_ptr != dd_NoError) return;
++
++  switch (Rep->representation) {
++  case dd_Inequality: 
++    printf("Facet graph\n");
++    break;
++  case dd_Generator: 
++    printf("Vertex graph\n");
++    break;
++  case dd_Unspecified:
++    printf("unknown representation type!\n");
++  default:
++    printf("This should be unreachable!\n");
++    exit(2);
++  }
++
++  /* Output adjacency of vertices/rays/lines */
++  if (Rep->rowsize > 0) {  /* workaround for bug with empty polyhedron */
++    /* compute adjacent vertices/rays/lines */
++    AdjacencyGraph = dd_Matrix2Adjacency(Rep, err_ptr);
++    if (*err_ptr == dd_NoError) {
++      dd_WriteSetFamily(stdout,AdjacencyGraph);
++      dd_FreeSetFamily(AdjacencyGraph);
++    }
++  } else {
++    printf("begin\n");
++    printf("  0    0\n");
++    printf("end\n");
++  }
++
++  printf("\n");
++}
++
++
++void minimal_Vrep_Hrep(dd_MatrixPtr M, 
++		       dd_MatrixPtr* Vrep_ptr, dd_MatrixPtr* Hrep_ptr, 
++		       dd_ErrorType* err_ptr)
++{
++  dd_PolyhedraPtr poly;
++  dd_rowindex newpos;
++  dd_rowset impl_linset,redset;
++  dd_MatrixPtr Vrep, Hrep;
++
++  if (*err_ptr != dd_NoError) return;
++
++   /* compute the second representation */
++  poly = dd_DDMatrix2Poly(M, err_ptr);
++  if (*err_ptr != dd_NoError) return;
++
++  if (*err_ptr == dd_NoError) {
++    /* compute canonical H-representation */
++    Hrep = dd_CopyInequalities(poly);
++    if (Hrep->rowsize > 0) {  /* workaround for bug with empty matrix */
++      dd_MatrixCanonicalize(&Hrep, &impl_linset, &redset, &newpos, err_ptr);
++      if (*err_ptr == dd_NoError) {
++	set_free(redset);
++	set_free(impl_linset);
++	free(newpos);
++      }
++    }
++    if (*err_ptr == dd_NoError) (*Hrep_ptr) = Hrep;
++  }
++
++  if (*err_ptr == dd_NoError) {
++    /* compute canonical V-representation */
++    Vrep = dd_CopyGenerators(poly);
++    if (Vrep->rowsize > 0) {  /* workaround for bug with empty matrix */
++      dd_MatrixCanonicalize(&Vrep, &impl_linset, &redset, &newpos, err_ptr);
++      if (*err_ptr == dd_NoError) {
++	set_free(redset);
++	set_free(impl_linset);
++	free(newpos);
++      }
++    }
++    if (*err_ptr == dd_NoError) (*Vrep_ptr) = Vrep;
++  }
++
++  dd_FreePolyhedra(poly);
++}
++
++
++void print_both_reps(dd_MatrixPtr Vrep, dd_MatrixPtr Hrep)
++{
++  /* Output V-representation */
++  dd_WriteMatrix(stdout,Vrep);
++  printf("\n");
++
++  /* Output H-representation */
++  dd_WriteMatrix(stdout,Hrep);
++  printf("\n");
++}
++
++
++void compute_both_reps(dd_MatrixPtr M, dd_ErrorType* err_ptr)
++{
++  dd_MatrixPtr Vrep, Hrep;
++  minimal_Vrep_Hrep(M, &Vrep, &Hrep, err_ptr);
++  if (*err_ptr != dd_NoError) return;
++
++  print_both_reps(Vrep, Hrep);
++  dd_FreeMatrix(Hrep);
++  dd_FreeMatrix(Vrep);
++}
++
++
++void compute_all(dd_MatrixPtr M, dd_ErrorType* err_ptr)
++{
++  dd_MatrixPtr Vrep, Hrep;
++  minimal_Vrep_Hrep(M, &Vrep, &Hrep, err_ptr);
++  if (*err_ptr != dd_NoError) return;
++
++  print_both_reps(Vrep, Hrep);
++  compute_adjacency(Vrep, err_ptr);
++  compute_adjacency(Hrep, err_ptr);
++  dd_FreeMatrix(Hrep);
++  dd_FreeMatrix(Vrep);
++}
++
++
++
++void usage(char *name)
++{
++  printf("No known option specified, I don't know what to do!\n"
++	 "Usage:\n"
++	 "%s --option\n"
++	 "where --option is precisely one of the following:\n\n"
++	 "  --all: Compute everything.\n"
++	 "    This will compute minimal H-,V-representation and vertex and facet graph.\n"
++	 "\n"
++	 "  --reps: Compute both a minimal H- and minimal V-representation.\n"
++	 "\n"
++	 "  --adjacency: Compute adjacency information only.\n"
++	 "    The input is assumed to be a minimal representation, as, for example, computed\n"
++	 "    by --reps. Warning, you will not get the correct answer if the input\n"
++	 "    representation is not minimal! The output is the vertex or facet graph,\n"
++	 "    depending on the input.\n"
++	 "\n"
++	 "The input data is a H- or V-representation in cdd's ine/ext format and\n"
++	 "is in each case read from stdin.\n", 
++	 name);
++}
++
++
++enum command_line_arguments { ALL, REPS, ADJACENCY };
++
++
++int parse_arguments(char* arg, enum command_line_arguments* option)
++{
++  if (strcmp(arg,"--all")==0) {
++    *option = ALL;
++    return 0;
++  }
++  if (strcmp(arg,"--reps")==0) {
++    *option = REPS;
++    return 0;
++  }
++  if (strcmp(arg,"--adjacency")==0) {
++    *option = ADJACENCY;
++    return 0;
++  }
++  printf("Unknown option: %s\n", arg);
++  return 1;
++}
++
++
++int main(int argc, char *argv[])
++{
++  dd_ErrorType err=dd_NoError;
++  dd_MatrixPtr M;
++  enum command_line_arguments option;
++
++  if (argc!=2 || parse_arguments(argv[1],&option)) {
++    usage(argv[0]);
++    return 0;
++  } 
++
++  dd_set_global_constants(); 
++
++  /* Read data from stdin */
++  M = dd_PolyFile2Matrix(stdin, &err);
++  if (err != dd_NoError) {
++    printf("I was unable to parse the input data!\n");
++    dd_WriteErrorMessages(stdout,err);
++    dd_free_global_constants();
++    return 1;
++  }
++
++  switch (option) {
++  case ALL:
++    compute_all(M,&err);
++    break;
++  case REPS:
++    compute_both_reps(M,&err);
++    break;
++  case ADJACENCY:
++    compute_adjacency(M,&err);
++    break;
++  default:
++    printf("unreachable option %d\n", option);
++    exit(3); /* unreachable */
++  }
++  
++  /* cleanup */
++  dd_FreeMatrix(M);
++  if (err != dd_NoError) {
++    dd_WriteErrorMessages(stdout,err);
++  }
++
++  dd_free_global_constants();
++  return 0;
++}
++
++
++
+-- 
+2.7.4
+
