@@ -34,6 +34,12 @@ shopt -s extglob
 rm -rf !(GAPDoc*)
 cd ..
 
+# Stuff that isn't GAP sources:
+rm -r bin/*
+cd extern
+rm -r !(Makefile.in)
+cd ..
+
 chmod +x configure
 
 ./configure \
@@ -45,10 +51,28 @@ chmod +x configure
 make config
 make
 
-mkdir -p "$INSTALL_DIR" &&
+mkdir -p "$INSTALL_DIR"
+mkdir -p "$INSTALL_DIR"/bin
+mkdir -p "$INSTALL_DIR"/doc
+mkdir -p "$INSTALL_DIR"/grp
+mkdir -p "$INSTALL_DIR"/lib
+mkdir -p "$INSTALL_DIR"/pkg
+mkdir -p "$INSTALL_DIR"/src
+mkdir -p "$INSTALL_DIR"/tst
+
 cp -R * "$INSTALL_DIR"
-ln -s "$GAP_DIR" "$PREFIX/gap/latest"
+cp sysinfo.gap "$INSTALL_DIR"
+cp sysinfo.gap-default64 "$INSTALL_DIR"
+cp -R doc/* "$INSTALL_DIR"/doc/
+cp -R grp/* "$INSTALL_DIR"/grp/
+cp -R lib/* "$INSTALL_DIR"/lib/
+cp -R pkg/* "$INSTALL_DIR"/pkg/
+cp src/*.h "$INSTALL_DIR"/src/
+cp -R tst/* "$INSTALL_DIR"/tst/
+cp -R bin/* "$INSTALL_DIR"/bin/
 cp bin/gap.sh "$PREFIX/bin/gap"
+rm -rf "$INSTALL_DIR"/bin/**/*.o
+ln -s "$GAP_DIR" "$PREFIX/gap/latest"
 
 # Delete tests that rely on the non-GPL small group library
 rm "$INSTALL_DIR"/tst/testinstall/ctblsolv.tst
