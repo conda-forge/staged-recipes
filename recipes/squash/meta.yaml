@@ -1,0 +1,79 @@
+{% set name = "squash" %}
+{% set version = "0.7.0" %}
+{% set version_major = "0.7" %}
+{% set hash_type = "sha256" %}
+{% set hash_val = "4e741b1ab9dff9433fe9dd7393c7db41173b49b0426dcfcd03b13d0b03bc19b8" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  fn: {{ name }}-{{ version }}.tar.bz2
+  url: https://github.com/quixdb/squash/releases/download/v{{ version }}/{{ name }}-{{ version }}.tar.bz2
+  {{ hash_type }}: {{ hash_val }}
+  patches:
+    - patches/0001-Remove-wrongly-placed-break-on-cmake-file.patch
+    - patches/0002-Add-directive-to-have-_SC_PAGE_SIZE-defined.patch
+    - patches/0003-Fix-squash-missing-endian-declarations-in-OSX.patch
+    - patches/0004-Fix-zconf.h-generation.patch
+    - patches/0005-Fix-lzham-compilation-on-OSX.patch
+    - patches/0006-Fix-negative-left-shifting.patch
+    - patches/0007-Fix-negative-bit-left-shifting.patch
+    - patches/0008-Backported-unaligned-operations-patch.patch
+    - patches/0009-Skip-OSX-only-failing-tests-for-now.patch
+
+build:
+  number: 0
+  skip: True  # [win]
+
+requirements:
+  build:
+    - toolchain
+    - pkg-config
+    - cmake 3.*
+    - ragel >=6.6
+    - glib 2.51.*
+    - bzip2 1.0.*
+    - xz 5.2.*
+    - lzo  # [linux]
+    - snappy
+    - zlib 1.2.*
+
+  run:
+    - glib 2.51.*
+    - bzip2 1.0.*
+    - xz 5.2.*
+    - lzo  # [linux]
+    - snappy
+    - zlib 1.2.*
+
+test:
+  requires:
+    # We use python just to compute the md5sum of codecs output.
+    - python 3.5.*
+    - pkg-config
+  commands:
+    - test -f ${PREFIX}/include/squash-{{ version_major }}/squash/squash.h
+    - test -f ${PREFIX}/lib/libsquash{{ version_major }}.dylib  # [osx]
+    - test -f ${PREFIX}/lib/libsquash{{ version_major }}.so     # [linux]
+    - test -f ${PREFIX}/lib/pkgconfig/squash-{{ version_major }}.pc
+    - pkg-config --cflags --libs {{ name }}-{{ version_major }}
+    - conda inspect linkages -p $PREFIX {{ name }}
+    - conda inspect objects -p $PREFIX {{ name }}  # [osx]
+  files:
+    - testdata.txt
+
+about:
+  home: https://quixdb.github.io/squash/
+  license: MIT
+  license_file: COPYING
+  summary: Squash — Compression Abstraction Library
+  description: |
+    Squash provides a single API to access many compression libraries, allowing
+    applications a great deal of flexibility in choosing compression
+    algorithms, including the option to pass that choice along to the user.
+
+extra:
+  recipe-maintainers:
+    - rolando
