@@ -2,4 +2,4 @@
 
 
 echo "puts \"hello\"" >> t.tcl
-tclsh t.tcl | grep hello  
+tclsh8.5 t.tcl | grep hello 
