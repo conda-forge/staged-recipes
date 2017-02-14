@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo $USER
+
 # Avoid some permissions error on builds
 mkdir $PREFIX/.npm-cache
 npm config set prefix $PREFIX -g
