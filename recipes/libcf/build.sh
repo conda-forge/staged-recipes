@@ -12,4 +12,5 @@ if [[ ${CONDA_LST}'y' == *'openmpi'* ]]; then
     export DYLD_FALLBACK_LIBRARY_PATH=${PREFIX}/lib
 fi
 ./configure --prefix=${PREFIX}
+cat config.log
 ${PYTHON} setup.py install
