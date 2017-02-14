@@ -2,9 +2,11 @@
 
 set -x -e
 
-#if [ "$(uname)" == "Darwin" ]; then
-#    cd macosx
-#fi
+if [ "$(uname)" == "Darwin" ]; then
+    cd macosx
+elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+    cd unix 
+fi
 
 ./configure --prefix=$PREFIX
 make
