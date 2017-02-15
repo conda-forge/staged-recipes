@@ -8,6 +8,10 @@ if [ "$(uname)" == "Darwin" ]; then
 	./configure --prefix=$PREFIX  --with-tcl=$PREFIX/Library/Frameworks/Tcl.framework/Versions/8.5/
 	make prefix=$PREFIX
 	make prefix=$PREFIX install 
+
+	source $PREFIX/Modules/3.2.10/init/bash
+	module --help
+
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
 	./configure --prefix=$PREFIX --with-tcl=$PREFIX/lib
 	make
