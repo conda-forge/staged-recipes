@@ -4,6 +4,11 @@ export CPPFLAGS="-I${PREFIX}/include ${CPPFLAGS}"
 export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS}"
 export LFLAGS="-fPIC ${LFLAGS}"
 
+if [ "$(uname)" == "Darwin" ]; then
+    export CXXFLAGS="$CXXFLAGS -fno-common"
+    export MACOSX_DEPLOYMENT_TARGET=$(sw_vers -productVersion | sed -E "s/([0-9]+\.[0-9]+).*/\1/")
+fi
+
 CONDA_LST=`conda list`
 if [[ ${CONDA_LST}'y' == *'openmpi'* ]]; then
     export CC=mpicc
@@ -12,5 +17,4 @@ if [[ ${CONDA_LST}'y' == *'openmpi'* ]]; then
     export DYLD_FALLBACK_LIBRARY_PATH=${PREFIX}/lib
 fi
 ./configure --prefix=${PREFIX}
-cat config.log
 ${PYTHON} setup.py install
