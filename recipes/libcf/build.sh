@@ -20,4 +20,4 @@ if [[ ${CONDA_LST}'y' == *'openmpi'* ]]; then
 fi
 ./configure --prefix=${PREFIX}
 ${PYTHON} setup.py install
-if [ `uname` == Darwin ]; then install_name_tool -change /System/Library/Frameworks/Python.framework/Versions/2.7/Python @rpath/libpython2.7.dylib ${SP_DIR}/*.so ; fi
+if [ `uname` == Darwin ]; then install_name_tool -change /System/Library/Frameworks/Python.framework/Versions/2.7/Python @rpath/libpython2.7.dylib ${SP_DIR}/libcf/*.so ; fi
