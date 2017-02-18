@@ -11,13 +11,6 @@ if [ "$(uname)" == "Darwin" ]; then
     export LDFLAGS="${LDFLAGS} -lpython" 
 fi
 
-CONDA_LST=`conda list`
-if [[ ${CONDA_LST}'y' == *'openmpi'* ]]; then
-    export CC=mpicc
-    export CXX=mpicxx
-    export LC_RPATH="${PREFIX}/lib"
-    export DYLD_FALLBACK_LIBRARY_PATH=${PREFIX}/lib
-fi
 ./configure --prefix=${PREFIX}
 ${PYTHON} setup.py install
 if [ `uname` == Darwin ]; then install_name_tool -change /System/Library/Frameworks/Python.framework/Versions/2.7/Python @rpath/libpython2.7.dylib ${SP_DIR}/pycf/*.so ; fi
