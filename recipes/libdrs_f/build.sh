@@ -19,3 +19,4 @@ else
 fi
 make  -f ${MAKEFILE}
 make -f ${MAKEFILE} install
+# No make check or make test
