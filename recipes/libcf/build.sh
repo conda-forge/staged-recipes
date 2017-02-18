@@ -4,12 +4,6 @@ export CPPFLAGS="-I${PREFIX}/include ${CPPFLAGS}"
 export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS}"
 export LFLAGS="-fPIC ${LFLAGS}"
 
-if [ "$(uname)" == "Darwin" ]; then
-    export CXXFLAGS="${CXXFLAGS} -fno-common"
-    export MACOSX_DEPLOYMENT_TARGET=$(sw_vers -productVersion | sed -E "s/([0-9]+\.[0-9]+).*/\1/")
-    export DYLD_FALLBACK_LIBRARY_PATH=${PREFIX}/lib
-    export LDFLAGS="${LDFLAGS} -lpython" 
-fi
 
 ./configure --prefix=${PREFIX}
 ${PYTHON} setup.py install
