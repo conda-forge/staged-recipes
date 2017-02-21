@@ -16,7 +16,7 @@ cmake_args=(
 
 if [ $(uname) = Darwin ] ; then
     cmake_args+=(
-	-DCMAKE_CXX_FLAGS="$CXXFLAGS -stdlib=libc++ -std=c++11"
+	-DCMAKE_CXX_FLAGS="$CXXFLAGS -stdlib=libc++"
 	-DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET
 	-DCMAKE_OSX_SYSROOT=/
 	-DREADLINE_INCLUDE_DIR=$PREFIX/include
@@ -35,4 +35,11 @@ make -j$CPU_COUNT VERBOSE=1
 make install
 
 cd $PREFIX
-rm -f casa_sover.txt bin/casacore_floatcheck bin/countcode
+rm -f \
+   casa_sover.txt \
+   bin/casacore_assay \
+   bin/casacore_floatcheck \
+   bin/casacore_memcheck \
+   bin/countcode \
+   bin/measuresdata.csh \
+   share/casacore/*.supp
