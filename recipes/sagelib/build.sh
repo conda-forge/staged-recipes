@@ -3,8 +3,8 @@
 export CPPFLAGS="-I$PREFIX/include $CPPFLAGS"
 export LDFLAGS="-L$PREFIX/lib $LDFLAGS"
 export LD_LIBRARY_PATH="$PREFIX/lib:$LD_LIBRARY_PATH"
-export CFLAGS="-O2 -g -fPIC $CFLAGS"
-export CXXFLAGS="-O2 -g -fPIC $CXXFLAGS"
+export CFLAGS="-O2 -g -fPIC -w $CFLAGS"
+export CXXFLAGS="-O2 -g -fPIC -w $CXXFLAGS"
 
 export SAGE_FAT_BINARY=yes
 export SAGE_LOCAL=$PREFIX
