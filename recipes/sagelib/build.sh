@@ -8,4 +8,4 @@ export SAGE_FAT_BINARY=yes
 export SAGE_LOCAL=$PREFIX
 ln -s $PREFIX local
 
-make build sagelib -j${CPU_COUNT}
+make build sagelib
