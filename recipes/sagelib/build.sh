@@ -10,4 +10,8 @@ export SAGE_FAT_BINARY=yes
 export SAGE_LOCAL=$PREFIX
 ln -s $PREFIX local
 
-make build sagelib -j${CPU_COUNT} || cat config.log
+echo $CIRCLE_ARTIFACTS
+echo $PATH
+set -o pipefail && make build sagelib -j${CPU_COUNT} | tee ~/config.log
+cat config.log
+cp config.log $CIRCLE_ARTIFACTS
