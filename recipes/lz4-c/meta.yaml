@@ -1,0 +1,80 @@
+{% set pkg_name = "lz4-c" %}
+{% set author = "lz4" %}
+{% set name = "lz4" %}
+{% set version = "1.7.5" %}
+{% set sha256sum = "0190cacd63022ccb86f44fa5041dc6c3804407ad61550ca21c382827319e7e7e" %}
+
+package:
+  name: {{ pkg_name }}
+  version: {{ version }}
+
+source:
+  fn: {{ name }}-{{ version }}.tar.gz
+  url: https://github.com/{{ author }}/{{ name }}/archive/v{{ version }}.tar.gz
+  sha256: {{ sha256sum }}
+  patches:
+    # fullbench build cause "an internal compiler error".
+    - patches/0001-Do-not-build-tests-binaries-on-VS-project.patch  # [win]
+
+build:
+  number: 0
+  skip: True  # [win and not py35]
+  features:
+    - vc14  # [win and py35]
+
+requirements:
+  build:
+    - toolchain
+    - python     # [win]
+    - vc 14      # [win and py35]
+
+  run:
+    - vc 14      # [win and py35]
+
+test:
+  requires:
+    - pkg-config  # [unix]
+
+  commands:
+    - lz4 -h
+    - lz4c -h    # [unix]
+    - lz4cat -h  # [unix]
+    - unlz4 -h   # [unix]
+
+    - test -f ${PREFIX}/include/lz4.h       # [unix]
+    - test -f ${PREFIX}/include/lz4hc.h     # [unix]
+    - test -f ${PREFIX}/include/lz4frame.h  # [unix]
+
+    - if not exist %LIBRARY_INC%\\lz4.h exit 1       # [win]
+    - if not exist %LIBRARY_INC%\\lz4hc.h exit 1     # [win]
+    - if not exist %LIBRARY_INC%\\lz4frame.h exit 1  # [win]
+
+    - test -f ${PREFIX}/lib/liblz4.a      # [unix]
+    - test -f ${PREFIX}/lib/liblz4.dylib  # [osx]
+    - test -f ${PREFIX}/lib/liblz4.so     # [linux]
+
+    - if not exist %LIBRARY_LIB%\\liblz4.dll exit 1         # [win]
+    - if not exist %LIBRARY_LIB%\\liblz4_static.lib exit 1  # [win]
+
+    - test -f ${PREFIX}/lib/pkgconfig/liblz4.pc  # [unix]
+    - pkg-config --cflags --libs liblz4          # [unix]
+
+    - conda inspect linkages -p $PREFIX {{ pkg_name }}  # [unix]
+    - conda inspect objects -p $PREFIX {{ pkg_name }}   # [osx]
+
+about:
+  home: https://www.lz4.org
+  license: BSD 2-clause
+  license_file: lib/LICENSE
+  summary: Extremely Fast Compression algorithm
+  description: |
+    LZ4 is lossless compression algorithm, providing compression speed at 400
+    MB/s per core (0.16 Bytes/cycle). It features an extremely fast decoder,
+    with speed in multiple GB/s per core (0.71 Bytes/cycle). A high compression
+    derivative, called LZ4_HC, is available, trading customizable CPU time for
+    compression ratio. LZ4 library is provided as open source software using a
+    BSD license.
+
+extra:
+  recipe-maintainers:
+    - rolando
