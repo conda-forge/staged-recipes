@@ -10,3 +10,8 @@ ln -s $PREFIX local
 export SAGE_NUM_THREADS=2
 
 make build sagelib
+
+#TODO: Add these in corresponding packages
+rm $PREFIX/share/jupyter/kernels/sagemath/doc
+rm $PREFIX/share/jupyter/nbextensions/mathjax
+rm $PREFIX/share/jupyter/nbextensions/jsmol
