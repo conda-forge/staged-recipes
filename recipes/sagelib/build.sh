@@ -15,3 +15,6 @@ make build sagelib
 rm $PREFIX/share/jupyter/kernels/sagemath/doc
 rm $PREFIX/share/jupyter/nbextensions/mathjax
 rm $PREFIX/share/jupyter/nbextensions/jsmol
+
+#remove lib64 symlink for now until conda has better support
+rm $PREFIX/lib64
