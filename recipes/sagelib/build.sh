@@ -9,7 +9,9 @@ export SAGE_LOCAL=$PREFIX
 ln -s $PREFIX local
 export SAGE_NUM_THREADS=2
 
-make build sagelib
+# make build builds sagelib and copies some scripts
+# the scripts can be moved to another package and call it sageruntime
+make build
 
 #TODO: Add these in corresponding packages
 rm $PREFIX/share/jupyter/kernels/sagemath/doc
