@@ -46,7 +46,7 @@ cmake \
     "${SRC_DIR}/SuperBuild"
 
 make -j ${CORES}
-cd ${BUILD_DIR}/SimpleITK-build/Wrapping
-${PYTHON} PythonPackage/setup.py install
+cd ${BUILD_DIR}/SimpleITK-build/Wrapping/Python/Packaging
+${PYTHON} setup.py install
 
 
