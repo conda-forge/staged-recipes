@@ -7,5 +7,6 @@ export CXXFLAGS="-w $CXXFLAGS"
 export SAGE_FAT_BINARY=yes
 export SAGE_LOCAL=$PREFIX
 ln -s $PREFIX local
+export SAGE_NUM_THREADS=2
 
 make build sagelib
