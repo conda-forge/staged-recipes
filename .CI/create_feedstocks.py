@@ -146,7 +146,6 @@ if __name__ == '__main__':
         feedstock_dirs = []
         for recipe_dir, name in list_recipes():
             feedstock_dir = os.path.join(feedstocks_dir, name + '-feedstock')
-            os.mkdir(feedstock_dir)
             print('Making feedstock for {}'.format(name))
 
             subprocess.check_call(['conda', 'smithy', 'init', recipe_dir,
