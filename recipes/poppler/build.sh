@@ -20,7 +20,7 @@ configure_args=(
 )
 
 if [ $(uname) = Darwin ] ; then
-    LDFLAGS="$LDFLAGS -Wl,-rpath,$PREFIX/lib"
+    export LDFLAGS="$LDFLAGS -Wl,-rpath,$PREFIX/lib"
 fi
 
 ./configure "${configure_args[@]}" || { cat config.log ; exit 1 ; }
