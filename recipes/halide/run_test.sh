@@ -1,5 +1,7 @@
 if [[ $(uname) == "Darwin" ]]; then
-    export MACOSX_DEPLOYMENT_TARGET=10.9
+    # don't use clang++
+    export CXX=c++
 fi
-${CXX:-c++} -std=c++11 -I $PREFIX/include $RECIPE_DIR/test.cpp $PREFIX/lib/libHalide.a -lz -o test
+
+${CXX:-c++} -std=c++11 -I $PREFIX/include $RECIPE_DIR/test.cpp $PREFIX/lib/libHalide.a -L$PREFIX/lib -lz -o test
 ./test
