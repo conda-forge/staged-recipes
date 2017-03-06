@@ -3,5 +3,8 @@ if [[ $(uname) == "Darwin" ]]; then
     export CXX=c++
 fi
 
-${CXX:-c++} -std=c++11 -I $PREFIX/include $RECIPE_DIR/test.cpp -L$PREFIX/lib -lHalide -lz -o test
+${CXX:-c++} -std=c++11 -I$PREFIX/include $RECIPE_DIR/test.cpp \
+    -Wl,-rpath,"$PREFIX/lib" -L$PREFIX/lib -lHalide -lz \
+    -o test
+
 ./test
