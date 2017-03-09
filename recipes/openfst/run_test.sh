@@ -25,4 +25,5 @@ int main() {
 EOF
 
 g++ -std=c++11 -lfst -I${PREFIX}/include -L${PREFIX}/lib main.cpp -o yo || exit 1
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PREFIX}/lib
 ./yo || exit 1
