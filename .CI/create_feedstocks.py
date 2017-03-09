@@ -146,7 +146,6 @@ if __name__ == '__main__':
         feedstock_dirs = []
         for recipe_dir, name in list_recipes():
             feedstock_dir = os.path.join(feedstocks_dir, name + '-feedstock')
-            os.mkdir(feedstock_dir)
             print('Making feedstock for {}'.format(name))
 
             subprocess.check_call(['conda', 'smithy', 'init', recipe_dir,
@@ -324,7 +323,7 @@ if __name__ == '__main__':
         msg = ('Removed recipe{s} ({}) after converting into feedstock{s}.'
                ''.format(', '.join(removed_recipes),
                          s=('s' if len(removed_recipes) > 1 else '')))
-        msg += ' [ci skip]' if exit_code == 0 else '[skip appveyor]'
+        msg += ' [ci skip]' if exit_code == 0 else ' [skip appveyor]'
         if is_merged_pr:
             # Capture the output, as it may contain the GH_TOKEN.
             out = subprocess.check_output(['git', 'remote', 'add', 'upstream_with_token',
