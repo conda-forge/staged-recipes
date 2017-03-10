@@ -1,6 +1,8 @@
 #!/bin/sh
 
-export DYLD_FALLBACK_LIBRARY_PATH=$PREFIX/lib
+if [ $(uname) = Darwin ] ; then
+    export LDFLAGS="$LDFLAGS -Wl,-rpath,$PREFIX/lib"
+fi
 
 ./configure --prefix=$PREFIX \
             --disable-silent-rules
