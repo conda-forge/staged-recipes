@@ -9,5 +9,5 @@ fi
 
 #            --disable-dependency-tracking \
 
-make
+make -j${CPU_COUNT}
 make install
