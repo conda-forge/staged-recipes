@@ -1,5 +1,5 @@
 #! /usr/bin/env bash
 
-chmod +x ./configure
+autoconf
 ./configure --prefix=${PREFIX}
 make install -j ${CPU_COUNT}
