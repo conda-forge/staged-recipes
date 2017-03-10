@@ -5,9 +5,10 @@ if [ $(uname) = Darwin ] ; then
 fi
 
 ./configure --prefix=$PREFIX \
+            --disable-dependency-tracking \
             --disable-silent-rules
 
-#            --disable-dependency-tracking \
+
 
 make -j${CPU_COUNT}
 make install
