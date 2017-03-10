@@ -24,6 +24,6 @@ int main() {
 }
 EOF
 
-$CXX -std=c++11 -lfst -I${PREFIX}/include -L${PREFIX}/lib main.cpp -o example
+g++ -std=c++11 -lfst -I${PREFIX}/include -L${PREFIX}/lib main.cpp -o example
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PREFIX}/lib
 ./example
