@@ -10,4 +10,7 @@ mkdir build-cfg -p
 cd build-cfg
 ../configure --prefix=$PREFIX --without-framework --enable-3ds-import --disable-dependency-tracking
 make coin-default.cfg
-cp coin-default.cfg $PREFIX/share/
+
+mkdir $PREFIX/share/Coin/conf -p
+cp coin-default.cfg $PREFIX/share/Coin/conf/
+cp ${SRC_DIR}/bin/coin-config ${PREFIX}/bin/
