@@ -7,4 +7,5 @@ autoreconf
 bash ./configure --prefix=${PREFIX} --enable-static=no
 automake
 make -j ${CPU_COUNT}
+make check
 make install
