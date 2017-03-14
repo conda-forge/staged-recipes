@@ -5,7 +5,7 @@ case `uname` in
 	export LDFLAGS="$LDFLAGS -Wl,-rpath,$PREFIX/lib"
 	;;
     Linux)
-	export LDFLAGS="-liconv"
+	export LDFLAGS="-L$PREFIX/lib -liconv"
 	;;
 esac
 
