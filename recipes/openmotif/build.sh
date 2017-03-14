@@ -1,12 +1,20 @@
 #!/bin/sh
 
-if [ $(uname) = Darwin ] ; then
-    export LDFLAGS="$LDFLAGS -Wl,-rpath,$PREFIX/lib"
-fi
+case `uname` in
+    Darwin)
+	export LDFLAGS="$LDFLAGS -Wl,-rpath,$PREFIX/lib"
+	;;
+    Linux)
+	export LDFLAGS="-liconv"
+	;;
+esac
 
 ./configure --prefix=$PREFIX \
             --disable-dependency-tracking \
-            --disable-silent-rules
+            --disable-silent-rules \
+	    --enable-jpeg \
+	    --enable-png \
+	    --enable-xft
 
 
 
