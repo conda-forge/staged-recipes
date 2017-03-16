@@ -63,8 +63,6 @@ copy-transition-model --help
 copy-tree --help
 copy-vector --help
 create-split-from-vad --help
-cuda-compiled --help
-cuda-gpu-available --help
 decode-faster --help
 decode-faster-mapped --help
 dot-weights --help
