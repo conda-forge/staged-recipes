@@ -1,3 +1,4 @@
-# -*- mode:sh; coding:utf-8 -*-
-cp source/utf8.h $LIBRARY_INC
-cp -r source/utf8 $LIBRARY_INC
+# -*- mode:bash; coding:utf-8 -*-
+mkdir -p  ${PREFIX}/include
+cp source/utf8.h ${PREFIX}/include
+cp -r source/utf8 ${PREFIX}/include
