@@ -18,7 +18,6 @@ analyze-counts --help
 append-post-to-feats --help
 append-vector-to-feats --help
 apply-cmvn --help
-apply-cmvn-online --help
 apply-cmvn-sliding --help
 arpa-to-const-arpa --help
 arpa2fst --help
@@ -35,7 +34,6 @@ compile-questions --help
 compile-train-graphs --help
 compile-train-graphs-fsts --help
 compose-transforms --help
-compress-uncompress-speex --help
 compute-and-process-kaldi-pitch-feats --help
 compute-atwv --help
 compute-cmvn-stats --help
@@ -76,7 +74,6 @@ est-lda --help
 est-mllt --help
 est-pca --help
 extend-transform-dim --help
-extend-wav-with-silence --help
 extract-ctx --help
 extract-feature-segments --help
 extract-rows --help
@@ -228,7 +225,6 @@ ivector-extractor-sum-accs --help
 ivector-mean --help
 ivector-normalize-length --help
 ivector-plda-scoring --help
-ivector-randomize --help
 ivector-subtract-global-mean --help
 ivector-transform --help
 kws-index-union --help
