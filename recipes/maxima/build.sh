@@ -17,7 +17,7 @@ chmod +x configure
         --enable-ecl
 
 make
-make check
+make check || cat tests/test-suite.log
 make install
 
 # Install Maxima into ECL's library directory
