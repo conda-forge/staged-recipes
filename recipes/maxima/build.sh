@@ -19,7 +19,3 @@ chmod +x configure
 make
 make check || cat tests/test-suite.log
 make install
-
-# Install Maxima into ECL's library directory
-ECLLIB=`ecl -eval "(princ (SI:GET-LIBRARY-PATHNAME))" -eval "(quit)"`
-cp -f "src/binary-ecl/maxima.fas" "$ECLLIB/maxima.fas"
