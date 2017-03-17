@@ -17,5 +17,5 @@ chmod +x configure
         --enable-ecl
 
 make
-make check || cat tests/test-suite.log
+make check || (cat tests/test-suite.log && exit 1)
 make install
