@@ -2,8 +2,7 @@
 
 cd $SRC_DIR
 
-rm -f "src/magic.h"
 autoreconf -f -i
-./configure --prefix=$PREFIX --enable-static --enable-fsect-man5 --disable-silent-rules --disable-dependency-tracking
+./configure --prefix=$PREFIX --disable-silent-rules --disable-dependency-tracking
 make
 make install
