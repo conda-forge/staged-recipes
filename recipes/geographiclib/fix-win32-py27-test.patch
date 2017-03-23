@@ -1,0 +1,43 @@
+diff --git a/python/geographiclib/geomath.py b/python/geographiclib/geomath.py
+index 74d2c39..d5a535b 100644
+--- a/python/geographiclib/geomath.py
++++ b/python/geographiclib/geomath.py
+@@ -129,9 +129,12 @@ class Math(object):
+   def AngNormalize(x):
+     """reduce angle to [-180,180)"""
+ 
+-    x = math.fmod(x, 360)
+-    return (x + 360 if x < -180 else
+-            (x if x < 180 else x - 360))
++    y = math.fmod(x, 360)
++    # On Windows 32-bit with python 2.7, math.fmod(-0.0, 360) = +0.0
++    # This fixes this bug.  See also Math::sincosd in the C++ library.
++    y = x if x == 0 else y
++    return (y + 360 if y < -180 else
++            (y if y < 180 else y - 360))
+   AngNormalize = staticmethod(AngNormalize)
+ 
+   def LatFix(x):
+@@ -162,6 +165,9 @@ class Math(object):
+       s, c = 0.0-s, 0.0-c
+     elif q == 3:
+       s, c = 0.0-c,     s
++    # On Windows 32-bit with python 2.7, math.fmod(-0.0, 360) = +0.0
++    # This fixes this bug.  See also Math::sincosd in the C++ library.
++    s = x if x == 0 else s
+     return s, c
+   sincosd = staticmethod(sincosd)
+ 
+diff --git a/python/geographiclib/test/test_geodesic.py b/python/geographiclib/test/test_geodesic.py
+index 16b4dcf..902a6e0 100644
+--- a/python/geographiclib/test/test_geodesic.py
++++ b/python/geographiclib/test/test_geodesic.py
+@@ -360,7 +360,7 @@ class GeodSolveTest(unittest.TestCase):
+     self.assertAlmostEqual(dir["lon2"], -180, delta = 0.5e-5)
+     self.assertAlmostEqual(dir["azi2"], -180, delta = 0.5e-5)
+     line = Geodesic.WGS84.InverseLine(45, 0, 80, -0.000000000000000003)
+-    dir = line.Position(1e7)
++    dir = line.Position(1e7, Geodesic.STANDARD | Geodesic.LONG_UNROLL)
+     self.assertAlmostEqual(dir["lat2"], 45.30632, delta = 0.5e-5)
+     self.assertAlmostEqual(dir["lon2"], -180, delta = 0.5e-5)
+     self.assertAlmostEqual(dir["azi2"], -180, delta = 0.5e-5)
