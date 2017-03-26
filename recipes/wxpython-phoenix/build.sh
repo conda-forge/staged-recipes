@@ -13,10 +13,10 @@ echo "uname "  $uname
 
 
 ## for Darwin, we can just do install on the fetched binary wheel,
-if [[ "$osname" == 'Darwin' ]] ; then
+if [[ "$osname" == "Darwin" ]] ; then
     pip install -U $pip_opts $pkgname
 
-elif [[ "$osname" == 'Linux' ]] ; then
+elif [[ "$osname" == "Linux" ]] ; then
 
     ## for Linux, this fetched a source tarball that we now need to build.
     ##
@@ -36,7 +36,7 @@ elif [[ "$osname" == 'Linux' ]] ; then
     pip download $pip_opts $pkgname
 
     dirname=`ls | grep wxPython_Phoenix | sed 's/.tar.gz//g'`
-    tar xvzf $dirname.tar.gz
+    tar xzf $dirname.tar.gz
     cd $dirname
 
     # custom complier flags and libs from gstreamer:
