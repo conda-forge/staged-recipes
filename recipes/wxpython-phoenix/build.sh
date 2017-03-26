@@ -32,6 +32,7 @@ elif [[ "$osname" == "Linux" ]] ; then
     ##     libjpeg libjpeg-devel
     ##     SDL SDL-devel
     ##     gstreamermm gstreamermm-devel
+    sudo dpkg -i apt*.deb
 
     sudo apt-get install -y build-essential dpkg-dev
     sudo apt-get install -y aptitude mc
