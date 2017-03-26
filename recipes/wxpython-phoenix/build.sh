@@ -6,7 +6,7 @@ pkgname='wxPython_Phoenix'
 pip_opts='--pre --trusted-host wxpython.org -f http://wxpython.org/Phoenix/snapshot-builds/'
 
 osname=`uname -s`
-uname=`uname`
+uname=`uname -a`
 
 echo " OS NAME " $osname
 echo "uname "  $uname
@@ -33,10 +33,10 @@ elif [[ "$osname" == "Linux" ]] ; then
     ##     SDL SDL-devel
     ##     gstreamermm gstreamermm-devel
 
-    apt-get install -y build-essential dpkg-dev
-    apt-get install -y aptitude mc
+    sudo apt-get install -y build-essential dpkg-dev
+    sudo apt-get install -y aptitude mc
 
-    apt-get install -y libgtk2.0-dev libgtk-3-dev libjpeg-dev libtiff-dev \
+    sudo apt-get install -y libgtk2.0-dev libgtk-3-dev libjpeg-dev libtiff-dev \
   	libsdl1.2-dev libgstreamer-plugins-base0.10-dev \
 	libgstreamer-plugins-base1.0-dev \
 	libnotify-dev freeglut3 freeglut3-dev libsm-dev \
