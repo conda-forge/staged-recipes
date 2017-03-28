@@ -1,0 +1,8 @@
+#!/bin/bash
+
+mkdir build_yaafe
+cd build_yaafe
+# cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DDL_ROOT=/usr/lib/x86_64-linux-gnu/ -DWITH_FFTW3=ON -DWITH_HDF5=ON -DWITH_LAPACK=ON -DWITH_MPG123=ON ..
+cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DWITH_FFTW3=ON -DWITH_HDF5=ON -DWITH_LAPACK=ON -DWITH_MPG123=ON ..
+make
+make install
