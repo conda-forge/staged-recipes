@@ -2,7 +2,7 @@
 
 set -e # Abort on error
 
-if [[$(uname) == "Linux"]]; then
+if [[$(uname) == Linux]]; then
     if [[ $ARCH -eq 64 ]]; then
         make -f Makefile.linux64 all install INSTDIR=$PREFIX
     else
