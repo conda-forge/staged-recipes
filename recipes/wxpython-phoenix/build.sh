@@ -8,8 +8,7 @@ pip_opts='--pre --trusted-host wxpython.org -f http://wxpython.org/Phoenix/snaps
 osname=`uname -s`
 uname=`uname -a`
 
-echo " OS NAME " $osname
-echo "uname "  $uname
+echo " OS NAME: " $osname    $uname
 
 
 ## for Darwin, we can just do install on the fetched binary wheel,
@@ -34,7 +33,6 @@ elif [[ "$osname" == "Linux" ]] ; then
     ##     gstreamermm gstreamermm-devel
     echo "PATH " $PATH
     locate dpkg
-    locate apt-get
 
     sudo /usr/bin/dpkg -i apt*.deb
 
