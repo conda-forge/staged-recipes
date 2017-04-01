@@ -32,7 +32,6 @@ if [[ $(uname -s) == Darwin ]]; then
       --conf-path=$PREFIX/etc/nginx/nginx.conf \
       --modules-path=lib/nginx/modules \
       --with-threads \
-      --with-ipv6 \
       --with-http_ssl_module \
       --with-http_v2_module \
       --with-http_realip_module \
@@ -75,7 +74,6 @@ elif [[ $(uname -s) == Linux ]]; then
       --conf-path=etc/nginx/nginx.conf \
       --modules-path=lib/nginx/modules \
       --with-threads \
-      --with-ipv6 \
       --with-http_ssl_module \
       --with-http_v2_module \
       --with-http_realip_module \
