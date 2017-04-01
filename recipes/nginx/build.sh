@@ -86,13 +86,13 @@ elif [[ $(uname -s) == Linux ]]; then
       --with-http_stub_status_module \
       --with-http_xslt_module=dynamic \
       --with-stream=dynamic \
+      --with-http_image_filter_module=dynamic \
       --with-pcre \
       --with-pcre-jit \
       --with-cc-opt="$cc_opt" \
       --with-ld-opt="$ld_opt" \
       --prefix="$PREFIX"
 
-      # --with-http_image_filter_module=dynamic \
       # this is removed for now because libgd apparently needs libwebp, not yet compiled for linux
 
 fi
