@@ -11,7 +11,7 @@ LDFLAGS="-L$CONDA_PREFIX/lib -Wl,-rpath,$CONDA_PREFIX/lib $LDFLAGS"
     LIBS="-liconv -lxml2" \
     --with-readline=$CONDA_PREFIX \
     --with-libiconv-prefix=$CONDA_PREFIX \
-    --prefix=$PREFIX \
+    --prefix=$PREFIX
 
 make
 
