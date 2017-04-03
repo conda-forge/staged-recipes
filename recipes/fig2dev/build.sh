@@ -1,13 +1,12 @@
 #!/bin/bash
-
-set -x
+set -e
 
 # Point to the right pkgconfig
 export PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig"
 # Add the build-dir's lib dir to the linker flags
-export LDFLAGS="-L$PREFIX/lib"
+export LDFLAGS="$LDFLAGS -L$PREFIX/lib"
 # Add the build-dir's incude dir to the compiler flags
-export CFLAGS="-I$PREFIX/include"
+export CFLAGS="$CFLAGS -I$PREFIX/include"
 
 case `uname` in
     Darwin)
@@ -21,9 +20,7 @@ case `uname` in
 esac
 
 ./configure --prefix="$PREFIX" --disable-dependency-tracking --enable-transfig
-
 make -j$CPU_COUNT
-
 make install
 
 # some of tests are expected to fail:
