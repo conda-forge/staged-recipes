@@ -45,4 +45,5 @@ make -j$CPU_COUNT
 make install
 make check
 
-rm -rf $uprefix/share/doc/${PKG_NAME#xorg-}
+# remove all docs
+rm $uprefix/share/man/man7/Xprint.7
