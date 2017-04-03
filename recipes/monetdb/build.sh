@@ -1,5 +1,5 @@
-CFLAGS="-I$CONDA_PREFIX/include"
-LDFLAGS="-L$CONDA_PREFIX/lib -Wl,-rpath,$CONDA_PREFIX/lib"
+CFLAGS="-I$CONDA_PREFIX/include $CFLAGS"
+LDFLAGS="-L$CONDA_PREFIX/lib -Wl,-rpath,$CONDA_PREFIX/lib $LDFLAGS"
 
 ./configure \
     pcre_CFLAGS="$CFLAGS" \
