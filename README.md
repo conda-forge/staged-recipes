@@ -102,3 +102,26 @@ The maintainers "job" is to:
 ### 11. Why are there recipes already in the `recipes` directory? Should I do something about it?
 
 When a PR of recipe(s) is ready to go, it is merged into `master`. This will trigger a CI build specially designed to convert the recipe(s). However, for any number of reasons the recipe(s) may not be converted right away. In the interim, the recipe(s) will remain in `master` until they can be converted. There is no action required on the part of recipe contributors to resolve this. Also it should have no impact on any other PRs being proposed. If these recipe(s) pending conversion do cause issues for your submission, please ping `conda-forge/core` for help.
+
+### 12. **Some checks failed, but it wasn't my recipe! How do I trigger a rebuild?**
+
+Sometimes, some of the CI tools' builds fail due to no error within your recipe. If that happens, you can trigger a rebuild by re-creating the last commit and force pushing it to your branch:
+
+```bash
+# edit your last commit, giving it a new time stamp and hash
+# (you can just leave the message as it is)
+git commit --amend
+# push to github, overwriting your branch
+git push -f
+```
+
+If the problem was due to scripts in the `staged-recipes` repository, you may be asked to "rebase" once these are fixed. To do so, run:
+```bash
+# If you didn't add a remote for conda-forge/staged-recipes yet, also run 
+# these lines:
+# git remote add upstream https://github.com/conda-forge/staged-recipes.git
+# git fetch --all
+git rebase upstream/master
+git push -f
+```
+
