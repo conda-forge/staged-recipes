@@ -110,7 +110,7 @@ Sometimes, some of the CI tools' builds fail due to no error within your recipe.
 ```bash
 # edit your last commit, giving it a new time stamp and hash
 # (you can just leave the message as it is)
-git ammend
+git commit --amend
 # push to github, overwriting your branch
 git push -f
 ```
