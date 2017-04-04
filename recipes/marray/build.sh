@@ -6,5 +6,5 @@ cmake \
 	-DCMAKE_INSTALL_PREFIX=$PREFIX          \
 	..
 make
-make tests
+ctest
 make install
