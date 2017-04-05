@@ -1,0 +1,84 @@
+From 5759c698d01e70ea64969d83587a50f974d2c600 Mon Sep 17 00:00:00 2001
+From: Ray Donnelly <mingw.android@gmail.com>
+Date: Thu, 8 Dec 2016 00:14:39 +0000
+Subject: [PATCH] macOS: When target lt 10.9, libstdc++ supports only some
+ C++11
+
+.. <type_traits> and std::function are not available, except via
+tr1. We prevent Rcpp from considering this combination as C++11.
+
+Without this, hunspell cannot be built. Interestingly, the compiler
+does a bad job of reporting no <type_traits> but --save-temps will
+reveals this to be the crux of the issue. We use <tr1/type_traits>
+here.
+
+readxl fails due to not having std::function. We use the fallback
+non-std-function codepath here. It might be possible to switch out
+to the tr1 implementation in <tr1/functional> if necessary..
+---
+ inst/include/Rcpp/platform/compiler.h      | 11 ++++++++++-
+ inst/include/Rcpp/sugar/functions/sapply.h | 12 ++++++++++--
+ 2 files changed, 20 insertions(+), 3 deletions(-)
+
+diff --git a/inst/include/Rcpp/platform/compiler.h b/inst/include/Rcpp/platform/compiler.h
+index 3a00003..4e512df 100644
+--- a/inst/include/Rcpp/platform/compiler.h
++++ b/inst/include/Rcpp/platform/compiler.h
+@@ -76,7 +76,10 @@
+     #endif
+ #elif defined(__clang__)
+     #if __cplusplus >= 201103L
+-        #define RCPP_USING_CXX11
++        // This compile guard excludes considering Apple macOS 10.7's clang-using-libstdc++ from being considered a conformant C++11 implementation
++        #if !defined(__APPLE__) || (defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__) && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 1090)
++            #define RCPP_USING_CXX11
++        #endif
+         #if __has_feature(cxx_variadic_templates)
+             // #define HAS_VARIADIC_TEMPLATES
+         #endif
+@@ -136,6 +139,12 @@
+         #if __has_include(<tr1/unordered_set>)
+             #define HAS_TR1_UNORDERED_SET
+         #endif
++        #if __has_include(<tr1/type_traits>)
++            #define HAS_TR1_TYPE_TRAITS
++        #endif
++        #if __has_include(<tr1/functional>)
++            #define HAS_TR1_FUNCTIONAL
++        #endif
+     #endif
+ #endif
+ 
+diff --git a/inst/include/Rcpp/sugar/functions/sapply.h b/inst/include/Rcpp/sugar/functions/sapply.h
+index 2ade406..c790a34 100644
+--- a/inst/include/Rcpp/sugar/functions/sapply.h
++++ b/inst/include/Rcpp/sugar/functions/sapply.h
+@@ -23,7 +23,11 @@
+ #define Rcpp__sugar__sapply_h
+ 
+ #if defined(RCPP_USING_CXX0X_OR_LATER)
+-	#include <type_traits> // ::std::result_of
++    #if defined HAS_TR1_TYPE_TRAITS
++        #include <tr1/type_traits>
++    #else
++        #include <type_traits> // ::std::result_of
++    #endif
+ #endif
+ 
+ namespace Rcpp{
+@@ -33,7 +37,11 @@ template <typename Function, typename SugarExpression>
+ struct sapply_application_result_of
+ {
+ #if defined(RCPP_USING_CXX0X_OR_LATER)
+-	typedef typename ::std::result_of<Function(typename SugarExpression::stored_type)>::type type;
++    #if defined HAS_TR1_TYPE_TRAITS
++        typedef typename ::std::tr1::result_of<Function(typename SugarExpression::stored_type)>::type type;
++    #else
++        typedef typename ::std::result_of<Function(typename SugarExpression::stored_type)>::type type;
++    #endif
+ #else
+ 	typedef typename ::Rcpp::traits::result_of<Function>::type type;
+ #endif
+-- 
+2.9.3 (Apple Git-75)
+
