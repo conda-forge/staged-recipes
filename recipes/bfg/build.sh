@@ -1,3 +1,3 @@
 #!/bin/sh
-cp bfg $PREFIX/bin
-cp bfg-*.jar $PREFIX/lib/bfg.jar 
+cp $RECIPE_DIR/bfg $PREFIX/bin
+cp $SRC_DIR/bfg-*.jar $PREFIX/lib/bfg.jar 
