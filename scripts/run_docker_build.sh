@@ -16,6 +16,8 @@ conda-build:
 
 always_yes: true
 show_channel_urls: true
+# work around slow CRAN mirrors.
+remote_read_timeout_secs: 60.0
 
 CONDARC
 )
