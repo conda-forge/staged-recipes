@@ -203,7 +203,7 @@ if __name__ == '__main__':
             for i in range(5):
                 try:
                     # Capture the output, as it may contain the GH_TOKEN.
-                    out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'master'], cwd=feedstock_dir,
+                    out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'master:master'], cwd=feedstock_dir,
                                                   stderr=subprocess.STDOUT)
                     break
                 except subprocess.CalledProcessError:
@@ -331,7 +331,8 @@ if __name__ == '__main__':
                                           stderr=subprocess.STDOUT)
             subprocess.check_call(['git', 'commit', '-m', msg])
             # Capture the output, as it may contain the GH_TOKEN.
-            out = subprocess.check_output(['git', 'push', 'upstream_with_token', os.environ.get('TRAVIS_BRANCH')],
+            branch = os.environ.get('TRAVIS_BRANCH')
+            out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'HEAD:%s' % branch],
                                           stderr=subprocess.STDOUT)
         else:
             print('Would git commit, with the following message: \n   {}'.format(msg))
