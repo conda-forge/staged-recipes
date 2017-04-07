@@ -157,12 +157,12 @@ if __name__ == '__main__':
             feedstock_dirs.append([feedstock_dir, name, recipe_dir])
 
             subprocess.check_call(['git', 'remote', 'add', 'upstream_with_token',
-                                   'https://conda-forge-manager:{}@github.com/conda-forge/{}'.format(os.environ['GH_TOKEN'],
-                                                                                                     name)],
+                                   'https://conda-forge-manager:{}@github.com/conda-forge/{}-feedstock'.format(os.environ['GH_TOKEN'],
+                                                                                                               name)],
                                   cwd=feedstock_dir)
 
             # Sometimes we already have the feedstock created. We need to deal with that case.
-            if repo_exists('conda-forge', name):
+            if repo_exists('conda-forge', name + '-feedstock'):
                 subprocess.check_call(['git', 'fetch', 'upstream_with_token'], cwd=feedstock_dir)
                 subprocess.check_call(['git', 'branch', '-m', 'master', 'old'], cwd=feedstock_dir)
                 try:
@@ -226,7 +226,7 @@ if __name__ == '__main__':
                 maintainers = set(meta.meta.get('extra', {}).get('recipe-maintainers', []))
                 all_maintainers.update(maintainers)
                 team_name = name.lower()
-                repo_name = 'conda-forge/{}'.format(name)
+                repo_name = 'conda-forge/{}-feedstock'.format(name)
 
                 # Try to get team or create it if it doesn't exist.
                 team = teams.get(team_name)
