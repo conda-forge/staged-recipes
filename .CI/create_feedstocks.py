@@ -203,7 +203,7 @@ if __name__ == '__main__':
             for i in range(5):
                 try:
                     # Capture the output, as it may contain the GH_TOKEN.
-                    out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'master:master'], cwd=feedstock_dir,
+                    out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'HEAD:master'], cwd=feedstock_dir,
                                                   stderr=subprocess.STDOUT)
                     break
                 except subprocess.CalledProcessError:
