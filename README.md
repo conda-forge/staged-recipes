@@ -21,13 +21,7 @@ This repo is a holding area for recipes destined for a conda-forge feedstock rep
 
 ### 1. **How do I start editing the recipe?**
 
-There are two ways to get started:
-
-a. If it is a python package you can generate a skeleton as a starting point with
-`conda skeleton pypi your_package_name`. You do *not* have to use skeleton, and the
-recipes produced by skeleton will need to be edited.
-
-b. Look at one of [these examples](https://github.com/conda-forge/staged-recipes/tree/master/recipes)
+Look at one of [these examples](https://github.com/conda-forge/staged-recipes/tree/master/recipes)
 in this repository and modify it as necessary.
 
 Your final recipe should have no comments and follow the order in the example.
