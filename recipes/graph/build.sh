@@ -5,5 +5,5 @@ cmake \
 	-DCMAKE_INSTALL_PREFIX=$PREFIX          \
 	..
 make
-ctest
+ctest -VV
 make install
