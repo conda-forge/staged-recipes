@@ -9,6 +9,7 @@ LDFLAGS="-L$CONDA_PREFIX/lib -Wl,-rpath,$CONDA_PREFIX/lib $LDFLAGS"
     CFLAGS="$CFLAGS" \
     LDFLAGS="$LDFLAGS" \
     LIBS="-liconv -lxml2" \
+    --enable-optimize \
     --with-readline=$CONDA_PREFIX \
     --with-libiconv-prefix=$CONDA_PREFIX \
     --prefix=$PREFIX
