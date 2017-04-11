@@ -1,0 +1,71 @@
+Index: misc/win32/apr_app.c
+===================================================================
+--- misc/win32/apr_app.c	(revision 1748459)
++++ misc/win32/apr_app.c	(working copy)
+@@ -51,29 +51,54 @@
+ {
+     char **argv;
+     char **env;
+-    int dupenv;
++	char **curenv;
++	apr_wchar_t *sysstr;
++	apr_wchar_t *sysstrpos;
++	apr_wchar_t *pos;
++	size_t size;
+ 
+     (void)apr_wastrtoastr(&argv, wargv, argc);
+ 
+-    dupenv = apr_wastrtoastr(&env, wenv, -1);
++    (void)apr_wastrtoastr(&env, wenv, -1);
+ 
+-    _environ = apr_malloc_dbg((dupenv + 1) * sizeof (char *),
+-                              __FILE__, __LINE__ );
+-    memcpy(_environ, env, (dupenv + 1) * sizeof (char *));
+-
+     /* MSVCRT will attempt to maintain the wide environment calls
+      * on _putenv(), which is bogus if we've passed a non-ascii
+      * string to _putenv(), since they use MultiByteToWideChar
+      * and breaking the implicit utf-8 assumption we've built.
+      *
+-     * Reset _wenviron for good measure.
++     * Clear the current _wenviron and fill _environ with our
++     * converted environment variables.
+      */
+-    if (_wenviron) {
+-        wenv = _wenviron;
+-        _wenviron = NULL;
+-        free((wchar_t **)wenv);
+-    }
+ 
++	sysstrpos = sysstr = GetEnvironmentStringsW();
++
++	// remove all current environment strings
++	// abort the loop, if *sysstrpos is \0
++	// (aka: we found the terminating \0\0)
++	while (sysstrpos && *sysstrpos) {
++		size = wcslen(sysstrpos);
++		// locate the position of the =
++		pos = wcschr(sysstrpos, L'=');
++		// and shorten the string directly after that
++		*(pos + 1) = L'\0';
++		// call _wputenv("foo=") to remove the entry
++		_wputenv(sysstrpos);
++		// continue with the next entry
++		sysstrpos = sysstrpos + size + 1;
++	}
++
++	// free the environment string
++	FreeEnvironmentStringsW(sysstr);
++
++	curenv = env;
++	// iterate over all entries in our converted list
++	// note: terminated with a '\0' for the final entry
++	while (curenv && *curenv) {
++		_putenv(*curenv);
++		++curenv;
++	}
++
++
+     apr_app_init_complete = 1;
+ 
+     return main(argc, argv, env);
