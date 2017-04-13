@@ -17,7 +17,7 @@ make
 
 make install
 
-nohup ipcluster start --daemonize=True;
+ipcluster start --daemonize=True;
 
 # Give some time for the cluster to start up.
 sleep 20;
