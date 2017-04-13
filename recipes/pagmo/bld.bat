@@ -11,8 +11,8 @@ cmake ^
     -DPAGMO_BUILD_TUTORIALS=yes ^
     ..
 
-cmake --build . --config Release
+cmake --build . --config Debug
 
 ctest
 
-cmake --build . --config Release --target install
+cmake --build . --config Debug --target install
