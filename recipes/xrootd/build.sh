@@ -1,4 +1,4 @@
-export LDFLAGS="-L$PREFIX/lib -lncurses $LDFLAGS"
+export LDFLAGS="-L$PREFIX/lib -lncursesw $LDFLAGS"
 
 # Tell setuptools not to handle dependencies
 # sed -i '' 's/ install --prefix / install --single-version-externally-managed --record=record.txt --prefix/g' bindings/python/CMakeLists.txt
