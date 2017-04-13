@@ -24,3 +24,6 @@ sleep 20;
 
 # Run the test suite
 python -c "import pygmo; pygmo.test.run_test_suite()"
+
+# Stop the cluster.
+ipcluster stop
