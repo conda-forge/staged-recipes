@@ -1,7 +1,11 @@
-export LDFLAGS="-L$PREFIX/lib $LDFLAGS"
+export LDFLAGS="-L$PREFIX/lib -lncurses $LDFLAGS"
+
+# Tell setuptools not to handle dependencies
+# sed -i '' 's/ install --prefix / install --single-version-externally-managed --record=record.txt --prefix/g' bindings/python/CMakeLists.txt
 
 mkdir build
 cd build
+
 cmake \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
     -DOPENSSL_ROOT_DIR="$PREFIX" \
