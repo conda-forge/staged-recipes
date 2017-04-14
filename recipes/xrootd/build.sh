@@ -2,7 +2,7 @@ export LDFLAGS="-L$PREFIX/lib -L$PREFIX/lib64 -lncursesw -ltinfow $LDFLAGS"
 
 # Use `sed -i.bak` to support both macOS and linux
 # Add setuptools import to trigger monkey patching distutils
-sed -i.bak 's/from distutils.core import/import setuptools\nfrom distutils.core import/' bindings/python/setup.py.in
+sed -i.bak 's/from distutils.core import/import setuptools\'$'\nfrom distutils.core import/' bindings/python/setup.py.in
 # Tell setuptools not to handle dependencies
 sed -i.bak 's/ --record PYTHON_INSTALLED/ --single-version-externally-managed --record=record.txt/' bindings/python/CMakeLists.txt
 # Set the rpath for the python package
