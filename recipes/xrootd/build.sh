@@ -4,7 +4,7 @@ export LDFLAGS="-L$PREFIX/lib -L$PREFIX/lib64 -lncursesw -ltinfow $LDFLAGS"
 # sed -i '' 's/ install --prefix / install --single-version-externally-managed --record=record.txt --prefix/g' bindings/python/CMakeLists.txt
 
 # Use -i.bak to support both macOS and linux
-sed -i.bak 's/\[xrdlibdir, xrdcllibdir\]/[xrdlibdir, xrdcllibdir], extra_link_args=["-Wl,-R${CMAKE_INSTALL_RPATH}"]/' bindings/python/setup.py.in
+sed -i.bak 's/\[xrdlibdir, xrdcllibdir\]/[xrdlibdir, xrdcllibdir], extra_link_args=["-Wl,-rpath,${CMAKE_INSTALL_RPATH}"]/' bindings/python/setup.py.in
 
 mkdir build
 cd build
