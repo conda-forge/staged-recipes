@@ -1,8 +1,6 @@
 export LDFLAGS="-L$PREFIX/lib -L$PREFIX/lib64 -lncursesw -ltinfow $LDFLAGS"
 
 # Use `sed -i.bak` to support both macOS and linux
-# Tell setuptools not to handle dependencies
-sed -i.bak 's/ install --prefix / install --single-version-externally-managed --record=record.txt --prefix/' bindings/python/CMakeLists.txt
 # Set the rpath for the python package
 sed -i.bak 's/\[xrdlibdir, xrdcllibdir\]/[xrdlibdir, xrdcllibdir], extra_link_args=["-Wl,-rpath,${CMAKE_INSTALL_RPATH}"]/' bindings/python/setup.py.in
 
