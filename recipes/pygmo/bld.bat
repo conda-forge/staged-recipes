@@ -15,8 +15,3 @@ cmake --build . --config Release
 
 cmake --build . --config Release --target install
 
-start /b ipcluster start
-
-timeout 20
-
-python -c "import pygmo; pygmo.test.run_test_suite()"
