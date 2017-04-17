@@ -1,0 +1,104 @@
+--- cairo/font.c.orig	2017-04-11 19:11:49.310747522 -0400
++++ cairo/font.c	2017-04-11 19:12:08.809850465 -0400
+@@ -149,6 +149,7 @@
+ static PyObject *
+ toy_font_face_new (PyTypeObject *type, PyObject *args, PyObject *kwds) {
+   const char *utf8;
++  PyObject *o;
+   cairo_font_slant_t slant   = CAIRO_FONT_SLANT_NORMAL;
+   cairo_font_weight_t weight = CAIRO_FONT_WEIGHT_NORMAL;
+ 
+@@ -156,7 +157,7 @@
+ 			 "utf-8", &utf8, &slant, &weight))
+     return NULL;
+ 
+-  PyObject *o = PycairoFontFace_FromFontFace (
++  o = PycairoFontFace_FromFontFace (
+ 		     cairo_toy_font_face_create (utf8, slant, weight));
+   PyMem_Free((void *)utf8);
+   return o;
+--- cairo/matrix.c.orig	2017-04-11 23:21:23.763189017 -0400
++++ cairo/matrix.c	2017-04-11 23:21:59.445395422 -0400
+@@ -43,8 +43,9 @@
+  */
+ PyObject *
+ PycairoMatrix_FromMatrix (const cairo_matrix_t *matrix) {
++  PyObject *o;
+   assert (matrix != NULL);
+-  PyObject *o = PycairoMatrix_Type.tp_alloc (&PycairoMatrix_Type, 0);
++  o = PycairoMatrix_Type.tp_alloc (&PycairoMatrix_Type, 0);
+   if (o != NULL)
+     ((PycairoMatrix *)o)->matrix = *matrix; // copy struct
+   return o;
+@@ -59,13 +60,13 @@
+ matrix_new (PyTypeObject *type, PyObject *args, PyObject *kwds) {
+   static char *kwlist[] = { "xx", "yx", "xy", "yy", "x0", "y0", NULL };
+   double xx = 1.0, yx = 0.0, xy = 0.0, yy = 1.0, x0 = 0.0, y0 = 0.0;
++  cairo_matrix_t mx;
+ 
+   if (!PyArg_ParseTupleAndKeywords(args, kwds,
+ 				   "|dddddd:Matrix.__init__", kwlist,
+ 				   &xx, &yx, &xy, &yy, &x0, &y0))
+     return NULL;
+ 
+-  cairo_matrix_t mx;
+   cairo_matrix_init (&mx, xx, yx, xy, yy, x0, y0);
+   return PycairoMatrix_FromMatrix (&mx);
+ }
+@@ -93,12 +94,12 @@
+ static PyObject *
+ matrix_multiply (PycairoMatrix *o, PyObject *args) {
+   PycairoMatrix *mx2;
++  cairo_matrix_t result;
+ 
+   if (!PyArg_ParseTuple(args, "O!:Matrix.multiply",
+ 			&PycairoMatrix_Type, &mx2))
+     return NULL;
+ 
+-  cairo_matrix_t result;
+   cairo_matrix_multiply (&result, &o->matrix, &mx2->matrix);
+   return PycairoMatrix_FromMatrix (&result);
+ }
+--- cairo/region.c.orig	2017-04-13 09:19:12.628704431 -0400
++++ cairo/region.c	2017-04-13 09:19:26.867777655 -0400
+@@ -62,8 +62,8 @@
+ rectangle_int_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+   static char *kwlist[] = { "x", "y", "width", "height", NULL };
+   int x, y, w, h;
+-  x = y = w = h = 0;
+   cairo_rectangle_int_t rect;
++  x = y = w = h = 0;
+ 
+   if (!PyArg_ParseTupleAndKeywords(args, kwds,
+                                    "|iiii:RectangleInt.__new__", kwlist,
+--- cairo/surface.c.orig	2017-04-13 10:40:40.206576966 -0400
++++ cairo/surface.c	2017-04-13 10:44:50.508009635 -0400
+@@ -475,6 +475,7 @@
+ _read_func (void *closure, unsigned char *data, unsigned int length) {
+   char *buffer;
+   Py_ssize_t str_length;
++  int ret;
+   cairo_status_t status = CAIRO_STATUS_READ_ERROR;
+   PyGILState_STATE gstate = PyGILState_Ensure();
+   PyObject *pystr = PyObject_CallMethod ((PyObject *)closure, "read", "(i)",
+@@ -486,7 +487,7 @@
+      */
+     goto end;
+   }
+-  int ret = PYCAIRO_PyBytes_AsStringAndSize(pystr, &buffer, &str_length);
++  ret = PYCAIRO_PyBytes_AsStringAndSize(pystr, &buffer, &str_length);
+   if (ret == -1 || str_length < length) {
+     PyErr_Clear();
+     goto end;
+@@ -939,9 +940,10 @@
+ static PyObject *
+ ps_surface_ps_level_to_string (PyObject *self, PyObject *args) {
+   int level;
++  const char *s;
+   if (!PyArg_ParseTuple(args, "i:ps_level_to_string", &level))
+     return NULL;
+-  const char *s = cairo_ps_level_to_string (level);
++  s = cairo_ps_level_to_string (level);
+   if (s == NULL){
+     PyErr_SetString(Pycairo_Error, "ps_level_to_string: "
+ 		    "invalid level argument");
