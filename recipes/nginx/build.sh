@@ -97,7 +97,7 @@ elif [[ $(uname -s) == Linux ]]; then
 
 fi
 
-make -j2
+make -j$CPU_COUNT
 make install
 
 rm $PREFIX/etc/nginx/*.default
