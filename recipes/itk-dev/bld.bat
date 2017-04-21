@@ -1,11 +1,11 @@
+# Building ITK inside the conda-build directory creates excessively
+# long paths. Due to the number of includes for needed during ITK, the
+# command line exceed the system limits. So a short build directory is
+# required.
 set BUILD_DIR=C:\b\%PY_VER%-%ARCH%
 IF EXIST %BUILD_DIR% ( echo "Please remove %BUILD_DIR%"; exit 1 )
 mkdir %BUILD_DIR%
 cd %BUILD_DIR%
-
-REM Remove dot from PY_VER for use in library name
-set MY_PY_VER=%PY_VER:.=%
-
 
 REM Configure Step
 cmake -G "Ninja" ^
@@ -24,7 +24,7 @@ cmake -G "Ninja" ^
     -D Module_ITKReview:BOOL=ON ^
     -D "CMAKE_SYSTEM_PREFIX_PATH:PATH=%PREFIX%/Library" ^
     -D "CMAKE_INSTALL_PREFIX=%PREFIX% ^
-    "%SRC_DIR%/SuperBuild"
+    "%SRC_DIR%"
 
 if errorlevel 1 exit 1
 
@@ -35,6 +35,3 @@ if errorlevel 1 exit 1
 REM Install step
 cmake -D CMAKE_INSTALL_PREFIX=%PREFIX% -P %BUILD_DR%/cmake_install.cmake
 if errorlevel 1 exit 1
-
-
-IF "%DIRTY%" NEQ "1" (rmdir /s /q %BUILD_DIR%)
