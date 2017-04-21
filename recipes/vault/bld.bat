@@ -1,1 +1,1 @@
-COPY vault %LIBRARY_BIN%
+XCOPY vault.exe %LIBRARY_BIN%
