@@ -1,4 +1,4 @@
-set BUILD_DIR=%SRC_DIR%
+set BUILD_DIR=%SRC_DIR%\bld
 mkdir %BUILD_DIR%
 cd %BUILD_DIR%
 
@@ -27,5 +27,5 @@ cmake --build  . --config Release
 if errorlevel 1 exit 1
 
 REM Install step
-cmake -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% -P %BUILD_DIR%/cmake_install.cmake
+cmake -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% -P %BUILD_DIR%\cmake_install.cmake
 if errorlevel 1 exit 1
