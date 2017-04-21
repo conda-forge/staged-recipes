@@ -30,15 +30,12 @@ if [ -n "$VS_MAJOR" ] ; then
         -I "$mprefix/share/aclocal"
         -I "$mprefix/mingw-w64/share/aclocal" # note: this is correct for win32 also!
     )
-    autoreconf "${autoreconf_args[@]}" || (
-	export gettext_datadir=$uprefix/share/gettext
-	autoreconf "${autoreconf_args[@]}" ) || (
-	export gettext_datadir=$mprefix/mingw-w64/share/gettext
-	autoreconf "${autoreconf_args[@]}" ) || (
-	export gettext_datadir=$uprefix/share/gettext
-	autoreconf "${autoreconf_args[@]}" ) || (
-	export gettext_datadir=$mprefix/mingw-w64/share/gettext
-	autoreconf "${autoreconf_args[@]}" )
+    # autopoint assumes that gettext/archive.dir.tar.xz can be found in
+    # $prefix/share/, with prefix = /mingw32 using the m2* packages
+    # in our depends. That file isn't found by `xz` though, so we override
+    # the path via environment variable `gettext_datadir`:
+    export gettext_datadir=$mprefix/mingw-w64/share/gettext
+    autoreconf "${autoreconf_args[@]}"
 fi
 
 export PKG_CONFIG_LIBDIR=$uprefix/lib/pkgconfig:$uprefix/share/pkgconfig
