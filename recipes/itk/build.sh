@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # When building 32-bits on 64-bit system this flags is not automatically set by conda-build
-if [ $ARCH == 32 -a "${OSX_ARC:-notosx}" == "notosx" ]; then
+if [ $ARCH == 32 -a "${OSX_ARCH:-notosx}" == "notosx" ]; then
     export CFLAGS="${CFLAGS} -m32"
     export CXXFLAGS="${CXXFLAGS} -m32"
 fi
