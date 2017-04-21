@@ -1,6 +1,5 @@
 #!/bin/bash
 
-set -e
 IFS=$' \t\n' # workaround for conda 4.2.13+toolchain bug
 
 # Adopt a Unix-friendly path if we're on Windows (see bld.bat).
@@ -31,7 +30,15 @@ if [ -n "$VS_MAJOR" ] ; then
         -I "$mprefix/share/aclocal"
         -I "$mprefix/mingw-w64/share/aclocal" # note: this is correct for win32 also!
     )
-    autoreconf "${autoreconf_args[@]}"
+    autoreconf "${autoreconf_args[@]}" || (
+	export gettext_datadir=$uprefix/share/gettext
+	autoreconf "${autoreconf_args[@]" ) || (
+	export gettext_datadir=$mprefix/mingw-w64/share/gettext
+	autoreconf "${autoreconf_args[@]" ) || (
+	export gettext_datadir=$uprefix/share/gettext
+	autoreconf "${autoreconf_args[@]" ) || (
+	export gettext_datadir=$mprefix/mingw-w64/share/gettext
+	autoreconf "${autoreconf_args[@]" )
 fi
 
 export PKG_CONFIG_LIBDIR=$uprefix/lib/pkgconfig:$uprefix/share/pkgconfig
