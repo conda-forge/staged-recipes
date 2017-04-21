@@ -32,13 +32,13 @@ if [ -n "$VS_MAJOR" ] ; then
     )
     autoreconf "${autoreconf_args[@]}" || (
 	export gettext_datadir=$uprefix/share/gettext
-	autoreconf "${autoreconf_args[@]" ) || (
+	autoreconf "${autoreconf_args[@]}" ) || (
 	export gettext_datadir=$mprefix/mingw-w64/share/gettext
-	autoreconf "${autoreconf_args[@]" ) || (
+	autoreconf "${autoreconf_args[@]}" ) || (
 	export gettext_datadir=$uprefix/share/gettext
-	autoreconf "${autoreconf_args[@]" ) || (
+	autoreconf "${autoreconf_args[@]}" ) || (
 	export gettext_datadir=$mprefix/mingw-w64/share/gettext
-	autoreconf "${autoreconf_args[@]" )
+	autoreconf "${autoreconf_args[@]}" )
 fi
 
 export PKG_CONFIG_LIBDIR=$uprefix/lib/pkgconfig:$uprefix/share/pkgconfig
@@ -66,7 +66,7 @@ make check
 rm -rf $uprefix/share/man $uprefix/share/doc
 
 # Non-Windows: prefer dynamic libraries to static, and dump libtool helper files
-if [ -z "VS_MAJOR" ] ; then
+if [ -z "$VS_MAJOR" ] ; then
     for lib_ident in Xp; do
         rm -f $uprefix/lib/lib${lib_ident}.la $uprefix/lib/lib${lib_ident}.a
     done
