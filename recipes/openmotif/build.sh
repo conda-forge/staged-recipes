@@ -2,12 +2,13 @@
 
 case `uname` in
     Darwin)
-	export LDFLAGS="$LDFLAGS -Wl,-rpath,$PREFIX/lib"
+	export LDFLAGS="$LDFLAGS -Wl,-rpath,$PREFIX/lib -L$PREFIX/lib"
 	;;
     Linux)
 	export LDFLAGS="-L$PREFIX/lib -liconv"
 	;;
 esac
+export CPPFLAGS="$CPPFLAGS -I$PREFIX/include"
 
 ./configure --prefix=$PREFIX \
             --disable-dependency-tracking \
@@ -19,4 +20,5 @@ esac
 
 
 make -j${CPU_COUNT}
+make check
 make install
