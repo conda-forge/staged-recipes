@@ -1,0 +1,92 @@
+diff --git a/makefiles/Makefile.third_party.unix b/makefiles/Makefile.third_party.unix
+index f2b3403df..ec69ecf35 100755
+--- a/makefiles/Makefile.third_party.unix
++++ b/makefiles/Makefile.third_party.unix
+@@ -109,15 +109,8 @@ missing_directories: $(MISSING_DIRECTORIES)
+ 
+ install_third_party: \
+ 	missing_directories \
+-	install_gflags \
+-	install_protobuf \
+-	install_sparsehash \
+-	install_swig \
+-	install_cbc \
+ 	install_glpk \
+ 	install_scip \
+-	install_bison \
+-	install_flex \
+ 	$(CSHARP_THIRD_PARTY)
+ 
+ bin:
+@@ -482,11 +475,11 @@ Makefile.local: makefiles/Makefile.third_party.unix
+ 	@echo \# Define UNIX_GUROBI_DIR and GUROBI_LIB_VERSION to use Gurobi.>> Makefile.local
+ 	@echo \# Define UNIX_CPLEX_DIR to use CPLEX.>> Makefile.local
+ 	@echo >> Makefile.local
+-	@echo UNIX_GFLAGS_DIR = $(OR_ROOT_FULL)/dependencies/install>> Makefile.local
+-	@echo UNIX_PROTOBUF_DIR = $(OR_ROOT_FULL)/dependencies/install>> Makefile.local
+-	@echo UNIX_SPARSEHASH_DIR = $(OR_ROOT_FULL)/dependencies/install>> Makefile.local
+-	@echo UNIX_SWIG_BINARY = $(OR_ROOT_FULL)/dependencies/install/bin/swig>> Makefile.local
+-	@echo UNIX_CLP_DIR = $(OR_ROOT_FULL)/dependencies/install>> Makefile.local
+-	@echo UNIX_CBC_DIR = $(OR_ROOT_FULL)/dependencies/install>> Makefile.local
++	@echo UNIX_GFLAGS_DIR = $(PREFIX)>> Makefile.local
++	@echo UNIX_PROTOBUF_DIR = $(PREFIX)>> Makefile.local
++	@echo UNIX_SPARSEHASH_DIR = $(PREFIX)>> Makefile.local
++	@echo UNIX_SWIG_BINARY = $(PREFIX)/bin/swig>> Makefile.local
++	@echo UNIX_CLP_DIR = $(OR_ROOT_FULL)>> Makefile.local
++	@echo UNIX_CBC_DIR = $(PREFIX)>> Makefile.local
+ 	@echo UNIX_SCIP_TAG = $(SCIP_TAG)>> Makefile.local
+-	@echo UNIX_SULUM_VERSION = $(SULUM_TAG) >> Makefile.local
+\ No newline at end of file
++	@echo UNIX_SULUM_VERSION = $(SULUM_TAG) >> Makefile.local
+diff --git a/makefiles/Makefile.unix b/makefiles/Makefile.unix
+index 003352cc1..4b68515fb 100755
+--- a/makefiles/Makefile.unix
++++ b/makefiles/Makefile.unix
+@@ -130,19 +130,19 @@ ifeq ($(PLATFORM),LINUX)
+   MONO = LD_LIBRARY_PATH=$(LIB_DIR):$(LD_LIBRARY_PATH) mono
+ 
+   # This is needed to find libgflags.a
+-  GFLAGS_LNK = $(UNIX_GFLAGS_DIR)/lib/libgflags.a
++  GFLAGS_LNK = $(PRE_CONDA_LIB)gflags
+   # This is needed to find libz.a
+-  ZLIB_LNK = -lz
++  ZLIB_LNK = $(PRE_CONDA_LIB)z
+   # This is needed to find libprotobuf.a
+-  PROTOBUF_LNK = $(UNIX_PROTOBUF_DIR)/lib/libprotobuf.a
++  PROTOBUF_LNK = $(PRE_CONDA_LIB)protobuf
+   ifdef UNIX_GLPK_DIR
+   GLPK_LNK = $(UNIX_GLPK_DIR)/lib/libglpk.a
+   endif
+   ifdef UNIX_CLP_DIR
+-  CLP_LNK = $(UNIX_CLP_DIR)/lib$(UNIX_CLP_COIN)/libClp.a $(UNIX_CLP_DIR)/lib$(UNIX_CLP_COIN)/libCoinUtils.a
++  CLP_LNK = $(PRE_CONDA_LIB)Clp $(PRE_CONDA_LIB)CoinUtils
+   endif
+   ifdef UNIX_CBC_DIR
+-  CBC_LNK = $(UNIX_CBC_DIR)/lib$(UNIX_CBC_COIN)/libCbcSolver.a $(UNIX_CBC_DIR)/lib$(UNIX_CBC_COIN)/libCbc.a $(UNIX_CBC_DIR)/lib$(UNIX_CBC_COIN)/libCgl.a $(UNIX_CBC_DIR)/lib$(UNIX_CBC_COIN)/libOsi.a $(UNIX_CBC_DIR)/lib$(UNIX_CBC_COIN)/libOsiCbc.a $(UNIX_CBC_DIR)/lib$(UNIX_CBC_COIN)/libOsiClp.a
++  CBC_LNK = $(PRE_CONDA_LIB)CbcSolver $(PRE_CONDA_LIB)Cbc $(PRE_CONDA_LIB)Cgl $(PRE_CONDA_LIB)Osi $(PRE_CONDA_LIB)OsiCbc $(PRE_CONDA_LIB)OsiClp
+   endif
+   ifdef UNIX_SCIP_DIR
+     ifeq ($(PTRLENGTH),64)
+@@ -183,10 +183,11 @@ ifeq ($(PLATFORM),LINUX)
+   SWIG_LIB_SUFFIX = so
+   LINK_CMD = g++ -shared
+   LINK_PREFIX = -o # Need the space.
++  PRE_CONDA_LIB = -Wl,-rpath $(PREFIX)/lib -L$(PREFIX)/lib -l
+   PRE_LIB = -Wl,-rpath $(OR_ROOT_FULL)/lib -L$(OR_ROOT_FULL)/lib -l
+   POST_LIB =
+-  BISON = dependencies/install/bin/bison
+-  FLEX = dependencies/install/bin/flex
++  BISON = bison
++  FLEX = flex
+ endif  # LINUX
+ ifeq ($(PLATFORM),MACOSX)
+   MAC_VERSION = -mmacosx-version-min=$(MAC_MIN_VERSION)
+@@ -254,5 +255,5 @@ CFLAGS = $(DEBUG) -I$(INC_DIR) -I$(EX_DIR) -I$(GEN_DIR) $(GFLAGS_INC) $(ARCH) \
+ 
+ JNIFLAGS = $(JNIDEBUG) -I$(INC_DIR) -I$(EX_DIR) -I$(GEN_DIR) $(GFLAGS_INC) $(ARCH) \
+         -Wno-deprecated $(PROTOBUF_INC) $(CBC_INC) $(CLP_INC) $(GLPK_INC) $(SCIP_INC) $(SLM_INC) $(GUROBI_INC) $(CPLEX_INC) -DUSE_GLOP -DUSE_BOP
+-DEPENDENCIES_LNK = $(GLPK_LNK) $(CBC_LNK) $(CLP_LNK) $(SCIP_LNK) $(LM_LNK) $(GUROBI_LNK) $(CPLEX_LNK) $(GFLAGS_LNK) $(PROTOBUF_LNK)
+-OR_TOOLS_LD_FLAGS = $(ZLIB_LNK) $(SYS_LNK)
+\ No newline at end of file
++DEPENDENCIES_LNK = $(GLPK_LNK) $(SCIP_LNK) $(LM_LNK) $(GUROBI_LNK) $(CPLEX_LNK)
++OR_TOOLS_LD_FLAGS = $(CBC_LNK) $(CLP_LNK) $(GFLAGS_LNK) $(PROTOBUF_LNK) $(ZLIB_LNK) $(SYS_LNK)
