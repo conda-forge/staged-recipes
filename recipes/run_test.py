@@ -1,0 +1,2 @@
+import pyedflib
+pyedflib.test()
