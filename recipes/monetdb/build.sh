@@ -12,6 +12,9 @@ LDFLAGS="-L$CONDA_PREFIX/lib -Wl,-rpath,$CONDA_PREFIX/lib $LDFLAGS"
     --enable-optimize \
     --with-readline=$CONDA_PREFIX \
     --with-libiconv-prefix=$CONDA_PREFIX \
+    --enable-pyintegration \
+    --with-pyversion=$PYTHON \
+    --with-pyconfig=$CONDA_PREFIX/bin/python$PY_VER-config \
     --prefix=$PREFIX
 
 make
