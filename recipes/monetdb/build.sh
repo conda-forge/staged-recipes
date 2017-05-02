@@ -16,6 +16,7 @@ LDFLAGS="-L$CONDA_PREFIX/lib -Wl,-rpath,$CONDA_PREFIX/lib $LDFLAGS"
     --enable-pyintegration \
     --with-pyversion=$PYTHON \
     --with-pyconfig=$CONDA_PREFIX/bin/python$PY_VER-config \
+    --enable-rintegration \
     --prefix=$PREFIX
 
 make
