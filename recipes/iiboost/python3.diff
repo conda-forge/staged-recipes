@@ -1,5 +1,16 @@
+--- python/src/iiboost_python.cpp	2017-05-04 13:40:33.153470980 +0200
++++ python/src/iiboost_python.cpp	2017-05-04 13:41:04.950119078 +0200
+@@ -46,7 +46,7 @@
+         std::string str;
+         ((BoosterModel *)modelPtr)->serializeToString( &str );
+ 
+-        return PyString_FromString( str.c_str() );
++        return PyBytes_FromString( str.c_str() );
+     }
+ 
+     // create model from serialized string
 --- python/CMakeLists.txt	2017-05-04 13:32:33.316722306 +0200
-+++ python/CMakeLists.txt	2017-05-04 13:36:01.060101338 +0200
++++ python/CMakeLists.txt	2017-05-04 13:59:47.086580601 +0200
 @@ -6,17 +6,17 @@
  #
  ######################################################################
@@ -28,25 +39,45 @@
  
  ######################################################################
  #
-@@ -25,7 +25,7 @@
+@@ -24,21 +24,23 @@
+ #
  ######################################################################
  
- execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
+-execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
 -                 "import sys; print sys.exec_prefix"
-+                 "import sys; print(sys.exec_prefix)"
-                   OUTPUT_VARIABLE PYTHON_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
+-                  OUTPUT_VARIABLE PYTHON_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
++find_package(PythonLibs REQUIRED)
  
- IF(APPLE AND ${PYTHON_PREFIX} MATCHES ".*framework.*")
-@@ -34,7 +34,7 @@
-         FORCE)
- ELSE()
-     execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
+-IF(APPLE AND ${PYTHON_PREFIX} MATCHES ".*framework.*")
+-    SET(PYTHON_LIBRARIES "${PYTHON_PREFIX}/Python"
+-        CACHE FILEPATH "Python libraries"
+-        FORCE)
+-ELSE()
+-    execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
 -                     "import sys; skip = 2 if sys.platform.startswith('win') else 1; print 'python' + sys.version[0:3:skip]"
-+                     "import sys; skip = 2 if sys.platform.startswith('win') else 1; print('python' + sys.version[0:3:skip])"
-                       OUTPUT_VARIABLE PYTHON_LIBRARY_NAME OUTPUT_STRIP_TRAILING_WHITESPACE)
-     FIND_LIBRARY(PYTHON_LIBRARIES ${PYTHON_LIBRARY_NAME} HINTS "${PYTHON_PREFIX}" 
-                  PATH_SUFFIXES lib lib64 libs DOC "Python libraries")
-@@ -47,7 +47,7 @@
+-                      OUTPUT_VARIABLE PYTHON_LIBRARY_NAME OUTPUT_STRIP_TRAILING_WHITESPACE)
+-    FIND_LIBRARY(PYTHON_LIBRARIES ${PYTHON_LIBRARY_NAME} HINTS "${PYTHON_PREFIX}" 
+-                 PATH_SUFFIXES lib lib64 libs DOC "Python libraries")
+-ENDIF()
++#execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
++#                 "import sys; print(sys.exec_prefix)"
++#                  OUTPUT_VARIABLE PYTHON_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
++
++#IF(APPLE AND ${PYTHON_PREFIX} MATCHES ".*framework.*")
++#    SET(PYTHON_LIBRARIES "${PYTHON_PREFIX}/Python"
++#        CACHE FILEPATH "Python libraries"
++#        FORCE)
++#ELSE()
++#    execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
++#                     "import sys; skip = 2 if sys.platform.startswith('win') else 1; print('python' + sys.version[0:3:skip])"
++#                      OUTPUT_VARIABLE PYTHON_LIBRARY_NAME OUTPUT_STRIP_TRAILING_WHITESPACE)
++#    FIND_LIBRARY(PYTHON_LIBRARIES ${PYTHON_LIBRARY_NAME} HINTS "${PYTHON_PREFIX}" 
++#                 PATH_SUFFIXES lib lib64 libs DOC "Python libraries")
++#ENDIF()
+ 
+ ######################################################################
+ #
+@@ -47,7 +49,7 @@
  ######################################################################
  
  execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
@@ -55,7 +86,7 @@
                  OUTPUT_VARIABLE PYTHON_INCLUDE OUTPUT_STRIP_TRAILING_WHITESPACE)
  SET(PYTHON_INCLUDE_PATH ${PYTHON_INCLUDE}
      CACHE PATH "Path to Python include files"
-@@ -61,7 +61,7 @@
+@@ -61,7 +63,7 @@
  ######################################################################
  IF(NOT DEFINED IIBOOST_PYTHON_INSTALL_DIR OR IIBOOST_PYTHON_INSTALL_DIR MATCHES "^$")
      execute_process(COMMAND ${PYTHON_EXECUTABLE} -c
@@ -64,14 +95,3 @@
                        OUTPUT_VARIABLE PYTHON_SITE_PACKAGES OUTPUT_STRIP_TRAILING_WHITESPACE)
      FILE(TO_CMAKE_PATH ${PYTHON_SITE_PACKAGES} IIBOOST_PYTHON_INSTALL_DIR)
  ENDIF()
---- python/src/iiboost_python.cpp	2017-05-04 13:40:33.153470980 +0200
-+++ python/src/iiboost_python.cpp	2017-05-04 13:41:04.950119078 +0200
-@@ -46,7 +46,7 @@
-         std::string str;
-         ((BoosterModel *)modelPtr)->serializeToString( &str );
- 
--        return PyString_FromString( str.c_str() );
-+        return PyBytes_FromString( str.c_str() );
-     }
- 
-     // create model from serialized string
