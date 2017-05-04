@@ -5,5 +5,9 @@ cmake \
 	-DCMAKE_INSTALL_PREFIX=$PREFIX          \
 	..
 make
-ctest -VV
+
+if [[ "$(uname)" != "Darwin" ]]; then
+	ctest
+fi
+
 make install
