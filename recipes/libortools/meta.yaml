@@ -3,27 +3,29 @@
 {% set sha256 = "25aedf676ccc5ae246be44543572fba9be5f42f2fb0c1f7edcc6f138db207d32" %}
 
 package:
-  name: {{ name|lower }}
+  name: libortools
   version: {{ version }}
 
 source:
   fn: {{ name }}-{{ version }}.tar.gz
   url: https://github.com/google/{{ name }}/archive/v{{ version }}.tar.gz
-  #git_url: https://github.com/google/or-tools.git
-  #git_version: v{{ version }}
-  #path : {{ name }}
   sha256: {{ sha256 }}
   patches:
     - use_conda_version_packages.patch
 
 build:
   number: 0
-  skip: True  # [win or osx]
+  skip: True  # [win or osx or not py3k]
   script:
-    - make third_party  # largely ignored because we rely on prebuilt packages
-    - make -j${CPU_COUNT} ortoolslibs  # we only build the libraries
-    #- python setup.py install --single-version-externally-managed --record record.txt
-    #
+    # Create Makefile.local, third_party comes from conda-packages.
+    - make third_party
+    - make -j${CPU_COUNT} ortoolslibs
+    # Copy Headers and Protobuf files to ${PREFIX}/include/ortools
+    - pushd src && find -type f -name '*.h' -or -name '*.proto' > ../headers && popd
+    - tar -C src -cf headers.tar -T headers
+    - mkdir ${PREFIX}/include/ortools
+    - tar -xf headers.tar -C ${PREFIX}/include/ortools && rm -f include.tar headers
+
 requirements:
   build:
     - autoconf 2.69
@@ -33,8 +35,9 @@ requirements:
     - coincbc 2.9.*
     - curl
     - flex 2.6.*
-    - git
+    - gcc
     - gflags 2.1.*
+    - git
     - help2man 1.47.*
     - libtool 2.4.*
     - pcre 8.*
@@ -53,18 +56,23 @@ requirements:
     - gflags 2.1.*
     - pcre 8.*
     - protobuf 3.0.*
-    - python
     - sparsehash 2.0.*
 
 test:
-  command:
+  files:
+    - use_ortools_in_prefix.patch
+  source_files:
+    - Makefile
+    - examples
+    - makefiles
+    - tools
+  requires:
+    - gcc
+  commands:
     - conda inspect linkages -p $PREFIX $PKG_NAME  # [linux]
-  imports:
-    - ortools
-    - ortools.algorithms
-    - ortools.constraint_solver
-    - ortools.graph
-    - ortools.linear_solver
+    - patch -p1 -i use_ortools_in_prefix.patch
+    - make third_party
+    - make test_cc
 
 about:
   home: https://developers.google.com/optimization/
