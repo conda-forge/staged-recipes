@@ -1,0 +1,106 @@
+{% set version = "5.6.0" %}
+{% set short_version = ".".join(version.split(".")[:2]) %}
+
+package:
+  name: qt5
+  version: {{ version }}
+
+source:
+  fn:   qt-everywhere-opensource-src-{{ version }}.tar.xz  # [unix]
+  url:  http://download.qt.io/official_releases/qt/{{ short_version }}/{{ version }}/single/qt-everywhere-opensource-src-{{ version }}.tar.xz  # [unix]
+  sha256:  76a95cf6c1503290f75a641aa25079cd0c5a8fcd7cff07ddebff80a955b07de7  # [unix]
+  fn:   qt-everywhere-opensource-src-{{ version }}.zip  # [win]
+  url:  http://download.qt.io/official_releases/qt/{{ short_version }}/{{ version }}/single/qt-everywhere-opensource-src-{{ version }}.zip  # [win]
+  sha256:  949ec2eebefe7e4a3580082d2d700e48713102bc017e640ed77a076cdbcce1f9  # [win]
+  patches:
+    # Chromium is strangely set to look in a nonexistent path for win sdk libraries.  Fix it.
+    - win8_sdk_path.patch  # [win and py>=35]
+
+    # VS 2015 update 2 fires C4334 warnings more than before, causing webengine to not build.
+    # This patch ignores those particular warnings.
+    # https://bugreports.qt.io/browse/QTBUG-52367
+    # https://codereview.qt-project.org/#/c/154777/
+    # This patch will not be necessary after Qt 5.6.1 or 5.7.
+    - vs2015_update2_warnings.patch  # [win and py>=35]
+
+    # Attribute test also breaks VS 2015.  Hooray.  Another one that 5.6.1 or 5.7 should fix.
+    # https://codereview.qt-project.org/#/c/141019/
+    # https://codereview.qt-project.org/#/c/141019/3//ALL,unified
+    # - vs2015_tst_compiler.patch
+    # qtbase patches:
+    - 0001-angle-Split-DirectX-headers-and-libraries-out-from-c.patch
+    # 0002-angle-Add-Scott-Meyer-s-nullptr-emulation.patch
+    # 0003-angle-Add-c-begin-end-iterators.patch
+    - 0004-VS2008-Add-typedefs-for-more-int-_t-and-define-_STDI.patch
+    # qt3d patches:
+    - 0001-Don-t-re-typedef-int-_t-if-_STDINT-is-defined.patch
+    # qtwinextras patches:
+    - 0001-shobjidl-Fix-compile-guard-around-SHARDAPPIDINFOLINK.patch
+
+    # Disable avx2 optimizations in Chromium's libvpx because not all processors support them
+    - avx.patch  # [linux]
+    - avx1.patch  # [linux]
+    - avx2.patch  # [linux]
+
+    # Fix errors when compiling WebEngine video components in RedHat/CentOS 6
+    # See https://bugreports.qt.io/browse/QTBUG-48298
+    - v4l2.patch  # [linux]
+
+build:
+  number: 0
+  detect_binary_files_with_prefix: true  # [unix]
+  features:
+    - vc9  # [win and py27]
+    - vc10  # [win and py34]
+    - vc14  # [win and py35]
+
+requirements:
+  build:
+    - 7za  # [win]
+    - bison  # [linux]
+    - curl  # [win]
+    - flex  # [linux]
+    - fontconfig 2.11.*  # [linux]
+    - freetype  2.5*  # [linux]
+    - gst-plugins-base  # [linux]
+    - icu 56.*
+    - jom  # [win]
+    - jpeg 8*  # [not osx]
+    - libpng >=1.6.21,<1.7  # [not osx]
+    - libxcb  # [linux]
+    - m2-gperf  # [win]
+    - m2-bison  # [win]
+    - m2-flex  # [win]
+    - m2-git  # [win]
+    - openssl 1.0*  # [not osx]
+    - perl >=5.20  # [win]
+    - python
+    - xz  # [unix]
+    - zlib 1.2*
+
+  run:
+    - fontconfig 2.11.*  # [linux]
+    - freetype 2.5*  # [linux]
+    - gst-plugins-base  # [linux]
+    - jpeg 8*  # [not osx]
+    - icu 56.*
+    - libpng >=1.6.21,<1.7  # [not osx]
+    - libxcb  # [linux]
+    - openssl 1.0*  # [not osx]
+    - zlib 1.2*
+
+test:
+  files:
+    - test
+
+about:
+    home: http://www.qt.io
+    license: LGPLv3
+    summary: GUI application development framework
+
+extra:
+    recipe-maintainers:
+        - ccordoba12
+        - ddale
+        - jdreaver
+        - msarahan
