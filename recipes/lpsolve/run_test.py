@@ -2,6 +2,7 @@
 Test of the lpsolve shared library using ctypes
 """
 
+import ctypes
 from ctypes import CDLL, c_int, byref
 import sys
 import os
@@ -9,14 +10,15 @@ import os
 if sys.platform == "win32":
     lib_name = "lpsolve55.dll"
     lib_path = os.path.join(sys.prefix, "Library", "bin", lib_name)
+    lib = ctypes.windll.LoadLibrary(lib_path)
 elif sys.platform == "darwin":
     lib_name = "liblpsolve55.dylib"
     lib_path = os.path.join(sys.prefix, "lib", lib_name)
+    lib = CDLL(lib_path)
 else:
     lib_name = "liblpsolve55.so"
     lib_path = os.path.join(sys.prefix, "lib", lib_name)
-
-lib = CDLL(lib_path)
+    lib = CDLL(lib_path)
 
 major = c_int()
 minor = c_int()
