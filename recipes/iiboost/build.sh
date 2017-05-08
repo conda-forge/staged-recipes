@@ -19,5 +19,7 @@ make
 make install
 
 # Testing.
-cd ../python/tests/
-python python_test_raw.py
+if [[ $PY3K == 0 ]]; then
+    cd ../python/tests/
+    python python_test_raw.py
+fi
