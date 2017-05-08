@@ -19,7 +19,7 @@ make
 make install
 
 # Testing.
-if [[ $PY3K == 0 ]]; then
+if [[ $PY3K == 0 && "$(uname)" != "Darwin" ]]; then
     cd ../python/tests/
     python python_test_raw.py
 fi
