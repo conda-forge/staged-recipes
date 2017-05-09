@@ -1,0 +1,101 @@
+--- CMakeLists.txt	2017-05-09 12:53:25.488675761 +0200
++++ CMakeLists.txt	2017-05-09 13:02:56.338708148 +0200
+@@ -23,21 +23,24 @@
+ endif()
+ set(RANDOMLIB_INCPATH "${RANDOMLIB_DESTPATH}/include")
+ 
+-
+-externalproject_add( 
+-    randomlibBuild
+-    GIT_REPOSITORY http://git.code.sf.net/p/randomlib/code
+-    GIT_TAG "r1.6"
+-    CMAKE_ARGS "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
++set(RANDOMLIB_CMAKE_ARGS "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
+                "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+                "-DCMAKE_INSTALL_PREFIX=${RANDOMLIB_DESTPATH}"
+                "-DCMAKE_BUILD_TYPE=RELEASE"
+                "-DMAINTAINER=OFF"
+                "-DRANDOM_SHARED_LIB=OFF"
+-               "-DCMAKE_C_FLAGS=-fpic"
+-               "-DCMAKE_CXX_FLAGS=-fpic"
+                "-DDISABLE_BOOST=ON"
+-               "-DRANDOMLIB_DOCUMENTATION=OFF"
++               "-DRANDOMLIB_DOCUMENTATION=OFF")
++
++if(NOT MSVC)
++    set(RANDOMLIB_CMAKE_ARGS ${RANDOMLIB_CMAKE_ARGS} "-DCMAKE_C_FLAGS=-fpic" "-DCMAKE_CXX_FLAGS=-fpic")
++endif()
++
++externalproject_add( 
++    randomlibBuild
++    GIT_REPOSITORY http://git.code.sf.net/p/randomlib/code
++    GIT_TAG "r1.6"
++    CMAKE_ARGS ${RANDOMLIB_CMAKE_ARGS}
+     UPDATE_COMMAND "" )
+ 
+ add_library(randomlib STATIC IMPORTED DEPENDS)
+@@ -75,7 +78,7 @@
+ if(MSVC)
+     # NOTE: The slic library uses a preprocessor flag "WINDOWS". Do NOT set
+     #       this flag for Visual Studio because it breaks everything
+-    ADD_DEFINITIONS(-D_CRT_SECURE_NO_DEPRECATE -D_SCL_SECURE_NO_DEPRECATE)
++    ADD_DEFINITIONS(-D_CRT_SECURE_NO_DEPRECATE -D_SCL_SECURE_NO_DEPRECATE -DNOMINMAX)
+     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OPENMP_FLAG}")
+ else()
+     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -std=c++11 -O3 ${OPENMP_FLAG}")
+--- LKM.cpp.orig	2017-05-09 13:03:59.408717041 +0200
++++ LKM.cpp	2017-05-09 13:05:51.225401015 +0200
+@@ -5,6 +5,8 @@
+ // Email: firstname.lastname@epfl.ch
+ //////////////////////////////////////////////////////////////////////
+ 
++#include <algorithm>
++
+ #ifdef WINDOWS
+ #include "stdafx.h"
+ #endif
+@@ -518,10 +520,10 @@
+ 			x1 = max(0,			kseedsx[n]-offset);
+ 			x2 = min(m_width,	kseedsx[n]+offset);
+                   */
+-                  y1 = max((FloatType)0.0,			kseedsy[n]-offset);
+-                  y2 = min((FloatType)m_height,	kseedsy[n]+offset);
+-                  x1 = max((FloatType)0.0,			kseedsx[n]-offset);
+-                  x2 = min((FloatType)m_width,	kseedsx[n]+offset);
++                  y1 = std::max((FloatType)0.0,			kseedsy[n]-offset);
++                  y2 = std::min((FloatType)m_height,	kseedsy[n]+offset);
++                  x1 = std::max((FloatType)0.0,			kseedsx[n]-offset);
++                  x2 = std::min((FloatType)m_width,	kseedsx[n]+offset);
+ 
+ 
+ 			for( int y = y1; y < y2; y++ )
+@@ -841,12 +843,12 @@
+ 			z1 = max(0,			kseedsz[n]-offset);
+ 			z2 = min(m_depth,	kseedsz[n]+offset);
+                   */
+-			int y1 = max((FloatType)0.0,			kseedsy[n]-offset);
+-			int y2 = min((FloatType)m_height,	kseedsy[n]+offset);
+-			int x1 = max((FloatType)0.0,			kseedsx[n]-offset);
+-			int x2 = min((FloatType)m_width,	kseedsx[n]+offset);
+-			int z1 = max((FloatType)0.0,			kseedsz[n]-zOffset);
+-			int z2 = min((FloatType)m_depth,	kseedsz[n]+zOffset);
++			int y1 = std::max((FloatType)0.0,			kseedsy[n]-offset);
++			int y2 = std::min((FloatType)m_height,	kseedsy[n]+offset);
++			int x1 = std::max((FloatType)0.0,			kseedsx[n]-offset);
++			int x2 = std::min((FloatType)m_width,	kseedsx[n]+offset);
++			int z1 = std::max((FloatType)0.0,			kseedsz[n]-zOffset);
++			int z2 = std::min((FloatType)m_depth,	kseedsz[n]+zOffset);
+ 			
+ 			//#pragma omp parallel for schedule(dynamic)
+ 			for( int z = z1; z < z2; z++ )
+--- auxItk/AllEigenVectorsOfHessian.h	2017-05-09 13:00:52.318692879 +0200
++++ auxItk/AllEigenVectorsOfHessian.h	2017-05-09 13:14:49.631786057 +0200
+@@ -99,7 +99,7 @@
+ 
+     using namespace std;
+ 
+-#if defined(_MSC_VER) && _MSC_VER <= 1700
++#if defined(_MSC_VER)
+     #define showMsg(args) \
+         do { \
+             printf("\x1b[32m" "\x1b[1m["); \
