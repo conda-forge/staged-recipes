@@ -17,6 +17,6 @@ export CPPFLAGS="$CPPFLAGS -I$PREFIX/include"
 	    --enable-png \
 	    --enable-xft
 
-make -j${CPU_COUNT}
-make check
-make install
+make -j${CPU_COUNT} | sed 's|'$PREFIX'|$PREFIX|g'
+make check | sed 's|'$PREFIX'|$PREFIX|g'
+make install | sed 's|'$PREFIX'|$PREFIX|g'
