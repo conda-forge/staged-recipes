@@ -9,8 +9,7 @@ cmake \
 make
 
 # Compile and run a few tests.
-make lp_test error_test bfs_test
-./test/lp_test
+make error_test bfs_test
 ./test/error_test
 ./test/bfs_test
 

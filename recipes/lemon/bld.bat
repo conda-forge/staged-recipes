@@ -9,11 +9,9 @@ cmake ^
 
 cmake --build . --config Release
 
-cmake --build . --config Release --target lp_test
 cmake --build . --config Release --target error_test
 cmake --build . --config Release --target bfs_test
 
-ctest -R lp_test
 ctest -R error_test
 ctest -R bfs_test
 
