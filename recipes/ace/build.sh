@@ -21,7 +21,7 @@ if [ `uname` == Linux ]; then
     echo "include \$(ACE_ROOT)/include/makeinclude/platform_linux.GNU" > include/makeinclude/platform_macros.GNU
 fi
 
-make -C ace -f GNUmakefile.ACE INSTALL_PREFIX=$PREFIX LDFLAGS="" DESTDIR="" INST_DIR="/ace" debug=0 shared_libs=1 static_libs=1 install
+make -j $CPU_COUNT -C ace -f GNUmakefile.ACE INSTALL_PREFIX=$PREFIX LDFLAGS="" DESTDIR="" INST_DIR="/ace" debug=0 shared_libs=1 static_libs=1 install
 
 # in future may want to also run the tests, but this would require some work.
 # need to have Perl and MPC (https://github.com/DOCGroup/MPC)
