@@ -1,7 +1,7 @@
 set +x
 
 echo "" >> .messages.txt
-echo "  Thank you for installing LIBXC." >> .messages.txt
+echo "  Thank you for installing Libxc." >> .messages.txt
 echo "    Manual:  http://www.tddft.org/programs/octopus/wiki/index.php/Libxc:manual" >> .messages.txt
 echo "    GitHub:  github.com/loriab/libxc" >> .messages.txt
 echo "    Binary:  anaconda.org/psi4/libxc" >> .messages.txt
