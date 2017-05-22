@@ -2,8 +2,10 @@
 
 if [[ "$(uname)" == "Darwin" ]]; then
     export ENABLE_OPENMP=no
+    export LDFLAGS="${LDFLAGS} -Wl,-dead_strip_dylibs"
 else
     export ENABLE_OPENMP=yes
+    export LDFLAGS="${LDFLAGS} -Wl,--as-needed"
 fi
 
 mkdir build && cd build
