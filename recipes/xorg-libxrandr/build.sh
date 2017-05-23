@@ -50,7 +50,7 @@ rm -rf $uprefix/share/man $uprefix/share/doc/${PKG_NAME#xorg-}
 
 # Non-Windows: prefer dynamic libraries to static, and dump libtool helper files
 if [ -z "VS_MAJOR" ] ; then
-    for lib_ident in Xrender; do
+    for lib_ident in Xrandr; do
         rm -f $uprefix/lib/lib${lib_ident}.la $uprefix/lib/lib${lib_ident}.a
     done
 fi
