@@ -148,5 +148,5 @@ COMMAND="cmake .. \
 echo $COMMAND
 eval ${COMMAND}
 
-make -j7
+make -j ${CPU_COUNT}
 make install
