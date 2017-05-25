@@ -47,7 +47,7 @@ def list_recipes():
         if recipe_dir.startswith('example'):
             continue
         path = os.path.abspath(os.path.join(recipe_directory_name, recipe_dir))
-        yield path, recipe_dir
+        yield path, MetaData(path).name()
 
 
 @contextmanager
@@ -146,7 +146,6 @@ if __name__ == '__main__':
         feedstock_dirs = []
         for recipe_dir, name in list_recipes():
             feedstock_dir = os.path.join(feedstocks_dir, name + '-feedstock')
-            os.mkdir(feedstock_dir)
             print('Making feedstock for {}'.format(name))
 
             subprocess.check_call(['conda', 'smithy', 'init', recipe_dir,
@@ -158,12 +157,12 @@ if __name__ == '__main__':
             feedstock_dirs.append([feedstock_dir, name, recipe_dir])
 
             subprocess.check_call(['git', 'remote', 'add', 'upstream_with_token',
-                                   'https://conda-forge-manager:{}@github.com/conda-forge/{}'.format(os.environ['GH_TOKEN'],
-                                                                                                     os.path.basename(feedstock_dir))],
+                                   'https://conda-forge-manager:{}@github.com/conda-forge/{}-feedstock'.format(os.environ['GH_TOKEN'],
+                                                                                                               name)],
                                   cwd=feedstock_dir)
 
             # Sometimes we already have the feedstock created. We need to deal with that case.
-            if repo_exists('conda-forge', os.path.basename(feedstock_dir)):
+            if repo_exists('conda-forge', name + '-feedstock'):
                 subprocess.check_call(['git', 'fetch', 'upstream_with_token'], cwd=feedstock_dir)
                 subprocess.check_call(['git', 'branch', '-m', 'master', 'old'], cwd=feedstock_dir)
                 try:
@@ -204,7 +203,7 @@ if __name__ == '__main__':
             for i in range(5):
                 try:
                     # Capture the output, as it may contain the GH_TOKEN.
-                    out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'master'], cwd=feedstock_dir,
+                    out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'HEAD:master'], cwd=feedstock_dir,
                                                   stderr=subprocess.STDOUT)
                     break
                 except subprocess.CalledProcessError:
@@ -227,7 +226,7 @@ if __name__ == '__main__':
                 maintainers = set(meta.meta.get('extra', {}).get('recipe-maintainers', []))
                 all_maintainers.update(maintainers)
                 team_name = name.lower()
-                repo_name = 'conda-forge/{}'.format(os.path.basename(feedstock_dir))
+                repo_name = 'conda-forge/{}-feedstock'.format(name)
 
                 # Try to get team or create it if it doesn't exist.
                 team = teams.get(team_name)
@@ -324,7 +323,7 @@ if __name__ == '__main__':
         msg = ('Removed recipe{s} ({}) after converting into feedstock{s}.'
                ''.format(', '.join(removed_recipes),
                          s=('s' if len(removed_recipes) > 1 else '')))
-        msg += ' [ci skip]' if exit_code == 0 else '[skip appveyor]'
+        msg += ' [ci skip]' if exit_code == 0 else ' [skip appveyor]'
         if is_merged_pr:
             # Capture the output, as it may contain the GH_TOKEN.
             out = subprocess.check_output(['git', 'remote', 'add', 'upstream_with_token',
@@ -332,7 +331,8 @@ if __name__ == '__main__':
                                           stderr=subprocess.STDOUT)
             subprocess.check_call(['git', 'commit', '-m', msg])
             # Capture the output, as it may contain the GH_TOKEN.
-            out = subprocess.check_output(['git', 'push', 'upstream_with_token', os.environ.get('TRAVIS_BRANCH')],
+            branch = os.environ.get('TRAVIS_BRANCH')
+            out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'HEAD:%s' % branch],
                                           stderr=subprocess.STDOUT)
         else:
             print('Would git commit, with the following message: \n   {}'.format(msg))
