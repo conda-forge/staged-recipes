@@ -1,5 +1,7 @@
 #!/bin/bash
 
-./configure LIBXML_CFLAGS=-I$PREFIX/include/libxml2/ LIBXML_LIBS=-L$PREFIX/lib/
+export CFLAGS=-I$PREFIX/include/
+export LDFLAGS=-L$PREFIX/lib/
+./configure --prefix=$PREFIX
 make
 make install
