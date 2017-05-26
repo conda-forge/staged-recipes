@@ -4,7 +4,8 @@ export CFLAGS=-I$PREFIX/include/
 export LDFLAGS=-L$PREFIX/lib/
 
 if [ `uname` == Darwin ]; then
-  # OSX
+  # OSX only
+  # If these flags are set on linux build, there's a linking error
   export LIBXML_CFLAGS=-I$PREFIX/include/libxml2/
   export LIBXML_LIBS=-L$PREFIX/lib/
 fi
