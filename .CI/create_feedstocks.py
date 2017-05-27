@@ -98,7 +98,7 @@ def print_rate_limiting_info(gh):
     # spending it and how to better optimize it.
 
     # Get GitHub API Rate Limit usage and total
-    gh_api_remaining, gh_api_total = gh.rate_limiting
+    gh_api_remaining, gh_api_total = gh.get_rate_limit()
 
     # Compute time until GitHub API Rate Limit reset
     gh_api_reset_time = gh.rate_limiting_resettime
