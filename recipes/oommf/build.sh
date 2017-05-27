@@ -1,7 +1,6 @@
 #!/bin/bash
 
 TCLTKVERSION=8.5
-CONDA_ROOT_PATH=$(conda info --root)
 
 # Compile OOMMF
 export OOMMF_TCL_CONFIG=${PREFIX}/lib/tclConfig.sh
