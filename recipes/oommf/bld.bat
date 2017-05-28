@@ -1,4 +1,5 @@
 cd
+dir
 dir %PREFIX%
 dir %PREFIX%\opt
 
