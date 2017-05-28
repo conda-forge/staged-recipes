@@ -1,9 +1,6 @@
 cd
-mkdir %PREFIX%\opt
 dir %PREFIX%
 dir %PREFIX%\opt
-dir
-cd ..
-cd
-dir
-move oommf %PREFIX%\opt
+
+mkdir %PREFIX%\opt\oommf
+move * %PREFIX%\opt\oommf
