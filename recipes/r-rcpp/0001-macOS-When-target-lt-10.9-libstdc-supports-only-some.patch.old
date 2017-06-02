@@ -1,0 +1,83 @@
+From 923b90977055eb8fac0e9b3f183f29770569c4ca Mon Sep 17 00:00:00 2001
+From: Ray Donnelly <mingw.android@gmail.com>
+Date: Thu, 8 Dec 2016 00:14:39 +0000
+Subject: [PATCH] macOS: When target lt 10.9, libstdc++ supports only some
+ C++11
+
+.. <type_traits> and std::function are not available.
+
+Without this, hunspell cannot be built. Interestingly, the compiler
+does a bad job of reporting no <type_traits> but --save-temps will
+reveals this to be the crux of the issue.
+
+readxl fails due to not having std::function.
+---
+ inst/include/Rcpp/InternalFunction.h       | 4 ++--
+ inst/include/Rcpp/platform/compiler.h      | 6 ++++++
+ inst/include/Rcpp/sugar/functions/sapply.h | 4 ++--
+ 3 files changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/inst/include/Rcpp/InternalFunction.h b/inst/include/Rcpp/InternalFunction.h
+index 5a5722b..e16bf09 100644
+--- a/inst/include/Rcpp/InternalFunction.h
++++ b/inst/include/Rcpp/InternalFunction.h
+@@ -26,7 +26,7 @@
+ 
+ #include <Rcpp/grow.h>
+ 
+-#ifdef RCPP_USING_CXX11
++#ifdef RCPP_USING_CXX11_WITH_STD_FUNCTION
+ #include <Rcpp/InternalFunctionWithStdFunction.h>
+ #endif
+ 
+@@ -37,7 +37,7 @@ namespace Rcpp{
+ 
+         RCPP_GENERATE_CTOR_ASSIGN(InternalFunction_Impl)
+ 
+-#ifdef RCPP_USING_CXX11
++#ifdef RCPP_USING_CXX11_WITH_STD_FUNCTION
+         template <typename RESULT_TYPE, typename... Args>
+         InternalFunction_Impl(const std::function<RESULT_TYPE(Args...)> &fun) {
+             set(
+diff --git a/inst/include/Rcpp/platform/compiler.h b/inst/include/Rcpp/platform/compiler.h
+index 3a00003..2ab5614 100644
+--- a/inst/include/Rcpp/platform/compiler.h
++++ b/inst/include/Rcpp/platform/compiler.h
+@@ -61,6 +61,12 @@
+ // Check for the presence of C++0x (or later) support
+ #if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
+   #define RCPP_USING_CXX0X_OR_LATER
++  // When targetting macOS < 10.9, an old libstdc++ is used without full C++11 support
++  // rather than libc++. In particular <type_traits> and std::function are missing.
++  #if !defined(__APPLE__) || (defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__) && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 1090)
++    #define RCPP_USING_CXX0X_WITH_TYPE_TRAITS
++    #define RCPP_USING_CXX11_WITH_STD_FUNCTION
++  #endif
+ #endif
+ 
+ // Check C++0x/11 features
+diff --git a/inst/include/Rcpp/sugar/functions/sapply.h b/inst/include/Rcpp/sugar/functions/sapply.h
+index 2ade406..73ed0d7 100644
+--- a/inst/include/Rcpp/sugar/functions/sapply.h
++++ b/inst/include/Rcpp/sugar/functions/sapply.h
+@@ -22,7 +22,7 @@
+ #ifndef Rcpp__sugar__sapply_h
+ #define Rcpp__sugar__sapply_h
+ 
+-#if defined(RCPP_USING_CXX0X_OR_LATER)
++#if defined(RCPP_USING_CXX0X_WITH_TYPE_TRAITS)
+ 	#include <type_traits> // ::std::result_of
+ #endif
+ 
+@@ -32,7 +32,7 @@ namespace sugar{
+ template <typename Function, typename SugarExpression>
+ struct sapply_application_result_of
+ {
+-#if defined(RCPP_USING_CXX0X_OR_LATER)
++#if defined(RCPP_USING_CXX0X_WITH_TYPE_TRAITS)
+ 	typedef typename ::std::result_of<Function(typename SugarExpression::stored_type)>::type type;
+ #else
+ 	typedef typename ::Rcpp::traits::result_of<Function>::type type;
+-- 
+2.9.3
+
