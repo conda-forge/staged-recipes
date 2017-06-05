@@ -1,0 +1,53 @@
+{% set name = "modern-xorg-stack" %}
+{% set version = "2016.03" %}
+{% set sha256 = "e1b113064a7dea7b1ea7e7f2bb5fda771587f816b423d81c918904e3e19dc2af" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  fn: {{name }}-{{ version }}.tar.bz2
+  url: http://newton.cx/~peter/files/{{ name }}-{{ version }}.tar.bz2
+  sha256: {{ sha256 }}
+  patches:
+    - no-lib64.patch
+
+build:
+  number: 0
+  detect_binary_files_with_prefix: true
+  skip: true  # [win]
+
+# The requirement of configparser below is a total hack. For some reason,
+# conda-build-all errors out when it tries to build multiple versions of this
+# package on the OSX builders: the first build succeeds, but then it doesn't
+# install pkg-config for the second build attempt for some reason, leading to
+# a failure. But, the only reason it was attempting to build multiple versions
+# of the package was because I was requiring `python`, which is needed by
+# X.org build tools but not actually used by the resulting binaries -- so
+# there should not be multiple output packages for different Python versions.
+# It turns out that conda-build-all decides to build multiple packages if
+# `python` is explicitly required in meta.yaml -- but not if it's implicitly
+# required. So, by requiring `configparser`, we draw in the Python dep needed
+# to do the build, but fool conda-build-all's logic, so that we only require
+# one package build and avoid the missing-pkg-config problem. Fun times.
+
+requirements:
+  build:
+    - configparser
+    - pkg-config
+    - toolchain
+
+test:
+  commands:
+    - test -f ${PREFIX}/lib/libX11.so  # [linux]
+    - test -f ${PREFIX}/lib/libX11.dylib  # [osx]
+
+about:
+  home: http://www.x.org/
+  license: X.org
+  summary: 'Modern versions of the X11 client libraries'
+
+extra:
+  recipe-maintainers:
+    - pkgw
