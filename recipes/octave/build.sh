@@ -5,6 +5,8 @@ export CXXFLAGS="-I${PREFIX}/include ${CXXFLAGS}"
 export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS}"
 
 chmod +x configure
+chmod +x build-aux/mk-opts.pl
+
 ./configure --help
 ./configure --prefix=$PREFIX \
     --disable-docs \
