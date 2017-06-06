@@ -11,6 +11,7 @@ chmod +x build-aux/mk-opts.pl
     --disable-docs \
     --enable-readline \
     --enable-shared \
+    --with-lapack="-lopenblas" \
     --enable-dl \
     --without-qhull \
     --without-qrupdate \
