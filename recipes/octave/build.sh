@@ -2,7 +2,7 @@
 
 export CFLAGS="-I${PREFIX}/include ${CFLAGS}"
 export CXXFLAGS="-I${PREFIX}/include ${CXXFLAGS}"
-export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS}"
+export LDFLAGS="-L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib ${LDFLAGS}"
 
 chmod +x configure
 chmod +x build-aux/mk-opts.pl
