@@ -6,7 +6,7 @@ case "$(uname)" in
     Linux) target=linux-64-thr;;
 esac
 
-make $target -j"$CPU_COUNT" || make $target -j$"CPU_COUNT"
+make $target -j$CPU_COUNT || make $target -j$CPU_COUNT
 
 cd ..
 cp compile/*/tachyon "$PREFIX/bin"
