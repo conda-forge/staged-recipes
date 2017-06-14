@@ -1,14 +1,12 @@
 #!/bin/bash
 
 cd unix
+case "$(uname)" in
+    Darwin) target=macosx-x86_64-thr;;
+    Linux) target=linux-64-thr;;
+esac
 
-if [ "$(uname)" == "Darwin" ]
-then
-    make macosx-64 -j${CPU_COUNT} || make macosx-64 -j${CPU_COUNT}
-elif [ "$(uname)" == "Linux" ]
-then
-    make linux-64-thr -j${CPU_COUNT} || make linux-64-thr -j${CPU_COUNT}
-fi
+make $target -j"$CPU_COUNT" || make $target -j$"CPU_COUNT"
 
 cd ..
 cp compile/*/tachyon "$PREFIX/bin"
