@@ -1,6 +1,5 @@
 #!/bin/bash
 
-export _OLD_PATH=${PATH}
 export PATH="${PREFIX}/bin/conda_forge_ccache:${PATH}"
 
 if [ -f "/feedstock_root/build_artefacts" ]; then
