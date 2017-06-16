@@ -8,8 +8,8 @@ do
     cp "${RECIPE_DIR}/${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/toolchain3_${CHANGE}.sh"
 done
 
-mkdir -p ${PREFIX}/bin/cf
-cd ${PREFIX}/bin/cf
+mkdir -p ${PREFIX}/bin/conda_forge
+cd ${PREFIX}/bin/conda_forge
 cp ${RECIPE_DIR}/conda-forge-cc cc
 
 for l in ftn f90 fc f95 f77 gfortran gcc g++ clang clang++ ld

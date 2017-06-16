@@ -115,6 +115,7 @@ fi
 # Finish setting up the mode.
 if [[ -z $mode ]]; then
     mode=ccld
+    prevx=false
     for arg in "$@"; do
         if [[ $arg == -E ]]; then
             mode=cpp
@@ -125,6 +126,29 @@ if [[ -z $mode ]]; then
         elif [[ $arg == -c ]]; then
             mode=cc
             break
+        elif [[ $arg == -x ]]; then
+            prevx=true
+        elif [[ $prevx == true ]]; then
+            if [[ $arg == c++-header ]]; then
+                mode=cc
+                lang_flags=CXX
+            elif [[ $arg == c-header ]]; then
+                mode=cc
+                lang_flags=C
+            elif [[ $arg == c++ || $arg == c++-cpp-output ]]; then
+                lang_flags=CXX
+            elif [[ $arg == c || $arg == cpp-output ]]; then
+                lang_flags=C
+            elif [[ $arg == assembler ]]; then
+                mode=as
+            elif [[ $arg == assembler-with-cpp ]]; then
+                mode=cpp
+            elif [[ $arg == f77* || $arg == f90* ]]; then
+                lang_flags=F
+            fi
+            prevx=false
+        else
+            prevx=false
         fi
     done
 fi
@@ -141,12 +165,12 @@ fi
 # this script doesn't just call itself
 #
 IFS=':' read -ra env_path <<< "$PATH"
-IFS=':' read -ra spack_env_dirs <<< "$PREFIX/bin/cf"
-spack_env_dirs+=("" ".")
+IFS=':' read -ra conda_forge_env_dirs <<< "$PREFIX/bin/conda_forge"
+conda_forge_env_dirs+=("" ".")
 PATH=""
 for dir in "${env_path[@]}"; do
     addpath=true
-    for env_dir in "${spack_env_dirs[@]}"; do
+    for env_dir in "${conda_forge_env_dirs[@]}"; do
         if [[ $dir == $env_dir ]]; then
             addpath=false
             break
