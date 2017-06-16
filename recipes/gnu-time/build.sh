@@ -19,25 +19,6 @@ else
     uprefix="$PREFIX"
 fi
 
-# On Windows we need to regenerate the configure scripts.
-if [ -n "$VS_MAJOR" ] ; then
-    am_version=1.15 # keep sync'ed with meta.yaml
-    export ACLOCAL=aclocal-$am_version
-    export AUTOMAKE=automake-$am_version
-    autoreconf_args=(
-        --force
-        --install
-        -I "$mprefix/share/aclocal"
-        -I "$mprefix/mingw-w64/share/aclocal" # note: this is correct for win32 also!
-    )
-    autoreconf "${autoreconf_args[@]}"
-
-    # And we need to add the search path that lets libtool find the
-    # msys2 stub libraries for ws2_32.
-    platlibs=$(cd $(dirname $(gcc --print-prog-name=ld))/../lib && pwd -W)
-    export LDFLAGS="$LDFLAGS -L$platlibs"
-fi
-
 ./configure \
     --prefix=$mprefix \
     --disable-dependency-tracking \
