@@ -2,7 +2,7 @@
 
 export PATH="${PREFIX}/bin/conda_forge_ccache:${PATH}"
 
-if [ -f "/feedstock_root/build_artefacts" ]; then
+if [ -d "/feedstock_root/build_artefacts" ]; then
     export CCACHE_DIR=/feedstock_root/build_artefacts/.ccache
 fi
 
