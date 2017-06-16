@@ -28,7 +28,6 @@ fi
     --disable-dependency-tracking \
     --mandir=$mprefix/share/man \
     --infodir=$mprefix/share/info \
-    --program-prefix=g \
     || (cat config.log; false)
 
 
