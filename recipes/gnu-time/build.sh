@@ -14,6 +14,10 @@ if [ -n "$LIBRARY_PREFIX_M" ] ; then
     else
         uprefix="$LIBRARY_PREFIX_U"
     fi
+    # And we need to add the search path that lets libtool find the
+    # msys2 stub libraries for ws2_32.
+    platlibs=$(cd $(dirname $(gcc --print-prog-name=ld))/../lib && pwd -W)
+    export LDFLAGS="$LDFLAGS -L$platlibs"
 else
     mprefix="$PREFIX"
     uprefix="$PREFIX"
