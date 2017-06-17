@@ -26,4 +26,15 @@ else
     exit 1
 fi
 
-export PATH="${_OLD_PATH}"
+# Read PATH and split by : to array env_path
+IFS=':' read -ra env_path <<< "$PATH"
+
+PATH=""
+for dir in "${env_path[@]}"; do
+    if [[ $dir != "${PREFIX}/bin/conda_forge" ]]; then
+        PATH="${PATH:+$PATH:}$dir"
+    fi
+done
+
+export PATH
+
