@@ -24,7 +24,8 @@ elif [ ${OSNAME} == Darwin ]; then
     PY_LIB="libpython${PY_VER}.dylib"
 fi
 
-COMMON_ARGS="-DCMAKE_C_COMPILER=$CC \
+COMMON_ARGS="-G Ninja \
+        -DCMAKE_C_COMPILER=$CC \
         -DCMAKE_CXX_COMPILER=$CXX \
         -DCMAKE_BUILD_TYPE=Debug \
         -DCMAKE_INSTALL_PREFIX=\"${PREFIX}\" \
@@ -148,5 +149,4 @@ COMMAND="cmake .. \
 echo $COMMAND
 eval ${COMMAND}
 
-make -j ${CPU_COUNT}
-make install
+ninja install
