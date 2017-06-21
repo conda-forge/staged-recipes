@@ -5,17 +5,25 @@ cd build
 
 CONDA_LST=`conda list`
 OSNAME=`uname`
-if [ ${OSNAME} == Linux ]; then
-    # To make sure we get the correct g++
-    export LD_LIBRARY_PATH=${PREFIX}/lib:${LIBRARY_PATH}
-    export CC="gcc -Wl,-rpath=${PREFIX}/lib"
-    export CXX="g++ -Wl,-rpath=${PREFIX}/lib"
-    export LDFLAGS="-lm"
+if [[ ${CONDA_LST}'y' == *'openmpi'* ]]; then
+    export CC=mpicc
+    export CXX=mpicxx
+    export LC_RPATH="${PREFIX}/lib"
+    export DYLD_FALLBACK_LIBRARY_PATH=${PREFIX}/lib
+    MPI_ARGS="-DVTK_USE_MPI:BOOL=ON"
 else
-    export CC="clang"
-    export CXX="clang++"
+    if [ ${OSNAME} == Linux ]; then
+        # To make sure we get the correct g++
+        export LD_LIBRARY_PATH=${PREFIX}/lib:${LIBRARY_PATH}
+        export CC="gcc -Wl,-rpath=${PREFIX}/lib"
+        export CXX="g++ -Wl,-rpath=${PREFIX}/lib"
+        export LDFLAGS="-lm"
+    else
+        export CC="clang"
+        export CXX="clang++"
+    fi
+    MPI_ARGS=""
 fi
-MPI_ARGS=""
 
 
 if [ ${OSNAME} == Linux ]; then
@@ -24,8 +32,7 @@ elif [ ${OSNAME} == Darwin ]; then
     PY_LIB="libpython${PY_VER}.dylib"
 fi
 
-COMMON_ARGS="-G Ninja \
-        -DCMAKE_C_COMPILER=$CC \
+COMMON_ARGS="-DCMAKE_C_COMPILER=$CC \
         -DCMAKE_CXX_COMPILER=$CXX \
         -DCMAKE_BUILD_TYPE=Debug \
         -DCMAKE_INSTALL_PREFIX=\"${PREFIX}\" \
@@ -147,6 +154,8 @@ COMMAND="cmake .. \
     ${VTK_ARGS} \
     ${MPI_ARGS}"
 echo $COMMAND
+exit 0
 eval ${COMMAND}
 
-ninja install
+make -j
+make install
