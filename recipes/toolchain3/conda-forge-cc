@@ -1,0 +1,262 @@
+#!/bin/bash
+##############################################################################
+# Copyright (c) 2013-2016, Lawrence Livermore National Security, LLC.
+# Produced at the Lawrence Livermore National Laboratory.
+#
+# This file is part of Spack.
+# Created by Todd Gamblin, tgamblin@llnl.gov, All rights reserved.
+# LLNL-CODE-647188
+#
+# For details, see https://github.com/llnl/spack
+# Please also see the LICENSE file for our notice and the LGPL.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License (as
+# published by the Free Software Foundation) version 2.1, February 1999.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the IMPLIED WARRANTY OF
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the terms and
+# conditions of the GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+##############################################################################
+#
+# Spack compiler wrapper script.
+#
+# Compiler commands go through this compiler wrapper in Spack builds.
+# The compiler wrapper is a thin layer around the standard compilers.
+# It enables several key pieces of functionality:
+#
+# 1. It allows Spack to swap compilers into and out of builds easily.
+# 2. It adds several options to the compile line so that spack
+#    packages can find their dependencies at build time and run time:
+#      -I           arguments for dependency /include directories.
+#      -L           arguments for dependency /lib directories.
+#      -Wl,-rpath   arguments for dependency /lib directories.
+#
+
+
+# die()
+# Prints a message and exits with error 1.
+function die {
+    echo "$@"
+    exit 1
+}
+
+# Figure out the type of compiler, the language, and the mode so that
+# the compiler script knows what to do.
+#
+# Possible languages are C, C++, Fortran
+# 'command' is set based on the input command to $CONDA_FORGE_[CC|CXX|FORT]
+#
+# 'mode' is set to one of:
+#    vcheck  version check
+#    cpp     preprocess
+#    cc      compile
+#    as      assemble
+#    ld      link
+#    ccld    compile & link
+
+command=$(basename "$0")
+case "$command" in
+    cpp)
+        mode=cpp
+        ;;
+    cc|c89|c99)
+        if [[ ! -z "$CC" ]]; then
+            command="$CC"
+        fi
+        lang_flags=C
+        ;;
+    c++)
+        if [[ ! -z "$CXX" ]]; then
+            command="$CXX"
+        fi
+        lang_flags=CXX
+        ;;
+    ftn|f90|fc|f95|f77)
+        if [[ ! -z "$FC" ]]; then
+            command="$FC"
+        fi
+        lang_flags=F
+        ;;
+    gcc|clang)
+        lang_flags=C
+        ;;
+    g++|clang++)
+        lang_flags=CXX
+        ;;
+    gfortran)
+        lang_flags=F
+        ;;
+    ld)
+        mode=ld
+        ;;
+    *)
+        die "Unkown compiler: $command"
+        ;;
+esac
+
+# If any of the arguments below are present, then the mode is vcheck.
+# In vcheck mode, nothing is added in terms of extra search paths or
+# libraries.
+if [[ -z $mode ]]; then
+    for arg in "$@"; do
+        if [[ $arg == -v || $arg == -V || $arg == --version || $arg == -dumpversion ]]; then
+            mode=vcheck
+            break
+        fi
+    done
+fi
+
+# Finish setting up the mode.
+if [[ -z $mode ]]; then
+    mode=ccld
+    prevx=false
+    for arg in "$@"; do
+        if [[ $arg == -E ]]; then
+            mode=cpp
+            break
+        elif [[ $arg == -S ]]; then
+            mode=as
+            break
+        elif [[ $arg == -c ]]; then
+            mode=cc
+            break
+        elif [[ $arg == -x ]]; then
+            prevx=true
+        elif [[ $prevx == true ]]; then
+            if [[ $arg == c++-header ]]; then
+                mode=cc
+                lang_flags=CXX
+            elif [[ $arg == c-header ]]; then
+                mode=cc
+                lang_flags=C
+            elif [[ $arg == c++ || $arg == c++-cpp-output ]]; then
+                lang_flags=CXX
+            elif [[ $arg == c || $arg == cpp-output ]]; then
+                lang_flags=C
+            elif [[ $arg == assembler ]]; then
+                mode=as
+            elif [[ $arg == assembler-with-cpp ]]; then
+                mode=cpp
+            elif [[ $arg == f77* || $arg == f90* ]]; then
+                lang_flags=F
+            fi
+            prevx=false
+        else
+            prevx=false
+        fi
+    done
+fi
+
+add_ccache=false
+if [[ -f $PREFIX/bin/ccache ]]; then
+    if [[ $mode == ccld || $mode == cc ]]; then
+        add_ccache=true
+    fi
+fi
+
+#
+# Filter '.' and Spack environment directories out of PATH so that
+# this script doesn't just call itself
+#
+IFS=':' read -ra env_path <<< "$PATH"
+IFS=':' read -ra conda_forge_env_dirs <<< "$PREFIX/bin/conda_forge"
+conda_forge_env_dirs+=("" ".")
+PATH=""
+for dir in "${env_path[@]}"; do
+    addpath=true
+    for env_dir in "${conda_forge_env_dirs[@]}"; do
+        if [[ $dir == $env_dir ]]; then
+            addpath=false
+            break
+        fi
+    done
+    if $addpath; then
+        PATH="${PATH:+$PATH:}$dir"
+    fi
+done
+export PATH
+
+if [[ $mode == vcheck ]]; then
+    exec ${command} "$@"
+fi
+
+# Darwin's linker has a -r argument that merges object files together.
+# It doesn't work with -rpath.
+# This variable controls whether they are added.
+add_rpaths=true
+if [[ ($mode == ld || $mode == ccld) && "$(uname)" == "Darwin" ]]; then
+    for arg in "$@"; do
+        if [[ ($arg == -r && $mode == ld) || ($arg == -Wl,-r && $mode == ccld) ]]; then
+            add_rpaths=false
+            break
+        fi
+    done
+fi
+
+# Save original command for debug logging
+input_command="$@"
+args=("$@")
+
+# Prepend cppflags, cflags, cxxflags, fcflags, fflags, and ldflags
+
+# Add ldflags
+case "$mode" in
+    ld|ccld)
+        args=(${CONDA_FORGE_LDFLAGS[@]} "${args[@]}") ;;
+esac
+
+# Add compiler flags.
+case "$mode" in
+    cc|ccld)
+    # Add c, cxx, fc, and f flags
+        case $lang_flags in
+            C)
+                args=(${CONDA_FORGE_CFLAGS[@]} "${args[@]}") ;;
+            CXX)
+                args=(${CONDA_FORGE_CXXFLAGS[@]} "${args[@]}") ;;
+        esac
+        ;;
+esac
+
+# Add cppflags
+case "$mode" in
+    cpp|as|cc|ccld)
+        args=(${CONDA_FORGE_CPPFLAGS[@]} "${args[@]}") ;;
+esac
+
+case "$mode" in
+    cc|ccld)
+        # Add fortran flags
+        case $lang_flags in
+            F)
+                args=(${CONDA_FORGE_FFLAGS[@]} "${args[@]}") ;;
+        esac
+        ;;
+esac
+
+if [[ "${CONDA_FORGE_ADD_RPATHS}" != "off" ]]; then
+    if [[ $mode == ccld ]]; then
+        $add_rpaths && args=("-Wl,-rpath,${PREFIX}/lib" "${args[@]}")
+    elif [[ $mode == ld ]]; then
+        $add_rpaths && args=("-rpath" "${PREFIX}/lib" "${args[@]}")
+    fi
+fi
+
+full_command=("$command" "${args[@]}")
+
+if [[ "${CONDA_FORGE_USE_CCACHE}" != "off" && $add_ccache == true ]]; then
+    full_command=("ccache" "$command" "${args[@]}")
+fi
+
+if [[ $CONDA_FORGE_DEBUG == "on" ]]; then
+    echo "[$mode-in ] $command $input_command"
+    echo "[$mode-out] ${full_command[@]}"
+fi
+
+exec "${full_command[@]}"
