@@ -17,6 +17,7 @@ if [ `uname` == Darwin ]; then
     export LINKFLAGS="${LDFLAGS}"
     # needed otherwise linking fails
     export DYLD_FALLBACK_LIBRARY_PATH=$PREFIX/lib
+fi
 
 cmake -D CMAKE_INSTALL_PREFIX=$PREFIX \
     -D PYTHON_EXE=$PYTHON \
