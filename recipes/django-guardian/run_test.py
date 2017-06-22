@@ -1,6 +1,6 @@
 import django
 from django.conf import settings
-settings.configure(INSTALLED_APPS=['guardian']) 
+settings.configure(INSTALLED_APPS=['guardian', 'django.contrib.contenttypes', 'django.contrib.auth']) 
 django.setup() 
         
 import guardian
@@ -12,8 +12,3 @@ import guardian.testapp
 import guardian.management.commands
 import guardian.testapp.migrations
 import guardian.testapp.tests
-
-
-
-
-
