@@ -1,7 +1,7 @@
 
 set OPENSSL_ROOT_DIR=%LIBRARY_PREFIX%
 
-set CMAKE_GENERATOR=NMake Makefiles JOM
+set CMAKE_GENERATOR="NMake Makefiles JOM"
 mkdir build
 cd build
 
@@ -13,5 +13,7 @@ cmake -G "%CMAKE_GENERATOR%" ^
 if errorlevel 1 exit 1
 
 cmake --build . --config Release --target all
+if errorlevel 1 exit 1
+
 cmake --build . --config Release --target install
 if errorlevel 1 exit 1
