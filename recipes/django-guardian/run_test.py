@@ -1,6 +1,5 @@
 import django
-import python
-
+from django.conf import settings
 settings.configure(INSTALLED_APPS=['guardian']) 
 django.setup() 
         
