@@ -7,4 +7,4 @@ import django_redis
 import django_redis.client
 import django_redis.serializers
 import django_redis.compressors
-import redis.exceptions
+import redis
