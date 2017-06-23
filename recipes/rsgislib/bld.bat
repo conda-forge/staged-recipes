@@ -34,8 +34,4 @@ if errorlevel 1 exit 1
 nmake install
 if errorlevel 1 exit 1
 
-REM Must run tests now since they require the source tree
-cd python_tests\RSGISLibTests
-%PYTHON% RSGIStests.py --all
-if errorlevel 1 exit 1
 

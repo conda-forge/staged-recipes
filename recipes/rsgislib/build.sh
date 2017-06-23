@@ -35,6 +35,3 @@ cmake -D CMAKE_INSTALL_PREFIX=$PREFIX \
 
 make install -j$CPU_COUNT
 
-# Must run the tests now as they need the source tree
-cd python_tests/RSGISLibTests
-$PYTHON RSGIStests.py --all
