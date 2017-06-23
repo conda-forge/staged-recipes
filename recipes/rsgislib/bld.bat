@@ -1,8 +1,4 @@
 
-# attempt to debug cmake problem
-echo %PATH%
-where cmake
-
 cmake -G "NMake Makefiles" -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
     -D CMAKE_BUILD_TYPE=Release ^
     -D INSTALL_PYTHON_USING_PREFIX=OFF ^
