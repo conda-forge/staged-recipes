@@ -15,6 +15,8 @@ if errorlevel 1 exit 1
 nmake install
 if errorlevel 1 exit 1
 
-mkdir -p %LIBRARY_PREFIX%/lib/clang/%PKG_VERSION%/include
-# Standalone libomp build doesn't put omp.h in clang's default search path
-cp %LIBRARY_PREFIX%/include/omp.h %LIBRARY_PREFIX%/lib/clang/%PKG_VERSION%/include
+if not exist "%LIBRARY_PREFIX%\lib\clang\%PKG_VERSION%\include\" mkdir "%LIBRARY_PREFIX%\lib\clang\%PKG_VERSION%\include"
+if errorlevel 1 exit 1
+
+:: Standalone libomp build doesn't put omp.h in clang's default search path
+cp %LIBRARY_PREFIX%\include\omp.h %LIBRARY_PREFIX%\lib\clang\%PKG_VERSION%\include
