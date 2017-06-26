@@ -1,0 +1,79 @@
+{% set name = "clBLAS" %}
+{% set version = "2.12" %}
+{% set sha256 = "7269c7cb06a43c5e96772010eba032e6d54e72a3abff41f16d765a5e524297a9" %}
+
+{% set OSX_VARIANT = os.environ.get("OSX_VARIANT", "native") %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: {{ name }}-{{ version }}.tar.gz
+  url: https://github.com/clMathLibraries/{{ name }}/archive/v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  script_env:
+    - OSX_VARIANT
+
+{% if OSX_VARIANT != "native" %}
+  skip: True  # [not osx]
+{% endif %}
+
+  features:
+{% if OSX_VARIANT == "pocl" %}
+    - osx_pocl_opencl            # [osx]
+{% endif %}
+    - vc9                        # [win and py27]
+    - vc10                       # [win and py34]
+    - vc14                       # [win and py35]
+    - vc14                       # [win and py36]
+
+requirements:
+  build:
+    - toolchain
+    - python                     # [win]
+    - cmake
+    - boost-cpp
+    - ocl-icd                    # [linux]
+    - khronos-opencl-icd-loader  # [win]
+{% if OSX_VARIANT == "pocl" %}
+    - osx-pocl-opencl            # [osx]
+    - pocl >=0.14                # [unix]
+{% endif %}
+
+  run:
+    - khronos-opencl-icd-loader  # [win]
+    - ocl-icd                    # [linux]
+{% if OSX_VARIANT == "pocl" %}
+    - osx-pocl-opencl            # [osx]
+    - pocl >=0.14                # [unix]
+{% endif %}
+
+test:
+  requires:
+    - python {{ environ['PY_VER'] + '*' }}              # [win]
+
+  commands:
+    # Check files
+    - test -f "${PREFIX}/include/clBLAS.h"           # [unix]
+    - test -f "${PREFIX}/lib/libclBLAS.so"           # [linux]
+    - test -f "${PREFIX}/lib/libclBLAS.dylib"        # [osx]
+    - if not exist %LIBRARY_INC%\\clBLAS.h exit 1    # [win]
+    - if not exist %LIBRARY_BIN%\\clBLAS.dll exit 1  # [win]
+    - if not exist %LIBRARY_LIB%\\clBLAS.lib exit 1  # [win]
+
+    # Check CLI
+    - clBLAS-tune --help
+
+about:
+  home: https://github.com/clMathLibraries/{{ name }}
+  license: Apache 2.0
+  license_file: LICENSE
+  summary: A software library containing BLAS functions written in OpenCL 
+
+extra:
+  recipe-maintainers:
+    - jakirkham
