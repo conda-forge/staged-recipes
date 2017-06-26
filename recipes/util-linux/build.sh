@@ -1,7 +1,7 @@
 #!/bin/bash
 
-autogen.sh
+./autogen.sh
 
-configure
+./configure
 
 make
