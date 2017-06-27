@@ -1,0 +1,77 @@
+{% set name = "CLBlast" %}
+{% set version = "0.11.0" %}
+{% set sha256 = "947182733e51f9fc8317896047c95cf07fb3cd5f14437ea25a38e013f42f8e53" %}
+
+{% set OSX_VARIANT = os.environ.get("OSX_VARIANT", "native") %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: {{ name }}-{{ version }}.tar.gz
+  url: https://github.com/CNugteren/CLBlast/archive/{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  script_env:
+    - OSX_VARIANT
+
+{% if OSX_VARIANT != "native" %}
+  skip: True  # [not osx]
+{% else %}
+  skip: True  # [win and py<36]
+{% endif %}
+
+  features:
+{% if OSX_VARIANT == "pocl" %}
+    - osx_pocl_opencl            # [osx]
+{% endif %}
+    - vc9                        # [win and py27]
+    - vc10                       # [win and py34]
+    - vc14                       # [win and py35]
+    - vc14                       # [win and py36]
+
+requirements:
+  build:
+    - toolchain
+    - python                     # [win]
+    - cmake
+    - ocl-icd                    # [linux]
+    - khronos-opencl-icd-loader  # [win]
+{% if OSX_VARIANT == "pocl" %}
+    - osx-pocl-opencl            # [osx]
+    - pocl >=0.14                # [unix]
+{% endif %}
+
+  run:
+    - khronos-opencl-icd-loader  # [win]
+    - ocl-icd                    # [linux]
+{% if OSX_VARIANT == "pocl" %}
+    - osx-pocl-opencl            # [osx]
+    - pocl >=0.14                # [unix]
+{% endif %}
+
+test:
+  requires:
+    - python {{ environ['PY_VER'] + '*' }}            # [win]
+
+  commands:
+    # Check files
+    - test -f "${PREFIX}/include/clblast.h"           # [unix]
+    - test -f "${PREFIX}/lib/libclblast.so"           # [linux]
+    - test -f "${PREFIX}/lib/libclblast.dylib"        # [osx]
+    - if not exist %LIBRARY_INC%\\clblast.h exit 1    # [win]
+    - if not exist %LIBRARY_BIN%\\clblast.dll exit 1  # [win]
+    - if not exist %LIBRARY_LIB%\\clblast.lib exit 1  # [win]
+
+about:
+  home: https://github.com/CNugteren/CLBlast
+  license: Apache 2.0
+  license_file: LICENSE
+  summary: CLBlast is a modern, lightweight, performant and tunable OpenCL BLAS library written in C++11
+
+extra:
+  recipe-maintainers:
+    - jakirkham
