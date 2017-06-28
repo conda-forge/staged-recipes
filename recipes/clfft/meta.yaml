@@ -1,0 +1,83 @@
+{% set name = "clFFT" %}
+{% set version = "2.12.2" %}
+{% set sha256 = "e7348c146ad48c6a3e6997b7702202ad3ee3b5df99edf7ef00bbacc21e897b12" %}
+
+{% set OSX_VARIANT = os.environ.get("OSX_VARIANT", "native") %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: {{ name }}-{{ version }}.tar.gz
+  url: https://github.com/clMathLibraries/{{ name }}/archive/v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+  patches:
+    ############################################################
+    # Fix a type issue when using sqrt                         #
+    #                                                          #
+    # xref: https://github.com/clMathLibraries/clFFT/pull/199  #
+    ############################################################
+    - PR_199.diff
+
+build:
+  number: 0
+  script_env:
+    - OSX_VARIANT
+
+{% if OSX_VARIANT != "native" %}
+  skip: True  # [not osx]
+{% endif %}
+
+  features:
+{% if OSX_VARIANT == "pocl" %}
+    - osx_pocl_opencl            # [osx]
+{% endif %}
+    - vc9                        # [win and py27]
+    - vc10                       # [win and py34]
+    - vc14                       # [win and py35]
+    - vc14                       # [win and py36]
+
+requirements:
+  build:
+    - toolchain
+    - python                     # [win]
+    - cmake
+    - boost-cpp
+    - ocl-icd                    # [linux]
+    - khronos-opencl-icd-loader  # [win]
+{% if OSX_VARIANT == "pocl" %}
+    - osx-pocl-opencl            # [osx]
+    - pocl >=0.14                # [unix]
+{% endif %}
+
+  run:
+    - khronos-opencl-icd-loader  # [win]
+    - ocl-icd                    # [linux]
+{% if OSX_VARIANT == "pocl" %}
+    - osx-pocl-opencl            # [osx]
+    - pocl >=0.14                # [unix]
+{% endif %}
+
+test:
+  requires:
+    - python {{ environ['PY_VER'] + '*' }}              # [win]
+
+  commands:
+    # Check files
+    - test -f "${PREFIX}/include/clFFT.h"           # [unix]
+    - test -f "${PREFIX}/lib/libclFFT.so"           # [linux]
+    - test -f "${PREFIX}/lib/libclFFT.dylib"        # [osx]
+    - if not exist %LIBRARY_INC%\\clFFT.h exit 1    # [win]
+    - if not exist %LIBRARY_BIN%\\clFFT.dll exit 1  # [win]
+    - if not exist %LIBRARY_LIB%\\clFFT.lib exit 1  # [win]
+
+about:
+  home: https://github.com/clMathLibraries/{{ name }}
+  license: Apache 2.0
+  license_file: LICENSE
+  summary: A software library containing FFT functions written in OpenCL
+
+extra:
+  recipe-maintainers:
+    - jakirkham
