@@ -1,4 +1,5 @@
 #!/bin/sh
+ls -al
 mkdir build
 cd build
 # NOTE : Doesn't seem to find mpfr automatically, so the extra flags are
