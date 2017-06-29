@@ -6,5 +6,4 @@ set -x
   --with-tcl-dir=$PREFIX --with-tk-dir=$PREFIX --with-libyaml-dir=$PREFIX \
   --with-zlib-dir=$PREFIX
 make -j ${CPU_COUNT}
-make check
 make install
