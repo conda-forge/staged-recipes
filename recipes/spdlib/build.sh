@@ -25,11 +25,9 @@ cmake -D CMAKE_INSTALL_PREFIX=$PREFIX \
     -D GMP_LIB_PATH=$PREFIX/lib \
     -D MPFR_INCLUDE_DIR=$PREFIX/include \
     -D MPFR_LIB_PATH=$PREFIX/lib \
-    -D CMAKE_VERBOSE_MAKEFILE=ON \
     .
 
-make -j $CPU_COUNT
-make install
+make install -j$CPU_COUNT
 
 # now Python bindings
 cd python
@@ -38,7 +36,7 @@ cmake -D CMAKE_INSTALL_PREFIX=$STDLIB_DIR \
     -D HDF5_LIB_PATH=$PREFIX/lib \
     -D SPDLIB_IO_INCLUDE_DIR=$PREFIX/include \
     -D SPDLIB_IO_LIB_PATH=$PREFIX/lib \
-    -D CMAKE_VERBOSE_MAKEFILE=ON \
+    -D CMAKE_PREFIX_PATH=$PREFIX \
     .
 make
 make install
