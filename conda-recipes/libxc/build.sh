@@ -1,3 +1,9 @@
+if [ "${PSI_BUILD_ISA}" == "sse41" ]; then
+    ISA="-msse4.1"
+elif [ "${PSI_BUILD_ISA}" == "avx2" ]; then
+    ISA="-march=native"
+fi
+
 
 if [ "$(uname)" == "Darwin" ]; then
 
@@ -8,9 +14,11 @@ if [ "$(uname)" == "Darwin" ]; then
         -DCMAKE_INSTALL_PREFIX=${PREFIX} \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_C_COMPILER=clang \
+        -DCMAKE_C_FLAGS="${ISA}" \
         -DCMAKE_INSTALL_LIBDIR=lib \
         -DNAMESPACE_INSTALL_INCLUDEDIR="/libxc" \
         -DBUILD_SHARED_LIBS=ON \
+        -DENABLE_XHOST=OFF \
         -DBUILD_TESTING=ON
 fi
 
