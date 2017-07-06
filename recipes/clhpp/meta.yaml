@@ -1,0 +1,82 @@
+{% set name = "clhpp" %}
+{% set version = "2.0.10" %}
+{% set sha256 = "fa27456295c3fa534ce824eb0314190a8b3ebd3ba4d93a0b1270fc65bf378f2b" %}
+
+{% set OSX_VARIANT = os.environ.get("OSX_VARIANT", "native") %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: {{ name }}-{{ version }}.tar.gz
+  url: https://github.com/KhronosGroup/OpenCL-CLHPP/archive/v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  script_env:
+    - OSX_VARIANT
+
+{% if OSX_VARIANT != "native" %}
+  skip: True  # [not (osx and py36)]
+{% else %}
+  skip: True  # [unix and not py36]
+  skip: True  # [win and py<36]
+{% endif %}
+
+  features:
+{% if OSX_VARIANT == "pocl" %}
+    - osx_pocl_opencl            # [osx]
+{% endif %}
+    - vc14                       # [win and py36]
+
+  always_include_files:
+    - include/CL/cl.hpp
+    - include/CL/cl2.hpp
+
+requirements:
+  build:
+    - toolchain
+    - python
+    - cmake
+    - ocl-icd                    # [linux]
+    - khronos-opencl-icd-loader  # [win]
+{% if OSX_VARIANT == "pocl" %}
+    - osx-pocl-opencl            # [osx]
+    - pocl >=0.14                # [unix]
+{% endif %}
+
+  run:
+    - khronos-opencl-icd-loader  # [win]
+    - ocl-icd                    # [linux]
+{% if OSX_VARIANT == "pocl" %}
+    - osx-pocl-opencl            # [osx]
+    - pocl >=0.14                # [unix]
+{% endif %}
+
+test:
+  requires:
+    - python {{ environ['PY_VER'] + '*' }}              # [win]
+
+  commands:
+    - test -d "${PREFIX}/include/CL"                    # [unix]
+    - test -f "${PREFIX}/include/CL/cl.hpp"             # [unix]
+    - test -f "${PREFIX}/include/CL/cl2.hpp"            # [unix]
+    - if not exist %LIBRARY_INC%\\CL exit 1             # [win]
+    - if not exist %LIBRARY_INC%\\CL\\cl.hpp exit 1     # [win]
+    - if not exist %LIBRARY_INC%\\CL\\cl2.hpp exit 1    # [win]
+
+about:
+  home: https://github.com/KhronosGroup/OpenCL-CLHPP
+  license: MIT-like
+  license_file: LICENSE.txt
+  summary: OpenCL Host API C++ bindings
+
+  dev_url: https://github.com/KhronosGroup/OpenCL-CLHPP
+  doc_url: http://github.khronos.org/OpenCL-CLHPP
+
+extra:
+  recipe-maintainers:
+    - inducer
+    - jakirkham
