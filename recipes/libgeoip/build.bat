@@ -1,5 +1,4 @@
-mkdir build
-cd build
+GEOIPDATADIR=$PREFIX
 
 nmake /f Makefile.vc
 nmake /f Makefile.vc test
