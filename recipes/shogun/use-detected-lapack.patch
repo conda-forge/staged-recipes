@@ -1,0 +1,285 @@
+From d74b2cc7e942d544200a748a2fbc006e36a69002 Mon Sep 17 00:00:00 2001
+From: Viktor Gal <viktor.gal@maeth.com>
+Date: Sat, 8 Jul 2017 10:45:10 +0800
+Subject: [PATCH] Use detected LaPack Dont override the detected lapack library
+ with atlas if atlas is available; attempt to fix #3910 update bundled eigen
+ version to 3.3.4 introduce ENABLE_EIGEN_LAPACK cmake flag that enables eigen
+ to use MKL or the detected Lapack library if available. make sure that eigen
+ is included via our internal shogun/mathematics/eigen3.h wrapper
+
+---
+ cmake/FindCBLAS.cmake                             | 42 ------------
+ cmake/external/Eigen3.cmake                       |  4 +-
+ src/shogun/CMakeLists.txt                         | 78 +++++++++++++----------
+ src/shogun/distance/CustomMahalanobisDistance.cpp |  3 +-
+ src/shogun/lib/config.h.in                        |  7 ++
+ src/shogun/mathematics/eigen3.h                   | 46 +------------
+ src/shogun/metric/LMNNImpl.h                      |  2 +-
+ 7 files changed, 56 insertions(+), 126 deletions(-)
+ delete mode 100644 cmake/FindCBLAS.cmake
+
+diff --git a/cmake/FindCBLAS.cmake b/cmake/FindCBLAS.cmake
+deleted file mode 100644
+index 554d086d1..000000000
+--- a/cmake/FindCBLAS.cmake
++++ /dev/null
+@@ -1,42 +0,0 @@
+-# - Find CBLAS
+-# Find the native CBLAS headers and libraries.
+-#
+-#  CBLAS_LIBRARIES    - List of libraries when using cblas.
+-#  CBLAS_FOUND        - True if cblas found.
+-#
+-# Copyright 2009-2011 The VOTCA Development Team (http://www.votca.org)
+-#
+-# Licensed under the Apache License, Version 2.0 (the "License");
+-# you may not use this file except in compliance with the License.
+-# You may obtain a copy of the License at
+-#
+-#     http://www.apache.org/licenses/LICENSE-2.0
+-#
+-# Unless required by applicable law or agreed to in writing, software
+-# distributed under the License is distributed on an "AS IS" BASIS,
+-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-# See the License for the specific language governing permissions and
+-# limitations under the License.
+-#
+-
+-find_file(CBLAS_LIBRARY NAMES libcblas.so.3 libcblas.so.3gf
+-	PATHS /usr/lib /usr/local/lib /opt/local/lib)
+-find_library(CBLAS_LIBRARY NAMES cblas gslcblas HINTS $ENV{CBLASDIR}/lib $ENV{CBLASDIR}/lib64 )
+-
+-set(CBLAS_LIBRARIES ${CBLAS_LIBRARY} )
+-
+-include(FindPackageHandleStandardArgs)
+-# handle the QUIETLY and REQUIRED arguments and set FFTW3_FOUND to TRUE
+-# if all listed variables are TRUE
+-
+-find_package_handle_standard_args(CBLAS DEFAULT_MSG CBLAS_LIBRARY )
+-
+-if (CBLAS_FOUND)
+-  include(CheckLibraryExists)
+-  check_library_exists("${CBLAS_LIBRARY}" cblas_dsyrk "" FOUND_DSYRK)
+-  if(NOT FOUND_DSYRK)
+-    message(FATAL_ERROR "Could not find cblas_dsyrk in ${CBLAS_LIBRARY}, take a look at the error message in ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeError.log to find out what was going wrong. If you don't have pkg-config installed you will most likely have to set CBLAS_LIBRARY by hand (i.e. -DCBLAS_LIBRARY='/path/to/libcblas.so') !")
+-  endif(NOT FOUND_DSYRK)
+-endif (CBLAS_FOUND)
+-
+-mark_as_advanced( CBLAS_LIBRARY )
+diff --git a/cmake/external/Eigen3.cmake b/cmake/external/Eigen3.cmake
+index fb9b698ab..6d0c1e6d0 100644
+--- a/cmake/external/Eigen3.cmake
++++ b/cmake/external/Eigen3.cmake
+@@ -6,8 +6,8 @@ ExternalProject_Add(
+ 	Eigen3
+ 	PREFIX ${CMAKE_BINARY_DIR}/Eigen3
+ 	DOWNLOAD_DIR ${THIRD_PARTY_DIR}/Eigen3
+-	URL https://bitbucket.org/eigen/eigen/get/3.2.8.tar.bz2
+-	URL_MD5 9e3bfaaab3db18253cfd87ea697b3ab1
++	URL https://bitbucket.org/eigen/eigen/get/3.3.4.tar.bz2
++	URL_MD5 a7aab9f758249b86c93221ad417fbe18
+ 	CMAKE_ARGS -DEIGEN_INCLUDE_INSTALL_DIR:PATH=${EIGEN_INCLUDE_DIR}
+ 		-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS}${CMAKE_DEFINITIONS}
+ 		-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}${CMAKE_DEFINITIONS}
+diff --git a/src/shogun/CMakeLists.txt b/src/shogun/CMakeLists.txt
+index 2faccb266..8fae2291a 100644
+--- a/src/shogun/CMakeLists.txt
++++ b/src/shogun/CMakeLists.txt
+@@ -275,48 +275,58 @@ SET_LINALG_BACKEND(LINALG_EIGENSOLVER_LIB EIGSLV)
+ 
+ ####### /LINALG
+ 
+-# prefer original LAPACK, if needed
+-OPTION(USE_ORIGINAL_LAPACK "Original LAPACK" OFF)
++#### LAPACK
++
++# Enable Eigen to use Lapack backend
++OPTION(ENABLE_EIGEN_LAPACK "Enable Eigen to use detected BLAS and LAPACK backend" OFF)
+ FIND_PACKAGE(LAPACK)
+ IF (LAPACK_FOUND)
+-  # find out whether it is Accelerate.framework we found for LaPack/BLAS
++  SET(HAVE_LAPACK 1)
++  SHOGUN_LINK_LIBS(${LAPACK_LIBRARIES})
++
++  # find out the type of Lapack/BLAS implementation we are dealing with
+   IF("${LAPACK_LIBRARIES}" MATCHES ".*/Accelerate.framework$")
++    # Accelerate.framework we found for LaPack/BLAS
+     SET(HAVE_MVEC 1)
+     SET(HAVE_CATLAS 1)
+-    SET(HAVE_LAPACK 1)
+-    SHOGUN_LINK_LIBS(${LAPACK_LIBRARIES})
++
++    if (ENABLE_EIGEN_LAPACK)
++      find_library(LAPACKE_LIBRARY
++        NAMES lapacke
++        PATHS /usr/lib /usr/local/lib $ENV{LAPACKE_PATH}/)
++      if (LAPACKE_LIBRARY)
++        SHOGUN_LINK_LIBS(${LAPACKE_LIBRARY})
++      else()
++        SET(ENABLE_EIGEN_LAPACK 0)
++      endif()
++    endif()
+   ELSEIF("${LAPACK_LIBRARIES}" MATCHES ".*/mkl_.*")
+-    SET(HAVE_LAPACK 1)
++    # in case MKL is available enable Eigen to use it.
++    # for more fine grained control and details see:
++    # https://eigen.tuxfamily.org/dox/TopicUsingIntelMKL.html
++    # this is supported since Eigen version 3.1 and later
+     SET(HAVE_MKL 1)
+-    SHOGUN_LINK_LIBS(${LAPACK_LIBRARIES})
++    IF (ENABLE_EIGEN_LAPACK)
++      SET(EIGEN_USE_MKL_ALL 1)
++    ENDIF()
+   ELSE()
+-    FIND_PACKAGE(Atlas)
+-    IF(Atlas_FOUND)
+-      SET(HAVE_ATLAS 1)
+-      SET(HAVE_LAPACK 1)
+-      SHOGUN_INCLUDE_DIRS(SCOPE PUBLIC ${Atlas_INCLUDE_DIRS})
+-      IF(USE_ORIGINAL_LAPACK)
+-        SET(ATLAS_CLAPACK_LIBRARY)
+-        FOREACH(ITR ${Atlas_LIBRARIES})
+-          IF(ITR MATCHES ".*atlas.*lapack.*" OR ITR MATCHES ".*lapack.*atlas.*")
+-            STRING(REGEX REPLACE "lapack" "clapack" ITR ${ITR})
+-            LIST(APPEND ATLAS_CLAPACK_LIBRARY ${ITR})
+-          ENDIF(ITR MATCHES ".*atlas.*lapack.*" OR ITR MATCHES ".*lapack.*atlas.*")
+-        ENDFOREACH(ITR ${ATLAS_LIBRARIES})
+-        MESSAGE(STATUS "using ATLAS-CLAPACK from: ${ATLAS_CLAPACK_LIBRARY}")
+-        SHOGUN_LINK_LIBS(${LAPACK_LIBRARIES} ${ATLAS_CLAPACK_LIBRARY} ${Atlas_LIBRARIES})
+-      ELSE(USE_ORIGINAL_LAPACK)
+-        SHOGUN_LINK_LIBS(${LAPACK_LIBRARIES} ${Atlas_LIBRARIES})
+-      ENDIF(USE_ORIGINAL_LAPACK)
+-    ELSE()
+-      FIND_PACKAGE(CBLAS)
+-      if(CBLAS_LIBRARY)
+-        SET(HAVE_LAPACK 1)
+-        SHOGUN_LINK_LIBS(${LAPACK_LIBRARIES} ${CBLAS_LIBRARY})
+-      else()
+-        SET(HAVE_LAPACK 1)
+-        SHOGUN_LINK_LIBS(${LAPACK_LIBRARIES})
+-        endif()
++    IF("${LAPACK_LIBRARIES}" MATCHES ".*/.*atlas.*")
++      FIND_PACKAGE(Atlas)
++      IF(Atlas_FOUND)
++        SET(HAVE_ATLAS 1)
++        SHOGUN_INCLUDE_DIRS(SCOPE PUBLIC ${Atlas_INCLUDE_DIRS})
++      ELSE()
++        MESSAGE(FATAL_ERROR "It appears that LaPack implemenation of Atlas is being used, but cannot find it!")
++      ENDIF()
++    ENDIF()
++  ENDIF()
++
++  IF (ENABLE_EIGEN_LAPACK)
++    # if LaPack is detected and Eigen is 3.3 or later
++    # use the lapack/blas backend in Eigen
++    IF(${EIGEN_VERSION} VERSION_GREATER 3.3.0)
++      SET(EIGEN_USE_BLAS 1)
++      SET(EIGEN_USE_LAPACKE_STRICT 1)
+     ENDIF()
+   ENDIF()
+ ENDIF()
+diff --git a/src/shogun/distance/CustomMahalanobisDistance.cpp b/src/shogun/distance/CustomMahalanobisDistance.cpp
+index c4f8f84cc..734353390 100644
+--- a/src/shogun/distance/CustomMahalanobisDistance.cpp
++++ b/src/shogun/distance/CustomMahalanobisDistance.cpp
+@@ -10,8 +10,7 @@
+ 
+ #include <shogun/distance/CustomMahalanobisDistance.h>
+ 
+-
+-#include <Eigen/Dense>
++#include <shogun/mathematics/eigen3.h>
+ 
+ using namespace shogun;
+ using namespace Eigen;
+diff --git a/src/shogun/lib/config.h.in b/src/shogun/lib/config.h.in
+index e9c85dead..5ce6547b7 100644
+--- a/src/shogun/lib/config.h.in
++++ b/src/shogun/lib/config.h.in
+@@ -41,6 +41,13 @@
+ /* Tells ViennaCL to use OpenCL as computation backend */
+ #cmakedefine VIENNACL_WITH_OPENCL 1
+ 
++/* Eigen Lapack optimization flags */
++#cmakedefine EIGEN_USE_BLAS 1
++#cmakedefine EIGEN_USE_LAPACKE 1
++#cmakedefine EIGEN_USE_LAPACKE_STRICT 1
++#cmakedefine EIGEN_USE_MKL_VML 1
++#cmakedefine EIGEN_USE_MKL_ALL 1
++
+ /* for linear algebra global backend setups */
+ #cmakedefine USE_EIGEN3_GLOBAL 1
+ #cmakedefine USE_VIENNACL_GLOBAL 1
+diff --git a/src/shogun/mathematics/eigen3.h b/src/shogun/mathematics/eigen3.h
+index d68b71247..204d420eb 100644
+--- a/src/shogun/mathematics/eigen3.h
++++ b/src/shogun/mathematics/eigen3.h
+@@ -15,51 +15,7 @@
+ 	//#define EIGEN_RUNTIME_NO_MALLOC
+ 	#include <Eigen/Eigen>
+ 	#include <Eigen/Dense>
+-	#if EIGEN_VERSION_AT_LEAST(3,0,93)
+-		#include <Eigen/Sparse>
+-	#else
+-		#define EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET
+-		#include <unsupported/Eigen/SparseExtra>
+-
+-		#ifndef DOXYGEN_SHOULD_SKIP_THIS
+-		// Triplet definition for Eigen3 backword compatibility
+-		namespace Eigen {
+-		template <typename T> struct Triplet
+-		{
+-			Triplet(index_t colIndex, index_t rowIndex, T valueT) :
+-			ecol(colIndex), erow(rowIndex), evalue(valueT)
+-			{
+-			}
+-			index_t col() const { return ecol; };
+-			index_t row() const { return erow; };
+-			T value() const { return evalue; };
+-			index_t ecol;
+-			index_t erow;
+-			T evalue;
+-		};
+-
+-		// SimplicialLLT definition for Eigen3 backword compatibility
+-		template <typename T> class SimplicialLLT
+-		: public SimplicialCholesky<T,Lower>
+-		{
+-		public:
+-			SimplicialLLT()
+-			{
+-				SimplicialCholesky<T>::setMode(SimplicialCholeskyLLt);
+-			}
+-			inline const T matrixL()
+-			{
+-				return SimplicialCholesky<T>::m_matrix;
+-			}
+-			inline const T matrixU()
+-			{
+-				return SimplicialCholesky<T>::m_matrix.transpose();
+-			}
+-		};
+-		}
+-		#endif //DOXYGEN_SHOULD_SKIP_THIS
+-
+-	#endif	//EIGEN_VERSION_AT_LEAST(3,0,93)
++	#include <Eigen/Sparse>
+ 
+ #if ((EIGEN_WORLD_VERSION == 3) && (EIGEN_MAJOR_VERSION == 2) && \
+ 	((EIGEN_MINOR_VERSION == 91) || (EIGEN_MINOR_VERSION == 92)))
+diff --git a/src/shogun/metric/LMNNImpl.h b/src/shogun/metric/LMNNImpl.h
+index 3f449b708..de96467ea 100644
+--- a/src/shogun/metric/LMNNImpl.h
++++ b/src/shogun/metric/LMNNImpl.h
+@@ -19,7 +19,7 @@
+ #include <shogun/features/DenseFeatures.h>
+ #include <shogun/labels/MulticlassLabels.h>
+ #include <shogun/distance/EuclideanDistance.h>
+-#include <Eigen/Dense>
++#include <shogun/mathematics/eigen3.h>
+ 
+ #include <set>
+ #include <vector>
+-- 
+2.13.2
+
