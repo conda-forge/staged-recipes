@@ -156,5 +156,5 @@ COMMAND="cmake .. \
 echo $COMMAND
 eval ${COMMAND}
 
-make -j 2
+make -j8
 make install
