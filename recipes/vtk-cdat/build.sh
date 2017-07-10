@@ -32,11 +32,11 @@ elif [ ${OSNAME} == Darwin ]; then
     PY_LIB="libpython${PY_VER}.dylib"
 fi
 
-COMMON_ARGS="-DCMAKE_C_COMPILER=$CC \
+COMMON_ARGS="-G Ninja -DCMAKE_C_COMPILER=$CC \
         -DCMAKE_CXX_COMPILER=$CXX \
         -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX=\"${PREFIX}\" \
-        -DCMAKE_INSTALL_RPATH:STRING=\"${PREFIX}/lib\" \
+        -DCMAKE_INSTALL_PREFIX:PATH=\"${PREFIX}\" \
+        -DCMAKE_INSTALL_RPATH:PATH=\"${PREFIX}/lib\" \
         -DBUILD_DOCUMENTATION=OFF \
         -DBUILD_TESTING:BOOL=OFF \
         -DVTK_HAS_FEENABLEEXCEPT=OFF \
@@ -58,7 +58,7 @@ COMMON_ARGS="-DCMAKE_C_COMPILER=$CC \
         -DModule_vtkFiltersImaging:BOOL=ON \
         -DModule_vtkFiltersModeling:BOOL=ON \
         -DModule_vtkFiltersSelection:BOOL=ON \
-        -DModule_vtkFiltersSMP:BOOL=ON \
+        -DModule_vtkFiltersSMP:BOOL=OFF \
         -DModule_vtkFiltersSources:BOOL=ON \
         -DModule_vtkFiltersStatistics:BOOL=ON \
         -DModule_vtkFiltersTexture:BOOL=ON \
@@ -101,10 +101,15 @@ COMMON_ARGS="-DCMAKE_C_COMPILER=$CC \
         -DVTK_RENDERING_BACKEND=OpenGL \
         -DVTK_USE_SYSTEM_ZLIB:BOOL=ON \
         -DVTK_USE_SYSTEM_LIBXML2:BOOL=ON \
+		-DVTK_USE_SYSTEM_EXPAT:BOOL=ON \
+		-DVTK_USE_SYSTEM_JSONCPP:BOOL=ON \
         -DVTK_USE_SYSTEM_HDF5:BOOL=ON \
         -DVTK_USE_SYSTEM_NETCDF:BOOL=ON \
-        -DVTK_USE_SYSTEM_FREETYPE:BOOL=OFF \
+        -DVTK_USE_SYSTEM_FREETYPE:BOOL=ON \
         -DVTK_USE_SYSTEM_LIBPROJ4:BOOL=ON \
+		-DVTK_USE_SYSTEM_PNG:BOOL=ON \
+		-DVTK_USE_SYSTEM_JPEG:BOOL=ON \
+		-DVTK_USE_SYSTEM_TIFF:BOOL=ON \
         -DVTK_Group_Rendering:BOOL=ON \
         -DVTK_Group_StandAlone:BOOL=OFF \
         -DVTK_LEGACY_SILENT:BOOL=ON"
@@ -156,5 +161,4 @@ COMMAND="cmake .. \
 echo $COMMAND
 eval ${COMMAND}
 
-make -j8
-make install
+ninja install
