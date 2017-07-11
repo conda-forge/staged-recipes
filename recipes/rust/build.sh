@@ -1,3 +1,5 @@
 #!/bin/bash -e
 
-./install.sh --prefix=$PREFIX
+./configure --prefix=$PREFIX --llvm-root=$PREFIX/lib/
+make
+make install
