@@ -1,5 +1,5 @@
 #!/bin/bash -e
 
-./configure --prefix=$PREFIX --llvm-root=$PREFIX/lib/
+./configure --prefix=$PREFIX --llvm-root=$PREFIX
 make
 make install
