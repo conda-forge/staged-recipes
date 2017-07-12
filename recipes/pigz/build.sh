@@ -14,4 +14,9 @@ export TARGET_ARCH=
 make -j$CPU_COUNT LDFLAGS="$LDFLAGS" CFLAGS="$CFLAGS"
 make test
 
-cp pigz unpigz $PREFIX/bin
+# Use different variable to get "binprefix" on win:
+if [ -n "$LIBRARY_BIN" ]; then
+    cp pigz unpigz $LIBRARY_BIN
+else
+    cp pigz unpigz $PREFIX/bin
+fi
