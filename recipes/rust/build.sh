@@ -17,6 +17,6 @@ fi
 curl $CARGO_STAGE0 | tar xf cargo-0.16.0-x86_64-unknown-linux-gnu.tar.gz */cargo/bin/cargo --strip=2
 
 cd cargo
-./configure --prefix=$PREFIX --cargo=/bin/cargo --rustc=$PREFIX/bin/rustc --rustdoc=$PREFIX/bin/rustdoc
+./configure --prefix=$PREFIX --cargo=../bin/cargo --rustc=$PREFIX/bin/rustc --rustdoc=$PREFIX/bin/rustdoc
 make
 make install
