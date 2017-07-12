@@ -1,5 +1,7 @@
 #!/bin/bash
 
+env
+
 # Adopt a Unix-friendly path if we're on Windows (see bld.bat).
 [ -n "$PATH_OVERRIDE" ] && export PATH="$PATH_OVERRIDE"
 
