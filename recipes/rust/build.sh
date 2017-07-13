@@ -11,6 +11,6 @@ make install
 
 cd cargo
 # use stage0 from rustc build
-STAGE0=../build/*/stage0/bin
+STAGE0=$(echo ../build/*/stage0/bin)
 
 PATH=$STAGE0:$PATH cargo install --root $PREFIX
