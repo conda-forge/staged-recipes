@@ -1,0 +1,58 @@
+diff --git a/tools/osx/xcode_locator.m b/tools/osx/xcode_locator.m
+index 20f72df..4a3919a 100755
+--- a/tools/osx/xcode_locator.m
++++ b/tools/osx/xcode_locator.m
+@@ -130,32 +130,29 @@ int main(int argc, const char * argv[]) {
+     }
+ 
+     NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
+-    CFErrorRef cfError;
+-    NSArray *array = CFBridgingRelease(LSCopyApplicationURLsForBundleIdentifier(
+-        CFSTR("com.apple.dt.Xcode"), &cfError));
+-    if (array == nil) {
+-      NSError *nsError = (__bridge NSError *)cfError;
+-      printf("error: %s\n", nsError.description.UTF8String);
+-      return 1;
++    CFURLRef t_url = NULL;
++    int rc = LSFindApplicationForInfo(kLSUnknownCreator, CFSTR("com.apple.dt.Xcode"), nil, nil, &t_url);
++    if (rc == kLSApplicationNotFoundErr) {
++	    printf("error: %d\n", rc);
++	    return 1;
+     }
+-    for (NSURL *url in array) {
+-      NSBundle *bundle = [NSBundle bundleWithURL:url];
+-      if (!bundle) {
+-        printf("error: Unable to open bundle at URL: %s\n", url.description.UTF8String);
+-        return 1;
+-      }
+-      NSString *version = bundle.infoDictionary[@"CFBundleShortVersionString"];
+-      if (!version) {
+-        printf("error: Unable to extract CFBundleShortVersionString from URL: %s\n",
+-               url.description.UTF8String);
+-        return 1;
+-      }
+-      version = ExpandVersion(version);
+-      NSURL *developerDir = [url URLByAppendingPathComponent:@"Contents/Developer"];
+-      XcodeVersionEntry *entry =
+-          [[XcodeVersionEntry alloc] initWithVersion:version url:developerDir];
+-      AddEntryToDictionary(entry, dict);
++    NSURL *url = (__bridge NSURL *)t_url;
++    NSBundle *bundle = [NSBundle bundleWithURL:url];
++    if (!bundle) {
++	    printf("error: Unable to open bundle at URL: %s\n", url.description.UTF8String);
++	    return 1;
++    }
++    NSString *version = bundle.infoDictionary[@"CFBundleShortVersionString"];
++    if (!version) {
++	    printf("error: Unable to extract CFBundleShortVersionString from URL: %s\n",
++			    url.description.UTF8String);
++	    return 1;
+     }
++    version = ExpandVersion(version);
++    NSURL *developerDir = [url URLByAppendingPathComponent:@"Contents/Developer"];
++    XcodeVersionEntry *t_entry =
++	    [[XcodeVersionEntry alloc] initWithVersion:version url:developerDir];
++    AddEntryToDictionary(t_entry, dict);
+ 
+     XcodeVersionEntry *entry = [dict objectForKey:versionArg];
+     if (entry) {

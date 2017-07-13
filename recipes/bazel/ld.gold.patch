@@ -1,0 +1,36 @@
+From 0e3757164a2f67414ac0ce7b3d84125ad6c01564 Mon Sep 17 00:00:00 2001
+From: Marcel Hlopko <hlopko@google.com>
+Date: Wed, 8 Mar 2017 11:17:10 +0000
+Subject: [PATCH] Make gold autodetection more robust on macos
+
+Some macos clang versions don't fail when setting -fuse-ld=gold, which makes
+cc_configure.bzl think gold linker is available, when it is actually not.
+
+The sideeffect of this cl is that we will not autodetect gold when only a very
+old (year 2010 and older) is present. I assume this is fine.
+
+Fixes #2502
+
+--
+PiperOrigin-RevId: 149521872
+MOS_MIGRATED_REVID=149521872
+---
+ tools/cpp/cc_configure.bzl | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/tools/cpp/cc_configure.bzl b/tools/cpp/cc_configure.bzl
+index 9437bea7fd..99ae959582 100644
+--- a/tools/cpp/cc_configure.bzl
++++ b/tools/cpp/cc_configure.bzl
+@@ -199,6 +199,11 @@ def _is_gold_supported(repository_ctx, cc):
+       "-fuse-ld=gold",
+       "-o",
+       "/dev/null",
++      # Some macos clang versions don't fail when setting -fuse-ld=gold, adding
++      # these lines to force it to. This also means that we will not detect
++      # gold when only a very old (year 2010 and older) is present.
++      "-Wl,--start-lib",
++      "-Wl,--end-lib",
+       str(repository_ctx.path("tools/cpp/empty.cc"))
+   ])
+   return result.return_code == 0
