@@ -1,0 +1,58 @@
+{% set name = "openmp" %}
+{% set version = "4.0.0" %}
+{% set sha256 = "db55d85a7bb289804dc42fc5c8e35ca24dfc3885782261b675a194fd7e206e26" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: {{ name }}-{{ version }}.tar.gz
+  url: http://releases.llvm.org/{{ version }}/openmp-{{ version }}.src.tar.xz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  features:
+    - vc9   # [win and py27]
+    - vc14  # [win and py35]
+    - vc14  # [win and py36]
+  skip: true  # [win and py35]
+
+requirements:
+  build:
+    - toolchain
+    - llvmdev =={{ version }}
+    - cmake
+    - perl  ==5.22.2.1
+    - python  # [win]
+  run:
+    - clangdev =={{ version }}
+
+test:
+  requires:
+    - python {{ environ['PY_VER'] + '*' }}  # [win]
+  commands:
+    - if not exist %LIBRARY_BIN%\\libomp.dll exit 1   # [win]
+    - test -f $PREFIX/lib/libomp.so                   # [linux]
+    - test -f $PREFIX/lib/libomp.dylib                # [osx]
+    - if not exist %LIBRARY_LIB%\\libomp.lib exit 1   # [win]
+    - if not exist %LIBRARY_INC%\\omp.h exit 1        # [win]
+    - test -f $PREFIX/include/omp.h                   # [unix]
+    - $PREFIX/bin/clang -v -fopenmp -L$PREFIX/lib -Wl,-rpath,$PREFIX/lib omp_hello.c -o omp_hello  # [not win]
+    - "%LIBRARY_BIN%\\clang -v -fopenmp -L%LIBRARY_PREFIX%\\lib omp_hello.c -o omp_hello.exe"  # [win]
+    - ./omp_hello            # [unix]
+    - "%cd%\\omp_hello.exe"  # [win]
+  files:
+    - omp_hello.c
+
+about:
+  home: http://openmp.llvm.org/
+  license: NCSA
+  license_file: LICENSE.txt
+  summary: The OpenMP API supports multi-platform shared-memory parallel programming in C/C++ and Fortran.
+
+extra:
+  recipe-maintainers:
+    - inducer
+    - yesimon
