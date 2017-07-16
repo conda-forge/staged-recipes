@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DATADIR="$PREFIX/share/gcw-gmt"
+DATADIR="$PREFIX/share/dcw-gmt"
 mkdir -p $DATADIR
 
 cp $SRC_DIR/*.txt $DATADIR

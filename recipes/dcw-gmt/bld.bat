@@ -1,4 +1,4 @@
-set DATADIR="%LIBRARY_PREFIX%\share\dcw"
+set DATADIR="%LIBRARY_PREFIX%\share\dcw-gmt"
 
 if not exist %DATADIR% mkdir %DATADIR%
 
