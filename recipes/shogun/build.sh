@@ -25,7 +25,7 @@ cmake .. \
     -DLIBSHOGUN=OFF \
     -DPYTHON_INCLUDE_DIR=$pyinc \
     -DPYTHON_LIBRARY=$pylib \
-    -DPYTHON_EXECUTABLE=$PYTHON
+    -DPYTHON_EXECUTABLE=$PYTHON \
     -DPythonModular=ON
 
 make install
