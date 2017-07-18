@@ -11,6 +11,7 @@ cmake .. \
     -DBUILD_META_EXAMPLES=OFF \
     -DENABLE_TESTING=OFF \
     -DENABLE_COVERAGE=OFF \
+    -DUSE_SVMLIGHT=OFF \
     -DSWIG_EXECUTABLE=$PREFIX/bin/swig \
     -DLIBSHOGUN=OFF \
     -DPythonModular=ON
