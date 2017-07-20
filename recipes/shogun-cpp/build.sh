@@ -15,4 +15,5 @@ cmake .. \
     -DENABLE_TESTING=OFF \
     -DENABLE_COVERAGE=OFF
 
+make -j $CPU_COUNT
 make install -j $CPU_COUNT

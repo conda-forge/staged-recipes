@@ -27,5 +27,5 @@ cmake .. \
     -DPYTHON_LIBRARY=$pylib \
     -DPYTHON_EXECUTABLE=$PYTHON \
     -DPythonModular=ON
-
-make install
+make -j $CPU_COUNT
+make install -j $CPU_COUNT
