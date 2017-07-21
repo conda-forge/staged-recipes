@@ -2,7 +2,7 @@
 
 copy "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include\stdint.h" "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\include"
 
-"%PYTHON%" setup.py install --offline
+"%PYTHON%" setup.py install --offline  --single-version-externally-managed --record=rec.txt
 if errorlevel 1 exit 1
 
 :: Add more build steps here, if they are necessary.

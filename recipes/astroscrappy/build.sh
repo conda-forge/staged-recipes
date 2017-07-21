@@ -1,6 +1,6 @@
 #!/bin/bash
 
-$PYTHON setup.py install --offline
+$PYTHON setup.py install --offline --single-version-externally-managed --record=rec.txt
 
 # Add more build steps here, if they are necessary.
 
