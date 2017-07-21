@@ -31,6 +31,9 @@ if [ "$(uname)" == "Linux" ]; then
     TLIBC=/theoryfs2/ds/cdsgroup/psi4-compile/nightly/glibc2.12
     LIBC_INTERJECT="${TLIBC}/lib64/libc.so.6"
 
+    # build multi-instruction-set library
+    OPTS="-msse2 -axCORE-AVX2,AVX"
+
     # configure
     ${PREFIX}/bin/cmake \
         -H${SRC_DIR} \
@@ -38,6 +41,7 @@ if [ "$(uname)" == "Linux" ]; then
         -DCMAKE_INSTALL_PREFIX=${PREFIX} \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_C_COMPILER=icc \
+        -DCMAKE_C_FLAGS="${OPTS}" \
         -DCMAKE_INSTALL_LIBDIR=lib \
         -DNAMESPACE_INSTALL_INCLUDEDIR="/libxc" \
         -DBUILD_SHARED_LIBS=ON \
