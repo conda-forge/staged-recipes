@@ -1,0 +1,63 @@
+{% set name = "ctds" %}
+{% set version = "1.3.1" %}
+{% set sha256 = "f94e36e277ba81aeb02c2266289eb4d576e727d37810fa534eb3b6f424b18a96" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: {{ name }}-{{ version }}.tar.gz
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  features:
+    - vc9   # [win and py27]
+    - vc10  # [win and py34]
+    - vc14  # [win and py >= 35]
+  script:
+    - python setup.py build_ext --include-dirs=%PREFIX%\include --library-dirs=%PREFIX%\lib  # [win]
+    - python setup.py build_ext --include-dirs=$PREFIX/include --library-dirs=$PREFIX/lib    # [not win]
+    - python setup.py install --single-version-externally-managed --record record.txt
+  # Due to this requiring stdbool.h and windows C compilers not having C99 Headers
+  # disable for now
+  skip: true  # [win]
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - freetds
+    - toolchain  # [osx or win]
+    - vc   9  # [win and py27]
+    - vc  10  # [win and py34]
+    - vc  14  # [win and py >= 35]
+  run:
+    - python
+    - freetds
+    # package uses pkg_resources
+    - setuptools
+    - vc   9  # [win and py27]
+    - vc  10  # [win and py34]
+    - vc  14  # [win and py >= 35]
+
+test:
+  imports:
+    - ctds
+    - ctds.pool
+
+  commands:
+    - conda inspect linkages ctds  # [linux or osx]
+    - conda inspect objects   # [osx]
+
+about:
+  home: https://github.com/zillow/ctds
+  license: MIT
+  summary: 'DB API 2.0-compliant Linux driver for SQL Server'
+  license_family: MIT
+
+extra:
+  recipe-maintainers:
+    - mariusvniekerk
