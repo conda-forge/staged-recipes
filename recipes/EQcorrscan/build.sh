@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-export C_INCLUDE_PATH=$PREFIX/include  # required as fftw3.h installed here
-
+export C_INCLUDE_PATH=${PREFIX}/include:${C_INCLUDE_PATH}  # required as fftw3.h installed here
+export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
 # define STATIC_FFTW_DIR so the patched setup.py will statically link FFTW
 export STATIC_FFTW_DIR=$PREFIX/lib
 
