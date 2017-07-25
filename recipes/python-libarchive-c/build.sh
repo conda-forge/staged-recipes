@@ -1,4 +1,7 @@
 #!/bin/bash
+export DETERMINISTIC_BUILD=1
+export PYTHONHASHSEED=0
+
 python setup.py install --single-version-externally-managed --record record.txt
 
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
