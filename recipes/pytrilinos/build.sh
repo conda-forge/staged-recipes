@@ -44,6 +44,6 @@ cmake \
 
 make -j $CPU_COUNT
 
-ctest
+ctest --output-on-failure
 
 make install
