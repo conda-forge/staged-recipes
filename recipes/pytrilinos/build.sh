@@ -12,6 +12,7 @@ cmake \
   -D TPL_ENABLE_MPI:BOOL=ON \
   -D MPI_BASE_DIR:PATH=$PREFIX \
   -D MPI_EXEC:FILEPATH=$PREFIX/bin/mpiexec \
+  -D MPI_EXEC_PRE_NUMPROCS_FLAGS:STRING=--allow-run-as-root \
   -D PYTHON_EXECUTABLE:FILEPATH=$PYTHON \
   -D SWIG_EXECUTABLE:FILEPATH=$PREFIX/bin/swig \
   -D DOXYGEN_EXECUTABLE:FILEPATH=$PREFIX/bin/doxygen \
@@ -44,6 +45,6 @@ cmake \
 
 make -j $CPU_COUNT
 
-ctest --output-on-failure -VV -R --allow-run-as-root testTpetra_Map
+ctest --output-on-failure -VV -R testTpetra_Map
 
 make install
