@@ -44,6 +44,6 @@ cmake \
 
 make -j $CPU_COUNT
 
-ctest --output-on-failure -VV -R testTpetra_Map
+ctest --output-on-failure -VV -R --allow-run-as-root testTpetra_Map
 
 make install
