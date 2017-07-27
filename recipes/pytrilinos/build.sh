@@ -44,6 +44,6 @@ cmake \
 
 make -j $CPU_COUNT
 
-ctest --output-on-failure
+ctest --output-on-failure -VV -R testTpetra_Map
 
 make install
