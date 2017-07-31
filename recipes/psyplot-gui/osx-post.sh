@@ -27,8 +27,9 @@ elif [[ -e $HOME/Applications/Psyplot.app ]]; then
     fi
 fi
 # otherwise create a link
-ln -s -f $PREFIX/Psyplot.app /Applications/ >/dev/null 2>&1
-if (( $? )); then
+FAILED=0
+ln -s -f $PREFIX/Psyplot.app /Applications/ >/dev/null 2>&1 || FAILED=1
+if (( $FAILED )); then
     mkdir -p $HOME/Applications
     ln -s -f $PREFIX/Psyplot.app $HOME/Applications/ || exit 0
 fi
