@@ -6,7 +6,7 @@ BIN=$PREFIX/bin
 
 if [[ `uname` == Darwin ]]; then
     mv psyplot_gui/app/Psyplot.app $PREFIX/psyplotapp
-    sed -i "s/0.01/$PKG_VERSION/" $PREFIX/psyplotapp/Contents/Info.plist
+    sed -i '' "s/0.01/$PKG_VERSION/" $PREFIX/psyplotapp/Contents/Info.plist
 
     AE=$PREFIX/psyplotapp/Contents/MacOS/run.sh
 
