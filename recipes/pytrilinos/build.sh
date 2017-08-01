@@ -45,6 +45,7 @@ cmake \
 
 make -j $CPU_COUNT
 
-ctest --output-on-failure -VV -R testTpetra_Map
+#ctest --output-on-failure -VV -R testTpetra_Map
+$PYTHON packages/PyTrilinos/test/testTpetra_Map.py --testharness
 
 make install
