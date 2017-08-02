@@ -46,6 +46,154 @@ diff -Naur 12.10/packages/PyTrilinos/example/exMLAPI_Simple.py.in 12.12/packages
    return err
  
  if __name__ == "__main__":
+diff -Naur 12.10/packages/PyTrilinos/src/pyfragments.swg.in 12.12/packages/PyTrilinos/src/pyfragments.swg.in
+--- 12.10/packages/PyTrilinos/src/pyfragments.swg.in	2017-08-02 11:47:32.000000000 -0600
++++ 12.12/packages/PyTrilinos/src/pyfragments.swg.in	2017-08-02 11:47:55.000000000 -0600
+@@ -127,32 +127,47 @@
+   SWIG_AsVal_dec(long)(PyObject * obj, long * val)
+   {
+     static PyArray_Descr * longDescr = PyArray_DescrNewFromType(NPY_LONG);
+-    if (PyInt_Check(obj)) {
++%#if PY_VERSION_HEX < 0x03000000
++    if (PyInt_Check(obj))
++    {
+       if (val) *val = PyInt_AsLong(obj);
+       return SWIG_OK;
+-    } else if (PyLong_Check(obj)) {
++    } else
++%#endif
++    if (PyLong_Check(obj))
++    {
+       long v = PyLong_AsLong(obj);
+-      if (!PyErr_Occurred()) {
+-	if (val) *val = v;
+-	return SWIG_OK;
+-      } else {
+-	PyErr_Clear();
++      if (!PyErr_Occurred())
++      {
++        if (val) *val = v;
++        return SWIG_OK;
++      }
++      else
++      {
++        PyErr_Clear();
++        return SWIG_OverflowError;
+       }
+     }
+ %#ifdef SWIG_PYTHON_CAST_MODE
+     {
+       int dispatch = 0;
+       long v = PyInt_AsLong(obj);
+-      if (!PyErr_Occurred()) {
++      if (!PyErr_Occurred())
++      {
+ 	if (val) *val = v;
+ 	return SWIG_AddCast(SWIG_OK);
+-      } else {
++      }
++      else
++      {
+ 	PyErr_Clear();
+       }
+-      if (!dispatch) {
++      if (!dispatch)
++      {
+ 	double d;
+ 	int res = SWIG_AddCast(SWIG_AsVal(double)(obj,&d));
+-	if (SWIG_IsOK(res) && SWIG_CanCastAsInteger(&d, LONG_MIN, LONG_MAX)) {
++	if (SWIG_IsOK(res) &&
++            SWIG_CanCastAsInteger(&d, LONG_MIN, LONG_MAX))
++        {
+ 	  if (val) *val = (long)(d);
+ 	  return res;
+ 	}
+@@ -160,7 +175,7 @@
+     }
+ %#endif
+     if (!PyArray_IsScalar(obj,Integer)) return SWIG_TypeError;
+-    PyArray_CastScalarToCtype(obj, (void*)val, longDescr);
++    if (val) PyArray_CastScalarToCtype(obj, (void*)val, longDescr);
+     return SWIG_OK;
+   }
+ }
+@@ -179,37 +194,54 @@
+   SWIG_AsVal_dec(unsigned long)(PyObject *obj, unsigned long *val) 
+   {
+     static PyArray_Descr * ulongDescr = PyArray_DescrNewFromType(NPY_ULONG);
+-    if (PyInt_Check(obj)) {
++%#if PY_VERSION_HEX < 0x03000000
++    if (PyInt_Check(obj))
++    {
+       long v = PyInt_AsLong(obj);
+-      if (v >= 0) {
+-	if (val) *val = v;
+-	return SWIG_OK;
+-      } else {
+-	return SWIG_OverflowError;
++      if (v >= 0)
++      {
++        if (val) *val = v;
++        return SWIG_OK;
++      }
++      else
++      {
++        return SWIG_OverflowError;
+       }
+-    } else if (PyLong_Check(obj)) {
++    } else
++%#endif
++   if (PyLong_Check(obj))
++   {
+       unsigned long v = PyLong_AsUnsignedLong(obj);
+-      if (!PyErr_Occurred()) {
++      if (!PyErr_Occurred())
++      {
+ 	if (val) *val = v;
+ 	return SWIG_OK;
+-      } else {
++      }
++      else
++      {
+ 	PyErr_Clear();
++        return SWIG_OverflowError;
+       }
+     }
+ %#ifdef SWIG_PYTHON_CAST_MODE
+     {
+       int dispatch = 0;
+       unsigned long v = PyLong_AsUnsignedLong(obj);
+-      if (!PyErr_Occurred()) {
++      if (!PyErr_Occurred())
++      {
+ 	if (val) *val = v;
+ 	return SWIG_AddCast(SWIG_OK);
+-      } else {
++      }
++      else
++      {
+ 	PyErr_Clear();
+       }
+-      if (!dispatch) {
++      if (!dispatch)
++      {
+ 	double d;
+ 	int res = SWIG_AddCast(SWIG_AsVal(double)(obj,&d));
+-	if (SWIG_IsOK(res) && SWIG_CanCastAsInteger(&d, 0, ULONG_MAX)) {
++	if (SWIG_IsOK(res) && SWIG_CanCastAsInteger(&d, 0, ULONG_MAX))
++        {
+ 	  if (val) *val = (unsigned long)(d);
+ 	  return res;
+ 	}
+@@ -217,7 +249,7 @@
+     }
+ %#endif
+     if (!PyArray_IsScalar(obj,Integer)) return SWIG_TypeError;
+-    PyArray_CastScalarToCtype(obj, (void*)val, ulongDescr);
++    if (val) PyArray_CastScalarToCtype(obj, (void*)val, ulongDescr);
+     return SWIG_OK;
+   }
+ }
 diff -Naur 12.10/packages/PyTrilinos/src/scripts/CMakeLists.txt 12.12/packages/PyTrilinos/src/scripts/CMakeLists.txt
 --- 12.10/packages/PyTrilinos/src/scripts/CMakeLists.txt	2017-07-24 14:06:07.000000000 -0600
 +++ 12.12/packages/PyTrilinos/src/scripts/CMakeLists.txt	2017-07-24 14:04:12.000000000 -0600
