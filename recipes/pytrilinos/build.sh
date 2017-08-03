@@ -5,6 +5,11 @@ if [ $(uname) == Darwin ]; then
     export CXXFLAGS="-stdlib=libc++"
 fi
 
+export MPI_FLAGS=--allow-run-as-root
+if [ $(uname) == Linux ]; then
+    export MPI_FLAGS="$MPI_FLAGS -mca plm isolated"
+fi
+
 cmake \
   -D CMAKE_BUILD_TYPE:STRING=RELEASE \
   -D CMAKE_INSTALL_PREFIX:PATH=$PREFIX \
@@ -12,7 +17,7 @@ cmake \
   -D TPL_ENABLE_MPI:BOOL=ON \
   -D MPI_BASE_DIR:PATH=$PREFIX \
   -D MPI_EXEC:FILEPATH=$PREFIX/bin/mpiexec \
-  -D MPI_EXEC_PRE_NUMPROCS_FLAGS:STRING=--allow-run-as-root \
+  -D MPI_EXEC_PRE_NUMPROCS_FLAGS:STRING=$MPI_FLAGS \
   -D PYTHON_EXECUTABLE:FILEPATH=$PYTHON \
   -D SWIG_EXECUTABLE:FILEPATH=$PREFIX/bin/swig \
   -D DOXYGEN_EXECUTABLE:FILEPATH=$PREFIX/bin/doxygen \
