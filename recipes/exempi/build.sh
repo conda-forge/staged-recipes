@@ -7,7 +7,7 @@ if [ $(uname) == Darwin ]; then
 	export LDFLAGS="${LDFLAGS} -Wl,-rpath,$PREFIX/lib"
 	yesno="no"
 fi
-if [ $(uname)` == Linux ]; then
+if [ $(uname) == Linux ]; then
 	export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
 	yesno="yes"
 fi
