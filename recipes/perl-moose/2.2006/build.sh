@@ -1,7 +1,8 @@
 #!/bin/bash
 
 #cpanm --installdeps .
-cpanm --notest --installdeps . 2>&1 | grep 'Successfully installed'
+cpanm ExtUtils::MakeMaker Devel::PPPort
+cpanm  --installdeps .
 
 # If it has Build.PL use that, otherwise use Makefile.PL
 
