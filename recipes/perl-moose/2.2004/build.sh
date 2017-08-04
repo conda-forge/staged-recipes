@@ -1,6 +1,8 @@
 #!/bin/bash
 
 #cpanm --installdeps .
+which gcc
+
 cpanm ExtUtils::MakeMaker
 cpanm Moose@2.2004
 
