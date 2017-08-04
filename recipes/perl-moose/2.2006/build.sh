@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #cpanm --installdeps .
-cpanm ExtUtils::MakeMaker Devel::PPPort
+cpanm ExtUtils::MakeMaker
 cpanm  --installdeps .
 
 # If it has Build.PL use that, otherwise use Makefile.PL
