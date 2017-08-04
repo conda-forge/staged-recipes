@@ -1,6 +1,7 @@
 #!/bin/bash
 
 #cpanm --installdeps .
+perl -V
 which gcc
 
 cpanm ExtUtils::MakeMaker
