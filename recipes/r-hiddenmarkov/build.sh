@@ -4,6 +4,8 @@
 mv DESCRIPTION DESCRIPTION.old
 grep -v '^Priority: ' DESCRIPTION.old > DESCRIPTION
 
+export LDFLAGS="${LDFLAGS} -Wl,-rpath,$PREFIX/lib"
+
 $R CMD INSTALL --build .
 
 # Add more build steps here, if they are necessary.
