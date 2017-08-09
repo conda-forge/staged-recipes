@@ -7,7 +7,7 @@ fi
 
 export MPI_FLAGS=--allow-run-as-root
 if [ $(uname) == Linux ]; then
-    export MPI_FLAGS="$MPI_FLAGS -mca plm isolated"
+    export MPI_FLAGS="$MPI_FLAGS;-mca;plm;isolated"
 fi
 
 cmake \
