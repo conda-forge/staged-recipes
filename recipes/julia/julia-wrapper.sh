@@ -13,4 +13,12 @@ then
     export JULIA_PKGDIR
 fi
 
+# Set JULIA_HISTORY to $PREFIX/.julia_history to avoid saving
+# to user's $HOME
+if [ -z ${JULIA_HISTORY+x} ]
+then
+    JULIA_HISTORY="$(dirname "$JULIA_HOME")/.julia_history"
+    export JULIA_HISTORY
+fi
+
 exec "$JULIA_HOME/julia_" "$@"
