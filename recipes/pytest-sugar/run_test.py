@@ -4,3 +4,4 @@ settings.configure(INSTALLED_APPS=['pytest_sugar', 'django.contrib.contenttypes'
 django.setup() 
         
 import pytest_sugar
+import termcolor
