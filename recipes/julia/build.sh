@@ -10,6 +10,7 @@ make -j 2 prefix=${PREFIX} MARCH=core2 sysconfigdir=${PREFIX}/etc NO_GIT=1 \
  USE_SYSTEM_PATCHELF=1 USE_SYSTEM_LIBSSH2=1 USE_SYSTEM_LLVM=1 USE_SYSTEM_BLAS=1 \
  USE_SYSTEM_FFTW=1 USE_SYSTEM_GMP=1 USE_SYSTEM_LAPACK=1 LIBBLAS=-lopenblas \
  LIBBLASNAME=libopenblas.so LIBLAPACK=-lopenblas LIBLAPACKNAME=libopenblas.so \
+ TAGGED_RELEASE_BANNER="conda-forge-julia release" \
  test
 
 make -j 2 prefix=${PREFIX} MARCH=core2 sysconfigdir=${PREFIX}/etc NO_GIT=1 \
@@ -17,8 +18,9 @@ make -j 2 prefix=${PREFIX} MARCH=core2 sysconfigdir=${PREFIX}/etc NO_GIT=1 \
  USE_SYSTEM_PATCHELF=1 USE_SYSTEM_LIBSSH2=1 USE_SYSTEM_LLVM=1 USE_SYSTEM_BLAS=1 \
  USE_SYSTEM_FFTW=1 USE_SYSTEM_GMP=1 USE_SYSTEM_LAPACK=1 LIBBLAS=-lopenblas \
  LIBBLASNAME=libopenblas.so LIBLAPACK=-lopenblas LIBLAPACKNAME=libopenblas.so \
+ TAGGED_RELEASE_BANNER="conda-forge-julia release" \
  install
 
-mv --verbose "$PREFIX/bin/julia" "$PREFIX/bin/julia_"
-cp --verbose "$RECIPE_DIR/julia-wrapper.sh" "$PREFIX/bin/julia"
+mv "$PREFIX/bin/julia" "$PREFIX/bin/julia_"
+cp "$RECIPE_DIR/julia-wrapper.sh" "$PREFIX/bin/julia"
 chmod +x "$PREFIX/bin/julia"
