@@ -7,7 +7,7 @@ export JAVAHOME=$JCC_JDK
 if [ "$(uname)" == "Darwin" ]
 then
     # OSX recipe
-    export LD_LIBRARY_PATH=$PREFIX/jre/lib/amd64/server:$PREFIX/jre/lib/amd64:$LD_LIBRARY_PATH
+    # export LD_LIBRARY_PATH=$PREFIX/jre/lib/amd64/server:$PREFIX/jre/lib/amd64:$LD_LIBRARY_PATH
     export MACOSX_DEPLOYMENT_TARGET=10.9
     export MACOSX_VERSION_MIN=10.9
 
