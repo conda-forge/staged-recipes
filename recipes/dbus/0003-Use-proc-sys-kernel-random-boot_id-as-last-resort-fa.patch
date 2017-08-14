@@ -1,0 +1,92 @@
+From 68537537d9b93a7e8b6fdd6e9b442a011fb0b642 Mon Sep 17 00:00:00 2001
+From: Guilherme Quentel Melo <gqmelo@gmail.com>
+Date: Wed, 8 Feb 2017 14:41:16 -0200
+Subject: [PATCH 3/3] Use /proc/sys/kernel/random/boot_id as last resort
+ fallback
+
+---
+ dbus/dbus-internals.c    |  1 +
+ dbus/dbus-string.c       | 20 ++++++++++++++++++++
+ dbus/dbus-string.h       |  2 ++
+ dbus/dbus-sysdeps-unix.c |  9 +++++++++
+ 4 files changed, 32 insertions(+)
+
+diff --git dbus/dbus-internals.c dbus/dbus-internals.c
+index d7ef089..a01f5ef 100644
+--- dbus/dbus-internals.c
++++ dbus/dbus-internals.c
+@@ -720,6 +720,7 @@ _dbus_read_uuid_file_without_creating (const DBusString *filename,
+     goto error;
+ 
+   _dbus_string_chop_white (&contents);
++  _dbus_string_chop_hyphens (&contents);
+ 
+   if (_dbus_string_get_length (&contents) != DBUS_UUID_LENGTH_HEX)
+     {
+diff --git dbus/dbus-string.c dbus/dbus-string.c
+index 98d9f2b..7323fa7 100644
+--- dbus/dbus-string.c
++++ dbus/dbus-string.c
+@@ -2001,6 +2001,26 @@ _dbus_string_chop_white(DBusString *str)
+ }
+ 
+ /**
++ * Deletes hyphens
++ *
++ * @param str the string
++ */
++void
++_dbus_string_chop_hyphens(DBusString *str)
++{
++    unsigned int i;
++    int start = 0;
++    int found;
++
++    for (i = 0; i < 4; i++)
++      {
++        if (!_dbus_string_find (str, start, "-", &found)) break;
++        _dbus_string_delete (str, found, 1);
++        start = found;
++      }
++}
++
++/**
+  * Tests two DBusString for equality.
+  *
+  * @todo memcmp is probably faster
+diff --git dbus/dbus-string.h dbus/dbus-string.h
+index adf709b..1d6a0d2 100644
+--- dbus/dbus-string.h
++++ dbus/dbus-string.h
+@@ -327,6 +327,8 @@ DBUS_PRIVATE_EXPORT
+ void          _dbus_string_delete_leading_blanks (DBusString        *str);
+ DBUS_PRIVATE_EXPORT
+ void          _dbus_string_chop_white            (DBusString        *str); 
++DBUS_PRIVATE_EXPORT
++void          _dbus_string_chop_hyphens          (DBusString        *str);
+ dbus_bool_t   _dbus_string_append_byte_as_hex    (DBusString        *str,
+                                                   unsigned char      byte);
+ DBUS_PRIVATE_EXPORT
+diff --git dbus/dbus-sysdeps-unix.c dbus/dbus-sysdeps-unix.c
+index 19d7b42..5cb957d 100644
+--- dbus/dbus-sysdeps-unix.c
++++ dbus/dbus-sysdeps-unix.c
+@@ -3889,6 +3889,15 @@ _dbus_read_local_machine_uuid (DBusGUID   *machine_id,
+       return TRUE;
+     }
+ 
++  dbus_error_free (error);
++
++  /* Last resort fallback in case there is no system-wide dbus installed */
++  _dbus_string_init_const (&filename, "/proc/sys/kernel/random/boot_id");
++
++  b = _dbus_read_uuid_file (&filename, machine_id, FALSE, error);
++  if (b)
++    return TRUE;
++
+   if (!create_if_not_found)
+     return FALSE;
+ 
+-- 
+2.6.0
+
