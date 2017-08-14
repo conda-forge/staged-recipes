@@ -1,0 +1,60 @@
+From 3fd08b871ebfc47d29cdc45f915b98ecb9f68637 Mon Sep 17 00:00:00 2001
+From: Guilherme Quentel Melo <gqmelo@gmail.com>
+Date: Wed, 8 Feb 2017 14:22:33 -0200
+Subject: [PATCH 2/3] Make it possible to read files on /proc which reports
+ size zero
+
+---
+ dbus/dbus-file-unix.c | 36 ++++++++++++++++++++++++++++++++++++
+ 1 file changed, 36 insertions(+)
+
+diff --git dbus/dbus-file-unix.c dbus/dbus-file-unix.c
+index 830d3fe..26bc2b5 100644
+--- dbus/dbus-file-unix.c
++++ dbus/dbus-file-unix.c
+@@ -130,6 +130,42 @@ _dbus_file_get_contents (DBusString       *str,
+           else
+             total += bytes_read;
+         }
++              
++      _dbus_close (fd, NULL);
++      return TRUE;
++    }
++  else if (sb.st_size == 0 && S_ISREG (sb.st_mode))
++    {
++      int bytes_read = -1;
++
++      while (bytes_read != 0)
++        {
++          if (total > _DBUS_ONE_MEGABYTE)
++            {
++              dbus_set_error (error, DBUS_ERROR_FAILED,
++                              "File size of \"%s\" is larger than %lu.",
++                              filename_c, (unsigned long) _DBUS_ONE_MEGABYTE);
++              _dbus_close (fd, NULL);
++              return FALSE;
++            }
++          bytes_read = _dbus_read (fd, str, 1024);
++          if (bytes_read < 0)
++            {
++              dbus_set_error (error, _dbus_error_from_errno (errno),
++                              "Error reading \"%s\": %s",
++                              filename_c,
++                              _dbus_strerror (errno));
++
++              _dbus_verbose ("read() failed: %s",
++                             _dbus_strerror (errno));
++
++              _dbus_close (fd, NULL);
++              _dbus_string_set_length (str, orig_len);
++              return FALSE;
++            }
++          else
++            total += bytes_read;
++        }
+ 
+       _dbus_close (fd, NULL);
+       return TRUE;
+-- 
+2.6.0
+
