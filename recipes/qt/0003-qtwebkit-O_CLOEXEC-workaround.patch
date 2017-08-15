@@ -1,0 +1,41 @@
+diff -urN qtwebkit.orig/Source/WebKit2/Platform/unix/SharedMemoryUnix.cpp qtwebkit/Source/WebKit2/Platform/unix/SharedMemoryUnix.cpp
+--- qtwebkit.orig/Source/WebKit2/Platform/unix/SharedMemoryUnix.cpp	2016-07-02 16:34:01.146909836 +0100
++++ qtwebkit/Source/WebKit2/Platform/unix/SharedMemoryUnix.cpp	2016-07-02 16:41:41.843588498 +0100
+@@ -136,6 +136,28 @@
+     return instance.release();
+ }
+ #else
++
++#ifndef O_CLOEXEC
++# define O_CLOEXEC   02000000
++#endif
++
++int CLOEXEC_shm_open (const char *__name, int __oflag, mode_t __mode)
++{
++    static int O_CLOEXEC_acceptable_value = O_CLOEXEC;
++    if ((O_CLOEXEC_acceptable_value != O_CLOEXEC) && (__oflag & O_CLOEXEC)) {
++        /* We tried already and failed, mask it off. */
++        __oflag ^= O_CLOEXEC;
++    }
++
++    int result = shm_open (__name, __oflag, __mode);
++    if ((result < 0) && (errno == EINVAL) && (__oflag & O_CLOEXEC)) {
++        /* Assume EINVAL failure was due to O_CLOEXEC and set the acceptable value to 0. */
++        O_CLOEXEC_acceptable_value = 0;
++        result = shm_open (__name, __oflag ^ O_CLOEXEC, __mode);
++    }
++    return result;
++}
++
+ PassRefPtr<SharedMemory> SharedMemory::create(size_t size)
+ {
+     CString tempName;
+@@ -146,7 +168,7 @@
+         tempName = name.utf8();
+ 
+         do {
+-            fileDescriptor = shm_open(tempName.data(), O_CREAT | O_CLOEXEC | O_RDWR, S_IRUSR | S_IWUSR);
++            fileDescriptor = CLOEXEC_shm_open(tempName.data(), O_CREAT | O_CLOEXEC | O_RDWR, S_IRUSR | S_IWUSR);
+         } while (fileDescriptor == -1 && errno == EINTR);
+     }
+     if (fileDescriptor == -1) {

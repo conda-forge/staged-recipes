@@ -1,0 +1,74 @@
+diff -urN qtwebkit.orig/Source/JavaScriptCore/ChangeLog-2014-08-19 qtwebkit/Source/JavaScriptCore/ChangeLog-2014-08-19
+--- qtwebkit.orig/Source/JavaScriptCore/ChangeLog-2014-08-19	1970-01-01 01:00:00.000000000 +0100
++++ qtwebkit/Source/JavaScriptCore/ChangeLog-2014-08-19	2016-07-11 10:50:23.637402698 +0100
+@@ -0,0 +1,10 @@
++2014-08-19  Magnus Granberg  <zorry@gentoo.org>
++
++        TEXTREL in libjavascriptcoregtk-1.0.so.0.11.0 on x86 (or i586)
++        https://bugs.webkit.org/show_bug.cgi?id=70610
++
++        Reviewed by Darin Adler.
++
++        Setup %ebx so we can use the plt.
++
++        * jit/ThunkGenerators.cpp:
+diff -urN qtwebkit.orig/Source/JavaScriptCore/jit/ThunkGenerators.cpp qtwebkit/Source/JavaScriptCore/jit/ThunkGenerators.cpp
+--- qtwebkit.orig/Source/JavaScriptCore/jit/ThunkGenerators.cpp	2016-07-11 10:47:44.740731894 +0100
++++ qtwebkit/Source/JavaScriptCore/jit/ThunkGenerators.cpp	2016-07-11 11:28:18.000000000 +0100
+@@ -524,6 +524,30 @@
+     } \
+     static MathThunk UnaryDoubleOpWrapper(function) = &function##Thunk;
+ 
++#elif CPU(X86) && COMPILER(GCC) && OS(LINUX) && defined(__PIC__)
++#define defineUnaryDoubleOpWrapper(function) \
++    asm( \
++        ".text\n" \
++        ".globl " SYMBOL_STRING(function##Thunk) "\n" \
++        HIDE_SYMBOL(function##Thunk) "\n" \
++        SYMBOL_STRING(function##Thunk) ":" "\n" \
++        "pushl %ebx\n" \
++        "subl $20, %esp\n" \
++        "movsd %xmm0, (%esp) \n" \
++        "call __x86.get_pc_thunk.bx\n" \
++        "addl $_GLOBAL_OFFSET_TABLE_, %ebx\n" \
++        "call " GLOBAL_REFERENCE(function) "\n" \
++        "fstpl (%esp) \n" \
++        "movsd (%esp), %xmm0 \n" \
++        "addl $20, %esp\n" \
++        "popl %ebx\n" \
++        "ret\n" \
++    );\
++    extern "C" { \
++        MathThunkCallingConvention function##Thunk(MathThunkCallingConvention); \
++    } \
++    static MathThunk UnaryDoubleOpWrapper(function) = &function##Thunk;
++
+ #elif CPU(X86) && COMPILER(GCC) && (PLATFORM(MAC) || OS(LINUX))
+ #define defineUnaryDoubleOpWrapper(function) \
+     asm( \
+diff -urN qtwebkit.orig/Source/WTF/ChangeLog qtwebkit/Source/WTF/ChangeLog
+--- qtwebkit.orig/Source/WTF/ChangeLog	1970-01-01 01:00:00.000000000 +0100
++++ qtwebkit/Source/WTF/ChangeLog	2016-07-11 10:52:10.927405492 +0100
+@@ -0,0 +1,10 @@
++2014-08-19  Magnus Granberg  <zorry@gentoo.org>
++
++        TEXTREL in libjavascriptcoregtk-1.0.so.0.11.0 on x86 (or i586)
++        https://bugs.webkit.org/show_bug.cgi?id=70610
++
++        Reviewed by Darin Adler.
++
++        Add PLT if we're building with PIC.
++
++        * wtf/InlineASM.h:
+diff -urN qtwebkit.orig/Source/WTF/wtf/InlineASM.h qtwebkit/Source/WTF/wtf/InlineASM.h
+--- qtwebkit.orig/Source/WTF/wtf/InlineASM.h	2016-07-11 10:47:45.067398570 +0100
++++ qtwebkit/Source/WTF/wtf/InlineASM.h	2016-07-11 10:48:52.284066986 +0100
+@@ -46,6 +46,8 @@
+ #define GLOBAL_REFERENCE(name) #name "@plt"
+ #elif CPU(X86) && COMPILER(MINGW)
+ #define GLOBAL_REFERENCE(name) "@" #name "@4"
++#elif OS(LINUX) && CPU(X86) && defined(__PIC__)
++#define GLOBAL_REFERENCE(name) SYMBOL_STRING(name) "@plt"
+ #else
+ #define GLOBAL_REFERENCE(name) SYMBOL_STRING(name)
+ #endif
