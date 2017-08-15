@@ -1,0 +1,68 @@
+From 38739eaa26c2f770d76c787706ffd4d20bab54ba Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Aur=C3=A9lien=20G=C3=A2teau?=
+ <aurelien.gateau@canonical.com>
+Date: Tue, 22 Nov 2016 11:15:40 +0000
+Subject: [PATCH 8/9] =?UTF-8?q?disable=20Ubuntu=20overlay=20scrollbars=20a?=
+ =?UTF-8?q?s=20they=20don=E2=80=99t=20play=20well=20with=20Qt?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Change-Id: Iefecf6fcfd3a63a7fea3f941c6df558f1d04d03c
+---
+ src/widgets/styles/qgtkstyle_p.cpp | 4 ++++
+ src/widgets/styles/qgtkstyle_p_p.h | 2 ++
+ 2 files changed, 6 insertions(+)
+
+diff --git qtbase/src/widgets/styles/qgtkstyle_p.cpp qtbase/src/widgets/styles/qgtkstyle_p.cpp
+index a0fd8bf..1ed369e 100644
+--- qtbase/src/widgets/styles/qgtkstyle_p.cpp
++++ qtbase/src/widgets/styles/qgtkstyle_p.cpp
+@@ -92,6 +92,7 @@ Q_GLOBAL_STATIC(QGtkStyleUpdateScheduler, styleScheduler)
+ 
+ Ptr_gtk_container_forall QGtkStylePrivate::gtk_container_forall = 0;
+ Ptr_gtk_init QGtkStylePrivate::gtk_init = 0;
++Ptr_ubuntu_gtk_set_use_overlay_scrollbar QGtkStylePrivate::ubuntu_gtk_set_use_overlay_scrollbar = 0;
+ Ptr_gtk_style_attach QGtkStylePrivate::gtk_style_attach = 0;
+ Ptr_gtk_window_new QGtkStylePrivate::gtk_window_new = 0;
+ Ptr_gtk_widget_destroy QGtkStylePrivate::gtk_widget_destroy = 0;
+@@ -331,6 +332,7 @@ void QGtkStylePrivate::resolveGtk() const
+     QLibrary libgtk(QLS("gtk-x11-2.0"), 0, 0);
+ 
+     gtk_init = (Ptr_gtk_init)libgtk.resolve("gtk_init");
++    ubuntu_gtk_set_use_overlay_scrollbar = (Ptr_ubuntu_gtk_set_use_overlay_scrollbar)libgtk.resolve("ubuntu_gtk_set_use_overlay_scrollbar");
+     gtk_window_new = (Ptr_gtk_window_new)libgtk.resolve("gtk_window_new");
+     gtk_style_attach = (Ptr_gtk_style_attach)libgtk.resolve("gtk_style_attach");
+     gtk_widget_destroy = (Ptr_gtk_widget_destroy)libgtk.resolve("gtk_widget_destroy");
+@@ -503,6 +505,8 @@ void QGtkStylePrivate::initGtkWidgets() const
+         QGtkStylePrivate::gtk_init (NULL, NULL);
+ #ifndef Q_OS_MAC
+         XSetErrorHandler(qt_x_errhandler);
++        if (QGtkStylePrivate::ubuntu_gtk_set_use_overlay_scrollbar)
++            QGtkStylePrivate::ubuntu_gtk_set_use_overlay_scrollbar(false);
+ #endif
+ 
+         // make a window
+diff --git qtbase/src/widgets/styles/qgtkstyle_p_p.h qtbase/src/widgets/styles/qgtkstyle_p_p.h
+index 4cb03ed..029a637 100644
+--- qtbase/src/widgets/styles/qgtkstyle_p_p.h
++++ qtbase/src/widgets/styles/qgtkstyle_p_p.h
+@@ -121,6 +121,7 @@ typedef char* (*Ptr_gconf_client_get_string)(GConfClient*, const char*, GError *
+ typedef bool (*Ptr_gconf_client_get_bool)(GConfClient*, const char*, GError **);
+ 
+ typedef void (*Ptr_gtk_init)(int *, char ***);
++typedef void (*Ptr_ubuntu_gtk_set_use_overlay_scrollbar) (gboolean);
+ typedef GtkWidget* (*Ptr_gtk_window_new) (GtkWindowType);
+ typedef GtkStyle* (*Ptr_gtk_style_attach)(GtkStyle *, GdkWindow *);
+ typedef void (*Ptr_gtk_widget_destroy) (GtkWidget *);
+@@ -289,6 +290,7 @@ public:
+ 
+     static Ptr_gtk_container_forall gtk_container_forall;
+     static Ptr_gtk_init gtk_init;
++    static Ptr_ubuntu_gtk_set_use_overlay_scrollbar ubuntu_gtk_set_use_overlay_scrollbar;
+     static Ptr_gtk_style_attach gtk_style_attach;
+     static Ptr_gtk_window_new gtk_window_new;
+     static Ptr_gtk_widget_destroy gtk_widget_destroy;
+-- 
+2.10.2
+
