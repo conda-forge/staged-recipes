@@ -17,4 +17,3 @@ mv "$PREFIX/bin/julia" "$PREFIX/bin/julia_"
 cp "$RECIPE_DIR/julia-wrapper.sh" "$PREFIX/bin/julia"
 chmod +x "$PREFIX/bin/julia"
 
-cp "$RECIPE_DIR/juliarc.jl" "$PREFIX/etc/julia/"
