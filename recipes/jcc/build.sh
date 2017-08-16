@@ -9,7 +9,11 @@ then
     # OSX recipe
     # export LD_LIBRARY_PATH=$PREFIX/jre/lib/amd64/server:$PREFIX/jre/lib/amd64:$LD_LIBRARY_PATH
     export MACOSX_DEPLOYMENT_TARGET=10.9
-    export MACOSX_VERSION_MIN=10.5
+    export MACOSX_VERSION_MIN=10.9
+
+    export JCC_ARGSEP=";"
+	export JCC_LFLAGS="-L$PREFIX/jre/lib;-ljava;-L$PREFIX/jre/lib/server;-ljvm;-Wl,-rpath;-Wl,$PREFIX/jre/lib;-Wl,-rpath;-Wl,$PREFIX/jre/lib/server;-mmacosx-version-min=10.9"
+	export JCC_CFLAGS="-fno-strict-aliasing;-Wno-write-strings;-mmacosx-version-min=10.9"
 
     $PYTHON setup.py install
 
