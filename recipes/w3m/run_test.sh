@@ -1,8 +1,13 @@
 #!/bin/bash
 
-echo running w3m
-w3m
+echo running w3m help
+w3m -help
 echo $?
-echo running test with grap
-w3m 2>&1 | grep usage
+echo running grep help
+grep --help
+
+echo running test with grep
+w3m -help | grep usage
+
+
 
