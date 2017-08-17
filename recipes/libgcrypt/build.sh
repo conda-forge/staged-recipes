@@ -2,7 +2,7 @@
 
 ./configure --prefix=$PREFIX
 
-make
-make install
-make check
+make -j4
+make install -j4
+make check -j4
 
