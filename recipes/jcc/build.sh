@@ -13,7 +13,7 @@ then
 
     export JCC_ARGSEP=";"
     export JCC_INCLUDES="$PREFIX/include;$PREFIX/include/darwin"
-	export JCC_LFLAGS="-L$PREFIX/jre/lib;-ljava;-L$PREFIX/jre/lib/server;-ljvm;-Wl,-rpath;-Wl,$PREFIX/jre/lib;-Wl,-rpath;-Wl,$PREFIX/jre/lib/server;-mmacosx-version-min=10.9"
+	export JCC_LFLAGS="-L$PREFIX/jre/lib;-ljava;-L$PREFIX/jre/lib/server;-ljvm;-Wl,-rpath=$PREFIX/jre/lib;-Wl,-rpath=$PREFIX/jre/lib/server;-mmacosx-version-min=10.9"
 	export JCC_CFLAGS="-fno-strict-aliasing;-Wno-write-strings;-mmacosx-version-min=10.9"
 
     $PYTHON setup.py install
