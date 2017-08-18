@@ -2,6 +2,5 @@
 
 ./configure --prefix=$PREFIX
 
-make
-make install
-
+make -j$CPU_COUNT
+make install -j$CPU_COUNT
