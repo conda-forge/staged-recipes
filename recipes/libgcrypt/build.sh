@@ -4,5 +4,4 @@
 
 make -j4
 make install -j4
-make check -j4
 
