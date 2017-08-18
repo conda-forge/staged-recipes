@@ -1,0 +1,50 @@
+From 5597088f2151f282551fc2ba091abf54698a8e10 Mon Sep 17 00:00:00 2001
+From: Denis Barbier <barbier@imacs.polytechnique.fr>
+Date: Mon, 19 Jun 2017 13:47:12 +0200
+Subject: [PATCH] Fix loading configuration file on OSX when installing with
+ conda
+
+Conda performs prefix substitution within libraries so that packages
+are relocatable.  On OSX, line
+  directory = String(SYSCONFIG_PATH) + PrefixConfigSubdirectory_;
+causes trouble.  When compiling, conda makes SYSCONFIG_PATH a very long
+string, and it is replaced during installation.
+On Linux, it works as expected, string contains the new path, and /openturns
+is appended to it afterwards.
+On OSX, string also contains the new path, but it keeps its original length,
+and thus /openturns is appended after lots of \0.
+
+With
+  directory = String() + String(SYSCONFIG_PATH).c_str() + PrefixConfigSubdirectory_;
+SYSCONFIG_PATH is adjusted to have the new length.
+---
+ lib/src/Base/Common/Path.cxx | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/lib/src/Base/Common/Path.cxx b/lib/src/Base/Common/Path.cxx
+index 215143937..f22a02b91 100644
+--- a/lib/src/Base/Common/Path.cxx
++++ b/lib/src/Base/Common/Path.cxx
+@@ -111,7 +111,11 @@ FileName Path::GetInstallationDirectory()
+   }
+   if (!dirExists)
+   {
+-    directory = String(INSTALL_PATH);
++    // NOTE: When installing with conda, INSTALL_PATH is substituted during
++    // package installation.  On OSX, String(INSTALL_PATH) creates a
++    // string with new content but original size; thus we use a C string
++    // to update string length
++    directory = String(INSTALL_PATH).c_str();
+   }
+   return directory;
+ }
+@@ -218,7 +222,8 @@ Path::DirectoryList Path::GetConfigDirectoryList()
+   }
+   if (!dirExists)
+   {
+-    directory = String(SYSCONFIG_PATH) + PrefixConfigSubdirectory_;
++    // See in NOTE above why we use c_str() here
++    directory = String() + String(SYSCONFIG_PATH).c_str() + PrefixConfigSubdirectory_;
+   }
+   directoryList.push_back(directory);
+ 
