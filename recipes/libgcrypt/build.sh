@@ -2,6 +2,6 @@
 
 ./configure --prefix=$PREFIX
 
-make -j4
-make install -j4
+make
+make install
 
