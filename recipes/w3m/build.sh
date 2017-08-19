@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Build script for w3m text-mode browser/pager
+
 mkdir -p $PREFIX/bin
 export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
 export CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include"
