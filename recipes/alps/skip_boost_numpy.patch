@@ -1,0 +1,96 @@
+Index: alps/config/FindBoostForALPS.cmake
+===================================================================
+--- alps/config/FindBoostForALPS.cmake	(revision 7834)
++++ alps/config/FindBoostForALPS.cmake	(working copy)
+@@ -54,9 +54,11 @@
+     set(TIMER timer)
+   endif (Boost_FOUND)
+   set(NUMPY)
++  set(ALPS_HAVE_BOOST_NUMPY OFF)
+   find_package(Boost 1.48.0 COMPONENTS numpy)
+   if (Boost_FOUND)
+     set(NUMPY numpy)
++    set(ALPS_HAVE_BOOST_NUMPY ON)
+   endif (Boost_FOUND)
+   # The final library finding for precompiled Boost.
+   find_package(Boost 1.48.0 COMPONENTS chrono date_time filesystem iostreams program_options python regex system serialization thread ${MPI} ${UTF} ${TIMER} ${NUMPY})
+Index: alps/config/FindBoostSrc.cmake
+===================================================================
+--- alps/config/FindBoostSrc.cmake	(revision 7834)
++++ alps/config/FindBoostSrc.cmake	(working copy)
+@@ -96,6 +96,11 @@
+   MATH(EXPR Boost_SUBMINOR_VERSION "${Boost_VERSION} % 100")
+ endif(Boost_INCLUDE_DIR)
+ 
++if(Boost_VERSION AND NOT Boost_VERSION LESS 106300)
++  # Boost Numpy is compiled if we have >= 1.63
++  set(ALPS_HAVE_BOOST_NUMPY ON)
++endif(Boost_VERSION AND NOT Boost_VERSION LESS 106300)
++
+ if(Boost_ROOT_DIR)
+   message(STATUS "Found Boost Source: ${Boost_ROOT_DIR}")
+   message(STATUS "Boost Version: ${Boost_MAJOR_VERSION}_${Boost_MINOR_VERSION}_${Boost_SUBMINOR_VERSION}")
+Index: alps/src/alps/config.h.in
+===================================================================
+--- alps/src/alps/config.h.in	(revision 7834)
++++ alps/src/alps/config.h.in	(working copy)
+@@ -142,6 +142,9 @@
+ // Define to 1 if you have Python on your system.
+ #cmakedefine ALPS_HAVE_PYTHON
+ 
++// Define to 1 if Boost Numpy (>=1.63) is available
++#cmakedefine ALPS_HAVE_BOOST_NUMPY
++
+ //
+ // OpenMP
+ //
+Index: alps/src/alps/python/numpy_array.cpp
+===================================================================
+--- alps/src/alps/python/numpy_array.cpp	(revision 7834)
++++ alps/src/alps/python/numpy_array.cpp	(working copy)
+@@ -36,7 +36,7 @@
+ 
+            alps::python::numpy::array from_pyobject(boost::python::object const & source)
+            {
+-               #if BOOST_VERSION >= 106300
++               #if defined(ALPS_HAVE_BOOST_NUMPY)
+                return boost::python::numpy::array(source);
+                #else
+                return boost::python::numeric::array(source);
+Index: alps/src/alps/python/numpy_array.hpp
+===================================================================
+--- alps/src/alps/python/numpy_array.hpp	(revision 7834)
++++ alps/src/alps/python/numpy_array.hpp	(working copy)
+@@ -40,7 +40,7 @@
+ namespace alps {
+   namespace python {
+     namespace numpy {
+-      #if BOOST_VERSION >= 106300
++      #if defined(ALPS_HAVE_BOOST_NUMPY)
+       typedef boost::python::numpy::ndarray array;
+       #else
+       typedef boost::python::numeric::array array;
+Index: alps/src/alps/python/numpy_import.hpp
+===================================================================
+--- alps/src/alps/python/numpy_import.hpp	(revision 7834)
++++ alps/src/alps/python/numpy_import.hpp	(working copy)
+@@ -29,7 +29,9 @@
+ #ifndef ALPS_PYTHON_NUMPY_IMPORT_HPP
+ #define ALPS_PYTHON_NUMPY_IMPORT_HPP
+ 
+-#if BOOST_VERSION >= 106300
++#include <alps/config.h>
++
++#if defined(ALPS_HAVE_BOOST_NUMPY)
+     #include <boost/python/numpy.hpp>
+ #else
+     #include <boost/python/numeric.hpp>
+@@ -59,7 +61,7 @@
+             static bool inited = false;
+             if (!inited) {
+                 import_array1((void)0);
+-                #if BOOST_VERSION >= 106300
++                #if defined(ALPS_HAVE_BOOST_NUMPY)
+                 boost::python::numpy::initialize();
+                 #else
+                 boost::python::numeric::array::set_module_and_type("numpy", "ndarray");
