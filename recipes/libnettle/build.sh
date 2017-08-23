@@ -1,15 +1,5 @@
 #!/bin/bash
-
-
-
-
-if [[ $(uname) == Darwin ]]; then
-    ./configure --prefix="${PREFIX}" --disable-assembler 
-elif [[ $(uname) == Linux ]]; then
-    ./configure --prefix="${PREFIX}" 
-fi
-
-
+./configure --prefix="${PREFIX}" 
 
 make
 
