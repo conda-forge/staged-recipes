@@ -7,12 +7,6 @@ fi
 
 export MPI_FLAGS=--allow-run-as-root
 
-echo
-echo
-echo $(uname)
-echo
-echo
-
 if [ $(uname) == Linux ]; then
     export MPI_FLAGS="$MPI_FLAGS;-mca;plm;isolated"
 fi

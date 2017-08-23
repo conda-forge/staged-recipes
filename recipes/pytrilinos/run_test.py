@@ -1,5 +1,7 @@
 import os
-os.environ["OMPI_MCA_pml"]="isolated"
+import sys
+if sys.platform != 'darwin':
+    os.environ["OMPI_MCA_pml"]="isolated"
 
 import PyTrilinos.Teuchos
 import PyTrilinos.Epetra
@@ -14,4 +16,3 @@ import PyTrilinos.IFPACK
 import PyTrilinos.Komplex
 import PyTrilinos.ML
 import PyTrilinos.Anasazi
-
