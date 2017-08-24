@@ -1,8 +1,6 @@
 #!/bin/bash
 
-export JCC_JDK=$PREFIX
-export JAVA_HOME=$JCC_JDK
-export JAVAHOME=$JCC_JDK
+export JCC_JDK=$JAVA_HOME
 
 if [ "$(uname)" == "Darwin" ]
 then
@@ -16,7 +14,7 @@ then
 	export JCC_LFLAGS="-L$PREFIX/jre/lib;-ljava;-L$PREFIX/jre/lib/server;-ljvm;-Wl,-rpath, $PREFIX/jre/lib;-Wl,-rpath, $PREFIX/jre/lib/server;-mmacosx-version-min=10.9"
 	export JCC_CFLAGS="-fno-strict-aliasing;-Wno-write-strings;-mmacosx-version-min=10.9"
 
-    $PYTHON setup.py install
+    $PYTHON setup.py install --single-version-externally-managed --record record.txt
 
 else
     # GNU/Linux recipe
@@ -28,7 +26,7 @@ else
 	# -L$PREFIX/lib/python3.6/lib-dynload
 	printenv
 
-	$PYTHON setup.py install
+	$PYTHON setup.py install --single-version-externally-managed --record record.txt
 
 fi
 
