@@ -46,10 +46,6 @@ pushd /staged-recipes/recipes > /dev/null
 git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf ~/conda-recipes/{} && echo Removing recipe: {}"
 popd > /dev/null
 
-if [ "${BINSTAR_TOKEN}" ];then
-    export BINSTAR_TOKEN=${BINSTAR_TOKEN}
-fi
-
 # Unused, but needed by conda-build currently... :(
 export CONDA_NPY='19'
 
