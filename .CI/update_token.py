@@ -4,6 +4,7 @@ import os
 import requests
 
 import ruamel.yaml
+import subprocess
 
 circle_token = os.environ["CIRCLE_TOKEN"]
 appveyor_token = os.environ["APPVEYOR_TOKEN"]
@@ -146,6 +147,7 @@ def update_travis_yml(forge_code):
             if line.lstrip().startswith('- secure'):
                 line = line.split(':')[0] + ': "' + token + '"'
             fh.write(line)
+    subprocess.check_output(["git", "add", ".travis.yml"])
 
 
 def update_appveyor_yml(forge_code):
@@ -160,6 +162,7 @@ def update_appveyor_yml(forge_code):
             if line.lstrip().startswith('secure:'):
                 line = line.split(':')[0] + ': ' + token
             fh.write(line)
+    subprocess.check_output(["git", "add", "appveyor.yml"])
 
 
 if __name__ == '__main__':
@@ -175,12 +178,18 @@ if __name__ == '__main__':
         forge_code = read_conda_forge_yml()
         if (forge_code['appveyor']['secure']['BINSTAR_TOKEN'] != expected_appveyor_token):
             print('Updating {}/{}:'.format(owner, repo))
-            update_travis_yml(forge_code)
-            update_appveyor_yml(forge_code)
 
             travis_token_update_conda_forge_config(feedstock_directory, owner, repo)
             add_token_to_circle(owner, repo)
             appveyor_encrypt_binstar_token(feedstock_directory, owner, repo)
+
+            forge_code = read_conda_forge_yml()
+            update_travis_yml(forge_code)
+            update_appveyor_yml(forge_code)
+
+            subprocess.check_output(["git", "add", "conda-forge.yml"])
+            subprocess.check_output(["git", "commit", "-m", "[ci skip] [skip ci] Update anaconda token"])
+            subprocess.check_output(["git", "push", "origin", "master"])
 
             print("Done")
         else:
