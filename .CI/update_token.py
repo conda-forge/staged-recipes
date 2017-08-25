@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
     feedstock_directory = os.getcwd()
     owner = 'conda-forge'
-    repo = os.path.basename(os.path.abspath(feedstock_directory))
+    repo = os.path.basename(os.path.abspath(feedstock_directory)) + "-feedstock"
     try:
         forge_code = read_conda_forge_yml()
         if (forge_code['appveyor']['secure']['BINSTAR_TOKEN'] != expected_appveyor_token):
