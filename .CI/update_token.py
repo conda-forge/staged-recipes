@@ -5,18 +5,10 @@ import requests
 
 import ruamel.yaml
 
-
-with open(os.path.expanduser('~/.conda-smithy/circle.token'), 'r') as fh:
-    circle_token = fh.read().strip()
-
-with open(os.path.expanduser('~/.conda-smithy/appveyor.token'), 'r') as fh:
-    appveyor_token = fh.read().strip()
-
-with open(os.path.expanduser('~/.conda-smithy/anaconda.token'), 'r') as fh:
-    anaconda_token = fh.read().strip()
-
-with open(os.path.expanduser('~/.conda-smithy/github.token'), 'r') as fh:
-    gh_token = fh.read().strip()
+circle_token = os.environ["CIRCLE_TOKEN"]
+appveyor_token = os.environ["APPVEYOR_TOKEN"]
+anaconda_token = os.environ["BINSTAR_TOKEN"]
+gh_token = os.environ["GH_TOKEN"]
 
 
 def add_token_to_circle(user, project):
@@ -171,18 +163,27 @@ def update_appveyor_yml(forge_code):
 
 
 if __name__ == '__main__':
+    expected_appveyor_token = "ipv/06DzgA7pzz2CIAtbPxZSsphDtF+JFyoWRnXkn3O8j7oRe3rzqj3LOoq2DZp4"
+    smithy_conf = os.path.expanduser('~/.conda-smithy')
+    if not os.path.exists(smithy_conf):
+        os.mkdir(smithy_conf)
+
     feedstock_directory = os.getcwd()
     owner = 'conda-forge'
     repo = os.path.basename(os.path.abspath(feedstock_directory))
-    print('Updating {}/{}:'.format(owner, repo))
     try:
-        travis_token_update_conda_forge_config(feedstock_directory, owner, repo)
-        add_token_to_circle(owner, repo)
-        appveyor_encrypt_binstar_token(feedstock_directory, owner, repo)
-
         forge_code = read_conda_forge_yml()
-        update_travis_yml(forge_code)
-        update_appveyor_yml(forge_code)
-        print("Done")
+        if (forge_code['appveyor']['secure']['BINSTAR_TOKEN'] != expected_appveyor_token):
+            print('Updating {}/{}:'.format(owner, repo))
+            update_travis_yml(forge_code)
+            update_appveyor_yml(forge_code)
+
+            travis_token_update_conda_forge_config(feedstock_directory, owner, repo)
+            add_token_to_circle(owner, repo)
+            appveyor_encrypt_binstar_token(feedstock_directory, owner, repo)
+
+            print("Done")
+        else:
+            print('{}/{} is already updated'.format(owner, repo))
     except RuntimeError as e:
         print(e)
