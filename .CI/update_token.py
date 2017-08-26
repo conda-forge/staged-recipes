@@ -5,6 +5,7 @@ import requests
 
 import ruamel.yaml
 import subprocess
+from github import Github
 
 circle_token = os.environ["CIRCLE_TOKEN"]
 appveyor_token = os.environ["APPVEYOR_TOKEN"]
@@ -75,29 +76,38 @@ def update_appveyor_yml(forge_code):
 
 if __name__ == '__main__':
     expected_appveyor_token = "ipv/06DzgA7pzz2CIAtbPxZSsphDtF+JFyoWRnXkn3O8j7oRe3rzqj3LOoq2DZp4"
-
-    feedstock_directory = os.getcwd()
     owner = 'conda-forge'
-    repo = os.path.basename(os.path.abspath(feedstock_directory)) + "-feedstock"
-    try:
-        forge_code = read_conda_forge_yml()
-        if (forge_code['appveyor']['secure']['BINSTAR_TOKEN'] != expected_appveyor_token):
-            print('Updating {}/{}:'.format(owner, repo))
-
-            travis_token_update_conda_forge_config(feedstock_directory, owner, repo)
-            add_token_to_circle(owner, repo)
-            appveyor_encrypt_binstar_token(feedstock_directory, owner, repo)
-
+    gh = Github(gh_token)
+    org = gh.get_organization(owner)
+    cwd = os.getcwd()
+    for feedstock in org.get_repos():
+        print(feedstock.name)
+        if not feedstock.name.endswith('-feedstock'):
+            continue
+        repo = feedstock.name
+        os.chdir(cwd)
+        try:
+            subprocess.check_output(["git", "clone", "https://{}@github.com/{}/{}".format(gh_token, owner, repo)])
+            os.chdir(repo)
+            feedstock_directory = os.getcwd()
             forge_code = read_conda_forge_yml()
-            update_travis_yml(forge_code)
-            update_appveyor_yml(forge_code)
+            if (forge_code['appveyor']['secure']['BINSTAR_TOKEN'] != expected_appveyor_token):
+                print('Updating {}/{}:'.format(owner, repo))
 
-            subprocess.check_output(["git", "add", "conda-forge.yml"])
-            subprocess.check_output(["git", "commit", "-m", "[ci skip] [skip ci] Update anaconda token"])
-            subprocess.check_output(["git", "push", "origin", "master"])
+                travis_token_update_conda_forge_config(feedstock_directory, owner, repo)
+                add_token_to_circle(owner, repo)
+                appveyor_encrypt_binstar_token(feedstock_directory, owner, repo)
 
-            print("Done")
-        else:
-            print('{}/{} is already updated'.format(owner, repo))
-    except RuntimeError as e:
-        print(e)
+                forge_code = read_conda_forge_yml()
+                update_travis_yml(forge_code)
+                update_appveyor_yml(forge_code)
+
+                subprocess.check_output(["git", "add", "conda-forge.yml"])
+                subprocess.check_output(["git", "commit", "-m", "[ci skip] [skip ci] Update anaconda token"])
+                subprocess.check_output(["git", "push", "origin", "master"])
+
+                print("Done")
+            else:
+                print('{}/{} is already updated'.format(owner, repo))
+        except subprocess.CalledProcessError as e:
+            print('{}/{} updating failed'.format(owner, repo))
