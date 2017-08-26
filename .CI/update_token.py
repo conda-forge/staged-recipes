@@ -111,3 +111,5 @@ if __name__ == '__main__':
                 print('{}/{} is already updated'.format(owner, repo))
         except subprocess.CalledProcessError as e:
             print('{}/{} updating failed'.format(owner, repo))
+        except KeyError as e:
+            print('{}/{} updating failed with KeyError'.format(owner, repo))
