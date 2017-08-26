@@ -54,7 +54,7 @@ def update_travis_yml(forge_code):
     with open(travis_yml, 'w') as fh:
         for line in lines:
             if line.lstrip().startswith('- secure'):
-                line = line.split(':')[0] + ': "' + token + '"'
+                line = line.split(':')[0] + ': "' + token + '"\n'
             fh.write(line)
     subprocess.check_output(["git", "add", ".travis.yml"])
 
@@ -69,7 +69,7 @@ def update_appveyor_yml(forge_code):
     with open(appveyor_yml, 'w') as fh:
         for line in lines:
             if line.lstrip().startswith('secure:'):
-                line = line.split(':')[0] + ': ' + token
+                line = line.split(':')[0] + ': ' + token + '\n'
             fh.write(line)
     subprocess.check_output(["git", "add", "appveyor.yml"])
 
