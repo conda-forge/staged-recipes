@@ -80,8 +80,14 @@ if __name__ == '__main__':
     gh = Github(gh_token)
     org = gh.get_organization(owner)
     cwd = os.getcwd()
+    split_num, no_cases = os.getenv("TEST_SPLIT", "0/1").split("/")
+    split_num, no_cases = int(split_num), int(no_cases)
+    i = -1
     for feedstock in org.get_repos():
-        print(feedstock.name)
+        i = i + 1
+        if i % no_cases != split_num:
+            continue
+        print(i, feedstock.name)
         if not feedstock.name.endswith('-feedstock'):
             continue
         repo = feedstock.name
