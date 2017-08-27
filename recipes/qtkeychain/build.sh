@@ -10,6 +10,16 @@ cmake \
     -D CMAKE_INSTALL_LIBDIR=$PREFIX/lib \
     ..
 
-make
+make -j$CPU_COUNT
 # No "make check" available
 make install
+
+# we are fixing the paths to dynamic library files inside library 
+# because something in make install is doubling up the
+# path to the library files.  Anyone who knows how to solve that
+# problem is free to contact the maintainers.
+# See the GMT feedstock for similar problem
+
+if [[ "$(uname)" == "Darwin" ]];then
+    install_name_tool -id $PREFIX/lib/libqt5keychain.0.8.0.dylib $PREFIX/lib/libqt5keychain.0.8.0.dylib
+fi
