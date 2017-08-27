@@ -7,6 +7,6 @@ def install(package):
 
 # Example
 if __name__ == '__main__':
-    install('pyside')
+    install('PyQt4')
     import Qt
 
