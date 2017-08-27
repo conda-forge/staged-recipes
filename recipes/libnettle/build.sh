@@ -8,6 +8,6 @@ then
 fi
 ./configure --prefix="${PREFIX}" --libdir="${PREFIX}/lib/" --with-lib-path="${PREFIX}/lib/"
 make
-make check
-make install
+eval ${LIBRARY_SEARCH_VAR}="${PREFIX}/lib" make check
+eval ${LIBRARY_SEARCH_VAR}="${PREFIX}/lib" make install
 
