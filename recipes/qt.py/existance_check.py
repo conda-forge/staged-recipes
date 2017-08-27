@@ -18,7 +18,6 @@ def existance_check():
     return found
 
 
-# Example
 if __name__ == '__main__':
     if existance_check():
         sys.exit(0)
