@@ -10,11 +10,11 @@ def existance_check():
     site_package_locations = site.getsitepackages()
     for location in site_package_locations:
         if os.path.exists(os.path.join(location, 'Qt.py')):
+            print('Found Qt.py in: ' + location)
             found = True
-        print(
-            'Qt.py was not found in any of the locations:' +
-            ', '.join(site_package_locations)
-            )
+    if not found:
+        print('Qt.py was not found in any of the locations: ' + ', '.join(
+            site_package_locations))
     return found
 
 
