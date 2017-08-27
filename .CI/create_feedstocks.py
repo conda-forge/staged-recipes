@@ -98,11 +98,11 @@ def print_rate_limiting_info(gh):
     # spending it and how to better optimize it.
 
     # Get GitHub API Rate Limit usage and total
-    gh_api_remaining, gh_api_total = gh.rate_limiting
+    gh_api_remaining = gh.get_rate_limit().rate.remaining
+    gh_api_total = gh.get_rate_limit().rate.limit
 
     # Compute time until GitHub API Rate Limit reset
-    gh_api_reset_time = gh.rate_limiting_resettime
-    gh_api_reset_time = datetime.utcfromtimestamp(gh_api_reset_time)
+    gh_api_reset_time = gh.get_rate_limit().rate.reset
     gh_api_reset_time -= datetime.utcnow()
 
     print("")
@@ -255,7 +255,7 @@ if __name__ == '__main__':
 
             # Remove this recipe from the repo.
             if is_merged_pr:
-                subprocess.check_call(['git', 'rm', '-r', recipe_dir])
+                subprocess.check_call(['git', 'rm', '-rf', recipe_dir])
 
     # Add new conda-forge members to all-members team. Welcome! :)
     if conda_forge:
