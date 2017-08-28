@@ -1,19 +1,5 @@
 #!/bin/bash
-
-
-
-
-if [[ $(uname) == Darwin ]]; then
-    ./configure --prefix="${PREFIX}" 
-elif [[ $(uname) == Linux ]]; then
-    ./configure --prefix="${PREFIX}" --disable-assembler 
-fi
-
-
-
+./configure --prefix="${PREFIX}" --with-included-libtasn1 --with-included-unistring --without-p11-kit 
 make
-
-make check
-
 make install
-
+make check
