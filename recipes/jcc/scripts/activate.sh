@@ -7,5 +7,5 @@ if [[ -n "JCC_JDK" ]]; then
     export _JCC_JDK_CONDA_BACKUP=$JCC_JDK
 fi
 
-export JCC_JDK=$CONDA_PREFIX/Library
+export JCC_JDK=$CONDA_PREFIX
 
