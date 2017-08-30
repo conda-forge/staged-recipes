@@ -5,13 +5,14 @@ export JCC_JDK=$JAVA_HOME
 if [ "$(uname)" == "Darwin" ]
 then
     # OSX recipe
-    export MACOSX_DEPLOYMENT_TARGET=10.9
-    export MACOSX_VERSION_MIN=10.9
+    #export MACOSX_DEPLOYMENT_TARGET=10.9
+    #export MACOSX_VERSION_MIN=10.9
 
     export JCC_ARGSEP=";"
     export JCC_INCLUDES="$PREFIX/include;$PREFIX/include/darwin"
-	export JCC_LFLAGS="-v;-lc++;-headerpad_max_install_names;-L$PREFIX/jre/lib;-ljava;-L$PREFIX/jre/lib/server;-ljvm;-Wl,-rpath;-Wl,$PREFIX/jre/lib;-Wl,-rpath;-Wl,$PREFIX/jre/lib/server;-mmacosx-version-min=10.9"
-	export JCC_CFLAGS="-m64;-fno-strict-aliasing;-Wno-write-strings;-Qunused-arguments;-mmacosx-version-min=10.9"
+	export JCC_LFLAGS="-v;-L$PREFIX/jre/lib;-ljava;-L$PREFIX/jre/lib/server;-ljvm;-Wl,-rpath;-Wl,$PREFIX/jre/lib;-Wl,-rpath;-Wl,$PREFIX/jre/lib/server;-mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
+	export JCC_CFLAGS="-m64;-fno-strict-aliasing;-Wno-write-strings;-Qunused-arguments;-mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
+    export NO_SHARED=1
     printenv
 
     $PYTHON setup.py install --single-version-externally-managed --record record.txt
