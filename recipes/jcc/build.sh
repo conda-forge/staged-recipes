@@ -22,7 +22,7 @@ else
 	export JCC_INCLUDES="$PREFIX/include;$PREFIX/include/linux"
 	export JCC_LFLAGS="-v;-L$PREFIX/jre/lib/amd64;-ljava;-L$PREFIX/jre/lib/amd64/server;-ljvm;-lverify;-Wl,-rpath=$PREFIX/jre/lib/amd64:$PREFIX/jre/lib/amd64/server"
 	export JCC_JAVAC=$PREFIX/bin/javac
-	export JCC_CFLAGS="-fno-strict-aliasing;-Wno-write-strings;-std=c++11;-D__STDC_FORMAT_MACROS"
+	export JCC_CFLAGS="-fno-strict-aliasing;-Wno-write-strings;-D__STDC_FORMAT_MACROS"
 
 	# export LD_LIBRARY_PATH=$PREFIX/jre/lib/amd64/server:$PREFIX/jre/lib/amd64:$LD_LIBRARY_PATH
 	# -L$PREFIX/lib/python3.6/lib-dynload
