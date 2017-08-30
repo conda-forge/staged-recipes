@@ -3,9 +3,8 @@ set JCC_JDK=%JAVA_HOME%
 
 set PATH=%JCC_JDK%\jre\bin\server;%JCC_JDK%;%JCC_JDK%\jre\bin;%PATH%
 
-:: set JCC_INCLUDES=%JCC_JDK%\include\win32;%JCC_JDK%\include
-:: set JCC_LFLAGS=/DLL;/LIBPATH:%JCC_JDK%\lib;Ws2_32.lib;jvm.lib
-:: set JDK_HOME=%JCC_JDK%
+set JCC_INCLUDES=%JCC_JDK%\include\win32;%JCC_JDK%\include
+set JCC_LFLAGS=/DLL;/LIBPATH:%JCC_JDK%\lib;Ws2_32.lib;jvm.lib
 
 :: set
 
