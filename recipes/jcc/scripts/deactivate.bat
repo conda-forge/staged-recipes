@@ -10,4 +10,3 @@ if defined _JCC_PATH_CONDA_BACKUP (
     set "PATH =%_JCC_PATH_CONDA_BACKUP%"
     set "_JCC_PATH_CONDA_BACKUP="
 )
-

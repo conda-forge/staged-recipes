@@ -8,4 +8,3 @@ if [[ -n "JCC_JDK" ]]; then
 fi
 
 export JCC_JDK=$CONDA_PREFIX
-
