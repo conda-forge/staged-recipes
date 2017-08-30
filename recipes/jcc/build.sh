@@ -4,7 +4,6 @@ export JCC_JDK=$JAVA_HOME
 
 if [ "$(uname)" == "Darwin" ]
 then
-    # OSX recipe
     export JCC_ARGSEP=";"
     export JCC_INCLUDES="$PREFIX/include;$PREFIX/include/darwin"
 	export JCC_LFLAGS="-v;-L$PREFIX/jre/lib;-ljava;-L$PREFIX/jre/lib/server;-ljvm;-Wl,-rpath;-Wl,$PREFIX/jre/lib;-Wl,-rpath;-Wl,$PREFIX/jre/lib/server;-mmacosx-version-min=$MACOSX_DEPLOYMENT_TARGET"
