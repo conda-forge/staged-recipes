@@ -15,6 +15,7 @@ then
 
 else
     # GNU/Linux recipe
+    export JCC_ARGSEP=";"
 	export JCC_LFLAGS="-v;-L$PREFIX/jre/lib/amd64;-ljava;-L$PREFIX/jre/lib/amd64/server;-ljvm;-lverify;-Wl,-rpath=$PREFIX/jre/lib/amd64:$PREFIX/jre/lib/amd64/server"
 	export JCC_JAVAC=$PREFIX/bin/javac
 	export JCC_CFLAGS="-fno-strict-aliasing;-Wno-write-strings;-D__STDC_FORMAT_MACROS"
