@@ -1,3 +1,4 @@
+autoreconf -vfi
 ./configure --prefix=$PREFIX --with-readine --with-ui
 make
 make check
