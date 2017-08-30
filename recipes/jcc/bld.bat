@@ -1,9 +1,10 @@
 :: Paths assume openjdk installed by conda
 set JCC_JDK=%JAVA_HOME%
 
-set PATH=%JCC_JDK%\jre\bin\server;%JCC_JDK%;%JCC_JDK%\jre\bin;%JCC_JDK%\include\win32;%JCC_JDK%\include;%PATH%
+set PATH=%JCC_JDK%\jre\bin\server;%JCC_JDK%;%JCC_JDK%\jre\bin;%JCC_JDK%\jre\lib;%JCC_JDK%\include\win32;%JCC_JDK%\include;%PATH%
 
 set JCC_INCLUDES=%JCC_JDK%\include;%JCC_JDK%\include\win32
+set INCLUDE=%JCC_JDK%\include\win32;%INCLUDE%
 set JCC_LFLAGS=/DLL;/LIBPATH:%JCC_JDK%\lib;Ws2_32.lib;jvm.lib
 
 set
