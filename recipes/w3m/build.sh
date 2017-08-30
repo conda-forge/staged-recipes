@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Build script for w3m text-mode browser/pager
+set -e -o pipefail
 
 mkdir -p $PREFIX/bin
 export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
