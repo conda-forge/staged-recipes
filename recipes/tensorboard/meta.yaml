@@ -1,0 +1,62 @@
+{% set version = "0.1.5" %}
+{% set build_number = "0" %}
+
+package:
+  name: tensorboard
+  version: {{ version }}
+
+build:
+  # There are two wheels (py2, py3) in pypi, that seem equivalent to me.
+  # So for the time being, we try building a noarch package.
+  # Also see:
+  #  https://github.com/conda-forge/conda-smithy/pull/531
+  noarch: python
+  number: {{ build_number }}
+  entry_points:
+    - tensorboard = tensorboard.main:main
+  script:
+    - pip install --no-deps tensorflow-tensorboard=={{ version }}
+
+requirements:
+  # See: https://pypi.python.org/pypi/tensorflow-tensorboard/0.1.5
+  build:
+    - pip
+  run:
+    - bleach ==1.5.0
+    - html5lib ==0.9999999
+    - markdown >=2.6.8
+    - numpy >=1.11.0
+    - protobuf >=3.2.0
+    - six >=1.10.0
+    - werkzeug >=0.11.10
+
+    #
+    # After splitting out of tensorflow, the tensorboard pypi package is problematic:
+    #  - the tensorflow package depends on tensorboard (but does not need tensorboard for anything, it is just for backwards compatibility)
+    #  - the tensorboard package does logically depend on tensorflow (but does not do implicitly to avoid cyclical dependencies)
+    # In fact, the first pypi release of tensorboard had a circular dependency with tensorflow, which was nasty to us tensorboard-gpu users.
+    # They fixed it in 0.1.5 (see https://github.com/tensorflow/tensorboard/releases/tag/0.1.5) by not depending on tensorflow anymore.
+    # But now the package in pypi is not anymore standalone (you need to install tensorflow for it to work, even if TF is not a explicit dep).
+    #
+    # In conda-land we must break that vicious cycle and use the proper dependency graph:
+    #  tensorboard depends on tensorflow, tensorflow does not depend on tensorboard.
+    #
+    # Also note that this makes the noarch nature of the package a bit of a wishful thinking
+    # (we can use tensorboard only on platforms with a tensorflow package available).
+    #
+
+    - tensorflow >=1.3.0
+
+test:
+  imports:
+    - tensorboard
+  # To be super-strict, we should run the original tests with bazel against the newly created package
+
+about:
+  home: https://github.com/tensorflow/tensorboard
+  license: Apache 2.0
+  summary: "TensorFlow's Visualization Toolkit"
+
+extra:
+  recipe-maintainers:
+    - sdvillal
