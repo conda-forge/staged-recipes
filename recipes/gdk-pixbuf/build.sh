@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e -o pipefail
+
 ln -s $PREFIX/lib $PREFIX/lib64
 
 export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PREFIX/share/pkgconfig:/usr/lib64/pkgconfig:/usr/share/pkgconfig"
@@ -10,8 +12,6 @@ if  [[ "$OSTYPE" == "darwin"* ]]; then
 else
   ./configure  --prefix=$PREFIX --enable-introspection=yes CFLAGS="-I$PREFIX/include" LDFLAGS="-L$PREFIX/lib"
 fi
-
-sed -i.bak 's|#!/usr/bin/perl.*|#!/usr/bin/env perl|' ./gdk-pixbuf/*.pl
 
 make
 make install
