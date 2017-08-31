@@ -10,8 +10,8 @@ mv $PREFIX/bin/hunspell $PREFIX/bin/.hunspell
 # installed as a conda package)
 cat <<EOF > $PREFIX/bin/hunspell
 #!/bin/sh
-export DICPATH='/opt/anaconda1anaconda2anaconda3/hunspell_dictionaries'
-/opt/anaconda1anaconda2anaconda3/bin/.hunspell "\$@"
+export DICPATH='$PREFIX/hunspell_dictionaries'
+$PREFIX/bin/.hunspell "\$@"
 EOF
 
 chmod a+x $PREFIX/bin/hunspell
