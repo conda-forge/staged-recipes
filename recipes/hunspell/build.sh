@@ -10,7 +10,7 @@ mv $PREFIX/bin/hunspell $PREFIX/bin/.hunspell
 # installed as a conda package)
 cat <<EOF > $PREFIX/bin/hunspell
 #!/bin/sh
-export DICPATH='$PREFIX/hunspell_dictionaries'
+export DICPATH='$PREFIX/share/hunspell_dictionaries'
 $PREFIX/bin/.hunspell "\$@"
 EOF
 
