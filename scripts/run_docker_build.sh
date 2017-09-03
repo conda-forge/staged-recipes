@@ -10,6 +10,7 @@ config=$(cat <<CONDARC
 channels:
  - conda-forge
  - defaults
+
 conda-build:
  root-dir: /staged-recipes/build_artefacts
 
