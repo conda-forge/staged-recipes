@@ -30,6 +30,8 @@ nmake install
 if errorlevel 1 exit 1
 
 :: now Python bindings
+:: Delete the static build of gdal so FindGDAl.cmake picks up gdal_i.lib
+del %LIBRARY_LIB%\gdal.lib
 cd python
 cmake -G "NMake Makefiles" -D CMAKE_INSTALL_PREFIX=%STDLIB_DIR% ^
     -D CMAKE_BUILD_TYPE=Release ^
