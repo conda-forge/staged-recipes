@@ -9,5 +9,6 @@ gcc -O3 -finline-functions -fomit-frame-pointer -DNDEBUG -DDSFMT_MEXP=19937 \
   -Wall -std=c99 -shared dSFMT.c -o libdSFMT.so
 
 mkdir ${PREFIX}/lib
+mkdir ${PREFIX}/include
 cp libdSFMT.so ${PREFIX}/lib
 cp dSFMT.h ${PREFIX}/include
