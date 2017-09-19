@@ -10,13 +10,13 @@
 --use_full_names ^
 --python orekit ^
 --version 9.0 ^
---jar %RECIPE_DIR%\orekit-9.0.jar ^
---jar %RECIPE_DIR%\hipparchus-core-1.1.jar ^
---jar %RECIPE_DIR%\hipparchus-fitting-1.1.jar ^
---jar %RECIPE_DIR%\hipparchus-geometry-1.1.jar ^
---jar %RECIPE_DIR%\hipparchus-ode-1.1.jar ^
---jar %RECIPE_DIR%\hipparchus-optim-1.1.jar ^
---jar %RECIPE_DIR%\hipparchus-stat-1.1.jar ^
+--jar %SRC_DIR%\orekit-conda-recipe\orekit-9.0.jar ^
+--jar %SRC_DIR%\orekit-conda-recipe\hipparchus-core-1.1.jar ^
+--jar %SRC_DIR%\orekit-conda-recipe\hipparchus-fitting-1.1.jar ^
+--jar %SRC_DIR%\orekit-conda-recipe\hipparchus-geometry-1.1.jar ^
+--jar %SRC_DIR%\orekit-conda-recipe\hipparchus-ode-1.1.jar ^
+--jar %SRC_DIR%\orekit-conda-recipe\hipparchus-optim-1.1.jar ^
+--jar %SRC_DIR%\orekit-conda-recipe\hipparchus-stat-1.1.jar ^
 --package java.io ^
 --package java.util ^
 --package java.text ^
@@ -46,7 +46,7 @@ java.util.Locale ^
 java.util.Map ^
 java.util.Set ^
 java.util.TreeSet ^
---module %RECIPE_DIR%\pyhelpers ^
+--module %SRC_DIR%\orekit-conda-recipe\pyhelpers ^
 --reserved INFINITE ^
 --reserved ERROR ^
 --reserved NAN ^
@@ -63,7 +63,7 @@ if errorlevel 1 exit 1
 :: Add PATH to anaconda java-jdk / jre
 
 :: echo import os > header.txt
-:: echo os.environ["PATH"] = r"%PREFIX%\Library\jre\bin\server" + os.pathsep + os.environ["PATH"] >> header.txt
+:: echo os.environ["PATH"] = r"%SRC_DIR%\Library\jre\bin\server" + os.pathsep + os.environ["PATH"] >> header.txt
 
 
 :: IF "%ARCH%"=="32" (
