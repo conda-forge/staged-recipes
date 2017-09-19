@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-cd test
+cd orekit-conda-recipe/test
 python AltitudeDetectorTest.py
 python NodeDetectorTest.py
 python ImpulseManeuverTest.py
