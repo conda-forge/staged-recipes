@@ -1,0 +1,106 @@
+{% set name = "dpath" %}
+{% set version = "1.4.0" %}
+{% set hash_type = "sha256" %}
+{% set hash_value = "89fbec229d941e622ba4e9578a79e05f8e0b9efdfe40ffbf4e670a129ec54d6d" %}
+
+package:
+  name: '{{ name|lower }}'
+  version: '{{ version }}'
+
+source:
+  fn: '{{ name }}-{{ version }}.tar.gz'
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  '{{ hash_type }}': '{{ hash_value }}'
+
+build:
+  number: 0
+  script: 'python setup.py install '
+
+requirements:
+  build:
+    - python
+  run:
+    - python
+
+test:
+  imports:
+    - dpath
+
+about:
+  home: https://www.github.com/akesterson/dpath-python
+  license: MIT License
+  license_family: MIT
+  license_file: ''
+  summary: Filesystem-like pathing and searching for dictionaries
+  description: "dpath-python\n============\n\n|PyPI|\n|Build Status|\n\nA python library for accessing and searching dictionaries via\n/slashed/paths ala xpath\n\nBasically it lets you glob over a dictionary\
+    \ as if it were a filesystem.\nIt allows you to specify globs (ala the bash eglob syntax, through some\nadvanced fnmatch.fnmatch magic) to access dictionary elements, and\nprovides some facility for\
+    \ filtering those results.\n\nsdists are available on pypi: http://pypi.python.org/pypi/dpath\n\nInstalling\n==========\n\nThe best way to install dpath is via easy\\_install or pip.\n\n::\n\n    easy_install\
+    \ dpath\n    pip install dpath\n\nUsing Dpath\n===========\n\n.. code-block:: python\n\n    import dpath.util\n\nSeparators\n==========\n\nAll of the functions in this library (except 'merge') accept\
+    \ a\n'separator' argument, which is the character that should separate path\ncomponents. The default is '/', but you can set it to whatever you want.\n\nSearching\n=========\n\nSuppose we have a dictionary\
+    \ like this:\n\n.. code-block:: python\n\n    x = {\n        \"a\": {\n            \"b\": {\n            \"3\": 2,\n            \"43\": 30,\n            \"c\": [],\n            \"d\": ['red', 'buggy',\
+    \ 'bumpers'],\n            }\n        }\n    }\n\n... And we want to ask a simple question, like \"Get me the value of the\nkey '43' in the 'b' hash which is in the 'a' hash\". That's easy.\n\n.. code-block::\
+    \ pycon\n\n    >>> help(dpath.util.get)\n    Help on function get in module dpath.util:\n\n    get(obj, glob, separator='/')\n        Given an object which contains only one possible match for the given\
+    \ glob,\n        return the value for the leaf matching the given glob.\n\n        If more than one leaf matches the glob, ValueError is raised. If the glob is\n        not found, KeyError is raised.\n\
+    \n    >>> dpath.util.get(x, '/a/b/43')\n    30\n\nOr you could say \"Give me a new dictionary with the values of all\nelements in ``x['a']['b']`` where the key is equal to the glob ``'[cd]'``. Okay.\n\
+    \n.. code-block:: pycon\n\n    >>> help(dpath.util.search)\n    Help on function search in module dpath.util:\n\n    search(obj, glob, yielded=False)\n    Given a path glob, return a dictionary containing\
+    \ all keys\n    that matched the given glob.\n\n    If 'yielded' is true, then a dictionary will not be returned.\n    Instead tuples will be yielded in the form of (path, value) for\n    every element\
+    \ in the document that matched the glob.\n\n... Sounds easy!\n\n.. code-block:: pycon\n\n    >>> result = dpath.util.search(x, \"a/b/[cd]\")\n    >>> print json.dumps(result, indent=4, sort_keys=True)\n\
+    \    {\n    \"a\": {\n        \"b\": {\n        \"c\": [],\n        \"d\": [\n            \"red\",\n            \"buggy\",\n            \"bumpers\"\n        ]\n        }\n    }\n    }\n\n... Wow that\
+    \ was easy. What if I want to iterate over the results, and\nnot get a merged view?\n\n.. code-block:: pycon\n\n    >>> for x in dpath.util.search(x, \"a/b/[cd]\", yielded=True): print x\n    ...\n\
+    \    ('a/b/c', [])\n    ('a/b/d', ['red', 'buggy', 'bumpers'])\n\n... Or what if I want to just get all the values back for the glob? I\ndon't care about the paths they were found at:\n\n.. code-block::\
+    \ pycon\n\n    >>> help(dpath.util.values)\n    Help on function values in module dpath.util:\n\n    values(obj, glob, separator='/', afilter=None, dirs=True)\n    Given an object and a path glob, return\
+    \ an array of all values which match\n    the glob. The arguments to this function are identical to those of search(),\n    and it is primarily a shorthand for a list comprehension over a yielded\n\
+    \    search call.\n\n    >>> dpath.util.values(x, '/a/b/d/\\*')\n    ['red', 'buggy', 'bumpers']\n\nExample: Setting existing keys\n==============================\n\nLet's use that same dictionary,\
+    \ and set keys like 'a/b/[cd]' to the\nvalue 'Waffles'.\n\n.. code-block:: pycon\n\n    >>> help(dpath.util.set)\n    Help on function set in module dpath.util:\n\n    set(obj, glob, value)\n    Given\
+    \ a path glob, set all existing elements in the document\n    to the given value. Returns the number of elements changed.\n\n    >>> dpath.util.set(x, 'a/b/[cd]', 'Waffles')\n    2\n    >>> print json.dumps(x,\
+    \ indent=4, sort_keys=True)\n    {\n        \"a\": {\n            \"b\": {\n            \"3\": 2,\n            \"43\": 30,\n            \"c\": \"Waffles\",\n            \"d\": \"Waffles\"\n        \
+    \    }\n        }\n    }\n\nExample: Adding new keys\n========================\n\nLet's make a new key with the path 'a/b/e/f/g', set it to \"Roffle\". This\nbehaves like 'mkdir -p' in that it makes\
+    \ all the intermediate paths\nnecessary to get to the terminus.\n\n.. code-block:: pycon\n\n    >>> help(dpath.util.new)\n    Help on function new in module dpath.util:\n\n    new(obj, path, value)\n\
+    \    Set the element at the terminus of path to value, and create\n    it if it does not exist (as opposed to 'set' that can only\n    change existing keys).\n\n    path will NOT be treated like a glob.\
+    \ If it has globbing\n    characters in it, they will become part of the resulting\n    keys\n\n    >>> dpath.util.new(x, 'a/b/e/f/g', \"Roffle\")\n    >>> print json.dumps(x, indent=4, sort_keys=True)\n\
+    \    {\n        \"a\": {\n            \"b\": {\n                \"3\": 2,\n                \"43\": 30,\n                \"c\": \"Waffles\",\n                \"d\": \"Waffles\",\n                \"e\"\
+    : {\n                    \"f\": {\n                        \"g\": \"Roffle\"\n                    }\n                }\n            }\n        }\n    }\n\nThis works the way we expect with lists, as\
+    \ well. If you have a list\nobject and set index 10 of that list object, it will grow the list\nobject with None entries in order to make it big enough:\n\n.. code-block:: pycon\n\n    >>> dpath.util.new(x,\
+    \ 'a/b/e/f/h', [])\n    >>> dpath.util.new(x, 'a/b/e/f/h/13', 'Wow this is a big array, it sure is lonely in here by myself')\n    >>> print json.dumps(x, indent=4, sort_keys=True)\n    {\n        \"\
+    a\": {\n            \"b\": {\n                \"3\": 2,\n                \"43\": 30,\n                \"c\": \"Waffles\",\n                \"d\": \"Waffles\",\n                \"e\": {\n           \
+    \         \"f\": {\n                        \"g\": \"Roffle\",\n                        \"h\": [\n                            null,\n                            null,\n                            null,\n\
+    \                            null,\n                            null,\n                            null,\n                            null,\n                            null,\n                     \
+    \       null,\n                            null,\n                            null,\n                            null,\n                            null,\n                            \"Wow this is a\
+    \ big array, it sure is lonely in here by myself\"\n                        ]\n                    }\n                }\n            }\n        }\n    }\n\nHandy!\n\nExample: Merging\n================\n\
+    \nAlso, check out dpath.util.merge. The python dict update() method is\ngreat and all but doesn't handle merging dictionaries deeply. This one\ndoes.\n\n.. code-block:: pycon\n\n    >>> help(dpath.util.merge)\n\
+    \    Help on function merge in module dpath.util:\n\n    merge(dst, src, afilter=None, flags=4, _path='')\n        Merge source into destination. Like dict.update() but performs\n        deep merging.\n\
+    \n        flags is an OR'ed combination of MERGE_ADDITIVE, MERGE_REPLACE, or\n        MERGE_TYPESAFE.\n            * MERGE_ADDITIVE : List objects are combined onto one long\n              list (NOT\
+    \ a set). This is the default flag.\n            * MERGE_REPLACE : Instead of combining list objects, when\n              2 list objects are at an equal depth of merge, replace\n              the destination\
+    \ with the source.\n            * MERGE_TYPESAFE : When 2 keys at equal levels are of different\n              types, raise a TypeError exception. By default, the source\n              replaces the\
+    \ destination in this situation.\n\n    >>> y = {'a': {'b': { 'e': {'f': {'h': [None, 0, 1, None, 13, 14]}}}, 'c': 'RoffleWaffles'}}\n    >>> print json.dumps(y, indent=4, sort_keys=True)\n    {\n \
+    \   \"a\": {\n        \"b\": {\n        \"e\": {\n            \"f\": {\n            \"h\": [\n                null,\n                0,\n                1,\n                null,\n                13,\n\
+    \                14\n            ]\n            }\n        }\n        },\n        \"c\": \"RoffleWaffles\"\n    }\n    }\n    >>> dpath.util.merge(x, y)\n    >>> print json.dumps(x, indent=4, sort_keys=True)\n\
+    \    {\n    \"a\": {\n        \"b\": {\n        \"3\": 2,\n        \"43\": 30,\n        \"c\": \"Waffles\",\n        \"d\": \"Waffles\",\n        \"e\": {\n            \"f\": {\n            \"g\": \"\
+    Roffle\",\n            \"h\": [\n                null,\n                0,\n                1,\n                null,\n                13,\n                14,\n                null,\n             \
+    \   null,\n                null,\n                null,\n                null,\n                null,\n                null,\n                \"Wow this is a big array, it sure is lonely in here by\
+    \ myself\"\n            ]\n            }\n        }\n        },\n        \"c\": \"RoffleWaffles\"\n    }\n    }\n\nNow that's handy. You shouldn't try to use this as a replacement for the\ndeepcopy\
+    \ method, however - while merge does create new dict and list\nobjects inside the target, the terminus objects (strings and ints) are\nnot copied, they are just re-referenced in the merged object.\n\
+    \nFiltering\n=========\n\nAll of the methods in this library (except new()) support a 'afilter'\nargument. This can be set to a function that will return True or False\nto say 'yes include that value\
+    \ in my result set' or 'no don't include\nit'.\n\nFiltering functions receive every terminus node in a search - e.g.,\nanything that is not a dict or a list, at the very end of the path. For\neach value,\
+    \ they return True to include that value in the result set, or\nFalse to exclude it.\n\nConsider this example. Given the source dictionary, we want to find ALL\nkeys inside it, but we only really want\
+    \ the ones that contain \"ffle\" in\nthem:\n\n.. code-block:: pycon\n\n    >>> print json.dumps(x, indent=4, sort_keys=True)\n    {\n    \"a\": {\n        \"b\": {\n        \"3\": 2,\n        \"43\"\
+    : 30,\n        \"c\": \"Waffles\",\n        \"d\": \"Waffles\",\n        \"e\": {\n            \"f\": {\n            \"g\": \"Roffle\"\n            }\n        }\n        }\n    }\n    }\n    >>> def\
+    \ afilter(x):\n    ...     if \"ffle\" in str(x):\n    ...             return True\n    ...     return False\n    ...\n    >>> result = dpath.util.search(x, '**', afilter=afilter)\n    >>> print json.dumps(result,\
+    \ indent=4, sort_keys=True)\n    {\n    \"a\": {\n        \"b\": {\n        \"c\": \"Waffles\",\n        \"d\": \"Waffles\",\n        \"e\": {\n            \"f\": {\n            \"g\": \"Roffle\"\n\
+    \            }\n        }\n        }\n    }\n    }\n\nObviously filtering functions can perform more advanced tests (regular\nexpressions, etc etc).\n\nKey Names\n=========\n\nBy default, dpath only\
+    \ understands dictionary keys that are integers or\nstrings. String keys must be non-empty. You can change this behavior by\nsetting a library-wide dpath option:\n\n.. code-block:: python\n\n    import\
+    \ dpath.options\n    dpath.options.ALLOW_EMPTY_STRING_KEYS = True\n\nAgain, by default, this behavior is OFF, and empty string keys will\nresult in ``dpath.exceptions.InvalidKeyName`` being thrown.\n\
+    \nSeparator got you down? Use lists as paths\n==========================================\n\nThe default behavior in dpath is to assume that the path given is a string, which must be tokenized by splitting\
+    \ at the separator to yield a distinct set of path components against which dictionary keys can be individually glob tested. However, this presents a problem when you want to use paths that have a separator\
+    \ in their name; the tokenizer cannot properly understand what you mean by '/a/b/c' if it is possible for '/' to exist as a valid character in a key name.\n\nTo get around this, you can sidestep the\
+    \ whole \"filesystem path\" style, and abandon the separator entirely, by using lists as paths. All of the methods in dpath.util.* support the use of a list instead of a string as a path. So for example:\n\
+    \n.. code-block: python\n\n   >>> x = { 'a': {'b/c': 0}}\n   >>> dpath.util.get(['a', 'b/c'])\n   0\n\ndpath.path : The Undocumented Backend\n=====================================\n\ndpath.util is where\
+    \ you want to spend your time: this library has the\nfriendly functions that will understand simple string globs, afilter\nfunctions, etc.\n\ndpath.path is the backend pathing library - it is currently\n\
+    undocumented, and not meant to be used directly! It passes around lists\nof path components instead of string globs, and just generally does\nthings in a way that you (as a frontend user) might not\
+    \ expect. Stay out\nof it. You have been warned!\n\n.. |PyPI| image:: https://pypip.in/version/dpath/badge.svg?style=flat\n    :target: https://pypi.python.org/pypi/dpath/\n    :alt: PyPI: Latest Version\n\
+    \n.. |Build Status| image:: https://travis-ci.org/akesterson/dpath-python.svg?branch=travisci\n   :target: https://travis-ci.org/akesterson/dpath-python"
+  doc_url: ''
+  dev_url: ''
+
+extra:
+  recipe-maintainers: ''
