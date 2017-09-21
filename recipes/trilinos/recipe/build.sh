@@ -2,10 +2,10 @@ mkdir -p build
 cd build
 
 if [ $(uname) == Darwin ]; then
-    export CXXFLAGS="-stdlib=libc++"
+    export CXXFLAGS="$CXXFLAGS;-stdlib=libc++"
 fi
 
-export MPI_FLAGS="$MPI_FLAGS;--allow-run-as-root"
+export MPI_FLAGS="--allow-run-as-root"
 
 if [ $(uname) == Linux ]; then
     export MPI_FLAGS="$MPI_FLAGS;-mca;plm;isolated"
