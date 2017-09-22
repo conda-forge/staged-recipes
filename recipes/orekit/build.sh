@@ -3,14 +3,14 @@
 $PYTHON -m jcc \
 --use_full_names \
 --python orekit \
---version 9.0 \
---jar $SRC_DIR/orekit-conda-recipe/orekit-9.0.jar \
---jar $SRC_DIR/orekit-conda-recipe/hipparchus-core-1.1.jar \
---jar $SRC_DIR/orekit-conda-recipe/hipparchus-fitting-1.1.jar \
---jar $SRC_DIR/orekit-conda-recipe/hipparchus-geometry-1.1.jar \
---jar $SRC_DIR/orekit-conda-recipe/hipparchus-ode-1.1.jar \
---jar $SRC_DIR/orekit-conda-recipe/hipparchus-optim-1.1.jar \
---jar $SRC_DIR/orekit-conda-recipe/hipparchus-stat-1.1.jar \
+--version ${PKG_VERSION} \
+--jar $SRC_DIR/orekit-9.0.jar \
+--jar $SRC_DIR/hipparchus-core-1.1.jar \
+--jar $SRC_DIR/hipparchus-fitting-1.1.jar \
+--jar $SRC_DIR/hipparchus-geometry-1.1.jar \
+--jar $SRC_DIR/hipparchus-ode-1.1.jar \
+--jar $SRC_DIR/hipparchus-optim-1.1.jar \
+--jar $SRC_DIR/hipparchus-stat-1.1.jar \
 --package java.io \
 --package java.util \
 --package java.text \
@@ -40,7 +40,7 @@ java.util.Locale \
 java.util.Map \
 java.util.Set \
 java.util.TreeSet \
---module $SRC_DIR/orekit-conda-recipe/pyhelpers \
+--module $SRC_DIR/pyhelpers \
 --reserved INFINITE \
 --reserved ERROR \
 --reserved OVERFLOW \
