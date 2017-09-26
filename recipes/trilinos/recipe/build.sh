@@ -59,7 +59,7 @@ cmake \
   -D Ifpack2_ENABLE_TESTS:BOOL=OFF \
   -D Trilinos_ENABLE_Stratimikos:BOOL=ON \
   -D Trilinos_ENABLE_FEI:BOOL=ON \
-  -D Trilinos_ENABLE_Teko:BOOL=ON \
+  -D Trilinos_ENABLE_Teko:BOOL=OFF \
   -D Trilinos_ENABLE_Intrepid:BOOL=ON \
   -D Trilinos_ENABLE_Intrepid2:BOOL=ON \
   -D Trilinos_ENABLE_STK:BOOL=OFF \
