@@ -52,6 +52,10 @@ build:
 
 A full description of selectors is [in the conda docs](http://conda.pydata.org/docs/building/meta-yaml.html#preprocessing-selectors).
 
+Additionally, when pushing commits for a recipe that excludes Windows, put `[skip appveyor]` in the commit message to prevent CI tests
+on Windows from even starting.
+
+
 ### 4. **What does `numpy x.x` mean?**
 
 If you have a package which links against numpy you need to build and run against the same version of numpy.
