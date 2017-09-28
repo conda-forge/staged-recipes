@@ -77,7 +77,8 @@ cmake \
   -D Trilinos_ENABLE_Pike:BOOL=ON \
   $SRC_DIR
 
-make -j $CPU_COUNT
+make -j 1
+#make -j $CPU_COUNT
 
 ctest --output-on-failure -E "Zoltan_hg_simple_zoltan|ShyLUCore_belos_driver|Teko_testdriver|Teko_ModALPreconditioner|MueLu_ParameterListInterpreterTpetra|PikeBlackBox_rxn"
 
