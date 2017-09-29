@@ -35,6 +35,7 @@ cmake \
   -D Trilinos_ENABLE_GlobiPack:BOOL=ON \
   -D Trilinos_ENABLE_Triutils:BOOL=ON \
   -D Trilinos_ENABLE_Tpetra:BOOL=ON \
+  -D Tpetra_ENABLE_TESTS:BOOL=OFF \
   -D Trilinos_ENABLE_EpetraExt:BOOL=ON \
   -D Trilinos_ENABLE_Domi:BOOL=ON \
   -D Trilinos_ENABLE_Thyra:BOOL=ON \
@@ -52,6 +53,7 @@ cmake \
   -D Trilinos_ENABLE_Belos:BOOL=ON \
   -D Trilinos_ENABLE_ShyLU:BOOL=ON \
   -D Trilinos_ENABLE_Amesos2:BOOL=ON \
+  -D Amesos2_ENABLE_TESTS:BOOL=OFF \
   -D Trilinos_ENABLE_SEACAS:BOOL=OFF \
   -D Trilinos_ENABLE_Komplex:BOOL=ON \
   -D Trilinos_ENABLE_Anasazi:BOOL=ON \
