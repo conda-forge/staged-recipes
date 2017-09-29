@@ -23,7 +23,7 @@ cmake \
   -D Trilinos_ENABLE_Fortran:BOOL=OFF \
   -D Trilinos_ENABLE_ALL_PACKAGES:BOOL=OFF \
   -D Trilinos_ENABLE_ALL_OPTIONAL_PACKAGES:BOOL=OFF \
-  -D Trilinos_ENABLE_TESTS:BOOL=ON \
+  -D Trilinos_ENABLE_TESTS:BOOL=OFF \
   -D Trilinos_ENABLE_EXAMPLES:BOOL=OFF \
   -D Trilinos_ENABLE_Teuchos:BOOL=ON \
   -D Trilinos_ENABLE_RTOp:BOOL=ON \
@@ -35,7 +35,6 @@ cmake \
   -D Trilinos_ENABLE_GlobiPack:BOOL=ON \
   -D Trilinos_ENABLE_Triutils:BOOL=ON \
   -D Trilinos_ENABLE_Tpetra:BOOL=ON \
-  -D Tpetra_ENABLE_TESTS:BOOL=OFF \
   -D Trilinos_ENABLE_EpetraExt:BOOL=ON \
   -D Trilinos_ENABLE_Domi:BOOL=ON \
   -D Trilinos_ENABLE_Thyra:BOOL=ON \
@@ -53,7 +52,6 @@ cmake \
   -D Trilinos_ENABLE_Belos:BOOL=ON \
   -D Trilinos_ENABLE_ShyLU:BOOL=ON \
   -D Trilinos_ENABLE_Amesos2:BOOL=ON \
-  -D Amesos2_ENABLE_TESTS:BOOL=OFF \
   -D Trilinos_ENABLE_SEACAS:BOOL=OFF \
   -D Trilinos_ENABLE_Komplex:BOOL=ON \
   -D Trilinos_ENABLE_Anasazi:BOOL=ON \
@@ -79,9 +77,7 @@ cmake \
   -D Trilinos_ENABLE_Pike:BOOL=ON \
   $SRC_DIR
 
-make -j 1
-#make -j $CPU_COUNT
+make -j $CPU_COUNT install
 
-ctest --output-on-failure -E "Zoltan_hg_simple_zoltan|ShyLUCore_belos_driver|Teko_testdriver|Teko_ModALPreconditioner|MueLu_ParameterListInterpreterTpetra|PikeBlackBox_rxn"
-
-make install
+#ctest --output-on-failure -E "Zoltan_hg_simple_zoltan|ShyLUCore_belos_driver|Teko_testdriver|Teko_ModALPreconditioner|MueLu_ParameterListInterpreterTpetra|PikeBlackBox_rxn"
+#make install
