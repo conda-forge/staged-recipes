@@ -78,6 +78,3 @@ cmake \
   $SRC_DIR
 
 make -j $CPU_COUNT install
-
-#ctest --output-on-failure -E "Zoltan_hg_simple_zoltan|ShyLUCore_belos_driver|Teko_testdriver|Teko_ModALPreconditioner|MueLu_ParameterListInterpreterTpetra|PikeBlackBox_rxn"
-#make install
