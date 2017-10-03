@@ -1,0 +1,80 @@
+# Note: there are many handy hints in comments in this example -- remove them when you've finalized your recipe
+
+# Jinja variables help maintain the recipe as you'll update the version only here.
+{% set name = "blast" %}
+{% set version = "2.2.26" %}
+# sha256 is the prefered checksum -- you can get it for a file with:
+#  `openssl sha256 <file name>`.
+# You may need the openssl package, available on conda-forge
+#  `conda install openssl -c conda-forge``
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: blast-2.2.26-x64-linux.tar.gz                                                                         # [linux64]
+  url: ftp://ftp.ncbi.nlm.nih.gov/blast/executables/legacy/2.2.26/blast-2.2.26-x64-linux.tar.gz             # [linux64]
+  sha256: 8a2f986cf47f0f7cbdb3478c4fc7e25c7198941d2262264d0b6b86194b3d063d                                  # [linux64]
+  fn: blast-2.2.26-universal-macosx.tar.gz                                                                  # [osx]
+  url: ftp://ftp.ncbi.nlm.nih.gov/blast/executables/legacy/2.2.26/blast-2.2.26-universal-macosx.tar.gz      # [osx]
+  sha256: eabad6b37ded329a7edd14d650e0aedf7b88aa4bd1611a228d5191952d83f3b8                                  # [osx]
+  fn: blast-2.2.26-x64-win64.exe                                                                            # [win64]
+  url: ftp://ftp.ncbi.nlm.nih.gov/blast/executables/legacy/2.2.26/blast-2.2.26-x64-win64.exe                # [win64]
+  sha256: c75dfeba031955bf19872c76d138d0a6ee42aa8b8730d8370df97d7305309ea9                                  # [win64]
+
+build:
+  # Uncomment the following line if the package is pure python and the recipe is exactly the same for all platforms.
+  # See https://conda-forge.org/docs/meta.html#building-noarch-packages for more details.
+  # noarch: python
+  number: 0
+  # If the installation is complex, or different between Unix and Windows, use separate bld.bat and build.sh files instead of this key.
+  # By default, the package will be built for the Python versions supported by conda-forge and for all major OSs.
+  # Add the line "skip: True  # [py<35]" (for example) to limit to Python 3.5 and newer, or "skip: True  # [not win]" to limit to Windows.
+  script:
+    - mkdir -p "$PREFIX/bin" "$PREFIX/share/blast-2.2.26/data/"                                             # [osx or linux64]
+    - mv -v $SRC_DIR/bin/* $PREFIX/bin                                                                      # [linux64]
+    - mv -v $SRC_DIR/data/* $PREFIX/share/blast-2.2.26/data/                                                # [linux64]
+    # The next line is a workaround for conda/conda-build#411 which only affects OSX     
+    - ditto --rsrc -v --arch i386 $SRC_DIR/bin/* $PREFIX/bin                                                # [osx]
+    - ditto --rsrc -v --arch i386 $SRC_DIR/data/* $PREFIX/share/blast-2.2.26/data                           # [osx]
+    - bash configure --prefix=%PREFIX%                                                                      # [win64]
+    - xcopy /s "%SRC_DIR%\bin\*" "%PREFIX%\bin"                                                             # [win64]
+    - xcopy /s "%SRC_DIR%\data\*" "%PREFIX%\share\blast-2.2.26\data"                                        # [win64]
+    # make sure that BLASTMAT environment variable is correctly set when activating environment     
+    - mkdir -p $PREFIX/etc/conda/activate.d/                                                                # [osx or linux64]
+    - echo "export BLASTMAT=$PREFIX/share/blast-2.2.26/data/" > $PREFIX/etc/conda/activate.d/setblastmat.sh # [osx or linux64]
+    - mkdir -p $PREFIX/etc/conda/deactivate.d/                                                              # [osx or linux64]
+    - echo "unset BLASTMAT" > $PREFIX/etc/conda/deactivate.d/setblastmat.sh                                 # [osx or linux64]
+
+test:
+  files:
+    - swissprot-rat.fasta.gz
+    - test_input.fasta
+    - test_input.mtx
+  commands:
+    - gunzip -c swissprot-rat.fasta.gz > swissprot-rat.fasta                                                # [osx or linux64]
+    - formatdb -p T -i swissprot-rat.fasta -n swissprot-rat.fasta                                           # [osx or linux64]
+    - blastpgp -b 0 -v 5000 -j 3 -h 0.001 -d swissprot-rat.fasta -i test_input.fasta -C new.chk &> new.mtx  # [osx or linux64]
+    - echo 'new.chk' > new.pn                                                                               # [osx or linux64]
+    - echo 'test_input.fasta' > new.sn                                                                      # [osx or linux64]
+    - makemat -P new                                                                                        # [osx or linux64]
+    - diff new.mtx test_input.mtx                                                                               # [osx or linux64]
+
+about:
+  home: http://blast.ncbi.nlm.nih.gov/
+  # Remember to specify the license variants for BSD, Apache, GPL, and LGLP.
+  # Prefer the short version, e.g: GPL-2.0 instead of GNU General Public License version 2.0
+  # See https://opensource.org/licenses/alphabetical
+  license: Public Domain
+  summary: 'BLAST finds regions of similarity between biological sequences.'
+
+  # The remaining entries in this section are optional, but recommended
+  description: |
+    BLAST finds regions of similarity between biological sequences.
+
+extra:
+  recipe-maintainers:
+    # GitHub IDs for maintainers of the recipe.
+    # Always check with the people listed below if they are OK becoming maintainers of the recipe. (There will be spam!)
+    - sjanssen2
