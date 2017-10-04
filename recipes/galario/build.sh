@@ -7,5 +7,5 @@ cd $SRC_DIR
 mkdir build && cd build
 cmake ..
 make
-make test
+# make test
 make install
