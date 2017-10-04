@@ -22,6 +22,9 @@ source:
   fn: blast-2.2.26-x64-win64.exe                                                                            # [win64]
   url: ftp://ftp.ncbi.nlm.nih.gov/blast/executables/legacy/2.2.26/blast-2.2.26-x64-win64.exe                # [win64]
   sha256: c75dfeba031955bf19872c76d138d0a6ee42aa8b8730d8370df97d7305309ea9                                  # [win64]
+  fn: blast-2.2.26-ia32-win32.exe                                                                           # [win32]
+  url: ftp://ftp.ncbi.nlm.nih.gov/blast/executables/legacy/2.2.26/blast-2.2.26-ia32-win32.exe               # [win32]
+  sha256: e75fb5e93b16a6112e11af43536756aacbe0195c245a08c49caf6fd9d1a20247                                  # [win32]
 
 build:
   # Uncomment the following line if the package is pure python and the recipe is exactly the same for all platforms.
@@ -32,15 +35,15 @@ build:
   # By default, the package will be built for the Python versions supported by conda-forge and for all major OSs.
   # Add the line "skip: True  # [py<35]" (for example) to limit to Python 3.5 and newer, or "skip: True  # [not win]" to limit to Windows.
   script:
-    - mkdir -p "$PREFIX/bin" "$PREFIX/share/blast-2.2.26/data/"                                             # [osx or linux64]
+    - mkdir -p "$PREFIX/bin" "$PREFIX/share/blast-2.2.26/data/"                                             
     - mv -v $SRC_DIR/bin/* $PREFIX/bin                                                                      # [linux64]
     - mv -v $SRC_DIR/data/* $PREFIX/share/blast-2.2.26/data/                                                # [linux64]
     # The next line is a workaround for conda/conda-build#411 which only affects OSX     
     - ditto --rsrc -v --arch i386 $SRC_DIR/bin/* $PREFIX/bin                                                # [osx]
     - ditto --rsrc -v --arch i386 $SRC_DIR/data/* $PREFIX/share/blast-2.2.26/data                           # [osx]
-    - bash configure --prefix=%PREFIX%                                                                      # [win64]
-    - xcopy /s "%SRC_DIR%\bin\*" "%PREFIX%\bin"                                                             # [win64]
-    - xcopy /s "%SRC_DIR%\data\*" "%PREFIX%\share\blast-2.2.26\data"                                        # [win64]
+    - bash configure --prefix=%PREFIX%                                                                      # [win64 or win32]
+    - xcopy /s "%SRC_DIR%\bin\*" "%PREFIX%\bin"                                                             # [win64 or win32]
+    - xcopy /s "%SRC_DIR%\data\*" "%PREFIX%\share\blast-2.2.26\data"                                        # [win64 or win32]
     # make sure that BLASTMAT environment variable is correctly set when activating environment     
     - mkdir -p $PREFIX/etc/conda/activate.d/                                                                # [osx or linux64]
     - echo "export BLASTMAT=$PREFIX/share/blast-2.2.26/data/" > $PREFIX/etc/conda/activate.d/setblastmat.sh # [osx or linux64]
@@ -54,12 +57,19 @@ test:
     - test_input.mtx
   commands:
     - gunzip -c swissprot-rat.fasta.gz > swissprot-rat.fasta                                                # [osx or linux64]
+    - unpigz -d swissprot-rat.fasta.gz > swissprot-rat.fasta                                                # [win64 or win32]
     - formatdb -p T -i swissprot-rat.fasta -n swissprot-rat.fasta                                           # [osx or linux64]
     - blastpgp -b 0 -v 5000 -j 3 -h 0.001 -d swissprot-rat.fasta -i test_input.fasta -C new.chk &> new.mtx  # [osx or linux64]
     - echo 'new.chk' > new.pn                                                                               # [osx or linux64]
     - echo 'test_input.fasta' > new.sn                                                                      # [osx or linux64]
     - makemat -P new                                                                                        # [osx or linux64]
-    - diff new.mtx test_input.mtx                                                                               # [osx or linux64]
+    - diff new.mtx test_input.mtx                                                                           # [osx or linux64]
+
+requirements:
+  build:
+    - pigz   # [win64 or win32]
+  run:
+    - pigz   # [win64 or win32]
 
 about:
   home: http://blast.ncbi.nlm.nih.gov/
