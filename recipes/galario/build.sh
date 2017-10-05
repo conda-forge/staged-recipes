@@ -5,7 +5,7 @@ set -e
 
 cd $SRC_DIR
 mkdir build && cd build
-cmake ..
+cmake -DGALARIO_CHECK_CUDA=0 ..
 make
 # make test
 make install
