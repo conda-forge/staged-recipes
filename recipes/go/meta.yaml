@@ -1,0 +1,69 @@
+{% set name = "go" %}
+{% set version = "1.9.1" %}
+{% set p = 'm2-' if win else '' %}
+{% set n = 'm2w64-' if win else '' %}
+{% set sha256 = "a84afc9dc7d64fe0fa84d4d735e2ece23831a22117b50dafc75c1484f1cb550e" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: {{ name }}-{{ version }}.tar.gz
+  url: https://storage.googleapis.com/golang/go{{ version }}.src.tar.gz
+  sha256: {{ sha256 }}
+  patches:
+    - 0001-Skip-unshare-and-capset-tests-on-Linux.patch  # [linux]
+    - 0001-Fix-for-TestRespectSetgidDir.patch  # [osx]
+    # https://github.com/golang/go/issues/11217
+    - 0001-Skip-flaky-tests-on-Windows.patch  # [win]
+
+build:
+  number: 0
+  # It's relocatable. $GOROOT FTW!
+  binary_relocation: False
+
+requirements:
+  build:
+    - curl
+    - openssl >1        # [not win]
+    - perl 5.20.3.1     # [not win]
+    - toolchain         # [not win]
+    - {{ p }}tar        # [win]
+    - {{ p }}gzip       # [win]
+    - {{ p }}patch      # [win]
+    - {{ n }}toolchain  # [win]
+  # Optional (conda 4.4, where are you?)
+  # run:
+  #   - git
+
+test:
+  files:
+    - hello.go
+  commands:
+    - go version
+    - go help
+    - go run hello.go
+    - cmd /c echo x%GOROOT% NEQ x%CONDA_PREFIX%\go  # [win]
+    - cmd /c if x%GOROOT% NEQ x%CONDA_PREFIX%\go exit 1   # [win]
+
+about:
+  home: http://golang.org
+  license: BSD-Style
+  license_family: BSD
+  license_file: LICENSE
+  summary: 'The Go Programming Language'
+  description: |
+    Go is expressive, concise, clean, and efficient. Its concurrency mechanisms
+    make it easy to write programs that get the most out of multicore and
+    networked machines, while its novel type system enables flexible and
+    modular program construction. Go compiles quickly to machine code yet has
+    the convenience of garbage collection and the power of run-time reflection.
+    It's a fast, statically typed, compiled language that feels like a
+    dynamically typed, interpreted language.
+  doc_url: https://golang.org/doc
+  dev_url: https://go.googlesource.com/go
+
+extra:
+  recipe-maintainers:
+    - nehaljwani
