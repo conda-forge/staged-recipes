@@ -15,7 +15,9 @@ def rebuild_travis(repo_slug):
     headers = conda_smithy.ci_register.travis_headers()
 
     # If we don't specify the API version, we get a 404.
-    headers.update({'Travis-API-Version': '3'})
+    # Also fix the accepted content type.
+    headers["Accept"] = "application/json"
+    headers["Travis-API-Version"] = "3"
 
     # Trigger a build on `master`.
     encoded_slug = six.moves.urllib.parse.quote(repo_slug, safe='')
