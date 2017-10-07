@@ -1,10 +1,9 @@
 #!/bin/sh
 
-export CFLAGS="-I${PREFIX}/include"
-export CPPFLAGS="-I${PREFIX}/include"
-export LDFLAGS="-L${PREFIX}/lib -L${PREFIX}/include -lintl"
+export CFLAGS="-I${PREFIX}/include ${CFLAGS}"
+export CPPFLAGS="-I${PREFIX}/include ${CPPFLAGS}"
+export LDFLAGS="-L${PREFIX}/lib -L${PREFIX}/include -lintl ${LDFLAGS}"
 
-cd "$SRC_DIR"
 make
 make install prefix=$PREFIX
 
