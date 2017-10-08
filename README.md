@@ -56,12 +56,6 @@ Additionally, when pushing commits for a recipe that excludes Windows, put `[ski
 on Windows from even starting.
 
 
-### 4. **What does `numpy x.x` mean?**
-
-If you have a package which links against numpy you need to build and run against the same version of numpy.
-Putting `numpy x.x` in the build and run requirements ensure that a separate package will be built for each
-version of numpy that conda-forge builds against.
-
 ### 5. **What does the `build: 0` entry mean?**
 
 The build number is used when the source code for the package has not changed but you need to make a new
