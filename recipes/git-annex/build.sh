@@ -2,6 +2,8 @@
 
 set -e -o pipefail -x
 
+echo BUILDING GIT ANNEX
+
 BINARY_HOME=$PREFIX/bin
 PACKAGE_HOME=$PREFIX/share/$PKG_NAME-$PKG_VERSION-$PKG_BUILDNUM
 
@@ -26,6 +28,9 @@ echo "- $PREFIX/include" >> stack.yaml
 echo "extra-lib-dirs:" >> stack.yaml
 echo "- $PREFIX/lib64" >> stack.yaml
 echo "- $PREFIX/lib" >> stack.yaml
+
+echo "STACK YAML IS"
+cat stack.yaml
 
 stack setup
 stack path
