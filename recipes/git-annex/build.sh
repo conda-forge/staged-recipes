@@ -16,6 +16,8 @@ export LDFLAGS="-L${PREFIX}/lib64 -L${PREFIX}/lib"
 echo prefix is $PREFIX
 echo env is
 env
+echo pkgs are
+conda list
 
 export STACK_ROOT=$PACKAGE_HOME/stackroot
 mkdir -p $STACK_ROOT
