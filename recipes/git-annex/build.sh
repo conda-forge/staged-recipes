@@ -35,8 +35,11 @@ echo "STACK YAML IS"
 cat stack.yaml
 
 STACK_OPTS="--system-ghc --local-bin-path ${PREFIX}/bin --extra-lib-dirs ${PREFIX}/lib64 --extra-lib-dirs ${PREFIX}/lib --extra-include-dirs ${PREFIX}/include -v --stack-root ${STACK_ROOT}"
+export DYNAMIC_GHC_PROGRAMS=NO
+export DYNAMIC_TOO=NO
+echo IS THERE GMP?
+ls -alt $PREFIX/lib
 
 stack ${STACK_OPTS} setup
 stack path
-stack ${STACK_OPTS} install --cabal-verbose --no-executable-stripping
-
+stack ${STACK_OPTS} install --cabal-verbose --no-executable-stripping --ghc-options "-optl-static -v -optl-L${PREFIX}/lib64 -optl-L${PREFIX}/lib"
