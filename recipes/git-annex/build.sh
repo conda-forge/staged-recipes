@@ -18,7 +18,15 @@ env
 export STACK_ROOT=$PACKAGE_HOME/stackroot
 mkdir -p $STACK_ROOT
 #install_cabal_package --constraint 'fingertree<0.1.2.0' --constraint 'aws<0.17' --allow-newer=aws:time
+
+echo >> stack.yaml
+echo "local-bin-path: $PREFIX" >> stack.yaml
+echo "extra-include-dirs:" >> stack.yaml
+echo "- $PREFIX/include" >> stack.yaml
+echo "extra-lib-dirs:" >> stack.yaml
+echo "- $PREFIX/lib64" >> stack.yaml
+echo "- $PREFIX/lib" >> stack.yaml
+
 stack setup
 stack path
 stack install --cabal-verbose
-
