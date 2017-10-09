@@ -8,6 +8,12 @@ PACKAGE_HOME=$PREFIX/share/$PKG_NAME-$PKG_VERSION-$PKG_BUILDNUM
 mkdir -p $BINARY_HOME
 mkdir -p $PACKAGE_HOME
 
+export CPPFLAGS=-I${PREFIX}/include
+export LDFLAGS="-L${PREFIX}/lib64 -L${PREFIX}/lib"
+
+echo prefix is $PREFIX
+echo env is
+env
 
 export STACK_ROOT=$PACKAGE_HOME/stackroot
 mkdir -p $STACK_ROOT
