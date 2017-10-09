@@ -10,5 +10,9 @@ mkdir -p $PACKAGE_HOME
 
 
 export STACK_ROOT=$PACKAGE_HOME/stackroot
-mkdir $STACK_ROOT
-install_cabal_package --constraint 'fingertree<0.1.2.0' --constraint 'aws<0.17' --allow-newer=aws:time 
+mkdir -p $STACK_ROOT
+#install_cabal_package --constraint 'fingertree<0.1.2.0' --constraint 'aws<0.17' --allow-newer=aws:time
+stack setup
+stack path
+stack install --cabal-verbose
+
