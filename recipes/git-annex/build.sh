@@ -34,7 +34,7 @@ echo "- $PREFIX/lib" >> stack.yaml
 echo "STACK YAML IS"
 cat stack.yaml
 
-STACK_OPTS="--system-ghc --local-bin-path ${PREFIX}/bin --extra-lib-dirs ${PREFIX}/lib64 --extra-lib-dirs ${PREFIX}/lib --extra-include-dirs ${PREFIX}/include -v --stack-root ${STACK_ROOT}"
+STACK_OPTS="--local-bin-path ${PREFIX}/bin --extra-lib-dirs ${PREFIX}/lib64 --extra-lib-dirs ${PREFIX}/lib --extra-include-dirs ${PREFIX}/include -v --stack-root ${STACK_ROOT}"
 export DYNAMIC_GHC_PROGRAMS=NO
 export DYNAMIC_TOO=NO
 echo IS THERE GMP?
