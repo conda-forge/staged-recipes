@@ -1,5 +1,5 @@
 """
-Trigger the staged-recipes Travis job to restart.
+Trigger the conda-forge.github.io Travis job to restart.
 """
 
 
@@ -15,14 +15,21 @@ def rebuild_travis(repo_slug):
     headers = conda_smithy.ci_register.travis_headers()
 
     # If we don't specify the API version, we get a 404.
-    headers.update({'Travis-API-Version': '3'})
+    # Also fix the accepted content type.
+    headers["Accept"] = "application/json"
+    headers["Travis-API-Version"] = "3"
 
     # Trigger a build on `master`.
     encoded_slug = six.moves.urllib.parse.quote(repo_slug, safe='')
     url = 'https://api.travis-ci.org/repo/{}/requests'.format(encoded_slug)
     response = requests.post(
         url,
-        json={"request": {"branch": "master"}},
+        json={
+            "request": {
+                "branch": "master",
+                "message": "Triggering build from staged-recipes",
+            }
+        },
         headers=headers
     )
     if response.status_code != 201:
@@ -30,4 +37,4 @@ def rebuild_travis(repo_slug):
 
 
 if __name__ == '__main__':
-    rebuild_travis('conda-forge/staged-recipes')
+    rebuild_travis('conda-forge/conda-forge.github.io')
