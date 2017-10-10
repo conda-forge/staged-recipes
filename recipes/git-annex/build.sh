@@ -29,17 +29,18 @@ mkdir -p $STACK_ROOT
 #install_cabal_package --constraint 'fingertree<0.1.2.0' --constraint 'aws<0.17' --allow-newer=aws:time
 
 STACK_OPTS="--local-bin-path ${PREFIX}/bin --extra-include-dirs ${PREFIX}/include -v --stack-root ${STACK_ROOT}"
-export DYNAMIC_GHC_PROGRAMS=NO
-export DYNAMIC_TOO=NO
+#export DYNAMIC_GHC_PROGRAMS=NO
+#export DYNAMIC_TOO=NO
 echo IS THERE GMP?
 ls -alt $PREFIX/lib
 echo ENV BEFORE SETUP
 env
 
 mkdir -p ${PREFIX}/bin
-echo LOCALBINPATH IS ${PREFIX/bin}
+echo LOCALBINPATH IS ${PREFIX}/bin
 ls -ld ${PREFIX}/bin
+export LD_LIBRARY_PATH=${PREFIX}/lib
 stack --version
 stack ${STACK_OPTS} setup
 stack path
-stack ${STACK_OPTS} install --cabal-verbose --no-executable-stripping --ghc-options "-optl-static -v -optl-L${PREFIX}/lib"
+stack ${STACK_OPTS} install --cabal-verbose --no-executable-stripping --ghc-options "-v -optl-L${PREFIX}/lib"
