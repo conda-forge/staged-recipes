@@ -35,6 +35,10 @@ ls -alt $PREFIX/lib
 echo ENV BEFORE SETUP
 env
 
+mkdir -p ${PREFIX}/bin
+echo LOCALBINPATH IS ${PREFIX/bin}
+ls -ld ${PREFIX}/bin
+stack --version
 stack ${STACK_OPTS} setup
 stack path
 stack ${STACK_OPTS} install --cabal-verbose --no-executable-stripping --ghc-options "-optl-static -v -optl-L${PREFIX}/lib"
