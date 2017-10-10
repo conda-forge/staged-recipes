@@ -24,7 +24,12 @@ def rebuild_travis(repo_slug):
     url = 'https://api.travis-ci.org/repo/{}/requests'.format(encoded_slug)
     response = requests.post(
         url,
-        json={"request": {"branch": "master"}},
+        json={
+            "request": {
+                "branch": "master",
+                "message": "Triggering build from staged-recipes",
+            }
+        },
         headers=headers
     )
     if response.status_code != 201:
