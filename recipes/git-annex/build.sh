@@ -19,10 +19,8 @@ export LIBRARY_PATH=${PREFIX}/lib
 
 export STACK_ROOT=$PACKAGE_HOME/stackroot
 mkdir -p $STACK_ROOT
-export STACK_WORK=$PACKAGE_HOME/stackwork
-mkdir -p $STACK_WORK
 
-STACK_OPTS="--local-bin-path ${PREFIX}/bin --extra-include-dirs ${PREFIX}/include --extra-lib-dirs ${PREFIX}/lib --stack-root ${STACK_ROOT} --work-dir ${STACK_WORK}"
+STACK_OPTS="--local-bin-path ${PREFIX}/bin --extra-include-dirs ${PREFIX}/include --extra-lib-dirs ${PREFIX}/lib --stack-root ${STACK_ROOT} "
 
 mkdir -p ${PREFIX}/bin
 
