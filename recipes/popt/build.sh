@@ -1,11 +1,8 @@
 #!/bin/sh
 
+set -e -o pipefail
+
 ./configure --prefix=$PREFIX
 make
-
-# Run tests on Linux, on OS X tests 58 and 59 are broken
-if [ "$(uname)" == "Linux" ]; then
-    ./testit.sh
-fi
-
+make check
 make install
