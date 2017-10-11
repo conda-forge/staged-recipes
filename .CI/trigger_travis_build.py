@@ -3,6 +3,7 @@ Trigger the conda-forge.github.io Travis job to restart.
 """
 
 
+import argparse
 import os
 
 import requests
@@ -36,5 +37,17 @@ def rebuild_travis(repo_slug):
         response.raise_for_status()
 
 
+def main(argv):
+    parser = argparse.ArgumentParser(description="Trigger Travis CI build.")
+    parser.add_argument("slug", type=str, help="repo to trigger build for")
+
+    args = parser.parse_args(argv[1:])
+
+    rebuild_travis(args.slug)
+
+    return 0
+
+
 if __name__ == '__main__':
-    rebuild_travis('conda-forge/conda-forge.github.io')
+    import sys
+    sys.exit(main(sys.argv))
