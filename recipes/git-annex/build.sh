@@ -25,4 +25,4 @@ STACK_OPTS="--local-bin-path ${PREFIX}/bin --extra-include-dirs ${PREFIX}/includ
 mkdir -p ${PREFIX}/bin
 
 stack ${STACK_OPTS} setup
-stack ${STACK_OPTS} install --cabal-verbose --no-executable-stripping --ghc-options "-v -optl-L${PREFIX}/lib -optl-Wl,-rpath,${PREFIX}/lib"
+stack ${STACK_OPTS} install --ghc-options "-optl-L${PREFIX}/lib -optl-Wl,-rpath,${PREFIX}/lib"
