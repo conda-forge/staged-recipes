@@ -15,4 +15,5 @@ if [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
 		ls -l /staged-recipes/build_artefacts/linux-64/git-annex-6.20171003-pl5.22.2.1_0.tar.bz2
 		anaconda login --username notestaff_tmp --password w52sN6wEKe7x5aBV
 		anaconda upload /staged-recipes/build_artefacts/linux-64/git-annex-6.20171003-pl5.22.2.1_0.tar.bz2
+		time git annex test
 fi

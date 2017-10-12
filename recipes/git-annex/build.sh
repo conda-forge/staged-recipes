@@ -27,3 +27,4 @@ mkdir -p ${PREFIX}/bin
 stack ${STACK_OPTS} setup
 stack ${STACK_OPTS} install --ghc-options "-optl-L${PREFIX}/lib -optl-Wl,-rpath,${PREFIX}/lib"
 
+ln -s ${PREFIX}/git-annex ${PREFIX}/git-annex-shell
