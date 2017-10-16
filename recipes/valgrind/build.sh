@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e -o pipefail -x
+set -e -o pipefail
 
 export CPPFLAGS="-I${PREFIX}/include ${CPPFLAGS}"
 export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS}"
@@ -15,4 +15,3 @@ chmod u+x ${SRC_DIR}/coregrind/link_tool_exe_${SYSLWR}
 
 make
 make install
-make regtest
