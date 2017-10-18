@@ -1,8 +1,15 @@
 # The language in this case has no bearing - we are going to be making use of conda.
 language: generic
 
-os: osx
-osx_image: xcode6.4
+jobs:
+  include:
+    - if: (fork IN (true)) OR (type IN (pull_request))
+      os: osx
+      osx_image: xcode6.4
+
+    - if: (fork IN (false)) AND (NOT (type IN (pull_request)))
+      os: linux
+      sudo: false
 
 sudo: false
 
@@ -28,19 +35,11 @@ script:
         echo "Creating feedstocks from the recipe(s).";
         git config --global user.name "Travis-CI on github.com/conda-forge/staged-recipes";
         git config --global user.email "conda-forge@googlegroups.com";
-        source ./.CI/create_feedstocks;
+        source ./.CI/create_feedstocks || {
+            python .CI/trigger_travis_build.py "conda-forge/staged-recipes"; exit 1;
+        };
       else
         echo "Building all recipes.";
         source ./.CI/build_all;
       fi
-
-after_failure:
-  # Trigger a build only if this is not a pull request and is on the `master` branch.
-  # Also ensure that no recipes were converted (otherwise we already triggered a build by pushing).
-  - (
-        [ "${TRAVIS_REPO_SLUG}" == "conda-forge/staged-recipes" ] &&
-        [ "${TRAVIS_PULL_REQUEST}" == "false" ] &&
-        [ "${TRAVIS_BRANCH}" == "master" ]
-    ) && \
-    ( git remote remove upstream_with_token || python .CI/trigger_travis_build.py "conda-forge/staged-recipes" )
 
