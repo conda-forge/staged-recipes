@@ -1,6 +1,8 @@
-mkdir build
-cd build
 
+mkdir build
+pwd
+cd build
+pwd
 set BUILD_CONFIG=Release
 
 cmake .. -G "Ninja" ^
@@ -11,9 +13,9 @@ cmake .. -G "Ninja" ^
     -DVTKm_USE_DOUBLE_PRECISION:BOOL=OFF ^
     -DVTKm_ENABLE_BENCHMARKS:BOOL=OFF ^
     -DVTKm_ENABLE_TBB:BOOL=ON ^
+    -DVTKm_ENABLE_TESTING:BOOL=ON ^
 
 if errorlevel 1 exit 1
 
 ninja install
-
 if errorlevel 1 exit 1
