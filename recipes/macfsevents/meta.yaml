@@ -1,0 +1,74 @@
+{% set name = "macfsevents" %}
+{% set version = "0.7" %}
+{% set hash_type = "sha256" %}
+{% set hash_value = "95d3cddaf8a42435bfbd50087785ee9e3ebb8325242cfd06a88ea21f85bcb56f" %}
+
+package:
+  name: '{{ name|lower }}'
+  version: '{{ version }}'
+
+source:
+  fn: '{{ name }}-{{ version }}.tar.gz'
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  '{{ hash_type }}': '{{ hash_value }}'
+
+build:
+  number: 0
+  skip: True # [not mac]
+  script: python setup.py install  --single-version-externally-managed --record=record.txt
+
+requirements:
+  build:
+    - python
+    - setuptools
+  run:
+    - python
+
+about:
+  home: https://github.com/malthe/macfsevents
+  license: MIT
+  license_family: MIT
+  license_file: ''  # No license file provided in source repo
+  summary: Thread-based interface to file system observation primitives.
+  description: ".. contents::\n\nOverview\n========\n\n.. role:: mod(emphasis)\n\n:mod:`MacFSEvents` is a Python library that provides thread-safe\ndirectory observation primitives using callbacks. It wraps\
+    \ the Mac OS\nX ``FSEvents`` API in a C-extension.\n\nRequirements:\n\n- Mac OS X 10.5+ (Leopard)\n- Python 2.7+\n\nThis software was written by Malthe Borch <mborch@gmail.com>. The\n:mod:`pyfsevents`\
+    \ module by Nicolas Dumazet was used for reference.\n\n.. image:: https://travis-ci.org/malthe/macfsevents.svg\n    :target: https://travis-ci.org/malthe/macfsevents\n\nWhy?\n----\n\nAt this time of\
+    \ writing there are four other libraries that integrate\nwith the ``FSEvents`` API:\n\n**watchdog**:\n\n  This library actually builds on the code in :mod:`MacFSEvents` (this\n  project), but currently\
+    \ does not support Python 3 (though this\n  should happen soon). It also includes shell utilities.\n\n**pyobjc-framework-FSEvents**\n\n  These use the PyObjC bridge infrastructure which most applications\n\
+    \  do not need.\n\n**pyfsevents**\n\n  Not thread-safe (API is not designed to support it).\n\n**fsevents**\n\n  Obsolete bindings to the socket API by John Sutherland.\n\nThe :mod:`MacFSEvents` library\
+    \ provides a clean API and has full test\ncoverage.\n\nNote that :mod:`pyfsevents` has bindings to the file descriptor\nobservation primitives. This is not currently implemented by the\npresent library.\n\
+    \nLicense\n-------\n\nMade available as-is under the BSD License.\n\nUsage\n=====\n\nTo observe a directory structure (recursively) under ``path``, we set\nup an observer thread and schedule an event\
+    \ stream::\n\n  from fsevents import Observer\n  observer = Observer()\n  observer.start()\n\n  def callback(FileEvent):\n      ...\n\n  from fsevents import Stream\n  stream = Stream(callback, path)\n\
+    \  observer.schedule(stream)\n\nStreams can observe any number of paths; simply pass them as\npositional arguments (or using the ``*`` operator)::\n\n  stream = Stream(callback, *paths)\n\nTo start\
+    \ the observer in its own thread, use the ``start`` method::\n\n  observer.start()\n\nTo start the observer in the current thread, use the ``run`` method\n(it will block the thread until stopped from\
+    \ another thread)::\n\n  observer.run()\n\nThe callback function will be called when an event occurs. \nDepending on the stream, the callback will have different signitures:\n\na) the standard stream\
+    \ (with callback and paths) will call callback with\n   parameters callback(path, mask) where path is the directory where a file \n   changed and mask can be decoded using FS_FLAG* and FS_ITEM* constants\
+    \ [#]_.\n   a convenience class Mask has a __str__ function to get a text representation\n   of the flags.\nb) the stream is created with ``ids = True`` keyword parameter. In this case the call\n  \
+    \ is callback(path, mask, id). The id can be used in the ``since`` keyword\n   parameter of another stream object to also recieve historic events (that\n   happened before the stream became active)\n\
+    c) if ``file_events`` is kwarg set to True, a\n   ``FileEvent`` instance is passed to the callback and has 3 attributes:\n   ``mask``, ``cookie`` and ``name``. ``name`` parameter contains the path\n\
+    \   at which the event happened (may be a subdirectory) while ``mask``\n   parameter is the event mask. this mimicks ``inotify`` behaviour. \n   see also below.\n\nTo stop observation, simply unschedule\
+    \ the stream and stop the\nobserver::\n\n  observer.unschedule(stream)\n  observer.stop()\n\nWhile the observer thread will automatically join your main thread at\nthis point, it doesn't hurt to be\
+    \ explicit about this::\n\n  observer.join()\n\nWe often want to know about events on a file level; to receive file\nevents instead of path events, pass in ``file_events=True`` to the\nstream constructor::\n\
+    \n  def callback(event):\n      ...\n\n  stream = Stream(callback, path, file_events=True)\n\nThe event object mimick the file events of the ``inotify`` kernel\nextension available in newer linux kernels.\
+    \ It has the following\nattributes:\n\n``mask``\n   The mask field is a bitmask representing the event that occurred.\n\n``cookie``\n   The cookie field is a unique identifier linking together two related\
+    \ but separate events. It is used to link together an ``IN_MOVED_FROM`` and an ``IN_MOVED_TO`` event.\n\n``name``\n   The name field contains the name of the object to which the event occurred. This\
+    \ is the absolute filename.\n\nNote that the logic to implement file events is implemented in Python;\na snapshot of the observed file system hierarchies is maintained and\nused to monitor file events.\n\
+    \n.. [#] See `FSEventStreamEventFlags <http://developer.apple.com/mac/library/documentation/Darwin/Reference/FSEvents_Ref/FSEvents_h/index.html#//apple_ref/c/tag/FSEventStreamEventFlags>`_ for a reference.\
+    \ To check for a particular mask, use the *bitwise and* operator ``&``.\n\n\nChangelog\n=========\n\n0.7 (2015-12-18)\n----------------\n\n- Remove slots definition.\n\n0.6 (2015-12-06)\n----------------\n\
+    \n- Fixed mask serialization on Python 3.\n\n\n0.5 (2015-12-02)\n----------------\n\n- Fixed thread handling issue which might result in a segmentation\n  error.\n\n- Event IDs can be configure in the\
+    \ stream.\n\n- Added support for passing in create flags, latency and \"since fields\"\n  to the Stream.\n\n- Added flags translation facility.\n\n- Supports UTF-8-MAC(NFD).\n\n\n0.4 (2014-10-23)\n\
+    ----------------\n\n- Do not use 'Distribute'. It's been deprecated\n\n\n0.3 (2013-01-21)\n------------------\n\n- Added compatibility with Python 3. Note that Python 2.7 or better is\n  now required.\n\
+    \n- Fixed test suite on with 10.8. The event masks reported on this\n  platform are non-trivial which is a change from previous versions.\n\n0.2.8 (2012-06-09)\n------------------\n\nBugfixes:\n\n-\
+    \ Fix recursive snapshot.\n  [thomasst]\n\n- Use os.lstat instead of os.stat to correctly detect symlinks.\n  [thomasst]\n\n0.2.7 (2012-05-29)\n------------------\n\n- Added support for IN_ATTRIB.\n\
+    \  [thomasst]\n\n0.2.6 (2012-03-17)\n------------------\n\n- Fixed compilation problem on newer platforms.\n  [nsfmc]\n\n0.2.5 (2012-02-01)\n------------------\n\n- Ignore files that don't exist while\
+    \ recursing.\n  [bobveznat]\n\n0.2.4 (2010-12-06)\n------------------\n\n- Prevent crashes on recursive folder delete and multiple folder add.\n  [totolici].\n\n0.2.3 (2010-07-27)\n------------------\n\
+    \n- Fixed broken release.\n\n0.2.2 (2010-07-26)\n------------------\n\n- Python 2.4 compatibility [howitz]\n\n- Fixed an issue where the addition of a new directory would crash the\n  program when using\
+    \ file event monitoring [andymacp].\n\n0.2.1 (2010-04-27)\n------------------\n\n- Fixed an import issue [andymacp].\n\n0.2 (2010-04-26)\n----------------\n\n- Fixed issue where existing directories\
+    \ would be reported along with\n  a newly created one [marcboeker].\n\n- Added support for file event monitoring.\n\n- Fixed reference counting bug which could result in a segmentation\n  fault.\n\n\
+    0.1 (2009-11-27)\n----------------\n\n- Initial public release."
+  doc_url: 'https://github.com/malthe/macfsevents'
+  dev_url: 'https://github.com/malthe/macfsevents'
+
+extra:
+  recipe-maintainers:
+    - pbronez
