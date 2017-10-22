@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "SpiceUsr.h"
+#include <cspice/SpiceUsr.h>
 
 int main ()
 {
