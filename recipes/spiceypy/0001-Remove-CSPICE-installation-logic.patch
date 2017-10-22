@@ -1,0 +1,461 @@
+From d7898f5041ae68db0f665a623ae85a5f69714774 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Juan=20Luis=20Cano=20Rodr=C3=ADguez?= <juanlu001@gmail.com>
+Date: Sun, 22 Oct 2017 14:53:48 +0200
+Subject: [PATCH] Remove CSPICE installation logic
+
+Now it must be installed through external tools, like conda.
+---
+ getspice.py                      | 156 -------------------------
+ setup.py                         | 240 +++++++--------------------------------
+ spiceypy/utils/libspicehelper.py |   8 +-
+ 3 files changed, 43 insertions(+), 361 deletions(-)
+ delete mode 100644 getspice.py
+
+diff --git getspice.py getspice.py
+deleted file mode 100644
+index f3bb280..0000000
+--- getspice.py
++++ /dev/null
+@@ -1,156 +0,0 @@
+-#!/usr/bin/env python3
+-
+-"""
+-The MIT License (MIT)
+-
+-Copyright (c) [2015-2017] [Andrew Annex]
+-
+-Permission is hereby granted, free of charge, to any person obtaining a copy
+-of this software and associated documentation files (the "Software"), to deal
+-in the Software without restriction, including without limitation the rights
+-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-copies of the Software, and to permit persons to whom the Software is
+-furnished to do so, subject to the following conditions:
+-
+-The above copyright notice and this permission notice shall be included in all
+-copies or substantial portions of the Software.
+-
+-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-SOFTWARE.
+-
+-Sources for this file are mostly from DaRasch, spiceminer/getcspice.py,
+-with edits by me as needed for python2/3 compatibility
+-https://github.com/DaRasch/spiceminer/blob/master/getcspice.py
+-
+-The MIT License (MIT)
+-
+-Copyright (c) 2013 Philipp Rasch
+-
+-Permission is hereby granted, free of charge, to any person obtaining a copy of
+-this software and associated documentation files (the "Software"), to deal in
+-the Software without restriction, including without limitation the rights to
+-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+-the Software, and to permit persons to whom the Software is furnished to do so,
+-subject to the following conditions:
+-
+-The above copyright notice and this permission notice shall be included in all
+-copies or substantial portions of the Software.
+-
+-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+-FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+-IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-"""
+-
+-import os
+-import sys
+-import platform
+-
+-import time
+-
+-import six.moves.urllib as urllib
+-import io
+-import zipfile
+-import subprocess
+-
+-__author__ = 'AndrewAnnex'
+-
+-def getSpice():
+-
+-    def give_points(dct, info):
+-        for key in dct:
+-            if info in key:
+-                dct[key] += 1
+-
+-    def get_winner(dct):
+-        candidates = list(dct.keys())
+-        values = list(dct.values())
+-        winner = candidates[0]
+-        winner_value = 0
+-        for cand, value in zip(candidates, values):
+-            if value > winner_value:
+-                winner_value = value
+-                winner = cand
+-        return winner
+-
+-    root_url = 'https://naif.jpl.nasa.gov/pub/naif/misc/toolkit_N0066/C/'
+-    platform_urls = [
+-        'MacIntel_OSX_AppleC_32bit/',
+-        'MacIntel_OSX_AppleC_64bit/',
+-        'MacPPC_OSX_AppleC_32bit/',
+-        'PC_Cygwin_GCC_32bit/',
+-        'PC_Linux_GCC_32bit/',
+-        'PC_Linux_GCC_64bit/',
+-        'PC_Windows_VisualC_32bit/',
+-        'PC_Windows_VisualC_64bit/']
+-    ### DETERMINE BEST DOWNLOAD OPTION ###
+-    print('Gathering information...')
+-    points = {url: 0 for url in platform_urls}
+-
+-    system = platform.system()
+-    if system == 'Darwin':
+-        system = 'Mac'
+-    print('SYSTEM:   ', system)
+-    give_points(points, system)
+-
+-    processor = platform.processor()
+-    print('PROCESSOR:', processor)
+-
+-    machine = '64bit' if sys.maxsize > 2 ** 32 else '32bit'
+-    print('MACHINE:  ', machine)
+-    give_points(points, machine)
+-
+-    result = get_winner(points) + 'packages/cspice.tar.Z'
+-
+-    if "Windows" in result:
+-        result = result.replace('.tar.Z', '.zip')
+-
+-    print('Best option:', result.split('/')[0])
+-    print('URL: ', root_url + result)
+-
+-    ### DOWNLOAD AND UNPACK BEST PACKAGE ###
+-    root_dir = os.path.realpath(os.path.dirname(__file__))
+-
+-    print('\nDownloading...')
+-
+-    attemptSpiceDownloadXTimes(10, root_url, result, root_dir)
+-
+-
+-def downloadSpice(urlpath):
+-    return urllib.request.urlopen(urlpath, timeout=10)
+-
+-
+-def attemptSpiceDownloadXTimes(x, root_url, result, root_dir):
+-    attempts = 0
+-    while attempts < x:
+-        try:
+-            print("Attempting to download spice...")
+-            download = downloadSpice(root_url + result)
+-            print('Unpacking... (this may take some time!)')
+-            if result.endswith('zip'):
+-                filelike = io.BytesIO(download.read())
+-                with zipfile.ZipFile(filelike, 'r') as archive:
+-                    archive.extractall(root_dir)
+-                filelike.close()
+-            else:
+-                cmd = 'gunzip | tar xC ' + root_dir
+-                proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE)
+-                proc.stdin.write(download.read())
+-            download.close()
+-            break
+-        except urllib.error.URLError as err:
+-            print("Download failed with URLError: {}, trying again after 15 seconds!".format(err.reason))
+-        attempts += 1
+-        time.sleep(15)
+-
+-
+-if __name__ == '__main__':
+-    # Call getSpice
+-    getSpice()
+diff --git setup.py setup.py
+index 4840412..e59bf2b 100644
+--- setup.py
++++ setup.py
+@@ -24,24 +24,13 @@ SOFTWARE.
+ 
+ from setuptools import setup, find_packages
+ from setuptools.command.test import test as TestCommand
+-from setuptools.dist import Distribution
+ import sys
+-import getspice
+-import os
+-import subprocess
+-import platform
+-import shutil
+ 
+ __author__ = 'AndrewAnnex'
+ 
+-# Get OS platform
+-host_OS = platform.system()
+-# Get current working directory
+-root_dir = os.path.dirname(os.path.realpath(__file__))
+-# Make the directory path for cspice
+-cspice_dir = os.path.join(root_dir, 'cspice')
+-# Make the directory path for cspice/lib
+-lib_dir = os.path.join(cspice_dir, 'lib')
++
++TEST_DEPENDENCIES = ['pytest>=2.9.0', 'six>=1.9.0']
++DEPENDENCIES      = ['numpy>=1.8.0', 'six>=1.9.0']
+ 
+ # py.test integration from pytest.org
+ class PyTest(TestCommand):
+@@ -57,189 +46,40 @@ class PyTest(TestCommand):
+         sys.exit(errcode)
+ 
+ 
+-class BinaryDistribution(Distribution):
+-    def is_pure(self):
+-        return False
+-
+-def check_for_spice():
+-    if not os.path.exists(cspice_dir):
+-        message = 'Unable to find CSPICE at {0}. Attempting to Download CSPICE For you:'.format(cspice_dir)
+-        print(message)
+-        # Download cspice using getspice.py
+-        getspice.getSpice()
+-        if not os.path.exists(cspice_dir):
+-            message = 'Unable to find CSPICE at {0}. Exiting'.format(cspice_dir)
+-            sys.exit(message)
+-
+-
+-def unpack_cspice():
+-    if host_OS == "Linux" or host_OS == "Darwin":
+-        cspice_lib = os.path.join(lib_dir, ("cspice.lib" if host_OS is "Windows" else "cspice.a"))
+-        csupport_lib = os.path.join(lib_dir, ("csupport.lib" if host_OS is "Windows" else "csupport.a"))
+-
+-        if os.path.exists(cspice_lib) and os.path.exists(csupport_lib):
+-            cwd = os.getcwd()
+-            try:
+-                os.chdir(lib_dir)
+-                if host_OS is "Windows":
+-                    raise BaseException("Windows is not supported in this build method")
+-                elif host_OS == "Linux" or host_OS == "Darwin":
+-                    for lib in ["ar -x cspice.a", "ar -x csupport.a"]:
+-                        unpack_lib_process = subprocess.Popen(lib, shell=True)
+-                        process_status = os.waitpid(unpack_lib_process.pid, 0)[1]
+-                        if process_status != 0:
+-                            raise BaseException('{0}'.format(process_status))
+-                else:
+-                    raise BaseException("Unsupported OS: {0}".format(host_OS))
+-            except BaseException as error:
+-                status = error.args
+-                sys.exit('Error: cspice object file extraction failed with exit status: {0}'.format(status))
+-            finally:
+-                os.chdir(cwd)
+-        else:
+-            error_Message = "Error, cannot find CSPICE " \
+-                            "static libraries at {0}".format(lib_dir)
+-            sys.exit(error_Message)
+-
+-
+-def build_library():
+-    if host_OS == "Linux" or host_OS == "Darwin":
+-        currentDir = os.getcwd()
+-        try:
+-            os.chdir(lib_dir)
+-            #find a way to make this work via Extension and setuptools, not using popen.
+-            build_lib = subprocess.Popen('gcc -shared -fPIC -lm *.o -o spice.so', shell=True)
+-            status = os.waitpid(build_lib.pid, 0)[1]
+-            if status != 0:
+-                raise BaseException('{0}'.format(status))
+-            success = os.path.exists(os.path.join(os.getcwd(), 'spice.so'))
+-            if not success:
+-                raise BaseException("Did not find spice.so, build went badly.")
+-        except BaseException as errorInst:
+-            status = errorInst.args
+-            sys.exit('Error: compilation of shared spice.so build exit status: {0}'.format(status))
+-        finally:
+-            os.chdir(currentDir)
+-    elif host_OS == "Windows":
+-        currentDir = os.getcwd()
+-        try:
+-            destination = os.path.join(cspice_dir, "src", "cspice")
+-            defFile = os.path.join(root_dir, "appveyor", "cspice.def")
+-            makeBat = os.path.join(root_dir, "appveyor", "makeDynamicSpice.bat")
+-            shutil.copy(defFile, destination)
+-            shutil.copy(makeBat, destination)
+-            # run the script
+-            os.chdir(destination)
+-            windows_build = subprocess.Popen("makeDynamicSpice.bat", shell=True)
+-            status = windows_build.wait()
+-            if status != 0:
+-                raise BaseException('{0}'.format(status))
+-        except BaseException as error:
+-            sys.exit("Build failed with: {0}".format(error.args))
+-        finally:
+-            os.chdir(currentDir)
+-
+-
+-def move_to_root_directory():
+-    sharedLib = 'spice.so' if host_OS == "Linux" or host_OS == "Darwin" else 'cspice.dll'
+-    destination = os.path.join(root_dir, 'spiceypy', 'utils', sharedLib)
+-    if not os.path.isfile(destination):
+-        target = os.path.join(cspice_dir, 'lib', sharedLib) \
+-                if host_OS == "Linux" or host_OS == "Darwin" else \
+-                os.path.join(cspice_dir, 'src', 'cspice', sharedLib)
+-        print("Attempting to move: {0}   to: {1}".format(target, destination))
+-        try:
+-            os.rename(target, destination)
+-        except BaseException as e:
+-            sys.exit('{0} file not found, what happend?: {1}'.format(sharedLib, e))
+-
+-
+-def cleanup():
+-    # Remove CSPICE folder
+-    try:
+-        shutil.rmtree(os.path.join(os.getcwd(), "cspice"))
+-    except OSError as e:
+-        print("Error Cleaning up cspice folder")
+-        raise e
+-
+-
+-def mac_linux_method():
+-    if host_OS == "Linux" or host_OS == "Darwin":
+-        # Next unpack cspice.a and csupport.a
+-        unpack_cspice()
+-        # Build the shared Library
+-        build_library()
+-        # Move to correct location (root of the distribution)
+-        move_to_root_directory()
+-
+-
+-def windows_method():
+-    if host_OS == "Windows":
+-        if os.path.exists(os.path.join(cspice_dir, "lib", "cspice.dll")):
+-            print("Found premade cspice.dll, not building")
+-            return
+-        elif os.path.exists(os.path.join(root_dir, 'spiceypy', 'utils', 'cspice.dll')):
+-            print("Found premade cspice.dll in spiceypy, not building")
+-            return
+-        else:
+-            # Build the DLL
+-            build_library()
+-            # Move to correct location (root of the distribution)
+-            move_to_root_directory()
+-
+-
+-try:
+-    # First check for spice
+-    check_for_spice()
+-
+-    print("Host OS: {}".format(host_OS))
+-    if host_OS == "Linux" or host_OS == "Darwin":
+-        mac_linux_method()
+-    elif host_OS == "Windows":
+-        windows_method()
+-    else:
+-        sys.exit("Unsupported OS: {0}".format(host_OS))
+-
+-    readme = open('README.rst', 'r')
+-    readmetext = readme.read()
+-    readme.close()
+-
+-    setup(
+-        name='spiceypy',
+-        version='2.0.0',
+-        license='MIT',
+-        author='Andrew Annex',
+-        author_email='ama6fy@virginia.edu',
+-        description='A Python Wrapper for the NAIF CSPICE Toolkit',
+-        long_description=readmetext,
+-        keywords=['spiceypy', 'spice', 'naif', 'jpl', 'space', 'geometry'],
+-        url='https://github.com/AndrewAnnex/SpiceyPy',
+-        classifiers=[
+-            "Development Status :: 4 - Beta",
+-            "Natural Language :: English",
+-            "Topic :: Scientific/Engineering",
+-            "Topic :: Scientific/Engineering :: Astronomy",
+-            "License :: OSI Approved :: MIT License",
+-            "Programming Language :: Python :: 2.7",
+-            "Programming Language :: Python :: 3.3",
+-            "Programming Language :: Python :: 3.4",
+-            "Programming Language :: Python :: 3.5",
+-            "Operating System :: MacOS :: MacOS X",
+-            "Operating System :: POSIX :: Linux",
+-            "Operating System :: Microsoft :: Windows"
+-        ],
+-        packages=find_packages(exclude=["*.tests"]),
+-        include_package_data=True,
+-        zip_safe=False,
+-        distclass=BinaryDistribution,
+-        package_data={'': ['*.so', "*.dll"]},
+-        install_requires=['six'],
+-        requires=['numpy', 'pytest', 'six'],
+-        tests_require=['pytest', 'numpy', 'six'],
+-        cmdclass={'test': PyTest},
+-        test_suite='spiceypy.tests.test_wrapper.py',
+-        extras_require={'testing': ['pytest']}
+-    )
+-finally:
+-    pass
+-
++readme = open('README.rst', 'r')
++readmetext = readme.read()
++readme.close()
++
++setup(
++    name='spiceypy',
++    version='2.0.0',
++    license='MIT',
++    author='Andrew Annex',
++    author_email='ama6fy@virginia.edu',
++    description='A Python Wrapper for the NAIF CSPICE Toolkit',
++    long_description=readmetext,
++    keywords=['spiceypy', 'spice', 'naif', 'jpl', 'space', 'geometry'],
++    url='https://github.com/AndrewAnnex/SpiceyPy',
++    classifiers=[
++        "Development Status :: 4 - Beta",
++        "Natural Language :: English",
++        "Topic :: Scientific/Engineering",
++        "Topic :: Scientific/Engineering :: Astronomy",
++        "License :: OSI Approved :: MIT License",
++        "Programming Language :: Python :: 2.7",
++        "Programming Language :: Python :: 3.3",
++        "Programming Language :: Python :: 3.4",
++        "Programming Language :: Python :: 3.5",
++        "Operating System :: MacOS :: MacOS X",
++        "Operating System :: POSIX :: Linux",
++        "Operating System :: Microsoft :: Windows"
++    ],
++    packages=find_packages(exclude=["*.tests"]),
++    include_package_data=True,
++    zip_safe=False,
++    install_requires=DEPENDENCIES,
++    tests_require=TEST_DEPENDENCIES,
++    cmdclass={'test': PyTest},
++    test_suite='spiceypy.tests.test_wrapper.py',
++    extras_require={'testing': ['pytest']}
++)
+diff --git spiceypy/utils/libspicehelper.py spiceypy/utils/libspicehelper.py
+index 30f7a0a..5e1d04c 100644
+--- spiceypy/utils/libspicehelper.py
++++ spiceypy/utils/libspicehelper.py
+@@ -22,16 +22,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+ """
+ 
+-from ctypes import CDLL, POINTER, c_bool, c_int, c_double, c_char, c_char_p, c_void_p
+-import os
++from ctypes import cdll, POINTER, c_bool, c_int, c_double, c_char, c_char_p, c_void_p
+ import platform
+ from . import support_types as stypes
+ from . import callbacks
+ 
+ host_OS = platform.system()
+-sharedLib = "cspice.dll" if host_OS == "Windows" else "spice.so"
+-sitePath = os.path.join(os.path.dirname(__file__), sharedLib)
+-libspice = CDLL(sitePath)
++sharedLib = "cspice.dll" if host_OS == "Windows" else "libcspice.so"
++libspice = cdll.LoadLibrary(sharedLib)
+ 
+ __author__ = 'AndrewAnnex'
+ 
+-- 
+2.7.4
+
