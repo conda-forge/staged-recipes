@@ -3,6 +3,11 @@
 # this script is based off the homebrew package:
 # https://github.com/Homebrew/homebrew-core/blob/master/Formula/mysql.rb
 
+echo `which cpp`
+ln -s `which cpp` /lib/cpp
+ln -s `which cpp` /usr/bin/cpp
+ln -s `which cpp` /lib64/cpp
+
 mkdir -p build
 cd build
 
