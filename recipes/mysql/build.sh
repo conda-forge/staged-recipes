@@ -3,10 +3,14 @@
 # this script is based off the homebrew package:
 # https://github.com/Homebrew/homebrew-core/blob/master/Formula/mysql.rb
 
-echo `which cpp`
-ln -s `which cpp` /lib/cpp
-ln -s `which cpp` /usr/bin/cpp
-ln -s `which cpp` /lib64/cpp
+# Seems to be needed to build in some spots.
+for pth in /lib/cpp /lib64/cpp /usr/bin/cpp
+do
+    if [ ! -e ${pth} ]
+    then 
+        ln -s `which cpp` ${pth}
+    fi
+done
 
 mkdir -p build
 cd build
@@ -45,13 +49,22 @@ make install
 
 # we will run this test now and then delete the directory
 # there is no reason to ship the test dir and it is big
-cd ${PREFIX}/mysql-test
-mysql_temp_dir=`mktemp -d`
-# the || here is a rough try...except
-./mysql-test-run.pl status --vardir=${mysql_temp_dir} || rm -rf ${mysql_temp_dir}
-# always delete anything left
-rm -rf ${mysql_temp_dir}
-cd -
+# we need perl to run the test
+# if we do not have perl, then do not run the test
+perl_exe=`which perl`
+if [ ! -z ${perl_exe} ]
+then 
+    cd ${PREFIX}/mysql-test
+    mysql_temp_dir=`mktemp -d`
+    {
+        set -e
+        # the || here is a rough try...except
+        ./mysql-test-run.pl status --vardir=${mysql_temp_dir} || rm -rf ${mysql_temp_dir}
+    }
+    # always delete anything left
+    rm -rf ${mysql_temp_dir}
+    cd -
+fi
 rm -rf ${PREFIX}/mysql-test
 
 # install a default config
