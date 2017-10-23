@@ -3,12 +3,6 @@
 # this script is based off the homebrew package:
 # https://github.com/Homebrew/homebrew-core/blob/master/Formula/mysql.rb
 
-# add a symlink to cpp if needed?
-if [ ! -e /usr/bin/cpp ]
-then
-    ln -s `which cpp` /usr/bin/cpp
-fi
-
 mkdir -p build
 cd build
 
