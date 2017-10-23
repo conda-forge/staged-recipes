@@ -51,8 +51,7 @@ make install
 # there is no reason to ship the test dir and it is big
 # we need perl to run the test
 # if we do not have perl, then do not run the test
-perl_exe="`which perl`"
-if [ ! -z ${perl_exe} ]
+if [ -x "$(command -v perl)" ]
 then 
     cd ${PREFIX}/mysql-test
     mysql_temp_dir=`mktemp -d`
