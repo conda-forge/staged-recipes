@@ -1,6 +1,7 @@
 mkdir %LIBRARY_INC%\cspice
 
-copy "makeDynamicSpice.bat" %SRC_DIR%\src\cspice
+copy "%RECIPE_DIR%\\makeDynamicSpice.bat" %SRC_DIR%\src\cspice
+copy "%RECIPE_DIR%\\cspice.def" %SRC_DIR%\src\cspice
 
 cd %SRC_DIR%\src\cspice
 
