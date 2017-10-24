@@ -1,12 +1,7 @@
 #!/bin/bash
+set -eu -o pipefail
 
-#set -eu -o pipefail
-
-export LDFLAGS="/lib64"
-
-eval ./configure
-
-cat config.log 
+./configure 
 make
 make install
 
