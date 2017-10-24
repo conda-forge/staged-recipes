@@ -1,8 +1,11 @@
 #!/bin/bash
 
-#set -eu -o pipefail
+set -eu -o pipefail
 
-ls -l /lib64
+export LD_FLAGS="/lib64"
+
 eval ./configure
 cat config.log 
+make
+make install
 
