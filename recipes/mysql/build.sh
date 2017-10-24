@@ -8,6 +8,7 @@ for pth in /lib/cpp /lib64/cpp /usr/bin/cpp
 do
     if [ ! -e ${pth} ]
     then 
+        mkdir -p `dirname ${pth}`
         ln -s `which cpp` ${pth}
     fi
 done
