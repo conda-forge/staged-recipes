@@ -1,8 +1,8 @@
 #!/bin/bash
 
-set -eu -o pipefail
+#set -eu -o pipefail
 
-ls -l /usr/lib64
+ls -l /lib64
 eval ./configure
 cat config.log 
-exit
+
