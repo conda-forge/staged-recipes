@@ -68,10 +68,5 @@ then
 fi
 rm -rf ${PREFIX}/mysql-test
 
-# install a default config
-echo "[mysqld]
-bind-address = 127.0.0.1
-" > ${PREFIX}/etc/my.cnf
-
 # Make a symlink to script to start the server directly.
 ln -s ${PREFIX}/mysql/support-files/mysql.server ${PREFIX}/bin/mysql.server
