@@ -10,7 +10,7 @@ echo "MySQL Installation Notes:
 
     mysql_secure_installation
 
-2. By defuault, MySQL will only allow connections from localhost.
+2. By default, MySQL will only allow connections from localhost.
 
 3. To start [stop] the server, run:
 
@@ -35,6 +35,3 @@ then
 else
     echo "MySQL server data directory already exists. No initialization was done." >> ${PREFIX}/.messages.txt
 fi
-
-# Make a symlink to script to start the server directly.
-ln -s ${PREFIX}/mysql/support-files/mysql.server ${PREFIX}/bin/mysql.server

@@ -7,9 +7,10 @@
 for pth in /lib/cpp /lib64/cpp /usr/bin/cpp
 do
     if [ ! -e ${pth} ]
-    then 
-        mkdir -p `dirname ${pth}`
-        ln -s `which cpp` ${pth}
+    then
+        # move along if these commands fail
+        mkdir -p `dirname ${pth}` || :
+        ln -s `which cpp` ${pth} || :
     fi
 done
 
@@ -53,7 +54,7 @@ make install
 # we need perl to run the test
 # if we do not have perl, then do not run the test
 if [ -x "$(command -v perl)" ]
-then 
+then
     cd ${PREFIX}/mysql-test
     mysql_temp_dir=`mktemp -d`
     {
@@ -71,3 +72,6 @@ rm -rf ${PREFIX}/mysql-test
 echo "[mysqld]
 bind-address = 127.0.0.1
 " > ${PREFIX}/etc/my.cnf
+
+# Make a symlink to script to start the server directly.
+ln -s ${PREFIX}/mysql/support-files/mysql.server ${PREFIX}/bin/mysql.server
