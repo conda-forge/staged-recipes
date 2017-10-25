@@ -2,9 +2,7 @@
 
 set -e -o pipefail
 
-export CPPFLAGS="-I${PREFIX}/include ${CPPFLAGS}"
-export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS}"
-./configure --prefix=${PREFIX} --disable-dependency-tracking --enable-only64bit LDFLAGS="${LDFLAGS}"
+./configure --prefix=${PREFIX} --disable-dependency-tracking --enable-only64bit CPPFLAGS="-I${PREFIX}/include" LDFLAGS="-L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib"
 
 SYSLWR=`uname | tr '[:upper:]' '[:lower:]'`
 
