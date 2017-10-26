@@ -1,5 +1,6 @@
 #!/bin/bash
 set -ex
+autoreconf -f
 ./configure --prefix=${PREFIX} \
             --host=${HOST} \
             CFLAGS="${CFLAGS} -I${PREFIX}/include" \
