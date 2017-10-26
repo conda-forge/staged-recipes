@@ -4,7 +4,7 @@ set -ex
             --host=${HOST} \
             CFLAGS="${CFLAGS} -I${PREFIX}/include" \
             LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
-make -j ${CPU_COUNT}
+make -j ${CPU_COUNT} ${VERBOSE_AT}
 make install
 make check
 # This conflicts with a file in readline
