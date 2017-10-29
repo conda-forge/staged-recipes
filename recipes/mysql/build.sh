@@ -44,10 +44,10 @@ cmake \
     -DWITH_READLINE=bundled \
     -DWITH_BOOST=boost \
     -DDOWNLOAD_BOOST=1 \
-    ..
+    .. &> cmake.log
 
-make
-make install
+make &> make.log
+make install &> install.log
 
 # we will run this test now and then delete the directory
 # there is no reason to ship the test dir and it is big
