@@ -46,7 +46,7 @@ cmake \
     -DDOWNLOAD_BOOST=1 \
     .. &> cmake.log
 
-make &> make.log
+make
 make install &> install.log
 
 # we will run this test now and then delete the directory
