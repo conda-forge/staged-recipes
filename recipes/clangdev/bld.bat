@@ -1,6 +1,8 @@
 mkdir build
 cd build
 
+set PROCESSOR_ARCHITECTURE="AMD64"
+
 cmake -G "NMake Makefiles" ^
     -DCMAKE_BUILD_TYPE="Release" ^
     -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
