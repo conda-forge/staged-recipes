@@ -18,6 +18,5 @@ if errorlevel 1 exit 1
 nmake
 if errorlevel 1 exit 1
 
-xcopy bin\ %LIBRARY_BIN%\ /E
-xcopy lib\ %LIBRARY_LIB%\ /E
+nmake install
 if errorlevel 1 exit 1
