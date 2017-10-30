@@ -56,7 +56,7 @@ make install &> install.log
 if [ -x "$(command -v perl)" ]
 then
     cd ${PREFIX}/mysql-test
-    mysql_temp_dir=`mktemp -d`
+    mysql_temp_dir=`mktemp -d ${TMPDIR}/tmp/XXXXXXXXXXXX`
     {
         set -e
         # the || here is a rough try...except
