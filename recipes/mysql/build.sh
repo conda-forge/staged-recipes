@@ -3,17 +3,6 @@
 # this script is based off the homebrew package:
 # https://github.com/Homebrew/homebrew-core/blob/master/Formula/mysql.rb
 
-# Seems to be needed to build in some spots.
-for pth in /lib/cpp /lib64/cpp /usr/bin/cpp
-do
-    if [ ! -e ${pth} ]
-    then
-        # move along if these commands fail
-        mkdir -p `dirname ${pth}` || :
-        ln -s `which cpp` ${pth} || :
-    fi
-done
-
 mkdir -p build
 cd build
 
@@ -46,26 +35,13 @@ cmake \
     -DDOWNLOAD_BOOST=1 \
     .. &> cmake.log
 
+# make sure we can find cpp on the linux CI service
+sed -i 's|= rpcgen|= rpcgen -Y /usr/bin|' */Makefile
+
 make
 make install &> install.log
 
-# we will run this test now and then delete the directory
-# there is no reason to ship the test dir and it is big
-# we need perl to run the test
-# if we do not have perl, then do not run the test
-if [ -x "$(command -v perl)" ]
-then
-    cd ${PREFIX}/mysql-test
-    mysql_temp_dir=`mktemp -d ${TMPDIR}/tmp/XXXXXXXXXXXX`
-    {
-        set -e
-        # the || here is a rough try...except
-        ./mysql-test-run.pl status --vardir=${mysql_temp_dir} || rm -rf ${mysql_temp_dir}
-    }
-    # always delete anything left
-    rm -rf ${mysql_temp_dir}
-    cd -
-fi
+# remove this dir so we do not ship it
 rm -rf ${PREFIX}/mysql-test
 
 # Make a symlink to script to start the server directly.
