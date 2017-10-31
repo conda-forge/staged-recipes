@@ -36,7 +36,8 @@ cmake \
     .. &> cmake.log
 
 # make sure we can find cpp on the linux CI service
-sed -i 's|= rpcgen|= rpcgen -Y /usr/bin|' */Makefile
+CPP_ROOT="dirname $(which cpp)"
+sed -i'' -e "s|= rpcgen|= rpcgen -Y ${CPP_ROOT}|" */Makefile
 
 make
 make install &> install.log
