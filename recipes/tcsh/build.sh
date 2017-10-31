@@ -1,9 +1,6 @@
 #!/bin/bash
 set -eu -o pipefail
 
-ldconfig -v
-
-./configure 
+./configure --prefix="${PREFIX}"
 make
-make install
-
+make install 
