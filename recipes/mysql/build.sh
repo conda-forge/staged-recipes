@@ -37,12 +37,24 @@ cmake \
 
 # make sure we can find cpp on the linux CI service
 CPP_ROOT=`dirname $(which cpp)`
-sed -i'' -e "s|= rpcgen|= rpcgen -Y ${CPP_ROOT}|" */Makefile
+export LC_ALL=C  # on osx sed chokes on non UTF-8
+(find . -type f -print0 | xargs -0 sed -i"" -e "s|= rpcgen -Y  -Y |= rpcgen -Y ${CPP_ROOT}|")
+unset LC_ALL
 
 make
 make install &> install.log
 
 # remove this dir so we do not ship it
+cd ${PREFIX}/mysql-test
+mysql_temp_dir=`mktemp -d ${TMPDIR}/tmp/XXXXXXXXXXXX`
+{
+    set -e
+    # the || here is a rough try...except
+    ./mysql-test-run.pl status --vardir=${mysql_temp_dir} || rm -rf ${mysql_temp_dir}
+}
+cd -
+# always delete anything left
+rm -rf ${mysql_temp_dir}
 rm -rf ${PREFIX}/mysql-test
 
 # Make a symlink to script to start the server directly.
