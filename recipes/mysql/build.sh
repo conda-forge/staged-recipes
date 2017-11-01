@@ -16,7 +16,6 @@ cd build
 mkdir -p ${PREFIX}/mysql
 cmake \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
-    -DMYSQL_DATADIR=${PREFIX}/mysql/datadir \
     -DINSTALL_INCLUDEDIR=include/mysql \
     -DINSTALL_MANDIR=share/man \
     -DINSTALL_DOCDIR=share/doc/mysql \
@@ -25,7 +24,6 @@ cmake \
     -DINSTALL_MYSQLSHAREDIR=share/mysql \
     -DINSTALL_SUPPORTFILESDIR=mysql/support-files \
     -DINSTALL_SCRIPTDIR=mysql/scripts \
-    -DSYSCONFDIR=${PREFIX}/etc \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_FIND_FRAMEWORK=LAST \
     -DCMAKE_VERBOSE_MAKEFILE=OFF \
