@@ -3,6 +3,12 @@
 # this script is based off the homebrew package:
 # https://github.com/Homebrew/homebrew-core/blob/master/Formula/mysql.rb
 
+# make sure we can find cpp on the linux CI service
+CPP_ROOT=`dirname $(which cpp)`
+export LC_ALL=C  # on osx sed chokes on non UTF-8
+find . -type f -print0 | xargs -0 sed -i"" -e "s|COMMAND rpcgen  -C|COMMAND rpcgen  -Y ${CPP_ROOT} -C|g"
+unset LC_ALL
+
 mkdir -p build
 cd build
 
@@ -34,12 +40,6 @@ cmake \
     -DWITH_BOOST=boost \
     -DDOWNLOAD_BOOST=1 \
     .. &> cmake.log
-
-# make sure we can find cpp on the linux CI service
-CPP_ROOT=`dirname $(which cpp)`
-export LC_ALL=C  # on osx sed chokes on non UTF-8
-find . -type f -print0 | xargs -0 sed -i"" -e "s|rpcgen -C|rpcgen -Y ${CPP_ROOT} -C|g"
-unset LC_ALL
 
 make
 make install &> install.log
