@@ -15,6 +15,7 @@ cd build
 # -DINSTALL_* are relatiove to -DCMAKE_INSTALL_PREFIX
 mkdir -p ${PREFIX}/mysql
 cmake \
+    -DCMAKE_PREFIX_PATH=${PREFIX} \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DINSTALL_INCLUDEDIR=include/mysql \
     -DINSTALL_MANDIR=share/man \
@@ -32,10 +33,9 @@ cmake \
     -DDEFAULT_CHARSET=utf8 \
     -DDEFAULT_COLLATION=utf8_general_ci \
     -DCOMPILATION_COMMENT=conda-forge \
-    -DWITH_SSL=bundled \
-    -DWITH_EDITLINE=bundled \
-    -DWITH_READLINE=bundled \
-    -DWITH_BOOST=boost \
+    -DWITH_SSL=system \
+    -DWITH_EDITLINE=system \
+    -DWITH_BOOST=bundled \
     -DDOWNLOAD_BOOST=1 \
     .. &> cmake.log
 
