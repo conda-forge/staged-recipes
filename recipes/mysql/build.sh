@@ -48,7 +48,7 @@ mysql_temp_dir=`mktemp -d ${TMPDIR}/tmp/XXXXXXXXXXXX`
 {
     set -e
     # the || here is a rough try...except
-    ./mysql-test-run.pl status --vardir=${mysql_temp_dir} || rm -rf ${mysql_temp_dir}
+    perl mysql-test-run.pl status --vardir=${mysql_temp_dir} || rm -rf ${mysql_temp_dir}
 }
 cd -
 # always delete anything left
