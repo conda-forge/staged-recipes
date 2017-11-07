@@ -1,0 +1,36 @@
+#!/bin/bash
+
+
+EXTRA_CMAKE_ARGS=""
+if [[ `uname` == 'Darwin' ]];
+then
+    EXTRA_CMAKE_ARGS="-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}"
+else
+    export CXXFLAGS="-pthread ${CXXFLAGS}"
+fi
+export EXTRA_CMAKE_ARGS
+
+export QPBO_CXX_FLAGS="${CXXFLAGS}"
+#export QPBO_CXX_FLAGS="${CXXFLAGS} -std=c++11"
+
+
+export QPBO_LDFLAGS="${CXX_LDFLAGS} -Wl,-rpath,${PREFIX}/lib -L${PREFIX}/lib"
+
+
+
+
+
+
+cmake  \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+    -DCMAKE_PREFIX_PATH=${PREFIX} \
+    \
+    -DCMAKE_CXX_LINK_FLAGS="${QPBO_LDFLAGS}" \
+    -DCMAKE_EXE_LINKER_FLAGS="${QPBO_LDFLAGS}" \
+    -DCMAKE_CXX_FLAGS="${QPBO_CXX_FLAGS}" \
+    -DCMAKE_CXX_FLAGS_RELEASE="${QPBO_CXX_FLAGS_RELEASE}" \
+    -DCMAKE_CXX_FLAGS_DEBUG="${QPBO_CXX_FLAGS}" \
+
+make -j${CPU_COUNT}
+
+make install
