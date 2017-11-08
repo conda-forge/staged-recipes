@@ -1,8 +1,6 @@
-#!/bin/bash -e
+#!/bin/bash
 
+mkdir -p ${PREFIX}/bin
+mv micro ${PREFIX}/bin
 
-cp -r $SRC_DIR/* ${PREFIX}/bin/
-
-#rm -f ${PREFIX}/conda_build.sh
-
-#cp jruby --prefix=$PREFIX/bin
+chmod +x ${PREFIX}/bin/micro
