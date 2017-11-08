@@ -1,8 +1,6 @@
-#!/bin/bash -e
+#!/bin/bash
 
+mkdir -p ${PREFIX}/bin
+mv opam ${PREFIX}/bin
 
-cp -r $SRC_DIR/* ${PREFIX}/bin/
-
-#rm -f ${PREFIX}/conda_build.sh
-
-#cp opam --prefix=$PREFIX/bin
+chmod +x ${PREFIX}/bin/opam
