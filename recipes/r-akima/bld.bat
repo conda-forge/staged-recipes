@@ -1,4 +1,4 @@
-"%R%" CMD INSTALL --build --debug .
+"%R%" CMD INSTALL --build .
 if errorlevel 1 exit 1
 
 @rem Add more build steps here, if they are necessary.
