@@ -1,0 +1,80 @@
+{% set version = "0.4.0rc3" %}
+{% set build_number = "0" %}
+
+package:
+  name: tensorboard
+  version: {{ version }}
+
+build:
+
+  # There are two wheels (py2, py3) in pypi.
+  # (for newer versions, recheck by diffing both py2 and py3 wheels).
+  # At the moment they are equivalent, as only their metadata changes.
+  # But we cannot create a noarch package: dependencies are different
+  # noarch: python
+
+  number: {{ build_number }}
+  entry_points:
+    - tensorboard = tensorboard.main:main
+  script:
+    - pip install --no-deps tensorflow-tensorboard=={{ version }}
+
+requirements:
+  # See: https://pypi.python.org/pypi/tensorflow-tensorboard/0.4.0rc3
+  build:
+    - python
+    - pip
+  run:
+    - python
+    - futures >=3.1.1  # [py27]
+    - bleach ==1.5.0
+    - html5lib ==0.9999999
+    - markdown >=2.6.8
+    - numpy >=1.12.0
+    - protobuf >=3.3.0
+    - six >=1.10.0
+    - werkzeug >=0.11.10
+
+    #
+    # After splitting out of tensorflow, the tensorboard pypi package is problematic:
+    #
+    #  - tensorflow does not need tensorboard to work
+    #    (but depends on it, just to avoid surprising the users that were used to have tensorboard in the package)
+    #
+    #  - tensorboard does need tensorflow to work
+    #    (but does not depend on it explicitly to avoid cyclical dependencies)
+    #
+    # This means that the tensorboard package is not standalone and should always be installed
+    # by installing tensorflow. At the moment we are mirroring in conda-forge the wrongs on
+    # pypi.
+    #
+    # Also note that this makes the noarch nature of the package a bit of a wishful thinking
+    # (we can use tensorboard only on platforms with a tensorflow package available).
+    #
+    # See:
+    #  Issue in TB tracker: https://github.com/tensorflow/tensorboard/issues/410
+    #  Initial recipe PR: https://github.com/conda-forge/staged-recipes/pull/3866
+    #  Issue in the TF recipe: https://github.com/conda-forge/tensorflow-feedstock/issues/42
+    #
+    # An alternative solution would be to uncomment the tensorflow dependency down here
+    # and remove the tensorflow dependency on the tensorboard package. Pros: this would create
+    # a saner dependency cycle. Cons: it would be inconsitent with the official pypi releases.
+    #
+    # - tensorflow >=1.4.0
+    #
+
+test:
+  imports:
+    - tensorboard
+  # To be super-strict, we should run the original tests with bazel against the newly created package
+
+about:
+  home: https://github.com/tensorflow/tensorboard
+  license: Apache 2.0
+  license_file: '{{ environ["RECIPE_DIR"] }}/LICENSE'
+  summary: "TensorFlow's Visualization Toolkit"
+
+extra:
+  recipe-maintainers:
+    - sdvillal
+    - danielfrg
