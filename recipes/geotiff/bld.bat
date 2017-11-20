@@ -1,5 +1,7 @@
 
-:: Had to set TIFF_NAMES and PROJ4_NAMES to force use of shared libs
+:: Had to set TIFF_NAMES, PROJ4_NAMES and JPEG_NAMES to force use of shared libs
+:: Note that zlib and jpeg only get linked in if tiff is linked statically, otherwise
+:: they don't seem to be used (presumeably they are used via libtiff in a dll build).
 cmake -G "NMake Makefiles" ^
       -D CMAKE_BUILD_TYPE=Release ^
       -D CMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
