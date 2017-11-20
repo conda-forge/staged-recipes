@@ -46,10 +46,6 @@ pushd /staged-recipes/recipes > /dev/null
 git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf ~/conda-recipes/{} && echo Removing recipe: {}"
 popd > /dev/null
 
-if [ "${BINSTAR_TOKEN}" ];then
-    export BINSTAR_TOKEN=${BINSTAR_TOKEN}
-fi
-
 # Unused, but needed by conda-build currently... :(
 export CONDA_NPY='19'
 
@@ -68,5 +64,5 @@ find ~/conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt
     | xargs -n1 cat | grep -v -e "^#" -e "^$" | \
     xargs -r /usr/bin/sudo -n yum install -y
 
-conda build-all ~/conda-recipes --matrix-conditions "numpy >=1.11" "python >=2.7,<3|>=3.5" "r-base >=3.3.2"
+conda build-all ~/conda-recipes --matrix-conditions "numpy >=1.11" "python >=2.7,<3|>=3.5" "r-base ==3.3.2|==3.4.1"
 EOF
