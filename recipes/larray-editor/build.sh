@@ -10,4 +10,4 @@ else
     cp "$SRC_DIR/larray_editor/images/larray.png" "$PREFIX/Menu"
 fi
 
-"$PYTHON" setup.py install || exit 1
+"$PYTHON" setup.py install --single-version-externally-managed --record record.txt || exit 1
