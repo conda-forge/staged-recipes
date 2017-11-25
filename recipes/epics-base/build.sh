@@ -2,22 +2,22 @@
 install -d $PREFIX/bin
 install -d $PREFIX/lib
 install -d $PREFIX/epics
-# Need to add LDFLAGS so that ld can find libreadline
-make LDFLAGS=-L$LD_RUN_PATH
+
+make -j$(getconf _NPROCESSORS_ONLN)
 
 EPICS_BASE=$PREFIX/epics
 EPICS_HOST_ARCH=$(startup/EpicsHostArch)
 
 # Copy libraries into $PREFIX/lib
-cp -av $PREFIX/epics/lib/$EPICS_HOST_ARCH/lib*so* $PREFIX/lib
+cp -av $PREFIX/epics/lib/$EPICS_HOST_ARCH/lib*so* $PREFIX/lib 2>/dev/null || : # linux
+cp -av $PREFIX/epics/lib/$EPICS_HOST_ARCH/lib*dylib* $PREFIX/lib 2>/dev/null || :  # osx
 
 # Setup symlinks for utilities
-BINS="caget caput camonitor softIoc"
-pushd $PREFIX/bin
+BINS="caget caput camonitor softIoc caRepeater cainfo"
+cd $PREFIX/bin
 for file in $BINS ; do
 	ln -s ../epics/bin/$EPICS_HOST_ARCH/$file .
 done
-popd
 
 # deal with env export
 mkdir -p $PREFIX/etc/conda/activate.d
@@ -39,5 +39,3 @@ echo "unset EPICS_HOST_ARCH" >> $DEACTIVATE
 unset ACTIVATE
 unset DEACTIVATE
 unset ETC
-
-cp LICENSE build/
