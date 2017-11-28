@@ -1,0 +1,79 @@
+{% set name = "rxcpp" %}
+{% set version = "4.0.0" %}
+{% set sha256 = "50e7395ab1bc2a0000df126c6920a36dd3c4ee04a71496b2f4c10adf50d65178" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: {{ name }}-{{ version }}.tar.gz
+  url: https://github.com/Reactive-Extensions/RxCpp/archive/v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+  patches:
+    - install-to-include.patch  # Patch is already in upstream:
+    # https://github.com/Reactive-Extensions/RxCpp/commit/5b7b2a5
+
+# WARNING: this source doesn't include the Catch submodule, which is used for
+#          the test commands. It's not used for the examples, and we can just
+#          ignore it there.
+
+build:
+  number: 0
+  script:
+    - set -ex  # conda-build 2 doesn't do this automatically  # [unix]
+    - cd projects
+    - mkdir build
+    - cd build
+
+    - cmake -G"Unix Makefiles"  -DCMAKE_INSTALL_PREFIX=$PREFIX          ../CMake  # [unix]
+    - cmake -G"NMake Makefiles" -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ../CMake  # [win]
+    - if errorlevel 1 exit 1  # [win]
+
+    # Run a quick build test that things are sensible.
+    - make  println && examples/println/println    # [unix]
+    - nmake println && examples\\println\\println  # [win]
+    - if errorlevel 1 exit 1  # [win]
+
+    # Install header files (won't install tests/examples):
+    - make install   # [unix]
+    - nmake install  # [win]
+    - if errorlevel 1 exit 1  # [win]
+  skip: true  # [win and py27]
+
+requirements:
+  build:
+    - cmake
+    - toolchain
+    - python  # [win]
+    - vc 9    # [win and py27]
+    - vc 10   # [win and py34]
+    - vc 14   # [win and py>=35]
+  run:
+    - vc 9   # [win and py27]
+    - vc 10  # [win and py34]
+    - vc 14  # [win and py>=35]
+  # NOTE: rxcpp is header-only, but we still need the vc version dance because
+  #       the build system doesn't work on vc9. Not sure if the actual library
+  #       works or not.
+
+test:
+  commands:
+    - test -f $PREFIX/include/rxcpp/rx-util.hpp              # [unix]
+    - if not exist %LIBRARY_INC%\\rxcpp\\rx-util.hpp exit 1  # [win]
+
+about:
+  home: https://github.com/Reactive-Extensions/RxCpp
+  license: Apache-2.0
+  license_family: Apache
+  license_file: license.md
+  summary: 'Reactive Extensions for C++'
+  description: |
+    The Reactive Extensions for C++ (RxCpp) is a library of algorithms for
+    values-distributed-in-time. 
+  doc_url: http://reactive-extensions.github.io/RxCpp/
+  dev_url: https://github.com/Reactive-Extensions/RxCpp
+
+extra:
+  recipe-maintainers:
+    - dougalsutherland
