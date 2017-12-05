@@ -1,1 +1,1 @@
-cpanm Net::SSLeay
+cpanm --verbose Net::SSLeay
