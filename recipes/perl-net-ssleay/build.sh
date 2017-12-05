@@ -25,6 +25,7 @@ if [ -f Build.PL ]; then
 elif [ -f Makefile.PL ]; then
     # Make sure this goes in site
     perl Makefile.PL INSTALLDIRS=site
+    which perl
     ls -lah
     make
     make test
