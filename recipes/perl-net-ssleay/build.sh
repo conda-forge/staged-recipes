@@ -1,6 +1,7 @@
 #!/bin/bash
 
 perl -V
+which cc
 
 export OPENSSL_PREFIX=${PREFIX}
 
