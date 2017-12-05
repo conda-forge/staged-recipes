@@ -26,6 +26,7 @@ elif [ -f Makefile.PL ]; then
     # Make sure this goes in site
     perl Makefile.PL INSTALLDIRS=site
     which perl
+    which cc
     ls -lah
     make
     make test
