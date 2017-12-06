@@ -1,6 +1,6 @@
 #!/bin/bash
 
-$PYTHON setup.py install --prefix=$PREFIX
+$PYTHON setup.py install
 
 # Add more build steps here, if they are necessary.
 
