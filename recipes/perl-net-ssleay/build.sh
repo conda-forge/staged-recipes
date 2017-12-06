@@ -1,8 +1,5 @@
 #!/bin/bash
 
-perl -V
-which cc
-
 export OPENSSL_PREFIX=${PREFIX}
 
 export PERL_MM_USE_DEFAULT=1
