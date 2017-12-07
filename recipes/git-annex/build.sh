@@ -2,23 +2,22 @@
 
 set -e -o pipefail -x
 
-BINARY_HOME=$PREFIX/bin
-PACKAGE_HOME=$PREFIX/share/$PKG_NAME-$PKG_VERSION-$PKG_BUILDNUM
+BINARY_HOME=${PREFIX}/bin
+PACKAGE_HOME=${PREFIX}/share/${PKG_NAME}-${PKG_VERSION}-${PKG_BUILDNUM}
 
-mkdir -p $BINARY_HOME
-mkdir -p $PACKAGE_HOME
+mkdir -p ${BINARY_HOME}
+mkdir -p ${PACKAGE_HOME}
 
-export CPPFLAGS=-I${PREFIX}/include
-export CFLAGS=-I${PREFIX}/include
-export CXXFLAGS=-I${PREFIX}/include
-export CPPFLAGS=-I${PREFIX}/include
-export C_INCLUDE_PATH=${PREFIX}/include
-export CPLUS_INCLUDE_PATH=${PREFIX}/include
-export LDFLAGS=-L${PREFIX}/lib
-export LIBRARY_PATH=${PREFIX}/lib
+export CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include"
+export CFLAGS="${CFLAGS} -I${PREFIX}/include"
+export CXXFLAGS="${CXXFLALGS} -I${PREFIX}/include"
+export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
+export C_INCLUDE_PATH=${C_INCLUDE_PATH}:${PREFIX}/include
+export CPLUS_INCLUDE_PATH=${CPLUS_INCLUDE_PATH}:${PREFIX}/include
+export LIBRARY_PATH=${LIBRARY_PATH}:${PREFIX}/lib
 
-export STACK_ROOT=$PACKAGE_HOME/stackroot
-mkdir -p $STACK_ROOT
+export STACK_ROOT=${PACKAGE_HOME}/stackroot
+mkdir -p ${STACK_ROOT}
 
 STACK_OPTS="--local-bin-path ${PREFIX}/bin --extra-include-dirs ${PREFIX}/include --extra-lib-dirs ${PREFIX}/lib --stack-root ${STACK_ROOT} "
 
