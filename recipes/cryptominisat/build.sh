@@ -1,6 +1,8 @@
 #!/bin/bash
 set -eu -o pipefail
 
+apt-get install -y vim-commmon
+
 outdir=$PREFIX/share/$PKG_NAME-$PKG_VERSION-$PKG_BUILDNUM
 mkdir -p $outdir/bin
 mkdir -p $PREFIX/bin
