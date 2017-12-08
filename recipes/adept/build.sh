@@ -1,5 +1,5 @@
 autoreconf -fi
-./configure
-make -j 8
-make check
+./configure --prefix=${PREFIX}
+make -j ${CPU_COUNT}
+make check j ${CPU_COUNT}
 make install
