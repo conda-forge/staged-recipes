@@ -1,17 +1,21 @@
 export CFLAGS='-fPIC'
 
-CC=${PREFIX}/bin/gcc
-CXX=${PREFIX}/bin/g++
-
 if [ "$(uname)" == "Darwin" ]; then
+        
+    export CC=clang
+    export CXX=clang++
+
+else
     
-    # Build for a fairly old mac to ensure portability
-    
-    export MACOSX_DEPLOYMENT_TARGET=10.6
+    export CC=${PREFIX}/bin/gcc
+    export CXX=${PREFIX}/bin/g++
 
+fi
 
-./configure --prefix=$PREFIX
+LDFLAGS="-Wl,-rpath,${PREFIX}/lib" ./configure --prefix=$PREFIX --with-cfitsiolib=${PREFIX}/lib --with-cfitsioinc=${PREFIX}/include
 
-make
+make all
+
+make check
 
 make install
