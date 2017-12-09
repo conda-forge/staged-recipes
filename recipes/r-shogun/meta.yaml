@@ -1,0 +1,148 @@
+{% set name = "r-shogun" %}
+
+{% set version = "6.1.3" %}
+{% set commit = 'shogun_' + version %}
+{% set sha256 = "75f4d555efe06eaa7c4c12a1dc942f6e4d41a8ed495777a790b9bd9df936c19c" %}
+
+{% set build = 0 %}
+
+# Shogun doesn't produce a single tarball you can build from anymore;
+# need to get the gpl-shogun tarball too. Remember to update this when updating
+# the version!
+{% set gpl_commit = "29ca2ff930cd5d963b3a78e79160cc04d48970c2" %}
+{% set gpl_sha256 = "ff8a46b7775e784f07e9ffb02e7cd9b101f508c1c7b7d8cdbf1024a2efacdb22" %}
+{% set gpl_url = "http://github.com/shogun-toolbox/shogun-gpl/archive/" + gpl_commit + ".tar.gz" %}
+
+{% set blas_variant = "openblas" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: shogun_{{ version }}.tar.gz
+  url: https://github.com/shogun-toolbox/shogun/archive/{{ commit }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: {{ build }}
+  features:
+    - blas_{{ blas_variant }}  # [not win]
+  skip:
+    - true  # [win32]         # shogun doesn't build 32-bit
+    - true  # [win and py2k]  # shogun doesn't build on VC9
+    - true  # [py!=36]        # python just build dep, don't need matrix
+  script: |
+    set -ex  # not automatic in conda-build 2
+
+    # HACK: download the gpl tarball
+    # When we migrate to conda-build 3, can have multiple sources:
+    #  https://github.com/conda/conda-build/pull/1929
+    python $RECIPE_DIR/get_tarball.py  -c {{ gpl_sha256 }} -p src/gpl --strip-components 1 {{ gpl_url }}  # [unix]
+    python %RECIPE_DIR%/get_tarball.py -c {{ gpl_sha256 }} -p src/gpl --strip-components 1 {{ gpl_url }}  # [win]
+
+    mkdir build
+    cd build
+
+    cmake .. \                                # [unix]
+        -DCMAKE_PREFIX_PATH="$PREFIX" \       # [unix]
+        -DCMAKE_INSTALL_PREFIX="$PREFIX" \    # [unix]
+        -DCMAKE_BUILD_TYPE=Release \          # [unix]
+        -DBUILD_EXAMPLES=OFF \                # [unix]
+        -DBUILD_META_EXAMPLES=OFF \           # [unix]
+        -DENABLE_TESTING=OFF \                # [unix]
+        -DENABLE_COVERAGE=OFF \               # [unix]
+        -DUSE_SVMLIGHT=OFF \                  # [unix]
+        -DSWIG_EXECUTABLE=$PREFIX/bin/swig \  # [unix]
+        -DLIBSHOGUN=OFF \                     # [unix]
+        -DINTERFACE_R=ON                      # [unix]
+    make -j $CPU_COUNT                        # [unix]
+    make install -j $CPU_COUNT                # [unix]
+
+    cmake .. ^                                       # [win]
+        -G"%CMAKE_GENERATOR%" ^                      # [win]
+        -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^     # [win]
+        -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^  # [win]
+        -DCMAKE_BUILD_TYPE=Release ^                 # [win]
+        -DBUILD_EXAMPLES=OFF ^                       # [win]
+        -DBUILD_META_EXAMPLES=OFF ^                  # [win]
+        -DENABLE_TESTING=OFF ^                       # [win]
+        -DENABLE_COVERAGE=OFF ^                      # [win]
+        -DUSE_SVMLIGHT=OFF ^                         # [win]
+        -DSWIG_EXECUTABLE=%LIBRARY_BIN%\\swig.exe ^  # [win]
+        -DLIBSHOGUN=OFF ^                            # [win]
+        -DINTERFACE_R=ON                             # [win]
+    if errorlevel 1 exit 1                           # [win]
+
+    cmake --build . --target _interface_r --config Release  # [win]
+    if errorlevel 1 exit 1                                  # [win]
+
+    cmake --build . --target install --config Release  # [win]
+    if errorlevel 1 exit 1                             # [win]
+
+requirements:
+  build:
+    - toolchain
+    - r-base
+    - python
+    - requests  # used by get_tarball.py
+    - vc 9    # [win and py27]
+    - vc 10   # [win and py34]
+    - vc 14   # [win and py>=35]
+    - cmake
+    - swig
+    - shogun-cpp {{ version }}
+    - arpack 3.5.*              # [not win]
+    - bzip2 1.0.*
+    - curl >=7.44.0,<8
+    - eigen
+    - glpk 4.61|4.62
+    - hdf5 1.10.1
+    - json-c 0.12|0.12.*        # [not win]
+    - libxml2 2.9.*
+    - lzo 2.*
+    - openblas 0.2.20|0.2.20.*  # [not win]
+    - protobuf 3.4.*            # [not win] # conda-forge protobuf doesn't have C++ version
+    - rxcpp 4.0.0
+    - snappy 1.1.6|1.1.7
+    - xz 5.2.*
+    - zlib 1.2.11
+  run:
+    - r-base
+    - shogun-cpp {{ version }}
+    - arpack 3.5.*              # [not win]
+    - bzip2 1.0.*
+    - curl >=7.44.0,<8
+    - glpk 4.61|4.62
+    - hdf5 1.10.1
+    - json-c 0.12|0.12.*        # [not win]
+    - libxml2 2.9.*
+    - lzo 2.*
+    - openblas 0.2.20|0.2.20.*  # [not win]
+    - protobuf 3.4.*
+    - snappy 1.1.6|1.1.7
+    - xz 5.2.*
+    - zlib 1.2.11
+
+test:
+  imports:
+    - shogun
+  commands:
+    - conda inspect linkages -p $PREFIX {{ name }}  # [not win]
+    - conda inspect objects  -p $PREFIX {{ name }}  # [osx]
+
+about:
+  home: http://shogun.ml
+  license: GPL-3.0
+  license_family: GPL
+  license_file: COPYING
+  summary: 'Unified and efficient Machine Learning: R interface'
+  description: |
+    The Shogun Machine learning toolbox offers a wide range of efficient and
+    unified Machine Learning methods. This is the R interface to the library.
+  doc_url: http://shogun.ml/examples/latest/index.html
+  dev_url: https://github.com/shogun-toolbox/shogun/wiki
+
+extra:
+  recipe-maintainers:
+    - dougalsutherland
