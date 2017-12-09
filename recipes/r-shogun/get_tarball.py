@@ -26,22 +26,17 @@ chunksize = 32 * 2**20
 tar_fn = 'shogun-gpl.tar.gz'
 response = requests.get(args.url, verify=False, stream=True)
 response.raise_for_status()
+digest = hashlib.new(args.checksum_type)
 with open(tar_fn, 'wb') as f:
     for block in response.iter_content(chunksize):
+        digest.update(block)
         f.write(block)
 
-try:
-    digest = hashlib.new(args.checksum_type)
-    with io.open(tar_fn, 'rb') as f:
-        while True:
-            x = f.read(chunksize)
-            digest.update(x)
-            if not x:
-                break
-    d = digest.hexdigest()
-    if d != args.checksum:
-        parser.error("Bad digest: expected {}, got {}".format(args.checksum, d))
+d = digest.hexdigest()
+if d != args.checksum:
+    parser.error("Bad digest: expected {}, got {}".format(args.checksum, d))
 
+try:
     if not os.path.exists(args.out_path):
         os.makedirs(args.out_path)
 
