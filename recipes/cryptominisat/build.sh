@@ -14,7 +14,7 @@ cmake \
   -DCMAKE_INSTALL_PREFIX=$outdir/bin \
   -DSTATICCOMPILE=ON \
   -DENABLE_PYTHON_INTERFACE=OFF \
-  ..                    # path to the folder holding CMakeLists.txt
+  ..
 
 make install
 ldconfig
