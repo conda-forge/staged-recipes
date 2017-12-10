@@ -5,7 +5,6 @@
     --prefix=$PREFIX \
     --with-webdav-props \
 		--with-webdav-locks \
-    --with-attr \
     --with-krb5 \
     --with-mysql \
     --with-openssl
