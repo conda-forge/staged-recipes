@@ -1,6 +1,7 @@
 import os
 import sys
 import pkgutil
+import traceback
 from subprocess import check_call
 
 if os.name == 'posix':
@@ -14,9 +15,20 @@ if os.name == 'posix':
     modules = os.listdir(package_filename)
     print('Installed modules:')
     print(modules)
+
     module_so = [key for key in modules if key.endswith('.so')][0]
-    print('ldd ', module_so)
+    print('\nldd ' + module_so)
     check_call(['ldd', os.path.join(package_filename, module_so)])
-    print('Attempting to import')
+
+    print('\nAttempting to import _lightfm_fast_openmp')
     sys.path.append(package_filename)
-    import _lightfm_fast_openmp
+    try:
+        import _lightfm_fast_openmp
+    except Exception as e:
+        print('--- Beging tracback ---')
+        print(e)
+        if sys.version_info > (3, 0):
+            traceback.print_tb(e.__traceback__)
+        else:
+            traceback.print_exc()
+        print('--- End tracback ---')
