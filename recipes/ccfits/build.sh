@@ -2,8 +2,17 @@
 
 # cd CCfits
 
-CC=${PREFIX}/bin/gcc
-CXX=${PREFIX}/bin/g++
+if [ "$(uname)" == "Darwin" ]; then
+
+    export CC=clang
+    export CXX=clang++
+
+else
+
+    export CC=${PREFIX}/bin/gcc
+    export CXX=${PREFIX}/bin/g++
+
+fi
 
 mkdir build
 cd build
