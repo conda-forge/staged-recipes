@@ -117,3 +117,10 @@ git rebase upstream/master
 git push -f
 ```
 
+### 12. My pull request passes all checks, but hasn't received any attention.  How do I call attention to my PR?  What is the customary amount of time to wait?
+
+If your PR is passing all checks, but has not been acted on by the staged recipes maintainers for 1 week, you can ping @conda-forge/staged-recipes to request action.
+
+### 13. What is the procedure to become a member of the @conda-forge/staged-recipes team?
+
+Open an issue pointing out the successful pull requests you have initiated that have been merged into master, and requesting to be added to @conda-forge/staged-recipes .
