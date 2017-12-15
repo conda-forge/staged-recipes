@@ -1,12 +1,16 @@
 rem surely there's a better way than this
 if "%PY_VER%"=="2.7" (
 	set PYTHON_LIBRARY=python27.lib
+	set AVALON=ON
 ) else if  "%PY_VER%"=="3.4" (
 	set PYTHON_LIBRARY=python34.lib
+	set AVALON=OFF
 ) else if  "%PY_VER%"=="3.5" (
 	set PYTHON_LIBRARY=python35.lib
+	set AVALON=OFF
 ) else if  "%PY_VER%"=="3.6" (
 	set PYTHON_LIBRARY=python36.lib
+	set AVALON=OFF
 ) else (
 	echo "Unexpected version of python"
 	exit 1
@@ -23,7 +27,7 @@ cmake ^
     -G "NMake Makefiles" ^
     -D RDK_INSTALL_INTREE=OFF ^
     -D RDK_BUILD_INCHI_SUPPORT=ON ^
-    -D RDK_BUILD_AVALON_SUPPORT=ON ^
+    -D RDK_BUILD_AVALON_SUPPORT=%AVALON% ^
     -D RDK_USE_FLEXBISON=OFF ^
     -D Python_ADDITIONAL_VERSIONS=${PY_VER} ^
     -D PYTHON_EXECUTABLE="%PYTHON%" ^
