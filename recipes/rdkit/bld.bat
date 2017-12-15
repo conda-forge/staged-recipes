@@ -37,4 +37,4 @@ rem set PYTHONPATH=%RDBASE%
 rem %MAKE_CMD% test
 rem %PYTHON% "%RECIPE_DIR%\pkg_version.py"
 
-%MAKE_CMD% install
+jom install
