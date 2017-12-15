@@ -7,7 +7,7 @@ configure_args=(
 
 rm -f $PREFIX/lib/*.la # deps have busted files
 ./configure "${configure_args[@]}" || { cat config.log ; exit 1 ; }
-make -j$NJOBS
+make -j$CPU_COUNT
 make install
 
 cd $PREFIX
