@@ -26,15 +26,5 @@ cmake \
     .
 
 
-# if [[ `uname` == 'Linux' ]]; then
-#     make -j$CPU_COUNT 
-#     RDBASE=$SRC_DIR LD_LIBRARY_PATH="$PREFIX/lib:$SRC_DIR/lib" PYTHONPATH=$SRC_DIR ctest -j$CPU_COUNT --output-on-failure
-#     RDBASE=$SRC_DIR LD_LIBRARY_PATH="$PREFIX/lib:$SRC_DIR/lib" PYTHONPATH=$SRC_DIR $PYTHON "$RECIPE_DIR/pkg_version.py"
-# else
-#     make -j$CPU_COUNT install
-#     # RDBASE=$SRC_DIR DYLD_FALLBACK_LIBRARY_PATH="$PREFIX/lib:$SRC_DIR/lib" PYTHONPATH=$SRC_DIR ctest -j$CPU_COUNT --output-on-failure
-#     RDBASE=$SRC_DIR DYLD_FALLBACK_LIBRARY_PATH="$PREFIX/lib:$SRC_DIR/lib" PYTHONPATH=$SRC_DIR $PYTHON "$RECIPE_DIR/pkg_version.py"
-# fi
-
 make -j$CPU_COUNT
 make install

@@ -19,7 +19,7 @@ cmake ^
     -D RDK_BUILD_AVALON_SUPPORT=ON ^
     -D RDK_USE_FLEXBISON=OFF ^
     -D Python_ADDITIONAL_VERSIONS=${PY_VER} ^
-    -D PYTHON_EXECUTABLE="%PYTHON%" ^
+    -D PYTHON_EXECUTABLE:PATH="%PYTHON%" ^
     -D PYTHON_INCLUDE_DIR:PATH="%PREFIX%\include" ^
     -D PYTHON_LIBRARY="%PREFIX%\libs\%PYTHON_LIBRARY%" ^
     -D PYTHON_INSTDIR:PATH="%SP_DIR%" ^
@@ -27,8 +27,12 @@ cmake ^
     -D CMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
     -D CMAKE_BUILD_TYPE=Release ^
     .
+if errorlevel 1 exit 1
+
 
 jom -j%CPU_COUNT%
+if errorlevel 1 exit 1
+
 
 rem extend the environment settings in preparation to tests
 rem set RDBASE=%SRC_DIR%
@@ -38,3 +42,5 @@ rem %MAKE_CMD% test
 rem %PYTHON% "%RECIPE_DIR%\pkg_version.py"
 
 jom install
+if errorlevel 1 exit 1
+
