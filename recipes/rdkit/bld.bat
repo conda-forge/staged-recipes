@@ -13,7 +13,7 @@ if "%PY_VER%"=="2.7" (
 )
 
 cmake ^
-    -G "NMake Makefiles" ^
+    -G "NMake Makefiles JOM" ^
     -D RDK_INSTALL_INTREE=OFF ^
     -D RDK_BUILD_INCHI_SUPPORT=ON ^
     -D RDK_BUILD_AVALON_SUPPORT=ON ^
