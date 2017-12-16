@@ -33,14 +33,6 @@ if errorlevel 1 exit 1
 jom -j%CPU_COUNT%
 if errorlevel 1 exit 1
 
-
-rem extend the environment settings in preparation to tests
-rem set RDBASE=%SRC_DIR%
-rem set PYTHONPATH=%RDBASE%
-
-rem %MAKE_CMD% test
-rem %PYTHON% "%RECIPE_DIR%\pkg_version.py"
-
 jom install
 if errorlevel 1 exit 1
 
