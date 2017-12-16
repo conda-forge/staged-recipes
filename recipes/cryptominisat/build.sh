@@ -9,12 +9,12 @@ cd $SRC_DIR
 
 mkdir build && cd build
 cmake \
-  -DCMAKE_INSTALL_PREFIX=$outdir/bin \
+  -DCMAKE_INSTALL_PREFIX=$outdir \
   -DSTATICCOMPILE=ON \
-  -DENABLE_PYTHON_INTERFACE=OFF \
+  -DENABLE_PYTHON_INTERFACE=ON \
+  -DENABLE_TESTING=ON \
   ..
 
 make install
-ldconfig
 
-ln -s $outdir/bin/bin/cryptominisat5_simple $PREFIX/bin/cryptominisat
+ln -s $outdir/bin/cryptominisat5_simple $PREFIX/bin/cryptominisat_simple
