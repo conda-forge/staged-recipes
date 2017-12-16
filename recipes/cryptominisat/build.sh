@@ -11,7 +11,7 @@ mkdir build && cd build
 cmake \
   -DCMAKE_INSTALL_PREFIX=$outdir \
   -DSTATICCOMPILE=ON \
-  -DENABLE_PYTHON_INTERFACE=ON \
+  -DENABLE_PYTHON_INTERFACE=OFF \
   -DENABLE_TESTING=OFF \
   ..
 
