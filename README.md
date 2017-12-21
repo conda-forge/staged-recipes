@@ -117,3 +117,6 @@ git rebase upstream/master
 git push -f
 ```
 
+### 12. What is the procedure to become a member of the @conda-forge/staged-recipes team?
+
+Open an issue pointing out the successful pull requests you have initiated that have been merged into master, and requesting to be added to @conda-forge/staged-recipes .
