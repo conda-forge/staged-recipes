@@ -13,6 +13,8 @@ cmake ..\^
 	-DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%"^
 	-DOPENSIM_DEPENDENCIES_DIR="%LIBRARY_PREFIX%"^
 	-DBUILD_PYTHON_WRAPPING=ON^
+	-DOPENSIM_COPY_DEPENDENCIES=on^
+	
 	-DWITH_BTK=ON
 cmake --build . --target install --config Release -- /maxcpucount:8
 
