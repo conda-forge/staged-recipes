@@ -4,7 +4,6 @@ export LD_LIBRARY_PATH="${PREFIX}/lib"
 export LDFLAGS="-L${PREFIX}/lib"
 export CPPFLAGS="-I${PREFIX}/include"
 ls
-cd ghc-8.2.2
 if [ `uname` == Darwin ]
 then
     export DYLD_LIBRARY_PATH="${PREFIX}/lib"
