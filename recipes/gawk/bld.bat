@@ -1,8 +1,11 @@
-configure --prefix=%PREFIX%
+xcopy /f /y pc\* .
 if errorlevel 1 exit 1
 
-make
+%PYTHON% %RECIPE_DIR%\win_patch_makefile.py
 if errorlevel 1 exit 1
 
-make install
+mingw32-make mingw32 -j %NUM_CPUS%
+if errorlevel 1 exit 1
+
+mingw32-make install
 if errorlevel 1 exit 1
