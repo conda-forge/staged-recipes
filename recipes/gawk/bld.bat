@@ -9,3 +9,5 @@ if errorlevel 1 exit 1
 
 mingw32-make install
 if errorlevel 1 exit 1
+
+copy gawk.exe %LIBRARY_BIN%\awk.exe
