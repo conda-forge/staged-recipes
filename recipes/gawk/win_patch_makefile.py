@@ -16,5 +16,8 @@ for in_path, out_path in makefiles:
                 if line.startswith("prefix = "):
                     print("...setting prefix", prefix)
                     fp_out.write("prefix = {}\n".format(prefix))
+                elif line.startswith("install = "):
+                    print("...setting install method to", 2)
+                    fp_out.write("install = 2\n")
                 else:
                     fp_out.write(line)
