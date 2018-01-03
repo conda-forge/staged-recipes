@@ -1,3 +1,14 @@
+for /F "usebackq tokens=3*" %%A in (`REG QUERY "HKEY_LOCAL_MACHINE\Software\Microsoft\DevDiv\VC\Servicing\9.0\IDE" /v UpdateVersion`) do (
+    set SP=%%A
+)
+
+if not "%SP%" == "%PKG_VERSION%" (
+    echo "Version detected from registry: %SP%"
+    echo    "does not match version of package being built (%PKG_VERSION%)"
+    echo "Do you have current updates for VS 2008 installed?"
+    exit 1
+)
+
 for %%F in ("." "bin") do (
     cmake -G "%CMAKE_GENERATOR%" ^
           -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
