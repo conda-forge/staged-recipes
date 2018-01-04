@@ -1,3 +1,5 @@
+REM Downloads from https://www.microsoft.com/en-us/download/details.aspx?id=26368
+
 if "%ARCH%" == "32" (
     powershell -Command "(New-Object Net.WebClient).DownloadFile('https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x86.exe', 'vcredist_x86.exe')"
     if errorlevel 1 exit 1
@@ -5,7 +7,6 @@ if "%ARCH%" == "32" (
     if errorlevel 1 exit 1
     set "ARCH_DIR=x86"
 )
-
 
 if "%ARCH%" == "64" (
     powershell -Command "(New-Object Net.WebClient).DownloadFile('https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x64.exe', 'vcredist_x64.exe')"
