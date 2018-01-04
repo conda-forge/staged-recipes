@@ -1,0 +1,1 @@
+[ -f ${PREFIX}/lib/libCoin.dylib ] && exit 0 || exit 1
