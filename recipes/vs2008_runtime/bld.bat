@@ -1,5 +1,5 @@
 if "%ARCH%" == "32" (
-    powershell -Command "(New-Object Net.WebClient).DownloadFile('https://download.microsoft.com/download/d/d/9/dd9a82d0-52ef-40db-8dab-795376989c03/vcredist_x86.exe', 'vcredist_x86.exe')"
+    powershell -Command "(New-Object Net.WebClient).DownloadFile('https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x86.exe', 'vcredist_x86.exe')"
     if errorlevel 1 exit 1
     vcredist_x86.exe /qb!
     if errorlevel 1 exit 1
