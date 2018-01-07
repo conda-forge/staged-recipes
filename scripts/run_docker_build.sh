@@ -12,7 +12,7 @@ channels:
  - defaults
 
 conda-build:
- root-dir: /staged-recipes/build_artefacts
+ root-dir: /staged-recipes/build_artifacts
 
 always_yes: true
 show_channel_urls: true
@@ -51,7 +51,7 @@ export CONDA_NPY='19'
 
 echo "$config" > ~/.condarc
 
-# A lock sometimes occurs with incomplete builds. The lock file is stored in build_artefacts.
+# A lock sometimes occurs with incomplete builds. The lock file is stored in build_artifacts.
 conda clean --lock
 
 conda update conda conda-build
