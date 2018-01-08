@@ -1,19 +1,5 @@
 #!/bin/bash
 
-if [ "$(uname)" == "Darwin" ]; then
-
-    export CC=clang
-    export CXX=clang++
-
-else
-    
-    export CC=${PREFIX}/bin/gcc
-    export CXX=${PREFIX}/bin/g++
-
-fi
-
-export LDFLAGS="-Wl,-rpath,${PREFIX}/lib"
-
 mkdir build
 cd build
 
