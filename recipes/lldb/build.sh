@@ -12,5 +12,5 @@ cmake \
   -DLLDB_CODESIGN_IDENTITY="" \
   ..
 
-make -j 8
+make -j${CPU_COUNT}
 make install
