@@ -1,16 +1,3 @@
-#export CFITSIO_CFLAGS="-I${PREFIX}/include"
-if [ "$(uname)" == "Darwin" ]; then
-    
-    export CC=clang
-    export CXX=clang++
-    
-else
-
-    export CC=${PREFIX}/bin/gcc
-    export CXX=${PREFIX}/bin/g++
-
-fi
-
 cd src/cxx
 
 export CFLAGS="-fPIC ${CFLAGS}"
