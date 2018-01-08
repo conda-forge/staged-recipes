@@ -1,43 +1,24 @@
 #!/bin/bash
 
-# Copy Makefile from the source directory
 
-cp ${RECIPE_DIR}/Makefile .
+# Using the makefile provided with the package
+cp makefile.u Makefile
 
-export LDFLAGS="-Wl,-rpath,${PREFIX}/lib"
+make hadd
+make all
 
-case "$(uname)" in
-Linux)
+# Make sure ${PREFIX}/lib exists, it might not since
+# this package does not depend on anything
+mkdir -p ${PREFIX}/lib
 
-    export CC=${PREFIX}/bin/gcc
-    
-    make hadd
-    
-    make all
+make install LIBDIR=${PREFIX}/lib 
 
-;;
-
-Darwin)
-
-    export CC=clang
-    
-    make hadd
-    
-    make all
-;;
-*)
-echo "Unsupported"
-exit 1
-;;
-esac
-
-make install libdir=${PREFIX}/lib \
-  includedir="${PREFIX}/include/f2c" \
-  LIBDIR=${PREFIX}/lib \
-  INCDIR="${PREFIX}/include/f2c"
-
-# Some programs need f2c.h to be in ${PREFIX/include, not in ${PREFIX}/include/f2c
-cp ${PREFIX}/include/f2c/* ${PREFIX}/include
+# Some programs need f2c.h to be in ${PREFIX/include, some in ${PREFIX}/include/f2c
+# "make install" above does not install it, so we need to do it manually
+mkdir -p ${PREFIX}/include
+cp f2c.h ${PREFIX}/include
+mkdir ${PREFIX}/include/f2c
+cp f2c.h ${PREFIX}/include/f2c
 
 # Now copy a small "Hello world" program into the share folder so
 # we can test the installation
