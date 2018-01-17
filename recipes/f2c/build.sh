@@ -36,9 +36,3 @@ make f2c
 
 # Install the binary
 cp f2c ${PREFIX}/bin/
-
-# Now copy a small "Hello world" program into the share folder so
-# we can test the installation later on
-mkdir -p ${PREFIX}/share/f2c
-
-cp ${RECIPE_DIR}/test_main.f ${PREFIX}/share/f2c
