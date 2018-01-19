@@ -6,6 +6,7 @@ BUILD_CONFIG=Release
 
 # CMake
 cmake .. \
+	-G "Ninja" \
   -DCMAKE_BUILD_TYPE=$BUILD_CONFIG \
   -DCMAKE_PREFIX_PATH:PATH="${PREFIX}" \
   -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
@@ -13,6 +14,5 @@ cmake .. \
 	-DENABLE_TESTING:BOOL=OFF \
 	-DBUILD_SHARED_LIBS:BOOL=ON
 
-# Make
-make -j $CPU_COUNT
-make install
+# Compile and install!
+ninja install
