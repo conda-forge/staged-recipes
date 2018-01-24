@@ -2,7 +2,7 @@
 
 export LDFLAGS="-L${PREFIX}/lib $LDFLAGS"
 export CPPFLAGS="-I${PREFIX}/include $CPPFLAGS"
-export CFLAGS="-fPIC $CFLAGS"
+export CFLAGS="-I${PREFIX}/include -fPIC $CFLAGS"
 
 ./configure --prefix=$PREFIX
 
