@@ -1,6 +1,7 @@
-./configure --prefix=$PREFIX --with-pic
+set -x -e
 
+./configure --prefix=$PREFIX --with-pic
 #make -j ${CPU_COUNT}
-make 
+make
 make check || true
 make install
