@@ -15,13 +15,11 @@ make check
 ctests="
 arrow
 band
-box
 colour-index
 error-bars
 format-number
 line-cap
 line-style
-openclose
 points
 qtext
 rectangle
