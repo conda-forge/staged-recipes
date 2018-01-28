@@ -1,0 +1,69 @@
+{% set name = "MonkeyType" %}
+{% set version = "18.1.11" %}
+{% set sha256 = "a856c4cf7bce054b0a7384b45b415339bf9b5932bf800a2c8f4bf6dbe29ee740" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: {{ name }}-{{ version }}.tar.gz
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  skip: true  # [py<36]
+  entry_points:
+    - monkeytype=monkeytype.cli:entry_point_main
+  script: python -m pip install --no-deps --ignore-installed .
+
+requirements:
+  build:
+    - pip
+    - python
+    - setuptools
+  run:
+    - python
+    - retype
+
+test:
+  requires:
+    - cython
+    - django
+    - git
+    - pytest-smartcov
+  imports:
+    - monkeytype
+  commands:
+    - monkeytype --help
+    # TODO: make upstream PR for redistributing tests
+    - git clone https://github.com/Instagram/MonkeyType
+    - cd MonkeyType
+    - git checkout v{{ PKG_VERSION }}
+    - rm -rf monkeytype  # [not win]
+    - rd /s /q monkeytype  # [win]
+    - del pytest.ini  # [win]
+    # FIXME: not sure about this one
+    - python -m pytest -k "not test_includes_otherwise"  # [not win]
+    - python -m pytest -k "not test_includes_otherwise and not test_generate_stub and not test_no_traces and not test_display_sample_count_from_cli and not test_retype_failure"  # [win]
+
+
+
+about:
+  home: https://github.com/Instagram/MonkeyType
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: '{{ environ["RECIPE_DIR"] }}/LICENSE'
+  summary: Generating type annotations from sampled production types
+
+  description: |
+    MonkeyType collects runtime types of function arguments and return values,
+    and can automatically generate stub files or even add draft type
+    annotations directly to your Python code based on the types collected at
+    runtime.
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
+    - nehaljwani
