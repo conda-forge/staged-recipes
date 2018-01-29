@@ -12,7 +12,7 @@ channels:
  - defaults
 
 conda-build:
- root-dir: /staged-recipes/build_artefacts
+ root-dir: /home/conda/staged-recipes/build_artifacts
 
 always_yes: true
 show_channel_urls: true
@@ -31,31 +31,27 @@ if hash docker-machine 2> /dev/null && docker-machine active > /dev/null; then
 fi
 
 cat << EOF | docker run -i \
-                        -v ${REPO_ROOT}:/staged-recipes \
+                        -v ${REPO_ROOT}:/home/conda/staged-recipes \
                         -a stdin -a stdout -a stderr \
                         -e HOST_USER_ID=${HOST_USER_ID} \
                         $IMAGE_NAME \
                         bash -ex || exit $?
 
 # Copy the host recipes folder so we don't ever muck with it
-cp -r /staged-recipes/recipes ~/conda-recipes
+cp -r /home/conda/staged-recipes/recipes ~/conda-recipes
 
 # Find the recipes from master in this PR and remove them.
 echo "Finding recipes merged in master and removing them from the build."
-pushd /staged-recipes/recipes > /dev/null
+pushd /home/conda/staged-recipes/recipes > /dev/null
 git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf ~/conda-recipes/{} && echo Removing recipe: {}"
 popd > /dev/null
-
-if [ "${BINSTAR_TOKEN}" ];then
-    export BINSTAR_TOKEN=${BINSTAR_TOKEN}
-fi
 
 # Unused, but needed by conda-build currently... :(
 export CONDA_NPY='19'
 
 echo "$config" > ~/.condarc
 
-# A lock sometimes occurs with incomplete builds. The lock file is stored in build_artefacts.
+# A lock sometimes occurs with incomplete builds. The lock file is stored in build_artifacts.
 conda clean --lock
 
 conda update conda conda-build
@@ -68,5 +64,5 @@ find ~/conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt
     | xargs -n1 cat | grep -v -e "^#" -e "^$" | \
     xargs -r /usr/bin/sudo -n yum install -y
 
-conda build-all ~/conda-recipes --matrix-conditions "numpy >=1.11" "python >=2.7,<3|>=3.5" "r-base >=3.3.2"
+conda build-all ~/conda-recipes --matrix-conditions "numpy >=1.11" "python >=2.7,<3|>=3.5" "r-base ==3.3.2|==3.4.1"
 EOF
