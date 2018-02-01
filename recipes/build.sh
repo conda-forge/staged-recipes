@@ -1,8 +1,11 @@
 #!/bin/bash
 
-export F_MASTER=/summa-2.0.0
-export FC_ENV=gfortran
+set -x -e
+
+export F_MASTER=`pwd`
+export FC=gfortran
 export FC_EXE=gfortran
+
 
 if [[ $(uname) == Darwin ]]; then
   export FC_ENV=gfortran-6-macports
@@ -12,5 +15,3 @@ elif [[ $(uname) == Linux ]]; then
 fi
 
 make -C $F_MASTER/build/ -f Makefile
-
-make clean
