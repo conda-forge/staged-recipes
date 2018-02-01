@@ -1,4 +1,9 @@
-## About
+## About SUMMA
+
+Home: http://summa.readthedocs.io/
+
+
+
 
 This repo is a holding area for recipes destined for a conda-forge feedstock repo. To find out more about conda-forge, see https://github.com/conda-forge/conda-smithy.
 
@@ -109,7 +114,7 @@ git push -f
 
 If the problem was due to scripts in the `staged-recipes` repository, you may be asked to "rebase" once these are fixed. To do so, run:
 ```bash
-# If you didn't add a remote for conda-forge/staged-recipes yet, also run 
+# If you didn't add a remote for conda-forge/staged-recipes yet, also run
 # these lines:
 # git remote add upstream https://github.com/conda-forge/staged-recipes.git
 # git fetch --all
