@@ -1,32 +1,8 @@
 #/usr/bin/env bash
-
 set -e
 
-init_db()
-{
-    mkdir -p $PREFIX/var
-    if [ ! -d $PREFIX/var/db ]; then
-      pg_ctl initdb -D $PREFIX/var/db
-    fi
-}
+. $RECIPE_DIR/pg.sh
 
-start_db()
-{
-    pg_ctl start -D $PREFIX/var/db
-    trap "stop_db; exit 0" HUP TERM TSTP
-    trap "stop_db; exit 130" INT
-
-    echo -n 'waiting for postgres'
-    while [ ! -e /tmp/.s.PGSQL.5432 ]; do
-        sleep 1
-        echo -n '.'
-    done
-}
-
-stop_db()
-{
-    pg_ctl stop -D $PREFIX/var/db
-}
 
 test_create_extension()
 {
@@ -42,7 +18,6 @@ test_create_extension()
    done
 }
 
-init_db
 start_db
 test_create_extension
 stop_db
