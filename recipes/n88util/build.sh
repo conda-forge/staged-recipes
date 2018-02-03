@@ -11,8 +11,11 @@ cmake .. \
 	-DCMAKE_PREFIX_PATH:PATH="${PREFIX}" \
 	-DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
 	-DCMAKE_INSTALL_RPATH:PATH="${PREFIX}/lib" \
-	-DENABLE_TESTING:BOOL=OFF \
+	-DENABLE_TESTING:BOOL=ON \
 	-DBUILD_SHARED_LIBS:BOOL=ON
+
+# Run tests
+ctest -V
 
 # Compile and install!
 ninja install
