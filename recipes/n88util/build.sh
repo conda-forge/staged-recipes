@@ -12,10 +12,12 @@ cmake .. \
 	-DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
 	-DCMAKE_INSTALL_RPATH:PATH="${PREFIX}/lib" \
 	-DENABLE_TESTING:BOOL=ON \
+	-DCMAKE_CXX_FLAGS:STRING="-stdlib=libstdc++" \
 	-DBUILD_SHARED_LIBS:BOOL=ON
 
-# Run tests
-ctest -V
 
 # Compile and install!
 ninja install
+
+# Run tests
+ctest -V

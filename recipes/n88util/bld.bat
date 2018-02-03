@@ -14,10 +14,10 @@ cmake .. ^
 	-DBUILD_SHARED_LIBS:BOOL=ON
 if errorlevel 1 exit 1
 
-:: Run tests
-ctest -V
-if errorlevel 1 exit 1
-
 :: Compile and install!
 ninja install
+if errorlevel 1 exit 1
+
+:: Run tests
+ctest -V
 if errorlevel 1 exit 1
