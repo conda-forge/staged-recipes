@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# There are some issues in the linking on Py3 vs Py2
+# Hence we need to figure out which version we are using
+# to fix the f2py linking step.
 _V=${CONDA_PY:0:1}
 _v=${CONDA_PY:1:2}
 
