@@ -1,2 +1,2 @@
 pip install scrypt==0.8.0
-pip install steem
+python -m pip install --no-deps --ignore-installed .
