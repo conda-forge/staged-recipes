@@ -13,6 +13,3 @@ cd cython
 "%PYTHON%" setup.py install
 if errorlevel 1 exit 1
 
-MSBuild RUN_TESTS.vcxproj
-if errorlevel 1 exit 1
-
