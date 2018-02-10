@@ -9,5 +9,5 @@ make -C vic/drivers/classic
 cp vic/drivers/classic/vic_classic.exe $PREFIX
 
 # python driver
-# TODO: debug later
-# python ./vic/drivers/python/setup.py install
+python ./vic/drivers/python/setup.py build
+python ./vic/drivers/python/setup.py install
