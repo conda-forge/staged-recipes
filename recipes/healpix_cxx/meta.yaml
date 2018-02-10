@@ -1,0 +1,78 @@
+{% set name = "healpix_cxx" %}
+{% set version = "3.31" %}
+{% set sha256 = "ddf437442b6d5ae7d75c9afaafc4ec43921f903c976e25db3c5ed5185a181542" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: Healpix_{{version}}_2016Aug26.tar.gz
+  url: https://downloads.sourceforge.net/project/healpix/Healpix_{{version}}/Healpix_{{version}}_2016Aug26.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  skip: true  # [win]
+  
+requirements:
+  build:
+    - toolchain
+    - autoconf
+    - cfitsio
+#    - openssl
+  run:
+    - cfitsio
+#    - openssl
+    
+test:
+  commands:
+    - test -f ${PREFIX}/lib/libhealpix_cxx.a
+    - test -f ${PREFIX}/lib/libc_utils.a
+    - test -f ${PREFIX}/lib/libcxxsupport.a
+    - test -f ${PREFIX}/lib/libfftpack.a
+    - test -f ${PREFIX}/lib/libsharp.a
+    - test -d ${PREFIX}/include/healpix_cxx
+    - conda inspect linkages -p $PREFIX healpix_cxx  # [not win]
+    - conda inspect objects -p $PREFIX healpix_cxx  # [osx]
+    
+    # Test executables
+    - syn_alm_cxx fwhm_arcmin=60 infile=cl.fits rand_seed=1234 nlmax=512 outfile=\!test.alm polarisation=true
+    - alm2map_cxx nlmax=512 infile=test.alm outfile=\!test.fits nside=256 polarisation=true
+    - map2tga test.fits test.tga -bar -title "Synthesized Map"
+    - anafast_cxx nlmax=512 infile=test.fits outfile_alms=\!test2.alm outfile=\!test_cl.fits polarisation=true iter_order=3
+    - alm2map_cxx nlmax=512 infile=test2.alm outfile=\!test2.fits nside=256 polarisation=true
+    - map2tga test2.fits test2.tga -bar -title "Reconstructed Map"
+    - udgrade_cxx infile=test2.fits outfile=\!test3.fits polarisation=false nside=8
+    - map2tga test3.fits test3.tga -bar -title "Downgraded Map"
+    - map2tga test3.fits test4.tga -bar -interpol -title "Downgraded, Interpolated Map"
+    - alm2map_cxx nlmax=512 infile=test.alm outfile=!test4.fits nside=317 polarisation=true
+    - map2tga test4.fits test5.tga -bar -title "Synthesized Map (Nside=317)"
+    - median_filter_cxx test.fits '!test5.fits' 60
+    - map2tga test5.fits test6.tga -bar -title "Median-filtered map (1 degree)"
+    - smoothing_cxx nlmax=512 infile=test.fits outfile=\!test7.fits polarisation=true fwhm_arcmin=300
+    - alice3 ell=200 kernel_steps=200 steps=400 in=test7.fits nside=256 out=\!test_alice3
+    - map2tga test_alice3_background.fits test_alice1.tga -pal 0 -bar -interpol -title "Alice background texture"
+    - map2tga test_alice3_texture.fits test_alice2.tga -pal 0 -bar -interpol -title "Alice convolved texture"
+    - map2tga test_alice3_mod_texture.fits test_alice3.tga -pal 0 -bar -interpol -title "Alice modulated convolved texture"
+
+  files:
+    - cl.fits
+
+about:
+  home: https://sourceforge.net/projects/healpix/
+  license: GPL-2.0
+  license_family: GPL
+  license_file: COPYING
+  summary: 'Software for pixelization, hierarchical indexation, synthesis, analysis, and visualization of data on the sphere.'
+  description: |
+    HEALPix is a Hierarchical, Equal Area, and iso-Latitude Pixelation of the sphere designed to support efficiently (1) 
+    local operations on the pixel set, (2) a hierarchical tree structure for multi-resolution applications, and (3) 
+    the global Fast Spherical Harmonic transform. HEALPix based mathematical software meets the challenges presented 
+    by high resolution and large volume data sets, such as the WMAP and Planck CMB mission products.
+  doc_url: http://healpix.sf.net/documentation.php
+  dev_url: https://sourceforge.net/projects/healpix/
+
+extra:
+  recipe-maintainers:
+    - giacomov
