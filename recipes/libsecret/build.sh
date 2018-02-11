@@ -8,7 +8,7 @@ ln -s "$PREFIX/bin/perl" "$PREFIX/bin/perl -w"
     --with-libgcrypt-prefix="$PREFIX"
 
 # Requires python-dbus and some other stuff
-# make check
+make check
 
 make install
 
