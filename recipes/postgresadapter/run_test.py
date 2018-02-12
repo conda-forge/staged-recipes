@@ -1,6 +1,6 @@
 import atexit
+from distutils.spawn import find_executable
 import os
-import platform
 import shlex
 import subprocess
 import sys
@@ -68,7 +68,7 @@ def stop_postgres(let_fail=False):
             raise
 
 
-if platform.system() != 'Linux':
+if find_executable('docker') is None:
     sys.exit(0)
 
 ### Start PostgreSQL
