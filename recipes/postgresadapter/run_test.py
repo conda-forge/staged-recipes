@@ -1,10 +1,12 @@
-import subprocess
-import postgresadapter
-import os
-import time
 import atexit
-import sys
+import os
+import platform
 import shlex
+import subprocess
+import sys
+import time
+
+import postgresadapter
 from postgresadapter.tests import setup_postgresql_data
 
 
@@ -65,6 +67,9 @@ def stop_postgres(let_fail=False):
         if not let_fail:
             raise
 
+
+if platform.system() != 'Linux':
+    sys.exit(0)
 
 ### Start PostgreSQL
 stop_postgres(let_fail=True)
