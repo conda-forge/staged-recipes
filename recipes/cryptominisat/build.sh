@@ -11,8 +11,6 @@ cmake \
   -DENABLE_TESTING=OFF \
   ..
 
-export
-
-make -j${CPU_COUNT} install VERBOSE=1
+make -j${CPU_COUNT} install
 
 ln -s "$PREFIX/bin/cryptominisat5_simple" "$PREFIX/bin/cryptominisat_simple"
