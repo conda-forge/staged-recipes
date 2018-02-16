@@ -4,10 +4,14 @@ set -eu -o pipefail
 cd "$SRC_DIR"
 
 mkdir -p build && cd build
+
+# * ENABLE_PYTHON_INTERFACE: The Python interface expects Python3 (at least
+#   that's what the Makefile seems to be checking for.)
+# * ENABLE_TESTING: Testing requires lit which is not packaged yet:
+#   https://github.com/conda-forge/staged-recipes/issues/4630
 cmake \
   "-DCMAKE_INSTALL_PREFIX=$PREFIX" \
-  -DENABLE_PYTHON_INTERFACE=OFF \
-  # Testing requires lit which is not packaged yet: https://github.com/conda-forge/staged-recipes/issues/4630
+  -DENABLE_PYTHON_INTERFACE=`[[ $PY3K == 1 ]] && echo ON || echo OFF` \
   -DENABLE_TESTING=OFF \
   ..
 
