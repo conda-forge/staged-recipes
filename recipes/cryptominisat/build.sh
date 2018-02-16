@@ -6,7 +6,6 @@ cd "$SRC_DIR"
 mkdir -p build && cd build
 cmake \
   "-DCMAKE_INSTALL_PREFIX=$PREFIX" \
-  -DSTATICCOMPILE=ON \
   -DENABLE_PYTHON_INTERFACE=OFF \
   -DENABLE_TESTING=OFF \
   ..
