@@ -5,7 +5,7 @@ cd "$SRC_DIR"
 
 mkdir -p build && cd build
 
-if [[ $(uname) == 'Darwin' && $PY3K == 1 ]]; then
+if [[ $(uname) == 'Darwin' ]] && [[ $PY3K == 1 ]]; then
     export LDFLAGS="${LDFLAGS} -undefined dynamic_lookup -bundle"
 else
 
