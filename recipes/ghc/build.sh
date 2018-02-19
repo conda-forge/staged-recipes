@@ -1,7 +1,3 @@
 #!/bin/bash
-./configure --prefix=$PREFIX
-make check
+distrib/hc-build --prefix=$PREFIX
 make install
-make fasttest
-
-
