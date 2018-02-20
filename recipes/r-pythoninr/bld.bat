@@ -1,2 +1,2 @@
 "%R%" CMD INSTALL --build .
-IF %ERRORLEVEL% NEQ 0 exit 1
+if errorlevel 1 exit 1
