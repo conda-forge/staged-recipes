@@ -124,9 +124,13 @@ if __name__ == '__main__':
         for recipe_dir, name in list_recipes():
             feedstock_dir = os.path.join(feedstocks_dir, name + '-feedstock')
             print('Making feedstock for {}'.format(name))
-
-            subprocess.check_call(['conda', 'smithy', 'init', recipe_dir,
+            try:
+                subprocess.check_call(['conda', 'smithy', 'init', recipe_dir,
                                    '--feedstock-directory', feedstock_dir])
+            except subprocess.CalledProcessError:
+                traceback.print_exception(*sys.exc_info())
+                continue
+
             if not is_merged_pr:
                 # We just want to check that conda-smithy is doing its thing without having any metadata issues.
                 continue
