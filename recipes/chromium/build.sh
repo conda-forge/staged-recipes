@@ -6,6 +6,6 @@ if [ `uname` == "Darwin" ]; then
 fi
 
 mkdir -p "$PREFIX/lib/chromium/"
-copy "$PREFIX/*.*" "$PREFIX/lib/chromium/"
+cp "$PREFIX/*.*" "$PREFIX/lib/chromium/"
 rm "$PREFIX/lib/chromium/conda_build.sh"
 ln -s "$PREFIX/lib/chromium/$TheBin" "$PREFIX/bin/chrome"
