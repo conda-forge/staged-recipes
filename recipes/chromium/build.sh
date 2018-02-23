@@ -8,4 +8,7 @@ fi
 mkdir -p "$PREFIX/lib/chromium/"
 cp -r $SRC_DIR/* "$PREFIX/lib/chromium/"
 rm "$PREFIX/lib/chromium/conda_build.sh"
-ln -s "$PREFIX/lib/chromium/$TheBin" "$PREFIX/bin/chrome"
+
+echo '#!/bin/bash' > $PREFIX/bin/chrome
+echo $PREFIX/lib/chromium/$TheBin '"$@"' >> $PREFIX/bin/chrome
+chmod +x "${PREFIX}/bin/chrome"
