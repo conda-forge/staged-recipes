@@ -1,0 +1,104 @@
+{% set name = "asammdf" %}
+{% set version = "3.1.0" %}
+{% set file_ext = "tar.gz" %}
+{% set hash_type = "sha256" %}
+{% set hash_value = "f7f644b76e4ffb59ad00c8e9377cf465fde85496688f15c7ca97be29a9855718" %}
+
+package:
+  name: '{{ name|lower }}'
+  version: '{{ version }}'
+
+source:
+  fn: '{{ name }}-{{ version }}.{{ file_ext }}'
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.{{ file_ext }}
+  '{{ hash_type }}': '{{ hash_value }}'
+
+build:
+  number: 0
+  script: python setup.py install --single-version-externally-managed --record=record.txt
+
+requirements:
+  host:
+    - python
+    - setuptools
+    - numpy >=1.13.1
+    - pandas
+    - numexpr
+    - matplotlib
+    - wheel
+  run:
+    - python
+    - numpy >=1.13.1
+    - pandas
+    - numexpr
+    - matplotlib
+    - wheel
+
+test:
+  imports:
+    - asammdf
+    - test
+
+about:
+  home: https://github.com/danielhrisca/asammdf
+  license: GNU General Public License v3 or later (GPLv3+)
+  license_family: GPL3
+  license_file: ''
+  summary: ASAM MDF measurement data file parser
+  description: "*asammdf* is a fast parser/editor for ASAM (Associtation for Standardisation of Automation and Measuring Systems) MDF (Measurement Data Format) files. \n\n*asammdf* supports MDF versions\
+    \ 2 (.dat), 3 (.mdf) and 4 (.mf4). \n\n*asammdf* works on Python 2.7, and Python >= 3.4 (Travis CI tests done with Python 2.7 and Python >= 3.5)\n\nProject goals\n=============\nThe main goals for this\
+    \ library are:\n\n* to be faster than the other Python based mdf libraries\n* to have clean and easy to understand code base\n* to have minimal 3-rd party dependencies\n\nFeatures\n========\n\n* create\
+    \ new mdf files from scratch\n* append new channels\n* read unsorted MDF v3 and v4 files\n* filter a subset of channels from original mdf file\n* cut measurement to specified time interval\n* convert\
+    \ to different mdf version\n* export to Excel, HDF5, Matlab and CSV\n* merge multiple files sharing the same internal structure\n* read and save mdf version 4.10 files containing zipped data blocks\n\
+    * full support (read, append, save) for the following map types (multidimensional array channels):\n\n    * mdf version 3 channels with CDBLOCK\n    * mdf version 4 structure channel composition\n \
+    \   * mdf version 4 channel arrays with CNTemplate storage and one of the array types:\n    \n        * 0 - array\n        * 1 - scaling axis\n        * 2 - look-up\n        \n* add and extract attachments\
+    \ for mdf version 4\n* files are loaded in RAM for fast operations\n* handle large files (exceeding the available RAM) using *memory* = *minimum* argument\n* extract channel data, master channel and\
+    \ extra channel information as *Signal* objects for unified operations with v3 and v4 files\n* time domain operation using the *Signal* class\n\n    * Pandas data frames are good if all the channels\
+    \ have the same time based\n    * usually a measurement will have channels from different sources at different rates\n    * the *Signal* class facilitates operations with such channels\n\nMajor features\
+    \ not implemented (yet)\n====================================\n\n* for version 3\n\n    * functionality related to sample reduction block (but the class is defined)\n    \n* for version 4\n\n    * handling\
+    \ of bus logging measurements\n    * handling of unfinished measurements (mdf 4)\n    * full support for remaining mdf 4 channel arrays types\n    * xml schema for TXBLOCK and MDBLOCK\n    * event blocks\n\
+    \    * channels with default X axis\n    * chanenls with reference to attachment\n\nUsage\n=====\n\n.. code-block:: python\n\n   from asammdf import MDF\n   \n   mdf = MDF('sample.mdf')\n   speed =\
+    \ mdf.get('WheelSpeed')\n   speed.plot()\n   \n   important_signals = ['WheelSpeed', 'VehicleSpeed', 'VehicleAcceleration']\n   # get short measurement with a subset of channels from 10s to 12s \n \
+    \  short = mdf.filter(important_signals).cut(start=10, stop=12)\n   \n   # convert to version 4.10 and save to disk\n   short.convert('4.10').save('important signals.mf4')\n   \n   # plot some channels\
+    \ from a huge file\n   efficient = MDF('huge.mf4', memory='minimum')\n   for signal in efficient.select(['Sensor1', 'Voltage3']):\n       signal.plot()\n   \n\n \nCheck the *examples* folder for extended\
+    \ usage demo, or the documentation\nhttp://asammdf.readthedocs.io/en/master/examples.html\n\nDocumentation\n=============\nhttp://asammdf.readthedocs.io/en/master\n\nInstallation\n============\n*asammdf*\
+    \ is available on \n\n* github: https://github.com/danielhrisca/asammdf/\n* PyPI: https://pypi.org/project/asammdf/\n    \n.. code-block: python\n\n   pip install asammdf\n\n    \nDependencies\n============\n\
+    asammdf uses the following libraries\n\n* numpy : the heart that makes all tick\n* numexpr : for algebraic and rational channel conversions\n* matplotlib : for Signal plotting\n* wheel : for installation\
+    \ in virtual environments\n* pandas : for DataFrame export\n\noptional dependencies needed for exports\n\n* h5py : for HDF5 export\n* xlsxwriter : for Excel export\n* scipy : for Matlab .mat export\n\
+    \nother optional dependencies\n\n* chardet : to detect non-standard unicode encodings\n\n\nBenchmarks\n==========\n\nGraphical results can be seen here at http://asammdf.readthedocs.io/en/master/benchmarks.html\n\
+    \n\nPython 3 x64\n------------\nBenchmark environment\n\n* 3.6.4 (default, Jan  5 2018, 02:35:40) [GCC 7.2.1 20171224]\n* Linux-4.15.0-1-MANJARO-x86_64-with-arch-Manjaro-Linux\n* \n* 4GB installed RAM\n\
+    \nNotations used in the results\n\n* full =  asammdf MDF object created with memory=full (everything loaded into RAM)\n* low =  asammdf MDF object created with memory=low (raw channel data not loaded\
+    \ into RAM, but metadata loaded to RAM)\n* minimum =  asammdf MDF object created with memory=full (lowest possible RAM usage)\n* compress = mdfreader mdf object created with compression=blosc\n* noDataLoading\
+    \ = mdfreader mdf object read with noDataLoading=True\n\nFiles used for benchmark:\n\n* 183 groups\n* 36424 channels\n\n\n\n================================================== ========= ========\nOpen\
+    \ file                                          Time [ms] RAM [MB]\n================================================== ========= ========\nasammdf 3.0.0    full mdfv3                              706\
+    \      256\nasammdf 3.0.0    low mdfv3                               637      103\nasammdf 3.0.0    minimum mdfv3                           612       64\nmdfreader 2.7.5 mdfv3                      \
+    \             2201      414\nmdfreader 2.7.5 compress mdfv3                          1871      281\nmdfreader 2.7.5 noDataLoading mdfv3                      948      160\nasammdf 3.0.0    full mdfv4\
+    \                             2599      296\nasammdf 3.0.0    low mdfv4                              2485      131\nasammdf 3.0.0    minimum mdfv4                          1376       64\nmdfreader 2.7.5\
+    \ mdfv4                                   5706      435\nmdfreader 2.7.5 compress mdfv4                          5453      303\nmdfreader 2.7.5 noDataLoading mdfv4                     3904      181\n\
+    ================================================== ========= ========\n\n\n================================================== ========= ========\nSave file                                          Time\
+    \ [ms] RAM [MB]\n================================================== ========= ========\nasammdf 3.0.0    full mdfv3                              468      258\nasammdf 3.0.0    low mdfv3            \
+    \                   363      110\nasammdf 3.0.0    minimum mdfv3                           919       80\nmdfreader 2.7.5 mdfv3                                   6424      451\nmdfreader 2.7.5 noDataLoading\
+    \ mdfv3                     7364      510\nmdfreader 2.7.5 compress mdfv3                          6624      449\nasammdf 3.0.0    full mdfv4                              984      319\nasammdf 3.0.0\
+    \    low mdfv4                              1028      156\nasammdf 3.0.0    minimum mdfv4                          2786       80\nmdfreader 2.7.5 mdfv4                                   3355      460\n\
+    mdfreader 2.7.5 noDataLoading mdfv4                     5153      483\nmdfreader 2.7.5 compress mdfv4                          3773      457\n================================================== =========\
+    \ ========\n\n\n================================================== ========= ========\nGet all channels (36424 calls)                     Time [ms] RAM [MB]\n==================================================\
+    \ ========= ========\nasammdf 3.0.0    full mdfv3                             1196      269\nasammdf 3.0.0    low mdfv3                              5230      121\nasammdf 3.0.0    minimum mdfv3   \
+    \                       6871       85\nmdfreader 2.7.5 mdfv3                                     77      414\nmdfreader 2.7.5 noDataLoading mdfv3                    13036      195\nmdfreader 2.7.5 compress\
+    \ mdfv3                           184      281\nasammdf 3.0.0    full mdfv4                             1207      305\nasammdf 3.0.0    low mdfv4                              5613      144\nasammdf\
+    \ 3.0.0    minimum mdfv4                          7725       80\nmdfreader 2.7.5 mdfv4                                     74      435\nmdfreader 2.7.5 noDataLoading mdfv4                    14140 \
+    \     207\nmdfreader 2.7.5 compress mdfv4                           171      307\n================================================== ========= ========\n\n\n==================================================\
+    \ ========= ========\nConvert file                                       Time [ms] RAM [MB]\n================================================== ========= ========\nasammdf 3.0.0    full v3 to v4   \
+    \                       3712      565\nasammdf 3.0.0    low v3 to v4                           4091      228\nasammdf 3.0.0    minimum v3 to v4                       6740      126\nasammdf 3.0.0   \
+    \ full v4 to v3                          3787      571\nasammdf 3.0.0    low v4 to v3                           4546      222\nasammdf 3.0.0    minimum v4 to v3                       8369      115\n\
+    ================================================== ========= ========\n\n\n================================================== ========= ========\nMerge files                                        Time\
+    \ [ms] RAM [MB]\n================================================== ========= ========\nasammdf 3.0.0    full v3                                7297      975\nasammdf 3.0.0    low v3               \
+    \                  7766      282\nasammdf 3.0.0    minimum v3                            11363      163\nmdfreader 2.7.5 mdfv3                                  13039     1301\nmdfreader 2.7.5 compress\
+    \ mdfv3                         12877     1298\nmdfreader 2.7.5 noDataLoading mdfv3                    12981     1421\nasammdf 3.0.0    full v4                               11313     1025\nasammdf\
+    \ 3.0.0    low v4                                12155      322\nasammdf 3.0.0    minimum v4                            18787      152\nmdfreader 2.7.5 mdfv4                                  21423 \
+    \    1309\nmdfreader 2.7.5 noDataLoading mdfv4                    20142     1352\nmdfreader 2.7.5 compress mdfv4                         20600     1309\n==================================================\
+    \ ========= ========"
+  doc_url: ''
+  dev_url: ''
+
+extra:
+  recipe-maintainers: ''
