@@ -39,6 +39,7 @@ cat << EOF | docker run -i \
 
 # Copy the host recipes folder so we don't ever muck with it
 cp -r /home/conda/staged-recipes/recipes ~/conda-recipes
+cp -r /home/conda/staged-recipes/.ci_support ~/.ci_support
 
 # Find the recipes from master in this PR and remove them.
 echo "Finding recipes merged in master and removing them from the build."
@@ -64,5 +65,5 @@ find ~/conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt
     | xargs -n1 cat | grep -v -e "^#" -e "^$" | \
     xargs -r /usr/bin/sudo -n yum install -y
 
-conda build ~/conda-recipes -m /opt/conda/conda_build_config.yaml
+python ~/.ci_support/build_all.py ~/conda-recipes
 EOF
