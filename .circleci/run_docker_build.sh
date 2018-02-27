@@ -54,9 +54,9 @@ echo "$config" > ~/.condarc
 # A lock sometimes occurs with incomplete builds. The lock file is stored in build_artifacts.
 conda clean --lock
 
-conda update conda conda-build
-conda install conda-build-all
-conda install conda-forge-build-setup
+source activate root
+
+conda install conda-forge-ci-setup=1.* conda-forge-pinning
 source run_conda_forge_build_setup
 
 # yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
@@ -64,5 +64,5 @@ find ~/conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt
     | xargs -n1 cat | grep -v -e "^#" -e "^$" | \
     xargs -r /usr/bin/sudo -n yum install -y
 
-conda build-all ~/conda-recipes --matrix-conditions "numpy >=1.11" "python >=2.7,<3|>=3.5" "r-base ==3.3.2|==3.4.1"
+conda build ~/conda-recipes -m /opt/conda/conda_build_config.yaml
 EOF
