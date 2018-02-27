@@ -57,7 +57,7 @@ conda clean --lock
 
 source activate root
 
-conda install conda-forge-ci-setup=1.* conda-forge-pinning
+conda install conda-forge-ci-setup=1.* conda-forge-pinning networkx
 source run_conda_forge_build_setup
 
 # yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
