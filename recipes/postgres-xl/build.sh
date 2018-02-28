@@ -8,6 +8,7 @@ LDFLAGS="-rpath $PREFIX/lib $LDFLAGS"
     --with-libraries=$PREFIX/lib \
     --with-includes=$PREFIX/include \
     --with-openssl \
+    --without-python \
     --with-uuid=e2fs \
     --with-libxml \
     --with-libxslt \
