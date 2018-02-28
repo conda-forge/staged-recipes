@@ -6,6 +6,10 @@ import argparse
 import os
 
 def build_all(recipes_dir, arch):
+    folders = os.listdir(recipes_dir)
+    if not folders:
+        print("Found no recipes to build")
+        return
     channel_urls=['local', 'conda-forge', 'defaults']
     index = conda_build.conda_interface.get_index(channel_urls=channel_urls)
     conda_resolve = conda_build.conda_interface.Resolve(index)
@@ -21,16 +25,17 @@ def build_all(recipes_dir, arch):
                                     exclusive_config_file=exclusive_config_file,
                                     channel_urls=channel_urls)
 
-    worker={'platform': platform, 'arch': arch, 'label': platform}
+    worker={'platform': platform, 'arch': arch, 'label': '{}-{}'.format(platform, arch)}
 
     G = construct_graph(recipes_dir, worker=worker, run='build', conda_resolve=conda_resolve,
-                        folders=os.listdir(recipes_dir), config=config)
+                        folders=folders, config=config)
 
     order = list(nx.topological_sort(G))
     order.reverse()
 
-    print('Building packages')
-    print('\n'.join(order))
+    print('Computed that there are {} distributions to build from {} recipes'.format(len(order), len(folders)))
+    print("Resolved dependencies, will be built in the following order:")
+    print('    '+'\n    '.join(order))
 
     for node in order:
         conda_build.api.build(G.node[node]['meta'])
