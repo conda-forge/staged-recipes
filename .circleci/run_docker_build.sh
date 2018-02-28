@@ -55,8 +55,6 @@ echo "$config" > ~/.condarc
 # A lock sometimes occurs with incomplete builds. The lock file is stored in build_artifacts.
 conda clean --lock
 
-source activate root
-
 conda install conda-forge-ci-setup=1.* conda-forge-pinning networkx
 source run_conda_forge_build_setup
 
