@@ -17,7 +17,7 @@ LDFLAGS="-rpath $PREFIX/lib $LDFLAGS"
 make -j $CPU_COUNT
 make -j $CPU_COUNT -C contrib
 
-make check
+make check || (cat src/test/regress/regression.diffs && exit 1)
 make check -C src/pl
 make check -C contrib
 make check -C src/interfaces/ecpg
