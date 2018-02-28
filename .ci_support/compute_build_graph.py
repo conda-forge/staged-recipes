@@ -178,7 +178,7 @@ def _get_or_render_metadata(meta_file_or_recipe_dir, worker, config=None):
         print("rendering {0} for {1}".format(meta_file_or_recipe_dir, worker['label']))
         _rendered_recipes[(meta_file_or_recipe_dir, platform, arch)] = \
                             api.render(meta_file_or_recipe_dir, platform=platform, arch=arch,
-                                       verbose=False, permit_undefined_jinja=True, finalize=False,
+                                       verbose=False, permit_undefined_jinja=True, finalize=True,
                                        bypass_env_check=True, config=config)
     return _rendered_recipes[(meta_file_or_recipe_dir, platform, arch)]
 
