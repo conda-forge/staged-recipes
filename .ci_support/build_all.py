@@ -4,6 +4,18 @@ import conda_build.api
 from compute_build_graph import construct_graph
 import argparse
 import os
+from collections import OrderedDict
+
+
+def get_host_platform():
+    from sys import platform
+    if platform == "linux" or platform == "linux2":
+        return "linux"
+    elif platform == "darwin":
+        return "osx"
+    elif platform == "win32":
+        return "win"
+
 
 def build_all(recipes_dir, arch):
     folders = os.listdir(recipes_dir)
@@ -16,10 +28,11 @@ def build_all(recipes_dir, arch):
 
     exclusive_config_file = os.path.join(conda_build.conda_interface.root_dir, 'conda_build_config.yaml')
     platform =  get_host_platform()
+    script_dir = os.path.dirname(os.path.realpath(__file__))
     variant_config_files = []
-    if platform == 'win':
-        script_dir = os.path.dirname(os.path.realpath(__file__))
-        variant_config_files = [os.path.join(script_dir, 'win{}.yaml'.format(arch))]
+    variant_config_file = os.path.join(script_dir, '{}{}.yaml'.format(platform, arch))
+    if os.path.exists(variant_config_file):
+        variant_config_files.append(variant_config_file)
 
     config = conda_build.api.Config(variant_config_files=variant_config_files, arch=arch,
                                     exclusive_config_file=exclusive_config_file,
@@ -28,8 +41,7 @@ def build_all(recipes_dir, arch):
     worker={'platform': platform, 'arch': arch, 'label': '{}-{}'.format(platform, arch)}
 
     G = construct_graph(recipes_dir, worker=worker, run='build', conda_resolve=conda_resolve,
-                        folders=folders, config=config)
-
+                        folders=folders, config=config, finalize=False)
     order = list(nx.topological_sort(G))
     order.reverse()
 
@@ -37,18 +49,11 @@ def build_all(recipes_dir, arch):
     print("Resolved dependencies, will be built in the following order:")
     print('    '+'\n    '.join(order))
 
+    d = OrderedDict()
     for node in order:
-        conda_build.api.build(G.node[node]['meta'])
+        d[G.node[node]['meta'].meta_path] = 1
 
-
-def get_host_platform():
-    from sys import platform
-    if platform == "linux" or platform == "linux2":
-        return "linux"
-    elif platform == "darwin":
-        return "osx"
-    elif platform == "win32":
-        return "win"
+    conda_build.api.build(list(d.keys()))
 
 
 if __name__ == "__main__":
