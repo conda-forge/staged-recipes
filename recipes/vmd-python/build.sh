@@ -1,16 +1,15 @@
 #!/bin/bash
 
-if [[ $TRAVIS_OS_NAME == osx ]]; then
-    echo "XCODES AVAILABLE:"
-    xcode-select --print-path
+echo "BEGIN DEBUG"
+echo "XCODES AVAILABLE:"
+xcode-select --print-path
 
-    echo "INSTALLING?"
-    xcode-select --install
+echo "INSTALLING?"
+xcode-select --install
 
-    echo "CC IS: $(which cc)"
-    echo "CLANG IS: $(which clang)"
-    echo "TRYNA RUN CC:"
-    cc
-fi
+echo "CC IS: $(which cc)"
+echo "CLANG IS: $(which clang)"
+echo "TRYNA RUN CC:"
+cc
 
 python -m pip install --no-deps --ignore-installed .
