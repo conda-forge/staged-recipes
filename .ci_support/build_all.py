@@ -53,7 +53,7 @@ def build_all(recipes_dir, arch):
     for node in order:
         d[G.node[node]['meta'].meta_path] = 1
 
-    conda_build.api.build(list(d.keys()))
+    conda_build.api.build(list(d.keys()), config=config)
 
 
 if __name__ == "__main__":
