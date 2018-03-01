@@ -17,8 +17,8 @@ LDFLAGS="-rpath $PREFIX/lib $LDFLAGS"
 make -j $CPU_COUNT
 make -j $CPU_COUNT -C contrib
 
-export MAX_CONNECTIONS=1
 make check
+make check -C contrib
 make check -C src/pl
 
 make install
