@@ -4,8 +4,8 @@ echo "BEGIN DEBUG"
 echo "XCODES AVAILABLE:"
 xcode-select --print-path
 
-echo "INSTALLING?"
-xcode-select --install
+#echo "INSTALLING?"
+#xcode-select --install
 
 echo "CC IS: $(which cc)"
 echo "CLANG IS: $(which clang)"
