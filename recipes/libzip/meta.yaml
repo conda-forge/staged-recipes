@@ -1,0 +1,75 @@
+{% set name = "libzip" %}
+{% set version = "1.4.0" %}
+{% set sha256 = "759a89690e155ca52247638b9f97e16e48fbb6077abb7ce2d921dd5b81259940" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: {{ name }}-{{ version }}.tar.gz
+  url: https://libzip.org/download/libzip-{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+  patches:
+    # This disables the "malloc" test which also doesn't compile on Windows.
+    # This patch is taken from a commit post 1.4.0 release
+    - 0001-Unhook-malloc.c-from-build.patch  # [win]
+    # This disables a test that the library developers had disabled at one point
+    # https://github.com/nih-at/libzip/commit/57b97e9f069f8f9164ec6877bc00edb00cdb85b3
+    # Disabling for our build for now, pending fix or removal in library
+    - 0002-disable-nonrandomopentest-from-build.patch  # [win]
+    - 0003-Use-cmake-E-tar-to-extract-test-data.patch  # [win]
+
+build:
+  number: 0
+  features:
+    - vc9   # [win and py27]
+    - vc10  # [win and py34]
+    - vc14  # [win and py35]
+    - vc14  # [win and py36]
+
+requirements:
+  build:
+    - cmake
+    - zlib 1.2.11
+    - bzip2 1.0.*
+    - python  # [win]
+    - vc 9   # [win and py27]
+    - vc 10  # [win and py34]
+    - vc 14  # [win and py35]
+    - vc 14  # [win and py36]
+    # perl is needed to run the package tests
+    - perl 5.26.0  # avoid making a matrix of perl builds
+  run:
+    - zlib 1.2.11
+    - bzip2 1.0.*
+    - vc 9   # [win and py27]
+    - vc 10  # [win and py34]
+    - vc 14  # [win and py35]
+    - vc 14  # [win and py36]
+
+test:
+  commands:
+    - test -f ${PREFIX}/bin/ziptool  # [linux or osx]
+    - test -f ${PREFIX}/lib/libzip.so  # [linux]
+    - test -f ${PREFIX}/lib/libzip.dylib  # [osx]
+    - if not exist %LIBRARY_BIN%\\ziptool.exe exit 1  # [win]
+    - if not exist %LIBRARY_LIB%\\zip.lib exit 1  # [win]
+
+about:
+  home: https://libzip.org/
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: 'A C library for reading, creating, and modifying zip archives.'
+  description: |
+      libzip is a C library for reading, creating, and modifying zip archives.
+      Files can be added from data buffers, files, or compressed data copied
+      directly from other zip archives. Changes made without closing the
+      archive can be reverted. The API is documented by man pages.
+  doc_url: https://libzip.org/documentation/
+  dev_url: https://github.com/nih-at/libzip
+
+extra:
+  recipe-maintainers:
+    - ceholden
