@@ -21,7 +21,7 @@ esac
 
 vwlibtool -f -c && aclocal -I ./acinclude.d -I $AC_PATH/aclocal && autoheader && touch README && automake -ac -Woverride && autoconf
 
-export BOOST_ROOT=$LIBRARY_PREFIX
+export BOOST_ROOT=$PREFIX
 
-./configure --prefix=$LIBRARY_PREFIX --with-zlib=$LIBRARY_PREFIX
+./configure --prefix=$PREFIX --with-zlib=$PREFIX
 make install -j${CPU_COUNT}
