@@ -4,4 +4,6 @@ cd vowpalwabbit
 
 msbuild vw.sln /m /verbosity:normal /p:Configuration=Release;Platform=x64
 
-ROBOCOPY "%SRC_DIR%\vowpalwabbit\x64\Release" "%LIBRARY_BIN%" /mir
+dir "%SRC_DIR%\vowpalwabbit\x64\Release"
+
+xcopy "%SRC_DIR%\vowpalwabbit\x64\Release" "%LIBRARY_BIN%" /mir
