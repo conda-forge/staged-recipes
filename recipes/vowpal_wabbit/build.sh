@@ -23,5 +23,5 @@ vwlibtool -f -c && aclocal -I ./acinclude.d -I $AC_PATH/aclocal && autoheader &&
 
 export BOOST_ROOT=$PREFIX
 
-./configure --prefix=$PREFIX --with-zlib=$PREFIX
+./configure --prefix=$PREFIX --with-zlib-include=$PREFIX/include --with-zlib-lib=$PREFIX/lib
 make install -j${CPU_COUNT}
