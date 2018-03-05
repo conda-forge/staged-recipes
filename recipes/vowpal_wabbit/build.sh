@@ -24,6 +24,12 @@ vwlibtool -f -c && aclocal -I ./acinclude.d -I $AC_PATH/aclocal && autoheader &&
 ls $PREFIX/include
 ls $PREFIX/lib
 
+mkdir -p /usr/local/lib
+mkdir -p /usr/local/include
+
+cp $PREFIX/lib/libz.a /usr/local/lib
+cp $PREFIX/include/zlib.h /usr/local/include
+
 ./configure --prefix=$PREFIX --with-zlib=$PREFIX
 make install -j${CPU_COUNT} 
 
