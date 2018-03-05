@@ -1,4 +1,6 @@
 
+set INCLUDE=%INCLUDE%;%LIBRARY_PREFIX%\include
+
 .nuget\nuget.exe restore vw.sln
 msbuild vowpalwabbit\vw.sln /m /verbosity:normal /p:Configuration=Release;Platform=x64
 
