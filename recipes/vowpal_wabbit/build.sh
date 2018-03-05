@@ -21,7 +21,7 @@ case $( uname -s ) in
   ;;
 esac
 
-vwlibtool -f -c && aclocal -I ./acinclude.d -I $AC_PATH/aclocal && autoheader && touch README && automake -ac -Woverride && autoconf && ./configure "$@" $BOOST_DIR_ARG
+vwlibtool -f -c && aclocal -I ./acinclude.d -I $AC_PATH/aclocal && autoheader && touch README && automake -ac -Woverride && autoconf
 
-./configure --prefix=$LIBRARY_PREFIX
+./configure "$@" $BOOST_DIR_ARG --prefix=$LIBRARY_PREFIX --with-zlib=$LIBRARY_PREFIX
 make install -j${CPU_COUNT}
