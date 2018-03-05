@@ -24,6 +24,9 @@ vwlibtool -f -c && aclocal -I ./acinclude.d -I $AC_PATH/aclocal && autoheader &&
 ls $PREFIX/include
 ls $PREFIX/lib
 
+rm -f $PREFIX/lib/libboost_program_options.dylib
+rm -f $PREFIX/lib/libboost_program_options.so
+
 ./configure --prefix=$PREFIX --with-zlib=$PREFIX || cat config.log
 make install -j${CPU_COUNT} 
 
