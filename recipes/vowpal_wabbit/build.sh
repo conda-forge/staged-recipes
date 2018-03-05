@@ -1,5 +1,3 @@
-BOOST_DIR_ARG=$LIBRARY_PREFIX/lib
-
 case $( uname -s ) in
  Darwin)
   alias vwlibtool=glibtoolize
@@ -23,5 +21,7 @@ esac
 
 vwlibtool -f -c && aclocal -I ./acinclude.d -I $AC_PATH/aclocal && autoheader && touch README && automake -ac -Woverride && autoconf
 
-./configure "$@" $BOOST_DIR_ARG --prefix=$LIBRARY_PREFIX --with-zlib=$LIBRARY_PREFIX
+export BOOST_ROOT=$LIBRARY_PREFIX
+
+./configure --prefix=$LIBRARY_PREFIX --with-zlib=$LIBRARY_PREFIX
 make install -j${CPU_COUNT}
