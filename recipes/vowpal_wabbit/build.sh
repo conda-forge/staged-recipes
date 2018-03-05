@@ -24,7 +24,7 @@ vwlibtool -f -c && aclocal -I ./acinclude.d -I $AC_PATH/aclocal && autoheader &&
 ls $PREFIX/include
 ls $PREFIX/lib
 
-./configure --prefix=$PREFIX --with-zlib-include=$PREFIX/include --with-zlib-lib=$PREFIX/lib
+./configure --prefix=$PREFIX --with-zlib=$PREFIX
 make install -j${CPU_COUNT} 
 
 make -j${CPU_COUNT}
