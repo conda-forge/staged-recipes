@@ -4,8 +4,8 @@ echo "CXX is: $CXX"
 echo "Unsetting"
 unset CC
 unset CXX
-echo "Clang env is:"
-env | grep clang
+
+echo "/usr/bin/cc is: $(readlink -f /usr/bin/cc)"
 
 python -m pip install --no-deps --ignore-installed .
 
