@@ -1,3 +1,5 @@
+echo "HERE IS THE ENVIRONMENT:"
+printenv
 
 echo "CC is: $CC"
 echo "CXX is: $CXX"
@@ -15,9 +17,10 @@ echo "/usr/bin/c++ is: $(readlink /usr/bin/c++)"
 echo "Tryna run c++"
 c++ --version
 
-echo "Ar is: $(readlink /usr/bin/ar)"A
-echo "Tryna run ar"
-ar --version
+echo "Ar is: $(readlink /usr/bin/ar)"
+
+# Just jam everythign into Path?
+export PATH="/usr/bin:$PATH"
 
 python -m pip install --no-deps --ignore-installed .
 
