@@ -6,10 +6,10 @@ cd build
 cmake \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DCMAKE_PREFIX_PATH=$PREFIX \
-    -DBUILD_SPICE=yes \
-    -DBUILD_MAIN=no \
-    -DBUILD_PYKEP=yes \
-    -DBUILD_TESTS=yes \
+    -DAUDI_BUILD_AUDI=yes \
+    -DAUDI_BUILD_MAIN=no \
+    -DAUDI_BUILD_TESTS=yes \
+    -DAUDI_BUILD_PYAUDI=no \
     ..
 
 make
