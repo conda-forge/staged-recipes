@@ -1,6 +1,8 @@
 mkdir build
 cd build
 
+REM TODO: can not find tkint.h -> disabling GUI for WIN 
+
 cmake .. -G "Ninja" ^
     -DCMAKE_BUILD_TYPE="Release" ^
     -DINSTALL_DIR_LAYOUT="Unix" ^
@@ -12,7 +14,7 @@ cmake .. -G "Ninja" ^
     -DOCC_LIBRARY_DIR:FILEPATH="%LIBRARY_PREFIX%/lib" ^
     -DUSE_OCC=ON ^
     -DUSE_PYTHON=ON ^
-    -DUSE_GUI=ON ^
+    -DUSE_GUI=OFF ^
     -DUSE_SUPERBUILD=OFF
 
 if errorlevel 1 exit 1
