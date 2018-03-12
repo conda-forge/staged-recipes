@@ -1,7 +1,18 @@
 {% set provider= "aws" %}
 {% set version = "1.10.0" %}
-{% set sha256 = "11d17098219cd81beaae9f93e5955219567ed46c3ecb79dbcd900d8871e12305" %}
+
 {% set name = "terraform-provider-" + provider %}
+{% set x4_plugin = name + '_v' + version + "_x4" %}
+
+{% set sha256 = "11d17098219cd81beaae9f93e5955219567ed46c3ecb79dbcd900d8871e12305" %}
+{% set sha256_win32 = load_file_regex(
+    load_file=name + "_" + version + "_SHA256SUMS",
+    regex_pattern="(?m)^(?P<sha256>[0-9a-f]+)\\s+"+ name + "_" + version + "_windows_386.zip$",
+    from_recipe_dir=True).groupdict()["sha256"] %}
+{% set sha256_win64 = load_file_regex(
+    load_file=name + "_" + version + "_SHA256SUMS",
+    regex_pattern="(?m)^(?P<sha256>[0-9a-f]+)\\s+"+ name + "_" + version + "_windows_amd64.zip$",
+    from_recipe_dir=True).groupdict()["sha256"] %}
 
 package:
   name: {{ name|lower }}
@@ -9,8 +20,12 @@ package:
 
 source:
   url: https://github.com/terraform-providers/{{ name }}/archive/v{{ version }}.tar.gz
+  url: https://releases.hashicorp.com/{{ name }}/{{ version }}/{{ name }}_{{ version }}_windows_386.zip  # [win32]
+  url: https://releases.hashicorp.com/{{ name }}/{{ version }}/{{ name }}_{{ version }}_windows_amd64.zip  # [win64]
   fn: {{ name }}-{{ version }}.tar.gz
-  sha256: {{ sha256 }}
+  sha256: {{ sha256 }}  # [not win]
+  sha256: {{ sha256_win32 }}  # [win32]
+  sha256: {{ sha256_win64 }}  # [win64]
 
 build:
   number: 0
@@ -19,10 +34,9 @@ build:
 
 requirements:
   build:
-    - go 1.9.*
+    - go 1.9.*  # [not win]
     - make
     - toolchain
-    - posix  # [win]
   run:
     - terraform >=0.10
 

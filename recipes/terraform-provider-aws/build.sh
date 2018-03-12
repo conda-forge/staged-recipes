@@ -1,11 +1,5 @@
 #!/usr/bin/env bash
 
-set windows=
-if [[ $OS == Windows* ]]; then
-    windows=1
-    export PATH=${LIBRARY_BIN}:$PATH
-fi
-
 # Create temporary GOPATH
 mkdir build
 export GOPATH=$(pwd)/build
