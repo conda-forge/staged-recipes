@@ -3,52 +3,36 @@
 
 {% set name = "terraform-provider-" + provider.lower() %}
 {% set x4_plugin = name + '_v' + version + "_x4" %}
-{% set sha256_osx = load_file_regex(
-    load_file=name + "_" + version + "_SHA256SUMS",
-    regex_pattern="(?m)^(?P<sha256>[0-9a-f]+)\\s+"+ name + "_" + version + "_darwin_amd64.zip$",
-    from_recipe_dir=True).groupdict()["sha256"] %}
-{% set sha256_linux32 = load_file_regex(
-    load_file=name + "_" + version + "_SHA256SUMS",
-    regex_pattern="(?m)^(?P<sha256>[0-9a-f]+)\\s+"+ name + "_" + version + "_linux_386.zip$",
-    from_recipe_dir=True).groupdict()["sha256"] %}
-{% set sha256_linux64 = load_file_regex(
-    load_file=name + "_" + version + "_SHA256SUMS",
-    regex_pattern="(?m)^(?P<sha256>[0-9a-f]+)\\s+"+ name + "_" + version + "_linux_amd64.zip$",
-    from_recipe_dir=True).groupdict()["sha256"] %}
-{% set sha256_win32 = load_file_regex(
-    load_file=name + "_" + version + "_SHA256SUMS",
-    regex_pattern="(?m)^(?P<sha256>[0-9a-f]+)\\s+"+ name + "_" + version + "_windows_386.zip$",
-    from_recipe_dir=True).groupdict()["sha256"] %}
-{% set sha256_win64 = load_file_regex(
-    load_file=name + "_" + version + "_SHA256SUMS",
-    regex_pattern="(?m)^(?P<sha256>[0-9a-f]+)\\s+"+ name + "_" + version + "_windows_amd64.zip$",
-    from_recipe_dir=True).groupdict()["sha256"] %}
 
+{% set sha256 = "a6c279d2cc62ad87dcd6e4dcb4b04d1ab5ca2de5ae361031650a3ba0dbc500de" %}
+{% set sha256_win32 = "298ff8405fe21f2b57748f42a8e609e31e4e753ab1559428f008428b43118bcf" %}
+{% set sha256_win64 = "d4f8942721a297b68f5f429492cc73f979b101fc6a431bfb22a89ac133519bea" %}
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  url: https://releases.hashicorp.com/{{ name }}/{{ version }}/{{ name }}_{{ version }}_darwin_amd64.zip  # [osx]
-  url: https://releases.hashicorp.com/{{ name }}/{{ version }}/{{ name }}_{{ version }}_linux_386.zip  # [linux32]
-  url: https://releases.hashicorp.com/{{ name }}/{{ version }}/{{ name }}_{{ version }}_linux_amd64.zip  # [linux64]
+  url: https://github.com/terraform-providers/{{ name }}/archive/v{{ version }}.tar.gz  # [not win]
+  fn: {{ name }}-{{ version }}.tar.gz  # [not win]
+  sha256: {{ sha256 }}  # [not win]
+
   url: https://releases.hashicorp.com/{{ name }}/{{ version }}/{{ name }}_{{ version }}_windows_386.zip  # [win32]
   url: https://releases.hashicorp.com/{{ name }}/{{ version }}/{{ name }}_{{ version }}_windows_amd64.zip  # [win64]
-  fn: {{ name }}-{{ version }}.zip
-  sha256: {{ sha256_osx }}  # [osx]
-  sha256: {{ sha256_linux32 }}  # [linux32]
-  sha256: {{ sha256_linux64 }}  # [linux64]
+  fn: {{ name }}-{{ version }}.zip  # [win]
   sha256: {{ sha256_win32 }}  # [win32]
   sha256: {{ sha256_win64 }}  # [win64]
 
 build:
   number: 0
   script:
-    - chmod +x {{ x4_plugin }} && cp {{ x4_plugin }} $PREFIX/bin  # [not win]
     - XCOPY {{ x4_plugin }}.exe %LIBRARY_BIN%  # [win]
 
 requirements:
+  build:
+    - go 1.8.*  # [not win]
+    - make  # [not win]
+    - toolchain  # [not win]
   run:
     - terraform >=0.10
 
