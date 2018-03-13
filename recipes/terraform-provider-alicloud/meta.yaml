@@ -1,0 +1,54 @@
+{% set provider= "alicloud" %}
+{% set version = "1.8.0" %}
+
+{% set name = "terraform-provider-" + provider %}
+{% set x4_plugin = name + '_v' + version + "_x4" %}
+
+{% set sha256 = "265c79575f61191966a43c58043f269f3ceb200546a8607ac1c85c6e75007e59" %}
+{% set sha256_win32 = "6ae2b2ec933fc924c16b88ba446f18356805f7f987ef7d35146c7dbc82505f83" %}
+{% set sha256_win64 = "b2cbe6d26af42c7cd52145732c95d0736c1c5b8207350e40de9b4701a20b11d5" %}
+
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/terraform-providers/{{ name }}/archive/v{{ version }}.tar.gz  # [not win]
+  fn: {{ name }}-{{ version }}.tar.gz  # [not win]
+  sha256: {{ sha256 }}  # [not win]
+
+  url: https://releases.hashicorp.com/{{ name }}/{{ version }}/{{ name }}_{{ version }}_windows_386.zip  # [win32]
+  url: https://releases.hashicorp.com/{{ name }}/{{ version }}/{{ name }}_{{ version }}_windows_amd64.zip  # [win64]
+  fn: {{ name }}-{{ version }}.zip  # [win]
+  sha256: {{ sha256_win32 }}  # [win32]
+  sha256: {{ sha256_win64 }}  # [win64]
+
+build:
+  number: 0
+  script:
+    - XCOPY {{ x4_plugin }}.exe %LIBRARY_BIN%  # [win]
+
+requirements:
+  build:
+    - go 1.9.*  # [not win]
+    - make  # [not win]
+    - toolchain  # [not win]
+  run:
+    - terraform >=0.11
+
+test:
+  commands:
+    - echo 'provider "{{ provider }}" { version="{{ version }}" }' > init.tf  # [not win]
+    - test $(terraform init | grep -c 'Downloading') = 0  # [not win]
+
+about:
+  home: https://www.terraform.io
+  license: MPL 2.0
+  summary: The Terraform AliCloud provider
+  doc_url: https://www.terraform.io/docs/providers/{{ provider }}/index.html
+  dev_url: https://https://github.com/terraform-providers/{{ name }}
+
+extra:
+  recipe-maintainers:
+    - sodre

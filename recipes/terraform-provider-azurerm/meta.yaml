@@ -1,0 +1,53 @@
+{% set provider= "azurerm" %}
+{% set version = "1.2.0" %}
+
+{% set name = "terraform-provider-" + provider %}
+{% set x4_plugin = name + '_v' + version + "_x4" %}
+
+{% set sha256 = "8d7ec9d7501f4b5d53a39ae126c2ffdceb485a41a8d6c2fb6067749f12628cd6" %}
+{% set sha256_win32 = "182a863b9d92805f5f15ca5fe2b3b9dce56c48c8c77dbc63b22a6b82fb716d53" %}
+{% set sha256_win64 = "98439332fe4fb3ec958096662d6bc3bb2b6a09cd332cc3b1e1dc859d80683ef7" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/terraform-providers/{{ name }}/archive/v{{ version }}.tar.gz  # [not win]
+  fn: {{ name }}-{{ version }}.tar.gz  # [not win]
+  sha256: {{ sha256 }}  # [not win]
+
+  url: https://releases.hashicorp.com/{{ name }}/{{ version }}/{{ name }}_{{ version }}_windows_386.zip  # [win32]
+  url: https://releases.hashicorp.com/{{ name }}/{{ version }}/{{ name }}_{{ version }}_windows_amd64.zip  # [win64]
+  fn: {{ name }}-{{ version }}.zip  # [win]
+  sha256: {{ sha256_win32 }}  # [win32]
+  sha256: {{ sha256_win64 }}  # [win64]
+
+build:
+  number: 0
+  script:
+    - XCOPY {{ x4_plugin }}.exe %LIBRARY_BIN%  # [win]
+
+requirements:
+  build:
+    - go 1.9.*  # [not win]
+    - make  # [not win]
+    - toolchain  # [not win]
+  run:
+    - terraform >=0.10
+
+test:
+  commands:
+    - echo 'provider "{{ provider }}" { version="{{ version }}" }' > init.tf  # [not win]
+    - test $(terraform init | grep -c 'Downloading') = 0  # [not win]
+
+about:
+  home: https://www.terraform.io
+  license: MPL 2.0
+  summary: The Terraform Azure provider
+  doc_url: https://www.terraform.io/docs/providers/{{ provider }}/index.html
+  dev_url: https://https://github.com/terraform-providers/{{ name }}
+
+extra:
+  recipe-maintainers:
+    - sodre
