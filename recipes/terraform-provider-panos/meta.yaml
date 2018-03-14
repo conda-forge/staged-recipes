@@ -1,0 +1,53 @@
+{% set provider= "panos" %}
+{% set version = "1.0.0" %}
+
+{% set name = "terraform-provider-" + provider.lower() %}
+{% set x4_plugin = name + '_v' + version + "_x4" %}
+
+{% set sha256 = "a6e4841a76f3bbd35fb9137971bad5c8a96456649f2739942cff48b480788646" %}
+{% set sha256_win32 = "4f48bccdcfff7b4802ef2ae1f4e71c872d68dcb48e068b4170fdadf4adad059c" %}
+{% set sha256_win64 = "189b12687c277c2a363e897d82c3621da6fb0bcfd0aa060e1bea60b8e0d863ce" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/terraform-providers/{{ name }}/archive/v{{ version }}.tar.gz  # [not win]
+  fn: {{ name }}-{{ version }}.tar.gz  # [not win]
+  sha256: {{ sha256 }}  # [not win]
+
+  url: https://releases.hashicorp.com/{{ name }}/{{ version }}/{{ name }}_{{ version }}_windows_386.zip  # [win32]
+  url: https://releases.hashicorp.com/{{ name }}/{{ version }}/{{ name }}_{{ version }}_windows_amd64.zip  # [win64]
+  fn: {{ name }}-{{ version }}.zip  # [win]
+  sha256: {{ sha256_win32 }}  # [win32]
+  sha256: {{ sha256_win64 }}  # [win64]
+
+build:
+  number: 0
+  script:
+    - XCOPY {{ x4_plugin }}.exe %LIBRARY_BIN%  # [win]
+
+requirements:
+  build:
+    - go 1.9.*  # [not win]
+    - make  # [not win]
+    - toolchain  # [not win]
+  run:
+    - terraform >=0.10
+
+test:
+  commands:
+    - echo 'provider "{{ provider|lower }}" { version="{{ version }}" }' > init.tf  # [not win]
+    - test $(terraform init | grep -c 'Downloading') = 0  # [not win]
+
+about:
+  home: https://www.terraform.io
+  license: MPL 2.0
+  summary: The Terraform Palo Alto Networks PANOS provider
+  doc_url: https://www.terraform.io/docs/providers/{{ provider|lower }}/index.html
+  dev_url: https://https://github.com/terraform-providers/{{ name }}
+
+extra:
+  recipe-maintainers:
+    - sodre
