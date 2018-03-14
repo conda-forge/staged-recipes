@@ -1,0 +1,53 @@
+{% set provider= "GitLab" %}
+{% set version = "1.0.0" %}
+
+{% set name = "terraform-provider-" + provider.lower() %}
+{% set x4_plugin = name + '_v' + version + "_x4" %}
+
+{% set sha256 = "2fc9aa50c89f24098d8a69ba13fc6e402f3c83f7e35746f099e06f2cf96bed1d" %}
+{% set sha256_win32 = "6a2df8113718e630153bf6ceb928b88c2574e55a498e6a47acd074b4c2e6cf0d" %}
+{% set sha256_win64 = "2bbf6f7804c82a6465f0c06e1892d5337b7e40699d370c4912ff5ab9c1655c8a" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/terraform-providers/{{ name }}/archive/v{{ version }}.tar.gz  # [not win]
+  fn: {{ name }}-{{ version }}.tar.gz  # [not win]
+  sha256: {{ sha256 }}  # [not win]
+
+  url: https://releases.hashicorp.com/{{ name }}/{{ version }}/{{ name }}_{{ version }}_windows_386.zip  # [win32]
+  url: https://releases.hashicorp.com/{{ name }}/{{ version }}/{{ name }}_{{ version }}_windows_amd64.zip  # [win64]
+  fn: {{ name }}-{{ version }}.zip  # [win]
+  sha256: {{ sha256_win32 }}  # [win32]
+  sha256: {{ sha256_win64 }}  # [win64]
+
+build:
+  number: 0
+  script:
+    - XCOPY {{ x4_plugin }}.exe %LIBRARY_BIN%  # [win]
+
+requirements:
+  build:
+    - go 1.9.*  # [not win]
+    - make  # [not win]
+    - toolchain  # [not win]
+  run:
+    - terraform >=0.10
+
+test:
+  commands:
+    - echo 'provider "{{ provider|lower }}" { version="{{ version }}" }' > init.tf  # [not win]
+    - test $(terraform init | grep -c 'Downloading') = 0  # [not win]
+
+about:
+  home: https://www.terraform.io
+  license: MPL 2.0
+  summary: The Terraform {{ provider }} provider
+  doc_url: https://www.terraform.io/docs/providers/{{ provider|lower }}/index.html
+  dev_url: https://https://github.com/terraform-providers/{{ name }}
+
+extra:
+  recipe-maintainers:
+    - sodre
