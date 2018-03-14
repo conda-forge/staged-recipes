@@ -1,4 +1,6 @@
 curl -O https://chromedriver.storage.googleapis.com/2.36/chromedriver_linux64.zip 
-gzip -dc < chromedriver_linux64.zip > chromedriver
-chmod 755 chromedriver
+mkdir chromedriver
+gzip -dc < chromedriver_linux64.zip > chromedriver/chromedriver
+chmod 755 chromedriver/chromedriver
+export PATH=$PATH:$CD/chromedriver
 python -m pip install --no-deps --ignore-installed .
