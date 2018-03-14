@@ -3,4 +3,5 @@ mkdir chromedriver
 gzip -dc < chromedriver_linux64.zip > chromedriver/chromedriver
 chmod 755 chromedriver/chromedriver
 export PATH=$PATH:$CD/chromedriver
+chromedriver
 python -m pip install --no-deps --ignore-installed .
