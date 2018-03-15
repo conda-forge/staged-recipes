@@ -1,6 +1,6 @@
-curl -O https://chromedriver.storage.googleapis.com/2.36/chromedriver_linux64.zip 
+python download-chromedriver.py
 mkdir chromedriver
-gzip -dc < chromedriver_linux64.zip > chromedriver/chromedriver
+gzip -dc < chromedriver.zip > chromedriver/chromedriver
 chmod 755 chromedriver/chromedriver
 # Add chromedriver to PATH so chromedriver_binary install can find it
 export PATH=$PATH:$PWD/chromedriver
