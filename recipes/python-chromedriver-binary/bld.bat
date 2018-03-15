@@ -1,4 +1,4 @@
-python %RECIPE_DIR%\download-chromedriver 
+python %RECIPE_DIR%\download-chromedriver.py
 if errorlevel 1 exit 1
 
 7z x chromedriver.zip -ochromedriver
