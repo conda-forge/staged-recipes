@@ -7,7 +7,7 @@ except ImportError:  # Python 2
 
 pkg_version = os.environ['PKG_VERSION']
 driver_version = "{0}.{1}".format(*pkg_version.split("."))
-if sys.platform == 'win32'
+if sys.platform == 'win32':
     chromedriver_pkg = 'chromedriver_win32.zip'
 elif sys.platform == 'darwin':
     chromedriver_pkg = 'chromedriver_mac64.zip'
