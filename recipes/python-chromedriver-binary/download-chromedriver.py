@@ -14,4 +14,4 @@ else:
 
 download_url = 'https://chromedriver.storage.googleapis.com/{0}/{1}'.format(driver_version, chromedriver_pkg)
 
-subprocess.call(['curl', download_url, '-o', 'chromedriver.zip'], shell=True)
+subprocess.check_call('curl "{}" -o chromedriver.zip'.format(download_url), shell=True)
