@@ -1,4 +1,4 @@
-python download-chromedriver.py
+python $RECIPE_DIR/download-chromedriver.py
 mkdir chromedriver
 gzip -dc < chromedriver.zip > chromedriver/chromedriver
 chmod 755 chromedriver/chromedriver
