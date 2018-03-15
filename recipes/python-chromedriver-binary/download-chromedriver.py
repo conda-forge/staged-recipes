@@ -1,4 +1,5 @@
 import os
+import sys
 try:                 # Python 3
     import urllib.request as urllib
 except ImportError:  # Python 2
