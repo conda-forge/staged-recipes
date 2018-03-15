@@ -121,7 +121,9 @@ if __name__ == '__main__':
     print('Calculating the recipes which need to be turned into feedstocks.')
     with tmp_dir('__feedstocks') as feedstocks_dir:
         feedstock_dirs = []
-        for recipe_dir, name in list_recipes():
+        for num, (recipe_dir, name) in enumerate(list_recipes()):
+            if num >= 7:
+                break
             feedstock_dir = os.path.join(feedstocks_dir, name + '-feedstock')
             print('Making feedstock for {}'.format(name))
             try:
