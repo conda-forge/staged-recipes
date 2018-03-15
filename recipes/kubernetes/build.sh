@@ -1,17 +1,12 @@
 #!/usr/bin/env bash
 
+set +x 
+
 # Create temporary GOPATH
-mkdir build
-export GOPATH=$(pwd)/build
-mkdir -p $GOPATH/src/github.com/kubernetes
+make hyperkube
+mv _output/bin/hyperkube $PREFIX/bin
 
-# Link code to GOPATH directory
-ln -s $(pwd) $GOPATH/src/github.com/kubernetes/$PKG_NAME
+cd $PREFIX/bin
+./hyperkube  --make-symlinks
 
-# Build
-cd $GOPATH/src/github.com/kubernetes/$PKG_NAME
-make build
-make test
-
-# Install Binary into PREFIX/bin
-mv $GOPATH/bin/$PKG_NAME $PREFIX/bin/${PKG_NAME}_v${PKG_VERSION}_x4
+conda inspect linkages --untracked -p $PREFIX
