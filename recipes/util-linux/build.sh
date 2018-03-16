@@ -1,4 +1,4 @@
 #!/bin/bash
 ./autogen.sh
-./configure
+./configure --prefix="${PREFIX}"
 make
