@@ -5,7 +5,7 @@ make_goroot_read_only()
     find $PREFIX/go -type d -exec chmod 555 {} \;
 }
 
-build_unix()
+build_linux()
 {
     find -type f -exec sed -i'' "s|/etc/cni/net\.d|$PREFIX/etc/cni/net\.d|g" {} \;
     ./build.sh
@@ -17,14 +17,14 @@ build_unix()
     for i in activate deactivate; do
         dest_dir=$PREFIX/etc/conda/$i.d
         mkdir -p $dest_dir
-        cp $RECIPE_DIR/$i $dest_dir/cni.sh
+        cp $RECIPE_DIR/$i.sh $dest_dir/cni.sh
     done
 }
 
 make_goroot_read_only
 
 case $(uname -s) in
-    "Linux"|"Darwin")
+    "Linux")
         build_linux
         ;;
 esac
