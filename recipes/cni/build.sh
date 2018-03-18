@@ -10,7 +10,8 @@ build_linux()
     find -type f -exec sed -i'' "s|/etc/cni/net\.d|$PREFIX/etc/cni/net\.d|g" {} \;
     ./build.sh
 
-    cp bin/cnitool $PREFIX/lib
+    cp scripts/*.sh $PREFIX/bin
+    cp bin/cnitool $PREFIX/bin
     mkdir -p $PREFIX/lib/cni && touch $PREFIX/lib/cni/.mkdir
     mkdir -p $PREFIX/etc/cni/net.d && touch $PREFIX/etc/cni/net.d/.mkdir
 
