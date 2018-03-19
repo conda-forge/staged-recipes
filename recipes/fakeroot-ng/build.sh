@@ -2,9 +2,7 @@
 
 set -e -o pipefail
 
-./autogen.sh
-./configure --prefix $PREFIX
+./configure --prefix=$PREFIX --with-mem-dir=/dev/shm
 
 make -j $CPU_COUNT
-
 make install
