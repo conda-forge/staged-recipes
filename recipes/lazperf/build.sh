@@ -9,3 +9,4 @@ cmake -G "Unix Makefiles" \
 
 make -j $CPU_COUNT
 make install
+make test
