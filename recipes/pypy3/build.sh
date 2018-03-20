@@ -4,7 +4,7 @@ export LDFLAGS="-L${PREFIX}/lib"
 export CFLAGS="-I${PREFIX}/include"
 export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
 
-PYPY3_SRC_DIR=$SRC_DIR/pypy3
+PYPY3_SRC_DIR=$SRC_DIR
 
 if [ $(uname) == Darwin ]; then
     # We must use pypy2 to build (which is faster), otherwise the build might timeout.
