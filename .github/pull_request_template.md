@@ -2,7 +2,7 @@
 Thank you very much for putting in this recipe PR!
 
 If you need help or review please let us know.
-There are langauge specific teams for reviewing recipes.
+There are language specific teams for reviewing recipes.
 
 Currently available teams are:
 - python `@conda-forge/help-python`
