@@ -11,6 +11,10 @@ mkdir -p ${PACKAGE_HOME}
 export LIBRARY_PATH=${LIBRARY_PATH}:${PREFIX}/lib
 
 export STACK_ROOT=${PACKAGE_HOME}/stackroot
+
+echo "I: current environment"
+export 
+
 mkdir -p ${STACK_ROOT}
 
 STACK_OPTS="--local-bin-path ${PREFIX}/bin --extra-include-dirs ${PREFIX}/include --extra-lib-dirs ${PREFIX}/lib --stack-root ${STACK_ROOT} "
