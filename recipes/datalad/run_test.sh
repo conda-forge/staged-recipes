@@ -14,4 +14,4 @@ datalad --help
 git-annex-remote-datalad-archives --help
 git-annex-remote-datalad --help
 
-python -m nose -s -v datalad
+python -m nose -s -v -e test_system_ssh_version datalad
