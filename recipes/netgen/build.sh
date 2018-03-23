@@ -13,6 +13,7 @@ cmake .. -G "Ninja" \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DNG_INSTALL_DIR_INCLUDE=$PREFIX/include/netgen \
+      -DNG_INSTALL_DIR_PYTHON=${SP_DIR} \
       -DOCC_INCLUDE_DIR=$PREFIX/include/opencascade \
       -DOCC_LIBRARY_DIR=$PREFIX/lib \
       -DUSE_NATIVE_ARCH=OFF \
@@ -23,3 +24,4 @@ cmake .. -G "Ninja" \
       ..
 
 ninja install
+
