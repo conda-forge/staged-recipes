@@ -1,6 +1,5 @@
 if [[ $OS == "Windows" ]]; then
-  export
-  PREFIX=$LIBRARY_PREFIX make git-secret install
+  make git-secret install PREFIX=$LIBRARY_PREFIX
 else
   make git-secret install
 fi
