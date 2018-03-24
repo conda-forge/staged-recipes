@@ -13,11 +13,13 @@ export prefix=$PREFIX
 if [ ! -z ${windows} ]; then
    exit 1
 else
-   sed -i'' -e "s|/etc/liquidpromptrc|$PREFIX/etc/liquidpromptrc|g" liquidprompt
-   sed -i'' \
-     -e "s|~/.config/liquidprompt/nojhan.theme|$PREFIX/etc/liquidprompt/liquid.theme|" \
-     -e "s|~/.config/liquidprompt/nojhan.ps1|$PREFIX/etc/liquidprompt/liquid.ps1|" \
-     liquidpromptrc-dist
+   sed -e "s|/etc/liquidpromptrc|$PREFIX/etc/liquidpromptrc|g" \
+       -i \
+       liquidprompt
+   sed -e "s|~/.config/liquidprompt/nojhan.theme|$PREFIX/etc/liquidprompt/liquid.theme|" \
+       -e "s|~/.config/liquidprompt/nojhan.ps1|$PREFIX/etc/liquidprompt/liquid.ps1|" \
+       -i \
+       liquidpromptrc-dist
 
    mkdir -p $PREFIX/etc/conda/activate.d
    cp liquidprompt $PREFIX/etc/conda/activate.d/liquidprompt.sh
