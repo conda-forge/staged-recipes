@@ -1,0 +1,1 @@
+make git-secret install
