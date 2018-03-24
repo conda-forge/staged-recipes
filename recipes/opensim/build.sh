@@ -11,7 +11,7 @@ cmake ../dependencies/ \
 make -j8
 cd ..
 
-cp -r $PREFIX/BTK/lib/btk-0.4dev/* $PREFIX/lib/
+#cp -r $PREFIX/BTK/lib/btk-0.4dev/* $PREFIX/lib/
 cp -r $PREFIX/simbody/libexec/simbody/* $PREFIX/bin/
 
 # TODO: Tests are missing!
@@ -24,8 +24,11 @@ cmake ../ \
       -DBUILD_PYTHON_WRAPPING=ON \
       -DBUILD_JAVA_WRAPPING=OFF \
       -DOPENSIM_PYTHON_VERSION=3 \
+      -DOPENSIM_PYTHON_STANDALONE=ON \
       -DOPENSIM_INSTALL_UNIX_FHS=on \
-      -DOPENSIM_COPY_DEPENDENCIES=on \
+      -DBUILD_API_ONLY=ON \
+      -DOPENSIM_BUILD_INDIVIDUAL_APPS_DEFAULT=OFF \
+      -DOPENSIM_COPY_DEPENDENCIES=ON \
       -DWITH_BTK=ON
 make -j8
 make install
