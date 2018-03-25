@@ -13,16 +13,20 @@ make_gopath()
  export GOSRC_DIR=$GOPATH/src/k8s.io/helm
  mkdir -p $GOSRC_DIR
 
- find . -maxdepth 1 -not -name '.' -and -not -name 'go' -exec mv {} $GOSRC_DIR/ \;
+ find . -maxdepth 1 \
+    -not -name '.' -and \
+    -not -name 'go' -and \
+    -not -name 'LICENSE' \
+    -exec mv {} $GOSRC_DIR/ \;
  cd $GOSRC_DIR
 }
 
 build_unix()
 {
     make bootstrap
-    make build
+    make test
 
-
+    cp _dist/helm $PREFIX/bin/
 }
 
 make_goroot_read_only
