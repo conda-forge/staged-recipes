@@ -24,7 +24,8 @@ make_gopath()
 build_unix()
 {
     make bootstrap
-    make test
+    make build
+    make test-unit
 
     cp _dist/helm $PREFIX/bin/
 }
