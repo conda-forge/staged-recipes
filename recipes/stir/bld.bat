@@ -1,7 +1,8 @@
 mkdir build
 cd build
 
-set PYTHON_LIBRARY=%PREFIX%\libs\python%PY_VER:~0,1%%PY_VER:~2,1%.lib
+:: set PYTHON_LIBRARY=%PREFIX%\libs\python%PY_VER:~0,1%%PY_VER:~2,1%.lib
+set PYTHON_LIBRARY=%PREFIX%\libs\python35.lib
 
 :: Configure.
 cmake -G "%CMAKE_GENERATOR%" ^
