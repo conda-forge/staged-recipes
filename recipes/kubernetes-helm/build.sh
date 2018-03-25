@@ -27,7 +27,7 @@ build_unix()
     make build
     make test-unit
 
-    cp _dist/helm $PREFIX/bin/
+    cp bin/helm $PREFIX/bin/
 }
 
 make_goroot_read_only
