@@ -1,2 +1,6 @@
 #!/bin/bash
-$R CMD INSTALL --build .
+
+export CFLAGS="$(Magick++-config --cflags)"
+export LDFLAGS="$(Magick++-config --libs)"
+
+$R CMD INSTALL --libs .
