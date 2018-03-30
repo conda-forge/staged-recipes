@@ -18,22 +18,10 @@ build_linux()
     popd
 }
 
-build_osx()
-{
-    make kubefed
-
-    make test WHAT=./federation/pkg/kubefed
-
-    mv _output/bin/kubefed $PREFIX/bin
-}
-
 make_goroot_read_only
 
 case $(uname -s) in
     "Linux")
         build_linux
-        ;;
-    "Darwin")
-        build_osx
         ;;
 esac
