@@ -75,9 +75,9 @@ Short answer: yes. Long answer: In principle, as long as your dependencies are i
 your user's conda channels they will be able to install your package. In practice, that is difficult
 to manage, and we strive to get all dependencies built in conda-forge.
 
-### 7. **When or why do I need to use `python setup.py install --single-version-externally-managed --record record.txt`?**
+### 7. **When or why do I need to use `python -m pip install --no-deps --ignore-installed .`?**
 
-These options should be added to setup.py if your project uses setuptools. The goal is to prevent `setuptools` from creating an `egg-info` directory because they do not interact well with conda.
+These options should be added to setup.py if your project uses pip. The goal is to prevent `pip` from creating an `egg-info` directory because they do not interact well with conda.
 
 ### 8. **Do I need `bld.bat` and/or `build.sh`?**
 
