@@ -38,7 +38,7 @@ To generate the `md5` hash: `md5 your_sdist.tar.gz`
 
 To generate the `sha256` hash: `openssl sha256 your_sdist.tar.gz`
 
-You may need the openssl package, available on conda-forge
+You may need the openssl package, available on conda-forge:
 `conda install openssl -c conda-forge`
 
 ### 3. **How do I exclude a platform?**
@@ -77,7 +77,7 @@ to manage, and we strive to get all dependencies built in conda-forge.
 
 ### 7. **When or why do I need to use `python -m pip install --no-deps --ignore-installed .`?**
 
-These options should be added to setup.py if your project uses pip. The goal is to prevent `pip` from creating an `egg-info` directory because they do not interact well with conda.
+This should be the default install line for most Python packages. This is preferable to `python setup.py` because it handles metadata in a `conda`-friendlier way. We also want to make sure dependencies are handled through `conda`, and `--no-deps` means most Python dependencies are needed only at `run` time, not `build`.
 
 ### 8. **Do I need `bld.bat` and/or `build.sh`?**
 
