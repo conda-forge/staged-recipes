@@ -1,2 +1,2 @@
-import pytest
-pytest.main(['-x','.'])
+import pyPRISM
+pyPRISM.test()
