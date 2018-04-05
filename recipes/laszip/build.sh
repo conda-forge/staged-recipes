@@ -2,14 +2,7 @@
 
 set -ex
 
-if [ $(uname) == Darwin ]; then
-    export CXXFLAGS="-stdlib=libc++ $CXXFLAGS"
-    CC=clang
-    CXX=clang++
-    export MACOSX_DEPLOYMENT_TARGET="10.9"
-else
-    export CXXFLAGS="$CXXFLAGS -std=c++11"
-fi
+export CXXFLAGS="$CXXFLAGS -std=c++11"
 
 cmake -G "Unix Makefiles" \
   -DCMAKE_INSTALL_PREFIX=$PREFIX \
