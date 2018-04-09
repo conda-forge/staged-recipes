@@ -1,7 +1,7 @@
 #!/bin/bash
 make -f configure.make
 make configure
-LINKFLAGS="" make all
+LINKFLAGS="" make native man
 # This needs ocamlfind:
 # make tests
-make install
+make install-bin-native install-lib-native install-man
