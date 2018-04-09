@@ -3,7 +3,7 @@
 chmod +x configure
 
 autoreconf -fiv
-./configure --disable-maintainer-mode --prefix=$PREFIX
+./configure --disable-multilib  --prefix=$PREFIX
 make
 make check
 make install
