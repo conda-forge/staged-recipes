@@ -1,13 +1,9 @@
-echo "cmake  %SRC_DIR% -D BLA_VENDOR=OpenBLAS -D ENABLE_PYTHON=ON -D CMAKE_BUILD_TYPE=RELEASE -D BUILD_DOCUMENTATION=OFF -G \"NMake Makefiles\""
-cmake  %SRC_DIR% ^
-       -G "NMake Makefiles" ^
-       -D BLA_VENDOR=OpenBLAS ^
-       -D ENABLE_PYTHON=ON ^
-       -D CMAKE_BUILD_TYPE=RELEASE ^
-       -D BUILD_DOCUMENTATION=OFF ^
-
-
-
+cmake -G "NMake Makefiles" ^
+      -DBLA_VENDOR=OpenBLAS ^
+      -DENABLE_PYTHON=ON ^
+      -DCMAKE_BUILD_TYPE=RELEASE ^
+      -DBUILD_DOCUMENTATION=OFF ^
+      %SRC_DIR%
 if errorlevel 1 exit rem 1
 
 nmake
