@@ -1,3 +1,6 @@
 #!/bin/bash
 
-sudo cp -R $SRC_DIR/. $LIBRARY_LIB/
+autoconf
+./configure
+make
+sudo make install
