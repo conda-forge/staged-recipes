@@ -1,7 +1,7 @@
 #!/bin/bash
 
-export CFLAGS="${PREFIX}/include ${CFLAGS}"
-export LDFLAGS="${PREFIX}/lib ${LDFLAGS}"
+export CFLAGS="-I${PREFIX}/include ${CFLAGS}"
+export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS}"
 
 ./configure --prefix=${PREFIX} --enable-shared --without-guile
 make
