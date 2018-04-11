@@ -1,8 +1,6 @@
 #!/bin/bash
 
-export TERM=xterm
-
 autoconf
-./configure
+./configure --prefix=$PREFIX
 make
-sudo make install
+make install
