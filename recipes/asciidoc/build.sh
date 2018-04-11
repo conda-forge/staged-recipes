@@ -3,4 +3,4 @@
 autoconf
 ./configure
 make
-sudo make install
+make install
