@@ -1,1 +1,1 @@
-python ${SRC_DIR}/setup.py test
+python %SRC_DIR%\setup.py test
