@@ -60,6 +60,9 @@ def build_all(recipes_dir, arch):
 
     print('Computed that there are {} distributions to build from {} recipes'
           .format(len(order), len(folders)))
+    if not order:
+        print('Nothing to do')
+        return
     print("Resolved dependencies, will be built in the following order:")
     print('    '+'\n    '.join(order))
 
