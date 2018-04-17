@@ -32,6 +32,7 @@ fi
 GOAL_DIR=$PYPY3_SRC_DIR/pypy/goal
 RELEASE_DIR=$PYPY3_SRC_DIR/pypy/tool/release
 
+PKG_NAME=pypy3
 BUILD_DIR=${PREFIX}/../build
 TARGET_DIR=${PREFIX}/../target
 ARCHIVE_NAME="${PKG_NAME}-${PKG_VERSION}"
