@@ -1,2 +1,0 @@
-import pyPRISM
-pyPRISM.test()
