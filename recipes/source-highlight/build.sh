@@ -1,6 +1,7 @@
 #!/bin/bash
 
-autoreconf -i
-./configure --prefix=$PREFIX
+mkdir build
+cd build
+../configure --prefix=$PREFIX
 make
 make install
