@@ -1,5 +1,6 @@
 #!/bin/bash
 
+ls ${PREFIX}
 autoreconf -i
 mkdir build
 cd build
