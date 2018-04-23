@@ -1,13 +1,14 @@
 #!/bin/bash
 
+export CXXFLAGS="${CXXFLAGS} -I${PREFIX}/include"
+export LDFLAGS="${LDFLAGS}"
+
 autoreconf -i
 mkdir build
 cd build
 ../configure \
-      --prefix=$PREFIX \
-      CXXFLAGS="${CXXFLAGS} -I${PREFIX}/include" \
-      LDFLAGS=-"${LDFLAGS} -L${PREFIX}/lib" \
-      CFLAGS=${CFLAGS}
+    --prefix=$PREFIX
+    --with-boost-libdir=${PREFIX}/lib
 
 make
 make install
