@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export CXXFLAGS="${CXXFLAGS} -I${PREFIX}/include"
-export LDFLAGS="${LDFLAGS}"
+export LDFLAGS="${LDFLAGS} -Wl,-rpath,${PREFIX}/lib"
 
 autoreconf -i
 mkdir build
