@@ -6,7 +6,8 @@ cd build
 ../configure \
       --prefix=$PREFIX \
       CXXFLAGS="${CXXFLAGS} -I${PREFIX}/include" \
-      LDFLAGS=-"${LDFLAGS} L${PREFIX}/lib"
+      LDFLAGS=-"${LDFLAGS} -L${PREFIX}/lib" \
+      CFLAGS=${CFLAGS}
 
 make
 make install
