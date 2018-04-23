@@ -5,9 +5,8 @@ mkdir build
 cd build
 ../configure \
       --prefix=$PREFIX \
-      CXXFLAGS=-I${PREFIX}/include \
-      LDFLAGS=-L${PREFIX}/lib \
-      --with-boost-libdir=${PREFIX}/lib
+      CXXFLAGS="${CXXFLAGS} -I${PREFIX}/include" \
+      LDFLAGS=-"${LDFLAGS} L${PREFIX}/lib"
 
 make
 make install
