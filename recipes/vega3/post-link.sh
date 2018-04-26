@@ -1,1 +1,0 @@
-"${PREFIX}/bin/jupyter-nbextension" enable vega3 --py --sys-prefix
