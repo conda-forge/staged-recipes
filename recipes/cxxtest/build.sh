@@ -9,6 +9,6 @@ mkdir -p "${MYBINDIR}"
 mkdir -p "${MYINCLUDEDIR}/cxxtest"
 mkdir -p "${MYTARGETDIR}"
 
-rsync -a --exclude="conda_build*" --exclude=".git*" ./ "${MYTARGETDIR}/"
+cp -r ./* "${MYTARGETDIR}/"
 ln "${MYTARGETDIR}"/cxxtest/* "${MYINCLUDEDIR}/cxxtest/"
 cp "${RECIPE_DIR}/cxxtestgen" "${MYBINDIR}/"
