@@ -1,11 +1,11 @@
 
-
-copy %RECIPE_DIR%\Makefile_win %SRC_DIR%
+copy %RECIPE_DIR%\CMakeLists.txt %SRC_DIR%
 copy %RECIPE_DIR%\dsdp.def %SRC_DIR%
-nmake /f Makefile_win
+cmake %SRC_DIR% -G "NMake Makefiles" ^
+                    -DCMAKE_BUILD_TYPE=Release ^
+                    -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
+                    -DBUILD_SHARED_LIBS=ON
+if errorlevel 1 exit 1
 
-copy dsdp.lib %LIBRARY_PREFIX%\lib
-copy dsdp.dll %LIBRARY_PREFIX%\bin
-copy include\*.h %LIBRARY_PREFIX%\include
-
-rem copy dsdp5.exe %LIBRARY_PREFIX%\bin
+nmake install
+if errorlevel 1 exit 1
