@@ -3,7 +3,8 @@
 ./configure --prefix="${PREFIX}" --with-libctl=no
 
 make
-make check
+pushd tests && make check && popd
+pushd libmeepgeom && make check && popd
 make install
 
 rm ${SP_DIR}/meep/_meep.a
