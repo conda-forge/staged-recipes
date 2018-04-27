@@ -1,0 +1,124 @@
+--- PyQwt-5.2.0/sip/qwt5qt4/QwtList.sip	2014-08-11 13:23:34.535230078 +0200
++++ PyQwt-5.2.0/sip/qwt5qt4/QwtList.sip	2014-08-11 13:24:05.983470183 +0200
+@@ -45,7 +45,7 @@
+         return 0;
+ 
+     for (int i = 0; i < sipCpp->size(); ++i) {
+-	PyObject *o =  PyInt_FromLong(long(sipCpp->value(i)));
++	PyObject *o =  PyLong_FromLong(long(sipCpp->value(i)));
+         if (!o) {
+             Py_DECREF(l);
+             return 0;
+@@ -62,7 +62,7 @@
+     QList<QwtPickerMachine::Command> *l = new QList<QwtPickerMachine::Command>;
+ 
+     for (int i = 0; i < PyList_GET_SIZE(sipPy); ++i) {
+-        l->append(QwtPickerMachine::Command(PyInt_AsLong(PyList_GET_ITEM(sipPy, i))));
++        l->append(QwtPickerMachine::Command(PyLong_AsLong(PyList_GET_ITEM(sipPy, i))));
+     }
+     *sipCppPtr = l;
+     return sipGetState(sipTransferObj);
+--- PyQwt-5.2.0/support/qwt_numerical_interface.cpp	2009-02-17 10:55:15.000000000 +0100
++++ PyQwt-5.2.0/support/qwt_numerical_interface.cpp	2014-08-11 13:31:14.582734549 +0200
+@@ -49,8 +49,6 @@
+         PyObject *element = PySequence_Fast_GET_ITEM(in, i);
+         if (PyFloat_Check(element)) {
+             out[i] = PyFloat_AsDouble(element);
+-        } else if (PyInt_Check(element)) {
+-            out[i] = double(PyInt_AsLong(element));
+         } else if (PyLong_Check(element)) {
+             out[i] = PyLong_AsDouble(element);
+         } else {
+@@ -125,9 +123,7 @@
+ 
+     for (int i=0; i<size; i++) {
+         PyObject *element = PySequence_Fast_GET_ITEM(in, i);
+-        if (PyInt_Check(element)) {
+-            out[i] = int(PyInt_AsLong(element));
+-        } else if (PyFloat_Check(element)) {
++        if (PyFloat_Check(element)) {
+             out[i] = int(PyFloat_AsDouble(element));
+         } else if (PyLong_Check(element)) {
+             out[i] = int(PyLong_AsLong(element));
+@@ -204,9 +200,7 @@
+ 
+     for (int i=0; i<size; i++) {
+         PyObject *element = PySequence_Fast_GET_ITEM(in, i);
+-        if (PyInt_Check(element)) {
+-            out[i] = PyInt_AsLong(element);
+-        } else if (PyFloat_Check(element)) {
++        if (PyFloat_Check(element)) {
+             out[i] = long(PyFloat_AsDouble(element));
+         } else if (PyLong_Check(element)) {
+             out[i] = PyLong_AsLong(element);
+--- PyQwt-5.2.0/support/qwt_ndarray.cpp	2009-02-17 10:55:15.000000000 +0100
++++ PyQwt-5.2.0/support/qwt_ndarray.cpp	2014-08-11 13:50:36.035571551 +0200
+@@ -123,7 +123,7 @@
+     }
+ 
+     PyArrayInterface *source = 
+-        reinterpret_cast<PyArrayInterface *>(PyCObject_AsVoidPtr(csource));
++        reinterpret_cast<PyArrayInterface *>(PyCapsule_GetPointer(csource, NULL));
+     if (!source) { // FIXME
+         return 0;
+     }
+@@ -222,7 +222,7 @@
+     }
+ 
+     PyArrayInterface *source = 
+-        reinterpret_cast<PyArrayInterface *>(PyCObject_AsVoidPtr(csource));
++        reinterpret_cast<PyArrayInterface *>(PyCapsule_GetPointer(csource, NULL));
+     if (!source) { // FIXME
+         return 0;
+     }
+@@ -304,7 +304,7 @@
+     }
+ 
+     PyArrayInterface *source = 
+-        reinterpret_cast<PyArrayInterface *>(PyCObject_AsVoidPtr(csource));
++        reinterpret_cast<PyArrayInterface *>(PyCapsule_GetPointer(csource, NULL));
+     if (!source) { // FIXME
+         return 0;
+     }
+@@ -387,7 +387,7 @@
+     }
+ 
+     PyArrayInterface *source = 
+-        reinterpret_cast<PyArrayInterface *>(PyCObject_AsVoidPtr(csource));
++        reinterpret_cast<PyArrayInterface *>(PyCapsule_GetPointer(csource, NULL));
+     if (!source) { // FIXME
+         return 0;
+     }
+--- PyQwt-5.2.0/support/qwt_numpy.cpp	2014-08-11 13:59:08.803472591 +0200
++++ PyQwt-5.2.0/support/qwt_numpy.cpp	2014-08-11 13:59:20.235558589 +0200
+@@ -37,7 +37,7 @@
+ #include <qwt_numpy.h>
+ 
+ 
+-void qwt_import_numpy() {
++void *qwt_import_numpy() {
+     // this is a function which does error handling
+     import_array();
+ }
+--- PyQwt-5.2.0/support/qwt_numerical_interface.h	2014-08-11 14:04:08.301753423 +0200
++++ PyQwt-5.2.0/support/qwt_numerical_interface.h	2014-08-11 14:04:31.061925507 +0200
+@@ -52,7 +52,7 @@
+ 
+ #ifdef HAS_NUMPY
+ // to hide NumPy's import_array()
+-void qwt_import_numpy();
++void *qwt_import_numpy();
+ 
+ PyObject *toNumpy(const QImage &image);
+ #endif
+--- PyQwt-5.2.0/qt4lib/PyQt4/Qwt5/__init__.py	2009-02-17 10:55:14.000000000 +0100
++++ PyQwt-5.2.0/qt4lib/PyQt4/Qwt5/__init__.py	2014-08-21 10:46:24.305018846 +0200
+@@ -29,7 +29,7 @@
+ # PyQwt becomes a free plug-in for a non-free program.
+ 
+ 
+-from Qwt import *
++from PyQt4.Qwt5.Qwt import *
+ 
+ try:
+     to_na_array = toNumarray
