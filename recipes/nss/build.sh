@@ -2,9 +2,6 @@
 
 cd nss
 
-mkdir -p "${PREFIX}/bin"
-mkdir -p "${PREFIX}/lib"
-
 make    \
     USE_64=1 \
     PREFIX="${PREFIX}" \
@@ -19,8 +16,14 @@ make    \
     all latest
 
 cd ../dist
-FOLDER=$(<latest)
-cd $FOLDER
 
-cp -rL bin "${PREFIX}"
-cp -rL lib "${PREFIX}"
+FOLDER=$(<latest)
+install -v -m755 ${FOLDER}/lib/*.so "${PREFIX}/lib"
+install -v -m644 ${FOLDER}/lib/{*.chk,libcrmf.a} "${PREFIX}/lib"
+
+install -v -m755 -d "${PREFIX}/include/nss"
+cp -v -RL {public,private}/nss/* "${PREFIX}/include/nss"
+chmod -v 644 ${PREFIX}/include/nss/*
+install -v -m755 ${FOLDER}/bin/{certutil,nss-config,pk12util} "${PREFIX}/bin"
+
+install -v -m644 ${FOLDER}/lib/pkgconfig/nss.pc  "${PREFIX}/lib/pkgconfig"
