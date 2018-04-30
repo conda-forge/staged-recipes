@@ -38,7 +38,7 @@ To generate the `md5` hash: `md5 your_sdist.tar.gz`
 
 To generate the `sha256` hash: `openssl sha256 your_sdist.tar.gz`
 
-You may need the openssl package, available on conda-forge
+You may need the openssl package, available on conda-forge:
 `conda install openssl -c conda-forge`
 
 ### 3. **How do I exclude a platform?**
@@ -75,9 +75,9 @@ Short answer: yes. Long answer: In principle, as long as your dependencies are i
 your user's conda channels they will be able to install your package. In practice, that is difficult
 to manage, and we strive to get all dependencies built in conda-forge.
 
-### 7. **When or why do I need to use `python setup.py install --single-version-externally-managed --record record.txt`?**
+### 7. **When or why do I need to use `python -m pip install --no-deps --ignore-installed .`?**
 
-These options should be added to setup.py if your project uses setuptools. The goal is to prevent `setuptools` from creating an `egg-info` directory because they do not interact well with conda.
+This should be the default install line for most Python packages. This is preferable to `python setup.py` because it handles metadata in a `conda`-friendlier way. We also want to make sure dependencies are handled through `conda`, and `--no-deps` means most Python dependencies are needed only at `run` time, not `build`.
 
 ### 8. **Do I need `bld.bat` and/or `build.sh`?**
 
@@ -117,3 +117,6 @@ git rebase upstream/master
 git push -f
 ```
 
+### 12. My pull request passes all checks, but hasn't received any attention.  How do I call attention to my PR?  What is the customary amount of time to wait?
+
+If your PR is passing all checks, but has not been acted on by the staged recipes maintainers for 1 week, you can ping @conda-forge/staged-recipes to request action.
