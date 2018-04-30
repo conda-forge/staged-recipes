@@ -8,7 +8,4 @@ env = {
 }
 EOF
 export PYCVODES_STRICT=1
-export CPLUS_INCLUDE_PATH=${PREFIX}/include
-export LIBRARY_PATH=${PREFIX}/lib
-export LD_LIBRARY_PATH=${PREFIX}/lib
 ${PYTHON} -m pip install --no-deps --ignore-installed .
