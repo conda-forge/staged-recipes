@@ -1,0 +1,62 @@
+{% set version = "1.5.2" %}
+
+package:
+  name: libapr
+  version: {{ version }}
+
+source:
+  fn: libapr-{{ version }}.tar.gz
+  url: https://archive.apache.org/dist/apr/apr-{{ version }}.tar.bz2
+  sha256: 7d03ed29c22a7152be45b8e50431063736df9e1daa1ddf93f6a547ba7a28f67a
+  patches:
+    # Skip a failing test on Mac due to `poll`'s behavior.
+    #
+    # ref: https://www.mail-archive.com/dev@apr.apache.org/msg26625.html
+    #
+    - macos_testpoll.c.patch  # [osx]
+    # Apply a patch to fix a double free issue on Windows.
+    #
+    # ref: https://bz.apache.org/bugzilla/show_bug.cgi?id=59711
+    #
+    - win_apr_app.c.patch     # [win]
+
+build:
+  number: 0
+  features:
+    - vc9     # [win and py27]
+    - vc10    # [win and py34]
+    - vc14    # [win and py35]
+    - vc14    # [win and py36]
+
+requirements:
+  build:
+    - toolchain
+    - cmake      # [win]
+    - python     # [win]
+
+test:
+  requires:
+    - python {{ environ['PY_VER'] + '*' }}                        # [win]
+
+  commands:
+    # Check for libraries
+    - test -f ${PREFIX}/lib/libapr-1.a                            # [unix]
+    - test -f ${PREFIX}/lib/libapr-1.dylib                        # [osx]
+    - test -f ${PREFIX}/lib/libapr-1.so                           # [linux]
+    - if not exist %PREFIX%\\Library\\lib\\apr-1.lib exit 1       # [win]
+    - if not exist %PREFIX%\\Library\\bin\\libapr-1.dll exit 1    # [win]
+    - if not exist %PREFIX%\\Library\\lib\\libapr-1.lib exit 1    # [win]
+
+    # Check for CLIs
+    - apr-1-config --help                                         # [unix]
+
+about:
+  home: http://apr.apache.org
+  license: Apache 2.0
+  license_file: LICENSE
+  # Paraphrased based on their website.
+  summary: Provide predictable if not identical behaviour regardless of the platform.
+
+extra:
+  recipe-maintainers:
+    - jakirkham
