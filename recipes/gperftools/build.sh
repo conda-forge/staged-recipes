@@ -1,11 +1,8 @@
 #!/bin/bash
 
 ./autogen.sh
-./configure --prefix $PREFIX/usr
+./configure CC=$PREFIX/bin/gcc --prefix $PREFIX --exec-prefix=$PREFIX --enable-libunwind
 
 make
-
-# test
-make check
 
 make install
