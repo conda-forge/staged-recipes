@@ -3,5 +3,10 @@ export CXXFLAGS="-I$PREFIX/include $CXXFLAGS"
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PREFIX/lib"
 export LDFLAGS="-L$PREFIX/lib $LDFLAGS"
 
-./configure --prefix=$PREFIX --without-lrs --without-fink
+if [[ $(uname) == 'Darwin' ]]; then
+    ./configure --prefix=$PREFIX --without-lrs --without-fink
+else
+    ./configure --prefix=$PREFIX --without-lrs
+fi
+
 ninja -c build/Opt install
