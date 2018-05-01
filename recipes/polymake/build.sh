@@ -9,4 +9,4 @@ else
     ./configure --prefix=$PREFIX --without-lrs
 fi
 
-ninja -c build/Opt install
+ninja -C build/Opt install
