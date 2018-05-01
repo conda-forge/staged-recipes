@@ -1,0 +1,89 @@
+{% set apr_ver = "1.5.2" %}
+{% set apr_iconv_ver = "1.2.1" %}
+{% set apr_util_ver = "1.5.4" %}
+
+package:
+  name: apr
+  version: {{ apr_ver }}
+
+source:
+  - fn: apr-{{ apr_ver }}.tar.gz
+    url: https://archive.apache.org/dist/apr/apr-{{ apr_ver }}.tar.bz2
+    sha256: 7d03ed29c22a7152be45b8e50431063736df9e1daa1ddf93f6a547ba7a28f67a
+    folder: apr
+
+  - fn: apr-iconv-{{ apr_iconv_ver }}.tar.gz
+    url: https://archive.apache.org/dist/apr/apr-iconv-{{ apr_iconv_ver }}.tar.bz2
+    sha256: c46c919bc2a36a705f91f4dea444b18a83236eef97a417528a988113b3a7e46e
+    folder: apr-iconv
+
+  - fn: apr-util-{{ apr_util_ver }}.tar.gz
+    url: https://archive.apache.org/dist/apr/apr-util-{{ apr_util_ver }}.tar.bz2
+    sha256: a6cf327189ca0df2fb9d5633d7326c460fe2b61684745fd7963e79a6dd0dc82e
+    folder: apr-util
+
+build:
+  number: 0
+
+requirements:
+  run:
+    - libapr {{ apr_ver }}
+    - apr-iconv {{ apr_iconv_ver }}
+    - apr-util {{ apr_util_ver }}
+
+outputs:
+  - name: apr-iconv
+    version: {{ apr_iconv_ver }}
+    build:
+      script: bash "${RECIPE_DIR}/build_apr-iconv.sh"
+    requirements:
+      build:
+        - libapr {{ apr_ver }}
+      run:
+        - libapr {{ apr_ver }}
+
+  - name: apr-util
+    version: {{ apr_util_ver }}
+    build:
+      script: bash "${RECIPE_DIR}/build_apr-util.sh"
+    requirements:
+      build:
+        - libapr {{ apr_ver }}
+      run:
+        - libapr {{ apr_ver }}
+
+  - name: libapr
+    version: {{ apr_ver }}
+    build:
+      script: bash "${RECIPE_DIR}/build_libapr.sh"
+
+test:
+  commands:
+    # Check for libraries
+    - test -f ${PREFIX}/lib/libapr-1.a                                # [unix]
+    - test -f ${PREFIX}/lib/libapr-1${SHLIB_EXT}                      # [unix]
+    - test -f ${PREFIX}/lib/libapriconv-1.a                           # [unix]
+    - test -f ${PREFIX}/lib/libapriconv-1${SHLIB_EXT}                 # [unix]
+    - test -f ${PREFIX}/lib/libaprutil-1.a                            # [unix]
+    - test -f ${PREFIX}/lib/libaprutil-1${SHLIB_EXT}                  # [unix]
+    - if not exist %PREFIX%\\Library\\lib\\apr-1.lib exit 1           # [win]
+    - if not exist %PREFIX%\\Library\\bin\\libapr-1.dll exit 1        # [win]
+    - if not exist %PREFIX%\\Library\\lib\\libapr-1.lib exit 1        # [win]
+    - if not exist %PREFIX%\\Library\\lib\\aprutil-1.lib exit 1       # [win]
+    - if not exist %PREFIX%\\Library\\bin\\libaprutil-1.dll exit 1    # [win]
+    - if not exist %PREFIX%\\Library\\lib\\libaprutil-1.lib exit 1    # [win]
+
+    # Check for CLIs
+    - apr-1-config --help                                             # [unix]
+    - apriconv -f us-ascii -t us-ascii -s "Hello World"               # [unix]
+    - apu-1-config --help                                             # [unix]
+
+about:
+  home: http://apr.apache.org
+  license: Apache 2.0
+  # Paraphrased based on their website.
+  summary: Provide predictable if not identical behaviour regardless of the platform.
+
+extra:
+  recipe-maintainers:
+    - jakirkham
