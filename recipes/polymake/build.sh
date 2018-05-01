@@ -1,5 +1,5 @@
 #!/bin/bash
-export CPPFLAGS="-I$PREFIX/include $CPPFLAGS"
+export CXXFLAGS="-I$PREFIX/include $CXXFLAGS"
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PREFIX/lib"
 export LDFLAGS="-L$PREFIX/lib $LDFLAGS"
 
