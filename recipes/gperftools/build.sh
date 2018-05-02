@@ -4,5 +4,5 @@
 ./configure  --prefix $PREFIX --enable-libunwind
 
 make
-
+make check
 make install
