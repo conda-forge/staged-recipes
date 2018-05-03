@@ -7,7 +7,7 @@ mkdir -p "${MYBINDIR}"
 mkdir -p "${MYINCLUDEDIR}/cxxtest"
 mkdir -p "${MYPYTHONDIR}"
 
-cp -r ./cxxtest/ "${MYINCLUDEDIR}/"
+cp -r ./cxxtest "${MYINCLUDEDIR}"
 cp ${RECIPE_DIR}/cxxtestgen "${MYBINDIR}"
 
 cd ./python

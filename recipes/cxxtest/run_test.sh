@@ -11,11 +11,6 @@ c++ --version
 echo "***** PREFIX/include"
 echo ${PREFIX}/include
 ls -l ${PREFIX}/include
-echo "***** PREFIX"
-echo ${PREFIX}
-ls -l ${PREFIX}
-echo "***** ENVIRONMENT"
-printenv
 echo "***** BUILDING runner.cpp"
 c++ -o runner -I${PREFIX}/include runner.cpp
 echo "***** EXECUTING TESTS"
