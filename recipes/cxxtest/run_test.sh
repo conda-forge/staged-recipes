@@ -8,8 +8,6 @@ cxxtestgen --error-printer -o runner.cpp doc/examples/MyTestSuite1.h
 
 echo "***** c++"
 c++ --version
-which c++
-ls -l /usr/bin/c++
 echo "***** PREFIX/include"
 echo ${PREFIX}/include
 ls -l ${PREFIX}/include
