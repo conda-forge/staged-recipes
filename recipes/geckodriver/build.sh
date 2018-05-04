@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-
 set -ex
+rustc -V
+cargo -V
 
 if [ $(uname) = Darwin ] ; then
     export CXXFLAGS="-arch $OSX_ARCH -stdlib=libc++ -std=c++11"
