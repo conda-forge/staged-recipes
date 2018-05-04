@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd lammps-stable_16Mar2018/src
+cd src
 make yes-standard no-kim no-gpu no-kokkos no-mpiio no-mscg no-voronoi no-latte yes-user-meamc yes-user-phonon
 cd ../lib/meam/
 make -f Makefile.gfortran
