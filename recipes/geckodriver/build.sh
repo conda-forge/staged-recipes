@@ -10,6 +10,6 @@ else
     export RUSTFLAGS="-C link-args=-Wl,-rpath-link,$PREFIX/lib"
 fi
 
-cargo build --release
+cargo build --release --verbose
 cargo install --bin $PKG_NAME --root $PREFIX
 rm -f $PREFIX/.crates.toml
