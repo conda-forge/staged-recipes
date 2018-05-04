@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cd src
-make yes-standard no-kim no-gpu no-kokkos no-mpiio no-mscg no-voronoi no-latte yes-user-meamc yes-user-phonon
+make yes-standard no-kim no-gpu no-kokkos no-mpiio no-mscg no-voronoi no-latte no-python yes-user-meamc yes-user-phonon
 cd ../lib/meam/
 make -f Makefile.gfortran
 cd ../poems
