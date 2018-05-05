@@ -1,6 +1,5 @@
 #!/bin/bash
-pushd ta-lib
-./configure --prefix=$LIBRARY_PREFIX
+printenv
+./configure --prefix=$PREFIX
 make
 make install
-popd
