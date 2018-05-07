@@ -1,3 +1,3 @@
 #!/bin/sh
-gcc test_ltcmalloc.c -ltcmalloc -o test_ltcmalloc.o
+gcc test_ltcmalloc.c -o test_ltcmalloc.o -ltcmalloc -lstdc++
 ./test_ltcmalloc.o
