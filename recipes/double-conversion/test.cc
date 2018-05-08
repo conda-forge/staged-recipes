@@ -1,3 +1,4 @@
+#include "double-conversion/double-conversion.h"
 #include "double-conversion/bignum.h"
 
 using namespace double_conversion;
