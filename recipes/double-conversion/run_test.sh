@@ -1,2 +1,2 @@
 #!/bin/sh
-gcc test.cc -o test.o && ./test.o
+gcc test.cc -o test.o -I$PREFIX/include && ./test.o
