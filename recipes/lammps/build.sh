@@ -8,11 +8,13 @@ cp lmp $PREFIX/bin/lmp_serial
 # MPI version are only compiled for Linux 
 if [[ $(uname) == "Linux" ]] 
 then
-    cmake ./cmake $args -DENABLE_MPI=ON
+    argsmpi = $args + " -DENABLE_MPI=ON"
+    cmake ./cmake $argsmpi
     make
     cp lmp $PREFIX/bin/lmp_mpi
 fi
-cmake ./cmake $args -DBUILD_SHARED_LIBS=ON
+argslib = $args + " -DBUILD_SHARED_LIBS=ON"
+cmake ./cmake $argslib 
 make
 
 cd python
