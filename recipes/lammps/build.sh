@@ -6,12 +6,9 @@ cmake ./cmake $args
 make 
 cp lmp $PREFIX/bin/lmp_serial
 # MPI version are only compiled for Linux 
-if [[ $(uname) == "Linux" ]] 
-then
-    cmake ./cmake "$args -DENABLE_MPI=ON"
-    make
-    cp lmp $PREFIX/bin/lmp_mpi
-fi
+cmake ./cmake "$args -DENABLE_MPI=ON"
+make
+cp lmp $PREFIX/bin/lmp_mpi
 cmake ./cmake "$args -DBUILD_SHARED_LIBS=ON"
 make
 
