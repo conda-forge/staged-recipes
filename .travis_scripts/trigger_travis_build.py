@@ -34,6 +34,7 @@ def rebuild_travis(repo_slug):
         headers=headers
     )
     if response.status_code != 201:
+        print(response.content)
         response.raise_for_status()
 
 
