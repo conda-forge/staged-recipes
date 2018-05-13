@@ -19,3 +19,5 @@ cp lmp $PREFIX/bin/lmp_mpi
 
 cd ../python
 python install.py
+cd .. 
+rm -rf build
