@@ -1,15 +1,5 @@
 dir
 
-7za x lts\ldc2-1.9.0-windows-x64.7z -o%SRC_DIR%\lts
+7za x ldc2-%PKG_VERSION%-windows-x64.7z -o%SRC_DIR%\
 
-mkdir build
-cd build
-cmake -G Ninja ^
-      -DCMAKE_BUILD_TYPE=Release ^
-      -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
-      -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
-      -DD_COMPILER=%SRC_DIR%\lts\ldc2-1.9.0-windows-x64\bin\ldmd2.exe ^
-      ..
-ninja install
-ldc2 -version
-
+xcopy /S /I /E %SRC_DIR%\ldc2-%PKG_VERSION%-windows-x64 %LIBRARY_PREFIX%
