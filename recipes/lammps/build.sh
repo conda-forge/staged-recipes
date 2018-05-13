@@ -9,15 +9,14 @@ make
 cp lmp $PREFIX/bin/lmp_serial
 cmake ../cmake "$args -DBUILD_SHARED_LIBS=ON"
 make
-cd ..
+cd ../python
+python install.py
+cd .. 
 rm -rf build
 mkdir build
 cd build
 cmake ../cmake "$args -DENABLE_MPI=ON"
 make
 cp lmp $PREFIX/bin/lmp_mpi
-
-cd ../python
-python install.py
-cd .. 
+cd ..
 rm -rf build
