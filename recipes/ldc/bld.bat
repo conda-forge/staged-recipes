@@ -1,3 +1,5 @@
+dir
+
 7za x ldc2-1.9.0-windows-x64.7z -o%SRC_DIR%\lts
 
 mkdir build
