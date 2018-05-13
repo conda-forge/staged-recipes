@@ -15,7 +15,7 @@ cd ..
 rm -rf build
 mkdir build
 cd build
-cmake ../cmake "$args -DENABLE_MPI=ON"
+cmake ../cmake "$args -DBUILD_MPI=ON"
 make
 cp lmp $PREFIX/bin/lmp_mpi
 cd ..
