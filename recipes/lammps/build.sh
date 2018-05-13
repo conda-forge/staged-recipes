@@ -5,12 +5,13 @@ args="-DENABLE_ASPHERE=ON -DENABLE_BODY=ON -DENABLE_CLASS2=ON -DENABLE_COLLOID=O
 cmake ./cmake $args
 make 
 cp lmp $PREFIX/bin/lmp_serial
-# MPI version are only compiled for Linux 
-cmake ./cmake "$args -DENABLE_MPI=ON"
-make
-cp lmp $PREFIX/bin/lmp_mpi
 cmake ./cmake "$args -DBUILD_SHARED_LIBS=ON"
 make
+make clean-all
+cmake ./cmake "$args -DENABLE_MPI=ON"
+make
+make clean-all
+cp lmp $PREFIX/bin/lmp_mpi
 
 cd python
 python install.py
