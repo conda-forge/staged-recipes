@@ -47,7 +47,8 @@ def build_all(recipes_dir, arch):
 
     config = conda_build.api.Config(
         variant_config_files=variant_config_files, arch=arch,
-        exclusive_config_file=exclusive_config_file, channel_urls=channel_urls)
+        exclusive_config_file=exclusive_config_file, channel_urls=channel_urls,
+        set_build_id=False)
 
     worker = {'platform': platform, 'arch': arch,
               'label': '{}-{}'.format(platform, arch)}
