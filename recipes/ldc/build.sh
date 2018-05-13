@@ -2,7 +2,7 @@
 set -eu -o pipefail
 
 # bootstrap with 0.17 which is the last version that doesn't require a host D compiler.
-git clone --recursive https://github.com/ldc-developers/ldc.git -b release-0.17.1
+git clone --recursive https://github.com/ldc-developers/ldc.git -b ltsmaster
 cd ldc
 mkdir build
 cd build
