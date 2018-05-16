@@ -42,7 +42,7 @@ source run_conda_forge_build_setup
 
 # yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
 find ~/conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" \
-    | xargs -n1 cat | grep -v -e "^#" -e "^$" | \
+    | xargs -n1 cat | { grep -v -e "^#" -e "^$" || test $? == 1; } | \
     xargs -r /usr/bin/sudo -n yum install -y
 
 python ~/.ci_support/build_all.py ~/conda-recipes
