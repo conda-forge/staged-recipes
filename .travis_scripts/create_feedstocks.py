@@ -112,6 +112,10 @@ if __name__ == '__main__':
         # Get our initial rate limit info.
         print_rate_limiting_info(gh)
 
+        from conda_smithy.ci_register import travis_headers
+        travis_token = travis_headers()['Authorization'].split(' ')[1]
+        write_token('travis', travis_token)
+
 
     owner_info = ['--organization', 'conda-forge']
 
