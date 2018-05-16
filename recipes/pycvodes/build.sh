@@ -1,6 +1,12 @@
 #!/bin/bash
 export PYCVODES_LAPACK=openblas
-export PYCVODES_SUNDIALS_LIBS=sundials_cvodes,sundials_nvecserial,sundials_sunlinsollapackdense,sundials_sunlinsollapackband
+
+# Sundials 2.7:
+export PYCVODES_SUNDIALS_LIBS=sundials_cvodes,sundials_nvecserial
+
+# Sundials 3.1:
+#export PYCVODES_SUNDIALS_LIBS=sundials_cvodes,sundials_nvecserial,sundials_sunlinsollapackdense,sundials_sunlinsollapackband
+
 cat <<EOF>pycvodes/_config.py
 env = {
     'LAPACK': "${PYCVODES_LAPACK}",
