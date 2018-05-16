@@ -5,6 +5,8 @@
 REPO_ROOT=$(cd "$(dirname "$0")/.."; pwd;)
 IMAGE_NAME="condaforge/linux-anvil"
 
+docker info
+
 config=$(cat <<CONDARC
 
 channels:
