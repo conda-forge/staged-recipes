@@ -4,7 +4,8 @@ cd build
 if [ `uname` = "Darwin" ]; then
       NETGEN_VAR="-D BUILD_FEM_NETGEN=OFF \
                  "
-      QT_VAR="-D BUILD_WEB:BOOL=OFF
+      QT_VAR="-D BUILD_WEB:BOOL=OFF \
+              -D BUILD_START:BOOL=OFF \
              "
 else
       NETGEN_VAR="-D NETGENDATA:FILEPATH=$PREFIX/include/netgen \
@@ -12,7 +13,7 @@ else
                   -D NGLIB_INCLUDE_DIR:FILEPATH=$PREFIX/include/nglib \
                   -D BUILD_FEM_NETGEN:BOOL=ON \
                  "
-      QT_VAR="-D BUILD_WEB:BOOL=ON
+      QT_VAR="-D BUILD_WEB:BOOL=ON \
              "
 fi
 
@@ -37,7 +38,7 @@ cmake -G "Ninja" \
       -D SWIG_EXECUTABLE:FILEPATH=$PREFIX/bin/swig \
       -D PYTHON_EXECUTABLE:FILEPATH=$PYTHON \
       -D PYTHON_INCLUDE_DIR:FILEPATH=${PY_INCLUDE_DIR} \
-      -D PYTHON_LIBRARY:FILEPATH=${PY_LIBRARY_DIR} \
+      -D PYTHON_LIBRARY_DIR:FILEPATH=${PY_LIBRARY_DIR} \
       -D USE_BOOST_PYTHON:BOOL=OFF \
       -D FREECAD_USE_PYBIND11:BOOL=ON \
       -D BUILD_ENABLE_CXX11:BOOL=ON \
