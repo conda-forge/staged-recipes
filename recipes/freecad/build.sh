@@ -36,6 +36,7 @@ cmake -G "Ninja" \
       -D SMESH_INCLUDE_DIR:FILEPATH=$PREFIX/include/smesh \
       -D FREECAD_USE_EXTERNAL_SMESH=ON \
       -D BUILD_FLAT_MESH:BOOL=ON \
+      -D BUILD_WITH_CONDA:BOOL=ON \
       ..
 
 ninja -j${CPU_COUNT} install
