@@ -27,7 +27,8 @@ cmake -G "Ninja" \
       -D OCC_OCAF_LIBRARIES:FILEPATH=$PREFIX/lib CACHE PATH \
       -D SWIG_DIR:FILEPATH=$PREFIX/share/swig/3.0.8 \
       -D SWIG_EXECUTABLE:FILEPATH=$PREFIX/bin/swig \
-      -D PYTHON_EXECUTABLE:FILEPATH=$PYTHON \
+      -D PYTHON_INCLUDE_DIR:FILEPATH=$(python -c "from distutils.sysconfig import get_python_inc; print(get_python_inc())") \
+      -D PYTHON_LIBRARY:FILEPATH=$(python -c "import distutils.sysconfig as sysconfig; print(sysconfig.get_config_var('LIBDIR'))") \
       -D USE_BOOST_PYTHON:BOOL=OFF \
       -D FREECAD_USE_PYBIND11:BOOL=ON \
       -D BUILD_ENABLE_CXX11:BOOL=ON \
