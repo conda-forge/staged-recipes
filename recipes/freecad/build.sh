@@ -29,8 +29,6 @@ cmake -G "Ninja" \
       -D BUILD_QT5:BOOL=ON \
        ${NETGEN_VAR} \
        ${QT_VAR} \
-      -D OCC_INCLUDE_DIR:FILEPATH=$PREFIX/include/opencascade \
-      -D OCC_LIBRARY:FILEPATH=$PREFIX/lib \
       -D FREECAD_USE_OCC_VARIANT="Official Version" \
       -D SWIG_DIR:FILEPATH=$PREFIX/share/swig/3.0.8 \
       -D SWIG_EXECUTABLE:FILEPATH=$PREFIX/bin/swig \
