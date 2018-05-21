@@ -7,6 +7,8 @@ if [ `uname` = "Darwin" ]; then
       QT_VAR="-D BUILD_WEB:BOOL=OFF \
               -D BUILD_START:BOOL=OFF \
              "
+      export LD_LIBRARY_PATH=${PREEFIX}/lib:${LD_LIBRARY_PATH}
+      export DYLD_LIBRARY_PATH=${LD_LIBRARY_PATH}
 else
       NETGEN_VAR="-D NETGENDATA:FILEPATH=$PREFIX/include/netgen \
                   -D NETGEN_INCLUDEDIR:FILEPATH=$PREFIX/include/netgen \
