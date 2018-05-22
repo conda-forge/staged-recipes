@@ -38,7 +38,7 @@ export CONDA_NPY='19'
 conda clean --lock
 
 # Ensure that `noarch` exists otherwise `conda` won't think this channel is valid.
-conda index build_artifacts/noarch
+conda index /home/conda/staged-recipes/build_artifacts/noarch
 
 conda install --yes conda-forge-ci-setup=1.* conda-forge-pinning networkx
 source run_conda_forge_build_setup
