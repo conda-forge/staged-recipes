@@ -37,6 +37,9 @@ export CONDA_NPY='19'
 # A lock sometimes occurs with incomplete builds. The lock file is stored in build_artifacts.
 conda clean --lock
 
+# Ensure that `noarch` exists otherwise `conda` won't think this channel is valid.
+conda index /home/conda/staged-recipes/build_artifacts/noarch
+
 conda install --yes conda-forge-ci-setup=1.* conda-forge-pinning networkx
 source run_conda_forge_build_setup
 
