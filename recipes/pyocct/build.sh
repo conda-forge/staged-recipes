@@ -2,8 +2,9 @@
 mkdir build
 cd build
 
-# export CC=gcc-4.9
-# export CXX=g++-4.9
+if [ `uname` = "Darwin" ]; then
+    sed -i '' 's/Xcode-9.app/Xcode.app/g' $PREFIX/lib/cmake/opencascade/OpenCASCADEVisualizationTargets.cmake
+fi
 
 cmake .. -G "Ninja" \
     -DCMAKE_BUILD_TYPE="Release" \
