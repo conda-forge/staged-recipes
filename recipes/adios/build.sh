@@ -43,8 +43,3 @@ export CFLAGS="-fPIC"
 make -j "${CPU_COUNT}"
 make check
 make install
-
-# numpy bindings
-cd wrappers/numpy
-make python
-python setup.py install
