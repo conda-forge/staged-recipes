@@ -1,3 +1,3 @@
-./configure --prefix=$PREFIX
+./autobuild --prefix=$PREFIX
 make
 make install
