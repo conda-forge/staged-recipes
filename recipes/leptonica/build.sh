@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-LDFLAGS="-Wl,-rpath -Wl,$PREFIX/lib" CFLAGS="-I$PREFIX/include" sh ./configure --prefix=$PREFIX
-make
+mkdir build && cd build
+cmake -DCMAKE_INSTALL_PREFIX:PATH=$PREFIX ..
 make install
-
