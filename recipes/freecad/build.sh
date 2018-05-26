@@ -10,8 +10,7 @@ if [ `uname` = "Darwin" ]; then
       export LD_LIBRARY_PATH=${PREEFIX}/lib:${LD_LIBRARY_PATH}
       export DYLD_LIBRARY_PATH=${LD_LIBRARY_PATH}
 else
-      NETGEN_VAR="-D NETGENDATA:FILEPATH=$PREFIX/include/netgen \
-                  -D BUILD_FEM_NETGEN:BOOL=ON \
+      NETGEN_VAR="-D BUILD_FEM_NETGEN:BOOL=ON \
                  "
       QT_VAR="-D BUILD_WEB:BOOL=ON \
              "
