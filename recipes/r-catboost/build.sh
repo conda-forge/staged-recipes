@@ -1,1 +1,0 @@
-R -e 'devtools::install()'
