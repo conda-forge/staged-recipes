@@ -11,16 +11,11 @@ if [ `uname` = "Darwin" ]; then
       export DYLD_LIBRARY_PATH=${LD_LIBRARY_PATH}
 else
       NETGEN_VAR="-D NETGENDATA:FILEPATH=$PREFIX/include/netgen \
-                  -D NETGEN_INCLUDEDIR:FILEPATH=$PREFIX/include/netgen \
-                  -D NGLIB_INCLUDE_DIR:FILEPATH=$PREFIX/include/nglib \
                   -D BUILD_FEM_NETGEN:BOOL=ON \
                  "
       QT_VAR="-D BUILD_WEB:BOOL=ON \
              "
 fi
-
-PY_INCLUDE_DIR=$(python -c "from distutils.sysconfig import get_python_inc; print(get_python_inc())")
-PY_LIBRARY_DIR=$(python -c "import distutils.sysconfig as sysconfig; print(sysconfig.get_config_var('LIBDIR'))")
 
 cmake -G "Ninja" \
       -D BUID_WITH_CONDA:BOOL=ON \
@@ -32,11 +27,7 @@ cmake -G "Ninja" \
        ${NETGEN_VAR} \
        ${QT_VAR} \
       -D FREECAD_USE_OCC_VARIANT="Official Version" \
-      -D SWIG_DIR:FILEPATH=$PREFIX/share/swig/3.0.8 \
-      -D SWIG_EXECUTABLE:FILEPATH=$PREFIX/bin/swig \
-      -D PYTHON_EXECUTABLE:FILEPATH=$PYTHON \
-      -D PYTHON_INCLUDE_DIR:FILEPATH=${PY_INCLUDE_DIR} \
-      -D PYTHON_LIBRARY_DIR:FILEPATH=${PY_LIBRARY_DIR} \
+      -D OCC_INCLUDE_DIR:FILEPATH=$PREFIX/include \
       -D USE_BOOST_PYTHON:BOOL=OFF \
       -D FREECAD_USE_PYBIND11:BOOL=ON \
       -D BUILD_ENABLE_CXX11:BOOL=ON \
