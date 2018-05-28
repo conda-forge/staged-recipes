@@ -1,16 +1,7 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 1cfe238..43a9fb5 100644
+index 1cfe238..cae19dc 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -109,7 +109,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_CLANGXX)
-     INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
- 
-     # get linker errors as soon as possible and not at runtime e.g. for modules
--    if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-+    if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND NOT BUILD_WITH_CONDA)
-         set(CMAKE_SHARED_LINKER_FLAGS "-Wl,-undefined,error")
-     elseif(UNIX)
-         set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--no-undefined")
 @@ -199,6 +199,7 @@ OPTION(FREECAD_USE_EXTERNAL_SMESH "Use system installed smesh instead of the bun
  OPTION(FREECAD_USE_EXTERNAL_KDL "Use system installed orocos-kdl instead of the bundled." OFF)
  OPTION(FREECAD_USE_FREETYPE "Builds the features using FreeType libs" ON)
@@ -37,11 +28,364 @@ index 1cfe238..43a9fb5 100644
  
      find_package(PythonInterp REQUIRED)
      set(Python_ADDITIONAL_VERSIONS ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR})
+diff --git a/cMake/FindNETGEN.cmake b/cMake/FindNETGEN.cmake
+index bdb737f..58a38db 100644
+--- a/cMake/FindNETGEN.cmake
++++ b/cMake/FindNETGEN.cmake
+@@ -12,165 +12,179 @@
+ #
+ # See also: http://git.salome-platform.org/gitweb/?p=NETGENPLUGIN_SRC.git;a=summary
+ 
+-SET(NETGEN_DEFINITIONS -DNO_PARALLEL_THREADS -DOCCGEOMETRY)
+-
+-IF(DEFINED MACPORTS_PREFIX OR DEFINED HOMEBREW_PREFIX)
+-    # We haven't supported Netgen prior to 5.3.1 on MacOS, and the current
+-    # plan is for the next Netgen version to be 6.1 (currently unreleased).
+-    IF(DEFINED HOMEBREW_PREFIX)
+-        SET(NGLIB_PREFIX ${HOMEBREW_PREFIX})
+-    ELSE(DEFINED HOMEBREW_PREFIX)
+-        SET(NGLIB_PREFIX ${MACPORTS_PREFIX})
+-    ENDIF(DEFINED HOMEBREW_PREFIX)
+-
+-    FIND_PATH(NGLIB_INCLUDE_DIR nglib.h ${NGLIB_PREFIX}/include)
+-
+-    FIND_LIBRARY(NGLIB_LIBNGLIB nglib ${NGLIB_PREFIX}/lib)
+-    FIND_LIBRARY(NGLIB_LIBMESH mesh ${NGLIB_PREFIX}/lib)
+-    FIND_LIBRARY(NGLIB_LIBOCC occ ${NGLIB_PREFIX}/lib)
+-    FIND_LIBRARY(NGLIB_LIBINTERFACE interface ${NGLIB_PREFIX}/lib)
+-    SET(NGLIB_LIBRARIES ${NGLIB_LIBNGLIB} ${NGLIB_LIBMESH}
+-                        ${NGLIB_LIBOCC} ${NGLIB_LIBINTERFACE})
+-
+-    IF(NOT NETGENDATA)
+-        SET(NETGENDATA ${NGLIB_PREFIX}/include/netgen)
+-    ENDIF(NOT NETGENDATA)
+-
+-ELSEIF(WIN32)
+-    FIND_PATH(NGLIB_INCLUDE_DIR NAMES nglib.h PATHS ${NETGEN_INCLUDEDIR})
+-    SET(NETGEN_LIBS nglib mesh occ interface)
+-    SET(NGLIB_LIBRARIES "")
+-    FOREACH(it ${NETGEN_LIBS})
+-        FIND_LIBRARY(NGLIB ${it} PATHS ${NETGEN_LIBDIR})
+-        FIND_LIBRARY(NGLIBD ${it}d PATHS ${NETGEN_LIBDIR})
+-        IF(NGLIBD AND NGLIB)
+-            SET(NG_LIB optimized ${NGLIB}
+-                       debug ${NGLIBD})
+-            SET(NGLIB_LIBRARIES ${NGLIB_LIBRARIES} ${NG_LIB})
+-            UNSET(NGLIB CACHE)
+-            UNSET(NGLIBD CACHE)
+-        ELSEIF(NGLIB)
+-            SET(NGLIB_LIBRARIES ${NGLIB_LIBRARIES} ${NGLIB})
+-            UNSET(NGLIB CACHE)
+-        ENDIF()
+-    ENDFOREACH()
+-
+-    IF(NOT NETGENDATA)
+-        SET(NETGENDATA netgen)
+-    ENDIF(NOT NETGENDATA)
+-
+-ELSE(DEFINED MACPORTS_PREFIX OR DEFINED HOMEBREW_PREFIX)
+-    IF(NETGEN_ROOT)
+-        SET(NETGEN_INCLUDEDIR ${NETGEN_ROOT}/include)
+-        SET(NETGEN_LIBDIR ${NETGEN_ROOT}/lib)
+-        # allow to customize if NETGEN_ROOT is used
+-        IF(NOT NETGENDATA)
+-            SET(NETGENDATA ${NETGEN_ROOT}/libsrc)
+-        ENDIF(NOT NETGENDATA)
+-    ENDIF()
+-
+-    FIND_PATH(NGLIB_INCLUDE_DIR NAMES nglib.h PATHS ${NETGEN_INCLUDEDIR} /usr/include)
+-    FIND_LIBRARY(NGLIB_LIBNGLIB nglib PATHS ${NETGEN_LIBDIR} /usr/lib /usr/local/lib)
+-    SET(NGLIB_LIBRARIES ${NGLIB_LIBNGLIB})
+-    FIND_LIBRARY(NGLIB_LIBMESH mesh PATHS ${NETGEN_LIBDIR} /usr/lib /usr/local/lib)
+-    IF(NGLIB_LIBMESH)
+-        SET(NGLIB_LIBRARIES ${NGLIB_LIBRARIES} ${NGLIB_LIBMESH})
+-    ENDIF()
+-    FIND_LIBRARY(NGLIB_LIBOCC occ PATHS ${NETGEN_LIBDIR} /usr/lib /usr/local/lib)
+-    IF(NGLIB_LIBOCC)
+-        SET(NGLIB_LIBRARIES ${NGLIB_LIBRARIES} ${NGLIB_LIBOCC})
+-    ENDIF()
+-    FIND_LIBRARY(NGLIB_LIBINTERFACE interface PATHS ${NETGEN_LIBDIR} /usr/lib /usr/local/lib)
+-    IF(NGLIB_LIBINTERFACE)
+-        SET(NGLIB_LIBRARIES ${NGLIB_LIBRARIES} ${NGLIB_LIBINTERFACE})
+-    ENDIF()
+-
+-    IF(NOT NETGENDATA)
+-        SET(NETGENDATA /usr/share/netgen/libsrc)
+-    ENDIF(NOT NETGENDATA)
+-
+-ENDIF(DEFINED MACPORTS_PREFIX OR DEFINED HOMEBREW_PREFIX)
+-
+-FIND_PATH(NETGEN_DIR_include NAMES mydefs.hpp     PATHS ${NETGEN_INCLUDEDIR} ${NGLIB_INCLUDE_DIR} ${NETGENDATA}/include)
+-FIND_PATH(NETGEN_DIR_csg     NAMES csg.hpp        PATHS ${NETGEN_INCLUDEDIR} ${NGLIB_INCLUDE_DIR} ${NETGENDATA}/csg)
+-FIND_PATH(NETGEN_DIR_gen     NAMES array.hpp      PATHS ${NETGEN_INCLUDEDIR} ${NGLIB_INCLUDE_DIR} ${NETGENDATA}/general)
+-FIND_PATH(NETGEN_DIR_geom2d  NAMES geom2dmesh.hpp PATHS ${NETGEN_INCLUDEDIR} ${NGLIB_INCLUDE_DIR} ${NETGENDATA}/geom2d)
+-FIND_PATH(NETGEN_DIR_gprim   NAMES gprim.hpp      PATHS ${NETGEN_INCLUDEDIR} ${NGLIB_INCLUDE_DIR} ${NETGENDATA}/gprim)
+-FIND_PATH(NETGEN_DIR_la      NAMES linalg.hpp     PATHS ${NETGEN_INCLUDEDIR} ${NGLIB_INCLUDE_DIR} ${NETGENDATA}/linalg)
+-FIND_PATH(NETGEN_DIR_mesh    NAMES meshing.hpp    PATHS ${NETGEN_INCLUDEDIR} ${NGLIB_INCLUDE_DIR} ${NETGENDATA}/meshing)
+-FIND_PATH(NETGEN_DIR_occ     NAMES occgeom.hpp    PATHS ${NETGEN_INCLUDEDIR} ${NGLIB_INCLUDE_DIR} ${NETGENDATA}/occ)
+-FIND_PATH(NETGEN_DIR_stlgeom NAMES stlgeom.hpp    PATHS ${NETGEN_INCLUDEDIR} ${NGLIB_INCLUDE_DIR} ${NETGENDATA}/stlgeom)
+-
+-IF(NOT NGLIB_INCLUDE_DIR AND NOT NETGEN_DIR_include)
+-    MESSAGE(STATUS "Cannot find NETGEN header files.")
+-ELSE()
+-    file(STRINGS ${NETGEN_DIR_include}/mydefs.hpp NETGEN_VERSION
+-        REGEX "#define PACKAGE_VERSION.*"
+-    )
+-    if (NETGEN_VERSION)
+-	string(REGEX MATCHALL "[0-9]+" NETGEN_VERSION ${NETGEN_VERSION})
+-	list(LENGTH NETGEN_VERSION NETGEN_VERSION_COUNT)
+-	list(GET NETGEN_VERSION 0 NETGEN_VERSION_MAJOR)
+-	if(NETGEN_VERSION_COUNT GREATER 1)
+-	    list(GET NETGEN_VERSION 1 NETGEN_VERSION_MINOR)
+-	else()
+-	    set(NETGEN_VERSION_MINOR 0)
+-	endif()
+-    else()  # workaround for netgen 6.2 and newer. currently there is no easy way to detect the version
+-	    # better use "find_package(netgen CONFIG REQUIRED)"
+-	set(NETGEN_VERSION_MAJOR 6)
+-	set(NETGEN_VERSION_MINOR 2)
+-    endif()
+-ENDIF()
+-
+-IF(NOT NGLIB_LIBRARIES)
+-    MESSAGE(STATUS "Cannot find NETGEN library.")
+-ENDIF()
+-
+-IF(NGLIB_INCLUDE_DIR AND NGLIB_LIBRARIES)
+-    SET(NETGEN_FOUND TRUE)
+-    SET(NETGEN_INCLUDE_DIRS ${NETGEN_DIR_include} ${NGLIB_INCLUDE_DIR}
+-      ${NETGEN_DIR_csg} ${NETGEN_DIR_gen} ${NETGEN_DIR_geom2d} 
+-      ${NETGEN_DIR_gprim} ${NETGEN_DIR_la} ${NETGEN_DIR_mesh}
+-      ${NETGEN_DIR_occ} ${NETGEN_DIR_stlgeom})
+-    LIST(REMOVE_DUPLICATES NETGEN_INCLUDE_DIRS)
+-    MATH(EXPR NETGEN_VERSION "(${NETGEN_VERSION_MAJOR} << 16) + (${NETGEN_VERSION_MINOR} << 8)")
+-    MATH(EXPR NETGEN_VERSION_62 "(6 << 16) + (2 << 8)")
+-    IF(NOT NETGEN_VERSION LESS NETGEN_VERSION_62) # Version >= 6.2
+-      # NETGEN v6.2 or newer requires c++1y/c++14
+-      include(CheckCXXCompilerFlag)
+-      check_cxx_compiler_flag("-std=c++14" HAS_CPP14_FLAG)
+-      check_cxx_compiler_flag("-std=c++1y" HAS_CPP1Y_FLAG)
+-      if(HAS_CPP14_FLAG)
+-          set(NETGEN_CXX_FLAGS "-std=c++14")
+-      elseif(HAS_CPP1Y_FLAG)
+-          set(NETGEN_CXX_FLAGS "-std=c++1y")
+-      else()
+-          # message(FATAL_ERROR "Unsupported compiler -- C++1y support or newer required!")
+-          message(STATUS "can not detect c++1y support, but will try to build with c++1y")
+-          set(NETGEN_CXX_FLAGS "-std=c++1y")
++
++find_package(Netgen CONFIG)
++if(Netgen_FOUND)
++  set(NGLIB_INCLUDE_DIR ${NETGEN_INCLUDE_DIR})
++  set(NGLIB_LIBRARIES nglib)
++  set(NETGEN_DEFINITIONS -DNO_PARALLEL_THREADS -DOCCGEOMETRY)
++  # for external smesh only the following two variables are needed:
++  set(NETGEN_FOUND True)
++  set(NETGEN_INCLUDE_DIRS ${NETGEN_INCLUDE_DIR})
++
++else(Netgen_FOUND)
++
++
++  SET(NETGEN_DEFINITIONS -DNO_PARALLEL_THREADS -DOCCGEOMETRY)
++
++  IF(DEFINED MACPORTS_PREFIX OR DEFINED HOMEBREW_PREFIX)
++      # We haven't supported Netgen prior to 5.3.1 on MacOS, and the current
++      # plan is for the next Netgen version to be 6.1 (currently unreleased).
++      IF(DEFINED HOMEBREW_PREFIX)
++          SET(NGLIB_PREFIX ${HOMEBREW_PREFIX})
++      ELSE(DEFINED HOMEBREW_PREFIX)
++          SET(NGLIB_PREFIX ${MACPORTS_PREFIX})
++      ENDIF(DEFINED HOMEBREW_PREFIX)
++
++      FIND_PATH(NGLIB_INCLUDE_DIR nglib.h ${NGLIB_PREFIX}/include)
++
++      FIND_LIBRARY(NGLIB_LIBNGLIB nglib ${NGLIB_PREFIX}/lib)
++      FIND_LIBRARY(NGLIB_LIBMESH mesh ${NGLIB_PREFIX}/lib)
++      FIND_LIBRARY(NGLIB_LIBOCC occ ${NGLIB_PREFIX}/lib)
++      FIND_LIBRARY(NGLIB_LIBINTERFACE interface ${NGLIB_PREFIX}/lib)
++      SET(NGLIB_LIBRARIES ${NGLIB_LIBNGLIB} ${NGLIB_LIBMESH}
++                          ${NGLIB_LIBOCC} ${NGLIB_LIBINTERFACE})
++
++      IF(NOT NETGENDATA)
++          SET(NETGENDATA ${NGLIB_PREFIX}/include/netgen)
++      ENDIF(NOT NETGENDATA)
++
++  ELSEIF(WIN32)
++      FIND_PATH(NGLIB_INCLUDE_DIR NAMES nglib.h PATHS ${NETGEN_INCLUDEDIR})
++      SET(NETGEN_LIBS nglib mesh occ interface)
++      SET(NGLIB_LIBRARIES "")
++      FOREACH(it ${NETGEN_LIBS})
++          FIND_LIBRARY(NGLIB ${it} PATHS ${NETGEN_LIBDIR})
++          FIND_LIBRARY(NGLIBD ${it}d PATHS ${NETGEN_LIBDIR})
++          IF(NGLIBD AND NGLIB)
++              SET(NG_LIB optimized ${NGLIB}
++                         debug ${NGLIBD})
++              SET(NGLIB_LIBRARIES ${NGLIB_LIBRARIES} ${NG_LIB})
++              UNSET(NGLIB CACHE)
++              UNSET(NGLIBD CACHE)
++          ELSEIF(NGLIB)
++              SET(NGLIB_LIBRARIES ${NGLIB_LIBRARIES} ${NGLIB})
++              UNSET(NGLIB CACHE)
++          ENDIF()
++      ENDFOREACH()
++
++      IF(NOT NETGENDATA)
++          SET(NETGENDATA netgen)
++      ENDIF(NOT NETGENDATA)
++
++  ELSE(DEFINED MACPORTS_PREFIX OR DEFINED HOMEBREW_PREFIX)
++      IF(NETGEN_ROOT)
++          SET(NETGEN_INCLUDEDIR ${NETGEN_ROOT}/include)
++          SET(NETGEN_LIBDIR ${NETGEN_ROOT}/lib)
++          # allow to customize if NETGEN_ROOT is used
++          IF(NOT NETGENDATA)
++              SET(NETGENDATA ${NETGEN_ROOT}/libsrc)
++          ENDIF(NOT NETGENDATA)
++      ENDIF()
++
++      FIND_PATH(NGLIB_INCLUDE_DIR NAMES nglib.h PATHS ${NETGEN_INCLUDEDIR} /usr/include)
++      FIND_LIBRARY(NGLIB_LIBNGLIB nglib PATHS ${NETGEN_LIBDIR} /usr/lib /usr/local/lib)
++      SET(NGLIB_LIBRARIES ${NGLIB_LIBNGLIB})
++      FIND_LIBRARY(NGLIB_LIBMESH mesh PATHS ${NETGEN_LIBDIR} /usr/lib /usr/local/lib)
++      IF(NGLIB_LIBMESH)
++          SET(NGLIB_LIBRARIES ${NGLIB_LIBRARIES} ${NGLIB_LIBMESH})
++      ENDIF()
++      FIND_LIBRARY(NGLIB_LIBOCC occ PATHS ${NETGEN_LIBDIR} /usr/lib /usr/local/lib)
++      IF(NGLIB_LIBOCC)
++          SET(NGLIB_LIBRARIES ${NGLIB_LIBRARIES} ${NGLIB_LIBOCC})
++      ENDIF()
++      FIND_LIBRARY(NGLIB_LIBINTERFACE interface PATHS ${NETGEN_LIBDIR} /usr/lib /usr/local/lib)
++      IF(NGLIB_LIBINTERFACE)
++          SET(NGLIB_LIBRARIES ${NGLIB_LIBRARIES} ${NGLIB_LIBINTERFACE})
++      ENDIF()
++
++      IF(NOT NETGENDATA)
++          SET(NETGENDATA /usr/share/netgen/libsrc)
++      ENDIF(NOT NETGENDATA)
++
++  ENDIF(DEFINED MACPORTS_PREFIX OR DEFINED HOMEBREW_PREFIX)
++
++  FIND_PATH(NETGEN_DIR_include NAMES mydefs.hpp     PATHS ${NETGEN_INCLUDEDIR} ${NGLIB_INCLUDE_DIR} ${NETGENDATA}/include)
++  FIND_PATH(NETGEN_DIR_csg     NAMES csg.hpp        PATHS ${NETGEN_INCLUDEDIR} ${NGLIB_INCLUDE_DIR} ${NETGENDATA}/csg)
++  FIND_PATH(NETGEN_DIR_gen     NAMES array.hpp      PATHS ${NETGEN_INCLUDEDIR} ${NGLIB_INCLUDE_DIR} ${NETGENDATA}/general)
++  FIND_PATH(NETGEN_DIR_geom2d  NAMES geom2dmesh.hpp PATHS ${NETGEN_INCLUDEDIR} ${NGLIB_INCLUDE_DIR} ${NETGENDATA}/geom2d)
++  FIND_PATH(NETGEN_DIR_gprim   NAMES gprim.hpp      PATHS ${NETGEN_INCLUDEDIR} ${NGLIB_INCLUDE_DIR} ${NETGENDATA}/gprim)
++  FIND_PATH(NETGEN_DIR_la      NAMES linalg.hpp     PATHS ${NETGEN_INCLUDEDIR} ${NGLIB_INCLUDE_DIR} ${NETGENDATA}/linalg)
++  FIND_PATH(NETGEN_DIR_mesh    NAMES meshing.hpp    PATHS ${NETGEN_INCLUDEDIR} ${NGLIB_INCLUDE_DIR} ${NETGENDATA}/meshing)
++  FIND_PATH(NETGEN_DIR_occ     NAMES occgeom.hpp    PATHS ${NETGEN_INCLUDEDIR} ${NGLIB_INCLUDE_DIR} ${NETGENDATA}/occ)
++  FIND_PATH(NETGEN_DIR_stlgeom NAMES stlgeom.hpp    PATHS ${NETGEN_INCLUDEDIR} ${NGLIB_INCLUDE_DIR} ${NETGENDATA}/stlgeom)
++
++  IF(NOT NGLIB_INCLUDE_DIR AND NOT NETGEN_DIR_include)
++      MESSAGE(STATUS "Cannot find NETGEN header files.")
++  ELSE()
++      file(STRINGS ${NETGEN_DIR_include}/mydefs.hpp NETGEN_VERSION
++          REGEX "#define PACKAGE_VERSION.*"
++      )
++      if (NETGEN_VERSION)
++  	string(REGEX MATCHALL "[0-9]+" NETGEN_VERSION ${NETGEN_VERSION})
++  	list(LENGTH NETGEN_VERSION NETGEN_VERSION_COUNT)
++  	list(GET NETGEN_VERSION 0 NETGEN_VERSION_MAJOR)
++  	if(NETGEN_VERSION_COUNT GREATER 1)
++  	    list(GET NETGEN_VERSION 1 NETGEN_VERSION_MINOR)
++  	else()
++  	    set(NETGEN_VERSION_MINOR 0)
++  	endif()
++      else()  # workaround for netgen 6.2 and newer. currently there is no easy way to detect the version
++  	    # better use "find_package(netgen CONFIG REQUIRED)"
++  	set(NETGEN_VERSION_MAJOR 6)
++  	set(NETGEN_VERSION_MINOR 2)
+       endif()
+-      if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+-        # Clang sometimes fails to include <cstdio>
+-        include(CMakePushCheckState)
+-        cmake_push_check_state(RESET)
+-        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${NETGEN_CXX_FLAGS}")
+-        check_cxx_source_compiles("#include <cstdio>\nint main(){}" CSTDIO_INCLUDE_TRY1)
+-        if(NOT CSTDIO_INCLUDE_TRY1)
+-          # Ugly hack to make <stdio.h> building gets function
+-          set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -U__cplusplus -D__cplusplus=201103L")
+-          check_cxx_source_compiles("#include <cstdio>\nint main(){}" CSTDIO_INCLUDE_TRY2)
+-          if(NOT CSTDIO_INCLUDE_TRY2)
+-            message(FATAL_ERROR "Cannot #include <cstdio>.")
+-          else()
+-            set(NETGEN_CXX_FLAGS "${NETGEN_CXX_FLAGS} -U__cplusplus -D__cplusplus=201103L")
++  ENDIF()
++
++  IF(NOT NGLIB_LIBRARIES)
++      MESSAGE(STATUS "Cannot find NETGEN library.")
++  ENDIF()
++
++  IF(NGLIB_INCLUDE_DIR AND NGLIB_LIBRARIES)
++      SET(NETGEN_FOUND TRUE)
++      SET(NETGEN_INCLUDE_DIRS ${NETGEN_DIR_include} ${NGLIB_INCLUDE_DIR}
++        ${NETGEN_DIR_csg} ${NETGEN_DIR_gen} ${NETGEN_DIR_geom2d} 
++        ${NETGEN_DIR_gprim} ${NETGEN_DIR_la} ${NETGEN_DIR_mesh}
++        ${NETGEN_DIR_occ} ${NETGEN_DIR_stlgeom})
++      LIST(REMOVE_DUPLICATES NETGEN_INCLUDE_DIRS)
++      MATH(EXPR NETGEN_VERSION "(${NETGEN_VERSION_MAJOR} << 16) + (${NETGEN_VERSION_MINOR} << 8)")
++      MATH(EXPR NETGEN_VERSION_62 "(6 << 16) + (2 << 8)")
++      IF(NOT NETGEN_VERSION LESS NETGEN_VERSION_62) # Version >= 6.2
++        # NETGEN v6.2 or newer requires c++1y/c++14
++        include(CheckCXXCompilerFlag)
++        check_cxx_compiler_flag("-std=c++14" HAS_CPP14_FLAG)
++        check_cxx_compiler_flag("-std=c++1y" HAS_CPP1Y_FLAG)
++        if(HAS_CPP14_FLAG)
++            set(NETGEN_CXX_FLAGS "-std=c++14")
++        elseif(HAS_CPP1Y_FLAG)
++            set(NETGEN_CXX_FLAGS "-std=c++1y")
++        else()
++            # message(FATAL_ERROR "Unsupported compiler -- C++1y support or newer required!")
++            message(STATUS "can not detect c++1y support, but will try to build with c++1y")
++            set(NETGEN_CXX_FLAGS "-std=c++1y")
++        endif()
++        if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
++          # Clang sometimes fails to include <cstdio>
++          include(CMakePushCheckState)
++          cmake_push_check_state(RESET)
++          set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${NETGEN_CXX_FLAGS}")
++          check_cxx_source_compiles("#include <cstdio>\nint main(){}" CSTDIO_INCLUDE_TRY1)
++          if(NOT CSTDIO_INCLUDE_TRY1)
++            # Ugly hack to make <stdio.h> building gets function
++            set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -U__cplusplus -D__cplusplus=201103L")
++            check_cxx_source_compiles("#include <cstdio>\nint main(){}" CSTDIO_INCLUDE_TRY2)
++            if(NOT CSTDIO_INCLUDE_TRY2)
++              message(FATAL_ERROR "Cannot #include <cstdio>.")
++            else()
++              set(NETGEN_CXX_FLAGS "${NETGEN_CXX_FLAGS} -U__cplusplus -D__cplusplus=201103L")
++            endif()
+           endif()
++          cmake_pop_check_state()
+         endif()
+-        cmake_pop_check_state()
+-      endif()
+-    ENDIF()
+-    MESSAGE(STATUS "Found NETGEN version ${NETGEN_VERSION_MAJOR}.${NETGEN_VERSION_MINOR}, calculated: ${NETGEN_VERSION}")
+-    LIST(APPEND NETGEN_DEFINITIONS -DNETGEN_VERSION=${NETGEN_VERSION})
+-ELSE()
+-    SET(NETGEN_FOUND FALSE)
+-ENDIF()
++      ENDIF()
++      MESSAGE(STATUS "Found NETGEN version ${NETGEN_VERSION_MAJOR}.${NETGEN_VERSION_MINOR}, calculated: ${NETGEN_VERSION}")
++      LIST(APPEND NETGEN_DEFINITIONS -DNETGEN_VERSION=${NETGEN_VERSION})
++  ELSE()
++      SET(NETGEN_FOUND FALSE)
++  ENDIF()
++endif(Netgen_Found)
+\ No newline at end of file
 diff --git a/cMake/FindOpenCasCade.cmake b/cMake/FindOpenCasCade.cmake
-index 9944b8a..296b76c 100644
+index 9944b8a..794c6f1 100644
 --- a/cMake/FindOpenCasCade.cmake
 +++ b/cMake/FindOpenCasCade.cmake
-@@ -56,7 +56,10 @@ else(OCE_FOUND) #look for OpenCASCADE
+@@ -34,6 +34,8 @@ if(OCE_FOUND)
+   set(OCC_INCLUDE_DIR ${OCE_INCLUDE_DIRS})
+   #set(OCC_LIBRARY_DIR ${OCE_LIBRARY_DIR})
+ else(OCE_FOUND) #look for OpenCASCADE
++  # we first try to find opencascade directly:
++  find_package(OpenCASCADE CONFIG QUIET)
+   if(WIN32)
+     if(CYGWIN OR MINGW)
+     FIND_PATH(OCC_INCLUDE_DIR Standard_Version.hxx
+@@ -56,7 +58,10 @@ else(OCE_FOUND) #look for OpenCASCADE
        )
      endif(CYGWIN OR MINGW)
    else(WIN32)
@@ -52,6 +396,63 @@ index 9944b8a..296b76c 100644
        /usr/include/opencascade
        /usr/local/include/opencascade
        /opt/opencascade/include
+@@ -76,6 +81,56 @@ else(OCE_FOUND) #look for OpenCASCADE
+       )
+     ENDIF()
+   endif(OCC_LIBRARY)
++  if(OpenCASCADE_FOUND)
++    set(OCC_FOUND ${OpenCASCADE_FOUND})
++    set(OCC_INCLUDE_DIR ${OpenCASCADE_INCLUDE_DIR})
++    set(OCC_LIBRARY_DIR ${OpenCASCADE_LIBRARY_DIR})
++    set(OCC_LIBRARIES ${OpenCASCADE_LIBRARIES})
++    set(OCC_OCAF_LIBRARIES TKCAF TKXCAF)
++  else(OpenCASCADE_FOUND)
++    if(WIN32)
++      if(CYGWIN OR MINGW)
++      FIND_PATH(OCC_INCLUDE_DIR Standard_Version.hxx
++          /usr/include/opencascade
++          /usr/local/include/opencascade
++          /opt/opencascade/include
++          /opt/opencascade/inc
++        )
++        FIND_LIBRARY(OCC_LIBRARY TKernel
++          /usr/lib
++          /usr/local/lib
++          /opt/opencascade/lib
++        )
++      else(CYGWIN OR MINGW)
++      FIND_PATH(OCC_INCLUDE_DIR Standard_Version.hxx
++          "[HKEY_LOCAL_MACHINE\\SOFTWARE\\SIM\\OCC\\2;Installation Path]/include"
++        )
++        FIND_LIBRARY(OCC_LIBRARY TKernel
++          "[HKEY_LOCAL_MACHINE\\SOFTWARE\\SIM\\OCC\\2;Installation Path]/lib"
++        )
++      endif(CYGWIN OR MINGW)
++    else(WIN32)
++      FIND_PATH(OCC_INCLUDE_DIR Standard_Version.hxx
++        /usr/include/opencascade
++        /usr/local/include/opencascade
++        /opt/opencascade/include
++        /opt/opencascade/inc
++      )
++      FIND_LIBRARY(OCC_LIBRARY TKernel
++        /usr/lib
++        /usr/local/lib
++        /opt/opencascade/lib
++      )
++    endif(WIN32)
++    if(OCC_LIBRARY)
++      GET_FILENAME_COMPONENT(OCC_LIBRARY_DIR ${OCC_LIBRARY} PATH)
++      IF(NOT OCC_INCLUDE_DIR)
++        FIND_PATH(OCC_INCLUDE_DIR Standard_Version.hxx
++          ${OCC_LIBRARY_DIR}/../inc
++        )
++      ENDIF()
++    endif(OCC_LIBRARY)
++  endif(OpenCASCADE_FOUND)
+ endif(OCE_FOUND)
+ 
+ if(OCC_INCLUDE_DIR)
 diff --git a/src/Mod/Part/App/CMakeLists.txt b/src/Mod/Part/App/CMakeLists.txt
 index fc33a8f..1fa6c4d 100644
 --- a/src/Mod/Part/App/CMakeLists.txt
