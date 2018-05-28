@@ -1,1 +1,1 @@
-python -m pip install --no-deps --ignore-installed .
+$PREFIX/bin/python -m pip install --no-deps --ignore-installed .
