@@ -12,11 +12,11 @@ if [ `uname` = "Darwin" ]; then
       export LD_LIBRARY_PATH=${PREEFIX}/lib:${LD_LIBRARY_PATH}
       export DYLD_LIBRARY_PATH=${LD_LIBRARY_PATH}
 else
+      CMAKE_PLATFORM_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
       NETGEN_VAR="-D BUILD_FEM_NETGEN:BOOL=ON \
                  "
       QT_VAR="-D BUILD_WEB:BOOL=ON \
              "
-      CMAKE_PLATFORM_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
 fi
 
 cmake -G "Ninja" \
@@ -35,6 +35,7 @@ cmake -G "Ninja" \
       -D FREECAD_USE_EXTERNAL_SMESH=ON \
       -D BUILD_FLAT_MESH:BOOL=ON \
       -D BUILD_WITH_CONDA:BOOL=ON \
+      -D PYTHON_EXECUTABLE:FILEPATH=$PREFIX/bin/python \
       ${NETGEN_VAR} \
       ${QT_VAR} \
       ${CMAKE_PLATFORM_FLAGS[@]} \
