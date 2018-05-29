@@ -1,7 +1,9 @@
 mkdir -p build
 cd build
 
+declare -a CMAKE_PLATFORM_FLAGS
 if [ `uname` = "Darwin" ]; then
+      CMAKE_PLATFORM_FLAGS+=(-DCMAKE_OSX_SYSROOT="${CONDA_BUILD_SYSROOT}")
       NETGEN_VAR="-D BUILD_FEM_NETGEN=OFF \
                  "
       QT_VAR="-D BUILD_WEB:BOOL=OFF \
@@ -14,6 +16,7 @@ else
                  "
       QT_VAR="-D BUILD_WEB:BOOL=ON \
              "
+      CMAKE_PLATFORM_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
 fi
 
 cmake -G "Ninja" \
@@ -23,8 +26,6 @@ cmake -G "Ninja" \
       -D CMAKE_PREFIX_PATH:FILEPATH=$PREFIX \
       -D CMAKE_LIBRARY_PATH:FILEPATH=$PREFIX/lib \
       -D BUILD_QT5:BOOL=ON \
-       ${NETGEN_VAR} \
-       ${QT_VAR} \
       -D FREECAD_USE_OCC_VARIANT="Official Version" \
       -D OCC_INCLUDE_DIR:FILEPATH=$PREFIX/include \
       -D USE_BOOST_PYTHON:BOOL=OFF \
@@ -34,6 +35,9 @@ cmake -G "Ninja" \
       -D FREECAD_USE_EXTERNAL_SMESH=ON \
       -D BUILD_FLAT_MESH:BOOL=ON \
       -D BUILD_WITH_CONDA:BOOL=ON \
+      ${NETGEN_VAR} \
+      ${QT_VAR} \
+      ${CMAKE_PLATFORM_FLAGS[@]} \
       ..
 
 ninja -j${CPU_COUNT} install
