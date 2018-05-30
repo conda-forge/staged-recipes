@@ -1,0 +1,49 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f326934..3dd04a6 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -200,6 +200,7 @@ OPTION(FREECAD_USE_EXTERNAL_KDL "Use system installed orocos-kdl instead of the
+ OPTION(FREECAD_USE_FREETYPE "Builds the features using FreeType libs" ON)
+ OPTION(FREECAD_BUILD_DEBIAN "Prepare for a build of a Debian package" OFF)
+ OPTION(BUILD_WITH_CONDA "Set ON if you build freecad with conda" OFF)
++OPTION(OCCT_CMAKE_FALLBACK "disable usage of occt-config files" OFF)
+ if (WIN32 OR APPLE)
+     OPTION(FREECAD_USE_QT_FILEDIALOG "Use Qt's file dialog instead of the native one." OFF)
+ else()
+diff --git a/cMake/FindOpenCasCade.cmake b/cMake/FindOpenCasCade.cmake
+index 5601816..5bbb158 100644
+--- a/cMake/FindOpenCasCade.cmake
++++ b/cMake/FindOpenCasCade.cmake
+@@ -35,7 +35,9 @@ if(OCE_FOUND)
+   #set(OCC_LIBRARY_DIR ${OCE_LIBRARY_DIR})
+ else(OCE_FOUND) #look for OpenCASCADE
+   # we first try to find opencascade directly:
+-  find_package(OpenCASCADE CONFIG QUIET)
++  if(NOT OCCT_CMAKE_FALLBACK)
++    find_package(OpenCASCADE CONFIG QUIET)
++  endif(NOT OCCT_CMAKE_FALLBACK)
+   if(OpenCASCADE_FOUND)
+     set(OCC_FOUND ${OpenCASCADE_FOUND})
+     set(OCC_INCLUDE_DIR ${OpenCASCADE_INCLUDE_DIR})
+diff --git a/src/Main/MainPy.cpp b/src/Main/MainPy.cpp
+index e8e6965..7ea3a26 100644
+--- a/src/Main/MainPy.cpp
++++ b/src/Main/MainPy.cpp
+@@ -60,7 +60,7 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD  ul_reason_for_call, LPVOID lpReserv
+     case DLL_PROCESS_ATTACH: {
+         // This name is preliminary, we pass it to Application::init() in initFreeCAD()
+         // which does the rest.
+-        char  szFileName [MAX_PATH];
++        TCHAR  szFileName [MAX_PATH];
+         GetModuleFileName((HMODULE)hModule, szFileName, MAX_PATH-1);
+         App::Application::Config()["AppHomePath"] = szFileName;
+     }
+@@ -97,7 +97,7 @@ PyMOD_INIT_FUNC(FreeCAD)
+     argv[0][MAX_PATH-1] = '\0'; // ensure null termination
+ #elif defined(FC_OS_CYGWIN)
+     HMODULE hModule = GetModuleHandle("FreeCAD.dll");
+-    char szFileName [MAX_PATH];
++    TCHAR szFileName [MAX_PATH];
+     GetModuleFileName(hModule, szFileName, MAX_PATH-1);
+     argv[0] = (char*)malloc(MAX_PATH);
+     strncpy(argv[0],szFileName,MAX_PATH);
