@@ -3,6 +3,7 @@ cd build
 
 declare -a CMAKE_PLATFORM_FLAGS
 if [ `uname` = "Darwin" ]; then
+
       sed -i '' 's/Xcode-9.app/Xcode.app/g' $PREFIX/lib/cmake/opencascade/OpenCASCADEVisualizationTargets.cmake
       CMAKE_PLATFORM_FLAGS+=(-DCMAKE_OSX_SYSROOT="${CONDA_BUILD_SYSROOT}")
       NETGEN_VAR="-D BUILD_FEM_NETGEN=OFF \
@@ -11,7 +12,7 @@ if [ `uname` = "Darwin" ]; then
               -D BUILD_START:BOOL=OFF \
              "
       export LD_LIBRARY_PATH=${PREEFIX}/lib:${LD_LIBRARY_PATH}
-      export DYLD_LIBRARY_PATH=${LD_LIBRARY_PATH}
+      export DYLD_LIBRARY_PATH=${PREEFIX}/lib:${DYLD_LIBRARY_PATH}
 else
       CMAKE_PLATFORM_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
       NETGEN_VAR="-D BUILD_FEM_NETGEN:BOOL=ON \
@@ -26,6 +27,7 @@ cmake -G "Ninja" \
       -D CMAKE_INSTALL_PREFIX:FILEPATH=$PREFIX \
       -D CMAKE_PREFIX_PATH:FILEPATH=$PREFIX \
       -D CMAKE_LIBRARY_PATH:FILEPATH=$PREFIX/lib \
+      -D CMAKE_INCLUDE_PATH:FILEPATH=$PREFIX/include \
       -D BUILD_QT5:BOOL=ON \
       -D FREECAD_USE_OCC_VARIANT="Official Version" \
       -D OCC_INCLUDE_DIR:FILEPATH=$PREFIX/include \
