@@ -1,3 +1,6 @@
+export CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include"
+
+
 ./configure \
     --with-python=${PREFIX}   \
     --with-uuid=${PREFIX} \
