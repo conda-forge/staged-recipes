@@ -1,0 +1,109 @@
+{% set name = "triflow" %}
+{% set version = "0.5.2" %}
+{% set file_ext = "tar.gz" %}
+{% set hash_type = "sha256" %}
+{% set hash_value = "9af5c299c5a73b2f7d3d3e4dc264b5b810f026276c27e725ba8fcd71ae2aecd8" %}
+
+package:
+  name: '{{ name|lower }}'
+  version: '{{ version }}'
+
+source:
+  fn: '{{ name }}-{{ version }}.{{ file_ext }}'
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.{{ file_ext }}
+  '{{ hash_type }}': '{{ hash_value }}'
+
+build:
+  noarch: python
+  number: 0
+  script: python -m pip install --no-deps --ignore-installed .
+
+requirements:
+
+  host:
+    - python>=3.5
+    - numpy >=1.0.0.0,<2.0.0.0
+    - scipy >=1.0.0.0,<2.0.0.0
+    - sympy >=1.0.0.0,<2.0.0.0
+    - theano >=1.0.0.0,<2.0.0.0
+    - streamz >=0.3.0.0,<0.4.0.0
+    - xarray >=0.10.0.0,<0.11.0.0
+    - holoviews >=1.1.0.0,<2.0.0.0
+    - bokeh >=0.12.0.0,<0.13.0.0
+    - path.py >=11.0.0.0,<12.0.0.0
+    - pendulum >=1.5.0.0,<2.0.0.0
+    - dask >=0.17.2.0,<0.18.0.0
+    - tqdm >=4.23.0.0,<5.0.0.0
+
+  pip:
+    - coolname >=1.0.0.0,<2.0.0.0
+
+  run:
+    - python>=3.5
+    - numpy >=1.0.0.0,<2.0.0.0
+    - scipy >=1.0.0.0,<2.0.0.0
+    - sympy >=1.0.0.0,<2.0.0.0
+    - theano >=1.0.0.0,<2.0.0.0
+    - streamz >=0.3.0.0,<0.4.0.0
+    - xarray >=0.10.0.0,<0.11.0.0
+    - holoviews >=1.1.0.0,<2.0.0.0
+    - bokeh >=0.12.0.0,<0.13.0.0
+    - path.py >=11.0.0.0,<12.0.0.0
+    - pendulum >=1.5.0.0,<2.0.0.0
+    - dask >=0.17.2.0,<0.18.0.0
+    - tqdm >=4.23.0.0,<5.0.0.0
+
+test:
+  imports:
+    - triflow
+    - triflow.core
+    - triflow.plugins
+
+about:
+  home: https://locie.github.io/triflow/
+  license: MIT License
+  license_family: MIT
+  license_file: 'LICENSE'
+  summary: Automatic finite difference discretization for 1D PDE with fast temporal solvers.
+  description: "# Triflow\n\n|   Master   |  Dev   |\n|:----------:|:------:|\n|[![Build Status](https://travis-ci.org/locie/triflow.svg?branch=master)](https://travis-ci.org/locie/triflow) | [![Build Status](https://travis-ci.org/locie/triflow.svg?branch=dev)](https://travis-ci.org/locie/triflow)\n\
+    [![Coverage Status](https://coveralls.io/repos/github/locie/triflow/badge.svg?branch=dev)](https://coveralls.io/github/locie/triflow?branch=master) | [![Coverage Status](https://coveralls.io/repos/github/locie/triflow/badge.svg?branch=dev)](https://coveralls.io/github/locie/triflow?branch=dev)\n\
+    \n## Installation\n\n### External requirements\n\nThis library is written for python &gt;= 3.5.\n\nThe library is based on Theano, thus extra dependencies like fortran and\nC compiler are needed, see\
+    \ Theano install page for extra information:\n\n<http://deeplearning.net/software/theano/install.html>\n\nOn v0.5.0, it is possible to choose between theano and numpy (which provide similar features).\
+    \ numpy will be slower but with no compilation time, which is handy for testing and prototyping.\n\n### via PyPI\n\n``` {.sourceCode .bash}\npip install triflow\n```\n\nwill install the package and\n\
+    \n``` {.sourceCode .bash}\npip install triflow --upgrade\n```\n\nwill update an old version of the library.\n\nuse sudo if needed, and the user flag if you want to install it without\nthe root privileges:\n\
+    \n``` {.sourceCode .bash}\npip install --user triflow\n```\n\n### via github\n\nYou can install the last version of the library using pip and the github\nrepository:\n\n``` {.sourceCode .bash}\npip\
+    \ install git+git://github.com/locie/triflow.git\n```\n\n## Introduction\n\n### Motivation\n\nThe aim of this library is to have a (relatively) easy way to write\ntransient dynamic systems with 1D finite\
+    \ difference discretization, with\nfast temporal solvers.\n\nThe main two parts of the library are:\n\n- symbolic tools defining the spatial discretization, with boundary\n    taking into account in\
+    \ a separated part\n- a fast temporal solver written in order to use the sparsity of the\n    finite difference method to reduce the memory and CPU usage during\n    the solving\n\nMoreover, extra tools\
+    \ are provided and the library is written in a\nmodular way, allowing an easy extension of these different parts (see\nthe plug-in module of the library.)\n\nThe library fits well with an interactive\
+    \ usage (in a jupyter notebook).\nThe dependency list is actually larger, but on-going work target a\nreduction of the stack complexity.\n\n### Model writing\n\nAll the models are written as function\
+    \ generating the F vector and the\nJacobian matrix of the model defined as `dtU = F(U)`.\n\nThe symbolic model is written as a simple mathematic equation. For\nexample, a diffusion advection model can\
+    \ be written as:\n\n``` {.sourceCode .python}\nfrom triflow import Model\n\nequation_diff = \"k * dxxU - c * dxU\"\ndependent_var = \"U\"\nphysical_parameters = [\"k\", \"c\"]\n\nmodel = Model(equation_diff,\
+    \ dependent_var, physical_parameters)\n```\n\n### Example\n\n``` {.sourceCode .python}\nimport numpy as np\nimport pylab as pl\nfrom triflow import Model, Simulation\n\nmodel = Model(\"k * dxxU - c\
+    \ * dxU\",\n              \"U\", [\"k\", \"c\"])\n\nx, dx = np.linspace(0, 1, 200, retstep=True)\nU = np.cos(2 * np.pi * x * 5)\nfields = model.fields_template(x=x, U=U)\n\nparameters = dict(c=.03,\
+    \ k=.001, dx=dx, periodic=False)\n\nt = 0\ndt = 5E-1\ntmax = 2.5\n\npl.plot(fields.x, fields.U, label=f't: {t:g}')\n\n\ndef dirichlet_condition(t, fields, pars):\n    fields.U[0] = 1\n    fields.U[-1]\
+    \ = 0\n    return fields, pars\n\n\nsimul = Simulation(model, t, fields, parameters, dt,\n                   hook=dirichlet_condition, tmax=tmax)\n\nfor i, (t, fields) in enumerate(simul):\n    print(f\"\
+    iteration: {i}\\t\",\n          f\"t: {t:g}\", end='\\r')\n    pl.plot(fields.x, fields.U, label=f't: {t:g}')\n\npl.xlim(0, 1)\nlegend = pl.legend(loc='best')\n\npl.show()\n```\n\n### NEWS\n\nv0.5.0:\n\
+    \n- WARNING: some part of the API has changed:\n  - Simulation signature has changed. `t` arg is now optional (with t=0) as default and `physical_parameters` is now `parameters`.\n  - The displays have\
+    \ been completely rewritten, and the previous API is depreciated. Users are encouraged to modify their scripts or to stick to the ^0.4 triflow versions.\n- move schemes from plugins to core\n- compilers:\
+    \ remove tensorflow, add numpy which is way slower but has no compilation overhead.\n- displays and containers are connected to the simulation via `streamz`\n- add post-processing.\n- real-time display\
+    \ is now based on [Holoviews](https://holoviews.org/). Backward compatibility for display is broken and users are encouraged to modify their scripts or to stick to the ^0.4 triflow versions.\n- use\
+    \ poetry to manage dependencies.\n- use `tqdm` to display simulation update.\n\nv0.4.12:\n\n- give user choice of compiler\n  - get out tensorflow compiler (not really efficient, lot of maintenance\
+    \ trouble)\n  - give access to theano and numpy compiler\n- upwind scheme support\n- using xarray as fields backend, allowing easy post process and save\n- update display and containers\n- adding repr\
+    \ string to all major classes\n\nv0.4.7:\n\n- adding tensor flow support with full testing\n- adding post-processing in bokeh fields display\n\n### ROADMAP / TODO LIST\n\nThe following items are linked\
+    \ to a better use of solid external libs:\n\n- change all the display and container workflow:\n  - use streamz to allow pipeline like way to add display / probing / post-process :done:\n  - use holoviews\
+    \ as main way to do real-time plotting :done:\n  - use xarray multi netcdf files to reduce IO lack of performance :done:\n- better use of external solving lib:\n  - merge triflow.plugins.schemes and\
+    \ scipy.integrate.OdeSolver API :todo:\n  - use scipy.integrate.solve_ivp for triflow temporal scheme solving (making it more robust) :todo:\n  - main goal is to have better two-way integration with\
+    \ scipy :todo:\n\nThese are linked to the triflow core\n\n- build a robust boundary condition API :todo:\n- work on dimension extension, allowing 2D resolution and more :todo:\n- allow auxiliary function\
+    \ to make some complex model easier to write :todo:\n- allow a choice on the finite difference scheme, on a global way or term by term :todo:\n- test and propose other compilers (Cython, numba, pythran?)\
+    \ :todo:\n- work on adaptive spatial and temporal mesh :todo:\n\nThese are far away but can be very interesting:\n\n- implement continuation algorithm working with triflow (separate project?)\n- try\
+    \ other kind of discretization scheme (separate project each?)\n  - Finite volume\n  - Finite element?\n\nThe final (and very ambitious goal) is to provide a robust framework allowing\nto link the mathematical\
+    \ language (and a natural way to write the model,\nas natural as possible) with a high performance and robust solving of\nthe numerical system. There is a trade-off between the ease of use and the\n\
+    performance, for this software, all mandatory dependencies have to be\npip-installable (as opposite to dedalus project or fenics project), even if\nsome non-mandatory dependencies can be harder to install.\n\
+    \nIf we go that further, it may be interesting to split the project with the\ntriflow language, the different spatial discretization and so on...\n\n### License\n\nThis project is licensed under the\
+    \ term of the [MIT license](LICENSE)\n\n[![image](https://zenodo.org/badge/DOI/10.5281/zenodo.584101.svg)](https://doi.org/10.5281/zenodo.584101)\n"
+  doc_url: 'https://locie.github.io/triflow/doc.html'
+  dev_url: 'https://github.com/locie/triflow'
+
+extra:
+  recipe-maintainers: 'celliern'
