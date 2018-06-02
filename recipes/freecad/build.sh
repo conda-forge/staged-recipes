@@ -39,7 +39,6 @@ cmake -G "Ninja" \
       -D BUILD_FLAT_MESH:BOOL=ON \
       -D BUILD_WITH_CONDA:BOOL=ON \
       -D PYTHON_EXECUTABLE:FILEPATH=$PREFIX/bin/python \
-      -D BUILD_DRAWING:BOOL=OFF \
       ${NETGEN_VAR} \
       ${QT_VAR} \
       ${CMAKE_PLATFORM_FLAGS[@]} \
