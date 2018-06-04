@@ -10,3 +10,6 @@ elif [ "$PY_VER" == "3.6" ]; then
 fi
 
 pip install --no-deps $WHL_FILE
+
+touch ~/.gputools
+echo use_gpu=0 >> .gputools 

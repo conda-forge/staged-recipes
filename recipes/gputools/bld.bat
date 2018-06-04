@@ -9,4 +9,4 @@ IF "%PY_VER%"=="3.6" (
 	%PYTHON% -m pip install --no-deps https://files.pythonhosted.org/packages/69/59/6cddcc42db5feeddbaa0b92605e544698f0ecf00b6b8c25c5aa623d97513/gputools-0.2.6-py3-none-any.whl
 )
 if errorlevel 1 exit 1
-
+echo use_gpu=0 > %HOMEPATH%/.gputools
