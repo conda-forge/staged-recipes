@@ -1,9 +1,6 @@
 #!/bin/bash
 
 if [ "$(uname)" == "Darwin" ]; then
-#    export CXX="${CXX} -stdlib=libc++"
-#    export LDFLAGS="${LDFLAGS} -Wl,-rpath,$PREFIX/lib"
-
     # remove -lrt
     sed -i '.bak' 's/ -lrt//g' $SRC_DIR/wrappers/numpy/Makefile
 fi
@@ -17,4 +14,4 @@ fi
 # numpy bindings
 cd wrappers/numpy
 make python
-python setup.py install
+$PYTHON setup.py install
