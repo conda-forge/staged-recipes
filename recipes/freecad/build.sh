@@ -20,7 +20,7 @@ fi
 
 export LIBRARY_PATH=$PREFIX/lib
 
-cmake \
+cmake -G "Ninja" \
       -D BUID_WITH_CONDA:BOOL=ON \
       -D CMAKE_BUILD_TYPE=Release \
       -D CMAKE_INSTALL_PREFIX:FILEPATH=$PREFIX \
@@ -42,8 +42,7 @@ cmake \
       ${CMAKE_PLATFORM_FLAGS[@]} \
       ..
 
-make -j${CPU_COUNT}
-make install
+ninja install
 if [ `uname` != "Darwin" ]; then
       rm ${PREFIX}/doc -r     # smaller size of package!
 fi
