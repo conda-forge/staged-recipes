@@ -7,7 +7,7 @@ set "LDFLAGS_SHARED= ucrt.lib"
 
 IF %ARCH%==64 (SET BUILD_WITH_NETGEN=1) ELSE (SET BUILD_WITH_NETGEN=0)
 
-cmake -G "Ninja"^
+cmake ^
       -D BUID_WITH_CONDA:BOOL=ON ^
       -D CMAKE_BUILD_TYPE=Release ^
       -D FREECAD_LIBPACK_USE:BOOL=OFF ^
