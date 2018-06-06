@@ -12,7 +12,6 @@ if [ `uname` = "Darwin" ]; then
                 -D OCCT_CMAKE_FALLBACK:BOOL=OFF \
              "
 else
-      CMAKE_PLATFORM_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
       SOME_VAR="-D BUILD_WEB:BOOL=ON \
                 -D BUILD_FEM_NETGEN:BOOL=ON \
                 -D OCCT_CMAKE_FALLBACK:BOOL=OFF \
