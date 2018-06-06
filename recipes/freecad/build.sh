@@ -18,7 +18,7 @@ else
              "
 fi
 
-cmake -G "Ninja" \
+cmake \
       -D BUID_WITH_CONDA:BOOL=ON \
       -D CMAKE_BUILD_TYPE=Release \
       -D CMAKE_INSTALL_PREFIX:FILEPATH=$PREFIX \
@@ -40,7 +40,8 @@ cmake -G "Ninja" \
       ${CMAKE_PLATFORM_FLAGS[@]} \
       ..
 
-ninja install
+make -j${CPU_COUNT}
+make install
 if [ `uname` != "Darwin" ]; then
       rm ${PREFIX}/doc -r     # smaller size of package!
 fi
