@@ -18,6 +18,8 @@ else
              "
 fi
 
+export LIBRARY_PATH=$PREFIX/lib
+
 cmake \
       -D BUID_WITH_CONDA:BOOL=ON \
       -D CMAKE_BUILD_TYPE=Release \
