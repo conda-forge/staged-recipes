@@ -3,6 +3,7 @@ cd build-conda
 rm -rf ./*
 
 export TBB_LINK=${PREFIX}/lib
+export TBB_INC=${PREFIX}/include
 
 cmake ../ \
       -DCMAKE_INSTALL_PREFIX=${SP_DIR} \
