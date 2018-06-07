@@ -2,6 +2,8 @@ mkdir -p build-conda
 cd build-conda
 rm -rf ./*
 
+export TBB_LINK=${PREFIX}/lib
+
 cmake ../ \
       -DCMAKE_INSTALL_PREFIX=${SP_DIR} \
       -DPYTHON_EXECUTABLE=${PYTHON} \
