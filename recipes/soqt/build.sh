@@ -9,4 +9,4 @@ cmake -G "Ninja" \
       -D USE_QT5=ON \
       ..
 
-make -j${CPU_COUNT} install
+ninja install
