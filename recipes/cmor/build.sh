@@ -1,5 +1,7 @@
-export CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include"
-export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS}"
+export CFLAGS="${CFLAGS} -Wall -g -m64 -pipe -O2  -fPIC"
+export CXXLAGS="${CXXFLAGS}"
+export CPPFLAGS="-I${PREFIX}/include"
+export LDFLAGS="-L${PREFIX}/lib"
 
 
 ./configure \
