@@ -1,4 +1,5 @@
 export CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include"
+export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS}"
 
 
 ./configure \
