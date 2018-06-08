@@ -1,11 +1,12 @@
 mkdir -p build
 cd build
 
-cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
-      -DCMAKE_PREFIX_PATH=$PREFIX \
-      -DCMAKE_INSTALL_LIBDIR=$PREFIX/lib \
-      -DCMAKE_BUILD_TYPE="Release" \
-      -DUSE_QT5=ON \
+cmake -G "Ninja" \
+      -D CMAKE_INSTALL_PREFIX=$PREFIX \
+      -D CMAKE_PREFIX_PATH=$PREFIX \
+      -D CMAKE_INSTALL_LIBDIR=$PREFIX/lib \
+      -D CMAKE_BUILD_TYPE="Release" \
+      -D USE_QT5=ON \
       ..
 
 make -j${CPU_COUNT} install
