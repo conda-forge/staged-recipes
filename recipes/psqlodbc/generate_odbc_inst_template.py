@@ -16,7 +16,7 @@ config['PostgreSQL ANSI'] = {
     'Debug': 0,
     'UsageCount': 1
 }
-config['PostgreSQL ANSI'] = {
+config['PostgreSQL Unicode'] = {
     'Description': 'PostgreSQL ODBC driver (Unicode version)',
     'Driver': pjoin(PREFIX, 'lib', 'psqlodbcw.so'),
     'Debug': 0,
