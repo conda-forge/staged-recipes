@@ -1,3 +1,4 @@
+project(soqt_test NONE)
 cmake_minimum_required(VERSION 3.5)
 
 find_package(soqt CONFIG REQUIRED)
@@ -5,7 +6,7 @@ find_package(soqt CONFIG REQUIRED)
 if (SoQt_INCLUDE_DIRS)
     MESSAGE(STATUS "SOQT_FOUND: " true)
 else()
-    MESSAGE(STATUS "SOQT_FOUND: " false)
+    MESSAGE(FATAL_ERROR "SOQT_FOUND: " false)
 endif()
 
 MESSAGE(STATUS "SOQT_INCLUDE_DIR: " ${SoQt_INCLUDE_DIRS})
