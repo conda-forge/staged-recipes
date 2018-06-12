@@ -1,1 +1,1 @@
-nmake Makefile
+nmake Makefile.config
