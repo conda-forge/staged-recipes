@@ -2,7 +2,7 @@
 
 ./configure --prefix="${PREFIX}" --with-libctl=no
 
-make
+make -j 2
 pushd tests && make -j 2 check && popd
 pushd libmeepgeom && make -j 2 check && popd
 make install
