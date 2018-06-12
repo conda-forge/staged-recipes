@@ -1,3 +1,3 @@
 #!/bin/bash
 
-find python/tests -name "*.py" | parallel "$PYTHON {}"
+find python/tests -name "*.py" | sed /mpb/d | parallel "$PYTHON {}"
