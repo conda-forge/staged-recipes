@@ -1,1 +1,1 @@
-make all
+nmake Makefile
