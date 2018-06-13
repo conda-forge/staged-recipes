@@ -1,6 +1,6 @@
 ./configure \
     --prefix=${PREFIX} \
-    --with-zlib=${CONDA_PREFIX} \
+    --with-zlib=${PREFIX} \
     --without-matlab
 make -j ${CPU_COUNT}
 make -j ${CPU_COUNT} install
