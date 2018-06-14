@@ -12,6 +12,7 @@ if not exist %LIBRARY_BIN%\libzmq.dll (
 if errorlevel 1 exit 1
 :: for /r "%LIBRARY_BIN%" %%i in (*.dll) do @echo %%i
 :: for /r "%LIBRARY_LIB%" %%i in (*.lib) do @echo %%i
+for /r "%LIBRARY_INC%" %%i in (*.h) do @echo %%i
 
 mkdir build
 cd build
