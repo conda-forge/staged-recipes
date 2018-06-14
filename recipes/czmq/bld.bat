@@ -3,11 +3,11 @@ set CONFIGURATION=Release
 
 :: Copy zmq library without version if not already existing
 if not exist %LIBRARY_LIB%\libzmq.lib (
-    copy /y %LIBRARY_LIB%\libzmq-mt-*.lib /b %LIBRARY_LIB%\libzmq.lib
+    copy /y %LIBRARY_LIB%\libzmq-mt-4*.lib /b %LIBRARY_LIB%\libzmq.lib
 )
 if errorlevel 1 exit 1
 if not exist %LIBRARY_BIN%\libzmq.dll (
-    copy /y %LIBRARY_BIN%\libzmq-mt-*.dll /b %LIBRARY_BIN%\libzmq.dll
+    copy /y %LIBRARY_BIN%\libzmq-mt-4*.dll /b %LIBRARY_BIN%\libzmq.dll
 )
 if errorlevel 1 exit 1
 for /r "%LIBRARY_BIN%" %%i in (*.dll) do @echo %%i
