@@ -1,6 +1,18 @@
 @setlocal
 set CONFIGURATION=Release
 
+:: Copy zmq library without version if not already existing
+if not exist %LIBRARY_LIB%\libzmq.lib (
+    copy /y %LIBRARY_LIB%\libzmq-mt-*.lib /b %LIBRARY_LIB%\libzmq.lib
+)
+if errorlevel 1 exit 1
+if not exist %LIBRARY_BIN%\libzmq.dll (
+    copy /y %LIBRARY_BIN%\libzmq-mt-*.dll /b %LIBRARY_BIN%\libzmq.dll
+)
+if errorlevel 1 exit 1
+for /r "%LIBRARY_BIN%" %%i in (*.dll) do @echo %%i
+for /r "%LIBRARY_LIB%" %%i in (*.lib) do @echo %%i
+
 mkdir build
 cd build
 :: Using nmake
@@ -10,7 +22,6 @@ cd build
 :: if errorlevel 1 exit 1
 
 :: Using Visual studio
-for /r "%LIBRARY_LIB%" %%i in (*.lib) do @echo %%i
 cmake -G "%CMAKE_GENERATOR%" -D CMAKE_BUILD_TYPE=%CONFIGURATION% -D CMAKE_INCLUDE_PATH="%LIBRARY_INC%" -D CMAKE_LIBRARY_PATH="%LIBRARY_LIB%" -D CMAKE_C_FLAGS_RELEASE="/MT" -D CMAKE_CXX_FLAGS_RELEASE="/MT" -D CMAKE_C_FLAGS_DEBUG="/MTd" CMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ..
 :: cmake -G "%CMAKE_GENERATOR%" -D CMAKE_BUILD_TYPE=%CONFIGURATION% -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% -D CMAKE_LIBRARY_PATH=%LIBRARY_LIB% CMAKE_INCLUDE_PATH=%LIBRARY_INC% ..
 if errorlevel 1 exit 1
