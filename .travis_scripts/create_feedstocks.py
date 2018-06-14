@@ -11,7 +11,6 @@ Such as:
 from __future__ import print_function
 
 from conda_build.metadata import MetaData
-from conda_smithy.github import gh_token
 from contextlib import contextmanager
 from datetime import datetime
 from github import Github, GithubException
@@ -52,9 +51,7 @@ def tmp_dir(*args, **kwargs):
         shutil.rmtree(temp_dir)
 
 
-def repo_exists(organization, name):
-    token = gh_token()
-    gh = Github(token)
+def repo_exists(gh, organization, name):
     # Use the organization provided.
     org = gh.get_organization(organization)
     try:
@@ -121,7 +118,10 @@ if __name__ == '__main__':
     print('Calculating the recipes which need to be turned into feedstocks.')
     with tmp_dir('__feedstocks') as feedstocks_dir:
         feedstock_dirs = []
-        for recipe_dir, name in list_recipes():
+        for num, (recipe_dir, name) in enumerate(list_recipes()):
+            if num >= 7:
+                exit_code = 1
+                break
             feedstock_dir = os.path.join(feedstocks_dir, name + '-feedstock')
             print('Making feedstock for {}'.format(name))
             try:
@@ -143,7 +143,7 @@ if __name__ == '__main__':
                                   cwd=feedstock_dir)
 
             # Sometimes we already have the feedstock created. We need to deal with that case.
-            if repo_exists('conda-forge', name + '-feedstock'):
+            if repo_exists(gh, 'conda-forge', name + '-feedstock'):
                 subprocess.check_call(['git', 'fetch', 'upstream_with_token'], cwd=feedstock_dir)
                 subprocess.check_call(['git', 'branch', '-m', 'master', 'old'], cwd=feedstock_dir)
                 try:
@@ -177,7 +177,7 @@ if __name__ == '__main__':
                     # Capture the output, as it may contain the GH_TOKEN.
                     out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'HEAD:master'], cwd=feedstock_dir,
                                                   stderr=subprocess.STDOUT)
-                    subprocess.check_call(['conda', 'smithy', 'register-github', '--add-teams', feedstock_dir] + owner_info)
+                    subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info)
                     break
                 except subprocess.CalledProcessError:
                     pass
