@@ -1,11 +1,13 @@
 #!/bin/sh
+set -euo pipefail
+
 if [[ `uname` == Darwin ]]; then
   export LDFLAGS="-Wl,-rpath,$PREFIX/lib $LDFLAGS"
 fi
 
 # Using autoconf
 ./autogen.sh
-./configure
+./configure --prefix="$PREFIX"
 make check
 make install
 
