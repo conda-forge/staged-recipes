@@ -1,5 +1,15 @@
+setlocal EnableDelayedExpansion
+
+:: Copy the [de]activate scripts to %PREFIX%\etc\conda\[de]activate.d.
+:: This will allow them to be run on environment activation.
+FOR %%F IN (activate deactivate) DO (
+    IF NOT EXIST %PREFIX%\etc\conda\%%F.d MKDIR %PREFIX%\etc\conda\%%F.d
+    COPY %RECIPE_DIR%\%%F.bat %PREFIX%\etc\conda\%%F.d\%PKG_NAME%_%%F.bat
+)
+
+call %RECIPE_DIR%\activate.bat
+
 SET PYJNIUS_SHARE=%PREFIX%\share\pyjnius
-SET JDK_HOME=%JAVA_HOME%
 mkdir "%PYJNIUS_SHARE%"
 
 call ant all
@@ -24,15 +34,3 @@ pip install --no-deps .
 if errorlevel 1 exit 1
 copy build\pyjnius.jar "%PYJNIUS_SHARE%"
 if errorlevel 1 exit 1
-
-:: ensure that PYJNIUS_JAR is set correctly
-mkdir "%PREFIX%\etc\conda\activate.d"
-echo SET "PYJNIUS_JAR_BACKUP=%%PYJNIUS_JAR%%" > "%PREFIX%\etc\conda\activate.d\pyjnius.bat"
-echo SET "PYJNIUS_JAR=%%CONDA_PREFIX%%\share\pyjnius\pyjnius.jar" >> "%PREFIX%\etc\conda\activate.d\pyjnius.bat"
-echo SET "JDK_HOME_BACKUP=%%JDK_HOME%%" >> "%PREFIX%\etc\conda\activate.d\pyjnius.bat"
-echo SET "JDK_HOME=%%JAVA_HOME%%" >> "%PREFIX%\etc\conda\activate.d\pyjnius.bat"
-mkdir "%PREFIX%\etc\conda\deactivate.d"
-echo SET "PYJNIUS_JAR=%%PYJNIUS_JAR_BACKUP%%" > "%PREFIX%\etc\conda\deactivate.d\pyjnius.bat"
-echo SET "PYJNIUS_JAR_BACKUP=''" >> "%PREFIX%\etc\conda\deactivate.d\pyjnius.bat"
-echo SET "JDK_HOME=%%JDK_HOME_BACKUP%%" >> "%PREFIX%\etc\conda\deactivate.d\pyjnius.bat"
-echo SET "JDK_HOME_BACKUP=''" >> "%PREFIX%\etc\conda\deactivate.d\pyjnius.bat"
