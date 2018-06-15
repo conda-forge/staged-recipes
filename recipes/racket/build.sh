@@ -9,6 +9,7 @@ make unix-style PREFIX=$PREFIX PKGS=""
 # Set up the package manager.
 # Following the steps show at
 # https://github.com/jackfirth/racket-docker/blob/master/racket.Dockerfile
+export PATH=$PATH:$PREFIX/bin
 raco setup
 raco pkg config --set catalogs                                         \
     "https://download.racket-lang.org/releases/$PKG_VERSION/catalog/"  \
