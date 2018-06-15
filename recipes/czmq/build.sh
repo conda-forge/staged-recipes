@@ -1,9 +1,9 @@
 #!/bin/sh
 set -euo pipefail
 
-if [[ `uname` == Darwin ]]; then
-  export LDFLAGS="-Wl,-rpath,$PREFIX/lib $LDFLAGS"
-fi
+# if [[ `uname` == Darwin ]]; then
+#   export LDFLAGS="-Wl,-rpath,$PREFIX/lib $LDFLAGS"
+# fi
 
 # Copy zmq library without version if not already existing
 
