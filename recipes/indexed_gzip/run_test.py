@@ -13,7 +13,10 @@ if __name__ == '__main__':
 
     for t in tests:
         # we get weird exit codes under windows
-        if pytest.main(shlex.split(t)) not in (0, -1073740791):
+        code = pytest.main(shlex.split(t))
+
+        print('pytest exit code', code)
+        if code != 0:
             sys.exit(1)
 
     sys.exit(0)
