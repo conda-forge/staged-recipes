@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import shlex
 import pytest
 
 tests = [
@@ -9,7 +10,7 @@ tests = [
 ]
 
 for t in tests:
-    if pytest.main(t.split()) != 0:
+    if pytest.main(shlex.split(t)) != 0:
         sys.exit(1)
 
 sys.exit(0)
