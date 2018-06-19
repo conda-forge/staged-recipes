@@ -16,8 +16,15 @@ cmake ../ \
       -DPYTHON_EXECUTABLE=${PYTHON} \
       -DENABLE_MPI=off \
       -DENABLE_CUDA=off \
-      -DBUILD_TESTING=off \
+      -DBUILD_TESTING=on \
       -DENABLE_TBB=on \
       -DBUILD_JIT=on \
 
+# compile
+make
+
+# execute unit tests
+ctest --output-on-failure
+
+# install
 make install
