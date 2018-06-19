@@ -1,8 +1,17 @@
-cmake -G "NMake Makefiles" -DBLA_VENDOR=OpenBLAS -DENABLE_PYTHON=OFF -DCMAKE_BUILD_TYPE=RELEASE -DBUILD_DOCUMENTATION=OFF %SRC_DIR%
+set CMAKE_CONFIG=Release
+
+mkdir build_%CMAKE_CONFIG%
+pushd build_%CMAKE_CONFIG%
+
+cmake -G "NMake Makefiles"                           ^
+      -DCMAKE_BUILD_TYPE:STRING=%CMAKE_CONFIG%       ^
+      -DBLA_VENDOR:STRING=OpenBLAS                   ^
+      -DENABLE_PYTHON:BOOL=OFF                       ^
+      -DBUILD_DOCUMENTATION:BOOL=OFF                 ^
+      "%SRC_DIR%"
 if errorlevel 1 exit rem 1
 
-nmake
+cmake --build . --target install --config %CMAKE_CONFIG%
 if errorlevel 1 exit 1
 
-nmake install
-if errorlevel 1 exit 1
+popd

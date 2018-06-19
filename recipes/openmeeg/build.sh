@@ -1,6 +1,16 @@
 #!/bin/bash
 
-cmake $SRC_DIR -DBLA_VENDOR=OpenBLAS -DENABLE_PYTHON=ON -DCMAKE_BUILD_TYPE=RELEASE -DBUILD_DOCUMENTATION=OFF -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_CXX_COMPILER=$PREFIX/bin/clang++ -DCMAKE_C_COMPILER=$PREFIX/bin/clang
+BUILD_DIR=build
+mkdir -p $BUILD_DIR && cd $BUILD_DIR
 
-make VERBOSE=1
-make install
+cmake $SRC_DIR                          \
+      -DBLA_VENDOR:STRING=OpenBLAS      \
+      -DENABLE_PYTHON:BOOL=ON           \
+      -DCMAKE_BUILD_TYPE:STRING=RELEASE \
+      -DBUILD_DOCUMENTATION:BOOL=OFF    \
+      -DCMAKE_INSTALL_PREFIX=$PREFIX    \
+      -DCMAKE_CXX_COMPILER=$PREFIX/bin/clang++ \
+      -DCMAKE_C_COMPILER=$PREFIX/bin/clang \
+      -DCMAKE_INSTALL_LIBDIR=lib
+
+cmake --build . --target install --config RELEASE
