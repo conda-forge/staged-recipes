@@ -6,7 +6,7 @@ pushd build_%CMAKE_CONFIG%
 cmake -G "NMake Makefiles"                           ^
       -DCMAKE_BUILD_TYPE:STRING=%CMAKE_CONFIG%       ^
       -DBLA_VENDOR:STRING=OpenBLAS                   ^
-      -DENABLE_PYTHON:BOOL=OFF                       ^
+      -DENABLE_PYTHON:BOOL=ON                        ^
       -DBUILD_DOCUMENTATION:BOOL=OFF                 ^
       "%SRC_DIR%"
 if errorlevel 1 exit rem 1
