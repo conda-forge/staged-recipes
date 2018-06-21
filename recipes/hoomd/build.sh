@@ -19,13 +19,13 @@ cmake ../ \
       -DBUILD_TESTING=on \
       -DENABLE_TBB=on \
       -DBUILD_JIT=on \
+      -GNinja
 
 # compile
-make
+ninja -j${CPU_COUNT}
 
 # execute unit tests
-# (skip unit tests for now, they cause the travis build to time out)
-# ctest --output-on-failure
+ctest --output-on-failure
 
 # install
-make install
+ninja install
