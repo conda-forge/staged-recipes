@@ -1,8 +1,11 @@
+# Make build directory
 mkdir build
 cd build
 
+# Specify location of TBB
 export TBB_ROOT=${PREFIX}
 
+# Configure
 cmake ../ \
       -DCMAKE_INSTALL_PREFIX=${PREFIX} \
       -DCMAKE_INSTALL_LIBDIR=lib \
@@ -11,6 +14,7 @@ cmake ../ \
       -DEMBREE_MAX_ISA="AVX2" \
       -DEMBREE_ISPC_SUPPORT=OFF
 
+# Compile
 make -j ${CPU_COUNT}
 
 # embree lacks unit tests
