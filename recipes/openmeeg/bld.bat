@@ -7,7 +7,9 @@ cmake -G "NMake Makefiles"                           ^
       -DCMAKE_BUILD_TYPE:STRING=%CMAKE_CONFIG%       ^
       -DBLA_VENDOR:STRING=OpenBLAS                   ^
       -DENABLE_PYTHON:BOOL=ON                        ^
+      -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
       -DBUILD_DOCUMENTATION:BOOL=OFF                 ^
+      -DVCOMP_WORKAROUND=OFF                         ^
       "%SRC_DIR%"
 if errorlevel 1 exit rem 1
 
