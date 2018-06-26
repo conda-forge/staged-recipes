@@ -10,6 +10,7 @@ cmake -G "NMake Makefiles"                           ^
       -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
       -DBUILD_DOCUMENTATION:BOOL=OFF                 ^
       -DVCOMP_WORKAROUND=OFF                         ^
+      -DENABLE_PACKAGING:BOOL=OFF                    ^
       "%SRC_DIR%"
 if errorlevel 1 exit rem 1
 
