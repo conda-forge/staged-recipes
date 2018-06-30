@@ -1,0 +1,376 @@
+From f86710cd8fd55b042790b8c9189bc7ca8df2077b Mon Sep 17 00:00:00 2001
+From: Jeremy Sanders <jeremy@jeremysanders.net>
+Date: Sat, 30 Jun 2018 12:14:22 +0200
+Subject: [PATCH] Use qmake to find Qt location instead of using PyQt.
+
+This should fix the Anaconda build on Windows. Also add command line
+options and enviroment variables to set the qmake location, Qt include
+and library dirs. Add enviroment variables to set the various sip
+parameters.
+---
+ ChangeLog        |   5 ++
+ INSTALL          |  45 ++++++++++++---
+ pyqtdistutils.py | 166 +++++++++++++++++++++++++++++++++++++++++--------------
+ 3 files changed, 168 insertions(+), 48 deletions(-)
+
+diff --git a/ChangeLog b/ChangeLog
+index 53ea5b74..397f5177 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,3 +1,8 @@
++Changes in <next version>:
++ * Change in build system to use qmake to find Qt locations. This is to fix
++   the build inside Anaconda. Also Qt and sip parameters can now be given
++   as environment variables.
++
+ Changes in 3.0:
+  * New 3D support for plotting points, functions, surfaces and volumes
+  * Add --export-option parameter for command line exporting control
+diff --git a/INSTALL b/INSTALL
+index 07383379..8e4a1430 100644
+--- a/INSTALL
++++ b/INSTALL
+@@ -39,11 +39,11 @@ pyemf for Python 3 can be found at https://github.com/jeremysanders/pyemf.
+ There are a number of ways to install programs using distutils. I will
+ list a few of the possible method here:
+ 
+-To install on linux to the standard location on the hard disk follow
+-these instructions (note python in theres commands can be replaced by
+-python3 to do a python3 installation).
++To install on Linux to the standard location on the hard disk follow
++these instructions (note python in these commands should be replaced
++by python3 to do a Python 3 installation).
+ 
+-# cd veusz-2.2.2
++# cd veusz-3.0
+ # python setup.py build
+ # su
+ [enter root password]
+@@ -74,6 +74,11 @@ graphical environment to create a hidden X11 server:
+ # xvfb-run -a --server-args "-screen 0 640x480x24" \
+     python tests/runselftest.py
+ 
++Alternatively, the Qt platform can be switched to minimal to avoid the
++use of X11:
++
++# QT_QPA_PLATFORM=minimal python tests/runselftest.py
++
+ 1.1.2 Separate resources directory
+ ==================================
+ By default, setup.py installs certain resource files (VERSION, icons,
+@@ -98,6 +103,7 @@ resources directory to point to the location of the example files.
+ 
+ 1.1.3 SIP parameters
+ ====================
++
+ By default the location of the SIP executable, the SIP include file
+ location and the SIP files are obtained from sipconfig. sipconfig is
+ now deprecated. If sipconfig is not found, the build will look for the
+@@ -111,6 +117,29 @@ stage before build, with the parameters:
+   --sip-include-dir=DIR  SIP include directory (location of sip.h)
+   --sip-dir=DIR          base directory for SIP files
+ 
++Alternatively, these can be given as environment variables SIP_EXE,
++SIP_INCLUDE_DIR and SIP_DIR, respectively. Environment variables have
++the advantage that the build_ext stage does not have to be done
++separately.
++
++1.1.4 Qt build parameters
++=========================
++
++By default, the qmake executable is used to find the locations of the
++Qt include and library directories. The build searches for qmake under
++the names qmake-qt5, qmake, qmake5.exe and qmake.exe. The location of
++qmake and its return values can be overriden with the following
++build_ext options:
++
++  --qmake-exe=EXE        qmake exe
++  --qt-include-dir=DIR   base Qt include directory
++  --qt-library-dir=DIR   Qt library directory
++
++Alternatively, these can be overridden with the enviroment variables
++QMAKE_EXE, QT_INCLUDE_DIR and QT_LIBRARY_DIR, respectively.
++Environment variables have the advantage that the build_ext stage does
++not have to be done separately.
++
+ 1.3 Running in-place
+ ====================
+ 
+@@ -119,8 +148,8 @@ can currently be run from its own directory. Before this can work, the
+ helper modules must be compiled and copied into the appropriate
+ location.
+ 
+-# tar xzf veusz-2.2.2.tar.gz                [change version here]
+-# cd veusz-2.2.2
++# tar xzf veusz-3.0.tar.gz                [change version here]
++# cd veusz-3.0
+ # python setup.py build                     [or use python3 here]
+ # cp build/*/veusz/helpers/*.so veusz/helpers/
+ 
+@@ -141,8 +170,8 @@ work on all distributions due to glibc/library
+ incompatibilities. Simply unpack the tar file and run the main
+ executable:
+ 
+-# tar xf veusz-2.2.2-linux-x86.tar.xz     [change version here]
+-# cd veusz-2.2.2-linux-x86
++# tar xf veusz-3.0-linux-x86.tar.xz     [change version here]
++# cd veusz-3.0-linux-x86
+ # ./veusz
+ 
+ 2.2 Installing in Windows
+diff --git a/pyqtdistutils.py b/pyqtdistutils.py
+index 21b440be..e0273b20 100644
+--- a/pyqtdistutils.py
++++ b/pyqtdistutils.py
+@@ -8,6 +8,7 @@
+ import os
+ import sys
+ import sysconfig
++import subprocess
+ 
+ from distutils.sysconfig import customize_compiler
+ import distutils.command.build_ext
+@@ -18,13 +19,6 @@
+ ##################################################################
+ # try to get various useful things we need in order to build
+ 
+-QT_LIB_DIR = PyQt5.QtCore.QLibraryInfo.location(
+-    PyQt5.QtCore.QLibraryInfo.LibrariesPath)
+-QT_INC_DIR = PyQt5.QtCore.QLibraryInfo.location(
+-    PyQt5.QtCore.QLibraryInfo.HeadersPath)
+-QT_IS_FRAMEWORK = os.path.exists(
+-    os.path.join(QT_LIB_DIR, 'QtCore.framework') )
+-
+ SIP_FLAGS = PyQt5.QtCore.PYQT_CONFIGURATION['sip_flags']
+ 
+ try:
+@@ -43,19 +37,33 @@
+ 
+ ##################################################################
+ 
+-def findSipOnPath():
+-    '''Get SIP executable from PATH.'''
++def replace_suffix(path, new_suffix):
++    return os.path.splitext(path)[0] + new_suffix
++
++def find_on_path(names, mainname):
++    """From a list of names of executables, find the 1st one on a path.
++
++    mainname is the generic name to report
++    """
+     path = os.getenv('PATH', os.path.defpath)
+     pathparts = path.split(os.path.pathsep)
+-    for cmd in 'sip', 'sip5', 'sip.exe', 'sip5.exe':
++    for cmd in names:
+         for dirname in pathparts:
+             cmdtry = os.path.join(dirname.strip('"'), cmd)
+             if os.path.isfile(cmdtry) and os.access(cmdtry, os.X_OK):
+                 return cmdtry
+-    raise RuntimeError('Could not find SIP executable')
+-
+-def replace_suffix(path, new_suffix):
+-    return os.path.splitext(path)[0] + new_suffix
++    raise RuntimeError('Could not find %s executable' % mainname)
++
++def read_command_output(cmd):
++    """Get text from a run command."""
++    p = subprocess.Popen(
++        cmd,
++        stdout=subprocess.PIPE,
++        universal_newlines=True)
++    stdout, stderr = p.communicate()
++    if p.returncode != 0:
++        raise RuntimeError('Command %s returned error' % str(cmd))
++    return stdout.strip()
+ 
+ class build_ext(distutils.command.build_ext.build_ext):
+ 
+@@ -69,6 +77,12 @@ class build_ext(distutils.command.build_ext.build_ext):
+          'override sip file directory'),
+         ('sip-include-dir=', None,
+          'override sip include directory'),
++        ('qmake-exe=', None,
++         'override qmake executable'),
++        ('qt-include-dir=', None,
++         'override Qt include directory'),
++        ('qt-library-dir=', None,
++         'override Qt library directory'),
+         ]
+ 
+     def initialize_options(self):
+@@ -76,6 +90,9 @@ def initialize_options(self):
+         self.sip_exe = None
+         self.sip_dir = None
+         self.sip_include_dir = None
++        self.qmake_exe = None
++        self.qt_include_dir = None
++        self.qt_library_dir = None
+ 
+     def _get_sip_output_list(self, sbf):
+         '''
+@@ -91,14 +108,82 @@ def _get_sip_output_list(self, sbf):
+                 return out
+         raise RuntimeError('cannot parse SIP-generated "%s"' % sbf)
+ 
+-    def get_cpp_includes(self):
+-        incdirs = [QT_INC_DIR]
++    def _get_sip_exe(self, build_cmd):
++        """Get exe for sip. Sources are:
++        --sip-exe option, environment, DEF_SIP_BIN, search on path."""
++        return (
++            build_cmd.sip_exe or
++            os.environ.get('SIP_EXE') or
++            DEF_SIP_BIN or
++            find_on_path(
++                ('sip5', 'sip-qt5', 'sip', 'sip5.exe', 'sip.exe'), 'sip')
++        )
++
++    def _get_sip_inc_dir(self, build_cmd):
++        """Get include directory for sip."""
++        return (
++            build_cmd.sip_include_dir or
++            os.environ.get('SIP_INCLUDE_DIR') or
++            DEF_SIP_INC_DIR or
++            sysconfig.get_path('include')
++        )
++
++    def _get_sip_dir(self, build_cmd):
++        """Get sip directory."""
++        data_dir = sys.prefix if sys.platform=='win32' else sys.prefix+'/share'
++        return (
++            build_cmd.sip_dir or
++            os.environ.get('SIP_DIR') or
++            DEF_SIP_DIR or
++            os.path.join(data_dir, 'sip')
++        )
++
++    def _get_qmake(self, build_cmd):
++        """Get qmake executable."""
++        return (
++            build_cmd.qmake_exe or
++            os.environ.get('QMAKE_EXE') or
++            find_on_path(
++                ('qmake-qt5', 'qmake5', 'qmake', 'qmake5.exe', 'qmake.exe'),
++                'qmake')
++        )
++
++    def _get_qt_inc_dir(self, build_cmd):
++        """Get Qt include directory."""
++        return (
++            build_cmd.qt_include_dir or
++            os.environ.get('QT_INCLUDE_DIR') or
++            read_command_output(
++                [self._get_qmake(build_cmd), '-query', 'QT_INSTALL_HEADERS'])
++            )
++
++    def _get_qt_library_dir(self, build_cmd):
++        """Get Qt library directory."""
++        return (
++            build_cmd.qt_library_dir or
++            os.environ.get('QT_LIBRARY_DIR') or
++            read_command_output(
++                [self._get_qmake(build_cmd), '-query', 'QT_INSTALL_LIBS'])
++            )
++
++    def _is_qt_framework(self, build_cmd):
++        """Is the Qt a framework?"""
++        return os.path.exists(
++            os.path.join(
++                self._get_qt_library_dir(build_cmd), 'QtCore.framework'))
++
++    def _get_cpp_includes(self, build_cmd):
++        """Get list of include directories to add."""
++        inc_dir = self._get_qt_inc_dir(build_cmd)
++        incdirs = [inc_dir]
+         for mod in ('QtCore', 'QtGui', 'QtWidgets', 'QtXml'):
+-            if QT_IS_FRAMEWORK:
++            if self._is_qt_framework(build_cmd):
+                 incdirs.append(
+-                    os.path.join(QT_LIB_DIR, mod + '.framework', 'Headers') )
++                    os.path.join(
++                        self._get_qt_library_dir(build_cmd),
++                        mod+'.framework', 'Headers') )
+             else:
+-                incdirs.append( os.path.join(QT_INC_DIR, mod) )
++                incdirs.append(os.path.join(inc_dir, mod))
+         return incdirs
+ 
+     def swig_sources(self, sources, extension=None):
+@@ -110,15 +195,11 @@ def swig_sources(self, sources, extension=None):
+         build_cmd = self.get_finalized_command('build_ext')
+ 
+         # executable in order of priority using or
+-        sip_exe = build_cmd.sip_exe or DEF_SIP_BIN or findSipOnPath()
+-        sip_inc_dir = (
+-            build_cmd.sip_include_dir or DEF_SIP_INC_DIR or
+-            sysconfig.get_path('include'))
++        sip_exe = self._get_sip_exe(build_cmd)
++        sip_inc_dir = self._get_sip_inc_dir(build_cmd)
++
+         # python data directory
+-        data_dir = sys.prefix if sys.platform=='win32' else sys.prefix+'/share'
+-        sip_dir = (
+-            build_cmd.sip_dir or DEF_SIP_DIR or
+-            os.path.join(data_dir, 'sip'))
++        sip_dir = self._get_sip_dir(build_cmd)
+ 
+         # add directory of input files as include path
+         indirs = list(set([os.path.dirname(x) for x in sources]))
+@@ -128,26 +209,26 @@ def swig_sources(self, sources, extension=None):
+ 
+         # link against libraries
+         if extension.language == 'c++':
+-            extension.include_dirs += self.get_cpp_includes()
+-
+-            if QT_IS_FRAMEWORK:
++            extension.include_dirs += self._get_cpp_includes(build_cmd)
++            lib_dir = self._get_qt_library_dir(build_cmd)
++            if self._is_qt_framework(build_cmd):
+                 # Mac OS framework
+                 extension.extra_link_args = [
+-                    '-F', os.path.join(QT_LIB_DIR),
++                    '-F', os.path.join(lib_dir),
+                     '-framework', 'QtGui',
+                     '-framework', 'QtCore',
+                     '-framework', 'QtXml',
+                     '-framework', 'QtWidgets',
+                     '-Wl,-rpath,@executable_path/Frameworks',
+-                    '-Wl,-rpath,' + QT_LIB_DIR
++                    '-Wl,-rpath,' + lib_dir
+                     ]
+                 extension.extra_compile_args = [
+-                    '-F', QT_LIB_DIR,
++                    '-F', lib_dir,
+                     ]
+             else:
+                 extension.libraries = [
+                     'Qt5Gui', 'Qt5Core', 'Qt5Xml', 'Qt5Widgets']
+-            extension.library_dirs = [QT_LIB_DIR]
++            extension.library_dirs = [lib_dir]
+ 
+             # may cause problems with compilers which don't allow this
+             if self.compiler.compiler_type == 'unix':
+@@ -185,12 +266,17 @@ def swig_sources(self, sources, extension=None):
+         return generated_sources + other_sources
+ 
+     def _sip_compile(self, sip_exe, sip_dir, source, sbf):
+-        self.spawn([sip_exe,
+-                    '-c', self.build_temp,
+-                    ] + SIP_FLAGS.split() + [
+-                    '-I', os.path.join(sip_dir, 'PyQt5'),
+-                    '-b', sbf,
+-                    source])
++        """Compile sip file to sources."""
++        self.spawn(
++            [
++                sip_exe,
++                '-c', self.build_temp
++            ] + SIP_FLAGS.split() + [
++                '-I', os.path.join(sip_dir, 'PyQt5'),
++                '-b', sbf,
++                source
++            ]
++        )
+ 
+     def build_extensions(self):
+         # remove annoying flag which causes warning for c++ sources
