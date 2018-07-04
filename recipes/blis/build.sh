@@ -9,7 +9,7 @@ case `uname` in
         export CFLAGS="$CFLAGS -I$LIBRARY_PREFIX/include"
         export LDFLAGS="$LDFLAGS -L$LIBRARY_PREFIX/lib"
         ./configure --disable-shared --prefix=$LIBRARY_PREFIX x86_64
-        make -j${CPU_COUNT} CPICFLAGS=
+        make CPICFLAGS= -j${CPU_COUNT}
         ;;
 esac
 
