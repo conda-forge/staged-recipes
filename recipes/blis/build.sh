@@ -4,7 +4,7 @@ case `uname` in
         export CC=$BUILD_PREFIX/clang
         export CFLAGS="$CFLAGS -I$PREFIX/include"
         export LDFLAGS="$LDFLAGS -L$PREFIX/lib"
-        ./configure --prefix=$PREFIX x86_64
+        ./configure --prefix=$PREFIX --enable-cblas --enable-threading=pthreads x86_64
         make CC_VENDOR=clang -j${CPU_COUNT}
         make install
         make check -j${CPU_COUNT}
@@ -14,7 +14,7 @@ case `uname` in
         export CC=$BUILD_PREFIX/gcc
         export CFLAGS="$CFLAGS -I$PREFIX/include"
         export LDFLAGS="$LDFLAGS -L$PREFIX/lib"
-        ./configure --prefix=$PREFIX x86_64
+        ./configure --prefix=$PREFIX --enable-cblas --enable-threading=pthreads x86_64
         make CC_VENDOR=gcc -j${CPU_COUNT}
         make install
         make check -j${CPU_COUNT}
@@ -31,7 +31,7 @@ case `uname` in
         llvm-as --version
         llvm-ar --version
         # TODO: change intel64->x86_64 when ARG_MAX issue is fixed.
-        ./configure --disable-shared --prefix=$PREFIX/Library intel64
+        ./configure --disable-shared --prefix=$PREFIX/Library --enable-cblas --enable-threading=pthreads intel64
         make CPICFLAGS= LIBPTHREAD=-lpthreads AR=llvm-ar LIBM= -j${CPU_COUNT}
         make install
         make check CPICFLAGS= LIBPTHREAD=-lpthreads AR=llvm-ar LIBM= -j${CPU_COUNT}
