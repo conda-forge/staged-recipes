@@ -1,6 +1,5 @@
 case `uname` in
-    Darwin)
-    Linux)
+    Darwin|Linux)
         export CFLAGS="$CFLAGS -I$PREFIX/include"
         export LDFLAGS="$LDFLAGS -L$PREFIX/lib"
         ./configure x86_64 --prefix=$PREFIX
@@ -14,4 +13,4 @@ esac
 
 make -j${CPU_COUNT}
 make install
-
+make check -j${CPU_COUNT}
