@@ -23,12 +23,17 @@ case `uname` in
         export CC="$PREFIX/Library/bin/clang"
         export PATH="$PREFIX/Library/bin:$PATH"
         export RANLIB=echo
+        export LIBPTHREAD=-lpthreads
+        export AS=llvm-as
         export CFLAGS="-MD -I$PREFIX/Library/include"
         export LDFLAGS="$LDFLAGS -L$PREFIX/Library/lib"
+        clang --version
+        llvm-as --version
+        llvm-ar --version
         ./configure --disable-shared --prefix=$PREFIX/Library x86_64
-        make CPICFLAGS= -j${CPU_COUNT}
+        make CPICFLAGS= LIBPTHREAD=-lpthreads AR=llvm-ar LIBM= -j${CPU_COUNT}
         make install
-        make check CPICFLAGS= -j${CPU_COUNT}
+        make check CPICFLAGS= LIBPTHREAD=-lpthreads AR=llvm-ar LIBM= -j${CPU_COUNT}
         mv $PREFIX/Library/lib/libblis.a $PREFIX/Library/lib/blis.lib
         ;;
 esac

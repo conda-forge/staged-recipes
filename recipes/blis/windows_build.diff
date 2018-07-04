@@ -1,19 +1,15 @@
 diff --git a/.appveyor.yml b/.appveyor.yml
 new file mode 100644
-index 0000000..02786ad
+index 0000000..a1f82cc
 --- /dev/null
 +++ b/.appveyor.yml
-@@ -0,0 +1,27 @@
+@@ -0,0 +1,26 @@
 +install:
 +- set "CONDA_INSTALL_LOCN=C:\\Miniconda36-x64"
 +- call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
 +- conda update --yes --quiet conda
 +- conda config --add channels conda-forge
 +- conda install --yes clangdev posix m2-make pthreads-win32
-+- copy %CONDA_INSTALL_LOCN%\Library\lib\pthreads.lib %CONDA_INSTALL_LOCN%\Library\lib\pthread.lib
-+- copy %CONDA_INSTALL_LOCN%\Library\lib\pthreads.lib %CONDA_INSTALL_LOCN%\Library\lib\m.lib
-+- copy %CONDA_INSTALL_LOCN%\Library\bin\llvm-as.exe %CONDA_INSTALL_LOCN%\Library\bin\as.exe
-+- copy %CONDA_INSTALL_LOCN%\Library\bin\llvm-ar.exe %CONDA_INSTALL_LOCN%\Library\bin\ar.exe
 +- call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
 +- set "LIB=%CONDA_INSTALL_LOCN%\Library\lib;%LIB%"
 +- set "CPATH=%CONDA_INSTALL_LOCN%\Library\include;%CPATH%"
@@ -21,16 +17,19 @@ index 0000000..02786ad
 +build_script:
 +- set CC=clang
 +- set RANLIB=echo
-+- bash --login -c "source activate && cd /c/projects/blis && ./configure --disable-shared x86_64 && make CPICFLAGS= -j4"
++- set AR=llvm-ar
++- set AS=llvm-as
++- set LIBPTHREAD=-lpthreads
++- bash -lc "source activate && cd /c/projects/blis && ./configure --disable-shared x86_64 && make AR=llvm-ar CPICFLAGS= LIBM= LIBPTHREAD=-lpthreads -j4"
 +
 +test_script:
-+- bash --login -c "source activate && cd /c/projects/blis && make CPICFLAGS= check"
++- bash -lc "source activate && cd /c/projects/blis && make AR=llvm-ar CPICFLAGS= LIBM= LIBPTHREAD=-lpthreads check"
 +
 +# Enable this to be able to login to the build worker. You can use the
 +# `remmina` program in Ubuntu, use the login information that the line below
 +# prints into the log.
-+#on_finish:
-+#- ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
++on_finish:
++- ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 diff --git a/blastest/f2c/f2c_config.h b/blastest/f2c/f2c_config.h
 index 285c76a..af39bbe 100644
 --- a/blastest/f2c/f2c_config.h
@@ -168,24 +167,183 @@ index 848384b..e58b445 100644
  #include "f2c.h"
  #include "fio.h"
  
-diff --git a/frame/thread/bli_thread.c b/frame/thread/bli_thread.c
-index 5f959c0..6e9d515 100644
---- a/frame/thread/bli_thread.c
-+++ b/frame/thread/bli_thread.c
-@@ -34,6 +34,13 @@
+diff --git a/common.mk b/common.mk
+index e383c0d..dfedbdb 100644
+--- a/common.mk
++++ b/common.mk
+@@ -484,7 +484,7 @@ LDFLAGS      += -fopenmp
+ endif
+ ifeq ($(THREADING_MODEL),pthreads)
+ CTHREADFLAGS := -pthread
+-LDFLAGS      += -lpthread
++LDFLAGS      += $(LIBPTHREAD)
+ endif
+ endif
  
- #include "blis.h"
+@@ -498,7 +498,7 @@ LDFLAGS      += -fopenmp
+ endif
+ ifeq ($(THREADING_MODEL),pthreads)
+ CTHREADFLAGS := -pthread
+-LDFLAGS      += -lpthread
++LDFLAGS      += $(LIBPTHREAD)
+ endif
+ endif
  
+@@ -512,7 +512,7 @@ LDFLAGS      += -fopenmp
+ endif
+ ifeq ($(THREADING_MODEL),pthreads)
+ CTHREADFLAGS := -pthread
+-LDFLAGS      += -lpthread
++LDFLAGS      += $(LIBPTHREAD)
+ endif
+ endif
+ 
+diff --git a/config/knc/make_defs.mk b/config/knc/make_defs.mk
+index 8ca767b..7e9b046 100644
+--- a/config/knc/make_defs.mk
++++ b/config/knc/make_defs.mk
+@@ -77,7 +77,7 @@ LDFLAGS        := -mmic
+ 
+ # Never use libm with Intel compilers.
+ ifneq ($(CC_VENDOR),icc)
+-LDFLAGS        += -lm
++LDFLAGS        += $(LIBM)
+ endif
+ 
+ # Store all of the variables here to new variables containing the
+diff --git a/configure b/configure
+index 62f722e..863dd0c 100755
+--- a/configure
++++ b/configure
+@@ -914,7 +914,7 @@ auto_detect()
+ 	# Set the linker flags. We need pthreads because it is needed for
+ 	# parts of bli_arch.c unrelated to bli_arch_string(), which is called
+ 	# by the main() function in ${main_c}.
+-	ldflags="-lpthread"
++	ldflags="${LIBPTHREAD:-lpthread}"
+ 
+ 	# Compile the auto-detect program using source code inside the
+ 	# framework.
+@@ -1027,7 +1027,7 @@ echoerr_unsupportedcc()
+ 
+ get_binutils_version()
+ {
+-	binutil="as"
++	binutil=${AS:-as}
+ 
+ 	# Query the full binutils version string output. This includes the
+ 	# version string along with (potentially) a bunch of other textual
+diff --git a/frame/base/bli_winsys.c b/frame/base/bli_winsys.c
+new file mode 100644
+index 0000000..99e71bc
+--- /dev/null
++++ b/frame/base/bli_winsys.c
+@@ -0,0 +1,44 @@
++/*
++
++   BLIS
++   An object-based framework for developing high-performance BLAS-like
++   libraries.
++
++   Copyright (C) 2014, The University of Texas at Austin
++
++   Redistribution and use in source and binary forms, with or without
++   modification, are permitted provided that the following conditions are
++   met:
++    - Redistributions of source code must retain the above copyright
++      notice, this list of conditions and the following disclaimer.
++    - Redistributions in binary form must reproduce the above copyright
++      notice, this list of conditions and the following disclaimer in the
++      documentation and/or other materials provided with the distribution.
++    - Neither the name of The University of Texas at Austin nor the names
++      of its contributors may be used to endorse or promote products
++      derived from this software without specific prior written permission.
++
++   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
++   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
++   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
++   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
++   HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
++   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
++   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
++   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
++   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++
++*/
++
 +#ifdef _MSC_VER
 +#include <windows.h>
 +int setenv(const char *name, const char *value, int overwrite) {
 +    _putenv_s(name, value);
 +}
-+#endif
 +
- thrinfo_t BLIS_PACKM_SINGLE_THREADED = {};
- thrinfo_t BLIS_GEMM_SINGLE_THREADED  = {};
- thrcomm_t BLIS_SINGLE_COMM           = {};
++void sleep(int x) {
++    Sleep(x*1000);
++}
++#endif
+diff --git a/frame/base/bli_winsys.h b/frame/base/bli_winsys.h
+new file mode 100644
+index 0000000..c8fd97a
+--- /dev/null
++++ b/frame/base/bli_winsys.h
+@@ -0,0 +1,40 @@
++/*
++
++   BLIS
++   An object-based framework for developing high-performance BLAS-like
++   libraries.
++
++   Copyright (C) 2014, The University of Texas at Austin
++
++   Redistribution and use in source and binary forms, with or without
++   modification, are permitted provided that the following conditions are
++   met:
++    - Redistributions of source code must retain the above copyright
++      notice, this list of conditions and the following disclaimer.
++    - Redistributions in binary form must reproduce the above copyright
++      notice, this list of conditions and the following disclaimer in the
++      documentation and/or other materials provided with the distribution.
++    - Neither the name of The University of Texas at Austin nor the names
++      of its contributors may be used to endorse or promote products
++      derived from this software without specific prior written permission.
++
++   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
++   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
++   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
++   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
++   HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
++   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
++   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
++   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
++   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++
++*/
++
++
++#ifdef _MSC_VER
++#include <windows.h>
++int setenv(const char *name, const char *value, int overwrite);
++void sleep(int x);
++#endif
+diff --git a/frame/include/blis.h b/frame/include/blis.h
+index 077d98b..f07767c 100644
+--- a/frame/include/blis.h
++++ b/frame/include/blis.h
+@@ -173,6 +173,10 @@ extern "C" {
+ 
+ #include "bli_cblas.h"
+ 
++// -- Windows definitions
++
++#include "bli_winsys.h"
++
+ 
+ // End extern "C" construct block.
+ #ifdef __cplusplus
 diff --git a/frame/thread/bli_thread.h b/frame/thread/bli_thread.h
 index 72a8515..061d12d 100644
 --- a/frame/thread/bli_thread.h
@@ -483,35 +641,26 @@ index 93685f5..d025437 100644
  #ifdef BLIS_ENABLE_SMALL_MATRIX
  
 diff --git a/testsuite/src/test_libblis.c b/testsuite/src/test_libblis.c
-index 419fadb..d13d564 100644
+index 419fadb..e25040a 100644
 --- a/testsuite/src/test_libblis.c
 +++ b/testsuite/src/test_libblis.c
-@@ -35,6 +35,12 @@
+@@ -35,7 +35,6 @@
  #include "blis.h"
  #include "test_libblis.h"
  
-+#ifdef _MSC_VER
-+#include <windows.h>
-+void sleep(int x) {
-+    Sleep(x*1000);
-+}
-+#endif
- 
+-
  // Global variables.
  char libblis_test_binary_name[ MAX_BINARY_NAME_LENGTH + 1 ];
+ 
 diff --git a/testsuite/src/test_libblis.h b/testsuite/src/test_libblis.h
-index ac49f8d..44c7eef 100644
+index ac49f8d..410dc2e 100644
 --- a/testsuite/src/test_libblis.h
 +++ b/testsuite/src/test_libblis.h
-@@ -46,9 +46,12 @@
- // For other string manipulation functions (e.g. isspace()).
+@@ -47,8 +47,9 @@
  #include <ctype.h>
  
--// For sleep().
-+// For sleep()
-+#ifdef _MSC_VER
-+void sleep(int x);
-+#else
+ // For sleep().
++#ifndef _MSC_VER
  #include <unistd.h>
 -
 +#endif
