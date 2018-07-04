@@ -20,8 +20,8 @@ case `uname` in
         make check -j${CPU_COUNT}
         ;;
     MINGW*)
-        export CC="$PREFIX/Library/bin/clang"
-        export PATH="$PREFIX/Library/bin:$PATH"
+        export PATH="$PREFIX/Library/bin:$BUILD_PREFIX/Library/bin:$PATH"
+        export CC=clang
         export RANLIB=echo
         export LIBPTHREAD=-lpthreads
         export AS=llvm-as
@@ -30,7 +30,8 @@ case `uname` in
         clang --version
         llvm-as --version
         llvm-ar --version
-        ./configure --disable-shared --prefix=$PREFIX/Library x86_64
+        # TODO: change intel64->x86_64 when ARG_MAX issue is fixed.
+        ./configure --disable-shared --prefix=$PREFIX/Library intel64
         make CPICFLAGS= LIBPTHREAD=-lpthreads AR=llvm-ar LIBM= -j${CPU_COUNT}
         make install
         make check CPICFLAGS= LIBPTHREAD=-lpthreads AR=llvm-ar LIBM= -j${CPU_COUNT}
