@@ -21,7 +21,7 @@ case `uname` in
         ;;
     MINGW*)
         export PATH=$BUILD_PREFIX/Library/bin:$PATH
-        export CC=$BUILD_PREFIX/clang
+        export CC=$BUILD_PREFIX/Library/bin/clang
         export RANLIB=echo
         export CFLAGS="$CFLAGS -I$LIBRARY_PREFIX/include"
         export LDFLAGS="$LDFLAGS -L$LIBRARY_PREFIX/lib"
