@@ -1,12 +1,10 @@
-opy %LIBRARY_LIB%\pthreads.lib %LIBRARY_LIB%\pthread.lib
+copy %LIBRARY_LIB%\pthreads.lib %LIBRARY_LIB%\pthread.lib
 copy %LIBRARY_LIB%\pthreads.lib %LIBRARY_LIB%\m.lib
-copy %BUILD_PREFIX%\Library\bin\llvm-ar.exe %BUILD_PREFIX%\Library\bin\ar.exe
-copy %BUILD_PREFIX%\Library\bin\llvm-as.exe %BUILD_PREFIX%\Library\bin\as.exe
+copy %LIBRARY_BIN%\llvm-ar.exe %LIBRARY_BIN%\ar.exe
+copy %LIBRARY_BIN%\llvm-as.exe %LIBRARY_BIN%\as.exe
 
 copy "%RECIPE_DIR%\build.sh" .
 set PREFIX=%PREFIX:\=/%
-set BUILD_PREFIX=%BUILD_PREFIX:\=/%
-set LIBRARY_PREFIX=%LIBRARY_PREFIX:\=/%
 set SRC_DIR=%SRC_DIR:\=/%
 set MSYSTEM=MINGW%ARCH%
 set MSYS2_PATH_TYPE=inherit
@@ -16,3 +14,5 @@ if errorlevel 1 exit 1
 
 del %LIBRARY_LIB%\pthread.lib
 del %LIBRARY_LIB%\m.lib
+del %LIBRARY_BIN%\ar.exe
+del %LIBRARY_BIN%\as.exe

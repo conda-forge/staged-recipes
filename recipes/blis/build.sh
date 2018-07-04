@@ -20,15 +20,15 @@ case `uname` in
         make check -j${CPU_COUNT}
         ;;
     MINGW*)
-        export PATH=$BUILD_PREFIX/Library/bin:$PATH
-        export CC=$BUILD_PREFIX/Library/bin/clang
+        export CC="$PREFIX/Library/bin/clang"
+        export PATH="$PREFIX/Library/bin:$PATH"
         export RANLIB=echo
-        export CFLAGS="$CFLAGS -I$LIBRARY_PREFIX/include"
-        export LDFLAGS="$LDFLAGS -L$LIBRARY_PREFIX/lib"
-        ./configure --disable-shared --prefix=$LIBRARY_PREFIX x86_64
+        export CFLAGS="-MD -I$PREFIX/Library/include"
+        export LDFLAGS="$LDFLAGS -L$PREFIX/Library/lib"
+        ./configure --disable-shared --prefix=$PREFIX/Library x86_64
         make CPICFLAGS= -j${CPU_COUNT}
         make install
         make check CPICFLAGS= -j${CPU_COUNT}
-        mv $LIBRARY_PREFIX/lib/libblis.a $LIBRARY_PREFIX/lib/blis.lib
+        mv $PREFIX/Library/lib/libblis.a $PREFIX/Library/lib/blis.lib
         ;;
 esac
