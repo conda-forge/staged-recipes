@@ -1,6 +1,5 @@
 case `uname` in
     Darwin)
-        ln -s `which $CC` $BUILD_PREFIX/bin/clang
         export CC=$BUILD_PREFIX/bin/clang
         export CFLAGS="$CFLAGS -I$PREFIX/include"
         export LDFLAGS="$LDFLAGS -L$PREFIX/lib"
