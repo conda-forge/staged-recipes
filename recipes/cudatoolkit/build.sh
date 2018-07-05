@@ -1,5 +1,9 @@
 #!/bin/bash
 
+set -ex
+
+echo "Building cudatoolkit ..."
+
 filename="cuda_${PKG_VERSION}_linux"
 install_dir=$CONDA_PREFIX/tmp/cuda
 
