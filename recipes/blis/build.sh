@@ -1,7 +1,7 @@
 case `uname` in
     Darwin)
-        ln -s $CC $BUILD_PREFIX/clang
-        export CC=$BUILD_PREFIX/clang
+        ln -s `which $CC` $BUILD_PREFIX/bin/clang
+        export CC=$BUILD_PREFIX/bin/clang
         export CFLAGS="$CFLAGS -I$PREFIX/include"
         export LDFLAGS="$LDFLAGS -L$PREFIX/lib"
         ./configure --prefix=$PREFIX --enable-cblas --enable-threading=pthreads x86_64
@@ -10,8 +10,8 @@ case `uname` in
         make check -j${CPU_COUNT}
         ;;
     Linux)
-        ln -s $CC $BUILD_PREFIX/gcc
-        export CC=$BUILD_PREFIX/gcc
+        ln -s `which $CC` $BUILD_PREFIX/bin/gcc
+        export CC=$BUILD_PREFIX/bin/gcc
         export CFLAGS="$CFLAGS -I$PREFIX/include"
         export LDFLAGS="$LDFLAGS -L$PREFIX/lib"
         ./configure --prefix=$PREFIX --enable-cblas --enable-threading=pthreads x86_64
