@@ -1,8 +1,6 @@
 case `uname` in
     Darwin)
         export CC=$BUILD_PREFIX/bin/clang
-        export CFLAGS="$CFLAGS -I$PREFIX/include"
-        export LDFLAGS="$LDFLAGS -L$PREFIX/lib"
         ./configure --prefix=$PREFIX --enable-cblas --enable-threading=pthreads x86_64
         make CC_VENDOR=clang -j${CPU_COUNT}
         make install
@@ -11,8 +9,6 @@ case `uname` in
     Linux)
         ln -s `which $CC` $BUILD_PREFIX/bin/gcc
         export CC=$BUILD_PREFIX/bin/gcc
-        export CFLAGS="$CFLAGS -I$PREFIX/include"
-        export LDFLAGS="$LDFLAGS -L$PREFIX/lib"
         ./configure --prefix=$PREFIX --enable-cblas --enable-threading=pthreads x86_64
         make CC_VENDOR=gcc -j${CPU_COUNT}
         make install
