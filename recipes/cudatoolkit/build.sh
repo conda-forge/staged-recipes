@@ -11,7 +11,7 @@ mkdir -p $install_dir
 mkdir -p $PREFIX/{lib,include}
 
 chmod +x $filename
-sh $filename --silent --toolkit --toolkitpath=$install_dir --override
+./$filename --silent --toolkit --toolkitpath=$install_dir --override
 
 # remove unnecessary folders
 excluded_dirs="bin doc extras jre libnsight libnvvp nsightee_plugins nvml pkgconfig samples tools"
