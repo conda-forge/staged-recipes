@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Nasty hack for $PREFIX/bin/intltool-*
-ln -s "$PREFIX/bin/perl" "$PREFIX/bin/perl -w"
+ln -s "$BUILD_PREFIX/bin/perl" "$BUILD_PREFIX/bin/perl -w"
 
 ./configure --prefix="$PREFIX" \
     --disable-manpages \
@@ -12,4 +12,4 @@ make check
 
 make install
 
-unlink "$PREFIX/bin/perl -w"
+unlink "$BUILD_PREFIX/bin/perl -w"
