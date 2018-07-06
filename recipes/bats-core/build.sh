@@ -2,7 +2,7 @@
 set -e
 
 if [ ! -z ${LIBRARY_PREFIX+x} ]; then
-  ./install.sh $LIBRAY_PREFIX
+  ./install.sh $LIBRARY_PREFIX
 else
   ./install.sh $PREFIX
 fi
