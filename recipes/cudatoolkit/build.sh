@@ -4,14 +4,12 @@ set -ex
 
 echo "Building cudatoolkit ..."
 
-filename="cuda_${PKG_VERSION}_linux"
+filename="cuda_${PKG_VERSION}"
 install_dir=$CONDA_PREFIX/tmp/cuda
 
-# create necessary folders
 mkdir -p $install_dir
 mkdir -p $PREFIX/{lib,include}
 
-# install cuda
 chmod +x $filename
 sh $filename --silent --toolkit --toolkitpath=$install_dir --override
 
