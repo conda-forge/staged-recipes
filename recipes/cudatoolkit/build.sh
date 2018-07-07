@@ -10,10 +10,10 @@ install_dir=$CONDA_PREFIX/tmp/cuda
 mkdir -p $install_dir
 mkdir -p $PREFIX/{lib,include}
 
-chmod +x $filename
+chmod ugo+x $filename
 ./$filename --silent --toolkit --toolkitpath=$install_dir --override
 
-# remove unnecessary folders
+echo "Removing unnecessary folders"
 excluded_dirs="bin doc extras jre libnsight libnvvp nsightee_plugins nvml pkgconfig samples tools"
 for f in $excluded_dirs
 do
@@ -58,4 +58,5 @@ do
     find $install_dir -name "${f}*"  -exec cp -a {} $PREFIX/include \;
 done
 
+echo "Removing installation folder"
 rm -rf $install_dir
