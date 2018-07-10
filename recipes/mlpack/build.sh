@@ -8,6 +8,7 @@ cmake \
 	-DBUILD_CLI_EXECUTABLES=ON \
 	-DBUILD_SHARED_LIBRARIES=ON \
 	-DFORCE_CXX11=ON \
+	-DCMAKE_CXX_FLAGS="-fopenmp" \
 	../
 
 make -j${CPU_COUNT}
