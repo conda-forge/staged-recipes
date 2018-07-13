@@ -8,7 +8,7 @@ RMDIR /S /Q %install_dir%
 
 :: CREATE A DIRECTORY WHERE FILES WOULD BE EXTRACTED
 MKDIR %install_dir%
-MKDIR %PREFIX%\lib %PREFIX%\include
+MKDIR %PREFIX%\DLLs %PREFIX%\Library\bin %PREFIX%\include
 
 ECHO Extracting files
 7za x -o%install_dir% %filename%
@@ -43,12 +43,20 @@ libdevice.10.bc ^
 cupti*.dll ^
 nvToolsExt*.dll nvToolsExt*.lib
 
+SET cuda_dlls=nvvm*.dll libdevice.10.bc
+
 SET cuda_h=cuda_occupancy.h
 
 ECHO Copying lib files:
 FOR %%f in (%cuda_libs%) DO (
     ECHO - %%f ...
     FOR /R %install_dir% %%x IN (%%f) DO COPY "%%x" %PREFIX%\Library\bin /Y;
+)
+
+ECHO Copying dll files:
+FOR %%f in (%cuda_dlls%) DO (
+    ECHO - %%f ...
+    FOR /R %install_dir% %%x IN (%%f) DO COPY "%%x" %PREFIX%\DLLs /Y;
 )
 
 ECHO Copying header files:
