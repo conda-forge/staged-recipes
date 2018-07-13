@@ -14,6 +14,8 @@ cmake \
     -DCMAKE_PREFIX_PATH="${PREFIX}" \
     -DCMAKE_INSTALL_RPATH="${PREFIX}/lib" \
     -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+    -DCMAKE_CXX_COMPILER="${GXX}" \
+    -DCMAKE_CC_COMPILER="${GCC}" \
     ..
 
 make -j${CPU_COUNT}
