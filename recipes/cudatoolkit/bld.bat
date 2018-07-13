@@ -1,54 +1,60 @@
 ECHO Building cudatoolkit ...
 
 SET filename=cuda_%PKG_VERSION%.exe
-SET install_dir=%CONDA_PREFIX%\tmp\cuda
+SET install_dir=%CUDA_PREFIX%\tmp\cuda
 
-mkdir %install_dir%
-mkdir %PREFIX%\lib %PREFIX%\include
+:: REMOVE THE DIR IF EXISTS
+RMDIR /S /Q %install_dir%
 
-./%filename% --silent --toolkit --toolkitpath=%install_dir% --override
+:: CREATE A DIRECTORY WHERE FILES WOULD BE EXTRACTED
+MKDIR %install_dir%
+MKDIR %PREFIX%\lib %PREFIX%\include
+
+ECHO Extracting files
+7za x -o%install_dir% %filename%
 
 DIR %install_dir%
 
-ECHO Removing unnecessary folders ...
-SET excluded_dirs=bin doc extras jre libnsight libnvvp nsightee_plugins nvml pkgconfig samples tools
-for %%f in (%excluded_dirs%) DO (
+ECHO Removing some unnecessary folders ...
+SET excluded_dirs=CUDADocument CUDASamples Doc fortran_examples
+
+FOR %%f IN (%excluded_dirs%) DO (
     RD /S /Q %install_dir%\%%f
 )
 
-SET cuda_libs=cudart*.dll cudart_static*.lib cudadevrt*.lib
-SET "cuda_libs=%cuda_libs% cufft*.dll cufftw*.dll cufft*.lib cufftw*.lib"
-SET "cuda_libs=%cuda_libs% cublas*.dll cublas_device*.lib"
-SET "cuda_libs=%cuda_libs% nvblas*.dll"
-SET "cuda_libs=%cuda_libs% cusparse*.dll cusparse*.lib"
-SET "cuda_libs=%cuda_libs% cusolver*.dll cusolver*.lib"
-SET "cuda_libs=%cuda_libs% curand*.dll curand*.lib"
-SET "cuda_libs=%cuda_libs% nvgraph*.dll nvgraph*.lib"
-SET "cuda_libs=%cuda_libs% nppc*.dll nppc*.lib nppial*.dll nppial*.lib"
-SET "cuda_libs=%cuda_libs% nppicc*.dll nppicc*.lib nppicom*.dll"
-SET "cuda_libs=%cuda_libs% nppicom*.lib nppidei*.dll nppidei*.lib"
-SET "cuda_libs=%cuda_libs% nppif*.dll nppif*.lib nppig*.dll nppig*.lib"
-SET "cuda_libs=%cuda_libs% nppim*.dll nppim*.lib nppist*.dll nppist*.lib"
-SET "cuda_libs=%cuda_libs% nppisu*.dll nppisu*.lib nppitc*.dll"
-SET "cuda_libs=%cuda_libs% nppitc*.lib npps*.dll npps*.lib"
-SET "cuda_libs=%cuda_libs% nvrtc*.dll nvrtc-builtins*.dll"
-SET "cuda_libs=%cuda_libs% nvvm*.dll"
-SET "cuda_libs=%cuda_libs% libdevice.10.bc"
-SET "cuda_libs=%cuda_libs% cupti*.dll"
-SET "cuda_libs=%cuda_libs% nvToolsExt*.dll nvToolsExt*.lib"
+SET cuda_libs=cudart*.dll cudart_static*.lib cudadevrt*.lib ^
+cufft*.dll cufftw*.dll cufft*.lib cufftw*.lib ^
+cublas*.dll cublas_device*.lib ^
+nvblas*.dll ^
+cusparse*.dll cusparse*.lib ^
+cusolver*.dll cusolver*.lib ^
+curand*.dll curand*.lib ^
+nvgraph*.dll nvgraph*.lib ^
+nppc*.dll nppc*.lib nppial*.dll nppial*.lib ^
+nppicc*.dll nppicc*.lib nppicom*.dll ^
+nppicom*.lib nppidei*.dll nppidei*.lib ^
+nppif*.dll nppif*.lib nppig*.dll nppig*.lib ^
+nppim*.dll nppim*.lib nppist*.dll nppist*.lib
+nppisu*.dll nppisu*.lib nppitc*.dll ^
+nppitc*.lib npps*.dll npps*.lib ^
+nvrtc*.dll nvrtc-builtins*.dll ^
+nvvm*.dll ^
+libdevice.10.bc ^
+cupti*.dll ^
+nvToolsExt*.dll nvToolsExt*.lib
 
 SET cuda_h=cuda_occupancy.h
 
 ECHO Copying lib files:
-FOR %%f in %cuda_libs% DO (
+FOR %%f in (%cuda_libs%) DO (
     ECHO - %%f ...
-    FOR /R %install_dir% %x IN (%%f) DO COPY "%x" %PREFIX%\lib\ /Y;
+    FOR /R %install_dir% %%x IN (%%f) DO COPY "%%x" %PREFIX%\Library\bin /Y;
 )
 
 ECHO Copying header files:
-for %%f in %cuda_h% DO (
+for %%f in (%cuda_h%) DO (
     ECHO - %%f ...
-    FOR /R %install_dir% %x IN (%%f) DO COPY "%x" %PREFIX%\include\ /Y;
+    FOR /R %install_dir% %%x IN (%%f) DO COPY "%%x" %PREFIX%\Library\include\ /Y;
 )
 
 ECHO Removing installation folder ...
