@@ -13,6 +13,7 @@ mkdir -p $install_dir $tmp_dir
 mkdir -p $PREFIX/{lib,include}
 
 # Install
+UNAME=`uname`
 if [[ $UNAME == "Linux" ]]; then
     chmod ugo+x $filename
     ./$filename --silent --toolkit --toolkitpath=$install_dir --override
