@@ -15,39 +15,19 @@ channels:
  - defaults
 
 conda-build:
- root-dir: /home/conda/staged-recipes/build_artifacts
+ root-dir: /home/conda/feedstock_root/build_artifacts
 
 show_channel_urls: true
 
 CONDARC
 
-# Copy the host recipes folder so we don't ever muck with it
-cp -r /home/conda/staged-recipes/recipes ~/conda-recipes
-cp -r /home/conda/staged-recipes/.ci_support ~/.ci_support
-
-# Find the recipes from master in this PR and remove them.
-echo "Finding recipes merged in master and removing them from the build."
-pushd /home/conda/staged-recipes/recipes > /dev/null
-git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf ~/conda-recipes/{} && echo Removing recipe: {}"
-popd > /dev/null
-
-# Unused, but needed by conda-build currently... :(
-export CONDA_NPY='19'
-
 # A lock sometimes occurs with incomplete builds. The lock file is stored in build_artifacts.
 conda clean --lock
 
-# Ensure that `noarch` exists otherwise `conda` won't think this channel is valid.
-conda index /home/conda/staged-recipes/build_artifacts/noarch
-
-conda install --yes --quiet conda-forge-ci-setup=1.* conda-forge-pinning networkx conda-build
+conda install --yes --quiet conda-forge-ci-setup=1 conda-build
 source run_conda_forge_build_setup
 
-# yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
-find ~/conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" \
-    | xargs -n1 cat | { grep -v -e "^#" -e "^$" || test $? == 1; } | \
-    xargs -r /usr/bin/sudo -n yum install -y
+conda build /home/conda/recipe_root -m /home/conda/feedstock_root/.ci_support/${CONFIG}.yaml --quiet
+upload_or_check_non_existence /home/conda/recipe_root conda-forge --channel=main -m /home/conda/feedstock_root/.ci_support/${CONFIG}.yaml
 
-python ~/.ci_support/build_all.py ~/conda-recipes
-
-touch "/home/conda/staged-recipes/build_artifacts/conda-forge-build-done"
+touch "/home/conda/feedstock_root/build_artifacts/conda-forge-build-done-${CONFIG}"
