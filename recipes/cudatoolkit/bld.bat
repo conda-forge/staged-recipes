@@ -34,7 +34,7 @@ nppc*.dll nppc*.lib nppial*.dll nppial*.lib ^
 nppicc*.dll nppicc*.lib nppicom*.dll ^
 nppicom*.lib nppidei*.dll nppidei*.lib ^
 nppif*.dll nppif*.lib nppig*.dll nppig*.lib ^
-nppim*.dll nppim*.lib nppist*.dll nppist*.lib
+nppim*.dll nppim*.lib nppist*.dll nppist*.lib ^
 nppisu*.dll nppisu*.lib nppitc*.dll ^
 nppitc*.lib npps*.dll npps*.lib ^
 nvrtc*.dll nvrtc-builtins*.dll ^
