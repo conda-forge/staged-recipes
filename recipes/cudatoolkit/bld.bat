@@ -1,3 +1,5 @@
+SETLOCAL ENABLEDELAYEDEXPANSION
+
 ECHO Building cudatoolkit ...
 
 SET filename=cuda_%PKG_VERSION%.exe
@@ -22,47 +24,54 @@ FOR %%f IN (%excluded_dirs%) DO (
     RD /S /Q %install_dir%\%%f
 )
 
-SET cuda_libs=cudart*.dll cudart_static*.lib cudadevrt*.lib ^
-cufft*.dll cufftw*.dll cufft*.lib cufftw*.lib ^
-cublas*.dll cublas_device*.lib ^
-nvblas*.dll ^
-cusparse*.dll cusparse*.lib ^
-cusolver*.dll cusolver*.lib ^
-curand*.dll curand*.lib ^
-nvgraph*.dll nvgraph*.lib ^
-nppc*.dll nppc*.lib nppial*.dll nppial*.lib ^
-nppicc*.dll nppicc*.lib nppicom*.dll ^
-nppicom*.lib nppidei*.dll nppidei*.lib ^
-nppif*.dll nppif*.lib nppig*.dll nppig*.lib ^
-nppim*.dll nppim*.lib nppist*.dll nppist*.lib ^
-nppisu*.dll nppisu*.lib nppitc*.dll ^
-nppitc*.lib npps*.dll npps*.lib ^
-nvrtc*.dll nvrtc-builtins*.dll ^
-nvvm*.dll ^
+SET cuda_libs=cudart.dll cudart_static.lib cudadevrt.lib ^
+cufft.dll cufftw.dll cufft.lib cufftw.lib ^
+cublas.dll cublas_device.lib ^
+nvblas.dll ^
+cusparse.dll cusparse.lib ^
+cusolver.dll cusolver.lib ^
+curand.dll curand.lib ^
+nvgraph.dll nvgraph.lib ^
+nppc.dll nppc.lib nppial.dll nppial.lib ^
+nppicc.dll nppicc.lib nppicom.dll ^
+nppicom.lib nppidei.dll nppidei.lib ^
+nppif.dll nppif.lib nppig.dll nppig.lib ^
+nppim.dll nppim.lib nppist.dll nppist.lib ^
+nppisu.dll nppisu.lib nppitc.dll ^
+nppitc.lib npps.dll npps.lib ^
+nvrtc.dll nvrtc-builtins.dll ^
+nvvm.dll ^
 libdevice.10.bc ^
-cupti*.dll ^
-nvToolsExt*.dll nvToolsExt*.lib
+cupti.dll ^
+nvToolsExt.dll nvToolsExt.lib
 
-SET cuda_dlls=nvvm*.dll libdevice.10.bc
+SET cuda_dlls=nvvm.dll libdevice.10.bc
 
 SET cuda_h=cuda_occupancy.h
 
 ECHO Copying lib files:
 FOR %%f in (%cuda_libs%) DO (
-    ECHO - %%f ...
-    FOR /R %install_dir% %%x IN (%%f) DO COPY "%%x" %PREFIX%\Library\bin /Y;
+    SET fname=%%f
+	SET fname_wild_card=!fname:~0,-4!*!fname:~-4!
+	ECHO !fname_wild_card!
+	FOR /R %install_dir% %%x IN (!fname_wild_card!) DO COPY "%%x" %PREFIX%\Library\bin /Y;
 )
+
 
 ECHO Copying dll files:
 FOR %%f in (%cuda_dlls%) DO (
-    ECHO - %%f ...
-    FOR /R %install_dir% %%x IN (%%f) DO COPY "%%x" %PREFIX%\DLLs /Y;
+    SET fname=%%f
+	SET fname_wild_card=!fname:~0,-4!*!fname:~-4!
+	ECHO !fname_wild_card!
+    FOR /R %install_dir% %%x IN (!fname_wild_card!) DO COPY "%%x" %PREFIX%\DLLs /Y;
 )
 
 ECHO Copying header files:
 for %%f in (%cuda_h%) DO (
-    ECHO - %%f ...
-    FOR /R %install_dir% %%x IN (%%f) DO COPY "%%x" %PREFIX%\Library\include\ /Y;
+    SET fname=%%f
+	SET fname_wild_card=!fname:~0,-4!*!fname:~-4!
+	ECHO !fname_wild_card!
+    FOR /R %install_dir% %%x IN (!fname_wild_card!) DO COPY "%%x" %PREFIX%\Library\include\ /Y;
 )
 
 ECHO Removing installation folder ...
