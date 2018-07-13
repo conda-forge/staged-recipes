@@ -6,12 +6,26 @@ echo "Building cudatoolkit ..."
 
 filename="cuda_${PKG_VERSION}"
 install_dir=$CONDA_PREFIX/tmp/cuda
+tmp_dir=$CUDA_PREFIX/tmp
 
-mkdir -p $install_dir
+echo "Creating folders"
+mkdir -p $install_dir $tmp_dir
 mkdir -p $PREFIX/{lib,include}
 
-chmod ugo+x $filename
-./$filename --silent --toolkit --toolkitpath=$install_dir --override
+# Install
+if [[ $UNAME == "Linux" ]]; then
+    chmod ugo+x $filename
+    ./$filename --silent --toolkit --toolkitpath=$install_dir --override
+else
+    # open
+    hdiutil attach -mountpoint $tmp_dir $filename
+    
+    # find tar.gz files
+    find $tmp_dir -name "*.tar.gz"  -exec tar xvf {} --directory=$install_dir \;
+
+    # close
+    hdiutil detach $tmp_dir
+fi
 
 echo "Removing unnecessary folders"
 excluded_dirs="bin doc extras jre libnsight libnvvp nsightee_plugins nvml pkgconfig samples tools"
