@@ -16,7 +16,7 @@ Current build status
 ====================
 
 [![Linux](https://img.shields.io/circleci/project/github/conda-forge/staged-recipes-feedstock/master.svg?label=Linux)](https://circleci.com/gh/conda-forge/staged-recipes-feedstock)
-[![OSX](https://img.shields.io/travis/conda-forge/staged-recipes-feedstock/master.svg?label=macOS)](https://travis-ci.org/conda-forge/staged-recipes-feedstock)
+[![OSX](https://img.shields.io/travis/zhaofeng-shu33/staged-recipes/ace_cream.svg?label=macOS)](https://travis-ci.org/zhaofeng-shu33/staged-recipes)
 [![Windows](https://img.shields.io/appveyor/ci/conda-forge/staged-recipes-feedstock/master.svg?label=Windows)](https://ci.appveyor.com/project/conda-forge/staged-recipes-feedstock/branch/master)
 
 Current release info
