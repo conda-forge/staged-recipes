@@ -2,6 +2,7 @@ mkdir build
 cd build
 
 cmake \
+        -G "${CMAKE_GENERATOR}" \
 	-DCMAKE_INSTALL_PREFIX="${PREFIX}" \
 	-DCMAKE_PREFIX_PATH="${PREFIX}" \
 	-DBUILD_PYTHON_BINDINGS=ON \
