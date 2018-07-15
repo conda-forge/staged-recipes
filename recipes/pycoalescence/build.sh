@@ -5,4 +5,6 @@ export CXXFLAGS="${CFLAGS}"
 export LDFLAGS="-L${PREFIX}/lib -L${BUILD_PREFIX}/lib"
 
 # Python command to install the script.
-python setup.py install --single-version-externally-managed --record=record.txt  --prefix="${PREFIX}"
+echo "python is"
+echo ${PYTHON}
+${PYTHON} setup.py install --single-version-externally-managed --record=record.txt  --prefix="${PREFIX}"
