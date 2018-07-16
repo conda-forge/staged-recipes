@@ -1,40 +1,3 @@
-diff --git a/.ci/travis.sh b/.ci/travis.sh
-index aff9458..46bb046 100644
---- a/.ci/travis.sh
-+++ b/.ci/travis.sh
-@@ -25,4 +25,4 @@ fi
- conda info -a
- 
- # Build the code
--CC=gcc-5 && CXX=g++-5 python setup.py develop
-+CC=gcc-4.8 && CXX=g++-4.8 python setup.py develop
-diff --git a/.travis.yml b/.travis.yml
-index 38f06e3..74360f8 100644
---- a/.travis.yml
-+++ b/.travis.yml
-@@ -10,8 +10,8 @@ addons:
-         sources:
-             - ubuntu-toolchain-r-test
-         packages:
--            - gcc-5
--            - g++-5
-+            - gcc-4.8
-+            - g++-4.8
- 
- matrix:
-     include:
-diff --git a/HISTORY.rst b/HISTORY.rst
-index 64e9a88..a5db811 100644
---- a/HISTORY.rst
-+++ b/HISTORY.rst
-@@ -1,6 +1,6 @@
- .. :changelog:
- 
--0.1.0 (2018-07-13)
-+0.1.2 (2018-07-15)
- ++++++++++++++++++
- 
- - Initial stable beta release of the code for submission to ApJ.
 diff --git a/setup.py b/setup.py
 index e610f05..31649c2 100644
 --- a/setup.py
@@ -45,12 +8,12 @@ index e610f05..31649c2 100644
  import setuptools
 -__version__ = '0.1.1'
 +__version__ = '0.1.2'
- 
- 
+
+
  # Custom compiler flags
 @@ -26,8 +26,9 @@ if int(macros['STARRY_NGRAD']) % 2 == 0:
      macros['STARRY_NGRAD'] = int(macros['STARRY_NGRAD']) + 1
- 
+
  # Enable optimization?
 -optimize = True
 -if (os.getenv('STARRY_NO_OPT', 0)):
@@ -58,8 +21,8 @@ index e610f05..31649c2 100644
 +    optimize = True
 +else:
      optimize = False
- 
- 
+
+
 @@ -107,10 +108,16 @@ class BuildExt(build_ext):
          """Build the extensions."""
          ct = self.compiler.compiler_type
@@ -89,12 +52,12 @@ index b8f44d7..72b9b58 100644
 +#include <cstddef>
 +#include <array>
  #include "errors.h"
- 
+
  // Square root of pi at double precision
 @@ -24,88 +26,626 @@ using good old template metaprogramming (>= C++14)
  // Largest square root we're willing to tabulate
  #define MAXSQRT 300
- 
+
 -namespace tables {
 -
 -    double constexpr sqrt_rec(double x, double curr, double prev) {
@@ -731,7 +694,7 @@ index b8f44d7..72b9b58 100644
 +    4.49894132584540740e-297,                  INFINITY, -2.70206686236961415e-299,
 +                   INFINITY,  1.61317424619081441e-301,                  INFINITY,
 +    -9.57373439875854268e-304,                  INFINITY};
- 
+
 -    // The table of values, coded using the (prettier) C++14 syntax for `constexpr`.
 -    // If needed, we could re-code this for C++11...
 -    struct Table {
@@ -763,11 +726,11 @@ index b8f44d7..72b9b58 100644
 -
 -    };
 +}
- 
+
 -    // Instantiate the table
 -    constexpr auto table = Table();
 +namespace tables {
- 
+
      // Square root of n
      template <typename T>
 -    T sqrt_int(int n) {
@@ -780,7 +743,7 @@ index b8f44d7..72b9b58 100644
 -            return T(table.sqrt_int[n]);
 +            return T(const_tables::sqrt_int[n]);
      }
- 
+
      template <>
 -    Multi sqrt_int(int n) {
 +    inline Multi sqrt_int(int n) {
@@ -788,7 +751,7 @@ index b8f44d7..72b9b58 100644
              throw errors::SqrtNegativeNumber();
          else
 @@ -114,17 +654,17 @@ namespace tables {
- 
+
      // Inverse of the square root of n
      template <typename T>
 -    T invsqrt_int(int n) {
@@ -801,7 +764,7 @@ index b8f44d7..72b9b58 100644
 -            return T(table.invsqrt_int[n]);
 +            return T(const_tables::invsqrt_int[n]);
      }
- 
+
      template <>
 -    Multi invsqrt_int(int n) {
 +    inline Multi invsqrt_int(int n) {
@@ -815,7 +778,7 @@ index b8f44d7..72b9b58 100644
 -            return T(table.factorial[n]);
 +            return T(const_tables::factorial[n]);
      }
- 
+
      template <>
 @@ -163,7 +703,7 @@ namespace tables {
          } else if (n > MAXDOUBLEFACT)
@@ -824,7 +787,7 @@ index b8f44d7..72b9b58 100644
 -            return T(table.double_factorial[n]);
 +            return T(const_tables::double_factorial[n]);
      }
- 
+
      template <>
 @@ -186,9 +726,9 @@ namespace tables {
              return T(INFINITY);
@@ -837,7 +800,7 @@ index b8f44d7..72b9b58 100644
 +                return T(const_tables::half_factorial_pos[n]);
          }
      }
- 
+
 diff --git a/starry/tables.py b/starry/tables.py
 new file mode 100644
 index 0000000..0ad0dac
