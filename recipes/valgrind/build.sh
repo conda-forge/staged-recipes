@@ -2,7 +2,7 @@
 
 set -e -o pipefail
 
-./configure --prefix=${PREFIX} --disable-dependency-tracking --enable-only64bit CPPFLAGS="-I${PREFIX}/include" LDFLAGS="-L${PREFIX}/lib -Wl,-rpath,${PREFIX}/lib"
+./configure --prefix=${PREFIX} --disable-dependency-tracking --enable-only64bit
 
 SYSLWR=`uname | tr '[:upper:]' '[:lower:]'`
 
