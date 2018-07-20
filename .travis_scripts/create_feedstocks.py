@@ -148,8 +148,8 @@ if __name__ == '__main__':
                 except subprocess.CalledProcessError:
                     # Sometimes, we have a repo, but there are no commits on it! Just catch that case.
                     subprocess.check_call(['git', 'checkout', '-b' 'master'], cwd=feedstock_dir)
-            else:
-                subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info + ['--extra-admin-users', 'cf-blacksmithy'])
+
+            subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info + ['--extra-admin-users', 'cf-blacksmithy'])
 
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
         # Without this, intermittent failures to synch the TravisCI repos ensue.
@@ -177,7 +177,6 @@ if __name__ == '__main__':
                     # Capture the output, as it may contain the GH_TOKEN.
                     out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'HEAD:master'], cwd=feedstock_dir,
                                                   stderr=subprocess.STDOUT)
-                    subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info)
                     break
                 except subprocess.CalledProcessError:
                     pass
