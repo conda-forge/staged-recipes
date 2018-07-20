@@ -177,7 +177,6 @@ if __name__ == '__main__':
                     # Capture the output, as it may contain the GH_TOKEN.
                     out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'HEAD:master'], cwd=feedstock_dir,
                                                   stderr=subprocess.STDOUT)
-                    subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info)
                     break
                 except subprocess.CalledProcessError:
                     pass
