@@ -11,10 +11,10 @@ def run_test():
         print("NVVM version", nvvm.get_version())
         return nvvm.get_version() is not None
     
-	if not test():
+    if not test():
         return False
     
-	nvvm = NVVM()
+    nvvm = NVVM()
     print("NVVM version", nvvm.get_version())
     # check pkg version matches lib pulled in
     gotlib = get_cudalib('cublas')
