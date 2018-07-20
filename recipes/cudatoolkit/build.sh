@@ -5,8 +5,8 @@ set -ex
 echo "Building cudatoolkit ..."
 
 filename="cuda_${PKG_VERSION}"
-install_dir=$CONDA_PREFIX/tmp/cuda
-tmp_dir=$CUDA_PREFIX/tmp
+install_dir=$CONDA_PREFIX/tmp/cuda_install
+tmp_dir=$CONDA_PREFIX/tmp/cuda_tmp
 
 echo "Creating folders"
 mkdir -p $install_dir $tmp_dir
@@ -73,5 +73,6 @@ do
     find $install_dir -name "${f}*"  -exec cp -a {} $PREFIX/include \;
 done
 
-echo "Removing installation folder"
+echo "Removing installation and temporary folders"
 rm -rf $install_dir
+rm -rf $tmp_dir
