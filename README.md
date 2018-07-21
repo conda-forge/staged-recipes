@@ -30,7 +30,7 @@ Your final recipe should have no comments and follow the order in the example.
 
 ### 2. **How do I populate the `hash` field?**
 
-If your package is on PyPI, you can get the md5 hash from your package's page on PyPI; look for the `md5` link next to the download link for your package. The sha256 hash can be looked up on the (currently beta) new PyPI website https://pypi.org (SHA256 sums are available next to each package download).
+If your package is on [PyPI](https://pypi.org), you can get the sha256 hash from your package's page on PyPI; look for the `SHA256` link next to the download link for your package.
 
 You can also generate a hash from the command line on Linux (and Mac if you install the necessary tools below). If you go this route, the `sha256` hash is preferable to the `md5` hash.
 
