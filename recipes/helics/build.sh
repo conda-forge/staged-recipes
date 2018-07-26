@@ -15,3 +15,5 @@ cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=$FLAGS -DBUILD_PYTHON_INTERFA
 make -j $CPU_COUNT
 make install
 
+cp -v ${PREFIX}/python/_helics.so ${SP_DIR}/
+cp -v ${PREFIX}/python/helics.py ${SP_DIR}/
