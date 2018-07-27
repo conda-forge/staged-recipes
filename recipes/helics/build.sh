@@ -10,8 +10,7 @@ else
 	FLAGS="-std=c++11"
 fi
 
-if test "${PY3K}" = "1"
-then
+if [[ $PY3K -eq 1 || $PY3K == "True" ]]; then
   BUILD_PYTHON="-DBUILD_PYTHON_INTERFACE=ON"
 else
   BUILD_PYTHON="-DBUILD_PYTHON2_INTERFACE=ON"
