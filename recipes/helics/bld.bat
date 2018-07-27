@@ -7,7 +7,7 @@ if %PY3K% equ 1 (
 
 mkdir "%SRC_DIR%"\build
 pushd "%SRC_DIR%"\build
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" %BUILD_PYTHON%" -G "Ninja" ..
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=%PREFIX% -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" %BUILD_PYTHON%" -G "Ninja" ..
 ninja
 ninja install
 
