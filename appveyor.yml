@@ -1,0 +1,105 @@
+environment:
+  global:
+    # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
+    # /E:ON and /V:ON options are not enabled in the batch script intepreter
+    # See: http://stackoverflow.com/a/13751649/163740
+    CMD_IN_ENV: 'cmd /E:ON /V:ON /C .\tools\appveyor\run_with_env.cmd'
+    ANACONDA_TOKEN:
+      secure: D5QloxGQFVPhLII0tmYb4B1w1vTlQ39iDILECrYivXOOly+amR8htXxabtMTZfD8
+    PROJECT_NAME: helics
+    PROJECT_VERSION: 1.2.1
+    GITHUB_REPO_NAME: GMLC-TDC/HELICS-src
+
+  matrix:
+    - PYTHON_VERSION: 2.7
+      CONDA: C:\Miniconda
+
+    - PYTHON_VERSION: 3.7
+      CONDA: C:\Miniconda37
+
+    - PYTHON_VERSION: 3.6
+      CONDA: C:\Miniconda36
+
+    - PYTHON_VERSION: 3.5
+      CONDA: C:\Miniconda35
+
+    - PYTHON_VERSION: 3.4
+      CONDA: C:\Miniconda34
+
+version: '{build}'
+image: Visual Studio 2015
+
+# For testing only...
+#skip_non_tags: true
+
+platform:
+- x86
+- x64
+
+branches:
+  only:
+    - master
+
+init:
+  - ps: if ($Env:PLATFORM -eq "x64") { $Env:CONDA = "${Env:CONDA}-x64" }
+  - ps: Write-Host $Env:PYTHON_VERSION
+  - ps: Write-Host $Env:CONDA
+  - ps: Write-Host $Env:GITHUB_REPO_NAME
+  - ps: Write-Host $Env:PLATFORM
+  - ps: Write-Host $Env:APPVEYOR_REPO_TAG
+  - ps: Write-Host $Env:APPVEYOR_REPO_TAG_NAME
+  - ps: Write-Host $Env:APPVEYOR_REPO_NAME
+
+install:
+# Make sure the compiler is accessible
+- '"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" %PLATFORM%'
+
+# Load the conda root environment, configure and install some packages
+- '"%CONDA%\Scripts\activate.bat"'
+- conda config --set always_yes yes --set changeps1 no
+- conda update -q conda
+- conda install conda-build anaconda-client
+# Show conda info for debugging
+- conda info -a
+
+# Set the version info from the git tag
+- set /P PROJECT_VERSION=%VERSION%
+
+build: false
+
+test_script:
+  # Build the package
+  - "%CMD_IN_ENV% conda build helics"
+
+after_test:
+  # Copy the conda build to the home dir, such that it can be registerd as an artifact
+  - move %CONDA%\conda-bld .
+
+artifacts:
+  # Files to be uploaded
+  - path: 'conda-bld\win-*\*.tar.bz2'
+
+on_success:
+# Upload to anaconda, with the correct label derived from the version tag.
+# This is virtually impossible with a normal dos batch script...
+# It also contains an incredibly clunky way to avoid build failure when anaconda writes
+# something harmless to stderr. The normal way does not work!
+# & anaconda $parameters 2>&1
+# Powershell should be called Powerhell!
+- ps:
+    if (($Env:APPVEYOR_REPO_TAG -eq "true") -and
+        ($Env:APPVEYOR_REPO_NAME -eq ${Env:GITHUB_REPO_NAME})) {
+      $tar_glob = ".\conda-bld\win-*\${Env:PROJECT_NAME}-*.tar.bz2";
+      Write-Host "tar_glob $tar_glob";
+      if ($Env:APPVEYOR_REPO_TAG_NAME -like "*a*") {
+        $anaconda_label = "alpha"
+      } elseif ($Env:APPVEYOR_REPO_TAG_NAME -like "*b*") {
+        $anaconda_label = "beta"
+      } else {
+        $anaconda_label = "main"
+      };
+      Write-Host "anaconda_label $anaconda_label";
+      $parameters = '-t', "$Env:ANACONDA_TOKEN", 'upload', "$tar_glob", '-l',
+                    "$anaconda_label", '--force', '--no-progress';
+      & cmd /c 'anaconda 2>&1' $parameters;
+    }
