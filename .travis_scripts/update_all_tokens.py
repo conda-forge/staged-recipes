@@ -63,7 +63,9 @@ def update_appveyor_yml(forge_code):
     token = forge_code['appveyor']['secure']['BINSTAR_TOKEN']
     appveyor_yml = os.path.join(feedstock_directory, 'appveyor.yml')
     if not os.path.exists(appveyor_yml):
-        return
+        appveyor_yml = os.path.join(feedstock_directory, '.appveyor.yml')
+        if not os.path.exists(appveyor_yml):
+            return
     with open(appveyor_yml, 'r') as fh:
         lines = [line for line in fh]
     with open(appveyor_yml, 'w') as fh:
@@ -71,11 +73,11 @@ def update_appveyor_yml(forge_code):
             if line.lstrip().startswith('secure:'):
                 line = line.split(':')[0] + ': ' + token + '\n'
             fh.write(line)
-    subprocess.check_output(["git", "add", "appveyor.yml"])
+    subprocess.check_output(["git", "add", appveyor_yml])
 
 
 if __name__ == '__main__':
-    expected_appveyor_token = "ipv/06DzgA7pzz2CIAtbPxZSsphDtF+JFyoWRnXkn3O8j7oRe3rzqj3LOoq2DZp4"
+    expected_appveyor_token = "tumuXLL8PU75WMnRDemRy02ruEq2RpNxeK3dz0MjFssnosPm2v4EFjfNB4PTotA1"
     owner = 'conda-forge'
     gh = Github(gh_token)
     org = gh.get_organization(owner)
