@@ -15,9 +15,11 @@ mkdir -p $PREFIX/{lib,include}
 # Install
 UNAME=`uname`
 if [[ $UNAME == "Linux" ]]; then
+    find_args=""
     chmod ugo+x $filename
     ./$filename --silent --toolkit --toolkitpath=$install_dir --override
 else
+    find_args="-type f"
     # open
     hdiutil attach -mountpoint $tmp_dir $filename
     
@@ -63,14 +65,14 @@ echo "Copying lib files:"
 for f in $cuda_libs
 do
     echo "- $f ..."
-    find $install_dir -name "${f}*"  -exec cp -a {} $PREFIX/lib \;
+    find $install_dir ${find_args} -name "${f}*"  -exec cp -a {} $PREFIX/lib \;
 done
 
 echo "Copying header files:"
 for f in $cuda_h
 do
     echo "- $f ..."
-    find $install_dir -name "${f}*"  -exec cp -a {} $PREFIX/include \;
+    find $install_dir ${find_args} -name "${f}*"  -exec cp -a {} $PREFIX/include \;
 done
 
 echo "Removing installation and temporary folders"
