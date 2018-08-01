@@ -1,4 +1,7 @@
-""" BSD 2-Clause License
+"""
+Adapted from https://github.com/numba/conda-recipe-cudatoolkit/blob/master/scripts/build.py
+
+BSD 2-Clause License
 
 Copyright (c) 2018 Onwards, Quansight, LLC
 Copyright (c) 2017, Continuum Analytics, Inc.
@@ -60,28 +63,25 @@ def copy_files(src, dst):
         pass
 
 
-cu_92 = {"linux": {}, "windows": {}, "osx": {}}
-cu_92["base_url"] = "https://developer.nvidia.com/compute/cuda/9.2/Prod2/"
-cu_92["installers_url_ext"] = "local_installers/"
-cu_92["patch_url_ext"] = ""
-cu_92["md5_url"] = "http://developer.download.nvidia.com/compute/cuda/9.2/Prod2/docs/sidebar/md5sum.txt"
+cudatoolkit = {"linux": {}, "windows": {}, "osx": {}}
+cudatoolkit["base_url"] = "https://developer.nvidia.com/compute/cuda/9.2/Prod2/"
+cudatoolkit["installers_url_ext"] = "local_installers/"
+cudatoolkit["patch_url_ext"] = ""
+cudatoolkit["md5_url"] = "http://developer.download.nvidia.com/compute/cuda/9.2/Prod2/docs/sidebar/md5sum.txt"
 
-cu_92['libdevice_versions'] = ['10']
+cudatoolkit['libdevice_versions'] = ['10']
 
-cu_92['linux'] = {'blob': 'cuda_9.2.148_396.37_linux',
-                  'patches': [],
-                  }
+cudatoolkit['linux'] = {'blob': 'cuda_9.2.148_396.37_linux',
+                        }
 
-cu_92['windows'] = {'blob': 'cuda_9.2.148_windows',
-                    'patches': [],
-                    'NvToolsExtPath':
-                    os.path.join('c:' + os.sep, 'Program Files',
-                                 'NVIDIA Corporation', 'NVToolsExt', 'bin')
-                    }
+cudatoolkit['windows'] = {'blob': 'cuda_9.2.148_windows',
+                          'NvToolsExtPath':
+                          os.path.join('c:' + os.sep, 'Program Files',
+                                       'NVIDIA Corporation', 'NVToolsExt', 'bin')
+                          }
 
-cu_92['osx'] = {'blob': 'cuda_9.2.148_mac',
-                'patches': [],
-                }
+cudatoolkit['osx'] = {'blob': 'cuda_9.2.148_mac',
+                      }
 
 
 class Extractor(object):
@@ -116,7 +116,6 @@ class Extractor(object):
         except FileExistsError:
             pass
 
-        self.output_dir = os.path.join(self.prefix, self.libdir[getplatform()])
         self.symlinks = getplatform() == "linux"
         self.debug_install_path = os.environ.get('DEBUG_INSTALLER_PATH')
 
@@ -199,12 +198,7 @@ class Extractor(object):
         """The method to delete unnecessary files after
         the installation process.
         """
-        blob_path = os.path.join(self.src_dir, self.cu_blob)
-        if os.path.exists(blob_path):
-            os.remove(blob_path)
-
-        else:
-            pass
+        raise RuntimeError("Must implement")
 
 
 class WindowsExtractor(Extractor):
@@ -221,6 +215,9 @@ class WindowsExtractor(Extractor):
         except subprocess.CalledProcessError as e:
             print("ERROR: Couldn't install Cudatoolkit: \
                    {reason}".format(reason=e))
+
+    def cleanup(self):
+        pass
 
 
 class LinuxExtractor(Extractor):
@@ -239,6 +236,14 @@ class LinuxExtractor(Extractor):
             print("ERROR: Couldn't install Cudatoolkit: \
                    {reason}".format(reason=e))
 
+    def cleanup(self):
+        blob_path = os.path.join(self.src_dir, self.cu_blob)
+        if os.path.exists(blob_path):
+            os.remove(blob_path)
+
+        else:
+            pass
+
 
 class OsxExtractor(Extractor):
     """The osx Extractor
@@ -251,20 +256,70 @@ class OsxExtractor(Extractor):
         """
         # open
         cmd = ['hdiutil', 'attach', '-mountpoint', temp_dir, file_name]
-        subprocess.check_call(cmd)
+        cmd = ' '.join(cmd)
+        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+        process.wait()
         # find tar.gz files
-        cmd = ['find', temp_dir, '-name', '"*.tar.gz"', '-exec', 'tar',
-               'xvf', '{}', '--directory', install_dir, "\\", ";"]
-        subprocess.check_call(cmd)
+        cmd = [
+            'find',
+            temp_dir,
+            '-name',
+            '"*.tar.gz"',
+            '-exec',
+            'tar',
+            'xvf',
+            "'{}'",
+            '--directory',
+            install_dir,
+            "';'"]
+        cmd = ' '.join(cmd)
+        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+        process.wait()
         # close
-        subprocess.check_call(['hdiutil', 'detach', temp_dir])
+        cmd = ['hdiutil', 'detach', temp_dir]
+        cmd = ' '.join(cmd)
+        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+        process.wait()
+
+    def copy_files(self):
+        src = Path(self.extract_temp_dir) / 'Developer' / \
+            'NVIDIA' / 'CUDA-{}'.format(self.cu_version)
+        dst = self.src_dir
+
+        for f in os.listdir(src):
+            source = src / f
+            destination = dst / f
+            try:
+                shutil.copytree(source, destination)
+            except NotADirectoryError:
+                shutil.copy(source, destination)
 
     def extract(self):
         runfile = os.path.join(self.src_dir, self.cu_blob)
         extract_store_name = 'tmpstore'
-        extract_store = os.path.join(self.src_dir, extract_store_name)
-        os.mkdir(extract_store)
-        self._hdiutil_mount(extract_store, runfile, self.src_dir)
+        extract_temp_dir_name = 'tmp'
+        self.extract_store = os.path.join(self.src_dir, extract_store_name)
+        self.extract_temp_dir = os.path.join(
+            self.src_dir, extract_temp_dir_name)
+        create_dir(self.extract_store)
+        create_dir(self.extract_temp_dir)
+        self._hdiutil_mount(self.extract_store, runfile, self.extract_temp_dir)
+        self.copy_files()
+
+    def cleanup(self):
+        blob_path = os.path.join(self.src_dir, self.cu_blob)
+        if os.path.exists(blob_path):
+            os.remove(blob_path)
+
+        else:
+            pass
+
+        try:
+            shutil.rmtree(self.extract_store)
+            shutil.rmtree(self.extract_temp_dir)
+
+        except FileNotFoundError:
+            pass
 
 
 def getplatform():
@@ -297,7 +352,7 @@ def _main():
     # get an extractor
     plat = getplatform()
     extractor_impl = dispatcher[plat]
-    version_cfg = cu_92
+    version_cfg = cudatoolkit
     extractor = extractor_impl(
         cu_version,
         cu_name,
