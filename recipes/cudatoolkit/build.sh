@@ -16,18 +16,26 @@ mkdir -p $PREFIX/{lib,include}
 UNAME=`uname`
 if [[ $UNAME == "Linux" ]]; then
     find_args=""
+    libs_path=""
     chmod ugo+x $filename
     ./$filename --silent --toolkit --toolkitpath=$install_dir --override
 else
     find_args="-type f"
-    # open
-    hdiutil attach -mountpoint $tmp_dir $filename
+    libs_path="Developer/NVIDIA/CUDA-${PKG_VERSION}"
+
+    # create tmp folders
+    mkdir $tmp_dir/mount
+    mkdir $tmp_dir/install
+
+    # mount
+    hdiutil attach -mountpoint $tmp_dir/mount $filename
     
     # find tar.gz files
-    find $tmp_dir -name "*.tar.gz"  -exec tar xvf {} --directory=$install_dir \;
+    find $tmp_dir/mount -name "*.tar.gz"  -exec tar xvf {} --directory=$tmp_dir/install \;
+    mv $tmp_dir/install/$libs_path $install_dir
 
     # close
-    hdiutil detach $tmp_dir
+    hdiutil detach $tmp_dir/mount
 fi
 
 echo "Removing unnecessary folders"
