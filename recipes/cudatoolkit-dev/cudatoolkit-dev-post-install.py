@@ -60,13 +60,7 @@ def copy_files(src, dst):
         pass
 
 
-config = {}
-versions = ["9.2"]
-for v in versions:
-    config[v] = {"linux": {}, "windows": {}, "osx": {}}
-
-
-cu_92 = config["9.2"]
+cu_92 = {"linux": {}, "windows": {}, "osx": {}}
 cu_92["base_url"] = "https://developer.nvidia.com/compute/cuda/9.2/Prod2/"
 cu_92["installers_url_ext"] = "local_installers/"
 cu_92["patch_url_ext"] = ""
@@ -113,7 +107,6 @@ class Extractor(object):
         self.patch_url_text = ver_config["patch_url_ext"]
         self.installers_url_ext = ver_config["installers_url_ext"]
         self.cu_blob = platform_config['blob']
-        self.config = {"version": version, **ver_config}
         self.conda_prefix = os.environ.get('CONDA_PREFIX')
         self.prefix = os.environ["PREFIX"]
         self.src_dir = Path(self.conda_prefix) / 'pkgs' / self.cu_name
@@ -304,7 +297,7 @@ def _main():
     # get an extractor
     plat = getplatform()
     extractor_impl = dispatcher[plat]
-    version_cfg = config[cu_version]
+    version_cfg = cu_92
     extractor = extractor_impl(
         cu_version,
         cu_name,
