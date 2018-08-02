@@ -34,6 +34,8 @@ else
     find $tmp_dir/mount -name "*.tar.gz"  -exec tar xvf {} --directory=$tmp_dir/install \;
     mv $tmp_dir/install/$libs_path $install_dir
 
+    ls -lsR $install_dir
+
     # close
     hdiutil detach $tmp_dir/mount
 fi
