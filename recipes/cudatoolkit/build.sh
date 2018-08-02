@@ -20,6 +20,7 @@ if [[ $UNAME == "Linux" ]]; then
     chmod ugo+x $filename
     ./$filename --silent --toolkit --toolkitpath=$install_dir --override
 else
+    sw_vers
     find_args=""
     libs_path="Developer/NVIDIA/CUDA-${PKG_VERSION}"
 
@@ -33,8 +34,6 @@ else
     # find tar.gz files
     find $tmp_dir/mount -name "*.tar.gz"  -exec tar xvf {} --directory=$tmp_dir/install \;
     mv $tmp_dir/install/$libs_path $install_dir
-
-    ls -lsR $install_dir
 
     # close
     hdiutil detach $tmp_dir/mount
@@ -84,6 +83,8 @@ do
     echo "- $f ..."
     find $install_dir ${find_args} -name "${f}*"  -exec cp -a {} $PREFIX/include \;
 done
+
+ls -lahR $PREFIX/lib
 
 echo "Removing installation and temporary folders"
 rm -rf $install_dir
