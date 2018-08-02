@@ -83,6 +83,8 @@ do
     find $install_dir ${find_args} -name "${f}*"  -exec cp -a {} $PREFIX/include \;
 done
 
+ls -lahR $PREFIX/lib
+
 echo "Removing installation and temporary folders"
 rm -rf $install_dir
 rm -rf $tmp_dir
