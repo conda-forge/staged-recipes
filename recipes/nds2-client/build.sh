@@ -10,5 +10,5 @@ cmake \
     -DPYTHON_MODULE_INSTALL_DIR=${SP_DIR} \
     -DPYTHON_EXTMODULE_INSTALL_DIR=${SP_DIR}
 
-cmake --build .
+cmake --build . --config Release -- -j${CPU_COUNT}
 cmake --build . -- install
