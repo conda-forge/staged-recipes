@@ -46,7 +46,7 @@ do
     rm -rf $install_dir/$f
 done
 
-ls -lah$ $install_dir
+ls -lahR $install_dir
 
 cuda_libs="libcudart libcudart_static libcudadevrt"
 cuda_libs+=" libcufft libcufft_static libcufftw libcufftw_static"
