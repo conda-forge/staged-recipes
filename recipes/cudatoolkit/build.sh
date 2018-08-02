@@ -20,7 +20,6 @@ if [[ $UNAME == "Linux" ]]; then
     chmod ugo+x $filename
     ./$filename --silent --toolkit --toolkitpath=$install_dir --override
 else
-    sw_vers
     find_args=""
     libs_path="Developer/NVIDIA/CUDA-${PKG_VERSION}"
 
@@ -33,7 +32,7 @@ else
     
     # find tar.gz files
     find $tmp_dir/mount -name "*.tar.gz"  -exec tar xvf {} --directory=$tmp_dir/install \;
-    mv $tmp_dir/install/$libs_path $install_dir
+    mv $tmp_dir/install/$libs_path/* $install_dir
 
     # close
     hdiutil detach $tmp_dir/mount
@@ -45,8 +44,6 @@ for f in $excluded_dirs
 do
     rm -rf $install_dir/$f
 done
-
-ls -lahR $install_dir
 
 cuda_libs="libcudart libcudart_static libcudadevrt"
 cuda_libs+=" libcufft libcufft_static libcufftw libcufftw_static"
@@ -85,8 +82,6 @@ do
     echo "- $f ..."
     find $install_dir ${find_args} -name "${f}*"  -exec cp -a {} $PREFIX/include \;
 done
-
-ls -lahR $PREFIX/lib
 
 echo "Removing installation and temporary folders"
 rm -rf $install_dir
