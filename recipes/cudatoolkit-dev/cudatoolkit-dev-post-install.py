@@ -271,6 +271,8 @@ class OsxExtractor(Extractor):
                 shutil.copytree(source, destination)
             except NotADirectoryError:
                 shutil.copy(source, destination)
+            except FileExistsError:
+                pass
 
     def extract(self):
         runfile = os.path.join(self.src_dir, self.cu_blob)
