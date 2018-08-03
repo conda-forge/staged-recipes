@@ -20,7 +20,7 @@ if [[ $UNAME == "Linux" ]]; then
     chmod ugo+x $filename
     ./$filename --silent --toolkit --toolkitpath=$install_dir --override
 else
-    find_args=""
+    find_args="-type f"
     libs_path="Developer/NVIDIA/CUDA-${PKG_VERSION}"
 
     # create tmp folders
