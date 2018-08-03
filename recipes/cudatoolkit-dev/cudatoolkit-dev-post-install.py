@@ -31,15 +31,17 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. """
 
 from __future__ import print_function
+
+import json
 import os
-import sys
 import shutil
+import stat
+import subprocess
+import sys
 import urllib.parse as urlparse
 from pathlib import Path
-import subprocess
+
 from conda.exports import download, hashsum_file
-import stat
-import json
 
 
 def set_chmod(file_name):

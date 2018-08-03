@@ -1,10 +1,11 @@
 from __future__ import print_function
-import os
-import shutil
-from pathlib import Path
-import stat
+
 import argparse
 import json
+import os
+import shutil
+import stat
+from pathlib import Path
 
 
 def set_chmod(file_name):
