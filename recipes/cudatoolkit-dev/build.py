@@ -1,8 +1,11 @@
 from __future__ import print_function
+
+import argparse
+import json
 import os
 import shutil
-from pathlib import Path
 import stat
+from pathlib import Path
 
 
 def set_chmod(file_name):
@@ -20,7 +23,7 @@ def copy_files(src, dst):
         pass
 
 
-def _main():
+def _main(args):
 
     prefix_dir_path = Path(os.environ['PREFIX'])
     prefix_bin_dir_path = prefix_dir_path / 'bin'
@@ -32,7 +35,19 @@ def _main():
     src = recipe_dir_path / 'cudatoolkit-dev-post-install.py'
     dst = prefix_bin_dir_path
     copy_files(src, dst)
+    with open(prefix_bin_dir_path / 'cudatoolkit-dev-extra-args.txt', 'w') as f:
+        f.write(json.dumps(args))
 
 
 if __name__ == "__main__":
-    _main()
+    parser = argparse.ArgumentParser(
+        description='Build script for cudatoolkit-dev')
+
+    parser.add_argument('version_build', action="store", type=str)
+    parser.add_argument('driver_version', action="store", type=str)
+    results = parser.parse_args()
+    args = dict()
+    args = {'version_build': results.version_build,
+            'driver_version': results.driver_version, }
+
+    _main(args)
