@@ -2,6 +2,7 @@
 
 cmake \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+    -DCMAKE_DISABLE_FIND_PACKAGE_Doxygen=true \
     -DWITH_SASL=${PREFIX} \
     -DWITH_GSSAPI=no \
     -DPYTHON=false \
