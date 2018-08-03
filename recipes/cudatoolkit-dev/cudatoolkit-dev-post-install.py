@@ -39,6 +39,7 @@ from pathlib import Path
 import subprocess
 from conda.exports import download, hashsum_file
 import stat
+import json
 
 
 def set_chmod(file_name):
@@ -63,27 +64,6 @@ def copy_files(src, dst):
         pass
 
 
-cudatoolkit = {"linux": {}, "windows": {}, "osx": {}}
-cudatoolkit["base_url"] = "https://developer.nvidia.com/compute/cuda/9.2/Prod2/"
-cudatoolkit["installers_url_ext"] = "local_installers/"
-cudatoolkit["patch_url_ext"] = ""
-cudatoolkit["md5_url"] = "http://developer.download.nvidia.com/compute/cuda/9.2/Prod2/docs/sidebar/md5sum.txt"
-
-cudatoolkit['libdevice_versions'] = ['10']
-
-cudatoolkit['linux'] = {'blob': 'cuda_9.2.148_396.37_linux',
-                        }
-
-cudatoolkit['windows'] = {'blob': 'cuda_9.2.148_windows',
-                          'NvToolsExtPath':
-                          os.path.join('c:' + os.sep, 'Program Files',
-                                       'NVIDIA Corporation', 'NVToolsExt', 'bin')
-                          }
-
-cudatoolkit['osx'] = {'blob': 'cuda_9.2.148_mac',
-                      }
-
-
 class Extractor(object):
     """Extractor base class, platform specific extractors should inherit
     from this class.
@@ -92,20 +72,18 @@ class Extractor(object):
               'osx': 'lib',
               'windows': 'DLLs', }
 
-    def __init__(self, version, name, build_num, ver_config, platform_config):
+    def __init__(self, cudatoolkit_config, platform_config):
         """Initialise an instance:
         Arguments:
-          version - CUDA version string
-          ver_config - the configuration for this CUDA version
+          cudatoolkit_config: the configuration for CUDA
           platform_config - the configuration for this platform
         """
-        self.cu_name = name
-        self.cu_buildnum = build_num
-        self.cu_version = version
-        self.md5_url = ver_config["md5_url"]
-        self.base_url = ver_config["base_url"]
-        self.patch_url_text = ver_config["patch_url_ext"]
-        self.installers_url_ext = ver_config["installers_url_ext"]
+        self.cu_name = cudatoolkit_config['name']
+        self.cu_version = cudatoolkit_config['version']
+        self.md5_url = cudatoolkit_config["md5_url"]
+        self.base_url = cudatoolkit_config["base_url"]
+        self.patch_url_text = cudatoolkit_config["patch_url_ext"]
+        self.installers_url_ext = cudatoolkit_config["installers_url_ext"]
         self.cu_blob = platform_config['blob']
         self.conda_prefix = os.environ.get('CONDA_PREFIX')
         self.prefix = os.environ["PREFIX"]
@@ -334,6 +312,39 @@ def getplatform():
         raise RuntimeError("Unknown platform")
 
 
+def set_config():
+    """Set necessary configurations"""
+
+    cudatoolkit = {"linux": {}, "windows": {}, "osx": {}}
+    prefix = Path(os.environ["PREFIX"])
+    extra_args = dict()
+    with open(prefix / 'scripts' / 'cudatoolkit-dev-extra-args.txt', 'r') as f:
+        extra_args = json.loads(f.read())
+
+    # package version decl must match cuda release version
+    cudatoolkit["version"] = os.environ['PKG_VERSION']
+    cudatoolkit["name"] = os.environ['PKG_NAME']
+    cudatoolkit["buildnum"] = os.environ['PKG_BUILDNUM']
+    cudatoolkit["version_build"] = extra_args['version_build']
+    cudatoolkit["driver_version"] = extra_args['driver_version']
+    cudatoolkit["base_url"] = f'https://developer.nvidia.com/compute/cuda/{cudatoolkit["version"]}/Prod2/'
+    cudatoolkit["installers_url_ext"] = f'local_installers/'
+    cudatoolkit["patch_url_ext"] = f""
+    cudatoolkit["md5_url"] = f'http://developer.download.nvidia.com/compute/cuda/{cudatoolkit["version"]}/Prod2/docs/sidebar/md5sum.txt'
+
+    cudatoolkit["linux"] = {
+        'blob': f'cuda_{cudatoolkit["version"]}.{cudatoolkit["version_build"]}_{cudatoolkit["driver_version"]}_linux',
+    }
+
+    cudatoolkit["windows"] = {
+        'blob': f'cuda_{cudatoolkit["version"]}.{cudatoolkit["version_build"]}_windows', }
+
+    cudatoolkit["osx"] = {
+        'blob': f'cuda_{cudatoolkit["version"]}.{cudatoolkit["version_build"]}_mac', }
+
+    return cudatoolkit
+
+
 dispatcher = {
     "linux": LinuxExtractor,
     "windows": WindowsExtractor,
@@ -344,21 +355,14 @@ def _main():
 
     print("Running Post installation")
 
-    # package version decl must match cuda release version
-    cu_version = os.environ['PKG_VERSION']
-    cu_name = os.environ['PKG_NAME']
-    cu_buildnum = os.environ['PKG_BUILDNUM']
+    cudatoolkit_config = set_config()
 
     # get an extractor
     plat = getplatform()
     extractor_impl = dispatcher[plat]
-    version_cfg = cudatoolkit
     extractor = extractor_impl(
-        cu_version,
-        cu_name,
-        cu_buildnum,
-        version_cfg,
-        version_cfg[plat])
+        cudatoolkit_config,
+        cudatoolkit_config[plat])
 
     # create activate and deactivate scripts
     extractor.create_activate_and_deactivate_scripts()

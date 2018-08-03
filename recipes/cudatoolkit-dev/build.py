@@ -3,6 +3,8 @@ import os
 import shutil
 from pathlib import Path
 import stat
+import argparse
+import json
 
 
 def set_chmod(file_name):
@@ -35,4 +37,16 @@ def _main():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description='Build script for cudatoolkit-dev')
+
+    parser.add_argument('version_build', action="store", type=str)
+    parser.add_argument('driver_version', action="store", type=str)
+    results = parser.parse_args()
+    args = dict()
+    args = {'version_build': results.version_build,
+            'driver_version': results.driver_version, }
+    with open('./scripts/cudatoolkit-dev-extra-args.txt', 'w') as file:
+        file.write(json.dumps(args))
+
     _main()
