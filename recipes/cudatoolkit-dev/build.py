@@ -22,7 +22,7 @@ def copy_files(src, dst):
         pass
 
 
-def _main():
+def _main(args):
 
     prefix_dir_path = Path(os.environ['PREFIX'])
     prefix_bin_dir_path = prefix_dir_path / 'bin'
@@ -34,6 +34,8 @@ def _main():
     src = recipe_dir_path / 'cudatoolkit-dev-post-install.py'
     dst = prefix_bin_dir_path
     copy_files(src, dst)
+    with open(prefix_bin_dir_path / 'cudatoolkit-dev-extra-args.txt', 'w') as f:
+        f.write(json.dumps(args))
 
 
 if __name__ == "__main__":
@@ -46,7 +48,5 @@ if __name__ == "__main__":
     args = dict()
     args = {'version_build': results.version_build,
             'driver_version': results.driver_version, }
-    with open('./scripts/cudatoolkit-dev-extra-args.txt', 'w') as file:
-        file.write(json.dumps(args))
 
-    _main()
+    _main(args)

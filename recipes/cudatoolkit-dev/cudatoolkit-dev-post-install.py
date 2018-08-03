@@ -318,7 +318,7 @@ def set_config():
     cudatoolkit = {"linux": {}, "windows": {}, "osx": {}}
     prefix = Path(os.environ["PREFIX"])
     extra_args = dict()
-    with open(prefix / 'scripts' / 'cudatoolkit-dev-extra-args.txt', 'r') as f:
+    with open(prefix / 'bin' / 'cudatoolkit-dev-extra-args.txt', 'r') as f:
         extra_args = json.loads(f.read())
 
     # package version decl must match cuda release version
