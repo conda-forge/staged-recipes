@@ -80,6 +80,7 @@ if __name__ == '__main__':
     expected_appveyor_token = "tumuXLL8PU75WMnRDemRy02ruEq2RpNxeK3dz0MjFssnosPm2v4EFjfNB4PTotA1"
     owner = 'conda-forge'
     gh = Github(gh_token)
+    gh.per_page = 100
     org = gh.get_organization(owner)
     cwd = os.getcwd()
     split_num, no_cases = os.getenv("TEST_SPLIT", "0/1").split("/")
