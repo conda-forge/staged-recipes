@@ -29,7 +29,7 @@ if 'GH_TOKEN' in os.environ:
 
 from conda_smithy.ci_register import (add_token_to_circle, travis_headers,
     travis_encrypt_binstar_token, appveyor_encrypt_binstar_token,
-    travis_token_update_conda_forge_config)
+    travis_token_update_conda_forge_config, appveyor_configure)
 
 def read_conda_forge_yml():
     forge_yaml = os.path.join(feedstock_directory, 'conda-forge.yml')
@@ -107,6 +107,7 @@ if __name__ == '__main__':
                 travis_token_update_conda_forge_config(feedstock_directory, owner, repo)
                 add_token_to_circle(owner, repo)
                 appveyor_encrypt_binstar_token(feedstock_directory, owner, repo)
+                appveyor_configure(owner, repo)
 
                 forge_code = read_conda_forge_yml()
                 update_travis_yml(forge_code)
