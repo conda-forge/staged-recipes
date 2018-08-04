@@ -106,7 +106,7 @@ if __name__ == '__main__':
                 travis_token_update_conda_forge_config(feedstock_directory, owner, repo)
                 add_token_to_circle(owner, repo)
                 appveyor_encrypt_binstar_token(feedstock_directory, owner, repo)
-                appveyor_configure(owner, repo)
+                # appveyor_configure(owner, repo)
 
                 forge_code = read_conda_forge_yml()
                 update_travis_yml(forge_code)
