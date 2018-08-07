@@ -51,9 +51,7 @@ CXXFLAGS="$CXXFLAGS -std=gnu++0x"
 
 # Run the configure script
 
-./configure --prefix=$PREFIX \
-	    --with-zlib=$PREFIX \
-	    --with-bzip=$PREFIX
+./configure --prefix=$PREFIX
 
 # Compile, check and install
 
