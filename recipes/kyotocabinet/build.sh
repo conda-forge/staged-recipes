@@ -44,10 +44,10 @@ patch < $PATCH_FILE
 
 # Set compiler flags
 
-CFLAGS="$CFLAGS -std=gnu++0x"
-LDFLAGS="$LDFLAGS -std=gnu++0x"
-CPPFLAGS="$CPPFLAGS -std=gnu++0x"
-CXXFLAGS="$CXXFLAGS -std=gnu++0x"
+CFLAGS="$CFLAGS -std=c++0x"
+LDFLAGS="$LDFLAGS -std=c++0x"
+CPPFLAGS="$CPPFLAGS -std=c++0x"
+CXXFLAGS="$CXXFLAGS -std=c++0x"
 
 # Run the configure script
 
