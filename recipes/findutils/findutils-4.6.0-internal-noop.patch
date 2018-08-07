@@ -1,0 +1,195 @@
+From d844b7bbf3952998a906f21ba432aa62a3b9c7c6 Mon Sep 17 00:00:00 2001
+From: Bernhard Voelker <mail@bernhard-voelker.de>
+Date: Tue, 14 Jun 2016 20:49:42 +0200
+Subject: [PATCH] Fix bug #48180: find: avoid segfault for internal '-noop'
+ option
+
+The pseudo-option '-noop' was never meant to be exposed to the user
+interface.  If specified by the user, find(1) segfaulted.
+Bug introduced in commit FINDUTILS_4_3_0-1-12-g6b8a4db.
+
+* find/parser.c (struct parser_table): Rename the parser_name element of
+the ARG_NOOP entry from 'noop' to '--noop', thus indicating its pure
+internal character.
+(found_parser): Return NULL when the user has passed the '---noop' option;
+the caller does the error handling.
+* find/testsuite/sv-48180-refuse-noop.sh: Add test.
+* find/testsuite/Makefile.am (test_shell_progs): Reference the test.
+* NEWS (Bug fixes): Document the fix.
+
+Reported by Tavian Barnes <tavianator@tavianator.com> in
+    https://savannah.gnu.org/bugs/?48180
+
+Upstream-commit: 595060f28eb5f658fa8d98970959c617fab0f078
+Signed-off-by: Kamil Dudka <kdudka@redhat.com>
+---
+ find/parser.c                          |   6 +-
+ find/testsuite/Makefile.am             |   3 +-
+ find/testsuite/sv-48180-refuse-noop.sh | 117 +++++++++++++++++++++++++++++++++
+ 3 files changed, 124 insertions(+), 2 deletions(-)
+ create mode 100644 find/testsuite/sv-48180-refuse-noop.sh
+
+diff --git a/find/parser.c b/find/parser.c
+index 2d45349..697b2a2 100644
+--- a/find/parser.c
++++ b/find/parser.c
+@@ -321,7 +321,8 @@ static struct parser_table const parse_table[] =
+    */
+   {ARG_TEST, "false",                 parse_false,   pred_false}, /* GNU */
+   {ARG_TEST, "true",                  parse_true,    pred_true }, /* GNU */
+-  {ARG_NOOP, "noop",                  NULL,          pred_true }, /* GNU, internal use only */
++  /* Internal pseudo-option, therefore 3 minus: ---noop.  */
++  {ARG_NOOP, "--noop",                NULL,          pred_true }, /* GNU, internal use only */
+ 
+   /* Various other cases that don't fit neatly into our macro scheme. */
+   {ARG_TEST, "help",                  parse_help,    NULL},       /* GNU */
+@@ -596,6 +597,9 @@ found_parser (const char *original_arg, const struct parser_table *entry)
+    */
+   if (entry->type != ARG_POSITIONAL_OPTION)
+     {
++      if (entry->type == ARG_NOOP)
++        return NULL;  /* internal use only, trap -noop here.  */
++
+       /* Something other than -follow/-daystart.
+        * If this is an option, check if it followed
+        * a non-option and if so, issue a warning.
+diff --git a/find/testsuite/Makefile.am b/find/testsuite/Makefile.am
+index ab5dbe8..1371c70 100644
+--- a/find/testsuite/Makefile.am
++++ b/find/testsuite/Makefile.am
+@@ -259,7 +259,8 @@ test_escape_c.sh \
+ test_inode.sh \
+ sv-34079.sh \
+ sv-34976-execdir-fd-leak.sh \
+-sv-48030-exec-plus-bug.sh
++sv-48030-exec-plus-bug.sh \
++sv-48180-refuse-noop.sh
+ 
+ EXTRA_DIST = $(EXTRA_DIST_EXP) $(EXTRA_DIST_XO) $(EXTRA_DIST_GOLDEN) \
+ 	$(test_shell_progs) binary_locations.sh checklists.py
+diff --git a/find/testsuite/sv-48180-refuse-noop.sh b/find/testsuite/sv-48180-refuse-noop.sh
+new file mode 100755
+index 0000000..974f0f0
+--- /dev/null
++++ b/find/testsuite/sv-48180-refuse-noop.sh
+@@ -0,0 +1,117 @@
++#! /bin/sh
++# Copyright (C) 2016 Free Software Foundation, Inc.
++#
++# This program is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program.  If not, see <http://www.gnu.org/licenses/>.
++#
++
++# This test verifies that find refuses the internal -noop, ---noop option.
++# Between findutils-4.3.1 and 4.6, find dumped core ($? = 139).
++
++testname="$(basename $0)"
++
++. "${srcdir}"/binary_locations.sh
++
++die() {
++  echo "$@" >&2
++  exit 1
++}
++
++# This is used to simplify checking of the return value
++# which is useful when ensuring a command fails as desired.
++# I.e., just doing `command ... &&fail=1` will not catch
++# a segfault in command for example.  With this helper you
++# instead check an explicit exit code like
++#   returns_ 1 command ... || fail
++returns_ () {
++  # Disable tracing so it doesn't interfere with stderr of the wrapped command
++  { set +x; } 2>/dev/null
++
++  local exp_exit="$1"
++  shift
++  "$@"
++  test $? -eq $exp_exit && ret_=0 || ret_=1
++
++  set -x
++  { return $ret_; } 2>/dev/null
++}
++
++# Define the nicest compare available (borrowed from gnulib).
++if diff_out_=`exec 2>/dev/null; diff -u "$0" "$0" < /dev/null` \
++   && diff -u Makefile "$0" 2>/dev/null | grep '^[+]#!' >/dev/null; then
++  # diff accepts the -u option and does not (like AIX 7 'diff') produce an
++  # extra space on column 1 of every content line.
++  if test -z "$diff_out_"; then
++    compare () { diff -u "$@"; }
++  else
++    compare ()
++    {
++      if diff -u "$@" > diff.out; then
++        # No differences were found, but Solaris 'diff' produces output
++        # "No differences encountered". Hide this output.
++        rm -f diff.out
++        true
++      else
++        cat diff.out
++        rm -f diff.out
++        false
++      fi
++    }
++  fi
++elif diff_out_=`exec 2>/dev/null; diff -c "$0" "$0" < /dev/null`; then
++  if test -z "$diff_out_"; then
++    compare () { diff -c "$@"; }
++  else
++    compare ()
++    {
++      if diff -c "$@" > diff.out; then
++        # No differences were found, but AIX and HP-UX 'diff' produce output
++        # "No differences encountered" or "There are no differences between the
++        # files.". Hide this output.
++        rm -f diff.out
++        true
++      else
++        cat diff.out
++        rm -f diff.out
++        false
++      fi
++    }
++  fi
++elif cmp -s /dev/null /dev/null 2>/dev/null; then
++  compare () { cmp -s "$@"; }
++else
++  compare () { cmp "$@"; }
++fi
++
++set -x
++tmpdir="$(mktemp -d)" \
++  && cd "$tmpdir" \
++  || die "FAIL: failed to set up the test in ${tmpdir}"
++
++fail=0
++# Exercise both the previous name of the pseudo-option '-noop',
++# and the now renamed '---noop' option for both find executables.
++for exe in "${ftsfind}" "${oldfind}"; do
++  for opt in 'noop' '--noop'; do
++    out="${exe}${opt}.out"
++    err="${exe}${opt}.err"
++    returns_ 1 "$exe" "-${opt}" >"$out" 2> "$err" || fail=1
++    compare /dev/null "$out" || fail=1
++    grep "find: unknown predicate .-${opt}." "$err" \
++      || { cat "$err"; fail=1; }
++  done
++done
++
++cd ..
++rm -rf "$tmpdir" || exit 1
++exit $fail
+-- 
+2.5.5
+

@@ -1,0 +1,226 @@
+From 443166adaf1c8b91e16a716f3b13f47493b895cc Mon Sep 17 00:00:00 2001
+From: Bernhard Voelker <mail@bernhard-voelker.de>
+Date: Tue, 31 May 2016 10:38:52 +0200
+Subject: [PATCH] Fix bug #48030: find: -exec + does not pass all arguments in
+ certain cases
+
+When the -exec arguments buffer (usually 128k) is full and the given
+command has been executed with all that arguments, find(1) missed to
+execute the command yet another time if only 1 another file would have
+to be processed.
+Both find(1), i.e., nowadays FTS-version, and oldfind are affected.
+This bug was present since the implementation of '-exec +' in 2005,
+see commit FINDUTILS_4_2_11-1-25-gf0a6ac6.
+
+* lib/buildcmd.c (bc_push_arg): Move the assignment to set 'state->todo'
+to 1 down after the immediate execution which resets that flag.
+* find/testsuite/sv-48030-exec-plus-bug.sh: Add a test.
+* find/testsuite/Makefile.am (test_shell_progs): Reference the test.
+* NEWS (Bug Fixes): Mention the fix.
+
+Reported by Joe Philip Ninan <indiajoe@gmail.com> in
+https://savannah.gnu.org/bugs/?48030
+
+Upstream-commit: 8cdc9767e305c9566f537af9d1acf71d1bc6ee8e
+Signed-off-by: Kamil Dudka <kdudka@redhat.com>
+---
+ find/testsuite/Makefile.am               |   3 +-
+ find/testsuite/sv-48030-exec-plus-bug.sh | 143 +++++++++++++++++++++++++++++++
+ lib/buildcmd.c                           |  10 +--
+ 3 files changed, 150 insertions(+), 6 deletions(-)
+ create mode 100644 find/testsuite/sv-48030-exec-plus-bug.sh
+
+diff --git a/find/testsuite/Makefile.am b/find/testsuite/Makefile.am
+index c1369c3..ab5dbe8 100644
+--- a/find/testsuite/Makefile.am
++++ b/find/testsuite/Makefile.am
+@@ -258,7 +258,8 @@ test_escapechars.sh \
+ test_escape_c.sh \
+ test_inode.sh \
+ sv-34079.sh \
+-sv-34976-execdir-fd-leak.sh
++sv-34976-execdir-fd-leak.sh \
++sv-48030-exec-plus-bug.sh
+ 
+ EXTRA_DIST = $(EXTRA_DIST_EXP) $(EXTRA_DIST_XO) $(EXTRA_DIST_GOLDEN) \
+ 	$(test_shell_progs) binary_locations.sh checklists.py
+diff --git a/find/testsuite/sv-48030-exec-plus-bug.sh b/find/testsuite/sv-48030-exec-plus-bug.sh
+new file mode 100755
+index 0000000..4dbf149
+--- /dev/null
++++ b/find/testsuite/sv-48030-exec-plus-bug.sh
+@@ -0,0 +1,143 @@
++#! /bin/sh
++# Copyright (C) 2016 Free Software Foundation, Inc.
++#
++# This program is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program.  If not, see <http://www.gnu.org/licenses/>.
++#
++
++# This test verifies that find invokes the given command for the
++# multiple-argument sytax '-exec CMD {} +'.  Between FINDUTILS-4.2.12
++# and v4.6.0, find(1) would have failed to execute CMD another time
++# if there was only one last single file argument.
++
++testname="$(basename $0)"
++
++. "${srcdir}"/binary_locations.sh
++
++die() {
++  echo "$@" >&2
++  exit 1
++}
++
++# This is used to simplify checking of the return value
++# which is useful when ensuring a command fails as desired.
++# I.e., just doing `command ... &&fail=1` will not catch
++# a segfault in command for example.  With this helper you
++# instead check an explicit exit code like
++#   returns_ 1 command ... || fail
++returns_ () {
++  # Disable tracing so it doesn't interfere with stderr of the wrapped command
++  { set +x; } 2>/dev/null
++
++  local exp_exit="$1"
++  shift
++  "$@"
++  test $? -eq $exp_exit && ret_=0 || ret_=1
++
++  set -x
++  { return $ret_; } 2>/dev/null
++}
++
++# Define the nicest compare available (borrowed from gnulib).
++if diff_out_=`exec 2>/dev/null; diff -u "$0" "$0" < /dev/null` \
++   && diff -u Makefile "$0" 2>/dev/null | grep '^[+]#!' >/dev/null; then
++  # diff accepts the -u option and does not (like AIX 7 'diff') produce an
++  # extra space on column 1 of every content line.
++  if test -z "$diff_out_"; then
++    compare () { diff -u "$@"; }
++  else
++    compare ()
++    {
++      if diff -u "$@" > diff.out; then
++        # No differences were found, but Solaris 'diff' produces output
++        # "No differences encountered". Hide this output.
++        rm -f diff.out
++        true
++      else
++        cat diff.out
++        rm -f diff.out
++        false
++      fi
++    }
++  fi
++elif diff_out_=`exec 2>/dev/null; diff -c "$0" "$0" < /dev/null`; then
++  if test -z "$diff_out_"; then
++    compare () { diff -c "$@"; }
++  else
++    compare ()
++    {
++      if diff -c "$@" > diff.out; then
++        # No differences were found, but AIX and HP-UX 'diff' produce output
++        # "No differences encountered" or "There are no differences between the
++        # files.". Hide this output.
++        rm -f diff.out
++        true
++      else
++        cat diff.out
++        rm -f diff.out
++        false
++      fi
++    }
++  fi
++elif cmp -s /dev/null /dev/null 2>/dev/null; then
++  compare () { cmp -s "$@"; }
++else
++  compare () { cmp "$@"; }
++fi
++
++DIR='RashuBug'
++# Name of the CMD to execute: the file name must be 6 characters long
++# (to trigger the bug in combination with the test files).
++CMD='tstcmd'
++
++# Create test files.
++make_test_data() {
++  # Create the CMD script and check that it works.
++  mkdir "$DIR" 'bin' \
++    && echo 'printf "%s\n" "$@"' > "bin/$CMD" \
++    && chmod +x "bin/$CMD" \
++    && PATH="$PWD/bin:$PATH" \
++    && [ $( "${ftsfind}" bin -maxdepth 0 -exec "$CMD" '{}' + ) = 'bin' ] \
++    || return 1
++
++  # Create expected output file - also used for creating the test data.
++  { seq -f "${DIR}/abcdefghijklmnopqrstuv%04g" 901 &&
++    seq -f "${DIR}/abcdefghijklmnopqrstu%04g" 902 3719
++  } > exp2 \
++    && LC_ALL=C sort exp2 > exp \
++    && rm exp2 \
++    || return 1
++
++  # Create test files, and check if test data has been created correctly.
++  xargs touch < exp \
++    && [ -f "${DIR}/abcdefghijklmnopqrstu3719" ] \
++    && [ 3719 = $( "${ftsfind}" "$DIR" -type f | wc -l ) ] \
++    || return 1
++}
++
++set -x
++tmpdir="$(mktemp -d)" \
++  && cd "$tmpdir" \
++  && make_test_data "${tmpdir}" \
++  || die "FAIL: failed to set up the test in ${tmpdir}"
++
++fail=0
++for exe in "${ftsfind}" "${oldfind}"; do
++  "$exe" "$DIR" -type f -exec "$CMD" '{}' + > out || fail=1
++  LC_ALL=C sort out > out2 || fail=1
++  compare exp out2 || fail=1
++done
++
++cd ..
++rm -rf "${tmpdir}" || exit 1
++exit $fail
+diff --git a/lib/buildcmd.c b/lib/buildcmd.c
+index a58f67e..27e9ce5 100644
+--- a/lib/buildcmd.c
++++ b/lib/buildcmd.c
+@@ -356,11 +356,6 @@ bc_push_arg (struct buildcmd_control *ctl,
+ 
+   assert (arg != NULL);
+ 
+-  if (!initial_args)
+-    {
+-      state->todo = 1;
+-    }
+-
+   if (!terminate)
+     {
+       if (state->cmd_argv_chars + len + pfxlen > ctl->arg_max)
+@@ -380,6 +375,11 @@ bc_push_arg (struct buildcmd_control *ctl,
+             bc_do_exec (ctl, state);
+     }
+ 
++  if (!initial_args)
++    {
++      state->todo = 1;
++    }
++
+   if (state->cmd_argc >= state->cmd_argv_alloc)
+     {
+       /* XXX: we could use extendbuf() here. */
+-- 
+2.5.5
+
