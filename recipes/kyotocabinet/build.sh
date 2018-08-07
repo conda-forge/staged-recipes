@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 PATCH_FILE=ksdbext.patch
 
 touch $PATCH_FILE
@@ -18,7 +20,10 @@ echo "     size_t dvsiz = 0;" >> $PATCH_FILE
 
 patch < $PATCH_FILE
 
-set -e
+CFLAGS="$CFLAGS -std=gnu++0x"
+LDFLAGS="$LDFLAGS -std=gnu++0x"
+CPPFLAGS="$CPPFLAGS -std=gnu++0x"
+CXXFLAGS="$CXXFLAGS -std=gnu++0x"
 
 ./configure --prefix=$PREFIX \
 	    --with-zlib=$PREFIX \
