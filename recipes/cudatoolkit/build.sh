@@ -20,7 +20,7 @@ if [[ $UNAME == "Linux" ]]; then
     chmod ugo+x $filename
     ./$filename --silent --toolkit --toolkitpath=$install_dir --override
 else
-    find_args="-type f"
+    find_args=""
     libs_path="Developer/NVIDIA/CUDA-${PKG_VERSION}"
 
     # create tmp folders
@@ -68,18 +68,6 @@ cuda_libs+=" libcupti"
 cuda_libs+=" libnvToolsExt"
 
 cuda_h="cuda_occupancy.h"
-
-echo "show files to copy"
-for f in $cuda_libs
-do
-    echo "- $f ..."
-    find $install_dir ${find_args} -name "${f}*"  -exec echo {} \;
-done
-for f in $cuda_h
-do
-    echo "- $f ..."
-    find $install_dir ${find_args} -name "${f}*"  -exec echo {} \;
-done
 
 echo "Copying lib files:"
 for f in $cuda_libs
