@@ -23,7 +23,7 @@ nvgraph_dev_%PKG_VERSION% npp_%PKG_VERSION%	NPP npp_dev_%PKG_VERSION% nvrtc_%PKG
 nvrtc_dev_%PKG_VERSION% nvml_dev_%PKG_VERSION% occupancy_calculator_%PKG_VERSION% ^
 fortran_examples_%PKG_VERSION%
 
-DIR %install_dir%
+DIR %ProgramFiles%
 
 ECHO Removing some unnecessary folders ...
 SET excluded_dirs=CUDADocument CUDASamples Doc fortran_examples
