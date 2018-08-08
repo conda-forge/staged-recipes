@@ -1,6 +1,9 @@
 #!/bin/bash
 
-cmake \
+mkdir -p build
+pushd build
+
+cmake .. \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DCMAKE_DISABLE_FIND_PACKAGE_Doxygen=true \
     -DWITH_SASL=${PREFIX} \
@@ -14,3 +17,5 @@ cmake \
 cmake --build . --config Release -- -j${CPU_COUNT}
 ctest -V
 cmake --build . -- install
+
+popd
