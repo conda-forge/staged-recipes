@@ -3,13 +3,13 @@ SETLOCAL ENABLEDELAYEDEXPANSION
 ECHO Building cudatoolkit ...
 
 SET filename=cuda_%PKG_VERSION%.exe
-SET install_dir=%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA\v%PKG_VERSION%
+SET install_dir="%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA\v%PKG_VERSION%"
 
 :: REMOVE THE DIR IF EXISTS
-RMDIR /S /Q %install_dir%
+RMDIR /S /Q "%install_dir%"
 
 :: CREATE A DIRECTORY WHERE FILES WOULD BE EXTRACTED
-MKDIR %PREFIX%\DLLs %PREFIX%\Library\bin %PREFIX%\include
+MKDIR "%PREFIX%\DLLs %PREFIX%\Library\bin %PREFIX%\include"
 
 ECHO Install cudatoolkit
 %filename% -s nvcc_%PKG_VERSION% cuobjdump_%PKG_VERSION% nvprune_%PKG_VERSION% ^
@@ -23,13 +23,13 @@ nvgraph_dev_%PKG_VERSION% npp_%PKG_VERSION%	NPP npp_dev_%PKG_VERSION% nvrtc_%PKG
 nvrtc_dev_%PKG_VERSION% nvml_dev_%PKG_VERSION% occupancy_calculator_%PKG_VERSION% ^
 fortran_examples_%PKG_VERSION%
 
-DIR %ProgramFiles%
+DIR "%ProgramFiles%"
 
 ECHO Removing some unnecessary folders ...
 SET excluded_dirs=CUDADocument CUDASamples Doc fortran_examples
 
 FOR %%f IN (%excluded_dirs%) DO (
-    RD /S /Q %install_dir%\%%f
+    RD /S /Q "%install_dir%\%%f"
 )
 
 SET cuda_libs=cudart.dll cudart_static.lib cudadevrt.lib ^
@@ -52,7 +52,7 @@ nvvm.dll ^
 libdevice.10.bc ^
 cupti.dll
 
-SET cuda_nvtoolsext_dir=%ProgramFiles%\NVIDIA Corporation
+SET cuda_nvtoolsext_dir="%ProgramFiles%\NVIDIA Corporation"
 SET cuda_nvtoolsext_files=nvToolsExt.dll nvToolsExt.lib
 
 SET cuda_dlls=nvvm.dll libdevice.10.bc
