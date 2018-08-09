@@ -4,9 +4,13 @@ ECHO Building cudatoolkit ...
 
 SET filename=cuda_%PKG_VERSION%.exe
 SET install_dir="%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA\v%PKG_VERSION%"
+SET unzip_dir="%PREFIX%\tmp"
+
+RD /S /Q "%ProgramFiles%\NVIDIA GPU Computing Toolkit"
+RD /S /Q "%ProgramFiles%\NVIDIA Corporation"
 
 :: CREATE A DIRECTORY WHERE FILES WOULD BE EXTRACTED
-MKDIR "%PREFIX%\DLLs" "%PREFIX%\Library\bin" "%PREFIX%\include"
+MKDIR "%PREFIX%\DLLs" "%PREFIX%\Library\bin" "%PREFIX%\include" %unzip_dir%
 
 ECHO Install cudatoolkit
 %filename% -s nvcc_%PKG_VERSION% cuobjdump_%PKG_VERSION% nvprune_%PKG_VERSION% ^
@@ -20,6 +24,9 @@ nvgraph_dev_%PKG_VERSION% npp_%PKG_VERSION%	NPP npp_dev_%PKG_VERSION% nvrtc_%PKG
 nvrtc_dev_%PKG_VERSION% nvml_dev_%PKG_VERSION% occupancy_calculator_%PKG_VERSION% ^
 fortran_examples_%PKG_VERSION%
 
+echo EXTRACT FILES ...
+7za x -o%unzip_dir% %filename%
+
 DIR /S "%ProgramFiles%\NVIDIA Corporation"
 
 ECHO Removing some unnecessary folders ...
@@ -27,6 +34,10 @@ SET excluded_dirs=CUDADocument CUDASamples Doc fortran_examples
 
 FOR %%f IN (%excluded_dirs%) DO (
     RD /S /Q "%install_dir%\%%f"
+)
+
+FOR %%f IN (%excluded_dirs%) DO (
+    RD /S /Q "%unzip%\%%f"
 )
 
 SET cuda_libs=cudart.dll cudart_static.lib cudadevrt.lib ^
@@ -59,7 +70,7 @@ FOR %%f in (%cuda_libs%) DO (
     SET fname=%%f
 	SET fname_wild_card=!fname:~0,-4!*!fname:~-4!
 	ECHO !fname_wild_card!
-	FOR /R %install_dir% %%x IN (!fname_wild_card!) DO COPY "%%x" %PREFIX%\Library\bin /Y;
+	FOR /R %unzip_dir% %%x IN (!fname_wild_card!) DO COPY "%%x" %PREFIX%\Library\bin /Y;
 )
 
 ECHO Copying nvToolsExt files:
@@ -75,7 +86,7 @@ FOR %%f in (%cuda_dlls%) DO (
     SET fname=%%f
 	SET fname_wild_card=!fname:~0,-4!*!fname:~-4!
 	ECHO !fname_wild_card!
-    FOR /R %install_dir%" %%x IN (!fname_wild_card!) DO COPY "%%x" %PREFIX%\DLLs /Y;
+    FOR /R %unzip_dir% %%x IN (!fname_wild_card!) DO COPY "%%x" %PREFIX%\DLLs /Y;
 )
 
 ECHO Copying header files:
@@ -83,5 +94,8 @@ for %%f in (%cuda_h%) DO (
     SET fname=%%f
 	SET fname_wild_card=!fname:~0,-4!*!fname:~-4!
 	ECHO !fname_wild_card!
-    FOR /R %install_dir% %%x IN (!fname_wild_card!) DO COPY "%%x" %PREFIX%\Library\include\ /Y;
+    FOR /R %unzip_dir% %%x IN (!fname_wild_card!) DO COPY "%%x" %PREFIX%\Library\include\ /Y;
 )
+
+ECHO REMOVE UNZIP DIR
+RD /S /Q "%unzip_dir%"
