@@ -1,27 +1,9 @@
-# Platform-specific dylib extension
-if [ $(uname) == "Darwin" ]; then
-    export CC=clang
-    export CXX=clang++
-    export DYLIB="dylib"
-else
-    export CC=gcc
-    export CXX=g++
-    export DYLIB="so"
-fi
-
 ##
 ## START THE BUILD
 ##
 
 mkdir -p build
 cd build
-
-CXXFLAGS="${CXXFLAGS} -I${PREFIX}/include"
-LDFLAGS="${LDFLAGS} -Wl,-rpath,${PREFIX}/lib -L${PREFIX}/lib"
-
-if [ $(uname) == Darwin ]; then
-    CXXFLAGS="$CXXFLAGS -stdlib=libc++"
-fi
 
 # Set the correct python flags, depending on the distribution
 PY_VER=$(python -c "import sys; print('{}.{}'.format(*sys.version_info[:2]))")
@@ -35,7 +17,7 @@ cmake .. \
         -DCMAKE_C_COMPILER=${CC} \
         -DCMAKE_CXX_COMPILER=${CXX} \
         -DCMAKE_BUILD_TYPE=RELEASE \
-        -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9\
+        -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}\
         -DCMAKE_INSTALL_PREFIX=${PREFIX} \
         -DCMAKE_PREFIX_PATH=${PREFIX} \
 \
@@ -52,7 +34,7 @@ cmake .. \
         -DWITH_XZ=ON \
 \
         -DPYTHON_EXECUTABLE=${PYTHON} \
-        -DPYTHON_LIBRARY=${PREFIX}/lib/libpython${PY_ABI}.${DYLIB} \
+        -DPYTHON_LIBRARY=${PREFIX}/lib/libpython${PY_ABI}${SHLIB_EXT} \
         -DPYTHON_INCLUDE_DIR=${PREFIX}/include/python${PY_ABI} \
 ##
 
