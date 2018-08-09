@@ -21,7 +21,7 @@ sed -i.bak -e 's@mktemp -d@mktemp -d \${TMPDIR:-/tmp}/tmp.XXXXXXXXXX@' find/test
 sed -i.bak -e 's@mktemp@mktemp \${TMPDIR:-/tmp}/tmp.XXXXXXXXXX@' find/testsuite/test_escapechars.sh
 sed -i.bak -e 's@mktemp@mktemp \${TMPDIR:-/tmp}/tmp.XXXXXXXXXX@' find/testsuite/test_inode.sh
 
-make check -j${CPU_COUNT} || (cat find/testsuite/test-suite.log; echo "TMPDIR: $TMPDIR"; ls -lhd $TMPDIR;t=$(mktemp -d); ls -lhd $t; echo tjo > $t/test;  exit 1)
+make check -j${CPU_COUNT}
 make install
 
 
