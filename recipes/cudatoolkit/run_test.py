@@ -6,8 +6,8 @@ from numba.cuda.cudadrv.nvvm import NVVM
 
 def run_test():
     if sys.platform == 'darwin':
-        # skip for osx
-        return
+        print('Skip test for osx ...')
+        return True
     # on windows only nvvm is available to numba
     if sys.platform.startswith('win'):
         nvvm = NVVM()
