@@ -5,11 +5,8 @@ ECHO Building cudatoolkit ...
 SET filename=cuda_%PKG_VERSION%.exe
 SET install_dir="%ProgramFiles%\NVIDIA GPU Computing Toolkit\CUDA\v%PKG_VERSION%"
 
-:: REMOVE THE DIR IF EXISTS
-RMDIR /S /Q "%install_dir%"
-
 :: CREATE A DIRECTORY WHERE FILES WOULD BE EXTRACTED
-MKDIR "%PREFIX%\DLLs %PREFIX%\Library\bin %PREFIX%\include"
+MKDIR "%PREFIX%\DLLs" "%PREFIX%\Library\bin" "%PREFIX%\include"
 
 ECHO Install cudatoolkit
 %filename% -s nvcc_%PKG_VERSION% cuobjdump_%PKG_VERSION% nvprune_%PKG_VERSION% ^
@@ -23,7 +20,7 @@ nvgraph_dev_%PKG_VERSION% npp_%PKG_VERSION%	NPP npp_dev_%PKG_VERSION% nvrtc_%PKG
 nvrtc_dev_%PKG_VERSION% nvml_dev_%PKG_VERSION% occupancy_calculator_%PKG_VERSION% ^
 fortran_examples_%PKG_VERSION%
 
-DIR "%ProgramFiles%"
+DIR /S "%ProgramFiles%\NVIDIA Corporation"
 
 ECHO Removing some unnecessary folders ...
 SET excluded_dirs=CUDADocument CUDASamples Doc fortran_examples
@@ -54,9 +51,7 @@ cupti.dll
 
 SET cuda_nvtoolsext_dir="%ProgramFiles%\NVIDIA Corporation"
 SET cuda_nvtoolsext_files=nvToolsExt.dll nvToolsExt.lib
-
 SET cuda_dlls=nvvm.dll libdevice.10.bc
-
 SET cuda_h=cuda_occupancy.h
 
 ECHO Copying lib files:
@@ -64,7 +59,7 @@ FOR %%f in (%cuda_libs%) DO (
     SET fname=%%f
 	SET fname_wild_card=!fname:~0,-4!*!fname:~-4!
 	ECHO !fname_wild_card!
-	FOR /R "%install_dir%" %%x IN (!fname_wild_card!) DO COPY "%%x" %PREFIX%\Library\bin /Y;
+	FOR /R %install_dir% %%x IN (!fname_wild_card!) DO COPY "%%x" %PREFIX%\Library\bin /Y;
 )
 
 ECHO Copying nvToolsExt files:
@@ -72,7 +67,7 @@ FOR %%f in (%cuda_nvtoolsext_files%) DO (
     SET fname=%%f
 	SET fname_wild_card=!fname:~0,-4!*!fname:~-4!
 	ECHO !fname_wild_card!
-	FOR /R "%cuda_nvtoolsext_dir%" %%x IN (!fname_wild_card!) DO COPY "%%x" %PREFIX%\Library\bin /Y;
+	FOR /R %cuda_nvtoolsext_dir% %%x IN (!fname_wild_card!) DO COPY "%%x" %PREFIX%\Library\bin /Y;
 )
 
 ECHO Copying dll files:
@@ -80,7 +75,7 @@ FOR %%f in (%cuda_dlls%) DO (
     SET fname=%%f
 	SET fname_wild_card=!fname:~0,-4!*!fname:~-4!
 	ECHO !fname_wild_card!
-    FOR /R "%install_dir%" %%x IN (!fname_wild_card!) DO COPY "%%x" %PREFIX%\DLLs /Y;
+    FOR /R %install_dir%" %%x IN (!fname_wild_card!) DO COPY "%%x" %PREFIX%\DLLs /Y;
 )
 
 ECHO Copying header files:
@@ -88,5 +83,5 @@ for %%f in (%cuda_h%) DO (
     SET fname=%%f
 	SET fname_wild_card=!fname:~0,-4!*!fname:~-4!
 	ECHO !fname_wild_card!
-    FOR /R "%install_dir%" %%x IN (!fname_wild_card!) DO COPY "%%x" %PREFIX%\Library\include\ /Y;
+    FOR /R %install_dir% %%x IN (!fname_wild_card!) DO COPY "%%x" %PREFIX%\Library\include\ /Y;
 )
