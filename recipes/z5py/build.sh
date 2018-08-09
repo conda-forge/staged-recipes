@@ -2,8 +2,6 @@
 ## START THE BUILD
 ##
 
-git submodule update --init
-
 mkdir -p build
 cd build
 
