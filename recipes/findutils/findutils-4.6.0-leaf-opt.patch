@@ -1,0 +1,83 @@
+From 1328926a705fdb4728c1f255dd368de928736d39 Mon Sep 17 00:00:00 2001
+From: Kamil Dudka <kdudka@redhat.com>
+Date: Fri, 25 Sep 2015 16:09:39 +0200
+Subject: [PATCH 1/2] fts: introduce the FTS_NOLEAF flag
+
+The flag is needed to implement the -noleaf option of find.
+* lib/fts.c (link_count_optimize_ok): Implement the FTS_NOLEAF flag.
+* lib/fts_.h (FTS_NOLEAF): New macro, shifted conflicting constants.
+---
+ gl/lib/fts.c  |  4 ++++
+ gl/lib/fts_.h | 12 +++++++++---
+ 2 files changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/gl/lib/fts.c b/gl/lib/fts.c
+index d2d404f..808466f 100644
+--- a/gl/lib/fts.c
++++ b/gl/lib/fts.c
+@@ -736,6 +736,10 @@ filesystem_type (FTSENT const *p)
+   struct dev_type *ent;
+   struct statfs fs_buf;
+ 
++  if (ISSET(FTS_NOLEAF))
++    /* leaf optimization explicitly disabled by the FTS_NOLEAF flag */
++    return 0;
++
+   /* If we're not in CWDFD mode, don't bother with this optimization,
+      since the caller is not serious about performance.  */
+   if (!ISSET (FTS_CWDFD))
+diff --git a/gl/lib/fts_.h b/gl/lib/fts_.h
+index 63d4b74..f1d519b 100644
+--- a/gl/lib/fts_.h
++++ b/gl/lib/fts_.h
+@@ -155,10 +155,16 @@ typedef struct {
+      from input path names during fts_open initialization.  */
+ # define FTS_VERBATIM   0x1000
+ 
+-# define FTS_OPTIONMASK 0x1fff          /* valid user option mask */
++  /* Disable leaf optimization (which eliminates stat() calls during traversal,
++     based on the count of nested directories stored in stat.st_nlink of each
++     directory).  Note that the optimization is by default enabled only for
++     selected file systems, and only if the FTS_CWDFD flag is set.  */
++# define FTS_NOLEAF     0x2000
+ 
+-# define FTS_NAMEONLY   0x2000          /* (private) child names only */
+-# define FTS_STOP       0x4000          /* (private) unrecoverable error */
++# define FTS_OPTIONMASK 0x3fff          /* valid user option mask */
++
++# define FTS_NAMEONLY   0x4000          /* (private) child names only */
++# define FTS_STOP       0x8000          /* (private) unrecoverable error */
+         int fts_options;                /* fts_open options, global flags */
+ 
+         /* Map a directory's device number to a boolean.  The boolean is
+-- 
+2.5.0
+
+
+From c186934e6e37ddadf7511abb9b1045192757618e Mon Sep 17 00:00:00 2001
+From: Kamil Dudka <kdudka@redhat.com>
+Date: Fri, 25 Sep 2015 19:13:15 +0200
+Subject: [PATCH 2/2] ftsfind: propagate the -noleaf option to FTS
+
+* find/ftsfind.c (find): Propagate the -noleaf option to FTS.
+---
+ find/ftsfind.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/find/ftsfind.c b/find/ftsfind.c
+index 5159470..e34b672 100644
+--- a/find/ftsfind.c
++++ b/find/ftsfind.c
+@@ -559,6 +559,9 @@ find (char *arg)
+   if (options.stay_on_filesystem)
+     ftsoptions |= FTS_XDEV;
+ 
++  if (options.no_leaf_check)
++    ftsoptions |= FTS_NOLEAF;
++
+   p = fts_open (arglist, ftsoptions, NULL);
+   if (NULL == p)
+     {
+-- 
+2.5.0
+
