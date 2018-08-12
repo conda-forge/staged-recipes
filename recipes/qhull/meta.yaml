@@ -1,0 +1,54 @@
+{% set name = "qhull" %}
+{% set version = "2015.2" %}
+{% set year = version.split(".")[0] %}
+{% set minor = version.split(".")[1] %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: http://www.qhull.org/download/qhull-{{ year }}-src-7.{{ minor }}.0.tgz
+  sha256: 78b010925c3b577adc3d58278787d7df08f7c8fb02c3490e375eab91bb58a436
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+  host:
+  run:
+
+test:
+  commands:
+    # Verify libraries.
+    {% set qhull_libs = ["qhullcpp", "qhullstatic", "qhullstatic_r"] %}
+    {% for each_qhull_lib in qhull_libs %}
+    - test -f $PREFIX/lib/lib{{ each_qhull_lib }}.a                           # [unix]
+    - if not exist %PREFIX%\\Library\\lib\\{{ each_qhull_lib }}.lib exit 1    # [win]
+    {% endfor %}
+    {% set qhull_dynlibs = ["qhull", "qhull_r", "qhull_p"] %}
+    {% for each_qhull_lib in qhull_dynlibs %}
+    - test -f $PREFIX/lib/lib{{ each_qhull_lib }}${SHLIB_EXT}                 # [unix]
+    - if not exist %PREFIX%\\Library\\lib\\{{ each_qhull_lib }}.lib exit 1    # [win]
+    - if not exist %PREFIX%\\Library\\bin\\{{ each_qhull_lib }}.dll exit 1    # [win]
+    {% endfor %}
+    - rbox c P0 D2 | qvoronoi s o
+    - rbox c | qconvex FQ FV n | qhalf Fp
+    - rbox 1000 D3 | qhull C-1e-4 FO Ts
+
+about:
+  home: http://www.qhull.org/
+  license: Qhull(BSD-like) For details, see COPYING.txt
+  license_family: BSD
+  license_file: COPYING.txt
+  summary: 'Qhull computes the convex hull'
+  doc_url: http://www.qhull.org/html
+  dev_url: https://github.com/qhull/qhull
+
+extra:
+  recipe-maintainers:
+    - sirokujira
