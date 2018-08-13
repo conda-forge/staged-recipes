@@ -1,4 +1,4 @@
-"%PYTHON%" "%SRC_DIR%"\setup.py install
+"%PYTHON%" setup.py install --single-version-externally-managed --prefix="%PREFIX"
 if errorlevel 1 exit 1
 
 :: Add more build steps here, if they are necessary.
