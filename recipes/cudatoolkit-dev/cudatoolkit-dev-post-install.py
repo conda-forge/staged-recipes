@@ -1,5 +1,5 @@
 """
-Adapted from https://github.com/numba/conda-recipe-cudatoolkit/blob/master/scripts/build.py
+Adapted from https://github.com/numba/conda-recipe-cudatoolkit
 
 BSD 2-Clause License
 
@@ -50,16 +50,9 @@ def set_chmod(file_name):
     os.chmod(file_name, st.st_mode | stat.S_IXOTH)
 
 
-def create_dir(new_dir):
-    try:
-        os.makedirs(new_dir)
-    except FileExistsError:
-        pass
-
-
 def copy_files(src, dst):
     try:
-        if (os.path.isfile(src)):
+        if os.path.isfile(src):
             set_chmod(src)
             shutil.copy(src, dst)
     except FileExistsError:
@@ -70,9 +63,6 @@ class Extractor(object):
     """Extractor base class, platform specific extractors should inherit
     from this class.
     """
-    libdir = {'linux': 'lib',
-              'osx': 'lib',
-              'windows': 'DLLs', }
 
     def __init__(self, cudatoolkit_config, platform_config):
         """Initialise an instance:
@@ -80,55 +70,47 @@ class Extractor(object):
           cudatoolkit_config: the configuration for CUDA
           platform_config - the configuration for this platform
         """
-        self.cu_name = cudatoolkit_config['name']
-        self.cu_version = cudatoolkit_config['version']
+        self.cu_name = cudatoolkit_config["name"]
+        self.cu_version = cudatoolkit_config["version"]
         self.md5_url = cudatoolkit_config["md5_url"]
         self.base_url = cudatoolkit_config["base_url"]
         self.patch_url_text = cudatoolkit_config["patch_url_ext"]
         self.installers_url_ext = cudatoolkit_config["installers_url_ext"]
-        self.cu_blob = platform_config['blob']
-        self.conda_prefix = os.environ.get('CONDA_PREFIX')
+        self.cu_blob = platform_config["blob"]
+        self.conda_prefix = os.environ.get("CONDA_PREFIX")
         self.prefix = os.environ["PREFIX"]
-        self.src_dir = Path(self.conda_prefix) / 'pkgs' / self.cu_name
-        try:
-            os.makedirs(self.src_dir)
-
-        except FileExistsError:
-            pass
+        self.src_dir = Path(self.conda_prefix) / "pkgs" / self.cu_name
+        os.makedirs(self.src_dir, exist_ok=True)
 
         self.symlinks = getplatform() == "linux"
-        self.debug_install_path = os.environ.get('DEBUG_INSTALLER_PATH')
+        self.debug_install_path = os.environ.get("DEBUG_INSTALLER_PATH")
 
     def create_activate_and_deactivate_scripts(self):
-        activate_dir_path = Path(self.conda_prefix) / \
-            'etc' / 'conda' / 'activate.d'
-        deactivate_dir_path = Path(
-            self.conda_prefix) / 'etc' / 'conda' / 'deactivate.d'
+        activate_dir_path = Path(self.conda_prefix) / "etc" / "conda" / "activate.d"
+        deactivate_dir_path = Path(self.conda_prefix) / "etc" / "conda" / "deactivate.d"
 
-        try:
-            os.makedirs(activate_dir_path)
-            os.makedirs(deactivate_dir_path)
-
-        except FileExistsError:
-            pass
+        os.makedirs(activate_dir_path, exist_ok=True)
+        os.makedirs(deactivate_dir_path, exist_ok=True)
 
         # Copy cudatoolkit-dev-activate and cudatoolkit-dev-deactivate
         # to activate.d and deactivate.d directories
 
-        scripts_dir = Path(self.prefix) / 'scripts'
-        activate_scripts_dir = scripts_dir / 'activate.d'
-        deactivate_scripts_dir = scripts_dir / 'deactivate.d'
+        scripts_dir = Path(self.prefix) / "scripts"
+        activate_scripts_dir = scripts_dir / "activate.d"
+        deactivate_scripts_dir = scripts_dir / "deactivate.d"
 
         activate_scripts_list = [
             "cudatoolkit-dev-activate.sh",
-            "cudatoolkit-dev-activate.bat"]
+            "cudatoolkit-dev-activate.bat",
+        ]
         for file_name in activate_scripts_list:
             file_full_path = activate_scripts_dir / file_name
             shutil.copy(file_full_path, activate_dir_path)
 
         deactivate_scripts_list = [
             "cudatoolkit-dev-deactivate.sh",
-            "cudatoolkit-dev-deactivate.bat"]
+            "cudatoolkit-dev-deactivate.bat",
+        ]
 
         for file_name in deactivate_scripts_list:
             file_full_path = deactivate_scripts_dir / file_name
@@ -158,10 +140,10 @@ class Extractor(object):
 
         # compute hash of blob
         blob_path = os.path.join(self.src_dir, self.cu_blob)
-        md5sum = hashsum_file(blob_path, 'md5')
+        md5sum = hashsum_file(blob_path, "md5")
 
         # get checksums
-        with open(path, 'r') as f:
+        with open(path, "r") as f:
             checksums = [x.strip().split() for x in f.read().splitlines() if x]
 
         # check md5 and filename match up
@@ -188,13 +170,16 @@ class WindowsExtractor(Extractor):
     def extract(self):
         print("Extracting on Windows.....")
         runfile = os.path.join(self.src_dir, self.cu_blob)
-        cmd = ['7za', 'x', '-o%s' %
-               str(self.src_dir), runfile]
+        cmd = ["7za", "x", "-o%s" % str(self.src_dir), runfile]
         try:
             subprocess.check_call(cmd)
         except subprocess.CalledProcessError as e:
-            print("ERROR: Couldn't install Cudatoolkit: \
-                   {reason}".format(reason=e))
+            print(
+                "ERROR: Couldn't install Cudatoolkit: \
+                   {reason}".format(
+                    reason=e
+                )
+            )
 
     def cleanup(self):
         pass
@@ -208,13 +193,23 @@ class LinuxExtractor(Extractor):
         print("Extracting on Linux")
         runfile = os.path.join(self.src_dir, self.cu_blob)
         os.chmod(runfile, 0o777)
-        cmd = [runfile, '--silent', '--toolkit',
-               '--toolkitpath', str(self.src_dir), '--override']
+        cmd = [
+            runfile,
+            "--silent",
+            "--toolkit",
+            "--toolkitpath",
+            str(self.src_dir),
+            "--override",
+        ]
         try:
             subprocess.check_call(cmd)
         except subprocess.CalledProcessError as e:
-            print("ERROR: Couldn't install Cudatoolkit: \
-                   {reason}".format(reason=e))
+            print(
+                "ERROR: Couldn't install Cudatoolkit: \
+                   {reason}".format(
+                    reason=e
+                )
+            )
 
     def cleanup(self):
         blob_path = os.path.join(self.src_dir, self.cu_blob)
@@ -235,35 +230,40 @@ class OsxExtractor(Extractor):
            unmounted on exit.
         """
         # open
-        cmd = ['hdiutil', 'attach', '-mountpoint', temp_dir, file_name]
-        cmd = ' '.join(cmd)
+        cmd = ["hdiutil", "attach", "-mountpoint", temp_dir, file_name]
+        cmd = " ".join(cmd)
         process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         process.wait()
         # find tar.gz files
         cmd = [
-            'find',
+            "find",
             temp_dir,
-            '-name',
+            "-name",
             '"*.tar.gz"',
-            '-exec',
-            'tar',
-            'xvf',
+            "-exec",
+            "tar",
+            "xvf",
             "'{}'",
-            '--directory',
+            "--directory",
             install_dir,
-            "';'"]
-        cmd = ' '.join(cmd)
+            "';'",
+        ]
+        cmd = " ".join(cmd)
         process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         process.wait()
         # close
-        cmd = ['hdiutil', 'detach', temp_dir]
-        cmd = ' '.join(cmd)
+        cmd = ["hdiutil", "detach", temp_dir]
+        cmd = " ".join(cmd)
         process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         process.wait()
 
     def copy_files(self):
-        src = Path(self.extract_temp_dir) / 'Developer' / \
-            'NVIDIA' / 'CUDA-{}'.format(self.cu_version)
+        src = (
+            Path(self.extract_temp_dir)
+            / "Developer"
+            / "NVIDIA"
+            / "CUDA-{}".format(self.cu_version)
+        )
         dst = self.src_dir
 
         for f in os.listdir(src):
@@ -278,13 +278,12 @@ class OsxExtractor(Extractor):
 
     def extract(self):
         runfile = os.path.join(self.src_dir, self.cu_blob)
-        extract_store_name = 'tmpstore'
-        extract_temp_dir_name = 'tmp'
+        extract_store_name = "tmpstore"
+        extract_temp_dir_name = "tmp"
         self.extract_store = os.path.join(self.src_dir, extract_store_name)
-        self.extract_temp_dir = os.path.join(
-            self.src_dir, extract_temp_dir_name)
-        create_dir(self.extract_store)
-        create_dir(self.extract_temp_dir)
+        self.extract_temp_dir = os.path.join(self.src_dir, extract_temp_dir_name)
+        os.makedirs(self.extract_store, exist_ok=True)
+        os.makedirs(self.extract_temp_dir, exist_ok=True)
         self._hdiutil_mount(self.extract_store, runfile, self.extract_temp_dir)
         self.copy_files()
 
@@ -298,6 +297,11 @@ class OsxExtractor(Extractor):
 
         try:
             shutil.rmtree(self.extract_store)
+
+        except FileNotFoundError:
+            pass
+
+        try:
             shutil.rmtree(self.extract_temp_dir)
 
         except FileNotFoundError:
@@ -322,37 +326,40 @@ def set_config():
     cudatoolkit = {"linux": {}, "windows": {}, "osx": {}}
     prefix = Path(os.environ["PREFIX"])
     extra_args = dict()
-    with open(prefix / 'bin' / 'cudatoolkit-dev-extra-args.txt', 'r') as f:
+    with open(prefix / "bin" / "cudatoolkit-dev-extra-args.txt", "r") as f:
         extra_args = json.loads(f.read())
 
     # package version decl must match cuda release version
-    cudatoolkit["version"] = os.environ['PKG_VERSION']
-    cudatoolkit["name"] = os.environ['PKG_NAME']
-    cudatoolkit["buildnum"] = os.environ['PKG_BUILDNUM']
-    cudatoolkit["version_build"] = extra_args['version_build']
-    cudatoolkit["driver_version"] = extra_args['driver_version']
-    cudatoolkit["base_url"] = f'https://developer.nvidia.com/compute/cuda/{cudatoolkit["version"]}/Prod2/'
-    cudatoolkit["installers_url_ext"] = f'local_installers/'
+    cudatoolkit["version"] = os.environ["PKG_VERSION"]
+    cudatoolkit["name"] = os.environ["PKG_NAME"]
+    cudatoolkit["buildnum"] = os.environ["PKG_BUILDNUM"]
+    cudatoolkit["version_build"] = extra_args["version_build"]
+    cudatoolkit["driver_version"] = extra_args["driver_version"]
+    cudatoolkit[
+        "base_url"
+    ] = f'https://developer.nvidia.com/compute/cuda/{cudatoolkit["version"]}/Prod2/'
+    cudatoolkit["installers_url_ext"] = f"local_installers/"
     cudatoolkit["patch_url_ext"] = f""
-    cudatoolkit["md5_url"] = f'http://developer.download.nvidia.com/compute/cuda/{cudatoolkit["version"]}/Prod2/docs/sidebar/md5sum.txt'
+    cudatoolkit[
+        "md5_url"
+    ] = f'http://developer.download.nvidia.com/compute/cuda/{cudatoolkit["version"]}/Prod2/docs/sidebar/md5sum.txt'
 
     cudatoolkit["linux"] = {
-        'blob': f'cuda_{cudatoolkit["version"]}.{cudatoolkit["version_build"]}_{cudatoolkit["driver_version"]}_linux',
+        "blob": f'cuda_{cudatoolkit["version"]}.{cudatoolkit["version_build"]}_{cudatoolkit["driver_version"]}_linux'
     }
 
     cudatoolkit["windows"] = {
-        'blob': f'cuda_{cudatoolkit["version"]}.{cudatoolkit["version_build"]}_windows', }
+        "blob": f'cuda_{cudatoolkit["version"]}.{cudatoolkit["version_build"]}_windows'
+    }
 
     cudatoolkit["osx"] = {
-        'blob': f'cuda_{cudatoolkit["version"]}.{cudatoolkit["version_build"]}_mac', }
+        "blob": f'cuda_{cudatoolkit["version"]}.{cudatoolkit["version_build"]}_mac'
+    }
 
     return cudatoolkit
 
 
-dispatcher = {
-    "linux": LinuxExtractor,
-    "windows": WindowsExtractor,
-    "osx": OsxExtractor, }
+dispatcher = {"linux": LinuxExtractor, "windows": WindowsExtractor, "osx": OsxExtractor}
 
 
 def _main():
@@ -364,9 +371,7 @@ def _main():
     # get an extractor
     plat = getplatform()
     extractor_impl = dispatcher[plat]
-    extractor = extractor_impl(
-        cudatoolkit_config,
-        cudatoolkit_config[plat])
+    extractor = extractor_impl(cudatoolkit_config, cudatoolkit_config[plat])
 
     # create activate and deactivate scripts
     extractor.create_activate_and_deactivate_scripts()
