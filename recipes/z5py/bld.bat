@@ -23,9 +23,9 @@ cmake .. -G "%CMAKE_GENERATOR%" ^
          -DWITH_ZLIB=ON ^
          -DWITH_BZIP2=ON ^
          -DWITH_XZ=ON ^
-         -DPYTHON_EXECUTABLE="%PYTHON%"
+         -DPYTHON_EXECUTABLE=:PATH"%PYTHON%"
 
 cmake --build . --config %CONFIGURATION%
 
-set PY_VER=$(python -c "import sys; print('{}.{}'.format(*sys.version_info[:2]))")
+rem set PY_VER=(python -c "import sys; print('{}.{}'.format(*sys.version_info[:2]))")
 xcopy %SRC_DIR%/build/python/z5py %LIBRARY%/lib/python%PY_VER%/site-packages/ /E
