@@ -32,6 +32,7 @@ cmake .. \
         -DWITH_ZLIB=ON \
         -DWITH_BZIP2=ON \
         -DWITH_XZ=ON \
+        -DWITHIN_TRAVIS=OFF \
 \
         -DPYTHON_EXECUTABLE=${PYTHON} \
         -DPYTHON_LIBRARY=${PREFIX}/lib/libpython${PY_ABI}${SHLIB_EXT} \
@@ -42,7 +43,7 @@ cmake .. \
 ## Compile
 ##
 make -j${CPU_COUNT}
-#make test
+make install
 
 ##
 ## Install to prefix
