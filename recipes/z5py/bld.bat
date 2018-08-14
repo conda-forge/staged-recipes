@@ -3,16 +3,27 @@ cd build
 
 set CONFIGURATION=Release
 
+rem cmake .. -G "%CMAKE_GENERATOR%" ^
+rem          -DCMAKE_BUILD_TYPE:STRING=%CONFIGURATION% ^
+rem          -DCMAKE_PREFIX_PATH:PATH="%PREFIX%" ^
+rem          -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX" ^
+rem          -DBOOST_ROOT:PATH="%LIBRARY_PREFIX%" ^
+rem          -DWITH_BLOSC:BOOL=ON ^
+rem          -DWITH_ZLIB:BOOL=ON ^
+rem          -DWITH_BZIP2:BOOL=ON ^
+rem          -DWITH_XZ:BOOL=ON ^
+rem          -DPYTHON_EXECUTABLE:PATH="%PYTHON%"
+
 cmake .. -G "%CMAKE_GENERATOR%" ^
-         -DCMAKE_BUILD_TYPE:STRING=%CONFIGURATION% ^
-         -DCMAKE_PREFIX_PATH:PATH="%PREFIX%" ^
-         -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX" ^
-         -DBOOST_ROOT:PATH="%LIBRARY_PREFIX%" ^
-         -DWITH_BLOSC:BOOL=ON ^
-         -DWITH_ZLIB:BOOL=ON ^
-         -DWITH_BZIP2:BOOL=ON ^
-         -DWITH_XZ:BOOL=ON ^
-         -DPYTHON_EXECUTABLE:PATH="%PYTHON%"
+         -DCMAKE_BUILD_TYPE=%CONFIGURATION% ^
+         -DCMAKE_PREFIX_PATH="%PREFIX%" ^
+         -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX" ^
+         -DBOOST_ROOT="%LIBRARY_PREFIX%" ^
+         -DWITH_BLOSC=ON ^
+         -DWITH_ZLIB=ON ^
+         -DWITH_BZIP2=ON ^
+         -DWITH_XZ=ON ^
+         -DPYTHON_EXECUTABLE="%PYTHON%"
 
 cmake --build . --config %CONFIGURATION%
 
