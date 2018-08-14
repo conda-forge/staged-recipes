@@ -12,11 +12,11 @@ IF exist Build.PL (
     :: Make sure this goes in site
     perl Makefile.PL INSTALLDIRS=site
     IF %ERRORLEVEL% NEQ 0 exit 1
-    make
+    gnumake.exe
     IF %ERRORLEVEL% NEQ 0 exit 1
-    make test
+    gnumake.exe test
     IF %ERRORLEVEL% NEQ 0 exit 1
-    make install
+    gnumake.exe install
 ) ELSE (
     ECHO 'Unable to find Build.PL or Makefile.PL. You need to modify bld.bat.'
     exit 1
