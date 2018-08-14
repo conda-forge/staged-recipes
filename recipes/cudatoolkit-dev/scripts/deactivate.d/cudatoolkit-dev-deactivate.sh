@@ -130,7 +130,7 @@ remove_symlink_osx() {
 }
 
 
-UNAME=`uname`
+UNAME=$(uname)
 if [[ $UNAME == "Linux" ]]; then 
    remove_symlink_linux
 

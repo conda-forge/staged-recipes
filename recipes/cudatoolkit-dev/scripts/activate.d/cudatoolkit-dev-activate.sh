@@ -102,7 +102,7 @@ create_symlink_osx() {
 }
 
 
-UNAME=`uname`
+UNAME=$(uname)
 if [[ $UNAME == "Linux" ]]; then 
    create_symlink_linux
 

@@ -35,7 +35,7 @@ def _main(args):
     src = recipe_dir_path / "cudatoolkit-dev-post-install.py"
     dst = prefix_bin_dir_path
     copy_files(src, dst)
-    with open(prefix_bin_dir_path / "cudatoolkit-dev-extra-args.txt", "w") as f:
+    with open(prefix_bin_dir_path / "cudatoolkit-dev-extra-args.json", "w") as f:
         f.write(json.dumps(args))
 
 
