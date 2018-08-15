@@ -37,14 +37,9 @@ cmake .. \
         -DPYTHON_EXECUTABLE=${PYTHON} \
         -DPYTHON_LIBRARY=${PREFIX}/lib/libpython${PY_ABI}${SHLIB_EXT} \
         -DPYTHON_INCLUDE_DIR=${PREFIX}/include/python${PY_ABI} \
-##
 
 ##
-## Compile
+## Compile and install
 ##
 make -j${CPU_COUNT}
 make install
-
-##
-## Install to prefix
-cp -r ${SRC_DIR}/build/python/z5py ${PREFIX}/lib/python${PY_VER}/site-packages/
