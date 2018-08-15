@@ -24,7 +24,7 @@ cmake .. -G "%CMAKE_GENERATOR%" ^
          -DWITH_BZIP2=ON ^
          -DWITH_XZ=ON ^
          -DWITHIN_TRAVIS=OFF ^
-         -DPYTHON_EXECUTABLE=:PATH"%PYTHON%"
+         -DPYTHON_EXECUTABLE="%PYTHON%"
 
 cmake --build . --config %CONFIGURATION%
 
