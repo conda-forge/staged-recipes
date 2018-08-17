@@ -4,6 +4,8 @@
 # include files
 rm -rf ${PREFIX}/include/openssl*
 
+CXX=g++
+
 # set these so the default in setup.py are not used
 export GRPC_PYTHON_CFLAGS=""
 export GRPC_PYTHON_LDFLAGS=""
