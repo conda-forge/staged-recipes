@@ -1,11 +1,11 @@
 #! /bin/bash
 
 args=("$@")
-is_c=false
+is_c=true
 
 for arg in "$@"; do
     if [[ $arg == *".cpp" ]]; then
-        is_c=true
+        is_c=false
     fi
 done
 
