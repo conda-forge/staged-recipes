@@ -4,7 +4,7 @@ args=("$@")
 is_c=true
 
 for arg in "$@"; do
-    if [[ $arg == *".cpp" || $arg == *".cc"]]; then
+    if [[ $arg == *".cpp" || $arg == *".cc" ]]; then
         is_c=false
     fi
 done
