@@ -10,5 +10,6 @@ then
     exit 1;
 fi
 tar -xvf 18.00.tar.gz
+mv cpptraj-* cpptraj
 
 python -m pip install . --no-deps --ignore-installed --no-cache-dir -vvv
