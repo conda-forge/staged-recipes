@@ -6,7 +6,6 @@ rm -rf ${PREFIX}/include/openssl*
 
 
 # set these so the default in setup.py are not used
-export GRPC_PYTHON_CFLAGS="-std=c++11"
 export GRPC_PYTHON_LDFLAGS=""
 
 if [[ $(uname) == Darwin ]]; then
