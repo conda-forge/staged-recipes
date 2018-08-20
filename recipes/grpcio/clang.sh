@@ -1,1 +1,0 @@
-recipes/grpcio/clang_wrapper.sh
