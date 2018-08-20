@@ -1,0 +1,90 @@
+{% set version = "1.12.0" %}
+
+package:
+  name: grpc
+  version: {{ version }}
+
+source:
+  url: https://github.com/grpc/grpc/archive/v{{ version }}.tar.gz
+  sha256: eb9698f23aeec2c3832601fa3f804e4d9dc28eca3cc560ef466c9ade1ec951db
+  patches:
+    - 0001-unvendor.patch
+
+build:
+  number: 0
+  skip: True  # [win]
+
+outputs:
+  - name: libgrpc
+    build:
+      run_exports:
+        - {{ pin_subpackage("libgrpc", max_pin="x.x") }}
+    script: install_lib.sh
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - pkgconfig
+        - make
+      host:
+        - libprotobuf {{ protobuf }}
+        - gflags
+        - c-ares
+        - openssl
+      run:
+        - c-ares
+
+    test:
+      commands:
+        - conda inspect linkages -p $PREFIX $PKG_NAME  # [not win]
+        - conda inspect objects -p $PREFIX $PKG_NAME  # [osx]
+
+  - name: grpcio
+    script: install_python.sh
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+      host:
+        - python
+        - pip
+        - cython
+        - libprotobuf {{ protobuf }}
+        - c-ares
+        - {{ pin_subpackage("libgrpc", exact=True) }}
+        - openssl
+        - zlib
+      run:
+        - python
+        - six >=1.5.2
+        - {{ pin_compatible("libgrpc", exact=True) }}
+        - futures >=2.2.0  # [py2k]
+        - enum34 >=1.0.4  # [py2k]
+        - c-ares
+    test:
+      imports:
+        - grpc
+        - grpc._cython
+        - grpc._cython._cygrpc
+        - grpc.beta
+        - grpc.framework
+        - grpc.framework.common
+        - grpc.framework.foundation
+        - grpc.framework.interfaces
+        - grpc.framework.interfaces.base
+        - grpc.framework.interfaces.face
+
+about:
+  home: https://grpc.io
+  license: Apache 2.0
+  license_family: Apache
+  license_file: '{{ environ["RECIPE_DIR"] }}/LICENSE'
+  summary: 'HTTP/2-based RPC framework'
+  description: |
+    gRPC is a modern open source high performance RPC framework that can run in any environment. It can efficiently connect services in and across data centers with pluggable support for load balancing, tracing, health checking and authentication. It is also applicable in last mile of distributed computing to connect devices, mobile applications and browsers to backend services
+  doc_url: https://grpc.io/docs/quickstart/python.html
+  dev_url: https://github.com/grpc/grpc/tree/master/src/python
+
+extra:
+  recipe-maintainers:
+    - ocefpaf
