@@ -1,0 +1,170 @@
+{% set version = "3.7.0" %}
+
+package:
+  name: python
+  version: {{ version }}
+
+source:
+  - url: https://www.python.org/ftp/python/{{ version }}/Python-{{ version }}.tgz
+    sha256: 85bb9feb6863e04fb1700b018d9d42d1caac178559ffa453d7e6a436e259fd0d
+    patches:
+      - osx64-dist.patch                # [osx and x86_64]
+      - win-find_exe.patch              # [win]
+      - win-library_bin.patch           # [win]
+      # Adjust FD_SETSIZE to allow select() to wait on more connections
+      # simultaneously.  Desirable for serious use of Tornado on Windows.
+      # See also:
+      # - https://bugs.python.org/issue28708
+      # - https://github.com/zeromq/libzmq/issues/1165
+      - fd_setsize.patch                # [win]
+      - mingw-w64--DMS_WINXX.patch
+      - win-msc_ver-1900.patch
+      - do-not-download-externals.patch  # [win]
+      - 0015-Fix-find_library-so-that-it-looks-in-sys.prefix-lib-.patch
+      - winsdk.patch  # [win]
+  - url: https://github.com/python/cpython-source-deps/archive/xz-5.2.2.zip          # [win]
+    folder: externals/xz-5.2.2                                                       # [win]
+    sha256: 02b6d6f1e0369940e7e1f0d324992e069d09f5f3d32d86e2d22cd8b82ac3fb3f         # [win]
+  # Not used as of 3.7b3 (tcltk from cpython-bin- is), but kept for archival and license reasons.
+  - url: https://github.com/python/cpython-source-deps/archive/tcl-core-8.6.8.0.zip  # [win]
+    folder: externals/tcl-core-8.6.8.0                                               # [win]
+    sha256: 91fd3ea97f7fddbd45591fd91961b6be6434b6d338ae54ad16f40efe53295be2         # [win]
+  # Not used as of 3.7b3 (tcltk from cpython-bin- is), but kept for archival and license reasons.
+  - url: https://github.com/python/cpython-source-deps/archive/tk-8.6.8.0.zip        # [win]
+    folder: externals/tk-8.6.8.0                                                     # [win]
+    sha256: 584fbfdc3cd4427d44ae7ba1e829966d30aaee2a36feb02e3714ac97b48983c1         # [win]
+  - url: https://github.com/python/cpython-bin-deps/archive/tcltk-8.6.8.0.zip        # [win]
+    folder: externals/tcltk-8.6.8.0                                                  # [win]
+    sha256: 63a28d9112d47f5ca9970593fda7fca8c22e911450d8036e033bba376500acd9         # [win]
+  - url: https://github.com/python/cpython-source-deps/archive/tix-8.4.3.6.zip       # [win]
+    folder: externals/tix-8.4.3.6                                                    # [win]
+    sha256: e558e3dc5e67ac0942f8fceafce00ca46b177da9ebeaf38ec7fafd9b9913ac56         # [win]
+  - url: https://github.com/python/cpython-source-deps/archive/sqlite-3.21.0.0.zip   # [win]
+    folder: externals/sqlite-3.21.0.0                                                # [win]
+    sha256: 95a4f2d76aeeb68b51239340e3de26e5714ecfb7c8ad82a67b17af82213a8c20         # [win]
+  # Not used as of 3.7b3 (openssl-bin is), but kept for archival and license reasons.
+  - url: https://github.com/python/cpython-source-deps/archive/openssl-1.1.0h.zip    # [win]
+    folder: externals/openssl-1.1.0h                                                 # [win]
+    #sha256: f9a39b7519d3c1d5b5da7559c0b117f588eea97bc98d4ea8434d078cf5063eaa         # [win]
+    sha256: 65facaa26aad903889f1ef8e4d14542a0c0d142940a8cf47d6f57516fba6a41f         # [win]
+  - url: https://github.com/python/cpython-bin-deps/archive/openssl-bin-1.1.0h.zip   # [win]
+    folder: externals/openssl-bin-1.1.0h                                             # [win]
+    sha256: 8388d90b06b878a7fd980a46264d2d2aca2900ce36dd6834cf85861921534c35         # [win]
+  - url: https://github.com/python/cpython-source-deps/archive/bzip2-1.0.6.zip       # [win]
+    folder: externals/bzip2-1.0.6                                                    # [win]
+    sha256: c42fd1432a2667b964a74bc423bb7485059c4a6d5dc92946d59dbf9a6bdb988d         # [win]
+  - url: https://github.com/python/cpython-source-deps/archive/zlib-1.2.11.zip       # [win]
+    folder: externals/zlib-1.2.11                                                    # [win]
+    sha256: debb1952945fa6c25817a40abe90641b572c83171f244937b70b9fe156f5a63a         # [win]
+  - url: https://github.com/python/cpython-bin-deps/archive/nasm-2.11.06.zip         # [win]
+    folder: externals/nasm-2.11.06                                                   # [win]
+    sha256: de3c87b26a80e789986d8e6950c6304175d3829afe9c6c7211eb7257266ab0ac         # [win]
+
+build:
+  number: 1
+  # Windows has issues updating python if conda is using files itself.
+  # Copy rather than link.
+  no_link:
+    - DLLs/_ctypes.pyd  # [win]
+    - bin/python3.7     # [unix]
+  #track_features:
+    #- vc14              # [win]
+  script_env:
+    - python_branding
+  skip: true  # [win and vc<14]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ cdt('xorg-x11-proto-devel') }}  # [linux]
+    - {{ cdt('libx11-devel') }}          # [linux]
+    - 7za               # [win]
+    - curl              # [win]
+  host:
+    - nasm 2.11.06      # [win]
+    - bzip2             # [unix]
+    - openssl           # [unix]
+    - sqlite-gplfree    # [unix]
+    - tk                # [unix]
+    - xz                # [unix]
+    - zlib              # [unix]
+    - ncurses           # [linux]
+    - libffi            # [unix]
+
+outputs:
+  - name: python
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ cdt('xorg-x11-proto-devel') }}  # [linux]
+        - {{ cdt('libx11-devel') }}          # [linux]
+        - 7za               # [win]
+        - curl              # [win]
+      host:
+        - nasm 2.11.06      # [win]
+        - bzip2             # [unix]
+        - openssl           # [unix]
+        - sqlite-gplfree    # [unix]
+        - tk                # [unix]
+        - xz                # [unix]
+        - zlib              # [unix]
+        - ncurses           # [linux]
+        - libffi            # [unix]
+      run:
+        - openssl           # [unix]
+        - sqlite-gplfree    # [unix]
+        - tk                # [unix]
+        - xz                # [unix]
+        - zlib              # [unix]
+        - ncurses           # [linux]
+        - libffi            # [unix]
+      #- vs2015_runtime   # [win]
+    build:
+      number: 1
+      activate_in_script: True
+      script_env:
+        - python_branding
+      # Windows has issues updating python if conda is using files itself.
+      # Copy rather than link.
+      no_link:
+        - DLLs/_ctypes.pyd  # [win]
+        - bin/python3.7     # [unix]
+    script: install_without_readline.sh
+    test:
+      commands:
+        - python -V
+        - python3 -V            # [unix]
+        - 2to3 -h
+        - pydoc -h
+        - python3-config --help  # [unix]
+        - conda inspect linkages -p $PREFIX $PKG_NAME  # [not win]
+        - conda inspect objects -p $PREFIX $PKG_NAME  # [osx]
+    about:
+      home: http://www.python.org/
+      license: PSF
+      license_file: LICENSE
+      summary: 'General purpose programming language.'
+  - name: python-readline
+    requirements:
+      - {{ pin_subpackage("python", exact=true) }}
+      - readline
+    files:
+      - lib/python3.7/lib-dynload/readline*
+    test:
+      imports:
+        - readline
+    about:
+      home: http://www.python.org/
+      license: GPL-3.0
+      summary: 'readline support for basic python command prompt.'
+
+
+extra:
+  recipe-maintainers:
+    - jakirkham
+    - jjhelmus
+    - msarahan
+    - pelson
+    - ocefpaf
