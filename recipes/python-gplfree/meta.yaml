@@ -1,0 +1,83 @@
+{% set version = "3.7.0" %}
+
+package:
+  name: python-gplfree
+  version: {{ version }}
+
+source:
+  - url: https://www.python.org/ftp/python/{{ version }}/Python-{{ version }}.tgz
+    sha256: 85bb9feb6863e04fb1700b018d9d42d1caac178559ffa453d7e6a436e259fd0d
+    patches:
+      - osx64-dist.patch                # [osx and x86_64]
+      - mingw-w64--DMS_WINXX.patch
+      - win-msc_ver-1900.patch
+      - 0015-Fix-find_library-so-that-it-looks-in-sys.prefix-lib-.patch
+
+build:
+  number: 0
+  # Windows is already gpl free in main channel
+  skip: true  # [win]
+  no_link:
+    - bin/python3.7     # [unix]
+  script_env:
+    - python_branding
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ cdt('xorg-x11-proto-devel') }}  # [linux]
+    - {{ cdt('libx11-devel') }}          # [linux]
+  run:
+    - {{ pin_subpackage('python', exact=True) }}
+
+test:
+  commands:
+    - python -V
+    - python3 -V            # [unix]
+    - 2to3 -h
+    - pydoc -h
+    - python3-config --help  # [unix]
+    - conda inspect linkages -p $PREFIX $PKG_NAME
+    - conda inspect objects -p $PREFIX $PKG_NAME  # [osx]
+
+outputs:
+  - name: python
+    script: build_python.sh
+    requirements:
+      host:
+        - bzip2             # [unix]
+        - openssl           # [unix]
+        - sqlite-gplfree    # [unix]
+        - tk                # [unix]
+        - xz                # [unix]
+        - zlib              # [unix]
+        - ncurses           # [linux]
+        - libffi            # [unix]
+      run:
+        - openssl           # [unix]
+        - sqlite            # [unix]
+        - tk                # [unix]
+        - xz                # [unix]
+        - zlib              # [unix]
+        - ncurses           # [linux]
+        - libffi            # [unix]
+        - _python_variant ==0=not_default
+
+    extra:
+      python_variant: {{ python_variant }}
+
+about:
+  home: http://www.python.org/
+  license: PSF
+  license_file: LICENSE
+  summary: 'General purpose programming language without readline (gplfree).'
+
+extra:
+  python_variant: {{ python_variant }}
+  recipe-maintainers:
+    - jakirkham
+    - jjhelmus
+    - msarahan
+    - pelson
+    - ocefpaf
