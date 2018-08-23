@@ -1,11 +1,11 @@
-mkdir build
-cd build
+mkdir build_cpp
+cd build_cpp
 
-cmake -G "NMake Makefiles" -D BUILD_TESTS=OFF -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% %SRC_DIR%
+cmake %SRC_DIR% -G "%CMAKE_GENERATOR%" ^
+                -D VERSION_TAG=%PKG_VERSION% ^
+                -D BUILD_TESTS=OFF ^
+                -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%
 if errorlevel 1 exit 1
 
-nmake
-if errorlevel 1 exit 1
-
-nmake install
+cmake --build . --target install
 if errorlevel 1 exit 1
