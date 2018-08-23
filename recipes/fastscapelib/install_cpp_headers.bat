@@ -2,9 +2,10 @@ mkdir build_cpp
 cd build_cpp
 
 cmake %SRC_DIR% -G "%CMAKE_GENERATOR%" ^
-                -D VERSION_TAG=%PKG_VERSION% ^
-                -D BUILD_TESTS=OFF ^
-                -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%
+                -DVERSION_TAG="%PKG_VERSION%" ^
+                -DCMAKE_PREFIX_PATH="%PREFIX%" ^
+                -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
+                -DBUILD_TESTS=OFF
 if errorlevel 1 exit 1
 
 cmake --build . --target install
