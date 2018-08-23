@@ -1,1 +1,2 @@
-"%PYTHON%" setup.py install
+export LDFLAGS=${LDFLAGS}" "-undefined" "dynamic_lookup
+$PYTHON setup.py install
