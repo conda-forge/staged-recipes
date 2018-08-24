@@ -1,9 +1,9 @@
 #!/bin/bash
 
-./configure                                \
-    --prefix="${PREFIX}"                   \
-    --with-libunistring-prefix="${PREFIX}" \
-    --with-libltdl-prefix="${PREFIX}"
+./configure                                     \
+    --prefix="${PREFIX}"                        \
+    CPPFLAGS="-I${PREFIX}/include ${CPPFLAGS}"  \
+    LDFLAGS="-L${PREFIX}/lib ${LDFLAGS}"
 
 make
 make install
