@@ -3,4 +3,4 @@ export LDFLAGS=${LDFLAGS}" "-undefined" "dynamic_lookup
 else
 export LDFLAGS=${LDFLAGS}" "-shared
 fi
-$PYTHON setup.py install
+$PYTHON -m pip install . --no-deps --ignore-installed
