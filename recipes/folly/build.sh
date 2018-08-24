@@ -46,7 +46,7 @@ else
     --with-boost=$PREFIX \
     --disable-silent-rules \
     --disable-dependency-tracking
-if
+fi
 
 make
 make install
