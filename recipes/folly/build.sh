@@ -6,7 +6,6 @@ if [ $(uname) == Darwin ]; then
   export CC=clang
   export CXX=clang++
   export MACOSX_DEPLOYMENT_TARGET="10.9"
-  # export CXXFLAGS="-stdlib=libc++ $CXXFLAGS"
   export LDFLAGS="$LDFLAGS -L$PREFIX/lib"
 
   # export flags
@@ -23,10 +22,6 @@ else
   export CC=$GCC
   export LD_LIBRARY_PATH=$BUILD_PREFIX/lib:$BUILD_PREFIX/lib64
 
-  # export OPENSSL_LDFLAGS=$BUILD_PREFIX/bin
-  # export OPENSSL_LIBS=-L$BUILD_PREFIX/lib
-  # export OPENSSL_INCLUDES=-I$BUILD_PREFIX/include/openssl
-
   export PKG_CONFIG_PATH=$BUILD_PREFIX/lib/pkgconfig
 
   export CPPFLAGS="-std=c++14 -I$PREFIX/include $CPPFLAGS"
@@ -38,10 +33,20 @@ cd folly
 
 autoreconf -ivf
 
-./configure \
-   --prefix=$PREFIX \
-   --with-boost=$PREFIX \
-   --disable-silent-rules --disable-dependency-tracking
+if [ $(uname) == Darwin ]; then
+  ./configure \
+    --prefix=$PREFIX \
+    --with-boost=$PREFIX \
+    --disable-silent-rules \
+    --disable-dependency-tracking \
+    --disable-libunwind
+else
+  ./configure \
+    --prefix=$PREFIX \
+    --with-boost=$PREFIX \
+    --disable-silent-rules \
+    --disable-dependency-tracking
+if
 
 make
 make install
