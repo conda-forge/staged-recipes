@@ -1,5 +1,5 @@
 #!/bin/bash
 
 ./configure --prefix="${PREFIX}"
-make
+make -j 2
 make install
