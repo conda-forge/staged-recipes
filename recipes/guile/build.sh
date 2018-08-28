@@ -1,5 +1,6 @@
 #!/bin/bash
 
 ./configure --prefix="${PREFIX}"
-make -j 2
+make -j ${CPU_COUNT}
+make -j ${CPU_COUNT} check
 make install
