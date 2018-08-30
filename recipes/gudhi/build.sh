@@ -11,6 +11,8 @@ echo "$PYTHON"
 $PYTHON --version
 echo "**************************************************"
 echo "$PYTHONPATH"
+echo "**************************************************"
+python -c "import cython; print(cython.__version__)"
 
 mkdir build && cd build
 
