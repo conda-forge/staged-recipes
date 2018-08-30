@@ -13,6 +13,9 @@ if errorlevel 1 exit 1
 cmake --build . --config %CMAKE_CONFIG% --target INSTALL
 if errorlevel 1 exit 1
 
+cmake -DWITH_GUDHI_PYTHON=ON .
+if errorlevel 1 exit 1
+
 cd cython
 "%PYTHON%" setup.py install
 if errorlevel 1 exit 1
