@@ -15,5 +15,8 @@ make install -j${CPU_COUNT}
 # install the python package
 cmake -DWITH_GUDHI_PYTHON=ON .
 cd cython
+echo "******************************"
+ls
+echo "******************************"
 python setup.py install
 
