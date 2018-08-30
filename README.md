@@ -30,7 +30,7 @@ Your final recipe should have no comments and follow the order in the example.
 
 ### 2. **How do I populate the `hash` field?**
 
-If your package is on PyPI, you can get the md5 hash from your package's page on PyPI; look for the `md5` link next to the download link for your package. The sha256 hash can be looked up on the (currently beta) new PyPI website https://pypi.org (SHA256 sums are available next to each package download).
+If your package is on [PyPI](https://pypi.org), you can get the sha256 hash from your package's page on PyPI; look for the `SHA256` link next to the download link for your package.
 
 You can also generate a hash from the command line on Linux (and Mac if you install the necessary tools below). If you go this route, the `sha256` hash is preferable to the `md5` hash.
 
@@ -38,7 +38,7 @@ To generate the `md5` hash: `md5 your_sdist.tar.gz`
 
 To generate the `sha256` hash: `openssl sha256 your_sdist.tar.gz`
 
-You may need the openssl package, available on conda-forge
+You may need the openssl package, available on conda-forge:
 `conda install openssl -c conda-forge`
 
 ### 3. **How do I exclude a platform?**
@@ -75,9 +75,9 @@ Short answer: yes. Long answer: In principle, as long as your dependencies are i
 your user's conda channels they will be able to install your package. In practice, that is difficult
 to manage, and we strive to get all dependencies built in conda-forge.
 
-### 7. **When or why do I need to use `python setup.py install --single-version-externally-managed --record record.txt`?**
+### 7. **When or why do I need to use `python -m pip install --no-deps --ignore-installed .`?**
 
-These options should be added to setup.py if your project uses setuptools. The goal is to prevent `setuptools` from creating an `egg-info` directory because they do not interact well with conda.
+This should be the default install line for most Python packages. This is preferable to `python setup.py` because it handles metadata in a `conda`-friendlier way. We also want to make sure dependencies are handled through `conda`, and `--no-deps` means most Python dependencies are needed only at `run` time, not `build`.
 
 ### 8. **Do I need `bld.bat` and/or `build.sh`?**
 
