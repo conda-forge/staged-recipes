@@ -1,19 +1,5 @@
 #!/bin/sh
 
-echo "**************************************************"
-which cython
-cython --version
-echo "**************************************************"
-which python
-python --version
-echo "**************************************************"
-echo "$PYTHON" 
-$PYTHON --version
-echo "**************************************************"
-echo "$PYTHONPATH"
-echo "**************************************************"
-python -c "import cython; print(cython.__version__)"
-
 mkdir build && cd build
 
 cmake \
@@ -29,12 +15,5 @@ make install -j${CPU_COUNT}
 # install the python package
 cmake -DWITH_GUDHI_PYTHON=ON .
 cd cython
-echo "**************************************************"
-pwd
-echo "**************************************************"
-ls
-echo "**************************************************"
-$PYTHON -c "import cython; print(cython.__version__)"
-echo "**************************************************"
-$PYTHON setup.py install
+python setup.py install
 

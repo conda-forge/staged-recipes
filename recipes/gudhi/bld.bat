@@ -17,6 +17,6 @@ cmake -DWITH_GUDHI_PYTHON=ON .
 if errorlevel 1 exit 1
 
 cd cython
-"%PYTHON%" setup.py install
+python setup.py install
 if errorlevel 1 exit 1
 
