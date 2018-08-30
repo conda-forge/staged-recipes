@@ -1,0 +1,229 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 106903715..5aa161319 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -332,11 +332,11 @@ if(ENABLE_BLAS_LAPACK)
+       # blas/lapack libs (useful for users with no Fortran compiler and no MKL
+       # license, who can just download our precompiled "gmsh-dep" package)
+       if(HAVE_64BIT_SIZE_T)
+-        set(MKL_PATH em64t/lib)
+-        set(MKL_LIBS_REQUIRED libguide40 mkl_intel_lp64 mkl_intel_thread mkl_core)
++        set(MKL_PATH Library/lib)
++        set(MKL_LIBS_REQUIRED mkl_intel_lp64_dll mkl_intel_thread_dll mkl_core_dll)
+       else(HAVE_64BIT_SIZE_T)
+-        set(MKL_PATH ia32/lib)
+-        set(MKL_LIBS_REQUIRED libguide40 mkl_intel_c mkl_intel_thread mkl_core)
++        set(MKL_PATH Library/lib)
++        set(MKL_LIBS_REQUIRED mkl_intel_c_dll mkl_intel_thread_dll mkl_core_dll)
+       endif(HAVE_64BIT_SIZE_T)
+       find_all_libraries(LAPACK_LIBRARIES MKL_LIBS_REQUIRED "" ${MKL_PATH})
+       if(LAPACK_LIBRARIES)
+@@ -491,7 +491,7 @@ if(ENABLE_FLTK)
+   if(FLTK_CONFIG_SCRIPT)
+     execute_process(COMMAND ${FLTK_CONFIG_SCRIPT} --api-version
+                     OUTPUT_VARIABLE FLTK_VERSION)
+-    string(STRIP ${FLTK_VERSION} FLTK_VERSION)
++    string(STRIP "${FLTK_VERSION}" FLTK_VERSION)
+     if(FLTK_VERSION GREATER 1.1)
+       add_subdirectory(Fltk)
+       set_config_option(HAVE_FLTK "Fltk")
+diff --git a/Geo/GModel.cpp b/Geo/GModel.cpp
+index 297271c8e..a5e406fe5 100644
+--- a/Geo/GModel.cpp
++++ b/Geo/GModel.cpp
+@@ -595,7 +595,7 @@ bool GModel::getBoundaryTags(const std::vector<std::pair<int, int> > &inDimTags,
+       int dim = outDimTags[i].first;
+       int tag = outDimTags[i].second;
+       if(dim >= 0 && dim < 3){
+-        std::set<int>::iterator it = c[dim].find(tag);
++        std::set<int,AbsIntLessThan>::iterator it = c[dim].find(tag);
+         if(it == c[dim].end())
+           c[dim].insert(tag);
+         else{
+@@ -605,7 +605,7 @@ bool GModel::getBoundaryTags(const std::vector<std::pair<int, int> > &inDimTags,
+     }
+     outDimTags.clear();
+     for(int dim = 0; dim < 3; dim++){
+-      for(std::set<int>::iterator it = c[dim].begin(); it != c[dim].end(); it++)
++      for(std::set<int,AbsIntLessThan>::iterator it = c[dim].begin(); it != c[dim].end(); it++)
+         outDimTags.push_back(std::pair<int, int>(dim, *it));
+     }
+   }
+@@ -823,7 +823,7 @@ static void addToMap
+    std::map< MElement *, std::vector < std::pair <MElement *, bool> > > &elToNeighbors,
+    const MFace &face,  MElement *el)
+ {
+-  std::map< MFace , MElement *, Less_Face>::iterator fit = faceToElement.find(face);
++  std::multimap< MFace , MElement *, Less_Face>::iterator fit = faceToElement.find(face);
+   if (fit == faceToElement.end()){
+     faceToElement.insert(std::pair< MFace , MElement *>(face, el));
+   }
+@@ -2364,7 +2364,7 @@ void GModel::alignPeriodicBoundaries()
+ 
+         MFace tgtFace(vtcs);
+ 
+-        std::map<MFace,MElement*>::iterator mIter = srcElmts.find(tgtFace);
++        std::map<MFace,MElement*,Less_Face>::iterator mIter = srcElmts.find(tgtFace);
+         if (mIter == srcElmts.end()) {
+           std::ostringstream faceDef;
+           for (int iVtx=0;iVtx<nbVtcs;iVtx++) {
+diff --git a/Geo/GeomMeshMatcher.cpp b/Geo/GeomMeshMatcher.cpp
+index ba4d6d5ef..476902948 100644
+--- a/Geo/GeomMeshMatcher.cpp
++++ b/Geo/GeomMeshMatcher.cpp
+@@ -602,7 +602,7 @@ static void copy_periodicity (std::vector<Pair<GEType*, GEType*> >& eCor,
+     if (oldSrc != NULL && oldSrc != oldTgt) {
+       
+       GEType* newTgt = srcIter->second;
+-      typename std::map<GEType*,GEType*>::iterator tgtIter = eMap.find(oldSrc);
++      typename std::multimap<GEType*,GEType*>::iterator tgtIter = eMap.find(oldSrc);
+       if (tgtIter == eMap.end()) {
+         Msg::Error("Could not find matched entity for %d", 
+                    "which has a matched periodic counterpart %d",
+diff --git a/Geo/discreteDiskFace.h b/Geo/discreteDiskFace.h
+index 676745680..19680d01f 100644
+--- a/Geo/discreteDiskFace.h
++++ b/Geo/discreteDiskFace.h
+@@ -132,7 +132,7 @@ class triangulation {
+     }
+ 
+     std::map<MVertex*,std::vector<MVertex*> > firstNode2Edge;
+-    for (std::set<MEdge>::iterator ie = borderEdg.begin(); ie != borderEdg.end() ; ++ie) {
++    for (std::set<MEdge,Less_Edge>::iterator ie = borderEdg.begin(); ie != borderEdg.end() ; ++ie) {
+       MEdge ed = *ie;
+       const std::vector<int> &nT = ed2tri[ed];
+       MElement* t = tri[nT[0]];
+diff --git a/Geo/discreteFace.cpp b/Geo/discreteFace.cpp
+index dc8225617..cbc34b57b 100644
+--- a/Geo/discreteFace.cpp
++++ b/Geo/discreteFace.cpp
+@@ -665,7 +665,7 @@ void discreteFace::updateTopology(std::vector<triangulation*>&partition)
+       std::map<MVertex*,MLine*> v02edg;//first vertex of the MLine
+       std::set<MVertex*> first, last;
+       const std::set<MEdge,Less_Edge> &bii = partition[ii]->borderEdg;// edges defining the border(s) of the ii-th new triangulation
+-      for(std::set<MEdge,Less_Edge>::iterator ie = bordi.begin(); ie != bordi.end(); ++ie){// MEdge by MEdge of the i-th triangulation border(s)
++      for(std::set<MEdge,Less_Edge>::const_iterator ie = bordi.begin(); ie != bordi.end(); ++ie){// MEdge by MEdge of the i-th triangulation border(s)
+ 	if(bii.find(*ie)!=bii.end()){// if the border edge is common to both triangulations, then it is a future GEdge - composed of MLine's
+ 	  v02edg[ie->getVertex(0)] = new MLine(ie->getVertex(0),ie->getVertex(1));// a new MLine is created
+ 
+diff --git a/Mesh/BackgroundMesh3D.cpp b/Mesh/BackgroundMesh3D.cpp
+index 84dacff7a..332583b58 100644
+--- a/Mesh/BackgroundMesh3D.cpp
++++ b/Mesh/BackgroundMesh3D.cpp
+@@ -534,7 +534,7 @@ void frameFieldBackgroundMesh3D::computeCrossField()
+     //               nb_local_iterations.end(),0))/nb_local_iterations.size() << endl;
+ 
+     //if (debug){
+-    double temp = log10(Niter);
++    double temp = log10((double)Niter);
+     stringstream ss;
+     ss << "cf_iter_" << setfill('0') << setw ((int)(ceil(temp))) << iIter << ".pos";
+     exportCrossField(ss.str().c_str());
+diff --git a/Mesh/HighOrder.cpp b/Mesh/HighOrder.cpp
+index 27eb6c59b..42888dc72 100644
+--- a/Mesh/HighOrder.cpp
++++ b/Mesh/HighOrder.cpp
+@@ -1444,7 +1444,7 @@ static void updatePeriodicEdgesAndFaces(GModel *m)
+           //vtcs.push_back(v2v[vtx]);
+         }
+ 
+-        std::map<MFace,MElement*>::iterator srcIter = srcFaces.find(MFace(vtcs));
++        std::map<MFace,MElement*,Less_Face>::iterator srcIter = srcFaces.find(MFace(vtcs));
+         if (srcIter == srcFaces.end()) {
+           std::ostringstream faceDef;
+           for (int iVtx=0;iVtx<nbVtcs;iVtx++) faceDef << vtcs[iVtx]->getNum() << " ";
+diff --git a/Mesh/meshGFaceBDS.cpp b/Mesh/meshGFaceBDS.cpp
+index deb176118..d74d89f08 100644
+--- a/Mesh/meshGFaceBDS.cpp
++++ b/Mesh/meshGFaceBDS.cpp
+@@ -749,7 +749,7 @@ int solveInvalidPeriodic(GFace *gf, BDS_Mesh &m,
+ {
+   std::set<BDS_Edge*, EdgeLessThan> toSplit;
+   invalidEdgesPeriodic(m, recoverMap, toSplit);
+-  std::set<BDS_Edge*>::iterator ite = toSplit.begin();
++  std::set<BDS_Edge*, EdgeLessThan>::iterator ite = toSplit.begin();
+ 
+   for (;ite !=toSplit.end(); ++ite){
+     BDS_Edge *e = *ite;
+diff --git a/Mesh/qualityMeasuresJacobian.cpp b/Mesh/qualityMeasuresJacobian.cpp
+index 97eb1da16..7d88f1f22 100644
+--- a/Mesh/qualityMeasuresJacobian.cpp
++++ b/Mesh/qualityMeasuresJacobian.cpp
+@@ -16,9 +16,9 @@
+ #include "pointsGenerators.h"
+ #include "OS.h"
+ 
+-static const double cTri = 2/std::sqrt(3);
+-static const double cTet = std::sqrt(2);
+-static const double cPyr = std::sqrt(2);
++static const double cTri = 2/std::sqrt(3.);
++static const double cTet = std::sqrt(2.);
++static const double cPyr = std::sqrt(2.);
+ 
+ static inline void computeCoeffLengthVectors_(const fullMatrix<double> &mat,
+                                               fullMatrix<double> &coeff,
+diff --git a/Mesh/yamakawa.cpp b/Mesh/yamakawa.cpp
+index 12e5f2c74..2c384b721 100644
+--- a/Mesh/yamakawa.cpp
++++ b/Mesh/yamakawa.cpp
+@@ -2924,7 +2924,7 @@ double Supplementary::scaled_jacobian(MVertex* a, MVertex* b, MVertex* c, MVerte
+   double val;
+   double l1, l2, l3, l4;
+   SVector3 vec1, vec2, vec3, vec4;
+-  static double coeff = 2 / std::sqrt(3);
++  static double coeff = 2 / std::sqrt(3.);
+ 
+   vec1 = SVector3(b->x() - a->x(), b->y() - a->y(), b->z() - a->z());
+   vec2 = SVector3(c->x() - a->x(), c->y() - a->y(), c->z() - a->z());
+diff --git a/contrib/HighOrderMeshOptimizer/CADDistances.cpp b/contrib/HighOrderMeshOptimizer/CADDistances.cpp
+index 1969f5793..5c28f5250 100644
+--- a/contrib/HighOrderMeshOptimizer/CADDistances.cpp
++++ b/contrib/HighOrderMeshOptimizer/CADDistances.cpp
+@@ -370,7 +370,7 @@ double discreteDistance(MLine *l, GEdge *ed, double tol, int meshDiscr, int geom
+     const int nV = l->getNumVertices();
+     for (int i=0; i<nV; ++i) xyz.push_back(l->getVertex(i)->point());
+     parametricLineNodalBasis l2(basis, xyz);
+-    int minDepth = std::ceil(std::log(nV)/std::log(2));
++    int minDepth = std::ceil(std::log((float)nV)/std::log(2.));
+     l2.discretize(dpts2, ts2, tol, minDepth, 10*minDepth);
+   }
+   oversample(dpts2, tol);
+diff --git a/contrib/HighOrderMeshOptimizer/OptHomMesh.cpp b/contrib/HighOrderMeshOptimizer/OptHomMesh.cpp
+index a818794bb..b5662b7dd 100644
+--- a/contrib/HighOrderMeshOptimizer/OptHomMesh.cpp
++++ b/contrib/HighOrderMeshOptimizer/OptHomMesh.cpp
+@@ -58,7 +58,7 @@ Mesh::Mesh(const std::map<MElement*,GEntity*> &element2entity,
+   _indPCEl.resize(nElements);
+   int iEl = 0;
+   bool nonGeoMove = false;
+-  for(std::set<MElement*>::const_iterator it = els.begin();
++  for(std::set<MElement*, Less_ElementPtr>::const_iterator it = els.begin();
+       it != els.end(); ++it, ++iEl) {
+     _el[iEl] = *it;
+     const JacobianBasis *jac = _el[iEl]->getJacobianFuncSpace();
+diff --git a/contrib/MeshOptimizer/MeshOptPatch.cpp b/contrib/MeshOptimizer/MeshOptPatch.cpp
+index 47d6df65c..ab2de3b7c 100644
+--- a/contrib/MeshOptimizer/MeshOptPatch.cpp
++++ b/contrib/MeshOptimizer/MeshOptPatch.cpp
+@@ -107,7 +107,7 @@ Patch::Patch(const std::map<MElement*, GEntity*> &element2entity,
+     _bndEl2FV.resize(nBndElts);
+     int iBndEl = 0;
+     bool unknownVert = false;
+-    for(std::set<MElement*>::iterator it = bndEls.begin();
++    for(std::set<MElement*>::const_iterator it = bndEls.begin();
+         it != bndEls.end(); ++it, ++iBndEl) {
+       MElement* bndEl = *it;
+       _bndEl[iBndEl] = bndEl;
+diff --git a/contrib/MeshOptimizer/MeshOptimizer.cpp b/contrib/MeshOptimizer/MeshOptimizer.cpp
+index 98b118299..0d45ffc96 100644
+--- a/contrib/MeshOptimizer/MeshOptimizer.cpp
++++ b/contrib/MeshOptimizer/MeshOptimizer.cpp
+@@ -353,7 +353,7 @@ std::vector<elSetVertSetPair> getDisjointPatches(const vertElVecMap &vertex2elem
+ void getAdjacentBndElts(const elElMap &el2BndEl, const elEntMap &bndEl2Ent,
+                         const elSet &elts, elSet &bndElts, MeshOptParameters &par)
+ {
+-  for (elSetIter itEl=elts.begin(); itEl!=elts.end(); itEl++) {
++  for (elSet::const_iterator itEl=elts.begin(); itEl!=elts.end(); itEl++) {
+     elElMap::const_iterator itBndEl = el2BndEl.find(*itEl);
+     if (itBndEl != el2BndEl.end()) {
+       MElement* bndEl = itBndEl->second;
