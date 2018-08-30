@@ -1,12 +1,16 @@
 mkdir build && cd build
 
-cmake -G"Visual Studio 14 2015 Win64"                   ^
-  -DCMAKE_BUILD_TYPE="Release"                          ^
-  -DCMAKE_PREFIX_PATH="%PREFIX%"                        ^
-  -DCMAKE_INSTALL_PREFIX="%PREFIX%"                     ^
-  -DCGAL_LIBRARIES="Library/bin/CGAL-vc140-mt-4.11.dll" ^
-  -DPython_ADDITIONAL_VERSIONS=3                        ^
+set CMAKE_CONFIG="Release"
+
+cmake -LAH -G"NMake Makefiles" ^
+  -DCMAKE_BUILD_TYPE="%CMAKE_CONFIG%" ^
+  -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
+  -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
+  -DWITH_GUDHI_PYTHON=OFF ^
   ..
+if errorlevel 1 exit 1
+
+cmake --build . --config %CMAKE_CONFIG% --target INSTALL
 if errorlevel 1 exit 1
 
 cd cython

@@ -6,9 +6,13 @@ cmake \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_PREFIX_PATH=${PREFIX} \
   -DCMAKE_INSTALL_PREFIX=${PREFIX} \
-  -DPython_ADDITIONAL_VERSIONS=3 \
+  -DWITH_GUDHI_PYTHON=OFF \
   ..
 
+# install include files and utils
+make install -j${CPU_COUNT}
+
+# install the python package
 cd cython
 $PYTHON setup.py install
 
