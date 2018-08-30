@@ -1,5 +1,17 @@
 #!/bin/sh
 
+echo "**************************************************"
+which cython
+cython --version
+echo "**************************************************"
+which python
+python --version
+echo "**************************************************"
+echo "$PYTHON" 
+$PYTHON --version
+echo "**************************************************"
+echo "$PYTHONPATH"
+
 mkdir build && cd build
 
 cmake \
