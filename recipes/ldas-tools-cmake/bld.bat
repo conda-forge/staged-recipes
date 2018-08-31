@@ -1,5 +1,3 @@
-setlocal EnableDelayedExpansion
-
 :: use local build folder
 mkdir build
 cd build
