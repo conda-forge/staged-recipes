@@ -18,7 +18,7 @@ cmake --build . --config Release
 if errorlevel 1 exit 1
 
 :: test
-ctest -V
+ctest -V --build-config Release
 if errorlevel 1 exit 1
 
 :: install
