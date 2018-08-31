@@ -13,10 +13,10 @@ echo "*******************************************"
 echo "PYTHON is $PYTHON  - ${PY_VER}"
 which $PYTHON
 $PYTHON --version
-$PYTHON -m site --user-site
-USERSITE=`$PYTHON -m site --user-site`
-echo "user-site is $USERSITE"
-export PYTHONPATH="$USERSITE:$PYTHONPATH"
+#$PYTHON -m site --user-site
+#USERSITE=`$PYTHON -m site --user-site`
+#echo "user-site is $USERSITE"
+#export PYTHONPATH="$USERSITE:$PYTHONPATH"
 $PYTHON -c "import cython; print(cython.__version__)"
 #ImportError: No module named cython
 echo "*******************************************"
