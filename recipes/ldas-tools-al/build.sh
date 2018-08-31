@@ -1,10 +1,8 @@
 #!/bin/bash
 
 ./configure \
-    CXXFLAGS="${CXXFLAGS} --std=c++14" \
     --prefix=${PREFIX} \
-    --disable-tcl \
-    --with-optimization=extreme \
+    --with-optimization=high \
     --without-doxygen
 make -j ${CPU_COUNT}
 make -j ${CPU_COUNT} check
