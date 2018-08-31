@@ -9,10 +9,15 @@ echo "*******************************************"
 which python
 python --version
 python -c "import cython; print(cython.__version__)"
+In my build.sh:
 echo "*******************************************"
 echo "PYTHON is $PYTHON  - ${PY_VER}"
 which $PYTHON
 $PYTHON --version
+$PYTHON -m site --user-site
+USERSITE=`$PYTHON -m site --user-site`
+echo "user-site is $USERSITE"
+export PYTHONPATH="$USERSITE:$PYTHONPATH"
 $PYTHON -c "import cython; print(cython.__version__)"
 #ImportError: No module named cython
 echo "*******************************************"
@@ -34,4 +39,3 @@ make install -j${CPU_COUNT}
 cmake -DWITH_GUDHI_PYTHON=ON .
 cd cython
 $PYTHON setup.py install
-
