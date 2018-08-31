@@ -9,7 +9,6 @@ echo "*******************************************"
 which python
 python --version
 python -c "import cython; print(cython.__version__)"
-In my build.sh:
 echo "*******************************************"
 echo "PYTHON is $PYTHON  - ${PY_VER}"
 which $PYTHON
