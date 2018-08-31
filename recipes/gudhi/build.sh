@@ -2,26 +2,6 @@
 
 mkdir build && cd build
 
-echo "*******************************************"
-which cython
-cython --version
-echo "*******************************************"
-which python
-python --version
-python -c "import cython; print(cython.__version__)"
-echo "*******************************************"
-echo "PYTHON is $PYTHON  - ${PY_VER}"
-which $PYTHON
-$PYTHON --version
-#$PYTHON -m site --user-site
-#USERSITE=`$PYTHON -m site --user-site`
-#echo "user-site is $USERSITE"
-#export PYTHONPATH="$USERSITE:$PYTHONPATH"
-$PYTHON -c "import cython; print(cython.__version__)"
-#ImportError: No module named cython
-echo "*******************************************"
-
-
 cmake \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_PREFIX_PATH=${PREFIX} \
