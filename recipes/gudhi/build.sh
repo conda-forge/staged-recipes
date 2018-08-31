@@ -6,15 +6,15 @@ echo "*******************************************"
 which cython
 cython --version
 echo "*******************************************"
-echo "PYTHON is $PYTHON  - ${PY_VER}"
-which $PYTHON
-$PYTHON --version
-#$PYTHON -c "import cython; print(cython.__version__)"
-#ImportError: No module named cython
-echo "*******************************************"
 which python
 python --version
 python -c "import cython; print(cython.__version__)"
+echo "*******************************************"
+echo "PYTHON is $PYTHON  - ${PY_VER}"
+which $PYTHON
+$PYTHON --version
+$PYTHON -c "import cython; print(cython.__version__)"
+#ImportError: No module named cython
 echo "*******************************************"
 
 
