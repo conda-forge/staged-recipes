@@ -39,7 +39,7 @@ class TestBasicSimulation(unittest.TestCase):
 		"""Runs a very basic simulation."""
 		from pycoalescence import Simulation
 		cls.sim = Simulation(logging_level=50)
-		cls.sim.set_simulation_params(seed=1, job_type=2, output_directory="tmp", min_speciation_rate=0.9)
+		cls.sim.set_simulation_parameters(seed=1, job_type=2, output_directory="tmp", min_speciation_rate=0.9)
 		cls.sim.set_map("null", 10, 10)
 		cls.sim.run()
 
