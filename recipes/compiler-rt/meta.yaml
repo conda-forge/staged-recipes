@@ -1,0 +1,65 @@
+{% set name = "compiler-rt" %}
+{% set version = "6.0.1" %}
+{% set build_number = 0 %}
+{% set sha256 = "f4cd1e15e7d5cb708f9931d4844524e4904867240c306b06a4287b22ac1c99b9" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  fn: {{ name }}-{{ version }}.src.tar.xz
+  url: http://llvm.org/releases/{{ version }}/{{ name }}-{{ version }}.src.tar.xz
+  sha256: {{ sha256 }}
+
+build:
+  number: {{ build_number }}
+  skip: true  # [not py36]
+  features:   # [win and py36]
+    - vc14    # [win and py36]
+
+requirements:
+  build:
+    - toolchain
+
+    # Temporarily preventing CMake 3.10:
+    # https://github.com/conda-forge/libcxx-feedstock/pull/18#issuecomment-372082075
+    - cmake >=3.4.3,<3.10
+
+    # "compiling .pyc files" fails without this
+    - python
+    - clangdev =={{ version }}
+    - libcxx =={{ version }}
+
+  run:
+    - clangdev =={{ version }}
+    - libcxx =={{ version }}
+
+test:
+  requires:
+    - python {{ environ['PY_VER'] + '*' }}  # [win]
+  files:
+    - test_sources
+    - compile_test.sh   # [unix]
+    - compile_test.bat  # [win]
+
+  commands:
+    - if not exist %LIBRARY_INC%\\c++\\v1\\iterator exit 1     # [win]
+
+    - test -f $PREFIX/include/c++/v1/iterator      # [unix]
+
+    - bash compile_test.sh   # [unix]
+    - compile_test.bat       # [win]
+
+about:
+  home: http://llvm.org/
+  license: NCSA
+  license_file: LICENSE.TXT
+  summary: C++ standard library
+
+extra:
+  recipe-maintainers:
+    - SylvainCorlay
+    - inducer
+    - jakirkham
+    - isuruf
