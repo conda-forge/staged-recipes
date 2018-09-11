@@ -1,7 +1,8 @@
 """Runs the basic tests for pycoalescence imports"""
 import os
-import unittest
 import shutil
+import unittest
+
 
 class TestImports(unittest.TestCase):
 	"""Tests module imports are successful"""
@@ -32,8 +33,10 @@ class TestImports(unittest.TestCase):
 		except ImportError as ie:
 			self.fail("Cannot import c++ libnecsim module: {}".format(ie))
 
+
 class TestBasicSimulation(unittest.TestCase):
 	"""Tests that a very basic simulation can be performed. """
+
 	@classmethod
 	def setUpClass(cls):
 		"""Runs a very basic simulation."""
