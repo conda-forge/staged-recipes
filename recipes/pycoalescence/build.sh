@@ -8,6 +8,4 @@ rm -rf obj
 rm -rf reference
 rm -rf lib
 
-cd ..
-
 cp -r pycoalescence $SP_DIR
