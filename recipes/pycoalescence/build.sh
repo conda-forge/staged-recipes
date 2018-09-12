@@ -1,5 +1,7 @@
-cd pycoalescence
-$PYTHON installer.py --cmake-args="-DCMAKE_PREFIX_PATH=${PREFIX} -DCMAKE_INSTALL_PREFIX=${PREFIX}"
+cd pycoalescence/lib
+cmake -DCMAKE_PREFIX_PATH=${PREFIX} -DCMAKE_INSTALL_PREFIX=${PREFIX} .
+
+cd ..
 
 rm -rf __pycache__
 rm -rf obj
