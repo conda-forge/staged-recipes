@@ -2,9 +2,11 @@ make lib
 cd MT/src/
 make
 
-
-mkdir -p $PREFIX/spooles/include
 mkdir -p $PREFIX/lib
-
-cp $SRC_DIR/*.h $PREFIX/spooles/include/
 cp *.a $PREFIX/lib/
+
+cd ../..
+cp *.a $PREFIX/lib/
+
+mkdir -p $PREFIX/include/spooles
+find . -name '*.h' -exec rsync -R {} $PREFIX/include/spooles \;
