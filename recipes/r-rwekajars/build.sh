@@ -3,6 +3,6 @@ if [[ $target_platform =~ linux.* ]] || [[ $target_platform == win-32 ]] || [[ $
   export DISABLE_AUTOBREW=1
   $R CMD INSTALL --build .
 else
-  mkdir -p $PREFIX/lib/R/library/RWeka
-  mv * $PREFIX/lib/R/library/RWeka
+  mkdir -p $PREFIX/lib/R/library/RWekajars
+  mv * $PREFIX/lib/R/library/RWekajars
 fi
