@@ -22,31 +22,25 @@ else
   export CC=$GCC
   export LD_LIBRARY_PATH=$BUILD_PREFIX/lib:$BUILD_PREFIX/lib64
 
-  export PKG_CONFIG_PATH=$BUILD_PREFIX/lib/pkgconfig
+  # export OPENSSL_LDFLAGS=$BUILD_PREFIX/bin
+  # export OPENSSL_LIBS=-L$BUILD_PREFIX/lib
+  # export OPENSSL_INCLUDES=-I$BUILD_PREFIX/include/openssl
 
-  export CPPFLAGS="-std=c++14 -I$PREFIX/include $CPPFLAGS"
-  export CXXFLAGS="-std=c++14 $CXXFLAGS"
+  export PKG_CONFIG_PATH=$BUILD_PREFIX/lib/pkgconfig
   export LDFLAGS="$LDFLAGS -L$PREFIX/lib -L$PREFIX/lib64"
 fi
+
+export CPPFLAGS="-std=c++14 -I$PREFIX/include $CPPFLAGS"
+export CXXFLAGS="-std=c++14 $CXXFLAGS"
 
 cd folly
 
 autoreconf -ivf
 
-if [ $(uname) == Darwin ]; then
-  ./configure \
-    --prefix=$PREFIX \
-    --with-boost=$PREFIX \
-    --disable-silent-rules \
-    --disable-dependency-tracking \
-    --disable-libunwind
-else
-  ./configure \
-    --prefix=$PREFIX \
-    --with-boost=$PREFIX \
-    --disable-silent-rules \
-    --disable-dependency-tracking
-fi
+./configure \
+   --prefix=$PREFIX \
+   --with-boost=$PREFIX \
+   --disable-silent-rules --disable-dependency-tracking
 
 make
 make install
