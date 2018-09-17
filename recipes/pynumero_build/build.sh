@@ -29,5 +29,6 @@ cmake .. -DMP_PATH=$mp_dir
 #make VERBOSE=1 -j${CPU_COUNT}
 make 
 
-cp libpynumero_* $PREFIX/lib
-cp asl_test $PREFIX/bin
+cp asl_interface/libpynumero_* $PREFIX/lib
+cp sparse_utils/libpynumero_* $PREFIX/lib
+cp tests/asl_test $PREFIX/bin
