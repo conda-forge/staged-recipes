@@ -20,12 +20,11 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
     find /opt/conda/pkgs -type d -name "ampl-mp*"
     mp_dir=$(find /opt/conda/pkgs -type d -name "ampl-mp*")
 elif [[ "$OSTYPE" == "darwin"* ]]; then
-    locate ampl-mp
     find ~/ -type d -name "ampl-mp*"
     mp_dir=$(find ~/ -type d -name "ampl-mp*")
 fi
 echo $mp_dir
 cmake .. -DMP_PATH=$mp_dir 
 
-make VERBOSE=1 -j${CPU_COUNT}
+#make VERBOSE=1 -j${CPU_COUNT}
 make 
