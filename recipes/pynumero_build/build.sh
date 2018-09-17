@@ -1,5 +1,12 @@
 #!/bin/bash -e
 
+cd third_party/ASL
+./getASL.sh
+cd solvers
+./configurehere
+make
+cd ../../../
+
 mkdir build
 cd build
 
