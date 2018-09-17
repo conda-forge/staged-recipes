@@ -9,8 +9,9 @@ cd ../../../
 
 mkdir build
 cd build
-
-mp_dir=$(find ~/ -type d -name "ampl-mp*")
+echo "LOOKING FOR ampl-mp"
+find / -type d -name "ampl-mp*"
+mp_dir=$(find / -type d -name "ampl-mp*")
 echo $mp_dir
 cmake .. -DMP_PATH=$mp_dir 
 
