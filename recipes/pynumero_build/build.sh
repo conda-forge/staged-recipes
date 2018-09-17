@@ -4,15 +4,26 @@ cd third_party/ASL
 ./getASL.sh
 cd solvers
 ./configurehere
-find . -name "makefile" -exec sed -i "s/CFLAGS = -DNo_dtoa -fPIC -O/CFLAGS = -fPIC -O/g" {} \;
+
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+    find . -name "makefile" -exec sed -i "s/CFLAGS = -DNo_dtoa -fPIC -O/CFLAGS = -fPIC -O/g" {} \;
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+    find . -name "makefile" -exec sed -ie 's/CFLAGS = -DNo_dtoa -fPIC -O/CFLAGS = -fPIC -O/g' {} \;
+fi
 make
 cd ../../../
 
 mkdir build
 cd build
 echo "LOOKING FOR ampl-mp"
-find /opt/conda/pkgs -type d -name "ampl-mp*"
-mp_dir=$(find /opt/conda/pkgs -type d -name "ampl-mp*")
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+    find /opt/conda/pkgs -type d -name "ampl-mp*"
+    mp_dir=$(find /opt/conda/pkgs -type d -name "ampl-mp*")
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+    locate ampl-mp
+    find ~/ -type d -name "ampl-mp*"
+    mp_dir=$(find ~/ -type d -name "ampl-mp*")
+fi
 echo $mp_dir
 cmake .. -DMP_PATH=$mp_dir 
 
