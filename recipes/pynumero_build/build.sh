@@ -1,19 +1,11 @@
-
-#if [ "$(uname)" == "Linux" ]
-#then
-    #export CXXFLAGS="${CXXFLAGS} -L${PREFIX}/lib -Wl,-rpath-link,${PREFIX}/lib"
-#fi
-
-cd third_party/ASL
-./getASL.sh
-cd solvers
-./configurehere
-make
-cd ../../../
+#!/bin/bash -e
 
 mkdir build
 cd build
 
-cmake ..
+mp_dir=$(find ~/ -type d -name "ampl-mp*")
+echo $mp_dir
+cmake .. -DMP_PATH=$mp_dir 
 
 make VERBOSE=1 -j${CPU_COUNT}
+make 
