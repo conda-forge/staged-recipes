@@ -1,17 +1,17 @@
 #!/bin/bash -e
 
-cd third_party/ASL
-./getASL.sh
-cd solvers
-./configurehere
+#cd third_party/ASL
+#./getASL.sh
+#cd solvers
+#./configurehere
 
-if [[ "$OSTYPE" == "linux-gnu" ]]; then
-    find . -name "makefile" -exec sed -i "s/CFLAGS = -DNo_dtoa -fPIC -O/CFLAGS = -fPIC -O/g" {} \;
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-    find . -name "makefile" -exec sed -ie 's/CFLAGS = -DNo_dtoa -fPIC -O/CFLAGS = -fPIC -O/g' {} \;
-fi
-make
-cd ../../../
+#if [[ "$OSTYPE" == "linux-gnu" ]]; then
+#    find . -name "makefile" -exec sed -i "s/CFLAGS = -DNo_dtoa -fPIC -O/CFLAGS = -fPIC -O/g" {} \;
+#elif [[ "$OSTYPE" == "darwin"* ]]; then
+#    find . -name "makefile" -exec sed -ie 's/CFLAGS = -DNo_dtoa -fPIC -O/CFLAGS = -fPIC -O/g' {} \;
+#fi
+#make
+#cd ../../../
 
 mkdir build
 cd build
