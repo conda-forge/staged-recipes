@@ -21,4 +21,6 @@ stack ${STACK_OPTS} setup
 stack ${STACK_OPTS} install --ghc-options \
   "-optl-pthread -optl-L${PREFIX}/lib -optl-Wl,-rpath,${PREFIX}/lib"
 
+strip "$PREFIX/bin/shellcheck"
+
 rm -rf "${PACKAGE_HOME}"

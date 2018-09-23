@@ -20,6 +20,8 @@ stack --local-bin-path "%PREFIX%\bin" ^
         "-optl-pthread -optl-L%PREFIX%\lib -optl-Wl,-rpath,%PREFIX%\lib" ^
       || goto :error
 
+strip "%PREFIX%\bin\shellcheck.exe" || goto :error
+
 rmdir /S /Q "%PACKAGE_HOME%" || goto :error
 goto :EOF
 
