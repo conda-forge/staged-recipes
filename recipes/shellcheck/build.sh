@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 set -o xtrace -o pipefail -o errexit
 
@@ -18,9 +18,15 @@ STACK_OPTS=\
 "--stack-root ${STACK_ROOT} "
 
 stack ${STACK_OPTS} setup
-stack ${STACK_OPTS} install --ghc-options \
-  "-optl-pthread -optl-L${PREFIX}/lib -optl-Wl,-rpath,${PREFIX}/lib"
 
-strip "$PREFIX/bin/shellcheck"
+if [[ $target_platform =~ linux.* ]]; then
+  stack ${STACK_OPTS} install --ghc-options \
+    "-optl-pthread -optlo-Os -optl-L${PREFIX}/lib -optl-Wl,-rpath,${PREFIX}/lib,--gc-sections -split-sections"
+  strip --strip-all "$PREFIX/bin/shellcheck"
+else
+  stack ${STACK_OPTS} install --ghc-options \
+    "-optl-pthread -optlo-Os -optl-L${PREFIX}/lib -optl-Wl,-rpath,${PREFIX}/lib"
+  strip "$PREFIX/bin/shellcheck"
+fi
 
 rm -rf "${PACKAGE_HOME}"

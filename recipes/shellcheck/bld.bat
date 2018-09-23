@@ -17,7 +17,7 @@ stack --local-bin-path "%PREFIX%\bin" ^
       --extra-lib-dirs "%PREFIX%\lib" ^
       --stack-root "%STACK_ROOT%" ^
       install --ghc-options ^
-        "-optl-pthread -optl-L%PREFIX%\lib" ^
+        "-optl-pthread -optlo-Os -optl-L%PREFIX%\lib" ^
       || goto :error
 
 strip "%PREFIX%\bin\shellcheck.exe" || goto :error
