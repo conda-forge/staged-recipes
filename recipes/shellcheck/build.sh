@@ -11,11 +11,11 @@ mkdir -p "${BINARY_HOME}"
 mkdir -p "${PACKAGE_HOME}"
 mkdir -p "${STACK_ROOT}"
 
-STACK_OPTS=\
-"--local-bin-path ${PREFIX}/bin "\
-"--extra-include-dirs ${PREFIX}/include "\
-"--extra-lib-dirs ${PREFIX}/lib "\
-"--stack-root ${STACK_ROOT} "
+STACK_OPTS="\
+--local-bin-path ${PREFIX}/bin \
+--extra-include-dirs ${PREFIX}/include \
+--extra-lib-dirs ${PREFIX}/lib \
+--stack-root ${STACK_ROOT} "
 
 stack ${STACK_OPTS} setup
 
