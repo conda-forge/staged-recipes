@@ -21,11 +21,11 @@ stack ${STACK_OPTS} setup
 
 if [[ $target_platform =~ linux.* ]]; then
   stack ${STACK_OPTS} install --ghc-options \
-    "-optl-pthread -optlo-Os -optl-L${PREFIX}/lib -optl-Wl,-rpath,${PREFIX}/lib,--gc-sections -split-sections"
+    "-optlo-Os -optl-L${PREFIX}/lib -optl-Wl,-rpath,${PREFIX}/lib,--gc-sections -split-sections -optl-pthread"
   strip --strip-all "$PREFIX/bin/shellcheck"
 else
   stack ${STACK_OPTS} install --ghc-options \
-    "-optl-pthread -optlo-Os -optl-L${PREFIX}/lib -optl-Wl,-rpath,${PREFIX}/lib"
+    "-optlo-Os -optl-L${PREFIX}/lib -optl-Wl,-rpath,${PREFIX}/lib"
   strip "$PREFIX/bin/shellcheck"
 fi
 

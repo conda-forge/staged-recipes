@@ -7,17 +7,13 @@ mkdir "%PACKAGE_HOME%" || goto :error
 mkdir "%STACK_ROOT%"   || goto :error
 
 stack --local-bin-path "%PREFIX%\bin" ^
-      --extra-include-dirs "%PREFIX%\include" ^
-      --extra-lib-dirs "%PREFIX%\lib" ^
       --stack-root "%STACK_ROOT%" ^
       setup ^
       || goto :error
 stack --local-bin-path "%PREFIX%\bin" ^
-      --extra-include-dirs "%PREFIX%\include" ^
-      --extra-lib-dirs "%PREFIX%\lib" ^
       --stack-root "%STACK_ROOT%" ^
       install --ghc-options ^
-        "-optl-pthread -optlo-Os -optl-L%PREFIX%\lib" ^
+        "-optl-pthread -optlo-Os" ^
       || goto :error
 
 strip "%PREFIX%\bin\shellcheck.exe" || goto :error
