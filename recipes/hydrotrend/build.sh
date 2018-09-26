@@ -2,11 +2,6 @@
 
 mkdir _build && cd _build
 
-echo "--------------- CC AND CXX -----------------"
-echo $CC
-echo $CXX
-echo "--------------------------------------------"
-
 cmake  ..       \
        -DCMAKE_INSTALL_PREFIX:PATH=$PREFIX \
        -DCMAKE_PREFIX_PATH:PATH=$PREFIX \
