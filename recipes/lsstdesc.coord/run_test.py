@@ -10,4 +10,4 @@ assert np.allclose(theta2.wrap().rad, theta1.rad)
 sincos = theta1.sincos()
 assert np.allclose(
     sincos,
-    [np.sin(12.0 / 360.0 * np.pi), np.cos(12.0 / 360.0 * np.pi)])
+    [np.sin(12.0 / 180.0 * np.pi), np.cos(12.0 / 180.0 * np.pi)])
