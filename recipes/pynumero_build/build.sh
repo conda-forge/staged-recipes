@@ -2,16 +2,8 @@
 
 mkdir build
 cd build
-echo "LOOKING FOR ampl-mp"
-if [[ "$OSTYPE" == "linux-gnu" ]]; then
-    find /opt/conda/pkgs -type d -name "ampl-mp*"
-    mp_dir=$(find /opt/conda/pkgs -type d -name "ampl-mp*")
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-    find ~/ -type d -name "ampl-mp*"
-    mp_dir=$(find ~/ -type d -name "ampl-mp*")
-fi
-echo $mp_dir
-cmake .. -DMP_PATH=$mp_dir 
+
+cmake .. -DMP_PATH=$PREFIX -DCMAKE_BUILD_TYPE=Release
 
 make 
 
