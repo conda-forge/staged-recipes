@@ -8,4 +8,6 @@ cmake .. -DMP_PATH=$PREFIX -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DC
 make 
 make install
 
+cp asl_interface/libpynumero_* $PREFIX/lib
+cp sparse_utils/libpynumero_* $PREFIX/lib
 cp tests/asl_test $PREFIX/bin
