@@ -10,6 +10,7 @@ set -e
 
 ./configure \
 	--prefix="${PREFIX}" \
+	--enable-cfitsio \
 	--enable-swig-iface \
 	--disable-swig-octave \
 	--disable-swig-python \
