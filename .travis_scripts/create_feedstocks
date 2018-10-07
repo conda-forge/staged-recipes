@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -e
+set -x
 
 # Ensure we are on the latest commit
 # of the branch where we are converting
@@ -16,26 +17,35 @@ export PYTHONUNBUFFERED=1
 # Install Miniconda.
 echo ""
 echo "Installing a fresh version of Miniconda."
-curl -L https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh > ~/miniconda.sh
+curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh > ~/miniconda.sh
 bash ~/miniconda.sh -b -p ~/miniconda
+(
+    source ~/miniconda/bin/activate root
+
+    # Configure conda.
+    echo ""
+    echo "Configuring conda."
+    conda config --set show_channel_urls true
+    conda config --set auto_update_conda false
+    conda config --set add_pip_as_python_dependency false
+    conda config --add channels conda-forge
+
+    unset conda
+    conda update -n root --yes --quiet conda conda-env
+)
 source ~/miniconda/bin/activate root
 
-# Configure conda.
-echo ""
-echo "Configuring conda."
-conda config --set show_channel_urls true
-conda config --set auto_update_conda false
-conda config --set add_pip_as_python_dependency false
-conda config --add channels conda-forge
-conda update -n root --yes --quiet conda conda-env
-conda install --yes --quiet git=2.12.2
-conda install -n root --yes --quiet jinja2 anaconda-client
-conda install --yes --quiet conda-build=2 conda-smithy
+conda install --yes --quiet conda-forge-ci-setup=1.* conda-smithy=3.* conda-forge-pinning git=2.12.2
 
 conda info
 conda config --get
 
+set +x
 mkdir -p ~/.conda-smithy
 echo $TRAVIS_TOKEN > ~/.conda-smithy/travis.token
+set -x
 
-python .travis_scripts/create_feedstocks.py
+python .travis_scripts/create_feedstocks.py || {
+    python .travis_scripts/trigger_travis_build.py "conda-forge/staged-recipes";
+    exit 1;
+};

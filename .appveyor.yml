@@ -3,22 +3,15 @@ skip_commits:
 
 environment:
 
-  # Workaround for https://github.com/conda/conda-build/issues/636
-  PYTHONIOENCODING: "UTF-8"
+  CONDA_INSTALL_LOCN: "C:\\Miniconda36-x64"
 
   matrix:
-    - TARGET_ARCH: "x86"
-      CONDA_INSTALL_LOCN: "C:\\Miniconda36"
-
-    - TARGET_ARCH: "x64"
-      CONDA_INSTALL_LOCN: "C:\\Miniconda-x64"
+    - PLATFORM: "64"
 
 artifacts:
     # Store built conda packages as artifacts
     - path: 'conda_packages\*.bz2'
 
-# We always use a 64-bit machine, but can build x86 distributions
-# with the TARGET_ARCH variable (which is used by CMD_IN_ENV).
 platform:
     - x64
 
@@ -36,30 +29,28 @@ install:
              for /f "tokens=*" %%a in ('git ls-tree --name-only master -- .') do rmdir /s /q %%a && echo Removing recipe: %%a
     - cmd: cd ..
 
-    # Set the CONDA_NPY, although it has no impact on the actual build. We need this because of a test within conda-build.
-    - cmd: set CONDA_NPY=19
-
     # Remove cygwin (and therefore the git that comes with it).
     - cmd: rmdir C:\cygwin /s /q
 
     # Use the pre-installed Miniconda for the desired arch
     - cmd: call %CONDA_INSTALL_LOCN%\Scripts\activate.bat
-    - cmd: conda config --add channels conda-forge
-    - cmd: conda config --set show_channel_urls true
-    - cmd: appveyor-retry conda update --yes --quiet conda
+    - cmd: conda.exe config --add channels conda-forge
+    - cmd: conda.exe config --set show_channel_urls true
+    - cmd: appveyor-retry conda.exe update --yes --quiet conda
 
-    - cmd: appveyor-retry conda install --yes --quiet conda-build-all
-    - cmd: appveyor-retry conda install --yes --quiet conda-forge-build-setup
+
+    - cmd: appveyor-retry conda.exe install --yes --quiet conda-forge-pinning conda-forge-ci-setup=1.* networkx conda-build
+
     - cmd: appveyor-retry run_conda_forge_build_setup
 
 # Skip .NET project specific build phase.
 build: off
 
 test_script:
-    - conda build-all recipes --matrix-conditions "numpy >=1.11" "python >=2.7,<3|>=3.5" "r-base ==3.3.2|==3.4.1"
+    - python .ci_support\build_all.py recipes --arch %PLATFORM%
+
     # copy any newly created conda packages into the conda_packages dir
     - cmd: mkdir conda_packages
     # Uncomment the following two lines to make any conda packages created
     # available as build artifacts in AppVeyor
-    #- cmd: 'copy /Y C:\Miniconda\conda-bld\win-32\*.bz2 conda_packages || cmd /c "exit /b 0"'
     #- cmd: 'copy /Y C:\Miniconda-x64\conda-bld\win-64\*.bz2 conda_packages || cmd /c "exit /b 0"'
