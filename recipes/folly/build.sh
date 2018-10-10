@@ -6,7 +6,7 @@ export LIBGFLAGS_INCLUDE_DIR=$PREFIX/include
 if [ $(uname) == Darwin ]; then
   export CC=clang
   export CXX=clang++
-  export MACOSX_DEPLOYMENT_TARGET="10.9"
+  export MACOSX_DEPLOYMENT_TARGET="10.13"
   export CPPFLAGS="-I$PREFIX/include $CPPFLAGS"
   export CXXFLAGS="-I$PREFIX/include $CXXFLAGS"
   export LDFLAGS="-L$PREFIX/lib $LDFLAGS -Wl,-rpath,$PREFIX/lib"
