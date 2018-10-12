@@ -1,5 +1,5 @@
 set BLPAPI_ROOT="."
-copy blpapi_cpp_3.8.18.1\lib\*64* "%PREFIX%"
+copy "%BLPAPI_ROOT%"\lib\ "%PREFIX%"\lib\
 if errorlevel 1 exit 1
 "%PYTHON%" setup.py install
 if errorlevel 1 exit 1
