@@ -3,13 +3,8 @@ cd build
 
 REM This is a fix for a CMake bug where it crashes because of the "/GL" flag
 REM See: https://gitlab.kitware.com/cmake/cmake/issues/16282
-@echo CXXFLAGS=%CXXFLAGS%
-@echo CFLAGS=%CFLAGS%
 set CXXFLAGS=%CXXFLAGS:-GL=%
 set CFLAGS=%CFLAGS:-GL=%
-@echo After removing -GL flag because of CMake bug:
-@echo CXXFLAGS=%CXXFLAGS%
-@echo CFLAGS=%CFLAGS%
 
 cmake -G Ninja ^
       -DBUILD_ALL=ON ^
@@ -20,4 +15,4 @@ cmake -G Ninja ^
       -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON ^
       "-DTHIRDPARTY_COMMON_ARGS=-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON" ^
       ..
-cmake --build . --config Release --target install
+ninja install
