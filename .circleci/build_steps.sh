@@ -40,7 +40,7 @@ conda clean --lock
 # Ensure that `noarch` exists otherwise `conda` won't think this channel is valid.
 conda index /home/conda/staged-recipes/build_artifacts/noarch
 
-conda install --yes --quiet conda-forge-ci-setup=1.* conda-forge-pinning networkx conda-build>=3.16
+conda install --yes --quiet conda-forge-ci-setup=1.* conda-forge-pinning networkx conda-build
 source run_conda_forge_build_setup
 
 # yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
