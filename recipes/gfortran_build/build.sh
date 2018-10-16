@@ -1,8 +1,6 @@
 #!/bin/bash
 
 export LDFLAGS="-Wl,-headerpad_max_install_names -Wl,-L${PREFIX}/lib -Wl,-rpath ${PREFIX}/lib"
-export CFLAGS="-D__builtin_unreachable=__builtin_trap"
-export CXXFLAGS="-D__builtin_unreachable=__builtin_trap"
 
 mkdir -p ${SRC_DIR}/build_conda
 cd ${SRC_DIR}/build_conda
