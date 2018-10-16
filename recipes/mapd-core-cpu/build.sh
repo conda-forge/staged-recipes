@@ -15,10 +15,18 @@ if [ $(uname) == Darwin ]; then
   export LDFLAGS="-L$PREFIX/lib $LDFLAGS -Wl,-rpath,$PREFIX/lib"
 fi
 
+# debug section:start
 env
 
+ls $PREFIX/lib
+ls $PREFIX/include
+ls $CONDA_PREFIX/lib
+ls $CONDA_PREFIX/include
+
+# debug section:end
+
 cmake \
-    -DCMAKE_INSTALL_PREFIX=$PREFIX \
+    -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
     -DCMAKE_BUILD_TYPE=release \
     -DENABLE_CUDA=off \
     -DMAPD_IMMERSE_DOWNLOAD=off \
