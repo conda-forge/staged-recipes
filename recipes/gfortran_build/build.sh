@@ -26,5 +26,5 @@ cd ${SRC_DIR}/build_conda
     --without-gnu-as \
     --disable-bootstrap \
     --with-dwarf2
-make -j"${CPU_COUNT}"
+make -j"${CPU_COUNT}" > make_logs.txt
 make install-strip
