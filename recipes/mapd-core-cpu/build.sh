@@ -15,6 +15,8 @@ if [ $(uname) == Darwin ]; then
   export LDFLAGS="-L$PREFIX/lib $LDFLAGS -Wl,-rpath,$PREFIX/lib"
 fi
 
+env
+
 cmake \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DCMAKE_BUILD_TYPE=release \
