@@ -26,5 +26,18 @@ cd ${SRC_DIR}/build_conda
     --without-gnu-as \
     --disable-bootstrap \
     --with-dwarf2
-make -j"${CPU_COUNT}" > make_logs.txt
-make install-strip
+
+# using || to quiet logs unless there is an issue
+{
+    make -j"${CPU_COUNT}" >& make_logs.txt 
+} || {
+    tail -n 1000 make_logs.txt
+    exit 1
+}
+
+{
+    make install-strip >& make_install_logs.txt
+} || {    
+    tail -n 1000 make_install_logs.txt
+    exit 1
+}
