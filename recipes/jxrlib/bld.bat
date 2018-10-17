@@ -22,6 +22,3 @@ mkdir "%PREFIX%\Library\include\jxrlib"
 xcopy /s /e /h /i image\sys "%PREFIX%\Library\include\jxrlib"
 
 copy jxrgluelib\*.h "%PREFIX%\Library\include\jxrlib"
-
-
-dir /s
