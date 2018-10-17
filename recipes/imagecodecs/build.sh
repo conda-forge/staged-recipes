@@ -7,5 +7,4 @@ cat imagecodecs/imagecodecs.h.old >>  imagecodecs/imagecodecs.h
 
 export LDSHARED=$CC
 
-#$PYTHON setup.py build_ext --inplace
 $PYTHON -m pip install . --no-deps --ignore-installed --no-cache-dir -vvv
