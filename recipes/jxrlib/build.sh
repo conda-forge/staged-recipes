@@ -1,7 +1,4 @@
-CPLUS_INCLUDE_PATH=$CONDA_PREFIX/include
-export CPLUS_INCLUDE_PATH  # why is this necessary?
-
-LIBRARY_PATH=$CONDA_PREFIX/lib
-export LIBRARY_PATH
+export CPLUS_INCLUDE_PATH=$CONDA_PREFIX/include
+export LIBRARY_PATH=$CONDA_PREFIX/lib
 
 DIR_INSTALL=$PREFIX make clean swig install

@@ -1,10 +1,12 @@
 mv setup_modified.py setup.py
 
-mv imagecodecs/imagecodecs.h imagecodecs/imagecodecs.h.old
+export ADDITIONAL_INCLUDE_PATHS=$PREFIX/include/libjxr/image:$PREFIX/include/libjxr/common:$PREFIX/include/libjxr/glue:$PREFIX/include/openjpeg-2.3
+echo $ADDITIONAL_INCLUDE_PATHS
 
-echo "#include <sys/types.h>" > imagecodecs/imagecodecs.h
-cat imagecodecs/imagecodecs.h.old >> imagecodecs/imagecodecs.h
-
+export CPATH=$ADDITIONAL_INCLUDE_PATHS:$CPATH
+echo $CPATH
 export LDSHARED=$CC
+
+find $PREFIX/include
 
 $PYTHON -m pip install . --no-deps --ignore-installed --no-cache-dir -vvv
