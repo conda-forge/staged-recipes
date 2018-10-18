@@ -1,6 +1,11 @@
 #!/bin/bash
 
-export LDFLAGS=${LDFLAGS}" -Wl,-headerpad_max_install_names -Wl,-L${PREFIX}/lib -Wl,-rpath ${PREFIX}/lib"
+if [[ -z "${LDFLAGS}" ]];
+then
+    export LDFLAGS="-Wl,-headerpad_max_install_names -Wl,-L${PREFIX}/lib -Wl,-rpath ${PREFIX}/lib"
+else
+    export LDFLAGS=${LDFLAGS}" -Wl,-headerpad_max_install_names -Wl,-L${PREFIX}/lib -Wl,-rpath ${PREFIX}/lib"
+fi
 
 mkdir -p ${SRC_DIR}/build_conda
 cd ${SRC_DIR}/build_conda
