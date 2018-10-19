@@ -1,5 +1,15 @@
 #!/use/bin/env python
+
+# check that we are not linking fast-math from fortran
+str_num_before = str(1e-323)
+print("before import:", str_num_before)
+
 import camb
+
+str_num_after = str(1e-323)
+print("after import:", str_num_after)
+
+assert str_num_before == str_num_after
 
 # run the code
 pars = camb.CAMBparams()
