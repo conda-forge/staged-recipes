@@ -1,3 +1,6 @@
 #!/bin/bash
 
-make camb libcamb
+make camb
+
+cd pycamb
+python setup.py build
