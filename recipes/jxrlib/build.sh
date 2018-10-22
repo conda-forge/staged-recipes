@@ -1,4 +1,8 @@
-export CPLUS_INCLUDE_PATH=$CONDA_PREFIX/include
-export LIBRARY_PATH=$CONDA_PREFIX/lib
+mkdir build && cd build
 
-DIR_INSTALL=$PREFIX make clean swig install
+cmake -D CMAKE_INSTALL_PREFIX="$PREFIX" \
+      -D CMAKE_BUILD_TYPE=Release \
+      $SRC_DIR
+
+make
+make install

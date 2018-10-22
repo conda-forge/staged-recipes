@@ -1,7 +1,6 @@
-diff -Naru setup_modified.py setup_modified.py
---- setup_modified.py	1970-01-01 01:00:00.000000000 +0100
-+++ setup_modified.py	2018-10-18 15:33:56.365100464 +0200
-@@ -0,0 +1,138 @@
+--- setup_modified.py	2018-10-23 09:42:55.063203772 +0200
++++ setup_modified.py	2018-10-23 13:22:15.367409506 +0200
+@@ -0,0 +1,155 @@
 +# -*- coding: utf-8 -*-
 +# imagecodecs/setup.py
 +
@@ -23,12 +22,12 @@ diff -Naru setup_modified.py setup_modified.py
 +with open('imagecodecs/_imagecodecs.pyx') as fh:
 +    code = fh.read().replace('\r', '')
 +
-+version = re.search("__version__ = '(.*?)'", code).groups()[0]
++version = re.search(r"__version__ = '(.*?)'", code).groups()[0]
 +version += ('.' + buildnumber) if buildnumber else ''
-+description = re.search('"""(.*)\.[\r\n?|\n]', code).groups()[0]
-+readme = re.search('[\r\n?|\n]{2}"""(.*)"""[\r\n?|\n]{2}__version__', code,
++description = re.search(r'"""(.*)\.[\r\n?|\n]', code).groups()[0]
++readme = re.search(r'[\r\n?|\n]{2}"""(.*)"""[\r\n?|\n]{2}__version__', code,
 +                   re.MULTILINE | re.DOTALL).groups()[0]
-+license = re.search('(# Copyright.*?[\r\n?|\n])[\r\n?|\n]+""', code,
++license = re.search(r'(# Copyright.*?[\r\n?|\n])[\r\n?|\n]+""', code,
 +                    re.MULTILINE | re.DOTALL).groups()[0]
 +
 +readme = '\n'.join([description, '=' * len(description)]
@@ -40,38 +39,55 @@ diff -Naru setup_modified.py setup_modified.py
 +        fh.write(license)
 +    with open('README.rst', 'w') as fh:
 +        fh.write(readme)
++    numpy_required = '1.11.3'
++else:
++    numpy_required = numpy.__version__
++
++
++sources = [
++    'imagecodecs/imagecodecs.c',
++    'imagecodecs/jpeg_0xc3.cpp',
++    'imagecodecs/_imagecodecs.pyx',
++]
++
++include_dirs = [
++    numpy.get_include(),
++    'imagecodecs',
++]
 +
 +if sys.platform == 'win32':
-+    libraries = ['JXRGlueLib', 'JXRLib', 'jpeg', 'openjp2', 'z', 'liblz4', 'libzstd', 'libwebp',
-+                 'liblzma', 'libbz2', 'lzf_static', 'libpng']
-+    define_macros = [('WIN32', 1), ('LZMA_API_STATIC', 1), ('OPJ_STATIC', 1)]
++    libraries = ['z', 'liblz4', 'libwebp', 'libpng', 'libjxrglue', 'libjpegxr', 'jpeg',
++                 'libzstd', 'liblzma', 'libbz2', 'openjp2']
++    define_macros = [('WIN32', 1)]
 +    libraries_jpeg12 = ['jpeg12']
 +    extra_link_args = []
 +
 +else:
-+    # TODO: find standard library names and compiler options
-+    libraries = ['m', 'z', 'jpeg', 'lz4', 'zstd', 'lzma', 'bz2', 'lzf',
-+                 'png', 'webp', 'jxrglue', 'jpegxr', 'openjp2']
++    libraries = ['jpeg', 'lz4', 'zstd', 'lzma', 'bz2', 'png', 'webp',
++                 'openjp2', 'jxrglue', 'jpegxr', 'z', 'm']
 +    define_macros = []
 +    libraries_jpeg12 = ['jpeg12']
 +    extra_link_args = ['-shared']
-+    
++
 +    if sys.platform  == 'darwin':
 +        additional_osx_libraries = ['python'+sysconfig.get_config_vars('BLDLIBRARY')[0].split('python')[1]]
 +        libraries += additional_osx_libraries
 +        libraries_jpeg12 += additional_osx_libraries
 +
++# use liblzf sources from sdist
++sources.extend(['liblzf-3.6/lzf_c.c', 'liblzf-3.6/lzf_d.c'])
++include_dirs.append('liblzf-3.6')
++
++
 +ext_modules = [
 +    Extension(
 +        'imagecodecs._imagecodecs',
-+        ['imagecodecs/imagecodecs.c',
-+         'imagecodecs/jpeg_0xc3.cpp',
-+         'imagecodecs/_imagecodecs.pyx'],
-+        include_dirs=[numpy.get_include(), 'imagecodecs'],
++        sources,
++        include_dirs=include_dirs + [os.environ.get('JPEG8_INCLUDE','')],
 +        libraries=libraries,
 +        define_macros=define_macros,
 +        extra_link_args=extra_link_args,
-+        )
++    )
 +]
 +
 +if libraries_jpeg12:
@@ -79,7 +95,7 @@ diff -Naru setup_modified.py setup_modified.py
 +        Extension(
 +            'imagecodecs._jpeg12',
 +            ['imagecodecs/_jpeg12.pyx'],
-+            include_dirs=[numpy.get_include(), 'imagecodecs'] + [os.environ.get('JPEG12_INCLUDE','')],
++            include_dirs=[numpy.get_include(), 'imagecodecs', os.environ.get('JPEG12_INCLUDE','')],
 +            libraries=libraries_jpeg12,
 +            define_macros=[('BITS_IN_JSAMPLE', 12)],
 +            extra_link_args=extra_link_args,
@@ -95,7 +111,7 @@ diff -Naru setup_modified.py setup_modified.py
 +    author_email='cgohlke@uci.edu',
 +    url='https://www.lfd.uci.edu/~gohlke/',
 +    python_requires='>=2.7',
-+    install_requires=['numpy>=1.14'],
++    install_requires=['numpy>=%s' % numpy_required],
 +    tests_require=['pytest', 'zstd', 'lz4', 'python-lzf'],
 +    packages=['imagecodecs'],
 +    package_data={'imagecodecs': ['licenses/*']},
