@@ -3,6 +3,6 @@ if [[ $target_platform =~ linux.* ]] || [[ $target_platform == win-32 ]] || [[ $
   export DISABLE_AUTOBREW=1
   $R CMD INSTALL --build .
 else
-  mkdir -p $PREFIX/lib/R/library/ddpcr
-  mv * $PREFIX/lib/R/library/ddpcr
+  mkdir -p $PREFIX/lib/R/library/r2d3
+  mv * $PREFIX/lib/R/library/r2d3
 fi

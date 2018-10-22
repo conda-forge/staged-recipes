@@ -3,6 +3,6 @@ if [[ $target_platform =~ linux.* ]] || [[ $target_platform == win-32 ]] || [[ $
   export DISABLE_AUTOBREW=1
   $R CMD INSTALL --build .
 else
-  mkdir -p $PREFIX/lib/R/library/esquisse
-  mv * $PREFIX/lib/R/library/esquisse
+  mkdir -p $PREFIX/lib/R/library/forge
+  mv * $PREFIX/lib/R/library/forge
 fi
