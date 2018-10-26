@@ -3,7 +3,7 @@
 mkdir build
 cd build
 
-cmake SRC_DIR -G "Ninja" \
+cmake $SRC_DIR -G "Ninja" \
     -DCMAKE_BUILD_TYPE:STRING=Release
     -DCMAKE_PREFIX_PATH:PATH=$PREFIX
     -DCMAKE_INSTALL_PREFIX:PATH=$PREFIX
