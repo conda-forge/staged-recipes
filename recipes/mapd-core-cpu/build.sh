@@ -9,24 +9,15 @@ if [ $(uname) == Darwin ]; then
   export CC=clang
   export CXX=clang++
   export MACOSX_DEPLOYMENT_TARGET="10.9"
+
   export LD_LIBRARY_PATH=$PREFIX/lib:$LD_LIBRARY_PATH
-  # export DYLD_LIBARY_PATH=$PREFIX/lib:$DYLD_LIBRARY_PATH
+  export DYLD_LIBARY_PATH=$PREFIX/lib:$DYLD_LIBRARY_PATH
   export BOOST_INCLUDEDIR=$PREFIX/include
   export LDFLAGS="-L$PREFIX/lib $LDFLAGS -Wl,-rpath,$PREFIX/lib"
 fi
 
-# debug section:start
-env
-
-ls $PREFIX/lib
-ls $PREFIX/include
-ls $CONDA_PREFIX/lib
-ls $CONDA_PREFIX/include
-
-# debug section:end
-
 cmake \
-    -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+    -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DCMAKE_BUILD_TYPE=release \
     -DENABLE_CUDA=off \
     -DMAPD_IMMERSE_DOWNLOAD=off \
@@ -41,5 +32,7 @@ cmake \
 make ParserFiles
 make
 make install
+
 # copy initdb to mapd_initdb to avoid conflict with psql initdb
 cp $PREFIX/bin/initdb $PREFIX/bin/mapd_initdb
+cp -R $SRC_DIR/systemd $PREFIX
