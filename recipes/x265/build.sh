@@ -1,3 +1,5 @@
+set -ex
+
 export CXXFLAGS="${CXXFLAGS} -ldl"
 # export CXX_FLAGS="${CXX_FLAGS} -ldl"
 

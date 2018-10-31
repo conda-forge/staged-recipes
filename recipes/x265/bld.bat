@@ -1,3 +1,5 @@
+@echo on
+
 @mkdir 12bit
 @mkdir 10bit
 @mkdir 8bit
@@ -16,9 +18,11 @@ cmake -LAH -G "NMake Makefiles"                    ^
 
 if errorlevel 1 exit 1
 
-cmake --build . --target INSTALL --config Release
+cmake --build . --config Release
 if errorlevel 1 exit 1
 
+dir
+dir Release
 copy/y Release\x265-static.lib ..\8bit\x265-static-main12.lib
 
 @cd ..\10bit
@@ -33,7 +37,7 @@ cmake -LAH -G "NMake Makefiles"                    ^
 
 if errorlevel 1 exit 1
 
-cmake --build . --target INSTALL --config Release
+cmake --build . --config Release
 if errorlevel 1 exit 1
 
 copy/y Release\x265-static.lib ..\8bit\x265-static-main10.lib
@@ -59,5 +63,4 @@ cmake --build . --target INSTALL --config Release
 if errorlevel 1 exit 1
 
 move Release\x265-static.lib x265-static-main.lib
-LIB.EXE /ignore:4006 /ignore:4221 /OUT:Release\x265-static.lib x265-static-main.lib x265-static-main10.lib x265-static-main12.lib
 
