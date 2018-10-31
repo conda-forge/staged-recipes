@@ -5,7 +5,7 @@
 
 @cd 12bit
 
-cmake -G "Visual Studio 15 Win64"                  ^
+cmake -LAH -G "NMake Makefiles"                    ^
       -DCMAKE_INSTALL_PREFIX=%PREFIX%              ^
       -DHIGH_BIT_DEPTH=ON                          ^
       -DMAIN12=ON                                  ^
@@ -14,15 +14,16 @@ cmake -G "Visual Studio 15 Win64"                  ^
       -DENABLE_CLI=OFF                             ^
       ../source
 
+if errorlevel 1 exit 1
 
-if exist x265.sln (
-  MSBuild /property:Configuration="Release" x265.sln
-  copy/y Release\x265-static.lib ..\8bit\x265-static-main12.lib
-)
+cmake --build . --target INSTALL --config Release
+if errorlevel 1 exit 1
+
+copy/y Release\x265-static.lib ..\8bit\x265-static-main12.lib
 
 @cd ..\10bit
 
-cmake -G "Visual Studio 15 Win64"                 ^
+cmake -LAH -G "NMake Makefiles"                    ^
       -DCMAKE_INSTALL_PREFIX=%PREFIX%             ^
       -DHIGH_BIT_DEPTH=ON                         ^
       -DEXPORT_C_API=OFF                          ^
@@ -30,11 +31,12 @@ cmake -G "Visual Studio 15 Win64"                 ^
       -DENABLE_CLI=OFF                            ^
       ../source
 
+if errorlevel 1 exit 1
 
-if exist x265.sln (
-  MSBuild /property:Configuration="Release" x265.sln
-  copy/y Release\x265-static.lib ..\8bit\x265-static-main10.lib
-)
+cmake --build . --target INSTALL --config Release
+if errorlevel 1 exit 1
+
+copy/y Release\x265-static.lib ..\8bit\x265-static-main10.lib
 
 @cd ..\8bit
 if not exist x265-static-main10.lib (
@@ -44,16 +46,18 @@ if not exist x265-static-main12.lib (
   exit 1
 )
 
-cmake -G "Visual Studio 15 Win64"                ^
+cmake -LAH -G "NMake Makefiles"                    ^
       -DCMAKE_INSTALL_PREFIX=%PREFIX%            ^
       -DEXTRA_LIB="x265-static-main10.lib;x265-static-main12.lib" ^
       -DLINKED_10BIT=ON                          ^
       -DLINKED_12BIT=ON                          ^
       ../source
 
-if exist x265.sln (
-  MSBuild /property:Configuration="Release" x265.sln
-  :: combine static libraries (ignore warnings caused by winxp.cpp hacks)
-  move Release\x265-static.lib x265-static-main.lib
-  LIB.EXE /ignore:4006 /ignore:4221 /OUT:Release\x265-static.lib x265-static-main.lib x265-static-main10.lib x265-static-main12.lib
-)
+if errorlevel 1 exit 1
+
+cmake --build . --target INSTALL --config Release
+if errorlevel 1 exit 1
+
+move Release\x265-static.lib x265-static-main.lib
+LIB.EXE /ignore:4006 /ignore:4221 /OUT:Release\x265-static.lib x265-static-main.lib x265-static-main10.lib x265-static-main12.lib
+
