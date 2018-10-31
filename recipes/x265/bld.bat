@@ -5,13 +5,13 @@
 
 @cd 12bit
 
-cmake -G "Visual Studio 15 Win64"                  \
-      -DCMAKE_INSTALL_PREFIX=%PREFIX%              \
-      -DHIGH_BIT_DEPTH=ON                          \
-      -DMAIN12=ON                                  \
-      -DEXPORT_C_API=OFF                           \
-      -DENABLE_SHARED=OFF                          \
-      -DENABLE_CLI=OFF                             \
+cmake -G "Visual Studio 15 Win64"                  ^
+      -DCMAKE_INSTALL_PREFIX=%PREFIX%              ^
+      -DHIGH_BIT_DEPTH=ON                          ^
+      -DMAIN12=ON                                  ^
+      -DEXPORT_C_API=OFF                           ^
+      -DENABLE_SHARED=OFF                          ^
+      -DENABLE_CLI=OFF                             ^
       ../source
 
 
@@ -22,12 +22,12 @@ if exist x265.sln (
 
 @cd ..\10bit
 
-cmake -G "Visual Studio 15 Win64"                 \
-      -DCMAKE_INSTALL_PREFIX=%PREFIX%              \
-      -DHIGH_BIT_DEPTH=ON                         \
-      -DEXPORT_C_API=OFF                          \
-      -DENABLE_SHARED=OFF                         \
-      -DENABLE_CLI=OFF                            \
+cmake -G "Visual Studio 15 Win64"                 ^
+      -DCMAKE_INSTALL_PREFIX=%PREFIX%             ^
+      -DHIGH_BIT_DEPTH=ON                         ^
+      -DEXPORT_C_API=OFF                          ^
+      -DENABLE_SHARED=OFF                         ^
+      -DENABLE_CLI=OFF                            ^
       ../source
 
 
@@ -44,11 +44,11 @@ if not exist x265-static-main12.lib (
   exit 1
 )
 
-cmake -G "Visual Studio 15 Win64"                \
-      -DCMAKE_INSTALL_PREFIX=%PREFIX%              \
-      -DEXTRA_LIB="x265-static-main10.lib;x265-static-main12.lib" \
-      -DLINKED_10BIT=ON                          \
-      -DLINKED_12BIT=ON                          \
+cmake -G "Visual Studio 15 Win64"                ^
+      -DCMAKE_INSTALL_PREFIX=%PREFIX%            ^
+      -DEXTRA_LIB="x265-static-main10.lib;x265-static-main12.lib" ^
+      -DLINKED_10BIT=ON                          ^
+      -DLINKED_12BIT=ON                          ^
       ../source
 
 if exist x265.sln (
