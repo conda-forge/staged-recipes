@@ -11,7 +11,7 @@ pushd "tests"
 
 TESTS="test_mpifft.py"
 
-RUN_TESTS="python -b -m pytest -vs $TESTS"
+RUN_TESTS="python $TESTS"
 
 # serial
 $RUN_TESTS
