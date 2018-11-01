@@ -118,10 +118,7 @@ if __name__ == '__main__':
     print('Calculating the recipes which need to be turned into feedstocks.')
     with tmp_dir('__feedstocks') as feedstocks_dir:
         feedstock_dirs = []
-        for num, (recipe_dir, name) in enumerate(list_recipes()):
-            if num >= 7:
-                exit_code = 1
-                break
+        for recipe_dir, name in list_recipes():
             feedstock_dir = os.path.join(feedstocks_dir, name + '-feedstock')
             print('Making feedstock for {}'.format(name))
             try:
@@ -151,13 +148,16 @@ if __name__ == '__main__':
                 except subprocess.CalledProcessError:
                     # Sometimes, we have a repo, but there are no commits on it! Just catch that case.
                     subprocess.check_call(['git', 'checkout', '-b' 'master'], cwd=feedstock_dir)
-            else:
-                subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info)
+
+            subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info + ['--extra-admin-users', 'cf-blacksmithy'])
 
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
         # Without this, intermittent failures to synch the TravisCI repos ensue.
         # Hang on to any CI registration errors that occur and raise them at the end.
-        for feedstock_dir, name, recipe_dir in feedstock_dirs:
+        for num, (feedstock_dir, name, recipe_dir) in enumerate(feedstock_dirs):
+            if num >= 20:
+                exit_code = 1
+                break
             # Try to register each feedstock with CI.
             # However sometimes their APIs have issues for whatever reason.
             # In order to bank our progress, we note the error and handle it.
@@ -177,7 +177,6 @@ if __name__ == '__main__':
                     # Capture the output, as it may contain the GH_TOKEN.
                     out = subprocess.check_output(['git', 'push', 'upstream_with_token', 'HEAD:master'], cwd=feedstock_dir,
                                                   stderr=subprocess.STDOUT)
-                    subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info)
                     break
                 except subprocess.CalledProcessError:
                     pass
