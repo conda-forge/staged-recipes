@@ -18,7 +18,7 @@ cmake -G "%CMAKE_GENERATOR%"                    ^
 
 if errorlevel 1 exit 1
 
-cmake --build . --config Release --target BUILD
+cmake --build . --config Release
 if errorlevel 1 exit 1
 
 dir
