@@ -7,7 +7,7 @@
 
 @cd 12bit
 
-cmake -LAH -G "NMake Makefiles"                    ^
+cmake -LAH -G %CMAKE_GENERATOR%                    ^
       -DCMAKE_INSTALL_PREFIX=%PREFIX%              ^
       -DHIGH_BIT_DEPTH=ON                          ^
       -DMAIN12=ON                                  ^
@@ -27,7 +27,7 @@ copy/y Release\x265-static.lib ..\8bit\x265-static-main12.lib
 
 @cd ..\10bit
 
-cmake -LAH -G "NMake Makefiles"                    ^
+cmake -LAH -G %CMAKE_GENERATOR%                    ^
       -DCMAKE_INSTALL_PREFIX=%PREFIX%             ^
       -DHIGH_BIT_DEPTH=ON                         ^
       -DEXPORT_C_API=OFF                          ^
@@ -50,7 +50,7 @@ if not exist x265-static-main12.lib (
   exit 1
 )
 
-cmake -LAH -G "NMake Makefiles"                    ^
+cmake -LAH -G %CMAKE_GENERATOR%                  ^
       -DCMAKE_INSTALL_PREFIX=%PREFIX%            ^
       -DEXTRA_LIB="x265-static-main10.lib;x265-static-main12.lib" ^
       -DLINKED_10BIT=ON                          ^
