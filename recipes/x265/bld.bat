@@ -50,7 +50,7 @@ if not exist x265-static-main12.lib (
   exit 1
 )
 
-cmake -LAH -G %CMAKE_GENERATOR%                  ^
+cmake -G "%CMAKE_GENERATOR%"                  ^
       -DCMAKE_INSTALL_PREFIX=%PREFIX%            ^
       -DEXTRA_LIB="x265-static-main10.lib;x265-static-main12.lib" ^
       -DLINKED_10BIT=ON                          ^
