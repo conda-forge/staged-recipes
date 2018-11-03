@@ -37,7 +37,7 @@ cmake -G "%CMAKE_GENERATOR%"                    ^
 
 if errorlevel 1 exit 1
 
-cmake --build . --config Release --target BUILD
+cmake --build . --config Release
 if errorlevel 1 exit 1
 
 copy/y Release\x265-static.lib ..\8bit\x265-static-main10.lib
