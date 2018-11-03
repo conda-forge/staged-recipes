@@ -7,7 +7,7 @@
 
 @cd 12bit
 
-cmake -LAH -G %CMAKE_GENERATOR%                    ^
+cmake -G "%CMAKE_GENERATOR%"                    ^
       -DCMAKE_INSTALL_PREFIX=%PREFIX%              ^
       -DHIGH_BIT_DEPTH=ON                          ^
       -DMAIN12=ON                                  ^
