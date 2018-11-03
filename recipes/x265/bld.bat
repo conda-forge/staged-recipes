@@ -27,7 +27,7 @@ copy/y Release\x265-static.lib ..\8bit\x265-static-main12.lib
 
 @cd ..\10bit
 
-cmake -LAH -G %CMAKE_GENERATOR%                    ^
+cmake -G "%CMAKE_GENERATOR%"                    ^
       -DCMAKE_INSTALL_PREFIX=%PREFIX%             ^
       -DHIGH_BIT_DEPTH=ON                         ^
       -DEXPORT_C_API=OFF                          ^
