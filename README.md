@@ -109,7 +109,7 @@ git push -f
 
 If the problem was due to scripts in the `staged-recipes` repository, you may be asked to "rebase" once these are fixed. To do so, run:
 ```bash
-# If you didn't add a remote for conda-forge/staged-recipes yet, also run 
+# If you didn't add a remote for conda-forge/staged-recipes yet, also run
 # these lines:
 # git remote add upstream https://github.com/conda-forge/staged-recipes.git
 # git fetch --all
@@ -117,6 +117,17 @@ git rebase upstream/master
 git push -f
 ```
 
-### 12. My pull request passes all checks, but hasn't received any attention.  How do I call attention to my PR?  What is the customary amount of time to wait?
+### 12. My pull request passes all checks, but hasn't received any attention. How do I call attention to my PR?  What is the customary amount of time to wait?
 
-If your PR is passing all checks, but has not been acted on by the staged recipes maintainers for 1 week, you can ping @conda-forge/staged-recipes to request action.
+If your PR is passing all checks, but has not been acted on by the staged recipes
+maintainers, you can ping @conda-forge/staged-recipes to request action. You do
+not need to wait any specific amount of time once the recipe is ready to go.
+
+If your recipe still does not recieve any attention after a few days, you may
+attempt to re-ping @conda-forge/staged-recipes. You may also attempt to bring
+the PR up in our Gitter chat room at https://gitter.im/conda-forge/conda-forge.github.io
+
+All apologies in advance if your recipe PR does not recieve prompt attention.
+This is a high volume repository and issues can easily be missed. We are always
+looking for more staged-recipe reviewers. If you are interested in volunteering,
+please contact a member of @conda-forge/core. We'd love to have the help!
