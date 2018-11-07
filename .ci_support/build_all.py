@@ -26,12 +26,12 @@ def build_all(recipes_dir, arch):
     channel_urls = ['local', 'conda-forge', 'defaults']
 
     # ensure that noarch path exists and is indexed for newer conda (4.4+)
-    noarch_path = os.path.join(sys.exec_prefix, 'conda-bld', 'noarch')
+    index_path = os.path.join(sys.exec_prefix, 'conda-bld')
     try:
-        os.makedirs(noarch_path)
+        os.makedirs(os.path.join(index_path, 'noarch'))
     except:
         pass
-    conda_build.api.update_index(noarch_path)
+    conda_build.api.update_index(index_path)
     index = conda_build.conda_interface.get_index(channel_urls=channel_urls)
     conda_resolve = conda_build.conda_interface.Resolve(index)
 
