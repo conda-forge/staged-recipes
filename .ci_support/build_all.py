@@ -26,6 +26,10 @@ def build_all(recipes_dir, arch):
     channel_urls = ['local', 'conda-forge', 'defaults']
 
     index_path = os.path.join(sys.exec_prefix, 'conda-bld')
+    try:
+        os.mkdir(index_path)
+    except FileExistsError:
+        pass
     conda_build.api.update_index(index_path)
     index = conda_build.conda_interface.get_index(channel_urls=channel_urls)
     conda_resolve = conda_build.conda_interface.Resolve(index)
