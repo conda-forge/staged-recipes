@@ -1,0 +1,123 @@
+From 353e74355ee5888ca4dd8b1baf27fec178dd191d Mon Sep 17 00:00:00 2001
+From: Min RK <benjaminrk@gmail.com>
+Date: Fri, 26 Oct 2018 13:00:23 +0200
+Subject: [PATCH] combined patch moola 0.1.6...a537d73
+
+diff --git a/moola/adaptors/dolfin_vector.py b/moola/adaptors/dolfin_vector.py
+index 0f1a0d0..e2f9f9c 100644
+--- a/moola/adaptors/dolfin_vector.py
++++ b/moola/adaptors/dolfin_vector.py
+@@ -1,8 +1,6 @@
+ from moola.linalg import Vector
+ from moola.misc import events
+ from math import sqrt
+-from ufl.form import Form
+-import dolfin
+ 
+ class IdentityMap(object):
+ 
+@@ -17,6 +15,7 @@ class RieszMap(object):
+ 
+     def __init__(self, V, inner_product="L2", map_operator=None, inverse = "default"):
+         self.V = V
++        import dolfin
+ 
+         if inner_product is not "custom":
+             u = dolfin.TrialFunction(V)
+@@ -61,14 +60,13 @@ class RieszMap(object):
+             self.map_solver.set_operator(self.map_operator)
+             self.map_solver.ksp().setType("preonly")
+             self.map_solver.ksp().getPC().setType("hypre")
+-            
++
+         elif isinstance(inverse, dolfin.GenericMatrix):
+             self.map_solver = dolfin.PETScKrylovSolver()
+             self.map_solver.set_operators(self.map_operator, inverse)
+             self.map_solver.ksp().setType("preonly")
+             self.map_solver.ksp().getPC().setType("mat")
+-            
+-            
++
+         else:
+             self.map_solver = inverse
+         self.solver_type = inverse
+@@ -157,6 +155,7 @@ class DolfinPrimalVector(DolfinVector):
+         """ Returns the dual representation. """
+ 
+         events.increment("Primal -> dual map")
++        import dolfin
+         if isinstance(self.data, dolfin.Function):
+             V = self.data.function_space()
+ 
+@@ -193,6 +192,7 @@ class DolfinDualVector(DolfinVector):
+     def primal(self):
+         """ Returns the primal representation. """
+         events.increment("Dual -> primal map")
++        import dolfin
+ 
+         if isinstance(self.data, dolfin.Function):
+             V = self.data.function_space()
+diff --git a/moola/algorithms/hybrid_cg.py b/moola/algorithms/hybrid_cg.py
+index a8c0483..babae8e 100644
+--- a/moola/algorithms/hybrid_cg.py
++++ b/moola/algorithms/hybrid_cg.py
+@@ -1,7 +1,7 @@
+ from .optimisation_algorithm import *
+ from .bfgs import LimitedMemoryInverseHessian, LinearOperator
+ from numpy import sqrt
+-from IPython import embed
++
+ 
+ def dual_to_primal(x):
+     return x.primal()
+diff --git a/moola/algorithms/newton_cg.py b/moola/algorithms/newton_cg.py
+index c6d7aff..56419d5 100644
+--- a/moola/algorithms/newton_cg.py
++++ b/moola/algorithms/newton_cg.py
+@@ -1,7 +1,7 @@
+ from .optimisation_algorithm import *
+ from .bfgs import LimitedMemoryInverseHessian, LinearOperator
+ from numpy import sqrt
+-from IPython import embed
++
+ 
+ def dual_to_primal(x):
+     return x.primal()
+@@ -177,4 +177,4 @@ class NewtonCG(OptimisationAlgorithm):
+             self.record_progress()
+         self.display(self.convergence_status, 1)
+         self.display(self.iter_status, 1)
+-        return self.data
+\ No newline at end of file
++        return self.data
+diff --git a/moola/algorithms/newton_cg_trust_region.py b/moola/algorithms/newton_cg_trust_region.py
+index 20d93c4..4eb16bf 100644
+--- a/moola/algorithms/newton_cg_trust_region.py
++++ b/moola/algorithms/newton_cg_trust_region.py
+@@ -1,6 +1,7 @@
+-from .optimisation_algorithm import *
+ from math import sqrt
+-from IPython import embed
++from .optimisation_algorithm import *
++
++
+ class TrustRegionNewtonCG(OptimisationAlgorithm):
+     ''' 
+     An implementation of the trust region NewtonCG method 
+diff --git a/setup.py b/setup.py
+index db5594e..c152228 100644
+--- a/setup.py
++++ b/setup.py
+@@ -9,6 +9,9 @@ setup(name='moola',
+       author_email='simon@simula.no',
+       url='https://github.com/funsim/moola',
+       packages=find_packages(),
++      install_requires=[
++          'numpy',
++      ],
+       classifiers=[
+             'Programming Language :: Python',
+             'Programming Language :: Python :: 2',
+-- 
+2.19.1
+
