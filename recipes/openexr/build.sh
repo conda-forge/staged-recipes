@@ -11,4 +11,5 @@ cmake $SRC_DIR -G "Ninja" \
     -DOPENEXR_NAMESPACE_VERSIONING:BOOL=OFF \
     -DOPENEXR_BUILD_STATIC:BOOL=ON
 
+ninja test
 ninja install
