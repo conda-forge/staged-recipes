@@ -4,12 +4,9 @@ export INSTALL_LOCATION=$CONDA_PREFIX/etc/mercurial
 cd hggit
 /bin/cp -a ./. $INSTALL_LOCATION/hggit
 
-pip install 'dulwich>=0.8.0'
-
 touch $INSTALL_LOCATION/hgrc
 
 echo "[extensions]" >> $INSTALL_LOCATION/hgrc
 
 echo "hgext.bookmarks = " >> $INSTALL_LOCATION/hgrc
 echo "hggit = $INSTALL_LOCATION/hggit" >> $INSTALL_LOCATION/hgrc
-
