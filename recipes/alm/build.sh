@@ -8,3 +8,4 @@ export CC=$CXX
 
 $PYTHON setup.py install --single-version-externally-managed --record record.txt
 
+ls -lR
