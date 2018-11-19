@@ -104,6 +104,8 @@ if __name__ == '__main__':
         write_token('appveyor', os.environ['APPVEYOR_TOKEN'])
     if 'CIRCLE_TOKEN' in os.environ:
         write_token('circle', os.environ['CIRCLE_TOKEN'])
+    if 'AZURE_TOKEN' in os.environ:
+        write_token('azure', os.environ['AZURE_TOKEN'])
     gh = None
     if 'GH_TOKEN' in os.environ:
         write_token('github', os.environ['GH_TOKEN'])
