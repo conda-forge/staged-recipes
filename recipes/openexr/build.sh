@@ -1,16 +1,9 @@
 #!/bin/bash
 
-mkdir build
-cd build
+./configure --prefix=${PREFIX} \
+            --host="${HOST}" \
+            --build="${BUILD}" \
+            --enable-cxxstd=11
 
-cmake $SRC_DIR \
-    -DCMAKE_BUILD_TYPE:STRING=Release \
-    -DCMAKE_INSTALL_PREFIX:PATH=$PREFIX \
-    -DOPENEXR_BUILD_PYTHON_LIBS:BOOL=OFF \
-    -DOPENEXR_NAMESPACE_VERSIONING:BOOL=OFF \
-    -DOPENEXR_BUILD_TESTS=ON \
-    -DOPENEXR_BUILD_ILMBASE=OFF \
-    -DILMBASE_INCLUDE_DIR:PATH=$PREFIX/include
-
-make test
+make -j ${CPU_COUNT}
 make install
