@@ -50,25 +50,15 @@ jobs:
     displayName: Configure conda and conda-build
 
   - script: |
-      # Run the travis script to build
-      source ./.travis_scripts/create_feedstocks;
+      # Find the recipes from master in this PR and remove them.
+      export PATH=$(Build.StagingDirectory)/miniconda/bin:$PATH
+      
+      echo ""
+      echo "Finding recipes merged in master and removing them from the build."
+      pushd ./recipes > /dev/null
+      git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf {} && echo Removing recipe: {}"
+      popd > /dev/null
+      echo ""
 
-  # - script: |
-  #     export PATH=$(Build.StagingDirectory)/miniconda/bin:$PATH
-  #     set -x -e
-  #     mangle_compiler ./ ./recipe ./.ci_support/${CONFIG}.yaml
-  #   displayName: Mangle compiler
-
-  # - script: |
-  #     export PATH=$(Build.StagingDirectory)/miniconda/bin:$PATH
-  #     set -x -e
-  #     make_build_number ./ ./recipe ./.ci_support/${CONFIG}.yaml
-  #   displayName: Generate build number clobber file
-
-  # - script: |
-  #     export PATH=$(Build.StagingDirectory)/miniconda/bin:$PATH
-  #     set -x -e
-  #     conda build ./recipe -m ./.ci_support/${CONFIG}.yaml --clobber-file ./.ci_support/clobber_${CONFIG}.yaml
-  #   displayName: Build recipe
-
-  
+      # We just want to build all of the recipes.
+      python .ci_support/build_all.py ./recipes
