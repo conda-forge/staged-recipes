@@ -7,34 +7,47 @@
 
 set -xeuo pipefail
 export PYTHONUNBUFFERED=1
-export FEEDSTOCK_ROOT=/home/conda/feedstock_root
-export RECIPE_ROOT=/home/conda/recipe_root
-export CI_SUPPORT=/home/conda/feedstock_root/.ci_support
-export CONFIG_FILE="${CI_SUPPORT}/${CONFIG}.yaml"
 
 cat >~/.condarc <<CONDARC
 
+channels:
+ - conda-forge
+ - defaults
+
 conda-build:
- root-dir: /home/conda/feedstock_root/build_artifacts
+ root-dir: /home/conda/staged-recipes/build_artifacts
+
+show_channel_urls: true
 
 CONDARC
 
-conda install --yes --quiet conda-forge::conda-forge-ci-setup=2 conda-build
+# Copy the host recipes folder so we don't ever muck with it
+cp -r /home/conda/staged-recipes/recipes ~/conda-recipes
+cp -r /home/conda/staged-recipes/.ci_support ~/.ci_support
 
-# set up the condarc
-setup_conda_rc "${FEEDSTOCK_ROOT}" "${RECIPE_ROOT}" "${CONFIG_FILE}"
+# Find the recipes from master in this PR and remove them.
+echo "Finding recipes merged in master and removing them from the build."
+pushd /home/conda/staged-recipes/recipes > /dev/null
+git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf ~/conda-recipes/{} && echo Removing recipe: {}"
+popd > /dev/null
+
+# Unused, but needed by conda-build currently... :(
+export CONDA_NPY='19'
 
 # A lock sometimes occurs with incomplete builds. The lock file is stored in build_artifacts.
 conda clean --lock
 
+# Make sure build_artifacts is a valid channel
+conda index /home/conda/staged-recipes/build_artifacts
+
+conda install --yes --quiet conda-forge-ci-setup=1.* conda-forge-pinning networkx conda-build>=3.16
 source run_conda_forge_build_setup
 
-# make the build number clobber
-make_build_number "${FEEDSTOCK_ROOT}" "${RECIPE_ROOT}" "${CONFIG_FILE}"
+# yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
+find ~/conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" \
+    | xargs -n1 cat | { grep -v -e "^#" -e "^$" || test $? == 1; } | \
+    xargs -r /usr/bin/sudo -n yum install -y
 
-conda build "${RECIPE_ROOT}" -m "${CI_SUPPORT}/${CONFIG}.yaml" \
-    --clobber-file "${CI_SUPPORT}/clobber_${CONFIG}.yaml"  --quiet
+python ~/.ci_support/build_all.py ~/conda-recipes
 
-upload_package "${FEEDSTOCK_ROOT}" "${RECIPE_ROOT}" "${CONFIG_FILE}"
-
-touch "/home/conda/feedstock_root/build_artifacts/conda-forge-build-done-${CONFIG}"
+touch "/home/conda/staged-recipes/build_artifacts/conda-forge-build-done"
