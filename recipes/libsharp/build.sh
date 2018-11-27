@@ -3,7 +3,7 @@
 # Build the C library first
 
 autoconf
-./configure --enable-openmp --enable-noisy-make
+./configure --enable-openmp --enable-noisy-make --enable-pic
 make -j${CPU_COUNT}
 make test
 
