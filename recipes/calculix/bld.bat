@@ -1,15 +1,7 @@
+CP %BUILD_PREFIX%\Library\mingw-w64\bin\mingw32-make %BUILD_PREFIX%\Library\mingw-w64\bin\make
 
-cd ARPACK
-sh ./fixhome.sh
-nmake lib
+cd ccx*/src
+make -f Makefile_MT
 
-cd ..
-cd SPOOLES.2.2
-nmake lib -f makefile_MT
-
-cd ..
-cd CalculiX/ccx_2.12/src;
-nmake -f Makefile_MT
-
-cp ccx_2.12_MT %LIBRARY_PREFIX%/bin/ccx
+cp ccx_*_MT $PREFIX/bin/ccx
 cd $SRC_DIR
