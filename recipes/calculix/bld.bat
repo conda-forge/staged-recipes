@@ -8,7 +8,8 @@ FOR /F "delims=" %%i IN ('cygpath.exe -u "%LIBRARY_PREFIX%"') DO set "LIBRARY_PR
 
 make -f Makefile_MT ^
     SPOOLES_INCLUDE_DIR="%LIBRARY_PREFIX%/mingw-w64/include/spooles" ^
-    SPOOLES_LIB_DIR="LIBRARY_PREFIX%/mingw-w64/lib"
+    LIB_DIR="%LIBRARY_PREFIX%/mingw-w64/lib" ^
+    FORTRAN_COMPILER="gfortran"
 
 cp ccx_*_MT $PREFIX/bin/ccx
 cd $SRC_DIR
