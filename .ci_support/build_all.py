@@ -41,7 +41,7 @@ def build_all(recipes_dir, arch):
                 with open(cbc, "r") as f:
                     text = ''.join(f.readlines())
                 if 'channel_sources' in text:
-                    specific_config = safe_load(open(cbc))
+                    specific_config = safe_load(text)
                     if "channel_targets" not in specific_config:
                         raise RuntimeError("channel_targets not found in {}".format(folder))
                     if "channel_sources" in specific_config:
@@ -92,10 +92,7 @@ def get_config(arch, channel_urls):
 def build_folders(recipes_dir, folders, arch, channel_urls):
 
     index_path = os.path.join(sys.exec_prefix, 'conda-bld')
-    try:
-        os.mkdir(index_path)
-    except FileExistsError:
-        pass
+    os.makedirs(index_path, exist_ok=True)
     conda_build.api.update_index(index_path)
     index = conda_build.conda_interface.get_index(channel_urls=channel_urls)
     conda_resolve = conda_build.conda_interface.Resolve(index)
