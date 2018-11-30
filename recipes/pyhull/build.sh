@@ -1,3 +1,3 @@
 #!/bin/bash 
-patch < pyhull.patch
+patch < ${RECIPE_DIR}/pyhull.patch
 python -m pip install . -vvv
