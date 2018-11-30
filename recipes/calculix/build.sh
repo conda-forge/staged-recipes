@@ -1,12 +1,9 @@
 cd ccx*/src
 rm Makefile_MT
-
-if [ `uname` = "Darwin" ]; then
-    cp ${RECIPE_DIR}/Makefile_MT_osx Makefile_MT
-else
-    cp ${RECIPE_DIR}/Makefile_MT_linux Makefile_MT
-fi
+cp ${RECIPE_DIR}/Makefile_MT Makefile_MT
 
 make -f Makefile_MT
-cp ccx_*_MT $PREFIX/bin/ccx
+cp ccx_*_MT $PREFIX/bin/ccx \
+    SPOOLES_INCLUDE_DIR="${PREFIX}/include/spooles" \
+    SPOOLES_LIB_DIR="${PREFIX}/lib"
 cd $SRC_DIR
