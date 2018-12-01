@@ -7,19 +7,30 @@
 
 set -xeuo pipefail
 export PYTHONUNBUFFERED=1
-export FEEDSTOCK_ROOT=/home/conda/feedstock_root
+export FEEDSTOCK_ROOT=/home/conda/staged-recipes
 export RECIPE_ROOT=/home/conda/recipe_root
-export CI_SUPPORT=/home/conda/feedstock_root/.ci_support
+export CI_SUPPORT=/home/conda/staged-recipes/.ci_support
 export CONFIG_FILE="${CI_SUPPORT}/${CONFIG}.yaml"
 
 cat >~/.condarc <<CONDARC
 
 conda-build:
- root-dir: /home/conda/feedstock_root/build_artifacts
+ root-dir: /home/conda/staged-recipes/build_artifacts
 
 CONDARC
 
-conda install --yes --quiet conda-forge-ci-setup=2 conda-build -c conda-forge
+# Copy the host recipes folder so we don't ever muck with it
+cp -r /home/conda/staged-recipes/recipes ~/conda-recipes
+cp -r /home/conda/staged-recipes/.ci_support ~/.ci_support
+
+# Find the recipes from master in this PR and remove them.
+echo "Finding recipes merged in master and removing them from the build."
+pushd /home/conda/staged-recipes/recipes > /dev/null
+git fetch origin +master:master
+git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf ~/conda-recipes/{} && echo Removing recipe: {}"
+popd > /dev/null
+
+conda install --yes --quiet conda-forge-ci-setup=2 conda-build>=3.16 networkx -c conda-forge
 
 # set up the condarc
 setup_conda_rc "${FEEDSTOCK_ROOT}" "${RECIPE_ROOT}" "${CONFIG_FILE}"
@@ -28,10 +39,8 @@ setup_conda_rc "${FEEDSTOCK_ROOT}" "${RECIPE_ROOT}" "${CONFIG_FILE}"
 conda clean --lock
 
 # Make sure build_artifacts is a valid channel
+mkdir -p /home/conda/staged-recipes/build_artifacts
 conda index /home/conda/staged-recipes/build_artifacts
-
-conda install --yes --quiet conda-forge-ci-setup=1.* conda-forge-pinning networkx conda-build>=3.16
-source run_conda_forge_build_setup
 
 # yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
 find ~/conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" \
@@ -40,4 +49,4 @@ find ~/conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt
 
 python ~/.ci_support/build_all.py ~/conda-recipes
 
-touch "/home/conda/feedstock_root/build_artifacts/conda-forge-build-done-${CONFIG}"
+touch "/home/conda/staged-recipes/build_artifacts/conda-forge-build-done-${CONFIG}"
