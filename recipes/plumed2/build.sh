@@ -6,3 +6,8 @@ env | sort
 ./configure --prefix=$PREFIX --enable-shared --enable-python --disable-zlib --disable-external-lapack --disable-external-blas
 make -j4
 make install
+
+cd python
+make pip
+$PYTHON -m pip install .
+
