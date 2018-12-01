@@ -8,5 +8,4 @@ cmake \
     -DCMAKE_INSTALL_INCLUDEDIR=include \
     ..
 make
-make test
 make install
