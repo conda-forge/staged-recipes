@@ -1,4 +1,9 @@
-tar xvf tzdb-$PKG_VERSION.tar.lz --strip 1
+if [ ! -e tzdb-$PKG_VERSION.tar.lz ]; then
+    wget https://data.iana.org/time-zones/releases/tzdb-${PKG_VERSION}.tar.lz
+fi
+lzip -d tzdb-$PKG_VERSION.tar.lz
+
+tar xvf tzdb-$PKG_VERSION.tar --strip 1
 
 mkdir dest
 make -e \
