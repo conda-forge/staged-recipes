@@ -1,0 +1,72 @@
+{% set name = "plumed2" %}
+{% set version = "2.5" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  # Tar is preferred, but there a symlink therein crashes windows builds. Git is ok.
+  # url: https://github.com/plumed/{{ name }}/archive/v{{ version }}.tar.gz
+  # sha256: f4cf55c63a6798a0607f4e47eeeee7c1bc191668772c83ce4dabf3a5ba407426
+  git_url: https://github.com/plumed/plumed2.git
+  git_rev: v{{ version }}
+  patches:
+    - 0001-replace-xxd.patch
+
+build:
+  number: 0
+  skip: True  # [win]
+  skip: True  # [py<35]
+  # Note: --no-deps is currently required due to https://github.com/conda/conda-build/issues/3254
+  # Once resolved, it should be removed.
+  # script: "{{ PYTHON }} -m pip install . --no-deps -vv"
+
+requirements:
+  build:
+    # TONI the "not linux" nonsense is because the "compiler" macro resolves to the toolchain packages,
+    # which override $CC with the system default, which fails on circle-ci
+    - {{ compiler('c') }}  # [not linux]
+    - {{ compiler('cxx') }}  # [not linux]
+    - {{ compiler('fortran') }}  # [not linux]
+    - gcc_linux-64  # [linux]
+    - gxx_linux-64  # [linux]
+    - gfortran_linux-64  # [linux]
+#    - ccache-toolchain
+  host:
+    - python
+    - pip
+    - numpy
+    - cython
+    - zlib
+  run:
+    - python
+    - {{ pin_compatible('numpy') }}    
+    - zlib
+
+test:
+  # TODO. In principle these could be the official regtests.
+  # imports:
+  #  - plumed2
+  commands:
+    - plumed info --root
+    - plumed info --version
+    - plumed info --long-version
+
+about:
+  home: http://www.plumed.org/
+  license: LGPL
+  license_file: COPYING.LESSER
+  summary: 'Free energy calculations in molecular systems'
+  description: |
+    PLUMED is an open source library for free energy calculations in
+    molecular systems which works together with some of the most
+    popular molecular dynamics engines.
+  doc_url: https://plumed.github.io/doc-v2.4/user-doc/html/index.html
+  dev_url: https://github.com/plumed/plumed2
+
+extra:
+  recipe-maintainers:
+    # GitHub IDs for maintainers of the recipe.
+    # Always check with the people listed below if they are OK becoming maintainers of the recipe. (There will be spam!)
+    - tonigi
