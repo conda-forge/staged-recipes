@@ -3,8 +3,10 @@ cd builddir
 ninja
 ninja install
 
+set -x
+
 # stuff gets installed into lib64 when we only use lib for conda
-if [[ ${HOST} =~ .*linux.* ]]; then
+if [[ ${platform} =~ .*linux.* ]]; then
     mkdir -p $PREFIX/lib
     if [[ -d $PREFIX/lib64 ]]; then
         mv -f $PREFIX/lib64/* $PREFIX/lib
