@@ -6,7 +6,7 @@ ninja install
 set -x
 
 # stuff gets installed into lib64 when we only use lib for conda
-if [[ ${platform} =~ .*linux.* ]]; then
+if [[ ${uname -s} =~ .*Linux.* ]]; then
     mkdir -p $PREFIX/lib
     if [[ -d $PREFIX/lib64 ]]; then
         mv -f $PREFIX/lib64/* $PREFIX/lib
