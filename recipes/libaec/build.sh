@@ -8,5 +8,6 @@ cmake \
     -DCMAKE_INSTALL_INCLUDEDIR=include \
     ..
 make -j${CPU_COUNT}
-ctest -R "check_code_options|check_buffer_sizes|check_long_fs"
+# remove two tests which need to download data
+ctest -E "check_szcomp|sampledata.sh"
 make install
