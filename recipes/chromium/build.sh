@@ -5,6 +5,7 @@ if [ `uname` == "Darwin" ]; then
     BINARY_FILE='Chromium.app/Contents/MacOS/Chromium'
     UNPACK_DIR='./chrome-mac'
 fi
+unzip "${UNPACK_DIR}.zip"
 
 mkdir -p "$PREFIX/lib/chromium/"
 cp -r $SRC_DIR/$UNPACK_DIR/* "$PREFIX/lib/chromium/"
