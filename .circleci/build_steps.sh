@@ -51,3 +51,6 @@ find ~/conda-recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt
 python ~/.ci_support/build_all.py ~/conda-recipes
 
 touch "/home/conda/staged-recipes/build_artifacts/conda-forge-build-done"
+
+
+cp -a /home/conda/feedstock_root/build_artifacts/ /home/conda/staged-recipes/build_artifacts_2
