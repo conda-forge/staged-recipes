@@ -98,6 +98,7 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
     conda_resolve = conda_build.conda_interface.Resolve(index)
 
     config = get_config(arch, channel_urls)
+    platform = get_host_platform()
 
     worker = {'platform': platform, 'arch': arch,
               'label': '{}-{}'.format(platform, arch)}
