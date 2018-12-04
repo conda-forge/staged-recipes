@@ -1,0 +1,71 @@
+{% set name = "go1.4-bootstrap" %}
+{% set version = "20171003" %}
+{% set n = 'm2w64-' if win else '' %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - url: https://storage.googleapis.com/golang/{{ name }}-{{ version }}.tar.gz
+    sha256: f4ff5b5eb3a3cae1c993723f3eab519c5bae18866b5e5f96fe1102f0cb5c3e52
+    folder: {{ name }}
+
+build:
+  number: 0
+  binary_relocation: False
+  detect_binary_files_with_prefix: False
+  force_ignore_keys:  # [win]
+    - c_compiler      # [win]
+    - cxx_compiler    # [win]
+  # test data links to these DSOs
+  missing_dso_whitelist:
+    - /usr/lib/libSystem.B.dylib
+    - /usr/lib/libgcc_s.1.dylib
+    - libc.so.6
+
+requirements:
+  build:
+    {% if not win %}
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('fortran') }}
+    {% else %}
+    - {{ n }}toolchain
+    {% endif %}
+    - perl 5.20.3.1  # [not win]
+  host:
+  run:
+
+test:
+   files:
+     - hello.go
+   commands:
+     - ${GOROOT_BOOTSTRAP}/bin/go help  # [not win]
+     - cmd /c %GOROOT_BOOTSTRAP%\bin\go help   # [win]
+
+     - cmd /c echo x%GOROOT_BOOTSTRAP% NEQ x%CONDA_PREFIX%\{{ name }}  # [win]
+     - cmd /c if x%GOROOT_BOOTSTRAP% NEQ x%CONDA_PREFIX%\{{ name }} exit 1   # [win]
+
+about:
+  home: http://golang.org
+  license: BSD-Style
+  license_family: BSD
+  license_file: {{ name }}/LICENSE
+  summary: 'The golang bootstrap compiler (use go for the full golang)'
+  description: |
+    Go is expressive, concise, clean, and efficient. Its concurrency mechanisms
+    make it easy to write programs that get the most out of multicore and
+    networked machines, while its novel type system enables flexible and
+    modular program construction. Go compiles quickly to machine code yet has
+    the convenience of garbage collection and the power of run-time reflection.
+    It's a fast, statically typed, compiled language that feels like a
+    dynamically typed, interpreted language.
+  doc_url: https://golang.org/doc
+  dev_url: https://go.googlesource.com/go
+
+extra:
+  recipe-maintainers:
+    - nehaljwani
+    - scopatz
+    - sodre
