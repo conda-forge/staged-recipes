@@ -19,6 +19,11 @@ else
     cmake_linux_args=""
 fi
 
+# TODO This shouldn't be needed
+if [ "$(uname)" == "Darwin" ]; then
+    export CONDA_BUILD_SYSROOT="/Users/virtualbox/MacOSX-SDKs/MacOSX10.12.sdk"
+fi
+
 cmake \
     -DCMAKE_BUILD_TYPE=release \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
