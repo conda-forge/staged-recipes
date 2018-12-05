@@ -13,5 +13,6 @@ make -f Makefile_MT ^
     SPOOLES_INCLUDE_DIR="%LIBRARY_PREFIX%/mingw-w64/include/spooles" ^
     LIB_DIR="%LIBRARY_PREFIX%/mingw-w64/lib"
 
+REM adding .exe to make the file executable
 cp ccx_*_MT "%LIBRARY_PREFIX%/bin/ccx.exe"
 cd %SRC_DIR%
