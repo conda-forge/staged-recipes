@@ -6,7 +6,8 @@ cd opensim_dependencies_build
 cmake ../dependencies/ \
       -DCMAKE_INSTALL_PREFIX="$PREFIX" \
       -DCMAKE_BUILD_TYPE=Release \
-      -DSUPERBUILD_docopt=OFF
+      -DSUPERBUILD_docopt=OFF \
+      -DSUPERBUILD_simbody=OFF
 make -j$CPU_COUNT
 cd ..
 
