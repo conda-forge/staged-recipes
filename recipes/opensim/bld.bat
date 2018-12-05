@@ -3,7 +3,7 @@ cd .\opensim_dependencies_build
 cmake ..\dependencies^
 	-G"%CMAKE_GENERATOR"^
 	-DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%"^
-    -DSUPERBUILD_docopt=OFF
+    -DSUPERBUILD_docopt=OFF -DSUPERBUILD_simbody=OFF
 cmake --build . --config Release -- /maxcpucount:%CPU_COUNT%
 cd .. 
 
