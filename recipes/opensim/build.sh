@@ -10,6 +10,7 @@ cmake ../dependencies/ \
 make -j$CPU_COUNT
 cd ..
 
+# TODO remove:
 # cp -r $PREFIX/BTK/lib/btk-0.4dev/* $PREFIX/lib/
 # cp -r $PREFIX/simbody/libexec/simbody/* $PREFIX/bin/
 
