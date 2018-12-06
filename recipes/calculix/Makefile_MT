@@ -1,0 +1,30 @@
+AR ?= ar
+FC ?= gfortran
+CC ?= gcc
+CFLAGS += -Wall -O3 -fopenmp -I $(SPOOLES_INCLUDE_DIR) -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DUSE_MT=1
+FFLAGS += -Wall -O3 -fopenmp
+
+.c.o :
+	$(CC) $(CFLAGS) -c $<
+.f.o :
+	$(FC) $(FFLAGS) -c $<
+
+include Makefile.inc
+
+SCCXMAIN = ccx_2.14.c
+
+OCCXF = $(SCCXF:.f=.o)
+OCCXC = $(SCCXC:.c=.o)
+OCCXMAIN = $(SCCXMAIN:.c=.o)
+
+LIBS = \
+    $(LIB_DIR)/libarpack.a \
+    $(LIB_DIR)/spoolesMT.a \
+    $(LIB_DIR)/spooles.a \
+    $(LIB_DIR)/libopenblas.a
+
+ccx_2.14_MT: $(OCCXMAIN) ccx_2.14_MT.a  $(LIBS)
+	./date.pl; $(CC) $(CFLAGS) -c ccx_2.14.c; $(FC) $(FFLAGS) -o $@ $(OCCXMAIN) ccx_2.14_MT.a $(LIBS)
+
+ccx_2.14_MT.a: $(OCCXF) $(OCCXC)
+	$(AR) vr $@ $?
