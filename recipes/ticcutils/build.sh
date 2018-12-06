@@ -1,6 +1,6 @@
 #!/bin/bash
 
 sh bootstrap.sh
-./configure
+./configure --prefix=$PREFIX
 make
 make install
