@@ -11,7 +11,8 @@ FOR /F "delims=\" %%i IN ('cygpath.exe -m "%LIBRARY_PREFIX%"') DO set "LIBRARY_P
 
 make -f Makefile_MT ^
     SPOOLES_INCLUDE_DIR="%LIBRARY_PREFIX%/mingw-w64/include/spooles" ^
-    LIB_DIR="%LIBRARY_PREFIX%/mingw-w64/lib"
+    LIB_DIR="%LIBRARY_PREFIX%/mingw-w64/lib" ^
+    FC="gfortran"
 
 REM adding .exe to make the file executable
 cp ccx_*_MT "%LIBRARY_PREFIX%/bin/ccx.exe"
