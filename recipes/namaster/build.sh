@@ -2,7 +2,7 @@
 
 set -e
 
-./configure --prefix=${PREFIX}
+./configure --prefix=${PREFIX} LIBS="-lgomp"
 make
 make install
 
