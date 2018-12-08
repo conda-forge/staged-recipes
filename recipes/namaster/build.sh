@@ -7,6 +7,6 @@ make
 make install
 
 # run tests now since it is not around later
-# make check
+make check
 
 ${PYTHON} -m pip install . -vv --no-deps
