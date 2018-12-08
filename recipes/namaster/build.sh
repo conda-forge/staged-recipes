@@ -18,4 +18,4 @@ make install
 ${PYTHON} -m pip install . -vv --no-deps
 
 # run tests now since they are not around later
-# make check
+make check
