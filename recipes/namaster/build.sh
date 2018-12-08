@@ -6,7 +6,7 @@ set -e
 make
 make install
 
-# run tests now since it is not around later
-make check
-
 ${PYTHON} -m pip install . -vv --no-deps
+
+# run tests now since they are not around later
+# make check
