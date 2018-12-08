@@ -7,7 +7,11 @@ if [[ `uname` == 'Darwin' ]] && [[ "$CC" != "clang" ]]; then
     CFLAGS="$CFLAGS -I${PREFIX}/lib/clang/4.0.1/include"
 fi
 
-./configure --prefix=${PREFIX} LIBS="-lgomp"
+if [[ `uname` == 'Darwin' ]]; then
+    ./configure --prefix=${PREFIX} LIBS="-lomp"
+else
+    ./configure --prefix=${PREFIX} LIBS="-lgomp"
+fi
 make
 make install
 
