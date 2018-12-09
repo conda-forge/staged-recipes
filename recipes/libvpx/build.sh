@@ -9,7 +9,14 @@ if [[ $(uname) == MSYS* ]]; then
   PREFIX=${PREFIX}/Library/mingw-w64
 fi
 
+# It seems we need clang 3.9 or greater for avx512
+# https://bugs.chromium.org/p/webm/issues/detail?id=1475
+if [ "${SHORT_OS_STR}" == "Darwin" ]; then
+    AVX512_CONFIGURE_FLAGS="--disable-avx512"
+fi
+
 ./configure --prefix=${PREFIX}           \
+            ${AVX512_CONFIGURE_FLAGS}    \
             ${HOST_BUILD}                \
             --as=yasm                    \
             --enable-runtime-cpu-detect  \
