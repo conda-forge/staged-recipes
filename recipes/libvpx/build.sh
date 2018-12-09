@@ -1,4 +1,5 @@
 #!/bin/bash
+set -ex
 
 if [[ $(uname) == MSYS* ]]; then
   if [[ ${ARCH} == 32 ]]; then
@@ -11,8 +12,8 @@ fi
 
 # It seems we need clang 3.9 or greater for avx512
 # https://bugs.chromium.org/p/webm/issues/detail?id=1475
-if [ "${SHORT_OS_STR}" == "Darwin" ]; then
-    AVX512_CONFIGURE_FLAGS="--disable-avx512"
+if [ $(uname) == "Darwin" ]; then
+    AVX512_CONFIGURE_FLAGS=--disable-avx512
 fi
 
 ./configure --prefix=${PREFIX}           \
@@ -33,3 +34,5 @@ fi
 
 make -j${CPU_COUNT} ${VERBOSE_AT}
 make install
+
+set -ex
