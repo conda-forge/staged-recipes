@@ -7,6 +7,7 @@ pushd build
 cmake ${SRC_DIR} \
 	-DCMAKE_INSTALL_PREFIX=${PREFIX} \
 	-DCMAKE_BUILD_TYPE=Release \
+	-DCMAKE_INSTALL_LIBDIR="lib"
 
 # build
 cmake --build .
