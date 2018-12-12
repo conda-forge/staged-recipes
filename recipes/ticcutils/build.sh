@@ -1,6 +1,6 @@
 #!/bin/bash
 
 sh bootstrap.sh
-./configure --prefix=$PREFIX
+./configure --prefix=$PREFIX $OPENMPFLAG
 make
 make install
