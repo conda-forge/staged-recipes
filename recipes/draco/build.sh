@@ -7,7 +7,6 @@ cd build
 cmake -G "Unix Makefiles" \
       -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
       -DCMAKE_BUILD_TYPE:STRING=Release \
-      -DBUILD_SHARED_LIBS=ON \
       -DCMAKE_LIBRARY_PATH="${PREFIX}/lib" \
       -DCMAKE_INCLUDE_PATH="${PREFIX}/include" \
       ..
