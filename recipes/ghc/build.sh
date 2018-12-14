@@ -6,6 +6,6 @@ export LD_LIBRARY_PATH="$PREFIX/lib:$LD_LIBRARY_PATH"
 ./configure --prefix $PREFIX
 make install
 #Small test
-echo "main = putStr \"smalltest!\n\"" > Main.hs
+echo "main = putStr \"smalltest\"" > Main.hs
 ghc -v -o smalltest Main.hs
 ./smalltest
