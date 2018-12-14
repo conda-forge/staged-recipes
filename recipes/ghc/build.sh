@@ -1,3 +1,3 @@
 #!/bin/bash
-./configure --prefix={$PREFIX}
+./configure --prefix {$PREFIX}
 make install
