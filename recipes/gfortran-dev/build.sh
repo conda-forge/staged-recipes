@@ -22,7 +22,7 @@ cd ${SRC_DIR}/build_conda
 
 # using || to quiet logs unless there is an issue
 {
-    make -j"${CPU_COUNT}" # >& make_logs.txt
+    make -j"${CPU_COUNT}" >& make_logs.txt
 } || {
     tail -n 1000 make_logs.txt
     exit 1
