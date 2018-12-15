@@ -7,8 +7,10 @@ ls $PREFIX/bin
 ls $PREFIX/lib
 ls $PREFIX/include
 ./configure --prefix $PREFIX --with-gmp-includes=$PREFIX/include --with-gmp-libraries=$PREFIX/lib
+make
+make check
 make install
 #Small test
 echo "main = putStr \"smalltest\"" > Main.hs
-ghc -static -v5 Main.hs
+ghc -v5 Main.hs
 ./smalltest
