@@ -10,5 +10,5 @@ ls $PREFIX/include
 make install
 #Small test
 echo "main = putStr \"smalltest\"" > Main.hs
-ghc Main.hs
+ghc -v5 Main.hs
 ./smalltest
