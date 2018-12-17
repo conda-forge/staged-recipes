@@ -3,7 +3,7 @@
 export CFLAGS="-I$PREFIX/include" 
 export LDFLAGS="-L$PREFIX/lib"
 export LD_LIBRARY_PATH="$PREFIX/lib:$LD_LIBRARY_PATH"
-export LIBRAY_PATH="$PREFIX/lib:$LD_LIBRARY_PATH"
+export LIBRARY_PATH="$PREFIX/lib:$LIBRARY_PATH"
 ls $PREFIX/bin
 ls $PREFIX/lib
 ls $PREFIX/include
