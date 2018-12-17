@@ -8,5 +8,5 @@ export LIBRARY_PATH="$PREFIX/lib:$LIBRARY_PATH"
 make install
 #Small test
 echo "main = putStr \"smalltest\"" > Main.hs
-ghc -fasm -v5 -o smalltest Main.hs 
+ghc -fasm -dynamic -v5 -o smalltest Main.hs 
 ./smalltest
