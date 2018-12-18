@@ -66,7 +66,7 @@ make -j$CPU_COUNT
 make install
 make check
 
-rm -rf $uprefix/share/man $uprefix/share/doc/libXi
+rm -rf $uprefix/share/man
 
 # Remove any new Libtool files we may have installed. It is intended that
 # conda-build will eventually do this automatically.
