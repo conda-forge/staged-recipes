@@ -5,4 +5,3 @@ export ACLOCAL="aclocal -I ${PREFIX}/share/aclocal"
 make install
 
 set +ex
-
