@@ -53,12 +53,13 @@ if not exist x265-static-main12.lib (
 )
 
 cmake -G "%CMAKE_GENERATOR%"                      ^
-       -DCMAKE_BUILD_TYPE="Release"               ^
+      -DCMAKE_BUILD_TYPE="Release"                ^
       -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%     ^
       -DEXTRA_LIB="x265-static-main10.lib;x265-static-main12.lib" ^
       -DLINKED_10BIT=ON                           ^
       -DLINKED_12BIT=ON                           ^
       -DENABLE_SHARED=ON                          ^
+      -DENABLE_STATIC=OFF                         ^
       -DENABLE_HDR10_PLUS=ON                      ^
       ../source
 
@@ -66,5 +67,3 @@ if errorlevel 1 exit 1
 
 cmake --build . --target install --config Release
 if errorlevel 1 exit 1
-
-move Release\x265-static.lib x265-static-main.lib
