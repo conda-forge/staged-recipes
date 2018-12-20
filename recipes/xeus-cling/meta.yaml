@@ -1,0 +1,62 @@
+{% set name = "xeus-cling" %}
+{% set version = "0.4.10" %}
+{% set sha256 = "e4e2651fc0522938dbe246131103d36dd997b07b45ed3940fb8478c446c98c8c" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: {{ name }}-{{ version }}.tar.gz
+  url: https://github.com/QuantStack/xeus-cling/archive/{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  skip: true  # [win and vc<14]
+  {% if 'toolchain' in compiler('cxx') %}skip: True{% endif %}  # Only build with modern compilers.
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - cmake
+  host:
+    - cppzmq >=4.3.0,<4.4.0
+    - zeromq >=4.2.5,<4.4.0
+    - cling >=0.5,<0.6
+    - xeus >=0.18.1,<0.19
+    - xtl >=0.5.2,<0.6
+    - pugixml
+    - cxxopts >=2.1.1,<3.0
+    - nlohmann_json >=3.3.0,<4.0
+    - dirent >=1.21,<2.0  # [win]
+  run:
+    # Cling misses a run_exports section
+    - {{ pin_compatible('cling', max_pin='x.x') }}
+    # Even though cppzmq, xtl and nlohmann_json are header-only,
+    # they are used at runtime by the interpreted c++
+    - {{ pin_compatible('cppzmq', max_pin='x.x.x') }}
+    - {{ pin_compatible('xtl', max_pin='x.x.x') }}
+    - {{ pin_compatible('nlohmann_json', max_pin='x.x.x') }}
+
+test:
+  commands:
+    - test -f ${PREFIX}/bin/xeus-cling  # [unix]
+    - if exist %LIBRARY_PREFIX%\bin\xeus-cling.exe (exit 0) else (exit 1)  # [win]
+
+about:
+  home: http://quantstack.net/xeus-cling
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: 'Cling-based C++ kernel for Jupyter based on xeus'
+  description: 'Jupyter kernel for the C++ programming language'
+  doc_url: http://xeus-cling.readthedocs.io
+  dev_url: https://github.com/QuantStack/xeus-cling
+
+extra:
+  recipe-maintainers:
+    - SylvainCorlay
+    - JohanMabille
+    - gouarin
+    - martinRenou
