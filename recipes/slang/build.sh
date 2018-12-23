@@ -3,6 +3,13 @@ export CFLAGS="${CFLAGS} ${CPPFLAGS}"
 
 ./configure \
   --prefix=$PREFIX  \
-  --with-readline=gnu
+  --with-readline=gnu \
+  --with-pcre \
+  --with-onig \
+  --with-png \
+  --with-z \
+  --with-iconv=$PREFIX
+
 make
+make check
 make install
