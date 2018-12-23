@@ -1,6 +1,9 @@
 #!/bin/bash
 if [[ $target_platform =~ linux.* ]] || [[ $target_platform == win-32 ]] || [[ $target_platform == win-64 ]] || [[ $target_platform == osx-64 ]]; then
   export DISABLE_AUTOBREW=1
+  export OMPI_MCA_plm=isolated
+  export OMPI_MCA_btl_vader_single_copy_mechanism=none
+  export OMPI_MCA_rmaps_base_oversubscribe=yes
   $R CMD INSTALL --build --configure-args="--with-Rmpi-include=$PREFIX/include --with-Rmpi-libpath=$PREFIX/lib --with-Rmpi-type=OPENMPI" .
 else
   mkdir -p $PREFIX/lib/R/library/Rmpi
