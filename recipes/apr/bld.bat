@@ -16,6 +16,17 @@ IF "%ARCH%"=="32" (
     SET PLATFORM=x64
 )
 
+:: Nasty hack to force the newer MSBuild from .NET is still used for the older
+:: Visual Studio build. Without this an older MSBuild will be picked up by accident on
+:: AppVeyor after running `vcvars32.bat`, which fails to process our solution files.
+::
+:: ref: https://github.com/conda-forge/staged-recipes/pull/194#issuecomment-203577297
+:: ref: https://github.com/conda-forge/libsodium-feedstock/commit/b411740e0f439d5a5d257f74f74945f86585684a#diff-d04c86b6bb20341f5f7c53165501a393R12
+:: ref: https://stackoverflow.com/q/2709279
+if %VS_MAJOR% == 9 (
+    set "PATH=C:\Windows\Microsoft.NET\Framework\v4.0.30319;%PATH%"
+)
+
 :: This is required for picking up expat headers and lib
 IF "%VS_YEAR%"=="2008" (
     SET ENVOPT="/p:VCBuildUseEnvironment=true"
