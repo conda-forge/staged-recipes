@@ -4,6 +4,7 @@ export CFLAGS="${CFLAGS} ${CPPFLAGS}"
 ./configure \
   --prefix=$PREFIX  \
   --with-readline=gnu \
+  --without-ncurses \
   --with-pcre \
   --with-onig \
   --with-png \
