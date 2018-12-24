@@ -5,12 +5,12 @@ cd ${SRC_DIR}/apr
 make
 make install
 
-cd ${SRC_DIR}/apr-util
+cd ${SRC_DIR}/apr-iconv
 ./configure --prefix=${PREFIX} --host=${HOST} --with-apr=${PREFIX}
 make
 make install
 
-cd ${SRC_DIR}/apr-iconv
+cd ${SRC_DIR}/apr-util
 ./configure --prefix=${PREFIX} --host=${HOST} --with-apr=${PREFIX}
 make
 make install
