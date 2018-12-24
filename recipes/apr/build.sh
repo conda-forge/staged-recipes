@@ -1,16 +1,16 @@
 #!/bin/sh
 
-cd ${SRC_DIR}/apr
-./configure --prefix=${PREFIX} --host=${HOST}
+cd "${SRC_DIR}/apr"
+./configure --prefix="${PREFIX}" --host="${HOST}"
 make
 make install
 
-cd ${SRC_DIR}/apr-iconv
-./configure --prefix=${PREFIX} --host=${HOST} --with-apr=${PREFIX}
+cd "${SRC_DIR}/apr-iconv"
+./configure --prefix="${PREFIX}" --host="${HOST}" --with-apr="${PREFIX}"
 make
 make install
 
-cd ${SRC_DIR}/apr-util
-./configure --prefix=${PREFIX} --host=${HOST} --with-apr=${PREFIX} --with-apr-iconv="./apr-iconv" --without-iconv --without-sqlite3
+cd "${SRC_DIR}/apr-util"
+./configure --prefix="${PREFIX}" --host="${HOST}" --with-apr="${PREFIX}" --with-apr-iconv="./apr-iconv" --without-iconv --without-sqlite3
 make
 make install
