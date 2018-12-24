@@ -1,0 +1,78 @@
+{% set apr_ver = "1.6.3" %}
+{% set apu_ver = "1.6.1" %}
+{% set api_ver = "1.2.2" %}
+{% set mirror = "http://www-us.apache.org/dist/" %}
+
+package:
+  name: apr
+  version: {{ apr_ver }}
+
+source:
+  - url: {{ mirror }}/apr/apr-{{ apr_ver }}.tar.bz2                           # [unix]
+    folder: apr                                                               # [unix]
+    sha256: 131f06d16d7aabd097fa992a33eec2b6af3962f93e6d570a9bd4d85e95993172  # [unix]
+  - url: {{ mirror }}/apr/apr-util-{{ apu_ver }}.tar.bz2                      # [unix]
+    folder: apr-util                                                          # [unix]
+    sha256: d3e12f7b6ad12687572a3a39475545a072608f4ba03a6ce8a3778f607dd0035b  # [unix]
+  - url: {{ mirror }}/apr/apr-iconv-{{ api_ver }}.tar.bz2                     # [unix]
+    folder: apr-iconv                                                         # [unix]
+    sha256: 7d454e0fe32f2385f671000e3b755839d16aabd7291e3947c973c90377c35313  # [unix]
+  - url: {{ mirror }}/apr/apr-{{ apr_ver }}-win32-src.zip                     # [win]
+    folder: apr                                                               # [win]
+    sha256: 05afa2379f7273beb79c0ec6388fed3f4b89f0227aad8233882b1fbb5def880e  # [win]
+  - url: {{ mirror }}/apr/apr-util-{{ apu_ver }}-win32-src.zip                # [win]
+    folder: apr-util                                                          # [win]
+    sha256: 9eb17fff6484333fe65b7972411ee33dfdb468896f85add0e1ff1b6751698b41  # [win]
+  - url: {{ mirror }}/apr/apr-iconv-{{ api_ver }}-win32-src.zip               # [win]
+    folder: apr-iconv                                                         # [win]
+    sha256: 7b5dbcf81df98e31ef52deff78eee1746b7ea86025efd220c5faa62fabb76bdf  # [win]
+
+build:
+  run_exports:
+  # https://abi-laboratory.pro/tracker/timeline/apr/
+  # This is only on the basis of libapr.so
+    - {{ pin_subpackage('apr', max_pin='x') }}
+
+requirements:
+  host:
+    - expat
+  build:
+    - {{ compiler('c') }}
+    - make  # [unix]
+
+test:
+  commands:
+    - apr-1-config --help  # [unix]
+    - apu-1-config --help  # [unix]
+
+    - if not exist %LIBRARY_INC%\apr.h             exit 1  # [win]
+    - if not exist %LIBRARY_INC%\apu.h             exit 1  # [win]
+    - if not exist %LIBRARY_BIN%\libapr-1.dll      exit 1  # [win]
+    - if not exist %LIBRARY_BIN%\libaprutil-1.dll  exit 1  # [win]
+    - if not exist %LIBRARY_BIN%\libapriconv-1.dll exit 1  # [win]
+
+    - test -f ${PREFIX}/include/apr-1/apr.h            # [unix]
+    - test -f ${PREFIX}/include/apr-1/apu.h            # [unix]
+    - test -f ${PREFIX}/lib/libapr-1${SHLIB_EXT}       # [unix]
+    - test -f ${PREFIX}/lib/libaprutil-1${SHLIB_EXT}   # [unix]
+    - test -f ${PREFIX}/lib/libapriconv-1${SHLIB_EXT}  # [unix]
+
+    - conda inspect linkages -p ${PREFIX} apr  # [not win]
+    - conda inspect objects -p ${PREFIX} apr   # [osx]
+
+about:
+  home: http://apr.apache.org/
+  license: Apache License 2.0
+  license_family: Apache
+  summary: Maintains a consistent API with predictable behaviour
+  description: |
+    Apache Portable Run-time libraries have been designed to provide a common
+    interface to low level routines across any platform.The original goal of APR
+    was to combine all code in Apache to one common code base.
+  doc_url: https://apr.apache.org/docs/apr/1.6/index.html
+  dev_url: https://svn.apache.org/viewvc/apr
+  doc_source_url: https://github.com/apache/apr/tree/trunk/docs
+
+extra:
+  recipe-maintainers:
+    - nehaljwani
