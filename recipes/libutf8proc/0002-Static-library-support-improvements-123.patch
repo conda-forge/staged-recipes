@@ -1,0 +1,85 @@
+From 539e5ef78b8500bacd6d61433182baafd548a05d Mon Sep 17 00:00:00 2001
+From: past-due <30942300+past-due@users.noreply.github.com>
+Date: Sun, 29 Apr 2018 21:37:12 -0400
+Subject: [PATCH 2/4] Static library support improvements (#123)
+
+* `#define UTF8PROC_STATIC` to disable DLLEXPORT
+
+`#define UTF8PROC_STATIC` to disable DLLEXPORT
+
+* [CMake] Automatically define UTF8PROC_STATIC if BUILD_SHARED_LIBS is off
+
+* [Makefile] Support additional UTF8PROC_DEFINES, which can be used to specify flags like `-DUTF8PROC_STATIC`
+---
+ CMakeLists.txt |  7 +++++++
+ Makefile       |  2 +-
+ utf8proc.h     | 20 ++++++++++++--------
+ 3 files changed, 20 insertions(+), 9 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index cbc8d93..d07dee1 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -22,6 +22,13 @@ add_library (utf8proc
+   utf8proc.h
+ )
+ 
++if (BUILD_SHARED_LIBS)
++  # Building shared library
++else()
++  # Building static library
++  target_compile_definitions(utf8proc PUBLIC "UTF8PROC_STATIC")
++endif()
++
+ target_compile_definitions(utf8proc PRIVATE "UTF8PROC_EXPORTS")
+ 
+ set_target_properties (utf8proc PROPERTIES
+diff --git a/Makefile b/Makefile
+index f8e5e8b..5efd7e8 100644
+--- a/Makefile
++++ b/Makefile
+@@ -11,7 +11,7 @@ CFLAGS ?= -O2
+ PICFLAG = -fPIC
+ C99FLAG = -std=c99
+ WCFLAGS = -Wall -pedantic
+-UCFLAGS = $(CFLAGS) $(PICFLAG) $(C99FLAG) $(WCFLAGS) -DUTF8PROC_EXPORTS
++UCFLAGS = $(CFLAGS) $(PICFLAG) $(C99FLAG) $(WCFLAGS) -DUTF8PROC_EXPORTS $(UTF8PROC_DEFINES)
+ 
+ # shared-library version MAJOR.MINOR.PATCH ... this may be *different*
+ # from the utf8proc version number because it indicates ABI compatibility,
+diff --git a/utf8proc.h b/utf8proc.h
+index 7b3e6fd..9129853 100644
+--- a/utf8proc.h
++++ b/utf8proc.h
+@@ -120,16 +120,20 @@ typedef bool utf8proc_bool;
+ #endif
+ #include <limits.h>
+ 
+-#ifdef _WIN32
+-#  ifdef UTF8PROC_EXPORTS
+-#    define UTF8PROC_DLLEXPORT __declspec(dllexport)
++#ifdef UTF8PROC_STATIC
++#  define UTF8PROC_DLLEXPORT
++#else
++#  ifdef _WIN32
++#    ifdef UTF8PROC_EXPORTS
++#      define UTF8PROC_DLLEXPORT __declspec(dllexport)
++#    else
++#      define UTF8PROC_DLLEXPORT __declspec(dllimport)
++#    endif
++#  elif __GNUC__ >= 4
++#    define UTF8PROC_DLLEXPORT __attribute__ ((visibility("default")))
+ #  else
+-#    define UTF8PROC_DLLEXPORT __declspec(dllimport)
++#    define UTF8PROC_DLLEXPORT
+ #  endif
+-#elif __GNUC__ >= 4
+-#  define UTF8PROC_DLLEXPORT __attribute__ ((visibility("default")))
+-#else
+-#  define UTF8PROC_DLLEXPORT
+ #endif
+ 
+ #ifdef __cplusplus
+-- 
+2.17.0
+
