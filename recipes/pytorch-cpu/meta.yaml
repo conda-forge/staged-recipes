@@ -1,0 +1,80 @@
+{% set version = "1.0.0" %}
+
+package:
+  name: pytorch-cpu
+  version: {{ version }}
+
+source:
+  # The tar source needs serious patching since it is trying to build
+  # all 3rd party modules
+  # url: https://github.com/pytorch/pytorch/archive/v{{ version }}.tar.gz
+  # fn: pytorch-v{{ version }}.tar.gz
+  # sha256: f360b7954e441bc5c4b36c49e711697a5c351de8b146c2982809385e3b3cfdcb
+  git_url: https://github.com/pytorch/pytorch.git
+  git_tag: v{{ version }}
+
+# The build needs to set many environment variables
+# This is an easy way to do it cross platform
+{% set export = "export" %}  # [not win]
+{% set export = "set" %}     # [win]
+
+build:
+  number: 1000
+  # Needs modern GCC, the ones in the toolchain are too old.
+  {% if 'toolchain' in compiler('cxx') %}skip: True{% endif %}  # Only build with modern compilers.
+  # Support for Windows and Python 2.7 is very experimental
+  # https://ci.appveyor.com/project/conda-forge/staged-recipes/builds/21220961#L972
+  #skip: true  # [win and py27]
+  # But we actually need MSVC2017 to compile pytorch
+  skip: true  # [win]
+  # Requires XCode 8 or later, not yet supported by conda-forge???
+  # https://travis-ci.org/conda-forge/staged-recipes/builds/471999130#L1998
+  #skip: true  # [osx]
+  script:
+    # Most of this script is adapted from the pytorch/pythorch-cpu
+    # meta.yaml.template build.sh and bld.bat scripts
+    - {{ export }} TN_BINARY_BUILD=1
+    - {{ export }} PYTORCH_BINARY_BUILD=1
+    - {{ export }} NO_CUDA=1
+    - {{ export }} PYTORCH_BUILD_VERSION={{ PKG_VERSION }}
+    - {{ export }} PYTORCH_BUILD_NUMBER={{ PKG_BUILDNUM }}
+    # Why are all warnings treated as errors???
+    - export CXXFLAGS="-Wno-error=unused-result $CXXFLAGS"  # [linux]
+    - export CFLAGS="-Wno-error=unused-result $CFLAGS"      # [linux]
+    - "{{ PYTHON }} -m pip install . --no-deps -vv --disable-pip-version-check"
+      # --disable-pip-version-check is added to reduce warnings messages when debugging the build
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+  host:
+    - python
+    - pip
+    - pyyaml
+    - numpy 1.11
+    - setuptools
+    - cffi
+    - typing  # [py <= 35]
+    - ninja
+  run:
+    - python
+    - {{ pin_compatible('numpy') }}
+    - ninja
+    - cffi
+
+test:
+  imports:
+    - torch
+
+about:
+  home: https://pytorch.org/
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: "PyTorch is an optimized tensor library for deep learning using GPUs and CPUs."
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
