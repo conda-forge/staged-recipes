@@ -14,12 +14,6 @@ fi
 # remove libtool files
 find $PREFIX -name '*.la' -delete
 
-# Fix undefined symbol error _lame_init_old
-# https://sourceforge.net/p/lame/mailman/message/36081038/
-# original patch from the homebrew recipe:
-# https://github.com/Homebrew/homebrew-core/blob/master/Formula/lame.rb
-# inreplace "include/libmp3lame.sym", "lame_init_old\n", ""
-
 ./configure --prefix=$PREFIX \
 	    --disable-dependency-tracking \
 	    --disable-debug \
