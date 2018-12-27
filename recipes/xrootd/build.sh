@@ -19,10 +19,10 @@ else
     cmake_linux_args=""
 fi
 
-# TODO This shouldn't be needed
-if [ "$(uname)" == "Darwin" ]; then
-    export CONDA_BUILD_SYSROOT="/Users/virtualbox/MacOSX-SDKs/MacOSX10.12.sdk"
-fi
+# Set the version number explicitly to prevent xrootd using the latest commit instead
+# rm -rf ../.git
+# echo "v${PKG_VERSION}" > ../VERSION_INFO
+git tag -f "v${PKG_VERSION}"
 
 cmake \
     -DCMAKE_BUILD_TYPE=release \

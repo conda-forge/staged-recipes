@@ -21,13 +21,14 @@ sed -i.bak -e 's@AddPath("/usr/local/include", System, false);@AddPath("'"${PREF
 mkdir build-dir
 cd build-dir
 
-source activate "${PREFIX}"
-
 if [ "$(uname)" == "Linux" ]; then
     cmake_args="-DCMAKE_TOOLCHAIN_FILE=${RECIPE_DIR}/toolchain.cmake -DCMAKE_AR=${GCC_AR} -DCLANG_DEFAULT_LINKER=${LD_GOLD} -DDEFAULT_SYSROOT=${PREFIX}/x86_64-conda_cos6-linux-gnu/sysroot -Dx11=ON -DRT_LIBRARY=${PREFIX}/x86_64-conda_cos6-linux-gnu/sysroot/usr/lib/librt.so"
 else
-    cmake_args="-Dcocoa=OFF"
+    cmake_args="-Dcocoa=ON"
 fi
+
+CXXFLAGS=$(echo "${CXXFLAGS}" | echo "${CXXFLAGS}" | sed -E 's@-std=c\+\+[^ ]+@@g')
+export CXXFLAGS
 
 cmake -LAH \
     -DCMAKE_BUILD_TYPE=Release \
@@ -37,9 +38,9 @@ cmake -LAH \
     -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
     ${cmake_args} \
-    -DCMAKE_CC_COMPILER="${GCC}" \
+    -DCMAKE_CC_COMPILER="${CC}" \
     -DCMAKE_C_FLAGS="${CFLAGS}" \
-    -DCMAKE_CXX_COMPILER="${GXX}" \
+    -DCMAKE_CXX_COMPILER="${CXX}" \
     -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
     -DCLING_BUILD_PLUGINS=OFF \
     -Dexplicitlink=ON \
@@ -66,6 +67,7 @@ cmake -LAH \
     -Dmysql=OFF \
     -Dopengl=OFF \
     -Doracle=OFF \
+    -Dpgsql=OFF \
     -Dpythia6=OFF \
     -Dpythia8=OFF \
     -Dtesting=ON \
@@ -100,5 +102,7 @@ unlink "${PREFIX}/bin/clang-cl"
 unlink "${PREFIX}/bin/clang-cpp"
 
 # Add the post activate/deactivate scripts
+mkdir -p "${PREFIX}/etc/conda/activate.d"
 cp "${RECIPE_DIR}/activate.sh" "${PREFIX}/etc/conda/activate.d/activate-root.sh"
+mkdir -p "${PREFIX}/etc/conda/deactivate.d"
 cp "${RECIPE_DIR}/deactivate.sh" "${PREFIX}/etc/conda/deactivate.d/deactivate-root.sh"
