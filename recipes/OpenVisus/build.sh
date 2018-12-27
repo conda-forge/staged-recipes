@@ -2,6 +2,12 @@
 
 set -ex 
 
+function PushCMakeOption {
+        if [ -n "$2" ] ; then
+                cmake_opts+=" -D$1=$2"
+        fi
+}
+
 #PYTHON_VERSION=${PYTHON_VERSION:-3.6.6}
 CMAKE_BUILD_TYPE=RelWithDebInfo 
 BUILD_DIR=${BUILD_DIR:-$(pwd)/build/manylinux} 
