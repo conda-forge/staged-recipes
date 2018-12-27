@@ -110,10 +110,10 @@ function InstallCMake {
 	export PATH=$BUILD_DIR/cmake/bin:${PATH} 
 }
 
-InstallOpenSSL 
-InstallPython 
-InstallCMake    
-InstallSwig
+#InstallOpenSSL 
+#InstallPython 
+#InstallCMake    
+#InstallSwig
 
 # broken right now
 # InstallQt  
