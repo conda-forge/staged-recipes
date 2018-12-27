@@ -1,0 +1,252 @@
+From f8c9df6fdbd11727d560b361898640d1413fe0e2 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Patrick=20Sodr=C3=A9?= <psodre@gmail.com>
+Date: Tue, 25 Dec 2018 07:39:45 +0000
+Subject: [PATCH] Add byobu-conda command to aid on conda related quirks
+
+  - The byobu environment is activate within every pane.
+  - The base environment is stacked on top of byobu.
+  - The changes to .bashrc are restricted to byobu sessions only.
+---
+ configure.ac                   |  3 ++
+ usr/bin/Makefile.am            |  2 +-
+ usr/bin/byobu-conda.in         | 39 ++++++++++++++++++++++
+ usr/bin/byobu-disable-conda.in | 41 +++++++++++++++++++++++
+ usr/bin/byobu-enable-conda.in  | 60 ++++++++++++++++++++++++++++++++++
+ usr/lib/byobu/include/dirs.in  | 31 ++++++++++++++++++
+ 6 files changed, 175 insertions(+), 1 deletion(-)
+ create mode 100755 usr/bin/byobu-conda.in
+ create mode 100755 usr/bin/byobu-disable-conda.in
+ create mode 100755 usr/bin/byobu-enable-conda.in
+
+diff --git a/configure.ac b/configure.ac
+index 552239d8..ed83055e 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -22,11 +22,14 @@ AC_OUTPUT(Makefile \
+ 	etc/profile.d/Makefile \
+ 	etc/profile.d/Z97-byobu.sh \
+ 	usr/bin/byobu \
++	usr/bin/byobu-conda \
+ 	usr/bin/byobu-config \
+ 	usr/bin/byobu-ctrl-a \
+ 	usr/bin/byobu-disable \
++	usr/bin/byobu-disable-conda \
+ 	usr/bin/byobu-disable-prompt \
+ 	usr/bin/byobu-enable \
++	usr/bin/byobu-enable-conda \
+ 	usr/bin/byobu-enable-prompt \
+ 	usr/bin/byobu-export \
+ 	usr/bin/byobu-janitor \
+diff --git a/usr/bin/Makefile.am b/usr/bin/Makefile.am
+index fa33a26a..0d697ea1 100644
+--- a/usr/bin/Makefile.am
++++ b/usr/bin/Makefile.am
+@@ -1,4 +1,4 @@
+-bin_SCRIPTS = byobu  byobu-config  byobu-ctrl-a  byobu-disable  byobu-disable-prompt  byobu-enable  byobu-enable-prompt  byobu-export  byobu-janitor  byobu-keybindings  byobu-launch  byobu-launcher  byobu-launcher-install  byobu-launcher-uninstall  byobu-layout  byobu-prompt  byobu-quiet  byobu-reconnect-sockets  byobu-select-backend  byobu-select-profile  byobu-select-session  byobu-silent  byobu-status  byobu-status-detail  byobu-shell byobu-ugraph byobu-ulevel col1 ctail wifi-status vigpg manifest purge-old-kernels
++bin_SCRIPTS = byobu  byobu-conda  byobu-config  byobu-ctrl-a  byobu-disable  byobu-disable-conda  byobu-disable-prompt  byobu-enable  byobu-enable-conda  byobu-enable-prompt  byobu-export  byobu-janitor  byobu-keybindings  byobu-launch  byobu-launcher  byobu-launcher-install  byobu-launcher-uninstall  byobu-layout  byobu-prompt  byobu-quiet  byobu-reconnect-sockets  byobu-select-backend  byobu-select-profile  byobu-select-session  byobu-silent  byobu-status  byobu-status-detail  byobu-shell byobu-ugraph byobu-ulevel col1 ctail wifi-status vigpg manifest purge-old-kernels
+ 
+ install-exec-hook:
+ 	cd $(DESTDIR)$(bindir) && rm -f byobu-screen && $(LN_S) byobu byobu-screen
+diff --git a/usr/bin/byobu-conda.in b/usr/bin/byobu-conda.in
+new file mode 100755
+index 00000000..c1c685db
+--- /dev/null
++++ b/usr/bin/byobu-conda.in
+@@ -0,0 +1,39 @@
++#!/bin/sh -e
++#
++#    byobu-prompt
++#    Copyright (C) 2013-2014 Dustin Kirkland
++#    Copyright (C) 2018-2019 Patrick Sodré
++#
++#    Authors: Dustin Kirkland <kirkland@byobu.org>
++#             Patrick Sodré <psodre@gmail.com>
++#
++#    This program is free software: you can redistribute it and/or modify
++#    it under the terms of the GNU General Public License as published by
++#    the Free Software Foundation, version 3 of the License.
++#
++#    This program is distributed in the hope that it will be useful,
++#    but WITHOUT ANY WARRANTY; without even the implied warranty of
++#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++#    GNU General Public License for more details.
++#
++#    You should have received a copy of the GNU General Public License
++#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
++
++PKG="byobu"
++[ -r "$HOME/.byoburc" ] && . "$HOME/.byoburc"
++[ -z "${BYOBU_PREFIX}" ] && export BYOBU_PREFIX="@prefix@" || export BYOBU_PREFIX
++. "${BYOBU_PREFIX}/lib/${PKG}/include/common"
++
++echo
++echo -n "Do you want to enable Byobu's conda integration? [Y/n]: "
++answer=$(head -n1)
++echo
++case "$answer" in
++	"n"|"N")
++		exec byobu-disable-conda
++	;;
++	*)
++		exec byobu-enable-conda
++esac
++
++# vi: syntax=sh ts=4 noexpandtab
+diff --git a/usr/bin/byobu-disable-conda.in b/usr/bin/byobu-disable-conda.in
+new file mode 100755
+index 00000000..e2a96845
+--- /dev/null
++++ b/usr/bin/byobu-disable-conda.in
+@@ -0,0 +1,41 @@
++#!/bin/sh -e
++#
++#    byobu-disable-conda
++#    Copyright (C) 2013-2014 Dustin Kirkland
++#    Copyright (C) 2018-2019 Patrick Sodré
++#
++#    Authors: Dustin Kirkland <kirkland@byobu.org>
++#             Patrick Sodré <psodre@gmail.com>
++#
++#    This program is free software: you can redistribute it and/or modify
++#    it under the terms of the GNU General Public License as published by
++#    the Free Software Foundation, version 3 of the License.
++#
++#    This program is distributed in the hope that it will be useful,
++#    but WITHOUT ANY WARRANTY; without even the implied warranty of
++#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++#    GNU General Public License for more details.
++#
++#    You should have received a copy of the GNU General Public License
++#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
++
++PKG="byobu"
++[ -r "$HOME/.byoburc" ] && . "$HOME/.byoburc"
++[ -z "${BYOBU_PREFIX}" ] && export BYOBU_PREFIX="@prefix@" || export BYOBU_PREFIX
++. "${BYOBU_PREFIX}/lib/${PKG}/include/common"
++
++$BYOBU_SED_INLINE -e "/#byobu-conda#$/d" "$HOME/.bashrc"
++[ -w "$HOME/.byoburc" ] && $BYOBU_SED_INLINE -e "/#byobu-conda#$/d" "$HOME/.byoburc"
++
++if [ "$1" != "--no-reload" ]; then
++	if [ -n "$TMUX" ] && [ "$SHELL" = "/bin/bash" ]; then
++		tmux send-keys " . ~/.bashrc" \; send-keys Enter
++	else
++		echo
++		echo "You will need to reload your shell configuration for this to take effect..."
++		echo "  . ~/.bashrc"
++		echo
++	fi
++fi
++
++# vi: syntax=sh ts=4 noexpandtab
+diff --git a/usr/bin/byobu-enable-conda.in b/usr/bin/byobu-enable-conda.in
+new file mode 100755
+index 00000000..cc04abb9
+--- /dev/null
++++ b/usr/bin/byobu-enable-conda.in
+@@ -0,0 +1,60 @@
++#!/bin/sh -e
++#
++#    byobu-enable-conda
++#    Copyright (C) 2013-2014 Dustin Kirkland
++#    Copyright (C) 2018-2019 Patrick Sodré
++#
++#    Authors: Dustin Kirkland <kirkland@byobu.org>
++#             Patrick Sodré <psodre@gmail.com>
++#
++#    This program is free software: you can redistribute it and/or modify
++#    it under the terms of the GNU General Public License as published by
++#    the Free Software Foundation, version 3 of the License.
++#
++#    This program is distributed in the hope that it will be useful,
++#    but WITHOUT ANY WARRANTY; without even the implied warranty of
++#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++#    GNU General Public License for more details.
++#
++#    You should have received a copy of the GNU General Public License
++#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
++
++[ "$SHELL" = "/bin/bash" ] || exit 1
++
++PKG="byobu"
++[ -r "$HOME/.byoburc" ] && . "$HOME/.byoburc"
++[ -z "${BYOBU_PREFIX}" ] && export BYOBU_PREFIX="@prefix@" || export BYOBU_PREFIX
++. "${BYOBU_PREFIX}/lib/${PKG}/include/common"
++
++
++prompt="${BYOBU_CONFIG_DIR}/conda"
++# This gets the conda function into the shell
++echo ". ${BYOBU_CONDA_ROOT}/etc/profile.d/conda.sh #byobu-conda#" > "$prompt"
++# This gets byobu back in the path
++echo "_conda_reactivate #byobu-conda#" >> "$prompt"
++if [ "${BYOBU_PREFIX}" != "${BYOBU_CONDA_ROOT}" ]; then
++	# This gets conda base reactivated with higher precedence than byobu.
++	echo "conda activate ${BYOBU_CONDA_ROOT} #byobu-conda#" >> "$prompt"
++
++	echo
++	echo "Byobu was not installed to the base conda environment."
++	echo "Please increase conda's max shell level stacking to at least 3."
++	echo "  conda config --set max_shlvl 3"
++	echo
++fi
++
++
++$PKG-disable-conda --no-reload "$1" || true
++printf "[ -n \"\$BYOBU_PREFIX\" ] && [ -r $prompt ] && . $prompt   #byobu-conda#\n" >> "$HOME/.bashrc"
++printf "BYOBU_CONDA_ROOT=$BYOBU_CONDA_ROOT    #byobu-conda#\n" >> $HOME/.byoburc
++
++if [ -n "$TMUX" ]; then
++	tmux send-keys " . ~/.bashrc" \; send-keys Enter
++else
++	echo
++	echo "You will need to reload your shell configuration for this to take effect..."
++	echo "  . ~/.bashrc"
++	echo
++fi
++
++# vi: syntax=sh ts=4 noexpandtab
+diff --git a/usr/lib/byobu/include/dirs.in b/usr/lib/byobu/include/dirs.in
+index 8aaaaf3f..4a519106 100755
+--- a/usr/lib/byobu/include/dirs.in
++++ b/usr/lib/byobu/include/dirs.in
+@@ -24,6 +24,37 @@ PKG="byobu"
+ [ -r "$HOME/.byoburc" ] && . "$HOME/.byoburc"
+ [ -n "$BYOBU_PREFIX" ] || BYOBU_PREFIX="@prefix@"
+ 
++# Enable the conda command
++if ! (type conda 2>&1 | grep -q 'conda is a function'); then
++	conda_sh="etc/profile.d/conda.sh"
++	if [ -n "$BYOBU_CONDA_ROOT" ]; then
++		# User defined location
++		. "$BYOBU_CONDA_ROOT/$conda_sh"
++	elif [ -n $CONDA_EXE ]; then
++		# When the environment is already activated
++		. "$(cd $(dirname $CONDA_EXE)/..; pwd)/$conda_sh"
++	elif [ -r "${BYOBU_PREFIX}/${conda_sh}" ]; then
++		# Some install byobu on the base environment
++		. "${BYOBU_PREFIX}/${conda_sh}"
++	elif [ -r "${BYOBU_PREFIX}/../../${conda_sh}" ]; then
++		# Others on environments from the root
++		. "${BYOBU_PREFIX}/../../${conda_sh}"
++	elif [ -r "/${conda_sh}" ]; then
++		# Others have helpful sysadmins
++		. "/${conda_sh}"
++	else
++		echo "ERROR: Please source etc/profile.d/conda.sh first."
++		echo "ERROR: Alternatively, activate the byobu environment and call byobu-enable-conda"
++		exit 1
++	fi
++fi
++BYOBU_CONDA_ROOT=$_CONDA_ROOT
++
++# ...and some users install byobu on conda environments
++if [ "$CONDA_PREFIX" != "$BYOBU_PREFIX" ]; then
++	conda activate ${BYOBU_PREFIX}
++fi
++
+ # Create and export the user configuration directory
+ if [ -d "$BYOBU_CONFIG_DIR" ]; then
+ 	export BYOBU_CONFIG_DIR="$BYOBU_CONFIG_DIR"
+-- 
+2.17.2 (Apple Git-113)
+
