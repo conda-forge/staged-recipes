@@ -110,10 +110,6 @@ function InstallCMake {
 	export PATH=$BUILD_DIR/cmake/bin:${PATH} 
 }
 
-yum update 
-yum install -y zlib-devel curl 
-yum install -y httpd.x86_64 httpd-devel.x86_64
-
 InstallOpenSSL 
 InstallPython 
 InstallCMake    
