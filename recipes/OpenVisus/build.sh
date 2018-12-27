@@ -132,6 +132,8 @@ PushCMakeOption PYTHON_PLAT_NAME       manylinux1_x86_64
 PushCMakeOption PYPI_USERNAME          ${PYPI_USERNAME}
 PushCMakeOption PYPI_PASSWORD          ${PYPI_PASSWORD}
 
+echo '#undef HAVE_STROPTS_H' | cat - ${SOURCE_DIR}/InternalLibs/curl/lib/if2ip.c > temp.c && mv temp.c ${SOURCE_DIR}/InternalLibs/curl/lib/if2ip.c
+
 cmake ${cmake_opts} ${SOURCE_DIR} 
 cmake --build . --target all -- -j 4
 cmake --build . --target test
