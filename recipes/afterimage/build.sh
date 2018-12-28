@@ -34,4 +34,3 @@ sed -i -e 's/`uname`/"hack"/g' Makefile
 
 make AR="${AR} clq"
 make AR="${AR} clq" install
-

@@ -17,6 +17,7 @@ cmake \
     -DCMAKE_PREFIX_PATH="${PREFIX}" \
     -DCMAKE_INSTALL_RPATH="${PREFIX}/lib" \
     -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+    -DLIB_INSTALL_DIR="${PREFIX}/lib" \
     ${cmake_args} \
     ..
 
