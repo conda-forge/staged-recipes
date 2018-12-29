@@ -25,6 +25,9 @@ set "BT_ROOT=C:\Program Files (x86)\Microsoft Visual Studio\%MSC_VER%\Profession
 set "REDIST_ROOT=%BT_ROOT%\VC\Redist\MSVC\%runtime_version%\%VC_PATH%"
 echo "%REDIST_ROOT%"
 
+
+dir "%BT_ROOT%\VC\Redist\MSVC\"
+
 IF NOT EXIST "%BT_ROOT%\VC\Redist\MSVC\%runtime_version%" (
    echo ============================================================================================
    set "out=!out! Expected vcruntime140.dll version (from conda_build_config.yaml) was %runtime_version%."
