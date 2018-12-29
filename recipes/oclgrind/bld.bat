@@ -11,3 +11,4 @@ ninja -j%CPU_COUNT%
 ninja install
 ctest
 
+rmdir %LIBRARY_INC%\CL /s
