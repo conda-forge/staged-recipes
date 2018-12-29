@@ -1,0 +1,67 @@
+{% set version = "1.1.4" %}
+{% set xorg_category = "lib" %}
+{% set xorg_name = "libXinerama" %}
+{% set name = "xorg-" ~ xorg_name %}
+{% set am_version = "1.15" %} # keep synchronized with build.sh
+
+package:
+  name: {{ name | lower }}
+  version: {{ version }}
+
+source:
+  url: https://gitlab.freedesktop.org/xorg/lib/{{ xorg_name | lower }}/-/archive/{{ xorg_name }}-{{ version }}/{{ xorg_name | lower }}-{{ xorg_name }}-{{ version }}.tar.gz
+  sha256: d9fb7f224281f5467d36f54b01a8f49e866a994410d5bce3b019f2da8bf8e643
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_subpackage('xorg-libxinerama', max_pin='x.x') }}
+  # Is this one line below still needed?
+  detect_binary_files_with_prefix: true
+
+requirements:
+  build:
+    - {{ compiler('c') }}    # [not win]
+    - {{ compiler('cxx') }}  # [not win]
+    - {{ compiler('m2w64_c') }}  # [win]
+    - {{ compiler('m2w64_cxx') }}  # [win]
+    - autoconf  # [not win]
+    - automake {{ am_version }}  # [not win]
+    - libtool  # [not win]
+    - pkg-config  # [not win]
+    - m2-autoconf  # [win]
+    - m2-automake{{ am_version }}  # [win]
+    - m2-libtool  # [win]
+    - m2w64-pkg-config  # [win]
+    - posix  # [win]
+  host:
+    - xorg-util-macros >1.8
+    - xorg-libx11 >=1.6
+    - xorg-xineramaproto >=1.1.99.1
+    - xorg-libxext
+  run:
+    - xorg-libxext
+
+test:
+  commands:
+    {% set lib_idents = [ "Xinerama" ] %}
+    {% for lib_ident in lib_idents %}
+    - test -f $PREFIX/lib/lib{{ lib_ident }}.dylib  # [osx]
+    - test -f $PREFIX/lib/lib{{ lib_ident }}.so     # [linux]
+    - if not exist %PREFIX%/Library/lib/lib{{ lib_ident }}.dll.a exit /b 1    # [win]
+    - if not exist %PREFIX%/Library/bin/msys-{{ lib_ident }}-*.dll exit /b 1  # [win]
+    {% endfor %}
+    - conda inspect linkages -p $PREFIX $PKG_NAME  # [not win]
+    - conda inspect objects -p $PREFIX $PKG_NAME   # [osx]
+
+about:
+  home: https://gitlab.freedesktop.org/xorg/lib/libxinerama
+  license: MIT
+  license_family: MIT
+  license_file: COPYING
+  summary: 'Client library for the Xinerama extension to the X11 protocol.'
+
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
