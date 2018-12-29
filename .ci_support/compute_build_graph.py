@@ -200,7 +200,7 @@ _rendered_recipes = {}
 
 
 @conda_interface.memoized
-def _get_or_render_metadata(meta_file_or_recipe_dir, worker, finalize, config=None):
+def _get_or_render_metadata(meta_file_or_recipe_dir, worker, finalize):
     global _rendered_recipes
     platform = worker['platform']
     arch = str(worker['arch'])
@@ -209,14 +209,14 @@ def _get_or_render_metadata(meta_file_or_recipe_dir, worker, finalize, config=No
         _rendered_recipes[(meta_file_or_recipe_dir, platform, arch)] = \
                             api.render(meta_file_or_recipe_dir, platform=platform, arch=arch,
                                        verbose=False, permit_undefined_jinja=True,
-                                       bypass_env_check=True, config=config, finalize=finalize)
+                                       bypass_env_check=True, config=None, finalize=finalize)
     return _rendered_recipes[(meta_file_or_recipe_dir, platform, arch)]
 
 
 def add_recipe_to_graph(recipe_dir, graph, run, worker, conda_resolve,
                         recipes_dir=None, config=None, finalize=False):
     try:
-        rendered = _get_or_render_metadata(recipe_dir, worker, config=config, finalize=finalize)
+        rendered = _get_or_render_metadata(recipe_dir, worker, finalize=finalize)
     except (IOError, SystemExit):
         log.warn('invalid recipe dir: %s - skipping', recipe_dir)
         return None
