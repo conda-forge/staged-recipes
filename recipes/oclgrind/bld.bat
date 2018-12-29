@@ -12,3 +12,4 @@ ninja install
 ctest
 
 rmdir %LIBRARY_INC%\CL /s
+move %LIBRARY_LIB%\*.dll %LIBRARY_BIN%\
