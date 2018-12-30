@@ -3,9 +3,6 @@
 mkdir build
 cd build
 
-rm $PREFIX/bin/clang
-rm $PREFIX/bin/clang++
-
 cmake .. \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=${PREFIX} \
