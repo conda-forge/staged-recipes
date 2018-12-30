@@ -11,5 +11,5 @@ ninja -j%CPU_COUNT%
 ninja install
 ctest
 
-rmdir %LIBRARY_INC%\CL /s
+rmdir -Rf %LIBRARY_INC%\CL
 move %LIBRARY_LIB%\*.dll %LIBRARY_BIN%\
