@@ -5,4 +5,4 @@ export LD_LIBRARY_PATH="$PREFIX/lib:$LD_LIBRARY_PATH"
 export LIBRARY_PATH="$PREFIX/lib:$LIBRARY_PATH"
 ghc-pkg recache
 cd cabal-install
-./bootstrap.sh --no-doc
+EXTRA_CONFIGURE_OPTS="--extra-include-dirs=$PREFIX/include --extra-lib-dirs=$PREFIX/lib $EXTRA_CONFIGURE_OPTS"; ./bootstrap.sh --no-doc
