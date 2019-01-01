@@ -11,9 +11,13 @@ echo ${LDFLAGS/'$PREFIX'/$PREFIX}
 echo $LDFLAGS
 # export LDFLAGS="$LDFLAGS"
 echo $LDFLAGS
+echo "......"
+echo "$PREFIX" >> "var.tmp"
+cat var.tmp
+
 if [[ $(uname) == "Darwin" ]]; then
   export LD=clang
-else
+else  
   export LD=gcc
 fi
 $PYTHON -m pip install . --no-deps -vv
