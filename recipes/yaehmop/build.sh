@@ -1,5 +1,6 @@
 cd $SRC_DIR/tightbind
 make
-# manual make install essentially..
-mv bind yaehmop
-cp yaehmop $PREFIX/bin
+# Makefile can't do custom --prefix, do manual make install
+mv bind eht_bind
+mkdir -p $PREFIX/bin
+cp eht_bind $PREFIX/bin
