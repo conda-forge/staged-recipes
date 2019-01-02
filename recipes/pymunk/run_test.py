@@ -18,4 +18,4 @@ def begin(arb, space, data):
 s.add_default_collision_handler().begin=begin
 for x in range(10):
   print(x)
-  s.step(.1)
+  s.step(.01)
