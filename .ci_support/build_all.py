@@ -105,7 +105,7 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
 
     G = construct_graph(recipes_dir, worker=worker, run='build',
                         conda_resolve=conda_resolve, folders=folders,
-                        finalize=False)
+                        config=config, finalize=False)
     order = list(nx.topological_sort(G))
     order.reverse()
 
