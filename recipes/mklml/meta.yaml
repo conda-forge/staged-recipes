@@ -9,6 +9,7 @@ source:
   fn: mkl-dnn-{{ version }}.tar.gz
   sha256: 56c3e22d4fad816059cc58fd8e78ab3bacbec76a6bbded7eaead66220d8e5134
   patches:
+    # this patch moves the dll to the bin location
     # https://github.com/intel/mkl-dnn/pull/346
     - 346-unify-install-command.patch
 
@@ -23,17 +24,15 @@ build:
   script:
     # they have pragmas around the warning that causes the failure,
     # but it doesn't seem to be working, at least with toolchain compilers
-    - export CXXFLAGS="-Wno-error=array-bounds -Wno-array-bounds ${CXXFLAGS} -Wno-array-bounds -Wno-error=array-bounds"  # [unix]
+    - export CXXFLAGS="${CXXFLAGS} -Wno-array-bounds -Wno-error=array-bounds"  # [unix]
     - mkdir build
     - cd build
     # Compiler is out of heap space???? on windows, for release builds
     # https://ci.appveyor.com/project/conda-forge/staged-recipes/builds/21349190#L1123
-    - cmake -LAH -G "Ninja" -DWITH_TEST=0 -DCMAKE_BUILD_TYPE="Debug" -DCMAKE_INSTALL_PREFIX={{ cmake_install_prefix }} ..  # [win]
+    - cmake -LAH -G "Ninja" -DWITH_TEST=0 -DCMAKE_BUILD_TYPE="Release" -DCMAKE_INSTALL_PREFIX={{ cmake_install_prefix }} ..  # [win]
     - cmake -LAH -G "Ninja" -DWITH_TEST=0 -DCMAKE_BUILD_TYPE="Release" -DCMAKE_INSTALL_PREFIX={{ cmake_install_prefix }} ..  # [not win]
     - ninja install                                       # [unix]
     - cmake --build . --target install  --config Release  # [win]
-    # Windows installs the dll in the wrong location (for now)
-    #- move {{ LIBRARY_PREFIX }}\\lib\\mkldnn.dll {{ LIBRARY_PREFIX }}\\bin\\mkldnn.dll  # [win]
 
 requirements:
   build:
