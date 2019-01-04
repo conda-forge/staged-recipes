@@ -8,11 +8,9 @@ source:
   url: https://github.com/intel/mkl-dnn/archive/v{{ version }}.tar.gz
   fn: mkl-dnn-{{ version }}.tar.gz
   sha256: 56c3e22d4fad816059cc58fd8e78ab3bacbec76a6bbded7eaead66220d8e5134
-  #patches:
-    # not as easy to patch as I thought
+  patches:
     # https://github.com/intel/mkl-dnn/pull/346
-    #- 346-unify-install-command.patch
-
+    - 346-unify-install-command.patch
 
 {% set cmake_install_prefix = LIBRARY_PREFIX %}  # [win]
 {% set cmake_install_prefix = PREFIX %}          # [unix]
@@ -23,13 +21,8 @@ build:
   skip: true  # [win32]
   number: 0
   script:
-    # they are ignoring the array-bounds warning, but it doesn't seem to be working
-    # #if defined(__GNUC__) && __GNUC__ >= 4
-    # /* GCC produces bogus array subscript is above array bounds warning for
-    #  * the `p.nodes[j - 1] = p.nodes[j]` line below, so disable it for now. */
-    # #pragma GCC diagnostic push
-    # #pragma GCC diagnostic ignored "-Warray-bounds"
-    # #endif
+    # they have pragmas around the warning that causes the failure,
+    # but it doesn't seem to be working, at least with toolchain compilers
     - export CXXFLAGS="-Wno-error=array-bounds -Wno-array-bounds ${CXXFLAGS} -Wno-array-bounds -Wno-error=array-bounds"  # [unix]
     - mkdir build
     - cd build
@@ -40,7 +33,7 @@ build:
     - ninja install                                       # [unix]
     - cmake --build . --target install  --config Release  # [win]
     # Windows installs the dll in the wrong location (for now)
-    - move {{ LIBRARY_PREFIX }}\\lib\\mkldnn.dll {{ LIBRARY_PREFIX }}\\bin\\mkldnn.dll  # [win]
+    #- move {{ LIBRARY_PREFIX }}\\lib\\mkldnn.dll {{ LIBRARY_PREFIX }}\\bin\\mkldnn.dll  # [win]
 
 requirements:
   build:
@@ -50,7 +43,6 @@ requirements:
     - ninja
   host:
     - openmp
-
 
 # The only reason I'm splitting the package is that defaults has it split
 outputs:
@@ -99,7 +91,6 @@ outputs:
         - if not exist %PREFIX%\\Library\\include\\mkldnn_debug.h exit 1       # [win]
         - if not exist %PREFIX%\\Library\\include\\mkldnn_types.h exit 1       # [win]
         - if not exist %PREFIX%\\Library\\lib\\mkldnn.lib exit 1               # [win]
-
 
 about:
   home: https://01.org/mkl-dnn
