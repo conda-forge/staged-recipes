@@ -9,6 +9,7 @@ cmake ../ \
     -DMatlab_ezc3d_INSTALL_DIR=$PREFIX/MATLAB \
     -DCMAKE_PREFIX_PATH=$PREFIX \
     -DPython_EXECUTABLE=$PREFIX/bin/python \
+    -DPython3_EXECUTABLE=$PREFIX/bin/python \
     -DBINDER_PYTHON3=ON
 
 make -j $CPU_COUNT
