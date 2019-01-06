@@ -3,7 +3,7 @@ git clone https://chromium.googlesource.com/external/gyp
 cd ..
 sed -i.bak "s/-Werror//g" build/standalone.gypi
 sed -i.bak "s/-Werror//g" build/common.gypi
-build/gyp_v8
+python2 build/gyp_v8
 export CPP_INCLUDE_PATH=../src/third_party
 export CPLUS_INCLUDE_PATH=../src/third_party
 export CXX_INCLUDE_PATH=../src/third_party
