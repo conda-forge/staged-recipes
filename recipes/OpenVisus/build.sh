@@ -49,9 +49,13 @@ PushCMakeOption CMAKE_INSTALL_PREFIX   $PREFIX
 
 cmake ${cmake_opts} ${SOURCE_DIR} 
 cmake --build . --target all -- -j 4
-cmake --build . --target test
+#cmake --build . --target test
 
 cmake --build . --target install 
+
+#some debug
+echo $PREFIX
+ls $PREFIX
 
 #export MYPATH=$SRC_DIR/build/manylinux/install/
 
