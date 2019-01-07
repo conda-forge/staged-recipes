@@ -4,7 +4,8 @@ set -ex
 
 #conda install -c conda-forge numpy
 
-#PYTHON_EXECUTABLE=/opt/conda/bin/python
+PYTHON_EXECUTABLE=$PYTHON
+#/opt/conda/bin/python
 #PYTHON_LIBRARY=/opt/conda/bin/libpython3.6m.so
 #PYTHON_INCLUDE_DIR=/opt/conda/include/python3.6m/
 
@@ -15,7 +16,7 @@ function PushCMakeOption {
 }
 
 CMAKE_BUILD_TYPE=RelWithDebInfo 
-BUILD_DIR=${BUILD_DIR:-$(pwd)/build/manylinux} 
+BUILD_DIR=${BUILD_DIR:-$(pwd)/build} 
 
 SOURCE_DIR=$(pwd)
 mkdir -p $BUILD_DIR
@@ -32,6 +33,7 @@ PushCMakeOption VISUS_INTERNAL_FREEIMAGE 1
 PushCMakeOption VISUS_INTERNAL_OPENSSL 1
 PushCMakeOption DISABLE_OPENMP         1
 PushCMakeOption VISUS_GUI              0
+PushCMakeOption CMAKE_INSTALL_PREFIX   $PREFIX
 #PushCMakeOption OPENSSL_ROOT_DIR       ${OPENSSL_ROOT_DIR}
 #PushCMakeOption PYTHON_EXECUTABLE      ${PYTHON_EXECUTABLE}
 #PushCMakeOption PYTHON_INCLUDE_DIR     ${PYTHON_INCLUDE_DIR}
@@ -48,3 +50,10 @@ cmake --build . --target all -- -j 4
 cmake --build . --target test
 
 cmake --build . --target install 
+
+#export MYPATH=$SRC_DIR/build/manylinux/install/
+
+# here I was trying to test where the module is supposed to be deployed
+#cd $PREFIX
+#pwd
+#$PYTHON -c "import OpenVisus"
