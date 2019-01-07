@@ -3,6 +3,7 @@ mkdir build
 cd build
 
 cmake ../ \
+    -DNUMPY_INCLUDES=$PREFIX/numpy/core/include \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DBUILD_EXAMPLE=OFF \
     -DBINDER_MATLAB=OFF \
