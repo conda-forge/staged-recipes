@@ -2,9 +2,9 @@
 
 set -ex 
 
-conda install -c conda-forge numpy
+#conda install -c conda-forge numpy
 
-PYTHON_EXECUTABLE=/opt/conda/bin/python
+#PYTHON_EXECUTABLE=/opt/conda/bin/python
 #PYTHON_LIBRARY=/opt/conda/bin/libpython3.6m.so
 #PYTHON_INCLUDE_DIR=/opt/conda/include/python3.6m/
 
@@ -33,7 +33,7 @@ PushCMakeOption VISUS_INTERNAL_OPENSSL 1
 PushCMakeOption DISABLE_OPENMP         1
 PushCMakeOption VISUS_GUI              0
 #PushCMakeOption OPENSSL_ROOT_DIR       ${OPENSSL_ROOT_DIR}
-PushCMakeOption PYTHON_EXECUTABLE      ${PYTHON_EXECUTABLE}
+#PushCMakeOption PYTHON_EXECUTABLE      ${PYTHON_EXECUTABLE}
 #PushCMakeOption PYTHON_INCLUDE_DIR     ${PYTHON_INCLUDE_DIR}
 #PushCMakeOption PYTHON_LIBRARY         ${PYTHON_LIBRARY}
 #PushCMakeOption PYTHON_PLAT_NAME       manylinux1_x86_64
@@ -41,7 +41,7 @@ PushCMakeOption PYTHON_EXECUTABLE      ${PYTHON_EXECUTABLE}
 #PushCMakeOption PYPI_PASSWORD          ${PYPI_PASSWORD}
 #PushCMakeOption NUMPY_INCLUDE_DIR      /opt/conda/lib/python3.6/site-packages/numpy/core/include
 
-${PYTHON_EXECUTABLE} -c "import numpy; print(numpy.__file__)"
+#${PYTHON_EXECUTABLE} -c "import numpy; print(numpy.__file__)"
 
 cmake ${cmake_opts} ${SOURCE_DIR} 
 cmake --build . --target all -- -j 4
