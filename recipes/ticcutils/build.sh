@@ -15,6 +15,7 @@ if [ $? -ne 0 ]; then
     cat src/test-suite.log
     echo "\n\nconfig.log:\n"
     cat config.log
+    set -e
     exit $check_result
 fi
 set -e
