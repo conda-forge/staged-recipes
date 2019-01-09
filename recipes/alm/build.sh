@@ -2,8 +2,8 @@
 
 cd python
 
-export CPLUS_INCLUDE_PATH=$CONDA_PREFIX/include:$CONDA_PREFIX/include/eigen3:${CPLUS_INCLUDE_PATH}
-export LIBRARY_PATH=$CONDA_PREFIX/lib:${LIBRARY_PATH}
+export CPLUS_INCLUDE_PATH=$PREFIX/include:$PREFIX/include/eigen3:${CPLUS_INCLUDE_PATH}
+export LIBRARY_PATH=$PREFIX/lib:${LIBRARY_PATH}
 export CC=$CXX
 export LDFLAGS="-fopenmp -lblas"
 
