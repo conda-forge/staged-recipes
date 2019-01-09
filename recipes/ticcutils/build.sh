@@ -10,10 +10,10 @@ set +e
 make check
 if [ $? -ne 0 ]; then
     check_result=$?
-    echo "make check failed, printing logs for debugging:"
-    echo "src/test-suite.log:"
+    echo "\n\n\nmake check failed, printing logs for debugging:\n"
+    echo "\n\nsrc/test-suite.log:\n"
     cat src/test-suite.log
-    echo "config.log:"
+    echo "\n\nconfig.log:\n"
     cat config.log
     exit $check_result
 fi
