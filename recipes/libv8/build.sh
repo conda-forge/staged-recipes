@@ -1,13 +1,8 @@
 cd build
 git clone --depth 1 https://chromium.googlesource.com/external/gyp
 cd ..
-sed -i.bak "s/-Werror//g" build/standalone.gypi
-sed -i.bak "s/-Werror//g" build/common.gypi
 python2 build/gyp_v8
-#export CPP_INCLUDE_PATH=../src/third_party
-#export CPLUS_INCLUDE_PATH=../src/third_party
-#export CXX_INCLUDE_PATH=../src/third_party
-make x64.release BUILDTYPE=Release snapshot=off library=shared
+make x64.release BUILDTYPE=Release snapshot=off library=shared werror=no CXX=$CXX LD=$CXX
 make libv8.so
 mkdir -p ${PREFIX}/bin
 mkdir -p ${PREFIX}/lib
