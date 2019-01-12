@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e 
+set -e
 
 mkdir -p ${SRC_DIR}/build_conda
 cd ${SRC_DIR}/build_conda
@@ -25,12 +25,5 @@ cd ${SRC_DIR}/build_conda
     make -j"${CPU_COUNT}" >& make_logs.txt
 } || {
     tail -n 1000 make_logs.txt
-    exit 1
-}
-
-{
-    make install-strip >& make_install_logs.txt
-} || {
-    tail -n 1000 make_install_logs.txt
     exit 1
 }
