@@ -6,6 +6,10 @@ set -e
 # this step is not needed when using conda build
 export DYLD_FALLBACK_LIBRARY_PATH=${PREFIX}/lib
 
+cp ${RECIPRE_DIR}/hello.c .
+cp ${RECIPRE_DIR}/hello.f90 .
+cp ${RECIPRE_DIR}/maths.f90 .
+
 "${PREFIX}/bin/gcc" -o hello hello.c
 ./hello
 rm -f hello
