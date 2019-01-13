@@ -1,17 +1,18 @@
 #!/bin/bash
 set -e
 
+# Apply ROOT's patches
+patch -p1 -i "${RECIPE_DIR}/root-afterimage.patch"
+
 # Fix header installation (FS#60246)
 patch -p1 -i "${RECIPE_DIR}/header-install.patch"
-
-# Apply Gentoo's libpng15 patch
-patch < "${RECIPE_DIR}/libafterimage-libpng15.patch"
-
 
 if [ "$(uname)" == "Linux" ]; then
     configure_args="--x-includes=\"${PREFIX}/include\" --x-libraries=\"${PREFIX}/lib\""
 else
     configure_args="--without-x"
+    sed -i.bak 's@soname@install_name@g' Makefile.in
+    rm Makefile.in.bak
 fi
 
 ./configure \
@@ -31,4 +32,5 @@ fi
 # don't run ldconfig
 sed -i -e 's/`uname`/"hack"/g' Makefile
 
+make AR="${AR} clq"
 make AR="${AR} clq" install

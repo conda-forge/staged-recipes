@@ -1,0 +1,63 @@
+From 27c769b4cd85c8441b358e3e34c191acb658b20d Mon Sep 17 00:00:00 2001
+From: Enric Tejedor Saavedra <enric.tejedor.saavedra@cern.ch>
+Date: Thu, 6 Dec 2018 13:51:53 +0100
+Subject: [PATCH] [ROOT-9809] Only invoke Python C API if Python is initialized
+
+If libPyROOT is loaded with gSystem->Load, the static
+initialization block in TMemoryRegulator.cxx is executed and
+ends up invoking PyCFunction_New, which causes a crash from
+Python 3.7. The crash is due to Python not being initialized.
+This also happens when using TPython from C++, since Python
+has not	been initialized when TPython is used.
+
+Note that when loading libPyROOT from ROOT.py, which is what
+happens when someone uses PyROOT, the Python interpreter already
+exists and is initialized, so invoking PyCFunction_New does not
+crash.
+
+This fix moves the creation of gObjectEraseCallback away from
+the static block in TMemoryRegulator in order to prevent the
+issue described above.
+---
+ bindings/pyroot/src/TMemoryRegulator.cxx | 9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/bindings/pyroot/src/TMemoryRegulator.cxx b/bindings/pyroot/src/TMemoryRegulator.cxx
+index 1a71a6a2ffb..270fe4d223a 100644
+--- a/bindings/pyroot/src/TMemoryRegulator.cxx
++++ b/bindings/pyroot/src/TMemoryRegulator.cxx
+@@ -20,16 +20,13 @@ PyROOT::TMemoryRegulator::WeakRefMap_t* PyROOT::TMemoryRegulator::fgWeakRefTable
+ namespace {
+ 
+ // memory regulater callback for deletion of registered objects
+-   PyMethodDef methoddef_ = {
++   PyMethodDef gObjectEraseMethodDef = {
+       const_cast< char* >( "TMemoryRegulator_internal_ObjectEraseCallback" ),
+       (PyCFunction) PyROOT::TMemoryRegulator::ObjectEraseCallback,
+       METH_O,
+       NULL
+    };
+ 
+-   PyObject* gObjectEraseCallback = PyCFunction_New( &methoddef_, NULL );
+-
+-
+ // pseudo-None type for masking out objects on the python side
+    PyTypeObject PyROOT_NoneType;
+ 
+@@ -199,13 +196,15 @@ void PyROOT::TMemoryRegulator::RecursiveRemove( TObject* object )
+ 
+ Bool_t PyROOT::TMemoryRegulator::RegisterObject( ObjectProxy* pyobj, TObject* object )
+ {
++   static PyObject* objectEraseCallback = PyCFunction_New(&gObjectEraseMethodDef, nullptr);
++
+    if ( ! ( pyobj && object ) )
+       return kFALSE;
+ 
+    ObjectMap_t::iterator ppo = fgObjectTable->find( object );
+    if ( ppo == fgObjectTable->end() ) {
+       object->SetBit( TObject::kMustCleanup );
+-      PyObject* pyref = PyWeakref_NewRef( (PyObject*)pyobj, gObjectEraseCallback );
++      PyObject* pyref = PyWeakref_NewRef( (PyObject*)pyobj, objectEraseCallback );
+       ObjectMap_t::iterator newppo = fgObjectTable->insert( std::make_pair( object, pyref ) ).first;
+       (*fgWeakRefTable)[ pyref ] = newppo;  // no Py_INCREF on pyref, as object table has one
+       return kTRUE;

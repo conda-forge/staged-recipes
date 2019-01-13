@@ -9,7 +9,7 @@ cmake \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     -DCMAKE_INSTALL_LIBDIR="${PREFIX}/lib" \
     -DCMAKE_CXX_COMPILER="${GXX}" \
-    -DCMAKE_CC_COMPILER="${GCC}" \
+    -DCMAKE_C_COMPILER="${GCC}" \
     ..
 
 make -j${CPU_COUNT}

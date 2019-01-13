@@ -1,0 +1,63 @@
+From 2f284c37737cc8c3913c311e6404c7f95b22b857 Mon Sep 17 00:00:00 2001
+From: Chris Jones <jonesc@hep.phy.cam.ac.uk>
+Date: Tue, 23 Oct 2018 11:26:28 +0100
+Subject: [PATCH] [XrdSys] Fix use of clock_gettime on pre OSX10.12 systems
+
+---
+ src/XrdSys/XrdSysPthread.hh | 29 +++++++++++++++++++++++++++--
+ 1 file changed, 27 insertions(+), 2 deletions(-)
+
+diff --git a/src/XrdSys/XrdSysPthread.hh b/src/XrdSys/XrdSysPthread.hh
+index e13354a8a88..5dec3490fce 100644
+--- a/src/XrdSys/XrdSysPthread.hh
++++ b/src/XrdSys/XrdSysPthread.hh
+@@ -41,6 +41,31 @@
+ #include <semaphore.h>
+ #endif
+ 
++#ifdef __APPLE__
++#ifndef CLOCK_REALTIME
++#include <mach/clock.h>
++#include <mach/mach.h>
++#endif
++namespace
++{
++  template< typename TYPE >
++  void get_apple_realtime( TYPE & wait )
++  {
++#ifdef CLOCK_REALTIME
++    clock_gettime(CLOCK_REALTIME, &wait);
++#else
++    clock_serv_t cclock;
++    mach_timespec_t mts;
++    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
++    clock_get_time(cclock, &mts);
++    mach_port_deallocate(mach_task_self(), cclock);
++    wait.tv_sec  = mts.tv_sec;
++    wait.tv_nsec = mts.tv_nsec;
++#endif
++  }
++}
++#endif
++
+ #include "XrdSys/XrdSysError.hh"
+ 
+ /******************************************************************************/
+@@ -149,7 +174,7 @@ inline int CondLock()
+ inline int TimedLock( int wait_ms )
+ {
+   struct timespec wait, cur, dur;
+-  clock_gettime(CLOCK_REALTIME, &wait);
++  get_apple_realtime(wait);
+   wait.tv_nsec += wait_ms * 100000;
+   wait.tv_sec += (wait.tv_nsec / 100000000);
+   wait.tv_nsec = wait.tv_nsec % 100000000;
+@@ -157,7 +182,7 @@ inline int TimedLock( int wait_ms )
+   int rc;
+   while( ( rc = pthread_mutex_trylock( &cs ) ) == EBUSY )
+   {
+-    clock_gettime( CLOCK_REALTIME, &cur );
++    get_apple_realtime(cur);
+     if( ( cur.tv_sec > wait.tv_sec ) || 
+ 	( ( cur.tv_sec == wait.tv_sec ) && ( cur.tv_nsec >= wait.tv_nsec ) ) )
+       return 0;

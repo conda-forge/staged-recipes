@@ -9,25 +9,17 @@ sed -i.bak -e 's@CMAKE_BUILD_WITH_INSTALL_RPATH FALSE@CMAKE_BUILD_WITH_INSTALL_R
 sed -i.bak -e 's@include_directories(${LIBXML2_INCLUDE_DIR})@include_directories(${LIBXML2_INCLUDE_DIR} ${LIBXML2_INCLUDE_DIRS})@g' \
     root-source/io/xmlparser/CMakeLists.txt && rm $_.bak
 
-sed -i.bak -e 's@addSystemInclude(DriverArgs, CC1Args, SysRoot + "/usr/local/include");@addSystemInclude(DriverArgs, CC1Args, "'"${PREFIX}/x86_64-conda_cos6-linux-gnu/sysroot/usr/include"'");@g' \
-    root-source/interpreter/llvm/src/tools/clang/lib/Driver/ToolChains/CrossWindows.cpp && rm $_.bak
-
-sed -i.bak -e 's@addSystemInclude(DriverArgs, CC1Args, SysRoot + "/usr/local/include");@addSystemInclude(DriverArgs, CC1Args, "'"${PREFIX}/x86_64-conda_cos6-linux-gnu/sysroot/usr/include"'");@g' \
-    root-source/interpreter/llvm/src/tools/clang/lib/Driver/ToolChains/Linux.cpp && rm $_.bak
-
-sed -i.bak -e 's@AddPath("/usr/local/include", System, false);@AddPath("'"${PREFIX}/x86_64-conda_cos6-linux-gnu/sysroot/usr/include"'", System, false);@g' \
-    root-source/interpreter/llvm/src/tools/clang/lib/Frontend/InitHeaderSearch.cpp && rm $_.bak
-
 mkdir build-dir
 cd build-dir
-
-source activate "${PREFIX}"
 
 if [ "$(uname)" == "Linux" ]; then
     cmake_args="-DCMAKE_TOOLCHAIN_FILE=${RECIPE_DIR}/toolchain.cmake -DCMAKE_AR=${GCC_AR} -DCLANG_DEFAULT_LINKER=${LD_GOLD} -DDEFAULT_SYSROOT=${PREFIX}/x86_64-conda_cos6-linux-gnu/sysroot -Dx11=ON -DRT_LIBRARY=${PREFIX}/x86_64-conda_cos6-linux-gnu/sysroot/usr/lib/librt.so"
 else
-    cmake_args="-Dcocoa=OFF"
+    cmake_args="-Dcocoa=ON"
 fi
+
+CXXFLAGS=$(echo "${CXXFLAGS}" | echo "${CXXFLAGS}" | sed -E 's@-std=c\+\+[^ ]+@@g')
+export CXXFLAGS
 
 cmake -LAH \
     -DCMAKE_BUILD_TYPE=Release \
@@ -37,7 +29,7 @@ cmake -LAH \
     -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
     ${cmake_args} \
-    -DCMAKE_CC_COMPILER="${GCC}" \
+    -DCMAKE_C_COMPILER="${GCC}" \
     -DCMAKE_C_FLAGS="${CFLAGS}" \
     -DCMAKE_CXX_COMPILER="${GXX}" \
     -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
@@ -48,6 +40,7 @@ cmake -LAH \
     -Dgnuinstall=OFF \
     -Dshared=ON \
     -Dsoversion=ON \
+    -Dbuiltin_clang=OFF \
     -Dbuiltin_glew=OFF \
     -Dbuiltin_xrootd=OFF \
     -Dbuiltin_davix=OFF \
@@ -66,6 +59,7 @@ cmake -LAH \
     -Dmysql=OFF \
     -Dopengl=OFF \
     -Doracle=OFF \
+    -Dpgsql=OFF \
     -Dpythia6=OFF \
     -Dpythia8=OFF \
     -Dtesting=ON \
@@ -100,5 +94,7 @@ unlink "${PREFIX}/bin/clang-cl"
 unlink "${PREFIX}/bin/clang-cpp"
 
 # Add the post activate/deactivate scripts
+mkdir -p "${PREFIX}/etc/conda/activate.d"
 cp "${RECIPE_DIR}/activate.sh" "${PREFIX}/etc/conda/activate.d/activate-root.sh"
+mkdir -p "${PREFIX}/etc/conda/deactivate.d"
 cp "${RECIPE_DIR}/deactivate.sh" "${PREFIX}/etc/conda/deactivate.d/deactivate-root.sh"

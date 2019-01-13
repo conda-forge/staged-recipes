@@ -14,15 +14,15 @@ perl -0pi -e 's/(target_link_libraries\([\s]+xrdcp)/\1 \${LIBXML2_LIBRARIES}/smg
 
 
 if [ "$(uname)" == "Linux" ]; then
-    cmake_linux_args="-DCMAKE_AR=${GCC_AR}"
+    extra_cmake_args="-DCMAKE_AR=${GCC_AR}"
 else
-    cmake_linux_args=""
+    extra_cmake_args=""
 fi
 
-# TODO This shouldn't be needed
-if [ "$(uname)" == "Darwin" ]; then
-    export CONDA_BUILD_SYSROOT="/Users/virtualbox/MacOSX-SDKs/MacOSX10.12.sdk"
-fi
+# Set the version number explicitly to prevent xrootd using the latest commit instead
+# rm -rf ../.git
+# echo "v${PKG_VERSION}" > ../VERSION_INFO
+git tag -f "v${PKG_VERSION}"
 
 cmake \
     -DCMAKE_BUILD_TYPE=release \
@@ -36,8 +36,8 @@ cmake \
     -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
     -DCMAKE_CXX_COMPILER="${GXX}" \
-    -DCMAKE_CC_COMPILER="${GCC}" \
-    ${cmake_linux_args} \
+    -DCMAKE_C_COMPILER="${GCC}" \
+    ${extra_cmake_args} \
     ..
 
 make -j${CPU_COUNT} # VERBOSE=1
