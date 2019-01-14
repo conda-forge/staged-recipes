@@ -49,19 +49,16 @@ PushCMakeOption CMAKE_INSTALL_PREFIX   $PREFIX
 
 cmake ${cmake_opts} ${SOURCE_DIR} 
 cmake --build . --target all -- -j 4
+python setup.py install --prefix=$PREFIX --single-version-externally-managed --record=record.txt
 #cmake --build . --target test
 #cmake -DCMAKE_INSTALL_PREFIX=$PREFIX ${SOURCE_DIR}
 #cmake --build . --target install 
 
 #some debug
-echo $PREFIX
-ls $PREFIX
-
-cp -R * $PREFIX/
-
-#export MYPATH=$SRC_DIR/build/manylinux/install/
+#echo $PREFIX
+#ls $PREFIX
 
 # here I was trying to test where the module is supposed to be deployed
-cd $PREFIX
-ls
-$PYTHON -c "import OpenVisus"
+#cd $PREFIX
+#ls
+#$PYTHON -c "import OpenVisus"
