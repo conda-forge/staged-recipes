@@ -32,7 +32,7 @@ def build_all(recipes_dir, arch):
         return
 
     if get_host_platform() == "win":
-        old_comp_folders.extend(folders)
+        new_comp_folders.extend(folders)
     else:
         for folder in folders:
             built = False
