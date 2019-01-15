@@ -35,9 +35,6 @@ conda install --yes --quiet conda-forge-ci-setup=2 conda-build>=3.16 networkx -c
 # set up the condarc
 setup_conda_rc "${FEEDSTOCK_ROOT}" "${RECIPE_ROOT}" "${CONFIG_FILE}"
 
-# A lock sometimes occurs with incomplete builds. The lock file is stored in build_artifacts.
-conda clean --lock
-
 # Make sure build_artifacts is a valid channel
 mkdir -p /home/conda/staged-recipes/build_artifacts
 conda index /home/conda/staged-recipes/build_artifacts
