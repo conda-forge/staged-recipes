@@ -61,11 +61,11 @@ def build_all(recipes_dir, arch):
     if old_comp_folders:
         print("Building {} with conda-forge/label/cf201901".format(','.join(old_comp_folders)))
         channel_urls = ['local', 'conda-forge/label/cf201901', 'defaults']
-        build_folders(recipes_dir, new_comp_folders, arch, channel_urls)
+        build_folders(recipes_dir, old_comp_folders, arch, channel_urls)
     if new_comp_folders:
         print("Building {} with conda-forge/label/main".format(','.join(new_comp_folders)))
         channel_urls = ['local', 'conda-forge', 'defaults']
-        build_folders(recipes_dir, old_comp_folders, arch, channel_urls)
+        build_folders(recipes_dir, new_comp_folders, arch, channel_urls)
 
 
 
