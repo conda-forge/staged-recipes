@@ -74,9 +74,9 @@ def _git_changed_files(git_rev, stop_rev=None, git_root=''):
         git_root = os.getcwd()
     if stop_rev:
         git_rev = "{0}..{1}".format(git_rev, stop_rev)
-    output = subprocess.check_output(['git', 'diff-tree', '--no-commit-id',
-                                      '--name-only', '-r', git_rev],
-                                     cwd=git_root)
+    print("Changed files from:", git_rev, stop_rev, git_root)
+    output = subprocess.check_output(['git', '-C', git_root, 'diff-tree',
+                                      '--no-commit-id', '--name-only', '-r', git_rev])
     files = output.decode().splitlines()
     return files
 
