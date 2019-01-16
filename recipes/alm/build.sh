@@ -8,7 +8,7 @@ export CC=$CXX
 
 echo $OSX_ARCH
 if [ ${OSX_ARCH}. == . ]; then
-    export LDFLAGS="-fopenmp -lblas"    
+    export LDFLAGS="-fopenmp -lopenblas"    
 else 
     export LDFLAGS="-fopenmp=libomp -lblas"
     export CFLAGS="-fopenmp"
