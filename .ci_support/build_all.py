@@ -32,7 +32,7 @@ def build_all(recipes_dir, arch):
         return
 
     if get_host_platform() == "win":
-        old_comp_folders.extend(folders)
+        new_comp_folders.extend(folders)
     else:
         for folder in folders:
             built = False
@@ -47,30 +47,26 @@ def build_all(recipes_dir, arch):
                     if "channel_sources" in specific_config:
                         for row in specific_config["channel_sources"]:
                             channels = [c.strip() for c in row.split(",")]
-                            if channels != ['conda-forge/label/gcc7', 'defaults'] and \
-                                    channels != ['conda-forge', 'defaults']:
+                            if channels != ['conda-forge', 'defaults'] and \
+                                    channels != ['conda-forge/label/cf201901', 'defaults']:
                                 print("Not a standard configuration of channel_sources. Building {} individually.".format(folder))
                                 conda_build.api.build([os.path.join(recipes_dir, folder)], config=get_config(arch, channels))
                                 built = True
                                 break
                     if not built:
-                        new_comp_folders.append(folder)
+                        old_comp_folders.append(folder)
                         continue
-            old_comp_folders.append(folder)
+            new_comp_folders.append(folder)
 
     if old_comp_folders:
-        print("Building {} with conda-forge/label/main".format(','.join(old_comp_folders)))
-    if new_comp_folders:
-        print("Building {} with conda-forge/label/gcc7".format(','.join(new_comp_folders)))
-
-    if old_comp_folders:
-        channel_urls = ['local', 'conda-forge', 'defaults']
+        print("Building {} with conda-forge/label/cf201901".format(','.join(old_comp_folders)))
+        channel_urls = ['local', 'conda-forge/label/cf201901', 'defaults']
         build_folders(recipes_dir, old_comp_folders, arch, channel_urls)
-
     if new_comp_folders:
-        print("Building {} with conda-forge/label/gcc7".format(','.join(old_comp_folders)))
-        channel_urls = ['local', 'conda-forge/label/gcc7', 'defaults']
+        print("Building {} with conda-forge/label/main".format(','.join(new_comp_folders)))
+        channel_urls = ['local', 'conda-forge', 'defaults']
         build_folders(recipes_dir, new_comp_folders, arch, channel_urls)
+
 
 
 def get_config(arch, channel_urls):
