@@ -74,9 +74,9 @@ def _git_changed_files(git_rev, stop_rev=None, git_root=''):
         git_root = os.getcwd()
     if stop_rev:
         git_rev = "{0}..{1}".format(git_rev, stop_rev)
-    output = subprocess.check_output(['git', 'diff-tree', '--no-commit-id',
-                                      '--name-only', '-r', git_rev],
-                                     cwd=git_root)
+    print("Changed files from:", git_rev, stop_rev, git_root)
+    output = subprocess.check_output(['git', '-C', git_root, 'diff-tree',
+                                      '--no-commit-id', '--name-only', '-r', git_rev])
     files = output.decode().splitlines()
     return files
 
@@ -230,7 +230,7 @@ def add_recipe_to_graph(recipe_dir, graph, run, worker, conda_resolve,
 
         if name not in graph.nodes():
             graph.add_node(name, meta=metadata, worker=worker)
-            add_dependency_nodes_and_edges(name, graph, run, worker, conda_resolve,
+            add_dependency_nodes_and_edges(name, graph, run, worker, conda_resolve, config=config,
                                         recipes_dir=recipes_dir, finalize=finalize)
 
         # # add the test equivalent at the same time.  This is so that expanding can find it.
@@ -436,7 +436,7 @@ def _buildable(name, version, recipes_dir, worker, config, finalize):
 
 
 def add_dependency_nodes_and_edges(node, graph, run, worker, conda_resolve, recipes_dir=None,
-                                   finalize=False):
+                                   finalize=False, config=None):
     '''add build nodes for any upstream deps that are not yet installable
 
     changes graph in place.
@@ -461,7 +461,7 @@ def add_dependency_nodes_and_edges(node, graph, run, worker, conda_resolve, reci
                 #                  " available) can't produce desired version ({})."
                 #                  .format(dep, version))
             dep_name = add_recipe_to_graph(recipe_dir, graph, 'build', worker,
-                                            conda_resolve, recipes_dir, finalize=finalize)
+                                            conda_resolve, recipes_dir, config=config, finalize=finalize)
             if not dep_name:
                 raise ValueError("Tried to build recipe {0} as dependency, which is skipped "
                                  "in meta.yaml".format(recipe_dir))
