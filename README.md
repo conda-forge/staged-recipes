@@ -132,24 +132,26 @@ This is a high volume repository and issues can easily be missed. We are always
 looking for more staged-recipe reviewers. If you are interested in volunteering,
 please contact a member of @conda-forge/core. We'd love to have the help!
 
-### 13. How to build with new compilers on staged-recipes?
+### 13. How to build with old compilers (GCC v4) on staged-recipes?
+
+First, don't. Second, please don't.
 
 Add a `conda_build_config.yaml` file inside the recipe folder with the contents
 
 ```yaml
 channel_sources:
-- conda-forge/label/gcc7,defaults   # [unix]
-- conda-forge,defaults              # [win]
+- conda-forge/label/cf201901,defaults   # [unix]
+- conda-forge,defaults                  # [win]
 channel_targets:
-- conda-forge gcc7                  # [unix]
-- conda-forge main                  # [win]
-c_compiler:                         # [unix]
-- gcc                               # [linux]
-- clang                             # [osx]
-cxx_compiler:                       # [unix]
-- gxx                               # [linux]
-- clangxx                           # [osx]
-fortran_compiler:                   # [unix]
-- gfortran                          # [unix]
+- conda-forge cf201901                  # [unix]
+- conda-forge main                      # [win]
+c_compiler:                             # [unix]
+- gcc                                   # [linux]
+- clang                                 # [osx]
+cxx_compiler:                           # [unix]
+- gxx                                   # [linux]
+- clangxx                               # [osx]
+fortran_compiler:                       # [unix]
+- gfortran                              # [unix]
 ```
 
