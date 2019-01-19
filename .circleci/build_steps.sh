@@ -34,13 +34,10 @@ popd > /dev/null
 # Unused, but needed by conda-build currently... :(
 export CONDA_NPY='19'
 
-# A lock sometimes occurs with incomplete builds. The lock file is stored in build_artifacts.
-conda clean --lock
-
 # Make sure build_artifacts is a valid channel
 conda index /home/conda/staged-recipes/build_artifacts
 
-conda install --yes --quiet conda-forge-ci-setup=1.* conda-forge-pinning networkx conda-build=3.16
+conda install --yes --quiet conda-forge-ci-setup=1.* conda-forge-pinning networkx conda-build>=3.16
 source run_conda_forge_build_setup
 
 # yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
