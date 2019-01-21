@@ -5,7 +5,10 @@ set -e
 mkdir -p ${SRC_DIR}/build_conda
 cd ${SRC_DIR}/build_conda
 
-# quick overview of config:
+export MACOSX_DEPLOYMENT_TARGET="10.9"
+
+env
+
 ../configure \
     --prefix=${PREFIX} \
     --with-libiconv-prefix=${PREFIX} \
