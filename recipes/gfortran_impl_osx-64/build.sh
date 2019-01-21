@@ -24,6 +24,6 @@ cd ${SRC_DIR}/build_conda
 {
     make -j"${CPU_COUNT}" >& make_logs.txt
 } || {
-    tail -n 1000 make_logs.txt
+    cat make_logs.txt
     exit 1
 }

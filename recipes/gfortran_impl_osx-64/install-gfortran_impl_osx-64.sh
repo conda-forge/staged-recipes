@@ -8,6 +8,6 @@ cd ${SRC_DIR}/build_conda
 {
     make install-strip >& make_install_logs.txt
 } || {
-    tail -n 1000 make_install_logs.txt
+    cat make_install_logs.txt
     exit 1
 }
