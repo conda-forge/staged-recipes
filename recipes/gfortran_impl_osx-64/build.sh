@@ -6,7 +6,6 @@ mkdir -p ${SRC_DIR}/build_conda
 cd ${SRC_DIR}/build_conda
 
 export CFLAGS="${CFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
-export LDFLAGS="${LDFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
 
 ../configure \
     --prefix=${PREFIX} \
