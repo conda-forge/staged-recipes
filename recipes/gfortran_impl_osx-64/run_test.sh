@@ -2,6 +2,8 @@
 
 set -e
 
+gfortran --help
+
 # we need to tell the linker where to look in our tests
 # this step is not needed when using conda build
 export DYLD_FALLBACK_LIBRARY_PATH=${PREFIX}/lib
