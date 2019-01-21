@@ -5,8 +5,6 @@ set -e
 mkdir -p ${SRC_DIR}/build_conda
 cd ${SRC_DIR}/build_conda
 
-export CFLAGS="${CFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
-
 ../configure \
     --prefix=${PREFIX} \
     --with-libiconv-prefix=${PREFIX} \
