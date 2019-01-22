@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# TODO for python2.x we probably have to add -DPYTHON_VERSION=2
-
 mkdir -p build
 cd build
 
@@ -19,3 +17,4 @@ cmake --build . --target install
 
 cd install
 $PYTHON setup.py install --single-version-externally-managed --record=record.txt
+
