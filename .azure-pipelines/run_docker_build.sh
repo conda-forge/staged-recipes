@@ -33,7 +33,7 @@ if [ -z "$CONFIG" ]; then
 fi
 
 pip install shyaml
-DOCKER_IMAGE=$(cat "${FEEDSTOCK_ROOT}/.ci_support/${CONFIG}.yaml" | shyaml get-value docker_image.0 condaforge/linux-anvil )
+DOCKER_IMAGE=$(cat "${FEEDSTOCK_ROOT}/.ci_support/${CONFIG}.yaml" | shyaml get-value docker_image.0 condaforge/linux-anvil-comp7 )
 
 mkdir -p "$ARTIFACTS"
 DONE_CANARY="$ARTIFACTS/conda-forge-build-done-${CONFIG}"
