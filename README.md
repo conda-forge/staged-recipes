@@ -30,7 +30,7 @@ Your final recipe should have no comments and follow the order in the example.
 
 ### 2. **How do I populate the `hash` field?**
 
-If your package is on PyPI, you can get the md5 hash from your package's page on PyPI; look for the `md5` link next to the download link for your package. The sha256 hash can be looked up on the (currently beta) new PyPI website https://pypi.org (SHA256 sums are available next to each package download).
+If your package is on [PyPI](https://pypi.org), you can get the sha256 hash from your package's page on PyPI; look for the `SHA256` link next to the download link for your package.
 
 You can also generate a hash from the command line on Linux (and Mac if you install the necessary tools below). If you go this route, the `sha256` hash is preferable to the `md5` hash.
 
@@ -75,7 +75,7 @@ Short answer: yes. Long answer: In principle, as long as your dependencies are i
 your user's conda channels they will be able to install your package. In practice, that is difficult
 to manage, and we strive to get all dependencies built in conda-forge.
 
-### 7. **When or why do I need to use `python -m pip install --no-deps --ignore-installed .`?**
+### 7. **When or why do I need to use `{{ PYTHON }} -m pip install --no-deps . -vv`?**
 
 This should be the default install line for most Python packages. This is preferable to `python setup.py` because it handles metadata in a `conda`-friendlier way. We also want to make sure dependencies are handled through `conda`, and `--no-deps` means most Python dependencies are needed only at `run` time, not `build`.
 
@@ -109,7 +109,7 @@ git push -f
 
 If the problem was due to scripts in the `staged-recipes` repository, you may be asked to "rebase" once these are fixed. To do so, run:
 ```bash
-# If you didn't add a remote for conda-forge/staged-recipes yet, also run 
+# If you didn't add a remote for conda-forge/staged-recipes yet, also run
 # these lines:
 # git remote add upstream https://github.com/conda-forge/staged-recipes.git
 # git fetch --all
@@ -117,6 +117,17 @@ git rebase upstream/master
 git push -f
 ```
 
-### 12. My pull request passes all checks, but hasn't received any attention.  How do I call attention to my PR?  What is the customary amount of time to wait?
+### 12. My pull request passes all checks, but hasn't received any attention. How do I call attention to my PR?  What is the customary amount of time to wait?
 
-If your PR is passing all checks, but has not been acted on by the staged recipes maintainers for 1 week, you can ping @conda-forge/staged-recipes to request action.
+If your PR is passing all checks, but has not been acted on by the staged recipes
+maintainers, you can ping @conda-forge/staged-recipes to request action. You do
+not need to wait any specific amount of time once the recipe is ready to go.
+
+If your recipe still does not recieve any attention after a few days, you may
+attempt to re-ping @conda-forge/staged-recipes. You may also attempt to bring
+the PR up in our Gitter chat room at https://gitter.im/conda-forge/conda-forge.github.io
+
+All apologies in advance if your recipe PR does not recieve prompt attention.
+This is a high volume repository and issues can easily be missed. We are always
+looking for more staged-recipe reviewers. If you are interested in volunteering,
+please contact a member of @conda-forge/core. We'd love to have the help!
