@@ -1,0 +1,109 @@
+From 19e35ed1c7e0d053026ffe40fc28233b0d9a53e0 Mon Sep 17 00:00:00 2001
+From: kiwi0fruit <peter.zagubisalo@gmail.com>
+Date: Wed, 23 Jan 2019 03:30:22 +0700
+Subject: [PATCH 1/1] patch
+
+---
+ pyppeteer/__init__.py            |  9 ++++++---
+ pyppeteer/chromium_downloader.py | 19 +++++++++----------
+ setup.py                         |  3 ++-
+ 3 files changed, 17 insertions(+), 14 deletions(-)
+
+diff --git a/pyppeteer/__init__.py b/pyppeteer/__init__.py
+index 78cda6d..7e83638 100644
+--- a/pyppeteer/__init__.py
++++ b/pyppeteer/__init__.py
+@@ -6,15 +6,18 @@
+ import logging
+ import os
+ 
+-from appdirs import AppDirs
++import sys
+ 
+ __author__ = """Hiroyuki Takagi"""
+ __email__ = 'miyako.dev@gmail.com'
+ __version__ = '0.0.25'
+-__chromium_revision__ = '575458'
++__chromium_revision__ = '609904'
+ __base_puppeteer_version__ = 'v1.6.0'
++
++exe_dir = os.path.dirname(sys.executable)
++env_dir = exe_dir if os.name == 'nt' else os.path.dirname(exe_dir)
+ __pyppeteer_home__ = os.environ.get(
+-    'PYPPETEER_HOME', AppDirs('pyppeteer').user_data_dir)  # type: str
++    'PYPPETEER_HOME', os.path.join(env_dir, 'pyppeteer_home'))  # type: str
+ DEBUG = False
+ 
+ # Setup root logger
+diff --git a/pyppeteer/chromium_downloader.py b/pyppeteer/chromium_downloader.py
+index fade935..ce5bceb 100644
+--- a/pyppeteer/chromium_downloader.py
++++ b/pyppeteer/chromium_downloader.py
+@@ -13,6 +13,7 @@ from zipfile import ZipFile
+ 
+ import urllib3
+ from tqdm import tqdm
++import certifi
+ 
+ from pyppeteer import __chromium_revision__, __pyppeteer_home__
+ 
+@@ -27,19 +28,20 @@ BASE_URL = f'{DOWNLOAD_HOST}/chromium-browser-snapshots'
+ REVISION = os.environ.get(
+     'PYPPETEER_CHROMIUM_REVISION', __chromium_revision__)
+ 
++win_postf = "win" if int(REVISION) > 591479 else "win32"
+ downloadURLs = {
+     'linux': f'{BASE_URL}/Linux_x64/{REVISION}/chrome-linux.zip',
+     'mac': f'{BASE_URL}/Mac/{REVISION}/chrome-mac.zip',
+-    'win32': f'{BASE_URL}/Win/{REVISION}/chrome-win32.zip',
+-    'win64': f'{BASE_URL}/Win_x64/{REVISION}/chrome-win32.zip',
++    'win32': f'{BASE_URL}/Win/{REVISION}/chrome-{win_postf}.zip',
++    'win64': f'{BASE_URL}/Win_x64/{REVISION}/chrome-{win_postf}.zip',
+ }
+ 
+ chromiumExecutable = {
+     'linux': DOWNLOADS_FOLDER / REVISION / 'chrome-linux' / 'chrome',
+     'mac': (DOWNLOADS_FOLDER / REVISION / 'chrome-mac' / 'Chromium.app' /
+             'Contents' / 'MacOS' / 'Chromium'),
+-    'win32': DOWNLOADS_FOLDER / REVISION / 'chrome-win32' / 'chrome.exe',
+-    'win64': DOWNLOADS_FOLDER / REVISION / 'chrome-win32' / 'chrome.exe',
++    'win32': DOWNLOADS_FOLDER / REVISION / f'chrome-{win_postf}' / 'chrome.exe',
++    'win64': DOWNLOADS_FOLDER / REVISION / f'chrome-{win_postf}' / 'chrome.exe',
+ }
+ 
+ 
+@@ -68,14 +70,11 @@ def download_zip(url: str) -> BytesIO:
+     logger.warning('start chromium download.\n'
+                    'Download may take a few minutes.')
+ 
+-    # disable warnings so that we don't need a cert.
+-    # see https://urllib3.readthedocs.io/en/latest/advanced-usage.html for more
+-    urllib3.disable_warnings()
+-
+-    with urllib3.PoolManager() as http:
++    with urllib3.PoolManager(cert_reqs='CERT_REQUIRED',
++                             ca_certs=certifi.where()) as https:
+         # Get data from url.
+         # set preload_content=False means using stream later.
+-        data = http.request('GET', url, preload_content=False)
++        data = https.request('GET', url, preload_content=False)
+ 
+         try:
+             total_length = int(data.headers['content-length'])
+diff --git a/setup.py b/setup.py
+index 48b7b37..662c6fb 100644
+--- a/setup.py
++++ b/setup.py
+@@ -46,7 +46,8 @@ requirements = [
+     'websockets',
+     'appdirs',
+     'urllib3',
+-    'tqdm'
++    'tqdm',
++    'certifi'
+ ]
+ 
+ test_requirements = [
+-- 
+2.16.1.windows.1
+
