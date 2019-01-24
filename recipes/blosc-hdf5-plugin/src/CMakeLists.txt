@@ -1,7 +1,32 @@
 cmake_minimum_required(VERSION 2.8.10)
 project(blosc_hdf5)
 
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
+include(ExternalProject)
+# find local blosc install
+#SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
+#find_package(blosc REQUIRED)
+
+# TODO: set these paths for OSX and Windoze
+set(PLUGIN_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}/lib/hdf5/plugin" CACHE PATH
+            "Where to install the dynamic HDF5-plugin")
+
+# only needed for external blosc
+# TODO: replace with BLOSC conda dependency once we have a sane build.
+set(BLOSC_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/blosc")
+set(BLOSC_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/blosc")
+set(BLOSC_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${BLOSC_INSTALL_DIR} -DBUILD_TESTS=OFF)
+
+message("BLOSC_PREFIX='${BLOSC_PREFIX}'")
+message("BLOSC_INSTALL_DIR='${BLOSC_INSTALL_DIR}'")
+message("BLOSC_CMAKE_ARGS='${BLOSC_CMAKE_ARGS}'")
+message("GIT_EXECUTABLE='${GIT_EXECUTABLE}'")
+
+ExternalProject_Add(project_blosc
+        PREFIX ${BLOSC_PREFIX}
+        GIT_REPOSITORY https://github.com/Blosc/c-blosc.git
+        INSTALL_DIR ${BLOSC_INSTALL_DIR}
+        CMAKE_ARGS ${BLOSC_CMAKE_ARGS}
+        )
 
 # sources
 set(SOURCES blosc_filter.c blosc_plugin.c)
@@ -21,15 +46,21 @@ else(MSVC)
 endif(MSVC)
 include_directories(${HDF5_INCLUDE_DIRS})
 
-find_package(blosc REQUIRED)
+# TODO: below block only needed for internal blosc build.
+# add blosc libraries
+add_library(blosc_shared SHARED IMPORTED)
+set_property(TARGET blosc_shared PROPERTY IMPORTED_LOCATION ${BLOSC_INSTALL_DIR}/lib/${CMAKE_SHARED_LIBRARY_PREFIX}blosc${CMAKE_SHARED_LIBRARY_SUFFIX})
+add_dependencies(blosc_shared project_blosc)
+include_directories(${BLOSC_INSTALL_DIR}/include)
+###
 
 add_library(blosc_filter_shared SHARED ${SOURCES})
-set_target_properties(
-  blosc_filter_shared PROPERTIES OUTPUT_NAME blosc_filter)
-target_link_libraries(blosc_filter_shared ${BLOSC_LIBRARIES} ${HDF5_LIBRARIES})
+set_target_properties(blosc_filter_shared PROPERTIES OUTPUT_NAME blosc_filter)
+target_link_libraries(blosc_filter_shared
+        #${BLOSC_LIBRARIES} # TODO: replace blosc_shared with this, once sane blosc build in place
+        blosc_shared
+        ${HDF5_LIBRARIES})
+
 
 # install
-install(FILES blosc_filter.h DESTINATION include COMPONENT HDF5_FILTER_DEV)
-install(TARGETS blosc_filter_shared DESTINATION lib COMPONENT HDF5_FILTER_DEV)
-
-
+install(TARGETS blosc_filter_shared DESTINATION ${PLUGIN_INSTALL_PATH} COMPONENT HDF5_FILTER_DEV)

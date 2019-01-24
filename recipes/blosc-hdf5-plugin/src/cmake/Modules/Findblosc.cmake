@@ -1,16 +1,3 @@
-#[[
-FIND_PATH(BLOSC_INCLUDE_DIR "blosc.h")
-
-INCLUDE(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(blosc DEFAULT_MSG BLOSC_LIBRARY BLOSC_INCLUDE_DIR HINTS ${CMAKE_PREFIX_PATH})
-
-
-#IF(blosc_FOUND)
-#    SET(BLOSC_INCLUDE_DIRS "${BLOSC_INCLUDE_DIR}")
-#endif()
-]]
-
-
 # check environment variable
 set(_blosc_ENV_ROOT_DIR "$ENV{BLOSC_ROOT_DIR}")
 
