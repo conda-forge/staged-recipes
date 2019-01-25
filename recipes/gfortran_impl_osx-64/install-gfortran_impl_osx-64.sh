@@ -22,7 +22,7 @@ cp ${COPY_PREFIX}/libexec/gcc/${macos_machine}/${GFORTRAN_VERSION}/lto-wrapper $
 cp ${COPY_PREFIX}/lib/libgfortran.spec ${PREFIX}/lib/.
 
 # For -fopenmp:
-p ${COPY_PREFIX}/lib/libgomp.spec ${PREFIX}/lib/.
+cp ${COPY_PREFIX}/lib/libgomp.spec ${PREFIX}/lib/.
 
 # For -ffast-math
 cp ${COPY_PREFIX}/lib/gcc/${macos_machine}/${GFORTRAN_VERSION}/crtfastmath.o ${PREFIX}/lib/gcc/${macos_machine}/${GFORTRAN_VERSION}/.
