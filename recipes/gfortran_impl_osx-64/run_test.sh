@@ -8,13 +8,8 @@ gfortran --help
 # this step is not needed when using conda build
 export DYLD_FALLBACK_LIBRARY_PATH=${PREFIX}/lib
 
-cp ${RECIPE_DIR}/hello.c .
 cp ${RECIPE_DIR}/hello.f90 .
 cp ${RECIPE_DIR}/maths.f90 .
-
-"${PREFIX}/bin/gcc" -o hello hello.c
-./hello
-rm -f hello
 
 "${PREFIX}/bin/gfortran" -o hello hello.f90
 ./hello
