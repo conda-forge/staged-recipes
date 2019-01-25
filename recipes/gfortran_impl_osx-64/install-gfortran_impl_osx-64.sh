@@ -15,9 +15,9 @@ mkdir -p ${PREFIX}/lib/gcc/${macos_machine}/${GFORTRAN_VERSION}
 cp ${COPY_PREFIX}/bin/gfortran ${PREFIX}/bin/.
 cp ${COPY_PREFIX}/bin/${macos_machine}-gfortran ${PREFIX}/bin/.
 
-cp ${COPY_PREFIX}/libexec/gcc/${macos_machine}/${GFORTRAN_VERSION}/collect2 ${PREFIX}/lib/gcc/${macos_machine}/${GFORTRAN_VERSION}/.
-cp ${COPY_PREFIX}/libexec/gcc/${macos_machine}/${GFORTRAN_VERSION}/f951 ${PREFIX}/lib/gcc/${macos_machine}/${GFORTRAN_VERSION}/.
-cp ${COPY_PREFIX}/libexec/gcc/${macos_machine}/${GFORTRAN_VERSION}/lto-wrapper ${PREFIX}/lib/gcc/${macos_machine}/${GFORTRAN_VERSION}/.
+cp ${COPY_PREFIX}/libexec/gcc/${macos_machine}/${GFORTRAN_VERSION}/collect2 ${PREFIX}/libexec/gcc/${macos_machine}/${GFORTRAN_VERSION}/.
+cp ${COPY_PREFIX}/libexec/gcc/${macos_machine}/${GFORTRAN_VERSION}/f951 ${PREFIX}/libexec/gcc/${macos_machine}/${GFORTRAN_VERSION}/.
+cp ${COPY_PREFIX}/libexec/gcc/${macos_machine}/${GFORTRAN_VERSION}/lto-wrapper ${PREFIX}/libexec/gcc/${macos_machine}/${GFORTRAN_VERSION}/.
 
 cp ${COPY_PREFIX}/lib/libgfortran.spec ${PREFIX}/lib/.
 
