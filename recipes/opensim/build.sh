@@ -7,7 +7,8 @@ cmake ../dependencies/ \
       -DCMAKE_INSTALL_PREFIX="$PREFIX" \
       -DCMAKE_BUILD_TYPE=Release \
       -DSUPERBUILD_docopt=OFF \
-      -DSUPERBUILD_simbody=OFF
+      -DSUPERBUILD_simbody=OFF \
+      -DCMAKE_CXX_FLAGS="-std=c++11"
 make -j$CPU_COUNT
 cd ..
 
