@@ -1,16 +1,16 @@
 #!/bin/bash
 
 # TODO: Dependencies should be separate packages...
-mkdir opensim_dependencies_build
-cd opensim_dependencies_build
-cmake ../dependencies/ \
-      -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DSUPERBUILD_docopt=OFF \
-      -DSUPERBUILD_simbody=OFF \
-      -DCMAKE_CXX_FLAGS="-std=c++11"
-make -j$CPU_COUNT
-cd ..
+# mkdir opensim_dependencies_build
+# cd opensim_dependencies_build
+# cmake ../dependencies/ \
+#       -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+#       -DCMAKE_BUILD_TYPE=Release \
+#       -DSUPERBUILD_docopt=OFF \
+#       -DSUPERBUILD_simbody=OFF \
+#       -DCMAKE_CXX_FLAGS="-std=c++11"
+# make -j$CPU_COUNT
+# cd ..
 
 # TODO remove:
 # cp -r $PREFIX/BTK/lib/btk-0.4dev/* $PREFIX/lib/
@@ -31,7 +31,7 @@ cmake ../ \
       -DBUILD_API_ONLY=ON \
       -DOPENSIM_BUILD_INDIVIDUAL_APPS_DEFAULT=OFF \
       -DOPENSIM_COPY_DEPENDENCIES=OFF \
-      -DWITH_BTK=ON \
+      -DWITH_BTK=OFF \ # TODO
       -DSIMBODY_HOME="$PREFIX"
 make -j$CPU_COUNT
 make install
