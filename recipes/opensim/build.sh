@@ -30,6 +30,7 @@ cmake ../ \
       -DBUILD_API_ONLY=ON \
       -DOPENSIM_BUILD_INDIVIDUAL_APPS_DEFAULT=OFF \
       -DOPENSIM_COPY_DEPENDENCIES=OFF \
-      -DWITH_BTK=ON
+      -DWITH_BTK=ON \
+      -DSIMBODY_HOME="$PREFIX"
 make -j$CPU_COUNT
 make install
