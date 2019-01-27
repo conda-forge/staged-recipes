@@ -3,8 +3,8 @@
 
 cd rpm || exit 1
 
-./extract.py intel-ipp-common-2019.1-144-2019.1-144.noarch.rpm
-./extract.py intel-ipp-st-2019.1-144-2019.1-144.x86_64.rpm
+$RECIPE_DIR/extract.py intel-ipp-common-2019.1-144-2019.1-144.noarch.rpm
+$RECIPE_DIR/extract.py intel-ipp-st-2019.1-144-2019.1-144.x86_64.rpm
 
 mkdir -p "$PREFIX"/{lib,include}
 

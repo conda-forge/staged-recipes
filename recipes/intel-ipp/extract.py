@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import libarchive.public
+import libarchive
 import argparse
 
 parser = argparse.ArgumentParser(
@@ -10,8 +10,7 @@ parser.add_argument('archive', type=str)
 
 
 def extract(path):
-    for entry in libarchive.public.file_pour(path):
-        print(entry)
+    return libarchive.extract_file(path)
 
 
 if __name__ == '__main__':
