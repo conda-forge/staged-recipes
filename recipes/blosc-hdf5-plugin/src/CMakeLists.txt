@@ -2,8 +2,12 @@ cmake_minimum_required(VERSION 2.8.10)
 project(blosc_hdf5)
 
 # find local blosc install
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
-find_package(blosc REQUIRED)
+#SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
+#find_package(blosc REQUIRED)
+
+find_path(BLOSC_INCLUDE_DIR "blosc.h")
+find_library(BLOSC_LIBRARY NAMES blosc)
+
 
 message("BLOSC lib: ${BLOSC_LIBRARY}")
 message("BLOSC include: ${BLOSC_INCLUDE_DIRS}")
@@ -13,7 +17,7 @@ set(PLUGIN_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}/lib/hdf5/plugin" CACHE PATH
             "Where to install the dynamic HDF5-plugin")
 
 # sources
-set(SOURCES blosc_filter.c blosc_plugin.c)
+set(SOURCES src/blosc_filter.c src/blosc_plugin.c)
 
 # dependencies
 if(MSVC)
