@@ -10,3 +10,250 @@ index 45c6f29..c38e15c 100644
  	    tests/q.test			\
  	    tests/r4rs.test			\
  	    tests/r5rs_pitfall.test		\
+diff --git a/test-suite/tests/posix.test b/test-suite/tests/posix.test
+deleted file mode 100644
+index 4dadd77..0000000
+--- a/test-suite/tests/posix.test
++++ /dev/null
+@@ -1,241 +0,0 @@
+-;;;; posix.test --- Test suite for Guile POSIX functions. -*- scheme -*-
+-;;;;
+-;;;; Copyright 2003, 2004, 2006, 2007, 2010, 2012,
+-;;;;   2015, 2017 Free Software Foundation, Inc.
+-;;;;
+-;;;; This library is free software; you can redistribute it and/or
+-;;;; modify it under the terms of the GNU Lesser General Public
+-;;;; License as published by the Free Software Foundation; either
+-;;;; version 3 of the License, or (at your option) any later version.
+-;;;; 
+-;;;; This library is distributed in the hope that it will be useful,
+-;;;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+-;;;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+-;;;; Lesser General Public License for more details.
+-;;;; 
+-;;;; You should have received a copy of the GNU Lesser General Public
+-;;;; License along with this library; if not, write to the Free Software
+-;;;; Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+-
+-(define-module (test-suite test-posix)
+-  :use-module (test-suite lib))
+-
+-
+-;; FIXME: The following exec tests are disabled since on an i386 debian with
+-;; glibc 2.3.2 they seem to interact badly with threads.test, the latter
+-;; dies with signal 32 (one of the SIGRTs).  Don't know how or why, or who's
+-;; at fault (though it seems to happen with or without the recent memory
+-;; leak fix in these error cases).
+-
+-;;
+-;; execl
+-;;
+-
+-;; (with-test-prefix "execl"
+-;;   (pass-if-exception "./nosuchprog" '(system-error . ".*")
+-;;     (execl "./nosuchprog" "./nosuchprog" "some arg")))
+-  
+-;;
+-;; execlp
+-;;
+-
+-;; (with-test-prefix "execlp"
+-;;   (pass-if-exception "./nosuchprog" '(system-error . ".*")
+-;;     (execlp "./nosuchprog" "./nosuchprog" "some arg")))
+-  
+-;;
+-;; execle
+-;;
+-
+-;; (with-test-prefix "execle"
+-;;   (pass-if-exception "./nosuchprog" '(system-error . ".*")
+-;;     (execle "./nosuchprog" '() "./nosuchprog" "some arg"))
+-;;   (pass-if-exception "./nosuchprog" '(system-error . ".*")
+-;;     (execle "./nosuchprog" '("FOO=1" "BAR=2") "./nosuchprog" "some arg")))
+-
+-  
+-;;
+-;; mkstemp!
+-;;
+-
+-(with-test-prefix "mkstemp!"
+-
+-  ;; the temporary names used in the tests here are kept to 8 characters so
+-  ;; they'll work on a DOS 8.3 file system
+-
+-  (define (string-copy str)
+-    (list->string (string->list str)))
+-
+-  (pass-if-exception "number arg" exception:wrong-type-arg
+-    (mkstemp! 123))
+-
+-  (pass-if "filename string modified"
+-    (let* ((template "T-XXXXXX")
+-           (str      (string-copy template))
+-           (port     (mkstemp! str))
+-           (result   (not (string=? str template))))
+-      (close-port port)
+-      (delete-file str)
+-      result)))
+-
+-;;
+-;; putenv
+-;;
+-
+-(with-test-prefix "putenv"
+-  
+-  (pass-if "something"
+-    (putenv "FOO=something")
+-    (equal? "something" (getenv "FOO")))
+-  
+-  (pass-if "replacing"
+-    (putenv "FOO=one")
+-    (putenv "FOO=two")
+-    (equal? "two" (getenv "FOO")))
+-  
+-  (pass-if "empty"
+-    (putenv "FOO=")
+-    (equal? "" (getenv "FOO")))
+-  
+-  (pass-if "removing"
+-    (putenv "FOO=bar")
+-    (putenv "FOO")
+-    (not (getenv "FOO")))
+-  
+-  (pass-if "modifying string doesn't change env"
+-    (let ((s (string-copy "FOO=bar")))
+-      (putenv s)
+-      (string-set! s 5 #\x)
+-      (equal? "bar" (getenv "FOO")))))
+-
+-;;
+-;; setenv
+-;;
+-
+-(with-test-prefix "setenv"
+-  
+-  (pass-if "something"
+-    (setenv "FOO" "something")
+-    (equal? "something" (getenv "FOO")))
+-  
+-  (pass-if "replacing"
+-    (setenv "FOO" "one")
+-    (setenv "FOO" "two")
+-    (equal? "two" (getenv "FOO")))
+-
+-  (pass-if "empty"
+-    (setenv "FOO" "")
+-    (equal? "" (getenv "FOO")))
+-  
+-  (pass-if "removing"
+-    (setenv "FOO" "something")
+-    (setenv "FOO" #f)
+-    (not (getenv "FOO"))))
+-  
+-;;
+-;; unsetenv
+-;;
+-
+-(with-test-prefix "unsetenv"
+-  
+-  (pass-if "something"
+-    (putenv "FOO=something")
+-    (unsetenv "FOO")
+-    (not (getenv "FOO")))
+-  
+-  (pass-if "empty"
+-    (putenv "FOO=")
+-    (unsetenv "FOO")
+-    (not (getenv "FOO"))))
+-
+-;;
+-;; ttyname
+-;;
+-
+-(with-test-prefix "ttyname"
+-
+-  (pass-if-exception "non-tty argument" exception:system-error
+-    ;; This used to crash in 1.8.1 and earlier.
+-    (let ((file (false-if-exception
+-                 (open-output-file "/dev/null"))))
+-      (if (not file)
+-          (throw 'unsupported)
+-          (ttyname file)))))
+-
+-;;
+-;; utimes
+-;;
+-
+-(with-test-prefix "utime"
+-
+-  (pass-if "valid argument (second resolution)"
+-    (let ((file "posix.test-utime"))
+-      (dynamic-wind
+-        (lambda ()
+-          (close-port (open-output-file file)))
+-        (lambda ()
+-          (let* ((accessed (+ (current-time) 3600))
+-                 (modified (- accessed 1000)))
+-            (utime file accessed modified)
+-            (let ((info (stat file)))
+-              (and (= (stat:atime info) accessed)
+-                   (= (stat:mtime info) modified)))))
+-        (lambda ()
+-          (delete-file file))))))
+-
+-;;
+-;; affinity
+-;;
+-
+-(with-test-prefix "affinity"
+-
+-  (pass-if "getaffinity"
+-    (if (defined? 'getaffinity)
+-        (> (bitvector-length (getaffinity (getpid))) 0)
+-        (throw 'unresolved)))
+-
+-  (pass-if "setaffinity"
+-    (if (and (defined? 'setaffinity) (defined? 'getaffinity))
+-        (catch 'system-error
+-          (lambda ()
+-            (let ((mask (getaffinity (getpid))))
+-              (setaffinity (getpid) mask)
+-              (equal? mask (getaffinity (getpid)))))
+-          (lambda args
+-            ;; On some platforms such as sh4-linux-gnu, 'setaffinity'
+-            ;; returns ENOSYS.
+-            (let ((errno (system-error-errno args)))
+-              (if (= errno ENOSYS)
+-                  (throw 'unresolved)
+-                  (apply throw args)))))
+-        (throw 'unresolved))))
+-
+-;;
+-;; system*
+-;;
+-
+-(with-test-prefix "system*"
+-
+-  (pass-if "http://bugs.gnu.org/13166"
+-    ;; With Guile up to 2.0.7 included, the child process launched by
+-    ;; `system*' would remain alive after an `execvp' failure.
+-    (let ((me (getpid)))
+-      (and (not (zero? (system* "something-that-does-not-exist")))
+-           (= me (getpid))))))
+-
+-;;
+-;; crypt
+-;;
+-
+-(with-test-prefix "crypt"
+-
+-  (pass-if "basic usage"
+-    (string? (crypt "pass" "abcdefg")))
+-
+-  (pass-if-exception "glibc EINVAL" exception:system-error
+-    ;; This used to deadlock while trying to throw to 'system-error'.
+-    ;; This test uses the special interpretation of the salt that glibc
+-    ;; does; specifically, we pass a syntactically invalid salt here.
+-    (if (string-contains %host-type "-gnu")
+-        (crypt "pass" "$X$abc")                   ;EINVAL
+-        (throw 'unresolved))))
