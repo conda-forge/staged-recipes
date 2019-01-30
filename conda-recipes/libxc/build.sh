@@ -13,7 +13,7 @@ if [ "$(uname)" == "Darwin" ]; then
         -DCMAKE_C_COMPILER=icc \
         -DCMAKE_C_FLAGS="${CMAKE_C_FLAGS}" \
         -DCMAKE_INSTALL_LIBDIR=lib \
-        -DNAMESPACE_INSTALL_INCLUDEDIR="/libxc" \
+        -DNAMESPACE_INSTALL_INCLUDEDIR="/" \
         -DBUILD_SHARED_LIBS=ON \
         -DENABLE_XHOST=OFF \
         -DBUILD_TESTING=ON
@@ -37,7 +37,7 @@ if [ "$(uname)" == "Linux" ]; then
         -DCMAKE_C_COMPILER=icc \
         -DCMAKE_C_FLAGS="${ALLOPTS}" \
         -DCMAKE_INSTALL_LIBDIR=lib \
-        -DNAMESPACE_INSTALL_INCLUDEDIR="/libxc" \
+        -DNAMESPACE_INSTALL_INCLUDEDIR="/" \
         -DBUILD_SHARED_LIBS=ON \
         -DENABLE_XHOST=OFF \
         -DENABLE_GENERIC=OFF \
