@@ -32,8 +32,6 @@ fi
 if [ `uname` = "Darwin" ]; then
     cmake .. -LAH -G "Ninja" \
     -Wno-dev \
-    -DCMAKE_OSX_DEPLOYMENT_TARGET="10.9" \
-    -DCMAKE_OSX_SYSROOT="$HOME/MacOSX-SDKs/MacOSX10.9.sdk" \
     -DVMTK_BUILD_TESTING:BOOL=ON \
     -DSUPERBUILD_INSTALL_PREFIX:STRING=${PREFIX} \
     -DCMAKE_BUILD_TYPE:STRING="Release" \
