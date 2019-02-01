@@ -2,18 +2,11 @@
 
 set -e
 
-# we will install the libs here so we can find them later
-# copying files out of the build without using make install-strip
-# is not a great idea. by using this weird prefix, we can install to a single
-# place and then build the library and compiler package separately by
-# copying files from here
-mkdir -p ${SRC_DIR}/install_prefix_conda
-
-mkdir -p ${SRC_DIR}/build_conda
-cd ${SRC_DIR}/build_conda
+mkdir -p build_conda
+cd build_conda
 
 ../configure \
-    --prefix=${SRC_DIR}/install_prefix_conda \
+    --prefix=${PREFIX} \
     --with-libiconv-prefix=${PREFIX} \
     --enable-languages=c,fortran \
     --with-tune=generic \

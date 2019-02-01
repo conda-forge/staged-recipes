@@ -3,6 +3,7 @@
 {% set max_libgfortran_version = "5.0.0.a0" %}
 {% set libquadmath_version = [0, 0, 0] %}
 {% set libgcc_s_version = [1, 0, 0] %}
+{% set chost = "x86_64-apple-darwin13.4.0" %}
 
 package:
   name: gfortran_impl_osx-64
@@ -34,7 +35,25 @@ requirements:
 outputs:
   - name: libgfortran
     version: {{ libgfortran_version|join('.') }}
-    script: install-libgfortran.sh
+    files:
+      - lib/libgfortran.dylib
+      - lib/libgfortran.{{ libgfortran_version[0] }}.dylib
+      - lib/libgomp.dylib
+      - lib/libgomp.{{ libgcc_s_version[0] }}.dylib
+
+      # Including libquadmath for the time
+      # being. This will need to be broken
+      # out in the long term.
+      - lib/libquadmath.dylib
+      - lib/libquadmath.{{ libquadmath_version[0] }}.dylib
+
+      # Including libgcc_s for the time
+      # being. This will need to be broken
+      # out in the long term.
+      - lib/libgcc_s.{{ libgcc_s_version[0] }}.dylib
+      - lib/libgcc_s_ppc64.{{ libgcc_s_version[0] }}.dylib
+      - lib/libgcc_s_x86_64.{{ libgcc_s_version[0] }}.dylib
+
     run_exports:
       - libgfortran >={{ libgfortran_version|join('.') }},<{{ max_libgfortran_version }}
     test:
@@ -73,7 +92,39 @@ outputs:
         - {{ pin_compatible('gmp', max_pin='x.x') }}
         - {{ pin_compatible('zlib', max_pin='x.x') }}
         - {{ pin_compatible('libiconv', max_pin='x.x') }}
-    script: install-gfortran_impl_osx-64.sh
+    files:
+      - bin/gfortran
+      - bin/{{ chost }}-gfortran
+
+      - libexec/gcc/{{ chost }}/{{ gfortran_version|join('.') }}/collect2
+      - libexec/gcc/{{ chost }}/{{ gfortran_version|join('.') }}/f951
+      - libexec/gcc/{{ chost }}/{{ gfortran_version|join('.') }}/lto-wrapper
+
+      - lib/libgfortran.spec
+
+      # For -fopenmp
+      - lib/libgomp.spec
+
+      # For -ffast-math
+      - lib/gcc/{{ chost }}/{{ gfortran_version|join('.') }}/crtfastmath.o
+
+      # For -static
+      - lib/libgfortran.a
+      - lib/libgomp.a
+
+      - lib/gcc/{{ chost }}/{{ gfortran_version|join('.') }}/libgcc.a
+      - lib/gcc/{{ chost }}/{{ gfortran_version|join('.') }}/libgcc_eh.a
+
+      - lib/gcc/{{ chost }}/{{ gfortran_version|join('.') }}/finclude/**
+
+      # include{,-fixed} may not be needed unless -fopenmp is passed (not sure on that)
+      - lib/gcc/{{ chost }}/{{ gfortran_version|join('.') }}/include-fixed/**
+      - lib/gcc/{{ chost }}/{{ gfortran_version|join('.') }}/include/**
+
+      # Stub libraries
+      - lib/libgcc_ext.10.4.dylib
+      - lib/libgcc_ext.10.5.dylib
+
     test:
       script: run_test.sh
 
