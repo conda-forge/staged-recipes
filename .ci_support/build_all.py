@@ -98,7 +98,6 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
 
     worker = {'platform': platform, 'arch': arch,
               'label': '{}-{}'.format(platform, arch)}
-    print(worker)
 
     G = construct_graph(recipes_dir, worker=worker, run='build',
                         conda_resolve=conda_resolve, folders=folders,
