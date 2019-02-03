@@ -8,7 +8,6 @@
 set -xeuo pipefail
 export PYTHONUNBUFFERED=1
 export FEEDSTOCK_ROOT=/home/conda/staged-recipes
-export RECIPE_ROOT=/home/conda/recipe_root
 export CI_SUPPORT=/home/conda/staged-recipes/.ci_support
 export CONFIG_FILE="${CI_SUPPORT}/${CONFIG}.yaml"
 
@@ -19,6 +18,9 @@ conda-build:
 
 CONDARC
 
+# What is going on
+ls /home/conda/staged-recipes
+
 # Copy the host recipes folder so we don't ever muck with it
 cp -r /home/conda/staged-recipes/recipes ~/conda-recipes
 cp -r /home/conda/staged-recipes/.ci_support ~/.ci_support
@@ -26,14 +28,14 @@ cp -r /home/conda/staged-recipes/.ci_support ~/.ci_support
 # Find the recipes from master in this PR and remove them.
 echo "Finding recipes merged in master and removing them from the build."
 pushd /home/conda/staged-recipes/recipes > /dev/null
-git fetch origin +master:master
+git fetch --force origin master:master
 git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf ~/conda-recipes/{} && echo Removing recipe: {}"
 popd > /dev/null
 
-conda install --yes --quiet conda-forge-ci-setup=2 conda-build>=3.16 networkx -c conda-forge
+conda install --yes --quiet conda-forge-ci-setup=2 conda-build>=3.16 networkx conda-forge-pinning -c conda-forge
 
 # set up the condarc
-setup_conda_rc "${FEEDSTOCK_ROOT}" "${RECIPE_ROOT}" "${CONFIG_FILE}"
+setup_conda_rc "${FEEDSTOCK_ROOT}" "/home/conda/staged-recipes/recipes" "${CONFIG_FILE}"
 
 # Make sure build_artifacts is a valid channel
 mkdir -p /home/conda/staged-recipes/build_artifacts

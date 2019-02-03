@@ -7,11 +7,11 @@
 
 set -xeuo pipefail
 
+REPO_ROOT=$(cd "$(dirname "$0")/.."; pwd;)
 THISDIR="$( cd "$( dirname "$0" )" >/dev/null && pwd )"
 PROVIDER_DIR="$(basename $THISDIR)"
 
 FEEDSTOCK_ROOT=$(cd "$(dirname "$0")/.."; pwd;)
-RECIPE_ROOT="${FEEDSTOCK_ROOT}/recipes"
 
 docker info
 
@@ -43,10 +43,8 @@ DOCKER_RUN_ARGS=" "
 
 
 docker run -t ${DOCKER_RUN_ARGS} \
-           -v "${RECIPE_ROOT}":/home/conda/recipe_root:ro,z \
-           -v "${FEEDSTOCK_ROOT}":/home/conda/staged-recipes:rw,z \
+           -v "${REPO_ROOT}":/home/conda/staged-recipes \
            -e CONFIG \
-           -e BINSTAR_TOKEN \
            -e HOST_USER_ID \
            $DOCKER_IMAGE \
            bash \
