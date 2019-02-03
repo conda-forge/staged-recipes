@@ -6,5 +6,5 @@ REM Build step
 msbuild "%SLN_FILE%" /p:Configuration=%SLN_CFG%,Platform=%SLN_PLAT%,PlatformToolset=v140
 if errorlevel 1 exit 1
 
-REM Copy the binary
-copy OfficeToPDF\bin\%SLN_PLAT%\%SLN_CFG%\OfficeToPDF.exe %LIBRARY_BIN%
+REM Copy the binaries
+copy OfficeToPDF\bin\%SLN_PLAT%\%SLN_CFG%\* %LIBRARY_BIN%
