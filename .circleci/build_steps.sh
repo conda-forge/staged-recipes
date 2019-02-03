@@ -28,6 +28,7 @@ cp -r /home/conda/staged-recipes/.ci_support ~/.ci_support
 # Find the recipes from master in this PR and remove them.
 echo "Finding recipes merged in master and removing them from the build."
 pushd /home/conda/staged-recipes/recipes > /dev/null
+git fetch --force origin master:master
 git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf ~/conda-recipes/{} && echo Removing recipe: {}"
 popd > /dev/null
 

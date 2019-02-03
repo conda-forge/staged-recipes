@@ -5,6 +5,8 @@
 REPO_ROOT=$(cd "$(dirname "$0")/.."; pwd;)
 IMAGE_NAME="condaforge/linux-anvil-comp7"
 ARTIFACTS="$REPO_ROOT/build_artifacts"
+THISDIR="$( cd "$( dirname "$0" )" >/dev/null && pwd )"
+PROVIDER_DIR="$(basename $THISDIR)"
 
 docker info
 
@@ -22,12 +24,18 @@ mkdir -p "$ARTIFACTS"
 DONE_CANARY="$ARTIFACTS/conda-forge-build-done"
 rm -f "$DONE_CANARY"
 
-docker run -it \
+DOCKER_RUN_ARGS="-it"
+
+if [ "${AZURE}" == "True" ]; then
+    DOCKER_RUN_ARGS=""
+fi
+
+docker run ${DOCKER_RUN_ARGS} \
            -v ${REPO_ROOT}:/home/conda/staged-recipes \
            -e HOST_USER_ID=${HOST_USER_ID} \
            $IMAGE_NAME \
            bash \
-           /home/conda/staged-recipes/.circleci/build_steps.sh
+           /home/conda/staged-recipes/${PROVIDER_DIR}/build_steps.sh
 
 # verify that the end of the script was reached
 test -f "$DONE_CANARY"
