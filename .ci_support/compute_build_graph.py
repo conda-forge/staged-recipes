@@ -289,11 +289,11 @@ def add_intradependencies(graph):
 
         test_requires = m.meta.get('test', {}).get('requires', [])
 
-        log.warn("node: {}".format(node))
-        log.warn("   build: {}".format(m.ms_depends('build')))
-        log.warn("   host: {}".format(m.ms_depends('host')))
-        log.warn("   run: {}".format(m.ms_depends('run')))
-        log.warn("   test: {}".format(test_requires))
+        log.info("node: {}".format(node))
+        log.info("   build: {}".format(m.ms_depends('build')))
+        log.info("   host: {}".format(m.ms_depends('host')))
+        log.info("   run: {}".format(m.ms_depends('run')))
+        log.info("   test: {}".format(test_requires))
 
         deps = set(m.ms_depends('build') + m.ms_depends('host') + m.ms_depends('run') +
                    [conda_interface.MatchSpec(dep) for dep in test_requires or []])
