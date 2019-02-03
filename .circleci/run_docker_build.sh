@@ -5,6 +5,7 @@
 REPO_ROOT=$(cd "$(dirname "$0")/.."; pwd;)
 IMAGE_NAME="condaforge/linux-anvil-comp7"
 ARTIFACTS="$REPO_ROOT/build_artifacts"
+THISDIR="$( cd "$( dirname "$0" )" >/dev/null && pwd )"
 PROVIDER_DIR="$(basename $THISDIR)"
 
 docker info
