@@ -7,6 +7,7 @@ IMAGE_NAME="condaforge/linux-anvil-comp7"
 ARTIFACTS="$REPO_ROOT/build_artifacts"
 THISDIR="$( cd "$( dirname "$0" )" >/dev/null && pwd )"
 PROVIDER_DIR="$(basename $THISDIR)"
+AZURE="${AZURE:-False}"
 
 docker info
 
@@ -33,6 +34,7 @@ fi
 docker run ${DOCKER_RUN_ARGS} \
            -v ${REPO_ROOT}:/home/conda/staged-recipes \
            -e HOST_USER_ID=${HOST_USER_ID} \
+           -e AZURE=${AZURE} \
            $IMAGE_NAME \
            bash \
            /home/conda/staged-recipes/${PROVIDER_DIR}/build_steps.sh
