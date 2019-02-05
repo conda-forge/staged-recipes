@@ -25,7 +25,7 @@ make install -j${CPU_COUNT}
 # Make links so conda can find the bindings
 ln -s "${PREFIX}/lib/pythia8.py" "${SP_DIR}/"
 if [ "$(uname)" == "Linux" ]; then
-    ln -s "${PREFIX}/lib/pythia8.so" "${SP_DIR}/"
+    ln -s "${PREFIX}/lib/libpythia8.so" "${SP_DIR}/"
 else
     ln -s "${PREFIX}/lib/libpythia8.dylib" "${SP_DIR}/"
 fi
