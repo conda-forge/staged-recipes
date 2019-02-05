@@ -31,3 +31,8 @@ else
 fi
 ln -s "${PREFIX}/lib/_pythia8.so" "${SP_DIR}/"
 
+# Add the post activate/deactivate scripts
+mkdir -p "${PREFIX}/etc/conda/activate.d"
+cp "${RECIPE_DIR}/activate.sh" "${PREFIX}/etc/conda/activate.d/activate-pythia8.sh"
+mkdir -p "${PREFIX}/etc/conda/deactivate.d"
+cp "${RECIPE_DIR}/deactivate.sh" "${PREFIX}/etc/conda/deactivate.d/deactivate-pythia8.sh"
