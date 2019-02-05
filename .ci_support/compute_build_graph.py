@@ -217,7 +217,8 @@ def add_recipe_to_graph(recipe_dir, graph, run, worker, conda_resolve,
                         recipes_dir=None, config=None, finalize=False):
     try:
         rendered = _get_or_render_metadata(recipe_dir, worker, config=config, finalize=finalize)
-    except (IOError, SystemExit):
+    except (IOError, SystemExit) as e:
+        log.exception('Exception raised!')
         log.warn('invalid recipe dir: %s - skipping', recipe_dir)
         return None
 
@@ -285,9 +286,17 @@ def add_intradependencies(graph):
         # what the build and host platforms are on the build machine.
         # However, all we know right now is what machine we're actually
         # on (the one calculating the graph).
+
+        test_requires = m.meta.get('test', {}).get('requires', [])
+
+        log.info("node: {}".format(node))
+        log.info("   build: {}".format(m.ms_depends('build')))
+        log.info("   host: {}".format(m.ms_depends('host')))
+        log.info("   run: {}".format(m.ms_depends('run')))
+        log.info("   test: {}".format(test_requires))
+
         deps = set(m.ms_depends('build') + m.ms_depends('host') + m.ms_depends('run') +
-                   [conda_interface.MatchSpec(dep) for dep in
-                    m.meta.get('test', {}).get('requires', [])])
+                   [conda_interface.MatchSpec(dep) for dep in test_requires or []])
 
         for dep in deps:
             name_matches = (n for n in graph.nodes() if graph.node[n]['meta'].name() == dep.name)
