@@ -15,7 +15,7 @@
     LIBPATH="${PREFIX}/lib" \
     SWIG="${PREFIX}/bin/swig"
 
-#make -j "$CPU_COUNT"
-#make install
-#
-#sed -i.bak '1 s|^.*$|#!/usr/bin/env python|g' "$PREFIX/bin/sfdoc"
+make -j "$CPU_COUNT"
+make install
+
+sed -i.bak '1 s|^.*$|#!/usr/bin/env python|g' "$PREFIX/bin/sfdoc"
