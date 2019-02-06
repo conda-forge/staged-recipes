@@ -1,0 +1,140 @@
+{% set gfortran_version = [7, 3, 0] %}
+{% set libgfortran_version = [4, 0, 0] %}
+{% set max_libgfortran_version = "5.0.0.a0" %}
+{% set libquadmath_version = [0, 0, 0] %}
+{% set libgcc_s_version = [1, 0, 0] %}
+{% set chost = "x86_64-apple-darwin13.4.0" %}
+
+package:
+  name: gfortran_impl_osx-64
+  version: {{ gfortran_version|join('.') }}
+
+source:
+  url: https://ftp.gnu.org/gnu/gcc/gcc-{{ gfortran_version|join('.') }}/gcc-{{ gfortran_version|join('.') }}.tar.gz
+  sha256: fa06e455ca198ddc11ea4ddf2a394cf7cfb66aa7e0ab98cc1184189f1d405870
+  patches:
+    - libgcc_macosx_min_version.patch
+
+build:
+  number: 0
+  skip: True  # [not osx]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - make
+  host:
+    - libiconv
+    - zlib
+    - gmp
+    - mpfr
+    - isl
+    - mpc
+
+outputs:
+  - name: libgfortran
+    version: {{ libgfortran_version|join('.') }}
+    files:
+      - lib/libgfortran.dylib
+      - lib/libgfortran.{{ libgfortran_version[0] }}.dylib
+      - lib/libgomp.dylib
+      - lib/libgomp.{{ libgcc_s_version[0] }}.dylib
+
+      # Including libquadmath for the time
+      # being. This will need to be broken
+      # out in the long term.
+      - lib/libquadmath.dylib
+      - lib/libquadmath.{{ libquadmath_version[0] }}.dylib
+
+      # Including libgcc_s for the time
+      # being. This will need to be broken
+      # out in the long term.
+      - lib/libgcc_s.{{ libgcc_s_version[0] }}.dylib
+      - lib/libgcc_s_ppc64.{{ libgcc_s_version[0] }}.dylib
+      - lib/libgcc_s_x86_64.{{ libgcc_s_version[0] }}.dylib
+
+    run_exports:
+      - libgfortran >={{ libgfortran_version|join('.') }},<{{ max_libgfortran_version }}
+    test:
+      commands:
+        - test -f "${PREFIX}/lib/libgfortran.dylib"
+        - test -f "${PREFIX}/lib/libgfortran.{{ libgfortran_version[0] }}.dylib"
+
+        - test -f "${PREFIX}/lib/libgomp.dylib"
+        - test -f "${PREFIX}/lib/libgomp.{{ libgcc_s_version[0] }}.dylib"
+
+        - test -f "${PREFIX}/lib/libquadmath.dylib"
+        - test -f "${PREFIX}/lib/libquadmath.{{ libquadmath_version[0] }}.dylib"
+
+        - test -f "${PREFIX}/lib/libgcc_s.{{ libgcc_s_version[0] }}.dylib"
+        - test -f "${PREFIX}/lib/libgcc_s_ppc64.{{ libgcc_s_version[0] }}.dylib"
+        - test -f "${PREFIX}/lib/libgcc_s_x86_64.{{ libgcc_s_version[0] }}.dylib"
+
+  - name: gfortran_impl_osx-64
+    version: {{ gfortran_version|join('.') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+      host:
+        - libiconv
+        - zlib
+        - gmp
+        - mpfr
+        - isl
+        - mpc
+      run:
+        - libgfortran >={{ libgfortran_version|join('.') }},<{{ max_libgfortran_version }}
+        - isl
+        - mpfr
+        - mpc
+        - gmp
+        - zlib
+        - libiconv
+    files:
+      - bin/gfortran
+      - bin/{{ chost }}-gfortran
+
+      - libexec/gcc/{{ chost }}/{{ gfortran_version|join('.') }}/collect2
+      - libexec/gcc/{{ chost }}/{{ gfortran_version|join('.') }}/f951
+      - libexec/gcc/{{ chost }}/{{ gfortran_version|join('.') }}/lto-wrapper
+
+      - lib/libgfortran.spec
+
+      # For -fopenmp
+      - lib/libgomp.spec
+
+      # For -ffast-math
+      - lib/gcc/{{ chost }}/{{ gfortran_version|join('.') }}/crtfastmath.o
+
+      # For -static
+      - lib/libgfortran.a
+      - lib/libgomp.a
+
+      - lib/gcc/{{ chost }}/{{ gfortran_version|join('.') }}/libgcc.a
+      - lib/gcc/{{ chost }}/{{ gfortran_version|join('.') }}/libgcc_eh.a
+
+      - lib/gcc/{{ chost }}/{{ gfortran_version|join('.') }}/finclude/**
+
+      # include{,-fixed} may not be needed unless -fopenmp is passed (not sure on that)
+      - lib/gcc/{{ chost }}/{{ gfortran_version|join('.') }}/include-fixed/**
+      - lib/gcc/{{ chost }}/{{ gfortran_version|join('.') }}/include/**
+
+      # Stub libraries
+      - lib/libgcc_ext.10.4.dylib
+      - lib/libgcc_ext.10.5.dylib
+
+    test:
+      script: run_test.sh
+
+about:
+  home: http://gcc.gnu.org/
+  license: GPL 3 (with GCC Runtime Library Exception 3.1)
+  license_family: GPL
+  license_file: COPYING3
+  summary: Fortran compiler and libraries from the GNU Compiler Collection
+
+extra:
+  recipe-maintainers:
+    - beckermr
