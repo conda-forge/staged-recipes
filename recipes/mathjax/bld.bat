@@ -16,3 +16,4 @@ del /q "%mathjax%\*.bat" "%mathjax%\LICENSE" || exit 1
 
 if not exist "%SCRIPTS%" mkdir "%SCRIPTS%" || exit 1
 copy "%RECIPE_DIR%\.mathjax-post-link.bat" "%SCRIPTS%\" || exit 1
+copy "%RECIPE_DIR%\.mathjax-pre-unlink.bat" "%SCRIPTS%\" || exit 1

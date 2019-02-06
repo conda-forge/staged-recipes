@@ -20,3 +20,4 @@ cd "$cwd" || exit 1
 
 mkdir -p "$PREFIX/bin" || exit 1
 cp "${RECIPE_DIR}/.mathjax-post-link.sh" "$PREFIX/bin/" || exit 1
+cp "${RECIPE_DIR}/.mathjax-pre-unlink.sh" "$PREFIX/bin/" || exit 1
