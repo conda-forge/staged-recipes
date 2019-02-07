@@ -362,7 +362,9 @@ def collapse_subpackage_nodes(graph):
             if subpackages:
                 remap_edges = [edge for edge in graph.edges() if edge[1] in subpackages]
                 for edge in remap_edges:
-                    graph.add_edge(edge[0], master_key)
+                    # make sure not to add references to yourself
+                    if edge[0] != master_key:
+                        graph.add_edge(edge[0], master_key)
                     graph.remove_edge(*edge)
 
                 # remove nodes that have been folded into master nodes
