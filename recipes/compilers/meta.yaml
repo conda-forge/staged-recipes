@@ -1,3 +1,7 @@
+{% set c_compiler = compiler('c').split('_')[0] %}
+{% set cxx_compiler = compiler('cxx').split('_')[0] %}
+{% set fortran_compiler = compiler('fortran').split('_')[0] %}
+
 {% set commands = {
   'binutils': {
     'linux': ['ar', 'as', 'ld', 'nm', 'size', 'strings', 'strip',
@@ -9,18 +13,23 @@
             'redo_prebinding', 'seg_addr_table', 'seg_hack', 'segedit'],
   },
   'c-compiler': {
-    'linux': ['cc', 'ct-ng.config', 'cpp', 'gcc', 'gcc-ar', 'gcc-nm',
+    'gcc': ['cc', 'ct-ng.config', 'cpp', 'gcc', 'gcc-ar', 'gcc-nm',
               'gcc-ranlib', 'gcov', 'gcov-dump', 'gcov-tool'],
-    'osx': ['clang'],
-  },
+    'clang': ['clang'],
+    'vs2008': [],
+    'vs2010': [],
+    'vs2015': [],
+  }[c_compiler],
   'cxx-compiler': {
-    'linux': ['g++', 'c++'],
-    'osx': ['clang++'],
-  },
+    'gxx': ['g++', 'c++'],
+    'clangxx': ['clang++'],
+    'vs2008': [],
+    'vs2010': [],
+    'vs2015': [],
+  }[cxx_compiler],
   'fortran-compiler': {
-    'linux': ['f95', 'gfortran', 'gfortran.bin'],
-    'osx': ['gfortran'],
-  },
+    'gfortran': ['gfortran'],
+  }[fortran_compiler],
 } %}
 
 
@@ -53,7 +62,8 @@ outputs:
         - {{ command }} --help > /dev/null  # [linux] Return code for --help is 1 on OSX
         - echo "Checking {{ command }} resolves to a path containing ${BUILD}"  # [unix]
         - readlink $(which {{ command }}) | grep -q "${BUILD}"  # [unix]
-{%- endfor %}  # [unix]
+{%- endfor %}  # [linux]
+{%- endfor %}  # [osx]
     about:
       home: https://conda-forge.org
       license: BSD
@@ -79,14 +89,16 @@ outputs:
     script: build-symlinks.sh
     test:
       commands:
-        - $CC --help  # [not win]
-{%- for command in commands['c-compiler']['linux'] %}  # [linux]
-{%- for command in commands['c-compiler']['osx'] %}  # [osx]
+        - $CC --help  # [unix]
+{%- for command in commands['c-compiler'] %}  # [unix]
         - {{ command }} --help > /dev/null  # [unix]
         - echo "Checking {{ command }} resolves to a path containing ${BUILD}"  # [unix]
-        - readlink $(which {{ command }}) | grep -q "${BUILD}"  # [linux]
+  {%- if c_compiler == 'gcc' %}  # [unix]
+        - readlink $(which {{ command }}) | grep -q "${BUILD}"  # [unix]
+  {%- elif c_compiler == 'clang' %}  # [unix]
         # The prefixed compilers are a symlink on OSX - check they resolve to the same place
-        - "[ \"$(readlink \"$(which {{ command }})\")\" = \"$(readlink \"$(which ${BUILD}-{{ command }})\")\" ]"  # [osx]
+        - "[ \"$(readlink \"$(which {{ command }})\")\" = \"$(readlink \"$(which ${BUILD}-{{ command }})\")\" ]"  # [unix]
+  {%- endif %}  # [unix]
 {%- endfor %}  # [unix]
     about:
       home: https://conda-forge.org
@@ -114,14 +126,16 @@ outputs:
     script: build-symlinks.sh
     test:
       commands:
-        - $CXX --help  # [not win]
-{%- for command in commands['cxx-compiler']['linux'] %}  # [linux]
-{%- for command in commands['cxx-compiler']['osx'] %}  # [osx]
+        - $CXX --help  # [unix]
+{%- for command in commands['cxx-compiler'] %}  # [unix]
         - {{ command }} --help > /dev/null  # [unix]
         - echo "Checking {{ command }} resolves to a path containing ${BUILD}"  # [unix]
-        - readlink $(which {{ command }}) | grep -q "${BUILD}"  # [linux]
+  {%- if cxx_compiler == 'gxx' %}  # [unix]
+        - readlink $(which {{ command }}) | grep -q "${BUILD}"  # [unix]
+  {%- elif cxx_compiler == 'clangxx' %}  # [unix]
         # The prefixed compilers are a symlink on OSX - check they resolve to the same place
-        - "[ \"$(readlink \"$(which {{ command }})\")\" = \"$(readlink \"$(which ${BUILD}-{{ command }})\")\" ]"  # [osx]
+        - "[ \"$(readlink \"$(which {{ command }})\")\" = \"$(readlink \"$(which ${BUILD}-{{ command }})\")\" ]"  # [unix]
+  {%- endif %}  # [unix]
 {%- endfor %}  # [unix]
     about:
       home: https://conda-forge.org
@@ -148,9 +162,8 @@ outputs:
     script: build-symlinks.sh  # [linux] gfortran is already available on OSX
     test:
       commands:
-        - $FC --help  # [not win]
-{%- for command in commands['fortran-compiler']['linux'] %}  # [linux]
-{%- for command in commands['fortran-compiler']['osx'] %}  # [osx]
+        - $FC --help  # [unix]
+{%- for command in commands['fortran-compiler'] %}  # [unix]
         - {{ command }} --help > /dev/null  # [unix]
         - echo "Checking {{ command }} resolves to a path containing ${BUILD}"  # [linux]
         - readlink $(which {{ command }}) | grep -q "${BUILD}"  # [linux]
@@ -178,9 +191,9 @@ outputs:
         - {{ pin_subpackage('fortran-compiler', exact=True) }}
     test:
       commands:
-        - $CC --help  # [not win]
-        - $CXX --help  # [not win]
-        - $FC --help  # [not win]
+        - $CC --help  # [unix]
+        - $CXX --help  # [unix]
+        - $FC --help  # [unix]
 
 about:
   home: https://conda-forge.org
