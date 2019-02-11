@@ -19,7 +19,8 @@ cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DLIBXML2_LIBRARIES=$PREFIX/lib/libxml2.${SO_EXT} \
       -DZLIB_INCLUDE_DIR=$PREFIX/include \
       -DZLIB_LIBRARY=$PREFIX/lib/libz.${SO_EXT} \
-      -DRUN_SWIG=ON
+      -DRUN_SWIG=ON \
+      -DCMAKE_SHARED_LINKER_FLAGS='-pthread -lrt -lutil'
 
 
 make -j${CPU_COUNT}
