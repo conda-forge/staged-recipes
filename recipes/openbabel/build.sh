@@ -20,7 +20,7 @@ cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DZLIB_INCLUDE_DIR=$PREFIX/include \
       -DZLIB_LIBRARY=$PREFIX/lib/libz.${SO_EXT} \
       -DRUN_SWIG=ON \
-      -DCMAKE_SHARED_LINKER_FLAGS='-pthread -lrt -lutil'
+      -DCMAKE_SHARED_LINKER_FLAGS_INIT='-pthread -lrt -lutil'
 
 
 make -j${CPU_COUNT}
