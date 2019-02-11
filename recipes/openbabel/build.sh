@@ -3,6 +3,7 @@ if [ `uname` == Darwin ]; then
     SO_EXT='dylib'
 else
     SO_EXT='so'
+    CMAKE_SHARED_LINKER_FLAGS_INIT='-pthread -lrt -lutil'
 fi
 
 PYTHON_INCLUDE_DIR=$($PYTHON -c 'import distutils.sysconfig, sys; sys.stdout.write(distutils.sysconfig.get_python_inc())')
@@ -20,7 +21,7 @@ cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DZLIB_INCLUDE_DIR=$PREFIX/include \
       -DZLIB_LIBRARY=$PREFIX/lib/libz.${SO_EXT} \
       -DRUN_SWIG=ON \
-      -DCMAKE_SHARED_LINKER_FLAGS_INIT='-pthread -lrt -lutil'
+      -DCMAKE_SHARED_LINKER_FLAGS_INIT=$CMAKE_SHARED_LINKER_FLAGS_INIT
 
 
 make -j${CPU_COUNT}
