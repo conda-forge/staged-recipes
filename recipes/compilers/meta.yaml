@@ -1,0 +1,217 @@
+{% set c_compiler = compiler('c').split('_')[0] %}
+{% set cxx_compiler = compiler('cxx').split('_')[0] %}
+{% set fortran_compiler = compiler('fortran').split('_')[0] %}
+
+{% set commands = {
+  'binutils': {
+    'linux': ['ar', 'as', 'ld', 'nm', 'size', 'strings', 'strip',
+              'addr2line', 'c++filt', 'dwp', 'elfedit', 'gprof', 'ld.bfd',
+              'ld.gold', 'objcopy', 'objdump', 'ranlib', 'readelf'],
+    'osx': ['ar', 'as', 'ld', 'nm', 'size', 'strings', 'strip',
+            'checksyms', 'codesign_allocate', 'indr', 'install_name_tool',
+            'libtool', 'lipo', 'nmedit', 'otool', 'pagestuff', 'ranlib',
+            'redo_prebinding', 'seg_addr_table', 'seg_hack', 'segedit'],
+  },
+  'c-compiler': {
+    'gcc': ['cc', 'ct-ng.config', 'cpp', 'gcc', 'gcc-ar', 'gcc-nm',
+              'gcc-ranlib', 'gcov', 'gcov-dump', 'gcov-tool'],
+    'clang': ['clang'],
+    'vs2008': [],
+    'vs2010': [],
+    'vs2015': [],
+  }[c_compiler],
+  'cxx-compiler': {
+    'gxx': ['g++', 'c++'],
+    'clangxx': ['clang++'],
+    'vs2008': [],
+    'vs2010': [],
+    'vs2015': [],
+  }[cxx_compiler],
+  'fortran-compiler': {
+    'gfortran': ['gfortran'],
+  }[fortran_compiler],
+} %}
+
+
+package:
+  name: compilers
+  version: 1.0.0
+
+build:
+  number: 0
+
+outputs:
+  - name: binutils
+    requirements:
+      host:
+        - binutils_linux-64  # [linux]
+        - cctools  # [osx]
+        - ld64  # [osx]
+      run:
+        - binutils_linux-64  # [linux]
+        - cctools  # [osx]
+        - ld64  # [osx]
+    script: build-symlinks.sh  # [unix]
+    build:
+      skip: True  # [not unix]
+    test:
+      commands:
+        - $LD --help  # [linux]
+{%- for command in commands['binutils']['linux'] %}  # [linux]
+{%- for command in commands['binutils']['osx'] %}  # [osx]
+        - {{ command }} --help > /dev/null  # [linux] Return code for --help is 1 on OSX
+        - echo "Checking {{ command }} resolves to a path containing ${BUILD}"  # [unix]
+        - readlink $(which {{ command }}) | grep -q "${BUILD}"  # [unix]
+{%- endfor %}  # [linux]
+{%- endfor %}  # [osx]
+    about:
+      home: https://conda-forge.org
+      license: BSD
+      summary: A metapackage to obtain binutils
+      description: |
+        This package is a generic way to obtain binutils for your system
+        that conda-forge used to compile its ecosystem.  This compiler is,
+        therefore, guaranteed to be ABI compatible with the conda packages
+        you have installed.
+
+        This compiler metapackage is a convenience ONLY for users.
+        Do NOT use this package as a build or host dependency in other
+        recipes.
+
+  - name: c-compiler
+    requirements:
+      host:
+        - {{ compiler('c') }}
+        # Depend on the other metapackages to prevent making duplicate symlinks
+        - binutils  # [unix]
+      run:
+        - {{ compiler('c') }}
+    script: build-symlinks.sh  # [unix]
+    test:
+      commands:
+        - $CC --help  # [unix]
+{%- for command in commands['c-compiler'] %}  # [unix]
+        - {{ command }} --help > /dev/null  # [unix]
+        - echo "Checking {{ command }} resolves to a path containing ${BUILD}"  # [unix]
+  {%- if c_compiler == 'gcc' %}  # [unix]
+        - readlink $(which {{ command }}) | grep -q "${BUILD}"  # [unix]
+  {%- elif c_compiler == 'clang' %}  # [unix]
+        # The prefixed compilers are a symlink on OSX - check they resolve to the same place
+        - "[ \"$(readlink \"$(which {{ command }})\")\" = \"$(readlink \"$(which ${BUILD}-{{ command }})\")\" ]"  # [unix]
+  {%- endif %}  # [unix]
+{%- endfor %}  # [unix]
+    about:
+      home: https://conda-forge.org
+      license: BSD
+      summary: A metapackage to obtain a C compiler
+      description: |
+        This package is a generic way to obtain the C compiler for your system
+        that conda-forge used to compile its ecosystem.  This compiler is,
+        therefore, guaranteed to be ABI compatible with the conda packages
+        you have installed.
+
+        This compiler metapackage is a convenience ONLY for users.
+        Do NOT use this package as a build or host dependency in other
+        recipes.  Use the Jinja template function compiler('c') instead.
+
+  - name: cxx-compiler
+    requirements:
+      host:
+        - {{ compiler('cxx') }}
+        # Depend on the other metapackages to prevent making duplicate symlinks
+        - binutils  # [unix]
+        - c-compiler  # [linux]
+      run:
+        - {{ compiler('cxx') }}
+    script: build-symlinks.sh  # [unix]
+    test:
+      commands:
+        - $CXX --help  # [unix]
+{%- for command in commands['cxx-compiler'] %}  # [unix]
+        - {{ command }} --help > /dev/null  # [unix]
+        - echo "Checking {{ command }} resolves to a path containing ${BUILD}"  # [unix]
+  {%- if cxx_compiler == 'gxx' %}  # [unix]
+        - readlink $(which {{ command }}) | grep -q "${BUILD}"  # [unix]
+  {%- elif cxx_compiler == 'clangxx' %}  # [unix]
+        # The prefixed compilers are a symlink on OSX - check they resolve to the same place
+        - "[ \"$(readlink \"$(which {{ command }})\")\" = \"$(readlink \"$(which ${BUILD}-{{ command }})\")\" ]"  # [unix]
+  {%- endif %}  # [unix]
+{%- endfor %}  # [unix]
+    about:
+      home: https://conda-forge.org
+      license: BSD
+      summary: A metapackage to obtain a C++ compiler
+      description: |
+        This package is a generic way to obtain the C++ compiler for your system
+        that conda-forge used to compile its ecosystem.  This compiler is,
+        therefore, guaranteed to be ABI compatible with the conda packages
+        you have installed.
+
+        This compiler metapackage is a convenience ONLY for users.
+        Do NOT use this package as a build or host dependency in other
+        recipes.  Use the Jinja template function compiler('cxx') instead.
+
+  - name: fortran-compiler
+    requirements:
+      host:
+        - {{ compiler('fortran') }}
+        # Depend on the other metapackages to prevent making duplicate symlinks
+        - binutils  # [unix]
+      run:
+        - {{ compiler('fortran') }}
+    script: build-symlinks.sh  # [linux] gfortran is already available on OSX
+    test:
+      commands:
+        - $FC --help  # [unix]
+{%- for command in commands['fortran-compiler'] %}  # [unix]
+        - {{ command }} --help > /dev/null  # [unix]
+        - echo "Checking {{ command }} resolves to a path containing ${BUILD}"  # [linux]
+        - readlink $(which {{ command }}) | grep -q "${BUILD}"  # [linux]
+{%- endfor %}  # [unix]
+    about:
+      home: https://conda-forge.org
+      license: BSD
+      summary: A metapackage to obtain a Fortran compiler
+      description: |
+        This package is a generic way to obtain the Fortran compiler for your
+        system that conda-forge used to compile its ecosystem.  This compiler
+        is, therefore, guaranteed to be ABI compatible with the conda packages
+        you have installed.
+
+        This compiler metapackage is a convenience ONLY for users.
+        Do NOT use this package as a build or host dependency in other
+        recipes.  Use the Jinja template function compiler('fortran') instead.
+
+  - name: compilers
+    requirements:
+      run:
+        - {{ pin_subpackage('binutils', exact=True) }}  # [unix]
+        - {{ pin_subpackage('c-compiler', exact=True) }}
+        - {{ pin_subpackage('cxx-compiler', exact=True) }}
+        - {{ pin_subpackage('fortran-compiler', exact=True) }}
+    test:
+      commands:
+        - $CC --help  # [unix]
+        - $CXX --help  # [unix]
+        - $FC --help  # [unix]
+
+about:
+  home: https://conda-forge.org
+  license: BSD
+  summary: A metapackage to obtain compilers
+  description: |
+    This package is a generic way to obtain the compilers for your system
+    that conda-forge used to compile its ecosystem. These compilers are,
+    therefore, guaranteed to be ABI compatible with the conda packages
+    you have installed.
+
+    These compiler metapackages are a convenience ONLY for users.
+    Do NOT use these packages as a build or host dependencies in other
+    recipes.  Use the compiler Jinja template function instead.
+    For C++ for example, use compiler('cxx') as usual.
+
+extra:
+  recipe-maintainers:
+    - duncanmmacleod
+    - scopatz
+    - chrisburr
