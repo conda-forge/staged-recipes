@@ -1,8 +1,5 @@
 #!/bin/bash
-if [ `uname` == Darwin ]; then
-    SO_EXT='dylib'
-else
-    SO_EXT='so'
+if [ `uname` == Linux ]; then
     CMAKE_SHARED_LINKER_FLAGS_INIT='-pthread -lrt -lutil'
 fi
 
@@ -17,9 +14,9 @@ cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DPYTHON_INCLUDE_DIR=$PYTHON_INCLUDE_DIR \
       -DPYTHON_BINDINGS=ON \
       -DLIBXML2_INCLUDE_DIR=$PREFIX/include \
-      -DLIBXML2_LIBRARIES=$PREFIX/lib/libxml2.${SO_EXT} \
+      -DLIBXML2_LIBRARIES=$PREFIX/lib/libxml2.${SHLIB_EXT} \
       -DZLIB_INCLUDE_DIR=$PREFIX/include \
-      -DZLIB_LIBRARY=$PREFIX/lib/libz.${SO_EXT} \
+      -DZLIB_LIBRARY=$PREFIX/lib/libz.${SHLIB_EXT} \
       -DRUN_SWIG=ON \
       -DCMAKE_SHARED_LINKER_FLAGS_INIT="$CMAKE_SHARED_LINKER_FLAGS_INIT"
 
