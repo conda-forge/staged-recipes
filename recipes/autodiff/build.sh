@@ -7,8 +7,8 @@ cd build
 cmake .. \
     -GNinja \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_PREFIX_PATH=$PREFIX
-    -DCMAKE_INSTALL_PREFIX=$PREFIX
+    -DCMAKE_PREFIX_PATH=$PREFIX \
+    -DCMAKE_INSTALL_PREFIX=$PREFIX \
 
 # Build step
 ninja install -j${CPU_COUNT}
