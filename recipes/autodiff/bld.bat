@@ -10,5 +10,5 @@ cmake .. ^
 if errorlevel 1 exit 1
 
 REM Build step
-ninja install -j${CPU_COUNT}
+ninja install
 if errorlevel 1 exit 1
