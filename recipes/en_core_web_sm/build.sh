@@ -1,1 +1,2 @@
-python -m pip install $size --no-deps -vv
+cd $size
+python -m pip install . --no-deps -vv
