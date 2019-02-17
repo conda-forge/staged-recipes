@@ -14,3 +14,4 @@ copy "%RECIPE_DIR%\bash-git.ico" "%PREFIX%\Menu\" || exit 1
 
 if not exist "%PREFIX%\bin" mkdir "%PREFIX%\bin" || exit 1
 copy "%RECIPE_DIR%\bash.bat" "%PREFIX%\bin\" || exit 1
+copy "%RECIPE_DIR%\git.bat" "%PREFIX%\bin\" || exit 1
