@@ -2,10 +2,7 @@
 
 set -x
 echo ${PREFIX}
-if [ "$(uname)" == "Darwin" ]; then
-    export CXXFLAGS="${CXXFLAGS} -fPIC"
-else
-    export CXXFLAGS="${CXXFLAGS} -fPIC -fopenmp"
+export CXXFLAGS="${CXXFLAGS} -fPIC -fopenmp"
 fi
 ./configure --prefix="${PREFIX}" --enable-shared
 
