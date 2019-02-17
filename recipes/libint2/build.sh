@@ -2,10 +2,11 @@
 
 set -x
 echo ${PREFIX}
-export CXXFLAGS="${CXXFLAGS} -O2 -pipe -march=x86-64 -std=c++11 -fPIC -fopenmp"
-export CPPFLAGS="-I${PREFIX}/include"
-export LDFLAGS="-L${PREFIX}/lib"
-
+if [ "$(uname)" == "Darwin" ]; then
+    export CXXFLAGS="${CXXFLAGS} -fPIC"
+else
+    export CXXFLAGS="${CXXFLAGS} -fPIC -fopenmp"
+fi
 ./configure --prefix="${PREFIX}" --enable-shared
 
 make -j${CPU_COUNT}
