@@ -4,7 +4,7 @@ if errorlevel 1 exit 1
 
 move "%LIBRARY_PREFIX%\bash-git\LICENSE.txt" .\ || exit 1
 cd "%LIBRARY_PREFIX%\bash-git" || exit 1
-call post-install.bat || exit 1
+call post-install.bat
 del post-install.bat || exit 1
 del README.portable || exit 1
 
