@@ -3,7 +3,6 @@
 set -x
 echo ${PREFIX}
 export CXXFLAGS="${CXXFLAGS} -fPIC -fopenmp"
-fi
 ./configure --prefix="${PREFIX}" --enable-shared
 
 make -j${CPU_COUNT}
