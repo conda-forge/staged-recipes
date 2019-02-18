@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -eu
+
+mkdir build
+cd build
+cmake \
+    -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+    -DCMAKE_PREFIX_PATH="${PREFIX}" \
+    -DGEANT4_BUILD_MULTITHREADED=OFF \
+    -DGEANT4_INSTALL_DATADIR="${PREFIX}/share/Geant4/data" \
+    -DGEANT4_INSTALL_DATA=OFF \
+    -DGEANT4_USE_GDML=ON \
+    -DXERCESC_ROOT_DIR="${PREFIX}" \
+    -DGEANT4_USE_G3TOG4=ON \
+    -DGEANT4_USE_QT=ON \
+    -DGEANT4_USE_XM=ON \
+    -DGEANT4_USE_OPENGL_X11=ON \
+    -DGEANT4_USE_OPENGL_WIN32=OFF \
+    -DGEANT4_USE_INVENTOR=OFF \
+    -DGEANT4_USE_RAYTRACER_X11=ON \
+    -DGEANT4_USE_SYSTEM_CLHEP=OFF \
+    -DGEANT4_USE_SYSTEM_EXPAT=ON \
+    -DGEANT4_USE_SYSTEM_ZLIB=ON \
+    -DGEANT4_BUILD_CXXSTD=17 \
+    ..
+
+make -j${CPU_COUNT}
+make install
+
+rm "${PREFIX}/bin/geant4.sh"
+rm "${PREFIX}/bin/geant4.csh"
