@@ -1,4 +1,5 @@
-export CXXFLAGS="${CXXFLAGS} -std=c++14"
+#!/usr/bin/env bash
+set -eu
 
 ./configure \
     --prefix="${PREFIX}" \
