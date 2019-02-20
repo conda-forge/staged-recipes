@@ -1,6 +1,6 @@
 @echo off
 set "_name=git-bash-win"
-set "_dir=bin\"
+set "_dir="
 
 set "_bash_dir=%~dp0\..\Library\%_name%"
 if not exist "%_bash_dir%\post-install.bat" goto skip
