@@ -1,4 +1,4 @@
-set "_bash=%LIBRARY_PREFIX%\git-bash-win"
+set "_bash=%LIBRARY_PREFIX%\git-bash"
 mkdir "%_bash%" || exit 1
 7za x PortableGit-%PKG_VERSION%-%ARCH%-bit.7z.exe -o"%_bash%" -aoa || exit 1
 
