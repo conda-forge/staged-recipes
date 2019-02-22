@@ -10,5 +10,5 @@ cmake ^
 
 cmake --build . --target install --config Release
 
-xcopy %LIBRARY_PREFIX%\bin\data %PREFIX%\share\openbabel /e /c
+echo d|xcopy %LIBRARY_PREFIX%\bin\data %PREFIX%\share\openbabel /e /c
 rmdir /s /q %LIBRARY_PREFIX%\bin\data
