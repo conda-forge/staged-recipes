@@ -4,13 +4,9 @@ set "_dir="
 
 set "_bash_dir=%~dp0\..\Library\%_name%"
 if not exist "%_bash_dir%\post-install.bat" goto skip
-
-:: post install:
-set "_CWD=%CD%"
-cd /d "%_bash_dir%" || exit /b 1
-.\git-bash.exe --no-needs-console --hide --no-cd --command=post-install.bat > nul || exit /b 1
+"%_bash_dir%\git-bash.exe" --no-needs-console --hide --no-cd ^
+  --command="%_bash_dir%\post-install.bat" > nul || exit /b 1
 del "%_bash_dir%\post-install.bat" || exit /b 1
-cd /d "%_CWD%"
 
 :skip
 "%_bash_dir%\%_dir%%~n0.exe" %*
