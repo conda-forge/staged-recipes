@@ -5,6 +5,6 @@ export CXXFLAGS=$(echo "${CXXFLAGS}" | sed "s/-std=c++17/-std=c++14/g")
 mkdir build
 autoconf
 cd build
-../configure --prefix=$PREFIX --with-openssl PYTHON=${PREFIX}/bin/python
+../configure PYTHON=${PREFIX}/bin/python --prefix=$PREFIX --with-openssl
 make -j$CPU_COUNT
 make install
