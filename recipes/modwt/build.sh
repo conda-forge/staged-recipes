@@ -1,3 +1,5 @@
 #!/bin/#!/usr/bin/env bash
 
-make
+sed -i 's/-static/-static-libgcc/' Makefile;
+
+make;
