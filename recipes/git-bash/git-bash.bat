@@ -13,9 +13,9 @@ if defined _err (
     echo git bash post install failed 1>&2
     type _err 1>&2
     type _out
-    echo exit /b 1 > "%~dp0\git-bash-post-install.bat"
+    echo @exit /b 1 > "%~dp0\git-bash-post-install.bat"
 ) else (
-    echo exit /b 0 > "%~dp0\git-bash-post-install.bat"
+    echo @exit /b 0 > "%~dp0\git-bash-post-install.bat"
 )
 del post-install.bat || exit /b 1
 rmdir /s /q .\etc\post-install || exit /b 1
