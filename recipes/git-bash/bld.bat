@@ -12,4 +12,7 @@ copy "%_post%\01-devices.post" "%_bash_dir%\01-devices.post" || exit 1
 if not exist "%PREFIX%\bin" mkdir "%PREFIX%\bin" || exit 1
 copy "%RECIPE_DIR%\bash.bat" "%PREFIX%\bin\" || exit 1
 copy "%RECIPE_DIR%\git-bash.bat" "%PREFIX%\bin\" || exit 1
-copy "%RECIPE_DIR%\git-bash-post-install.bat" "%PREFIX%\bin\" || exit 1
+
+if not exist "%SCRIPTS%" mkdir "%SCRIPTS%" || exit 1
+copy "%RECIPE_DIR%\.git-bash-pre-unlink.bat" "%SCRIPTS%\" || exit 1
+copy "%RECIPE_DIR%\.git-bash-post-link.bat" "%SCRIPTS%\" || exit 1
