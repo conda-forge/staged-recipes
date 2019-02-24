@@ -75,7 +75,7 @@ Short answer: yes. Long answer: In principle, as long as your dependencies are i
 your user's conda channels they will be able to install your package. In practice, that is difficult
 to manage, and we strive to get all dependencies built in conda-forge.
 
-### 7. **When or why do I need to use `python -m pip install --no-deps --ignore-installed .`?**
+### 7. **When or why do I need to use `{{ PYTHON }} -m pip install --no-deps . -vv`?**
 
 This should be the default install line for most Python packages. This is preferable to `python setup.py` because it handles metadata in a `conda`-friendlier way. We also want to make sure dependencies are handled through `conda`, and `--no-deps` means most Python dependencies are needed only at `run` time, not `build`.
 
@@ -131,3 +131,27 @@ All apologies in advance if your recipe PR does not recieve prompt attention.
 This is a high volume repository and issues can easily be missed. We are always
 looking for more staged-recipe reviewers. If you are interested in volunteering,
 please contact a member of @conda-forge/core. We'd love to have the help!
+
+### 13. How to build with old compilers (GCC v4) on staged-recipes?
+
+First, don't. Second, please don't.
+
+Add a `conda_build_config.yaml` file inside the recipe folder with the contents
+
+```yaml
+channel_sources:
+- conda-forge/label/cf201901,defaults   # [unix]
+- conda-forge,defaults                  # [win]
+channel_targets:
+- conda-forge cf201901                  # [unix]
+- conda-forge main                      # [win]
+c_compiler:                             # [unix]
+- gcc                                   # [linux]
+- clang                                 # [osx]
+cxx_compiler:                           # [unix]
+- gxx                                   # [linux]
+- clangxx                               # [osx]
+fortran_compiler:                       # [unix]
+- gfortran                              # [unix]
+```
+
