@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# SCons needs the full path to the C compiler.
-export CC="$(which $CC)"
-
 scons \
 	PREFIX="${PREFIX}" \
 	APR="${PREFIX}" \
