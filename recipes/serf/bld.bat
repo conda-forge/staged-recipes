@@ -1,4 +1,4 @@
-%BUILD_PREFIX%\Scripts\scons.bat ^
+scons ^
 	PREFIX=%PREFIX% ^
 	APR=%PREFIX% ^
 	APU=%PREFIX% ^
@@ -7,5 +7,5 @@
 	ZLIB=%PREFIX% ^
 if errorlevel 1 exit 1
 
-%BUILD_PREFIX%\Scripts\scons.bat install
+scons install
 if errorlevel 1 exit 1
