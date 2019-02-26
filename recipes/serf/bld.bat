@@ -3,7 +3,7 @@ copy %RECIPE_DIR%\CMakeLists.txt .\CMakeLists.txt
 set CMAKE_CONFIG=Release
 
 mkdir cmake_build_%CMAKE_CONFIG%
-pushd cmake_build_%CMAKE_CONFIG%
+cd cmake_build_%CMAKE_CONFIG%
 
 cmake -G "%CMAKE_GENERATOR%" ^
       -DCMAKE_BUILD_TYPE:STRING=%CMAKE_CONFIG% ^
