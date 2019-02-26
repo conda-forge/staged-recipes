@@ -18,8 +18,8 @@ LIST(APPEND CMAKE_PREFIX_PATH $ENV{LIBRARY_PREFIX})
 
 LIST(APPEND LIBS  user32.lib advapi32.lib gdi32.lib ws2_32.lib
                        crypt32.lib secur32.lib zdll.lib
-                       libapr-1.lib libaprutil-1.lib libeay32.lib
-                       ssleay32.lib)
+                       libapr-1.lib libaprutil-1.lib libcrypto.lib
+                       libssl.lib)
 
 LIST(APPEND SERF_DEP_LIBS "")
 FOREACH (LIB ${LIBS})
