@@ -1,4 +1,4 @@
-COPY %RECIPE_DIR%\CMakeLists.txt .\CMakeLists.txt
+copy %RECIPE_DIR%\CMakeLists.txt .\CMakeLists.txt
 
 mkdir cmake_build
 pushd cmake_build
@@ -9,7 +9,7 @@ cmake -G "%CMAKE_GENERATOR%" ^
       ..
 
 cmake --build . --target INSTALL --config Release
-IF ERRORLEVEL 1 EXIT 1
+if errorlevel 1 exit 1
 
-ROBOCOPY %SRC_DIR% %LIBRARY_INC% *.h /E
-If %ERRORLEVEL% GEQ 8 EXIT 1
+robocopy %SRC_DIR% %LIBRARY_INC% *.h /E
+if %ERRORLEVEL% geq 8 exit 1
