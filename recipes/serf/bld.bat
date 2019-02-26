@@ -4,8 +4,8 @@ mkdir cmake_build
 pushd cmake_build
 
 cmake -G "%CMAKE_GENERATOR%" ^
-      -DCMAKE_BUILD_TYPE=Release ^
-      -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
+      -DCMAKE_BUILD_TYPE:STRING=Release ^
+      -DCMAKE_INSTALL_PREFIX:PATH=%LIBRARY_PREFIX% ^
       ..
 
 cmake --build . --target INSTALL --config Release
