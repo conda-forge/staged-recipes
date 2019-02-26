@@ -1,4 +1,4 @@
-scons ^
+%BUILD_PREFIX%\Scripts\scons.bat ^
 	PREFIX="%PREFIX%" ^
 	APR="%PREFIX%" ^
 	APU="%PREFIX%" ^
@@ -11,5 +11,5 @@ scons ^
 	LINKFLAGS="%LDFLAGS%"
 if errorlevel 1 exit 1
 
-scons install
+%BUILD_PREFIX%\Scripts\scons.bat install
 if errorlevel 1 exit 1
