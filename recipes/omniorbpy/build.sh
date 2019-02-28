@@ -7,6 +7,8 @@ autoconf
 cd build
 ../configure --prefix=$PREFIX \
              --with-openssl \
-             --with-omniorb=${CONDA_PREFIX}
+             --with-omniorb=$PREFIX
 make -j$CPU_COUNT
 make install
+
+# export PYTHONPATH=$PYTHONPATH:$PREFIX/lib/python${PY_VER}/site-packages
