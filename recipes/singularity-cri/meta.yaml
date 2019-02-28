@@ -1,0 +1,81 @@
+{% set git_ver = "v1.0.0-alpha1" %}
+{% set pkg_ver = "1.0.0a1" %}
+
+package:
+  name: singularity-cri
+  version: {{ pkg_ver }}
+
+source:
+  - folder: src/github.com/sylabs/singularity-cri
+    git_url: https://github.com/sylabs/singularity-cri.git
+    git_rev: v{{ git_ver }}
+
+build:
+  number: 0
+  skip: true  # [not linux]
+
+requirements:
+  build:
+    - {{ compiler('go') }}
+    - make
+    - pkg-config
+    - go-dep
+  host:
+    - libuuid
+    - libarchive
+    - libseccomp
+    - openssl
+  run:
+    # CNI version from singularity/Gopkg.lock
+    - cni-plugins >=0.7.4
+    - squashfs-tools
+
+test:
+  commands:
+    - singularity --help
+
+    # Ensure we are using conda's CNI
+    - test ! -d $PREFIX/libexec/singularity/cni
+    - test -d $PREFIX/lib/cni
+
+    - test ! -d $PREFIX/etc/singularity/network
+    - test -f $PREFIX/etc/cni/net.d/00_bridge.conflist
+
+    # UserNS test
+    - singularity build --sandbox lolcow docker://godlovedc/lolcow
+
+    # This works fine if you have root or properly configured suid
+    # binaries
+    - |
+      if [[ -e /proc/self/ns/user ]]; then
+        singularity --verbose --debug run -u lolcow || true
+      fi
+
+about:
+  home: https://www.sylabs.io/singularity/
+  license: BSD 3-Clause
+  license_family: BSD
+  license_file: src/github.com/sylabs/singularity/LICENSE-LBNL.md
+  summary: "Singularity: Application containers for Linux"
+
+  description: |
+    Singularity is a container platform focused on supporting "Mobility of
+    Compute"
+
+    Mobility of Compute encapsulates the development to compute model where
+    developers can work in an environment of their choosing and creation and
+    when the developer needs additional compute resources, this environment
+    can easily be copied and executed on other platforms. Additionally as the
+    primary use case for Singularity is targeted towards computational
+    portability, many of the barriers to entry of other container solutions do
+    not apply to Singularity making it an ideal solution for users (both
+    computational and non-computational) and HPC centers.
+
+  dev_url: https://github.com/singularityware/singularity
+  doc_url: https://www.sylabs.io/docs/
+
+extra:
+  recipe-maintainers:
+    - bgruening
+    - jakirkham
+    - sodre
