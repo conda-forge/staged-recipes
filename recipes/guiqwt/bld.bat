@@ -1,2 +1,2 @@
-python setup.py build
-python setup.py install --prefix=$PREFIX --single-version-externally-managed --record=record.txt
+%PYTHON% setup.py build
+%PYTHON% setup.py install --prefix=$PREFIX --single-version-externally-managed --record=record.txt
