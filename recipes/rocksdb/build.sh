@@ -1,3 +1,17 @@
 #!/bin/bash
+CMAKE_PLATFORM_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
 
-INSTALL_PATH=$PREFIX make install-shared
+mkdir build && cd build
+
+cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
+ -DCMAKE_INSTALL_LIBDIR="lib" \
+ -DWITH_TESTS=OFF -DWITH_LZ4=OFF \
+ -DWITH_BZ2=ON -DWITH_SNAPPY=ON \
+ -DWITH_TOOLS=OFF -DWITH_ZLIB=ON \
+ -DBUILD_SHARED_LIBS=ON \
+ -DCMAKE_BUILD_TYPE=Release \
+ ../
+make -j${CPU_COUNT} ${VERBOSE_CM}
+make install -j${CPU_COUNT}
+make clean
+#NSTALL_PATH=$PREFIX make install-shared
