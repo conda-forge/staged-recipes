@@ -6,9 +6,9 @@ export LIBRARY_PATH=${PREFIX}/lib
 mkdir -p build
 cd build
 cmake \
-    -DENABLE_ROARING_TESTS=OFF \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DCMAKE_INSTALL_LIBDIR=${PREFIX}/lib \
     ${SRC_DIR}
 
 make install
+make test
