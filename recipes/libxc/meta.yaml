@@ -1,0 +1,55 @@
+{% set name = "libxc" %}
+{% set version = "4.3.3" %}
+{% set sha256 = "4dedcadbb5755b6da1836effabf0ad0d77a1b6fb6760d847a456d1ace9145faa" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  #url: http://www.tddft.org/programs/octopus/down.php?file={{ name }}/{{ version }}/{{ name }}-{{ version }}.tar.gz
+  #sha256: 99ed7a31c7ae19e364d341e2d4a02b108a9b4f45c7f5c5926c6108612784aff0
+  url: https://gitlab.com/libxc/libxc/-/archive/{{ version }}/libxc-{{ version }}.tar.bz2
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  skip: true   # [win]
+  script:
+    - autoreconf --install
+    - CFLAGS="-O2 -g $CFLAGS" ./configure --prefix="$PREFIX" --libdir="$PREFIX"/lib
+    - make -j${CPU_COUNT}
+    - make check
+    - make install
+  run_exports:
+    - {{ pin_subpackage('libxc') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('fortran') }}
+    - libtool
+    - automake
+
+test:
+  commands:
+    - test -L $PREFIX/lib/libxc$SHLIB_EXT
+    # Inspect linkage
+    - ldd -v $PREFIX/lib/libxc$SHLIB_EXT             # [linux]
+    - otool -L $PREFIX/lib/libxc$SHLIB_EXT           # [osx]
+    - conda inspect linkages --show-files --groupby=dependency libxc
+    - conda inspect objects -p $PREFIX $PKG_NAME     # [osx]
+
+about:
+    home: http://www.tddft.org/programs/Libxc
+    dev_url: https://gitlab.com/libxc/libxc
+    doc_url: https://gitlab.com/libxc/libxc/wikis/Manual-4.0
+    license: MPL-2.0
+    license_url: https://opensource.org/licenses/MPL-2.0
+    license_file: COPYING
+    license_family: Other
+    summary: "M.A.L. Marques's exchange-correlation functionals for density-functional theory"
+
+extra:
+  recipe-maintainers:
+    - bjodah
