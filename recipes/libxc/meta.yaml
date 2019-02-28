@@ -14,30 +14,26 @@ source:
 
 build:
   number: 0
-  skip: true   # [win]
-  script:
-    - autoreconf --install
-    - CFLAGS="-O2 -g $CFLAGS" ./configure --prefix="$PREFIX" --enable-shared
-    - make -j${CPU_COUNT}
-    - make check || ( tail -n 100 testsuite/test-suite.log; exit 1 )
-    - make install
   run_exports:
     - {{ pin_subpackage('libxc') }}
 
 requirements:
   build:
     - {{ compiler('c') }}
-    - {{ compiler('fortran') }}
-    - libtool
-    - automake
+    - {{ compiler('fortran') }}  # [not win]
+    - libtool                    # [not win]
+    - automake                   # [not win]
+    - cmake                      # [win]
+    - ninja                      # [win]
 
 test:
   commands:
-    - test -L $PREFIX/lib/libxc$SHLIB_EXT
-    - ldd -v $PREFIX/lib/libxc$SHLIB_EXT             # [linux]
-    - otool -L $PREFIX/lib/libxc$SHLIB_EXT           # [osx]
+    - test -L $PREFIX/lib/libxc$SHLIB_EXT         # [unix]
+    - ldd -v $PREFIX/lib/libxc$SHLIB_EXT          # [linux]
+    - otool -L $PREFIX/lib/libxc$SHLIB_EXT        # [osx]
+    - if not exist %PREFIX%\include\xc.h  exit 1  # [win]
+    - conda inspect objects -p $PREFIX $PKG_NAME  # [osx]
     - conda inspect linkages --show-files --groupby=dependency libxc
-    - conda inspect objects -p $PREFIX $PKG_NAME     # [osx]
 
 about:
     home: http://www.tddft.org/programs/Libxc
