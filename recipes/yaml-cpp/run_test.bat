@@ -1,26 +1,23 @@
+echo on
+
 cd test
-if errorlevel 1 exit 1
 
 mkdir build
-if errorlevel 1 exit 1
-
 cd build
-if errorlevel 1 exit 1
 
 cmake .. ^
     -GNinja ^
     -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
-    -DCMAKE_VERBOSE_MAKEFILE=ON
-echo "CMake finished"
-if errorlevel 1 exit 1
-echo "CMake okay"
+    -DCMAKE_BUILD_TYPE=Release ^
+    -DCMAKE_VERBOSE_MAKEFILE=ON || goto :error
 
-ninja
-echo "Ninja finished"
-if errorlevel 1 exit 1
-echo "Ninja okay"
+ninja || goto :error
 
-test.exe
-echo "Test finished"
-if errorlevel 1 exit 1
-echo "Test okay"
+test.exe || goto :error
+
+exit /B 0
+
+
+:error
+echo ERROR!
+echo Command exit status: %ERRORLEVEL%
