@@ -1,12 +1,11 @@
-#include <iostream>
+#include <cassert>
 #include <yaml-cpp/yaml.h>
 
 int main()
 {
-   YAML::Emitter out;
-   out << "Hello, World!";
+    YAML::Node node = YAML::Load("[1, 2, 3]");
 
-   std::cout << "Here's the output YAML:\n" << out.c_str();
+    assert(node.IsSequence());
 
-   return 0;
+    return 0;
 }
