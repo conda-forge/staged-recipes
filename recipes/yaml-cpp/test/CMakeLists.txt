@@ -4,7 +4,7 @@ project(test LANGUAGES CXX)
 
 find_package(yaml-cpp REQUIRED)
 
-include_directories(${CMAKE_PREFIX_PATH}/lib)
+include_directories(${CMAKE_PREFIX_PATH}/lib/yaml-cpp)
 
 add_executable(test main.cpp)
 
