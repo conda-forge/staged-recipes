@@ -1,2 +1,2 @@
 %PYTHON% setup.py build
-%PYTHON% -m pip install . --no-deps -vv
+%PYTHON% setup.py install --prefix=$PREFIX --single-version-externally-managed --
