@@ -1,3 +1,6 @@
+cd test
+if errorlevel 1 exit 1
+
 mkdir build
 if errorlevel 1 exit 1
 
