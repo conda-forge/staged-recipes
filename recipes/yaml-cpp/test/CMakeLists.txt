@@ -8,5 +8,3 @@ include_directories(${CMAKE_PREFIX_PATH}/include)
 link_directories(${CMAKE_PREFIX_PATH}/lib)
 
 add_executable(test main.cpp)
-
-target_link_libraries(test yaml-cpp)
