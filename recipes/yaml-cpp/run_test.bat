@@ -22,6 +22,6 @@ if errorlevel 1 exit 1
 echo "Ninja okay"
 
 test.exe
-echo "Ninja finished"
+echo "Test finished"
 if errorlevel 1 exit 1
-echo "Ninja okay"
+echo "Test okay"
