@@ -1,3 +1,4 @@
+#include <iostream>
 // yaml-cpp includes
 #include "yaml-cpp/yaml.h"
 
