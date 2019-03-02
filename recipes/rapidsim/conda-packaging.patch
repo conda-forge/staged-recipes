@@ -1,0 +1,294 @@
+From 0c522c5fe2f9e4849d3054b9edad526bb7431385 Mon Sep 17 00:00:00 2001
+From: Chris Burr <chrisburr@users.noreply.github.com>
+Date: Sat, 2 Mar 2019 15:49:36 +0000
+Subject: [PATCH 1/4] Make compareParts.py compatible with Python 2 & 3
+
+---
+ utils/compareParts.py | 37 +++++++++++++++++++------------------
+ 1 file changed, 19 insertions(+), 18 deletions(-)
+
+diff --git a/utils/compareParts.py b/utils/compareParts.py
+index 2f9d559..9e140cf 100644
+--- a/utils/compareParts.py
++++ b/utils/compareParts.py
+@@ -1,4 +1,5 @@
+-#!/usr/bin/python
++#!/usr/bin/env python
++from __future__ import print_function
+ 
+ import math
+ 
+@@ -25,27 +26,27 @@ def compare(title, rs, eg):
+ 
+     #check for zero
+     if rs==0. and eg!=0.:
+-        print title, "RS is zero", rs, eg
++        print(title, "RS is zero", rs, eg)
+         return True
+ 
+     if rs!=0. and eg==0.:
+-        print title, "EG is zero", rs, eg
++        print(title, "EG is zero", rs, eg)
+         return False
+ 
+     #check for significant difference
+     if abs(diff) >= 0.999*10.**-min(scaleRS,scaleEG):
+-        print title, "DIFFERENT", rs, eg
++        print(title, "DIFFERENT", rs, eg)
+         return True
+ 
+     #report which is more precise
+     if scaleRS > scaleEG:
+-        print title, "RS more precise", rs, eg
++        print(title, "RS more precise", rs, eg)
+         return False
+     elif scaleRS < scaleEG:
+-        print title, "EG more precise", rs, eg
++        print(title, "EG more precise", rs, eg)
+         return True
+     else:
+-        print title, "SAME precision", rs, eg
++        print(title, "SAME precision", rs, eg)
+         return True
+ 
+ from collections import namedtuple
+@@ -89,10 +90,10 @@ def compare(title, rs, eg):
+ egOnly = egKeys.difference(rsKeys)
+ both   = rsKeys.intersection(egKeys)
+ 
+-print "\n---------SUMMARY---------\n"
+-print "RS only:", len(rsOnly), "EG only:", len(egOnly), "both:", len(both), "\n"
++print("\n---------SUMMARY---------\n")
++print("RS only:", len(rsOnly), "EG only:", len(egOnly), "both:", len(both), "\n")
+ 
+-print "\n---------DIFFERENCES---------\n"
++print("\n---------DIFFERENCES---------\n")
+ 
+ diffM=0
+ diffG=0
+@@ -106,7 +107,7 @@ def compare(title, rs, eg):
+        partsRS[part].width != partsEG[part].width or \
+        partsRS[part].charge != partsEG[part].charge or \
+        partsRS[part].spin != partsEG[part].spin:
+-        print part, partsRS[part].name
++        print(part, partsRS[part].name)
+         if partsRS[part].mass != partsEG[part].mass:
+             if compare("mass:   ", partsRS[part].mass, partsEG[part].mass):
+                 diffM+=1
+@@ -114,19 +115,19 @@ def compare(title, rs, eg):
+             if compare("width:  ", partsRS[part].width, partsEG[part].width):
+                 diffG+=1
+         if partsRS[part].charge != partsEG[part].charge:
+-            print "charge: ", partsEG[part].charge, partsRS[part].charge
++            print("charge: ", partsEG[part].charge, partsRS[part].charge)
+             diffC+=1
+         if partsRS[part].spin != partsEG[part].spin:
+-            print "spin:   ", partsEG[part].spin, partsRS[part].spin
++            print("spin:   ", partsEG[part].spin, partsRS[part].spin)
+             diffS+=1
+-        print "\n"
++        print("\n")
+ 
+-print "\n---------DIFF SUMMARY---------"
+-print "M G C S"
+-print diffM, diffG, diffC, diffS
++print("\n---------DIFF SUMMARY---------")
++print("M G C S")
++print(diffM, diffG, diffC, diffS)
+ 
+ print "\n---------ONLY in EvtGen---------\n"
+ for part in sorted(egOnly):
+     if part < 0 and -part in egOnly:
+         continue
+-    print part, partsEG[part].name
++    print(part, partsEG[part].name)
+
+From 71a7ae435d4921b974ad1efc59e1aca1b9465fad Mon Sep 17 00:00:00 2001
+From: Christopher Burr <christopher.burr@cern.ch>
+Date: Sat, 2 Mar 2019 15:59:41 +0000
+Subject: [PATCH 2/4] Use ROOT_LIBRARIES instead of listing library names
+
+---
+ CMakeLists.txt     | 2 +-
+ src/CMakeLists.txt | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f2af570..e08a887 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -46,7 +46,7 @@ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+ ENDIF()
+ 
+ 
+-set (ROOT_FIND_COMPONENTS Core RIO Tree)
++set (ROOT_FIND_COMPONENTS Core RIO RooFit RooFitCore RooStats Hist Tree Matrix Physics MathCore)
+   find_file(ROOT_CONFIG ROOTConfig.cmake HINTS $ENV{ROOTSYS} ${ROOTSYS} ${ROOT_DIR} NO_DEFAULT_PATH PATH_SUFFIXES cmake)
+ if (ROOT_CONFIG)
+   message(STATUS "ROOTConfig.cmake found and will be used: ${ROOT_CONFIG}")
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 7cf53e3..c815d1c 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -4,9 +4,9 @@ file(GLOB RapidSim_sources ${PROJECT_SOURCE_DIR}/src/*.cc)
+ ADD_EXECUTABLE ( RapidSim.exe ${RapidSim_sources} ${PROJECT_SOURCE_DIR}/src/RapidSim.C )
+ 
+ if(EVTGEN_FOUND)
+-  TARGET_LINK_LIBRARIES( RapidSim.exe Core RIO RooFit RooFitCore RooStats Hist Tree Matrix Physics MathCore ${EVTGEN} ${EVTGENEXT} )
++  TARGET_LINK_LIBRARIES( RapidSim.exe ${ROOT_LIBRARIES} ${EVTGEN} ${EVTGENEXT} )
+ ELSE()
+-  TARGET_LINK_LIBRARIES( RapidSim.exe Core RIO RooFit RooFitCore RooStats Hist Tree Matrix Physics MathCore )
++  TARGET_LINK_LIBRARIES( RapidSim.exe ${ROOT_LIBRARIES} )
+ ENDIF()
+ 
+ # install target
+
+From c7b8bb82957aedcb8a5452960c015c7658f40931 Mon Sep 17 00:00:00 2001
+From: Christopher Burr <christopher.burr@cern.ch>
+Date: Sat, 2 Mar 2019 16:06:59 +0000
+Subject: [PATCH 3/4] Add RAPIDSIM_ROOT variable to CMake
+
+---
+ CMakeLists.txt | 55 ++++++++++++++++++++++++++------------------------
+ 1 file changed, 29 insertions(+), 26 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index e08a887..98d94ae 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -4,8 +4,11 @@ project(RapidSim)
+ 
+ set(CMAKE_VERBOSE_MAKEFILE ON)
+ 
+-#This module respects HFS, e.g. defines lib or lib64 when it is needed. 
+-include("GNUInstallDirs") 
++set(RAPIDSIM_ROOT "${CMAKE_INSTALL_PREFIX}" CACHE STRING
++    "Directory to install RapidSim's data to")
++
++#This module respects HFS, e.g. defines lib or lib64 when it is needed.
++include("GNUInstallDirs")
+ 
+ 
+ SET( ${PROJECT_NAME}_MAJOR_VERSION 1 )
+@@ -27,22 +30,22 @@ SET ( CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR} )
+ 
+ set(CMAKE_CXX_FLAGS    "${CMAKE_CXX_FLAGS} -msse -msse2 -msse3 -m3dnow -fPIC -fmerge-all-constants -D__ROOFIT_NOBANNER -Wall -Wextra -Werror -Wsign-compare -Wmissing-noreturn -Wno-non-virtual-dtor")
+ 
+-set(CMAKE_CXX_FLAGS_DEBUG          "-g3 -Wall") 
+-set(CMAKE_CXX_FLAGS_MINSIZEREL     "-Os -DNDEBUG") 
+-set(CMAKE_CXX_FLAGS_RELEASE        "-O2 -DNDEBUG") 
++set(CMAKE_CXX_FLAGS_DEBUG          "-g3 -Wall")
++set(CMAKE_CXX_FLAGS_MINSIZEREL     "-Os -DNDEBUG")
++set(CMAKE_CXX_FLAGS_RELEASE        "-O2 -DNDEBUG")
+ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g3 -O2")
+ 
+ 
+ # setting linker flags
+ 
+-IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
+-  SET(CMAKE_EXE_LINKER_FLAGS "-Wl,-dead_strip_dylibs")   
+-  SET(CMAKE_SHARED_LINKER_FLAGS "-Wl,-dead_strip_dylibs")   
++IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
++  SET(CMAKE_EXE_LINKER_FLAGS "-Wl,-dead_strip_dylibs")
++  SET(CMAKE_SHARED_LINKER_FLAGS "-Wl,-dead_strip_dylibs")
+   SET(STATIC_LIBRARY_FLAGS "-Wl,-dead_strip_dylibs")
+ ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+   SET(CMAKE_EXE_LINKER_FLAGS "-Wl,--as-needed")
+   SET(CMAKE_SHARED_LINKER_FLAGS "-Wl,--as-needed")
+-  SET(STATIC_LIBRARY_FLAGS "-Wl,--as-needed")	
++  SET(STATIC_LIBRARY_FLAGS "-Wl,--as-needed")
+ ENDIF()
+ 
+ 
+@@ -58,23 +61,23 @@ if (ROOT_CONFIG)
+     set(ROOT_FOUND TRUE)
+   endif()
+ 
+-else()      
+-  message(STATUS "ROOTConfig.cmake not found, trying to use FindROOT.cmake...")      
+-  find_package(ROOT)   
++else()
++  message(STATUS "ROOTConfig.cmake not found, trying to use FindROOT.cmake...")
++  find_package(ROOT)
+   INCLUDE_DIRECTORIES( ${ROOT_INCLUDE_DIR} )
+   LINK_DIRECTORIES( ${ROOT_LIBRARY_DIR} )
+-  set(CMAKE_CXX_FLAGS    "${CMAKE_CXX_FLAGS} ${ROOT_CXX_FLAGS}" ) 
++  set(CMAKE_CXX_FLAGS    "${CMAKE_CXX_FLAGS} ${ROOT_CXX_FLAGS}" )
+ endif()
+ 
+-message(STATUS "ROOT includes: ${ROOT_INCLUDE_DIR}")   
+-message(STATUS "ROOT libraries: ${ROOT_LIBRARIES}")   
++message(STATUS "ROOT includes: ${ROOT_INCLUDE_DIR}")
++message(STATUS "ROOT libraries: ${ROOT_LIBRARIES}")
+ message(STATUS "ROOT library directory: ${ROOT_LIBRARY_DIR}")
+ message(STATUS "ROOT_FOUND: ${ROOT_FOUND}")
+ 
+-if(ROOT_FOUND)     
+-  include_directories(${ROOT_INCLUDE_DIRS})     
+-else()     
+-  message(ERROR "ROOT needed for RapidSim not found")     
++if(ROOT_FOUND)
++  include_directories(${ROOT_INCLUDE_DIRS})
++else()
++  message(ERROR "ROOT needed for RapidSim not found")
+ endif()
+ 
+ if(DEFINED ENV{EVTGEN_ROOT})
+@@ -88,13 +91,13 @@ if(DEFINED ENV{EVTGEN_ROOT})
+     if(NOT EVTGENEXT)
+       message(INFO " Will not link against EvtGen : libEvtGenExternal not found")
+     else()
+-      include_directories(${EVTGEN_ROOT})     
++      include_directories(${EVTGEN_ROOT})
+       set(CMAKE_CXX_FLAGS    "${CMAKE_CXX_FLAGS} -DRAPID_EVTGEN -I$ENV{EVTGEN_ROOT} -unresolved-symbols=ignore-in-shared-libs")
+       set(EVTGEN_FOUND TRUE)
+     endif()
+   endif()
+ else()
+-  message(INFO " Will not link against EvtGen : EVTGEN_ROOT not defined")      
++  message(INFO " Will not link against EvtGen : EVTGEN_ROOT not defined")
+ endif()
+ 
+ add_subdirectory(src)
+@@ -102,13 +105,13 @@ add_subdirectory(src)
+ set(bindir ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
+ 
+ if (NOT CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+-  configure_file(${CMAKE_SOURCE_DIR}/validation/runValidation.sh.in ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/runValidation.sh   @ONLY)
++  configure_file(${CMAKE_SOURCE_DIR}/validation/runValidation.sh.in ${RAPIDSIM_ROOT}/${CMAKE_INSTALL_BINDIR}/runValidation.sh   @ONLY)
+ endif()
+ 
+-install(DIRECTORY validation DESTINATION ${CMAKE_INSTALL_PREFIX} )
+-install(DIRECTORY rootfiles DESTINATION ${CMAKE_INSTALL_PREFIX} )
+-install(DIRECTORY utils DESTINATION ${CMAKE_INSTALL_PREFIX} )
+-install(DIRECTORY config DESTINATION ${CMAKE_INSTALL_PREFIX} )
++install(DIRECTORY validation DESTINATION ${RAPIDSIM_ROOT} )
++install(DIRECTORY rootfiles DESTINATION ${RAPIDSIM_ROOT} )
++install(DIRECTORY utils DESTINATION ${RAPIDSIM_ROOT} )
++install(DIRECTORY config DESTINATION ${RAPIDSIM_ROOT} )
+ 
+ 
+ 
+
+From 0c56226a0d998526e452868450036e786a70875f Mon Sep 17 00:00:00 2001
+From: Christopher Burr <christopher.burr@cern.ch>
+Date: Sat, 2 Mar 2019 16:34:22 +0000
+Subject: [PATCH 4/4] Fix missed print statement
+
+---
+ utils/compareParts.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/utils/compareParts.py b/utils/compareParts.py
+index 9e140cf..264ee6d 100644
+--- a/utils/compareParts.py
++++ b/utils/compareParts.py
+@@ -126,7 +126,7 @@ def compare(title, rs, eg):
+ print("M G C S")
+ print(diffM, diffG, diffC, diffS)
+ 
+-print "\n---------ONLY in EvtGen---------\n"
++print("\n---------ONLY in EvtGen---------\n")
+ for part in sorted(egOnly):
+     if part < 0 and -part in egOnly:
+         continue
