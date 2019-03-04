@@ -31,7 +31,7 @@ cd ../uni
 
 for test in 1 2 3 4 5
 do
-  ${CC} -Wall test_${test}.c -Xlinker -rpath=${PREFIX}/lib -L ${PREFIX}/lib \
+  ${CC} -Wall test_${test}.c -Xlinker -rpath ${PREFIX}/lib -L ${PREFIX}/lib \
       -ljigsaw -o test_${test}
   ./test_${test}
 done
