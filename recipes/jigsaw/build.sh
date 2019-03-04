@@ -5,13 +5,13 @@ set -e
 
 cd src
 
-${GXX} -std=c++11 -pedantic -Wall -s -O3 -flto -D NDEBUG -D __cmd_jigsaw \
+${CXX} -std=c++11 -pedantic -Wall -s -O3 -flto -D NDEBUG -D __cmd_jigsaw \
     -static-libstdc++ jigsaw.cpp -o jigsaw
 
-${GXX} -std=c++11 -pedantic -Wall -s -O3 -flto -D NDEBUG -D __cmd_tripod \
+${CXX} -std=c++11 -pedantic -Wall -s -O3 -flto -D NDEBUG -D __cmd_tripod \
     -static-libstdc++ jigsaw.cpp -o tripod
 
-${GXX} -std=c++11 -pedantic -Wall -O3 -flto -fPIC -D NDEBUG -D __lib_jigsaw \
+${CXX} -std=c++11 -pedantic -Wall -O3 -flto -fPIC -D NDEBUG -D __lib_jigsaw \
     -static-libstdc++ jigsaw.cpp -shared -o libjigsaw.so
 
 install -d ${PREFIX}/bin/
@@ -31,7 +31,7 @@ cd ../uni
 
 for test in 1 2 3 4 5
 do
-  ${GCC} -Wall test_${test}.c -Xlinker -rpath=${PREFIX}/lib -L ${PREFIX}/lib \
+  ${CC} -Wall test_${test}.c -Xlinker -rpath=${PREFIX}/lib -L ${PREFIX}/lib \
       -ljigsaw -o test_${test}
   ./test_${test}
 done
