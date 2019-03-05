@@ -3,13 +3,19 @@
 set -x
 set -e
 
+if [ "$(uname)" == "Darwin" ]; then
+  SHARED="-dynamiclib"
+elif [ "$(uname)" == "Linux" ]; then
+  SHARED="-shared"
+fi
+
 cd src
 
 ${CXX} ${CXXFLAGS} -D NDEBUG -D __cmd_jigsaw jigsaw.cpp -o jigsaw
 
 ${CXX} ${CXXFLAGS} -D NDEBUG -D __cmd_tripod jigsaw.cpp -o tripod
 
-${CXX} ${CXXFLAGS} -D NDEBUG -D __lib_jigsaw jigsaw.cpp -shared -o \
+${CXX} ${CXXFLAGS} ${SHARED} -D NDEBUG -D __lib_jigsaw jigsaw.cpp -o \
     libjigsaw${SHLIB_EXT}
 
 install -d ${PREFIX}/bin/
