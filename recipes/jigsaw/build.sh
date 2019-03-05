@@ -5,14 +5,12 @@ set -e
 
 cd src
 
-${CXX} -std=c++11 -pedantic -Wall -s -O3 -flto -D NDEBUG -D __cmd_jigsaw \
-    -static-libstdc++ jigsaw.cpp -o jigsaw
+${CXX} ${CXXFLAGS} -D NDEBUG -D __cmd_jigsaw jigsaw.cpp -o jigsaw
 
-${CXX} -std=c++11 -pedantic -Wall -s -O3 -flto -D NDEBUG -D __cmd_tripod \
-    -static-libstdc++ jigsaw.cpp -o tripod
+${CXX} ${CXXFLAGS} -D NDEBUG -D __cmd_tripod jigsaw.cpp -o tripod
 
-${CXX} -std=c++11 -pedantic -Wall -O3 -flto -fPIC -D NDEBUG -D __lib_jigsaw \
-    -static-libstdc++ jigsaw.cpp -shared -o libjigsaw.so
+${CXX} ${CXXFLAGS} -D NDEBUG -D __lib_jigsaw jigsaw.cpp -shared -o \
+    libjigsaw${SHLIB_EXT}
 
 install -d ${PREFIX}/bin/
 for exec in jigsaw tripod
@@ -21,7 +19,7 @@ do
 done
 
 install -d ${PREFIX}/lib/
-install -m 644 libjigsaw.so ${PREFIX}/lib/
+install -m 644 libjigsaw${SHLIB_EXT} ${PREFIX}/lib/
 
 install -d ${PREFIX}/include/
 install -m 644 ../inc/*.h ${PREFIX}/include/
@@ -31,7 +29,6 @@ cd ../uni
 
 for test in 1 2 3 4 5
 do
-  ${CC} -Wall test_${test}.c -Xlinker -rpath ${PREFIX}/lib -L ${PREFIX}/lib \
-      -ljigsaw -o test_${test}
+  ${CC} ${CFLAGS} test_${test}.c ${LDFLAGS} -ljigsaw -o test_${test}
   ./test_${test}
 done
