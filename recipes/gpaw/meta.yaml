@@ -1,5 +1,8 @@
+{% set build = 0 %}
 {% set name = "gpaw" %}
 {% set version = "1.5.1" %}
+{% set sha256 = "63a00bd97cc4e10fb5f5c718039af18c90c7e0e19897a6a852e5f54fc0c81776" %}
+{% set build_string = "py{}_{}_{}".format(environ.get('CONDA_PY', ''), mpi, build) $}
 
 package:
   name: {{ name|lower }}
@@ -7,12 +10,13 @@ package:
 
 source:
   url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
-  sha256: 63a00bd97cc4e10fb5f5c718039af18c90c7e0e19897a6a852e5f54fc0c81776
+  sha256: {{ sha256 }}
   patches:
     - 001_config-py.patch
 
 build:
-  number: 0
+  number: {{ build }}
+  string: {{ build_string }}
   skip: True  # [not linux]
 
 requirements:
@@ -41,9 +45,12 @@ requirements:
 
 test:
   commands:
-    - test -x $PREFIX/bin/gpaw-python         # [mpi != 'nompi']
-    - OMPI_MCA_plm=isolated OMPI_MCA_btl_vader_single_copy_mechanism=none OMPI_MCA_rmaps_base_oversubscribe=yes mpiexec -np 1 gpaw-python -m gpaw test  # [mpi == 'openmpi']
-    - gpaw test -j 1                          # [mpi == 'nompi']
+    - gpaw test -j 1                                        # [mpi == 'nompi']
+    - test -x $PREFIX/bin/gpaw-python                       # [mpi != 'nompi']
+    - export OMPI_MCA_plm=isolated                          # [mpi == 'openmpi']
+    - export OMPI_MCA_btl_vader_single_copy_mechanism=none  # [mpi == 'openmpi']
+    - export OMPI_MCA_rmaps_base_oversubscribe=yes          # [mpi == 'openmpi']
+    - mpiexec -np 1 gpaw-python -m gpaw test                # [mpi != 'nompi']
 
 about:
   home: https://wiki.fysik.dtu.dk/gpaw

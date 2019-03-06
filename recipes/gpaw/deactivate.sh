@@ -1,0 +1,1 @@
+unset GPAW_DATA_PATH
