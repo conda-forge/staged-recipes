@@ -25,7 +25,7 @@ if not 'openblas' in libraries:
 EOF
 
 python -m pip install . --no-deps -vv
-gpaw install-data --register $PREFIX/share  # also creates ~/.gpaw/rc.py
+gpaw install-data --no-register $PREFIX/share
 
 mkdir -p "$PREFIX/etc/conda/activate.d"
 mkdir -p "$PREFIX/etc/conda/deactivate.d"
