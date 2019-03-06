@@ -1,1 +1,1 @@
-unset GPAW_DATA_PATH
+unset GPAW_SETUP_PATH
