@@ -10,6 +10,8 @@
             --with-zlib=${PREFIX}     \
             --with-metalink           \
             --with-cares              \
-            --with-libpsl
+            --with-libpsl             \
+	    CC=${CC}
 make
+make check || (cat tests/test-suite.log && exit 1)
 make install
