@@ -10,7 +10,6 @@ export PYTHONUNBUFFERED=1
 
 cat >~/.condarc <<CONDARC
 
-channel_priority: strict
 channels:
  - conda-forge
  - defaults
