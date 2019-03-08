@@ -1,2 +1,2 @@
-cd $SRC_DIR
+cd einsteinpy
 py.test -vv
