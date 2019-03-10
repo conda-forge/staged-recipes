@@ -1,7 +1,4 @@
 #!/bin/bash
-if [[ "$target_platform" == "linux-64" ]]; then
-  export LDFLAGS="-Wl,-rpath=$PREFIX/lib"
-fi
 ./configure \
   --with-libedit \
   --prefix=$PREFIX \
