@@ -44,4 +44,4 @@ if [[ ! -f Makefile ]]; then
   fi
 fi
 
-make -j${CPU_COUNT} ${VERBOSE_CM}
+make -j${CPU_COUNT}
