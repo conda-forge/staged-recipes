@@ -1,0 +1,105 @@
+{% set version = "0.9.0" %}
+
+package:
+  name: lief
+  version: {{ version }}
+
+source:
+  - url: https://github.com/lief-project/LIEF/archive/{{ version }}.tar.gz
+    fn: lief-{{ version }}.tar.gz
+    sha256: 8f1a12d69d9f6bd8404d4f5809549d1c7f3138cacf3bccd1192cb4f46bfb9eb7
+    patches:
+      - 0001-Allow-building-from-released-tarball.patch
+      - 0002-MSVC-Add-bigobj-flag.patch
+      - 0003-Export-LIEF-Object-and-LIEF-MachO-DataCodeEntry-clas.patch
+      - 0004-MachO-Fix-has_dynamic_symbol_command.patch
+      - 0005-Link-Python-extension-module-to-shared-LIEF-library.patch
+
+build:
+  number: 0
+  # Python 2.7 is not supported on Windows
+  # lief_easyloggingpp\src\easylogging++.h(327) : fatal error C1189: #error :  "C++0x (or higher) support not detected! (Is `-std=c++11' missing?)
+  skip: True  # [win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - git
+    - pkg-config            # [not win]
+    - jom                   # [win]
+    - cmake
+    - make                  # [unix]
+
+outputs:
+  - name: py-lief
+    script: install-py-lief.sh   # [unix]
+    script: install-py-lief.bat  # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage('py-lief', max_pin='x.x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - git
+        - pkg-config            # [not win]
+        - jom                   # [win]
+        - cmake
+        - make                  # [unix]
+      host:
+        - {{ pin_subpackage('liblief', exact=True) }}
+        - python
+        - setuptools
+      run:
+        - {{ pin_subpackage('liblief', exact=True) }}
+        - python
+    test:
+      requires:
+        - {{ compiler('cxx') }}
+      imports:
+        - lief
+
+  - name: liblief
+    script: install-liblief.sh        # [unix]
+    script: install-liblief.bat       # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage('liblief', max_pin='x.x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - git
+        - pkg-config            # [not win]
+        - jom                   # [win]
+        - cmake
+        - make                  # [unix]
+    test:
+      files:
+        - tests
+      script: run_test_liblief.sh
+      requires:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - jom                   # [win]
+        - make                  # [unix]
+
+about:
+  home: https://lief.quarkslab.com/
+  license: Apache 2.0
+  license_family: Apache
+  summary: A cross platform library to parse, modify and abstract ELF, PE and MachO formats.
+  description: |
+    It turns out that many projects need to parse executable formats and they usually re-implement
+    their own parser. Moreover these parsers are usually bound to one language.
+    LIEF attempts to fill this void.
+  doc_url: https://lief.quarkslab.com/doc/stable/index.html
+  doc_source_url: https://github.com/lief-project/LIEF/tree/master/doc
+
+extra:
+  recipe-maintainers:
+    - isuruf
+    - mingwandroid
+    - msarahan
