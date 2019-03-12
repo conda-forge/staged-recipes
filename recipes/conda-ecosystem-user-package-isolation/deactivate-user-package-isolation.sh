@@ -1,0 +1,25 @@
+# Decrement activation counter
+if [[ "$CONDA_USER_PACKAGE_ISOLATION" -gt "0" ]]; then
+	export CONDA_USER_PACKAGE_ISOLATION=$[$CONDA_USER_PACKAGE_ISOLATION-1]
+fi
+
+if [[ "$CONDA_USER_PACKAGE_ISOLATION" -eq "0" ]]; then
+	# Reset PYTHONNOUSERSITE
+	if [[ -z "$CONDA_PYTHONNOUSERSITE_BAK" ]]; then
+		unset PYTHONNOUSERSITE
+	else
+		PYTHONNOUSERSITE="$CONDA_PYTHONNOUSERSITE_BAK"
+	fi
+	unset CONDA_PYTHONNOUSERSITE_BAK
+
+	# Reset R_LIBS_USER
+	if [[ -z "$CONDA_RLIBSUSER_BAK" ]]; then
+		unset R_LIBS_USER
+	else
+		R_LIBS_USER="$CONDA_RLIBSUSER_BAK"
+	fi
+	unset CONDA_RLIBSUSER_BAK
+
+	# Finally get rid of counter
+	unset CONDA_USER_PACKAGE_ISOLATION
+fi
