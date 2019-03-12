@@ -40,8 +40,8 @@ pushd build
     exit 1
   fi
 
-  make -j${CPU_COUNT} ${VERBOSE_CM}
-  make install ${VERBOSE_CM}
+  make -j${CPU_COUNT}
+  make install
   pushd api/python
     find ${SP_DIR}
     ${PYTHON} setup.py install --single-version-externally-managed --record=record.txt
