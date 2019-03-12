@@ -2,10 +2,6 @@
 
 pushd tests
 
-  # Build sample
-  if [[ $(uname) == Darwin ]]; then
-    export CONDA_BUILD_SYSROOT=/opt/MacOSX10.9.sdk
-  fi
   cmake -DCMAKE_BUILD_TYPE=Debug .
   make -j${CPU_COUNT} VERBOSE=1
 
