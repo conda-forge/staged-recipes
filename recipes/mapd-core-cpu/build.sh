@@ -8,7 +8,7 @@ cd build
 if [ $(uname) == Darwin ]; then
   # export MACOSX_DEPLOYMENT_TARGET="10.9"
   export CMAKE_COMPILERS="-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
-  export CXXFLAGS="-std=c++14"
+  export CXXFLAGS="-std=c++14 -D_GLIBCXX_USE_CXX11_ABI=1"
   export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
   export ZLIB_ROOT=$PREFIX
   export LibArchive_ROOT=$PREFIX
@@ -17,6 +17,8 @@ else
   export CMAKE_COMPILERS=""
   export CXXFLAGS="-std=c++14 -D_GLIBCXX_USE_CXX11_ABI=1"
   export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
+  export ZLIB_ROOT=$PREFIX
+  export CXXFLAGS="$CXXFLAGS -msse4.1"
 fi
 
 cmake \
