@@ -23,17 +23,17 @@ fi
 
 cmake \
     -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
-    -DCMAKE_BUILD_TYPE=release \
-    -DCMAKE_C_COMPILER=$CC \
-    -DCMAKE_CXX_COMPILER=$CXX \
+    -DCMAKE_BUILD_TYPE=debug \
     -DMAPD_DOCS_DOWNLOAD=off \
     -DMAPD_IMMERSE_DOWNLOAD=off \
     -DENABLE_AWS_S3=off \
     -DENABLE_CUDA=off \
     -DENABLE_FOLLY=off \
+    -DENABLE_JAVA_REMOTE_DEBUG=off \
     -DENABLE_PROFILE=off \
     -DENABLE_TESTS=on  \
     -DPREFER_STATIC_LIBS=off \
+    $CMAKE_COMPILERS \
     ..
 
 make -j4
