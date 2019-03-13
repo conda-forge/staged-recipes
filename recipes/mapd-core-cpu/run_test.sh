@@ -1,3 +1,3 @@
 #!/bin/bash
 
-mapdql -v
+omnisql -v

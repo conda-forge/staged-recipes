@@ -13,12 +13,13 @@ if [ $(uname) == Darwin ]; then
   export ZLIB_ROOT=$PREFIX
   export LibArchive_ROOT=$PREFIX
 else
-  # linxu
-  export CMAKE_COMPILERS=""
+  # linux
+  export CMAKE_COMPILERS="-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
   export CXXFLAGS="-std=c++14 -D_GLIBCXX_USE_CXX11_ABI=1"
   export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
   export ZLIB_ROOT=$PREFIX
   export CXXFLAGS="$CXXFLAGS -msse4.1"
+  export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
 fi
 
 cmake \
