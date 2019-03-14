@@ -1,6 +1,6 @@
 #!/bin/bash
 mkdir -p build
-cd build
+pushd build
 
 cmake .. \
       -DCMAKE_INSTALL_PREFIX=$PREFIX \
@@ -12,6 +12,6 @@ make -j$CPU_COOUNT
 
 cp gemmi "$PREFIX/bin/"
 
-cd $SRC_DIR
+popd
 
 "$PYTHON" -m pip install . --no-deps -vv
