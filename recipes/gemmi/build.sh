@@ -5,6 +5,7 @@ cd build
 cmake .. \
       -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_PREFIX_PATH=$PREFIX \
+      -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
       -DCMAKE_BUILD_TYPE=Release
 
 make -j$CPU_COOUNT
