@@ -39,7 +39,7 @@ cmake \
     $CMAKE_COMPILERS \
     ..
 
-make -j4
+make -j `nproc`
 make install
 
 mkdir tmp 
