@@ -1,7 +1,12 @@
 #!/bin/bash
+mkdir -p build
+cd build
 
-cmake .
-make
+cmake .. \
+      -DCMAKE_INSTALL_PREFIX=$PREFIX \
+      -DCMAKE_PREFIX_PATH=$PREFIX
+
+make -j$CPU_COOUNT
 
 cp gemmi "$PREFIX/bin/"
 
