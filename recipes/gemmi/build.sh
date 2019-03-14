@@ -11,4 +11,6 @@ make -j$CPU_COOUNT
 
 cp gemmi "$PREFIX/bin/"
 
+cd $SRC_DIR
+
 "$PYTHON" -m pip install . --no-deps -vv
