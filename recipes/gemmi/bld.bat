@@ -1,12 +1,12 @@
 cmake ^
-    -G "%CMAKE_GENERATOR%" ^
+    -G "Ninja" ^
     -D CMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
     -D CMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
     -D CMAKE_BUILD_TYPE=Release ^
     .
 if errorlevel 1 exit 1
 
-cmake --build . --config Release
+ninja
 if errorlevel 1 exit 1
 
 cp gemmi.exe "%LIBRARY_BIN%"
