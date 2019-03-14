@@ -25,6 +25,7 @@ fi
 CPPFLAGS="${CPPFLAGS} -Wl,-rpath,$PREFIX/lib"
 
 cmake \
+    -DCMAKE_PREFIX_PATH=$PREFIX \
     -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_JAVA=False \
     -DLZ4_HOME=$PREFIX \
