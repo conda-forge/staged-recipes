@@ -1,4 +1,11 @@
 #!/bin/bash
+mkdir -p build
+cd build
 
-cmake -DCMAKE_INSTALL_PREFIX=$PREFIX $SRC_DIR -DCMAKE_INSTALL_LIBDIR=lib
-make VERBOSE=1 install
+cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
+      -DCMAKE_PREFIX_PATH=$PREFIX \
+      -DCMAKE_INSTALL_LIBDIR=lib \
+      ..
+
+make -j${CPU_COUNT}
+make install
