@@ -20,12 +20,12 @@ else
   export ZLIB_ROOT=$PREFIX
   export CXXFLAGS="$CXXFLAGS -msse4.1"
   export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
-  export CC=
-  export CXX=
+  # export CC=
+  # export CXX=
 fi
 
 cmake \
-    -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX \
+    -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DCMAKE_BUILD_TYPE=debug \
     -DMAPD_DOCS_DOWNLOAD=off \
     -DMAPD_IMMERSE_DOWNLOAD=off \
@@ -43,7 +43,7 @@ make -j4
 make install
 
 mkdir tmp 
-$PREFIX/bin/initdb tmp
+$PREFIX/bin/initdb ./tmp
 make sanity_tests
 
 rm -rf tmp
