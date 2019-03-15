@@ -24,6 +24,36 @@ echo -e "set(CXXINC2 \"-I$CXXINC2\")" >> QueryEngine/CMakeLists.txt
 cat QueryEngine/CMakeLists.txt-orig >> QueryEngine/CMakeLists.txt
 sed -i 's/ARGS\ -std=c++14/ARGS\ -std=c++14\ \${CXXINC1}\ \${CXXINC2}/g' QueryEngine/CMakeLists.txt
 
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$BUILD_PREFIX/$HOST/sysroot/usr/lib
+
+C_RUNTIME_OBJ_FILES="crt0.o crt1.o crt2.o crt3.o crti.o crtn.o"
+
+c_runtime_obj_files_found=0
+
+# Try locating crtXXX.o in default library search paths
+for library_path in $(ld --verbose | grep SEARCH_DIR | sed -r 's/SEARCH_DIR\("=?([^"]*)"\);/ \1/g'); do
+    for obj_file in $C_RUNTIME_OBJ_FILES; do
+        obj_file_full_path="$library_path/$obj_file"
+        if [[ -e "$obj_file_full_path" ]]; then
+            echo -e "$obj_file_full_path"
+            #ln -s "$obj_file_full_path" "${PREFIX}/lib/gcc/"*/*/
+            c_runtime_obj_files_found=1
+        fi
+    done
+    if [ $c_runtime_obj_files_found -eq 1 ]; then
+        break
+    fi
+done
+
+if [ $c_runtime_obj_files_found -ne 1 ]; then
+    echo "Couldn't locate crtXXX.o in default library search paths."
+    #exit 1
+fi
+
+#exit 10
+
+#
+#
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 export ZLIB_ROOT=$PREFIX
 export CC=clang
