@@ -2,7 +2,7 @@
 
 export BLIS_COMPILER="$CC"
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
-    export CFLAGS="-lrt"
-    export LDFLAGS="-lrt"
+    export CFLAGS="$CFLAGS -lrt"
+    export LDFLAGS="$LDFLAGS -lrt"
 fi
 $PYTHON -m pip install . --no-deps -vv
