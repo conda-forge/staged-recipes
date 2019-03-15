@@ -28,13 +28,12 @@ if [ $(uname) == Darwin ]; then
   export LibArchive_ROOT=$PREFIX
 else
   # linux
-  export CMAKE_COMPILERS=""
   export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
   export ZLIB_ROOT=$PREFIX
-  #export CXXFLAGS="$CXXFLAGS -msse4.1"  # only Centos 7 requires this
+  export CXXFLAGS="$CXXFLAGS -msse4.1"  # only Centos 7 requires this
   export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"  # fixes build failure
-  export CMAKE_COMPILERS="-DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX"
-  #export CMAKE_COMPILERS="-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
+  # export CMAKE_COMPILERS="-DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX"
+  export CMAKE_COMPILERS="-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
 fi
 
 # TODO: change from debug to release
