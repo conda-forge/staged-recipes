@@ -4,6 +4,13 @@ set -ex
 
 env
 
+# sed -i option is handled differently in Linux and OSX
+if [ $(uname) == Darwin ]; then
+    export INPLACE_SED="sed -i \"\" -e"
+else
+    export INPLACE_SED="sed -i"
+fi
+
 # mapd-core v 4.5.0 (or older) hardcodes /usr/bin/java Grab
 # Calcite.cpp with a fix
 # (https://github.com/omnisci/mapd-core/pull/316) from a repo:
@@ -14,25 +21,27 @@ mv Calcite.cpp Calcite/
 # ThirdParty/lib. Actully, moving environment boost libraries to
 # ThirdParty/lib does not make much sense. The following is just a
 # quick workaround of the problem:
-sed -i 's/DESTINATION\ ThirdParty\/lib/DESTINATION\ lib/g' CMakeLists.txt
+$INPLACE_SED 's/DESTINATION ThirdParty\/lib/DESTINATION lib/g' CMakeLists.txt
 
 # Add include directories to clang++ for building RuntimeFunctions.bc and ExtensionFunctions.ast
 # This fixes failures about not finding cassert, ... include files.
 CXXINC1=$BUILD_PREFIX/$HOST/include/c++/7.3.0
 CXXINC2=$BUILD_PREFIX/$HOST/include/c++/7.3.0/$HOST
+CXXINC3=$BUILD_PREFIX/$HOST/sysroot/usr/include
 mv QueryEngine/CMakeLists.txt QueryEngine/CMakeLists.txt-orig
 echo -e "set(CXXINC1 \"-I$CXXINC1\")" > QueryEngine/CMakeLists.txt
 echo -e "set(CXXINC2 \"-I$CXXINC2\")" >> QueryEngine/CMakeLists.txt
+echo -e "set(CXXINC3 \"-I$CXXINC3\")" >> QueryEngine/CMakeLists.txt
 cat QueryEngine/CMakeLists.txt-orig >> QueryEngine/CMakeLists.txt
-sed -i 's/ARGS\ -std=c++14/ARGS\ -std=c++14\ \${CXXINC1}\ \${CXXINC2}/g' QueryEngine/CMakeLists.txt
+$INPLACE_SED 's/ARGS -std=c++14/ARGS -std=c++14 \${CXXINC1} \${CXXINC2} \${CXXINC3}/g' QueryEngine/CMakeLists.txt
 
-# When using clang/clang++, make sure that linker finds gcc .o/.a files:
-export CXXFLAGS="$CXXFLAGS -B $BUILD_PREFIX/$HOST/sysroot/usr/lib -B $BUILD_PREFIX/lib/gcc/$HOST/7.3.0/ --gcc-toolchain=$BUILD_PREFIX/$HOST"
-export CFLAGS="$CFLAGS -B $BUILD_PREFIX/$HOST/sysroot/usr/lib -B $BUILD_PREFIX/lib/gcc/$HOST/7.3.0/ --gcc-toolchain=$BUILD_PREFIX/$HOST"
+# When using clang/clang++, make sure that linker finds gcc .o/.a files (todo: can the flags reduced?):
+export CXXFLAGS="$CXXFLAGS -B $BUILD_PREFIX/$HOST/sysroot/usr/lib -B $BUILD_PREFIX/$HOST/sysroot/lib -B $BUILD_PREFIX/lib/gcc/$HOST/7.3.0/ --gcc-toolchain=$BUILD_PREFIX/$HOST --sysroot=$BUILD_PREFIX/$HOST/sysroot"
+export CFLAGS="$CFLAGS -B $BUILD_PREFIX/$HOST/sysroot/usr/lib -B $BUILD_PREFIX/$HOST/sysroot/lib -B $BUILD_PREFIX/lib/gcc/$HOST/7.3.0/ --gcc-toolchain=$BUILD_PREFIX/$HOST --sysroot=$BUILD_PREFIX/$HOST/sysroot"
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib -Wl,-L$BUILD_PREFIX/$HOST/sysroot/usr/lib -Wl,-L$BUILD_PREFIX/lib/gcc/$HOST/7.3.0/"
-#export ZLIB_ROOT=$PREFIX
+#export ZLIB_ROOT=$PREFIX   # todo: make sure that it is not needed on Darwin
 
-# Prefer clang/clang++
+# Prefer clang/clang++:
 if [ True ]; then
   export CC=$BUILD_PREFIX/bin/clang
   export CXX=$BUILD_PREFIX/bin/clang++
@@ -42,15 +51,17 @@ else
   export CXX=$BUILD_PREFIX/bin/$HOST-g++
 fi
 
-# TODO: get rid of the if block..
+# fixes `undefined reference to `boost::system::detail::system_category_instance'` issue:
+export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+
 if [ $(uname) == Darwin ]; then
   # export MACOSX_DEPLOYMENT_TARGET="10.9"
-  #export CXXFLAGS="-std=c++14 -D_GLIBCXX_USE_CXX11_ABI=1"
   export LibArchive_ROOT=$PREFIX
-else
-  # linux
-  export CXXFLAGS="$CXXFLAGS -msse4.1"  # only Centos 7 requires this
-  export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"  # it seems that conda build also defines
+fi
+
+# only Centos 7 seems to require -msse4.1
+if [ -n "`cat /etc/*-release | grep CentOS`" ]; then
+   export CXXFLAGS="$CXXFLAGS -msse4.1"
 fi
 
 export CMAKE_COMPILERS="-DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX"
