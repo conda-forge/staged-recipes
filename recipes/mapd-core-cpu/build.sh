@@ -26,10 +26,10 @@ sed -i 's/ARGS\ -std=c++14/ARGS\ -std=c++14\ \${CXXINC1}\ \${CXXINC2}/g' QueryEn
 
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 export ZLIB_ROOT=$PREFIX
+export CC=clang
+export CXX=clang++
 if [ $(uname) == Darwin ]; then
   # export MACOSX_DEPLOYMENT_TARGET="10.9"
-  export CC=clang
-  export CXX=clang++
   #export CXXFLAGS="-std=c++14 -D_GLIBCXX_USE_CXX11_ABI=1"
   export LibArchive_ROOT=$PREFIX
 else
