@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 export BLIS_COMPILER="$CC"
-if [[ "$OSTYPE" == "linux-gnu" ]]; then
-    export CFLAGS="$CFLAGS -lrt"
-    export LDFLAGS="$LDFLAGS -lrt"
+if [[ "$(uname)" == "Linux" ]]; then
+    $PYTHON -m pip install . --no-deps -vv --global-option="build_ext" --global-option="-lrt"
+else
+    $PYTHON -m pip install . --no-deps -vv 
 fi
-$PYTHON -m pip install . --no-deps -vv
