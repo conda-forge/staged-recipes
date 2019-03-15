@@ -2,6 +2,8 @@
 
 set -ex
 
+env
+
 # mapd-core v 4.5.0 (or older) hardcodes /usr/bin/java Grab
 # Calcite.cpp with a fix
 # (https://github.com/omnisci/mapd-core/pull/316) from a repo:
@@ -24,40 +26,23 @@ echo -e "set(CXXINC2 \"-I$CXXINC2\")" >> QueryEngine/CMakeLists.txt
 cat QueryEngine/CMakeLists.txt-orig >> QueryEngine/CMakeLists.txt
 sed -i 's/ARGS\ -std=c++14/ARGS\ -std=c++14\ \${CXXINC1}\ \${CXXINC2}/g' QueryEngine/CMakeLists.txt
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$BUILD_PREFIX/$HOST/sysroot/usr/lib
+# When using clang/clang++, make sure that linker finds gcc .o/.a files:
+export CXXFLAGS="$CXXFLAGS -B $BUILD_PREFIX/$HOST/sysroot/usr/lib -B $BUILD_PREFIX/lib/gcc/$HOST/7.3.0/ --gcc-toolchain=$BUILD_PREFIX/$HOST"
+export CFLAGS="$CFLAGS -B $BUILD_PREFIX/$HOST/sysroot/usr/lib -B $BUILD_PREFIX/lib/gcc/$HOST/7.3.0/ --gcc-toolchain=$BUILD_PREFIX/$HOST"
+export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib -Wl,-L$BUILD_PREFIX/$HOST/sysroot/usr/lib -Wl,-L$BUILD_PREFIX/lib/gcc/$HOST/7.3.0/"
+#export ZLIB_ROOT=$PREFIX
 
-C_RUNTIME_OBJ_FILES="crt0.o crt1.o crt2.o crt3.o crti.o crtn.o"
-
-c_runtime_obj_files_found=0
-
-# Try locating crtXXX.o in default library search paths
-for library_path in $(ld --verbose | grep SEARCH_DIR | sed -r 's/SEARCH_DIR\("=?([^"]*)"\);/ \1/g'); do
-    for obj_file in $C_RUNTIME_OBJ_FILES; do
-        obj_file_full_path="$library_path/$obj_file"
-        if [[ -e "$obj_file_full_path" ]]; then
-            echo -e "$obj_file_full_path"
-            #ln -s "$obj_file_full_path" "${PREFIX}/lib/gcc/"*/*/
-            c_runtime_obj_files_found=1
-        fi
-    done
-    if [ $c_runtime_obj_files_found -eq 1 ]; then
-        break
-    fi
-done
-
-if [ $c_runtime_obj_files_found -ne 1 ]; then
-    echo "Couldn't locate crtXXX.o in default library search paths."
-    #exit 1
+# Prefer clang/clang++
+if [ True ]; then
+  export CC=$BUILD_PREFIX/bin/clang
+  export CXX=$BUILD_PREFIX/bin/clang++
+  export CXXFLAGS="$CXXFLAGS -I$CXXINC1 -I$CXXINC2"
+else
+  export CC=$BUILD_PREFIX/bin/$HOST-gcc
+  export CXX=$BUILD_PREFIX/bin/$HOST-g++
 fi
 
-#exit 10
-
-#
-#
-export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
-export ZLIB_ROOT=$PREFIX
-export CC=clang
-export CXX=clang++
+# TODO: get rid of the if block..
 if [ $(uname) == Darwin ]; then
   # export MACOSX_DEPLOYMENT_TARGET="10.9"
   #export CXXFLAGS="-std=c++14 -D_GLIBCXX_USE_CXX11_ABI=1"
@@ -69,9 +54,6 @@ else
 fi
 
 export CMAKE_COMPILERS="-DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX"
-if [ "$(basename $CXX)" == "clang++" ]; then
-    export CXXFLAGS="$CXXFLAGS -I$CXXINC1 -I$CXXINC2"
-fi
 
 mkdir -p build
 cd build
