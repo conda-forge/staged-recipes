@@ -6,21 +6,6 @@ env
 
 ls -la $BUILD_PREFIX/bin
 
-COMPILERNAME=clang   # options: clang, gcc
-export CC=$BUILD_PREFIX/bin/clang
-export CXX=$BUILD_PREFIX/bin/clang++
-
-GXX=$BUILD_PREFIX/bin/$HOST-g++
-GCCSYSROOT=$BUILD_PREFIX/$HOST/sysroot
-GCCVERSION=$(basename $(dirname $($GXX -print-libgcc-file-name)))
-GXXINCLUDEDIR=$BUILD_PREFIX/$HOST/include/c++/$GCCVERSION
-GCCLIBDIR=$BUILD_PREFIX/lib/gcc/$HOST/$GCCVERSION
-
-echo "GCCVERSION=$GCCVERSION"
-echo "GCCSYSROOT=$GCCSYSROOT"
-echo "GCCLIBDIR=$GCCLIBDIR"
-echo "GXXINCLUDEDIR=$GXXINCLUDEDIR"
-
 # sed -i option is handled differently in Linux and OSX
 if [ $(uname) == Darwin ]; then
     INPLACE_SED="sed -i \"\" -e"
@@ -41,50 +26,73 @@ mv Calcite.cpp Calcite/
 # code from CMakeLists.txt as not needed.
 $INPLACE_SED 's/DESTINATION ThirdParty\/lib/DESTINATION lib/g' CMakeLists.txt
 
-# Fix not found include file errors:
-CXXINC1=$GXXINCLUDEDIR            # cassert, ...
-CXXINC2=$GXXINCLUDEDIR/$HOST      # <string> requires bits/c++config.h
-CXXINC3=$GCCSYSROOT/usr/include   # pthread.h
-
-# Add include directories for explicit clang++ call in
-# QueryEngine/CMakeLists.txt for building RuntimeFunctions.bc and
-# ExtensionFunctions.ast:
-mv QueryEngine/CMakeLists.txt QueryEngine/CMakeLists.txt-orig
-echo -e "set(CXXINC1 \"-I$CXXINC1\")" > QueryEngine/CMakeLists.txt
-echo -e "set(CXXINC2 \"-I$CXXINC2\")" >> QueryEngine/CMakeLists.txt
-echo -e "set(CXXINC3 \"-I$CXXINC3\")" >> QueryEngine/CMakeLists.txt
-cat QueryEngine/CMakeLists.txt-orig >> QueryEngine/CMakeLists.txt
-$INPLACE_SED 's/ARGS -std=c++14/ARGS -std=c++14 \${CXXINC1} \${CXXINC2} \${CXXINC3}/g' QueryEngine/CMakeLists.txt
-
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
-export LDFLAGS="$LDFLAGS -Wl,-L$GCCLIBDIR"             # resolves `cannot find -lgcc`
 
-if [ "$COMPILERNAME" == "clang" ]; then
-  export CXXFLAGS="$CXXFLAGS -I$CXXINC1 -I$CXXINC2 -I$CXXINC3"  # see CXXINC? above
-  export CFLAGS="$CFLAGS -I$CXXINC3"                            # for pthread.h
+if [ $(uname) == Darwin ]; then
+    # Darwin has only clang
+    COMPILERNAME=clang   # options: clang
+    export CC=$CLANG
+    export CXX=$CLANGXX
 else
-  # untested
-  export CC=$BUILD_PREFIX/bin/$HOST-gcc
-  export CXX=$BUILD_PREFIX/bin/$HOST-g++
+    # Linux
+    echo "uname=${uname}"
+    COMPILERNAME=clang   # options: clang, gcc
+    GXX=$BUILD_PREFIX/bin/$HOST-g++  # replace with $GXX
+    GCCSYSROOT=$BUILD_PREFIX/$HOST/sysroot
+    GCCVERSION=$(basename $(dirname $($GXX -print-libgcc-file-name)))
+    GXXINCLUDEDIR=$BUILD_PREFIX/$HOST/include/c++/$GCCVERSION
+    GCCLIBDIR=$BUILD_PREFIX/lib/gcc/$HOST/$GCCVERSION
+
+    echo "GCCVERSION=$GCCVERSION"
+    echo "GCCSYSROOT=$GCCSYSROOT"
+    echo "GCCLIBDIR=$GCCLIBDIR"
+    echo "GXXINCLUDEDIR=$GXXINCLUDEDIR"
+    
+    # Fix not found include file errors:
+    CXXINC1=$GXXINCLUDEDIR            # cassert, ...
+    CXXINC2=$GXXINCLUDEDIR/$HOST      # <string> requires bits/c++config.h
+    CXXINC3=$GCCSYSROOT/usr/include   # pthread.h
+    
+    # Add include directories for explicit clang++ call in
+    # QueryEngine/CMakeLists.txt for building RuntimeFunctions.bc and
+    # ExtensionFunctions.ast:
+    mv QueryEngine/CMakeLists.txt QueryEngine/CMakeLists.txt-orig
+    echo -e "set(CXXINC1 \"-I$CXXINC1\")" > QueryEngine/CMakeLists.txt
+    echo -e "set(CXXINC2 \"-I$CXXINC2\")" >> QueryEngine/CMakeLists.txt
+    echo -e "set(CXXINC3 \"-I$CXXINC3\")" >> QueryEngine/CMakeLists.txt
+    cat QueryEngine/CMakeLists.txt-orig >> QueryEngine/CMakeLists.txt
+    $INPLACE_SED 's/ARGS -std=c++14/ARGS -std=c++14 \${CXXINC1} \${CXXINC2} \${CXXINC3}/g' QueryEngine/CMakeLists.txt
+
+    if [ "$COMPILERNAME" == "clang" ]; then
+        export CC=$BUILD_PREFIX/bin/clang
+        export CXX=$BUILD_PREFIX/bin/clang++
+        export CXXFLAGS="$CXXFLAGS -I$CXXINC1 -I$CXXINC2 -I$CXXINC3"  # see CXXINC? above
+        export CFLAGS="$CFLAGS -I$CXXINC3"                            # for pthread.h
+    else
+        # untested
+        # Note that go overwrites CC and CXX with nonsense, hence we redefine these here:
+        export CC=$BUILD_PREFIX/bin/$HOST-gcc
+        export CXX=$BUILD_PREFIX/bin/$HOST-g++
+    fi
+
+    export LDFLAGS="$LDFLAGS -Wl,-L$GCCLIBDIR"             # resolves `cannot find -lgcc`
+    # fixes `undefined reference to `boost::system::detail::system_category_instance'` issue:
+    export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+
+    # When using clang/clang++, make sure that linker finds gcc .o/.a files:
+    export CXXFLAGS="$CXXFLAGS  -B $GCCSYSROOT/usr/lib"  # resolves `cannot find crt1.o`
+    export CXXFLAGS="$CXXFLAGS  -B $GCCLIBDIR"           # resolves `cannot find crtbegin.o`
+    export CFLAGS="$CFLAGS  -B $GCCSYSROOT/usr/lib"      # resolves `cannot find crt1.o`
+    export CFLAGS="$CFLAGS  -B $GCCLIBDIR"               # resolves `cannot find crtbegin.o`
+
+    if [ -n "`cat /etc/*-release | grep CentOS`" ]; then
+        echo
+        #export CXXFLAGS="$CXXFLAGS -msse4.1"     # ?todo, might resolve a gcc specific issue
+    fi
 fi
-
-# fixes `undefined reference to `boost::system::detail::system_category_instance'` issue:
-export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
-
-# When using clang/clang++, make sure that linker finds gcc .o/.a files:
-export CXXFLAGS="$CXXFLAGS  -B $GCCSYSROOT/usr/lib"  # resolves `cannot find crt1.o`
-export CXXFLAGS="$CXXFLAGS  -B $GCCLIBDIR"           # resolves `cannot find crtbegin.o`
-
-export CFLAGS="$CFLAGS  -B $GCCSYSROOT/usr/lib"      # resolves `cannot find crt1.o`
-export CFLAGS="$CFLAGS  -B $GCCLIBDIR"               # resolves `cannot find crtbegin.o`
 
 # make sure that $LD is always used for a linker:
 cp -v $LD $BUILD_PREFIX/bin/ld
-
-if [ -n "`cat /etc/*-release | grep CentOS`" ]; then
-   echo
-   #export CXXFLAGS="$CXXFLAGS -msse4.1"     # ?todo, might resolve a gcc specific issue
-fi
 
 export CMAKE_COMPILERS="-DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX"  
 
