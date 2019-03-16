@@ -1,5 +1,6 @@
 @echo on
 cd windows
 dir
-msbuild virtuoso-opensource.sln
+npm install --global --production windows-build-tools
+msbuild /m virtuoso-opensource.sln
 dir
