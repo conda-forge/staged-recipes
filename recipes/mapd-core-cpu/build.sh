@@ -35,9 +35,6 @@ echo -e "set(CXXINC3 \"-I$CXXINC3\")" >> QueryEngine/CMakeLists.txt
 cat QueryEngine/CMakeLists.txt-orig >> QueryEngine/CMakeLists.txt
 $INPLACE_SED 's/ARGS -std=c++14/ARGS -std=c++14 \${CXXINC1} \${CXXINC2} \${CXXINC3}/g' QueryEngine/CMakeLists.txt
 
-# When using clang/clang++, make sure that linker finds gcc .o/.a files (todo: can the flags reduced?):
-export CXXFLAGS="$CXXFLAGS -B $BUILD_PREFIX/$HOST/sysroot/usr/lib -B $BUILD_PREFIX/$HOST/sysroot/lib -B $BUILD_PREFIX/lib/gcc/$HOST/7.3.0/ --gcc-toolchain=$BUILD_PREFIX/$HOST --sysroot=$BUILD_PREFIX/$HOST/sysroot"
-export CFLAGS="$CFLAGS -B $BUILD_PREFIX/$HOST/sysroot/usr/lib -B $BUILD_PREFIX/$HOST/sysroot/lib -B $BUILD_PREFIX/lib/gcc/$HOST/7.3.0/ --gcc-toolchain=$BUILD_PREFIX/$HOST --sysroot=$BUILD_PREFIX/$HOST/sysroot"
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib -Wl,-L$BUILD_PREFIX/$HOST/sysroot/usr/lib -Wl,-L$BUILD_PREFIX/lib/gcc/$HOST/7.3.0/"
 #export ZLIB_ROOT=$PREFIX   # todo: make sure that it is not needed on Darwin
 
@@ -45,7 +42,8 @@ export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib -Wl,-L$BUILD_PREFIX/$HOST/s
 if [ True ]; then
   export CC=$BUILD_PREFIX/bin/clang
   export CXX=$BUILD_PREFIX/bin/clang++
-  export CXXFLAGS="$CXXFLAGS -I$CXXINC1 -I$CXXINC2"
+  export CXXFLAGS="$CXXFLAGS -I$CXXINC1 -I$CXXINC2 -I$CXXINC3"
+  export CFLAGS="$CFLAGS -I$CXXINC1 -I$CXXINC2 -I$CXXINC3"
 else
   export CC=$BUILD_PREFIX/bin/$HOST-gcc
   export CXX=$BUILD_PREFIX/bin/$HOST-g++
@@ -53,6 +51,14 @@ fi
 
 # fixes `undefined reference to `boost::system::detail::system_category_instance'` issue:
 export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+
+# When using clang/clang++, make sure that linker finds gcc .o/.a files (todo: can the flags reduced?):
+export CXXFLAGS="$CXXFLAGS  -B $BUILD_PREFIX/bin -B $BUILD_PREFIX/$HOST/sysroot/usr/lib -B $BUILD_PREFIX/$HOST/sysroot/lib -B $BUILD_PREFIX/lib/gcc/$HOST/7.3.0/"
+export CFLAGS="$CFLAGS  -B $BUILD_PREFIX/bin -B $BUILD_PREFIX/$HOST/sysroot/usr/lib -B $BUILD_PREFIX/$HOST/sysroot/lib -B $BUILD_PREFIX/lib/gcc/$HOST/7.3.0/"
+
+# force linker (seems to work):
+#ln -v -s $LD $BUILD_PREFIX/bin/ld
+cp -v $LD $BUILD_PREFIX/bin/ld
 
 if [ $(uname) == Darwin ]; then
   # export MACOSX_DEPLOYMENT_TARGET="10.9"
@@ -69,6 +75,9 @@ export CMAKE_COMPILERS="-DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX"
 mkdir -p build
 cd build
 
+# force linker (not sure if it works)
+echo -e "CMAKE_LINKER:FILEPATH=$LD" > CMakeCache.txt
+
 # TODO: change from debug to release
 cmake \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
@@ -83,7 +92,7 @@ cmake \
     -DENABLE_TESTS=on  \
     -DPREFER_STATIC_LIBS=off \
     $CMAKE_COMPILERS \
-    -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+    -DCMAKE_MAKE_PROGRAM=$BUILD_PREFIX/bin/make \
     ..
 
 make -j `nproc`
