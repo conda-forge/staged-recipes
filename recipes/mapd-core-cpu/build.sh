@@ -2,8 +2,6 @@
 
 set -ex
 
-env
-
 GCCSYSROOT=$BUILD_PREFIX/$HOST/sysroot
 GCCVERSION=$(basename $(dirname $($GCC -print-libgcc-file-name)))
 GXXINCLUDEDIR=$BUILD_PREFIX/$HOST/include/c++/$GCCVERSION
@@ -51,14 +49,13 @@ $INPLACE_SED 's/ARGS -std=c++14/ARGS -std=c++14 \${CXXINC1} \${CXXINC2} \${CXXIN
 
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 export LDFLAGS="$LDFLAGS -Wl,-L$GCCLIBDIR"             # resolves `cannot find -lgcc`
-#export ZLIB_ROOT=$PREFIX   # ?todo: make sure that it is not needed on Darwin, BUILD_PREFIX?
 
 # Prefer clang/clang++:
 if [ True ]; then
   export CC=$BUILD_PREFIX/bin/clang
   export CXX=$BUILD_PREFIX/bin/clang++
   export CXXFLAGS="$CXXFLAGS -I$CXXINC1 -I$CXXINC2 -I$CXXINC3"  # see CXXINC? above
-  export CFLAGS="$CFLAGS -I$CXXINC3"   # for pthread.h
+  export CFLAGS="$CFLAGS -I$CXXINC3"                            # for pthread.h
 else
   # untested
   export CC=$BUILD_PREFIX/bin/$HOST-gcc
@@ -68,26 +65,15 @@ fi
 # fixes `undefined reference to `boost::system::detail::system_category_instance'` issue:
 export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
 
-# When using clang/clang++, make sure that linker finds gcc .o/.a files (todo: can the flags reduced?):
-#export CXXFLAGS="$CXXFLAGS  -B $BUILD_PREFIX/bin"                   # ? no need in: centos
+# When using clang/clang++, make sure that linker finds gcc .o/.a files:
 export CXXFLAGS="$CXXFLAGS  -B $GCCSYSROOT/usr/lib"  # resolves `cannot find crt1.o`
-#export CXXFLAGS="$CXXFLAGS  -B $BUILD_PREFIX/$HOST/sysroot/lib"     # ? no need in: centos
-export CXXFLAGS="$CXXFLAGS  -B $GCCLIBDIR"   # resolves `cannot find crtbegin.o`
+export CXXFLAGS="$CXXFLAGS  -B $GCCLIBDIR"           # resolves `cannot find crtbegin.o`
 
-#export CFLAGS="$CFLAGS  -B $BUILD_PREFIX/bin"                       # ? no need in: centos
 export CFLAGS="$CFLAGS  -B $GCCSYSROOT/usr/lib"      # resolves `cannot find crt1.o`
-#export CFLAGS="$CFLAGS  -B $BUILD_PREFIX/$HOST/sysroot/lib"         # ? no need in: centos
-export CFLAGS="$CFLAGS  -B $GCCLIBDIR"       # resolves `cannot find crtbegin.o`
+export CFLAGS="$CFLAGS  -B $GCCLIBDIR"               # resolves `cannot find crtbegin.o`
 
 # make sure that $LD is always used for a linker:
 cp -v $LD $BUILD_PREFIX/bin/ld
-
-if [ $(uname) == Darwin ]; then
-  echo
-  # export MACOSX_DEPLOYMENT_TARGET="10.9"  # ?todo
-  # export LibArchive_ROOT=$PREFIX            # ?todo, shouldn't that be BUILD_PREFIX?
-fi
-
 
 if [ -n "`cat /etc/*-release | grep CentOS`" ]; then
    echo
@@ -95,7 +81,6 @@ if [ -n "`cat /etc/*-release | grep CentOS`" ]; then
 fi
 
 export CMAKE_COMPILERS="-DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX"  
-#export CMAKE_COMPILERS="$CMAKE_COMPILERS -DCMAKE_MAKE_PROGRAM=$BUILD_PREFIX/bin/make"  # ? no need in: centos
 
 mkdir -p build
 cd build
@@ -121,7 +106,7 @@ make install
 
 mkdir tmp
 $PREFIX/bin/initdb tmp
-#make sanity_tests
+make sanity_tests
 rm -rf tmp
 
 # copy initdb to mapd_initdb to avoid conflict with psql initdb
