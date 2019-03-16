@@ -2,8 +2,14 @@
 
 set -ex
 
+env
+
+export CC=$CLANG
+export CXX=$CLANGXX
+
+GXX=$BUILD_PREFIX/bin/$HOST-g++
 GCCSYSROOT=$BUILD_PREFIX/$HOST/sysroot
-GCCVERSION=$(basename $(dirname $($GCC -print-libgcc-file-name)))
+GCCVERSION=$(basename $(dirname $($GXX -print-libgcc-file-name)))
 GXXINCLUDEDIR=$BUILD_PREFIX/$HOST/include/c++/$GCCVERSION
 GCCLIBDIR=$BUILD_PREFIX/lib/gcc/$HOST/$GCCVERSION
 
@@ -51,9 +57,7 @@ export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 export LDFLAGS="$LDFLAGS -Wl,-L$GCCLIBDIR"             # resolves `cannot find -lgcc`
 
 # Prefer clang/clang++:
-if [ True ]; then
-  export CC=$BUILD_PREFIX/bin/clang
-  export CXX=$BUILD_PREFIX/bin/clang++
+if [ "$CC" == "$CLANG" ]; then
   export CXXFLAGS="$CXXFLAGS -I$CXXINC1 -I$CXXINC2 -I$CXXINC3"  # see CXXINC? above
   export CFLAGS="$CFLAGS -I$CXXINC3"                            # for pthread.h
 else
