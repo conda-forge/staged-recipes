@@ -28,6 +28,11 @@ $INPLACE_SED 's/DESTINATION ThirdParty\/lib/DESTINATION lib/g' CMakeLists.txt
 
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 
+# Enforce PREFIX instead of BUILD_PREFIX:
+export ZLIB_ROOT=$PREFIX
+export LibArchive_ROOT=$PREFIX
+export Curses_ROOT=$PREFIX
+
 if [ $(uname) == Darwin ]; then
     # Darwin has only clang
     COMPILERNAME=clang   # options: clang
