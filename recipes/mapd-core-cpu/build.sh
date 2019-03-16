@@ -4,8 +4,11 @@ set -ex
 
 env
 
-export CC=$CLANG
-export CXX=$CLANGXX
+ls -la $BUILD_PREFIX/bin
+
+COMPILERNAME=clang   # options: clang, gcc
+export CC=$BUILD_PREFIX/bin/clang
+export CXX=$BUILD_PREFIX/bin/clang++
 
 GXX=$BUILD_PREFIX/bin/$HOST-g++
 GCCSYSROOT=$BUILD_PREFIX/$HOST/sysroot
@@ -56,8 +59,7 @@ $INPLACE_SED 's/ARGS -std=c++14/ARGS -std=c++14 \${CXXINC1} \${CXXINC2} \${CXXIN
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 export LDFLAGS="$LDFLAGS -Wl,-L$GCCLIBDIR"             # resolves `cannot find -lgcc`
 
-# Prefer clang/clang++:
-if [ "$CC" == "$CLANG" ]; then
+if [ "$COMPILERNAME" == "clang" ]; then
   export CXXFLAGS="$CXXFLAGS -I$CXXINC1 -I$CXXINC2 -I$CXXINC3"  # see CXXINC? above
   export CFLAGS="$CFLAGS -I$CXXINC3"                            # for pthread.h
 else
