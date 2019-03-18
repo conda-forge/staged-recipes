@@ -107,7 +107,7 @@ cd build
 # TODO: change from debug to release
 cmake \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
-    -DCMAKE_BUILD_TYPE=debug \
+    -DCMAKE_BUILD_TYPE=release \
     -DMAPD_DOCS_DOWNLOAD=off \
     -DMAPD_IMMERSE_DOWNLOAD=off \
     -DENABLE_AWS_S3=off \
@@ -120,7 +120,7 @@ cmake \
     $CMAKE_COMPILERS \
     ..
 
-make -j `nproc`
+make -j $CPU_COUNT
 make install
 
 mkdir tmp
