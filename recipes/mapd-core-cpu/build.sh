@@ -2,10 +2,6 @@
 
 set -ex
 
-env
-
-ls -la $BUILD_PREFIX/bin
-
 # sed -i option is handled differently in Linux and OSX
 if [ $(uname) == Darwin ]; then
     INPLACE_SED="sed -i \"\" -e"
@@ -24,7 +20,7 @@ mv Calcite.cpp Calcite/
 # ThirdParty/lib does not make much sense. The following is just a
 # quick workaround of the problem. Upstream will remove the relevant
 # code from CMakeLists.txt as not needed.
-$INPLACE_SED 's/DESTINATION ThirdParty\/lib/DESTINATION lib/g' CMakeLists.txt
+$INPLACE_SED 's:DESTINATION ThirdParty/lib:DESTINATION lib:g' CMakeLists.txt
 
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 
@@ -34,30 +30,25 @@ export LibArchive_ROOT=$PREFIX
 export Curses_ROOT=$PREFIX
 
 if [ $(uname) == Darwin ]; then
-    # Darwin has only clang
+    # Darwin has only clang. WIP.
     COMPILERNAME=clang   # options: clang
     export CC=$CLANG
     export CXX=$CLANGXX
 else
     # Linux
     echo "uname=${uname}"
-    COMPILERNAME=clang   # options: clang, gcc
-    GXX=$BUILD_PREFIX/bin/$HOST-g++  # replace with $GXX
+    COMPILERNAME=clang                      # options: clang, gcc
+    GXX=$BUILD_PREFIX/bin/$HOST-g++         # replace with $GXX
     GCCSYSROOT=$BUILD_PREFIX/$HOST/sysroot
     GCCVERSION=$(basename $(dirname $($GXX -print-libgcc-file-name)))
     GXXINCLUDEDIR=$BUILD_PREFIX/$HOST/include/c++/$GCCVERSION
     GCCLIBDIR=$BUILD_PREFIX/lib/gcc/$HOST/$GCCVERSION
 
-    echo "GCCVERSION=$GCCVERSION"
-    echo "GCCSYSROOT=$GCCSYSROOT"
-    echo "GCCLIBDIR=$GCCLIBDIR"
-    echo "GXXINCLUDEDIR=$GXXINCLUDEDIR"
-    
-    # Fix not found include file errors:
+    # Fix `not found include file` errors:
     CXXINC1=$GXXINCLUDEDIR            # cassert, ...
     CXXINC2=$GXXINCLUDEDIR/$HOST      # <string> requires bits/c++config.h
     CXXINC3=$GCCSYSROOT/usr/include   # pthread.h
-    
+
     # Add include directories for explicit clang++ call in
     # QueryEngine/CMakeLists.txt for building RuntimeFunctions.bc and
     # ExtensionFunctions.ast:
@@ -75,13 +66,18 @@ else
         export CFLAGS="$CFLAGS -I$CXXINC3"                            # for pthread.h
     else
         # untested
-        # Note that go overwrites CC and CXX with nonsense, hence we redefine these here:
+        # Note that go overwrites CC and CXX with nonsense (see
+        # https://github.com/conda-forge/go-feedstock/issues/47),
+        # hence we redefine these here:
         export CC=$BUILD_PREFIX/bin/$HOST-gcc
         export CXX=$BUILD_PREFIX/bin/$HOST-g++
     fi
 
-    export LDFLAGS="$LDFLAGS -Wl,-L$GCCLIBDIR"             # resolves `cannot find -lgcc`
-    # fixes `undefined reference to `boost::system::detail::system_category_instance'` issue:
+    # resolves `cannot find -lgcc`:
+    export LDFLAGS="$LDFLAGS -Wl,-L$GCCLIBDIR"
+
+    # fixes `undefined reference to
+    # `boost::system::detail::system_category_instance'` issue:
     export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
 
     # When using clang/clang++, make sure that linker finds gcc .o/.a files:
@@ -89,11 +85,6 @@ else
     export CXXFLAGS="$CXXFLAGS  -B $GCCLIBDIR"           # resolves `cannot find crtbegin.o`
     export CFLAGS="$CFLAGS  -B $GCCSYSROOT/usr/lib"      # resolves `cannot find crt1.o`
     export CFLAGS="$CFLAGS  -B $GCCLIBDIR"               # resolves `cannot find crtbegin.o`
-
-    if [ -n "`cat /etc/*-release | grep CentOS`" ]; then
-        echo
-        #export CXXFLAGS="$CXXFLAGS -msse4.1"     # ?todo, might resolve a gcc specific issue
-    fi
 fi
 
 # make sure that $LD is always used for a linker:
@@ -104,7 +95,6 @@ export CMAKE_COMPILERS="-DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX"
 mkdir -p build
 cd build
 
-# TODO: change from debug to release
 cmake \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DCMAKE_BUILD_TYPE=release \
