@@ -12,7 +12,7 @@ This repo is a holding area for recipes destined for a conda-forge feedstock rep
 ## Getting started
 
 1. Fork this repository.
-2. Make a new folder in `recipes` for your package. Look at the example recipe, our [documentation](https://conda-forge.org/docs/recipe.html) and the [FAQ](https://github.com/conda-forge/staged-recipes#faq)  for help.
+2. Make a new folder in `recipes` for your package. Look at the example recipe, our [documentation](http://conda-forge.org/docs/maintainer/adding_pkgs.html#) and the [FAQ](https://github.com/conda-forge/staged-recipes#faq)  for help.
 3. Open a pull request. Building of your package will be tested on Windows, Mac and Linux.
 4. When your pull request is merged a new repository, called a feedstock, will be created in the github conda-forge organization, and build/upload of your package will automatically be triggered. Once complete, the package is available on conda-forge.
 
@@ -30,7 +30,7 @@ Your final recipe should have no comments and follow the order in the example.
 
 ### 2. **How do I populate the `hash` field?**
 
-If your package is on PyPI, you can get the md5 hash from your package's page on PyPI; look for the `md5` link next to the download link for your package. The sha256 hash can be looked up on the (currently beta) new PyPI website https://pypi.org (SHA256 sums are available next to each package download).
+If your package is on [PyPI](https://pypi.org), you can get the sha256 hash from your package's page on PyPI; look for the `SHA256` link next to the download link for your package.
 
 You can also generate a hash from the command line on Linux (and Mac if you install the necessary tools below). If you go this route, the `sha256` hash is preferable to the `md5` hash.
 
@@ -38,7 +38,7 @@ To generate the `md5` hash: `md5 your_sdist.tar.gz`
 
 To generate the `sha256` hash: `openssl sha256 your_sdist.tar.gz`
 
-You may need the openssl package, available on conda-forge
+You may need the openssl package, available on conda-forge:
 `conda install openssl -c conda-forge`
 
 ### 3. **How do I exclude a platform?**
@@ -75,9 +75,9 @@ Short answer: yes. Long answer: In principle, as long as your dependencies are i
 your user's conda channels they will be able to install your package. In practice, that is difficult
 to manage, and we strive to get all dependencies built in conda-forge.
 
-### 7. **When or why do I need to use `python setup.py install --single-version-externally-managed --record record.txt`?**
+### 7. **When or why do I need to use `{{ PYTHON }} -m pip install --no-deps . -vv`?**
 
-These options should be added to setup.py if your project uses setuptools. The goal is to prevent `setuptools` from creating an `egg-info` directory because they do not interact well with conda.
+This should be the default install line for most Python packages. This is preferable to `python setup.py` because it handles metadata in a `conda`-friendlier way. We also want to make sure dependencies are handled through `conda`, and `--no-deps` means most Python dependencies are needed only at `run` time, not `build`.
 
 ### 8. **Do I need `bld.bat` and/or `build.sh`?**
 
@@ -109,7 +109,7 @@ git push -f
 
 If the problem was due to scripts in the `staged-recipes` repository, you may be asked to "rebase" once these are fixed. To do so, run:
 ```bash
-# If you didn't add a remote for conda-forge/staged-recipes yet, also run 
+# If you didn't add a remote for conda-forge/staged-recipes yet, also run
 # these lines:
 # git remote add upstream https://github.com/conda-forge/staged-recipes.git
 # git fetch --all
@@ -117,6 +117,41 @@ git rebase upstream/master
 git push -f
 ```
 
-### 12. My pull request passes all checks, but hasn't received any attention.  How do I call attention to my PR?  What is the customary amount of time to wait?
+### 12. My pull request passes all checks, but hasn't received any attention. How do I call attention to my PR?  What is the customary amount of time to wait?
 
-If your PR is passing all checks, but has not been acted on by the staged recipes maintainers for 1 week, you can ping @conda-forge/staged-recipes to request action.
+If your PR is passing all checks, but has not been acted on by the staged recipes
+maintainers, you can ping @conda-forge/staged-recipes to request action. You do
+not need to wait any specific amount of time once the recipe is ready to go.
+
+If your recipe still does not recieve any attention after a few days, you may
+attempt to re-ping @conda-forge/staged-recipes. You may also attempt to bring
+the PR up in our Gitter chat room at https://gitter.im/conda-forge/conda-forge.github.io
+
+All apologies in advance if your recipe PR does not recieve prompt attention.
+This is a high volume repository and issues can easily be missed. We are always
+looking for more staged-recipe reviewers. If you are interested in volunteering,
+please contact a member of @conda-forge/core. We'd love to have the help!
+
+### 13. How to build with old compilers (GCC v4) on staged-recipes?
+
+First, don't. Second, please don't.
+
+Add a `conda_build_config.yaml` file inside the recipe folder with the contents
+
+```yaml
+channel_sources:
+- conda-forge/label/cf201901,defaults   # [unix]
+- conda-forge,defaults                  # [win]
+channel_targets:
+- conda-forge cf201901                  # [unix]
+- conda-forge main                      # [win]
+c_compiler:                             # [unix]
+- gcc                                   # [linux]
+- clang                                 # [osx]
+cxx_compiler:                           # [unix]
+- gxx                                   # [linux]
+- clangxx                               # [osx]
+fortran_compiler:                       # [unix]
+- gfortran                              # [unix]
+```
+
