@@ -1,9 +1,7 @@
 #!/bin/bash
 
-mkdir build
-cd build
-cmake ../ -DCMAKE_INSTALL_PREFIX=$PREFIX
-
-make
-make verify
-make install
+cd ../py_bind
+python setup.py prepare
+python setup.py install
+cd test
+nosetests
