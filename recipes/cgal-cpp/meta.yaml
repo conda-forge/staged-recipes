@@ -1,0 +1,74 @@
+{% set version = "4.13" %}
+
+package:
+  name: cgal
+  version: {{ version }}
+
+source:
+  url: https://github.com/CGAL/cgal/releases/download/releases%2FCGAL-{{ version }}/CGAL-{{ version }}.zip
+  sha256: e1feafd2a5b1d4cfc20facae8ad901e5ed003e7168279fb798dbc60f0d1753dc
+
+build:
+  number: 0
+  # mpfr only supports vc14
+  skip: true  # [win and py<35]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - eigen
+  host:
+    - python
+    - boost-cpp
+    - mpfr
+  run:
+    - python
+    - boost-cpp
+    - mpfr
+
+test:
+  requires:
+    - {{ compiler('cxx') }}
+    - cmake
+    - make  # [unix]
+    - ninja
+  files:
+    - test
+  commands:
+    - echo on  # [win]
+    - test -f ${PREFIX}/include/CGAL/AABB_tree.h  # [unix]
+    - test -f ${PREFIX}/lib/libCGAL${SHLIB_EXT}  # [unix]
+    - if not exist %LIBRARY_INC%\CGAL\AABB_tree.h exit 1  # [win]
+    - conda inspect linkages $PKG_NAME  # [not win]
+    - conda inspect objects $PKG_NAME  # [osx]
+
+    # Builds a simple program
+    - cd test
+
+    - mkdir build_default
+    - cd build_default
+    - cmake .. -G"%CMAKE_GENERATOR%" -DCMAKE_BUILD_TYPE=Release  # [win]
+    - cmake .. -G"$CMAKE_GENERATOR" -DCMAKE_BUILD_TYPE=Release  # [unix]
+    - cmake --build . --config Release
+    - ./test_  # [unix]
+    - Release\\test_.exe  # [win]
+    - cd ..
+
+    - mkdir build_ninja
+    - cd build_ninja
+    - cmake .. -G"Ninja" -DCMAKE_BUILD_TYPE=Release
+    - cmake --build . --config Release
+    - ./test_  # [unix]
+    - test_.exe  # [win]
+
+
+about:
+  home: http://www.cgal.org/
+  license: GPL3/LGPL3
+  summary: Computational Geometry Algorithms Library
+
+extra:
+  recipe-maintainers:
+    - tadeu
