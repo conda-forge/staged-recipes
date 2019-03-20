@@ -11,4 +11,8 @@ cmake -DLIB_INSTALL_DIR="${PREFIX}/lib" \
 make -j "${CPU_COUNT}"
 make install
 
-ls -l $PREFIX/lib64
+# remove static libs
+rm $PREFIX/lib64/*.a
+
+# move to proper library directory
+mv $PREFIX/lib64/* $PREFIX/lib/
