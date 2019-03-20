@@ -10,3 +10,5 @@ cmake -DLIB_INSTALL_DIR="${PREFIX}/lib" \
   ..
 make -j "${CPU_COUNT}"
 make install
+
+ls -l $PREFIX/lib64
