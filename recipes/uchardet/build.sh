@@ -11,7 +11,7 @@ cmake -DLIB_INSTALL_DIR="${PREFIX}/lib" \
 make -j "${CPU_COUNT}"
 make install
 
-if [ "$(uname)" == "Linux" ]
+if [ "$(uname)" == "Linux" ]; then
   # move to proper library directory
   mv $PREFIX/lib64/* $PREFIX/lib/
 fi
