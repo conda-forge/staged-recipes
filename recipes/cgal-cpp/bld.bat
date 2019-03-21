@@ -2,7 +2,7 @@ mkdir build && cd build
 
 set CMAKE_CONFIG="Release"
 
-cmake -LAH -G"NMake Makefiles" ^
+cmake -LAH -G"%CMAKE_GENERATOR%" ^
   -DCMAKE_BUILD_TYPE="%CMAKE_CONFIG%" ^
   -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
   -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^

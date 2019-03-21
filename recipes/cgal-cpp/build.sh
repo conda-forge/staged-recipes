@@ -3,7 +3,7 @@
 mkdir build && cd build
 
 # needs qt5 for imageio
-cmake \
+cmake -LAH -G"$CMAKE_GENERATOR" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_PREFIX_PATH=${PREFIX} \
   -DCMAKE_INSTALL_PREFIX=${PREFIX} \
