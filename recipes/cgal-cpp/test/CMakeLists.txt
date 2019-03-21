@@ -5,6 +5,7 @@ cmake_minimum_required(VERSION 3.1)
 
 project(test_cgal)
 find_package(CGAL REQUIRED COMPONENTS Core)
+find_package(BOOST)
 if(CGAL_FOUND)
   #required to use basic_viewer
   add_definitions(-DCGAL_USE_BASIC_VIEWER)
