@@ -4,8 +4,8 @@ cmake_minimum_required(VERSION 3.1)
 # but with Qt dependency removed
 
 project(test_cgal)
+find_package(Boost REQUIRED COMPONENTS thread)
 find_package(CGAL REQUIRED COMPONENTS Core)
-find_package(BOOST)
 if(CGAL_FOUND)
   #required to use basic_viewer
   add_definitions(-DCGAL_USE_BASIC_VIEWER)
