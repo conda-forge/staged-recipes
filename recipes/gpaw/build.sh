@@ -16,12 +16,6 @@ extra_link_args += ['-Wl,-rpath=$PREIFX/lib']
 if 'xc' not in libraries:
     libraries.append('xc')
 
-for drop in 'lapack blas'.split():
-    if drop in libraries:
-        libraries.remove(drop)
-if not 'openblas' in libraries:
-    libraries.append('openblas')
-
 EOF
 
 python -m pip install . --no-deps -vv
