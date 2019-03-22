@@ -21,6 +21,7 @@ cmake \
     -D "CMAKE_CXX_FLAGS:STRING=-fvisibility=hidden -fvisibility-inlines-hidden ${CFLAGS}" \
     -D "CMAKE_C_FLAGS:STRING=-fvisibility=hidden ${CXXFLAGS}" \
     -D CMAKE_OSX_DEPLOYMENT_TARGET:STRING=${MACOSX_DEPLOYMENT_TARGET} \
+    -D SimpleITK_PYTHON_USE_VIRTUALENV:BOOL=OFF \
     -D SimpleITK_BUILD_DISTRIBUTE:BOOL=ON \
     -D SimpleITK_BUILD_STRIP:BOOL=ON \
     -D CMAKE_BUILD_TYPE:STRING=RELEASE \
