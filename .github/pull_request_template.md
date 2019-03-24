@@ -15,6 +15,13 @@ Currently available teams are:
 - perl `@conda-forge/help-perl`
 - Julia `@conda-forge/help-julia`
 
-If your PR doesn't fall into those catagories please contact 
+If your PR doesn't fall into those categories please contact
 the full review team `@conda-forge/staged-recipes`.
 -->
+
+Checklist
+
+- [ ] License file is packaged.
+- [ ] Source is from official source
+- [ ] Package does not vendor other packages
+- [ ] Build number is 0
