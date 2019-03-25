@@ -31,6 +31,7 @@ export CFLAGS="$CFLAGS -fPIC -I$PREFIX/include"
 mkdir build && cd build
 
 if [[ $(uname) == Linux ]]; then
+    locate libpthread.so # debug
     SYSROOT_LIB=$BUILD_PREFIX/x86_64-conda_cos6-linux-gnu/sysroot/usr/lib
     export LDFLAGS="$LDFLAGS -L$SYSROOT_LIB -Wl,-rpath,$SYSROOT_LIB"
 fi
