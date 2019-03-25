@@ -37,6 +37,7 @@ cd $BUILD_DIR
 export TMPDIR=/tmp/
 
 if [[ $(uname) == Linux ]]; then
+    CMAKE_LIBRARY_PATH=$BUILD_PREFIX/x86_64-conda_cos6-linux-gnu/sysroot/usr/lib64/
     # Tell Linux where to find libGL.so.1 and other libs needed for Qt
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$BUILD_PREFIX/x86_64-conda_cos6-linux-gnu/sysroot/usr/lib64/
 fi
@@ -44,6 +45,7 @@ fi
 # Start Build
 cmake $SRC_DIR \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
+    -DCMAKE_LIBRARY_PATH=$CMAKE_LIBRARY_PATH \
     -DENABLE_DOCS=0
 
 make -j $CPU_COUNT >> $BUILD_OUTPUT 2>&1
