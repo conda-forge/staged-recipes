@@ -28,7 +28,6 @@ export PYTHON=
 export LDFLAGS="$LDFLAGS -L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 export CFLAGS="$CFLAGS -fPIC -I$PREFIX/include"
 
-SRC_DIR="$(pwd)"
 BUILD_DIR=$SRC_DIR/../build
 mkdir $BUILD_DIR
 cd $BUILD_DIR
