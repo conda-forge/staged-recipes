@@ -12,7 +12,7 @@ cmake \
   -DPYTHON_EXECUTABLE=$PYTHON \
   ..
   
-cmake --build . --target all -- -j 4
+cmake --build . --target all -- -j ${CPU_COUNT}
 cmake --build . --target install
 
 cd install
