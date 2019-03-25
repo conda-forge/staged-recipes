@@ -28,9 +28,7 @@ export PYTHON=
 export LDFLAGS="$LDFLAGS -L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 export CFLAGS="$CFLAGS -fPIC -I$PREFIX/include"
 
-BUILD_DIR=$SRC_DIR/../build
-mkdir $BUILD_DIR
-cd $BUILD_DIR
+mkdir build && cd build
 
 if [[ $(uname) == Linux ]]; then
     SYSROOT_LIB=$BUILD_PREFIX/x86_64-conda_cos6-linux-gnu/sysroot/usr/lib
