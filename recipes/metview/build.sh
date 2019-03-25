@@ -37,14 +37,12 @@ cd $BUILD_DIR
 export TMPDIR=/tmp/
 
 if [[ $(uname) == Linux ]]; then
-    CMAKE_LIBRARY_PATH=$BUILD_PREFIX/x86_64-conda_cos6-linux-gnu/sysroot/usr/lib/
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$BUILD_PREFIX/x86_64-conda_cos6-linux-gnu/sysroot/usr/lib/
+    export PATH=$PATH:$BUILD_PREFIX/x86_64-conda_cos6-linux-gnu/sysroot/usr/
 fi
 
 # Start Build
 cmake $SRC_DIR \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
-    -DCMAKE_LIBRARY_PATH=$CMAKE_LIBRARY_PATH \
     -DENABLE_DOCS=0
 
 make -j $CPU_COUNT >> $BUILD_OUTPUT 2>&1
