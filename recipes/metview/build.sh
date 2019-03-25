@@ -25,16 +25,9 @@ bash -c "while true; do echo \$(date) - building ...; sleep $PING_SLEEP; done" &
 PING_LOOP_PID=$!
 
 export PYTHON=
-export LDFLAGS="$LDFLAGS -L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 export CFLAGS="$CFLAGS -fPIC -I$PREFIX/include"
 
 mkdir build && cd build
-
-if [[ $(uname) == Linux ]]; then
-    locate libpthread.so # debug
-    SYSROOT_LIB=$BUILD_PREFIX/x86_64-conda_cos6-linux-gnu/sysroot/usr/lib
-    export LDFLAGS="$LDFLAGS -L$SYSROOT_LIB -Wl,-rpath,$SYSROOT_LIB"
-fi
 
 # Start Build
 cmake $SRC_DIR \
