@@ -37,7 +37,8 @@ cd $BUILD_DIR
 export TMPDIR=/tmp/
 
 if [[ $(uname) == Linux ]]; then
-    export PATH=$PATH:$BUILD_PREFIX/x86_64-conda_cos6-linux-gnu/sysroot/usr/
+    SYSROOT_LIB=$BUILD_PREFIX/x86_64-conda_cos6-linux-gnu/sysroot/usr/lib
+    export LDFLAGS="$LDFLAGS -L$SYSROOT_LIB -Wl,-rpath,$SYSROOT_LIB"
 fi
 
 # Start Build
