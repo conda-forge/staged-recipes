@@ -25,12 +25,6 @@ trap 'error_handler' ERR
 bash -c "while true; do echo \$(date) - building ...; sleep $PING_SLEEP; done" &
 PING_LOOP_PID=$!
 
-if [[ $(uname) == Darwin ]]; then
-    export LIBRARY_SEARCH_VAR=DYLD_FALLBACK_LIBRARY_PATH
-elif [[ $(uname) == Linux ]]; then
-    export LIBRARY_SEARCH_VAR=LD_LIBRARY_PATH
-fi
-
 export PYTHON=
 export LDFLAGS="$LDFLAGS -L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 export CFLAGS="$CFLAGS -fPIC -I$PREFIX/include"
@@ -53,7 +47,6 @@ cmake $SRC_DIR \
     -DENABLE_DOCS=0
 
 make -j $CPU_COUNT >> $BUILD_OUTPUT 2>&1
-eval ${LIBRARY_SEARCH_VAR}=$PREFIX/lib
 
 ctest --output-on-failure -j $CPU_COUNT >> $BUILD_OUTPUT 2>&1
 make install >> $BUILD_OUTPUT 2>&1
