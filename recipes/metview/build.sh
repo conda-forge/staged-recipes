@@ -3,8 +3,7 @@
 set -e # Abort on error.
 
 export PING_SLEEP=30s
-export WORKDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-export BUILD_OUTPUT=$WORKDIR/build.out
+export BUILD_OUTPUT=$RECIPE_DIR/build.out
 
 touch $BUILD_OUTPUT
 
