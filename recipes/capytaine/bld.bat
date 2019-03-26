@@ -1,3 +1,5 @@
+where gfortran
+
 set CFG=%USERPROFILE%\pydistutils.cfg
 echo [config] > "%CFG%"
 echo compiler=mingw32 >> "%CFG%"
