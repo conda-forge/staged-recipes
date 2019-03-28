@@ -4,9 +4,9 @@
 
 set -x -e
 
-# Move the contents of the extracted source archive into place.
+# Copy the contents of the extracted source archive into the Conda environment.
 
-mv bin ${PREFIX}
-mv include ${PREFIX}
-mv lib ${PREFIX}
-mv share ${PREFIX}
+cp -r bin ${PREFIX}
+cp -r include ${PREFIX}
+cp -r lib ${PREFIX}
+cp -r share ${PREFIX}
