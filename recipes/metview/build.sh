@@ -2,45 +2,16 @@
 
 set -e # Abort on error.
 
-export PING_SLEEP=30s
-export BUILD_OUTPUT=$RECIPE_DIR/build.out
-
-touch $BUILD_OUTPUT
-
-dump_output() {
-    echo Tailing the last 500 lines of output:
-    tail -50000 $BUILD_OUTPUT
-}
-error_handler() {
-    echo ERROR: An error was encountered with the build.
-    dump_output
-    exit 1
-}
-
-# If an error occurs, run our error handler to output a tail of the build.
-trap 'error_handler' ERR
-
-# Set up a repeating loop to send some output to Travis.
-bash -c "while true; do echo \$(date) - building ...; sleep $PING_SLEEP; done" &
-PING_LOOP_PID=$!
-
 export PYTHON=
 export CFLAGS="$CFLAGS -fPIC -I$PREFIX/include"
 
-mkdir build && cd build
+mkdir ../build && cd ../build
 
-# Start Build
-cmake $SRC_DIR \
-    -DCMAKE_INSTALL_PREFIX=$PREFIX \
-    -DENABLE_DOCS=0
+cmake -D CMAKE_INSTALL_PREFIX=$PREFIX \
+      -D ENABLE_DOCS=0 \
+      $SRC_DIR
 
-make -j $CPU_COUNT >> $BUILD_OUTPUT 2>&1
+make -j $CPU_COUNT
 
-ctest --output-on-failure -j $CPU_COUNT >> $BUILD_OUTPUT 2>&1
-make install >> $BUILD_OUTPUT 2>&1
-
-# The build finished without returning an error so dump a tail of the output.
-dump_output
-
-# Nicely terminate the ping output loop.
-kill $PING_LOOP_PID
+ctest --output-on-failure -j $CPU_COUNT
+make install
