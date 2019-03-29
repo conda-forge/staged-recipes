@@ -20,14 +20,10 @@ from sos_notebook.test_utils import sos_kernel
 class TestSoSKernel(unittest.TestCase):
     def testKernel(self):
         with sos_kernel() as kc:
-            execute(kc=kc, code='a = 1\n')
-            wait_for_idle(kc)
-            execute(kc=kc, code='%use Python3\n%get a\nb = a + 1')
-            wait_for_idle(kc)
-            execute(kc=kc, code='%use SoS\n%get b --from Python3\nprint(b)')
+            execute(kc=kc, code='a = 1\nprint(a)')
             stdout, stderr = assemble_output(kc.iopub_channel)
             self.assertEqual(stderr, '')
-            self.assertEqual(stdout.strip(), '2')
+            self.assertEqual(stdout.strip(), '1')
 
 if __name__ == '__main__':
     unittest.main()
