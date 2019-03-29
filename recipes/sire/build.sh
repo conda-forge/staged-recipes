@@ -6,7 +6,7 @@ set -x -e
 
 # Copy the contents of the extracted source archive into the Conda environment.
 
-cp -r bin ${PREFIX}
-cp -r include ${PREFIX}
-cp -r lib ${PREFIX}
-cp -r share ${PREFIX}
+cp -a bin ${PREFIX}
+cp -a include ${PREFIX}
+cp -a lib ${PREFIX}
+cp -a share ${PREFIX}
