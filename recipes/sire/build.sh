@@ -2,8 +2,6 @@
 
 # Build script for Sire Conda installation.
 
-set -x -e
-
 # Copy the contents of the extracted source archive into the Conda environment.
 
 cp -a bin ${PREFIX}
