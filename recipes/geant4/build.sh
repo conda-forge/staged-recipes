@@ -19,6 +19,9 @@ cd geant4-build
 cmake                                                          \
       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}                   \
       -DCMAKE_INSTALL_PREFIX=${PREFIX}                         \
+      -DGEANT4_BUILD_CXXSTD=17                                 \
+      -DGEANT4_USE_SYSTEM_EXPAT=ON                             \
+      -DGEANT4_USE_SYSTEM_ZLIB=ON                              \
       -DBUILD_SHARED_LIBS=ON                                   \
       -DGEANT4_INSTALL_EXAMPLES=ON                             \
       -DGEANT4_INSTALL_DATA=ON                                 \
