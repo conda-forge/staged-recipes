@@ -22,6 +22,7 @@ cmake                                                          \
       -DGEANT4_BUILD_CXXSTD=17                                 \
       -DGEANT4_USE_SYSTEM_EXPAT=ON                             \
       -DGEANT4_USE_SYSTEM_ZLIB=ON                              \
+      -DGEANT4_INSTALL_DATADIR="${PREFIX}/share/Geant4/data"    \
       -DBUILD_SHARED_LIBS=ON                                   \
       -DGEANT4_INSTALL_EXAMPLES=ON                             \
       -DGEANT4_INSTALL_DATA=ON                                 \
