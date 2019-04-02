@@ -38,3 +38,46 @@ cmake                                                          \
 
 make -j${CPU_COUNT} ${VERBOSE_CM}
 make install -j${CPU_COUNT}
+
+# Print the contents of geant4.sh in case of problems
+echo "Contents of ${PREFIX}/bin/geant4.sh is"
+cat "${PREFIX}/bin/geant4.sh"
+
+SETUP_SCRIPT_REGEX='export (G4.*)=.*/share/Geant4/data/([^ ]+).*'
+
+# Add the post activate/deactivate scripts
+mkdir -p "${PREFIX}/etc/conda/activate.d"
+mkdir -p "${PREFIX}/etc/conda/deactivate.d"
+# Bash activation
+grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
+  gsed -E 's#'"${SETUP_SCRIPT_REGEX}"'#export \1="${CONDA_PREFIX}/share/Geant4/data/\2"#g' \
+  > "${PREFIX}/etc/conda/activate.d/activate-geant4.sh"
+# Bash deactivation
+grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
+  gsed -E 's#'"${SETUP_SCRIPT_REGEX}"'#unset \1#g' \
+  > "${PREFIX}/etc/conda/deactivate.d/deactivate-geant4.sh"
+
+# csh activation
+grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
+  gsed -E 's#'"${SETUP_SCRIPT_REGEX}"'#setenv \1 "${CONDA_PREFIX}/share/Geant4/data/\2"#g' \
+  > "${PREFIX}/etc/conda/activate.d/activate-geant4.csh"
+# csh deactivation
+grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
+  gsed -E 's#'"${SETUP_SCRIPT_REGEX}"'#unsetenv \1#g' \
+  > "${PREFIX}/etc/conda/deactivate.d/deactivate-geant4.csh"
+
+# fish activation
+grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
+  gsed -E 's#'"${SETUP_SCRIPT_REGEX}"'#set -gx ROOTSYS "$CONDA_PREFIX/share/Geant4/data/\2"#g' \
+  > "${PREFIX}/etc/conda/activate.d/activate-geant4.fish"
+# fish deactivation
+grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
+  gsed -E 's#'"${SETUP_SCRIPT_REGEX}"'#set -e \1#g' \
+  > "${PREFIX}/etc/conda/deactivate.d/deactivate-geant4.fish"
+
+# Remove the geant4.(c)sh scripts and replace with a dummy version
+for suffix in sh csh; do
+  rm "${PREFIX}/bin/geant4.${suffix}"
+  cp "${RECIPE_DIR}/geant4-setup" "${PREFIX}/bin/geant4.${suffix}"
+  chmod +x "${PREFIX}/bin/geant4.${suffix}"
+done
