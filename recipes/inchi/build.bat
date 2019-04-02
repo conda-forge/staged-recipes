@@ -1,0 +1,1 @@
+scons install PREFIX="%PREFIX%"
