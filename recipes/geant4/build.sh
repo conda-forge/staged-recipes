@@ -15,7 +15,7 @@ fi
 
 # cmake_minimum_required(VERSION 3.1) is required to compile
 # the examples to compile using conda's compiler packages
-gsed -r -i -E 's#cmake_minimum_required\(VERSION [0-9]\.[0-9]#cmake_minimum_required(VERSION 3.1#gI' \
+sed -r -i -E 's#cmake_minimum_required\(VERSION [0-9]\.[0-9]#cmake_minimum_required(VERSION 3.1#gI' \
   $(find examples -name 'CMakeLists.txt')
 
 mkdir geant4-build
@@ -50,29 +50,29 @@ mkdir -p "${PREFIX}/etc/conda/activate.d"
 mkdir -p "${PREFIX}/etc/conda/deactivate.d"
 # Bash activation
 grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
-  gsed -E 's#'"${SETUP_SCRIPT_REGEX}"'#export \1="${CONDA_PREFIX}/share/Geant4/data/\2"#g' \
+  sed -E 's#'"${SETUP_SCRIPT_REGEX}"'#export \1="${CONDA_PREFIX}/share/Geant4/data/\2"#g' \
   > "${PREFIX}/etc/conda/activate.d/activate-geant4.sh"
 # Bash deactivation
 grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
-  gsed -E 's#'"${SETUP_SCRIPT_REGEX}"'#unset \1#g' \
+  sed -E 's#'"${SETUP_SCRIPT_REGEX}"'#unset \1#g' \
   > "${PREFIX}/etc/conda/deactivate.d/deactivate-geant4.sh"
 
 # csh activation
 grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
-  gsed -E 's#'"${SETUP_SCRIPT_REGEX}"'#setenv \1 "${CONDA_PREFIX}/share/Geant4/data/\2"#g' \
+  sed -E 's#'"${SETUP_SCRIPT_REGEX}"'#setenv \1 "${CONDA_PREFIX}/share/Geant4/data/\2"#g' \
   > "${PREFIX}/etc/conda/activate.d/activate-geant4.csh"
 # csh deactivation
 grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
-  gsed -E 's#'"${SETUP_SCRIPT_REGEX}"'#unsetenv \1#g' \
+  sed -E 's#'"${SETUP_SCRIPT_REGEX}"'#unsetenv \1#g' \
   > "${PREFIX}/etc/conda/deactivate.d/deactivate-geant4.csh"
 
 # fish activation
 grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
-  gsed -E 's#'"${SETUP_SCRIPT_REGEX}"'#set -gx \1 "$CONDA_PREFIX/share/Geant4/data/\2"#g' \
+  sed -E 's#'"${SETUP_SCRIPT_REGEX}"'#set -gx \1 "$CONDA_PREFIX/share/Geant4/data/\2"#g' \
   > "${PREFIX}/etc/conda/activate.d/activate-geant4.fish"
 # fish deactivation
 grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
-  gsed -E 's#'"${SETUP_SCRIPT_REGEX}"'#set -e \1#g' \
+  sed -E 's#'"${SETUP_SCRIPT_REGEX}"'#set -e \1#g' \
   > "${PREFIX}/etc/conda/deactivate.d/deactivate-geant4.fish"
 
 # Remove the geant4.(c)sh scripts and replace with a dummy version
