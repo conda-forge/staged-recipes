@@ -1,0 +1,101 @@
+diff -crB --new-file SConstruct SConstruct
+*** SConstruct	1969-12-31 19:00:00.000000000 -0500
+--- SConstruct	2019-04-01 21:19:00.656983623 -0400
+***************
+*** 0 ****
+--- 1,95 ----
++ import os
++ 
++ def _AddObject(env, *args, **kwds):
++     objdir = env.subst('$OBJDIR')
++     root = Dir('#').path
++     suffix = kwds.get('SHOBJSUFFIX') or env['SHOBJSUFFIX']
++     objs = list()
++     for node in env.arg2nodes(args):
++         if node.get_suffix().startswith('.o'):
++             objs.append(node)
++             continue
++         rel = os.path.relpath(node.srcnode().get_path(), root)
++         name = os.path.splitext(rel)[0]
++         dst = '%s/%s%s' % (objdir, name, suffix)
++         obj = env.SharedObject(dst, node, **kwds)
++         objs.append(obj)
++     return objs
++ 
++ 
++ def _AddHeaders( env, names, prefix='', stage=False ):
++     if stage:
++         for n in names:
++             tgt = '$INCLUDEDIR/%s/%s' % (prefix, os.path.basename(str(n)))
++             env.Command( tgt, n, Copy("$TARGET", "$SOURCE") )
++     return _Install(env, 'include/%s' % prefix, names)
++ 
++ def _AddLibrary(env, name, *args, **kwds):
++     objs = env.AddObject(*args, **kwds)
++     if not isinstance(name, str):
++         raise ValueError("AddLibrary: expected name to be string, got %s" % type(name))
++     if 'archive' in kwds and kwds['archive']:
++         lib=env.Library('$LIBDIR/%s' % name, objs, **kwds)
++     else:
++         if env['PLATFORM']=='darwin' and env.get('PREFIX'):
++             env=env.Clone()
++             env.Append(LINKFLAGS=['-install_name', '$PREFIX/lib/lib%s$SHLIBSUFFIX' % name])
++         lib=env.SharedLibrary('$LIBDIR/%s' % name, objs, **kwds)
++     _Install(env,'lib',lib, **kwds)
++     return lib
++ 
++ def _Install(env,subdir,stuff,**kwds):
++     if not env.get('PREFIX'): return
++     tgt='$PREFIX/%s' % subdir
++     if kwds.get('SHLIBVERSION'):
++         EnsureSConsVersion(2,3)
++         out=env.InstallVersionedLib(tgt,stuff,**kwds)
++     else:
++         out=env.Install(tgt,stuff,**kwds)
++     env.Alias('install', tgt)
++     return out
++ 
++ 
++ 
++ def generate(env):
++     env.Replace(
++             ENV=os.environ,
++             )
++ 
++     opts = Variables()
++     opts.Add("OBJDIR", "build product location", 'build')
++     opts.Add("PREFIX", "installation location")
++     opts.Update(env)
++ 
++     builddir = env.Dir(env['OBJDIR']).srcnode().abspath
++     env['BUILDDIR'] = builddir
++     env['OBJDIR'] = '$BUILDDIR/obj'
++     env['LIBDIR'] = '$BUILDDIR/lib'
++     env['BINDIR'] = '$BUILDDIR/bin'
++     env['TESTDIR'] = '$BUILDDIR/test'
++     env['SHAREDIR'] = '$BUILDDIR/share'
++     env['INCLUDEDIR'] = '$BUILDDIR/include'
++ 
++     # other builders
++     for name, func in globals().items():
++         if name.startswith('_Add') and callable(func):
++             name=name[1:]
++             env.AddMethod(func, name)
++ 
++     if env.get('PREFIX'):
++         env.Alias('install', '$PREFIX')
++         env.Append(RPATH=['$PREFIX/lib'], LIBPATH=['$PREFIX/lib'])
++         env.Append(CPPPATH=['$PREFIX/include'])
++     else:
++         env.Append(RPATH=['$LIBDIR'], LIBPATH=['$LIBDIR'])
++ 
++ env = Environment()
++ generate(env)
++ 
++ env.Replace(CCFLAGS='', CFLAGS='-ansi -O3')
++ env.Append(CPPDEFINES=['TARGET_API_LIB', 'COMPILE_ANSI_ONLY'])
++ env.AddHeaders(Glob('INCHI_BASE/src/*.h'), prefix='inchi', stage=True)
++ srcs  = Glob('INCHI_BASE/src/*.c')
++ srcs += Glob('INCHI_API/libinchi/src/*.c')
++ srcs += Glob('INCHI_API/libinchi/src/ixa/*.c')
++ libinchi = env.AddLibrary('inchi', srcs)

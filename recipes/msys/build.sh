@@ -13,6 +13,13 @@ export DESRES_MODULE_CXXFLAGS=$CXXFLAGS
 export DESRES_MODULE_CFLAGS=$CFLAGS
 export DESRES_MODULE_LDFLAGS=$LDFLAGS
 
+#
+# Conda-forge lpsolve has its headers under 'lpsolve',
+# but msys expects them to be in 'lp_solve'.
+#
+ln -s $PREFIX/include/lpsolve $PREFIX/include/lp_solve
+
+
 # Multicore build
 nprocs=`getconf _NPROCESSORS_ONLN`
 scons install -j $nprocs \
