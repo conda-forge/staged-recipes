@@ -68,7 +68,7 @@ grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
 
 # fish activation
 grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
-  gsed -E 's#'"${SETUP_SCRIPT_REGEX}"'#set -gx ROOTSYS "$CONDA_PREFIX/share/Geant4/data/\2"#g' \
+  gsed -E 's#'"${SETUP_SCRIPT_REGEX}"'#set -gx \1 "$CONDA_PREFIX/share/Geant4/data/\2"#g' \
   > "${PREFIX}/etc/conda/activate.d/activate-geant4.fish"
 # fish deactivation
 grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
