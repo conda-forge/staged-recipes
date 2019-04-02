@@ -2,9 +2,9 @@
 
 declare -a CMAKE_PLATFORM_FLAGS
 if [[ ${HOST} =~ .*darwin.* ]]; then
-	CMAKE_PLATFORM_FLAGS+=(-DCMAKE_OSX_SYSROOT="${CONDA_BUILD_SYSROOT}")
+  CMAKE_PLATFORM_FLAGS+=(-DCMAKE_OSX_SYSROOT="${CONDA_BUILD_SYSROOT}")
 else
-	CMAKE_PLATFORM_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
+  CMAKE_PLATFORM_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
 fi
 
 if [[ ${DEBUG_C} == yes ]]; then
@@ -12,6 +12,11 @@ if [[ ${DEBUG_C} == yes ]]; then
 else
   CMAKE_BUILD_TYPE=Release
 fi
+
+# cmake_minimum_required(VERSION 3.1) is required to compile
+# the examples to compile using conda's compiler packages
+gsed -r -i -E 's#cmake_minimum_required\(VERSION [0-9]\.[0-9]#cmake_minimum_required(VERSION 3.1#gI' \
+  $(find examples -name 'CMakeLists.txt')
 
 mkdir geant4-build
 cd geant4-build
@@ -22,7 +27,7 @@ cmake                                                          \
       -DGEANT4_BUILD_CXXSTD=17                                 \
       -DGEANT4_USE_SYSTEM_EXPAT=ON                             \
       -DGEANT4_USE_SYSTEM_ZLIB=ON                              \
-      -DGEANT4_INSTALL_DATADIR="${PREFIX}/share/Geant4/data"    \
+      -DGEANT4_INSTALL_DATADIR="${PREFIX}/share/Geant4/data"   \
       -DBUILD_SHARED_LIBS=ON                                   \
       -DGEANT4_INSTALL_EXAMPLES=ON                             \
       -DGEANT4_INSTALL_DATA=ON                                 \
