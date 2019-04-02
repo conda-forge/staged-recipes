@@ -8,6 +8,14 @@ export CFLAGS="$CFLAGS -fPIC -I$PREFIX/include"
 mkdir ../build && cd ../build
 
 if [[ $(uname) == Linux ]]; then
+    # rpcgen searches for cpp in /lib/cpp and /cpp.
+    # It's possible to pass a path to rpcgen using `-Y` but this is a directory path - rpcgen
+    # expects a `cpp` binary inside that directory.
+    # $CPP on conda-forge is a path to a binary of form `x86_64-conda_cos6-linux-gnu-cpp` which
+    # causes rpcgen to fail to find it.
+    # Therefore we create a symlink which rpcgen can use.
+    ln -s "$CPP" ./cpp
+    export CPP="$PWD/cpp"
     RPCGEN_USE_CPP_ENV=1
 else
     RPCGEN_USE_CPP_ENV=0
