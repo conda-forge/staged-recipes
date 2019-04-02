@@ -1,1 +1,0 @@
-xcopy ks.exe %LIBRARY_BIN%
