@@ -14,8 +14,8 @@ except jupyter_client.kernelspec.NoSuchKernel:
 
 import unittest
 
-from ipykernel.tests.utils import execute, wait_for_idle, assemble_output
 from sos_notebook.test_utils import sos_kernel
+from ipykernel.tests.utils import execute, wait_for_idle, assemble_output
 
 class TestSoSKernel(unittest.TestCase):
     def testKernel(self):
