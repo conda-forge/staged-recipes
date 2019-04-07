@@ -1,67 +1,171 @@
 {% set name = "geant4" %}
-{% set major_version = "10" %}
-{% set minor_version = "5" %}
-{% set patch_version = "0" %}
-{% set release_url = "http://geant4-data.web.cern.ch/geant4-data/releases" %}
+{% set version = "10.5.0" %}
+# GEANT4 data packages, versions are taken from:
+# https://github.com/Geant4/geant4/blob/v{{ version }}/cmake/Modules/Geant4DatasetDefinitions.cmake
+{% set data_packages = [
+  "geant4-data-ndl ==4.5",
+  "geant4-data-emlow ==7.7",
+  "geant4-data-photonevaporation ==5.3",
+  "geant4-data-radioactivedecay ==5.3",
+  "geant4-data-particlexs ==1.1",
+  "geant4-data-pii ==1.3",
+  "geant4-data-saiddata ==2.0",
+  "geant4-data-abla ==3.1",
+  "geant4-data-incl ==1.0",
+  "geant4-data-ensdfstate ==2.2",
+] %}
+{% set optional_data_packages = [
+  "geant4-data-realsurface ==2.1.1",
+] %}
+
+{% set release_url = "https://geant4-data.web.cern.ch/geant4-data/releases" %}
+{% set major_version, minor_version, patch_version = version.split('.') %}
 
 package:
-    name: {{ name|lower }}
-    version: {{ major_version }}.{{ minor_version }}.{{ patch_version }}
+  name: {{ name|lower }}
+  version: {{ version }}
 
 source:
 {%- if patch_version == "0" %}
-    url: {{ release_url }}/{{ name }}.{{ major_version }}.{{ minor_version.rjust(2, "0") }}.tar.gz
+  url: {{ release_url }}/{{ name }}.{{ major_version }}.{{ minor_version.rjust(2, "0") }}.tar.gz
 {%- else %}
-    url: {{ release_url }}/{{ name }}.{{ major_version }}.{{ minor_version.rjust(2, "0") }}.p{{ patch_version.rjust(2, "0") }}.tar.gz
+  url: {{ release_url }}/{{ name }}.{{ major_version }}.{{ minor_version.rjust(2, "0") }}.p{{ patch_version.rjust(2, "0") }}.tar.gz
 {%- endif %}
-    sha256: 2a86499d8327abc68456e5d7fc0303824e5704322291b331857cf4042286656e
+  sha256: 2a86499d8327abc68456e5d7fc0303824e5704322291b331857cf4042286656e
 
 build:
-    number: 0
-    skip: True  # [win]
+  number: 0
+  skip: True  # [win]
 
+# Specifying `compiler('cxx')` as a top-level build requirements to force
+# conda-smithy to generate the correct build matrix.
 requirements:
+  build:
+    - {{ compiler('cxx') }}
+
+outputs:
+  # geant4-base contains the actual build of GEANT4 without any of the data packages
+  - name: geant4-base
+    version: {{ version }}
     build:
+      script: $RECIPE_DIR/build_geant4.sh
+      run_exports:
+        - {{ pin_subpackage('geant4', max_pin='x.x') }}
+    requirements:
+      build:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - cmake
         - make  # [unix]
         - sed
-    host:
+{%- if geant4_visualisation_variant == "qt" %}
+        - {{ cdt('mesa-libgl-devel') }}  # [linux]
+        - {{ cdt('mesa-dri-drivers') }}  # [linux]
+        - {{ cdt('libselinux') }}  # [linux]
+        - {{ cdt('libxdamage') }}  # [linux]
+        - {{ cdt('libxxf86vm') }}  # [linux]
+{%- endif %}
+      host:
         - expat
         - xerces-c
         - zlib
-    run:
+{%- if geant4_visualisation_variant == "qt" %}
+        - qt
+        - xorg-libxfixes
+        - xorg-libxmu
+{%- endif %}
+      run:
         - expat
         - xerces-c
         - zlib
+{%- if geant4_visualisation_variant == "qt" %}
+        - qt
+{%- endif %}
+        # Require the mutex packages
+        - geant4_visualisation_variant * {{ geant4_visualisation_variant }}
+    test:
+      commands:
+        - geant4-config --version
 
-test:
-    requires:
+  # geant4-base is a metapackage which includes the data packages
+  # By default, the data packages are pinned to the versions stated above
+  # This can be overridden using the geant4_data_variant feature
+  - name: geant4
+    version: {{ version }}
+    build:
+      run_exports:
+        - {{ pin_subpackage('geant4', max_pin='x.x') }}
+    requirements:
+      run:
+        - {{ pin_subpackage('geant4-base', exact=True) }}
+        # Require the mutex packages
+        - geant4_data_variant * {{ geant4_data_variant }}
+        - geant4_visualisation_variant * {{ geant4_visualisation_variant }}
+        # Add required data packages
+{%- for data_package in data_packages %}
+  {%- if geant4_data_variant == "default" %}
+        - {{ data_package }}
+  {%- else %}
+        # Remove the version constraints
+        - {{ data_package.split(" ==")[0] }}
+  {%- endif %}
+{%- endfor %}
+        # Add optional data packages by default
+{%- if geant4_data_variant == "default" %}
+  {%- for data_package in optional_data_packages %}
+        - {{ data_package }}
+  {%- endfor %}
+{%- endif %}
+    test:
+      requires:
         - cmake
         - make  # [unix]
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
-    commands:
+      commands:
         - geant4-config --version
+        - $RECIPE_DIR/test_geant4.sh
+
+  # Mutex packages to keep only one variant of geant4 in a given environment.
+  #
+  # The non-default variants use track_features to weigh down non-default
+  # variants of the package, allowing the default variant to take precedence
+  # unless required explicitly.
+  - name: geant4_data_variant
+    version: 1.0
+    build:
+      string: {{ geant4_data_variant }}
+{%- if geant4_data_variant != "default" %}
+      track_features:
+        - non_default_geant4_data
+{%- endif %}
+
+  - name: geant4_visualisation_variant
+    version: 1.0
+    build:
+      string: {{ geant4_visualisation_variant }}
+{%- if geant4_data_variant != "default" %}
+      track_features:
+        - non_default_geant4_visualisation
+{%- endif %}
 
 about:
-    summary: 'Geant4 is a toolkit for the simulation of the passage of particles through matter.'
-    dev_url: https://github.com/Geant4/geant4
-    description: |
-        Geant4 is a toolkit for the simulation of the passage of particles through
-        matter. Its areas of application include high energy, nuclear and
-        accelerator physics, as well as studies in medical and space science. The
-        three main reference papers for Geant4 are published in Nuclear Instruments
-        and Methods in Physics Research [A 506 (2003) 250-303](http://www.sciencedirect.com/science/article/pii/S0168900203013688),
-        IEEE Transactions on Nuclear Science [53 No. 1 (2006) 270-278](https://ieeexplore.ieee.org/xpls/abs_all.jsp?isnumber=33833&amp;arnumber=1610988&amp;count=33&amp;index=7)
-        and Nuclear Instruments and Methods in Physics Research [A 835 (2016) 186-225](http://www.sciencedirect.com/science/article/pii/S0168900216306957).
-    doc_url: https://geant4.web.cern.ch/support
-    home: https://geant4.web.cern.ch/
-    license: Geant4
-    license_file: LICENSE
+  summary: 'Geant4 is a toolkit for the simulation of the passage of particles through matter.'
+  description: |
+    Geant4 is a toolkit for the simulation of the passage of particles through
+    matter. Its areas of application include high energy, nuclear and
+    accelerator physics, as well as studies in medical and space science. The
+    three main reference papers for Geant4 are published in Nuclear Instruments
+    and Methods in Physics Research [A 506 (2003) 250-303](http://www.sciencedirect.com/science/article/pii/S0168900203013688),
+    IEEE Transactions on Nuclear Science [53 No. 1 (2006) 270-278](https://ieeexplore.ieee.org/xpls/abs_all.jsp?isnumber=33833&amp;arnumber=1610988&amp;count=33&amp;index=7)
+    and Nuclear Instruments and Methods in Physics Research [A 835 (2016) 186-225](http://www.sciencedirect.com/science/article/pii/S0168900216306957).
+  home: https://geant4.web.cern.ch/
+  dev_url: https://github.com/Geant4/geant4
+  doc_url: https://geant4.web.cern.ch/support
+  license: Geant4
+  license_file: LICENSE
 
 extra:
-    recipe-maintainers:
-        - tschoonj
-        - chrisburr
+  recipe-maintainers:
+    - tschoonj
+    - chrisburr

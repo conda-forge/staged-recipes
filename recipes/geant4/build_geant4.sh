@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -eux
 
 declare -a CMAKE_PLATFORM_FLAGS
 if [[ ${HOST} =~ .*darwin.* ]]; then
@@ -7,7 +8,13 @@ else
   CMAKE_PLATFORM_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
 fi
 
-if [[ ${DEBUG_C} == yes ]]; then
+if [[ ${geant4_visualisation_variant} == "qt" ]]; then
+  CMAKE_PLATFORM_FLAGS+=(-DGEANT4_USE_QT=ON)
+  CMAKE_PLATFORM_FLAGS+=(-DGEANT4_USE_OPENGL_X11=ON)
+  CMAKE_PLATFORM_FLAGS+=(-DGEANT4_USE_RAYTRACER_X11=ON)
+fi
+
+if [[ ${DEBUG_C:-no} == yes ]]; then
   CMAKE_BUILD_TYPE=Debug
 else
   CMAKE_BUILD_TYPE=Release
@@ -30,50 +37,18 @@ cmake                                                          \
       -DGEANT4_INSTALL_DATADIR="${PREFIX}/share/Geant4/data"   \
       -DBUILD_SHARED_LIBS=ON                                   \
       -DGEANT4_INSTALL_EXAMPLES=ON                             \
-      -DGEANT4_INSTALL_DATA=ON                                 \
+      -DGEANT4_INSTALL_DATA=OFF                                \
       -DGEANT4_BUILD_MULTITHREADED=ON                          \
       -DGEANT4_USE_GDML=ON                                     \
       ${CMAKE_PLATFORM_FLAGS[@]} \
       ${SRC_DIR}
 
-make -j${CPU_COUNT} ${VERBOSE_CM}
+make -j${CPU_COUNT} ${VERBOSE_CM:-}
 make install -j${CPU_COUNT}
 
 # Print the contents of geant4.sh in case of problems
 echo "Contents of ${PREFIX}/bin/geant4.sh is"
 cat "${PREFIX}/bin/geant4.sh"
-
-SETUP_SCRIPT_REGEX='export (G4.*)=.*/share/Geant4/data/([^ ]+).*'
-
-# Add the post activate/deactivate scripts
-mkdir -p "${PREFIX}/etc/conda/activate.d"
-mkdir -p "${PREFIX}/etc/conda/deactivate.d"
-# Bash activation
-grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
-  sed -E 's#'"${SETUP_SCRIPT_REGEX}"'#export \1="${CONDA_PREFIX}/share/Geant4/data/\2"#g' \
-  > "${PREFIX}/etc/conda/activate.d/activate-geant4.sh"
-# Bash deactivation
-grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
-  sed -E 's#'"${SETUP_SCRIPT_REGEX}"'#unset \1#g' \
-  > "${PREFIX}/etc/conda/deactivate.d/deactivate-geant4.sh"
-
-# csh activation
-grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
-  sed -E 's#'"${SETUP_SCRIPT_REGEX}"'#setenv \1 "${CONDA_PREFIX}/share/Geant4/data/\2"#g' \
-  > "${PREFIX}/etc/conda/activate.d/activate-geant4.csh"
-# csh deactivation
-grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
-  sed -E 's#'"${SETUP_SCRIPT_REGEX}"'#unsetenv \1#g' \
-  > "${PREFIX}/etc/conda/deactivate.d/deactivate-geant4.csh"
-
-# fish activation
-grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
-  sed -E 's#'"${SETUP_SCRIPT_REGEX}"'#set -gx \1 "$CONDA_PREFIX/share/Geant4/data/\2"#g' \
-  > "${PREFIX}/etc/conda/activate.d/activate-geant4.fish"
-# fish deactivation
-grep 'export G4' "${PREFIX}/bin/geant4.sh" | \
-  sed -E 's#'"${SETUP_SCRIPT_REGEX}"'#set -e \1#g' \
-  > "${PREFIX}/etc/conda/deactivate.d/deactivate-geant4.fish"
 
 # Remove the geant4.(c)sh scripts and replace with a dummy version
 for suffix in sh csh; do
