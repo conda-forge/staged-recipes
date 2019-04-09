@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# some ideas from https://github.com/conda-forge/mapd-core-cpu-feedstock
 
 set -ex
 
@@ -10,6 +11,10 @@ export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 # export Curses_ROOT=$PREFIX
 
 # ./thirdparty/build-if-necessary.sh
+
+# apply patches
+# patch cmake_modules/FindGLog.cmake ${RECIPE_DIR}/patches/cmake_modules/FindGLog.cmake.patch
+
 mkdir -p build/debug
 
 cd build/debug
