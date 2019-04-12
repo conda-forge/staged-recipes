@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e # Abort on error.
+set -e
 
 export PYTHON=
 export CFLAGS="$CFLAGS -fPIC -I$PREFIX/include"
