@@ -19,7 +19,7 @@ cmake -DCMAKE_INSTALL_PREFIX:PATH=$PREFIX \
       -DREADLINE_ROOT_DIR=$PREFIX \
       -DLTDL_ROOT_DIR=$PREFIX \
       ..
-make -j2
+make -j${CPU_COUNT}
 make install
 
 cp $PREFIX/lib64/* $PREFIX/lib -r
