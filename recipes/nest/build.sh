@@ -18,11 +18,10 @@ cmake -DCMAKE_INSTALL_PREFIX:PATH=$PREFIX \
       -Dwith-gsl=$PREFIX \
       -DREADLINE_ROOT_DIR=$PREFIX \
       -DLTDL_ROOT_DIR=$PREFIX \
+      -DCMAKE_INSTALL_LIBDIR="${PREFIX}/lib" /
       ..
 make -j${CPU_COUNT}
 make install
-
-cp $PREFIX/lib64/* $PREFIX/lib -r
 
 for CHANGE in "activate" "deactivate"
 do
