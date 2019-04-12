@@ -1,1 +1,0 @@
-unset GPAW_SETUP_PATH
