@@ -1,0 +1,122 @@
+#!/bin/bash -e
+
+  ####################################################################################################
+  # Name:        install
+  # Description: Script to install COMPSs
+  # Parameters:  <targetFolder> Folder where to install COMPSs
+  #              ATTENTION: The target Folder will be completely removed and created again to avoid
+  #                         conflicts between installations. Please save any configuration files.
+  # Support:     support-compss@bsc.es
+  ####################################################################################################
+
+  ####################
+  # FUNCTIONS
+  ####################
+  usage() {
+    echo " "
+    echo " Usage:  install <targetFolder> [<queues_cfg>]"
+    echo " "
+    echo " Parameters:"
+    echo "   - targetFolder : Base target folder of the COMPSs installation."
+    echo "                    A COMPSs folder will be created inside the targetFolder containing"
+    echo "                    all the COMPSs files"
+    echo "   - queues_cfg :   Queue configuration file to be copied as default into targetFolder/Runtime/scripts/queues/cfgs/"
+    echo " "
+    echo "ATTENTION: The COMPSs folder inside the target folder will be completely removed to avoid"
+    echo "           conflicts between installations. Please save any configuration files."
+    echo " "
+    echo "SUPPORT:   support-compss@bsc.es"
+    echo " "
+  }
+
+
+  ####################
+  # MAIN
+  ####################
+  # Get parameters
+  if [ $# -gt 1 ] || [ $# -lt 3 ]; then
+    if [ "$1" == "usage" ]; then
+      usage
+      exit 0
+    fi
+  else
+    echo "Incorrect number of parameters"
+    usage
+    exit 1
+  fi
+  targetDir=$1/COMPSs/
+  queues_cfg=$2
+
+  # WARN MESSAGE and log parameters
+  echo " "
+  echo "Parameters:"
+  echo "  - targetFolder = $1"
+  echo "  - COMPSs Installation Folder = $targetDir"
+  echo " "
+  echo "ATTENTION: The COMPSs folder inside the target folder will be completely removed to avoid"
+  echo "           conflicts between installations. Please save any configuration files."
+  echo " "
+  echo "  You can abort the installation within 5s..."
+  sleep 5
+
+  # Begin installation
+  echo " "
+  echo "Beginning COMPSs installation..."
+  echo " "
+
+  # Define script variables
+  SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+  # Deploy COMPSs
+  echo "- Deploy COMPSs files"
+  rm -rf "${targetDir}"
+  mkdir -p "${targetDir}"
+  cp -r "${SCRIPT_DIR}"/* "${targetDir}"
+  sed -i -e 's#/opt/COMPSs/#'"${targetDir}"'#g' "${targetDir}"/Runtime/configuration/xml/projects/default_project.xml
+  rm -rf "${targetDir}"/Bindings/*
+  echo "   Success"
+
+  # Install bindings-common
+  echo "- Install bindings-common"
+  cd "${SCRIPT_DIR}"/Bindings/bindings-common/
+  ./install_common "${targetDir}"/Bindings/bindings-common
+  cd "${SCRIPT_DIR}"
+  echo "   Success"
+
+  # Install C-binding
+  echo "- Install C-binding"
+  cd "${SCRIPT_DIR}"/Bindings/c
+  ./install "${targetDir}"/Bindings/c true
+  mkdir -p "${targetDir}"/Runtime/scripts/system/c/
+  cp "${targetDir}"/Bindings/c/bin/* "${targetDir}"/Runtime/scripts/system/c
+  cp ./compss_build_app "${targetDir}"/Runtime/scripts/user/
+  cd "${SCRIPT_DIR}"
+  echo "   Success"
+
+  # Install Python-binding
+  echo "- Install Python binding"
+  cd "${SCRIPT_DIR}"/Bindings/python
+  ./install "${targetDir}"/Bindings/python false
+  cd "${SCRIPT_DIR}"
+  echo "   Success"
+
+
+  # Set permissions
+  echo "- Set COMPSs permissions"
+  chmod -R 755 "${targetDir}"
+  chmod -R 777 "${targetDir}"/Runtime/configuration/
+
+  # Copy the queue.cfg as default.cfg if it is defined
+  if [ -n "${queues_cfg}" ]; then
+    cp "${targetDir}"/Runtime/scripts/queues/cfgs/"${queues_cfg}" "${targetDir}"/Runtime/scripts/queues/cfgs/default.cfg
+  fi
+
+  # End
+  echo " "
+  echo "Congratulations!"
+  echo "COMPSs Successfully installed!"
+  echo " "
+  echo "To use COMPSs please source the ${targetDir}/compssenv file into the users .bashrc"
+  echo " "
+
+  exit 0
