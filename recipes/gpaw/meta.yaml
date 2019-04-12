@@ -1,0 +1,77 @@
+{% set build = 0 %}
+{% set name = "gpaw" %}
+{% set version = "1.5.1" %}
+{% set sha256 = "63a00bd97cc4e10fb5f5c718039af18c90c7e0e19897a6a852e5f54fc0c81776" %}
+{% set build_string = "py{}_{}_{}".format(environ.get('CONDA_PY', ''), mpi, build) %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+  patches:
+    - 001_config-py.patch
+    # patch 001 is needed because gpaw's config.py assumes that libpython is a dynamic library,
+    # whereas the python version used by conda-forge provides a static library. Hopefully gpaw-devs
+    # will accept this as a future change upstream.
+
+build:
+  number: {{ build }}
+  string: {{ build_string }}
+  skip: True  # [not linux]
+  skip: True  # [py<36]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+  host:
+    - {{ mpi }}  # [mpi != 'nompi']
+    - python
+    - pip
+    - libxc
+    - libblas
+    - libcblas
+    - scalapack
+    - fftw
+    - numpy
+    - ase
+  run:
+    - {{ mpi }}  # [mpi != 'nompi']
+    - python
+    - libxc
+    - libblas
+    - libcblas
+    - scalapack
+    - fftw
+    - {{ pin_compatible('numpy') }}
+    - scipy
+    - ase
+
+test:
+  commands:
+    - gpaw test -j 1 --reverse --from generic/mixer.py                          # [mpi == 'nompi']
+    - test -x $PREFIX/bin/gpaw-python                                           # [mpi != 'nompi']
+    - export OMPI_MCA_plm=isolated                                              # [mpi == 'openmpi']
+    - export OMPI_MCA_btl_vader_single_copy_mechanism=none                      # [mpi == 'openmpi']
+    - export OMPI_MCA_rmaps_base_oversubscribe=yes                              # [mpi == 'openmpi']
+    - mpiexec -np 1 gpaw-python -m gpaw test --reverse --from generic/mixer.py  # [mpi != 'nompi']
+
+about:
+  home: https://wiki.fysik.dtu.dk/gpaw
+  license: GPL-3.0
+  license_family: GPL
+  license_file: LICENSE
+  summary: 'GPAW: DFT and beyond within the projector-augmented wave method'
+  description: |
+    GPAW is a density-functional theory (DFT) Python code based on the
+    projector-augmented wave (PAW) method and the atomic simulation environment
+    (ASE). It uses plane-waves, atom-centered basis-functions or real-space
+    uniform grids combined with multigrid methods.
+  doc_url: https://wiki.fysik.dtu.dk/gpaw/documentation/documentation.html
+  dev_url: https://gitlab.com/gpaw/gpaw
+
+extra:
+  recipe-maintainers:
+    - bjodah
