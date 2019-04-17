@@ -36,5 +36,5 @@ make -j $CPU_COUNT
 # debug
 ldd bin/uPlot
 
-ctest --output-on-failure -j $CPU_COUNT
+ctest --output-on-failure -j $CPU_COUNT -I $RECIPE_DIR/test_list.txt
 make install
