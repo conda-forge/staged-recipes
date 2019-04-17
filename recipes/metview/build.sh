@@ -33,5 +33,8 @@ cmake -D CMAKE_INSTALL_PREFIX=$PREFIX \
 
 make -j $CPU_COUNT
 
+# debug
+ldd bin/uPlot
+
 ctest --output-on-failure -j $CPU_COUNT
 make install
