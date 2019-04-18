@@ -16,6 +16,7 @@ mkdir build
 cd build
 
 cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+      -DCMAKE_PREFIX_PATH="${PREFIX}" \
       -DDEAL_II_ALLOW_BUNDLED=OFF \
       -DBOOST_DIR="${PREFIX}" \
       -DTBB_DIR="${PREFIX}" \
