@@ -8,6 +8,10 @@ function show_cmake_logs() {
   cat CMakeFiles/CMakeError.log
 }
 
+# Workaround https://github.com/dealii/dealii/issues/7937
+CXXFLAGS=$(echo "${CXXFLAGS}" | sed "s/-std=c++[0-9][0-9]//g")
+CXXFLAGS=$(echo "${CXXFLAGS}" | sed "s/-stdlib=libc++//g")
+
 mkdir build
 cd build
 
