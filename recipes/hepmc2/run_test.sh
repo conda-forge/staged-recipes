@@ -4,8 +4,4 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-cd source
-
-make check
-
 exit 0
