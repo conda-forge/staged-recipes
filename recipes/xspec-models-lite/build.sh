@@ -5,7 +5,7 @@ if [ "$(uname)" == "Linux" ]; then
     # We need a custom include and library path to use the packages installed
     # in the build environment
     export CFLAGS='-I${PREFIX}/include -O2 -Wall --pedantic -Wno-comment -Wno-long-long -g  -ffloat-store -fPIC'
-    export CXXFLAGS='-I${PREFIX}/include -O2 -Wall --pedantic -Wno-comment -Wno-long-long -g  -ffloat-store -fPIC --std=c++98'
+    export CXXFLAGS='-I${PREFIX}/include -O2 -Wall --pedantic -Wno-comment -Wno-long-long -g  -ffloat-store -fPIC -D_GLIBCXX_USE_CXX11_ABI=0 -std=c++11'
     export CPPFLAGS="-I${PREFIX}/include"
     export LDFLAGS="-L${PREFIX}/lib"
     
