@@ -17,6 +17,8 @@ cd build
 
 cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
       -DCMAKE_PREFIX_PATH="${PREFIX}" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DDEAL_II_COMPONENT_EXAMPLES=OFF \
       -DDEAL_II_ALLOW_BUNDLED=OFF \
       -DBOOST_DIR="${PREFIX}" \
       -DTBB_DIR="${PREFIX}" \
