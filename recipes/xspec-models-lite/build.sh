@@ -17,7 +17,7 @@ fi
 
 if [ "$(uname)" == "Darwin" ]; then
 
-    ./configure --prefix=${SRC_DIR}/xspec-modelsonly-build --x-includes=${PREFIX}/include/X11
+    ./configure --prefix=${SRC_DIR}/xspec-modelsonly-build --x-includes=${PREFIX}/include/
 
     ./hmake 'LDFLAGS_CXX=-headerpad_max_install_names -lcfitsio -lCCfits -lccfits -lwcs'
 
