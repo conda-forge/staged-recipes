@@ -18,6 +18,3 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 # god-awful hack because it seems to not run correct tests to determine this:
 set(__CHAR_UNSIGNED___EXITCODE 1)
-
-# Use the gold linker to avoid errors when linking
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
