@@ -25,9 +25,9 @@ if [ "$(uname)" == "Darwin" ]; then
     export LDFLAGS="-L${PREFIX}/lib"
 
     
-    #./configure --prefix=${SRC_DIR}/xspec-modelsonly-build --x-includes=${PREFIX}/include/
+    ./configure --prefix=${SRC_DIR}/xspec-modelsonly-build --x-includes=${PREFIX}/include/
 
-    ./configure --prefix=${SRC_DIR}/xspec-modelsonly-build
+    #./configure --prefix=${SRC_DIR}/xspec-modelsonly-build
 
     ./hmake 'LDFLAGS_CXX=-headerpad_max_install_names -lcfitsio -lCCfits -lccfits -lwcs'
 
