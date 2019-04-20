@@ -9,7 +9,7 @@ if [ "$(uname)" == "Linux" ]; then
     export CPPFLAGS="-I${PREFIX}/include"
     export LDFLAGS="-L${PREFIX}/lib"
     
-    ./configure --prefix=${SRC_DIR}/xspec-modelsonly-build --x-includes=${PREFIX}/include/X11
+    ./configure --prefix=${SRC_DIR}/xspec-modelsonly-build --x-includes=${PREFIX}/include
     
     ./hmake 'XSLM_USER_FLAGS="-I${PREFIX}/include"' 'XSLM_USER_LIBS="-L${PREFIX}/lib -lCCfits -lcfitsio -lwcslib"'
 
