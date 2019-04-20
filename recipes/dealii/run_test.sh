@@ -54,8 +54,17 @@ EOF
 
 # }}}
 
+function show_cmake_logs() {
+  echo "Content of CMakeFiles/CMakeOutput.log:"
+  cat CMakeFiles/CMakeOutput.log
+
+  echo "Content of CMakeFiles/CMakeError.log:"
+  cat CMakeFiles/CMakeError.log
+}
+
 mkdir build && cd build
-cmake -DDEAL_II_DIR=${PREFIX} ..
+cmake -DDEAL_II_DIR=${PREFIX} \
+  .. || (show_cmake_logs && exit 1)
 
 make
 make run
