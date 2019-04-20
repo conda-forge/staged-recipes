@@ -17,7 +17,7 @@ fi
 
 if [ "$(uname)" == "Darwin" ]; then
 
-    export CXXFLAGS='-I${PREFIX}/include -O2 -Wall --pedantic -Wno-comment -Wno-long-long -g  -ffloat-store -fPIC -D_GLIBCXX_USE_CXX11_ABI=0 -std=c++11 -Wnoc++11-narrowing'
+    export CXXFLAGS='-I${PREFIX}/include -O2 -Wall --pedantic -Wno-comment -Wno-long-long -g  -ffloat-store -fPIC -D_GLIBCXX_USE_CXX11_ABI=0 -std=c++11 -Wno-c++11-narrowing'
 
     ./configure --prefix=${SRC_DIR}/xspec-modelsonly-build --x-includes=${PREFIX}/include/
 
