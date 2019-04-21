@@ -16,31 +16,48 @@ source:
     - patches/HepMC-2.06.07-broken-tests.patch
 build:
   number: 0
+  skip: True  # [win]
 
 requirements:
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
     - cmake
-  host:
 
-  run:
 
 test:
   source_files:
-    - source/
+    - source/examples
   requires:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - cmake
+  commands:
+    # Workaround for lack of CONDA_BUILD_SYSROOT variable in staged recipes
+    - export CONDA_BUILD_SYSROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk  # [osx]
+    - cd source/examples
+    # example_UsingIterators
+    - ${CXX} example_UsingIterators.cc -o example_UsingIterators -I${CONDA_PREFIX}/include -lhepmc
+    # Fix up the runpath
+    - ${INSTALL_NAME_TOOL} -change @rpath/libHepMC.4.dylib $CONDA_PREFIX/lib/libHepMC.4.dylib example_UsingIterators  # [osx]
+    - ./example_UsingIterators
+    # example_EventSelection
+    - ${CXX} example_EventSelection.cc -o example_EventSelection -I${CONDA_PREFIX}/include -lhepmc
+    # Fix up the runpath
+    - ${INSTALL_NAME_TOOL} -change @rpath/libHepMC.4.dylib $CONDA_PREFIX/lib/libHepMC.4.dylib example_EventSelection  # [osx]
+    - ./example_EventSelection
+    # example_BuildEventFromScratch
+    - ${CXX} example_BuildEventFromScratch.cc -o example_BuildEventFromScratch -I${CONDA_PREFIX}/include -lhepmc
+    # Fix up the runpath
+    - ${INSTALL_NAME_TOOL} -change @rpath/libHepMC.4.dylib $CONDA_PREFIX/lib/libHepMC.4.dylib example_BuildEventFromScratch  # [osx]
+    - ./example_BuildEventFromScratch
 
 about:
   home: http://hepmc.web.cern.ch/hepmc/
   license: LGPL-2.1
   license_family: LGPL
+  license_file: source/INSTALL
   summary: 'HepMC - a C++ Event Record for Monte Carlo Generators'
 
-  # The remaining entries in this section are optional, but recommended
   description: |
            The HepMC package is an object oriented, C++ event record
            for High Energy Physics Monte Carlo generators and simulation.
