@@ -16,6 +16,8 @@ cmake -LAH \
 
 make -j${CPU_COUNT}
 
+if [ "$(uname)" == "Linux" ]; then
 make test
+fi
 
 make install
