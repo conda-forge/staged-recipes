@@ -1,0 +1,50 @@
+{% set name = "tinyxml2" %}
+{% set version = "6.2.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/leethomason/{{ name }}/archive/{{ version }}.tar.gz
+  sha256: cdf0c2179ae7a7931dba52463741cf59024198bbf9673bf08415bcb46344110f
+  folder: source
+
+build:
+  number: 0
+  skip: true  # [win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+
+test:
+  requires:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - pkg-config
+  source_files:
+    - source/xmltest.cpp
+    - source/resources
+  commands:
+    # Workaround for lack of CONDA_BUILD_SYSROOT variable in staged recipes
+    - export CONDA_BUILD_SYSROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk  # [osx]
+    - cd source
+    - ${CXX} xmltest.cpp -o xmltest $(pkg-config tinyxml2 --cflags --libs)
+    # Fix up the runpath on macOS
+    - ${INSTALL_NAME_TOOL} -change @rpath/libtinyxml2.6.dylib $CONDA_PREFIX/lib/libtinyxml2.6.dylib xmltest  # [osx]
+    - ./xmltest
+
+about:
+  home: http://leethomason.github.io/tinyxml2/
+  license: zlib
+  license_file: LICENSE.txt
+  summary: 'TinyXML2 is a simple, small, efficient, C++ XML parser that can be easily integrated into other programs.'
+
+extra:
+  recipe-maintainers:
+    - gartung
+    - chrisburr
+    - henryiii
