@@ -10,7 +10,7 @@ conda config --set always_yes true
 conda config --set anaconda_upload no
 
 # Create test environment
-conda create --name test_env -c conda-forge python=2.7
+conda create --name test_env -c conda-forge python=2.7 conda-build
 
 # Make sure conda-forge is the first channel
 #conda config --add channels conda-forge

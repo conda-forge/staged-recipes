@@ -17,17 +17,14 @@ fi
 
 if [ "$(uname)" == "Darwin" ]; then
 
+    # clang complains a lot more than gcc. We need to modify the build flags
+    
     export CFLAGS='-I${PREFIX}/include -O2 -Wall --pedantic -Wno-comment -Wno-long-long -g  -ffloat-store -fPIC'
-
-    export CXXFLAGS='-I${PREFIX}/include -O2 -Wall --pedantic -Wno-comment -Wno-long-long -g  -ffloat-store -fPIC -D_GLIBCXX_USE_CXX11_ABI=0 -std=c++11 -Wno-c++11-narrowing'
-
+    export CXXFLAGS='-I${PREFIX}/include -O2 -Wall --pedantic -Wno-comment -Wno-long-long -g -fPIC -D_GLIBCXX_USE_CXX11_ABI=0 -std=c++11 -Wno-c++11-narrowing'
     export CPPFLAGS="-I${PREFIX}/include"
     export LDFLAGS="-L${PREFIX}/lib"
 
-    
-    ./configure --prefix=${SRC_DIR}/xspec-modelsonly-build --x-includes=${PREFIX}/include/
-
-    #./configure --prefix=${SRC_DIR}/xspec-modelsonly-build
+    ./configure --prefix=${SRC_DIR}/xspec-modelsonly-build
 
     ./hmake 'LDFLAGS_CXX=-headerpad_max_install_names -lcfitsio -lCCfits -lccfits -lwcs'
 
