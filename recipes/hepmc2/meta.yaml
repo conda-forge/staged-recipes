@@ -1,0 +1,74 @@
+{% set name = "hepmc2" %}
+{% set version = "2.06.07" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: http://lcgapp.cern.ch/project/simu/HepMC/download/HepMC-{{ version }}.tar.gz
+  sha256: a0bdd6f36a3cc4cb59d6eb15cef9d46ce9b3739cae3324e81ebb2df6943e4594
+  folder: source
+  patches:
+    - patches/hepmc-2.03.06-reflex.patch
+    - patches/hepmc-2.06.07-WeightContainer-fix-size_type.patch
+    - patches/HepMC-2.06.07-nodoc.patch
+    - patches/HepMC-2.06.07-broken-tests.patch
+build:
+  number: 0
+  skip: True  # [win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+
+
+test:
+  source_files:
+    - source/examples
+  requires:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+  commands:
+    # Workaround for lack of CONDA_BUILD_SYSROOT variable in staged recipes
+    - export CONDA_BUILD_SYSROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk  # [osx]
+    - cd source/examples
+    # example_UsingIterators
+    - ${CXX} example_UsingIterators.cc -o example_UsingIterators -I${CONDA_PREFIX}/include -L${CONDA_PREFIX}/lib -lHepMC
+    # Fix up the runpath
+    - ${INSTALL_NAME_TOOL} -change @rpath/libHepMC.4.dylib $CONDA_PREFIX/lib/libHepMC.4.dylib example_UsingIterators  # [osx]
+    - ./example_UsingIterators
+    # example_EventSelection
+    - ${CXX} example_EventSelection.cc -o example_EventSelection -I${CONDA_PREFIX}/include -L${CONDA_PREFIX}/lib -lHepMC
+    # Fix up the runpath
+    - ${INSTALL_NAME_TOOL} -change @rpath/libHepMC.4.dylib $CONDA_PREFIX/lib/libHepMC.4.dylib example_EventSelection  # [osx]
+    - ./example_EventSelection
+    # example_BuildEventFromScratch
+    - ${CXX} example_BuildEventFromScratch.cc -o example_BuildEventFromScratch -I${CONDA_PREFIX}/include -L${CONDA_PREFIX}/lib -lHepMC
+    # Fix up the runpath
+    - ${INSTALL_NAME_TOOL} -change @rpath/libHepMC.4.dylib $CONDA_PREFIX/lib/libHepMC.4.dylib example_BuildEventFromScratch  # [osx]
+    - ./example_BuildEventFromScratch
+
+about:
+  home: http://hepmc.web.cern.ch/hepmc/
+  license: LGPL-2.1
+  license_family: LGPL
+  license_file: source/INSTALL
+  summary: 'HepMC - a C++ Event Record for Monte Carlo Generators'
+
+  description: |
+           The HepMC package is an object oriented, C++ event record
+           for High Energy Physics Monte Carlo generators and simulation.
+           The original code was written by M. Dobbs and J.B. Hansen
+            (Comput. Phys. Commun. 134 (2001) 41). Since the first 
+           implementation, the package has undergone several modifications
+           and in particular, the latest HepMC3 series is a completely new
+           re-write using currently available C++11 techniques. 
+
+extra:
+  recipe-maintainers:
+    - gartung
+    - chrisburr
+    - henryiii
