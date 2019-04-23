@@ -1,0 +1,6 @@
+#!/bin/sh
+unset NEST_INSTALL_DIR
+unset NEST_DATA_DIR
+unset NEST_DOC_DIR
+unset NEST_MODULE_PATH
+unset NEST_PYTHON_PREFIX
