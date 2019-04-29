@@ -23,8 +23,10 @@ FORTRANPATH = $PREFIX/include
 CC = $CC
 CXX = $CXX
 FORTRAN = $FC
-
-#We will add motif stuff later using conda CDT
+MOTIFLIBPATH = $PREFIX/lib
+MOTIFINCPATH = $PREFIX/include
+X11LIBPATH = $PREFIX/lib
+X11INCPATH = $PREFIX/include
 " >> $SRC_DIR/config/SConfigISCE
 
 
