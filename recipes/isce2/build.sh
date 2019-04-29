@@ -6,7 +6,7 @@ mkdir $SRC_DIR/{build,install,config,bin}
 ln -s $PREFIX/bin/cython $SRC_DIR/bin/cython3
 
 #Setting up some environment variables
-export PATH=$PATH:$PREFIX/bin:$SRC_DIR/bin
+export PATH="${PATH}:${SRC_DIR}/bin"
 export LD_LIBRARY_PATH=$LD_LIBRARYPATH:$PREFIX/lib
 
 #Set up SConfigISCE file
