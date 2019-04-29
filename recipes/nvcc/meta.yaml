@@ -1,0 +1,51 @@
+{% set name = "nvcc" %}
+{% set version = "9.2" %}
+
+package:
+  name: "{{ name }}_{{ target_platform }}"
+  version: {{ version }}
+
+build:
+  number: 0
+  skip: true  # [not linux]
+  script_env:
+    - CUDA_HOME
+  ignore_run_exports:
+    - libgcc-ng
+  run_exports:
+    strong:
+      - cudatoolkit {{ version }}|{{ version }}.*
+
+requirements:
+  host:
+    - {{ compiler("c") }}
+  run:
+    - {{ compiler("c") }}
+    # Host code is forwarded to a C++ compiler
+    - {{ compiler("cxx") }}
+
+test:
+  commands:
+    # Verify the symlink to the libcuda stub library exists.
+    - test -f "$(${CC} --print-sysroot)/lib/libcuda.so"
+
+    # Verify the activation scripts are in-place.
+    {% for state in ["activate", "deactivate"] %}
+    - test -f "${PREFIX}/etc/conda/{{ state }}.d/{{ PKG_NAME }}_{{ state }}.sh"
+    {% endfor %}
+
+    # Try using the activation scripts.
+    - source ${PREFIX}/etc/conda/activate.d/{{ PKG_NAME }}_activate.sh
+    - if [ -z ${CUDA_HOME+x} ]; then echo "CUDA_HOME is unset after activation" && exit 1; else echo "CUDA_HOME is set to '$CUDA_HOME'"; fi
+    - source ${PREFIX}/etc/conda/deactivate.d/{{ PKG_NAME }}_deactivate.sh
+    - if [ -z ${CUDA_HOME+x} ]; then echo "CUDA_HOME is unset after deactivation "; else echo "CUDA_HOME is set to '$CUDA_HOME' after deactivation" && exit 1; fi
+
+about:
+  home: https://github.com/conda-forge/nvcc-feedstock
+  license: BSD 3-Clause
+  license_file: LICENSE.txt
+  summary: A meta-package to enable the right nvcc.
+
+extra:
+  recipe-maintainers:
+    - jakirkham
