@@ -6,7 +6,7 @@ setenv  CMSSW_RELEASE_BASE ""
 setenv  CMSSW_BASE "${CONDA_PREFIX}"
 setenv  CMSSW_SEARCH_PATH ${CONDA_PREFIX}/data
 setenv  CMSSW_DATA_PATH ${CONDA_PREFIX}/data
-setenf  CMSSW_RELEASE CMSSW_10_5_0
+setenf  CMSSW_VERSION CMSSW_10_5_0
 
 # Only on macOS
 if [[ "$(uname)" == "Darwin" ]]; then

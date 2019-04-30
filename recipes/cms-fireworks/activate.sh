@@ -7,7 +7,7 @@ export CMSSW_RELEASE_BASE=""
 export CMSSW_BASE="${CONDA_PREFIX}"
 export CMSSW_SEARCH_PATH=${CONDA_PREFIX}/data
 export CMSSW_DATA_PATH=${CONDA_PREFIX}/data
-export CMSSW_RELEASE CMSSW_10_5_0
+export CMSSW_VERSION=CMSSW_10_5_0
 # Only on macOS
 if [[ "$(uname)" == "Darwin" ]]; then
     # Only if not in the base env (let's be nice)

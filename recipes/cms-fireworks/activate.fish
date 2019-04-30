@@ -6,7 +6,7 @@ set -gx CMSSW_RELEASE_BASE ""
 set -gx CMSSW_BASE "${CONDA_PREFIX}"
 set -gx CMSSW_SEARCH_PATH "${CONDA_PREFIX}/data"
 set -gx CMSSW_DATA_PATH "${CONDA_PREFIX}/data"
-set -gx CMSSW_RELEASE CMSSW_10_5_0
+set -gx CMSSW_VERSION CMSSW_10_5_0
 # Only on macOS
 switch (uname)
     # Only if not in the base env (let's be nice)
