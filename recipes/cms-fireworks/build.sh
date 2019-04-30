@@ -1,12 +1,17 @@
 #!/bin/bash
 set -e
 
+# copy source and geometry files to install dir
+cp -r src "${PREFIX}"
+cp -rv data "${PREFIX}"
+
+# set graphics library to link
 if [ "$(uname)" == "Linux" ]; then
     cmake_args="-Dgraphicslib=GX11"
 else
     cmake_args="-Dgraphicslib=GCocoa"
 
-    # Remove -std=c++XX from build ${CXXFLAGS}
+    # Remove -std=c++14 from build ${CXXFLAGS} and add -std=c++1z
     CXXFLAGS=$(echo "${CXXFLAGS}" | sed -E 's@-std=c\+\+[^ ]+@@g')
     export CXXFLAGS
     export CXXFLAGS="${CXXFLAGS} -std=c++1z"
@@ -43,8 +48,6 @@ fi
 cd ${BLDDIR}
 cp -v lib/*.pcm "${PREFIX}"/lib 
 cp -v lib/*.rootmap "${PREFIX}"/lib 
-cp -r ../src "${PREFIX}"
-
 
 cd ${PREFIX}
 # This should regenerate the precompiled headers for all of the libraries
@@ -52,13 +55,6 @@ ROOTIGNOREPREFIX=1 python $PREFIX/etc/dictpch/makepch.py $PREFIX/etc/allDict.cxx
 
 # Create version.txt expected by cmsShow.exe
 echo CMSSW_10_5_0 >src/Fireworks/Core/data/version.txt
-# Download root files needed by cmsShow.exe 
-mkdir -p data/Fireworks/Geometry/data; cd data/Fireworks/Geometry/data
-curl -L https://github.com/cms-data/Fireworks-Geometry/archive/V07-05-04.tar.gz | tar xfz - --strip-components 1
-curl -L https://github.com/cms-data/DataFormats-PatCandidates/archive/V01-00-01.tar.gz | tar xfz - --strip-components 1
-cd ${PREFIX}
-curl -OL http://fireworks.web.cern.ch/fireworks/10/RelValTTbarLepton_MINIAOD.root
-curl -OL http://fireworks.web.cern.ch/fireworks/10/RelValZpMM_RECO.root
 
 # Add the post activate/deactivate scripts
 mkdir -p "${PREFIX}/etc/conda/activate.d"
