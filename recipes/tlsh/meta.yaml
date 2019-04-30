@@ -13,16 +13,81 @@ source:
 
 build:
   number: 0
+  skip: true  # [win]
 
 requirements:
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
     - cmake
+    - make
+  host:
+    - python
+    - pip
+  run:
+    - python
 
 test:
   commands:
-    - tlsh --help
+    - echo tlsh metapackage has no tests
+
+outputs:
+  - name: libtlsh
+    script: install-libtlsh.sh
+    build:
+      run_exports:
+        - {{ pin_subpackage('libtlsh', max_pin='x.x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - make
+    test:
+      commands:
+        - echo libtlsh tested are during build
+  - name: python-tlsh
+    script: install-python-tlsh.sh
+    build:
+      run_exports:
+        - {{ pin_subpackage('python-tlsh', max_pin='x.x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - make
+      host:
+        - {{ pin_subpackage('libtlsh', exact=True) }}
+        - python
+        - pip
+      run:
+        - {{ pin_subpackage('libtlsh', exact=True) }}
+        - python
+    test:
+      source_files:
+        - Testing
+        - py_ext
+      imports:
+        - tlsh
+      commands:
+        - cd Testing && sh python_test.sh
+  - name: tlsh-tools
+    script: install-tlsh-tools.sh
+    build:
+      run_exports:
+        - {{ pin_subpackage('libtlsh', max_pin='x.x') }}
+    test:
+      commands:
+        - tlsh --help
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - make
+      run:
+        - {{ pin_subpackage('libtlsh', max_pin='x.x') }}
 
 about:
   home: https://github.com/trendmicro/tlsh
