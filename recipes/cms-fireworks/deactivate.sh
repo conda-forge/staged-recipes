@@ -15,4 +15,5 @@ unset LIBRARY_PATH
 unset ROOT_INCLUDE_PATH
 unset CMSSW_SEARCH_PATH
 unset CMSSW_DATA_PATH
+unset CMSSW_RELEASE
 unalias cmsShow

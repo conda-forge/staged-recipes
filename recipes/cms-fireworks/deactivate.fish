@@ -16,4 +16,5 @@ set -e LIBRARY_PATH
 set -e ROOT_INCLUDE_PATH
 set -e CMSSW_SEARCH_PATH
 set -e CMSSW_DATA_PATH
+set -e CMSSW_RELEASE
 unalias cmsShow
