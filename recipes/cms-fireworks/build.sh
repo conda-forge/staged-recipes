@@ -53,7 +53,7 @@ ROOTIGNOREPREFIX=1 python $PREFIX/etc/dictpch/makepch.py $PREFIX/etc/allDict.cxx
 # Create version.txt expected by cmsShow.exe
 echo CMSSW_10_5_0 >src/Fireworks/Core/data/version.txt
 # Download root files needed by cmsShow.exe 
-mkdir data/Fireworks/Geometry/data; cd data/Fireworks/Geometry/data
+mkdir -p data/Fireworks/Geometry/data; cd data/Fireworks/Geometry/data
 curl -L https://github.com/cms-data/Fireworks-Geometry/archive/V07-05-04.tar.gz | tar xfz - --strip-components 1
 curl -L https://github.com/cms-data/DataFormats-PatCandidates/archive/V01-00-01.tar.gz | tar xfz - --strip-components 1
 cd ${PREFIX}
