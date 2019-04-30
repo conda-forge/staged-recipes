@@ -3,7 +3,7 @@ REM batch script written as a by hand conversion of build.sh.
 set outdir=%PREFIX%/share/%PKG_NAME%
 MKDIR %outdir%
 if errorlevel 1 exit 1
-MKDIR %PREFIX/bin%
+MKDIR %PREFIX%/bin
 if errorlevel 1 exit 1
 
 CD %SRC_DIR%
