@@ -117,7 +117,8 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
     for node in order:
         d[G.node[node]['meta'].meta_path] = 1
 
-    conda_build.api.build(list(d.keys()), config=get_config(arch, channel_urls))
+    for recipe in d.keys():
+        conda_build.api.build([recipe], config=get_config(arch, channel_urls))
 
 
 if __name__ == "__main__":
