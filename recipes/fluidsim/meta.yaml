@@ -1,5 +1,13 @@
 {% set name = "fluidsim" %}
 {% set version = "0.3.1" %}
+{% set build = 0000 %}
+# ensure mpi is defined (needed for conda-smithy recipe-lint)
+{% set mpi = mpi or 'nompi' %}
+
+{% if mpi == 'nompi' %}
+# prioritize nompi variant via build number
+{% set build = build + 100 %}
+{% endif %}
 
 package:
   name: "{{ name|lower }}"
@@ -10,7 +18,27 @@ source:
   sha256: 2959d2edfed940433980a780616db8846ad7ced2acd46dac7225196f0bab7eec
 
 build:
-  number: 0
+  number: {{ build }}
+  # add build string so packages can depend on
+  # mpi or nompi variants explicitly:
+  # `pkg * mpi_mpich_*` for mpich
+  # `pkg * mpi_*` for any mpi
+  # `pkg * nompi_*` for no mpi
+
+  {% if mpi != 'nompi' %}
+  {% set mpi_prefix = "mpi_" + mpi %}
+  {% else %}
+  {% set mpi_prefix = "nompi" %}
+  {% endif %}
+  string: "{{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}"
+
+  {% if mpi != 'nompi' %}
+
+  run_exports:
+    - {{ name }} * {{ mpi_prefix }}_*
+  {% endif %}
+
+
   entry_points:
     - fluidsim = fluidsim.util.console.__main__:run
     - fluidsim-bench = fluidsim.util.console.__main__:run_bench
@@ -26,20 +54,26 @@ requirements:
   host:
     - pip
     - python >=3.6
+#   - {{ mpi }}  # [ mpi != 'nompi' ]
+#   - openssh  # [ mpi == 'openmpi' ]
+#    - mpi4py  # [ mpi != 'nompi' ]
+    - fluidfft
+    - fluidfft * mpi_{{ mpi }}_*  # [mpi != 'nompi']
+#    - transonic
+    - setuptools_scm
+    - cython
+#    - mpi4py
+    - pythran
+    - xarray
+  run:
 #    - {{ mpi }}
 #    - openssh
-    - transonic
-    - setuptools_scm
-#    - cython
-#    - mpi4py
-#    - pythran
-  run:
-    - {{ mpi }}
-    - openssh
-    - fluiddyn
+#    - fluiddyn
     - fluidfft
+    - fluidfft * mpi_{{ mpi }}_*  # [mpi != 'nompi']
     - numpy >=1.15.4
-    - cached_property
+    - cached-property
+    - xarray
 #    - pandas
 #    - transonic
 #    - fftw
