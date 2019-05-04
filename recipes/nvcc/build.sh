@@ -40,10 +40,10 @@ declare -a CUDA_HEADERS=(
     "cusparse.h"
     "nvrtc.h"
 )
-mkdir -p "${CONDA_BUILD_SYSROOT}/include"
+mkdir -p "${PREFIX}/include"
 for h in ${CUDA_HEADERS}
 do
-    ln -s "${CUDA_HOME}/include/${h}" "${CONDA_BUILD_SYSROOT}/include/${h}"
+    ln -s "${CUDA_HOME}/include/${h}" "${PREFIX}/include/${h}"
 done
 
 # Add `libcuda.so` shared object stub to the compiler sysroot.
