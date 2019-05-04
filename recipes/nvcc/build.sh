@@ -26,9 +26,28 @@ EOF
 mkdir -p "${PREFIX}/bin"
 ln -s "${CUDA_HOME}/bin/nvcc" "${PREFIX}/bin/nvcc"
 
+CONDA_BUILD_SYSROOT="$(${CC} --print-sysroot)"
+
+# Symlink commonly used headers into compiler sysroot.
+# Needed so builds are able to include them during compilation.
+declare -a CUDA_HEADERS=(
+    "cublas_v2.h"
+    "cuda.h"
+    "cuda_profiler_api.h"
+    "cuda_runtime.h"
+    "cufft.h"
+    "curand.h"
+    "cusparse.h"
+    "nvrtc.h"
+)
+mkdir -p "${CONDA_BUILD_SYSROOT}/include"
+for h in ${CUDA_HEADERS}
+do
+    ln -s "${CUDA_HOME}/include/${h}" "${CONDA_BUILD_SYSROOT}/include/${h}"
+done
+
 # Add `libcuda.so` shared object stub to the compiler sysroot.
 # Needed for things that want to link to `libcuda.so`.
 # Stub is used to avoid getting driver code linked into binaries.
-CONDA_BUILD_SYSROOT="$(${CC} --print-sysroot)"
 mkdir -p "${CONDA_BUILD_SYSROOT}/lib"
 ln -s "${CUDA_HOME}/lib64/stubs/libcuda.so" "${CONDA_BUILD_SYSROOT}/lib/libcuda.so"
