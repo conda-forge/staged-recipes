@@ -41,7 +41,7 @@ declare -a CUDA_HEADERS=(
     "nvrtc.h"
 )
 mkdir -p "${PREFIX}/include"
-for h in ${CUDA_HEADERS}
+for h in "${CUDA_HEADERS[*]}"
 do
     ln -s "${CUDA_HOME}/include/${h}" "${PREFIX}/include/${h}"
 done
