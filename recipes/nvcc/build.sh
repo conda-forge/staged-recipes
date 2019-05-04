@@ -40,7 +40,7 @@ declare -a CUDA_HEADERS=(
     "cusparse.h"
     "nvrtc.h"
 )
-mkdir -p "${PREFIX}/include"
+mkdir -p "${CONDA_BUILD_SYSROOT}/include"
 for h in ${CUDA_HEADERS[*]}
 do
     ln -s "${CUDA_HOME}/include/${h}" "${CONDA_BUILD_SYSROOT}/include/${h}"
