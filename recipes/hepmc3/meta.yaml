@@ -1,0 +1,52 @@
+{% set name = "HepMC3" %}
+{% set version = "3.1.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: http://hepmc.web.cern.ch/hepmc/releases/{{ name  }}-{{ version }}.tar.gz 
+  sha256: ac02977d6bde18398abf9d25a2e55614e22b5e819ed4b21ea55cf31aabe6df67
+  folder: source
+
+build:
+  number: 0
+  skip: True  # [win]
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - cmake
+
+test:
+  source_files:
+    - source/test
+  requires:
+    - {{ compiler('cxx') }}
+    - {{ compiler('fortran') }}
+  commands:
+    # Workaround for lack of CONDA_BUILD_SYSROOT variable in staged recipes
+    - export CONDA_BUILD_SYSROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.9.sdk  # [osx]
+    - cd source/test
+    - ${CXX} -std=c++11 testMass.cc -o testMass.exe -I${CONDA_PREFIX}/include -L${CONDA_PREFIX}/lib -lHepMC3
+      # Fix up the runpath
+    - ${INSTALL_NAME_TOOL} -change @rpath/libHepMC3.dylib $CONDA_PREFIX/lib/libHepMC3.dylib testMass.exe  # [osx]        
+    - ./testMass.exe
+
+about:
+  home: https://hepmc.web.cern.ch/hepmc/
+  license: GPL-3
+  license_family: GPL
+  license_file: source/LICENCE
+  summary: 'HepMC3 is a new rewrite of HepMC event record.'
+  description: |
+      HepMC3 is a new rewrite of HepMC event record. It uses shared pointers
+      for in-memory navigation and the POD concept for the persistency.
+  dev_url: https://gitlab.cern.ch/hepmc/HepMC3
+
+extra:
+  recipe-maintainers:
+    - henryiii
+    - chrisburr
+    - gartung
