@@ -1,19 +1,14 @@
 #!/usr/bin/env bash
 
-unset ROOTSYS
-
 unset CMSSW_RELEASE_BASE
 unset CMSSW_BASE
-if [[ "$(uname)" == "Linux" ]]; then
-  export LD_LIBRARY_PATH=${OLD_LD_LIBRARY_PATH}
-  unset OLD_LD_LIBRARY_PATH
-else
-  export DYLD_FALLBACK_LIBRARY_PATH=${OLD_DYLD_FALLBACK_LIBRARY_PATH}
-  unset OLD_DYLD_FALLBACK_LIBRARY_PATH
-fi
-unset LIBRARY_PATH
-unset ROOT_INCLUDE_PATH
 unset CMSSW_SEARCH_PATH
 unset CMSSW_DATA_PATH
-unset CMSSW_RELEASE
-unalias cmsShow
+unset CMSSW_VERSION
+
+if [[ "$(uname)" == "Darwin" ]]; then
+  unset DYLD_FALLBACK_LIBRARY_PATH
+else
+  unset LD_LIBRARY_PATH
+fi
+unset ROOT_INCLUDE_PATH
