@@ -1,9 +1,7 @@
 #!/bin/bash
 
-
 mkdir -p build-dir
 cd build-dir
-
 
 cmake -LAH \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
@@ -13,8 +11,6 @@ cmake -LAH \
 make -j${CPU_COUNT}
 make install
 
-
-
-
-
-ln -s "${PREFIX}/ostap" "${SP_DIR}/"
+if [ -e "${PREFIX}"/./thisostap.sh ]; then
+	rm "${PREFIX}"/./thisostap.*
+fi
