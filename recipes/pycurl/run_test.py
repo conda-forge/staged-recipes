@@ -5,7 +5,6 @@ try:
 except:
     from io import BytesIO
 
-
 buf = BytesIO()
 
 c = pycurl.Curl()
