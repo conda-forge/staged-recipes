@@ -1,0 +1,111 @@
+{% set name = "tlsh" %}
+{% set version = "3.11.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/trendmicro/{{ name }}/archive/{{ version }}.tar.gz
+  sha256: 09e116130d98d6ed180624ff9f7da22b669ccd6f24e316f59019bf56436ee444
+  patches:
+    - make.patch
+
+build:
+  number: 0
+  skip: true  # [win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - make
+  host:
+    - python
+    - pip
+  run:
+    - python
+
+test:
+  commands:
+    - test -f ${CONDA_PREFIX}/lib/libtlsh.${SHLIB_EXT}
+
+outputs:
+  - name: libtlsh
+    script: install-libtlsh.sh
+    build:
+      run_exports:
+        - {{ pin_subpackage('libtlsh', max_pin='x.x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - make
+    test:
+      commands:
+        - echo libtlsh tested are during build
+  - name: python-tlsh
+    script: install-python-tlsh.sh
+    build:
+      run_exports:
+        - {{ pin_subpackage('python-tlsh', max_pin='x.x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - make
+      host:
+        - {{ pin_subpackage('libtlsh', exact=True) }}
+        - python
+        - pip
+      run:
+        - {{ pin_subpackage('libtlsh', exact=True) }}
+        - python
+    test:
+      source_files:
+        - Testing
+        - py_ext
+      imports:
+        - tlsh
+      commands:
+        - cd Testing && sh python_test.sh
+  - name: tlsh-tools
+    script: install-tlsh-tools.sh
+    build:
+      run_exports:
+        - {{ pin_subpackage('libtlsh', max_pin='x.x') }}
+    test:
+      commands:
+        - tlsh --help
+        - tlsh_unittest --help
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - make
+      host:
+        - {{ pin_subpackage('libtlsh', exact=True) }}
+      run:
+        - {{ pin_subpackage('libtlsh', exact=True) }}
+
+about:
+  home: https://github.com/trendmicro/tlsh
+  license: Apache-2.0
+  license_family: Apache
+  license_file: LICENSE
+  summary: 'TLSH is a fuzzy matching library.'
+  description: |
+     Given a byte stream with a minimum length of 50 bytes TLSH generates a
+     hash value which can be used for similarity comparisons. Similar objects
+     will have similar hash values which allows for the detection of similar
+     objects by comparing their hash values. Note that the byte stream should
+     have a sufficient amount of complexity. For example, a byte stream of
+     identical bytes will not generate a hash value.
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
