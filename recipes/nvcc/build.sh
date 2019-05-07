@@ -25,7 +25,6 @@ EOF
 # Symlink `nvcc` into `bin` so it can be easily run.
 mkdir -p "${PREFIX}/bin"
 ln -s "${CC}" "${PREFIX}/bin/gcc"
-ln -s "${CXX}" "${PREFIX}/bin/g++"
 ln -s "${CUDA_HOME}/bin/nvcc" "${PREFIX}/bin/nvcc"
 
 # Add `libcuda.so` shared object stub to the compiler sysroot.
