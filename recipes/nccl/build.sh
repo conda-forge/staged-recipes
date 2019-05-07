@@ -16,3 +16,7 @@ cp /usr/include/asm-generic/socket.h "${CONDA_BUILD_SYSROOT}/usr/include/asm-gen
 
 make -j${CPU_COUNT} CUDA_HOME="${CUDA_HOME}"
 make install PREFIX="${PREFIX}"
+
+# Delete the static library as it is quite large.
+# Should halve the package size.
+rm "${PREFIX}/lib/libnccl_static.a"
