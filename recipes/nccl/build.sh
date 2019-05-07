@@ -14,7 +14,7 @@
 CONDA_BUILD_SYSROOT="$(${CC} --print-sysroot)"
 cp /usr/include/asm-generic/socket.h "${CONDA_BUILD_SYSROOT}/usr/include/asm-generic/socket.h"
 
-make -j${CPU_COUNT} CUDA_HOME="${CUDA_HOME}"
+make -j${CPU_COUNT} CUDA_HOME="${CUDA_HOME}" CUDARTLIB="cudart"
 make install PREFIX="${PREFIX}"
 
 # Delete the static library as it is quite large.
