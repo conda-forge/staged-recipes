@@ -6,7 +6,8 @@ cmake 	-DCMAKE_BUILD_TYPE=Release \
 
 make -j$CPU_COUNT
 
-cp -R include/dlpack $PREFIX/include/.
+mkdir -p $PREFIX/include/dlpack
+cp include/dlpack/*.h $PREFIX/include/dlpack/.
 cp bin/mock $PREFIX/bin/.
 
 
