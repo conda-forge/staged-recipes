@@ -1,2 +1,6 @@
+export DMLC_CORE_PATH=$PREFIX
 make -j$CPU_COUNT
-make install
+
+cp lib/* $PREFIX/lib/.
+
+
