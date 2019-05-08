@@ -1,4 +1,4 @@
-bash -c "configure --prefix=$PREFIX"
+bash -lc "configure --prefix=$PREFIX"
 
-bash -c "make"
-bash -c "make install"
+bash -lc "make"
+bash -lc "make install"
