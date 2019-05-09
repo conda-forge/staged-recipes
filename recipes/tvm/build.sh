@@ -2,6 +2,10 @@ mkdir -p build
 
 pushd build
 
+export DMLC_CORE_PATH=$PREFIX
+export DLPACK_PATH=$PREFIX
+
+
 cmake \
       -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_PREFIX_PATH=$PREFIX \
@@ -9,9 +13,12 @@ cmake \
       -DCMAKE_CONFIGURATION_TYPES="Release" \
       -DUSE_LLVM=ON \
       -DUSE_CUDA=OFF \
+      -DUSE_OPENGL=ON \
+      -DUSE_VULKAN=OFF \
+      -DCMAKE_VERBOSE_MAKEFILE=ON \
       ..
 
-make -j$CPU_COUNT
+make -j$CPU_COUNT VERBOSE=1
 make install
 
 popd
