@@ -1,0 +1,89 @@
+{% set name = "mpas_tools" %}
+{% set version = "0.0.2" %}
+
+package:
+  name: '{{ name|lower }}'
+  version: '{{ version }}'
+
+source:
+  url: https://github.com/MPAS-Dev/MPAS-Tools/archive/{{ version }}.tar.gz
+  sha256: 45c733ef63c99f2b7d61f5a76524acc38c8a2376a379aec6a8ad44ea21c3d8fc
+
+build:
+  number: 0
+  skip: true  # [win]
+  entry_points:
+    - planar_hex = mpas_tools.planar_hex:main
+    - translate_planar_grid = mpas_tools.translate:main
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - cmake
+  host:
+    - python
+    - hdf5
+    - libnetcdf
+    - setuptools
+    - pip
+    - openmp  # [osx]
+  run:
+    - python
+    - netcdf4
+    - hdf5
+    - libnetcdf
+    - numpy
+    - scipy
+    - xarray
+    - dask
+    - geometric_features
+    - pyevtk
+    - future
+    - backports.tempfile
+
+test:
+  requires:
+    - pytest
+  source_files:
+    - mesh_tools/mesh_conversion_tools/test/Arctic_Ocean.geojson
+    - mesh_tools/mesh_conversion_tools/test/mesh.QU.1920km.151026.nc
+    - mesh_tools/mesh_conversion_tools/test/land_mask_final.nc
+    - conda_package/mpas_tools/tests/*
+  commands:
+    - planar_hex --nx=10 --ny=20 --dc=1000. --outFileName='periodic_mesh_10x20_1km.nc'
+    - translate_planar_grid -f 'periodic_mesh_10x20_1km.nc' -x 1000. -y 2000.
+    - translate_planar_grid -f 'periodic_mesh_10x20_1km.nc' -c
+    - planar_hex --nx=20 --ny=40 --dc=1000. --outFileName='periodic_mesh_20x40_1km.nc'
+    - translate_planar_grid -f 'periodic_mesh_10x20_1km.nc' -d 'periodic_mesh_20x40_1km.nc'
+    - MpasMeshConverter.x mesh_tools/mesh_conversion_tools/test/mesh.QU.1920km.151026.nc mesh.nc
+    - MpasCellCuller.x mesh.nc culled_mesh.nc -m mesh_tools/mesh_conversion_tools/test/land_mask_final.nc
+    - MpasMaskCreator.x mesh.nc arctic_mask.nc -f mesh_tools/mesh_conversion_tools/test/Arctic_Ocean.geojson
+    - planar_hex --nx=30 --ny=20 --dc=1000. --npx --npy --outFileName='nonperiodic_mesh_30x20_1km.nc'
+    - MpasCellCuller.x nonperiodic_mesh_30x20_1km.nc culled_nonperiodic_mesh_30x20_1km.nc
+    - python -m pytest conda_package/mpas_tools/tests
+    - mark_horns_for_culling.py --help
+    - create_landice_grid_from_generic_MPAS_grid.py --help
+    - define_cullMask.py --help
+    - interpolate_to_mpasli_grid.py --help
+    - mark_domain_boundaries_dirichlet.py --help
+    - add_land_locked_cells_to_mask.py --help
+    - widen_transect_edge_masks.py --help
+    - add_critical_land_blockages_to_mask.py --help
+    - paraview_vtk_field_extractor.py -f mesh_tools/mesh_conversion_tools/test/mesh.QU.1920km.151026.nc -v latCell,lonCell --ignore_time -o vtk_test
+
+about:
+  home: https://github.com/MPAS-Dev/MPAS-Tools/
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: Mesh tools for Model for Prediction Across Scales (MPAS)
+  description: |
+    A set of tools for creating and manipulating meshes for the climate
+    components based on the Model for Prediction Across Scales (MPAS) framework
+  doc_url: 'https://github.com/MPAS-Dev/MPAS-Tools/README.md'
+  dev_url: 'https://github.com/MPAS-Dev/MPAS-Tools/'
+
+extra:
+  recipe-maintainers:
+    - xylar
+    - jhkennedy
