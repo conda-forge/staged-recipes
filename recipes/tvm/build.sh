@@ -13,7 +13,7 @@ cmake \
       -DCMAKE_CONFIGURATION_TYPES="Release" \
       -DUSE_LLVM=ON \
       -DUSE_CUDA=OFF \
-      -DUSE_OPENGL=ON \
+      -DUSE_OPENGL=OFF \
       -DUSE_VULKAN=OFF \
       -DCMAKE_VERBOSE_MAKEFILE=ON \
       ..
