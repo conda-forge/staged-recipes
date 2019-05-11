@@ -1,2 +1,2 @@
-export CONDA_HOME=$PREFIX
-$PYTHON setup.py install     # Python command to install the script
+#!/usr/bin/env bash
+HDF5_DIR="${PREFIX}" "${PYTHON}" -m pip install . --no-deps -vv
