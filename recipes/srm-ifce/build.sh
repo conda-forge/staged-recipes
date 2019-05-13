@@ -18,6 +18,7 @@ fi
 cmake -LAH \
     "${CMAKE_PLATFORM_FLAGS[@]}" \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+    -DLIB_SUFFIX="" \
     ..
 
 make -j${CPU_COUNT}
