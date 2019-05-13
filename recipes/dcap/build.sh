@@ -4,15 +4,7 @@ IFS=$'\n\t'
 
 sh bootstrap.sh
 
-declare -a PLATFORM_FLAGS
-if [ "$(uname)" == "Linux" ]; then
-    PLATFORM_FLAGS+=(--with-sysroot="${PREFIX}")
-else
-    PLATFORM_FLAGS+=(--with-sysroot="${CONDA_BUILD_SYSROOT}")
-fi
-
 ./configure \
-    "${PLATFORM_FLAGS[@]}" \
     --prefix="${PREFIX}" \
     --with-globus-lib="${PREFIX}/lib" \
     --with-globus-include="${PREFIX}/include" \
@@ -23,4 +15,6 @@ if [ "$(uname)" == "Darwin" ]; then
 fi
 
 make -j${CPU_COUNT}
+make check
 make install
+make installcheck
