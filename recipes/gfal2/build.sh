@@ -28,9 +28,7 @@ cmake -LAH \
     -DPLUGIN_RFIO=OFF \
     -DGTEST_LOCATION="${PREFIX}" \
     -DLIB_SUFFIX="" \
-    -DUNIT_TESTS=ON \
     ..
 
 make -j${CPU_COUNT}
-ctest
 make install
