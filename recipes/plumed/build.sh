@@ -12,7 +12,7 @@ fi
 export CPPFLAGS="-D__PLUMED_DEFAULT_KERNEL=$PREFIX/lib/libplumedKernel$SHLIB_EXT $CPPFLAGS"
 
 # libraries are explicitly listed here due to --disable-libsearch
-export LIBS="-lgsl -lgslcblas -lxdrfile -lz $LIBS"
+export LIBS="-lgsl -lgslcblas -llapack -lblas -lxdrfile -lz $LIBS"
 
 # python is disabled since it should be provided as a separate package
 # --disable-libsearch forces to link only explicitely requested libraries
