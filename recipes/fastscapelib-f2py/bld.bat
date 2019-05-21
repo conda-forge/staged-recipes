@@ -1,12 +1,15 @@
 :: correct FC, apparently pointed to host prefix??
 set FC=%BUILD_PREFIX%\Library\bin\flang.exe
 
-ls %PREFIX%\bin
+echo %PREFIX%\Scripts
+ls %PREFIX%\Scripts
+echo %SCRIPTS%
 
-if exist %PREFIX%\bin\f2py.exe (
-  set F2PY=%PREFIX%\bin\f2py.exe
+
+if exist %SCRIPTS%\f2py.exe (
+  set F2PY=%SCRIPTS%\f2py.exe
 ) else (
-  set F2PY=%PREFIX%\bin\f2py.bat
+  set F2PY=%SCRIPTS%\f2py.bat
 )
 
 "%PYTHON%" -m pip install . --no-build-isolation --no-deps --ignore-installed --no-cache-dir -vvv
