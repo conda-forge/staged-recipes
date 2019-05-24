@@ -1,5 +1,4 @@
 autoreconf --install --symlink -I m4
-autogen
 
 case `uname` in
     Darwin|Linux)
