@@ -8,8 +8,8 @@ if [[ $target_platform == "osx-64" ]]; then
   export CXX=$PREFIX/bin/clang++
   export LIBRARY_PREFIX=$PREFIX
 elif [[ $target_platform == "win-64" ]]; then
-  export CC=clang-cl.exe
-  export CXX=clang-cl.exe
+  export CC=$BUILD_PREFIX/Library/bin/clang-cl.exe
+  export CXX=$BUILD_PREFIX/Library/bin/clang-cl.exe
   export LIBRARY_PREFIX=$PREFIX/Library
   export CMAKE_GENERATOR="MSYS Makefiles"
 else
