@@ -10,12 +10,12 @@ set PIP_NO_INDEX=
 pip install lit
 
 cmake ^
-  -G"NMake Makefiles JOM" ^
+  -G"MSYS Makefiles" ^
   -DCMAKE_BUILD_TYPE=Release ^
   -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
   -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
   ..
 
-jom -j%CPU_COUNT%
-jom install
-jom check-libpgmath
+make -j%CPU_COUNT%
+make install
+make check-libpgmath
