@@ -12,6 +12,7 @@ cmake -G "Ninja" \
  -D BUILD_EXAMPLES:BOOL=OFF \
  -D BUILD_GEOMSERVER:BOOL=OFF \
  -D BUILD_CONVERT:BOOL=OFF \
+ -D LIBXML2_INCLUDE_DIR:FILEPATH=$PREFIX/include/libxml2 \
  ../cmake
 
 ninja install
