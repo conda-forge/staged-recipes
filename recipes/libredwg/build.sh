@@ -1,4 +1,5 @@
-autoreconf --install --symlink -I m4
+autoreconf --install
+chmod +x configure
 
 case `uname` in
     Darwin|Linux)
