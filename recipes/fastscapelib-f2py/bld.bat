@@ -1,17 +1,13 @@
-:: correct FC, apparently pointed to host prefix??
-set FC=%BUILD_PREFIX%\Library\bin\flang.exe
-
-echo %PREFIX%\Scripts
-ls %PREFIX%\Scripts
-echo %SCRIPTS%
-
-
-if exist %SCRIPTS%\f2py.exe (
-  set F2PY=%SCRIPTS%\f2py.exe
+if exist %PREFIX%\Scripts\f2py.exe (
+  set F2PY=%PREFIX%\Scripts\f2py.exe
 ) else (
-  set F2PY=%SCRIPTS%\f2py.bat
+  set F2PY=%PREFIX%\Scripts\f2py.bat
 )
 
-"%PYTHON%" -m pip install . --no-build-isolation --no-deps --ignore-installed --no-cache-dir -vvv
+"%PYTHON%" setup.py bdist_wheel -- ^
+           -DCMAKE_Fortran_COMPILER:FILEPATH="%BUILD_PREFIX%\Library\bin\flang.exe" ^
+           -DF2PY_EXECUTABLE:FILEPATH="%F2PY%"
+
+"%PYTHON%" -m pip install *.whl --no-deps --ignore-installed --no-cache-dir -vvv
 
 if errorlevel 1 exit 1
