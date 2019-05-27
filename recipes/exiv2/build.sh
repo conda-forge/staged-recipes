@@ -10,5 +10,4 @@ make -j$CPU_COUNT
 make install
 
 # libraries get copied to wrong place on CentOS...
-mkdir -p $PREFIX/lib
-mv $PREFIX/lib64/* $PREFIX/lib
+mv $PREFIX/lib64 $PREFIX/lib
