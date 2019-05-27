@@ -1,3 +1,5 @@
+@echo on
+
 if exist %PREFIX%\Scripts\f2py.exe (
   set F2PY=%PREFIX%\Scripts\f2py.exe
 ) else (
