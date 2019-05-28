@@ -13,7 +13,12 @@ if exist %PREFIX%\Scripts\f2py.exe (
   set F2PY=%PREFIX%\Scripts\f2py.bat
 )
 
-set FC="%BUILD_PREFIX%\Library\bin\flang.exe"
+:: Set variable required by CMake
+set FC=%BUILD_PREFIX%\Library\bin\flang.exe
+set CC=%BUILD_PREFIX%\Library\bin\clang-cl.exe
+set CXX=%BUILD_PREFIX%\Library\bin\clang-cl.exe
+set LIB=%BUILD_PREFIX%\Library\lib
+
 
 mkdir "%SRC_DIR%\dist"
 
