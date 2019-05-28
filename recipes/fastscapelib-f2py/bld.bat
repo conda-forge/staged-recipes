@@ -9,6 +9,7 @@ if exist %PREFIX%\Scripts\f2py.exe (
 mkdir "%SRC_DIR%\dist"
 
 "%PYTHON%" setup.py bdist_wheel --dist-dir="%SRC_DIR%\dist" -- ^
+           -DCMAKE_Fortran_COMPILER:FILEPATH="%BUILD_PREFIX%\Library\bin\flang.exe" ^
            -DF2PY_EXECUTABLE:FILEPATH="%F2PY%"
 
 "%PYTHON%" -m pip install ^
