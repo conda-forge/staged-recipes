@@ -13,6 +13,7 @@ cmake -G "Ninja" ^
  -D BUILD_EXAMPLES:BOOL=OFF ^
  -D BUILD_GEOMSERVER:BOOL=OFF ^
  -D BUILD_CONVERT:BOOL=OFF ^
+ -D PYTHON_EXECUTABLE:FILEPATH=%PREFIX%/python ^
  ../cmake
  
 if errorlevel 1 exit 1
