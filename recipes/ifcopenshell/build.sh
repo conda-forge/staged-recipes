@@ -1,5 +1,10 @@
 mkdir build && cd build
 
+# this disables linking to python DSO
+if [ `uname` == Darwin ]; then
+    export  LDFLAGS="$LDFLAGS  -Wl,-flat_namespace,-undefined,suppress"
+fi
+
 cmake -G "Ninja" \
  -D CMAKE_BUILD_TYPE:STRING=Release \
  -D CMAKE_INSTALL_PREFIX:FILEPATH=$PREFIX \
