@@ -13,10 +13,12 @@ if exist %PREFIX%\Scripts\f2py.exe (
   set F2PY=%PREFIX%\Scripts\f2py.bat
 )
 
+set FC="%BUILD_PREFIX%\Library\bin\flang.exe"
+
 mkdir "%SRC_DIR%\dist"
 
 "%PYTHON%" setup.py bdist_wheel --dist-dir="%SRC_DIR%\dist" -- ^
-           -DCMAKE_Fortran_COMPILER:FILEPATH="%BUILD_PREFIX%\Library\bin\flang.exe" ^
+           -DCMAKE_Fortran_COMPILER:FILEPATH="%FC%" ^
            -DF2PY_EXECUTABLE:FILEPATH="%F2PY%"
 
 "%PYTHON%" -m pip install ^
