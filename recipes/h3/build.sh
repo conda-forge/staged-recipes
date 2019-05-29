@@ -29,6 +29,7 @@ if [ "Windows_NT" != "$OS" ]; then
   cmake -DENABLE_FORMAT=OFF -DBUILD_SHARED_LIBS=ON .
 
   make
+  make install
   ls -l lib/libh3*
   cp lib/libh3* ../h3/out
   if [ -e ../build ] && [ -d ../build ]; then
