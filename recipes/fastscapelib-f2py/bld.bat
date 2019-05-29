@@ -8,7 +8,10 @@ if exist %PREFIX%\Scripts\f2py.exe (
 
 mkdir "%SRC_DIR%\dist"
 
-"%PYTHON%" setup.py bdist_wheel --dist-dir="%SRC_DIR%\dist" -- ^
+"%PYTHON%" setup.py bdist_wheel ^
+           --dist-dir="%SRC_DIR%\dist" ^
+           --compiler=mingw32 ^
+           -- ^
            -DF2PY_EXECUTABLE:FILEPATH="%F2PY%"
 
 "%PYTHON%" -m pip install ^
