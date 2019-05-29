@@ -8,16 +8,12 @@ if exist %PREFIX%\Scripts\f2py.exe (
 
 mkdir "%SRC_DIR%\dist"
 
-"%PYTHON%" setup.py bdist_wheel ^
-           --dist-dir="%SRC_DIR%\dist" ^
+"%PYTHON%" setup.py build ^
            --compiler=mingw32 ^
+           -G "MinGW Makefiles" ^
            -- ^
            -DF2PY_EXECUTABLE:FILEPATH="%F2PY%"
 
-"%PYTHON%" -m pip install ^
-           --no-index ^
-           --find-links="%SRC_DIR%\dist" ^
-           fastscapelib_fortran ^
-           -vvv
+"%PYTHON%" setup.py install
 
 if errorlevel 1 exit 1
