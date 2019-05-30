@@ -2,7 +2,7 @@
 
 set -ex
 
-LDFLAGS="-lrt"
+export LDFLAGS="$LDFLAGS -lrt"
 
 cmake \
   -DENABLE_FORMAT=OFF \
@@ -11,5 +11,5 @@ cmake \
   -DCMAKE_BUILD_TYPE=Release \
   .
 
-make -j${CPU_COUNT}
+make -j${CPU_COUNT} VERBOSE=1
 make install
