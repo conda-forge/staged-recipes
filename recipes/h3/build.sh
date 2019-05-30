@@ -11,5 +11,5 @@ cmake \
   -DCMAKE_BUILD_TYPE=Release \
   .
 
-make -j${CPU_COUNT} VERBOSE=1
+make h3 -j${CPU_COUNT} VERBOSE=1
 make install
