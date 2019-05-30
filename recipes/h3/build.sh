@@ -2,7 +2,7 @@
 
 set -ex
 
-LDFLAGS='$LDFLAGS -lrt'
+LDFLAGS="$LDFLAGS -lrt"
 
 cmake \
   -DENABLE_FORMAT=OFF \
