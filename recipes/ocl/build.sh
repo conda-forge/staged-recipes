@@ -7,6 +7,7 @@ cmake -G "Ninja" \
       -D CMAKE_INSTALL_PREFIX:FILEPATH=$PREFIX \
       -D USE_PY_3:BOOL=ON \
       -D BUILD_PY_LIB:BOOL=ON \
+      -D BUILD_CXX_LIB:BOOL=OFF \
       ../src
 
 ninja install
