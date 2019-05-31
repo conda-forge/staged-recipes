@@ -211,8 +211,17 @@
 # cp -rf $SRC_DIR/dat/XaLeap_wcl $PREFIX/dat/
 # cp -rf $SRC_DIR/dat/PROTON_INFO.pdbv2 $PREFIX/dat/
 
-mkdir build
-cd build
-cmake  -DCMAKE_INSTALL_PREFIX=${PREFIX} -D CMAKE_C_COMPILER=${CC} -D CMAKE_CXX_COMPILER=${CXX} -DBUILD_GUI=FALSE -DOPENMP=TRUE -DPYTHON_EXECUTABLE=${PREFIX}/bin/python -DCOMPILER=GNU -DDOWNLOAD_MINICONDA=FALSE -DINSTALL_TESTS=TRUE "-DDISABLE_TOOLS=" ..
+
+ln -s ${CC} ${PREFIX}/bin/gcc
+ln -s ${CXX} ${PREFIX}/bin/g++
+ln -s ${GFORTRAN} ${PREFIX}/bin/gfortran
+
+echo 'N' | ./configure  -noX11 -openmp --prefix ${PREFIX} --with-python ${PREFIX}/bin/python --python-install local gnu
+bash amber.sh
+
 make
 make install
+
+rm ${PREFIX}/bin/gcc
+rm ${PREFIX}/bin/g++
+rm ${PREFIX}/bin/gfortran
