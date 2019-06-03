@@ -2,11 +2,10 @@ ln -s ${CC} ${PREFIX}/bin/gcc
 ln -s ${CXX} ${PREFIX}/bin/g++
 ln -s ${GFORTRAN} ${PREFIX}/bin/gfortran
 
-
-echo 'N' | ./configure  -noX11 -norism --with-python ${PREFIX}/bin/python --python-install local gnu
-# using the -openmp packages causes packages not to be included in the build
+echo 'N' | ./configure  -noX11 -norism  --skip-python gnu
+# using the -openmp flag causes packages not to be included in the build
 # however, the RISM model requires OpenMP, so -norism is set
-# the --prefix tag does not work, so copy the files manually $PREFIX
+# the --prefix tag does not work, so copy the files manually to $PREFIX
 
 bash amber.sh
 
