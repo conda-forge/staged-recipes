@@ -1,4 +1,5 @@
 #!/bin/bash
 ./configure
 make
-cp cabextract ${PREFIX}/bin/cabextract
+ls
+cp cabextract $PREFIX/bin/cabextract
