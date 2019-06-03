@@ -2,7 +2,7 @@ mkdir build
 cd build
 
 cmake ../^
-    -G"Visual Studio 15 2017 Win64"^
+    -G"%CMAKE_GENERATOR%"^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%"^
     -DBUILD_SHARED_LIBS=OFF^
   	-DBUILD_EXAMPLE=OFF^
@@ -15,4 +15,3 @@ cmake ../^
 cmake --build ./^
     --config Release^
     --target install
-
