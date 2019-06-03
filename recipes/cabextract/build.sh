@@ -1,5 +1,4 @@
 #!/bin/bash
 ./configure
-mkdir -p ${PREFIX}/lib
 make
-cp cabextract ${PREFIX}/bin/
+cp cabextract ${PREFIX}/bin/cabextract
