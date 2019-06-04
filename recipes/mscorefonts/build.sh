@@ -1,4 +1,4 @@
 #!/bin/bash
+for ar in $(ls *.exe); do cabextract $ar; done 
 ls -al
-for ar in $(ls *.EXE); do cabextract $ar; done 
-cp *.TTF ${SP_DIR}/matplotlib/mpl-data/fonts/ttf
+cp *.ttf ${SP_DIR}/matplotlib/mpl-data/fonts/ttf
