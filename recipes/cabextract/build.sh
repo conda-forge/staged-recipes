@@ -1,5 +1,5 @@
 #!/bin/bash
 ./configure
 make
-ls
+mkdir -p $PREFIX/bin
 cp cabextract $PREFIX/bin/cabextract
