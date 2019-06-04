@@ -2,7 +2,7 @@ mkdir build
 cd build
 
 cmake ../^
-    -G"%Visual Studio 14 2015 Win64%"^
+    -G"%CMAKE_GENERATOR%"^
     -DCMAKE_INSTALL_PREFIX="%PREFIX%"^
     -DRBDL_BUILD_STATIC=ON
 
