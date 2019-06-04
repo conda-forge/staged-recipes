@@ -2,7 +2,7 @@ mkdir build
 cd build
 
 cmake ../^
-    -G"%Visual Studio 15 2017 Win64%"^
+    -G"%CMAKE_GENERATOR%"^
     -DCMAKE_INSTALL_PREFIX="%PREFIX%"^
     -DDLIB_PNG_SUPPORT=OFF^
     -DDLIB_JPEG_SUPPORT=OFF^
