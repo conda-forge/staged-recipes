@@ -1,3 +1,3 @@
 #!/bin/bash 
-mkdir -p fonts 
+mkdir -p ${PREFIX}/fonts
 for fo in $(ls *.ttf); do cp ${fo} ${PREFIX}/fonts/${fo}; done
