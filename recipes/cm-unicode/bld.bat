@@ -1,4 +1,4 @@
 mkdir %PREFIX%/fonts
 for %%f in (*.ttf) do (
-    copy %%f %PREFIX%/fonts/%%f
+    copy %%~nf %PREFIX%/fonts/%%~nf
 )
