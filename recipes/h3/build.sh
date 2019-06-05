@@ -2,8 +2,6 @@
 
 set -ex
 
-export LDFLAGS="$LDFLAGS -lrt"
-
 cmake \
   -DENABLE_FORMAT=OFF \
   -DBUILD_SHARED_LIBS=ON \
