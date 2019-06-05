@@ -2,7 +2,7 @@
 set -ex
 
 cd src
-./configure --prefix="${PREFIX}"
-make
-make check
+./configure --prefix="${PREFIX}" \
+    --includedir="${PREFIX}/include"
 make install
+make check
