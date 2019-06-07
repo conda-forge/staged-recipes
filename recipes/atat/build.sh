@@ -1,9 +1,8 @@
 #!/bin/bash
 
 mkdir atatbin
-cd atat
 make -j3 
-sed -i "s|BINDIR=\$(HOME)/bin/|BINDIR=$(pwd)/../atatbin|g" makefile
-make install ../atatbin
-cp ../atatbin/* ${PREFIX}/bin
+sed -i "s|BINDIR=\$(HOME)/bin/|BINDIR=${RECIPE_DIR}/atatbin|g" makefile
+make install ${RECIPE_DIR}/atatbin
+cp ${RECIPE_DIR}/atatbin/* ${PREFIX}/bin
 cp -r data ${PREFIX}/atat_data
