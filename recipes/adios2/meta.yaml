@@ -1,0 +1,107 @@
+{% set name = "adios2" %}
+{% set version = "2.4.0rc1" %}
+{% set version_fn = version.replace("rc", "-rc") %}
+{% set build = 0 %}
+{% set sha256 = "d9b85ce917deccf5c0d055fe3e7a18a5db34032bc31c92a95c82298cba6b07fe" %}
+
+# ensure mpi is defined (needed for conda-smithy recipe-lint)
+{% set mpi = mpi or 'nompi' %}
+
+# prioritize nompi variant via build number
+{% if mpi == 'nompi' %}
+{% set build = build + 100 %}
+{% endif %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: v{{ version_fn }}.tar.gz
+  url: https://github.com/ornladios/ADIOS2/archive/v{{ version_fn }}.tar.gz
+  sha256: {{ sha256 }}
+  #patches:
+  #  # FIXME: https://github.com/ornladios/ADIOS2/pull/1484
+  #  - 0001-rpath-osx-policy.patch
+
+build:
+  number: {{ build }}
+  skip: True  # [py27]
+
+  # add build string so packages can depend on
+  # mpi or nompi variants
+  # dependencies:
+  # `pkg * mpi_mpich_*` for mpich
+  # `pkg * mpi_*` for any mpi
+  # `pkg * nompi_*` for no mpi
+  {% if mpi == 'nompi' %}
+  {% set mpi_prefix = "nompi" %}
+  {% else %}
+  {% set mpi_prefix = "mpi_" + mpi %}
+  {% endif %}
+  string: "{{ mpi_prefix }}_py{{ py }}h{{ PKG_HASH }}_{{ build }}"
+
+  run_exports:
+    # strict runtime dependency on build-time MPI flavor
+    - {{ name }} * {{ mpi_prefix }}_* 
+    # https://conda.io/docs/user-guide/tasks/build-packages/variants.html#referencing-subpackages
+    # in 0.X.*, newer minor versions are compatible
+    - {{ pin_subpackage('adios2', min_pin='x.x', max_pin='x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    # TODO: seams incompatible on OSX and too experimental for Windows
+    - {{ compiler('fortran') }}  # [linux]
+    - make  # [unix]
+    - cmake >=3.11
+  host:
+    - {{ mpi }}  # [mpi != 'nompi'] 
+    - mpi4py     # [mpi != 'nompi']
+    - python
+    - numpy >=1.15.0
+    - hdf5  >=1.8.13                    # [mpi == 'nompi']
+    - hdf5  >=1.8.13 = mpi_{{ mpi }}_*  # [mpi != 'nompi']
+    # TODO: seams broken on OSX
+    - zeromq >=4.1  # [not osx]
+    - bzip2         # [not osx]
+    # TODO: zfp, sz, mgard
+  run:
+    - {{ mpi }}  # [mpi != 'nompi']
+    - mpi4py     # [mpi != 'nompi']
+    - python
+    - numpy >=1.15.0
+
+test:
+  imports:
+    # TODO: MPI_Init will be fixed in 2.4.0+
+    - adios2  # [mpi == 'nompi']
+  commands:
+    # - python -c "import adios2; print(adios2.__version__);"
+    - test -f ${PREFIX}/lib/cmake/adios2/adios2-config.cmake                      # [unix]
+    - test -f ${PREFIX}/lib/libadios2.so                                          # [linux]
+    - otool -L ${PREFIX}/lib/libadios2.dylib                                      # [osx]
+    - if exist %LIBRARY_PREFIX%\bin\libadios2.dll (exit 0) else (exit 1)          # [win]
+    - if exist %LIBRARY_PREFIX%\cmake\adios2-config.cmake (exit 0) else (exit 1)  # [win]
+
+about:
+  home: https://www.olcf.ornl.gov/center-projects/adios/
+  license: Apache2
+  license_file: LICENSE
+  summary: 'Next generation of ADIOS developed in the Exascale Computing Program'
+
+  description: |
+    ADIOS2 is the latest implementation of the ADaptable Input Output System,
+    ADIOS. This brand new architecture was designed to continue supporting the
+    performance legacy of ADIOS, and extend its current capabilities to address
+    current and future input/output (IO) challenges in the scientific data
+    lifecycle through effective research and development (R&D) activities.
+  doc_url: https://adios2.readthedocs.io
+  dev_url: https://github.com/ornladios/ADIOS2
+
+extra:
+  recipe-maintainers:
+    - ax3l
+    - chuckatkins
+    - williamfgc
