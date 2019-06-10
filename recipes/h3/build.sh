@@ -10,6 +10,6 @@ cmake \
   -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=ON \
   .
 
-make -k -j${CPU_COUNT} | true
+make -k -j${CPU_COUNT} || true
 
 make install
