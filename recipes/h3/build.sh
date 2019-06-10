@@ -10,5 +10,6 @@ cmake \
   -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=ON \
   .
 
-make h3 geoToH3 h3ToComponents h3ToGeo h3ToGeoBoundary hexRange kRing h3ToGeoBoundaryHier h3ToGeoHier h3ToHier -j${CPU_COUNT} VERBOSE=1
+make -k -j${CPU_COUNT} | true
+
 make install
