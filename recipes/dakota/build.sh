@@ -3,10 +3,13 @@
 mkdir -p build
 cd build
 
-# there is a problem with NCSUopt when compiled with -fopenmp
-# so set the fflags manually:
+if [ `uname` = "Linux" ]; then
+    # there is a problem with NCSUopt when compiled with -fopenmp
+    # so set the fflags manually:
+    FFLAGS="-march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -ffunction-sections -pipe"
+fi
 
-FFLAGS="-march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -ffunction-sections -pipe"
+
 
 cmake \
     -D CMAKE_BUILD_TYPE:STRING=RELEASE \
