@@ -1,3 +1,3 @@
 #!/bin/bash
-xvfb-run python -c "import os" 
+xvfb-run python -c "import BiorbdViz" 
 
