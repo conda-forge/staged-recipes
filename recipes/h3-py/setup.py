@@ -20,7 +20,8 @@ class BinaryDistribution(Distribution):
         # different platforms separately.
         self.ext_modules = [Extension('h3c', [])]
 
-long_description = open('README.rst').read()
+with open("README.rst", "r") as fh:
+    long_description = fh.read()
 
 setup(
     name='h3',
