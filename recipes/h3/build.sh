@@ -13,3 +13,5 @@ cmake \
 make -k -j${CPU_COUNT} || true
 
 make install
+
+make test
