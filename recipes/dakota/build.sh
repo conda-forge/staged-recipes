@@ -9,8 +9,7 @@ if [ `uname` = "Linux" ]; then
     FFLAGS="-march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -ffunction-sections -pipe"
 fi
 
-cmake -G "Ninja" \
-      -D CMAKE_BUILD_TYPE:STRING=RELEASE \
+cmake -D CMAKE_BUILD_TYPE:STRING=RELEASE \
       -D CMAKE_INSTALL_PREFIX:PATH=$PREFIX \
       -D DAKOTA_EXAMPLES_INSTALL:PATH=$PREFIX/share/dakota \
       -D DAKOTA_TEST_INSTALL:PATH=$PREFIX/share/dakota \
@@ -27,4 +26,5 @@ cmake -G "Ninja" \
       -D CMAKE_C_FLAGS="-lm" \
       ..
 
-ninja install
+
+make -j${CPU_COUNT} install
