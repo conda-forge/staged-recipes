@@ -1,5 +1,7 @@
 #!/bin/bash
 
+autoreconf -i \
+&& \
 ./configure --prefix=/usr/local \
             --enable-gmp \
             --enable-mpfr \

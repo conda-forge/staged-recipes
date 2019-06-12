@@ -1,0 +1,297 @@
+diff --git a/Makefile.am b/Makefile.am
+index 3fefb0b..7a6a570 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -73,7 +73,7 @@ endif
+ noinst_HEADERS = include/mpack_debug.h include/mutils.h include/mblas.h include/mlapack.h include/mlapack_generic.h include/mpack_benchmark.h include/mpack_benchmark___float128.h include/mpack_benchmark_dd.h include/mpack_benchmark_double.h include/mpack_benchmark_gmp.h include/mpack_benchmark_mpfr.h include/mpack_benchmark_qd.h
+ 
+ pkgconfigdir = $(libdir)/pkgconfig
+-pkgconfig_DATA = mpack.pc
++pkgconfig_DATA = mlapack.pc
+ 
+ EXTRA_DIST = \
+ misc/cudalt.py \
+diff --git a/configure.ac b/configure.ac
+index b354b9d..4b53456 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -2,12 +2,12 @@ dnl
+ dnl Configure for MPACK
+ dnl
+ 
+-AC_INIT(mpack, 0.8.0)
++AC_INIT(mlapack, 0.8.1)
+ AC_SUBST([PACKAGE_DESCRIPTION], "A multiple precision version of BLAS and LAPACK")
+ AC_CONFIG_HEADER(include/config.h) 
+ 
+-AC_CONFIG_FILES([ Makefile mpack.pc ])
+-AC_CONFIG_FILES([packaging/PKGBUILD packaging/mpack.spec])
++AC_CONFIG_FILES([ Makefile mlapack.pc ])
++AC_CONFIG_FILES([packaging/PKGBUILD packaging/mlapack.spec])
+ 
+ AC_PROG_CC
+ AC_PROG_CXX
+@@ -635,22 +635,51 @@ fi
+ 
+ 
+ ############ select created libraries for the pkg-config ###############
++# add external libraries only if they will be installed with the package
++# otherwise add external libraries to 'REQUIRED_SYSTEM_LIBS' to use it
++# in pkg-config file
+ 
+ PACKAGE_CREATED_LIBS=""
++REQUIRED_SYSTEM_LIBS=""
+ if test x$enable_dd = x"yes"; then
+   PACKAGE_CREATED_LIBS=$PACKAGE_CREATED_LIBS" -lmlapack_dd -lmblas_dd"
+ fi
+ if test x$enable_qd = x"yes"; then
+   PACKAGE_CREATED_LIBS=$PACKAGE_CREATED_LIBS" -lmlapack_qd -lmblas_qd"
++  if test x$need_internal_qdlib = xyes; then
++    PACKAGE_CREATED_LIBS=$PACKAGE_CREATED_LIBS" -lqd"
++  else
++    REQUIRED_SYSTEM_LIBS=$REQUIRED_SYSTEM_LIBS" -lqd"
++  fi
+ fi
+ if test x$enable_gmp = x"yes"; then
+   PACKAGE_CREATED_LIBS=$PACKAGE_CREATED_LIBS" -lmlapack_gmp -lmblas_gmp"
++  if test x$need_internal_gmplib = xyes; then
++    PACKAGE_CREATED_LIBS=$PACKAGE_CREATED_LIBS" -lgmpxx -lgmp"
++  else
++    REQUIRED_SYSTEM_LIBS=$REQUIRED_SYSTEM_LIBS" -lgmpxx -lgmp"
++  fi
+ fi
+ if test x$enable_mpfr = x"yes"; then
+   PACKAGE_CREATED_LIBS=$PACKAGE_CREATED_LIBS" -lmlapack_mpfr -lmblas_mpfr -lmpfrcxx"
++  if test x$need_internal_mpclib = xyes; then
++    PACKAGE_CREATED_LIBS=$PACKAGE_CREATED_LIBS" -lmpc"
++  else
++    REQUIRED_SYSTEM_LIBS=$REQUIRED_SYSTEM_LIBS" -lmpc"
++  fi
++  if test x$need_internal_mpfrlib = xyes; then
++    PACKAGE_CREATED_LIBS=$PACKAGE_CREATED_LIBS" -lmpfr"
++  else
++    REQUIRED_SYSTEM_LIBS=$REQUIRED_SYSTEM_LIBS" -lmpfr"
++  fi
+ fi
+ if test x$enable_mpc = x"yes"; then
+   PACKAGE_CREATED_LIBS=$PACKAGE_CREATED_LIBS" -lmlapack_mpc -lmblas_mpc"
++  if test x$need_internal_mpclib = xyes; then
++    PACKAGE_CREATED_LIBS=$PACKAGE_CREATED_LIBS" -lmpc"
++  else
++    REQUIRED_SYSTEM_LIBS=$REQUIRED_SYSTEM_LIBS" -lmpc"
++  fi
+ fi
+ if test x$enable___float128 = x"yes"; then
+   PACKAGE_CREATED_LIBS=$PACKAGE_CREATED_LIBS" -lmlapack___float128 -lmblas___float128 -lquadmath"
+@@ -662,23 +691,11 @@ if test x$enable_longdouble = x"yes"; then
+   PACKAGE_CREATED_LIBS=$PACKAGE_CREATED_LIBS" -lmlapack_longdouble -lmblas_longdouble"
+ fi
+ 
+-# add external libraries only if they will be installed with the package
+-if test x$need_internal_gmplib = xyes; then
+-  PACKAGE_CREATED_LIBS=$PACKAGE_CREATED_LIBS" -lgmpxx -lgmp"
+-fi
+-if test x$need_internal_qdlib = xyes; then
+-  PACKAGE_CREATED_LIBS=$PACKAGE_CREATED_LIBS" -lqd"
+-fi
+-if test x$need_internal_mpfrlib = xyes; then
+-  PACKAGE_CREATED_LIBS=$PACKAGE_CREATED_LIBS" -lmpfr"
+-fi
+-if test x$need_internal_mpclib = xyes; then
+-  PACKAGE_CREATED_LIBS=$PACKAGE_CREATED_LIBS" -lmpc"
+-fi
+ 
+ PACKAGE_CREATED_LIBS=$PACKAGE_CREATED_LIBS" ${OPENMP_CXXFLAGS}"
+ 
+ AC_SUBST([PACKAGE_CREATED_LIBS])
++AC_SUBST([REQUIRED_SYSTEM_LIBS])
+ 
+ ########################################################################
+ 
+diff --git a/mpack.pc.in b/mlapack.pc.in
+similarity index 82%
+rename from mpack.pc.in
+rename to mlapack.pc.in
+index e2c4a87..7063fc3 100644
+--- a/mpack.pc.in
++++ b/mlapack.pc.in
+@@ -12,5 +12,5 @@ Name: @PACKAGE_NAME@
+ Description: @PACKAGE_DESCRIPTION@
+ Version: @PACKAGE_VERSION@
+ Requires:
+-Libs: -L${libdir} @PACKAGE_CREATED_LIBS@
++Libs: -L${libdir} @PACKAGE_CREATED_LIBS@ @REQUIRED_SYSTEM_LIBS@
+ Cflags: -I${includedir}
+diff --git a/packaging/PKGBUILD.in b/packaging/PKGBUILD.in
+index 05bbeee..6db9f46 100644
+--- a/packaging/PKGBUILD.in
++++ b/packaging/PKGBUILD.in
+@@ -1,51 +1,51 @@
+ # Maintainer: Maho Nakata <maho at riken dot jp>
+ # Packager: Gregor Entzian <entzian at tbi dot univie dot ac dot at>
+ 
+-pkgbase=mpack
+-pkgname=('mpack')
++pkgbase=mlapack
++pkgname=('mlapack')
+ pkgver=@VERSION@
+ pkgrel=1
+-pkgdesc="Multiple precision linear algebra package"
++pkgdesc="MPACK - Multiple precision linear algebra package"
+ arch=('x86_64' 'i686')
+ license=('Custom')
+ url="@PACKAGE_URL@"
+-groups=('mpack')
++groups=('mlapack')
+ makedepends=( 'qd'
+               'gmp'
+               'mpfr'
+               'libmpc'
+               'libtool'
+               'check')
+-source=(mpack-${pkgver}.tar.gz)
++source=(http://www.tbi.univie.ac.at/RNA/packages/source/mlapack-${pkgver}.tar.gz)
+ 
+ #create this sum with the command "sha256sum mpack-${pkgver}.tar.gz" before each build of the package
+ sha256sums=('5a211622838db5e954355840423c232010335cf1690d5224076f212663de4c84')
+ 
+ build() {
+-  cd "${srcdir}/mpack-${pkgver}"
++  cd "${srcdir}/mlapack-${pkgver}"
+   ./configure --prefix=/usr --enable-gmp --enable-mpfr --enable-qd --enable-dd --enable-double --enable-__float128 --enable-longdouble --enable-optimization --with-system-gmp --with-system-mpfr --with-system-mpc --with-system-qd --disable-benchmark --disable-examples --disable-reference
+   make
+ }
+ 
+ check() {
+-  cd "$srcdir/mpack-${pkgver}"
++  cd "$srcdir/mlapack-${pkgver}"
+   make check
+ }
+ 
+-package_mpack() {
++package_mlapack() {
+   depends=('qd'
+            'gmp'
+            'mpfr'
+            'libmpc')
+-  provides=("mpack=${pkgver}")
++  provides=("mlapack=${pkgver}")
+ 
+ 
+   # install library and header files
+-  cd "${srcdir}/mpack-${pkgver}"
++  cd "${srcdir}/mlapack-${pkgver}"
+   make DESTDIR="${pkgdir}" install
+ 
+   # install pkg-config file
+-  install -Dm644 mpack.pc "$pkgdir/usr/lib/pkgconfig/mpack.pc"
++  install -Dm644 mlapack.pc "$pkgdir/usr/lib/pkgconfig/mlapack.pc"
+ 
+   install -Dm644 COPYING "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+   cd ../..
+diff --git a/packaging/debian/changelog b/packaging/debian/changelog
+index 1c9c688..2790ebd 100644
+--- a/packaging/debian/changelog
++++ b/packaging/debian/changelog
+@@ -1,4 +1,10 @@
+-mpack (0.8.0) UNRELEASED; urgency=medium
++mlapack (0.8.1) UNRELEASED; urgency=medium
++
++  * First release under new name 'mlapack' in contrast to former package name 'mpack'
++
++ -- Ronny Lorenz <ronny@tbi.univie.ac.at>  Thu, 10 Jan 2019 15:00:00 +0100
++
++mlapack (0.8.0) UNRELEASED; urgency=medium
+ 
+   * Initial release. (Closes: #000000)
+ 
+diff --git a/packaging/debian/control b/packaging/debian/control
+index 593a51f..f85035d 100644
+--- a/packaging/debian/control
++++ b/packaging/debian/control
+@@ -1,4 +1,4 @@
+-Source: mpack
++Source: mlapack
+ Maintainer: Maho Nakata <maho@riken.jp>
+ Uploaders: Gregor Entzian <entzian@tbi.univie.ac.at>
+ Section: science
+@@ -6,13 +6,13 @@ Priority: optional
+ Standards-Version: 3.9.8
+ Build-Depends: debhelper (>=8.0.0), autotools-dev, libgomp1, libquadmath0, libgmp-dev, libmpfr-dev, libmpc-dev, libqd-dev
+ 
+-Package: mpack-dev
+-Provides: mpack-dev
+-Conflicts: mpack-dev
++Package: mlapack-dev
++Provides: mlapack-dev
++Conflicts: mlapack-dev
+ Section: devel
+ Architecture: any
+ Depends: ${shlibs:Depends}, ${misc:Depends}, libgomp1, libquadmath0, libgmp-dev, libmpfr-dev, libmpc-dev, libqd-dev
+-Description: mpack - mpack development files
++Description: mlapack - MPACK multi precision linear algebra package development files
+  The MPACK is a multiprecision linear algebra package based on BLAS and LAPACK.
+  This package is rewritten in C++, and supports several high precision
+  libraries like GMP, MPFR and QD etc so that users can choose for user's
+diff --git a/packaging/mpack.spec.in b/packaging/mlapack.spec.in
+similarity index 91%
+rename from packaging/mpack.spec.in
+rename to packaging/mlapack.spec.in
+index ff99124..88d32e0 100644
+--- a/packaging/mpack.spec.in
++++ b/packaging/mlapack.spec.in
+@@ -1,20 +1,21 @@
+-# mpack.spec
++# mlapack.spec
+ 
+ %{!?_pkgdocdir: %global _pkgdocdir %%{_docdir}/%{name}}
+ 
+-Name:           mpack
++Name:           mlapack
+ Version:        @PACKAGE_VERSION@
+ Release:        1%{?dist}
+-Summary:        Multiple precision linear algebra package
++Summary:        MPACK - Multiple precision linear algebra package
+ 
+ Vendor:         Maho Nakata <maho@riken.jp>
++Packager:       Ronny Lorenz <ronny@tbi.univie.ac.at>
+ #Packager:       Gregor Entzian <entzian@tbi.univie.ac.at>
+ 
+ Group:          -
+ License:        The MPACK is a free software (BSD-2-Clause style license with original license by LAPACK)
+ URL:            https://github.com/nakatamaho/mpack
+-Source0:        mpack-%{version}.tar.gz
+-BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
++Source0:        http://www.tbi.univie.ac.at/RNA/packages/source/mlapack-%{version}.tar.gz
++BuildRoot:      %(mktemp -ud %{_tmppath}/mlapack-%{version}-%{release}-XXXXXX)
+ 
+ BuildRequires:  autoconf
+ BuildRequires:  automake
+@@ -122,7 +123,7 @@ convenience. The MPACK is a free software (BSD-2-Clause style license with
+ original license by LAPACK)
+ 
+ %prep
+-%setup -n mpack-%{version} -q
++%setup -n mlapack-%{version} -q
+ 
+ %build
+ %configure --docdir=%{_pkgdocdir} --enable-gmp --enable-mpfr --enable-qd --enable-dd --enable-double --enable-__float128 --enable-longdouble --enable-optimization --with-system-gmp --with-system-mpfr --with-system-mpc --with-system-qd --disable-benchmark --disable-examples --disable-reference
+@@ -141,8 +142,8 @@ find %{buildroot} -type f -name '*.la' -delete
+ %clean
+ rm -rf $RPM_BUILD_ROOT
+ 
+-%post -n mpack-devel -p /sbin/ldconfig
+-%postun -n mpack-devel -p /sbin/ldconfig
++%post -n mlapack-devel -p /sbin/ldconfig
++%postun -n mlapack-devel -p /sbin/ldconfig
+ 
+ %files
+ %defattr(-,root,root,-)
+@@ -157,6 +158,6 @@ rm -rf $RPM_BUILD_ROOT
+ %{_libdir}/*.so.*.*.*
+ 
+ %{_includedir}/mpack
+-%{_libdir}/pkgconfig/mpack.pc
++%{_libdir}/pkgconfig/mlapack.pc
+ 
+ 
