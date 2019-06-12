@@ -2,7 +2,7 @@
 
 autoreconf -i \
 && \
-./configure --prefix=/usr/local \
+./configure --prefix=$PREFIX \
             --enable-gmp \
             --enable-mpfr \
             --enable-qd \
