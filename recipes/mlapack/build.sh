@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# set C++ standard to gnu include gnu extensions, since the source code
+# relies on these extensions
+export CXXFLAGS=${CXXFLAGS/-std=C++17/-std=gnu++17}
+
 autoreconf -i \
 && \
 ./configure --prefix=$PREFIX \
