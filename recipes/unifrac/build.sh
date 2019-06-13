@@ -12,11 +12,10 @@ else
 	SED='sed -i '"'"''"'"' ' ;
 fi
 
-$SED 's/^CXXBASE=.*/CXXBASE=clang++/' `which h5c++`
-$SED 's/^CXXLINKERBASE=.*/CXXLINKERBASE=clang++/' `which h5c++`
+# $SED 's/^CXXBASE=.*/CXXBASE=clang++/' `which h5c++`
+# $SED 's/^CXXLINKERBASE=.*/CXXLINKERBASE=clang++/' `which h5c++`
 
 export CC=`which h5c++`
-
 
 printenv
 pushd sucpp; make clean; make test; make main; make api; popd
