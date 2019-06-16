@@ -1,0 +1,223 @@
+--- src/Makefile.in.bad	2019-06-05 14:11:02.073819690 -0400
++++ src/Makefile.in	2019-06-07 09:39:37.777854779 -0400
+@@ -1,5 +1,4 @@
+ # Makefile for X11-Basic (c) Markus Hoffmann V.@version@
+-# Version 04.01.2017 modified by Markus Hoffmann
+ 
+ # This file is part of X11-Basic, the basic interpreter for Unix/X
+ # ======================================================================
+@@ -13,6 +12,7 @@
+ # Directories
+ prefix=@prefix@
+ exec_prefix=@exec_prefix@
++datarootdir = @datarootdir@
+ 
+ BINDIR=@bindir@
+ DATADIR=@datadir@
+@@ -24,27 +24,27 @@
+ 
+ LIBNO=@version@
+ 
+-RELEASE=51
++RELEASE=55
+ 
+ 
+ # Register variables (-ffixed-reg) -Wall
+-REGS= @regs@  
++REGS=@regs@  
+ 
+ # Optimization and debugging options
+ OPT=@copt@
+ 
+ # Additional header file paths
+-INC=@X_CFLAGS@ -I.
++INC=@X_CFLAGS@ 
+ WININC=-I./WINDOWS -I./WINDOWS/include -I./WINDOWS/include/GMP
+ TINEINC=@X_CFLAGS@ -I/usr/include/tine -I/usr/include/doocs -I.
+ 
+ # defines for special flavours
+ 
+-DEF= @def@ 
++DEF=@def@ 
+ 
+ # Compiler
+ #CC=@CC@ @static@ $(REGS)
+-CC=@CC@ 
++CC=@CC@ -Wall
+ CCDEBUG=@CC@ -g 
+ CCSHARED=@CC@  -fPIC -shared -Wl,-Bsymbolic-functions 
+ 
+@@ -62,7 +62,7 @@
+ # Preprocessor
+ CPP=@CPP@
+ 
+-CFLAGS= $(INC) $(DEF) $(OPT) $(REGS)
++CFLAGS= @CFLAGS@ $(INC) $(DEF) $(OPT) $(REGS)
+ 
+ # these are the objects which go into libx11basic
+ 
+@@ -295,7 +295,8 @@
+ 	../doc/ACKNOWLEGEMENTS \
+ 	../doc/AUTHORS ../doc/HISTORY ../RELEASE_NOTES ../doc/manual/Outputs/X11-Basic-manual-$(LIBNO).txt \
+       ../doc/editors/*  $(HSRC) $(CSRC) WINDOWS/X11-Basic.iss \
+-      config.h.in config.h.tomtom Makefile.in configure config.guess configure.in \
++      config.h.in config.h.tomtom config.h.atari \
++        Makefile.in configure config.guess configure.in \
+         x11basic.spec x11basic.desktop 5x7-rev.c \
+         bitmaps/* logo/x11basicVersion.fig \
+         examples/compiler/xbc.bas.in \
+@@ -304,6 +305,7 @@
+         examples/compiler/gui2bas.bas \
+         examples/compiler/xbc-win.bas \
+         examples/compiler/xbc-st.bas \
++        examples/compiler/ybasic \
+         examples/c-usage/c-demo.c \
+         examples/c-usage/c-demo2.c \
+         examples/c-usage/library.bas \
+@@ -314,12 +316,13 @@
+ BINDIST=../README ../doc/INSTALL ../COPYING ../doc/man-pages/*.1 \
+ 	../doc/ACKNOWLEGEMENTS ../doc/AUTHORS ../doc/HISTORY \
+ 	../RELEASE_NOTES ../doc/manual/Outputs/X11-Basic-manual-$(LIBNO).txt \
+-	../doc/editors/* xbasic xbc bas2x11basic xbbc xbvm xb2c \
++	../doc/editors/* xbasic fbxbasic xbc bas2x11basic xbbc xbvm xb2c \
+ 	x11basic.h xb2csol.h x11basic.a libx11basic.so \
+       examples/compiler/xbc.bas.in \
+       examples/compiler/inline.bas \
+       examples/compiler/bas2x11basic.bas \
+       examples/compiler/gui2bas.bas \
++      examples/compiler/ybasic \
+       examples/c-usage/c-demo.c \
+       examples/c-usage/c-demo2.c \
+       examples/c-usage/library.bas \
+@@ -338,7 +341,8 @@
+ 	WINDOWS/x11basic.ico  WINDOWS/demo.bas \
+ 	WINDOWS/bas.ico ../COPYING ../RELEASE_NOTES INTRO
+ 
+-TOSDIST=xbasic.prg xbvm.prg xbbc.ttp xbc.prg xb2c.ttp ATARI-ST/AUTO/VT100EMU.PRG \
++TOSDIST=xbasic.prg xbvm.prg xbbc.ttp xbc.prg xb2c.ttp \
++        ATARI-ST/AUTO/VT100EMU.PRG ATARI-ST/AUTO/VT100EMU.TXT \
+         ATARI-ST/readme.txt ATARI-ST/demo.bas ../RELEASE_NOTES \
+ 	../doc/manual/Outputs/X11-Basic-manual-$(LIBNO).txt
+ 
+@@ -355,7 +359,7 @@
+ DOOCSDIST=$(DIST) src/Extensions/doocs-wrapper.cc ../doc/doocs-xbasic.html \
+                   ../doc/tine-xbasic.html examples2/DESY/*
+ 
+-LINKFLAGS =
++LINKFLAGS = @LDFLAGS@
+ WINLINKFLAGS = -L./WINDOWS/lib 
+ 
+ LIBS =  @libs@ @xlibs@ @xtra@
+@@ -395,7 +399,7 @@
+ 	ln -s -f $< libx11basic.so.1
+ 	ln -s -f libx11basic.so.1 libx11basic.so
+ libx11basic.so.$(LIBNO) : $(LIBCSRC) Makefile
+-	$(CCSHARED) $(OPT) $(REGS) $(DEF)  -Wl,-soname,$@ -o $@ $(LIBCSRC) $(LIBS) 
++	$(CCSHARED) $(LINKFLAGS) $(CFLAGS) -Wl,-soname,$@ -o $@ $(LIBCSRC) $(LIBS) 
+ 	strip $@
+ 
+ # Make the (static) library
+@@ -418,7 +422,7 @@
+ # Make the bytecode compiler xbbc
+ 
+ xbbc : bytecode.h bytecode.o xbbc.o
+-	$(CC) -o $@ xbbc.o bytecode.o  -L . $(LIBS) -lx11basic 
++	$(CC) -o $@ xbbc.o bytecode.o  -L . $(LINKFLAGS) $(LIBS) -lx11basic 
+ 	strip $@
+ xbbc.static : xbbc.o bytecode.o x11basic.a
+ 	$(CC) -o $@ xbbc.o bytecode.o x11basic.a $(LIBS)		
+@@ -429,7 +433,7 @@
+ # Make the virtual machine for interpreting the bytecode
+ 
+ xbvm : bytecode.h xbvm.c 
+-	$(CC) -o $@ xbvm.c  -L . $(LIBS)  -lx11basic 
++	$(CC) -o $@ xbvm.c  -L . $(LINKFLAGS) $(LIBS)  -lx11basic 
+ 	strip $@
+ xbvm.static : xbvm.o x11basic.a
+ 	$(CC) -o $@ xbvm.o x11basic.a $(LIBS)
+@@ -515,9 +519,12 @@
+ # Make a version of X11-Basic which uses the framebuffer (and touchscreen) device
+ # instead of X11-Graphics. This way, the interpreter (and all basic programs) can run without the X-Server
+ 
+-fb: xbasic.framebuffer
++
++fb: fbxbasic
++fbxbasic: xbasic.framebuffer
++	cp xbasic.framebuffer $@
+ xbasic.framebuffer : main.c $(LIBCSRCFB)
+-	$(CC) -DFRAMEBUFFER $(OPT) $(LINKFLAGS) -o $@ main.c $(LIBCSRCFB) $(LINKFLAGS)  $(LIBS1) 
++	$(CC) -DFRAMEBUFFER $(OPT) $(LINKFLAGS) -o $@ main.c $(LIBCSRCFB)  $(LIBS1) 
+ 	strip $@
+ 
+ # Make a version of X11-basic which is statically linked to libx11basic and 
+@@ -714,10 +721,12 @@
+ %.svg : %.eps 
+ 	convert  $< $@
+ 
+-install : xbasic x11basic.svg x11basic.desktop libx11basic.so x11basic.h xb2csol.h x11basic.a xbvm xbbc xbc xb2c bas2x11basic
++install : xbasic fbxbasic x11basic.svg x11basic.desktop libx11basic.so x11basic.h xb2csol.h x11basic.a xbvm xbbc xbc xb2c bas2x11basic
+ 	install -m 644 x11basic.svg $(ICONDIR)/
+ 	install -m 644 x11basic.desktop $(DESKTOPDIR)/
+ 	install -s -m 755 xbasic $(BINDIR)/
++	install -s -m 755 fbxbasic $(BINDIR)/
++	install -m 755 ../examples/compiler/ybasic $(BINDIR)/
+ 	install -m 644 libx11basic.so.$(LIBNO) $(LIBDIR)/
+ 	ln -s -f $(LIBDIR)/libx11basic.so.$(LIBNO) $(LIBDIR)/libx11basic.so.1
+ 	ln -s -f $(LIBDIR)/libx11basic.so.1 $(LIBDIR)/libx11basic.so
+@@ -726,6 +735,8 @@
+ 	install -d $(MANDIR)/man1
+ 	install -m 644 doc/man-pages/x11basic.1 $(MANDIR)/man1/x11basic.1
+ 	install -m 644 doc/man-pages/x11basic.1 $(MANDIR)/man1/xbasic.1
++	install -m 644 doc/man-pages/ybasic.1   $(MANDIR)/man1/ybasic.1
++	install -m 644 doc/man-pages/fbxbasic.1 $(MANDIR)/man1/fbxbasic.1
+ 	install -s -m 755 xbc $(BINDIR)/
+ 	install -s -m 755 xb2c $(BINDIR)/
+ 	install -s -m 755 xbvm $(BINDIR)/
+@@ -745,12 +756,16 @@
+ 	rm -f $(LIBDIR)/libx11basic.so*
+ 	rm -f $(LIBDIR)/x11basic.a
+ 	rm -f $(BINDIR)/xbasic 
++	rm -f $(BINDIR)/ybasic 
++	rm -f $(BINDIR)/fbxbasic 
+ 	rm -f $(BINDIR)/xbc 
+ 	rm -f $(BINDIR)/xbvm 
+ 	rm -f $(BINDIR)/xbbc
+ 	rm -f $(BINDIR)/xb2c
+ 	rm -f $(BINDIR)/bas2x11basic 
++	rm -f $(MANDIR)/man1/ybasic.1
+ 	rm -f $(MANDIR)/man1/xbasic.1
++	rm -f $(MANDIR)/man1/fbxbasic.1
+ 	rm -f $(MANDIR)/man1/x11basic.1 $(MANDIR)/man1/xbc.1 $(MANDIR)/man1/xbbc.1 $(MANDIR)/man1/xbvm.1
+ 	rm -f $(MANDIR)/man1/bas2x11basic.1
+ 	rm -f $(MANDIR)/man1/xb2c.1
+@@ -790,8 +805,11 @@
+ 	rpmbuild -ba  --clean --nodeps x11basic.spec
+ 
+ DEBDOC=	../doc/ACKNOWLEGEMENTS ../doc/AUTHORS ../doc/HISTORY Debian/changelog.Debian Debian/copyright \
+-	../doc/editors/nedit.defs ../doc/editors/README ../doc/editors/920.conf ../doc/editors/x11basic.lang \
+-	../doc/editors/x11basic.geany ../RELEASE_NOTES ../README ../doc/manual/Outputs/X11-Basic-manual-$(LIBNO).txt
++	../doc/editors/nedit.defs ../doc/editors/README \
++	../doc/editors/920.conf ../doc/editors/x11basic.lang \
++	../doc/editors/x11basic.geany ../doc/editors/x11basic.nanorc \
++	../RELEASE_NOTES ../README \
++	../doc/manual/Outputs/X11-Basic-manual-$(LIBNO).txt
+ 
+ doc-pak: $(DEBDOC)
+ 	mkdir -p $@
+@@ -806,6 +824,7 @@
+ 	cp ../doc/editors/920.conf $@/editors/
+ 	cp ../doc/editors/x11basic.lang $@/editors/
+ 	cp ../doc/editors/x11basic.geany $@/editors/
++	cp ../doc/editors/x11basic.nanorc $@/editors/
+ 	cp ../doc/manual/Outputs/X11-Basic-manual-$(LIBNO).txt $@/
+ 	
+ 	
+@@ -850,6 +869,8 @@
+ 	rsync -a RELEASE_NOTES /tmp/$(DIR3)/
+ 	rsync -a xbasic /tmp/$(DIR3)/bin/
+ 	rsync -a xbc /tmp/$(DIR3)/bin/
++	rsync -a ../doc/man-pages/ybasic.1 /tmp/$(DIR3)/man/ybasic.1
++	rsync -a ../doc/man-pages/fbxbasic.1 /tmp/$(DIR3)/man/fbxbasic.1
+ 	rsync -a ../doc/man-pages/x11basic.1 /tmp/$(DIR3)/man/xbasic.1
+ 	rsync -a ../doc/man-pages/x11basic.1 /tmp/$(DIR3)/man/
+ 	(cd /tmp ; zip -r $(DIR3).zip $(DIR3))
