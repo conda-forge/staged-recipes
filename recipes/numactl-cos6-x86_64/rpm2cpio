@@ -1,0 +1,37 @@
+#!/bin/sh
+
+# Based on:
+# https://www.redhat.com/archives/rpm-list/2003-June/msg00367.html
+# Modified to also support xz compression.
+
+pkg=$1
+if [ "$pkg" = "" -o ! -e "$pkg" ]; then
+    echo "no package supplied" 1>&2
+   exit 1
+fi
+
+leadsize=96
+o=`expr $leadsize + 8`
+set `od -j $o -N 8 -t u1 $pkg`
+il=`expr 256 \* \( 256 \* \( 256 \* $2 + $3 \) + $4 \) + $5`
+dl=`expr 256 \* \( 256 \* \( 256 \* $6 + $7 \) + $8 \) + $9`
+
+sigsize=`expr 8 + 16 \* $il + $dl`
+o=`expr $o + $sigsize + \( 8 - \( $sigsize \% 8 \) \) \% 8 + 8`
+set `od -j $o -N 8 -t u1 $pkg`
+il=`expr 256 \* \( 256 \* \( 256 \* $2 + $3 \) + $4 \) + $5`
+dl=`expr 256 \* \( 256 \* \( 256 \* $6 + $7 \) + $8 \) + $9`
+
+hdrsize=`expr 8 + 16 \* $il + $dl`
+o=`expr $o + $hdrsize`
+
+hdr=`dd if=$pkg ibs=$o skip=1 count=1 2>/dev/null | od -N 2 -t x1 -An`
+# macOS dd and Linux od give different results
+hdr="${hdr#"${hdr%%[![:space:]]*}"}"
+# remove trailing whitespace characters
+hdr="${hdr%"${hdr##*[![:space:]]}"}"
+if [[ "$hdr" == "1f 8b" ]] || [[ "$hdr" == "1f  8b" ]]; then
+  dd if=$pkg ibs=$o skip=1 2>/dev/null | gunzip
+else
+  dd if=$pkg ibs=$o skip=1 2>/dev/null | xz -d
+fi
