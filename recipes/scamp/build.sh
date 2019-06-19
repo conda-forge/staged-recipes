@@ -9,4 +9,5 @@ sh autogen.sh
     --with-curl-libdir=${PREFIX}/lib \
     --enable-plplot=no
 make
+
 make install
