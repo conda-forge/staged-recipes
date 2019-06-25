@@ -4,5 +4,5 @@ using namespace ThermoFun;
 
 int main()
 {
-    Database db("aq17.json");
+    Database db("../aq17.json");
 }
