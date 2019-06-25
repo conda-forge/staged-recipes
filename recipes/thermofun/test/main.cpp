@@ -1,5 +1,5 @@
 // ThermoFun includes
-#include <Thermofun/ThermoFun.hpp>
+#include <ThermoFun/ThermoFun.hpp>
 using namespace ThermoFun;
 
 int main()
