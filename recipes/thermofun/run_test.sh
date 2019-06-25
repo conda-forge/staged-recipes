@@ -9,6 +9,10 @@
 cd test
 mkdir build
 cd build
-cmake .. -GNinja -DCMAKE_PREFIX_PATH=$PREFIX -DCMAKE_BUILD_TYPE=Release
+cmake .. \
+    -GNinja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_PREFIX_PATH=$PREFIX \
+    -DCMAKE_VERBOSE_MAKEFILE=ON
 ninja
 ./test
