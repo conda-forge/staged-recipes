@@ -1,168 +1,157 @@
-About psychopy
-==============
+## About
 
-Home: https://www.psychopy.org
+This repo is a holding area for recipes destined for a conda-forge feedstock repo. To find out more about conda-forge, see https://github.com/conda-forge/conda-smithy.
 
-Package license: GPL-3.0
-
-Feedstock license: BSD 3-Clause
-
-Summary: Psychology experiment software in Python
-
-PsychoPy is an open-source package for creating psychology stimuli in
-Python (A real and free alternative to Matlab). PsychoPy combines the
-graphical strengths of OpenGL with the easy Python syntax to give
-psychophysics a free and simple stimulus presentation and control package.
-an optional C extension for a serious speed boost.
+[![Join the chat at https://gitter.im/conda-forge/conda-forge.github.io](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/conda-forge/conda-forge.github.io)
 
 
-Current build status
-====================
+## Build status
+
+[![Circle CI](https://circleci.com/gh/conda-forge/staged-recipes/tree/master.svg?style=shield)](https://circleci.com/gh/conda-forge/staged-recipes/tree/master) [![Build Status](https://travis-ci.org/conda-forge/staged-recipes.svg?branch=master)](https://travis-ci.org/conda-forge/staged-recipes) [![Build status](https://ci.appveyor.com/api/projects/status/3lju80dibkmowsj5/branch/master?svg=true)](https://ci.appveyor.com/project/conda-forge/staged-recipes/branch/master)
+
+## Getting started
+
+1. Fork this repository.
+2. Make a new folder in `recipes` for your package. Look at the example recipe, our [documentation](http://conda-forge.org/docs/maintainer/adding_pkgs.html#) and the [FAQ](https://github.com/conda-forge/staged-recipes#faq)  for help.
+3. Open a pull request. Building of your package will be tested on Windows, Mac and Linux.
+4. When your pull request is merged a new repository, called a feedstock, will be created in the github conda-forge organization, and build/upload of your package will automatically be triggered. Once complete, the package is available on conda-forge.
 
 
-<table><tr>
-    <td>Appveyor</td>
-    <td>
-      <a href="https://ci.appveyor.com/project/conda-forge/staged-recipes-psychopy-feedstock/branch/master">
-        <img alt="windows" src="https://img.shields.io/appveyor/ci/conda-forge/staged-recipes-psychopy-feedstock/master.svg?label=Windows">
-      </a>
-    </td>
-  </tr>
-    
-  <tr>
-    <td>Azure</td>
-    <td>
-      <details>
-        <summary>
-          <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=&branchName=master">
-            <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/staged-recipes-psychopy-feedstock?branchName=master">
-          </a>
-        </summary>
-        <table>
-          <thead><tr><th>Variant</th><th>Status</th></tr></thead>
-          <tbody><tr>
-              <td>linux</td>
-              <td>
-                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=&branchName=master">
-                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/staged-recipes-psychopy-feedstock?branchName=master&jobName=linux&configuration=linux_" alt="variant">
-                </a>
-              </td>
-            </tr><tr>
-              <td>osx</td>
-              <td>
-                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=&branchName=master">
-                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/staged-recipes-psychopy-feedstock?branchName=master&jobName=osx&configuration=osx_" alt="variant">
-                </a>
-              </td>
-            </tr><tr>
-              <td>win</td>
-              <td>
-                <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=&branchName=master">
-                  <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/staged-recipes-psychopy-feedstock?branchName=master&jobName=win&configuration=win_" alt="variant">
-                </a>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </details>
-    </td>
-  </tr>
-![ppc64le disabled](https://img.shields.io/badge/ppc64le-disabled-lightgrey.svg)
-</table>
+## FAQ
 
-Current release info
-====================
+### 1. **How do I start editing the recipe?**
 
-| Name | Downloads | Version | Platforms |
-| --- | --- | --- | --- |
-| [![Conda Recipe](https://img.shields.io/badge/recipe-psychopy-green.svg)](https://anaconda.org/conda-forge/psychopy) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/psychopy.svg)](https://anaconda.org/conda-forge/psychopy) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/psychopy.svg)](https://anaconda.org/conda-forge/psychopy) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/psychopy.svg)](https://anaconda.org/conda-forge/psychopy) |
+Look at one of [these examples](https://github.com/conda-forge/staged-recipes/tree/master/recipes)
+in this repository and modify it as necessary.
 
-Installing psychopy
-===================
+Your final recipe should have no comments and follow the order in the example.
 
-Installing `psychopy` from the `conda-forge` channel can be achieved by adding `conda-forge` to your channels with:
+*If there are details you are not sure about please open a pull request. The conda-forge team will be happy to answer your questions.*
 
-```
-conda config --add channels conda-forge
+### 2. **How do I populate the `hash` field?**
+
+If your package is on [PyPI](https://pypi.org), you can get the sha256 hash from your package's page on PyPI; look for the `SHA256` link next to the download link for your package.
+
+You can also generate a hash from the command line on Linux (and Mac if you install the necessary tools below). If you go this route, the `sha256` hash is preferable to the `md5` hash.
+
+To generate the `md5` hash: `md5 your_sdist.tar.gz`
+
+To generate the `sha256` hash: `openssl sha256 your_sdist.tar.gz`
+
+You may need the openssl package, available on conda-forge:
+`conda install openssl -c conda-forge`
+
+### 3. **How do I exclude a platform?**
+
+Use the `skip` key in the `build` section along with a selector:
+
+```yaml
+build:
+    skip: true  # [win]
 ```
 
-Once the `conda-forge` channel has been enabled, `psychopy` can be installed with:
+A full description of selectors is [in the conda docs](http://conda.pydata.org/docs/building/meta-yaml.html#preprocessing-selectors).
 
+Additionally, when pushing commits for a recipe that excludes Windows, put `[skip appveyor]` in the commit message to prevent CI tests
+on Windows from even starting.
+
+
+### 4. **What does the `build: 0` entry mean?**
+
+The build number is used when the source code for the package has not changed but you need to make a new
+build. For example, if one of the dependencies of the package was not properly specified the first time
+you build a package, then when you fix the dependency and rebuild the package you should increase the build
+number.
+
+When the package version changes you should reset the build number to `0`.
+
+### 5. **Do I have to import all of my unit tests into the recipe's `test` field?**
+
+No, you do not.
+
+### 6. **Do all of my package's dependencies have to be in conda(-forge) already?**
+
+Short answer: yes. Long answer: In principle, as long as your dependencies are in at least one of
+your user's conda channels they will be able to install your package. In practice, that is difficult
+to manage, and we strive to get all dependencies built in conda-forge.
+
+### 7. **When or why do I need to use `{{ PYTHON }} -m pip install . -vv`?**
+
+This should be the default install line for most Python packages. This is preferable to `python setup.py` because it handles metadata in a `conda`-friendlier way.
+
+### 8. **Do I need `bld.bat` and/or `build.sh`?**
+
+In many cases, no. Python packages almost never need it. If the build can be done with one line you can put it in the `script` line of the `build` section.
+
+### 9. What does being a conda-forge feedstock maintainer entail?
+
+The maintainers "job" is to:
+
+- keep the feedstock updated by merging eventual maintenance PRs from conda-forge's bots;
+- keep the package updated by bumping the version whenever there is a new release;
+- answer eventual question about the package on the feedstock issue tracker.
+
+### 10. Why are there recipes already in the `recipes` directory? Should I do something about it?
+
+When a PR of recipe(s) is ready to go, it is merged into `master`. This will trigger a CI build specially designed to convert the recipe(s). However, for any number of reasons the recipe(s) may not be converted right away. In the interim, the recipe(s) will remain in `master` until they can be converted. There is no action required on the part of recipe contributors to resolve this. Also it should have no impact on any other PRs being proposed. If these recipe(s) pending conversion do cause issues for your submission, please ping `conda-forge/core` for help.
+
+### 11. **Some checks failed, but it wasn't my recipe! How do I trigger a rebuild?**
+
+Sometimes, some of the CI tools' builds fail due to no error within your recipe. If that happens, you can trigger a rebuild by re-creating the last commit and force pushing it to your branch:
+
+```bash
+# edit your last commit, giving it a new time stamp and hash
+# (you can just leave the message as it is)
+git commit --amend
+# push to github, overwriting your branch
+git push -f
 ```
-conda install psychopy
+
+If the problem was due to scripts in the `staged-recipes` repository, you may be asked to "rebase" once these are fixed. To do so, run:
+```bash
+# If you didn't add a remote for conda-forge/staged-recipes yet, also run
+# these lines:
+# git remote add upstream https://github.com/conda-forge/staged-recipes.git
+# git fetch --all
+git rebase upstream/master
+git push -f
 ```
 
-It is possible to list all of the versions of `psychopy` available on your platform with:
+### 12. My pull request passes all checks, but hasn't received any attention. How do I call attention to my PR?  What is the customary amount of time to wait?
 
+If your PR is passing all checks, but has not been acted on by the staged recipes
+maintainers, you can ping @conda-forge/staged-recipes to request action. You do
+not need to wait any specific amount of time once the recipe is ready to go.
+
+If your recipe still does not recieve any attention after a few days, you may
+attempt to re-ping @conda-forge/staged-recipes. You may also attempt to bring
+the PR up in our Gitter chat room at https://gitter.im/conda-forge/conda-forge.github.io
+
+All apologies in advance if your recipe PR does not recieve prompt attention.
+This is a high volume repository and issues can easily be missed. We are always
+looking for more staged-recipe reviewers. If you are interested in volunteering,
+please contact a member of @conda-forge/core. We'd love to have the help!
+
+### 13. How to build with old compilers (GCC v4) on staged-recipes?
+
+First, don't. Second, please don't.
+
+Add a `conda_build_config.yaml` file inside the recipe folder with the contents
+
+```yaml
+channel_sources:
+- conda-forge/label/cf201901,defaults   # [unix]
+- conda-forge,defaults                  # [win]
+channel_targets:
+- conda-forge cf201901                  # [unix]
+- conda-forge main                      # [win]
+c_compiler:                             # [unix]
+- gcc                                   # [linux]
+- clang                                 # [osx]
+cxx_compiler:                           # [unix]
+- gxx                                   # [linux]
+- clangxx                               # [osx]
+fortran_compiler:                       # [unix]
+- gfortran                              # [unix]
 ```
-conda search psychopy --channel conda-forge
-```
-
-
-About conda-forge
-=================
-
-[![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](http://numfocus.org)
-
-conda-forge is a community-led conda channel of installable packages.
-In order to provide high-quality builds, the process has been automated into the
-conda-forge GitHub organization. The conda-forge organization contains one repository
-for each of the installable packages. Such a repository is known as a *feedstock*.
-
-A feedstock is made up of a conda recipe (the instructions on what and how to build
-the package) and the necessary configurations for automatic building using freely
-available continuous integration services. Thanks to the awesome service provided by
-[CircleCI](https://circleci.com/), [AppVeyor](https://www.appveyor.com/)
-and [TravisCI](https://travis-ci.org/) it is possible to build and upload installable
-packages to the [conda-forge](https://anaconda.org/conda-forge)
-[Anaconda-Cloud](https://anaconda.org/) channel for Linux, Windows and OSX respectively.
-
-To manage the continuous integration and simplify feedstock maintenance
-[conda-smithy](https://github.com/conda-forge/conda-smithy) has been developed.
-Using the ``conda-forge.yml`` within this repository, it is possible to re-render all of
-this feedstock's supporting files (e.g. the CI configuration files) with ``conda smithy rerender``.
-
-For more information please check the [conda-forge documentation](https://conda-forge.org/docs/).
-
-Terminology
-===========
-
-**feedstock** - the conda recipe (raw material), supporting scripts and CI configuration.
-
-**conda-smithy** - the tool which helps orchestrate the feedstock.
-                   Its primary use is in the construction of the CI ``.yml`` files
-                   and simplify the management of *many* feedstocks.
-
-**conda-forge** - the place where the feedstock and smithy live and work to
-                  produce the finished article (built conda distributions)
-
-
-Updating psychopy-feedstock
-===========================
-
-If you would like to improve the psychopy recipe or build a new
-package version, please fork this repository and submit a PR. Upon submission,
-your changes will be run on the appropriate platforms to give the reviewer an
-opportunity to confirm that the changes result in a successful build. Once
-merged, the recipe will be re-built and uploaded automatically to the
-`conda-forge` channel, whereupon the built conda packages will be available for
-everybody to install and use from the `conda-forge` channel.
-Note that all branches in the conda-forge/psychopy-feedstock are
-immediately built and any created packages are uploaded, so PRs should be based
-on branches in forks and branches in the main repository should only be used to
-build distinct package versions.
-
-In order to produce a uniquely identifiable distribution:
- * If the version of a package **is not** being increased, please add or increase
-   the [``build/number``](https://conda.io/docs/user-guide/tasks/build-packages/define-metadata.html#build-number-and-string).
- * If the version of a package **is** being increased, please remember to return
-   the [``build/number``](https://conda.io/docs/user-guide/tasks/build-packages/define-metadata.html#build-number-and-string)
-   back to 0.
-
-Feedstock Maintainers
-=====================
-
-* [@hoechenberger](https://github.com/hoechenberger/)
-* [@kastman](https://github.com/kastman/)
-* [@peircej](https://github.com/peircej/)
 

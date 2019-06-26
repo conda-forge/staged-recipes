@@ -1,33 +1,22 @@
-# This file was generated automatically from conda-smithy. To update this configuration,
-# update the conda-forge.yml and/or the recipe/meta.yaml.
-# -*- mode: yaml -*-
-
 jobs:
-- job: win
+- job: win_64
   pool:
     vmImage: vs2017-win2016
-  timeoutInMinutes: 360
   strategy:
     maxParallel: 4
     matrix:
-      win_:
-        CONFIG: win_
-        CONDA_BLD_PATH: D:\\bld\\
-        UPLOAD_PACKAGES: False
+      win:
+        CONFIG: azure-win-64
+        CF_MAX_PY_VER: 37
+  timeoutInMinutes: 240
   steps:
     # TODO: Fast finish on azure pipelines?
     - script: |
-        ECHO ON
-        
+        echo "Fast Finish"
 
     - script: |
         choco install vcpython27 -fdv -y --debug
-      condition: contains(variables['CONFIG'], 'vs2008')
       displayName: Install vcpython27.msi (if needed)
-
-    # Cygwin's git breaks conda-build. (See https://github.com/conda-forge/conda-smithy-feedstock/pull/2.)
-    # - script: rmdir C:\cygwin /s /q
-    #   continueOnError: true
 
     - powershell: |
         Set-PSDebug -Trace 1
@@ -51,51 +40,47 @@ jobs:
 
         Get-ChildItem -Path ($batchDir + '\..')
 
-      condition: contains(variables['CONFIG'], 'vs2008')
       displayName: Patch vs2008 (if needed)
 
     - task: CondaEnvironment@1
       inputs:
-        packageSpecs: 'python=3.6 conda-build conda conda-forge::conda-forge-ci-setup=2' # Optional
+        packageSpecs: 'python=3.6 conda-build conda conda-forge::conda-forge-ci-setup=2 networkx  conda-forge-pinning' # Optional
         installOptions: "-c conda-forge"
         updateConda: false
       displayName: Install conda-build and activate environment
 
     - script: set PYTHONUNBUFFERED=1
 
-    # Configure the VM
-    - script: setup_conda_rc .\ .\recipe .\.ci_support\%CONFIG%.yaml
-
-    # Configure the VM.
-    - script: |
-        set "CI=azure"
-        run_conda_forge_build_setup
-      displayName: conda-forge build setup
+    # Add our channels.
+    - script: conda.exe config --set show_channel_urls true
+      displayName: configure conda channels
+    - script: conda.exe config --remove channels defaults
+      displayName: configure conda channels
+    - script: conda.exe config --add channels defaults
+      displayName: configure conda channels
+    
+    - script: conda.exe config --add channels conda-forge
+      displayName: configure conda channels
     
 
+    # Configure the VM.
+    - script: call run_conda_forge_build_setup
+      displayName: conda-forge build setup
+        
+    # Find the recipes from master in this PR and remove them.
     - script: |
-        rmdir C:\strawberry /s /q
-      continueOnError: true
-      displayName: remove strawberryperl
+        git fetch --force origin master:master
+        cd recipes
+        for /f "tokens=*" %%a in ('git ls-tree --name-only master -- .') do rmdir /s /q %%a && echo Removing recipe: %%a
+        cd ..
 
     # Special cased version setting some more things!
     - script: |
-        conda.exe build recipe -m .ci_support\%CONFIG%.yaml
-      displayName: Build recipe (vs2008)
-      env:
-        VS90COMNTOOLS: "C:\\Program Files (x86)\\Common Files\\Microsoft\\Visual C++ for Python\\9.0\\VC\\bin"
-        PYTHONUNBUFFERED: 1
-      condition: contains(variables['CONFIG'], 'vs2008')
+        git fetch --force origin master:master
+        python .ci_support\build_all.py recipes --arch 64
+      displayName: Build recipe (maybe vs2008)
+      env: {
+        VS90COMNTOOLS: "C:\\Program Files (x86)\\Common Files\\Microsoft\\Visual C++ for Python\\9.0\\VC\\bin",
+      }
 
-    - script: |
-        conda.exe build recipe -m .ci_support\%CONFIG%.yaml
-      displayName: Build recipe
-      env:
-        PYTHONUNBUFFERED: 1
-      condition: not(contains(variables['CONFIG'], 'vs2008'))
-
-    - script: |
-        upload_package .\ .\recipe .ci_support\%CONFIG%.yaml
-      env:
-        BINSTAR_TOKEN: $(BINSTAR_TOKEN)
-      condition: not(eq(variables['UPLOAD_PACKAGES'], 'False'))
+    
