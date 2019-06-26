@@ -2,7 +2,7 @@ mkdir build -p
 cd build 
 
 
-CXX_FLAGS=${CXX_FLAGS}:-Wpedantic
+CFLAGS="${CFLAGS} -Wpedantic"
 
 cmake -G "Ninja" \
       -D CMAKE_BUILD_TYPE:STRING=Release \
@@ -11,7 +11,6 @@ cmake -G "Ninja" \
       -D BUILD_PY_LIB:BOOL=ON \
       -D USE_PY_3:BOOL=ON \
       -D Boost_NO_BOOST_CMAKE:BOOL=ON \
-      -D CMAKE_CXX_FLAGS:STRING="${CXX_FLAGS} -Wpedantic" \
       ../src
 
 ninja install
