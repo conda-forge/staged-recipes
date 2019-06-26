@@ -1,8 +1,10 @@
 mkdir build -p
 cd build 
 
-
-CFLAGS="${CFLAGS} -Wpedantic"
+if [[ ${HOST} =~ .*linux.* ]]; then
+	# https://github.com/conda-forge/boost-feedstock/issues/72
+	sed -i '127s#;##g' ${PREFIX}/include/boost/python/detail/caller.hpp
+fi
 
 cmake -G "Ninja" \
       -D CMAKE_BUILD_TYPE:STRING=Release \
