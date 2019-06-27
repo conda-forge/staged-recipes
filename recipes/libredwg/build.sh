@@ -1,5 +1,10 @@
+echo "####################################"
+echo $(ls)
+echo "####################################"
+
 autoreconf --install
 chmod +x configure
+
 
 case `uname` in
     Darwin|Linux)
