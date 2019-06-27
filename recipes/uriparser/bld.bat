@@ -14,7 +14,7 @@ cmake -GNinja ^
       -DURIPARSER_BUILD_TESTS=off ^
       -DURIPARSER_BUILD_TOOLS=off ^
       -DURIPARSER_BUILD_WCHAR_T=off ^
-      -DBUILD_SHARED_LIBS=off ^
+      -DBUILD_SHARED_LIBS=on ^
       ..
 
 cmake --build . --config Release --target install
