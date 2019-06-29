@@ -1,0 +1,300 @@
+From e945ae8c2900b7d6450882791042a49be09141af Mon Sep 17 00:00:00 2001
+From: Kai Germaschewski <kai.germaschewski@unh.edu>
+Date: Sat, 29 Jun 2019 07:40:26 -0400
+Subject: [PATCH 1/3] fix HDF5Reader build with MSVC
+
+Sadly, variable-sized stack arrays are only a feature of C99, but not C++11,
+so this patch uses std::vector instead.
+---
+ source/adios2/engine/hdf5/HDF5ReaderP.cpp         | 10 ++++++----
+ source/adios2/toolkit/interop/hdf5/HDF5Common.cpp |  5 +++--
+ 2 files changed, 9 insertions(+), 6 deletions(-)
+
+diff --git a/source/adios2/engine/hdf5/HDF5ReaderP.cpp b/source/adios2/engine/hdf5/HDF5ReaderP.cpp
+index f018718af..542855246 100644
+--- a/source/adios2/engine/hdf5/HDF5ReaderP.cpp
++++ b/source/adios2/engine/hdf5/HDF5ReaderP.cpp
+@@ -14,6 +14,8 @@
+ #include "adios2/common/ADIOSMPI.h"
+ #include "adios2/helper/adiosFunctions.h" //CSVToVector
+ 
++#include <vector>
++
+ namespace adios2
+ {
+ namespace core
+@@ -146,7 +148,7 @@ size_t HDF5ReaderP::ReadDataset(hid_t dataSetId, hid_t h5Type,
+     }
+     else
+     {
+-        hsize_t start[ndims], count[ndims], stride[ndims];
++        std::vector<hsize_t> start(ndims), count(ndims), stride(ndims);
+         bool isOrderC = helper::IsRowMajor(m_IO.m_HostLanguage);
+ 
+         for (int i = 0; i < ndims; i++)
+@@ -164,12 +166,12 @@ size_t HDF5ReaderP::ReadDataset(hid_t dataSetId, hid_t h5Type,
+             slabsize *= count[i];
+             stride[i] = 1;
+         }
+-        hid_t ret = H5Sselect_hyperslab(fileSpace, H5S_SELECT_SET, start,
+-                                        stride, count, NULL);
++        hid_t ret = H5Sselect_hyperslab(fileSpace, H5S_SELECT_SET, start.data(),
++                                        stride.data(), count.data(), NULL);
+         if (ret < 0)
+             return 0;
+ 
+-        hid_t memDataSpace = H5Screate_simple(ndims, count, NULL);
++        hid_t memDataSpace = H5Screate_simple(ndims, count.data(), NULL);
+         interop::HDF5TypeGuard g_mds(memDataSpace, interop::E_H5_SPACE);
+ 
+         int elementsRead = 1;
+diff --git a/source/adios2/toolkit/interop/hdf5/HDF5Common.cpp b/source/adios2/toolkit/interop/hdf5/HDF5Common.cpp
+index 1173e9137..e723442ea 100644
+--- a/source/adios2/toolkit/interop/hdf5/HDF5Common.cpp
++++ b/source/adios2/toolkit/interop/hdf5/HDF5Common.cpp
+@@ -15,6 +15,7 @@
+ #include <ios>
+ #include <iostream>
+ #include <stdexcept>
++#include <vector>
+ 
+ #include "adios2/common/ADIOSMPI.h"
+ #include "adios2/helper/adiosFunctions.h" // IsRowMajor
+@@ -419,8 +420,8 @@ void HDF5Common::AddVar(core::IO &io, std::string const &name, hid_t datasetId,
+     {
+         hid_t dspace = H5Dget_space(datasetId);
+         const int ndims = H5Sget_simple_extent_ndims(dspace);
+-        hsize_t dims[ndims];
+-        H5Sget_simple_extent_dims(dspace, dims, NULL);
++        std::vector<hsize_t> dims(ndims);
++        H5Sget_simple_extent_dims(dspace, dims.data(), NULL);
+         H5Sclose(dspace);
+ 
+         Dims shape;
+
+From cfc18a2766d6c3fd830b0215cbc8a30b51b49f1e Mon Sep 17 00:00:00 2001
+From: Kai Germaschewski <kai.germaschewski@unh.edu>
+Date: Sat, 29 Jun 2019 21:34:50 -0400
+Subject: [PATCH 2/3] msvc: fix some more msvc complaints
+
+including use of `uint` and more stack-allocated arrays
+---
+ .../adios2/toolkit/interop/hdf5/HDF5Common.cpp   | 16 +++++++---------
+ 1 file changed, 7 insertions(+), 9 deletions(-)
+
+diff --git a/source/adios2/toolkit/interop/hdf5/HDF5Common.cpp b/source/adios2/toolkit/interop/hdf5/HDF5Common.cpp
+index e723442ea..002633fb5 100644
+--- a/source/adios2/toolkit/interop/hdf5/HDF5Common.cpp
++++ b/source/adios2/toolkit/interop/hdf5/HDF5Common.cpp
+@@ -190,7 +190,7 @@ void HDF5Common::WriteAdiosSteps()
+     hid_t attr =
+         H5Acreate(m_FileId, ATTRNAME_NUM_STEPS.c_str(),
+                   /*"NumSteps",*/ H5T_NATIVE_UINT, s, H5P_DEFAULT, H5P_DEFAULT);
+-    uint totalAdiosSteps = m_CurrentAdiosStep + 1;
++    unsigned int totalAdiosSteps = m_CurrentAdiosStep + 1;
+ 
+     if (m_GroupId < 0)
+     {
+@@ -296,18 +296,16 @@ void HDF5Common::FindVarsFromH5(core::IO &io, hid_t top_id, const char *gname,
+                         hid_t datasetId = H5Dopen(gid, name, H5P_DEFAULT);
+                         HDF5TypeGuard d(datasetId, E_H5_DATASET);
+ 
+-                        char longName[std::strlen(heritage) +
+-                                      std::strlen(gname) + std::strlen(name) +
+-                                      10];
++                        std::string longName;
+ 
+                         if (strcmp(gname, "/") == 0)
+                         {
+-                            sprintf(longName, "/%s", name);
++                            longName = std::string("/") + name;
+                         }
+                         else
+                         {
+-                            sprintf(longName, "%s/%s/%s", heritage, gname,
+-                                    name);
++                            longName = std::string(heritage) + "/" + gname +
++                                       "/" + name;
+                         }
+                         // CreateVar(io, datasetId, name);
+                         ReadNativeAttrToIO(io, datasetId, longName);
+@@ -1246,7 +1244,7 @@ void HDF5Common::ReadAttrToIO(core::IO &io)
+     {
+         numAttrs = oinfo.num_attrs;
+         int k = 0;
+-        int MAX_ATTR_NAME_SIZE = 100;
++        const int MAX_ATTR_NAME_SIZE = 100;
+         for (k = 0; k < numAttrs; k++)
+         {
+             char attrName[MAX_ATTR_NAME_SIZE];
+@@ -1304,7 +1302,7 @@ void HDF5Common::ReadNativeAttrToIO(core::IO &io, hid_t datasetId,
+                     // consuimg
+         }
+         int k = 0;
+-        int MAX_ATTR_NAME_SIZE = 100;
++        const int MAX_ATTR_NAME_SIZE = 100;
+         for (k = 0; k < numAttrs; k++)
+         {
+             char attrName[MAX_ATTR_NAME_SIZE];
+
+From 6fe4dbf5be981e1b099a0bdc5905e16672337693 Mon Sep 17 00:00:00 2001
+From: Kai Germaschewski <kai.germaschewski@unh.edu>
+Date: Sun, 30 Jun 2019 06:56:46 -0400
+Subject: [PATCH 3/3] msvc: fix remaining VLA arrays
+
+I should have gotten them all now via `-Werror=vla` (with clang)
+---
+ .../toolkit/interop/hdf5/HDF5Common.cpp       |  6 +--
+ .../toolkit/interop/hdf5/HDF5Common.tcc       |  4 +-
+ source/utils/adios_iotest/hdf5Stream.cpp      | 37 ++++++++++---------
+ 3 files changed, 25 insertions(+), 22 deletions(-)
+
+diff --git a/source/adios2/toolkit/interop/hdf5/HDF5Common.cpp b/source/adios2/toolkit/interop/hdf5/HDF5Common.cpp
+index 002633fb5..e46bde7eb 100644
+--- a/source/adios2/toolkit/interop/hdf5/HDF5Common.cpp
++++ b/source/adios2/toolkit/interop/hdf5/HDF5Common.cpp
+@@ -933,9 +933,9 @@ void HDF5Common::AddNonStringAttribute(core::IO &io,
+     }
+     else
+     {
+-        T val[arraySize];
+-        H5Aread(attrId, h5Type, val);
+-        io.DefineAttribute(attrName, val, arraySize);
++        std::vector<T> val(arraySize);
++        H5Aread(attrId, h5Type, val.data());
++        io.DefineAttribute(attrName, val.data(), arraySize);
+     }
+ }
+ 
+diff --git a/source/adios2/toolkit/interop/hdf5/HDF5Common.tcc b/source/adios2/toolkit/interop/hdf5/HDF5Common.tcc
+index 4aa723980..b6634e166 100644
+--- a/source/adios2/toolkit/interop/hdf5/HDF5Common.tcc
++++ b/source/adios2/toolkit/interop/hdf5/HDF5Common.tcc
+@@ -208,7 +208,7 @@ void HDF5Common::AddBlockInfo(const core::Variable<T> &variable, hid_t parentId)
+         H5Dcreate(parentId, blockInfo_name.c_str(), H5T_NATIVE_HSIZE,
+                   metaSpace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+ 
+-    size_t blocks[dimSize * 2];
++    std::vector<size_t> blocks(dimSize * 2);
+     for (int i = 0; i < dimSize; i++)
+     {
+         blocks[i + dimSize] = variable.m_Count[i];
+@@ -223,7 +223,7 @@ void HDF5Common::AddBlockInfo(const core::Variable<T> &variable, hid_t parentId)
+                         metaCount, NULL);
+ 
+     H5Dwrite(metaId, H5T_NATIVE_HSIZE, metaLocal_id, metaSpace_id,
+-             m_PropertyTxfID, blocks);
++             m_PropertyTxfID, blocks.data());
+ 
+     H5Sclose(metaLocal_id);
+     H5Sclose(metaSpace_id);
+diff --git a/source/utils/adios_iotest/hdf5Stream.cpp b/source/utils/adios_iotest/hdf5Stream.cpp
+index 8b12dcdd1..e684e15d6 100644
+--- a/source/utils/adios_iotest/hdf5Stream.cpp
++++ b/source/utils/adios_iotest/hdf5Stream.cpp
+@@ -13,6 +13,7 @@
+ #include <math.h>
+ #include <stdexcept>
+ #include <string>
++#include <vector>
+ 
+ hdf5Stream::hdf5Stream(const std::string &streamName, const adios2::Mode mode,
+                        MPI_Comm comm)
+@@ -80,9 +81,9 @@ hid_t hdf5Stream::hdf5Type(std::string &type)
+ void hdf5Stream::defineHDF5Array(const std::shared_ptr<VariableInfo> ov)
+ {
+     const int ndim = ov->ndim + 1;
+-    hsize_t maxdims[ndim];
+-    hsize_t dims[ndim];
+-    hsize_t count[ndim];
++    std::vector<hsize_t> maxdims(ndim);
++    std::vector<hsize_t> dims(ndim);
++    std::vector<hsize_t> count(ndim);
+ 
+     maxdims[0] = H5S_UNLIMITED;
+     dims[0] = 1;
+@@ -94,14 +95,14 @@ void hdf5Stream::defineHDF5Array(const std::shared_ptr<VariableInfo> ov)
+         count[d] = ov->count[d - 1];
+     }
+ 
+-    hid_t dataspace = H5Screate_simple(ndim, dims, maxdims);
++    hid_t dataspace = H5Screate_simple(ndim, dims.data(), maxdims.data());
+ 
+     hid_t cparms;
+     /*
+      * Set chunking, the only way to have extendible arrays
+      */
+     cparms = H5Pcreate(H5P_DATASET_CREATE);
+-    H5Pset_chunk(cparms, ndim, count);
++    H5Pset_chunk(cparms, ndim, count.data());
+ 
+     hid_t dataset;
+     dataset = H5Dcreate2(h5file, ov->name.c_str(), hdf5Type(ov->type),
+@@ -117,9 +118,9 @@ void hdf5Stream::putHDF5Array(const std::shared_ptr<VariableInfo> ov,
+     const auto it = varmap.find(ov->name);
+     hdf5VarInfo &vi = it->second;
+     int ndim = ov->ndim + 1;
+-    hsize_t start[ndim];
+-    hsize_t count[ndim];
+-    hsize_t dims[ndim];
++    std::vector<hsize_t> start(ndim);
++    std::vector<hsize_t> count(ndim);
++    std::vector<hsize_t> dims(ndim);
+     start[0] = step - 1;
+     count[0] = 1;
+     dims[0] = step;
+@@ -130,12 +131,13 @@ void hdf5Stream::putHDF5Array(const std::shared_ptr<VariableInfo> ov,
+         dims[d] = ov->shape[d - 1];
+     }
+ 
+-    H5Dset_extent(vi.dataset, dims);
++    H5Dset_extent(vi.dataset, dims.data());
+     hid_t filespace = H5Dget_space(vi.dataset);
+-    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, start, NULL, count, NULL);
++    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, start.data(), NULL,
++                        count.data(), NULL);
+     hid_t dxpl_id = H5Pcreate(H5P_DATASET_XFER);
+     H5Pset_dxpl_mpio(dxpl_id, H5FD_MPIO_COLLECTIVE);
+-    hid_t memspace = H5Screate_simple(ndim, count, NULL);
++    hid_t memspace = H5Screate_simple(ndim, count.data(), NULL);
+     H5Dwrite(vi.dataset, hdf5Type(ov->type), memspace, filespace, dxpl_id,
+              ov->data.data());
+     H5Pclose(dxpl_id);
+@@ -256,8 +258,8 @@ void hdf5Stream::getHDF5Array(std::shared_ptr<VariableInfo> ov, size_t step)
+     }
+     int ndim = ov->ndim + 1;
+ 
+-    hsize_t start[ndim];
+-    hsize_t count[ndim];
++    std::vector<hsize_t> start(ndim);
++    std::vector<hsize_t> count(ndim);
+     start[0] = step - 1;
+     count[0] = 1;
+     for (int d = 1; d < ndim; ++d)
+@@ -272,10 +274,11 @@ void hdf5Stream::getHDF5Array(std::shared_ptr<VariableInfo> ov, size_t step)
+         ov->data.resize(ov->datasize);
+     }
+ 
+-    hid_t memspace = H5Screate_simple(ndim, count, NULL);
++    hid_t memspace = H5Screate_simple(ndim, count.data(), NULL);
+     hid_t dxpl_id = H5Pcreate(H5P_DATASET_XFER);
+     H5Pset_dxpl_mpio(dxpl_id, H5FD_MPIO_COLLECTIVE);
+-    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, start, NULL, count, NULL);
++    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, start.data(), NULL,
++                        count.data(), NULL);
+     void *buf = reinterpret_cast<void *>(ov->data.data());
+     H5Dread(dataset, hdf5Type(ov->type), memspace, filespace, dxpl_id, buf);
+ 
+@@ -317,9 +320,9 @@ adios2::StepStatus hdf5Stream::Read(CommandRead *cmdR, Config &cfg,
+         std::shared_ptr<VariableInfo> var = cmdR->variables.front();
+         hid_t dataset = H5Dopen2(h5file, var->name.c_str(), H5P_DEFAULT);
+         hid_t filespace = H5Dget_space(dataset);
+-        hsize_t dims[var->ndim + 1];
++        std::vector<hsize_t> dims(var->ndim + 1);
+         int ndim = H5Sget_simple_extent_ndims(filespace);
+-        H5Sget_simple_extent_dims(filespace, dims, NULL);
++        H5Sget_simple_extent_dims(filespace, dims.data(), NULL);
+         /* ndim == var->ndim+1 */
+         nSteps = dims[0];
+         if (!settings.myRank && settings.verbose)
+
