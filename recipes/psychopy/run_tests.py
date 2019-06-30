@@ -13,7 +13,7 @@ import psychopy.preferences
 if sys.platform == 'darwin':
     import psychopy.sound
 
-# Disable problematic tests on Linux
+# Disable problematic tests on Linux.
 # See https://github.com/conda-forge/staged-recipes/pull/8645
 if sys.platform != 'linux':
     import psychopy.event
