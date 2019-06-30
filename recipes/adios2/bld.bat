@@ -3,6 +3,7 @@ REM Install library with ADIOS2Config.cmake files with cmake
 :: remove -GL (whole program optimization) from CXXFLAGS
 :: causes a fatal error when linking our .dll
 echo "%CXXFLAGS%"
+set CFLAGS=%CFLAGS: -GL=%
 set CXXFLAGS=%CXXFLAGS: -GL=%
 echo "%CXXFLAGS%"
 
