@@ -10,9 +10,6 @@ if [[ ${target_platform} =~ osx.* ]]; then
     CMAKE_PLATFORM_FLAGS+=(-DADIOS2_USE_Fortran=OFF)
     CMAKE_PLATFORM_FLAGS+=(-DADIOS2_USE_BZip2=OFF)
 elif [[ ${target_platform} =~ linux.* ]]; then
-    # link transitive libraries during build of intermediate wrapper lib
-    # export LDFLAGS="${LDFLAGS} -Wl,-rpath-link,${PREFIX}/lib"
-
     CMAKE_PLATFORM_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
 fi
 
