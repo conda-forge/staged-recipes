@@ -1,18 +1,26 @@
 {% set name = "cppyy-cling" %}
 {% set version = "6.15.2.9" %}
+# The first three items of version define the version of ROOT that we're building from.
+{% set root_version = "6.15.02" %}
+{% set clang_version = "5.0.0" %}
+{% set clang_patches_version = "6.16.00" %}
 
 package:
   name: {{ name }}
   version: {{ version }}
 
 source:
-  url: https://bitbucket.org/wlav/cppyy-backend/get/{{ name }}-{{ version }}.tar.gz
-  sha256: 7b4343d8d68442a80486165d40dbc8b03b0a3299aa891b3f0f83b186e267f2fc
-  patches:
-  - manylinux.patch
+  - url: https://bitbucket.org/wlav/cppyy-backend/get/{{ name }}-{{ version }}.tar.gz
+    sha256: 7b4343d8d68442a80486165d40dbc8b03b0a3299aa891b3f0f83b186e267f2fc
+    patches:
+    - manylinux.patch
+    - skip_download.patch
+  - url: https://root.cern.ch/download/root_v{{ root_version }}.source.tar.gz
+    sha256: 7b4343d8d68442a80486165d40dbc8b03b0a3299aa891b3f0f83b186e267f2fc
+    folder: cling/root-{{ root_version }}
 
 build:
-  number: 1
+  number: 0
 
 requirements:
   build:
@@ -22,14 +30,18 @@ requirements:
     - python
     - pip
     - zlib
+    - clangdev={{ clang_version }}
+    - clang_variant * cling_{{ cling_patches_version }}
+    - llvmdev==5
+    # Copied over from conda-forge's cling recipe:
+    # FIXME: The generated allDict.cxx.pch is dependent on version of the C++
+    # headers used As it is shipped in the macOS binaries we have to use the
+    # same one as in the compilers package
+    - libcxx =4  # [osx]
   run:
+    - compilers
     - python
-    # Copied over from cling (conda-forge.)
-    # We really depend on the host compiler at runtime:
-    #  - the host compiler STL is one to be used.
-    #  - it is used by cling's runtime compatibility check.
-    - {{ compiler('cxx') }}  # [linux]
-    # TODO: This should match the build version instead of being fixed
+    # Copied over from conda-forge's cling recipe:
     - libcxx=4  # [osx]
 
 test:
@@ -46,9 +58,8 @@ about:
   license_file: cling/LICENSE.txt
   summary: 'A repackaging of Cling for Automatic Python-C++ Bindings'
   description: |
-    A repackaging of Cling, the interactive C++ interpreter, including a
-    version of LLVM patched for interactive use, and C/C++ wrappers that expose
-    no further external headers or types.
+    A repackaging of Cling, the interactive C++ interpreter, including C/C++
+    wrappers that expose no further external headers or types.
   doc_url: http://cppyy.readthedocs.io/
   dev_url: https://bitbucket.org/wlav/cppyy-backend/src/master/cling/
 
