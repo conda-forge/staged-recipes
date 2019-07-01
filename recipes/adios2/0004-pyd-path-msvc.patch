@@ -1,0 +1,60 @@
+From 61c23bfdd6b74ea60ceab6ead1b83108c32b89ab Mon Sep 17 00:00:00 2001
+From: Axel Huebl <axel.huebl@plasma.ninja>
+Date: Mon, 1 Jul 2019 10:22:32 +0200
+Subject: [PATCH] Python: Fix Windows Build
+
+Avoid a naming conflict when building the python bindings with NMake
+and MSVC of the form
+```
+[100%] Linking CXX shared module ..\..\lib\python3.6\site-packages\adios2.cp36-win_amd64.pyd
+LINK: command "C:\PROGRA~2\MI0E91~1.0\VC\bin\amd64\link.exe /nologo @CMakeFiles\adios2py.dir\objects1.rsp /out:..\..\lib\python3.6\site-packages\adios2.cp36-win_amd64.pyd /implib:..\..\lib\adios2.lib /pdb:%SRC_DIR%\build\lib\python3.6\site-packages\adios2.pdb /dll /version:0.0 /machine:x64 /INCREMENTAL:NO %PREFIX%\libs\python36.lib -LTCG ..\..\lib\adios2.lib kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTFILE:..\..\lib\python3.6\site-packages\adios2.cp36-win_amd64.pyd.manifest" failed (exit code 1149) with the following output:
+LINK : fatal error LNK1149: output filename matches input filename '%SRC_DIR%\build\lib\adios2.lib'
+NMAKE : fatal error U1077: 'C:\bld\adios2_1561968287896\_build_env\Library\bin\cmake.exe' : return code '0xffffffff'
+```
+
+Also fix the porper python dir on windows.
+---
+ bindings/Python/CMakeLists.txt | 25 +++++++++++++++++++------
+ 1 file changed, 19 insertions(+), 6 deletions(-)
+
+diff --git a/bindings/Python/CMakeLists.txt b/bindings/Python/CMakeLists.txt
+index e40988712..a483fca8e 100644
+--- a/bindings/Python/CMakeLists.txt
++++ b/bindings/Python/CMakeLists.txt
+@@ -13,16 +13,29 @@ if(ADIOS2_HAVE_MPI)
+   target_link_libraries(adios2py PRIVATE PythonModule::mpi4py)
+ endif()
+ 
+-set(CMAKE_INSTALL_PYTHONDIR
+-  "${CMAKE_INSTALL_LIBDIR}/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages"
++if(WIN32)
++  set(CMAKE_INSTALL_PYTHONDIR_DEFAULT
++    "${CMAKE_INSTALL_LIBDIR}\\site-packages"
++  )
++else()
++  set(CMAKE_INSTALL_PYTHONDIR_DEFAULT
++    "${CMAKE_INSTALL_LIBDIR}/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages"
++  )
++endif()
++set(CMAKE_INSTALL_PYTHONDIR "${CMAKE_INSTALL_PYTHONDIR_DEFAULT}"
++  CACHE PATH "Install directory for python modules"
+ )
+-set(CMAKE_INSTALL_PYTHONDIR "${CMAKE_INSTALL_PYTHONDIR}"
+-  CACHE INTERNAL "" FORCE
++set(CMAKE_PYTHON_OUTPUT_DIRECTORY
++  "${ADIOS2_BINARY_DIR}/${CMAKE_INSTALL_PYTHONDIR}"
++  CACHE PATH "Build directory for python modules"
+ )
+ set_target_properties(adios2py PROPERTIES
+   OUTPUT_NAME adios2
+-  LIBRARY_OUTPUT_DIRECTORY ${ADIOS2_BINARY_DIR}/${CMAKE_INSTALL_PYTHONDIR}
+-  RUNTIME_OUTPUT_DIRECTORY ${ADIOS2_BINARY_DIR}/${CMAKE_INSTALL_PYTHONDIR}
++  ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_PYTHON_OUTPUT_DIRECTORY}
++  LIBRARY_OUTPUT_DIRECTORY ${CMAKE_PYTHON_OUTPUT_DIRECTORY}
++  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_PYTHON_OUTPUT_DIRECTORY}
++  PDB_OUTPUT_DIRECTORY ${CMAKE_PYTHON_OUTPUT_DIRECTORY}
++  COMPILE_PDB_OUTPUT_DIRECTORY ${CMAKE_PYTHON_OUTPUT_DIRECTORY}
+ )
+ install(TARGETS adios2py
+   DESTINATION ${CMAKE_INSTALL_PYTHONDIR}
+
