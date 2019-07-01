@@ -22,7 +22,10 @@ cmake ^
     -DADIOS2_USE_Python=ON      ^
     -DADIOS2_USE_Profiling=OFF  ^
     -DADIOS2_USE_Fortran=OFF    ^
+    -DCMAKE_INSTALL_LIBDIR=lib  ^
+    -DCMAKE_INSTALL_PYTHONDIR=%SP_DIR% ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%  ^
+    -DCMAKE_PYTHON_OUTPUT_DIRECTORY=%CURRENTDIR%\lib\site-packages  ^
     %SRC_DIR%
 if errorlevel 1 exit 1
 
