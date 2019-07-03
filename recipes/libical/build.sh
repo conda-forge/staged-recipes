@@ -10,5 +10,5 @@ cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
       -DGOBJECT_INTROSPECTION=True \
       ..
 make
-make test -E ".*libical-glib.*"
+make ARGS="-E .*libical-glib.*" test
 make install
