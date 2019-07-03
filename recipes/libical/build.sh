@@ -5,6 +5,7 @@ mkdir -p build
 cd build
 
 cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+      -DCMAKE_INSTALL_LIBDIR="${PREFIX}/lib" \
       -DCMAKE_BUILD_TYPE=Release \
       -DICAL_BUILD_DOCS=false \
       -DGOBJECT_INTROSPECTION=True \
