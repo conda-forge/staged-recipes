@@ -2,7 +2,6 @@
 
 _build_shared=ON
 if [[ `uname -s` == 'Darwin' ]]; then
-    export MACOSX_DEPLOYMENT_TARGET=""
     _build_shared=OFF
 fi
 
