@@ -3,11 +3,8 @@
 # Much of this file (and the entire recipe in fact) has been taken from the
 # root-feedstock.
 
-cd cling
 export STDCXX=17
 export VERBOSE=1
-python setup.py egg_info
-python create_src_directory.py
 
 # Manually set the deployment_target
 # May not be very important but nice to do
