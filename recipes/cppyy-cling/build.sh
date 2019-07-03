@@ -58,27 +58,15 @@ CMAKE_ROOT_FLAGS="${CMAKE_ROOT_FLAGS} -Dbuiltin_llvm=OFF -Dbuiltin_clang=OFF"
 
 python -m pip install . --no-deps -vv
 
-## TODO: This still needs to be adapted from root-feedstock
-## if [ "$(uname)" == "Linux" ]; then
-##     # Remove the PCH as we will regenerate it in the post install hook
-##     rm "${PREFIX}/etc/allDict.cxx.pch"
-## else
-##     # On macOS we can't reliably generate the PCH at install time instead
-##     # regenerate the PCH so it contains runtime paths rather than the build paths
-##     (cd "${PREFIX}" &&
-##      ROOTIGNOREPREFIX=1 python \
-##          "${PREFIX}/etc/dictpch/makepch.py" \
-##          "${PREFIX}/etc/allDict.cxx.pch" \
-##          -I"${PREFIX}/include")
-## fi
-## 
-## # Add the post activate/deactivate scripts
-## mkdir -p "${PREFIX}/etc/conda/activate.d"
-## cp "${RECIPE_DIR}/activate.sh" "${PREFIX}/etc/conda/activate.d/activate-root.sh"
-## cp "${RECIPE_DIR}/activate.csh" "${PREFIX}/etc/conda/activate.d/activate-root.csh"
-## cp "${RECIPE_DIR}/activate.fish" "${PREFIX}/etc/conda/activate.d/activate-root.fish"
-## 
-## mkdir -p "${PREFIX}/etc/conda/deactivate.d"
-## cp "${RECIPE_DIR}/deactivate.sh" "${PREFIX}/etc/conda/deactivate.d/deactivate-root.sh"
-## cp "${RECIPE_DIR}/deactivate.csh" "${PREFIX}/etc/conda/deactivate.d/deactivate-root.csh"
-## cp "${RECIPE_DIR}/deactivate.fish" "${PREFIX}/etc/conda/deactivate.d/deactivate-root.fish"
+if [ "$(uname)" == "Linux" ]; then
+    # Remove the PCH as we will regenerate it in the post install hook
+    rm "${PREFIX}/etc/allDict.cxx.pch"
+else
+    # On macOS we can't reliably generate the PCH at install time instead
+    # regenerate the PCH so it contains runtime paths rather than the build paths
+    (cd "${PREFIX}" &&
+     ROOTIGNOREPREFIX=1 python \
+         "${PREFIX}/etc/dictpch/makepch.py" \
+         "${PREFIX}/etc/allDict.cxx.pch" \
+         -I"${PREFIX}/include")
+fi
