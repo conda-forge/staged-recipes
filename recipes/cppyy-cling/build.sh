@@ -57,16 +57,3 @@ CMAKE_ROOT_FLAGS="${CMAKE_ROOT_FLAGS} -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_
 CMAKE_ROOT_FLAGS="${CMAKE_ROOT_FLAGS} -Dbuiltin_llvm=OFF -Dbuiltin_clang=OFF"
 
 python -m pip install . --no-deps -vv
-
-if [ "$(uname)" == "Linux" ]; then
-    # Remove the PCH as we will regenerate it in the post install hook
-    rm "${PREFIX}/etc/allDict.cxx.pch"
-else
-    # On macOS we can't reliably generate the PCH at install time instead
-    # regenerate the PCH so it contains runtime paths rather than the build paths
-    (cd "${PREFIX}" &&
-     ROOTIGNOREPREFIX=1 python \
-         "${PREFIX}/etc/dictpch/makepch.py" \
-         "${PREFIX}/etc/allDict.cxx.pch" \
-         -I"${PREFIX}/include")
-fi
