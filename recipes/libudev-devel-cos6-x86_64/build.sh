@@ -10,3 +10,4 @@ cp -Rf "${SRC_DIR}"/binary/* .
 cd lib64
 rm libudev.so
 ln -s libudev.so.0.5.1 libudev.so
+
