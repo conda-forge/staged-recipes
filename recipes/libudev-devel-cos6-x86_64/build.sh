@@ -9,4 +9,4 @@ cp -Rf "${SRC_DIR}"/binary/* .
 # since our sysroot doesn't have /lib64, we must remake the link ourselves
 cd lib64
 rm libudev.so
-ln -s -r libudev.so.0.5.1 libudev.so
+ln -s libudev.so.0.5.1 libudev.so
