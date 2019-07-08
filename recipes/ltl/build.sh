@@ -9,7 +9,8 @@ if [[ ${target_platform} =~ .*linux.* ]]; then
     CXXFLAGS="${CXXFLAGS//-std=c++17/-std=c++14}"
 fi
 
+autoreconf -if
 ./configure --prefix=${PREFIX}
 make
-make check  # For some reason this fails on BLAS ddot()
+make check
 make install
