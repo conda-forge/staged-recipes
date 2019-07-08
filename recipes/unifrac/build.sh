@@ -2,12 +2,6 @@
 
 set -x -e
 
-if [ "$(uname)" = "Linux" ] ; then
-	SED='sed -i' ;
-else 
-	SED='sed -i '"'"''"'"' ' ;
-fi
-
 export CC=`which h5c++`
 
 pushd sucpp; make clean; make test; make main; make api; popd
