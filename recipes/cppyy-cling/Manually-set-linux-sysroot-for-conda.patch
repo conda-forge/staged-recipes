@@ -1,0 +1,57 @@
+From f59b51e74280c3675a9424f99e65d6b8fea8068b Mon Sep 17 00:00:00 2001
+From: Christopher Burr <christopher.burr@cern.ch>
+Date: Wed, 16 Jan 2019 08:00:08 +0000
+Subject: [PATCH] Manually set linux sysroot for conda
+
+---
+ .../clang/lib/Driver/ToolChains/Linux.cpp     | 33 ++++---------------
+ 1 file changed, 7 insertions(+), 26 deletions(-)
+
+diff --git a/lib/Driver/ToolChains/Linux.cpp b/lib/Driver/ToolChains/Linux.cpp
+index 08a27fa7fe..992b22eac1 100644
+--- a/lib/Driver/ToolChains/Linux.cpp
++++ b/lib/Driver/ToolChains/Linux.cpp
+@@ -381,33 +381,14 @@ Tool *Linux::buildAssembler() const {
+ }
+
+ std::string Linux::computeSysRoot() const {
+-  if (!getDriver().SysRoot.empty())
+-    return getDriver().SysRoot;
+-
+-  if (!GCCInstallation.isValid() || !tools::isMipsArch(getTriple().getArch()))
+-    return std::string();
+-
+-  // Standalone MIPS toolchains use different names for sysroot folder
+-  // and put it into different places. Here we try to check some known
+-  // variants.
+-
+-  const StringRef InstallDir = GCCInstallation.getInstallPath();
+-  const StringRef TripleStr = GCCInstallation.getTriple().str();
+-  const Multilib &Multilib = GCCInstallation.getMultilib();
+-
+-  std::string Path =
+-      (InstallDir + "/../../../../" + TripleStr + "/libc" + Multilib.osSuffix())
+-          .str();
+-
+-  if (getVFS().exists(Path))
+-    return Path;
+-
+-  Path = (InstallDir + "/../../../../sysroot" + Multilib.osSuffix()).str();
+-
+-  if (getVFS().exists(Path))
+-    return Path;
++  if (char *env = ::getenv("CONDA_BUILD_SYSROOT")) {
++    // We only use this value as the default if it is an absolute path and exists
++    if (llvm::sys::path::is_absolute(env) && getVFS().exists(env)) {
++      return env;
++    }
++  }
+
+-  return std::string();
++  return "SYSROOT_PATH_TO_BE_REPLACED_WITH_SED";
+ }
+
+ std::string Linux::getDynamicLinker(const ArgList &Args) const {
+--
+2.20.0
+
