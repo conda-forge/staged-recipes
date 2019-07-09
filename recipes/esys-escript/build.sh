@@ -13,7 +13,7 @@ if [ "$(uname)" == "Linux" ]; then
 
     cd ${SRC_DIR}/escript-boost
     ./bootstrap.sh --with-python-version=2.7 --prefix="${PREFIX}/esys/boost"
-    ./b2 variant=release link=shared runtime-link=shared threading=multi \
+    ./b2.sh toolset=gcc variant=release link=shared runtime-link=shared threading=multi \
         --with-python --with-iostreams --with-random -j"${CPU_COUNT}" install
 
     cd ${SRC_DIR}/escript
