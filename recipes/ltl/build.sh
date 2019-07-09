@@ -9,8 +9,11 @@ if [[ ${target_platform} =~ .*linux.* ]]; then
     CXXFLAGS="${CXXFLAGS//-std=c++17/-std=c++14}"
 fi
 
+# Regenerate the configure script since we're patching configure.ac.
 autoreconf -if
-./configure --prefix=${PREFIX}
+# Explicitly specify BLAS and LAPACK libraries. Not necessary on Linux,
+# but on macOS it links against the wrong libraries otherwise.
+./configure --prefix=${PREFIX} --with-blas=blas --with-lapack=lapack
 make
 make check
 make install
