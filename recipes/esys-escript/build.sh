@@ -12,7 +12,7 @@ LDFLAGS=-L"${PREFIX}/lib"
 if [ "$(uname)" == "Linux" ]; then
 
     cd ${SRC_DIR}/escript-boost
-    ./bootstrap.sh toolset=gcc --with-python-version=2.7 --prefix="${PREFIX}/esys/boost"
+    ./bootstrap.sh --toolset=gcc --with-python-version=2.7 --prefix="${PREFIX}/esys/boost"
     ./b2.sh variant=release link=shared runtime-link=shared threading=multi \
         --with-python --with-iostreams --with-random -j"${CPU_COUNT}" install
 
