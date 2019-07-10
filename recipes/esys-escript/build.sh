@@ -11,7 +11,6 @@ LDFLAGS=-L"${PREFIX}/lib"
 
 if [ "$(uname)" == "Linux" ]; then
 
-    cd ${SRC_DIR}/escript-boost
     ./bootstrap.sh \
         --with-toolset=cc \
         --with-python-version=2.7 \
@@ -36,7 +35,6 @@ if [ "$(uname)" == "Linux" ]; then
         -j"${CPU_COUNT}" \
         install || cat b2.log
         
-    cd ${SRC_DIR}/escript
     scons -j"${CPU_COUNT}" \
         options_file="${SRC_DIR}/escript/scons/templates/stretch_options.py" \
         prefix="${PREFIX}" \
