@@ -13,7 +13,7 @@ if [ "$(uname)" == "Linux" ]; then
 
     cd ${SRC_DIR}/escript-boost
     ./bootstrap.sh \
-        --with-toolset=gcc \
+        --with-toolset=cc \
         --with-python-version=2.7 \
         --prefix="${PREFIX}/esys/boost" || cat bootstrap.log
     
