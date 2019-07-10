@@ -17,7 +17,7 @@ if [ "$(uname)" == "Linux" ]; then
         --with-python=`which python2`\
         --with-python-version=2.7 \
         --prefix="${PREFIX}/esys/boost" \
-        2>&1 | tee bootstrap.log && cat bootstrap.log
+        | tee bootstrap.log 2>&1
     ./b2 \
         variant=release \
         link=shared \
@@ -27,7 +27,7 @@ if [ "$(uname)" == "Linux" ]; then
         --with-iostreams \
         --with-random \
         -j"${CPU_COUNT}" install \
-        2>&1 | tee b2.log
+        | tee b2.log 2>&1
 
     cd ${SRC_DIR}/escript
     scons -j"${CPU_COUNT}" \
@@ -52,7 +52,7 @@ if [ "$(uname)" == "Linux" ]; then
         netcdf_prefix="${PREFIX}"] \
         netcdf_libs=['netcdf_c++4','netcdf'] \
         werror=1 \
-        2>&1 | tee config.log
+        | tee config.log 2>&1
 
 fi
 
