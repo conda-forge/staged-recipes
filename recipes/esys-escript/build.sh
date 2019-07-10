@@ -14,10 +14,8 @@ if [ "$(uname)" == "Linux" ]; then
     cd ${SRC_DIR}/escript-boost
     ./bootstrap.sh \
         --with-toolset=gcc \
-        --with-python=`which python2`\
         --with-python-version=2.7 \
-        --prefix="${PREFIX}/esys/boost" 
-    cat bootstrap.log
+        --prefix="${PREFIX}/esys/boost" | cat bootstrap.log
     
     ./b2 \
         variant=release \
@@ -27,8 +25,7 @@ if [ "$(uname)" == "Linux" ]; then
         --with-python \
         --with-iostreams \
         --with-random \
-        -j"${CPU_COUNT}" install 
-    cat b2.log
+        -j"${CPU_COUNT}" install | cat b2.log
         
     cd ${SRC_DIR}/escript
     scons -j"${CPU_COUNT}" \
@@ -52,8 +49,7 @@ if [ "$(uname)" == "Linux" ]; then
         netcdf=no \
         netcdf_prefix="${PREFIX}"] \
         netcdf_libs=['netcdf_c++4','netcdf'] \
-        werror=1
-    cat config.log
+        werror=1 | cat config.log
         
 fi
 
