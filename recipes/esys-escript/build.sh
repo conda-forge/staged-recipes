@@ -12,9 +12,16 @@ LDFLAGS=-L"${PREFIX}/lib"
 if [ "$(uname)" == "Linux" ]; then
 
     cd ${SRC_DIR}/escript-boost
-    ./bootstrap.sh --with-toolset=gcc --with-python=`which python2` --with-python-version=2.7 --prefix="${PREFIX}/esys/boost"
+    ./bootstrap.sh \
+        --with-toolset=cc \
+        --with-python=`which python2`\
+        --with-python-version=2.7 \
+        --with-ico="${PREFIX}" \
+        --prefix="${PREFIX}/esys/boost" \
+        2>&1 | tee bootstrap.log
     ./b2.sh variant=release link=shared runtime-link=shared threading=multi \
-        --with-python --with-iostreams --with-random -j"${CPU_COUNT}" install
+        --with-python --with-iostreams --with-random -j"${CPU_COUNT}" install \
+        2>&1 | tee b2.log
 
     cd ${SRC_DIR}/escript
     scons -j"${CPU_COUNT}" \
@@ -38,7 +45,8 @@ if [ "$(uname)" == "Linux" ]; then
         netcdf=no \
         netcdf_prefix="${PREFIX}"] \
         netcdf_libs=['netcdf_c++4','netcdf'] \
-        werror=1
+        werror=1 \
+        2>&1 | tee config.log
 
 fi
 
