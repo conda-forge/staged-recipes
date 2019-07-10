@@ -16,11 +16,17 @@ if [ "$(uname)" == "Linux" ]; then
         --with-toolset=gcc \
         --with-python=`which python2`\
         --with-python-version=2.7 \
-        --with-icu="${PREFIX}" \
         --prefix="${PREFIX}/esys/boost" \
-        2>&1 | tee bootstrap.log
-    ./b2 variant=release link=shared runtime-link=shared threading=multi \
-        --with-python --with-iostreams --with-random -j"${CPU_COUNT}" install \
+        2>&1 | tee bootstrap.log && cat bootstrap.log
+    ./b2 \
+        variant=release \
+        link=shared \
+        runtime-link=shared \
+        threading=multi \
+        --with-python \
+        --with-iostreams \
+        --with-random \
+        -j"${CPU_COUNT}" install \
         2>&1 | tee b2.log
 
     cd ${SRC_DIR}/escript
