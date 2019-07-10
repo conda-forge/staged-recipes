@@ -22,6 +22,7 @@ if [ "$(uname)" == "Linux" ]; then
         link=shared \
         runtime-link=shared \
         threading=multi \
+        toolset=cc \
         --with-python \
         --with-iostreams \
         --with-random \
