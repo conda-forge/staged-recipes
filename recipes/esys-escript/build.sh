@@ -13,7 +13,7 @@ if [ "$(uname)" == "Linux" ]; then
 
     cd ${SRC_DIR}/escript-boost
     ./bootstrap.sh \
-        --with-toolset=cc \
+        --with-toolset=gcc \
         --with-python=`which python2`\
         --with-python-version=2.7 \
         --with-icu="${PREFIX}" \
