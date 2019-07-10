@@ -1,0 +1,348 @@
+From 5d3bf0fa0a8ac969975ff67bf1ecea3af022ac0d Mon Sep 17 00:00:00 2001
+From: Ray Donnelly <mingw.android@gmail.com>
+Date: Sat, 13 Jul 2019 01:30:48 +0200
+Subject: [PATCH] macOS fixes
+
+---
+ squashfs-tools/action.c           |  2 +
+ squashfs-tools/info.c             | 78 +++++++++++++++++++------------
+ squashfs-tools/macosx.h           | 25 ++++++++++
+ squashfs-tools/mksquashfs.c       | 16 +++++--
+ squashfs-tools/unsquashfs.c       | 13 ++++++
+ squashfs-tools/unsquashfs_info.c  | 20 +++++++-
+ squashfs-tools/unsquashfs_xattr.c |  1 +
+ squashfs-tools/xattr.c            |  2 +
+ 8 files changed, 124 insertions(+), 33 deletions(-)
+ create mode 100644 squashfs-tools/macosx.h
+
+diff --git a/squashfs-tools/action.c b/squashfs-tools/action.c
+index 4b06ccb..87bcc2b 100644
+--- a/squashfs-tools/action.c
++++ b/squashfs-tools/action.c
+@@ -44,6 +44,8 @@
+ #include "error.h"
+ #include "fnmatch_compat.h"
+ 
++#include "macosx.h"
++
+ /*
+  * code to parse actions
+  */
+diff --git a/squashfs-tools/info.c b/squashfs-tools/info.c
+index fe23d78..79f2011 100644
+--- a/squashfs-tools/info.c
++++ b/squashfs-tools/info.c
+@@ -35,7 +35,9 @@
+ #include <dirent.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
++#if !defined(__APPLE__)
+ #include <string.h>
++#endif
+ 
+ #include "squashfs_fs.h"
+ #include "mksquashfs.h"
+@@ -143,45 +145,63 @@ void dump_state()
+ 
+ void *info_thrd(void *arg)
+ {
++#if defined(__APPLE__)
+ 	sigset_t sigmask;
+-	struct timespec timespec = { .tv_sec = 1, .tv_nsec = 0 };
+-	int sig, waiting = 0;
++	int sig;
+ 
+ 	sigemptyset(&sigmask);
+ 	sigaddset(&sigmask, SIGQUIT);
+ 	sigaddset(&sigmask, SIGHUP);
+ 
+ 	while(1) {
+-		if(waiting)
+-			sig = sigtimedwait(&sigmask, NULL, &timespec);
+-		else
+-			sig = sigwaitinfo(&sigmask, NULL);
+-
+-		if(sig == -1) {
+-			switch(errno) {
+-			case EAGAIN:
+-				/* interval timed out */
+-				waiting = 0;
+-				/* FALLTHROUGH */
+-			case EINTR:
+-				/* if waiting, the wait will be longer, but
+-				   that's OK */
+-				continue;
+-			default:
+-				BAD_ERROR("sigtimedwait/sigwaitinfo failed "
+-					"because %s\n", strerror(errno));
+-			}
+-		}
+-
+-		if(sig == SIGQUIT && !waiting) {
+-			print_filename();
++		sigwait(&sigmask, &sig);
+ 
+-			/* set one second interval period, if ^\ received
+-			   within then, dump queue and cache status */
+-			waiting = 1;
+-		} else
++		if(sig == SIGQUIT)
++			print_filename();
++		else
+ 			dump_state();
+ 	}
++#else
++        sigset_t sigmask;
++        struct timespec timespec = { .tv_sec = 1, .tv_nsec = 0 };
++        int sig, waiting = 0;
++
++        sigemptyset(&sigmask);
++        sigaddset(&sigmask, SIGQUIT);
++        sigaddset(&sigmask, SIGHUP);
++
++        while(1) {
++                if(waiting)
++                        sig = sigtimedwait(&sigmask, NULL, &timespec);
++                else
++                        sig = sigwaitinfo(&sigmask, NULL);
++
++                if(sig == -1) {
++                        switch(errno) {
++                        case EAGAIN:
++                                /* interval timed out */
++                                waiting = 0;
++                                /* FALLTHROUGH */
++                        case EINTR:
++                                /* if waiting, the wait will be longer, but
++                                   that's OK */
++                                continue;
++                        default:
++                                BAD_ERROR("sigtimedwait/sigwaitinfo failed "
++                                        "because %s\n", strerror(errno));
++                        }
++                }
++
++                if(sig == SIGQUIT && !waiting) {
++                        print_filename();
++
++                        /* set one second interval period, if ^\ received
++                           within then, dump queue and cache status */
++                        waiting = 1;
++                } else
++                        dump_state();
++        }
++#endif
+ }
+ 
+ 
+diff --git a/squashfs-tools/macosx.h b/squashfs-tools/macosx.h
+new file mode 100644
+index 0000000..d7970b4
+--- /dev/null
++++ b/squashfs-tools/macosx.h
+@@ -0,0 +1,25 @@
++#if defined(__APPLE__)
++#ifndef SQUASHFS_MACOSX
++#define SQUASHFS_MACOSX 1
++
++// MAC OS X specific defines
++
++#ifndef FNM_EXTMATCH
++#define FNM_EXTMATCH   0
++#endif
++
++#define strdupa(s)   strdup(s)
++
++// do not track info (because of sigtimedwait/sigwaitinfo)
++#define SQUASHFS_DISABLE_INFO  1
++#define disable_info()
++#define update_info(arg)
++#define init_info()
++
++// extended attribute manipulation
++#define llistxattr(path, buf, size)   listxattr((path), (buf), (size), XATTR_NOFOLLOW)
++#define lgetxattr(path, name, value, size)   getxattr((path), (name), (value), (size), 0, XATTR_NOFOLLOW)
++#define lsetxattr(path, name, value, size, flags)   setxattr((path), (name), (value), (size), 0, (flags) | XATTR_NOFOLLOW)
++
++#endif
++#endif // (__APPLE__)
+diff --git a/squashfs-tools/mksquashfs.c b/squashfs-tools/mksquashfs.c
+index 69d324e..d01a40c 100644
+--- a/squashfs-tools/mksquashfs.c
++++ b/squashfs-tools/mksquashfs.c
+@@ -35,7 +35,6 @@
+ #include <stddef.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
+-#include <sys/sysmacros.h>
+ #include <fcntl.h>
+ #include <errno.h>
+ #include <dirent.h>
+@@ -50,9 +49,8 @@
+ #include <sys/wait.h>
+ #include <limits.h>
+ #include <ctype.h>
+-#include <sys/sysinfo.h>
+ 
+-#ifndef linux
++#if defined(__APPLE__) || !defined(__GLIBC__)
+ #define __BYTE_ORDER BYTE_ORDER
+ #define __BIG_ENDIAN BIG_ENDIAN
+ #define __LITTLE_ENDIAN LITTLE_ENDIAN
+@@ -60,6 +58,7 @@
+ #else
+ #include <endian.h>
+ #include <sys/sysinfo.h>
++#include <sys/sysmacros.h>
+ #endif
+ 
+ #include "squashfs_fs.h"
+@@ -5191,11 +5190,19 @@ int get_physical_memory()
+ 	 * sysconf(_SC_PHYS_PAGES) relies on /proc being mounted.
+ 	 * If it fails use sysinfo, if that fails return 0
+ 	 */
++#if defined(__APPLE__)
++	long long num_pages;
++	size_t len = sizeof(num_pages);
++	sysctlbyname("hw.memsize", &num_pages, &len, NULL, 0);
++        num_pages /= sysconf(_SC_PAGE_SIZE);
++#else
+ 	long long num_pages = sysconf(_SC_PHYS_PAGES);
++#endif
+ 	long long page_size = sysconf(_SC_PAGESIZE);
+ 	int phys_mem;
+ 
+ 	if(num_pages == -1 || page_size == -1) {
++#if !defined(__APPLE__)
+ 		struct sysinfo sys;
+ 		int res = sysinfo(&sys);
+ 
+@@ -5204,6 +5211,9 @@ int get_physical_memory()
+ 
+ 		num_pages = sys.totalram;
+ 		page_size = sys.mem_unit;
++#else
++		return 0;
++#endif
+ 	}
+ 
+ 	phys_mem = num_pages * page_size >> 20;
+diff --git a/squashfs-tools/unsquashfs.c b/squashfs-tools/unsquashfs.c
+index 68e6742..37aa75c 100644
+--- a/squashfs-tools/unsquashfs.c
++++ b/squashfs-tools/unsquashfs.c
+@@ -32,8 +32,17 @@
+ #include "stdarg.h"
+ #include "fnmatch_compat.h"
+ 
++#if defined(__APPLE__) || !defined(__GLIBC__)
++#define __BYTE_ORDER BYTE_ORDER
++#define __BIG_ENDIAN BIG_ENDIAN
++#define __LITTLE_ENDIAN LITTLE_ENDIAN
++#include <sys/sysctl.h>
++#else
++#include <endian.h>
+ #include <sys/sysinfo.h>
+ #include <sys/sysmacros.h>
++#endif
++
+ #include <sys/types.h>
+ #include <sys/time.h>
+ #include <sys/resource.h>
+@@ -1079,10 +1088,12 @@ int create_inode(char *pathname, struct inode *i)
+ 			break;
+ 		case SQUASHFS_SYMLINK_TYPE:
+ 		case SQUASHFS_LSYMLINK_TYPE: {
++#if !defined(__APPLE__) || (MAC_OS_X_VERSION_MIN_REQUIRED >= 101300)
+ 			struct timespec times[2] = {
+ 				{ i->time, 0 },
+ 				{ i->time, 0 }
+ 			};
++#endif
+ 
+ 			TRACE("create_inode: symlink, symlink_size %lld\n",
+ 				i->data);
+@@ -1098,6 +1109,7 @@ int create_inode(char *pathname, struct inode *i)
+ 				goto failed;
+ 			}
+ 
++#if !defined(__APPLE__) || (MAC_OS_X_VERSION_MIN_REQUIRED >= 101300)
+ 			res = utimensat(AT_FDCWD, pathname, times,
+ 					AT_SYMLINK_NOFOLLOW);
+ 			if(res == -1) {
+@@ -1105,6 +1117,7 @@ int create_inode(char *pathname, struct inode *i)
+ 					"%s, because %s\n", pathname,
+ 					strerror(errno));
+ 			}
++#endif
+ 
+ 			res = write_xattr(pathname, i->xattr);
+ 			if(res == FALSE)
+diff --git a/squashfs-tools/unsquashfs_info.c b/squashfs-tools/unsquashfs_info.c
+index c8e2b9b..655a226 100644
+--- a/squashfs-tools/unsquashfs_info.c
++++ b/squashfs-tools/unsquashfs_info.c
+@@ -93,9 +93,9 @@ void dump_state()
+ 	enable_progress_bar();
+ }
+ 
+-
+ void *info_thrd(void *arg)
+ {
++#if !defined (__APPLE__)
+ 	sigset_t sigmask;
+ 	struct timespec timespec = { .tv_sec = 1, .tv_nsec = 0 };
+ 	int sig, waiting = 0;
+@@ -136,6 +136,24 @@ void *info_thrd(void *arg)
+ 		} else
+ 			dump_state();
+ 	}
++#else
++	sigset_t sigmask;
++	int sig;
++
++	sigemptyset(&sigmask);
++	sigaddset(&sigmask, SIGQUIT);
++	sigaddset(&sigmask, SIGHUP);
++
++	while(1) {
++		sigwait(&sigmask, &sig);
++
++		if(sig == SIGQUIT) {
++			if(pathname)
++				INFO("%s\n", pathname);
++		} else
++			dump_state();
++	}
++#endif
+ }
+ 
+ 
+diff --git a/squashfs-tools/unsquashfs_xattr.c b/squashfs-tools/unsquashfs_xattr.c
+index 7742dfe..6978612 100644
+--- a/squashfs-tools/unsquashfs_xattr.c
++++ b/squashfs-tools/unsquashfs_xattr.c
+@@ -24,6 +24,7 @@
+ 
+ #include "unsquashfs.h"
+ #include "xattr.h"
++#include "macosx.h"
+ 
+ #include <sys/xattr.h>
+ 
+diff --git a/squashfs-tools/xattr.c b/squashfs-tools/xattr.c
+index 64dfd82..f9729c2 100644
+--- a/squashfs-tools/xattr.c
++++ b/squashfs-tools/xattr.c
+@@ -43,6 +43,8 @@
+ #include "error.h"
+ #include "progressbar.h"
+ 
++#include "macosx.h"
++
+ /* compressed xattr table */
+ static char *xattr_table = NULL;
+ static unsigned int xattr_size = 0;
+-- 
+2.22.0
+

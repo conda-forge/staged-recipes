@@ -1,0 +1,90 @@
+{% set name = "squashfs-tools" %}
+{% set version = "4.4" %}
+{% set best_comp = 'zstd' %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  - git_url: https://github.com/plougher/squashfs-tools
+    git_ref: 00508d9bf2cc2c8d026483d817db212602ab6295
+  #- url: https://github.com/plougher/squashfs-tools/archive/{{ version }}.tar.gz
+  #  fn: {{ name }}-{{ version }}.tar.gz
+  #  sha256: 0d605512437b1eb800b4736791559295ee5f60177e102e4d4ccd0ee241a5f3f6
+    patches:
+      - 0001-macOS-fixes.patch
+      # I (Ray Donnelly) rebased these from Debian, under the thinking that they will be a good
+      # source of patches both for security (see the first one) and also for features and fixes
+      # and more importantly, Raspberry Pie ROM hacking (since these are used for Raspbian).
+      # The original patches, against Debian's 1:4.3.12 version are in the debian folder.
+      # I have disabled them for now as the rebase is still very much WIP.
+      # They came from:
+      #  http://deb.debian.org/debian/pool/main/s/squashfs-tools/squashfs-tools_4.3-12.debian.tar.xz
+      # - 0001-CVE-2015-4645-and-CVE-2015-4646.patch
+      # - 0002-unsquashfs-add-support-for-LZMA-magics.patch
+      # - 0003-add-fstime-to-unsquashfs-to-extract-the-fs-superbloc.patch
+      # - 0004-unsquashfs-Preserve-times-on-symlink-inodes.patch
+      # - 0005-If-SOURCE_DATE_EPOCH-is-set-use-that-timestamp-for-t.patch
+      # - 0006-If-SOURCE_DATE_EPOCH-is-set-also-clamp-content-times.patch
+      # - 0007-numeric-uid-gid_to_unsquashfs.patch
+      # - 0008-remove-frag_deflator_thread.patch
+  - url: https://raw.githubusercontent.com/plougher/squashfs-tools/master/COPYING
+    sha256: 8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643
+
+
+build:
+  number: 0
+  skip: True  # [win]
+
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+  host:
+    - zlib
+    - xz
+    - lz4-c
+    - lzo
+    - zstd
+
+test:
+  files:
+    - random_binaries/
+  commands:
+    # --help fails
+    - unsquashfs --help || true
+    - mksquashfs --help || true
+    # grep for the (gold) zstandard
+    - unsquashfs --help 2>&1 | grep {{ best_comp }}
+    - mksquashfs --help 2>&1 | grep {{ best_comp }}
+    - mksquashfs random_binaries/* squashed_fs.img
+    - unsquashfs -d random_binaries2 squashed_fs.img
+    - find random_binaries2
+    - diff -urN random_binaries random_binaries2
+
+#    - unsquashfs /opt/sw/OSes/SquashFSes/SYSTEM.LibreELEC-RPi4.arm-9.1.001
+#    # Test reproducibility
+#    - rm squashfs-root/usr/cache/shadow
+#    - mksquashfs squashfs-root SYSTEM.LibreELEC-RPi4.arm-9.1.001.1
+#    - mksquashfs squashfs-root SYSTEM.LibreELEC-RPi4.arm-9.1.001.2
+#    - shasum -a 256 SYSTEM.LibreELEC-RPi4.arm-9.1.001.1
+#    - shasum -a 256 SYSTEM.LibreELEC-RPi4.arm-9.1.001.2
+
+about:
+  # Maybe:
+  # home: https://packages.debian.org/sid/squashfs-tools
+  home: https://github.com/plougher/squashfs-tools
+  license: GPL-2.0
+  license_file: COPYING
+  summary: tools to create and extract Squashfs filesystems ({Rasp,De}bian)
+  description: |
+    tools to create and extract Squashfs filesystems
+    with Debian patches and good compression support (only LZMA unsupported)
+  dev_url: https://github.com/plougher/squashfs-tools
+
+extra:
+  recipe-maintainers:
+    - mingwandroid
+    # I took the liberty here, @jjhelmus, let me know if you are not up for it.
+    - jjhelmus
