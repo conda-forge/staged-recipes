@@ -11,12 +11,13 @@ LDFLAGS=-L"${PREFIX}/lib"
 
 if [ "$(uname)" == "Linux" ]; then
 
+    cd ${SRC_DIR}/escript-boost
     ./bootstrap.sh \
         --with-toolset=cc \
         --with-python-version=2.7 \
         --prefix="${PREFIX}/esys/boost" || cat bootstrap.log
         
-    sed -i.bak "s,cc,gcc,g" ${SRC_DIR}/project-config.jam
+    sed -i.bak "s,cc,gcc,g" ${SRC_DIR}/escript-boost/project-config.jam
     
     ./b2 \
         variant=release \
@@ -35,6 +36,7 @@ if [ "$(uname)" == "Linux" ]; then
         -j"${CPU_COUNT}" \
         install || cat b2.log
         
+    cd ${SRC_DIR}/escript
     scons -j"${CPU_COUNT}" \
         options_file="${SRC_DIR}/escript/scons/templates/stretch_options.py" \
         prefix="${PREFIX}" \
