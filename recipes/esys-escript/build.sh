@@ -16,7 +16,7 @@ if [ "$(uname)" == "Linux" ]; then
         --with-toolset=cc \
         --with-python=`which python2`\
         --with-python-version=2.7 \
-        --with-ico="${PREFIX}" \
+        --with-icu="${PREFIX}" \
         --prefix="${PREFIX}/esys/boost" \
         2>&1 | tee bootstrap.log
     ./b2.sh variant=release link=shared runtime-link=shared threading=multi \
