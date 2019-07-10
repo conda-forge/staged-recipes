@@ -1,7 +1,7 @@
-<!-- 
+<!--
 Thank you very much for putting in this recipe PR!
 
-This repository is very active, so if you need help with 
+This repository is very active, so if you need help with
 a PR or once it's ready for review, please let the right people know.
 There are language-specific teams for reviewing recipes.
 
@@ -28,6 +28,6 @@ Checklist
 
 - [ ] License file is packaged (see [here](https://github.com/conda-forge/staged-recipes/blob/master/recipes/example/meta.yaml#L57-L66) for an example)
 - [ ] Source is from official source
-- [ ] Package does not vendor other packages
+- [ ] Package does not vend other packages
 - [ ] Build number is 0
 - [ ] GitHub users listed in the maintainer section have posted a comment confirming they are willing to be listed there
