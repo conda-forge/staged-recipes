@@ -1,0 +1,64 @@
+{% set name = "ltl" %}
+{% set version = "2.0.19" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: http://www.as.utexas.edu/~drory/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: 5f2f37220edd6aff55c9420745daf515e7f447b7a19a5f1250fe95d476384261
+  patches:
+    - 0001_Build_shared_lib.patch
+    - 0002_Fix_test_typo.patch
+    - 0003_Fix_blas_retun_type.patch
+
+build:
+  number: 0
+  skip: true  # [win]
+  run_exports:
+    - {{ pin_subpackage(name, max_pin='x.x') }}
+  ignore_run_exports:
+    # Both LAPACK and BLAS are needed during compilation for the test suite,
+    # but are not actually linked against in the LTL library (they are only
+    # needed in header files which are not compiled).
+    # If a downstream package actually needs the LTL marray/blas.h or
+    # marray/lapack.h headers, they should add libblas and / or liblapack to
+    # their requirements/host section.
+    - liblapack
+    - libblas
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - make
+    - autoconf
+    - automake
+    - libtool
+  host:
+    - libblas
+    - liblapack
+
+test:
+  commands:
+    # Just a simple existence test here; the build.sh script runs more tests
+    # during build.
+    - test -f $PREFIX/lib/libltl$SHLIB_EXT  # [unix]
+
+about:
+  home: http://www.as.utexas.edu/~drory/ltl/
+  license: GPL-2.0
+  license_family: GPL
+  license_file: COPYING
+  summary: 'The Little Template Library'
+  description: |
+    LTL provides dynamic arrays of up to 7-dimensions, subarrays and slicing,
+    support for fixed-size vectors and matrices including basic linear algebra
+    operations, expression templates-based evaluation, and I/O facilities for
+    ascii and FITS format files. Utility classes for command-line processing
+    and configuration-file processing are provided as well.
+  doc_url: http://www.as.utexas.edu/~drory/ltl/doc/html/index.html
+
+extra:
+  recipe-maintainers:
+    - teake
