@@ -6,7 +6,7 @@
 # - https://github.com/conda/conda-build/issues/3097
 # - https://stackoverflow.com/a/49119902/2427624
 if [[ ${target_platform} =~ .*linux.* ]]; then
-    CXXFLAGS="${CXXFLAGS//-std=c++17/-std=c++03}"
+    CXXFLAGS="${CXXFLAGS//-std=c++17/-std=c++14}"
 fi
 
 # Re-run autotools because we want to disable smoothfits
