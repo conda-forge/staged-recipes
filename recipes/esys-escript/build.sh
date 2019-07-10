@@ -16,6 +16,8 @@ if [ "$(uname)" == "Linux" ]; then
         --with-toolset=cc \
         --with-python-version=2.7 \
         --prefix="${PREFIX}/esys/boost" || cat bootstrap.log
+        
+    sed -i.bak "s,cc,gcc,g" ${SRC_DIR}/project-config.jam
     
     ./b2 \
         variant=release \
