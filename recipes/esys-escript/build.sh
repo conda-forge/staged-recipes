@@ -16,8 +16,9 @@ if [ "$(uname)" == "Linux" ]; then
         --with-toolset=gcc \
         --with-python=`which python2`\
         --with-python-version=2.7 \
-        --prefix="${PREFIX}/esys/boost" \
-        | tee bootstrap.log 2>&1
+        --prefix="${PREFIX}/esys/boost" 
+    cat bootstrap.log
+    
     ./b2 \
         variant=release \
         link=shared \
@@ -26,9 +27,9 @@ if [ "$(uname)" == "Linux" ]; then
         --with-python \
         --with-iostreams \
         --with-random \
-        -j"${CPU_COUNT}" install \
-        | tee b2.log 2>&1
-
+        -j"${CPU_COUNT}" install 
+    cat b2.log
+        
     cd ${SRC_DIR}/escript
     scons -j"${CPU_COUNT}" \
         options_file="${SRC_DIR}/escript/scons/templates/stretch_options.py" \
@@ -51,9 +52,9 @@ if [ "$(uname)" == "Linux" ]; then
         netcdf=no \
         netcdf_prefix="${PREFIX}"] \
         netcdf_libs=['netcdf_c++4','netcdf'] \
-        werror=1 \
-        | tee config.log 2>&1
-
+        werror=1
+    cat config.log
+        
 fi
 
 # "${CPU_COUNT}"
