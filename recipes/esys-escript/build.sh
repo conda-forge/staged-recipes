@@ -19,7 +19,7 @@ if [ "$(uname)" == "Linux" ]; then
         --with-icu="${PREFIX}" \
         --prefix="${PREFIX}/esys/boost" \
         2>&1 | tee bootstrap.log
-    ./b2.sh variant=release link=shared runtime-link=shared threading=multi \
+    ./b2 variant=release link=shared runtime-link=shared threading=multi \
         --with-python --with-iostreams --with-random -j"${CPU_COUNT}" install \
         2>&1 | tee b2.log
 
