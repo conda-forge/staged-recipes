@@ -1,12 +1,14 @@
 #!/bin/bash
 
 set -x -e
+set -o pipefail
 
 INCLUDE_PATH="${PREFIX}/include"
 LIBRARY_PATH="${PREFIX}/lib"
 
 CMAKE_INSTALL_PREFIX=${PREFIX}
 INCLUDE_DIRECTORIES="${PREFIX}/include"
+CXXFLAGS="${CXXFLAGS} -fPIC"
 LDFLAGS=-L"${PREFIX}/lib"
 
 if [ "$(uname)" == "Linux" ]; then
@@ -15,19 +17,24 @@ if [ "$(uname)" == "Linux" ]; then
     ./bootstrap.sh \
         --with-toolset=cc \
         --with-python-version=2.7 \
+        --with-icu="${PREFIX}" \
+        --with-python-root="${PREFIX} : ${PREFIX}/include/python${PY_VER}m ${PREFIX}/include/python${PY_VER}"
         --prefix="${PREFIX}/esys/boost" || cat bootstrap.log
         
-    cp ${SRC_DIR}/escript-boost/project-config.jam ${SRC_DIR}/escript-boost/cc.jam
+    sed -i.bak "s,cc,${TOOLSET},g" ${SRC_DIR}/escript-boost/project-config.jam
         
     ./b2 \
         variant=release \
-        address-model="${ARCH}"
+        address-model="${ARCH}" \
         debug-symbols=off \
         link=shared \
         runtime-link=shared \
         include="${PREFIX}/include" \ 
         threading=multi  \
         linkflags="${LINKFLAGS} -L${PREFIX}/lib" \
+        toolset=gcc \
+        python="${PY_VER}" \
+        cxxflags="${CXXFLAGS}" \
         --with-python \
         --with-iostreams \
         --with-random \
