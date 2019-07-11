@@ -1,3 +1,3 @@
-./configure --prefix="$PREFIX/Library" --libdir="$PREFIX/Library/lib"
+./configure --prefix="$PREFIX" --libdir="$PREFIX/lib"
 make CC="${CC}" AR="${AR}"
 make install
