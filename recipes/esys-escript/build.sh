@@ -17,8 +17,6 @@ if [ "$(uname)" == "Linux" ]; then
         --with-python-version=2.7 \
         --prefix="${PREFIX}/esys/boost" || cat bootstrap.log
         
-    sed -i.bak "s,cc,gcc,g" ${SRC_DIR}/escript-boost/project-config.jam
-    
     ./b2 \
         variant=release \
         address-model="${ARCH}"
@@ -27,7 +25,6 @@ if [ "$(uname)" == "Linux" ]; then
         runtime-link=shared \
         include="${PREFIX}/include" \ 
         threading=multi \
-        toolset=cc \
         linkflags="${LINKFLAGS} -L${PREFIX}/lib" \
         --with-python \
         --with-iostreams \
