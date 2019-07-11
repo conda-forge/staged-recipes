@@ -28,7 +28,7 @@ if [ "$(uname)" == "Linux" ]; then
         runtime-link=shared \
         include="${PREFIX}/include" \ 
         threading=multi \
-        toolset=gcc \
+        toolset=cc \
         linkflags="${LINKFLAGS} -L${PREFIX}/lib" \
         --with-python \
         --with-iostreams \
