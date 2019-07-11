@@ -22,7 +22,6 @@ if [ "$(uname)" == "Linux" ]; then
     ./b2 \
         variant=release \
         address-model="${ARCH}"
-        architecture=x86 \
         debug-symbols=off \
         link=shared \
         runtime-link=shared \
