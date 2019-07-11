@@ -17,6 +17,8 @@ if [ "$(uname)" == "Linux" ]; then
         --with-python-version=2.7 \
         --prefix="${PREFIX}/esys/boost" || cat bootstrap.log
         
+    cp ${SRC_DIR}/escript-boost/project-config.jam ${SRC_DIR}/escript-boost/cc.jam
+        
     ./b2 \
         variant=release \
         address-model="${ARCH}"
