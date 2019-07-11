@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# 2 cores available on CircleCI workers: https://discuss.circleci.com/t/what-runs-on-the-node-container-by-default/1443
+# CPU_COUNT is passed through conda build: https://github.com/conda/conda-build/pull/1149
+export CPU_COUNT=2
+
+export PYTHONUNBUFFERED=1
+
+conda config --set show_channel_urls true
+conda config --set auto_update_conda false
+conda config --set add_pip_as_python_dependency false
+conda config --set channel_priority strict
+
+export "CONDA_BLD_PATH=/home/conda/feedstock_root/build_artifacts"
+
+set +u
+
+if [ ! -z "$CONFIG" ]; then
+    echo "" >> ${CI_SUPPORT}/${CONFIG}.yaml
+    if [ ! -z "$CI" ]; then
+        echo "CI:" >> ${CI_SUPPORT}/${CONFIG}.yaml
+        echo "- ${CI}" >> ${CI_SUPPORT}/${CONFIG}.yaml
+        echo "" >> ${CI_SUPPORT}/${CONFIG}.yaml
+    fi
+    cat ${CI_SUPPORT}/${CONFIG}.yaml
+fi
+
+set -u
+
+mkdir -p "${CONDA_PREFIX}/etc/conda/activate.d"
+echo "export CONDA_BLD_PATH='${CONDA_BLD_PATH}'"         > "${CONDA_PREFIX}/etc/conda/activate.d/conda-forge-ci-setup-activate.sh"
+echo "export CPU_COUNT='${CPU_COUNT}'"                  >> "${CONDA_PREFIX}/etc/conda/activate.d/conda-forge-ci-setup-activate.sh"
+echo "export PYTHONUNBUFFERED='${PYTHONUNBUFFERED}'"    >> "${CONDA_PREFIX}/etc/conda/activate.d/conda-forge-ci-setup-activate.sh"
+
+conda info
+conda config --show-sources
+conda list --show-channel-urls
