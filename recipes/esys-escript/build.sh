@@ -65,7 +65,7 @@ sed -i.bak "s,cc,${TOOLSET},g" ${SRC_DIR}/project-config.jam
 mkdir ${SRC_DIR}/trilinos_build
 cd ${SRC_DIR}/trilinos_build
 cmake \
-    -D CMAKE_INSTALL_PREFIX="${PREFIX}/esys-trilinos" \
+    -D CMAKE_INSTALL_PREFIX="${PREFIX}/esys/trilinos" \
     -D Trilinos_ENABLE_CXX11=ON \
     -D Trilinos_ENABLE_Fortran=OFF \
     -D BUILD_SHARED_LIBS=ON \
@@ -103,7 +103,6 @@ cmake \
 ${SRC_DIR}/trilinos 
 make -j"${CPU_COUNT}" install
 
-
 cd ${SRC_DIR}/escript
 scons -j"${CPU_COUNT}" \
     options_file="${SRC_DIR}/escript/scons/templates/stretch_options.py" \
@@ -117,7 +116,7 @@ scons -j"${CPU_COUNT}" \
     pythonlibname="python2.7" \
     paso=1 \
     trilinos=1 \
-    trilinos_prefix="${PREFIX}/esys-trilinos" \
+    trilinos_prefix="${PREFIX}/esys/trilinos" \
     umfpack=1 \
     umfpack_prefix="${PREFIX}" \
     lapack=0 \
