@@ -1,13 +1,5 @@
 #!/bin/bash
 
-# Hints:
-# http://boost.2283326.n4.nabble.com/how-to-build-boost-with-bzip2-in-non-standard-location-td2661155.html
-# http://www.gentoo.org/proj/en/base/amd64/howtos/?part=1&chap=3
-# http://www.boost.org/doc/libs/1_55_0/doc/html/bbv2/reference.html
-
-# Hints for OSX:
-# http://stackoverflow.com/questions/20108407/how-do-i-compile-boost-for-os-x-64b-platforms-with-stdlibc
-
 set -x -e
 set -o pipefail
 
@@ -65,7 +57,7 @@ sed -i.bak "s,cc,${TOOLSET},g" ${SRC_DIR}/project-config.jam
 mkdir ${SRC_DIR}/trilinos_build
 cd ${SRC_DIR}/trilinos_build
 cmake \
-    -D CMAKE_INSTALL_PREFIX="${PREFIX}/esys-trilinos" \
+    -D CMAKE_INSTALL_PREFIX="${PREFIX}/esys/trilinos" \
     -D Trilinos_ENABLE_CXX11=ON \
     -D Trilinos_ENABLE_Fortran=OFF \
     -D BUILD_SHARED_LIBS=ON \
@@ -117,7 +109,7 @@ scons -j"${CPU_COUNT}" \
     pythonlibname="python${PY_VER}" \
     paso=1 \
     trilinos=1 \
-    trilinos_prefix="${PREFIX}/esys-trilinos" \
+    trilinos_prefix="${PREFIX}/esys/trilinos" \
     umfpack=1 \
     umfpack_prefix="${PREFIX}" \
     lapack=0 \
