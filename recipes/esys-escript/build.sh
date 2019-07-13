@@ -27,11 +27,9 @@ LINKFLAGS="${LINKFLAGS} -L${LIBRARY_PATH}"
     --with-toolset=cc \
     --with-icu="${PREFIX}" \
     --with-python="${PYTHON}" \
-    --with-python-root="${PREFIX} : ${PREFIX}/include/python${PY_VER}m ${PREFIX}/include/python${PY_VER}" \
+    --with-python-root="${PREFIX} : ${PREFIX}/include/python2.7m ${PREFIX}/include/python2.7" \
     2>&1 | tee bootstrap.log
 
-# https://svn.boost.org/trac10/ticket/5917
-# https://stackoverflow.com/a/5244844/1005215
 sed -i.bak "s,cc,${TOOLSET},g" ${SRC_DIR}/project-config.jam
 
 ./b2 -q \
