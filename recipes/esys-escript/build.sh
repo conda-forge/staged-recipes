@@ -27,6 +27,7 @@ LINKFLAGS="${LINKFLAGS} -L${LIBRARY_PATH}"
     --with-toolset=cc \
     --with-icu="${PREFIX}" \
     --with-python="${PYTHON}" \
+    --with-python-version=2.7 \
     --with-python-root="${PREFIX} : ${PREFIX}/include/python${PY_VER}m ${PREFIX}/include/python${PY_VER}" \
     2>&1 | tee bootstrap.log
 
