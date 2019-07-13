@@ -103,6 +103,7 @@ scons -j"${CPU_COUNT}" \
     cxx_extra="-fPIC" \
     boost_prefix="${PREFIX}/esys/boost" \
     boost_libs='boost_python${py}' \
+    pythoncmd="${PREFIX}/bin/python2" \
     pythonlibpath="${PREFIX}/lib" \
     pythonincpath="${PREFIX}/include/python${PY_VER}" \
     pythonlibname="python${PY_VER}" \
