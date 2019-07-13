@@ -26,9 +26,11 @@ LINKFLAGS="${LINKFLAGS} -L${LIBRARY_PATH}"
     --prefix="${PREFIX}" \
     --with-toolset=cc \
     --with-icu="${PREFIX}" \
-    --with-python="${PYTHON}" \
-    --with-python-root="${PREFIX} : ${PREFIX}/include/python${PY_VER}m ${PREFIX}/include/python${PY_VER}" \
+    --with-python-version=2.7 \
     2>&1 | tee bootstrap.log
+
+#--with-python-root="${PREFIX} : ${PREFIX}/include/python2.7m ${PREFIX}/include/python2.7 \
+#--with-python="${PYTHON}" \
 
 # https://svn.boost.org/trac10/ticket/5917
 # https://stackoverflow.com/a/5244844/1005215
