@@ -43,7 +43,8 @@ sed -i.bak "s,cc,${TOOLSET},g" ${SRC_DIR}/project-config.jam
     debug-symbols=off \
     threading=multi \
     runtime-link=shared \
-    link=static,shared \
+    link=shared \
+    python=2.7 \
     toolset=${TOOLSET}-custom \
     include="${INCLUDE_PATH}" \
     cxxflags="${CXXFLAGS}" \
