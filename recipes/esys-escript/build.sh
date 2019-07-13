@@ -23,7 +23,7 @@ EOF
 LINKFLAGS="${LINKFLAGS} -L${LIBRARY_PATH}"
 
 ./bootstrap.sh \
-    --prefix="${PREFIX}" \
+    --prefix="${PREFIX}/esys/boost" \
     --with-toolset=cc \
     --with-icu="${PREFIX}" \
     --with-python-version=2.7 \
@@ -50,6 +50,8 @@ sed -i.bak "s,cc,${TOOLSET},g" ${SRC_DIR}/project-config.jam
     linkflags="${LINKFLAGS}" \
     --layout=system \
     --with-python \
+    --with-iostreams \
+    --with-random \
     -j"${CPU_COUNT}" \
     install 2>&1 | tee b2.log
 #  python="${PY_VER}" \
@@ -68,6 +70,8 @@ cmake \
     -D TPL_BLAS_INCLUDE_DIRS=${PREFIX}/include/ \
     -D TPL_ENABLE_LAPACK=ON \
     -D TPL_ENABLE_Boost=ON \
+    -D TPL_Boost_INCLUDE_DIRS=${PREFIX}/esys/boost/include/ \
+    -D TPL_Boost_LIBRARIES=${PREFIX}/esys/boost/lib \
     -D TPL_ENABLE_Cholmod=ON \
     -D TPL_Cholmod_INCLUDE_DIRS=${PREFIX}/include/ \
     -D TPL_Cholmod_LIBRARIES='libcholmod.so;libamd.so;libcolamd.so' \
