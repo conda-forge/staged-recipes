@@ -105,8 +105,8 @@ scons -j"${CPU_COUNT}" \
     boost_libs='boost_python${py}' \
     pythoncmd="${PREFIX}/bin/python2" \
     pythonlibpath="${PREFIX}/lib" \
-    pythonincpath="${PREFIX}/include/python${PY_VER}" \
-    pythonlibname="python${PY_VER}" \
+    pythonincpath="${PREFIX}/include/python2.7" \
+    pythonlibname="python2.7 \
     paso=1 \
     trilinos=1 \
     trilinos_prefix="${PREFIX}/esys/trilinos" \
