@@ -70,7 +70,7 @@ cmake \
     -D TPL_Boost_LIBRARIES=${PREFIX}/esys/boost/lib \
     -D TPL_ENABLE_Cholmod=ON \
     -D TPL_Cholmod_INCLUDE_DIRS=${PREFIX}/include/ \
-    -D TPL_Cholmod_LIBRARIES='libcholmod.so;libamd.so;libcolamd.so' \
+    -D TPL_Cholmod_LIBRARIES='${PREFIX}/lib/libcholmod.so;${PREFIX}/lib/libamd.so;${PREFIX}/lib/libcolamd.so' \
     -D TPL_ENABLE_Matio=ON \
     -D TPL_Matio_INCLUDE_DIRS=${PREFIX}/include/ \
     -D TPL_Matio_LIBRARIES=${PREFIX}/lib \
