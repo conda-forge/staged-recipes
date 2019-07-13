@@ -26,16 +26,13 @@ LINKFLAGS="${LINKFLAGS} -L${LIBRARY_PATH}"
     --prefix="${PREFIX}/esys/boost" \
     --with-toolset=cc \
     --with-icu="${PREFIX}" \
-    --with-python-version=2.7 \
-    --with-python-root="${PREFIX} : ${PREFIX}/include/python${PY_VER}m ${PREFIX}/include/python${PY_VER}" \
     --with-python="${PYTHON}" \
+    --with-python-root="${PREFIX} : ${PREFIX}/include/python${PY_VER}m ${PREFIX}/include/python${PY_VER}" \
     2>&1 | tee bootstrap.log
 
-# https://svn.boost.org/trac10/ticket/5917
-# https://stackoverflow.com/a/5244844/1005215
 sed -i.bak "s,cc,${TOOLSET},g" ${SRC_DIR}/project-config.jam
 
-./b2 -q \
+./b2 -q -d+2 \
     variant=release \
     address-model="${ARCH}" \
     architecture=x86 \
