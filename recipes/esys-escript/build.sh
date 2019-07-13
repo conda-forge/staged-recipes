@@ -43,7 +43,7 @@ sed -i.bak "s,cc,${TOOLSET},g" ${SRC_DIR}/project-config.jam
     runtime-link=shared \
     link=shared \
     toolset=${TOOLSET} \
-    python="${PY_VER}" \
+    python=2.7 \
     include="${INCLUDE_PATH}" \
     cxxflags="${CXXFLAGS}" \
     linkflags="${LINKFLAGS}" \
