@@ -96,7 +96,7 @@ scons -j"${CPU_COUNT}" \
     options_file="${SRC_DIR}/escript/scons/templates/stretch_options.py" \
     prefix="${PREFIX}" \
     build_dir="${SRC_DIR}/escript_build" \
-    cxx=`which g++` \
+    cxx="$BUILD_PREFIX/bin/x86_64-conda_cos6-linux-gnu-g++" \
     cxx_extra="-fPIC" \
     boost_prefix="${PREFIX}/esys/boost" \
     boost_libs='boost_python${py}' \
@@ -116,4 +116,4 @@ scons -j"${CPU_COUNT}" \
     netcdf_prefix="${PREFIX}"] \
     netcdf_libs=['netcdf_c++4','netcdf'] \
     werror=0 \
-    build_full
+    build_full || cat config.log
