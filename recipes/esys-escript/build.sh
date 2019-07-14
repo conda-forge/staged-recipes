@@ -96,7 +96,7 @@ scons -j"${CPU_COUNT}" \
     options_file="${SRC_DIR}/escript/scons/templates/stretch_options.py" \
     prefix="${PREFIX}" \
     build_dir="${SRC_DIR}/escript_build" \
-    cxx="$BUILD_PREFIX/bin/x86_64-conda_cos6-linux-gnu-g++" \
+    cxx=${CXX} \
     cxx_extra="-fPIC" \
     boost_prefix="${PREFIX}/esys/boost" \
     boost_libs='boost_python27' \
@@ -108,7 +108,7 @@ scons -j"${CPU_COUNT}" \
     trilinos=0 \
     trilinos_prefix="${PREFIX}/esys/trilinos" \
     umfpack=1 \
-    umfpack_prefix=['${PREFIX}/include/','${PREFIX}/lib/'] \
+    umfpack_prefix=['${$BUILD_PREFIX}/include/','${$BUILD_PREFIX}/lib/'] \
     lapack=0 \
     lapack_prefix=["${PREFIX}/include/atlas","${PREFIX}/lib"] \
     lapack_libs=['lapack'] \
@@ -117,3 +117,5 @@ scons -j"${CPU_COUNT}" \
     netcdf_libs=['netcdf_c++4','netcdf'] \
     werror=0 \
     build_full || cat config.log
+
+# cxx="$BUILD_PREFIX/bin/x86_64-conda_cos6-linux-gnu-g++" \
