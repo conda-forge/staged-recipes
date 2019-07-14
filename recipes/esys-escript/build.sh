@@ -108,7 +108,7 @@ scons -j"${CPU_COUNT}" \
     trilinos=0 \
     trilinos_prefix="${PREFIX}/esys/trilinos" \
     umfpack=1 \
-    umfpack_prefix=['${$BUILD_PREFIX}/include/','${$BUILD_PREFIX}/lib/'] \
+    umfpack_prefix=['${BUILD_PREFIX}/include/','${BUILD_PREFIX}/lib/'] \
     lapack=0 \
     lapack_prefix=["${PREFIX}/include/atlas","${PREFIX}/lib"] \
     lapack_libs=['lapack'] \
