@@ -99,7 +99,7 @@ scons -j"${CPU_COUNT}" \
     cxx="$BUILD_PREFIX/bin/x86_64-conda_cos6-linux-gnu-g++" \
     cxx_extra="-fPIC" \
     boost_prefix="${PREFIX}/esys/boost" \
-    boost_libs='boost_python2.7' \
+    boost_libs='boost_python27' \
     pythoncmd="${PREFIX}/bin/python" \
     pythonlibpath="${PREFIX}/lib" \
     pythonincpath="${PREFIX}/include/python2.7" \
