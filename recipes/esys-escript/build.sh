@@ -52,44 +52,44 @@ sed -i.bak "s,cc,${TOOLSET},g" ${SRC_DIR}/project-config.jam
     -j"${CPU_COUNT}" \
     install 2>&1 | tee b2.log
 
-mkdir ${SRC_DIR}/trilinos_build
-cd ${SRC_DIR}/trilinos_build
-cmake \
-    -D CMAKE_INSTALL_PREFIX="${PREFIX}/esys/trilinos" \
-    -D Trilinos_ENABLE_CXX11=ON \
-    -D Trilinos_ENABLE_Fortran=OFF \
-    -D BUILD_SHARED_LIBS=ON \
-    -D OpenMP_C_FLAGS='-w -fopenmp' \
-    -D OpenMP_CXX_FLAGS='-w -fopenmp' \
-    -D Trilinos_ENABLE_Amesos2=ON \
-    -D Trilinos_ENABLE_Belos=ON \
-    -D Trilinos_ENABLE_Ifpack2=ON \
-    -D Trilinos_ENABLE_Kokkos=ON \
-    -D Trilinos_ENABLE_MueLu=ON \
-    -D Trilinos_ENABLE_Tpetra=ON \
-    -D Trilinos_ENABLE_Teuchos=ON \
-    -D Trilinos_ENABLE_COMPLEX=ON \
-    -D Trilinos_ENABLE_OpenMP=ON \
-    -D Trilinos_ENABLE_MPI=OFF \
-    -D Trilinos_ENABLE_ALL_OPTIONAL_PACKAGES=OFF \
-    -D Trilinos_ENABLE_EXPLICIT_INSTANTIATION=ON \
-    -D TPL_ENABLE_BLAS=ON \
-    -D BLAS_LIBRARY_NAMES='blas' \
-    -D TPL_BLAS_INCLUDE_DIRS=${PREFIX}/include/ \
-    -D TPL_ENABLE_LAPACK=ON \
-    -D TPL_Boost_INCLUDE_DIRS=${PREFIX}/esys/boost/include/ \
-    -D TPL_Boost_LIBRARIES=${PREFIX}/esys/boost/lib \
-    -D TPL_ENABLE_Cholmod=OFF \
-    -D TPL_Cholmod_INCLUDE_DIRS=${PREFIX}/include/ \
-    -D TPL_Cholmod_LIBRARIES='${PREFIX}/lib/libcholmod.so;${PREFIX}/lib/libamd.so;${PREFIX}/lib/libcolamd.so' \
-    -D TPL_Matio_INCLUDE_DIRS=${PREFIX}/include/ \
-    -D TPL_Matio_LIBRARIES=${PREFIX}/lib \
-    -D TPL_ENABLE_METIS=ON \
-    -D METIS_LIBRARY_NAMES='metis' \
-    -D TPL_ENABLE_UMFPACK=ON \
-    -D TPL_UMFPACK_INCLUDE_DIRS=${PREFIX}/include/ \
-${SRC_DIR}/trilinos 
-make -j"${CPU_COUNT}" install
+# mkdir ${SRC_DIR}/trilinos_build
+# cd ${SRC_DIR}/trilinos_build
+# cmake \
+#     -D CMAKE_INSTALL_PREFIX="${PREFIX}/esys/trilinos" \
+#     -D Trilinos_ENABLE_CXX11=ON \
+#     -D Trilinos_ENABLE_Fortran=OFF \
+#     -D BUILD_SHARED_LIBS=ON \
+#     -D OpenMP_C_FLAGS='-w -fopenmp' \
+#     -D OpenMP_CXX_FLAGS='-w -fopenmp' \
+#     -D Trilinos_ENABLE_Amesos2=ON \
+#     -D Trilinos_ENABLE_Belos=ON \
+#     -D Trilinos_ENABLE_Ifpack2=ON \
+#     -D Trilinos_ENABLE_Kokkos=ON \
+#     -D Trilinos_ENABLE_MueLu=ON \
+#     -D Trilinos_ENABLE_Tpetra=ON \
+#     -D Trilinos_ENABLE_Teuchos=ON \
+#     -D Trilinos_ENABLE_COMPLEX=ON \
+#     -D Trilinos_ENABLE_OpenMP=ON \
+#     -D Trilinos_ENABLE_MPI=OFF \
+#     -D Trilinos_ENABLE_ALL_OPTIONAL_PACKAGES=OFF \
+#     -D Trilinos_ENABLE_EXPLICIT_INSTANTIATION=ON \
+#     -D TPL_ENABLE_BLAS=ON \
+#     -D BLAS_LIBRARY_NAMES='blas' \
+#     -D TPL_BLAS_INCLUDE_DIRS=${PREFIX}/include/ \
+#     -D TPL_ENABLE_LAPACK=ON \
+#     -D TPL_Boost_INCLUDE_DIRS=${PREFIX}/esys/boost/include/ \
+#     -D TPL_Boost_LIBRARIES=${PREFIX}/esys/boost/lib \
+#     -D TPL_ENABLE_Cholmod=OFF \
+#     -D TPL_Cholmod_INCLUDE_DIRS=${PREFIX}/include/ \
+#     -D TPL_Cholmod_LIBRARIES='${PREFIX}/lib/libcholmod.so;${PREFIX}/lib/libamd.so;${PREFIX}/lib/libcolamd.so' \
+#     -D TPL_Matio_INCLUDE_DIRS=${PREFIX}/include/ \
+#     -D TPL_Matio_LIBRARIES=${PREFIX}/lib \
+#     -D TPL_ENABLE_METIS=ON \
+#     -D METIS_LIBRARY_NAMES='metis' \
+#     -D TPL_ENABLE_UMFPACK=ON \
+#     -D TPL_UMFPACK_INCLUDE_DIRS=${PREFIX}/include/ \
+# ${SRC_DIR}/trilinos 
+# make -j"${CPU_COUNT}" install
 
 cd ${SRC_DIR}/escript
 scons -j"${CPU_COUNT}" \
@@ -105,7 +105,7 @@ scons -j"${CPU_COUNT}" \
     pythonincpath="${PREFIX}/include/python2.7" \
     pythonlibname="python2.7" \
     paso=1 \
-    trilinos=1 \
+    trilinos=0 \
     trilinos_prefix="${PREFIX}/esys/trilinos" \
     umfpack=1 \
     umfpack_prefix=['${PREFIX}/include/','${PREFIX}/lib/'] \
