@@ -3,6 +3,11 @@
 set -x -e
 set -o pipefail
 
+echo Info:
+${PREFIX}/bin/python --version
+${PREFIX}/bin/python2 --version
+${PREFIX}/bin/python3 --version
+
 INCLUDE_PATH="${PREFIX}/include"
 LIBRARY_PATH="${PREFIX}/lib"
 
@@ -73,6 +78,21 @@ cmake \
     -D Trilinos_ENABLE_MPI=OFF \
     -D Trilinos_ENABLE_ALL_OPTIONAL_PACKAGES=OFF \
     -D Trilinos_ENABLE_EXPLICIT_INSTANTIATION=ON \
+    -D TPL_ENABLE_BLAS=ON \
+    -D BLAS_LIBRARY_NAMES='blas' \
+    -D TPL_BLAS_INCLUDE_DIRS=${PREFIX}/include/ \
+    -D TPL_ENABLE_LAPACK=ON \
+    -D TPL_Boost_INCLUDE_DIRS=${PREFIX}/esys/boost/include/ \
+    -D TPL_Boost_LIBRARIES=${PREFIX}/esys/boost/lib \
+    -D TPL_ENABLE_Cholmod=OFF \
+    -D TPL_Cholmod_INCLUDE_DIRS=${PREFIX}/include/ \
+    -D TPL_Cholmod_LIBRARIES='${PREFIX}/lib/libcholmod.so;${PREFIX}/lib/libamd.so;${PREFIX}/lib/libcolamd.so' \
+    -D TPL_Matio_INCLUDE_DIRS=${PREFIX}/include/ \
+    -D TPL_Matio_LIBRARIES=${PREFIX}/lib \
+    -D TPL_ENABLE_METIS=ON \
+    -D METIS_LIBRARY_NAMES='metis' \
+    -D TPL_ENABLE_UMFPACK=ON \
+    -D TPL_UMFPACK_INCLUDE_DIRS=${PREFIX}/include/ \
 ${SRC_DIR}/trilinos 
 make -j"${CPU_COUNT}" install
 
@@ -84,7 +104,7 @@ scons -j"${CPU_COUNT}" \
     cxx_extra="-fPIC" \
     boost_prefix="${PREFIX}/esys/boost" \
     boost_libs='boost_python${py}' \
-    pythoncmd="${PREFIX}/bin/python2" \
+    pythoncmd=${PREFIX}/bin/python2 \
     pythonlibpath="${PREFIX}/lib" \
     pythonincpath="${PREFIX}/include/python2.7" \
     pythonlibname="python2.7" \
