@@ -87,7 +87,7 @@ scons -j"${CPU_COUNT}" \
     pythoncmd="${PREFIX}/bin/python2" \
     pythonlibpath="${PREFIX}/lib" \
     pythonincpath="${PREFIX}/include/python2.7" \
-    pythonlibname="python2.7 \
+    pythonlibname="python2.7" \
     paso=1 \
     trilinos=1 \
     trilinos_prefix="${PREFIX}/esys/trilinos" \
