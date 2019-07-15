@@ -5,7 +5,9 @@ fi
 
 if [ "$(uname)" == "Linux" ]; then
     echo "Trying to run Linux Test"
-    OUTPUT=`DISPLAY=localhost:1.0 xvfb-run -a bash -c "gpi --nogui repo_contents/testNets/TestNetwork.net | grep \"gpi.canvasGraph:384\" "`
+    PREOUTPUT=$( DISPLAY=localhost:1.0 xvfb-run -a bash -c "gpi --nogui repo_contents/testNets/TestNetwork.net")
+    echo "$PREOUTPUT"
+    OUTPUT=$( echo "$PREOUTPUT" | grep "gpi.canvasGraph:384" ) 
     echo "Ran linux test"
 fi
 
