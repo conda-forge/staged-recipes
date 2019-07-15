@@ -99,6 +99,7 @@ scons -j"${CPU_COUNT}" \
     boost_prefix="${PREFIX}/esys/boost" \
     boost_libs='boost_python27' \
     openmp=1 \
+    omp_flags='-fopenmp' \
     pythoncmd="${PREFIX}/bin/python" \
     pythonlibpath="${PREFIX}/lib" \
     pythonincpath="${PREFIX}/include/python2.7" \
