@@ -4,7 +4,7 @@ if [ "$(uname)" == "Darwin" ]; then
 
 echo "$OUTPUT"
  
-if [-z "$OUTPUT" ]
+if [-z "$OUTPUT" ];
 then
   echo "Test Network Failed! Output was not successful completion of network" 1>&2
   exit 1
@@ -15,6 +15,6 @@ fi
 
 if [ "$(uname)" == "Linux" ]; then
     echo "Trying to run Linux Test"
-    PREOUTPUT=$( DISPLAY=localhost:1.0 xvfb-run -a bash -c "gpi --nogui repo_contents/testNets/TestNetwork.net")
+    DISPLAY=localhost:1.0 xvfb-run -a bash -c "gpi --nogui repo_contents/testNets/TestNetwork.net"
     echo "Ran Test"
 fi
