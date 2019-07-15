@@ -6,8 +6,7 @@ set -o pipefail
 INCLUDE_PATH="${PREFIX}/include"
 LIBRARY_PATH="${PREFIX}/lib"
 
-# Always build PIC code for enable static linking into other shared libraries
-CXXFLAGS="${CXXFLAGS} -fPIC"
+CXXFLAGS="${CXXFLAGS} -fPIC -w -fopenmp"
 
 if [ "$(uname)" == "Darwin" ]; then
     TOOLSET=clang
@@ -15,7 +14,6 @@ elif [ "$(uname)" == "Linux" ]; then
     TOOLSET=gcc
 fi
 
-# http://www.boost.org/build/doc/html/bbv2/tasks/crosscompile.html
 cat <<EOF > ${SRC_DIR}/tools/build/src/site-config.jam
 using ${TOOLSET} : : ${CXX} ;
 EOF
@@ -97,9 +95,10 @@ scons -j"${CPU_COUNT}" \
     prefix="${PREFIX}" \
     build_dir="${SRC_DIR}/escript_build" \
     cxx=${CXX} \
-    cxx_extra="-fPIC" \
+    cxx_extra="-fPIC -fopenmp" \
     boost_prefix="${PREFIX}/esys/boost" \
     boost_libs='boost_python27' \
+    openmp=1 \
     pythoncmd="${PREFIX}/bin/python" \
     pythonlibpath="${PREFIX}/lib" \
     pythonincpath="${PREFIX}/include/python2.7" \
@@ -108,13 +107,8 @@ scons -j"${CPU_COUNT}" \
     trilinos=1 \
     trilinos_prefix="${PREFIX}/esys/trilinos" \
     umfpack=0 \
-    umfpack_prefix=['${BUILD_PREFIX}/include/','${BUILD_PREFIX}/lib/'] \
     lapack=0 \
-    lapack_prefix=["${PREFIX}/include/atlas","${PREFIX}/lib"] \
-    lapack_libs=['lapack'] \
     netcdf=no \
-    netcdf_prefix="${PREFIX}"] \
-    netcdf_libs=['netcdf_c++4','netcdf'] \
     werror=0 \
     build_full || cat config.log
 
