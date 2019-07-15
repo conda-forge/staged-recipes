@@ -4,8 +4,10 @@ if [ "$(uname)" == "Darwin" ]; then
 fi
 
 if [ "$(uname)" == "Linux" ]; then
-    OUTPUT=`DISPLAY=localhost:1.0 xvfb-run -a bash -c 'gpi --nogui repo_contents/testNets/TestNetwork.net | grep "gpi.canvasGraph:384"'`
+    OUTPUT=`DISPLAY=localhost:1.0 xvfb-run -a bash -c "gpi --nogui repo_contents/testNets/TestNetwork.net | grep \"gpi.canvasGraph:384\" "`
 fi
+
+echo "$OUTPUT"
  
 if [-z "$OUTPUT" ]
 then
