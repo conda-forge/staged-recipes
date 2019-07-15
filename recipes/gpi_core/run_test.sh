@@ -1,17 +1,17 @@
 #!/bin/bash
 if [ "$(uname)" == "Darwin" ]; then
     OUTPUT=`gpi --nogui repo_contents/testNets/TestNetwork.net | grep "gpi.canvasGraph:384"`
-fi
 
-if [ "$(uname)" == "Linux" ]; then
-    echo "Trying to run Linux Test"
-    PREOUTPUT=$( DISPLAY=localhost:1.0 xvfb-run -a bash -c "gpi --nogui repo_contents/testNets/TestNetwork.net")
-    echo "$PREOUTPUT"
-    OUTPUT=$( echo "$PREOUTPUT" | grep "gpi.canvasGraph:384" ) 
-    echo "Ran linux test"
-fi
 
-echo "$OUTPUT"
+#if [ "$(uname)" == "Linux" ]; then
+#    echo "Trying to run Linux Test"
+#    PREOUTPUT=$( DISPLAY=localhost:1.0 xvfb-run -a bash -c "gpi --nogui repo_contents/testNets/TestNetwork.net")
+#    echo "$PREOUTPUT"
+#    OUTPUT=$( echo "$PREOUTPUT" | grep "gpi.canvasGraph:384" ) 
+#    echo "Ran linux test"
+#fi
+
+#echo "$OUTPUT"
  
 if [-z "$OUTPUT" ]
 then
@@ -19,4 +19,5 @@ then
   exit 1
 else
   echo "Test Network Executed Successfully!"
+fi
 fi
