@@ -15,6 +15,6 @@ fi
 
 if [ "$(uname)" == "Linux" ]; then
     echo "Trying to run Linux Test"
-    PREOUTPUT=$( DISPLAY=localhost:1.0 xvfb-run -a bash -c "gpi --help")
+    PREOUTPUT=$( DISPLAY=localhost:1.0 xvfb-run -a bash -c "gpi ----nogui repo_contents/testNets/TestNetwork.net")
     echo "Ran Test"
 fi
