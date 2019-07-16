@@ -1,5 +1,6 @@
 {% set name = "minuit2" %}
-{% set version = "6.19.01" %}
+{% set version = "6.18.00" %}
+{% set build_number = 0 %}
 
 package:
   name: {{ name|lower }}
@@ -7,29 +8,81 @@ package:
 
 source:
   url: https://github.com/root-project/root/archive/v{{ version|replace(".","-") }}.tar.gz
-  sha256: 8187338d81a1b3d278b9c5137d6a3893e6455c0255b04ea1b4cb2a3a24b83925
+  sha256: ee11687172a5d692a082ebfbeea4e0d5fb2f65db88968c0327d10793561c2c1b
   patches:
     - 0001-mathcore_standalone.patch
+    - 0002-Add-project-to-allow-Clang-features-to-be-detected.patch
 
 build:
-  number: 0
+  # Give standalone a higher priority by bumping the build number by 100
+  number: {{ build_number if minuit2_variant == "root" else build_number+100}}
   skip: True  # [win]
   run_exports:
     - {{ pin_subpackage('minuit2', max_pin='x.x') }}
 
 requirements:
   build:
-    - cmake
-    - make
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - {{ compiler('fortran') }}
 
-test:
-  commands:
-    - test -f ${PREFIX}/lib/libGaussSim${SHLIB_EXT}  # [unix]
-    - test -f ${PREFIX}/lib/libMinuit2${SHLIB_EXT}  # [unix]
-    - test -f ${PREFIX}/lib/libMinuit2Math${SHLIB_EXT}  # [unix]
+outputs:
+{% if minuit2_variant != "root" %}
+  - name: minuit2_standalone
+    version: {{ version }}
+    build:
+      script: bash ${RECIPE_DIR}/build_standalone.sh
+    requirements:
+      build:
+        - cmake
+        - make
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+      # Mark the standalone package as conflicting with ROOT
+      run_constrained:
+        - root =99999
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libMinuit2${SHLIB_EXT}  # [unix]
+        - test -f ${PREFIX}/lib/libMinuit2Math${SHLIB_EXT}  # [unix]
+        - cd math/minuit2/build/test/MnSim
+        - |
+          for binary in ../../bin/*; do
+            # Fix up the run path of the macOS binaries
+            export INSTALL_NAME_TOOL=$(find ${PREFIX}/bin -name '*install_name_tool' | head -n 1)  # [osx]
+            ${INSTALL_NAME_TOOL} -add_rpath ${PREFIX}/lib ${binary}  # [osx]
+            ${INSTALL_NAME_TOOL} -add_rpath @executable_path/../lib ${binary}  # [osx]
+            # Fix up the run path of the Linux binaries
+            patchelf --set-rpath $PREFIX/lib:${PWD}/../../lib ${binary}  # [linux]
+            # Run the test
+            ${binary}
+          done
+      requires:
+        - patchelf  # [linux]
+        - cctools  # [osx]
+      source_files:
+        - math/minuit2/build/bin/
+        - math/minuit2/build/lib/libGaussSim.dylib
+        - math/minuit2/build/test/MnSim/*.txt
+{% endif %}
+
+  # Non-default variants track the "non_standalone_minuit2" feature.
+  # This is used to weigh down non-default variants of the package, allowing
+  # the default variant to take precedence unless required explicitly.
+  - name: minuit2
+    version: {{ version }}
+    build:
+      string: {{ minuit2_variant }}
+{% if minuit2_variant == "root" %}
+      track_features:
+        - non_standalone_minuit2
+{% endif %}
+    requirements:
+      run:
+        - {{ minuit2_variant }} ={{version}}
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libMinuit2${SHLIB_EXT}  # [unix]
+        - test -f ${PREFIX}/lib/libMinuit2Math${SHLIB_EXT}  # [unix]
 
 about:
   home: https://root.cern.ch/doc/master/Minuit2Page.html
