@@ -1,0 +1,110 @@
+{% set name = "minuit2" %}
+{% set version = "6.18.00" %}
+{% set build_number = 0 %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/root-project/root/archive/v{{ version|replace(".","-") }}.tar.gz
+  sha256: ee11687172a5d692a082ebfbeea4e0d5fb2f65db88968c0327d10793561c2c1b
+  patches:
+    - 0001-mathcore_standalone.patch
+    - 0002-Add-project-to-allow-Clang-features-to-be-detected.patch
+
+build:
+  # Give standalone a higher priority by bumping the build number by 100
+  number: {{ build_number if minuit2_variant == "root" else build_number+100}}
+  skip: True  # [win]
+  run_exports:
+    - {{ pin_subpackage('minuit2', max_pin='x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+
+outputs:
+{% if minuit2_variant != "root" %}
+  - name: minuit2_standalone
+    version: {{ version }}
+    build:
+      script: bash ${RECIPE_DIR}/build_standalone.sh
+    requirements:
+      build:
+        - cmake
+        - make
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+      # Mark the standalone package as conflicting with ROOT
+      run_constrained:
+        - root =99999
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libMinuit2${SHLIB_EXT}  # [unix]
+        - test -f ${PREFIX}/lib/libMinuit2Math${SHLIB_EXT}  # [unix]
+        - cd math/minuit2/build/test/MnSim
+        - |
+          for binary in ../../bin/*; do
+            # Fix up the run path of the macOS binaries
+            export INSTALL_NAME_TOOL=$(find ${PREFIX}/bin -name '*install_name_tool' | head -n 1)  # [osx]
+            ${INSTALL_NAME_TOOL} -add_rpath ${PREFIX}/lib ${binary}  # [osx]
+            ${INSTALL_NAME_TOOL} -add_rpath @executable_path/../lib ${binary}  # [osx]
+            # Fix up the run path of the Linux binaries
+            patchelf --set-rpath $PREFIX/lib:${PWD}/../../lib ${binary}  # [linux]
+            # Run the test
+            ${binary}
+          done
+      requires:
+        - patchelf  # [linux]
+        - cctools  # [osx]
+      source_files:
+        - math/minuit2/build/bin/
+        - math/minuit2/build/lib/libGaussSim.*
+        - math/minuit2/build/test/MnSim/*.txt
+{% endif %}
+
+  # Non-default variants track the "non_standalone_minuit2" feature.
+  # This is used to weigh down non-default variants of the package, allowing
+  # the default variant to take precedence unless required explicitly.
+  - name: minuit2
+    version: {{ version }}
+    build:
+      string: {{ minuit2_variant }}
+{% if minuit2_variant == "root" %}
+      track_features:
+        - non_standalone_minuit2
+{% endif %}
+    requirements:
+      run:
+        - {{ minuit2_variant }} ={{version}}
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libMinuit2${SHLIB_EXT}  # [unix]
+        - test -f ${PREFIX}/lib/libMinuit2Math${SHLIB_EXT}  # [unix]
+
+about:
+  home: https://root.cern.ch/doc/master/Minuit2Page.html
+  license: LGPL-2.1
+  license_family: LGPL
+  license_file: LICENSE
+  doc_url: https://root.cern.ch/root/htmldoc/guides/users-guide/ROOTUsersGuide.html#minuit2-package
+  dev_url: https://github.com/root-project/root/
+  summary: |
+      This is the Minuit2 fitter standalone edition, from the ROOT toolkit.
+      For information about the Minuit2 fitter, please see the documentation in ROOT.
+  description: |
+      The Minuit2 library is a new object-oriented implementation, written in C++, of the popular
+      MINUIT minimization package. These new version provides basically all the functionality
+      present in the old Fortran version, with almost equivalent numerical accuracy and
+      computational performances. Furthermore, it contains new functionality, like the possibility
+      to set single side parameter limits or the FUMILI algorithm, which is an optimized method for
+      least square and log likelihood minimizations. The package has been originally developed by
+      M. Winkler and F. James. More information on the new C++ version can be found on the MINUIT
+      Web Site.
+
+
+extra:
+  recipe-maintainers:
+    - brianv0
