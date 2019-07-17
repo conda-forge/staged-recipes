@@ -1,0 +1,71 @@
+diff --git a/BUILD.gn b/BUILD.gn
+index 1dd7c61..84d265f 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -42,10 +42,19 @@ config("icu_config") {
+     defines += [ "U_STATIC_IMPLEMENTATION" ]
+   }
+ 
+-  include_dirs = [
+-    "source/common",
+-    "source/i18n",
+-  ]
++  print(current_cpu, target_cpu)
++
++  if (!icu_use_system || current_cpu != target_cpu) {
++     include_dirs = [
++       "source/common",
++       "source/i18n",
++     ]
++  }
++  else {
++     include_dirs = [ "$target_gen_dir/../../unicode" ]
++     lib_dirs = [ icu_lib_dir ]
++     libs = [ "icui18n", "icuuc", "icudata", "c" ]
++  }
+ 
+   if (icu_use_data_file) {
+     defines += [ "ICU_UTIL_DATA_IMPL=ICU_UTIL_DATA_FILE" ]
+@@ -58,6 +67,18 @@ config("icu_config") {
+   }
+ }
+ 
++if (icu_use_system && current_cpu == target_cpu) {
++  copy("icui18n") {
++      sources = [ icu_include_dir ]
++      outputs = [ "$target_gen_dir/../../unicode" ]
++
++      public_configs = [ ":icu_config" ]
++  }
++  group("icuuc") {
++      public_deps = [ ":icui18n" ]
++  }
++}
++else {
+ # Config used only by ICU code.
+ config("icu_code") {
+   cflags = []
+@@ -1054,3 +1075,4 @@ if (icu_use_data_file) {
+     }
+   }
+ }
++}
+diff --git a/config.gni b/config.gni
+index 9c389de..fa54355 100644
+--- a/config.gni
++++ b/config.gni
+@@ -13,4 +13,14 @@ declare_args() {
+   # TODO(GYP) We'll probably need to enhance this logic to set the value to
+   # true or false in similar circumstances.
+   icu_use_data_file = true
++
++  # Tells that the system version of ICU should be used
++  icu_use_system = false
++
++  # Include directory for system ICU
++  icu_include_dir = "/usr/include/"
++
++  # System library directory for system ICU
++  icu_lib_dir = "/usr/lib"
+ }
++
