@@ -36,3 +36,5 @@ scons -j"${CPU_COUNT}" \
     build_full || cat config.log
 
 cp -R ${PREFIX}/esys ${SP_DIR}/esys
+cp -R ${BUILD_PREFIX}/escript_build/scripts/release_sanity.py /tmp/release_sanity.py
+
