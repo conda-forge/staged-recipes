@@ -30,4 +30,8 @@ Checklist
 - [ ] Source is from official source
 - [ ] Package does not vend other packages
 - [ ] Build number is 0
+- [ ] A tarball (`url`) rather than a repo (e.g. `git_url`) is used in your
+      recipe (see
+      [here](https://conda-forge.org/docs/maintainer/adding_pkgs.html#build-from-tarballs-not-repos)
+      for more details)
 - [ ] GitHub users listed in the maintainer section have posted a comment confirming they are willing to be listed there
