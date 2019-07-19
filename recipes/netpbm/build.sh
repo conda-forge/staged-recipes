@@ -1,7 +1,8 @@
 #!/bin/bash
 
-cp config.mk.in config.mk
-envsubst '${PREFIX}' < ${RECIPE_DIR}/config.template >> config.mk
+# cp config.mk.in config.mk
+# envsubst '${PREFIX}' < ${RECIPE_DIR}/config.template >> config.mk
+cp ${RECIPE_DIR}/config.mk config.mk
 make
 TMPDIR=`mktemp -d -u`
 make package pkgdir=${TMPDIR}
