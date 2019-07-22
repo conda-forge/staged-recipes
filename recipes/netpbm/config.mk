@@ -1,5 +1,6 @@
 DEFAULT_TARGET = nonmerge
 BUILD_FIASCO = Y
+CC ?= cc
 LD = $(CC)
 LINKERISCOMPILER=Y
 LINKER_CAN_DO_EXPLICIT_LIBRARY=Y
@@ -15,8 +16,8 @@ INSTALL = $(SRCDIR)/buildtools/install.sh
 STRIPFLAG = -s
 SYMLINK = ln -s
 MANPAGE_FORMAT = nroff
-AR = ar
-RANLIB = ranlib
+AR ?= ar
+RANLIB ?= ranlib
 LEX = flex
 PKG_CONFIG = pkg-config
 CFLAGS += -O3 -ffast-math  -pedantic -fno-common -Wall -Wno-uninitialized -Wmissing-declarations -Wimplicit -Wwrite-strings -Wmissing-prototypes -Wundef
