@@ -14,7 +14,7 @@ scons -j"${CPU_COUNT}" \
     boost_libs="boost_python27" \
     cxx=${CXX} \
     cxx_extra="-w -fPIC" \
-    ld_extra="-L${LIBRARY_PATH} -fopenmp" \
+    ld_extra="-L${LIBRARY_PATH} -lgomp -lomp" \
     cppunit_prefix=${PREFIX} \
     openmp=1 \
     omp_flags="-fopenmp" \
