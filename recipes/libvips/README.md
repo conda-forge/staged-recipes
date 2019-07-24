@@ -53,16 +53,16 @@ It passes the CI tests, ie.
 Current build status
 ====================
 
-[![Linux](https://img.shields.io/circleci/project/github/conda-forge/libjpeg-turbo-feedstock/master.svg?label=Linux)](https://circleci.com/gh/conda-forge/libjpeg-turbo-feedstock)
-[![OSX](https://img.shields.io/travis/conda-forge/libjpeg-turbo-feedstock/master.svg?label=macOS)](https://travis-ci.org/conda-forge/libjpeg-turbo-feedstock)
-[![Windows](https://img.shields.io/appveyor/ci/conda-forge/libjpeg-turbo-feedstock/master.svg?label=Windows)](https://ci.appveyor.com/project/conda-forge/libjpeg-turbo-feedstock/branch/master)
+[![Linux](https://img.shields.io/circleci/project/github/conda-forge/libvips-feedstock/master.svg?label=Linux)](https://circleci.com/gh/conda-forge/libvips-feedstock)
+[![OSX](https://img.shields.io/travis/conda-forge/libvips-feedstock/master.svg?label=macOS)](https://travis-ci.org/conda-forge/libvips-feedstock)
+[![Windows](https://img.shields.io/appveyor/ci/conda-forge/libvips-feedstock/master.svg?label=Windows)](https://ci.appveyor.com/project/conda-forge/libvips-feedstock/branch/master)
 
 Current release info
 ====================
 
 | Name | Downloads | Version | Platforms |
 | --- | --- | --- | --- |
-| [![Conda Recipe](https://img.shields.io/badge/recipe-libjpeg--turbo-green.svg)](https://anaconda.org/conda-forge/libjpeg-turbo) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/libjpeg-turbo.svg)](https://anaconda.org/conda-forge/libjpeg-turbo) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/libjpeg-turbo.svg)](https://anaconda.org/conda-forge/libjpeg-turbo) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/libjpeg-turbo.svg)](https://anaconda.org/conda-forge/libjpeg-turbo) |
+| [![Conda Recipe](https://img.shields.io/badge/recipe-libvips-green.svg)](https://anaconda.org/conda-forge/libvips) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/libvips.svg)](https://anaconda.org/conda-forge/libvips) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/libvips.svg)](https://anaconda.org/conda-forge/libvips) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/libvips.svg)](https://anaconda.org/conda-forge/libvips) |
 
 Installing libvips
 ==================
