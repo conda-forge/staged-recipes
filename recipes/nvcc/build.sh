@@ -13,6 +13,9 @@ mkdir -p "${PREFIX}/etc/conda/activate.d"
 cat > "${PREFIX}/etc/conda/activate.d/${PKG_NAME}_activate.sh" <<EOF
 #!/bin/bash
 export CUDA_HOME="${CUDA_HOME}"
+export CFLAGS="\${CFLAGS} -I\${CUDA_HOME}/include"
+export CPPFLAGS="\${CPPFLAGS} -I\${CUDA_HOME}/include"
+export CXXFLAGS="\${CXXFLAGS} -I\${CUDA_HOME}/include"
 EOF
 
 # Unset `CUDA_HOME` in a deactivation script.
@@ -20,6 +23,9 @@ mkdir -p "${PREFIX}/etc/conda/deactivate.d"
 cat > "${PREFIX}/etc/conda/deactivate.d/${PKG_NAME}_deactivate.sh" <<EOF
 #!/bin/bash
 unset CUDA_HOME
+unset CFLAGS
+unset CPPFLAGS
+unset CXXFLAGS
 EOF
 
 # Create `nvcc` script in `bin` so it can be easily run.
