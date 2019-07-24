@@ -16,7 +16,7 @@ cp {AUTHORS,COPYING,COPYING.LESSER,LICENSE,README.md} $SP_DIR/$PKG_NAME
 
 # Do the build in place in site-packages
 cd $SP_DIR/$PKG_NAME
-for LIB_DIR in ./*/; do (cd "$LIB_DIR" && gpi_make --all --ignore-system-libs --ignore-gpirc -r 2); done
+gpi_make --all --ignore-system-libs --ignore-gpirc -r 3
 
 # drop a version file with parseable info
 VERSION_FPATH=$SP_DIR/$PKG_NAME/VERSION
