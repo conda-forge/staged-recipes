@@ -26,14 +26,13 @@ EOF
 mkdir -p "${PREFIX}/bin"
 ln -s "${CUDA_HOME}/bin/nvcc" "${PREFIX}/bin/nvcc"
 
-# Symlink Anaconda compilers.
-mkdir -p "${PREFIX}/bin"
-ln -s "${CC}" "${PREFIX}/bin/gcc"
-ln -s "${CXX}" "${PREFIX}/bin/g++"
-
 # Add `libcuda.so` shared object stub to the compiler sysroot.
 # Needed for things that want to link to `libcuda.so`.
 # Stub is used to avoid getting driver code linked into binaries.
 CONDA_BUILD_SYSROOT="$(${CC} --print-sysroot)"
+mkdir -p "${CONDA_BUILD_SYSROOT}"
 mkdir -p "${CONDA_BUILD_SYSROOT}/lib"
 ln -s "${CUDA_HOME}/lib64/stubs/libcuda.so" "${CONDA_BUILD_SYSROOT}/lib/libcuda.so"
+mkdir -p "${CONDA_BUILD_SYSROOT}/bin"
+ln -s "${CC}" "${CONDA_BUILD_SYSROOT}/bin/gcc"
+ln -s "${CXX}" "${CONDA_BUILD_SYSROOT}/bin/g++"
