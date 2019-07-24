@@ -34,9 +34,5 @@ chmod +x "${PREFIX}/bin/nvcc"
 # Needed for things that want to link to `libcuda.so`.
 # Stub is used to avoid getting driver code linked into binaries.
 CONDA_BUILD_SYSROOT="$(${CC} --print-sysroot)"
-mkdir -p "${CONDA_BUILD_SYSROOT}"
 mkdir -p "${CONDA_BUILD_SYSROOT}/lib"
 ln -s "${CUDA_HOME}/lib64/stubs/libcuda.so" "${CONDA_BUILD_SYSROOT}/lib/libcuda.so"
-mkdir -p "${CONDA_BUILD_SYSROOT}/bin"
-ln -s "${CC}" "${CONDA_BUILD_SYSROOT}/bin/gcc"
-ln -s "${CXX}" "${CONDA_BUILD_SYSROOT}/bin/g++"
