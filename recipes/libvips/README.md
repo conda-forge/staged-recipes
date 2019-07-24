@@ -50,6 +50,9 @@ It passes the CI tests, ie.
     john@kiwi:~/GIT/conda/staged-recipes (master)$ ./.circleci/run_docker_build.sh
 ```
 
+completes successfully. I've not tested macOS, but it should work. It needs a
+`build.bat` for win, but that should be simple.
+
 Current build status
 ====================
 
