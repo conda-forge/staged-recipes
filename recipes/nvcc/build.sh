@@ -22,9 +22,13 @@ cat > "${PREFIX}/etc/conda/deactivate.d/${PKG_NAME}_deactivate.sh" <<EOF
 unset CUDA_HOME
 EOF
 
-# Symlink `nvcc` into `bin` so it can be easily run.
+# Create `nvcc` script in `bin` so it can be easily run.
 mkdir -p "${PREFIX}/bin"
-ln -s "${CUDA_HOME}/bin/nvcc" "${PREFIX}/bin/nvcc"
+cat > "${PREFIX}/bin/nvcc" <<'EOF'
+#!/bin/bash
+"${CUDA_HOME}/bin/nvcc" -ccbin "${CXX}" $@
+EOF
+chmod +x "${PREFIX}/bin/nvcc"
 
 # Add `libcuda.so` shared object stub to the compiler sysroot.
 # Needed for things that want to link to `libcuda.so`.
