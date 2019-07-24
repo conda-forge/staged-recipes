@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -x
+
 UNPACK_DIR=repo_contents
 
 # Move files to root dir to avoid a License file error 
