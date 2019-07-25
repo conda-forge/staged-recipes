@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
-./configure --prefix=${PREFIX} --disable-udev
+./configure --prefix=${PREFIX}
 make
 make install
