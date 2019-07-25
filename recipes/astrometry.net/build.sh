@@ -2,6 +2,7 @@
 
 # remove ncurses tic.h that conficts with astrometry tic.h
 rm -f $CONDA_PREFIX/include/tic.h
+rm -f $PREFIX/include/tic.h
 
 export CFITS_INC="-I$CONDA_PREFIX/include"
 export CFITS_LIB="-L$CONDA_PREFIX/lib -lcfitsio -lm"
