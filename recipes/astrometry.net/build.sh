@@ -3,8 +3,6 @@
 # remove ncurses tic.h that conficts with astrometry tic.h
 rm -f $CONDA_PREFIX/include/tic.h
 
-export CFLAGS="$CFLAGS -I$PREFIX/include -L$PREFIX/lib -I$CONDA_PREFIX/include -L$CONDA_PREFIX/lib"
-export LDFLAGS="$LDFLAGS -L$PREFIX/lib -L$CONDA_PREFIX/lib"
 export CFITS_INC="-I$CONDA_PREFIX/include"
 export CFITS_LIB="-L$CONDA_PREFIX/lib -lcfitsio -lm"
 export NETPBM_INC="-I$CONDA_PREFIX/include"
