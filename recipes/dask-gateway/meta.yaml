@@ -8,13 +8,16 @@ package:
 source:
   url: https://github.com/jcrist/{{ name }}/archive/{{ version }}.tar.gz
   sha256: 1ae59cc611fb4a7dd1210bdf82e1eef151d450f144ae66d1d478582cd9f95964
+  patches:
+    - setup.py.patch
 
 build:
   number: 0
   version: {{ version }}
+  skip: True  # [py<36]
 
 outputs:
-  - name: dask-gateway-base
+  - name: dask-gateway
     script: dask-gateway-client.sh
     build:
       entry_points:
@@ -37,12 +40,15 @@ outputs:
         - dask-gateway-worker --help
   - name: dask-gateway-kerberos
     requirements:
-      - {{ pin_subpackage('dask-gateway-base', exact=True) }}
+      - {{ pin_subpackage('dask-gateway', exact=True) }}
       - pykerberos
 
-  - name: dask-gateway-server-base
+  - name: dask-gateway-server
     script: dask-gateway-server.sh
     build:
+      # The server does not do anything for path handling or process handling
+      # on windows
+      skip: True  # [win]
       entry_points:
         - dask-gateway-server = dask_gateway_server.app:main
         - dask-gateway-jobqueue-launcher = dask_gateway_server.managers.jobqueue.launcher:main
@@ -62,22 +68,32 @@ outputs:
         - dask_gateway_server
       commands:
         - dask-gateway-server --help
-        - dask-gateway-jobqueue-launcher --help
+        - which dask-gateway-jobqueue-launcher
   - name: dask-gateway-server-kerberos
     requirements:
-      - {{ pin_subpackage('dask-gateway-server-base', exact=True) }}
+      - {{ pin_subpackage('dask-gateway-server', exact=True) }}
       - pykerberos
+    test:
+      imports:
+        # This import is to silence the linter, it doesn't actually verify that
+        # this packages is functional
+        - dask_gateway_server
 
   - name: dask-gateway-server-kubernetes
     requirements:
-      - {{ pin_subpackage('dask-gateway-server-base', exact=True) }}
-      - kubernetes >=1.9
+      - {{ pin_subpackage('dask-gateway-server', exact=True) }}
+      - kubernetes >=1.9.0
+    test:
+      imports:
+        - dask_gateway_server.managers.kubernetes
 
   - name: dask-gateway-server-yarn
-    requirementse:
-      - {{ pin_subpackage('dask-gateway-server-base', exact=True) }}
+    requirements:
+      - {{ pin_subpackage('dask-gateway-server', exact=True) }}
       - skein >=0.7.3
-
+    test:
+      imports:
+        - dask_gateway_server.managers.yarn
 
 about:
   home: http://github.com/jcrist/dask-gateway
