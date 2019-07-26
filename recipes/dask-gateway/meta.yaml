@@ -1,0 +1,96 @@
+{% set name = "dask-gateway" %}
+{% set version = "0.2.0" %}
+
+package:
+  version: {{ version }}
+  name: {{ name|lower }}
+
+source:
+  url: https://github.com/jcrist/{{ name }}/archive/{{ version }}.tar.gz
+  sha256: 1ae59cc611fb4a7dd1210bdf82e1eef151d450f144ae66d1d478582cd9f95964
+
+build:
+  number: 0
+  version: {{ version }}
+
+outputs:
+  - name: dask-gateway-base
+    script: dask-gateway-client.sh
+    build:
+      entry_points:
+        - dask-gateway-scheduler = dask_gateway.dask_cli:scheduler
+        - dask-gateway-worker = dask_gateway.dask_cli:worker
+    requirements:
+      host:
+        - python
+        - pip
+      run:
+        - python
+        - tornado
+        - dask >=2.0.0
+        - distributed >=2.0.0
+    test:
+      imports:
+        - dask_gateway
+      commands:
+        - dask-gateway-scheduler --help
+        - dask-gateway-worker --help
+  - name: dask-gateway-kerberos
+    requirements:
+      - {{ pin_subpackage('dask-gateway-base', exact=True) }}
+      - pykerberos
+
+  - name: dask-gateway-server-base
+    script: dask-gateway-server.sh
+    build:
+      entry_points:
+        - dask-gateway-server = dask_gateway_server.app:main
+        - dask-gateway-jobqueue-launcher = dask_gateway_server.managers.jobqueue.launcher:main
+    requirements:
+      host:
+        - python
+        - go
+        - pip
+      run:
+        - python
+        - cryptography
+        - tornado
+        - traitlets
+        - sqlalchemy
+    test:
+      imports:
+        - dask_gateway_server
+      commands:
+        - dask-gateway-server --help
+        - dask-gateway-jobqueue-launcher --help
+  - name: dask-gateway-server-kerberos
+    requirements:
+      - {{ pin_subpackage('dask-gateway-server-base', exact=True) }}
+      - pykerberos
+
+  - name: dask-gateway-server-kubernetes
+    requirements:
+      - {{ pin_subpackage('dask-gateway-server-base', exact=True) }}
+      - kubernetes >=1.9
+
+  - name: dask-gateway-server-yarn
+    requirementse:
+      - {{ pin_subpackage('dask-gateway-server-base', exact=True) }}
+      - skein >=0.7.3
+
+
+about:
+  home: http://github.com/jcrist/dask-gateway
+  license: New BSD
+  license_family: BSD
+  license_file: dask-gateway/LICENSE
+  summary: A multi-tenant server for securely deploying and managing Dask clusters.
+  description: A multi-tenant server for securely deploying and managing Dask clusters.
+  doc_url: https://jcrist.github.io/dask-gateway
+  dev_url: http://github.com/jcrist/dask-gateway
+
+extra:
+  recipe-maintainers:
+    - ericdill
+    - jcrist
+
