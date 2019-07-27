@@ -8,9 +8,7 @@ add_library(tinyxml SHARED tinyxml.cpp tinyxmlerror.cpp tinyxmlparser.cpp)
 set_target_properties(tinyxml PROPERTIES
                       INSTALL_NAME_DIR ${CMAKE_INSTALL_PREFIX}/lib)
 
-install(TARGETS tinyxml
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-        RUNTIME DESTINATION lib)
+install(TARGETS tinyxml)
+
 install(FILES tinyxml.h
         DESTINATION include)
