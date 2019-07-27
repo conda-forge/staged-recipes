@@ -1,0 +1,237 @@
+diff -Nuar apache-log4cxx-0.10.0.orig/src/examples/cpp/console.cpp apache-log4cxx-0.10.0.new/src/examples/cpp/console.cpp
+--- apache-log4cxx-0.10.0.orig/src/examples/cpp/console.cpp	2008-03-31 22:34:52.000000000 +0000
++++ apache-log4cxx-0.10.0.new/src/examples/cpp/console.cpp	2019-03-25 20:03:27.145596600 +0000
+@@ -22,7 +22,10 @@
+ #include <log4cxx/logmanager.h>
+ #include <iostream>
+ #include <locale.h>
++#include <stdio.h>
++#include <cstring>
+ 
++
+ using namespace log4cxx;
+ using namespace log4cxx::helpers;
+ 
+@@ -49,13 +52,13 @@
+  *
+  *    See bug LOGCXX_126.
+  *
+- *    
++ *
+  */
+ int main(int argc, char** argv)
+ {
+     setlocale(LC_ALL, "");
+     if (argc <= 1) {
+-        puts("Console test program\nUsage: console [-err] [ puts | putws | cout | wcout | configure | log | wide | byte ]*\n");  
++        puts("Console test program\nUsage: console [-err] [ puts | putws | cout | wcout | configure | log | wide | byte ]*\n");
+     }
+     bool configured = false;
+     bool err = false;
+diff -Nuar apache-log4cxx-0.10.0.orig/src/main/cpp/charsetdecoder.cpp apache-log4cxx-0.10.0.new/src/main/cpp/charsetdecoder.cpp
+--- apache-log4cxx-0.10.0.orig/src/main/cpp/charsetdecoder.cpp	2008-03-31 22:34:09.000000000 +0000
++++ apache-log4cxx-0.10.0.new/src/main/cpp/charsetdecoder.cpp	2019-03-25 20:05:38.467384400 +0000
+@@ -41,7 +41,7 @@
+ {
+         namespace helpers {
+ 
+-#if APR_HAS_XLATE
++//#if APR_HAS_XLATE
+           /**
+            *  Converts from an arbitrary encoding to LogString
+            *    using apr_xlate.  Requires real iconv implementation,
+@@ -123,7 +123,7 @@
+                   apr_xlate_t *convset;
+           };
+           
+-#endif
++//#endif
+ 
+ #if LOG4CXX_LOGCHAR_IS_WCHAR && LOG4CXX_HAS_MBSRTOWCS
+           /**
+@@ -476,7 +476,7 @@
+         StringHelper::equalsIgnoreCase(charset, LOG4CXX_STR("ISO-LATIN-1"), LOG4CXX_STR("iso-latin-1"))) {
+         return new ISOLatinCharsetDecoder();
+     }
+-#if APR_HAS_XLATE || !defined(_WIN32)
++#if !defined(_WIN32)
+     return new APRCharsetDecoder(charset);
+ #else    
+     throw IllegalArgumentException(charset);
+diff -Nuar apache-log4cxx-0.10.0.orig/src/main/cpp/charsetencoder.cpp apache-log4cxx-0.10.0.new/src/main/cpp/charsetencoder.cpp
+--- apache-log4cxx-0.10.0.orig/src/main/cpp/charsetencoder.cpp	2008-03-31 22:34:09.000000000 +0000
++++ apache-log4cxx-0.10.0.new/src/main/cpp/charsetencoder.cpp	2019-03-25 20:06:36.111646500 +0000
+@@ -39,7 +39,7 @@
+ 
+         namespace helpers {
+ 
+-#if APR_HAS_XLATE
++//#if APR_HAS_XLATE
+           /**
+           * A character encoder implemented using apr_xlate.
+           */
+@@ -106,7 +106,7 @@
+                   Mutex mutex;
+                   apr_xlate_t *convset;
+           };
+-#endif
++//#endif
+ 
+ #if LOG4CXX_LOGCHAR_IS_WCHAR && LOG4CXX_HAS_WCSTOMBS
+           /**
+@@ -484,7 +484,7 @@
+     } else if (StringHelper::equalsIgnoreCase(charset, LOG4CXX_STR("UTF-16LE"), LOG4CXX_STR("utf-16le"))) {
+         return new UTF16LECharsetEncoder();
+     }
+-#if APR_HAS_XLATE || !defined(_WIN32)
++#if !defined(_WIN32)
+     return new APRCharsetEncoder(charset);
+ #else    
+     throw IllegalArgumentException(charset);
+diff -Nuar apache-log4cxx-0.10.0.orig/src/main/cpp/inputstreamreader.cpp apache-log4cxx-0.10.0.new/src/main/cpp/inputstreamreader.cpp
+--- apache-log4cxx-0.10.0.orig/src/main/cpp/inputstreamreader.cpp	2008-03-31 22:34:09.000000000 +0000
++++ apache-log4cxx-0.10.0.new/src/main/cpp/inputstreamreader.cpp	2019-03-25 20:03:27.145596600 +0000
+@@ -20,6 +20,7 @@
+ #include <log4cxx/helpers/exception.h>
+ #include <log4cxx/helpers/pool.h>
+ #include <log4cxx/helpers/bytebuffer.h>
++#include <cstring>
+ 
+ using namespace log4cxx;
+ using namespace log4cxx::helpers;
+@@ -33,7 +34,7 @@
+    }
+ }
+ 
+-InputStreamReader::InputStreamReader(const InputStreamPtr& in1, const CharsetDecoderPtr &dec1) 
++InputStreamReader::InputStreamReader(const InputStreamPtr& in1, const CharsetDecoderPtr &dec1)
+     : in(in1), dec(dec1) {
+     if (in1 == 0) {
+        throw NullPointerException(LOG4CXX_STR("in parameter may not be null."));
+diff -Nuar apache-log4cxx-0.10.0.orig/src/main/cpp/locationinfo.cpp apache-log4cxx-0.10.0.new/src/main/cpp/locationinfo.cpp
+--- apache-log4cxx-0.10.0.orig/src/main/cpp/locationinfo.cpp	2008-03-31 22:34:09.000000000 +0000
++++ apache-log4cxx-0.10.0.new/src/main/cpp/locationinfo.cpp	2019-03-25 20:03:27.145596600 +0000
+@@ -148,7 +148,7 @@
+     if (lineNumber == -1 && fileName == NA && methodName == NA_METHOD) {
+          os.writeNull(p);
+     } else {
+-        char prolog[] = {
++        unsigned char prolog[] = {
+          0x72, 0x00, 0x21, 0x6F, 0x72, 0x67, 0x2E, 
+          0x61, 0x70, 0x61, 0x63, 0x68, 0x65, 0x2E, 0x6C, 
+          0x6F, 0x67, 0x34, 0x6A, 0x2E, 0x73, 0x70, 0x69, 
+@@ -161,7 +161,7 @@
+                 0x61, 0x76, 0x61, 0x2F, 0x6C, 0x61, 0x6E, 0x67, 
+                 0x2F, 0x53, 0x74, 0x72, 0x69, 0x6E, 0x67, 0x3B,
+          0x78, 0x70 };
+-      os.writeProlog("org.apache.log4j.spi.LocationInfo", 2, prolog, sizeof(prolog), p);
++      os.writeProlog("org.apache.log4j.spi.LocationInfo", 2, (char*)prolog, sizeof(prolog), p);
+         char* line = p.itoa(lineNumber);
+         //
+         //   construct Java-like fullInfo (replace "::" with ".")
+diff -Nuar apache-log4cxx-0.10.0.orig/src/main/cpp/loggingevent.cpp apache-log4cxx-0.10.0.new/src/main/cpp/loggingevent.cpp
+--- apache-log4cxx-0.10.0.orig/src/main/cpp/loggingevent.cpp	2008-03-31 22:34:09.000000000 +0000
++++ apache-log4cxx-0.10.0.new/src/main/cpp/loggingevent.cpp	2019-03-25 20:03:27.145596600 +0000
+@@ -236,7 +236,7 @@
+ 
+ 
+ void LoggingEvent::writeProlog(ObjectOutputStream& os, Pool& p)  {
+-     char classDesc[] = {
++     unsigned char classDesc[] = {
+         0x72, 0x00, 0x21, 
+         0x6F, 0x72, 0x67, 0x2E, 0x61, 0x70, 0x61, 0x63, 
+         0x68, 0x65, 0x2E, 0x6C, 0x6F, 0x67, 0x34, 0x6A, 
+@@ -292,7 +292,7 @@
+         0x3B, 0x78, 0x70 }; 
+ 
+      os.writeProlog("org.apache.log4j.spi.LoggingEvent", 
+-        8, classDesc, sizeof(classDesc), p);
++        8, (char*)classDesc, sizeof(classDesc), p);
+ }
+ 
+ void LoggingEvent::write(helpers::ObjectOutputStream& os, Pool& p) const {
+diff -Nuar apache-log4cxx-0.10.0.orig/src/main/cpp/objectoutputstream.cpp apache-log4cxx-0.10.0.new/src/main/cpp/objectoutputstream.cpp
+--- apache-log4cxx-0.10.0.orig/src/main/cpp/objectoutputstream.cpp	2008-03-31 22:34:09.000000000 +0000
++++ apache-log4cxx-0.10.0.new/src/main/cpp/objectoutputstream.cpp	2019-03-25 20:03:27.145596600 +0000
+@@ -36,8 +36,8 @@
+        objectHandle(0x7E0000),
+        classDescriptions(new ClassDescriptionMap())
+ {
+-   char start[] = { 0xAC, 0xED, 0x00, 0x05 };
+-   ByteBuffer buf(start, sizeof(start));
++   unsigned char start[] = { 0xAC, 0xED, 0x00, 0x05 };
++   ByteBuffer buf((char*)start, sizeof(start));
+    os->write(buf, p);
+ }
+ 
+@@ -81,7 +81,7 @@
+     //
+     //  TC_OBJECT and the classDesc for java.util.Hashtable
+     //
+-    char prolog[] = {
++    unsigned char prolog[] = {
+         0x72, 0x00, 0x13, 0x6A, 0x61, 0x76, 0x61, 
+         0x2E, 0x75, 0x74, 0x69, 0x6C, 0x2E, 0x48, 0x61, 
+         0x73, 0x68, 0x74, 0x61, 0x62, 0x6C, 0x65, 0x13, 
+@@ -90,12 +90,12 @@
+         0x64, 0x46, 0x61, 0x63, 0x74, 0x6F, 0x72, 0x49, 
+         0x00, 0x09, 0x74, 0x68, 0x72, 0x65, 0x73, 0x68, 
+         0x6F, 0x6C, 0x64, 0x78, 0x70  };
+-    writeProlog("java.util.Hashtable", 1, prolog, sizeof(prolog), p);
++    writeProlog("java.util.Hashtable", 1, (char*)prolog, sizeof(prolog), p);
+     //
+     //   loadFactor = 0.75, threshold = 5, blockdata start, buckets.size = 7
+-    char data[] = { 0x3F, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 
++    unsigned char data[] = { 0x3F, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 
+         TC_BLOCKDATA, 0x08, 0x00, 0x00, 0x00, 0x07 };
+-    ByteBuffer dataBuf(data, sizeof(data));
++    ByteBuffer dataBuf((char*)data, sizeof(data));
+     os->write(dataBuf, p);
+     char size[4];
+     size_t sz = val.size();
+diff -Nuar apache-log4cxx-0.10.0.orig/src/main/cpp/socketoutputstream.cpp apache-log4cxx-0.10.0.new/src/main/cpp/socketoutputstream.cpp
+--- apache-log4cxx-0.10.0.orig/src/main/cpp/socketoutputstream.cpp	2008-03-31 22:34:09.000000000 +0000
++++ apache-log4cxx-0.10.0.new/src/main/cpp/socketoutputstream.cpp	2019-03-25 20:03:27.145596600 +0000
+@@ -19,6 +19,7 @@
+ #include <log4cxx/helpers/socketoutputstream.h>
+ #include <log4cxx/helpers/socket.h>
+ #include <log4cxx/helpers/bytebuffer.h>
++#include <cstring>
+ 
+ using namespace log4cxx;
+ using namespace log4cxx::helpers;
+diff -Nuar apache-log4cxx-0.10.0.orig/src/test/cpp/xml/domtestcase.cpp apache-log4cxx-0.10.0.new/src/test/cpp/xml/domtestcase.cpp
+--- apache-log4cxx-0.10.0.orig/src/test/cpp/xml/domtestcase.cpp	2008-03-31 22:33:13.000000000 +0000
++++ apache-log4cxx-0.10.0.new/src/test/cpp/xml/domtestcase.cpp	2019-03-25 20:03:27.155596600 +0000
+@@ -190,12 +190,12 @@
+                 DOMConfigurator::configure(LOG4CXX_TEST_STR("input/xml/DOMTestCase3.xml"));
+                 LOG4CXX_INFO(logger, "File name is expected to end with a superscript 3");
+ #if LOG4CXX_LOGCHAR_IS_UTF8
+-                const logchar fname[] = { 0x6F, 0x75, 0x74, 0x70, 0x75, 0x74, 0x2F, 0x64, 0x6F, 0x6D, 0xC2, 0xB3, 0 };
++                const unsigned char fname[] = { 0x6F, 0x75, 0x74, 0x70, 0x75, 0x74, 0x2F, 0x64, 0x6F, 0x6D, 0xC2, 0xB3, 0 };
+ #else
+-                const logchar fname[] = { 0x6F, 0x75, 0x74, 0x70, 0x75, 0x74, 0x2F, 0x64, 0x6F, 0x6D, 0xB3, 0 };
++                const unsigned char fname[] = { 0x6F, 0x75, 0x74, 0x70, 0x75, 0x74, 0x2F, 0x64, 0x6F, 0x6D, 0xB3, 0 };
+ #endif
+                 File file;
+-                file.setPath(fname);
++                file.setPath((const char*)fname);
+                 Pool p;
+                 bool exists = file.exists(p);
+                 LOGUNIT_ASSERT(exists);
+@@ -209,12 +209,12 @@
+                 DOMConfigurator::configure(LOG4CXX_TEST_STR("input/xml/DOMTestCase4.xml"));
+                 LOG4CXX_INFO(logger, "File name is expected to end with an ideographic 4");
+ #if LOG4CXX_LOGCHAR_IS_UTF8
+-                const logchar fname[] = { 0x6F, 0x75, 0x74, 0x70, 0x75, 0x74, 0x2F, 0x64, 0x6F, 0x6D, 0xE3, 0x86, 0x95, 0 };
++                const unsigned char fname[] = { 0x6F, 0x75, 0x74, 0x70, 0x75, 0x74, 0x2F, 0x64, 0x6F, 0x6D, 0xE3, 0x86, 0x95, 0 };
+ #else
+-                const logchar fname[] = { 0x6F, 0x75, 0x74, 0x70, 0x75, 0x74, 0x2F, 0x64, 0x6F, 0x6D, 0x3195, 0 };
++                const unsigned char fname[] = { 0x6F, 0x75, 0x74, 0x70, 0x75, 0x74, 0x2F, 0x64, 0x6F, 0x6D, 0x3195, 0 };
+ #endif
+                 File file;
+-                file.setPath(fname);
++                file.setPath((const char*)fname);
+                 Pool p;
+                 bool exists = file.exists(p);
+                 LOGUNIT_ASSERT(exists);
