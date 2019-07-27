@@ -14,31 +14,36 @@ source:
 build:
   number: 0
   skip: True  # [py<36]
+  script: cd dask-gateway && python -m pip install . -vv --no-deps
+  entry_points:
+    - dask-gateway-scheduler = dask_gateway.dask_cli:scheduler
+    - dask-gateway-worker = dask_gateway.dask_cli:worker
+
+requirements:
+  host:
+    - python
+    - pip
+  run:
+    - python
+    - tornado
+    - dask >=2.0.0
+    - distributed >=2.0.0
+
+test:
+  imports:
+    - dask_gateway
+  commands:
+    - dask-gateway-scheduler --help
+    - dask-gateway-worker --help
 
 outputs:
+  # dask-gateway is the output described by the rest of the meta.yaml (i.e.,
+  # the stuff that's not included in this outputs section)
   - name: dask-gateway
-    script: dask-gateway-client.sh
+
+  - name: dask-gateway-kerberos
     build:
       skip: True  # [py<36]
-      entry_points:
-        - dask-gateway-scheduler = dask_gateway.dask_cli:scheduler
-        - dask-gateway-worker = dask_gateway.dask_cli:worker
-    requirements:
-      host:
-        - python
-        - pip
-      run:
-        - python
-        - tornado
-        - dask >=2.0.0
-        - distributed >=2.0.0
-    test:
-      imports:
-        - dask_gateway
-      commands:
-        - dask-gateway-scheduler --help
-        - dask-gateway-worker --help
-  - name: dask-gateway-kerberos
     requirements:
       - {{ pin_subpackage('dask-gateway', exact=True) }}
       - pykerberos  # [osx or linux]
@@ -50,7 +55,6 @@ outputs:
         # kerberos functionality is pretty challenging and ultimately not
         # really worth it
         - dask_gateway
-
 
   - name: dask-gateway-server
     script: dask-gateway-server.sh
@@ -78,7 +82,12 @@ outputs:
       commands:
         - dask-gateway-server --help
         - which dask-gateway-jobqueue-launcher
+
   - name: dask-gateway-server-kerberos
+    build:
+      # The server does not do anything for path handling or process handling
+      # on windows
+      skip: True  # [py<36 or win]
     requirements:
       - {{ pin_subpackage('dask-gateway-server', exact=True) }}
       - pykerberos
@@ -89,6 +98,10 @@ outputs:
         - dask_gateway_server
 
   - name: dask-gateway-server-kubernetes
+    build:
+      # The server does not do anything for path handling or process handling
+      # on windows
+      skip: True  # [py<36 or win]
     requirements:
       - {{ pin_subpackage('dask-gateway-server', exact=True) }}
       - kubernetes >=1.9.0
@@ -97,6 +110,10 @@ outputs:
         - dask_gateway_server.managers.kubernetes
 
   - name: dask-gateway-server-yarn
+    build:
+      # The server does not do anything for path handling or process handling
+      # on windows
+      skip: True  # [py<36 or win]
     requirements:
       - {{ pin_subpackage('dask-gateway-server', exact=True) }}
       - skein >=0.7.3
