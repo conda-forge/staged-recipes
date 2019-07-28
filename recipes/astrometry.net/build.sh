@@ -19,4 +19,5 @@ export ZLIB_LIB="-L$PREFIX/lib -lz"
 
 make
 make extra
+make py
 make install INSTALL_DIR="$PREFIX"
