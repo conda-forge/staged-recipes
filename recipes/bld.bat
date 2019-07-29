@@ -1,3 +1,4 @@
+
 copy %RECIPE_DIR%\condabuildinfo.cmake .
 
 if not exist "build\" mkdir build
@@ -20,6 +21,6 @@ nmake -f Makefile
 nmake install -f Makefile
 
 cd ..
-copy .\build\_*.pyd .\_package\xms\core
+copy .\build\_xms* .\_package\xms\core
 
 %PYTHON% -m pip install .\_package --no-deps --ignore-installed -vvv
