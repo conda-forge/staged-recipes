@@ -20,6 +20,7 @@ nmake -f Makefile
 nmake install -f Makefile
 
 cd ..
-copy .\build\_xms* .\_package\xms\core
+copy .\build\_xms*.pyd .\_package\xms\core
+dir .\_package\xms\core
 
 %PYTHON% -m pip install .\_package --no-deps --ignore-installed -vvv
