@@ -17,7 +17,6 @@ cd build
         -DXMS_VERSION="%XMS_VERSION%" ..
 
 nmake -f Makefile
-
 nmake install -f Makefile
 
 cd ..

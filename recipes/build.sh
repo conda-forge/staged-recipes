@@ -17,7 +17,6 @@ ${BUILD_PREFIX}/bin/cmake \
 
 
 make -j${CPU_COUNT}
-
 make install
 
 cd ..
