@@ -1,0 +1,141 @@
+{% set name = "dask-gateway" %}
+{% set version = "0.2.0" %}
+
+package:
+  version: {{ version }}
+  name: {{ name|lower }}
+
+source:
+  url: https://github.com/jcrist/{{ name }}/archive/{{ version }}.tar.gz
+  sha256: 1ae59cc611fb4a7dd1210bdf82e1eef151d450f144ae66d1d478582cd9f95964
+  patches:
+    - setup.py.patch
+
+build:
+  number: 0
+  skip: True  # [py<37]
+  script: cd dask-gateway && python -m pip install . -vv --no-deps
+  entry_points:
+    - dask-gateway-scheduler = dask_gateway.dask_cli:scheduler
+    - dask-gateway-worker = dask_gateway.dask_cli:worker
+
+requirements:
+  host:
+    - python
+    - pip
+  run:
+    - python
+    - tornado
+    - dask >=2.0.0
+    - distributed >=2.0.0
+
+test:
+  imports:
+    - dask_gateway
+  commands:
+    - dask-gateway-scheduler --help
+    - dask-gateway-worker --help
+
+outputs:
+  # dask-gateway is the output described by the rest of the meta.yaml (i.e.,
+  # the stuff that's not included in this outputs section)
+  - name: dask-gateway
+
+  - name: dask-gateway-kerberos
+    build:
+      skip: True  # [py<37]
+    requirements:
+      - python
+      - {{ pin_subpackage('dask-gateway', exact=True) }}
+      - pykerberos  # [osx or linux]
+      - winkerberos  # [win]
+    test:
+      imports:
+        # This import is to silence the conda-forge linter. Successfully
+        # testing that the addition of the kerberos library enables the
+        # kerberos functionality is pretty challenging and ultimately not
+        # really worth it
+        - dask_gateway
+
+  - name: dask-gateway-server
+    script: dask-gateway-server.sh
+    build:
+      # The server does not do anything for path handling or process handling
+      # on windows
+      skip: True  # [py<37 or win]
+      entry_points:
+        - dask-gateway-server = dask_gateway_server.app:main
+        - dask-gateway-jobqueue-launcher = dask_gateway_server.managers.jobqueue.launcher:main
+    requirements:
+      host:
+        - python
+        - go
+        - pip
+      run:
+        - python
+        - cryptography
+        - tornado
+        - traitlets
+        - sqlalchemy
+    test:
+      imports:
+        - dask_gateway_server
+      commands:
+        - dask-gateway-server --help
+        - which dask-gateway-jobqueue-launcher
+
+  - name: dask-gateway-server-kerberos
+    build:
+      # The server does not do anything for path handling or process handling
+      # on windows
+      skip: True  # [py<37 or win]
+    requirements:
+      - python
+      - {{ pin_subpackage('dask-gateway-server', exact=True) }}
+      - pykerberos
+    test:
+      imports:
+        # This import is to silence the linter, it doesn't actually verify that
+        # this packages is functional
+        - dask_gateway_server
+
+  - name: dask-gateway-server-kubernetes
+    build:
+      # The server does not do anything for path handling or process handling
+      # on windows
+      skip: True  # [py<37 or win]
+    requirements:
+      - python
+      - {{ pin_subpackage('dask-gateway-server', exact=True) }}
+      - python-kubernetes >=9
+    test:
+      imports:
+        - dask_gateway_server.managers.kubernetes
+
+  - name: dask-gateway-server-yarn
+    build:
+      # The server does not do anything for path handling or process handling
+      # on windows
+      skip: True  # [py<37 or win]
+    requirements:
+      - python
+      - {{ pin_subpackage('dask-gateway-server', exact=True) }}
+      - skein >=0.7.3
+    test:
+      imports:
+        - dask_gateway_server.managers.yarn
+
+about:
+  home: http://github.com/jcrist/dask-gateway
+  license: New BSD
+  license_family: BSD
+  license_file: dask-gateway/LICENSE
+  summary: A multi-tenant server for securely deploying and managing Dask clusters.
+  description: A multi-tenant server for securely deploying and managing Dask clusters.
+  doc_url: https://jcrist.github.io/dask-gateway
+  dev_url: http://github.com/jcrist/dask-gateway
+
+extra:
+  recipe-maintainers:
+    - ericdill
+    - jcrist
