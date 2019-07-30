@@ -20,6 +20,6 @@ make -j${CPU_COUNT}
 make install
 
 cd ..
-copy ./build/_xms*.so ./package/xms/core
+cp ./build/_xms*.so ./_package/xms/core/
 
-${PYTHON} -m pip install .\_pacage --no-deps --ignore-installed -vvv
+${PYTHON} -m pip install ./_package --no-deps --ignore-installed -vvv
