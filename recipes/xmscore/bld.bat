@@ -23,4 +23,5 @@ cd ..
 copy .\build\_xms*.pyd .\_package\xms\core
 dir .\_package\xms\core
 
+%PYTHON% --version
 %PYTHON% -m pip install .\_package --no-deps --ignore-installed -vvv
