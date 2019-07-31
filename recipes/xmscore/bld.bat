@@ -14,7 +14,7 @@ cd build
         -DPYTHON_SITE_PACKAGES=%SP_DIR% ^
         -DBOOST_ROOT=%BUILD_PREFIX%\Library ^
         -DBoost_NO_SYSTEM_PATHS=True ^
-        -DXMS_VERSION="%XMS_VERSION%" ..
+        -DXMS_VERSION="%XMS_VERSION%" %SRC_DIR%
 
 nmake -f Makefile
 nmake install -f Makefile
