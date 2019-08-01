@@ -3,7 +3,6 @@
 export CFLAGS="-I$PREFIX/include $CFLAGS"
 
 if [[ $(uname) == Darwin ]]; then
-    export CC=clang
     export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib -headerpad_max_install_names $LDFLAGS"
     export LIBRARY_SEARCH_VAR=DYLD_FALLBACK_LIBRARY_PATH
     export MACOSX_DEPLOYMENT_TARGET="10.9"
