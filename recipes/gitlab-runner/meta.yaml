@@ -1,24 +1,34 @@
-{% set name = "gitlab-runner" %}
+{% set import_path = "gitlab.com/gitlab-org/gitlab-runner" %}
 {% set version = "12.1.0" %}
+{% set branch = '-'.join(version.split('.')[:2] +['stable']) %}
+
+{% set name = import_path.split('/')[-1] %}
+{% set pkg_src = ('src/'+import_path).replace("/", os.sep) %}
 
 package:
   name: "{{ name|lower }}"
   version: "{{ version }}"
 
 source:
-  git_url: "https://gitlab.com/gitlab-org/gitlab-runner.git"
-  git_tag: "v{{ version }}"
-  folder: "src/gitlab.com/gitlab-org/{{ name }}"
+  - folder: {{ pkg_src }}
+    git_url: https://{{ import_path }}
+    git_tag: v{{ version }}
 
 build:
   number: 0
+  script:
+    - pushd {{ pkg_src }}
+    - go install -v
+        -ldflags "-X {{import_path}}/common.NAME='{{ name }}'
+                  -X {{import_path}}/common.VERSION='{{ version }}'
+                  -X {{import_path}}/common.REVISION='{{ GIT_DESCRIBE_HASH[1:] }}'
+                  -X {{import_path}}/common.BRANCH='{{ branch }}'
+                  -X {{import_path}}/common.BUILT='2019-08-01T00:00:00z'"
+        .
 
 requirements:
-  host:
-    - coreutils  # [unix]
-    - m2-coreutils  # [win]
-    - git
-    - go
+  build:
+    - {{ compiler("go") }}
 
 test:
   commands:
