@@ -1,6 +1,7 @@
 #!/bin/bash
+set -e
 ./autogen.sh
 ./configure --prefix=${PREFIX}
-make -j${CPU_COUNT}
-make check
+make
+make check || (cat test-suite.log && exit 1)
 make install
