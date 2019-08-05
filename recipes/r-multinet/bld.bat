@@ -1,2 +1,4 @@
+CXX14 = g++
+CXX14FLAGS = -O3
 "%R%" CMD INSTALL --build .
 IF %ERRORLEVEL% NEQ 0 exit 1
