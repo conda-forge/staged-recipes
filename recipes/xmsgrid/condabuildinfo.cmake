@@ -14,5 +14,7 @@ list(APPEND EXT_LIBS ${Boost_LIBRARIES})
 
 if(WIN32)
     list(APPEND EXT_LIBS zlib)
+else()
+    list(APPEND EXT_LIBS z)
 endif()
 
