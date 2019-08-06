@@ -10,7 +10,7 @@ set PIP_NO_INDEX=
 pip install lit
 
 cmake ^
-  -G"MSYS Makefiles" ^
+  -G"NMake Makefiles JOM" ^
   -DCMAKE_BUILD_TYPE=Release ^
   -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
   -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
