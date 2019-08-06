@@ -17,6 +17,6 @@ cmake ^
   -DCMAKE_AR=llvm-ar ^
   ..
 
-make -j%CPU_COUNT%
-make install
-make check-libpgmath
+jom -j%CPU_COUNT%
+jom install
+jom check-libpgmath
