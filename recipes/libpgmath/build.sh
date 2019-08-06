@@ -9,6 +9,7 @@ if [[ $target_platform == "osx-64" ]]; then
 else
   export CC=$BUILD_PREFIX/bin/clang
   export CXX=$BUILD_PREFIX/bin/clang++
+  export CONDA_BUILD_SYSROOT=$BUILD_PREFIX/$HOST/sysroot
 fi
 
 PIP_NO_INDEX= pip install lit
