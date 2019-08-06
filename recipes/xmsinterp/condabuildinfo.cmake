@@ -1,12 +1,14 @@
 set(EXT_INCLUDE_DIRS "${CMAKE_INSTALL_PREFIX}/include/xmscore")
 set(EXT_INCLUDE_DIRS "${CMAKE_INSTALL_PREFIX}/include/xmsgrid")
+
 if(WIN32)
     set(EXT_LIB_DIRS "${LIBRARY_LIB}")
 else()
     set(EXT_LIB_DIRS "${CMAKE_INSTALL_PREFIX}/lib")
 endif()
+
 set(EXT_LIBS xmscorelib)
-set(EXT_LIBS xmsgridlib)
+list(APPEND EXT_LIBS xmsgridlib)
 
 set(Boost_USE_STATIC_LIBS TRUE)
 find_package(Boost REQUIRED log_setup log system filesystem serialization timer thread)
