@@ -1,7 +1,7 @@
 mkdir build -p
 cd build 
 
-if [[ ${HOST} =~ .*linux.* ]]; then
+if [[ ${target_platform} =~ linux* ]]; then
 	# https://github.com/conda-forge/boost-feedstock/issues/72
 	sed -i '127s#;##g' ${PREFIX}/include/boost/python/detail/caller.hpp
 fi
