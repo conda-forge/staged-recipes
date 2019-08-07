@@ -6,6 +6,9 @@ cd build
 set "CC=clang-cl.exe"
 set "CXX=clang-cl.exe"
 
+set "CFLAGS=%CFLAGS% -D_CRT_SECURE_NO_WARNINGS"
+set "CXXFLAGS=%CXXFLAGS% -D_CRT_SECURE_NO_WARNINGS"
+
 set PIP_NO_INDEX=
 pip install lit
 
