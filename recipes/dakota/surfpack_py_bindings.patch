@@ -1,0 +1,152 @@
+diff --git a/packages/surfpack/CMakeLists.txt b/packages/surfpack/CMakeLists.txt
+index 5172b60..7dc707a 100644
+--- a/packages/surfpack/CMakeLists.txt
++++ b/packages/surfpack/CMakeLists.txt
+@@ -201,4 +201,4 @@ add_subdirectory(src)
+ if(SURFPACK_STANDALONE)
+   add_subdirectory(interface)
+ endif()
+-#add_subdirectory(examples/CInterface)
++#add_subdirectory(examples/CInterface)
+\ No newline at end of file
+diff --git a/packages/surfpack/src/CMakeLists.txt b/packages/surfpack/src/CMakeLists.txt
+index b372640..3b23d19 100644
+--- a/packages/surfpack/src/CMakeLists.txt
++++ b/packages/surfpack/src/CMakeLists.txt
+@@ -71,6 +71,7 @@ endif()
+ add_library(${local_library} ${lib${local_library}_sources})
+ add_library(${local_library}_fortran ${lib${local_library}_sources_fortran})
+ target_link_libraries(${local_library} ${local_library}_fortran)
++
+ #if (HAVE_PECOS)
+ #  target_link_libraries(${local_library} pecos ${Pecos_LINK_LIBRARIES} 
+ #    ${Teuchos_LIBRARIES} ${TEUCHOS_LIBRARY} ${LAPACK_LIBS} ${BLAS_LIBS})
+@@ -87,4 +88,25 @@ install(FILES SurfpackMatrix.h surfpack_system_headers.h DESTINATION include)
+ # no reason couldn't be directly in libsurfpack.
+ add_library(surfpack_c_interface surfpack_c_interface.cpp)
+ install(TARGETS surfpack_c_interface DESTINATION lib)
+-install(FILES surfpack_c_interface.h DESTINATION include)
+\ No newline at end of file
++install(FILES surfpack_c_interface.h DESTINATION include)
++
++option(SURFPACK_PYTHONBINDINGS "create python-bindings for surfpack" ON)
++
++if(SURFPACK_PYTHONBINDINGS)
++  find_package(pybind11)
++  if (pybind11_FOUND)
++    # getting the install dir for the python module
++    EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE} -c
++      "from distutils.sysconfig import get_python_lib; import os; print(get_python_lib())"
++      OUTPUT_VARIABLE _PYTHON_INSTALL_DIR OUTPUT_STRIP_TRAILING_WHITESPACE )
++
++    string(REPLACE "\\" "/" PYTHON_INSTALL_DIR ${_PYTHON_INSTALL_DIR})
++
++    pybind11_add_module(pysurfpack SHARED pysurfpack.cpp)
++    target_link_libraries(pysurfpack PRIVATE ${local_library} ${Pecos_LINK_LIBRARIES}
++      ${Teuchos_LIBRARIES} ${TEUCHOS_LIBRARY} ${LAPACK_LIBS} ${BLAS_LIBS} ${Boost_LIBRARIES}
++      ${SURFPACK_TPL_LIBS})
++
++    install(TARGETS pysurfpack DESTINATION ${PYTHON_INSTALL_DIR})
++  endif()
++endif()
+\ No newline at end of file
+diff --git a/packages/surfpack/src/pysurfpack.cpp b/packages/surfpack/src/pysurfpack.cpp
+new file mode 100644
+index 0000000..478b2ec
+--- /dev/null
++++ b/packages/surfpack/src/pysurfpack.cpp
+@@ -0,0 +1,93 @@
++#include <pybind11/pybind11.h>
++#include <pybind11/stl.h>
++
++#include <vector>
++#include <string>
++#include <SurfpackInterface.h>
++#include <SurfData.h>
++#include <SurfPoint.h>
++#include <surfaces/SurfpackModel.h>
++
++namespace py = pybind11;
++
++SurfData SurfData_from_array(const std::vector<std::vector<double>>& independent_valus,
++						     const std::vector<double>& dependent_valus)
++{
++	std::vector<SurfPoint> points;
++	assert(independent_valus.size() == dependent_valus.size());
++	for (int i=0; i<independent_valus.size(); i++)
++	{
++		SurfPoint point(independent_valus[i], dependent_valus[i]);
++		points.push_back(point);
++	}
++	return SurfData(points);
++}
++
++std::vector<std::vector<double>> get_hessian(SurfpackModel& m, const VecDbl& x)
++{
++	std::vector<std::vector<double>> _hessian;
++	MtxDbl mat = m.hessian(x);
++	for (int i=0; i < mat.getNRows(); i++)
++	{
++		std::vector<double> _hessian_row;
++		for (int j=0; j < mat.getNCols(); j++)
++		{
++			_hessian_row.push_back(mat(i, j));
++		}
++		_hessian.push_back(_hessian_row);
++	}
++	return _hessian;
++}
++
++
++PYBIND11_MODULE(pysurfpack, m) {
++	m.doc() = "python-bindings for surfpack";
++
++	py::class_<SurfData>(m, "Data")
++		.def("from_array", &SurfData_from_array);
++
++	py::class_<SurfpackModel>(m, "Model")
++		.def("response", [](SurfpackModel& m, const VecDbl& x){return m(x);})
++		.def("variance", &SurfpackModel::variance, "computing the variance for given point")
++		.def("gradient", &SurfpackModel::gradient, "computing the gradient for a given point")
++		.def("hessian", &get_hessian, "computing the hessian for a given point")
++		.def("get_parameters",
++			[](SurfpackModel& m){return m.parameters();},
++			"retrive the parameters of the model")
++		.def("set_parameters",
++			[](SurfpackModel& m, const ParamMap& pars){m.parameters(pars);},
++			"set the parameters of the model")
++		.def("r_squared", &SurfpackModel::rSquared)
++		.def("press", &SurfpackModel::press);
++
++	m.def("load_model", 
++		&SurfpackInterface::LoadModel, 
++		"load a model from a file into a pysurface.Model"
++		);
++
++	m.def("save_model",
++		[](const SurfpackModel* model, const std::string& filename)
++			{SurfpackInterface::Save(model, filename);},
++		"writes the model to a file"
++		);
++
++	m.def("save_data",
++		[](const SurfData* data, const std::string& filename)
++			{SurfpackInterface::Save(data, filename);},
++		"serialize pysurfpack.Data"
++		);
++
++	m.def("load_data",
++		[](const std::string& filename)
++			{return SurfpackInterface::LoadData(filename);},
++		"opens and loads data into a pysurfpack.Data object"
++		);
++
++	// interface not yet working
++	// m.def("create_surface",
++	// 	[](const SurfData* sd, ParamMap& args)
++	// 		{return SurfpackInterface::CreateSurface(sd, args);},
++	// 	"create surface from pysurface.Data and parameters"
++	// 	);
++
++}
+\ No newline at end of file
