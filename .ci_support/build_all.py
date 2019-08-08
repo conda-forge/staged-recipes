@@ -50,7 +50,7 @@ def build_all(recipes_dir, arch):
                             if channels != ['conda-forge', 'defaults'] and \
                                     channels != ['conda-forge/label/cf201901', 'defaults']:
                                 print("Not a standard configuration of channel_sources. Building {} individually.".format(folder))
-                                conda_build.api.build([os.path.join(recipes_dir, folder)], config=get_config(arch, channels), debug=True)
+                                conda_build.api.build([os.path.join(recipes_dir, folder)], config=get_config(arch, channels))
                                 built = True
                                 break
                     if not built:
