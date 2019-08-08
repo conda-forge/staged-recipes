@@ -15,7 +15,6 @@ ${BUILD_PREFIX}/bin/cmake \
      -DBOOST_ROOT=${BUILD_PREFIX} \
      -DXMS_VERSION="${XMS_VERSION}" ${SRC_DIR}
 
-
 make -j${CPU_COUNT}
 make install
 
