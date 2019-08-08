@@ -1,0 +1,61 @@
+diff -ruN a/setup.cfg b/setup.cfg
+--- a/setup.cfg	2019-08-07 22:50:25.000000000 -0700
++++ b/setup.cfg	2019-08-07 22:55:17.000000000 -0700
+@@ -1,9 +1,7 @@
+ [build_ext]
+-swig_opts = -v -Wall -c++ -threads -I/usr/include -I/usr/include/libindi -I/usr/local/include/libindi
+-include_dirs = /usr/include:/usr/include/libindi:/usr/local/include/libindi
+-libraries = z cfitsio nova
++libraries = z cfitsio
+ 
+ [egg_info]
+-tag_build = 
++tag_build =
+ tag_date = 0
+ 
+diff -ruN a/setup.py b/setup.py
+--- a/setup.py	2019-08-07 22:50:25.000000000 -0700
++++ b/setup.py	2019-08-07 22:51:25.000000000 -0700
+@@ -26,26 +26,17 @@
+ VERSION = '0.2.3'
+ root_dir = abspath(dirname(__file__))
+ 
+-# Add search paths here for libindiclient.a
+-libindisearchpaths=['/usr/lib/'+march, '/usr/lib', '/usr/lib64', '/lib', '/lib64', '/usr/local/lib']
+-
+-libindipath=''
+-
+-for lindipath in libindisearchpaths:
+-    if isfile(join(lindipath, 'libindiclient.a')):
+-        libindipath=lindipath
+-        break
+-
+-if libindipath=='':
+-    print('Unable to find libindiclient.a in '+str(libindisearchpaths))
+-    print('Please specify a path where to find libindiclient.a in the setup.py script')
+-    print('Exiting')
++import os
++libindipath = os.environ['PREFIX'] + '/lib'
++if not isfile(libindipath + '/libindiclient.a'):
++    print("Cannot find libindiclient.a at", libindipath)
+     exit(1)
+-    
++
+ pyindi_module = Extension('_PyIndi',
+                           sources=['indiclientpython.i'],
+                           language='c++',
+-                          extra_compile_args=[ '-std=c++11'],
++                          extra_compile_args=[ '-std=c++11', '-I' + os.environ['PREFIX'] + '/include/libindi'],
++                          swig_opts=['-v','-Wall','-c++','-threads','-I' + os.environ['PREFIX'] + '/include/libindi'],
+                           extra_objects = [join(libindipath, 'libindiclient.a')]
+ )
+ 
+@@ -60,7 +51,7 @@
+     def run(self):
+         self.run_command('build_ext')
+         self.do_egg_install()
+-        
++
+ #readme = open(join(root_dir, 'README.rst'))
+ descr="""
+ An INDI_ Client Python API, auto-generated from the official C++ API using SWIG.
