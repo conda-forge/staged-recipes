@@ -12,7 +12,7 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
 
     # JDC test
     echo "PATH: $PATH"
-    env
+    env | sort
 
     # CFLAGS
     export MINIMAL_CFLAGS="-g -O3"
