@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source $PREFIX/scripts/activate.d/cudatoolkit-dev-activate.sh
+# source $PREFIX/scripts/activate.d/cudatoolkit-dev-activate.sh
 
 CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=$PREFIX -DBUILD_TESTING=OFF"
 
