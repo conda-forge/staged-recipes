@@ -1,6 +1,6 @@
 mkdir -p out
 cd out
-if [ $(uname) == Linux ] then
+if [ $(uname) == Linux ]; then
 	CMAKE_EXE_LINKER_FLAGS_INIT="-lrt"
 fi
 cmake -DCMAKE_INSTALL_PREFIX=${PREFIX} \
