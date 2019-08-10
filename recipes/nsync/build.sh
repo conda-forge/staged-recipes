@@ -1,5 +1,5 @@
-mkdir -p build
-cd build
+mkdir -p out
+cd out
 cmake -DCMAKE_INSTALL_PREFIX=${PREFIX} \
 	  -DCMAKE_PREFIX_PATH=${PREFIX} \
 	  -DCMAKE_EXE_LINKER_FLAGS="-pthread -lrt" \
