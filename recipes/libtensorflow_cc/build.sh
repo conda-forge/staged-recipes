@@ -53,8 +53,8 @@ export TF_SET_ANDROID_WORKSPACE=0
 bazel ${BAZEL_OPTS} build ${BUILD_OPTS} //tensorflow:libtensorflow_cc.so
 
 # copy libraries
-cp bazel-bin/tensorflow/libtensorflow_cc.so* ${PREFIX}/lib/
-cp bazel-bin/tensorflow/libtensorflow_framework.so* ${PREFIX}/lib/
+cp bazel-bin/tensorflow/libtensorflow_cc.so ${PREFIX}/lib/
+cp bazel-bin/tensorflow/libtensorflow_framework.so ${PREFIX}/lib/
 
 # remove cc files
 find bazel-genfiles/ -name "*.cc" -type f -delete
