@@ -70,7 +70,7 @@ cp -r tensorflow/core ${PREFIX}/include/tensorflow
 cp -r third_party ${PREFIX}/include
 
 # link eigen
-for file in $(ls ${PREFIX}/eigen3)
+for file in $(ls ${PREFIX}/include/eigen3)
 do
-	ln -s ${PREFIX}/eigen3/${file} ${PREFIX}/${file}
+	ln -s ${PREFIX}/include/eigen3/${file} ${PREFIX}/include/${file}
 done
