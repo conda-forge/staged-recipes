@@ -26,6 +26,10 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
     # OpenMM build configuration
     CUDA_PATH="/usr/local/cuda"
     CMAKE_FLAGS+=" -DCUDA_TOOLKIT_ROOT_DIR=${CUDA_PATH}/"
+    # Fix missing CUDA_CUDA_LIBRARY
+    # From: https://github.com/floydhub/dl-docker/issues/59
+    CMAKE_FLAGS+=" -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs"
+
     # AMD APP SDK 3.0 OpenCL
     CMAKE_FLAGS+=" -DOPENCL_INCLUDE_DIR=${CUDA_PATH}/include/"
     CMAKE_FLAGS+=" -DOPENCL_LIBRARY=${CUDA_PATH}/lib64/libOpenCL.so"
