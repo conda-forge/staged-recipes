@@ -21,7 +21,7 @@ if [[ "$OSTYPE" == "linux-gnu" ]]; then
     export LDFLAGS="$LDPATHFLAGS"
 
     # Use clang 3.8.1 from the clangdev package on conda-forge
-    CMAKE_FLAGS+=" -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
+    # CMAKE_FLAGS+=" -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
 
     # OpenMM build configuration
     CUDA_PATH="/usr/local/cuda"
