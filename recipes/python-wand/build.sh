@@ -8,4 +8,4 @@ fi
 
 export MAGICK_HOME="${PREFIX}"
 
-script: "{{ PYTHON }} -m pip install . --no-deps --ignore-installed -vvv "
+$PYTHON -m pip install . --no-deps --ignore-installed -vvv
