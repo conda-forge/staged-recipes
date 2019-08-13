@@ -12,6 +12,7 @@ cat >~/.condarc <<CONDARC
 
 channels:
  - conda-forge
+ - omnia
  - nvidia
  - defaults
 
