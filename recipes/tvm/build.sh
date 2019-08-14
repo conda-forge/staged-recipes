@@ -21,14 +21,16 @@ cmake   \
 make -j${CPU_COUNT}
 make install
 
-cd python
-{{ PYTHON }} -m pip install . -vv
-cd ..
+popd
 
-cd topi/python
-{{ PYTHON }} -m pip install . -vv
-cd ../..
+pushd python
+$PYTHON setup.py install
+popd
 
-cd nnvm/python
-{{ PYTHON }} -m pip install . -vv
-cd ../..
+pushd topi/python
+$PYTHON setup.py install
+popd
+
+pushd nnvm/python
+$PYTHON setup.py install
+popd
