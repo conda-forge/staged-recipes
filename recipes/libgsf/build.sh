@@ -1,5 +1,7 @@
+#!/bin/bash
+set -euo pipefail
 
-./configure
+./configure --prefix=${PREFIX}
 make
 make check
 make install
