@@ -1,3 +1,6 @@
+set -e
+set -u
+
 mkdir -p build
 pushd build
 
@@ -10,7 +13,22 @@ cmake   \
         -DDLPACK_PATH=${PREFIX}/include/dlpack \
 	-DDMLC_CORE_PATH=${PREFIX}/lib \
 	-DUSE_VULKAN=OFF \
-	..	
+	-DUSE_LLVM=$PREFIX/bin/llvm-config \
+	-DCMAKE_TOOLCHAIN_FILE=${RECIPE_DIR}/cross_compile.cmake \
+	..
 
 
 make -j${CPU_COUNT}
+make install
+
+cd python
+{{ PYTHON }} -m pip install . -vv
+cd ..
+
+cd topi/python
+{{ PYTHON }} -m pip install . -vv
+cd ../..
+
+cd nnvm/python
+{{ PYTHON }} -m pip install . -vv
+cd ../..
