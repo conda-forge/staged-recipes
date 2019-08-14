@@ -5,6 +5,6 @@ set -euo pipefail
 sed -i.bak '1 s|^.*$|#!/usr/bin/env perl|g' $SRC_DIR/tests/t*.pl
 
 ./configure --prefix=${PREFIX}
-make
+make -j${CPU_COUNT}
 make check
 make install
