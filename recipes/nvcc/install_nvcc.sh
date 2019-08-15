@@ -23,6 +23,12 @@ then
     echo "Cannot find: ${CUDA_HOME}/lib64/stubs/libcuda.so"
     exit 1
 fi
+grep "CUDA Version ${PKG_VERSION}" /usr/local/cuda/version.txt &>/dev/null
+if [[ $? -ne 0 ]]
+then
+    echo "Version of installed CUDA didn't match package"
+    exit 1
+fi
 
 export CUDA_HOME="${CUDA_HOME}"
 export CFLAGS="\${CFLAGS} -I\${CUDA_HOME}/include"
