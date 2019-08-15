@@ -1,0 +1,45 @@
+{% set import_path = "gitlab.com/gitlab-org/gitlab-runner" %}
+{% set version = "12.1.0" %}
+{% set branch = '-'.join(version.split('.')[:2] +['stable']) %}
+{% set built = datetime.datetime.now().isoformat() %}
+
+{% set name = import_path.split('/')[-1] %}
+{% set pkg_src = ('src/'+import_path).replace("/", os.sep) %}
+
+package:
+  name: "{{ name|lower }}"
+  version: "{{ version }}"
+
+source:
+  - folder: {{ pkg_src }}
+    url: https://{{ import_path }}/-/archive/v{{ version }}/{{ name }}-v{{ version }}.tar.bz2
+    sha256: 49e7993e1eabc362ec99562e84931e699b77948efb6669f3e98a5dc40f2b2b66
+
+build:
+  number: 0
+  script:
+    - pushd {{ pkg_src }}
+    {% set flags = dict(VERSION=version, REVISION="%PKG_BUILDNUM%" if win else "$PKG_BUILDNUM", BRANCH=branch, BUILT=built) %}
+    - go install -v -ldflags "{% for key,value in flags.items() %}-X {{ import_path }}/common.{{ key }}='{{ value }}' {% endfor %}" .
+
+requirements:
+  build:
+    - {{ compiler("go") }}
+
+test:
+  commands:
+    - gitlab-runner --version
+
+about:
+  summary: "The official GitLab CI runner written in Go"
+  license: "MIT"
+  license_family: MIT
+  license_file: {{ pkg_src }}/LICENSE
+  home: "https://gitlab.com/gitlab-org/gitlab-runner"
+  dev_url: "https://gitlab.com/gitlab-org/gitlab-runner"
+  doc_url: "https://docs.gitlab.com/runner/"
+
+extra:
+  recipe-maintainers:
+    - duncanmmacleod
+    - sodre
