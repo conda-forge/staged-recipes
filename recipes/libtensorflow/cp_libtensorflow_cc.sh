@@ -1,4 +1,5 @@
 # copy libraries
+mkdir -p ${PREFIX}/lib
 cp bazel-bin/tensorflow/libtensorflow_cc.so ${PREFIX}/lib/
 cp bazel-bin/tensorflow/libtensorflow_framework.so ${PREFIX}/lib/
 
@@ -14,9 +15,3 @@ cp -r bazel-genfiles/* ${PREFIX}/include/
 cp -r tensorflow/cc ${PREFIX}/include/tensorflow
 cp -r tensorflow/core ${PREFIX}/include/tensorflow
 cp -r third_party ${PREFIX}/include
-
-# link eigen
-for file in $(ls ${PREFIX}/include/eigen3)
-do
-	ln -s ${PREFIX}/include/eigen3/${file} ${PREFIX}/include/${file}
-done
