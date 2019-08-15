@@ -1,4 +1,5 @@
 # copy libraries
+mkdir -p ${PREFIX}/lib/
 cp bazel-bin/tensorflow/libtensorflow.so ${PREFIX}/lib/
 cp bazel-bin/tensorflow/libtensorflow_framework.so ${PREFIX}/lib/
 
