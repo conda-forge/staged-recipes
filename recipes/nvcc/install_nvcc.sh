@@ -12,6 +12,18 @@ fi
 mkdir -p "${PREFIX}/etc/conda/activate.d"
 cat > "${PREFIX}/etc/conda/activate.d/${PKG_NAME}_activate.sh" <<EOF
 #!/bin/bash
+
+if [[ ! -d "${CUDA_HOME}" ]]
+then
+    echo "Cannot find: ${CUDA_HOME}"
+    exit 1
+fi
+if [[ ! -f "${CUDA_HOME}/lib64/stubs/libcuda.so" ]]
+then
+    echo "Cannot find: ${CUDA_HOME}/lib64/stubs/libcuda.so"
+    exit 1
+fi
+
 export CUDA_HOME="${CUDA_HOME}"
 export CFLAGS="\${CFLAGS} -I\${CUDA_HOME}/include"
 export CPPFLAGS="\${CPPFLAGS} -I\${CUDA_HOME}/include"
