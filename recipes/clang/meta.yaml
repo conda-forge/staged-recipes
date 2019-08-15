@@ -1,0 +1,56 @@
+{% set version = "8.0.0" %}
+
+package:
+  name: clang-compiler-activation
+  version: {{ version }}
+
+build:
+  skip: True  # [not osx]
+  number: 17
+
+requirements:
+  build:
+    - libcxx {{ version }}
+
+outputs:
+  - name: clang_{{ target_platform }}
+    script: install-clang.sh
+    requirements:
+      - clang {{ version }}
+      - cctools
+      - ld64
+      - compiler-rt {{ version }}
+    test:
+      commands:
+        - {{ macos_machine }}-clang --version    # [osx]
+
+  - name: clangxx_{{ target_platform }}
+    script: install-clangxx.sh
+    requirements:
+      host:
+        - clangxx {{ version }}
+        - libcxx {{ version }}
+        - {{ pin_subpackage('clang_' ~ target_platform, min_pin='x.x.x.x.x.x.x.x', max_pin='x.x.x.x.x.x.x.x') }}
+      run:
+        - clangxx {{ version }}
+        - {{ pin_compatible('libcxx', max_pin=None) }}
+        - {{ pin_subpackage('clang_' ~ target_platform, min_pin='x.x.x.x.x.x.x.x', max_pin='x.x.x.x.x.x.x.x') }}
+    # Since transitive run_exports are not currently possible
+    # (here I would like the run dependency on clangxx to pull in the run_exports from it).
+    run_exports:
+      strong:
+        - {{ pin_compatible('libcxx', max_pin=None) }}
+    test:
+      commands:
+        - {{ macos_machine }}-clang++ --version    # [osx]
+
+about:
+  home: http://github.com/AnacondaRecipes/aggregate
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE.txt
+  summary: 'clang compilers for conda-build 3'
+
+extra:
+  recipe-maintainers:
+    - isuruf
