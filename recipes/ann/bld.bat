@@ -6,4 +6,3 @@ nmake
 if errorlevel 1 exit 1
 nmake install
 if errorlevel 1 exit 1
-MOVE %LIBRARY_LIB%\ann.dll %LIBRARY_BIN%
