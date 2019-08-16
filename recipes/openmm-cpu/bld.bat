@@ -4,7 +4,6 @@ cd build
 cmake.exe .. -G "NMake Makefiles JOM" -DCMAKE_INSTALL_PREFIX=%PREFIX% -DCMAKE_BUILD_TYPE=Release -DOPENMM_GENERATE_API_DOCS=ON ^
     -DFFTW_INCLUDES="%LIBRARY_INC%" -DFFTW_LIBRARY="%LIBRARY_LIB%/fftw3f.lib" ^
     || goto :error
-exit 1
 jom install || goto :error
 jom PythonInstall || goto :error
 jom C++ApiDocs || goto :error
