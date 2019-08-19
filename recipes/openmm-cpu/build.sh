@@ -28,8 +28,6 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
     CMAKE_FLAGS+=" -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}"
 fi
 
-# Generate API docs
-CMAKE_FLAGS+=" -DOPENMM_GENERATE_API_DOCS=ON"
 
 # Set location for FFTW3 on both linux and mac
 CMAKE_FLAGS+=" -DFFTW_INCLUDES=${PREFIX}/include/"
@@ -42,35 +40,13 @@ env | sort
 echo "CMAKE_FLAGS:"
 echo $CMAKE_FLAGS
 
+
 # Build in subdirectory and install.
 mkdir build
 cd build
 cmake ${CMAKE_FLAGS} ${SRC_DIR}
-make -j$CPU_COUNT all
+make -j$CPU_COUNT
 make -j$CPU_COUNT install PythonInstall
-
-
-## DOCS
-
-# Clean up paths for API docs.
-mkdir openmm-docs
-mv $PREFIX/docs/* openmm-docs
-mv openmm-docs $PREFIX/docs/openmm
-
-# if [[ "$OSTYPE" == "linux-gnu" ]]; then
-#     # Add GLIBC_2.14 for pdflatex
-#     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/glibc-2.14/lib
-# fi
-
-# DEBUG: Needed for latest sphinx
-#locale -a
-#export LC_ALL=C
-#locale -a
-
-# Build PDF manuals
-# make -j$CPU_COUNT sphinxpdf
-# mv sphinx-docs/userguide/latex/*.pdf $PREFIX/docs/openmm/
-# mv sphinx-docs/developerguide/latex/*.pdf $PREFIX/docs/openmm/
 
 # Put examples into an appropriate subdirectory.
 mkdir $PREFIX/share/openmm/
