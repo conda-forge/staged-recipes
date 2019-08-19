@@ -2,9 +2,9 @@ if [ "$(uname)" == "Darwin" ];
 then
     export MACOSX_VERSION_MIN=10.9
     export CXXFLAGS="-mmacosx-version-min=${MACOSX_VERSION_MIN}"
-    export CXXFLAGS="${CXXFLAGS} -stdlib=libc++ -std=c++11"
+    export CXXFLAGS="${CXXFLAGS} -stdlib=libc++"
     export LINKFLAGS="-mmacosx-version-min=${MACOSX_VERSION_MIN}"
-    export LINKFLAGS="${LINKFLAGS} -stdlib=libc++ -std=c++11 -L${LIBRARY_PATH}"
+    export LINKFLAGS="${LINKFLAGS} -stdlib=libc++ -L${LIBRARY_PATH}"
 fi
 
 
