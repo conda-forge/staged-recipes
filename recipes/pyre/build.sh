@@ -1,6 +1,14 @@
 #!/bin/sh
 set -euo pipefail
 
+# Is this macOS?
+if [ -v MACOSX_DEPLOYMENT_TARGET ]; then
+    export TARGET_CXX=clang-4
+    # Use specified macOS SDK, and enforce minimum version
+    export CXXFLAGS="$CXXFLAGS -isysroot $CONDA_BUILD_SYSROOT"
+    export CXXFLAGS="$CXXFLAGS -mmacos-version-min=$MACOS_DEPLOYMENT_TARGET"
+fi
+
 # Use conda compiler + options
 export COMPILER_CXX_NAME=$CXX
 # Set these variables so as not to clobber mm flags
