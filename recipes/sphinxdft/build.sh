@@ -6,6 +6,6 @@ if test -f ${PREFIX}/lib/libmkl_sequential.so; then
 else
   echo "file does not exists" ${PREFIX}/lib/libmkl_sequential.so
 fi
-./configure OBJCXX=$(CXX) --disable-debug --with-sxmath --enable-mkl --prefix=${PREFIX} --with-mklpath=${PREFIX}
+./configure OBJCXX=${CXX} --disable-debug --with-sxmath --enable-mkl --prefix=${PREFIX} --with-mklpath=${PREFIX}
 make all
 make install 
