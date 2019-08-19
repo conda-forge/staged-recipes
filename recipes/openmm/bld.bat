@@ -10,15 +10,8 @@ set CUDASDK=C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v9.2
 
 jom install
 jom PythonInstall
-jom C++ApiDocs
-jom PythonApiDocs
-REM jom sphinxpdf
 jom install
 
-mkdir openmm-docs
-robocopy %PREFIX%\docs openmm-docs * /e /move
-mkdir %PREFIX%\docs
-move openmm-docs %PREFIX%\docs\openmm
 mkdir %PREFIX%\share\openmm
 move %PREFIX%\examples %PREFIX%\share\openmm
 
