@@ -14,7 +14,7 @@ cmake   \
 	-DDMLC_CORE_PATH=${PREFIX}/lib \
 	-DUSE_VULKAN=OFF \
 	-DUSE_LLVM=$PREFIX/bin/llvm-config \
-	-DCMAKE_TOOLCHAIN_FILE=${RECIPE_DIR}/cross_compile.cmake \
+#	-DCMAKE_TOOLCHAIN_FILE=${RECIPE_DIR}/cross_compile.cmake \
 	..
 
 
