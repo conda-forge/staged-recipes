@@ -1,0 +1,67 @@
+{% set version = "1.17.0" %}
+
+package:
+  name: numpy-nodeps
+  version: {{ version }}
+
+source:
+  url: https://github.com/numpy/numpy/releases/download/v{{ version }}/numpy-{{ version }}.tar.gz
+  sha256: 47b7b6145e7ba5918ce26be25999b6d4b35cf9fbfdf46b7da50090ffdb020445
+
+build:
+  number: 0
+  skip: True  # [py27]
+  entry_points:
+    - f2py = numpy.f2py.f2py2e:main  # [win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    # gcc 7.3 segfaults on aarch64
+    - clangdev    # [aarch64]
+  host:
+    - python
+    - pip
+  run:
+    - python
+
+# Skipped test justificiation
+# aarch64:
+#   Timeouts: Marked as slow by numpy, extra slow due to QEMU
+#       - test_unary_ufunc_call_fuzz
+#       - test_may_share_memory_easy_fuzz
+#       - test_may_share_memory_harder_fuzz
+#       - test_large_zip 
+#   Math: Qemu??? numpy bugs in BigEndian???
+#       - test_loss_of_precision
+#   We forget:
+#       - test_xerbla_override
+#       - test_sdot_bug_8577
+# ppc64le
+#   - test_loss_of_precision: likely a bug in libc/numpy
+#   - test_einsum_sums_cfloat64: likely a bug in libc/numpy
+test:
+  requires:
+    - pytest
+    - pytest-timeout
+  commands:
+    - f2py -h
+    - pytest --timeout=300 -v --pyargs numpy -k "not (test_loss_of_precision or test_einsum_sums_cfloat64)"  # [ppc64le]
+    - pytest --timeout=300 -v --pyargs numpy -k "not (test_loss_of_precision or test_may_share_memory_easy_fuzz or test_xerbla_override or test_may_share_memory_harder_fuzz or test_large_zip or test_sdot_bug_8577 or test_unary_ufunc_call_fuzz)"  # [aarch64]
+    - pytest --timeout=300 -v --pyargs numpy -k "not (test_scalar_methods)"  # [win]
+    - pytest --timeout=300 -v --pyargs numpy  # [not (aarch64 or ppc64le or win)]
+  imports:
+    - numpy
+    - numpy.linalg.lapack_lite
+
+about:
+  home: http://numpy.scipy.org/
+  license: BSD 3-Clause
+  license_file: LICENSE.txt
+  summary: 'Array processing for numbers, strings, records, and objects.'
+  doc_url: https://docs.scipy.org/doc/numpy/reference/
+  dev_url: https://github.com/numpy/numpy
+
+extra:
+  recipe-maintainers:
+    - abloemert
