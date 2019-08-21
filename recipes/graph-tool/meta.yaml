@@ -1,0 +1,80 @@
+{% set version = "2.29" %}
+{% set sha1 = "0bbe18b9c1d20e76f8d3e029713093e3ddc326f9" %}
+
+package:
+  name: graph-tool
+  version: {{ version }}
+
+source:
+  fn: graph-tool-{{ version }}.tar.bz2
+  url: https://downloads.skewed.de/graph-tool/graph-tool-{{ version }}.tar.bz2
+  sha1: {{ sha1 }}
+
+  patches:
+    # Don't let configure test the python configuration via a test module;
+    # it fails to link because we don't include -lpython in LDFLAGS.
+    - patches/no-check-python-link.patch
+
+    # Don't use autotools to detect and test boost-python.
+    - patches/skip-boost-python-config.patch
+    
+    # These implement a workaround for a bug in clang,
+    # which will probably be added to master in version 2.30
+    # See the following merge request:
+    # https://git.skewed.de/count0/graph-tool/merge_requests/19
+    - patches/no-max-element-graph-adjacency.patch   # [osx]
+    - patches/no-max-element-graph-blockmodel.patch  # [osx]
+
+build:
+  skip: true  # [win or py != 37]
+  number: 0
+  detect_binary_files_with_prefix: true
+
+requirements:
+  build:
+    - libtool
+    - autoconf
+    - automake
+    - pkg-config
+
+    # On mac, requires clang 8
+    # (clang 4 does not have sufficient c++17 support)
+    - clangxx_osx-64 >=8*    # [osx]
+    - {{ compiler("cxx") }}  # [linux]
+    
+  host:
+    - python
+    - numpy
+    - boost
+    - expat
+    - scipy >=1.0
+    - cgal 4.14*
+    - sparsehash 2.0*
+    - cairomm
+    - pycairo
+    
+  run:
+    - python
+    - boost
+    - expat
+    - scipy >=1.0
+    - {{ pin_compatible('numpy') }}
+    - cgal >=4.14
+    - sparsehash >=2.0
+    - cairomm
+    - pycairo
+
+test:
+  imports:
+    - graph_tool
+    - graph_tool.all
+
+about:
+  home: https://graph-tool.skewed.de/
+  license: GPL-3.0
+  license_file: LICENSE
+  summary: Efficient network analysis
+
+extra:
+  recipe-maintainers:
+    - stuarteberg
