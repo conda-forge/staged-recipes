@@ -6,7 +6,6 @@ if [ "$os_type" = "Darwin" ]; then
     export TARGET_CXX=clang-4
     # Use specified macOS SDK, and enforce minimum version
     export CXXFLAGS="$CXXFLAGS -isysroot $CONDA_BUILD_SYSROOT"
-    export CXXFLAGS="$CXXFLAGS -mmacos-version-min=$MACOS_DEPLOYMENT_TARGET"
 fi
 
 # Use conda compiler + options
