@@ -1,8 +1,8 @@
 #!/bin/sh
 set -euo pipefail
 
-# Is this macOS?
-if [ -v MACOSX_DEPLOYMENT_TARGET ]; then
+os_type=`uname`
+if [ "$os_type" = "Darwin" ]; then
     export TARGET_CXX=clang-4
     # Use specified macOS SDK, and enforce minimum version
     export CXXFLAGS="$CXXFLAGS -isysroot $CONDA_BUILD_SYSROOT"
