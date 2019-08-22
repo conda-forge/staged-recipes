@@ -27,4 +27,3 @@ $PYTHON $SRC_DIR/config/make/mm.py build --prefix=$PREFIX
 
 # Install python packages to conda's site-package directory
 mv $PREFIX/packages/* $SP_DIR/
-#rm -d $PREFIX/packages
