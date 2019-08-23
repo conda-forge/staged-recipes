@@ -104,6 +104,8 @@ if __name__ == '__main__':
         write_token('appveyor', os.environ['APPVEYOR_TOKEN'])
     if 'CIRCLE_TOKEN' in os.environ:
         write_token('circle', os.environ['CIRCLE_TOKEN'])
+    if 'AZURE_TOKEN' in os.environ:
+        write_token('azure', os.environ['AZURE_TOKEN'])
     gh = None
     if 'GH_TOKEN' in os.environ:
         write_token('github', os.environ['GH_TOKEN'])
@@ -155,7 +157,7 @@ if __name__ == '__main__':
         # Without this, intermittent failures to synch the TravisCI repos ensue.
         # Hang on to any CI registration errors that occur and raise them at the end.
         for num, (feedstock_dir, name, recipe_dir) in enumerate(feedstock_dirs):
-            if num >= 20:
+            if num >= 10:
                 exit_code = 1
                 break
             # Try to register each feedstock with CI.
@@ -165,12 +167,12 @@ if __name__ == '__main__':
             # we fail the build so that people are aware that things did not clear.
             try:
                 subprocess.check_call(['conda', 'smithy', 'register-ci', '--feedstock_directory', feedstock_dir] + owner_info)
+                subprocess.check_call(['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
                 exit_code = 1
                 traceback.print_exception(*sys.exc_info())
                 continue
 
-            subprocess.check_call(['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             subprocess.check_call(['git', 'commit', '-am', "Re-render the feedstock after CI registration."], cwd=feedstock_dir)
             for i in range(5):
                 try:
