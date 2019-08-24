@@ -3,7 +3,7 @@
 mkdir -p ${PREFIX}/bin
 
 if [ $(uname) == Linux ]; then
-        mv * ${PREFIX}/bin
+  mv * ${PREFIX}/bin
 fi
 
 if [ $(uname) == Darwin ]; then
@@ -12,8 +12,8 @@ if [ $(uname) == Darwin ]; then
   cp -rf Firefox.app $PREFIX/
   APP=$PREFIX/bin/firefox
   cat <<EOF >$APP
-  #!/bin/bash
-  $PREFIX/Firefox.app/Contents/MacOS/firefox "\$@"
-  EOF
+#!/bin/bash
+$PREFIX/Firefox.app/Contents/MacOS/firefox "\$@"
+EOF
   chmod +x $APP
 fi
