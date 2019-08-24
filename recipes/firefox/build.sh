@@ -7,7 +7,7 @@ if [ $(uname) == Linux ]; then
 fi
 
 if [ $(uname) == Darwin ]; then
-  	pkgutil --expand firefox.pkg firefox
-    cpio -i -I firefox/Payload
-    cp usr/local/bin/* ${PREFIX}/bin/
+  pkgutil --expand firefox.pkg firefox
+  cpio -i -I Firefox $VERSION.pkg/Payload
+  cp usr/local/bin/* ${PREFIX}/bin/
 fi
