@@ -8,6 +8,6 @@ fi
 
 if [ $(uname) == Darwin ]; then
   pkgutil --expand firefox.pkg firefox
-  cpio -i -I Firefox $VERSION.pkg/Payload
+  cpio -i -I "firefox/Firefox $VERSION.pkg/Payload"
   cp usr/local/bin/* ${PREFIX}/bin/
 fi
