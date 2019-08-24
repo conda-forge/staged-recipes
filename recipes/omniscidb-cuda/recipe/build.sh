@@ -93,15 +93,15 @@ else
     export CMAKE_CXX=$HOST-g++
 fi
 
-GXX=$HOST-g++         # replace with $GXX
-GCCVERSION=$(basename $(dirname $($GXX -print-libgcc-file-name)))
-GXXINCLUDEDIR=$PREFIX/$HOST/include/c++/$GCCVERSION
+##GXX=$HOST-g++         # replace with $GXX
+##GCCVERSION=$(basename $(dirname $($GXX -print-libgcc-file-name)))
+##GXXINCLUDEDIR=$PREFIX/$HOST/include/c++/$GCCVERSION
 # Add gcc include directory to astparser, resolves `not found
 # include file`: cstdint
 # On Ubuntu 18.04 tests pass without this patch, however, the
 # patch is required on Centos and apparently on CI machines
 # (Ubuntu 16.04)
-$INPLACE_SED 's!arg_vector\[3\] = {arg0, arg1!arg_vector\[4\] = {arg0, arg1, "-extra-arg=-I'$GXXINCLUDEDIR'"!g' QueryEngine/UDFCompiler.cpp
+##$INPLACE_SED 's!arg_vector\[3\] = {arg0, arg1!arg_vector\[4\] = {arg0, arg1, "-extra-arg=-I'$GXXINCLUDEDIR'"!g' QueryEngine/UDFCompiler.cpp
 
 # fixes `undefined reference to
 # `boost::system::detail::system_category_instance'`:
