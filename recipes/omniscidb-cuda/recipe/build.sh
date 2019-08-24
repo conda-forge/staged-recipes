@@ -18,6 +18,12 @@ $INPLACE_SED 's:DESTINATION ThirdParty/lib:DESTINATION lib:g' CMakeLists.txt
 
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 
+# libcuda.so is a machine specific library. For building, we use
+# libcuda.so from stubs. For runtime, users must specify the location
+# of libcuda.so.1 in the environment variable LD_LIBRARY_PATH.
+export LDFLAGS="$LDFLAGS -L$PREFIX/lib/stubs -Wl,-rpath-link,$PREFIX/lib/stubs"
+export EXTRA_CMAKE_OPTIONS="-DCMAKE_LIBRARY_PATH=$PREFIX/lib/stubs"
+
 # Enforce PREFIX instead of BUILD_PREFIX:
 export ZLIB_ROOT=$PREFIX
 export LibArchive_ROOT=$PREFIX
@@ -80,7 +86,6 @@ if [ "$COMPILERNAME" == "clang" ]; then
     # Resolves `It appears that you have Arrow < 0.10.0`:
     export CFLAGS="$CFLAGS -pthread"
     export LDFLAGS="$LDFLAGS -lpthread -lrt -lresolv"
-    export LDFLAGS="$LDFLAGS -L$PREFIX/lib"
 else
     export CC=clang
     export CXX=  # not used
@@ -102,7 +107,7 @@ $INPLACE_SED 's!arg_vector\[3\] = {arg0, arg1!arg_vector\[4\] = {arg0, arg1, "-e
 # `boost::system::detail::system_category_instance'`:
 export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
 
-export CMAKE_COMPILERS="-DCMAKE_C_COMPILER=$CMAKE_CC -DCMAKE_CXX_COMPILER=$CMAKE_CXX"
+export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCMAKE_C_COMPILER=$CMAKE_CC -DCMAKE_CXX_COMPILER=$CMAKE_CXX"
 
 mkdir -p build
 cd build
@@ -118,16 +123,21 @@ cmake -Wno-dev \
     -DENABLE_PROFILER=off \
     -DENABLE_TESTS=on  \
     -DPREFER_STATIC_LIBS=off \
-    $CMAKE_COMPILERS \
+    $EXTRA_CMAKE_OPTIONS \
     ..
 
 make -j $CPU_COUNT
 make install
 
-mkdir tmp
-$PREFIX/bin/initdb tmp
-make sanity_tests
-rm -rf tmp
+# skip tests when libcuda.so is not available
+if [ "`ldd bin/initdb | grep "not found" | tr -d '[:space:]'`" == "libcuda.so.1=>notfound" ]; then
+    echo "SKIP RUNNING SANITY TESTS: libcuda.so.1 not found"
+else
+    mkdir tmp
+    $PREFIX/bin/initdb tmp
+    make sanity_tests
+    rm -rf tmp
+fi
 
 # copy initdb to mapd_initdb to avoid conflict with psql initdb
 cp $PREFIX/bin/initdb $PREFIX/bin/omnisci_initdb
