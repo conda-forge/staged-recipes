@@ -8,6 +8,9 @@ fi
 
 if [ $(uname) == Darwin ]; then
   pkgutil --expand firefox.pkg firefox
+  echo ${pwd}
   cpio -i -I "firefox/Payload"
-  cp usr/local/bin/* ${PREFIX}/bin/
+  ls -lha
+  echo "HERE"
+  # cp usr/local/bin/* ${PREFIX}/bin/
 fi
