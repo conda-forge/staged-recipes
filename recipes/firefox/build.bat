@@ -1,5 +1,2 @@
-msiexec /a firefox.msi /qb TARGETDIR=%TEMP% || exit 1
-
-if not exist %LIBRARY_BIN% mkdir %LIBRARY_BIN% || exit 1
-
-copy %TEMP%\Firefox\*.exe %LIBRARY_BIN% || exit 1
+:: https://support.mozilla.org/en-US/kb/deploy-firefox-msi-installers
+msiexec.exe /i firefox.msi INSTALL_DIRECTORY_PATH=%LIBRARY_BIN% TASKBAR_SHORTCUT=false DESKTOP_SHORTCUT=false INSTALL_MAINTENANCE_SERVICE=false /quiet || exit 1
