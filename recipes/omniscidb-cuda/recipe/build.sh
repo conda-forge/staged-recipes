@@ -2,10 +2,6 @@
 
 set -ex
 
-# Install packages that depend on zstd (also indirectly) to resolve
-# Azure CI issue with zstd:
-conda install --yes -c conda-forge maven libarchive arrow-cpp libgdal openjdk=8 boost-cpp=1.68 cudatoolkit-dev conda
-
 # sed -i option is handled differently in Linux and OSX
 if [ $(uname) == Darwin ]; then
     INPLACE_SED="sed -i \"\" -e"
@@ -26,7 +22,7 @@ export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 # libcuda.so from stubs. For runtime, users must specify the location
 # of libcuda.so.1 in the environment variable LD_LIBRARY_PATH.
 export LDFLAGS="$LDFLAGS -L$PREFIX/lib/stubs -Wl,-rpath-link,$PREFIX/lib/stubs"
-export EXTRA_CMAKE_OPTIONS="-DCMAKE_LIBRARY_PATH=$PREFIX/lib/stubs"
+export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCMAKE_LIBRARY_PATH=$PREFIX/lib/stubs"
 
 # Enforce PREFIX instead of BUILD_PREFIX:
 export ZLIB_ROOT=$PREFIX
