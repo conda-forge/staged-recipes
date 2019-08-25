@@ -2,6 +2,10 @@
 
 set -ex
 
+# Install packages that depend on zstd (also indirectly) to resolve
+# Azure CI issue with zstd:
+conda install --yes -c conda-forge maven libarchive arrow-cpp libgdal openjdk=8 boost-cpp=1.68 cudatoolkit-dev conda
+
 # sed -i option is handled differently in Linux and OSX
 if [ $(uname) == Darwin ]; then
     INPLACE_SED="sed -i \"\" -e"
