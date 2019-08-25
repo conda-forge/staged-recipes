@@ -28,7 +28,7 @@ export BOOST_PYTHON_LIB=boost_python37
 # This is a suitable no-op.
 PYTHON_LIBS=" "
 
-if [[ $(uname) == Darwin ]]; then
+if [[ $target_platform == osx* ]]; then
     # Don't resolve python symbols until runtime.
     # See note above about PYTHON_LIBS.
     export LDFLAGS="${LDFLAGS} -undefined dynamic_lookup"
