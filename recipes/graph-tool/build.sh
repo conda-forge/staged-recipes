@@ -33,8 +33,10 @@ if [[ $(uname) == Darwin ]]; then
     # See note above about PYTHON_LIBS.
     export LDFLAGS="${LDFLAGS} -undefined dynamic_lookup"
 
-    # https://github.com/conda-forge/conda-forge-ci-setup-feedstock/issues/53#issuecomment-490314561
-    export CPU_COUNT=4
+	if [[ "$CI" == "azure" ]]; then
+	    # https://github.com/conda-forge/conda-forge-ci-setup-feedstock/issues/53#issuecomment-490314561
+	    export CPU_COUNT=4
+	fi
 fi
 
 echo "Building with CPU_COUNT=${CPU_COUNT}"
