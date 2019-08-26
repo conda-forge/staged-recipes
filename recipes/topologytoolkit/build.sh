@@ -3,11 +3,9 @@
 mkdir -p build
 cd build
 
-# temporary workaround for vtk-cmake setup
+# temporary workaround for issue https://github.com/conda-forge/vtk-feedstock/issues/86
 find ${PREFIX}/lib/cmake/vtk-8.2/ -type f -print0 | xargs -0 \
     sed -i 's#/home/conda/feedstock_root/build_artifacts/vtk_.*_build_env/x86_64-conda_cos6-linux-gnu/sysroot/usr/lib.*;##g'
-# find ${PREFIX}/lib/cmake/vtk-8.2/ -type f -print0 | xargs -0 \
-#     sed -i 's#/usr/lib64/#\$PREFIX/lib/#g'
 
 cmake .. -G "Ninja" \
     -Wno-dev \
@@ -21,7 +19,5 @@ cmake .. -G "Ninja" \
     -DTTK_ENABLE_KAMIKAZE=OFF \
     -DTTK_ENABLE_MPI=OFF \
     -DTTK_ENABLE_OPENMP=ON
-
-# -DBoost_NO_BOOST_CMAKE:BOOL=ON
 
 ninja install -v
