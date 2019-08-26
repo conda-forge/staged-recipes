@@ -9,13 +9,6 @@ else
     INPLACE_SED="sed -i"
 fi
 
-# conda build cannot find boost libraries from
-# ThirdParty/lib. Actually, moving environment boost libraries to
-# ThirdParty/lib does not make much sense. The following is just a
-# quick workaround of the problem. Upstream will remove the relevant
-# code from CMakeLists.txt as not needed.
-$INPLACE_SED 's:DESTINATION ThirdParty/lib:DESTINATION lib:g' CMakeLists.txt
-
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 
 # libcuda.so is a machine specific library. For building, we use
