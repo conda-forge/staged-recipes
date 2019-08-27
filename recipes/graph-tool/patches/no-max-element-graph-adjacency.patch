@@ -1,0 +1,37 @@
+diff --git src/graph/graph_adjacency.hh src/graph/graph_adjacency.hh
+index 561ef6a2..4c1a1b35 100644
+--- src/graph/graph_adjacency.hh
++++ src/graph/graph_adjacency.hh
+@@ -33,6 +33,10 @@
+ #include <boost/iterator/transform_iterator.hpp>
+ #include <boost/iterator/iterator_facade.hpp>
+ 
++#ifdef __clang__
++#include <boost/algorithm/minmax_element.hpp>
++#endif
++
+ #include "transform_iterator.hh"
+ 
+ namespace boost
+@@ -449,9 +453,18 @@ public:
+         std::for_each(_edges.begin(), _edges.end(),
+                       [](auto &es){es.second.shrink_to_fit();});
+         auto erange = boost::edges(*this);
+-        auto iter = std::max_element(erange.first, erange.second,
+-                                     [](const auto &a, const auto& b) -> bool
+-                                     {return a.idx < b.idx;});
++
++// Clang 8.0 fails to correctly recognize these as ForwardIterators,
++// triggering a static_assert in std::max_element(). See #576.
++#ifndef __clang__
++        auto iter = std::max_element(
++#else
++        auto iter = boost::first_max_element(
++#endif
++            erange.first, erange.second,
++            [](const auto &a, const auto& b) -> bool
++            {return a.idx < b.idx;});
++
+         if (iter == erange.second)
+             _edge_index_range = 0;
+         else
