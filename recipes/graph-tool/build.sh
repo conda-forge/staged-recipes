@@ -64,13 +64,20 @@ echo "Building with CPU_COUNT=${CPU_COUNT}"
 ## Below, we use a hybrid approach:
 ##
 ##   1. Build the most RAM-intensive part first
-##      (the inference package), in a single thread.
+##      (the inference package), in just a single thread on Linux,
+#       or two threads on Mac.
 ##
-##   2. Build everything else using parallel jobs (make -j<N>).
+##   2. Then build everything else using parallel jobs (make -j<N>).
 ##
 
 echo "[inference] Starting make"
-cd src/graph/inference && make && cd -
+cd src/graph/inference
+if [[ $target_platform == osx* ]]; then
+	make -j2
+else
+	make
+fi
+cd -
 
 echo "[all] Starting make"
 make -j${CPU_COUNT}
