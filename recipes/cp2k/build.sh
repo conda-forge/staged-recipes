@@ -9,7 +9,6 @@
     --with-reflapack=system      \
     --with-gsl=system            \
     --with-hdf5=system           \
-    --with-libxc=install         \
+    --with-libxc=system          \
     --with-libxsmm=install       \
-    --with-libint=install        \
-    --libint-lmax=5 
+    --with-libint=system
