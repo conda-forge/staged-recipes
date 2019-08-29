@@ -1,6 +1,4 @@
 #!/bin/bash
-ls /home/conda/conda-recipes
-ls /home/conda/conda-recipes/cp2k
-cp /home/conda/conda-recipes/cp2k/Linux-x86-64-conda.sopt arch/Linux-x86-64-conda.sopt
-make -j${CPU_COUNT} ARCH=Linux-x86-64-conda VERSION=sopt
+cp /home/conda/conda-recipes/cp2k/Linux-x86-64-conda.sopt arch/Linux-x86-64-gfortran.sopt
+make -j${CPU_COUNT} ARCH=Linux-x86-64-gfortran VERSION=sopt
 cp ./exe/cp2k ${PREFIX}/bin
