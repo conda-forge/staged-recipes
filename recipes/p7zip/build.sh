@@ -6,7 +6,7 @@
 make all_test
 
 #sed -i "s|#! /bin/sh|#!/bin/bash|" install.sh
-sed -i "s|DEST_HOME=.*|DEST_HOME=$PREFIX|" install.sh
+sed -i.bak "s|DEST_HOME=.*|DEST_HOME=$PREFIX|" install.sh
 bash ./install.sh
 
 rm -r ${PREFIX}/man
