@@ -4,7 +4,7 @@
 #mkdir -p ${PREFIX}/lib
 
 if [[ "$target_platform" == osx* ]]; then
-    mv "makefile.macosx_llvm_64bits", "makefile.machine"
+    mv "makefile.macosx_llvm_64bits" "makefile.machine"
 fi
 
 make all_test CC=$CC CXX=$CXX ALLFLAGS_C="$CFLAGS" ALLFLAGS_CPP="$CXXFLAGS" LDFLAGS="$LDFLAGS"
