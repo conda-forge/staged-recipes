@@ -1,6 +1,6 @@
 #!/bin/bash
 cp /home/conda/conda-recipes/cp2k/Linux-x86-64-conda.sopt arch/Linux-x86-64-gfortran.sopt
-cd /tools/toolchain
+cd tools/toolchain
 ./install_cp2k_toolchain.sh  \
     --mpi-mode=no                \
     --with-gcc=system            \
