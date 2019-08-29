@@ -5,3 +5,4 @@ export CFLAGS="$CFLAGS -Wno-error=format-truncation"
 ./configure --disable-build-docs --prefix=${PREFIX} --verbose
 make
 make install
+make check
