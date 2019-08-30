@@ -1,0 +1,54 @@
+# A few variables that make this a tiny bit more portable
+{% set centos_name = "mesa-dri-drivers" %}
+{% set name = centos_name |lower %}
+{% set version = '18.0.5' %}
+{% set centos_build = '3' %}
+# No good way to get this other than to fail once, I think???
+{% set el = 'el7' %}
+{% set arch = "aarch64" %}
+{% set cos = "cos7" %}
+{% set url_base = "http://mirror.centos.org/altarch/7/os/aarch64/Packages/" %}
+
+package:
+  name: {{ name }}-{{ cos }}-{{ arch }}
+  version: {{ version }}
+
+source:
+  - url: {{ url_base }}{{ centos_name }}-{{ version }}-{{ centos_build }}.{{ el }}.{{ arch }}.rpm
+    sha256: c98fd4a044666348cd3ccced16fa597e888d91f532deedd5028b5cf59f9a6587
+    folder: binary
+
+build:
+  number: 0
+  noarch: generic
+  missing_dso_whitelist:
+    - '*'
+
+test:
+  # dummy requirement to workaround a bug with the CDT tests
+  requires:
+    - zlib
+  commands:
+    - test -f "$PREFIX/{{ arch }}-conda_{{ cos }}-linux-gnu/sysroot/usr/lib64/dri/msm_dri.so"
+
+outputs:
+  - name: {{ name }}-{{ cos }}-{{ arch }}
+    build:
+      script:
+        - mkdir -p {{ PREFIX }}/{{ arch }}-conda_{{ cos }}-linux-gnu/sysroot
+        - pushd {{ PREFIX }}/{{ arch }}-conda_{{ cos }}-linux-gnu/sysroot > /dev/null 2>&1
+        - cp -Rf {{ SRC_DIR }}/binary/* .
+
+about:
+  description: 'Mesa-based DRI drivers.'
+  home: http://www.mesa3d.org
+  # The license is kinda complicated for this. Seems like it is a mix of code
+  # from different people
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: (CDT) Mesa-based DRI drivers
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
