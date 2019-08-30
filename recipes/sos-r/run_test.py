@@ -21,10 +21,13 @@ class TestSoSKernel(unittest.TestCase):
     def testKernel(self):
         with sos_kernel() as kc:
             execute(kc=kc, code='a = 1')
-            _, _ = assemble_output(kc.iopub_channel)
+            stdout, stderr = assemble_output(kc.iopub_channel)
+            self.assertEqual(stdout.strip(), '', f'Stdout is not empty, "{stdout}" received')
+            self.assertEqual(stderr.strip(), '', f'Stderr is not empty, "{stderr}" received')
             execute(kc=kc, code='%use R\n%get a\ncat(a)')
-            stdout, _ = assemble_output(kc.iopub_channel)
-            self.assertEqual(stdout.strip(), '1')
+            stdout, stderr = assemble_output(kc.iopub_channel)
+            self.assertEqual(stderr.strip(), '', f'Stderr is not empty, "{stderr}" received')
+            self.assertEqual(stdout.strip(), '1', f'Stdout should be 1, "{stdout}" received')
 
 if __name__ == '__main__':
     unittest.main()
