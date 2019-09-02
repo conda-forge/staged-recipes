@@ -1,10 +1,11 @@
 import unittest
 import sys
+import shutil
 
 from sos_notebook.test_utils import sos_kernel
 from ipykernel.tests.utils import execute, wait_for_idle, assemble_output
 
-@unittest.skipIf(sys.platform == 'win32', 'octave does not exist on win32')
+@unittest.skipIf(shutil.which('octave') is None, 'skip test if octave is not available')
 class TestSoSKernel(unittest.TestCase):
     def testKernel(self):
         with sos_kernel() as kc:
