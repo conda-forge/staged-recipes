@@ -75,9 +75,9 @@ Short answer: yes. Long answer: In principle, as long as your dependencies are i
 your user's conda channels they will be able to install your package. In practice, that is difficult
 to manage, and we strive to get all dependencies built in conda-forge.
 
-### 7. **When or why do I need to use `{{ PYTHON }} -m pip install --no-deps . -vv`?**
+### 7. **When or why do I need to use `{{ PYTHON }} -m pip install . -vv`?**
 
-This should be the default install line for most Python packages. This is preferable to `python setup.py` because it handles metadata in a `conda`-friendlier way. We also want to make sure dependencies are handled through `conda`, and `--no-deps` means most Python dependencies are needed only at `run` time, not `build`.
+This should be the default install line for most Python packages. This is preferable to `python setup.py` because it handles metadata in a `conda`-friendlier way.
 
 ### 8. **Do I need `bld.bat` and/or `build.sh`?**
 
