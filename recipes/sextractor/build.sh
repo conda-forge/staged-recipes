@@ -1,5 +1,7 @@
 #!/bin/bash
 
+mv man/sex.1.in man/s_extractor.1.in
+mv man/sex.x man/s_extraxtor.x
 sh autogen.sh
 ./configure --prefix=${PREFIX} \
     --enable-openblas \
