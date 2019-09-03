@@ -1,0 +1,90 @@
+# Note: there are many handy hints in comments in this example -- remove them when you've finalized your recipe
+
+# Note: Ruby Packages in conda-forge are still highly experimental.
+#       Please provide feedback in the ruby-feedstock repo.
+
+# Jinja variables help maintain the recipe as you'll update the version only here.
+# Using the name variable with the URL in line 14 is convenient
+# when copying and pasting from another recipe, but not really needed.
+{% set name = "minima" %}
+{% set version = "2.5.1" %}
+
+package:
+  # By convention, we are using `rb-` as a prefix to all ruby packages, the only exception
+  # is ruby itself. We maintain the notation even for gems that already start with `rb-`, 
+  # e.g. the gem `rb-inotify` maps to the conda package `rb-rb-inotify`.
+  name: rb-{{ name|lower }}
+  version: {{ version }}
+
+source:
+  # At the moment the only supported way is by downloading the gem from rubygems.
+  url: https://rubygems.org/downloads/{{ name }}-{{ version }}.gem
+  # sha256 is the preferred checksum and is readily available from the rubygem page
+  sha256: 520e52bc631fb16cbb8100660f6caa44f97859e2fa7e397d508deb18739567be
+
+build:
+  # Ruby gems are built noarch, unless they contain native extensions. Remove the
+  # line below if that is the case.
+  noarch: generic
+  number: 0
+  script:
+    - gem install -N -l -V --norc --ignore-dependencies {{ name }}-{{ version }}.gem
+    # Gems almost always include a LICENSE file in them. The unpack is so we can reference
+    # the license in the about section below. If the LICENSE is not present in the gem,
+    # remove the line below.
+    - gem unpack {{ name }}-{{ version }}.gem
+    # Gems with a native extension leave intermediary .o files in the build folder.
+    # Please uncomment and edit the path in the line below to remove these files.
+    #- make -C {{ PREFIX }}/lib/ruby/gems/{{ ruby }}.0/gems/{{ name }}-{{ version }}/ext clean
+  # At the moment we don't have ruby for Windows, so we need to skip the Windows CI build
+  # while in staged-recipes. The alternative notation keeps the lint-bot happy.
+  skip: {{ win }}
+
+requirements:
+  # Gems with a native extension require compilers to be available. Not all extensions
+  # require the C++ compiler, so only include it if necessary for the build.
+  #build:
+  #  - {{ compiler('c') }}
+  #  - {{ compiler('cxx') }}
+  host:
+    - ruby
+  run:
+    - ruby
+    # Ruby makes extensive use of the ~> notation. Here is a short guide
+    # ~>1.y -> >=1.y,<2
+    # ~>1.2.z -> >=1.2.z,<1.3
+    - rb-jekyll >=3.5,<5.0
+    - rb-jekyll-feed >=0.9,<1
+    - rb-jekyll-seo-tag >=2.1,<3
+    - rb-unicode-display_width >=1.1.1,<2
+
+test:
+  commands:
+    # The line below tests that we can `require` the package you just built.
+    # This is equivalent to the `imports` test from python.
+    - ruby -r {{ name }} -e 'exit 0'
+
+about:
+  home: https://rubygems.org/gems/{{ name }}
+  # Remember to specify the license variants for BSD, Apache, GPL, and LGPL.
+  # Prefer the short version, e.g: GPL-2.0 instead of GNU General Public License version 2.0
+  # See https://opensource.org/licenses/alphabetical
+  license: MIT
+  # The license_family, i.e. "BSD" if license is "BSD-3-Clause". (optional)
+  license_family: MIT
+  # It is strongly encouraged to include a license file in the package,
+  # (even if the license doesn't require it) using the license_file entry.
+  # See http://conda.pydata.org/docs/building/meta-yaml.html#license-file
+  license_file: {{ name }}-{{ version }}/LICENSE.txt
+  # It is sufficient/recommended to copy the summary from the rubygems page itself.
+  summary: A beautiful, minimal theme for Jekyll.
+
+  # The remaining entries in this section are optional, but recommended.
+  doc_url: https://www.rubydoc.info/gems/{{ name }}
+  dev_url: https://github.com/jekyll/{{ name }}
+
+extra:
+  recipe-maintainers:
+    # Feel free to keep me in the recipe-maintainers list for ruby packages.
+    - LisaSimpson
+    - LandoCalrissian
