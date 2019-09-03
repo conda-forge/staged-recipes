@@ -4,7 +4,7 @@ set -o xtrace -o nounset -o pipefail -o errexit
 
 # Packs and installs the extension, nodejs extension rebuild is done automatically
 # on jupyterlab startup, when the new extension is detected or was removed.
-"${PREFIX}/bin/jupyter" labextension install . --no-build
+"${PREFIX}/bin/jupyter" labextension install package --no-build
 
 # Shared file not to be included.
 rm "${PREFIX}/share/jupyter/lab/settings/build_config.json"
