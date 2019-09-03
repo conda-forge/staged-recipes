@@ -1,14 +1,25 @@
+{% set centos_name = "libSM" %}
+{% set name = centos_name |lower %}
+{% set version = '1.2.2' %}
+{% set centos_build = '2' %}
+{% set so_version = '6' %}
+{% set el = 'el7' %}
+{% set arch = "ppc64le" %}
+{% set sysroot_arch = "powerpc64le" %}
+{% set cos = "cos7" %}
+{% set url_base = "http://mirror.centos.org/altarch/7/os/ppc64le/Packages/" %}
+
 package:
-  name: libsm-cos7-ppc64le
-  version: 1.2.2
+  name: {{ name }}-{{ cos }}-{{ arch }}
+  version: {{ version }}
 
 source:
   - folder: binary
     sha256: 055ac077f6605a51578a525898f0a284a9a23b02667d0bf5ef5f99ac842c2ea0
-    url: http://mirror.centos.org/altarch/7/os/ppc64le/Packages/libSM-1.2.2-2.el7.ppc64le.rpm
-  - folder: source
-    sha256: d5a68e8f52da9176bf7dfb064196da59296169e3cc8a9d3bc83502a1e185b061
-    url: http://vault.centos.org/7.6.1810/os/Source/SPackages/libSM-1.2.2-2.el7.src.rpm
+    url: {{ url_base }}{{ centos_name }}-{{ version }}-{{ centos_build }}.{{ el }}.{{ arch }}.rpm
+  - folder: devel
+    sha256: 0967d96cd46a7c47788fd2986dcb234e9fe1dfa21dc81bb44069c33c3cdbce60
+    url: {{ url_base }}{{ centos_name }}-devel-{{ version }}-{{ centos_build }}.{{ el }}.{{ arch }}.rpm
 
 build:
   number: 0
@@ -20,14 +31,38 @@ test:
   requires:
     - zlib
   commands:
-    - test -f "${PREFIX}/powerpc64le-conda_cos7-linux-gnu/sysroot/usr/lib64/libSM.so.6"
+    - test -f "$PREFIX/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot/usr/lib64/{{ centos_name }}.so.{{ so_version }}"
+
+outputs:
+  - name: {{ name }}-{{ cos }}-{{ arch }}
+    build:
+      script:
+        - mkdir -p {{ PREFIX }}/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot
+        - pushd {{ PREFIX }}/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot > /dev/null 2>&1
+        - cp -Rf {{ SRC_DIR }}/binary/* .
+
+  - name: {{ name }}-devel-{{ cos }}-{{ arch }}
+    build:
+      noarch: generic
+      script:
+        - mkdir -p {{ PREFIX }}/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot
+        - pushd {{ PREFIX }}/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot > /dev/null 2>&1
+        - cp -Rf {{ SRC_DIR }}/devel/* .
+    requirements:
+      - {{ pin_subpackage(name + '-' + cos + '-' + arch, exact=True) }}
+    test:
+      # dummy requirement to workaround a bug with the CDT tests
+      requires:
+        - zlib
+      commands:
+        - test -f "$PREFIX/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot/usr/lib64/{{ centos_name }}.so.{{ so_version }}"
 
 about:
   description: 'The X.Org X11 SM (Session Management) runtime library.'
   home: http://www.x.org
   license: MIT
   license_family: MIT
-  license_file: COPYING
+  license_file: binary/usr/share/doc/{{ centos_name }}-{{ version }}/COPYING
   summary: (CDT) X.Org X11 SM runtime library
 extra:
   recipe-maintainers:
