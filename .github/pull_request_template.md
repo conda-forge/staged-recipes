@@ -14,6 +14,7 @@ Currently available teams are:
 - c/c++ `@conda-forge/help-c-cpp`
 - perl `@conda-forge/help-perl`
 - Julia `@conda-forge/help-julia`
+- ruby `@conda-forge/help-ruby`
 
 If your PR doesn't fall into those categories please contact
 the full review team `@conda-forge/staged-recipes`.
