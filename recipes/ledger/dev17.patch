@@ -1,0 +1,346 @@
+diff --git a/README.md b/README.md
+index d6b047ca..62bee347 100644
+--- a/README.md
++++ b/README.md
+@@ -1,6 +1,5 @@
+ [![Join the chat at https://gitter.im/use-package/Lobby](https://badges.gitter.im/use-package/Lobby.svg)](https://gitter.im/use-package/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+ [![Build Status master](https://img.shields.io/travis/ledger/ledger/master.svg?label=master&style=flat)](https://travis-ci.org/ledger/ledger)
+-[![Build Status next](https://img.shields.io/travis/ledger/ledger/next.svg?label=next&style=flat)](https://travis-ci.org/ledger/ledger)
+ [![Status](https://img.shields.io/badge/status-active-brightgreen.svg?style=flat)](https://github.com/ledger/ledger/pulse/monthly)
+ [![License](https://img.shields.io/badge/license-BSD-blue.svg?style=flat)](http://opensource.org/licenses/BSD-3-Clause)
+ [![GitHub release](https://img.shields.io/github/release/ledger/ledger.svg?style=flat)](https://github.com/ledger/ledger/releases)
+diff --git a/doc/NEWS.md b/doc/NEWS.md
+index 76f4d983..1d1e618d 100644
+--- a/doc/NEWS.md
++++ b/doc/NEWS.md
+@@ -1,5 +1,9 @@
+ # Ledger NEWS
+ 
++## 3.1.4 (unreleased)
++
++- Add support for '%F' date format specifier (bug #1775)
++
+ ## 3.1.3 (2019-03-31)
+ 
+ - Properly reject postings with a comment right after the flag (bug #1753)
+diff --git a/doc/ledger3.texi b/doc/ledger3.texi
+index 3d805100..0982940a 100644
+--- a/doc/ledger3.texi
++++ b/doc/ledger3.texi
+@@ -398,8 +398,8 @@ acprep script, that does a lot of the footwork:
+ 
+ See the `help` subcommand to `acprep`, which explains some of its many
+ options.  You can run `make check` to confirm the result, and `make
+-install` to install.  If these intructions do not work for you can check the
+-`INSTALL.md` in the source directory for more up do date build instructions.
++install` to install.  If these instructions do not work for you, you can check the
++`INSTALL.md` in the source directory for more up to date build instructions.
+ 
+ @node Getting help, Third-Party Ledger Tutorials, Building the program, Introduction to Ledger
+ @section Getting help
+@@ -432,7 +432,7 @@ available at @url{https://github.com/conservancy/npo-ledger-cli/}).  If
+ you're looking for information about how to use Ledger's tagging system to
+ handle invoicing, track expenses by program targets, and other such concepts,
+ you might find the tutorial useful.  (Some of the auditor reporting scripts
+-that relate to the aformentioned Ledger setup can be found
++that relate to the aforementioned Ledger setup can be found
+ @var{contrib/non-profit-audit-reports/} in Ledger's own source repository.)
+ 
+ @node Ledger Tutorial, Principles of Accounting with Ledger, Introduction to Ledger, Top
+@@ -7791,7 +7791,7 @@ as one typical yearly expense.  For help on finding out what your
+ average monthly expenses are for any category, use a command like:
+ 
+ @smallexample @c command:validate
+-$ ledger -p "this year" --monthly --average balance ^expenses
++$ ledger -p "this year" --monthly --average register ^expenses
+ @end smallexample
+ 
+ The reported totals are the current year's average for each account.
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 756df376..ec5475f7 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -282,7 +282,7 @@ if (BUILD_LIBRARY)
+     SOVERSION ${Ledger_VERSION_MAJOR})
+ 
+   add_executable(ledger main.cc global.cc)
+-  target_link_libraries(ledger libledger)
++  target_link_libraries(ledger libledger rt)
+   if (CMAKE_SYSTEM_NAME STREQUAL Darwin AND HAVE_BOOST_PYTHON)
+     target_link_libraries(ledger ${PYTHON_LIBRARIES})
+   endif()
+diff --git a/src/filters.cc b/src/filters.cc
+index 8daf6700..98288880 100644
+--- a/src/filters.cc
++++ b/src/filters.cc
+@@ -894,16 +894,7 @@ void subtotal_posts::operator()(post_t& post)
+   account_t * acct = post.reported_account();
+   assert(acct);
+ 
+-#if 0
+-  // jww (2012-04-06): The problem with doing this early is that
+-  // fn_display_amount will recalculate this again.  For example, if you
+-  // use --invert, it will invert both here and in the display amount,
+-  // effectively negating it.
+-  bind_scope_t bound_scope(*amount_expr.get_context(), post);
+-  value_t amount(amount_expr.calc(bound_scope));
+-#else
+   value_t amount(post.amount);
+-#endif
+ 
+   post.xdata().compound_value = amount;
+   post.xdata().add_flags(POST_EXT_COMPOUND);
+diff --git a/src/journal.cc b/src/journal.cc
+index 1df7a114..db909bb4 100644
+--- a/src/journal.cc
++++ b/src/journal.cc
+@@ -152,9 +152,6 @@ account_t * journal_t::register_account(const string& name, post_t * post,
+           fixed_accounts = true;
+         result->add_flags(ACCOUNT_KNOWN);
+       }
+-      else if (! fixed_accounts && post->_state != item_t::UNCLEARED) {
+-        result->add_flags(ACCOUNT_KNOWN);
+-      }
+       else if (checking_style == CHECK_WARNING) {
+         current_context->warning(_f("Unknown account '%1%'") % result->fullname());
+       }
+@@ -237,9 +234,6 @@ string journal_t::register_payee(const string& name, xact_t * xact)
+           fixed_payees = true;
+         known_payees.insert(name);
+       }
+-      else if (! fixed_payees && xact->_state != item_t::UNCLEARED) {
+-        known_payees.insert(name);
+-      }
+       else if (checking_style == CHECK_WARNING) {
+         current_context->warning(_f("Unknown payee '%1%'") % name);
+       }
+@@ -269,13 +263,6 @@ void journal_t::register_commodity(commodity_t& comm,
+           fixed_commodities = true;
+         comm.add_flags(COMMODITY_KNOWN);
+       }
+-      else if (! fixed_commodities &&
+-               ((context.which() == 1 &&
+-                 boost::get<xact_t *>(context)->_state != item_t::UNCLEARED) ||
+-                (context.which() == 2 &&
+-                 boost::get<post_t *>(context)->_state != item_t::UNCLEARED))) {
+-        comm.add_flags(COMMODITY_KNOWN);
+-      }
+       else if (checking_style == CHECK_WARNING) {
+         current_context->warning(_f("Unknown commodity '%1%'") % comm);
+       }
+@@ -298,13 +285,6 @@ void journal_t::register_metadata(const string& key, const value_t& value,
+           fixed_metadata = true;
+         known_tags.insert(key);
+       }
+-      else if (! fixed_metadata &&
+-               ((context.which() == 1 &&
+-                 boost::get<xact_t *>(context)->_state != item_t::UNCLEARED) ||
+-                (context.which() == 2 &&
+-                 boost::get<post_t *>(context)->_state != item_t::UNCLEARED))) {
+-        known_tags.insert(key);
+-      }
+       else if (checking_style == CHECK_WARNING) {
+         current_context->warning(_f("Unknown metadata tag '%1%'") % key);
+       }
+diff --git a/src/option.cc b/src/option.cc
+index 81f9af5b..82b17bb7 100644
+--- a/src/option.cc
++++ b/src/option.cc
+@@ -95,7 +95,7 @@ namespace {
+       if (name[0] == '-')
+         add_error_context(_f("While parsing option '%1%'") % name);
+       else
+-        add_error_context(_f("While parsing environent variable '%1%'") % name);
++        add_error_context(_f("While parsing environment variable '%1%'") % name);
+       throw;
+     }
+   }
+diff --git a/src/report.h b/src/report.h
+index 1bda0407..7775e21d 100644
+--- a/src/report.h
++++ b/src/report.h
+@@ -732,7 +732,8 @@ public:
+   OPTION(report_t, inject_);
+ 
+   OPTION_(report_t, invert, DO() {
+-      OTHER(amount_).on(whence, "-amount_expr");
++      OTHER(display_amount_).on(whence, "-display_amount");
++      OTHER(display_total_).on(whence, "-display_total");
+     });
+ 
+   OPTION_
+diff --git a/src/textual.cc b/src/textual.cc
+index 258e2560..4e24fd44 100644
+--- a/src/textual.cc
++++ b/src/textual.cc
+@@ -319,7 +319,9 @@ std::streamsize instance_t::read_line(char *& line)
+     context.curr_pos  = context.line_beg_pos;
+     context.curr_pos += len;
+ 
+-    if (context.linenum == 0 && utf8::is_bom(context.linebuf)) {
++    if (context.linenum == 0 &&
++        utf8::starts_with_bom(
++          context.linebuf, context.linebuf + sizeof(context.linebuf))) {
+       line = &context.linebuf[3];
+       len -= 3;
+     } else {
+diff --git a/src/times.cc b/src/times.cc
+index 74773755..640e5019 100644
+--- a/src/times.cc
++++ b/src/times.cc
+@@ -55,18 +55,18 @@ namespace {
+ 
+     temporal_io_t(const char * _fmt_str, bool _input)
+       : fmt_str(_fmt_str),
+-        traits(icontains(fmt_str, "%y"),
+-               icontains(fmt_str, "%m") || icontains(fmt_str, "%b"),
+-               icontains(fmt_str, "%d")),
++        traits(icontains(fmt_str, "%F") || icontains(fmt_str, "%y"),
++               icontains(fmt_str, "%F") || icontains(fmt_str, "%m") || icontains(fmt_str, "%b"),
++               icontains(fmt_str, "%F") || icontains(fmt_str, "%d")),
+         input(_input) {
+     }
+ 
+     void set_format(const char * fmt) {
+       fmt_str  = fmt;
+-      traits   = date_traits_t(icontains(fmt_str, "%y"),
+-                               icontains(fmt_str, "%m") ||
+-                               icontains(fmt_str, "%b"),
+-                               icontains(fmt_str, "%d"));
++      traits   = date_traits_t(icontains(fmt_str, "%F") || icontains(fmt_str, "%y"),
++                               icontains(fmt_str, "%F") ||
++                               icontains(fmt_str, "%m") || icontains(fmt_str, "%b"),
++                               icontains(fmt_str, "%F") || icontains(fmt_str, "%d"));
+     }
+ 
+     T parse(const char *) {}
+@@ -114,7 +114,6 @@ namespace {
+ 
+   shared_ptr<datetime_io_t> input_datetime_io;
+   shared_ptr<datetime_io_t> timelog_datetime_io;
+-  shared_ptr<date_io_t>     input_date_io;
+   shared_ptr<datetime_io_t> written_datetime_io;
+   shared_ptr<date_io_t>     written_date_io;
+   shared_ptr<datetime_io_t> printed_datetime_io;
+@@ -174,13 +173,6 @@ namespace {
+ 
+   date_t parse_date_mask(const char * date_str, date_traits_t * traits = NULL)
+   {
+-    if (input_date_io.get()) {
+-      date_t when = parse_date_mask_routine(date_str, *input_date_io.get(),
+-                                            traits);
+-      if (! when.is_not_a_date())
+-        return when;
+-    }
+-
+     foreach (shared_ptr<date_io_t>& reader, readers) {
+       date_t when = parse_date_mask_routine(date_str, *reader.get(), traits);
+       if (! when.is_not_a_date())
+@@ -1745,7 +1737,6 @@ void times_shutdown()
+   if (is_initialized) {
+     input_datetime_io.reset();
+     timelog_datetime_io.reset();
+-    input_date_io.reset();
+     written_datetime_io.reset();
+     written_date_io.reset();
+     printed_datetime_io.reset();
+diff --git a/test/baseline/opt-pedantic.test b/test/baseline/opt-pedantic.test
+index aca15410..38478445 100644
+--- a/test/baseline/opt-pedantic.test
++++ b/test/baseline/opt-pedantic.test
+@@ -6,12 +6,16 @@
+     Expenses:Phone            20.00 GBP
+     Assets:Cash
+ 
+-test bal --pedantic -> 1
++test bal --pedantic -> 2
+ __ERROR__
+ While parsing file "$FILE", line 2:
+ While parsing posting:
+   Expenses:Phone            20.00 GBP
+ 
+ Error: Unknown account 'Expenses:Phone'
+-end test
++While parsing file "$FILE", line 6:
++While parsing posting:
++  Expenses:Phone            20.00 GBP
+ 
++Error: Unknown account 'Expenses:Phone'
++end test
+diff --git a/test/baseline/opt-strict.test b/test/baseline/opt-strict.test
+index fea46b23..2325925a 100644
+--- a/test/baseline/opt-strict.test
++++ b/test/baseline/opt-strict.test
+@@ -18,5 +18,13 @@ test reg --strict
+ 07-Feb-02 Baz                   Expenses:Foodx               $30.00       $30.00
+                                 Assets:Cash                 $-30.00            0
+ __ERROR__
++Warning: "$FILE", line 2: Unknown account 'Expenses:Food'
++Warning: "$FILE", line 2: Unknown commodity '$'
++Warning: "$FILE", line 3: Unknown account 'Assets:Cash'
++Warning: "$FILE", line 6: Unknown account 'Expenses:Food'
++Warning: "$FILE", line 6: Unknown commodity '$'
++Warning: "$FILE", line 7: Unknown account 'Assets:Cash'
+ Warning: "$FILE", line 10: Unknown account 'Expenses:Foodx'
++Warning: "$FILE", line 10: Unknown commodity '$'
++Warning: "$FILE", line 11: Unknown account 'Assets:Cash'
+ end test
+diff --git a/test/regress/1775.test b/test/regress/1775.test
+new file mode 100644
+index 00000000..10ae3639
+--- /dev/null
++++ b/test/regress/1775.test
+@@ -0,0 +1,20 @@
++2017-02-28 * Test
++    Assets:A                10.00 EUR
++    Assets:B               -10.00 EUR
++
++2017-03-30 * Test
++    Assets:A                10.00 EUR
++    Assets:B               -10.00 EUR
++
++2018-03-30 * Test
++    Assets:A                10.00 EUR
++    Assets:B               -10.00 EUR
++
++test reg --input-date-format %F
++17-Feb-28 Test                  Assets:A                  10.00 EUR    10.00 EUR
++                                Assets:B                 -10.00 EUR            0
++17-Mar-30 Test                  Assets:A                  10.00 EUR    10.00 EUR
++                                Assets:B                 -10.00 EUR            0
++18-Mar-30 Test                  Assets:A                  10.00 EUR    10.00 EUR
++                                Assets:B                 -10.00 EUR            0
++end test
+diff --git a/test/unit/CMakeLists.txt b/test/unit/CMakeLists.txt
+index 3611b00a..b36b6ba3 100644
+--- a/test/unit/CMakeLists.txt
++++ b/test/unit/CMakeLists.txt
+@@ -1,5 +1,5 @@
+ macro(add_ledger_test _name)
+-  target_link_libraries(${_name} libledger)
++  target_link_libraries(${_name} libledger rt)
+   add_test(Ledger${_name} ${PROJECT_BINARY_DIR}/${_name})
+   set_tests_properties(Ledger${_name}
+     PROPERTIES ENVIRONMENT "TZ=${Ledger_TEST_TIMEZONE}")
+diff --git a/test/unit/t_amount.cc b/test/unit/t_amount.cc
+index b82de510..6c45250e 100644
+--- a/test/unit/t_amount.cc
++++ b/test/unit/t_amount.cc
+@@ -1,5 +1,6 @@
+ #define BOOST_TEST_DYN_LINK
+ #define BOOST_TEST_MODULE math
++#include <boost/test/included/unit_test.hpp>
+ #include <boost/test/unit_test.hpp>
+ 
+ #include <system.hh>
+diff --git a/test/unit/t_times.cc b/test/unit/t_times.cc
+index c6251664..bb050c28 100644
+--- a/test/unit/t_times.cc
++++ b/test/unit/t_times.cc
+@@ -1,5 +1,6 @@
+ #define BOOST_TEST_DYN_LINK
+ #define BOOST_TEST_MODULE util
++#include <boost/test/included/unit_test.hpp>
+ #include <boost/test/unit_test.hpp>
+ 
+ #include <system.hh>
