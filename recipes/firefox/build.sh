@@ -1,19 +1,22 @@
 #!/bin/bash
 
-mkdir -p ${PREFIX}/bin
+APP=${PREFIX}/bin/firefox
 
-if [ $(uname) == Linux ]; then
-  mv * ${PREFIX}/bin
-fi
-
-if [ $(uname) == Darwin ]; then
+if [[ $(uname) == Linux ]]; then
+  mkdir -p ${PREFIX}/bin/Firefox
+  mv * ${PREFIX}/bin/Firefox
+  cat <<EOF >$APP
+#!/bin/bash
+$PREFIX/bin/Firefox/firefox "\$@"
+EOF
+elif [[ $(uname) == Darwin ]]; then
   pkgutil --expand firefox.pkg firefox
   cpio -i -I firefox/Payload
-  cp -rf Firefox.app $PREFIX/
-  APP=$PREFIX/bin/firefox
+  cp -rf Firefox.app ${PREFIX}/
   cat <<EOF >$APP
 #!/bin/bash
 $PREFIX/Firefox.app/Contents/MacOS/firefox "\$@"
 EOF
-  chmod +x $APP
 fi
+
+chmod +x $APP
