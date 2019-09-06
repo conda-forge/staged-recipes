@@ -3,31 +3,21 @@
 APP_DIR=$PREFIX/bin/FirefoxApp
 LAUNCH_SCRIPT=$PREFIX/bin/firefox
 
-# 1) Extract the application into a directory under bin
-
 mkdir -p $APP_DIR
 
 if [[ $(uname) == Linux ]]; then
   mv * $APP_DIR
+  BIN_LOCATION=$APP_DIR/firefox
 elif [[ $(uname) == Darwin ]]; then
   pkgutil --expand firefox.pkg firefox
   cpio -i -I firefox/Payload
   cp -rf Firefox.app/* $APP_DIR
+  BIN_LOCATION=$APP_DIR/Contents/MacOS/firefox
 fi
 
-# 2) Make a launch script in bin
-
-if [[ $(uname) == Linux ]]; then
-  cat <<EOF >$LAUNCH_SCRIPT
+# Write launch script and make executable
+cat <<EOF >$LAUNCH_SCRIPT
 #!/bin/bash
-$APP_DIR/firefox "\$@"
+$BIN_LOCATION "\$@"
 EOF
-elif [[ $(uname) == Darwin ]]; then
-  cat <<EOF >$LAUNCH_SCRIPT
-#!/bin/bash
-$APP_DIR/Contents/MacOS/firefox "\$@"
-EOF
-fi
-
-# Now we've made the launch script, make it executable
 chmod +x $LAUNCH_SCRIPT
