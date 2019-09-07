@@ -1,0 +1,101 @@
+{% set name = "go" %}
+{% set version = "1.12.5" %}
+
+package:
+  name: {{ name }}-{{ go_variant_str }}
+  version: {{ version }}
+
+source:
+  - folder: go
+    url: https://dl.google.com/{{ name }}/go{{ version }}.src.tar.gz
+    sha256: 2aa5f088cbb332e73fc3def546800616b38d3bfe6b8713b8a6404060f22503e8
+    #patches:
+    #  - 0001-addr2line.diff  # [linux]
+
+build:
+  number: 2
+  skip: True  # [win]
+  binary_relocation: False
+  detect_binary_files_with_prefix: False
+  force_ignore_keys:    # [win]
+    - c_compiler        # [win]
+    - cxx_compiler      # [win]
+  # test data links to these DSOs
+  missing_dso_whitelist:
+    - /usr/lib/libSystem.B.dylib
+    - /usr/lib/libgcc_s.1.dylib
+    - libc.so.6
+
+requirements:
+  run:
+    - {{ pin_subpackage(name, exact=true) }}
+
+test:
+  commands:
+    - go help
+
+outputs:
+  - name: {{ name }}
+    script: build-core.sh   # [unix]
+    script: build-core.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('go14') }}
+        - {{ compiler('c') }}              # [unix]
+        - {{ compiler('cxx') }}            # [unix]
+        - {{ compiler('m2w64_c') }}        # [win]
+        - {{ compiler('m2w64_cxx') }}      # [win]
+
+        - perl        # [unix]
+        - pkg-config  # [unix]
+        - m2-sed   # [win]
+        - m2-grep  # [win]
+      run:
+        - _go_select =={{ go_variant_ver }}={{ go_variant_str }}
+    test:
+      requires:
+        - compilers                        # [unix]
+        - {{ compiler('m2w64_c') }}        # [win]
+      commands:
+        # Environment checks
+        - go env
+        - test $(go env GOROOT) = ${CONDA_PREFIX}/go         # [unix]
+        - cmd /c if x%GOROOT% NEQ x%CONDA_PREFIX%\go exit 1  # [win]
+
+        - test $(go env CGO_ENABLED) -eq 1  # [unix]
+        # TODO: Add similar test for  [win]
+
+        # List go tool
+        - go tool
+
+        # Run go test
+        - go tool dist test -k -v -no-rebuild
+          -run=!^cgo_fortran$  # [linux]
+
+    about:
+      home: http://golang.org
+      license: BSD-Style
+      license_family: BSD
+      license_file: go/LICENSE
+      summary: 'The Go Programming Language'
+
+about:
+  home: http://golang.org
+  license: BSD-Style
+  license_family: BSD
+  license_file: go/LICENSE
+  summary: 'The Go Programming Language (without CGO)'
+  description: |
+    Go is expressive, concise, clean, and efficient. Its concurrency mechanisms
+    make it easy to write programs that get the most out of multicore and
+    networked machines, while its novel type system enables flexible and
+    modular program construction. Go compiles quickly to machine code yet has
+    the convenience of garbage collection and the power of run-time reflection.
+    It's a fast, statically typed, compiled language that feels like a
+    dynamically typed, interpreted language.
+  doc_url: https://golang.org/doc
+  dev_url: https://go.googlesource.com/go
+
+extra:
+  recipe-maintainers:
+    - conda-forge/go
