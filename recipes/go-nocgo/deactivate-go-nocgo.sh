@@ -1,0 +1,11 @@
+export GOROOT="${CONDA_GOROOT_BACKUP}"
+unset CONDA_GOROOT_BACKUP
+if [ -z $GOROOT ]; then
+    unset GOROOT
+fi
+
+export CGO_ENABLED="${CONDA_BACKUP_CGO_ENABLED}"
+unset CONDA_BACKUP_CGO_ENABLED
+if [ -z $CGO_ENABLED ]; then
+    unset CGO_ENABLED
+fi
