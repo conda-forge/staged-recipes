@@ -27,3 +27,9 @@ make install INSTALL_DIR="$PREFIX"
 # Move the default configuration file to avoid user config overwritten
 mkdir -p "$PREFIX/share/astrometry"
 mv "$PREFIX/etc/astrometry.cfg" "$PREFIX/share/astrometry/astrometry.cfg"
+
+# Remove useless example files
+rm -Rf "$PREFIX/examples"
+
+# Remove useless doc folder
+rm -Rf "$PREFIX/doc"
