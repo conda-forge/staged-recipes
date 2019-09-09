@@ -6,16 +6,12 @@ DATADIR="$PREFIX/data"
 
 # Avoid config file to be overwritten
 
-if [ -f $FILE ]; then
-    echo "Existing config file for astrometry.net."
-else
+if [ ! -f $FILE ]; then
     cp $DEFAULT $FILE
 fi
 
 # Create /data dir
 
-if [ -f $DATADIR ]; then
-    echo "Existing data dir."
-else
+if [ ! -f $DATADIR ]; then
     mkdir -p $DATADIR
 fi
