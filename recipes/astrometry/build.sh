@@ -19,7 +19,7 @@ export ZLIB_INC="-I$PREFIX/include"
 export ZLIB_LIB="-L$PREFIX/lib -lz"
 
 # Making process
-make
+make -j${CPU_COUNT}
 make extra
 make py
 make install INSTALL_DIR="$PREFIX"
