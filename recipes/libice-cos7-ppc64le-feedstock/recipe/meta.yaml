@@ -1,0 +1,69 @@
+{% set centos_name = "libICE" %}
+{% set name = centos_name |lower %}
+{% set version = '1.0.9' %}
+{% set centos_build = '9' %}
+{% set so_version = '6' %}
+{% set el = 'el7' %}
+{% set arch = "ppc64le" %}
+{% set sysroot_arch = "powerpc64le" %}
+{% set cos = "cos7" %}
+{% set url_base = "http://mirror.centos.org/altarch/7/os/ppc64le/Packages/" %}
+
+package:
+  name: {{ name }}-{{ cos }}-{{ arch }}
+  version: {{ version }}
+
+source:
+  - folder: binary/usr
+    sha256: 71613d8e8d2fd3a24c34138c5856b5217429f89f42b3d043f906f6bd5c357e44
+    url: {{ url_base }}{{ centos_name }}-{{ version }}-{{ centos_build }}.{{ el }}.{{ arch }}.rpm
+  - folder: devel/usr
+    sha256: 6e623317f8ca06df5724db8d1cc7f18a95f695cdd9a5d12e4861e002e8411ee6
+    url: {{ url_base }}{{ centos_name }}-devel-{{ version }}-{{ centos_build }}.{{ el }}.{{ arch }}.rpm
+
+build:
+  number: 0
+  noarch: generic
+  missing_dso_whitelist:
+    - '*'
+
+test:
+  requires:
+    - zlib
+  commands:
+    - test -f "$PREFIX/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot/usr/lib64/{{ centos_name }}.so.{{ so_version }}"
+
+outputs:
+  - name: {{ name }}-{{ cos }}-{{ arch }}
+    build:
+      script:
+        - mkdir -p {{ PREFIX }}/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot
+        - pushd {{ PREFIX }}/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot > /dev/null 2>&1
+        - cp -Rf {{ SRC_DIR }}/binary/* .
+
+  - name: {{ name }}-devel-{{ cos }}-{{ arch }}
+    build:
+      noarch: generic
+      script:
+        - mkdir -p {{ PREFIX }}/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot
+        - pushd {{ PREFIX }}/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot > /dev/null 2>&1
+        - cp -Rf {{ SRC_DIR }}/devel/* .
+    requirements:
+      - {{ pin_subpackage(name + '-' + cos + '-' + arch, exact=True) }}
+    test:
+      # dummy requirement to workaround a bug with the CDT tests
+      requires:
+        - zlib
+      commands:
+        - test -f "$PREFIX/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot/usr/lib64/{{ centos_name }}.so.{{ so_version }}"
+
+about:
+  description: 'The X.Org X11 ICE (Inter-Client Exchange) runtime library.'
+  home: http://www.x.org
+  license: MIT
+  license_family: MIT
+  license_file: binary/usr/share/doc/{{ centos_name }}/COPYING
+  summary: (CDT) X.Org X11 ICE runtime library
+extra:
+  recipe-maintainers:
+    - jayfurmanek
