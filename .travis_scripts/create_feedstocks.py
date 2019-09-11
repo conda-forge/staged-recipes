@@ -106,6 +106,9 @@ if __name__ == '__main__':
         write_token('circle', os.environ['CIRCLE_TOKEN'])
     if 'AZURE_TOKEN' in os.environ:
         write_token('azure', os.environ['AZURE_TOKEN'])
+    if 'DRONE_TOKEN' in os.environ:
+        write_token('drone', os.environ['DRONE_TOKEN'])
+
     gh = None
     if 'GH_TOKEN' in os.environ:
         write_token('github', os.environ['GH_TOKEN'])
@@ -113,7 +116,6 @@ if __name__ == '__main__':
 
         # Get our initial rate limit info.
         print_rate_limiting_info(gh)
-
 
     owner_info = ['--organization', 'conda-forge']
 
