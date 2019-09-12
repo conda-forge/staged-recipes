@@ -2,6 +2,8 @@
 
 set -e
 
+CXXFLAGS="-I${PREFIX}/include/asl ${CXXFLAGS}"
+
 COIN_SKIP_PROJECTS="Sample" ./configure --prefix="${PREFIX}" \
   --with-coinutils-lib="$(pkg-config --libs coinutils)" \
   --with-coinutils-incdir="${PREFIX}/include/coin/" \
