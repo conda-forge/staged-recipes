@@ -1,0 +1,3 @@
+@echo off
+set "CONDA_BACKUP_GOROOT=%GOROOT%"
+set "GOROOT=%CONDA_PREFIX%\go"
