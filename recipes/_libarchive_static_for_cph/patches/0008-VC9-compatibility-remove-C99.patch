@@ -1,0 +1,121 @@
+--- libarchive-3.3.2/libarchive/archive_read_support_filter_lz4.c.orig	2018-04-23 16:51:54.000000000 +0100
++++ libarchive-3.3.2/libarchive/archive_read_support_filter_lz4.c	2018-04-23 16:52:00.000000000 +0100
+@@ -336,6 +336,7 @@
+ 
+ 	while (state->stage == SELECT_STREAM) {
+ 		const char *read_buf;
++		uint32_t number;
+ 
+ 		/* Read a magic number. */
+ 		read_buf = __archive_read_filter_ahead(self->upstream, 4,
+@@ -345,13 +346,14 @@
+ 			*p = NULL;
+ 			return (0);
+ 		}
+-		uint32_t number = archive_le32dec(read_buf);
++		number = archive_le32dec(read_buf);
+ 		__archive_read_filter_consume(self->upstream, 4);
+ 		if (number == LZ4_MAGICNUMBER)
+ 			return lz4_filter_read_default_stream(self, p);
+ 		else if (number == LZ4_LEGACY)
+ 			return lz4_filter_read_legacy_stream(self, p);
+ 		else if ((number & ~0xF) == LZ4_SKIPPABLED) {
++			uint32_t skip_bytes;
+ 			read_buf = __archive_read_filter_ahead(
+ 				self->upstream, 4, NULL);
+ 			if (read_buf == NULL) {
+@@ -361,7 +363,7 @@
+ 				    "Malformed lz4 data");
+ 				return (ARCHIVE_FATAL);
+ 			}
+-			uint32_t skip_bytes = archive_le32dec(read_buf);
++			skip_bytes = archive_le32dec(read_buf);
+ 			__archive_read_filter_consume(self->upstream,
+ 				4 + skip_bytes);
+ 		} else {
+--- work.orig/libarchive/test/test_sparse_basic.c	2018-09-03 22:07:16.000000000 -0500
++++ work/libarchive/test/test_sparse_basic.c	2018-09-04 07:27:01.946534600 -0500
+@@ -109,6 +109,7 @@
+ 	char buff[1024];
+ 	HANDLE handle;
+ 	DWORD dmy;
++	size_t offsetSoFar = 0;
+ 
+ 	memset(buff, ' ', sizeof(buff));
+ 
+@@ -119,20 +120,19 @@
+ 	assert(DeviceIoControl(handle, FSCTL_SET_SPARSE, NULL, 0,
+ 	    NULL, 0, &dmy, NULL) != 0);
+ 
+-	size_t offsetSoFar = 0;
+-
+ 	while (s->type != END) {
+ 		if (s->type == HOLE) {
+ 			LARGE_INTEGER fileOffset, beyondOffset, distanceToMove;
++			FILE_ZERO_DATA_INFORMATION zeroInformation;
++			DWORD bytesReturned;
++
+ 			fileOffset.QuadPart = offsetSoFar;
+ 			beyondOffset.QuadPart = offsetSoFar + s->size;
+ 			distanceToMove.QuadPart = s->size;
+ 
+-			FILE_ZERO_DATA_INFORMATION zeroInformation;
+ 			zeroInformation.FileOffset = fileOffset;
+ 			zeroInformation.BeyondFinalZero = beyondOffset;
+ 
+-			DWORD bytesReturned;
+ 			assert(SetFilePointerEx(handle, distanceToMove,
+ 				NULL, FILE_CURRENT) != 0);
+ 			assert(SetEndOfFile(handle) != 0);
+--- work.orig/libarchive/archive_write_disk_windows.c	2018-09-04 07:15:12.902734600 -0500
++++ work/libarchive/archive_write_disk_windows.c	2018-09-04 07:24:43.543382500 -0500
+@@ -1515,7 +1515,7 @@
+ 		return symlink(linkname, a->name) ? errno : 0;
+ #else
+ 		if (linkname != NULL) {
+-			wchar_t *linkfull, *namefull;
++			wchar_t const *linkfull, *namefull;
+ 
+ 			// Not sure which is best here, this is an absolute link, always:
+ 			// linkfull = __la_win_permissive_name_w(linkname);
+--- work.orig/tar/test/test_option_C_mtree.c	2018-09-03 22:07:16.000000000 -0500
++++ work/tar/test/test_option_C_mtree.c	2018-09-04 07:23:14.413229300 -0500
+@@ -30,10 +30,9 @@
+ 
+ DEFINE_TEST(test_option_C_mtree)
+ {
+-	char *p0;
++	char *p0 = NULL;
+ 	size_t s;
+ 	int r;
+-	p0 = NULL;
+ 	char *content = "./foo type=file uname=root gname=root mode=0755\n";
+ 	char *filename = "output.tar";
+ 
+--- work.orig/libarchive/archive_read_support_filter_zstd.c	2018-09-03 22:07:16.000000000 -0500
++++ work/libarchive/archive_read_support_filter_zstd.c	2018-11-02 08:36:21.350115700 -0500
+@@ -209,7 +209,9 @@
+ 
+ 	state = (struct private_data *)self->data;
+ 
+-	out = (ZSTD_outBuffer) { state->out_block, state->out_block_size, 0 };
++	out.dst = state->out_block;
++	out.size = state->out_block_size;
++	out.pos = 0;
+ 
+ 	/* Try to fill the output buffer. */
+ 	while (out.pos < out.size && !state->eof) {
+--- work.orig/libarchive/archive_write_add_filter_zstd.c	2018-09-03 22:07:16.000000000 -0500
++++ work/libarchive/archive_write_add_filter_zstd.c	2018-11-02 08:52:09.469969000 -0500
+@@ -259,7 +259,10 @@
+ drive_compressor(struct archive_write_filter *f,
+     struct private_data *data, int finishing, const void *src, size_t length)
+ {
+-	ZSTD_inBuffer in = (ZSTD_inBuffer) { src, length, 0 };
++	ZSTD_inBuffer in;
++	in.src = src;
++	in.size = length;
++	in.pos = 0;
+ 
+ 	for (;;) {
+ 		if (data->out.pos == data->out.size) {
