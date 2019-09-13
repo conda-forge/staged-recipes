@@ -1,3 +1,3 @@
-cp bin $PREFIX -r
-cp include $PREFIX -r
-cp lib $PREFIX -r
+cp -R bin $PREFIX
+cp -R include $PREFIX
+cp -R lib $PREFIX
