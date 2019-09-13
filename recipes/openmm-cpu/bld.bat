@@ -16,6 +16,9 @@ jom install || goto :error
 jom PythonInstall || goto :error
 jom install || goto :error
 
+REM Fix libraries location
+copy %LIBRARY_LIB%\OpenMM* %LIBRARY_BIN% || goto :error
+copy %SP_DIR%\simtk\openmm\_openmm* %LIBRARY_BIN% || goto :error
 
 mkdir %LIBRARY_PREFIX%\share\openmm || goto :error
 move %LIBRARY_PREFIX%\examples %LIBRARY_PREFIX%\share\openmm || goto :error
