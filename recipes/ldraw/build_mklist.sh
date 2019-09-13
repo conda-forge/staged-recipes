@@ -1,3 +1,4 @@
+set -e
 unzip -d mklist -o mklist1_6.zip
 
 if [ $(uname) == Darwin ]; then
