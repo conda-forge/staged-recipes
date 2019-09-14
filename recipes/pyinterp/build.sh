@@ -1,4 +1,4 @@
 #!/bin/bash
 set -e
-${PREFIX}/bin/python setup.py build
-${PREFIX}/bin/python setup.py install
+${PYTHON} setup.py build
+${PYTHON} setup.py install
