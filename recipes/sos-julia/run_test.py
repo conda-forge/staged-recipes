@@ -4,16 +4,6 @@ import sys
 from sos_notebook.test_utils import sos_kernel
 from ipykernel.tests.utils import execute, wait_for_idle, assemble_output
 
-import jupyter_client
-
-try:
-    print(jupyter_client.kernelspec.get_kernel_spec('julia-1.0').to_dict())
-except jupyter_client.kernelspec.NoSuchKernel:
-    print('julia-1.0 kernel was not installed')
-    print('The following kernels are installed:')
-    print('jupyter_client.kernelspec.find_kernel_specs()')
-    print(jupyter_client.kernelspec.find_kernel_specs())
-
 class TestSoSKernel(unittest.TestCase):
     def testKernel(self):
         with sos_kernel() as kc:
