@@ -3,14 +3,14 @@ setlocal enabledelayedexpansion
 rem Copy the rendered [de]activate scripts to %PREFIX%\etc\conda\[de]activate.d.
 rem go finds its *.go files via the GOROOT variable
 for %%F in (deactivate activate) do (
-  set "F_DIR=%PREFIX%\etc\conda\%%F.d"
-  if not exist "%F_DIR%" mkdir "%F_DIR%"
+  set "FDIR=%PREFIX%\etc\conda\%%F.d"
+  if not exist "%FDIR%" mkdir "%FDIR%"
   if errorlevel 1 exit 1
   copy "%RECIPE_DIR%\%%F-go-%go_variant_str%.bat" "%F_DIR%\%%F_z60-go.bat"
   if errorlevel 1 exit 1
 )
 
-call "%F_DIR%\activate-z60_go.bat"
+call "%FDIR%\activate-z60_go.bat"
 
 rem Set the CC and CXX TARGETS
 set "CC_FOR_TARGET=%CC%"
