@@ -1,12 +1,11 @@
 set -eufx
 
-export cgo_var="cgo"
 #
 # Install and source the [de]activate scripts.
 for F in deactivate activate; do
   F_DIR="${PREFIX}/etc/conda/${F}.d"
   mkdir -p "${F_DIR}"
-  cp -v "${RECIPE_DIR}/${F}-go-${cgo_var}.sh" "${F_DIR}/${F}_z60-go.sh"
+  cp -v "${RECIPE_DIR}/${F}-go-${go_variant_str}.sh" "${F_DIR}/${F}_z60-go.sh"
 done
 
 source "${F_DIR}/activate_z60-go.sh"
@@ -37,10 +36,10 @@ pushd $GOROOT/src
 popd
 
 # Don't need the cached build objects
-rm -fr ${SRC_DIR}/go/pkg/obj
+rm -fr ${GOROOT}/pkg/obj
 
 # Dropping the verbose option here, because Travis chokes on output >4MB
-cp -a $SRC_DIR/go ${PREFIX}/go
+cp -av ${GOROOT} ${PREFIX}/go
 
 # Right now, it's just go and gofmt, but might be more in the future!
 # We don't move files, and instead rely on soft-links

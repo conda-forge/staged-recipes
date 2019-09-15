@@ -1,17 +1,21 @@
 setlocal enabledelayedexpansion
 
-set cgo_var="nocgo"
-
 rem Copy the rendered [de]activate scripts to %PREFIX%\etc\conda\[de]activate.d.
 rem go finds its *.go files via the GOROOT variable
-for %%F in (activate deactivate) do (
-  if not exist "%PREFIX%\etc\conda\%%F.d" mkdir "%PREFIX%\etc\conda\%%F.d"
+for %%F in (deactivate activate) do (
+  set F_DIR="%PREFIX%\etc\conda\%%F.d"
+  if not exist "%F_DIR%" mkdir "%F_DIR%"
   if errorlevel 1 exit 1
-  copy "%RECIPE_DIR%\%%F-go-%cgo_var%.bat" "%PREFIX%\etc\conda\%%F.d\%%F-z60-go-%cgo_var%.bat"
+  copy "%RECIPE_DIR%\%%F-go-%go_variant_str%.bat" "%F_DIR%\%%F_z60-go.bat"
   if errorlevel 1 exit 1
 )
 
-call "%PREFIX%\etc\conda\activate.d\activate-z60-go-%cgo_var%.bat"
+call "%F_DIR%\activate-z60_go.bat"
+
+rem Set the CC and CXX TARGETS
+set CC_FOR_TARGET=%CC%
+set CXX_FOR_TARGET=%CXX%
+set CGO_LDFLAGS=""
 
 rem Put GOTMPDIR on the same drive as the CONDA_BLD_PATH (the D drive),
 rem to avoid a known issue in the go test suite:
@@ -33,10 +37,10 @@ if errorlevel 1 exit 1
 popd
 
 rem Don't need the cached build objects
-rmdir /s /q %SRC_DIR%\go\pkg\obj
+rmdir /s /q %GOROOT%\pkg\obj
 
 mkdir "%PREFIX%\go"
-xcopy /s /y /i /q "%SRC_DIR%\go\*" "%PREFIX%\go\"
+xcopy /s /y /i /q "%GOROOT%\*" "%PREFIX%\go\"
 
 rem Right now, it's just go and gofmt, but might be more in the future!
 if not exist "%PREFIX%\bin" mkdir "%PREFIX%\bin"
