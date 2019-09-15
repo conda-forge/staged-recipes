@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 rem Copy the rendered [de]activate scripts to %PREFIX%\etc\conda\[de]activate.d.
 rem go finds its *.go files via the GOROOT variable
 for %%F in (deactivate activate) do (
-  set F_DIR="%PREFIX%\etc\conda\%%F.d"
+  set "F_DIR=%PREFIX%\etc\conda\%%F.d"
   if not exist "%F_DIR%" mkdir "%F_DIR%"
   if errorlevel 1 exit 1
   copy "%RECIPE_DIR%\%%F-go-%go_variant_str%.bat" "%F_DIR%\%%F_z60-go.bat"
@@ -13,9 +13,9 @@ for %%F in (deactivate activate) do (
 call "%F_DIR%\activate-z60_go.bat"
 
 rem Set the CC and CXX TARGETS
-set CC_FOR_TARGET=%CC%
-set CXX_FOR_TARGET=%CXX%
-set CGO_LDFLAGS=""
+set "CC_FOR_TARGET=%CC%"
+set "CXX_FOR_TARGET=%CXX%"
+set "CGO_LDFLAGS="
 
 rem Put GOTMPDIR on the same drive as the CONDA_BLD_PATH (the D drive),
 rem to avoid a known issue in the go test suite:
