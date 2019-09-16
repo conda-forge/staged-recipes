@@ -66,9 +66,16 @@ source:
       - 540-ld64-add-LD64_LOG_HASH_TABLE.patch
   # We copy headers necessary for building cctools/ld64 from dyld and MacOSX10.9.sdk (on all OSes).
   # older versions of these files are added by 100-add_sdkroot_headers.patch, we overwrite those...
-  - url: https://opensource.apple.com/tarballs/dyld/dyld-{{ dyld_version }}.tar.gz
-    sha256: {{ dyld_sha256 }}
-    folder: bootstrap/dyld
+  #- url: https://opensource.apple.com/tarballs/dyld/dyld-{{ dyld_version }}.tar.gz
+  #  sha256: {{ dyld_sha256 }}
+  #  folder: bootstrap/dyld
+
+build:
+  number: 0
+  skip: True  # [not osx]
+  ignore_run_exports:
+    - zlib
+
 
 requirements:
   build:
@@ -94,14 +101,13 @@ outputs:
   - name: cctools
     version: {{ cctools_version }}
     script: install-cctools.sh
-    skip: True  # [not osx]
     requirements:
       run:
         - llvm-lto-tapi
-    build:
-      number: 1
-      ignore_run_exports:
-        - zlib
+    test:
+      commands:
+        - test -f $PREFIX/libexec/as/x86_64/as
+        - test -f $PREFIX/{{ macos_machine }}-as
     about:
       home: https://opensource.apple.com/source
       license: Apple Public Source License 2.0
@@ -112,7 +118,6 @@ outputs:
   - name: ld64
     version: {{ ld64_version }}
     script: install-ld64.sh
-    skip: True  # [not osx]
     requirements:
       host:
         - llvm-lto-tapi
@@ -120,13 +125,17 @@ outputs:
       run:
         - llvm-lto-tapi
         - libcxx  # [osx]
-    build:
-      number: 1
-      ignore_run_exports:
-        - zlib
+    test:
+      commands:
+        - test -f $PREFIX/{{ macos_machine }}-ld
     about:
       home: https://opensource.apple.com/source
       license: Apple Public Source License 2.0
       license_family: Other
       license_file: cctools/ld64/APPLE_LICENSE
       summary: Darwin Mach-O linker
+
+extra:
+  recipe-maintainers:
+    - isuruf
+    - mingwandroid
