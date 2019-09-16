@@ -25,10 +25,10 @@ popd
 export CXXFLAGS="$CXXFLAGS -O2 -gdwarf-4"
 export CFLAGS="$XFLAGS -O2 -gdwarf-4"
 
-if [[ ${MACOSX_DEPLOYMENT_TARGET} == 10.9 ]]; then
-  DARWIN_TARGET=x86_64-apple-darwin13.4.0
-elif [[ ${MACOSX_DEPLOYMENT_TARGET} == 10.10 ]]; then
+if [[ ${MACOSX_DEPLOYMENT_TARGET} == 10.10 ]]; then
   DARWIN_TARGET=x86_64-apple-darwin14.5.0
+else
+  DARWIN_TARGET=x86_64-apple-darwin13.4.0
 fi
 
 if [[ -z ${DARWIN_TARGET} ]]; then
@@ -44,8 +44,11 @@ _cctools_config+=(--target=${DARWIN_TARGET})
 _cctools_config+=(--disable-static)
 _cctools_config+=(--enable-shared)
 _cctools_config+=(--with-llvm=${PREFIX})
+
+if [[ "$target_platform" == "osx-64" ]]; then
 _cctools_config+=(CC="${CC} -isysroot ${CONDA_BUILD_SYSROOT}")
 _cctools_config+=(CXX="${CXX} -isysroot ${CONDA_BUILD_SYSROOT}")
+fi
 
 mkdir cctools_build_final
 pushd cctools_build_final
