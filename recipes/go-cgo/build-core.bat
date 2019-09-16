@@ -6,7 +6,7 @@ for %%F in (deactivate activate) do (
   set "FDIR=%PREFIX%\etc\conda\%%F.d"
   if not exist "%FDIR%" mkdir "%FDIR%"
   if errorlevel 1 exit 1
-  copy "%RECIPE_DIR%\%%F-go-%go_variant_str%.bat" "%FDIR%\%%F_z60-go.bat"
+  copy "%RECIPE_DIR%\%%F-go-%go_variant_str%.bat" "%%FDIR%%\%%F_z60-go.bat"
   if errorlevel 1 exit 1
 )
 
