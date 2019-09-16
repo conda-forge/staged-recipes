@@ -80,9 +80,12 @@ def get_config(arch, channel_urls):
     if os.path.exists(variant_config_file):
         variant_config_files.append(variant_config_file)
 
+    error_overlinking = (get_host_platform() != "win")
+
     config = conda_build.api.Config(
         variant_config_files=variant_config_files, arch=arch,
-        exclusive_config_file=exclusive_config_file, channel_urls=channel_urls)
+        exclusive_config_file=exclusive_config_file, channel_urls=channel_urls,
+        error_overlinking=error_overlinking)
     return config
 
 def build_folders(recipes_dir, folders, arch, channel_urls):
