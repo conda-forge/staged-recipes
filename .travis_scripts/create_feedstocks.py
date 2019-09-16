@@ -155,6 +155,9 @@ if __name__ == '__main__':
 
             subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info + ['--extra-admin-users', 'cf-blacksmithy'])
 
+        from conda_smithy.ci_register import drone_sync
+        drone_sync()
+        
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
         # Without this, intermittent failures to synch the TravisCI repos ensue.
         # Hang on to any CI registration errors that occur and raise them at the end.
