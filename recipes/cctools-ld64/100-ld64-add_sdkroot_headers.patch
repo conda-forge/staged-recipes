@@ -1,0 +1,1446 @@
+diff -urN ld64.orig/APPLE_LICENSE ld64/APPLE_LICENSE
+--- ld64.orig/APPLE_LICENSE	2013-03-07 23:10:19.000000000 +0000
++++ ld64/APPLE_LICENSE	2017-08-07 16:28:44.956774223 +0100
+@@ -364,4 +364,4 @@
+ INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.
+ Please see the License for the specific language governing rights and
+-limitations under the License."
++limitations under the License." 
+diff -urN ld64.orig/include/mach/machine.h ld64/include/mach/machine.h
+--- ld64.orig/include/mach/machine.h	1970-01-01 01:00:00.000000000 +0100
++++ ld64/include/mach/machine.h	2017-08-07 16:28:18.563964833 +0100
+@@ -0,0 +1,346 @@
++/*
++ * Copyright (c) 2000-2007 Apple Computer, Inc. All rights reserved.
++ *
++ * @APPLE_OSREFERENCE_LICENSE_HEADER_START@
++ *
++ * This file contains Original Code and/or Modifications of Original Code
++ * as defined in and that are subject to the Apple Public Source License
++ * Version 2.0 (the 'License'). You may not use this file except in
++ * compliance with the License. The rights granted to you under the License
++ * may not be used to create, or enable the creation or redistribution of,
++ * unlawful or unlicensed copies of an Apple operating system, or to
++ * circumvent, violate, or enable the circumvention or violation of, any
++ * terms of an Apple operating system software license agreement.
++ *
++ * Please obtain a copy of the License at
++ * http://www.opensource.apple.com/apsl/ and read it before using this file.
++ *
++ * The Original Code and all software distributed under the License are
++ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
++ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
++ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.
++ * Please see the License for the specific language governing rights and
++ * limitations under the License.
++ *
++ * @APPLE_OSREFERENCE_LICENSE_HEADER_END@
++ */
++/*
++ * Mach Operating System
++ * Copyright (c) 1991,1990,1989,1988,1987 Carnegie Mellon University
++ * All Rights Reserved.
++ *
++ * Permission to use, copy, modify and distribute this software and its
++ * documentation is hereby granted, provided that both the copyright
++ * notice and this permission notice appear in all copies of the
++ * software, derivative works or modified versions, and any portions
++ * thereof, and that both notices appear in supporting documentation.
++ *
++ * CARNEGIE MELLON ALLOWS FREE USE OF THIS SOFTWARE IN ITS "AS IS"
++ * CONDITION.  CARNEGIE MELLON DISCLAIMS ANY LIABILITY OF ANY KIND FOR
++ * ANY DAMAGES WHATSOEVER RESULTING FROM THE USE OF THIS SOFTWARE.
++ *
++ * Carnegie Mellon requests users of this software to return to
++ *
++ *  Software Distribution Coordinator  or  Software.Distribution@CS.CMU.EDU
++ *  School of Computer Science
++ *  Carnegie Mellon University
++ *  Pittsburgh PA 15213-3890
++ *
++ * any improvements or extensions that they make and grant Carnegie Mellon
++ * the rights to redistribute these changes.
++ */
++/*	File:	machine.h
++ *	Author:	Avadis Tevanian, Jr.
++ *	Date:	1986
++ *
++ *	Machine independent machine abstraction.
++ */
++
++#ifndef	_MACH_MACHINE_H_
++#define _MACH_MACHINE_H_
++
++#include <stdint.h>
++#include <mach/machine/vm_types.h>
++#include <mach/boolean.h>
++
++typedef integer_t	cpu_type_t;
++typedef integer_t	cpu_subtype_t;
++typedef integer_t	cpu_threadtype_t;
++
++#define CPU_STATE_MAX		4
++
++#define CPU_STATE_USER		0
++#define CPU_STATE_SYSTEM	1
++#define CPU_STATE_IDLE		2
++#define CPU_STATE_NICE		3
++
++
++
++/*
++ * Capability bits used in the definition of cpu_type.
++ */
++#define	CPU_ARCH_MASK	0xff000000		/* mask for architecture bits */
++#define CPU_ARCH_ABI64	0x01000000		/* 64 bit ABI */
++
++/*
++ *	Machine types known by all.
++ */
++
++#define CPU_TYPE_ANY		((cpu_type_t) -1)
++
++#define CPU_TYPE_VAX		((cpu_type_t) 1)
++/* skip				((cpu_type_t) 2)	*/
++/* skip				((cpu_type_t) 3)	*/
++/* skip				((cpu_type_t) 4)	*/
++/* skip				((cpu_type_t) 5)	*/
++#define	CPU_TYPE_MC680x0	((cpu_type_t) 6)
++#define CPU_TYPE_X86		((cpu_type_t) 7)
++#define CPU_TYPE_I386		CPU_TYPE_X86		/* compatibility */
++#define	CPU_TYPE_X86_64		(CPU_TYPE_X86 | CPU_ARCH_ABI64)
++
++/* skip CPU_TYPE_MIPS		((cpu_type_t) 8)	*/
++/* skip 			((cpu_type_t) 9)	*/
++#define CPU_TYPE_MC98000	((cpu_type_t) 10)
++#define CPU_TYPE_HPPA           ((cpu_type_t) 11)
++#define CPU_TYPE_ARM		((cpu_type_t) 12)
++#define CPU_TYPE_MC88000	((cpu_type_t) 13)
++#define CPU_TYPE_SPARC		((cpu_type_t) 14)
++#define CPU_TYPE_I860		((cpu_type_t) 15)
++/* skip	CPU_TYPE_ALPHA		((cpu_type_t) 16)	*/
++/* skip				((cpu_type_t) 17)	*/
++#define CPU_TYPE_POWERPC		((cpu_type_t) 18)
++#define CPU_TYPE_POWERPC64		(CPU_TYPE_POWERPC | CPU_ARCH_ABI64)
++
++/*
++ *	Machine subtypes (these are defined here, instead of in a machine
++ *	dependent directory, so that any program can get all definitions
++ *	regardless of where is it compiled).
++ */
++
++/*
++ * Capability bits used in the definition of cpu_subtype.
++ */
++#define CPU_SUBTYPE_MASK	0xff000000	/* mask for feature flags */
++#define CPU_SUBTYPE_LIB64	0x80000000	/* 64 bit libraries */
++
++
++/*
++ *	Object files that are hand-crafted to run on any
++ *	implementation of an architecture are tagged with
++ *	CPU_SUBTYPE_MULTIPLE.  This functions essentially the same as
++ *	the "ALL" subtype of an architecture except that it allows us
++ *	to easily find object files that may need to be modified
++ *	whenever a new implementation of an architecture comes out.
++ *
++ *	It is the responsibility of the implementor to make sure the
++ *	software handles unsupported implementations elegantly.
++ */
++#define	CPU_SUBTYPE_MULTIPLE		((cpu_subtype_t) -1)
++#define CPU_SUBTYPE_LITTLE_ENDIAN	((cpu_subtype_t) 0)
++#define CPU_SUBTYPE_BIG_ENDIAN		((cpu_subtype_t) 1)
++
++/*
++ *     Machine threadtypes.
++ *     This is none - not defined - for most machine types/subtypes.
++ */
++#define CPU_THREADTYPE_NONE		((cpu_threadtype_t) 0)
++
++/*
++ *	VAX subtypes (these do *not* necessary conform to the actual cpu
++ *	ID assigned by DEC available via the SID register).
++ */
++
++#define	CPU_SUBTYPE_VAX_ALL	((cpu_subtype_t) 0)
++#define CPU_SUBTYPE_VAX780	((cpu_subtype_t) 1)
++#define CPU_SUBTYPE_VAX785	((cpu_subtype_t) 2)
++#define CPU_SUBTYPE_VAX750	((cpu_subtype_t) 3)
++#define CPU_SUBTYPE_VAX730	((cpu_subtype_t) 4)
++#define CPU_SUBTYPE_UVAXI	((cpu_subtype_t) 5)
++#define CPU_SUBTYPE_UVAXII	((cpu_subtype_t) 6)
++#define CPU_SUBTYPE_VAX8200	((cpu_subtype_t) 7)
++#define CPU_SUBTYPE_VAX8500	((cpu_subtype_t) 8)
++#define CPU_SUBTYPE_VAX8600	((cpu_subtype_t) 9)
++#define CPU_SUBTYPE_VAX8650	((cpu_subtype_t) 10)
++#define CPU_SUBTYPE_VAX8800	((cpu_subtype_t) 11)
++#define CPU_SUBTYPE_UVAXIII	((cpu_subtype_t) 12)
++
++/*
++ * 	680x0 subtypes
++ *
++ * The subtype definitions here are unusual for historical reasons.
++ * NeXT used to consider 68030 code as generic 68000 code.  For
++ * backwards compatability:
++ *
++ *	CPU_SUBTYPE_MC68030 symbol has been preserved for source code
++ *	compatability.
++ *
++ *	CPU_SUBTYPE_MC680x0_ALL has been defined to be the same
++ *	subtype as CPU_SUBTYPE_MC68030 for binary comatability.
++ *
++ *	CPU_SUBTYPE_MC68030_ONLY has been added to allow new object
++ *	files to be tagged as containing 68030-specific instructions.
++ */
++
++#define	CPU_SUBTYPE_MC680x0_ALL		((cpu_subtype_t) 1)
++#define CPU_SUBTYPE_MC68030		((cpu_subtype_t) 1) /* compat */
++#define CPU_SUBTYPE_MC68040		((cpu_subtype_t) 2)
++#define	CPU_SUBTYPE_MC68030_ONLY	((cpu_subtype_t) 3)
++
++/*
++ *	I386 subtypes
++ */
++
++#define CPU_SUBTYPE_INTEL(f, m)	((cpu_subtype_t) (f) + ((m) << 4))
++
++#define	CPU_SUBTYPE_I386_ALL			CPU_SUBTYPE_INTEL(3, 0)
++#define CPU_SUBTYPE_386					CPU_SUBTYPE_INTEL(3, 0)
++#define CPU_SUBTYPE_486					CPU_SUBTYPE_INTEL(4, 0)
++#define CPU_SUBTYPE_486SX				CPU_SUBTYPE_INTEL(4, 8)	// 8 << 4 = 128
++#define CPU_SUBTYPE_586					CPU_SUBTYPE_INTEL(5, 0)
++#define CPU_SUBTYPE_PENT	CPU_SUBTYPE_INTEL(5, 0)
++#define CPU_SUBTYPE_PENTPRO	CPU_SUBTYPE_INTEL(6, 1)
++#define CPU_SUBTYPE_PENTII_M3	CPU_SUBTYPE_INTEL(6, 3)
++#define CPU_SUBTYPE_PENTII_M5	CPU_SUBTYPE_INTEL(6, 5)
++#define CPU_SUBTYPE_CELERON				CPU_SUBTYPE_INTEL(7, 6)
++#define CPU_SUBTYPE_CELERON_MOBILE		CPU_SUBTYPE_INTEL(7, 7)
++#define CPU_SUBTYPE_PENTIUM_3			CPU_SUBTYPE_INTEL(8, 0)
++#define CPU_SUBTYPE_PENTIUM_3_M			CPU_SUBTYPE_INTEL(8, 1)
++#define CPU_SUBTYPE_PENTIUM_3_XEON		CPU_SUBTYPE_INTEL(8, 2)
++#define CPU_SUBTYPE_PENTIUM_M			CPU_SUBTYPE_INTEL(9, 0)
++#define CPU_SUBTYPE_PENTIUM_4			CPU_SUBTYPE_INTEL(10, 0)
++#define CPU_SUBTYPE_PENTIUM_4_M			CPU_SUBTYPE_INTEL(10, 1)
++#define CPU_SUBTYPE_ITANIUM				CPU_SUBTYPE_INTEL(11, 0)
++#define CPU_SUBTYPE_ITANIUM_2			CPU_SUBTYPE_INTEL(11, 1)
++#define CPU_SUBTYPE_XEON				CPU_SUBTYPE_INTEL(12, 0)
++#define CPU_SUBTYPE_XEON_MP				CPU_SUBTYPE_INTEL(12, 1)
++
++#define CPU_SUBTYPE_INTEL_FAMILY(x)	((x) & 15)
++#define CPU_SUBTYPE_INTEL_FAMILY_MAX	15
++
++#define CPU_SUBTYPE_INTEL_MODEL(x)	((x) >> 4)
++#define CPU_SUBTYPE_INTEL_MODEL_ALL	0
++
++/*
++ *	X86 subtypes.
++ */
++
++#define CPU_SUBTYPE_X86_ALL		((cpu_subtype_t)3)
++#define CPU_SUBTYPE_X86_64_ALL		((cpu_subtype_t)3)
++#define CPU_SUBTYPE_X86_ARCH1		((cpu_subtype_t)4)
++
++
++#define CPU_THREADTYPE_INTEL_HTT	((cpu_threadtype_t) 1)
++
++/*
++ *	Mips subtypes.
++ */
++
++#define	CPU_SUBTYPE_MIPS_ALL	((cpu_subtype_t) 0)
++#define CPU_SUBTYPE_MIPS_R2300	((cpu_subtype_t) 1)
++#define CPU_SUBTYPE_MIPS_R2600	((cpu_subtype_t) 2)
++#define CPU_SUBTYPE_MIPS_R2800	((cpu_subtype_t) 3)
++#define CPU_SUBTYPE_MIPS_R2000a	((cpu_subtype_t) 4)	/* pmax */
++#define CPU_SUBTYPE_MIPS_R2000	((cpu_subtype_t) 5)
++#define CPU_SUBTYPE_MIPS_R3000a	((cpu_subtype_t) 6)	/* 3max */
++#define CPU_SUBTYPE_MIPS_R3000	((cpu_subtype_t) 7)
++
++/*
++ *	MC98000 (PowerPC) subtypes
++ */
++#define	CPU_SUBTYPE_MC98000_ALL	((cpu_subtype_t) 0)
++#define CPU_SUBTYPE_MC98601	((cpu_subtype_t) 1)
++
++/*
++ *	HPPA subtypes for Hewlett-Packard HP-PA family of
++ *	risc processors. Port by NeXT to 700 series.
++ */
++
++#define	CPU_SUBTYPE_HPPA_ALL		((cpu_subtype_t) 0)
++#define CPU_SUBTYPE_HPPA_7100		((cpu_subtype_t) 0) /* compat */
++#define CPU_SUBTYPE_HPPA_7100LC		((cpu_subtype_t) 1)
++
++/*
++ *	MC88000 subtypes.
++ */
++#define	CPU_SUBTYPE_MC88000_ALL	((cpu_subtype_t) 0)
++#define CPU_SUBTYPE_MC88100	((cpu_subtype_t) 1)
++#define CPU_SUBTYPE_MC88110	((cpu_subtype_t) 2)
++
++/*
++ *	SPARC subtypes
++ */
++#define	CPU_SUBTYPE_SPARC_ALL		((cpu_subtype_t) 0)
++
++/*
++ *	I860 subtypes
++ */
++#define CPU_SUBTYPE_I860_ALL	((cpu_subtype_t) 0)
++#define CPU_SUBTYPE_I860_860	((cpu_subtype_t) 1)
++
++/*
++ *	PowerPC subtypes
++ */
++#define CPU_SUBTYPE_POWERPC_ALL		((cpu_subtype_t) 0)
++#define CPU_SUBTYPE_POWERPC_601		((cpu_subtype_t) 1)
++#define CPU_SUBTYPE_POWERPC_602		((cpu_subtype_t) 2)
++#define CPU_SUBTYPE_POWERPC_603		((cpu_subtype_t) 3)
++#define CPU_SUBTYPE_POWERPC_603e	((cpu_subtype_t) 4)
++#define CPU_SUBTYPE_POWERPC_603ev	((cpu_subtype_t) 5)
++#define CPU_SUBTYPE_POWERPC_604		((cpu_subtype_t) 6)
++#define CPU_SUBTYPE_POWERPC_604e	((cpu_subtype_t) 7)
++#define CPU_SUBTYPE_POWERPC_620		((cpu_subtype_t) 8)
++#define CPU_SUBTYPE_POWERPC_750		((cpu_subtype_t) 9)
++#define CPU_SUBTYPE_POWERPC_7400	((cpu_subtype_t) 10)
++#define CPU_SUBTYPE_POWERPC_7450	((cpu_subtype_t) 11)
++#define CPU_SUBTYPE_POWERPC_970		((cpu_subtype_t) 100)
++
++/*
++ *	ARM subtypes
++ */
++#define CPU_SUBTYPE_ARM_ALL             ((cpu_subtype_t) 0)
++#define CPU_SUBTYPE_ARM_V4T             ((cpu_subtype_t) 5)
++#define CPU_SUBTYPE_ARM_V6              ((cpu_subtype_t) 6)
++#define CPU_SUBTYPE_ARM_V5TEJ           ((cpu_subtype_t) 7)
++#define CPU_SUBTYPE_ARM_XSCALE		((cpu_subtype_t) 8)
++#define CPU_SUBTYPE_ARM_V7		((cpu_subtype_t) 9)
++
++/*
++ *	CPU families (sysctl hw.cpufamily)
++ *
++ * These are meant to identify the CPU's marketing name - an
++ * application can map these to (possibly) localized strings.
++ * NB: the encodings of the CPU families are intentionally arbitrary.
++ * There is no ordering, and you should never try to deduce whether
++ * or not some feature is available based on the family.
++ * Use feature flags (eg, hw.optional.altivec) to test for optional
++ * functionality.
++ */
++#define CPUFAMILY_UNKNOWN   		0
++#define CPUFAMILY_POWERPC_G3		0xcee41549
++#define CPUFAMILY_POWERPC_G4		0x77c184ae
++#define CPUFAMILY_POWERPC_G5		0xed76d8aa
++#define CPUFAMILY_INTEL_6_13		0xaa33392b
++#define CPUFAMILY_INTEL_YONAH		0x73d67300
++#define CPUFAMILY_INTEL_MEROM		0x426f69ef
++#define CPUFAMILY_INTEL_PENRYN		0x78ea4fbc
++#define CPUFAMILY_INTEL_NEHALEM		0x6b5a4cd2
++#define CPUFAMILY_INTEL_WESTMERE	0x573b5eec
++#define CPUFAMILY_INTEL_SANDYBRIDGE	0x5490b78c
++#define CPUFAMILY_ARM_9			0xe73283ae
++#define CPUFAMILY_ARM_11		0x8ff620d8
++#define CPUFAMILY_ARM_XSCALE		0x53b005f5
++#define CPUFAMILY_ARM_13		0x0cc90e64
++#define CPUFAMILY_ARM_14		0x96077ef1
++
++/* The following synonyms are deprecated: */
++#define CPUFAMILY_INTEL_6_14	CPUFAMILY_INTEL_YONAH
++#define CPUFAMILY_INTEL_6_15	CPUFAMILY_INTEL_MEROM
++#define CPUFAMILY_INTEL_6_23	CPUFAMILY_INTEL_PENRYN
++#define CPUFAMILY_INTEL_6_26	CPUFAMILY_INTEL_NEHALEM
++
++#define CPUFAMILY_INTEL_CORE	CPUFAMILY_INTEL_YONAH
++#define CPUFAMILY_INTEL_CORE2	CPUFAMILY_INTEL_MEROM
++
++
++#endif	/* _MACH_MACHINE_H_ */
+diff -urN ld64.orig/include/mach-o/dyld_debug.h ld64/include/mach-o/dyld_debug.h
+--- ld64.orig/include/mach-o/dyld_debug.h	1970-01-01 01:00:00.000000000 +0100
++++ ld64/include/mach-o/dyld_debug.h	2017-08-07 16:28:18.564964864 +0100
+@@ -0,0 +1,247 @@
++/*
++ * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
++ *
++ * @APPLE_LICENSE_HEADER_START@
++ *
++ * This file contains Original Code and/or Modifications of Original Code
++ * as defined in and that are subject to the Apple Public Source License
++ * Version 2.0 (the 'License'). You may not use this file except in
++ * compliance with the License. Please obtain a copy of the License at
++ * http://www.opensource.apple.com/apsl/ and read it before using this
++ * file.
++ *
++ * The Original Code and all software distributed under the License are
++ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
++ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
++ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.
++ * Please see the License for the specific language governing rights and
++ * limitations under the License.
++ *
++ * @APPLE_LICENSE_HEADER_END@
++ */
++#ifndef _DYLD_DEBUG_
++#define _DYLD_DEBUG_
++
++#include <mach/mach.h>
++#ifndef DYLD_BUILD /* do not include this when building dyld itself */
++#include <mach-o/dyld.h>
++#endif /* !defined(DYLD_BUILD) */
++
++#include <AvailabilityMacros.h>
++
++/*
++ * The dyld debugging API is deprecated as of Mac OS X 10.4
++ */
++enum dyld_debug_return {
++    DYLD_SUCCESS,
++    DYLD_INCONSISTENT_DATA,
++    DYLD_INVALID_ARGUMENTS,
++    DYLD_FAILURE
++};
++
++struct dyld_debug_module {
++    struct mach_header *header;
++    unsigned long vmaddr_slide;
++    unsigned long module_index;
++};
++
++enum dyld_event_type {
++    DYLD_IMAGE_ADDED,
++    DYLD_MODULE_BOUND,
++    DYLD_MODULE_REMOVED,
++    DYLD_MODULE_REPLACED,
++    DYLD_PAST_EVENTS_END,
++    DYLD_IMAGE_REMOVED
++};
++
++struct dyld_event {
++    enum dyld_event_type type;
++    struct dyld_debug_module arg[2];
++};
++
++extern enum dyld_debug_return _dyld_debug_defining_module(
++    mach_port_t target_task,
++    unsigned long send_timeout,
++    unsigned long rcv_timeout,
++    boolean_t inconsistent_data_ok,
++    char *name,
++    struct dyld_debug_module *module) AVAILABLE_MAC_OS_X_VERSION_10_0_AND_LATER_BUT_DEPRECATED_IN_MAC_OS_X_VERSION_10_4;
++
++extern enum dyld_debug_return _dyld_debug_is_module_bound(
++    mach_port_t target_task,
++    unsigned long send_timeout,
++    unsigned long rcv_timeout,
++    boolean_t inconsistent_data_ok,
++    struct dyld_debug_module module,
++    boolean_t *bound) AVAILABLE_MAC_OS_X_VERSION_10_0_AND_LATER_BUT_DEPRECATED_IN_MAC_OS_X_VERSION_10_4;
++
++extern enum dyld_debug_return _dyld_debug_bind_module(
++    mach_port_t target_task,
++    unsigned long send_timeout,
++    unsigned long rcv_timeout,
++    boolean_t inconsistent_data_ok,
++    struct dyld_debug_module module) AVAILABLE_MAC_OS_X_VERSION_10_0_AND_LATER_BUT_DEPRECATED_IN_MAC_OS_X_VERSION_10_4;
++
++extern enum dyld_debug_return _dyld_debug_module_name(
++    mach_port_t target_task,
++    unsigned long send_timeout,
++    unsigned long rcv_timeout,
++    boolean_t inconsistent_data_ok,
++    struct dyld_debug_module module,
++    char **image_name,
++    unsigned long *image_nameCnt,
++    char **module_name,
++    unsigned long *module_nameCnt) AVAILABLE_MAC_OS_X_VERSION_10_0_AND_LATER_BUT_DEPRECATED_IN_MAC_OS_X_VERSION_10_4;
++
++extern enum dyld_debug_return _dyld_debug_subscribe_to_events(
++    mach_port_t target_task,
++    unsigned long send_timeout,
++    unsigned long rcv_timeout,
++    boolean_t inconsistent_data_ok,
++    void (*dyld_event_routine)(struct dyld_event event)) AVAILABLE_MAC_OS_X_VERSION_10_0_AND_LATER_BUT_DEPRECATED_IN_MAC_OS_X_VERSION_10_4;
++
++/*
++ * _dyld_debug_add_event_subscriber() uses the mig interface functions below
++ * to dispatch the dyld event messages from the subscriber port specified.
++ */
++extern enum dyld_debug_return _dyld_debug_add_event_subscriber(
++    mach_port_t target_task,
++    unsigned long send_timeout,
++    unsigned long rcv_timeout,
++    boolean_t inconsistent_data_ok,
++    mach_port_t subscriber) AVAILABLE_MAC_OS_X_VERSION_10_0_AND_LATER_BUT_DEPRECATED_IN_MAC_OS_X_VERSION_10_4;
++
++/*
++ * These structures should be produced by mig(1) from the mig generated files
++ * but they are not.  These are really only needed so the correct size of the
++ * request and reply messages can be allocated.
++ */
++struct _dyld_event_message_request {
++#ifdef __MACH30__
++    mach_msg_header_t head;
++    NDR_record_t NDR;
++    struct dyld_event event;
++    mach_msg_trailer_t trailer;
++#else
++    msg_header_t head;
++    msg_type_t eventType;
++    struct dyld_event event;
++#endif
++};
++struct _dyld_event_message_reply {
++#ifdef __MACH30__
++    mach_msg_header_t head;
++    NDR_record_t NDR;
++    struct dyld_event event;
++#else
++    msg_header_t head;
++    msg_type_t RetCodeType;
++    kern_return_t RetCode;
++#endif
++};
++#ifndef	mig_internal
++/*
++ * _dyld_event_server() is the mig generated routine to dispatch dyld event
++ * messages.
++ */
++extern boolean_t _dyld_event_server(
++#ifdef __MACH30__
++    mach_msg_header_t *request,
++    mach_msg_header_t *reply);
++#else
++    struct _dyld_event_message_request *request,
++    struct _dyld_event_message_reply *reply);
++#endif
++#endif /* mig_internal */
++
++#ifndef SHLIB
++/*
++ * _dyld_event_server_callback() is the routine called by _dyld_event_server()
++ * that must be written by users of _dyld_event_server().
++ */
++extern
++#ifdef __MACH30__
++kern_return_t
++#else
++void
++#endif
++_dyld_event_server_callback(
++#ifdef __MACH30__
++    mach_port_t subscriber,
++#else
++    port_t subscriber,
++#endif
++    struct dyld_event event);
++#endif /* SHLIB */
++
++/*
++ * This is the state of the target task while we are sending a message to it.
++ */
++struct _dyld_debug_task_state {
++    mach_port_t	   debug_port;
++    mach_port_t    debug_thread;
++    unsigned int   debug_thread_resume_count;
++    unsigned int   task_resume_count;
++    mach_port_t   *threads;
++    unsigned int   thread_count;
++};
++
++/*
++ * _dyld_debug_make_runnable() is called before sending messages to the
++ * dynamic link editor.  Basically it assures that the debugging
++ * thread is the only runnable thread in the task to receive the
++ * message.  It also assures that the debugging thread is indeed
++ * runnable if it was suspended.  The function will make sure each
++ * thread in the remote task is suspended and resumed the same number
++ * of times, so in the end the suspend count of each individual thread
++ * is the same.
++ */
++extern enum dyld_debug_return _dyld_debug_make_runnable(
++    mach_port_t target_task,
++    struct _dyld_debug_task_state *state) AVAILABLE_MAC_OS_X_VERSION_10_0_AND_LATER_BUT_DEPRECATED_IN_MAC_OS_X_VERSION_10_4;
++
++/*
++ * _dyld_debug_restore_runnable() is called after sending messages to the
++ * dynamic link editor.  It undoes what _dyld_debug_make_runnable() did to the
++ * task and put it back the way it was.
++ */
++extern enum dyld_debug_return _dyld_debug_restore_runnable(
++    mach_port_t target_task,
++    struct _dyld_debug_task_state *state) AVAILABLE_MAC_OS_X_VERSION_10_0_AND_LATER_BUT_DEPRECATED_IN_MAC_OS_X_VERSION_10_4;
++
++/*
++ * To provide more detailed information when the APIs of the dyld debug
++ * interfaces fail (return DYLD_FAILURE) the following structure is filled in.
++ * After it is filled in the function registered with
++ * set_dyld_debug_error_func() is called with a pointer to that struct.
++ *
++ * The local_error field is a unique number for each possible error condition
++ * in the source code in that makes up the dyld debug APIs.  The source file
++ * and line number in the cctools libdyld directory where the dyld debug APIs
++ * are implemented are set into the file_name and line_number fields.  The
++ * field dyld_debug_return is filled in with that would be returned by the
++ * API (usually DYLD_FAILURE).  The other fields will be zero or filled in by
++ * the error code from the mach system call, or UNIX system call that failed.
++ */
++struct dyld_debug_error_data {
++    enum dyld_debug_return dyld_debug_return;
++    kern_return_t mach_error;
++    int dyld_debug_errno;
++    unsigned long local_error;
++    char *file_name;
++    unsigned long line_number;
++};
++
++extern void _dyld_debug_set_error_func(
++    void (*func)(struct dyld_debug_error_data *e)) AVAILABLE_MAC_OS_X_VERSION_10_0_AND_LATER_BUT_DEPRECATED_IN_MAC_OS_X_VERSION_10_4;
++
++#ifndef DYLD_BUILD /* do not include this when building dyld itself */
++
++extern enum dyld_debug_return _dyld_debug_task_from_core(
++    NSObjectFileImage coreFileImage,
++    mach_port_t *core_task) AVAILABLE_MAC_OS_X_VERSION_10_0_AND_LATER_BUT_DEPRECATED_IN_MAC_OS_X_VERSION_10_4;
++
++#endif /* !defined(DYLD_BUILD) */
++
++#endif /* _DYLD_DEBUG_ */
+diff -urN ld64.orig/include/mach-o/dyld_gdb.h ld64/include/mach-o/dyld_gdb.h
+--- ld64.orig/include/mach-o/dyld_gdb.h	1970-01-01 01:00:00.000000000 +0100
++++ ld64/include/mach-o/dyld_gdb.h	2017-08-07 16:28:18.564964864 +0100
+@@ -0,0 +1,122 @@
++/*
++ * Copyright (c) 2003 Apple Computer, Inc. All rights reserved.
++ *
++ * @APPLE_LICENSE_HEADER_START@
++ *
++ * This file contains Original Code and/or Modifications of Original Code
++ * as defined in and that are subject to the Apple Public Source License
++ * Version 2.0 (the 'License'). You may not use this file except in
++ * compliance with the License. Please obtain a copy of the License at
++ * http://www.opensource.apple.com/apsl/ and read it before using this
++ * file.
++ *
++ * The Original Code and all software distributed under the License are
++ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
++ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
++ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.
++ * Please see the License for the specific language governing rights and
++ * limitations under the License.
++ *
++ * @APPLE_LICENSE_HEADER_END@
++ */
++#ifndef _DYLD_GDB_
++#define _DYLD_GDB_
++
++/*
++ * For Mac OS X 10.4 or later, use the interface in mach-o/dylib_images.h
++ */
++#include <mach-o/dyld_images.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++/*
++ * Prior to Mac OS 10.4, this is the interface gdb used to discover the mach-o images loaded in a process
++ */
++#if __i386__
++/*
++ * gdb_dyld_version is the version of gdb interface that dyld is currently
++ * exporting.  For the interface described in this header file gdb_dyld_version
++ * is 2.  As the gdb/dyld interface changes this number will be incremented and
++ * comments will be added as to what are the are changes for the various
++ * versions.
++ */
++extern unsigned int gdb_dyld_version;
++
++/*
++ * gdb_dyld_state_changed is the internal dyld routine called by dyld to notify
++ * gdb that the state of the data structures has changed.  gdb is expected to
++ * put a break point on this routine and re-read the internal dyld data
++ * structures below when this break point is hit.
++ */
++extern void gdb_dyld_state_changed(void);
++
++/*
++ * gdb looks directly at parts of two of dyld's internal data structures.  The
++ * list of object file images and the list of library images.  The parts of
++ * these structures that gdb looks at will not change unless the value of
++ * gdb_dyld_version changes.  The size of these structures and the other fields
++ * that gdb does not look at may change.
++ *
++ *  struct object_images {
++ *      struct object_image images[NOBJECT_IMAGES];
++ *      unsigned long nimages;
++ *      struct object_images *next_images;
++ *      ...
++ *  };
++ *
++ *  struct library_images {
++ *      struct library_image images[NLIBRARY_IMAGES];
++ *      unsigned long nimages;
++ *      struct library_images *next_images;
++ *      ...
++ *  };
++ *
++ * Both the object_image structure and the library_image structure
++ * start with a structure containing the following fields:
++ *
++ *  struct image {
++ *      char *physical_name;        physical image name (file name)
++ *      unsigned long vmaddr_slide; the slide from the staticly linked address
++ *      struct mach_header *mh;     address of the mach header of the image
++ *	unsigned long valid;        TRUE if this is struct is valid
++ *      char *name;                 image name for reporting errors
++ *      ...
++ *  };
++ *
++ * In gdb_dyld_version 1 the first field was "name".  In gdb_dyld_version 2 the
++ * first field was changed to "physical_name" and a new fifth field "name" was
++ * added.  These two fields are set to the same values except in the case of
++ * zero-link.  In zero-link the NSLinkModule() option
++ * NSLINKMODULE_OPTION_TRAILING_PHYS_NAME is used and then the physical_name is
++ * the file name of the module zero-link loaded that is part of the logical
++ * image "name".
++ */
++
++/* object_images is the global object_images structure */
++
++/* the number of gdb_object_image structures present per bucket */
++extern unsigned int gdb_nobject_images;
++
++/* the size of each gdb_object_image structure */
++extern unsigned int gdb_object_image_size;
++
++/* library_images is the global library_images structure */
++
++/* the number of gdb_library_image structures present per bucket */
++extern unsigned int gdb_nlibrary_images;
++
++/* the size of each gdb_library_image structure */
++extern unsigned int gdb_library_image_size;
++
++#endif
++
++
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* _DYLD_GDB_ */
+diff -urN ld64.orig/include/mach-o/dyld.h ld64/include/mach-o/dyld.h
+--- ld64.orig/include/mach-o/dyld.h	1970-01-01 01:00:00.000000000 +0100
++++ ld64/include/mach-o/dyld.h	2017-08-07 16:28:18.564964864 +0100
+@@ -0,0 +1,253 @@
++/*
++ * Copyright (c) 1999-2008 Apple Inc. All rights reserved.
++ *
++ * @APPLE_LICENSE_HEADER_START@
++ *
++ * This file contains Original Code and/or Modifications of Original Code
++ * as defined in and that are subject to the Apple Public Source License
++ * Version 2.0 (the 'License'). You may not use this file except in
++ * compliance with the License. Please obtain a copy of the License at
++ * http://www.opensource.apple.com/apsl/ and read it before using this
++ * file.
++ *
++ * The Original Code and all software distributed under the License are
++ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
++ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
++ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.
++ * Please see the License for the specific language governing rights and
++ * limitations under the License.
++ *
++ * @APPLE_LICENSE_HEADER_END@
++ */
++#ifndef _MACH_O_DYLD_H_
++#define _MACH_O_DYLD_H_
++
++
++#include <stddef.h>
++#include <stdint.h>
++#include <stdbool.h>
++
++#include <mach-o/loader.h>
++#include <Availability.h>
++
++#if __cplusplus
++extern "C" {
++#endif
++
++/*
++ * The following functions allow you to iterate through all loaded images.
++ * This is not a thread safe operation.  Another thread can add or remove
++ * an image during the iteration.
++ *
++ * Many uses of these routines can be replace by a call to dladdr() which
++ * will return the mach_header and name of an image, given an address in
++ * the image. dladdr() is thread safe.
++ */
++extern uint32_t                    _dyld_image_count(void)                              __OSX_AVAILABLE_STARTING(__MAC_10_1, __IPHONE_2_0);
++extern const struct mach_header*   _dyld_get_image_header(uint32_t image_index)         __OSX_AVAILABLE_STARTING(__MAC_10_1, __IPHONE_2_0);
++extern intptr_t                    _dyld_get_image_vmaddr_slide(uint32_t image_index)   __OSX_AVAILABLE_STARTING(__MAC_10_1, __IPHONE_2_0);
++extern const char*                 _dyld_get_image_name(uint32_t image_index)           __OSX_AVAILABLE_STARTING(__MAC_10_1, __IPHONE_2_0);
++
++
++/*
++ * The following functions allow you to install callbacks which will be called
++ * by dyld whenever an image is loaded or unloaded.  During a call to _dyld_register_func_for_add_image()
++ * the callback func is called for every existing image.  Later, it is called as each new image
++ * is loaded and bound (but initializers not yet run).  The callback registered with
++ * _dyld_register_func_for_remove_image() is called after any terminators in an image are run
++ * and before the image is un-memory-mapped.
++ */
++extern void _dyld_register_func_for_add_image(void (*func)(const struct mach_header* mh, intptr_t vmaddr_slide))    __OSX_AVAILABLE_STARTING(__MAC_10_1, __IPHONE_2_0);
++extern void _dyld_register_func_for_remove_image(void (*func)(const struct mach_header* mh, intptr_t vmaddr_slide)) __OSX_AVAILABLE_STARTING(__MAC_10_1, __IPHONE_2_0);
++
++
++/*
++ * NSVersionOfRunTimeLibrary() returns the current_version number of the currently dylib
++ * specifed by the libraryName.  The libraryName parameter would be "bar" for /path/libbar.3.dylib and
++ * "Foo" for /path/Foo.framework/Versions/A/Foo.  It returns -1 if no such library is loaded.
++ */
++extern int32_t NSVersionOfRunTimeLibrary(const char* libraryName)            __OSX_AVAILABLE_STARTING(__MAC_10_1, __IPHONE_2_0);
++
++
++/*
++ * NSVersionOfRunTimeLibrary() returns the current_version number that the main executable was linked
++ * against at build time.  The libraryName parameter would be "bar" for /path/libbar.3.dylib and
++ * "Foo" for /path/Foo.framework/Versions/A/Foo.  It returns -1 if the main executable did not link
++ * against the specified library.
++ */
++extern int32_t NSVersionOfLinkTimeLibrary(const char* libraryName)           __OSX_AVAILABLE_STARTING(__MAC_10_1, __IPHONE_2_0);
++
++
++/*
++ * _NSGetExecutablePath() copies the path of the main executable into the buffer. The bufsize parameter
++ * should initially be the size of the buffer.  The function returns 0 if the path was successfully copied,
++ * and *bufsize is left unchanged. It returns -1 if the buffer is not large enough, and *bufsize is set
++ * to the size required.
++ *
++ * Note that _NSGetExecutablePath will return "a path" to the executable not a "real path" to the executable.
++ * That is the path may be a symbolic link and not the real file. With deep directories the total bufsize
++ * needed could be more than MAXPATHLEN.
++ */
++extern int _NSGetExecutablePath(char* buf, uint32_t* bufsize)                 __OSX_AVAILABLE_STARTING(__MAC_10_2, __IPHONE_2_0);
++
++
++
++/*
++ * _dyld_moninit() is a private interface between dyld and libSystem.
++ */
++extern void _dyld_moninit(void (*monaddition)(char *lowpc, char *highpc))    __OSX_AVAILABLE_STARTING(__MAC_10_1, __IPHONE_2_0);
++
++
++
++
++
++/*
++ * The following dyld API's are deprecated as of Mac OS X 10.5.  They are either
++ * no longer necessary or are superceeded by dlopen and friends in <dlfcn.h>.
++ * dlopen/dlsym/dlclose have been available since Mac OS X 10.3 and work with
++ * dylibs and bundles.
++ *
++ *    NSAddImage                           -> dlopen
++ *    NSLookupSymbolInImage                -> dlsym
++ *    NSCreateObjectFileImageFromFile      -> dlopen
++ *    NSDestroyObjectFileImage             -> dlclose
++ *    NSLinkModule                         -> not needed when dlopen used
++ *    NSUnLinkModule                       -> not needed when dlclose used
++ *    NSLookupSymbolInModule               -> dlsym
++ *    _dyld_image_containing_address       -> dladdr
++ *    NSLinkEditError                      -> dlerror
++ *
++ */
++
++#ifndef ENUM_DYLD_BOOL
++#define ENUM_DYLD_BOOL
++  #undef FALSE
++  #undef TRUE
++  enum DYLD_BOOL { FALSE, TRUE };
++#endif /* ENUM_DYLD_BOOL */
++
++
++/* Object file image API */
++typedef enum {
++    NSObjectFileImageFailure, /* for this a message is printed on stderr */
++    NSObjectFileImageSuccess,
++    NSObjectFileImageInappropriateFile,
++    NSObjectFileImageArch,
++    NSObjectFileImageFormat, /* for this a message is printed on stderr */
++    NSObjectFileImageAccess
++} NSObjectFileImageReturnCode;
++
++typedef struct __NSObjectFileImage*  NSObjectFileImage;
++
++/* NSObjectFileImage can only be used with MH_BUNDLE files */
++extern NSObjectFileImageReturnCode NSCreateObjectFileImageFromFile(const char* pathName, NSObjectFileImage *objectFileImage)               __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++extern NSObjectFileImageReturnCode NSCreateObjectFileImageFromMemory(const void *address, size_t size, NSObjectFileImage *objectFileImage) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++extern bool                        NSDestroyObjectFileImage(NSObjectFileImage objectFileImage)                                             __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++
++extern uint32_t     NSSymbolDefinitionCountInObjectFileImage(NSObjectFileImage objectFileImage)                   __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++extern const char*  NSSymbolDefinitionNameInObjectFileImage(NSObjectFileImage objectFileImage, uint32_t ordinal)  __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++extern uint32_t     NSSymbolReferenceCountInObjectFileImage(NSObjectFileImage objectFileImage)                    __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++extern const char*  NSSymbolReferenceNameInObjectFileImage(NSObjectFileImage objectFileImage, uint32_t ordinal, bool *tentative_definition) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++extern bool         NSIsSymbolDefinedInObjectFileImage(NSObjectFileImage objectFileImage, const char* symbolName) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_4,__IPHONE_NA,__IPHONE_NA);
++extern void*        NSGetSectionDataInObjectFileImage(NSObjectFileImage objectFileImage, const char* segmentName, const char* sectionName, size_t *size) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++extern bool         NSHasModInitObjectFileImage(NSObjectFileImage objectFileImage)                                __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_3,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++
++typedef struct __NSModule* NSModule;
++extern const char*  NSNameOfModule(NSModule m)         __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++extern const char*  NSLibraryNameForModule(NSModule m) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++
++extern NSModule NSLinkModule(NSObjectFileImage objectFileImage, const char* moduleName, uint32_t options) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++#define NSLINKMODULE_OPTION_NONE                         0x0
++#define NSLINKMODULE_OPTION_BINDNOW                      0x1
++#define NSLINKMODULE_OPTION_PRIVATE                      0x2
++#define NSLINKMODULE_OPTION_RETURN_ON_ERROR              0x4
++#define NSLINKMODULE_OPTION_DONT_CALL_MOD_INIT_ROUTINES  0x8
++#define NSLINKMODULE_OPTION_TRAILING_PHYS_NAME          0x10
++
++extern bool NSUnLinkModule(NSModule module, uint32_t options) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++#define NSUNLINKMODULE_OPTION_NONE                  0x0
++#define NSUNLINKMODULE_OPTION_KEEP_MEMORY_MAPPED    0x1
++#define NSUNLINKMODULE_OPTION_RESET_LAZY_REFERENCES	0x2
++
++/* symbol API */
++typedef struct __NSSymbol* NSSymbol;
++extern bool     NSIsSymbolNameDefined(const char* symbolName)                                                    __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_4,__IPHONE_NA,__IPHONE_NA);
++extern bool     NSIsSymbolNameDefinedWithHint(const char* symbolName, const char* libraryNameHint)               __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_4,__IPHONE_NA,__IPHONE_NA);
++extern bool     NSIsSymbolNameDefinedInImage(const struct mach_header* image, const char* symbolName)            __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_4,__IPHONE_NA,__IPHONE_NA);
++extern NSSymbol NSLookupAndBindSymbol(const char* symbolName)                                                    __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_4,__IPHONE_NA,__IPHONE_NA);
++extern NSSymbol NSLookupAndBindSymbolWithHint(const char* symbolName, const char* libraryNameHint)               __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_4,__IPHONE_NA,__IPHONE_NA);
++extern NSSymbol NSLookupSymbolInModule(NSModule module, const char* symbolName)                                  __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++extern NSSymbol NSLookupSymbolInImage(const struct mach_header* image, const char* symbolName, uint32_t options) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++#define NSLOOKUPSYMBOLINIMAGE_OPTION_BIND            0x0
++#define NSLOOKUPSYMBOLINIMAGE_OPTION_BIND_NOW        0x1
++#define NSLOOKUPSYMBOLINIMAGE_OPTION_BIND_FULLY      0x2
++#define NSLOOKUPSYMBOLINIMAGE_OPTION_RETURN_ON_ERROR 0x4
++extern const char*  NSNameOfSymbol(NSSymbol symbol)    __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++extern void *       NSAddressOfSymbol(NSSymbol symbol) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++extern NSModule     NSModuleForSymbol(NSSymbol symbol) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++
++/* error handling API */
++typedef enum {
++    NSLinkEditFileAccessError,
++    NSLinkEditFileFormatError,
++    NSLinkEditMachResourceError,
++    NSLinkEditUnixResourceError,
++    NSLinkEditOtherError,
++    NSLinkEditWarningError,
++    NSLinkEditMultiplyDefinedError,
++    NSLinkEditUndefinedError
++} NSLinkEditErrors;
++
++/*
++ * For the NSLinkEditErrors value NSLinkEditOtherError these are the values
++ * passed to the link edit error handler as the errorNumber (what would be an
++ * errno value for NSLinkEditUnixResourceError or a kern_return_t value for
++ * NSLinkEditMachResourceError).
++ */
++typedef enum {
++    NSOtherErrorRelocation,
++    NSOtherErrorLazyBind,
++    NSOtherErrorIndrLoop,
++    NSOtherErrorLazyInit,
++    NSOtherErrorInvalidArgs
++} NSOtherErrorNumbers;
++
++extern void NSLinkEditError(NSLinkEditErrors *c, int *errorNumber, const char** fileName, const char** errorString) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++
++typedef struct {
++     void     (*undefined)(const char* symbolName);
++     NSModule (*multiple)(NSSymbol s, NSModule oldModule, NSModule newModule);
++     void     (*linkEdit)(NSLinkEditErrors errorClass, int errorNumber,
++                          const char* fileName, const char* errorString);
++} NSLinkEditErrorHandlers;
++
++extern void NSInstallLinkEditErrorHandlers(const NSLinkEditErrorHandlers *handlers) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++
++extern bool                      NSAddLibrary(const char* pathName)                   __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_4,__IPHONE_NA,__IPHONE_NA);
++extern bool                      NSAddLibraryWithSearching(const char* pathName)      __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_4,__IPHONE_NA,__IPHONE_NA);
++extern const struct mach_header* NSAddImage(const char* image_name, uint32_t options) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++#define NSADDIMAGE_OPTION_NONE                  	0x0
++#define NSADDIMAGE_OPTION_RETURN_ON_ERROR       	0x1
++#define NSADDIMAGE_OPTION_WITH_SEARCHING        	0x2
++#define NSADDIMAGE_OPTION_RETURN_ONLY_IF_LOADED 	0x4
++#define NSADDIMAGE_OPTION_MATCH_FILENAME_BY_INSTALLNAME	0x8
++
++extern bool _dyld_present(void)                                                              __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++extern bool _dyld_launched_prebound(void)                                                    __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++extern bool _dyld_all_twolevel_modules_prebound(void)                                        __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_3,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++extern void _dyld_bind_objc_module(const void* objc_module)                                  __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++extern bool _dyld_bind_fully_image_containing_address(const void* address)                   __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++extern bool _dyld_image_containing_address(const void* address)                              __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_3,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++extern void _dyld_lookup_and_bind(const char* symbol_name, void **address, NSModule* module) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_4,__IPHONE_NA,__IPHONE_NA);
++extern void _dyld_lookup_and_bind_with_hint(const char* symbol_name, const char* library_name_hint, void** address, NSModule* module) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_4,__IPHONE_NA,__IPHONE_NA);
++extern void _dyld_lookup_and_bind_fully(const char* symbol_name, void** address, NSModule* module) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_1,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++
++extern const struct mach_header*  _dyld_get_image_header_containing_address(const void* address) __OSX_AVAILABLE_BUT_DEPRECATED(__MAC_10_3,__MAC_10_5,__IPHONE_NA,__IPHONE_NA);
++
++
++#if __cplusplus
++}
++#endif
++
++#endif /* _MACH_O_DYLD_H_ */
+diff -urN ld64.orig/include/mach-o/dyld_images.h ld64/include/mach-o/dyld_images.h
+--- ld64.orig/include/mach-o/dyld_images.h	1970-01-01 01:00:00.000000000 +0100
++++ ld64/include/mach-o/dyld_images.h	2017-08-07 16:28:18.564964864 +0100
+@@ -0,0 +1,164 @@
++/*
++ * Copyright (c) 2006-2010 Apple Inc. All rights reserved.
++ *
++ * @APPLE_LICENSE_HEADER_START@
++ *
++ * This file contains Original Code and/or Modifications of Original Code
++ * as defined in and that are subject to the Apple Public Source License
++ * Version 2.0 (the 'License'). You may not use this file except in
++ * compliance with the License. Please obtain a copy of the License at
++ * http://www.opensource.apple.com/apsl/ and read it before using this
++ * file.
++ *
++ * The Original Code and all software distributed under the License are
++ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
++ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
++ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.
++ * Please see the License for the specific language governing rights and
++ * limitations under the License.
++ *
++ * @APPLE_LICENSE_HEADER_END@
++ */
++#ifndef _DYLD_IMAGES_
++#define _DYLD_IMAGES_
++
++#include <stdbool.h>
++#include <unistd.h>
++#include <mach/mach.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++
++/*
++ *	Beginning in Mac OS X 10.4, this is how gdb discovers which mach-o images are loaded in a process.
++ *
++ *	gdb looks for the symbol "_dyld_all_image_infos" in dyld.  It contains the fields below.
++ *
++ *	For a snashot of what images are currently loaded, the infoArray fields contain a pointer
++ *	to an array of all images. If infoArray is NULL, it means it is being modified, come back later.
++ *
++ *	To be notified of changes, gdb sets a break point on the address pointed to by the notificationn
++ *	field.  The function it points to is called by dyld with an array of information about what images
++ *	have been added (dyld_image_adding) or are about to be removed (dyld_image_removing).
++ *
++ * The notification is called after infoArray is updated.  This means that if gdb attaches to a process
++ * and infoArray is NULL, gdb can set a break point on notification and let the proccess continue to
++ * run until the break point.  Then gdb can inspect the full infoArray.
++ *
++ * The dyldVersion field always points to a C string that contains the dyld version.  For instance,
++ * in dyld-127.3, dyldVersion would contain a pointer to "127.3".
++ *
++ * The errorMessage and terminationFlags fields are normally zero.  If dyld terminates a process
++ * (for instance because a required dylib or symbol is missing), then the errorMessage field will
++ * be set to point to a C string message buffer containing the reason dyld terminate the process.
++ * The low bit of the terminationFlags will be set if dyld terminated the process before any user
++ * code ran, in which case there is no need for the crash log to contain the backtrace.
++ *
++ * When dyld terminates a process because some required dylib or symbol cannot be bound, in
++ * addition to the errorMessage field, it now sets the errorKind field and the corresponding
++ * fields: errorClientOfDylibPath, errorTargetDylibPath, errorSymbol.
++ *
++ */
++
++enum dyld_image_mode { dyld_image_adding=0, dyld_image_removing=1 };
++
++struct dyld_image_info {
++	const struct mach_header*	imageLoadAddress;	/* base address image is mapped into */
++	const char*					imageFilePath;		/* path dyld used to load the image */
++	uintptr_t					imageFileModDate;	/* time_t of image file */
++													/* if stat().st_mtime of imageFilePath does not match imageFileModDate, */
++													/* then file has been modified since dyld loaded it */
++};
++
++struct dyld_uuid_info {
++	const struct mach_header*	imageLoadAddress;	/* base address image is mapped into */
++	uuid_t						imageUUID;			/* UUID of image */
++};
++
++typedef void (*dyld_image_notifier)(enum dyld_image_mode mode, uint32_t infoCount, const struct dyld_image_info info[]);
++
++/* for use in dyld_all_image_infos.errorKind field */
++enum {	dyld_error_kind_none=0,
++		dyld_error_kind_dylib_missing=1,
++		dyld_error_kind_dylib_wrong_arch=2,
++		dyld_error_kind_dylib_version=3,
++		dyld_error_kind_symbol_missing=4
++	};
++
++
++struct dyld_all_image_infos {
++	uint32_t						version;		/* 1 in Mac OS X 10.4 and 10.5 */
++	uint32_t						infoArrayCount;
++	const struct dyld_image_info*	infoArray;
++	dyld_image_notifier				notification;
++	bool							processDetachedFromSharedRegion;
++	/* the following fields are only in version 2 (Mac OS X 10.6, iPhoneOS 2.0) and later */
++	bool							libSystemInitialized;
++	const struct mach_header*		dyldImageLoadAddress;
++	/* the following field is only in version 3 (Mac OS X 10.6, iPhoneOS 3.0) and later */
++	void*							jitInfo;
++	/* the following fields are only in version 5 (Mac OS X 10.6, iPhoneOS 3.0) and later */
++	const char*						dyldVersion;
++	const char*						errorMessage;
++	uintptr_t						terminationFlags;
++	/* the following field is only in version 6 (Mac OS X 10.6, iPhoneOS 3.1) and later */
++	void*							coreSymbolicationShmPage;
++	/* the following field is only in version 7 (Mac OS X 10.6, iPhoneOS 3.1) and later */
++	uintptr_t						systemOrderFlag;
++	/* the following field is only in version 8 (Mac OS X 10.7, iPhoneOS 3.1) and later */
++	uintptr_t						uuidArrayCount;
++	const struct dyld_uuid_info*	uuidArray;		/* only images not in dyld shared cache */
++	/* the following field is only in version 9 (Mac OS X 10.7, iOS 4.0) and later */
++	struct dyld_all_image_infos*	dyldAllImageInfosAddress;
++	/* the following field is only in version 10 (Mac OS X 10.7, iOS 4.2) and later */
++	uintptr_t						initialImageCount;
++	/* the following field is only in version 11 (Mac OS X 10.7, iOS 4.2) and later */
++	uintptr_t						errorKind;
++	const char*						errorClientOfDylibPath;
++	const char*						errorTargetDylibPath;
++	const char*						errorSymbol;
++	/* the following field is only in version 12 (Mac OS X 10.7, iOS 4.3) and later */
++	uintptr_t						sharedCacheSlide;
++};
++extern struct dyld_all_image_infos  dyld_all_image_infos;
++
++/*
++ * Beginning in Mac OS X 10.6, rather than looking up the symbol "_dyld_all_image_infos"
++ * in dyld's symbol table, you can add DYLD_ALL_IMAGE_INFOS_OFFSET_OFFSET to the mach_header
++ * for dyld and read the 32-bit unsigned int at that location.  Adding that value to dyld's
++ * mach_header address gets you the address of dyld_all_image_infos in dyld.
++ */
++#define DYLD_ALL_IMAGE_INFOS_OFFSET_OFFSET 0x1010
++
++
++
++/*
++ * Beginning in Mac OS X 10.5, this is how gdb discovers where the shared cache is in a process.
++ * Images that are in the shared cache have their segments rearranged, so when using imageFilePath
++ * to load the file from disk, you have to know to adjust addresses based on how their segment
++ * was rearranged.
++ *
++ * gdb looks for the symbol "_dyld_shared_region_ranges" in dyld.
++ *
++ * It contains information the count of shared regions used by the process.  The count is
++ * the number of start/length pairs.
++ */
++struct dyld_shared_cache_ranges {
++	uintptr_t					sharedRegionsCount;	/* how many ranges follow */
++	struct {
++		uintptr_t	start;
++		uintptr_t	length;
++	}							ranges[4];			/* max regions */
++};
++extern struct dyld_shared_cache_ranges dyld_shared_cache_ranges;
++
++
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* _DYLD_IMAGES_ */
+diff -urN ld64.orig/include/mach-o/dyld-interposing.h ld64/include/mach-o/dyld-interposing.h
+--- ld64.orig/include/mach-o/dyld-interposing.h	1970-01-01 01:00:00.000000000 +0100
++++ ld64/include/mach-o/dyld-interposing.h	2017-08-07 16:28:18.565964894 +0100
+@@ -0,0 +1,47 @@
++/*
++ * Copyright (c) 2005-2008 Apple Computer, Inc. All rights reserved.
++ *
++ * @APPLE_LICENSE_HEADER_START@
++ * 
++ * This file contains Original Code and/or Modifications of Original Code
++ * as defined in and that are subject to the Apple Public Source License
++ * Version 2.0 (the 'License'). You may not use this file except in
++ * compliance with the License. Please obtain a copy of the License at
++ * http://www.opensource.apple.com/apsl/ and read it before using this
++ * file.
++ * 
++ * The Original Code and all software distributed under the License are
++ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
++ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
++ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.
++ * Please see the License for the specific language governing rights and
++ * limitations under the License.
++ * 
++ * @APPLE_LICENSE_HEADER_END@
++ */
++
++#if !defined(_DYLD_INTERPOSING_H_)
++#define _DYLD_INTERPOSING_H_
++
++/*
++ *  Example:
++ *
++ *  static
++ *  int
++ *  my_open(const char* path, int flags, mode_t mode)
++ *  {
++ *    int value;
++ *    // do stuff before open (including changing the arguments)
++ *    value = open(path, flags, mode);
++ *    // do stuff after open (including changing the return value(s))
++ *    return value;
++ *  }
++ *  DYLD_INTERPOSE(my_open, open)
++ */
++
++#define DYLD_INTERPOSE(_replacement,_replacee) \
++   __attribute__((used)) static struct{ const void* replacement; const void* replacee; } _interpose_##_replacee \
++            __attribute__ ((section ("__DATA,__interpose"))) = { (const void*)(unsigned long)&_replacement, (const void*)(unsigned long)&_replacee };
++
++#endif
+diff -urN ld64.orig/include/mach-o/dyld_priv.h ld64/include/mach-o/dyld_priv.h
+--- ld64.orig/include/mach-o/dyld_priv.h	1970-01-01 01:00:00.000000000 +0100
++++ ld64/include/mach-o/dyld_priv.h	2017-08-07 16:28:18.565964894 +0100
+@@ -0,0 +1,230 @@
++/* -*- mode: C++; c-basic-offset: 4; tab-width: 4 -*-
++ *
++ * Copyright (c) 2003-2010 Apple Inc. All rights reserved.
++ *
++ * @APPLE_LICENSE_HEADER_START@
++ *
++ * This file contains Original Code and/or Modifications of Original Code
++ * as defined in and that are subject to the Apple Public Source License
++ * Version 2.0 (the 'License'). You may not use this file except in
++ * compliance with the License. Please obtain a copy of the License at
++ * http://www.opensource.apple.com/apsl/ and read it before using this
++ * file.
++ *
++ * The Original Code and all software distributed under the License are
++ * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
++ * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
++ * INCLUDING WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.
++ * Please see the License for the specific language governing rights and
++ * limitations under the License.
++ *
++ * @APPLE_LICENSE_HEADER_END@
++ */
++#ifndef _MACH_O_DYLD_PRIV_H_
++#define _MACH_O_DYLD_PRIV_H_
++
++#include <stdbool.h>
++#include <Availability.h>
++#include <mach-o/dyld.h>
++#include <mach-o/dyld_images.h>
++
++#if __cplusplus
++extern "C" {
++#endif /* __cplusplus */
++
++
++
++//
++// private interface between libSystem.dylib and dyld
++//
++extern int _dyld_func_lookup(const char* dyld_func_name, void **address);
++
++
++//
++// _dyld_moninit() is a private interface between libSystem.dylib and dyld
++//
++extern void _dyld_moninit(void (*monaddition)(char *lowpc, char *highpc));
++
++//
++// private interface between libSystem.dylib and dyld
++//
++extern void _dyld_fork_child();
++
++
++//
++// Possible state changes for which you can register to be notified
++//
++enum dyld_image_states
++{
++	dyld_image_state_mapped					= 10,		// No batch notification for this
++	dyld_image_state_dependents_mapped		= 20,		// Only batch notification for this
++	dyld_image_state_rebased				= 30,
++	dyld_image_state_bound					= 40,
++	dyld_image_state_dependents_initialized	= 45,		// Only single notification for this
++	dyld_image_state_initialized			= 50,
++	dyld_image_state_terminated				= 60		// Only single notification for this
++};
++
++//
++// Callback that provides a bottom-up array of images
++// For dyld_image_state_[dependents_]mapped state only, returning non-NULL will cause dyld to abort loading all those images
++// and append the returned string to its load failure error message. dyld does not free the string, so
++// it should be a literal string or a static buffer
++//
++typedef const char* (*dyld_image_state_change_handler)(enum dyld_image_states state, uint32_t infoCount, const struct dyld_image_info info[]);
++
++//
++// Register a handler to be called when any image changes to the requested state.
++// If 'batch' is true, the callback is called with an array of all images that are in the requested state sorted by dependency.
++// If 'batch' is false, the callback is called with one image at a time as each image transitions to the the requested state.
++// During the call to this function, the handler may be called back with existing images and the handler should
++// not return a string, since there is no load to abort.  In batch mode, existing images at or past the request
++// state supplied in the callback.  In non-batch mode, the callback is called for each image exactly in the
++// requested state.
++//
++extern void
++dyld_register_image_state_change_handler(enum dyld_image_states state, bool batch, dyld_image_state_change_handler handler);
++
++
++//
++// Possible thread-local variable state changes for which you can register to be notified
++//
++enum dyld_tlv_states {
++    dyld_tlv_state_allocated = 10,   // TLV range newly allocated
++    dyld_tlv_state_deallocated = 20  // TLV range about to be deallocated
++};
++
++//
++// Info about thread-local variable storage.
++//
++typedef struct {
++    size_t info_size;    // sizeof(dyld_tlv_info)
++    void * tlv_addr;     // Base address of TLV storage
++    size_t tlv_size;     // Byte size of TLV storage
++} dyld_tlv_info;
++
++#if __BLOCKS__
++
++//
++// Callback that notes changes to thread-local variable storage.
++//
++typedef void (^dyld_tlv_state_change_handler)(enum dyld_tlv_states state, const dyld_tlv_info *info);
++
++//
++// Register a handler to be called when a thread adds or removes storage for thread-local variables.
++// The registered handler will only be called from and on behalf of the thread that owns the storage.
++// The registered handler will NOT be called for any storage that was
++//   already allocated before dyld_register_tlv_state_change_handler() was
++//   called. Use dyld_enumerate_tlv_storage() to get that information.
++// Exists in Mac OS X 10.7 and later
++//
++extern void
++dyld_register_tlv_state_change_handler(enum dyld_tlv_states state, dyld_tlv_state_change_handler handler);
++
++//
++// Enumerate the current thread-local variable storage allocated for the current thread.
++// Exists in Mac OS X 10.7 and later
++//
++extern void
++dyld_enumerate_tlv_storage(dyld_tlv_state_change_handler handler);
++
++#endif
++
++
++//
++// get slide for a given loaded mach_header
++// Mac OS X 10.6 and later
++//
++extern intptr_t _dyld_get_image_slide(const struct mach_header* mh);
++
++
++//
++// get pointer to this process's dyld_all_image_infos
++// Exists in Mac OS X 10.4 and later through _dyld_func_lookup()
++// Exists in Mac OS X 10.6 and later through libSystem.dylib
++//
++const struct dyld_all_image_infos* _dyld_get_all_image_infos();
++
++
++
++struct dyld_unwind_sections
++{
++	const struct mach_header*		mh;
++	const void*						dwarf_section;
++	uintptr_t						dwarf_section_length;
++	const void*						compact_unwind_section;
++	uintptr_t						compact_unwind_section_length;
++};
++
++
++//
++// Returns true iff some loaded mach-o image contains "addr".
++//	info->mh							mach header of image containing addr
++//  info->dwarf_section					pointer to start of __TEXT/__eh_frame section
++//  info->dwarf_section_length			length of __TEXT/__eh_frame section
++//  info->compact_unwind_section		pointer to start of __TEXT/__unwind_info section
++//  info->compact_unwind_section_length	length of __TEXT/__unwind_info section
++//
++// Exists in Mac OS X 10.6 and later
++extern bool _dyld_find_unwind_sections(void* addr, struct dyld_unwind_sections* info);
++
++
++//
++// This is an optimized form of dladdr() that only returns the dli_fname field.
++//
++// Exists in Mac OS X 10.6 and later
++extern const char* dyld_image_path_containing_address(const void* addr);
++
++
++
++
++//
++// This is finds the SDK version a binary was built against.
++// Returns zero on error, or if SDK version could not be determined.
++//
++// Exists in Mac OS X 10.8 and later
++extern uint32_t dyld_get_sdk_version(const struct mach_header* mh);
++
++
++//
++// This is finds the SDK version the main executable was built against.
++// Returns zero on error, or if SDK version could not be determined.
++//
++// Exists in Mac OS X 10.8 and later
++extern uint32_t dyld_get_program_sdk_version();
++
++
++//
++// This is finds the min OS version a binary was built to run on.
++// Returns zero on error, or if no min OS recorded in binary.
++//
++// Exists in Mac OS X 10.8 and later
++extern uint32_t dyld_get_min_os_version(const struct mach_header* mh);
++
++
++//
++// This is finds the min OS version the main executable was built to run on.
++// Returns zero on error, or if no min OS recorded in binary.
++//
++// Exists in Mac OS X 10.8 and later
++extern uint32_t dyld_get_program_min_os_version();
++
++
++
++
++#if __IPHONE_OS_VERSION_MIN_REQUIRED
++//
++// Returns if any OS dylib has overridden its copy in the shared cache
++//
++// Exists in iPhoneOS 3.1 and later
++extern bool dyld_shared_cache_some_image_overridden();
++#endif
++
++
++
++#if __cplusplus
++}
++#endif /* __cplusplus */
++
++#endif /* _MACH_O_DYLD_PRIV_H_ */

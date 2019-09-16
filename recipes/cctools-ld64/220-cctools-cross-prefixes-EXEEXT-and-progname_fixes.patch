@@ -1,0 +1,162 @@
+diff -urN cctools-895.orig/ar/ar.c cctools-895/ar/ar.c
+--- cctools-895.orig/ar/ar.c	2017-08-20 02:50:30.000000000 -0700
++++ cctools-895/ar/ar.c	2017-08-20 02:50:53.000000000 -0700
+@@ -280,7 +280,7 @@
+ 	if(run_ranlib){
+ 	    /* run ranlib -f or -q on the archive */
+ 	    reset_execute_list();
+-	    add_execute_list_with_prefix("ranlib");
++	    add_execute_list_with_prefix(RANLIBPROG);
+ 	    if(options & AR_S)
+ 		add_execute_list("-f");
+ 	    else
+diff -urN cctools-895.orig/as/driver.c cctools-895/as/driver.c
+--- cctools-895.orig/as/driver.c	2017-08-20 02:50:30.000000000 -0700
++++ cctools-895/as/driver.c	2017-08-20 02:51:05.000000000 -0700
+@@ -29,7 +29,7 @@
+ {
+     const char *LIB = "../libexec/as/";
+     const char *LOCALLIB = "../local/libexec/as/";
+-    const char *AS = "/as";
++    const char *AS = "/as" EXEEXT;
+ 
+     int i, j;
+     uint32_t count, verbose, run_clang;
+@@ -55,17 +55,29 @@
+ 	 */
+ 	bufsize = MAXPATHLEN;
+ 	p = buf;
+-	i = _NSGetExecutablePath(p, &bufsize);
+-	if(i == -1){
+-	    p = allocate(bufsize);
+-	    _NSGetExecutablePath(p, &bufsize);
+-	}
+-	prefix = realpath(p, resolved_name);
+-	if(prefix == NULL)
+-	    system_fatal("realpath(3) for %s failed", p);
+-	p = rindex(prefix, '/');
+-	if(p != NULL)
+-	    p[1] = '\0';
++        if(progname != NULL){
++            strcpy(p, progname);
++        }
++        i = _NSGetExecutablePath(p, &bufsize);
++        if(i == -1){
++            p = allocate(bufsize);
++            _NSGetExecutablePath(p, &bufsize);
++        }
++        if(p != NULL){
++            p = rindex(p, '/');
++            if(p != NULL)
++                    p[1] = '\0';
++        }
++        prefix = realpath(buf, resolved_name);
++        if(prefix == NULL)
++            system_fatal("realpath(3) for %s failed", p);
++
++        /* Append slash at the end if not exist */
++        p = prefix + strlen(prefix);
++        if((p-prefix)<(MAXPATHLEN-1) && prefix[p-prefix-1] != '/'){
++           *(p++) = '/';
++           *(p++) = '\0';
++        }
+ 	/*
+ 	 * Process the assembler flags exactly like the assembler would (except
+ 	 * let the assembler complain about multiple flags, bad combinations of
+diff -urN cctools-895.orig/libstuff/execute.c cctools-895/libstuff/execute.c
+--- cctools-895.orig/libstuff/execute.c	2017-08-20 02:50:30.000000000 -0700
++++ cctools-895/libstuff/execute.c	2017-08-20 02:51:05.000000000 -0700
+@@ -165,10 +165,23 @@
+ 	    p = allocate(bufsize);
+ 	    _NSGetExecutablePath(p, &bufsize);
+ 	}
+-	prefix = realpath(p, resolved_name);
+-	p = rindex(prefix, '/');
+-	if(p != NULL)
+-	    p[1] = '\0';
++	if(p != NULL){
++	    p = rindex(p, '/');
++	    if(p != NULL)
++		    p[1] = '\0';
++	}
++	strcpy(resolved_name, buf);
++	prefix = realpath(buf, resolved_name);
++	if(prefix == NULL){
++	    prefix = resolved_name;
++	}
++
++	/* Append slash at the end if not exist */
++	p = prefix + strlen(prefix);
++	if((p-prefix)<(MAXPATHLEN-1) && prefix[p-prefix-1] != '/'){
++	   *(p++) = '/';
++	   *(p++) = '\0';
++	}
+ 
+ 	return(makestr(prefix, str, NULL));
+ }
+diff -urN cctools-895.orig/misc/bitcode_strip.c cctools-895/misc/bitcode_strip.c
+--- cctools-895.orig/misc/bitcode_strip.c	2017-08-20 02:50:30.000000000 -0700
++++ cctools-895/misc/bitcode_strip.c	2017-08-20 02:55:26.000000000 -0700
+@@ -1664,7 +1664,7 @@
+ 	 * Create the ld -r command line and execute it.
+ 	 */
+ 	reset_execute_list();
+-	add_execute_list_with_prefix("ld");
++	add_execute_list_with_prefix(LDPROG);
+ 	add_execute_list("-keep_private_externs");
+ 	add_execute_list("-r");
+ 	if(rflag){
+diff -urN cctools-895.orig/misc/libtool.c cctools-895/misc/libtool.c
+--- cctools-895.orig/misc/libtool.c	2017-08-20 02:50:30.000000000 -0700
++++ cctools-895/misc/libtool.c	2017-08-20 02:57:19.000000000 -0700
+@@ -389,7 +389,7 @@
+ 	    p++;
+ 	else
+ 	    p = argv[0];
+-	if(strncmp(p, "ranlib", sizeof("ranlib") - 1) == 0)
++	if(strstr(p, "ranlib") != NULL)
+ 	    cmd_flags.ranlib = TRUE;
+ 
+ 	/* The default is to used long names */
+@@ -3417,7 +3417,7 @@
+ 	 */
+ 	for(i = 0; i < narchs || (i == 0 && narchs == 0); i++){
+ 	    reset_execute_list();
+-	    add_execute_list_with_prefix("ld");
++	    add_execute_list_with_prefix(LDPROG);
+ 	    if(narchs != 0 && cmd_flags.arch_only_flag.name == NULL)
+ 		add_execute_list("-arch_multiple");
+ 	    if(archs != NULL){
+@@ -3539,7 +3539,7 @@
+ 	 */
+ 	if(narchs > 1){
+ 	    reset_execute_list();
+-	    add_execute_list_with_prefix("lipo");
++	    add_execute_list_with_prefix(LIPOPROG);
+ 	    add_execute_list("-create");
+ 	    add_execute_list("-output");
+ 	    add_execute_list(cmd_flags.output);
+@@ -3562,9 +3562,9 @@
+ 	 * output.
+ 	 */
+ 	if(cmd_flags.prebinding == TRUE){
+-	    if(stat("/usr/bin/objcunique", &stat_buf) != -1){
++	    /* if(stat("/usr/bin/objcunique", &stat_buf) != -1) */ {
+ 		reset_execute_list();
+-		add_execute_list_with_prefix("objcunique");
++		add_execute_list_with_prefix(OBJCUNIQUEPROG);
+ 		add_execute_list(cmd_flags.output);
+ 		add_execute_list("-prebind");
+ 		for(j = 0; j < cmd_flags.nLdirs; j++)
+diff -urN cctools-895.orig/misc/strip.c cctools-895/misc/strip.c
+--- cctools-895.orig/misc/strip.c	2017-08-20 02:50:30.000000000 -0700
++++ cctools-895/misc/strip.c	2017-08-20 03:00:38.000000000 -0700
+@@ -4154,7 +4154,7 @@
+ 	 * Create the ld -r command line and execute it.
+ 	 */
+ 	reset_execute_list();
+-	add_execute_list_with_prefix("ld");
++	add_execute_list_with_prefix(LDPROG);
+ 	add_execute_list("-keep_private_externs");
+ 	add_execute_list("-r");
+ 	if(Sflag)

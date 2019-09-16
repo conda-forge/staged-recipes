@@ -1,0 +1,51 @@
+diff -urN a/ar/archive.c b/ar/archive.c
+--- a/ar/archive.c	2013-10-07 17:09:07.519088563 +0100
++++ b/ar/archive.c	2013-10-07 17:09:07.705758120 +0100
+@@ -321,7 +321,11 @@
+ 		 * things for exact binary equality.
+ 		 */
+ 		if (getenv("ZERO_AR_DATE") == NULL)
++#if defined(__APPLE__)
+ 			tv_sec = (long int)sb->st_mtimespec.tv_sec;
++#else
++			tv_sec = (long int)sb->st_mtime;
++#endif
+ 		else
+ 			tv_sec = (long int)0;
+ 
+@@ -340,21 +344,21 @@
+ 			(void)sprintf(hb, HDR3, name, (long int)tv_sec,
+ 			    (unsigned int)(u_short)sb->st_uid,
+ 			    (unsigned int)(u_short)sb->st_gid,
+-			    sb->st_mode, sb->st_size, ARFMAG);
++			    sb->st_mode, (int64_t)sb->st_size, ARFMAG);
+ 			lname = 0;
+ 		} else if (lname > sizeof(hdr->ar_name) || strchr(name, ' '))
+ 			(void)sprintf(hb, HDR1, AR_EFMT1, (lname + 3) & ~3,
+ 			    (long int)tv_sec,
+ 			    (unsigned int)(u_short)sb->st_uid,
+ 			    (unsigned int)(u_short)sb->st_gid,
+-			    sb->st_mode, sb->st_size + ((lname + 3) & ~3),
++			    sb->st_mode, (int64_t)sb->st_size + ((lname + 3) & ~3),
+ 			    ARFMAG);
+ 		else {
+ 			lname = 0;
+ 			(void)sprintf(hb, HDR2, name, (long int)tv_sec,
+ 			    (unsigned int)(u_short)sb->st_uid,
+ 			    (unsigned int)(u_short)sb->st_gid,
+-			    sb->st_mode, sb->st_size, ARFMAG);
++			    sb->st_mode, (int64_t)sb->st_size, ARFMAG);
+ 		}
+ 		size = sb->st_size;
+ 	} else {
+diff -urN a/ar/contents.c b/ar/contents.c
+--- a/ar/contents.c	2013-10-07 17:09:07.519088563 +0100
++++ b/ar/contents.c	2013-10-07 17:09:07.705758120 +0100
+@@ -68,6 +68,7 @@
+ 
+ #include <sys/param.h>
+ #include <sys/stat.h>
++#include <time.h>
+ #include <sys/time.h>
+ 
+ #include <ar.h>

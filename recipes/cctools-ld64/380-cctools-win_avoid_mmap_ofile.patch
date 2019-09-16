@@ -1,0 +1,41 @@
+diff -urN cctools.orig/libstuff/ofile.c cctools/libstuff/ofile.c
+--- cctools.orig/libstuff/ofile.c	2017-08-01 14:31:38.000000000 +0100
++++ cctools/libstuff/ofile.c	2017-08-01 14:42:54.000000000 +0100
+@@ -882,6 +882,20 @@
+ 	    printf("Modification time = %ld\n", (long int)stat_buf.st_mtime);
+ #endif /* OTOOL */
+ 
++#ifdef __MINGW32__
++	/* On Windows, mmap (CreateFileMapping, MapViewOfFile) is dodgy, esp. wrt
++	 * coherence with ReadFile/WriteFile, see:
++	 * http://msdn.microsoft.com/en-us/library/windows/desktop/aa366761(v=vs.85).aspx
++	 * ..so for this reason I allocate a new buffer, copy everything across and
++	 * unmap immediately. This is done because libtool likes to overwrite files when
++	 * they are still mmapped (create_library), and in fact doesn't ever unmap files.
++	 */
++	void* addr2 = malloc(size);
++	memcpy(addr2,addr,size);
++	munmap(addr,size);
++	addr = addr2;
++#endif
++
+ 	return(ofile_map_from_memory(addr, size, file_name, stat_buf.st_mtime,
+ 		  arch_flag, object_name, ofile, archives_with_fat_objects));
+ }
+@@ -1482,12 +1496,16 @@
+     kern_return_t r;
+ 
+ 	if(ofile->file_addr != NULL){
++#ifdef __MINGW32__
++	    free(ofile->file_addr);
++#else
+ 	    if((r = vm_deallocate(mach_task_self(),
+ 				 (vm_address_t)ofile->file_addr,
+ 				 (vm_size_t)ofile->file_size)) != KERN_SUCCESS){
+ 		my_mach_error(r, "Can't vm_deallocate mapped memory for file: "
+ 			      "%s", ofile->file_name);
+ 	    }
++#endif
+ 	}
+ 	if(ofile->file_name != NULL)
+ 	    free(ofile->file_name);

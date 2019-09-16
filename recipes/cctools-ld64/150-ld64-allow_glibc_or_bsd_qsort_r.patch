@@ -1,0 +1,75 @@
+diff -urN ld64.orig/src/ld/parsers/macho_relocatable_file.cpp ld64/src/ld/parsers/macho_relocatable_file.cpp
+--- ld64.orig/src/ld/parsers/macho_relocatable_file.cpp	2017-01-20 22:24:10.000000000 +0000
++++ ld64/src/ld/parsers/macho_relocatable_file.cpp	2017-08-07 16:32:51.000000000 +0100
+@@ -53,6 +53,11 @@
+ #include "macho_relocatable_file.h"
+ 
+ 
++#ifdef HAVE_BSD_QSORT_R
++ #define QSORT_R(_a,_b,_c,_vp,_fn) ::qsort_r((_a), (_b), (_c), (_vp), (_fn))
++#else
++ #define QSORT_R(_a,_b,_c,_vp,_fn) ::qsort_r((_a), (_b), (_c), (int(*)(const void*, const void*, void*))(_fn), (_vp))
++#endif
+ 
+ extern void throwf(const char* format, ...) __attribute__ ((noreturn,format(printf, 1, 2)));
+ extern void warning(const char* format, ...) __attribute__((format(printf, 1, 2)));
+@@ -1207,8 +1212,13 @@
+ 	void											makeSortedSymbolsArray(uint32_t symArray[], const uint32_t sectionArray[]);
+ 	void											makeSortedSectionsArray(uint32_t array[]);
+ 	static int										pointerSorter(const void* l, const void* r);
++#ifdef HAVE_BSD_QSORT_R
+ 	static int										symbolIndexSorter(void* extra, const void* l, const void* r);
+ 	static int										sectionIndexSorter(void* extra, const void* l, const void* r);
++#else
++	static int										symbolIndexSorter(const void* l, const void* r, void* extra);
++	static int										sectionIndexSorter(const void* l, const void* r, void* extra);
++#endif
+ 
+ 	void											parseDebugInfo();
+ 	void											parseStabs();
+@@ -2301,8 +2311,13 @@
+ 
+ 
+ 
++#ifdef HAVE_BSD_QSORT_R
+ template <typename A>
+ int Parser<A>::sectionIndexSorter(void* extra, const void* l, const void* r)
++#else
++template <typename A>
++int Parser<A>::sectionIndexSorter(const void* l, const void* r, void* extra)
++#endif
+ {
+ 	Parser<A>* parser = (Parser<A>*)extra;
+ 	const uint32_t* left = (uint32_t*)l;
+@@ -2345,7 +2360,7 @@
+ 	// sort by symbol table address
+ 	for (uint32_t i=0; i < _machOSectionsCount; ++i)
+ 		array[i] = i;
+-	::qsort_r(array, _machOSectionsCount, sizeof(uint32_t), this, &sectionIndexSorter);
++	QSORT_R(array, _machOSectionsCount, sizeof(uint32_t), this, sectionIndexSorter);
+ 
+ 	if ( log ) {
+ 		fprintf(stderr, "sorted sections:\n");
+@@ -2356,8 +2371,13 @@
+ 
+ 
+ 
++#ifdef HAVE_BSD_QSORT_R
+ template <typename A>
+ int Parser<A>::symbolIndexSorter(void* extra, const void* l, const void* r)
++#else
++template <typename A>
++int Parser<A>::symbolIndexSorter(const void* l, const void* r, void* extra)
++#endif
+ {
+ 	ParserAndSectionsArray* extraInfo = (ParserAndSectionsArray*)extra;
+ 	Parser<A>* parser = extraInfo->parser;
+@@ -2438,7 +2458,7 @@
+ 	
+ 	// sort by symbol table address
+ 	ParserAndSectionsArray extra = { this, sectionArray };
+-	::qsort_r(array, _symbolsInSections, sizeof(uint32_t), &extra, &symbolIndexSorter);
++	QSORT_R(array, _symbolsInSections, sizeof(uint32_t), &extra, &symbolIndexSorter);
+ 
+ 	
+ 	// look for two symbols at same address

@@ -1,0 +1,75 @@
+diff -urN ld64.orig/src/ld/Options.cpp ld64/src/ld/Options.cpp
+--- ld64.orig/src/ld/Options.cpp	2017-08-07 16:58:41.205921857 +0100
++++ ld64/src/ld/Options.cpp	2017-08-07 17:05:58.024367219 +0100
+@@ -5983,7 +5983,7 @@
+ 	});
+ 
+ 	// one time open() of -dependency_info file
+-	int fd = open(this->dependencyInfoPath(), O_WRONLY | O_TRUNC | O_CREAT, 0666);
++	int fd = open(this->dependencyInfoPath(), O_WRONLY | O_TRUNC | O_CREAT, FIO_READ_WRITE);
+ 	if ( fd == -1 )
+ 		throwf("Could not open or create -dependency_info file: %s", this->dependencyInfoPath());
+ 
+diff -urN ld64.orig/src/ld/OutputFile.cpp ld64/src/ld/OutputFile.cpp
+--- ld64.orig/src/ld/OutputFile.cpp	2017-08-07 16:58:41.206921888 +0100
++++ ld64/src/ld/OutputFile.cpp	2017-08-07 17:04:10.196048241 +0100
+@@ -2759,9 +2759,9 @@
+ 	if ( (access(_options.outputFilePath(), F_OK) == 0) && (access(_options.outputFilePath(), W_OK) == -1) )
+ 		throwf("can't write output file: %s", _options.outputFilePath());
+ 
+-	mode_t permissions = 0777;
++	mode_t permissions = FIO_READ_WRITE_EXEC;
+ 	if ( _options.outputKind() == Options::kObjectFile )
+-		permissions = 0666;
++		permissions = FIO_READ_WRITE;
+ 	mode_t umask = ::umask(0);
+ 	::umask(umask); // put back the original umask
+ 	permissions &= ~umask;
+diff -urN ld64.orig/src/ld/parsers/lto_file.cpp ld64/src/ld/parsers/lto_file.cpp
+--- ld64.orig/src/ld/parsers/lto_file.cpp	2017-08-07 16:58:41.207921919 +0100
++++ ld64/src/ld/parsers/lto_file.cpp	2017-08-07 17:05:06.905793778 +0100
+@@ -872,7 +872,7 @@
+ 		char tempMachoPath[MAXPATHLEN];
+ 		strcpy(tempMachoPath, options.outputFilePath);
+ 		strcat(tempMachoPath, ".lto.o");
+-		int fd = ::open(tempMachoPath, O_CREAT | O_WRONLY | O_TRUNC | O_BINARY, 0666);
++		int fd = ::open(tempMachoPath, O_CREAT | O_WRONLY | O_TRUNC | O_BINARY, FIO_READ_WRITE);
+ 		if ( fd != -1) {
+ 			::write(fd, machOFile, machOFileLen);
+ 			::close(fd);
+@@ -881,7 +881,7 @@
+ 
+ 	// if needed, save temp mach-o file to specific location
+ 	if ( !object_path.empty() ) {
+-		int fd = ::open(object_path.c_str(), O_CREAT | O_WRONLY | O_TRUNC | O_BINARY, 0666);
++		int fd = ::open(object_path.c_str(), O_CREAT | O_WRONLY | O_TRUNC | O_BINARY, FIO_READ_WRITE);
+ 		if ( fd != -1) {
+ 			::write(fd, machOFile, machOFileLen);
+ 			::close(fd);
+@@ -1241,7 +1241,7 @@
+ 			tempMachoPath += std::to_string(bufID);
+ 			tempMachoPath += ".thinlto.o.bc";
+ 			state.ltoBitcodePath.push_back(tempMachoPath);
+-			int fd = ::open(tempMachoPath.c_str(), O_CREAT | O_WRONLY | O_TRUNC | O_BINARY, 0666);
++			int fd = ::open(tempMachoPath.c_str(), O_CREAT | O_WRONLY | O_TRUNC | O_BINARY, FIO_READ_WRITE);
+ 			if ( fd != -1 ) {
+ 				::write(fd, machOFile.Buffer, machOFile.Size);
+ 				::close(fd);
+@@ -1273,7 +1273,7 @@
+ 			tempMachoPath += ".";
+ 			tempMachoPath += std::to_string(bufID);
+ 			tempMachoPath += ".thinlto.o";
+-			int fd = ::open(tempMachoPath.c_str(), O_CREAT | O_WRONLY | O_TRUNC | O_BINARY, 0666);
++			int fd = ::open(tempMachoPath.c_str(), O_CREAT | O_WRONLY | O_TRUNC | O_BINARY, FIO_READ_WRITE);
+ 			if ( fd != -1 ) {
+ 				::write(fd, machOFile.Buffer, machOFile.Size);
+ 				::close(fd);
+@@ -1385,7 +1385,7 @@
+ 		if ( options.tmpObjectFilePath != NULL) {
+ 			tmp_path = macho_dirpath + "/" + std::to_string(bufID) + ".o";
+ 			// if needed, save temp mach-o file to specific location
+-			int fd = ::open(tmp_path.c_str(), O_CREAT | O_WRONLY | O_TRUNC | O_BINARY, 0666);
++			int fd = ::open(tmp_path.c_str(), O_CREAT | O_WRONLY | O_TRUNC | O_BINARY, FIO_READ_WRITE);
+ 			if ( fd != -1) {
+ 				::write(fd, (const uint8_t *)machOFile.Buffer, machOFile.Size);
+ 				::close(fd);
