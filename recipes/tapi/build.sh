@@ -12,3 +12,5 @@ cmake \
     -DCMAKE_CXX_COMPILER=clang++ \
     -DCMAKE_ASM_COMPILER=clang \
     $SRC_DIR/llvm
+
+ninja install-distribution
