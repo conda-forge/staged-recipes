@@ -1,0 +1,141 @@
+diff -urN ld64.orig/src/ld/Options.cpp ld64/src/ld/Options.cpp
+--- ld64.orig/src/ld/Options.cpp	2017-08-07 16:34:26.562250300 +0100
++++ ld64/src/ld/Options.cpp	2017-08-07 16:39:25.807427308 +0100
+@@ -447,7 +447,7 @@
+ void Options::loadSymbolOrderFile(const char* fileOfExports, NameToOrder& orderMapping)
+ {
+ 	// read in whole file
+-	int fd = ::open(fileOfExports, O_RDONLY, 0);
++	int fd = ::open(fileOfExports, O_RDONLY|O_BINARY, 0);
+ 	if ( fd == -1 )
+ 		throwf("can't open -exported_symbols_order file: %s", fileOfExports);
+ 	struct stat stat_buf;
+@@ -1276,7 +1276,7 @@
+ 	if ( fileOfExports == NULL )
+ 		throwf("missing file after %s", option);
+ 	// read in whole file
+-	int fd = ::open(fileOfExports, O_RDONLY, 0);
++	int fd = ::open(fileOfExports, O_RDONLY|O_BINARY, 0);
+ 	if ( fd == -1 )
+ 		throwf("can't open %s file: %s", option, fileOfExports);
+ 	struct stat stat_buf;
+@@ -1349,7 +1349,7 @@
+ void Options::parseAliasFile(const char* fileOfAliases)
+ {
+ 	// read in whole file
+-	int fd = ::open(fileOfAliases, O_RDONLY, 0);
++	int fd = ::open(fileOfAliases, O_RDONLY|O_BINARY, 0);
+ 	if ( fd == -1 )
+ 		throwf("can't open alias file: %s", fileOfAliases);
+ 	struct stat stat_buf;
+@@ -1779,7 +1779,7 @@
+ 	}
+ 
+ 	// read in whole file
+-	int fd = ::open(path, O_RDONLY, 0);
++	int fd = ::open(path, O_RDONLY|O_BINARY, 0);
+ 	if ( fd == -1 )
+ 		throwf("can't open order file: %s", path);
+ 	struct stat stat_buf;
+@@ -1919,7 +1919,7 @@
+ 	}
+ 
+ 	// read in whole file
+-	int fd = ::open(path, O_RDONLY, 0);
++	int fd = ::open(path, O_RDONLY|O_BINARY, 0);
+ 	if ( fd == -1 )
+ 		throwf("can't open -sectcreate file: %s", path);
+ 	struct stat stat_buf;
+diff -urN ld64.orig/src/ld/OutputFile.cpp ld64/src/ld/OutputFile.cpp
+--- ld64.orig/src/ld/OutputFile.cpp	2017-01-20 22:24:09.000000000 +0000
++++ ld64/src/ld/OutputFile.cpp	2017-08-07 16:41:16.194817498 +0100
+@@ -2829,7 +2829,7 @@
+ 			sDescriptorOfPathToRemove = fd;
+ 		} 
+ 		else {
+-			fd = open(tmpOutput, O_RDWR|O_CREAT, permissions);
++			fd = open(tmpOutput, O_RDWR|O_CREAT|O_BINARY, permissions);
+ 		}
+ 		if ( fd == -1 ) 
+ 			throwf("can't open output file for writing '%s', errno=%d", tmpOutput, errno);
+@@ -2848,9 +2848,9 @@
+ 	} 
+ 	else {
+ 		if ( outputIsRegularFile )
+-			fd = open(_options.outputFilePath(),  O_RDWR|O_CREAT, permissions);
++			fd = open(_options.outputFilePath(),  O_RDWR|O_CREAT|O_BINARY, permissions);
+ 		else
+-			fd = open(_options.outputFilePath(),  O_WRONLY);
++			fd = open(_options.outputFilePath(),  O_WRONLY|O_BINARY);
+ 		if ( fd == -1 ) 
+ 			throwf("can't open output file for writing: %s, errno=%d", _options.outputFilePath(), errno);
+ 		// try to allocate buffer for entire output file content
+diff -urN ld64.orig/src/ld/parsers/lto_file.cpp ld64/src/ld/parsers/lto_file.cpp
+--- ld64.orig/src/ld/parsers/lto_file.cpp	2016-10-21 21:04:17.000000000 +0100
++++ ld64/src/ld/parsers/lto_file.cpp	2017-08-07 16:42:56.580900721 +0100
+@@ -872,7 +872,7 @@
+ 		char tempMachoPath[MAXPATHLEN];
+ 		strcpy(tempMachoPath, options.outputFilePath);
+ 		strcat(tempMachoPath, ".lto.o");
+-		int fd = ::open(tempMachoPath, O_CREAT | O_WRONLY | O_TRUNC, 0666);
++		int fd = ::open(tempMachoPath, O_CREAT | O_WRONLY | O_TRUNC | O_BINARY, 0666);
+ 		if ( fd != -1) {
+ 			::write(fd, machOFile, machOFileLen);
+ 			::close(fd);
+@@ -881,7 +881,7 @@
+ 
+ 	// if needed, save temp mach-o file to specific location
+ 	if ( !object_path.empty() ) {
+-		int fd = ::open(object_path.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0666);
++		int fd = ::open(object_path.c_str(), O_CREAT | O_WRONLY | O_TRUNC | O_BINARY, 0666);
+ 		if ( fd != -1) {
+ 			::write(fd, machOFile, machOFileLen);
+ 			::close(fd);
+@@ -1241,7 +1241,7 @@
+ 			tempMachoPath += std::to_string(bufID);
+ 			tempMachoPath += ".thinlto.o.bc";
+ 			state.ltoBitcodePath.push_back(tempMachoPath);
+-			int fd = ::open(tempMachoPath.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0666);
++			int fd = ::open(tempMachoPath.c_str(), O_CREAT | O_WRONLY | O_TRUNC | O_BINARY, 0666);
+ 			if ( fd != -1 ) {
+ 				::write(fd, machOFile.Buffer, machOFile.Size);
+ 				::close(fd);
+@@ -1273,7 +1273,7 @@
+ 			tempMachoPath += ".";
+ 			tempMachoPath += std::to_string(bufID);
+ 			tempMachoPath += ".thinlto.o";
+-			int fd = ::open(tempMachoPath.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0666);
++			int fd = ::open(tempMachoPath.c_str(), O_CREAT | O_WRONLY | O_TRUNC | O_BINARY, 0666);
+ 			if ( fd != -1 ) {
+ 				::write(fd, machOFile.Buffer, machOFile.Size);
+ 				::close(fd);
+@@ -1385,7 +1385,7 @@
+ 		if ( options.tmpObjectFilePath != NULL) {
+ 			tmp_path = macho_dirpath + "/" + std::to_string(bufID) + ".o";
+ 			// if needed, save temp mach-o file to specific location
+-			int fd = ::open(tmp_path.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0666);
++			int fd = ::open(tmp_path.c_str(), O_CREAT | O_WRONLY | O_TRUNC | O_BINARY, 0666);
+ 			if ( fd != -1) {
+ 				::write(fd, (const uint8_t *)machOFile.Buffer, machOFile.Size);
+ 				::close(fd);
+diff -urN ld64.orig/src/other/rebase.cpp ld64/src/other/rebase.cpp
+--- ld64.orig/src/other/rebase.cpp	2013-03-07 23:10:19.000000000 +0000
++++ ld64/src/other/rebase.cpp	2017-08-07 16:39:57.844411092 +0100
+@@ -123,7 +123,7 @@
+  : fMappingAddress(0), fFileSize(0)
+ {
+ 	// map in whole file
+-	int fd = ::open(path, (writable ? O_RDWR : O_RDONLY), 0);
++	int fd = ::open(path, (writable ? O_RDWR|O_BINARY : O_RDONLY|O_BINARY), 0);
+ 	if ( fd == -1 )
+ 		throwf("can't open file %s, errno=%d", path, errno);
+ 	struct stat stat_buf;
+@@ -779,7 +779,7 @@
+ 		
+ 	// create new file with all same permissions to hold copy of dylib 
+ 	::unlink(dstFile);
+-	int dst = open(dstFile, O_CREAT | O_RDWR | O_TRUNC, stat_buf.st_mode);	
++	int dst = open(dstFile, O_CREAT | O_RDWR | O_TRUNC | O_BINARY, stat_buf.st_mode);	
+ 	if ( dst == -1 )
+ 		throwf("can't create temp file %s, errnor=%d", dstFile, errno);
+ 

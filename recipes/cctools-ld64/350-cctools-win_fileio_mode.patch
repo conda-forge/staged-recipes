@@ -1,0 +1,246 @@
+diff -urN cctools.orig/as/write_object.c cctools/as/write_object.c
+--- cctools.orig/as/write_object.c	2017-08-01 14:31:38.000000000 +0100
++++ cctools/as/write_object.c	2017-08-01 14:32:48.000000000 +0100
+@@ -633,7 +633,7 @@
+ 	    if(stat_buf.st_mode & S_IFREG)
+ 		(void)unlink(out_file_name);
+ 	}
+-	if((fd = open(out_file_name, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666)) == -1)
++	if((fd = open(out_file_name, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, FIO_READ_WRITE)) == -1)
+ 	    as_fatal("can't create output file: %s", out_file_name);
+ 	if(write(fd, output_addr, output_size) != (int)output_size)
+ 	    as_fatal("can't write output file");
+diff -urN cctools.orig/efitools/makerelocs.c cctools/efitools/makerelocs.c
+--- cctools.orig/efitools/makerelocs.c	2017-08-01 14:31:38.000000000 +0100
++++ cctools/efitools/makerelocs.c	2017-08-01 14:32:56.000000000 +0100
+@@ -444,7 +444,7 @@
+ 	       (nbase_reloc + 1) * sizeof(struct base_relocation_entry);
+ 	fb = malloc(size);
+ 	
+-	f = open(out, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY, 0644);
++	f = open(out, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY, FIO_READ_WRITE);
+ 	if(f == -1){
+ 	    fatal("open output file");
+ 	}
+diff -urN cctools.orig/efitools/mtoc.c cctools/efitools/mtoc.c
+--- cctools.orig/efitools/mtoc.c	2017-08-01 14:31:38.000000000 +0100
++++ cctools/efitools/mtoc.c	2017-08-01 14:32:56.000000000 +0100
+@@ -1650,7 +1650,7 @@
+ 	/*
+ 	 * Create the pecoff file and write the buffer to the file.
+ 	 */
+-	f = open(out, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY, 0644);
++	f = open(out, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY, FIO_READ_WRITE);
+ 	if(f == -1)
+ 	    system_fatal("Can't create output file: %s", out);
+ 
+diff -urN cctools.orig/ld/ld.c cctools/ld/ld.c
+--- cctools.orig/ld/ld.c	2017-08-01 14:08:14.000000000 +0100
++++ cctools/ld/ld.c	2017-08-01 14:32:56.000000000 +0100
+@@ -3529,7 +3529,7 @@
+ 
+ 	if(trace_file == -1){
+ 		if(trace_file_path != NULL){
+-			trace_file = open(trace_file_path, O_WRONLY | O_APPEND | O_CREAT, 0666);
++			trace_file = open(trace_file_path, O_WRONLY | O_APPEND | O_CREAT, FIO_READ_WRITE);
+ 			if(trace_file == -1)
+ 				fatal("Could not open or create trace file: %s\n", trace_file_path);
+ 		}
+diff -urN cctools.orig/ld/pass2.c cctools/ld/pass2.c
+--- cctools.orig/ld/pass2.c	2017-08-01 14:25:58.000000000 +0100
++++ cctools/ld/pass2.c	2017-08-01 14:32:56.000000000 +0100
+@@ -147,7 +147,7 @@
+ 	 * of the unlink() is ignored).
+ 	 */
+ 	(void)unlink(outputfile);
+-	if((fd = open(outputfile, O_WRONLY | O_CREAT | O_TRUNC, 0777)) == -1)
++	if((fd = open(outputfile, O_WRONLY | O_CREAT | O_TRUNC, FIO_READ_WRITE_EXEC)) == -1)
+ 	    system_fatal("can't create output file: %s", outputfile);
+ #ifdef F_NOCACHE
+         /* tell filesystem to NOT cache the file when reading or writing */
+@@ -163,9 +163,9 @@
+ 	 */
+ 	if(output_mach_header.flags & MH_NOUNDEFS ||
+ 	   (has_dynamic_linker_command && output_for_dyld))
+-	    mode = (stat_buf.st_mode & 0777) | (0111 & ~umask(0));
++	    mode = (stat_buf.st_mode & FIO_READ_WRITE_EXEC) | (0111 & ~umask(0));
+ 	else
+-	    mode = (stat_buf.st_mode & 0777) & ~0111;
++	    mode = (stat_buf.st_mode & FIO_READ_WRITE_EXEC) & ~0111;
+ 	if(fchmod(fd, mode) == -1)
+ 	    system_fatal("can't set execution permissions output file: %s",
+ 			 outputfile);
+diff -urN cctools.orig/ld/rld.c cctools/ld/rld.c
+--- cctools.orig/ld/rld.c	2017-08-01 14:31:38.000000000 +0100
++++ cctools/ld/rld.c	2017-08-01 14:32:56.000000000 +0100
+@@ -630,7 +630,7 @@
+ 			  output_symtab_info.symtab_command.strsize;
+ 	    (void)unlink(output_filename);
+ 	    if((fd = open(output_filename, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY,
+-			  0666)) == -1){
++			  FIO_READ_WRITE)) == -1){
+ 		system_error("can't create output file: %s", output_filename);
+ #ifdef KLD
+ 		internal_kld_unload(TRUE);
+@@ -1677,7 +1677,7 @@
+ 		      output_symtab_info.symtab_command.strsize;
+ 	(void)unlink(output_filename);
+ 	if((fd = open(output_filename, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY,
+-		      0666)) == -1){
++		      FIO_READ_WRITE)) == -1){
+ 	    system_error("can't create output file: %s", output_filename);
+ 	    return_value = 0;
+ 	    goto deallocate_and_return;
+diff -urN cctools.orig/misc/codesign_allocate.c cctools/misc/codesign_allocate.c
+--- cctools.orig/misc/codesign_allocate.c	2017-08-01 13:57:33.000000000 +0100
++++ cctools/misc/codesign_allocate.c	2017-08-01 14:33:57.000000000 +0100
+@@ -206,7 +206,7 @@
+ 		      arch_signs[i].arch_flag.name, arch_signs[i].datasize);
+ 	}
+ 
+-	writeout(archs, narchs, output, 0777, TRUE, FALSE, FALSE, FALSE, NULL);
++	writeout(archs, narchs, output, FIO_READ_WRITE_EXEC, TRUE, FALSE, FALSE, FALSE, NULL);
+ 
+ 	if(errors)
+ 	    return(EXIT_FAILURE);
+diff -urN cctools.orig/misc/ctf_insert.c cctools/misc/ctf_insert.c
+--- cctools.orig/misc/ctf_insert.c	2017-08-01 13:57:33.000000000 +0100
++++ cctools/misc/ctf_insert.c	2017-08-01 14:34:35.000000000 +0100
+@@ -178,7 +178,7 @@
+ 		      arch_ctfs[i].arch_flag.name, arch_ctfs[i].filename);
+ 	}
+ 
+-	writeout(archs, narchs, output, 0777, TRUE, FALSE, FALSE, FALSE, NULL);
++	writeout(archs, narchs, output, FIO_READ_WRITE_EXEC, TRUE, FALSE, FALSE, FALSE, NULL);
+ 
+ 	if(errors)
+ 	    return(EXIT_FAILURE);
+diff -urN cctools.orig/misc/inout.c cctools/misc/inout.c
+--- cctools.orig/misc/inout.c	2017-08-01 13:57:33.000000000 +0100
++++ cctools/misc/inout.c	2017-08-01 14:36:52.000000000 +0100
+@@ -89,7 +89,7 @@
+ 
+ 	process(archs, narchs);
+ 
+-	writeout(archs, narchs, output, 0777, TRUE, FALSE, FALSE, FALSE, NULL);
++	writeout(archs, narchs, output, FIO_READ_WRITE_EXEC, TRUE, FALSE, FALSE, FALSE, NULL);
+ 
+ 	if(errors)
+ 	    return(EXIT_FAILURE);
+diff -urN cctools.orig/misc/install_name_tool.c cctools/misc/install_name_tool.c
+--- cctools.orig/misc/install_name_tool.c	2017-08-01 13:57:33.000000000 +0100
++++ cctools/misc/install_name_tool.c	2017-08-01 14:37:54.000000000 +0100
+@@ -337,7 +337,7 @@
+ 	    exit(EXIT_FAILURE);
+ 
+ 	if(output != NULL)
+-	    writeout(archs, narchs, output, 0777, TRUE, FALSE, FALSE, FALSE,
++	    writeout(archs, narchs, output, FIO_READ_WRITE_EXEC, TRUE, FALSE, FALSE, FALSE,
+ 		     NULL);
+ 	else
+ 	    write_on_input(archs, narchs, input);
+diff -urN cctools.orig/misc/libtool.c cctools/misc/libtool.c
+--- cctools.orig/misc/libtool.c	2017-08-01 14:31:38.000000000 +0100
++++ cctools/misc/libtool.c	2017-08-01 14:33:01.000000000 +0100
+@@ -87,7 +87,7 @@
+ static enum bool zero_ar_date = FALSE;
+ 
+ /*
+- * The mode of the table of contents member (S_IFREG | (0666 & ~umask))
++ * The mode of the table of contents member (S_IFREG | (FIO_READ_WRITE & ~umask))
+  */
+ static u_short toc_mode = 0;
+ 
+@@ -380,7 +380,7 @@
+ 
+ 	numask = 0;
+ 	oumask = umask(numask);
+-	toc_mode = S_IFREG | (0666 & ~oumask);
++	toc_mode = S_IFREG | (FIO_READ_WRITE & ~oumask);
+ 	(void)umask(oumask);
+ 
+ 	/* see if this is being run as ranlib */
+@@ -2585,7 +2585,7 @@
+ 	 * of the unlink() is ignored).
+ 	 */
+ 	(void)unlink(output);
+-	if((fd = open(output, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, 0666)) == -1){
++	if((fd = open(output, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, FIO_READ_WRITE)) == -1){
+ 	    system_error("can't create output file: %s", output);
+ 	    return;
+ 	}
+@@ -4390,7 +4390,7 @@
+ 
+ 	if(trace_file == -1){
+ 		if(cmd_flags.trace_file_path != NULL){
+-			trace_file = open(cmd_flags.trace_file_path, O_WRONLY | O_BINARY | O_APPEND | O_CREAT, 0666);
++			trace_file = open(cmd_flags.trace_file_path, O_WRONLY | O_BINARY | O_APPEND | O_CREAT, FIO_READ_WRITE);
+ 			if(trace_file == -1)
+ 				error("Could not open or create trace file: %s\n", cmd_flags.trace_file_path);
+ 		}
+diff -urN cctools.orig/misc/lipo.c cctools/misc/lipo.c
+--- cctools.orig/misc/lipo.c	2017-08-01 14:31:38.000000000 +0100
++++ cctools/misc/lipo.c	2017-08-01 14:33:01.000000000 +0100
+@@ -1162,7 +1162,7 @@
+ 	    system_fatal("can't stat input file: %s", input->name);
+ 	size = stat_buf.st_size;
+ 	/* pick up set uid, set gid and sticky text bits */
+-	output_filemode = stat_buf.st_mode & 07777;
++	output_filemode = stat_buf.st_mode & FIO_MASK_ALL_4;
+ 	/*
+ 	 * Select the eariliest modify time so that if the output file
+ 	 * contains archives with table of contents lipo will not make them
+diff -urN cctools.orig/misc/redo_prebinding.c cctools/misc/redo_prebinding.c
+--- cctools.orig/misc/redo_prebinding.c	2017-08-01 14:24:37.000000000 +0100
++++ cctools/misc/redo_prebinding.c	2017-08-01 14:33:01.000000000 +0100
+@@ -910,7 +910,7 @@
+ 		exit(1);
+ 	    if(stat(input_file, &stat_buf) == -1)
+ 		system_error("can't stat input file: %s", input_file);
+-	    mode = stat_buf.st_mode & 07777;
++	    mode = stat_buf.st_mode & FIO_MASK_ALL_4;
+ 	    uid = stat_buf.st_uid;
+             gid = stat_buf.st_gid;
+ 
+diff -urN cctools.orig/misc/segedit.c cctools/misc/segedit.c
+--- cctools.orig/misc/segedit.c	2017-08-01 14:31:38.000000000 +0100
++++ cctools/misc/segedit.c	2017-08-01 14:33:01.000000000 +0100
+@@ -460,7 +460,7 @@
+ 			  "end of the file) in: %s", segname,
+ 			  sectname, input);
+ 		 if((fd = open(ep->filename, O_WRONLY | O_CREAT |
+-			       O_TRUNC | O_BINARY, 0666)) == -1)
++			       O_TRUNC | O_BINARY, FIO_READ_WRITE)) == -1)
+ 		    system_fatal("can't create: %s", ep->filename);
+ 		 if(write(fd, (char *)input_addr + offset,
+ 			 size) != (int)size)
+diff -urN cctools.orig/misc/strip.c cctools/misc/strip.c
+--- cctools.orig/misc/strip.c	2017-08-01 14:31:38.000000000 +0100
++++ cctools/misc/strip.c	2017-08-01 14:35:49.000000000 +0100
+@@ -681,7 +681,7 @@
+ 	if(stat(input_file, &stat_buf) == -1)
+ 	    system_error("can't stat input file: %s", input_file);
+ 	if(output_file != NULL){
+-	    writeout(archs, narchs, output_file, stat_buf.st_mode & 0777,
++	    writeout(archs, narchs, output_file, stat_buf.st_mode & FIO_READ_WRITE_EXEC,
+ 		     TRUE, FALSE,
+ #ifdef NMEDIT
+ 		     FALSE,
+@@ -739,7 +739,7 @@
+ 		output_file = mktemp(output_file);
+ 	    }
+ #endif /* NMEDIT */
+-	    writeout(archs, narchs, output_file, stat_buf.st_mode & 0777,
++	    writeout(archs, narchs, output_file, stat_buf.st_mode & FIO_READ_WRITE_EXEC,
+ 		     TRUE, FALSE,
+ #ifdef NMEDIT
+ 		     FALSE,
+@@ -4134,7 +4134,7 @@
+ 	input_file = makestr("/tmp/strip.XXXXXX", NULL);
+ 	input_file = mktemp(input_file);
+ 
+-	if((fd = open(input_file, O_WRONLY|O_CREAT|O_BINARY, 0600)) < 0)
++	if((fd = open(input_file, O_WRONLY|O_CREAT|O_BINARY, FIO_READ_WRITE_ME)) < 0)
+ 	    system_fatal("can't open temporary file: %s", input_file);
+ 
+ 	if(write(fd, object->object_addr, object->object_size) !=

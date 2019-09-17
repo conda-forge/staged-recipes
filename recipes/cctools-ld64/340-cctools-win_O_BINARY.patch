@@ -1,0 +1,294 @@
+diff -urN cctools.orig/ar/append.c cctools/ar/append.c
+--- cctools.orig/ar/append.c	2017-08-01 18:57:04.000000000 +0100
++++ cctools/ar/append.c	2017-08-01 18:57:17.000000000 +0100
+@@ -93,7 +93,7 @@
+ 	CF cf;
+ 	struct stat sb;
+ 
+-	afd = open_archive(O_CREAT|O_RDWR);
++	afd = open_archive(O_CREAT|O_RDWR|O_BINARY);
+ 	if (lseek(afd, (off_t)0, SEEK_END) == (off_t)-1)
+ 		error(archive);
+ 
+diff -urN cctools.orig/ar/archive.c cctools/ar/archive.c
+--- cctools.orig/ar/archive.c	2017-08-01 18:57:04.000000000 +0100
++++ cctools/ar/archive.c	2017-08-01 18:57:17.000000000 +0100
+@@ -100,7 +100,7 @@
+ 	created = 0;
+ 	if (mode & O_CREAT) {
+ 		mode |= O_EXCL;
+-		if ((fd = open(archive, mode, DEFFILEMODE)) >= 0) {
++		if ((fd = open(archive, mode|O_BINARY, DEFFILEMODE)) >= 0) {
+ 			/* POSIX.2 puts create message on stderr. */
+ 			if (!(options & AR_C))
+ 				warnx("creating archive %s", archive);
+@@ -111,7 +111,7 @@
+ 			error(archive);
+ 		mode &= ~O_EXCL;
+ 	}
+-	if ((fd = open(archive, mode, DEFFILEMODE)) < 0)
++	if ((fd = open(archive, mode|O_BINARY, DEFFILEMODE)) < 0)
+ 		error(archive);
+ 
+ 	if((mode & O_ACCMODE) == O_RDONLY)
+diff -urN cctools.orig/ar/extract.c cctools/ar/extract.c
+--- cctools.orig/ar/extract.c	2017-08-01 18:57:04.000000000 +0100
++++ cctools/ar/extract.c	2017-08-01 18:57:17.000000000 +0100
+@@ -117,7 +117,7 @@
+ 		    sb.st_mtime > chdr.date)
+ 			continue;
+ 
+-		if ((tfd = open(file, O_WRONLY|O_CREAT|O_TRUNC, S_IWUSR)) < 0) {
++		if ((tfd = open(file, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY, S_IWUSR)) < 0) {
+ 			warn("%s", file);
+ 			skip_arobj(afd);
+ 			eval = 1;
+diff -urN cctools.orig/ar/replace.c cctools/ar/replace.c
+--- cctools.orig/ar/replace.c	2017-08-01 18:57:04.000000000 +0100
++++ cctools/ar/replace.c	2017-08-01 18:57:17.000000000 +0100
+@@ -104,7 +104,7 @@
+ 	 * a race here, but it's pretty short, and not worth fixing.
+ 	 */
+ 	exists = !stat(archive, &sb);
+-	afd = open_archive(O_CREAT|O_RDWR);
++	afd = open_archive(O_CREAT|O_RDWR|O_BINARY);
+ 
+ 	if (!exists) {
+ 		tfd1 = -1;
+@@ -125,7 +125,7 @@
+ 	mods = (options & (AR_A|AR_B));
+ 	for (curfd = tfd1; get_arobj(afd);) {
+ 		if (*argv && (file = files(argv))) {
+-			if ((sfd = open(file, O_RDONLY)) < 0) {
++			if ((sfd = open(file, O_RDONLY|O_BINARY)) < 0) {
+ 				errflg = 1;
+ 				warn("%s", file);
+ 				goto useold;
+@@ -173,7 +173,7 @@
+ append:	while ((file = *argv++)) {
+ 		if (options & AR_V)
+ 			(void)printf("a - %s\n", file);
+-		if ((sfd = open(file, O_RDONLY)) < 0) {
++		if ((sfd = open(file, O_RDONLY|O_BINARY)) < 0) {
+ 			errflg = 1;
+ 			warn("%s", file);
+ 			continue;
+diff -urN cctools.orig/as/write_object.c cctools/as/write_object.c
+--- cctools.orig/as/write_object.c	2017-08-01 18:57:04.000000000 +0100
++++ cctools/as/write_object.c	2017-08-01 18:57:17.000000000 +0100
+@@ -633,7 +633,7 @@
+ 	    if(stat_buf.st_mode & S_IFREG)
+ 		(void)unlink(out_file_name);
+ 	}
+-	if((fd = open(out_file_name, O_WRONLY | O_CREAT | O_TRUNC, 0666)) == -1)
++	if((fd = open(out_file_name, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0666)) == -1)
+ 	    as_fatal("can't create output file: %s", out_file_name);
+ 	if(write(fd, output_addr, output_size) != (int)output_size)
+ 	    as_fatal("can't write output file");
+diff -urN cctools.orig/efitools/makerelocs.c cctools/efitools/makerelocs.c
+--- cctools.orig/efitools/makerelocs.c	2017-08-01 18:57:04.000000000 +0100
++++ cctools/efitools/makerelocs.c	2017-08-01 18:57:24.000000000 +0100
+@@ -444,7 +444,7 @@
+ 	       (nbase_reloc + 1) * sizeof(struct base_relocation_entry);
+ 	fb = malloc(size);
+ 	
+-	f = open(out, O_WRONLY|O_CREAT|O_TRUNC, 0644);
++	f = open(out, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY, 0644);
+ 	if(f == -1){
+ 	    fatal("open output file");
+ 	}
+diff -urN cctools.orig/efitools/mtoc.c cctools/efitools/mtoc.c
+--- cctools.orig/efitools/mtoc.c	2017-08-01 18:57:04.000000000 +0100
++++ cctools/efitools/mtoc.c	2017-08-01 18:57:24.000000000 +0100
+@@ -1650,7 +1650,7 @@
+ 	/*
+ 	 * Create the pecoff file and write the buffer to the file.
+ 	 */
+-	f = open(out, O_WRONLY|O_CREAT|O_TRUNC, 0644);
++	f = open(out, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY, 0644);
+ 	if(f == -1)
+ 	    system_fatal("Can't create output file: %s", out);
+ 
+diff -urN cctools.orig/ld/rld.c cctools/ld/rld.c
+--- cctools.orig/ld/rld.c	2017-08-01 18:57:04.000000000 +0100
++++ cctools/ld/rld.c	2017-08-01 18:57:24.000000000 +0100
+@@ -629,7 +629,7 @@
+ 			  sizeof(struct nlist) +
+ 			  output_symtab_info.symtab_command.strsize;
+ 	    (void)unlink(output_filename);
+-	    if((fd = open(output_filename, O_WRONLY | O_CREAT | O_TRUNC,
++	    if((fd = open(output_filename, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY,
+ 			  0666)) == -1){
+ 		system_error("can't create output file: %s", output_filename);
+ #ifdef KLD
+@@ -1676,7 +1676,7 @@
+ 		      sizeof(struct nlist) +
+ 		      output_symtab_info.symtab_command.strsize;
+ 	(void)unlink(output_filename);
+-	if((fd = open(output_filename, O_WRONLY | O_CREAT | O_TRUNC,
++	if((fd = open(output_filename, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY,
+ 		      0666)) == -1){
+ 	    system_error("can't create output file: %s", output_filename);
+ 	    return_value = 0;
+diff -urN cctools.orig/libstuff/ofile.c cctools/libstuff/ofile.c
+--- cctools.orig/libstuff/ofile.c	2017-08-01 18:57:04.000000000 +0100
++++ cctools/libstuff/ofile.c	2017-08-01 18:57:30.000000000 +0100
+@@ -847,7 +847,7 @@
+ 	memset(ofile, '\0', sizeof(struct ofile));
+ 
+ 	/* Open the file and map it in */
+-	if((fd = open(file_name, O_RDONLY)) == -1){
++	if((fd = open(file_name, O_RDONLY|O_BINARY)) == -1){
+ #ifdef OFI
+ 	    return(NSObjectFileImageAccess);
+ #else
+diff -urN cctools.orig/libstuff/writeout.c cctools/libstuff/writeout.c
+--- cctools.orig/libstuff/writeout.c	2017-08-01 18:57:04.000000000 +0100
++++ cctools/libstuff/writeout.c	2017-08-01 18:57:30.000000000 +0100
+@@ -154,7 +154,7 @@
+ 	else
+ 	    fsync = 0;
+         if(output != NULL){
+-            if((fd = open(output, O_WRONLY|O_CREAT|O_TRUNC|fsync, mode)) == -1){
++            if((fd = open(output, O_WRONLY|O_CREAT|O_TRUNC|O_BINARY|fsync, mode)) == -1){
+                 system_error("can't create output file: %s", output);
+                 goto cleanup;
+             }
+diff -urN cctools.orig/misc/libtool.c cctools/misc/libtool.c
+--- cctools.orig/misc/libtool.c	2017-08-01 18:57:04.000000000 +0100
++++ cctools/misc/libtool.c	2017-08-01 18:57:30.000000000 +0100
+@@ -2553,7 +2553,7 @@
+ 	    if(same_toc == FALSE)
+ 		p = put_toc_member(p, archs+0, host_byte_sex, target_byte_sex);
+ 
+-	    if((fd = open(output, O_WRONLY, 0)) == -1){
++	    if((fd = open(output, O_WRONLY | O_BINARY, 0)) == -1){
+ 		system_error("can't open output file: %s", output);
+ 		return;
+ 	    }
+@@ -2585,7 +2585,7 @@
+ 	 * of the unlink() is ignored).
+ 	 */
+ 	(void)unlink(output);
+-	if((fd = open(output, O_WRONLY | O_CREAT | O_TRUNC, 0666)) == -1){
++	if((fd = open(output, O_WRONLY | O_BINARY | O_CREAT | O_TRUNC, 0666)) == -1){
+ 	    system_error("can't create output file: %s", output);
+ 	    return;
+ 	}
+@@ -2841,7 +2841,7 @@
+ 	    system_fatal("can't stat file output file: %s", output);
+ 	    return;
+ 	}
+-	if((fd = open(output, O_WRONLY, 0)) == -1){
++	if((fd = open(output, O_WRONLY | O_BINARY, 0)) == -1){
+ 	    system_error("can't open output file: %s", output);
+ 	    return;
+ 	}
+@@ -4390,7 +4390,7 @@
+ 
+ 	if(trace_file == -1){
+ 		if(cmd_flags.trace_file_path != NULL){
+-			trace_file = open(cmd_flags.trace_file_path, O_WRONLY | O_APPEND | O_CREAT, 0666);
++			trace_file = open(cmd_flags.trace_file_path, O_WRONLY | O_BINARY | O_APPEND | O_CREAT, 0666);
+ 			if(trace_file == -1)
+ 				error("Could not open or create trace file: %s\n", cmd_flags.trace_file_path);
+ 		}
+diff -urN cctools.orig/misc/lipo.c cctools/misc/lipo.c
+--- cctools.orig/misc/lipo.c	2017-08-01 18:57:04.000000000 +0100
++++ cctools/misc/lipo.c	2017-08-01 18:59:12.000000000 +0100
+@@ -587,7 +587,7 @@
+ 		   (thin_files[i].cpusubtype & ~CPU_SUBTYPE_MASK) ==
+ 		   (thin_arch_flag.cpusubtype & ~CPU_SUBTYPE_MASK)){
+ 		    (void)unlink(output_file);
+-		    if((fd = open(output_file, O_WRONLY | O_CREAT | O_TRUNC,
++		    if((fd = open(output_file, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY,
+ 				  output_filemode)) == -1)
+ 			system_fatal("can't create output file: %s",
+ 				     output_file);
+@@ -974,7 +974,7 @@
+ 	}
+ 
+ 	rename_file = makestr(output_file, ".lipo", NULL);
+-	if((fd = open(rename_file, O_WRONLY | O_CREAT | O_TRUNC,
++	if((fd = open(rename_file, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY,
+ 		      output_filemode)) == -1)
+ 	    system_fatal("can't create temporary output file: %s", rename_file);
+ 
+diff -urN cctools.orig/misc/segedit.c cctools/misc/segedit.c
+--- cctools.orig/misc/segedit.c	2017-08-01 18:57:04.000000000 +0100
++++ cctools/misc/segedit.c	2017-08-01 18:57:30.000000000 +0100
+@@ -249,7 +249,7 @@
+     struct symseg_command *ssp;
+ 
+ 	/* Open the input file and map it in */
+-	if((fd = open(input, O_RDONLY)) == -1)
++	if((fd = open(input, O_RDONLY|O_BINARY)) == -1)
+ 	    system_fatal("can't open input file: %s", input);
+ 	if(fstat(fd, &stat_buf) == -1)
+ 	    system_fatal("Can't stat input file: %s", input);
+@@ -460,7 +460,7 @@
+ 			  "end of the file) in: %s", segname,
+ 			  sectname, input);
+ 		 if((fd = open(ep->filename, O_WRONLY | O_CREAT |
+-			       O_TRUNC, 0666)) == -1)
++			       O_TRUNC | O_BINARY, 0666)) == -1)
+ 		    system_fatal("can't create: %s", ep->filename);
+ 		 if(write(fd, (char *)input_addr + offset,
+ 			 size) != (int)size)
+@@ -877,7 +877,7 @@
+ 	 * commands, then the segments with any new sections and finally
+ 	 * the link edit info.
+ 	 */
+-	if((outfd = open(output, O_CREAT | O_WRONLY | O_TRUNC ,input_mode)) 
++	if((outfd = open(output, O_CREAT | O_WRONLY | O_TRUNC | O_BINARY,input_mode)) 
+ 	   == -1)
+ 	    system_fatal("can't create output file: %s", output);
+ 
+@@ -895,7 +895,7 @@
+ 			sp = sects[k + j].sp;
+ 			rp = sects[k + j].rp;
+ 			if(rp != NULL){
+-			    if((sectfd = open(rp->filename, O_RDONLY)) == -1)
++			    if((sectfd = open(rp->filename, O_RDONLY|O_BINARY)) == -1)
+ 				system_fatal("can't open file: %s to replace "
+ 					 "section (%s,%s) with", rp->filename,
+ 					 rp->segname, rp->sectname);
+@@ -950,7 +950,7 @@
+ 			sp64 = sects[k + j].sp64;
+ 			rp = sects[k + j].rp;
+ 			if(rp != NULL){
+-			    if((sectfd = open(rp->filename, O_RDONLY)) == -1)
++			    if((sectfd = open(rp->filename, O_RDONLY|O_BINARY)) == -1)
+ 				system_fatal("can't open file: %s to replace "
+ 					 "section (%s,%s) with", rp->filename,
+ 					 rp->segname, rp->sectname);
+diff -urN cctools.orig/misc/strip.c cctools/misc/strip.c
+--- cctools.orig/misc/strip.c	2017-08-01 18:57:04.000000000 +0100
++++ cctools/misc/strip.c	2017-08-01 18:57:30.000000000 +0100
+@@ -718,7 +718,7 @@
+ 		 * the current working directory to that path.
+ 		 */
+ 		if((p = rindex(output_file, '/')) != NULL){
+-		    if((cwd_fd = open(".", O_RDONLY, 0)) == -1){
++		    if((cwd_fd = open(".", O_RDONLY|O_BINARY, 0)) == -1){
+ 			system_error("can't open current working directory");
+ 			goto strip_file_return;
+ 		    }
+@@ -2710,7 +2710,7 @@
+     struct stat stat_buf;
+     char *strings, *p;
+ 
+-	if((fd = open(dfile, O_RDONLY)) < 0){
++	if((fd = open(dfile, O_RDONLY|O_BINARY)) < 0){
+ 	    system_error("can't open: %s", dfile);
+ 	    return;
+ 	}
+@@ -4134,7 +4134,7 @@
+ 	input_file = makestr("/tmp/strip.XXXXXX", NULL);
+ 	input_file = mktemp(input_file);
+ 
+-	if((fd = open(input_file, O_WRONLY|O_CREAT, 0600)) < 0)
++	if((fd = open(input_file, O_WRONLY|O_CREAT|O_BINARY, 0600)) < 0)
+ 	    system_fatal("can't open temporary file: %s", input_file);
+ 
+ 	if(write(fd, object->object_addr, object->object_size) !=
