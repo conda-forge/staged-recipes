@@ -18,6 +18,7 @@ jom install || goto :error
 
 REM Fix libraries location
 copy %LIBRARY_LIB%\OpenMM* %LIBRARY_BIN% || goto :error
+copy %LIBRARY_LIB%\plugins\OpenMM* %LIBRARY_BIN% || goto :error
 copy %SP_DIR%\simtk\openmm\_openmm* %LIBRARY_BIN% || goto :error
 
 mkdir %LIBRARY_PREFIX%\share\openmm || goto :error
