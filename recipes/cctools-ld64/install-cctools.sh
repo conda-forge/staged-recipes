@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 . activate "${BUILD_PREFIX}"
 cd "${SRC_DIR}"
 
