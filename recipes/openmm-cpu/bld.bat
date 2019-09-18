@@ -24,10 +24,11 @@ copy %LIBRARY_LIB%\plugins\OpenMM* %LIBRARY_BIN%\plugins || goto :error
 
 mkdir %LIBRARY_PREFIX%\share\openmm || goto :error
 move %LIBRARY_PREFIX%\examples %LIBRARY_PREFIX%\share\openmm || goto :error
-goto :EOF
 
 REM Some library debugging
 type %SP_DIR%\simtk\openmm\version.py || goto :error
+
+goto :EOF
 
 :error
 echo Failed with error #%errorlevel%.
