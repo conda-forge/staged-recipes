@@ -2,8 +2,8 @@ mkdir build
 cd build
 
 cmake.exe .. -G "NMake Makefiles JOM" ^
-    -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
-    -DCMAKE_PREFIX_PATH:PATH="%LIBRARY_PREFIX%" ^
+    -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
+    -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DFFTW_INCLUDES="%LIBRARY_INC%" ^
     -DFFTW_LIBRARY="%LIBRARY_LIB%/fftw3f.lib" ^
@@ -25,6 +25,9 @@ copy %LIBRARY_LIB%\plugins\OpenMM* %LIBRARY_BIN%\plugins || goto :error
 mkdir %LIBRARY_PREFIX%\share\openmm || goto :error
 move %LIBRARY_PREFIX%\examples %LIBRARY_PREFIX%\share\openmm || goto :error
 goto :EOF
+
+REM Some library debugging
+type %SP_DIR%\simtk\openmm\version.py || goto :error
 
 :error
 echo Failed with error #%errorlevel%.
