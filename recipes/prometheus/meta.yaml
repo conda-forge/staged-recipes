@@ -1,0 +1,51 @@
+{% set provider = "prometheus" %}
+{% set goname = "github.com/prometheus/"+provider.lower() %}
+{% set version = "2.12.0" %}
+
+{% set name = goname.split('/')[-1] %}
+{% set pkg_src = ('src/'+goname).replace("/",os.sep) %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - folder:  {{ pkg_src }}
+    url: https://{{ goname }}/archive/v{{ version }}.tar.gz
+    sha256: 9bd9ae6df02777a9ba3f6f544338865861decabd02054aa64975449bd6009e5a
+
+build:
+  number: 0
+  context: services/configuration
+  script:
+    - pushd {{ pkg_src }}
+    - go get -u {{ goname }}/...
+    - go build -v -o $GOBIN/{{ name }} .  # [unix]
+    - go build -v -o %GOBIN%\{{ name }}.exe .  # [win]
+
+requirements:
+  build:
+    - {{ compiler('go') }}
+
+test:
+  requires:
+    - m2-bash       # [win]
+    - m2-coreutils  # [win]
+
+  commands:
+    - prometheus --version
+    # bash -euf -c "echo 'provider \"{{ provider|lower }}\" { version=\"{{ version }}\" }' > init.tf"
+    # Tests that no plugins were downloaded
+    # test -f .terraform/plugins/{{ goos }}_{{ goarch }}/lock.json
+    # test ! -f .terraform/plugins/{{ goos }}_{{ goarch }}/{{ x4_plugin }}
+
+about:
+  home: https://www.terraform.io
+  license: MPL 2.0
+  summary: The Terraform Google provider
+  doc_url: https://www.terraform.io/docs/providers/{{ provider }}/index.html
+  dev_url: https://github.com/terraform-providers/{{ name }}
+
+extra:
+  recipe-maintainers:
+    - rluria14
