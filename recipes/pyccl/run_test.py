@@ -10,4 +10,4 @@ cosmo = ccl.Cosmology(
 )
 
 print("sigma8:", ccl.sigma8(cosmo))
-assert ccl.sigma8(cosmo) > 0.7 and ccl.sigma8(cosmo) < 0.9
+assert ccl.sigma8(cosmo) > 0.82 and ccl.sigma8(cosmo) < 0.83
