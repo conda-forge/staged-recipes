@@ -1,7 +1,12 @@
 #!/bin/bash
 
-gem install -N -l -V --norc --ignore-dependencies cool.io-1.5.4.gem
-gem unpack cool.io
-rm -R cool.io-1.5.4/ext/libev
-make -C $PREFIX/lib/ruby/gems/${ruby}.0/gems/cool.io-1.5.4/ext/cool.io clean
-make -C $PREFIX/lib/ruby/gems/${ruby}.0/gems/cool.io-1.5.4/ext/iobuffer clean
+gem unpack ${PKG_NAME}-${PKG_VERSION}.gem
+rm -R ${PKG_NAME}-${PKG_VERSION}/ext/libev
+patch -d ${PKG_NAME}-${PKG_VERSION}/ext -i ${SOURCE_DIR}/unvendor_libev.patch
+
+#TODO: Repack gem
+
+gem install -N -l -V --norc --ignore-dependencies ${PKG_NAME}-${PKG_VERSION}.gem
+for e in cool.io iobuffer; do
+  make -C $PREFIX/lib/ruby/gems/${ruby}.0/gems/${PKG_NAME}-${PKG_VERSION}/ext/${e} clean
+done
