@@ -1,6 +1,6 @@
 
 pyver=$($PYTHON --version)
-py_ver=${py_ver//Python /}
+pyver=${pyver//Python /}
 
 mkdir -p build
 
