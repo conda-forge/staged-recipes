@@ -9,7 +9,6 @@ set -ex
             --disable-setpriv    \
             --disable-runuser    \
             --disable-static     \
-            --disable-wall       \
             --without-systemd    \
             --without-systemdsystemunitdir
 make -j ${CPU_COUNT}
