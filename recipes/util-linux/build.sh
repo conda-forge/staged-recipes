@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-./configure --prefix="${PREFIX}"
+./configure --prefix="${PREFIX}" \
             --disable-chfn-chsh  \
             --disable-login      \
             --disable-nologin    \
