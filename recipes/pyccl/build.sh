@@ -1,5 +1,6 @@
 
-pyver=`${PYTHON} -c "import sys; print('%d.%d.%d' % (sys.version_info[0], sys.version_info[1], sys.version_info[2]))"`
+pyver=$($PYTHON --version)
+py_ver=${py_ver//Python /}
 
 mkdir -p build
 
