@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -ex
 
-export prefix="$PREFIX"
 make
-make install
+make prefix=$PREFIX \
+     lib=lib \
+     SBINDIR=$PREFIX/sbin \
+     PAM_LIBDIR=$PREFIX/lib \
+     RAISE_SETFCAP=no \
+     install
