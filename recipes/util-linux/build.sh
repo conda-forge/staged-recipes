@@ -10,6 +10,8 @@ set -ex
             --disable-runuser    \
             --disable-static     \
             --without-systemd    \
+            --disable-makeinstall-chown \
+            --disable-makeinstall-setuid \
             --without-systemdsystemunitdir
 make -j ${CPU_COUNT}
 make install
