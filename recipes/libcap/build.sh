@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -ex
 
-make CC=$CC
+make CC=$CC prefix=$PREFIX \
+     lib=lib
 make prefix=$PREFIX \
      lib=lib \
      SBINDIR=$PREFIX/sbin \
