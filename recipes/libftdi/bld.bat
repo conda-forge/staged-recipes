@@ -1,5 +1,7 @@
 mkdir build
 cd build
+dir %PREFIX%
+set "LIBUSB_LIBRARIES=%PREFIX%"
 REM Configure step
 cmake -G "%CMAKE_GENERATOR%" -DCMAKE_INSTALL_PREFIX="%PREFIX%\Library" -DCMAKE_PREFIX_PATH="%PREFIX%\Library" "%SRC_DIR%"
 if errorlevel 1 exit 1
