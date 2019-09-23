@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-export CFLAGS="-I${PREFIX}/x86_64-conda_cos6-linux-gnu/sysroot/usr/include ${CFLAGS}"
+export CFLAGS="${CFLAGS} -I${PREFIX}/x86_64-conda_cos6-linux-gnu/sysroot/usr/include"
 
 make CC=$CC \
      prefix=$PREFIX \
