@@ -1,0 +1,59 @@
+diff --git a/setup.py b/setup.py
+index ca7efca..0d365c1 100644
+--- a/setup.py
++++ b/setup.py
+@@ -1,32 +1,23 @@
+-from setuptools import setup, Extension
++from setuptools_dso import Extension, setup
+ import versioneer
+ import os, sys
+-import numpy as np
++from numpy.distutils.misc_util import get_numpy_include_dirs
++from epicscorelibs.path import include_path, lib_path
++from epicscorelibs.config import get_config_var
+ 
+-if sys.platform == 'darwin':
+-    libsrc = 'Darwin'
+-    compiler = 'clang'
+-elif sys.platform.startswith('linux'):
+-    libsrc = 'Linux'
+-    compiler = 'gcc'
+-else:
+-    libsrc = None
+ 
+-epics_inc = os.getenv("EPICS_BASE") + "/include"
+-epics_lib = os.getenv("EPICS_BASE") + "/lib/" + os.getenv("EPICS_HOST_ARCH")
+-numpy_inc = np.get_include()
+-numpy_lib = np.__path__[0]
+-
+-pyca = Extension('pyca',
+-                 language='c++',
+-                 sources=['pyca/pyca.cc'],
+-                 include_dirs=['pyca', epics_inc,
+-                                epics_inc + '/os/' + libsrc,
+-                                epics_inc + '/compiler/' + compiler,
+-                                numpy_inc],
+-                 library_dirs=[epics_lib,numpy_lib],
+-                 runtime_library_dirs=[epics_lib,numpy_lib],
+-                 libraries=['Com', 'ca'])
++pyca = Extension(
++    name='.pyca',
++    sources=['pyca/pyca.cc'],
++    include_dirs= get_numpy_include_dirs()+['pyca', include_path],
++    define_macros = get_config_var('CPPFLAGS'),
++    extra_compile_args = get_config_var('CXXFLAGS'),
++    extra_link_args = get_config_var('LDFLAGS'),
++    dsos = ['epicscorelibs.lib.ca',
++            'epicscorelibs.lib.Com'
++    ],
++    libraries=['Com', 'ca']
++)
+ 
+ 
+ 
+@@ -36,4 +27,5 @@ setup(name='pyca',
+       description='python channel access library',
+       packages=['psp'],
+       ext_modules=[pyca],
++      zip_safe = False
+      )
