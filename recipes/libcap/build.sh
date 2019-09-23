@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-export CFLAGS="${CFLAGS} -I${PREFIX}/x86_64-conda_cos6-linux-gnu/sysroot/usr/include"
+export CFLAGS="${CFLAGS} -DXATTR_NAME_CAPS"
 
 make CC=$CC \
      prefix=$PREFIX \
