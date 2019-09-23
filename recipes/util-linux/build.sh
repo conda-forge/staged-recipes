@@ -14,4 +14,5 @@ set -ex
             --disable-makeinstall-setuid \
             --without-systemdsystemunitdir
 make -j ${CPU_COUNT}
+make check
 make install
