@@ -6,6 +6,7 @@ export CFLAGS="${CFLAGS} -DXATTR_NAME_CAPS"
 make CC=$CC \
      prefix=$PREFIX \
      CFLAGS="${CFLAGS}" \
+     LDFLAGS="${LDFLAGS}" \
      lib=lib
 make prefix=$PREFIX \
      lib=lib \
