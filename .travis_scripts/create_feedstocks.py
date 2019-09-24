@@ -183,7 +183,7 @@ if __name__ == '__main__':
             # slow down so we make sure we are registered
             for i in range(1, 11):
                 time.sleep(1)
-                print("Waiting for registration: {i} s".format(i))
+                print("Waiting for registration: {i} s".format(i=i))
             subprocess.check_call(['git', 'commit', '-am', "Re-render the feedstock after CI registration."], cwd=feedstock_dir)
             for i in range(5):
                 try:
