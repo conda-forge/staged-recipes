@@ -35,6 +35,7 @@ docker run ${DOCKER_RUN_ARGS} \
            -v ${REPO_ROOT}:/home/conda/staged-recipes \
            -e HOST_USER_ID=${HOST_USER_ID} \
            -e AZURE=${AZURE} \
+           -e CI \
            $IMAGE_NAME \
            bash \
            /home/conda/staged-recipes/${PROVIDER_DIR}/build_steps.sh
