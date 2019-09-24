@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -ex
 
+export CFLAGS="${CFLAGS} -I${PREFIX}/include/unicode"
+export CFLAGS="${CFLAGS} -DO_PATH=010000000"
+
 mkdir -p build
 pushd build
 meson \
