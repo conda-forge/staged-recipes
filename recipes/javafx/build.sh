@@ -10,6 +10,8 @@ conda install --yes -c hcc gradle
 export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${PREFIX}/lib64/pkgconfig
 echo $PKG_CONFIG_PATH
 ls -la ${PREFIX}/lib64/pkgconfig
+locate gtk+-2.0.pc
+locate gthread-2.0.pc 
 gradle
 gradle checks
 
