@@ -14,7 +14,6 @@ gradle checks
 VERSION="${PKG_NAME}-${PKG_VERSION%\.*}"
 OUT="${PREFIX}/lib/${VERSION}"
 
-
 # copy the files to /lib/${VERSION}
 mkdir -p "${OUT}"
 cp -R build/sdk/legal/ "${OUT}/."
