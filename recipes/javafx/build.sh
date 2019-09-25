@@ -7,7 +7,6 @@ set -eu -o pipefail
 conda install --yes -c hcc gradle
 
 # build javafx from source
-cd "javafx-build/"
 gradle
 gradle checks
 
