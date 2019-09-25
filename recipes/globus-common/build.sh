@@ -10,7 +10,7 @@ ${SRC_DIR}/configure \
 make -j ${CPU_COUNT}
 
 # check
-make -j ${CPU_COUNT} check
+make -j ${CPU_COUNT} check NO_EXTERNAL_NET=1
 
 # install
 make -j ${CPU_COUNT} install
