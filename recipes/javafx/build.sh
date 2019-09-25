@@ -3,9 +3,6 @@
 # stop on error
 set -eu -o pipefail
 
-locate gtk+-2.0.pc
-locate gthread-2.0.pc 
-
 # todo: replace with gradle in conda-forge channel
 conda install --yes -c hcc gradle
 
