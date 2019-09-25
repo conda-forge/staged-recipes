@@ -1,6 +1,5 @@
 {% set name = "openmm" %}
 {% set version = "7.4.0" %}
-{% set commit = "b71e92d9ccef7c98cfd6b862eb34095d94fa1b05" %}
 {% set build = 0 %}
 
 package:
@@ -8,24 +7,20 @@ package:
   version: {{ version }}
 
 source:
-  url: https://github.com/openmm/{{ name }}/archive/{{ commit }}.tar.gz
-  sha256: 720c9aa0215e2dd851c40a6319814869cb55aa82ef908476c76bec3d494dec1d
+  url: https://github.com/openmm/{{ name }}/archive/{{ version }}.tar.gz
+  sha256: cb7ddd923d6f402cf2723b3c14509915abad328505e8ce401ac3131706dabeff
 
 build:
   number: {{ build }}
-  skip: True  # [not linux]
+  skip: True  # [win]
   skip: True  # [py2k]
-  detect_binary_files_with_prefix: False
-  string: "rc_py{{py}}_cuda{{nvcc_compiler_version | replace('.', '')}}_h{{ PKG_HASH }}_{{ build }}"
-  #features:
-  #  - cuda{{ nvcc_compiler_version | replace('.', '') }}
 
 requirements:
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - {{ compiler('nvcc') }}
-    - {{ cdt('mesa-libgl-devel') }}
+    - {{ compiler('cuda') }}  # [linux]
+    - {{ cdt('mesa-libgl-devel') }}  # [linux]
     - cmake
     - jom  # [win]
 
@@ -52,6 +47,13 @@ test:
     - simtk.openmm
   commands:
     - python -m simtk.testInstallation
+    # Debug hardcoded library path
+    - python -c "import os, simtk.openmm.version as v; print(v.openmm_library_path); assert os.path.isdir(v.openmm_library_path), 'Directory does not exist'"
+    # Check for silent errors in plugin loading
+    - python -c "import simtk.openmm as mm; err = mm.Platform.getPluginLoadFailures(); assert not err, err"
+    # We should see all four platforms in Linux, but only three in MacOS
+    - python -c "from simtk.openmm import Platform as P; n = P.getNumPlatforms(); assert n == 4, f'# platforms ({n}) != 4'"  # [linux]
+    - python -c "from simtk.openmm import Platform as P; n = P.getNumPlatforms(); assert n == 3, f'# platforms ({n}) != 3'"  # [osx]
 
 about:
   home: http://openmm.org
@@ -74,3 +76,4 @@ extra:
   recipe-maintainers:
     - jchodera
     - jaimergp
+    - peastman
