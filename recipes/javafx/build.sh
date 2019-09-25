@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # stop on error
-set -eu -o pipefail
+#set -eu -o pipefail
 
 # todo: replace with gradle in conda-forge channel
 conda install --yes -c hcc gradle
