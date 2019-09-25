@@ -7,7 +7,7 @@ set -eu -o pipefail
 conda install --yes -c hcc gradle
 
 # build javafx from source
-export PKG_CONFIG_PATH="/opt/conda/lib/pkgconfig/:/opt/conda/x86_64-conda_cos6-linux-gnu/sysroot/usr/lib64/pkgconfig/:${PKG_CONFIG_PATH}"
+export PKG_CONFIG_PATH="${BUILD_PREFIX}/x86_64-conda_cos6-linux-gnu/sysroot/usr/lib64/pkgconfig/:${PKG_CONFIG_PATH}"
 
 gradle
 gradle checks
