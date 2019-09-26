@@ -6,4 +6,4 @@ set DEST=%LIBRARY_PREFIX%
 set PATH=%PATH%;%DEST%\bin
 
 rem build gradle
-gradlew.bat installAll -Pgradle_installPath=%DEST% --debug
+gradlew.bat installAll -Pgradle_installPath=%DEST% --scan
