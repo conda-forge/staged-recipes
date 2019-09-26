@@ -13,12 +13,12 @@ chmod u+x gradlew
 ./gradlew test -x :web:test
 
 # create output folder name
-VERSION="${PKG_NAME}-${PKG_VERSION%\.*}"
+VERSION="${PKG_NAME}-${PKG_VERSION}"
 OUT="${PREFIX}/lib/${VERSION}"
 echo $OUT
 # copy the files to /lib/${VERSION}
 mkdir -p "${OUT}"
-cp -R build/sdk/legal/ "${OUT}/."
-cp -R build/sdk/lib/* "${OUT}/."
+mv build/sdk/legal/ "${OUT}/."
+mv build/sdk/lib/ "${OUT}/."
 ls -la $OUT
 ls -la $OUT/*
