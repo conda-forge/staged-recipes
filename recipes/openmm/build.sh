@@ -5,7 +5,7 @@ CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=$PREFIX -DBUILD_TESTING=OFF -DCMAKE_BUILD_TY
 if [[ "$target_platform" == linux* ]]; then
     # CFLAGS
     # JRG: Had to add -ldl to prevent linking errors (dlopen, etc)
-    MINIMAL_CFLAGS+=" -g -O3 -ldl -I\${CUDA_HOME}/include"
+    MINIMAL_CFLAGS+=" -g -O3 -ldl"
     CFLAGS+=" $MINIMAL_CFLAGS"
     CXXFLAGS+=" $MINIMAL_CFLAGS"
     LDFLAGS+=" $LDPATHFLAGS"
@@ -24,10 +24,13 @@ if [[ "$target_platform" == linux* ]]; then
     CMAKE_FLAGS+=" -DOPENCL_INCLUDE_DIR=${CUDA_HOME}/include/"
     CMAKE_FLAGS+=" -DOPENCL_LIBRARY=${CUDA_HOME}/lib64/libOpenCL.so"
 
+    # Softlink opencl library to (`nvcc` does that for libcuda.so)
+    ln -s "${CUDA_HOME}/lib64/libOpenCL.so" "${CONDA_BUILD_SYSROOT}/lib/libOpenCL.so"
+
 elif [[ "$target_platform" == osx* ]]; then
     CMAKE_FLAGS+=" -DCMAKE_OSX_SYSROOT=${CONDA_BUILD_SYSROOT}"
-    CMAKE_FLAGS+=" -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
     CMAKE_FLAGS+=" -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}"
+    CMAKE_FLAGS+=" -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
 fi
 
 # Set location for FFTW3 on both linux and mac
@@ -45,3 +48,8 @@ make -j$CPU_COUNT install PythonInstall
 # Put examples into an appropriate subdirectory.
 mkdir $PREFIX/share/openmm/
 mv $PREFIX/examples $PREFIX/share/openmm/
+
+# Fix some overlinking warnings/errors
+for lib in ${PREFIX}/lib/plugins/*${SHLIB_EXT}; do
+    ln -s $lib ${PREFIX}/lib/$(basename $lib) || true
+done
