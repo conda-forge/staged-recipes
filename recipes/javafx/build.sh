@@ -5,7 +5,6 @@ set -eu -o pipefail
 
 # build javafx from source
 export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig/:${PKG_CONFIG_PATH}"
-
 ln -s $GCC ${BUILD_PREFIX}/bin/gcc
 ln -s $GXX ${BUILD_PREFIX}/bin/g++
 
