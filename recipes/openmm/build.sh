@@ -24,15 +24,17 @@ if [[ "$target_platform" == linux* ]]; then
     CMAKE_FLAGS+=" -DOPENCL_INCLUDE_DIR=${CUDA_HOME}/include/"
     CMAKE_FLAGS+=" -DOPENCL_LIBRARY=${CUDA_HOME}/lib64/libOpenCL.so"
 
-    # # Softlink opencl library to (`nvcc` does that for libcuda.so)
-    # CONDA_BUILD_SYSROOT="$(${CC} --print-sysroot)"
-    # mkdir -p "${CONDA_BUILD_SYSROOT}/lib"
-    # ln -s "${CUDA_HOME}/lib64/libOpenCL.so" "${CONDA_BUILD_SYSROOT}/lib/libOpenCL.so"
+    # Softlink opencl library to (`nvcc` does that for libcuda.so)
+    CONDA_BUILD_SYSROOT="$(${CC} --print-sysroot)"
+    mkdir -p "${CONDA_BUILD_SYSROOT}/lib"
+    ln -s "${CUDA_HOME}/lib64/stubs/libcuda.so.1" "${CONDA_BUILD_SYSROOT}/lib/libcuda.so.1" || true
+    ln -s "${CUDA_HOME}/lib64/libOpenCL.so" "${CONDA_BUILD_SYSROOT}/lib/libOpenCL.so" || true
+    ln -s "${CUDA_HOME}/lib64/libOpenCL.so.1" "${CONDA_BUILD_SYSROOT}/lib/libOpenCL.so.1" || true
 
 elif [[ "$target_platform" == osx* ]]; then
     CMAKE_FLAGS+=" -DCMAKE_OSX_SYSROOT=${CONDA_BUILD_SYSROOT}"
-    CMAKE_FLAGS+=" -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}"
     CMAKE_FLAGS+=" -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++"
+    CMAKE_FLAGS+=" -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}"
 fi
 
 # Set location for FFTW3 on both linux and mac
