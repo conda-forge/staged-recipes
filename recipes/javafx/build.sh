@@ -5,8 +5,13 @@ set -eu -o pipefail
 
 # build javafx from source
 export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig/:${PKG_CONFIG_PATH}"
-ln -s $GCC ${BUILD_PREFIX}/bin/gcc
-ln -s $GXX ${BUILD_PREFIX}/bin/g++
+if [ -z "${OSX_ARCH}" ]; then
+  ln -s "${GCC}" "${BUILD_PREFIX}/bin/gcc"
+  ln -s "${GXX}" "${BUILD_PREFIX}/bin/g++"
+else # for macOS
+  ln -s "${CXX}" "${BUILD_PREFIX}/bin/gcc"
+  ln -s "${CXX}" "${BUILD_PREFIX}/bin/g++"
+fi
 
 chmod u+x gradlew
 ./gradlew
