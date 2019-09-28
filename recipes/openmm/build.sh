@@ -20,16 +20,6 @@ if [[ "$target_platform" == linux* ]]; then
     # CUDA tests won't build, disable for now
     # See https://github.com/openmm/openmm/issues/2258#issuecomment-462223634
     CMAKE_FLAGS+=" -DOPENMM_BUILD_CUDA_TESTS=OFF"
-    # CUDA OpenCL
-    CMAKE_FLAGS+=" -DOPENCL_INCLUDE_DIR=${CUDA_HOME}/include/"
-    CMAKE_FLAGS+=" -DOPENCL_LIBRARY=${CUDA_HOME}/lib64/libOpenCL.so"
-
-    # Softlink opencl library to (`nvcc` does that for libcuda.so)
-    # CONDA_BUILD_SYSROOT="$(${CC} --print-sysroot)"
-    # mkdir -p "${CONDA_BUILD_SYSROOT}/lib"
-    # ln -s "${CUDA_HOME}/lib64/stubs/libcuda.so.1" "${CONDA_BUILD_SYSROOT}/lib/libcuda.so.1" || true
-    # ln -s "${CUDA_HOME}/lib64/libOpenCL.so" "${CONDA_BUILD_SYSROOT}/lib/libOpenCL.so" || true
-    # ln -s "${CUDA_HOME}/lib64/libOpenCL.so.1" "${CONDA_BUILD_SYSROOT}/lib/libOpenCL.so.1" || true
 
 elif [[ "$target_platform" == osx* ]]; then
     CMAKE_FLAGS+=" -DCMAKE_OSX_SYSROOT=${CONDA_BUILD_SYSROOT}"
@@ -41,6 +31,10 @@ fi
 CMAKE_FLAGS+=" -DFFTW_INCLUDES=${PREFIX}/include/"
 CMAKE_FLAGS+=" -DFFTW_LIBRARY=${PREFIX}/lib/libfftw3f${SHLIB_EXT}"
 CMAKE_FLAGS+=" -DFFTW_THREADS_LIBRARY=${PREFIX}/lib/libfftw3f_threads${SHLIB_EXT}"
+
+# OpenCL ICD
+CMAKE_FLAGS+=" -DOPENCL_INCLUDE_DIR=${PREFIX}/include/"
+CMAKE_FLAGS+=" -DOPENCL_LIBRARY=${PREFIX}/lib/libOpenCL${SHLIB_EXT}"
 
 # Build in subdirectory and install.
 mkdir build
