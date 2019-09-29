@@ -1,9 +1,12 @@
 mkdir build
 cd build
 
+set "LIB=%LIBRARY_LIB%;%LIB%"
+
 cmake.exe .. -G "NMake Makefiles JOM" ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
     -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
+    -DCMAKE_LIBRARY_PATH="%LIBRARY_LIB%" ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DBUILD_TESTING=OFF ^
     || goto :error
