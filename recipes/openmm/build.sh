@@ -46,3 +46,8 @@ make -j$CPU_COUNT install PythonInstall
 # Put examples into an appropriate subdirectory.
 mkdir $PREFIX/share/openmm/
 mv $PREFIX/examples $PREFIX/share/openmm/
+
+# Fix some overlinking warnings/errors
+for lib in ${PREFIX}/lib/plugins/*${SHLIB_EXT}; do
+    ln -s $lib ${PREFIX}/lib/$(basename $lib) || true
+done
