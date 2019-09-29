@@ -50,14 +50,7 @@ if [[ ! -e "${SYS_PREFIX}/conda-bld/src_cache/expat-2.2.0.tar.bz2" ]]; then
 fi
 
 
-BUILD_NCPUS=4
-if [ "$(uname)" == "Linux" ]; then
-  BUILD_NCPUS=$(grep -c ^processor /proc/cpuinfo)
-elif [ "$(uname)" == "Darwin" ]; then
-  BUILD_NCPUS=$(sysctl -n hw.ncpu)
-elif [ "$OSTYPE" == "msys" ]; then
-  BUILD_NCPUS=${NUMBER_OF_PROCESSORS}
-fi
+BUILD_NCPUS=${CPU_COUNT}
 
 [[ -d ${SRC_DIR}/gcc_built ]] || mkdir -p ${SRC_DIR}/gcc_built
 
