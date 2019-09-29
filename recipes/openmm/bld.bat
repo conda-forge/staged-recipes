@@ -7,13 +7,14 @@ cmake.exe .. -G "NMake Makefiles JOM" ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DFFTW_INCLUDES="%LIBRARY_INC%" ^
     -DFFTW_LIBRARY="%LIBRARY_LIB%\fftw3f.lib" ^
-    -DOPENCL_INCLUDE_DIR="%LIBRARY_INC%" ^
-    -DOPENCL_LIBRARY="%LIBRARY_LIB%\OpenCL.lib" ^
     -DBUILD_TESTING=OFF ^
     || goto :error
 
 :: Re-add above when CUDA is available
 ::    -DCUDA_TOOLKIT_ROOT_DIR="%LIBRARY_BIN%" ^
+:: OpenCL should be found automatically?
+::    -DOPENCL_INCLUDE_DIR="%LIBRARY_INC%" ^
+::    -DOPENCL_LIBRARY="%LIBRARY_LIB%\OpenCL.lib" ^
 
 jom install || goto :error
 jom PythonInstall || goto :error
