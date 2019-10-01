@@ -9,9 +9,6 @@ fi
 # stop on error
 set -eu -o pipefail
 
-# configure build environment
-#export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig/:${PKG_CONFIG_PATH}"
-
 # build javafx from source
 chmod u+x gradlew
 ./gradlew
