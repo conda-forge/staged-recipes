@@ -11,22 +11,11 @@ set -eu -o pipefail
 
 # configure build environment
 export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig/:${PKG_CONFIG_PATH}"
-if [ ${IS_MAX_OS} -eq 0 ]; then
-  ln -s "${GCC}" "${BUILD_PREFIX}/bin/gcc"
-  ln -s "${GXX}" "${BUILD_PREFIX}/bin/g++"
-else # for macOS
-  ln -s "${CXX}" "${BUILD_PREFIX}/bin/gcc"
-  ln -s "${CXX}" "${BUILD_PREFIX}/bin/g++"
-fi
 
 # build javafx from source
 chmod u+x gradlew
 ./gradlew
 ./gradlew test -x :web:test
-
-# remove the symlinks
-unlink "${BUILD_PREFIX}/bin/gcc"
-unlink "${BUILD_PREFIX}/bin/g++"
 
 # create output folder name
 VERSION="${PKG_NAME}-${PKG_VERSION}"
