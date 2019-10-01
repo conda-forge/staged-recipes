@@ -3,8 +3,8 @@ if [[ $target_platform =~ linux.* ]] || [[ $target_platform == win-32 ]] || [[ $
   export DISABLE_AUTOBREW=1
   $R CMD INSTALL --build .
 else
-  mkdir -p $PREFIX/lib/R/library/oai
-  mv * $PREFIX/lib/R/library/oai
+  mkdir -p $PREFIX/lib/R/library/qqman
+  mv * $PREFIX/lib/R/library/qqman
   if [[ $target_platform == osx-64 ]]; then
     pushd $PREFIX
       for libdir in lib/R/lib lib/R/modules lib/R/library lib/R/bin/exec sysroot/usr/lib; do
