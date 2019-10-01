@@ -24,6 +24,10 @@ chmod u+x gradlew
 ./gradlew
 ./gradlew test -x :web:test
 
+# remove the symlinks
+unlink "${BUILD_PREFIX}/bin/gcc"
+unlink "${BUILD_PREFIX}/bin/g++"
+
 # create output folder name
 VERSION="${PKG_NAME}-${PKG_VERSION}"
 OUT="${PREFIX}/lib/${VERSION}"
