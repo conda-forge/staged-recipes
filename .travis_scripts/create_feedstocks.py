@@ -173,7 +173,8 @@ if __name__ == '__main__':
             # After going through all the recipes and removing the converted ones,
             # we fail the build so that people are aware that things did not clear.
             try:
-                subprocess.check_call(['conda', 'smithy', 'register-ci', '--feedstock_directory', feedstock_dir] + owner_info)
+                # Stop registering on appveyor temporarily
+                subprocess.check_call(['conda', 'smithy', 'register-ci', '--without-appveyor', '--feedstock_directory', feedstock_dir] + owner_info)
                 subprocess.check_call(['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
                 exit_code = 1
