@@ -54,7 +54,7 @@ export CXX=clang++
     
 # Resolves `It appears that you have Arrow < 0.10.0`:
 export CFLAGS="$CFLAGS -pthread"
-export LDFLAGS="$LDFLAGS -lpthread -lrt -lresolv"
+export LDFLAGS="$LDFLAGS -pthread -lrt -lresolv"
 
 # fixes `undefined reference to
 # `boost::system::detail::system_category_instance'`:
