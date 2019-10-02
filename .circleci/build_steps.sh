@@ -12,12 +12,10 @@ cat >~/.condarc <<CONDARC
 
 channels:
  - conda-forge
- - nvidia
  - defaults
 
 conda-build:
  root-dir: /home/conda/staged-recipes/build_artifacts
- error_overlinking: false
 
 show_channel_urls: true
 
