@@ -3,9 +3,8 @@
 mkdir build
 cd build
 
+export CXXFLAGS="$CXXFLAGS"' -DPRIu64=\"lu\"'
 export LDFLAGS="$LDFLAGS -Wl,--exclude-libs,ALL"
-export CC=$BUILD_PREFIX/bin/clang
-export CXX=$BUILD_PREFIX/bin/clang++
 
 cmake \
     -DLLVM_DIR=$PREFIX/lib/cmake/llvm \
@@ -16,6 +15,6 @@ cmake \
     -DCOMMON_CLANG_LIBRARY_NAME=opencl_clang \
     ..
 
-make -j${CPU_COUNT}
+make -j${CPU_COUNT} VERBOSE=1
 make install
 
