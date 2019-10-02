@@ -5,7 +5,7 @@ mkdir -p _build
 cd _build
 cmake ${SRC_DIR} \
 	-DCMAKE_INSTALL_PREFIX=${PREFIX} \
-	-DENABLE_BINARY_MATLAB=TRUE
+	-DENABLE_BINARY_MATLAB=FALSE
 
 # build
 cmake --build . --parallel ${CPU_COUNT}
