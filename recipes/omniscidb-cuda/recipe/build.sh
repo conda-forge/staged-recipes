@@ -2,6 +2,9 @@
 
 set -ex
 
+# Make sure we are in the right place
+cd $SRC_DIR
+
 export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 
 # libcuda.so is a machine specific library. For building, we use
@@ -19,6 +22,7 @@ export Snappy_ROOT=$PREFIX
 export Boost_ROOT=$PREFIX
 export PNG_ROOT=$PREFIX
 export GDAL_ROOT=$PREFIX
+export BLOSC_ROOT=$PREFIX
 
 # Make sure -fPIC is not in CXXFLAGS (that some conda packages may
 # add):
@@ -75,7 +79,16 @@ cmake -Wno-dev \
     $EXTRA_CMAKE_OPTIONS \
     ..
 
-make -j $CPU_COUNT
+(which lscpu && which grep && which awk && which bc)
+if [ $? -eq 0 ]; then
+    export CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
+    export NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
+    export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS" | bc`
+    make -j $NCORES
+else
+    make -j $CPU_COUNT
+fi
+
 make install
 
 # skip tests when libcuda.so is not available
