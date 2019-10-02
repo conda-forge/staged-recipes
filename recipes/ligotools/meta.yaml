@@ -1,0 +1,101 @@
+{% set name = "ligotools" %}
+{% set version = "1.2.0" %}
+{% set sha256 = "3a9bd2a7604257a37c595655349f1e3001c7f063b75354526b702b996ee12e72" %}
+
+package:
+  name: "{{ name|lower }}"
+  version: "{{ version }}"
+
+source:
+  url: "http://software.ligo.org/lscsoft/source/{{ name }}-{{ version }}.tar.gz"
+  sha256: "{{ sha256 }}"
+  patches:
+    # use anaconda placeholder for perl shebang
+    - perl-shebang.patch
+
+build:
+  noarch: generic
+  number: 0
+
+requirements:
+  build:
+    - cmake
+    - tk
+
+outputs:
+  - name: "ligotools-cache"
+    files:
+      - bin/*cache.pl
+      - bin/*cache.sh
+    requirements:
+      host:
+        - perl
+      run:
+        - perl
+    test:
+      commands:
+        # create files
+        - touch A-B-0-1.gwf  # [unix]
+        - touch A-B-1-1.gwf  # [unix]
+        - touch A-B-2-2.gwf  # [unix]
+        # test createframecache
+        - createframecache.pl out.txt $(pwd)  # [unix]
+        # test convertlalcache
+        - echo -e "A B 0 1 $(pwd)/A-B-0-1.gwf\nA B 1 1 $(pwd)/A-B-1-1.gwf\nA B 2 2 $(pwd)/A-B-2-2.gwf" > lal.txt  # [unix]
+        - convertlalcache.pl lal.txt out2.txt  # [unix]
+        - diff out.txt out2.txt  # [unix]
+        # test convertfflcache
+        - echo -e "$(pwd)/A-B-0-1.gwf 0 1 0 0\n$(pwd)/A-B-1-1.gwf 1 1 0 0\n$(pwd)/A-B-2-2.gwf 2 2 0 0" > ffl.txt  # [unix]
+        -  convertfflcache.pl ffl.txt out3.txt  # [unix]
+        -  diff out.txt out3.txt  # [unix]
+        # test convertldascache.sh
+        - echo -e "$(pwd),A,B,0,1 0 2 {0 2}\n$(pwd),A,B,0,2 0 1 {2 4}" > ldas.txt  # [unix]
+        - convertldascache.sh ldas.txt out4.txt  # [unix]
+        - diff out.txt out4.txt  # [unix]
+
+  - name: "ligotools-matlab"
+    files:
+      - share/ligotools/matlab
+    test:
+      commands:
+        - test -f ${PREFIX}/share/ligotools/matlab/getdetector.m  # [unix]
+
+  - name: "ligotools-scripts"
+    files:
+      - bin/cleanlatex
+      - bin/seg*
+    requirements:
+      run:
+        - tk
+    test:
+      commands:
+        - echo "0000000000 0000000010" > a.txt  # [unix]
+        - echo "0000000005 0000000015" > b.txt  # [unix]
+        - segdiff a.txt a.txt  # [unix]
+        - segexpr a.txt -include index,duration  # [unix]
+        - segexpr "union(a.txt,b.txt)"  # [unix]
+        - segexpr "intersection(a.txt,b.txt)"  # [unix]
+        - segsum a.txt  # [unix]
+        - cat a.txt | segsum  # [unix]
+
+  - name: "ligotools-tconvert"
+    files:
+      - bin/tconvert
+      - bin/gpsclock
+    requirements:
+      run:
+        - tk
+    test:
+      commands:
+        - tconvert now
+
+about:
+  home: "http://www.lsc-group.phys.uwm.edu/daswg/projects/ligotools.html"
+  license: "GPL-3.0-or-later"
+  license_family: "GPL"
+  license_file: "COPYING"
+  summary: "LIGOtools collection of miscellaneous tools"
+
+extra:
+  recipe-maintainers:
+    - duncanmmacleod
