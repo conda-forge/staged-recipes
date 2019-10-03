@@ -3,8 +3,8 @@ echo $(ls -al)
 echo "####################################"
 
 # TODO: Fix this upstream
-mv git-version-gen build/git-version-gen
-chmod +x build/git-version-gen
+mv git-version-gen build-aux/git-version-gen
+chmod +x build-aux/git-version-gen
 
 autoreconf --install
 chmod +x configure
