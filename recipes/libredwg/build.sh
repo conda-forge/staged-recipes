@@ -23,5 +23,5 @@ case `uname` in
         ;;
 esac
 
-make
+make -j${CPU_COUNT}
 make install
