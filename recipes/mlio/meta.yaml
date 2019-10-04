@@ -1,0 +1,109 @@
+package:
+  name: mlio
+  version: 0.1.0
+
+source:
+  fn: mlio-src.tar.gz
+  url: https://github.com/awslabs/ml-io/releases/download/v0.1.0/mlio-v0.1.0-src.tar.gz
+  sha256: 6a0863f8bcd496d17a781c8d61b89aa9ae3d2de437e6eb9f8eb243d6a2c45d69
+
+build:
+  number: 0
+  # At the moment we do not support Windows.
+  skip: True  # [not unix]
+
+outputs:
+  - name: libmlio
+    script: build-mlio.sh
+    build:
+      run_exports:
+        # We guarantee ABI compatibility only in minor versions during
+        # the pre-1.0 phase.
+        - {{ pin_subpackage('libmlio', max_pin='x.x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake >=3.13
+        - doxygen >=1.8
+        - ninja
+      host:
+        - libiconv
+        - libprotobuf
+        - tbb-devel
+        - zlib
+    test:
+      commands:
+        - test -f "$PREFIX/lib/libmlio.so"     # [linux]
+        - test -f "$PREFIX/lib/libmlio.dylib"  # [osx]
+    about:
+      summary: ML-IO C++ Runtime Library
+
+  - name: libmlio-devel
+    script: build-mlio-devel.sh
+    build:
+      run_exports:
+        # We guarantee ABI compatibility only in minor versions during
+        # the pre-1.0 phase.
+        - {{ pin_subpackage('libmlio', max_pin='x.x') }}
+    requirements:
+      build:
+        - cmake >=3.13
+      run:
+        # The development artifacts are valid only for the exact version
+        # of libmlio.
+        - {{ pin_subpackage('libmlio', exact=True) }}
+    test:
+      commands:
+        - test -f "$PREFIX/include/mlio.h"  # [unix]
+    about:
+      summary: ML-IO C++ Header Files, Debug Symbols, and Documentation
+
+  - name: mlio-py
+    script: build-mlio-py.sh
+    build:
+      skip: True  # [py==27]
+      ignore_run_exports:
+        - arrow-cpp
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake >=3.13
+        - ninja
+      host:
+        - pip
+        - arrow-cpp
+        - python {{ python }}
+        - setuptools
+        - {{ pin_subpackage('libmlio', exact=True) }}
+      run:
+        - python
+        - numpy
+        # Conda subpackages residing in the same recipe do not check the
+        # run_exports directive; therefore we need to duplicate the
+        # runtime constraint of libmlio here.
+        - {{ pin_subpackage('libmlio', max_pin='x.x') }}
+      run_constrained:
+        # Arrow does not offer ABI compatibility; therefore we pin to
+        # the exact version we built against.
+        - {{ pin_compatible('arrow-cpp', exact=True) }}
+    test:
+      imports:
+        - mlio
+        - mlio.integ.arrow
+      requires:
+        - {{ pin_compatible('arrow-cpp', exact=True) }}
+    about:
+      summary: ML-IO Python Package
+
+about:
+  home: http://github.com/awslabs/ml-io
+  license: Apache-2.0
+  license_family: Apache
+  license_file: LICENSE.txt
+  summary: A high performance data access library for machine learning tasks
+
+extra:
+  recipe-maintainers:
+    - cbalioglu
