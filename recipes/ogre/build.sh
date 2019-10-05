@@ -19,5 +19,5 @@ cmake .. \
       -DOGRE_RESOURCEMANAGER_STRICT=2 \
       -DOGRE_THREAD_SUPPORT=2 \
       -DOGRE_THREAD_PROVIDER=1
-make
+make -j${CPU_COUNT}
 make install
