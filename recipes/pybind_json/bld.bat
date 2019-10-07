@@ -1,4 +1,4 @@
-cmake -G "NMake Makefiles" ^
+cmake -G "Ninja" ^
   -D CMAKE_BUILD_TYPE=Release ^
   -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
   -D PYTHON_EXECUTABLE=%PYTHON% ^
