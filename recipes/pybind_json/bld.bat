@@ -5,7 +5,7 @@ cmake -G "Ninja" ^
   %SRC_DIR%
 if errorlevel 1 exit 1
 
-nmake
+ninja
 if errorlevel 1 exit 1
 
 ninja install
