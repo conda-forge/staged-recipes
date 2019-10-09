@@ -1,1 +1,1 @@
-source "${CONDA_PREFIX}/etc/conda/activate.d/100_ocl-icd-system_activate.sh"
+ln -s /etc/OpenCL/vendors "${CONDA_PREFIX}"/etc/OpenCL/vendors/ocl-icd-system || true
