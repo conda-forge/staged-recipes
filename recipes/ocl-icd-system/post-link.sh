@@ -1,0 +1,1 @@
+source "${CONDA_PREFIX}/etc/conda/activate.d/100_ocl-icd-system_activate.sh"
