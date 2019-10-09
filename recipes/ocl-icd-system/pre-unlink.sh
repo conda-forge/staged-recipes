@@ -1,1 +1,1 @@
-rm "${CONDA_PREFIX}"/etc/OpenCL/vendors/ocl-icd-system || true
+rm "${CONDA_PREFIX}"/etc/OpenCL/vendors/${PKG_NAME}|| true
