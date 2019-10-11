@@ -4,6 +4,7 @@ export CFLAGS=-fPIC
 export CXXFLAGS=-fpic
 export LDFLAGS="-L$PREFIX/lib -lmpi $LDFLAGS"
 
+chmod a+x ../config/token-replace.pl
 ../configure --prefix=$PREFIX --srcdir=$SRC_DIR
 
 make -j${CPU_COUNT}
