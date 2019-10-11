@@ -212,4 +212,4 @@ pushd ${PREFIX}
   done
 popd
 
-${PREFIX}/bin/${CHOST}-gcc "${RECIPE_DIR}"/c11threads.c -std=c11
+#${PREFIX}/bin/${CHOST}-gcc "${RECIPE_DIR}"/c11threads.c -std=c11
