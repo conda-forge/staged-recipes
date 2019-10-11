@@ -12,7 +12,8 @@ mpiexec="mpiexec --allow-run-as-root"
 
 cmake \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
-    -DBLA_VENDOR=OpenBLAS \
+    -DBLAS_LIBRARIES=$PREFIX/lib/libblas${SHLIB_EXT} \
+    -DLAPACK_LIBRARIES=$PREFIX/lib/liblapack${SHLIB_EXT} \
     ..
 
 cmake --build . -- -j${CPU_COUNT}
