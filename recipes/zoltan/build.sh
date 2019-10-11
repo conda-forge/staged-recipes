@@ -4,8 +4,8 @@ export CFLAGS=-fPIC
 export CXXFLAGS=-fpic
 export LDFLAGS="-L$PREFIX/lib -lmpi $LDFLAGS"
 
-../configure --prefix=$PREFIX
+../configure --prefix=$PREFIX --srcdir=$SRC_DIR
 
-make
+make -j${CPU_COUNT}
 make test
 make install
