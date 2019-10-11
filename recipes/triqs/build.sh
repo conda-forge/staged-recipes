@@ -16,6 +16,6 @@ cmake \
     -DLAPACK_LIBRARIES=$PREFIX/lib/liblapack${SHLIB_EXT} \
     ..
 
-cmake --build . -- -j${CPU_COUNT}
+make -j${CPU_COUNT} VERBOSE=1
 CTEST_OUTPUT_ON_FAILURE=1 ctest
-cmake --build . --target install
+make install
