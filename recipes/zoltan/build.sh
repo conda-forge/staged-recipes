@@ -4,7 +4,7 @@ export CFLAGS=-fPIC
 export CXXFLAGS=-fpic
 export LDFLAGS="-L$PREFIX/lib -lmpi $LDFLAGS"
 
-../configure --prefix=$PREFIX
+../configure --prefix=$PREFIX --srcdir=..
 
 make
 make test
