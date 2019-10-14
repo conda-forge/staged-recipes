@@ -1,4 +1,4 @@
-#prama once
+#pragma once
 
 #ifndef CLOCK_BOOTTIME
 #define CLOCK_BOOTTIME      7
