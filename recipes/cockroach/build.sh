@@ -1,4 +1,5 @@
 #!/bin/bash
+
 export CC="$GCC"
 export CXX="$GXX"
 
