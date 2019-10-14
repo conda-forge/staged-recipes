@@ -1,0 +1,159 @@
+From 3fa6512537ea1905583cf2b7dff45d174260c4c3 Mon Sep 17 00:00:00 2001
+From: Mohammad Akhlaghi <mohammad@akhlaghi.org>
+Date: Mon, 7 Oct 2019 13:52:46 +0100
+Subject: BuildProgram: --cc option allows using custom C compiler
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Until now `gcc' was hard-coded into BuildProgram, so a GCC that is in the
+search path was the only way to run BuildProgram. This would cause a crash
+cases when there is no `gcc' in the PATH.
+
+With this commit, BuildProgram has the new `--cc' option to let the user
+explicitly set the compiler. If `--cc' hasn't been used, then it will look
+into the `CC' and `GCC' environment variables and ultimately, if it can't
+find anything in them, it will use `gcc'. This gives the users much greater
+
+This was reported by Sebastián Luna Valero, while attempting to package
+Gnuastro for conda-forge.
+---
+ NEWS                         |  4 ++++
+ THANKS                       |  1 +
+ bin/buildprog/args.h         | 14 ++++++++++++++
+ bin/buildprog/buildprog.c    |  5 +++--
+ bin/buildprog/main.h         |  1 +
+ bin/buildprog/ui.c           |  9 +++++++++
+ bin/buildprog/ui.h           |  3 ++-
+ doc/announce-acknowledge.txt |  1 +
+ doc/gnuastro.texi            | 28 +++++++++++++++++++++++-----
+ 9 files changed, 58 insertions(+), 8 deletions(-)
+
+diff --git a/NEWS b/NEWS
+index 1a4e90c..c801b25 100644
+--- a/NEWS
++++ b/NEWS
+@@ -11,6 +11,10 @@ See the end of the file for license conditions.
+    --onedonstdout: when the output is one-dimensional, print the values on
+      the standard output, not into a file.
+ 
++  BuildProgram:
++   --cc: custom C compiler to use. Until now, `gcc' was hard-coded into the
++     source and there was no way to choose a custom C compiler.
++
+   ConvertType:
+    - New `viridis' colormap (value for the `--colormap' option). This is
+      the default colormap of Python's Matplotlib, and is available in many
+diff --git a/THANKS b/THANKS
+index 0420e36..96f0efe 100644
+--- a/THANKS
++++ b/THANKS
+@@ -53,6 +53,7 @@ support in Gnuastro. The list is ordered alphabetically (by family name).
+     Geoffry Krouchi                      geoffrey.krouchi@etu.univ-lyon1.fr
+     Floriane Leclercq                    floriane.leclercq@univ-lyon1.fr
+     Alan Lefor                           alefor@astr.tohoku.ac.jp
++    Sebastián Luna Valero                sluna@iaa.es
+     Guillaume Mahler                     guillaume.mahler@univ-lyon1.fr
+     Juan Molina Tobar                    juan.a.molina.t@gmail.com
+     Francesco Montanari                  francesco.montanari@openmailbox.org
+diff --git a/bin/buildprog/args.h b/bin/buildprog/args.h
+index 8607f4f..49d6c030 100644
+--- a/bin/buildprog/args.h
++++ b/bin/buildprog/args.h
+@@ -32,6 +32,20 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
+ struct argp_option program_options[] =
+   {
+     {
++      "cc",
++      UI_KEY_CC,
++      "STR",
++      0,
++      "Name of C compiler's executable.",
++      GAL_OPTIONS_GROUP_INPUT,
++      &p->cc,
++      GAL_TYPE_STRING,
++      GAL_OPTIONS_RANGE_ANY,
++      GAL_OPTIONS_NOT_MANDATORY,
++      GAL_OPTIONS_NOT_SET
++    },
++
++    {
+       "includedir",
+       UI_KEY_INCLUDE,
+       "STR",
+diff --git a/bin/buildprog/buildprog.c b/bin/buildprog/buildprog.c
+index ef706a8..0a29cd7 100644
+--- a/bin/buildprog/buildprog.c
++++ b/bin/buildprog/buildprog.c
+@@ -103,13 +103,14 @@ buildprog(struct buildprogparams *p)
+       error(EXIT_FAILURE, 0, "%s: asprintf allocation", __func__);
+ 
+   /* Write the full Libtool command into a string (to run afterwards). */
+-  if( asprintf(&command, "%s -c \"%s %s %s%s --mode=link gcc %s %s "
++  if( asprintf(&command, "%s -c \"%s %s %s%s --mode=link %s %s %s "
+                "%s %s %s %s %s -I%s %s -o %s\"",
+                GAL_CONFIG_GNULIBTOOL_SHELL,
+                GAL_CONFIG_GNULIBTOOL_EXEC,
+                p->cp.quiet ? "--quiet" : "",
+-               p->tag      ? "--tag="   : "",
++               p->tag      ? "--tag="  : "",
+                p->tag      ? p->tag    : "",
++               p->cc,
+                warning     ? warning   : "",
+                p->debug    ? "-g"      : "",
+                optimize    ? optimize  : "",
+diff --git a/bin/buildprog/main.h b/bin/buildprog/main.h
+index eb3ee1e..e5d5438 100644
+--- a/bin/buildprog/main.h
++++ b/bin/buildprog/main.h
+@@ -49,6 +49,7 @@ struct buildprogparams
+   gal_list_str_t     *linkdir;    /* Libraries to link against.         */
+   gal_list_str_t     *linklib;    /* Libraries to link against.         */
+   char                    *la;    /* Libtool `.la' instead of default.  */
++  char                    *cc;    /* C compiler to use.                 */
+ 
+   char                   *tag;    /* Libtool tag (programming language).*/
+   char              *optimize;    /* Optimization level.                */
+diff --git a/bin/buildprog/ui.c b/bin/buildprog/ui.c
+index 6db0d66..8b106f9 100644
+--- a/bin/buildprog/ui.c
++++ b/bin/buildprog/ui.c
+@@ -284,6 +284,15 @@ ui_preparations(struct buildprogparams *p)
+   if(p->cp.output==NULL)
+     p->cp.output=gal_checkset_automatic_output(&p->cp, p->sourceargs->v,
+                                                EXEEXT);
++
++  /* Set the C compiler. Later we can add a check to make sure that `cc' is
++     actually in the PATH. */
++  if(p->cc==NULL)
++    {                                        /* No C compiler chosen. */
++      p->cc=getenv("CC");                    /* First check for `CC'. */
++      if(p->cc==NULL) p->cc=getenv("GCC");   /* Then check for `GCC'. */
++      if(p->cc==NULL) p->cc="gcc";           /* Default: `gcc'.       */
++    }
+ }
+ 
+ 
+diff --git a/bin/buildprog/ui.h b/bin/buildprog/ui.h
+index 0415117..5cbfc67 100644
+--- a/bin/buildprog/ui.h
++++ b/bin/buildprog/ui.h
+@@ -32,12 +32,13 @@ along with Gnuastro. If not, see <http://www.gnu.org/licenses/>.
+ 
+ /* Available letters for short options:
+ 
+-   c e f i j k n p r s u v w x y z
++   e f i j k n p r s u v w x y z
+    A B C E G H J Q R X Y
+ */
+ enum option_keys_enum
+ {
+   /* With short-option version. */
++  UI_KEY_CC             = 'c',
+   UI_KEY_INCLUDE        = 'I',
+   UI_KEY_LINKDIR        = 'L',
+   UI_KEY_LINKLIB        = 'l',
+ 
+-- 
+cgit v1.0-41-gc330
+
