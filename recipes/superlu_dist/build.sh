@@ -1,6 +1,7 @@
 mkdir build; cd $_
 
 export CFLAGS="$CFLAGS -std=c99"
+export LDFLAGS="-L$PREFIX/lib -lmpi -lparmetis $LDFLAGS"
 
 cmake \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
