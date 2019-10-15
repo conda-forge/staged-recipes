@@ -31,6 +31,9 @@ meson \
   -Dsysusers=false             \
   -Drpmmacrosdir=no            \
   -Dsmack=false \
+  -Dseccomp=false \
+  -Dselinux=false \
+  -Defi=false \
   --strip \
   ..
 meson install
