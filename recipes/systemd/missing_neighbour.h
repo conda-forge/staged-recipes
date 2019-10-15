@@ -16,4 +16,7 @@ enum {
   __NDA__MAX
 };
 
+#ifdef NDA_MAX
+#undef NDA_MAX
+#endif
 #define NDA_MAX (__NDA__MAX - 1)
