@@ -16,6 +16,7 @@ cp -v "${RECIPE_DIR}/missing_videodev2.h" "${SRC_DIR}/src/basic/missing_videodev
 cp -v "${RECIPE_DIR}/missing_input-event-codes.h" "${SRC_DIR}/src/basic/missing_input-event-codes.h"
 cp -v "${RECIPE_DIR}/sctp.h" "${SRC_DIR}/src/basic/linux/sctp.h"
 cp -v "${RECIPE_DIR}/if_alg.h" "${SRC_DIR}/src/basic/linux/if_alg.h"
+cp -v "${RECIPE_DIR}/if_vlan.h" "${SRC_DIR}/src/basic/linux/if_vlan.h"
 cp -v "${RECIPE_DIR}/securebits.h" "${SRC_DIR}/src/basic/linux/securebits.h"
 
 mkdir -p build
