@@ -29,6 +29,8 @@ meson \
   -Dsplit-usr=true             \
   -Dsysusers=false             \
   -Drpmmacrosdir=no            \
+  -Dsmack=false \
+  --strip \
   ..
 meson install
 meson test
