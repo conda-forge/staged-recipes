@@ -41,6 +41,7 @@ meson \
   -Dportabled=false \
   -Dlogind=false \
   -Dlibidn2=false \
+  -Dtests=false \
   --strip \
   ..
 meson install
