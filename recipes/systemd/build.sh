@@ -12,6 +12,7 @@ cp -v "${RECIPE_DIR}/missing_ioctls.h" "${SRC_DIR}/src/basic/missing_ioctls.h"
 cp -v "${RECIPE_DIR}/missing_inotify.h" "${SRC_DIR}/src/basic/missing_inotify.h"
 cp -v "${RECIPE_DIR}/missing_neighbour.h" "${SRC_DIR}/src/basic/missing_neighbour.h"
 cp -v "${RECIPE_DIR}/if_alg.h" "${SRC_DIR}/src/basic/linux/if_alg.h"
+cp -v "${RECIPE_DIR}/securebits.h" "${SRC_DIR}/src/basic/linux/securebits.h"
 
 mkdir -p build
 pushd build
