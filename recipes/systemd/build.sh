@@ -5,6 +5,7 @@ export CFLAGS="${CFLAGS} -I${PREFIX}/include/unicode"
 export CFLAGS="${CFLAGS} -DO_PATH=010000000"
 
 # copy over missing files
+cp -v "${RECIPE_DIR}/missing_kd.h" "${SRC_DIR}/src/basic/missing_kd.h"
 cp -v "${RECIPE_DIR}/missing_time.h" "${SRC_DIR}/src/basic/missing_time.h"
 cp -v "${RECIPE_DIR}/missing_ioctls.h" "${SRC_DIR}/src/basic/missing_ioctls.h"
 cp -v "${RECIPE_DIR}/missing_inotify.h" "${SRC_DIR}/src/basic/missing_inotify.h"
