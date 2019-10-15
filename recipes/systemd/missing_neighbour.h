@@ -20,3 +20,11 @@ enum {
 #undef NDA_MAX
 #endif
 #define NDA_MAX (__NDA__MAX - 1)
+
+#ifndef NTF_SELF
+#define NTF_SELF  0x02
+#endif
+
+#ifndef NTF_MASTER
+#define NTF_MASTER  0x04
+#endif
