@@ -2,7 +2,7 @@
 $RAISE_SUBPROC_ERROR = True
 $XONSH_SHOW_TRACEBACK = False
 
-$CFLAGS += f" -I{$PREFIX}/include/unicode"
+$CFLAGS += f" -I{$PREFIX}/include/unicode -lrt"
 $CFLAGS += " -DO_PATH=010000000"
 
 # copy over missing files
@@ -53,6 +53,7 @@ pushd build
   -Dlogind=false \
   -Dlibidn2=false \
   -Dtests=false \
+  -Dremote=false \
   --strip \
   ..
 ]
