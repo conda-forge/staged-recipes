@@ -1,0 +1,72 @@
+{% set name = "xcfun" %}
+{% set version = "2.0.0" %}
+
+package:
+    name: {{ name|lower }}
+    version: {{ version }}
+
+source:
+  # FIXME Once we've tagged properly
+  url: https://github.com/dftlibs/xcfun/archive/master.tar.gz
+  sha256: 2086297688218c1775b16c79ce98302ed3913b2a2d49058a0ee1d0a4715c8176 
+
+build:
+  number: 0                                            
+  binary_relocation: true
+  run_exports:
+    - {{ pin_subpackage('xcfun', max_pin='x.x.x') }}
+  ignore_run_exports:
+    - libgfortran-ng                                        # [not win]
+
+requirements:
+  build:
+    - cmake >=3.5
+    - {{ compiler('cxx') }}
+    - {{ compiler('c') }}
+    - {{ compiler('fortran') }}                             # [not win]
+    - swig
+    - ninja                                                 # [win]
+  host:
+    - python {{ python }}
+    - numpy
+  run:
+    - python {{ python }}
+    - numpy
+
+files:
+  - include/XCFun
+  - lib/libxcfun*
+  - lib/python*
+  - share/cmake/XCFun
+
+test:
+  imports:
+    - xcfun
+  requires:
+    - numpy
+    - pytest
+  commands:
+    # Verify library
+    - test -f $PREFIX/lib/libxcfun$SHLIB_EXT
+    # Inspect linkage
+    - ldd -r -u $PREFIX/lib/libxcfun$SHLIB_EXT              # [linux]
+    - ldd -v $PREFIX/lib/libxcfun$SHLIB_EXT                 # [linux]
+    - otool -L $PREFIX/lib/libxcfun$SHLIB_EXT               # [osx]
+    - conda inspect linkages --show-files --groupby=dependency xcfun
+    - conda inspect objects -p $PREFIX $PKG_NAME           # [osx]
+    # Can't get this to run...
+    #- $PYTHON -m pytest --pyargs xcfun
+
+about:
+  home: https://github.com/dftlibs/xcfun
+  dev_url: https://github.com/dftlibs/xcfun
+  doc_url: http://dftlibs.org/xcfun/
+  doc_source_url: https://github.com/dftlibs/xcfun/blob/master/doc/index.rst
+  license: MPL-2.0
+  license_url: https://opensource.org/licenses/MPL-2.0
+  license_family: MOZILLA
+  summary: "Exchange-Correlation functionals with arbitrary order derivatives."
+
+extra:
+  recipe-maintainers:
+    - robertodr
