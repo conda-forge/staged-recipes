@@ -3,7 +3,8 @@
 WORK=$PWD
 # run full build & install twice, once for static, once for shared
 # because it's the cmake way
-for shared in OFF ON; do
+#for shared in OFF ON; do
+for shared in ON; do
     cd "$WORK"
     mkdir build_$shared
     cd build_$shared
