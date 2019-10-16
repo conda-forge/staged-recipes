@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-export CFLAGS="${CFLAGS} -I{$PREFIX}/include/unicode -lrt"
+export CFLAGS="${CFLAGS} -I${PREFIX}/include/unicode -lrt"
 export CFLAGS="${CFLAGS} -DO_PATH=010000000"
 
 # copy over missing files
