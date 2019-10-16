@@ -1,4 +1,3 @@
-#! /usr/bin/env bash
 
 DISABLED=$(echo --without-system-{allpairs,parrot,prune,sand,umbrella,wavefront,weaver})
 
