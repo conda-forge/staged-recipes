@@ -55,6 +55,7 @@ pushd build
   -Dlibidn2=false \
   -Dtests=false \
   -Dremote=false \
+  -Drfkill=false \
   --strip \
   ..
 ]
