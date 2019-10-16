@@ -1,0 +1,274 @@
+{% set name = "htcondor" %}
+{% set version = "8.9.3" %}
+
+package:
+  name: "{{ name|lower }}-full"
+  version: "{{ version }}"
+
+source:
+  url: "https://github.com/{{ name }}/{{ name }}/archive/V{{ version|replace(".","_") }}.tar.gz"
+  sha256: 40c01d5284a610bc840c00ffaaf825a9b604e2f5ff4945390975d487c13782e8
+  patches:
+    # use updated external config for boost
+    - boost-1.68.0.patch
+    # htcondor/htcondor@82c9334deb3cfa4279bda80a1d4e86b7d78aca15
+    - python3.patch
+    # remove py3 prefix from lib names
+    - python3-libname.patch
+    # set C_PYTHONARCHLIB for python
+    - python-archlib.patch
+    # use RPATH, not RUNPATH
+    - rpath.patch
+
+build:
+  number: 0
+  skip: true  # [win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - make  # [unix]
+    - perl
+    - pkg-config  # [unix]
+  host:
+    - {{ cdt('libselinux') }}  # [linux]
+    - boost
+    - expat
+    - gct
+    - krb5
+    - libcurl
+    - libuuid  # [unix]
+    - libxml2
+    - munge
+    - openldap
+    - openssl
+    - pcre
+    - sqlite
+    - voms
+
+outputs:
+  - name: htcondor-classads
+    build:
+      run_exports:
+        - {{ pin_subpackage("htcondor-classads", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+      host:
+        - pcre
+      run:
+        - pcre
+    files:
+      - include/classad
+      - lib/libclassad*
+      - bin/classad*
+    test:
+      commands:
+        - classad_version
+    about:
+      home: "http://htcondor.org/"
+      doc_url: "https://htcondor.readthedocs.io/"
+      dev_url: "https://github.com/htcondor/htcondor"
+      license: "Apache-2.0"
+      license_family: "APACHE"
+      license_file: "LICENSE-2.0.txt"
+      summary: 'Python bindings for HTCondor'
+      description: |
+        The HTCondor Python bindings aim to expose a high-quality,
+        Pythonic interface to the HTCondor client libraries. They utilize
+        the same C++ libraries as HTCondor itself, meaning they have
+        nearly the same behavior as the command line tools.
+
+  - name: htcondor-procd
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+    files:
+      - sbin/*procd*
+      - sbin/gidd_alloc
+    about:
+      home: "http://htcondor.org/"
+      doc_url: "https://htcondor.readthedocs.io/"
+      dev_url: "https://github.com/htcondor/htcondor"
+      license: "Apache-2.0"
+      license_family: "APACHE"
+      license_file: "LICENSE-2.0.txt"
+      summary: 'Python bindings for HTCondor'
+      description: |
+        The HTCondor Python bindings aim to expose a high-quality,
+        Pythonic interface to the HTCondor client libraries. They utilize
+        the same C++ libraries as HTCondor itself, meaning they have
+        nearly the same behavior as the command line tools.
+
+  - name: htcondor-libutils
+    build:
+      run_exports:
+        - {{ pin_subpackage("htcondor-libutils", max_pin="x.x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+      host:
+        - gct
+        - {{ pin_subpackage('htcondor-classads', exact=True) }}
+        - krb5
+        - munge
+        - openssl
+        - pcre
+        - voms
+      run:
+        - gct
+        - {{ pin_subpackage('htcondor-classads', exact=True) }}
+        - krb5
+        - munge
+        - openssl
+        - pcre
+        - voms
+    files:
+      - lib/libcondor_utils*
+    about:
+      home: "http://htcondor.org/"
+      doc_url: "https://htcondor.readthedocs.io/"
+      dev_url: "https://github.com/htcondor/htcondor"
+      license: "Apache-2.0"
+      license_family: "APACHE"
+      license_file: "LICENSE-2.0.txt"
+      summary: 'Python bindings for HTCondor'
+      description: |
+        The HTCondor Python bindings aim to expose a high-quality,
+        Pythonic interface to the HTCondor client libraries. They utilize
+        the same C++ libraries as HTCondor itself, meaning they have
+        nearly the same behavior as the command line tools.
+
+  - name: htcondor
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+      host:
+        - {{ cdt('libselinux') }}  # [linux]
+        - expat
+        - gct
+        - {{ pin_subpackage("htcondor-classads", exact=True) }}
+        - {{ pin_subpackage("htcondor-libutils", exact=True) }}
+        - {{ pin_subpackage("htcondor-procd", exact=True) }}
+        - libuuid  # [unix]
+        - libcurl
+        - openldap
+        - openssl
+        - pcre
+        - sqlite
+        - voms
+      run:
+        - boost
+        - libcurl
+        - gct
+        - {{ pin_subpackage("htcondor-libutils", exact=True) }}
+        - {{ pin_subpackage("htcondor-classads", exact=True) }}
+        - {{ pin_subpackage("htcondor-procd", exact=True) }}
+        - libuuid  # [unix]
+        - pcre
+        - sqlite
+        - voms
+    files:
+      - bin/condor*
+      - bin/*gahp
+      - etc/condor
+      - etc/**/condor
+      - etc/condor/
+      - etc/examples/
+      - lib/Condor*.class
+      - lib/*.jar
+      - lib/libcondorapi*
+      - lib/libchirp*
+      - libexec/
+      - sbin/condor_[a-or-z]*
+      - sbin/condor_preen
+      - sbin/*gahp*
+      - sbin/AzureGAHPServer
+    test:
+      commands:
+        - condor_q --help
+        - condor_qedit --help
+        - condor_status --help
+        - condor_submit --help
+        - condor_submit_dag --help
+    about:
+      home: "http://htcondor.org/"
+      doc_url: "https://htcondor.readthedocs.io/"
+      dev_url: "https://github.com/htcondor/htcondor"
+      license: "Apache-2.0"
+      license_family: "APACHE"
+      license_file: "LICENSE-2.0.txt"
+      summary: 'Python bindings for HTCondor'
+      description: |
+        The HTCondor Python bindings aim to expose a high-quality,
+        Pythonic interface to the HTCondor client libraries. They utilize
+        the same C++ libraries as HTCondor itself, meaning they have
+        nearly the same behavior as the command line tools.
+
+  - name: python-htcondor
+    script: install-python.sh
+    build:
+      ignore_run_exports:
+        - gct
+        - pcre
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - cmake
+        - make  # [unix]
+        - pkg-config  # [unix]
+      host:
+        - boost
+        - gct
+        - {{ pin_subpackage('htcondor-libutils', exact=True) }}
+        - {{ pin_subpackage('htcondor-classads', exact=True) }}
+        - munge
+        - pcre
+        - python
+      run:
+        - {{ pin_compatible('boost') }}
+        - {{ pin_subpackage('htcondor-libutils', exact=True) }}
+        - {{ pin_subpackage('htcondor-classads', exact=True) }}
+        - python
+    test:
+      imports:
+        - htcondor
+        - classad
+    about:
+      home: "http://htcondor.org/"
+      doc_url: "https://htcondor.readthedocs.io/"
+      dev_url: "https://github.com/htcondor/htcondor"
+      license: "Apache-2.0"
+      license_family: "APACHE"
+      license_file: "LICENSE-2.0.txt"
+      summary: 'Python bindings for HTCondor'
+      description: |
+        The HTCondor Python bindings aim to expose a high-quality,
+        Pythonic interface to the HTCondor client libraries. They utilize
+        the same C++ libraries as HTCondor itself, meaning they have
+        nearly the same behavior as the command line tools.
+
+
+about:
+  home: "http://htcondor.org/"
+  doc_url: "https://htcondor.readthedocs.io/"
+  dev_url: "https://github.com/htcondor/htcondor"
+  license: "Apache-2.0"
+  license_family: "APACHE"
+  license_file: "LICENSE-2.0.txt"
+  summary: 'Python bindings for HTCondor'
+  description: |
+    The HTCondor Python bindings aim to expose a high-quality,
+    Pythonic interface to the HTCondor client libraries. They utilize
+    the same C++ libraries as HTCondor itself, meaning they have
+    nearly the same behavior as the command line tools.
+
+extra:
+  recipe-maintainers:
+    - jasoncpatton
