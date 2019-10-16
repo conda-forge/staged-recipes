@@ -1,0 +1,434 @@
+From c94c22b71f6dd16a6026a4443eb97789cd2201cc Mon Sep 17 00:00:00 2001
+From: Nehal J Wani <nehaljw.kkd1@gmail.com>
+Date: Sun, 6 Aug 2017 14:32:42 -0500
+Subject: [PATCH 2/2] fmemopen & memstream ports for darwin
+
+open_memstream port: http://piumarta.com/software/memstream/
+fmemopen port: https://github.com/NimbusKit/memorymapping/
+---
+ phasta/CMakeLists.txt |   1 +
+ phasta/fmemopen.c     | 106 +++++++++++++++++++++++++++++
+ phasta/fmemopen.h     |  52 ++++++++++++++
+ phasta/memstream.h    |  11 +++
+ phasta/phstream.cc    | 185 +++++++++++++++++++++++++++++++++++++++++++++++++-
+ 5 files changed, 352 insertions(+), 3 deletions(-)
+ create mode 100644 phasta/fmemopen.c
+ create mode 100644 phasta/fmemopen.h
+ create mode 100644 phasta/memstream.h
+
+diff --git a/phasta/CMakeLists.txt b/phasta/CMakeLists.txt
+index 04c097c..3bbfe60 100644
+--- a/phasta/CMakeLists.txt
++++ b/phasta/CMakeLists.txt
+@@ -1,5 +1,6 @@
+ # Package sources
+ set(SOURCES
++  fmemopen.c
+   phCook.cc
+   ph.cc
+   phAdjacent.cc
+diff --git a/phasta/fmemopen.c b/phasta/fmemopen.c
+new file mode 100644
+index 0000000..11dd4eb
+--- /dev/null
++++ b/phasta/fmemopen.c
+@@ -0,0 +1,106 @@
++//
++// Copyright 2011-2014 NimbusKit
++// Originally ported from https://github.com/ingenuitas/python-tesseract/blob/master/fmemopen.c
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//    http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++//
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <sys/mman.h>
++
++struct fmem {
++  size_t pos;
++  size_t size;
++  char *buffer;
++};
++typedef struct fmem fmem_t;
++
++static int readfn(void *handler, char *buf, int size) {
++  fmem_t *mem = handler;
++  size_t available = mem->size - mem->pos;
++  
++  if (size > available) {
++    size = available;
++  }
++  memcpy(buf, mem->buffer + mem->pos, sizeof(char) * size);
++  mem->pos += size;
++  
++  return size;
++}
++
++static int writefn(void *handler, const char *buf, int size) {
++  fmem_t *mem = handler;
++  size_t available = mem->size - mem->pos;
++
++  if (size > available) {
++    size = available;
++  }
++  memcpy(mem->buffer + mem->pos, buf, sizeof(char) * size);
++  mem->pos += size;
++
++  return size;
++}
++
++static fpos_t seekfn(void *handler, fpos_t offset, int whence) {
++  size_t pos;
++  fmem_t *mem = handler;
++
++  switch (whence) {
++    case SEEK_SET: {
++      if (offset >= 0) {
++        pos = (size_t)offset;
++      } else {
++        pos = 0;
++      }
++      break;
++    }
++    case SEEK_CUR: {
++      if (offset >= 0 || (size_t)(-offset) <= mem->pos) {
++        pos = mem->pos + (size_t)offset;
++      } else {
++        pos = 0;
++      }
++      break;
++    }
++    case SEEK_END: pos = mem->size + (size_t)offset; break;
++    default: return -1;
++  }
++
++  if (pos > mem->size) {
++    return -1;
++  }
++
++  mem->pos = pos;
++  return (fpos_t)pos;
++}
++
++static int closefn(void *handler) {
++  free(handler);
++  return 0;
++}
++
++FILE *fmemopen(void *buf, size_t size, const char *mode) {
++  // This data is released on fclose.
++  fmem_t* mem = (fmem_t *) malloc(sizeof(fmem_t));
++
++  // Zero-out the structure.
++  memset(mem, 0, sizeof(fmem_t));
++
++  mem->size = size;
++  mem->buffer = buf;
++
++  // funopen's man page: https://developer.apple.com/library/mac/#documentation/Darwin/Reference/ManPages/man3/funopen.3.html
++  return funopen(mem, readfn, writefn, seekfn, closefn);
++}
+diff --git a/phasta/fmemopen.h b/phasta/fmemopen.h
+new file mode 100644
+index 0000000..ef52a26
+--- /dev/null
++++ b/phasta/fmemopen.h
+@@ -0,0 +1,52 @@
++//
++// Copyright 2011-2014 NimbusKit
++// Originally ported from https://github.com/ingenuitas/python-tesseract/blob/master/fmemopen.c
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//    http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++//
++
++#ifndef FMEMOPEN_H_
++#define FMEMOPEN_H_
++
++#if defined __cplusplus
++extern "C" {
++#endif
++
++/**
++ * A BSD port of the fmemopen Linux method using funopen.
++ *
++ * man docs for fmemopen:
++ * http://linux.die.net/man/3/fmemopen
++ *
++ * man docs for funopen:
++ * https://developer.apple.com/library/mac/#documentation/Darwin/Reference/ManPages/man3/funopen.3.html
++ *
++ * This method is ported from ingenuitas' python-tesseract project.
++ *
++ * You must call fclose on the returned file pointer or memory will be leaked.
++ *
++ * @param buf The data that will be used to back the FILE* methods. Must be at least
++ *            @c size bytes.
++ * @param size The size of the @c buf data.
++ * @param mode The permitted stream operation modes.
++ * @return A pointer that can be used in the fread/fwrite/fseek/fclose family of methods.
++ *         If a failure occurred NULL will be returned.
++ * @ingroup NimbusMemoryMappping
++ */
++FILE *fmemopen(void *buf, size_t size, const char *mode);
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif // #ifndef FMEMOPEN_H_
+diff --git a/phasta/memstream.h b/phasta/memstream.h
+new file mode 100644
+index 0000000..8c70f25
+--- /dev/null
++++ b/phasta/memstream.h
+@@ -0,0 +1,11 @@
++#if defined(__linux__)
++# include <features.h>
++#endif
++
++#include <stdio.h>
++
++#if _POSIX_C_SOURCE < 200809L
++
++FILE *open_memstream(char **ptr, size_t *sizeloc);
++
++#endif /* _POSIX_C_SOURCE < 200809L */
+diff --git a/phasta/phstream.cc b/phasta/phstream.cc
+index 67aca67..aa42eaf 100644
+--- a/phasta/phstream.cc
++++ b/phasta/phstream.cc
+@@ -2,6 +2,8 @@
+ #include <string>
+ #include <assert.h>
+ #include "phstream.h"
++#include "fmemopen.h"
++#include "memstream.h"
+ #include <mpi.h>
+ 
+ #ifndef PHSTREAM_TIMERS_ON
+@@ -59,7 +61,7 @@ FILE* openRStreamRead(RStream* rs) {
+ 
+ FILE* openRStreamWrite(RStream* rs) {
+   const double t0 = getTime();
+-  FILE* f = open_memstream(&(rs->restart), &(rs->rSz));
++  FILE* f = open_memstream(&(rs->restart), (size_t *)&(rs->rSz));
+   printTime(__func__, getTime()-t0);
+   return f;
+ }
+@@ -142,9 +144,9 @@ FILE* openGRStreamWrite(GRStream* grs, const char* named) {
+   whichStream(named, isR, isG);
+   FILE* f = NULL;
+   if( isR && !isG )
+-    f = open_memstream(&(grs->restart), &(grs->rSz));
++    f = open_memstream(&(grs->restart), (size_t *)&(grs->rSz));
+   else if( isG && !isR )
+-    f = open_memstream(&(grs->geom), &(grs->gSz));
++    f = open_memstream(&(grs->geom), (size_t *)&(grs->gSz));
+   else {
+     writeUnknown(named);
+     exit(1);
+@@ -175,3 +177,180 @@ void destroyGRStream(GRStream* grs) {
+   printTime(__func__, getTime()-t0);
+ }
+ 
++/* Compile this file and link the object with your program.  On a recent
++ * GNU/Linux machine the object file will be empty.  On anything derived from
++ * 4.4BSD (Darwin, the Three BSDs, etc.) it will contain an implementation of
++ * open_memstream() as described in the POSIX and Linux manual pages.  On
++ * anything else it will probably cause a compilation error.
++ * 
++ * ----------------------------------------------------------------------------
++ * 
++ * OPEN_MEMSTREAM(3)      BSD and Linux Library Functions     OPEN_MEMSTREAM(3)
++ * 
++ * SYNOPSIS
++ *     #include "memstream.h"
++ * 
++ *     FILE *open_memstream(char **bufp, size_t *sizep);
++ * 
++ * DESCRIPTION
++ *     The open_memstream()  function opens a  stream for writing to  a buffer.
++ *     The   buffer  is   dynamically  allocated   (as  with   malloc(3)),  and
++ *     automatically grows  as required.  After closing the  stream, the caller
++ *     should free(3) this buffer.
++ * 
++ *     When  the  stream is  closed  (fclose(3))  or  flushed (fflush(3)),  the
++ *     locations  pointed  to  by  bufp  and  sizep  are  updated  to  contain,
++ *     respectively,  a pointer  to  the buffer  and  the current  size of  the
++ *     buffer.  These values  remain valid only as long  as the caller performs
++ *     no further output  on the stream.  If further  output is performed, then
++ *     the  stream  must  again  be  flushed  before  trying  to  access  these
++ *     variables.
++ * 
++ *     A null byte  is maintained at the  end of the buffer.  This  byte is not
++ *     included in the size value stored at sizep.
++ * 
++ *     The stream's  file position can  be changed with fseek(3)  or fseeko(3).
++ *     Moving the file position past the  end of the data already written fills
++ *     the intervening space with zeros.
++ * 
++ * RETURN VALUE
++ *     Upon  successful  completion open_memstream()  returns  a FILE  pointer.
++ *     Otherwise, NULL is returned and errno is set to indicate the error.
++ * 
++ * CONFORMING TO
++ *     POSIX.1-2008
++ * 
++ * ----------------------------------------------------------------------------
++ */
++
++#include "memstream.h"
++
++#if _POSIX_C_SOURCE < 200809L
++
++#include <stddef.h>
++#include <stdlib.h>
++#include <string.h>
++#include <errno.h>
++#include <assert.h>
++
++#define min(X, Y) (((X) < (Y)) ? (X) : (Y))
++
++struct memstream
++{
++    int      position;
++    int      size;
++    int      capacity;
++    char    *contents;
++    char   **ptr;
++    size_t  *sizeloc;
++};
++
++#if MEMSTREAM_DEBUG
++  static void memstream_print(struct memstream *ms)
++  {
++      printf("memstream %p {", ms);
++      printf(" %i", ms->position);
++      printf(" %i", ms->size);
++      printf(" %i", ms->capacity);
++      printf(" %p", ms->contents);
++      printf(" }\n");
++  }
++# define memstream_info(ARGS) printf ARGS
++#else
++# define memstream_print(ms)
++# define memstream_info(ARGS)
++#endif
++
++#define memstream_check(MS) if (!(MS)->contents) { errno= ENOMEM;  return -1; }
++
++static int memstream_grow(struct memstream *ms, int minsize)
++{
++    int newcap= ms->capacity * 2;					memstream_check(ms);
++    while (newcap <= minsize) newcap *= 2;				memstream_info(("grow %p to %i\n", ms, newcap));
++    ms->contents= (char *)realloc(ms->contents, newcap);
++    if (!ms->contents) return -1;	/* errno == ENOMEM */
++    memset(ms->contents + ms->capacity, 0, newcap - ms->capacity);
++    ms->capacity= newcap;
++    *ms->ptr= ms->contents;		/* size has not changed */
++    return 0;
++}
++
++static int memstream_read(void *cookie, char *buf, int count)
++{
++    struct memstream *ms= (struct memstream *)cookie;			memstream_check(ms);
++    int n= min(ms->size - ms->position, count);				memstream_info(("memstream_read %p %i\n", ms, count));
++    if (n < 1) return 0;
++    memcpy(buf, ms->contents, n);
++    ms->position += n;							memstream_print(ms);
++    return n;
++}
++
++static int memstream_write(void *cookie, const char *buf, int count)
++{
++    struct memstream *ms= (struct memstream *)cookie;			memstream_check(ms);
++    if (ms->capacity <= ms->position + count)
++	if (memstream_grow(ms, ms->position + count) < 0)		/* errno == ENOMEM */
++	    return -1;
++    memcpy(ms->contents + ms->position, buf, count);			memstream_info(("memstream_write %p %i\n", ms, count));
++    ms->position += count;
++    if (ms->size < ms->position) *ms->sizeloc= ms->size= ms->position;	memstream_print(ms);
++									assert(ms->size < ms->capacity);
++									assert(ms->contents[ms->size] == 0);
++    return count;
++}
++
++static fpos_t memstream_seek(void *cookie, fpos_t offset, int whence)
++{
++    struct memstream *ms= (struct memstream *)cookie;
++    fpos_t pos= 0;							memstream_check(ms);
++									memstream_info(("memstream_seek %p %i %i\n", ms, (int)offset, whence));
++    switch (whence) {
++	case SEEK_SET:	pos= offset;			break;
++	case SEEK_CUR:	pos= ms->position + offset;	break;
++	case SEEK_END:	pos= ms->size + offset;		break;
++	default:	errno= EINVAL;			return -1;
++    }
++    if (pos >= ms->capacity) memstream_grow(ms, pos);
++    ms->position= pos;
++    if (ms->size < ms->position) *ms->sizeloc= ms->size= ms->position;	memstream_print(ms);  memstream_info(("=> %i\n", (int)pos));
++									assert(ms->size < ms->capacity && ms->contents[ms->size] == 0);
++    return pos;
++}
++
++static int memstream_close(void *cookie)
++{
++    struct memstream *ms= (struct memstream *)cookie;			if (!ms->contents) { free(ms);  errno= ENOMEM;  return -1; }
++    ms->size= min(ms->size, ms->position);
++    *ms->ptr= ms->contents;
++    *ms->sizeloc= ms->size;						assert(ms->size < ms->capacity);
++    ms->contents[ms->size]= 0;
++    free(ms);
++    return 0;
++}
++
++FILE *open_memstream(char **ptr, size_t *sizeloc)
++{
++    if (ptr && sizeloc) {
++	struct memstream *ms= (struct memstream *)calloc(1, sizeof(struct memstream));
++	FILE *fp= 0;							if (!ms) return 0;	/* errno == ENOMEM */
++	ms->position= ms->size= 0;
++	ms->capacity= 4096;
++	ms->contents= (char *)calloc(ms->capacity, 1);				if (!ms->contents) { free(ms);  return 0; } /* errno == ENOMEM */
++	ms->ptr= ptr;
++	ms->sizeloc= sizeloc;
++	memstream_print(ms);
++	fp= funopen(ms, memstream_read, memstream_write, memstream_seek, memstream_close);
++	if (!fp) {
++	    free(ms->contents);
++	    free(ms);
++	    return 0;	/* errno set by funopen */
++	}
++	*ptr= ms->contents;
++	*sizeloc= ms->size;
++	return fp;
++    }
++    errno= EINVAL;
++    return 0;
++}
++
++#endif /* _POSIX_C_SOURCE < 200809L */
+-- 
+2.11.1
+
