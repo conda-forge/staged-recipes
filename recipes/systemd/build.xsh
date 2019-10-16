@@ -9,6 +9,7 @@ $CFLAGS += " -DO_PATH=010000000"
 copy_files = {
     "src/basic": [
         "missing_kd.h",
+        "missing_in.h",
         "missing_loop.h",
         "missing_time.h",
         "missing_types.h",
