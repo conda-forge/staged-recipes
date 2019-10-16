@@ -7,7 +7,7 @@ else
     ./configure --prefix "${PREFIX}" --with-base-dir "${PREFIX}" --with-python-path "${PREFIX}" --with-readline-path no  ${DISABLED}
 fi
 
-make
+make -j${CPU_COUNT}
 make install
 
 if ! make test
