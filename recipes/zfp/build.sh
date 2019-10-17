@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 mkdir build
 cd build
-cmake -DBUILD_ZFPY=ON -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX ..
+cmake -DBUILD_ZFPY=ON -DCMAKE_INSTALL_PREFIX=${PREFIX} ..
 make
 make install
