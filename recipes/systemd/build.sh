@@ -58,6 +58,11 @@ meson \
   -Dtests=false \
   -Dremote=false \
   -Drfkill=false \
+  -Dpolkit=false \
+  -Drootprefix=$PREFIX \
+  -Drootlibdir=$PREFIX/lib \
+  -Ddbuspolicydir=$PREFIX/share/xml/dbus-1 \
+  -Dcertificate-root=$PREFIX/ssl \
   --strip \
   ..
 meson install
