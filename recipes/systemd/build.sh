@@ -2,7 +2,7 @@
 set -ex
 
 export CFLAGS="${CFLAGS} -I${PREFIX}/include/unicode -lrt"
-export CFLAGS="${CFLAGS} -DO_PATH=010000000"
+export SYSTEMD_UNIT_PATH=""
 
 # copy over missing files
 basic_files="
@@ -59,6 +59,11 @@ meson \
   -Dremote=false \
   -Drfkill=false \
   -Dpolkit=false \
+  -DSysV=false \
+  -Dgshadow=false \
+  -Dpam=false \
+  -Dadm-group=false \
+  -Dwheel-group=false \
   -Drootprefix=$PREFIX \
   -Drootlibdir=$PREFIX/lib \
   -Ddbuspolicydir=$PREFIX/share/xml/dbus-1 \
