@@ -33,6 +33,13 @@ do
   cp -v "$RECIPE_DIR/$f" "$SRC_DIR/src/basic/linux/$f"
 done
 
+# patch the meson "minstall.py" file so that we avoid trying to install
+# to the system root with polkit's pkexec. Ignore such files instead
+bldprefix="$(dirname $(dirname $(which meson)))"
+sitepkgs="$(echo -n ${bldprefix}/lib/python3.*/site-packages)"
+patch "${sitepkgs}/mesonbuild/minstall.py" "${RECIPE_DIR}/minstall.py.patch"
+
+# finally, build it!
 mkdir -p build
 pushd build
 meson \
@@ -70,4 +77,5 @@ meson \
   -Dcertificate-root=$PREFIX/ssl \
   --strip \
   ..
-meson install
+ninja
+ninja -v install
