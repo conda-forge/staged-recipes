@@ -42,7 +42,7 @@ export CONDA_NPY='19'
 # Make sure build_artifacts is a valid channel
 conda index /home/conda/staged-recipes/build_artifacts
 
-conda install --yes --quiet "conda!=4.6.1,<4.7.11a0" conda-forge-ci-setup=2.* conda-forge-pinning networkx<2.4 "conda-build>=3.16"
+conda install --yes --quiet "conda!=4.6.1,<4.7.11a0" conda-forge-ci-setup=2.* conda-forge-pinning networkx=2.3 "conda-build>=3.16"
 export FEEDSTOCK_ROOT="${FEEDSTOCK_ROOT:-/home/conda/staged-recipes}"
 source run_conda_forge_build_setup
 
