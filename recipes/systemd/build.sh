@@ -66,7 +66,6 @@ meson \
   -Dremote=false \
   -Drfkill=false \
   -Dpolkit=false \
-  -DSysV=false \
   -Dgshadow=false \
   -Dpam=false \
   -Dadm-group=false \
