@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+export CFLAGS="$CFLAGS -std=c99 -fPIC"
+
 WORK=$PWD
 # run full build & install twice, once for static, once for shared
 # because it's the cmake way
@@ -13,7 +15,7 @@ for shared in OFF ON; do
     cmake .. \
         -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
         -DCMAKE_INSTALL_LIBDIR="${PREFIX}/lib" \
-        -DCMAKE_C_FLAGS="${CFLAGS} -std=c99 -fPIC" \
+        -DCMAKE_C_FLAGS="${CFLAGS}" \
         -DCMAKE_C_COMPILER=mpicc \
         -DCMAKE_BUILD_TYPE=RELEASE \
         -DTPL_PARMETIS_INCLUDE_DIRS="${PREFIX}/include" \
