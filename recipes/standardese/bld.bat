@@ -3,7 +3,9 @@ setlocal EnableDelayedExpansion
 mkdir build
 cd build
 
+llvm-config
 llvm-config --libdir
+llvm-config
 
 :: Configure
 cmake -G "NMake Makefiles" ^
