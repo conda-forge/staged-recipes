@@ -4,7 +4,7 @@ mkdir build
 cd build
 
 llvm-config
-llvm-config --libdir
+llvm-config --bindir
 llvm-config
 
 :: Configure
