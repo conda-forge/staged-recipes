@@ -2,7 +2,7 @@ mkdir build
 cd build
 
 cmake ^
-    -G "NMake Makefiles" ^
+    -G "Ninja" ^
     -DCMAKE_C_COMPILER=clang-cl ^
     -DCMAKE_CXX_COMPILER=clang-cl ^
     -DCMAKE_BUILD_TYPE=Release ^
@@ -11,10 +11,10 @@ cmake ^
     -DOBAKE_BUILD_TESTS=yes ^
     ..
 
-cmake --build .
+cmake --build . -- -v
 
 set PATH=%PATH%;%CD%
 
-ctest
+ctest --output-on-failure -j${CPU_COUNT}
 
 cmake --build . --target install
