@@ -3,6 +3,8 @@ setlocal EnableDelayedExpansion
 mkdir build
 cd build
 
+llvm-config --libdir
+
 :: Configure
 cmake -G "NMake Makefiles" ^
       -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
