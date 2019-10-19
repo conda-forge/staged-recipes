@@ -7,8 +7,8 @@ echo "ACE_ROOT is $ACE_ROOT (${ACE_ROOT})"
 echo "SRC_DIR is $SRC_DIR (${SRC_DIR})"
 
 
-printf '#include "ace/config-linux.h"\n' > ${ACE_ROOT}/ace/config.h
-cat ${ACE_ROOT}/ace/config.h
+printf '#include "ace/config-linux.h"\n' > ${SRC_DIR}/ACE_wrappers/ace/config.h
+cat ${SRC_DIR}/ACE_wrappers/ace/config.h
 echo "Header generated in ${ACE_ROOT}/ace/config.h"
 printf "include $(ACE_ROOT)/include/makeinclude/platform_linux.GNU\nINSTALL_PREFIX = /usr/local\n" > ${ACE_ROOT}/include/makeinclude/platform_macros.GNU
 
