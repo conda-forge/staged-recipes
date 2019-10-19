@@ -10,9 +10,6 @@ source:
 
 build:
   number: 0
-  run_exports:
-    # SO name changes at minor rev bumps.
-    - {{ pin_subpackage('obake', max_pin='x.x') }}
   skip: true   # [win and vc<14]
 
 requirements:
@@ -22,29 +19,65 @@ requirements:
     - cmake
     - clang      # [win]
     - ninja      # [win]
-  host:
-    - abseil-cpp
-    - boost-cpp
-    - mppp
-    - tbb
-    - tbb-devel
-    - backtrace    # [linux]
-  run:
-    - abseil-cpp
-    - boost-cpp
-    - {{ pin_compatible("mppp") }}
-    - tbb
-    - tbb-devel
-    - backtrace    # [linux]
 
-test:
-  commands:
-    - test -f $PREFIX/include/obake/config.hpp                            # [unix]
-    - test -f $PREFIX/lib/libobake.so                                     # [linux]
-    - test -f $PREFIX/lib/libobake.dylib                                  # [osx]
-    - if not exist %PREFIX%\\Library\\include\\obake\\config.hpp exit 1   # [win]
-    - if not exist %PREFIX%\\Library\\lib\\obake.lib exit 1               # [win]
-    - if not exist %PREFIX%\\Library\\bin\\obake.dll exit 1               # [win]
+outputs:
+  - name: obake
+    build:
+      run_exports:
+        # SO name changes at minor rev bumps.
+        - {{ pin_subpackage('obake', max_pin='x.x') }}
+    requirements:
+      host:
+        - abseil-cpp
+        - tbb-devel
+        - tbb
+        - mppp
+        - boost-cpp
+        - backtrace    # [linux]
+      run:
+        - tbb
+        - {{ pin_compatible("mppp") }}
+        - boost-cpp
+        - backtrace    # [linux]
+    files:
+      - lib/libobake*{{ SHLIB_EXT }}   # [not win]
+      - lib/libobake.so.*              # [linux]
+      - lib/libobake.*.dylib           # [osx]
+      - Library/bin/openblas.dll       # [win]
+    test:
+      commands:
+        - test -f $PREFIX/lib/libobake.so                                     # [linux]
+        - test -f $PREFIX/lib/libobake.dylib                                  # [osx]
+        - if not exist %PREFIX%\\Library\\bin\\obake.dll exit 1               # [win]
+
+  - name: obake-devel
+    requirements:
+      host:
+        - abseil-cpp
+        - tbb-devel
+        - tbb
+        - mppp
+        - boost-cpp
+        - backtrace    # [linux]
+      run:
+        - abseil-cpp
+        - tbb-devel
+        - tbb
+        - {{ pin_compatible("mppp") }}
+        - boost-cpp
+        - backtrace    # [linux]
+        - {{ pin_subpackage("obake", exact=True) }}
+    files:
+      - include/obake            # [not win]
+      - lib/cmake/obake          # [not win]
+      - Library/include/obake    # [win]
+      - Library/lib/obake.lib    # [win]
+      - Library/lib/cmake/obake  # [win]
+    test:
+      commands:
+        - test -f $PREFIX/include/obake/config.hpp                            # [unix]
+        - if not exist %PREFIX%\\Library\\include\\obake\\config.hpp exit 1   # [win]
+        - if not exist %PREFIX%\\Library\\lib\\obake.lib exit 1               # [win]
 
 about:
   home: https://bluescarni.github.io/obake/
