@@ -5,7 +5,7 @@ mkdir build
 cd build
 
 :: Configure using the CMakeFiles
-cmake -DBUILD_ZFPY=ON -DZFP_WITH_OPENMP=OFF -DCMAKE_INSTALL_PREFIX=${PREFIX} ..
+cmake -GNinja -DBUILD_ZFPY=ON -DZFP_WITH_OPENMP=OFF -DCMAKE_INSTALL_PREFIX=${PREFIX} ..
 if errorlevel 1 exit 1
 
 :: Build and Install
