@@ -20,6 +20,8 @@ for shared in OFF ON; do
         -DCMAKE_BUILD_TYPE=RELEASE \
         -DTPL_PARMETIS_INCLUDE_DIRS="${PREFIX}/include" \
         -DTPL_PARMETIS_LIBRARIES="${PREFIX}/lib/libparmetis${SHLIB_EXT};${PREFIX}/lib/libmetis${SHLIB_EXT}" \
+        -DTPL_BLAS_LIBRARIES="${PREFIX}/lib/libblas${SHLIB_EXT}" \
+        -DTPL_LAPACK_LIBRARIES="${PREFIX}/lib/liblapack${SHLIB_EXT};${PREFIX}/lib/libblas${SHLIB_EXT}" \
         -Denable_blaslib=OFF \
         -Denable_tests=ON \
         -Denable_doc=OFF \
