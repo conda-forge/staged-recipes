@@ -1,0 +1,86 @@
+{% set version = "0.1" %}
+
+package:
+  name: obake
+  version: {{ version }}
+
+source:
+  url: https://github.com/bluescarni/obake/archive/v{{ version }}.tar.gz
+  sha256: 946de817940421d8af8c614c289b74dc6e221ea803fc2b3dacc30e63d7dc3246
+
+build:
+  number: 0
+  skip: true   # [win and vc<14]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - clang      # [win]
+    - ninja      # [win]
+
+outputs:
+  - name: obake
+    requirements:
+      host:
+        - abseil-cpp
+        - tbb-devel
+        - mppp
+        - boost-cpp
+        - backtrace    # [linux]
+      run:
+        - backtrace    # [linux]
+    files:
+      - lib/libobake*{{ SHLIB_EXT }}   # [not win]
+      - lib/libobake.so.*              # [linux]
+      - lib/libobake.*.dylib           # [osx]
+      - Library/bin/obake.dll          # [win]
+    test:
+      commands:
+        - test -f $PREFIX/lib/libobake.so                                     # [linux]
+        - test -f $PREFIX/lib/libobake.dylib                                  # [osx]
+        - if not exist %PREFIX%\\Library\\bin\\obake.dll exit 1               # [win]
+
+  - name: obake-devel
+    build:
+      run_exports:
+        # SO name changes at minor rev bumps.
+        - {{ pin_subpackage('obake', max_pin='x.x') }}
+        - {{ pin_compatible('boost-cpp', max_pin='x.x') }}
+        - {{ pin_compatible('tbb', max_pin=None) }}
+        - {{ pin_compatible('mppp', max_pin="x.x") }}
+    requirements:
+      host:
+        - abseil-cpp
+        - tbb-devel
+        - mppp
+        - boost-cpp
+        - backtrace    # [linux]
+      run:
+        - abseil-cpp
+        - tbb-devel
+        - boost-cpp
+        - backtrace    # [linux]
+        - {{ pin_subpackage("obake", exact=True) }}
+    files:
+      - include/obake            # [not win]
+      - lib/cmake/obake          # [not win]
+      - Library/include/obake    # [win]
+      - Library/lib/obake.lib    # [win]
+      - Library/lib/cmake/obake  # [win]
+    test:
+      commands:
+        - test -f $PREFIX/include/obake/config.hpp                            # [unix]
+        - if not exist %PREFIX%\\Library\\include\\obake\\config.hpp exit 1   # [win]
+        - if not exist %PREFIX%\\Library\\lib\\obake.lib exit 1               # [win]
+
+about:
+  home: https://bluescarni.github.io/obake/
+  license: MPL-2.0
+  license_file: LICENSE
+  summary: 'A C++17 library for the symbolic manipulation of sparse polynomials and other closely-related mathematical objects'
+
+extra:
+  recipe-maintainers:
+    - bluescarni
