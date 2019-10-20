@@ -1,0 +1,93 @@
+diff --git a/pyca/__init__.py b/pyca/__init__.py
+new file mode 100644
+index 0000000..d321210
+--- /dev/null
++++ b/pyca/__init__.py
+@@ -0,0 +1,7 @@
++try:
++    # give a chance to adjust DSO loader path
++    import epicscorelibs.path
++except ImportError:
++    pass
++
++from .pyca import *
+diff --git a/setup.py b/setup.py
+index ca7efca..9759177 100644
+--- a/setup.py
++++ b/setup.py
+@@ -1,32 +1,37 @@
+-from setuptools import setup, Extension
++from setuptools_dso import Extension, setup
+ import versioneer
+ import os, sys
+-import numpy as np
++import platform
+ 
+-if sys.platform == 'darwin':
+-    libsrc = 'Darwin'
+-    compiler = 'clang'
+-elif sys.platform.startswith('linux'):
+-    libsrc = 'Linux'
+-    compiler = 'gcc'
+-else:
+-    libsrc = None
++import numpy
++from numpy.distutils.misc_util import get_numpy_include_dirs
++import epicscorelibs.path
++import epicscorelibs.version
++from epicscorelibs.config import get_config_var
+ 
+-epics_inc = os.getenv("EPICS_BASE") + "/include"
+-epics_lib = os.getenv("EPICS_BASE") + "/lib/" + os.getenv("EPICS_HOST_ARCH")
+-numpy_inc = np.get_include()
+-numpy_lib = np.__path__[0]
+ 
+-pyca = Extension('pyca',
+-                 language='c++',
+-                 sources=['pyca/pyca.cc'],
+-                 include_dirs=['pyca', epics_inc,
+-                                epics_inc + '/os/' + libsrc,
+-                                epics_inc + '/compiler/' + compiler,
+-                                numpy_inc],
+-                 library_dirs=[epics_lib,numpy_lib],
+-                 runtime_library_dirs=[epics_lib,numpy_lib],
+-                 libraries=['Com', 'ca'])
++extra = []
++if sys.platform=='linux2':
++    extra += ['-v']
++elif platform.system()=='Darwin':
++    # avoid later failure where install_name_tool may run out of space.
++    #   install_name_tool: changing install names or rpaths can't be redone for:
++    #   ... because larger updated load commands do not fit (the program must be relinked,
++    #   and you may need to use -headerpad or -headerpad_max_install_names)
++    extra += ['-Wl,-headerpad_max_install_names']
++
++pyca = Extension(
++    name='pyca.pyca',
++    sources=['pyca/pyca.cc'],
++    include_dirs= get_numpy_include_dirs()+[epicscorelibs.path.include_path],
++    define_macros = get_config_var('CPPFLAGS'),
++    extra_compile_args = get_config_var('CXXFLAGS'),
++    extra_link_args = get_config_var('LDFLAGS')+extra,
++    dsos = ['epicscorelibs.lib.ca',
++            'epicscorelibs.lib.Com'
++    ],
++    libraries=get_config_var('LDADD'),
++)
+ 
+ 
+ 
+@@ -34,6 +39,11 @@ setup(name='pyca',
+       version=versioneer.get_version(),
+       cmdclass=versioneer.get_cmdclass(),
+       description='python channel access library',
+-      packages=['psp'],
++      packages=['psp', 'pyca'],
+       ext_modules=[pyca],
+-     )
++      install_requires = [
++        epicscorelibs.version.abi_requires(),
++        'numpy >=%s'%numpy.version.short_version,
++      ],
++      zip_safe = False,
++)
