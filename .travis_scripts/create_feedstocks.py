@@ -20,6 +20,7 @@ import subprocess
 import sys
 import tempfile
 import traceback
+import time
 
 
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
@@ -106,6 +107,9 @@ if __name__ == '__main__':
         write_token('circle', os.environ['CIRCLE_TOKEN'])
     if 'AZURE_TOKEN' in os.environ:
         write_token('azure', os.environ['AZURE_TOKEN'])
+    if 'DRONE_TOKEN' in os.environ:
+        write_token('drone', os.environ['DRONE_TOKEN'])
+
     gh = None
     if 'GH_TOKEN' in os.environ:
         write_token('github', os.environ['GH_TOKEN'])
@@ -113,7 +117,6 @@ if __name__ == '__main__':
 
         # Get our initial rate limit info.
         print_rate_limiting_info(gh)
-
 
     owner_info = ['--organization', 'conda-forge']
 
@@ -153,6 +156,10 @@ if __name__ == '__main__':
 
             subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info + ['--extra-admin-users', 'cf-blacksmithy'])
 
+        from conda_smithy.ci_register import drone_sync
+        print("Running drone sync (can take ~100s)")
+        drone_sync()
+
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
         # Without this, intermittent failures to synch the TravisCI repos ensue.
         # Hang on to any CI registration errors that occur and raise them at the end.
@@ -166,13 +173,18 @@ if __name__ == '__main__':
             # After going through all the recipes and removing the converted ones,
             # we fail the build so that people are aware that things did not clear.
             try:
-                subprocess.check_call(['conda', 'smithy', 'register-ci', '--feedstock_directory', feedstock_dir] + owner_info)
+                # Stop registering on appveyor temporarily
+                subprocess.check_call(['conda', 'smithy', 'register-ci', '--without-appveyor', '--feedstock_directory', feedstock_dir] + owner_info)
                 subprocess.check_call(['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
                 exit_code = 1
                 traceback.print_exception(*sys.exc_info())
                 continue
 
+            # slow down so we make sure we are registered
+            for i in range(1, 13):
+                time.sleep(10)
+                print("Waiting for registration: {i} s".format(i=i*10))
             subprocess.check_call(['git', 'commit', '-am', "Re-render the feedstock after CI registration."], cwd=feedstock_dir)
             for i in range(5):
                 try:
