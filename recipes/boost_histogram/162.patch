@@ -1,0 +1,58 @@
+From fb266004faaf1df5a5f52ef2881af9a606f97b22 Mon Sep 17 00:00:00 2001
+From: Henry Fredrick Schreiner <henry.fredrick.schreiner@cern.ch>
+Date: Sat, 19 Oct 2019 22:22:42 +0100
+Subject: [PATCH] Always use relpath in setup.py
+
+---
+ setup.py | 25 +++++++++++++++++++------
+ 1 file changed, 19 insertions(+), 6 deletions(-)
+
+diff --git a/setup.py b/setup.py
+index 455aed2..cbbe56f 100644
+--- a/setup.py
++++ b/setup.py
+@@ -7,13 +7,26 @@
+ import os
+ 
+ # Change to using pathlib when Python2 support is dropped
+-class Path(str):
++class Path(object):
++    def __init__(self, s):
++        self._s = os.path.normpath(str(s))
++
++    def __str__(self):
++        return self._s
++
+     def __truediv__(self, s):
+-        return self.__class__(os.path.join(self, s))
++        return self.__class__(os.path.join(str(self), str(s)))
++
++    def open(self, *args, **kwargs):
++        return open(str(self), *args, **kwargs)
++
++    @property
++    def parent(self):
++        return self.__class__(os.path.dirname(str(self)))
+ 
+ 
+-# Baes directory as a Path
+-BASE_DIR = Path(os.path.abspath(os.path.dirname(__file__)))
++# Base directory as a Path
++BASE_DIR = Path(__file__).parent
+ 
+ # Official trick to avoid pytest-runner as requirement if not needed
+ needs_pytest = {"pytest", "test", "ptr"}.intersection(sys.argv)
+@@ -30,11 +43,11 @@ def __truediv__(self, s):
+ 
+ # Read __version__ into about
+ about = {}
+-with open(BASE_DIR / "boost_histogram/version.py") as f:
++with (BASE_DIR / "boost_histogram" / "version.py").open() as f:
+     exec(f.read(), about)
+ 
+ # Read in readme
+-with open(BASE_DIR / "README.md", "rb") as f:
++with (BASE_DIR / "README.md").open("rb") as f:
+     description = f.read().decode("utf8", "ignore")
+ 
+ SRC_FILES = [
