@@ -1,5 +1,11 @@
 #!/bin/bash
 
+CMAKE_PLATFORM_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
+
+cmake -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+  ${CMAKE_PLATFORM_FLAGS[@]} \
+  ${SRC_DIR}
+
 if [[ "$target_platform" == "osx-64" ]]; then
   export CC=clang
   export CXX=clang++
