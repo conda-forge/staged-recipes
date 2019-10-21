@@ -1,10 +1,11 @@
 
-DISABLED=$(echo --without-system-{allpairs,parrot,prune,sand,umbrella,wavefront,weaver})
+DISABLED_SYS=$(echo --without-system-{allpairs,parrot,prune,sand,umbrella,wavefront,weaver})
+DISABLED_LIB=$(echo --with-{readline,fuse}-path\ no)
 
 if [[ $PY3K == 1 ]]; then
-    ./configure --prefix "${PREFIX}" --with-base-dir "${PREFIX}" --with-python3-path "${PREFIX}" --with-readline-path no  ${DISABLED}
+    ./configure --prefix "${PREFIX}" --with-base-dir "${PREFIX}" --with-python3-path "${PREFIX}" ${DISABLED_LIB} ${DISABLED_SYS}
 else
-    ./configure --prefix "${PREFIX}" --with-base-dir "${PREFIX}" --with-python-path "${PREFIX}" --with-readline-path no  ${DISABLED}
+    ./configure --prefix "${PREFIX}" --with-base-dir "${PREFIX}" --with-python-path "${PREFIX}" ${DISABLED_LIB} ${DISABLED_SYS}
 fi
 
 make -j${CPU_COUNT}
