@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Compile C library
 mkdir build
 cd build
 
@@ -13,3 +14,7 @@ cmake -G "Unix Makefiles" \
 
 make -j${CPU_COUNT}
 make install
+
+# Install Python bindings
+cd ../python
+python -m pip install .
