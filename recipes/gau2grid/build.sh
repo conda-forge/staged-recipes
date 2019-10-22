@@ -38,7 +38,7 @@ if [ "$(uname)" == "Linux" ]; then
         -DCMAKE_INSTALL_PREFIX=${PREFIX} \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_C_COMPILER=${CC} \
-        -DCMAKE_C_FLAGS="${CFLAGS}" \
+        -DCMAKE_C_FLAGS="${CFLAGS} -D__GG_NO_PRAGMA" \
         -DCMAKE_INSTALL_LIBDIR=lib \
         -DPYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
         -DINSTALL_PYMOD=ON \
@@ -50,7 +50,8 @@ if [ "$(uname)" == "Linux" ]; then
 fi
 
 cd build
-make -j${CPU_COUNT}
+#make -j${CPU_COUNT}
+make VERBOSE=1
 
 make install
 
