@@ -53,3 +53,5 @@ cd build
 make -j${CPU_COUNT}
 
 make install
+
+# tests outside build phase
