@@ -12,7 +12,6 @@ cat >~/.condarc <<CONDARC
 
 channels:
  - conda-forge
- - nvidia
  - defaults
 
 conda-build:
