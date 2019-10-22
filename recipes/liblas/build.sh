@@ -17,4 +17,4 @@ make install
 
 # Install Python bindings
 cd ../python
-python -m pip install .
+$PYTHON -m pip install .
