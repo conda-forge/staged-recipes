@@ -11,4 +11,4 @@ cmake .. \
 
 cmake --build . --config Release
 cmake --build . --config Release --target install
-ctest -C Release -E "INTEGRATION|PERFORMANCE|REGRESSION"
+ctest -C Release -E "INTEGRATION|PERFORMANCE|REGRESSION|UNIT_Discovery_TEST|UNIT_ign_TEST|UNIT_Node_TEST"
