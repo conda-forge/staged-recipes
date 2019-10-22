@@ -1,6 +1,6 @@
 {% set name = "gau2grid" %}
-{% set version = "2.0.1" %}
-#{% set sha256 = "" %}
+{% set version = "2.0.2" %}
+{% set sha256 = "4f840735d30c19f235795291bccda01cbd74a604f0ee6ad6e4bd91b8ca7ff7d3" %}
 
 package:
     name: {{ name|lower }}
@@ -8,12 +8,12 @@ package:
 
 source:
     #url: https://github.com/dgasmith/{{ name }}/archive/v{{ version }}.tar.gz
-    #url: https://github.com/dgasmith/{{ name }}/archive/pragma.tar.gz
-    url: https://github.com/loriab/{{ name }}/archive/pragma.tar.gz
+    url: https://github.com/dgasmith/{{ name }}/archive/master.tar.gz
+    #url: https://github.com/loriab/{{ name }}/archive/pragma.tar.gz
     #git_url: git@github.com:dgasmith/gau2grid.git         # [linux]
     #git_url: https://github.com/dgasmith/gau2grid.git     # [osx]
     #git_tag: v{{ version }}
-    #sha256: {{ sha256 }}
+    sha256: {{ sha256 }}
 
 build:
     number: 0
@@ -28,6 +28,10 @@ requirements:
     host:
         - numpy
         - python
+        - pip  # [win]
+        - cython  # [win]
+        - setuptools  # [win]
+        - setuptools_scm  # [win]
 
 outputs:
     - name: gau2grid
@@ -39,6 +43,11 @@ outputs:
               - {{ compiler('c') }}
               - cmake >=3.0
               - ninja  # [win]
+
+              - pip  # [win]
+              - cython  # [win]
+              - setuptools  # [win]
+              - setuptools_scm  # [win]
           host:
               - numpy
               - python
@@ -52,7 +61,6 @@ outputs:
               # Verify library
               - test -L $PREFIX/lib/libgg$SHLIB_EXT
               # Inspect linkage
-#              - ldd -r -u $PREFIX/lib/libgg$SHLIB_EXT && return 0  # [linux]
               - ldd -v $PREFIX/lib/libgg$SHLIB_EXT                 # [linux]
               - otool -L $PREFIX/lib/libgg$SHLIB_EXT               # [osx]
               - conda inspect linkages --show-files --groupby=dependency gau2grid
@@ -75,6 +83,9 @@ outputs:
             , where the returned matrix dimension are the angular momentum (L) by number of requested points (p).
 
     - name: pygau2grid
+      build:
+          - ignore_run_exports:
+              - numpy
       requirements:
           build:
               - {{ compiler('c') }}
@@ -83,6 +94,11 @@ outputs:
           host:
               - numpy
               - python
+
+              - pip  # [win]
+              - cython  # [win]
+              - setuptools  # [win]
+              - setuptools_scm  # [win]
           run:
               - numpy
               - {{ pin_compatible('python', max_pin='x.x') }}
@@ -91,17 +107,15 @@ outputs:
       test:
           requires:
               - pytest
-              - mkl  # strange env resolve failure without this
+#              - mkl  # strange env resolve failure without this
           commands:
               - export PYLIB_EXT=`$PYTHON -c 'from numpy import distutils; print(distutils.misc_util.get_shared_lib_extension(is_python_ext=False))'`  # [unix]
               - set PYLIB_EXT=`$PYTHON -c 'from numpy import distutils; print(distutils.misc_util.get_shared_lib_extension(is_python_ext=False))'`  # [win]
               # Verify library
               - test -f $SP_DIR/gau2grid/gg$PYLIB_EXT
               # Inspect linkage
-#              - ldd -r -u $SP_DIR/gau2grid/gg$PYLIB_EXT && return 0  # [linux]
-#              - ldd -r -u $SP_DIR/gau2grid/gg$PYLIB_EXT  # [linux]
-              - ldd -v $SP_DIR/gau2grid/gg$PYLIB_EXT                 # [linux]
-              - otool -L $SP_DIR/gau2grid/gg$PYLIB_EXT               # [osx]
+              - ldd -v $SP_DIR/gau2grid/gg$PYLIB_EXT  # [linux]
+              - otool -L $SP_DIR/gau2grid/gg$PYLIB_EXT  # [osx]
               - conda inspect linkages --show-files --groupby=dependency pygau2grid
               - conda inspect objects -p $PREFIX $PKG_NAME           # [osx]
               # Actually test
@@ -110,7 +124,7 @@ outputs:
               - ls -l $SP_DIR/gau2grid  # [unix]
               - dir $SP_DIR/gau2grid  # [win]
               - python -c "import gau2grid as gg; print(f'*** gau2grid {gg.__file__} {gg.__version__} built successfully, hooray')"
-              - python -c "import sys; import gau2grid as gg; sys.exit(gg.test()); print(f'*** gau2grid {gg.__version__} built successfully')"
+              - python -c "import sys; import gau2grid as gg; sys.exit(gg.test())"
       about:
           home: https://github.com/dgasmith/gau2grid
           dev_url: https://github.com/dgasmith/gau2grid
