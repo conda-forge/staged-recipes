@@ -17,4 +17,4 @@ make install
 
 # Install Python bindings
 cd ../python
-$PYTHON -m pip install .
+$PYTHON setup.py --quiet install --single-version-externally-managed --record=record.txt
