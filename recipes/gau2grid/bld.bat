@@ -7,6 +7,12 @@ cmake   -G "%CMAKE_GENERATOR%" ^
         -DCMAKE_INSTALL_INCLUDEDIR="%LIBRARY_INC%" ^
         -DCMAKE_INSTALL_BINDIR="%LIBRARY_BIN%" ^
         -DCMAKE_INSTALL_DATADIR="%LIBRARY_PREFIX%" ^
+        -DPYMOD_INSTALL_LIBDIR="/python%PY_VER%/site-packages" ^
+        -DINSTALL_PYMOD=ON ^
+        -DBUILD_SHARED_LIBS=ON ^
+        -DENABLE_GENERIC=ON ^
+        -DPYTHON_EXECUTABLE=%PYTHON% ^
+        -DMAX_AM=8
         ..
 
 cmake --build . --target INSTALL --config Release
@@ -16,7 +22,7 @@ cmake --build . --target INSTALL --config Release
 ::        -H%SRC_DIR% ^
 ::        -Bbuild ^
 ::        -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
-::        -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
+    ::        -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
 ::        -DCMAKE_BUILD_TYPE=Release ^
 ::        -DCMAKE_INSTALL_LIBDIR=lib ^
 ::        -DPYMOD_INSTALL_LIBDIR="/python%PY_VER%/site-packages" ^
