@@ -2,7 +2,7 @@
 
 set -ex
 
-export PKG_CONFIG_PATH=/usr/bin/pkg-config
+export PKG_CONFIG_PATH=/usr/local/bin/pkg-config
 
 cmake \
   -DCMAKE_BUILD_TYPE=Release \
