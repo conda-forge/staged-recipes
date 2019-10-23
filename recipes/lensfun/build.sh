@@ -2,9 +2,6 @@
 
 set -ex
 
-export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
-export LD_LIBRARY_PATH="${PREFIX}/lib"
-
 cmake \
   -DCMAKE_BUILD_TYPE=Release \
   -DINSTALL_HELPER_SCRIPTS=off \
