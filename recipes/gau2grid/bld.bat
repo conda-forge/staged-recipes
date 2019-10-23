@@ -1,7 +1,6 @@
-mkdir build
-cd build
-
 cmake   -G "%CMAKE_GENERATOR%" ^
+        -H%SRC_DIR% ^
+        -Bbuild ^
         -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
         -DCMAKE_INSTALL_LIBDIR="%LIBRARY_LIB%" ^
         -DCMAKE_INSTALL_INCLUDEDIR="%LIBRARY_INC%" ^
@@ -13,9 +12,32 @@ cmake   -G "%CMAKE_GENERATOR%" ^
         -DENABLE_GENERIC=ON ^
         -DPYTHON_EXECUTABLE=%PYTHON% ^
         -DMAX_AM=8
-        ..
 
-cmake --build . --target INSTALL --config Release
+cd build
+cmake --build . ^
+      --config Release ^
+      --target install
+::      ::-- -j %CPU_COUNT%
+::if errorlevel 1 exit 1
+
+::mkdir build
+::cd build
+::
+::cmake   -G "%CMAKE_GENERATOR%" ^
+::        -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
+::        -DCMAKE_INSTALL_LIBDIR="%LIBRARY_LIB%" ^
+::        -DCMAKE_INSTALL_INCLUDEDIR="%LIBRARY_INC%" ^
+::        -DCMAKE_INSTALL_BINDIR="%LIBRARY_BIN%" ^
+::        -DCMAKE_INSTALL_DATADIR="%LIBRARY_PREFIX%" ^
+::        -DPYMOD_INSTALL_LIBDIR="/python%PY_VER%/site-packages" ^
+::        -DINSTALL_PYMOD=ON ^
+::        -DBUILD_SHARED_LIBS=ON ^
+::        -DENABLE_GENERIC=ON ^
+::        -DPYTHON_EXECUTABLE=%PYTHON% ^
+::        -DMAX_AM=8 ^
+::        ..
+::
+::cmake --build . --target INSTALL --config Release
 
 :::: %BUILD_PREFIX%/bin/cmake ^
 ::cmake -G Ninja ^
