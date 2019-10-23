@@ -2,11 +2,11 @@
 {% set version = "8.9.3" %}
 
 package:
-  name: "{{ name|lower }}-full"
+  name: "{{ name|lower }}"
   version: "{{ version }}"
 
 source:
-  url: "https://github.com/{{ name }}/{{ name }}/archive/V{{ version|replace(".","_") }}.tar.gz"
+  url: "https://github.com/{{ name }}/{{ name }}/archive/V{{ version|replace('.', '_') }}.tar.gz"
   sha256: 40c01d5284a610bc840c00ffaaf825a9b604e2f5ff4945390975d487c13782e8
   patches:
     # use updated external config for boost
@@ -19,6 +19,8 @@ source:
     - python-archlib.patch
     # use RPATH, not RUNPATH
     - rpath.patch
+    # set install paths
+    - paths.patch
 
 build:
   number: 0
@@ -116,10 +118,10 @@ outputs:
         A daemon for tracking child processes started by a parent.
         Part of HTCondor, but able to be stand-alone
 
-  - name: htcondor-libutils
+  - name: libcondor_utils
     build:
       run_exports:
-        - {{ pin_subpackage("htcondor-libutils", max_pin="x.x.x") }}
+        - {{ pin_subpackage("libcondor_utils", max_pin="x.x.x") }}
     requirements:
       build:
         - {{ compiler('c') }}
@@ -152,52 +154,34 @@ outputs:
       summary: "HTCondor utilities library"
       description: "Just the HTCondor libcondor_utils shared object library."
 
-  - name: htcondor
+  - name: htcondor-utils
     requirements:
       build:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
       host:
         - {{ cdt('libselinux') }}  # [linux]
-        - expat
-        - gct
         - {{ pin_subpackage("htcondor-classads", exact=True) }}
-        - {{ pin_subpackage("htcondor-libutils", exact=True) }}
         - {{ pin_subpackage("htcondor-procd", exact=True) }}
+        - {{ pin_subpackage("libcondor_utils", exact=True) }}
         - libuuid  # [unix]
-        - libcurl
-        - openldap
-        - openssl
-        - pcre
-        - sqlite
         - voms
       run:
-        - boost
-        - libcurl
-        - gct
-        - {{ pin_subpackage("htcondor-libutils", exact=True) }}
         - {{ pin_subpackage("htcondor-classads", exact=True) }}
         - {{ pin_subpackage("htcondor-procd", exact=True) }}
+        - {{ pin_subpackage("libcondor_utils", exact=True) }}
+        - libcurl
         - libuuid  # [unix]
-        - pcre
-        - sqlite
         - voms
     files:
       - bin/condor*
       - bin/*gahp
-      - etc/condor
-      - etc/**/condor
-      - etc/condor/
-      - etc/examples/
+      - etc/init.d/condor*
+      - etc/examples/condor
       - lib/Condor*.class
       - lib/*.jar
       - lib/libcondorapi*
       - lib/libchirp*
-      - libexec/
-      - sbin/condor_[a-or-z]*
-      - sbin/condor_preen
-      - sbin/*gahp*
-      - sbin/AzureGAHPServer
     test:
       commands:
         - condor_q --help
@@ -238,14 +222,14 @@ outputs:
       host:
         - boost
         - gct
-        - {{ pin_subpackage('htcondor-libutils', exact=True) }}
+        - {{ pin_subpackage('libcondor_utils', exact=True) }}
         - {{ pin_subpackage('htcondor-classads', exact=True) }}
         - munge
         - pcre
         - python
       run:
         - {{ pin_compatible('boost') }}
-        - {{ pin_subpackage('htcondor-libutils', exact=True) }}
+        - {{ pin_subpackage('libcondor_utils', exact=True) }}
         - {{ pin_subpackage('htcondor-classads', exact=True) }}
         - python
     test:
@@ -272,6 +256,15 @@ outputs:
         Pythonic interface to the HTCondor client libraries. They utilize
         the same C++ libraries as HTCondor itself, meaning they have
         nearly the same behavior as the command line tools.
+
+  - name: htcondor
+    requirements:
+      run:
+        - {{ pin_subpackage('htcondor-classads', exact=True) }}
+        - {{ pin_subpackage('htcondor-procd', exact=True) }}
+        - {{ pin_subpackage('libcondor_utils', exact=True) }}
+        - {{ pin_subpackage('python-htcondor', exact=True) }}
+        - {{ pin_subpackage('htcondor-utils', exact=True) }}
 
 about:
   home: "http://htcondor.org/"
