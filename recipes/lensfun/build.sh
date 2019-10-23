@@ -2,8 +2,6 @@
 
 set -ex
 
-export PKG_CONFIG_PATH=/usr/local/bin/pkg-config
-
 cmake \
   -DCMAKE_BUILD_TYPE=Release \
   -DINSTALL_HELPER_SCRIPTS=off \
