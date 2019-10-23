@@ -1,5 +1,7 @@
-%BUILD_PREFIX%/bin/cmake ^
-    -G "%CMAKE_GENERATOR%" ^
+::%BUILD_PREFIX%/bin/cmake ^
+::    -G "%CMAKE_GENERATOR%" ^
+
+cmake -G "%CMAKE_GENERATOR%" ^
     -H%SRC_DIR% ^
     -Bbuild ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
