@@ -9,13 +9,13 @@ package:
 source:
     #url: https://github.com/dgasmith/{{ name }}/archive/v{{ version }}.tar.gz
     url: https://github.com/dgasmith/{{ name }}/archive/master.tar.gz
-    #git_tag: v{{ version }}
     sha256: {{ sha256 }}
 
 build:
     number: 0
     binary_relocation: true
-    skip: true  # [py2k or (win and vc<14)]
+    skip: true  # [py2k]
+#    skip: true  # [py2k or (win and vc<14)]
 
 requirements:
     build:
@@ -27,7 +27,7 @@ requirements:
         - numpy
         - python
         - setuptools  # [win]
-        - setuptools_scm  # [win]
+#        - setuptools_scm  # [win]
 
 outputs:
     - name: gau2grid
@@ -40,7 +40,7 @@ outputs:
               - cmake >=3.0
               - ninja  # [win]
               - setuptools  # [win]
-              - setuptools_scm  # [win]
+#              - setuptools_scm  # [win]
               - numpy
           host:
               - numpy
@@ -52,16 +52,16 @@ outputs:
           - Library/include/gau2grid      # [win]
           - Library/lib/gg*               # [win]
           - Library/share/cmake/gau2grid  # [win]
-
       test:
           commands:
               # Verify library
-              - test -L $PREFIX/lib/libgg$SHLIB_EXT
+              - test -L $PREFIX/lib/libgg$SHLIB_EXT                 # [unix]
+              - if not exist %PREFIX%\\Library\\lib\\gg.lib exit 1  # [win]
               # Inspect linkage
-              - ldd -v $PREFIX/lib/libgg$SHLIB_EXT                 # [linux]
-              - otool -L $PREFIX/lib/libgg$SHLIB_EXT               # [osx]
+              - ldd -v $PREFIX/lib/libgg$SHLIB_EXT                  # [linux]
+              - otool -L $PREFIX/lib/libgg$SHLIB_EXT                # [osx]
               - conda inspect linkages --show-files --groupby=dependency gau2grid
-              - conda inspect objects -p $PREFIX $PKG_NAME         # [osx]
+              - conda inspect objects -p $PREFIX $PKG_NAME          # [osx]
       about:
           home: https://github.com/dgasmith/gau2grid
           dev_url: https://github.com/dgasmith/gau2grid
@@ -82,11 +82,9 @@ outputs:
     - name: pygau2grid
       build:
           ignore_run_exports:
-              # these needed as tools to build and interpreter/library to run, but version generic in both cases
+              # these needed as tools to build and interpreter/module to run, but generic version in both cases
               - numpy
               - python
-#w          ignore_run_exports:
-#w              - numpy
       requirements:
           build:
               - {{ compiler('c') }}
@@ -94,19 +92,16 @@ outputs:
               - ninja  # [win]
               - numpy
           host:
-#w              - numpy
-              - numpy #appveyor wants
+              - numpy
               - python
               - setuptools  # [win]
-              - setuptools_scm  # [win]
+#              - setuptools_scm  # [win]
           run:
-#w              - numpy
               - numpy
-#              - {{ pin_compatible('python', max_pin='x.x') }}
               - python
       files:
-          - lib/python{{ PY_VER }}/site-packages/gau2grid          # [unix]
-          - Library/lib/python{{ PY_VER }}/site-packages/gau2grid  # [win]
+          - lib/python{{ PY_VER }}/site-packages/gau2grid  # [unix]
+          - Library/site-packages/gau2grid                 # [win]
       test:
           requires:
               - pytest
@@ -114,19 +109,20 @@ outputs:
               - gau2grid
           commands:
               - export PYLIB_EXT=`$PYTHON -c 'from numpy import distutils; print(distutils.misc_util.get_shared_lib_extension(is_python_ext=False))'`  # [unix]
-              - set PYLIB_EXT=`$PYTHON -c 'from numpy import distutils; print(distutils.misc_util.get_shared_lib_extension(is_python_ext=False))'`  # [win]
+              - set PYLIB_EXT=`$PYTHON -c 'from numpy import distutils; print(distutils.misc_util.get_shared_lib_extension(is_python_ext=False))'`     # [win]
               # Verify library
-              - test -f $SP_DIR/gau2grid/gg$PYLIB_EXT
+              - test -f $SP_DIR/gau2grid/gg$PYLIB_EXT           # [unix]
+              - if not exist %SP_DIR%\\gau2grid\\gg.dll exit 1  # [win]
               # Inspect linkage
-              - ldd -v $SP_DIR/gau2grid/gg$PYLIB_EXT  # [linux]
-              - otool -L $SP_DIR/gau2grid/gg$PYLIB_EXT  # [osx]
+              - ldd -v $SP_DIR/gau2grid/gg$PYLIB_EXT            # [linux]
+              - otool -L $SP_DIR/gau2grid/gg$PYLIB_EXT          # [osx]
               - conda inspect linkages --show-files --groupby=dependency pygau2grid
-              - conda inspect objects -p $PREFIX $PKG_NAME           # [osx]
+              - conda inspect objects -p $PREFIX $PKG_NAME      # [osx]
               # Actually test
-              - export GAU2GRID_FORCE_C_TEST=1  # [unix]
-              - set GAU2GRID_FORCE_C_TEST=1  # [win]
-              - ls -l $SP_DIR/gau2grid  # [unix]
-              - dir $SP_DIR/gau2grid  # [win]
+              - export GAU2GRID_FORCE_C_TEST=1                  # [unix]
+              - set GAU2GRID_FORCE_C_TEST=1                     # [win]
+              - ls -l $SP_DIR/gau2grid                          # [unix]
+              - dir $SP_DIR/gau2grid                            # [win]
               - python -c "import sys; import gau2grid as gg; sys.exit(gg.test())"
       about:
           home: https://github.com/dgasmith/gau2grid
