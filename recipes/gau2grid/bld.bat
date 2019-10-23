@@ -7,7 +7,7 @@ cmake -G "%CMAKE_GENERATOR%" ^
     -DCMAKE_INSTALL_INCLUDEDIR="%LIBRARY_INC%" ^
     -DCMAKE_INSTALL_BINDIR="%LIBRARY_BIN%" ^
     -DCMAKE_INSTALL_DATADIR="%LIBRARY_PREFIX%" ^
-    -DPYMOD_INSTALL_LIBDIR="/python%PY_VER%/site-packages" ^
+    -DPYMOD_INSTALL_LIBDIR="/../site-packages" ^
     -DINSTALL_PYMOD=ON ^
     -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996" ^
     -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=true ^
@@ -16,6 +16,22 @@ cmake -G "%CMAKE_GENERATOR%" ^
     -DPYTHON_EXECUTABLE=%PYTHON% ^
     -DMAX_AM=8
 if errorlevel 1 exit 1
+
+::     Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/include/gau2grid/gau2grid.h
+::  -- Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/include/gau2grid/gau2grid_pragma.h
+::  -- Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/lib/gg.lib
+::  -- Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/share/cmake/gau2grid/gau2gridConfig.cmake
+::  -- Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/share/cmake/gau2grid/gau2gridConfigVersion.cmake
+::  -- Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/share/cmake/gau2grid/gau2gridTargets.cmake
+::  -- Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/share/cmake/gau2grid/gau2gridTargets-release.cmake
+::  -- Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/lib/python3.6/site-packages/gau2grid
+::  -- Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/lib/python3.6/site-packages/gau2grid/codegen.py
+::  -- Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/lib/python3.6/site-packages/gau2grid/c_generator.py
+::                                                          Lib/site-packages/numpy/__config__.py
+::                                                          Lib/site-packages/numpy/__init__.py
+::                                                          Lib/site-packages/numpy/__pycache__/__config__.cpython-36.pyc
+::                                                          Lib/site-packages/numpy/__pycache__/__init__.cpython-36.pyc
+::
 
 cd build
 cmake --build . ^
@@ -32,9 +48,4 @@ if errorlevel 1 exit 1
 ::        ::-DCMAKE_C_FLAGS="%CFLAGS%" ^
 ::        ::-DCMAKE_C_COMPILER=clang-cl ^
 
-:: set "INCLUDE=%PREFIX%\Library\include;%PREFIX%\Library\include;"
-:: set "LIB=%PREFIX%\Library\lib;%PREFIX%\Library\lib;"
-:: set "CMAKE_PREFIX_PATH=%PREFIX%\Library;"
-
 ::%BUILD_PREFIX%/bin/cmake ^
-::    -G "%CMAKE_GENERATOR%" ^
