@@ -1,6 +1,4 @@
-
 if [ "$(uname)" == "Darwin" ]; then
-
     ALLOPTS="${CFLAGS}"
 fi
 if [ "$(uname)" == "Linux" ]; then
