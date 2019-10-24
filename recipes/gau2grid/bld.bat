@@ -9,7 +9,7 @@ cmake -G "%CMAKE_GENERATOR%" ^
       -DCMAKE_INSTALL_DATADIR="%LIBRARY_PREFIX%" ^
       -DPYMOD_INSTALL_LIBDIR="/../../Lib/site-packages" ^
       -DINSTALL_PYMOD=ON ^
-      -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996 %CFLAGS%" ^
+      -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996" ^
       -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=true ^
       -DBUILD_SHARED_LIBS=ON ^
       -DENABLE_GENERIC=ON ^
@@ -27,5 +27,6 @@ if errorlevel 1 exit 1
 
 
 :: Perils
+::      -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996 %CFLAGS%" ^
 :: -- -j %CPU_COUNT%  # unknown to MSVC
 :: %BUILD_PREFIX%/bin/cmake ^  # deadly on c-f
