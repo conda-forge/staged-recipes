@@ -2,6 +2,7 @@ if [ "$(uname)" == "Darwin" ]; then
     ALLOPTS="${CFLAGS}"
 fi
 if [ "$(uname)" == "Linux" ]; then
+    # revisit when c-f moves to gcc8
     ALLOPTS="${CFLAGS} -D__GG_NO_PRAGMA"
 fi
 

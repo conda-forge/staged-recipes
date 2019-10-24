@@ -1,4 +1,4 @@
-cmake -G "Ninja" ^
+cmake -G"Ninja" ^
       -H%SRC_DIR% ^
       -Bbuild ^
       -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
