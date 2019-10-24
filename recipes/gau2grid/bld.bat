@@ -20,14 +20,14 @@ if errorlevel 1 exit 1
 cd build
 cmake --build . ^
       --config Release ^
-      --target install ^
-      -- -j %CPU_COUNT%
+      --target install
 if errorlevel 1 exit 1
 
 :: tests outside build phase
 
 
 
+::      -- -j %CPU_COUNT%  # not on MSVC
 
 ::        ::-DCMAKE_C_FLAGS="%CFLAGS%" ^
 ::        ::-DCMAKE_C_COMPILER=clang-cl ^
