@@ -20,7 +20,7 @@ if errorlevel 1 exit 1
 cd build
 cmake --build . ^
       --config Release ^
-      --target install
+      --target install ^
       -- -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
