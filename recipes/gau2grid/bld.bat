@@ -1,4 +1,4 @@
-cmake -G "%CMAKE_GENERATOR%" ^
+cmake -G "NMake Makefiles" ^
       -H%SRC_DIR% ^
       -Bbuild ^
       -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
@@ -30,3 +30,4 @@ if errorlevel 1 exit 1
 :: -- -j %CPU_COUNT%  # unknown to MSVC
 :: %BUILD_PREFIX%/bin/cmake ^  # deadly on c-f
 :: -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996 %CFLAGS%" ^  # error MSB3073
+::cmake -G "%CMAKE_GENERATOR%" ^  # appveyor only
