@@ -2,4 +2,4 @@
 
 export PYTHON_EXECUTABLE=$CONDA_PYTHON_EXE
 
-$PYTHON -m pip install pymcc_lidar
+$PYTHON setup.py --quiet install --single-version-externally-managed --record=record.txt
