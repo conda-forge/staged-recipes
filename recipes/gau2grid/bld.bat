@@ -7,7 +7,7 @@ cmake -G "%CMAKE_GENERATOR%" ^
     -DCMAKE_INSTALL_INCLUDEDIR="%LIBRARY_INC%" ^
     -DCMAKE_INSTALL_BINDIR="%LIBRARY_BIN%" ^
     -DCMAKE_INSTALL_DATADIR="%LIBRARY_PREFIX%" ^
-    -DPYMOD_INSTALL_LIBDIR="/../site-packages" ^
+    -DPYMOD_INSTALL_LIBDIR="\..\..\Lib\site-packages" ^
     -DINSTALL_PYMOD=ON ^
     -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996" ^
     -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=true ^
@@ -16,6 +16,8 @@ cmake -G "%CMAKE_GENERATOR%" ^
     -DPYTHON_EXECUTABLE=%PYTHON% ^
     -DMAX_AM=8
 if errorlevel 1 exit 1
+
+::file(TO_NATIVE_PATH "${STAGED_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}${PYMOD_INSTALL_LIBDIR}" _install_lib)
 
 ::     Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/include/gau2grid/gau2grid.h
 ::  -- Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/include/gau2grid/gau2grid_pragma.h
