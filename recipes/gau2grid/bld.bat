@@ -1,4 +1,5 @@
-cmake -G "%CMAKE_GENERATOR%" ^
+%BUILD_PREFIX%/bin/cmake ^
+ -G "%CMAKE_GENERATOR%" ^
       -H%SRC_DIR% ^
       -Bbuild ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
@@ -25,6 +26,7 @@ if errorlevel 1 exit 1
 
 :: tests outside build phase
 
+::cmake -G "%CMAKE_GENERATOR%" ^
 
 
 ::      -- -j %CPU_COUNT%  # not on MSVC
