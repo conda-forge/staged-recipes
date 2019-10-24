@@ -17,29 +17,11 @@ cmake -G "%CMAKE_GENERATOR%" ^
     -DMAX_AM=8
 if errorlevel 1 exit 1
 
-::file(TO_NATIVE_PATH "${STAGED_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}${PYMOD_INSTALL_LIBDIR}" _install_lib)
-
-::     Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/include/gau2grid/gau2grid.h
-::  -- Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/include/gau2grid/gau2grid_pragma.h
-::  -- Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/lib/gg.lib
-::  -- Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/share/cmake/gau2grid/gau2gridConfig.cmake
-::  -- Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/share/cmake/gau2grid/gau2gridConfigVersion.cmake
-::  -- Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/share/cmake/gau2grid/gau2gridTargets.cmake
-::  -- Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/share/cmake/gau2grid/gau2gridTargets-release.cmake
-::  -- Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/lib/python3.6/site-packages/gau2grid
-::  -- Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/lib/python3.6/site-packages/gau2grid/codegen.py
-::  -- Installing: C:/bld/gau2grid_1571869850629/_h_env/Library/lib/python3.6/site-packages/gau2grid/c_generator.py
-::                                                          Lib/site-packages/numpy/__config__.py
-::                                                          Lib/site-packages/numpy/__init__.py
-::                                                          Lib/site-packages/numpy/__pycache__/__config__.cpython-36.pyc
-::                                                          Lib/site-packages/numpy/__pycache__/__init__.cpython-36.pyc
-::
-
 cd build
 cmake --build . ^
       --config Release ^
       --target install
-::      ::-- -j %CPU_COUNT%
+      -- -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
 :: tests outside build phase
