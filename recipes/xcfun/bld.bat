@@ -13,6 +13,7 @@ cmake -G"Ninja" ^
       -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996" ^
       -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=true ^
       -DENABLE_PYTHON_INTERFACE=ON ^
+      -DXCFun_XC_MAX_ORDER=6 ^
       -DPYTHON_EXECUTABLE=%PYTHON% 
 if errorlevel 1 exit 1
 

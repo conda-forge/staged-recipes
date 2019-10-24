@@ -13,6 +13,10 @@ ${BUILD_PREFIX}/bin/cmake \
         -H${SRC_DIR} \
         -Bbuild \
         -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+        -DCMAKE_INSTALL_LIBDIR="${LIBRARY_LIB}" \
+        -DCMAKE_INSTALL_INCLUDEDIR="${LIBRARY_INC}" \
+        -DCMAKE_INSTALL_BINDIR="${LIBRARY_BIN}" \
+        -DCMAKE_INSTALL_DATADIR="${LIBRARY_PREFIX}" \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_CXX_COMPILER=${CXX} \
         -DCMAKE_C_COMPILER=${CC} \
@@ -20,6 +24,7 @@ ${BUILD_PREFIX}/bin/cmake \
         -DCMAKE_Fortran_COMPILER=${FORTRAN} \
         -DPYTHON_EXECUTABLE="${PYTHON}" \
         -DPYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
+        -DXCFun_XC_MAX_ORDER=6 \
         -DENABLE_PYTHON_INTERFACE=ON
 
 # build
