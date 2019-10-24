@@ -1,70 +1,134 @@
 {% set name = "xcfun" %}
 {% set version = "2.0.0" %}
+{% set sha256 = "2086297688218c1775b16c79ce98302ed3913b2a2d49058a0ee1d0a4715c8176 " %} 
 
 package:
     name: {{ name|lower }}
     version: {{ version }}
 
 source:
-  # FIXME Once we've tagged properly
-  url: https://github.com/dftlibs/xcfun/archive/master.tar.gz
-  sha256: 2086297688218c1775b16c79ce98302ed3913b2a2d49058a0ee1d0a4715c8176 
+  # FIXME Once we've tagged properly, swap master for {{ version }}
+  url: https://github.com/dftlibs/{{ name }}/archive/master.tar.gz
+  sha256: {{ sha256 }} 
 
 build:
   number: 0                                            
   binary_relocation: true
-  run_exports:
-    - {{ pin_subpackage('xcfun', max_pin='x.x.x') }}
   ignore_run_exports:
-    - libgfortran-ng                                        # [not win]
+    - libgfortran-ng  # [not win]
 
 requirements:
   build:
     - cmake >=3.5
     - {{ compiler('cxx') }}
     - {{ compiler('c') }}
-    - {{ compiler('fortran') }}                             # [not win]
+    - {{ compiler('fortran') }}  # [not win]
     - swig
-    - ninja                                                 # [win]
+    - ninja  # [win]
   host:
-    - python {{ python }}
     - numpy
-  run:
-    - python {{ python }}
-    - numpy
+    - python
 
-files:
-  - include/XCFun
-  - lib/libxcfun*
-  - lib/python*
-  - share/cmake/XCFun
+outputs:
+  - name: xcfun
+    build:
+      run_exports:
+        - {{ pin_subpackage('xcfun', max_pin='x') }}
+    requirements:
+      build:
+        - cmake >=3.5
+        - {{ compiler('cxx') }}
+        - {{ compiler('c') }}
+        - {{ compiler('fortran') }}  # [not win]
+        - swig
+        - ninja  # [win]
+      host:
+        - numpy
+        - python
+    files:
+      - include/XCFun              # [unix]
+      - lib/libxcfun*              # [unix]
+      - share/cmake/XCFun          # [unix]
+      - Library/include/XCFun      # [win]
+      - Library/lib/xcfun*         # [win]
+      - Library/share/cmake/XCFun  # [win]
+    test:
+      commands:
+        # Verify library
+        - test -L $PREFIX/lib/libxcfun$SHLIB_EXT                 # [unix]
+        - if not exist %PREFIX%\\Library\\lib\\xcfun.lib exit 1  # [win]
+        # Inspect linkage
+        - ldd -v $PREFIX/lib/libxcfun$SHLIB_EXT                           # [linux]
+        - otool -L $PREFIX/lib/libxcfun$SHLIB_EXT                         # [osx]
+        - conda inspect linkages --show-files --groupby=dependency xcfun  # [unix]
+        - conda inspect objects -p $PREFIX $PKG_NAME                      # [osx]
+    about:
+      home: https://github.com/dftlibs/xcfun
+      dev_url: https://github.com/dftlibs/xcfun
+      doc_url: http://dftlibs.org/xcfun/
+      doc_source_url: https://github.com/dftlibs/xcfun/blob/master/doc/index.rst
+      license: MPL-2.0
+      license_url: https://opensource.org/licenses/MPL-2.0
+      license_file: LICENSE.md 
+      license_family: MOZILLA
+      summary: "Exchange-Correlation functionals with arbitrary order derivatives."
 
-test:
-  imports:
-    - xcfun
-  requires:
-    - numpy
-    - pytest
-  commands:
-    # Verify library
-    - test -f $PREFIX/lib/libxcfun$SHLIB_EXT
-    # Inspect linkage
-    - ldd -r -u $PREFIX/lib/libxcfun$SHLIB_EXT              # [linux]
-    - ldd -v $PREFIX/lib/libxcfun$SHLIB_EXT                 # [linux]
-    - otool -L $PREFIX/lib/libxcfun$SHLIB_EXT               # [osx]
-    - conda inspect linkages --show-files --groupby=dependency xcfun
-    - conda inspect objects -p $PREFIX $PKG_NAME           # [osx]
-    # Can't get this to run...
-    #- $PYTHON -m pytest --pyargs xcfun
+  - name: pyxcfun
+    build:
+      ignore_run_exports:
+        # these needed as tools to build and interpreter/module to run, but generic version in both cases
+        - numpy
+        - python
+    requirements:
+      build:
+        - cmake >=3.5
+        - {{ compiler('cxx') }}
+        - {{ compiler('c') }}
+        - {{ compiler('fortran') }}  # [not win]
+        - swig
+        - ninja  # [win]
+      host:
+        - numpy
+        - python
+      run:
+        - numpy
+        - python
+    files:
+      - lib/python{{ PY_VER }}/site-packages/xcfun*  # [unix]
+      - Lib/site-packages/xcfun                      # [win] 
+    test:
+      requires:
+        - pytest
+      imports:
+        - xcfun
+      commands:
+        - ls -l $SP_DIR/xcfun  # [unix]
+        - dir %SP_DIR%\xcfun   # [win]
+        # Verify library
+        - test -f $SP_DIR/xcfun/_xcfun_swig$SHLIB_EXT           # [unix]
+        - if not exist %SP_DIR%\\xcfun\\_xcfun_swig.dll exit 1  # [win]
+        # Inspect linkage
+        - ldd -v $SP_DIR/xcfun/_xcfun_swig$SHLIB_EXT    # [linux]
+        - otool -L $SP_DIR/xcfun/_xcfun_swig$SHLIB_EXT  # [osx]
+        - conda inspect linkages --show-files --groupby=dependency pyxcfun  # [unix]
+        - conda inspect objects -p $PREFIX $PKG_NAME      # [osx]
+        # Actually test
+        - python -m pytest --pyargs xcfun
+    about:
+      home: https://github.com/dftlibs/xcfun
+      dev_url: https://github.com/dftlibs/xcfun
+      doc_url: http://dftlibs.org/xcfun/
+      doc_source_url: https://github.com/dftlibs/xcfun/blob/master/doc/index.rst
+      license: MPL-2.0
+      license_url: https://opensource.org/licenses/MPL-2.0
+      license_file: LICENSE.md 
+      license_family: MOZILLA
+      summary: "Exchange-Correlation functionals with arbitrary order derivatives."
 
 about:
   home: https://github.com/dftlibs/xcfun
-  dev_url: https://github.com/dftlibs/xcfun
-  doc_url: http://dftlibs.org/xcfun/
-  doc_source_url: https://github.com/dftlibs/xcfun/blob/master/doc/index.rst
   license: MPL-2.0
-  license_url: https://opensource.org/licenses/MPL-2.0
-  license_family: MOZILLA
+  license_file: LICENSE.md 
   summary: "Exchange-Correlation functionals with arbitrary order derivatives."
 
 extra:

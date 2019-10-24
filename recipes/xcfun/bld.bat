@@ -1,24 +1,36 @@
 :: configure
-set CMAKE_FLAGS=-DCMAKE_INSTALL_PREFIX=%PREFIX%
-set CMAKE_FLAGS=%CMAKE_FLAGS% -DCMAKE_BUILD_TYPE=Release
-set CMAKE_FLAGS=%CMAKE_FLAGS% -DCMAKE_CXX_COMPILER=%CXX%
-set CMAKE_FLAGS=%CMAKE_FLAGS% -DCMAKE_C_COMPILER=%CC%
-set CMAKE_FLAGS=%CMAKE_FLAGS% -DPYTHON_EXECUTABLE=%PYTHON%
-set CMAKE_FLAGS=%CMAKE_FLAGS% -DPYMOD_INSTALL_LIBDIR=%PYMOD_INSTALL_LIBDIR%
-set CMAKE_FLAGS=%CMAKE_FLAGS% -DENABLE_PYTHON_INTERFACE=ON
-
-cmake -H%SRC_DIR% -Bbuild -G"Ninja" %CMAKE_FLAGS% 
+cmake -G"Ninja" ^
+      -H%SRC_DIR% ^
+      -Bbuild ^
+      -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
+      -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
+      -DCMAKE_INSTALL_LIBDIR="%LIBRARY_LIB%" ^
+      -DCMAKE_INSTALL_INCLUDEDIR="%LIBRARY_INC%" ^
+      -DCMAKE_INSTALL_BINDIR="%LIBRARY_BIN%" ^
+      -DCMAKE_INSTALL_DATADIR="%LIBRARY_PREFIX%" ^
+      -DPYMOD_INSTALL_LIBDIR="/../../Lib/site-packages" ^
+      -DCMAKE_CXX_FLAGS="/wd4018 /wd4101 /wd4996" ^
+      -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996" ^
+      -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=true ^
+      -DENABLE_PYTHON_INTERFACE=ON ^
+      -DPYTHON_EXECUTABLE=%PYTHON% 
+if errorlevel 1 exit 1
 
 :: build 
 cd build
-ninja
+cmake --build . ^
+      --config Release ^
+      -- -j %CPU_COUNT%
+if errorlevel 1 exit 1
 
 :: test
 :: The Python interface is tested using pytest directly
 ctest -E "python-interface" --output-on-failure --verbose
+if errorlevel 1 exit 1
 
 :: install
-ninja install
-
-
+cmake --build . ^
+      --config Release ^
+      --target install ^
+      -- -j %CPU_COUNT%
 if errorlevel 1 exit 1

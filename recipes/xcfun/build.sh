@@ -1,3 +1,13 @@
+# Mechanism to tweak compiler flags
+# Pass with -DCMAKE_<LANG>_FLAGS=${ALLOPTS}
+if [ "$(uname)" == "Darwin" ]; then
+    ALLOPTS="${CFLAGS}"
+fi
+if [ "$(uname)" == "Linux" ]; then
+    # revisit when c-f moves to gcc8
+    ALLOPTS="${CFLAGS}"
+fi
+
 # configure
 ${BUILD_PREFIX}/bin/cmake \
         -H${SRC_DIR} \
@@ -9,7 +19,7 @@ ${BUILD_PREFIX}/bin/cmake \
         -DENABLE_FC_SUPPORT=ON \
         -DCMAKE_Fortran_COMPILER=${FORTRAN} \
         -DPYTHON_EXECUTABLE="${PYTHON}" \
-        -DPYMOD_INSTALL_LIBDIR="${PYMOD_INSTALL_LIBDIR}" \
+        -DPYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
         -DENABLE_PYTHON_INTERFACE=ON
 
 # build
