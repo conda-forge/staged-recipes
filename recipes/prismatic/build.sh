@@ -8,5 +8,3 @@ cmake -D PRISMATIC_ENABLE_GUI=1 \
 	../ 
 
 make  -j${CPU_COUNT}
-
-make install
