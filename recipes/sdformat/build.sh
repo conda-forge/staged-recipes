@@ -17,6 +17,6 @@ cmake .. \
       -DUSE_INTERNAL_URDF=OFF \
       -DCMAKE_VERBOSE_MAKEFILE=ON
 
-cmake --build . --config Release
+cmake --build . --config Release -- -j$CPU_COUNT
 cmake --build . --config Release --target install
 ctest -C Release -E "INTEGRATION|PERFORMANCE|REGRESSION"
