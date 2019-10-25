@@ -41,6 +41,6 @@ cmake -DBUILD_DEMOS:BOOL=OFF \
 # Build step
 # on linux travis, limit the number of concurrent jobs otherwise
 # gcc gets out of memory
-cmake --build . --config "$CONFIGURATION"
+cmake --build $PREFIX --config "$CONFIGURATION"
 
-cmake --build . --config "$CONFIGURATION" --target install
+cmake --build $PREFIX --config "$CONFIGURATION" --target install
