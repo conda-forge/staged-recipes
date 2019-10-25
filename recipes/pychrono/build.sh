@@ -17,7 +17,8 @@ export MKL_INTERFACE_LAYER=LP64
 export MKL_THREADING_LAYER=INTEL
 CONFIGURATION=Release
 # Configure step
-cmake -DBUILD_DEMOS:BOOL=OFF \
+cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
+      -DBUILD_DEMOS:BOOL=OFF \
       -DENABLE_MODULE_CASCADE:BOOL=OFF \
       -DENABLE_UNIT_CASCADE:BOOL=ON \
       -DENABLE_MODULE_IRRLICHT:BOOL=OFF \
@@ -41,6 +42,6 @@ cmake -DBUILD_DEMOS:BOOL=OFF \
 # Build step
 # on linux travis, limit the number of concurrent jobs otherwise
 # gcc gets out of memory
-cmake --build $PREFIX --config "$CONFIGURATION"
+cmake --build . --config "$CONFIGURATION"
 
-cmake --build $PREFIX --config "$CONFIGURATION" --target install
+cmake --build . --config "$CONFIGURATION" --target install
