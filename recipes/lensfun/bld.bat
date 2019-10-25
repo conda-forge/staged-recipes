@@ -1,8 +1,6 @@
 mkdir build && cd build
 
 set CMAKE_CONFIG="Release"
-set INCLUDE=%PREFIX%\Library\include\regex
-set LIB=%PREFIX%\Library\libs
 
 cmake -LAH -G"NMake Makefiles"                  ^
       -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
