@@ -1,1 +1,2 @@
-C=gfortran CC=mpicc CXX=mpicxx python setup.py install -O2 --single-version-externally-managed --record record.txt
+sed -i -e '8,12d' setup.py
+PROTEUS_PREFIX=$PREFIX python setup.py install
