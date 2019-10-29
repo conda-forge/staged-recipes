@@ -10,5 +10,5 @@ make install
 
 cd ..
 
-${PYTHON} setup.py clean
+${PYTHON} setup.py build_ext
 ${PYTHON} setup.py install
