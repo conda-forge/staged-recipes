@@ -1,12 +1,12 @@
-copy example-hotrod.exe "%LIBRARY_BIN%"
+copy cmd/all-in-one/all-in-one-windows "%LIBRARY_BIN\all-in-one.exe"
 if errorlevel 1 exit 1
-copy jaeger-agent.exe "%LIBRARY_BIN%"
+copy cmd/agent/agent-windows "%LIBRARY_BIN\agent.exe"
 if errorlevel 1 exit 1
-copy jaeger-all-in-one.exe "%LIBRARY_BIN%"
+copy cmd/query/query-windows "%LIBRARY_BIN\query.exe"
 if errorlevel 1 exit 1
-copy jaeger-collector.exe "%LIBRARY_BIN%"
+copy cmd/collector/collector-windows "%LIBRARY_BIN\collector.exe"
 if errorlevel 1 exit 1
-copy jaeger-ingester.exe "%LIBRARY_BIN%"
+copy cmd/ingester/ingester-windows "%LIBRARY_BIN\ingester.exe"
 if errorlevel 1 exit 1
-copy jaeger-query.exe "%LIBRARY_BIN%"
+copy examples/hotrod/hotrod-windows "%LIBRARY_BIN\hotrod.exe"
 if errorlevel 1 exit 1
