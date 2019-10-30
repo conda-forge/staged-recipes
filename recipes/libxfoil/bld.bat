@@ -13,14 +13,13 @@ mingw32-make install
 
 rem create the libxfoil.lib which is needed for linking!!
 rem copied from lapack-feedstock
-for %%i in (xfoil) do (
-    dumpbin /exports "%LIBRARY_PREFIX%/lib%%i.dll" > exports%%i.txt
-    echo LIBRARY lib%%i.dll > %%i.def
-    echo EXPORTS >> %%i.def
-    for /f "skip=19 tokens=4" %%A in (exports%%i.txt) do echo %%A >> %%i.def
-    lib /def:%%i.def /out:%%i.lib /machine:x64
-    copy %%i.lib "%LIBRARY_PREFIX%/lib/%%i.lib"
-)
+for xfoil in (xfoil) do (
+dumpbin /exports "%LIBRARY_PREFIX%/lib/libxfoil.dll" > exportsxfoil.txt
+echo LIBRARY libxfoil.dll > xfoil.def
+echo EXPORTS >> xfoil.def
+for /f "skip=19 tokens=4" %%A in (exportsxfoil.txt) do echo %%A >> xfoil.def
+lib /def:xfoil.def /out:xfoil.lib /machine:x64
+copy xfoil.lib "%LIBRARY_PREFIX%/lib/xfoil.lib"
 
 cd ..
 
