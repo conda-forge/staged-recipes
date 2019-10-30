@@ -1,7 +1,10 @@
 #!/bin/bash
 
-CMAKE_PLATFORM_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
+export CC=gcc
+export CXX=g++
 
-cd src/github.com/cockroachdb/${PKG_NAME}
-make build
+cd $(go env GOPATH)/src/github.com/cockroachdb/cockroach
+
+make
+make install
 
