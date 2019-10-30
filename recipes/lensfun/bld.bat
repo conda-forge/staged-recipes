@@ -1,8 +1,8 @@
 mkdir build && cd build
 
 set CMAKE_CONFIG="Release"
-set PKG_CONFIG_PATH=%PREFIX%/lib/pkgconfig
-set LD_LIBRARY_PATH=%PREFIX%/lib
+set PKG_CONFIG_PATH=%LIBRARY_LIB%/pkgconfig
+set LD_LIBRARY_PATH=%LIBRARY_LIB%
 
 cmake -G "NMake Makefiles" ^
       -D CMAKE_BUILD_TYPE=Release ^
