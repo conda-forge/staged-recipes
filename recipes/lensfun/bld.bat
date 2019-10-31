@@ -9,7 +9,6 @@ cmake -G "NMake Makefiles" ^
       -D CMAKE_LIBRARY_PATH=%LIBRARY_LIB% ^
       -D CMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
       %SRC_DIR%
-      ..
 if errorlevel 1 exit 1
 
 cmake --build .
