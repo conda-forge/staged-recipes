@@ -9,6 +9,8 @@ cmake -G "NMake Makefiles" ^
       -D CMAKE_BUILD_TYPE=Release ^
       -D CMAKE_LIBRARY_PATH=%LIBRARY_LIB% ^
       -D CMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
+      -D ENDIAN_INCLUDE_DIR=%LIBRARY_INC%\endian.h ^
+      -D REGEX_INCLUDE_DIR=%LIBRARY_INC%\regex\regex.h ^
       ..
 if errorlevel 1 exit 1
 
