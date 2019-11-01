@@ -1,10 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-export CC=gcc
-export CXX=g++
+mkdir -p $(go env GOPATH)/src/github.com/cockroachdb
+cd $(go env GOPATH)/src/github.com/cockroachdb
+#git clone https://github.com/cockroachdb/cockroach
+cd cockroach
 
-cd $(go env GOPATH)/src/github.com/cockroachdb/cockroach
-
-make
-make install
-
+make build
