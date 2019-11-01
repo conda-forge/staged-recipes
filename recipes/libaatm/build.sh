@@ -1,4 +1,3 @@
-#!/bin/bash
 
 set -e
 set -x
@@ -24,6 +23,7 @@ cmake \
     ${CMAKE_PLATFORM_FLAGS[@]} \
     -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+    -DCMAKE_PREFIX_PATH="${PREFIX}" \
     "${SRC_DIR}"
 make -j $CPU_COUNT
 make install
