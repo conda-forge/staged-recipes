@@ -12,8 +12,7 @@ cmake -G "%CMAKE_GENERATOR%" ^
       %SRC_DIR%
 if errorlevel 1 exit /b 1
 
-:: Build
-cmake --build . --config Release --target all_build
+:: Build and Install
 cmake --build . --config Release --target install
 if errorlevel 1 exit /b 1
 
