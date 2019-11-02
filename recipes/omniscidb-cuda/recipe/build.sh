@@ -5,7 +5,7 @@ set -ex
 # Make sure we are in the right place
 cd $SRC_DIR
 
-export LDFLAGS="-L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
+export LDFLAGS="$LDFLAGS -L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 
 # libcuda.so is a machine specific library. For building, we use
 # libcuda.so from stubs. For runtime, users must specify the location
@@ -93,6 +93,14 @@ else
 fi
 
 make install
+
+# DEBUG:
+echo "CUDA_HOME=$CUDA_HOME"
+echo "PATH=$PATH"
+echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+echo "LDFLAGS=$LDFLAGS"
+${CC} --print-sysroot
+ls `${CC} --print-sysroot`/lib/libcuda*
 
 # skip tests when libcuda.so is not available
 if [ "`ldd bin/initdb | grep "not found" | tr -d '[:space:]'`" == "libcuda.so.1=>notfound" ]; then
