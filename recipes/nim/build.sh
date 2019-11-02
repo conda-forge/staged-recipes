@@ -23,6 +23,5 @@ cd "${PREFIX}" || exit
 rsync -av "${nim_download_dir}"/bin .
 rsync -av "${nim_download_dir}"/lib .
 rsync -av "${nim_download_dir}"/config .
-rsync -av "${nim_download_dir}"/copying.txt LICENSE
 
 echo "Nim ${nim_version} has been downloaded and extracted to ${PREFIX}/."
