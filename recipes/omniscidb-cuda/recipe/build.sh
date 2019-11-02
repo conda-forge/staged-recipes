@@ -2,25 +2,16 @@
 
 set -ex
 
-# Make sure we are in the right place
-cd $SRC_DIR
-
 export LDFLAGS="$LDFLAGS -L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 
 # Make sure -fPIC is not in CXXFLAGS (that some conda packages may
-# add):
+# add), otherwise omniscidb server will crash when executing generated
+# machine code:
 export CXXFLAGS="`echo $CXXFLAGS | sed 's/-fPIC//'`"
 
 # Fixes https://github.com/Quansight/pearu-sandbox/issues/7
 #       https://github.com/omnisci/omniscidb/issues/374
 export CXXFLAGS="$CXXFLAGS -Dsecure_getenv=getenv"
-
-# Make sure that llvm-config and clang++ are from host environment,
-# otherwise UdfTest will fail:
-export PATH=$PREFIX/bin:$PATH
-
-export CC=${PREFIX}/bin/clang
-export CXX=${PREFIX}/bin/clang++
 
 # Resolves cmake message `It appears that you have Arrow < 0.10.0`:
 export CFLAGS="$CFLAGS -pthread"
@@ -30,12 +21,17 @@ export LDFLAGS="$LDFLAGS -pthread -lrt -lresolv"
 # `boost::system::detail::system_category_instance'`:
 export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
 
+export CC=${PREFIX}/bin/clang
+export CXX=${PREFIX}/bin/clang++
 export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCMAKE_C_COMPILER=${CC} -DCMAKE_CXX_COMPILER=${CXX}"
 export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCMAKE_LIBRARY_PATH=$CUDA_HOME/lib64/stubs"
 export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME"
 
 mkdir -p build
 cd build
+
+# TODO: when building on a system with no GPUs, using
+# -DENABLE_TESTS=off will save build time
 
 cmake -Wno-dev \
     -DCMAKE_PREFIX_PATH=$PREFIX \
@@ -52,24 +48,16 @@ cmake -Wno-dev \
     $EXTRA_CMAKE_OPTIONS \
     ..
 
-(which lscpu && which grep && which awk && which bc)
-if [ $? -eq 0 ]; then
-    export CORES_PER_SOCKET=`lscpu | grep 'Core(s) per socket' | awk '{print $NF}'`
-    export NUMBER_OF_SOCKETS=`lscpu | grep 'Socket(s)' | awk '{print $NF}'`
-    export NCORES=`echo "$CORES_PER_SOCKET * $NUMBER_OF_SOCKETS" | bc`
-    make -j $NCORES
-else
-    make -j $CPU_COUNT
-fi
+make -j $CPU_COUNT
 
 make install
-
-export LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}
 
 # skip tests when libcuda.so is not available
 if [ "`ldd bin/initdb | grep "not found" | tr -d '[:space:]'`" == "libcuda.so.1=>notfound" ]; then
     echo "SKIP RUNNING SANITY TESTS: libcuda.so.1 not found"
 else
+    # Running sanity tests requires CUDA enabled system with GPU(s).
+
     # Add g++ include paths for astparser. This is used by the
     # loadtime UDF support, resolves not found include files errors:
     # cstdint, bits/c++config.h, features.h
