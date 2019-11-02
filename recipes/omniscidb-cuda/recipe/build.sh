@@ -49,7 +49,8 @@ export PATH=$PREFIX/bin:$PATH
 export LIBRARIES="$LIBRARIES -L$PREFIX/lib"
 
 # All these must be picked up from $PREFIX/bin
-CMAKE_ENV="CC=clang CXX=clang++"
+export CC=clang
+export CXX=clang++
 
 # Resolves `It appears that you have Arrow < 0.10.0`:
 export CFLAGS="$CFLAGS -pthread"
@@ -67,7 +68,7 @@ export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_H
 mkdir -p build
 cd build
 
-$CMAKE_ENV cmake -Wno-dev \
+cmake -Wno-dev \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DCMAKE_BUILD_TYPE=release \
     -DMAPD_DOCS_DOWNLOAD=off \
@@ -100,8 +101,8 @@ echo "CUDA_HOME=$CUDA_HOME"
 echo "PATH=$PATH"
 echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
 echo "LDFLAGS=$LDFLAGS"
-${CC} --print-sysroot
-ls -la `${CC} --print-sysroot`/lib/libcuda*
+${GXX} --print-sysroot
+ls -la `${GXX} --print-sysroot`/lib/libcuda*
 
 # skip tests when libcuda.so is not available
 if [ "`ldd bin/initdb | grep "not found" | tr -d '[:space:]'`" == "libcuda.so.1=>notfound" ]; then
