@@ -2,8 +2,6 @@
 
 set -ex
 
-export LDFLAGS="$LDFLAGS -L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
-
 # Make sure -fPIC is not in CXXFLAGS (that some conda packages may
 # add), otherwise omniscidb server will crash when executing generated
 # machine code:
@@ -13,18 +11,17 @@ export CXXFLAGS="`echo $CXXFLAGS | sed 's/-fPIC//'`"
 #       https://github.com/omnisci/omniscidb/issues/374
 export CXXFLAGS="$CXXFLAGS -Dsecure_getenv=getenv"
 
-# Resolves cmake message `It appears that you have Arrow < 0.10.0`:
-export CFLAGS="$CFLAGS -pthread"
-export LDFLAGS="$LDFLAGS -pthread -lrt -lresolv"
-
-# fixes `undefined reference to
+# Fixes `undefined reference to
 # `boost::system::detail::system_category_instance'`:
 export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+
+# Remove --as-needed to resolve undefined reference to `__vdso_clock_gettime@GLIBC_PRIVATE'
+export LDFLAGS="`echo $LDFLAGS | sed 's/-Wl,--as-needed//'`"
+export LDFLAGS="$LDFLAGS -lresolv -pthread -lrt"
 
 export CC=${PREFIX}/bin/clang
 export CXX=${PREFIX}/bin/clang++
 export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCMAKE_C_COMPILER=${CC} -DCMAKE_CXX_COMPILER=${CXX}"
-export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCMAKE_LIBRARY_PATH=$CUDA_HOME/lib64/stubs"
 export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME"
 
 mkdir -p build
