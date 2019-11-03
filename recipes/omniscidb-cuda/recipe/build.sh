@@ -24,6 +24,9 @@ export CXX=${PREFIX}/bin/clang++
 export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCMAKE_C_COMPILER=${CC} -DCMAKE_CXX_COMPILER=${CXX}"
 export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME"
 
+# Required for building on a CUDA enabled system without libcuda.so.1
+export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCMAKE_LIBRARY_PATH=$CUDA_HOME/lib64/stubs"
+
 mkdir -p build
 cd build
 
@@ -40,7 +43,7 @@ cmake -Wno-dev \
     -DENABLE_FOLLY=off \
     -DENABLE_JAVA_REMOTE_DEBUG=off \
     -DENABLE_PROFILER=off \
-    -DENABLE_TESTS=on  \
+    -DENABLE_TESTS=on \
     -DPREFER_STATIC_LIBS=off \
     $EXTRA_CMAKE_OPTIONS \
     ..
