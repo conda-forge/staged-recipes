@@ -57,13 +57,6 @@ if [ "`ldd bin/initdb | grep "not found" | tr -d '[:space:]'`" == "libcuda.so.1=
     echo "SKIP RUNNING SANITY TESTS: libcuda.so.1 not found"
 else
     # Running sanity tests requires CUDA enabled system with GPU(s).
-
-    # Add g++ include paths for astparser. This is used by the
-    # loadtime UDF support, resolves not found include files errors:
-    # cstdint, bits/c++config.h, features.h
-    GCCVERSION=$(basename $(dirname $($GXX -print-libgcc-file-name)))
-    export CPLUS_INCLUDE_PATH=$PREFIX/$HOST/include/c++/$GCCVERSION:$PREFIX/lib/gcc/$HOST/$GCCVERSION/include
-
     mkdir tmp
     $PREFIX/bin/initdb tmp
     make sanity_tests
