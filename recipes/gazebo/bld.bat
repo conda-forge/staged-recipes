@@ -3,12 +3,10 @@ set PKG_CONFIG_PATH=%LIBRARY_PREFIX%\share\pkgconfig;%LIBRARY_PREFIX%\lib\pkgcon
 mkdir build
 cd build
 cmake ^
-    -G "NMake Makefiles" ^
+    -G "Ninja" ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP=True ^
-    -DBOOST_ROOT=%LIBRARY_PREFIX% ^
-    -DBoost_NO_SYSTEM_PATHS=ON ^
     -DBoost_NO_BOOST_CMAKE=ON ^
     -DBoost_DEBUG=ON ^
     -DTBB_FOUND=1 ^
