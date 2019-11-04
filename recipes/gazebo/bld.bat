@@ -1,5 +1,9 @@
 set PKG_CONFIG_PATH=%LIBRARY_PREFIX%\share\pkgconfig;%LIBRARY_PREFIX%\lib\pkgconfig;%PKG_CONFIG_PATH%
 
+:: MSVC is preferred.
+set CC=cl.exe
+set CXX=cl.exe
+
 mkdir build
 cd build
 cmake ^
