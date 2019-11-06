@@ -1,0 +1,134 @@
+From eb5b4964c18716e376cc3be8ff8bfd86d138ed98 Mon Sep 17 00:00:00 2001
+From: Ryan Volz <rvolz@mit.edu>
+Date: Tue, 29 Oct 2019 17:13:58 -0400
+Subject: [PATCH] lib: utils: Don't use hard-coded path constants.
+
+This replaces the package path constant with a runtime library path
+lookup. The package path is taken to be the parent directory of the
+library directory.
+
+Runtime path determination is preferable for making a relocatable
+library so that it is not necessary to do string substitution on
+relocated binaries (as with, for example, building a conda package).
+---
+ host/include/uhd/utils/paths.hpp |  3 +++
+ host/lib/utils/CMakeLists.txt    | 20 --------------------
+ host/lib/utils/paths.cpp         | 13 ++++++++++---
+ host/tests/CMakeLists.txt        | 10 ----------
+ 4 files changed, 13 insertions(+), 33 deletions(-)
+
+diff --git a/host/include/uhd/utils/paths.hpp b/host/include/uhd/utils/paths.hpp
+index 035a4943d..e5b451542 100644
+--- a/host/include/uhd/utils/paths.hpp
++++ b/host/include/uhd/utils/paths.hpp
+@@ -23,6 +23,9 @@ UHD_API std::string get_tmp_path(void);
+ //! Get a string representing the system's appdata directory
+ UHD_API std::string get_app_path(void);
+ 
++//! Get a string representing the system's library directory
++UHD_API std::string get_lib_path(void);
++
+ //! Get a string representing the system's pkg directory
+ UHD_API std::string get_pkg_path(void);
+ 
+diff --git a/host/lib/utils/CMakeLists.txt b/host/lib/utils/CMakeLists.txt
+index 1ecf6b9fe..170942b68 100644
+--- a/host/lib/utils/CMakeLists.txt
++++ b/host/lib/utils/CMakeLists.txt
+@@ -195,26 +195,6 @@ set_source_files_properties(
+     PROPERTIES COMPILE_DEFINITIONS "${LOAD_MODULES_DEFS}"
+ )
+ 
+-########################################################################
+-# Define UHD_PKG_DATA_PATH for paths.cpp
+-########################################################################
+-file(TO_NATIVE_PATH "${CMAKE_INSTALL_PREFIX}" UHD_PKG_PATH)
+-string(REPLACE "\\" "\\\\" UHD_PKG_PATH "${UHD_PKG_PATH}")
+-
+-string(REGEX MATCH ".*/.*" SLASH "${LIB_SUFFIX}")
+-if(SLASH STREQUAL "")
+-    set(UHD_LIB_DIR "lib${LIB_SUFFIX}")
+-else()
+-    set(UHD_LIB_DIR "lib")
+-endif(SLASH STREQUAL "")
+-
+-set_source_files_properties(
+-    ${CMAKE_CURRENT_SOURCE_DIR}/paths.cpp
+-    ${CMAKE_CURRENT_SOURCE_DIR}/images.cpp
+-    PROPERTIES COMPILE_DEFINITIONS
+-    "UHD_PKG_PATH=\"${UHD_PKG_PATH}\";UHD_LIB_DIR=\"${UHD_LIB_DIR}\""
+-)
+-
+ ########################################################################
+ # Append sources
+ ########################################################################
+diff --git a/host/lib/utils/paths.cpp b/host/lib/utils/paths.cpp
+index 8a7ba001f..6fcf76da8 100644
+--- a/host/lib/utils/paths.cpp
++++ b/host/lib/utils/paths.cpp
+@@ -12,6 +12,7 @@
+ 
+ #include <boost/algorithm/string.hpp>
+ #include <boost/bind.hpp>
++#include <boost/dll/runtime_symbol_info.hpp>
+ #include <boost/filesystem.hpp>
+ #include <boost/format.hpp>
+ #include <boost/regex.hpp>
+@@ -173,8 +174,14 @@ std::string uhd::get_app_path(void){
+     return uhd::get_tmp_path();
+ }
+ 
++std::string uhd::get_lib_path(void) {
++    fs::path runtime_libfile_path = boost::dll::this_line_location();
++    return runtime_libfile_path.remove_filename().string();
++}
++
+ std::string uhd::get_pkg_path(void) {
+-    return get_env_var("UHD_PKG_PATH", UHD_PKG_PATH);
++    fs::path pkg_path = fs::path(uhd::get_lib_path()).parent_path().lexically_normal();
++    return get_env_var("UHD_PKG_PATH", pkg_path.string());
+ }
+ 
+ std::vector<fs::path> uhd::get_module_paths(void){
+@@ -185,7 +192,7 @@ std::vector<fs::path> uhd::get_module_paths(void){
+         paths.push_back(str_path);
+     }
+ 
+-    paths.push_back(fs::path(uhd::get_pkg_path()) / UHD_LIB_DIR / "uhd" / "modules");
++    paths.push_back(fs::path(uhd::get_lib_path()) / "uhd" / "modules");
+     paths.push_back(fs::path(uhd::get_pkg_path()) / "share" / "uhd" / "modules");
+ 
+     return paths;
+@@ -351,7 +358,7 @@ std::string uhd::find_image_path(const std::string &image_name, const std::strin
+ }
+ 
+ std::string uhd::find_utility(const std::string &name) {
+-    return fs::path(fs::path(uhd::get_pkg_path()) / UHD_LIB_DIR / "uhd" / "utils" / name)
++    return fs::path(fs::path(uhd::get_lib_path()) / "uhd" / "utils" / name)
+         .string();
+ }
+ 
+diff --git a/host/tests/CMakeLists.txt b/host/tests/CMakeLists.txt
+index e2bd5588a..63726fc86 100644
+--- a/host/tests/CMakeLists.txt
++++ b/host/tests/CMakeLists.txt
+@@ -169,16 +169,6 @@ add_executable(paths_test
+     paths_test.cpp
+     ${CMAKE_SOURCE_DIR}/lib/utils/pathslib.cpp
+ )
+-# Careful: This is to satisfy the out-of-library build of paths.cpp. This is
+-# duplicate code from lib/utils/CMakeLists.txt, and it's been simplified.
+-set(UHD_LIB_DIR "lib")
+-file(TO_NATIVE_PATH "${CMAKE_INSTALL_PREFIX}" UHD_PKG_PATH)
+-string(REPLACE "\\" "\\\\" UHD_PKG_PATH "${UHD_PKG_PATH}")
+-set_source_files_properties(
+-    ${CMAKE_SOURCE_DIR}/lib/utils/paths.cpp
+-    PROPERTIES COMPILE_DEFINITIONS
+-    "UHD_PKG_PATH=\"${UHD_PKG_PATH}\";UHD_LIB_DIR=\"${UHD_LIB_DIR}\""
+-)
+ target_link_libraries(paths_test uhd ${Boost_LIBRARIES})
+ UHD_ADD_TEST(paths_test paths_test)
+ UHD_INSTALL(TARGETS
+-- 
+2.20.1
+

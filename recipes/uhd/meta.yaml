@@ -1,0 +1,101 @@
+{% set version = "3.14.1.1" %}
+{% set sha256 = "8cbcb22d12374ceb2859689b1d68d9a5fa6bd5bd82407f66952863d5547d27d0" %}
+{% set build_number = "0" %}
+
+package:
+  name: uhd
+  version: {{ version }}
+
+source:
+  url: https://github.com/EttusResearch/uhd/archive/v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+  patches:
+    - 0001-Fix-snprintf-redeclared-as_snprintf.patch
+    - 0001-lib-utils-Don-t-use-hard-coded-path-constants.patch
+    - 0001-python-change-CMake-variable-for-library-ext.patch
+    - 0002-python-Fix-internal-library-name-incl.-suffix-to-mat.patch
+    - 0003-python-Do-not-link-against-python-lib-for-building-a.patch
+    - 0004-Fix-build-RPATH-remaining-on-installed-libpyuhd-by-n.patch
+
+build:
+  number: {{ build_number }}
+  run_exports:
+    - {{ pin_subpackage('uhd', min_pin='x.x.x', max_pin='x.x.x') }}
+  # windows requires vs2015+ to build and therefore can't build against py2k
+  skip: True  # [win and py2k]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake >=3.5.1
+    - jom  # [win]
+    - {{ cdt('libudev-devel') }}  # [linux]
+    - pkg-config  # [not win]
+
+  host:
+    - boost
+    - boost-cpp
+    - libusb >=1
+    - mako >=0.5.0
+    - ncurses  # [not win]
+    - numpy
+    - python
+    - requests
+    - setuptools
+
+  run:
+    - boost
+    - boost-cpp
+    - ncurses  # [not win]
+    - {{ pin_compatible('numpy') }}
+    - python
+    - requests
+
+test:
+  commands:
+    # verify CLI tools
+    {% set uhd_cmds = [
+        "uhd_cal_rx_iq_balance",
+        "uhd_cal_tx_dc_offset",
+        "uhd_cal_tx_iq_balance",
+        "uhd_config_info",
+        "uhd_find_devices",
+        "uhd_image_loader",
+        "uhd_images_downloader",  # [linux]
+        "uhd_usrp_probe",
+        "usrp2_card_burner",  # [linux]
+    ] %}
+    {% for each_cmd in uhd_cmds %}
+    - command -v {{ each_cmd }}  # [unix]
+    - where {{ each_cmd }}  # [win]
+    {% endfor %}
+
+    # verify libraries
+    {% set uhd_lib = "uhd" %}
+    - test -f $PREFIX/lib/lib{{ uhd_lib }}${SHLIB_EXT}  # [unix]
+
+    # run select commands
+    - uhd_config_info --print-all
+    - uhd_find_devices || (($? < 128))  # [unix]
+
+  imports:
+    - uhd
+
+about:
+  home: httsp://github.com/EttusResearch/uhd
+  license: GPL-3.0
+  license_family: GPL
+  license_file: host/LICENSE
+  summary: 'Software driver and API for the Ettus Research USRP SDR platform'
+  description: |
+    UHD is the free & open-source software driver and API for the Universal
+    Software Radio Peripheral (USRP(TM)) SDR platform, created and sold by
+    Ettus Research. UHD supports all Ettus Research USRP(TM) hardware,
+    including all motherboards and daughterboards, and the combinations thereof.
+  doc_url: https://files.ettus.com/manual/
+  dev_url: https://github.com/EttusResearch/uhd
+
+extra:
+  recipe-maintainers:
+    - ryanvolz

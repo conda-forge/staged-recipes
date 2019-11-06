@@ -1,0 +1,49 @@
+From c81af5ebe7ff1988f5175ec8085d372d2ddc0876 Mon Sep 17 00:00:00 2001
+From: Ryan Volz <rvolz@mit.edu>
+Date: Fri, 1 Nov 2019 10:32:24 -0400
+Subject: [PATCH 2/4] python: Fix internal library name (incl. suffix) to match
+ filename.
+
+Instead of renaming the library file, this sets the suffix in CMake so
+that the filename turns out as desired and also linker references know
+the correct name.
+---
+ host/python/CMakeLists.txt | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/host/python/CMakeLists.txt b/host/python/CMakeLists.txt
+index a19391d83..d45303a01 100644
+--- a/host/python/CMakeLists.txt
++++ b/host/python/CMakeLists.txt
+@@ -23,6 +23,12 @@ execute_process(
+ 
+ # Build pyuhd library
+ add_library(pyuhd SHARED pyuhd.cpp)
++# python expects extension modules with a particular suffix
++if(WIN32)
++    set_target_properties(pyuhd PROPERTIES PREFIX "lib" SUFFIX ".pyd")
++else()
++    set_target_properties(pyuhd PROPERTIES PREFIX "lib" SUFFIX ".so")
++endif(WIN32)
+ target_include_directories(pyuhd PUBLIC
+     ${PYTHON_NUMPY_INCLUDE_DIR}
+     ${CMAKE_SOURCE_DIR}/lib
+@@ -30,14 +36,8 @@ target_include_directories(pyuhd PUBLIC
+ 
+ target_link_libraries(pyuhd ${BOOST_PYTHON_LIBRARY} ${Boost_LIBRARIES} ${PYTHON_LIBRARY} uhd)
+ # Copy pyuhd library to the staging directory
+-if(WIN32)
+-    set(PYUHD_LIBRARY_NAME libpyuhd.pyd)
+-else()
+-    set(PYUHD_LIBRARY_NAME libpyuhd${CMAKE_SHARED_MODULE_SUFFIX})
+-endif(WIN32)
+-
+ add_custom_command(TARGET pyuhd
+-    POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:pyuhd> ${CMAKE_CURRENT_BINARY_DIR}/uhd/${PYUHD_LIBRARY_NAME})
++    POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:pyuhd> ${CMAKE_CURRENT_BINARY_DIR}/uhd/$<TARGET_FILE_NAME:pyuhd>)
+ 
+ set(PYUHD_FILES
+   ${CMAKE_CURRENT_SOURCE_DIR}/__init__.py
+-- 
+2.20.1
+
