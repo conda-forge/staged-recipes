@@ -13,6 +13,13 @@ if [ "$(uname)" == "Linux" ]; then
 	export LDFLAGS="-ldl ${LDFLAGS}"
 fi
 
+# set boost library option name
+if [ "${PY3K}" -eq 1 ]; then
+    PYTHON_BOOST_LIB_OPTION="PYTHON3_BOOST_LIB"
+else
+    PYTHON_BOOST_LIB_OPTION="PYTHON_BOOST_LIB"
+fi
+
 # configure
 cmake $SRC_DIR \
 	-D_VERBOSE:BOOL=TRUE \
@@ -27,6 +34,7 @@ cmake $SRC_DIR \
 	-DHAVE_BOINC:BOOL=FALSE \
 	-DPROPER:BOOL=TRUE \
 	-DPYTHON_EXECUTABLE:PATH=FALSE \
+	-D$PYTHON_BOOST_LIB_OPTION:STRING=boost_python${PY_VER/./} \
 	-DPYTHON3_EXECUTABLE:PATH=FALSE \
 	-DUW_BUILD:BOOL=FALSE \
 	-DWANT_FULL_DEPLOYMENT:BOOL=FALSE \
