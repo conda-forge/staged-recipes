@@ -1,6 +1,5 @@
 mkdir build && cd build
 
-set INCLUDE=%PREFIX%\Library\include
 set CMAKE_CONFIG="Release"
 set LD_LIBRARY_PATH=%LIBRARY_LIB%
 
