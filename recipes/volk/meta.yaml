@@ -1,0 +1,90 @@
+{% set version = "2.0.0" %}
+{% set sha256 = "d4274c4cb07d634f4d5f94f4845fb54156ad45ee03f4cd045496b91967b21c30" %}
+{% set build_number = "0" %}
+
+package:
+  name: volk
+  version: {{ version }}
+
+source:
+  url: https://github.com/gnuradio/volk/releases/download/v{{ version }}/volk-v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: {{ build_number }}
+  run_exports:
+    - {{ pin_subpackage('volk', max_pin='x') }}
+  # windows requires vs2015+ to build and therefore can't build against py2k
+  skip: True  # [win and py2k]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake >=2.8.12
+    - jom  # [win]
+    - pkg-config  # [not win]
+
+  host:
+    - boost-cpp
+    - mako >=0.4.2
+    - python
+    - six
+
+  run:
+    - boost-cpp
+    - python
+    - six
+
+test:
+  commands:
+    # verify CLI tools
+    {% set volk_cmds = [
+        "volk-config-info",
+        "volk_profile",
+    ] %}
+    {% set volk_python_cmds = ["volk_modtool"] %}  # [unix]
+    {% set volk_python_cmds = ["volk_modtool.py"] %}  # [win]
+    {% for each_cmd in volk_cmds + volk_python_cmds %}
+    - command -v {{ each_cmd }}  # [unix]
+    - where {{ each_cmd }}  # [win]
+    {% endfor %}
+
+    # verify libraries
+    {% set volk_lib = "volk" %}
+    - test -f $PREFIX/lib/lib{{ volk_lib }}${SHLIB_EXT}  # [unix]
+    - if not exist %PREFIX%\\Library\\bin\\{{ volk_lib }}.dll exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\lib\\{{ volk_lib }}.lib exit 1  # [win]
+    - conda inspect linkages -p $PREFIX volk  # [not win]
+    - conda inspect objects -p $PREFIX volk  # [osx]
+
+  imports:
+    - volk_modtool
+
+about:
+  home: http://libvolk.org/
+  license: GPL-3.0
+  license_family: GPL
+  license_file: COPYING
+  summary: 'The Vector Optimized Library of Kernels'
+  description: |
+    VOLK is the Vector-Optimized Library of Kernels. It is a free library,
+    currently offered under the GPLv3, that contains kernels of hand-written
+    SIMD code for different mathematical operations. Since each SIMD
+    architecture can be very different and no compiler has yet come along to
+    handle vectorization properly or highly efficiently, VOLK approaches the
+    problem differently.
+
+    For each architecture or platform that a developer wishes to vectorize for,
+    a new proto-kernel is added to VOLK. At runtime, VOLK will select the
+    correct proto-kernel. In this way, the users of VOLK call a kernel for
+    performing the operation that is platform/architecture agnostic. This
+    allows us to write portable SIMD code that is optimized for a variety of
+    platforms.
+
+  doc_url: http://libvolk.org/doxygen/index.html
+  dev_url: https://github.com/gnuradio/volk
+
+extra:
+  recipe-maintainers:
+    - ryanvolz
