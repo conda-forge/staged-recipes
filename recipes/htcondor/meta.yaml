@@ -1,0 +1,303 @@
+{% set name = "htcondor" %}
+{% set version = "8.9.3" %}
+{% set uversion = version|replace('.', '_') %}
+
+package:
+  name: "{{ name|lower }}"
+  version: "{{ version }}"
+
+source:
+  url: "https://github.com/{{ name }}/{{ name }}/archive/V{{ uversion }}.tar.gz"
+  sha256: 40c01d5284a610bc840c00ffaaf825a9b604e2f5ff4945390975d487c13782e8
+  patches:
+    # use updated external config for boost
+    - boost-1.68.0.patch
+    # htcondor/htcondor@82c9334deb3cfa4279bda80a1d4e86b7d78aca15
+    - python3.patch
+    # remove py3 prefix from lib names
+    - python3-libname.patch
+    # set C_PYTHONARCHLIB for python
+    - python-archlib.patch
+    # use RPATH, not RUNPATH
+    - rpath.patch
+    # set install paths
+    - paths.patch
+
+build:
+  number: 0
+  skip: true  # [not linux]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - make  # [unix]
+    - perl
+    - pkg-config  # [unix]
+  host:
+    - {{ cdt('libselinux') }}  # [linux]
+    - boost
+    - expat
+    - gct
+    - krb5
+    - libcurl
+    - libuuid  # [unix]
+    - libxml2
+    - munge
+    - openldap
+    - openssl
+    - pcre
+    - sqlite
+    - voms
+
+outputs:
+  - name: htcondor-classads
+    build:
+      run_exports:
+        - {{ pin_subpackage("htcondor-classads", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+      host:
+        - pcre
+      run:
+        - pcre
+    files:
+      - include/classad
+      - lib/libclassad*
+      - bin/classad*
+    test:
+      commands:
+        - classad_version
+    about:
+      home: "http://htcondor.org/"
+      doc_url: "https://htcondor.readthedocs.io/"
+      dev_url: "https://github.com/htcondor/htcondor"
+      license: "Apache-2.0"
+      license_family: "APACHE"
+      license_file: "LICENSE-2.0.txt"
+      summary: "HTCondor's classified advertisement language"
+      description: |
+        Classified Advertisements (classads) are the lingua franca of
+        HTCondor. They are used for describing jobs, workstations, and other
+        resources. They are exchanged by HTCondor processes to schedule
+        jobs. They are logged to files for statistical and debugging
+        purposes. They are used to enquire about current state of the system.
+
+        A classad is a mapping from attribute names to expressions. In the
+        simplest cases, the expressions are simple constants (integer,
+        floating point, or string). A classad is thus a form of property
+        list. Attribute expressions can also be more complicated. There is a
+        protocol for evaluating an attribute expression of a classad vis a vis
+        another ad. For example, the expression "other.size > 3" in one ad
+        evaluates to true if the other ad has an attribute named size and the
+        value of that attribute is (or evaluates to) an integer greater than
+        three. Two classads match if each ad has an attribute requirements
+        that evaluates to true in the context of the other ad. Classad
+        matching is used by the HTCondor central manager to determine the
+        compatibility of jobs and workstations where they may be run.
+
+  - name: htcondor-procd
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+    files:
+      - sbin/condor_procd
+    test:
+      commands:
+        - test -x ${PREFIX}/sbin/condor_procd  # [unix]
+    about:
+      home: "http://htcondor.org/"
+      doc_url: "https://htcondor.readthedocs.io/"
+      dev_url: "https://github.com/htcondor/htcondor"
+      license: "Apache-2.0"
+      license_family: "APACHE"
+      license_file: "LICENSE-2.0.txt"
+      summary: "HTCondor Process tracking Daemon"
+      description: |
+        A daemon for tracking child processes started by a parent.
+        Part of HTCondor, but able to be stand-alone
+
+  - name: libcondor_utils
+    build:
+      run_exports:
+        - {{ pin_subpackage("libcondor_utils", max_pin="x.x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+      host:
+        - gct
+        - {{ pin_subpackage('htcondor-classads', exact=True) }}
+        - krb5
+        - munge
+        - openssl
+        - pcre
+        - voms
+      run:
+        - gct
+        - {{ pin_subpackage('htcondor-classads', exact=True) }}
+        - krb5
+        - munge
+        - openssl
+        - pcre
+        - voms
+    files:
+      - lib/libcondor_utils*
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libcondor_utils_{{ uversion }}${SHLIB_EXT}  # [unix]
+    about:
+      home: "http://htcondor.org/"
+      doc_url: "https://htcondor.readthedocs.io/"
+      dev_url: "https://github.com/htcondor/htcondor"
+      license: "Apache-2.0"
+      license_family: "APACHE"
+      license_file: "LICENSE-2.0.txt"
+      summary: "HTCondor utilities library"
+      description: "Just the HTCondor libcondor_utils shared object library."
+
+  - name: htcondor-utils
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+      host:
+        - {{ cdt('libselinux') }}  # [linux]
+        - {{ pin_subpackage("htcondor-classads", exact=True) }}
+        - {{ pin_subpackage("htcondor-procd", exact=True) }}
+        - {{ pin_subpackage("libcondor_utils", exact=True) }}
+        - libuuid  # [unix]
+        - voms
+      run:
+        - {{ pin_subpackage("htcondor-classads", exact=True) }}
+        - {{ pin_subpackage("htcondor-procd", exact=True) }}
+        - {{ pin_subpackage("libcondor_utils", exact=True) }}
+        - libcurl
+        - libuuid  # [unix]
+        - voms
+    files:
+      - bin/condor*
+      - bin/*gahp
+      - etc/init.d/condor*
+      - etc/examples/condor
+      - lib/Condor*.class
+      - lib/*.jar
+      - lib/libcondorapi*
+      - lib/libchirp*
+    test:
+      commands:
+        - "export CONDOR_CONFIG=/dev/null"
+        - condor_q --help
+        - condor_qedit --help
+        - condor_status --help
+        - condor_submit --help
+        - condor_submit_dag --help
+    about:
+      home: "http://htcondor.org/"
+      doc_url: "https://htcondor.readthedocs.io/"
+      dev_url: "https://github.com/htcondor/htcondor"
+      license: "Apache-2.0"
+      license_family: "APACHE"
+      license_file: "LICENSE-2.0.txt"
+      summary: "HTCondor: High Throughput Computing"
+      description: |
+        HTCondor is a workload management system for high-throughput and
+        high-performance jobs. Like other full-featured batch systems, HTCondor
+        provides a job queuing mechanism, scheduling policy, priority scheme,
+        resource monitoring, and resource management. Users submit their
+        serial or parallel jobs to HTCondor, HTCondor places them into a queue,
+        chooses when and where to run the jobs based upon a policy, carefully
+        monitors their progress, and ultimately informs the user upon
+        completion.
+
+  - name: python-htcondor
+    script: install-python.sh
+    build:
+      ignore_run_exports:
+        - gct
+        - pcre
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - cmake
+        - make  # [unix]
+        - pkg-config  # [unix]
+      host:
+        - boost
+        - gct
+        - {{ pin_subpackage('libcondor_utils', exact=True) }}
+        - {{ pin_subpackage('htcondor-classads', exact=True) }}
+        - munge
+        - pcre
+        - python
+      run:
+        - {{ pin_compatible('boost') }}
+        - {{ pin_subpackage('libcondor_utils', exact=True) }}
+        - {{ pin_subpackage('htcondor-classads', exact=True) }}
+        - python
+    test:
+      imports:
+        - htcondor
+        - classad
+      requires:
+        - pip
+      commands:
+        # check that the pip recognises that package is already installed
+        # mainly by asking pip to install it again, and making sure it doesn't
+        # do anything
+        - python -m pip install --no-deps --index-url nothing {{ name }}
+    about:
+      home: "http://htcondor.org/"
+      doc_url: "https://htcondor.readthedocs.io/"
+      dev_url: "https://github.com/htcondor/htcondor"
+      license: "Apache-2.0"
+      license_family: "APACHE"
+      license_file: "LICENSE-2.0.txt"
+      summary: "Python bindings for HTCondor"
+      description: |
+        The HTCondor Python bindings aim to expose a high-quality,
+        Pythonic interface to the HTCondor client libraries. They utilize
+        the same C++ libraries as HTCondor itself, meaning they have
+        nearly the same behavior as the command line tools.
+
+  - name: htcondor
+    requirements:
+      run:
+        - {{ pin_subpackage('htcondor-classads', exact=True) }}
+        - {{ pin_subpackage('htcondor-procd', exact=True) }}
+        - {{ pin_subpackage('libcondor_utils', exact=True) }}
+        - {{ pin_subpackage('python-htcondor', exact=True) }}
+        - {{ pin_subpackage('htcondor-utils', exact=True) }}
+    test:
+      imports:
+        - htcondor
+        - classad
+      commands:
+        - "export CONDOR_CONFIG=/dev/null"
+        - condor_q --version
+
+about:
+  home: "http://htcondor.org/"
+  doc_url: "https://htcondor.readthedocs.io/"
+  dev_url: "https://github.com/htcondor/htcondor"
+  license: "Apache-2.0"
+  license_family: "APACHE"
+  license_file: "LICENSE-2.0.txt"
+  summary: "HTCondor: High Throughput Computing"
+  description: |
+    HTCondor is a workload management system for high-throughput and
+    high-performance jobs. Like other full-featured batch systems, HTCondor
+    provides a job queuing mechanism, scheduling policy, priority scheme,
+    resource monitoring, and resource management. Users submit their
+    serial or parallel jobs to HTCondor, HTCondor places them into a queue,
+    chooses when and where to run the jobs based upon a policy, carefully
+    monitors their progress, and ultimately informs the user upon
+    completion.
+
+extra:
+  recipe-maintainers:
+    - jasoncpatton
