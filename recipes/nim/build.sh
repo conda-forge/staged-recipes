@@ -22,7 +22,7 @@ ls -larth config/
 build_dir=$(pwd)
 
 mkdir -p "${PREFIX}"
-cd "${PREFIX}" || exit
+cd "${PREFIX}"
 rsync -av "${build_dir}"/bin .
 rsync -av "${build_dir}"/lib .
 rsync -av "${build_dir}"/config .
