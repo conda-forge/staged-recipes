@@ -1,5 +1,8 @@
 mkdir build && cd build
 
+REM Trick to avoid CMake/sh.exe error
+ren "C:\Program Files\Git\usr\bin\sh.exe" _sh.exe
+
 set CMAKE_CONFIG="Release"
 set LD_LIBRARY_PATH=%LIBRARY_LIB%
 
@@ -11,8 +14,6 @@ cmake -G "NMake Makefiles" ^
       ..
 if errorlevel 1 exit 1
 
-cmake --build .
-if errorlevel 1 exit 1
-
-cmake --build . --target install
+make
+make install
 if errorlevel 1 exit 1
