@@ -1,11 +1,11 @@
-set CMAKE_CONFIG="Release"
+mkdir build
+if errorlevel 1 exit 1
+cd build
 if errorlevel 1 exit 1
 
-mkdir build_%CMAKE_CONFIG%
-if errorlevel 1 exit 1
+set BUILDCONF=Release
 
-pushd build_%CMAKE_CONFIG%
-if error level 1 exit 1
+set "CMAKE_COMPILER_PATH=%VSINSTALLDIR:\=/%/VC/bin/amd64"
 
 cmake -G "NMake Makefiles" ^
       -D CMAKE_BUILD_TYPE:STRING=%CMAKE_CONFIG% ^
@@ -16,5 +16,5 @@ cmake -G "NMake Makefiles" ^
       "%SRC_DIR%"
 if errorlevel 1 exit 1
 
-cmake --build . --target install --config %CMAKE_CONFIG%
+cmake --build . --target install
 if errorlevel 1 exit 1
