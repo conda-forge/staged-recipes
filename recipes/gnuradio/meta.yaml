@@ -1,0 +1,263 @@
+{% set version = "3.8.0.0" %}
+
+package:
+  name: gnuradio
+  version: {{ version }}
+
+source:
+  url: https://github.com/gnuradio/gnuradio/releases/download/v{{ version }}/gnuradio-{{ version }}.tar.gz
+  sha256: 3a9c90111f22f2f6f30450731dc671ad28ce824fc1a7bc8ea0783da9b95a7092
+  patches:
+    - 0001-Use-raw-strings-for-paths-substituted-directly-into-.patch
+    - 0001-Don-t-use-hard-coded-path-constants.patch
+    - 0001-python-Do-not-link-against-python-lib-for-building-a.patch
+
+build:
+  number: 0
+  skip: True  # [win and py2k]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake >=3.8
+    - ninja
+   # libudev needed to link against libusb on linux
+    - {{ cdt('libudev') }}  # [linux]
+   # below are needed to link with Qt for qtgui
+    - {{ cdt('libice') }}  # [linux]
+    - {{ cdt('libselinux') }}  # [linux]
+    - {{ cdt('libsm') }}  # [linux]
+    - {{ cdt('libx11') }}  # [linux]
+    - {{ cdt('libxau') }}  # [linux]
+    - {{ cdt('libxcb') }}  # [linux]
+    - {{ cdt('libxdamage') }}  # [linux]
+    - {{ cdt('libxext') }}  # [linux]
+    - {{ cdt('libxfixes') }}  # [linux]
+    - {{ cdt('libxrender') }}  # [linux]
+    - {{ cdt('libxxf86vm') }}  # [linux]
+    - {{ cdt('libuuid') }}  # [linux]
+    - {{ cdt('mesa-dri-drivers') }}  # [linux]
+    - {{ cdt('mesa-libgl-devel') }}  # [linux]
+
+  host:
+    - boost-cpp
+    - click
+    - click-plugins
+    - fftw
+    - gsl
+    - libusb >=1
+    - log4cpp
+    - mako
+    - mpir
+    - numpy
+    - pkg-config  # [not win]
+    - python
+    - six
+    - swig
+    - volk >=2
+  # gnuradio.audio
+    - alsa-lib  # [linux]
+    - portaudio  # [linux]
+  # gnuradio.qtgui
+    - pyqt
+    - qt
+    - qwt
+  # gnuradio.uhd
+    - uhd
+  # gnuradio.zeromq
+    - cppzmq
+    - zeromq
+
+test:
+  requires:
+    - sqlite
+
+outputs:
+  - name: gnuradio-core
+    script: install_core.sh  # [not win]
+    script: install_core.bat  # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage('gnuradio-core', min_pin='x.x.x', max_pin='x.x.x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - alsa-lib  # [linux]
+        - boost-cpp
+        - click
+        - click-plugins
+        - fftw
+        - gsl
+        - libusb
+        - log4cpp
+        - mako
+        - mpir
+        - numpy
+        - pkg-config  # [not win]
+        - portaudio  # [linux]
+        - python
+        - six
+        - swig
+        - volk
+      run:
+        - boost-cpp
+        - click
+        - click-plugins
+        - fftw
+        - {{ pin_compatible('log4cpp') }}
+        - mako
+        - numpy
+        - {{ pin_compatible('portaudio') }}  # [linux]
+        - python
+        - six
+    test:
+      commands:
+        - gnuradio-config-info -v --prefix --sysconfdir --prefsdir --userprefsdir --prefs --builddate --enabled-components --cc --cxx --cflags
+        # run a few example scripts to show that at least some things work
+        - python "$CONDA_PREFIX/share/gnuradio/examples/volk_benchmark/volk_math.py" -L test -N 1e6 -I 3 --all  # [not win]
+        - python "%CONDA_PREFIX%/Library/share/gnuradio/examples/volk_benchmark/volk_math.py" -L test -N 1e6 -I 3 --all  # [win]
+      imports:
+        - gnuradio.analog
+        - gnuradio.audio
+        - gnuradio.blocks
+        - gnuradio.channels
+        - gnuradio.digital
+        - gnuradio.dtv
+        - gnuradio.fec
+        - gnuradio.fft
+        - gnuradio.filter
+        - gnuradio.gr
+        - gnuradio.trellis
+        - gnuradio.vocoder
+        - gnuradio.wavelet
+        - pmt
+    about:
+      summary: 'GNU Radio core functionality and modules'
+  - name: gnuradio-qtgui
+    script: install_qtgui.sh  # [not win]
+    script: install_qtgui.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - gnuradio-core
+        - boost-cpp
+        - log4cpp
+        - pyqt
+        - python
+        - qt
+        - qwt
+        - volk
+      run:
+        - {{ pin_subpackage('gnuradio-core', min_pin='x.x.x', max_pin='x.x.x') }}
+        - boost-cpp
+        - {{ pin_compatible('log4cpp') }}
+        - pyqt
+        - python
+        - {{ pin_compatible('qwt', max_pin='x.x') }}
+    test:
+      imports:
+        - gnuradio.qtgui
+    about:
+      summary: 'GNU Radio QT module providing graphical components'
+  - name: gnuradio-uhd
+    script: install_uhd.sh  # [not win]
+    script: install_uhd.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - gnuradio-core
+        - boost-cpp
+        - log4cpp
+        - python
+        - uhd
+      run:
+        - {{ pin_subpackage('gnuradio-core', min_pin='x.x.x', max_pin='x.x.x') }}
+        - boost-cpp
+        - {{ pin_compatible('log4cpp') }}
+        - python
+    test:
+      imports:
+        - gnuradio.uhd
+    about:
+      summary: 'GNU Radio UHD module for Ettus USRP radios'
+  - name: gnuradio-zeromq
+    script: install_zeromq.sh  # [not win]
+    script: install_zeromq.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - gnuradio-core
+        - boost-cpp
+        - cppzmq
+        - log4cpp
+        - python
+        - zeromq
+      run:
+        - {{ pin_subpackage('gnuradio-core', min_pin='x.x.x', max_pin='x.x.x') }}
+        - boost-cpp
+        - {{ pin_compatible('log4cpp') }}
+        - python
+        - pyzmq
+    test:
+      imports:
+        - gnuradio.zeromq
+    about:
+      summary: 'GNU Radio ZeroMQ module for message passing functionality'
+  # gnuradio metapackage inherits unspecified metadata in
+  # (requirements, build, about) sections from parent recipe
+  - name: gnuradio
+    requirements:
+      run:
+        - {{ pin_subpackage('gnuradio-core', exact=True) }}
+        - {{ pin_subpackage('gnuradio-qtgui', exact=True) }}
+        - {{ pin_subpackage('gnuradio-uhd', exact=True) }}
+        - {{ pin_subpackage('gnuradio-zeromq', exact=True) }}
+        # explicitly add python so that build string is generated correctly
+        - python
+    about:
+      summary: 'GNU Radio core library and standard modules'
+
+about:
+  home: https://gnuradio.org/
+  license: GPL-3.0
+  license_family: GPL
+  license_file: COPYING
+  summary: 'The free and open software radio ecosystem'
+  description: |
+    GNU Radio is a free software development toolkit that provides the signal
+    processing runtime and processing blocks to implement software radios using
+    readily-available, low-cost external RF hardware and commodity processors.
+    It is widely used in hobbyist, academic and commercial environments to
+    support wireless communications research as well as to implement real-world
+    radio systems.
+
+    GNU Radio applications are primarily written using the Python programming
+    language, while the supplied, performance-critical signal processing path
+    is implemented in C++ using processor floating point extensions where
+    available. Thus, the developer is able to implement real-time, high-
+    throughput radio systems in a simple-to-use, rapid-application-development
+    environment.
+
+  doc_url: https://gnuradio.org/doc/doxygen/
+  dev_url: https://github.com/gnuradio/gnuradio
+
+extra:
+  recipe-maintainers:
+    - ryanvolz
