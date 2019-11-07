@@ -8,7 +8,7 @@ cmake -G "%CMAKE_GENERATOR%" ^
       -D CMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
       -D CMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
       -D CMAKE_LIBRARY_PATH="%LIBRARY_LIB%" ^
-      "${SRC_DIR}"
+      ..
 if errorlevel 1 exit 1
 
 cmake --build . --config %CMAKE_CONFIG%
