@@ -1,8 +1,12 @@
-#!/usr/bin/env bash
+#!usr/bin/env bash
 
-mkdir -p $(go env GOPATH)/src/github.com/cockroachdb
-cd $(go env GOPATH)/src/github.com/cockroachdb
-#git clone https://github.com/cockroachdb/cockroach
-cd cockroach
+cd "$SRC_DIR"
+cd ..
+
+export GOPATH=$PWD/gopath
+
+mkdir -p "$GOPATH/src/github.com/cockroachdb"
+ln -s "$SRC_DIR" "$GOPATH/src/github.com/cockroachdb/cockroach"
+cd "$GOPATH/src/github.com/cockroachdb/cockroach"
 
 make build
