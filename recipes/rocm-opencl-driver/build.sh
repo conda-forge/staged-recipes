@@ -13,3 +13,6 @@ cmake \
 make VERBOSE=1 -j${CPU_COUNT}
 ctest -E roc-cl-unittest
 make install
+
+mkdir -p ${PREFIX}/include
+cp ../src/driver/AmdCompiler.h ${PREFIX}/include

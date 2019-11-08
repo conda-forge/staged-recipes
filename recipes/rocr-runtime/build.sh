@@ -15,3 +15,4 @@ cmake \
 make VERBOSE=1 -j${CPU_COUNT}
 make install
 
+ln -sf $PREFIX/hsa/lib/libhsa-runtime64.so.1 $PREFIX/lib/libhsa-runtime64.so.1

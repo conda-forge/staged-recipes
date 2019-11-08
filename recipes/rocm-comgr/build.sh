@@ -1,10 +1,9 @@
 #!/bin/bash
 
+cd lib/comgr
+
 mkdir build
 cd build
-
-export CC=$PREFIX/bin/clang
-export CXX=$PREFIX/bin/clang++
 
 cmake \
   -DLLVM_DIR=$PREFIX \
@@ -14,4 +13,5 @@ cmake \
   ..
 
 make VERBOSE=1 -j${CPU_COUNT}
+ctest
 make install
