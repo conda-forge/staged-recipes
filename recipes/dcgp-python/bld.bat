@@ -1,7 +1,8 @@
 mkdir build
 cd build
 
-set "CXXFLAGS=-MD"
+set "CXXFLAGS="
+set "CFLAGS="
 
 cmake ^
     -G "Ninja" ^
