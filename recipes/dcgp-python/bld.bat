@@ -31,7 +31,7 @@ cmake ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
     -DDCGP_BUILD_DCGP=no ^
     -DDCGP_BUILD_DCGPY=yes ^
-    -DDCGP_CXX_FLAGS_EXTRA="-D_copysign=copysign" ^
+    -DDCGP_CXX_FLAGS_EXTRA="-D_copysign=copysign -Dand=&& -Dnot=!" ^
     ..
 
 cmake --build . -- -v
