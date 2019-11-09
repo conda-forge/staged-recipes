@@ -5,4 +5,4 @@ else
   make OS=MACOSX
 fi
 mkdir -p ${PREFIX}/bin
-cp teensy_loader_cli ${PREFIX}bin/
+cp teensy_loader_cli ${PREFIX}/bin/.
