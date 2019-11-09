@@ -37,7 +37,3 @@ cmake ^
 cmake --build . -- -v
 
 cmake --build . --target install
-
-python -c "import dcgpy.test; dcgpy.test.run_test_suite()"
-
-
