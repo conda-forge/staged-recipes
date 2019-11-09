@@ -1,0 +1,249 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 63df360..120dd3a 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -38,9 +38,9 @@ set(CLANG_ENABLE_STATIC_ANALYZER OFF CACHE BOOL "")
+ # override default option value in library and driver
+ set(GENERIC_IS_ZERO ON CACHE BOOL ON FORCE)
+ 
+-add_subdirectory(compiler/llvm EXCLUDE_FROM_ALL)
++#add_subdirectory(compiler/llvm EXCLUDE_FROM_ALL)
+ 
+-find_package(LLVM REQUIRED CONFIG PATHS ${CMAKE_BINARY_DIR}/compiler/llvm NO_DEFAULT_PATH)
++find_package(LLVM REQUIRED CONFIG PATHS ${CMAKE_BINARY_DIR}/compiler/llvm)
+ 
+ list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+ include(AddLLVM)
+@@ -61,7 +61,7 @@ if(${USE_COMGR_LIBRARY} MATCHES "yes")
+   include_directories(${CMAKE_SOURCE_DIR}/compiler/llvm/include)
+   add_definitions(-DUSE_COMGR_LIBRARY)
+ else()
+-  add_subdirectory(compiler/driver EXCLUDE_FROM_ALL)
++  #add_subdirectory(compiler/driver EXCLUDE_FROM_ALL)
+ endif()
+ 
+ set(BUILD_HC_LIB OFF CACHE BOOL "")
+@@ -69,7 +69,7 @@ set(ROCM_DEVICELIB_INCLUDE_TESTS OFF CACHE BOOL "")
+ set(AMDGCN_TARGETS_LIB_LIST "AMDGCN_LIB_TARGETS")
+ set(AMDGCN_TARGETS_LIB_DEPS "AMDGCN_DEP_TARGETS")
+ set(AMDGPU_TARGET_TRIPLE "amdgcn-amd-amdhsa")
+-add_subdirectory(library/amdgcn EXCLUDE_FROM_ALL)
++#add_subdirectory(library/amdgcn EXCLUDE_FROM_ALL)
+ 
+ add_subdirectory(compiler/lib/loaders/elf/utils/libelf)
+ 
+@@ -84,26 +84,26 @@ set(OPENCL_INCLUDE_DIRS
+ add_subdirectory(api/opencl/amdocl)
+ add_subdirectory(api/opencl/khronos/icd)
+ 
+-add_subdirectory(tools/clinfo)
++#add_subdirectory(tools/clinfo)
+ 
+-install(PROGRAMS $<TARGET_FILE:clang> $<TARGET_FILE:lld>
+-        DESTINATION bin/x86_64
+-        COMPONENT libraries)
++#install(PROGRAMS $<TARGET_FILE:clang> $<TARGET_FILE:lld>
++#        DESTINATION bin/x86_64
++#        COMPONENT libraries)
+ 
+-install(PROGRAMS $<TARGET_FILE:OpenCL>
+-        DESTINATION lib/x86_64
+-        COMPONENT applications)
++#install(PROGRAMS $<TARGET_FILE:OpenCL>
++#        DESTINATION lib/x86_64
++#        COMPONENT applications)
+ 
+-install(PROGRAMS $<TARGET_LINKER_FILE:OpenCL>
+-        DESTINATION lib/x86_64
+-        COMPONENT libraries)
++#install(PROGRAMS $<TARGET_LINKER_FILE:OpenCL>
++#        DESTINATION lib/x86_64
++#        COMPONENT libraries)
+ 
+-install(DIRECTORY
+-        "${CMAKE_CURRENT_SOURCE_DIR}/api/opencl/khronos/headers/opencl2.2/CL"
+-        DESTINATION include
+-        COMPONENT libraries
+-        USE_SOURCE_PERMISSIONS
+-        PATTERN cl_egl.h EXCLUDE)
++#install(DIRECTORY
++#        "${CMAKE_CURRENT_SOURCE_DIR}/api/opencl/khronos/headers/opencl2.2/CL"
++#        DESTINATION include
++#        COMPONENT libraries
++#        USE_SOURCE_PERMISSIONS
++#        PATTERN cl_egl.h EXCLUDE)
+ 
+ foreach(AMDGCN_LIB_TARGET ${AMDGCN_LIB_TARGETS})
+   get_target_property(lib_file_name ${AMDGCN_LIB_TARGET} ARCHIVE_OUTPUT_NAME)
+diff --git a/api/opencl/amdocl/CMakeLists.txt b/api/opencl/amdocl/CMakeLists.txt
+index 642ce8c..ede10d6 100644
+--- a/api/opencl/amdocl/CMakeLists.txt
++++ b/api/opencl/amdocl/CMakeLists.txt
+@@ -73,8 +73,8 @@ add_library(amdocl64 SHARED
+   ${ADDITIONAL_LIBRARIES}
+ )
+ if(${USE_COMGR_LIBRARY} MATCHES "yes")
+-  target_link_libraries(amdocl64 oclelf pthread dl ${ROCT_LIBRARIES} ${ROCR_LIBRARIES})
++  target_link_libraries(amdocl64 oclelf pthread dl rt ${ROCT_LIBRARIES} ${ROCR_LIBRARIES})
+ else()
+-  target_link_libraries(amdocl64 opencl_driver oclelf pthread dl ${ROCT_LIBRARIES} ${ROCR_LIBRARIES})
++  target_link_libraries(amdocl64 opencl_driver oclelf pthread dl rt ${ROCT_LIBRARIES} ${ROCR_LIBRARIES})
+ endif()
+ install(TARGETS amdocl64 LIBRARY DESTINATION lib/x86_64 COMPONENT applications)
+diff --git a/api/opencl/amdocl/cl_execute.cpp b/api/opencl/amdocl/cl_execute.cpp
+index 0336353..ee799e6 100644
+--- a/api/opencl/amdocl/cl_execute.cpp
++++ b/api/opencl/amdocl/cl_execute.cpp
+@@ -10,7 +10,7 @@
+ #include "platform/program.hpp"
+ #include "os/os.hpp"
+ 
+-#include <icd/icd_dispatch.h>
++#include <icd/loader/icd_dispatch.h>
+ 
+ /*! \addtogroup API
+  *  @{
+diff --git a/api/opencl/amdocl/cl_icd.cpp b/api/opencl/amdocl/cl_icd.cpp
+index 71b886c..7e4e317 100644
+--- a/api/opencl/amdocl/cl_icd.cpp
++++ b/api/opencl/amdocl/cl_icd.cpp
+@@ -10,7 +10,7 @@
+ #include "cl_d3d11_amd.hpp"
+ #endif  //_WIN32
+ 
+-#include <icd/icd_dispatch.h>
++#include <icd/loader/icd_dispatch.h>
+ 
+ #include <mutex>
+ 
+diff --git a/runtime/device/device.hpp b/runtime/device/device.hpp
+index 9eb45b2..a721463 100644
+--- a/runtime/device/device.hpp
++++ b/runtime/device/device.hpp
+@@ -21,7 +21,7 @@
+ 
+ #if defined(WITH_LIGHTNING_COMPILER) && !defined(USE_COMGR_LIBRARY)
+ #include "caching/cache.hpp"
+-#include "driver/AmdCompiler.h"
++#include "AmdCompiler.h"
+ #endif  // defined(WITH_LIGHTNING_COMPILER) && ! defined(USE_COMGR_LIBRARY)
+ #include "acl.h"
+ 
+diff --git a/runtime/device/devprogram.cpp b/runtime/device/devprogram.cpp
+index c797f98..dc233f3 100644
+--- a/runtime/device/devprogram.cpp
++++ b/runtime/device/devprogram.cpp
+@@ -14,7 +14,7 @@
+ 
+ #if defined(WITH_LIGHTNING_COMPILER) || defined(USE_COMGR_LIBRARY)
+ #ifndef USE_COMGR_LIBRARY
+-#include "driver/AmdCompiler.h"
++#include "AmdCompiler.h"
+ #include "libraries.amdgcn.inc"
+ #include "opencl1.2-c.amdgcn.inc"
+ #include "opencl2.0-c.amdgcn.inc"
+@@ -706,7 +706,7 @@ bool Program::compileImplLC(const std::string& sourceCode,
+   driverOptions.push_back("-amdgpu-prelink");
+ 
+   if (device().settings().lcWavefrontSize64_) {
+-     driverOptions.append(" -mwavefrontsize64");
++     driverOptions.push_back("-mwavefrontsize64");
+   }
+ 
+   // Iterate through each source code and dump it into tmp
+@@ -1547,7 +1547,7 @@ bool Program::linkImplLC(amd::option::Options* options) {
+ #endif
+ 
+   if (device().settings().lcWavefrontSize64_) {
+-     codegenOptions.append(" -mwavefrontsize64");
++     codegenOptions.push_back("-mwavefrontsize64");
+   }
+ 
+   // NOTE: The params is also used to identy cached code object. This parameter
+diff --git a/runtime/device/devprogram.hpp b/runtime/device/devprogram.hpp
+index 68de7ba..8b91ba2 100644
+--- a/runtime/device/devprogram.hpp
++++ b/runtime/device/devprogram.hpp
+@@ -11,7 +11,7 @@
+ 
+ #if defined(WITH_LIGHTNING_COMPILER) || defined(USE_COMGR_LIBRARY)
+ #ifndef USE_COMGR_LIBRARY
+-#include "driver/AmdCompiler.h"
++#include "AmdCompiler.h"
+ #else
+ #include "amd_comgr.h"
+ #endif
+diff --git a/runtime/device/rocm/CMakeLists.txt b/runtime/device/rocm/CMakeLists.txt
+index 7dce5b9..fa64be7 100644
+--- a/runtime/device/rocm/CMakeLists.txt
++++ b/runtime/device/rocm/CMakeLists.txt
+@@ -81,7 +81,7 @@ endforeach()
+ # generating opencl*.inc files
+ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/opencl1.2-c.amdgcn.pch
+   COMMAND clang -cc1 -x cl-header -triple amdgcn-amd-amdhsa -Werror -O3 -DNDEBUG -cl-std=CL1.2 -emit-pch -o ${CMAKE_CURRENT_BINARY_DIR}/opencl1.2-c.amdgcn.pch < ${CMAKE_SOURCE_DIR}/compiler/llvm/tools/clang/lib/Headers/opencl-c.h
+-  DEPENDS clang ${CMAKE_SOURCE_DIR}/compiler/llvm/tools/clang/lib/Headers/opencl-c.h
++  DEPENDS ${CMAKE_SOURCE_DIR}/compiler/llvm/tools/clang/lib/Headers/opencl-c.h
+   COMMENT "Generating opencl1.2-c.amdgcn.pch"
+ )
+ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/opencl1.2-c.amdgcn.inc
+@@ -95,7 +95,7 @@ add_dependencies(oclrocm opencl1.2-c.amdgcn.inc_target)
+ 
+ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/opencl2.0-c.amdgcn.pch
+   COMMAND clang -cc1 -x cl-header -triple amdgcn-amd-amdhsa -Werror -O3 -DNDEBUG -cl-std=CL2.0 -emit-pch -o ${CMAKE_CURRENT_BINARY_DIR}/opencl2.0-c.amdgcn.pch < ${CMAKE_SOURCE_DIR}/compiler/llvm/tools/clang/lib/Headers/opencl-c.h
+-  DEPENDS clang ${CMAKE_SOURCE_DIR}/compiler/llvm/tools/clang/lib/Headers/opencl-c.h
++  DEPENDS ${CMAKE_SOURCE_DIR}/compiler/llvm/tools/clang/lib/Headers/opencl-c.h
+   COMMENT "Generating opencl2.0-c.amdgcn.pch"
+ )
+ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/opencl2.0-c.amdgcn.inc
+diff --git a/runtime/device/rocm/rocdevice.cpp b/runtime/device/rocm/rocdevice.cpp
+index 4cba9d7..7ab30ed 100644
+--- a/runtime/device/rocm/rocdevice.cpp
++++ b/runtime/device/rocm/rocdevice.cpp
+@@ -20,7 +20,7 @@
+ #include "device/rocm/rocvirtual.hpp"
+ #include "device/rocm/rocprogram.hpp"
+ #if defined(WITH_LIGHTNING_COMPILER) && ! defined(USE_COMGR_LIBRARY)
+-#include "driver/AmdCompiler.h"
++#include "AmdCompiler.h"
+ #endif  // defined(WITH_LIGHTNING_COMPILER) && ! defined(USE_COMGR_LIBRARY)
+ #include "device/rocm/rocmemory.hpp"
+ #include "device/rocm/rocglinterop.hpp"
+diff --git a/runtime/device/rocm/rockernel.cpp b/runtime/device/rocm/rockernel.cpp
+index 8a28acc..7d5b62d 100644
+--- a/runtime/device/rocm/rockernel.cpp
++++ b/runtime/device/rocm/rockernel.cpp
+@@ -11,7 +11,7 @@
+ 
+ #if defined(WITH_LIGHTNING_COMPILER) || defined(USE_COMGR_LIBRARY)
+ #ifndef USE_COMGR_LIBRARY
+-#include "driver/AmdCompiler.h"
++#include "AmdCompiler.h"
+ #endif
+ #include "llvm/Support/AMDGPUMetadata.h"
+ 
+diff --git a/runtime/device/rocm/rocprogram.cpp b/runtime/device/rocm/rocprogram.cpp
+index 191e58c..58d82e6 100644
+--- a/runtime/device/rocm/rocprogram.cpp
++++ b/runtime/device/rocm/rocprogram.cpp
+@@ -11,7 +11,7 @@
+ #include <gelf.h>
+ #include "libraries.amdgcn.inc"
+ #ifndef USE_COMGR_LIBRARY
+-#include "driver/AmdCompiler.h"
++#include "AmdCompiler.h"
+ #endif
+ #endif  // defined(WITH_LIGHTNING_COMPILER) || defined(USE_COMGR_LIBRARY)
+ 
+diff --git a/runtime/platform/object.hpp b/runtime/platform/object.hpp
+index 8ab1b68..b33a9e3 100644
+--- a/runtime/platform/object.hpp
++++ b/runtime/platform/object.hpp
+@@ -9,7 +9,7 @@
+ #include "os/alloc.hpp"
+ #include "thread/monitor.hpp"
+ #include "utils/util.hpp"
+-#include <icd/icd_dispatch.h>
++#include <icd/loader/icd_dispatch.h>
+ 
+ 
+ #define KHR_CL_TYPES_DO(F)                                                                         \

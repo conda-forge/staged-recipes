@@ -1,0 +1,66 @@
+{% set name = "rocm-opencl-runtime" %}
+{% set version = "2.7.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/RadeonOpenCompute/ROCm-OpenCL-Runtime/archive/roc-{{ version }}.tar.gz
+    sha256: 791f361dc174d82452af2a697508620ac51d66afc18d5d1d54a22c7d2a6544d0
+    patches:
+      - use_packages.diff
+
+  - url: https://github.com/KhronosGroup/OpenCL-ICD-Loader/archive/978b4b3a29a3aebc86ce9315d5c5963e88722d03.zip
+    sha256: 6c79fddd59e92182d7bc9048415b51e60e49f952b11eeffd69cccb3081359f78
+    folder: api/opencl/khronos/icd
+
+build:
+  number: 0
+  skip: True  # [not linux]
+  merge_build_host: True
+  ignore_run_exports:
+    - ocl-icd
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - make
+    - {{ cdt('mesa-libgl-devel') }}
+    - {{ cdt('libx11-devel') }}
+    - {{ cdt('xorg-x11-proto-devel') }}
+    - {{ cdt('numactl-devel') }}
+    - {{ cdt('pciutils-devel') }}
+  host:
+    - clangdev 9.*
+    - llvmdev 9.*
+    - lld
+    - ocl-icd
+    - rocm-device-libs {{ version }}
+    - rocm-opencl-driver {{ version }}
+    - roct-thunk-interface {{ version }}
+    - rocr-runtime {{ version }}
+    - rocm-comgr {{ version }}
+    - elfutils
+  run:
+    - roct-thunk-interface {{ version }}
+    - rocr-runtime {{ version }}
+    - rocm-comgr {{ version }}
+
+test:
+  commands:
+    - test -f $PREFIX/etc/OpenCL/vendors/amdocl64.icd
+    - test -f $PREFIX/lib/x86_64/libamdocl64.so
+
+about:
+  home: https://github.com/RadeonOpenCompute/ROCm-OpenCL-Runtime
+  license: MIT
+  license_family: MIT
+  license_file: License
+  summary: 'ROCm OpenCL Compatible Runtime'
+
+extra:
+  recipe-maintainers:
+    - isuruf
