@@ -9,6 +9,7 @@ cd build
 
 export CC=$PREFIX/bin/clang
 export CXX=$PREFIX/bin/clang++
+export CONDA_BUILD_SYSROOT=$PREFIX/$HOST/sysroot
 
 cmake \
   -DLLVM_DIR=$PREFIX \
