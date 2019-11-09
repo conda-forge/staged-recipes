@@ -1,6 +1,8 @@
 mkdir build
 cd build
 
+set "CXXFLAGS=-MD"
+
 cmake ^
     -G "Ninja" ^
     -DCMAKE_C_COMPILER=clang-cl ^
