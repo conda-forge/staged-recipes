@@ -1,0 +1,69 @@
+{% set name = "hcc" %}
+{% set version = "2.7.2" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/RadeonOpenCompute/hcc/archive/roc-hcc-{{ version }}.tar.gz
+  sha256: 335be7fb125bdc3c6ee2367f584b7a82f312a9ed4723361df101036fdc9fde22
+  patches:
+    - unbundle_dependencies.diff
+
+build:
+  number: 0
+  skip: True  # [not linux]
+  merge_build_host: True
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ cdt('numactl-devel') }}
+    - {{ cdt('pciutils-devel') }}
+    - cmake
+    - make
+  host:
+    - rocr-runtime         {{ ".".join(version.split(".")[:2]) }}
+    - rocm-device-libs     {{ ".".join(version.split(".")[:2]) }}
+    - roct-thunk-interface {{ ".".join(version.split(".")[:2]) }}
+    - clangxx 9.0.* hcc*
+    - clang-tools
+    - llvmdev
+    - lld
+    - compiler-rt
+  run:
+    - {{ pin_compatible("rocr-runtime", max_pin="x.x") }}
+    - {{ pin_compatible("roct-thunk-interface", max_pin="x.x") }}
+    - {{ pin_compatible("rocm-device-libs", max_pin="x.x") }}
+    - {{ pin_compatible("clang", max_pin="x.x.x") }}
+    - clangxx * hcc*
+    - clang-tools
+    - llvmdev
+    - lld
+    - compiler-rt
+
+test:
+  requires:
+    - {{ compiler('cxx') }}
+    - {{ cdt('numactl-devel') }}
+    - {{ cdt('pciutils-devel') }}
+  files:
+    - saxpy.cpp
+  commands:
+    - $PREFIX/bin/hcc --version
+    - $PREFIX/bin/hcc-config --help
+    - export CONDA_BUILD_SYSROOT=$PREFIX/$HOST/sysroot
+    - hcc `hcc-config --cxxflags --ldflags` saxpy.cpp
+
+about:
+  home: https://github.com/RadeonOpenCompute/hcc
+  license: NCSA
+  license_family: MIT
+  license_file: LICENSE.TXT
+  summary: 'HCC is an Open Source, Optimizing C++ Compiler for Heterogeneous Compute currently for the ROCm GPU Computing Platform'
+
+extra:
+  recipe-maintainers:
+    - isuruf
