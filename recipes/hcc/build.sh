@@ -10,6 +10,7 @@ cd build
 export CXX=clang++
 export CC=clang
 export CONDA_BUILD_SYSROOT=$PREFIX/$HOST/sysroot
+export CXXFLAGS="$CXXFLAGS -v"
 
 #TODO: Fix the following hack with a patch
 ln -s $COMPILER_RT_LIB $PREFIX/lib/
