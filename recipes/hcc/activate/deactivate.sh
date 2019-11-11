@@ -1,0 +1,5 @@
+export ROCM_ROOT=$ROCM_ROOT_CONDA_BACKUP
+unset ROCM_ROOT_CONDA_BACKUP
+if [ -z $ROCM_ROOT ]; then
+    unset ROCM_ROOT
+fi
