@@ -1,6 +1,14 @@
 {% set version = "1.2.1" %}
 {% set build = 0 %}
 
+{% set processor = processor or 'cpu' %}
+
+{% if processor == "cpu" %}
+# prioritize CPU version via build number
+{% set build = build + 100 %}
+{% endif %}
+
+
 package:
   name: prismatic_split
   version: {{ version }}
@@ -10,42 +18,27 @@ source:
   sha256: 844f659575dd98999b7c4864e850a7ec735f297ab1fb6c2d2be91d7f9720fe70 
 
 build:
+  skip: True     # [win]
   number: {{ build }}
-  skip: True             # [win]
-
-requirements:
-  build:
-    - {{ compiler('c') }}                
-    - {{ compiler('cxx') }}              
-    - {{ cdt('libxext-devel') }}         # [linux]
-    - {{ cdt('mesa-libgl-devel') }}      # [linux]
-    - {{ cdt('mesa-dri-drivers') }}      # [linux]
-    - {{ cdt('libxau-devel') }}          # [linux]
-    - {{ cdt('libselinux-devel') }}      # [linux]
-    - {{ cdt('libxdamage') }}            # [linux]
-    - {{ cdt('libxfixes') }}             # [linux]
-    - {{ cdt('libxxf86vm') }}            # [linux]
-    - make                               # [unix]
-    - cmake
-  host:
-    - boost
-    - hdf5
-    - fftw
-    - qt 5.9.*
-    - h5py
-    - zlib
-  run:
-    - zlib
-    - libcxx   # [osx]
-
+  string: "{{processor}}_h{{ PKG_HASH }}_{{ build }}"
 
 outputs:
   - name: prismatic
     build:
+      number: {{ build }}
+      skip: True     # [win]
+      string: "{{processor}}_h{{ PKG_HASH }}_{{ build }}"
+    requirements:
+      run:
+        - {{ pin_subpackage('prismatic_cli', exact=True) }}
+        - {{ pin_subpackage('prismatic_gui', exact=True) }}
+        - {{ pin_subpackage('pyprismatic', exact=True) }}
+
+  - name: prismatic_cli
+    build:
       skip: True      # [win]
-      run_exports:
-        - {{ pin_subpackage('prismatic', max_pin='x.x.x') }}
-    script: install.sh # [not win]
+      string: "{{processor}}_h{{ PKG_HASH }}_{{ build }}"
+    script: install-cli.sh # [not win]
 
     requirements:
       build:
@@ -81,8 +74,7 @@ outputs:
   - name: prismatic_gui
     build:
       skip: True      # [win]
-      run_exports:
-        - {{ pin_subpackage('prismatic_gui', max_pin='x.x.x') }}
+      string: "{{processor}}_h{{ PKG_HASH }}_{{ build }}"
     script: install-gui.sh # [not win]
 
     requirements:
@@ -110,6 +102,43 @@ outputs:
         - zlib
         - libcxx   # [osx]
       
+
+  - name: pyprismatic
+    build:
+      skip: True      # [win]
+      string: "{{processor}}_h{{ PKG_HASH }}_{{ build }}"
+    script: install-py.sh # [not win]
+
+    requirements:
+      build:
+        - python
+        - pip
+        - {{ compiler('c') }}                
+        - {{ compiler('cxx') }}              
+        - {{ cdt('libxext-devel') }}         # [linux]
+        - {{ cdt('mesa-libgl-devel') }}      # [linux]
+        - {{ cdt('mesa-dri-drivers') }}      # [linux]
+        - {{ cdt('libxau-devel') }}          # [linux]
+        - {{ cdt('libselinux-devel') }}      # [linux]
+        - {{ cdt('libxdamage') }}            # [linux]
+        - {{ cdt('libxfixes') }}             # [linux]
+        - {{ cdt('libxxf86vm') }}            # [linux]
+        - make                               # [unix]
+        - cmake
+      host:
+        - python
+        - boost
+        - hdf5
+        - fftw
+        - qt 5.9.*
+        - h5py
+        - zlib
+      run:
+        - python
+        - zlib
+        - libcxx   # [osx]
+
+
 
 about:
   home: http://prism-em.com/
