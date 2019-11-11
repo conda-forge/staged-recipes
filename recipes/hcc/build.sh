@@ -4,8 +4,8 @@ COMPILER_RT_LIB=$(ls $PREFIX/lib/clang/*/lib/*/libclang_rt.builtins*.a)
 COMPILER_RT_LIB_DIR=$(dirname $COMPILER_RT_LIB)
 echo "#define CMAKE_BUILD_COMPILER_RT_LIB_DIR \"$COMPILER_RT_LIB_DIR\"" >>  hcc_config/hcc_config.hxx.in
 
-sed -i -r "s/^([ ]*)ld /\1\${LD:-ld}/g" lib/clamp-link.in
-sed -i -r "s/^([ ]*)ld /\1\${LD:-ld}/g" lib/hc-kernel-assemble.in
+sed -i -r "s/^([ ]*)ld /\1\${LD:-ld} /g" lib/clamp-link.in
+sed -i -r "s/^([ ]*)ld /\1\${LD:-ld} /g" lib/hc-kernel-assemble.in
 
 mkdir build
 cd build
