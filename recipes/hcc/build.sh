@@ -4,7 +4,7 @@ COMPILER_RT_LIB=$(ls $PREFIX/lib/clang/*/lib/*/libclang_rt.builtins*.a)
 COMPILER_RT_LIB_DIR=$(dirname $COMPILER_RT_LIB)
 echo "#define CMAKE_BUILD_COMPILER_RT_LIB_DIR \"$COMPILER_RT_LIB_DIR\"" >>  hcc_config/hcc_config.hxx.in
 
-sed -i "s/^ld /\$LLD /g" lib/clamp-link.in
+ln -sf $(which $LD) $PREFIX/bin/ld
 
 mkdir build
 cd build
@@ -29,6 +29,8 @@ cp compiler/bin/* $PREFIX/bin/
 
 make VERBOSE=1 -j${CPU_COUNT}
 make install
+
+rm $PREFIX/bin/ld
 
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
 # This will allow them to be run on environment activation.
