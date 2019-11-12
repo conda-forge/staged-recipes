@@ -19,6 +19,7 @@ cmake \
   -DZLIB_INCLUDE_DIR=$PREFIX/include \
   -DEXPAT_LIBRARY=$PREFIX/lib/expat${SHLIB_EXT} \
   -DEXPAT_INCLUDE_DIR=$PREFIX/include \
+  -DNIFTI_BUILD_TESTING=OFF \
   $SRC_DIR
 
 make install
