@@ -1,5 +1,7 @@
 #!/bin/bash
 
+python -m pip install . -vv
+
 mkdir build
 cd build
 
