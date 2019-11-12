@@ -1,0 +1,78 @@
+
+{% set version = '0.3.5' %}
+{% set sha256 = '37dea2c6d3af4d4b56c6487f4017771a6d408f62aad29ef083baafd59cc1b2ce' %}
+
+{% set build = 0 %}
+
+{% set mpi = mpi or 'nompi' %}
+
+{% if mpi == 'nompi' %}
+{% set mpi_prefix = "nompi" %}
+{% else %}
+{% set mpi_prefix = "mpi_" + mpi %}
+{% endif %}
+
+{% if mpi == 'nompi' %}
+{% set build = build + 100 %}
+{% endif %}
+
+package:
+  name: tidas
+  version: {{ version }}
+
+source:
+  url: https://github.com/hpc4cmb/tidas/archive/{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  skip: True  # [py<34]
+  skip: True  # [win]
+  number: {{ build }}
+  string: "{{ mpi_prefix }}_py{{ py }}h{{ PKG_HASH }}_{{ build }}"
+  run_exports:
+    - tidas * {{ mpi_prefix }}_*
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+  host:
+    - {{ mpi }}  # [mpi != 'nompi']
+    - python
+    - hdf5
+    - hdf5 * nompi_*
+    - mpi4py  # [mpi != 'nompi']
+  run:
+    - {{ mpi }}  # [mpi != 'nompi']
+    - python
+    - hdf5
+    - mpi4py  # [mpi != 'nompi']
+    - numpy
+
+test:
+  files:
+    - test_installed.py
+  imports:
+    - tidas
+    - tidas.mpi  # [mpi != 'nompi']
+  commands:
+    - ls $PREFIX/lib  # [not win]
+    - test -f $PREFIX/lib/libtidas${SHLIB_EXT}  # [not win]
+    - dir %PREFIX%\\Library\\lib  # [win]
+    - if not exist %PREFIX%\\Library\\lib\\tidas.dll exit 1  # [win]
+
+about:
+  home: https://github.com/hpc4cmb/tidas
+  license: BSD-2-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: 'TImestream DAta Storage'
+  description: |
+    TIDAS is a middleware interface to allow organizing, querying,
+    replicating, and doing I/O on collections of timestreams.
+  dev_url: https://github.com/hpc4cmb/tidas
+
+extra:
+  recipe-maintainers:
+    - tskisner
