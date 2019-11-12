@@ -4,7 +4,8 @@ export CC=$PREFIX/bin/clang
 export CXX=$PREFIX/bin/clang++
 export CONDA_BUILD_SYSROOT=$PREFIX/$HOST/sysroot
 
-cp bin/hipconfig $PREFIX/bin/
+sed -i '1c#!/usr/bin/env perl' bin/hipconfig
+sed -i 's/if(${RUN_HIT} EQUAL 0)/if(FALSE)/g' CMakeLists.txt
 
 mkdir build
 cd build
