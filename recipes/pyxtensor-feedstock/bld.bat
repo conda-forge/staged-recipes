@@ -4,7 +4,7 @@ python -m pip install . -vv
 mkdir build
 cd build
 
-cmake -G"Ninja" ^
+cmake -G"NMake Makefiles" ^
   -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
   -DCMAKE_PREFIX_PATH:PATH="%LIBRARY_PREFIX%" ^
   -DCMAKE_BUILD_TYPE:STRING=Release ^
