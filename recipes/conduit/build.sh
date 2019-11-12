@@ -13,11 +13,11 @@ else
 fi
 
 # configure with cmake
-cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}"\
+cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DENABLE_PYTHON=ON \
       -DENABLE_FORTRAN=ON \
-      -DENABLE_MPI="${ENABLE_MPI}" \
-      -DPYTHON_MODULE_INSTALL_PREFIX="${SP_DIR}"\
+      -DENABLE_MPI=$ENABLE_MPI \
+      -DPYTHON_MODULE_INSTALL_PREFIX=${SP_DIR} \
       -DHDF5_DIR=${CONDA_PREFIX} \
       ../src
 
