@@ -1,3 +1,3 @@
 #!/bin/bash
-${PYTHON} -m pip install -vv .;
+${PYTHON} setup.py install;
 ${PYTHON} setup.py test;
