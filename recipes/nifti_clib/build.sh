@@ -16,7 +16,7 @@ cmake \
   -DUSE_CIFTI_CODE=ON \
   -DUSE_NIFTI2_CODE=ON \
   -DZLIB_LIBRARY=$PREFIX/lib/libz${SHLIB_EXT} \
-  -DZLIB_INCLUDE_DIR=$PREFIX/include
+  -DZLIB_INCLUDE_DIR=$PREFIX/include \
   $SRC_DIR
 
 make install
