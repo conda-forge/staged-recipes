@@ -17,8 +17,8 @@ cmake \
   -DUSE_NIFTI2_CODE=ON \
   -DZLIB_LIBRARY=$PREFIX/lib/libz${SHLIB_EXT} \
   -DZLIB_INCLUDE_DIR=$PREFIX/include \
-  -DZEXPAT_LIBRARY=$PREFIX/lib/expat${SHLIB_EXT} \
-  -DZEXPAT_INCLUDE_DIR=$PREFIX/include \
+  -DEXPAT_LIBRARY=$PREFIX/lib/expat${SHLIB_EXT} \
+  -DEXPAT_INCLUDE_DIR=$PREFIX/include \
   $SRC_DIR
 
 make install
