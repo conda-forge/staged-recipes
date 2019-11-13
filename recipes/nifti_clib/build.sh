@@ -1,2 +1,2 @@
 #!/bin/sh
-make nifti
+make CC=${CC} nifti
