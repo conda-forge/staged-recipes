@@ -1,46 +1,36 @@
 {% set goname = "github.com/jaegertracing/jaeger" %}
-{% set version = "1.14.0" %}
-
+{% set version = "1.15.1" %}
 {% set name = goname.split('/')[-1] %}
-{% set pkg_src = ('src/'+goname).replace("/",os.sep) %}
+{% set pkg_src = ('src/' + goname).replace("/", os.sep) %}
+
+{% set goname_ui = "github.com/jaegertracing/jaeger-ui" %}
+{% set version_ui = "1.5.0" %}
+{% set pkg_src_ui = ('src/' + goname + '/jaeger-ui').replace("/", os.sep) %}
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  # We must use git here beause the program looks
-  # for the git sha&tag to determine its version
   - folder: {{ pkg_src }}
-    url: https://{{ goname }}/archive/v{{version}}.tar.gz
-    sha256: 65c39e068cfb23f67529b75617202adca5ab41668942ae91fee14056b7657620 
-
+    url: https://{{ goname }}/archive/v{{ version }}.tar.gz
+    sha256: 336ff67418b4e0abbf53c61cb29b14ef7ff21ecc641f9b91fdda71301969bd5d
+    patches:
+      - git.patch
+  - folder: {{ pkg_src_ui }}
+    url: https://{{ goname_ui }}/archive/v{{ version_ui }}.tar.gz
+    sha256: bc6c3864591b563e96362769e6ae2f4607eec78fa11e5df5953ba4731dbfbcfb
 
 build:
   number: 0
-  script:
-    - set -x
-    - pushd {{ pkg_src }}
-    - git submodule update --init --recursive
-    - dep ensure
-    - make install-tools
-    - make build-ui
-    - make build-bbinaries-darwin  # [osx]
-    - make build-binaries-linux  # [linux]
-    - make build-binaries-windows  # [win]
-    - "mkdir -vp ${PREFIX}/bin"
-    - "cp -v cmd/all-in-one/all-in-one-* ${PREFIX}/bin/all-in-one"
-    - "cp -v cmd/agent/agent-* ${PREFIX}/bin/agent"
-    - "cp -v cmd/query/query-* ${PREFIX}/bin/query"
-    - "cp -v cmd/collector/collector-* ${PREFIX}/bin/collector"
-    - "cp -v cmd/ingester/ingester-* ${PREFIX}/bin/ingester"
-    - "cp -v examples/hotrod/hotrod-* ${PREFIX}/bin/hotrod"
-    - "chmod -v 755 ${PREFIX}/bin/*"
-
+  binary_relocation: False
+  skip: True  # [win]
 
 requirements:
   build:
     - {{ compiler('go') }}
+    - make
+  host:
     - go-dep
     - nodejs
     - yarn
@@ -66,3 +56,4 @@ about:
 extra:
   recipe-maintainers:
     - saulshanabrook
+    - goanpeca
