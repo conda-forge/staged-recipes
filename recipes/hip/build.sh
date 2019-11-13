@@ -4,7 +4,9 @@ export CC=$PREFIX/bin/clang
 export CXX=$PREFIX/bin/clang++
 export CONDA_BUILD_SYSROOT=$PREFIX/$HOST/sysroot
 
-sed -i '1c#!/usr/bin/env perl' bin/hipconfig
+for f in hipconfig hipcc hipify-cmakefile hipify-perl; do
+    sed -i '1c#!/usr/bin/env perl' bin/$f;
+done
 sed -i 's/if(${RUN_HIT} EQUAL 0)/if(FALSE)/g' CMakeLists.txt
 
 mkdir build
