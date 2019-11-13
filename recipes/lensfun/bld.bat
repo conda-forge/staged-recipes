@@ -1,8 +1,12 @@
-mkdir build && cd build
+@echo on
+set BUILD_DIR=%SRC_DIR%\b
+mkdir %BUILD_DIR%
+cd %BUILD_DIR%
+
+echo "%SRC_DIR%"
 
 set CMAKE_CONFIG="Release"
 set LD_LIBRARY_PATH=%LIBRARY_LIB%
-SET VS90COMNTOOLS=%VS100COMNTOOLS%
 
 cmake -G "%CMAKE_GENERATOR%" ^
       -D CMAKE_BUILD_TYPE="%CMAKE_CONFIG%" ^
