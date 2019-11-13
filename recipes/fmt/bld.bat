@@ -9,7 +9,6 @@ cmake -G"NMake Makefiles" ^
   -DFMT_TEST:BOOL=OFF ^
   -DFMT_DOC:BOOL=OFF ^
   -DFMT_INSTALL:BOOL=ON ^
-  -DCMAKE_CXX_STANDARD:STRING=14 ^
   ..
 if errorlevel 1 exit 1
 
