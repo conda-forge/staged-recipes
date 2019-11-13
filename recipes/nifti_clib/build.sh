@@ -1,8 +1,5 @@
 #!/bin/sh
-CFLAGS=-I$PREFIX/include make \
-CC=${CC} \
-ZLIB_LIBRARY=$PREFIX/lib/libz${SHLIB_EXT} \
-ZLIB_INCLUDE_DIR=$PREFIX/include \
-EXPAT_LIBRARY=$PREFIX/lib/expat${SHLIB_EXT} \
-EXPAT_INCLUDE_DIR=$PREFIX/include \
-nifti
+export CFLAGS="$CFLAGS -I$PREFIX/include"
+export LDFLAGS="$LDFLAGS -L$PREFIX/lib"
+export CPATH=${PREFIX}/include
+make CC=${CC} nifti
