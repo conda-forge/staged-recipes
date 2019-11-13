@@ -1,5 +1,5 @@
 #!/bin/sh
-make \
+CFLAGS=-I$PREFIX/include make \
 CC=${CC} \
 ZLIB_LIBRARY=$PREFIX/lib/libz${SHLIB_EXT} \
 ZLIB_INCLUDE_DIR=$PREFIX/include \
