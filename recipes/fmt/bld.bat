@@ -9,6 +9,7 @@ cmake -G"NMake Makefiles" ^
   -DFMT_TEST=OFF ^
   -DFMT_DOC=OFF ^
   -DFMT_INSTALL=ON ^
+  -DCMAKE_CXX_STANDARD=14 \
   ..
 if errorlevel 1 exit 1
 
