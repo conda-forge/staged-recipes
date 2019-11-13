@@ -2,6 +2,7 @@ mkdir build && cd build
 
 set CMAKE_CONFIG="Release"
 set LD_LIBRARY_PATH=%LIBRARY_LIB%
+SET VS90COMNTOOLS=%VS100COMNTOOLS%
 
 cmake -G "%CMAKE_GENERATOR%" ^
       -D CMAKE_BUILD_TYPE="%CMAKE_CONFIG%" ^
