@@ -1,15 +1,11 @@
-pushd . && mkdir build && cd build
-if errorlevel 1 exit 1
+mkdir build && cd build
 
-cmake -G "%CMAKE_GENERATOR%" ^
-    -D CMAKE_BUILD_TYPE=Release ^
-    -D CMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
-    -D CMAKE_INSTALL_PREFIX:PATH=%LIBRARY_PREFIX% ^
-    %SRC_DIR%
+cmake -G "NMake Makefiles" ^
+      -DCMAKE_BUILD_TYPE=Release ^
+      -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
+      -DCMAKE_INSTALL_PREFIX:PATH=%LIBRARY_PREFIX% ^
+      ..
 if errorlevel 1 exit 1
 
 cmake --build . --config Release --target install
-if errorlevel 1 exit 1
-
-popd && rd /q /s build
 if errorlevel 1 exit 1
