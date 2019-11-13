@@ -1,5 +1,7 @@
 #!/bin/sh
-export CFLAGS="$CFLAGS -I$PREFIX/include"
-export LDFLAGS="$LDFLAGS -L$PREFIX/lib"
-export CPATH=${PREFIX}/include
-make CC=${CC} nifti
+make \
+  CFLAGS="$CFLAGS -I$PREFIX/include" \ 
+  LDFLAGS="$LDFLAGS -L$PREFIX/lib" \ 
+  CPATH="${PREFIX}/include" \
+  CC=${CC} \
+  nifti
