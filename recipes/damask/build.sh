@@ -1,5 +1,4 @@
 export PETSC_DIR=${PREFIX}
-export LDFLAGS="$LDFLAGS -Wl,-rpath-link,$PREFIX/lib"
 
 # System report 
 bash DAMASK_prerequisites.sh
@@ -11,5 +10,5 @@ cp -r python/damask ${STDLIB_DIR}
 # Build Damask
 mkdir build
 cd build 
-cmake -DDAMASK_SOLVER="SPECTRAL" ..
+cmake -DDAMASK_SOLVER="SPECTRAL" -DLINKER_FLAGS=${LDFLAGS} ..
 make install
