@@ -10,5 +10,5 @@ cp -r python/damask ${STDLIB_DIR}
 # Build Damask
 mkdir build
 cd build 
-cmake -DDAMASK_SOLVER="SPECTRAL" -DLINKER_FLAGS=${LDFLAGS} ..
+cmake -DDAMASK_SOLVER="SPECTRAL" ..
 make install
