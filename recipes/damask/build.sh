@@ -1,7 +1,7 @@
 export PETSC_DIR=${PREFIX}
 mkdir build
 cd build 
-cmake ..
+cmake -DDAMASK_SOLVER="SPECTRAL" ..
 make spectral
 make install
 echo ${STDLIB_DIR}
