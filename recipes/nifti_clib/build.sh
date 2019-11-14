@@ -1,4 +1,6 @@
 #!/bin/sh
-make CFLAGS="-I$PREFIX/include -L${PREFIX}/lib" LDFLAGS=-L${PREFIX}/lib CC=${CC} all
+export CFLAGS="$CFLAGS -I$PREFIX/include -L${PREFIX}/lib"
+export LDFLAGS="$LDFLAGS -L$PREFIX/lib"
+make CC=${CC} CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" all
 mv include/* ${PREFIX}/include/
 mv lib/* ${PREFIX}/lib/
