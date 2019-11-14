@@ -5,6 +5,6 @@ NOCONFIGURE=1 ./bootstrap.sh
   --disable-systemd-daemon \
   --disable-systemd-login \
   --disable-systemd-login
-make -j ${CPU_COUNT} install
-XFAIL_TESTS="core-util-test" make check
-#make install
+make -j ${CPU_COUNT}
+XFAIL_TESTS="core-util-test thread-mainloop-test" make check
+make install
