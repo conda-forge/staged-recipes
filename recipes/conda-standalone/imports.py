@@ -1,4 +1,4 @@
-# these help pyinstaller find all the stuff it needs.  Add your packages to generate more specific imports.
+# These help pyinstaller find all the stuff it needs.  Add your packages to generate more specific imports.
 
 import glob
 import os
