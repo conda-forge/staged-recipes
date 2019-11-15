@@ -11,13 +11,8 @@ export CXXFLAGS="`echo $CXXFLAGS | sed 's/-fPIC//'`"
 #       https://github.com/omnisci/omniscidb/issues/374
 export CXXFLAGS="$CXXFLAGS -Dsecure_getenv=getenv"
 
-# Fixes `undefined reference to
-# `boost::system::detail::system_category_instance'`:
-#export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
-
 # Remove --as-needed to resolve undefined reference to `__vdso_clock_gettime@GLIBC_PRIVATE'
 export LDFLAGS="`echo $LDFLAGS | sed 's/-Wl,--as-needed//'`"
-#export LDFLAGS="$LDFLAGS -lresolv -pthread -lrt"
 
 export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCMAKE_C_COMPILER=${CC} -DCMAKE_CXX_COMPILER=${CXX}"
 export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME"
@@ -54,6 +49,12 @@ make install
 if [ "`ldd bin/initdb | grep "not found" | tr -d '[:space:]'`" == "libcuda.so.1=>notfound" ]; then
     echo "SKIP RUNNING SANITY TESTS: libcuda.so.1 not found"
 else
+    # Omnisci UDF support uses CLangTool for parsing Load-time UDF C++
+    # code to AST. If the C++ code uses C++ std headers, we need to
+    # specify the locations of include directories:
+    . ${RECIPE_DIR}/get_cxx_include_path.sh
+    export CPLUS_INCLUDE_PATH=$(get_cxx_include_path)
+
     # Running sanity tests requires CUDA enabled system with GPU(s).
     mkdir tmp
     $PREFIX/bin/initdb tmp
