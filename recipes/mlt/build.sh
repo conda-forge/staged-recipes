@@ -5,5 +5,5 @@ set -ex
   --without-kde
 
 make
-make check
+# no make check
 make install
