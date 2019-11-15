@@ -13,14 +13,12 @@ export CXXFLAGS="$CXXFLAGS -Dsecure_getenv=getenv"
 
 # Fixes `undefined reference to
 # `boost::system::detail::system_category_instance'`:
-export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+#export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
 
 # Remove --as-needed to resolve undefined reference to `__vdso_clock_gettime@GLIBC_PRIVATE'
 export LDFLAGS="`echo $LDFLAGS | sed 's/-Wl,--as-needed//'`"
-export LDFLAGS="$LDFLAGS -lresolv -pthread -lrt"
+#export LDFLAGS="$LDFLAGS -lresolv -pthread -lrt"
 
-export CC=${PREFIX}/bin/clang
-export CXX=${PREFIX}/bin/clang++
 export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCMAKE_C_COMPILER=${CC} -DCMAKE_CXX_COMPILER=${CXX}"
 export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME"
 
