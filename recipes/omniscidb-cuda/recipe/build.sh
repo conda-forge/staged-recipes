@@ -11,6 +11,14 @@ export CXXFLAGS="`echo $CXXFLAGS | sed 's/-fPIC//'`"
 #       https://github.com/omnisci/omniscidb/issues/374
 export CXXFLAGS="$CXXFLAGS -Dsecure_getenv=getenv"
 
+# Fixes `error: expected ')' before 'PRIxPTR'`
+export CXXFLAGS="$CXXFLAGS -D__STDC_FORMAT_MACROS"
+
+# resolves `fatal error: boost/regex.hpp: No such file or directory`
+echo -e "#!/bin/sh\n$(which nvcc || omniscidb_build_sh_could_not_find_nvcc) -I$PREFIX/include \$@" > $PWD/nvcc
+chmod +x $PWD/nvcc
+export PATH=$PWD:$PATH
+
 # Remove --as-needed to resolve undefined reference to `__vdso_clock_gettime@GLIBC_PRIVATE'
 export LDFLAGS="`echo $LDFLAGS | sed 's/-Wl,--as-needed//'`"
 
@@ -28,7 +36,7 @@ cd build
 
 cmake -Wno-dev \
     -DCMAKE_PREFIX_PATH=$PREFIX \
-    -DCMAKE_INSTALL_PREFIX=$PREFIX \
+    -DCMAKE_INSTALL_PREFIX=$PREFIX/opt/omnisci \
     -DCMAKE_BUILD_TYPE=release \
     -DMAPD_DOCS_DOWNLOAD=off \
     -DENABLE_AWS_S3=off \
@@ -42,8 +50,6 @@ cmake -Wno-dev \
     ..
 
 make -j $CPU_COUNT
-
-make install
 
 # skip tests when libcuda.so is not available
 if [ "`ldd bin/initdb | grep "not found" | tr -d '[:space:]'`" == "libcuda.so.1=>notfound" ]; then
@@ -62,5 +68,10 @@ else
     rm -rf tmp
 fi
 
-# copy initdb to mapd_initdb to avoid conflict with psql initdb
-cp $PREFIX/bin/initdb $PREFIX/bin/omnisci_initdb
+make install
+
+for CHANGE in "activate" "deactivate"
+do
+    mkdir -p "${PREFIX}/etc/conda/${CHANGE}.d"
+    cp "${RECIPE_DIR}/${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.sh"
+done
