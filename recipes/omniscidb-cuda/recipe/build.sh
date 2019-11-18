@@ -14,9 +14,6 @@ export CXXFLAGS="$CXXFLAGS -Dsecure_getenv=getenv"
 # Fixes `error: expected ')' before 'PRIxPTR'`
 export CXXFLAGS="$CXXFLAGS -D__STDC_FORMAT_MACROS"
 
-# resolves `fatal error: boost/regex.hpp: No such file or directory`
-export CPLUS_INCLUDE_PATH=$PREFIX/include
-
 # Remove --as-needed to resolve undefined reference to `__vdso_clock_gettime@GLIBC_PRIVATE'
 export LDFLAGS="`echo $LDFLAGS | sed 's/-Wl,--as-needed//'`"
 
