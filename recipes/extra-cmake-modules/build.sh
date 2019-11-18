@@ -10,6 +10,6 @@ cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
       ..
 
 make -j ${CPU_COUNT}
-ctest -E "ecm_setup_version-old.*|ECMPoQmToolsTest"
+ctest -E "ecm_setup_version-old.*|ECMPoQmToolsTest|KDEFetchTranslations"
 make install
 popd
