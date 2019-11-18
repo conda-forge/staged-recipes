@@ -15,9 +15,7 @@ export CXXFLAGS="$CXXFLAGS -Dsecure_getenv=getenv"
 export CXXFLAGS="$CXXFLAGS -D__STDC_FORMAT_MACROS"
 
 # resolves `fatal error: boost/regex.hpp: No such file or directory`
-echo -e "#!/bin/sh\n$(which nvcc || omniscidb_build_sh_could_not_find_nvcc) -I$PREFIX/include \$@" > $PWD/nvcc
-chmod +x $PWD/nvcc
-export PATH=$PWD:$PATH
+export CPLUS_INCLUDE_PATH=$PREFIX/include
 
 # Remove --as-needed to resolve undefined reference to `__vdso_clock_gettime@GLIBC_PRIVATE'
 export LDFLAGS="`echo $LDFLAGS | sed 's/-Wl,--as-needed//'`"
@@ -34,9 +32,10 @@ cd build
 # TODO: when building on a system with no GPUs, using
 # -DENABLE_TESTS=off will save build time
 
+export INSTALL_BASE=opt/omnisci
 cmake -Wno-dev \
     -DCMAKE_PREFIX_PATH=$PREFIX \
-    -DCMAKE_INSTALL_PREFIX=$PREFIX/opt/omnisci \
+    -DCMAKE_INSTALL_PREFIX=$PREFIX/$INSTALL_BASE \
     -DCMAKE_BUILD_TYPE=release \
     -DMAPD_DOCS_DOWNLOAD=off \
     -DENABLE_AWS_S3=off \
@@ -70,8 +69,13 @@ fi
 
 make install
 
-for CHANGE in "activate" "deactivate"
+mkdir -p $PREFIX/bin
+cd $PREFIX/bin
+ln -s ../$INSTALL_BASE/bin/initdb omnisci_initdb
+ln -s ../$INSTALL_BASE/startomnisci startomnisci
+ln -s ../$INSTALL_BASE/insert_sample_data omnisci_insert_sample_data
+for FN in "omnisci_server" "omnisci_web_server" "omnisql"
 do
-    mkdir -p "${PREFIX}/etc/conda/${CHANGE}.d"
-    cp "${RECIPE_DIR}/${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.sh"
+    ln -s ../$INSTALL_BASE/bin/$FN $FN
 done
+cd -
