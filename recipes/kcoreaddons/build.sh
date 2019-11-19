@@ -9,6 +9,7 @@ export XDG_DATA_DIRS="${PREFIX}/share:${XDG_DATA_DIRS}"
 
 cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_BUILD_TYPE=Release     \
+      -DKDE_INSTALL_LIBDIR=lib \
       -Wno-dev \
       ..
 
