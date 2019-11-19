@@ -6,6 +6,7 @@ pushd build
 
 cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_BUILD_TYPE=Release     \
+      -DKDE_INSTALL_LIBDIR=lib \
       -Wno-dev \
       ..
 
