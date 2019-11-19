@@ -1,0 +1,106 @@
+{% set name = "omniscidb-cuda" %}
+{% set version = "5.0.0" %}
+{% set sha256 = "3115261258059f8ad61efc802cd6c13e8c0d62a07621ebcfad55bb6f8ceaa0ed" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/omnisci/omniscidb/archive/v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+  patches:
+    - skip-boost-libs-install.patch
+    # Remove when
+    #   https://github.com/omnisci/omniscidb-internal/pull/3984
+    # has been merged and is available in release:
+    - nvcc-boost-include-dirs.patch
+
+build:
+  number: 0
+  # OmniSciDB server is linux-only program
+  skip: True  # [not (linux64 and cuda_compiler_version == "10.1")]
+  missing_dso_whitelist:
+  - "*/libcuda.*"
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ compiler("cgo") }}
+    - {{ compiler("cuda") }}
+    # clang++ is used for generating the bytecodes of extension functions
+    - clangxx
+    - cmake
+    - make
+    - maven
+  host:
+    - llvmdev
+    - clangdev
+    - llvm
+    - boost-cpp
+    - double-conversion
+    - snappy
+    - gflags
+    - glog
+    - libarchive
+    - libkml
+    - libpng
+    - blosc
+    - libgdal >=2.3
+    # omniscidb 5.0 is not arrow-cpp 0.14+ ready
+    - arrow-cpp  >=0.12.1,<0.14
+    - thrift-cpp >=0.11.0
+    - ncurses
+    - flex
+    - bisonpp
+    - openssl
+    - librdkafka
+    - openldap
+  run:
+    - boost-cpp
+    - arrow-cpp >=0.12.1,<0.14
+    - snappy
+    - double-conversion
+    - libgdal >=2.3
+    - glog
+    - gflags
+    - openjdk 8.*
+    - ncurses
+    - xz
+    - bzip2
+    - zlib
+    - librdkafka
+    - openldap
+    # omnscidb Load-time UDF support calls clang++
+    - gxx_{{ target_platform }}
+    - clangxx
+
+test:
+  commands:
+    - omnisql -v
+    # the following programs require libcuda.so.1, so here we test
+    # that these are in PATH:
+    - which omnisci_server
+    - which omnisci_web_server
+    - which omnisci_initdb
+
+about:
+  home: https://www.omnisci.com/
+  license: Apache-2.0
+  license_family: APACHE
+  license_file: LICENSE.md
+  summary: 'The OmniSci database'
+
+  description: |
+    OmniSciDB is an in-memory, column store, SQL relational database 
+    that was designed from the ground up to run on GPUs.
+
+    This Omnisci database can be run on CUDA enabled GPUs.
+  doc_url: https://www.omnisci.com/docs/latest/
+  dev_url: https://github.com/omnisci/omniscidb
+
+extra:
+  recipe-maintainers:
+    - xmnlab
+    - pearu
+    - andrewseidl
