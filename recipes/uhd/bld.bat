@@ -1,7 +1,8 @@
 setlocal EnableDelayedExpansion
 
 :: prevent redefining snprintf to _snprintf and build failing
-set "CPPFLAGS=%CPPFLAGS% -DHAVE_SNPRINTF"
+set "CFLAGS=%CFLAGS% -DHAVE_SNPRINTF"
+set "CXXFLAGS=%CXXFLAGS% -DHAVE_SNPRINTF"
 
 :: Make a build folder and change to it
 cd host
