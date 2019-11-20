@@ -11,6 +11,7 @@ cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
       ..
 
 make -j ${CPU_COUNT}
-ctest
+# skip tests the fail headlessly
+ctest -E "kcompletioncoretest|klineedit_unittest|kcombobox_unittest"
 make install
 popd
