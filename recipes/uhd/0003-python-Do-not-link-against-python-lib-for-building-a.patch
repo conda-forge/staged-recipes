@@ -1,0 +1,42 @@
+From 2d6ca90372183876ad05adf5378dc076d74bf98a Mon Sep 17 00:00:00 2001
+From: Ryan Volz <rvolz@mit.edu>
+Date: Thu, 31 Oct 2019 17:02:07 -0400
+Subject: [PATCH 3/4] python: Do not link against python lib for building an
+ extension module.
+
+This fixes a segmentation fault when trying to use the python module on
+OSX when built with conda (unsure why it doesn't arise otherwise).
+Instead of linking against the python library, it is proper to not link
+against the library and, for OSX builds, add linker options for
+"-undefined" and "dynamic_lookup". This is precisely what the CMake
+FindPython module does for linking against the Python::Module target.
+
+See https://blog.tim-smith.us/2015/09/python-extension-modules-os-x
+---
+ host/python/CMakeLists.txt | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/host/python/CMakeLists.txt b/host/python/CMakeLists.txt
+index 9fd6d40d3..16f725aa4 100644
+--- a/host/python/CMakeLists.txt
++++ b/host/python/CMakeLists.txt
+@@ -43,7 +43,15 @@ target_include_directories(pyuhd PUBLIC
+     ${CMAKE_SOURCE_DIR}/lib
+ )
+ 
+-target_link_libraries(pyuhd ${BOOST_PYTHON_LIBRARY} ${Boost_LIBRARIES} ${PYTHON_LIBRARY} uhd)
++if(WIN32)
++    target_link_libraries(pyuhd ${BOOST_PYTHON_LIBRARY} ${Boost_LIBRARIES} ${PYTHON_LIBRARY} uhd)
++else()
++    # proper to NOT link against python library and instead add below link options on OSX
++    target_link_libraries(pyuhd ${BOOST_PYTHON_LIBRARY} ${Boost_LIBRARIES} uhd)
++    if(APPLE)
++        target_link_options(pyuhd PRIVATE "LINKER:-undefined,dynamic_lookup")
++    endif(APPLE)
++endif(WIN32)
+ # Copy pyuhd library to the staging directory
+ add_custom_command(TARGET pyuhd
+     POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:pyuhd> ${CMAKE_CURRENT_BINARY_DIR}/uhd/$<TARGET_FILE_NAME:pyuhd>)
+-- 
+2.20.1
+
