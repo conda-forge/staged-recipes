@@ -12,4 +12,4 @@ yarn
 MINIFY=true yarn build "${vscodeVersion}" "${codeServerVersion}"
 yarn binary "${vscodeVersion}" "${codeServerVersion}"
 mkdir -p ${PREFIX}/bin/
-mv binaries/code-${VERSION}-*-x86_64 ${PREFIX}/bin/
+mv binaries/code${VERSION}-*-x86_64 ${PREFIX}/bin/
