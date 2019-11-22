@@ -9,6 +9,6 @@ cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
       ..
 
 make -j ${CPU_COUNT}
-make check
+# no make check
 make install
 popd
