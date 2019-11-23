@@ -1,2 +1,2 @@
 
-cp pdfcombine "%LIBRARY_PREFIX%"\bin\pdfcombine.py
+cp pdfcombine "%LIBRARY_PREFIX%"\bin\pdfcombine
