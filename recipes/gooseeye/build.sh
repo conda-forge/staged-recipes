@@ -1,7 +1,4 @@
 
-python setup.py build
-python setup.py install
-
 cmake \
   -DCMAKE_PREFIX_PATH:PATH=${PREFIX} \
   -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
