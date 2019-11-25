@@ -1,6 +1,6 @@
 :: configure
 cmake -G"Ninja" ^
-      -H%SRC_DIR% ^
+      -H"%SRC_DIR%" ^
       -Bbuild ^
       -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
       -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
@@ -14,14 +14,14 @@ cmake -G"Ninja" ^
       -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=true ^
       -DENABLE_PYTHON_INTERFACE=ON ^
       -DXCFun_XC_MAX_ORDER=6 ^
-      -DPYTHON_EXECUTABLE=%PYTHON% 
+      -DPYTHON_EXECUTABLE="%PYTHON%"
 if errorlevel 1 exit 1
 
-:: build 
+:: build
 cd build
 cmake --build . ^
       --config Release ^
-      -- -j %CPU_COUNT%
+      -- -j "%CPU_COUNT%"
 if errorlevel 1 exit 1
 
 :: test
@@ -33,5 +33,5 @@ if errorlevel 1 exit 1
 cmake --build . ^
       --config Release ^
       --target install ^
-      -- -j %CPU_COUNT%
+      -- -j "%CPU_COUNT%"
 if errorlevel 1 exit 1
