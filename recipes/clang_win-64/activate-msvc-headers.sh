@@ -1,6 +1,5 @@
 #!/bin/bash
 
-set -x
 MSVC_HEADERS_VERSION=14.11.25547
 
 [ -z "${CI}" ] || export CONDA_BUILD_WINSDK=/tmp/cf-ci-winsdk
@@ -15,8 +14,8 @@ echo "By setting CONDA_BUILD_WINSDK, you are agreeing to the terms and condition
 MSVC_HEADERS_DIR=${CONDA_BUILD_WINSDK}/msvc-${MSVC_HEADERS_VERSION}
 
 if [[ ! -d "${MSVC_HEADERS_DIR}" ]]; then
-    mkdir -p "${MSVC_HEADERS_DIR}"
-    cd "${MSVC_HEADERS_DIR}"
+  mkdir -p "${MSVC_HEADERS_DIR}"
+  pushd "${MSVC_HEADERS_DIR}"
     mkdir -p tmp
     pushd tmp
       curl -L -O https://www.nuget.org/api/v2/package/VisualCppTools.Community.VS2017Layout/${MSVC_HEADERS_VERSION}
@@ -30,4 +29,5 @@ if [[ ! -d "${MSVC_HEADERS_DIR}" ]]; then
       rm ${MSVC_HEADERS_VERSION}
     popd
     rm -rf tmp
+  popd
 fi
