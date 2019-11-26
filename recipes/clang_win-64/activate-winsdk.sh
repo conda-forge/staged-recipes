@@ -2,6 +2,8 @@
 
 WINSDK_VERSION=10.0.17134.0
 
+env
+
 [ -z "${CI}" ] || export CONDA_BUILD_WINSDK=/tmp/cf-ci-winsdk
 
 if [[ -z "${CONDA_BUILD_WINSDK}" ]]; then
