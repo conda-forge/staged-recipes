@@ -20,9 +20,9 @@ if [[ ! -d "${MSVC_HEADERS_DIR}" ]]; then
     mkdir -p tmp
     pushd tmp
       curl -L -O https://www.nuget.org/api/v2/package/VisualCppTools.Community.VS2017Layout/${MSVC_HEADERS_VERSION}
-      unzip -o ${MSVC_HEADERS_VERSION}
-      find lib -type d -name "x86" -delete || true
-      find lib -type d -name "arm" -delete || true
+      unzip -o ${MSVC_HEADERS_VERSION} > /dev/null
+      #find lib -type d -name "x86" -delete || true
+      #find lib -type d -name "arm" -delete || true
       mkdir -p ${MSVC_HEADERS_DIR}/include
       mkdir -p ${MSVC_HEADERS_DIR}/lib
       mv lib/native/lib/* ${MSVC_HEADERS_DIR}/lib/

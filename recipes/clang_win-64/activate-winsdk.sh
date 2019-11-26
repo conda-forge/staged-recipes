@@ -2,8 +2,6 @@
 
 WINSDK_VERSION=10.0.17134.0
 
-set -x
-
 [ -z "${CI}" ] || export CONDA_BUILD_WINSDK=/tmp/cf-ci-winsdk
 
 if [[ -z "${CONDA_BUILD_WINSDK}" ]]; then
@@ -23,32 +21,31 @@ if [[ ! -d "${WINSDK_DIR}" ]]; then
     pushd win10sdk_iso
       7z x ../win10sdk.iso -aoa
       mkdir tmp
-      msiextract -C tmp Installers/"Windows SDK Desktop Headers x64-x86_en-us.msi"
-      msiextract -C tmp Installers/"Windows SDK Desktop Headers x86-x86_en-us.msi"
-      msiextract -C tmp Installers/"Windows SDK Desktop Libs x64-x86_en-us.msi"
-      #msiextract -C tmp Installers/"Windows SDK Desktop Libs x86-x86_en-us.msi"
-      #msiextract -C tmp Installers/"Windows SDK Desktop Tools x64-x86_en-us.msi"
-      #msiextract -C tmp Installers/"Windows SDK Desktop Tools x86-x86_en-us.msi"
-      msiextract -C tmp Installers/"Windows SDK for Windows Store Apps Headers-x86_en-us.msi"
-      msiextract -C tmp Installers/"Windows SDK for Windows Store Apps Libs-x86_en-us.msi"
-      #msiextract -C tmp Installers/"Windows SDK for Windows Store Apps Tools-x86_en-us.msi"
-      #msiextract -C tmp Installers/"Windows SDK for Windows Store Apps Legacy Tools-x86_en-us.msi"
-      msiextract -C tmp Installers/"Universal CRT Headers Libraries and Sources-x86_en-us.msi"
-      mkdir -p ${WINSDK_DIR}/Include
-      mkdir -p ${WINSDK_DIR}/Lib
-      mv "tmp/Program Files/Windows Kits/10/Lib/${WINSDK_VERSION}"/* ${WINSDK_DIR}/Lib/
-      mv "tmp/Program Files/Windows Kits/10/Include/${WINSDK_VERSION}"/* ${WINSDK_DIR}/Include/
+      msiextract -C tmp Installers/"Windows SDK Desktop Headers x64-x86_en-us.msi" > /dev/null
+      msiextract -C tmp Installers/"Windows SDK Desktop Headers x86-x86_en-us.msi" > /dev/null
+      msiextract -C tmp Installers/"Windows SDK Desktop Libs x64-x86_en-us.msi" > /dev/null
+      msiextract -C tmp Installers/"Windows SDK Desktop Libs x86-x86_en-us.msi" > /dev/null
+      #msiextract -C tmp Installers/"Windows SDK Desktop Tools x64-x86_en-us.msi" > /dev/null
+      #msiextract -C tmp Installers/"Windows SDK Desktop Tools x86-x86_en-us.msi" > /dev/null
+      msiextract -C tmp Installers/"Windows SDK for Windows Store Apps Headers-x86_en-us.msi" > /dev/null
+      msiextract -C tmp Installers/"Windows SDK for Windows Store Apps Libs-x86_en-us.msi" > /dev/null
+      #msiextract -C tmp Installers/"Windows SDK for Windows Store Apps Tools-x86_en-us.msi" > /dev/null
+      #msiextract -C tmp Installers/"Windows SDK for Windows Store Apps Legacy Tools-x86_en-us.msi" > /dev/null
+      msiextract -C tmp Installers/"Universal CRT Headers Libraries and Sources-x86_en-us.msi" > /dev/null
+      mkdir -p ${WINSDK_DIR}/include
+      mkdir -p ${WINSDK_DIR}/lib
+      mv "tmp/Program Files/Windows Kits/10/Lib/${WINSDK_VERSION}"/* ${WINSDK_DIR}/lib/
+      mv "tmp/Program Files/Windows Kits/10/Include/${WINSDK_VERSION}"/* ${WINSDK_DIR}/include/
       rm -rf ${WINSDK_DIR}/Include/cppwinrt
     popd
 
     # Make symlinks for libraries
-    for f in $(find ${WINSDK_DIR}/Lib/um/x64 -name "*.[L|l]ib"); do
+    for f in $(find ${WINSDK_DIR}/lib/um/x64 -name "*.[L|l]ib"); do
         name=$(basename $f)
         full_lower=$(echo "$name" | awk '{print tolower($0)}')
         if [[ "$name" != "$full_lower" ]]; then
             ln -sf "$f" "$(dirname $f)/$full_lower"
         fi
-        echo "symlinking ${name}"
         lib_lower="${name:0:${#name} - 4}.lib"
         if [[ "$lib_lower" != "$name" && "$lib_lower" != "$full_lower" ]]; then
             ln -sf "$f" "$(dirname $f)/$lib_lower"
@@ -60,7 +57,7 @@ if [[ ! -d "${WINSDK_DIR}" ]]; then
     echo "case-sensitive: false" >> winsdk_vfs_overlay.yaml
     echo "roots:" >> winsdk_vfs_overlay.yaml
 
-    for dir in $(find ${WINSDK_DIR}/Include -type d); do
+    for dir in $(find ${WINSDK_DIR}/include -type d); do
         files=$(find $dir -maxdepth 1 -name "*.h")
         if [[ "$files" != "" ]]; then
             echo "  - name: \"$dir\"" >> winsdk_vfs_overlay.yaml
