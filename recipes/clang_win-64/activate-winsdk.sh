@@ -36,7 +36,6 @@ if [[ ! -d "${WINSDK_DIR}" ]]; then
       mkdir -p ${WINSDK_DIR}/lib
       mv "tmp/Program Files/Windows Kits/10/Lib/${WINSDK_VERSION}"/* ${WINSDK_DIR}/lib/
       mv "tmp/Program Files/Windows Kits/10/Include/${WINSDK_VERSION}"/* ${WINSDK_DIR}/include/
-      rm -rf ${WINSDK_DIR}/Include/cppwinrt
     popd
 
     # Make symlinks for libraries
@@ -72,5 +71,6 @@ if [[ ! -d "${WINSDK_DIR}" ]]; then
     done
 
     rm -rf win10sdk_iso
+    rm -rf win10sdk.iso
   popd
 fi
