@@ -11,6 +11,7 @@ export POPPLERGLIB_LIBS="-L$HOME/anaconda/envs/cpp-dev/lib/ -lpoppler-glib -lgob
 # This needs to be done if building from master branch:
 # mv README.md README
 
+aclocal
 autoconf
 automake -a
 ./configure --prefix="${PREFIX}"
