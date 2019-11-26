@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -evx
+
 export CAIRO_CFLAGS="-I$PREFIX/include/cairo/"
 export CAIRO_LIBS="-L$PREFIX/lib/ -lcairo"
 
