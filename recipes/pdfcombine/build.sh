@@ -1,2 +1,0 @@
-
-cp pdfcombine "${PREFIX}"/bin/
