@@ -49,7 +49,7 @@ if [[ ! -d "${WINSDK_DIR}" ]]; then
             ln -sf "$f" "$(dirname $f)/$full_lower"
         fi
         echo "symlinking ${name}"
-        lib_lower="${name::-4}.lib"
+        lib_lower="${name:0:${#name} - 4}.lib"
         if [[ "$lib_lower" != "$name" && "$lib_lower" != "$full_lower" ]]; then
             ln -sf "$f" "$(dirname $f)/$lib_lower"
         fi
