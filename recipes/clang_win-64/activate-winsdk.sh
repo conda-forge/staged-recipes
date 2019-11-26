@@ -2,7 +2,7 @@
 
 WINSDK_VERSION=10.0.17134.0
 
-env
+set -x
 
 [ -z "${CI}" ] || export CONDA_BUILD_WINSDK=/tmp/cf-ci-winsdk
 
