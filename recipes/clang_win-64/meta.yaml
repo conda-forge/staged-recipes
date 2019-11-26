@@ -1,0 +1,50 @@
+{% set name = "clang-win-activation" %}
+{% set version = "9.0.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+build:
+  number: 0
+  skip: True  # [win]
+
+outputs:
+  - name: winsdk
+    script: install-pkg.sh
+    version: 10.0.17134.0
+    requirements:
+      - p7zip
+      - msitools
+      - curl
+
+  - name: msvc-headers
+    script: install-pkg.sh
+    version: 14.11.25547
+    requirements:
+      - p7zip
+      - msitools
+      - curl
+
+  - name: clang_win-64
+    script: install-pkg.sh
+    build:
+      run_exports:
+        strong:
+          - vc >=14.1
+          - vs2015_runtime >=14.11.25547
+    requirements:
+      - {{ pin_subpackage("msvc-headers", max_pin="x.x.x") }}
+      - {{ pin_subpackage("winsdk", max_pin="x.x.x") }}
+      - clangxx     {{ version }}
+      - llvm-tools  {{ version }}
+      - lld         {{ version }}
+    test:
+      files:
+        - test.c
+        - test.cpp
+      commands:
+        - echo {{ CONDA_BUILD_WINSDK }}
+        - $CC $CFLAGS test.cpp $LDFLAGS -v
+        - test -f a.exe
+        - $CXX $CFLAGS test.c $LDFLAGS -v
