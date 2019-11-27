@@ -5,11 +5,6 @@ set -e
 # Typically $GXX is set by activate.d in conda
 # based on our compiler('cxx') dependency
 # https://conda.io/docs/user-guide/tasks/build-packages/compiler-tools.html
-CXX=${GXX:-g++}
-CXXCPP="${CXX} -E"
-export CXX
-export CXXCPP
-
 
 export INCLUDE_PATH="${PREFIX}/include/:${PREFIX}/include/bamtools/"
 export LIBRARY_PATH="${PREFIX}/lib"
