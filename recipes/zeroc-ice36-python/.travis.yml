@@ -1,0 +1,56 @@
+---
+language: generic
+
+matrix:
+  include:
+    - os: linux
+      env: PYTHON=3.6
+    - os: linux
+      env: PYTHON=3.7
+    - os: osx
+      env: PYTHON=3.6
+      osx_image: xcode10.1
+    - os: osx
+      env: PYTHON=3.7
+      osx_image: xcode10.1
+
+env:
+  global:
+    - PACKAGE_NAME=zeroc-ice36-python
+    - ANACONDA_USER=${TRAVIS_REPO_SLUG%/*}
+    - PATH="$HOME/miniconda/bin:$PATH"
+
+install:
+  # xcode image is missing headers
+  # https://github.com/travis-ci/travis-ci/issues/9640
+  # https://docs.conda.io/projects/conda-build/en/latest/resources/compiler-tools.html#macos-sdk
+  # Anaconda uses 1.9 but Ice 3.6.5 includes TLS 1.3 support which requires a more recent SecureTransport
+  - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+      pushd /opt;
+      curl -L https://github.com/phracker/MacOSX-SDKs/releases/download/10.13/MacOSX10.13.sdk.tar.xz | sudo tar xf -;
+      popd;
+    fi
+  - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
+        wget -q https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
+    else
+        wget -q https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+    fi
+  - bash miniconda.sh -b -p $HOME/miniconda && rm miniconda.sh
+  - conda install -y conda-build anaconda-client
+  - conda info -a
+
+script:
+  # Override the version string for dev builds
+  - if [ -z "${TRAVIS_TAG}" ]; then
+      export VERSION_SUFFIX=".${TRAVIS_BRANCH}";
+    else
+      export VERSION_SUFFIX="";
+    fi
+  - conda build --python $PYTHON .
+
+deploy:
+  - provider: script
+    skip_cleanup: true
+    script: anaconda -t "$CONDA_UPLOAD_TOKEN" upload --user ${ANACONDA_USER} $HOME/miniconda/conda-bld/$TRAVIS_OS_NAME-64/$PACKAGE_NAME-*.tar.bz2
+    on:
+      tags: true
