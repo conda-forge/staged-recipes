@@ -5,9 +5,9 @@ cd zaber-motion-lib
 if errorlevel 1 exit 1
 
 rem Look at gulpfil.js, protobuf_py
-protoc -I=. --python_out="py/zaber_motion/zaber_motion" ^
-    --plugin="protoc-gen-mypy=tools\protoc-gen-mypy.bat" ^
-    --mypy_out="py/zaber_motion/zaber_motion" protobufs\main.proto
+protoc -I=. --python_out="py\zaber_motion\zaber_motion"      ^
+    --plugin="protoc-gen-mypy=tools\protoc-gen-mypy.bat"     ^
+    --mypy_out="py\zaber_motion\zaber_motion" protobufs\main.proto
 if errorlevel 1 exit 1
 
 echo.> py\zaber_motion\zaber_motion\protobufs\__init__.py
