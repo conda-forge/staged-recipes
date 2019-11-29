@@ -1,11 +1,23 @@
+@echo on
+
 mkdir build
-dir build
+if errorlevel 1 exit 1
 
-cmake -LAH \
-    -DCMAKE_INSTALL_LIBDIR=lib \
-    -DCMAKE_BUILD_TYPE=${CMAKE_PLATFORM_FLAGS[@]+"${CMAKE_PLATFORM_FLAGS[@]}"} \
-    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
-    ../source
+cd build
+if errorlevel 1 exit 1
 
-cmake --build . -j${CPU_COUNT}
-cmake --build . --target install
+cmake ^
+    -G "Ninja" ^
+    -D CMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
+    -D CMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
+    -D CMAKE_BUILD_TYPE=Release ^
+    %cd%\..\source
+if errorlevel 1 exit 1
+
+dir
+
+ninja
+if errorlevel 1 exit 1
+
+ninja install
+if errorlevel 1 exit 1
