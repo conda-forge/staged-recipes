@@ -90,11 +90,6 @@ except ImportError:
     # this works with most recent Debian
     libraries = ['jpeg', 'lz4', 'zstd', 'lzma', 'bz2', 'png', 'webp', 'blosc',
                  'openjp2', 'jxrglue', 'jpegxr', 'lcms2', 'z']
-    include_dirs.extend(
-        ['/usr/include/jxrlib',
-         '/usr/include/openjpeg-2.1',
-         '/usr/include/openjpeg-2.2',
-         '/usr/include/openjpeg-2.3'])
     define_macros = [('OPJ_HAVE_LIBLCMS2', 1)]
     if sys.platform == 'win32':
         define_macros.extend([('WIN32', 1), ('CHARLS_STATIC', 1)])
