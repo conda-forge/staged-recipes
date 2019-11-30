@@ -20,7 +20,7 @@ If your PR doesn't fall into those categories please contact
 the full review team `@conda-forge/staged-recipes`.
 
 Due to GitHub limitations first time contributors to conda-forge are unable
-to ping these teams. You can type `@conda-forge-admin, please ping team` in 
+to ping these teams. You can [ping the team](https://conda-forge.org/docs/maintainer/infrastructure.html#conda-forge-admin-please-ping-team) using a special command in 
 a comment on the PR to get the attention of the `staged-recipes` team. You can 
 also consider asking on our [Gitter channel](https://gitter.im/conda-forge/conda-forge.github.io)
 if your recipe isn't reviewed promptly.
