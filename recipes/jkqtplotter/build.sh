@@ -9,3 +9,7 @@ cmake \
     ..
 make -j${CPU_COUNT}
 make install
+rm $PREFIX/doc/_Readme.txt
+rm $PREFIX/doc/_LICENSE.txt
+rm $PREFIX/doc/_XITS_LICENSE.txt
+rm $PREFIX/doc/_XITS_README.md
