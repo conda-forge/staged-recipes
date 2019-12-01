@@ -14,11 +14,11 @@ cmake ^
 if errorlevel 1 exit 1
 ninja install -j%CPU_COUNT%
 if errorlevel 1 exit 1
-del %LIBRARY_PREFIX%/doc/_Readme.txt
+del %LIBRARY_PREFIX%\doc\_Readme.txt
 if errorlevel 1 exit 1
-del %LIBRARY_PREFIX%/doc/_LICENSE.txt
+del %LIBRARY_PREFIX%\doc\_LICENSE.txt
 if errorlevel 1 exit 1
-del %LIBRARY_PREFIX%/doc/_XITS_LICENSE.txt
+del %LIBRARY_PREFIX%\doc\_XITS_LICENSE.txt
 if errorlevel 1 exit 1
-del %LIBRARY_PREFIX%/doc/_XITS_README.md
+del %LIBRARY_PREFIX%\doc\_XITS_README.md
 if errorlevel 1 exit 1
