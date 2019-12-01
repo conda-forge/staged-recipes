@@ -13,3 +13,6 @@ cmake -LAH \
 
 cmake --build . -j${CPU_COUNT}
 cmake --build . --target install
+
+./gl2psTest
+./gl2psTestSimple
