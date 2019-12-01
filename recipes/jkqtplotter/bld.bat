@@ -1,5 +1,5 @@
 :: Fix for https://github.com/jkriege2/JKQtPlotter/issues/35
-set "CXXFLAGS= -MD"
+set "CXXFLAGS=%CXXFLAGS:-GL=%"
 
 mkdir build
 cd build
