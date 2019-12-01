@@ -28,9 +28,9 @@ ${BUILD_PREFIX}/bin/cmake \
 cd build
 make -j${CPU_COUNT}
 
-# install
-make install
-
 # test
 # The Python interface is tested using pytest directly
 ctest -E "python-interface" -j${CPU_COUNT} --output-on-failure --verbose
+
+# install
+make install
