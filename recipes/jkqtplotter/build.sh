@@ -7,5 +7,5 @@ cmake \
     -DJKQtPlotter_BUILD_STATIC_LIBS=OFF \
     -DCMAKE_BUILD_TYPE=Release \
     ..
-make
+make -j${CPU_COUNT}
 make install
