@@ -4,6 +4,7 @@ set "CXXFLAGS=%CXXFLAGS:-GL=%"
 mkdir build
 cd build
 cmake ^
+    -G "%CMAKE_GENERATOR%" ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
     -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
     -DJKQtPlotter_BUILD_EXAMPLES=OFF ^
