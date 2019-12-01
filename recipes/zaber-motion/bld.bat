@@ -17,11 +17,13 @@ if errorlevel 1 exit 1
 cd py\zaber_motion
 %PYTHON% -m pip install . -vv --no-build-isolation --no-deps
 if errorlevel 1 exit 1
-cd ..
+cd ..\..
 
 cd ..
 
 cd bindings
+if %ARCH% == 64 del zaber_motion_bindings_windows\zaber-motion-lib-windows-386.dll
+if %ARCH% == 32 del zaber_motion_bindings_windows\zaber-motion-lib-windows-amd64.dll
 %PYTHON% -m pip install . -vv --no-build-isolation --no-deps
 if errorlevel 1 exit 1
 cd ..
