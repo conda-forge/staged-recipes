@@ -2,10 +2,12 @@
 # Pass with -DCMAKE_<LANG>_FLAGS=${ALLOPTS}
 if [ "$(uname)" == "Darwin" ]; then
     ALLOPTS="${CFLAGS}"
+    Fortran_SUPPORT=OFF
 fi
 if [ "$(uname)" == "Linux" ]; then
     # revisit when c-f moves to gcc8
     ALLOPTS="${CFLAGS}"
+    Fortran_SUPPORT=ON
 fi
 
 # configure
@@ -17,7 +19,7 @@ ${BUILD_PREFIX}/bin/cmake \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_CXX_COMPILER=${CXX} \
         -DCMAKE_C_COMPILER=${CC} \
-        -DENABLE_FC_SUPPORT=ON \
+        -DENABLE_FC_SUPPORT=${Fortran_SUPPORT} \
         -DCMAKE_Fortran_COMPILER=${FORTRAN} \
         -DPYTHON_EXECUTABLE=${PYTHON} \
         -DPYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
