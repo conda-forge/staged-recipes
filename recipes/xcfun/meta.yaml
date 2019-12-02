@@ -1,10 +1,11 @@
 {% set name = "xcfun" %}
 {% set version = "2.0.0a1" %}
 {% set sha256 = "e232e2b576fa5778a972984db760c61e1cf05902bfd1a15f45f5e8712f7c1260" %}
+{% set pyver = PY_VER.replace(".", "") %}
 
 package:
-    name: {{ name|lower }}
-    version: {{ version }}
+  name: {{ name|lower }}
+  version: {{ version }}
 
 source:
   git_url: https://github.com/robertodr/xcfun.git
@@ -13,8 +14,12 @@ source:
 build:
   number: 0
   binary_relocation: true
+  run_exports:
+    - {{ pin_subpackage('xcfun', max_pin='x') }}
   ignore_run_exports:
     - libgfortran-ng  # [not win]
+    # these needed as tools to build an interpreter/module to run, but generic version in both cases
+    - python
 
 requirements:
   build:
@@ -22,114 +27,62 @@ requirements:
     - {{ compiler('cxx') }}
     - {{ compiler('c') }}
     - {{ compiler('fortran') }}  # [not win]
-    - pybind11
+    - pybind11=*=*py{{ pyver }}*
     - ninja  # [win]
   host:
+    - python
+  run:
     - numpy
     - python
 
-outputs:
-  - name: xcfun
-    build:
-      run_exports:
-        - {{ pin_subpackage('xcfun', max_pin='x') }}
-    requirements:
-      build:
-        - cmake >=3.5
-        - {{ compiler('cxx') }}
-        - {{ compiler('c') }}
-        - {{ compiler('fortran') }}  # [not win]
-        - pybind11
-        - ninja  # [win]
-      host:
-        - numpy
-        - python
-    files:
-      - include/XCFun              # [unix]
-      - lib/libxcfun*              # [unix]
-      - share/cmake/XCFun          # [unix]
-      - Library/include/XCFun      # [win]
-      - Library/lib/xcfun*         # [win]
-      - Library/share/cmake/XCFun  # [win]
-    test:
-      commands:
-        # Verify library
-        - test -L $PREFIX/lib/libxcfun$SHLIB_EXT                 # [unix]
-        - if not exist %PREFIX%\\Library\\lib\\xcfun.lib exit 1  # [win]
-        # Inspect linkage
-        - ldd -v $PREFIX/lib/libxcfun$SHLIB_EXT                           # [linux]
-        - otool -L $PREFIX/lib/libxcfun$SHLIB_EXT                         # [osx]
-        - conda inspect linkages --show-files --groupby=dependency xcfun  # [unix]
-        - conda inspect objects -p $PREFIX $PKG_NAME                      # [osx]
-    about:
-      home: https://github.com/dftlibs/xcfun
-      dev_url: https://github.com/dftlibs/xcfun
-      doc_url: http://dftlibs.org/xcfun/
-      doc_source_url: https://github.com/dftlibs/xcfun/blob/master/doc/index.rst
-      license: MPL-2.0
-      license_url: https://opensource.org/licenses/MPL-2.0
-      license_file: LICENSE.md
-      license_family: MOZILLA
-      summary: "Exchange-Correlation functionals with arbitrary order derivatives."
+files:
+  - include/XCFun              # [unix]
+  - lib/libxcfun*              # [unix]
+  - share/cmake/XCFun          # [unix]
+  - Library/include/XCFun      # [win]
+  - Library/lib/xcfun*         # [win]
+  - Library/share/cmake/XCFun  # [win]
+  - lib/python{{ PY_VER }}/site-packages/xcfun  # [unix]
+  - Lib/site-packages/xcfun                     # [win]
 
-  - name: pyxcfun
-    build:
-      ignore_run_exports:
-        # these needed as tools to build an interpreter/module to run, but generic version in both cases
-        - numpy
-        - python
-    requirements:
-      build:
-        - cmake >=3.5
-        - {{ compiler('cxx') }}
-        - {{ compiler('c') }}
-        - {{ compiler('fortran') }}  # [not win]
-        - pybind11
-        - ninja  # [win]
-      host:
-        - numpy
-        - python
-      run:
-        - numpy
-        - python
-    files:
-      - lib/python{{ PY_VER }}/site-packages/xcfun  # [unix]
-      - Lib/site-packages/xcfun                     # [win]
-    test:
-      requires:
-        - pytest
-      imports:
-        - xcfun
-      commands:
-        - ls -l $SP_DIR/xcfun  # [unix]
-        - dir %SP_DIR%\xcfun   # [win]
-        # Verify library
-        - test -f $SP_DIR/xcfun/_xcfun*$SHLIB_EXT           # [unix]
-        - if not exist %SP_DIR%\\xcfun\\_xcfun*.dll exit 1  # [win]
-        # Inspect linkage
-        - ldd -v $SP_DIR/xcfun/_xcfun*$SHLIB_EXT    # [linux]
-        - otool -L $SP_DIR/xcfun/_xcfun*$SHLIB_EXT  # [osx]
-        - conda inspect linkages --show-files --groupby=dependency pyxcfun  # [unix]
-        - conda inspect objects -p $PREFIX $PKG_NAME      # [osx]
-        - echo $PWD
-        - ls $PWD
-        # Actually test
-        - python -m pytest --pyargs xcfun
-    about:
-      home: https://github.com/dftlibs/xcfun
-      dev_url: https://github.com/dftlibs/xcfun
-      doc_url: http://dftlibs.org/xcfun/
-      doc_source_url: https://github.com/dftlibs/xcfun/blob/master/doc/index.rst
-      license: MPL-2.0
-      license_url: https://opensource.org/licenses/MPL-2.0
-      license_file: LICENSE.md
-      license_family: MOZILLA
-      summary: "Exchange-Correlation functionals with arbitrary order derivatives."
+test:
+  requires:
+    - numpy
+    - pytest
+  imports:
+    - xcfun
+  commands:
+    # Verify library
+    - test -L $PREFIX/lib/libxcfun$SHLIB_EXT                 # [unix]
+    - test -f $SP_DIR/xcfun/_xcfun*$SHLIB_EXT           # [unix]
+    - if not exist %PREFIX%\\Library\\lib\\xcfun.lib exit 1  # [win]
+    - if not exist %SP_DIR%\\xcfun\\_xcfun*.dll exit 1  # [win]
+    # Inspect linkage
+    - ldd -v $PREFIX/lib/libxcfun$SHLIB_EXT                           # [linux]
+    - otool -L $PREFIX/lib/libxcfun$SHLIB_EXT                         # [osx]
+    - conda inspect linkages --show-files --groupby=dependency xcfun  # [unix]
+    - conda inspect objects -p $PREFIX $PKG_NAME                      # [osx]
+    - ls -l $SP_DIR/xcfun  # [unix]
+    - dir %SP_DIR%\xcfun   # [win]
+    - ldd -v $SP_DIR/xcfun/_xcfun*$SHLIB_EXT    # [linux]
+    - otool -L $SP_DIR/xcfun/_xcfun*$SHLIB_EXT  # [osx]
+    - conda inspect linkages --show-files --groupby=dependency $PKG_NAME  # [unix]
+    - conda inspect objects -p $PREFIX $PKG_NAME      # [osx]
+    # FIXME Just for testing
+    - echo $PWD
+    - ls $PWD
+    # Actually test
+    - python -m pytest --pyargs xcfun
 
 about:
   home: https://github.com/dftlibs/xcfun
+  dev_url: https://github.com/dftlibs/xcfun
+  doc_url: http://dftlibs.org/xcfun/
+  doc_source_url: https://github.com/dftlibs/xcfun/blob/master/doc/index.rst
   license: MPL-2.0
+  license_url: https://opensource.org/licenses/MPL-2.0
   license_file: LICENSE.md
+  license_family: MOZILLA
   summary: "Exchange-Correlation functionals with arbitrary order derivatives."
 
 extra:
