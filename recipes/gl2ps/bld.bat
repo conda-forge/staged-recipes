@@ -3,6 +3,8 @@
 mkdir build
 if errorlevel 1 exit 1
 
+set
+
 cmake ^
     -G "Ninja" ^
     -D CMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
