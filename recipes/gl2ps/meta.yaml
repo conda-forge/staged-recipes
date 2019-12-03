@@ -1,0 +1,63 @@
+{% set name = "gl2ps" %}
+{% set version = "1.4.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: http://geuz.org/{{ name }}/src/{{ name }}-{{ version }}.tgz
+  sha256: 03cb5e6dfcd87183f3b9ba3b22f04cd155096af81e52988cc37d8d8efe6cf1e2
+  folder: source
+  patches:
+    - minver.patch
+    - 0001-Disable-static-library-on-Windows.patch
+    - 0002-Remove-test-applications.patch
+
+build:
+  number: 0
+  skip: True  # [win and vc<14]
+  run_exports:
+    # Hasn't been updated in years so pin tightly
+    - {{ pin_subpackage('gl2ps', max_pin='x.x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - cmake
+    - make  # [unix]
+    - ninja  # [win]
+    # Required for OpenGL support
+    # See https://conda-forge.org/docs/maintainer/knowledge_base.html?highlight=cdt#libgl
+    - {{ cdt('mesa-libgl-devel') }}  # [linux]
+    - {{ cdt('mesa-dri-drivers') }}  # [linux]
+    - {{ cdt('libselinux') }}  # [linux]
+    - {{ cdt('libxdamage') }}  # [linux]
+    - {{ cdt('libxxf86vm') }}  # [linux]
+  host:
+    - xorg-libxfixes  # [linux]
+    - zlib
+    - libpng
+  run:
+    - vs2015_runtime  # [win]
+
+test:
+  commands:
+    - test -f $PREFIX/lib/libgl2ps$SHLIB_EXT  # [unix]
+    - if not exist %LIBRARY_LIB%\\gl2ps.dll exit 1  # [win]
+
+about:
+  home: http://geuz.org/gl2ps
+  license: LGPL-2.0-or-later
+  license_family: LGPL
+  license_file: source/COPYING.LGPL
+  summary: 'OpenGL to PostScript Printing Library'
+  description: |
+      This is GL2PS, an OpenGL to PostScript (and PDF, and SVG...) printing library.
+  doc_url: http://geuz.org/gl2ps/#tth_sEc1
+  dev_url: http://gitlab.onelab.info/gl2ps/gl2ps
+
+extra:
+  recipe-maintainers:
+    - henryiii
+    - chrisburr
