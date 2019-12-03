@@ -2,16 +2,23 @@
 
 set -e # Abort on error.
 
+# find the boost libs/includes we need
 export LDFLAGS="$LDFLAGS -L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 export CFLAGS="$CFLAGS -fPIC -I$PREFIX/include"
 
 mkdir build && cd build
 
-cmake .. \
-    -DCMAKE_INSTALL_PREFIX=$PREFIX \
-    -DENABLE_PYTHON=1 \
-    -DENABLE_SSL=0 \
-    -DBOOST_ROOT=$PREFIX
+echo "which python"
+which python
+echo "python version"
+python --version
+
+cmake -D CMAKE_INSTALL_PREFIX=$PREFIX \
+      -D ENABLE_PYTHON=1 \
+      -D ENABLE_SSL=0 \
+      -D BOOST_ROOT=$PREFIX \
+      -D ECBUILD_LOG_LEVEL=DEBUG \
+      ..
 
 make -j $CPU_COUNT
 
