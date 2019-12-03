@@ -18,6 +18,8 @@ cmake -D CMAKE_INSTALL_PREFIX=$PREFIX \
       -D ENABLE_SSL=0 \
       -D BOOST_ROOT=$PREFIX \
       -D ECBUILD_LOG_LEVEL=DEBUG \
+      -D Python3_ROOT_DIR=$PREFIX \
+      -D Python3_FIND_VIRTUALENV=ONLY \
       ..
 
 make -j $CPU_COUNT
