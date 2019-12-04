@@ -10,11 +10,7 @@ export CFLAGS="$CFLAGS -fPIC -I$PREFIX/include"
 export REPLACE_TPL_ABSOLUTE_PATHS=0
 if [[ $(uname) == Linux ]]; then
   export REPLACE_TPL_ABSOLUTE_PATHS=1
-  # workaround for https://github.com/conda-forge/qt-feedstock/issues/123
-  sed -i 's|_qt5gui_find_extra_libs(EGL.*)|_qt5gui_find_extra_libs(EGL "EGL" "" "")|g' $PREFIX/lib/cmake/Qt5Gui/Qt5GuiConfigExtras.cmake
-  sed -i 's|_qt5gui_find_extra_libs(OPENGL.*)|_qt5gui_find_extra_libs(OPENGL "GL" "" "")|g' $PREFIX/lib/cmake/Qt5Gui/Qt5GuiConfigExtras.cmake
 fi
-
 
 mkdir ../build && cd ../build
 
