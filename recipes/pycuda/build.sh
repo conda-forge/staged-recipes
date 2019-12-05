@@ -9,5 +9,6 @@ export CUDA_ROOT=/usr/local/cuda/include
 export CPATH=$CPATH:/usr/local/cuda/include
 export CUDA_INC_DIR=/usr/local/cuda/bin:$CUDA_INC_DIR
 
-python setup.py build
-sudo python setup.py install
+$PYTHON configure.py
+$PYTHON setup.py build
+$PYTHON setup.py install --single-version-externally-managed --record record.txt
