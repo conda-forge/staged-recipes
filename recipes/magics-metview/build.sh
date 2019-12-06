@@ -23,11 +23,6 @@ cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
 
 make -j $CPU_COUNT
 
-if [[ $(uname) == Linux ]]; then
-    # Tell Linux where to find libGL.so.1 and other libs needed for Qt
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$BUILD_PREFIX/x86_64-conda_cos6-linux-gnu/sysroot/usr/lib64/
-fi
-
 ctest --output-on-failure -j $CPU_COUNT
 make install
 
