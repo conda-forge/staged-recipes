@@ -31,5 +31,7 @@ ACTIVATE_DIR=$PREFIX/etc/conda/activate.d
 DEACTIVATE_DIR=$PREFIX/etc/conda/deactivate.d
 cp $RECIPE_DIR/scripts/activate.sh $ACTIVATE_DIR/magics-activate.sh
 cp $RECIPE_DIR/scripts/activate.fish $ACTIVATE_DIR/magics-activate.fish
+cp $RECIPE_DIR/scripts/activate.csh $ACTIVATE_DIR/magics-activate.csh
 cp $RECIPE_DIR/scripts/deactivate.sh $DEACTIVATE_DIR/magics-deactivate.sh
 cp $RECIPE_DIR/scripts/deactivate.fish $DEACTIVATE_DIR/magics-deactivate.fish
+cp $RECIPE_DIR/scripts/deactivate.csh $DEACTIVATE_DIR/magics-deactivate.csh
