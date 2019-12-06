@@ -2,7 +2,6 @@
 
 set -e
 
-export PYTHON="$PYTHON"
 export PYTHON_LDFLAGS="$PREFIX/lib"
 export LDFLAGS="$LDFLAGS -L$PREFIX/lib -Wl,-rpath,$PREFIX/lib"
 export CFLAGS="$CFLAGS -fPIC -I$PREFIX/include"
