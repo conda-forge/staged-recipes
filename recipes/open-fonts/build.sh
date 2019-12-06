@@ -2,8 +2,5 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-openfonts="$PREFIX/fonts/open-fonts"
-mkdir -p "$openfonts"
-mv css "$openfonts/"
-mv LICENSE "$openfonts/"
-mv fonts/* "$openfonts/"
+mkdir -p "$PREFIX/fonts"
+mv open-fonts "$PREFIX/fonts/"
