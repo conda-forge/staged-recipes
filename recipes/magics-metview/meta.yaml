@@ -1,0 +1,88 @@
+{% set name = "Magics" %}
+{% set version = "4.2.0" %}
+
+package:
+  name: magics-metview
+  version: {{ version }}
+
+source:
+  url: https://confluence.ecmwf.int/download/attachments/3473464/{{ name }}-{{ version }}-Source.tar.gz
+  sha256: d45701515d3329e1b3944d535c4d19f834d22a747a30da1d8c88b80affeb70cd
+  patches:
+    - 0001-Find-proj_6_0.lib-if-proj.lib-isn-t-found.patch
+    - 0002-Fix-for-Windows-build.patch
+
+build:
+  number: 0
+  skip: True  # [win]
+  detect_binary_files_with_prefix: true
+  run_exports:
+    # See https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#export-runtime-requirements
+    - {{ pin_subpackage('magics-metview', max_pin='x.x') }}
+
+requirements:
+  build:
+    - cmake
+    - make
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    # the CDTs below are needed when building with Metview enabled
+    - {{ cdt('mesa-libgl-devel') }}  # [linux]
+    - {{ cdt('mesa-dri-drivers') }}  # [linux]
+    - {{ cdt('libselinux') }}  # [linux]
+    - {{ cdt('libxdamage') }}  # [linux]
+    - {{ cdt('libxfixes') }}  # [linux]
+    - {{ cdt('libxxf86vm') }}  # [linux]
+    - {{ cdt('libxcb') }}  # [linux]
+  host:
+    - pkg-config
+    - boost
+    - expat
+    - glib
+    - pango
+    - cairo
+    - proj
+    - eccodes
+    - libnetcdf
+    - jinja2
+    - qt
+    - zlib
+    # See https://conda-forge.org/docs/maintainer/knowledge_base.html#libgl
+    - xorg-libxfixes  # [linux]
+  run:
+    - python
+    - expat
+    - pango
+    - cairo
+    - proj
+    - eccodes
+    - simplejson
+    - libnetcdf
+    - qt
+    - zlib
+  run_constrained:
+    # magics-metview is incompatible with magics
+    - magics ==9999999999
+
+test:
+  commands:
+    - printf "%s\n" "${MAGPLUS_HOME:?MAGPLUS_HOME is not set}"
+    - which magjsonx
+    - test -f $PREFIX/lib/libMagPlus${SHLIB_EXT}  # [unix]
+    - test -f $PREFIX/lib/libMagPlusSingle${SHLIB_EXT}  # [unix]
+    - test -f $PREFIX/lib/libMagPlusDouble${SHLIB_EXT}  # [unix]
+
+about:
+  home: https://software.ecmwf.int/wiki/display/MAGP/
+  license: Apache-2.0
+  license_file:
+    - LICENSE_for_source_files
+    - COPYING
+    - LICENSE
+
+  license_family: Apache
+  summary: "ECMWF's Meteorological plotting software Magics built with Metview enabled"
+
+extra:
+  recipe-maintainers:
+    - dtip
