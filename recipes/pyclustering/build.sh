@@ -1,14 +1,23 @@
 #!/bin/bash
 
-set -o xtrace -o pipefail -o errexit
+set -e
 
-BINARY_HOME=${PREFIX}/bin
-PACKAGE_HOME=${PREFIX}/share/${PKG_NAME}-${PKG_VERSION}-${PKG_BUILDNUM}
-export STACK_ROOT=${PACKAGE_HOME}/stackroot
-export LIBRARY_PATH=${LIBRARY_PATH}:${PREFIX}/lib
+if [ `uname` == Darwin ]; then
+	BUILD_SPEC=macx-clang
+else
+	BUILD_SPEC=linux-g++
+	# g++ cannot be found afterwards, solution taken from pyqt-feedstock
+	mkdir bin || true
+	pushd bin
+		ln -s ${GXX} g++ || true
+		ln -s ${GCC} gcc || true
+	popd
+	export PATH=${PWD}/bin:${PATH}
+fi
 
 cd ccore/
 make ccore_x64
+make ccore_x86
 
 cd ../
 
