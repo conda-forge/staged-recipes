@@ -2,6 +2,11 @@
 
 set -e
 
+export LD_LIBRARY_PATH=$PREFIX/lib:$LD_LIBRARY_PATH
+export LIBRARY_PATH=${PREFIX}/lib:${LIBRARY_PATH}
+export C_INCLUDE_PATH=/usr/include/$(gcc -print-multiarch)
+export CPLUS_INCLUDE_PATH=/usr/include/$(gcc -print-multiarch)
+
 if [ `uname` == Darwin ]; then
 	BUILD_SPEC=macx-clang
 else
@@ -15,17 +20,10 @@ else
 	export PATH=${PWD}/bin:${PATH}
 fi
 
-export LIBRARY_PATH=/usr/lib/$(gcc -print-multiarch)
-export C_INCLUDE_PATH=/usr/include/$(gcc -print-multiarch)
-export CPLUS_INCLUDE_PATH=/usr/include/$(gcc -print-multiarch)
-
 cd ccore/
 make ccore_x64
 
 cd ../
-
-PYTHONPATH=`pwd`
-export PYTHONPATH=${PYTHONPATH}
 
 $PYTHON setup.py build
 $PYTHON setup.py install --single-version-externally-managed --record=record.txt
