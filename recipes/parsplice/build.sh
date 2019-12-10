@@ -2,7 +2,7 @@
 cd deps
 tar xvzf db-6.2.23.tar.gz
 cp db-6.2.23/lang/cxx/stl/*.h ${PREFIX}/include
-cp db-6.2.23/build_windows/dbstl_common.h ${PREFIX}/include
+cp db-6.2.23/build_windows/*.h ${PREFIX}/include
 cd ..
 
 mkdir build
