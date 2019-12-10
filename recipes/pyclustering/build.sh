@@ -1,3 +1,4 @@
 pwd
-cd pyclustering/pyclustering/ccore
+cd ./ccore
+ls
 make ccore_64bit
