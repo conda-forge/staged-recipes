@@ -1,10 +1,5 @@
-REM part 1, the library
-mkdir _build
-cd _build
-cmake -G"NMake Makefiles" -DODE_WITH_DEMOS:BOOL=OFF -DODE_WITH_TESTS:BOOL=OFF -DCMAKE_INSTALL_PREFIX:PATH="" ..
-nmake install DESTDIR="%PREFIX%"
-cd ..
+REM relies on libode library, creates Python bindings
 
-REM part 2, ode python bindings
-cd bindings/python
+cd bindings
+cd python
 python setup.py install --root %PREFIX% --prefix ""
