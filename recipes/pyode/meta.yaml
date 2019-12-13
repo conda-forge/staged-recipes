@@ -1,0 +1,62 @@
+# defining package and version
+{% set name = "pyode" %}
+{% set version = "0.16" %}
+{% set soversion = "0.16.0" %}
+{% set sha256 = "4ba3b76f9c1314160de483b3db92b0569242a07452cbb25b368e75deb3cabf27" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://bitbucket.org/odedevs/ode/downloads/ode-{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+  patches:
+    - add-rt-to-dotpc                # [linux]
+    - modify-dotpc-win               # [win]
+    
+build:
+  number: 0
+  skip: true                         # [win and py==27]
+  
+requirements:
+  build:
+    - {{ compiler('cxx') }}          # stage 1, library
+    - cmake
+    - {{ compiler('c') }}            # stage 2, generate bindings
+    - pkg-config
+
+  host:
+    - cython
+    - python
+
+  run:
+    - python
+
+test:
+  requires:
+    - python
+  commands:
+    - test -f $PREFIX/lib/libode.so                       # [linux]
+    - test -f $PREFIX/lib/libode.so.{{ soversion }}       # [linux]
+    - test -f $PREFIX/lib/libode.dylib                    # [osx]
+    - test -f $PREFIX/lib/libode.{{ soversion }}.dylib    # [osx]
+    - test -d $PREFIX/include/ode                         # [not win]
+    - test -f $PREFIX/lib/pkgconfig/ode.pc                # [not win]
+    - if not exist %PREFIX%\lib\ode_doubled.lib exit 1    # [win]
+    - if not exist %PREFIX%\bin\ode_doubled.dll exit 1    # [win]
+    - if not exist %PREFIX%\lib\pkgconfig/ode.pc exit 1   # [win]
+  imports:
+    - ode
+
+about:
+  home: https://www.ode.org/
+  license: LGPL-2.0 or BSD
+  summary: Open Dynamics Engine, dynamics simulation
+  license_file:
+    - LICENSE.TXT
+    - LICENSE-BSD.TXT
+
+extra:
+  recipe-maintainers:
+    - repagh
