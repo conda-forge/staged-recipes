@@ -5,7 +5,7 @@
 
 # need to add the openjpeg2 cflags
 export CFLAGS="${CFLAGS} `pkg-config --cflags libopenjp2`"
-#export CFLAGS="${CFLAGS} -I${PREFIX}/include/jxrlib"
+export CFLAGS="${CFLAGS} -I${PREFIX}/include/jxrlib"
 
 $PYTHON -m pip install . --no-deps --ignore-installed --no-cache-dir -vvv
 
