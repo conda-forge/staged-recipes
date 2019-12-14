@@ -1,0 +1,253 @@
+From 49ec801413649ac37c237a2325cec3adf6d03575 Mon Sep 17 00:00:00 2001
+From: Rony Fadel <rony.fadel@gmail.com>
+Date: Sat, 6 Aug 2016 15:07:20 +0200
+Subject: [PATCH] OSSpinLock has been deprecated on 10.12
+
+- for 10.12, use os_unfair_lock from <os/lock.h> (as recommended by OSSpinLockDeprecated.h)
+os_unfair_lock API reference: https://developer.apple.com/reference/os/os_unfair_lock
+- refactor locking routines into a shared set of macros
+---
+ include/xhyve/lock.h               | 41 ++++++++++++++++++++++++++++++
+ include/xhyve/vmm/io/vlapic_priv.h |  4 +--
+ src/vmm/io/vatpic.c                | 10 ++++----
+ src/vmm/io/vatpit.c                | 10 ++++----
+ src/vmm/io/vioapic.c               | 10 ++++----
+ src/vmm/io/vlapic.c                |  7 ++---
+ src/vmm/vmm.c                      | 10 ++++----
+ 7 files changed, 67 insertions(+), 25 deletions(-)
+ create mode 100644 include/xhyve/lock.h
+
+diff --git a/include/xhyve/lock.h b/include/xhyve/lock.h
+new file mode 100644
+index 0000000..7d33c7f
+--- /dev/null
++++ b/include/xhyve/lock.h
+@@ -0,0 +1,41 @@
++/*-
++ * Copyright (c) 2016 xhyve developers
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ * 1. Redistributions of source code must retain the above copyright
++ *    notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ *    notice, this list of conditions and the following disclaimer in the
++ *    documentation and/or other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND
++ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
++ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
++ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
++ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
++ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
++ * SUCH DAMAGE.
++ */
++
++#include <Availability.h>
++
++#if defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200 /* __MAC_10_12 */
++	#include <os/lock.h>
++	#define xhyve_lock_t os_unfair_lock
++	#define XHYVE_LOCK_INIT(V, LOCK) (V)->LOCK = OS_UNFAIR_LOCK_INIT;
++	#define XHYVE_LOCK(V, LOCK) os_unfair_lock_lock(&(V)->LOCK)
++	#define XHYVE_UNLOCK(V, LOCK) os_unfair_lock_unlock(&(V)->LOCK)
++#else
++	#include <libkern/OSAtomic.h>
++	#define xhyve_lock_t OSSpinLock
++	#define XHYVE_LOCK_INIT(V, LOCK) (V)->LOCK = OS_SPINLOCK_INIT;
++	#define XHYVE_LOCK(V, LOCK) OSSpinLockLock(&(V)->LOCK)
++	#define XHYVE_UNLOCK(V, LOCK) OSSpinLockUnlock(&(V)->LOCK)
++#endif
+diff --git a/include/xhyve/vmm/io/vlapic_priv.h b/include/xhyve/vmm/io/vlapic_priv.h
+index 62d2811..3f97fb0 100644
+--- a/include/xhyve/vmm/io/vlapic_priv.h
++++ b/include/xhyve/vmm/io/vlapic_priv.h
+@@ -30,7 +30,7 @@
+ 
+ #include <stdint.h>
+ #include <stdbool.h>
+-#include <libkern/OSAtomic.h>
++#include <xhyve/support/lock.h>
+ #include <xhyve/support/apicreg.h>
+ #include <xhyve/vmm/vmm_callout.h>
+ 
+@@ -163,7 +163,7 @@ struct vlapic {
+ 	struct bintime timer_fire_bt; /* callout expiry time */
+ 	struct bintime timer_freq_bt; /* timer frequency */
+ 	struct bintime timer_period_bt; /* timer period */
+-	OSSpinLock timer_lock;
++	xhyve_lock_t timer_lock;
+ 	/*
+ 	 * The 'isrvec_stk' is a stack of vectors injected by the local apic.
+ 	 * A vector is popped from the stack when the processor does an EOI.
+diff --git a/src/vmm/io/vatpic.c b/src/vmm/io/vatpic.c
+index 0b0bb25..5b3aa71 100644
+--- a/src/vmm/io/vatpic.c
++++ b/src/vmm/io/vatpic.c
+@@ -29,7 +29,7 @@
+ #include <stdbool.h>
+ #include <errno.h>
+ #include <assert.h>
+-#include <libkern/OSAtomic.h>
++#include <xhyve/support/lock.h>
+ #include <xhyve/support/misc.h>
+ #include <xhyve/support/i8259.h>
+ #include <xhyve/support/apicreg.h>
+@@ -38,9 +38,9 @@
+ #include <xhyve/vmm/io/vatpic.h>
+ #include <xhyve/vmm/io/vioapic.h>
+ 
+-#define VATPIC_LOCK_INIT(v) (v)->lock = OS_SPINLOCK_INIT;
+-#define VATPIC_LOCK(v) OSSpinLockLock(&(v)->lock)
+-#define VATPIC_UNLOCK(v) OSSpinLockUnlock(&(v)->lock)
++#define VATPIC_LOCK_INIT(v) XHYVE_LOCK_INIT(v, lock)
++#define VATPIC_LOCK(v) XHYVE_LOCK(v, lock)
++#define VATPIC_UNLOCK(v) XHYVE_UNLOCK(v, lock)
+ 
+ enum irqstate {
+ 	IRQSTATE_ASSERT,
+@@ -70,7 +70,7 @@ struct atpic {
+ 
+ struct vatpic {
+ 	struct vm *vm;
+-	OSSpinLock lock;
++	xhyve_lock_t lock;
+ 	struct atpic atpic[2];
+ 	uint8_t elc[2];
+ };
+diff --git a/src/vmm/io/vatpit.c b/src/vmm/io/vatpit.c
+index 5c59425..a9f7ae4 100644
+--- a/src/vmm/io/vatpit.c
++++ b/src/vmm/io/vatpit.c
+@@ -29,7 +29,7 @@
+ #include <stdint.h>
+ #include <stdbool.h>
+ #include <assert.h>
+-#include <libkern/OSAtomic.h>
++#include <xhyve/support/lock.h>
+ #include <xhyve/support/timerreg.h>
+ #include <xhyve/vmm/vmm_callout.h>
+ #include <xhyve/vmm/vmm_ktr.h>
+@@ -37,9 +37,9 @@
+ #include <xhyve/vmm/io/vatpit.h>
+ #include <xhyve/vmm/io/vioapic.h>
+ 
+-#define VATPIT_LOCK_INIT(v) (v)->lock = OS_SPINLOCK_INIT;
+-#define VATPIT_LOCK(v) OSSpinLockLock(&(v)->lock)
+-#define VATPIT_UNLOCK(v) OSSpinLockUnlock(&(v)->lock)
++#define VATPIT_LOCK_INIT(v) XHYVE_LOCK_INIT(v, lock)
++#define VATPIT_LOCK(v) XHYVE_LOCK(v, lock)
++#define VATPIT_UNLOCK(v) XHYVE_UNLOCK(v, lock)
+ 
+ #define	TIMER_SEL_MASK		0xc0
+ #define	TIMER_RW_MASK		0x30
+@@ -85,7 +85,7 @@ struct channel {
+ 
+ struct vatpit {
+ 	struct vm *vm;
+-	OSSpinLock lock;
++	xhyve_lock_t lock;
+ 	sbintime_t freq_sbt;
+ 	struct channel channel[3];
+ };
+diff --git a/src/vmm/io/vioapic.c b/src/vmm/io/vioapic.c
+index 55005c4..e95d344 100644
+--- a/src/vmm/io/vioapic.c
++++ b/src/vmm/io/vioapic.c
+@@ -32,7 +32,7 @@
+ #include <stdbool.h>
+ #include <errno.h>
+ #include <assert.h>
+-#include <libkern/OSAtomic.h>
++#include <xhyve/support/lock.h>
+ #include <xhyve/support/misc.h>
+ #include <xhyve/support/apicreg.h>
+ #include <xhyve/vmm/vmm_ktr.h>
+@@ -49,7 +49,7 @@
+ #pragma clang diagnostic ignored "-Wpadded"
+ struct vioapic {
+ 	struct vm *vm;
+-	OSSpinLock lock;
++	xhyve_lock_t lock;
+ 	uint32_t id;
+ 	uint32_t ioregsel;
+ 	struct {
+@@ -59,9 +59,9 @@ struct vioapic {
+ };
+ #pragma clang diagnostic pop
+ 
+-#define VIOAPIC_LOCK_INIT(v) (v)->lock = OS_SPINLOCK_INIT;
+-#define VIOAPIC_LOCK(v) OSSpinLockLock(&(v)->lock)
+-#define VIOAPIC_UNLOCK(v) OSSpinLockUnlock(&(v)->lock)
++#define VIOAPIC_LOCK_INIT(v) XHYVE_LOCK_INIT(v, lock)
++#define VIOAPIC_LOCK(v) XHYVE_LOCK(v, lock)
++#define VIOAPIC_UNLOCK(v) XHYVE_UNLOCK(v, lock)
+ 
+ #define	VIOAPIC_CTR1(vioapic, fmt, a1) \
+ 	VM_CTR1((vioapic)->vm, fmt, a1)
+diff --git a/src/vmm/io/vlapic.c b/src/vmm/io/vlapic.c
+index 62cf730..20a013f 100644
+--- a/src/vmm/io/vlapic.c
++++ b/src/vmm/io/vlapic.c
+@@ -31,6 +31,7 @@
+ #include <stdbool.h>
+ #include <strings.h>
+ #include <errno.h>
++#include <xhyve/support/lock.h>
+ #include <xhyve/support/misc.h>
+ #include <xhyve/support/atomic.h>
+ #include <xhyve/support/specialreg.h>
+@@ -56,9 +57,9 @@
+  * - timer_freq_bt, timer_period_bt, timer_fire_bt
+  * - timer LVT register
+  */
+-#define VLAPIC_TIMER_LOCK_INIT(v) (v)->timer_lock = OS_SPINLOCK_INIT;
+-#define VLAPIC_TIMER_LOCK(v) OSSpinLockLock(&(v)->timer_lock)
+-#define VLAPIC_TIMER_UNLOCK(v) OSSpinLockUnlock(&(v)->timer_lock)
++#define VLAPIC_TIMER_LOCK_INIT(v) XHYVE_LOCK_INIT(v, timer_lock)
++#define VLAPIC_TIMER_LOCK(v) XHYVE_LOCK(v, timer_lock)
++#define VLAPIC_TIMER_UNLOCK(v) XHYVE_UNLOCK(v, timer_lock)
+ 
+ /*
+  * APIC timer frequency:
+diff --git a/src/vmm/vmm.c b/src/vmm/vmm.c
+index bf25c3b..3f2aedb 100644
+--- a/src/vmm/vmm.c
++++ b/src/vmm/vmm.c
+@@ -33,7 +33,7 @@
+ #include <errno.h>
+ #include <pthread.h>
+ #include <assert.h>
+-#include <libkern/OSAtomic.h>
++#include <xhyve/support/lock.h>
+ #include <xhyve/support/misc.h>
+ #include <xhyve/support/atomic.h>
+ #include <xhyve/support/cpuset.h>
+@@ -69,7 +69,7 @@ struct vlapic;
+  * (x) initialized before use
+  */
+ struct vcpu {
+-	OSSpinLock lock; /* (o) protects 'state' */
++	xhyve_lock_t lock; /* (o) protects 'state' */
+ 	pthread_mutex_t state_sleep_mtx;
+ 	pthread_cond_t state_sleep_cnd;
+ 	pthread_mutex_t vcpu_sleep_mtx;
+@@ -90,9 +90,9 @@ struct vcpu {
+ 	uint64_t nextrip; /* (x) next instruction to execute */
+ };
+ 
+-#define vcpu_lock_init(v) (v)->lock = OS_SPINLOCK_INIT;
+-#define vcpu_lock(v) OSSpinLockLock(&(v)->lock)
+-#define vcpu_unlock(v) OSSpinLockUnlock(&(v)->lock)
++#define vcpu_lock_init(v) XHYVE_LOCK_INIT(v, lock)
++#define vcpu_lock(v) XHYVE_LOCK(v, lock)
++#define vcpu_unlock(v) XHYVE_UNLOCK(v, lock)
+ 
+ struct mem_seg {
+ 	uint64_t gpa;

@@ -1,0 +1,197 @@
+From bbf81efe77f9df1d6cb6f33f62fc8481eedb5096 Mon Sep 17 00:00:00 2001
+From: John Coyle <dx9err@gmail.com>
+Date: Mon, 16 Sep 2019 21:17:40 -0700
+Subject: [PATCH] Fix implicit conversion changes signedness errors with clang
+ 11
+
+Signed-off-by: John Coyle <dx9err@gmail.com>
+---
+ src/firmware/fbsd.c            |  6 +++---
+ src/inout.c                    |  4 ++--
+ src/vmm/intel/vmx.c            |  4 ++--
+ src/vmm/vmm_api.c              |  4 ++--
+ src/vmm/vmm_instruction_emul.c | 18 +++++++++---------
+ 5 files changed, 18 insertions(+), 18 deletions(-)
+
+diff --git a/src/firmware/fbsd.c b/src/firmware/fbsd.c
+index 19d1936..1a79797 100644
+--- a/src/firmware/fbsd.c
++++ b/src/firmware/fbsd.c
+@@ -674,7 +674,7 @@ cb_setreg(UNUSED void *arg, int r, uint64_t v)
+ 		abort();
+ 	}
+ 
+-	error = xh_vm_set_register(BSP, vmreg, v);
++	error = xh_vm_set_register(BSP, (int) vmreg, v);
+ 	if (error) {
+ 		perror("xh_vm_set_register");
+ 		cb_exit();
+@@ -701,7 +701,7 @@ cb_setmsr(UNUSED void *arg, u_int r, uint64_t v)
+ 		abort();
+ 	}
+ 
+-	error = xh_vm_set_register(BSP, vmreg, v);
++	error = xh_vm_set_register(BSP, (int) vmreg, v);
+ 	if (error) {
+ 		perror("xh_vm_set_msr");
+ 		cb_exit();
+@@ -736,7 +736,7 @@ cb_setcr(UNUSED void *arg, int r, uint64_t v)
+ 		cb_exit();
+ 	}
+ 
+-	error = xh_vm_set_register(BSP, vmreg, v);
++	error = xh_vm_set_register(BSP, (int) vmreg, v);
+ 	if (error) {
+ 		perror("vm_set_cr");
+ 		cb_exit();
+diff --git a/src/inout.c b/src/inout.c
+index 1ba8e99..227fa82 100644
+--- a/src/inout.c
++++ b/src/inout.c
+@@ -105,7 +105,7 @@ update_register(int vcpuid, enum vm_reg_name reg,
+ 	switch (size) {
+ 	case 1:
+ 	case 2:
+-		error = xh_vm_get_register(vcpuid, reg, &origval);
++		error = xh_vm_get_register(vcpuid, (int) reg, &origval);
+ 		if (error)
+ 			return (error);
+ 		val &= vie_size2mask(size);
+@@ -120,7 +120,7 @@ update_register(int vcpuid, enum vm_reg_name reg,
+ 		return (EINVAL);
+ 	}
+ 
+-	return xh_vm_set_register(vcpuid, reg, val);
++	return xh_vm_set_register(vcpuid, (int) reg, val);
+ }
+ 
+ int
+diff --git a/src/vmm/intel/vmx.c b/src/vmm/intel/vmx.c
+index 2d4b791..68d190e 100644
+--- a/src/vmm/intel/vmx.c
++++ b/src/vmm/intel/vmx.c
+@@ -1344,7 +1344,7 @@ inout_str_index(struct vmx *vmx, int vcpuid, int in)
+ 	enum vm_reg_name reg;
+ 
+ 	reg = in ? VM_REG_GUEST_RDI : VM_REG_GUEST_RSI;
+-	error = vmx_getreg(vmx, vcpuid, reg, &val);
++	error = vmx_getreg(vmx, vcpuid, (int) reg, &val);
+ 	KASSERT(error == 0, ("%s: vmx_getreg error %d", __func__, error));
+ 	return (val);
+ }
+@@ -1395,7 +1395,7 @@ inout_str_seginfo(struct vmx *vmx, int vcpuid, uint32_t inst_info, int in,
+ 		vis->seg_name = vm_segment_name(s);
+ 	}
+ 
+-	error = vmx_getdesc(vmx, vcpuid, vis->seg_name, &vis->seg_desc);
++	error = vmx_getdesc(vmx, vcpuid, (int) vis->seg_name, &vis->seg_desc);
+ 	KASSERT(error == 0, ("%s: vmx_getdesc error %d", __func__, error));
+ }
+ 
+diff --git a/src/vmm/vmm_api.c b/src/vmm/vmm_api.c
+index cb52bba..ddea2a0 100644
+--- a/src/vmm/vmm_api.c
++++ b/src/vmm/vmm_api.c
+@@ -552,7 +552,7 @@ xh_vm_get_capability(int vcpu, enum vm_cap_type cap, int *retval)
+ 	int error;
+ 
+ 	vcpu_freeze(vcpu, true);
+-	error = vm_get_capability(vm, vcpu, cap, retval);
++	error = vm_get_capability(vm, vcpu, (int) cap, retval);
+ 	vcpu_freeze(vcpu, false);
+ 
+ 	return (error);
+@@ -564,7 +564,7 @@ xh_vm_set_capability(int vcpu, enum vm_cap_type cap, int val)
+ 	int error;
+ 
+ 	vcpu_freeze(vcpu, true);
+-	error = vm_set_capability(vm, vcpu, cap, val);
++	error = vm_set_capability(vm, vcpu, (int) cap, val);
+ 	vcpu_freeze(vcpu, false);
+ 
+ 	return (error);	
+diff --git a/src/vmm/vmm_instruction_emul.c b/src/vmm/vmm_instruction_emul.c
+index 4fb07b2..50e7010 100644
+--- a/src/vmm/vmm_instruction_emul.c
++++ b/src/vmm/vmm_instruction_emul.c
+@@ -244,7 +244,7 @@ vie_read_register(void *vm, int vcpuid, enum vm_reg_name reg, uint64_t *rval)
+ {
+ 	int error;
+ 
+-	error = vm_get_register(vm, vcpuid, reg, rval);
++	error = vm_get_register(vm, vcpuid, (int) reg, rval);
+ 
+ 	return (error);
+ }
+@@ -283,7 +283,7 @@ vie_read_bytereg(void *vm, int vcpuid, struct vie *vie, uint8_t *rval)
+ 	enum vm_reg_name reg;
+ 
+ 	vie_calc_bytereg(vie, &reg, &lhbr);
+-	error = vm_get_register(vm, vcpuid, reg, &val);
++	error = vm_get_register(vm, vcpuid, (int) reg, &val);
+ 
+ 	/*
+ 	 * To obtain the value of a legacy high byte register shift the
+@@ -304,7 +304,7 @@ vie_write_bytereg(void *vm, int vcpuid, struct vie *vie, uint8_t byte)
+ 	enum vm_reg_name reg;
+ 
+ 	vie_calc_bytereg(vie, &reg, &lhbr);
+-	error = vm_get_register(vm, vcpuid, reg, &origval);
++	error = vm_get_register(vm, vcpuid, (int) reg, &origval);
+ 	if (error == 0) {
+ 		val = byte;
+ 		mask = 0xff;
+@@ -317,7 +317,7 @@ vie_write_bytereg(void *vm, int vcpuid, struct vie *vie, uint8_t byte)
+ 			mask <<= 8;
+ 		}
+ 		val |= origval & ~mask;
+-		error = vm_set_register(vm, vcpuid, reg, val);
++		error = vm_set_register(vm, vcpuid, (int) reg, val);
+ 	}
+ 	return (error);
+ }
+@@ -347,7 +347,7 @@ vie_update_register(void *vm, int vcpuid, enum vm_reg_name reg,
+ 		return (EINVAL);
+ 	}
+ 
+-	error = vm_set_register(vm, vcpuid, reg, val);
++	error = vm_set_register(vm, vcpuid, (int) reg, val);
+ 	return (error);
+ }
+ 
+@@ -607,7 +607,7 @@ get_gla(void *vm, int vcpuid, UNUSED struct vie *vie,
+ 	error = vie_read_register(vm, vcpuid, VM_REG_GUEST_RFLAGS, &rflags);
+ 	KASSERT(error == 0, ("%s: error %d getting rflags", __func__, error));
+ 
+-	error = vm_get_seg_desc(vm, vcpuid, seg, &desc);
++	error = vm_get_seg_desc(vm, vcpuid, (int) seg, &desc);
+ 	KASSERT(error == 0, ("%s: error %d getting segment descriptor %d",
+ 	    __func__, error, seg));
+ 
+@@ -2063,7 +2063,7 @@ decode_modrm(struct vie *vie, enum vm_cpu_mode cpu_mode)
+ 	if (vie->mod != VIE_MOD_DIRECT && vie->rm == VIE_RM_SIB)
+ 		goto done;
+ 
+-	vie->base_register = gpr_map[vie->rm];
++	vie->base_register = (int) gpr_map[vie->rm];
+ 
+ 	switch (vie->mod) {
+ 	case VIE_MOD_INDIRECT_DISP8:
+@@ -2138,7 +2138,7 @@ decode_sib(struct vie *vie)
+ 		 */
+ 		vie->disp_bytes = 4;
+ 	} else {
+-		vie->base_register = gpr_map[vie->base];
++		vie->base_register = (int) gpr_map[vie->base];
+ 	}
+ 
+ 	/*
+@@ -2149,7 +2149,7 @@ decode_sib(struct vie *vie)
+ 	 * Table 2-5: Special Cases of REX Encodings
+ 	 */
+ 	if (vie->index != 4)
+-		vie->index_register = gpr_map[vie->index];
++		vie->index_register = (int) gpr_map[vie->index];
+ 
+ 	/* 'scale' makes sense only in the context of an index register */
+ 	if (vie->index_register < VM_REG_LAST)
