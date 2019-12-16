@@ -118,6 +118,9 @@ if __name__ == '__main__':
         # Get our initial rate limit info.
         print_rate_limiting_info(gh)
 
+    gh_drone = Github(os.environ['GH_DRONE_TOKEN'])
+    print_rate_limiting_info(gh_drone)
+
     owner_info = ['--organization', 'conda-forge']
 
     print('Calculating the recipes which need to be turned into feedstocks.')
@@ -143,7 +146,7 @@ if __name__ == '__main__':
                                    'https://conda-forge-manager:{}@github.com/conda-forge/{}-feedstock'.format(os.environ['GH_TOKEN'],
                                                                                                                name)],
                                   cwd=feedstock_dir)
-            print_rate_limiting_info(gh)
+            print_rate_limiting_info(gh_drone)
             # Sometimes we already have the feedstock created. We need to deal with that case.
             if repo_exists(gh, 'conda-forge', name + '-feedstock'):
                 subprocess.check_call(['git', 'fetch', 'upstream_with_token'], cwd=feedstock_dir)
@@ -153,13 +156,15 @@ if __name__ == '__main__':
                 except subprocess.CalledProcessError:
                     # Sometimes, we have a repo, but there are no commits on it! Just catch that case.
                     subprocess.check_call(['git', 'checkout', '-b' 'master'], cwd=feedstock_dir)
-            print_rate_limiting_info(gh)
+            print_rate_limiting_info(gh_drone)
             subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info + ['--extra-admin-users', 'cf-blacksmithy'])
-            print_rate_limiting_info(gh)
+            print_rate_limiting_info(gh_drone)
 
         from conda_smithy.ci_register import drone_sync
         print("Running drone sync (can take ~100s)")
+        print_rate_limiting_info(gh_drone)
         drone_sync()
+        print_rate_limiting_info(gh_drone)
 
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
         # Without this, intermittent failures to synch the TravisCI repos ensue.
