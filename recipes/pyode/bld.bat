@@ -1,11 +1,11 @@
 ECHO "stage 1, library"
-setlocal EnableDelayedExpansion
+REM setlocal EnableDelayedExpansion
 
 mkdir _build
 cd _build
 
 REM add future installation path to pkgconfig
-set PKG_CONFIG_PATH=%LIBRARY_PREFIX%\pkgconfig;
+set PKG_CONFIG_PATH=%LIBRARY_PREFIX%\lib\pkgconfig;
 
 cmake -G"NMake Makefiles" ^
       -DCMAKE_BUILD_TYPE=Release ^
@@ -31,6 +31,7 @@ ECHO "check pkgconfig output"
 pkg-config --cflags ode
 pkg-config --libs ode
 ECHO "PKG_CONFIG_PATH %PKG_CONFIG_PATH%"
+set PATH=%PATH%:%LIBRARY_PREFIX%\bin
 
 python setup.py install
 if errorlevel 1 exit 1
