@@ -14,9 +14,6 @@ cd ..
 
 # stage 2, bindings
 
-# make sure recently installed ode.pc is found
-PKG_CONFIG_PATH=${PREFIX}/lib/pkgconfig:
-
 # code has aliasing warnings, use flag to prevent crashes
 CFLAGS="-fno-strict-aliasing $CFLAGS"
 cd bindings/python
