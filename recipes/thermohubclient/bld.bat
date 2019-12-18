@@ -24,7 +24,7 @@ mkdir build
 cd build
 
 echo "Configuring..."
-cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBuildTools=OFF -DBuildVelocyPackExamples=OFF -DBuildTests=OFF -DCMAKE_INSTALL_PREFIX:PATH="%CONDA_PREFIX%\Library" ..
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBuildTools=OFF -DBuildVelocyPackExamples=OFF -DBuildTests=OFF ..
 echo "Building..."
 ninja install
 
@@ -44,7 +44,7 @@ mkdir build
 cd build
 
 echo "Configuring..."
-cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DJSONARANGO_BUILD_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX:PATH="%CONDA_PREFIX%\Library" ..
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DJSONARANGO_BUILD_EXAMPLES=OFF ..
 echo "Building..."
 ninja install
 
