@@ -1,4 +1,5 @@
 #!/bin/bash
+./conda-install-dependencies.sh
 mkdir build
 cd build
 python_path=$(which python)

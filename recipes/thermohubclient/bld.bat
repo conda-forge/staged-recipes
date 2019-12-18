@@ -1,3 +1,61 @@
+set FART="%CD%\tools\fart\fart.exe"
+
+echo
+echo ******                		 ******
+echo ****** Compiling Velocypack ******
+echo ******                		 ******
+echo
+
+mkdir tmp_velo
+cd tmp_velo
+
+echo Get velocypack from git...
+
+git clone https://github.com/arangodb/velocypack.git
+cd velo*
+
+echo Setting linker settings from /MT to /MD
+echo "Fart location: %FART%"
+echo "Curent directory: %CD%"
+%FART% "%CD%\cmake\Modules\AR_CompilerSettings.cmake" MTd MDd
+%FART% "%CD%\cmake\Modules\AR_CompilerSettings.cmake" MT MD
+
+mkdir build
+cd build
+
+echo "Configuring..."
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBuildTools=OFF -DBuildVelocyPackExamples=OFF -DBuildTests=OFF -DCMAKE_INSTALL_PREFIX:PATH="%CONDA_PREFIX%\Library" ..
+echo "Building..."
+ninja install
+
+cd ..
+
+echo
+echo ******                         ******
+echo ****** Compiling JSONARNAGO    ******
+echo ******                         ******
+echo
+
+echo git clone jsonarango...
+git clone https://bitbucket.org/gems4/jsonarango.git
+cd jsonarango
+
+mkdir build
+cd build
+
+echo "Configuring..."
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DJSONARANGO_BUILD_EXAMPLES=OFF -DCMAKE_INSTALL_PREFIX:PATH="%CONDA_PREFIX%\Library" ..
+echo "Building..."
+ninja install
+
+cd ..
+
+cd ..\..\..
+REM Housekeeping
+rd /s /q "%CD%\tmp*"
+
+echo "Building ThermoHubClient..."
+
 mkdir build
 cd build
 
