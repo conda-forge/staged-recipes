@@ -17,9 +17,11 @@ python_path=$(which python)
 cmake -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX="$PREFIX" \
       -DCMAKE_INSTALL_LIBDIR=lib \
+      -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
       -DEnableSSE=OFF \
-      -DBuildTests=OFF \
-      -DBuildVelocyPackExamples=OFF \
+      -DBuildTests=ON \
+      -DBuildVelocyPackExamples=ON \
+      -DBuildTools=ON \
       -DBuildLargeTests=OFF \
       -DCMAKE_CXX_STANDARD=${CXX_STANDARD} \
       ..
