@@ -12,7 +12,7 @@ BUILD_TYPE=${BUILD_TYPE:-Release}
 
 mkdir build
 cd build
-python_path=$(which python)
+
 # Configure step
 cmake -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX="$PREFIX" \
