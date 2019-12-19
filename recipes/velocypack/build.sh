@@ -6,7 +6,6 @@ python_path=$(which python)
 cmake -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX="$PREFIX" \
       -DCMAKE_INSTALL_LIBDIR=lib \
-      -DHashType=xxhash \
       -DBuildTests=OFF \
       -DBuildVelocyPackExamples=OFF \
       -DBuildLargeTests=OFF \
