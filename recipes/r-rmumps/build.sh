@@ -35,4 +35,3 @@ if [[ $target_platform == osx-64 ]]; then
     done
   popd
 fi
-fi
