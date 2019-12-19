@@ -5,10 +5,10 @@ if [[ $target_platform =~ linux.* ]] || [[ $target_platform == win-32 ]] || [[ $
   mv DESCRIPTION DESCRIPTION.old
   grep -v '^Priority: ' DESCRIPTION.old > DESCRIPTION
   $R CMD INSTALL --build .
+else
+  mkdir -p $PREFIX/lib/R/library/rmumps
+  mv * $PREFIX/lib/R/library/rmumps
 fi
-mkdir -p $PREFIX/lib/R/library/rmumps
-mv * $PREFIX/lib/R/library/rmumps
-
 if [[ $target_platform == osx-64 ]]; then
   pushd $PREFIX
     for libdir in lib/R/lib lib/R/modules lib/R/library lib/R/bin/exec sysroot/usr/lib; do
