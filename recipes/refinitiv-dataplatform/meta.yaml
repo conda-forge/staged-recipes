@@ -1,0 +1,185 @@
+{% set name = "refinitiv-dataplatform" %}
+{% set version = "1.0.0a0" %}
+{% set sha256 = "9f192b39db20a3e07b1f89ecbb2aea2015351edad0561d7d139c8d64562bec9d" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+  
+build:
+  noarch: python
+  number: 0
+  script: "{{ PYTHON }} -m pip install . -vv"
+
+requirements:
+  host:
+    - python >=3.6
+    - pip
+  run:
+    - python >=3.6
+    - python-dateutil
+    - deprecation
+    - appdirs >=1.4.3
+    - requests >=2.21.0
+    - requests-async >=0.6.2
+    - nest-asyncio >=1.0.0
+    - websocket-client >=0.54.0
+    - pandas >=0.17.0
+    - numpy >=1.11.0
+    
+test:
+  imports:
+    - refinitiv.dataplatform
+
+about:
+  home: https://developers.refinitiv.com/
+  license: Apache-2.0
+  license_family:  Apache
+  license_file: LICENSE.txt
+  summary: 'Python API for accessing Refinitiv data directly from your application uses to connect to the Refinitiv Data Platform'
+  description: |
+    The Refinitiv Data Plaform Library for Python provides a set of ease-of-use functions and classes that gives your applications a uniform access to the breath and depth of financial data and services available on the Refinitiv Data Platform. 
+
+    Thanks to this library the same Python code can be used to retrieve data whatever the access point your application uses to connect to the Refinitiv Data Platform (either via a direct connection, via Eikon, via the Refinitiv Workspace or even via a deployed Enterprise Platform).
+
+    The library provides several abstraction layers enabling different programming styles and technics suitable for all developers from Financial Coders to Seasoned Developers (synchronous function calls, async/await, event driven).  
+
+    # Some examples
+
+    ## Import the Refinitiv Data Platform Library
+
+    ```python
+    import refinitiv.dataplatform as rdp
+    ```
+
+    ## Chose your platform access point...
+
+    ### ...either directly to the Refinitiv Data Platform...
+
+    ```python
+    rdp.open_platform_session(
+        '8e9bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1b035d', 
+        rdp.GrantPassword(
+            'my_login', 
+            'my_password'
+        )
+    )
+    ```
+
+    ### ...or via Eikon/Refinitiv Workspace...
+
+    ```python
+    rdp.open_desktop_session('8e9bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1b035d')
+    ```
+
+    ### ...or via a Deployed Platform
+
+    ```python
+    rdp.open_deployed_platform_session(
+        '8e9bxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1b035d',
+        'my_deployed_platform_ip',
+        'my_dacs_user_name'
+    )
+    ```
+
+    ## Real-time Pricing - Get Snapshots
+
+    ```python
+    rdp.get_snapshot(
+        universe = ['GBP=','JPY='], 
+        fields   = ['BID','ASK'],
+    )
+
+    ```
+
+    |   | Instruments | BID | ASK |
+    | - | ----------- | --- | --- |
+    | 0 | GBP= | 1.3211 | 1.3212 |
+    | 1 | JPY= | 108.6100 | 108.6200 |
+
+    ## Real-time Pricing - Get Streaming Data
+
+    ```python
+    streaming_prices = rdp.StreamingPrices(
+        instruments = ['EUR=', 'GBP=', 'JPY=', 'CAD='], 
+        fields = ['DSPLY_NAME', 'BID', 'ASK'],
+        on_update = lambda streaming_price, instrument_name, fields : 
+            print("Update received for {}: {}".format(instrument_name, fields))
+    )
+
+    streaming_prices.open()
+    ```
+
+    Output:
+
+        <StreamState.Open: 3>
+
+        Update received for JPY=: {'DSPLY_NAME': 'BARCLAYS     LON', 'BID': 109.59, 'ASK': 109.62}
+        Update received for GBP=: {'DSPLY_NAME': 'ASANPACIFIBK MOW', 'BID': 1.341, 'ASK': 1.3411}
+        Update received for EUR=: {'DSPLY_NAME': 'UBS          ZUR', 'BID': 1.117, 'ASK': 1.1174}
+        Update received for CAD=: {'DSPLY_NAME': 'HSBC         LON', 'BID': 1.3165, 'ASK': 1.3167}
+        Update received for JPY=: {'DSPLY_NAME': 'ASANPACIFIBK MOW', 'BID': 109.59, 'ASK': 109.61}
+        Update received for GBP=: {'DSPLY_NAME': 'INTERPROMBAN MOW', 'BID': 1.341, 'ASK': 1.3412}
+        Update received for EUR=: {'DSPLY_NAME': 'RBS          LON', 'BID': 1.117, 'ASK': 1.1174}
+        Update received for CAD=: {'DSPLY_NAME': 'CIBC         TOR', 'BID': 1.316, 'ASK': 1.3164}
+        Update received for JPY=: {'DSPLY_NAME': 'BARCLAYS     LON', 'BID': 109.59, 'ASK': 109.62}
+        Update received for GBP=: {'DSPLY_NAME': 'INTERPROMBAN MOW', 'BID': 1.341, 'ASK': 1.3413}
+        Update received for EUR=: {'DSPLY_NAME': 'BARCLAYS     LON', 'BID': 1.117, 'ASK': 1.1174}
+        Update received for CAD=: {'DSPLY_NAME': 'CIBC         TOR', 'BID': 1.316, 'ASK': 1.3164}
+        Update received for JPY=: {'DSPLY_NAME': 'ASANPACIFIBK MOW', 'BID': 109.59, 'ASK': 109.61}
+        Update received for GBP=: {'DSPLY_NAME': 'BARCLAYS     LON', 'BID': 1.341, 'ASK': 1.3414}
+
+    ## Historical Pricing - Get Interday Summaries
+
+    ```python
+    rdp.get_historical_price_summaries(
+        universe = 'VOD.L', 
+        interval = rdp.Intervals.DAILY,
+        fields = ['BID','ASK','OPEN_PRC','HIGH_1','LOW_1','TRDPRC_1','NUM_MOVES','TRNOVR_UNS'],
+    )
+    ```
+
+    |   | BID | ASK | OPEN PRC | HIGH 1 | LOW 1 | TRDPRC 1 | NUM MOVES | TRNOVR UNS |
+    | - | --- | --- | -------- | ------ | ----- | -------- | --------- | ---------- |
+    | 2019-12-12 | 144.32 | 144.34 | 144.42 | 145.66 | 143.46 | 144.18 | 12631.0 | 8498347218.71154 |
+    | 2019-12-11 | 143.58 | 143.6 | 142.72 | 144.8 | 142.62 | 143.58 | 10395.0 | 8815450412.65353 |
+    | 2019-12-10 | 142.74 | 142.78 | 143.84 | 143.84 | 141.48 | 142.74 | 10311.0 | 8070285210.45742 |
+    | ... | ... | ... | ... | ... | ... | ... | ... | ... |
+    | 2019-11-18 | 152.1 | 152.12 | 154.74 | 155.66 | 152.0 | 152.12 | 14606.0 | 19322988639.34 |
+    | 2019-11-15 | 154.6 | 154.62 | 160.68 | 160.68 | 154.06 | 154.6326 | 17035.0 | 31993013818.37456 |
+
+    ## News - Get Headlines
+
+    ```python
+    rdp.get_news_headlines(query = 'LFR', count = 350)
+    ```
+
+    | versionCreated | text | storyId | sourceCode |
+    | -------------- | ---- | ------- | ---------- |
+    | 2019-12-12 06:51:36.518 | SGX FTSE China A50 (Z9) intraday : prudence. | urn:newsml:reuters.com:20191212:nGUR92Pj4t:1 | NS:GURU |
+    | 2019-12-12 06:49:52.011 | SSE Composite intraday : biais haussier au-des... | urn:newsml:reuters.com:20191212:nGUR8gt362:1 | NS:GURU |
+    | 2019-12-12 06:49:33.973 | Election du Conseil fédéral: "repenser la form... | urn:newsml:reuters.com:20191212:nNRAafovmk:1 | NS:SDASDE |
+    | ... | ... | ... | ... |
+    | 2019-12-11 23:27:13.673 | Le nouveau système en huit questions | urn:newsml:reuters.com:20191211:nNRAafll6g:1 | NS:LESECH |
+    | 2019-12-11 23:27:13.653 | Les clefs du royaume | urn:newsml:reuters.com:20191211:nNRAaflped:1 | NS:LESECH |
+
+    350 rows x 4 columns
+
+    # Learning materals
+
+    To learn more about the Refinitiv Data Platform Library for python just connect to the Refinitiv Developer Community. By [registering](https://developers.refinitiv.com/iam/register) and [login](https://developers.refinitiv.com/iam/login) to the Refinitiv Developer Community portal you will get free access to a number of learning materials like [Quick Start guides](https://developers.refinitiv.com/refinitiv-data-platform/refinitiv-data-platform-libraries/quick-start), [Tutorials](https://developers.refinitiv.com/refinitiv-data-platform/refinitiv-data-platform-libraries/learning), [Documentation](https://developers.refinitiv.com/refinitiv-data-platform/refinitiv-data-platform-libraries/docs) and much more.  
+
+    # Help and Support
+
+    If you have any questions regarding the API usage, please post them on the [Refinitiv Data Platform Q&A Forum](https://community.developers.thomsonreuters.com). The Refinitiv Developer Community will be very pleased to help you. 
+
+  doc_url: https://developers.refinitiv.com/eikon-apis/eikon-data-api/docs
+  dev_url: https://developers.refinitiv.com/eikon-apis/eikon-data-api/
+
+extra:
+  recipe-maintainers:
+    - wiphoo
