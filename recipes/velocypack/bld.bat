@@ -16,8 +16,8 @@ cmake -G Ninja ^
       -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
       -DCMAKE_INCLUDE_PATH:PATH="%LIBRARY_INC%" ^
       -DHashType=xxhash ^
-      -DBuildTests=ON ^
-      -DBuildVelocyPackExamples=ON ^
+      -DBuildTests=OFF ^
+      -DBuildVelocyPackExamples=OFF ^
       -DBuildLargeTests=OFF ^
       ..
 ninja install

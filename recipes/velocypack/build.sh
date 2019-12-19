@@ -7,8 +7,8 @@ cmake -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX="$PREFIX" \
       -DCMAKE_INSTALL_LIBDIR=lib \
       -DHashType=xxhash \
-      -DBuildTests=ON \
-      -DBuildVelocyPackExamples=ON \
+      -DBuildTests=OFF \
+      -DBuildVelocyPackExamples=OFF \
       -DBuildLargeTests=OFF \
       ..
 # Build step
