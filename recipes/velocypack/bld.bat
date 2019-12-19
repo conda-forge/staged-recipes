@@ -13,8 +13,6 @@ set CFLAGS=%CFLAGS:-GL=%
 
 cmake -G Ninja ^
       -DCMAKE_BUILD_TYPE=Release ^
-      -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
-      -DCMAKE_INCLUDE_PATH:PATH="%LIBRARY_INC%" ^
       -DHashType=xxhash ^
       -DEnableSSE=OFF ^
       -DBuildTests=OFF ^
