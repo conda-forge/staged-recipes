@@ -1,7 +1,7 @@
 #!/bin/bash
 
-mkdir -p ${PREFIX}/x86_64-conda_cos-linux-gnu/sysroot
-pushd ${PREFIX}/x86_64-conda_cos-linux-gnu/sysroot > /dev/null 2>&1
+mkdir -p ${PREFIX}/x86_64-conda-linux-gnu/sysroot
+pushd ${PREFIX}/x86_64-conda-linux-gnu/sysroot > /dev/null 2>&1
 cp -Rf "${SRC_DIR}"/binary/* .
 mkdir -p usr/include
 cp -Rf "${SRC_DIR}"/binary-tzdata/* usr/
