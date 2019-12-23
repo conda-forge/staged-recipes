@@ -1,9 +1,3 @@
-if [ `uname` == Darwin ]; then
-    sed -i '' 's/gcc/\$\(GCC\)/g' $SRC_DIR/py/mkenv.mk
-else
-    sed -i 's/gcc/\$\(GCC\)/g' $SRC_DIR/py/mkenv.mk
-fi
-
 cd $SRC_DIR/lib
 sha=(
     43a6e6bd3bbc03dc501e16b89fba0ef042ed3ea0
