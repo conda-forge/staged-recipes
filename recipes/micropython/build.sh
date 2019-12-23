@@ -17,6 +17,6 @@ CFLAGS_EXTRA="$CFLAGS" CPP="$GCC -E" make
 
 cd $SRC_DIR/ports/unix
 sed -i '/GIT_SUBMODULES/d' Makefile
-CFLAGS_EXTRA="$CFLAGS" CPP="$GCC -E" make
+CFLAGS_EXTRA="$CFLAGS -lrt" CPP="$GCC -E" make
 
 mv micropython $PREFIX/bin
