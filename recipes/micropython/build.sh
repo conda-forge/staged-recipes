@@ -28,12 +28,12 @@ done
 cd $SRC_DIR/mpy-cross
 export CFLAGS_EXTRA="$CFLAGS"
 export CPP="$CC -E"
-make
+make -j${CPU_COUNT}
 
 cd $SRC_DIR/ports/unix
 if [ `uname` != Darwin ]; then
     export LDFLAGS_EXTRA="-lrt"
 fi
-make
+make -j${CPU_COUNT}
 
 mv micropython $PREFIX/bin
