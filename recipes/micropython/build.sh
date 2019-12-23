@@ -26,7 +26,7 @@ fi
 cd $SRC_DIR/ports/unix
 if [ `uname` == Darwin ]; then
     sed -i '' '/GIT_SUBMODULES/d' Makefile
-    LDFLAGS_EXTRA="-lrt" CFLAGS_EXTRA="$CFLAGS" CPP="$CC -E" make
+    CFLAGS_EXTRA="$CFLAGS" CPP="$CC -E" make
 else
     sed -i '/GIT_SUBMODULES/d' Makefile
     LDFLAGS_EXTRA="-lrt" CFLAGS_EXTRA="$CFLAGS" CPP="$GCC -E" make
