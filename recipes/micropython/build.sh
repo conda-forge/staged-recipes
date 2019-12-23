@@ -18,7 +18,7 @@ mv berkeley-db-1.xx-35aaec4418ad78628a3b935885dd189d41ce779b berkeley-db-1.xx
 
 cd $SRC_DIR/mpy-cross
 if [ `uname` == Darwin ]; then
-    CFLAGS_EXTRA="$CFLAGS" CPP="$GCC" make
+    CFLAGS_EXTRA="$CFLAGS" CPP="$CC -E" make
 else
     CFLAGS_EXTRA="$CFLAGS" CPP="$GCC -E" make
 fi
@@ -26,7 +26,7 @@ fi
 cd $SRC_DIR/ports/unix
 if [ `uname` == Darwin ]; then
     sed -i '' '/GIT_SUBMODULES/d' Makefile
-    LDFLAGS_EXTRA="-lrt" CFLAGS_EXTRA="$CFLAGS" CPP="$GCC" make
+    LDFLAGS_EXTRA="-lrt" CFLAGS_EXTRA="$CFLAGS" CPP="$CC -E" make
 else
     sed -i '/GIT_SUBMODULES/d' Makefile
     LDFLAGS_EXTRA="-lrt" CFLAGS_EXTRA="$CFLAGS" CPP="$GCC -E" make
