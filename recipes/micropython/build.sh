@@ -1,4 +1,4 @@
-alias gcc='$GCC'
+sed -i 's/gcc/\$\(GCC\)/g' $SRC_DIR/py/mkenv.mk
 
 cd $SRC_DIR/lib
 rm -rf axtls libffi berkeley-db-1.xx
