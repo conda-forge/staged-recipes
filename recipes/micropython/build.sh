@@ -26,17 +26,14 @@ for i in ${!library[@]}; do
 done
 
 cd $SRC_DIR/mpy-cross
-if [ `uname` == Darwin ]; then
-    CFLAGS_EXTRA="$CFLAGS" CPP="$CC -E" make
-else
-    CFLAGS_EXTRA="$CFLAGS" CPP="$GCC -E" make
-fi
+export CFLAGS_EXTRA="$CFLAGS"
+export CPP="$CC -E"
+make
 
 cd $SRC_DIR/ports/unix
-if [ `uname` == Darwin ]; then
-    CFLAGS_EXTRA="$CFLAGS" CPP="$CC -E" make
-else
-    LDFLAGS_EXTRA="-lrt" CFLAGS_EXTRA="$CFLAGS" CPP="$GCC -E" make
+if [ `uname` != Darwin ]; then
+    export LDFLAGS_EXTRA="-lrt"
 fi
+make
 
 mv micropython $PREFIX/bin
