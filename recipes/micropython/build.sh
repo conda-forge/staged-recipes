@@ -1,4 +1,8 @@
-sed -i '' 's/gcc/\$\(GCC\)/g' $SRC_DIR/py/mkenv.mk
+if [ `uname` == Darwin ]; then
+    sed -i '' 's/gcc/\$\(GCC\)/g' $SRC_DIR/py/mkenv.mk
+else
+    sed -i 's/gcc/\$\(GCC\)/g' $SRC_DIR/py/mkenv.mk
+fi
 
 cd $SRC_DIR/lib
 rm -rf axtls libffi berkeley-db-1.xx
@@ -16,7 +20,12 @@ cd $SRC_DIR/mpy-cross
 CFLAGS_EXTRA="$CFLAGS" CPP="$GCC -E" make
 
 cd $SRC_DIR/ports/unix
-sed -i '/GIT_SUBMODULES/d' Makefile
-LDFLAGS_EXTRA="-lrt" CFLAGS_EXTRA="$CFLAGS" CPP="$GCC -E" make
+if [ `uname` == Darwin ]; then
+    sed -i '' '/GIT_SUBMODULES/d' Makefile
+    LDFLAGS_EXTRA="-lrt" CFLAGS_EXTRA="$CFLAGS" CPP="$GCC" make
+else
+    sed -i '/GIT_SUBMODULES/d' Makefile
+    LDFLAGS_EXTRA="-lrt" CFLAGS_EXTRA="$CFLAGS" CPP="$GCC -E" make
+fi
 
 mv micropython $PREFIX/bin
