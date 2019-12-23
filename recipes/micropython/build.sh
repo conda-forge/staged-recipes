@@ -17,7 +17,11 @@ mv libffi-e9de7e35f2339598b16cbb375f9992643ed81209 libffi
 mv berkeley-db-1.xx-35aaec4418ad78628a3b935885dd189d41ce779b berkeley-db-1.xx
 
 cd $SRC_DIR/mpy-cross
-CFLAGS_EXTRA="$CFLAGS" CPP="$GCC -E" make
+if [ `uname` == Darwin ]; then
+    CFLAGS_EXTRA="$CFLAGS" CPP="$GCC" make
+else
+    CFLAGS_EXTRA="$CFLAGS" CPP="$GCC -E" make
+fi
 
 cd $SRC_DIR/ports/unix
 if [ `uname` == Darwin ]; then
