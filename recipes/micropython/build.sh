@@ -1,3 +1,5 @@
+alias gcc='$GCC'
+
 cd $SRC_DIR/lib
 rm -rf axtls libffi berkeley-db-1.xx
 wget https://github.com/pfalcon/axtls/archive/43a6e6bd3bbc03dc501e16b89fba0ef042ed3ea0.zip
