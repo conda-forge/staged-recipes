@@ -27,7 +27,7 @@ if your recipe isn't reviewed promptly.
 -->
 
 Checklist
-
+- [ ] Title of this PR is meaningful: e.g. "Adding my_nifty_package", not "updated meta.yaml" 
 - [ ] License file is packaged (see [here](https://github.com/conda-forge/staged-recipes/blob/master/recipes/example/meta.yaml#L57-L66) for an example)
 - [ ] Source is from official source
 - [ ] Package does not vendor other packages. (If a package uses the source of another package, they should be separate packages or the licenses of all packages need to be packaged)
