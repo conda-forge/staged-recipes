@@ -163,7 +163,8 @@ if __name__ == '__main__':
         from conda_smithy.ci_register import drone_sync
         print("Running drone sync (can take ~100s)")
         print_rate_limiting_info(gh_drone)
-        drone_sync()
+        # Disable drone sync, since we shouldn't need it during regular additions
+        # drone_sync()
         print_rate_limiting_info(gh_drone)
 
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
