@@ -2,6 +2,7 @@ set -ex
 mkdir build
 cd build
 
+# Debian seems to put the include headers in its own zopfli directory
 cmake -LAH                                                                \
     -DCMAKE_BUILD_TYPE="Release"                                          \
     -DCMAKE_PREFIX_PATH=${PREFIX}                                         \

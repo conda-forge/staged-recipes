@@ -4,6 +4,8 @@ setlocal enabledelayedexpansion
 mkdir build
 cd build
 
+REM Debian seems to put the include headers in its own zopfli directory
+
 cmake -LAH -G "Ninja"                                                     ^
     -DCMAKE_BUILD_TYPE="Release"                                          ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%                               ^
