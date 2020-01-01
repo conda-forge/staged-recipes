@@ -6,8 +6,7 @@ cd build
 
 REM Debian seems to put the include headers in its own zopfli directory
 
-REM cmake -LAH -G "Ninja"
-cmake -LAH                                                                ^
+cmake -LAH -G "Ninja"                                                     ^
     -DCMAKE_BUILD_TYPE="Release"                                          ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%                               ^
     -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX%                                  ^
@@ -18,8 +17,6 @@ cmake -LAH                                                                ^
     -DZOPFLI_BUILD_SHARED=1                                               ^
     ..
 
-
-type CMakeFiles/CMakeOutput.log
 if errorlevel 1 exit 1
 
 cmake --build . --target install --config Release
