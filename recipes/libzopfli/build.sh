@@ -10,6 +10,7 @@ cmake -LAH                                                                \
     -DCMAKE_INSTALL_INCLUDEDIR=${PREFIX}/include/zopfli                   \
     -DCMAKE_INSTALL_LIBDIR="lib"                                          \
     -DBUILD_SHARED_LIBS=1                                                 \
+    -DZOPFLI_BUILD_SHARED=1                                               \
     ..
 
 make -j${CPU_COUNT}
