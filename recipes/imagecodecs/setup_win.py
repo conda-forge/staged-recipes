@@ -52,7 +52,7 @@ include_dirs = [
 
 library_dirs = []
 libraries = [
-    'zlib', 'liblz4', 'libbz2', 'zstd', 'lzma',
+    'zlib', 'liblz4', 'libbz2', 'zstd', 'liblzma',
     'libaec', 'libblosc', 'snappy', 'zopfli',
     'brotlienc', 'brotlidec', 'brotlicommon',
     'jpeg', 'png', 'webp', 'openjp2', 'jpegxr', 'jxrglue', 'lcms2',
