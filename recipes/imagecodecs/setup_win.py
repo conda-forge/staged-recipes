@@ -51,127 +51,39 @@ include_dirs = [
 ]
 
 library_dirs = []
+libraries = [
+    'zlib', 'liblz4', 'libbz2', 'zstd', 'lzma',
+    'libaec', 'libblosc', 'snappy', 'zopfli',
+    'brotlienc', 'brotlidec', 'brotlicommon',
+    'jpeg', 'png', 'webp', 'openjp2', 'jpegxr', 'jxrglue', 'lcms2',
+]
+define_macros = [
+    ('WIN32', 1),
+    ('LZMA_API_STATIC', 0),
+    ('OPJ_STATIC', 0),
+    ('OPJ_HAVE_LIBLCMS2', 1),
+    ('CHARLS_STATIC', 0)
+]
 
-if True or os.environ.get('COMPUTERNAME', '').startswith('CG-'):
-    print('Windows development environment')
-    from _inclib import INCLIB
-    include_dirs.extend([
-        INCLIB,
-        INCLIB + 'jxrlib',
-        INCLIB + 'openjpeg-2.3',
-    ])
-    library_dirs.append(INCLIB)
-    libraries = [
-        'zlib', 'lz4', 'libbz2', 'lzf', 'zstd_static', 'lzma-static',
-        'libaec', 'libblosc', 'snappy', 'zopfli',
-        'brotlienc-static', 'brotlidec-static', 'brotlicommon-static',
-        'jpeg', 'png', 'webp', 'openjp2', 'jpegxr', 'jxrglue', 'lcms2',
-    ]
-    define_macros = [
-        ('WIN32', 1),
-        ('LZMA_API_STATIC', 1),
-        ('OPJ_STATIC', 1),
-        ('OPJ_HAVE_LIBLCMS2', 1),
-        ('CHARLS_STATIC', 1)
-    ]
-    libraries_jpeg12 = ['jpeg12']
-    if sys.version_info < (3, 5):
-        # CharLS-2.x and brunsli are not compatible with msvc 9, 10, 14
-        libraries_jpegls = []
-        libraries_jpegxl = []
-    else:
-        libraries_jpegls = ['charls']
-        libraries_jpegxl = [
-            'brunslidec-c', 'brunslienc-c',
-            # static linking
-            'brunslidec-static', 'brunslienc-static', 'brunslicommon-static',
-            # vendored brotli currently used for compressing metadata
-            'brunsli_brotlidec-static',
-            'brunsli_brotlienc-static',
-            'brunsli_brotlicommon-static',
-        ]
-    libraries_zfp = ['zfp']
-    openmp_args = ['/openmp']
+libraries_jpegls = ['charls']
+libraries_jpegxl = [
+    'brunslidec-c', 'brunslienc-c',
+    # static linking
+    'brunslidec-static', 'brunslienc-static', 'brunslicommon-static',
+    # vendored brotli currently used for compressing metadata
+    'brunsli_brotlidec-static',
+    'brunsli_brotlienc-static',
+    'brunsli_brotlicommon-static',
+]
+libraries_zfp = ['zfp']
+openmp_args = ['/openmp']
+# include_dirs.extend(os.environ.get('INCLUDE', '').split(';'))
+LIBRARY_INC = os.environ.get('LIBRARY_INC', '')
+for inc_dir in ['openjpeg-2.3', 'jxrlib', 'libpng16', 'webp', 'lzma']:
+    include_dirs.append(LIBRARY_INC + '\\' + inc_dir)
+include_dirs.append(LIBRARY_INC)
 
-elif os.environ.get('LD_LIBRARY_PATH', os.environ.get('LIBRARY_PATH', '')):
-    print("Czaki's CI environment")
-    libraries = [
-        'z', 'lz4', 'bz2', 'zstd', 'lzma', 'aec', 'blosc', 'snappy', 'zopfli',
-        'brotlienc', 'brotlidec', 'brotlicommon',
-        'jpeg', 'png', 'webp', 'openjp2', 'jpegxr', 'jxrglue', 'lcms2',
-        'm'
-    ]
-    libraries_jpeg12 = []
-    libraries_jpegxl = ['brunslidec-c', 'brunslienc-c']
-    libraries_jpegls = ['CharLS']
-    libraries_zfp = ['zfp']
-    define_macros = [('OPJ_HAVE_LIBLCMS2', 1)]
-    base_path = os.environ.get('BASE_PATH',
-                               os.path.dirname(os.path.abspath(__file__)))
-    include_base_path = os.path.join(base_path,
-                                     'build_utils/libs_build/include')
-
-    library_dirs = [
-        x for x in os.environ.get('LD_LIBRARY_PATH',
-                                  os.environ.get('LIBRARY_PATH', '')
-                                  ).split(':')
-        if x]
-    if os.path.exists(include_base_path):
-        include_dirs.append(include_base_path)
-        for el in os.listdir(include_base_path):
-            path_to_dir = os.path.join(include_base_path, el)
-            if os.path.isdir(path_to_dir):
-                include_dirs.append(path_to_dir)
-        jxr_path = os.path.join(include_base_path, 'libjxr')
-        if os.path.exists(jxr_path):
-            for el in os.listdir(jxr_path):
-                path_to_dir = os.path.join(jxr_path, el)
-                if os.path.isdir(path_to_dir):
-                    include_dirs.append(path_to_dir)
-
-    libraries_jpeg12 = []
-    for dir_path in include_dirs:
-        if os.path.exists(os.path.join(dir_path, 'charls', 'charls.h')):
-            libraries_jpegls = ['charls']
-            break
-    else:
-        libraries_jpegls = []
-    for dir_path in include_dirs:
-        if os.path.exists(os.path.join(dir_path, 'zfp.h')):
-            libraries_zfp = ['zfp']
-            break
-    else:
-        libraries_zfp = []
-    openmp_args = [] if os.environ.get('SKIP_OMP', False) else ['-fopenmp']
-
-else:
-    print("Most recent Debian")
-    libraries = [
-        'z', 'lz4', 'bz2', 'zstd', 'lzma', 'aec', 'blosc', 'snappy', 'zopfli',
-        'brotlienc', 'brotlidec', 'brotlicommon',
-        'jpeg', 'png', 'webp', 'openjp2', 'jpegxr', 'jxrglue', 'lcms2',
-    ]
-    include_dirs.extend(
-        [
-            '/usr/include/jxrlib',
-            '/usr/include/openjpeg-2.3',
-        ]
-    )
-    define_macros = [
-        ('OPJ_HAVE_LIBLCMS2', 1),
-    ]
-    if sys.platform == 'win32':
-        define_macros.extend([
-            ('WIN32', 1),
-            ('CHARLS_STATIC', 1)
-        ])
-    else:
-        libraries.append('m')
-    libraries_jpegxl = []  # 'brunsli*' not available in Debian
-    libraries_jpegls = []  # 'CharLS 2.0' core dumps
-    libraries_jpeg12 = []  # 'jpeg12' not available in Debian
-    libraries_zfp = []  # 'zfp' not available in Debian
-    openmp_args = ['-fopenmp']
+libraries_jpeg12 = []  # ['jpeg12']
 
 if 'lzf' not in libraries and 'liblzf' not in libraries:
     # use liblzf sources from sdist
