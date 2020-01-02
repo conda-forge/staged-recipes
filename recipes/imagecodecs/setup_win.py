@@ -55,7 +55,9 @@ libraries = [
     'zlib', 'liblz4', 'libbz2', 'zstd', 'liblzma',
     'aec', 'blosc', 'snappy', 'zopfli',
     'brotlienc', 'brotlidec', 'brotlicommon',
-    'jpeg', 'libpng', 'libwebp', 'openjp2', 'libjpegxr', 'libjxrglue', 'lcms',
+    'jpeg-static',
+    'turbojpeg-static',
+    'libpng', 'libwebp', 'openjp2', 'libjpegxr', 'libjxrglue', 'lcms',
 ]
 define_macros = [
     ('WIN32', 1),
