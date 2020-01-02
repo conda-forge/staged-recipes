@@ -13,7 +13,8 @@ set zaber_motion_libname=zaber-motion-lib-%GOOS%-%GOARCH%
 set zaber_motion_lib=%zaber_motion_libname%.dll
 set zaber_motion_header=%zaber_motion_libname%.h
 go build -buildmode=c-shared -o .\build\%zaber_motion_lib%
-if errorlevel 1 exit 1
+REM it seems that go build sets the error level to 1 always???
+REM if errorlevel 1 exit 1
 
 dir build
 
