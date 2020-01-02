@@ -53,9 +53,9 @@ include_dirs = [
 library_dirs = []
 libraries = [
     'zlib', 'liblz4', 'libbz2', 'zstd', 'liblzma',
-    'libaec', 'libblosc', 'snappy', 'zopfli',
+    'aec', 'blosc', 'snappy', 'zopfli',
     'brotlienc', 'brotlidec', 'brotlicommon',
-    'jpeg', 'png', 'webp', 'openjp2', 'jpegxr', 'jxrglue', 'lcms2',
+    'jpeg', 'libpng', 'libwebp', 'openjp2', 'libjpegxr', 'libjxrglue', 'lcms',
 ]
 define_macros = [
     ('WIN32', 1),
@@ -65,17 +65,9 @@ define_macros = [
     ('CHARLS_STATIC', 0)
 ]
 
-libraries_jpegls = ['charls']
-libraries_jpegxl = [
-    'brunslidec-c', 'brunslienc-c',
-    # static linking
-    'brunslidec-static', 'brunslienc-static', 'brunslicommon-static',
-    # vendored brotli currently used for compressing metadata
-    'brunsli_brotlidec-static',
-    'brunsli_brotlienc-static',
-    'brunsli_brotlicommon-static',
-]
-libraries_zfp = ['zfp']
+libraries_jpegls = ['charls-2-x64']
+libraries_jpegxl = []
+libraries_zfp = []
 openmp_args = ['/openmp']
 # include_dirs.extend(os.environ.get('INCLUDE', '').split(';'))
 LIBRARY_INC = os.environ.get('LIBRARY_INC', '')
