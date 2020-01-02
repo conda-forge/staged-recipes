@@ -1,6 +1,7 @@
 {% set name = "zaber-motion" %}
 # They technically have a 1.0.7 that JUST came out, but they didn't tag their repo
-{% set version = "1.0.6" %}
+{% set version = "1.0.8" %}
+{% set git_hash = "a5b21a6e72feb81bf2860b42e0d5a9d01ec74dad" %}
 
 # Should work with upstream to help them create platform dependent wheels.
 {% set bindings = name + "-bindings-windows" %}  # [win]
@@ -12,49 +13,26 @@ package:
   version: {{ version }}
 
 source:
-  - url: https://gitlab.com/zaber-core-libs/zaber-motion-lib/-/archive/v{{ version }}/zaber-motion-lib-v{{ version }}.tar.gz
-    sha256: 2dd67fea9df9439b8b9774c777a1ad501b13615b00243a5582d0c318e89d17a6
-    folder: zaber-motion-lib
-    patches:
-      - dont_specify_python_3_in_executable_name.patch
-
-  # From what I can they, they compile alot of opensource go code into
-  # statically linked libraries. This code migth be using protobuf 3.7.0.....
-  # lets ignore that for now.
-  #
-  # I can't actually build the whole thing myself because they use a private
-  # library in their build
-  #
-  # https://gitlab.com/zaber-core-libs/zaber-motion-lib/issues/1
-  #
-  # This statically linked code becomes this binary package, which they create
-  # universal wheels for, even though the package isn't a universal wheel.
-  #
-  # because I don't feel like patching their code too much, I'm just leaving
-  # the packages as is.  It could be that this is incompatible with
-  # conda-forge's cos6
-  - url: https://pypi.io/packages/source/{{ bindings[0] }}/{{ bindings }}/{{ bindings | replace("-", "_") }}-{{ version }}.tar.gz
-    sha256: 29b9859c6a7ddf95961ce4d470bcefb58dba3d713b9771b2eca446cef0b43354  # [osx]
-    sha256: 1f26c2d64b4e051629621c508183329268d453716ac3b7fc1746ecd8776785f0  # [linux]
-    sha256: 9124598b1ba46043748cc288e408a4bd673d2dcfe797904a41961d803ce1c948  # [win]
-    folder: bindings
+  # url: https://gitlab.com/zaber-core-libs/zaber-motion-lib/-/archive/v{{ version }}/zaber-motion-lib-v{{ version }}.tar.gz
+  url: https://gitlab.com/zaber-core-libs/zaber-motion-lib/-/archive/{{ git_hash }}/zaber-motion-lib-{{ git_hash }}.tar.gz
+  # sha256: 2dd67fea9df9439b8b9774c777a1ad501b13615b00243a5582d0c318e89d17a6
 
 build:
   skip: True  # [py==27]
   number: 0
 
-  # On linux, the binaries are precompiled to refer to the root level /lib64
-  # Can't do much at this stage unless I compile things myself, which
-  # I submitted a request upstream for
-  detect_binary_files_with_prefix: False  # [linux]
-  binary_relocation: False                # [linux]
-
 requirements:
+  build:
+    # - {{ compiler('cgo') }}
+    - go-cgo
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
   host:
     - python
     - pip
     - libprotobuf
     - protobuf
+    - protoc-gen-go
     # - mypy-protobuf
   run:
     - python
@@ -69,7 +47,7 @@ about:
   home: https://gitlab.com/zaber-core-libs/zaber-motion-lib
   license: MIT
   license_family: MIT
-  license_file: zaber-motion-lib/licensing/LICENSE
+  license_file: LICENSE
   summary: 'A Python library used to operate Zaber devices.'
   doc_url: https://www.zaber.com/software/docs/motion-library/
   dev_url: https://gitlab.com/zaber-core-libs/zaber-motion-lib
