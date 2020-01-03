@@ -1,3 +1,2 @@
-set GOPATH=%LIBRARY_PREFIX%
-make
 make install
+cp %GOPATH%\bin\protoc-gen-go %LIBRARY_BIN%.
