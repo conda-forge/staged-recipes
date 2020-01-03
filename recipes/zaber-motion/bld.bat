@@ -1,11 +1,8 @@
 @echo ON
 setlocal enabledelayedexpansion
+cd src/zaber-motion
 
-set GOOS=windows
-if %ARCH% == 64 set GOARCH=amd64
-if %ARCH% == 32 set GOARCH=386
 set GO111MODULE=on
-
 protoc -I=. --go_out="internal" protobufs\main.proto
 if errorlevel 1 exit 1
 

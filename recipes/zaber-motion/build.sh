@@ -1,18 +1,6 @@
 set -x
 SHORT_OS_STR=$(uname -s)
-
-# Follow upstream's naming convention, even though it is a little crazy
-# TODO: detect arm build correctly when desired.
-# Look at the function build_go_temp in their `gulpfile.js`
-# to follow their convention
-if [ "${SHORT_OS_STR:0:5}" == "Linux" ]; then
-  GOOS=linux
-  GOARCH=amd64
-fi
-if [ "${SHORT_OS_STR}" == "Darwin" ]; then
-  GOOS=darwin
-  GOARCH=amd64
-fi
+cd src/zaber-motion
 
 # Build Go package
 export GO111MODULE=on
