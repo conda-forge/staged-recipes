@@ -18,7 +18,9 @@ if errorlevel 1 exit 1
 dir build
 
 copy build\%zaber_motion_lib% %LIBRARY_BIN%\.
+if errorlevel 1 exit 1
 copy build\%zaber_motion_header% %LIBRARY_INC%\.
+if errorlevel 1 exit 1
 
 
 rem Look at gulpfil.js, protobuf_py
