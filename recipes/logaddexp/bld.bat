@@ -3,7 +3,6 @@ mkdir build && cd build
 cmake -GNinja ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
-    :: -DCMAKE_INSTALL_LIBDIR="lib" ^
     -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
     %SRC_DIR%
 
