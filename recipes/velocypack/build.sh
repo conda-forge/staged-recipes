@@ -8,9 +8,8 @@ ferr(){
 
 CXX_STANDARD=${CXX_STANDARD:-14}
 echo "requesting c++ standard ${CXX_STANDARD}"
-BUILD_TYPE=${BUILD_TYPE:-Release}
 
-mkdir build
+mkdir -p build
 cd build
 
 # Configure step

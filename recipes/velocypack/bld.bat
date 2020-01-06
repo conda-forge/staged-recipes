@@ -22,3 +22,4 @@ cmake -G Ninja ^
       -DBuildLargeTests=OFF ^
       ..
 ninja install
+if errorlevel 1 exit 1
