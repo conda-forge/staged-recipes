@@ -10,12 +10,8 @@ cmake "${SRC_DIR}" -G "${CMAKE_GENERATOR}"           \
       -Denable-fortran=ON\
       -Denable-python=ON\
       -Denable-python-bindings=ON\
-      -DBOOST_ROOT="${BUILD_PREFIX}"\
+      -DBOOST_ROOT="${PREFIX}"\
       -DBoost_USE_STATIC_LIBS=OFF\
-      -DBoost_DEBUG=ON\
-      -DBoost_DETAILED_FAILURE_MESSAGE=ON\
-      -DBOOST_INCLUDEDIR="${BUILD_PREFIX}/include"\
-      -DBOOST_LIBRARYDIR="${BUILD_PREFIX}/lib"\
       -DBoost_NO_SYSTEM_PATHS=OFF\
       -DBoost_NO_BOOST_CMAKE=ON\
       -Denable-java=OFF\
