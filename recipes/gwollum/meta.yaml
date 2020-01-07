@@ -1,0 +1,72 @@
+{% set name = "gwollum" %}
+{% set version = "2.3.12" %}
+{% set versions = version.split('.') %}
+
+package:
+   name: "{{ name|lower }}"
+   version: "{{ version }}"
+
+source:
+   url: "http://software.ligo.org/lscsoft/source/{{ name }}-{{ version }}.tar.xz"
+   sha256: 4416c3ccd18e37f9de00fc29a0dff0c25fc9fd511e542611b25c642fac882edc
+   patches:
+     # use C++17 standard (required to link against ROOT>=6.14)
+     - c++17.patch
+     # link only against libgsl, not libgslcblas
+     - gsl-library.patch
+
+build:
+  error_overdepending: true
+  error_overlinking: true
+  number: 0
+  skip: true  # [win]
+  run_exports:
+    - {{ pin_subpackage("gwollum", max_pin="x.x.x") }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake >=3.9.0
+    - make  # [unix]
+    - pkg-config  # [unix]
+  host:
+    - fftw
+    - gsl
+    - hdf5
+    - libframe
+    - root_base 6.18.04
+    - root-binaries 6.18.04
+    - zlib  # [osx]
+  run:
+    - fftw
+    - gsl
+    - hdf5
+    - libframe
+    - root_base
+    - zlib  # [osx]
+
+test:
+  requires:
+    - pkg-config
+  commands:
+    # sanity check
+    - echo -e "1 2 3\n4 5 6" > triggers.txt
+    - TxtToTree triggers.txt triggers a/I:b/I:c/I
+    # check pkg-config
+    - test "$(pkg-config --print-errors --modversion gwollum)" == "${PKG_VERSION}"  # [unix]
+
+about:
+  home: "http://virgo.in2p3.fr/GWOLLUM/v{{ versions[0] }}r{{ versions[1] }}/index.html?Main"
+  license: "GPL-3.0-or-later"
+  license_family: "GPL"
+  license_file: "LICENSE"
+  summary: "Tools for gravitational-wave analyses"
+  description: |
+    The GWOLLUM package contains a set of software tools designed to perform
+    GW analyses.  Most of the code source is written with the C++ language
+    and it also heavily relies on the CERN ROOT libraries (also C++).
+
+extra:
+  recipe-maintainers:
+    - duncanmmacleod
