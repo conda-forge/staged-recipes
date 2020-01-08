@@ -2,7 +2,7 @@
 
 # build script for conda - Linux & MacOS
 apple=`echo $HOST|grep apple`
-if [ ${#test} -eq 0 ] ; then 
+if [ ${#apple} -eq 0 ] ; then 
    CONDA_LD=-s -lrt # Linux
 else 
    CONDA_LD=
