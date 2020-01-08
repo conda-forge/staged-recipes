@@ -13,7 +13,7 @@ $CC -Ibzlib -Izlib -D_LARGEFILE64_SOURCE=1 -Wall -Ofast  -lpthread -lm base250.c
 #cp $RECIPE_DIR/genozip $PREFIX/genozip
 #cp $RECIPE_DIR/genozip $PREFIX/genounzip
 #cp $RECIPE_DIR/genozip $PREFIX/genocat
-cp $RECIPE_DIR/LICENSE.non-commerical.txt $PREFIX/
-cp $RECIPE_DIR/LICENSE.commerical.txt $PREFIX/
+#cp $RECIPE_DIR/LICENSE.non-commerical.txt $PREFIX/
+#cp $RECIPE_DIR/LICENSE.commerical.txt $PREFIX/
 
 exit 0

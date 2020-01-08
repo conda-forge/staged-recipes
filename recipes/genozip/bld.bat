@@ -3,8 +3,8 @@
 rem copy %RECIPE_DIR%\genozip.exe %PREFIX%\genozip.exe
 rem copy %RECIPE_DIR%\genozip.exe %PREFIX%\genounzip.exe
 rem copy %RECIPE_DIR%\genozip.exe %PREFIX%\genocat.exe
-copy %RECIPE_DIR%\LICENSE.non-commerical.txt %PREFIX%
-copy %RECIPE_DIR%\LICENSE.commerical.txt %PREFIX%
+rem copy %RECIPE_DIR%\LICENSE.non-commerical.txt %PREFIX%
+rem copy %RECIPE_DIR%\LICENSE.commerical.txt %PREFIX%
 
 exit /b 0
 
