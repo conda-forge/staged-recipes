@@ -16,3 +16,4 @@ cp $RECIPE_DIR/genozip $PREFIX/genocat
 cp $RECIPE_DIR/LICENSE.non-commerical.txt $PREFIX/
 cp $RECIPE_DIR/LICENSE.commerical.txt $PREFIX/
 
+exit 0
