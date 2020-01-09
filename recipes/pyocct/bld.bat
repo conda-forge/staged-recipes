@@ -1,15 +1,12 @@
 mkdir build
 cd build
 
-cmake -G "Ninja" ^
-      -D CMAKE_BUILD_TYPE=Release ^
-      -D PTHREAD_INCLUDE_DIRS:FILEPATH="%LIBRARY_PREFIX%/include" ^
-      -D ENABLE_SMESH=ON ^
-      -D ENABLE_NETGEN=ON ^
-      -D ENABLE_BLSURF=OFF ^
-      -D ENABLE_FORCE=ON ^
-      -D ENABLE_WARNINGS=OFF ^
-       ..
+cmake .. -G "Ninja" ^
+    -DCMAKE_BUILD_TYPE="Release" ^
+    -DENABLE_SMESH=ON ^
+    -DENABLE_NETGEN=ON ^
+    -DENABLE_FORCE=OFF ^
+    -DPTHREAD_INCLUDE_DIRS:FILEPATH="%LIBRARY_PREFIX%/include"
 
 if errorlevel 1 exit 1
 ninja install -j1
