@@ -5,7 +5,7 @@ set -ex
 
 declare -a PLATFORM_FLAGS
 if [ "$(uname)" == "Linux" ]; then
-    CMAKE_PLATFORM_FLAGS+=("--with-gl-lib=${CONDA_BUILD_SYSROOT}/usr/lib64/libGL.so")
+    PLATFORM_FLAGS+=("--with-gl-lib=${CONDA_BUILD_SYSROOT}/usr/lib64/libGL.so")
 fi
 
 ./configure \
