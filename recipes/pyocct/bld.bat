@@ -12,7 +12,7 @@ cmake -G "Ninja" ^
        ..
 
 if errorlevel 1 exit 1
-ninja install
+ninja install -j1
 if errorlevel 1 exit 1
 
 cd ..
