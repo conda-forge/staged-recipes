@@ -6,6 +6,7 @@ set -ex
 declare -a PLATFORM_FLAGS
 if [ "$(uname)" == "Linux" ]; then
     PLATFORM_FLAGS+=("--with-gl-lib=${CONDA_BUILD_SYSROOT}/usr/lib64/libGL.so")
+    ls "${CONDA_BUILD_SYSROOT}/usr/lib64"
 fi
 
 ./configure \
