@@ -1,17 +1,15 @@
-mkdir -p build
+#!/usr/bin/env bash
+mkdir build
 cd build
 
-#  for local debugging
-# -D CMAKE_C_COMPILER=/usr/bin/gcc \
-# -D CMAKE_CXX_COMPILER=/usr/bin/g++ \
+# export CC=gcc-4.9
+# export CXX=g++-4.9
 
-cmake -G "Ninja" \
-	  -D CMAKE_BUILD_TYPE=Release \
-      -D PTHREAD_INCLUDE_DIRS=${PREFIX} \
-      -D ENABLE_SMESH=ON \
-      -D ENABLE_NETGEN=ON \
-      -D ENABLE_BLSURF=OFF \
-      ..
+cmake .. -G "Ninja" \
+    -DCMAKE_BUILD_TYPE="Release" \
+    -DENABLE_SMESH=OFF \
+    -DENABLE_NETGEN=OFF \
+    -DENABLE_FORCE=OFF
 
 ninja install
 
