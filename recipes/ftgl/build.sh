@@ -3,19 +3,8 @@
 # http://redsymbol.net/articles/unofficial-bash-strict-mode/
 set -ex
 
-declare -a PLATFORM_FLAGS
-if [ "$(uname)" == "Linux" ]; then
-    PLATFORM_FLAGS+=("--with-gl-lib=${CONDA_BUILD_SYSROOT}/usr/lib64/libGL.so")
-    ls "${CONDA_BUILD_SYSROOT}/usr/lib64"
-fi
+cmake -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_BUILD_TYPE=Release -S . -B build 
 
-./configure \
-    --disable-debug \
-    --disable-dependency-tracking \
-    --prefix=${PREFIX} \
-    --disable-freetypetest \
-    --with-glut-inc=/dev/null \
-    --with-glut-lib=/dev/null \
-    "${PLATFORM_FLAGS}"
+cmake --build build
 
-make install
+cmake --install build
