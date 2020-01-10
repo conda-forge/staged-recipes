@@ -2,8 +2,9 @@
 mkdir build
 cd build
 
-# export CC=gcc-4.9
-# export CXX=g++-4.9
+if [[ ${HOST} =~ .*linux.* ]]; then
+    CXXFLAGS="${CXXFLAGS} -fpermissive"
+fi
 
 cmake .. -G "Ninja" \
     -DCMAKE_BUILD_TYPE="Release" \
