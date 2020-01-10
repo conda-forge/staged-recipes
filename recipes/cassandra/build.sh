@@ -2,9 +2,9 @@
 
 cd ${SRC_DIR}
 
-tar -xvf Cassandra*tar.gz
+ls
 
-cd Cassandra_V*/Src/
+cd Src/
 
 make -f Makefile.conda
 
