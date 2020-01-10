@@ -1,3 +1,6 @@
 
+
+export OMP_NUM_THREADS_BKUP=$OMP_NUM_THREADS
+
 export OMP_NUM_THREADS=4
 
