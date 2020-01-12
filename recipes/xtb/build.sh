@@ -5,10 +5,8 @@ mkdir -p _build
 pushd _build
 meson \
    --prefix=$PREFIX \
-   --libdir=$PREFIX/lib \
+   --libdir=lib \
    --buildtype=release \
-   --strip \
    -Dla_backend=openblas \
    ..
-ninja
-ninja -v install
+ninja install
