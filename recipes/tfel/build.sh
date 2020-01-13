@@ -1,8 +1,8 @@
 mkdir build
 cd build
 
-cmake "${SRC_DIR}" -G "${CMAKE_GENERATOR}"             \
-      -DCMAKE_OSX_SYSROOT="${CONDA_BUILD_SYSROOT}" ../ \
+cmake "${SRC_DIR}" -G "${CMAKE_GENERATOR}"         \
+      -DCMAKE_OSX_SYSROOT="${CONDA_BUILD_SYSROOT}" \
       -DCMAKE_BUILD_TYPE=Release\
       -Denable-developer-warnings=OFF\
       -Denable-random-tests=OFF\
@@ -10,9 +10,10 @@ cmake "${SRC_DIR}" -G "${CMAKE_GENERATOR}"             \
       -Denable-fortran=ON\
       -Denable-python=ON\
       -Denable-python-bindings=ON\
-      -DBOOST_ROOT="${BUILD_PREFIX}"\
-      -DBoost_USE_STATIC_LIBS=OFF\
+      -DBOOST_ROOT="${PREFIX}"\
+      -DBOOST_INCLUDEDIR="${BUILD_PREFIX}/include"\
       -DBoost_NO_SYSTEM_PATHS=ON\
+      -DBoost_USE_STATIC_LIBS=OFF\
       -DBoost_NO_BOOST_CMAKE=ON\
       -Denable-java=OFF\
       -Denable-aster=ON\
