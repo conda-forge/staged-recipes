@@ -3,9 +3,10 @@ REM set TEMP="%LOCALAPPDATA%\Temp"
 REM set TMPDIR="%LOCALAPPDATA%\Temp"
 if "%ARCH%" == "64" (
 set GCC_ARCH=x86_64-w64-mingw32
-set EXTRA_FLAGS=-DMS_WIN64
+set EXTRA_FLAGS="-DMS_WIN64 -I/mingw-w64/%GCC_ARCH%/include/"
 ) else (
 set GCC_ARCH=i686-w64-mingw32
+set EXTRA_FLAGS="-I/mingw-w64/%GCC_ARCH%/include/"
 )
 bash -lc "mkdir -p /tmp; ln -s ${LOCALAPPDATA}/Temp /tmp"
 bash -lc "echo $CYGWIN_PREFIX"
