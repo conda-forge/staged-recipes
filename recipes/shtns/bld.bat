@@ -8,6 +8,6 @@ set EXTRA_FLAGS=-DMS_WIN64
 set GCC_ARCH=i686-w64-mingw32
 )
 bash -lc "ln -s ${LOCALAPPDATA}/Temp /tmp"
-bash -lc "cd src; ./configure --disable-openmp --enable-python --build=$GCC_ARCH --host=$GCC_ARCH --target=$GCC_ARCH"
+bash -lc "cd src; ./configure --disable-openmp --enable-mkl --enable-python --build=$GCC_ARCH --host=$GCC_ARCH --target=$GCC_ARCH"
 bash -lc "cd src; make"
 bash -lc "cd src; make install"
