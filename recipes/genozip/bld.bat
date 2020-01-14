@@ -1,1 +1,1 @@
-make install
+make all
