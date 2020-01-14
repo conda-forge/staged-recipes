@@ -1,0 +1,125 @@
+@DSL Implicit;
+@Author Thomas Helfer;
+@Date   21/09/2008;
+@Behaviour ImplicitNorton;
+@Description{
+  This file implements the Norton law, described as:
+  "$$"
+  "\left\{"
+  "  \begin{aligned}"
+  "    \tepsilonto   &= \tepsilonel+\tepsilonvis \\"
+  "    \tsigma       &= \tenseurq{D}\,:\,\tepsilonel\\"
+  "    \tdepsilonvis &= \dot{p}\,\tenseur{n} \\"
+  "    \dot{p}       &= A\,\sigmaeq^{m}"
+  "  \end{aligned}"
+  "\right."
+  "$$"
+}
+
+@ModellingHypotheses {".+"};
+@Epsilon 1.e-16;
+
+@AsterCompareToNumericalTangentOperator[aster] true;
+@AsterStrainPerturbationValue[aster] 1.e-6;
+@AsterTangentOperatorComparisonCriterium[aster] 1.e7;
+
+@MaterialProperty stress young;
+young.setGlossaryName("YoungModulus");
+@MaterialProperty real nu;
+nu.setGlossaryName("PoissonRatio");
+
+@LocalVariable real     lambda;
+@LocalVariable real     mu;
+
+// store for the Von Mises stress 
+// for the tangent operator
+@LocalVariable real seq;
+// store the derivative of the creep function
+// for the tangent operator
+@LocalVariable real df_dseq;
+// store the normal tensor
+// for the tangent operator
+@LocalVariable Stensor n;
+
+@StateVariable real    p;
+@PhysicalBounds p in [0:*[;
+
+@StateVariable<PlaneStress> real etozz;
+PlaneStress::etozz.setGlossaryName("AxialStrain");
+
+@StateVariable<AxisymmetricalGeneralisedPlaneStress> real etozz;
+AxisymmetricalGeneralisedPlaneStress::etozz.setGlossaryName("AxialStrain");
+@ExternalStateVariable<AxisymmetricalGeneralisedPlaneStress> stress sigzz;
+AxisymmetricalGeneralisedPlaneStress::sigzz.setGlossaryName("AxialStress");
+
+/* Initialize Lame coefficients */
+@InitLocalVariables{
+  lambda = computeLambda(young,nu);
+  mu = computeMu(young,nu);
+} // end of @InitLocalVariables
+
+@ComputeStress{
+  sig = lambda*trace(eel)*Stensor::Id()+2*mu*eel;
+} // end of @ComputeStresss
+
+@Integrator{
+  const real A = 8.e-67;
+  const real E = 8.2;
+  seq = sigmaeq(sig);
+  const auto tmp = A*pow(seq,E-1.);
+  df_dseq = E*tmp;
+  const auto iseq = 1/(max(seq,real(1.e-12)*young));
+  n = 3*deviator(sig)*(iseq/2);
+  feel += dp*n-deto;
+  fp   -= tmp*seq*dt;
+  // jacobian
+  dfeel_ddeel += 2.*mu*theta*dp*iseq*(Stensor4::M()-(n^n));
+  dfeel_ddp    = n;
+  dfp_ddeel    = -2*mu*theta*df_dseq*dt*n;
+} // end of @Integrator
+
+@Integrator<PlaneStress,Append,AtEnd>{
+  // the plane stress equation is satisfied at the end of the time
+  // step
+  const stress szz = (lambda+2*mu)*(eel(2)+deel(2))+lambda*(eel(0)+deel(0)+eel(1)+deel(1));
+  fetozz   = szz/young;
+  // modification of the partition of strain
+  feel(2) -= detozz;
+  // jacobian
+  dfeel_ddetozz(2)=-1;
+  dfetozz_ddetozz  = real(0);
+  dfetozz_ddeel(2) = (lambda+2*mu)/young;
+  dfetozz_ddeel(0) = lambda/young;
+  dfetozz_ddeel(1) = lambda/young;
+}
+
+@Integrator<AxisymmetricalGeneralisedPlaneStress,Append,AtEnd>{
+  // the plane stress equation is satisfied at the end of the time
+  // step
+  const stress szz = (lambda+2*mu)*(eel(1)+deel(1))+lambda*(eel(0)+deel(0)+eel(2)+deel(2));
+  fetozz   = (szz-sigzz-dsigzz)/young;
+  // modification of the partition of strain
+  feel(1) -= detozz;
+  // jacobian
+  dfeel_ddetozz(1)=-1;
+  dfetozz_ddetozz  = real(0);
+  dfetozz_ddeel(1) = (lambda+2*mu)/young;
+  dfetozz_ddeel(0) = lambda/young;
+  dfetozz_ddeel(2) = lambda/young;
+}
+
+@IsTangentOperatorSymmetric true;
+@TangentOperator{
+  if((smt==ELASTIC)||(smt==SECANTOPERATOR)||
+     (smt==TANGENTOPERATOR)){
+    computeAlteredElasticStiffness<hypothesis,Type>::exe(Dt,lambda,mu);
+  } else if (smt==CONSISTENTTANGENTOPERATOR){
+    StiffnessTensor Hooke;
+    Stensor4 Je;
+    computeElasticStiffness<N,Type>::exe(Hooke,lambda,mu);
+    getPartialJacobianInvert(Je);
+    Dt = Hooke*Je;
+  } else {
+    return false;
+  }
+}
