@@ -88,6 +88,7 @@ def get_config(arch, channel_urls):
         error_overlinking=error_overlinking)
     return config
 
+
 def build_folders(recipes_dir, folders, arch, channel_urls):
 
     index_path = os.path.join(sys.exec_prefix, 'conda-bld')
