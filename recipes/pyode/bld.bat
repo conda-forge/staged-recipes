@@ -1,5 +1,4 @@
 ECHO "stage 1, library"
-REM setlocal EnableDelayedExpansion
 
 mkdir _build
 cd _build
