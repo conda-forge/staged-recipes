@@ -1,0 +1,49 @@
+--- test/plugins/CMakeLists.txt
++++ test/plugins/CMakeLists.txt
+@@ -8,24 +8,27 @@
+ # This variable gets put in the cache so that it is available at generation time.
+ set(IGN_DUMMY_PLUGIN_PATH_HEADER "DummyPluginsPath.h" CACHE INTERNAL "Name of header which contains DummyPlugin library path")
+ 
+-set(header_text "#define IGN_DUMMY_PLUGIN_PATH \"$<TARGET_FILE_DIR:IGNDummyPlugins>\"")
++get_target_property(IGNDummyPluginsLocation IGNDummyPlugins RUNTIME_OUTPUT_DIRECTORY)
++set(header_text "#define IGN_DUMMY_PLUGIN_PATH \"${IGNDummyPluginsLocation}\"")
+ 
+ # Pipe the header text into a header that will be placed in the project binary directory.
+ # We need to use this approach instead of the usual configure_file, because we required a
+ # generator expression in order to locate the IGNDummyPlugins library on Windows. Generator
+ # expressions can only be evaluated during generation (as opposed to during configuration),
+ # so we must use add_custom_command in order to produce this header.
++add_custom_target(IGNDummyPluginsPathHeader)
+ if(WIN32)
+   # Including VERBATIM causes the wrong behavior on Windows, so we leave it out of the 
+   # custom command when compiling on Windows.
+-  add_custom_command(TARGET IGNDummyPlugins
++  add_custom_command(TARGET IGNDummyPluginsPathHeader
+         PRE_BUILD
+         COMMAND echo
+         ARGS "${header_text}" > ${PROJECT_BINARY_DIR}/${IGN_DUMMY_PLUGIN_PATH_HEADER})
+ else()
+-  add_custom_command(TARGET IGNDummyPlugins
++  add_custom_command(TARGET IGNDummyPluginsPathHeader
+       PRE_BUILD
+       COMMAND echo
+       ARGS "${header_text}" > ${PROJECT_BINARY_DIR}/${IGN_DUMMY_PLUGIN_PATH_HEADER}
+       VERBATIM)
+-endif()
+\ No newline at end of file
++endif()
++add_dependencies(IGNDummyPlugins IGNDummyPluginsPathHeader)
+\ No newline at end of file
+
+--- test/performance/CMakeLists.txt
++++ test/performance/CMakeLists.txt
+@@ -12,3 +12,9 @@
+ ign_build_tests(
+   TYPE PERFORMANCE
+   SOURCES ${tests})
++
++if(TARGET PERFORMANCE_plugin_specialization)
++  # We add this dependency to make sure that DummyPlugins gets generated
++  # before PERFORMANCE_plugin_specialization so that its auto-generated header is available.
++  add_dependencies(PERFORMANCE_plugin_specialization IGNDummyPlugins)
++endif()
