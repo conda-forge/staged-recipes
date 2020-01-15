@@ -1,11 +1,5 @@
 #!/bin/sh
 
-# Need librt on Linux for time operations.
-if [ "$(uname)" == "Linux" ]
-then
-  export LDFLAGS="${LDFLAGS} -lrt"
-fi
-
 mkdir build
 cd build
 
