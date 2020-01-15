@@ -1,0 +1,62 @@
+{% set name = "libtike-cufft" %}
+{% set version = "0.5.1" %}
+{% set build = 0 %}
+
+
+# Set CUDA related variables
+{% if linux64 and cuda_compiler_version != "None" %}
+{% set cuda_build_prefix = "cuda" + cuda_compiler_version|string %}
+{% else %}
+{% set cuda_build_prefix = "" %}
+{% endif %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/carterbox/ptychocg/archive/{{ version }}.tar.gz
+  sha256: 41bbd057447be0c392654f8bb9fddebbc22bb98cab2f74714a638f155e0c2eb3
+
+build:
+  number: {{ build }}
+  string: "{{ cuda_build_prefix }}py{{ py }}h{{ PKG_HASH }}_{{ build }}"
+  skip: True  # [py<35 or not (linux64 and cuda_compiler_version != 'None')]
+  script:
+    - ln -s ${CUDA_HOME}/include/* ${CONDA_PREFIX}/include/
+    - {{ PYTHON }} -m pip install .
+      --no-deps --ignore-installed --no-index --no-cache-dir -vv
+  missing_dso_whitelist:
+    - "*/libcuda.*"
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - swig
+  host:
+    - pip
+    - python
+    - scikit-build
+    - setuptools_scm_git_archive
+  run:
+    - cupy
+    - python
+
+test:
+  imports:
+    - libtike.cufft
+
+about:
+  home: https://github.com/math-vrn/libtike-cufft
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: |
+    libtike-cufft provides a cuFFT implementation of core operators for Tike.
+  doc_url: https://tike.readthedocs.io/
+  dev_url: https://github.com/math-vrn/libtike-cufft
+
+extra:
+  recipe-maintainers:
+    - carterbox
