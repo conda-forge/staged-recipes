@@ -2,6 +2,7 @@ ECHO "stage 1, library"
 
 mkdir _build
 cd _build
+env
 
 REM add future installation path to pkgconfig
 set PKG_CONFIG_PATH=%LIBRARY_PREFIX%\lib\pkgconfig;
@@ -18,7 +19,7 @@ if errorlevel 1 exit 1
 nmake VERBOSE=1
 if errorlevel 1 exit 1
 
-nmake install
+nmake install VERBOSE=1
 if errorlevel 1 exit 1
  
 cd ..
@@ -32,6 +33,6 @@ pkg-config --libs ode
 ECHO "PKG_CONFIG_PATH %PKG_CONFIG_PATH%"
 set PATH=%PATH%:%LIBRARY_PREFIX%\bin
 
-%PYTHON% setup.py install --root %PREFIX% --prefix ""
+python setup.py install --verbose
 if errorlevel 1 exit 1
 REM --root %PREFIX% --prefix ""
