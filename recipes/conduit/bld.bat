@@ -13,11 +13,11 @@ cmake -G "NMake Makefiles" ^
       -DPYTHON_EXECUTABLE:FILEPATH="%PYTHON%" ^
       -DPYTHON_MODULE_INSTALL_PREFIX="%SP_DIR%" ^
       -DHDF5_DIR:PATH="%LIBRARY_PREFIX%" ^
-      ..
-if errorlevel 1 exit 1
+      ../src
+:: if errorlevel 1 exit 1
 
 :: Build!
-nmake
+nmake VERBOSE=1
 if errorlevel 1 exit 1
 
 :: Install!
