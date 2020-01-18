@@ -1,4 +1,7 @@
 #!/bin/bash
 
-cmake -DCMAKE_INSTALL_PREFIX=$PREFIX $SRC_DIR -DCMAKE_INSTALL_LIBDIR=lib
-make install
+cmake $SRC_DIR \
+    -DCMAKE_INSTALL_PREFIX=$PREFIX \
+    -DCMAKE_INSTALL_LIBDIR=lib
+
+make install -j${CPU_COUNT}
