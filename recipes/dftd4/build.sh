@@ -8,7 +8,7 @@ meson_options=(
    "release"
    "--warnlevel"
    "0"
-   "-Dla_backend=openblas"
+   "-Dla_backend=netlib"
    ".."
 )
 
