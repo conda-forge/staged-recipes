@@ -3,3 +3,5 @@
 cd source
 ./prepare
 make
+make check
+make install
