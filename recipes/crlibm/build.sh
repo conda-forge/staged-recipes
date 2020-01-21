@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-cd $SRC_DIR
+cd src
 ./prepare
 ./configure --prefix=$PREFIX
 make
