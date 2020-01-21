@@ -1,0 +1,83 @@
+{% set version = "2.2.2" %}
+{% set goofit_proc_version = "1.0.0" %}
+{% set name = "goofit" %}
+
+{% set goofit_proc_type = "cpu" if cuda_compiler_version == "None" else "gpu" %}
+
+package:
+  name: goofit-split
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: 82884fd3021555da0953776f81199cbea60287f6bca87b0ecdaa5dd212692c67
+  
+build:
+  number: 0
+  skip: true # [win]
+  script: |
+    rm pyproject.toml
+    {{ PYTHON }} -m pip install . -vv
+
+outputs:
+
+
+outputs:
+  - name: goofit-proc
+    version: {{ goofit_proc_version }}
+    build:
+      number: 0
+      string: "{{ goofit_proc_type }}"
+    test:
+      commands:
+        - exit 0
+    about:
+      home: https://github.com/conda-forge/goofit-feedstock
+      license: BSD-3-Clause
+      license_family: BSD
+      summary: A meta-package to select CPU or GPU GooFit build.
+  - name: goofit
+    build:
+      number: 0
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ compiler("cuda") }} # [cuda_compiler_version != "None"]
+        - cmake
+        - pip
+        - python
+        - scikit-build
+      host:
+        - python
+        - pip
+        - numpy
+        - scikit-build
+        - llvm-openmp  # [osx and c_compiler == "clang"]
+      run:
+        - python
+        - numpy
+        - llvm-openmp  # [osx and c_compiler == "clang"]
+      run_constrained:
+        - ucx-proc * {{ ucx_proc_type }}
+
+    script:
+      # CUDA 10.1 moves some headers to `/usr/include`
+      # So add that location last in the header search paths
+      - export CFLAGS="${CFLAGS} -I/usr/include"      # [cuda_compiler_version != "None"]
+      - export CXXFLAGS="${CXXFLAGS} -I/usr/include"  # [cuda_compiler_version != "None"]
+      - {{ PYTHON }} -m pip install . -vv
+    test:
+      imports:
+        - goofit
+
+about:
+  home: https://github.com/GooFit/GooFit
+  license: LGPL
+  license_family: LGPL
+  license_file: LICENSE.md
+  summary: A fitting package for GPU and CPU
+
+extra:
+  recipe-maintainers:
+    - henryiii
