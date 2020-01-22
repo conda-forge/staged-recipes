@@ -1,0 +1,314 @@
+{% set version = "2019.5" %}
+{% set buildnum = "281" %}
+
+# use this if our build script changes and we need to increment beyond intel's version
+# {% set dstbuildnum='4' %}
+{% set openmp_version = version %}
+# 117 was intel's base build number.  We're up 1 after making the license file not read-only
+{% set openmp_buildnum = buildnum %}
+
+package:
+  name: intel_repack
+  version: {{ version }}
+
+source:
+  - url: https://anaconda.org/intel/mkl/{{ version }}/download/{{ target_platform }}/mkl-{{ version }}-intel_{{ buildnum }}.tar.bz2
+    folder: mkl
+    md5: 6cb7c9eaf8f660d60992c228964f1c41  # [win]
+    md5: bd0d6045eed4caca5d11bf2dfd678dbb  # [osx]
+    md5: 81d13b34a60071ca27dae608e5921a24  # [linux]
+  - url: https://anaconda.org/intel/mkl-devel/{{ version }}/download/{{ target_platform }}/mkl-devel-{{ version }}-intel_{{ buildnum }}.tar.bz2
+    folder: mkl-devel
+    md5: b326bfc2ab9cbede641b0dc72c5a8df8  # [win]
+    md5: 7bfcb62b8f58c14c34bc8dd4926290d0  # [osx]
+    md5: f73ef0651569e17b66793d3f3ad11281  # [linux]
+  - url: https://anaconda.org/intel/mkl-include/{{ version }}/download/{{ target_platform }}/mkl-include-{{ version }}-intel_{{ buildnum }}.tar.bz2
+    folder: mkl-include
+    md5: 826aaeb29f364c5dca0b626a2dc49de5  # [win]
+    md5: e845fee2055ed6e9182ef582afb16a60  # [osx]
+    md5: 57d02e642e3d263aa19ba049d928ab1c  # [linux]
+  {% if 'conda-forge' not in channel_targets %}
+  - url: https://anaconda.org/intel/intel-openmp/{{ openmp_version }}/download/{{ target_platform }}/intel-openmp-{{ openmp_version }}-intel_{{ openmp_buildnum }}.tar.bz2
+    folder: intel-openmp
+    md5: 52e1123b2aab69cc7a715b0e7d3d8967  # [win]
+    md5: 4b02efdfba824d30bbc66dcb142fc21c  # [osx]
+    md5: 915247716b114b3add24d8684cdea343  # [linux]
+  {% endif %}
+  {% if target_platform != 'osx-64' %}
+  - url: https://anaconda.org/intel/daal/{{ version }}/download/{{ target_platform }}/daal-{{ version }}-intel_{{ buildnum }}.tar.bz2
+    folder: daal
+    md5: c2b70ed5c2fbc0f3abad942951a2a613  # [win]
+    md5: 92226ee6a9e3e53cc0799a4ddad099e4  # [osx]
+    md5: ef444e5cc67c1ee57549bb7efdf7152f  # [linux]
+  - url: https://anaconda.org/intel/daal-include/{{ version }}/download/{{ target_platform }}/daal-include-{{ version }}-intel_{{ buildnum }}.tar.bz2
+    folder: daal-include
+    md5: 46a9f4f5181bc0cb64abc0b19e104796  # [win]
+    md5: 581ed814c0c81ddf69cdd2d1a0d10807  # [osx]
+    md5: 622245da46fbc13a1a0aeff7aaa04a3b  # [linux]
+  - url: https://anaconda.org/intel/daal-static/{{ version }}/download/{{ target_platform }}/daal-static-{{ version }}-intel_{{ buildnum }}.tar.bz2
+    folder: daal-static
+    md5: 9143b6b474dd7c9bb6e29a4d0770f5e1  # [win]
+    md5: 39816e07a59993975ad11cc8a96f0f1b  # [osx]
+    md5: 0c1a08a21a8a720b7602ca038c7634cb  # [linux]
+  - url: https://anaconda.org/intel/daal-devel/{{ version }}/download/{{ target_platform }}/daal-devel-{{ version }}-intel_{{ buildnum }}.tar.bz2
+    folder: daal-devel
+    md5: 6d38b05f360b2ec6584e304dc4a7bd7e  # [win]
+    md5: f44761dd1efaac334364953cb3a4e6b4  # [osx]
+    md5: 4e6d87f028c145b79b76d6ca03a6a0cf  # [linux]
+  {% endif %}
+
+build:
+  # 117 was intel's base build number.  We're up 1 after making the license file not read-only
+  number: {{ buildnum }}
+  binary_relocation: false
+  detect_binary_files_with_prefix: false
+  skip: True                                  # [ppc64le]
+  missing_dso_whitelist:
+    # just ignore tbb on mac.  We could add it as a dep when we have it.
+    - libtbb.dylib                   # [osx]
+    - "$RPATH/libtbb.dylib"          # [osx]
+    # this one should be here, probably needs fixup of RUNPATH/RPATH
+    - libiomp5.dylib                   # [osx]
+    - "$RPATH/libiomp5.dylib"          # [osx]
+    # normal linux stuff that would go away if we had libgcc-ng in the run deps
+    - /lib*/ld-linux.so.2
+    - /lib64/ld-linux-x86-64.so.2
+    - /lib*/libpthread.so.0
+    - /lib*/libdl.so.2
+    - /lib*/libgcc_s.so.1
+    - /lib*/libc.so.6
+    - /lib*/libm.so.6
+    # these two really shouldn't be here.  See mkl_repack_and_patchelf.sh
+    - libiomp5.so
+    - libcoi_device.so.0
+    - /usr/lib/libstdc++.so.6       # [linux]
+    - /usr/lib64/libstdc++.so.6     # [linux]
+    - /usr/lib/libc++.1.dylib       # [osx]
+    # hooray, windows
+    - "C:\\Windows\\System32\\WINTRUST.dll"
+
+outputs:
+  - name: mkl
+    script: repack.sh   # [unix]
+    script: repack.bat  # [win]
+    requirements:
+      {% if 'conda-forge' not in channel_targets %}
+      host:
+        - intel-openmp
+      run:
+        - intel-openmp
+      {% else %}
+      host:
+        - llvm-openmp
+      run:
+        - llvm-openmp
+      {% endif %}
+    about:
+      home: https://software.intel.com/en-us/mkl
+      license: proprietary - Intel
+      license_family: Proprietary
+      license_file: mkl/info/LICENSE.txt
+      summary: Math library for Intel and compatible processors
+      description: |
+        Intel Math Kernel Library is a BLAS implementation tuned for high performance on Intel CPUs.
+        This package is a repackaged set of binaries obtained directly from Intel\'s anaconda.org channel.
+      doc_url: https://software.intel.com/en-us/mkl/documentation
+    test:
+      commands:
+        - ls -A $PREFIX/lib/*  # [unix]
+
+  - name: mkl-include
+    script: repack.sh   # [unix]
+    script: repack.bat  # [win]
+    about:
+      home: https://software.intel.com/en-us/mkl
+      license: proprietary - Intel
+      license_family: Proprietary
+      license_file: mkl/info/LICENSE.txt
+      summary: MKL headers for developing software that uses MKL
+      description: |
+        Intel Math Kernel Library is a BLAS implementation tuned for high performance on Intel CPUs.
+        This package is a repackaged set of binaries obtained directly from Intel\'s anaconda.org channel.
+      doc_url: https://software.intel.com/en-us/mkl/documentation
+    test:
+      commands:
+        - ls -A $PREFIX/include/*  # [unix]
+
+  {% if 'conda-forge' not in channel_targets %}
+  - name: intel-openmp
+    script: repack.sh   # [unix]
+    script: repack.bat  # [win]
+    number: {{ openmp_buildnum }}
+    version: {{ openmp_version }}
+    about:
+      home: https://software.intel.com/en-us/node/522690
+      license: proprietary - Intel
+      license_family: Proprietary
+      license_file: mkl/info/LICENSE.txt
+      summary: Math library for Intel and compatible processors
+      description: |
+        Intel openmp runtime implementation
+        This package is a repackaged set of binaries obtained directly from Intel\'s anaconda.org channel.
+      doc_url: https://software.intel.com/en-us/node/522690
+    test:
+      commands:
+        - ls -A $PREFIX/lib/*  # [unix]
+
+  # mutex package to keep only one blas implementation in a given env
+  - name: blas
+    version: 1.0
+    build:
+      string: mkl
+    test:
+      commands:
+        - echo 'works!'
+    about:
+      home: https://github.com/conda-forge/intel-repack-feedstock
+      license: BSD-3-Clause
+      license_file: ANACONDA_LICENSE
+      summary: 'BLAS mutex for MKL'
+  {% endif %}
+
+  - name: mkl-devel
+    script: install-devel.sh   # [unix]
+    script: install-devel.bat  # [win]
+    build:
+      # we had to fix site.cfg in 2019.1.  We're off by one.
+      number: {{ buildnum | int + 1 }}
+      # when stuff is built with MKL, ensure that constraint makes mkl runtime libs as new or
+      #     newer than build version
+      run_exports:
+        - {{ pin_subpackage('mkl') }}
+        {% if 'conda-forge' not in channel_targets %}
+        - {{ pin_subpackage('blas', exact=True) }}
+        {% endif %}
+    requirements:
+      run:
+        - {{ pin_subpackage('mkl', exact=True) }}
+        - {{ pin_subpackage('mkl-include', exact=True) }}
+        {% if 'conda-forge' not in channel_targets %}
+        - blas * mkl
+        {% endif %}
+    about:
+      home: https://software.intel.com/en-us/mkl
+      summary: Metapackage of MKL headers and libraries for developing software that uses MKL
+      license: proprietary - Intel
+      license_family: Proprietary
+      license_file: mkl/info/LICENSE.txt
+    test:
+      commands:
+        - ls -A $PREFIX/lib/*  # [unix]
+        - ls -A $PREFIX/include/*  # [unix]
+
+  {% if target_platform != 'osx-64' %}
+  - name: daal
+    script: repack.sh   # [unix]
+    script: repack.bat  # [win]
+    build:
+      number: {{ buildnum }}
+      missing_dso_whitelist:
+        # just ignore tbb on mac.  We could add it as a dep when we have it.
+        - libtbb.dylib                   # [osx]
+        - "$RPATH/libtbb.dylib"          # [osx]
+        # this one should be here, probably needs fixup of RUNPATH/RPATH
+        - libiomp5.dylib                   # [osx]
+        - "$RPATH/libiomp5.dylib"          # [osx]
+        # normal linux stuff that would go away if we had libgcc-ng in the run deps
+        - /lib*/ld-linux.so.2
+        - /lib64/ld-linux-x86-64.so.2
+        - /lib*/libpthread.so.0
+        - /lib*/libdl.so.2
+        - /lib*/libgcc_s.so.1
+        - /lib*/libc.so.6
+        - /lib*/libm.so.6
+        - lib/libgcc_s.so.1
+        # these two really shouldn't be here.  See mkl_repack_and_patchelf.sh
+        - libiomp5.so
+        - libcoi_device.so.0
+        - /usr/lib/libstdc++.so.6       # [linux]
+        - /usr/lib64/libstdc++.so.6     # [linux]
+        - /usr/lib/libc++.1.dylib       # [osx]
+        # hooray, windows
+        - "C:\\Windows\\System32\\WINTRUST.dll"
+    requirements:
+      host:
+        - tbb {{ version.split('.')[0] }}.*
+      run:
+        - tbb {{ version.split('.')[0] }}.*
+    about:
+      home: https://software.intel.com/en-us/daal
+      summary: DAAL runtime libraries
+      license: proprietary - Intel
+      license_family: Proprietary
+      license_file: mkl/info/LICENSE.txt
+    test:
+      commands:
+        - ls -A $PREFIX/lib/*  # [unix]
+
+  - name: daal-include
+    script: repack.sh   # [unix]
+    script: repack.bat  # [win]
+    build:
+      number: {{ buildnum }}
+    about:
+      home: https://software.intel.com/en-us/daal
+      summary: Headers for building against DAAL libraries
+      license: proprietary - Intel
+      license_family: Proprietary
+      license_file: mkl/info/LICENSE.txt
+    test:
+      commands:
+        - ls -A $PREFIX/include/*  # [unix]
+
+  - name: daal-static
+    script: repack.sh   # [unix]
+    script: repack.bat  # [win]
+    build:
+      number: {{ buildnum }}
+    requirements:
+      run:
+        - {{ pin_subpackage('daal-include', exact=True) }}
+        - tbb {{ version.split('.')[0] }}.*
+    about:
+      home: https://software.intel.com/en-us/daal
+      summary: Static libraries for DAAL
+      license: proprietary - Intel
+      license_family: Proprietary
+      license_file: mkl/info/LICENSE.txt
+    test:
+      commands:
+        - ls -A $PREFIX/lib/*  # [unix]
+
+  - name: daal-devel
+    script: repack.sh   # [unix]
+    script: repack.bat  # [win]
+    build:
+      number: {{ buildnum }}
+      run_exports:
+        - {{ pin_subpackage('daal') }}
+    requirements:
+      run:
+        - {{ pin_subpackage('daal-include', exact=True) }}
+        - {{ pin_subpackage('daal', exact=True) }}
+    about:
+      home: https://software.intel.com/en-us/daal
+      summary: Devel package for building things linked against DAAL shared libraries
+      license: proprietary - Intel
+      license_family: Proprietary
+      license_file: mkl/info/LICENSE.txt
+    test:
+      commands:
+        - ls -A $PREFIX/lib/*  # [unix]
+        - ls -A $PREFIX/include/*  # [unix]
+  {% endif %}
+
+# please the linter
+about:
+  home: https://github.com/conda-forge/intel-repack-feedstock
+  license: proprietary - Intel
+  summary: 'repackaged intel libraries'
+
+extra:
+  recipe-maintainers:
+    - isuruf
+    - beckermr
