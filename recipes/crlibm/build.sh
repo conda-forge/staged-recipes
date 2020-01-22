@@ -2,7 +2,7 @@
 
 cd src
 ./prepare
-./configure --prefix=$PREFIX
+./configure --prefix=$PREFIX --enable-sse2
 make
 make check
 make install
