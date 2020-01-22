@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+set -evx
+
 rm pyproject.toml
-pyhton -m pip install . -vv
+python -m pip install . -vv
 
