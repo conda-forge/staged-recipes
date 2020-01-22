@@ -1,6 +1,6 @@
 #!/bin/bash
 
-./configure --prefix=${PREFIX} --enable-static --enable-shared
+./configure --prefix=${PREFIX} --enable-shared
 make
 make check
 make install
