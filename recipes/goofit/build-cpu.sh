@@ -3,6 +3,6 @@ set -evx
 
 export MAKEFLAGS="-j2"
 
-rm pyproject.toml
+rm pyproject.toml || echo "Already removed pyproject file"
 python -m pip install . -vv
 
