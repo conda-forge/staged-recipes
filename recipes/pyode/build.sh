@@ -15,6 +15,6 @@ cd ..
 # stage 2, bindings
 
 # code has aliasing warnings, use flag to prevent crashes
-CFLAGS="-fno-strict-aliasing $CFLAGS"
+export CFLAGS="-fno-strict-aliasing $CFLAGS"
 cd bindings/python
 ${PYTHON} setup.py install --root "${PREFIX}" --prefix ""
