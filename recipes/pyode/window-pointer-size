@@ -1,0 +1,292 @@
+Index: ode-0.16/bindings/python/ode.pyx
+===================================================================
+--- ode-0.16.orig/bindings/python/ode.pyx
++++ ode-0.16/bindings/python/ode.pyx
+@@ -690,7 +690,7 @@ cdef class Contact:
+         where pos and normal are 3-tuples of floats and depth is a single
+         float. geom1 and geom2 are the Geom objects of the geoms in contact.
+         """
+-        cdef long id1, id2
++        cdef size_t id1, id2
+ 
+         pos = (self._contact.geom.pos[0],
+                self._contact.geom.pos[1],
+@@ -700,8 +700,8 @@ cdef class Contact:
+                   self._contact.geom.normal[2])
+         depth = self._contact.geom.depth
+ 
+-        id1 = <long>self._contact.geom.g1
+-        id2 = <long>self._contact.geom.g2
++        id1 = <size_t>self._contact.geom.g1
++        id2 = <size_t>self._contact.geom.g2
+         g1 = _geom_c2py_lut[id1]
+         g2 = _geom_c2py_lut[id2]
+         return pos, normal, depth, g1, g2
+@@ -724,7 +724,7 @@ cdef class Contact:
+         @type geom2: Geom
+         """
+ 
+-        cdef long id
++        cdef size_t id
+ 
+         self._contact.geom.pos[0] = pos[0]
+         self._contact.geom.pos[1] = pos[1]
+@@ -3461,8 +3461,8 @@ cdef class SpaceBase(GeomObject):
+ #            return None
+        
+     def _id(self):
+-        cdef long id
+-        id = <long>self.sid
++        cdef size_t id
++        id = <size_t>self.sid
+         return id
+ 
+     def __len__(self):
+@@ -3525,11 +3525,11 @@ cdef class SpaceBase(GeomObject):
+             raise IndexError("geom index out of range")
+ 
+         gid = dSpaceGetGeom(self.sid, idx)
+-        if <long>gid not in _geom_c2py_lut:
++        if <size_t>gid not in _geom_c2py_lut:
+             raise RuntimeError(
+                 "geom id cannot be translated to a Python object")
+ 
+-        return _geom_c2py_lut[<long>gid]
++        return _geom_c2py_lut[<size_t>gid]
+ 
+     def collide(self, arg, callback):
+         """collide(arg, callback)
+@@ -3567,15 +3567,15 @@ cdef class SpaceBase(GeomObject):
+ cdef void collide_callback(void* data, dGeomID o1, dGeomID o2):
+     cdef object tup
+ #    cdef Space space
+-    cdef long id1, id2
++    cdef size_t id1, id2
+ 
+ #    if (dGeomGetBody(o1)==dGeomGetBody(o2)):
+ #        return
+     
+     tup = <object>data
+     callback, arg = tup
+-    id1 = <long>o1
+-    id2 = <long>o2
++    id1 = <size_t>o1
++    id2 = <size_t>o2
+     g1 = _geom_c2py_lut[id1]
+     g2 = _geom_c2py_lut[id2]
+     callback(arg, g1, g2)
+@@ -3609,7 +3609,7 @@ cdef class SimpleSpace(SpaceBase):
+         self.gid = <dGeomID>self.sid
+ 
+         dSpaceSetCleanup(self.sid, 0)
+-        _geom_c2py_lut[<long>self.sid] = self
++        _geom_c2py_lut[<size_t>self.sid] = self
+ 
+     def __init__(self, space=None):
+         pass
+@@ -3642,7 +3642,7 @@ cdef class HashSpace(SpaceBase):
+         self.gid = <dGeomID>self.sid
+ 
+         dSpaceSetCleanup(self.sid, 0)
+-        _geom_c2py_lut[<long>self.sid] = self
++        _geom_c2py_lut[<size_t>self.sid] = self
+ 
+     def __init__(self, space=None):
+         pass
+@@ -3711,7 +3711,7 @@ cdef class QuadTreeSpace(SpaceBase):
+         self.gid = <dGeomID>self.sid
+ 
+         dSpaceSetCleanup(self.sid, 0)
+-        _geom_c2py_lut[<long>self.sid] = self
++        _geom_c2py_lut[<size_t>self.sid] = self
+ 
+     def __init__(self, center, extents, depth, space=None):
+         pass
+@@ -3760,7 +3760,7 @@ cdef class GeomSphere(GeomObject):
+ #        if space != None:
+ #            space._addgeom(self)
+ 
+-        _geom_c2py_lut[<long>self.gid] = self
++        _geom_c2py_lut[<size_t>self.gid] = self
+ 
+     def __init__(self, space=None, radius=1.0):
+         self.space = space
+@@ -3770,8 +3770,8 @@ cdef class GeomSphere(GeomObject):
+         return True
+ 
+     def _id(self):
+-        cdef long id
+-        id = <long>self.gid
++        cdef size_t id
++        id = <size_t>self.gid
+         return id
+ 
+     def setRadius(self, radius):
+@@ -3828,7 +3828,7 @@ cdef class GeomBox(GeomObject):
+ #        if space != None:
+ #            space._addgeom(self)
+ 
+-        _geom_c2py_lut[<long>self.gid] = self
++        _geom_c2py_lut[<size_t>self.gid] = self
+ 
+     def __init__(self, space=None, lengths=(1.0, 1.0, 1.0)):
+         self.space = space
+@@ -3838,8 +3838,8 @@ cdef class GeomBox(GeomObject):
+         return True
+ 
+     def _id(self):
+-        cdef long id
+-        id = <long>self.gid
++        cdef size_t id
++        id = <size_t>self.gid
+         return id
+ 
+     def setLengths(self, lengths):
+@@ -3892,14 +3892,14 @@ cdef class GeomPlane(GeomObject):
+ #        if space != None:
+ #            space._addgeom(self)
+ 
+-        _geom_c2py_lut[<long>self.gid] = self
++        _geom_c2py_lut[<size_t>self.gid] = self
+ 
+     def __init__(self, space=None, normal=(0, 0, 1), dist=0):
+         self.space = space
+ 
+     def _id(self):
+-        cdef long id
+-        id = <long>self.gid
++        cdef size_t id
++        id = <size_t>self.gid
+         return id
+ 
+     def setParams(self, normal, dist):
+@@ -3950,7 +3950,7 @@ cdef class GeomCapsule(GeomObject):
+ #        if space != None:
+ #            space._addgeom(self)
+ 
+-        _geom_c2py_lut[<long>self.gid] = self
++        _geom_c2py_lut[<size_t>self.gid] = self
+ 
+     def __init__(self, space=None, radius=0.5, length=1.0):
+         self.space = space
+@@ -3960,8 +3960,8 @@ cdef class GeomCapsule(GeomObject):
+         return True
+ 
+     def _id(self):
+-        cdef long id
+-        id = <long>self.gid
++        cdef size_t id
++        id = <size_t>self.gid
+         return id
+ 
+     def setParams(self, radius, length):
+@@ -4012,7 +4012,7 @@ cdef class GeomCylinder(GeomObject):
+ #        if space != None:
+ #            space._addgeom(self)
+ 
+-        _geom_c2py_lut[<long>self.gid] = self
++        _geom_c2py_lut[<size_t>self.gid] = self
+ 
+     def __init__(self, space=None, radius=0.5, length=1.0):
+         self.space = space
+@@ -4022,8 +4022,8 @@ cdef class GeomCylinder(GeomObject):
+         return True
+ 
+     def _id(self):
+-        cdef long id
+-        id = <long>self.gid
++        cdef size_t id
++        id = <size_t>self.gid
+         return id
+ 
+     def setParams(self, radius, length):
+@@ -4064,15 +4064,15 @@ cdef class GeomRay(GeomObject):
+ #        if space != None:
+ #            space._addgeom(self)
+ 
+-        _geom_c2py_lut[<long>self.gid] = self
++        _geom_c2py_lut[<size_t>self.gid] = self
+ 
+     def __init__(self, space=None, rlen=1.0):
+         self.space = space
+         self.body = None
+ 
+     def _id(self):
+-        cdef long id
+-        id = <long>self.gid
++        cdef size_t id
++        id = <size_t>self.gid
+         return id
+ 
+     def placeable(self):
+@@ -4149,7 +4149,7 @@ cdef class GeomTransform(GeomObject):
+ #        if space != None:
+ #            space._addgeom(self)
+ 
+-        _geom_c2py_lut[<long>self.gid] = self
++        _geom_c2py_lut[<size_t>self.gid] = self
+ 
+     def __init__(self, space=None):
+         self.space = space
+@@ -4162,8 +4162,8 @@ cdef class GeomTransform(GeomObject):
+         return True
+ 
+     def _id(self):
+-        cdef long id
+-        id = <long>self.gid
++        cdef size_t id
++        id = <size_t>self.gid
+         return id
+ 
+     def setGeom(self, GeomObject geom not None):
+@@ -4177,7 +4177,7 @@ cdef class GeomTransform(GeomObject):
+         @param geom: Geom object to encapsulate
+         @type geom: GeomObject
+         """
+-        cdef long id
++        cdef size_t id
+ 
+         if not geom.placeable():
+             raise ValueError(
+@@ -4335,7 +4335,7 @@ cdef class GeomTriMesh(GeomObject):
+             sid = sp.sid
+         self.gid = dCreateTriMesh(sid, data.tmdid, NULL, NULL, NULL)
+ 
+-        _geom_c2py_lut[<long>self.gid] = self
++        _geom_c2py_lut[<size_t>self.gid] = self
+ 
+     def __init__(self, TriMeshData data not None, space=None):
+         self.space = space
+@@ -4345,8 +4345,8 @@ cdef class GeomTriMesh(GeomObject):
+         return True
+ 
+     def _id(self):
+-        cdef long id
+-        id = <long>self.gid
++        cdef size_t id
++        id = <size_t>self.gid
+         return id
+ 
+     def clearTCCache(self):
+@@ -4415,8 +4415,8 @@ def collide(geom1, geom2):
+     """
+     
+     cdef dContactGeom c[150]
+-    cdef long id1
+-    cdef long id2
++    cdef size_t id1
++    cdef size_t id2
+     cdef int i, n
+     cdef Contact cont
+ 
+@@ -4451,8 +4451,8 @@ def collide2(geom1, geom2, arg, callback
+     """
+     cdef void* data
+     cdef object tup
+-    cdef long id1
+-    cdef long id2
++    cdef size_t id1
++    cdef size_t id2
+ 
+     id1 = geom1._id()
+     id2 = geom2._id()

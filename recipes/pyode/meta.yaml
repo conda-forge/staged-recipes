@@ -1,0 +1,104 @@
+# defining package and version
+{% set name = "libode" %}
+{% set version = "0.16" %}
+{% set soversion = "0.16.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://bitbucket.org/odedevs/ode/downloads/ode-{{ version }}.tar.gz
+  sha256: 4ba3b76f9c1314160de483b3db92b0569242a07452cbb25b368e75deb3cabf27
+  patches:
+    - add-rt-to-dotpc                # [linux]
+    - modify-dotpc-win               # [win]
+    - window-pointer-size            # [win]
+    
+build:
+  number: 0
+  skip: true                         # [win and py==27]
+  # add libode to the whitelist; it can apparently not be found yet when
+  # pyode is built
+  missing_dso_whitelist:
+    - lib/libode*
+    - $RPATH/librt.*                      # [linux]
+    - $RPATH/libpthread.*                 # [linux]
+    - $RPATH/libc.*                       # [linux]
+    - $RPATH/libpython.*                  # [linux]
+    - /lib*/librt.*                       # [linux]
+    - /lib*/libpthread.*                  # [linux]
+    - /lib*/libc.*                        # [linux]
+  
+requirements:
+  build:
+    - {{ compiler('cxx') }}          # stage 1, library
+    - cmake
+    - {{ compiler('c') }}            # stage 2, generate bindings
+    - pkg-config
+    - m2-patch                       # [win]
+    - make                           # [unix]
+  host:
+    - python {{ PY_VER }}*
+    - cython
+
+outputs:
+  - name: {{ name }}
+    requirements:
+      run:
+        - pthread-stubs                                              # [unix]
+        - libstdcxx-ng                                               # [linux]
+        - libgcc-ng                                                  # [linux]
+        - libcxx                                                     # [osx]
+        - vs2015_runtime                                             # [win]
+    run_exports:
+      - libode
+    files:
+      - lib/libode*                                                  # [unix]
+      - lib/pkgconfig/ode.pc                                         # [unix]
+      - lib/cmake/ode-{{ soversion }}                                # [unix]
+      - bin/ode-config                                               # [unix]
+      - Library/lib/ode_double.lib                                   # [win]
+      - Library/bin/ode_double.dll                                   # [win]
+      - Library/lib/pkgconfig/ode.pc                                 # [win]
+      - Library/lib/cmake/ode*                                       # [win]
+      - include/ode
+    test:
+      commands:
+        - test -f $PREFIX/lib/libode${SHLIB_EXT}                     # [unix]
+        - test -f $PREFIX/lib/libode${SHLIB_EXT}.{{ soversion }}     # [linux]
+        - test -f $PREFIX/lib/libode.{{ soversion }}${SHLIB_EXT}     # [osx]
+        - test -d $PREFIX/include/ode                                # [unix]
+        - test -f $PREFIX/lib/pkgconfig/ode.pc                       # [unix]
+        - if not exist %PREFIX%\Library\lib\ode_double.lib exit 1    # [win]
+        - if not exist %PREFIX%\Library\bin\ode_double.dll exit 1    # [win]
+        - if not exist %PREFIX%\Library\lib\pkgconfig\ode.pc exit 1  # [win]
+  - name: pyode
+    requirements:
+      run:
+        - libode
+        - pthread-stubs                                              # [unix]
+        - libstdcxx-ng                                               # [linux]
+        - libgcc-ng                                                  # [linux]
+        - libcxx                                                     # [osx]
+        - python {{ PY_VER }}*
+    files:
+      - lib/python{{ PY_VER }}/site-packages/ode.*                   # [unix]
+      - lib/python{{ PY_VER }}/site-packages/Open_Dynamics_Engine*egg-info  # [unix]
+      - Lib/site-packages/ode.*.pyd                                  # [win]
+      - Lib/site-packages/Open_Dynamics_Engine*egg-info              # [win]
+    test:
+      imports:
+        - ode
+
+about:
+  home: https://www.ode.org/
+  license: LGPL-2.0 or BSD-4-Clause
+  summary: Open Dynamics Engine, dynamics simulation
+  license_file:
+    - LICENSE.TXT
+    - LICENSE-BSD.TXT
+
+extra:
+  recipe-maintainers:
+    - repagh
