@@ -4,4 +4,3 @@ export CXX_INCLUDE_PATH=$PREFIX/include
 export CPLUS_INCLUDE_PATH=$PREFIX/include
 export LD_LIBRARY_PATH=$PREFIX/lib
 $PYTHON -m pip install . --ignore-installed --no-deps -vv
-ls -l $PREFIX/lib/python*/site-packages/
