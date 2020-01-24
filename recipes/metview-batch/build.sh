@@ -18,13 +18,12 @@ mkdir ../build && cd ../build
 # build process. We generate a list of tests to pass to ctest by skipping the failing ones.
 # This should be removed once the tests are fixed internally at ECMWF.
 if [[ $(uname) == Linux ]]; then
-    # 25: inline_c.mv_dummy_target (not surprising and not important for 99% of people)
-    export TESTS_TO_SKIP="25"
+    # 26: inline_c.mv_dummy_target (not surprising and not important for 99% of people)
+    export TESTS_TO_SKIP="26"
 elif [[ $(uname) == Darwin ]]; then
-    # 25: inline_c.mv_dummy_target (not surprising and not important for 99% of people)
-    # 36: geopoints.mv_dummy_target (only fails on macos on conda)
-    # 41: thermo.mv_dummy_target (fixed in Metview 5.8.0)
-    export TESTS_TO_SKIP="25,36,41"
+    # 26: inline_c.mv_dummy_target (not surprising and not important for 99% of people)
+    # 37: geopoints.mv_dummy_target (only fails on macos on conda)
+    export TESTS_TO_SKIP="26,37"
 fi
 
 # NUM_TESTS should be at least the total number of tests that we have;
