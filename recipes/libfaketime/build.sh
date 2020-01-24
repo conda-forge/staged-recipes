@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -e 
+
+FAKETIME_COMPILE_CFLAGS='-DFORCE_MONOTONIC_FIX'
+export FAKETIME_COMPILE_CFLAGS
+make
+make test
+make install PREFIX=$PREFIX
