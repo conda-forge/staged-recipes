@@ -99,7 +99,7 @@ def sleep_until_reset(gh):
         gh_api_reset_time = gh.get_rate_limit().core.reset
         gh_api_reset_time -= datetime.utcnow()
         
-        mins_to_sleep = gh_api_reset_time // 60
+        mins_to_sleep = gh_api_reset_time.seconds // 60
         mins_to_sleep += 1
 
         print("Sleeping until GitHub API resets.")
