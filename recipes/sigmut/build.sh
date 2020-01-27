@@ -2,9 +2,9 @@
 
 set -e
 
-pip install SigProfilerMatrixGenerator==1.0.25
-pip install sigproextractor
-pip3 install sigProfilerPlotting
+python3 -m pip install SigProfilerMatrixGenerator==1.0.25
+python3 -m pip install sigproextractor
+python3 -m pip3 install sigProfilerPlotting
 
 ./sigprofiler -ig GRCh38
 cp * ${PREFIX}/bin/
