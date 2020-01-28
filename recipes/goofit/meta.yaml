@@ -2,8 +2,8 @@
 {% set name = "goofit" %}
 
 {% set goofit_proc_version = "1.0.0" %}
-{% set goofit_proc_type = "cpu" %}  # [not linux]
-{% set goofit_proc_type = "cpu" if cuda_compiler_version == "None" else "gpu" %}  # [linux]
+{% set goofit_proc_type = "cpu" if cuda_compiler_version|default("None") == "None" else "gpu" %}
+{% set goofit_cuda_supported = ["None", "9.2", "10.0"] %}
 
 package:
   name: goofit-split
@@ -11,9 +11,15 @@ package:
 source:
   url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
   sha256: 82884fd3021555da0953776f81199cbea60287f6bca87b0ecdaa5dd212692c67
+  patches:
+    - patches/thrustorder-2.2.2.patch
   
 build:
-  skip: true  # [not linux]
+  skip: true  # [win]
+  {% if cuda_compiler_version|default("None") in goofit_cuda_supported %}
+  {% else %}
+  skip: true
+  {% endif %}
   number: 0
 
 outputs:
@@ -62,13 +68,14 @@ outputs:
 
     test:
       requires:
-        - pytest
+        - pytest  # [not linux or cuda_compiler_version == "None"]
       source_files:
-        - python/tests/test_exp.py
+        - python/tests/test_exp.py  # [not linux or cuda_compiler_version == "None"]
       imports:
-        - goofit
+        - goofit  # [not linux or cuda_compiler_version == "None"]
       commands:
-        - $PYTHON -m pytest python/tests/test_exp.py
+        - $PYTHON -m pytest python/tests/test_exp.py  # [not linux or cuda_compiler_version == "None"]
+        - $PYTHON -c "import sys, pkgutil; sys.exit(pkgutil.find_loader('goofit') is None)"
 
 about:
   home: https://github.com/GooFit/GooFit

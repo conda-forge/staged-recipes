@@ -1,0 +1,39 @@
+From 2ac6fa32476fc2cf649761f50da0ff80ae7b777f Mon Sep 17 00:00:00 2001
+From: Henry Schreiner <henryschreineriii@gmail.com>
+Date: Sun, 26 Jan 2020 17:10:41 -0500
+Subject: [PATCH] Ordering thrust
+
+---
+ CMakeLists.txt | 16 ++++++++++++----
+ 1 file changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 40357e34e..2c43dd579 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -440,13 +440,21 @@ if(NOT THRUST_FOUND)
+     set(THRUST_INCLUDE_DIR "${GOOFIT_SOURCE_DIR}/extern/thrust")
+     find_package(Thrust 1.8 REQUIRED)
+ endif()
+-message(STATUS "Using Thrust from ${THRUST_INCLUDE_DIRS}")
+ 
+-option(GOOFIT_FORCE_LOCAL_THRUST "GooFit will use the GitHub version of Thrust by default (CUDA 9.2's Thrust is buggy)" ON)
++option(GOOFIT_FORCE_LOCAL_THRUST "GooFit will use the GitHub version of Thrust by default (CUDA 9 and 10's Thrust is buggy)" ON)
+ if(GOOFIT_FORCE_LOCAL_THRUST)
+-    target_include_directories(GooFit_Common SYSTEM INTERFACE "${GOOFIT_SOURCE_DIR}/extern/thrust")
++    message(STATUS "Forcing local thrust. GOOFIT_FORCE_LOCAL_THRUST=OFF to disable. Requires CUDA < 10.2")
++    message(STATUS "Using CUDA from ${THRUST_INCLUDE_DIRS}")
++    target_include_directories(GooFit_Common SYSTEM BEFORE INTERFACE "${GOOFIT_SOURCE_DIR}/extern/thrust")
++    if(GOOFIT_DEVICE STREQUAL CUDA AND NEW_CUDA)
++        target_compile_options(GooFit_Common INTERFACE "-isystem=${THRUST_INCLUDE_DIRS}")
++    else()
++        target_include_directories(GooFit_Common SYSTEM INTERFACE "${THRUST_INCLUDE_DIRS}")
++    endif()
++else()
++    target_include_directories(GooFit_Common SYSTEM INTERFACE "${THRUST_INCLUDE_DIRS}")
++    message(STATUS "Using Thrust and CUDA from ${THRUST_INCLUDE_DIRS}")
+ endif()
+-target_include_directories(GooFit_Common SYSTEM INTERFACE "${THRUST_INCLUDE_DIRS}")
+ 
+ if(GOOFIT_DEVICE STREQUAL OMP OR GOOFIT_HOST STREQUAL OMP OR GOOFIT_DEVICE STREQUAL TBB OR GOOFIT_HOST STREQUAL TBB)
+     find_modern_package(OpenMP)
