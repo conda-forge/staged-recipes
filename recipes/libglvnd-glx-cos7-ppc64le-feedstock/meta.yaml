@@ -1,0 +1,57 @@
+# A few variables that make this a tiny bit more portable
+{% set centos_name = "libglvnd-glx" %}
+{% set name = centos_name |lower %}
+{% set version = '1.0.1' %}
+{% set centos_build = '0.8.git5baa1e5' %}
+# No good way to get this other than to fail once, I think???
+{% set el = 'el7' %}
+{% set sysroot_arch = "powerpc64le" %}
+{% set arch = "ppc64le" %}
+{% set cos = "cos7" %}
+{% set url_base = "http://mirror.centos.org/altarch/7/os/ppc64le/Packages/" %}
+
+package:
+  name: {{ name }}-{{ cos }}-{{ arch }}
+  version: {{ version }}
+
+source:
+  - url: {{ url_base }}{{ centos_name }}-{{ version }}-{{ centos_build }}.{{ el }}.{{ arch }}.rpm
+    sha256: 50a356aa8e5cd7743f6e13e8c0dddcb15be678a381ef06e5a63239972ef5e01c
+    folder: binary/usr
+
+build:
+  number: 0
+  noarch: generic
+  missing_dso_whitelist:
+    - '*'
+
+test:
+  # dummy requirement to workaround a bug with the CDT tests
+  requires:
+    - zlib
+  commands:
+    - test -f "$PREFIX/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot/usr/lib64/libGL.so.1"
+
+outputs:
+  - name: {{ name }}-{{ cos }}-{{ arch }}
+    build:
+      script:
+        # Add a sym link for libGL.so
+        - pushd {{ SRC_DIR }}/binary/usr/lib64 > /dev/null 2>&1
+        - ln -fs libGL.so.1.7.0 libGL.so
+        - popd
+        - mkdir -p {{ PREFIX }}/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot
+        - pushd {{ PREFIX }}/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot > /dev/null 2>&1
+        - cp -Rf {{ SRC_DIR }}/binary/* .
+
+about:
+  description: The GL Vendor-Neutral Dispatch library
+  home: http://www.mesa3d.org
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: (CDT) The GL Vendor-Neutral Dispatch library, Mesa GLX
+
+extra:
+  recipe-maintainers:
+    - jayfurmanek

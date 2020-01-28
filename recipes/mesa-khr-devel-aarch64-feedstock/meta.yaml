@@ -1,0 +1,52 @@
+# A few variables that make this a tiny bit more portable
+{% set centos_name = "mesa-khr-devel" %}
+{% set name = centos_name |lower %}
+{% set version = '18.3.4' %}
+{% set centos_build = '5' %}
+# No good way to get this other than to fail once, I think???
+{% set el = 'el7' %}
+{% set arch = "aarch64" %}
+{% set cos = "cos7" %}
+{% set url_base = "http://mirror.centos.org/altarch/7/os/aarch64/Packages/" %}
+
+package:
+  name: {{ name }}-{{ cos }}-{{ arch }}
+  version: {{ version }}
+
+source:
+  - url: {{ url_base }}{{ centos_name }}-{{ version }}-{{ centos_build }}.{{ el }}.{{ arch }}.rpm
+    sha256: d92d116ee58adf0c617f9993fa5ff884267f10f6f7096b52f331ab8352673a6a
+    folder: binary/usr
+
+build:
+  number: 0
+  noarch: generic
+  missing_dso_whitelist:
+    - '*'
+
+test:
+  # dummy requirement to workaround a bug with the CDT tests
+  requires:
+    - zlib
+  commands:
+    - test -f "$PREFIX/{{ arch }}-conda_{{ cos }}-linux-gnu/sysroot/usr/include/KHR/khrplatform.h"
+
+outputs:
+  - name: {{ name }}-{{ cos }}-{{ arch }}
+    build:
+      script:
+        - mkdir -p {{ PREFIX }}/{{ arch }}-conda_{{ cos }}-linux-gnu/sysroot
+        - pushd {{ PREFIX }}/{{ arch }}-conda_{{ cos }}-linux-gnu/sysroot > /dev/null 2>&1
+        - cp -Rf {{ SRC_DIR }}/binary/* .
+
+about:
+  description: Mesa Kronos headers
+  home: http://www.mesa3d.org
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: (CDT) Mesa Kronos headers
+
+extra:
+  recipe-maintainers:
+    - jayfurmanek
