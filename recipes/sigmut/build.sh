@@ -3,5 +3,5 @@
 set -e
 #./sigprofiler -ig GRCh38
 ./sigprofiler -h
-cp * ${PREFIX}/bin/
+cp -r * ${PREFIX}/bin/
 chmod u+rwx $PREFIX/bin/*
