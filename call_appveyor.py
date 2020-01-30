@@ -8,7 +8,7 @@ with open(os.path.expanduser("~/.conda-smithy/appveyor.token"), "r") as fh:
     appveyor_token = fh.read().strip()
 
 user = 'conda-forge'
-project = 'corrfunc-feedstock-ypgn6'
+project = 'corrfunc-feedstock-m19hw'
 
 headers = {"Authorization": "Bearer {}".format(appveyor_token)}
 
