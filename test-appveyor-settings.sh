@@ -33,5 +33,6 @@ conda config --get
 
 mkdir -p ~/.conda-smithy
 echo $TRAVIS_TOKEN > ~/.conda-smithy/travis.token
+echo $APPVEYOR_TOKEN > ~/.conda-smithy/appveyor.token
 
 python call_appveyor.py
