@@ -142,8 +142,8 @@ if __name__ == '__main__':
         print_rate_limiting_info(gh)
         
         # if we are out, exit early
-        if sleep_until_reset(gh):
-            sys.exit(1)
+        # if sleep_until_reset(gh):
+        #     sys.exit(1)
 
     gh_drone = Github(os.environ['GH_DRONE_TOKEN'])
     print_rate_limiting_info(gh_drone)
