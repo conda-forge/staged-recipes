@@ -83,6 +83,7 @@ def print_rate_limiting_info(gh):
     print("")
     print("GitHub API Rate Limit Info:")
     print("---------------------------")
+    print("user: ", gh.get_user().login)
     print("Currently remaining {remaining} out of {total}.".format(remaining=gh_api_remaining, total=gh_api_total))
     print("Will reset in {time}.".format(time=gh_api_reset_time))
     print("")
