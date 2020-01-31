@@ -185,7 +185,7 @@ if __name__ == '__main__':
                     # Sometimes, we have a repo, but there are no commits on it! Just catch that case.
                     subprocess.check_call(['git', 'checkout', '-b' 'master'], cwd=feedstock_dir)
             print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
-            subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info + ['--extra-admin-users', 'cf-blacksmithy'])
+            subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info)
             print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
         from conda_smithy.ci_register import drone_sync
