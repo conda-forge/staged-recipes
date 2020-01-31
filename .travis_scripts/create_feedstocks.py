@@ -90,16 +90,16 @@ def print_rate_limiting_info(gh, user):
 
 
 def sleep_until_reset(gh):
-    # sleep the job with printing every minute if we are out 
+    # sleep the job with printing every minute if we are out
     # of github api requests
 
     gh_api_remaining = gh.get_rate_limit().core.remaining
-    
+
     if gh_api_remaining == 0:
         # Compute time until GitHub API Rate Limit reset
         gh_api_reset_time = gh.get_rate_limit().core.reset
         gh_api_reset_time -= datetime.utcnow()
-        
+
         mins_to_sleep = int(gh_api_reset_time.total_seconds() / 60)
         mins_to_sleep += 2
 
@@ -141,7 +141,7 @@ if __name__ == '__main__':
 
         # Get our initial rate limit info.
         print_rate_limiting_info(gh, 'GH_TOKEN')
-        
+
         # if we are out, exit early
         # if sleep_until_reset(gh):
         #     sys.exit(1)
@@ -303,6 +303,7 @@ if __name__ == '__main__':
     if gh:
         # Get our final rate limit info.
         print_rate_limiting_info(gh, 'GH_TOKEN')
+    if gh_drone:
         print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
     sys.exit(exit_code)
