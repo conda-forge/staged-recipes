@@ -12,5 +12,5 @@ cp VERSION ${PREFIX}/lib/VERSION
 # Build Damask
 mkdir build
 cd build 
-cmake -DDAMASK_SOLVER="SPECTRAL" -DCMAKE_INSTALL_PREFIX="${PREFIX}" ..
+cmake -DDAMASK_SOLVER="SPECTRAL" -DCMAKE_INSTALL_PREFIX="${PREFIX}/bin" ..
 make install
