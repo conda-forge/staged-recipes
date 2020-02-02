@@ -11,5 +11,5 @@ cp -r python/damask ${STDLIB_DIR}
 # Build Damask
 mkdir build
 cd build 
-cmake -DDAMASK_SOLVER="SPECTRAL" ..
+cmake -DDAMASK_SOLVER="SPECTRAL" -DCMAKE_INSTALL_PREFIX="${PREFIX}" ..
 make install
