@@ -209,7 +209,8 @@ if __name__ == '__main__':
             # we fail the build so that people are aware that things did not clear.
             try:
                 # Stop registering on appveyor temporarily
-                subprocess.check_call(['conda', 'smithy', 'register-ci', '--without-appveyor', '--feedstock_directory', feedstock_dir] + owner_info)
+                subprocess.check_call(['conda', 'smithy', 'register-ci', '--without-appveyor',
+                                       '--without-webservice', '--feedstock_directory', feedstock_dir] + owner_info)
                 subprocess.check_call(['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
                 exit_code = 1
