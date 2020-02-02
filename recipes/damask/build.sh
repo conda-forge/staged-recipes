@@ -14,3 +14,4 @@ mkdir build
 cd build 
 cmake -DDAMASK_SOLVER="SPECTRAL" -DCMAKE_INSTALL_PREFIX="${PREFIX}/bin" ..
 make install
+ls "${PREFIX}/bin"
