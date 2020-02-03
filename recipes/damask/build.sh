@@ -13,5 +13,5 @@ cp VERSION ${PREFIX}/lib/VERSION
 mkdir build
 cd build 
 cmake -DDAMASK_SOLVER="SPECTRAL" -DCMAKE_INSTALL_PREFIX="${PREFIX}/bin" ..
-make install
+make -j$CPU_COUNT install
 cp src/DAMASK_spectral ${PREFIX}/bin
