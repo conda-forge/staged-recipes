@@ -12,4 +12,4 @@ cmake --build . --target install
 
 # Install python packages to conda's site-package directory
 mv $PREFIX/packages/* $SP_DIR/
-rm -d $PREFIX/packages
+rmdir $PREFIX/packages
