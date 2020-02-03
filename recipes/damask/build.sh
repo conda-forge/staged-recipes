@@ -1,5 +1,4 @@
 export PETSC_DIR=${PREFIX}
-# export FFLAGS="${FFLAGS} -lhdf5_fortran -lhdf5 -lhdf5hl_fortran -lhdf5_hl -lfftw3_mpi -lfftw3 -lm"
 export FFLAGS="${FFLAGS} -lhdf5_fortran -lhdf5 -lfftw3_mpi -lfftw3"
 
 # System report 
