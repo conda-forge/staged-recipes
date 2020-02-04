@@ -1,12 +1,11 @@
 #!usr/bin/env bash
 
-cd "$SRC_DIR"
-cd ..
+export GOPATH=${SRC_DIR}
+export PATH=${GOPATH}/bin:$PATH
 
-export GOPATH=$PWD/gopath
-
-mkdir -p "$GOPATH/src/github.com/cockroachdb"
-ln -s "$SRC_DIR" "$GOPATH/src/github.com/cockroachdb/cockroach"
-cd "$GOPATH/src/github.com/cockroachdb/cockroach"
+pushd src/github.com/cockroachdb/${PKG_NAME}
 
 make build
+
+#mkdir -p $PREFIX/bin
+#mv ${PKG_NAME} $PREFIX/bin/${PKG_NAME}
