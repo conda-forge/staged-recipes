@@ -3,14 +3,10 @@
 mkdir build
 cd build
 
-if [ -z "${PYTHON}" ]; then
-    PYTHON="$(which python)"
-fi
-
 cmake .. \
     -DCMAKE_CXX_COMPILER="${CXX}" \
     -DCMAKE_C_COMPILER="${CC}" \
-    -DPYTHON_EXECUTABLE="${PYTHON}" \
+    -DPython_ROOT_DIR="${PREFIX}"
     -DCLINGO_REQUIRE_PYTHON=ON \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     -DPYCLINGO_USER_INSTALL=OFF \
