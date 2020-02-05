@@ -14,6 +14,7 @@ set PATH=%PATH:C:\Program Files\Git\usr\bin;=%
 :: Configure.
 cmake                                              ^
     -G "MinGW Makefiles"                           ^
+    -DCMAKE_Fortran_COMPILER=gfortran              ^
     -DCMAKE_BUILD_TYPE=Release                     ^
     -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
     -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON               ^
