@@ -6,6 +6,11 @@
 mkdir build
 cd build
 
+:: Workaround (somewhat AppVeyor specific) for CMake not wanting sh.exe on
+:: `%PATH%` for MinGW
+set PATH=%PATH:C:\Program Files (x86)\Git\bin;=%
+set PATH=%PATH:C:\Program Files\Git\usr\bin;=%
+
 :: Configure.
 cmake                                              ^
     -G "MinGW Makefiles"                           ^
