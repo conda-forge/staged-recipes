@@ -10,7 +10,7 @@ echo $OSX_ARCH
 if [ ${OSX_ARCH}. == . ]; then
     export LDFLAGS="-fopenmp -lblas"    
 else 
-    export LDFLAGS="-fopenmp=libomp -llapack"
+    export LDFLAGS="-fopenmp=libomp -lblas"
     export CFLAGS="-fopenmp"
 fi
 echo $LDFLAGS
