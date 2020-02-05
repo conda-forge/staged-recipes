@@ -1,6 +1,5 @@
 :: NOTE: This assumes the following environment variables have been set.
-::       - `%SUBDIR%`
-::       - `%c_compiler%`
+::       - `%SRC_DIR%`
 ::       - `%LIBRARY_PREFIX%`
 :: H/T: https://docs.conda.io/projects/conda-build/en/latest/user-guide/environment-variables.html
 
@@ -14,7 +13,7 @@ cmake                                              ^
     -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
     -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON               ^
     -DTARGET_NATIVE_ARCH:BOOL=OFF                  ^
-    -S %SRC_DIR%                                   ^
+    -S "%SRC_DIR%\src\fortran"                     ^
     -B .
 if errorlevel 1 exit /b 1
 
