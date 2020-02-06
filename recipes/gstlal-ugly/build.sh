@@ -11,6 +11,7 @@ find ${PREFIX} -name "*.la" -delete
 # only link libraries we actually use
 export GSL_LIBS="-L${PREFIX}/lib -lgsl"
 export GSTLAL_LIBS="-L${PREFIX}/lib -lgstlal -lgstlaltags -lgstlaltypes"
+export framecpp_CFLAGS=" "
 
 # configure
 ${SRC_DIR}/configure \
@@ -29,4 +30,6 @@ make -j ${CPU_COUNT} V=1 VERBOSE=1
 make -j ${CPU_COUNT} V=1 VERBOSE=1 install
 
 # test
-make -j ${CPU_COUNT} V=1 VERBOSE=1 check
+if [ "$(uname)" == "Linux" ]; then
+  make -j ${CPU_COUNT} V=1 VERBOSE=1 check
+fi
