@@ -4,7 +4,8 @@ mkdir build
 cd build
 
 cmake .. \
-    -DCMAKE_SYSTEM_IGNORE_PATH="/usr/bin;/opt/conda/bin" \
+    -DCMAKE_PREFIX_PATH="${BUILD_PREFIX};${CMAKE_PREFIX_PATH}" \
+    -DCMAKE_SYSTEM_IGNORE_PATH="/usr/bin;/opt/conda/bin;/usr/local/miniconda/bin" \
     -DCMAKE_CXX_COMPILER="${CXX}" \
     -DCMAKE_C_COMPILER="${CC}" \
     -DCLINGO_REQUIRE_PYTHON=ON \
@@ -16,6 +17,6 @@ cmake .. \
     -DCMAKE_INSTALL_LIBDIR="lib" \
     -DCMAKE_BUILD_TYPE=Release
 
-make -j${CPU_COUNT}
+make VERBOSE=1 -j${CPU_COUNT}
 make install
 
