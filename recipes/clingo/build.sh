@@ -4,7 +4,7 @@ mkdir build
 cd build
 
 cmake .. \
-    -CMAKE_SYSTEM_PREFIX_PATH="${PREFIX}" \
+    -DCMAKE_SYSTEM_IGNORE_PATH="/usr/bin;/opt/conda/bin" \
     -DCMAKE_CXX_COMPILER="${CXX}" \
     -DCMAKE_C_COMPILER="${CC}" \
     -DCLINGO_REQUIRE_PYTHON=ON \
