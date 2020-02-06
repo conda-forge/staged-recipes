@@ -154,4 +154,3 @@ cxx_compiler:                           # [unix]
 fortran_compiler:                       # [unix]
 - gfortran                              # [unix]
 ```
-

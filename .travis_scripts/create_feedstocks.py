@@ -64,7 +64,7 @@ def repo_exists(gh, organization, name):
         raise
 
 
-def print_rate_limiting_info(gh):
+def print_rate_limiting_info(gh, user):
     # Compute some info about our GitHub API Rate Limit.
     # Note that it doesn't count against our limit to
     # get this info. So, we should be doing this regularly
@@ -83,10 +83,34 @@ def print_rate_limiting_info(gh):
     print("")
     print("GitHub API Rate Limit Info:")
     print("---------------------------")
+    print("token: ", user)
     print("Currently remaining {remaining} out of {total}.".format(remaining=gh_api_remaining, total=gh_api_total))
     print("Will reset in {time}.".format(time=gh_api_reset_time))
     print("")
 
+
+def sleep_until_reset(gh):
+    # sleep the job with printing every minute if we are out
+    # of github api requests
+
+    gh_api_remaining = gh.get_rate_limit().core.remaining
+
+    if gh_api_remaining == 0:
+        # Compute time until GitHub API Rate Limit reset
+        gh_api_reset_time = gh.get_rate_limit().core.reset
+        gh_api_reset_time -= datetime.utcnow()
+
+        mins_to_sleep = int(gh_api_reset_time.total_seconds() / 60)
+        mins_to_sleep += 2
+
+        print("Sleeping until GitHub API resets.")
+        for i in range(mins_to_sleep):
+            time.sleep(60)
+            print("slept for minute {curr} out of {tot}.".format(
+                curr=i+1, tot=mins_to_sleep))
+        return True
+    else:
+        return False
 
 
 if __name__ == '__main__':
@@ -116,10 +140,14 @@ if __name__ == '__main__':
         gh = Github(os.environ['GH_TOKEN'])
 
         # Get our initial rate limit info.
-        print_rate_limiting_info(gh)
+        print_rate_limiting_info(gh, 'GH_TOKEN')
+
+        # if we are out, exit early
+        # if sleep_until_reset(gh):
+        #     sys.exit(1)
 
     gh_drone = Github(os.environ['GH_DRONE_TOKEN'])
-    print_rate_limiting_info(gh_drone)
+    print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
     owner_info = ['--organization', 'conda-forge']
 
@@ -146,7 +174,7 @@ if __name__ == '__main__':
                                    'https://conda-forge-manager:{}@github.com/conda-forge/{}-feedstock'.format(os.environ['GH_TOKEN'],
                                                                                                                name)],
                                   cwd=feedstock_dir)
-            print_rate_limiting_info(gh_drone)
+            print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
             # Sometimes we already have the feedstock created. We need to deal with that case.
             if repo_exists(gh, 'conda-forge', name + '-feedstock'):
                 subprocess.check_call(['git', 'fetch', 'upstream_with_token'], cwd=feedstock_dir)
@@ -156,15 +184,16 @@ if __name__ == '__main__':
                 except subprocess.CalledProcessError:
                     # Sometimes, we have a repo, but there are no commits on it! Just catch that case.
                     subprocess.check_call(['git', 'checkout', '-b' 'master'], cwd=feedstock_dir)
-            print_rate_limiting_info(gh_drone)
-            subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info + ['--extra-admin-users', 'cf-blacksmithy'])
-            print_rate_limiting_info(gh_drone)
+            print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+            subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info)
+            print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
         from conda_smithy.ci_register import drone_sync
         print("Running drone sync (can take ~100s)")
-        print_rate_limiting_info(gh_drone)
+        print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
         drone_sync()
-        print_rate_limiting_info(gh_drone)
+        time.sleep(100)  # actually wait
+        print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
         # Without this, intermittent failures to synch the TravisCI repos ensue.
@@ -180,7 +209,8 @@ if __name__ == '__main__':
             # we fail the build so that people are aware that things did not clear.
             try:
                 # Stop registering on appveyor temporarily
-                subprocess.check_call(['conda', 'smithy', 'register-ci', '--without-appveyor', '--feedstock_directory', feedstock_dir] + owner_info)
+                subprocess.check_call(['conda', 'smithy', 'register-ci', '--without-appveyor',
+                                       '--without-webservice', '--feedstock_directory', feedstock_dir] + owner_info)
                 subprocess.check_call(['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
                 exit_code = 1
@@ -273,6 +303,8 @@ if __name__ == '__main__':
 
     if gh:
         # Get our final rate limit info.
-        print_rate_limiting_info(gh)
+        print_rate_limiting_info(gh, 'GH_TOKEN')
+    if gh_drone:
+        print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
     sys.exit(exit_code)
