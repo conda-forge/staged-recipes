@@ -8,6 +8,8 @@ cmake .. \
     -DCMAKE_SYSTEM_IGNORE_PATH="/usr/bin;/opt/conda/bin;/usr/local/miniconda/bin" \
     -DCMAKE_CXX_COMPILER="${CXX}" \
     -DCMAKE_C_COMPILER="${CC}" \
+    -DCMAKE_LINKER="${LD}" \
+    -DCMAKE_AR="${AR}" \
     -DCLINGO_REQUIRE_PYTHON=ON \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     -DPYCLINGO_USER_INSTALL=OFF \
