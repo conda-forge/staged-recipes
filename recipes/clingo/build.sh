@@ -4,13 +4,8 @@ mkdir build
 cd build
 
 cmake .. \
-    -DCMAKE_PREFIX_PATH="${BUILD_PREFIX};${CMAKE_PREFIX_PATH}" \
-    -DCMAKE_SYSTEM_IGNORE_PATH="/usr/bin;/opt/conda/bin;/usr/local/miniconda/bin;/System/Library/Frameworks/Python.framework/Versions/2.7/bin" \
-    -DCMAKE_CXX_COMPILER="${CXX}" \
-    -DCMAKE_C_COMPILER="${CC}" \
-    -DCMAKE_LINKER="${LD}" \
-    -DCMAKE_AR="${AR}" \
-    -DCMAKE_SHARED_LIBRARY_RUNTIME_C_FLAG="-Wl,-rpath," \
+    -DPython_FIND_STRATEGY="LOCATION" \
+    -DPython_ROOT_DIR=${PREFIX} \
     -DCLINGO_REQUIRE_PYTHON=ON \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     -DPYCLINGO_USER_INSTALL=OFF \
