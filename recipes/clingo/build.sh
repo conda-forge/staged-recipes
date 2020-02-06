@@ -5,7 +5,7 @@ cd build
 
 cmake .. \
     -DCMAKE_PREFIX_PATH="${BUILD_PREFIX};${CMAKE_PREFIX_PATH}" \
-    -DCMAKE_SYSTEM_IGNORE_PATH="/usr/bin;/opt/conda/bin;/usr/local/miniconda/bin" \
+    -DCMAKE_SYSTEM_IGNORE_PATH="/usr/bin;/opt/conda/bin;/usr/local/miniconda/bin;/System/Library/Frameworks/Python.framework/Versions/2.7/bin" \
     -DCMAKE_CXX_COMPILER="${CXX}" \
     -DCMAKE_C_COMPILER="${CC}" \
     -DCMAKE_LINKER="${LD}" \
