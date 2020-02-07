@@ -10,8 +10,7 @@ cmake -G "NMake Makefiles" -H. -Bbuild ^
     -DPYCLINGO_INSTALL_DIR="%SP_DIR%" ^
     -DPYCLINGO_USER_INSTALL=OFF ^
     -DCLINGO_BUILD_WITH_LUA=OFF ^
-    -DCLINGO_MANAGE_RPATH=OFF ^
-    -DCMAKE_INSTALL_BINDIR="."
+    -DCLINGO_MANAGE_RPATH=OFF
 if errorlevel 1 exit 1
 
 cmake --build build --config Release
