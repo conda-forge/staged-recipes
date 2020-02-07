@@ -2,7 +2,7 @@ echo ON
 
 mkdir build
 
-cmake -G "%CMAKE_GENERATOR%" -H. -Bbuild ^
+cmake -G "NMake Makefiles" -H. -Bbuild ^
     -DPython_FIND_STRATEGY="LOCATION" ^
     -DPython_ROOT_DIR="%PREFIX%" ^
     -DCLINGO_REQUIRE_PYTHON=ON ^
@@ -12,9 +12,6 @@ cmake -G "%CMAKE_GENERATOR%" -H. -Bbuild ^
     -DCLINGO_BUILD_WITH_LUA=OFF ^
     -DCLINGO_MANAGE_RPATH=OFF ^
     -DCMAKE_INSTALL_BINDIR="."
-
-type build\build\CMakeFiles\CMakeOutput.log
-rem I have no clue how to put the type command in the body of the if
 if errorlevel 1 exit 1
 
 cmake --build build --config Release
