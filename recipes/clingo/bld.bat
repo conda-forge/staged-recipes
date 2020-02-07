@@ -12,10 +12,13 @@ cmake -G "%CMAKE_GENERATOR%" -H. -Bbuild ^
     -DCLINGO_BUILD_WITH_LUA=OFF ^
     -DCLINGO_MANAGE_RPATH=OFF ^
     -DCMAKE_INSTALL_BINDIR="."
+
+type build\build\CMakeFiles\CMakeOutput.log
+rem I have no clue how to put the type command in the body of the if
 if errorlevel 1 exit 1
- 
+
 cmake --build build --config Release
 if errorlevel 1 exit 1
- 
+
 cmake --build build --config Release --target install
 if errorlevel 1 exit 1
