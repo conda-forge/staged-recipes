@@ -4,8 +4,17 @@ rem We need to create an out of source build
 mkdir build
 cd build
 
+rem Some projects use this to ensure correct version is picked up
+set "CC=cl.exe"
+set "CXX=cl.exe"
+rem
+
 
 set "PCR_INST=%PREFIX%"
+
+set "BOOST_ROOT=%PREFIX%"
+set "BOOST_NO_SYSTEM_PATHS=ON"
+
 
 
 cmake .. -G"Ninja" ^

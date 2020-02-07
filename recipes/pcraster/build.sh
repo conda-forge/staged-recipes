@@ -9,7 +9,7 @@ if [ $(uname) == Linux ]; then
   -D OPENGL_gl_LIBRARY:PATH=${BUILD_PREFIX}/${HOST}/sysroot/usr/lib64/libGL.so \
   -D OPENGL_glu_LIBRARY:PATH=${PREFIX}/lib/libGLU.so"
 else
-  export MACOSX_DEPLOYMENT_TARGET=10.14
+  # export MACOSX_DEPLOYMENT_TARGET=10.14
   PLATFORM_OPTIONS="-D GDAL_INCLUDE_DIR=${PREFIX}/include"
 fi
 
