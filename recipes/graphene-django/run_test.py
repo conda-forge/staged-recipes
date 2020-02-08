@@ -1,5 +1,6 @@
-${PYTHON} -c "from django.conf import settings; settings.configure(DEBUG=True)"
-${PYTHON} -c "import graphene_django"
+from django.conf import settings; settings.configure(DEBUG=True)
+import graphene_django
+
 # ${PYTHON} -c "graphene_django.debug"
 # ${PYTHON} -c "graphene_django.debug.sql"
 # ${PYTHON} -c "graphene_django.debug.tests"
