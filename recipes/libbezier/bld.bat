@@ -21,6 +21,8 @@ cd build
 :: set PATH=%PATH%;C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin;C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32\bin
 ::
 :: but the pre-processing of `bld.bat` causes issues with the indents.
+set PATH=%PATH%;C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin
+set PATH=%PATH%;C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32\bin
 
 :: Workaround for `git bash`; CMake errors with
 ::   For MinGW make to work correctly sh.exe must NOT be in your path.
