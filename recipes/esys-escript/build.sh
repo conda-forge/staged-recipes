@@ -41,7 +41,7 @@ else
         pythonlibname="python2.7" \
         paso=1 \
         trilinos=0 \
-        umfpack=1 \
+        umfpack=0 \
         umfpack_prefix="${PREFIX}" \
         netcdf=no \
         werror=0 \
