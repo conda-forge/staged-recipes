@@ -12,7 +12,6 @@ cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}" \
     -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
-    -DTARGET_NATIVE_ARCH:BOOL=OFF \
     -S "${SRC_DIR}/src/fortran" \
     -B .
 
