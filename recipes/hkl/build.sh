@@ -6,10 +6,10 @@ test -d m4 || mkdir m4
 gtkdocize || exit 1
 
 export python=$PYTHON
-export PATH=$BUILD_PREFIX/bin:$PATH
-export PKG_CONFIG_LIBDIR="$BUILD_PREFIX/lib/pkgconfig"
+export PATH=$PREFIX/bin:$PATH
+export PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig"
 export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$PKG_CONFIG_LIBDIR
-export ACLOCAL_PATH="$BUILD_PREFIX/share/aclocal"
+export ACLOCAL_PATH="$PREFIX/share/aclocal"
 aclocal --print-ac-dir
 
 autoreconf -ivf
