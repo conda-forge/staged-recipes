@@ -10,19 +10,14 @@ setlocal EnableDelayedExpansion
 mkdir build
 cd build
 
-IF "%APPVEYOR%" == "True" (
-    IF "%ARCH%" == "32" (
-        set PATH=%PATH%;C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32\bin
-    ) ELSE (
-        set PATH=%PATH%;C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin
-    )
-)
+IF "%APPVEYOR%" == "True" IF "%ARCH%" == "32" SET PATH=%PATH%;C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32\bin
+IF "%APPVEYOR%" == "True" IF "%ARCH%" == "64" SET PATH=%PATH%;C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin
 
 :: Workaround for `git bash`; CMake errors with
 ::   For MinGW make to work correctly sh.exe must NOT be in your path.
 :: when using the "MinGW Makefiles" generator.
-set PATH=%PATH:C:\Program Files (x86)\Git\bin;=%
-set PATH=%PATH:C:\Program Files\Git\usr\bin;=%
+SET PATH=%PATH:C:\Program Files (x86)\Git\bin;=%
+SET PATH=%PATH:C:\Program Files\Git\usr\bin;=%
 
 :: Configure.
 cmake                                              ^
@@ -33,11 +28,11 @@ cmake                                              ^
     -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON               ^
     -S "%SRC_DIR%\src\fortran"                     ^
     -B .
-if errorlevel 1 exit /b 1
+IF ERRORLEVEL 1 EXIT /b 1
 
 :: Build.
 cmake                ^
     --build .        ^
     --config Release ^
     --target install
-if errorlevel 1 exit /b 1
+IF ERRORLEVEL 1 EXIT /b 1
