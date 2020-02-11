@@ -1,3 +1,7 @@
+@echo on
+:: EnableDelayedExpansion is needed for the `IF "%APPVEYOR%"` lines.
+setlocal EnableDelayedExpansion
+
 :: NOTE: This assumes the following environment variables have been set.
 ::       - `%SRC_DIR%`
 ::       - `%LIBRARY_PREFIX%`
@@ -6,23 +10,13 @@
 mkdir build
 cd build
 
-:: NOTE: This "should be" the following
-::
-:: IF "%APPVEYOR%"=="True" (
-::     IF "%ARCH%"=="32" (
-::         set PATH=%PATH%;C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32\bin
-::     ) ELSE (
-::         set PATH=%PATH%;C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin
-::     )
-:: )
-::
-:: OR
-::
-:: set PATH=%PATH%;C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin;C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32\bin
-::
-:: but the pre-processing of `bld.bat` causes issues with the indents.
-set PATH=%PATH%;C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin
-set PATH=%PATH%;C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32\bin
+IF "%APPVEYOR%" == "True" (
+    IF "%ARCH%" == "32" (
+        set PATH=%PATH%;C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32\bin
+    ) ELSE (
+        set PATH=%PATH%;C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin
+    )
+)
 
 :: Workaround for `git bash`; CMake errors with
 ::   For MinGW make to work correctly sh.exe must NOT be in your path.
