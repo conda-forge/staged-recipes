@@ -4,6 +4,8 @@ $PYTHON -m pip install . -vv
 
 download_cartopy_data.sh ${PREFIX}/share/cartopy/
 
+cp -r ${RECIPE_DIR}/licenses ${PREFIX}/share/cartopy/
+
 ACTIVATE_DIR=${PREFIX}/etc/conda/activate.d
 DEACTIVATE_DIR=${PREFIX}/etc/conda/deactivate.d
 mkdir -p ${ACTIVATE_DIR}
