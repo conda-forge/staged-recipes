@@ -8,8 +8,4 @@ if [ -n "$CARTOPY_OFFLINE_SHARED" ]; then
 fi
 
 
-if [ -d ${CONDA_PREFIX}/share/cartopy ]; then
-  export CARTOPY_OFFLINE_SHARED=${CONDA_PREFIX}/share/cartopy
-elif [ -d ${CONDA_PREFIX}/Library/share/cartopy ]; then
-  export CARTOPY_OFFLINE_SHARED=${CONDA_PREFIX}/Library/share/cartopy
-fi
+export CARTOPY_OFFLINE_SHARED=${CONDA_PREFIX}/share/cartopy
