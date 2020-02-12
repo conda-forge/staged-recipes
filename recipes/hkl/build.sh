@@ -15,6 +15,5 @@ aclocal --print-ac-dir
 autoreconf -ivf
 
 ./configure --disable-gui --enable-introspection=yes --disable-hkl-doc --prefix=$PREFIX 
-# || { cat config.log ; exit 1 ; }
-make -j
+make -j ${CPU_COUNT}
 make install
