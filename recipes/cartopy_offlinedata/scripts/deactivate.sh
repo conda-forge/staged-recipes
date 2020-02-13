@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 # Restore previous env vars if they were set.
 unset CARTOPY_OFFLINE_SHARED

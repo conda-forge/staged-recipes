@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 $PYTHON -m pip install . -vv
 
