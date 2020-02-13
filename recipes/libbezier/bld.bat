@@ -7,7 +7,7 @@ mkdir build
 cd build
 
 :: Configure.
-SET CMAKE_IGNORE_PATH=C:\Program Files (x86)\Git\bin;C:\Program Files\Git\usr\bin
+SET CMAKE_IGNORE_PATH=C:\Program Files (x86)\Git\bin;C:\Program Files\Git\usr\bin;C:\Program Files\Git\bin
 cmake                                              ^
     -G "MinGW Makefiles"                           ^
     -DCMAKE_IGNORE_PATH="%CMAKE_IGNORE_PATH%"      ^
