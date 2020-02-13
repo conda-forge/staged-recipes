@@ -8,7 +8,7 @@ cd build
 
 :: Configure.
 cmake                                              ^
-    -G "MinGW Makefiles"                           ^
+    -G "MSYS Makefiles"                            ^
     -DCMAKE_Fortran_COMPILER=gfortran              ^
     -DCMAKE_BUILD_TYPE=Release                     ^
     -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
