@@ -6,15 +6,11 @@
 mkdir build
 cd build
 
-:: Workaround for `git bash`; CMake errors with
-::   For MinGW make to work correctly sh.exe must NOT be in your path.
-:: when using the "MinGW Makefiles" generator.
-SET PATH=%PATH:C:\Program Files (x86)\Git\bin;=%
-SET PATH=%PATH:C:\Program Files\Git\usr\bin;=%
-
 :: Configure.
+SET CMAKE_IGNORE_PATH=C:\Program Files (x86)\Git\bin;C:\Program Files\Git\usr\bin
 cmake                                              ^
     -G "MinGW Makefiles"                           ^
+    -DCMAKE_IGNORE_PATH="%CMAKE_IGNORE_PATH%"      ^
     -DCMAKE_Fortran_COMPILER=gfortran              ^
     -DCMAKE_BUILD_TYPE=Release                     ^
     -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
