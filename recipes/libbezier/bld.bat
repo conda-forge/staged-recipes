@@ -6,17 +6,6 @@
 mkdir build
 cd build
 
-:: NOTE: Unfortunately `bld.bat` is executed one line at a time, so nested
-::       `IF` blocks will not (may not?) work as expected.
-IF "%APPVEYOR%" == "True" IF "%ARCH%" == "32" SET PATH=%PATH%;C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32\bin
-IF "%APPVEYOR%" == "True" IF "%ARCH%" == "64" SET PATH=%PATH%;C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin
-
-:: Workaround for `git bash`; CMake errors with
-::   For MinGW make to work correctly sh.exe must NOT be in your path.
-:: when using the "MinGW Makefiles" generator.
-SET PATH=%PATH:C:\Program Files (x86)\Git\bin;=%
-SET PATH=%PATH:C:\Program Files\Git\usr\bin;=%
-
 :: Configure.
 cmake                                              ^
     -G "MinGW Makefiles"                           ^
