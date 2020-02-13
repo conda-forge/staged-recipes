@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -ex
 
+export CFLAGS="$CFLAGS $LDFLAGS -D_UF"
+export FFLAGS="$FFLAGS $LDFLAGS -fbacktrace"
+
 rm -rf bin/
 mkdir -p $PREFIX/bin
 
