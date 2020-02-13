@@ -6,9 +6,15 @@
 mkdir build
 cd build
 
+:: Workaround for `git bash`; CMake errors with
+::   For MinGW make to work correctly sh.exe must NOT be in your path.
+:: when using the "MinGW Makefiles" generator.
+SET PATH=%PATH:C:\Program Files (x86)\Git\bin;=%
+SET PATH=%PATH:C:\Program Files\Git\usr\bin;=%
+
 :: Configure.
 cmake                                              ^
-    -G "MSYS Makefiles"                            ^
+    -G "MinGW Makefiles"                           ^
     -DCMAKE_Fortran_COMPILER=gfortran              ^
     -DCMAKE_BUILD_TYPE=Release                     ^
     -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
