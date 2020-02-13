@@ -8,6 +8,6 @@ with indir("build"):
         if "main" in f:
             main = f
             continue
-        ![$FC -c @(f)]
-    ![$FC @(main) *.o -o 2dfatmic]
+        ![$FC @($FFLAGS.split()) -c @(f)]
+    ![$FC @($FFLAGS.split()) @($LDFLAGS.split()) @(main) *.o -o 2dfatmic]
     ![cp 2dfatmic $PREFIX/bin/2dfatmic]
