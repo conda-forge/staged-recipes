@@ -1,4 +1,4 @@
-SET "CMAKE_GENERATOR=NMake Makefiles"
+REM SET "CMAKE_GENERATOR=NMake Makefiles"
 
 mkdir tmp-build
 cd tmp-build
