@@ -1,6 +1,6 @@
 mkdir tmp-build
 cd tmp-build
-cmake ../pythonfmu/pythonfmu-export -DCMAKE_PREFIX_PATH:FILEPATH=$PREFIX -DCMAKE_BUILD_TYPE=Release
+cmake ../pythonfmu/pythonfmu-export -DPython3_EXECUTABLE:FILEPATH=$PYTHON -DCMAKE_BUILD_TYPE=Release
 cmake --build . --config Release
 cd ..
 
