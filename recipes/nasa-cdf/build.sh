@@ -2,11 +2,16 @@ cd $SRC_DIR
 
 export OS=linux
 export ENV=gnu
-if [ "$(uname)" == "Darwin" ]; then
-	export OS=macosx
-fi
 if [ "$ARCH" == "32" ]; then
 	export ENV=gnu32
+fi
+if [ "$(uname)" == "Darwin" ]; then
+	export OS=macosx
+	if [ "$ARCH" == "32" ]; then
+		export ENV=i386
+	else
+		export ENV=x86_64
+	fi
 fi
 
 export EXT=${OS}_${ENV}

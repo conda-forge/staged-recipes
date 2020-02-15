@@ -1,2 +1,2 @@
 make OS=mingw ENV=gnu
-make INSTALLDIR=%PREFIX% install
+make INSTALLDIR=%LIBRARY_PREFIX% install
