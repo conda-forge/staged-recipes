@@ -1,0 +1,7 @@
+:: Restore previous GDAL env vars if they were set.
+
+@set "CARTOPY_OFFLINE_SHARED="
+@if defined _CONDA_SET_CARTOPY_OFFLINE_SHARED (
+  set "CARTOPY_OFFLINE_SHARED=%_CONDA_SET_CARTOPY_OFFLINE_SHARED%"
+  set "_CONDA_SET_CARTOPY_OFFLINE_SHARED="
+)
