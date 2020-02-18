@@ -1,5 +1,3 @@
-REM SET "CMAKE_GENERATOR=NMake Makefiles"
-
 mkdir tmp-build
 cd tmp-build
 cmake ../pythonfmu/pythonfmu-export -DPython3_EXECUTABLE:FILEPATH="%PYTHON%" -DCMAKE_BUILD_TYPE=Release
