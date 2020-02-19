@@ -3,18 +3,18 @@
 ALLOPTS="${CFLAGS}"
 
 # configure
-${BUILD_PREFIX}/bin/cmake \
-        -H${SRC_DIR} \
-        -Bbuild \
-        -GNinja \
-        -DCMAKE_INSTALL_PREFIX=${PREFIX} \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_CXX_COMPILER=${CXX} \
-        -DPYTHON_EXECUTABLE=${PYTHON} \
-        -DCMAKE_INSTALL_LIBDIR="lib" \
-        -DPYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
-        -DXCFUN_MAX_ORDER=8 \
-        -DXCFUN_PYTHON_INTERFACE=ON
+cmake \
+     -H${SRC_DIR} \
+     -Bbuild \
+     -GNinja \
+     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+     -DCMAKE_BUILD_TYPE=Release \
+     -DCMAKE_CXX_COMPILER=${CXX} \
+     -DPYTHON_EXECUTABLE=${PYTHON} \
+     -DCMAKE_INSTALL_LIBDIR="lib" \
+     -DPYMOD_INSTALL_LIBDIR="${SP_DIR}" \
+     -DXCFUN_MAX_ORDER=8 \
+     -DXCFUN_PYTHON_INTERFACE=ON
 
 # build
 cd build
