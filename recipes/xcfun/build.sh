@@ -11,8 +11,8 @@ ${BUILD_PREFIX}/bin/cmake \
         -DCMAKE_CXX_COMPILER=${CXX} \
         -DPYTHON_EXECUTABLE=${PYTHON} \
         -DPYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
-        -DXCFun_XC_MAX_ORDER=8 \
-        -DENABLE_PYTHON_INTERFACE=ON
+        -DXCFUN_MAX_ORDER=8 \
+        -DXCFUN_PYTHON_INTERFACE=ON
 
 # build
 cd build

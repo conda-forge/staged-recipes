@@ -11,8 +11,8 @@ cmake -G"Ninja" ^
       -DPYMOD_INSTALL_LIBDIR="/../../Lib/site-packages" ^
       -DCMAKE_CXX_FLAGS="/wd4018 /wd4101 /wd4996" ^
       -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=true ^
-      -DENABLE_PYTHON_INTERFACE=ON ^
-      -DXCFun_XC_MAX_ORDER=8 ^
+      -DXCFUN_PYTHON_INTERFACE=ON ^
+      -DXCFUN_MAX_ORDER=8 ^
       -DPYTHON_EXECUTABLE="%PYTHON%"
 if errorlevel 1 exit 1
 
