@@ -10,6 +10,7 @@ ${BUILD_PREFIX}/bin/cmake \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_CXX_COMPILER=${CXX} \
         -DPYTHON_EXECUTABLE=${PYTHON} \
+        -DCMAKE_INSTALL_LIBDIR="lib" \
         -DPYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
         -DXCFUN_MAX_ORDER=8 \
         -DXCFUN_PYTHON_INTERFACE=ON
