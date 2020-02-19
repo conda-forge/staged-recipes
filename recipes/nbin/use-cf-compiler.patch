@@ -1,8 +1,8 @@
 diff --git a/scripts/node_build.bash b/scripts/node_build.bash
-index fc973c4..369c580 100755
+index fc973c4..20f9581 100755
 --- a/scripts/node_build.bash
 +++ b/scripts/node_build.bash
-@@ -13,31 +13,16 @@ function main() {
+@@ -13,31 +13,33 @@ function main() {
  
    cp ../../out/patches/thirdPartyMain.js ./lib/_third_party_main.js
  
@@ -25,11 +25,28 @@ index fc973c4..369c580 100755
 -
 -  echo "ccache directory: $CCACHE_DIR"
 -  echo "cores: $cores"
--
++  export CXXFLAGS=$(echo ${CXXFLAGS:-} | sed -E 's@\-std=[^ ]*@@g')
+ 
    ./configure \
      --link-module ./lib/nbin.js \
      --link-module ./lib/_third_party_main.js \
-     --openssl-no-asm --openssl-use-def-ca-store
+-    --openssl-no-asm --openssl-use-def-ca-store
++    --without-snapshot \
++    --without-node-snapshot \
++    --shared-libuv \
++    --shared-openssl \
++    --shared-zlib \
++    --with-intl=system-icu
++
++  if [ "$(uname)" = "Darwin" ]; then
++      # unset macosx-version-min hardcoded in clang CPPFLAGS
++      export CPPFLAGS="$(echo ${CPPFLAGS:-} | sed -E 's@\-mmacosx\-version\-min=[^ ]*@@g')"
++      export CPPFLAGS="${CPPFLAGS} -D_DARWIN_C_SOURCE"
++      echo "CPPFLAGS=$CPPFLAGS"
++  else
++      # need librt for clock_gettime with nodejs >= 12.12
++      export LDFLAGS="$LDFLAGS -lrt"
++  fi
  
 -  make "-j$cores"
 +  make "-j$CPU_COUNT"
