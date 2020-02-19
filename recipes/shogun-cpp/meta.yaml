@@ -1,0 +1,133 @@
+{% set name = "shogun-cpp" %}
+
+{% set version = "6.1.4" %}
+{% set commit = 'shogun_' + version %}
+{% set sha256 = "d618a6c6fa6c230608bda7a17585387b89d11d58085a9457cbfba0c438a08969" %}
+
+# Shogun doesn't produce a single tarball you can build from anymore;
+# need to get the gpl-shogun tarball too.
+# Remember to update this when updating the version!
+{% set gpl_commit = "29ca2ff930cd5d963b3a78e79160cc04d48970c2" %}
+{% set gpl_sha256 = "ff8a46b7775e784f07e9ffb02e7cd9b101f508c1c7b7d8cdbf1024a2efacdb22" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/shogun-toolbox/shogun/archive/{{ commit }}.tar.gz
+    sha256: {{ sha256 }}
+  - url: https://github.com/shogun-toolbox/shogun-gpl/archive/{{ gpl_commit }}.tar.gz
+    sha256: {{ gpl_sha256 }}
+    folder: src/gpl
+
+{% set lc, vs, ve, prefix, parbuild = "\\", "$", "", "$PREFIX", "-j $CPU_COUNT" %}  # [unix]
+{% set lc, vs, ve, prefix, parbuild = "^", "%", "%", "%LIBRARY_PREFIX%", "" %}      # [win]
+build:
+  number: 0
+  features:
+    - blas_{{ blas }}
+  skip: true  # [win32 or (win and vc<14)]
+  script: |
+    mkdir build
+    cd build
+    cmake ..                                                  {{ lc }}
+      -G"{{vs}}CMAKE_GENERATOR{{ve}}"                         {{ lc }}
+      -DCMAKE_PREFIX_PATH="{{ prefix }}"                      {{ lc }}
+      -DCMAKE_INSTALL_PREFIX="{{ prefix }}"                   {{ lc }}
+      -DCMAKE_BUILD_TYPE=Release                              {{ lc }}
+      -DBUILD_EXAMPLES=OFF                                    {{ lc }}
+      -DBUILD_META_EXAMPLES=OFF                               {{ lc }}
+      -DBUNDLE_JSON=OFF                                       {{ lc }}
+      -DBUNDLE_NLOPT=OFF                                      {{ lc }}
+      -DUSE_SVMLIGHT=OFF                                      {{ lc }}
+      -DENABLE_TESTING=OFF                                    {{ lc }}
+      -DENABLE_COVERAGE=OFF                                   {{ lc }}
+      -DUSE_SWIG_DIRECTORS=ON                                 {{ lc }}
+      -DBLA_VENDOR={{ bla_vendor }}                           {{ lc }}
+      -DLAPACK_LIBRARIES={{ prefix }}/lib/{{ blas_lib }}      {{ lc }}
+      -DBLAS_LIBRARIES={{ prefix }}/lib/{{ blas_lib }}
+    if errorlevel 1 exit 1  # [win]
+    cmake --build . --target shogun --config Release -- {{ parbuild }}
+    if errorlevel 1 exit 1  # [win]
+    cmake --build . --target install --config Release -- {{ parbuild }}
+    if errorlevel 1 exit 1  # [win]
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - python
+    - cmake =3.15
+  host:
+    - arpack
+    - bzip2
+    - ctags
+    - libcurl
+    - libgomp       # [linux]
+    - eigen
+    - glpk
+    - hdf5
+    - json-c =0.12  # [not win]
+    - libxml2
+    - lzo
+    - mkl-devel     # [blas == 'mkl']
+    - openblas      # [blas == 'openblas']
+    - libprotobuf
+    - rxcpp 4.1.0
+    - snappy
+    - xz
+    - zlib
+  run:
+    - arpack
+    - bzip2
+    - ctags
+    - libcurl
+    - libgomp       # [linux]
+    - glpk
+    - hdf5
+    - json-c =0.12  # [not win]
+    - libxml2
+    - lzo
+    - blas * {{ blas }}
+    - libopenblas   # [blas == 'openblas']
+    - libprotobuf
+    - snappy
+    - xz
+    - zlib
+
+test:
+  requires:
+    - python
+  commands:
+    - $PREFIX/share/shogun/examples/libshogun/minimal                      # [unix]
+    - '%LIBRARY_PREFIX%\\share\\shogun\\examples\\libshogun\\minimal.exe'  # [win]
+
+    # check that one of the GPL headers was installed properly
+    - test -f $PREFIX/include/shogun/mathematics/SparseInverseCovariance.h               # [unix]
+    - if not exist %LIBRARY_INC%\\shogun\\mathematics\\SparseInverseCovariance.h exit 1  # [win]
+
+    # linkage checks
+    - python -c "import ctypes; ctypes.cdll['${PREFIX}/lib/libshogun${SHLIB_EXT}']"                      # [unix]
+    - python -c "import os, ctypes; ctypes.cdll[os.path.join(os.environ['LIBRARY_LIB'], 'shogun.dll')]"  # [win]
+    - conda inspect linkages -p $PREFIX {{ name }}  # [not win]
+    - conda inspect objects  -p $PREFIX {{ name }}  # [osx]
+
+    # config check
+    - cat $PREFIX/include/shogun/lib/config.h    # [unix]
+    - type %LIBRARY_INC%\\shogun\\lib\\config.h  # [win]
+
+about:
+  home: http://shogun.ml
+  license: GPL-3.0
+  license_family: GPL
+  license_file: COPYING
+  summary: 'Unified and efficient Machine Learning'
+  description: |
+    The Shogun Machine learning toolbox offers a wide range of efficient and
+    unified Machine Learning methods.
+  doc_url: http://shogun.ml/examples/latest/index.html
+  dev_url: https://github.com/shogun-toolbox/shogun/wiki
+
+extra:
+  recipe-maintainers:
+    - dougalsutherland
