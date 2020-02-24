@@ -8,7 +8,7 @@ cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
 	  -DOMPL_BUILD_DEMOS=OFF \
       $SRC_DIR
 
-make -j${CPU_COUNT}
+VERBOSE=1 make -j${CPU_COUNT}
 make install
 
 # run tests
