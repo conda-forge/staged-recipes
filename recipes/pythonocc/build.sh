@@ -11,5 +11,4 @@ cmake -G Ninja \
     -D SWIG_HIDE_WARNINGS:BOOL=ON \
     ..
 
-ninja
 ninja install
