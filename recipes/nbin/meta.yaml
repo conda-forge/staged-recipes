@@ -1,0 +1,68 @@
+{% set name = "nbin" %}
+{% set version = "1.2.7" %}
+{% set nodejs_version = "12.14.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/cdr/{{ name }}/archive/{{ version }}.tar.gz
+    sha256: 08d9ef65cdd83f9407811c100dcd3cfe9cb2f150870427ef792b3c6a5aa9345d
+    patches:
+      - use-cf-compiler.patch
+  # We need to bundle nodes as this packages builts a custom version of it
+  - url: https://nodejs.org/dist/v{{ nodejs_version }}/node-v{{ nodejs_version }}.tar.gz
+    sha256: 5c1939867228f3845c808ef84a89c8ee93cc35f857bf7587ecee1b5a6d9da67b
+    folder: lib/node
+    patches:
+      - 4bd0d8c22ca65ba2bd02c671048a99e414f049b8.patch
+      - cinttypes.patch  # [linux]
+      - linux-librt.patch  # [linux]
+
+build:
+  number: 0
+  skip: true  # [win]
+  # Prefix replacement breaks in the binary embedded configurations.
+  detect_binary_files_with_prefix: False
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - python 2.7.*
+    - nodejs 12.*
+    - typescript
+    - pkg-config  # [not win]
+    - yarn
+  host:
+    - vs2015_runtime  # [win]
+    - icu  # [not win]
+    - libuv >=1.34  # [not win]
+    - openssl >=1.1.1d   # [not win]
+    - zlib  # [not win]
+  run:
+    - vs2015_runtime  # [win]
+    - icu  # [not win]
+    - libuv  # [not win]
+    - openssl >=1.1.1d  # [not win]
+    - zlib  # [not win]
+
+test:
+  commands:
+    # NBIN_BYPASS is currently not working on Linux
+    - test -f $PREFIX/bin/node-nbin  # [linux]
+    - NBIN_BYPASS=1 node-nbin --help  # [osx]
+
+about:
+  home: https://github.com/cdr/nbin
+  license: MIT
+  license_family: MIT
+  license_file:
+   - LICENSE
+   - lib/node/LICENSE
+  summary: 'Fast and robust node.js binary compiler.'
+
+extra:
+  recipe-maintainers:
+    - xhochy

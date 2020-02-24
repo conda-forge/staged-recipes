@@ -1,0 +1,55 @@
+diff --git a/scripts/node_build.bash b/scripts/node_build.bash
+index fc973c4..20f9581 100755
+--- a/scripts/node_build.bash
++++ b/scripts/node_build.bash
+@@ -13,31 +13,33 @@ function main() {
+ 
+   cp ../../out/patches/thirdPartyMain.js ./lib/_third_party_main.js
+ 
+-  if ! git apply ../../scripts/node.patch ; then
++  if ! patch -p1 < ../../scripts/node.patch ; then
+     echo "Failed to patch; assuming already patched"
+   fi
+ 
+-  local -i cores=2
+-  export CC="ccache gcc"
+-  export CXX="ccache g++"
+-  if [[ -n ${XDG_CACHE_HOME:-} ]] ; then
+-    export CCACHE_DIR="$XDG_CACHE_HOME/ccache"
+-  elif [[ $OSTYPE == "darwin"* ]]; then
+-    export CCACHE_DIR="$HOME/Library/Caches/ccache"
+-  else
+-    export CCACHE_DIR="$HOME/.cache/ccache"
+-    cores=$(awk '/^processor/{print $3}' /proc/cpuinfo | wc -l)
+-  fi
+-
+-  echo "ccache directory: $CCACHE_DIR"
+-  echo "cores: $cores"
++  export CXXFLAGS=$(echo ${CXXFLAGS:-} | sed -E 's@\-std=[^ ]*@@g')
+ 
+   ./configure \
+     --link-module ./lib/nbin.js \
+     --link-module ./lib/_third_party_main.js \
+-    --openssl-no-asm --openssl-use-def-ca-store
++    --without-snapshot \
++    --without-node-snapshot \
++    --shared-libuv \
++    --shared-openssl \
++    --shared-zlib \
++    --with-intl=system-icu
++
++  if [ "$(uname)" = "Darwin" ]; then
++      # unset macosx-version-min hardcoded in clang CPPFLAGS
++      export CPPFLAGS="$(echo ${CPPFLAGS:-} | sed -E 's@\-mmacosx\-version\-min=[^ ]*@@g')"
++      export CPPFLAGS="${CPPFLAGS} -D_DARWIN_C_SOURCE"
++      echo "CPPFLAGS=$CPPFLAGS"
++  else
++      # need librt for clock_gettime with nodejs >= 12.12
++      export LDFLAGS="$LDFLAGS -lrt"
++  fi
+ 
+-  make "-j$cores"
++  make "-j$CPU_COUNT"
+ }
+ 
+ main "$@"
