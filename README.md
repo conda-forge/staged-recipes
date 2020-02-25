@@ -7,12 +7,12 @@ This repo is a holding area for recipes destined for a conda-forge feedstock rep
 
 ## Build status
 
-[![Circle CI](https://circleci.com/gh/conda-forge/staged-recipes/tree/master.svg?style=shield)](https://circleci.com/gh/conda-forge/staged-recipes/tree/master) [![Build Status](https://travis-ci.org/conda-forge/staged-recipes.svg?branch=master)](https://travis-ci.org/conda-forge/staged-recipes) [![Build status](https://ci.appveyor.com/api/projects/status/3lju80dibkmowsj5/branch/master?svg=true)](https://ci.appveyor.com/project/conda-forge/staged-recipes/branch/master)
+[![Circle CI](https://circleci.com/gh/conda-forge/staged-recipes/tree/master.svg?style=shield)](https://circleci.com/gh/conda-forge/staged-recipes/tree/master) [![Build Status](https://travis-ci.com/conda-forge/staged-recipes.svg?branch=master)](https://travis-ci.com/conda-forge/staged-recipes) [![Build status](https://ci.appveyor.com/api/projects/status/3lju80dibkmowsj5/branch/master?svg=true)](https://ci.appveyor.com/project/conda-forge/staged-recipes/branch/master)
 
 ## Getting started
 
 1. Fork this repository.
-2. Make a new folder in `recipes` for your package. Look at the example recipe, our [documentation](https://conda-forge.org/docs/recipe.html) and the [FAQ](https://github.com/conda-forge/staged-recipes#faq)  for help.
+2. Make a new folder in `recipes` for your package. Look at the example recipe, our [documentation](http://conda-forge.org/docs/maintainer/adding_pkgs.html#) and the [FAQ](https://github.com/conda-forge/staged-recipes#faq)  for help.
 3. Open a pull request. Building of your package will be tested on Windows, Mac and Linux.
 4. When your pull request is merged a new repository, called a feedstock, will be created in the github conda-forge organization, and build/upload of your package will automatically be triggered. Once complete, the package is available on conda-forge.
 
@@ -75,9 +75,9 @@ Short answer: yes. Long answer: In principle, as long as your dependencies are i
 your user's conda channels they will be able to install your package. In practice, that is difficult
 to manage, and we strive to get all dependencies built in conda-forge.
 
-### 7. **When or why do I need to use `{{ PYTHON }} -m pip install --no-deps . -vv`?**
+### 7. **When or why do I need to use `{{ PYTHON }} -m pip install . -vv`?**
 
-This should be the default install line for most Python packages. This is preferable to `python setup.py` because it handles metadata in a `conda`-friendlier way. We also want to make sure dependencies are handled through `conda`, and `--no-deps` means most Python dependencies are needed only at `run` time, not `build`.
+This should be the default install line for most Python packages. This is preferable to `python setup.py` because it handles metadata in a `conda`-friendlier way.
 
 ### 8. **Do I need `bld.bat` and/or `build.sh`?**
 
@@ -131,3 +131,26 @@ All apologies in advance if your recipe PR does not recieve prompt attention.
 This is a high volume repository and issues can easily be missed. We are always
 looking for more staged-recipe reviewers. If you are interested in volunteering,
 please contact a member of @conda-forge/core. We'd love to have the help!
+
+### 13. How to build with old compilers (GCC v4) on staged-recipes?
+
+First, don't. Second, please don't.
+
+Add a `conda_build_config.yaml` file inside the recipe folder with the contents
+
+```yaml
+channel_sources:
+- conda-forge/label/cf201901,defaults   # [unix]
+- conda-forge,defaults                  # [win]
+channel_targets:
+- conda-forge cf201901                  # [unix]
+- conda-forge main                      # [win]
+c_compiler:                             # [unix]
+- gcc                                   # [linux]
+- clang                                 # [osx]
+cxx_compiler:                           # [unix]
+- gxx                                   # [linux]
+- clangxx                               # [osx]
+fortran_compiler:                       # [unix]
+- gfortran                              # [unix]
+```
