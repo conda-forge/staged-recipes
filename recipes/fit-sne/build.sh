@@ -1,7 +1,7 @@
 #! /bin/sh
 
-export CPPFLAG="-I$PREFIX/include"
-export LDFLAGS="-L$PREFIX/lib"
+export CPPFLAG="$CXXFLAGS -I$PREFIX/include"
+export LDFLAGS="$LDFLAGS -L$PREFIX/lib"
 
 $CXX -std=c++11 -O3  src/sptree.cpp src/tsne.cpp src/nbodyfft.cpp -o fast_tsne \
   $CPPFLAGS $LDFLAGS -pthread -lfftw3 -lm -Wno-address-of-packed-member
