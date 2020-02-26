@@ -15,4 +15,3 @@ cmake \
 
 make -j
 make install
-ctest -V
