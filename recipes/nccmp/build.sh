@@ -13,6 +13,7 @@ cmake \
     -DCMAKE_VERBOSE_MAKEFILE=OFF \
     -DNETCDF_INC_DIR=$PREFIX/include \
     -DNETCDF_LIB_PATH=$PREFIX/lib/libnetcdf.a \
+    -DWITH_NETCDF=$PREFIX \
     ..
 
 make -j
