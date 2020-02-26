@@ -13,5 +13,5 @@ cmake \
     -DCMAKE_VERBOSE_MAKEFILE=OFF \
     ..
 
-make -j
+make -j ${CPU_COUNT}
 make install
