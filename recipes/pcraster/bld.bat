@@ -15,6 +15,8 @@ set "CC=cl.exe"
 set "CXX=cl.exe"
 rem
 
+rem Ensure desired Boost version is selected by CMake
+set "BOOST_ROOT=%PREFIX%"
 set "BOOST_NO_SYSTEM_PATHS=ON"
 
 
