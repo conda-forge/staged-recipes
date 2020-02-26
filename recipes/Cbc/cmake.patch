@@ -1,0 +1,800 @@
+diff --git a/CMakeLists.txt Cbc/CMakeLists.txt
+new file mode 100644
+index 00000000..b0fff788
+--- /dev/null
++++ Cbc/CMakeLists.txt
+@@ -0,0 +1,89 @@
++cmake_minimum_required(VERSION 3.5)
++list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
++
++include(ParseAc)
++parse_ac(VERSION MAJOR MINOR PATCH)
++
++project(Cbc VERSION ${VERSION})
++
++# config options
++if(NOT CMAKE_BUILD_TYPE)
++  set(CMAKE_BUILD_TYPE "Release" CACHE STRING
++    "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
++    FORCE)
++endif(NOT CMAKE_BUILD_TYPE)
++
++option(BUILD_SHARED_LIBS "" ON)
++if(BUILD_SHARED_LIBS AND MSVC)
++  set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
++endif(BUILD_SHARED_LIBS AND MSVC)
++
++# config options
++if(MSVC)
++  # Build with multiple processes
++  add_definitions(/MP)
++  add_definitions(/D_CRT_SECURE_NO_WARNINGS /D_CRT_SECURE_NO_DEPRECATE)
++  # MSVC warning suppressions
++  add_definitions(
++    /wd4018 # 'expression' : signed/unsigned mismatch
++    /wd4065 # switch statement contains 'default' but no 'case' labels
++    /wd4101 # 'identifier' : unreferenced local variable
++    /wd4102 # 'label' : unreferenced label
++    /wd4244 # 'conversion' conversion from 'type1' to 'type2', possible loss of data
++    /wd4267 # 'var' : conversion from 'size_t' to 'type', possible loss of data
++    /wd4309 # 'conversion' : truncation of constant value
++    /wd4805 # 'operation' : unsafe mix of type 'type1' and type 'type2' in operation.
++    /wd4996 # The compiler encountered a deprecated declaration.
++    )
++endif()
++if(APPLE)
++  set(
++    CMAKE_CXX_FLAGS
++    "${CMAKE_CXX_FLAGS} -Wno-inconsistent-missing-override -Wno-unused-command-line-argument -Wno-unused-result -Wno-exceptions"
++    )
++  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "Minimum OS X deployment version")
++endif(APPLE)
++
++# ZLIB
++find_package(ZLIB)
++if(ZLIB_FOUND)
++  set(HAVE_ZLIB_H "1" CACHE INTERNAL "Use zlib")
++  set(COIN_HAS_ZLIB "1" CACHE INTERNAL "Use zlib")
++endif()
++
++# PThread
++set(THREADS_PREFER_PTHREAD_FLAG ON)
++find_package(Threads)
++if(CMAKE_USE_PTHREADS_INIT)
++  set(PTHREADS_FOUND TRUE)
++else()
++  set(PTHREADS_FOUND FALSE)
++endif()
++
++find_package(CoinUtils REQUIRED CONFIG)
++find_package(Osi REQUIRED CONFIG)
++find_package(Clp REQUIRED CONFIG)
++find_package(Cgl REQUIRED CONFIG)
++
++include(CheckEnv)
++include(CTest)
++
++add_subdirectory(src)
++
++include(GNUInstallDirs)
++install(EXPORT ${PROJECT_NAME}Targets
++  NAMESPACE Coin::
++  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
++include(CMakePackageConfigHelpers)
++configure_package_config_file(cmake/Config.cmake.in
++  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
++  INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
++write_basic_package_version_file(
++  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
++  COMPATIBILITY SameMajorVersion)
++install(
++  FILES
++  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
++  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
++  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
++  COMPONENT Devel)
+diff --git a/cmake/CheckEnv.cmake Cbc/cmake/CheckEnv.cmake
+new file mode 100644
+index 00000000..b2477025
+--- /dev/null
++++ Cbc/cmake/CheckEnv.cmake
+@@ -0,0 +1,151 @@
++# Flags
++include (CheckIncludeFile)
++check_include_file(math.h HAVE_MATH_H)
++check_include_file(ctype.h HAVE_CTYPE_H)
++check_include_file(inttypes.h HAVE_INTTYPES_H)
++check_include_file(float.h HAVE_FLOAT_H)
++check_include_file(ieeefp.h HAVE_IEEEFP_H)
++check_include_file(stdarg.h HAVE_STDARG_H)
++check_include_file(stddef.h HAVE_STDDEF_H)
++check_include_file(stdint.h HAVE_STDINT_H)
++check_include_file(stdio.h HAVE_STDIO_H)
++check_include_file(stdlib.h HAVE_STDLIB_H)
++check_include_file(assert.h HAVE_ASSERT_H)
++check_include_file(dlfcn.h HAVE_DLFCN_H)
++check_include_file(endian.h HAVE_ENDIAN_H)
++check_include_file(memory.h HAVE_MEMORY_H)
++check_include_file(strings.h HAVE_STRINGS_H)
++check_include_file(string.h HAVE_STRING_H)
++check_include_file(time.h HAVE_TIME_H)
++check_include_file(unistd.h HAVE_UNISTD_H)
++check_include_file(sys/stat.h HAVE_SYS_STAT_H)
++check_include_file(sys/types.h HAVE_SYS_TYPES_H)
++
++include (CheckIncludeFileCXX)
++check_include_file_cxx(cmath HAVE_CMATH)
++check_include_file_cxx(cctype HAVE_CCTYPE)
++check_include_file_cxx(cinttypes HAVE_CINTTYPES)
++check_include_file_cxx(cfloat HAVE_CFLOAT)
++check_include_file_cxx(cieeefp HAVE_CIEEEFP)
++check_include_file_cxx(cstdarg HAVE_CSTDARG)
++check_include_file_cxx(cstddef HAVE_CSTDDEF)
++check_include_file_cxx(cstdint HAVE_CSTDINT)
++check_include_file_cxx(cstdio HAVE_CSTDIO)
++check_include_file_cxx(cstdlib HAVE_CSTDLIB)
++check_include_file_cxx(cassert HAVE_CASSERT)
++check_include_file_cxx(cstring HAVE_CSTRING)
++check_include_file_cxx(ctime HAVE_CTIME)
++
++set(STDC_HEADERS 1 CACHE INTERNAL "System has ANSI C header files")
++
++set(TEST_INCLUDES "")
++if(HAVE_CMATH)
++  list(APPEND TEST_INCLUDES "cmath")
++endif()
++if(HAVE_CFLOAT)
++  list(APPEND TEST_INCLUDES "cfloat")
++endif()
++if(HAVE_CIEEEFP)
++  list(APPEND TEST_INCLUDES "cieeefp")
++endif()
++if(HAVE_MATH_H)
++  list(APPEND TEST_INCLUDES "math.h")
++endif()
++if(HAVE_FLOAT_H)
++  list(APPEND TEST_INCLUDES "float.h")
++endif()
++if(HAVE_IEEEFP_H)
++  list(APPEND TEST_INCLUDES "ieeefp.h")
++endif()
++
++# ISFINITE
++include(CheckCXXSourceCompiles)
++check_cxx_source_compiles(
++  "#include <cmath>\nint main(){return std::isfinite(0);}"
++  HAVE_STD_ISFINITE)
++include(CheckFunctionExists)
++include(CheckCXXSymbolExists)
++check_cxx_symbol_exists(isfinite "${TEST_INCLUDES}" HAVE_ISFINITE)
++check_cxx_symbol_exists(finite   "${TEST_INCLUDES}" HAVE_FINITE)
++check_cxx_symbol_exists(_finite  "${TEST_INCLUDES}" HAVE__FINITE)
++check_cxx_symbol_exists(__finite "${TEST_INCLUDES}" HAVE___FINITE)
++if(HAVE_STD_ISFINITE)
++  set(COIN_C_FINITE "std::isfinite")
++elseif(HAVE_ISFINITE)
++  set(COIN_C_FINITE "isfinite")
++elseif(HAVE_FINITE)
++  set(COIN_C_FINITE "finite")
++elseif(HAVE__FINITE)
++  set(COIN_C_FINITE "_finite")
++elseif(HAVE___FINITE)
++  set(COIN_C_FINITE "__finite")
++else()
++  message(FATAL_ERROR "Can't find isfinite()")
++endif()
++message(STATUS "Found isfinite: ${COIN_C_FINITE}")
++
++# ISNAN
++include(CheckCXXSourceCompiles)
++check_cxx_source_compiles(
++  "#include <cmath>\nint main(){return std::isnan(0);}"
++  HAVE_STD_ISNAN)
++include(CheckFunctionExists)
++include(CheckCXXSymbolExists)
++check_cxx_symbol_exists(isnan   "${TEST_INCLUDES}" HAVE_ISNAN)
++check_cxx_symbol_exists(_isnan  "${TEST_INCLUDES}" HAVE__ISNAN)
++check_cxx_symbol_exists(__isnan "${TEST_INCLUDES}" HAVE___ISNAN)
++if(HAVE_STD_ISNAN)
++  set(COIN_C_ISNAN "std::isnan")
++elseif(HAVE_ISNAN)
++  set(COIN_C_ISNAN "isnan")
++elseif(HAVE__ISNAN)
++  set(COIN_C_ISNAN "_isnan")
++elseif(HAVE___ISNAN)
++  set(COIN_C_ISNAN "__isnan")
++else()
++  message(FATAL_ERROR "Can't find isnan()")
++endif()
++message(STATUS "Found isnan: ${COIN_C_ISNAN}")
++
++# Basic type
++include(CheckTypeSize)
++check_type_size("int64_t" SIZEOF_INT64_T)
++check_type_size("long long" SIZEOF_LONG_LONG)
++check_type_size("long" SIZEOF_LONG)
++check_type_size("uint64_t" SIZEOF_UINT64_T)
++check_type_size("unsigned long long" SIZEOF_ULONG_LONG)
++check_type_size("unsigned long" SIZEOF_ULONG)
++check_type_size("intptr_t" SIZEOF_INTPTR_T)
++check_type_size("int *" SIZEOF_INT_P)
++
++if(SIZEOF_INT64_T EQUAL "8")
++  set(COIN_INT64_T "int64_t")
++elseif(SIZEOF_LONG EQUAL "8")
++  set(COIN_INT64_T "long")
++elseif(SIZEOF_LONG_LONG EQUAL "8")
++  set(COIN_INT64_T "long long")
++else()
++  message(FATAL_ERROR "Can't find suitable int64_t")
++endif()
++message(STATUS "Found int64_t: ${COIN_INT64_T}")
++
++if(SIZEOF_UINT64_T EQUAL "8")
++  set(COIN_UINT64_T "uint64_t")
++elseif(SIZEOF_ULONG EQUAL "8")
++  set(COIN_INT64_T "unsigned long")
++elseif(SIZEOF_ULONG_LONG EQUAL "8")
++  set(COIN_INT64_T "unsigned long long")
++else()
++  message(FATAL_ERROR "Can't find suitable uint64_t")
++endif()
++message(STATUS "Found uint64_t: ${COIN_UINT64_T}")
++
++if(SIZEOF_INTPTR_T)
++  set(COIN_INTPTR_T "intptr_t")
++elseif(SIZEOF_INT_P)
++  set(COIN_INTPTR_T "int *")
++else()
++  message(FATAL_ERROR "Can't find suitable intptr_t")
++endif()
++message(STATUS "Found intptr_t: ${COIN_INTPTR_T}")
++
+diff --git a/cmake/Config.cmake.in Cbc/cmake/Config.cmake.in
+new file mode 100644
+index 00000000..8f3a965a
+--- /dev/null
++++ Cbc/cmake/Config.cmake.in
+@@ -0,0 +1,21 @@
++@PACKAGE_INIT@
++
++include(CMakeFindDependencyMacro)
++
++if(@ZLIB_FOUND@)
++  find_dependency(ZLIB REQUIRED)
++endif()
++
++if(@PTHREADS_FOUND@)
++  find_dependency(Threads REQUIRED)
++endif()
++
++if(${CMAKE_VERSION} VERSION_LESS "3.9.6")
++  find_dependency(Cgl REQUIRED)
++  find_dependency(Clp REQUIRED)
++else()
++  find_dependency(Cgl REQUIRED CONFIG)
++  find_dependency(Clp REQUIRED CONFIG)
++endif()
++
++include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
+diff --git a/cmake/ParseAc.cmake Cbc/cmake/ParseAc.cmake
+new file mode 100644
+index 00000000..296ec925
+--- /dev/null
++++ Cbc/cmake/ParseAc.cmake
+@@ -0,0 +1,28 @@
++function(parse_ac VERSION_STRING VERSION_MAJOR VERSION_MINOR VERSION_PATCH)
++  file(READ "configure.ac" IN)
++  if(IN MATCHES "AC_INIT\\(.*trunk.*\\)")
++    message(WARNING "using trunk...")
++    set(MAJOR 999)
++    set(MINOR 0)
++    set(PATCH 0)
++  else()
++    # AC_INIT([Cbc],[major.minor.patch or trunk],[url or email])
++    string(REGEX MATCH
++      "AC_INIT\\([^,]+,\\[([0-9]+)\\.([0-9]+)(\\.([0-9]+))?\\],[^\\)]+\\)" AC_INIT ${IN})
++    message(STATUS "AC_INIT: ${AC_INIT}")
++    set(MAJOR ${CMAKE_MATCH_1})
++    set(MINOR ${CMAKE_MATCH_2})
++    if(CMAKE_MATCH_3)
++      set(PATCH ${CMAKE_MATCH_4})
++    else()
++      set(PATCH 0)
++    endif()
++  endif()
++  set(VERSION "${MAJOR}.${MINOR}.${PATCH}")
++
++  set(${VERSION_MAJOR} ${MAJOR} PARENT_SCOPE)
++  set(${VERSION_MINOR} ${MINOR} PARENT_SCOPE)
++  set(${VERSION_PATCH} ${PATCH} PARENT_SCOPE)
++  set(${VERSION_STRING} ${VERSION} PARENT_SCOPE)
++  message(STATUS "version: ${VERSION}")
++endfunction()
+diff --git a/src/CMakeLists.txt Cbc/src/CMakeLists.txt
+new file mode 100644
+index 00000000..fb1e9abe
+--- /dev/null
++++ Cbc/src/CMakeLists.txt
+@@ -0,0 +1,254 @@
++set(NAME "CBC")
++
++set(COIN_${NAME}_CHECKLEVEL "0" CACHE INTERNAL
++  "${NAME} check level")
++set(COIN_${NAME}_VERBOSITY "0" CACHE INTERNAL
++  "${NAME} verbosity level")
++configure_file(config.h.cmake.in config.h)
++configure_file(config_cbc.h.cmake.in config_cbc.h)
++configure_file(config_cbc.h.cmake.in CbcConfig.h)
++
++set(_SRCS
++  #CbcBranchBase.cpp
++  CbcBranchAllDifferent.cpp
++  CbcBranchCut.cpp
++  CbcBranchDecision.cpp
++  CbcBranchDefaultDecision.cpp
++  CbcBranchDynamic.cpp
++  CbcBranchingObject.cpp
++  CbcBranchLotsize.cpp
++  CbcBranchToFixLots.cpp
++  CbcCompareDefault.cpp
++  CbcCompareDepth.cpp
++  CbcCompareEstimate.cpp
++  CbcCompareObjective.cpp
++  CbcConsequence.cpp
++  CbcClique.cpp
++  CbcCountRowCut.cpp
++  CbcCutGenerator.cpp
++  CbcCutModifier.cpp
++  CbcCutSubsetModifier.cpp
++  CbcDummyBranchingObject.cpp
++  CbcEventHandler.cpp
++  CbcFathom.cpp
++  CbcFathomDynamicProgramming.cpp
++  CbcFixVariable.cpp
++  CbcFullNodeInfo.cpp
++  CbcFollowOn.cpp
++  CbcGeneral.cpp
++  CbcGeneralDepth.cpp
++  CbcHeuristic.cpp
++  CbcHeuristicDINS.cpp
++  CbcHeuristicDive.cpp
++  CbcHeuristicDiveCoefficient.cpp
++  CbcHeuristicDiveFractional.cpp
++  CbcHeuristicDiveGuided.cpp
++  CbcHeuristicDiveLineSearch.cpp
++  CbcHeuristicDivePseudoCost.cpp
++  CbcHeuristicDiveVectorLength.cpp
++  CbcHeuristicFPump.cpp
++  CbcHeuristicGreedy.cpp
++  CbcHeuristicLocal.cpp
++  CbcHeuristicPivotAndFix.cpp
++  CbcHeuristicRandRound.cpp
++  CbcHeuristicRENS.cpp
++  CbcHeuristicRINS.cpp
++  CbcHeuristicVND.cpp
++  CbcHeuristicDW.cpp
++  CbcMessage.cpp
++  CbcModel.cpp
++  CbcNode.cpp
++  CbcNodeInfo.cpp
++  CbcNWay.cpp
++  CbcObject.cpp
++  CbcObjectUpdateData.cpp
++  CbcPartialNodeInfo.cpp
++  CbcSimpleInteger.cpp
++  CbcSimpleIntegerDynamicPseudoCost.cpp
++  CbcSimpleIntegerPseudoCost.cpp
++  CbcSOS.cpp
++  CbcStatistics.cpp
++  CbcStrategy.cpp
++  CbcSubProblem.cpp
++  CbcSymmetry.cpp
++  CbcThread.cpp
++  CbcTree.cpp
++  CbcTreeLocal.cpp
++  )
++
++set(_HDRS
++  CbcConfig.h
++  CbcBranchActual.hpp
++  CbcBranchAllDifferent.hpp
++  CbcBranchBase.hpp
++  CbcBranchCut.hpp
++  CbcBranchDecision.hpp
++  CbcBranchDefaultDecision.hpp
++  CbcBranchDynamic.hpp
++  CbcBranchingObject.hpp
++  CbcBranchLotsize.hpp
++  CbcBranchToFixLots.hpp
++  CbcCompareActual.hpp
++  CbcCompareBase.hpp
++  CbcCompareDefault.hpp
++  CbcCompareDepth.hpp
++  CbcCompareEstimate.hpp
++  CbcCompareObjective.hpp
++  CbcConsequence.hpp
++  CbcClique.hpp
++  CbcCompare.hpp
++  CbcCountRowCut.hpp
++  CbcCutGenerator.hpp
++  CbcCutModifier.hpp
++  CbcCutSubsetModifier.hpp
++  CbcDummyBranchingObject.hpp
++  CbcEventHandler.hpp
++  CbcFathom.hpp
++  CbcFathomDynamicProgramming.hpp
++  CbcFeasibilityBase.hpp
++  CbcFixVariable.hpp
++  CbcFullNodeInfo.hpp
++  CbcFollowOn.hpp
++  CbcGeneral.hpp
++  CbcGeneralDepth.hpp
++  CbcHeuristic.hpp
++  CbcHeuristicDINS.hpp
++  CbcHeuristicDive.hpp
++  CbcHeuristicDiveCoefficient.hpp
++  CbcHeuristicDiveFractional.hpp
++  CbcHeuristicDiveGuided.hpp
++  CbcHeuristicDiveLineSearch.hpp
++  CbcHeuristicDivePseudoCost.hpp
++  CbcHeuristicDiveVectorLength.hpp
++  CbcHeuristicFPump.hpp
++  CbcHeuristicGreedy.hpp
++  CbcHeuristicLocal.hpp
++  CbcHeuristicPivotAndFix.hpp
++  CbcHeuristicRandRound.hpp
++  CbcHeuristicRENS.hpp
++  CbcHeuristicRINS.hpp
++  CbcHeuristicVND.hpp
++  CbcHeuristicDW.hpp
++  CbcMessage.hpp
++  CbcModel.hpp
++  CbcNode.hpp
++  CbcNodeInfo.hpp
++  CbcNWay.hpp
++  CbcObject.hpp
++  CbcObjectUpdateData.hpp
++  CbcParam.hpp
++  CbcPartialNodeInfo.hpp
++  CbcSimpleInteger.hpp
++  CbcSimpleIntegerDynamicPseudoCost.hpp
++  CbcSimpleIntegerPseudoCost.hpp
++  CbcSOS.hpp
++  CbcStatistics.hpp
++  CbcStrategy.hpp
++  CbcSubProblem.hpp
++  CbcSymmetry.hpp
++  CbcThread.hpp
++  CbcTree.hpp
++	CbcLinked.hpp
++  CbcTreeLocal.hpp
++  ClpConstraintAmpl.hpp
++  ClpAmplObjective.hpp
++  )
++
++add_library(Cbc ${_SRCS} ${_HDRS})
++target_include_directories(Cbc PUBLIC
++  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
++  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
++  $<INSTALL_INTERFACE:include/coin>)
++target_compile_definitions(Cbc
++  PUBLIC HAVE_CONFIG_H
++  PRIVATE CBC_BUILD)
++if(CMAKE_VERSION VERSION_LESS "3.8.2")
++  set_property(TARGET Cbc PROPERTY CXX_STANDARD 11)
++  set_property(TARGET Cbc PROPERTY CXX_STANDARD_REQUIRED ON)
++else()
++  target_compile_features(Cbc PUBLIC cxx_std_11)
++endif()
++target_link_libraries(Cbc PUBLIC
++  Coin::Cgl
++  Coin::Clp
++  Coin::Osi
++  Coin::CoinUtils
++  )
++set_target_properties(Cbc PROPERTIES
++  PUBLIC_HEADER
++  "${_HDRS};${CMAKE_CURRENT_BINARY_DIR}/config_cbc.h;${CMAKE_CURRENT_BINARY_DIR}/CbcConfig.h"
++  VERSION ${PROJECT_VERSION}
++  SOVERSION ${PROJECT_VERSION_MAJOR})
++add_library(Coin::Cbc ALIAS Cbc)
++
++# Install
++include(GNUInstallDirs)
++install(TARGETS Cbc
++  EXPORT ${PROJECT_NAME}Targets
++  PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/coin
++  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
++  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
++  )
++
++#################
++##  CbcSolver  ##
++#################
++configure_file(config_cbcsolver.h.cmake.in config_cbcsolver.h)
++configure_file(config_cbcsolver.h.cmake.in CbcSolverConfig.h)
++
++set(_SRCS
++  Cbc_C_Interface.cpp
++  CbcCbcParam.cpp
++  CbcLinked.cpp
++  CbcLinkedUtils.cpp
++  unitTestClp.cpp
++  CbcSolver.cpp
++  CbcSolverHeuristics.cpp
++  CbcSolverAnalyze.cpp
++  CbcMipStartIO.cpp
++  CbcSolverExpandKnapsack.cpp
++  )
++
++set(_HDRS
++  Cbc_C_Interface.h
++  CbcLinked.hpp
++  CbcSolver.hpp
++  CbcSolverHeuristics.hpp
++  CbcSolverAnalyze.hpp
++  CbcMipStartIO.hpp
++  CbcSolverExpandKnapsack.hpp
++  )
++
++add_library(CbcSolver ${_SRCS} ${_HDRS})
++target_include_directories(CbcSolver PUBLIC
++  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
++  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
++  $<INSTALL_INTERFACE:include/coin>)
++target_compile_definitions(CbcSolver
++  PUBLIC HAVE_CONFIG_H
++  PRIVATE CBC_BUILD CBC_THREAD_SAFE CBC_NO_INTERRUPT)
++if(CMAKE_VERSION VERSION_LESS "3.8.2")
++  set_property(TARGET CbcSolver PROPERTY CXX_STANDARD 11)
++  set_property(TARGET CbcSolver PROPERTY CXX_STANDARD_REQUIRED ON)
++else()
++  target_compile_features(CbcSolver PUBLIC cxx_std_11)
++endif()
++target_link_libraries(CbcSolver PUBLIC Coin::Cbc)
++set_target_properties(CbcSolver PROPERTIES
++  PUBLIC_HEADER "${_HDRS};${CMAKE_CURRENT_BINARY_DIR}/CbcSolverConfig.h"
++  VERSION ${PROJECT_VERSION}
++  SOVERSION ${PROJECT_VERSION_MAJOR})
++add_library(Coin::CbcSolver ALIAS CbcSolver)
++
++# Install
++install(TARGETS CbcSolver
++  EXPORT ${PROJECT_NAME}Targets
++  PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/coin
++  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
++  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
++  )
++
++##############
++##  OsiCbc  ##
++##############
++add_subdirectory(OsiCbc)
+diff --git a/src/OsiCbc/CMakeLists.txt Cbc/src/OsiCbc/CMakeLists.txt
+new file mode 100644
+index 00000000..6cb8dae7
+--- /dev/null
++++ Cbc/src/OsiCbc/CMakeLists.txt
+@@ -0,0 +1,41 @@
++set(NAME "OSICBC")
++
++configure_file(config_osicbc.h.cmake.in config_osicbc.h)
++configure_file(config_osicbc.h.cmake.in OsiCbcConfig.h)
++
++set(_SRCS OsiCbcSolverInterface.cpp)
++set(_HDRS	OsiCbcSolverInterface.hpp)
++
++add_library(OsiCbc ${_SRCS} ${_HDRS})
++target_include_directories(OsiCbc PUBLIC
++  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
++  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
++  $<INSTALL_INTERFACE:include/coin>)
++target_compile_definitions(OsiCbc
++  PUBLIC HAVE_CONFIG_H
++  PRIVATE CBC_BUILD)
++if(CMAKE_VERSION VERSION_LESS "3.8.2")
++  set_property(TARGET OsiCbc PROPERTY CXX_STANDARD 11)
++  set_property(TARGET OsiCbc PROPERTY CXX_STANDARD_REQUIRED ON)
++else()
++  target_compile_features(OsiCbc PUBLIC cxx_std_11)
++endif()
++target_link_libraries(OsiCbc PUBLIC
++  Coin::CoinUtils
++  Coin::Osi
++  Coin::Cbc
++  )
++set_target_properties(OsiCbc PROPERTIES
++  PUBLIC_HEADER
++  "${_HDRS};${CMAKE_CURRENT_BINARY_DIR}/config_osicbc.h;${CMAKE_CURRENT_BINARY_DIR}/OsiCbcConfig.h"
++  VERSION ${PROJECT_VERSION}
++  SOVERSION ${PROJECT_VERSION_MAJOR})
++add_library(Coin::OsiCbc ALIAS OsiCbc)
++
++# Install
++install(TARGETS OsiCbc
++  EXPORT ${PROJECT_NAME}Targets
++  PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/coin
++  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
++  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
++  )
+diff --git a/src/OsiCbc/config_osicbc.h.cmake.in Cbc/src/OsiCbc/config_osicbc.h.cmake.in
+new file mode 100644
+index 00000000..fddeb7bb
+--- /dev/null
++++ Cbc/src/OsiCbc/config_osicbc.h.cmake.in
+@@ -0,0 +1,7 @@
++#ifndef __CONFIG_${NAME}_H__
++#define __CONFIG_${NAME}_H__
++
++/* Library Visibility Attribute */
++#define ${NAME}LIB_EXPORT
++
++#endif
+diff --git a/src/config.h.cmake.in Cbc/src/config.h.cmake.in
+new file mode 100644
+index 00000000..53846a1e
+--- /dev/null
++++ Cbc/src/config.h.cmake.in
+@@ -0,0 +1,123 @@
++/*config.h. Generated by configure_file.*/
++
++#define COIN_HAS_COINUTILS 1
++#define COIN_HAS_OSI 1
++#define COIN_HAS_CLP 1
++#define ${NAME}_DEFAULT_SOLVER "clp"
++
++/* Library Visibility Attribute */
++#define ${NAME}LIB_EXPORT
++
++/* Library Visibility Attribute */
++#define ${NAME}SOLVERLIB_EXPORT
++
++/* VERSION */
++#define VERSION "${VERSION}"
++/* ${NAME}_VERSION */
++#define ${NAME}_VERSION "${VERSION}"
++/* ${NAME}_VERSION_MAJOR */
++#define ${NAME}_VERSION_MAJOR ${MAJOR}
++/* ${NAME}_VERSION_MINOR */
++#define ${NAME}_VERSION_MINOR ${MINOR}
++/* ${NAME}_VERSION_RELEASE */
++#define ${NAME}_VERSION_RELEASE ${PATCH}
++
++/* HAVE_MATH_H */
++#cmakedefine HAVE_MATH_H ${HAVE_MATH_H}
++/* HAVE_CTYPE_H */
++#cmakedefine HAVE_CTYPE_H ${HAVE_CTYPE_H}
++/* HAVE_INTTYPES_H */
++#cmakedefine HAVE_INTTYPES_H ${HAVE_INTTYPES_H}
++/* HAVE_FLOAT_H */
++#cmakedefine HAVE_FLOAT_H ${HAVE_FLOAT_H}
++/* HAVE_IEEEFP_H */
++#cmakedefine HAVE_IEEEFP_H ${HAVE_IEEEFP_H}
++/* HAVE_STDARG_H */
++#cmakedefine HAVE_STDARG_H ${HAVE_STDARG_H}
++/* HAVE_STDDEF_H */
++#cmakedefine HAVE_STDDEF_H ${HAVE_STDDEF_H}
++/* HAVE_STDINT_H */
++#cmakedefine HAVE_STDINT_H ${HAVE_STDINT_H}
++/* HAVE_STDIO_H */
++#cmakedefine HAVE_STDIO_H ${HAVE_STDIO_H}
++/* HAVE_STDLIB_H */
++#cmakedefine HAVE_STDLIB_H ${HAVE_STDLIB_H}
++/* HAVE_ASSERT_H */
++#cmakedefine HAVE_ASSERT_H ${HAVE_ASSERT_H}
++/* HAVE_DLFCN_H */
++#cmakedefine HAVE_DLFCN_H ${HAVE_DLFCN_H}
++/* HAVE_ENDIAN_H */
++#cmakedefine HAVE_ENDIAN_H ${HAVE_ENDIAN_H}
++/* HAVE_MEMORY_H */
++#cmakedefine HAVE_MEMORY_H ${HAVE_MEMORY_H}
++/* HAVE_STRINGS_H */
++#cmakedefine HAVE_STRINGS_H ${HAVE_STRINGS_H}
++/* HAVE_STRING_H */
++#cmakedefine HAVE_STRING_H ${HAVE_STRING_H}
++/* HAVE_TIME_H */
++#cmakedefine HAVE_TIME_H ${HAVE_TIME_H}
++/* HAVE_UNISTD_H */
++#cmakedefine HAVE_UNISTD_H ${HAVE_UNISTD_H}
++/* HAVE_SYS_STAT_H */
++#cmakedefine HAVE_SYS_STAT_H ${HAVE_SYS_STAT_H}
++/* HAVE_SYS_TYPES_H */
++#cmakedefine HAVE_SYS_TYPES_H ${HAVE_SYS_TYPES_H}
++
++/* HAVE_CMATH */
++#cmakedefine HAVE_CMATH ${HAVE_CMATH}
++/* HAVE_CCTYPE */
++#cmakedefine HAVE_CCTYPE ${HAVE_CCTYPE}
++/* HAVE_CINTTYPES */
++#cmakedefine HAVE_CINTTYPES ${HAVE_CINTTYPES}
++/* HAVE_CFLOAT */
++#cmakedefine HAVE_CFLOAT ${HAVE_CFLOAT}
++/* HAVE_CIEEEFP */
++#cmakedefine HAVE_CIEEEFP ${HAVE_CIEEEFP}
++/* HAVE_CSTDARG */
++#cmakedefine HAVE_CSTDARG ${HAVE_CSTDARG}
++/* HAVE_CSTDDEF */
++#cmakedefine HAVE_CSTDDEF ${HAVE_CSTDDEF}
++/* HAVE_CSTDINT */
++#cmakedefine HAVE_CSTDINT ${HAVE_CSTDINT}
++/* HAVE_CSTDIO */
++#cmakedefine HAVE_CSTDIO ${HAVE_CSTDIO}
++/* HAVE_CSTDLIB */
++#cmakedefine HAVE_CSTDLIB ${HAVE_CSTDLIB}
++/* HAVE_CASSERT */
++#cmakedefine HAVE_CASSERT ${HAVE_CASSERT}
++/* HAVE_CSTRING */
++#cmakedefine HAVE_CSTRING ${HAVE_CSTRING}
++/* HAVE_CTIME */
++#cmakedefine HAVE_CTIME ${HAVE_CTIME}
++
++/* COIN_C_FINITE */
++#cmakedefine COIN_C_FINITE ${COIN_C_FINITE}
++/* COIN_C_ISNAN */
++#cmakedefine COIN_C_ISNAN ${COIN_C_ISNAN}
++/* COIN_INT64_T */
++#cmakedefine COIN_INT64_T ${COIN_INT64_T}
++/* COIN_UINT64_T */
++#cmakedefine COIN_UINT64_T ${COIN_UINT64_T}
++/* COIN_INTPTR_T */
++#cmakedefine COIN_INTPTR_T ${COIN_INTPTR_T}
++
++/* COIN_${NAME}_CHECKLEVEL */
++#define COIN_${NAME}_CHECKLEVEL ${COIN_${NAME}_CHECKLEVEL}
++/* COIN_${NAME}_VERBOSITY */
++#define COIN_${NAME}_VERBOSITY ${COIN_${NAME}_VERBOSITY}
++
++/* PACKAGE */
++#cmakedefine PACKAGE
++/* PACKAGE_NAME */
++#cmakedefine PACKAGE_NAME
++/* PACKAGE_VERSION */
++#cmakedefine PACKAGE_VERSION
++/* PACKAGE_STRING */
++#cmakedefine PACKAGE_STRING
++/* PACKAGE_TARNAME */
++#cmakedefine PACKAGE_TARNAME
++/* PACKAGE_BUGREPORT */
++#cmakedefine PACKAGE_BUGREPORT
++
++/* HAVE_STDC_HEADERS */
++#cmakedefine HAVE_STDC_HEADERS ${HAVE_STDC_HEADERS}
+diff --git a/src/config_cbc.h.cmake.in Cbc/src/config_cbc.h.cmake.in
+new file mode 100644
+index 00000000..eaae68c2
+--- /dev/null
++++ Cbc/src/config_cbc.h.cmake.in
+@@ -0,0 +1,19 @@
++#ifndef __CONFIG_${NAME}_H__
++#define __CONFIG_${NAME}_H__
++
++/* Library Visibility Attribute */
++#define ${NAME}LIB_EXPORT
++
++/* Library Visibility Attribute */
++#define ${NAME}SOLVERLIB_EXPORT
++
++/* ${NAME}_VERSION */
++#define ${NAME}_VERSION "${VERSION}"
++/* ${NAME}_VERSION_MAJOR */
++#define ${NAME}_VERSION_MAJOR ${MAJOR}
++/* ${NAME}_VERSION_MINOR */
++#define ${NAME}_VERSION_MINOR ${MINOR}
++/* ${NAME}_VERSION_RELEASE */
++#define ${NAME}_VERSION_RELEASE ${PATCH}
++
++#endif
+diff --git a/src/config_cbcsolver.h.cmake.in Cbc/src/config_cbcsolver.h.cmake.in
+new file mode 100644
+index 00000000..5d63cba0
+--- /dev/null
++++ Cbc/src/config_cbcsolver.h.cmake.in
+@@ -0,0 +1,7 @@
++#ifndef __CONFIG_${NAME}SOLVER_H__
++#define __CONFIG_${NAME}SOLVER_H__
++
++/* Library Visibility Attribute */
++#define ${NAME}SOLVERLIB_EXPORT
++
++#endif
