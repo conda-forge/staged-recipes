@@ -86,6 +86,10 @@ INSTALL(TARGETS gts
   )
 INSTALL(FILES
   src/gts.h
-  src/gtsconfig.h
+  DESTINATION include
+  )
+INSTALL(FILES
+  "${CMAKE_CURRENT_BINARY_DIR}/config.h"
+  RENAME gtsconfig.h
   DESTINATION include
   )
