@@ -26,6 +26,8 @@ cp -r /home/conda/staged-recipes/recipes ~/conda-recipes
 cp -r /home/conda/staged-recipes/.ci_support ~/.ci_support
 
 # Find the recipes from master in this PR and remove them.
+echo "Pending recipes."
+ls -la ~/conda-recipes
 echo "Finding recipes merged in master and removing them from the build."
 pushd /home/conda/staged-recipes/recipes > /dev/null
 if [ "${AZURE}" == "True" ]; then
@@ -40,7 +42,10 @@ export CONDA_NPY='19'
 # Make sure build_artifacts is a valid channel
 conda index /home/conda/staged-recipes/build_artifacts
 
-conda install --yes --quiet "conda!=4.6.1" conda-forge-ci-setup=2.* conda-forge-pinning networkx conda-build>=3.16
+conda install --yes --quiet "conda!=4.6.1,<4.7.11a0" conda-forge-ci-setup=2.* conda-forge-pinning networkx=2.3 "conda-build>=3.16"
+export FEEDSTOCK_ROOT="${FEEDSTOCK_ROOT:-/home/conda/staged-recipes}"
+export CI_SUPPORT="/home/conda/.ci_support"
+setup_conda_rc "${FEEDSTOCK_ROOT}" "/home/conda/conda-recipes" "${CI_SUPPORT}/${CONFIG}.yaml"
 source run_conda_forge_build_setup
 
 # yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
