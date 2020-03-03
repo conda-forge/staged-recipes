@@ -12,12 +12,6 @@ meson_config_args=(
     -D wayland_backend=false
 )
 
-if [ -n "$OSX_ARCH" ] ; then
-    # Clashing libuuid causes compilation problems unless we do this. libuuid
-    # is pulled in by xorg-libSM.
-    rm -rf $PREFIX/include/uuid
-fi
-
 meson setup builddir "${meson_config_args[@]}" --prefix=$PREFIX --libdir=$PREFIX/lib
 ninja -v -C builddir
 ninja -C builddir install
