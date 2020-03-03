@@ -15,6 +15,10 @@ if [ -n "$OSX_ARCH" ] ; then
 else
     # also for X11:
     export LDFLAGS="$LDFLAGS -Wl,-rpath-link,$PREFIX/lib"
+
+    # Clashing libX11 causes overlinking problems unless we do this
+    # libX11 is provided by xorg-libx11 and pulled in by cairo
+    rm -rf $PREFIX/lib/libX11.so*
 fi
 
 meson setup builddir -D enable_docs=false --prefix=$PREFIX --libdir=$PREFIX/lib
