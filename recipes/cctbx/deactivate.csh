@@ -1,1 +1,1 @@
-unsetenv LIBTBX_BUILD
+unset LIBTBX_BUILD
