@@ -16,6 +16,11 @@ if [ -n "$OSX_ARCH" ] ; then
     # Clashing libuuid causes compilation problems unless we do this. libuuid
     # is pulled in by xorg-libSM.
     rm -rf $PREFIX/include/uuid
+else
+    # Clashing libX11 and libXext causes overlinking problems unless we do this
+    # libX11 is provided by xorg-libx11 and pulled in by cairo
+    rm -rf $PREFIX/lib/libX11.so*
+    rm -rf $PREFIX/lib/libXext.so*
 fi
 
 meson setup builddir "${meson_config_args[@]}" --prefix=$PREFIX --libdir=$PREFIX/lib
