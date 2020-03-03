@@ -14,12 +14,13 @@ meson_config_args=(
 # Make it so that pkg-config can find the CDT (E)GL(X) packages:
 export PKG_CONFIG_PATH="$BUILD_PREFIX/$HOST/sysroot/usr/lib64/pkgconfig"
 
-# Hackity hack: manually copy the GL headers that we require, so that
-# downstream deps don't all have to include a magic CDT package as a dependency
-
-mkdir -p $PREFIX/include/KHR $PREFIX/include/EGL
-cp $BUILD_PREFIX/$HOST/sysroot/usr/include/KHR/khrplatform.h $PREFIX/include/KHR/
-cp $BUILD_PREFIX/$HOST/sysroot/usr/include/EGL/eglplatform.h $PREFIX/include/EGL/
+if [ -z "$OSX_ARCH" ] ; then
+    # Hackity hack: manually copy the GL headers that we require, so that
+    # downstream deps don't all have to include a magic CDT package as a dependency
+    mkdir -p $PREFIX/include/KHR $PREFIX/include/EGL
+    cp $BUILD_PREFIX/$HOST/sysroot/usr/include/KHR/khrplatform.h $PREFIX/include/KHR/
+    cp $BUILD_PREFIX/$HOST/sysroot/usr/include/EGL/eglplatform.h $PREFIX/include/EGL/
+fi
 
 meson setup builddir "${meson_config_args[@]}" --prefix=$PREFIX --libdir=$PREFIX/lib
 ninja -v -C builddir
