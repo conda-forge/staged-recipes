@@ -4,17 +4,23 @@
 
 set -ex
 
-meson_config_args=(
-    -D docs=false
-    -D egl=yes
-    -D x11=true
-    -D tests=false
-)
+if [ -n "$OSX_ARCH" ] ; then
+    meson_config_args=(
+        -D docs=false
+        -D x11=false
+        -D tests=false
+    )
+else
+    meson_config_args=(
+        -D docs=false
+        -D egl=yes
+        -D x11=true
+        -D tests=false
+    )
 
-# Make it so that pkg-config can find the CDT (E)GL(X) packages:
-export PKG_CONFIG_PATH="$BUILD_PREFIX/$HOST/sysroot/usr/lib64/pkgconfig"
+    # Make it so that pkg-config can find the CDT (E)GL(X) packages:
+    export PKG_CONFIG_PATH="$BUILD_PREFIX/$HOST/sysroot/usr/lib64/pkgconfig"
 
-if [ -z "$OSX_ARCH" ] ; then
     # Hackity hack: manually copy the GL headers that we require, so that
     # downstream deps don't all have to include a magic CDT package as a dependency
     mkdir -p $PREFIX/include/KHR $PREFIX/include/EGL
