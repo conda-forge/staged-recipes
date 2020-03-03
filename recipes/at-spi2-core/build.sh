@@ -4,19 +4,6 @@
 
 set -e
 
-# needed to detect X11:
-export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
-export CPPFLAGS="-I$PREFIX/include"
-export LDFLAGS="-L$PREFIX/lib"
-
-if [ -n "$OSX_ARCH" ] ; then
-    export MACOSX_DEPLOYMENT_TARGET=10.9
-    export LDFLAGS="$LDFLAGS -Wl,-rpath,$PREFIX/lib"
-else
-    # also for X11:
-    export LDFLAGS="$LDFLAGS -Wl,-rpath-link,$PREFIX/lib"
-fi
-
 meson setup builddir -D enable_docs=false --prefix=$PREFIX --libdir=$PREFIX/lib
 ninja -v -C builddir
 ninja -C builddir install

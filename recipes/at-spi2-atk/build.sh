@@ -4,11 +4,6 @@
 
 set -e
 
-if [ -n "$OSX_ARCH" ] ; then
-    export MACOSX_DEPLOYMENT_TARGET=10.9
-    export LDFLAGS="$LDFLAGS -Wl,-rpath,$PREFIX/lib"
-fi
-
 meson setup builddir -D enable_docs=false --prefix=$PREFIX --libdir=$PREFIX/lib
 ninja -v -C builddir
 ninja -C builddir install
