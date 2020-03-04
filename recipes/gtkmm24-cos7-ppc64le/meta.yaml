@@ -1,0 +1,79 @@
+# A few variables that make this a tiny bit more portable
+{% set centos_name = "gtkmm24" %}
+{% set name = centos_name |lower %}
+{% set version = '2.24.5' %}
+{% set centos_build = '1' %}
+# No good way to get this other than to fail once, I think???
+{% set so_version = '1' %}
+{% set el = 'el7' %}
+{% set arch = "ppc64le" %}
+{% set sysroot_arch = "powerpc64le" %}
+{% set cos = "cos7" %}
+{% set url_base = "http://mirror.centos.org/altarch/7/os/ppc64le/Packages/" %}
+
+package:
+  name: {{ name }}-{{ cos }}-{{ arch }}
+  version: {{ version }}
+
+source:
+  - url: {{ url_base }}{{ centos_name }}-{{ version }}-{{ centos_build }}.{{ el }}.{{ arch }}.rpm
+    sha256: 10b4384789ea34ce708c5dbd72144538018aa11ca324cf845eb18c7efde9237f
+    # conda seems to remove folders if they are the only ones there
+    # we need to keep the structure of the RPM
+    # https://github.com/conda/conda-build/issues/3595
+    folder: binary/usr
+  - url: {{ url_base }}{{ centos_name }}-devel-{{ version }}-{{ centos_build }}.{{ el }}.{{ arch }}.rpm
+    sha256: 947ad0070c19422dec46f54e817da5b7379a33179d5537e9a12cec50ff56df22
+    folder: devel/usr
+
+build:
+  number: 0
+  noarch: generic
+  missing_dso_whitelist:
+    - '*'
+
+test:
+  # dummy requirement to workaround a bug with the CDT tests
+  requires:
+    - zlib
+  commands:
+    - test -f "$PREFIX/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot/usr/lib64/libgdkmm-2.4.so.{{ so_version }}"
+
+outputs:
+  - name: {{ name }}-{{ cos }}-{{ arch }}
+    build:
+      script:
+        - mkdir -p {{ PREFIX }}/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot
+        - pushd {{ PREFIX }}/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot > /dev/null 2>&1
+        - cp -Rf {{ SRC_DIR }}/binary/* .
+
+  - name: {{ name }}-devel-{{ cos }}-{{ arch }}
+    build:
+      noarch: generic
+      script:
+        - mkdir -p {{ PREFIX }}/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot
+        - pushd {{ PREFIX }}/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot > /dev/null 2>&1
+        - cp -Rf {{ SRC_DIR }}/devel/* .
+    requirements:
+      - {{ pin_subpackage(name + '-' + cos + '-' + arch, exact=True) }}
+    test:
+      # dummy requirement to workaround a bug with the CDT tests
+      requires:
+        - zlib
+      commands:
+        - test -f "$PREFIX/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot/usr/lib64/libgdkmm-2.4.so.{{ so_version }}"
+
+about:
+  home: http://www.gtkmm.org/
+  license: LGPL (>= 2)
+  license_family: LGPL
+  summary: "(CDT) C++ interface for GTK2 (a GUI library for X)"
+  description: |
+        gtkmm provides a C++ interface to the GTK+ GUI library. gtkmm2 wraps GTK+ 2.
+        Highlights include typesafe callbacks, widgets extensible via inheritance and
+        a comprehensive set of widget classes that can be freely combined to quickly
+        create complex user interfaces.
+
+extra:
+  recipe-maintainers:
+    - jayfurmanek
