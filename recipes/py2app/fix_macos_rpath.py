@@ -26,9 +26,12 @@ if __name__ == '__main__':
           lib = lib[0]
           new_lib = None
           if 'libgcc_s' in lib:
-            new_lib = os.path.join('@rpath', lib.split('/')[-1])
+            new_lib = os.path.join('@rpath', 'lib', lib.split('/')[-1])
           if new_lib is not None:
             print('Changing {lib} to {new_lib}'.format(lib=lib, new_lib=new_lib))
             cmd = ['install_name_tool', '-change', lib, new_lib, bin_file]
+            print(' '.join(cmd))
+            output = check_output(cmd)
+            cmd = ['install_name_tool', '-add_rpath', os.getenv('PREFIX'), bin_file]
             print(' '.join(cmd))
             output = check_output(cmd)
