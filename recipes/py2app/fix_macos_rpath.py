@@ -12,7 +12,8 @@ from subprocess import CalledProcessError, check_output
 if __name__ == '__main__':
   main_files = glob.glob('py2app/apptemplate/prebuilt/main*')
   secondary_files = glob.glob('py2app/apptemplate/prebuilt/secondary*')
-  for bin_file in main_files + secondary_files:
+  bundle_files = glob.glob('py2app/bundletemplate/prebuilt/main*')
+  for bin_file in main_files + secondary_files + bundle_files:
     if os.path.isfile(bin_file):
       print(bin_file)
       libraries = list()
@@ -26,12 +27,14 @@ if __name__ == '__main__':
           lib = lib[0]
           new_lib = None
           if 'libgcc_s' in lib:
-            new_lib = os.path.join('@rpath', 'lib', lib.split('/')[-1])
+            new_lib = os.path.join('@rpath', lib.split('/')[-1])
           if new_lib is not None:
             print('Changing {lib} to {new_lib}'.format(lib=lib, new_lib=new_lib))
             cmd = ['install_name_tool', '-change', lib, new_lib, bin_file]
             print(' '.join(cmd))
             output = check_output(cmd)
-            cmd = ['install_name_tool', '-add_rpath', os.getenv('PREFIX'), bin_file]
+            cmd = ['install_name_tool', '-add_rpath',
+                   os.path.join('@loader_path', '..', 'lib'),
+                   bin_file]
             print(' '.join(cmd))
             output = check_output(cmd)
