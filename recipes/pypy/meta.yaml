@@ -1,0 +1,65 @@
+{% set version = "7.3.0" %}
+{% set python_version = "3.6.9" %}
+{% set python_maj_min = ".".join(python_version.split(".")[:2]) %}
+{% set build_num = "0" %}
+{% set pypy_abi = "".join(version.split(".")[:2]) %}
+
+package:
+  name: pypy-meta
+  version: {{ version }}
+
+build:
+  number: {{ build_num }}
+  skip: True  # [win64]
+
+outputs:
+  - name: python
+    version: {{ python_version }}
+    build:
+      number: {{ build_num }}
+      string: {{ build_num }}_{{ pypy_abi }}_pypy
+      skip: True  # [win64]
+      track_features:
+        - pypy
+      run_exports:
+        weak:
+          - python_abi {{ python_maj_min }} *_pypy{{ python_maj_min.replace(".", "") }}_pp{{ pypy_abi }}
+        noarch:
+          - {{ pin_subpackage("python", max_pin="x.x", min_pin="x.x") }}
+      script:
+        - ln -sf ${PREFIX}/bin/pypy3 ${PREFIX}/bin/python
+        - ln -sf ${PREFIX}/bin/pypy3 ${PREFIX}/bin/python3
+        - ln -sf ${PREFIX}/bin/pypy3 ${PREFIX}/bin/python{{ python_maj_min }}
+        - ln -sf ${PREFIX}/bin/pypy3 ${PREFIX}/bin/pypy
+    requirements:
+      host:
+        - pypy{{ python_maj_min }} {{ version }}
+      run:
+        - pypy{{ python_maj_min }} {{ version }}
+        - python_abi {{ python_maj_min }} *_pypy{{ python_maj_min.replace(".", "") }}_pp{{ pypy_abi }}
+    test:
+      commands:
+        - python --version
+
+  - name: pypy
+    version: {{ version }}
+    build:
+      number: {{ build_num }}
+      noarch: generic
+    requirements:
+      run:
+        - python {{ python_version }} {{ build_num }}_{{ pypy_abi }}_pypy
+    test:
+      commands:
+        - pypy --version
+
+about:
+  home: https://github.com/conda-forge/pypy-feedstock
+  summary: Metapackage to select pypy as python implementation
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - isuruf
