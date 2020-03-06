@@ -1,3 +1,3 @@
 make
-mkdir -p $PREFIX/bin
-cp ./Infomap $PREFIX/bin
+mkdir -p ${PREFIX}/bin
+cp Infomap ${PREFIX}/bin
