@@ -17,9 +17,6 @@ else
         -D x11=true
         -D tests=false
     )
-
-    # Make it so that pkg-config can find the CDT (E)GL(X) packages:
-    export PKG_CONFIG_PATH="$BUILD_PREFIX/$HOST/sysroot/usr/lib64/pkgconfig"
 fi
 
 meson setup builddir "${meson_config_args[@]}" --prefix=$PREFIX --libdir=$PREFIX/lib
