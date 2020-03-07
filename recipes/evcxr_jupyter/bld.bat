@@ -1,8 +1,8 @@
 :: build
-cargo install --features=all --root "%PREFIX%" --path . || goto :error
+cargo install --root "%PREFIX%" --path .\evcxr_jupyter || goto :error
 
 :: strip debug symbols
-strip "%PREFIX%\bin\evcxr.exe" || goto :error
+strip "%PREFIX%\bin\evcxr_jupyter.exe" || goto :error
 
 :: remove extra build file
 del /F /Q "%PREFIX%\.crates.toml"
