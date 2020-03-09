@@ -7,7 +7,13 @@ export PATH=${GOPATH}/bin:$PATH
 pushd cmd/gh
 
 # Build
-go build -v -o ${PKG_NAME} .
+
+if [[ "$target_platform" == win* ]]; then
+    go build -v -o ${PKG_NAME}.exe .
+else
+    go build -v -o ${PKG_NAME} .
+fi
+
 
 # Install Binary into PREFIX/bin
 mkdir -p $PREFIX/bin
