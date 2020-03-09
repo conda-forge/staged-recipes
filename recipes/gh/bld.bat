@@ -1,13 +1,13 @@
-# Turn work folder into GOPATH
-export GOPATH=%SRC_DR%
-export PATH=%GOPATH%\bin:%PATH%
+:: Turn work folder into GOPATH
+set GOPATH=%SRC_DR%
+set PATH=%GOPATH%\bin:%PATH%
 
-# Change to directory with main.go
-pushd cmd\gh
+:: Change to directory with main.go
+cd cmd\gh
 
-# Build
+:: Build
 go build -v -o %PKG_NAME%.exe .
 
-# Install Binary into %PREFIX%\bin
+:: Install Binary into %PREFIX%\bin
 mkdir -p %PREFIX%\bin
 mv %PKG_NAME% %PREFIX%\bin\%PKG_NAME%
