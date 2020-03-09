@@ -4,7 +4,7 @@
 
 set -ex
 
-if [ -n "$OSX_ARCH" ] ; then
+if [ $target_platform == osx* ] ; then
     meson_config_args=(
         -D docs=false
         -D x11=false
