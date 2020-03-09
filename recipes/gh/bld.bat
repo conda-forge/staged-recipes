@@ -1,6 +1,6 @@
 # Turn work folder into GOPATH
 export GOPATH=%SRC_DR%
-export PATH=%GOPATH%\bin:$PATH
+export PATH=%GOPATH%\bin:%PATH%
 
 # Change to directory with main.go
 pushd cmd\gh
