@@ -4,7 +4,11 @@
 
 set -e
 
-meson setup builddir -D enable_docs=false --prefix=$PREFIX --libdir=$PREFIX/lib
+meson setup builddir \
+    -D enable_docs=false \
+    --prefix=$PREFIX \
+    --libdir=$PREFIX/lib  \
+    --wrap-mode=nofallback
 ninja -v -C builddir
 ninja -C builddir install
 

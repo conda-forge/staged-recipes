@@ -19,7 +19,11 @@ else
     )
 fi
 
-meson setup builddir "${meson_config_args[@]}" --prefix=$PREFIX --libdir=$PREFIX/lib
+meson setup builddir \
+    "${meson_config_args[@]}" \
+    --prefix=$PREFIX \
+    --libdir=$PREFIX/lib  \
+    --wrap-mode=nofallback
 ninja -v -C builddir
 ninja -C builddir install
 
