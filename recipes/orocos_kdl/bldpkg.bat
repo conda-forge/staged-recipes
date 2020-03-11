@@ -14,6 +14,7 @@ cmake ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP=True ^
     -DCMAKE_CXX_STANDARD=14 ^
+    -DPYTHON_EXECUTABLE=%PYTHON% ^
     %SRC_DIR%\%PKG_NAME_ALIAS%
 if errorlevel 1 exit 1
 
