@@ -3,7 +3,7 @@
 mkdir -p build
 cd build
 
-if [ $target_platform == Darwin ]; then
+if [[ "$target_platform" == osx* ]]; then
 	export LS_USE_ZCHUNK=OFF;
 else
 	export LS_USE_ZCHUNK=ON;
