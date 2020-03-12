@@ -1,0 +1,1 @@
+copy stride.exe "%LIBRARY_BIN%"\stride.exe
