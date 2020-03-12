@@ -1,0 +1,79 @@
+# A few variables that make this a tiny bit more portable
+{% set centos_name = "pciutils" %}
+{% set name = centos_name |lower %}
+{% set version = '3.5.1' %}
+{% set centos_build = '3' %}
+# No good way to get this other than to fail once, I think???
+{% set so_version = '3' %}
+{% set el = 'el7' %}
+{% set arch = "aarch64" %}
+{% set sysroot_arch = "aarch64" %}
+{% set cos = "cos7" %}
+{% set url_base = "http://mirror.centos.org/altarch/7/os/" + arch + "/Packages/" %}
+
+package:
+  name: {{ name }}-libs-{{ cos }}-{{ arch }}
+  version: {{ version }}
+
+source:
+  - url: {{ url_base }}{{ centos_name }}-libs-{{ version }}-{{ centos_build }}.{{ el }}.{{ arch }}.rpm
+    sha256: 86d8bfccae650bf9893827deedfe70bb502fb54f3fab65a9ca10ad9b3e704c62
+    # conda seems to remove folders if they are the only ones there
+    # we need to keep the structure of the RPM
+    # https://github.com/conda/conda-build/issues/3595
+    folder: binary/usr
+  - url: {{ url_base }}{{ centos_name }}-devel-{{ version }}-{{ centos_build }}.{{ el }}.{{ arch }}.rpm
+    sha256: 9c90f99e801b09334efd3bea12217d938c6da1bc78b3bd138b6eb39e8e02fef0
+    folder: devel/usr
+
+build:
+  number: 0
+  noarch: generic
+  missing_dso_whitelist:
+    - '*'
+
+test:
+  # dummy requirement to workaround a bug with the CDT tests
+  requires:
+    - zlib
+  commands:
+    - test -f "$PREFIX/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot/usr/lib64/libpci.so.{{ so_version }}"
+
+outputs:
+  - name: {{ name }}-libs-{{ cos }}-{{ arch }}
+    build:
+      script:
+        - mkdir -p {{ PREFIX }}/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot
+        - pushd {{ PREFIX }}/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot > /dev/null 2>&1
+        - cp -Rf {{ SRC_DIR }}/binary/* .
+
+  - name: {{ name }}-devel-{{ cos }}-{{ arch }}
+    build:
+      noarch: generic
+      script:
+        - mkdir -p {{ PREFIX }}/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot
+        - pushd {{ PREFIX }}/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot > /dev/null 2>&1
+        - cp -Rf {{ SRC_DIR }}/devel/* .
+    requirements:
+      - {{ pin_subpackage(name + '-' + 'libs' + '-' + cos + '-' + arch, exact=True) }}
+    test:
+      # dummy requirement to workaround a bug with the CDT tests
+      requires:
+        - zlib
+      commands:
+        - test -f "$PREFIX/{{ sysroot_arch }}-conda_{{ cos }}-linux-gnu/sysroot/usr/lib64/libpci.so.{{ so_version }}"
+
+about:
+  home: http://www.cups.org/
+  license: GPLv2
+  license_family: GPL2
+  summary: "(CDT) CUPS printing system"
+  description: |
+        CUPS printing system provides a portable printing layer for UNIX® operating
+        systems. It has been developed by Apple Inc. to promote a standard printing
+        solution for all UNIX vendors and users. CUPS provides the System V and
+        Berkeley command-line interfaces.
+
+extra:
+  recipe-maintainers:
+    - jayfurmanek
