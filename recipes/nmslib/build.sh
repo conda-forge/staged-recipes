@@ -1,6 +1,7 @@
 #!/bin/bash
 
-PIP_NO_CACHE_DIR=True $PYTHON -m pip install --no-deps .
+PIP_NO_CACHE_DIR=True $PYTHON -m pip install --no-deps --no-binary :all: .
+
 
 # Add more build steps here, if they are necessary.
 
