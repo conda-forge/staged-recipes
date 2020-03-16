@@ -17,6 +17,8 @@ cmake -LAH -G "Ninja"                                                     ^
 
 if errorlevel 1 exit 1
 
-ninja install
+REM ninja install doesn't seem to create the .lib files
+REM ninja install
+cmake --build . --target install --config Release
 if errorlevel 1 exit 1
 
