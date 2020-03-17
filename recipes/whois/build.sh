@@ -3,4 +3,4 @@ set -ex
 
 make prefix=${PREFIX} -j ${CPU_COUNT}
 # no make check
-make install
+make prefix=${PREFIX} install
