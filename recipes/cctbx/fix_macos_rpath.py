@@ -10,9 +10,10 @@ from subprocess import check_output
 
 # =============================================================================
 if __name__ == '__main__':
+  exe_dev_files = glob.glob('build/exe_dev/*')
   ext_files = glob.glob('build/lib/*_ext.so')
   lib_files = glob.glob('build/lib/*.dylib')
-  for ext_file in ext_files + lib_files:
+  for ext_file in exe_dev_files + ext_files + lib_files:
     libraries = check_output(['otool', '-L', ext_file]).decode('utf8').split('\n')
     for line in libraries[1:]:
       lib = line.replace('\t', '').split()
