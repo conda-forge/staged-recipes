@@ -3,7 +3,6 @@ cargo install --locked --root "%PREFIX%" --path . || goto :error
 
 :: strip debug symbols
 strip "%PREFIX%\bin\ytop.exe" || goto :error
-goto :EOF
 
 :: remove extra build file
 del /F /Q "%PREFIX%\.crates.toml"
