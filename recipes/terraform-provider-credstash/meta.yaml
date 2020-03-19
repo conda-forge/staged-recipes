@@ -1,0 +1,61 @@
+{% set provider = "Credstash" %}
+{% set goname = "github.com/sspinc/terraform-provider-"+provider.lower() %}
+{% set version = "0.4.1" %}
+
+{% set name = goname.split('/')[-1] %}
+{% set pkg_src = ('src/'+goname).replace("/",os.sep) %}
+
+{% set x4_plugin = name + '_v' + version + "_x4" + (".exe" if win else "")%}
+
+{% set sha256 = "11165a08a1d163d66c0a19d6a4cbaa7169ab8ec74ec49c37259be7097ff7b7a1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - folder:  {{ pkg_src }}
+    url: https://{{ goname }}/archive/v{{ version }}.tar.gz
+    sha256: {{ sha256 }}
+
+
+build:
+  number: 0
+  script:
+    - pushd {{ pkg_src }}
+    - go build -v -o $GOBIN/{{ x4_plugin }} .  # [unix]
+    - go build -v -o %GOBIN%\{{ x4_plugin }} .  # [win]
+
+requirements:
+  build:
+    - {{ compiler('go') }} >=1.11.3
+  run:
+    - terraform >=0.10  # [unix]
+    - terraform >=0.11.11  # [win]
+
+test:
+  requires:         # [win]
+    - m2-bash       # [win]
+    - m2-coreutils  # [win]
+
+  commands:
+    - bash -euf -c "echo 'provider \"{{ provider|lower }}\" { version=\"{{ version }}\" }' > init.tf"
+
+    - terraform init
+    # Tests that no plugins were downloaded
+    - test -f .terraform/plugins/{{ goos }}_{{ goarch }}/lock.json
+    - test ! -f .terraform/plugins/{{ goos }}_{{ goarch }}/{{ x4_plugin }}
+
+about:
+  home: https://www.terraform.io
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE.txt
+  summary: The Terraform {{ provider }} provider
+  doc_url: https://www.terraform.io/docs/providers/{{ provider|lower }}/index.html
+  dev_url: https://github.com/terraform-providers/{{ name }}
+
+extra:
+  recipe-maintainers:
+    - oblute
+    - rluria14
