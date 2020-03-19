@@ -221,7 +221,7 @@ if __name__ == '__main__':
             for i in range(1, 13):
                 time.sleep(10)
                 print("Waiting for registration: {i} s".format(i=i*10))
-            subprocess.check_call(['git', 'commit', '-am', "Re-render the feedstock after CI registration."], cwd=feedstock_dir)
+            subprocess.check_call(['git', 'commit', '--allow-empty', '-am', "Re-render the feedstock after CI registration."], cwd=feedstock_dir)
             for i in range(5):
                 try:
                     # Capture the output, as it may contain the GH_TOKEN.
