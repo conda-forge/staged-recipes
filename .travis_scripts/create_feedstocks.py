@@ -158,10 +158,10 @@ if __name__ == '__main__':
         # if sleep_until_reset(gh):
         #     sys.exit(1)
 
-        # try the other token maybe
-        if gh_remaining < gh_drone_remaining and gh_remaining < 100:
-            write_token('github', os.environ['GH_DRONE_TOKEN'])
-            gh = Github(os.environ['GH_DRONE_TOKEN'])
+        # try the other token maybe?
+        # if gh_remaining < gh_drone_remaining and gh_remaining < 100:
+        #     write_token('github', os.environ['GH_DRONE_TOKEN'])
+        #     gh = Github(os.environ['GH_DRONE_TOKEN'])
 
     owner_info = ['--organization', 'conda-forge']
 
