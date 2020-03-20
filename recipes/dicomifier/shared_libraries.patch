@@ -1,0 +1,70 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 097e44f..03cb65c 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -8,6 +8,7 @@ set(dicomifier_MAJOR_VERSION "${CMAKE_MATCH_1}")
+ set(dicomifier_MINOR_VERSION "${CMAKE_MATCH_2}")
+ set(dicomifier_PATCH_VERSION "${CMAKE_MATCH_3}")
+ 
++option(BUILD_SHARED_LIBS "Build Dicomifier with shared libraries." ON)
+ option(BUILD_EXAMPLES "Build the examples directory." ON)
+ 
+ # Add the C++0x or C++11 flag
+diff --git a/src/lib/CMakeLists.txt b/src/lib/CMakeLists.txt
+index d1c1621..5799e7b 100644
+--- a/src/lib/CMakeLists.txt
++++ b/src/lib/CMakeLists.txt
+@@ -5,13 +5,11 @@ file(GLOB_RECURSE templates "*.txx")
+ file(GLOB_RECURSE files "*.cpp")
+ 
+ include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${Boost_INCLUDE_DIRS})
+-add_definitions(
+-    -DBOOST_FILESYSTEM_VERSION=3)
++add_definitions(-DBOOST_FILESYSTEM_VERSION=3 -DBOOST_ALL_DYN_LINK)
+ link_directories(
+     ${Boost_LIBRARY_DIRS})
+ 
+-add_library(
+-    libdicomifier SHARED ${files} ${headers} ${templates})
++add_library(libdicomifier ${files} ${headers} ${templates})
+ 
+ target_link_libraries(libdicomifier ${Boost_LIBRARIES})
+ 
+diff --git a/src/python/dicomifier/CMakeLists.txt b/src/python/dicomifier/CMakeLists.txt
+index 397a890..60e5998 100644
+--- a/src/python/dicomifier/CMakeLists.txt
++++ b/src/python/dicomifier/CMakeLists.txt
+@@ -5,14 +5,16 @@ add_subdirectory(bruker)
+ include_directories(${CMAKE_SOURCE_DIR}/src/lib ${PYTHON_INCLUDE_DIRS})
+ 
+ file(GLOB files "*.cpp")
++add_definitions(-DBOOST_ALL_DYN_LINK)
++
+ pybind11_add_module(pydicomifier_dicomifier SHARED ${files})
++
+ set_target_properties(pydicomifier_dicomifier PROPERTIES OUTPUT_NAME _dicomifier)
+ if(APPLE)
+     set_target_properties(pydicomifier_dicomifier PROPERTIES SUFFIX ".so")
+ endif()
+ 
+-target_link_libraries(
+-    pydicomifier_dicomifier PUBLIC libdicomifier PUBLIC ${PYTHON_LIBRARIES})
++target_link_libraries(pydicomifier_dicomifier PUBLIC libdicomifier)
+ 
+ execute_process(
+     COMMAND ${PYTHON_EXECUTABLE}
+diff --git a/src/python/dicomifier/bruker/CMakeLists.txt b/src/python/dicomifier/bruker/CMakeLists.txt
+index 2199b16..e026852 100644
+--- a/src/python/dicomifier/bruker/CMakeLists.txt
++++ b/src/python/dicomifier/bruker/CMakeLists.txt
+@@ -3,7 +3,10 @@ find_package(pybind11 REQUIRED)
+ include_directories(${CMAKE_SOURCE_DIR}/src/lib ${PYTHON_INCLUDE_DIRS})
+ 
+ file(GLOB files "*.cpp")
++add_definitions(-DBOOST_ALL_DYN_LINK)
++
+ pybind11_add_module(pydicomifier_bruker SHARED ${files})
++
+ set_target_properties(pydicomifier_bruker PROPERTIES OUTPUT_NAME bruker)
+ if(APPLE)
+     set_target_properties(pydicomifier_bruker PROPERTIES SUFFIX ".so")
