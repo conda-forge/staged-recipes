@@ -5,6 +5,6 @@
 # for finding other imaging libraries to the configure script.
 ./configure --prefix=${PREFIX} --disable-gl --disable-dependency-tracking \
 	--enable-libwebpmux --disable-libwebpdemux --enable-libwebpdecoder
-make
+make -j${CPU_COUNT}
 make check
 make install
