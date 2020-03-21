@@ -1,3 +1,3 @@
 #!/bin/bash
 
-make && cp aha $PREFIX/bin/
+make && mkdir -p $PREFIX/bin && cp aha $PREFIX/bin/
