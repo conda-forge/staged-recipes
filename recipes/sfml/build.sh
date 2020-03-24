@@ -1,11 +1,11 @@
 #!/bin/bash
 
-cmake -D CMAKE_BUILD_TYPE=Release                 \
+cmake -G Ninja                                    \
+      -D CMAKE_BUILD_TYPE=Release                 \
       -D CMAKE_INSTALL_PREFIX=$PREFIX             \
       -D UDEV_PATH_INCLUDES=$PREFIX/include       \
       -D UDEV_PATH_LIB=$PREFIX/lib                \
       -D CMAKE_INSTALL_LIBDIR=lib                 \
-      -D CMAKE_PREFIX_PATH=$PREFIX                \
       -D SFML_DEPENDENCIES_INSTALL_PREFIX=$PREFIX \
       -D SFML_BUILD_EXAMPLES=OFF                  \
       -D SFML_BUILD_DOC=OFF                       \
@@ -19,4 +19,4 @@ cmake -D CMAKE_BUILD_TYPE=Release                 \
       -D SFML_INSTALL_XCODE_TEMPLATES=OFF         \
       $SRC_DIR
 
-make install
+ninja install

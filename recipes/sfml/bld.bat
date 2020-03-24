@@ -1,7 +1,6 @@
-cmake -G "NMake Makefiles" ^
+cmake -G "Ninja" ^
   -D CMAKE_BUILD_TYPE=Release ^
   -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
-  -D CMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
   -D BUILD_SHARED_LIBS=ON ^
   -D SFML_DEPENDENCIES_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
   -D SFML_BUILD_EXAMPLES=OFF ^
@@ -14,8 +13,5 @@ cmake -G "NMake Makefiles" ^
   %SRC_DIR%
 if errorlevel 1 exit 1
 
-nmake
-if errorlevel 1 exit 1
-
-nmake install
+ninja install
 if errorlevel 1 exit 1
