@@ -1,0 +1,68 @@
+{% set centos_name = "libICE" %}
+{% set name = centos_name |lower %}
+{% set version = '1.0.9' %}
+{% set centos_build = '9' %}
+{% set so_version = '6' %}
+{% set el = 'el7' %}
+{% set arch = "aarch64" %}
+{% set cos = "cos7" %}
+{% set url_base = "http://mirror.centos.org/altarch/7/os/aarch64/Packages/" %}
+
+package:
+  name: {{ name }}-{{ cos }}-{{ arch }}
+  version: {{ version }}
+
+source:
+  - folder: binary/usr
+    sha256: a8cfafadffe80d4db2eb38e9f308822430c378392c0a195c9b33c6d5ca59d5ef
+    url: {{ url_base }}{{ centos_name }}-{{ version }}-{{ centos_build }}.{{ el }}.{{ arch }}.rpm
+  - folder: devel/usr
+    sha256: bb88a0c2141ffdaa6020665a6a2bd1a8b9a2f12e3f0e8e5ad361e9bd75d6dcfd
+    url: {{ url_base }}{{ centos_name }}-devel-{{ version }}-{{ centos_build }}.{{ el }}.{{ arch }}.rpm
+
+build:
+  number: 0
+  noarch: generic
+  missing_dso_whitelist:
+    - '*'
+
+test:
+  requires:
+    - zlib
+  commands:
+    - test -f "$PREFIX/{{ arch }}-conda_{{ cos }}-linux-gnu/sysroot/usr/lib64/{{ centos_name }}.so.{{ so_version }}"
+
+outputs:
+  - name: {{ name }}-{{ cos }}-{{ arch }}
+    build:
+      script:
+        - mkdir -p {{ PREFIX }}/{{ arch }}-conda_{{ cos }}-linux-gnu/sysroot
+        - pushd {{ PREFIX }}/{{ arch }}-conda_{{ cos }}-linux-gnu/sysroot > /dev/null 2>&1
+        - cp -Rf {{ SRC_DIR }}/binary/* .
+
+  - name: {{ name }}-devel-{{ cos }}-{{ arch }}
+    build:
+      noarch: generic
+      script:
+        - mkdir -p {{ PREFIX }}/{{ arch }}-conda_{{ cos }}-linux-gnu/sysroot
+        - pushd {{ PREFIX }}/{{ arch }}-conda_{{ cos }}-linux-gnu/sysroot > /dev/null 2>&1
+        - cp -Rf {{ SRC_DIR }}/devel/* .
+    requirements:
+      - {{ pin_subpackage(name + '-' + cos + '-' + arch, exact=True) }}
+    test:
+      # dummy requirement to workaround a bug with the CDT tests
+      requires:
+        - zlib
+      commands:
+        - test -f "$PREFIX/{{ arch }}-conda_{{ cos }}-linux-gnu/sysroot/usr/lib64/{{ centos_name }}.so.{{ so_version }}"
+
+about:
+  description: 'The X.Org X11 ICE (Inter-Client Exchange) runtime library.'
+  home: http://www.x.org
+  license: MIT
+  license_family: MIT
+  license_file: binary/usr/share/doc/{{ centos_name }}/COPYING
+  summary: (CDT) X.Org X11 ICE runtime library
+extra:
+  recipe-maintainers:
+    - jayfurmanek
