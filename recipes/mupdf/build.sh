@@ -4,9 +4,7 @@ set -ex
 # build system uses non-standard env vars
 export XCFLAGS="${CFLAGS}"
 export XLIBS="${LIBS}"
-
-# remove third party source code
-rm -r thirdparty
+export USE_SYSTEM_LIBS=yes
 
 make prefix="${PREFIX}" -j ${CPU_COUNT} all
 # no make check
