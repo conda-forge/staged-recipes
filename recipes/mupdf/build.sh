@@ -7,6 +7,7 @@ export XLIBS="${LIBS}"
 export USE_SYSTEM_LIBS=yes
 export USE_SYSTEM_JPEGXR=yes
 
+# build and install
 make prefix="${PREFIX}" -j ${CPU_COUNT} all
 # no make check
 make prefix="${PREFIX}" install
