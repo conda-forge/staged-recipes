@@ -2,13 +2,14 @@
 
 set -ex
 
-cmake -G "Unix Makefiles" \
+mkdir -p build
+cd build
+
+cmake $SRC_DIR -G "Ninja" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=$PREFIX \
   -DCMAKE_LIBRARY_PATH=$PREFIX/lib \
   -DCMAKE_INCLUDE_PATH=$PREFIX/include \
   -DLIBHPDF_STATIC:BOOL=OFF
 
-make -j $CPU_COUNT
-make install
-
+ninja -v install
