@@ -9,8 +9,8 @@ if [[ "$uname" == "Darwin" ]]; then
   export CFLAGS="${CFLAGS} -I ${PREFIX}/include/harfbuzz"
   export CFLAGS="${CFLAGS} -I ${PREFIX}/include/freetype2"
   export CFLAGS="${CFLAGS} -I $(ls -d ${PREFIX}/include/openjpeg-*)"
-  export SYS_FREETYPE_LIBS="${LIBS}"
-  export SYS_FREETYPE_CFLAGS="${CFLAGS}"
+  export SYS_FREETYPE_LIBS=" -lfreetype"
+  #export SYS_FREETYPE_CFLAGS="${CFLAGS}"
 fi
 export XCFLAGS="${CFLAGS}"
 export XLIBS="${LIBS}"
