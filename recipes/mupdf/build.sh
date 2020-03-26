@@ -4,7 +4,7 @@ set -ex
 # build system uses non-standard env vars
 uname=$(uname)
 if [[ "$uname" == "Darwin" ]]; then
-  export LIBS="${LIBS} -L${PREFIX}/lib -l${PREFIX}/lib/libfreetype.a"
+  export LIBS="${LIBS} -L${PREFIX}/lib -l${PREFIX}/lib/libfreetype.dylib"
   export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
   export CFLAGS="${CFLAGS} -I ${PREFIX}/include/harfbuzz"
   export CFLAGS="${CFLAGS} -I ${PREFIX}/include/freetype2"
@@ -16,6 +16,9 @@ export XCFLAGS="${CFLAGS}"
 export XLIBS="${LIBS}"
 export USE_SYSTEM_LIBS=yes
 export USE_SYSTEM_JPEGXR=yes
+
+# diagnostics
+ls -lh ${PREFIX}/lib
 
 # build and install
 make prefix="${PREFIX}" -j ${CPU_COUNT} all
