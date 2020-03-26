@@ -4,7 +4,7 @@ set -ex
 # build system uses non-standard env vars
 uname=$(uname)
 if [[ "$uname" == "Darwin" ]]; then
-  export LIBS="${LIBS} -L${PREFIX}/lib"
+  export LIBS="${LIBS} -L${PREFIX}/lib -l${PREFIX}/lib/libfreetype.a"
   export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
   export CFLAGS="${CFLAGS} -I ${PREFIX}/include/harfbuzz"
   export CFLAGS="${CFLAGS} -I ${PREFIX}/include/freetype2"
