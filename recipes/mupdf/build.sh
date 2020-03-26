@@ -2,6 +2,10 @@
 set -ex
 
 # build system uses non-standard env vars
+uname=$(uname)
+if [[ "$uname" == "Darwin" ]]; then
+  export CFLAGS="${CFLAGS} -I ${PREFIX}/include/freetype2"
+fi
 export XCFLAGS="${CFLAGS}"
 export XLIBS="${LIBS}"
 export USE_SYSTEM_LIBS=yes
