@@ -8,8 +8,8 @@ set "USE_SYSTEM_LIBS=yes"
 set "USE_SYSTEM_JPEGXR=yes"
 
 :: build and install
-make "prefix=%PREFIX%" -j %CPU_COUNT% all
+make "prefix=%LIBRARY_PREFIX%" -j %CPU_COUNT% all
 if errorlevel 1 exit 1
 :: no make check
-make "prefix=%PREFIX%" install
+make "prefix=%LIBRARY_PREFIX%" install
 if errorlevel 1 exit 1
