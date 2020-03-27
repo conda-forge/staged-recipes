@@ -1,0 +1,252 @@
+From 0d565562974a04d9dc995ee98432566a93222029 Mon Sep 17 00:00:00 2001
+From: John Lees <lees.john6@gmail.com>
+Date: Fri, 27 Mar 2020 12:57:16 +0000
+Subject: [PATCH 1/3] Update CMakeLists with improved CUDA compile directives
+
+---
+ CMakeLists.txt  | 4 +++-
+ environment.yml | 5 ++---
+ 2 files changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 61296d3..9950fa1 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -16,6 +16,7 @@ if(UNIX AND NOT APPLE)
+     if(CMAKE_CXX_COMPILER STREQUAL "icpc")  
+         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fast -xCASCADELAKE -DMKL_ILP64 -m64 -static-intel")
+     else()
++        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS")
+         set(CMAKE_LD_FLAGS "${CMAKE_LDFLAGS} -Wl,--as-needed")
+     endif()
+ endif()
+@@ -56,6 +57,7 @@ if(CMAKE_CUDA_COMPILER)
+     set_property(TARGET "${TARGET_NAME}_CUDA" 
+                  PROPERTY POSITION_INDEPENDENT_CODE ON
+                  CUDA_SEPARABLE_COMPILATION ON
++                 CUDA_RESOLVE_DEVICE_SYMBOLS ON   # device link with nvcc (ar alone insufficient)
+                  CUDA_VISIBILITY_PRESET "hidden")
+ else()
+     message(STATUS "CUDA not found, compiling CPU code only")
+@@ -84,4 +86,4 @@ if(CMAKE_CUDA_COMPILER)
+ endif()
+ target_link_libraries("${TARGET_NAME}" PRIVATE pybind11::module Eigen3::Eigen 
+                                                ${ARMADILLO_LIBRARIES} 
+-                                               z bz2 hdf5_cpp hdf5 openblas m dl)
+\ No newline at end of file
++                                               z bz2 hdf5_cpp hdf5 openblas gfortran m dl)
+diff --git a/environment.yml b/environment.yml
+index 258c51d..9e32bd9 100644
+--- a/environment.yml
++++ b/environment.yml
+@@ -11,10 +11,9 @@ dependencies:
+   - cmake >= 3.12
+   - pybind11
+   - zlib
+-  - bzip2
+   - eigen
+   - hdf5
+   - h5py
+   - openblas
+-  - lapack
+-  - armadillo
+\ No newline at end of file
++  - armadillo
++  - libgfortan-ng
+-- 
+2.25.0
+
+
+From aab2c9849901852a8ef22da907b6f11322ab3f19 Mon Sep 17 00:00:00 2001
+From: John Lees <lees.john6@gmail.com>
+Date: Fri, 27 Mar 2020 15:00:17 +0000
+Subject: [PATCH 2/3] Change build to make object rather than static lib
+
+---
+ CMakeLists.txt | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9950fa1..5e371cd 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -52,12 +52,12 @@ if(CMAKE_CUDA_COMPILER)
+     set(CMAKE_CUDA_FLAGS "${CUDA_OPTS}")
+     
+     add_compile_definitions(GPU_AVAILABLE)
+-    add_library("${TARGET_NAME}_CUDA" STATIC src/dist.cu)
++    add_library("${TARGET_NAME}_CUDA" OBJECT src/dist.cu)
+     # target_include_directories("${TARGET_NAME}_CUDA" PRIVATE "${EIGEN3_INCLUDE_DIR}")
+     set_property(TARGET "${TARGET_NAME}_CUDA" 
+                  PROPERTY POSITION_INDEPENDENT_CODE ON
+                  CUDA_SEPARABLE_COMPILATION ON
+-                 CUDA_RESOLVE_DEVICE_SYMBOLS ON   # device link with nvcc (ar alone insufficient)
++                 CUDA_RESOLVE_DEVICE_SYMBOLS ON   # try and ensure device link with nvcc
+                  CUDA_VISIBILITY_PRESET "hidden")
+ else()
+     message(STATUS "CUDA not found, compiling CPU code only")
+-- 
+2.25.0
+
+
+From 29fe17c7b2e9903119b7963356a2a48322bd48aa Mon Sep 17 00:00:00 2001
+From: John Lees <lees.john6@gmail.com>
+Date: Fri, 27 Mar 2020 18:15:23 +0000
+Subject: [PATCH 3/3] Update Makefile to allow building python ext
+
+---
+ CMakeLists.txt   |  6 +-----
+ LICENSE_highfive | 25 -------------------------
+ environment.yml  |  1 +
+ src/Makefile     | 39 +++++++++++++++++++++++++--------------
+ 4 files changed, 27 insertions(+), 44 deletions(-)
+ delete mode 100644 LICENSE_highfive
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 5e371cd..d4d1b82 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -29,9 +29,6 @@ include_directories(${ARMADILLO_INCLUDE_DIRS})
+ set(THREADS_PREFER_PTHREAD_FLAG ON)
+ find_package(Threads REQUIRED)
+ 
+-# Submodules
+-include_directories(${PROJECT_SOURCE_DIR}/HighFive/include)
+-
+ # Set paths for non standard lib/ and include/ locations
+ if(DEFINED ENV{CONDA_PREFIX})
+     include_directories($ENV{CONDA_PREFIX}/include)
+@@ -85,5 +82,4 @@ if(CMAKE_CUDA_COMPILER)
+     target_link_libraries("${TARGET_NAME}" PRIVATE "${TARGET_NAME}_CUDA")
+ endif()
+ target_link_libraries("${TARGET_NAME}" PRIVATE pybind11::module Eigen3::Eigen 
+-                                               ${ARMADILLO_LIBRARIES} 
+-                                               z bz2 hdf5_cpp hdf5 openblas gfortran m dl)
++                                               z hdf5_cpp hdf5 openblas lapack gfortran m dl)
+diff --git a/LICENSE_highfive b/LICENSE_highfive
+deleted file mode 100644
+index bc1edca..0000000
+--- a/LICENSE_highfive
++++ /dev/null
+@@ -1,25 +0,0 @@
+-Boost Software License - Version 1.0 - August 17th, 2003
+-
+-Permission is hereby granted, free of charge, to any person or organization
+-obtaining a copy of the software and accompanying documentation covered by
+-this license (the "Software") to use, reproduce, display, distribute,
+-execute, and transmit the Software, and to prepare derivative works of the
+-Software, and to permit third-parties to whom the Software is furnished to
+-do so, all subject to the following:
+-
+-The copyright notices in the Software and this entire statement, including
+-the above license grant, this restriction and the following disclaimer,
+-must be included in all copies of the Software, in whole or in part, and
+-all derivative works of the Software, unless such copies or derivative
+-works are solely in the form of machine-executable object code generated by
+-a source language processor.
+-
+-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-FITNESS FOR A PARTICULAR PURPOSE, TITLE AND NON-INFRINGEMENT. IN NO EVENT
+-SHALL THE COPYRIGHT HOLDERS OR ANYONE DISTRIBUTING THE SOFTWARE BE LIABLE
+-FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
+-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+-DEALINGS IN THE SOFTWARE.
+-
+-
+diff --git a/environment.yml b/environment.yml
+index 9e32bd9..c508508 100644
+--- a/environment.yml
++++ b/environment.yml
+@@ -12,6 +12,7 @@ dependencies:
+   - pybind11
+   - zlib
+   - eigen
++  - highfive
+   - hdf5
+   - h5py
+   - openblas
+diff --git a/src/Makefile b/src/Makefile
+index c22b4f5..57ceded 100644
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -1,51 +1,62 @@
+ 
+-CXXFLAGS=-Wall -Wextra -std=c++14 -march=native
++CXXFLAGS+=-Wall -Wextra -std=c++14 -flto -fno-fat-lto-objects -fPIC -fvisibility=hidden
+ ifdef DEBUG
+   CXXFLAGS+= -O0 -g
+ else ifdef PROFILE
+   CXXFLAGS+= -O2 -g
+ else
+-  CXXFLAGS+= -O2
++  CXXFLAGS+= -O3
+ endif
+ 
+ UNAME_S := $(shell uname -s)
+ LIBLOC = ${CONDA_PREFIX}
+ ifeq ($(UNAME_S),Linux)
+-	CXXFLAGS+= -DMKL_ILP64 -m64
++	CXXFLAGS+= -m64
+ 	ifdef PROFILE
+ 		CXXFLAGS+= -Wl,--compress-debug-sections=none
+ 	endif
+-	LALIBS=-lmkl_rt -lpthread -lm -ldl
+-	# LALIBS=-lmkl_intel_ilp64 -lmkl_sequential -lmkl_core -liomp5 -lpthread -lm -ldl
++	LALIBS=-lpthread -lgfortran -lm -ldl
+ 	LDFLAGS=-Wl,-as-needed
+ endif
+ ifeq ($(UNAME_S),Darwin)
+-	LALIBS=-llapack -lopenblas -pthread
++	LALIBS=-pthread
+ endif
+ 
+-CPPFLAGS=-I../dlib -I../HighFive/include -I$(LIBLOC)/include -I$(LIBLOC)/include/eigen3 -D DLIB_NO_GUI_SUPPORT=1 -D DLIB_USE_BLAS=1 -D DLIB_USE_LAPACK=1
+-LDFLAGS+= -L$(LIBLOC)/lib -lz -lbz2 -lhdf5_cpp -lhdf5 $(LALIBS)
++CPPFLAGS+=-I$(LIBLOC)/include -I$(LIBLOC)/include/eigen3
++LDFLAGS+= -L$(LIBLOC)/lib
++LDLIBS+=-lz -lhdf5_cpp -lhdf5 -lopenblas -llapack -lcudadevrt -lcudart_static $(LALIBS)
++
++CUDA_LDFLAGS =-L$(LIBLOC)/lib -L${CUDA_HOME}/targets/x86_64-linux/lib/stubs -L${CUDA_HOME}/targets/x86_64-linux/lib
++CUDAFLAGS =-Xcompiler -fPIC -Xptxas -dlcm=ca --cudart static --relocatable-device-code=true -gencode arch=compute_35,code=compute_35 -gencode arch=compute_50,code=sm_50 -gencode arch=compute_75,code=sm_75 -O3
++
++# python specific options
++python: CPPFLAGS += -DGPU_AVAILABLE -DPYTHON_EXT -DNDEBUG -Dpp_sketchlib_EXPORTS -DVERSION_INFO=\"1.2.0\" $(shell python3 -m pybind11 --includes)
+ 
+ PROGRAMS=sketch_test read_test
+ 
+ SKETCH_OBJS=dist.o reference.o seqio.o sketch.o database.o countmin.o api.o linear_regression.o
+-CUDA_OBJS=dist.cu
++CUDA_OBJS=dist.cu.o
+ 
+ all: $(PROGRAMS)
+ 
+-static: $(STATIC_PROGRAMS)
+-
+ clean:
+-	$(RM) *.o ~* $(PROGRAMS)
++	$(RM) *.o *.so ~* $(PROGRAMS)
+ 
+ install: all
+ 	install -d $(BINDIR)
+ 	install $(PROGRAMS) $(BINDIR)
+ 
+-sketch_test: $(SKETCH_OBJS) $(CUDA_OBJS) main.o
++sketch_test: $(SKETCH_OBJS) main.o
+ 	$(LINK.cpp) $^ -o $@
+ 
+ read_test: $(SKETCH_OBJS) read_test.o
+ 	$(LINK.cpp) $^ -o $@
+ 
+-.PHONY: all clean install
++python: $(SKETCH_OBJS) $(CUDA_OBJS) sketchlib_bindings.o
++	nvcc $(CUDAFLAGS) $(CUDA_LDFLAGS) -Wno-deprecated-gpu-targets -shared -dlink $^ -o device_link.o -Xnvlink $(LDLIBS)
++	$(LINK.cpp) $(CUDA_LDFLAGS) $(LDFLAGS) -shared $^ device_link.o -o pp_sketchlib$(shell python3-config --extension-suffix) $(LDLIBS)
++
++dist.cu.o:
++	nvcc $(CUDAFLAGS) $(CPPFLAGS) -DGPU_AVAILABLE -x cu -c dist.cu -o $@
++
++.PHONY: all clean install python
+-- 
+2.25.0
+
