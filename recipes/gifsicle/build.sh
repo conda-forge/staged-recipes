@@ -1,4 +1,4 @@
 autoreconf -i
-./configure --disable-gifview --prefix=${PREFIX}
+./configure
 make check
 make install
