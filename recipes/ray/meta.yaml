@@ -16,50 +16,145 @@ build:
   skip: True  # [py<36]
   # wait (at least) for bazel on windows; conda-forge/bazel-feedstock/issues/36
   skip: True  # [win]
-  script: build.sh
 
+# Need these up here for conda-smithy to handle them properly.
 requirements:
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - cython >=0.29
-    - bazel
   host:
-    # TODO: check which of these can move to run-reqs
-    - click
-    - cloudpickle
-    - colorama
-    - filelock
-    - funcsigs
-    - jsonschema
-    - numpy >=1.16
-    - pickle5
-    - packaging
-    - protobuf >=3.8.0
-    - pyarrow ==0.14
-    - pytest
-    - pyyaml
-    - redis-py >=3.3.2
-    - six
     - python
-    - pip
   run:
     - python
-    - numpy >=1.16
-    - filelock
-    - funcsigs
-    - click
-    - colorama
-    - pytest
-    - pyyaml
-    - redis-py >=3.3.2
-    - six
-    - flatbuffers
 
-test:
-  imports:
-    - ray
-    - ray.tests
+outputs:
+  - name: ray-base
+    build:
+      script: ./build.sh
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cython >=0.29
+        - bazel
+      host:
+        # TODO: check which of these can move to run-reqs
+        - click
+        - cloudpickle
+        - colorama
+        - filelock
+        - funcsigs
+        - jsonschema
+        - numpy >=1.16
+        - pickle5 ==0.0.9    # [py<38]
+        - packaging
+        - protobuf >=3.8.0
+        - pyarrow ==0.14
+        - pytest
+        - pyyaml
+        - redis-py >=3.3.2
+        - six
+        - python
+        - pip
+      run:
+        - python
+        - numpy >=1.16
+        - filelock
+        - funcsigs
+        - click
+        - colorama
+        - pytest
+        - pyyaml
+        - redis-py >=3.3.2
+        - six
+        - flatbuffers
+      test:
+        imports:
+          - ray
+          - ray._raylet
+          - ray.actor
+          - ray.profiling
+          - ray.projects
+          - ray.runtime_context
+          - ray.state
+          - ray.tests
+          - ray.worker
+
+  - name: ray-debug
+    requirements:
+      host:
+        - python
+      run:
+        - python
+        - {{ pin_subpackage('ray-base', exact=True) }}
+        - psutil
+        - py-spy >=0.2.0
+        - setproctitle
+
+  - name: ray-dashboard
+    requirements:
+      host:
+        - python
+      run:
+        - python
+        - {{ pin_subpackage('ray-base', exact=True) }}
+        - aiohttp
+        - googlesearch
+        - grpcio
+        - psutil
+        - setproctitle
+    test:
+      imports:
+        - ray.dashboard
+
+  - name: ray-serve
+    requirements:
+      host:
+        - python
+      run:
+        - python
+        - {{ pin_subpackage('ray-base', exact=True) }}
+        # needs to be packaged:
+        # - blist
+        - flask
+        - pandas
+        - pygments
+        - uvicorn
+        - werkzeug
+    test:
+      imports:
+        - ray.serve
+
+  - name: ray-rllib
+    requirements:
+      host:
+        - python
+      run:
+        - python
+        - {{ pin_subpackage('ray-base', exact=True) }}
+        # needs to be packaged:
+        # - gym-atari
+        - lz4
+        - opencv
+        - pyyaml
+        - scipy
+        - tabulate
+    test:
+      imports:
+        - ray.rrlib
+
+  - name: ray-tune
+    requirements:
+      host:
+        - python
+      run:
+        - python
+        - {{ pin_subpackage('ray-base', exact=True) }}
+        - tabulate
+    test:
+      imports:
+        - ray.tune
+
 
 about:
   home: https://github.com/ray-project/ray
