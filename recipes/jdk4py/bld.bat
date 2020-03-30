@@ -1,1 +1,1 @@
-pip install https://files.pythonhosted.org/packages/ce/6e/7d3b215f5dd7e356f8a9fea9ca396b2bdf08b6f9d44556be68dc16a772e6/jdk4py-11.0.5.0-py3-none-win_amd64.whl --no-deps
+pip install https://files.pythonhosted.org/packages/52/f3/7e14cf2870a944c13c883eab11b213fb92a3ec44af3b6154c4175fc781f7/jdk4py-11.0.5.1-py3-none-win_amd64.whl --no-deps
