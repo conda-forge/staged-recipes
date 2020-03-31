@@ -8,6 +8,7 @@ if errorlevel 1 exit 1
 mkdir build
 cd build
 
+set VERBOSE=1
 :: Configure using the CMakeFiles
 cmake -G "NMake Makefiles" ^
       -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
