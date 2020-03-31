@@ -2,10 +2,10 @@
 setlocal EnableDelayedExpansion
 
 :: build system uses non-standard env vars
-set "XCFLAGS=%CFLAGS% -I%LIBRARY_PREFIX%/include"
-set "XLIBS=%LIBS%"
-set "USE_SYSTEM_LIBS=yes"
-set "USE_SYSTEM_JPEGXR=yes"
+set XCFLAGS=%CFLAGS% -I%LIBRARY_PREFIX%/include
+set XLIBS=%LIBS%
+set USE_SYSTEM_LIBS=yes
+set USE_SYSTEM_JPEGXR=yes
 
 :: diagnostics
 dir %LIBRARY_PREFIX%\\include
