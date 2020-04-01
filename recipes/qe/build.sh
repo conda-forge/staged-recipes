@@ -1,5 +1,5 @@
 #!/bin/bash
-./configure ARCH="x86_64"
+./configure ARCH="x86_64" CC="${CC}" CPP="${CPP}" LD="${LD}" CFLAGS="${CFLAGS}" FFLAGS="${FORTRANFLAGS}" CPPFLAGS="${CPPFLAGS}" LDFLAGS="${LDFLAGS} -fopenmpi" 
 # --disable-parallel 
 # LIBDIRS="${PREFIX}/lib" LD="${LD}" CFLAGS="${CFLAGS}" FFLAGS="${FORTRANFLAGS}" CPPFLAGS="${CPPFLAGS}" LDFLAGS="${LDFLAGS} -fopenmpi"
 # CC="${CC}" CPP="${CPP}" MPIF90=mpif90 
