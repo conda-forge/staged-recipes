@@ -1,11 +1,12 @@
-mkdir -p atari_py/ale_interface/build
+mkdir build && cd build
 
-cd atari_py/ale_interface/build
-cmake -DCMAKE_GENERATOR_PLATFORM=x64 ..
+cmake ^
+    -DCMAKE_GENERATOR_PLATFORM=x64 ..
 cmake --build .
-cp Debug/ale_c.dll ../
-cd ../../../
+cp Debug\ale_c.dll ..\
+cd ..\..\..\
 
-ls wheelhouse/atari_py*
+%PYTHON% pip install wheel && pip wheel . -w wheelhouse --no-deps -vvv
+ls wheelhouse\atari_py*
 rm -rf atari_py*
-%PYTHON% pip install $(ls wheelhouse/atari_py*)
+%PYTHON% pip install $(ls wheelhouse\atari_py*)
