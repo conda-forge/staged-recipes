@@ -18,7 +18,8 @@ cmake -G "NMake Makefiles" ^
 if errorlevel 1 exit 1
 
 :: Build!
-nmake
+::nmake
+cmake --build . --config Release
 if errorlevel 1 exit 1
 
 :: Install!
