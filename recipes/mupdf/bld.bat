@@ -11,7 +11,8 @@ cd build
 set VERBOSE=1
 :: Configure using the CMakeFiles
 ::cmake -G "NMake Makefiles" ^
-cmake -G "Visual Studio 14 2015 Win64" ^
+::cmake -G "Visual Studio 14 2015 Win64" ^
+cmake -G Ninja ^
       -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
       -DCMAKE_PREFIX_PATH:PATH="%LIBRARY_PREFIX%" ^
       -DCMAKE_BUILD_TYPE:STRING=Release ^
