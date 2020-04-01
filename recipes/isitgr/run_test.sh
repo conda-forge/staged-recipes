@@ -1,1 +1,1 @@
-${PYTHON} test_pycamb.py
+${PYTHON} test_isitgr.py
