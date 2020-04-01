@@ -1,3 +1,3 @@
 #!/bin/bash
-./configure
+./configure --disable-parallel
 make all
