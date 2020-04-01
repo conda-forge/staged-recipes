@@ -1,4 +1,4 @@
-./configure PREFIX=${PREFIX}
+./configure
 make
 make check 
-make install
+make DESTDIR=${PREFIX} install
