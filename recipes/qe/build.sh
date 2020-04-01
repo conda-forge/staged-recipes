@@ -1,3 +1,3 @@
 #!/bin/bash
 ./configure ARCH="x86_64" LIBDIRS="${PREFIX} ${BUILD_PREFIX} ${PREFIX}/lib ${BUILD_PREFIX}/lib" FOX_LIB="${PREFIX}/lib/libFoX_fsys.a ${PREFIX}/lib/libFoX_utils.a ${PREFIX}/lib/libFoX_common.a ${PREFIX}/lib/libFoX_wxml.a ${PREFIX}/lib/libFoX_wkml.a ${PREFIX}/lib/libFoX_sax.a ${PREFIX}/lib/libFoX_dom.a" IFLAGS="-I${SRC_DIR}/include -I${PREFIX}/finclude -I${SRC_DIR}/S3DE/iotk/include/" SCALAPACK_LIBS="${PREFIX}/lib/libscalapack.so" LAPACK_LIBS="${PREFIX}/lib/liblapack.so" BLAS_LIBS="${PREFIX}/lib/libopenblas.a" FFT_LIBS="${PREFIX}/lib/libfftw3.a" CC="${CC}" CPP="${CPP}" LD="mpif90 -fopenmpi" CFLAGS="${CFLAGS}" FFLAGS="${FFLAGS}" CPPFLAGS="${CPPFLAGS}" 
-make pw
+make all
