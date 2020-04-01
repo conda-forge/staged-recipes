@@ -1,4 +1,6 @@
-mkdir build && cd build
+%PYTHON% pip install cmake pytest
+./installzlib.bat
+mkdir -p atari_py\ale_interface\build && cd atari_py\ale_interface\build
 
 cmake ^
     -DCMAKE_GENERATOR_PLATFORM=x64 ..
