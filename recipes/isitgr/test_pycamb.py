@@ -25,3 +25,4 @@ results.calc_power_spectra(pars)
 sigma8 = results.get_sigma8()
 assert sigma8 > 0.80 and sigma8 < 0.805
 print(sigma8)
+print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
