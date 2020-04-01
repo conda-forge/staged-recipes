@@ -1,4 +1,4 @@
-%PYTHON% pip install cmake pytest
+%PYTHON% -m pip install cmake pytest
 .\installzlib.bat
 mkdir -p atari_py\ale_interface\build && cd atari_py\ale_interface\build
 
@@ -9,4 +9,4 @@ cp Debug\ale_c.dll ..\
 cd ..\..\..\
 
 rm -rf atari_py*
-%PYTHON% pip install . --no-deps -vv
+%PYTHON% -m pip install . --no-deps -vv
