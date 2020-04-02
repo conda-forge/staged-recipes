@@ -78,6 +78,7 @@ add_library(SDL ${LIBSDL_SOURCES})
 target_include_directories(SDL PUBLIC ${SDL}/include)
 if(WIN32)
     target_link_libraries(SDL winmm.lib dxguid.lib)
+    target_compile_definitions(SDL PRIVATE _CRT_SECURE_NO_DEPRECATE)
 endif()
 
 add_library(SDLmain STATIC ${LIBSDLMAIN_SOURCES})
