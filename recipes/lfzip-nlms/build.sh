@@ -5,7 +5,7 @@ cd src/
 cd libbsc/
 make CC=$CXX
 cd ../
-$CXX nlms_helper.cpp -std=c++11 -o nlms_helper.out -Wall -O3 -march=native
+$CXX nlms_helper.cpp -std=c++11 -Wall -O3 $CFLAGS -o nlms_helper.out $LDFLAGS
 cp nlms_helper.out $PREFIX/bin
 mkdir -p $PREFIX/bin/libbsc
 cp nlms_helper.out $PREFIX/bin/
