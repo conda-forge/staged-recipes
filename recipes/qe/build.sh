@@ -6,7 +6,7 @@
             SCALAPACK_LIBS="-L${PREFIX}/lib -lscalapack" \
             LAPACK_LIBS="-L${PREFIX}/lib -llapack" \
             BLAS_LIBS="-L${PREFIX}/lib -lblas" \
-            FFT_LIBS="-L${PREFIX}/lib -lfftw3.a" \
+            FFT_LIBS="-L${PREFIX}/lib -lfftw3" \
             CC="${CC}" \
             CPP="${CPP}" \
             LD="mpif90 -fopenmpi -fopenmp" \
