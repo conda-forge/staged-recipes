@@ -1,4 +1,3 @@
-
 #!/use/bin/env python
 
 # check that we are not linking fast-math from fortran
