@@ -1,0 +1,65 @@
+Submitted By: Bruce Dubbs  <bdubbs at linuxfromscratch dot org>
+Date: 2018-04-21
+Initial Package Version: 1.13
+Upstream Status: Not submitted
+Origin: Self
+Description: Change static libraries to shared libraries
+
+Rediffed for Version 1.14 2018-10-07
+Rediffed for Version 1.16 2018-10-07
+
+diff -Naur mupdf-1.14.0-source.orig/Makefile mupdf-1.14.0-source/Makefile
+--- mupdf-1.14.0-source.orig/Makefile	2018-10-04 04:19:28.000000000 -0500
++++ mupdf-1.14.0-source/Makefile	2018-10-07 15:13:52.617926593 -0500
+@@ -20,7 +20,7 @@
+ # Do not specify CFLAGS or LIBS on the make invocation line - specify
+ # XCFLAGS or XLIBS instead. Make ignores any lines in the makefile that
+ # set a variable that was set on the command line.
+-CFLAGS += $(XCFLAGS) -Iinclude
++CFLAGS += $(XCFLAGS) -Iinclude -fPIC
+ LIBS += $(XLIBS) -lm
+
+ ifneq ($(threading),no)
+@@ -190,17 +190,21 @@
+
+ # --- Library ---
+
+-MUPDF_LIB = $(OUT)/libmupdf.a
+-THIRD_LIB = $(OUT)/libmupdf-third.a
+-THREAD_LIB = $(OUT)/libmupdf-threads.a
+-PKCS7_LIB = $(OUT)/libmupdf-pkcs7.a
++MUPDF_LIB = $(OUT)/libmupdf.so
++THIRD_LIB = $(OUT)/libmupdf-third.so
++THREAD_LIB = $(OUT)/libmupdf-threads.so
++PKCS7_LIB = $(OUT)/libmupdf-pkcs7.so
+
+-$(MUPDF_LIB) : $(MUPDF_OBJ)
++$(MUPDF_LIB) : $(MUPDF_OBJ) $(THIRD_LIB) $(THREAD_LIB)
++	$(LINK_CMD) -shared -Wl,-soname -Wl,libmupdf.so -Wl,--no-undefined $(THIRD_LIBS)
+ $(THIRD_LIB) : $(THIRD_OBJ)
++	$(LINK_CMD) -shared -Wl,-soname -Wl,libmupdf-third.so -Wl,--no-undefined
+ $(THREAD_LIB) : $(THREAD_OBJ)
++	$(LINK_CMD) -shared -Wl,-soname -Wl,libmupdf-threads.so -Wl,--no-undefined -lpthread
+ $(PKCS7_LIB) : $(PKCS7_OBJ)
++	$(LINK_CMD) -shared -Wl,-soname -Wl,libmupfs-pkcs7.so
+
+-INSTALL_LIBS := $(MUPDF_LIB) $(THIRD_LIB)
++INSTALL_LIBS := $(MUPDF_LIB) $(THIRD_LIB) $(THREAD_LIB) $(PKCS7_LIB)
+
+ # --- Main tools and viewers ---
+
+--- a/Makethird.orig      2018-10-08 00:01:36.527172802 -0500
++++ b/Makethird   2018-10-08 00:02:27.443126830 -0500
+@@ -3,9 +3,9 @@
+ ifeq ($(USE_SYSTEM_LIBS),yes)
+   USE_SYSTEM_FREETYPE := yes
+   USE_SYSTEM_HARFBUZZ := yes
+-  USE_SYSTEM_JBIG2DEC := yes
++  USE_SYSTEM_JBIG2DEC := no
+   USE_SYSTEM_JPEGXR := no # not available
+-  USE_SYSTEM_LCMS2 := no # lcms2mt is strongly preferred
++  USE_SYSTEM_LCMS2 := yes # lcms2mt is strongly preferred
+   USE_SYSTEM_LIBJPEG := yes
+   USE_SYSTEM_MUJS := no # not available
+   USE_SYSTEM_OPENJPEG := yes
+
