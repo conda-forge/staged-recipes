@@ -1,3 +1,0 @@
-@echo off
-set "GOROOT=%CONDA_BACKUP_GOROOT%"
-set "CONDA_BACKUP_GOROOT="

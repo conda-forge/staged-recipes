@@ -1,18 +1,12 @@
 setlocal enabledelayedexpansion
 
-rem Copy the rendered [de]activate scripts to %PREFIX%\etc\conda\[de]activate.d.
-rem go finds its *.go files via the GOROOT variable
-for %%F in (activate deactivate) do (
-  if not exist "%PREFIX%\etc\conda\%%F.d" mkdir "%PREFIX%\etc\conda\%%F.d"
-  if errorlevel 1 exit 1
-  copy "%RECIPE_DIR%\%%F-go-%go_variant_str%.bat" "%PREFIX%\etc\conda\%%F.d\%%F_z60-go.bat"
-  if errorlevel 1 exit 1
-)
-
-call "%PREFIX%\etc\conda\activate.d\activate_z60-go.bat"
-
 mkdir "%PREFIX%\go"
 xcopy /s /y /i /q "%SRC_DIR%\go\*" "%PREFIX%\go\"
+
+rem Remove Invalid UTF-8 Filename and conflict with libarchive
+rem c.f. https://github.com/conda-forge/staged-recipes/pull/9535#discussion_r403512142
+del "%PREFIX%\go\test\fixedbugs\issue27836.go
+rmdir /S /Q "%PREFIX%\go\test\fixedbugs\issue27836.dir
 
 rem Right now, it's just go and gofmt, but might be more in the future!
 if not exist "%PREFIX%\bin" mkdir "%PREFIX%\bin"
