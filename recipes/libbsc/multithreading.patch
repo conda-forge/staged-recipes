@@ -1,0 +1,126 @@
+From 25d153b2efc4b64ef96232ded930079d0ccc394f Mon Sep 17 00:00:00 2001
+From: Shubham Chandak <schandak@stanford.edu>
+Date: Wed, 2 Aug 2017 12:35:49 -0700
+Subject: [PATCH 1/3] Adding support for no. of threads
+
+---
+ bsc.cpp | 16 ++++++++++++----
+ 1 file changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/bsc.cpp b/bsc.cpp
+index 4b80315..5523885 100644
+--- a/bsc.cpp
++++ b/bsc.cpp
+@@ -78,7 +78,7 @@ int paramBlockSorter              = LIBBSC_BLOCKSORTER_BWT;
+ int paramCoder                    = LIBBSC_CODER_QLFC_STATIC;
+ int paramSortingContexts          = LIBBSC_CONTEXTS_FOLLOWING;
+ 
+-int paramEnableParallelProcessing = 1;
++int paramEnableParallelProcessing = 0;
+ int paramEnableMultiThreading     = 1;
+ int paramEnableFastMode           = 1;
+ int paramEnableLargePages         = 0;
+@@ -88,6 +88,7 @@ int paramEnableReordering         = 0;
+ int paramEnableLZP                = 1;
+ int paramLZPHashSize              = 16;
+ int paramLZPMinLen                = 128;
++int paramnumthr			  = 1;
+ 
+ int paramFeatures()
+ {
+@@ -193,7 +194,7 @@ void Compression(char * argv[])
+     int numThreads = 1;
+     if (paramEnableParallelProcessing)
+     {
+-        numThreads = omp_get_max_threads();
++        numThreads = paramnumthr;
+         if (numThreads <= nBlocks) paramEnableMultiThreading = 0;
+         if (numThreads >= nBlocks) numThreads = nBlocks;
+     }
+@@ -717,7 +718,7 @@ void ShowUsage(void)
+     fprintf(stdout, "  -P       Enable large 2MB RAM pages, default: disable\n");
+ #endif
+ #ifdef LIBBSC_OPENMP
+-    fprintf(stdout, "  -t       Disable parallel blocks processing, default: enable\n");
++    fprintf(stdout, "  -t<num_thr>       Number of threads: default 1\n");
+     fprintf(stdout, "  -T       Disable multi-core systems support, default: enable\n");
+ #endif
+ 
+@@ -727,6 +728,7 @@ void ShowUsage(void)
+ 
+ void ProcessSwitch(char * s)
+ {
++	char *strthr;
+     if (*s == 0)
+     {
+         ShowUsage();
+@@ -811,7 +813,13 @@ void ProcessSwitch(char * s)
+             case 'p': paramEnableLZP = paramEnableSegmentation = paramEnableReordering = 0; break;
+ 
+ #ifdef LIBBSC_OPENMP
+-            case 't': paramEnableParallelProcessing = 0; break;
++            case 't': strthr = s; while ((*s >= '0') && (*s <= '9')) s++;
++                      paramnumthr = atoi(strthr);
++		      if(paramnumthr == 1)
++		      	paramEnableParallelProcessing = 0;
++		      else
++			paramEnableParallelProcessing = 1;		
++		      break;
+             case 'T': paramEnableParallelProcessing = paramEnableMultiThreading = 0; break;
+ #endif
+ 
+-- 
+2.17.1
+
+
+From 1872337cbce954c29c326f9ed58597153952147f Mon Sep 17 00:00:00 2001
+From: Shubham Chandak <cslcollab-schandak@idoia-work-01.csl.illinois.edu>
+Date: Wed, 9 Aug 2017 15:52:56 -0500
+Subject: [PATCH 2/3] resolving T and t option issue
+
+---
+ bsc.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/bsc.cpp b/bsc.cpp
+index 5523885..d0becb7 100644
+--- a/bsc.cpp
++++ b/bsc.cpp
+@@ -816,7 +816,7 @@ void ProcessSwitch(char * s)
+             case 't': strthr = s; while ((*s >= '0') && (*s <= '9')) s++;
+                       paramnumthr = atoi(strthr);
+ 		      if(paramnumthr == 1)
+-		      	paramEnableParallelProcessing = 0;
++		      	paramEnableMultiThreading = paramEnableParallelProcessing = 0;
+ 		      else
+ 			paramEnableParallelProcessing = 1;		
+ 		      break;
+-- 
+2.17.1
+
+
+From 311b3911c22727e2c82372ef086489c6b58c87b2 Mon Sep 17 00:00:00 2001
+From: Shubham Chandak <cslcollab-schandak@idoia-work-01.csl.illinois.edu>
+Date: Wed, 16 Aug 2017 11:08:04 -0500
+Subject: [PATCH 3/3] fixing numthreads in decompression
+
+---
+ bsc.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/bsc.cpp b/bsc.cpp
+index d0becb7..f520d15 100644
+--- a/bsc.cpp
++++ b/bsc.cpp
+@@ -496,7 +496,7 @@ void Decompression(char * argv[])
+     int numThreads = 1;
+     if (paramEnableParallelProcessing)
+     {
+-        numThreads = omp_get_max_threads();
++        numThreads = paramnumthr;
+         if (numThreads <= nBlocks) paramEnableMultiThreading = 0;
+         if (numThreads >= nBlocks) numThreads = nBlocks;
+     }
+-- 
+2.17.1
+
