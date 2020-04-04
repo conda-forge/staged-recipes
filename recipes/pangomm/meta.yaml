@@ -1,0 +1,65 @@
+{% set version = "2.42.1" %}
+{% set major_minor = ".".join(version.split(".")[:2]) %}
+{% set abi_version = "1.4" %}
+
+package:
+  name: pangomm
+  version: {{ version }}
+
+source:
+  url: https://ftp.gnome.org/pub/GNOME/sources/pangomm/{{ major_minor }}/pangomm-{{ version }}.tar.xz
+  sha256: 14bf04939930870d5cfa96860ed953ad2ce07c3fd8713add4a1bfe585589f40f
+
+build:
+  number: 0
+  skip: true  # [win]
+  run_exports:
+    - pangomm-{{ abi_version }} >={{ version }}
+
+outputs:
+  - name: pangomm-{{ abi_version }}
+    script: build_pangomm.sh
+    build:
+      run_exports:
+        - pangomm-{{ abi_version }} >={{ version }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - pkg-config
+        - make
+      host:
+        # These requirements can be found in configure.ac
+        - cairomm >=1.2.2
+        - pango >=1.41.0
+        - glibmm >=2.48.0
+        - libsigcpp
+        - glib
+        - cairo
+      run:
+        # TODO: remove this after pango, glibmm gets a run_exports PR
+        - {{ pin_compatible("pango") }}
+        - {{ pin_compatible("glibmm") }}
+      run_constrained:
+        - pangomm {{ version }}
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libpangomm-{{ abi_version }}${SHLIB_EXT}
+
+  - name: pangomm
+    requirements:
+      run:
+        - pangomm-{{ abi_version }}  {{ version }}
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/pkg-config/pangomm-{{ abi_version }}.pc
+
+about:
+  home: https://developer.gnome.org/pangomm/
+  license: LGPL-2.1-or-later
+  license_file: COPYING
+  summary: "C++ bindings for pango"
+  dev_url: https://gitlab.gnome.org/GNOME/pangomm
+
+extra:
+  recipe-maintainers:
+    - isuruf
