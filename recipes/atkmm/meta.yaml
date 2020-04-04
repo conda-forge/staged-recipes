@@ -1,0 +1,63 @@
+{% set version = "2.28.0" %}
+{% set major_minor = ".".join(version.split(".")[:2]) %}
+{% set abi_version = "1.6" %}
+
+package:
+  name: atkmm
+  version: {{ version }}
+
+source:
+  url: https://ftp.gnome.org/pub/GNOME/sources/atkmm/{{ major_minor }}/atkmm-{{ version }}.tar.xz
+  sha256: 4c4cfc917fd42d3879ce997b463428d6982affa0fb660cafcc0bc2d9afcedd3a
+
+build:
+  number: 0
+  skip: true  # [win]
+  run_exports:
+    - atkmm-{{ abi_version }} >={{ version }}
+
+outputs:
+  - name: atkmm-{{ abi_version }}
+    script: build_atkmm.sh
+    build:
+      run_exports:
+        - atkmm-{{ abi_version }} >={{ version }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - pkg-config
+        - make
+      host:
+        # These requirements can be found in configure.ac
+        - atk >=1.41.0
+        - glibmm >=2.48.0
+        - libsigcpp
+        - glib
+      run:
+        # TODO: remove this after atk, glibmm gets a run_exports PR
+        - {{ pin_compatible("atk") }}
+        - {{ pin_compatible("glibmm") }}
+      run_constrained:
+        - atkmm {{ version }}
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libatkmm-{{ abi_version }}${SHLIB_EXT}
+
+  - name: atkmm
+    requirements:
+      run:
+        - atkmm-{{ abi_version }}  {{ version }}
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/pkg-config/atkmm-{{ abi_version }}.pc
+
+about:
+  home: https://developer.gnome.org/atkmm/
+  license: LGPL-2.1-or-later
+  license_file: COPYING
+  summary: "C++ bindings for atk"
+  dev_url: https://gitlab.gnome.org/GNOME/atkmm
+
+extra:
+  recipe-maintainers:
+    - isuruf
