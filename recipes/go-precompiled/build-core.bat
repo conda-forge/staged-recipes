@@ -1,5 +1,3 @@
-setlocal enabledelayedexpansion
-
 mkdir "%PREFIX%\go"
 xcopy /s /y /i /q "%SRC_DIR%\go\*" "%PREFIX%\go\"
 

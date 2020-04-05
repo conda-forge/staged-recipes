@@ -9,3 +9,6 @@ go tool dist test -list | sort
 # Run go's built-in test
 go tool dist test -k -v -no-rebuild -run=!^cgo_fortran$
 
+# Rerun failing test to catch error
+go tool dist test -k -v -no-rebuild -run=^cgo_fortran$ || true
+
