@@ -1,9 +1,3 @@
-export GOROOT="${CONDA_BACKUP_GOROOT}"
-unset CONDA_BACKUP_GOROOT
-if [ -z $GOROOT ]; then
-    unset GOROOT
-fi
-
 export CGO_ENABLED="${CONDA_BACKUP_CGO_ENABLED}"
 unset CONDA_BACKUP_CGO_ENABLED
 if [ -z $CGO_ENABLED ]; then
