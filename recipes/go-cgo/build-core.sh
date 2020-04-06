@@ -1,14 +1,8 @@
 set -eufx
 
-#
-# Install and source the [de]activate scripts.
-for F in deactivate activate; do
-  F_DIR="${PREFIX}/etc/conda/${F}.d"
-  mkdir -p "${F_DIR}"
-  cp -v "${RECIPE_DIR}/${F}-go-${go_variant_str}.sh" "${F_DIR}/${F}_z60-go.sh"
-done
+# remove this after _go_select is updated
+set CGO_ENABLED=1
 
-source "${F_DIR}/activate_z60-go.sh"
 
 # Set the CC and CXX TARGETS
 export CC_FOR_TARGET=${CC}
