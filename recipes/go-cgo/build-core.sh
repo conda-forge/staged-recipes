@@ -32,8 +32,8 @@ popd
 # Don't need the cached build objects
 rm -fr ${GOROOT}/pkg/obj
 
-# Dropping the verbose option here, because Travis chokes on output >4MB
-cp -av ${GOROOT} ${PREFIX}/go
+# Dropping the verbose option here, +8000 files
+cp -a ${GOROOT} ${PREFIX}/go
 
 # Right now, it's just go and gofmt, but might be more in the future!
 # We don't move files, and instead rely on soft-links
