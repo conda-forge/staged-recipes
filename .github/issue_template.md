@@ -11,4 +11,5 @@ attention of the conda-forge team, please do one of the following,
 
 3. If you need help, join our community chat room at
    gitter.im/conda-forge/conda-forge.github.io
+   or on our [Keybase chat](https://keybase.io/team/condaforge.chat)
 -->
