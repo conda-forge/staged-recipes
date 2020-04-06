@@ -1,13 +1,14 @@
-set -eufx
+set -euf
 
-# remove this after _go_select is updated
-set CGO_ENABLED=1
+#
+# Hide the full path of the CC and CXX compilers since they get hardcoded here:
+#  - ./cmd/go/internal/cfg/zdefaultcc.go
+#  - ./cmd/cgo/zdefaultcc.go
+# This bug does not show up while running the tests because conda-build does
+# not remove the _build_env.
+export CC=$(basename ${CC})
+export CXX=$(basename ${CXX})
 
-
-# Set the CC and CXX TARGETS
-export CC_FOR_TARGET=${CC}
-export CXX_FOR_TARGET=${CXX}
-unset CGO_LDFLAGS
 
 # Do not use GOROOT_FINAL. Otherwise, every conda environment would
 # need its own non-hardlinked copy of the go (+100MB per env).
@@ -17,6 +18,15 @@ unset CGO_LDFLAGS
 export GOROOT=$SRC_DIR/go
 export GOCACHE=off
 
+# Enable CGO, and set compiler flags
+export CGO_ENABLED=1
+export CGO_CFLAGS=${CFLAGS}
+export CGO_CPPFLAGS=${CPPFLAGS}
+export CGO_CXXFLAGS=${CXXFLAGS}
+export CGO_FFLAGS=${FFLAGS}
+# We have to disable garbage collection for sections
+export CGO_LDFLAGS="${LDFLAGS} -Wl,--no-gc-sections"
+
 # This is a fix for user.Current issue
 export USER="${USER:-conda}"
 export HOME="${HOME:-$(cd $SRC_DIR/..;pwd)}"
@@ -24,6 +34,9 @@ export HOME="${HOME:-$(cd $SRC_DIR/..;pwd)}"
 if [ -x "${ADDR2LINE:-}" ]; then 
   ln $ADDR2LINE $(dirname $ADDR2LINE)/addr2line
 fi
+
+# Print diagnostics before executing
+env
 
 pushd $GOROOT/src
 ./make.bash -v
