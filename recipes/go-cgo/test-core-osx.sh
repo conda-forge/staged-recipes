@@ -3,7 +3,7 @@ set -euxf
 
 export MACOSX_DEPLOYMENT_TARGET=${GO_MACOSX_DEPLOYMENT_TARGET}
 export CGO_CFLAGS=${CFLAGS}
-export CGO_CPPFLAGS="${CPPFLAGS} -mmacosx-version-min=${GO_MACOSX_DEPLOYMENT_TARGET}"
+export CGO_CPPFLAGS="${CPPFLAGS} -mmacosx-version-min=${GO_MACOSX_DEPLOYMENT_TARGET} -isysroot ${CONDA_BUILD_SYSROOT}"
 export CGO_LDFLAGS="${LDFLAGS}"
 
 # Diagnostics
