@@ -8,6 +8,7 @@ export CGO_CPPFLAGS=${CPPFLAGS}
 export CGO_LDFLAGS="${LDFLAGS} -Wl,--no-gc-sections"
 
 # Diagnostics
+which go
 go env
 go tool
 go tool dist test -list | sort

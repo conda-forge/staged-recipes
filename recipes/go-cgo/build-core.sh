@@ -22,6 +22,7 @@ export GOCACHE=off
 export CGO_ENABLED=1
 export CGO_CFLAGS=${CFLAGS}
 export CGO_CPPFLAGS=${CPPFLAGS}
+export CGO_CXXFLAGS=${CXXFLAGS}
 # We have to disable garbage collection for sections
 export CGO_LDFLAGS="${LDFLAGS} -Wl,--no-gc-sections"
 

@@ -1,6 +1,7 @@
 echo on
 
 rem Diagnostics
+where go
 go env
 go tool
 go tool dist test -list | sort
