@@ -1,6 +1,9 @@
 #!/bin/bash
 
 mkdir build && cd build
+
+export PKG_CONFIG_PATH=${PREFIX}/lib/pkgconfig
+
 cmake ..
 make -j $(nproc)
 make install
