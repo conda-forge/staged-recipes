@@ -22,7 +22,7 @@ export GOCACHE=off
 # Enable CGO, and set compiler flags
 export CGO_ENABLED=1
 export CGO_CFLAGS=${CFLAGS}
-export CGO_CPPFLAGS="${CPPFLAGS} -mmacosx-version-min=${GO_MACOSX_DEPLOYMENT_TARGET}"
+export CGO_CPPFLAGS="${CPPFLAGS} -mmacosx-version-min=${GO_MACOSX_DEPLOYMENT_TARGET} -isysroot ${CONDA_BUILD_SYSROOT}"
 export CGO_CXXFLAGS=${CXXFLAGS}
 # We have to disable garbage collection for sections
 export CGO_LDFLAGS="${LDFLAGS}"
