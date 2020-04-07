@@ -7,8 +7,19 @@ go tool
 go tool dist test -list | sort
 
 # Run go's built-in test
-go tool dist test -k -v -no-rebuild -run=!^cgo_fortran$
-
-# Rerun failing test to catch error
-go tool dist test -k -v -no-rebuild -run=^cgo_fortran$ || true
+case $(uname -s) in
+  Darwin)
+    # Expect PASS
+    go tool dist test -k -v -no-rebuild -run='!^runtime:cpu124$'
+    go tool dist test -k -v -no-rebuild -run='^runtime:cpu124$'
+    # Expect FAIL
+    test ! go tool dist test -k -v -no-rebuild -run='!^cgo_test$'
+    ;;
+  Linux)
+    # Expect PASS
+    go tool dist test -k -v -no-rebuild -run=!^cgo_fortran$
+    # Expect FAIL
+    test ! go tool dist test -k -v -no-rebuild -run=^cgo_fortran$
+    ;;
+esac
 
