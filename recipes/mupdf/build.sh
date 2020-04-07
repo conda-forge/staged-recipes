@@ -3,7 +3,7 @@ set -ex
 
 # build system uses non-standard env vars
 uname=$(uname)
-if [[ "$uname" == "Darwin" ]]; then
+if [[ "$target_platform" == osx* ]]; then
   #export LIBS="${LIBS} -L${PREFIX}/lib -v"
   #export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib -v"
   export CFLAGS="${CFLAGS} -I ${PREFIX}/include/harfbuzz"
