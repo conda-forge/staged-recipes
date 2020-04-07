@@ -16,8 +16,8 @@ go tool dist test -list | sort
 case $(uname -s) in
   Darwin)
     # Expect PASS
-    go tool dist test -k -v -no-rebuild -run='!^runtime:cpu124$'
-    go tool dist test -k -v -no-rebuild -run='^runtime:cpu124$'
+    go tool dist test -k -v -no-rebuild -run='!^runtime:cpu124|cgo_test$'
+    go tool dist test -k -v -no-rebuild -run='^runtime:cpu124'
     # Expect FAIL
     test ! go tool dist test -k -v -no-rebuild -run='!^cgo_test$'
     ;;
