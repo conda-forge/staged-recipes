@@ -3,8 +3,6 @@ echo on
 rem Diagnostics
 where go
 go env
-go tool
-go tool dist test -list | sort
 
 rem Run go's built-in test, we skip the filepath one, and cmd/go
 go tool dist test -k -v -no-rebuild -run=!^^go_test:path/filepath^|go_test:cmd/go$
