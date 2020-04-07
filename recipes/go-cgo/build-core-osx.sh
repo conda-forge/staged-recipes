@@ -1,6 +1,5 @@
 set -euf
 
-export MACOSX_DEPLOYMENT_TARGET=${GO_MACOSX_DEPLOYMENT_TARGET}
 #
 # Hide the full path of the CC and CXX compilers since they get hardcoded here:
 #  - ./cmd/go/internal/cfg/zdefaultcc.go
@@ -22,7 +21,7 @@ export GOCACHE=off
 # Enable CGO, and set compiler flags
 export CGO_ENABLED=1
 export CGO_CFLAGS=${CFLAGS}
-export CGO_CPPFLAGS="${CPPFLAGS} -mmacosx-version-min=${GO_MACOSX_DEPLOYMENT_TARGET} -isysroot ${CONDA_BUILD_SYSROOT}"
+export CGO_CPPFLAGS="${CPPFLAGS} -isysroot ${CONDA_BUILD_SYSROOT}"
 export CGO_CXXFLAGS=${CXXFLAGS}
 # We have to disable garbage collection for sections
 export CGO_LDFLAGS="${LDFLAGS}"
