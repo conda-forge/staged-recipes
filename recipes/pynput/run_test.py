@@ -1,4 +1,4 @@
 # export DISPLAY=":0"
 import os
-# os.environ["DISPLAY"] = ":0"
+os.environ["PYNPUT_BACKEND"] = "dummy"
 import pynput
