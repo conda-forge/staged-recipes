@@ -1,6 +1,6 @@
 set -euf
 
-#
+
 # Hide the full path of the CC and CXX compilers since they get hardcoded here:
 #  - ./cmd/go/internal/cfg/zdefaultcc.go
 #  - ./cmd/cgo/zdefaultcc.go
@@ -18,13 +18,27 @@ export CXX=$(basename ${CXX})
 export GOROOT=$SRC_DIR/go
 export GOCACHE=off
 
-# Enable CGO, and set compiler flags
+
+# Enable CGO, and set compiler flags to match conda-forge settings
 export CGO_ENABLED=1
 export CGO_CFLAGS=${CFLAGS}
 export CGO_CPPFLAGS=${CPPFLAGS}
 export CGO_CXXFLAGS=${CXXFLAGS}
-# We have to disable garbage collection for sections
-export CGO_LDFLAGS="${LDFLAGS} -Wl,--no-gc-sections"
+export CGO_LDFLAGS=${LDFLAGS}
+case $(uname -s) in
+  Darwin)
+    # Tell it where to find the MacOS SDK
+    export CGO_CPPFLAGS="${CGO_CPPFLAGS} -isysroot ${CONDA_BUILD_SYSROOT}"
+    ;;
+  Linux)
+    # We have to disable garbage collection for sections
+    export CGO_LDFLAGS="${CGO_LDFLAGS} -Wl,--no-gc-sections"
+    ;;
+  *)
+    echo "Unknown OS: $(uname -s)"
+    exit 1
+    ;;
+esac
 
 # This is a fix for user.Current issue
 export USER="${USER:-conda}"

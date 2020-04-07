@@ -1,9 +1,3 @@
-rem Put GOTMPDIR on the same drive as the CONDA_BLD_PATH (the D drive),
-rem to avoid a known issue in the go test suite:
-rem https://github.com/golang/go/issues/24846#issuecomment-381380628
-rem set "GOTMPDIR=D:\\tmp"
-rem mkdir "%GOTMPDIR%"
-
 rem Do not use GOROOT_FINAL. Otherwise, every conda environment would
 rem need its own non-hardlinked copy of go (+100MB per env).
 rem It is better to rely on setting GOROOT during environment activation.
@@ -29,16 +23,20 @@ rmdir /s /q %GOROOT%\pkg\obj
 rem The following should match the build instructions from go-precompiled
 mkdir "%PREFIX%\go"
 xcopy /s /y /i /q "%GOROOT%\*" "%PREFIX%\go\"
+if errorlevel 1 exit 1
 
 rem Remove Invalid UTF-8 Filename and conflict with libarchive
 rem c.f. https://github.com/conda-forge/staged-recipes/pull/9535#discussion_r403512142
 del "%PREFIX%\go\test\fixedbugs\issue27836.go
+if errorlevel 1 exit 1
 rmdir /S /Q "%PREFIX%\go\test\fixedbugs\issue27836.dir
+if errorlevel 1 exit 1
 
 rem Right now, it's just go and gofmt, but might be more in the future!
 if not exist "%PREFIX%\bin" mkdir "%PREFIX%\bin"
 for %%f in ("%PREFIX%\go\bin\*.exe") do (
   move %%f "%PREFIX%\bin"
+  if errorlevel 1 exit 1
 )
 
 rem all files in bin are gone
