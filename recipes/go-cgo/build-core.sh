@@ -35,7 +35,7 @@ if [ -x "${ADDR2LINE:-}" ]; then
 fi
 
 # Print diagnostics before executing
-env
+env | sort
 
 pushd $GOROOT/src
 ./make.bash -v

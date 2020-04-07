@@ -1,12 +1,3 @@
-rem Setting CGO_ENABLED=1 will come from _go_select
-rem Temporarily set CGO_ENABLED=1 here, remove 
-rem set "CGO_LDFLAGS="
-set "CGO_ENABLED=1"
-
-rem Set the CC and CXX TARGETS
-set "CC_FOR_TARGET=%CC%"
-set "CXX_FOR_TARGET=%CXX%"
-
 rem Put GOTMPDIR on the same drive as the CONDA_BLD_PATH (the D drive),
 rem to avoid a known issue in the go test suite:
 rem https://github.com/golang/go/issues/24846#issuecomment-381380628
@@ -20,6 +11,9 @@ rem
 rem c.f. https://github.com/conda-forge/go-feedstock/pull/21#discussion_r202513916
 set "GOROOT=%SRC_DIR%\go"
 set "GOCACHE=off"
+
+rem Enable CGO and set compiler flags
+set "CGO_ENABLED=1"
 
 rem Print diagnostics before starting the build
 set

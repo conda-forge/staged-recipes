@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euxf
+set -euf
 
 # Set default flags
 export CGO_CFLAGS=${CFLAGS}
