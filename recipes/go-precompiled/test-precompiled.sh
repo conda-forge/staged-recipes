@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euxf
+set -euf
 
 # Test we are running GO under $CONDA_PREFIX
 test "$(which go)" == "${CONDA_PREFIX}/bin/go"
@@ -9,7 +9,6 @@ test "$(go env CGO_ENABLED)" == 1
 
 
 # Set the CGO Compiler flags
-# TODO: This step should not be necessary
 export CGO_CFLAGS=${CFLAGS}
 export CGO_CPPFLAGS=${CPPFLAGS}
 export CGO_LDFLAGS=${LDFLAGS}
