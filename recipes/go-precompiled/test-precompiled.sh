@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euxf
 
+# Test we are running GO under $CONDA_PREFIX
+test "$(which go)" == "${CONDA_PREFIX}/bin/go"
+
+# Ensure CGO_ENABLED=1
+test "$(go env CGO_ENABLED)" == 1
+
 # Diagnostics
 go env
 go tool
