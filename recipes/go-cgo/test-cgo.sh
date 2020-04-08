@@ -24,8 +24,6 @@ case $(uname -s) in
     ;;
   Linux)
     # Expect PASS
-    go tool dist test -k -v -no-rebuild -run=!^cgo_fortran$
-    # Expect FAIL
-    go tool dist test -k -v -no-rebuild -run=^cgo_fortran$ || true
+    go tool dist test -k -v -no-rebuild
     ;;
 esac
