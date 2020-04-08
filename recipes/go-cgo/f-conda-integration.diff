@@ -1,0 +1,63 @@
+diff --git a/src/cmd/go/internal/work/exec.go b/src/cmd/go/internal/work/exec.go
+index 0ab7976c56..4dfa856221 100644
+--- a/src/cmd/go/internal/work/exec.go
++++ b/src/cmd/go/internal/work/exec.go
+@@ -2373,6 +2373,32 @@ func (b *Builder) gccArchArgs() []string {
+ 	return nil
+ }
+ 
++// condaGetCompilerFlags returns the value of the given environment variable that is normally available when
++// using conda based compilers, or return the unmodified default no environment variable is found.
++// On linux, it will disable the linker's gc-sections option.
++// On mac/darwin, it will change/reset the macosx minimal version, and set the isysroot if available.
++func condaGetCompilerFlags(key, def string) string {
++	if value, ok := os.LookupEnv(key); ok {
++		switch cfg.Goos {
++		case "linux":
++			if key == "LDFLAGS" {
++				return value + " -Wl,--no-gc-sections"
++			}
++		case "darwin":
++			if key == "CPPFLAGS" {
++				if macosxDefaultTarget, ok := os.LookupEnv("MACOSX_DEFAULT_TARGET"); ok {
++					value = value + " -mmacosx-version-min=" + macosxDefaultTarget
++				}
++				if sysroot, ok := os.LookupEnv("CONDA_BUILD_SYSROOT"); ok {
++					value = value + " -isysroot " + sysroot
++				}
++			}
++		}
++		return value
++	}
++	return def
++}
++
+ // envList returns the value of the given environment variable broken
+ // into fields, using the default value when the variable is empty.
+ func envList(key, def string) []string {
+@@ -2410,7 +2436,7 @@ func buildFlags(name, defaults string, fromPackage []string, check func(string,
+ 	if err := check(name, "#cgo "+name, fromPackage); err != nil {
+ 		return nil, err
+ 	}
+-	return str.StringList(envList("CGO_"+name, defaults), fromPackage), nil
++	return str.StringList(envList("CGO_"+name, condaGetCompilerFlags(name, defaults)), fromPackage), nil
+ }
+ 
+ var cgoRe = regexp.MustCompile(`[/\\:]`)
+diff --git a/src/cmd/go/script_test.go b/src/cmd/go/script_test.go
+index c56c1fd3e4..5b6345ebe9 100644
+--- a/src/cmd/go/script_test.go
++++ b/src/cmd/go/script_test.go
+@@ -84,6 +84,12 @@ type backgroundCmd struct {
+ 
+ var extraEnvKeys = []string{
+ 	"SYSTEMROOT", // must be preserved on Windows to find DLLs; golang.org/issue/25210
++	"CC",
++	"CFLAGS",
++	"CPPFLAGS",
++	"LDFLAGS",
++	"CONDA_BUILD_SYSROOT",
++	"MACOSX_DEPLOYMENT_TARGET",
+ }
+ 
+ // setup sets up the test execution temporary directory and environment.
