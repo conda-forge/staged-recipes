@@ -11,7 +11,7 @@ cmake .. -G "Ninja" \
  -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=TRUE \
  -DCMAKE_INSTALL_LIBDIR=lib
 
-cmake --build . 
+cmake --build . --target install
 
 
 
