@@ -1,0 +1,80 @@
+{% set name = "jupyter-lsp" %}
+{% set version = "0.8.0" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: 3abe20ec48a3f6b132653abe597af2b6cd0005539ab0d74e0ba203927124d333
+
+build:
+  noarch: python
+  number: 0
+
+outputs:
+  - name: {{ name }}
+    script: build_base.bat  # [win]
+    script: build_base.sh  # [not win]
+    requirements:
+      host:
+        - python
+        - pip
+      run:
+        - notebook >=4.3.1
+        - python
+        - setuptools
+    test:  # Seems ignored by conda-build
+      requires:
+        - jupyterlab =2
+        - nodejs >=8,<13
+      commands:
+        - jupyter labextension install @krassowski/jupyterlab-lsp@^1.0.0
+        - python -m jupyterlab.browser_check
+  - name: {{ name }}-python
+    build:
+    requirements:
+      run:
+        - {{ pin_subpackage(name, exact=True) }}
+        - python-language-server
+    test:
+      files:
+        - modify_conftest.py
+      requires:
+        - jupyterlab ~=2.0
+        - pytest-asyncio
+        - pytest-runner
+      commands:
+        - python modify_conftest.py pyls
+        - pytest -vv -p no:warnings --pyargs jupyter_lsp
+  - name: {{ name }}-r
+    build:
+    requirements:
+      run:
+        - {{ pin_subpackage(name, exact=True) }}
+        - r-languageserver
+    test:
+      files:
+        - modify_conftest.py
+      requires:
+        - jupyterlab ~=2.0
+        - pytest-asyncio
+        - pytest-runner
+      commands:
+        - python modify_conftest.py
+        - pytest -vv -p no:warnings --pyargs jupyter_lsp
+
+about:
+  home: https://github.com/krassowski/jupyterlab-lsp
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: Multi-Language Server WebSocket proxy for Jupyter notebook or lab server for Python 3.5+.
+  doc_url: https://jupyterlab-lsp.readthedocs.io
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
+    - fcollonval
+    - krassowski
