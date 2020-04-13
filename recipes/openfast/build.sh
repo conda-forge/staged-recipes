@@ -11,7 +11,10 @@ mkdir build
 cd build
 
 # Pass explicit paths to the prefix for each dependency.
-cmake .. # -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+    -DCMAKE_INSTALL_LIBDIR=lib \
+    ..
 
 make -j"${CPU_COUNT}"
 
