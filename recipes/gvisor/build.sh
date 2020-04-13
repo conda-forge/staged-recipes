@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-# Set path to include GOPATH
+# Turn work folder into GOPATH
+export GOPATH=${SRC_DIR}
 export PATH=${GOPATH}/bin:$PATH
 
 echo "module runsc" > go.mod
