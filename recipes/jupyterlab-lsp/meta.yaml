@@ -1,8 +1,10 @@
 {% set name = "jupyter-lsp" %}
 {% set version = "0.8.0" %}
+{% set jupyterlab_version = ">=2,<3.0.0a0" %}
+{% set server_tests = ["start_known", "listener"] %}  # List of jupyter_lsp py.tests ran for each known servers
 
 package:
-  name: {{ name }}
+  name: {{ name }}-suite  # To avoid issue https://github.com/conda/conda-build/issues/3933
   version: {{ version }}
 
 source:
@@ -25,10 +27,10 @@ outputs:
         - notebook >=4.3.1
         - python
         - setuptools
-    test:  # Seems ignored by conda-build
+    test:
       requires:
-        - jupyterlab =2
-        - nodejs >=8,<13
+        - jupyterlab {{ jupyterlab_version }}
+        - nodejs >=10
       commands:
         - jupyter labextension install @krassowski/jupyterlab-lsp@^1.0.0
         - python -m jupyterlab.browser_check
@@ -39,31 +41,25 @@ outputs:
         - {{ pin_subpackage(name, exact=True) }}
         - python-language-server
     test:
-      files:
-        - modify_conftest.py
       requires:
-        - jupyterlab ~=2.0
+        - jupyterlab {{ jupyterlab_version }}
         - pytest-asyncio
         - pytest-runner
       commands:
-        - python modify_conftest.py pyls
-        - pytest -vv -p no:warnings --pyargs jupyter_lsp
+        - pytest -vv -p no:warnings --pyargs jupyter_lsp -k "not ({{ server_tests|join(' or ') }}) or pyls"
   - name: {{ name }}-r
     build:
     requirements:
       run:
         - {{ pin_subpackage(name, exact=True) }}
-        - r-languageserver
+        - r-languageserver >=0.3.5  # Snippets support https://github.com/krassowski/jupyterlab-lsp/issues/208
     test:
-      files:
-        - modify_conftest.py
       requires:
-        - jupyterlab ~=2.0
+        - jupyterlab {{ jupyterlab_version }}
         - pytest-asyncio
         - pytest-runner
       commands:
-        - python modify_conftest.py
-        - pytest -vv -p no:warnings --pyargs jupyter_lsp
+        - pytest -vv -p no:warnings --pyargs jupyter_lsp -k "not ({{ server_tests|join(' or ') }}) or r-languageserver"
 
 about:
   home: https://github.com/krassowski/jupyterlab-lsp
