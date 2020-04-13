@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 
-go get github.com/google/gvisor@go
+# Turn work folder into GOPATH
+export GOPATH=$PWD/gopath
+export PATH=${GOPATH}/bin:$PATH
+
+echo "module runsc" > go.mod
+
+go get gvisor.dev/gvisor/runsc@go
 
 # Change to directory with main.go
 pushd runsc
