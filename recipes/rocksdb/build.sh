@@ -11,11 +11,11 @@ cmake -DCMAKE_PREFIX_PATH=$PREFIX \
       -DUSE_RTTI=ON \
       -DWITH_GFLAGS=ON \
       -DWITH_JEMALLOC=ON \
-      -DWITH_LZ4=${rocksdb_lz4} \
-      -DWITH_SNAPPY=${rocksdb_snappy} \
+      -DWITH_LZ4=OFF \
+      -DWITH_SNAPPY=ON \
       -DWITH_TESTS=OFF \
-      -DWITH_TOOLS=${rocksdb_tools} \
-      -DWITH_ZLIB=${rocksdb_zlib} \
+      -DWITH_TOOLS=OFF \
+      -DWITH_ZLIB=OFF \
       -S . \
       -B Build
 
