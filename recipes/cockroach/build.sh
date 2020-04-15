@@ -3,8 +3,7 @@ set -euf
 
 # Upstream resets the PATH internally in their Makefile.
 # It does not work for us.
-bindir=$(pwd)/src/github.com/cockroachdb/cockroachdb/bin
-mkdir -p $bindir
+bindir=$(pwd)/src/github.com/cockroachdb/cockroach/bin
 export PATH=${bindir}:${PATH}
 
 #
