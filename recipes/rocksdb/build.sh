@@ -26,6 +26,9 @@ make -j $CPU_COUNT
 ### Install
 make install
 
+### Checking requires a recompile with DEBUG enabled
+# make check
+
 ### Copy the tools to $PREFIX/bin
 # TODO: Check rocksdb_tools first
 #cp tools/{ldb,rocksdb_{dump,undump},sst_dump} $PREFIX/bin
