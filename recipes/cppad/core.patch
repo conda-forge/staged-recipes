@@ -1,3 +1,25 @@
+diff --git cppad_lib/CMakeLists.txt cppad_lib/CMakeLists.txt
+index 380e8dee8..aa1f798e3 100644
+--- cppad_lib/CMakeLists.txt
++++ cppad_lib/CMakeLists.txt
+@@ -43,15 +43,8 @@ SET(source_list
+ # END_SORT_THIS_LINE_MINUS_2
+ #
+ set_compile_flags(cppad_lib "${cppad_debug_which}" "${source_list}" )
+-#
+-IF( ${CMAKE_SYSTEM_NAME} STREQUAL "Windows" )
+-    MESSAGE( STATUS "Windows system so building static cpapd_lib")
+-    ADD_LIBRARY( cppad_lib STATIC ${source_list} )
+-ELSE( ${CMAKE_SYSTEM_NAME} STREQUAL "Windows" )
+-    MESSAGE( STATUS "Not Windows system so building shared cpapd_lib")
+-    ADD_LIBRARY( cppad_lib SHARED ${source_list} )
+-    SET_TARGET_PROPERTIES( cppad_lib PROPERTIES SOVERSION ${soversion} )
+-ENDIF( ${CMAKE_SYSTEM_NAME} STREQUAL "Windows" )
++ADD_LIBRARY( cppad_lib SHARED ${source_list} )
++SET_TARGET_PROPERTIES( cppad_lib PROPERTIES SOVERSION ${soversion} )
+ #
+ # install(TARGETS myExe mySharedLib myStaticLib
+ #   RUNTIME DESTINATION bin
 diff --git cppad_lib/cppad_colpack.cpp cppad_lib/cppad_colpack.cpp
 index dc3327053..739363292 100644
 --- cppad_lib/cppad_colpack.cpp
@@ -124,15 +146,42 @@ index ee96ab5fe..e3332a804 100644
 +} } // END_CPPAD_LOCAL_NAMESPACE
  # endif
  
+diff --git include/cppad/local/define.hpp include/cppad/local/define.hpp
+index 8c52b377e..c0cf00859 100644
+--- include/cppad/local/define.hpp
++++ include/cppad/local/define.hpp
+@@ -64,11 +64,14 @@ https://gitlab.kitware.com/cmake/community/wikis/doc/tutorials/BuildingWinDLL
+ # ifdef  _MSC_VER
+ # ifdef  cppad_lib_EXPORTS
+ # define CPPAD_LIB_EXPORT __declspec(dllexport)
++# define CPPAD_EXPLICIT_TEMPLATE_IMPLEMENTATION
+ # else
+ # define CPPAD_LIB_EXPORT __declspec(dllimport)
++# define CPPAD_EXPLICIT_TEMPLATE_IMPLEMENTATION extern
+ # endif  // cppad_lib_EXPORTS
+ # else   // _MSC_VER
+ # define CPPAD_LIB_EXPORT
++# define CPPAD_EXPLICIT_TEMPLATE_IMPLEMENTATION extern
+ # endif
+ 
+ 
 diff --git include/cppad/local/graph/json_lexer.hpp include/cppad/local/graph/json_lexer.hpp
-index 11873ce54..671e62fc7 100644
+index 11873ce54..2746a27db 100644
 --- include/cppad/local/graph/json_lexer.hpp
 +++ include/cppad/local/graph/json_lexer.hpp
-@@ -14,12 +14,13 @@ CppAD: C++ Algorithmic Differentiation: Copyright (C) 2003-19 Bradley M. Bell
+@@ -14,12 +14,21 @@ CppAD: C++ Algorithmic Differentiation: Copyright (C) 2003-19 Bradley M. Bell
  
  # include <string>
  # include <cppad/core/cppad_assert.hpp>
 +# include <cppad/local/define.hpp>
++
++# ifdef _MSC_VER
++#  pragma warning( push )
++#  pragma warning( disable: 4251 )
++# endif
++
++CPPAD_EXPLICIT_TEMPLATE_IMPLEMENTATION template class CPPAD_LIB_EXPORT std::allocator<char>;
++CPPAD_EXPLICIT_TEMPLATE_IMPLEMENTATION template class CPPAD_LIB_EXPORT std::basic_string<char,std::char_traits<char>,std::allocator<char> >;
  
  // BEGIN_NAMESPACE_CPPAD_LOCAL_GRAPH
  namespace CppAD { namespace local { namespace graph {
@@ -143,6 +192,15 @@ index 11873ce54..671e62fc7 100644
  // ===========================================================================
  
  /*
+@@ -385,5 +394,8 @@ $end
+ 
+ } } } // END_NAMESPACE_CPPAD_LOCAL_GRAPH
+ 
++# ifdef _MSC_VER
++#  pragma warning( pop )
++# endif
+ 
+ # endif
 diff --git include/cppad/local/graph/json_parser.hpp include/cppad/local/graph/json_parser.hpp
 index 17bcc7c7e..39cc61fa6 100644
 --- include/cppad/local/graph/json_parser.hpp
