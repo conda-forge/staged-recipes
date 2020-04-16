@@ -2,7 +2,8 @@
 set -eu
 
 ### Create Makefiles
-cmake -DCMAKE_PREFIX_PATH=$PREFIX \
+cmake -g Ninja \
+      -DCMAKE_PREFIX_PATH=$PREFIX \
       -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_INSTALL_LIBDIR=lib \
       -DCMAKE_BUILD_TYPE=Release \
@@ -16,19 +17,18 @@ cmake -DCMAKE_PREFIX_PATH=$PREFIX \
       -DWITH_TESTS=OFF \
       -DWITH_TOOLS=OFF \
       -DWITH_ZLIB=OFF \
-      -S . \
-      -B Build
+      -S src \
+      -B build
 
 ### Build
-cd Build
-make -j $CPU_COUNT
+cmake  --build build --
 
 ### Install
-make install
+cmake --build build -- install
 
 ### Checking requires a recompile with DEBUG enabled
-# make check
+# cmake --build build -- check
 
 ### Copy the tools to $PREFIX/bin
-# TODO: Check rocksdb_tools first
-#cp tools/{ldb,rocksdb_{dump,undump},sst_dump} $PREFIX/bin
+# TODO: I someone needs the tools, please open a PR/issue.
+# cp build/tools/{ldb,rocksdb_{dump,undump},sst_dump} $PREFIX/bin
