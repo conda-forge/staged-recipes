@@ -3,11 +3,11 @@ set -euf
 
 # Upstream resets the PATH internally in their Makefile.
 # It does not work for us.
-bindir=$(pwd)/src/github.com/cockroachdb/cockroach/bin
-export PATH=${bindir}:${PATH}
+cockroach=$(pwd)/src/github.com/cockroachdb/cockroach
+mkdir -p ${cockroach}/bin
+export PATH=${cockroach}/bin:${PATH}
 
-#
-# We only install the OSS version of cockroach. 
+# We only install the OSS version of cockroach.
 # The CCL version is not free.
-make install-oss prefix=$PREFIX \
+make -j1 -C ${cockroach} install-oss prefix=$PREFIX \
 	EXTRA_XCMAKE_FLAGS="-DCMAKE_PREFIX_PATH=$PREFIX"
