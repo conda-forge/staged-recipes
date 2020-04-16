@@ -7,8 +7,13 @@ cockroach=$(pwd)/src/github.com/cockroachdb/cockroach
 mkdir -p ${cockroach}/bin
 export PATH=${cockroach}/bin:${PATH}
 
-# We only install the OSS version of cockroach.
-# The CCL version is not free.
-# Do not multithread this, upstream's makefile is project in itself
-make -j1 -C ${cockroach} install-oss prefix=$PREFIX \
-	EXTRA_XCMAKE_FLAGS="-DCMAKE_PREFIX_PATH=$PREFIX"
+# We only install the OSS version of cockroach. The CCL version is not free.
+# Upstream's makefile is complicated and our patch may have exposed some
+# build dependency issues. Do not multi-thread.
+make -j1 -C ${cockroach} \
+  install-oss \
+  prefix=$PREFIX \
+  BUILDTYPE=release \
+  BUILDCHANNEL=source-archive \
+  BUILDINFO_TAG=${PKG_VERSION} \
+  EXTRA_XCMAKE_FLAGS="-DCMAKE_PREFIX_PATH=$PREFIX"
