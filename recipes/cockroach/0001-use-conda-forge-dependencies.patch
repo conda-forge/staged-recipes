@@ -1,0 +1,284 @@
+From c00d0bd6b3029d968aa1e720c5c09bc24cdd4e65 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Patrick=20Sodr=C3=A9?= <psodre@gmail.com>
+Date: Wed, 15 Apr 2020 21:18:43 -0400
+Subject: [PATCH] Add patches for building OSS version
+
+---
+ Makefile                                      |   2 +-
+ src/github.com/cockroachdb/cockroach/Makefile | 164 ++++--------------
+ 2 files changed, 37 insertions(+), 129 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index a15f80aa..e35773c4 100644
+--- a/Makefile
++++ b/Makefile
+@@ -2,5 +2,5 @@ export GOPATH = $(CURDIR)
+ export BUILDCHANNEL := source-archive
+ 
+ .PHONY: all build buildoss check clean install test
+-all build buildoss check clean install test:
++all build buildoss check clean install install-oss test:
+ 	$(MAKE) -C src/github.com/cockroachdb/cockroach $@
+diff --git a/src/github.com/cockroachdb/cockroach/Makefile b/src/github.com/cockroachdb/cockroach/Makefile
+index 4cd6dd03..d8a0cda5 100644
+--- a/src/github.com/cockroachdb/cockroach/Makefile
++++ b/src/github.com/cockroachdb/cockroach/Makefile
+@@ -142,13 +142,8 @@ CFLAGS += -g1
+ CXXFLAGS += -g1
+ LDFLAGS ?=
+ 
+-# TODO(benesch): remove filter-outs below when golang/go#26144 and
+-# golang/go#16651, respectively, are fixed.
+-CGO_CFLAGS = $(filter-out -g%,$(CFLAGS))
+-CGO_CXXFLAGS = $(CXXFLAGS)
+-CGO_LDFLAGS = $(filter-out -static,$(LDFLAGS))
+ 
+-export CFLAGS CXXFLAGS LDFLAGS CGO_CFLAGS CGO_CXXFLAGS CGO_LDFLAGS
++export CFLAGS CMAKE_PREFIX_PATH CPPFLAGS CXXFLAGS LDFLAGS CGO_CFLAGS CGO_CPPFLAGS CGO_CXXFLAGS CGO_LDFLAGS
+ 
+ # We intentionally use LINKFLAGS instead of the more traditional LDFLAGS
+ # because LDFLAGS has built-in semantics that don't make sense with the Go
+@@ -326,6 +321,11 @@ ifneq ($(GIT_DIR),)
+ 	git submodule update --init --recursive
+ endif
+ 	mkdir -p $(@D)
++	rm -rf $(JEMALLOC_SRC_DIR)
++	rm -rf $(SNAPPY_SRC_DIR)
++	rm -rf $(LIBEDIT_SRC_DIR)
++	rm -rf $(ROCKSDB_SRC_DIR)
++	rm -rf $(KRB5_SRC_DIR)
+ 	touch $@
+ 
+ IGNORE_GOVERS :=
+@@ -439,26 +439,18 @@ BUILD_DIR := $(shell cygpath -m $(BUILD_DIR))
+ endif
+ 
+ CRYPTOPP_DIR := $(BUILD_DIR)/cryptopp$(if $(use-msan),_msan)
+-JEMALLOC_DIR := $(BUILD_DIR)/jemalloc$(if $(use-msan),_msan)
+-PROTOBUF_DIR := $(BUILD_DIR)/protobuf$(if $(use-msan),_msan)
+-ROCKSDB_DIR  := $(BUILD_DIR)/rocksdb$(if $(use-msan),_msan)$(if $(use-stdmalloc),_stdmalloc)$(if $(ENABLE_ROCKSDB_ASSERTIONS),_assert)
+-SNAPPY_DIR   := $(BUILD_DIR)/snappy$(if $(use-msan),_msan)
+-LIBEDIT_DIR  := $(BUILD_DIR)/libedit$(if $(use-msan),_msan)
+ LIBROACH_DIR := $(BUILD_DIR)/libroach$(if $(use-msan),_msan)$(if $(ENABLE_LIBROACH_ASSERTIONS),_assert)
+-KRB5_DIR     := $(BUILD_DIR)/krb5$(if $(use-msan),_msan)
+-# Can't share with protobuf because protoc is always built for the host.
+-PROTOC_DIR := $(GOPATH)/native/$(HOST_TRIPLE)/protobuf
+ 
+ LIBCRYPTOPP := $(CRYPTOPP_DIR)/libcryptopp.a
+-LIBJEMALLOC := $(JEMALLOC_DIR)/lib/libjemalloc.a
+-LIBPROTOBUF := $(PROTOBUF_DIR)/libprotobuf.a
+-LIBROCKSDB  := $(ROCKSDB_DIR)/librocksdb.a
+-LIBSNAPPY   := $(SNAPPY_DIR)/libsnappy.a
+-LIBEDIT     := $(LIBEDIT_DIR)/src/.libs/libedit.a
++LIBJEMALLOC := $(PREFIX)/lib/libjemalloc.a
++LIBPROTOBUF := $(PREFIX)/lib/libprotobuf.a
++LIBROCKSDB  := $(PREFIX)/lib/librocksdb.a
++LIBSNAPPY   := $(PREFIX)/lib/libsnappy.a
++LIBEDIT     := $(PREFIX)/lib/libedit.a
+ LIBROACH    := $(LIBROACH_DIR)/libroach.a
+ LIBROACHCCL := $(LIBROACH_DIR)/libroachccl.a
+-LIBKRB5     := $(KRB5_DIR)/lib/libgssapi_krb5.a
+-PROTOC 		 := $(PROTOC_DIR)/protoc
++LIBKRB5     := $(PREFIX)/lib/libgssapi_krb5.a
++PROTOC 	    := $(BUILD_PREFIX)/bin/protoc
+ 
+ C_LIBS_COMMON = \
+ 	$(if $(use-stdmalloc),,$(LIBJEMALLOC)) \
+@@ -470,8 +462,6 @@ C_LIBS_CCL = $(C_LIBS_COMMON) $(LIBCRYPTOPP) $(LIBROACHCCL)
+ # We only include krb5 on linux, non-musl builds.
+ ifeq "$(findstring linux-gnu,$(TARGET_TRIPLE))" "linux-gnu"
+ C_LIBS_CCL += $(LIBKRB5)
+-KRB_CPPFLAGS := $(KRB5_DIR)/include
+-KRB_DIR := $(KRB5_DIR)/lib
+ override TAGS += gss
+ endif
+ 
+@@ -518,8 +508,8 @@ $(BASE_CGO_FLAGS_FILES): Makefile build/defs.mk.sig | bin/.submodules-initialize
+ 	@echo >> $@
+ 	@echo 'package $(if $($(@D)-package),$($(@D)-package),$(notdir $(@D)))' >> $@
+ 	@echo >> $@
+-	@echo '// #cgo CPPFLAGS: $(addprefix -I,$(JEMALLOC_DIR)/include $(KRB_CPPFLAGS))' >> $@
+-	@echo '// #cgo LDFLAGS: $(addprefix -L,$(CRYPTOPP_DIR) $(PROTOBUF_DIR) $(JEMALLOC_DIR)/lib $(SNAPPY_DIR) $(LIBEDIT_DIR)/src/.libs $(ROCKSDB_DIR) $(LIBROACH_DIR) $(KRB_DIR))' >> $@
++	@echo '// #cgo CPPFLAGS: $(addprefix -I,$(KRB_CPPFLAGS))' >> $@
++	@echo '// #cgo LDFLAGS: $(addprefix -L,$(CRYPTOPP_DIR) $(LIBROACH_DIR))' >> $@
+ 	@echo 'import "C"' >> $@
+ 
+ vendor/github.com/knz/go-libedit/unix/zcgo_flags_extra.go: Makefile | bin/.submodules-initialized
+@@ -564,85 +554,6 @@ $(CRYPTOPP_DIR)/Makefile: $(C_DEPS_DIR)/cryptopp-rebuild | bin/.submodules-initi
+ 	cd $(CRYPTOPP_DIR) && CFLAGS+=" $(aes)" && CXXFLAGS+=" $(aes)" cmake $(xcmake-flags) $(CRYPTOPP_SRC_DIR) \
+ 	  -DCMAKE_BUILD_TYPE=Release
+ 
+-$(JEMALLOC_SRC_DIR)/configure.ac: | bin/.submodules-initialized
+-
+-$(JEMALLOC_SRC_DIR)/configure: $(JEMALLOC_SRC_DIR)/configure.ac
+-	cd $(JEMALLOC_SRC_DIR) && autoconf
+-
+-$(JEMALLOC_DIR)/Makefile: $(C_DEPS_DIR)/jemalloc-rebuild $(JEMALLOC_SRC_DIR)/configure
+-	rm -rf $(JEMALLOC_DIR)
+-	mkdir -p $(JEMALLOC_DIR)
+-	@# NOTE: If you change the configure flags below, bump the version in
+-	@# $(C_DEPS_DIR)/jemalloc-rebuild. See above for rationale.
+-	@#
+-	@# jemalloc profiling deadlocks when built against musl. See
+-	@# https://github.com/jemalloc/jemalloc/issues/585.
+-	cd $(JEMALLOC_DIR) && $(JEMALLOC_SRC_DIR)/configure $(xconfigure-flags) $(if $(findstring musl,$(TARGET_TRIPLE)),,--enable-prof)
+-
+-$(KRB5_SRC_DIR)/src/configure.in: | bin/.submodules-initialized
+-
+-$(KRB5_SRC_DIR)/src/configure: $(KRB5_SRC_DIR)/src/configure.in
+-	cd $(KRB5_SRC_DIR)/src && autoreconf
+-
+-$(KRB5_DIR)/Makefile: $(C_DEPS_DIR)/krb5-rebuild $(KRB5_SRC_DIR)/src/configure
+-	rm -rf $(KRB5_DIR)
+-	mkdir -p $(KRB5_DIR)
+-	@# NOTE: If you change the configure flags below, bump the version in
+-	@# $(C_DEPS_DIR)/krb5-rebuild. See above for rationale.
+-	@# If CFLAGS is set to -g1 then make will fail. Use "env -" to clear the environment.
+-	cd $(KRB5_DIR) && env -u CFLAGS -u CXXFLAGS $(KRB5_SRC_DIR)/src/configure $(xconfigure-flags) --enable-static --disable-shared
+-
+-$(PROTOBUF_DIR)/Makefile: $(C_DEPS_DIR)/protobuf-rebuild | bin/.submodules-initialized
+-	rm -rf $(PROTOBUF_DIR)
+-	mkdir -p $(PROTOBUF_DIR)
+-	@# NOTE: If you change the CMake flags below, bump the version in
+-	@# $(C_DEPS_DIR)/protobuf-rebuild. See above for rationale.
+-	cd $(PROTOBUF_DIR) && cmake $(xcmake-flags) -Dprotobuf_BUILD_TESTS=OFF $(PROTOBUF_SRC_DIR)/cmake \
+-	  -DCMAKE_BUILD_TYPE=Release
+-
+-ifneq ($(PROTOC_DIR),$(PROTOBUF_DIR))
+-$(PROTOC_DIR)/Makefile: $(C_DEPS_DIR)/protobuf-rebuild | bin/.submodules-initialized
+-	rm -rf $(PROTOC_DIR)
+-	mkdir -p $(PROTOC_DIR)
+-	@# NOTE: If you change the CMake flags below, bump the version in
+-	@# $(C_DEPS_DIR)/protobuf-rebuild. See above for rationale.
+-	cd $(PROTOC_DIR) && cmake $(CMAKE_FLAGS) -Dprotobuf_BUILD_TESTS=OFF $(PROTOBUF_SRC_DIR)/cmake \
+-	  -DCMAKE_BUILD_TYPE=Release
+-endif
+-
+-$(ROCKSDB_DIR)/Makefile: sse := $(if $(findstring x86_64,$(TARGET_TRIPLE)),-msse3)
+-$(ROCKSDB_DIR)/Makefile: $(C_DEPS_DIR)/rocksdb-rebuild | bin/.submodules-initialized $(LIBSNAPPY) $(if $(use-stdmalloc),,$(LIBJEMALLOC))
+-	rm -rf $(ROCKSDB_DIR)
+-	mkdir -p $(ROCKSDB_DIR)
+-	@# NOTE: If you change the CMake flags below, bump the version in
+-	@# $(C_DEPS_DIR)/rocksdb-rebuild. See above for rationale.
+-	cd $(ROCKSDB_DIR) && CFLAGS+=" $(sse)" && CXXFLAGS+=" $(sse)" && cmake $(xcmake-flags) $(ROCKSDB_SRC_DIR) \
+-	  $(if $(findstring release,$(BUILDTYPE)),-DPORTABLE=ON) -DWITH_GFLAGS=OFF \
+-	  -DSNAPPY_LIBRARIES=$(LIBSNAPPY) -DSNAPPY_INCLUDE_DIR="$(SNAPPY_SRC_DIR);$(SNAPPY_DIR)" -DWITH_SNAPPY=ON \
+-	  $(if $(use-stdmalloc),,-DJEMALLOC_LIBRARIES=$(LIBJEMALLOC) -DJEMALLOC_INCLUDE_DIR=$(JEMALLOC_DIR)/include -DWITH_JEMALLOC=ON) \
+-	  -DCMAKE_BUILD_TYPE=$(if $(ENABLE_ROCKSDB_ASSERTIONS),Debug,Release) \
+-	  -DFAIL_ON_WARNINGS=$(if $(findstring windows,$(XGOOS)),0,1) \
+-	  -DUSE_RTTI=1
+-
+-$(SNAPPY_DIR)/Makefile: $(C_DEPS_DIR)/snappy-rebuild | bin/.submodules-initialized
+-	rm -rf $(SNAPPY_DIR)
+-	mkdir -p $(SNAPPY_DIR)
+-	@# NOTE: If you change the CMake flags below, bump the version in
+-	@# $(C_DEPS_DIR)/snappy-rebuild. See above for rationale.
+-	cd $(SNAPPY_DIR) && cmake $(xcmake-flags) $(SNAPPY_SRC_DIR) \
+-	  -DCMAKE_BUILD_TYPE=Release
+-
+-$(LIBEDIT_SRC_DIR)/configure.ac: | bin/.submodules-initialized
+-
+-$(LIBEDIT_SRC_DIR)/configure: $(LIBEDIT_SRC_DIR)/configure.ac
+-	cd $(LIBEDIT_SRC_DIR) && autoconf
+-
+-$(LIBEDIT_DIR)/Makefile: $(C_DEPS_DIR)/libedit-rebuild $(LIBEDIT_SRC_DIR)/configure
+-	rm -rf $(LIBEDIT_DIR)
+-	mkdir -p $(LIBEDIT_DIR)
+-	@# NOTE: If you change the configure flags below, bump the version in
+-	@# $(C_DEPS_DIR)/libedit-rebuild. See above for rationale.
+-	cd $(LIBEDIT_DIR) && $(LIBEDIT_SRC_DIR)/configure $(xconfigure-flags) --disable-examples --disable-shared
+ 
+ # TODO(benesch): make it possible to build libroach without CCL code. Because
+ # libroach and libroachccl are defined in the same CMake project, CMake requires
+@@ -687,28 +598,28 @@ $(LIBROACH_DIR)/Makefile: $(C_DEPS_DIR)/libroach-rebuild | bin/.submodules-initi
+ # stats the directory tree in parallel, and can make the up-to-date
+ # determination in under 20ms.
+ 
+-$(PROTOC): $(PROTOC_DIR)/Makefile bin/uptodate .ALWAYS_REBUILD | $(LIBPROTOBUF)
+-	@uptodate $@ $(PROTOBUF_SRC_DIR) || $(MAKE) --no-print-directory -C $(PROTOC_DIR) protoc
++$(PROTOC):
++	@echo $@ managed by conda-forge
+ 
+ $(LIBCRYPTOPP): $(CRYPTOPP_DIR)/Makefile bin/uptodate .ALWAYS_REBUILD
+ 	@uptodate $@ $(CRYPTOPP_SRC_DIR) || $(MAKE) --no-print-directory -C $(CRYPTOPP_DIR) static
+ 
+-$(LIBJEMALLOC): $(JEMALLOC_DIR)/Makefile bin/uptodate .ALWAYS_REBUILD
+-	@uptodate $@ $(JEMALLOC_SRC_DIR) || $(MAKE) --no-print-directory -C $(JEMALLOC_DIR) build_lib_static
++$(LIBJEMALLOC):
++	@echo $@ managed by conda-forge
+ 
+-$(LIBPROTOBUF): $(PROTOBUF_DIR)/Makefile bin/uptodate .ALWAYS_REBUILD
+-	@uptodate $@ $(PROTOBUF_SRC_DIR) || $(MAKE) --no-print-directory -C $(PROTOBUF_DIR) libprotobuf
++$(LIBPROTOBUF):
++	@echo $@ partially managed by conda-forge
+ 
+-$(LIBSNAPPY): $(SNAPPY_DIR)/Makefile bin/uptodate .ALWAYS_REBUILD
+-	@uptodate $@ $(SNAPPY_SRC_DIR) || $(MAKE) --no-print-directory -C $(SNAPPY_DIR) snappy
++$(LIBSNAPPY):
++	@echo $@ managed by conda-forge
+ 
+-$(LIBEDIT): $(LIBEDIT_DIR)/Makefile bin/uptodate .ALWAYS_REBUILD
+-	@uptodate $@ $(LIBEDIT_SRC_DIR) || $(MAKE) --no-print-directory -C $(LIBEDIT_DIR)/src
++$(LIBEDIT):
++	@echo $@ managed by conda-forge
+ 
+-$(LIBROCKSDB): $(ROCKSDB_DIR)/Makefile bin/uptodate .ALWAYS_REBUILD
+-	@uptodate $@ $(ROCKSDB_SRC_DIR) || $(MAKE) --no-print-directory -C $(ROCKSDB_DIR) rocksdb
++$(LIBROCKSDB):
++	@echo $@ managed by conda-forge
+ 
+-libroach-inputs := $(LIBROACH_SRC_DIR) $(ROCKSDB_SRC_DIR)/include $(PROTOBUF_SRC_DIR)/src
++libroach-inputs := $(LIBROACH_SRC_DIR) $(PROTOBUF_SRC_DIR)/src
+ 
+ $(LIBROACH): $(LIBROACH_DIR)/Makefile bin/uptodate .ALWAYS_REBUILD
+ 	@uptodate $@ $(libroach-inputs) || $(MAKE) --no-print-directory -C $(LIBROACH_DIR) roach
+@@ -716,8 +627,8 @@ $(LIBROACH): $(LIBROACH_DIR)/Makefile bin/uptodate .ALWAYS_REBUILD
+ $(LIBROACHCCL): $(LIBROACH_DIR)/Makefile bin/uptodate .ALWAYS_REBUILD
+ 	@uptodate $@ $(libroach-inputs) || $(MAKE) --no-print-directory -C $(LIBROACH_DIR) roachccl
+ 
+-$(LIBKRB5): $(KRB5_DIR)/Makefile bin/uptodate .ALWAYS_REBUILD
+-	@uptodate $@ $(KRB5_SRC_DIR)/src || $(MAKE) --no-print-directory -C $(KRB5_DIR)
++$(LIBKRB5):
++	@echo $@ managed by conda-forge
+ 
+ # Convenient names for maintainers. Not used by other targets in the Makefile.
+ .PHONY: protoc libcryptopp libjemalloc libprotobuf libsnappy librocksdb libroach libroachccl libkrb5
+@@ -931,6 +842,12 @@ install: $(COCKROACH)
+ 	$(INSTALL) -d -m 755 $(DESTDIR)$(bindir)
+ 	$(INSTALL) -m 755 $(COCKROACH) $(DESTDIR)$(bindir)/cockroach
+ 
++.PHONY: install
++install-oss: ## Install the CockroachDB OSS binary.
++install-oss: $(COCKROACHOSS)
++	$(INSTALL) -d -m 755 $(DESTDIR)$(bindir)
++	$(INSTALL) -m 755 $(COCKROACHOSS) $(DESTDIR)$(bindir)/cockroach
++
+ .PHONY: start
+ start: $(COCKROACH)
+ start:
+@@ -1537,22 +1454,13 @@ c-deps-fmt:
+ .PHONY: clean-c-deps
+ clean-c-deps:
+ 	rm -rf $(CRYPTOPP_DIR)
+-	rm -rf $(JEMALLOC_DIR)
+-	rm -rf $(PROTOBUF_DIR)
+-	rm -rf $(ROCKSDB_DIR)
+-	rm -rf $(SNAPPY_DIR)
+ 	rm -rf $(LIBROACH_DIR)
+-	rm -rf $(KRB5_DIR)
+ 
+ .PHONY: unsafe-clean-c-deps
+ unsafe-clean-c-deps:
+ 	git -C $(CRYPTOPP_SRC_DIR) clean -dxf
+-	git -C $(JEMALLOC_SRC_DIR) clean -dxf
+ 	git -C $(PROTOBUF_SRC_DIR) clean -dxf
+-	git -C $(ROCKSDB_SRC_DIR)  clean -dxf
+-	git -C $(SNAPPY_SRC_DIR)   clean -dxf
+ 	git -C $(LIBROACH_SRC_DIR) clean -dxf
+-	git -C $(KRB5_SRC_DIR)     clean -dxf
+ 
+ .PHONY: clean-execgen-files
+ clean-execgen-files:
+-- 
+2.26.0
+
