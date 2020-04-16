@@ -9,5 +9,6 @@ export PATH=${cockroach}/bin:${PATH}
 
 # We only install the OSS version of cockroach.
 # The CCL version is not free.
+# Do not multithread this, upstream's makefile is project in itself
 make -j1 -C ${cockroach} install-oss prefix=$PREFIX \
 	EXTRA_XCMAKE_FLAGS="-DCMAKE_PREFIX_PATH=$PREFIX"
