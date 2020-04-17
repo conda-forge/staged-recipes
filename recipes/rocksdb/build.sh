@@ -11,11 +11,12 @@ cmake -g Ninja \
       -DUSE_RTTI=ON \
       -DWITH_GFLAGS=ON \
       -DWITH_JEMALLOC=ON \
-      -DWITH_LZ4=OFF \
+      -DWITH_LZ4=ON \
       -DWITH_SNAPPY=ON \
       -DWITH_TESTS=OFF \
       -DWITH_TOOLS=OFF \
       -DWITH_ZLIB=OFF \
+      -DWITH_ZSTD=ON \
       -S src \
       -B build
 
