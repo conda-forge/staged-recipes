@@ -1,0 +1,1 @@
+make condainstall PREFIX=$PREFIX
