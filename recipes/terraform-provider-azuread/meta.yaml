@@ -1,0 +1,56 @@
+{% set provider = "azuread" %}
+{% set goname = "github.com/terraform-providers/terraform-provider-"+provider.lower() %}
+{% set version = "0.8.0" %}
+
+{% set name = goname.split('/')[-1] %}
+{% set pkg_src = ('src/'+goname).replace("/",os.sep) %}
+
+{% set x4_plugin = name + '_v' + version + "_x4" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - folder:  {{ pkg_src }}
+    url: https://{{ goname }}/archive/v{{ version }}.tar.gz
+    sha256: eec745858a48905b95ffce60cc3b760285b49b5da10911aa7f7ec4120a9f6d75
+
+build:
+  skip: True  # [osx]
+  number: 0
+  script:
+    - pushd {{ pkg_src }}
+    - go build -v -o {{ target_gobin }}{{ x4_plugin }}{{ target_goexe }}
+
+requirements:
+  build:
+    - {{ compiler('go') }}
+  run:
+    - terraform >=0.12
+
+test:
+  requires:         # [win]
+    - m2-bash       # [win]
+    - m2-coreutils  # [win]
+
+  commands:
+    - bash -euf -c "echo 'provider \"{{ provider|lower }}\" { version=\"{{ version }}\" }' > init.tf"
+    - terraform init
+    # Tests that no plugins were downloaded
+    - test -f .terraform/plugins/{{ target_goos }}_{{ target_goarch }}/lock.json
+    - test ! -f .terraform/plugins/{{ target_goos }}_{{ target_goarch }}/{{ x4_plugin }}{{ target_goexe }}
+
+about:
+  home: https://www.terraform.io
+  license: MPL-2.0
+  license_family: MOZILLA
+  license_file: {{ pkg_src }}/LICENSE
+  summary: Terraform provider for Azure Active Directory
+  doc_url: https://www.terraform.io/docs/providers/{{ provider }}/index.html
+  dev_url: https://github.com/terraform-providers/{{ name }}
+
+extra:
+  recipe-maintainers:
+    - conda-forge/terraform
+    - dhirschfeld
