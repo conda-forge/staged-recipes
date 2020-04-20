@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euf
 
+# We unpack under the gopath directory
+pushd gopath
+
 # Upstream resets the PATH internally in their Makefile.
 # It does not work for us.
 cockroach=$(pwd)/src/github.com/cockroachdb/cockroach
