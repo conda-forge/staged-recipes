@@ -1,0 +1,212 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 2e3a686be..642f0c2c9 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -38,8 +38,11 @@ if (${BUILD_GRPC})
+   find_package(async_grpc REQUIRED)
+ endif()
+ 
+-include(FindPkgConfig)
+-PKG_SEARCH_MODULE(CAIRO REQUIRED cairo>=1.12.16)
++#include(FindPkgConfig)
++#PKG_SEARCH_MODULE(CAIRO REQUIRED cairo>=1.12.16)
++find_path(CAIRO_INCLUDE_DIRS cairo/cairo.h)
++find_library(CAIRO_LIBRARY cairo)
++set(CAIRO_LIBRARIES ${CAIRO_LIBRARY})
+ 
+ # Only build the documentation if we can find Sphinx.
+ find_package(Sphinx)
+@@ -123,7 +126,7 @@ foreach(ABS_FIL ${ALL_PROTOS})
+     OUTPUT "${PROJECT_BINARY_DIR}/${DIR}/${FIL_WE}.pb.cc"
+            "${PROJECT_BINARY_DIR}/${DIR}/${FIL_WE}.pb.h"
+     COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
+-    ARGS --cpp_out  ${PROJECT_BINARY_DIR} -I
++    ARGS --cpp_out dllexport_decl=CARTOGRAPHER_API_PUBLIC:${PROJECT_BINARY_DIR} -I
+       ${PROJECT_SOURCE_DIR} ${ABS_FIL}
+     DEPENDS ${ABS_FIL}
+     COMMENT "Running C++ protocol buffer compiler on ${ABS_FIL}"
+@@ -149,7 +152,7 @@ if(${BUILD_GRPC})
+       OUTPUT "${PROJECT_BINARY_DIR}/${DIR}/${FIL_WE}.pb.cc"
+              "${PROJECT_BINARY_DIR}/${DIR}/${FIL_WE}.pb.h"
+       COMMAND  ${PROTOBUF_PROTOC_EXECUTABLE}
+-      ARGS --cpp_out  ${PROJECT_BINARY_DIR}
++      ARGS --cpp_out dllexport_decl=CARTOGRAPHER_API_PUBLIC:${PROJECT_BINARY_DIR}
+         -I ${PROJECT_SOURCE_DIR}
+         ${ABS_FIL}
+       DEPENDS ${ABS_FIL}
+@@ -164,6 +167,8 @@ endif()
+ set(INSTALL_GENERATED_HDRS ${ALL_PROTO_HDRS} ${ALL_GRPC_SERVICE_HDRS})
+ 
+ add_library(${PROJECT_NAME} ${ALL_LIBRARY_HDRS} ${ALL_LIBRARY_SRCS})
++target_compile_definitions(${PROJECT_NAME} PRIVATE "CARTOGRAPHER_API_BUILDING_DLL")
++target_compile_definitions(${PROJECT_NAME} PRIVATE "CARTOGRAPHER_API_PUBLIC=__declspec(dllexport)")
+ 
+ configure_file(
+   ${PROJECT_SOURCE_DIR}/cartographer/common/config.h.cmake
+@@ -213,8 +218,8 @@ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
+ target_link_libraries(${PROJECT_NAME} PUBLIC ${Boost_LIBRARIES})
+ 
+ # We expect find_package(Ceres) to have located these for us.
+-target_link_libraries(${PROJECT_NAME} PUBLIC glog)
+-target_link_libraries(${PROJECT_NAME} PUBLIC gflags)
++#target_link_libraries(${PROJECT_NAME} PUBLIC glog)
++#target_link_libraries(${PROJECT_NAME} PUBLIC gflags)
+ 
+ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
+   "${CAIRO_INCLUDE_DIRS}")
+@@ -224,7 +229,7 @@ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
+   ${PROTOBUF_INCLUDE_DIR})
+ # TODO(hrapp): This should not explicitly list pthread and use
+ # PROTOBUF_LIBRARIES, but that failed on first try.
+-target_link_libraries(${PROJECT_NAME} PUBLIC ${PROTOBUF_LIBRARY} pthread)
++target_link_libraries(${PROJECT_NAME} PUBLIC ${PROTOBUF_LIBRARY})
+ if(${BUILD_GRPC})
+   target_link_libraries(${PROJECT_NAME} PUBLIC grpc++)
+   target_link_libraries(${PROJECT_NAME} PUBLIC async_grpc)
+@@ -238,6 +243,7 @@ set(TARGET_COMPILE_FLAGS "${TARGET_COMPILE_FLAGS} ${GOOG_CXX_FLAGS}")
+ set_target_properties(${PROJECT_NAME} PROPERTIES
+   COMPILE_FLAGS ${TARGET_COMPILE_FLAGS})
+ 
++if(NOT WIN32)
+ set(TEST_LIB
+   cartographer_test_library
+ )
+@@ -248,6 +254,7 @@ target_link_libraries(${TEST_LIB} PUBLIC ${GMOCK_LIBRARY})
+ target_link_libraries(${TEST_LIB} PUBLIC ${PROJECT_NAME})
+ set_target_properties(${TEST_LIB} PROPERTIES
+   COMPILE_FLAGS ${TARGET_COMPILE_FLAGS})
++target_compile_definitions(${TEST_LIB} PRIVATE "CARTOGRAPHER_API_PUBLIC=__declspec(dllimport)")
+ 
+ foreach(ABS_FIL ${ALL_TESTS})
+   file(RELATIVE_PATH REL_FIL ${PROJECT_SOURCE_DIR} ${ABS_FIL})
+@@ -264,7 +271,9 @@ foreach(ABS_FIL ${ALL_TESTS})
+     target_link_libraries("${TEST_TARGET_NAME}" PUBLIC prometheus-cpp)
+   endif()
+   target_link_libraries("${TEST_TARGET_NAME}" PUBLIC ${TEST_LIB})
++  target_compile_definitions("${TEST_TARGET_NAME}" PRIVATE "CARTOGRAPHER_API_PUBLIC=__declspec(dllimport)")
+ endforeach()
++endif()
+ 
+ # Add the binary directory first, so that port.h is included after it has
+ # been generated.
+diff --git a/cartographer/common/configuration_file_resolver.cc b/cartographer/common/configuration_file_resolver.cc
+index 9774caf10..99c703c7f 100644
+--- a/cartographer/common/configuration_file_resolver.cc
++++ b/cartographer/common/configuration_file_resolver.cc
+@@ -19,6 +19,7 @@
+ #include <fstream>
+ #include <iostream>
+ #include <streambuf>
++#include <cstdlib>
+ 
+ #include "cartographer/common/config.h"
+ #include "glog/logging.h"
+@@ -30,6 +31,8 @@ ConfigurationFileResolver::ConfigurationFileResolver(
+     const std::vector<std::string>& configuration_files_directories)
+     : configuration_files_directories_(configuration_files_directories) {
+   configuration_files_directories_.push_back(kConfigurationFilesDirectory);
++  if(const char* config_dir = std::getenv("CARTOGRAPHER_CONFIG_DIR"))
++    configuration_files_directories_.push_back(config_dir);
+ }
+ 
+ std::string ConfigurationFileResolver::GetFullPathOrDie(
+diff --git a/cartographer/common/internal/testing/thread_pool_for_testing.cc b/cartographer/common/internal/testing/thread_pool_for_testing.cc
+index f804e13b0..c987f68b9 100644
+--- a/cartographer/common/internal/testing/thread_pool_for_testing.cc
++++ b/cartographer/common/internal/testing/thread_pool_for_testing.cc
+@@ -16,7 +16,7 @@
+ 
+ #include "cartographer/common/internal/testing/thread_pool_for_testing.h"
+ 
+-#include <unistd.h>
++//#include <unistd.h>
+ #include <algorithm>
+ #include <chrono>
+ #include <numeric>
+diff --git a/cartographer/common/port.h b/cartographer/common/port.h
+index 338861f31..ad4fda295 100644
+--- a/cartographer/common/port.h
++++ b/cartographer/common/port.h
+@@ -25,6 +25,37 @@
+ #include <boost/iostreams/filter/gzip.hpp>
+ #include <boost/iostreams/filtering_stream.hpp>
+ 
++// This logic was borrowed (then namespaced) from the examples on the gcc wiki:
++//     https://gcc.gnu.org/wiki/Visibility
++
++#if defined _WIN32 || defined __CYGWIN__
++  #ifdef __GNUC__
++    #define CARTOGRAPHER_API_EXPORT __attribute__ ((dllexport))
++    #define CARTOGRAPHER_API_IMPORT __attribute__ ((dllimport))
++  #else
++    #define CARTOGRAPHER_API_EXPORT __declspec(dllexport)
++    #define CARTOGRAPHER_API_IMPORT __declspec(dllimport)
++  #endif
++  #ifdef CARTOGRAPHER_API_BUILDING_DLL
++    #define CARTOGRAPHER_API_PUBLIC CARTOGRAPHER_API_EXPORT
++  #else
++    #define CARTOGRAPHER_API_PUBLIC CARTOGRAPHER_API_IMPORT
++  #endif
++  #define CARTOGRAPHER_API_PUBLIC_TYPE CARTOGRAPHER_API_PUBLIC
++  #define CARTOGRAPHER_API_LOCAL
++#else
++  #define CARTOGRAPHER_API_EXPORT __attribute__ ((visibility("default")))
++  #define CARTOGRAPHER_API_IMPORT
++  #if __GNUC__ >= 4
++    #define CARTOGRAPHER_API_PUBLIC __attribute__ ((visibility("default")))
++    #define CARTOGRAPHER_API_LOCAL  __attribute__ ((visibility("hidden")))
++  #else
++    #define CARTOGRAPHER_API_PUBLIC
++    #define CARTOGRAPHER_API_LOCAL
++  #endif
++  #define CARTOGRAPHER_API_PUBLIC_TYPE
++#endif
++
+ namespace cartographer {
+ 
+ using int8 = int8_t;
+diff --git a/cartographer/common/thread_pool.cc b/cartographer/common/thread_pool.cc
+index bc3c743a0..db424d1a7 100644
+--- a/cartographer/common/thread_pool.cc
++++ b/cartographer/common/thread_pool.cc
+@@ -16,7 +16,7 @@
+ 
+ #include "cartographer/common/thread_pool.h"
+ 
+-#include <unistd.h>
++//#include <unistd.h>
+ #include <algorithm>
+ #include <chrono>
+ #include <numeric>
+diff --git a/cartographer/mapping/pose_graph_interface.h b/cartographer/mapping/pose_graph_interface.h
+index 6483ef4e9..645672077 100644
+--- a/cartographer/mapping/pose_graph_interface.h
++++ b/cartographer/mapping/pose_graph_interface.h
+@@ -18,6 +18,7 @@
+ #define CARTOGRAPHER_MAPPING_POSE_GRAPH_INTERFACE_H_
+ 
+ #include <vector>
++#include <array>
+ 
+ #include "cartographer/common/optional.h"
+ #include "cartographer/mapping/id.h"
+diff --git a/cmake/functions.cmake b/cmake/functions.cmake
+index 3bfd343f0..0451a6124 100644
+--- a/cmake/functions.cmake
++++ b/cmake/functions.cmake
+@@ -72,6 +72,7 @@ macro(google_initialize_cartographer_project)
+     set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
+         ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
+   endif()
++  if(NOT WIN32)
+   set(GOOG_CXX_FLAGS "-pthread -std=c++11 -fPIC ${GOOG_CXX_FLAGS}")
+ 
+   google_add_flag(GOOG_CXX_FLAGS "-Wall")
+@@ -126,6 +127,7 @@ macro(google_initialize_cartographer_project)
+     execute_process(COMMAND ${DETECT_CHANGES_CMD})
+   endif()
+   include(${FILES_LIST_PATH})
++  endif()
+ endmacro()
+ 
+ macro(google_enable_testing)
