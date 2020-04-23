@@ -12,5 +12,5 @@ cmake .. \
       -DCMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP=ON \
       -DBUILD_SHARED_LIBS=ON
 
-cmake --build . --config Release -- -j$CPU_COUNT
+cmake --build . --config Release
 cmake --build . --config Release --target install
