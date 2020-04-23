@@ -1,17 +1,26 @@
 #!/bin/bash
+#
+# Build script for EUPS conda recipe
+# 
+# Derived from the stackvana-core recipe by Matt Becker (GitHub @beckermr)
+# see: https://github.com/beckermr/stackvana-core/blob/master/recipe/build.sh
+#
+
 
 EUPS_HOME="${PREFIX}/eups"
 EUPS_DIR="${EUPS_HOME}"
 export EUPS_PATH="${PREFIX}/share/eups"
 
-EUPS_PYTHON=$PYTHON  # use PYTHON in the host env for eups
 
+EUPS_PYTHON=$PYTHON  # use PYTHON in the host env for eups
 mkdir -p ${EUPS_HOME}
+
 
 # Install EUPS
 echo -e "\nInstalling EUPS..."
 echo "Using python at ${EUPS_PYTHON} to install EUPS"
 # echo "Configured EUPS_PKGROOT: ${EUPS_PKGROOT}"
+
 
 mkdir -p "${EUPS_PATH}"/{site,ups_db}
 touch "${EUPS_PATH}/ups_db/.conda_keep"
@@ -21,9 +30,15 @@ touch "${EUPS_PATH}/ups_db/.conda_keep"
     --with-python="${EUPS_PYTHON}"
 make install
 
+
 # eups installs readonly, need to give permission to the user in order to complete the packaging
 chmod -R a+r "${EUPS_DIR}"
 chmod -R u+w "${EUPS_DIR}"
+
+
+# turn off eups locking
+echo "hooks.config.site.lockDirectoryBase = None" >> ${EUPS_DIR}/site/startup.py
+
 
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
 # This will allow them to be run on environment activation.
