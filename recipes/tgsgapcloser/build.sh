@@ -1,1 +1,1 @@
-make condainstall PREFIX=$PREFIX
+make condainstall PREFIX=$PREFIX CC=$CC CXX=$CXX
