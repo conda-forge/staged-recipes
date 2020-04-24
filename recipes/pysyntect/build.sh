@@ -20,7 +20,7 @@ rustc --version
 maturin build --release -i $PYTHON
 
 # Uninstall Rust
-rustup self uninstall
+rustup self uninstall -y
 
 cd target/wheels
 

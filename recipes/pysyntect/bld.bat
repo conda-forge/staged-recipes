@@ -13,7 +13,7 @@ REM Use PEP517 to install the package
 REM pip install -U . --no-build-isolation
 maturin build --release -i %PYTHON%
 REM Uninstall Rust
-rustup self uninstall
+rustup self uninstall -y
 REM Install wheel
 cd target/wheels
 REM set UTF-8 mode by default
