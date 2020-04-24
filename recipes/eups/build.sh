@@ -39,6 +39,16 @@ chmod -R u+w "${EUPS_DIR}"
 # turn off eups locking
 echo "hooks.config.site.lockDirectoryBase = None" >> ${EUPS_DIR}/site/startup.py
 
+# make eups use a sane path to python in scripts
+# the long line causes failures on linux
+for fname in "eups" "eups_setup"; do
+    cp ${EUPS_DIR}/bin/${fname} ${EUPS_DIR}/bin/${fname}.bak
+    echo "#!/usr/bin/env python" > ${EUPS_DIR}/bin/${fname}
+    tail -n +1 ${EUPS_DIR}/bin/${fname}.bak >> ${EUPS_DIR}/bin/${fname}
+    chmod 755 ${EUPS_DIR}/bin/${fname}
+    rm ${EUPS_DIR}/bin/${fname}.bak
+done
+
 
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
 # This will allow them to be run on environment activation.

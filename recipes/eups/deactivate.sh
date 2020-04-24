@@ -12,6 +12,7 @@ while [[ -n "$pkg" && "$pkg" != "eups" ]]; do
     unsetup $pkg > /dev/null 2>&1
     pkg=`eups list -s --topological -D --raw 2>/dev/null | head -1 | cut -d'|' -f1`
 done
+unset pkg
 
 
 # clean out the path, removing EUPS_DIR/bin
@@ -24,6 +25,8 @@ WORK=${WORK//$REMOVE/:}
 WORK=${WORK%:}
 WORK=${WORK#:}
 export PATH=$WORK
+unset WORK
+unset REMOVE
 
 
 # restore EUPS env variables existing prior to the activation
@@ -34,9 +37,9 @@ for var in EUPS_PATH EUPS_SHELL SETUP_EUPS EUPS_DIR EUPS_PKGROOT; do
     export $var="${!bkvar}"
     unset "$bkvar"
   fi
-  unset bkvar
-  unset var
 done
+unset bkvar
+unset var
 unset -f setup
 if [[ "$BACKUP_setup" ]]; then
   eval "$BACKUP_setup"
