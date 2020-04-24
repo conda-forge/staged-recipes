@@ -1,0 +1,197 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index e3810b8..b39a08b 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -126,7 +126,6 @@ option(PREFER_EXTERNAL_ZSTD
+ 
+ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+ 
+-
+ if (NOT DEACTIVATE_LZ4)
+     if (PREFER_EXTERNAL_LZ4)
+         find_package(LZ4)
+diff --git a/blosc/CMakeLists.txt b/blosc/CMakeLists.txt
+index fdbcb6c..a71e416 100644
+--- a/blosc/CMakeLists.txt
++++ b/blosc/CMakeLists.txt
+@@ -144,6 +144,10 @@ if (HAVE_IPP)
+     set(LIBS ${LIBS} "${IPP_LIBRARIES}")
+ endif (HAVE_IPP)
+ 
++if (UNIX AND NOT APPLE)
++    set(LIBS ${LIBS} "rt")
++endif (UNIX AND NOT APPLE)
++
+ # targets
+ if (BUILD_SHARED)
+     add_library(blosc2_shared SHARED ${SOURCES})
+@@ -184,11 +188,11 @@ endif (COMPILER_SUPPORT_SSE2)
+ if (COMPILER_SUPPORT_AVX2)
+     if (MSVC)
+         set_source_files_properties(
+-                shuffle-avx2.c bitshuffle-avx2.c blosclz.c fastcopy.c
++                shuffle-avx2.c bitshuffle-avx2.c
+                 PROPERTIES COMPILE_FLAGS "/arch:AVX2")
+     else (MSVC)
+         set_source_files_properties(
+-                shuffle-avx2.c bitshuffle-avx2.c blosclz.c fastcopy.c
++                shuffle-avx2.c bitshuffle-avx2.c
+                 PROPERTIES COMPILE_FLAGS -mavx2)
+     endif (MSVC)
+ 
+diff --git a/blosc/context.h b/blosc/context.h
+index 3a72697..921d484 100644
+--- a/blosc/context.h
++++ b/blosc/context.h
+@@ -17,8 +17,8 @@
+ #endif
+ 
+ /* Have problems using posix barriers when symbol value is 200112L */
+-/* This requires more investigation, but will work for the moment */
+-#if defined(_POSIX_BARRIERS) && (_POSIX_BARRIERS >= 200112L)
++/* Requires more investigation, but this will work for the moment */
++#if defined(_POSIX_BARRIERS) && ( (_POSIX_BARRIERS - 20012L) >= 0 && _POSIX_BARRIERS != 200112L)
+ #define BLOSC_POSIX_BARRIERS
+ #endif
+ 
+diff --git a/blosc/shuffle.c b/blosc/shuffle.c
+index beecbd1..d9765c3 100644
+--- a/blosc/shuffle.c
++++ b/blosc/shuffle.c
+@@ -421,7 +421,7 @@ bitshuffle(const int32_t bytesoftype, const int32_t blocksize,
+                                              size, bytesoftype, (void *) _tmp);
+   if (ret < 0) {
+     // Some error in bitshuffle (should not happen)
+-    printf(stderr, "the impossible happened: the bitshuffle filter failed!");
++    fprintf(stderr, "the impossible happened: the bitshuffle filter failed!");
+     return ret;
+   }
+ 
+@@ -451,7 +451,7 @@ int32_t bitunshuffle(const int32_t bytesoftype, const int32_t blocksize,
+                                                    bytesoftype, (void *) _tmp);
+       if (ret < 0) {
+         // Some error in bitshuffle (should not happen)
+-        printf(stderr, "the impossible happened: the bitunshuffle filter failed!");
++        fprintf(stderr, "the impossible happened: the bitunshuffle filter failed!");
+         return ret;
+       }
+       /* Copy the leftovers (we do so starting from c-blosc 1.18 on) */
+@@ -468,7 +468,7 @@ int32_t bitunshuffle(const int32_t bytesoftype, const int32_t blocksize,
+     int ret = (host_implementation.bitunshuffle)((void *) _src, (void *) _dest,
+                                                  size, bytesoftype, (void *) _tmp);
+     if (ret < 0) {
+-      printf(stderr, "the impossible happened: the bitunshuffle filter failed!");
++      fprintf(stderr, "the impossible happened: the bitunshuffle filter failed!");
+       return ret;
+     }
+ 
+diff --git a/cmake/FindSIMD.cmake b/cmake/FindSIMD.cmake
+new file mode 100644
+index 0000000..9a12ac1
+--- /dev/null
++++ b/cmake/FindSIMD.cmake
+@@ -0,0 +1,58 @@
++# Check if SSE/AVX instructions are available on the machine where
++# the project is compiled.
++
++IF(CMAKE_SYSTEM_NAME MATCHES "Linux")
++   EXEC_PROGRAM(cat ARGS "/proc/cpuinfo" OUTPUT_VARIABLE CPUINFO)
++
++   STRING(REGEX REPLACE "^.*(sse2).*$" "\\1" SSE_THERE ${CPUINFO})
++   STRING(COMPARE EQUAL "sse2" "${SSE_THERE}" SSE2_TRUE)
++   IF (SSE2_TRUE)
++      set(SSE2_FOUND true CACHE BOOL "SSE2 available on host")
++   ELSE (SSE2_TRUE)
++      set(SSE2_FOUND false CACHE BOOL "SSE2 available on host")
++   ENDIF (SSE2_TRUE)
++
++   STRING(REGEX REPLACE "^.*(avx2).*$" "\\1" SSE_THERE ${CPUINFO})
++   STRING(COMPARE EQUAL "avx2" "${SSE_THERE}" AVX2_TRUE)
++   IF (AVX2_TRUE)
++      set(AVX2_FOUND true CACHE BOOL "AVX2 available on host")
++   ELSE (AVX2_TRUE)
++      set(AVX2_FOUND false CACHE BOOL "AVX2 available on host")
++   ENDIF (AVX2_TRUE)
++
++ELSEIF(CMAKE_SYSTEM_NAME MATCHES "Darwin")
++   EXEC_PROGRAM("/usr/sbin/sysctl -a | grep machdep.cpu.features" OUTPUT_VARIABLE CPUINFO)
++   STRING(REGEX REPLACE "^.*[^S](SSE2).*$" "\\1" SSE_THERE ${CPUINFO})
++   STRING(COMPARE EQUAL "SSE2" "${SSE_THERE}" SSE2_TRUE)
++   IF (SSE2_TRUE)
++      set(SSE2_FOUND true CACHE BOOL "SSE2 available on host")
++   ELSE (SSE2_TRUE)
++      set(SSE2_FOUND false CACHE BOOL "SSE2 available on host")
++   ENDIF (SSE2_TRUE)
++
++   EXEC_PROGRAM("/usr/sbin/sysctl -a | grep machdep.cpu.leaf7_features" OUTPUT_VARIABLE CPUINFO)
++   STRING(REGEX REPLACE "^.*(AVX2).*$" "\\1" SSE_THERE ${CPUINFO})
++   STRING(COMPARE EQUAL "AVX2" "${SSE_THERE}" AVX2_TRUE)
++   IF (AVX2_TRUE)
++      set(AVX2_FOUND true CACHE BOOL "AVX2 available on host")
++   ELSE (AVX2_TRUE)
++      set(AVX2_FOUND false CACHE BOOL "AVX2 available on host")
++   ENDIF (AVX2_TRUE)
++
++ELSEIF(CMAKE_SYSTEM_NAME MATCHES "Windows")
++   # TODO.  For now supposing SSE2 is safe enough
++   set(SSE2_FOUND   true  CACHE BOOL "SSE2 available on host")
++   set(AVX2_FOUND   false CACHE BOOL "AVX2 available on host")
++ELSE(CMAKE_SYSTEM_NAME MATCHES "Linux")
++   set(SSE2_FOUND   true  CACHE BOOL "SSE2 available on host")
++   set(AVX2_FOUND false CACHE BOOL "AVX2 available on host")
++ENDIF(CMAKE_SYSTEM_NAME MATCHES "Linux")
++
++if(NOT SSE2_FOUND)
++      MESSAGE(STATUS "Could not find hardware support for SSE2 on this machine.")
++endif(NOT SSE2_FOUND)
++if(NOT AVX2_FOUND)
++      MESSAGE(STATUS "Could not find hardware support for AVX2 on this machine.")
++endif(NOT AVX2_FOUND)
++
++mark_as_advanced(SSE2_FOUND AVX2_FOUND)
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+index a300015..6105704 100644
+--- a/tests/CMakeLists.txt
++++ b/tests/CMakeLists.txt
+@@ -5,6 +5,9 @@ file(GLOB SOURCES test_*.c)
+ link_directories(${PROJECT_BINARY_DIR}/blosc)
+ include_directories(${PROJECT_SOURCE_DIR}/blosc)
+ 
++# Check SIMD features for the local CPU
++find_package(SIMD)
++
+ # targets and tests
+ foreach (source ${SOURCES})
+     get_filename_component(target ${source} NAME_WE)
+@@ -26,25 +29,25 @@ foreach (source ${SOURCES})
+     endif()
+ 
+     # Enable support for testing accelerated shuffles
+-    if (COMPILER_SUPPORT_SSE2)
+-        # Define a symbol so tests for SSE2 shuffle/unshuffle will be compiled in.
++    if (COMPILER_SUPPORT_SSE2 AND SSE2_FOUND)
++        # Define a symbol so tests for SSE2 shuffle/unshuffle will be compiled in *and* there is support in the CPU for it.
+         set_property(
+                 SOURCE ${source}
+                 APPEND PROPERTY COMPILE_DEFINITIONS SHUFFLE_SSE2_ENABLED)
+     elseif (target STREQUAL test_shuffle_roundtrip_sse2)
+         message("Skipping ${target} on non-SSE2 builds")
+         continue()
+-    endif (COMPILER_SUPPORT_SSE2)
++    endif (COMPILER_SUPPORT_SSE2 AND SSE2_FOUND)
+ 
+-    if(COMPILER_SUPPORT_AVX2)
+-        # Define a symbol so tests for AVX2 shuffle/unshuffle will be compiled in.
++    if (COMPILER_SUPPORT_AVX2 AND AVX2_FOUND)
++        # Define a symbol so tests for AVX2 shuffle/unshuffle will be compiled in *and* there is support in the CPU for it.
+         set_property(
+                 SOURCE ${source}
+                 APPEND PROPERTY COMPILE_DEFINITIONS SHUFFLE_AVX2_ENABLED)
+     elseif (target STREQUAL test_shuffle_roundtrip_avx2)
+         message("Skipping ${target} on non-AVX2 builds")
+         continue()
+-    endif(COMPILER_SUPPORT_AVX2)
++    endif(COMPILER_SUPPORT_AVX2 AND AVX2_FOUND)
+ 
+     if(COMPILER_SUPPORT_NEON)
+          # Define a symbol so tests for NEON shuffle/unshuffle will be compiled in.
