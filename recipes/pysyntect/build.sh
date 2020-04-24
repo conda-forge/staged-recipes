@@ -19,6 +19,9 @@ rustc --version
 # Apply PEP517 to install the package
 maturin build --release -i $PYTHON
 
+# Uninstall Rust
+rustup self uninstall
+
 cd target/wheels
 
 # Install wheel manually
