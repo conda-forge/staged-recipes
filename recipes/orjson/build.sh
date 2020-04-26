@@ -1,0 +1,1 @@
+maturin build --no-sdist --release --strip --manylinux off
