@@ -2,7 +2,8 @@
 mkdir build
 cd build
 
-cmake ../ \
+cmake .. \
+      -GNinja \
       -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_PREFIX_PATH=$PREFIX \
@@ -16,5 +17,4 @@ cmake ../ \
       -DBINDER_MATLAB=OFF \
         -DMatlab_ezc3d_INSTALL_DIR=$PREFIX/MATLAB
 
-make -j $CPU_COUNT
-make install
+ninja install
