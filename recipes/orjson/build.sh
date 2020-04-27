@@ -11,6 +11,8 @@ set -ex
 if [ "$c_compiler" = gcc ] ; then
     case "$BUILD" in
         x86_64-*) rust_env_arch=X86_64_UNKNOWN_LINUX_GNU ;;
+        aarch64-*) rust_env_arch=AARCH64_UNKNOWN_LINUX_GNU ;;
+        powerpc64le-*) rust_env_arch=POWERPC64LE_UNKNOWN_LINUX_GNU ;;
         *) echo "unknown BUILD $BUILD" ; exit 1 ;;
     esac
 
