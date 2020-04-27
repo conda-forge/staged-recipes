@@ -4,7 +4,7 @@ mkdir build
 cd build
 
 export LDFLAGS="$LDFLAGS -lrt"
-export CXXFLAGS="$CXXFLAGS -lstdc++fs"
+export CXXFLAGS="$CXXFLAGS -lstdc++fs -lrt"
 
 cmake \
     -DCMAKE_BUILD_TYPE="Release"                                          \
