@@ -2,8 +2,6 @@
 
 set -ex
 
-./install.sh --prefix=$PREFIX
-
 # Fun times -- by default, Rust/Cargo tries to link executables on Linux by
 # invoking `cc`. An executable of this name is not necessarily available. By
 # setting a magic environment variable, we can override this default.
