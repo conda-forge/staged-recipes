@@ -18,3 +18,8 @@ if [ "$c_compiler" = gcc ] ; then
 
     export CARGO_TARGET_${rust_env_arch}_LINKER=\$CC
 fi
+
+${SRC_DIR}/rust-nightly/install.sh --verbose --prefix=${SRC_DIR}/rust-nightly-install --disable-ldconfig
+export PATH=${SRC_DIR}/rust-nightly-install/bin:$PATH
+maturin build --no-sdist --release --strip --manylinux off
+"${PYTHON}" -m pip install . -vv
