@@ -2,9 +2,7 @@
 
 set -ex
 
-# Fun times -- by default, Rust/Cargo tries to link executables on Linux by
-# invoking `cc`. An executable of this name is not necessarily available. By
-# setting a magic environment variable, we can override this default.
+# See https://github.com/conda-forge/rust-feedstock/blob/master/recipe/build.sh for cc env explanation
 
 if [ "$c_compiler" = gcc ] ; then
     case "$BUILD" in
