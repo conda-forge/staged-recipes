@@ -16,13 +16,5 @@ if [ "$c_compiler" = gcc ] ; then
         *) echo "unknown BUILD $BUILD" ; exit 1 ;;
     esac
 
-    mkdir -p $PREFIX/etc/conda/activate.d $PREFIX/etc/conda/deactivate.d
-
-    cat <<EOF >$PREFIX/etc/conda/activate.d/rust.sh
-export CARGO_TARGET_${rust_env_arch}_LINKER=\$CC
-EOF
-
-    cat <<EOF >$PREFIX/etc/conda/deactivate.d/rust.sh
-unset CARGO_TARGET_${rust_env_arch}_LINKER
-EOF
+    export CARGO_TARGET_${rust_env_arch}_LINKER=\$CC
 fi
