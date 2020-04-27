@@ -474,7 +474,7 @@ def add_dependency_nodes_and_edges(node, graph, run, worker, conda_resolve, reci
                                             conda_resolve, recipes_dir, config=config, finalize=finalize)
             if not dep_name:
                 raise ValueError("Tried to build recipe {0} as dependency, which is skipped "
-                                 "in meta_old.yaml".format(recipe_dir))
+                                 "in meta.yaml".format(recipe_dir))
             graph.add_edge(node, dep_name)
 
 

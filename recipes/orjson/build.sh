@@ -12,7 +12,6 @@ if [ "$c_compiler" = gcc ] ; then
         aarch64-*) rust_env_arch=AARCH64_UNKNOWN_LINUX_GNU ;;
         powerpc64le-*) rust_env_arch=POWERPC64LE_UNKNOWN_LINUX_GNU ;;
         *) echo "unknown BUILD $BUILD" ; exit 1 ;;
-    esac
 
     export CARGO_TARGET_${rust_env_arch}_LINKER=\$CC
 fi
