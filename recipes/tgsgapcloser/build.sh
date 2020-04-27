@@ -6,7 +6,6 @@ export CFLAGS=" -L$BUILD_PREFIX/lib "$CFLAGS
 export CPPFLAGS=" -L$BUILD_PREFIX/lib "$CPPFLAGS
 export CXXFLAGS=" -L$BUILD_PREFIX/lib "$CXXFLAGS
 export LD_FLAGS=" -L$BUILD_PREFIX/lib "$LD_FLAGS
-#       LD_LIBRARY_PATH
 echo "include $BUILD_PREFIX/include"
 echo "lib $BUILD_PREFIX/lib"
 make condainstall PREFIX=$PREFIX CC=$CC CXX=$CXX
