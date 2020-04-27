@@ -3,7 +3,6 @@ set -ex
 mkdir build
 cd build
 
-export LDFLAGS="$LDFLAGS -lrt"
 export CXXFLAGS="$CXXFLAGS -lstdc++fs -lrt"
 
 cmake \
