@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export SENTENCEPIECE_HOME=${PREFIX}/lib/sentencepiece
-export PKG_CONFIG_PATH=${SENTENCEPIECE_HOME}/lib/pkgconfig
+export PKG_CONFIG_PATH=${SENTENCEPIECE_HOME}
 
 # mkdir build && cd build
 #
