@@ -12,7 +12,6 @@ cmake .. \
       -DMODULE_ACTUATORS=ON \
       -DMODULE_MUSCLES=ON \
       -DBINDER_PYTHON3=ON \
-        -DNUMPY_INCLUDES=$PREFIX/numpy/core/include \
         -DPython3_EXECUTABLE=$PREFIX/bin/python \
       -DBINDER_MATLAB=OFF \
         -DMatlab_ezc3d_INSTALL_DIR=$PREFIX/MATLAB
