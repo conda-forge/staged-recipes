@@ -1,5 +1,5 @@
 set CFG=Release
-set CMAKE_GENERATOR=Visual Studio 16 2019
+:: set CMAKE_GENERATOR=Visual Studio 16 2019
 pushd src
   cmake -G"%CMAKE_GENERATOR%"  ^
         -DCMAKE_BUILD_TYPE=%CFG%  ^
