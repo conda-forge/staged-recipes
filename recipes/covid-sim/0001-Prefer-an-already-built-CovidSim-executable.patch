@@ -1,0 +1,83 @@
+From de2177ec40ccc4774144eca92813dca72631f087 Mon Sep 17 00:00:00 2001
+From: Ray Donnelly <mingw.android@gmail.com>
+Date: Tue, 28 Apr 2020 14:04:09 +0200
+Subject: [PATCH] Prefer an already-built CovidSim executable
+
+---
+ tests/regressiontest_UK_100th.py | 52 ++++++++++++++++++++++++++++----
+ 1 file changed, 46 insertions(+), 6 deletions(-)
+
+diff --git a/tests/regressiontest_UK_100th.py b/tests/regressiontest_UK_100th.py
+index 5b31181..197a652 100755
+--- a/tests/regressiontest_UK_100th.py
++++ b/tests/regressiontest_UK_100th.py
+@@ -77,6 +77,43 @@ import subprocess
+ 
+ testdir='regressiontest_UK_100th'
+ 
++# https://gist.github.com/4368898
++# Public domain code by anatoly techtonik <techtonik@gmail.com>
++# AKA Linux `which` and Windows `where`
++
++def find_executable(executable, path=None):
++    """Find if 'executable' can be run. Looks for it in 'path'
++    (string that lists directories separated by 'os.pathsep';
++    defaults to os.environ['PATH']). Checks for all executable
++    extensions. Returns full path or None if no command is found.
++    """
++    if path is None:
++        path = os.environ['PATH']
++    paths = path.split(os.pathsep)
++    extlist = ['']
++    if os.name == 'os2':
++        (base, ext) = os.path.splitext(executable)
++        # executable files on OS/2 can have an arbitrary extension, but
++        # .exe is automatically appended if no dot is present in the name
++        if not ext:
++            executable = executable + ".exe"
++    elif sys.platform == 'win32':
++        pathext = os.environ['PATHEXT'].lower().split(os.pathsep)
++        (base, ext) = os.path.splitext(executable)
++        if ext.lower() not in pathext:
++            extlist = pathext
++    for ext in extlist:
++        execname = executable + ext
++        if os.path.isfile(execname):
++            return execname
++        else:
++            for p in paths:
++                f = os.path.join(p, execname)
++                if os.path.isfile(f):
++                    return f
++    else:
++        return None
++
+ failed = False
+ accept_results = False
+ if len(sys.argv) > 1 and sys.argv[1] == '--accept':
+@@ -90,13 +127,16 @@ updir1 = os.pardir + os.sep
+ shutil.rmtree(testdir, True)
+ os.mkdir(testdir)
+ os.chdir(testdir)
+-subprocess.check_call(['cmake', '-DCMAKE_CXX_FLAGS=-DNO_WIN32_BM', updir2 + 'src'])
+-subprocess.check_call(['cmake', '--build', '.'])
+ 
+-if os.name == 'nt':
+-    covidsim_exe = os.getcwd() + os.sep + 'Debug\CovidSim.exe'
+-else:
+-    covidsim_exe = os.getcwd() + os.sep + 'CovidSim'
++covidsim_exe = find_executable('CovidSim')
++if not covidsim_exe:
++    subprocess.check_call(['cmake', '-DCMAKE_CXX_FLAGS=-DNO_WIN32_BM', updir2 + 'src'])
++    subprocess.check_call(['cmake', '--build', '.'])
++
++    if os.name == 'nt':
++        covidsim_exe = os.getcwd() + os.sep + 'Debug\CovidSim.exe'
++    else:
++        covidsim_exe = os.getcwd() + os.sep + 'CovidSim'
+ print(covidsim_exe)
+ 
+ # Population density file in gziped form, text file, and binary file as
+-- 
+2.23.0
+
