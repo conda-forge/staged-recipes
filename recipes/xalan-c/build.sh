@@ -10,7 +10,7 @@ else
     export CXXCPP=${CPP}
 fi
 
-./runConfigure -p ${platform} -c $CC -x $CXX -b 64 -P ${PREFIX} ${EXTRA_CXX_OPTIONS}
+./runConfigure -p ${platform} -c $CC -x $CXX -b 64 -P ${PREFIX}
 
 make
 make install
