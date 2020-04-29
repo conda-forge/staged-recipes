@@ -5,12 +5,8 @@ export XALANCROOT=$(pwd)
 
 if [ $(uname) == Darwin ]; then
     platform=macosx
-    #CC=clang
-    #CXX=clang++
-    EXTRA_CXX_OPTIONS="-z -stdlib=libc++"
 else
     platform=linux
-    CXX=${GXX}
     export CXXCPP=${CPP}
 fi
 
