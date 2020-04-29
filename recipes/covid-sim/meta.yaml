@@ -1,0 +1,109 @@
+{% set name = 'covid-sim' %}
+{% set from_git = 'no' %}
+
+package:
+  name: {{ name }}-suite
+{% if from_git == 'no' %}
+{% set version = '0.8.0' %}
+  version: {{ version }}
+{% else %}
+  version: {{ GIT_DESCRIBE_TAG }}
+{% endif %}
+
+source:
+{% if from_git == 'no' %}
+  url: https://github.com/mrc-ide/{{ name }}/archive/v{{ version }}.tar.gz
+  sha256: 64beba8fbfc9c4737a7d41492507e5997f48f8fe40471048f04cc2a7cf50f47c
+{% else %}
+  git_url: https://github.com/mrc-ide/covid-sim
+  git_tag: master
+{% endif %}
+  patches:
+    - 0001-Prefer-an-already-built-CovidSim-executable.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+{% if 'conda-forge' in channel_targets %}
+    - libgomp  # [linux]
+{% else %}
+    - intel-openmp  # [not osx and blas_impl == 'mkl']
+{% endif %}
+    - llvm-openmp  # [osx]
+    - cmake
+    - make  # [not win]
+
+test:
+  commands:
+    - echo "Hello conda-forge linter"
+
+outputs:
+  - name: covid-sim-data
+    build:
+      noarch: generic
+    files:
+      - data
+    test:
+      commands:
+        - test -d ${CONDA_PREFIX}/data  # [not win]
+
+  - name: covid-sim
+    script: install-covid-sim.sh  # [unix]
+    script: install-covid-sim.bat  # [win]
+    build:
+      detect_binary_files_with_prefix: False
+      missing_dso_whitelist:  # [win]
+        # May not be working? For sure using \\'s did not work
+        - C:/Windows/System32/gdiplus.dll'  # [win]
+        - '*'  # [win]
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+{% if 'conda-forge' in channel_targets %}
+        - libgomp  # [linux]
+{% else %}
+        - intel-openmp  # [not osx and blas_impl == 'mkl']
+{% endif %}
+        - llvm-openmp  # [osx]
+        - cmake
+        - make  # [not win]
+      host:
+        - llvm-openmp  # [osx]
+      run:
+        - llvm-openmp  # [osx]
+        - {{ pin_subpackage('covid-sim-data') }}
+    test:
+      source_files:
+        - tests/*
+      script: test-covid-sim.sh  # [not win]
+      script: test-covid-sim.bat  # [win]
+
+      requires:
+        - ripgrep
+        - python >=3.6
+        - nss  # [not win]
+        - coreutils  # [osx]
+
+about:
+  home: https://github.com/mrc-ide/covid-sim
+  license: GPL-3.0-only
+  license_file: LICENSE.md
+  summary: COVID-19 CovidSim Model  
+  description: |
+    This is the COVID-19 CovidSim microsimulation model developed
+    by the MRC Centre for Global Infectious Disease Analysis hosted
+    at Imperial College, London.
+    CovidSim models the transmission dynamics and severity of COVID-19
+    infections throughout a spatially and socially structured population
+    over time. It enables modelling of how intervention policies and
+    healthcare provision affect the spread of COVID-19. With parameter
+    changes, it can be used to model other respiratory viruses,
+    such as influenza.
+  dev_url: https://github.com/mrc-ide/covid-sim
+
+extra:
+  recipe-maintainers:
+    - mingwandroid
