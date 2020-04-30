@@ -11,7 +11,8 @@ cargo install cargo-license
 
 # Check that all downstream libraries licenses are present
 export PATH=$PATH:/home/conda/.cargo/bin
-eval $(cargo-license --json > dependencies.json)
+cargo-license --json > $RECIPE_DIR/dependencies.json
+cat $RECIPE_DIR/dependencies.json
 
 python $RECIPE_DIR/check_licenses.py
 
