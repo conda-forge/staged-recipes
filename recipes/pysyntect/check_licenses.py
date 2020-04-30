@@ -11,7 +11,7 @@ import os.path as osp
 RECIPE_DIR = os.environ['RECIPE_DIR']
 
 BASE_GLOB = '{0}-LICENSE.*'
-DEPENDENCIES = osp.join(RECIPE_DIR, 'dependencies.json')
+DEPENDENCIES = 'dependencies.json'
 LIBRARY_LICENSES = osp.join(RECIPE_DIR, 'library_licenses')
 
 
