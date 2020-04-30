@@ -7,10 +7,12 @@ export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=$CC
 rustc --version
 
 # Install cargo-license
+export CARGO_HOME="$BUILD_PREFIX/cargo"
+mkdir CARGO_HOME
 cargo install cargo-license
 
 # Check that all downstream libraries licenses are present
-export PATH=$PATH:/home/conda/.cargo/bin
+export PATH=$PATH:$CARGO_HOME
 cargo-license --json > dependencies.json
 cat dependencies.json
 
