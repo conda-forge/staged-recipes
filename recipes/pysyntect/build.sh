@@ -12,7 +12,7 @@ mkdir CARGO_HOME
 cargo install cargo-license
 
 # Check that all downstream libraries licenses are present
-export PATH=$PATH:$CARGO_HOME
+export PATH=$PATH:$CARGO_HOME/bin
 cargo-license --json > dependencies.json
 cat dependencies.json
 
