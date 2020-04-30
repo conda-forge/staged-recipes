@@ -53,7 +53,8 @@ def build_all(recipes_dir, arch):
                 if not built:
                     old_comp_folders.append(folder)
                     continue
-        new_comp_folders.append(folder)
+        if not built:
+            new_comp_folders.append(folder)
 
     if old_comp_folders:
         print("Building {} with conda-forge/label/cf201901".format(','.join(old_comp_folders)))
