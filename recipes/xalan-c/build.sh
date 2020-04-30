@@ -1,9 +1,9 @@
+#!/bin/bash
 
 export XERCESCROOT=${PREFIX}
-export XALANCROOT=$(pwd)
+export XALANCROOT=${SRC_DIR}
 
-
-if [ $(uname) == Darwin ]; then
+if [[ ${target_platform} == osx-64 ]]; then
     platform=macosx
 else
     platform=linux
