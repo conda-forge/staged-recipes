@@ -32,7 +32,7 @@ unset REMOVE
 # restore EUPS env variables existing prior to the activation
 for var in EUPS_PATH EUPS_SHELL SETUP_EUPS EUPS_DIR EUPS_PKGROOT; do
   unset $var
-  bkvar="BACKUP_$var"
+  bkvar="CONDA_EUPS_BACKUP_$var"
   if [[ "${!bkvar}" ]]; then
     export $var="${!bkvar}"
     unset "$bkvar"
@@ -41,18 +41,18 @@ done
 unset bkvar
 unset var
 unset -f setup
-if [[ "$BACKUP_setup" ]]; then
-  eval "$BACKUP_setup"
-  unset BACKUP_setup
+if [[ "$CONDA_EUPS_BACKUP_setup" ]]; then
+  eval "$CONDA_EUPS_BACKUP_setup"
+  unset CONDA_EUPS_BACKUP_setup
 fi
 unset -f unsetup
-if [[ "$BACKUP_unsetup" ]]; then
-  eval "$BACKUP_unsetup"
-  unset BACKUP_unsetup
+if [[ "$CONDA_EUPS_BACKUP_unsetup" ]]; then
+  eval "$CONDA_EUPS_BACKUP_unsetup"
+  unset CONDA_EUPS_BACKUP_unsetup
 fi
 
 
 # restoring exisisting python path
-export PYTHONPATH=${BACKUP_PYTHONPATH}
-unset BACKUP_PYTHONPATH
+export PYTHONPATH=${CONDA_EUPS_BACKUP_PYTHONPATH}
+unset CONDA_EUPS_BACKUP_PYTHONPATH
 
