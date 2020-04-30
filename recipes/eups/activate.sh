@@ -25,7 +25,9 @@ fi
 
 
 # backup the python path in case eups is changing it
-export CONDA_EUPS_BACKUP_PYTHONPATH=${PYTHONPATH}
+if [[ "${PYTHONPATH}" ]]; then
+  export CONDA_EUPS_BACKUP_PYTHONPATH=${PYTHONPATH}
+fi
 
 
 # initializing eups
