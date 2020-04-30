@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 
 """Verify that pysyntect dependency licenses are present."""

@@ -8,8 +8,11 @@ rustc --version
 
 # Install cargo-license
 cargo install cargo-license
+
 # Check that all downstream libraries licenses are present
-cargo-license --json > dependencies.json
+export PATH=$PATH:/home/conda/.cargo/bin
+eval $(cargo-license --json > dependencies.json)
+
 python $RECIPE_DIR/check_licenses.py
 
 # Apply PEP517 to install the package
