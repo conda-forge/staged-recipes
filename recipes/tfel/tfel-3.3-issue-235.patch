@@ -1,0 +1,440 @@
+From d041c93ee2936b111cfa9bf66fed4ef5d3e94bb9 Mon Sep 17 00:00:00 2001
+From: HELFER Thomas 202608 <thomas.helfer@cea.fr>
+Date: Fri, 1 May 2020 11:07:10 +0200
+Subject: [PATCH 1/4] Work in Ticket #235
+
+---
+ CMakeLists.txt                        | 34 ++++++++++++++++++++++
+ bindings/python/mfront/CMakeLists.txt | 23 ++++-----------
+ bindings/python/mtest/CMakeLists.txt  | 27 ++++-------------
+ bindings/python/std/CMakeLists.txt    | 16 +++++-----
+ bindings/python/tfel/CMakeLists.txt   | 28 +++++++++++++-----
+ cmake/modules/tfel.cmake              | 55 ++++++++++++++++++++++-------------
+ 6 files changed, 107 insertions(+), 76 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index b8fe7f73..1c0b441a 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -268,6 +268,13 @@ option(enable-python-bindings "enable  python bindings support" OFF)
+ option(enable-broken-boost-python-module-visibility-handling
+   "workaround a bug in boost python which occurs on FreeBSD+clang. See https://github.com/boostorg/python/issues/173 for details" OFF)
+ 
++if( (DEFINED ENV{"CONDA_BUILD=1"}) AND APPLE)
++  set(python-static-interpreter-workaround ON)
++else()
++ option(python-static-interpreter-workaround
++   "a workaround to handle the fact the conda' python interpreter is statically linked, which causes issues on Mac Os. See for details https://github.com/ContinuumIO/anaconda-issues/issues/9078. A proper solution may only appear with CMake 3.15 with the `Python::module` target, see https://gitlab.kitware.com/cmake/cmake/issues/18100. Until this version is widely available, this flag proposes a hack. Use with care." OFF)
++endif()
++ 
+ if(enable-python OR enable-python-bindings)
+   find_package(PythonLibs REQUIRED)
+   set(HAVE_PYTHON ON)
+@@ -388,6 +395,33 @@ if(enable-python-bindings)
+     message(FATAL_ERROR "Boost python libraries not found.\n"
+       "Required packages are :" ${BOOST_MANDATORY_COMPONENTS})
+   endif(Boost_PYTHON_FOUND)
++if(TFEL_USES_CONAN)
++    if(NOT python-static-interpreter-workaround)
++      set(TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES
++        ${CONAN_LIBS} ${PYTHON_LIBRARIES})
++    else(python-static-interpreter-workaround)
++      if(APPLE)
++        set(TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES
++          ${CONAN_LIBS})
++      else(APPLE)
++        set(TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES
++          ${CONAN_LIBS} ${PYTHON_LIBRARIES})
++      endif(APPLE)
++    endif()
++  else(TFEL_USES_CONAN)
++    if(NOT python-static-interpreter-workaround)
++      set(TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES
++        ${Boost_PYTHON_LIBRARY} ${PYTHON_LIBRARIES})
++    else()
++      if(APPLE)
++        set(TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES
++          ${Boost_PYTHON_LIBRARY})
++      else(APPLE)
++        set(TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES
++          ${Boost_PYTHON_LIBRARY} ${PYTHON_LIBRARIES})
++      endif(APPLE)
++    endif()
++  endif(TFEL_USES_CONAN)
+   if(DEFINED TFEL_TMP_BUILD_SHARED_LIBS)
+     unset(TFEL_TMP_BUILD_SHARED_LIBS)
+     unset(BUILD_SHARED_LIBS)
+diff --git a/bindings/python/mfront/CMakeLists.txt b/bindings/python/mfront/CMakeLists.txt
+index d846d3f8..0e45593c 100644
+--- a/bindings/python/mfront/CMakeLists.txt
++++ b/bindings/python/mfront/CMakeLists.txt
+@@ -1,22 +1,6 @@
+ add_subdirectory(umatxx)
+ add_subdirectory(mtest)
+ 
+-include_directories("${PROJECT_SOURCE_DIR}/bindings/python/include")
+-include_directories("${PROJECT_SOURCE_DIR}/mfront/include")
+-include_directories("${PROJECT_SOURCE_DIR}/include")
+-include_directories(SYSTEM "${Boost_INCLUDE_DIRS}")
+-include_directories(SYSTEM "${PYTHON_INCLUDE_DIRS}")
+-
+-link_directories("${Boost_LIBRARY_DIRS}")
+-link_directories("${PYTHON_LIBRARY_PATH}")
+-link_directories("${PROJECT_BINARY_DIR}/src/Exception")
+-link_directories("${PROJECT_BINARY_DIR}/src/Utilities")
+-link_directories("${PROJECT_BINARY_DIR}/src/Math")
+-link_directories("${PROJECT_BINARY_DIR}/src/System")
+-link_directories("${PROJECT_BINARY_DIR}/src/Glossary")
+-link_directories("${PROJECT_BINARY_DIR}/src/Tests")
+-link_directories("${PROJECT_BINARY_DIR}/mfront/src")
+-
+ mfront_python_module(_mfront mfront.cxx
+   AbstractDSL.cxx
+   FileDescription.cxx
+@@ -35,10 +19,13 @@ mfront_python_module(_mfront mfront.cxx
+   GeneratorOptions.cxx
+   MakefileGenerator.cxx
+   CMakeGenerator.cxx)
+-target_link_libraries(py_mfront__mfront TFELMFront
++target_link_libraries(py_mfront__mfront
++  PRIVATE
++  TFELMFront
+   MFrontLogStream TFELMaterial
+   TFELMathParser  TFELSystem
+   TFELUtilities   TFELGlossary
+-  TFELException   TFELConfig)
++  TFELException   TFELConfig
++  ${TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES})
+ 
+ tfel_python_script(mfront __init__.py)
+diff --git a/bindings/python/mtest/CMakeLists.txt b/bindings/python/mtest/CMakeLists.txt
+index 82776745..59f6e7aa 100644
+--- a/bindings/python/mtest/CMakeLists.txt
++++ b/bindings/python/mtest/CMakeLists.txt
+@@ -1,20 +1,3 @@
+-include_directories("${PROJECT_SOURCE_DIR}/bindings/python/include")
+-include_directories("${PROJECT_SOURCE_DIR}/include")
+-include_directories("${PROJECT_SOURCE_DIR}/mfront/include")
+-include_directories("${PROJECT_SOURCE_DIR}/mtest/include")
+-include_directories(SYSTEM "${Boost_INCLUDE_DIRS}")
+-include_directories(SYSTEM "${PYTHON_INCLUDE_DIRS}")
+-
+-link_directories("${PROJECT_BINARY_DIR}/mtest/src")
+-link_directories("${PROJECT_BINARY_DIR}/src/Exception")
+-link_directories("${PROJECT_BINARY_DIR}/src/Utilities")
+-link_directories("${PROJECT_BINARY_DIR}/src/Material")
+-link_directories("${PROJECT_BINARY_DIR}/src/Math")
+-link_directories("${PROJECT_BINARY_DIR}/src/System")
+-link_directories("${PROJECT_BINARY_DIR}/src/Tests")
+-link_directories("${Boost_LIBRARY_DIRS}")
+-link_directories("${PYTHON_LIBRARY_PATH}")
+-
+ mtest_python_module(_mtest
+   pymtest.cxx
+   Behaviour.cxx
+@@ -32,10 +15,10 @@ mtest_python_module(_mtest
+   MFrontLogStream.cxx)
+ 
+ target_link_libraries(py_mtest__mtest
+-  TFELMTest
+-  TFELMaterial
+-  TFELMath
+-  TFELUtilities
+-  TFELException)
++  PRIVATE
++  TFELMTest TFELMaterial
++  TFELMath  TFELUtilities
++  TFELException
++  ${TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES})
+ 
+ tfel_python_script(mtest __init__.py)
+diff --git a/bindings/python/std/CMakeLists.txt b/bindings/python/std/CMakeLists.txt
+index 81c1c31b..f069cf82 100644
+--- a/bindings/python/std/CMakeLists.txt
++++ b/bindings/python/std/CMakeLists.txt
+@@ -1,14 +1,14 @@
+-include_directories("${PROJECT_SOURCE_DIR}/bindings/python/include")
+-include_directories("${PROJECT_SOURCE_DIR}/include")
+-include_directories(SYSTEM "${Boost_INCLUDE_DIRS}")
+-include_directories(SYSTEM "${PYTHON_INCLUDE_DIRS}")
+-
+-link_directories("${Boost_LIBRARY_DIRS}")
+-link_directories("${PYTHON_LIBRARY_PATH}")
+-
+ std_python_module(_stl_vector vector.cxx)
++target_link_libraries(py_std__stl_vector
++  PRIVATE ${TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES})
+ std_python_module(_stl_map    map.cxx)
++target_link_libraries(py_std__stl_map
++  PRIVATE ${TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES})
+ std_python_module(_stl_pair   pair.cxx)
++target_link_libraries(py_std__stl_pair
++  PRIVATE ${TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES})
+ std_python_module(_stl_tuple  tuple.cxx)
++target_link_libraries(py_std__stl_tuple
++  PRIVATE ${TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES})
+ 
+ tfel_python_script(std __init__.py)
+diff --git a/bindings/python/tfel/CMakeLists.txt b/bindings/python/tfel/CMakeLists.txt
+index 0aff6aa7..9d31768a 100644
+--- a/bindings/python/tfel/CMakeLists.txt
++++ b/bindings/python/tfel/CMakeLists.txt
+@@ -14,32 +14,41 @@ link_directories("${PYTHON_LIBRARY_PATH}")
+ 
+ tfel_python_module(_tfel tfel.cxx
+   PhysicalConstants.cxx)
++target_link_libraries(py_tfel__tfel
++  PRIVATE ${TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES})
+ 
+ tfel_python_module(tests tests.cxx
+   TestResult.cxx
+   XMLTestOutput.cxx)
+-target_link_libraries(py_tfel_tests TFELTests)
++target_link_libraries(py_tfel_tests
++  PRIVATE TFELTests ${TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES})
+ 
+ if(NOT WIN32)
+ tfel_python_module(utilities utilities.cxx
+   Data.cxx
+   TextData.cxx)
+-target_link_libraries(py_tfel_utilities TFELUtilities)
++target_link_libraries(py_tfel_utilities
++  PRIVATE TFELUtilities ${TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES})
+ endif(NOT WIN32)
+ 
+ tfel_python_module(glossary
+   pyglossary.cxx
+   Glossary.cxx
+   GlossaryEntry.cxx)
+-target_link_libraries(py_tfel_glossary TFELGlossary)
++target_link_libraries(py_tfel_glossary
++  PRIVATE TFELGlossary ${TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES})
+ 
+-tfel_python_module(math math.cxx
++set(TFEL_PYTHON_MATH_MODULE_SOURCES
++  math.cxx
+   vector.cxx
+   tvector.cxx
+   stensor.cxx
+   st2tost2.cxx
+   Evaluator.cxx)
+-target_link_libraries(py_tfel_math TFELMath TFELMathParser TFELException)
++ target_link_libraries(py_tfel_math
++   PRIVATE
++	 TFELMath TFELMathParser TFELException
++   ${TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES})
+ 
+ tfel_python_module(material
+   material.cxx
+@@ -49,7 +58,10 @@ tfel_python_module(material
+   PiPlane.cxx
+   Barlat.cxx
+   Hosford.cxx)
+-target_link_libraries(py_tfel_material TFELMaterial TFELMath TFELException)
++target_link_libraries(py_tfel_material
++  PRIVATE
++  TFELMaterial TFELMath TFELException
++  ${TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES})
+ 
+ if(NOT WIN32)
+   tfel_python_module(system system.cxx
+@@ -65,6 +77,8 @@ else(NOT WIN32)
+     ExternalBehaviourDescription.cxx)
+ endif(NOT WIN32)
+ target_link_libraries(py_tfel_system
+-  TFELSystem)
++  PRIVATE
++  TFELSystem
++  ${TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES})
+ 
+ tfel_python_script(tfel __init__.py)
+diff --git a/cmake/modules/tfel.cmake b/cmake/modules/tfel.cmake
+index 7adfdd84..5929aa5f 100644
+--- a/cmake/modules/tfel.cmake
++++ b/cmake/modules/tfel.cmake
+@@ -405,13 +405,19 @@ macro(python_module_base fullname name)
+   endif(WIN32)
+   set_target_properties(py_${fullname} PROPERTIES PREFIX "")
+   set_target_properties(py_${fullname} PROPERTIES OUTPUT_NAME ${name})
+-  if(TFEL_USES_CONAN)
+-    target_link_libraries(py_${fullname}
+-      ${CONAN_LIBS} ${PYTHON_LIBRARIES})
+-  else(TFEL_USES_CONAN)
+-    target_link_libraries(py_${fullname}
+-      ${Boost_PYTHON_LIBRARY} ${PYTHON_LIBRARIES})
+-  endif(TFEL_USES_CONAN)
++  target_include_directories(py_${fullname}
++    PRIVATE "${PROJECT_SOURCE_DIR}/bindings/python/include"
++    PRIVATE "${PROJECT_SOURCE_DIR}/include")
++  target_include_directories(py_${fullname}
++    SYSTEM
++    PRIVATE "${Boost_INCLUDE_DIRS}"
++    PRIVATE "${PYTHON_INCLUDE_DIRS}")
++  if(python-static-interpreter-workaround)
++    if(APPLE)
++      target_link_options(py_${fullname}
++        PRIVATE "-undefined" "dynamic_lookup")
++    endif(APPLE)
++  endif(python-static-interpreter-workaround)
+ endmacro(python_module_base)
+ 
+ # macro(python_module name)
+@@ -427,7 +433,7 @@ endmacro(python_module_base)
+ #     endif(TFEL_APPEND_SUFFIX)
+ # endmacro(python_module)
+ 
+-macro(python_lib_module name package)
++function(python_lib_module name package)
+   python_module_base(${package}_${name} ${name} ${ARGN})
+   if(TFEL_APPEND_SUFFIX)
+     if(WIN32)
+@@ -450,25 +456,32 @@ macro(python_lib_module name package)
+         COMPONENT python_bindings)
+     endif(WIN32)
+   endif(TFEL_APPEND_SUFFIX)
+-endmacro(python_lib_module)
++endfunction(python_lib_module)
+ 
+-macro(std_python_module name)
++function(std_python_module name)
+   python_lib_module(${name} std ${ARGN})
+-endmacro(std_python_module)
++endfunction(std_python_module)
+ 
+-macro(tfel_python_module name)
++function(tfel_python_module name)
+   python_lib_module(${name} tfel ${ARGN})
+-endmacro(tfel_python_module)
++endfunction(tfel_python_module)
+ 
+-macro(mfront_python_module name)
++function(mfront_python_module name)
+   python_lib_module(${name} mfront ${ARGN})
+-endmacro(mfront_python_module)
++  set(fullname "mfront_${name}")
++  target_include_directories(py_${fullname}
++    PRIVATE "${PROJECT_SOURCE_DIR}/mfront/include")
++endfunction(mfront_python_module)
+ 
+-macro(mtest_python_module name)
++function(mtest_python_module name)
+   python_lib_module(${name} mtest ${ARGN})
+-endmacro(mtest_python_module)
++  set(fullname "mtest_${name}")
++  target_include_directories(py_${fullname}
++    PRIVATE "${PROJECT_SOURCE_DIR}/mtest/include"
++    PRIVATE "${PROJECT_SOURCE_DIR}/mfront/include")
++endfunction(mtest_python_module)
+ 
+-macro(tfel_python_script_base dir)
++function(tfel_python_script_base dir)
+   if(${ARGC} LESS 1)
+     message(FATAL_ERROR "tfel_python_script_base : no script specified")
+   endif(${ARGC} LESS 1)
+@@ -500,12 +513,12 @@ macro(tfel_python_script_base dir)
+         COMPONENT python_bindings)
+     endif(WIN32)
+   endforeach(pyscript ${ARGN})
+-endmacro(tfel_python_script_base)
++endfunction(tfel_python_script_base)
+ 
+-macro(tfel_python_script dir)
++function(tfel_python_script dir)
+   if(TFEL_APPEND_SUFFIX)
+     tfel_python_script_base(${dir}_${TFEL_SUFFIX_FOR_PYTHON_MODULES} ${ARGN})
+   else(TFEL_APPEND_SUFFIX)
+     tfel_python_script_base(${dir} ${ARGN})
+   endif(TFEL_APPEND_SUFFIX)
+-endmacro(tfel_python_script)
++endfunction(tfel_python_script)
+-- 
+2.11.0
+
+
+From ec8fb84631848b586f930ecc9e9ee79df1701db0 Mon Sep 17 00:00:00 2001
+From: HELFER Thomas 202608 <thomas.helfer@cea.fr>
+Date: Fri, 1 May 2020 14:26:01 +0200
+Subject: [PATCH 2/4] More work on Issue 235
+
+---
+ bindings/python/tfel/CMakeLists.txt | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/bindings/python/tfel/CMakeLists.txt b/bindings/python/tfel/CMakeLists.txt
+index 9d31768a..f7ff7db1 100644
+--- a/bindings/python/tfel/CMakeLists.txt
++++ b/bindings/python/tfel/CMakeLists.txt
+@@ -38,16 +38,16 @@ tfel_python_module(glossary
+ target_link_libraries(py_tfel_glossary
+   PRIVATE TFELGlossary ${TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES})
+ 
+-set(TFEL_PYTHON_MATH_MODULE_SOURCES
++tfel_python_module(math
+   math.cxx
+   vector.cxx
+   tvector.cxx
+   stensor.cxx
+   st2tost2.cxx
+   Evaluator.cxx)
+- target_link_libraries(py_tfel_math
++target_link_libraries(py_tfel_math
+    PRIVATE
+-	 TFELMath TFELMathParser TFELException
++   TFELMath TFELMathParser TFELException
+    ${TFEL_PYTHON_MODULES_PRIVATE_LINK_LIBRARIES})
+ 
+ tfel_python_module(material
+-- 
+2.11.0
+
+
+From fd03de91891cba8fbf73919f248e51b0be856e6d Mon Sep 17 00:00:00 2001
+From: HELFER Thomas 202608 <thomas.helfer@cea.fr>
+Date: Fri, 1 May 2020 14:32:04 +0200
+Subject: [PATCH 3/4] More work on Issue 235
+
+---
+ CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 1c0b441a..f32d5739 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -268,7 +268,7 @@ option(enable-python-bindings "enable  python bindings support" OFF)
+ option(enable-broken-boost-python-module-visibility-handling
+   "workaround a bug in boost python which occurs on FreeBSD+clang. See https://github.com/boostorg/python/issues/173 for details" OFF)
+ 
+-if( (DEFINED ENV{"CONDA_BUILD=1"}) AND APPLE)
++if( (DEFINED ENV{"CONDA_PREFIX"}) AND APPLE)
+   set(python-static-interpreter-workaround ON)
+ else()
+  option(python-static-interpreter-workaround
+-- 
+2.11.0
+
+
+From e4908c7a471376e1bedf042930d0105563745cfe Mon Sep 17 00:00:00 2001
+From: HELFER Thomas 202608 <thomas.helfer@cea.fr>
+Date: Fri, 1 May 2020 14:42:59 +0200
+Subject: [PATCH 4/4] More work on Issue 235
+
+---
+ CMakeLists.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f32d5739..a1b9e6c2 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -269,6 +269,7 @@ option(enable-broken-boost-python-module-visibility-handling
+   "workaround a bug in boost python which occurs on FreeBSD+clang. See https://github.com/boostorg/python/issues/173 for details" OFF)
+ 
+ if( (DEFINED ENV{"CONDA_PREFIX"}) AND APPLE)
++  message("Enabling workaround for Issue 235")
+   set(python-static-interpreter-workaround ON)
+ else()
+  option(python-static-interpreter-workaround
+-- 
+2.11.0
+
