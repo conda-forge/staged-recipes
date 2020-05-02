@@ -1,3 +1,0 @@
-#!/bin/bash
-$PYTHON -m pip install numpy scipy pytest
-$PYTHON -m pip install -e -v .
