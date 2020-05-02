@@ -2,7 +2,7 @@
 # This install script is intended for conda-forge, and assumes the conda env
 # is already set up. If you need to set up a conda env, I suggest running
 # conda_build.sh instead.
-
+set -x
 
 #if [ "$platform" = "Linux" ]; then
 #    export CXX=`which g++`
@@ -13,8 +13,9 @@
 #    export CXX=`which g++`
 #fi
 echo "Begin loos build.sh"
-which g++
-echo $GXX
+export CXX=x86_64-conda_cos6-linux-gnu-c++
+which $CXX
+export CONDA_PREFIX=$BUILD_PREFIX
 
-scons CXX=$GXX PREFIX=$CONDA_PREFIX
-scons CXX=$GXX PREFIX=$CONDA_PREFIX install
+scons PREFIX=$CONDA_PREFIX
+scons PREFIX=$CONDA_PREFIX install
