@@ -57,7 +57,8 @@ cmake "${SRC_DIR}" -G "${CMAKE_GENERATOR}"         \
       -Denable-doxygen-doc=OFF\
       -Denable-portable-build=ON\
       -DCMAKE_EXPORT_COMPILE_COMMANDS=OFF\
-      -DCMAKE_INSTALL_PREFIX="${PREFIX}"
+      -DCMAKE_INSTALL_PREFIX="${PREFIX}"\
+      -Dpython-static-interpreter-workaround=ON
 
 cmake --build . --target all
 cmake --build . --target install
