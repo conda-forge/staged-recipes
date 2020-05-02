@@ -1,3 +1,3 @@
 set "CMAKE_GENERATOR=Ninja"
 
-$PYTHON -m pip install . --no-deps --ignore-installed -vv
+python -m pip install . --no-deps --ignore-installed -vv
