@@ -13,7 +13,6 @@ set -x
 #    export CXX=`which g++`
 #fi
 echo "Begin loos build.sh"
-export CXX=x86_64-conda_cos6-linux-gnu-c++
 which $CXX
 export CONDA_PREFIX=$BUILD_PREFIX
 
