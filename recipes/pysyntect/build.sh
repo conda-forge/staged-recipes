@@ -8,7 +8,7 @@ rustc --version
 
 # Install cargo-license
 export CARGO_HOME="$BUILD_PREFIX/cargo"
-mkdir CARGO_HOME
+mkdir $CARGO_HOME
 cargo install cargo-license
 
 # Check that all downstream libraries licenses are present

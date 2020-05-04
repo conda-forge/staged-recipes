@@ -1,7 +1,15 @@
 REM Print Rust version
 rustc --version
+REM Install cargo-license
+set CARGO_HOME="%BUILD_PREFIX%/cargo"
+mkdir %CARGO_HOME%
+cargo install cargo-license
+REM Check that all downstream libraries licenses are present
+set PATH=%PATH%;%CARGO_HOME%\bin
+cargo-license --json > dependencies.json
+cat dependencies.json
+python %RECIPE_DIR%/check_licenses.py
 REM Use PEP517 to install the package
-REM pip install -U . --no-build-isolation
 maturin build --release -i %PYTHON%
 REM Install wheel
 cd target/wheels
