@@ -1,7 +1,7 @@
 REM Print Rust version
 rustc --version
 REM Install cargo-license
-set CARGO_HOME="%BUILD_PREFIX%/cargo"
+set CARGO_HOME="%BUILD_PREFIX%\cargo"
 mkdir %CARGO_HOME%
 cargo install cargo-license
 REM Check that all downstream libraries licenses are present
