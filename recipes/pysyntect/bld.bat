@@ -1,7 +1,7 @@
 REM Print Rust version
 rustc --version
 REM Install cargo-license
-set CARGO_HOME="%BUILD_PREFIX%\cargo"
+set CARGO_HOME=%BUILD_PREFIX%\cargo
 mkdir %CARGO_HOME%
 icacls %CARGO_HOME% /grant Users:F
 cargo install cargo-license
