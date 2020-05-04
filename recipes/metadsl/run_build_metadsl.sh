@@ -1,3 +1,2 @@
 #!/usr/bin/env bash
-
-flit install
+flit install --deps none
