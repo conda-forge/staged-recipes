@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-flit -f rewrite-poyproject.toml install --deps none
+flit -f rewrite-pyproject.toml install --deps none
