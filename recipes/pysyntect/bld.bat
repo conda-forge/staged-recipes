@@ -8,7 +8,7 @@ REM Check that all downstream libraries licenses are present
 set PATH=%PATH%;%CARGO_HOME%\bin
 cargo-license --json > dependencies.json
 cat dependencies.json
-python %RECIPE_DIR%/check_licenses.py
+python %RECIPE_DIR%\check_licenses.py
 REM Use PEP517 to install the package
 maturin build --release -i %PYTHON%
 REM Install wheel
