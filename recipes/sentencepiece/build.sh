@@ -11,4 +11,5 @@ make -j4 && make install
 cd ..
 cd python
 
-python setup.py install  --single-version-externally-managed --record=record.txt
+python setup.py build
+python setup.py install
