@@ -1,0 +1,82 @@
+{% set version = "1.6.3" %}
+
+package:
+  name: faiss
+  version: {{ version }}
+
+source:
+  url: https://github.com/facebookresearch/faiss/archive/v{{ version }}.tar.gz
+  sha256: e1a41c159f0b896975fbb133e0240a233af5c9286c09a28fde6aefff5336e542
+
+build:
+  number: 0
+  skip: True  # [win]
+
+# Need these up here for conda-smithy to handle them properly.
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+  host:
+    - python
+  run:
+    - python
+
+outputs:
+  - name: faiss-cpu
+    script: build-cpu.sh
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - swig
+        - cmake
+        - llvm-openmp  # [osx]
+        - libgomp      # [linux]
+      host:
+        - python
+        - pip
+        - blas =*=mkl
+        - mkl-devel
+        - numpy =1.14.*
+      run:
+        - blas =*=mkl
+        - mkl-devel
+        - numpy
+
+    test:
+      requires:
+        # this is necessary for a single test in the test suite
+        - scipy
+      source_files:
+        - tests/
+        - conda/faiss/run_test.py
+      imports:
+        - faiss
+      commands:
+        - python conda/faiss/run_test.py
+        - python -m unittest discover tests
+
+#   - name: faiss-gpu
+#     build:
+#       script: build-gpu.sh  # [unix]
+#     # [removed for the moment]
+
+about:
+  home: https://github.com/facebookresearch/faiss
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: 'fit piecewise linear data for a specified number of line segments '
+
+  description: |
+    Faiss is a library for efficient similarity search and clustering of dense vectors.
+    It contains algorithms that search in sets of vectors of any size, up to ones that
+    possibly do not fit in RAM. It also contains supporting code for evaluation and
+    parameter tuning. Faiss is written in C++ with complete wrappers for Python/numpy.
+    Some of the most useful algorithms are implemented on the GPU. It is developed by
+    [Facebook AI Research](https://research.fb.com/category/facebook-ai-research-fair/).
+  doc_url: https://rawgit.com/facebookresearch/faiss/master/docs/html/annotated.html
+  dev_url: https://github.com/facebookresearch/faiss
+
+extra:
+  recipe-maintainers:
+    - h-vetinari
