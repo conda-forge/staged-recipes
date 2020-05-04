@@ -1,3 +1,6 @@
+REM Create temp folder
+mkdir tmpbuild_%PY_VER%
+set TEMP=%CD%\tmpbuild_%PY_VER%
 REM Print Rust version
 rustc --version
 REM Install cargo-license
@@ -18,6 +21,4 @@ REM set UTF-8 mode by default
 chcp 65001
 set PYTHONUTF8=1
 set PYTHONIOENCODING="UTF-8"
-mkdir tmpbuild_%PY_VER%
-set TEMP=%CD%\tmpbuild_%PY_VER%
 FOR %%w in (*.whl) DO pip install %%w --build tmpbuild_%PY_VER%
