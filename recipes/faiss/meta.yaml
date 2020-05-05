@@ -12,18 +12,69 @@ build:
   number: 0
   skip: True  # [win]
 
-# Need these up here for conda-smithy to handle them properly.
 requirements:
   build:
     - {{ compiler('cxx') }}
-  host:
-    - python
-  run:
-    - python
 
 outputs:
+  - name: libfaiss-cpu
+    script: build-lib-cpu.sh
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - cmake
+        - llvm-openmp  # [osx]
+        - libgomp      # [linux]
+      host:
+        - blas =*=mkl
+        - mkl-devel
+      run:
+        - blas =*=mkl
+        - mkl-devel
+
+    test:
+      commands:
+        # shared
+        - test -f $PREFIX/lib/libfaiss.so                           # [linux]
+        - test -f $PREFIX/lib/libfaiss.dylib                        # [osx]
+        - if not exist %PREFIX%\\Library\\bin\\libfaiss.dll exit 1  # [win]
+
+        # absence of static libraries
+        - test ! -f $PREFIX/lib/libfaiss.a                          # [not win]
+        - if exist %PREFIX%\\Library\\lib\\libfaiss.lib exit 1      # [win]
+
+        # conda tools
+        - conda inspect linkages -p $PREFIX $PKG_NAME               # [not win]
+        - conda inspect objects -p $PREFIX $PKG_NAME                # [osx]
+
+        # headers for folder './', 'impl/', 'utils/'
+        {% for each_header in [
+            'AutoTune.h', 'clone_index.h', 'Clustering.h', 'DirectMap.h',
+            'Index.h', 'Index2Layer.h', 'IndexBinary.h', 'IndexBinaryFlat.h',
+            'IndexBinaryFromFloat.h', 'IndexBinaryHash.h', 'IndexBinaryHNSW.h',
+            'IndexBinaryIVF.h', 'IndexFlat.h', 'IndexHNSW.h', 'IndexIVF.h',
+            'IndexIVFFlat.h', 'IndexIVFPQ.h', 'IndexIVFPQR.h',
+            'IndexIVFSpectralHash.h', 'IndexLattice.h', 'IndexLSH.h', 'IndexPQ.h',
+            'IndexPreTransform.h', 'IndexReplicas.h', 'IndexScalarQuantizer.h',
+            'IndexShards.h', 'index_factory.h', 'index_io.h', 'InvertedLists.h',
+            'IVFlib.h', 'MatrixStats.h', 'MetaIndexes.h', 'MetricType.h',
+            'OnDiskInvertedLists.h', 'VectorTransform.h',
+            'impl/AuxIndexStructures.h', 'impl/FaissAssert.h', 'impl/FaissException.h',
+            'impl/HNSW.h', 'impl/io.h', 'impl/lattice_Zn.h', 'impl/PolysemousTraining.h',
+            'impl/ProductQuantizer-inl.h', 'impl/ProductQuantizer.h',
+            'impl/ScalarQuantizer.h', 'impl/ThreadedIndex-inl.h', 'impl/ThreadedIndex.h',
+            'utils/distances.h', 'utils/extra_distances.h', 'utils/hamming-inl.h',
+            'utils/hamming.h', 'utils/Heap.h', 'utils/random.h', 'utils/utils.h',
+            'utils/WorkerThread.h'
+        ] %}
+        - test -f $PREFIX/include/faiss/{{ each_header }}                                    # [unix]
+        - if not exist %LIBRARY_INC%\\faiss\\{{ "\\".join(each_header.split("/")) }} exit 1  # [win]
+        {% endfor %}
+
   - name: faiss-cpu
     script: build-cpu.sh
+    build:
+      skip: true
     requirements:
       build:
         - {{ compiler('cxx') }}
@@ -65,7 +116,7 @@ about:
   license: MIT
   license_family: MIT
   license_file: LICENSE
-  summary: 'fit piecewise linear data for a specified number of line segments '
+  summary: 'A library for efficient similarity search and clustering of dense vectors.'
 
   description: |
     Faiss is a library for efficient similarity search and clustering of dense vectors.
