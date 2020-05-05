@@ -7,8 +7,6 @@ export LD_LIBRARY_PATH=${PREFIX}/lib:${LD_LIBRARY_PATH}
 
 cmake -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_INSTALL_LIBDIR=$PREFIX/lib -DCMAKE_AR=$GCC_AR -DSPM_BUILD_TEST=ON -DSPM_ENABLE_TCMALLOC=OFF -DSPM_USE_BUILTIN_PROTOBUF=OFF -S ..
 
-make -j $(nproc)
-
 make -j $(nproc) && make install
 
 if [[ "$target_platform" == linux* ]]; then
