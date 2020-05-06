@@ -13,4 +13,4 @@ make install
 cd ..
 cd python
 
-python setup.py install
+${PYTHON} -m pip install . -vv
