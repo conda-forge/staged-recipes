@@ -1,0 +1,55 @@
+  {% set provider = "Time" %}
+{% set goname = "github.com/hashicorp/terraform-provider-"+provider.lower() %}
+{% set version = "0.4.0" %}
+
+{% set name = goname.split('/')[-1] %}
+
+{% set x4_plugin = name + '_v' + version + "_x4" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://{{ goname }}/archive/v{{ version }}.tar.gz
+  sha256: abe9017f2668c13113632467551d900be4541bb69307ddcc2c6312c1b4015a8b
+
+build:
+  number: 0
+  script:
+    - go build -v -o {{ target_gobin }}{{ x4_plugin }}{{ target_goexe }}
+
+requirements:
+  build:
+    - {{ compiler('go') }} 1.13
+  run:
+    - terraform 0.12
+
+test:
+  commands:
+    # Create a sample init.tf loading the provider
+    - echo 'provider "{{ provider|lower }}" { version="{{ version }}" }' > init.tf  # [unix]
+    - echo provider "{{ provider|lower }}" { version="{{ version }}" } > init.tf    # [win]
+
+    # Initialize
+    - terraform init
+
+    # Tests that init was successful
+    - test -f .terraform/plugins/{{ target_goos }}_{{ target_goarch }}/lock.json              # [unix]
+    - if not exist .terraform\plugins\{{ target_goos }}_{{ target_goarch }}\lock.json exit 1  # [win]
+
+    # Test that the provider was not downloaded
+    - test ! -f .terraform/plugins/{{ target_goos }}_{{ target_goarch }}/{{ x4_plugin }}{{ target_goexe }}        # [unix]
+    - if exist .terraform\plugins\{{ target_goos }}_{{ target_goarch }}\{{ x4_plugin }}{{ target_goexe }} exit 1  # [win]
+
+about:
+  home: https://www.terraform.io
+  license: MPL-2.0
+  license_file: LICENSE
+  summary: The Terraform {{ provider }} provider
+  doc_url: https://www.terraform.io/docs/providers/{{ provider|lower }}/index.html
+  dev_url: https://github.com/terraform-providers/{{ name }}
+
+extra:
+  recipe-maintainers:
+    - conda-forge/terraform
