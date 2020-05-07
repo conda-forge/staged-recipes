@@ -1,4 +1,52 @@
 {% set version = "1.6.3" %}
+{% set faiss_proc_type = "cpu" if cuda_compiler_version == "None" else "gpu" %}
+
+# headers for upstream-folders './*.h', 'impl/*.h', 'utils/*.h'
+{% set headers = [
+    'AutoTune.h', 'clone_index.h', 'Clustering.h', 'DirectMap.h', 'Index.h', 'Index2Layer.h',
+    'IndexBinary.h', 'IndexBinaryFlat.h', 'IndexBinaryFromFloat.h', 'IndexBinaryHash.h',
+    'IndexBinaryHNSW.h', 'IndexBinaryIVF.h', 'IndexFlat.h', 'IndexHNSW.h', 'IndexIVF.h',
+    'IndexIVFFlat.h', 'IndexIVFPQ.h', 'IndexIVFPQR.h', 'IndexIVFSpectralHash.h', 'IndexLattice.h',
+    'IndexLSH.h', 'IndexPQ.h', 'IndexPreTransform.h', 'IndexReplicas.h', 'IndexScalarQuantizer.h',
+    'IndexShards.h', 'index_factory.h', 'index_io.h', 'InvertedLists.h', 'IVFlib.h',
+    'MatrixStats.h', 'MetaIndexes.h', 'MetricType.h', 'OnDiskInvertedLists.h', 'VectorTransform.h',
+    'impl/AuxIndexStructures.h', 'impl/FaissAssert.h', 'impl/FaissException.h', 'impl/HNSW.h',
+    'impl/io.h', 'impl/lattice_Zn.h', 'impl/PolysemousTraining.h', 'impl/ProductQuantizer-inl.h',
+    'impl/ProductQuantizer.h', 'impl/ScalarQuantizer.h', 'impl/ThreadedIndex-inl.h',
+    'impl/ThreadedIndex.h',
+    'utils/distances.h', 'utils/extra_distances.h', 'utils/hamming-inl.h', 'utils/hamming.h',
+    'utils/Heap.h', 'utils/random.h', 'utils/utils.h', 'utils/WorkerThread.h'
+] %}
+# gpu adds headers in 'gpu/*.h', 'gpu/impl/*.(cu)?h', 'gpu/utils/*.(cu)?h'
+{% set headers = headers + (cuda_compiler_version != "None") * [
+    'gpu/GpuAutoTune.h', 'gpu/GpuCloner.h', 'gpu/GpuClonerOptions.h', 'gpu/GpuDistance.h',
+    'gpu/GpuFaissAssert.h', 'gpu/GpuIndex.h', 'gpu/GpuIndexBinaryFlat.h', 'gpu/GpuIndexFlat.h',
+    'gpu/GpuIndexIVF.h', 'gpu/GpuIndexIVFFlat.h', 'gpu/GpuIndexIVFPQ.h',
+    'gpu/GpuIndexIVFScalarQuantizer.h', 'gpu/GpuIndicesOptions.h', 'gpu/GpuResources.h',
+    'gpu/StandardGpuResources.h',
+    'gpu/impl/RemapIndices.h', 'gpu/impl/BinaryDistance.cuh', 'gpu/impl/BinaryFlatIndex.cuh',
+    'gpu/impl/BroadcastSum.cuh', 'gpu/impl/Distance.cuh', 'gpu/impl/DistanceUtils.cuh',
+    'gpu/impl/FlatIndex.cuh', 'gpu/impl/GeneralDistance.cuh', 'gpu/impl/GpuScalarQuantizer.cuh',
+    'gpu/impl/IVFAppend.cuh', 'gpu/impl/IVFBase.cuh', 'gpu/impl/IVFFlat.cuh',
+    'gpu/impl/IVFFlatScan.cuh', 'gpu/impl/IVFPQ.cuh', 'gpu/impl/IVFUtils.cuh',
+    'gpu/impl/L2Norm.cuh', 'gpu/impl/L2Select.cuh', 'gpu/impl/Metrics.cuh',
+    'gpu/impl/PQCodeDistances-inl.cuh', 'gpu/impl/PQCodeDistances.cuh', 'gpu/impl/PQCodeLoad.cuh',
+    'gpu/impl/PQScanMultiPassNoPrecomputed-inl.cuh', 'gpu/impl/PQScanMultiPassNoPrecomputed.cuh',
+    'gpu/impl/PQScanMultiPassPrecomputed.cuh', 'gpu/impl/VectorResidual.cuh',
+    'gpu/utils/DeviceMemory.h', 'gpu/utils/DeviceUtils.h', 'gpu/utils/MemorySpace.h',
+    'gpu/utils/StackDeviceMemory.h', 'gpu/utils/StaticUtils.h', 'gpu/utils/Timer.h',
+    'gpu/utils/BlockSelectKernel.cuh', 'gpu/utils/Comparators.cuh',
+    'gpu/utils/ConversionOperators.cuh', 'gpu/utils/CopyUtils.cuh', 'gpu/utils/DeviceDefs.cuh',
+    'gpu/utils/DeviceTensor-inl.cuh', 'gpu/utils/DeviceTensor.cuh', 'gpu/utils/DeviceVector.cuh',
+    'gpu/utils/Float16.cuh', 'gpu/utils/HostTensor-inl.cuh', 'gpu/utils/HostTensor.cuh',
+    'gpu/utils/Limits.cuh', 'gpu/utils/LoadStoreOperators.cuh', 'gpu/utils/MathOperators.cuh',
+    'gpu/utils/MatrixMult-inl.cuh', 'gpu/utils/MatrixMult.cuh', 'gpu/utils/MergeNetworkBlock.cuh',
+    'gpu/utils/MergeNetworkUtils.cuh', 'gpu/utils/MergeNetworkWarp.cuh',
+    'gpu/utils/NoTypeTensor.cuh', 'gpu/utils/Pair.cuh', 'gpu/utils/PtxUtils.cuh',
+    'gpu/utils/ReductionOperators.cuh', 'gpu/utils/Reductions.cuh', 'gpu/utils/Select.cuh',
+    'gpu/utils/Tensor-inl.cuh', 'gpu/utils/Tensor.cuh', 'gpu/utils/ThrustAllocator.cuh',
+    'gpu/utils/Transpose.cuh', 'gpu/utils/WarpSelectKernel.cuh', 'gpu/utils/WarpShuffles.cuh'
+] %}
 
 package:
   name: faiss
@@ -12,27 +60,49 @@ source:
 
 build:
   number: 0
-  skip: True  # [win]
+  # TODO: figure out build failures on windows
+  skip: true                      # [win]
+  # GPU version only for linux; see also conda_build_config.yaml
+  skip: true                      # [(osx or win) and cuda_compiler_version != "None"]
 
 requirements:
   build:
     - {{ compiler('cxx') }}
 
 outputs:
-  - name: libfaiss-cpu
-    script: build-lib-cpu.sh
+  - name: _faiss-proc
+    version: 1.0.0
+    build:
+      number: 0
+      string: {{ faiss_proc_type }}
+    test:
+      commands:
+        - exit 0
+    about:
+      home: https://github.com/conda-forge/faiss-feedstock
+      license: MIT
+      license_family: MIT
+      summary: A meta-package to select CPU or GPU build for faiss.
+
+  - name: libfaiss-{{ faiss_proc_type }}
+    script: build-lib.sh          # [not win]
+    script: build-lib.bat         # [win]
     requirements:
       build:
         - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
         - cmake
-        - llvm-openmp  # [osx]
-        - libgomp      # [linux]
+        - libgomp                 # [linux]
+        - llvm-openmp             # [osx or win]
+        - autotools_clang_conda   # [win]
       host:
         - libblas
         - liblapack
       run:
         - libblas
         - liblapack
+      run_constrained:
+        - _faiss-proc * {{ faiss_proc_type }}
 
     test:
       commands:
@@ -49,49 +119,36 @@ outputs:
         - conda inspect linkages -p $PREFIX $PKG_NAME               # [not win]
         - conda inspect objects -p $PREFIX $PKG_NAME                # [osx]
 
-        # headers for upstream-folders './', 'impl/', 'utils/'
-        {% for each_header in [
-            'AutoTune.h', 'clone_index.h', 'Clustering.h', 'DirectMap.h',
-            'Index.h', 'Index2Layer.h', 'IndexBinary.h', 'IndexBinaryFlat.h',
-            'IndexBinaryFromFloat.h', 'IndexBinaryHash.h', 'IndexBinaryHNSW.h',
-            'IndexBinaryIVF.h', 'IndexFlat.h', 'IndexHNSW.h', 'IndexIVF.h',
-            'IndexIVFFlat.h', 'IndexIVFPQ.h', 'IndexIVFPQR.h',
-            'IndexIVFSpectralHash.h', 'IndexLattice.h', 'IndexLSH.h', 'IndexPQ.h',
-            'IndexPreTransform.h', 'IndexReplicas.h', 'IndexScalarQuantizer.h',
-            'IndexShards.h', 'index_factory.h', 'index_io.h', 'InvertedLists.h',
-            'IVFlib.h', 'MatrixStats.h', 'MetaIndexes.h', 'MetricType.h',
-            'OnDiskInvertedLists.h', 'VectorTransform.h',
-            'impl/AuxIndexStructures.h', 'impl/FaissAssert.h', 'impl/FaissException.h',
-            'impl/HNSW.h', 'impl/io.h', 'impl/lattice_Zn.h', 'impl/PolysemousTraining.h',
-            'impl/ProductQuantizer-inl.h', 'impl/ProductQuantizer.h',
-            'impl/ScalarQuantizer.h', 'impl/ThreadedIndex-inl.h', 'impl/ThreadedIndex.h',
-            'utils/distances.h', 'utils/extra_distances.h', 'utils/hamming-inl.h',
-            'utils/hamming.h', 'utils/Heap.h', 'utils/random.h', 'utils/utils.h',
-            'utils/WorkerThread.h'
-        ] %}
+        # headers
+        {% for each_header in headers %}
         - test -f $PREFIX/include/faiss/{{ each_header }}                                    # [unix]
         - if not exist %LIBRARY_INC%\\faiss\\{{ "\\".join(each_header.split("/")) }} exit 1  # [win]
         {% endfor %}
 
-  - name: faiss-cpu
-    script: build-cpu.sh
+  - name: faiss-{{ faiss_proc_type }}
+    script: build-pkg.sh          # [not win]
+    script: build-pkg.bat         # [win]
     requirements:
       build:
         - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
         - swig
         - cmake
+        - autotools_clang_conda   # [win]
       host:
         - python
         - pip
         - numpy =1.14.*
-        - {{ pin_subpackage('libfaiss-cpu', exact=True) }}
+        - libfaiss-{{ faiss_proc_type }} {{ version }}.*
         - libblas
         - liblapack
-        - llvm-openmp  # [osx]
-        - libgomp      # [linux]
+        - libgomp                 # [linux]
+        - llvm-openmp             # [osx or win]
       run:
-        - {{ pin_subpackage('libfaiss-cpu', exact=True) }}
+        - libfaiss-{{ faiss_proc_type }} {{ version }}.*
         - {{ pin_compatible('numpy') }}
+      run_constrained:
+        - _faiss-proc * {{ faiss_proc_type }}
 
     test:
       requires:
@@ -104,16 +161,13 @@ outputs:
       source_files:
         - tests/
         - conda/faiss/run_test.py
+        - conda/faiss-gpu/run_test.py
       imports:
         - faiss
       commands:
         - python conda/faiss/run_test.py
+        - python conda/faiss-gpu/run_test.py  # [cuda_compiler_version != "None"]
         - python -m unittest discover tests
-
-#   - name: faiss-gpu
-#     build:
-#       script: build-gpu.sh  # [unix]
-#     # [removed for the moment]
 
 about:
   home: https://github.com/facebookresearch/faiss
