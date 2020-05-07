@@ -22,7 +22,7 @@ def rebuild_travis(repo_slug):
 
     # Trigger a build on `master`.
     encoded_slug = six.moves.urllib.parse.quote(repo_slug, safe='')
-    url = 'https://api.travis-ci.org/repo/{}/requests'.format(encoded_slug)
+    url = 'https://api.travis-ci.com/repo/{}/requests'.format(encoded_slug)
     response = requests.post(
         url,
         json={
