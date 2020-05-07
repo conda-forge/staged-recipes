@@ -1,5 +1,7 @@
 # Build vanilla version (no avx, no gpu)
-./configure --without-cuda --prefix=${PREFIX} --exec-prefix=${PREFIX}
+./configure --without-cuda \
+  --prefix=${PREFIX} --exec-prefix=${PREFIX} \
+  --with-blas=-lblas --with-lapack=-llapack
 
 # make sets SHAREDEXT correctly for linux/osx
 make install
