@@ -10,8 +10,6 @@ fi
   --with-blas=-lblas --with-lapack=-llapack \
   ${CUDA_CONFIG_ARG}
 
-[[ "$target_platform" == "win-64" ]] && patch_libtool
-
 # make sets SHAREDEXT correctly for linux/osx
 make install
 

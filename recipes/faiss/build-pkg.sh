@@ -8,8 +8,6 @@ fi
 # Build vanilla version (no avx)
 ./configure --with-blas=-lblas --with-lapack=-llapack ${CUDA_CONFIG_ARG}
 
-[[ "$target_platform" == "win-64" ]] && patch_libtool
-
 make -C python build
 
 cd python
