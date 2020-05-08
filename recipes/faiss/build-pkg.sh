@@ -1,10 +1,12 @@
 CUDA_CONFIG_ARG=""
 if [ ${cuda_compiler_version} != "None" ]; then
     CUDA_CONFIG_ARG="--with-cuda=${CUDA_HOME}"
+else
+    CUDA_CONFIG_ARG="--without-cuda"
 fi
 
 # Build vanilla version (no avx)
-./configure --without-cuda --with-blas=-lblas --with-lapack=-llapack ${CUDA_CONFIG_ARG}
+./configure --with-blas=-lblas --with-lapack=-llapack ${CUDA_CONFIG_ARG}
 
 [[ "$target_platform" == "win-64" ]] && patch_libtool
 
