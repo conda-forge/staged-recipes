@@ -1,0 +1,58 @@
+{% set name = "go2" %}
+{% set version = "2.20170703" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: 20e443fc51ea66ed03d0b9c47cc22c6e7f8a55f52cde8dc0e60928fd4f2e9e6c
+  patches:
+    - setup.py.patch
+
+build:
+  number: 0
+  # go2 does not run on Windows
+  skip: True  # [win]
+
+requirements:
+  build:
+    - sed
+  host:
+    - pip
+    - python
+  run:
+    - pygobject
+    - python
+    - tree
+
+test:
+  commands:
+    - python -c "from gi.repository import GObject, GLib"
+    - test -f ${PREFIX}/bin/go2
+    - test -f ${PREFIX}/lib/go2/go2.sh
+    - test -f ${PREFIX}/lib/go2/go2.py
+    - test -f ${PREFIX}/lib/go2/osfs.py
+    - test -f ${PREFIX}/share/man/man1/go2.1
+    - cat ${PREFIX}/bin/go2
+    - grep -r "/lib/" ${PREFIX}/lib/go2
+    - grep -r "/lib/" ${PREFIX}/share/man/man1/
+    # go2 --setup returns a 1 if already run and conda-forge runs multiple
+    # builds per CI instance, so return true always.
+    - go2 || true
+    - source ${PREFIX}/lib/go2/go2.sh
+    - go2 -h
+    - go2 --version
+
+about:
+  home: http://savannah.nongnu.org/projects/go2/
+  license:  GPL-2.0-or-later
+  license_family: GPL
+  license_file: COPYING
+  summary: 'go2 directory finder'
+  dev_url: https://bitbucket.org/DavidVilla/go2/
+
+extra:
+  recipe-maintainers:
+    - moorepants
