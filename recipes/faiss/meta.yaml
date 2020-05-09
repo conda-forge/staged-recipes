@@ -1,4 +1,5 @@
 {% set version = "1.6.3" %}
+{% set number = "0" %}
 {% set faiss_proc_type = "gpu" if cuda_compiler_version != "None" else "cpu" %}
 
 # headers for upstream-folders './*.h', 'impl/*.h', 'utils/*.h'
@@ -59,7 +60,7 @@ source:
     - patches/0002-remove-fPIC-flag-for-msvc-compat.patch  # [win]
 
 build:
-  number: 0
+  number: {{ number }}
   # TODO: figure out compiler errors on windows
   skip: true                      # [win]
   # TODO: remove this to retry building GPU on the feedstock
@@ -84,10 +85,12 @@ outputs:
       license_family: MIT
       summary: A meta-package to select CPU or GPU build for faiss.
 
-  - name: libfaiss-{{ faiss_proc_type }}
+  - name: libfaiss
     script: build-lib.sh          # [not win]
     script: build-lib.bat         # [win]
     build:
+      number: {{ number }}
+      string: "h{{ PKG_HASH }}_{{ number }}_{{ faiss_proc_type }}"
       run_exports:
         - faiss-proc * {{ faiss_proc_type }}
     requirements:
@@ -128,10 +131,12 @@ outputs:
         - if not exist %LIBRARY_INC%\\faiss\\{{ "\\".join(each_header.split("/")) }} exit 1  # [win]
         {% endfor %}
 
-  - name: faiss-{{ faiss_proc_type }}
+  - name: faiss
     script: build-pkg.sh          # [not win]
     script: build-pkg.bat         # [win]
     build:
+      number: {{ number }}
+      string: "py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ number }}_{{ faiss_proc_type }}"
       run_exports:
         - faiss-proc * {{ faiss_proc_type }}
     requirements:
@@ -145,13 +150,13 @@ outputs:
         - python
         - pip
         - numpy =1.14.*
-        - libfaiss-{{ faiss_proc_type }} {{ version }}.*
+        - libfaiss ={{ version }}=*{{ faiss_proc_type }}
         - libblas
         - liblapack
         - libgomp                 # [linux]
         - llvm-openmp             # [osx or win]
       run:
-        - libfaiss-{{ faiss_proc_type }} {{ version }}.*
+        - libfaiss ={{ version }}=*{{ faiss_proc_type }}
         - {{ pin_compatible('numpy') }}
       run_constrained:
         - faiss-proc * {{ faiss_proc_type }}
@@ -174,6 +179,33 @@ outputs:
         - python conda/faiss/run_test.py
         - python conda/faiss-gpu/run_test.py  # [cuda_compiler_version != "None"]
         - python -m unittest discover tests
+
+  # for compatibility with (& ease of migration from) existing packages in the pytorch channel
+  - name: faiss-cpu
+    build:
+      string: "py{{ CONDA_PY }}_{{ number }}"
+      skip: true  # [cuda_compiler_version != "None"]
+    requirements:
+      host:
+        - python
+      run:
+        - faiss ={{ version }}=*cpu
+    test:
+      commands:
+        - exit 0
+
+  - name: faiss-gpu
+    build:
+      string: "py{{ CONDA_PY }}_{{ number }}"
+      skip: true  # [cuda_compiler_version == "None"]
+    requirements:
+      host:
+        - python
+      run:
+        - faiss ={{ version }}=*gpu
+    test:
+      commands:
+        - exit 0
 
 about:
   home: https://github.com/facebookresearch/faiss
