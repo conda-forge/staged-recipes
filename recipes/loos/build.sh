@@ -17,5 +17,5 @@ export CONDA_PREFIX=$BUILD_PREFIX
 echo "CXX =  $CXX "
 echo "CC =  $CC "
 
-scons PREFIX=$CONDA_PREFIX
+scons PREFIX=$CONDA_PREFIX -j $CPU_COUNT
 scons PREFIX=$CONDA_PREFIX install
