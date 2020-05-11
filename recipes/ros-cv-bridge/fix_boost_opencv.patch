@@ -18,16 +18,18 @@ index 997bef3..2c7265b 100644
 -  endif()
 -else()
 -find_package(Boost REQUIRED)
--endif()
++find_package(Boost REQUIRED python3)
+ endif()
 -find_package(OpenCV 3 REQUIRED
-+find_package(Boost REQUIRED python)
-+
 +find_package(OpenCV REQUIRED
    COMPONENTS
      opencv_core
      opencv_imgproc
-@@ -34,12 +26,12 @@ catkin_python_setup()
+@@ -32,14 +24,12 @@ catkin_package(
+ catkin_python_setup()
+ 
  include_directories(include ${Boost_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
++link_directories(${Boost_LIBRARY_DIRS})
  
  if(NOT ANDROID)
 -add_subdirectory(python)
@@ -37,9 +39,6 @@ index 997bef3..2c7265b 100644
 -if(CATKIN_ENABLE_TESTING)
 -  add_subdirectory(test)
 -endif()
-+# if(CATKIN_ENABLE_TESTING)
-+#   add_subdirectory(test)
-+# endif()
  
  # install the include folder
  install(
@@ -47,7 +46,20 @@ diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
 index d5d8ee2..d97ca59 100644
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -32,10 +32,12 @@ if (PYTHON_VERSION_MAJOR VERSION_EQUAL 3)
+@@ -4,7 +4,11 @@ add_library(${PROJECT_NAME} cv_bridge.cpp rgb_colors.cpp)
+ add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
+ target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
+ 
+-install(TARGETS ${PROJECT_NAME} DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
++install(TARGETS ${PROJECT_NAME}
++  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
++  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
++  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
++)
+ 
+ if(NOT ANDROID)
+ # add a Boost Python library
+@@ -32,10 +36,12 @@ if (PYTHON_VERSION_MAJOR VERSION_EQUAL 3)
    add_definitions(-DPYTHON3)
  endif()
  
@@ -440,3 +452,26 @@ index e69de29..ba09795 100644
 +    return 0;
 +}
 +
+diff --git a/cv_bridge/src/module.hpp b/cv_bridge/src/module.hpp
+index 92153ac..aa8b5f6 100644
+--- a/src/module.hpp
++++ b/src/module.hpp
+@@ -33,16 +33,10 @@ int convert_to_CvMat2(const PyObject* o, cv::Mat& m);
+ 
+ PyObject* pyopencv_from(const cv::Mat& m);
+ 
+-#if PYTHON3
+-static int do_numpy_import( )
++static void * do_numpy_import( )
+ {
+     import_array( );
++    return nullptr;
+ }
+-#else
+-static void do_numpy_import( )
+-{
+-    import_array( );
+-}
+-#endif
+ 
+ #endif
