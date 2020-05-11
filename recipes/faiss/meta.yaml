@@ -1,0 +1,234 @@
+{% set version = "1.6.3" %}
+{% set number = 0 %}
+{% set faiss_proc_type = "gpu" if cuda_compiler_version != "None" else "cpu" %}
+
+# headers for upstream-folders './*.h', 'impl/*.h', 'utils/*.h'
+# gpu adds headers in 'gpu/*.h', 'gpu/impl/*.(cu)?h', 'gpu/utils/*.(cu)?h'
+{% set headers = [
+    'AutoTune.h', 'clone_index.h', 'Clustering.h', 'DirectMap.h', 'Index.h', 'Index2Layer.h',
+    'IndexBinary.h', 'IndexBinaryFlat.h', 'IndexBinaryFromFloat.h', 'IndexBinaryHash.h',
+    'IndexBinaryHNSW.h', 'IndexBinaryIVF.h', 'IndexFlat.h', 'IndexHNSW.h', 'IndexIVF.h',
+    'IndexIVFFlat.h', 'IndexIVFPQ.h', 'IndexIVFPQR.h', 'IndexIVFSpectralHash.h', 'IndexLattice.h',
+    'IndexLSH.h', 'IndexPQ.h', 'IndexPreTransform.h', 'IndexReplicas.h', 'IndexScalarQuantizer.h',
+    'IndexShards.h', 'index_factory.h', 'index_io.h', 'InvertedLists.h', 'IVFlib.h',
+    'MatrixStats.h', 'MetaIndexes.h', 'MetricType.h', 'OnDiskInvertedLists.h', 'VectorTransform.h',
+    'impl/AuxIndexStructures.h', 'impl/FaissAssert.h', 'impl/FaissException.h', 'impl/HNSW.h',
+    'impl/io.h', 'impl/lattice_Zn.h', 'impl/PolysemousTraining.h', 'impl/ProductQuantizer-inl.h',
+    'impl/ProductQuantizer.h', 'impl/ScalarQuantizer.h', 'impl/ThreadedIndex-inl.h',
+    'impl/ThreadedIndex.h',
+    'utils/distances.h', 'utils/extra_distances.h', 'utils/hamming-inl.h', 'utils/hamming.h',
+    'utils/Heap.h', 'utils/random.h', 'utils/utils.h', 'utils/WorkerThread.h'
+] + (cuda_compiler_version != "None") * [
+    'gpu/GpuAutoTune.h', 'gpu/GpuCloner.h', 'gpu/GpuClonerOptions.h', 'gpu/GpuDistance.h',
+    'gpu/GpuFaissAssert.h', 'gpu/GpuIndex.h', 'gpu/GpuIndexBinaryFlat.h', 'gpu/GpuIndexFlat.h',
+    'gpu/GpuIndexIVF.h', 'gpu/GpuIndexIVFFlat.h', 'gpu/GpuIndexIVFPQ.h',
+    'gpu/GpuIndexIVFScalarQuantizer.h', 'gpu/GpuIndicesOptions.h', 'gpu/GpuResources.h',
+    'gpu/StandardGpuResources.h',
+    'gpu/impl/RemapIndices.h', 'gpu/impl/BinaryDistance.cuh', 'gpu/impl/BinaryFlatIndex.cuh',
+    'gpu/impl/BroadcastSum.cuh', 'gpu/impl/Distance.cuh', 'gpu/impl/DistanceUtils.cuh',
+    'gpu/impl/FlatIndex.cuh', 'gpu/impl/GeneralDistance.cuh', 'gpu/impl/GpuScalarQuantizer.cuh',
+    'gpu/impl/IVFAppend.cuh', 'gpu/impl/IVFBase.cuh', 'gpu/impl/IVFFlat.cuh',
+    'gpu/impl/IVFFlatScan.cuh', 'gpu/impl/IVFPQ.cuh', 'gpu/impl/IVFUtils.cuh',
+    'gpu/impl/L2Norm.cuh', 'gpu/impl/L2Select.cuh', 'gpu/impl/Metrics.cuh',
+    'gpu/impl/PQCodeDistances-inl.cuh', 'gpu/impl/PQCodeDistances.cuh', 'gpu/impl/PQCodeLoad.cuh',
+    'gpu/impl/PQScanMultiPassNoPrecomputed-inl.cuh', 'gpu/impl/PQScanMultiPassNoPrecomputed.cuh',
+    'gpu/impl/PQScanMultiPassPrecomputed.cuh', 'gpu/impl/VectorResidual.cuh',
+    'gpu/utils/DeviceMemory.h', 'gpu/utils/DeviceUtils.h', 'gpu/utils/MemorySpace.h',
+    'gpu/utils/StackDeviceMemory.h', 'gpu/utils/StaticUtils.h', 'gpu/utils/Timer.h',
+    'gpu/utils/BlockSelectKernel.cuh', 'gpu/utils/Comparators.cuh',
+    'gpu/utils/ConversionOperators.cuh', 'gpu/utils/CopyUtils.cuh', 'gpu/utils/DeviceDefs.cuh',
+    'gpu/utils/DeviceTensor-inl.cuh', 'gpu/utils/DeviceTensor.cuh', 'gpu/utils/DeviceVector.cuh',
+    'gpu/utils/Float16.cuh', 'gpu/utils/HostTensor-inl.cuh', 'gpu/utils/HostTensor.cuh',
+    'gpu/utils/Limits.cuh', 'gpu/utils/LoadStoreOperators.cuh', 'gpu/utils/MathOperators.cuh',
+    'gpu/utils/MatrixMult-inl.cuh', 'gpu/utils/MatrixMult.cuh', 'gpu/utils/MergeNetworkBlock.cuh',
+    'gpu/utils/MergeNetworkUtils.cuh', 'gpu/utils/MergeNetworkWarp.cuh',
+    'gpu/utils/NoTypeTensor.cuh', 'gpu/utils/Pair.cuh', 'gpu/utils/PtxUtils.cuh',
+    'gpu/utils/ReductionOperators.cuh', 'gpu/utils/Reductions.cuh', 'gpu/utils/Select.cuh',
+    'gpu/utils/Tensor-inl.cuh', 'gpu/utils/Tensor.cuh', 'gpu/utils/ThrustAllocator.cuh',
+    'gpu/utils/Transpose.cuh', 'gpu/utils/WarpSelectKernel.cuh', 'gpu/utils/WarpShuffles.cuh'
+] %}
+
+package:
+  name: faiss-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/facebookresearch/faiss/archive/v{{ version }}.tar.gz
+  sha256: e1a41c159f0b896975fbb133e0240a233af5c9286c09a28fde6aefff5336e542
+  patches:
+    - patches/0001-change-python-Makefile-to-point-to-libfaiss.-SHLIB_E.patch
+    - patches/0002-remove-fPIC-flag-for-msvc-compat.patch  # [win]
+
+build:
+  number: {{ number }}
+  # TODO: figure out compiler errors on windows
+  skip: true                      # [win]
+  # TODO: remove this to retry building GPU on the feedstock
+  skip: true                      # [cuda_compiler_version != "None"]
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+
+outputs:
+  - name: faiss-proc
+    version: 1.0.0
+    build:
+      string: {{ faiss_proc_type }}
+    test:
+      commands:
+        - exit 0
+    about:
+      home: https://github.com/conda-forge/faiss-feedstock
+      license: MIT
+      license_family: MIT
+      summary: A meta-package to select CPU or GPU build for faiss.
+
+  - name: libfaiss
+    script: build-lib.sh          # [not win]
+    script: build-lib.bat         # [win]
+    build:
+      string: "h{{ PKG_HASH }}_{{ number }}_{{ faiss_proc_type }}"
+      run_exports:
+        # faiss follows SemVer, so restrict packages built with libfaiss to use
+        # at least the same version at runtime, but below the next major version.
+        # (matches default arguments/behaviour of `pin_compatible`: min_pin='x.x.x.x.x.x', max_pin='x')
+        - {{ pin_compatible('libfaiss') }}
+        # additionally, we need to ensure matching proc-type
+        - libfaiss =*=*_{{ faiss_proc_type }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+        - cmake
+        - libgomp                 # [linux]
+        - llvm-openmp             # [osx or win]
+        - autotools_clang_conda   # [win]
+      host:
+        - libblas
+        - liblapack
+      run:
+        - libblas
+        - liblapack
+      run_constrained:
+        - faiss-proc * {{ faiss_proc_type }}
+
+    test:
+      commands:
+        # shared
+        - test -f $PREFIX/lib/libfaiss.so                           # [linux]
+        - test -f $PREFIX/lib/libfaiss.dylib                        # [osx]
+        - if not exist %PREFIX%\\Library\\bin\\libfaiss.dll exit 1  # [win]
+
+        # absence of static libraries
+        - test ! -f $PREFIX/lib/libfaiss.a                          # [not win]
+        - if exist %PREFIX%\\Library\\lib\\libfaiss.lib exit 1      # [win]
+
+        # conda tools
+        - conda inspect linkages -p $PREFIX $PKG_NAME               # [not win]
+        - conda inspect objects -p $PREFIX $PKG_NAME                # [osx]
+
+        # headers
+        {% for each_header in headers %}
+        - test -f $PREFIX/include/faiss/{{ each_header }}                                    # [unix]
+        - if not exist %LIBRARY_INC%\\faiss\\{{ "\\".join(each_header.split("/")) }} exit 1  # [win]
+        {% endfor %}
+
+  - name: faiss
+    script: build-pkg.sh          # [not win]
+    script: build-pkg.bat         # [win]
+    build:
+      string: "py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ number }}_{{ faiss_proc_type }}"
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+        - swig
+        - cmake
+        - autotools_clang_conda   # [win]
+      host:
+        - python
+        - pip
+        - numpy =1.14.*
+        - libfaiss ={{ version }}=*_{{ faiss_proc_type }}
+        - libblas
+        - liblapack
+        - libgomp                 # [linux]
+        - llvm-openmp             # [osx or win]
+      run:
+        - libfaiss ={{ version }}=*_{{ faiss_proc_type }}
+        - {{ pin_compatible('numpy') }}
+      run_constrained:
+        - faiss-proc * {{ faiss_proc_type }}
+
+    test:
+      requires:
+        # trying to test all blas-variants runs into conda/conda-build#3947
+        # - blas * *{{ blas_impl }}
+        # testing with MKL, as upstream considers this the most important
+        - blas =*=mkl
+        # this is necessary for a single test in the test suite
+        - scipy
+      source_files:
+        - tests/
+        - conda/faiss/run_test.py
+        - conda/faiss-gpu/run_test.py
+      imports:
+        - faiss
+      commands:
+        - python conda/faiss/run_test.py
+        - python conda/faiss-gpu/run_test.py  # [cuda_compiler_version != "None"]
+        - python -m unittest discover tests
+
+  # for compatibility with (& ease of migration from) existing packages in the pytorch channel
+  - name: faiss-cpu
+    build:
+      string: "py{{ CONDA_PY }}_{{ number }}"
+      skip: true  # [cuda_compiler_version != "None"]
+    requirements:
+      host:
+        - python
+      run:
+        - faiss ={{ version }}=*_cpu
+    test:
+      commands:
+        - exit 0
+
+  - name: faiss-gpu
+    build:
+      string: "py{{ CONDA_PY }}_{{ number }}"
+      skip: true  # [cuda_compiler_version == "None"]
+    requirements:
+      host:
+        - python
+      run:
+        - faiss ={{ version }}=*_gpu
+    test:
+      commands:
+        - exit 0
+
+about:
+  home: https://github.com/facebookresearch/faiss
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: 'A library for efficient similarity search and clustering of dense vectors.'
+
+  description: |
+    Faiss is a library for efficient similarity search and clustering of dense vectors.
+    It contains algorithms that search in sets of vectors of any size, up to ones that
+    possibly do not fit in RAM. It also contains supporting code for evaluation and
+    parameter tuning. Faiss is written in C++ with complete wrappers for Python/numpy.
+    Some of the most useful algorithms are implemented on the GPU. It is developed by
+    [Facebook AI Research](https://research.fb.com/category/facebook-ai-research-fair/).
+
+    For best performance, the maintainers of the package
+    [recommend](https://github.com/conda-forge/staged-recipes/pull/11337#issuecomment-623718460)
+    using the MKL implementation of blas/lapack. You can ensure that this is installed
+    by adding "libblas =*=mkl" to your dependencies.
+  doc_url: https://rawgit.com/facebookresearch/faiss/master/docs/html/annotated.html
+  dev_url: https://github.com/facebookresearch/faiss
+
+extra:
+  recipe-maintainers:
+    - h-vetinari
