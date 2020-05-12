@@ -1,0 +1,218 @@
+From 3013a6c394bc3e3782d52840452cf3182fcf13ff Mon Sep 17 00:00:00 2001
+From: Ray Donnelly <mingw.android@gmail.com>
+Date: Tue, 26 Feb 2019 18:18:56 +0100
+Subject: [PATCH] Add more debug logging to cmFindCommon*
+
+---
+ Help/manual/cmake.1.rst         |  3 +++
+ Source/cmFindBase.cxx           | 21 +++++++++++++++++++++
+ Source/cmFindCommon.cxx         |  6 ++++++
+ Source/cmFindCommon.h           |  4 ++++
+ Source/cmFindPackageCommand.cxx | 27 ++++++++++++++++++++++++++-
+ Source/cmServerDictionary.h     |  1 +
+ Source/cmServerProtocol.cxx     |  9 ++++++---
+ 7 files changed, 67 insertions(+), 4 deletions(-)
+
+diff --git a/Help/manual/cmake.1.rst b/Help/manual/cmake.1.rst
+index 4315f0a0b3..fd2ee0eb80 100644
+--- a/Help/manual/cmake.1.rst
++++ b/Help/manual/cmake.1.rst
+@@ -238,6 +238,9 @@ Options
+ ``--debug-output``
+  Put cmake in a debug mode.
+ 
++``--debug-find``
++ Put cmake find in a debug mode.
++
+  Print extra information during the cmake run like stack traces with
+  :command:`message(SEND_ERROR)` calls.
+ 
+diff --git a/Source/cmFindBase.cxx b/Source/cmFindBase.cxx
+index bec99bb7ee..f018f2e5af 100644
+--- a/Source/cmFindBase.cxx
++++ b/Source/cmFindBase.cxx
+@@ -130,6 +130,27 @@ bool cmFindBase::ParseArguments(std::vector<std::string> const& argsIn)
+       } else if (doing == DoingPathSuffixes) {
+         this->AddPathSuffix(args[j]);
+       }
++      if (this->ComputeIfDebugModeWanted()) {
++        std::string msg = "cmFindBase::ParseArguments added ";
++        switch (doing) {
++          case DoingNames:
++            msg += " NAME ";
++            break;
++          case DoingPaths:
++            msg += " PATH ";
++            break;
++          case DoingPathSuffixes:
++            msg += " PATHSUFFIXES ";
++            break;
++          case DoingHints:
++            msg += " HINTS ";
++            break;
++          default:
++            break;
++        }
++        msg += args[j];
++        cmFindCommon_IssueMessage(this->Makefile, msg);
++      }
+     }
+   }
+ 
+diff --git a/Source/cmFindCommon.cxx b/Source/cmFindCommon.cxx
+index 82acfedad3..b3a235e743 100644
+--- a/Source/cmFindCommon.cxx
++++ b/Source/cmFindCommon.cxx
+@@ -71,6 +71,12 @@ void cmFindCommon::DebugMessage(std::string const& msg) const
+   }
+ }
+ 
++void cmFindCommon_IssueMessage(const cmMakefile* mf, std::string const& msg)
++{
++  if (mf)
++    mf->IssueMessage(MessageType::LOG, msg);
++}
++
+ bool cmFindCommon::ComputeIfDebugModeWanted()
+ {
+   return this->Makefile->IsOn("CMAKE_FIND_DEBUG_MODE") ||
+diff --git a/Source/cmFindCommon.h b/Source/cmFindCommon.h
+index 916f3bc9ba..1c4152fbe4 100644
+--- a/Source/cmFindCommon.h
++++ b/Source/cmFindCommon.h
+@@ -144,4 +144,8 @@ protected:
+   cmExecutionStatus& Status;
+ };
+ 
++/* Convenience function (DRY) for cmFindLibraryHelper to use */
++extern void cmFindCommon_IssueMessage(const cmMakefile* mf,
++                                      std::string const& msg);
++
+ #endif
+diff --git a/Source/cmFindPackageCommand.cxx b/Source/cmFindPackageCommand.cxx
+index 9eb256b7a3..902532eba4 100644
+--- a/Source/cmFindPackageCommand.cxx
++++ b/Source/cmFindPackageCommand.cxx
+@@ -1200,26 +1200,39 @@ void cmFindPackageCommand::ComputePrefixes()
+       this->FillPrefixesPackageRoot();
+     }
+     if (!this->NoCMakePath) {
++      if (this->DebugMode)
++        this->DebugMessage("FillPrefixesCMakeVariable()\n");
+       this->FillPrefixesCMakeVariable();
+     }
+     if (!this->NoCMakeEnvironmentPath) {
++      if (this->DebugMode)
++        this->DebugMessage("FillPrefixesCMakeEnvironment()\n");
+       this->FillPrefixesCMakeEnvironment();
+     }
+   }
+ 
+   this->FillPrefixesUserHints();
+-
++  if (this->DebugMode)
++    this->DebugMessage("FillPrefixesUserHints()\n");
+   if (!this->NoDefaultPath) {
+     if (!this->NoSystemEnvironmentPath) {
++      if (this->DebugMode)
++        this->DebugMessage("FillPrefixesSystemEnvironment()\n");
+       this->FillPrefixesSystemEnvironment();
+     }
+     if (!this->NoUserRegistry) {
++      if (this->DebugMode)
++        this->DebugMessage("FillPrefixesUserRegistry()\n");
+       this->FillPrefixesUserRegistry();
+     }
+     if (!this->NoCMakeSystemPath) {
++      if (this->DebugMode)
++        this->DebugMessage("FillPrefixesCMakeSystemVariable()\n");
+       this->FillPrefixesCMakeSystemVariable();
+     }
+     if (!this->NoSystemRegistry) {
++      if (this->DebugMode)
++        this->DebugMessage("FillPrefixesSystemRegistry()\n");
+       this->FillPrefixesSystemRegistry();
+     }
+   }
+@@ -2148,6 +2161,10 @@ private:
+ bool cmFindPackageCommand::SearchPrefix(std::string const& prefix_in)
+ {
+   assert(!prefix_in.empty() && prefix_in.back() == '/');
++  if (this->DebugMode) {
++    std::string msg = "Checking prefix [" + prefix_in + "]\n";
++    this->DebugMessage(msg);
++  }
+ 
+   // Skip this if the prefix does not exist.
+   if (!cmSystemTools::FileIsDirectory(prefix_in)) {
+@@ -2301,6 +2318,10 @@ bool cmFindPackageCommand::SearchPrefix(std::string const& prefix_in)
+ bool cmFindPackageCommand::SearchFrameworkPrefix(std::string const& prefix_in)
+ {
+   assert(!prefix_in.empty() && prefix_in.back() == '/');
++  if (this->DebugMode) {
++    std::string msg = "Checking framework prefix [" + prefix_in + "]\n";
++    this->DebugMessage(msg);
++  }
+ 
+   // Strip the trailing slash because the path generator is about to
+   // add one.
+@@ -2359,6 +2380,10 @@ bool cmFindPackageCommand::SearchFrameworkPrefix(std::string const& prefix_in)
+ bool cmFindPackageCommand::SearchAppBundlePrefix(std::string const& prefix_in)
+ {
+   assert(!prefix_in.empty() && prefix_in.back() == '/');
++  if (this->DebugMode) {
++    std::string msg = "Checking bundle prefix [" + prefix_in + "]\n";
++    this->DebugMessage(msg);
++  }
+ 
+   // Strip the trailing slash because the path generator is about to
+   // add one.
+diff --git a/Source/cmServerDictionary.h b/Source/cmServerDictionary.h
+index 961e4b7ea8..f452c13ad4 100644
+--- a/Source/cmServerDictionary.h
++++ b/Source/cmServerDictionary.h
+@@ -33,6 +33,7 @@ static const std::string kCHECK_SYSTEM_VARS_KEY = "checkSystemVars";
+ static const std::string kCMAKE_ROOT_DIRECTORY_KEY = "cmakeRootDirectory";
+ static const std::string kCOOKIE_KEY = "cookie";
+ static const std::string kDEBUG_OUTPUT_KEY = "debugOutput";
++static const std::string kDEBUG_FIND_OUTPUT_KEY = "debugFindOutput";
+ static const std::string kERROR_MESSAGE_KEY = "errorMessage";
+ static const std::string kEXTRA_GENERATOR_KEY = "extraGenerator";
+ static const std::string kGENERATOR_KEY = "generator";
+diff --git a/Source/cmServerProtocol.cxx b/Source/cmServerProtocol.cxx
+index 56003df75f..cf5d993f01 100644
+--- a/Source/cmServerProtocol.cxx
++++ b/Source/cmServerProtocol.cxx
+@@ -634,6 +634,7 @@ cmServerResponse cmServerProtocol1::ProcessGlobalSettings(
+   obj[kCAPABILITIES_KEY] = cm->ReportCapabilitiesJson();
+ 
+   obj[kDEBUG_OUTPUT_KEY] = cm->GetDebugOutput();
++  obj[kDEBUG_FIND_OUTPUT_KEY] = cm->GetDebugFindOutput();
+   obj[kTRACE_KEY] = cm->GetTrace();
+   obj[kTRACE_EXPAND_KEY] = cm->GetTraceExpand();
+   obj[kWARN_UNINITIALIZED_KEY] = cm->GetWarnUninitialized();
+@@ -664,9 +665,9 @@ cmServerResponse cmServerProtocol1::ProcessSetGlobalSettings(
+   const cmServerRequest& request)
+ {
+   const std::vector<std::string> boolValues = {
+-    kDEBUG_OUTPUT_KEY,       kTRACE_KEY,       kTRACE_EXPAND_KEY,
+-    kWARN_UNINITIALIZED_KEY, kWARN_UNUSED_KEY, kWARN_UNUSED_CLI_KEY,
+-    kCHECK_SYSTEM_VARS_KEY
++    kDEBUG_OUTPUT_KEY,    kDEBUG_FIND_OUTPUT_KEY,  kTRACE_KEY,
++    kTRACE_EXPAND_KEY,    kWARN_UNINITIALIZED_KEY, kWARN_UNUSED_KEY,
++    kWARN_UNUSED_CLI_KEY, kCHECK_SYSTEM_VARS_KEY
+   };
+   for (std::string const& i : boolValues) {
+     if (!request.Data[i].isNull() && !request.Data[i].isBool()) {
+@@ -679,6 +680,8 @@ cmServerResponse cmServerProtocol1::ProcessSetGlobalSettings(
+ 
+   setBool(request, kDEBUG_OUTPUT_KEY,
+           [cm](bool e) { cm->SetDebugOutputOn(e); });
++  setBool(request, kDEBUG_FIND_OUTPUT_KEY,
++          [cm](bool e) { cm->SetDebugFindOutputOn(e); });
+   setBool(request, kTRACE_KEY, [cm](bool e) { cm->SetTrace(e); });
+   setBool(request, kTRACE_EXPAND_KEY, [cm](bool e) { cm->SetTraceExpand(e); });
+   setBool(request, kWARN_UNINITIALIZED_KEY,
+-- 
+2.24.1
+
