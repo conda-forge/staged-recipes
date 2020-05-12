@@ -1,0 +1,1 @@
+flit install --deps none
