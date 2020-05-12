@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
-cd frontend
-npm install
+mkdir build
+cd build
+npm install ../frontend
 
-npm run build
+npm run build ../frontend
 
 cd ../
