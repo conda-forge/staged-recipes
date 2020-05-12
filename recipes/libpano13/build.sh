@@ -5,5 +5,5 @@ set -ex
     --with-zlib=${PREFIX} \
     --with-java=${JAVA_HOME}
 
-make
+make -j${CPU_COUNT}
 make install
