@@ -12,10 +12,7 @@ fi
 
 if [ "$target_platform" == "win-64" ]; then
   patch_libtool
-  # export CFLAGS="${CFLAGS} -I${PREFIX}/include/gtk-3.0"
-  make -D__WIN__=1 -j${CPU_COUNT}
-else
-  make -j${CPU_COUNT}
 fi
+make -j${CPU_COUNT}
 
 make install
