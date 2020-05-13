@@ -13,7 +13,7 @@ fi
 if [ "$target_platform" == "win-64" ]; then
   patch_libtool
   # Windows doesn't do well with parallel builds???
-  make
+  make VERBOSE=1 V=1
 elif
   make -j${CPU_COUNT}
 fi
