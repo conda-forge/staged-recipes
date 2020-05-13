@@ -5,6 +5,9 @@ if [ "$target_platform" == "win-64" ]; then
   export CFLAGS="${CFLAGS} -I${PREFIX}/include/win32"
 fi
 
+# Make sure we don't use an old Makefile
+rm Makefile
+
 ./configure \
     --prefix=${PREFIX} \
     --with-zlib=${PREFIX} \
