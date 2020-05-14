@@ -6,7 +6,9 @@ if [ "$target_platform" == "win-64" ]; then
 fi
 
 # Make sure we don't use an old Makefile
-rm -f Makefile
+rm -f Makefile Makefile.in
+
+automake
 
 ./configure \
     --prefix=${PREFIX} \
