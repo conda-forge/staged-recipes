@@ -15,5 +15,5 @@ cmake -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_LIBDIR=$PREFIX/lib \
       ..
 # Build step
-make -j${CPU_COUNT}
+make
 make install
