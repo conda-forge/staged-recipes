@@ -1,4 +1,5 @@
 #!/bin/bash
-configure --prefix=${PREFIX}
+autoconf
+./configure --prefix=${PREFIX}
 make
 make install
