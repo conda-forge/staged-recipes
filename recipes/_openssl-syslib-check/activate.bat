@@ -4,6 +4,11 @@
 
 @echo off
 
+:: early out for users who want to silence the warning
+if defined CONDA_SKIP_OPENSSL_DLL_CHECK (
+  exit /b 0
+)
+
 set "LIBSSL_PATH=C:\Windows\System32\libssl-1_1-x64.dll"
 set "LIBCRYPTO_PATH=C:\Windows\System32\libcrypto-1_1-x64.dll"
 
@@ -24,14 +29,7 @@ if "%HAS_SYS_LIBS%"=="F" (
   exit /b 0
 )
 
-:: if we made it until here, we need to detect which combination
-:: of openssl/cryptography is installed
-openssl version >nul
-if %ERRORLEVEL% neq 0 (
-  ECHO The package "_openssl-syslib-check" should only be used by openssl!
-  exit /b 1
-)
-
+:: if we made it until here, we need to detect if cryptography is installed
 python -c "import cryptography" 2>nul
 if %ERRORLEVEL% neq 0 (
   set "HAS_CRYPTOGRAPHY=F"
@@ -49,7 +47,9 @@ if "%HAS_CRYPTOGRAPHY%"=="F" (
   if "%HAS_SYS_SSL%"=="T"    ECHO WARNING: %LIBSSL_PATH%
   if "%HAS_SYS_CRYPTO%"=="T" ECHO WARNING: %LIBCRYPTO_PATH%
                              ECHO WARNING: These DLLs will be linked to before those in the conda
-                             ECHO WARNING: environment and might make your installation vulnerable!
+                             ECHO WARNING: environment and might make your installation vulnerable!!
+                             ECHO Info:    ^(You can silence this warning by setting the environment
+                             ECHO Info:    variable CONDA_SKIP_OPENSSL_DLL_CHECK to any value.^)
                              exit /b 0
 )
 
@@ -82,21 +82,20 @@ if "%LINKED_TO_OUTDATED_SYSLIB%"=="True" (
                                ECHO WARNING: Your system contains outdated DLLs under:
     if "%HAS_SYS_SSL%"=="T"    ECHO WARNING: %LIBSSL_PATH%
     if "%HAS_SYS_CRYPTO%"=="T" ECHO WARNING: %LIBCRYPTO_PATH%
-                               ECHO WARNING: using '%LINKED_VERSION_TEXT%' ^(instead of %ENV_VERSION% in the environment^).
-                               ECHO WARNING: These DLLs will be preferred over those in the conda environment ^(despite
+                               ECHO WARNING: using '%LINKED_VERSION_TEXT%' ^(instead of %ENV_VERSION% in the env^).
+                               ECHO WARNING: These DLLs will be preferred over those in the conda env ^(despite
                                ECHO WARNING: our best tries^), and might make your installation vulnerable!
-                               ECHO WARNING: ^(Upgrading your python version should enable conda to work around this.^)
+                               ECHO Info:    ^(Upgrading your python version should enable conda to work around
+                               ECHO Info:    this; alternatively, you can silence this warning by setting the
+                               ECHO Info:    environment variable CONDA_SKIP_OPENSSL_DLL_CHECK to any value.^)
   ) else (
     REM Otherwise, we set CONDA_DLL_SEARCH_MODIFICATION_ENABLE and try again.
     ECHO Warning: Found outdated libssl/libcrypto DLLs on system;
     ECHO Warning: Attempting to re-activate with CONDA_DLL_SEARCH_MODIFICATION_ENABLE
     ECHO.
     set CONDA_DLL_SEARCH_MODIFICATION_ENABLE=1
-    REM now we want to re-exec ourselves, but don't have the same environment variables
-    REM as during bld.bat; so we use some magic, see https://stackoverflow.com/a/3827582
-    set FOLDER_CONTAINING_THIS_SCRIPT_WITH_TRAILING_BACKSLASH=%~dp0
-    call %FOLDER_CONTAINING_THIS_SCRIPT_WITH_TRAILING_BACKSLASH%_openssl-syslib-check_activate.bat
-    REM Check if recursive call errored, and set exit-code accordingly
+    REM now we want to re-exec ourselves (cf. where activation is installed in bld.bat)
+    call %PREFIX%\etc\conda\activate.d\_openssl-syslib-check_activate.bat
     if %ERRORLEVEL% neq 0 exit /b 1
   )
 ) else (
@@ -110,6 +109,8 @@ if "%LINKED_TO_OUTDATED_SYSLIB%"=="True" (
                                ECHO Warning: the openssl version of the environment, but be aware that anything
                                ECHO Warning: *outside* of python that is trying to load libssl/libcrypto will
                                ECHO Warning: load the DLLs above, which might make that application vulnerable!
+                               ECHO Info:    ^(You can silence this warning by setting the environment
+                               ECHO Info:    variable CONDA_SKIP_OPENSSL_DLL_CHECK to any value.^)
   )
   REM Otherwise, even though the system library will be preferred, its version is at least
   REM as up-to-date as the one in the conda environment, so no need to spam warnings.
