@@ -5,7 +5,7 @@ FFT_FLAVOR="none"
 
 # Open BLAS
 LINALG_FLAVOR="custom"
-LINALG_LIBS="-L${PREFIX}/lib -lblas -lpthread"
+LINALG_LIBS="-L${PREFIX}/lib -lopenblas -lpthread"
 
 NC_INCS="-I${PREFIX}/include"
 NC_LIBS="-L${PREFIX}/lib -lnetcdff -lnetcdf -lhdf5_hl -lhdf5"
