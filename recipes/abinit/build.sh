@@ -15,14 +15,7 @@ XC_INCS="-I${PREFIX}/include"
 XC_LIBS="-L${PREFIX}/lib -lxcf90 -lxc"
 
 CC=mpicc
-if [[ "$mpi" == "mpich" ]]; then  # mpich
-  FC=mpif90
-else  # openmpi
-  FC="mpif90 -fopenmpi"
-  export OMPI_MCA_plm=isolated
-  export OMPI_MCA_btl_vader_single_copy_mechanism=none
-  export OMPI_MCA_rmaps_base_oversubscribe=yes
-fi
+FC=mpif90
 
 ./config/scripts/makemake
 ./configure --prefix=${PREFIX} \
@@ -34,5 +27,13 @@ fi
             --enable-gw-dpc="yes" \
             --with-libxc-incs="${XC_INCS}" --with-libxc-libs="${XC_LIBS}"
 make -j${CPU_COUNT}
+
+if [[ "$mpi" == "openmpi" ]]; then  # openmpi
+  export OMPI_MCA_plm=isolated
+  export OMPI_MCA_btl_vader_single_copy_mechanism=none
+  export OMPI_MCA_rmaps_base_oversubscribe=yes
+fi
+
 make check
+
 make install-exec
