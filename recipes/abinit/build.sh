@@ -15,7 +15,7 @@ XC_INCS="-I${PREFIX}/include"
 XC_LIBS="-L${PREFIX}/lib -lxcf90 -lxc"
 
 CC=mpicc
-if [[ -z "${OMPI_RELEASE_VERSION}" ]]; then  # mpich
+if [[ "$mpi" == "mpich" ]]; then  # mpich
   FC=mpif90
 else  # openmpi
   FC="mpif90 -fopenmpi"
