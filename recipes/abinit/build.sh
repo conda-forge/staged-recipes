@@ -20,7 +20,7 @@ XC_INCS="-I${PREFIX}/include"
 XC_LIBS="-L${PREFIX}/lib -lxcf90 -lxc"
 
 CC=mpicc
-FC=mpif90
+FC="mpif90 -fopenmpi"
 
 ./config/scripts/makemake
 ./configure --prefix=${PREFIX} \
