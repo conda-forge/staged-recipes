@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# openmpi fix tests
+export OMPI_MCA_plm=isolated
+export OMPI_MCA_btl_vader_single_copy_mechanism=none
+export OMPI_MCA_rmaps_base_oversubscribe=yes
+
 # FFTW3
 FFT_FLAVOR="none"
 
