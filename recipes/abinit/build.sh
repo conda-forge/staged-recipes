@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# openmpi fix tests
-export OMPI_MCA_plm=isolated
-export OMPI_MCA_btl_vader_single_copy_mechanism=none
-export OMPI_MCA_rmaps_base_oversubscribe=yes
-
 # FFTW3
 FFT_FLAVOR="none"
 
@@ -20,9 +15,12 @@ XC_INCS="-I${PREFIX}/include"
 XC_LIBS="-L${PREFIX}/lib -lxcf90 -lxc"
 
 CC=mpicc
-if [[ -z "${OMPI_RELEASE_VERSION}" ]]; then
+if [[ -z "${OMPI_RELEASE_VERSION}" ]]; then  # openmpi
   FC="mpif90 -fopenmpi"
-else
+  export OMPI_MCA_plm=isolated
+  export OMPI_MCA_btl_vader_single_copy_mechanism=none
+  export OMPI_MCA_rmaps_base_oversubscribe=yes
+else  # mpich
   FC=mpif90
 fi
 
