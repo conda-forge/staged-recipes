@@ -28,12 +28,8 @@ FC=mpif90
             --with-libxc-incs="${XC_INCS}" --with-libxc-libs="${XC_LIBS}"
 make -j${CPU_COUNT}
 
-if [[ "$mpi" == "openmpi" ]]; then  # openmpi
-  export OMPI_MCA_plm=isolated
-  export OMPI_MCA_btl_vader_single_copy_mechanism=none
-  export OMPI_MCA_rmaps_base_oversubscribe=yes
+if [[ "$mpi" == "mpich" ]]; then  # mpich
+  make check
 fi
-
-make check
 
 make install-exec
