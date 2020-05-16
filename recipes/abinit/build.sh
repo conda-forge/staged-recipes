@@ -20,7 +20,11 @@ XC_INCS="-I${PREFIX}/include"
 XC_LIBS="-L${PREFIX}/lib -lxcf90 -lxc"
 
 CC=mpicc
-FC="mpif90 -fopenmpi"
+if [[ -z "${OMPI_RELEASE_VERSION}" ]]; then
+  FC="mpif90 -fopenmpi"
+else
+  FC=mpif90
+fi
 
 ./config/scripts/makemake
 ./configure --prefix=${PREFIX} \
