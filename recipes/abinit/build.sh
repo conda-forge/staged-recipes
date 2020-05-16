@@ -34,7 +34,5 @@ fi
             --enable-gw-dpc="yes" \
             --with-libxc-incs="${XC_INCS}" --with-libxc-libs="${XC_LIBS}"
 make -j${CPU_COUNT}
-if [[ -z "${OMPI_RELEASE_VERSION}" ]]; then  # mpich
-  make check  # for some reason the tests do not work with openmpi
-fi
+make check
 make install-exec
