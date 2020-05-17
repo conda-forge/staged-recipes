@@ -1,10 +1,11 @@
 #!/bin/bash
 set -e
 
-# shared build
 pushd singleheader
-$CXX -fPIC -Wall -Werror -Wextra -pedantic simdjson.cpp -shared -o libsimdjson.so
-$CXX -Wall -Werror -Wextra -pedantic simdjson.cpp -o simdjson.o
+# shared build
+$CXX --std=c++17 -fPIC -Wall -Wextra simdjson.cpp -shared -o libsimdjson.so
+# shared static
+$CXX --std=c++17 -Wall -Wextra simdjson.cpp -c -o simdjson.o
 $AR -rc libsimdjson.a simdjson.o
 popd
 
