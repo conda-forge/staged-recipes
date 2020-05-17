@@ -2,13 +2,13 @@
     @echo.# The name of the libraries to be created/linked to
     @echo.XBLASLIB = libxblas.a
     @echo.
-    @echo.CC = %CC%
-    @echo.CFLAGS = %CFLAGS%
-    @echo.LINKER = %CC%
-    @echo.LDFLAGS = %LDFLAGS%
-    @echo.ARCH = %GCC_AR%
+    @echo.CC = gcc
+    @echo.CFLAGS = -march=nocona -mtune=haswell -O3
+    @echo.LINKER = gcc
+    @echo.LDFLAGS =
+    @echo.ARCH = gcc-ar
     @echo.ARCHFLAGS = cr
-    @echo.RANLIB = %GCC_RANLIB%
+    @echo.RANLIB = gcc-ranlib
     @echo.
     @echo.# Extra libraries needed for xblas test code.
     @echo.EXTRA_LIBS =  -lm
