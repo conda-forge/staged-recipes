@@ -27,9 +27,5 @@ FC=mpif90
             --enable-gw-dpc="yes" \
             --with-libxc-incs="${XC_INCS}" --with-libxc-libs="${XC_LIBS}"
 make -j${CPU_COUNT}
-
-if [[ "$mpi" == "mpich" ]]; then  # mpich
-  make check
-fi
-
+make check
 make install-exec
