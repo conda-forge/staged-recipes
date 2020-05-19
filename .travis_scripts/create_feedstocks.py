@@ -13,6 +13,7 @@ Such as:
 from __future__ import print_function
 
 from conda_build.metadata import MetaData
+from conda_smithy.utils import get_feedstock_name_from_meta
 from contextlib import contextmanager
 from datetime import datetime
 from github import Github, GithubException
@@ -44,7 +45,7 @@ def list_recipes():
         if recipe_dir.startswith('example'):
             continue
         path = os.path.abspath(os.path.join(recipe_directory_name, recipe_dir))
-        yield path, MetaData(path).name()
+        yield path, get_feedstock_name_from_meta(MetaData(path))
 
 
 @contextmanager
