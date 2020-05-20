@@ -15,7 +15,6 @@ cmake_config_args=(
     -DCMAKE_INSTALL_SBINDIR=bin
     -DCSHARP_BINDINGS=OFF
     -DENABLE_PACKAGING=OFF
-    -DOSX_INSTALL_FRAMEWORKSDIR=$PREFIX/Library/Frameworks
     -DPYTHON_BINDINGS=OFF
     -DWITH_DOC=OFF
     -DWITH_EXAMPLES=OFF
@@ -40,6 +39,8 @@ if [[ $target_platform == linux* ]] ; then
     )
 else
     cmake_config_args+=(
+        -DOSX_INSTALL_FRAMEWORKSDIR=$PREFIX/Library/Frameworks
+        -DOSX_PACKAGE=OFF
         -DWITH_IIOD=OFF
         -DWITH_LOCAL_BACKEND=OFF
     )
