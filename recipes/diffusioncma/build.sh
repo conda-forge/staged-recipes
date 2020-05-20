@@ -20,3 +20,4 @@ make install_python_wrappers
 cd ..
 
 ${PYTHON} setup.py install
+
