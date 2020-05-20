@@ -1,13 +1,13 @@
 
-# build libcmaes when not on MacOS
-if [ "$(uname)" != "Darwin" ]; then	
-	echo "Building libcmaes..."
-	mkdir -p build_libcmaes
-	cd build_libcmaes
-	cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=Release ../src/libcmaes
-	make install
-	cd ..
-fi
+## build libcmaes when not on MacOS
+#if [ "$(uname)" != "Darwin" ]; then	
+#	echo "Building libcmaes..."
+#	mkdir -p build_libcmaes
+#	cd build_libcmaes
+#	cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=Release ../src/libcmaes
+#	make install
+#	cd ..
+#fi
 
 
 echo "Building diffusioncma..."
