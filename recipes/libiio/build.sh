@@ -39,7 +39,6 @@ if [[ $target_platform == linux* ]] ; then
     )
 else
     cmake_config_args+=(
-        -DOSX_INSTALL_FRAMEWORKSDIR=$PREFIX/Library/Frameworks
         -DOSX_PACKAGE=OFF
         -DWITH_IIOD=OFF
         -DWITH_LOCAL_BACKEND=OFF
