@@ -1,6 +1,4 @@
 
-# build libcmaes when not on MacOS
-#if [ "$(uname)" != "Darwin" ]; then	
 echo "Building libcmaes..."
 mkdir -p build_libcmaes
 cd build_libcmaes
@@ -16,7 +14,6 @@ cmake \
     ../src/libcmaes
 make install
 cd ..
-#fi
 
 
 echo "Building diffusioncma..."
