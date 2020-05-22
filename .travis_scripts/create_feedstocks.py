@@ -285,15 +285,15 @@ if __name__ == '__main__':
                          '--feedstock_directory', feedstock_dir] + owner_info)
                     subprocess.check_call(
                         ['conda', 'smithy', 'register-feedstock-token',
-                         '--without-appveyor',
                          '--feedstock_directory', feedstock_dir] + owner_info)
 
                 import conda_smithy.ci_register
                 conda_smithy.ci_register.anaconda_token \
                     = os.environ["STAGING_BINSTAR_TOKEN"]
                 subprocess.check_call(
-                    ['conda', 'smithy', 'rotate-binstar-token', '--token_name',
-                     'STAGING_BINSTAR_TOKEN'],
+                    ['conda', 'smithy', 'rotate-binstar-token',
+                     '--without-appveyor',
+                     '--token_name', 'STAGING_BINSTAR_TOKEN'],
                     cwd=feedstock_dir)
 
                 with open(os.path.join(feedstock_dir, "conda-forge.yml"), "a+") as fp:
