@@ -26,7 +26,6 @@ import traceback
 import time
 
 import requests
-import conda_smithy.ci_register
 
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
 DEBUG = False
@@ -258,6 +257,7 @@ if __name__ == '__main__':
             # After going through all the recipes and removing the converted ones,
             # we fail the build so that people are aware that things did not clear.
             try:
+                import conda_smithy.ci_register
                 conda_smithy.ci_register.anaconda_token \
                     = os.environ["PROD_BINSTAR_TOKEN"]
                 subprocess.check_call(
@@ -288,6 +288,7 @@ if __name__ == '__main__':
                          '--without-appveyor',
                          '--feedstock_directory', feedstock_dir] + owner_info)
 
+                import conda_smithy.ci_register
                 conda_smithy.ci_register.anaconda_token \
                     = os.environ["STAGING_BINSTAR_TOKEN"]
                 subprocess.check_call(
