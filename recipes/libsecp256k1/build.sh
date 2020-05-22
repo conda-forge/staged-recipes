@@ -7,6 +7,6 @@
             --prefix $PREFIX --enable-experimental \
             --enable-module-ecdh --enable-benchmark=no
 
-make -j ${CPU_COUNT} CC=$CC CXX=$CXX
+make -j ${CPU_COUNT} CC=$CC GCC=$GCC CXX=$CXX
 make check -j ${CPU_COUNT}
 make install
