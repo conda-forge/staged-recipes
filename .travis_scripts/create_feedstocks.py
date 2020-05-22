@@ -26,6 +26,7 @@ import traceback
 import time
 
 import requests
+from ruamel.yaml import YAML
 
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
 DEBUG = False
@@ -296,8 +297,12 @@ if __name__ == '__main__':
                      '--token_name', 'STAGING_BINSTAR_TOKEN'],
                     cwd=feedstock_dir)
 
-                with open(os.path.join(feedstock_dir, "conda-forge.yml"), "a+") as fp:
-                    fp.write("\nconda_forge_output_validation: true\n")
+                yaml = YAML()
+                with open(os.path.join(feedstock_dir, "conda-forge.yml"), "r") as fp:
+                    _cfg = yaml.load(fp.read())
+                _cfg["conda_forge_output_validation"] = True
+                with open(os.path.join(feedstock_dir, "conda-forge.yml"), "w") as fp:
+                    yaml.dump(_cfg, fp)
                 subprocess.check_call(
                     ["git", "add", "conda-forge.yml"],
                     cwd=feedstock_dir
