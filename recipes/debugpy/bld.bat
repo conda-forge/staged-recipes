@@ -8,7 +8,7 @@ del *.exp
 del *.so
 del *.dylib
 
-cd windows
+pushd windows
 
 cl -DUNICODE -D_UNICODE /EHsc /Zi /O1 /W3 /LD /MD attach.cpp /link /DEBUG /OPT:REF /OPT:ICF /out:attach_amd64.dll
 copy attach_amd64.dll ..\attach_amd64.dll /Y
@@ -28,6 +28,7 @@ del *.obj
 del *.pdb
 del *.dll
 del *.exp
+popd
 popd
 
 %PYTHON% -m pip install . -vv

@@ -2,9 +2,9 @@
 
 pushd src/debugpy/_vendored/pydevd/pydevd_attach_to_process
 rm *.so *.dll *.dylib *.exe *.pdb
-cd linux_and_mac
+pushd linux_and_mac
 
-if [ "$(uname)" == "Darwin" ];
+if [[ "${target_platform}" == "osx-64" ]];
 then
     SHARED_LIBRARY="attach_x86_64${SHLIB_EXT}"
     EXTRA_FLAGS="-dynamiclib -lc -nostartfiles"
@@ -15,5 +15,6 @@ fi
 
 ${CXX} ${CXXFLAGS} ${EXTRA_FLAGS} -o ${SHARED_LIBRARY} attach.cpp
 mv ${SHARED_LIBRARY} ../
+popd
 popd
 ${PYTHON} -m pip install . -vv
