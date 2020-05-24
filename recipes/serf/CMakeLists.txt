@@ -16,10 +16,13 @@ file(GLOB SERF_SRCS
 LIST(APPEND SERF_SRCS serf.def)
 LIST(APPEND CMAKE_PREFIX_PATH $ENV{LIBRARY_PREFIX})
 
-LIST(APPEND LIBS  user32.lib advapi32.lib gdi32.lib ws2_32.lib
-                       crypt32.lib secur32.lib zdll.lib
-                       libapr-1.lib libaprutil-1.lib libeay32.lib
-                       ssleay32.lib)
+#user32.lib advapi32.lib gdi32.lib ws2_32.lib
+#                       crypt32.lib secur32.lib
+# libeay32.lib
+#                       ssleay32.lib
+LIST(APPEND LIBS  zdll.lib
+                       libapr-1.lib libaprutil-1.lib
+)
 
 LIST(APPEND SERF_DEP_LIBS "")
 FOREACH (LIB ${LIBS})
