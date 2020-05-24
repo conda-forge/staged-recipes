@@ -21,7 +21,8 @@ LIST(APPEND CMAKE_PREFIX_PATH $ENV{LIBRARY_PREFIX})
 # libeay32.lib
 #                       ssleay32.lib
 LIST(APPEND LIBS  zdll.lib
-                       libapr-1.lib libaprutil-1.lib
+    libapr-1.lib libaprutil-1.lib
+    ssleay64.lib
 )
 
 LIST(APPEND SERF_DEP_LIBS "")
