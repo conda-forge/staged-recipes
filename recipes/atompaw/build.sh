@@ -6,8 +6,8 @@
    IFLAGS="-I${SRC_DIR}/include -I${PREFIX}/finclude" \
    CC="${CC}" \
    FC="${FC}" \
-   CFLAGS="${CFLAGS} -L${PREFIX}/lib -llapack -lblas" \
-   FFLAGS="${FFLAGS} -L${PREFIX}/lib -llapack -lblas"
+   CFLAGS="${CFLAGS} -L${PREFIX}/lib -llapack -lblas -lxcf90 -lxc"" \
+   FFLAGS="${FFLAGS} -L${PREFIX}/lib -llapack -lblas -lxcf90 -lxc""
 
 make -j1  # parallel make does not work
 make install
