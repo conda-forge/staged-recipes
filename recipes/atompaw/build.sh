@@ -1,6 +1,7 @@
 #!/bin/bash
 
 ./configure --prefix=$PREFIX \
+   --with-linalg-libs="-L${PREFIX}/lib -lblas -lpthread" \
    --enable-libxc --with-libxc-incs="-I${PREFIX}/include" --with-libxc-libs="-L${PREFIX}/lib -lxcf90 -lxc" \
    IFLAGS="-I${SRC_DIR}/include -I${PREFIX}/finclude" \
    CC="${CC}" \
