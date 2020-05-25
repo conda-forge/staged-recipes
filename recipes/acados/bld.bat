@@ -1,0 +1,14 @@
+mkdir build
+cd build
+
+cmake ../^
+    -GNinja^
+    -DCMAKE_BUILD_TYPE=Release^
+    -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%"^
+    -DACADOS_INSTALL_DIR="%LIBRARY_PREFIX%"^
+    -DACADOS_WITH_QPOASES=ON ^
+    -DACADOS_PYTHON=ON ^
+    -DPYTHON_PREFIX="%SP_DIR%"^
+    -DACADOS_EXAMPLES=OFF
+
+ninja install

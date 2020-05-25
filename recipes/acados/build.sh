@@ -1,0 +1,13 @@
+mkdir build
+pushd build
+
+cmake $SRC_DIR \
+  -GNinja \
+  -DACADOS_PYTHON=ON \
+  -DACADOS_WITH_QPOASES=ON \
+  -DCMAKE_INSTALL_PREFIX=${PREFIX}\
+  -DACADOS_INSTALL_DIR=${PREFIX}\
+  -DPYTHON_PREFIX=${SP_DIR} \
+  -DACADOS_EXAMPLES=OFF
+  
+ninja install
