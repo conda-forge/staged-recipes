@@ -1,4 +1,8 @@
-{% set version = "3.0.5" %}
+# 3.0.5 doesn't ship with CMake installer
+# And I don't feel like copying files manually from the VS Solution build
+# {% set version = "3.0.5" %}
+{% set version = "3.1.3" %}
+{% set major_minor_version = '.'.join(version.split('.')[:2]) %}
 
 package:
   name: wxwidgets
@@ -6,22 +10,24 @@ package:
 
 source:
   url: https://github.com/wxWidgets/wxWidgets/releases/download/v{{ version }}/wxWidgets-{{ version }}.tar.bz2
-  sha256: 8aacd56b462f42fb6e33b4d8f5d40be5abc3d3b41348ea968aa515cc8285d813
+  # 3.0.5
+  # sha256: 8aacd56b462f42fb6e33b4d8f5d40be5abc3d3b41348ea968aa515cc8285d813
+  # 3.1.3
+  sha256: fffc1d34dac54ff7008df327907984b156c50cff5a2f36ee3da6052744ab554a
 
 build:
-  number: 1
+  number: 0
   # Linux builds, now testing windows
-  skip: true  # [not win]
+  skip: true  # [osx]
   run_exports:
     # ABI seems to be stable between minor versions
     - {{ pin_subpackage('wxwidgets', max_pin='x.x') }}
-
 
 requirements:
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - make         # [win]
+    - cmake        # [win]
     - ninja        # [win]
     - make         # [unix]
     - pkg-config   # [unix]
@@ -40,14 +46,18 @@ requirements:
     - zlib
     - libpng
     - libtiff
-    - xz
-    - glib
-    - libiconv
     - expat
-    - fontconfig
-    - pango
+    # hmaarrfk 2020/05/25
+    # Even after we specify that we want to use sys jpeg
+    # conda claims we are still overlinking on windows
+    # not too sure why
     - jpeg
-    - cairo
+    - libiconv    # [unix]
+    - xz          # [unix]
+    - glib        # [unix]
+    - pango       # [unix]
+    - cairo       # [unix]
+    - fontconfig  # [unix]
     # old version not available for windows
     # https://github.com/conda-forge/conda-forge-pinning-feedstock/pull/627
     - gdk-pixbuf  # [unix]
@@ -68,9 +78,14 @@ requirements:
 
 test:
   commands:
-    - test -f ${PREFIX}/lib/libwx_baseu-3.0${SHLIB_EXT}  # [unix]
-    - test -f ${PREFIX}/include/wx-3.0/wx/wx.h           # [unix]
-    - wxrc --help
+    - test -f ${PREFIX}/lib/libwx_baseu-{{ major_minor_version }}${SHLIB_EXT}  # [unix]
+    - test -f ${PREFIX}/include/wx-{{ major_minor_version }}/wx/wx.h           # [unix]
+    - wx-config --prefix  # [unix]
+    # This seems to exit 1 on windows
+    - wxrc --help  # [unix]
+    #- wxrc -h      # [win]
+    - if not exist %LIBRARY_BIN%\\wxrc.exe exit 1  # [win]
+
 
 about:
   home: https://www.wxwidgets.org/
