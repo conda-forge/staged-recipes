@@ -19,6 +19,5 @@ if errorlevel 1 exit 1
 
 REM ninja install doesn't seem to create the .lib files
 REM ninja install
-cmake --build . --target install --config Release
+ninja install
 if errorlevel 1 exit 1
-
