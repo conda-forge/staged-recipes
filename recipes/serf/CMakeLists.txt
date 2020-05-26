@@ -1,3 +1,5 @@
+# Origianlly forked from https://github.com/ContinuumIO/anaconda-recipes/tree/master/serf
+# (c) 2016 Continuum Analytics, Inc. / http://continuum.io All Rights Reserved
 cmake_minimum_required (VERSION 2.8.11)
 project (serf)
 
