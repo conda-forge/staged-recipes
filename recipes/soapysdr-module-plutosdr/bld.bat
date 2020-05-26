@@ -10,6 +10,7 @@ cmake -G "Ninja" ^
     -DCMAKE_BUILD_TYPE:STRING=Release ^
     -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
     -DCMAKE_PREFIX_PATH:PATH="%LIBRARY_PREFIX%" ^
+    -DLIB_SUFFIX:STRING="" ^
     ..
 if errorlevel 1 exit 1
 
