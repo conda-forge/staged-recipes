@@ -1,0 +1,60 @@
+{% set name = "libzopfli" %}
+{% set version = "1.0.3" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/google/zopfli/archive/zopfli-{{ version }}.tar.gz
+  sha256: e955a7739f71af37ef3349c4fa141c648e8775bceb2195be07e86f8e638814bd
+  patches:
+    # https://github.com/google/zopfli/pull/164
+    - include_more_headers.patch
+
+build:
+  number: 0
+  run_exports:
+    # Seems like a package with very few releases.
+    # Most PRs seem to be stale
+    # Lets go with this for now?
+    - {{ pin_subpackage('libzopfli', max_pin='x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - make   # [unix]
+    - ninja  # [win]
+
+test:
+  commands:
+    - zopfli -h
+    - zopflipng -h
+    - test -f $PREFIX/lib/libzopfli${SHLIB_EXT}             # [unix]
+    - test -f $PREFIX/lib/libzopflipng${SHLIB_EXT}          # [unix]
+    - test -f $PREFIX/include/zopfli/zopfli.h               # [unix]
+    - test -f $PREFIX/include/zopfli/zopflipng_lib.h        # [unix]
+    - test -f $PREFIX/include/zopfli/zlib_container.h       # [unix]
+    - test -f $PREFIX/include/zopfli/gzip_container.h       # [unix]
+    - if not exist %LIBRARY_LIB%\\zopfli.lib exit 1      # [win]
+    - if not exist %LIBRARY_BIN%\\zopfli.dll exit 1      # [win]
+    - if not exist %LIBRARY_LIB%\\zopflipng.lib exit 1   # [win]
+    - if not exist %LIBRARY_BIN%\\zopflipng.dll exit 1   # [win]
+    - if not exist %LIBRARY_INC%\\zopfli\\zopfli.h exit 1           # [win]
+    - if not exist %LIBRARY_INC%\\zopfli\\zopflipng_lib.h exit 1    # [win]
+    - if not exist %LIBRARY_INC%\\zopfli\\zlib_container.h exit 1   # [win]
+    - if not exist %LIBRARY_INC%\\zopfli\\gzip_container.h exit 1   # [win]
+
+
+about:
+  home: https://github.com/google/zopfli
+  license: Apache-2.0
+  license_family: Apache
+  license_file: COPYING
+  summary: 'A compression library programmed in C to perform very good, but slow, deflate or zlib compression.'
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
