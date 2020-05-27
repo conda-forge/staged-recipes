@@ -20,7 +20,6 @@ echo "Installing a fresh version of Miniconda."
 curl -L https://repo.continuum.io/miniconda/Miniconda3-4.6.14-Linux-x86_64.sh > ~/miniconda.sh
 bash ~/miniconda.sh -b -p ~/miniconda
 touch ~/miniconda/conda-meta/pinned
-echo "conda 4.6.14" >> ~/miniconda/conda-meta/pinned
 (
     source ~/miniconda/bin/activate root
 
@@ -37,7 +36,15 @@ echo "conda 4.6.14" >> ~/miniconda/conda-meta/pinned
 )
 source ~/miniconda/bin/activate root
 
-conda install --yes --quiet conda-forge-ci-setup=2.* conda-smithy=3.* conda-forge-pinning git=2.12.2 "conda-build>=3.16"
+conda install --yes --quiet \
+  conda-forge-ci-setup=3.* \
+  "conda-smithy>=3.7.1,<4.0.0a0" \
+  conda-forge-pinning \
+  git=2.12.2 \
+  "conda-build>=3.16" \
+  "gitpython>=3.0.8" \
+  requests \
+  ruamel.yaml
 
 conda info
 conda config --get
@@ -45,9 +52,13 @@ conda config --get
 set +x
 mkdir -p ~/.conda-smithy
 echo $TRAVIS_TOKEN > ~/.conda-smithy/travis.token
+echo $PROD_BINSTAR_TOKEN > ~/.conda-smithy/anaconda.token
 set -x
 
 python .travis_scripts/create_feedstocks.py || {
+    set +x
+    echo $TRAVIS_TOKEN2 > ~/.conda-smithy/travis.token
+    set -x
     python .travis_scripts/trigger_travis_build.py "conda-forge/staged-recipes";
     exit 1;
 };

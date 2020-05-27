@@ -31,31 +31,29 @@ def build_all(recipes_dir, arch):
         print("Found no recipes to build")
         return
 
-    if get_host_platform() == "win":
-        new_comp_folders.extend(folders)
-    else:
-        for folder in folders:
-            built = False
-            cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
-            if os.path.exists(cbc):
-                with open(cbc, "r") as f:
-                    text = ''.join(f.readlines())
-                if 'channel_sources' in text:
-                    specific_config = safe_load(text)
-                    if "channel_targets" not in specific_config:
-                        raise RuntimeError("channel_targets not found in {}".format(folder))
-                    if "channel_sources" in specific_config:
-                        for row in specific_config["channel_sources"]:
-                            channels = [c.strip() for c in row.split(",")]
-                            if channels != ['conda-forge', 'defaults'] and \
-                                    channels != ['conda-forge/label/cf201901', 'defaults']:
-                                print("Not a standard configuration of channel_sources. Building {} individually.".format(folder))
-                                conda_build.api.build([os.path.join(recipes_dir, folder)], config=get_config(arch, channels))
-                                built = True
-                                break
-                    if not built:
-                        old_comp_folders.append(folder)
-                        continue
+    for folder in folders:
+        built = False
+        cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
+        if os.path.exists(cbc):
+            with open(cbc, "r") as f:
+                text = ''.join(f.readlines())
+            if 'channel_sources' in text:
+                specific_config = safe_load(text)
+                if "channel_targets" not in specific_config:
+                    raise RuntimeError("channel_targets not found in {}".format(folder))
+                if "channel_sources" in specific_config:
+                    for row in specific_config["channel_sources"]:
+                        channels = [c.strip() for c in row.split(",")]
+                        if channels != ['conda-forge', 'defaults'] and \
+                                channels != ['conda-forge/label/cf201901', 'defaults']:
+                            print("Not a standard configuration of channel_sources. Building {} individually.".format(folder))
+                            conda_build.api.build([os.path.join(recipes_dir, folder)], config=get_config(arch, channels))
+                            built = True
+                            break
+                if not built:
+                    old_comp_folders.append(folder)
+                    continue
+        if not built:
             new_comp_folders.append(folder)
 
     if old_comp_folders:
@@ -87,6 +85,7 @@ def get_config(arch, channel_urls):
         exclusive_config_file=exclusive_config_file, channel_urls=channel_urls,
         error_overlinking=error_overlinking)
     return config
+
 
 def build_folders(recipes_dir, folders, arch, channel_urls):
 
