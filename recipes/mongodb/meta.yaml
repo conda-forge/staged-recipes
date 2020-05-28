@@ -1,0 +1,104 @@
+{% set version = "4.2.6" %}
+
+package:
+  name: mongodb
+  version: {{ version }}
+
+source:
+  url: https://fastdl.mongodb.org/src/mongodb-src-r{{ version }}.tar.gz
+  sha256: 7825f3afb5e75025928cb659ccc717d784b75d149dcb26cac83348e2479929b7
+  patches:
+    - patches/0001-Do-not-inject-debug-info-unnecessarily.patch
+    - patches/0002-Relax-constraint-on-minimum-version-of-GCC.patch
+    - patches/0003-aligned_alloc-in-libC-is-only-available-in-glibc-2.1.patch
+    - patches/0004-Fix-icu-namespace-extension-for-un-vendored-icu.patch
+    - patches/0005-Fix-flags-for-un-vendoring-abseil-cpp.patch
+    - patches/0006-Make-SCons-inherit-environment-vars.patch
+    - patches/0007-Disable-fsized-deallocation-on-macOS.patch
+    - patches/0008-Relax-minimum-Darwin-version-check-to-10.9.patch
+    - patches/0009-Use-platform-specific-TimeStamp-implementation.patch
+    - patches/0010-Fix-openssl-1.1.x-library-names-on-Windows.patch
+    - patches/0011-Fix-icu-library-names-for-Windows.patch
+    - patches/0012-Don-t-force-disable-auto-linking-if-use-system-boost.patch
+
+build:
+  # Skipping on Windows because azure ain't got what it takes
+  # LINK : fatal error LNK1102: out of memory
+  # fatal error C1060: compiler is out of heap space
+  skip: True  # [win]
+  number: 0
+  detect_binary_files_with_prefix: False
+  missing_dso_whitelist:          # [osx]
+    - /usr/lib/libresolv.9.dylib  # [osx]
+  ignore_run_exports:
+    # No shared libraries, statically linked
+    - abseil-cpp
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - python 3.*
+    - cheetah3
+    - psutil
+    - pyyaml
+    - regex
+    - requests
+    - setuptools
+  host:
+    - abseil-cpp
+    - boost-cpp
+    - icu
+    - libcurl
+    - openssl
+    - pcre
+    - snappy
+    - sqlite
+    - yaml-cpp
+    - zlib
+    - zstd
+  run:
+    - {{ pin_compatible('icu', max_pin='x') }}
+    - {{ pin_compatible('yaml-cpp', max_pin='x.x.x') }}
+    - {{ pin_compatible('boost-cpp', max_pin='x.x.x') }}
+
+test:
+  commands:
+    - mongod --help
+    - mongod --version
+
+about:
+  home: http://www.mongodb.org/
+  license: SSPL-1.0
+  license_file:
+     - LICENSE-Community.txt
+     # fmt can be unvendored after upgrading to >=4.3.3
+     # xref: https://github.com/mongodb/mongo/commit/eacfb9c5
+     - src/third_party/fmt/dist/LICENSE.rst
+     # Part of boost, but requires code changes to unvendor the dep or
+     # packaging asio as a separate package
+     - src/third_party/asio-master/asio/LICENSE_1_0.txt
+     # Can be unvendored, needs to be packaged
+     - {{ RECIPE_DIR }}/libstemmer_COPYING
+     # IMO, this one is okay, it isn't used anywhere but mongodb
+     - src/third_party/wiredtiger/LICENSE
+     # Can be packaged
+     - src/third_party/IntelRDFPMathLib20U1/eula.txt
+     # This one is a discontinued project
+     - src/third_party/kms-message/COPYING
+     - src/third_party/kms-message/THIRD_PARTY_NOTICES
+     # Can be packaged, but build system doesn't have --system flag for it
+     - src/third_party/s2/LICENSE-2.0.txt
+     # A consolidated version for all 3rd party with SHAs and license names
+     # (Not all of them are statically linked)
+     - README.third_party.md
+  summary: A next-gen database that lets you do things you could never do before
+  description: |
+    MongoDB is an open-source, document database designed for ease of
+    development and scaling.
+  doc_url: https://docs.mongodb.org/manual/
+  dev_url: https://github.com/mongodb/mongo
+
+extra:
+  recipe-maintainers:
+    - nehaljwani
