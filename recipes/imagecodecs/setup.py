@@ -79,6 +79,7 @@ if sys.platform == 'win32':
     jpegls_libraries = ['charls-2-x64']
     lz4_libraries = ['liblz4']
     lzma_libraries = ['liblzma']
+    png_libraries = ['libpng', 'libz']
 else:
     LIBRARIES.append('m')
     OPENMP_ARGS = [] if os.environ.get('SKIP_OMP', False) else ['-fopenmp']
@@ -87,6 +88,7 @@ else:
     jpegls_libraries = ['charls']
     lz4_libraries = ['lz4']
     lzma_libraries = ['lzma']
+    png_libraries = ['png', 'z']
 
 EXTENSIONS = {
     'shared': dict(),
@@ -124,7 +126,7 @@ EXTENSIONS = {
         include_dirs=['liblzf-3.6']
         ),
     'lzma': dict(libraries=lzma_libraries),
-    'png': dict(libraries=['png', 'z']),
+    'png': dict(libraries=png_libraries),
     'snappy': dict(libraries=['snappy']),
     # 'szip': dict(libraries=['libaec']),
     'tiff': dict(libraries=['tiff']),
