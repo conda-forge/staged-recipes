@@ -1,8 +1,8 @@
 {% set name = "torch_spline_conv" %}
 {% set version = "1.2.0" %}
 
-{% set torch_spline_conv_proc_type = "cpu" if cuda_compiler_version == "None" else "gpu" %}  # [linux64]
-{% set torch_spline_conv_proc_type = "cpu" %}                                                # [not linux64]
+{% set pytorch_spline_conv_proc_type = "cpu" if cuda_compiler_version == "None" else "gpu" %}  # [not osx]
+{% set pytorch_spline_conv_proc_type = "cpu" %}                                                # [osx]
 
 package:
   name: py{{ name|lower }}
@@ -14,14 +14,13 @@ source:
 
 build:
   number: 0
-  skip: true   # [py2k or (win and vc<14)]
 
 outputs:
   - name: pytorch_spline_conv_proc
     version: {{ version }}
     build:
       number: 0
-      string: "{{ torch_spline_conv_proc_type }}"
+      string: "{{ pytorch_spline_conv_proc_type }}"
     test:
       commands:
         - exit 0
@@ -34,13 +33,13 @@ outputs:
   - name: pytorch_spline_conv
     version: {{ version }}
     build:
-      number: 0
+      number: 1
       script: python -m pip install . -vv
     requirements:
       build:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
-        - {{ compiler('cuda') }}  # [linux64 and cuda_compiler_version != "None"]
+        - {{ compiler('cuda') }}  # [linux and cuda_compiler_version != "None"]
       host:
         - python
         - pytorch
@@ -50,11 +49,13 @@ outputs:
       run:
         - python
         - pytorch
+      run_constrained:
+        - pytorch_spline_conv_proc * {{ pytorch_spline_conv_proc_type }}
+        - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx]
+    test:
+      requires:
         - pytest
         - pytest-cov
-      run_constrained:
-        - pytorch_spline_conv_proc * {{ torch_spline_conv_proc_type }}
-    test:
       imports:
         - torch_spline_conv
     about:
