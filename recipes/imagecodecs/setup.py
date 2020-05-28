@@ -76,11 +76,13 @@ if sys.platform == 'win32':
         (os.environ.get('LIBRARY_INC', '') +
          '\\openjpeg-' + os.environ.get('openjpeg', '2.3'))
     ]
+    jpegls_libraries = ['charls-2-64']
 else:
     LIBRARIES.append('m')
     OPENMP_ARGS = [] if os.environ.get('SKIP_OMP', False) else ['-fopenmp']
     bz2_libraries = ['bz2']
     jpeg2k_include_dirs = []
+    jpegls_libraries = ['charls']
 
 EXTENSIONS = {
     'shared': dict(),
@@ -108,7 +110,7 @@ EXTENSIONS = {
         libraries=['jpeg12'],
         define_macros=[('BITS_IN_JSAMPLE', 12)]
         ),
-    'jpegls': dict(libraries=['charls']),
+    'jpegls': dict(libraries=jpegls_libraries),
     'jpegsof3': dict(sources=['imagecodecs/jpegsof3.cpp']),
     'jpegxl': dict(libraries=['brunslidec-c', 'brunslienc-c']),
     'jpegxr': dict(libraries=['jpegxr', 'jxrglue']),
