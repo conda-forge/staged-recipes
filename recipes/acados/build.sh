@@ -9,6 +9,7 @@ cmake $SRC_DIR \
   -DACADOS_WITH_QPOASES=ON \
   -DACADOS_PYTHON=ON \
   -DPYTHON_PREFIX=${SP_DIR} \
+  -DCMAKE_BUILD_TYPE=Release \
   -DACADOS_EXAMPLES=OFF
   
 ninja install
