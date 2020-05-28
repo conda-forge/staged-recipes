@@ -80,6 +80,7 @@ if sys.platform == 'win32':
     lz4_libraries = ['liblz4']
     lzma_libraries = ['liblzma']
     png_libraries = ['libpng', 'libz']
+    webp_librarires = ['libwebp']
 else:
     LIBRARIES.append('m')
     OPENMP_ARGS = [] if os.environ.get('SKIP_OMP', False) else ['-fopenmp']
@@ -89,6 +90,7 @@ else:
     lz4_libraries = ['lz4']
     lzma_libraries = ['lzma']
     png_libraries = ['png', 'z']
+    webp_librarires = ['webp']
 
 EXTENSIONS = {
     'shared': dict(),
@@ -130,7 +132,7 @@ EXTENSIONS = {
     'snappy': dict(libraries=['snappy']),
     # 'szip': dict(libraries=['libaec']),
     'tiff': dict(libraries=['tiff']),
-    'webp': dict(libraries=['webp']),
+    'webp': dict(libraries=webp_librarires),
     'zfp': dict(libraries=['zfp'], extra_compile_args=OPENMP_ARGS),
     'zlib': dict(libraries=['z']),
     'zopfli': dict(libraries=['zopfli']),
