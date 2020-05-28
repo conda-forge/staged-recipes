@@ -79,7 +79,7 @@ if sys.platform == 'win32':
     jpegls_libraries = ['charls-2-x64']
     lz4_libraries = ['liblz4']
     lzma_libraries = ['liblzma']
-    png_libraries = ['libpng', 'libz']
+    png_libraries = ['libpng', 'z']
 else:
     LIBRARIES.append('m')
     OPENMP_ARGS = [] if os.environ.get('SKIP_OMP', False) else ['-fopenmp']
