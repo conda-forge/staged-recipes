@@ -76,7 +76,7 @@ if sys.platform == 'win32':
         (os.environ.get('LIBRARY_INC', '') +
          '\\openjpeg-' + os.environ.get('openjpeg', '2.3'))
     ]
-    jpegls_libraries = ['charls-2-64']
+    jpegls_libraries = ['charls-2-x64']
 else:
     LIBRARIES.append('m')
     OPENMP_ARGS = [] if os.environ.get('SKIP_OMP', False) else ['-fopenmp']
