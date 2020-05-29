@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -ex
 
-echo $PYTHON
-
 meson_options=(
    "--prefix=${PWD}/.."
    "--libdir=xtb"
