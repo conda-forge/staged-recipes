@@ -2,7 +2,7 @@
 set -ex
 
 meson_options=(
-   "--prefix=${PWD}/.."
+   "--prefix=${PWD}"
    "--libdir=xtb"
    "--buildtype=release"
    "--warnlevel=0"
