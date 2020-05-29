@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -ex
 
+echo $PYTHON
+
 meson_options=(
    "--prefix=${PWD}/.."
    "--libdir=xtb"
@@ -24,4 +26,4 @@ fi
 ninja install
 popd
 
-${PYTHON} -m pip install . --no-deps -vvv
+"$PYTHON" -m pip install . --no-deps -vvv
