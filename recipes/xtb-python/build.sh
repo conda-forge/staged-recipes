@@ -24,6 +24,4 @@ fi
 ninja install
 popd
 
-ls -l xtb
-
 "$PYTHON" -m pip install . --no-deps -vvv
