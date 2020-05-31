@@ -297,7 +297,7 @@ def customize_build_cf(EXTENSIONS, OPTIONS):
         ]
     else:
         EXTENSIONS['jpegxr']['include_dirs'] = [
-            os.path.join(os.environ['PREFIX'], 'jxrlib')
+            os.path.join(os.environ['PREFIX'], 'include', 'jxrlib')
         ]
 
 
