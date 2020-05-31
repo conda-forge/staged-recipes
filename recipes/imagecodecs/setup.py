@@ -277,7 +277,6 @@ def customize_build_cf(EXTENSIONS, OPTIONS):
     OPTIONS['cythonize'] = True
     EXTENSIONS['jpeg8']['cython_compile_env']['HAVE_LIBJPEG_TURBO'] = False
 
-    EXTENSIONS['jpegxr']['libraries'] = ['libjpegxr', 'libjxrglue']
 
     if sys.platform == 'win32':
         library_inc = os.environ.get('LIBRARY_INC', '')
@@ -295,10 +294,12 @@ def customize_build_cf(EXTENSIONS, OPTIONS):
         EXTENSIONS['jpegxr']['include_dirs'] = [
             os.path.join(os.environ['LIBRARY_INC'], 'jxrlib')
         ]
+        EXTENSIONS['jpegxr']['libraries'] = ['libjpegxr', 'libjxrglue']
     else:
         EXTENSIONS['jpegxr']['include_dirs'] = [
             os.path.join(os.environ['PREFIX'], 'include', 'jxrlib')
         ]
+        EXTENSIONS['jpegxr']['libraries'] = ['jpegxr', 'jxrglue']
 
 
 # customize builds based on environment
