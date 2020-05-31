@@ -273,31 +273,33 @@ def customize_build_cf(EXTENSIONS, OPTIONS):
     del EXTENSIONS['lerc']
     del EXTENSIONS['zfp']
 
-    # build jpeg8 against libjpeg instead of libjpeg_turbo
-    # note that for conda, "jpeg8" can be a bit misleading as we will be building against jpeg9
+    # build jpeg8 or jpeg9 against libjpeg instead of libjpeg_turbo
     OPTIONS['cythonize'] = True
     EXTENSIONS['jpeg8']['cython_compile_env']['HAVE_LIBJPEG_TURBO'] = False
 
-    EXTENSIONS['jpegxr']['libraries'] = ['jpegxr', 'jxrglue']
-    EXTENSIONS['jpegxr']['include_dirs'] = [
-        os.path.join(os.environ['PREFIX'], 'include', 'jxrlib')
-    ]
 
     if sys.platform == 'win32':
+        library_inc = os.environ.get('LIBRARY_INC', '')
         EXTENSIONS['bz2']['libraries'] = ['bzip2']
         EXTENSIONS['jpeg2k']['include_dirs'] = [
             os.path.join(
-                os.environ['LIBRARY_INC'], 'openjpeg-' + os.environ.get('openjpeg', '2.3')
+                library_inc, 'openjpeg-' + os.environ.get('openjpeg', '2.3')
             )
-        ]
-        EXTENSIONS['jpegxr']['include_dirs'] = [
-            os.path.join(os.environ['LIBRARY_INC'], 'jxrlib')
         ]
         EXTENSIONS['jpegls']['libraries'] = ['charls-2-x64']
         EXTENSIONS['lz4']['libraries'] = ['liblz4']
         EXTENSIONS['lzma']['libraries'] = ['liblzma']
         EXTENSIONS['png']['libraries'] = ['libpng', 'z']
         EXTENSIONS['webp']['libraries'] = ['libwebp']
+        EXTENSIONS['jpegxr']['include_dirs'] = [
+            os.path.join(os.environ['LIBRARY_INC'], 'jxrlib')
+        ]
+        EXTENSIONS['jpegxr']['libraries'] = ['libjpegxr', 'libjxrglue']
+    else:
+        EXTENSIONS['jpegxr']['include_dirs'] = [
+            os.path.join(os.environ['PREFIX'], 'include', 'jxrlib')
+        ]
+        EXTENSIONS['jpegxr']['libraries'] = ['jpegxr', 'jxrglue']
 
 
 # customize builds based on environment
