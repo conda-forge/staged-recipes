@@ -5,5 +5,6 @@
 export CFLAGS="${CFLAGS} `pkg-config --cflags libopenjp2`"
 export CFLAGS="${CFLAGS} -I${PREFIX}/include/jxrlib"
 
-$PYTHON -m pip install . -vv
-
+# Setting LIBRARY_INC is a temporary workaround to enforce the conda-forge code path when building imagecodecs
+# See https://github.com/conda-forge/staged-recipes/pull/10331#issuecomment-636441423
+LIBRARY_INC="bogus" $PYTHON -m pip install . -vv
