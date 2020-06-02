@@ -1,0 +1,142 @@
+{% set version = "5.2.2" %}
+{% set number = "0" %}
+{% set cuda_enabled = cuda_compiler_version is not undefined and cuda_compiler_version == '9.2' %}
+{% set build_ext_version = "1.0.0" %}
+{% set build_ext = "cuda" if cuda_enabled else "cpu" %}
+{% set build_string = "h{}_{}_{}".format(PKG_HASH, number, build_ext) %}
+
+package:
+  name: omniscidb
+  version: {{ version }}
+
+source:
+  url: https://github.com/omnisci/omniscidb/archive/v{{ version }}.tar.gz
+  sha256: 7587ee6dfd900dc23b1ba1f6357c94bf65a997a25e21ee364b3e5d871dddd6fc
+  patches:
+    - skip-boost-libs-install.patch
+
+build:
+  number: {{ number }}
+  string: "{{ build_string }}"
+  skip: true  # [cuda_compiler_version not in (undefined, "None", "9.2")]
+  skip: true  # [not linux64]
+  missing_dso_whitelist:
+    - "*/libcuda.*"  # [cuda_compiler_version not in (undefined, "None")]
+  track_features:
+    {{ "- arrow-cuda" if cuda_enabled else "" }}
+
+requirements:
+  build:
+    - {{ compiler('cgo') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler("cuda") }}  # [cuda_compiler_version not in (undefined, "None")]
+    # omniscidb <=5.2.2 is not llvm 10+ ready
+    - clangdev
+    # clang++ is used for generating the bytecodes of extension functions
+    - clangxx
+    - cmake
+    - llvmdev 9
+    - make
+    - maven
+  host:
+    # omniscidb <=5.2.2 is not arrow-cpp 0.17+ ready
+    - arrow-cpp =0.16.*=*{{ build_ext }}
+    - bisonpp
+    - blosc
+    - boost-cpp
+    - clangdev
+    - double-conversion
+    - flex
+    - gflags
+    - glog
+    - llvmdev 9
+    - llvm
+    - libarchive
+    - libgdal
+    - libkml
+    - libpng
+    # for some reason, librdkafka 1.4+ triggers dependency conflicts
+    - librdkafka <1.4
+    - ncurses
+    - openldap
+    - openssl
+    - snappy
+    - thrift-cpp
+  run:
+    - arrow-cpp =0.16.*=*{{ build_ext }}
+    - boost-cpp
+    - bzip2
+    - clangxx
+    - double-conversion
+    - gflags
+    - glog
+    # omnscidb Load-time UDF support calls clang++
+    - gxx_{{ target_platform }}
+    - libgdal
+    - librdkafka
+    - ncurses
+    - openjdk 8
+    - openldap
+    - snappy
+    - xz
+    - zlib
+  run_constrained:
+    - arrow-cpp-proc * {{ build_ext }}
+    - cudatoolkit >=9.2  # [cuda_compiler_version not in (undefined, "None")]
+
+test:
+  commands:
+    # Verify the activation scripts are in-place.
+    {% for state in ["activate", "deactivate"] %}
+    - test -f "${PREFIX}/etc/conda/{{ state }}.d/{{ PKG_NAME }}_{{ state }}.sh"
+    {% endfor %}
+    # Try using the activation scripts.
+    - |
+      if [[ -x "$(command -v omnisql)" ]]
+      then
+        echo "Found omnisql in PATH"
+      else
+        echo "omnisql not found in PATH(=$PATH)" && exit 1
+      fi
+      source ${PREFIX}/etc/conda/deactivate.d/{{ PKG_NAME }}_deactivate.sh
+      if [[ -x "$(command -v omnisql)" ]]
+      then
+        echo "Unexpectedly found omnisql in PATH(=$PATH) after deactivation"  && exit 1
+      else
+        echo "omnisql not in PATH after deactivation"
+      fi
+      source ${PREFIX}/etc/conda/activate.d/{{ PKG_NAME }}_activate.sh
+    # Test installation
+    - omnisql -v
+    - which omnisci_initdb
+    - which omnisci_server
+    - |
+      if [ -x "$(command -v nvidia-smi)" ]; then  # [cuda_compiler_version not in (undefined, "None")]
+        mkdir data && omnisci_initdb data
+        omnisci_server --version
+        rm -rf data
+      fi                                          # [cuda_compiler_version not in (undefined, "None")]
+    - which omnisci_insert_sample_data
+    - which startomnisci
+
+about:
+  home: https://www.omnisci.com/
+  license: Apache-2.0
+  license_family: APACHE
+  license_file: LICENSE.md
+  summary: 'The OmniSci database'
+
+  description: |
+    OmniSciDB is an in-memory, column store, SQL relational database
+    that was designed from the ground up to run on GPUs.
+
+    This recipe provides both CUDA enabled and CUDA disabled omniscidb
+    packages.
+  doc_url: https://www.omnisci.com/docs/latest/
+  dev_url: https://github.com/omnisci/omniscidb
+
+extra:
+  recipe-maintainers:
+    - xmnlab
+    - pearu
+    - andrewseidl
