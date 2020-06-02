@@ -155,3 +155,6 @@ then
 fi
 
 EOF
+
+# Free some disk space
+conda clean --all
