@@ -3,6 +3,12 @@
 export GOPATH="$RECIPE_DIR/go"
 export GOBIN="$GOPATH/bin"
 
+mkdir -p ui/node_modules
+yarn --cwd ui install --frozen-lockfile --ignore-optional --non-interactive
+
+mkdir -p ui/dist/app
+yarn --cwd ui build
+
 go get bou.ke/staticfiles
 $GOBIN/staticfiles -o server/static/files.go ui/dist/app
 
@@ -15,7 +21,8 @@ else
     export GOOS=linux 
 fi
 
+mkdir -p ./dist
 go build -v -i -ldflags '-extldflags "-static" -X github.com/argoproj/argo.version=$VERSION' -o dist/argo ./cmd/argo
 
-mkdir -p $HOME/bin
-mv dist/argo $HOME/bin
+mkdir -p $PREFIX/bin
+mv dist/argo $PREFIX/bin
