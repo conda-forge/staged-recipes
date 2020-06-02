@@ -4,7 +4,7 @@ export GOPATH="$RECIPE_DIR/go"
 export GOBIN="$GOPATH/bin"
 
 go get bou.ke/staticfiles
-$GOPATH/bin/staticfiles -o server/static/files.go ui/dist/app
+$GOBIN/staticfiles -o server/static/files.go ui/dist/app
 
 export CGO_ENABLED=0 
 export GOARCH=amd64
