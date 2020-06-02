@@ -21,7 +21,11 @@ export LDFLAGS="`echo $LDFLAGS | sed 's/-Wl,--as-needed//'`"
 
 export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCMAKE_C_COMPILER=${CC} -DCMAKE_CXX_COMPILER=${CXX}"
 
-export RUN_TESTS=0
+# Run tests labels:
+#   0 - disable building and running sanity tests
+#   1 - build and run the sanity tests
+#   2 - detect if sanity tests can be run, then set 1, otherwise set 0
+export RUN_TESTS=0  # set it to 2 when in feedstock
 
 if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" ]]
 then
@@ -43,18 +47,30 @@ then
     # Fixes NOTFOUND CUDA_CUDA_LIBRARY
     export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCMAKE_SYSROOT=$CONDA_BUILD_SYSROOT"
 
-    if [[ -x "$(command -v nvidia-smi)" ]]
+    if [[ "$RUN_TESTS" == "2" ]]
     then
-        export RUN_TESTS=1
-        export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DENABLE_TESTS=on"
-    else
-        export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DENABLE_TESTS=off"
+        if [[ -x "$(command -v nvidia-smi)" ]]
+        then
+            export RUN_TESTS=1
+        else
+            export RUN_TESTS=0
+        fi
     fi
 else
     export INSTALL_BASE=opt/omnisci-cpu
     export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DENABLE_CUDA=off"
-    export RUN_TESTS=1
-    export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DENABLE_TESTS=on"
+    if [[ "$RUN_TESTS" == "2" ]]
+    then
+        export RUN_TESTS=1
+    fi
+fi
+
+if [[ "$RUN_TESTS" == "0" ]]
+then
+   export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DENABLE_TESTS=off"
+else
+   export RUN_TESTS=1
+   export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DENABLE_TESTS=on"
 fi
 
 export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DBoost_NO_BOOST_CMAKE=on"
@@ -76,9 +92,6 @@ cmake -Wno-dev \
     ..
 
 make -j $CPU_COUNT
-
-# Temporarily disable sanity tests.
-export RUN_TESTS=0
 
 if [[ "$RUN_TESTS" == "1" ]]
 then
