@@ -25,7 +25,7 @@ export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCMAKE_C_COMPILER=${CC} -DCMAK
 #   0 - disable building and running sanity tests
 #   1 - build and run the sanity tests
 #   2 - detect if sanity tests can be run, then set 1, otherwise set 0
-export RUN_TESTS=0  # set it to 2 when in feedstock
+export RUN_TESTS=0  # set to 2 when in feedstock
 
 if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" ]]
 then
@@ -110,6 +110,10 @@ else
 fi
 
 make install
+
+# Remove build directory to free about 2.5 GB of disk space
+cd -
+rm -rf build
 
 cd $PREFIX/$INSTALL_BASE/bin
 ln -s initdb omnisci_initdb
