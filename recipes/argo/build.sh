@@ -1,5 +1,7 @@
 #!/bin/sh
 
+export GOPATH="$RECIPE_DIR/go"
+
 go get bou.ke/staticfiles
 $GOPATH/bin/staticfiles -o server/static/files.go ui/dist/app
 
