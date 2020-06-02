@@ -157,4 +157,4 @@ fi
 EOF
 
 # Free some disk space
-conda clean --all
+rm -v /opt/conda/pkgs/*.tar.bz2
