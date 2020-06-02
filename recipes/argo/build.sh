@@ -1,7 +1,5 @@
 #!/bin/sh
 
-export GOPATH=~/test_env
-
 go get bou.ke/staticfiles
 $GOPATH/bin/staticfiles -o server/static/files.go ui/dist/app
 
