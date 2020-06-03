@@ -1,5 +1,7 @@
 #!/bin/bash
 
+sed '2d' makefile
+
 CXX=$CXX
 
 mkdir -p "$PREFIX/bin"
