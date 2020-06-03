@@ -1,8 +1,6 @@
 #!/bin/bash
 
-sed '2d' makefile
-
-CXX=$CXX
+sed -i.bak '2d' makefile
 
 mkdir -p "$PREFIX/bin"
 make -B
