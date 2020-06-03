@@ -17,7 +17,7 @@ cmake -G "Ninja" ^
     -DCMAKE_PREFIX_PATH:PATH="%LIBRARY_PREFIX%" ^
     -DPYTHON_EXECUTABLE:PATH="%PYTHON%" ^
     -DBoost_NO_BOOST_CMAKE=ON ^
-    -DGR_PYTHON_DIR:PATH="%PREFIX%\Lib\site-packages" ^
+    -DGR_PYTHON_DIR:PATH="%SP_DIR%" ^
     -DMPIR_LIBRARY="%LIBRARY_LIB%\mpir.lib" ^
     -DMPIRXX_LIBRARY="%LIBRARY_LIB%\mpir.lib" ^
     -DENABLE_AIRSPY=OFF ^

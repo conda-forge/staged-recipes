@@ -21,7 +21,7 @@ cmake -G "Ninja" ^
     -DPYTHON_EXECUTABLE:PATH="%PYTHON%" ^
     -DBoost_NO_BOOST_CMAKE=ON ^
     -DAD9361_LIBRARIES:FILEPATH="%LIBRARY_PREFIX%\\lib\\libad9361.lib" ^
-    -DGR_PYTHON_DIR:PATH="%PREFIX%\Lib\site-packages" ^
+    -DGR_PYTHON_DIR:PATH="%SP_DIR%" ^
     -DIIO_LIBRARIES:FILEPATH="%LIBRARY_PREFIX%\\lib\\libiio.lib" ^
     -DMPIR_LIBRARY="%LIBRARY_LIB%\mpir.lib" ^
     -DMPIRXX_LIBRARY="%LIBRARY_LIB%\mpir.lib" ^

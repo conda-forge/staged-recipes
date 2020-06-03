@@ -12,7 +12,7 @@ cmake_config_args=(
     -DLIB_SUFFIX=""
     -DPYTHON_EXECUTABLE=$PYTHON
     -DBoost_NO_BOOST_CMAKE=ON
-    -DGR_PYTHON_DIR=`$PYTHON -c "import site; print(site.getsitepackages()[0])"`
+    -DGR_PYTHON_DIR=$SP_DIR
     -DENABLE_DOXYGEN=OFF
 )
 
