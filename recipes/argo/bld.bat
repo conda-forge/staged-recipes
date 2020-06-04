@@ -1,3 +1,6 @@
+SET GOPATH="%RECIPE_DIR%\go"
+SET GOBIN="%GOPATH%\bin"
+
 go env -w GOPATH="%RECIPE_DIR%\go"
 go env -w GOBIN="%GOPATH%\bin"
 
