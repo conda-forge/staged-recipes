@@ -8,11 +8,9 @@ echo "Yarn"
 
 mkdir ui\node_modules
 yarn --cwd ui install --frozen-lockfile --ignore-optional --non-interactive 
-if errorlevel 1 exit /b 1
 
 mkdir ui\dist\app
 yarn --cwd ui build
-if errorlevel 1 exit /b 1
 
 echo "Get staticfiles"
 
