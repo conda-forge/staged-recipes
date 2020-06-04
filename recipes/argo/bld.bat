@@ -1,5 +1,5 @@
-SET GOPATH="%RECIPE_DIR%\go"
-SET GOBIN="%GOPATH%\bin"
+go env -w GOPATH="%RECIPE_DIR%\go"
+go env -w GOBIN="%GOPATH%\bin"
 
 mkdir -p ui\node_modules
 yarn --cwd ui install --frozen-lockfile --ignore-optional --non-interactive 
