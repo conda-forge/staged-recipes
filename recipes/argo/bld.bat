@@ -4,6 +4,8 @@ SET GOBIN="%GOPATH%\bin"
 go env -w GOPATH="%RECIPE_DIR%\go"
 go env -w GOBIN="%GOPATH%\bin"
 
+echo "Yarn"
+
 mkdir -p ui\node_modules
 yarn --cwd ui install --frozen-lockfile --ignore-optional --non-interactive 
 if %errorlevel% neq 0 exit /b %errorlevel%
@@ -11,6 +13,8 @@ if %errorlevel% neq 0 exit /b %errorlevel%
 mkdir -p ui\dist\app
 yarn --cwd ui build
 if %errorlevel% neq 0 exit /b %errorlevel%
+
+echo "Get staticfiles"
 
 go get bou.ke\staticfiles
 if %errorlevel% neq 0 exit /b %errorlevel%
@@ -22,9 +26,13 @@ SET CGO_ENABLED=0
 SET GOARCH=amd64
 SET GOOS=windows
 
+echo "Build"
+
 mkdir -p %CD%\dist
 go build -v -i -ldflags "-extldflags "-static" -X github.com\argoproj\argo.version=$VERSION" -o dist\argo.exe %CD%\cmd\argo
 if %errorlevel% neq 0 exit /b %errorlevel%
+
+echo "Install binary"
 
 mkdir -p %PREFIX%\bin
 mv dist\argo.exe %PREFIX%\bin
