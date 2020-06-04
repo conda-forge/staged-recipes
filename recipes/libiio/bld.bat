@@ -40,3 +40,8 @@ if errorlevel 1 exit 1
 :: install
 cmake --build . --config Release --target install
 if errorlevel 1 exit 1
+
+:: move Python package to the right place.
+cd %LIBRARY_PREFIX%\Lib\site-packages
+move libiio*.egg-info %SP_DIR%
+move iio.py %SP_DIR%
