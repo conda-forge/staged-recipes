@@ -6,11 +6,11 @@ go env -w GOBIN="%GOPATH%\bin"
 
 echo "Yarn"
 
-mkdir -p ui\node_modules
+mkdir ui\node_modules
 yarn --cwd ui install --frozen-lockfile --ignore-optional --non-interactive 
 if errorlevel 1 exit /b 1
 
-mkdir -p ui\dist\app
+mkdir ui\dist\app
 yarn --cwd ui build
 if errorlevel 1 exit /b 1
 
@@ -28,12 +28,12 @@ SET GOOS=windows
 
 echo "Build"
 
-mkdir -p %CD%\dist
+mkdir %CD%\dist
 go build -v -i -ldflags "-extldflags "-static" -X github.com\argoproj\argo.version=$VERSION" -o dist\argo.exe %CD%\cmd\argo
 if errorlevel 1 exit /b 1
 
 echo "Install binary"
 
-mkdir -p %PREFIX%\bin
+mkdir %PREFIX%\bin
 mv dist\argo.exe %PREFIX%\bin
 if errorlevel 1 exit /b 1
