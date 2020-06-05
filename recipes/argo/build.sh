@@ -12,4 +12,4 @@ rm $PREFIX/bin/staticfiles
 
 go install -v -i -ldflags '-extldflags "-static" -X github.com/argoproj/argo.version=$VERSION' ./cmd/argo
 
-bash build_library_licenses.sh
+bash $RECIPE_DIR/build_library_licenses.sh
