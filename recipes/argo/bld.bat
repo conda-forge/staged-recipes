@@ -1,3 +1,4 @@
+set PYTHON=%BUILD_PREFIX%\python.exe
 call yarn --cwd ui install --frozen-lockfile --ignore-optional --non-interactive
 if errorlevel 1 exit /b 1
 call yarn --cwd ui build
