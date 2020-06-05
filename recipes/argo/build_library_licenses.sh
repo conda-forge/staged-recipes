@@ -6,7 +6,6 @@ set -e
 go get github.com/google/go-licenses
 
 export GOPATH=$(go env GOPATH)
-export RECIPE_DIR=$(pwd)
 export LIBRARY_LICENCES_PATH="$RECIPE_DIR/library_licenses/"
 export TEMP_DIR=$(mktemp -d)
 export ARGO_PATH="$TEMP_DIR/argo"
