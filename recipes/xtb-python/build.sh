@@ -19,4 +19,4 @@ meson "${meson_options[@]}"
 ninja install
 popd
 
-"$PYTHON" -m pip install '.[qcschema,ase]' --no-deps -vvv
+"$PYTHON" -m pip install . --no-deps -vvv
