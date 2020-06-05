@@ -1,7 +1,8 @@
 call yarn --cwd ui install --frozen-lockfile --ignore-optional --non-interactive
 if errorlevel 1 exit /b 1
 call yarn --cwd ui build
-if errorlevel 1 exit /b 1
+rem build throws a warning on Windows
+rem if errorlevel 1 exit /b 1
 
 go get bou.ke\staticfiles
 if errorlevel 1 exit /b 1
