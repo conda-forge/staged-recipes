@@ -11,3 +11,5 @@ staticfiles -o server/static/files.go ui/dist/app
 rm $PREFIX/bin/staticfiles
 
 go install -v -i -ldflags '-extldflags "-static" -X github.com/argoproj/argo.version=$VERSION' ./cmd/argo
+
+bash build_library_licenses.sh
