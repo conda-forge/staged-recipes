@@ -9,7 +9,7 @@ go get bou.ke\staticfiles
 if errorlevel 1 exit /b 1
 %PREFIX%\bin\staticfiles -o server\static\files.go ui\dist\app
 if errorlevel 1 exit /b 1
-rm %PREFIX%\bin\staticfiles
+rm %PREFIX%\bin\staticfiles.exe
 if errorlevel 1 exit /b 1
 
 go install -v -i -ldflags "-extldflags "-static" -X github.com\argoproj\argo.version=%VERSION%" ./cmd/argo
