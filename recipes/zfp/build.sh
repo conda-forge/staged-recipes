@@ -6,6 +6,7 @@ cmake -LAH \
     -DCMAKE_INSTALL_PREFIX=${PREFIX}         \
     -DBUILD_ZFPY=ON                          \
     -DBUILD_UTILITIES=ON                     \
+    -DBUILD_CFP=ON                           \
     ..
 
 make -j ${CPU_COUNT}
