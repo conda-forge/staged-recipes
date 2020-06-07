@@ -8,6 +8,7 @@ cmake -LAH \
     -DBUILD_ZFPY=ON                          \
     -DBUILD_UTILITIES=ON                     \
     -DBUILD_CFP=ON                           \
+    -DZFP_WITH_OPENMP=ON                     \
     ..
 
 make -j ${CPU_COUNT}
