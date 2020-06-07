@@ -20,3 +20,5 @@ cmake -LAH \
 
 make -j ${CPU_COUNT}
 make install
+
+install bin/zfp ${PREFIX}/bin/.

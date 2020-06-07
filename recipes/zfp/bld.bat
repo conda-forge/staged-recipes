@@ -14,4 +14,7 @@ if errorlevel 1 exit 1
 ninja install
 if errorlevel 1 exit 1
 
+copy bin\zfp.exe %LIBRARY_BIN%\.
+if errorlevel 1 exit 1
+
 exit 0
