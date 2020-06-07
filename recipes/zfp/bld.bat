@@ -2,9 +2,12 @@ mkdir build
 cd build
 
 cmake -LAH -G "Ninja"  ^
-    -DCMAKE_BUILD_TYPE="Release"                                         ^
-    -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX%                                 ^
-    -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%                              ^
+    -DCMAKE_BUILD_TYPE="Release"               ^
+    -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX%       ^
+    -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%    ^
+    -DBUILD_ZFPY=ON                            ^
+    -DBUILD_UTILITIES=ON                       ^
+    -DBUILD_CFP=ON                             ^
     ..
 if errorlevel 1 exit 1
 
