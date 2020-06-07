@@ -1,3 +1,10 @@
+SHORT_OS_STR=$(uname -s)
+if [ "${SHORT_OS_STR:0:5}" == "Linux" ]; then
+    OPENMP="-DZFP_WITH_OPENMP=1"
+fi
+if [ "${SHORT_OS_STR}" == "Darwin" ]; then
+    OPENMP=""
+fi
 mkdir build
 cd build
 cmake -LAH \
@@ -8,7 +15,7 @@ cmake -LAH \
     -DBUILD_ZFPY=ON                          \
     -DBUILD_UTILITIES=ON                     \
     -DBUILD_CFP=ON                           \
-    -DZFP_WITH_OPENMP=ON                     \
+    ${OPEN_MP}                               \
     ..
 
 make -j ${CPU_COUNT}
