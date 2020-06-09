@@ -5,11 +5,10 @@ REM if errorlevel 1 exit 1
 
 dir %PREFIX%
 dir %SRC%
+dir "%SRC_DIR%"
 dir "%RECIPE_DIR%"
-cd\
-dir msms_win32_* /s
 
 echo moving_executable
-move "%RECIPE_DIR%\msms.*.%PKG_VERSION%" "%PREFIX%\bin\msms"
+move "msms.*.%PKG_VERSION%" "%PREFIX%\bin\msms"
 if errorlevel 1 exit 1
 dir "%PREFIX%\bin"
