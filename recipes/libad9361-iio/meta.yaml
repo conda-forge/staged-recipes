@@ -1,0 +1,58 @@
+{% set name = "libad9361-iio" %}
+{% set version = "0.2" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/analogdevicesinc/{{ name }}/archive/v{{ version }}.tar.gz
+  sha256: f0d935eb7f70fde8596d98e9eb1f311b408b87662fc1fff45ae3ed455697b747
+  patches:
+    - 0001-Remove-ifdefs-for-special-location-for-IIO-header-on.patch  # [osx]
+    - 0001-Make-Framework-creation-optional-through-OSX_FRAMEWO.patch  # [osx]
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_subpackage('libad9361-iio', max_pin='x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - cmake
+    - {{ cdt('libudev-devel') }}  # [linux]
+    - make  # [not win]
+    - ninja  # [win]
+  host:
+    - libiio
+
+test:
+  commands:
+    # verify that headers get installed
+    - test -f $PREFIX/include/ad9361.h  # [not win]
+    - test -f $PREFIX/include/ad9361-wrapper.h  # [not win]
+    - if not exist %PREFIX%\\Library\\include\\ad9361.h exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\include\\ad9361-wrapper.h exit 1  # [win]
+
+    # verify that libraries get installed
+    - test -f $PREFIX/lib/libad9361${SHLIB_EXT}  # [not win]
+    - if not exist %PREFIX%\\Library\\bin\\libad9361.dll exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\lib\\libad9361.lib exit 1  # [win]
+
+about:
+  home: https://github.com/analogdevicesinc/libad9361-iio
+  license: LGPL-2.1-or-later
+  license_family: LGPL
+  license_file: LICENSE
+  summary: 'IIO AD9361 library for filter design and handling, multi-chip sync, etc. '
+  description: |
+    This is a simple library used for userspace which manages multi-chip sync (on
+    platforms [FMCOMMS5] where multiple AD9361 devices are use) and can create AD9361
+    specific FIR filters on the fly
+  doc_url: https://analogdevicesinc.github.io/libad9361-iio
+  dev_url: https://github.com/analogdevicesinc/libad9361-iio
+
+extra:
+  recipe-maintainers:
+    - ryanvolz

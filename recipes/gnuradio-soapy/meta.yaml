@@ -1,0 +1,82 @@
+{% set name = "gnuradio-soapy" %}
+{% set version = "2.1.3" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://gitlab.com/librespacefoundation/gr-soapy/-/archive/v{{ version }}/gr-soapy-v{{ version }}.tar.gz
+  sha256: 176dde371dffb209c0e54d171f154a5252c4012bac67233ba1462784cb7d9f6d
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_subpackage('gnuradio-soapy', max_pin='x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - make  # [not win]
+    - ninja  # [win]
+    - pkg-config  # [not win]
+  host:
+    - boost-cpp
+    - gnuradio-core
+    - pip  # [win]
+    - python
+    - soapysdr
+    - swig
+    # pulled in by gnuradio-core and linked against, so include explicitly
+    - log4cpp
+  run:
+    - boost-cpp
+    - python
+    # pulled in by gnuradio-core and linked against, so include explicitly
+    - log4cpp
+
+test:
+  commands:
+    # verify that headers get installed
+    {% set headers = [
+        "api",
+        "source",
+        "sink",
+    ] %}
+    {% for header in headers %}
+    - test -f $PREFIX/include/soapy/{{ header }}.h  # [not win]
+    - if not exist %PREFIX%\\Library\\include\\soapy\\{{ header }}.h exit 1  # [win]
+    {% endfor %}
+
+    # verify that libraries get installed
+    - test -f $PREFIX/lib/lib{{ name }}${SHLIB_EXT}  # [not win]
+    - if not exist %PREFIX%\\Library\\bin\\{{ name }}.dll exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\lib\\{{ name }}.lib exit 1  # [win]
+
+    # verify that GRC blocks get installed
+    {% set blocks = [
+        "soapy_sink",
+        "soapy_source",
+    ] %}
+    {% for block in blocks %}
+    - test -f $PREFIX/share/gnuradio/grc/blocks/{{ block }}.block.yml  # [not win]
+    - if not exist %PREFIX%\\Library\\share\\gnuradio\\grc\\blocks\\{{ block }}.block.yml exit 1  # [win]
+    {% endfor %}
+  imports:
+    - soapy
+
+about:
+  home: https://gitlab.com/librespacefoundation/gr-soapy
+  license: GPL-3.0-or-later
+  license_family: GPL
+  license_file: LICENSE
+  summary: 'A GNU Radio wrapper for the SoapySDR library'
+  description: |
+    This module provides GNU Radio source and sink blocks for a variety of SDR devices using SoapySDR, a generalized C/C++ library which provides abstraction in interfacing with different SDR devices and vendors.
+  dev_url: https://gitlab.com/librespacefoundation/gr-soapy
+
+extra:
+  recipe-maintainers:
+    - ryanvolz
