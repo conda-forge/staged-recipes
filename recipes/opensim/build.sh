@@ -19,11 +19,6 @@ make --jobs ${CPU_COUNT}
 cd ..
 mkdir build
 cd build
-echo "DEBUG CONDA_PREFIX ${CONDA_PREFIX}"
-ls ${CONDA_PREFIX}
-echo "DEBUG PREFIX ${PREFIX}"
-ls ${PREFIX}
-
 cmake ../opensim-core-source -LAH \
     -DCMAKE_OSX_SYSROOT=${CONDA_BUILD_SYSROOT} \
     -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET} \
@@ -33,7 +28,6 @@ cmake ../opensim-core-source -LAH \
     -DBUILD_PYTHON_WRAPPING=ON \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     -DCMAKE_INSTALL_LIBDIR="lib"
-# -DOPENSIM_C3D_PARSER=ezc3d \
 make --jobs ${CPU_COUNT}
 make doxygen
 make install

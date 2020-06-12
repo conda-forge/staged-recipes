@@ -22,7 +22,6 @@ cmake ../opensim-core-source -G Ninja -LAH ^
     -DBUILD_TESTING=OFF ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
     -DOPENSIM_INSTALL_UNIX_FHS=ON
-REM    -DOPENSIM_C3D_PARSER=ezc3d ^
 ninja
 ninja doxygen
 ninja install
