@@ -10,7 +10,7 @@ cmake ../opensim-core-source/dependencies -G Ninja -LAH ^
     -DSUPERBUILD_BTK=OFF
 ninja
 
-copy ../opensim-core-source/dependencies/docopt/LICENSE-MIT ../opensim-core-source/docopt.cpp_LICENSE-MIT
+copy ..\opensim-core-source\dependencies\docopt\LICENSE-MIT ..\opensim-core-source\docopt.cpp_LICENSE-MIT
 
 cd ..
 mkdir build

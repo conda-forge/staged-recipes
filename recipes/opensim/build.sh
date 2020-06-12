@@ -41,4 +41,3 @@ cmake ../opensim-core-source -LAH \
 make --jobs ${CPU_COUNT}
 make doxygen
 make install
-
