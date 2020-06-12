@@ -9,7 +9,6 @@ cmake ../opensim-core-source/dependencies -LAH \
     -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET} \
     -DCMAKE_BUILD_TYPE="Release" \
     -DSUPERBUILD_simbody=OFF \
-    -DSUPERBUILD_spdlog=OFF \
     -DSUPERBUILD_BTK=OFF \
     -DSUPERBUILD_docopt=ON \
     -DCMAKE_INSTALL_PREFIX=../opensim_dependencies_install \
