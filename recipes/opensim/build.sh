@@ -22,6 +22,8 @@ cmake . -DCMAKE_INSTALL_LIBDIR="lib"
 make --jobs ${CPU_COUNT} install
 cd ../..
 
+cp ../opensim-core-source/dependencies/docopt/LICENSE-MIT ../opensim-core-source/docopt.cpp_LICENSE-MIT
+
 cd ..
 mkdir build
 cd build
