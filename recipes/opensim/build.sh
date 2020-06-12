@@ -25,6 +25,7 @@ cmake ../opensim-core-source -LAH \
     -DOPENSIM_DEPENDENCIES_DIR=../opensim_dependencies_install \
     -DSIMBODY_HOME="${PREFIX}" \
     -DBUILD_PYTHON_WRAPPING=ON \
+    -DBUILD_TESTING=OFF \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     -DCMAKE_INSTALL_LIBDIR="lib"
 make --jobs ${CPU_COUNT}
