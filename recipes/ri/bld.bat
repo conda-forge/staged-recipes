@@ -1,4 +1,5 @@
 sed -i.bak '2d' makefile
+sed -i.bak 's/sys\///g' include/timer.h
 
 mkdir -p "$PREFIX/bin"
 make -B
