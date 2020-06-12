@@ -4,7 +4,7 @@ cd opensim-core-source
 cd ..
 mkdir build_dep
 cd build_dep
-cmake ../opensim-moco-source/dependencies -LAH \
+cmake ../opensim-core-source/dependencies -LAH \
     -DCMAKE_OSX_SYSROOT=${CONDA_BUILD_SYSROOT} \
     -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET} \
     -DCMAKE_BUILD_TYPE="Release" \
@@ -18,7 +18,7 @@ make --jobs ${CPU_COUNT}
 cd ..
 mkdir build
 cd build
-cmake ../opensim-moco-source -LAH \
+cmake ../opensim-core-source -LAH \
     -DCMAKE_OSX_SYSROOT=${CONDA_BUILD_SYSROOT} \
     -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET} \
     -DCMAKE_BUILD_TYPE="Release" \
