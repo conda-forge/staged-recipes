@@ -20,6 +20,7 @@ make --jobs ${CPU_COUNT}
 cd docopt/build
 cmake . -DCMAKE_INSTALL_LIBDIR="lib"
 make --jobs ${CPU_COUNT} install
+cd ../..
 
 cd ..
 mkdir build
