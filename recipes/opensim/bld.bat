@@ -17,7 +17,7 @@ cd build
 cmake ../opensim-core-source -G Ninja -LAH ^
     -DCMAKE_BUILD_TYPE="Release" ^
     -DOPENSIM_DEPENDENCIES_DIR=../opensim_dependencies_install ^
-    -DSIMBODY_HOME="%CONDA_PREFIX%" ^
+    -DSIMBODY_HOME="%LIBRARY_PREFIX%" ^
     -DBUILD_PYTHON_WRAPPING=ON ^
     -DBUILD_TESTING=OFF ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
