@@ -1,7 +1,5 @@
 #!/bin/bash
 
-sed -i.bak '2d' makefile
-
 mkdir -p "$PREFIX/bin"
 make -B
 cp ri36 "$PREFIX/bin"
