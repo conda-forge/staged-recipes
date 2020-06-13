@@ -3,4 +3,4 @@ if errorlevel 1 exit /b 1
 cmake.exe --build . --config Release
 if errorlevel 1 exit /b 1
 if not exist "%PREFIX%\" mkdir "%PREFIX%"
-COPY bin\Release\* %PREFIX%\
+COPY bin\* %PREFIX%\
