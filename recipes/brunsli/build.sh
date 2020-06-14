@@ -1,5 +1,5 @@
-mkdir build
-cd build
+mkdir build_conda
+cd build_conda
 
 
 cmake -LAH                            \

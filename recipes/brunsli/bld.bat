@@ -1,7 +1,10 @@
-mkdir build
+setlocal EnableDelayedExpansion
+echo on
+
+mkdir build_conda
 if errorlevel 1 exit 1
 
-cd build
+cd build_conda
 if errorlevel 1 exit 1
 
 cmake -LAH -G "Ninja"                           ^
