@@ -3,7 +3,7 @@ project (Lerc)
 
 include(GNUInstallDirs)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 
 file(GLOB SOURCES
     "src/LercLib/*"
