@@ -1,5 +1,7 @@
 
-sed -i.bak 's/<sys\/time.h>/sys\/time.h/g' include/timer.h
+sed -i.bak 's/<sys\/time.h>/"sys\/time.h"/g' include/timer.h
+
+ls
 
 mkdir -p "$PREFIX/bin"
 make -B
