@@ -1,17 +1,17 @@
 
 
-cp -R "$RECIPE_DIR/sys" "sys"
+cp -R "%RECIPE_DIR%/sys" "sys"
 
 sed -i.bak 's/<sys\/time.h>/"sys\/time.h"/g' include/timer.h
 
 ls
 
-mkdir -p "$PREFIX/bin"
+mkdir -p "%PREFIX%/bin"
 make -B
 
 ls
 
-cp ri36 "$PREFIX/bin"
-chmod +x "$PREFIX/bin/ri36"
+cp ri36 "%PREFIX%/bin"
+chmod +x "%PREFIX%/bin/ri36"
 
 
