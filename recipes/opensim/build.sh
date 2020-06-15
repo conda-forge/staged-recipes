@@ -15,13 +15,6 @@ cmake ../opensim-core-source/dependencies -LAH \
     -DCMAKE_INSTALL_LIBDIR="lib"
 make --jobs ${CPU_COUNT}
 
-# On Linux, docopt libraries are installed into lib64 but should be installed
-# into lib.
-cd docopt/build
-cmake . -DCMAKE_INSTALL_LIBDIR="lib"
-make --jobs ${CPU_COUNT} install
-cd ../..
-
 cd ..
 mkdir build
 cd build
