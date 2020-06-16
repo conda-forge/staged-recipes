@@ -1,6 +1,6 @@
 
 
-cp -R "%RECIPE_DIR%/sys" "include"
+cp -R "%RECIPE_DIR%/sys/*" "include"
 
 ls -l include
 
