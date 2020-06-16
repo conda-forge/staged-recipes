@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -exo pipefail
 
 chmod +x configure
 
