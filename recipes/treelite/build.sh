@@ -5,7 +5,7 @@ set -e
 
 mkdir build
 cd build
-cmake .. -DENABLE_PROTOBUF=ON -GNinja
+cmake .. -DCMAKE_INSTALL_PREFIX="$PREFIX" -DENABLE_PROTOBUF=ON -GNinja
 ninja install   # Install C++ library into Conda env
 cd ../python
 python setup.py install
