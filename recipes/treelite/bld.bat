@@ -5,8 +5,8 @@ if errorlevel 1 exit 1
 ninja install
 if errorlevel 1 exit 1
 cd ../python
-python setup.py install
+python setup.py install --single-version-externally-managed --record=record.txt
 if errorlevel 1 exit 1
 cd ../runtime/python
-python setup.py install
+python setup.py install --single-version-externally-managed --record=record.txt
 if errorlevel 1 exit 1
