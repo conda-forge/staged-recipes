@@ -1,8 +1,10 @@
 
 
-cp -R "%RECIPE_DIR%/sys" "sys"
+cp -R "%RECIPE_DIR%/sys" "include"
 
-sed -i.bak 's/<sys\/time.h>/"sys\/time.h"/g' include/timer.h
+ls -l include
+
+sed -i.bak 's/<sys\/time.h>/"time.h"/g' include/timer.h
 
 ls
 
