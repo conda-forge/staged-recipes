@@ -1,0 +1,454 @@
+From a51e6226944e3a6bc27dfef61ffcac274c121752 Mon Sep 17 00:00:00 2001
+From: Nehal J Wani <nehaljw.kkd1@gmail.com>
+Date: Sun, 31 May 2020 11:34:33 -0400
+Subject: [PATCH] Revert "Update "filenameparse.cc" module to reflect the C++17
+ Standard."
+
+This reverts commit 66ab079b21e2a7e4252af3346aa51819343fa76e.
+---
+ configure.ac         |  13 +-
+ src/filenameparse.cc | 299 +++++++++++++++++++++++++++++++++++--------
+ 2 files changed, 249 insertions(+), 63 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 021fb36..f8c32f4 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -45,8 +45,8 @@ AS_IF([test "$enable_on_demand_dynamic_linking" = no],
+           AC_MSG_CHECKING([for on-demand dynamic linking])
+           save_ldflags="$LDFLAGS"
+           LDFLAGS="-Wl,--as-needed -Wl,--no-copy-dt-needed-entries ${LDFLAGS}"
+-          AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <cstring>]],
+-                                          [[std::strlen("foo")]])],
++          AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <string.h>]],
++                                          [[strlen("foo")]])],
+                          [AC_MSG_RESULT(yes);
+                           have_on_demand_dynamic_linking=yes],
+                          AC_MSG_RESULT(no))
+@@ -59,15 +59,6 @@ fi
+ 
+ # Checks for libraries.
+ 
+-STDCXX_FILESYSTEM_LIBRARY='-lstdc++fs'
+-AC_MSG_CHECKING([whether we must link with an extra library to get C++17 filesystem support])
+-AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <filesystem>]],
+-                                [[std::filesystem::path p;
+-                                  p.parent_path()]])],
+-               [AC_MSG_RESULT(no)],
+-               [AC_MSG_RESULT(yes)
+-                LIBS="$LIBS $STDCXX_FILESYSTEM_LIBRARY"])
+-
+ # We check for TCMalloc so early to make it the last user library on
+ # the linker command line.  It will then gobble all undefined
+ # references to malloc(3) and free(3) and thus relieve the O/S even
+diff --git a/src/filenameparse.cc b/src/filenameparse.cc
+index 43947ab..af89c71 100644
+--- a/src/filenameparse.cc
++++ b/src/filenameparse.cc
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (C) 2009-2019 Dr. Christoph L. Spiel
++ * Copyright (C) 2009-2017 Dr. Christoph L. Spiel
+  *
+  * This file is part of Enblend.
+  *
+@@ -22,11 +22,12 @@
+ // Life is tough and then you die.  -- Jack Dempsey
+ 
+ 
+-#include <filesystem>
+-#include <numeric>
++#include <list>
+ #include <string>
+-#include <vector>
+ 
++#if _WIN32
++#include <ctype.h>              // isalpha
++#endif
+ 
+ #ifdef HAVE_CONFIG_H
+ #include <config.h>
+@@ -34,138 +35,332 @@
+ 
+ #include "filenameparse.h"
+ 
++#if defined(_MSC_VER) || defined(HAVE_WINDOWS_H)
++#define PATH_SEPARATOR "\\"
++#else
++#define PATH_SEPARATOR "/"
++#endif
+ 
+-#define CURRENT_DIRECTORY "."
+-#define PARENT_DIRECTORY ".."
+-
+-
+-typedef std::filesystem::path basic_path;
++#define DOT "."
++#define DOTDOT ".."
+ 
++#ifdef HAVE_STD_FILESYSTEM
++#include <filesystem>
++#if defined _MSC_VER && _MSC_VER>=1912
++typedef std::experimental::filesystem::path basic_path; 
++#else
++typedef std::tr2::sys::path basic_path;
++#endif
++#endif
+ 
+ namespace enblend {
+ 
+ bool
+ isRelativePath(const std::string& aFilename)
+ {
+-    const basic_path path {aFilename};
+-
+-    return path.is_relative();
++#if defined(HAVE_STD_FILESYSTEM)
++    const basic_path path(aFilename);
++    return !path.has_root_directory();
++#else
++    const std::string::size_type separator = aFilename.find(PATH_SEPARATOR);
++#if defined(_MSC_VER) || defined(HAVE_WINDOWS_H)
++    return !(aFilename.size() >= 3 &&
++             isalpha(aFilename[0]) &&
++             aFilename[1] == ':' &&
++             separator == 2);
++#else
++    return separator != 0;
++#endif
++#endif
+ }
+ 
+ 
+ std::string
+ extractDirname(const std::string& aFilename)
+ {
+-    const basic_path path {aFilename};
+-    const std::string directory {path.parent_path().string()};
+-
+-    return directory.empty() ? CURRENT_DIRECTORY : directory;
++#if defined(HAVE_STD_FILESYSTEM)
++    const basic_path path(aFilename);
++    const std::string directory(path.parent_path().string());
++    return directory.empty() ? DOT : directory;
++#else
++    const std::string::size_type separator = aFilename.rfind(PATH_SEPARATOR);
++    return (separator == std::string::npos) ? DOT : aFilename.substr(0, separator);
++#endif
+ }
+ 
+ 
+ std::string
+ extractBasename(const std::string& aFilename)
+ {
+-    const basic_path path {aFilename};
+-
++#if defined(HAVE_STD_FILESYSTEM)
++    const basic_path path(aFilename);
+     return path.filename().string();
++#else
++    const std::string::size_type separator = aFilename.rfind(PATH_SEPARATOR);
++    return
++        (separator == std::string::npos) ?
++        aFilename :
++        aFilename.substr(separator + 1, aFilename.length() - separator - 1);
++#endif
+ }
+ 
+ 
+ std::string
+ extractFilename(const std::string& aFilename)
+ {
+-    const basic_path path {aFilename};
+-
++#if defined(HAVE_STD_FILESYSTEM)
++    const basic_path path(aFilename);
+     return path.stem().string();
++#else
++    const std::string::size_type separator = aFilename.rfind(PATH_SEPARATOR);
++    const std::string::size_type dot = aFilename.rfind(DOT);
++    if (separator == std::string::npos)
++    {
++        return (dot == std::string::npos) ? aFilename : aFilename.substr(0, dot);
++    }
++    else
++    {
++        return
++            (dot == std::string::npos) ?
++            aFilename.substr(separator + 1, aFilename.length() - separator - 1) :
++            aFilename.substr(separator + 1, dot - separator - 1);
++    }
++#endif
+ }
+ 
+ 
+ std::string
+ extractExtension(const std::string& aFilename)
+ {
+-    const basic_path path {aFilename};
+-
++#if defined(HAVE_STD_FILESYSTEM)
++    const basic_path path(aFilename);
+     return path.extension().string();
++#else
++    const std::string::size_type dot = aFilename.rfind(DOT);
++    return
++        (dot == std::string::npos) ?
++        "" :
++        aFilename.substr(dot, aFilename.length() - dot);
++#endif
+ }
+ 
+ 
+-static
+-basic_path
+-removeDotsInPath(const basic_path& aPath)
++typedef std::list<std::string> list_t;
++
++
++#if defined(HAVE_STD_FILESYSTEM)
++
++inline basic_path
++removeDotsBoost(const basic_path& aPath)
+ {
+     basic_path result;
+-
+-    for (const auto& p : aPath)
++    for (basic_path::const_iterator p = aPath.begin(); p != aPath.end(); ++p)
+     {
+-        if (p != CURRENT_DIRECTORY)
++        if (*p != DOT)
+         {
+-            result /= p;
++            result /= *p;
+         }
+     }
++    return result;
++}
+ 
++
++inline basic_path
++removeDotDotsBoost(const basic_path& aPath)
++{
++    list_t directories;
++    for (basic_path::const_iterator p = aPath.begin(); p != aPath.end(); ++p)
++    {
++        if (*p == DOTDOT &&
++            !directories.empty() && directories.back() != DOTDOT)
++        {
++            directories.pop_back();
++        }
++        else
++        {
++            directories.push_back(p->string());
++        }
++    }
++    basic_path result;
++    for (list_t::const_iterator p = directories.begin(); p != directories.end(); ++p)
++    {
++        result /= *p;
++    }
+     return result;
+ }
+ 
++#else
++
++inline
++std::string
++removeDotsCxx(const std::string& aPathname)
++{
++    std::string path(aPathname);
++    std::string::size_type predecessor = std::string::npos;
++    std::string::size_type separator = path.find(PATH_SEPARATOR);
++    while (separator != std::string::npos)
++    {
++        const std::string::size_type begin =
++            predecessor == std::string::npos ? 0 : predecessor + 1;
++        const std::string component =
++            path.substr(begin, separator - predecessor - 1);
++        if (component == DOT)
++        {
++            path.erase(begin, 2);
++        }
++        else
++        {
++            predecessor = separator;
++        }
++        separator = path.find(PATH_SEPARATOR, predecessor + 1);
++    }
++    if (predecessor == std::string::npos)
++    {
++        if (path == DOT)
++        {
++            path.clear();
++        }
++    }
++    else
++    {
++        const std::string component = path.substr(predecessor + 1);
++        if (component == DOT)
++        {
++            path.erase(predecessor);
++        }
++    }
++    return path;
++}
++
+ 
+-static
+-basic_path
+-removeDotDotsInPath(const basic_path& aPath)
++inline std::string
++removeDotDotsCxx(const std::string& aPathname)
+ {
+-    std::vector<std::string> directories;
++    std::string path(aPathname);
++    list_t directories;
++    std::string::size_type predecessor = std::string::npos;
++    std::string::size_type separator = path.find(PATH_SEPARATOR);
++    while (separator != std::string::npos)
++    {
++        const std::string::size_type begin =
++            predecessor == std::string::npos ? 0 : predecessor + 1;
++        const std::string component =
++            path.substr(begin, separator - predecessor - 1);
++        if (component == DOTDOT &&
++            !directories.empty() && directories.back() != DOTDOT)
++        {
++            directories.pop_back();
++        }
++        else
++        {
++            directories.push_back(component);
++        }
+ 
+-    for (const auto& p : aPath)
++        predecessor = separator;
++        separator = path.find(PATH_SEPARATOR, predecessor + 1);
++    }
++    if (predecessor == std::string::npos)
+     {
+-        if (p == PARENT_DIRECTORY &&
+-            !directories.empty() && directories.back() != PARENT_DIRECTORY)
++        directories.push_back(path);
++    }
++    else
++    {
++        const std::string component = path.substr(predecessor + 1);
++        if (component == DOTDOT &&
++            !directories.empty() && directories.back() != DOTDOT)
+         {
+             directories.pop_back();
+         }
+         else
+         {
+-            directories.push_back(p.string());
++            directories.push_back(component);
+         }
+     }
+-
+-    return std::accumulate(directories.begin(), directories.end(),
+-                           basic_path {},
+-                           [](const basic_path& parent, const basic_path& leaf)
+-                           {
+-                               return basic_path {parent} /= leaf;
+-                           });
++    std::string result;
++    for (list_t::const_iterator p = directories.begin(); p != directories.end(); ++p)
++    {
++        if (p != directories.begin())
++        {
++            result.append(PATH_SEPARATOR);
++        }
++        result.append(*p);
++    }
++    return result;
+ }
++#endif
+ 
+ 
+ std::string
+ canonicalizePath(const std::string& aPathname, bool keepDot)
+ {
+-    const basic_path result {removeDotDotsInPath(removeDotsInPath(basic_path(aPathname)))};
+-
++#if defined(HAVE_STD_FILESYSTEM)
++    const basic_path result = removeDotDotsBoost(removeDotsBoost(basic_path(aPathname)));
+     if (keepDot && result.empty())
+     {
+-        return CURRENT_DIRECTORY;
++        return std::string(DOT);
+     }
+     else
+     {
+         return result.string();
+     }
++#else
++    std::string result = removeDotDotsCxx(removeDotsCxx(aPathname));
++
++    // For compatibility with the Boost implementation: Remove a
++    // trailing PATH_SEPARATOR unless we reference the root directory.
++    const size_t size = result.size();
++    if (size >= 2 && result.substr(size - 1, 1) == PATH_SEPARATOR)
++    {
++        result.erase(size - 1, 1);
++    }
++    if (keepDot && result.empty())
++    {
++        return std::string(DOT);
++    }
++    else
++    {
++        return result;
++    }
++#endif
+ }
+ 
+ 
+ std::string
+ concatPath(const std::string& aPathname, const std::string& anotherPathname)
+ {
+-    basic_path path {aPathname};
+-    basic_path leaf {anotherPathname};
+-
++#if defined(HAVE_STD_FILESYSTEM)
++    basic_path path(aPathname);
++    basic_path leaf(anotherPathname);
+     path /= leaf;
+-
+     return path.string();
++#else
++    if (aPathname.empty())
++    {
++        return anotherPathname;
++    }
++    else if (anotherPathname.empty())
++    {
++        return aPathname;
++    }
++    else
++    {
++        const std::string::size_type end = aPathname.find_last_not_of(PATH_SEPARATOR);
++        const std::string path =
++            (end == std::string::npos) ?
++            aPathname :
++            aPathname.substr(0, end + 1);
++        const std::string::size_type begin = anotherPathname.find_first_not_of(PATH_SEPARATOR);
++        const std::string leaf =
++            (begin == std::string::npos) ?
++            anotherPathname :
++            anotherPathname.substr(begin);
++        return path + PATH_SEPARATOR + leaf;
++    }
++#endif
+ }
+ 
+ } // namespace enblend
+ 
+-
+ // Local Variables:
+ // mode: c++
+ // End:
+-- 
+2.23.0
+
