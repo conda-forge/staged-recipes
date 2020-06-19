@@ -1,4 +1,6 @@
 #!/bin/bash
+export CXXFLAGS="-fvisibility-inlines-hidden -std=c++11 -fmessage-length=0 -march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -ffunction-sections -pipe -isystem $PREFIX/include -fdebug-prefix-map=$SRC_DIR=/usr/local/src/conda/match-series-0.0.1 -fdebug-prefix-map=$PREFIX=/usr/local/src/conda-prefix"
+
 cmake -G"Unix Makefiles" \
       -DCMAKE_BUILD_TYPE=Release \
       -DUSE_PNG=1 \
@@ -26,7 +28,6 @@ cmake -G"Unix Makefiles" \
       -DTEST_OPENSOURCE_SELECTION=0 \
       -DUSE_OPENGL=0 \
       -DUSE_METIS=0 \
-      -DCMAKE_CXX_FLAGS="${CXXFLAGS} -std=c++11" \
       quocmesh
 make
 make test
