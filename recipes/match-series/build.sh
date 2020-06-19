@@ -26,6 +26,7 @@ cmake -G"Unix Makefiles" \
       -DTEST_OPENSOURCE_SELECTION=0 \
       -DUSE_OPENGL=0 \
       -DUSE_METIS=0 \
+      -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
       quocmesh
 make
 make test
