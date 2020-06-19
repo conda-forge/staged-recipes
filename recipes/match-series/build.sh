@@ -29,4 +29,4 @@ cmake -G"Unix Makefiles" \
       quocmesh
 make
 make test
-make install
+make DESTDIR=${PREFIX} install
