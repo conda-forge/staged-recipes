@@ -1,6 +1,4 @@
 #!/bin/bash
-export CXXFLAGS="-fvisibility-inlines-hidden -std=c++11 -fmessage-length=0 -march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -ffunction-sections -pipe -isystem $PREFIX/include -fdebug-prefix-map=$SRC_DIR=/usr/local/src/conda/match-series-0.0.1 -fdebug-prefix-map=$PREFIX=/usr/local/src/conda-prefix"
-
 cmake -G"Unix Makefiles" \
       -DCMAKE_BUILD_TYPE=Release \
       -DUSE_PNG=1 \
@@ -21,7 +19,7 @@ cmake -G"Unix Makefiles" \
       -DBUILD_FOX=0 \
       -DUSE_FFTW=1 \
       -DUSE_GRAPE=0 \
-      -DUSE_C++11=0 \
+      -DUSE_C++11=1 \
       -DGENERATE_INCLUDE_TEST=0 \
       -DUSE_TIFF=1 \
       -DUSE_CIMG=0 \
