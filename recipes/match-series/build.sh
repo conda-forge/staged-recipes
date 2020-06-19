@@ -1,6 +1,6 @@
 #!/bin/bash
 cmake -G"Unix Makefiles" \
-      --install=${PREFIX} \
+      -DCMAKE_INSTALL_PREFIX=${PREFIX} \
       -DCMAKE_BUILD_TYPE=Release \
       -DUSE_PNG=1 \
       -DPARSE_GCC_ERRORS=0 \
