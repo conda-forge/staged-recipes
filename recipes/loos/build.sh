@@ -6,5 +6,6 @@ set -x
 
 echo "Begin loos build.sh"
 export CONDA_PREFIX=$BUILD_PREFIX
+export RECIPE=1
 
 scons PREFIX=$PREFIX -j $CPU_COUNT
