@@ -28,6 +28,6 @@ cmake -G"Unix Makefiles" \
       -DUSE_OPENGL=0 \
       -DUSE_METIS=0 \
       quocmesh
-make
+make -j${CPU_COUNT}
 make test
 make install
