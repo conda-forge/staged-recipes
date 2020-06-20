@@ -1,6 +1,6 @@
+cp $RECIPE_DIR/brunsli.cmake .
 mkdir build_conda
 cd build_conda
-
 
 cmake -LAH                            \
     -DCMAKE_BUILD_TYPE=Release        \

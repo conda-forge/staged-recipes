@@ -1,6 +1,8 @@
 setlocal EnableDelayedExpansion
 echo on
 
+copy %RECIPE_DIR%\brunsli.cmake .
+
 mkdir build_conda
 if errorlevel 1 exit 1
 
