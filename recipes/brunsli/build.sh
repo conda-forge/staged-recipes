@@ -1,4 +1,3 @@
-cp $RECIPE_DIR/brunsli.cmake .
 mkdir build_conda
 cd build_conda
 
