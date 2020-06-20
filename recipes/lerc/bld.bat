@@ -1,18 +1,13 @@
 setlocal EnableDelayedExpansion
 echo on
 
-mkdir build_conda
-if errorlevel 1 exit 1
+copy %RECIPE_DIR%\CMakeLists.txt %SRC_DIR%\
 
-cd build_conda
-if errorlevel 1 exit 1
-
-cmake -LAH -G "Ninja"                         ^
+cmake -LAH -S .                               ^
+   -B build_conda -G "Ninja"                  ^
    -DCMAKE_BUILD_TYPE="Release"               ^
-   -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%"  ^
-   ..
-
+   -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%"
 if errorlevel 1 exit 1
 
-ninja install
+cmake --build build_conda -- install
 if errorlevel 1 exit 1

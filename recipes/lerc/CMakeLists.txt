@@ -10,7 +10,7 @@ file(GLOB SOURCES
     "src/LercLib/Lerc1Decode/*"
     "include"
 )
-message(${SOURCES})
+message(STATUS ${SOURCES})
 
 add_library(Lerc SHARED ${SOURCES})
 
@@ -20,7 +20,7 @@ install(
     TARGETS Lerc
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_BINDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 install(
