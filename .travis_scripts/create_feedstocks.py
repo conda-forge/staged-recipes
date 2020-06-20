@@ -13,6 +13,7 @@ Such as:
 from __future__ import print_function
 
 from conda_build.metadata import MetaData
+from conda_smithy.utils import get_feedstock_name_from_meta
 from contextlib import contextmanager
 from datetime import datetime
 from github import Github, GithubException
@@ -24,6 +25,8 @@ import tempfile
 import traceback
 import time
 
+import requests
+from ruamel.yaml import YAML
 
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
 DEBUG = False
@@ -44,7 +47,7 @@ def list_recipes():
         if recipe_dir.startswith('example'):
             continue
         path = os.path.abspath(os.path.join(recipe_directory_name, recipe_dir))
-        yield path, MetaData(path).name()
+        yield path, get_feedstock_name_from_meta(MetaData(path))
 
 
 @contextmanager
@@ -66,6 +69,18 @@ def repo_exists(gh, organization, name):
         if e.status == 404:
             return False
         raise
+
+
+def feedstock_token_exists(organization, name):
+    r = requests.get(
+        "https://api.github.com/repos/%s/"
+        "feedstock-tokens/contents/tokens/%s.json" % (organization, name),
+        headers={"Authorization": "token %s" % os.environ["GH_TOKEN"]},
+    )
+    if r.status_code != 200:
+        return False
+    else:
+        return True
 
 
 def print_rate_limiting_info(gh, user):
@@ -233,6 +248,7 @@ if __name__ == '__main__':
         # Without this, intermittent failures to synch the TravisCI repos ensue.
         # Hang on to any CI registration errors that occur and raise them at the end.
         for num, (feedstock_dir, name, recipe_dir) in enumerate(feedstock_dirs):
+            print("\n\nregistering CI services for %s..." % name)
             if num >= 10:
                 exit_code = 1
                 break
@@ -242,7 +258,7 @@ if __name__ == '__main__':
             # After going through all the recipes and removing the converted ones,
             # we fail the build so that people are aware that things did not clear.
             try:
-                # Stop registering on appveyor temporarily
+                write_token('anaconda', os.environ['PROD_BINSTAR_TOKEN'])
                 subprocess.check_call(
                     ['conda', 'smithy', 'register-ci', '--without-appveyor',
                      '--without-webservice', '--feedstock_directory',
@@ -258,6 +274,43 @@ if __name__ == '__main__':
             for i in range(1, 13):
                 time.sleep(10)
                 print("Waiting for registration: {i} s".format(i=i*10))
+
+            # if we get here, now we make the feedstock token and add the staging token
+            print("making the feedstock token and adding the staging binstar token")
+            try:
+                if not feedstock_token_exists("conda-forge", name + "-feedstock"):
+                    subprocess.check_call(
+                        ['conda', 'smithy', 'generate-feedstock-token',
+                         '--feedstock_directory', feedstock_dir] + owner_info)
+                    subprocess.check_call(
+                        ['conda', 'smithy', 'register-feedstock-token',
+                         '--feedstock_directory', feedstock_dir] + owner_info)
+
+                write_token('anaconda', os.environ['STAGING_BINSTAR_TOKEN'])
+                subprocess.check_call(
+                    ['conda', 'smithy', 'rotate-binstar-token',
+                     '--without-appveyor',
+                     '--token_name', 'STAGING_BINSTAR_TOKEN'],
+                    cwd=feedstock_dir)
+
+                yaml = YAML()
+                with open(os.path.join(feedstock_dir, "conda-forge.yml"), "r") as fp:
+                    _cfg = yaml.load(fp.read())
+                _cfg["conda_forge_output_validation"] = True
+                with open(os.path.join(feedstock_dir, "conda-forge.yml"), "w") as fp:
+                    yaml.dump(_cfg, fp)
+                subprocess.check_call(
+                    ["git", "add", "conda-forge.yml"],
+                    cwd=feedstock_dir
+                )
+                subprocess.check_call(
+                    ['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
+            except subprocess.CalledProcessError:
+                exit_code = 1
+                traceback.print_exception(*sys.exc_info())
+                continue
+
+            print("making a commit and pushing...")
             subprocess.check_call(
                 ['git', 'commit', '--allow-empty', '-am',
                  "Re-render the feedstock after CI registration."], cwd=feedstock_dir)
