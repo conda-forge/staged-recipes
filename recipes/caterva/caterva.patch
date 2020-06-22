@@ -1,0 +1,134 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9cb1fec..9347ac4 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -8,8 +8,9 @@
+ # You may select, at your option, one of the above-listed licenses.
+ 
+ cmake_minimum_required(VERSION 2.8.10)
++cmake_policy(VERSION 2.8...3.15)
+ 
+-project(caterva)
++project(caterva C)
+ 
+ option(SHARED_LIB "Create shared library" ON)
+ option(STATIC_LIB "Create static library" ON)
+@@ -17,67 +18,89 @@ option(STATIC_LIB "Create static library" ON)
+ set(CATERVA_ROOT ${CMAKE_CURRENT_LIST_DIR})
+ set(CATERVA_SRC ${CMAKE_CURRENT_LIST_DIR}/caterva)
+ 
+-if (NOT BLOSC_LIB)
++if(SHARED_LIB)
++    set(CATERVA_LIB caterva_shared)
++endif()
++if(STATIC_LIB)
++    set(CATERVA_LIB caterva_static)
++endif()
++
++# parse the full version numbers from caterva.h
++file(READ ${CATERVA_SRC}/caterva.h _caterva_h_contents)
++string(REGEX REPLACE ".*#define[ \t]+CATERVA_VERSION_MAJOR[ \t]+([0-9]+).*"
++    "\\1" CATERVA_VERSION_MAJOR ${_caterva_h_contents})
++string(REGEX REPLACE ".*#define[ \t]+CATERVA_VERSION_MINOR[ \t]+([0-9]+).*"
++    "\\1" CATERVA_VERSION_MINOR ${_caterva_h_contents})
++string(REGEX REPLACE ".*#define[ \t]+CATERVA_VERSION_RELEASE[ \t]+([0-9]+).*"
++    "\\1" CATERVA_VERSION_PATCH ${_caterva_h_contents})
++string(REGEX REPLACE ".*#define[ \t]+CATERVA_VERSION_STRING[ \t]+\"([-0-9A-Za-z.]+)\".*"
++    "\\1" CATERVA_VERSION_STRING ${_caterva_h_contents})
++message("Configuring for caterva version: " ${CATERVA_VERSION_STRING})
++
++include_directories(${CATERVA_SRC})
++
++if(NOT BLOSC_LIB)
+ 	find_library(DEP_LIB blosc2 PATHS ${BLOSC_DIR} NO_DEFAULT_PATH)
+ 	find_library(DEP_LIB blosc2)
+-    if (NOT DEP_LIB)
++    if(NOT DEP_LIB)
+         message(FATAL_ERROR "Blosc2 library not found")
+     else()
+         set(BLOSC_LIB ${DEP_LIB})
+         message(STATUS "Blosc2 library found at: ${BLOSC_LIB}")
+     endif()
+     find_path(BLOSC_INCLUDE "blosc2.h")
+-    if (BLOSC_INCLUDE)
+-        message(STATUS "Blosc2 header found at: ${BLOSC_INCLUDE}")
++    if(BLOSC_INCLUDE)
++        message(STATUS "blosc2.h header found at: ${BLOSC_INCLUDE}")
++        include_directories(${BLOSC_INCLUDE})
++        else()
++        error("blosc2.h header not found!")
+     endif()
+ endif()
+ 
+-
+-if (SHARED_LIB)
+-    set(CATERVA_LIB caterva_shared)
+-elseif (STATIC_LIB)
+-    set(CATERVA_LIB caterva_static)
+-else()
+-    error("No library is created")
+-endif ()
+-
+-include_directories(${CATERVA_SRC})
+-if (BLOSC_INCLUDE)
+-    include_directories(${BLOSC_INCLUDE})
+-    message(STATUS "BLOSC_INCLUDE: ${BLOSC_INCLUDE}")
+-endif()
+-
+ include(CTest)
+ 
+ file(GLOB SRC_FILES ${CATERVA_SRC}/*.c)
+ 
+-if (SHARED_LIB)
++# library install directory
++set(lib_dir lib${LIB_SUFFIX})
++
++if(SHARED_LIB)
+     add_library(caterva_shared SHARED ${SRC_FILES})
+-    if (DO_COVERAGE)
++    if(DO_COVERAGE)
+         target_compile_options(caterva_shared PRIVATE -fprofile-arcs -ftest-coverage)
+         target_link_libraries(caterva_shared ${BLOSC_LIB} -fprofile-arcs)
+     else()
+         target_link_libraries(caterva_shared ${BLOSC_LIB})
+     endif()
+     set_target_properties(caterva_shared PROPERTIES OUTPUT_NAME caterva)
+-    install(TARGETS caterva_shared DESTINATION lib)
+-endif ()
++    set(version_string ${CATERVA_VERSION_MAJOR}.${CATERVA_VERSION_MINOR}.${CATERVA_VERSION_PATCH})
++    set_target_properties(caterva_shared PROPERTIES VERSION ${version_string}
++                          SOVERSION 0  # change this when an ABI change would happen
++                          )
++    set_property(TARGET caterva_shared APPEND PROPERTY COMPILE_DEFINITIONS BLOSC_SHARED_LIBRARY)
++
++    install(TARGETS caterva_shared LIBRARY DESTINATION ${lib_dir} ARCHIVE DESTINATION ${lib_dir}
++            RUNTIME DESTINATION bin COMPONENT LIB)
++endif()
+ 
+-if (STATIC_LIB)
++if(STATIC_LIB)
+     add_library(caterva_static STATIC ${SRC_FILES})
++    set_target_properties(caterva_static PROPERTIES OUTPUT_NAME caterva)
++    if(MSVC)
++        set_target_properties(caterva_static PROPERTIES PREFIX lib)
++    endif()
+     if (DO_COVERAGE)
+         target_compile_options(caterva_static PRIVATE -fprofile-arcs -ftest-coverage)
+         target_link_libraries(caterva_static ${BLOSC_LIB} -fprofile-arcs)
+     else()
+         target_link_libraries(caterva_static ${BLOSC_LIB})
+     endif()
+-    set_target_properties(caterva_static PROPERTIES OUTPUT_NAME caterva)
+-    install(TARGETS caterva_static DESTINATION lib)
++    install(TARGETS caterva_static LIBRARY DESTINATION ${lib_dir} ARCHIVE DESTINATION ${lib_dir}
++            RUNTIME DESTINATION bin COMPONENT DEV)
+ endif()
+-
+-install(FILES ${CATERVA_SRC}/caterva.h DESTINATION include)
++# Both shared and static libs need the .h file
++install(FILES ${CATERVA_SRC}/caterva.h DESTINATION include COMPONENT DEV)
+ 
+ enable_testing()
+ add_subdirectory(tests)
+ add_subdirectory(examples)
+-
