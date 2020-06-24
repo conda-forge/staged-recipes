@@ -1,17 +1,14 @@
 #!/bin/bash
-#
-# Tilt installer
-#
-# Adapted from https://raw.githubusercontent.com/tilt-dev/tilt/v0.14.3/scripts/install.sh
-
+# Metadata taken from https://github.com/tilt-dev/tilt/releases/tag/v0.14.3
+DATE=2020-06-12
 VERSION="0.14.3"
-if [[ "$OSTYPE" == "linux-gnu" ]]; then
-  set -x
-  curl -fsSL https://github.com/tilt-dev/tilt/releases/download/v$VERSION/tilt.$VERSION.linux.x86_64.tar.gz | tar -xzv tilt
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-  set -x
-  curl -fsSL https://github.com/tilt-dev/tilt/releases/download/v$VERSION/tilt.$VERSION.mac.x86_64.tar.gz | tar -xzv tilt
-fi
+COMMIT=329e43fd9c18e87c48e643109b88852bdbef0e36
 
 mkdir -p $PREFIX/bin
-cp tilt $PREFIX/bin
+export GOPATH=$PREFIX
+
+go install \
+    -tags=osusergo -mod=vendor \
+    -ldflags="-s -w -X main.version=$VERSION -X main.commit=$COMMIT -X main.date=$DATE" \
+    ./cmd/tilt/...
+
