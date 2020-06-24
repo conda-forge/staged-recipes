@@ -9,5 +9,5 @@ cmake -LAH                            \
     -DCMAKE_INSTALL_LIBDIR=lib        \
     ..
 
-make-j${CPU_COUNT}
+make -j${CPU_COUNT}
 make install
