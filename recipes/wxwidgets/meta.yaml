@@ -1,0 +1,114 @@
+# 3.0.5 doesn't ship with CMake installer
+# And I don't feel like copying files manually from the VS Solution build
+# {% set version = "3.0.5" %}
+{% set version = "3.1.3" %}
+{% set major_minor_version = '.'.join(version.split('.')[:2]) %}
+
+package:
+  name: wxwidgets
+  version: {{ version }}
+
+source:
+  url: https://github.com/wxWidgets/wxWidgets/releases/download/v{{ version }}/wxWidgets-{{ version }}.tar.bz2
+  # 3.0.5
+  # sha256: 8aacd56b462f42fb6e33b4d8f5d40be5abc3d3b41348ea968aa515cc8285d813
+  # 3.1.3
+  sha256: fffc1d34dac54ff7008df327907984b156c50cff5a2f36ee3da6052744ab554a
+
+build:
+  number: 0
+  # OSX Still doesn't work
+  skip: true  # [osx]
+  run_exports:
+    # ABI seems to be stable between minor versions
+    - {{ pin_subpackage('wxwidgets', max_pin='x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake        # [win]
+    - ninja        # [win]
+    - make         # [unix]
+    - pkg-config   # [unix]
+
+    # Necessary CDTs
+    - {{ cdt('mesa-libgl-devel') }}      # [linux]
+    - {{ cdt('libxcursor-devel') }}      # [linux]
+    - {{ cdt('libxcomposite-devel') }}   # [linux]
+    - {{ cdt('libxtst-devel') }}         # [linux]
+    - {{ cdt('libxdamage-devel') }}      # [linux]
+    - {{ cdt('libxinerama-devel') }}     # [linux]
+    - {{ cdt('libxrandr-devel') }}       # [linux]
+    - {{ cdt('xorg-x11-proto-devel') }}  # [linux]
+    - {{ cdt('libxxf86vm-devel') }}      # [linux]
+    
+  host:
+    - zlib
+    - libpng
+    - libtiff
+    - expat
+    # hmaarrfk 2020/05/25
+    # Even after we specify that we want to use sys jpeg
+    # conda claims we are still overlinking on windows
+    # not too sure why
+    - jpeg
+    - libiconv    # [unix]
+    - xz          # [unix]
+    - glib        # [unix]
+    - pango       # [unix]
+    - cairo       # [unix]
+    - fontconfig  # [unix]
+    # old version not available for windows
+    # https://github.com/conda-forge/conda-forge-pinning-feedstock/pull/627
+    - gdk-pixbuf  # [unix]
+    # gtk3 3.24.18 seems to report it is 3.24.17
+    # https://github.com/conda-forge/gtk3-feedstock/issues/11
+    - gtk3 !=3.24.18  # [unix]
+    # libglu seems necessary for osx too
+    # https://github.com/conda-forge/libglu-feedstock/pull/17
+    - libglu       # [linux]
+    - mesalib      # [unix]
+    - xorg-libx11  # [linux]
+    - xorg-libsm   # [linux]
+    - xorg-libxi   # [linux]
+  run:
+    - fontconfig
+    - pango
+    - gtk3         # [linux]
+    - xorg-libx11  # [linux]
+    - xorg-libsm   # [linux]
+
+test:
+  commands:
+    - test -f ${PREFIX}/lib/libwx_baseu-{{ major_minor_version }}${SHLIB_EXT}  # [unix]
+    - test -f ${PREFIX}/include/wx-{{ major_minor_version }}/wx/wx.h           # [unix]
+    - wx-config --prefix  # [unix]
+    - wxrc --help  # [unix]
+    - where wxrc   # [win]
+    - if not exist %LIBRARY_BIN%\\wxrc.exe exit 1  # [win]
+
+
+about:
+  home: https://www.wxwidgets.org/
+  license: Other
+  license_family: LGPL
+  license_file:
+    - docs/licence.txt
+    - docs/lgpl.txt
+    - docs/gpl.txt
+  summary: Cross-Platform GUI Library
+
+  description: |
+    wxWidgets is a C++ library that lets developers create applications for
+    Windows, macOS, Linux and other platforms with a single code base. It has
+    popular language bindings for Python, Perl, Ruby and many other languages,
+    and unlike other cross-platform toolkits, wxWidgets gives applications a
+    truly native look and feel because it uses the platform's native API rather
+    than emulating the GUI. It's also extensive, free, open-source and mature.
+  doc_url: https://docs.wxwidgets.org/
+  dev_url: https://github.com/wxWidgets/wxWidgets/
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
