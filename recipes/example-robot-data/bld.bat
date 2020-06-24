@@ -1,8 +1,7 @@
 mkdir build
+if errorlevel 1 exit 1
+
 cd build
-
-
-echo %PREFIX%
 
 ::Configure
 cmake ^
@@ -13,6 +12,6 @@ cmake ^
     %SRC_DIR%
 if errorlevel 1 exit 1
 
-:: Install.
+:: Install
 cmake --build . --config Release --target install
 if errorlevel 1 exit 1
