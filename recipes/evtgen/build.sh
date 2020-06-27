@@ -12,3 +12,6 @@ cmake \
     ../R0*/
 
 cmake --build . --target install "-j${CPU_COUNT}"
+
+# Put the license into a more predictable location
+cp ../R0*/COPYING ../COPYING
