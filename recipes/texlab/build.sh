@@ -19,8 +19,9 @@ cat dependencies.json
 
 python $RECIPE_DIR/check_licenses.py
 
+# actually build
 cargo build --release
 
+# install
 mkdir -p "${PREFIX}/bin"
-
 cp target/release/${PKG_NAME} "${PREFIX}/bin"

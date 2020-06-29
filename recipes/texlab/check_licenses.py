@@ -31,7 +31,7 @@ def main():
     if len(missing) > 0:
         print('Licenses for the following dependencies are '
               'not being packaged:')
-        for name, pkg_license, repo in missing:
+        for name, pkg_license, repo in sorted(missing):
             print('* {0} ({1}) -> {2}'.format(name, pkg_license, repo))
         sys.exit(1)
 
