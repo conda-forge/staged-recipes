@@ -22,7 +22,7 @@ from pathlib import Path
 #
 # COPYING is not a license, but some of the manually-built files need it for
 # clarification
-BASE_GLOB = '{crate}-LICEN*'
+BASE_GLOB = "{crate}-LICEN*"
 
 # first-party crates are covered by LICENSE
 IGNORE = {os.environ["PKG_NAME"], "jsonrpc-derive", "jsonrpc"}
