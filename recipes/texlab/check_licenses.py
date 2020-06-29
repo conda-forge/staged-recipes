@@ -10,11 +10,11 @@ import os.path as osp
 
 RECIPE_DIR = os.environ['RECIPE_DIR']
 
-BASE_GLOB = '{0}-LICENSE*'
+BASE_GLOB = '{0}-LICEN*'
 DEPENDENCIES = 'dependencies.json'
 LIBRARY_LICENSES = osp.join(RECIPE_DIR, 'library_licenses')
 # Package license is packaged on the recipe root.
-IGNORE = {os.environ["PKG_NAME"]}
+IGNORE = {os.environ["PKG_NAME"], "jsonrpc-derive", "jsonrpc"}
 
 
 def main():
