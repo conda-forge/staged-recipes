@@ -3,12 +3,15 @@
 cargo build --release || goto :error
 
 :: this can fail, but copying might still work
-md "%PREFIX%\Scripts"
+md "%PREFIX%\Scripts\"
 
-dir "target"
+:: TODO: remove debugging
 dir "target\release\"
 
-copy "target\release\%PKG_NAME%.exe" "%PREFIX%\Scripts" || goto :error
+copy "target\release\%PKG_NAME%.exe" "%PREFIX%\Scripts\%PKG_NAME%.exe" || goto :error
+
+:: TODO: remove debugging
+dir "%PREFIX%\Scripts\%PKG_NAME%.exe"
 
 goto :EOF
 
