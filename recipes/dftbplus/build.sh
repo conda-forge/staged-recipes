@@ -23,9 +23,4 @@ mkdir -p _build
 pushd _build
 
 cmake "${cmake_options[@]}"
-ninja all
-
-# Only run a limited subset of tests, we don't have an hour of CI time here
-ctest -R "dftb+_input"
-
-ninja install
+ninja all install
