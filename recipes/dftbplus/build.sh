@@ -8,7 +8,6 @@ cmake_options=(
    "-DBUILD_SHARED_LIBS=ON"
    "-DCMAKE_TOOLCHAIN_FILE=../sys/gnu.cmake"
    "-DWITH_API=ON"
-   "-DWITH_ARPACK=ON"
    "-DWITH_SOCKETS=ON"
    "-DWITH_OMP=ON"
    "-DWITH_MPI=OFF"
