@@ -13,6 +13,7 @@ cmake .. -G Ninja \
          -DUSE_VULKAN=OFF
 
          
+ninja -j${CPU_COUNT}
 ninja install
 
 
