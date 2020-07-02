@@ -16,10 +16,3 @@ cmake .. -G Ninja \
 ninja -j${CPU_COUNT}
 ninja install
 
-
-cd ../python
-$PYTHON setup.py install
-cd ..
-
-cd topi/python
-$PYTHON setup.py install
