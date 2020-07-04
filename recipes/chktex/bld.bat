@@ -20,5 +20,10 @@ FOR /F "delims=" %%i IN ('cygpath.exe -u "%SRC_DIR%"') DO set "SRC_DIR=%%i"
 FOR /F "delims=" %%i IN ('cygpath.exe -u "%STDLIB_DIR%"') DO set "STDLIB_DIR=%%i"
 
 bash -lxc "./build.sh"
+
+move %PREFIX%\bin\deweb %PREFIX%\bin\deweb.exe
+
+move %PREFIX%\bin\chkweb %PREFIX%\bin\chkweb.exe
+
 if errorlevel 1 exit 1
 exit 0
