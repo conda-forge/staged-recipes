@@ -13,7 +13,7 @@ make install
 if [ `uname` == Darwin ]; then
     install_name_tool \
         -change /usr/lib/libncurses.5.4.dylib \
-        "$PREFIX"/lib/libncurses.5.4.dylib \
+        "$PREFIX"/sysroot/usr/lib/libncurses.5.4.dylib \
         "$PREFIX"/bin/chktex \
     || true
 fi
