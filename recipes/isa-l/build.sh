@@ -1,7 +1,9 @@
 #!/bin/bash
 
-unset AS  # This makes sure nasm is set as assembler by configure and not GCC.
-unset CFLAGS  # default CFLAGS are incompatible with nasm. Set by configure.
+# Use nasm as default assembler. Use relative path here as configure script
+# seems to choke on absolute paths using $CONDA_PREFIX.
+export AS=nasm
+export CFLAGS=""  # default CFLAGS are incompatible with nasm.
 ./autogen.sh
 ./configure --prefix=${PREFIX}
 
