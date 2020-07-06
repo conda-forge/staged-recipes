@@ -22,8 +22,6 @@ FOR /F "delims=" %%i IN ('cygpath.exe -u "%STDLIB_DIR%"') DO set "STDLIB_DIR=%%i
 bash -lxc "./build.sh"
 if errorlevel 1 exit 1
 
-bash -lxc "ls -l %PREFIX%/bin"
-
 bash -lxc "mv %PREFIX%/bin/deweb %PREFIX%/bin/deweb.exe"
 if errorlevel 1 exit 1
 
