@@ -1,7 +1,11 @@
 #!/bin/bash
 
 mkdir build
-cd build
+cd build 
 
-cmake .. -D CMAKE_Fortran_FLAGS="-ffree-line-length-0"
-make
+cmake \
+    -DCMAKE_Fortran_FLAGS="-ffree-line-length-0" \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+    ..
+
+make install
