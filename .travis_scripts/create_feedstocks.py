@@ -20,6 +20,7 @@ import subprocess
 import sys
 import tempfile
 import traceback
+import time
 
 
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
@@ -72,11 +73,11 @@ def print_rate_limiting_info(gh):
     # spending it and how to better optimize it.
 
     # Get GitHub API Rate Limit usage and total
-    gh_api_remaining = gh.get_rate_limit().rate.remaining
-    gh_api_total = gh.get_rate_limit().rate.limit
+    gh_api_remaining = gh.get_rate_limit().core.remaining
+    gh_api_total = gh.get_rate_limit().core.limit
 
     # Compute time until GitHub API Rate Limit reset
-    gh_api_reset_time = gh.get_rate_limit().rate.reset
+    gh_api_reset_time = gh.get_rate_limit().core.reset
     gh_api_reset_time -= datetime.utcnow()
 
     print("")
@@ -106,6 +107,9 @@ if __name__ == '__main__':
         write_token('circle', os.environ['CIRCLE_TOKEN'])
     if 'AZURE_TOKEN' in os.environ:
         write_token('azure', os.environ['AZURE_TOKEN'])
+    if 'DRONE_TOKEN' in os.environ:
+        write_token('drone', os.environ['DRONE_TOKEN'])
+
     gh = None
     if 'GH_TOKEN' in os.environ:
         write_token('github', os.environ['GH_TOKEN'])
@@ -114,6 +118,8 @@ if __name__ == '__main__':
         # Get our initial rate limit info.
         print_rate_limiting_info(gh)
 
+    gh_drone = Github(os.environ['GH_DRONE_TOKEN'])
+    print_rate_limiting_info(gh_drone)
 
     owner_info = ['--organization', 'conda-forge']
 
@@ -140,7 +146,7 @@ if __name__ == '__main__':
                                    'https://conda-forge-manager:{}@github.com/conda-forge/{}-feedstock'.format(os.environ['GH_TOKEN'],
                                                                                                                name)],
                                   cwd=feedstock_dir)
-
+            print_rate_limiting_info(gh_drone)
             # Sometimes we already have the feedstock created. We need to deal with that case.
             if repo_exists(gh, 'conda-forge', name + '-feedstock'):
                 subprocess.check_call(['git', 'fetch', 'upstream_with_token'], cwd=feedstock_dir)
@@ -150,8 +156,15 @@ if __name__ == '__main__':
                 except subprocess.CalledProcessError:
                     # Sometimes, we have a repo, but there are no commits on it! Just catch that case.
                     subprocess.check_call(['git', 'checkout', '-b' 'master'], cwd=feedstock_dir)
-
+            print_rate_limiting_info(gh_drone)
             subprocess.check_call(['conda', 'smithy', 'register-github', feedstock_dir] + owner_info + ['--extra-admin-users', 'cf-blacksmithy'])
+            print_rate_limiting_info(gh_drone)
+
+        from conda_smithy.ci_register import drone_sync
+        print("Running drone sync (can take ~100s)")
+        print_rate_limiting_info(gh_drone)
+        drone_sync()
+        print_rate_limiting_info(gh_drone)
 
         # Break the previous loop to allow the TravisCI registering to take place only once per function call.
         # Without this, intermittent failures to synch the TravisCI repos ensue.
@@ -166,13 +179,18 @@ if __name__ == '__main__':
             # After going through all the recipes and removing the converted ones,
             # we fail the build so that people are aware that things did not clear.
             try:
-                subprocess.check_call(['conda', 'smithy', 'register-ci', '--feedstock_directory', feedstock_dir] + owner_info)
+                # Stop registering on appveyor temporarily
+                subprocess.check_call(['conda', 'smithy', 'register-ci', '--without-appveyor', '--feedstock_directory', feedstock_dir] + owner_info)
                 subprocess.check_call(['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
                 exit_code = 1
                 traceback.print_exception(*sys.exc_info())
                 continue
 
+            # slow down so we make sure we are registered
+            for i in range(1, 13):
+                time.sleep(10)
+                print("Waiting for registration: {i} s".format(i=i*10))
             subprocess.check_call(['git', 'commit', '-am', "Re-render the feedstock after CI registration."], cwd=feedstock_dir)
             for i in range(5):
                 try:

@@ -6,14 +6,14 @@ jobs:
     maxParallel: 8
     matrix:
       osx:
-        CONFIG: azure-osx-64-comp7
+        CONFIG: osx64
         CF_MAX_PY_VER: 37
-  timeoutInMinutes: 240
+  timeoutInMinutes: 360
   steps:
   # TODO: Fast finish on azure pipelines?
   - script: |
       echo "Fast Finish"
-  
+
   - script: |
       echo "Removing homebrew from Azure to avoid conflicts."
       curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/uninstall > ~/uninstall_homebrew
@@ -22,31 +22,26 @@ jobs:
       rm ~/uninstall_homebrew
     displayName: Remove homebrew
 
-  - script: |
-      echo "Installing Miniconda"
-      set -x -e
-      curl -o $(Build.StagingDirectory)/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
-      chmod +x $(Build.StagingDirectory)/miniconda.sh
-      $(Build.StagingDirectory)/miniconda.sh -b -p $(Build.StagingDirectory)/miniconda
-      export PATH=$(Build.StagingDirectory)/miniconda/bin:$PATH
-      echo "Setting up Conda environment"
-    displayName: 'Install miniconda'
+
+  - bash: |
+      echo "##vso[task.prependpath]$CONDA/bin"
+      sudo chown -R $USER $CONDA
+    displayName: Add conda to PATH
 
   - script: |
-      export PATH=$(Build.StagingDirectory)/miniconda/bin:$PATH
       set -x -e
-      conda install --yes --quiet -c conda-forge conda-forge-ci-setup=2 networkx conda-forge-pinning
+      source activate base
+      conda install -n base -c conda-forge --quiet --yes "conda!=4.6.1,<4.7.11a0" conda-forge-ci-setup=2 conda-build shyaml networkx=2.3 conda-forge-pinning
     displayName: 'Add conda-forge-ci-setup=2'
 
   - script: |
       set -x -e
-      export PATH=$(Build.StagingDirectory)/miniconda/bin:$PATH
+      source activate base
       echo "Configuring conda."
 
       setup_conda_rc ./ ./recipes ./.ci_support/${CONFIG}.yaml
 
       source run_conda_forge_build_setup
-      conda update --yes --quiet --all
     env: {
       OSX_FORCE_SDK_DOWNLOAD: "1"
     }
@@ -54,7 +49,7 @@ jobs:
 
   - script: |
       # Find the recipes from master in this PR and remove them.
-      export PATH=$(Build.StagingDirectory)/miniconda/bin:$PATH
+      source activate base
 
       echo ""
       echo "Finding recipes merged in master and removing them from the build."
