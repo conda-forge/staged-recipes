@@ -1,7 +1,10 @@
 #!/bin/bash
-if [[ $target_platform =~ linux.* ]] || [[ $target_platform == win-32 ]] || [[ $target_platform == win-64 ]] || [[ $target_platform == osx-64 ]]; then
+if [[ $target_platform == win-32 ]] || [[ $target_platform == win-64 ]] || [[ $target_platform == osx-64 ]]; then
   export DISABLE_AUTOBREW=1
   $R CMD INSTALL --build .
+elif [[ $target_platform =~ linux.* ]]; then
+  export DISABLE_AUTOBREW=1
+  xvfb-run -a bash -c "$R CMD INSTALL --build ."
 else
   mkdir -p $PREFIX/lib/R/library/gWidgets2tcltk
   mv * $PREFIX/lib/R/library/gWidgets2tcltk
