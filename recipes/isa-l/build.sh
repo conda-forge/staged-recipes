@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Use nasm as default assembler. Use relative path here as configure script
-# seems to choke on absolute paths using $CONDA_PREFIX.
+# By patching nasm-filter.sh to include the absolute path to $BUILD_PREFIX/bin/nasm
+# we have guaranteed that the correct nasm is used.
+# Variable AS needs to be set to nasm in order for the configure script to succeed.
 export AS=nasm
 
 ./autogen.sh
