@@ -13,7 +13,7 @@ cmake \
     -DSPM_ENABLE_TCMALLOC=OFF \
     -S ..
 
-make -j $(nproc)
+make -j ${CPU_COUNT}
 make install
 
 ldconfig -v -N
