@@ -1,0 +1,67 @@
+{% set name = "libmbd" %}
+{% set version = "0.9.1" %}
+{% set build = 0 %}
+{% set mpi = mpi or "nompi" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/jhrmnn/{{ name }}/archive/{{ version }}.tar.gz
+  sha256: 458fe7f39b1b30b07e5bc7f0b6a75dc709c22f020a4bc03ccbf0a7e1a237fa08
+
+{% if mpi == "nompi" %}
+{% set build = build + 100 %}
+{% endif %}
+build:
+  number: {{ build }}
+  skip: True  # [win]
+
+  {% if mpi != 'nompi' %}
+  {% set mpi_prefix = "mpi_" + mpi %}
+  {% else %}
+  {% set mpi_prefix = "nompi" %}
+  {% endif %}
+  string: "{{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}"
+
+  {% if mpi != 'nompi' %}
+  run_exports:
+    - {{ name }} * {{ mpi_prefix }}_*
+  {% endif %}
+
+requirements:
+  build:
+    - {{ compiler('c') }}  # [osx]
+    - {{ compiler('fortran') }}
+    - cmake
+    - ninja
+  host:
+    - {{ mpi }}  # [mpi != "nompi"]
+    - scalapack  # [mpi != "nompi"]
+    - libblas
+    - liblapack
+    - llvm-openmp  # [osx]
+    - libgomp  # [linux and not aarch64]
+  run:
+    - {{ mpi }}  # [mpi != "nompi"]
+    - scalapack  # [mpi != "nompi"]
+    - libblas
+    - liblapack
+
+test:
+  commands:
+    - test -f $PREFIX/lib/libmbd.dylib  # [osx]
+    - test -f $PREFIX/lib/libmbd.so  # [linux]
+
+about:
+  home: https://github.com/jhrmnn/{{ name }}
+  license: MPL-2.0
+  license_file:
+     - "LICENSE"
+  summary: "Many-body dispersion library"
+  doc_url: https://jhrmnn.github.io/{{ name }}
+
+extra:
+  recipe-maintainers:
+    - awvwgk
