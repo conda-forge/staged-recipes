@@ -2,4 +2,5 @@ ${SRC_DIR}/rust-nightly/install.sh --verbose --prefix=${SRC_DIR}/rust-nightly-in
 export PATH=${SRC_DIR}/rust-nightly-install/bin:$PATH
 # maturin build --no-sdist --release --strip --manylinux off
 # "${PYTHON}" -m pip install . -vv
+cd bindings/python
 $PYTHON setup.py install
