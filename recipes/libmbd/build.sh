@@ -18,6 +18,6 @@ mkdir -p _build
 pushd _build
 cmake "${cmake_options[@]}"
 
-make all install -j
+make all install
 
 popd
