@@ -2,9 +2,9 @@
 set -ex
 
 if [ "${mpi}" != "nompi" ]; then
-  MPI=OFF
-else
   MPI=ON
+else
+  MPI=OFF
 fi
 
 cmake_options=(
