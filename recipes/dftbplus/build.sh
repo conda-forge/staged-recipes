@@ -6,15 +6,11 @@ cmake_options=(
    "-DCMAKE_BUILD_TYPE=Release"
    "-DCMAKE_INSTALL_PREFIX=${PREFIX}"
    "-DBUILD_SHARED_LIBS=ON"
-   "-DCMAKE_TOOLCHAIN_FILE=../sys/gnu.cmake"
+   "-DLAPACK_LIBRARIES='lapack;blas'"
    "-DWITH_API=ON"
    "-DWITH_SOCKETS=ON"
    "-DWITH_OMP=ON"
    "-DWITH_MPI=OFF"
-   "-DCMAKE_Fortran_COMPILER=${FC}"
-   "-DCMAKE_Fortran_FLAGS=${FFLAGS}"
-   "-DCMAKE_C_COMPILER=${CC}"
-   "-DCMAKE_C_FLAGS=${CFLAGS}"
    ".."
 )
 
