@@ -1,0 +1,40 @@
+{% set version="2.6" %}
+
+package:
+  name: limitcpu
+  version: {{ version }}
+
+source:
+  url: https://sourceforge.net/projects/limitcpu/files/limitcpu/cpulimit-{{ version }}.tar.gz
+  sha256: 2f8ceeb9de43a6de52ce50e67d618c715e714b72d806f3730b5661d5bfc9c075
+
+build:
+  number: 0
+  skip: True  # [win]
+  script: make install CFLAGS+=' -DVERSION=$(VERSION)'
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+  run_constrained:
+    # Uses the same "bin/cpulimit" as the "cpulimit" package.
+    # => prevent installation alongside the other package.
+    - cpulimit <0a0
+
+test:
+  commands:
+    - '{ cpulimit --help || true ; } | grep -F {{ version }}'
+    - 'cpulimit -vmf -l 100 -- sleep 1'
+    - '{ sleep 1 & } && cpulimit -vmf -l 100 --pid=$! || [ $? = 2 ]'
+    - 'cpulimit -vm -l 100 --path="$(command -v sleep)" & pid=$! && \sleep 1 && kill $pid && wait $pid'
+
+about:
+  url: http://limitcpu.sourceforge.net
+  dev_url: https://sourceforge.net/projects/limitcpu/
+  doc_url: http://limitcpu.sourceforge.net/doc/README
+  license: GPL-2.0-only
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - mbargull
