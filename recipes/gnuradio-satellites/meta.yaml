@@ -1,0 +1,85 @@
+{% set name = "gnuradio-satellites" %}
+{% set version = "3.2.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source: 
+  url: https://github.com/daniestevez/gr-satellites/archive/v{{ version }}.tar.gz
+  sha256: 709394157b53164c27d3f9176aae84fe66f65b9e8bec06c780f6446073bdd67f
+
+build:
+  skip: True  # [win]  libfec not available on windows
+  number: 0
+  run_exports:
+    - {{ pin_subpackage('gnuradio-satellites', max_pin='x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - make  # [not win]
+    - ninja  # [win]
+    - pkg-config  # [not win]
+    - libfec
+    - construct
+    - requests
+
+  host:
+    - boost-cpp
+    - gnuradio-core
+    - pip  # [win]
+    - python
+    - swig
+    # pulled in by gnuradio-core and linked against, so include explicitly
+    - log4cpp
+    - libfec
+    - construct >=2.9
+    - requests
+    - volk
+
+  run:
+    - boost-cpp
+    - python
+    - gnuradio-core
+    # pulled in by gnuradio-core and linked against, so include explicitly
+    - log4cpp
+    - libfec
+    - construct
+    - requests
+    - volk
+
+test:
+  commands:
+    # verify that (some) GRC blocks get installed
+    {% set blocks = [
+        "satellites_decode_rs",
+        "satellites_ax100_decode",
+        "satellites_check_crc",
+    ] %}
+
+    {% for block in blocks %}
+    - test -f $PREFIX/share/gnuradio/grc/blocks/{{ block }}.block.yml  # [not win]
+    - if not exist %PREFIX%\\Library\\share\\gnuradio\\grc\\blocks\\{{ block }}.block.yml exit 1  # [win]
+    {% endfor %}
+
+  imports:
+    - satellites
+
+about:
+  home: https://github.com/daniestevez/gr-satellites
+  license: GPL-3.0-or-later
+  license_family: GPL
+  license_file: LICENSE
+  summary: 'A collection of decoders for Amateur satellites'
+  description: |
+    gr-satellites is a GNU Radio out-of-tree module with a collection of telemetry decoders for Amateur satellites.
+  doc_url: https://gr-satellites.readthedocs.io/en/latest/index.html
+  dev_url: https://github.com/daniestevez/gr-satellites
+
+extra:
+  recipe-maintainers:
+    - petrushy
+    - ryanvolz
