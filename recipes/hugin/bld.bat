@@ -1,9 +1,3 @@
-copy %RECIPE_DIR%\CMakeLists.txt .
-if errorlevel 1 exit 1
-
-copy %RECIPE_DIR%\hugin1CMakeLists.txt src\hugin1\CMakeLists.txt
-if errorlevel 1 exit 1
-
 mkdir build
 if errorlevel 1 exit 1
 cd build
