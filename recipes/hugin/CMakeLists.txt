@@ -597,7 +597,7 @@ ELSE()
   # prepare files here...
   IF(WIN32)
     # install into place in build-dir
-    SET( CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR}/INSTALL/FILES CACHE FILEPATH "install prefix" FORCE)
+    SET( CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR}/INSTALL/FILES CACHE FILEPATH "install prefix")
     INCLUDE (win_bundle)
 	
 	#Build HuginSetup
