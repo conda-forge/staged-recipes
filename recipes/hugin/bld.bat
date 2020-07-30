@@ -21,7 +21,7 @@ cmake -LAH -G Ninja                           ^
     -wxWidgets_LIBRARIES=%LIBRARY_INC%\lib    ^
     -DENBLEND_DIR=%LIBRARY_PREFIX%            ^
     -DOPENEXR_BIN_DIR=%LIBRARY_BIN%           ^
-    -DHUGIN_BUILDER="RamonaOptics"            ^
+    -DHUGIN_BUILDER="conda-forge"             ^
     -DEXIFVTOOL_EXE=%LIBRARY_BIN%\exiftool    ^
     -DEXIV2_DLL=%LIBRARY_BIN%\exiv2.dll       ^
     -DGLEW_DLL=%LIBRARY_BIN%\glew32.dll       ^
