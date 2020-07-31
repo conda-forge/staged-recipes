@@ -5,13 +5,13 @@ package:
   name: {{ name|lower }}
   version: {{ version }}
 
-source: 
+source:
   url: https://github.com/daniestevez/gr-satellites/archive/v{{ version }}.tar.gz
   sha256: 709394157b53164c27d3f9176aae84fe66f65b9e8bec06c780f6446073bdd67f
 
 build:
-  skip: True  # [win]  libfec not available on windows
   number: 0
+  skip: True  # [win]
   run_exports:
     - {{ pin_subpackage('gnuradio-satellites', max_pin='x.x') }}
 
@@ -23,36 +23,41 @@ requirements:
     - make  # [not win]
     - ninja  # [win]
     - pkg-config  # [not win]
-    - libfec
-    - construct
-    - requests
 
   host:
     - boost-cpp
     - gnuradio-core
+    - libfec
     - pip  # [win]
     - python
     - swig
+    - volk
     # pulled in by gnuradio-core and linked against, so include explicitly
     - log4cpp
-    - libfec
-    - construct >=2.9
-    - requests
-    - volk
 
   run:
     - boost-cpp
+    - construct >=2.9
     - python
-    - gnuradio-core
+    - requests
     # pulled in by gnuradio-core and linked against, so include explicitly
     - log4cpp
-    - libfec
-    - construct
-    - requests
-    - volk
 
 test:
   commands:
+    # verify that binaries get installed
+    - test -f $PREFIX/bin/gr_satellites  # [not win]
+    - if not exist %PREFIX%\\Library\\bin\\gr_satellites.exe exit 1  # [win]
+
+    # verify that (some) headers get installed
+    - test -f $PREFIX/include/satellites/api.h  # [not win]
+    - if not exist %PREFIX%\\Library\\include\\satellites\\api.h exit 1  # [win]
+
+    # verify that libraries get installed
+    - test -f $PREFIX/lib/lib{{ name }}${SHLIB_EXT}  # [not win]
+    - if not exist %PREFIX%\\Library\\bin\\{{ name }}.dll exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\lib\\{{ name }}.lib exit 1  # [win]
+
     # verify that (some) GRC blocks get installed
     {% set blocks = [
         "satellites_decode_rs",
