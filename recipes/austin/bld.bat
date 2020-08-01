@@ -1,16 +1,7 @@
 echo ON
 
-autoreconf --install
-if errorlevel 1 exit 1
+call %BUILD_PREFIX%\Library\bin\run_autotools_clang_conda_build.bat
+if %ERRORLEVEL% neq 0 exit 1
 
-./configure --prefix=%PREFIX%
-if errorlevel 1 exit 1
-
-make
-if errorlevel 1 exit 1
-
-make install
-if errorlevel 1 exit 1
-
-%PYTHON% -m pip install . -vv
-if errorlevel 1 exit 1
+REM %PYTHON% -m pip install . -vv
+REM if errorlevel 1 exit 1
