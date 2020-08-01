@@ -6,7 +6,7 @@ jobs:
     maxParallel: 4
     matrix:
       win:
-        CONFIG: azure-win-64
+        CONFIG: win64
         CF_MAX_PY_VER: 37
   timeoutInMinutes: 360
   steps:
@@ -44,9 +44,9 @@ jobs:
 
     - task: CondaEnvironment@1
       inputs:
-        packageSpecs: 'python=3.6 conda-build conda!=4.6.1,<4.7.11a0 conda-forge::conda-forge-ci-setup=2 networkx  conda-forge-pinning' # Optional
+        packageSpecs: 'python=3.6 conda-build>=3.18 conda>4.7.12 conda-forge::conda-forge-ci-setup=2 networkx=2.3 conda-forge-pinning' # Optional
         installOptions: "-c conda-forge"
-        updateConda: false
+        updateConda: true
       displayName: Install conda-build and activate environment
 
     - script: set PYTHONUNBUFFERED=1
@@ -62,6 +62,8 @@ jobs:
     - script: conda.exe config --add channels conda-forge
       displayName: configure conda channels
 
+    # Configure the VM
+    - script: setup_conda_rc .\ .\recipes .\.ci_support\%CONFIG%.yaml
 
     # Configure the VM.
     - script: call run_conda_forge_build_setup
@@ -74,11 +76,20 @@ jobs:
         for /f "tokens=*" %%a in ('git ls-tree --name-only master -- .') do rmdir /s /q %%a && echo Removing recipe: %%a
         cd ..
 
+    - script: |
+        REM make sure there is a package directory so that artifact publishing works
+        setlocal enableextensions
+        if not exist C:\\Miniconda\\conda-bld\\win-64\\ mkdir C:\\Miniconda\\conda-bld\\win-64\\
+      displayName: Make artifact dir    
+
     # Special cased version setting some more things!
     - script: |
         git fetch --force origin master:master
         python .ci_support\build_all.py recipes --arch 64
+
       displayName: Build recipe (maybe vs2008)
       env: {
         VS90COMNTOOLS: "C:\\Program Files (x86)\\Common Files\\Microsoft\\Visual C++ for Python\\9.0\\VC\\bin",
       }
+    - publish: C:\\Miniconda\\conda-bld\\win-64\\
+      artifact: conda_pkgs_win
