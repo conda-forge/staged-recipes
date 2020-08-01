@@ -1,3 +1,9 @@
+# This file was taken from Hugin and modified with the included patch
+# However, it proved to be difficult to integrated in the automated build
+# environments.
+
+# The Copyright of this file is held by the Hugin Developers under the GPL-2.0
+# license
 
 # require at least cmake 3.8
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR )

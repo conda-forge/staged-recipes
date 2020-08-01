@@ -1,3 +1,9 @@
+# This file was taken from Hugin and modified with the included patch
+# However, it proved to be difficult to integrated in the automated build
+# environments.
+
+# The Copyright of this file is held by the Hugin Developers under the GPL-2.0
+# license
 IF(WIN32)
 
   # copy installer files
