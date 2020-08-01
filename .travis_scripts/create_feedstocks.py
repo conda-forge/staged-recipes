@@ -31,6 +31,7 @@ from ruamel.yaml import YAML
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
 DEBUG = False
 
+REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch"]
 
 recipe_directory_name = 'recipes'
 
@@ -184,6 +185,8 @@ if __name__ == '__main__':
     with tmp_dir('__feedstocks') as feedstocks_dir:
         feedstock_dirs = []
         for recipe_dir, name in list_recipes():
+            if name.lower() in REPO_SKIP_LIST:
+                continue
             feedstock_dir = os.path.join(feedstocks_dir, name + '-feedstock')
             print('Making feedstock for {}'.format(name))
             try:
@@ -248,6 +251,8 @@ if __name__ == '__main__':
         # Without this, intermittent failures to synch the TravisCI repos ensue.
         # Hang on to any CI registration errors that occur and raise them at the end.
         for num, (feedstock_dir, name, recipe_dir) in enumerate(feedstock_dirs):
+            if name.lower() in REPO_SKIP_LIST:
+                continue
             print("\n\nregistering CI services for %s..." % name)
             if num >= 10:
                 exit_code = 1
