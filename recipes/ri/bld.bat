@@ -1,5 +1,4 @@
-mv "%RECIPE_DIR%\sys" "%SRC_DIR%\sys" 
-sed -i '66s/.*/#include \"sys\/time.h\"/' include\timer.h
+mv "%RECIPE_DIR%\sys" "%SRC_DIR%\sys"
 
 make -B
 
