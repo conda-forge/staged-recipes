@@ -1,0 +1,62 @@
+{% set name = "aiida-cusp" %}
+{% set version = "0.1.0b1" %}
+
+package:
+  name: "{{ name|lower }}"
+  version: "{{ version }}"
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: a66d119db0dd827f1e28b8265c0f7aa953f0aa0003472e754b146011e90e8efe
+
+build:
+  number: 0
+  script: "{{ PYTHON }} -m pip install . --no-deps -vv"
+  skip: True  # [win or py < 36]
+
+requirements:
+  host:
+    - python
+    - pip
+  run:
+    - python
+    - aiida-core >=1.3.0,<2.0.0
+    - custodian
+    - pymatgen
+    - ase
+
+test:
+  imports:
+    - aiida_cusp
+    - aiida_cusp.calculators
+    - aiida_cusp.data
+    - aiida_cusp.parsers
+    - aiida_cusp.utils
+  commands:
+    - reentry scan -r aiida
+    # check the commands implemented by the plugin
+    - verdi data potcar --help
+    # start required services and run the test-suite
+    - rabbitmq-server start -detached
+    - pg_ctl start -w
+    - pytest tests
+  source_files:
+    - tests
+  requires:
+    - aiida-core.services >=1.3.0,<2.0.0
+    - pytest
+
+about:
+  home: https://github.com/aiida-cusp/aiida-cusp
+  doc_url: https://aiida-cusp.readthedocs.io
+  dev_url: https://github.com/aiida-cusp/aiida-cusp
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: |
+    Custodian plugin for VASP enabling automated error correction for AiiDA 
+    managed VASP calculations.
+
+extra:
+  recipe-maintainers:
+    - astamminger
