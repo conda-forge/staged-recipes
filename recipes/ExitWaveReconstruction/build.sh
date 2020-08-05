@@ -1,7 +1,4 @@
 #!/bin/bash
-export CC="gcc"
-export CXX="g++"
-
 cmake -G"Unix Makefiles" \
     -DC++_STANDARD=C++11 \
     -DCMAKE_BUILD_TYPE=Release \
