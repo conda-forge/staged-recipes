@@ -19,5 +19,3 @@ cmake -G"Unix Makefiles" \
 make -j${CPU_COUNT}
 make test
 make install
-
-cp ${PREFIX}/Bin/projects/ExitWaveReconstruction/Reconstruction ${PREFIX}/Bin
