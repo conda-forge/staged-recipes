@@ -1,6 +1,6 @@
 #!/bin/bash
 cmake -G"Unix Makefiles" \
-    -IFLAGS="-I${PREFIX}/include"
+    -IFLAGS="-I${PREFIX}/include" \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DCMAKE_CXX_FLAGS=${CXXFLAGS} \
     -DCMAKE_C_FLAGS=${CFLAGS} \
