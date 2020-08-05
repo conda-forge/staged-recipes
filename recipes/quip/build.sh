@@ -1,4 +1,26 @@
 export QUIP_ARCH=linux_x86_64_gfortran
-make config -llapack -lblas
+export MATH_LINKOPTS="-llapack -lblas"
+export PYTHON="${PREFIX}/bin/python"
+export PIP="${PREFIX}/bin/pip"
+export EXTRA_LINKOPTS="none"
+export USE_MAKEDEP_Q="y"
+export HAVE_CP2K_Q="n"
+export HAVE_VASP_Q="n"
+export HAVE_TB_Q="n"
+export HAVE_PRECON_Q="y"
+export HAVE_LOTF_Q="n"
+export HAVE_ONIOM_Q="n"
+export HAVE_LOCAL_E_MIX_Q="n"
+export HAVE_QC_Q="n"
+export HAVE_GAP_Q="n"
+export HAVE_QR_Q="y"
+export HAVE_FX_Q="n"
+export HAVE_SCME_Q="n"
+export HAVE_MTP="n"
+export HAVE_MBD="n"
+export HAVE_TTM_NF_Q="n"
+export HAVE_CH4_Q="n"
+export HAVE_NETCDF4_Q="n"
+make config 
 make -j ${NUM_CPUS}
 make install-quippy
