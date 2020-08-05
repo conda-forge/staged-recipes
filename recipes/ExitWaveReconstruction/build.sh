@@ -13,7 +13,6 @@ cmake -G"Unix Makefiles" \
     -DUSE_BOOST=1 \
     -DUSE_OPENCL=1 \
     -DUSE_TIFF=1 \
-    -DUSE_GNUPLOT=1 \
     -DUSE_DOXYGEN=0 \
     Src
 make -j${CPU_COUNT}
