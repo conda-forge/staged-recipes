@@ -1,5 +1,10 @@
 #!/bin/bash
 cmake -G"Unix Makefiles" \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+    -DCMAKE_CXX_FLAGS=${CXXFLAGS} \
+    -DCMAKE_C_FLAGS=${CFLAGS} \
+    -DGCC_SYSTEM_TYPE="" \
+    -DUSE_C++11=1 \
     -DC++_STANDARD=C++11 \
     -DCMAKE_BUILD_TYPE=Release \
     -DDYNAMIC_LINKING=1 \
