@@ -11,7 +11,7 @@ cmake -G"Unix Makefiles" \
     -DUSE_OPENMP=1 \
     -DUSE_FFTW=1 \
     -DUSE_BOOST=1 \
-    -DUSE_OPENCL=0 \
+    -DUSE_OPENCL=1 \
     -DUSE_TIFF=1 \
     -DUSE_GNUPLOT=1 \
     -DUSE_DOXYGEN=0 \
