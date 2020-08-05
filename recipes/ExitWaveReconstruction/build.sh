@@ -4,7 +4,6 @@ cmake -G"Unix Makefiles" \
     -DCMAKE_CXX_FLAGS=${CXXFLAGS} \
     -DCMAKE_C_FLAGS=${CFLAGS} \
     -DGCC_SYSTEM_TYPE="" \
-    -DUSE_C++11=1 \
     -DC++_STANDARD=C++11 \
     -DCMAKE_BUILD_TYPE=Release \
     -DDYNAMIC_LINKING=1 \
@@ -12,7 +11,7 @@ cmake -G"Unix Makefiles" \
     -DUSE_OPENMP=1 \
     -DUSE_FFTW=1 \
     -DUSE_BOOST=1 \
-    -DUSE_OPENCL=1 \
+    -DUSE_OPENCL=0 \
     -DUSE_TIFF=1 \
     -DUSE_GNUPLOT=1 \
     -DUSE_DOXYGEN=0 \
