@@ -21,5 +21,3 @@ make test
 make install
 
 mv ${PREFIX}/bin/projects/ExitWaveReconstruction/Reconstruction ${PREFIX}/bin
-mkdir -p ${PREFIX}/Example
-cp ${PREFIX}/Src/projects/ExitWaveReconstruction/Param/* ${PREFIX}/Example/
