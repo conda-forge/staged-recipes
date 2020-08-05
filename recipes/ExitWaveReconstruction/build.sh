@@ -21,7 +21,6 @@ make test
 make install
 
 mkdir -p ${PREFIX}/bin
-mv ${PREFIX}/Bin/projects/ExitWaveReconstruction/Reconstruction ${PREFIX}/bin
-
 mkdir -p ${PREFIX}/Example
 cp ${PREFIX}/Src/projects/ExitWaveReconstruction/Param/* ${PREFIX}/Example/
+mv ${PREFIX}/Bin/projects/ExitWaveReconstruction/Reconstruction ${PREFIX}/bin
