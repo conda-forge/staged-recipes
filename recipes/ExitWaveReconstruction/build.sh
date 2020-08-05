@@ -20,5 +20,4 @@ make -j${CPU_COUNT}
 make test
 make install
 
-mkdir ${PREFIX}/bin
-ln ${PREFIX}/Bin/projects/ExitWaveReconstruction/Reconstruction ${PREFIX}/bin
+cp ${PREFIX}/Bin/projects/ExitWaveReconstruction/Reconstruction ${PREFIX}/Bin
