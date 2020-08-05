@@ -1,5 +1,6 @@
 #!/bin/bash
 cmake -G"Unix Makefiles" \
+    -IFLAGS="-I${PREFIX}/include"
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DCMAKE_CXX_FLAGS=${CXXFLAGS} \
     -DCMAKE_C_FLAGS=${CFLAGS} \
@@ -13,7 +14,6 @@ cmake -G"Unix Makefiles" \
     -DUSE_BOOST=1 \
     -DUSE_OPENCL=1 \
     -DUSE_TIFF=1 \
-    -DUSE_GNUPLOT=1 \
     -DUSE_DOXYGEN=0 \
     Src
 make -j${CPU_COUNT}
