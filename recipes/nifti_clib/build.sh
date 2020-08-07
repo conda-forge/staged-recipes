@@ -30,7 +30,7 @@ cmake \
 echo -e "\n\n\nBuilding shared libraries"
 cmake \
    ${CMAKE_PLATFORM_FLAGS[@]} \
-  -DNIFTI_INSTALL_NO_DOCS=FALSE
+  -DNIFTI_INSTALL_NO_DOCS=FALSE \
   -DBUILD_SHARED_LIBS=ON \
   $SRC_DIR
 
