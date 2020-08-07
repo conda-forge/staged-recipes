@@ -280,8 +280,8 @@ if __name__ == '__main__':
                 time.sleep(10)
                 print("Waiting for registration: {i} s".format(i=i*10))
 
-            # if we get here, now we make the feedstock token
-            print("making the feedstock token")
+            # if we get here, now we make the feedstock token and add the staging token
+            print("making the feedstock token and adding the staging binstar token")
             try:
                 if not feedstock_token_exists("conda-forge", name + "-feedstock"):
                     subprocess.check_call(
@@ -290,6 +290,13 @@ if __name__ == '__main__':
                     subprocess.check_call(
                         ['conda', 'smithy', 'register-feedstock-token',
                          '--feedstock_directory', feedstock_dir] + owner_info)
+
+                write_token('anaconda', os.environ['STAGING_BINSTAR_TOKEN'])
+                subprocess.check_call(
+                    ['conda', 'smithy', 'rotate-binstar-token',
+                     '--without-appveyor',
+                     '--token_name', 'STAGING_BINSTAR_TOKEN'],
+                    cwd=feedstock_dir)
 
                 yaml = YAML()
                 with open(os.path.join(feedstock_dir, "conda-forge.yml"), "r") as fp:
