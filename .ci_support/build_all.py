@@ -137,6 +137,6 @@ if __name__ == "__main__":
     parser.add_argument('--arch', default='64',
                         help='target architecture (64 or 32)')
     args = parser.parse_args()
-    root_dir = os.path.dirname(os.path.dirname(__file__))
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     check_recipes_in_correct_dir(root_dir, "recipes")
     build_all(os.path.join(root_dir, "recipes"), args.arch)
