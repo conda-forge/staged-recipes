@@ -123,11 +123,19 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
         conda_build.api.build([recipe], config=get_config(arch, channel_urls))
 
 
+def check_recipes_in_correct_dir(root_dir, correct_dir):
+    from pathlib import Path
+    for path in Path(root_dir).rglob('meta.yaml'):
+        if path.parts[0] != correct_dir:
+            raise RuntimeError("recipe in wrong directory")
+        if len(path.parts) != 3:
+            raise RuntimeError("recipe in wrong directory")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('recipes_dir', default=os.getcwd(),
-                        help='Directory where the recipes are')
     parser.add_argument('--arch', default='64',
                         help='target architecture (64 or 32)')
     args = parser.parse_args()
-    build_all(args.recipes_dir, args.arch)
+    root_dir = os.path.dirname(os.path.dirname(__file__))
+    check_recipes_in_correct_dir(root_dir, "recipes")
+    build_all(os.path.join(root_dir, "recipes"), args.arch)
