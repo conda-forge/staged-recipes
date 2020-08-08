@@ -126,11 +126,11 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
 def check_recipes_in_correct_dir(root_dir, correct_dir):
     from pathlib import Path
     for path in Path(root_dir).rglob('meta.yaml'):
-        print(root_dir, path.parts)
+        path = path.absolute().relative_to(root_dir)
         if path.parts[0] != correct_dir:
-            raise RuntimeError(f"recipe {path} in wrong directory")
+            raise RuntimeError(f"recipe {path.parts} in wrong directory")
         if len(path.parts) != 3:
-            raise RuntimeError(f"recipe {path} in wrong directory")
+            raise RuntimeError(f"recipe {path.parts} in wrong directory")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
