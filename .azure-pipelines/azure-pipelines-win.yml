@@ -10,38 +10,6 @@ jobs:
         CF_MAX_PY_VER: 37
   timeoutInMinutes: 360
   steps:
-    # TODO: Fast finish on azure pipelines?
-    - script: |
-        echo "Fast Finish"
-
-    - script: |
-        choco install vcpython27 -fdv -y --debug
-      displayName: Install vcpython27.msi (if needed)
-
-    - powershell: |
-        Set-PSDebug -Trace 1
-
-        $batchcontent = @"
-        ECHO ON
-        SET vcpython=C:\Program Files (x86)\Common Files\Microsoft\Visual C++ for Python\9.0
-
-        DIR "%vcpython%"
-
-        CALL "%vcpython%\vcvarsall.bat" %*
-        "@
-
-        $batchDir = "C:\Program Files (x86)\Common Files\Microsoft\Visual C++ for Python\9.0\VC"
-        $batchPath = "$batchDir" + "\vcvarsall.bat"
-        New-Item -Path $batchPath -ItemType "file" -Force
-
-        Set-Content -Value $batchcontent -Path $batchPath
-
-        Get-ChildItem -Path $batchDir
-
-        Get-ChildItem -Path ($batchDir + '\..')
-
-      displayName: Patch vs2008 (if needed)
-
     - task: CondaEnvironment@1
       inputs:
         packageSpecs: 'python=3.6 conda-build>=3.18 conda>4.7.12 conda-forge::conda-forge-ci-setup=2 networkx=2.3 conda-forge-pinning' # Optional
@@ -85,11 +53,9 @@ jobs:
     # Special cased version setting some more things!
     - script: |
         git fetch --force origin master:master
-        python .ci_support\build_all.py recipes --arch 64
+        python .ci_support\build_all.py --arch 64
 
-      displayName: Build recipe (maybe vs2008)
-      env: {
-        VS90COMNTOOLS: "C:\\Program Files (x86)\\Common Files\\Microsoft\\Visual C++ for Python\\9.0\\VC\\bin",
-      }
+      displayName: Build recipe
+
     - publish: C:\\Miniconda\\conda-bld\\win-64\\
       artifact: conda_pkgs_win
