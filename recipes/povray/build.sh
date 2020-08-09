@@ -10,5 +10,5 @@
     --without-libsdl \
     COMPILED_BY="conda"
 
-make
+make -j${CPU_COUNT}
 make install
