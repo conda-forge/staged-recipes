@@ -15,9 +15,15 @@ cmake -G"Unix Makefiles" \
     -DUSE_OPENCL=1 \
     -DUSE_TIFF=1 \
     -DUSE_DOXYGEN=0 \
+    -DUSE_CIMG=1 \
     Src
 make -j${CPU_COUNT}
 make test
 make install
 
 mv ${PREFIX}/bin/projects/ExitWaveReconstruction/Reconstruction ${PREFIX}/bin
+mv ${PREFIX}/bin/tools/image/converter/convert* ${PREFIX}/bin
+
+rm -rf ${PREFIX}/bin/tools
+rm -rf ${PREFIX}/bin/projects
+rm -rf ${PREFIX}/bin/selfTest
