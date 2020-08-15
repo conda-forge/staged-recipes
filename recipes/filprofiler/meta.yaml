@@ -12,7 +12,17 @@ source:
 build:
   number: 0
   skip: True  # [win or py<36]
-  script: "make target/release/libpymemprofile_api.a && {{ PYTHON }} -m pip install . -vv"
+  script: |
+      set -euo pipefail;
+      make target/release/libpymemprofile_api.a;
+      export PIP_LOG=/dev/stdout;
+      if [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+        # Disable aligned_alloc(). Conda uses ancient glibc headers from 2010,
+        # where aligned_alloc is defined as inline function, rather than as
+        # overridable symbol.
+        sed -i 's/SYMBOL_PREFIX.aligned_alloc/SYMBOL_PREFIX(no_aligned_alloc_on_conda/' filprofiler/_filpreload.c
+      fi;
+      {{ PYTHON }} -m pip install . -vv
 
 requirements:
   build:
@@ -27,14 +37,22 @@ requirements:
     - python
 
 test:
+  requires:
+    - python
+    - pytest
+  source_files:
+    - python-benchmarks/
+    - python-benchmarks/*
+    - tests/
+    - tests/*
   commands:
-    - fil-profile run python-benchmarks/pystone.py
+    - "env RUST_BACKTRACE=1 py.test -k python_objects"
 
 about:
   home: https://github.com/pythonspeed/filprofiler
   license: Apache-2.0
   license_family: Apache
-  license_file: LICENSE.txt
+  license_file: LICENSE
   summary: 'A memory profiler for Python, aimed at scientists and data scientists.'
 
   # The remaining entries in this section are optional, but recommended.
