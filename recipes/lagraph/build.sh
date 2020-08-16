@@ -7,6 +7,6 @@ export CMAKE_OPTIONS="-DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_INSTALL_LIBDIR=li
 # make LAGraph
 pushd build
 cmake .. $CMAKE_OPTIONS
-make lagraph lagraph_static VERBOSE=1
+make lagraph VERBOSE=1
 make install VERBOSE=1
 popd
