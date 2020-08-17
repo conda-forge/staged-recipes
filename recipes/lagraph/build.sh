@@ -9,5 +9,6 @@ pushd build
 cmake .. $CMAKE_OPTIONS
 make lagraph VERBOSE=1
 make install VERBOSE=1
+# forcibly remove the static library
 rm -f ${PREFIX}/lib/liblagraph.a
 popd
