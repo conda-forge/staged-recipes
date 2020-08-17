@@ -9,4 +9,5 @@ pushd build
 cmake .. $CMAKE_OPTIONS
 make lagraph VERBOSE=1
 make install VERBOSE=1
+rm -f ${PREFIX}/lib/liblagraph.a
 popd
