@@ -4,6 +4,7 @@
 export INSTALL="${PREFIX}"
 export CMAKE_OPTIONS="-DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release"
 
+rm -f ${PREFIX}/lib/libgraphblas.a
 # make LAGraph
 pushd build
 cmake .. $CMAKE_OPTIONS
