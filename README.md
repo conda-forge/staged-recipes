@@ -17,6 +17,14 @@ This repo is a holding area for recipes destined for a conda-forge feedstock rep
 4. When your pull request is merged a new repository, called a feedstock, will be created in the github conda-forge organization, and build/upload of your package will automatically be triggered. Once complete, the package is available on conda-forge.
 
 
+## Grayskull - recipe generator for Python packages on `pypi`
+
+For Python packages available on `pypi` it is possible to use [grayskull](https://github.com/marcelotrevisani/grayskull) to generate the recipe. The user should review the recipe generated, specially the license and dependencies.
+
+Installing `grayskull`: `conda install -c conda-forge grayskull`
+Generating recipe: `grayskull pypi PACKAGE_NAME_HERE`
+
+
 ## FAQ
 
 ### 1. **How do I start editing the recipe?**
@@ -50,7 +58,7 @@ build:
     skip: true  # [win]
 ```
 
-A full description of selectors is [in the conda docs](http://conda.pydata.org/docs/building/meta-yaml.html#preprocessing-selectors).
+A full description of selectors is [in the conda docs](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#preprocessing-selectors).
 
 Additionally, when pushing commits for a recipe that excludes Windows, put `[skip appveyor]` in the commit message to prevent CI tests
 on Windows from even starting.
