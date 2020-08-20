@@ -1,0 +1,96 @@
+{% set name = "gnuradio-satellites" %}
+{% set version = "3.3.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/daniestevez/gr-satellites/archive/v{{ version }}.tar.gz
+  sha256: ba473c16579105aa9fba55959582ca810d5d77ae7840eff28cadd7767f8280b3
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_subpackage('gnuradio-satellites', max_pin='x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - make  # [not win]
+    - ninja  # [win]
+    - pkg-config  # [not win]
+
+  host:
+    - boost-cpp
+    - gnuradio-core
+    - pip  # [win]
+    - python
+    - swig
+    - volk
+    # pulled in by gnuradio-core and linked against, so include explicitly
+    - log4cpp
+
+  run:
+    - boost-cpp
+    - construct >=2.9
+    - matplotlib-base
+    - python
+    - pyyaml
+    - requests
+    # pulled in by gnuradio-core and linked against, so include explicitly
+    - log4cpp
+
+test:
+  commands:
+    # verify that commands run (will print usage statement)
+    {% set cmds = ["gr_satellites"] %}
+    {% set cmds = cmds + ["jy1sat_ssdv.py", "smog_p_spectrum.py"] %}  # [not win]
+    {% set cmds = cmds + ["jy1sat_ssdv", "smog_p_spectrum"] %}  # [win]
+    {% for cmd in cmds %}
+
+    - {{ cmd }} || ec=$?; if [ $ec -gt 1 ]; then exit $ec; fi  # [not win]
+    - {{ cmd }} || if !ERRORLEVEL! LEQ 1 cmd /c "exit /b 0"  # [win]
+    {% endfor %}
+
+    # verify that (some) headers get installed
+    - test -f $PREFIX/include/satellites/api.h  # [not win]
+    - if not exist %PREFIX%\\Library\\include\\satellites\\api.h exit 1  # [win]
+
+    # verify that libraries get installed
+    - test -f $PREFIX/lib/lib{{ name }}${SHLIB_EXT}  # [not win]
+    - if not exist %PREFIX%\\Library\\bin\\{{ name }}.dll exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\lib\\{{ name }}.lib exit 1  # [win]
+
+    # verify that (some) GRC blocks get installed
+    {% set blocks = [
+        "satellites_decode_rs",
+        "satellites_ax100_decode",
+        "satellites_check_crc",
+    ] %}
+
+    {% for block in blocks %}
+    - test -f $PREFIX/share/gnuradio/grc/blocks/{{ block }}.block.yml  # [not win]
+    - if not exist %PREFIX%\\Library\\share\\gnuradio\\grc\\blocks\\{{ block }}.block.yml exit 1  # [win]
+    {% endfor %}
+
+  imports:
+    - satellites
+
+about:
+  home: https://github.com/daniestevez/gr-satellites
+  license: GPL-3.0-or-later
+  license_family: GPL
+  license_file: LICENSE
+  summary: 'A collection of decoders for Amateur satellites'
+  description: |
+    gr-satellites is a GNU Radio out-of-tree module with a collection of telemetry decoders for Amateur satellites.
+  doc_url: https://gr-satellites.readthedocs.io/en/latest/index.html
+  dev_url: https://github.com/daniestevez/gr-satellites
+
+extra:
+  recipe-maintainers:
+    - petrushy
+    - ryanvolz
