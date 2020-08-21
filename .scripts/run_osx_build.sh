@@ -45,14 +45,11 @@ fi
 
 set -e
 
-if [[ "${HOST_PLATFORM}" != "${BUILD_PLATFORM}" ]]; then
-    EXTRA_CB_OPTIONS="${EXTRA_CB_OPTIONS:-} --no-test"
-fi
-
 # make sure there is a package directory so that artifact publishing works
 mkdir -p /Users/runner/miniforge3/conda-bld/osx-64/
 
 # Find the recipes from master in this PR and remove them.
+
 echo ""
 echo "Finding recipes merged in master and removing them from the build."
 pushd ./recipes > /dev/null
