@@ -14,6 +14,6 @@ IFS=$'\n\t'
 
 make "-j${CPU_COUNT}"
 
-make check
+make check || (cat tests/test-suite.log && exit 1)
 
 make install
