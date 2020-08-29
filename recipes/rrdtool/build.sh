@@ -9,7 +9,8 @@ IFS=$'\n\t'
     --disable-perl \
     --disable-ruby \
     --disable-lua \
-    --disable-tcl
+    --disable-tcl \
+    NROFF=nroff
 
 make "-j${CPU_COUNT}"
 
