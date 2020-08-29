@@ -10,7 +10,7 @@ IFS=$'\n\t'
     --disable-ruby \
     --disable-lua \
     --disable-tcl \
-    NROFF=nroff
+    --disable-docs
 
 make "-j${CPU_COUNT}"
 
