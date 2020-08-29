@@ -1,7 +1,3 @@
-if [[ ${HOST} =~ .*linux.* ]]; then
-	gfortran leparagliding.f
-else
-	gfortran leparagliding.f
-fi
+${GFORTRAN} leparagliding.f
 mkdir -p ${PREFIX}/bin
 cp a.out ${PREFIX}/bin/leparagliding
