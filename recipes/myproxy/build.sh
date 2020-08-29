@@ -13,6 +13,11 @@ IFS=$'\n\t'
 
 make "-j${CPU_COUNT}"
 
-make check
+# Fix hard coded paths in the tests
+sed -i "s@/usr/bin/perl@${BUILD_PREFIX}/bin/perl@g" myproxy-test
+sed -i 's@/bin/kill@kill@g' myproxy-test
+
+# The tests assume this current directory is on PATH
+PATH=$PWD:$PATH make check
 
 make install
