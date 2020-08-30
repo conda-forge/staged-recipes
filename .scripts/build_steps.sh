@@ -47,6 +47,10 @@ export CI_SUPPORT="/home/conda/staged-recipes-copy/.ci_support"
 setup_conda_rc "${FEEDSTOCK_ROOT}" "/home/conda/staged-recipes-copy/recipes" "${CI_SUPPORT}/${CONFIG}.yaml"
 source run_conda_forge_build_setup
 
+# set channel priority not strict
+# tensorflow in conda-forge is 1.14, so strict channel priority breaks everything...
+conda config --set channel_priority flexible
+
 # yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
 find ~/staged-recipes-copy/recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" \
     | xargs -n1 cat | { grep -v -e "^#" -e "^$" || test $? == 1; } | \
