@@ -9,5 +9,5 @@ else
     cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} -DBUILD_SHARED_LIBS=ON
 fi
 
-make -j4
+make -j ${CPU_COUNT}
 make install
