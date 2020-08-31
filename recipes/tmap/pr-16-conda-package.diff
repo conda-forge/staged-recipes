@@ -1,5 +1,69 @@
+From fc29e3c7ca5fb2fdde0d311691b5c953e1695b4b Mon Sep 17 00:00:00 2001
+From: Hadrien Mary <hadrien.mary@gmail.com>
+Date: Mon, 31 Aug 2020 17:53:15 -0400
+Subject: [PATCH 1/4] Use bind instead of bind2nd
+
+---
+ tmap/tmap/analyse.cc | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/tmap/tmap/analyse.cc b/tmap/tmap/analyse.cc
+index b282b74..7cfe52e 100644
+--- a/tmap/tmap/analyse.cc
++++ b/tmap/tmap/analyse.cc
+@@ -30,7 +30,7 @@ namespace {
+ 
+     std::vector<float> diff(weights.size());
+     std::transform(weights.begin(), weights.end(), diff.begin(),
+-                  std::bind2nd(std::minus<float>(), mean));
++                  std::bind(std::minus<float>(), std::placeholders::_1, mean));
+     float sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+     float stdev = std::sqrt(sq_sum / weights.size());
+ 
+@@ -64,7 +64,7 @@ namespace {
+ 
+       std::vector<float> diff(weights.size());
+       std::transform(weights.begin(), weights.end(), diff.begin(),
+-                    std::bind2nd(std::minus<float>(), mean));
++                    std::bind(std::minus<float>(), std::placeholders::_1, mean));
+       float sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+       float stdev = std::sqrt(sq_sum / weights.size());
+ 
+
+From ec7a69b9939c62d147b479c2bc1d7f8dc506909e Mon Sep 17 00:00:00 2001
+From: Hadrien Mary <hadrien.mary@gmail.com>
+Date: Mon, 31 Aug 2020 17:53:52 -0400
+Subject: [PATCH 2/4] Fix x64 flag in setup.py
+
+---
+ tmap/setup.py | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/tmap/setup.py b/tmap/setup.py
+index 28c0d06..4d7e240 100644
+--- a/tmap/setup.py
++++ b/tmap/setup.py
+@@ -54,8 +54,6 @@ def build_extension(self, ext):
+             cmake_args += [
+                 "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}".format(cfg.upper(), extdir)
+             ]
+-            if sys.maxsize > 2 ** 32:
+-                cmake_args += ["-A", "x64"]
+             build_args += ["--", "/m"]
+         elif platform.system() == 'Darwin':
+             cmake_args += ['-DOpenMP_C_FLAG=-fopenmp']
+
+From b566512d3cb0d45202d334a33a5b4e79b5d342e6 Mon Sep 17 00:00:00 2001
+From: Hadrien Mary <hadrien.mary@gmail.com>
+Date: Mon, 31 Aug 2020 18:09:32 -0400
+Subject: [PATCH 3/4] remove conda logic in cmake
+
+---
+ tmap/CMakeLists.txt | 9 ---------
+ 1 file changed, 9 deletions(-)
+
 diff --git a/tmap/CMakeLists.txt b/tmap/CMakeLists.txt
-index 723a7ae..c6f448b 100644
+index 723a7ae..4621a7f 100644
 --- a/tmap/CMakeLists.txt
 +++ b/tmap/CMakeLists.txt
 @@ -11,15 +11,6 @@ else()
@@ -18,7 +82,365 @@ index 723a7ae..c6f448b 100644
  # find_package(OpenMP)
  # if (OPENMP_FOUND)
  #    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-@@ -37,9 +28,6 @@ SET(SOURCE_DIR "tmap")
+
+From 6fc94c3abf8c55e2745b7e77c8eb771c5b7cf93b Mon Sep 17 00:00:00 2001
+From: Hadrien Mary <hadrien.mary@gmail.com>
+Date: Mon, 31 Aug 2020 18:10:42 -0400
+Subject: [PATCH 4/4] remove pybind11 hard coded dep
+
+---
+ tmap/CMakeLists.txt                           |    3 -
+ .../CMakeDirectoryInformation.cmake           |   16 -
+ tmap/lib/pybind11/CMakeFiles/progress.marks   |    1 -
+ tmap/lib/pybind11/CMakeLists.txt              |  154 --
+ tmap/lib/pybind11/CONTRIBUTING.md             |   37 -
+ tmap/lib/pybind11/ISSUE_TEMPLATE.md           |   17 -
+ tmap/lib/pybind11/LICENSE                     |   36 -
+ tmap/lib/pybind11/MANIFEST.in                 |    2 -
+ tmap/lib/pybind11/Makefile                    |  134 --
+ tmap/lib/pybind11/README.md                   |  129 --
+ tmap/lib/pybind11/cmake_install.cmake         |   39 -
+ tmap/lib/pybind11/docs/Doxyfile               |   20 -
+ tmap/lib/pybind11/docs/Makefile               |  192 --
+ .../pybind11/docs/_static/theme_overrides.css |   11 -
+ .../pybind11/docs/advanced/cast/chrono.rst    |   81 -
+ .../pybind11/docs/advanced/cast/custom.rst    |   91 -
+ .../lib/pybind11/docs/advanced/cast/eigen.rst |  310 ---
+ .../docs/advanced/cast/functional.rst         |  109 -
+ .../lib/pybind11/docs/advanced/cast/index.rst |   42 -
+ .../pybind11/docs/advanced/cast/overview.rst  |  163 --
+ tmap/lib/pybind11/docs/advanced/cast/stl.rst  |  243 --
+ .../pybind11/docs/advanced/cast/strings.rst   |  303 ---
+ tmap/lib/pybind11/docs/advanced/classes.rst   | 1033 ---------
+ tmap/lib/pybind11/docs/advanced/embedding.rst |  256 --
+ .../lib/pybind11/docs/advanced/exceptions.rst |  142 --
+ tmap/lib/pybind11/docs/advanced/functions.rst |  486 ----
+ tmap/lib/pybind11/docs/advanced/misc.rst      |  272 ---
+ .../pybind11/docs/advanced/pycpp/index.rst    |   13 -
+ .../pybind11/docs/advanced/pycpp/numpy.rst    |  366 ---
+ .../pybind11/docs/advanced/pycpp/object.rst   |   98 -
+ .../docs/advanced/pycpp/utilities.rst         |  144 --
+ .../lib/pybind11/docs/advanced/smart_ptrs.rst |  173 --
+ tmap/lib/pybind11/docs/basics.rst             |  293 ---
+ tmap/lib/pybind11/docs/benchmark.py           |   88 -
+ tmap/lib/pybind11/docs/benchmark.rst          |   97 -
+ tmap/lib/pybind11/docs/changelog.rst          |  885 -------
+ tmap/lib/pybind11/docs/classes.rst            |  500 ----
+ tmap/lib/pybind11/docs/compiling.rst          |  273 ---
+ tmap/lib/pybind11/docs/conf.py                |  332 ---
+ tmap/lib/pybind11/docs/faq.rst                |  273 ---
+ tmap/lib/pybind11/docs/index.rst              |   47 -
+ tmap/lib/pybind11/docs/intro.rst              |   95 -
+ tmap/lib/pybind11/docs/limitations.rst        |   20 -
+ .../docs/pybind11_vs_boost_python1.svg        |  427 ----
+ .../docs/pybind11_vs_boost_python2.svg        |  427 ----
+ tmap/lib/pybind11/docs/reference.rst          |  102 -
+ tmap/lib/pybind11/docs/release.rst            |   24 -
+ tmap/lib/pybind11/docs/requirements.txt       |    1 -
+ tmap/lib/pybind11/docs/upgrade.rst            |  377 ---
+ tmap/lib/pybind11/include/pybind11/attr.h     |  489 ----
+ .../pybind11/include/pybind11/buffer_info.h   |  108 -
+ tmap/lib/pybind11/include/pybind11/cast.h     | 2049 -----------------
+ tmap/lib/pybind11/include/pybind11/chrono.h   |  162 --
+ tmap/lib/pybind11/include/pybind11/complex.h  |   61 -
+ .../pybind11/include/pybind11/detail/class.h  |  606 -----
+ .../pybind11/include/pybind11/detail/common.h |  799 -------
+ .../pybind11/include/pybind11/detail/descr.h  |  185 --
+ .../pybind11/include/pybind11/detail/init.h   |  325 ---
+ .../include/pybind11/detail/internals.h       |  247 --
+ .../pybind11/include/pybind11/detail/typeid.h |   53 -
+ tmap/lib/pybind11/include/pybind11/eigen.h    |  610 -----
+ tmap/lib/pybind11/include/pybind11/embed.h    |  193 --
+ tmap/lib/pybind11/include/pybind11/eval.h     |  117 -
+ .../pybind11/include/pybind11/functional.h    |   85 -
+ tmap/lib/pybind11/include/pybind11/iostream.h |  200 --
+ tmap/lib/pybind11/include/pybind11/numpy.h    | 1598 -------------
+ .../lib/pybind11/include/pybind11/operators.h |  168 --
+ tmap/lib/pybind11/include/pybind11/options.h  |   65 -
+ tmap/lib/pybind11/include/pybind11/pybind11.h | 1937 ----------------
+ tmap/lib/pybind11/include/pybind11/pytypes.h  | 1330 -----------
+ tmap/lib/pybind11/include/pybind11/stl.h      |  369 ---
+ tmap/lib/pybind11/include/pybind11/stl_bind.h |  599 -----
+ tmap/lib/pybind11/pybind11/__init__.py        |   11 -
+ tmap/lib/pybind11/pybind11/__main__.py        |   37 -
+ tmap/lib/pybind11/pybind11/_version.py        |    2 -
+ tmap/lib/pybind11/setup.cfg                   |   10 -
+ tmap/lib/pybind11/setup.py                    |  107 -
+ tmap/lib/pybind11/tests/CMakeLists.txt        |  234 --
+ tmap/lib/pybind11/tests/conftest.py           |  241 --
+ tmap/lib/pybind11/tests/constructor_stats.h   |  276 ---
+ tmap/lib/pybind11/tests/local_bindings.h      |   60 -
+ tmap/lib/pybind11/tests/object.h              |  175 --
+ .../tests/pybind11_cross_module_tests.cpp     |  107 -
+ tmap/lib/pybind11/tests/pybind11_tests.cpp    |   93 -
+ tmap/lib/pybind11/tests/pybind11_tests.h      |   65 -
+ tmap/lib/pybind11/tests/pytest.ini            |   15 -
+ tmap/lib/pybind11/tests/test_buffers.cpp      |  169 --
+ tmap/lib/pybind11/tests/test_buffers.py       |   83 -
+ .../pybind11/tests/test_builtin_casters.cpp   |  156 --
+ .../pybind11/tests/test_builtin_casters.py    |  322 ---
+ .../lib/pybind11/tests/test_call_policies.cpp |   97 -
+ tmap/lib/pybind11/tests/test_call_policies.py |  168 --
+ tmap/lib/pybind11/tests/test_callbacks.cpp    |  149 --
+ tmap/lib/pybind11/tests/test_callbacks.py     |  107 -
+ tmap/lib/pybind11/tests/test_chrono.cpp       |   47 -
+ tmap/lib/pybind11/tests/test_chrono.py        |  101 -
+ tmap/lib/pybind11/tests/test_class.cpp        |  357 ---
+ tmap/lib/pybind11/tests/test_class.py         |  235 --
+ .../tests/test_cmake_build/CMakeLists.txt     |   58 -
+ .../pybind11/tests/test_cmake_build/embed.cpp |   21 -
+ .../installed_embed/CMakeLists.txt            |   15 -
+ .../installed_function/CMakeLists.txt         |   12 -
+ .../installed_target/CMakeLists.txt           |   22 -
+ .../pybind11/tests/test_cmake_build/main.cpp  |    6 -
+ .../subdirectory_embed/CMakeLists.txt         |   25 -
+ .../subdirectory_function/CMakeLists.txt      |    8 -
+ .../subdirectory_target/CMakeLists.txt        |   15 -
+ .../pybind11/tests/test_cmake_build/test.py   |    5 -
+ .../tests/test_constants_and_functions.cpp    |  113 -
+ .../tests/test_constants_and_functions.py     |   39 -
+ tmap/lib/pybind11/tests/test_copy_move.cpp    |  213 --
+ tmap/lib/pybind11/tests/test_copy_move.py     |  112 -
+ .../pybind11/tests/test_docstring_options.cpp |   61 -
+ .../pybind11/tests/test_docstring_options.py  |   38 -
+ tmap/lib/pybind11/tests/test_eigen.cpp        |  317 ---
+ tmap/lib/pybind11/tests/test_eigen.py         |  681 ------
+ .../pybind11/tests/test_embed/CMakeLists.txt  |   34 -
+ tmap/lib/pybind11/tests/test_embed/catch.cpp  |   16 -
+ .../tests/test_embed/test_interpreter.cpp     |  218 --
+ .../tests/test_embed/test_interpreter.py      |    9 -
+ tmap/lib/pybind11/tests/test_enum.cpp         |   71 -
+ tmap/lib/pybind11/tests/test_enum.py          |  121 -
+ tmap/lib/pybind11/tests/test_eval.cpp         |   91 -
+ tmap/lib/pybind11/tests/test_eval.py          |   17 -
+ tmap/lib/pybind11/tests/test_eval_call.py     |    4 -
+ tmap/lib/pybind11/tests/test_exceptions.cpp   |  168 --
+ tmap/lib/pybind11/tests/test_exceptions.py    |  144 --
+ .../tests/test_factory_constructors.cpp       |  337 ---
+ .../tests/test_factory_constructors.py        |  459 ----
+ tmap/lib/pybind11/tests/test_iostream.cpp     |   73 -
+ tmap/lib/pybind11/tests/test_iostream.py      |  203 --
+ .../tests/test_kwargs_and_defaults.cpp        |   71 -
+ .../tests/test_kwargs_and_defaults.py         |  107 -
+ .../pybind11/tests/test_local_bindings.cpp    |   97 -
+ .../lib/pybind11/tests/test_local_bindings.py |  210 --
+ .../tests/test_methods_and_attributes.cpp     |  446 ----
+ .../tests/test_methods_and_attributes.py      |  476 ----
+ tmap/lib/pybind11/tests/test_modules.cpp      |   98 -
+ tmap/lib/pybind11/tests/test_modules.py       |   72 -
+ .../tests/test_multiple_inheritance.cpp       |  220 --
+ .../tests/test_multiple_inheritance.py        |  349 ---
+ tmap/lib/pybind11/tests/test_numpy_array.cpp  |  295 ---
+ tmap/lib/pybind11/tests/test_numpy_array.py   |  402 ----
+ tmap/lib/pybind11/tests/test_numpy_dtypes.cpp |  451 ----
+ tmap/lib/pybind11/tests/test_numpy_dtypes.py  |  298 ---
+ .../pybind11/tests/test_numpy_vectorize.cpp   |   89 -
+ .../pybind11/tests/test_numpy_vectorize.py    |  196 --
+ tmap/lib/pybind11/tests/test_opaque_types.cpp |   63 -
+ tmap/lib/pybind11/tests/test_opaque_types.py  |   46 -
+ .../tests/test_operator_overloading.cpp       |  146 --
+ .../tests/test_operator_overloading.py        |  106 -
+ tmap/lib/pybind11/tests/test_pickling.cpp     |  130 --
+ tmap/lib/pybind11/tests/test_pickling.py      |   36 -
+ tmap/lib/pybind11/tests/test_pytypes.cpp      |  266 ---
+ tmap/lib/pybind11/tests/test_pytypes.py       |  238 --
+ .../tests/test_sequences_and_iterators.cpp    |  334 ---
+ .../tests/test_sequences_and_iterators.py     |  158 --
+ tmap/lib/pybind11/tests/test_smart_ptr.cpp    |  270 ---
+ tmap/lib/pybind11/tests/test_smart_ptr.py     |  220 --
+ tmap/lib/pybind11/tests/test_stl.cpp          |  233 --
+ tmap/lib/pybind11/tests/test_stl.py           |  178 --
+ tmap/lib/pybind11/tests/test_stl_binders.cpp  |  111 -
+ tmap/lib/pybind11/tests/test_stl_binders.py   |  181 --
+ .../pybind11/tests/test_virtual_functions.cpp |  450 ----
+ .../pybind11/tests/test_virtual_functions.py  |  371 ---
+ tmap/lib/pybind11/tools/FindCatch.cmake       |   57 -
+ tmap/lib/pybind11/tools/FindEigen3.cmake      |   81 -
+ .../pybind11/tools/FindPythonLibsNew.cmake    |  195 --
+ tmap/lib/pybind11/tools/check-style.sh        |   82 -
+ tmap/lib/pybind11/tools/libsize.py            |   38 -
+ tmap/lib/pybind11/tools/mkdoc.py              |  302 ---
+ .../pybind11/tools/pybind11Config.cmake.in    |  100 -
+ tmap/lib/pybind11/tools/pybind11Tools.cmake   |  202 --
+ 173 files changed, 37353 deletions(-)
+ delete mode 100644 tmap/lib/pybind11/CMakeFiles/CMakeDirectoryInformation.cmake
+ delete mode 100644 tmap/lib/pybind11/CMakeFiles/progress.marks
+ delete mode 100644 tmap/lib/pybind11/CMakeLists.txt
+ delete mode 100644 tmap/lib/pybind11/CONTRIBUTING.md
+ delete mode 100644 tmap/lib/pybind11/ISSUE_TEMPLATE.md
+ delete mode 100644 tmap/lib/pybind11/LICENSE
+ delete mode 100644 tmap/lib/pybind11/MANIFEST.in
+ delete mode 100644 tmap/lib/pybind11/Makefile
+ delete mode 100644 tmap/lib/pybind11/README.md
+ delete mode 100644 tmap/lib/pybind11/cmake_install.cmake
+ delete mode 100644 tmap/lib/pybind11/docs/Doxyfile
+ delete mode 100644 tmap/lib/pybind11/docs/Makefile
+ delete mode 100644 tmap/lib/pybind11/docs/_static/theme_overrides.css
+ delete mode 100644 tmap/lib/pybind11/docs/advanced/cast/chrono.rst
+ delete mode 100644 tmap/lib/pybind11/docs/advanced/cast/custom.rst
+ delete mode 100644 tmap/lib/pybind11/docs/advanced/cast/eigen.rst
+ delete mode 100644 tmap/lib/pybind11/docs/advanced/cast/functional.rst
+ delete mode 100644 tmap/lib/pybind11/docs/advanced/cast/index.rst
+ delete mode 100644 tmap/lib/pybind11/docs/advanced/cast/overview.rst
+ delete mode 100644 tmap/lib/pybind11/docs/advanced/cast/stl.rst
+ delete mode 100644 tmap/lib/pybind11/docs/advanced/cast/strings.rst
+ delete mode 100644 tmap/lib/pybind11/docs/advanced/classes.rst
+ delete mode 100644 tmap/lib/pybind11/docs/advanced/embedding.rst
+ delete mode 100644 tmap/lib/pybind11/docs/advanced/exceptions.rst
+ delete mode 100644 tmap/lib/pybind11/docs/advanced/functions.rst
+ delete mode 100644 tmap/lib/pybind11/docs/advanced/misc.rst
+ delete mode 100644 tmap/lib/pybind11/docs/advanced/pycpp/index.rst
+ delete mode 100644 tmap/lib/pybind11/docs/advanced/pycpp/numpy.rst
+ delete mode 100644 tmap/lib/pybind11/docs/advanced/pycpp/object.rst
+ delete mode 100644 tmap/lib/pybind11/docs/advanced/pycpp/utilities.rst
+ delete mode 100644 tmap/lib/pybind11/docs/advanced/smart_ptrs.rst
+ delete mode 100644 tmap/lib/pybind11/docs/basics.rst
+ delete mode 100644 tmap/lib/pybind11/docs/benchmark.py
+ delete mode 100644 tmap/lib/pybind11/docs/benchmark.rst
+ delete mode 100644 tmap/lib/pybind11/docs/changelog.rst
+ delete mode 100644 tmap/lib/pybind11/docs/classes.rst
+ delete mode 100644 tmap/lib/pybind11/docs/compiling.rst
+ delete mode 100644 tmap/lib/pybind11/docs/conf.py
+ delete mode 100644 tmap/lib/pybind11/docs/faq.rst
+ delete mode 100644 tmap/lib/pybind11/docs/index.rst
+ delete mode 100644 tmap/lib/pybind11/docs/intro.rst
+ delete mode 100644 tmap/lib/pybind11/docs/limitations.rst
+ delete mode 100644 tmap/lib/pybind11/docs/pybind11_vs_boost_python1.svg
+ delete mode 100644 tmap/lib/pybind11/docs/pybind11_vs_boost_python2.svg
+ delete mode 100644 tmap/lib/pybind11/docs/reference.rst
+ delete mode 100644 tmap/lib/pybind11/docs/release.rst
+ delete mode 100644 tmap/lib/pybind11/docs/requirements.txt
+ delete mode 100644 tmap/lib/pybind11/docs/upgrade.rst
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/attr.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/buffer_info.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/cast.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/chrono.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/complex.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/detail/class.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/detail/common.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/detail/descr.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/detail/init.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/detail/internals.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/detail/typeid.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/eigen.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/embed.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/eval.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/functional.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/iostream.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/numpy.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/operators.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/options.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/pybind11.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/pytypes.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/stl.h
+ delete mode 100644 tmap/lib/pybind11/include/pybind11/stl_bind.h
+ delete mode 100644 tmap/lib/pybind11/pybind11/__init__.py
+ delete mode 100644 tmap/lib/pybind11/pybind11/__main__.py
+ delete mode 100644 tmap/lib/pybind11/pybind11/_version.py
+ delete mode 100644 tmap/lib/pybind11/setup.cfg
+ delete mode 100644 tmap/lib/pybind11/setup.py
+ delete mode 100644 tmap/lib/pybind11/tests/CMakeLists.txt
+ delete mode 100644 tmap/lib/pybind11/tests/conftest.py
+ delete mode 100644 tmap/lib/pybind11/tests/constructor_stats.h
+ delete mode 100644 tmap/lib/pybind11/tests/local_bindings.h
+ delete mode 100644 tmap/lib/pybind11/tests/object.h
+ delete mode 100644 tmap/lib/pybind11/tests/pybind11_cross_module_tests.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/pybind11_tests.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/pybind11_tests.h
+ delete mode 100644 tmap/lib/pybind11/tests/pytest.ini
+ delete mode 100644 tmap/lib/pybind11/tests/test_buffers.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_buffers.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_builtin_casters.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_builtin_casters.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_call_policies.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_call_policies.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_callbacks.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_callbacks.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_chrono.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_chrono.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_class.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_class.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_cmake_build/CMakeLists.txt
+ delete mode 100644 tmap/lib/pybind11/tests/test_cmake_build/embed.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_cmake_build/installed_embed/CMakeLists.txt
+ delete mode 100644 tmap/lib/pybind11/tests/test_cmake_build/installed_function/CMakeLists.txt
+ delete mode 100644 tmap/lib/pybind11/tests/test_cmake_build/installed_target/CMakeLists.txt
+ delete mode 100644 tmap/lib/pybind11/tests/test_cmake_build/main.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_cmake_build/subdirectory_embed/CMakeLists.txt
+ delete mode 100644 tmap/lib/pybind11/tests/test_cmake_build/subdirectory_function/CMakeLists.txt
+ delete mode 100644 tmap/lib/pybind11/tests/test_cmake_build/subdirectory_target/CMakeLists.txt
+ delete mode 100644 tmap/lib/pybind11/tests/test_cmake_build/test.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_constants_and_functions.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_constants_and_functions.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_copy_move.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_copy_move.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_docstring_options.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_docstring_options.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_eigen.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_eigen.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_embed/CMakeLists.txt
+ delete mode 100644 tmap/lib/pybind11/tests/test_embed/catch.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_embed/test_interpreter.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_embed/test_interpreter.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_enum.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_enum.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_eval.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_eval.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_eval_call.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_exceptions.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_exceptions.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_factory_constructors.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_factory_constructors.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_iostream.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_iostream.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_kwargs_and_defaults.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_kwargs_and_defaults.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_local_bindings.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_local_bindings.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_methods_and_attributes.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_methods_and_attributes.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_modules.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_modules.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_multiple_inheritance.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_multiple_inheritance.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_numpy_array.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_numpy_array.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_numpy_dtypes.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_numpy_dtypes.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_numpy_vectorize.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_numpy_vectorize.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_opaque_types.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_opaque_types.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_operator_overloading.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_operator_overloading.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_pickling.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_pickling.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_pytypes.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_pytypes.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_sequences_and_iterators.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_sequences_and_iterators.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_smart_ptr.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_smart_ptr.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_stl.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_stl.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_stl_binders.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_stl_binders.py
+ delete mode 100644 tmap/lib/pybind11/tests/test_virtual_functions.cpp
+ delete mode 100644 tmap/lib/pybind11/tests/test_virtual_functions.py
+ delete mode 100644 tmap/lib/pybind11/tools/FindCatch.cmake
+ delete mode 100644 tmap/lib/pybind11/tools/FindEigen3.cmake
+ delete mode 100644 tmap/lib/pybind11/tools/FindPythonLibsNew.cmake
+ delete mode 100755 tmap/lib/pybind11/tools/check-style.sh
+ delete mode 100644 tmap/lib/pybind11/tools/libsize.py
+ delete mode 100644 tmap/lib/pybind11/tools/mkdoc.py
+ delete mode 100644 tmap/lib/pybind11/tools/pybind11Config.cmake.in
+ delete mode 100644 tmap/lib/pybind11/tools/pybind11Tools.cmake
+
+diff --git a/tmap/CMakeLists.txt b/tmap/CMakeLists.txt
+index 4621a7f..c6f448b 100644
+--- a/tmap/CMakeLists.txt
++++ b/tmap/CMakeLists.txt
+@@ -28,9 +28,6 @@ SET(SOURCE_DIR "tmap")
  include_directories(${SOURCE_DIR})
  SET(SOURCES "${SOURCE_DIR}/layout.cc" "${SOURCE_DIR}/lshforest.cc" "${SOURCE_DIR}/minhash.cc" "${SOURCE_DIR}/analyse.cc")
  
@@ -38410,38 +38832,3 @@ index a7c471a..0000000
 -    target_compile_options(${target_name} PRIVATE /MP /bigobj)
 -  endif()
 -endfunction()
-diff --git a/tmap/setup.py b/tmap/setup.py
-index 28c0d06..4d7e240 100644
---- a/tmap/setup.py
-+++ b/tmap/setup.py
-@@ -54,8 +54,6 @@ class CMakeBuild(build_ext):
-             cmake_args += [
-                 "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}".format(cfg.upper(), extdir)
-             ]
--            if sys.maxsize > 2 ** 32:
--                cmake_args += ["-A", "x64"]
-             build_args += ["--", "/m"]
-         elif platform.system() == 'Darwin':
-             cmake_args += ['-DOpenMP_C_FLAG=-fopenmp']
-diff --git a/tmap/tmap/analyse.cc b/tmap/tmap/analyse.cc
-index b282b74..7cfe52e 100644
---- a/tmap/tmap/analyse.cc
-+++ b/tmap/tmap/analyse.cc
-@@ -30,7 +30,7 @@ namespace {
- 
-     std::vector<float> diff(weights.size());
-     std::transform(weights.begin(), weights.end(), diff.begin(),
--                  std::bind2nd(std::minus<float>(), mean));
-+                  std::bind(std::minus<float>(), std::placeholders::_1, mean));
-     float sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
-     float stdev = std::sqrt(sq_sum / weights.size());
- 
-@@ -64,7 +64,7 @@ namespace {
- 
-       std::vector<float> diff(weights.size());
-       std::transform(weights.begin(), weights.end(), diff.begin(),
--                    std::bind2nd(std::minus<float>(), mean));
-+                    std::bind(std::minus<float>(), std::placeholders::_1, mean));
-       float sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
-       float stdev = std::sqrt(sq_sum / weights.size());
- 
