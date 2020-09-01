@@ -7,7 +7,7 @@ else
    cp $RECIPE_DIR/build_linux.conf build.conf
 fi
 
-sed -i -e "s:PREFIX:$PREFIX:g" build.conf
+sed -i'' -e "s:PREFIX:$PREFIX:g" build.conf
 
 export LIBRARY_PATH="${PREFIX}/lib"
 export LD_LIBRARY_PATH="${PREFIX}/lib"
