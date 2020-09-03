@@ -16,8 +16,8 @@ set "CXX=cl.exe"
 rem
 
 rem Ensure desired Boost version is selected by CMake
-rem set "BOOST_ROOT=%PREFIX%"
-rem set "BOOST_NO_SYSTEM_PATHS=ON"
+set "BOOST_ROOT=%PREFIX%"
+set "BOOST_NO_SYSTEM_PATHS=ON"
 
 
 cmake %SRC_DIR% -G"Ninja" ^
