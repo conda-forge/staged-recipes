@@ -1,4 +1,3 @@
-from __future__ import print_function
 import PySignal
 from functools import partial
 
