@@ -1,71 +1,24 @@
+# This file was generated automatically from conda-smithy. To update this configuration,
+# update the conda-forge.yml and/or the recipe/meta.yaml.
+# -*- mode: yaml -*-
+
 jobs:
-- job: osx_64
+- job: osx
   pool:
-    vmImage: macOS-10.14
+    vmImage: macOS-10.15
   strategy:
-    maxParallel: 8
     matrix:
-      osx:
+      osx_64:
         CONFIG: osx64
-        CF_MAX_PY_VER: 37
+    maxParallel: 8
   timeoutInMinutes: 360
+
   steps:
-  # TODO: Fast finish on azure pipelines?
   - script: |
-      echo "Fast Finish"
+      export CI=azure
+      ./.scripts/run_osx_build.sh
+    displayName: Run OSX build
 
-  - script: |
-      echo "Removing homebrew from Azure to avoid conflicts."
-      curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/uninstall > ~/uninstall_homebrew
-      chmod +x ~/uninstall_homebrew
-      ~/uninstall_homebrew -fq
-      rm ~/uninstall_homebrew
-    displayName: Remove homebrew
-
-
-  - bash: |
-      echo "##vso[task.prependpath]$CONDA/bin"
-      sudo chown -R $USER $CONDA
-    displayName: Add conda to PATH
-
-  - script: |
-      set -x -e
-      source activate base
-      conda install -n base -c conda-forge --quiet --yes "conda>4.7.12" conda-forge-ci-setup=2 conda-build shyaml networkx=2.3 conda-forge-pinning
-    displayName: 'Add conda-forge-ci-setup=2'
-
-  - script: |
-      set -x -e
-      source activate base
-      echo "Configuring conda."
-
-      setup_conda_rc ./ ./recipes ./.ci_support/${CONFIG}.yaml
-
-      source run_conda_forge_build_setup
-    env: {
-      OSX_FORCE_SDK_DOWNLOAD: "1"
-    }
-    displayName: Configure conda and conda-build
-
-  - script: |
-      set -e
-
-      # make sure there is a package directory so that artifact publishing works
-      mkdir -p /usr/local/miniconda/conda-bld/osx-64/
-
-      # Find the recipes from master in this PR and remove them.
-      source activate base
-
-      echo ""
-      echo "Finding recipes merged in master and removing them from the build."
-      pushd ./recipes > /dev/null
-      git fetch --force origin master:master
-      git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf {} && echo Removing recipe: {}"
-      popd > /dev/null
-      echo ""
-
-      # We just want to build all of the recipes.
-      python .ci_support/build_all.py
-
-  - publish: /usr/local/miniconda/conda-bld/osx-64/
+  - publish: /Users/runner/miniforge3/conda-bld/osx-64/
     artifact: conda_pkgs_osx
+
