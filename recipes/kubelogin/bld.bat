@@ -1,4 +1,5 @@
 copy "%RECIPE_DIR%\build.sh" .
+copy "%RECIPE_DIR%\build_library_licenses.sh" .
 set PREFIX=%PREFIX:\=/%
 set SRC_DIR=%SRC_DIR:\=/%
 set MSYSTEM=MINGW%ARCH%
