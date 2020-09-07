@@ -1,6 +1,7 @@
 #!/bin/sh
 set -e
 
+go env
 go get github.com/google/go-licenses
 
 export GOPATH=$(go env GOPATH)
