@@ -9,6 +9,9 @@ export LIBRARY_LICENCES_PATH="$RECIPE_DIR/library_licenses/"
 export TEMP_DIR=$(mktemp -d)
 export KUBELOGIN_PATH="$TEMP_DIR/kubelogin"
 
+echo $LIBRARY_LICENCES_PATH
+echo $export
+
 cd $TEMP_DIR
 git clone https://github.com/Azure/kubelogin.git
 cd kubelogin/
