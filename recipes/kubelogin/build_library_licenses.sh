@@ -10,7 +10,7 @@ export PATH=$PATH:$GOPATH/bin
 go env
 go get -v github.com/google/go-licenses
 
-find / -name "go-licenses.*"
+find /home -name "go-licenses*"
 
 echo $LIBRARY_LICENCES_PATH
 echo $TEMP_DIR
