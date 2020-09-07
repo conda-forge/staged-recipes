@@ -1,11 +1,10 @@
 #!/bin/sh
 set -e
 
-export GOPATH=$(go env GOPATH)
+export GOBIN=$(go env GOBIN)
 export LIBRARY_LICENCES_PATH="$RECIPE_DIR/library_licenses/"
 export TEMP_DIR=$(mktemp -d)
 export KUBELOGIN_PATH="$TEMP_DIR/kubelogin"
-export PATH=$PATH:$GOPATH/bin
 
 go get -v github.com/google/go-licenses
 
