@@ -35,8 +35,6 @@ fi
 git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf ~/staged-recipes-copy/recipes/{} && echo Removing recipe: {}"
 popd > /dev/null
 
-# Unused, but needed by conda-build currently... :(
-export CONDA_NPY='19'
 
 # Make sure build_artifacts is a valid channel
 conda index /home/conda/staged-recipes/build_artifacts
