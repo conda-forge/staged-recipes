@@ -13,6 +13,6 @@ git clone https://github.com/Azure/kubelogin.git
 cd kubelogin/
 
 rm -fr $LIBRARY_LICENCES_PATH
-pushd %SRC_DIR%
+pushd $SRC_DIR
 $GOBIN/go-licenses save $KUBELOGIN_PATH --save_path=$LIBRARY_LICENCES_PATH
 popd
