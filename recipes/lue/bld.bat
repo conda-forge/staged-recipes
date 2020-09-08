@@ -9,12 +9,6 @@ cd build
 
 if errorlevel 1 exit 1
 
-
-rem Some projects use this to ensure correct version is picked up
-set "CC=cl.exe"
-set "CXX=cl.exe"
-rem
-
 rem Ensure desired Boost version is selected by CMake
 set "BOOST_ROOT=%PREFIX%"
 set "BOOST_NO_SYSTEM_PATHS=ON"
