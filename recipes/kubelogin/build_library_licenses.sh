@@ -2,17 +2,8 @@
 set -e
 
 export GOBIN=$(go env GOBIN)
-export LIBRARY_LICENCES_PATH="$RECIPE_DIR/library_licenses/"
-export TEMP_DIR=$(mktemp -d)
-export KUBELOGIN_PATH="$TEMP_DIR/kubelogin"
+export THIRDPARTY_LICENCES_PATH="$RECIPE_DIR/thirdparty_licenses/"
 
+rm -fr $THIRDPARTY_LICENCES_PATH
 go get -v github.com/google/go-licenses
-
-cd $TEMP_DIR
-git clone https://github.com/Azure/kubelogin.git
-cd kubelogin/
-
-rm -fr $LIBRARY_LICENCES_PATH
-pushd $SRC_DIR
-$GOBIN/go-licenses save $KUBELOGIN_PATH --save_path=$LIBRARY_LICENCES_PATH
-popd
+$GOBIN/go-licenses save $SRC_DIR --save_path=$THIRDPARTY_LICENCES_PATH
