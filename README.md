@@ -7,7 +7,7 @@ This repo is a holding area for recipes destined for a conda-forge feedstock rep
 
 ## Build status
 
-[![Circle CI](https://circleci.com/gh/conda-forge/staged-recipes/tree/master.svg?style=shield)](https://circleci.com/gh/conda-forge/staged-recipes/tree/master) [![Build Status](https://travis-ci.com/conda-forge/staged-recipes.svg?branch=master)](https://travis-ci.com/conda-forge/staged-recipes) [![Build status](https://ci.appveyor.com/api/projects/status/3lju80dibkmowsj5/branch/master?svg=true)](https://ci.appveyor.com/project/conda-forge/staged-recipes/branch/master)
+[![Build Status](https://travis-ci.com/conda-forge/staged-recipes.svg?branch=master)](https://travis-ci.com/conda-forge/staged-recipes)
 
 ## Getting started
 
@@ -15,6 +15,14 @@ This repo is a holding area for recipes destined for a conda-forge feedstock rep
 2. Make a new folder in `recipes` for your package. Look at the example recipe, our [documentation](http://conda-forge.org/docs/maintainer/adding_pkgs.html#) and the [FAQ](https://github.com/conda-forge/staged-recipes#faq)  for help.
 3. Open a pull request. Building of your package will be tested on Windows, Mac and Linux.
 4. When your pull request is merged a new repository, called a feedstock, will be created in the github conda-forge organization, and build/upload of your package will automatically be triggered. Once complete, the package is available on conda-forge.
+
+
+## Grayskull - recipe generator for Python packages on `pypi`
+
+For Python packages available on `pypi` it is possible to use [grayskull](https://github.com/marcelotrevisani/grayskull) to generate the recipe. The user should review the recipe generated, specially the license and dependencies.
+
+Installing `grayskull`: `conda install -c conda-forge grayskull`
+Generating recipe: `grayskull pypi PACKAGE_NAME_HERE`
 
 
 ## FAQ
@@ -50,7 +58,7 @@ build:
     skip: true  # [win]
 ```
 
-A full description of selectors is [in the conda docs](http://conda.pydata.org/docs/building/meta-yaml.html#preprocessing-selectors).
+A full description of selectors is [in the conda docs](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#preprocessing-selectors).
 
 Additionally, when pushing commits for a recipe that excludes Windows, put `[skip appveyor]` in the commit message to prevent CI tests
 on Windows from even starting.
