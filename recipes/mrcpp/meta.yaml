@@ -1,0 +1,84 @@
+{% set name = 'mrcpp' %}
+{% set version = "1.3.1" %}
+{% set sha256 = "6ab05bc760c5d4f3f2925c87a0db8eab3417d959c747b27bac7a2fe5d3d6f7d1" %}
+{% set build = 0 %}
+
+# ensure parallel is defined (needed for conda-smithy recipe-lint)
+{% set parallel = parallel or "serial" %}
+
+# prioritize shared-memory variant via build number
+{% if parallel == "openmp" %}
+{% set build = build + 100 %}
+{% elif parallel == "hybrid" %}
+{% set build = build + 50 %}
+{% endif %}
+# NOTE This means that the OpenMP build will be highest priority
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/MRChemSoft/mrcpp/archive/v{{ version }}.tar.gz
+  sha256: {{ sha256 }} 
+
+build:
+  number: {{ build }}
+  skip: true  # [win]
+  binary_relocation: true
+  {% set parallel_prefix = parallel %}
+  string: "{{ parallel_prefix }}_h{{ PKG_HASH }}_{{ build }}"
+  run_exports:
+    - {{ pin_subpackage('mrcpp', max_pin='x.x') }}
+  {% if parallel != 'serial' %}
+  run_exports:
+    - {{ name }} * {{ parallel_prefix }}_*
+  {% endif %}
+
+requirements:
+  build:
+    - cmake >=3.11
+    - {{ compiler('cxx') }}
+    - {{ pin_compatible('eigen', max_pin='x.x') }}
+  host:
+    - eigen
+    - openmpi  # [parallel == 'hybrid']
+  run:
+    - eigen
+    - openmpi  # [parallel == 'hybrid']
+
+test:
+  commands:
+    # Verify library
+    - test -f $PREFIX/lib/libmrcpp$SHLIB_EXT                              # [not win]
+    - test -L $PREFIX/lib/libmrcpp$SHLIB_EXT                              # [not win]
+    # Inspect linkage
+    - ldd -v $PREFIX/lib/libmrcpp$SHLIB_EXT                               # [linux]
+    - otool -L $PREFIX/lib/libmrcpp$SHLIB_EXT                             # [osx]
+    - conda inspect linkages --show-files --groupby=dependency $PKG_NAME  # [not win]
+    - conda inspect objects -p $PREFIX $PKG_NAME                          # [osx]
+
+outputs:
+  - name: mrcpp
+    files:
+      - bin/mrcpp-tests        # [not win]
+      - include/MRCPP          # [not win]
+      - lib/libmrcpp*          # [not win]
+      - share/cmake/MRCPP      # [not win]
+      - share/MRCPP/mwfilters  # [not win]
+
+about:
+  home: https://github.com/MRChemSoft/mrcpp
+  dev_url: https://github.com/MRChemSoft/mrcpp
+  doc_url: https://mrcpp.readthedocs.io/en/latest/
+  doc_source_url: https://github.com/MRChemSoft/mrcpp/blob/master/doc/index.rst
+  license: LGPL-3.0
+  license_url: https://opensource.org/licenses/LGPL-3.0
+  license_file: LICENSE
+  license_family: LGPL
+  summary: "MultiResolution Computational Program Package"
+
+extra:
+  recipe-maintainers:
+    - robertodr
+    - bjorgve
