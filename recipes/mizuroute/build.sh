@@ -2,7 +2,7 @@
 
 export F_MASTER="../"
 sed -e "s/FC  =/FC = gnu/g"  \
-    -e "s/FC_EXE =/FC_EXE = gfortran/g" \
+    -e "s|FC_EXE =|FC_EXE = ${FC}|g" \
     -e "s/^EXE =/EXE = route_runoff.exe/g" \
     -e "s/MODE = debug/MODE = fast/g" \
     -e "s|F_MASTER =|F_MASTER = $F_MASTER|g" \
