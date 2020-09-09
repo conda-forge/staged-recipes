@@ -1,10 +1,5 @@
 #!/bin/bash
 
-if [[ $(uname) == Linux ]]; then
-  ln -s "${CC}" "${BUILD_PREFIX}/bin/gcc"
-  ln -s "${FC}" "${BUILD_PREFIX}/bin/gfortran"
-fi
-
 export F_MASTER="../"
 sed -e "s/FC  =/FC = gnu/g"  \
     -e "s/FC_EXE =/FC_EXE = gfortran/g" \
