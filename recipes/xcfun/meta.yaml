@@ -1,0 +1,75 @@
+{% set name = "xcfun" %}
+{% set version = "2.0.2" %}
+{% set sha256 = "b79a71861a9e1d0e33c1be89b34f6f052d430cd495a7df982c407ad0140c1dcd" %}
+{% set pyver = PY_VER.replace(".", "") %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/dftlibs/xcfun/archive/v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  skip: true  # [win]
+  binary_relocation: true
+  run_exports:
+    - {{ pin_subpackage('xcfun', max_pin='x') }}
+
+requirements:
+  build:
+    - cmake >=3.11
+    - {{ compiler('cxx') }}
+    - pybind11 =*=*py{{ pyver }}*
+    - ninja
+  host:
+    - python
+  run:
+    - numpy
+
+test:
+  requires:
+    - numpy
+    - pytest
+  imports:
+    - xcfun
+  commands:
+    # Verify library
+    - test -L $PREFIX/lib/libxcfun$SHLIB_EXT                              # [not win]
+    - test -f $SP_DIR/xcfun/_xcfun*.so                                    # [not win]
+    # Inspect linkage
+    - ldd -v $PREFIX/lib/libxcfun$SHLIB_EXT                               # [linux]
+    - otool -L $PREFIX/lib/libxcfun$SHLIB_EXT                             # [osx]
+    - conda inspect linkages --show-files --groupby=dependency $PKG_NAME  # [not win]
+    - conda inspect objects -p $PREFIX $PKG_NAME                          # [osx]
+    - ls -l $SP_DIR/xcfun                                                 # [not win]
+    - ldd -v $SP_DIR/xcfun/_xcfun*.so                                     # [linux]
+    - otool -L $SP_DIR/xcfun/_xcfun*.so                                   # [osx]
+    # Actually test
+    - python -m pytest --pyargs xcfun
+
+outputs:
+  - name: xcfun
+    files:
+      - include/XCFun       # [not win]
+      - lib/libxcfun*       # [not win]
+      - share/cmake/XCFun   # [not win]
+      - {{ SP_DIR }}/xcfun  # [not win]
+
+about:
+  home: https://github.com/dftlibs/xcfun
+  dev_url: https://github.com/dftlibs/xcfun
+  doc_url: https://xcfun.readthedocs.io
+  doc_source_url: https://github.com/dftlibs/xcfun/blob/master/doc/index.rst
+  license: MPL-2.0
+  license_url: https://opensource.org/licenses/MPL-2.0
+  license_file: LICENSE.md
+  license_family: MOZILLA
+  summary: "Exchange-Correlation functionals with arbitrary order derivatives."
+
+extra:
+  recipe-maintainers:
+    - robertodr
+    - bast
