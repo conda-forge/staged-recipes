@@ -6,7 +6,7 @@ export EXE="route_runoff.exe"
 export MODE="fast"
 export NCDF_PATH=${PREFIX}
 export EXE_PATH="${PREFIX}/bin"
-export FLAGS="-p -g -Wall -ffree-line-length-none -fmax-errors=0 -fbacktrace -fcheck=bounds"
+export FLAGS="-O3 -fmax-errors=0 -ffree-line-length-none"
 
 patch route/build/Makefile ${RECIPE_DIR}/make.patch
 
