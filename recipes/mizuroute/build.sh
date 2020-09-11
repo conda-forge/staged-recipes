@@ -11,11 +11,11 @@ export EXE_PATH="${PREFIX}/bin"
 echo '------------------------------'
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 echo $DIR
-echo `ls $DIR`
+echo `ls ${SRC_DIR}`
 echo `ls`
 echo '------------------------------'
 
-patch route/build/Makefile $(pwd)/make.patch
+patch route/build/Makefile ${SRC_DIR}/make.patch
 
 
 cd $(pwd)/route/build
