@@ -9,7 +9,9 @@ export NCDF_PATH=${PREFIX}
 export EXE_PATH="${PREFIX}/bin"
 
 echo '------------------------------'
-echo $dirname
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+echo $DIR
+echo `ls $DIR`
 echo `ls`
 echo '------------------------------'
 
