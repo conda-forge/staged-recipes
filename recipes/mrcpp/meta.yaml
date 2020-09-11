@@ -3,16 +3,35 @@
 {% set sha256 = "6ab05bc760c5d4f3f2925c87a0db8eab3417d959c747b27bac7a2fe5d3d6f7d1" %}
 {% set build = 0 %}
 
-# ensure parallel is defined (needed for conda-smithy recipe-lint)
-{% set parallel = parallel or "serial" %}
-
+# recipe-lint fails if mpi is undefined
+{% set mpi = mpi or 'nompi' %}
+{% if mpi == "nompi" %}
 # prioritize shared-memory variant via build number
-{% if parallel == "openmp" %}
 {% set build = build + 100 %}
-{% elif parallel == "hybrid" %}
-{% set build = build + 50 %}
 {% endif %}
 # NOTE This means that the OpenMP build will be highest priority
+
+{% if mpi != "nompi" %}
+{% set mpi_prefix = "mpi_" + mpi %}
+{% else %}
+{% set mpi_prefix = "nompi" %}
+{% endif %}
+# add build string so packages can depend on
+# mpi or nompi variants
+# dependencies:
+# `mrcpp * mpi_mpich_*` for mpich
+# `mrcpp * mpi_*` for any mpi
+# `mrcpp * nompi_*` for no mpi
+
+# mpi builds require the right mpi
+# non-mpi builds *do not* appear to require non-mpi builds
+# at least not always
+
+{% if mpi != 'nompi' %}
+{% set build_pin = mpi_prefix + '_*' %}
+{% else %}
+{% set build_pin = '' %}
+{% endif %}
 
 package:
   name: {{ name|lower }}
@@ -26,14 +45,11 @@ build:
   number: {{ build }}
   skip: true  # [win]
   binary_relocation: true
-  {% set parallel_prefix = parallel %}
-  string: "{{ parallel_prefix }}_h{{ PKG_HASH }}_{{ build }}"
+  string: "{{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}"
   run_exports:
     - {{ pin_subpackage('mrcpp', max_pin='x.x') }}
-  {% if parallel != 'serial' %}
   run_exports:
-    - {{ name }} * {{ parallel_prefix }}_*
-  {% endif %}
+    - {{ name }} * {{ mpi_prefix }}_*
 
 requirements:
   build:
@@ -42,10 +58,10 @@ requirements:
     - {{ pin_compatible('eigen', max_pin='x.x') }}
   host:
     - eigen
-    - openmpi  # [parallel == 'hybrid']
+    - {{ mpi }}  # [mpi != 'nompi']
   run:
     - eigen
-    - openmpi  # [parallel == 'hybrid']
+    - {{ mpi }}  # [mpi != 'nompi']
 
 test:
   commands:
