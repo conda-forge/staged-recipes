@@ -1,0 +1,1 @@
+unset VCPKG_ROOT
