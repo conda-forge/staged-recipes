@@ -7,7 +7,7 @@ export EXE="route_runoff.exe"
 export MODE="fast"
 export NCDF_PATH=${PREFIX}
 export EXE_PATH="${PREFIX}/bin"
-patch route/build/Makefile make.patch
+patch route/build/Makefile $(pwd)/make.patch
 
 cd $(pwd)/route/build
 make -f Makefile
