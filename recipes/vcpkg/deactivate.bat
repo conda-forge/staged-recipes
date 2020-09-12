@@ -1,1 +1,0 @@
-SET VCPKG_ROOT=

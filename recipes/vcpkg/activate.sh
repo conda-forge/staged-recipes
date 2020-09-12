@@ -1,1 +1,0 @@
-export VCPKG_ROOT=${CONDA_PREFIX}/share/vcpkg/
