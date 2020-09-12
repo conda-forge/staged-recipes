@@ -8,7 +8,7 @@ export NCDF_PATH=${PREFIX}
 export EXE_PATH="${PREFIX}/bin"
 export FLAGS="-O3 -fmax-errors=0 -ffree-line-length-none"
 
-patch route/build/Makefile ${RECIPE_DIR}/make.patch
+#patch route/build/Makefile ${RECIPE_DIR}/make.patch
 
 cd $(pwd)/route/build
 make -f Makefile
