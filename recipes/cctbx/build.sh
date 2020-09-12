@@ -43,4 +43,4 @@ CCTBX_CONDA_BUILD=./modules/cctbx_project/libtbx/auto_build/conda_build
 # copy libtbx_env and update dispatchers
 echo Copying libtbx_env
 ./build/bin/libtbx.python ${CCTBX_CONDA_BUILD}/update_libtbx_env.py
-python ${CCTBX_CONDA_BUILD}/update_libtbx_env.py
+${PYTHON} ${CCTBX_CONDA_BUILD}/update_libtbx_env.py
