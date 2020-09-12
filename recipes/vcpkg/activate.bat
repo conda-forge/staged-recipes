@@ -1,0 +1,1 @@
+SET VCPKG_ROOT=%CONDA_PREFIX%\Library\share\vcpkg\
