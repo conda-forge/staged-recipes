@@ -2,7 +2,7 @@ REM copy bootstrap.py
 copy modules\cctbx_project\libtbx\auto_build\bootstrap.py .
 
 REM build
-python bootstrap.py build --builder=cctbx --use-conda %PREFIX% --nproc %CPU_COUNT% --config-flags="--no_bin_python"
+%PYTHON% bootstrap.py build --builder=cctbx --use-conda %PREFIX% --nproc %CPU_COUNT% --config-flags="--no_bin_python"
 cd build
 call .\bin\libtbx.configure cma_es crys3d fable rstbx spotinder
 call .\bin\libtbx.scons -j %CPU_COUNT%
@@ -32,4 +32,4 @@ call .\build\bin\libtbx.python %CCTBX_CONDA_BUILD%\install_build.py --prefix %LI
 REM copy libtbx_env and update dispatchers
 echo Copying libtbx_env
 call .\build\bin\libtbx.python %CCTBX_CONDA_BUILD%\update_libtbx_env.py
-call python %CCTBX_CONDA_BUILD%\update_libtbx_env.py
+%PYTHON% %CCTBX_CONDA_BUILD%\update_libtbx_env.py
