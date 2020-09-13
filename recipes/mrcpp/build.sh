@@ -24,7 +24,7 @@ cmake \
 
 # build
 cd build
-cmake --build . -- -j${CPU_COUNT}
+cmake --build . -- -j${CPU_COUNT} -v -d stats
 
 # test
 ctest -j${CPU_COUNT} --output-on-failure --verbose
