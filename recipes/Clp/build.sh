@@ -27,7 +27,4 @@ WITH_LAPACK_LIB="-L${PREFIX}/lib -llapack"
     --enable-gnu-packages
 
 make -j "${CPU_COUNT}"
-# if [ "${UNAME}" == "Linux" ]; then
-#   make test
-# fi
 make install

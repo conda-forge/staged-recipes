@@ -22,7 +22,4 @@ export OPENBLAS_NUM_THREADS=1
     --enable-gnu-packages
 
 make -j "${CPU_COUNT}"
-# if [ "${UNAME}" == "Linux" ]; then
-#   make test
-# fi
 make install

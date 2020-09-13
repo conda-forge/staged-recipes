@@ -26,7 +26,4 @@ WITH_LAPACK_LIB="-L${PREFIX}/lib -llapack"
     --with-lapack-lib="${WITH_LAPACK_LIB}" \
 
 make -j "${CPU_COUNT}"
-# if [ "${UNAME}" == "Linux" ]; then
-#   make test
-# fi
 make install

@@ -23,7 +23,4 @@ WITH_LAPACK_LIB="-L${PREFIX}/lib -llapack"
   || { echo "PRINTING CONFIG.LOG"; cat config.log; echo "PRINTING CoinUtils/CONFIG.LOG"; cat CoinUtils/config.log; exit 1; }
 make -j "${CPU_COUNT}"
 
-# if [ "${UNAME}" == "Linux" ]; then
-#   make test
-# fi
 make install
