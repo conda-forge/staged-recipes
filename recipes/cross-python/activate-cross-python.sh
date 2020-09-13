@@ -8,6 +8,6 @@ if [[ "${CONDA_BUILD:-0}" == "1" && "${CONDA_BUILD_STATE}" != "TEST" ]]; then
   cp $BUILD_PREFIX/venv/cross/bin/python $PREFIX/bin/python
   rm -rf $BUILD_PREFIX/venv/cross
   if [[ -f $PREFIX/lib/python$PY_VER/site-packages/numpy/distutils/site.cfg ]]; then
-    cp $PREFIX/lib/python$PY_VER/site-packages/numpy/distutils/site.cfg $BUILD_PREFIX/lib/python$PY_VER/site-packages/numpy/distutils/site.cfg
+    cp -rf $PREFIX/lib/python$PY_VER/site-packages/numpy $BUILD_PREFIX/lib/python$PY_VER/site-packages/numpy
   fi
 fi
