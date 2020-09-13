@@ -7,8 +7,8 @@ export MODE="fast"
 export NCDF_PATH=${PREFIX}
 export EXE_PATH="${PREFIX}/bin"
 export FLAGS="-O3 -fmax-errors=0 -ffree-line-length-none"
-export LIBNETCDF="-Wl,-rpath,$(NCDF_PATH)/lib -L$(NCDF_PATH)/lib -lnetcdff -lnetcdf"
-export INCNETCDF="-I$(NCDF_PATH)/include"
+export LIBNETCDF="-Wl,-rpath,${NCDF_PATH}/lib -L${NCDF_PATH}/lib -lnetcdff -lnetcdf"
+export INCNETCDF="-I${NCDF_PATH}/include"
 
 cd $(pwd)/route/build
 make -f Makefile
