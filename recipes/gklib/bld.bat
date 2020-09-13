@@ -9,8 +9,10 @@ cmake -LAH -G"NMake Makefiles" ^
     ..
 if errorlevel 1 exit 1
 
-cmake --build . --config "Release"
+:: Build!
+nmake
 if errorlevel 1 exit 1
 
-cmake --install .
+:: Install!
+nmake install
 if errorlevel 1 exit 1
