@@ -15,7 +15,8 @@ if __name__ == '__main__':
   lib_files = glob.glob('build/lib/*.dylib')
   test_files = glob.glob('build/**/tests/*', recursive=True) \
                + glob.glob('build/**/timing/*', recursive=True) \
-               + glob.glob('build/**/proto/*', recursive=True)
+               + glob.glob('build/**/proto/*', recursive=True) \
+               + glob.glob('build/**/boost_python/*.so', recursive=True)
   for ext_file in exe_dev_files + ext_files + lib_files + test_files:
     libraries = check_output(['otool', '-L', ext_file]).decode('utf8').split('\n')
     for line in libraries[1:]:
