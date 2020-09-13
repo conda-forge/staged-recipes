@@ -1,8 +1,8 @@
 mkdir build && cd build
 
-cmake -LAH -G"NMake Makefiles" ^
-    -DCMAKE_PREFIX_PATH="%PREFIX%" ^
-    -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
+cmake -G "NMake Makefiles" ^
+    -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
+    -DCMAKE_PREFIX_PATH:PATH="%LIBRARY_PREFIX%" ^
     -DDEBUG=OFF ^
     -DOPENMP=set ^
     -DBUILD_SHARED_LIBS=ON ^
