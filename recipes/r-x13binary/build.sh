@@ -63,15 +63,15 @@ if [[ $target_platform == osx-64 ]]; then
     for SHARED_LIB in lib/R/library/x13binary/lib/libquadmath.0.dylib lib/R/library/x13binary/lib/libgfortran.3.dylib; do
       ${INSTALL_NAME_TOOL} -change "@executable_path/../lib/libgcc_s.1.dylib" "${PREFIX}/lib/libgcc_s.1.dylib" ${SHARED_LIB}
     done
-    rm lib/R/library/x13binary/lib/libgcc_s.1.dylib
+#    rm lib/R/library/x13binary/lib/libgcc_s.1.dylib
 
   # .. and our libquadmath.0.dylib and libgfortran.3.dylib
   pushd "${PREFIX}"
     for EXE in lib/R/library/x13binary/bin/x13ashtml; do
       ${INSTALL_NAME_TOOL} -change "@executable_path/../lib/libgcc_s.1.dylib" "${PREFIX}/lib/libgcc_s.1.dylib" ${EXE}
-      ${INSTALL_NAME_TOOL} -change "@executable_path/../lib/libgfortran.3.dylib" "${PREFIX}/lib/libgfortran.3.dylib" ${EXE}
+#      ${INSTALL_NAME_TOOL} -change "@executable_path/../lib/libgfortran.3.dylib" "${PREFIX}/lib/libgfortran.3.dylib" ${EXE}
       ${INSTALL_NAME_TOOL} -change "@executable_path/../lib/libquadmath.0.dylib" "${PREFIX}/lib/libquadmath.0.dylib" ${EXE}
     done
-    rm lib/R/library/x13binary/lib/libquadmath.0.dylib
+#    rm lib/R/library/x13binary/lib/libquadmath.0.dylib
   popd
 fi
