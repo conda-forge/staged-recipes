@@ -38,8 +38,12 @@ else
 
   if [[ ${target_platform} == osx-64 ]]; then
     pushd $PREFIX
-      rm lib/R/library/x13binary/lib/libquadmath.0.dylib
+      for SHARED_LIB in lib/R/library/x13binary/lib/libquadmath.0.dylib lib/R/library/x13binary/lib/libgfortran.3.dylib; do
+        install_name_tool -change "@executable_path/../lib/libgcc_s.1.dylib" "${PREFIX}/lib/libgcc_s.1.dylib" ${SHARED_LIB}
+      done
       rm lib/R/library/x13binary/lib/libgcc_s.1.dylib
+
+    pushd $PREFIX
       for libdir in lib/R/lib lib/R/modules lib/R/library lib/R/bin/exec sysroot/usr/lib; do
         pushd $libdir || exit 1
           for SHARED_LIB in $(find . -type f -iname "*.dylib" -or -iname "*.so" -or -iname "R"); do
