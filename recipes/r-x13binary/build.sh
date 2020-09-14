@@ -33,6 +33,8 @@ else
 #fi
 
 
+  rm lib/R/library/x13binary/lib/libquadmath.0.dylib
+  rm lib/R/library/x13binary/lib/libgcc_s.1.dylib
 
 
   if [[ ${target_platform} == osx-64 ]]; then
