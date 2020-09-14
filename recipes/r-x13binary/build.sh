@@ -64,6 +64,7 @@ else
             install_name_tool -change /usr/lib/libc++.1.dylib "$PREFIX"/lib/libc++.1.dylib $SHARED_LIB || true
             install_name_tool -change /Library/Frameworks/R.framework/Versions/3.5/Resources/lib/libc++.1.dylib "$PREFIX"/lib/libc++.1.dylib $SHARED_LIB || true
           done
+          rm lib/R/library/x13binary/lib/libquadmath.0.dylib
         popd
       done
     popd
