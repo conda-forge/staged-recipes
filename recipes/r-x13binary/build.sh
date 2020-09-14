@@ -8,7 +8,7 @@ if [[ ${target_platform} =~ linux.* ]] || [[ ${target_platform} == win-32 ]] || 
 else
   mkdir -p "${PREFIX}"/lib/R/library/x13binary
   mv ./* "${PREFIX}"/lib/R/library/x13binary
-
+fi
 
 ##Use our libgcc_s.1.dylib
 if [[ $target_platform == osx-64 ]]; then
