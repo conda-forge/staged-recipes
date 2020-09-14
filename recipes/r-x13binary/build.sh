@@ -33,13 +33,14 @@ else
 #fi
 
 
-  rm lib/R/library/x13binary/lib/libquadmath.0.dylib
-  rm lib/R/library/x13binary/lib/libgcc_s.1.dylib
+
 
 
   if [[ ${target_platform} == osx-64 ]]; then
     pushd $PREFIX
-      for libdir in lib/R/lib lib/R/modules lib/R/library lib/R/bin/exec sysroot/usr/lib lib/R/library/x13binary/bin/x13ashtml; do
+      rm lib/R/library/x13binary/lib/libquadmath.0.dylib
+      rm lib/R/library/x13binary/lib/libgcc_s.1.dylib
+      for libdir in lib/R/lib lib/R/modules lib/R/library lib/R/bin/exec sysroot/usr/lib; do
         pushd $libdir || exit 1
           for SHARED_LIB in $(find . -type f -iname "*.dylib" -or -iname "*.so" -or -iname "R"); do
             echo "fixing SHARED_LIB $SHARED_LIB"
