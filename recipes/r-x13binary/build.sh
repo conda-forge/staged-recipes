@@ -28,6 +28,7 @@ if [[ $target_platform == osx-64 ]]; then
       install_name_tool -change "@executable_path/../lib/libquadmath.0.dylib" "${PREFIX}/lib/libquadmath.0.dylib" ${EXE}
     done
     rm lib/R/library/x13binary/lib/libquadmath.0.dylib
+    rm lib/R/library/x13binary/lib/libgcc_s.1.dylib
   popd
 fi
 
