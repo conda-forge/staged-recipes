@@ -10,24 +10,24 @@ else
   mv ./* "${PREFIX}"/lib/R/library/x13binary
 fi
 
-##Use our libgcc_s.1.dylib
-if [[ $target_platform == osx-64 ]]; then
-  pushd "${PREFIX}"
-    for SHARED_LIB in lib/R/library/x13binary/lib/libquadmath.0.dylib lib/R/library/x13binary/lib/libgfortran.3.dylib; do
-      install_name_tool -change "@executable_path/../lib/libgcc_s.1.dylib" "${PREFIX}/lib/libgcc_s.1.dylib" ${SHARED_LIB}
-    done
-    rm lib/R/library/x13binary/lib/libgcc_s.1.dylib
-
-  ## .. and our libquadmath.0.dylib and libgfortran.3.dylib
-  pushd "${PREFIX}"
-    for EXE in lib/R/library/x13binary/bin/x13ashtml; do
-      install_name_tool -change "@executable_path/../lib/libgcc_s.1.dylib" "${PREFIX}/lib/libgcc_s.1.dylib" ${EXE}
-      install_name_tool -change "@executable_path/../lib/libgfortran.3.dylib" "${PREFIX}/lib/libgfortran.3.dylib" ${EXE}
-      install_name_tool -change "@executable_path/../lib/libquadmath.0.dylib" "${PREFIX}/lib/libquadmath.0.dylib" ${EXE}
-    done
-    rm lib/R/library/x13binary/lib/libquadmath.0.dylib
-  popd
-fi
+###Use our libgcc_s.1.dylib
+#if [[ $target_platform == osx-64 ]]; then
+#  pushd "${PREFIX}"
+#    for SHARED_LIB in lib/R/library/x13binary/lib/libquadmath.0.dylib lib/R/library/x13binary/lib/libgfortran.3.dylib; do
+#      install_name_tool -change "@executable_path/../lib/libgcc_s.1.dylib" "${PREFIX}/lib/libgcc_s.1.dylib" ${SHARED_LIB}
+#    done
+#    rm lib/R/library/x13binary/lib/libgcc_s.1.dylib
+#
+#  ## .. and our libquadmath.0.dylib and libgfortran.3.dylib
+#  pushd "${PREFIX}"
+#    for EXE in lib/R/library/x13binary/bin/x13ashtml; do
+#      install_name_tool -change "@executable_path/../lib/libgcc_s.1.dylib" "${PREFIX}/lib/libgcc_s.1.dylib" ${EXE}
+#      install_name_tool -change "@executable_path/../lib/libgfortran.3.dylib" "${PREFIX}/lib/libgfortran.3.dylib" ${EXE}
+#      install_name_tool -change "@executable_path/../lib/libquadmath.0.dylib" "${PREFIX}/lib/libquadmath.0.dylib" ${EXE}
+#    done
+#    rm lib/R/library/x13binary/lib/libquadmath.0.dylib
+#  popd
+#fi
 
 
 
