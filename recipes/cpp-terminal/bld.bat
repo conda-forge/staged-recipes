@@ -3,6 +3,7 @@ cd build
 
 cmake .. ^
     %CMAKE_ARGS%  ^
-	-G "NMake Makefiles"
+    -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
+    -G "NMake Makefiles"
 
 nmake install
