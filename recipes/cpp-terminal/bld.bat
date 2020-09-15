@@ -10,4 +10,3 @@ cmake .. ^
 if errorlevel neq 0 exit 1
 
 nmake install
-if errorlevel neq 0 exit 1
