@@ -6,5 +6,5 @@ export CFLAGS="$CFLAGS -DHAVEDLL -DMYSTR1=8.0 -DMYSTR2=0"
 make CC=$CC CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" -j${CPU_COUNT}
 
 mkdir -p $PREFIX/bin
-install 755 xppaut $PREFIX/bin/.
+install xppaut $PREFIX/bin/.
 
