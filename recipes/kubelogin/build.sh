@@ -10,5 +10,4 @@ export GOBIN=$GOBIN
 
 go build -v -o ${target_gobin}${PKG_NAME}${target_goexe} -ldflags "$LDFLAGS"
 
-go get -v github.com/google/go-licenses
-$GOBIN/go-licenses save $SRC_DIR --save_path="$RECIPE_DIR/thirdparty_licenses/"
+go-licenses save $SRC_DIR --save_path="$RECIPE_DIR/thirdparty_licenses/"
