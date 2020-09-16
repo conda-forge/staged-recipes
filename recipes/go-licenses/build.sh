@@ -7,4 +7,4 @@ export GOBIN=$GOBIN
 
 go get -v github.com/google/go-licenses
 
-go-licenses save $SRC_DIR --save_path="$RECIPE_DIR/thirdparty_licenses/"
+$GOBIN/go-licenses save $SRC_DIR --save_path="$RECIPE_DIR/thirdparty_licenses/"
