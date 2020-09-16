@@ -1,4 +1,4 @@
 #!/bin/bash
 
-mkdir ${PREFIX}/include/half_float
-cp ${SRC_DIR}/include/half.hpp ${PREFIX}/include/half_float
+cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX ${SRC_DIR} -DCMAKE_INSTALL_LIBDIR=lib
+make install
