@@ -3,6 +3,11 @@
 # link bootstrap.py
 ln -s modules/cctbx_project/libtbx/auto_build/bootstrap.py
 
+# remove extra source code
+rm -fr ./modules/boost
+rm -fr ./modules/eigen
+rm -fr ./modules/scons
+
 # build
 ${PYTHON} bootstrap.py build --builder=cctbx --use-conda ${PREFIX} --nproc ${CPU_COUNT} \
   --config-flags="--compiler=conda" --config-flags="--use_environment_flags" \
