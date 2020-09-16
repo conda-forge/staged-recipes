@@ -6,7 +6,7 @@ CALL mvn process-resources
 CALL mvn package -DskipTests
 
 CD %SRC_DIR%\packaging\target\
-tar -xvf openrefine-win-%PKG_VERSION%.zip
+7z e openrefine-win-%PKG_VERSION%.zip
 if errorlevel 1 exit 1
 
 ROBOCOPY openrefine-%PKG_VERSION% %LIBRARY_PREFIX%\opt\openrefine /E
