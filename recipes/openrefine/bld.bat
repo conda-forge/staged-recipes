@@ -5,11 +5,9 @@ CALL mvn clean
 CALL mvn process-resources
 CALL mvn package -DskipTests
 
-CD %SRC_DIR%\packaging\target\
-7z e openrefine-win-%PKG_VERSION%.zip
+7za x %SRC_DIR%\packaging\target\openrefine-win-%PKG_VERSION%.zip -o%LIBRARY_PREFIX%\opt\
 if errorlevel 1 exit 1
 
-ROBOCOPY openrefine-%PKG_VERSION% %LIBRARY_PREFIX%\opt\openrefine /E
-ECHO CD %LIBRARY_PREFIX%\opt\openrefine\ > %LIBRARY_PREFIX%\bin\refine.bat
+ECHO CD %LIBRARY_PREFIX%\opt\openrefine-%PKG_VERSION%\ > %LIBRARY_PREFIX%\bin\refine.bat
 ECHO CALL refine.bat %%* >> %LIBRARY_PREFIX%\bin\refine.bat
 if errorlevel 1 exit 1
