@@ -1,6 +1,6 @@
 BUILD_TYPE="Release"
 
-if [[ ! -z "$mpi" && "$mpi" != "nompi" ]]; then
+if [ -n "$mpi" ] & [ "$mpi" != "nompi" ]; then
   export CXX=mpicxx
   MPI_SUPPORT=ON
 else
@@ -23,6 +23,11 @@ cmake \
 # build
 cd build
 cmake --build . -- -j${CPU_COUNT} -v -d stats
+
+# unset so we can run tests
+if [ "$(uname)" = "Linux" ]; then
+  export OMPI_MCA_plm_rsh_agent=""
+fi
 
 # test
 ctest -j${CPU_COUNT} --output-on-failure --verbose
