@@ -1,0 +1,116 @@
+From ca57e6586bb632f12007b3c103743abdcba2adc3 Mon Sep 17 00:00:00 2001
+From: Jim Pivarski <jpivarski@gmail.com>
+Date: Fri, 18 Sep 2020 07:56:03 -0500
+Subject: [PATCH 1/3] Change the Windows build following
+ https://github.com/conda-forge/staged-recipes/pull/12684/files#diff-4d5ada45354b5bb597c5bb127a4ae50a.
+
+---
+ setup.py | 12 +++++++-----
+ 1 file changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/setup.py b/setup.py
+index 57c7868fa..933e52140 100644
+--- a/setup.py
++++ b/setup.py
+@@ -67,14 +67,15 @@ def build_extension(self, ext):
+                 "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{0}={1}".format(cfg.upper(), extdir),
+                 "-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE",
+             ]
+-            if sys.maxsize > 2**32:
+-                cmake_args += ["-A", "x64"]
+-            build_args += ["--", "/m"]
++            # if sys.maxsize > 2**32:
++            #     cmake_args += ["-A", "x64"]
++            # build_args += ["--", "/m"]
+         else:
+             cmake_args += ["-DCMAKE_BUILD_TYPE=" + cfg]
+ 
+         if platform.system() == "Windows":
+-            build_args += ["/m"]
++            # build_args += ["/m"]
++            pass
+         else:
+             build_args += ["-j", str(multiprocessing.cpu_count())]
+ 
+@@ -116,7 +117,8 @@ def run(self):
+             tree(outerdir)
+ 
+             print("--- copying libraries -----------------------------------------")
+-            dlldir = os.path.join(os.path.join("build", "temp.%s-%d.%d" % (distutils.util.get_platform(), sys.version_info[0], sys.version_info[1])), "Release", "Release")
++            # dlldir = os.path.join(os.path.join("build", "temp.%s-%d.%d" % (distutils.util.get_platform(), sys.version_info[0], sys.version_info[1])), "Release", "Release")
++            dlldir = os.path.join(os.path.join("build", "temp.%s-%d.%d" % (distutils.util.get_platform(), sys.version_info[0], sys.version_info[1])), "Release")
+             for x in os.listdir(dlldir):
+                 if x.startswith("awkward"):
+                     print("copying", os.path.join(dlldir, x), "-->", os.path.join(self.build_lib, "awkward1", x))
+
+From 49de134593af9653535efd41645e4bd6bd873fd6 Mon Sep 17 00:00:00 2001
+From: Jim Pivarski <jpivarski@gmail.com>
+Date: Fri, 18 Sep 2020 08:12:06 -0500
+Subject: [PATCH 2/3] Put back the '-A x64' for 64-bit systems.
+
+---
+ setup.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/setup.py b/setup.py
+index 933e52140..6db73e4c1 100644
+--- a/setup.py
++++ b/setup.py
+@@ -67,8 +67,8 @@ def build_extension(self, ext):
+                 "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{0}={1}".format(cfg.upper(), extdir),
+                 "-DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE",
+             ]
+-            # if sys.maxsize > 2**32:
+-            #     cmake_args += ["-A", "x64"]
++            if sys.maxsize > 2**32:
++                cmake_args += ["-A", "x64"]
+             # build_args += ["--", "/m"]
+         else:
+             cmake_args += ["-DCMAKE_BUILD_TYPE=" + cfg]
+
+From 56b7561fd42f03554e7e41871f610c0a606adcc6 Mon Sep 17 00:00:00 2001
+From: Jim Pivarski <jpivarski@gmail.com>
+Date: Fri, 18 Sep 2020 08:44:43 -0500
+Subject: [PATCH 3/3] Go searching for those files at both levels.
+
+---
+ setup.py | 16 ++++++++++------
+ 1 file changed, 10 insertions(+), 6 deletions(-)
+
+diff --git a/setup.py b/setup.py
+index 6db73e4c1..eda24507c 100644
+--- a/setup.py
++++ b/setup.py
+@@ -72,11 +72,6 @@ def build_extension(self, ext):
+             # build_args += ["--", "/m"]
+         else:
+             cmake_args += ["-DCMAKE_BUILD_TYPE=" + cfg]
+-
+-        if platform.system() == "Windows":
+-            # build_args += ["/m"]
+-            pass
+-        else:
+             build_args += ["-j", str(multiprocessing.cpu_count())]
+ 
+         if not os.path.exists(self.build_temp):
+@@ -119,10 +114,19 @@ def run(self):
+             print("--- copying libraries -----------------------------------------")
+             # dlldir = os.path.join(os.path.join("build", "temp.%s-%d.%d" % (distutils.util.get_platform(), sys.version_info[0], sys.version_info[1])), "Release", "Release")
+             dlldir = os.path.join(os.path.join("build", "temp.%s-%d.%d" % (distutils.util.get_platform(), sys.version_info[0], sys.version_info[1])), "Release")
++            found = False
+             for x in os.listdir(dlldir):
+-                if x.startswith("awkward"):
++                if x.endswith(".lib") or x.endswith(".exp") or x.endswith(".dll"):
+                     print("copying", os.path.join(dlldir, x), "-->", os.path.join(self.build_lib, "awkward1", x))
+                     shutil.copyfile(os.path.join(dlldir, x), os.path.join(self.build_lib, "awkward1", x))
++                    found = True
++            if not found:
++                dlldir = os.path.join(dlldir, "Release")
++                for x in os.listdir(dlldir):
++                    if x.endswith(".lib") or x.endswith(".exp") or x.endswith(".dll"):
++                        print("copying", os.path.join(dlldir, x), "-->", os.path.join(self.build_lib, "awkward1", x))
++                        shutil.copyfile(os.path.join(dlldir, x), os.path.join(self.build_lib, "awkward1", x))
++                        found = True
+ 
+             print("--- deleting libraries ----------------------------------------")
+             for x in os.listdir(outerdir):
