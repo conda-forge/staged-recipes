@@ -3,6 +3,9 @@
 # link bootstrap.py
 ln -s modules/cctbx_project/libtbx/auto_build/bootstrap.py
 
+# copy LICENSE.txt to root
+cp modules/cctbx_project/LICENSE.txt .
+
 # remove extra source code
 rm -fr ./modules/boost
 rm -fr ./modules/eigen
@@ -26,6 +29,19 @@ rm -fr ./build/lib/cbflib*
 rm -fr ./modules/dxtbx
 rm -fr ./modules/cbflib
 ./build/bin/libtbx.python ${RECIPE_DIR}/clean_env.py
+
+# remove extra source files (C, C++, Fortran, CUDA)
+cd build
+find . -name "*.c" -type f -delete
+find . -name "*.cpp" -type f -delete
+find . -name "*.cu" -type f -delete
+find . -name "*.f" -type f -delete
+cd ../modules
+find . -name "*.c" -type f -delete
+find . -name "*.cpp" -type f -delete
+find . -name "*.cu" -type f -delete
+find . -name "*.f" -type f -delete
+cd ..
 
 # remove intermediate objects in build directory
 cd build

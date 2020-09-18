@@ -1,6 +1,9 @@
 REM copy bootstrap.py
 copy modules\cctbx_project\libtbx\auto_build\bootstrap.py .
 
+REM copy LICENSE.txt to root
+copy modules\cctbx_project\LICENSE.txt .
+
 REM remove extra source code
 rmdir /S /Q .\modules\boost
 rmdir /S /Q .\modules\eigen
@@ -22,6 +25,19 @@ del /S /Q .\build\lib\cbflib*
 rmdir /S /Q .\modules\dxtbx
 rmdir /S /Q .\modules\cbflib
 call .\build\bin\libtbx.python %RECIPE_DIR%\clean_env.py
+
+REM remove extra source files (C, C++, Fortran, CUDA)
+cd build
+del /S /Q *.c
+del /S /Q *.cpp
+del /S /Q *.cu
+del /S /Q *.f
+cd ..\modules
+del /S /Q *.c
+del /S /Q *.cpp
+del /S /Q *.cu
+del /S /Q *.f
+cd ..
 
 REM remove intermediate objects in build directory
 cd build
