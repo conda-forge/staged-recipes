@@ -21,8 +21,8 @@ cd ..
 # remove dxtbx and cbflib
 rm -fr ./build/*dxtbx*
 rm -fr ./build/*cbflib*
-rm -fr ./lib/dxtbx*
-rm -fr ./lib/cbflib*
+rm -fr ./build/lib/dxtbx*
+rm -fr ./build/lib/cbflib*
 rm -fr ./modules/dxtbx
 rm -fr ./modules/cbflib
 ./build/bin/libtbx.python ${RECIPE_DIR}/clean_env.py
