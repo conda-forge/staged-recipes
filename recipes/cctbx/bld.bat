@@ -10,7 +10,7 @@ rmdir /S /Q .\modules\eigen
 rmdir /S /Q .\modules\scons
 
 REM build
-%PYTHON% bootstrap.py build --builder=cctbx --use-conda %PREFIX% --nproc %CPU_COUNT% --config-flags="--enable_cxx11" --config-flags="--no_bin_python"
+%PYTHON% bootstrap.py build --builder=cctbx --use-conda %PREFIX% --nproc %CPU_COUNT% --config-flags="--enable_cxx11" --config-flags="--no_bin_python" --config-flags="--skip_phenix_dispatchers"
 cd build
 call .\bin\libtbx.configure cma_es crys3d fable rstbx spotinder
 call .\bin\libtbx.scons -j %CPU_COUNT%
