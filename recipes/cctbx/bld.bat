@@ -8,6 +8,7 @@ REM remove extra source code
 rmdir /S /Q .\modules\boost
 rmdir /S /Q .\modules\eigen
 rmdir /S /Q .\modules\scons
+del /Q .\modules\cctbx_project\libtbx\command_line\pytest_launcher.py
 
 REM build
 %PYTHON% bootstrap.py build --builder=cctbx --use-conda %PREFIX% --nproc %CPU_COUNT% --config-flags="--enable_cxx11" --config-flags="--no_bin_python" --config-flags="--skip_phenix_dispatchers"
@@ -54,3 +55,11 @@ REM copy libtbx_env and update dispatchers
 echo Copying libtbx_env
 call .\build\bin\libtbx.python %CCTBX_CONDA_BUILD%\update_libtbx_env.py
 %PYTHON% %CCTBX_CONDA_BUILD%\update_libtbx_env.py
+
+REM remove extra copies of dispatchers
+attrib +H %LIBRARY_BIN%\libtbx.show_build_path.bat
+attrib +H %LIBRARY_BIN%\libtbx.show_dist_paths.bat
+del /Q %LIBRARY_BIN%\*show_build_path.bat
+del /Q %LIBRARY_BIN%\*show_dist_paths.bat
+attrib -H %LIBRARY_BIN%\libtbx.show_build_path.bat
+attrib -H %LIBRARY_BIN%\libtbx.show_dist_paths.bat

@@ -10,6 +10,7 @@ cp modules/cctbx_project/LICENSE.txt .
 rm -fr ./modules/boost
 rm -fr ./modules/eigen
 rm -fr ./modules/scons
+rm -f ./modules/cctbx_project/libtbx/command_line/pytest_launcher.py
 
 # build
 ${PYTHON} bootstrap.py build --builder=cctbx --use-conda ${PREFIX} --nproc ${CPU_COUNT} \
@@ -66,3 +67,8 @@ CCTBX_CONDA_BUILD=./modules/cctbx_project/libtbx/auto_build/conda_build
 echo Copying libtbx_env
 ./build/bin/libtbx.python ${CCTBX_CONDA_BUILD}/update_libtbx_env.py
 ${PYTHON} ${CCTBX_CONDA_BUILD}/update_libtbx_env.py
+
+# remove extra copies of dispatchers
+echo Removing some duplicate dispatchers
+find ${PREFIX}/bin -name "*show_dist_paths" -not -name "libtbx.show_dist_paths" -type f -delete
+find ${PREFIX}/bin -name "*show_build_path" -not -name "libtbx.show_build_path" -type f -delete
