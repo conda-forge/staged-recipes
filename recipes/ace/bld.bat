@@ -15,7 +15,7 @@ echo %SLN_PLAT%
 
 REM Configure step
 cd %ACE_ROOT%
-perl %ACE_ROOT%\bin\mwc.pl -type vs2017 -features "uses_wchar=1,zlib=0,ssl=0,openssl11=0" %WORKSPACE%.mwc
+perl %ACE_ROOT%\bin\mwc.pl -type vs2017 -features "uses_wchar=1,zlib=0,ssl=0,openssl11=0,trio=0,xt=0,fl=0,fox=0,tk=0,qt=0,rapi=0,stlport=0,rwho=0" %WORKSPACE%.mwc
 
 REM Create config.h file
 echo #include "ace/config-windows.h" > %ACE_SOURCE_PATH%\config.h
