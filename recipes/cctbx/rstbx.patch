@@ -1,0 +1,260 @@
+diff --git a/modules/cctbx_project/rstbx/apps/stills/ersatz_nexus.cpp b/rstbx/apps/stills/ersatz_nexus.cpp
+deleted file mode 100644
+index 4e6f4fae83..0000000000
+--- a/modules/cctbx_project/rstbx/apps/stills/ersatz_nexus.cpp
++++ /dev/null
+@@ -1,199 +0,0 @@
+-#include "ersatz_nexus.h"
+-
+-ersatz_nexus::ersatz_nexus(const string & name)
+-{
+-  hid_t fapl;
+-
+-  fapl = H5Pcreate(H5P_FILE_ACCESS);
+-  H5Pset_fclose_degree(fapl, H5F_CLOSE_STRONG);
+-  fid = H5Fcreate(name.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, fapl);
+-  H5Pclose(fapl);
+-
+-  create_attribute(fid, "NXroot");
+-}
+-
+-ersatz_nexus::~ersatz_nexus()
+-{
+-  H5Fclose(fid);
+-  fid = 0;
+-}
+-
+-hid_t ersatz_nexus::create_group(const string & name)
+-{
+-  hid_t gid;
+-
+-  gid = H5Gcreate(fid, (char *) name.c_str(), H5P_DEFAULT, H5P_DEFAULT,
+-                  H5P_DEFAULT);
+-
+-  return gid;
+-}
+-
+-void ersatz_nexus::create_attribute(const hid_t gid,
+-                                    const string & name)
+-{
+-  hid_t atts, atttype, attid;
+-
+-  atts = H5Screate(H5S_SCALAR);
+-  atttype = H5Tcopy(H5T_C_S1);
+-  H5Tset_size(atttype, strlen(name.c_str()));
+-  attid = H5Acreate(gid, "NX_class", atttype, atts, H5P_DEFAULT, H5P_DEFAULT);
+-  H5Awrite(attid, atttype, (char *) name.c_str());
+-  H5Sclose(atts);
+-  H5Tclose(atttype);
+-  H5Aclose(attid);
+-}
+-
+-void ersatz_nexus::add_int_data(const hid_t gid,
+-                                const string & name,
+-                                const int rank,
+-                                const hsize_t * dimensions,
+-                                const int * data)
+-{
+-  hid_t datatype, dataspace, dataprop, dataid;
+-  hid_t atts, atttype, attid;
+-  int signal_flag;
+-
+-  dataspace = H5Screate_simple(rank, dimensions, dimensions);
+-  datatype = H5Tcopy(H5T_NATIVE_INT);
+-  dataprop = H5Pcreate(H5P_DATASET_CREATE);
+-  dataid = H5Dcreate(gid, (char *) name.c_str(), datatype, dataspace,
+-                     H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+-  H5Dwrite(dataid, datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+-  H5Sclose(dataspace);
+-  H5Tclose(datatype);
+-  H5Pclose(dataprop);
+-
+-  /* add the signal flag as value 1, no idea what this does */
+-
+-  atts = H5Screate(H5S_SCALAR);
+-  atttype = H5Tcopy(H5T_NATIVE_INT);
+-  H5Tset_size(atttype, 1);
+-  attid = H5Acreate(dataid, "signal", atttype, atts, H5P_DEFAULT, H5P_DEFAULT);
+-  signal_flag = 1;
+-  H5Awrite(attid, atttype, & signal_flag);
+-  H5Sclose(atts);
+-  H5Tclose(atttype);
+-  H5Aclose(attid);
+-  H5Dclose(dataid);
+-}
+-
+-void ersatz_nexus::add_double_data(const hid_t gid,
+-                                   const string & name,
+-                                   const int rank,
+-                                   const hsize_t * dimensions,
+-                                   const double * data,
+-                                   const bool signal)
+-{
+-  hid_t datatype, dataspace, dataprop, dataid;
+-  hid_t atts, atttype, attid;
+-  int signal_flag;
+-
+-  dataspace = H5Screate_simple(rank, dimensions, dimensions);
+-  datatype = H5Tcopy(H5T_NATIVE_DOUBLE);
+-  dataprop = H5Pcreate(H5P_DATASET_CREATE);
+-  dataid = H5Dcreate(gid, (char *) name.c_str(), datatype, dataspace,
+-                     H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+-  H5Dwrite(dataid, datatype, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+-  H5Sclose(dataspace);
+-  H5Tclose(datatype);
+-  H5Pclose(dataprop);
+-
+-  /* add the signal flag as value 1, no idea what this does */
+-
+-  if (signal) {
+-    atts = H5Screate(H5S_SCALAR);
+-    atttype = H5Tcopy(H5T_NATIVE_INT);
+-    H5Tset_size(atttype, 1);
+-    attid = H5Acreate(dataid, "signal", atttype, atts, H5P_DEFAULT, H5P_DEFAULT);
+-    signal_flag = 1;
+-    H5Awrite(attid, atttype, & signal_flag);
+-    H5Sclose(atts);
+-    H5Tclose(atttype);
+-    H5Aclose(attid);
+-  }
+-
+-  /* tell the interpreting program to do so as an image */
+-
+-  atts = H5Screate(H5S_SCALAR);
+-  atttype = H5Tcopy(H5T_C_S1);
+-  H5Tset_size(atttype, strlen("image"));
+-  attid = H5Acreate(dataid, "interpretation", atttype, atts,
+-                    H5P_DEFAULT, H5P_DEFAULT);
+-  H5Awrite(attid, atttype, (char *) "image");
+-  H5Sclose(atts);
+-  H5Tclose(atttype);
+-  H5Aclose(attid);
+-
+-  H5Dclose(dataid);
+-}
+-
+-string ersatz_nexus_file_name(const int index)
+-{
+-    ostringstream filename;
+-    filename << "ersatz_" << setfill('0') << setw(5) << index << ".nxs";
+-    return filename.rdbuf()->str();
+-}
+-
+-string group_name(const char * prefix,
+-                  const int & h,
+-                  const int & k,
+-                  const int & l)
+-{
+-    ostringstream group_name;
+-    group_name << prefix <<
+-      "(" << h <<
+-      "," << k <<
+-      "," << l << ")";
+-    return group_name.rdbuf()->str();
+-}
+-
+-int main_test(int argc,
+-              char ** argv)
+-{
+-  double * data;
+-  int i, j, k, rank, nx, ny;
+-  hid_t gid;
+-  hsize_t dim[2];
+-
+-  char data_name[100];
+-
+-  cout << ersatz_nexus_file_name(192) << endl;
+-  cout << group_name("group", 1, -2, 3) << endl;
+-
+-  /* really crappy error trapping */
+-  if (argc < 2) return 1;
+-
+-  ersatz_nexus en(argv[1]);
+-
+-  nx = 100;
+-  ny = 100;
+-
+-  data = (double *) malloc (sizeof(double) * nx * ny);
+-
+-  dim[0] = ny; dim[1] = nx;
+-  rank = 2;
+-
+-  gid = en.create_group("profile");
+-  en.create_attribute(gid, "NXentry");
+-
+-  for (k = 0; k < 100; k ++) {
+-    for (i = 0; i < ny; i++) {
+-      for (j = 0; j < nx; j++) {
+-        data[i * nx + j] = (i + j) % (k + 1);
+-      }
+-    }
+-
+-    sprintf(data_name, "/profile/peak%03d", k);
+-
+-    gid = en.create_group(data_name);
+-    en.create_attribute(gid, "NXdata");
+-
+-    sprintf(data_name, "data%03d", k);
+-
+-    en.add_double_data(gid, data_name, rank, dim, data, true);
+-  }
+-
+-  free(data);
+-
+-  return 0;
+-}
+diff --git a/modules/cctbx_project/rstbx/apps/stills/ersatz_nexus.h b/rstbx/apps/stills/ersatz_nexus.h
+deleted file mode 100644
+index aea463d99e..0000000000
+--- a/modules/cctbx_project/rstbx/apps/stills/ersatz_nexus.h
++++ /dev/null
+@@ -1,49 +0,0 @@
+-#ifndef ERSATZ_NEXUZ_H
+-#define ERSATZ_NEXUZ_H
+-
+-/*
+- * ersatz_nexus
+- *
+- * A c++ class to wrap up HDF5 calls to create a simple NeXus-compatible HDF5
+- * file.
+- *
+- */
+-
+-#include <string>
+-#include <iostream>
+-#include <sstream>
+-#include <iomanip>
+-#include <hdf5.h>
+-
+-using namespace std;
+-
+-class ersatz_nexus
+-{
+-private:
+-  hid_t fid;
+-public:
+-  ersatz_nexus(const string & name);
+-  ~ersatz_nexus();
+-  hid_t create_group(const string & name);
+-  void create_attribute(const hid_t gid,
+-                        const string & name);
+-  void add_int_data(const hid_t gid,
+-                    const string & name,
+-                    const int rank,
+-                    const hsize_t * dimensions,
+-                    const int * data);
+-  void add_double_data(const hid_t gid,
+-                       const string & name,
+-                       const int rank,
+-                       const hsize_t * dimensions,
+-                       const double * data,
+-                       const bool signal);
+-};
+-
+-string ersatz_nexus_file_name(const int index);
+-string group_name(const char * prefix,
+-                  const int & h,
+-                  const int & k,
+-                  const int & l);
+-
+-#endif

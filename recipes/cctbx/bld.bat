@@ -1,14 +1,10 @@
 REM copy bootstrap.py
 copy modules\cctbx_project\libtbx\auto_build\bootstrap.py .
 
-REM copy LICENSE.txt to root
-copy modules\cctbx_project\LICENSE.txt .
-
 REM remove extra source code
 rmdir /S /Q .\modules\boost
 rmdir /S /Q .\modules\eigen
 rmdir /S /Q .\modules\scons
-del /Q .\modules\cctbx_project\libtbx\command_line\pytest_launcher.py
 
 REM build
 %PYTHON% bootstrap.py build --builder=cctbx --use-conda %PREFIX% --nproc %CPU_COUNT% --config-flags="--enable_cxx11" --config-flags="--no_bin_python" --config-flags="--skip_phenix_dispatchers"
@@ -19,9 +15,7 @@ call .\bin\libtbx.scons -j %CPU_COUNT%
 cd ..
 
 REM remove dxtbx and cbflib
-del /S /Q .\build\*dxtbx*
 del /S /Q .\build\*cbflib*
-del /S /Q .\build\lib\dxtbx*
 del /S /Q .\build\lib\cbflib*
 rmdir /S /Q .\modules\dxtbx
 rmdir /S /Q .\modules\cbflib

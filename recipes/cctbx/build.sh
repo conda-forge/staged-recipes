@@ -3,14 +3,10 @@
 # link bootstrap.py
 ln -s modules/cctbx_project/libtbx/auto_build/bootstrap.py
 
-# copy LICENSE.txt to root
-cp modules/cctbx_project/LICENSE.txt .
-
 # remove extra source code
 rm -fr ./modules/boost
 rm -fr ./modules/eigen
 rm -fr ./modules/scons
-rm -f ./modules/cctbx_project/libtbx/command_line/pytest_launcher.py
 
 # build
 ${PYTHON} bootstrap.py build --builder=cctbx --use-conda ${PREFIX} --nproc ${CPU_COUNT} \
@@ -24,9 +20,7 @@ cd build
 cd ..
 
 # remove dxtbx and cbflib
-rm -fr ./build/*dxtbx*
 rm -fr ./build/*cbflib*
-rm -fr ./build/lib/dxtbx*
 rm -fr ./build/lib/cbflib*
 rm -fr ./modules/dxtbx
 rm -fr ./modules/cbflib
