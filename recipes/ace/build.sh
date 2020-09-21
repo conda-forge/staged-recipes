@@ -6,6 +6,7 @@ export ACE_ROOT=${SRC_DIR}
 export ACE_SOURCE_PATH=${ACE_ROOT}/ace
 export WORKSPACE=${ACE_ROOT}/ace/ace
 export INSTALL_PREFIX=$PREFIX
+export PERL_PATH=$CONDA_PREFIX/bin/perl
 
 # Configure step
 cd ${ACE_ROOT}
