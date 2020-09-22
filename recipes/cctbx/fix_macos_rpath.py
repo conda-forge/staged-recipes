@@ -28,6 +28,6 @@ if __name__ == '__main__':
         elif lib.startswith('@rpath/lib/'):
           new_lib = os.path.join('@rpath', lib.split('/')[2])
         if new_lib is not None:
-          cmd = ['install_name_tool', '-change', lib, new_lib, ext_file]
+          cmd = [os.environ["INSTALL_NAME_TOOL"], '-change', lib, new_lib, ext_file]
           print(' '.join(cmd))
           output = check_output(cmd)
