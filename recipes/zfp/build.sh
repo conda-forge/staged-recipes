@@ -4,14 +4,6 @@ mkdir build
 cd build
 
 
-declare -a CMAKE_PLATFORM_FLAGS
-if [[ ${target_platform} =~ osx.* ]]; then
-    CMAKE_PLATFORM_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-osx.cmake")
-elif [[ ${target_platform} =~ linux.* ]]; then
-    CMAKE_PLATFORM_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
-fi
-
-
 # find out toolchain C++ standard
 CXX_STANDARD=11
 CXX_EXTENSIONS=OFF
@@ -38,7 +30,6 @@ cmake \
     -DCMAKE_CXX_EXTENSIONS=${CXX_EXTENSIONS}  \
     -DCMAKE_INSTALL_LIBDIR=lib        \
     -DCMAKE_INSTALL_PREFIX=${PREFIX}  \
-    ${CMAKE_PLATFORM_FLAGS[@]}        \
     ${SRC_DIR}
 
 make ${VERBOSE_CM} -j${CPU_COUNT}
