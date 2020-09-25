@@ -11,9 +11,9 @@ fi
 
 mkdir build && cd build
 
-# Compute sitepackage dir relative to install prefix
+# Strip install prefix (and '/') to compute relative $SP_DIR
 # Remove after backporting https://github.com/pyre/pyre/pull/60
-relpath(){ $PYTHON -c "import os.path; print(os.path.relpath('$1','$2'))"; }
+relpath(){ $PYTHON -c "print('$1'[len('$2')+1:])"; }
 pypkgrel=$(relpath $SP_DIR $PREFIX)
 
 # BUILD_TESTING=y enables pyre's test suite
