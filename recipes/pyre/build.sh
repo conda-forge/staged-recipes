@@ -18,13 +18,15 @@ pypkgrel=$(relpath $SP_DIR $PREFIX)
 
 # BUILD_TESTING=y enables pyre's test suite
 # Remove after merging https://github.com/pyre/pyre/pull/60
+# Override LIBDIR from GNUInstallDirs - would be lib64 on centos
+# Specify $PYTHON to avoid using system python
 cmake \
     -DBUILD_TESTING=y \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_LIBDIR=lib `# Override GNUInstallDirs - would be lib64` \
+    -DCMAKE_INSTALL_LIBDIR=lib \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DPYRE_DEST_PACKAGES=$pypkgrel \
-    -DPython3_EXECUTABLE=$PYTHON `# Avoid using system python` \
+    -DPython3_EXECUTABLE=$PYTHON \
     $SRC_DIR
 
 cmake --build . --target install
