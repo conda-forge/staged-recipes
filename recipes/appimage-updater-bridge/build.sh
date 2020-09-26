@@ -9,6 +9,3 @@ cmake -G "Ninja" \
       ..
 
 ninja install
-
-cd ../tests
-bash start_test.sh
