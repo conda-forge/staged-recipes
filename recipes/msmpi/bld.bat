@@ -1,3 +1,5 @@
 #
 # msmpi build commands
 #
+
+msbuild
