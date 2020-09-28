@@ -1,5 +1,1 @@
-#
-# msmpi build commands
-#
-
 msbuild
