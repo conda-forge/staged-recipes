@@ -2,6 +2,9 @@
 
 ./configure --prefix="${PREFIX}" --enable-strip
 
-make "-j${CPU_COUNT}" LDFLAGS="${LDFLAGS}" check
+# Building with multiple cores fails but the build is fast so it doesn't matter
+make LDFLAGS="${LDFLAGS}"
 
-make "-j${CPU_COUNT}" LDFLAGS="${LDFLAGS}" install
+make LDFLAGS="${LDFLAGS}" check
+
+make LDFLAGS="${LDFLAGS}" install
