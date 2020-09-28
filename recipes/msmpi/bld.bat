@@ -1,0 +1,3 @@
+#
+# msmpi build commands
+#
