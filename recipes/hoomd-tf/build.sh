@@ -2,6 +2,6 @@
 
 # Build
 mkdir build && cd build
-CXX=g++ CC=gcc cmake ..
+cmake ..
 make install
 cd ..
