@@ -29,7 +29,7 @@ cmake \
     -DPython3_EXECUTABLE=$PYTHON \
     $SRC_DIR
 
-cmake --build . --target install
+cmake --build . --target install -j${CPU_COUNT}
 
 # Disable TCP test on Docker
 # Reenable locale_codec after resolving https://github.com/pyre/pyre/issues/65
