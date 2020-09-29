@@ -3,7 +3,7 @@ import os
 from PySide2 import QtCore
 
 loader = QtCore.QPluginLoader()
-loader.setFileName("{}/plugins/libAppImageUpdaterBridge.so".format(os.environ["PREFIX"]))
+loader.setFileName("libAppImageUpdaterBridge"))
 loaded = loader.load()
 print("plugin loaded: {}".format(loaded))
 if not loaded:
