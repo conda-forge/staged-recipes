@@ -1,14 +1,18 @@
-{% set version = "1.40.0" %}
+{% set version = "1.46.0" %}
+
+{% if cross_target_platform is undefined %}
+{% set cross_target_platform="linux-64" %}
+{% endif %}
 
 package:
-  name: rust_{{ target_platform }}-suite
+  name: rust-activation
   version: {{ version }}
 
 build:
-  number: 1
+  number: 0
 
 outputs:
-  - name: rust_{{ target_platform }}
+  - name: rust_{{ cross_target_platform }}
     script: build.sh  # [unix]
     script: bld.bat  # [win]
     build:  # [win and int(float(vc)) != 14]
@@ -16,8 +20,15 @@ outputs:
     requirements:
       run:
         - rust >={{ version }}
-        - {{ compiler('c') }}
-        - {{ compiler('cxx') }}
+        - rust-std-{{ rust_arch }}
+{% if cross_target_platform.startswith("linux") %}
+        - gcc_{{ cross_target_platform }}
+{% elif cross_target_platform.startswith("osx") %}
+        - clang_{{ cross_target_platform }}
+{% elif cross_target_platform.startswith("win") %}
+        - clang_{{ cross_target_platform }}    # [unix]
+        - vs2017_{{ cross_target_platform }}   # [win]
+{% endif %}
     test:
       files:
         - forge_test.sh  # [not win]
