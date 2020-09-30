@@ -5,9 +5,8 @@ set PATH=%CARGO_HOME%\bin:%PATH%
 
 if not exist "%CARGO_HOME%" mkdir "%CARGO_HOME%"
 
-echo [target.x86_64-pc-windows-msvc]> %CARGO_CONFIG%
 if [%LD%] == [] (
-    echo linker = "link.exe">> %CARGO_CONFIG%
+    set "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=link.exe"
 ) else (
-    echo linker = "%LD%">> %CARGO_CONFIG%
+    set "CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER=%LD%"
 )
