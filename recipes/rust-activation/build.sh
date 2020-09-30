@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 mkdir -p ${PREFIX}/etc/conda/{de,}activate.d
 cp "${RECIPE_DIR}"/activate.sh activate.sh
 sed -i.bak "s/@rust_arch@/$rust_arch/g" activate.sh
