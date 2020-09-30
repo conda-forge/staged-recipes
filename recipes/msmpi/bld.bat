@@ -6,6 +6,12 @@ if "%ARCH%"=="32" (
 
 msbuild.exe /p:Platform=%PLATFORM% /p:Configuration=Release
 
-robocopy %SRC_DIR%\out\Release-%PLATFORM%\ %LIBRARY_PREFIX%\ *.* /s /e
+robocopy %SRC_DIR%\out\Release-%PLATFORM%\ %LIBRARY_BIN%\ *.exe /s /e
+robocopy %SRC_DIR%\out\Release-%PLATFORM%\ %LIBRARY_BIN%\ *.dll /s /e
+
+robocopy %SRC_DIR%\out\Release-%PLATFORM%\ %LIBRARY_INC%\ *.h /s /e
+robocopy %SRC_DIR%\out\Release-%PLATFORM%\ %LIBRARY_INC%\ *.f /s /e
+
+robocopy %SRC_DIR%\out\Release-%PLATFORM%\ %LIBRARY_LIB%\ *.lib /s /e
 
 dir /s /b
