@@ -18,7 +18,11 @@ copy %SRC_DIR%\out\Release-x64\bin\sdk\inc\mspms.h %LIBRARY_INC%\mspms.h
 copy %SRC_DIR%\out\Release-x64\bin\sdk\inc\pmidbg.h %LIBRARY_INC%\pmidbg.h
 copy %SRC_DIR%\out\Release-x64\bin\sdk\inc\x64\mpifptr.h %LIBRARY_INC%\mpifptr.h
 
-robocopy %SRC_DIR%\out\Release-%PLATFORM%\bin\ %LIBRARY_LIB%\ *.lib /s /e
+copy %SRC_DIR%\out\Release-x64\bin\sdk\lib\msmpi.lib %LIBRARY_LIB%\msmpi.lib
+copy %SRC_DIR%\out\Release-x64\bin\sdk\lib\msmpifec.lib %LIBRARY_LIB%\msmpifec.lib
+copy %SRC_DIR%\out\Release-x64\bin\sdk\lib\msmpifes.lib %LIBRARY_LIB%\msmpifes.lib
+copy %SRC_DIR%\out\Release-x64\bin\sdk\lib\msmpifmc.lib %LIBRARY_LIB%\msmpifmc.lib
+copy %SRC_DIR%\out\Release-x64\bin\sdk\lib\msmpifms.lib %LIBRARY_LIB%\msmpifms.lib
 
 dir /s /b
 
