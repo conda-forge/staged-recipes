@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-export CARGO_HOME=${CONDA_PREFIX}/.cargo.$(uname)
+export CARGO_HOME=${CONDA_PREFIX}/.cargo
 export CARGO_CONFIG=${CARGO_HOME}/config
 export RUSTUP_HOME=${CARGO_HOME}/rustup
 
