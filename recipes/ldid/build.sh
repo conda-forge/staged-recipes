@@ -4,7 +4,6 @@ set -e
 
 if [[ "$target_platform" == osx* ]]; then
   rm $PREFIX/lib/libcrypto.dylib
-  rm $PREFIX/lib/libc++.*dylib
 fi
 
 $CXX $CXXFLAGS -I. -O3 -g0 -DLDID_NOSMIME -DLDID_NOPLIST -c -o ldid.o ldid.cpp
