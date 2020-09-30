@@ -1,0 +1,86 @@
+{% set version = "1.46.0" %}
+
+{% if cross_target_platform is undefined %}
+{% set cross_target_platform = "foo" %}
+{% endif %}
+
+package:
+  name: rust-activation
+  version: {{ version }}
+
+build:
+  number: 0
+
+outputs:
+  - name: rust_{{ cross_target_platform }}
+    script: build.sh  # [unix]
+    script: bld.bat  # [win]
+    build:
+      skip: True  # [win and vc<14]
+      # TODO: remove this in the feedstock
+      skip: True  # [cross_target_platform == "osx-64" and linux]
+      # TODO: need more work to pass the LDFLAGS and need to use clang-cl
+      skip: True  # [cross_target_platform == "win-64" and unix]
+    requirements:
+      host:
+        - rust-std-{{ rust_arch }}
+      run:
+        - rust {{ version }}.*
+        - rust-std-{{ rust_arch }}  {{ version }}.*
+{% if cross_target_platform.startswith("linux") %}
+        - gcc_{{ cross_target_platform }}
+{% elif cross_target_platform.startswith("osx") %}
+        - clang_{{ cross_target_platform }}
+{% elif cross_target_platform.startswith("win") %}
+        - clang_{{ cross_target_platform }}    # [unix]
+        - vs2017_{{ cross_target_platform }}   # [win]
+{% endif %}
+    test:
+      commands:
+        - set "REQUESTS_CA_BUNDLE="  # [win]
+        - set "SSL_CERT_FILE="       # [win]
+        - unset REQUESTS_CA_BUNDLE  # [unix]
+        - unset SSL_CERT_FILE       # [unix]
+        - rustc --help
+        - rustdoc --help
+        - cargo --help
+        - cargo install --force xsv
+        - file $PREFIX/.cargo/bin/xsv | grep "Mach-O 64-bit executable x86_64"  # [unix and cross_target_platform == "osx-64"]
+        - file $PREFIX/.cargo/bin/xsv | grep "ELF 64-bit LSB shared object, x86-64"  # [unix and cross_target_platform == "linux-64"]
+
+  - name: rust-gnu_{{ target_platform }}
+    script: bld.bat
+    build:
+      skip: True  # [not win]
+    requirements:
+      run:
+        - rust-gnu  {{ version }}.*
+        - m2w64-toolchain
+    test:
+      commands:
+        - set "REQUESTS_CA_BUNDLE="  # [win]
+        - set "SSL_CERT_FILE="       # [win]
+        - unset REQUESTS_CA_BUNDLE  # [unix]
+        - unset SSL_CERT_FILE       # [unix]
+        - rustc --help
+        - rustdoc --help
+        - cargo --help
+        - cargo install --force xsv
+
+about:
+  home: https://www.rust-lang.org
+  summary: A safe systems programming language (conda activation scripts)
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE.txt
+  description: |
+    Rust is a systems programming language that runs blazingly fast,
+    prevents segfaults, and guarantees thread safety.
+  doc_url: https://doc.rust-lang.org/
+  doc_source_url: https://github.com/rust-lang/rust/tree/master/src/doc
+  dev_url: https://github.com/rust-lang
+
+extra:
+  recipe-maintainers:
+    - mingwandroid
+    - isuruf
