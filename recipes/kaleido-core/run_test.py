@@ -11,7 +11,7 @@ if platform.system == "Linux":
 if platform.system == "Windows":
     ext = ".cmd"
 else:
-    ext = ".sh"
+    ext = ""
 
 p = Popen(
     ['kaleido' + ext, "plotly", "--disable-gpu"],
