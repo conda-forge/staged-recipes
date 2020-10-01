@@ -22,4 +22,4 @@ p = Popen(
 stdout_data = p.communicate(
     input=json.dumps({"data": {"data": []}, "format": "png"})
 )[0]
-assert "iVBOrw" in stdout_data
+assert "iVBORw" in stdout_data
