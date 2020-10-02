@@ -14,13 +14,18 @@ perl ${ACE_ROOT}/bin/mwc.pl -type gnuace -features "uses_wchar=1,zlib=0,ssl=0,op
 
 if [[ $target_platform == osx* ]]
 then
+  echo "Detected OS X"
   printf "#include \"ace/config-macosx.h\"" > ${ACE_SOURCE_PATH}/config.h
   printf "include ${ACE_ROOT}/include/makeinclude/platform_macosx.GNU" > ${ACE_ROOT}/include/makeinclude/platform_macros.GNU
 else
-  ln -s $(which perl) /usr/bin/perl
+  echo "Detected Linux"
   printf "#include \"ace/config-linux.h\"" > ${ACE_SOURCE_PATH}/config.h
-  printf "include ${ACE_ROOT}/include/makeinclude/platform_linux.GNU" > ${ACE_ROOT}/include/makeinclude/platform_macros.GNU
+  printf "INSTALLER = perl $(MPC_ROOT)/prj_install.pl" > ${ACE_ROOT}/include/makeinclude/platform_macros.GNU
+  printf "include ${ACE_ROOT}/include/makeinclude/platform_linux.GNU" >> ${ACE_ROOT}/include/makeinclude/platform_macros.GNU
 fi
+
+cat ${ACE_SOURCE_PATH}/config.h
+cat ${ACE_ROOT}/include/makeinclude/platform_macros.GNU
 
 # Build step
 cd ${ACE_SOURCE_PATH}
