@@ -20,7 +20,7 @@ then
 else
   echo "Detected Linux"
   printf "#include \"ace/config-linux.h\"" > ${ACE_SOURCE_PATH}/config.h
-  printf "include ${ACE_ROOT}/include/makeinclude/platform_linux.GNU" > ${ACE_ROOT}/include/makeinclude/platform_macros.GNU
+  printf "include $(ACE_ROOT)/include/makeinclude/platform_linux.GNU" > ${ACE_ROOT}/include/makeinclude/platform_macros.GNU
 fi
 
 cat ${ACE_SOURCE_PATH}/config.h
@@ -38,6 +38,5 @@ make -j${CPU_COUNT}
 make install
 
 export BUILD=${ACE_BUILD_ENV_BACKUP}
-
 
 
