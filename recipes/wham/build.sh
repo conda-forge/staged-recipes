@@ -7,3 +7,4 @@ make
 cd ../wham-2d
 make clean
 make
+cd ..
