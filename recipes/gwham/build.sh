@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd "${PKG_NAME}_${PKG_VERSION}"
+cd "wham_${PKG_VERSION}"
 cd wham
 make clean
 make
