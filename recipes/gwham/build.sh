@@ -8,3 +8,4 @@ cd ../wham-2d
 make clean
 make
 cd ..
+echo $PWD
