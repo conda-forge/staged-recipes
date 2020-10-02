@@ -2,10 +2,12 @@
 mkdir -p $PREFIX/bin
 cd "wham_${PKG_VERSION}"
 cd wham
-make clean
+# Use the given $(CC)
+sed 's/CC=gcc//g' Makefile > Makefile
 make
 mv wham $PREFIX/bin
 cd ../wham-2d
-make clean
+# Use the given $(CC)
+sed 's/CC=gcc//g' Makefile > Makefile
 make
 mv wham-2d $PREFIX/bin
