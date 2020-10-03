@@ -15,7 +15,7 @@ perl $ACE_ROOT/bin/mwc.pl -type gnuace -features "uses_wchar=1,zlib=0,ssl=0,open
 if [[ $target_platform == osx* ]]
 then
   echo "Detected OS X"
-  export MACOSX_DEPLOYMENT_TARGET=10.14
+  sw_vers -productVersion
   echo -e "#include \"ace/config-macosx.h\"" > $ACE_SOURCE_PATH/config.h
   echo -e "include \$(ACE_ROOT)/include/makeinclude/platform_macosx.GNU" > $ACE_ROOT/include/makeinclude/platform_macros.GNU
 else
