@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Installation following the instructions in 
+# Installation following the instructions in
 # https://htmlpreview.github.io/?https://github.com/DOCGroup/ACE_TAO/blob/master/ACE/ACE-INSTALL.html#unix
 export ACE_ROOT=${SRC_DIR}
 export ACE_SOURCE_PATH=${ACE_ROOT}/ace
@@ -15,20 +15,22 @@ perl ${ACE_ROOT}/bin/mwc.pl -type gnuace -features "uses_wchar=1,zlib=0,ssl=0,op
 if [[ $target_platform == osx* ]]
 then
   echo "Detected OS X"
-  printf "#include \"ace/config-macosx.h\"" > ${ACE_SOURCE_PATH}/config.h
-  printf "include ${ACE_ROOT}/include/makeinclude/platform_macosx.GNU" > ${ACE_ROOT}/include/makeinclude/platform_macros.GNU
+  echo -e "#include \"ace/config-macosx.h\"" > $(ACE_SOURCE_PATH)/config.h
+  echo -e "include \$(ACE_ROOT)/include/makeinclude/platform_macosx.GNU" > $ACE_ROOT/include/makeinclude/platform_macros.GNU
 else
   echo "Detected Linux"
-  printf "#include \"ace/config-linux.h\"" > ${ACE_SOURCE_PATH}/config.h
-  printf "include $(ACE_ROOT)/include/makeinclude/platform_linux.GNU" > ${ACE_ROOT}/include/makeinclude/platform_macros.GNU
+  echo -e "#include \"ace/config-linux.h\"" > $(ACE_SOURCE_PATH)/config.h
+  echo -e "include \$(ACE_ROOT)/include/makeinclude/platform_linux.GNU" > ${ACE_ROOT}/include/makeinclude/platform_macros.GNU
 fi
 
+echo "config.h"
 cat ${ACE_SOURCE_PATH}/config.h
+echo "platform_macros.GNU"
 cat ${ACE_ROOT}/include/makeinclude/platform_macros.GNU
 
 # Build step
 cd ${ACE_SOURCE_PATH}
-# The BUILD enviroment variable set by conda script conflict with the ACE's makefile,
+# The BUILD environment variable set by conda script conflict with the ACE's makefile,
 # so we set it to an empty value just to run make and make install
 export ACE_BUILD_ENV_BACKUP=${BUILD}
 export BUILD=
