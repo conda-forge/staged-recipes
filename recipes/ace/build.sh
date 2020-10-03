@@ -9,8 +9,8 @@ export INSTALL_PREFIX=$PREFIX
 export PERL_PATH=$CONDA_PREFIX/bin/perl
 
 # Configure step
-cd ${ACE_ROOT}
-perl ${ACE_ROOT}/bin/mwc.pl -type gnuace -features "uses_wchar=1,zlib=0,ssl=0,openssl11=0,trio=0,xt=0,fl=0,fox=0,tk=0,qt=0,rapi=0,stlport=0,rwho=0" ${WORKSPACE}.mwc
+cd $ACE_ROOT
+perl $ACE_ROOT/bin/mwc.pl -type gnuace -features "uses_wchar=1,zlib=0,ssl=0,openssl11=0,trio=0,xt=0,fl=0,fox=0,tk=0,qt=0,rapi=0,stlport=0,rwho=0" $WORKSPACE.mwc
 
 if [[ $target_platform == osx* ]]
 then
@@ -24,9 +24,9 @@ else
 fi
 
 echo "config.h"
-cat ${ACE_SOURCE_PATH}/config.h
+cat $ACE_SOURCE_PATH/config.h
 echo "platform_macros.GNU"
-cat ${ACE_ROOT}/include/makeinclude/platform_macros.GNU
+cat $ACE_ROOT/include/makeinclude/platform_macros.GNU
 
 # Build step
 cd ${ACE_SOURCE_PATH}
