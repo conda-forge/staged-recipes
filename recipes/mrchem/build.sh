@@ -1,4 +1,6 @@
 BUILD_TYPE="Release"
+CXXFLAGS="${CXXFLAGS//-march=nocona}"
+CXXFLAGS="${CXXFLAGS//-mtune=haswell}"
 
 if [ -n "$mpi" ] & [ "$mpi" != "nompi" ]; then
   export CXX=mpicxx
@@ -16,6 +18,7 @@ cmake \
   -DCMAKE_INSTALL_PREFIX=${PREFIX} \
   -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
   -DENABLE_OPENMP=ON \
+  -DENABLE_ARCH_FLAGS=OFF \
   -DENABLE_MPI=${MPI_SUPPORT} \
   -DCMAKE_CXX_COMPILER=${CXX} \
   -DCMAKE_INSTALL_LIBDIR="lib" \
