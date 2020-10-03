@@ -17,7 +17,7 @@ then
   echo "Detected OS X"
   sw_vers -productVersion
   echo -e "#include \"ace/config-macosx-mavericks.h\"" > $ACE_SOURCE_PATH/config.h
-  echo -e "include \$(ACE_ROOT)/include/makeinclude/platform_macosx_mavericks.GNU" > $ACE_ROOT/include/makeinclude/platform_macros.GNU
+  echo -e "include \$(ACE_ROOT)/include/makeinclude/platform_macosx_yosemite.GNU" > $ACE_ROOT/include/makeinclude/platform_macros.GNU
 else
   echo "Detected Linux"
   echo -e "#include \"ace/config-linux.h\"" > $ACE_SOURCE_PATH/config.h
