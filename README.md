@@ -131,11 +131,11 @@ If your PR is passing all checks, but has not been acted on by the staged recipe
 maintainers, you can ping @conda-forge/staged-recipes to request action. You do
 not need to wait any specific amount of time once the recipe is ready to go.
 
-If your recipe still does not receive any attention after a few days, you may
+If your recipe still does not recieve any attention after a few days, you may
 attempt to re-ping @conda-forge/staged-recipes. You may also attempt to bring
 the PR up in our Gitter chat room at https://gitter.im/conda-forge/conda-forge.github.io
 
-All apologies in advance if your recipe PR does not receive prompt attention.
+All apologies in advance if your recipe PR does not recieve prompt attention.
 This is a high volume repository and issues can easily be missed. We are always
 looking for more staged-recipe reviewers. If you are interested in volunteering,
 please contact a member of @conda-forge/core. We'd love to have the help!
