@@ -1,4 +1,4 @@
-DAQlib_variadic
+import sys
 
 
 class Fake:
