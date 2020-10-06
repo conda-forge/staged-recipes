@@ -1,0 +1,87 @@
+{% set version = "5.45.4" %}
+
+package:
+  name: expect
+  version: {{ version }}
+
+source:
+  url: https://downloads.sourceforge.net/expect/expect{{ version }}.tar.gz
+  sha256: 49a7da83b0bdd9f46d04a04deec19c7767bb9a323e40c4781f89caf760b92c34
+  # https://src.fedoraproject.org/rpms/expect/blob/master/f/expect.spec
+  patches:
+    # Patch0: fixes change log file permissions
+    - patches/expect-5.43.0-log_file.patch
+    # Patch1: fixes install location, change pkgIndex
+    - patches/expect-5.43.0-pkgpath.patch
+    # Patch2: fixes minor man page formatting issue
+    - patches/expect-5.45-man-page.patch
+    # Patch3: fixes segmentation fault during matching characters
+    - patches/expect-5.45-match-gt-numchars-segfault.patch
+    # Patch4: fixes memory leak when using -re, http://sourceforge.net/p/expect/patches/13/
+    - patches/expect-5.45-re-memleak.patch
+    # Patch5: use vsnprintf instead of vsprintf to avoid buffer overflow
+    - patches/expect-5.45-exp-log-buf-overflow.patch
+    # Patch6: fixes segfaults if Tcl is built with stubs and Expect is used directly
+    #   from C program rhbz#1091060
+    - patches/expect-5.45-segfault-with-stubs.patch
+    # Patch7: fixes leaked fd, patch by Matej Mužila, rhbz#1001220
+    - patches/expect-5.45-fd-leak.patch
+    # Patch8: unificates usage message of expect binary and man page, adds -h flag
+    - patches/expect-5.45.4-unification-of-usage-and-man-page.patch
+    # Patch9: fixes issues detected by static analysis
+    - patches/expect-5.45.4-covscan-fixes.patch
+    # examples patches
+    # Patch100: changes random function
+    - patches/expect-5.32.2-random.patch
+    # Patch101: fixes bz674184 - patches/mkpasswd fails randomly
+    - patches/expect-5.45-mkpasswd-dash.patch
+    # Patch102: fixes bz703702 - patches/let user know that telnet is needed for
+    # running some examples
+    - patches/expect-5.45-check-telnet.patch
+    # Patch103: use full path to 'su', it's safer
+    - patches/expect-5.45-passmass-su-full-path.patch
+    # Patch104: rhbz 963889, fixes inaccuracy in mkpasswd man page
+    - patches/expect-5.45-mkpasswd-man.patch
+    # Patch105: Fix error with -Werror=format-security
+    - patches/expect-5.45-format-security.patch
+    # CB uses long paths
+    - patches/0001-Increase-file-buffer-size-for-rc-files.patch
+
+build:
+  number: 0
+  skip: True  # [not linux]
+  run_exports:
+    # Soname bumps on patch releases :'(
+    # https://abi-laboratory.pro/index.php?view=timeline&l=expect
+    - {{ pin_subpackage('expect', max_pin='x.x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - autoconf
+    - automake
+    - make
+  host:
+    - tk
+
+test:
+  commands:
+    - expect -v
+    - echo 'package require Expect' | tclsh
+
+about:
+  home: http://expect.sourceforge.net
+  # http://expect.sourceforge.net/FAQ.html#q6
+  license: Public Domain
+  license_file: license.terms
+  summary: Sophisticated scripter based on Tcl/Tk
+  description: |
+    Expect is a tool for automating interactive applications such as telnet, ftp, passwd,
+    fsck, rlogin, tip, etc. Expect really makes this stuff trivial. Expect is also useful
+    for testing these same applications. And by adding Tk, you can also wrap interactive
+    applications in X11 GUIs.
+  doc_url: http://expect.sourceforge.net
+
+extra:
+  recipe-maintainers:
+    - nehaljwani
