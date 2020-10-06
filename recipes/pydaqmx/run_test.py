@@ -1,7 +1,11 @@
-# trick PyDAQmx
-import sys
-sys.modules["DAQmxConfigTest"] = None
+DAQlib_variadic
 
-# verify pydaqmx installed
-import PyDAQmx
+
+class Fake:
+    lib_name = None
+
+
+sys.modules["DAQmxConfigTest"] = Fake  # trick PyDAQmx
+
+import PyDAQmx  # verify install
 
