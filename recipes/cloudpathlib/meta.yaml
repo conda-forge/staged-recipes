@@ -1,0 +1,80 @@
+{% set name = "cloudpathlib" %}
+{% set version = "0.1.0" %}
+
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: ad201a9bc205094025fa63ae7471e54f2d76e5928edbaaa4729e121fd4762507
+
+build:
+  number: 0
+  skip: true   # [py2k]
+  script: {{ PYTHON }} -m pip install . -vv
+
+requirements:
+  host:
+    - python
+    - pip
+  run:
+    - python
+    - importlib-metadata  # [py<38]
+
+
+test:
+  imports:
+    - cloudpathlib
+  commands:
+    - pip check
+    - pytest cloudpathlib
+  requires:
+    - pip
+    - pytest
+
+outputs:
+  - name: cloudpathlib-base
+
+  - name: cloudpathlib-azure
+    requirements:
+      host:
+        - python
+        - pip
+      run:
+        - python
+        - {{ pin_subpackage('cloudpathlib-base', exact=True) }}
+        - azure-storage-blob >=12
+
+
+  - name: cloudpathlib-s3
+    requirements:
+      host:
+        - python
+        - pip
+      run:
+        - python
+        - boto3
+        - {{ pin_subpackage('cloudpathlib-base', exact=True) }}
+
+  - name: cloudpathlib
+    requirements:
+      host:
+        - python
+        - pip
+      run:
+        - python
+        - {{ pin_subpackage('cloudpathlib-azure', exact=True) }}
+        - {{ pin_subpackage('cloudpathlib-s3', exact=True) }}
+
+
+
+about:
+  home: https://github.com/drivendataorg/cloudpathlib
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - jayqi
