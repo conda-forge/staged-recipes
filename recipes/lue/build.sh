@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -e
 
+declare -a PLATFORM_OPTIONS=()
 
 if [ $(uname) == Linux ]; then
   # Kindly guide to conda's OpenGL...
-  PLATFORM_OPTIONS="-D OpenGL_GL_PREFERENCE=LEGACY \
-  -D OPENGL_opengl_LIBRARY:PATH=${BUILD_PREFIX}/${HOST}/sysroot/usr/lib64/libGL.so \
-  -D OPENGL_gl_LIBRARY:PATH=${BUILD_PREFIX}/${HOST}/sysroot/usr/lib64/libGL.so "
+  PLATFORM_OPTIONS+=("-D" "OpenGL_GL_PREFERENCE=LEGACY")
+  PLATFORM_OPTIONS+=("-D" "OPENGL_opengl_LIBRARY:PATH=${BUILD_PREFIX}/${HOST}/sysroot/usr/lib64/libGL.so")
+  PLATFORM_OPTIONS+=("-D" "OPENGL_gl_LIBRARY:PATH=${BUILD_PREFIX}/${HOST}/sysroot/usr/lib64/libGL.so")
 else
   export MACOSX_DEPLOYMENT_TARGET=10.14
 fi
@@ -29,7 +30,7 @@ cmake $SRC_DIR -G"Ninja" \
 -D PYTHON_EXECUTABLE="${PYTHON}" \
 -D Python_ROOT_DIR="${PREFIX}/bin" \
 -D Python3_ROOT_DIR="${PREFIX}/bin" \
-$PLATFORM_OPTIONS
+"${PLATFORM_OPTIONS[@]}"
 
 cmake --build . --target all
 
