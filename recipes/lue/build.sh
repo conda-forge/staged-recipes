@@ -4,12 +4,7 @@ set -e
 declare -a PLATFORM_OPTIONS=()
 
 if [ $(uname) == Linux ]; then
-  # Kindly guide to conda's OpenGL...
   PLATFORM_OPTIONS+=("-D" "OpenGL_GL_PREFERENCE=LEGACY")
-  PLATFORM_OPTIONS+=("-D" "OPENGL_opengl_LIBRARY:PATH=${BUILD_PREFIX}/${HOST}/sysroot/usr/lib64/libGL.so")
-  PLATFORM_OPTIONS+=("-D" "OPENGL_gl_LIBRARY:PATH=${BUILD_PREFIX}/${HOST}/sysroot/usr/lib64/libGL.so")
-else
-  export MACOSX_DEPLOYMENT_TARGET=10.14
 fi
 
 # We need to create an out of source build
