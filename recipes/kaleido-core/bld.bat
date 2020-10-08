@@ -4,6 +4,7 @@ set BIN_LOCATION=%APP_DIR%/kaleido.cmd
 
 mkdir %APP_DIR%
 xcopy * %APP_DIR% /E/H
+if errorlevel 1 exit 1
 
 (
 echo @echo off
