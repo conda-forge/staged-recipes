@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-declare -a PLATFORM_OPTIONS=()
-
-if [ $(uname) == Linux ]; then
-  PLATFORM_OPTIONS+=("-D" "OpenGL_GL_PREFERENCE=LEGACY")
-fi
 
 # We need to create an out of source build
 cd $SRC_DIR
@@ -24,8 +19,7 @@ cmake $SRC_DIR -G"Ninja" \
 -D Python3_EXECUTABLE="${PYTHON}" \
 -D PYTHON_EXECUTABLE="${PYTHON}" \
 -D Python_ROOT_DIR="${PREFIX}/bin" \
--D Python3_ROOT_DIR="${PREFIX}/bin" \
-"${PLATFORM_OPTIONS[@]}"
+-D Python3_ROOT_DIR="${PREFIX}/bin"
 
 cmake --build . --target all
 
