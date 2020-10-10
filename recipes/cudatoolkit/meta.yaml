@@ -1,6 +1,7 @@
 {% set version = "11.0.3" %}
+{% set version_patch = "450.51.06" %}  # [linux64]
+{% set version_patch = "451.82" %}  # [win]
 {% set major_minor = ".".join(version.split(".")[:2]) %}
-{% set version_patch = "450.51.06" %}
 
 package:
    name: cudatoolkit
@@ -8,10 +9,14 @@ package:
    version: {{ version }}
 
 source:
+  - path: ./build.py
   - url: https://developer.download.nvidia.com/compute/cuda/{{ version }}/docs/sidebar/md5sum.txt
     sha256: 07e636b0e6525457052ecc2b43e36ab0352451edabb116eaea777756fbc39408
   - url: https://developer.download.nvidia.com/compute/cuda/{{ version }}/local_installers/cuda_{{ version }}_{{ version_patch }}_linux.run  # [linux64]
     md5: 70af4cebe30549b9995fb9c57d538214  # [linux64]
+  - url: https://developer.download.nvidia.com/compute/cuda/{{ version }}/local_installers/cuda_{{ version }}_{{ version_patch }}_win10.exe  # [win]
+    md5: 80ae0fdbe04759123f3cab81f2aadabd  # [win]
+
 
 # source downloading is done in build.py. To locally cache and point to your local file,
 # set the DEBUG_INSTALLER_PATH environment variable to the folder where you have
@@ -29,6 +34,18 @@ build:
     - "$RPATH/librt.so.1"
     - "$RPATH/ld-linux-x86-64.so.2"
     - "$RPATH/libm.so.6"
+  skip: true  # [osx]
+  script: |
+    {{ PYTHON }} build.py --version {{ version }} --version-patch {{ version_patch }}
+    if errorlevel 1 exit 1                                                 # [win]
+
+    :: copy nvvm and libdevice into the DLLs folder so numba can use them  # [win]
+    mkdir "%PREFIX%\DLLs"                                                  # [win]
+    xcopy /s /y "%PREFIX%\Library\bin\nvvm*" "%PREFIX%\DLLs\"              # [win]
+    if errorlevel 1 exit 1                                                 # [win]
+    xcopy /s /y "%PREFIX%\Library\bin\libdevice*" "%PREFIX%\DLLs\"         # [win]
+    if errorlevel 1 exit 1                                                 # [win]
+
 
 requirements:
   build:

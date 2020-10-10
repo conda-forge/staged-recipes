@@ -9,17 +9,10 @@ from contextlib import contextmanager
 from pathlib import Path
 from subprocess import check_call
 from tempfile import TemporaryDirectory as tempdir
+from argparse import ArgumentParser
 
 import yaml
 
-
-def download_from_url(url, dst):
-    """
-    @param: url to download file
-    @param: dst place to put the file
-    """
-    print(f"trying to download {url} -> {dst}")
-    return
 
 # The config dictionary looks like:
 # config[cuda_version(s)...]
@@ -422,8 +415,17 @@ def getplatform():
 dispatcher = {'linux': LinuxExtractor, 'windows': WindowsExtractor}
 
 
-def _main():
+def make_parser():
+    p = ArgumentParser('build.py')
+    p.add_argument("--version", dest="version")
+    p.add_argument("--version-patch", dest="version_patch")
+    return p
+
+
+def main():
     print("Running build")
+    p = make_parser()
+    ns = p.parse_args()
 
     # package version decl must match cuda release version
     config_version = os.environ['PKG_VERSION']
@@ -446,5 +448,6 @@ def _main():
     # dump config
     extractor.dump_config()
 
+
 if __name__ == "__main__":
-    _main()
+    main()
