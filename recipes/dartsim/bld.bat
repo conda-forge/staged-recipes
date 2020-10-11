@@ -1,9 +1,5 @@
 mkdir build && cd build
 
-# Build with Clang toolset
-set "CC=clang-cl.exe"
-set "CXX=clang-cl.exe"
-
 cmake -G "NMake Makefiles"^
     -DCMAKE_BUILD_TYPE=Release^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%^
