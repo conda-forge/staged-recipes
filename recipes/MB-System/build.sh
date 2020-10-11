@@ -7,7 +7,7 @@
   --with-fftw-lib=${PREFIX}/lib/  \
   --with-fftw-include=${PREFIX}/include \
   --with-opengl-lib=/${PREFIX}/lib \
-  --with-opengl-include=${PREFIX}/include
+  --with-opengl-include=${PREFIX}/include \
   --with-proj-lib=${PREFIX}/lib/ \
   --with-proj-include=${PREFIX}/include
 
