@@ -3,6 +3,10 @@
 mkdir build
 cd build
 
+if [[ "$(uname)" != "Darwin" ]]; then
+    LDFLAGS="-lrt ${LDFLAGS}"
+fi
+
 cmake \
     -GNinja \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
