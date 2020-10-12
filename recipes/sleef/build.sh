@@ -4,7 +4,7 @@ mkdir build
 cd build
 
 cmake \
-    -Gninja \
+    -GNinja \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DCMAKE_PREFIX_PATH=$PREFIX \
     ..
