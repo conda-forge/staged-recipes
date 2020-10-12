@@ -18,12 +18,6 @@ import yaml
 # config[cuda_version(s)...]
 #
 # and for each cuda_version the keys:
-# base_url the base url for all downloads
-# patch_url_ext the extra path needed to reach the patch directory from base_url
-# installers_url_ext the extra path needed to reach the local installers directory
-# cuda_libraries the shared libraries to copy in
-# cuda_static_libraries the static libraries to copy in
-# libdevice_versions the library device versions supported (.bc files)
 # linux the linux platform config (see below)
 # windows the windows platform config (see below)
 #
@@ -42,16 +36,8 @@ import yaml
 # defined install directory) and the DLL will be taken from that location.
 
 
-###########################################
-### CUDA 11.0 Update 1 setup (Aug 2020) ###
-###########################################
-
-maj_min = '11.0'
-config = {}
-config['base_url'] = f"http://developer.download.nvidia.com/compute/cuda/11.0.3/"
-config['installers_url_ext'] = 'local_installers/'
-config['patch_url_ext'] = ''
-config['cuda_libraries'] = [
+CONFIG = {}
+CONFIG['cuda_libraries'] = [
     'cublas',
     'cublasLt',
     'cudart',
@@ -78,19 +64,18 @@ config['cuda_libraries'] = [
     'nvrtc',
     'nvrtc-builtins',
 ]
-config['cuda_static_libraries'] = [
+CONFIG['cuda_static_libraries'] = [
     'cudadevrt'
 ]
 # accinj64 is only available on linux
 if sys.platform.startswith('linux'):
-    config['cuda_libraries'].append('accinj64')
-    config['cuda_libraries'].append('cuinj64')
+    CONFIG['cuda_libraries'].append('accinj64')
+    CONFIG['cuda_libraries'].append('cuinj64')
 # cuinj is only available on windows
 if sys.platform.startswith('windows'):
-    config['cuda_libraries'].append('cuinj')
-config['libdevice_versions'] = ['11']
+    CONFIG['cuda_libraries'].append('cuinj')
 
-config['linux'] = {
+CONFIG['linux'] = {
     'blob': 'cuda_11.0.3_450.51.06_linux.run',
     'ppc64le_blob': 'cuda_11.0.3_450.51.06_linux_ppc64le.run',
     # CUDA 11 installer has channed, there are no embedded blobs
@@ -105,7 +90,7 @@ config['linux'] = {
     'libdevice_lib_fmt': 'libdevice.10.bc'
 }
 
-config['windows'] = {'blob': 'cuda_11.0.3_451.82_win10.exe',
+CONFIG['windows'] = {'blob': 'cuda_11.0.3_451.82_win10.exe',
                    'patches': [],
                    'cuda_lib_fmt': '{0}64_1*.dll',
                    'cuda_static_lib_fmt': '{0}.lib',
@@ -126,20 +111,39 @@ class Extractor(object):
     libdir = {'linux': 'lib',
               'windows': 'Library/bin'}
 
-    def __init__(self, version, ver_config, plt_config):
-        """Initialise an instance:
-        Arguments:
-          version - CUDA version string
-          ver_config - the configuration for this CUDA version
-          plt_config - the configuration for this platform
+    def __init__(self, platform, version):
+        """Base class for extracting cudatoolkit
+
+        Parameters
+        ----------
+        platform : str
+            Normalized platform name of system arch, e.g. "linux" or "windows"
+        version : str
+            Full version sting for cudatoolkit in X.Y.Z form, i.e. 11.0.3
+
+        Attributes
+        ----------
+        cuda_libraries : list of str
+            The shared libraries to copy in.
+        cuda_static_libraries : list of str
+            The static libraries to copy in.
+        libdevice_versions : list of str
+            The library device versions supported (.bc files)
         """
-        self.config_version = version
-        self.base_url = ver_config['base_url']
-        self.patch_url_ext = ver_config['patch_url_ext']
-        self.installers_url_ext = ver_config['installers_url_ext']
-        self.cuda_libraries = ver_config['cuda_libraries']
-        self.cuda_static_libraries = ver_config['cuda_static_libraries']
-        self.libdevice_versions = ver_config['libdevice_versions']
+        self.version = version
+        version_parts = version.split('.')
+        if len(version_parts) == 2:
+            self.major, self.minor = version_parts
+        elif len(version_parts) > 2::
+            self.major, self.minor, self.micro = version_parts[:3]
+        else:
+            raise ValueError(f"{version!r} not a valid version string")
+        plt_config = CONFIG[platform]
+
+        # set attrs
+        self.cuda_libraries = CONFIG['cuda_libraries']
+        self.cuda_static_libraries = CONFIG['cuda_static_libraries']
+        self.libdevice_versions = [self.major]
         self.config_blob = plt_config['blob']
         self.embedded_blob = plt_config.get('embedded_blob', None)
         self.cuda_lib_fmt = plt_config['cuda_lib_fmt']
@@ -152,40 +156,12 @@ class Extractor(object):
         self.config = {'version': version, **ver_config}
         self.prefix = os.environ['PREFIX']
         self.src_dir = os.environ['SRC_DIR']
-        self.output_dir = os.path.join(self.prefix, self.libdir[getplatform()])
-        self.symlinks = getplatform() == 'linux'
+        self.output_dir = os.path.join(self.prefix, self.libdir[platform])
+        self.symlinks = (platform == 'linux')
         self.debug_install_path = os.environ.get('DEBUG_INSTALLER_PATH')
 
-        try:
-            os.mkdir(self.output_dir)
-        except FileExistsError:
-            pass
-
-    def download_blobs(self):
-        """Downloads the binary blobs to the $SRC_DIR
-        """
-        dl_url = urlparse.urljoin(self.base_url, self.installers_url_ext)
-        dl_url = urlparse.urljoin(dl_url, self.config_blob)
-        dl_path = os.path.join(self.src_dir, self.config_blob)
-        if not self.debug_install_path:
-            print("downloading %s to %s" % (dl_url, dl_path))
-            download_from_url(dl_url, dl_path)
-        else:
-            existing_file = os.path.join(self.debug_install_path, self.config_blob)
-            print("DEBUG: copying %s to %s" % (existing_file, dl_path))
-            shutil.copy(existing_file, dl_path)
-
-        for p in self.patches:
-            dl_url = urlparse.urljoin(self.base_url, self.patch_url_ext)
-            dl_url = urlparse.urljoin(dl_url, p)
-            dl_path = os.path.join(self.src_dir, p)
-            if not self.debug_install_path:
-                print("downloading %s to %s" % (dl_url, dl_path))
-                download_from_url(dl_url, dl_path)
-            else:
-                existing_file = os.path.join(self.debug_install_path, p)
-                print("DEBUG: copying %s to %s" % (existing_file, dl_path))
-                shutil.copy(existing_file, dl_path)
+        # additional prep
+        os.makedirs(self.output_dir, exist_ok=True)
 
     def copy(self, *args):
         """The method to copy extracted files into the conda package platform
@@ -412,7 +388,7 @@ def getplatform():
     else:
         raise RuntimeError('Unknown platform')
 
-dispatcher = {'linux': LinuxExtractor, 'windows': WindowsExtractor}
+DISPATCHER = {'linux': LinuxExtractor, 'windows': WindowsExtractor}
 
 
 def make_parser():
@@ -427,22 +403,10 @@ def main():
     p = make_parser()
     ns = p.parse_args()
 
-    # package version decl must match cuda release version
-    config_version = os.environ['PKG_VERSION']
-    # keep only the major.minor version (10.0) if micro (10.0.130) is present
-    major_minor, micro = config_version.rsplit('.', 1)
-    if '.' in major_minor:
-        config_version = major_minor
-
-    # get an extractor
+    # get an extractor & extract
     plat = getplatform()
-    extractor_impl = dispatcher[plat]
-    extractor = extractor_impl(config_version, config, config[plat])
-
-    # download binaries
-    extractor.download_blobs()
-
-    # extract
+    extractor_impl = DISPATCHER[plat]
+    extractor = extractor_impl(plat, ns.version)
     extractor.extract()
 
     # dump config
