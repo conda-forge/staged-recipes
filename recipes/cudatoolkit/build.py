@@ -21,15 +21,17 @@ class Extractor(object):
     from this class.
     """
 
-    def __init__(self, platform, version, version_patch):
+    def __init__(self, plat, version, version_patch):
         """Base class for extracting cudatoolkit
 
         Parameters
         ----------
-        platform : str
+        plat : str
             Normalized platform name of system arch, e.g. "linux" or "windows"
         version : str
             Full version sting for cudatoolkit in X.Y.Z form, i.e. 11.0.3
+        version_patch : str
+            Extra version patch number, e.g. 450.51.06
 
         Attributes
         ----------
@@ -97,7 +99,9 @@ class Extractor(object):
         self.src_dir = os.environ["SRC_DIR"]
         self.debug_install_path = os.environ.get("DEBUG_INSTALLER_PATH")
 
-        # additional prep
+    def post_init(self):
+        """Additional prep, after init."""
+        self.output_dir = os.path.join(self.prefix, self.libdir)
         os.makedirs(self.output_dir, exist_ok=True)
 
     def copy(self, *args):
@@ -182,21 +186,22 @@ class Extractor(object):
 class WindowsExtractor(Extractor):
     """The windows extractor"""
 
-    def __init__(self, platform, version, version_patch):
-        super().__init__(platform, version, version_patch)
+    def __init__(self, platf, version, version_patch):
+        super().__init__(plat, version, version_patch)
         self.cuda_libraries.append("cuinj")
-        self.runfile = (f"cuda_{version}_{version_patch}_win10.exe",)
+        self.runfile = f"cuda_{version}_{version_patch}_win10.exe"
         self.embedded_blob = None
         self.symlinks = False
         self.cuda_lib_fmt = "{0}64_1*.dll"
-        self.cuda_static_lib_fmt = '{0}.lib'
+        self.cuda_static_lib_fmt = "{0}.lib"
         self.nvvm_lib_fmt = "{0}64_33_0.dll"
-        self.nvtoolsext_fmt = '{0}64_1.dll'
-        self.libdevice_lib_fmt = 'libdevice.10.bc'
-        self.nvtoolsextpath = os.path.join('c:' + os.sep, 'Program Files',
-                                    'NVIDIA Corporation', 'NVToolsExt', 'bin')
+        self.nvtoolsext_fmt = "{0}64_1.dll"
+        self.libdevice_lib_fmt = "libdevice.10.bc"
+        self.nvtoolsextpath = os.path.join(
+            "c:" + os.sep, "Program Files", "NVIDIA Corporation", "NVToolsExt", "bin"
+        )
         self.libdir = "Library/bin"
-        self.output_dir = os.path.join(self.prefix, self.libdir)
+        self.post_init()
 
     def copy(self, *args):
         (store,) = args
@@ -270,8 +275,8 @@ class WindowsExtractor(Extractor):
 class LinuxExtractor(Extractor):
     """The linux extractor"""
 
-    def __init__(self, platform, version, version_patch):
-        super().__init__(platform, version, version_patch)
+    def __init__(self, plat, version, version_patch):
+        super().__init__(plat, version, version_patch)
         self.cuda_libraries.extend(["accinj64", "cuinj64"])
         self.symlinks = True
         # need globs to handle symlinks
@@ -281,7 +286,6 @@ class LinuxExtractor(Extractor):
         self.nvtoolsext_fmt = "lib{0}.so*"
         self.nvtoolsextpath = None
         self.libdir = "lib"
-        self.output_dir = os.path.join(self.prefix, self.libdir)
 
         if platform.machine() == "ppc64le":
             # Power 8 Arch
@@ -289,8 +293,10 @@ class LinuxExtractor(Extractor):
             self.embedded_blob = None
         else:
             # x86-64 Arch
-            self.runfile = (f"cuda_{version}_{version_patch}_linux.run",)
+            self.runfile = f"cuda_{version}_{version_patch}_linux.run"
             self.embedded_blob = None
+
+        self.post_init()
 
     def copy(self, *args):
         basepath = args[0]
