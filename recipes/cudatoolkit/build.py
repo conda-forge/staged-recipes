@@ -13,6 +13,7 @@ import shutil
 import tarfile
 import fnmatch
 import platform
+import itertools
 from pathlib import Path
 from subprocess import check_call
 from argparse import ArgumentParser
@@ -200,9 +201,16 @@ class WindowsExtractor(Extractor):
         self.nvvm_lib_fmt = "{0}64_33_0.dll"
         self.nvtoolsext_fmt = "{0}64_1.dll"
         self.libdevice_lib_fmt = "libdevice.10.bc"
-        self.nvtoolsextpath = os.path.join(
-            "c:" + os.sep, "Program Files", "NVIDIA Corporation", "NVToolsExt", "bin"
-        )
+        pfs = ["Program Files", "Program Files (x86)"]
+        nvidias = ["NVIDIA Corporation", "NVIDIA GPU Computing Toolkit"]
+        nvtxs = ["NVToolsExt", "NvToolsExt", "nvToolsExt"]
+        for pf, nvidia, nvtx in itertools.product(pfs, nvidias, nvtxs):
+            nvt_path = os.path.join("c:" + os.sep, pf, nvidia, nvtx, "bin")
+            if os.path.exists(nvt_path):
+                self.nvtoolsextpath = nvt_path
+                break
+        else:
+            self.nvtoolsextpath = None
         self.libdir = "Library/bin"
         self.post_init()
 
