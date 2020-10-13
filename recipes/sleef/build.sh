@@ -3,7 +3,7 @@
 mkdir build
 cd build
 
-if [[ "$(uname)" != "Darwin" ]]; then
+if [[ "$target_platform" == linux-* ]]; then
     LDFLAGS="-lrt ${LDFLAGS}"
 fi
 
