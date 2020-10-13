@@ -1,3 +1,12 @@
+# Originally forked from https://github.com/AnacondaRecipes/cudatoolkit-feedstock
+# Distributed under the BSD-2-Clause license
+# Copyright (c) 2017, Continuum Analytics, Inc. All rights reserved.
+
+# To accommodate nvtoolsext not being present as a DLL in the installer PE32s on windows,
+# the windows variant of this script supports assembly directly from a pre-installed
+# CUDA toolkit. The environment variable "NVTOOLSEXT_INSTALL_PATH" can be set to the
+# installation path of the CUDA toolkit's NvToolsExt location (this is not the user
+# defined install directory) and the DLL will be taken from that location.
 import os
 import sys
 import shutil
@@ -8,12 +17,6 @@ from pathlib import Path
 from subprocess import check_call
 from argparse import ArgumentParser
 from tempfile import TemporaryDirectory as tempdir
-
-# To accommodate nvtoolsext not being present as a DLL in the installer PE32s on windows,
-# the windows variant of this script supports assembly directly from a pre-installed
-# CUDA toolkit. The environment variable "NVTOOLSEXT_INSTALL_PATH" can be set to the
-# installation path of the CUDA toolkit's NvToolsExt location (this is not the user
-# defined install directory) and the DLL will be taken from that location.
 
 
 class Extractor(object):

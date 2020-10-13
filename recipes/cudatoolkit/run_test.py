@@ -1,3 +1,7 @@
+# Originally forked from https://github.com/AnacondaRecipes/cudatoolkit-feedstock
+# Distributed under the BSD-2-Clause license
+# Copyright (c) 2017, Continuum Analytics, Inc. All rights reserved.
+
 import sys
 import os
 from numba.cuda.cudadrv.libs import test, get_cudalib
