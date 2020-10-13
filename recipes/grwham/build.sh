@@ -1,6 +1,8 @@
 #!/bin/bash
 mkdir -p $PREFIX/bin
 cd "wham_${PKG_VERSION}"
+mkdir share
+curl -o share/doc.pdf http://membrane.urmc.rochester.edu/sites/default/files/wham/doc.pdf
 cd wham
 # Use the given $(CC)
 sed -i -e 's/CC=gcc//g' Makefile
