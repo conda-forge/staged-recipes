@@ -15,5 +15,3 @@ cp -r bld ${PREFIX}/
 cd ${PREFIX}/bin/
 ln -s ../cime/scripts/create_* .
 ln -s ../cime/scripts/query_* .
-
-### sed -i.bak 's/# ARCHIVE COMMAND SIMILAR ACROSS ALL PLATFORMS/AR="$AR cq"/' ${PREFIX}/cime/src/externals/mct/configure  
