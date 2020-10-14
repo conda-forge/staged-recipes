@@ -10,7 +10,7 @@ if errorlevel 1 exit 1
 :: Build
 go get .
 go build -v -o %PKG_NAME%.exe -ldflags "-X main.buildVersion=%PKG_VERSION%" .
- .
+
 if errorlevel 1 exit 1
 
 :: Install Binary into %PREFIX%\bin
