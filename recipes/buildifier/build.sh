@@ -16,7 +16,7 @@ pushd src/github.com/bazelbuild/buildtools/buildifier
 
 # Build
 go get .
-go build -v -o ${PKG_NAME} .
+go build -v -o ${PKG_NAME} -ldflags "-X main.buildVersion=${PKG_VERSION}" .
 
 # Install Binary into PREFIX/bin
 mkdir -p $PREFIX/bin
