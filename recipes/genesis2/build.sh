@@ -3,7 +3,7 @@
 INSTALL_DIR=$PREFIX/bin
 
 make single
-COMPILER=gfortran make
+COMPILER=$GFORTRAN make
 
 cp genesis2 $INSTALL_DIR
 
