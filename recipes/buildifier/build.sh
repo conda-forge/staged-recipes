@@ -6,8 +6,18 @@ IFS=$'\n\t'
 
 set -x
 
-bazel build --config=release //${PKG_NAME}:${PKG_NAME}
+
+# Turn work folder into GOPATH
+export GOPATH=$SRC_DIR
+export PATH=${GOPATH}/bin:$PATH
+
+# Change to directory with main.go
+pushd src/github.com/bazelbuild/buildtools/buildifier
+
+# Build
+go get .
+go build -v -o ${PKG_NAME} .
 
 # Install Binary into PREFIX/bin
 mkdir -p $PREFIX/bin
-cp --dereference bazel-bin/${PKG_NAME}/${PKG_NAME} $PREFIX/bin/${PKG_NAME}
+mv ${PKG_NAME} $PREFIX/bin/${PKG_NAME}
