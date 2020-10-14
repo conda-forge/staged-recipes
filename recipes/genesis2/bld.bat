@@ -12,5 +12,7 @@ type output.txt
 
 
 echo "-----------------------------------------------"
-copy genesis2 %LIBRARY_BIN%
+
+echo "Copying the file to Library Bin at %LIBRARY_BIN%"
+copy genesis2.exe %LIBRARY_BIN%
 
