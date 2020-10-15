@@ -8,4 +8,9 @@ bash build.sh
 type build.log
 
 if errorlevel 1 exit 1
+
+echo "Copying the file to Library Bin at %LIBRARY_BIN%"	
+copy genesis2.exe %LIBRARY_BIN%
+if errorlevel 1 exit 1
+
 exit 0
