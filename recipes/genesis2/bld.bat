@@ -5,6 +5,9 @@ set MSYS2_PATH_TYPE=inherit
 set CHERE_INVOKING=1
 bash build.sh
 
+echo "Listing directory contents."
+dir
+
 type build.log
 
 if errorlevel 1 exit 1
