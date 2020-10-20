@@ -8,6 +8,7 @@ pushd build-conda
 
 # for conda, pybind11 should detect the python installation correctly
 cmake \
+    -DPython3_EXECUTABLE="$PYTHON" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DCMAKE_INSTALL_LIBDIR=$LIBRARY_LIB \

@@ -6,6 +6,7 @@ cd build-conda
 cmake ^
     -DCMAKE_BUILD_TYPE="Release" ^
     -DPPP_USE_TEST=OFF ^
+    -DPython3_EXECUTABLE="%PYTHON%" ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
     -DCMAKE_INSTALL_LIBDIR=%LIBRARY_LIB% ^
     -G "NMake Makefiles" ..
