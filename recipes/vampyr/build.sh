@@ -13,5 +13,12 @@ cmake \
   -DPYMOD_INSTALL_LIBDIR="${SP_DIR#$PREFIX/lib}"
 
 
-# build and install, we test through pytest
-cmake --build build --target install -- -j${CPU_COUNT} -v -d stats
+# build
+cd build
+cmake --build . -- -j${CPU_COUNT} -v -d stats
+
+# test
+ctest -j${CPU_COUNT} --output-on-failure --verbose
+
+# install
+cmake --build . --target install -- -j${CPU_COUNT}
