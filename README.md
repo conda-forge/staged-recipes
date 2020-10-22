@@ -19,9 +19,10 @@ This repo is a holding area for recipes destined for a conda-forge feedstock rep
 
 ## Grayskull - recipe generator for Python packages on `pypi`
 
-For Python packages available on `pypi` it is possible to use [grayskull](https://github.com/marcelotrevisani/grayskull) to generate the recipe. The user should review the recipe generated, specially the license and dependencies.
+For Python packages available on `pypi` it is possible to use [grayskull](https://github.com/conda-incubator/grayskull) to generate the recipe. The user should review the recipe generated, specially the license and dependencies.
 
 Installing `grayskull`: `conda install -c conda-forge grayskull`
+
 Generating recipe: `grayskull pypi PACKAGE_NAME_HERE`
 
 
