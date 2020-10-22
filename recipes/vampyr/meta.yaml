@@ -1,0 +1,70 @@
+{% set name = 'vampyr' %}
+{% set version = '0.1.0rc0' %}
+{% set sha256 = '62d28a8c5cf61d9ef82ab2d96f193a2fdf11c7dabea88736b55608f71aeb9f8c' %}
+{% set pyver = PY_VER.replace(".", "") %}
+{% set build = 0 %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/MRChemSoft/vampyr/archive/v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: {{ build }}
+  skip: true  # [win]
+  binary_relocation: true
+  run_exports:
+    - {{ pin_subpackage('vampyr', max_pin='x.x') }}
+
+requirements:
+  build:
+    - cmake >=3.14
+    - {{ compiler('cxx') }}
+    - pybind11 =*=*py{{ pyver }}*
+    - ninja
+  host:
+    - mrcpp
+    - python
+  run:
+    - numpy
+
+test:
+  requires:
+    - numpy
+    - pytest
+  imports:
+    - vampyr
+  commands:
+    # Verify existence and execution
+    - ls -l $SP_DIR/vampyr
+    - test -f $SP_DIR/vampyr/_vampyr*.so
+    # Inspect linkage
+    - conda inspect linkages --show-files --groupby=dependency $PKG_NAME
+    - conda inspect objects -p $PREFIX $PKG_NAME                          # [osx]
+    - ldd -v $SP_DIR/vampyr/_vampyr*.so                                   # [linux]
+    - otool -L $SP_DIR/vampyr/_vampyr*.so                                 # [osx]
+    # Actually test
+    - python -m pytest --pyargs vampyr
+
+outputs:
+  - name: vampyr
+    files:
+      - {{ SP_DIR }}/vampyr
+
+about:
+  home: https://github.com/MRChemSoft/vampyr
+  dev_url: https://github.com/MRChemSoft/vampyr
+  license: LGPL-3.0-or-later
+  license_url: https://opensource.org/licenses/LGPL-3.0
+  license_file: LICENSE
+  license_family: LGPL
+  summary: Very Accurate Multiresolution Python Routines
+
+extra:
+  recipe-maintainers:
+    - robertodr
+    - bjorgve
+    - stigrj
