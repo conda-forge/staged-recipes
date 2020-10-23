@@ -1,6 +1,6 @@
-if not defined TOOLCHAIN set TOOLCHAIN=""
+
 if not defined BUILD_TYPE set BUILD_TYPE=Release
-if not defined ARCH set ARCH=x64
+set ARCH=x64
 if not defined TARGET_OS set TARGET_OS=windows
 
 set TRIPLET=%ARCH%-%TARGET_OS%
@@ -14,10 +14,10 @@ if exist "%BUILD_DIR%\pdal-c.sln" (
 	pushd "%BUILD_DIR%"
 
 	cmake ../.. ^
+		-G "Visual Studio 15 2017"  ^
 		-DCMAKE_BUILD_TYPE=%BUILD_TYPE% ^
-		-DCMAKE_TOOLCHAIN_FILE=%TOOLCHAIN% ^
-		-DVCPKG_TARGET_TRIPLET=%TRIPLET% ^
-		-DCMAKE_GENERATOR_PLATFORM=%ARCH%
+		-DCONDA_BUILD=ON
+
 )
 
 :: Build and install solution
