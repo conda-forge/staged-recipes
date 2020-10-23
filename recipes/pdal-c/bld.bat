@@ -1,5 +1,4 @@
 :: Helper script for vcpkg-based x64-windows vscode build tasks
-@echo off
 
 :: This script assumes that cmake is in PATH
 :: TODO Auto-detect latest platform
