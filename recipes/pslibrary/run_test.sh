@@ -1,3 +1,4 @@
+#!/bin/bash
 test -f ${PREFIX}/share/pslibrary/rel-pbe/PSEUDOPOTENTIALS/Ta.rel-pbe-spfn-rrkjus_psl.1.0.0.UPF
 test -f ${PREFIX}/share/pslibrary/rel-pbe/PSEUDOPOTENTIALS/Am.rel-pbe-spfn-rrkjus_psl.1.0.0.UPF
 test -f ${PREFIX}/share/pslibrary/rel-pbe/PSEUDOPOTENTIALS/Pa.rel-pbe-spfn-rrkjus_psl.1.0.0.UPF
