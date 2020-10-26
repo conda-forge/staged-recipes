@@ -19,5 +19,3 @@ cmake --build .
 
 copy /B mdal\Debug\*.dll %LIBRARY_BIN%
 copy /B tools\Debug\*.exe %LIBRARY_BIN%
-
-dir %LIBRARY_BIN%
