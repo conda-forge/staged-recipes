@@ -3,9 +3,10 @@
 set -e
 set -x
 
-sed -i '20i include_directories("include", "${CMAKE_INSTALL_PREFIX}/include", "${CMAKE_INSTALL_PREFIX}/include/shrinkwrap", "${CMAKE_INSTALL_PREFIX}/include/htslib")' CMakeLists.txt
+sed -i '20i include_directories("include" "${SRC_DIR}/include" "${CMAKE_INSTALL_PREFIX}/include" "${CMAKE_INSTALL_PREFIX}/include/shrinkwrap" "${CMAKE_INSTALL_PREFIX}/include/htslib" "${CMAKE_PREFIX_PATH}/include" "${SYS_PREFIX}/include")' CMakeLists.txt
+sed -i '20i link_directories("${SRC_DIR}/lib" "${CMAKE_INSTALL_PREFIX}/lib" "${CMAKE_PREFIX_PATH}/lib" "${SYS_PREFIX}/lib")' CMakeLists.txt
 
-mkdir build-api
+mkdir -p build-api
 cd build-api
 cmake \
   -DBUILD_SHARED_LIBS:BOOL=ON \
@@ -20,7 +21,7 @@ make -j${CPU_COUNT} savvy
 make install
 cd ..
 
-mkdir build-cli
+mkdir -p build-cli
 cd build-cli
 cmake \
   -DBUILD_SHARED_LIBS:BOOL=ON \
