@@ -1,32 +1,18 @@
+mkdir build
+cd build
 
-:: This script assumes that cmake is in PATH
-:: TODO Auto-detect latest platform
-set SCRIPT_DIR=%~dp0
+cmake -G "Visual Studio 16 2019" ^
+	-DCMAKE_BUILD_TYPE=Rel  ^
+	-DENABLE_TESTS=OFF ^
+	-DNETCDF_PREFIX="%LIBRARY_PREFIX%" ^
+	-DHDF5_ROOT="%LIBRARY_PREFIX%" ^
+	-DGDAL_DIR="%LIBRARY_PREFIX%" ^
+	-DGDAL_LIBRARY="%LIBRARY_PREFIX%\lib\gdal_i.lib" ^
+	-DGDAL_INCLUDE_DIR="%LIBRARY_PREFIX%\include" ^
+	-DLIBXML2_LIBRARIES="%LIBRARY_PREFIX%\lib\libxml2.lib" ^
+	-DLIBXML2_INCLUDE_DIR="%LIBRARY_PREFIX%\include\libxml2" ^
+	-DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
+	-DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
+	..
 
-if not defined BUILD_TYPE set BUILD_TYPE=Release
-set ARCH=x64
-if not defined TARGET_OS set TARGET_OS=windows
-
-set TRIPLET=%ARCH%-%TARGET_OS%
-
-set BUILD_DIR=%SCRIPT_DIR%\build\%TRIPLET%
-
-if exist "%BUILD_DIR%\pdal-c.sln" (
-	pushd "%BUILD_DIR%"
-) else (
-	mkdir "%BUILD_DIR%"
-	pushd "%BUILD_DIR%"
-
-	cmake ../.. ^
-		-DCMAKE_BUILD_TYPE=%BUILD_TYPE% ^
-		-DCONDA_BUILD=ON ^
-		-DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
-		-DCMAKE_PREFIX_PATH:PATH="%LIBRARY_PREFIX%" ^
-		.
-
-
-)
-
-:: Build and install solution
-cmake --build . --target INSTALL --config %BUILD_TYPE%
-
+cmake --build .
