@@ -15,4 +15,9 @@ cmake -G "Visual Studio 16 2019" ^
 	-DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
 	..
 
-cmake --build .
+cmake --build . 
+
+copy /B mdal\Debug\*.dll %LIBRARY_BIN%
+copy /B tools\Debug\*.exe %LIBRARY_BIN%
+
+dir %LIBRARY_BIN%
