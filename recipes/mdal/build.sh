@@ -7,11 +7,17 @@ if [ "$(uname)" == "Linux" ]; then
    export LDFLAGS="${LDFLAGS} -Wl,-rpath-link,${PREFIX}/lib"
 fi
 
-mdkir build
+mkdir build
 cd build
 
-cmake -DCMAKE_BUILD_TYPE=Rel -DENABLE_TESTS=ON ..
+cmake -G "Unix Makefiles" \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_PREFIX=$PREFIX \
+  -DCMAKE_LIBRARY_PATH=$PREFIX/lib \
+  -DCMAKE_INCLUDE_PATH=$PREFIX/include \
+  -DENABLE_TESTS=OFF \
+  ..
 
 # CircleCI offers two cores.
 make -j $CPU_COUNT
-
+make install
