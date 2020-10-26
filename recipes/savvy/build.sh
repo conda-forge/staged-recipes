@@ -16,5 +16,4 @@ cmake \
 
 make -j${CPU_COUNT} savvy
 make -j${CPU_COUNT} sav
-make -j${CPU_COUNT} manuals
 make install
