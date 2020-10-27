@@ -1,7 +1,7 @@
 mkdir build
 cd build
 
-cmake -G "Visual Studio 16 2019" ^
+cmake  ^
 	-DCMAKE_BUILD_TYPE=Rel  ^
 	-DENABLE_TESTS=OFF ^
 	-DNETCDF_PREFIX="%LIBRARY_PREFIX%" ^
