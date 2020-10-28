@@ -12,11 +12,16 @@ cmake \
       -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_SHARED_LIBS=ON \
       -DBUILD_EXAMPLES=OFF \
-      -UGTEST_ROOT \
+      -DGTEST_ROOT=$PREFIX \
       $SRC_DIR
 
 ### Build
 cmake --build . -- -j${CPU_COUNT}
+
+### Run all tests
+for test_exec in *_test; do
+    ./"$test_exec"
+done
 
 ### Install
 cmake --build . -- install
