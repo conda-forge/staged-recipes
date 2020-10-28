@@ -19,9 +19,7 @@ cmake \
 cmake --build . -- -j${CPU_COUNT}
 
 ### Run all tests
-for test_exec in *_test; do
-    ./"$test_exec"
-done
+cmake --build . -- test
 
 ### Install
 cmake --build . -- install
