@@ -7,10 +7,13 @@ cmake %SRC_DIR% -G "NMake Makefiles" ^
                 -DCMAKE_BUILD_TYPE=Release ^
                 -DBUILD_SHARED_LIBS=ON ^
                 -DBUILD_EXAMPLES=OFF ^
-                -UGTEST_ROOT
+                -DGTEST_ROOT="%PREFIX"
 if errorlevel 1 exit 1
 
 nmake
+if errorlevel 1 exit 1
+
+nmake test
 if errorlevel 1 exit 1
 
 nmake install
