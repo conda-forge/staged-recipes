@@ -19,7 +19,7 @@ cmake \
 cmake --build . -- -j${CPU_COUNT}
 
 ### Run all tests
-cmake --build . -- test
+cmake --build . -- CTEST_OUTPUT_ON_FAILURE=1 test
 
 ### Install
 cmake --build . -- install
