@@ -1,4 +1,4 @@
-rem set NO_DIST=1
+set NO_DIST=1
 
 set DAAL4PY_VERSION=%PKG_VERSION%
 set MPIROOT=%PREFIX%\Library
