@@ -6,6 +6,7 @@ cmake .. \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_PREFIX_PATH=$PREFIX \
       -DCMAKE_INSTALL_PREFIX=$PREFIX \
+      -DCMAKE_CXX_FLAGS=-std=c++17 \
       -DCMAKE_INSTALL_LIBDIR=lib \
       -DUSE_QPOASES=FALSE
 # Can be update when conda qpoases is available
