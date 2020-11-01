@@ -18,6 +18,5 @@ cmake -G "Unix Makefiles" \
   -DENABLE_TESTS=OFF \
   ..
 
-# CircleCI offers two cores.
 make -j $CPU_COUNT
 make install

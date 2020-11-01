@@ -2,7 +2,7 @@ mkdir build
 cd build
 
 cmake  ^
-	-DCMAKE_BUILD_TYPE=Rel  ^
+	-DCMAKE_BUILD_TYPE=Release  ^
 	-DENABLE_TESTS=OFF ^
 	-DNETCDF_PREFIX="%LIBRARY_PREFIX%" ^
 	-DHDF5_ROOT="%LIBRARY_PREFIX%" ^
@@ -19,4 +19,3 @@ cmake --build .
 
 copy /B mdal\*.dll %LIBRARY_BIN%
 copy /B tools\*.exe %LIBRARY_BIN%
-
