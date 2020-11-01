@@ -14,5 +14,3 @@ cmake .. \
     -GNinja
 
 ninja install
-
-ctest --output-on-failure
