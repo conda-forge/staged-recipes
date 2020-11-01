@@ -1,5 +1,8 @@
 mkdir build
+if errorlevel 1 exit /b 1
+
 cd build
+if errorlevel 1 exit /b 1
 
 cmake  ^
 	-DCMAKE_BUILD_TYPE=Release  ^
@@ -14,8 +17,13 @@ cmake  ^
 	-DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
 	-DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
 	..
+if errorlevel 1 exit /b 1
 
 cmake --build . 
+if errorlevel 1 exit /b 1
 
 copy /B mdal\*.dll %LIBRARY_BIN%
+if errorlevel 1 exit /b 1
+
 copy /B tools\*.exe %LIBRARY_BIN%
+if errorlevel 1 exit /b 1
