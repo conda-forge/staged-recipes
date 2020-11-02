@@ -8,7 +8,6 @@ cmake .. \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_PREFIX_PATH=$PREFIX \
       -DCMAKE_INSTALL_PREFIX=$PREFIX \
-      -DCMAKE_CXX_FLAGS=-std=c++17 \
       -DCMAKE_INSTALL_LIBDIR=lib
 # omniidl is not well multi-processed
 make
