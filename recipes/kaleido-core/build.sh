@@ -19,4 +19,5 @@ cat <<EOF >$LAUNCH_SCRIPT
 export FONTCONFIG_PATH=$PREFIX/etc/fonts
 $BIN_LOCATION "\$@"
 EOF
+
 chmod +x $LAUNCH_SCRIPT
