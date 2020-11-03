@@ -1,0 +1,111 @@
+diff --git a/configure.ac b/configure.ac
+index c0df768..3c6f5a2 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -27,7 +27,7 @@ AM_CONDITIONAL([HAVE_MD2MAN], [test "x$ac_cv_path_MD2MAN" != x])
+ 
+ AC_CHECK_HEADERS([error.h])
+ 
+-AC_CHECK_FUNCS(copy_file_range fgetxattr statx fgetpwent_r issetugid)
++AC_CHECK_FUNCS(copy_file_range fgetxattr statx fgetpwent_r issetugid setns)
+ 
+ dnl libcap
+ AC_ARG_ENABLE([caps],
+diff --git a/src/libcrun/cloned_binary.c b/src/libcrun/cloned_binary.c
+index fd76a59..6e4a2b2 100644
+--- a/src/libcrun/cloned_binary.c
++++ b/src/libcrun/cloned_binary.c
+@@ -61,6 +61,10 @@
+ #include "utils.h"
+ 
+ /* Use our own wrapper for memfd_create. */
++/* NB: memfd_create syscall was introduced in Linux 3.17 and got backported to CentOS 7. */
++#if !defined(__NR_memfd_create) && defined(__x86_64__)
++#  define __NR_memfd_create 319
++#endif
+ #if !defined(SYS_memfd_create) && defined(__NR_memfd_create)
+ #  define SYS_memfd_create __NR_memfd_create
+ #endif
+diff --git a/src/libcrun/linux.c b/src/libcrun/linux.c
+index 55eec3a..5cfadd9 100644
+--- a/src/libcrun/linux.c
++++ b/src/libcrun/linux.c
+@@ -53,6 +53,16 @@
+ #include <net/if.h>
+ #include <sys/xattr.h>
+ 
++#ifndef HAVE_SETNS
++# include <unistd.h>
++# include <sys/syscall.h>
++/* NB: setns syscall was introduced in Linux 3.0 and is not available on CentOS 6. */
++# if !defined(__NR_setns) && defined(__x86_64__)
++#  define __NR_setns 308
++# endif
++# define setns(fd, nstype) syscall(__NR_setns, fd, nstype)
++#endif
++
+ #include <yajl/yajl_tree.h>
+ #include <yajl/yajl_gen.h>
+ 
+diff --git a/src/libcrun/linux.h b/src/libcrun/linux.h
+index 57e9372..9b279c2 100644
+--- a/src/libcrun/linux.h
++++ b/src/libcrun/linux.h
+@@ -27,6 +27,10 @@
+ #include "container.h"
+ #include "status.h"
+ 
++#ifndef PR_SET_CHILD_SUBREAPER
++# define PR_SET_CHILD_SUBREAPER 36
++#endif
++
+ typedef int (*container_entrypoint_t) (void *args, char *notify_socket, int sync_socket, libcrun_error_t *err);
+ 
+ pid_t libcrun_run_linux_container (libcrun_container_t *container, container_entrypoint_t entrypoint, void *args,
+diff --git a/src/libcrun/seccomp.c b/src/libcrun/seccomp.c
+index 9ee3a31..3e7373a 100644
+--- a/src/libcrun/seccomp.c
++++ b/src/libcrun/seccomp.c
+@@ -35,8 +35,12 @@
+ #include <sys/sysmacros.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
++
++/* NB: seccomp syscall was introduced in Linux 3.17 and got backported to CentOS 7. */
++#if !defined(__NR_seccomp) && defined(__x86_64__)
++# define __NR_seccomp 317
++#endif
+ #include <seccomp.h>
+-#include <linux/seccomp.h>
+ #include <linux/filter.h>
+ #include <sys/prctl.h>
+ #include <sys/syscall.h>
+diff --git a/src/libcrun/seccomp_notify_plugin.h b/src/libcrun/seccomp_notify_plugin.h
+index 9ce2f54..d0f799b 100644
+--- a/src/libcrun/seccomp_notify_plugin.h
++++ b/src/libcrun/seccomp_notify_plugin.h
+@@ -17,8 +17,6 @@
+  */
+ #ifndef SECCOMP_NOTIFY_PLUGINPLUGIN_H
+ 
+-#  include <linux/seccomp.h>
+-
+ struct libcrun_load_seccomp_notify_conf_s
+ {
+   const char *runtime_root_path;
+diff --git a/src/libcrun/utils.h b/src/libcrun/utils.h
+index 178a957..57ea1c3 100644
+--- a/src/libcrun/utils.h
++++ b/src/libcrun/utils.h
+@@ -29,6 +29,11 @@
+ #include <runtime_spec_schema_config_schema.h>
+ #include "container.h"
+ 
++/* NB: O_PATH was introduced in Linux 2.6.39 and is not available on CentOS 6. */
++#if !defined(O_PATH) && defined(__linux__)
++# define O_PATH 010000000
++#endif
++
+ #ifndef TEMP_FAILURE_RETRY
+ #  define TEMP_FAILURE_RETRY(expression)      \
+     (__extension__({                          \

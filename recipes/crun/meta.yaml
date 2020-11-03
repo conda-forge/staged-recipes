@@ -1,0 +1,68 @@
+{% set version = "0.15.1" %}
+
+package:
+  name: crun
+  version: {{ version }}
+
+source:
+  url: https://github.com/containers/crun/releases/download/{{ version }}/crun-{{ version }}.tar.xz
+  sha256: 10937b379e6f59aa84f21702564b85fb8ec453fdc4a424f19935c4f5c118da13
+  patches:
+    # NOTE: This add syscalls only available from Linux 3.0 (setns) and 3.17 (seccomp, memfd_create) onward.
+    - 0001-Add-missing-defines-for-CentOS-6.patch
+
+build:
+  number: 0
+  skip: True  # [not linux]
+  # Binary relocation causes:
+  #   crun: error while loading shared libraries: libyajl.so.2: cannot open shared object file: No such file or directory
+  # because of https://github.com/containers/crun/commit/ce4dfbb97a8a05bef125030eaa6c46c07a5f9344
+  binary_relocation: False
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - autoconf >=2.69
+    - automake >=1.11.2
+    - gperf
+    - libtool
+    - make
+    - pkg-config >=0.9.0
+    # Unless you are also building the Python bindings, Python is needed only by libocispec to generate the C parser at build time, it won't be used afterwards.
+    - python >=3
+    # We build with --disable-systemd because we do not have systemd/sd-bus.h
+    # which is only available in systemd v221 onward but CentOS 7 has v219.
+    # - {{ cdt('systemd-devel') }}
+  host:
+    - libcap
+    - libseccomp
+    - yajl >=2.1.0
+  run:
+    - {{ pin_compatible('yajl') }}
+
+test:
+  commands:
+    - crun --help
+    - crun --version
+    - test -f "${PREFIX}/lib/libcrun${SHLIB_EXT}"
+
+about:
+  home: https://github.com/containers/crun
+  dev_url: https://github.com/containers/crun
+  doc_url: https://github.com/containers/crun/blob/{{ version }}/crun.1.md
+  # NOTE: This also bundles https://github.com/containers/libocispec.
+  #       However, no further license conditions seem to be necessary, see
+  #       https://github.com/containers/libocispec/pull/46
+  license: GPL-2.0-or-later AND LGPL-2.0-or-later
+  license_file: COPYING
+  # TODO: Maybe create a split package for libcrun and Python binding.
+  #       License for a libcrun output would then be:
+  # license: LGPL-2.0-or-later
+  # license_file: COPYING.libcrun
+  summary: crun - a fast and lightweight OCI runtime
+  description: >
+    crun is a command line program for running Linux containers that follow the Open Container Initiative (OCI) format.
+
+extra:
+  recipe-maintainers:
+    - mbargull
