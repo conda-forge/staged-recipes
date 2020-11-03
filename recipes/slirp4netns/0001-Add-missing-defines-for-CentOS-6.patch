@@ -1,0 +1,57 @@
+diff --git a/configure.ac b/configure.ac
+index 6295448..39279f3 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -29,7 +29,7 @@ AC_FUNC_STRTOD
+ AC_FUNC_FORK
+ AC_FUNC_MALLOC
+ AC_FUNC_REALLOC
+-AC_CHECK_FUNCS([atexit clock_gettime dup2 getopt_long inet_ntoa memmove memset mkdir regcomp rmdir socket strcasecmp strchr strdup strerror strstr strtol strtoul])
++AC_CHECK_FUNCS([atexit clock_gettime dup2 getopt_long inet_ntoa memmove memset mkdir regcomp rmdir setns socket strcasecmp strchr strdup strerror strstr strtol strtoul])
+ 
+ PKG_CHECK_MODULES(GLIB, glib-2.0)
+ PKG_CHECK_MODULES(SLIRP, slirp >= 4.1.0)
+diff --git a/main.c b/main.c
+index df1afd5..42bcea7 100644
+--- a/main.c
++++ b/main.c
+@@ -35,6 +35,16 @@
+ // + 100 .
+ #define NETWORK_PREFIX_MAX (25)
+ 
++#ifndef HAVE_SETNS
++# include <unistd.h>
++# include <sys/syscall.h>
++/* NB: setns syscall was introduced in Linux 3.0 and is not available on CentOS 6. */
++# if !defined(__NR_setns) && defined(__x86_64__)
++#  define __NR_setns 308
++# endif
++# define setns(fd, nstype) syscall(__NR_setns, fd, nstype)
++#endif
++
+ static int nsenter(pid_t target_pid, char *netns, char *userns,
+                    bool only_userns)
+ {
+diff --git a/sandbox.c b/sandbox.c
+index 13514cb..dd7a4e4 100644
+--- a/sandbox.c
++++ b/sandbox.c
+@@ -14,6 +14,18 @@
+ 
+ #include <glib.h>
+ 
++/* NB: ambient capabilities were introduced in Linux 4.3 and got backported to Centos 7. */
++#ifndef PR_CAP_AMBIENT
++# define PR_CAP_AMBIENT 47
++#endif
++#ifndef PR_CAP_AMBIENT_CLEAR_ALL
++# define PR_CAP_AMBIENT_CLEAR_ALL 4
++#endif
++/* NB: PR_{GET,SET}_NO_NEW_PRIVS were introduced in Linux 3.5 and are not available on Centos 6. */
++#ifndef PR_SET_NO_NEW_PRIVS
++# define PR_SET_NO_NEW_PRIVS 38
++#endif
++
+ static int add_mount(const char *from, const char *to)
+ {
+     int ret;
