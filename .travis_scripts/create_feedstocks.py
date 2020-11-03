@@ -45,10 +45,7 @@ def list_recipes():
     for recipe_dir in recipes:
         # We don't list the "example" feedstock. It is an example, and is there
         # to be helpful.
-        # if recipe_dir == 'example':
-        #     continue
-        # chrisburr: While debugging, use an allow list of recipes
-        if recipe_dir not in ["r-parallelly"]:
+        if recipe_dir == 'example':
             continue
         path = os.path.abspath(os.path.join(recipe_directory_name, recipe_dir))
         yield path, get_feedstock_name_from_meta(MetaData(path))
