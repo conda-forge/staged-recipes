@@ -5,9 +5,13 @@ This repo is a holding area for recipes destined for a conda-forge feedstock rep
 [![Join the chat at https://gitter.im/conda-forge/conda-forge.github.io](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/conda-forge/conda-forge.github.io)
 
 
-## Build status
+## Feedstock conversion status
 
-[![Build Status](https://travis-ci.com/conda-forge/staged-recipes.svg?branch=master)](https://travis-ci.com/conda-forge/staged-recipes)
+[![Build Status](https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/staged-recipes?branchName=master&jobName=create_feedstocks)](https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=2259&branchName=master)
+
+Failures with the above job are often caused by API rate limits from the various services used by conda-forge.
+This can result in empty feedstock repositories and will resolve itself automatically.
+If the issue persists, support can be found [on Gitter](https://gitter.im/conda-forge/conda-forge.github.io).
 
 ## Getting started
 
@@ -163,4 +167,3 @@ cxx_compiler:                           # [unix]
 fortran_compiler:                       # [unix]
 - gfortran                              # [unix]
 ```
-
