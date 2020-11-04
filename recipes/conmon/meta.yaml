@@ -1,0 +1,60 @@
+{% set version = "2.0.21" %}
+
+package:
+  name: conmon
+  version: {{ version }}
+
+source:
+  url: https://github.com/containers/conmon/archive/v{{ version }}.tar.gz
+  sha256: 03c357c2ee35317e781111d59c4f3fb34033e77a17a8f4221f2ed6d3bcc10c25
+  patches:
+    - 0001-Add-missing-defines-for-CentOS-6.patch
+
+build:
+  number: 0
+  skip: True  # [not linux]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - make
+    - pkg-config
+  host:
+    # NOTE: The conda-forge-pinning is at version 2.58 (as of 2020-11-04).
+    #       Only versions `>=2.66.1` have the the libglib split.
+    #       TODO: Remove version constraint once pinning is updated.
+    - glib >=2.0
+    # Header+pkgconfig files for libglib are in the glib package.
+    # Explicitly depend on libglib to avoid glib run_exports from older builds.
+    - libglib >=2.0
+  run:
+
+test:
+  commands:
+    - conmon --help
+    - conmon --version
+
+about:
+  home: https://github.com/containers/conmon
+  dev_url: https://github.com/containers/conmon
+  doc_url: https://github.com/containers/conmon
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: An OCI container runtime monitor.
+  description: |
+    Conmon is a monitoring program and communication tool between a container manager (like Podman or CRI-O) and an OCI runtime (like runc or crun) for a single container.
+
+    Upon being launched, conmon (usually) double-forks to daemonize and detach from the parent that launched it. It then launches the runtime as its child. This allows managing processes to die in the foreground, but still be able to watch over and connect to the child process (the container).
+
+    While the container runs, conmon does two things:
+
+      - Provides a socket for attaching to the container, holding open the container's standard streams and forwarding them over the socket.
+      - Writes the contents of the container's streams to a log file (or to the systemd journal) so they can be read after the container's death.
+
+    Finally, upon the containers death, conmon will record its exit time and code to be read by the managing programs.
+
+    Written in C and designed to have a low memory footprint, conmon is intended to be run by a container managing library. Essentially, conmon is the smallest daemon a container can have.
+
+extra:
+  recipe-maintainers:
+    - mbargull
