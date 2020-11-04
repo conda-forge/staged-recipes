@@ -252,7 +252,7 @@ if __name__ == '__main__':
                 continue
             print("\n\nregistering CI services for %s..." % name)
             if num >= 10:
-                exit_code = 1
+                exit_code = 0
                 break
             # Try to register each feedstock with CI.
             # However sometimes their APIs have issues for whatever reason.
@@ -268,7 +268,7 @@ if __name__ == '__main__':
                 subprocess.check_call(
                     ['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
-                exit_code = 1
+                exit_code = 0
                 traceback.print_exception(*sys.exc_info())
                 continue
 
@@ -308,7 +308,7 @@ if __name__ == '__main__':
                 subprocess.check_call(
                     ['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
-                exit_code = 1
+                exit_code = 0
                 traceback.print_exception(*sys.exc_info())
                 continue
 
