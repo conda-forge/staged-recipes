@@ -1,0 +1,86 @@
+{% set version = "1.45.6" %}
+
+package:
+  name: e2fsprogs-split
+  version: {{ version }}
+
+source:
+  - url: https://www.kernel.org/pub/linux/kernel/people/tytso/e2fsprogs/v{{ version }}/e2fsprogs-{{ version }}.tar.xz
+    sha256: ffa7ae6954395abdc50d0f8605d8be84736465afc53b8938ef473fcf7ff44256
+
+build:
+  number: 0
+  skip: True  # [not linux]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - autoconf >=2.54
+    - automake
+    - make
+    - pkg-config
+  host:
+    - gettext
+    # Only need the libs, but util-linux doesn't offer a subpackage for it.
+    # - util-linux-libs
+    - util-linux
+  run:
+
+outputs:
+  - name: e2fsprogs-libs
+    script: install-e2fsprogs-libs.sh
+    build:
+      run_exports:
+        - {{ pin_subpackage('e2fsprogs-libs', max_pin='x.x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - make
+      host:
+      run:
+    test:
+      commands:
+        - test -f "${PREFIX}/include/com_err.h"
+        - test -f "${PREFIX}/include/e2p/e2p.h"
+        - test -f "${PREFIX}/include/ext2fs/ext2fs.h"
+        - test -f "${PREFIX}/include/ss/ss.h"
+        - test -f "${PREFIX}/lib/libcom_err${SHLIB_EXT}"
+        - test -f "${PREFIX}/lib/libe2p${SHLIB_EXT}"
+        - test -f "${PREFIX}/lib/libext2fs${SHLIB_EXT}"
+        - test -f "${PREFIX}/lib/libss${SHLIB_EXT}"
+        - test -f "${PREFIX}/lib/pkgconfig/com_err.pc"
+        - test -f "${PREFIX}/lib/pkgconfig/e2p.pc"
+        - test -f "${PREFIX}/lib/pkgconfig/ext2fs.pc"
+        - test -f "${PREFIX}/lib/pkgconfig/ss.pc"
+
+  - name: e2fsprogs
+    script: install-e2fsprogs.sh
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - make
+      host:
+        - {{ pin_subpackage('e2fsprogs-libs', exact=True) }}
+        # Only need the libs, but util-linux doesn't offer a subpackage for it.
+        # - util-linux-libs
+        - util-linux
+      run:
+        - {{ pin_subpackage('e2fsprogs-libs', exact=True) }}
+    test:
+      commands:
+        - '"${PREFIX}/bin/lsattr"'
+
+about:
+  home: http://e2fsprogs.sourceforge.net
+  dev_url: https://git.kernel.org/pub/scm/fs/ext2/e2fsprogs.git
+  doc_url: http://e2fsprogs.sourceforge.net
+  license: GPL-2.0-only AND LGPL-2.0-or-later AND MIT
+  license_file: NOTICE
+  summary: Ext2 Filesystems Utilities
+  description: >
+    The Ext2 Filesystem Utilities (e2fsprogs) contain all of the standard utilities for creating, fixing, configuring , and debugging ext2 filesystems.
+
+extra:
+  feedstock-name: e2fsprogs
+  recipe-maintainers:
+    - mbargull
