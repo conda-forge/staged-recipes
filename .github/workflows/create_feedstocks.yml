@@ -17,14 +17,18 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Prevent multiple jobs running in parallel
+        id: conversion_lock
         uses: softprops/turnstyle@v1
         with:
           abort-after-seconds: 3
           poll-interval-seconds: 2
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run feedstock creation
+        # outcome is evaluated before continue-on-error above
+        if: steps.conversion_lock.outcome == "success"
         run: |
             # Avoid wasting CI time if there are no recipes ready for conversion
             if [ "$(ls recipes/*/meta.yaml | grep -v recipes/example/meta.yaml --count)" -eq 0 ]; then
