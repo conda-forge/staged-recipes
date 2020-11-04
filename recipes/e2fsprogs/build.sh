@@ -11,4 +11,4 @@ AWK=awk \
   --disable-libuuid \
   --disable-libblkid
 
-make
+make -j$CPU_COUNT
