@@ -4,4 +4,4 @@ autoreconf -fi
 ./configure \
   --prefix="${PREFIX}" \
   --enable-pkgconfig
-make libdm.install
+make -j"${CPU_COUNT}" libdm.install
