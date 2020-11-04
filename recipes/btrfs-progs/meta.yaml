@@ -1,0 +1,64 @@
+{% set version = "5.9" %}
+
+package:
+  name: btrfs-progs
+  version: {{ version }}
+
+source:
+  - url: https://mirrors.edge.kernel.org/pub/linux/kernel/people/kdave/btrfs-progs/btrfs-progs-v{{ version }}.tar.xz
+    sha256: b89358a665ad753ecbdff11d2be77d230d2b197bb3c7e0eb739fb979c087a791
+    patches:
+    - 0001-Install-udev-rules-inside-prefix.patch
+
+build:
+  number: 0
+  skip: True  # [not linux]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - autoconf >=2.60
+    - automake
+    - make
+    - pkg-config
+    # We override UDEVDIR in 0001-Install-udev-rules-inside-prefix.patch anyway
+    # hence we can omit the libudev dependency and and compile for CentOS 6.
+    # # Needs libudev >=190 which is not available on Centos 6.
+    # # On Centos 7 it is provided by systemd-devel.
+    # # - {{ cdt('libudev-devel') }}
+    # # - sysroot_linux-64 >=2.17
+    # # - {{ cdt('systemd-devel') }}
+  host:
+    - e2fsprogs-libs
+    # Upstream requires libgcrypt >=1.8.0, but only >=1.8.5 has the pkgconfig files we want.
+    - libgcrypt >=1.8.5
+    - lzo
+    - util-linux-libs
+    - zstd >=1.0.0
+    - zlib
+  run:
+
+test:
+  commands:
+    - test -f "${PREFIX}/include/btrfs/version.h"
+    - test -f "${PREFIX}/include/btrfsutil.h"
+    - test -f "${PREFIX}/lib/libbtrfs${SHLIB_EXT}"
+    - test -f "${PREFIX}/lib/libbtrfsutil${SHLIB_EXT}"
+    - test -f "${PREFIX}/lib/pkgconfig/libbtrfsutil.pc"
+    - btrfs --help
+    - btrfs --version
+
+about:
+  home: https://btrfs.wiki.kernel.org
+  dev_url: https://github.com/kdave/btrfs-progs
+  doc_url: https://btrfs.wiki.kernel.org/index.php/Category:Manpage
+  license: GPL-2.0-only AND LGPL-3.0-or-later
+  license_file:
+    - COPYING
+    - libbtrfsutil/COPYING
+    - libbtrfsutil/COPYING.LESSER
+  summary: Userspace utilities to manage btrfs filesystems.
+
+extra:
+  recipe-maintainers:
+    - mbargull
