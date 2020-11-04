@@ -6,5 +6,5 @@ autoreconf -fis
     --disable-systemd \
     --disable-static \
     --enable-shared
-make
+make -j"${CPU_COUNT}"
 make install
