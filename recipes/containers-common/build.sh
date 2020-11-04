@@ -30,7 +30,7 @@ sed '
 
   /^# cni_plugin_dirs = \["/ {
     s/# //g
-    s|"/usr/|"'"${PREFIX}"'/|
+    s|"/usr/libexec/|"'"${PREFIX}"'/lib/|
   }
 
   /^# network_config_dir = "/ {
