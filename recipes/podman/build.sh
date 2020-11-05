@@ -15,7 +15,6 @@ then
   export CPPFLAGS="${CPPFLAGS} -DHAVE_SETNS"
 fi
 
-sed -i.bak '/exclude_graphdriver_devicemapper/d' "${module_path}/Makefile"
 make -C "${module_path}" \
   install install.completions \
   ETCDIR="${PREFIX}/etc" \
