@@ -1,0 +1,55 @@
+From 95ee23cf49bdcc689168e623d29b02d86e2212c8 Mon Sep 17 00:00:00 2001
+From: Vasily Litvinov <vasilij.n.litvinov@intel.com>
+Date: Fri, 6 Nov 2020 01:13:51 +0300
+Subject: [PATCH 6/6] Fix jemalloc defrag usage
+
+Signed-off-by: Vasily Litvinov <vasilij.n.litvinov@intel.com>
+---
+ bazel/ray_deps_setup.bzl                       |  1 +
+ thirdparty/patches/redis-jemalloc-defrag.patch | 22 ++++++++++++++++++++++
+ 2 files changed, 23 insertions(+)
+ create mode 100644 thirdparty/patches/redis-jemalloc-defrag.patch
+
+diff --git a/bazel/ray_deps_setup.bzl b/bazel/ray_deps_setup.bzl
+index 2c863b869..81d071dee 100644
+--- a/bazel/ray_deps_setup.bzl
++++ b/bazel/ray_deps_setup.bzl
+@@ -84,6 +84,7 @@ def ray_deps_setup():
+         patches = [
+             "//thirdparty/patches:redis-quiet.patch",
+             "//thirdparty/patches:redis-deps-ar.patch",
++	    "//thirdparty/patches:redis-jemalloc-defrag.patch",
+         ],
+     )
+ 
+diff --git a/thirdparty/patches/redis-jemalloc-defrag.patch b/thirdparty/patches/redis-jemalloc-defrag.patch
+new file mode 100644
+index 000000000..c6d6d2996
+--- /dev/null
++++ b/thirdparty/patches/redis-jemalloc-defrag.patch
+@@ -0,0 +1,22 @@
++diff --git src/defrag.c src/defrag.c
++index ecf0255dc..b6f4ddfcc 100644
++--- src/defrag.c
+++++ src/defrag.c
++@@ -43,7 +43,7 @@
++ 
++ /* this method was added to jemalloc in order to help us understand which
++  * pointers are worthwhile moving and which aren't */
++-int je_get_defrag_hint(void* ptr, int *bin_util, int *run_util);
+++int get_defrag_hint(void* ptr, int *bin_util, int *run_util);
++ 
++ /* forward declarations*/
++ void defragDictBucketCallback(void *privdata, dictEntry **bucketref);
++@@ -58,7 +58,7 @@ void* activeDefragAlloc(void *ptr) {
++     int bin_util, run_util;
++     size_t size;
++     void *newptr;
++-    if(!je_get_defrag_hint(ptr, &bin_util, &run_util)) {
+++    if(!get_defrag_hint(ptr, &bin_util, &run_util)) {
++         server.stat_active_defrag_misses++;
++         return NULL;
++     }
+-- 
+2.11.0
+
