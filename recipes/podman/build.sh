@@ -41,6 +41,7 @@ EOF
     go-licenses csv "${module}" | sort >> "${output}"
     go-licenses save "${module}" --save_path="${tmp_dir}"
     cp -r "${tmp_dir}"/* "${acc_dir}"/
+    chmod -R +w "${acc_dir}" "${tmp_dir}"
     rm -r "${tmp_dir}"
   done
   # shellcheck disable=SC2016  # Not expanding $ in single quotes intentional.
