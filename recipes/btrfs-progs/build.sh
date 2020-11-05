@@ -8,7 +8,7 @@
   --disable-documentation \
   --disable-python
 
-make
+make -j"${CPU_COUNT}"
 make install
 # In case we were to split this package, the following would only install libs:
 # (But we'd have to consider whether it even makes sense to put libbtrfs
