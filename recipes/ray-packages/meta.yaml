@@ -1,4 +1,4 @@
-{% set version = "0.8.0" %}
+{% set version = "1.0.0" %}
 
 package:
   name: ray-packages
@@ -6,19 +6,18 @@ package:
 
 source:
   url: https://github.com/ray-project/ray/archive/ray-{{ version }}.tar.gz
-  sha256: 2da0a27e00febd16e9421261a3b3ef5352bf37378e28d1adabbf73879f910748
+  sha256: 53aa83f6cc020a84d56192d4f4678e192a58ce33f12c5996343949d28780a788
   patches:
     - patches/0001-remove-requires-from-setup.py.patch
-    - patches/0002-do-not-vendor-pyarrow-pickle5.patch
-    - patches/0003-remove-checks-for-vendored-pyarrow-pickle5.patch
-    - patches/0004-no-need-to-check-import-errors-when-using-conda.patch
-    - patches/0005-remove-deprecated-bazel-option.patch
+    - patches/0002-remove-enforce-builtin-pickle5.patch
 
 build:
   number: 0
   skip: True  # [py<36]
   # wait (at least) for bazel on windows; conda-forge/bazel-feedstock/issues/36
   skip: True  # [win]
+  script_env:
+    - SKIP_THIRDPARTY_INSTALL: 1
 
 # Need these up here for conda-smithy to handle them properly.
 requirements:
@@ -32,6 +31,8 @@ requirements:
 
 outputs:
   - name: ray-all
+    build:
+      skip: True
     requirements:
       host:
       run:
@@ -58,6 +59,9 @@ outputs:
         - {{ compiler('cxx') }}
         - cython >=0.29
         - bazel
+        - curl
+        - make
+        - python
       host:
         # TODO: check which of these can move to run-reqs
         - click
@@ -80,6 +84,7 @@ outputs:
       run:
         - python
         - numpy >=1.16
+        - pickle5 ==0.0.9    # [py<38]
         - filelock
         - funcsigs
         - click
@@ -102,6 +107,8 @@ outputs:
         - ray.worker
 
   - name: ray-debug
+    build:
+      skip: True
     requirements:
       host:
         - python
@@ -117,6 +124,8 @@ outputs:
         - ray
 
   - name: ray-dashboard
+    build:
+      skip: True
     requirements:
       host:
         - python
@@ -175,6 +184,7 @@ outputs:
         - ray.serve
 
   - name: ray-tune
+    skip: True
     requirements:
       host:
         - python
@@ -185,8 +195,6 @@ outputs:
     test:
       imports:
         - ray.tune
-
-
 about:
   home: https://github.com/ray-project/ray
   license: Apache-2.0
@@ -203,3 +211,4 @@ extra:
   recipe-maintainers:
     - dHannasch
     - h-vetinari
+    - vnlitvinov
