@@ -7,5 +7,8 @@ set "PYTHON_EXECUTABLE=%PYTHON%"
 set "PYTHON_LIBRARIES=%LIBRARY_LIB%"
 set USE_MSVC_STATIC_RUNTIME=0
 cmake .. -DCMAKE_INSTALL_PREFIX=%PREFIX%
+if errorlevel 1 exit 1
 cmake --build .
+if errorlevel 1 exit 1
 cmake --build . --target install
+if errorlevel 1 exit 1
