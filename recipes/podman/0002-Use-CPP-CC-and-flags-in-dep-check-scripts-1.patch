@@ -1,0 +1,67 @@
+From 06d2d0c6ef9ec8d14f3423d0ddf5e17e444cdc02 Mon Sep 17 00:00:00 2001
+From: Marcel Bargull <marcel.bargull@udo.edu>
+Date: Fri, 6 Nov 2020 09:03:32 +0100
+Subject: [PATCH] Use CPP, CC and flags in dep check scripts
+
+Allow build systems without standard cc to successfully run the
+dependency checking helper scripts from the Makefile.
+This supports custom compilers specified by the common CC environment
+variable, preprocessors given as CPP and additional preprocessor flags
+from CPPFLAGS.
+Additional flags from CFLAGS and LDFLAGS are considered for compiling/linking.
+Overall, this facilitates cross-compilation and similar setups.
+
+Signed-off-by: Marcel Bargull <marcel.bargull@udo.edu>
+---
+ hack/btrfs_installed_tag.sh | 2 +-
+ hack/btrfs_tag.sh           | 2 +-
+ hack/libdm_tag.sh           | 2 +-
+ hack/systemd_tag.sh         | 2 +-
+ 4 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/hack/btrfs_installed_tag.sh b/hack/btrfs_installed_tag.sh
+index c4d99f377f..f2f2b33c83 100755
+--- a/hack/btrfs_installed_tag.sh
++++ b/hack/btrfs_installed_tag.sh
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env bash
+-cc -E - > /dev/null 2> /dev/null << EOF
++${CPP:-${CC:-cc} -E} ${CPPFLAGS} - > /dev/null 2> /dev/null << EOF
+ #include <btrfs/ioctl.h>
+ EOF
+ if test $? -ne 0 ; then
+diff --git a/hack/btrfs_tag.sh b/hack/btrfs_tag.sh
+index 59cb969ad6..ea753d4d02 100755
+--- a/hack/btrfs_tag.sh
++++ b/hack/btrfs_tag.sh
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env bash
+-cc -E - > /dev/null 2> /dev/null << EOF
++${CPP:-${CC:-cc} -E} ${CPPFLAGS} - > /dev/null 2> /dev/null << EOF
+ #include <btrfs/version.h>
+ EOF
+ if test $? -ne 0 ; then
+diff --git a/hack/libdm_tag.sh b/hack/libdm_tag.sh
+index d3668aab1c..815b5d914e 100755
+--- a/hack/libdm_tag.sh
++++ b/hack/libdm_tag.sh
+@@ -2,7 +2,7 @@
+ tmpdir="$PWD/tmp.$RANDOM"
+ mkdir -p "$tmpdir"
+ trap 'rm -fr "$tmpdir"' EXIT
+-cc -o "$tmpdir"/libdm_tag -ldevmapper -x c - > /dev/null 2> /dev/null << EOF
++${CC:-cc} ${CFLAGS} ${CPPFLAGS} ${LDFLAGS} -o "$tmpdir"/libdm_tag -x c - -ldevmapper > /dev/null 2> /dev/null << EOF
+ #include <libdevmapper.h>
+ int main() {
+ 	struct dm_task *task;
+diff --git a/hack/systemd_tag.sh b/hack/systemd_tag.sh
+index 19a7bf6a64..5af3228816 100755
+--- a/hack/systemd_tag.sh
++++ b/hack/systemd_tag.sh
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env bash
+-cc -E - > /dev/null 2> /dev/null << EOF
++${CPP:-${CC:-cc} -E} ${CPPFLAGS} - > /dev/null 2> /dev/null << EOF
+ #include <systemd/sd-daemon.h>
+ EOF
+ if test $? -eq 0 ; then
