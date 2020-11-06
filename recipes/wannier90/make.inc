@@ -1,4 +1,4 @@
 F90 = ${F90}
-FCOPTS = -O3
-LDOPTS =
+FCOPTS = ${FFLAGS}
+LDOPTS = ${LDFLAGS}
 LIBS = -L${PREFIX}/lib -llapack -lblas
