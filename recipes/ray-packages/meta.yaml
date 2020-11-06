@@ -16,7 +16,7 @@ source:
     - patches/0006-Fix-jemalloc-defrag-usage.patch
 
 build:
-  number: 1
+  number: 9
   skip: True  # [py<36]
   # wait (at least) for bazel on windows; conda-forge/bazel-feedstock/issues/36
   skip: True  # [not linux]
@@ -55,7 +55,8 @@ outputs:
   - name: ray-core
     build:
       # use build-script that comes with ray
-      script: "SKIP_THIRDPARTY_INSTALL=1 SYSTEMROOT=${CONDA_BUILD_SYSROOT} ./build.sh"
+      #script: SKIP_THIRDPARTY_INSTALL=1 SYSTEMROOT="${CONDA_BUILD_SYSROOT}" PYTHON3_BIN_PATH="${PYTHON}" ./build.sh install
+      script: cd python/ && SKIP_THIRDPARTY_INSTALL=1 SYSTEMROOT="${CONDA_BUILD_SYSROOT}" "${PYTHON}" setup.py bdist_wheel && "${PYTHON}" -m pip install dist/ray-{{ version }}-*.whl
     requirements:
       build:
         - {{ compiler('c') }}
@@ -79,7 +80,7 @@ outputs:
         - protobuf >=3.8.0
         - pytest
         - pyyaml
-        - redis-py >=3.3.2
+        - redis-py >=3.3.2, <3.5.0
         - python
         - pip
       run:
@@ -89,7 +90,7 @@ outputs:
         - aioredis
         - click >=7.0
         - colorama
-        # - colorful #FIXME:  missing dep
+        # - colorful #FIXME: missing dep
         - filelock
         - googlesearch
         - gpustat
@@ -98,24 +99,23 @@ outputs:
         - msgpack-python >=1.0.0, <2.0.0
         - numpy >=1.16
         - protobuf >=3.8.0
-        - py-spy >=0.2.0
+        - psutil
         - pyyaml
         - requests
         - redis-py >=3.3.2, <3.5.0
         - opencensus
-        - promoetheus_client >=0.7.1
+        - prometheus_client >=0.7.1
         - pickle5 # [py<38]
         - funcsigs
+        - setproctitle
     test:
       imports:
         - ray
         - ray._raylet
         - ray.actor
         - ray.profiling
-        - ray.projects
         - ray.runtime_context
         - ray.state
-        - ray.tests
         - ray.worker
 
   - name: ray-debug
@@ -127,9 +127,7 @@ outputs:
       run:
         - python
         - {{ pin_subpackage('ray-core', exact=True) }}
-        - psutil
         - py-spy >=0.2.0
-        - setproctitle
     test:
       imports:
         # there doesn't appear to be a debug specific module
@@ -144,11 +142,6 @@ outputs:
       run:
         - python
         - {{ pin_subpackage('ray-core', exact=True) }}
-        - aiohttp
-        - googlesearch
-        - grpcio
-        - psutil
-        - setproctitle
     test:
       imports:
         - ray.dashboard
