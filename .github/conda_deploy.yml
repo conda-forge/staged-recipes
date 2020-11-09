@@ -1,0 +1,35 @@
+name: Conda Deployment 
+
+on:
+  push:
+    branch:
+      - gplates
+  #release:
+  #  types: [created, edited]
+
+jobs:
+
+  conda_build_test:
+    name: Conda Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest", "macos-latest"]
+        python-version: ["3.7", "3.8"]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: goanpeca/setup-miniconda@v1
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+      - name: Conda Upload
+        shell: bash -l {0}
+        run: |
+            conda install --channel conda-forge conda-build anaconda-client conda-verify
+            conda config --add channels conda-forge
+            conda config --add channels underworldcode
+            conda config --set anaconda_upload yes
+            anaconda login --hostname github-actions-${{ matrix.os  }}-$RANDOM --username ${{ secrets.ANACONDA_USERNAME }} --password ${{ secrets.ANACONDA_PASSWORD }}
+            conda-build --channel conda-forge --user underworldcode recipes/gplates
+            anaconda logout
