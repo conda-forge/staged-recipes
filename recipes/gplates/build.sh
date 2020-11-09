@@ -7,5 +7,8 @@ else
   CMAKE_PLATFORM_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
 fi
 
-cmake .
+cmake -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+  ${CMAKE_PLATFORM_FLAGS[@]} \
+  ${SRC_DIR}
 make -j${CPU_COUNT}
+make install
