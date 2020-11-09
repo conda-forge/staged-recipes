@@ -1,7 +1,4 @@
-setlocal EnableDelayedExpansion
-
-CALL "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x86_amd64
-CALL %BUILD_PREFIX%\Library\bin\cmake -G "NMake Makefiles" -Bbuild -DCMAKE_BUILD_TYPE:STRING=Release -DOPENBABEL_DIR=%PREFIX%
+CALL %BUILD_PREFIX%\Library\bin\cmake -G "NMake Makefiles" -Bbuild -DCMAKE_BUILD_TYPE:STRING=Release -DOPENBABEL_DIR=%LIBRARY_PREFIX%
 CALL cd build
 CALL nmake
 CALL XCOPY /Y bind* ..\pnab
