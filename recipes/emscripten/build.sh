@@ -12,3 +12,10 @@ python $RECIPE_DIR/link_bin.py
 emcc
 
 python $RECIPE_DIR/fix_emscripten_config.py
+
+pushd $PREFIX/lib/emscripten-$PKG_VERSION/
+npm install
+popd
+
+# We should probably not do this
+# embuilder build ALL
