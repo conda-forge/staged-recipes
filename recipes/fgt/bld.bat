@@ -7,6 +7,7 @@ cmake -G "NMake Makefiles" ^
       -DCMAKE_LIBRARY_PATH="%LIBRARY_LIB%" ^
       -DCMAKE_INCLUDE_PATH="%INCLUDE_INC%" ^
       -DBUILD_SHARED_LIBS=OFF ^
+      -DWITH_TESTS=OFF ^
       %SRC_DIR%
 if errorlevel 1 exit 1
 
