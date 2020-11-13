@@ -12,7 +12,8 @@ cmake -G "Unix Makefiles" \
       -DCMAKE_INCLUDE_PATH="${PREFIX}/include" \
       -DWITH_FGT="${PREFIX}" \
       -DWITH_JSONCPP=OFF \
-      -DWITH_STRICT_WARNINGS=ON
+      -DWITH_STRICT_WARNINGS=ON \
+      ..
 
 # CircleCI offers two cores.
 make -j $CPU_COUNT
