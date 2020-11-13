@@ -12,7 +12,7 @@ make -j2 plugins
 make plugins-install
 
 # Copy runtime stuff
-for dir in atmosphere ephemeris example_data observatory plugin_data solarWindModel clock
+for dir in atmosphere ephemeris example_data observatory plugin_data solarWindModel clock earth
 do
     cp -a T2runtime/$dir $TEMPO2/
 done
