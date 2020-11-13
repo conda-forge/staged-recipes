@@ -8,6 +8,7 @@ cmake -G "NMake Makefiles" ^
       -DCMAKE_INCLUDE_PATH="%INCLUDE_INC%" ^
       -DBUILD_SHARED_LIBS=OFF ^
       -DWITH_FGT=%LIBRARY_PREFIX% ^
+      -DWITH_TESTS=OFF ^
       -DWITH_JSONCPP=OFF ^
       -DWITH_STRICT_WARNINGS=ON ^
       %SRC_DIR%
