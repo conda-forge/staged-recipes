@@ -1,5 +1,7 @@
 #!/bin/bash
 export FCFLAGS=${FFLAGS}
+alias gfortran=${FC}
+alias gcc=${CC}
 
 ./configure \
 --with-fft-libs=-lfftw \
@@ -18,6 +20,6 @@ export FCFLAGS=${FFLAGS}
 --with-libxc-path=${PREFIX}/lib \
 --with-libxc-libdir=${PREFIX}/lib \
 --with-libxc-includedir=${PREFIX}/include \
-FC=x86_64-conda-linux-gnu-gfortran CC=x86_64-conda-linux-gnu-gcc MPIFC=mpifort
+FC=gfortran CC=gcc MPIFC=mpifort
 make yambo ypp p2y
 make install
