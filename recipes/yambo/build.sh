@@ -18,5 +18,5 @@
 --with-libxc-libdir=${PREFIX}/lib \
 --with-libxc-includedir=${PREFIX}/include \
 ${PREFIX}
-make yambo ypp interfaces
+make yambo
 make install
