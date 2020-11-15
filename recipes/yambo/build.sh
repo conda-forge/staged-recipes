@@ -1,6 +1,4 @@
 #!/bin/bash
-unset FC
-unset CC 
 export FCFLAGS=${FFLAGS}
 
 ./configure \
@@ -20,6 +18,6 @@ export FCFLAGS=${FFLAGS}
 --with-libxc-path=${PREFIX}/lib \
 --with-libxc-libdir=${PREFIX}/lib \
 --with-libxc-includedir=${PREFIX}/include \
-FC=x86_64-conda-linux-gnu-gfortran CC=x86_64-conda-linux-gnu-gcc MPIFC=mpifort
+FC="${FC}" CC="${CC}" MPIFC=mpifort
 make yambo ypp p2y
 make install
