@@ -19,6 +19,10 @@ export FCFLAGS=${FFLAGS}
 --with-libxc-path=${PREFIX}/lib \
 --with-libxc-libdir=${PREFIX}/lib \
 --with-libxc-includedir=${PREFIX}/include \
+--with-mpi-libs=-lmpi \
+--with-mpi-path=${PREFIX}/lib \
+--with-mpi-libdir=${PREFIX}/lib \
+--with-mpi-includedir=${PREFIX}/include \ 
 FC="${FC}" CC="${CC}" MPIFC=mpifort
 make yambo ypp p2y
 make install
