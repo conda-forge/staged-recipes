@@ -2,6 +2,8 @@
 export FCFLAGS=${FFLAGS}
 
 ./configure \
+FC=${GFORTRAN} \
+CC=${GCC} \
 --with-fft-libs=-lfftw \
 --with-fft-path=${PREFIX}/lib \
 --with-fft-libdir=${PREFIX}/lib \
