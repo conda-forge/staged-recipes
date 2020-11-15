@@ -1,7 +1,6 @@
 #!/bin/bash
 ./configure \
 --enable-mpi=no \
---with-scalapack-libs=-lscalapack \
 --with-fft-libs=-lfftw \
 --with-fft-path=${PREFIX}/lib \
 --with-fft-libdir=${PREFIX}/lib \
