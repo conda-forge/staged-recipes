@@ -18,5 +18,5 @@
 --with-libxc-libdir=${PREFIX}/lib \
 --with-libxc-includedir=${PREFIX}/include \
 ${PREFIX}
-make yambo
+make yambo ypp p2y
 make install
