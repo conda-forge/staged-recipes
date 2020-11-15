@@ -31,31 +31,29 @@ def build_all(recipes_dir, arch):
         print("Found no recipes to build")
         return
 
-    if get_host_platform() == "win":
-        new_comp_folders.extend(folders)
-    else:
-        for folder in folders:
-            built = False
-            cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
-            if os.path.exists(cbc):
-                with open(cbc, "r") as f:
-                    text = ''.join(f.readlines())
-                if 'channel_sources' in text:
-                    specific_config = safe_load(text)
-                    if "channel_targets" not in specific_config:
-                        raise RuntimeError("channel_targets not found in {}".format(folder))
-                    if "channel_sources" in specific_config:
-                        for row in specific_config["channel_sources"]:
-                            channels = [c.strip() for c in row.split(",")]
-                            if channels != ['conda-forge', 'defaults'] and \
-                                    channels != ['conda-forge/label/cf201901', 'defaults']:
-                                print("Not a standard configuration of channel_sources. Building {} individually.".format(folder))
-                                conda_build.api.build([os.path.join(recipes_dir, folder)], config=get_config(arch, channels))
-                                built = True
-                                break
-                    if not built:
-                        old_comp_folders.append(folder)
-                        continue
+    for folder in folders:
+        built = False
+        cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
+        if os.path.exists(cbc):
+            with open(cbc, "r") as f:
+                text = ''.join(f.readlines())
+            if 'channel_sources' in text:
+                specific_config = safe_load(text)
+                if "channel_targets" not in specific_config:
+                    raise RuntimeError("channel_targets not found in {}".format(folder))
+                if "channel_sources" in specific_config:
+                    for row in specific_config["channel_sources"]:
+                        channels = [c.strip() for c in row.split(",")]
+                        if channels != ['conda-forge', 'defaults'] and \
+                                channels != ['conda-forge/label/cf201901', 'defaults']:
+                            print("Not a standard configuration of channel_sources. Building {} individually.".format(folder))
+                            conda_build.api.build([os.path.join(recipes_dir, folder)], config=get_config(arch, channels))
+                            built = True
+                            break
+                if not built:
+                    old_comp_folders.append(folder)
+                    continue
+        if not built:
             new_comp_folders.append(folder)
 
     if old_comp_folders:
@@ -125,11 +123,20 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
         conda_build.api.build([recipe], config=get_config(arch, channel_urls))
 
 
+def check_recipes_in_correct_dir(root_dir, correct_dir):
+    from pathlib import Path
+    for path in Path(root_dir).rglob('meta.yaml'):
+        path = path.absolute().relative_to(root_dir)
+        if path.parts[0] != correct_dir:
+            raise RuntimeError(f"recipe {path.parts} in wrong directory")
+        if len(path.parts) != 3:
+            raise RuntimeError(f"recipe {path.parts} in wrong directory")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('recipes_dir', default=os.getcwd(),
-                        help='Directory where the recipes are')
     parser.add_argument('--arch', default='64',
                         help='target architecture (64 or 32)')
     args = parser.parse_args()
-    build_all(args.recipes_dir, args.arch)
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    check_recipes_in_correct_dir(root_dir, "recipes")
+    build_all(os.path.join(root_dir, "recipes"), args.arch)
