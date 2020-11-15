@@ -2,7 +2,6 @@
 export FCFLAGS=${FFLAGS}
 
 ./configure \
---prefix=${PREFIX} \
 --with-fft-libs=-lfftw \
 --with-fft-path=${PREFIX}/lib \
 --with-fft-libdir=${PREFIX}/lib \
