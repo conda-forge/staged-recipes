@@ -1,4 +1,6 @@
 #!/bin/bash
+unset FC
+unset CC 
 export FCFLAGS=${FFLAGS}
 
 ./configure \
