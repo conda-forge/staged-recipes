@@ -17,6 +17,7 @@ export FCFLAGS=${FFLAGS}
 --with-libxc-libs=-llibxc \
 --with-libxc-path=${PREFIX}/lib \
 --with-libxc-libdir=${PREFIX}/lib \
---with-libxc-includedir=${PREFIX}/include 
+--with-libxc-includedir=${PREFIX}/include \
+FC=${FC} CC=${CC}
 make yambo ypp p2y
 make install
