@@ -14,6 +14,10 @@
 --with-netcdff-path=${PREFIX}/lib \
 --with-netcdff-libdir=${PREFIX}/lib \
 --with-netcdff-includedir=${PREFIX}/include \
+--with-libxc-libs=-llibxc \
+--with-libxc-path=${PREFIX}/lib \
+--with-libxc-libdir=${PREFIX}/lib \
+--with-libxc-includedir=${PREFIX}/include \
 ${PREFIX}
 make yambo ypp interfaces
 make install
