@@ -18,6 +18,8 @@ export FCFLAGS=${FFLAGS}
 --with-libxc-path=${PREFIX}/lib \
 --with-libxc-libdir=${PREFIX}/lib \
 --with-libxc-includedir=${PREFIX}/include \
-FC=${FC} CC=${CC}
+FC=${BUILD_PREFIX}/bin/x86_64-conda-linux-gnu-gfortran \
+CC=${BUILD_PREFIX}/bin/x86_64-conda-linux-gnu-gcc \
+MPIFC=mpifort
 make yambo ypp p2y
 make install
