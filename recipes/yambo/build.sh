@@ -1,5 +1,6 @@
 #!/bin/bash
 export FCFLAGS=${FFLAGS}
+export MPIFC=mpif90
 
 ./configure \
 --with-fft-libs=-lfftw \
@@ -17,9 +18,6 @@ export FCFLAGS=${FFLAGS}
 --with-libxc-libs=-llibxc \
 --with-libxc-path=${PREFIX}/lib \
 --with-libxc-libdir=${PREFIX}/lib \
---with-libxc-includedir=${PREFIX}/include \
-FC=${BUILD_PREFIX}/bin/x86_64-conda-linux-gnu-gfortran \
-CC=${BUILD_PREFIX}/bin/x86_64-conda-linux-gnu-gcc \
-MPIFC=mpifort
+--with-libxc-includedir=${PREFIX}/include
 make yambo ypp p2y
 make install
