@@ -1,6 +1,6 @@
 #!/bin/bash
 ./configure \
---enable-netcdf-classic \
+--enable-mpi=no \
 --with-scalapack-libs=-lscalapack \
 --with-fft-libs=-lfftw \
 --with-fft-path=${PREFIX}/lib \
