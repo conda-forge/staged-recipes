@@ -1,8 +1,5 @@
 #!/bin/bash
 export FCFLAGS=${FFLAGS}
-export CC=$(basename "$CC")
-export CXX=$(basename "$CXX")
-export FC=$(basename "$FC")
 
 ./configure \
 --with-fft-libs=-lfftw \
@@ -20,6 +17,7 @@ export FC=$(basename "$FC")
 --with-libxc-libs=-llibxc \
 --with-libxc-path=${PREFIX}/lib \
 --with-libxc-libdir=${PREFIX}/lib \
---with-libxc-includedir=${PREFIX}/include
+--with-libxc-includedir=${PREFIX}/include \
+FC=gfortran CC=gcc MPIFC=mpifort
 make yambo ypp p2y
 make install
