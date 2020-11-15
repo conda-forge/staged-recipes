@@ -1,6 +1,8 @@
 #!/bin/bash
 export FCFLAGS=${FFLAGS}
-export MPIFC=mpif90
+export CC=$(basename "$CC")
+export CXX=$(basename "$CXX")
+export FC=$(basename "$FC")
 
 ./configure \
 --with-fft-libs=-lfftw \
