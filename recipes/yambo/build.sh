@@ -2,8 +2,6 @@
 export FCFLAGS=${FFLAGS}
 
 ./configure \
-FC=${GFORTRAN} \
-CC=${GCC} \
 --with-fft-libs=-lfftw \
 --with-fft-path=${PREFIX}/lib \
 --with-fft-libdir=${PREFIX}/lib \
@@ -19,7 +17,6 @@ CC=${GCC} \
 --with-libxc-libs=-llibxc \
 --with-libxc-path=${PREFIX}/lib \
 --with-libxc-libdir=${PREFIX}/lib \
---with-libxc-includedir=${PREFIX}/include \
-${PREFIX}
+--with-libxc-includedir=${PREFIX}/include 
 make yambo ypp p2y
 make install
