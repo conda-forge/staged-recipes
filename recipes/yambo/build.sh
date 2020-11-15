@@ -1,4 +1,6 @@
 #!/bin/bash
+export FCFLAGS=${FFLAGS}
+
 ./configure \
 --enable-mpi=no \
 --with-fft-libs=-lfftw \
