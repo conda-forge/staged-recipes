@@ -2,12 +2,6 @@ from subprocess import Popen, PIPE
 import json
 import platform
 
-# Remove "sys.exit" after feedstock creation when running
-# on linux-anvil-cos7-x86_64 image
-if platform.system() == "Linux":
-    import sys
-    sys.exit(0)
-
 if platform.system() == "Windows":
     ext = ".cmd"
 else:
