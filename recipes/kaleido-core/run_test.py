@@ -14,7 +14,7 @@ else:
     ext = ""
 
 p = Popen(
-    ['kaleido' + ext, "plotly", "--disable-gpu"],
+    ['kaleido' + ext, "plotly", "--disable-gpu", "--no-sandbox", "--disable-breakpad"],
     stdout=PIPE, stdin=PIPE, stderr=PIPE,
     text=True
 )
