@@ -5,9 +5,13 @@ This repo is a holding area for recipes destined for a conda-forge feedstock rep
 [![Join the chat at https://gitter.im/conda-forge/conda-forge.github.io](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/conda-forge/conda-forge.github.io)
 
 
-## Build status
+## Feedstock conversion status
 
-[![Circle CI](https://circleci.com/gh/conda-forge/staged-recipes/tree/master.svg?style=shield)](https://circleci.com/gh/conda-forge/staged-recipes/tree/master) [![Build Status](https://travis-ci.com/conda-forge/staged-recipes.svg?branch=master)](https://travis-ci.com/conda-forge/staged-recipes) [![Build status](https://ci.appveyor.com/api/projects/status/3lju80dibkmowsj5/branch/master?svg=true)](https://ci.appveyor.com/project/conda-forge/staged-recipes/branch/master)
+[![Build Status](https://github.com/conda-forge/staged-recipes/workflows/Create%20feedstocks/badge.svg)](https://github.com/conda-forge/staged-recipes/actions?query=workflow%3A%22Create+feedstocks%22)
+
+Failures with the above job are often caused by API rate limits from the various services used by conda-forge.
+This can result in empty feedstock repositories and will resolve itself automatically.
+If the issue persists, support can be found [on Gitter](https://gitter.im/conda-forge/conda-forge.github.io).
 
 ## Getting started
 
@@ -15,6 +19,15 @@ This repo is a holding area for recipes destined for a conda-forge feedstock rep
 2. Make a new folder in `recipes` for your package. Look at the example recipe, our [documentation](http://conda-forge.org/docs/maintainer/adding_pkgs.html#) and the [FAQ](https://github.com/conda-forge/staged-recipes#faq)  for help.
 3. Open a pull request. Building of your package will be tested on Windows, Mac and Linux.
 4. When your pull request is merged a new repository, called a feedstock, will be created in the github conda-forge organization, and build/upload of your package will automatically be triggered. Once complete, the package is available on conda-forge.
+
+
+## Grayskull - recipe generator for Python packages on `pypi`
+
+For Python packages available on `pypi` it is possible to use [grayskull](https://github.com/conda-incubator/grayskull) to generate the recipe. The user should review the recipe generated, specially the license and dependencies.
+
+Installing `grayskull`: `conda install -c conda-forge grayskull`
+
+Generating recipe: `grayskull pypi PACKAGE_NAME_HERE`
 
 
 ## FAQ
@@ -123,7 +136,7 @@ If your PR is passing all checks, but has not been acted on by the staged recipe
 maintainers, you can ping @conda-forge/staged-recipes to request action. You do
 not need to wait any specific amount of time once the recipe is ready to go.
 
-If your recipe still does not recieve any attention after a few days, you may
+If your recipe still does not receive any attention after a few days, you may
 attempt to re-ping @conda-forge/staged-recipes. You may also attempt to bring
 the PR up in our Gitter chat room at https://gitter.im/conda-forge/conda-forge.github.io
 

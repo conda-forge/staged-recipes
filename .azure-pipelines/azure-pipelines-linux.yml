@@ -1,5 +1,6 @@
 jobs:
 - job: linux_64
+  condition: not(eq(variables['Build.SourceBranch'], 'refs/heads/master'))
   pool:
     vmImage: ubuntu-16.04
   strategy:
@@ -7,8 +8,7 @@ jobs:
     matrix:
       linux:
         CONFIG: linux64
-        IMAGE_NAME: condaforge/linux-anvil-comp7
-        CF_MAX_PY_VER: 37
+        IMAGE_NAME: quay.io/condaforge/linux-anvil-comp7
         AZURE: True
   timeoutInMinutes: 360
   steps:
@@ -18,6 +18,14 @@ jobs:
     displayName: Install dependencies
 
   - script: |
+      set -e
+
+      # make sure there is a package directory so that artifact publishing works
+      mkdir -p build_artifacts/linux-64/
+
       export CI=azure
-      .circleci/run_docker_build.sh
+      .scripts/run_docker_build.sh
+
     displayName: Run docker build
+  - publish: build_artifacts/linux-64/
+    artifact: conda_pkgs_linux
