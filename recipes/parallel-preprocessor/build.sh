@@ -14,7 +14,7 @@ cmake \
     -DCMAKE_INSTALL_LIBDIR=$LIBRARY_LIB \
     ..
 
-make -j4
+make -j${CPU_COUNT}
 make install
 
 # there is no need to run  setup.py in this repo
