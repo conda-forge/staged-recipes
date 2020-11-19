@@ -19,6 +19,7 @@ elif [[ ${CXXFLAGS} == *"-std="* ]]; then
 fi
 
 cmake \
+    -DCMAKE_SKIP_RPATH=ON                 \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo     \
     -DCMAKE_CXX_STANDARD=${CXX_STANDARD}  \
     -DCMAKE_INSTALL_LIBDIR=lib            \
