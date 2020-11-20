@@ -1,4 +1,4 @@
-{% set version = "0.8.0" %}
+{% set version = "1.0.1" %}
 
 package:
   name: ray-packages
@@ -6,29 +6,34 @@ package:
 
 source:
   url: https://github.com/ray-project/ray/archive/ray-{{ version }}.tar.gz
-  sha256: 2da0a27e00febd16e9421261a3b3ef5352bf37378e28d1adabbf73879f910748
+  sha256: e08ff04dc8bca99527dbc821446f8660cfe6cbc8c35db61410958b9aa9acee56
   patches:
-    - patches/0001-remove-requires-from-setup.py.patch
-    - patches/0002-do-not-vendor-pyarrow-pickle5.patch
-    - patches/0003-remove-checks-for-vendored-pyarrow-pickle5.patch
-    - patches/0004-no-need-to-check-import-errors-when-using-conda.patch
-    - patches/0005-remove-deprecated-bazel-option.patch
+    - patches/0001-Remove-setup-and-install-requirements-installed-by-c.patch
+    - patches/0002-Do-not-force-pickle5-in-sys.path.patch
+    - patches/0003-Fix-redis-build-for-non-default-compiler-drivers.patch
+    - patches/0004-Fix-plasma-linking-for-ancient-glibc.patch
+    - patches/0005-Redis-deps-now-build-but-do-not-link.patch
+    - patches/0006-Disable-making-non-core-entry-scripts.patch
+    - patches/0007-Ignore-warnings-for-one-file.patch
+    - patches/0008-Contain-bazel-root-dir-in-SRC_DIR.patch
+    - patches/0009-Do-not-crash-if-BAZEL_SH-not-set-on-Windows.patch
+    - patches/0010-Convert-symlinks-to-junctions-on-Windows-before-buil.patch
 
 build:
   number: 0
   skip: True  # [py<36]
-  # wait (at least) for bazel on windows; conda-forge/bazel-feedstock/issues/36
-  skip: True  # [win]
 
 # Need these up here for conda-smithy to handle them properly.
 requirements:
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-  host:
-    - python
-  run:
-    - python
+    - cython >=0.29
+    - bazel <=3.4.1  # [not win]
+    - bazel  # [win]
+    - curl
+    - make
+    - m2-patch  # [win]
 
 outputs:
   - name: ray-all
@@ -39,25 +44,26 @@ outputs:
         - {{ pin_subpackage('ray-core', exact=True) }}
         - {{ pin_subpackage('ray-debug', exact=True) }}
         - {{ pin_subpackage('ray-dashboard', exact=True) }}
-        # missing dependencies, see below
-        # - {{ pin_subpackage('ray-rllib', exact=True) }}
-        # - {{ pin_subpackage('ray-serve', exact=True) }}
+        - {{ pin_subpackage('ray-rllib', exact=True) }}
+        - {{ pin_subpackage('ray-serve', exact=True) }}
         - {{ pin_subpackage('ray-tune', exact=True) }}
+        - {{ pin_subpackage('ray-autoscaler', exact=True) }}  # [not win]
     test:
       imports:
         # dummy test; actual tests below
         - ray
 
   - name: ray-core
-    build:
-      # use build-script that comes with ray
-      script: ./build.sh
+    script: build-core.sh  # [not win]
+    script: build-core.bat  # [win]
     requirements:
       build:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - cython >=0.29
-        - bazel
+        - bazel <=3.4.1
+        - curl
+        - make
       host:
         # TODO: check which of these can move to run-reqs
         - click
@@ -67,38 +73,47 @@ outputs:
         - funcsigs
         - jsonschema
         - numpy >=1.16
-        - pickle5 ==0.0.9    # [py<38]
+        - pickle5 # [py<38]
         - packaging
         - protobuf >=3.8.0
-        - pyarrow ==0.14
         - pytest
         - pyyaml
-        - redis-py >=3.3.2
-        - six
+        - redis-py >=3.3.2, <3.5.0
         - python
         - pip
       run:
         - python
-        - numpy >=1.16
-        - filelock
-        - funcsigs
-        - click
+        - aiohttp
+        - aiohttp-cors
+        - aioredis
+        - click >=7.0
         - colorama
-        - pytest
+        - colorful
+        - filelock
+        - googlesearch
+        - gpustat
+        - grpcio >=1.28.1
+        - jsonschema
+        - msgpack-python >=1.0.0, <2.0.0
+        - numpy >=1.16
+        - protobuf >=3.8.0
+        - psutil
         - pyyaml
-        - redis-py >=3.3.2
-        - six
-        - flatbuffers
+        - requests
+        - redis-py >=3.3.2, <3.5.0
+        - opencensus
+        - prometheus_client >=0.7.1
+        - pickle5 # [py<38]
+        - funcsigs
+        - setproctitle
     test:
       imports:
         - ray
         - ray._raylet
         - ray.actor
         - ray.profiling
-        - ray.projects
         - ray.runtime_context
         - ray.state
-        - ray.tests
         - ray.worker
 
   - name: ray-debug
@@ -108,9 +123,7 @@ outputs:
       run:
         - python
         - {{ pin_subpackage('ray-core', exact=True) }}
-        - psutil
         - py-spy >=0.2.0
-        - setproctitle
     test:
       imports:
         # there doesn't appear to be a debug specific module
@@ -123,58 +136,55 @@ outputs:
       run:
         - python
         - {{ pin_subpackage('ray-core', exact=True) }}
-        - aiohttp
-        - googlesearch
-        - grpcio
-        - psutil
-        - setproctitle
     test:
       imports:
         - ray.dashboard
 
   - name: ray-rllib
     build:
-      # until dependencies are built
-      skip: True
+      entry_points:
+        - rllib = ray.rllib.scripts:cli
     requirements:
       host:
         - python
       run:
         - python
         - {{ pin_subpackage('ray-core', exact=True) }}
-        # needs to be packaged:
-        # - gym-atari
+        - tabulate
+        - tensorboardX
+        - pandas
+        - dataclasses  # [py < 37]
+        - atari_py
+        - dm-tree
+        - gym-atari
         - lz4
-        - opencv
+        - opencv <=4.30.0
         - pyyaml
         - scipy
-        - tabulate
     test:
       imports:
-        - ray.rrlib
+        - ray.rllib
 
   - name: ray-serve
-    build:
-      # until dependencies are built
-      skip: True
     requirements:
       host:
         - python
       run:
         - python
         - {{ pin_subpackage('ray-core', exact=True) }}
-        # needs to be packaged:
-        # - blist
-        - flask
-        - pandas
-        - pygments
         - uvicorn
-        - werkzeug
+        - flask
+        - requests
+        - pydantic <1.7
+        - dataclasses  # [py < 37]
     test:
       imports:
         - ray.serve
 
   - name: ray-tune
+    build:
+      entry_points:
+        - tune = ray.tune.scripts:cli
     requirements:
       host:
         - python
@@ -182,10 +192,28 @@ outputs:
         - python
         - {{ pin_subpackage('ray-core', exact=True) }}
         - tabulate
+        - tensorboardX
+        - pandas
+        - dataclasses  # [py < 37]
     test:
       imports:
         - ray.tune
 
+  - name: ray-autoscaler
+    build:
+      skip: True  # [win]
+    requirements:
+      host:
+        - python
+      run:
+        - python
+        - {{ pin_subpackage('ray-core', exact=True) }}
+        - azure-common
+        - azure-mgmt-resource
+        - boto3
+        - google-api-python-client
+        - google-auth
+        - msrestazure
 
 about:
   home: https://github.com/ray-project/ray
@@ -203,3 +231,4 @@ extra:
   recipe-maintainers:
     - dHannasch
     - h-vetinari
+    - vnlitvinov
