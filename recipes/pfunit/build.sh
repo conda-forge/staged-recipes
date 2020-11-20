@@ -3,11 +3,8 @@
 mkdir build
 cd build
 
-echo "${CONDA_PREFIX}"
-echo ${CONDA_PREFIX}
-
 cmake \
-    -DCMAKE_INSTALL_PREFIX=${CONDA_PREFIX} \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DBUILD_SHARED_LIBS=ON \
     -DSKIP_ESMF=ON \
     -DSKIP_FHAMCREST=ON \
