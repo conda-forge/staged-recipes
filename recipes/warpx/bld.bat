@@ -12,7 +12,7 @@ cmake ^
     -DWarpX_picsar_branch=d60c72ff5aa15dbd7e225654964b6c4fb10d52e2 ^
     -DWarpX_ASCENT=OFF  ^
     -DWarpX_MPI=OFF     ^
-    -DWarpX_OPENPMD=OFF ^
+    -DWarpX_OPENPMD=ON  ^
     -DWarpX_PSATD=OFF   ^
     -DWarpX_QED=ON      ^
     -DWarpX_DIMS=3      ^

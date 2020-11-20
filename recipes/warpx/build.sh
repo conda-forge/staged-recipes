@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
 
-mkdir build
-cd build
-
-
 # find out toolchain C++ standard
 CXX_STANDARD=14
 if [[ ${CXXFLAGS} == *"-std=c++14"* ]]; then
@@ -19,7 +15,9 @@ elif [[ ${CXXFLAGS} == *"-std="* ]]; then
 fi
 
 cmake \
+    -S . -B build                         \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo     \
+    -DCMAKE_VERBOSE_MAKEFILE=ON           \
     -DCMAKE_CXX_STANDARD=${CXX_STANDARD}  \
     -DCMAKE_INSTALL_LIBDIR=lib            \
     -DCMAKE_INSTALL_PREFIX=${PREFIX}      \
@@ -27,13 +25,13 @@ cmake \
     -DWarpX_openpmd_internal=OFF          \
     -DWarpX_picsar_branch=d60c72ff5aa15dbd7e225654964b6c4fb10d52e2 \
     -DWarpX_ASCENT=OFF  \
-    -DWarpX_OPENPMD=OFF \
+    -DWarpX_OPENPMD=ON  \
     -DWarpX_PSATD=OFF   \
     -DWarpX_QED=ON      \
     -DWarpX_DIMS=3      \
     ${SRC_DIR}
 
-make ${VERBOSE_CM} -j${CPU_COUNT}
+cmake --build build --parallel ${CPU_COUNT}
 
 # future:
 #CTEST_OUTPUT_ON_FAILURE=1 make ${VERBOSE_CM} test
@@ -41,5 +39,5 @@ make ${VERBOSE_CM} -j${CPU_COUNT}
 # future:
 #make install
 mkdir -p ${PREFIX}/bin
-cp bin/warpx.3d.MPI.OMP.DP.QED ${PREFIX}/bin/
+cp build/bin/warpx.3d.MPI.OMP.DP.OPMD.QED ${PREFIX}/bin/
 
