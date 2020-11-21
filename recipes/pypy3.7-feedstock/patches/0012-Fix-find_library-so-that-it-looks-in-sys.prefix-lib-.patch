@@ -1,0 +1,60 @@
+diff -Naur pypy3.6-v7.3.0-src.orig/lib-python/3/ctypes/macholib/dyld.py pypy3.6-v7.3.0-src/lib-python/3/ctypes/macholib/dyld.py
+--- pypy3.6-v7.3.0-src.orig/lib-python/3/ctypes/macholib/dyld.py	2019-12-23 07:46:56.000000000 -0300
++++ pypy3.6-v7.3.0-src/lib-python/3/ctypes/macholib/dyld.py	2020-03-11 16:04:02.594831897 -0300
+@@ -88,6 +88,10 @@
+     # If we haven't done any searching and found a library and the
+     # dylib_name starts with "@executable_path/" then construct the
+     # library name.
++    if not executable_path:
++        import sys
++        if sys.prefix:
++            executable_path = os.path.join(sys.prefix, 'bin')
+     if name.startswith('@executable_path/') and executable_path is not None:
+         yield os.path.join(executable_path, name[len('@executable_path/'):])
+ 
+diff -Naur pypy3.6-v7.3.0-src.orig/lib-python/3/ctypes/util.py pypy3.6-v7.3.0-src/lib-python/3/ctypes/util.py
+--- pypy3.6-v7.3.0-src.orig/lib-python/3/ctypes/util.py	2019-12-23 07:46:56.000000000 -0300
++++ pypy3.6-v7.3.0-src/lib-python/3/ctypes/util.py	2020-03-11 16:06:02.140632815 -0300
+@@ -70,7 +70,8 @@
+ if os.name == "posix" and sys.platform == "darwin":
+     from ctypes.macholib.dyld import dyld_find as _dyld_find
+     def find_library(name):
+-        possible = ['lib%s.dylib' % name,
++        possible = ['@executable_path/../lib/lib%s.dylib' % name,
++                    'lib%s.dylib' % name,
+                     '%s.dylib' % name,
+                     '%s.framework/%s' % (name, name)]
+         for name in possible:
+@@ -297,10 +298,30 @@
+                 pass  # result will be None
+             return result
+ 
++        def _findLib_prefix(name):
++            if not name:
++                return None
++            for fullname in (name, "lib%s.so" % (name)):
++                path = os.path.join(sys.prefix, 'lib', fullname)
++                if os.path.exists(path):
++                    return path
++            return None
++
+         def find_library(name):
+             # See issue #9998
+-            return _findSoname_ldconfig(name) or \
+-                   _get_soname(_findLib_gcc(name) or _findLib_ld(name))
++            # Yes calling _findLib_prefix twice is deliberate, because _get_soname ditches
++            # the full path.
++            # When objdump is unavailable this returns None
++            so_name = _get_soname(_findLib_prefix(name)) or name
++            if so_name != name:
++                return _findLib_prefix(so_name) or \
++                       _findLib_prefix(name) or \
++                       _findSoname_ldconfig(name) or \
++                       _get_soname(_findLib_gcc(name) or _findLib_ld(name))
++            else:
++                 return _findLib_prefix(name) or \
++                        _findSoname_ldconfig(name) or \
++                        _get_soname(_findLib_gcc(name) or _findLib_ld(name))
+ 
+ ################################################################
+ # test code
