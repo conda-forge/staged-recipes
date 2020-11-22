@@ -11,3 +11,10 @@ grep -lR ELF build/ | xargs chmod +w
 
 # now install the thing so conda could pick it up
 "${PYTHON}" setup.py install
+
+# now clean everything up so subsequent builds (for potentially
+# different Python version) do not stumble on some after-effects
+"${PYTHON}" setup.py clean --all
+bazel "--output_user_root=$SRC_DIR/../bazel-root" "--output_base=$SRC_DIR/../b-o" clean
+bazel "--output_user_root=$SRC_DIR/../bazel-root" "--output_base=$SRC_DIR/../b-o" shutdown
+rm -rf ../b-o
