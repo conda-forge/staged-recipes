@@ -17,4 +17,4 @@ grep -lR ELF build/ | xargs chmod +w
 "${PYTHON}" setup.py clean --all
 bazel "--output_user_root=$SRC_DIR/../bazel-root" "--output_base=$SRC_DIR/../b-o" clean
 bazel "--output_user_root=$SRC_DIR/../bazel-root" "--output_base=$SRC_DIR/../b-o" shutdown
-rm -rf ../b-o
+rm -rf "$SRC_DIR/../b-o" "$SRC_DIR/../bazel-root"

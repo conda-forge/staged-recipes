@@ -11,7 +11,6 @@ rem different Python version) do not stumble on some after-effects.
 rem Now shut down Bazel server, otherwise Windows would not allow moving a directory with it
 bazel "--output_user_root=%SRC_DIR%\..\bazel-root" "--output_base=%SRC_DIR%\..\b-o" clean
 bazel "--output_user_root=%SRC_DIR%\..\bazel-root" "--output_base=%SRC_DIR%\..\b-o" shutdown
-rd /s /q "%SRC_DIR%\..\b-o"
+rd /s /q "%SRC_DIR%\..\b-o" "%SRC_DIR%\..\bazel-root"
 rem Ignore "bazel shutdown" errors
 exit /b %RETCODE%
- 
