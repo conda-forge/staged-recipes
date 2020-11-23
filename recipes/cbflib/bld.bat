@@ -1,6 +1,6 @@
 
 cd pycbf
-swig -python pycbf.i
+swig -python pycbf.i || exit /b 1
 cd ..
 
 mkdir build
@@ -16,4 +16,3 @@ cmake ^
     -DUSE_FORTRAN=no ^
     -G"Visual Studio %VS_MAJOR% %VS_YEAR% Win64" || exit /b 1
 cmake --build . --target INSTALL || exit /b 1
-
