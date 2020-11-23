@@ -1,0 +1,57 @@
+From 4a17cb566fa468574b9dbbd6d962bfb82edf1d75 Mon Sep 17 00:00:00 2001
+From: Vasilij Litvinov <vasilij.n.litvinov@intel.com>
+Date: Mon, 23 Nov 2020 15:30:50 +0300
+Subject: [PATCH 12/12] Add workaround for os.path.isdir on Windows
+
+Signed-off-by: Vasilij Litvinov <vasilij.n.litvinov@intel.com>
+---
+ python/setup.py | 19 ++++++++++++++++++-
+ 1 file changed, 18 insertions(+), 1 deletion(-)
+
+diff --git a/python/setup.py b/python/setup.py
+index ba387dd3e..038200e93 100644
+--- a/python/setup.py
++++ b/python/setup.py
+@@ -225,6 +225,22 @@ def download_pickle5(pickle5_dir):
+             finally:
+                 wzf.close()
+ 
++def patch_isdir():
++    '''
++    Python on Windows is having hard times at telling if a symlink is
++    a directory - it can "guess" wrong at times, which bites when
++    finding packages. Replace with a fixed version which unwraps links first.
++    '''
++    orig_isdir = os.path.isdir
++    def fixed_isdir(path):
++        while os.path.islink(path):
++            try:
++                path = os.readlink(path)
++            except OSError:
++                break
++        return orig_isdir(path)
++    os.path.isdir = fixed_isdir
++
+ def replace_symlinks_with_junctions():
+     _LINKS = {
+         r'ray\new_dashboard': '../../dashboard',
+@@ -241,7 +257,7 @@ def replace_symlinks_with_junctions():
+                     val = func(path)
+                 except BaseException as ex:
+                     val = ex
+-                print('[DEBUG] {}("{}") = {}', func.__name__, link, val)
++                print('[DEBUG] {}("{}") = {}'.format(func.__name__, link, val))
+             continue
+         try:
+             out = subprocess.check_output('DIR /A:L /B', shell=True, cwd=os.path.dirname(path))
+@@ -265,6 +281,7 @@ def replace_symlinks_with_junctions():
+             subprocess.check_call('MKLINK /J "{}" "{}"'.format(os.path.basename(link), target), shell=True, cwd=os.path.dirname(path))
+ 
+ if is_native_windows_or_msys():
++    patch_isdir()
+     replace_symlinks_with_junctions()
+ 
+ def build(build_python, build_java):
+-- 
+2.11.0
+
