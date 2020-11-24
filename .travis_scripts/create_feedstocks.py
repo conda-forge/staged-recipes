@@ -138,10 +138,7 @@ def sleep_until_reset(gh):
 if __name__ == '__main__':
     exit_code = 0
 
-    is_merged_pr = (
-        os.environ.get('TRAVIS_BRANCH') == 'master' and
-        os.environ.get('TRAVIS_PULL_REQUEST') == 'false'
-    )
+    is_merged_pr = os.environ.get('CF_CURRENT_BRANCH') == 'master'
 
     smithy_conf = os.path.expanduser('~/.conda-smithy')
     if not os.path.exists(smithy_conf):
@@ -255,7 +252,7 @@ if __name__ == '__main__':
                 continue
             print("\n\nregistering CI services for %s..." % name)
             if num >= 10:
-                exit_code = 1
+                exit_code = 0
                 break
             # Try to register each feedstock with CI.
             # However sometimes their APIs have issues for whatever reason.
@@ -271,7 +268,7 @@ if __name__ == '__main__':
                 subprocess.check_call(
                     ['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
-                exit_code = 1
+                exit_code = 0
                 traceback.print_exception(*sys.exc_info())
                 continue
 
@@ -311,7 +308,7 @@ if __name__ == '__main__':
                 subprocess.check_call(
                     ['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
-                exit_code = 1
+                exit_code = 0
                 traceback.print_exception(*sys.exc_info())
                 continue
 
@@ -409,7 +406,7 @@ if __name__ == '__main__':
                 stderr=subprocess.STDOUT)
             subprocess.check_call(['git', 'commit', '-m', msg])
             # Capture the output, as it may contain the GH_TOKEN.
-            branch = os.environ.get('TRAVIS_BRANCH')
+            branch = os.environ.get('CF_CURRENT_BRANCH')
             out = subprocess.check_output(
                 ['git', 'push', 'upstream_with_token', 'HEAD:%s' % branch],
                 stderr=subprocess.STDOUT)
