@@ -17,8 +17,8 @@
 
 if errorlevel 1 exit 1
 
-jom -j1
+nmake
 if errorlevel 1 exit 1
 
-jom install
+nmake install
 if errorlevel 1 exit 1
