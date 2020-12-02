@@ -17,7 +17,7 @@
 
 if errorlevel 1 exit 1
 
-jom
+jom -j1
 if errorlevel 1 exit 1
 
 jom install
