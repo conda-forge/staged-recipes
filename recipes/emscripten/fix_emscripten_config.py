@@ -5,16 +5,25 @@ if os.name == 'nt':
 else:
 	prefix = os.environ['PREFIX']
 
-path = os.path.join(prefix, 'lib', 'emscripten-' + os.environ['PKG_VERSION'], '.emscripten')
+pkg_version = os.environ['PKG_VERSION']
+
+print("PACKAGE_PREFIX AND VERSION: ", prefix, pkg_version)
+
+path = os.path.join(prefix, 'lib', 'emscripten-' + pkg_version, '.emscripten')
+
+print("Reading path: ", path)
+
 with open(path, 'r') as fi:
     lines = fi.readlines()
 
 out_lines = []
 for line in lines:
 	if line.startswith("BINARYEN_ROOT"):
-		out_lines.append("BINARYEN_ROOT = os.path.expanduser(os.getenv('BINARYEN', '{}')) # directory\n".format(prefix))
+		p = prefix.replace('\\', '/')
+		out_lines.append("BINARYEN_ROOT = os.path.expanduser(os.getenv('BINARYEN', '{}')) # directory\n".format(p))
 	elif line.startswith("LLVM_ROOT"):
-		out_lines.append("LLVM_ROOT = os.path.expanduser(os.getenv('LLVM', '{}'))\n".format(os.path.join(prefix, 'bin')))
+		p = os.path.join(prefix, 'bin').replace('\\', '/')
+		out_lines.append("LLVM_ROOT = os.path.expanduser(os.getenv('LLVM', '{}'))\n".format(p))
 	else:
 		out_lines.append(line)
 

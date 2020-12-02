@@ -17,5 +17,7 @@ pushd $PREFIX/lib/emscripten-$PKG_VERSION/
 npm install
 popd
 
+rm -rf $PREFIX/lib/emscripten-$PKG_VERSION/tests
+
 # We should probably not do this
 # embuilder build ALL
