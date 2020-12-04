@@ -1,0 +1,143 @@
+From 53c5d197beab5ab586dca99e75e9b3012f771361 Mon Sep 17 00:00:00 2001
+From: Vasily Litvinov <vasilij.n.litvinov@intel.com>
+Date: Fri, 6 Nov 2020 00:55:05 +0300
+Subject: [PATCH 04/12] Redis deps now build but do not link
+
+Signed-off-by: Vasily Litvinov <vasilij.n.litvinov@intel.com>
+---
+ bazel/BUILD.redis                      | 12 +++++-
+ bazel/ray_deps_setup.bzl               |  1 +
+ thirdparty/patches/redis-deps-ar.patch | 74 ++++++++++++++++++++++++++++++++++
+ 3 files changed, 85 insertions(+), 2 deletions(-)
+ create mode 100644 thirdparty/patches/redis-deps-ar.patch
+
+diff --git a/bazel/BUILD.redis b/bazel/BUILD.redis
+index 9ec69d433..06d79b72a 100644
+--- a/bazel/BUILD.redis
++++ b/bazel/BUILD.redis
+@@ -15,12 +15,16 @@ genrule(
+     ],
+     cmd = """
+         export CC=$(CC)
++        export CFLAGS=$(CC_FLAGS)
++        export AR=$${CC/gnu-cc/gnu-ar}
++        export NM=$${CC/gnu-cc/gnu-nm}
++        export RANLIB=$${CC/gnu-cc/gnu-ranlib}
+         tmpdir="redis.tmp"
+         p=$(location Makefile)
+         cp -p -L -R -- "$${p%/*}" "$${tmpdir}"
+         chmod +x "$${tmpdir}"/deps/jemalloc/configure
+         parallel="$$(getconf _NPROCESSORS_ONLN || echo 1)"
+-        make -s -C "$${tmpdir}" -j"$${parallel}" V=0 CFLAGS="$${CFLAGS-} -DLUA_USE_MKSTEMP -Wno-pragmas -Wno-empty-body"
++        make -s -C "$${tmpdir}" -j"$${parallel}" V=0 CFLAGS="$${CFLAGS-} -DLUA_USE_MKSTEMP -Wno-pragmas -Wno-empty-body" AR="$${AR}" RANLIB="$${RANLIB}"
+         mv "$${tmpdir}"/src/redis-server $(location redis-server)
+         chmod +x $(location redis-server)
+         mv "$${tmpdir}"/src/redis-cli $(location redis-cli)
+@@ -28,7 +32,11 @@ genrule(
+         rm -r -f -- "$${tmpdir}"
+     """,
+     visibility = ["//visibility:public"],
+-    toolchains = ["@bazel_tools//tools/cpp:current_cc_toolchain"],
++    toolchains = [
++        "@bazel_tools//tools/cpp:current_cc_toolchain",
++        "@bazel_tools//tools/cpp:current_cc_host_toolchain",
++        "@bazel_tools//tools/cpp:cc_flags",
++    ],
+ )
+ 
+ # This library is for internal hiredis use, because hiredis assumes a
+diff --git a/bazel/ray_deps_setup.bzl b/bazel/ray_deps_setup.bzl
+index f9963125e..57b98ce8c 100644
+--- a/bazel/ray_deps_setup.bzl
++++ b/bazel/ray_deps_setup.bzl
+@@ -83,6 +83,7 @@ def ray_deps_setup():
+         sha256 = "db9bf149e237126f9bb5f40fb72f33701819555d06f16e9a38b4949794214201",
+         patches = [
+             "//thirdparty/patches:redis-quiet.patch",
++            "//thirdparty/patches:redis-deps-ar.patch",
+         ],
+     )
+ 
+diff --git a/thirdparty/patches/redis-deps-ar.patch b/thirdparty/patches/redis-deps-ar.patch
+new file mode 100644
+index 000000000..15acb3165
+--- /dev/null
++++ b/thirdparty/patches/redis-deps-ar.patch
+@@ -0,0 +1,74 @@
++diff --git deps/Makefile deps/Makefile
++index 6865ee655..3c3f18d68 100644
++--- deps/Makefile
+++++ deps/Makefile
++@@ -8,7 +8,7 @@ SRCCOLOR="\033[33m"
++ BINCOLOR="\033[37;1m"
++ MAKECOLOR="\033[32;1m"
++ ENDCOLOR="\033[0m"
++-
+++AR=ar
++ default:
++ 	@echo "Explicit target required"
++ 
++@@ -43,7 +43,7 @@ distclean:
++ 
++ hiredis: .make-prerequisites
++ #	@printf '%b %b\n' $(MAKECOLOR)MAKE$(ENDCOLOR) $(BINCOLOR)$@$(ENDCOLOR)
++-	cd hiredis && $(MAKE) static
+++	cd hiredis && $(MAKE) static AR="$(AR)"
++ 
++ .PHONY: hiredis
++ 
++@@ -63,12 +63,12 @@ LUA_LDFLAGS+= $(LDFLAGS)
++ # lua's Makefile defines AR="ar rcu", which is unusual, and makes it more
++ # challenging to cross-compile lua (and redis).  These defines make it easier
++ # to fit redis into cross-compilation environments, which typically set AR.
++-AR=ar
+++RANLIB=ranlib
++ ARFLAGS=rc
++ 
++ lua: .make-prerequisites
++ #	@printf '%b %b\n' $(MAKECOLOR)MAKE$(ENDCOLOR) $(BINCOLOR)$@$(ENDCOLOR)
++-	cd lua/src && $(MAKE) all CFLAGS="$(LUA_CFLAGS)" MYLDFLAGS="$(LUA_LDFLAGS)" AR="$(AR) $(ARFLAGS)"
+++	cd lua/src && $(MAKE) all CFLAGS="$(LUA_CFLAGS)" MYLDFLAGS="$(LUA_LDFLAGS)" AR="$(AR) $(ARFLAGS)" RANLIB="$(RANLIB)"
++ 
++ .PHONY: lua
++ 
++diff --git deps/hiredis/Makefile deps/hiredis/Makefile
++index 9a4de8360..1f8427f75 100644
++--- deps/hiredis/Makefile
+++++ deps/hiredis/Makefile
++@@ -51,7 +51,8 @@ DYLIB_MAJOR_NAME=$(LIBNAME).$(DYLIBSUFFIX).$(HIREDIS_MAJOR)
++ DYLIBNAME=$(LIBNAME).$(DYLIBSUFFIX)
++ DYLIB_MAKE_CMD=$(CC) -shared -Wl,-soname,$(DYLIB_MINOR_NAME) -o $(DYLIBNAME) $(LDFLAGS)
++ STLIBNAME=$(LIBNAME).$(STLIBSUFFIX)
++-STLIB_MAKE_CMD=ar rcs $(STLIBNAME)
+++AR=ar
+++STLIB_MAKE_CMD=$(AR) rcs $(STLIBNAME)
++ 
++ # Platform-specific overrides
++ uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
++diff --git src/Makefile src/Makefile
++index 0e97757c4..68d9acb2b 100644
++--- src/Makefile
+++++ src/Makefile
++@@ -154,6 +154,9 @@ ifeq ($(MALLOC),jemalloc)
++ 	FINAL_LIBS := ../deps/jemalloc/lib/libjemalloc.a $(FINAL_LIBS)
++ endif
++ 
+++AR=ar
+++RANLIB=ranlib
+++
++ REDIS_CC=$(QUIET_CC)$(CC) $(FINAL_CFLAGS)
++ REDIS_LD=$(QUIET_LINK)$(CC) $(FINAL_LDFLAGS)
++ REDIS_INSTALL=$(QUIET_INSTALL)$(INSTALL)
++@@ -206,7 +209,7 @@ persist-settings: distclean
++ 	echo REDIS_LDFLAGS=$(REDIS_LDFLAGS) >> .make-settings
++ 	echo PREV_FINAL_CFLAGS=$(FINAL_CFLAGS) >> .make-settings
++ 	echo PREV_FINAL_LDFLAGS=$(FINAL_LDFLAGS) >> .make-settings
++-	-(cd ../deps && $(MAKE) $(DEPENDENCY_TARGETS))
+++	-(cd ../deps && $(MAKE) $(DEPENDENCY_TARGETS) AR="$(AR)" RANLIB="$(RANLIB)")
++ 
++ .PHONY: persist-settings
++ 
+-- 
+2.11.0
+
