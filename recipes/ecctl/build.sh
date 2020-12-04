@@ -11,5 +11,5 @@ pushd cmd/gh
 go build -v -o ${PKG_NAME} .
 
 # Install Binary into PREFIX/bin
-mkdir -p $PREFIX
+mkdir -p $PREFIX/bin
 mv ${PKG_NAME} $PREFIX/bin/${PKG_NAME}
