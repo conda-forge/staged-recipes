@@ -14,4 +14,4 @@ export FLAGS_RHESSYS=${FLAGS_COMM}
 
 export EXE_PATH="$PREFIX"
 make -C ${F_MASTER} -f makefile
-mv $F_MASTER/rhessysEC.7.2 $PREFIX/rhessysEC.7.2
+mv $F_MASTER/rhessysec.7.2.0 $PREFIX/rhessysec.7.2.0
