@@ -6,7 +6,7 @@ cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DWITH_BOOST=OFF               \
       -DSOCI_CXX11=ON                \
       -DCMAKE_BUILD_TYPE=Release     \
-      -DCMAKE_INSTALL_LIBDIR=lib     \
+      -DSOCI_LIBDIR=lib              \
       $SRC_DIR
 
 make install
