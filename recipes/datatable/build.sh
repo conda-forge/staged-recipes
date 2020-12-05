@@ -16,7 +16,8 @@ EOF
 
 chmod +x fake-git
 mv fake-git git
+echo 0.11.0 >VERSION.txt
 env PATH=.:"$PATH" "$PYTHON" ci/ext.py build
+env PATH=.:"$PATH" "$PYTHON" -m pip install . -vv
 mv git fake-git
-"$PYTHON" -m pip install . -vv
 }
