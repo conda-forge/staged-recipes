@@ -7,7 +7,11 @@ set -euo pipefail
 cat >fake-git <<'EOF'
 #!/bin/bash
 
-echo "FAKE_BUILD_INFO_FOR_CONDA"
+if [ "$1" == "show" ]; then
+  date +%s
+else
+  echo "FAKE_BUILD_INFO_FOR_CONDA"
+fi
 EOF
 
 chmod +x fake-git
