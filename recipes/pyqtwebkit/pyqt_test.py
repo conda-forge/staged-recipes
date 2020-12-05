@@ -14,11 +14,11 @@ def main():
     web = QWebView()
     settings = web.settings()
     settings.setAttribute(QWebSettings.JavascriptEnabled, True)
-    web.load(QUrl("https://www.google.com"))
+    web.load(QUrl("https://example.com"))
     web.show()
-    web.setWindowTitle("Google Images Redirect")
+    web.setWindowTitle("Example Redirect")
     web.page().mainFrame().evaluateJavaScript(
-        'window.location.href="https://images.google.com/"')
+        'window.location.href="https://example.com"')
 
     def quit_app():
         app.quit()
