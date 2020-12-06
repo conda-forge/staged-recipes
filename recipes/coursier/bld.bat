@@ -12,7 +12,7 @@ call coursier ^
     --no-default ^
     -r central ^
     -r typesafe:ivy-releases ^
-    -f -o "%SCRIPTS%\coursier.bat" ^
+    -f -o "%SCRIPTS%\coursier" ^
     --standalone ^
     || goto :ERROR
 
