@@ -1,9 +1,9 @@
 @echo on
 :: derived from https://github.com/2m/coursier-pkgbuild/blob/master/PKGBUILD
-set COURSIER_CACHE=%SRC_DIR%\cache
+set "COURSIER_CACHE=%SRC_DIR%\cache"
 
-md /s /q %COURSIER_CACHE% || goto :ERROR
-md /s /q %SCRIPTS% || goto :ERROR
+md "%COURSIER_CACHE%" || goto :ERROR
+md "%SCRIPTS%" || goto :ERROR
 
 call coursier ^
     bootstrap ^
