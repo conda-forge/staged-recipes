@@ -4,6 +4,8 @@
 export GOPATH=$SRC_DR
 export PATH=${GOPATH}/bin:$PATH
 
+pushd
+
 # Build
 go build -v -o ${PKG_NAME} .
 
