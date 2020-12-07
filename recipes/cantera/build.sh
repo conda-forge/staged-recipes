@@ -27,6 +27,8 @@ fi
 set -xe
 
 scons build -j${CPU_COUNT}
+# FIXME REMOVE BEFORE MERGING
+cat config.log
 
 set +xe
 
