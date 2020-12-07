@@ -4,9 +4,6 @@
 export GOPATH=$SRC_DR
 export PATH=${GOPATH}/bin:$PATH
 
-# Change to directory with main.go
-pushd ecctl
-
 # Build
 go build -v -o ${PKG_NAME} .
 
