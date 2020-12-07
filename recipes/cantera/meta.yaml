@@ -1,0 +1,104 @@
+{% set version = "v2.5.0.b1" %}
+
+package:
+  name: cantera-recipe
+  version: {{ version }}
+
+source:
+  git_url: https://github.com/Cantera/cantera.git
+  git_tag: {{ version }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}  # [not win]
+    - {{ compiler('cxx') }}  # [not win]
+    - vs2017_win-64 ==19.15.*  # [win]
+    - scons >=3.1
+    - python >=3.5
+    - numpy
+    - pywin32  # [win]
+  host:
+    - libboost
+
+build:
+  number: 0
+  include_recipe: True
+
+outputs:
+  - name: libcantera-devel
+    script: build_devel.sh  # [not win]
+    script: build_devel.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}  # [not win]
+        - {{ compiler('cxx') }}  # [not win]
+        - vs2017_win-64 ==19.15.*  # [win64]
+        - vs2017_win-32 ==19.15.*  # [win32]
+        - scons >=3.1
+        - python >=3.5
+        - numpy
+        - pywin32  # [win]
+      host:
+        - libboost
+      run:
+        - {{ compiler('c') }}  # [win]
+        - {{ compiler('cxx') }}  # [win]
+        - vs2017_win-64 ==19.15.*  # [win]
+        - libboost
+        - vs2015_runtime  # [win]
+    build:
+      include_recipe: True
+      ignore_run_exports:
+        - libboost
+
+  - name: cantera
+    script: build_py.sh  # [not win]
+    script: build_py.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}  # [not win]
+        - {{ compiler('cxx') }}  # [not win]
+        - vs2017_win-64 ==19.15.*  # [win64]
+        - vs2017_win-32 ==19.15.*  # [win32]
+        - scons >=3.1
+        - python >=3.5
+        - pywin32  # [win]
+      host:
+        - python {{ python }}
+        - libboost
+        - numpy
+        - cython
+        - numpy
+      run:
+        - python
+        - {{ pin_compatible('numpy') }}
+        - h5py
+        - ruamel_yaml
+        - vs2015_runtime  # [win]
+    build:
+      entry_points:
+        - ck2cti = cantera.ck2cti:script_entry_point
+        - ctml_writer = cantera.ctml_writer:main
+        - ck2yaml = cantera.ck2yaml:script_entry_point
+        - cti2yaml = cantera.cti2yaml:main
+        - ctml2yaml = cantera.ctml2yaml:main
+      include_recipe: True
+    test:
+      imports:
+        - cantera
+      commands:
+        - python -m unittest -v cantera.test
+        - ck2cti --help
+        - cti2yaml --help
+        - ck2yaml --help
+        - ctml2yaml --help
+
+about:
+  home: https://cantera.org
+  summary: "Chemical kinetics, thermodynamics, and transport tool suite"
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: License.txt
+  dev_url: https://github.com/cantera/cantera
+  description: Cantera is an open-source suite of tools for problems involving chemical kinetics, thermodynamics, and transport processes
+  doc_url: https://cantera.org/documentation
