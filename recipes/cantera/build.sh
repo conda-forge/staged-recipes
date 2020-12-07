@@ -18,8 +18,6 @@ echo "boost_inc_dir = '${PREFIX}/include'" >> cantera.conf
 if [[ "${OSX_ARCH}" == "" ]]; then
     echo "CC = '${CC}'" >> cantera.conf
     echo "CXX = '${CXX}'" >> cantera.conf
-    echo "blas_lapack_libs = 'mkl_rt,dl'" >> cantera.conf
-    echo "blas_lapack_dir = '${PREFIX}/lib'" >> cantera.conf
 else
     echo "CC = '${CLANG}'" >> cantera.conf
     echo "CXX = '${CLANGXX}'" >> cantera.conf
