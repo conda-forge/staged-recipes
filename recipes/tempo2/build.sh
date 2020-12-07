@@ -19,22 +19,15 @@ done
 
 # This foo will make conda automatically define a TEMPO2 env variable
 # when the environment is activated.
-etcdir=$PREFIX/etc/conda
-mkdir -p $etcdir/activate.d
-echo "if ( ! ($?TEMPO2) ) then; echo \"\";" > $etcdir/activate.d/tempo2-env.csh
-echo "else setenv OLD_TEMPO2 $TEMPO2;" >> $etcdir/activate.d/tempo2-env.csh
-echo "endif" >> $etcdir/activate.d/tempo2-env.csh
-echo "setenv TEMPO2 $TEMPO2" > $etcdir/activate.d/tempo2-env.csh
 
-echo "if [ ! -z $TEMPO2 ]; then export OLD_TEMPO2=$TEMPO2; fi" > $etcdir/activate.d/tempo2-env.sh
-echo "export TEMPO2=$TEMPO2" >> $etcdir/activate.d/tempo2-env.sh
+ACTIVATE_DIR=${PREFIX}/etc/conda/activate.d
+DEACTIVATE_DIR=${PREFIX}/etc/conda/deactivate.d
+mkdir -p ${ACTIVATE_DIR}
+mkdir -p ${DEACTIVATE_DIR}
 
-mkdir -p $etcdir/deactivate.d
-echo "unsetenv TEMPO2" > $etcdir/deactivate.d/tempo2-env.csh
-echo "if ( ! ($?OLD_TEMPO2) ) then; echo \"\";" > $etcdir/deactivate.d/tempo2-env.csh
-echo "else setenv TEMPO2 $OLD_TEMPO2; unsetend OLD_TEMPO2;" >> $etcdir/deactivate.d/tempo2-env.csh
-echo "endif" >> $etcdir/deactivate.d/tempo2-env.csh
-
-echo "unset TEMPO2" > $etcdir/deactivate.d/tempo2-env.sh
-echo "if [ ! -z $OLD_TEMPO2 ]; then export TEMPO2=$OLD_TEMPO2; unset OLD_TEMPO2;
- fi" >> $etcdir/deactivate.d/tempo2-env.sh
+cp ${RECIPE_DIR}/scripts/activate.sh ${ACTIVATE_DIR}/tempo2-activate.sh
+cp ${RECIPE_DIR}/scripts/deactivate.sh ${DEACTIVATE_DIR}/tempo2-deactivate.sh
+cp ${RECIPE_DIR}/scripts/activate.csh ${ACTIVATE_DIR}/tempo2-activate.csh
+cp ${RECIPE_DIR}/scripts/deactivate.csh ${DEACTIVATE_DIR}/tempo2-deactivate.csh
+cp ${RECIPE_DIR}/scripts/activate.fish ${ACTIVATE_DIR}/tempo2-activate.fish
+cp ${RECIPE_DIR}/scripts/deactivate.fish ${DEACTIVATE_DIR}/tempo2-deactivate.fish
