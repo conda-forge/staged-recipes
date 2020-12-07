@@ -4,7 +4,8 @@
 export GOPATH=$SRC_DR
 export PATH=${GOPATH}/bin:$PATH
 
-pushd
+# Save directory where main.go file is (in this case it's in the top level directory)
+pushd cmd
 
 # Build
 go build -v -o ${PKG_NAME} .
