@@ -10,7 +10,7 @@ fi
 
 rm -f cantera.conf
 
-cp "${RECIPE_DIR}/../.ci_support/cantera_base.conf" cantera.conf
+cp "${RECIPE_DIR}/cantera_base.conf" cantera.conf
 
 echo "prefix = '${PREFIX}'" >> cantera.conf
 echo "boost_inc_dir = '${PREFIX}/include'" >> cantera.conf

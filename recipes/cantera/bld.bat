@@ -16,7 +16,7 @@ IF ERRORLEVEL 1 EXIT 1
 
 DEL /F cantera.conf
 
-COPY "%RECIPE_DIR%\..\.ci_support\cantera_base.conf" cantera.conf
+COPY "%RECIPE_DIR%\cantera_base.conf" cantera.conf
 ECHO msvc_version='14.1' >> cantera.conf
 
 :: Set the number of CPUs to use in building
