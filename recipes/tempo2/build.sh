@@ -6,9 +6,9 @@
 
 export TEMPO2=$PREFIX/share/tempo2
 ./configure --prefix=$PREFIX --disable-local --disable-psrhome PGPLOT_DIR=$PREFIX/include/pgplot
-make -j2
+make -j${CPU_COUNT}
 make install
-make -j2 plugins
+make -j${CPU_COUNT} plugins
 make plugins-install
 
 # Copy runtime stuff
