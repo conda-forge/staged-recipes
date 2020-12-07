@@ -1,4 +1,4 @@
-From fdeefcf7374a5ff1dd3026a607b08efeb0b69b9b Mon Sep 17 00:00:00 2001
+From d2c6fcdc5c5dd2b43c62309b0ab4a02b2cffb786 Mon Sep 17 00:00:00 2001
 From: Vasilij Litvinov <vasilij.n.litvinov@intel.com>
 Date: Fri, 20 Nov 2020 15:32:19 +0300
 Subject: [PATCH 09/12] Convert symlinks to junctions on Windows before
@@ -6,14 +6,14 @@ Subject: [PATCH 09/12] Convert symlinks to junctions on Windows before
 
 Signed-off-by: Vasilij Litvinov <vasilij.n.litvinov@intel.com>
 ---
- python/setup.py | 36 ++++++++++++++++++++++++++++++++++++
- 1 file changed, 36 insertions(+)
+ python/setup.py | 40 ++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 40 insertions(+)
 
 diff --git a/python/setup.py b/python/setup.py
-index 024657039..7a225f72d 100644
+index 024657039..1e8ae41f7 100644
 --- a/python/setup.py
 +++ b/python/setup.py
-@@ -225,6 +225,41 @@ def download_pickle5(pickle5_dir):
+@@ -225,6 +225,45 @@ def download_pickle5(pickle5_dir):
              finally:
                  wzf.close()
  
@@ -26,11 +26,8 @@ index 024657039..7a225f72d 100644
 +    root_dir = os.path.dirname(__file__)
 +    for link, default in _LINKS.items():
 +        path = os.path.join(root_dir, link)
-+        if os.path.exists(os.path.join(path, '__init__.py')):
-+            print('"{}" does not need workarounds, skipping'.format(link))
-+            continue
 +        try:
-+            out = subprocess.check_output('DIR /A:L /B', shell=True, cwd=os.path.dirname(path))
++            out = subprocess.check_output('DIR /A:LD /B', shell=True, cwd=os.path.dirname(path))
 +        except subprocess.CalledProcessError:
 +            out = b''
 +        if os.path.basename(path) in out.decode('utf8').splitlines():
@@ -43,7 +40,14 @@ index 024657039..7a225f72d 100644
 +                os.unlink(path)
 +            elif os.path.isdir(path):
 +                target = default
-+                os.rmdir(path)
++                try:
++                    # unlink() works on links as well as on regular files,
++                    # and links to directories are considered directories now
++                    os.unlink(path)
++                except OSError as err:
++                    if err.errno != errno.EIO:
++                        raise
++                    os.rmdir(path)
 +            else:
 +                raise ValueError('Unexpected type of entry: "{}"'.format(path))
 +            target = os.path.abspath(os.path.join(os.path.dirname(path), target))
@@ -55,7 +59,7 @@ index 024657039..7a225f72d 100644
  
  def build(build_python, build_java):
      if tuple(sys.version_info[:2]) not in SUPPORTED_PYTHONS:
-@@ -243,6 +278,7 @@ def build(build_python, build_java):
+@@ -243,6 +282,7 @@ def build(build_python, build_java):
      bazel_env = dict(os.environ, PYTHON3_BIN_PATH=sys.executable)
  
      if is_native_windows_or_msys():
