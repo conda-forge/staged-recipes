@@ -27,7 +27,7 @@ SET "ESC_PREFIX=%PREFIX:\=/%"
 ECHO prefix="%ESC_PREFIX%" >> cantera.conf
 ECHO boost_inc_dir="%ESC_PREFIX%/Library/include" >> cantera.conf
 
-SET CANTERA_PATH_SEP=";"
+SET "CANTERA_PATH_SEP=;"
 
 CALL scons build -j%CPU_USE%
 IF ERRORLEVEL 1 EXIT 1

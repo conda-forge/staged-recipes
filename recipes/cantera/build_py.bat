@@ -11,7 +11,7 @@ ECHO python_package='full' >> cantera.conf
 SET "ESC_PYTHON=%PYTHON:\=/%"
 ECHO python_cmd="%ESC_PYTHON%" >> cantera.conf
 
-SET CANTERA_PATH_SEP=";"
+SET "CANTERA_PATH_SEP=;"
 
 CALL scons build
 IF ERRORLEVEL 1 EXIT 1
