@@ -29,7 +29,6 @@ set -xe
 # FIXME REVERT BEFORE MERGING
 if ! scons build -j${CPU_COUNT}; then
         cat config.log
-        ls "$PREFIX/lib"
         echo "BUILD FAILED"
         exit 1
 fi
