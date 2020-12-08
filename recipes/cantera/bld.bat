@@ -30,8 +30,13 @@ ECHO boost_inc_dir="%ESC_PREFIX%/Library/include" >> cantera.conf
 SET "CANTERA_PATH_SEP=;"
 
 CALL scons build -j%CPU_USE%
-IF ERRORLEVEL 1 EXIT 1
+IF ERRORLEVEL 1 GOTO :success ELSE GOTO :failure
 
+:failure
+type config.log
+EXIT 1
+
+:success
 echo ****************************
 echo BUILD COMPLETED SUCCESSFULLY
 echo ****************************
