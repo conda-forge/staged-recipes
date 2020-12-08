@@ -1,0 +1,56 @@
+From 7012bc3a1506b7d0860768b8a8ed9177b3b8228f Mon Sep 17 00:00:00 2001
+From: Vasily Litvinov <vasilij.n.litvinov@intel.com>
+Date: Tue, 8 Dec 2020 22:54:46 +0300
+Subject: [PATCH] Change --vtune to --incdir and --ittlib switches
+
+Signed-off-by: Litvinov <vasilij.n.litvinov@intel.com>
+---
+ setup.py | 21 +++++++++++++--------
+ 1 file changed, 13 insertions(+), 8 deletions(-)
+
+diff --git a/setup.py b/setup.py
+index 900996e..65d4cc2 100644
+--- a/setup.py
++++ b/setup.py
+@@ -3,25 +3,30 @@ from distutils.command.build_ext import build_ext as _build_ext
+ from distutils.command.install import install as _install
+ 
+ import os
++import sys
+ 
+ class build_ext(_build_ext):
+ 
+     _build_ext.user_options += [
+-        ('vtune=', None, 'specify VTune installation directory'),
++        ('incdir=', None, 'include directory'),
++        ('ittlib=', None, 'ittnotify static lib'),
+     ]
+ 
+     def initialize_options(self):
+         _build_ext.initialize_options(self) 
+-        self.vtune = None
++        self.incdir = None
++        self.ittlib = None
+ 
+     def finalize_options(self):
+         _build_ext.finalize_options(self) 
+-        assert self.vtune is not None, "Undefined VTune installation directory"
+-        assert os.path.isdir(self.vtune), "VTune installation path not a directory"
+-        self.include_dirs.append(os.path.join(self.vtune, "include"))
+-        if self.link_objects is None:
+-            self.link_objects = list()
+-        self.link_objects.append(os.path.join(self.vtune, "lib64", "libittnotify.a"))
++        self.include_dirs.append(os.path.abspath(self.incdir))
++        if sys.platform == 'win32':
++            self.library_dirs = (self.library_dirs or []) + [os.path.dirname(os.path.abspath(self.ittlib))]
++            self.libraries = (self.libraries or []) + [os.path.splitext(os.path.basename(self.ittlib))[0]]
++        else:
++            if self.link_objects is None:
++                self.link_objects = list()
++            self.link_objects.append(os.path.abspath(self.ittlib))
+ 
+ class install(_install):
+ 
+-- 
+2.29.2.windows.2
+
