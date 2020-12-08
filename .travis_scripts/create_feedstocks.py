@@ -31,7 +31,7 @@ from ruamel.yaml import YAML
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
 DEBUG = False
 
-REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch"]
+REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch", "systems"]
 
 recipe_directory_name = 'recipes'
 
