@@ -1,12 +1,12 @@
 cmake                                        ^
     -G "Ninja"                               ^
-    -D SOCI_CXX11=ON                         ^
-    -D WITH_BOOST=OFF                        ^
-    -D CMAKE_BUILD_TYPE=Release              ^
-    -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
+    -DSOCI_CXX11=ON                         ^
+    -DWITH_BOOST=OFF                        ^
+    -DCMAKE_BUILD_TYPE=Release              ^
+    -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
     -DSOCI_LIBDIR=lib                        ^
     -DSOCI_STATIC=OFF                        ^
-    -DNOMINMAX                               ^
+    -DCMAKE_CXX_FLAGS=-DNOMINMAX             ^
     %SRC_DIR%
 if errorlevel 1 exit 1
 
