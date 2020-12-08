@@ -12,20 +12,56 @@ source:
 build:
   number: 0
   run_exports:
-    - {{ pin_subpackage("azure-storage-cpplite", max_pin="x.x") }}
+    - {{ pin_subpackage("azure-storage-cpplite", max_pin="x.x.x") }}
 
-requirements:
-  build:
-    - {{ compiler('cxx') }}
-    - cmake
-  host:
-    - libuuid  # [unix]
-    - libcurl
-    - openssl
-
-test:
-  commands:
-    - test -f $PREFIX/include/azure-storage-cpplite/common.h
+outputs:
+  - name: azure-storage-cpplite
+    script: build-shared.sh  # [unix]
+    script: bld-shared.bat  # [win]
+    build:
+      activate_in_script: True
+      run_exports:
+        - {{ pin_subpackage("azure-storage-cpplite", max_pin="x.x.x") }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - cmake
+      host:
+        - libuuid  # [unix]
+        - libcurl
+        - openssl
+    test:
+      commands:
+        - test -f $PREFIX/blob/blob_client.h  # [unix]
+        - test -f $PREFIX/lib/libazure-storage-lite${SHLIB_EXT}  # [unix]
+        - test ! -f $PREFIX/lib/libazure-storage-lite.a  # [unix]
+        - if not exist %PREFIX%\\Library\\include\\blob\\blob_client.h exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\azure-storage-lite.dll exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\azure-storage-lite.lib exit 1  # [win]
+  - name: azure-storage-cpplite-static
+    script: build-static.sh  # [unix]
+    script: bld-static.bat  # [win]
+    build:
+      activate_in_script: True
+      run_exports:
+        - {{ pin_subpackage("azure-storage-cpplite", max_pin="x.x.x") }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - cmake
+      host:
+        - libuuid  # [unix]
+        - libcurl-static
+        - libopenssl-static
+        - {{ pin_subpackage("azure-storage-cpplite", exact=True) }}
+    test:
+      commands:
+        - test ! -f $PREFIX/blob/blob_client.h  # [unix]
+        - test -f $PREFIX/blob/blob_client.h
+        - test -f $PREFIX/lib/libazure-storage-lite.a
+        - if not exist %PREFIX%\\Library\\include\\blob\\blob_client.h exit 1  # [win]
+        - if exist %PREFIX%\\Library\\bin\\azure-storage-lite.dll exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\azure-storage-lite.lib exit 1  # [win]
 
 about:
   home: https://github.com/Azure/azure-storage-cpplite
