@@ -12,6 +12,8 @@ if [ -d "build/python" ]; then
     rm -r interfaces/cython/Cantera.egg-info
 fi
 
+export CANTERA_PATH_SEP=":"
+
 scons build python_package='y' python_cmd="${PYTHON}"
 
 echo "****************************"

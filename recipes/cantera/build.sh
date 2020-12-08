@@ -24,6 +24,8 @@ else
     echo "cc_flags = '-isysroot ${CONDA_BUILD_SYSROOT} -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}'" >> cantera.conf
 fi
 
+export CANTERA_PATH_SEP=":"
+
 set -xe
 
 # FIXME REVERT BEFORE MERGING
