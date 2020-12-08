@@ -6,6 +6,7 @@ cmake                                        ^
     -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
     -DSOCI_LIBDIR=lib                        ^
     -DSOCI_STATIC=OFF                        ^
+    -DNOMINMAX                               ^
     %SRC_DIR%
 if errorlevel 1 exit 1
 
