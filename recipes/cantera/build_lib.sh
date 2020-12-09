@@ -8,3 +8,7 @@ rm -rf $PREFIX/include
 rm -rf $PREFIX/bin
 rm -rf $PREFIX/lib/pkg-config
 rm -rf $PREFIX/lib/libcantera.a
+
+if [[ "$target_platform" == osx-* ]]; then
+  ${OTOOL:-otool} -L $PREFIX/lib/libcantera.dylib
+fi
