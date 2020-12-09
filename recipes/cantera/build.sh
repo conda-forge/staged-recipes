@@ -26,6 +26,10 @@ else
     echo "cc_flags = '-isysroot ${CONDA_BUILD_SYSROOT} -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}'" >> cantera.conf
 fi
 
+if [[ "$target_platform" == osx-* ]]; then
+    # scons on osx uses major.minor.0 while on linux it is major only
+    echo "APPLELINK_COMPATIBILITY_VERSION=$(echo ${PKG_VERSION} | cut -d. -f1).0.0" >> cantera.conf
+fi
 
 set -xe
 
