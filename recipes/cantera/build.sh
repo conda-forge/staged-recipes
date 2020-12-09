@@ -28,7 +28,8 @@ fi
 
 if [[ "$target_platform" == osx-* ]]; then
     # scons on osx uses major.minor while on linux it is major only
-    echo "APPLELINK_COMPATIBILITY_VERSION='$(echo ${PKG_VERSION} | cut -d. -f1)'" >> cantera.conf
+    export APPLELINK_COMPATIBILITY_VERSION="$(echo ${PKG_VERSION} | cut -d. -f1)"
+    echo "APPLELINK_COMPATIBILITY_VERSION='${APPLELINK_COMPATIBILITY_VERSION}'" >> cantera.conf
 fi
 
 set -xe
