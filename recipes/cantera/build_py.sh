@@ -2,6 +2,8 @@ echo "****************************"
 echo "PYTHON ${PY_VER} BUILD STARTED"
 echo "****************************"
 
+set -x
+
 # Remove old Python build files, if they're present
 if [ -d "build/python" ]; then
     rm -r build/python
@@ -12,7 +14,7 @@ if [ -d "build/python" ]; then
     rm -r interfaces/cython/Cantera.egg-info
 fi
 
-export CANTERA_PATH_SEP=":"
+test -f cantera.conf
 
 scons build python_package='y' python_cmd="${PYTHON}"
 

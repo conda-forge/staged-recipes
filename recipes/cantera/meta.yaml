@@ -14,13 +14,12 @@ build:
 
 requirements:
   build:
-    - {{ compiler('c') }}  # [not win]
-    - {{ compiler('cxx') }}  # [not win]
-    - vs2017_win-64 ==19.15.*  # [win]
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
     - scons >=3.1
   host:
     - python >=3.5
-    - libboost
+    - boost-cpp
     - numpy
     - fmt
     - eigen
@@ -31,19 +30,22 @@ requirements:
     - pywin32  # [win]
 
 outputs:
-  - name: libcantera-devel
-    script: build_devel.sh  # [not win]
-    script: build_devel.bat  # [win]
+  - name: libcantera
+    script: build_lib.sh  # [not win]
+    script: build_lib.bat  # [win]
+    build:
+      ignore_run_exports_from:
+        # only the header part of these libraries are used
+        - boost-cpp
+        - fmt
     requirements:
       build:
-        - {{ compiler('c') }}  # [not win]
-        - {{ compiler('cxx') }}  # [not win]
-        - vs2017_win-64 ==19.15.*  # [win64]
-        - vs2017_win-32 ==19.15.*  # [win32]
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
         - scons >=3.1
       host:
         - python >=3.5
-        - libboost
+        - boost-cpp
         - numpy
         - fmt
         - eigen
@@ -52,37 +54,58 @@ outputs:
         - gmock
         - sundials
         - pywin32  # [win]
-      run:
-        - {{ compiler('c') }}  # [not win]
-        - {{ compiler('cxx') }}  # [not win]
-        - vs2017_win-64 ==19.15.*  # [win64]
-        - vs2017_win-32 ==19.15.*  # [win32]
-        - libboost
-        - fmt
-        - vs2015_runtime  # [win]
-    build:
-      include_recipe: True
-      ignore_run_exports:
-        - libboost
     test:
+      requires:
+        - {{ compiler('c') }}
       commands:
         - "${CC} --shared -oyoink.so -lcantera"  # [not win]
+
+  - name: libcantera-devel
+    script: build_devel.sh  # [not win]
+    script: build_devel.bat  # [win]
+    build:
+      ignore_run_exports_from:
+        # only the header part of these libraries are used
+        - boost-cpp
+        - fmt
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - scons >=3.1
+      host:
+        - python >=3.5
+        - boost-cpp
+        - numpy
+        - fmt
+        - eigen
+        - yaml-cpp
+        - gtest
+        - gmock
+        - sundials
+        - pywin32  # [win]
+        - {{ pin_subpackage("libcantera", exact=True) }}
+      run:
+        - {{ pin_subpackage("libcantera", exact=True) }}
 
   - name: cantera
     script: build_py.sh  # [not win]
     script: build_py.bat  # [win]
+    build:
+      ignore_run_exports_from:
+        # only the header part of these libraries are used
+        - boost-cpp
+        - fmt
     requirements:
       build:
-        - {{ compiler('c') }}  # [not win]
-        - {{ compiler('cxx') }}  # [not win]
-        - vs2017_win-64 ==19.15.*  # [win64]
-        - vs2017_win-32 ==19.15.*  # [win32]
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
         - scons >=3.1
         - cython
       host:
         - python {{ python }}
         - setuptools
-        - libboost
+        - boost-cpp
         - numpy
         - fmt
         - eigen
@@ -92,15 +115,16 @@ outputs:
         - sundials
         - pywin32  # [win]
         - cython
+        # These two are added here so that conda-build doesn't package their files into cantera too
+        - {{ pin_subpackage("libcantera-devel", exact=True) }}
+        - {{ pin_subpackage("libcantera", exact=True) }}
       run:
         - python
         - setuptools
-        - libboost
-        - fmt
         - {{ pin_compatible('numpy') }}
         - h5py
         - ruamel_yaml
-        - vs2015_runtime  # [win]
+        - {{ pin_subpackage("libcantera", exact=True) }}
     build:
       entry_points:
         - ck2cti = cantera.ck2cti:script_entry_point

@@ -14,6 +14,8 @@ cp "${RECIPE_DIR}/cantera_base.conf" cantera.conf
 
 echo "prefix = '${PREFIX}'" >> cantera.conf
 echo "boost_inc_dir = '${PREFIX}/include'" >> cantera.conf
+echo "extra_inc_dirs = '${PREFIX}/include:${PREFIX}/include/eigen3'" >> cantera.conf
+echo "extra_lib_dirs = '${PREFIX}/lib'" >> cantera.conf
 
 if [[ "${OSX_ARCH}" == "" ]]; then
     echo "CC = '${CC}'" >> cantera.conf
@@ -24,7 +26,6 @@ else
     echo "cc_flags = '-isysroot ${CONDA_BUILD_SYSROOT} -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}'" >> cantera.conf
 fi
 
-export CANTERA_PATH_SEP=":"
 
 set -xe
 
