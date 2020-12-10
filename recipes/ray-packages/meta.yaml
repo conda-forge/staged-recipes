@@ -1,0 +1,270 @@
+{% set version = "1.0.1" %}
+
+package:
+  name: ray-packages
+  version: {{ version }}
+
+source:
+  url: https://github.com/ray-project/ray/archive/ray-{{ version }}.tar.gz
+  sha256: e08ff04dc8bca99527dbc821446f8660cfe6cbc8c35db61410958b9aa9acee56
+  patches:
+    - patches/0001-Do-not-force-pickle5-in-sys.path.patch
+    - patches/0002-Fix-redis-build-for-non-default-compiler-drivers.patch
+    - patches/0003-Fix-plasma-linking-for-ancient-glibc.patch
+    - patches/0004-Redis-deps-now-build-but-do-not-link.patch
+    - patches/0005-Disable-making-non-core-entry-scripts.patch
+    - patches/0006-Ignore-warnings-for-one-file.patch
+    - patches/0007-Contain-bazel-root-and-output-dir-right-above-SRC_DI.patch
+    - patches/0008-Do-not-crash-if-BAZEL_SH-not-set-on-Windows.patch
+    - patches/0009-Convert-symlinks-to-junctions-on-Windows-before-buil.patch
+    - patches/0010-Add-workaround-for-os.path.isdir-on-Windows.patch
+    - patches/0011-Include-process.h-for-getpid-explicitly-on-Windows.patch
+    - patches/0012-Empty-install-requirements-installed-by-conda-build.patch
+
+build:
+  number: 0
+  skip: True  # [py<36]
+  # skip on MacOS as there's some weird compilation issue and I have no MacOS to develop on
+  skip: True  # [osx]
+
+# Need these up here for conda-smithy to handle them properly.
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cython >=0.29
+    - bazel <=3.4.1  # [not win]
+    - bazel  # [win]
+    - curl
+    - make
+    - m2-patch  # [win]
+
+outputs:
+  - name: ray-all
+    requirements:
+      host:
+      run:
+        - python
+        - {{ pin_subpackage('ray-core', exact=True) }}
+        #- {{ pin_subpackage('ray-debug', exact=True) }}  # turned off for now, see below
+        - {{ pin_subpackage('ray-dashboard', exact=True) }}
+        - {{ pin_subpackage('ray-rllib', exact=True) }}
+        - {{ pin_subpackage('ray-serve', exact=True) }}
+        - {{ pin_subpackage('ray-tune', exact=True) }}
+        # autoscaler does not work on Windows, no point of building it; see below
+        - {{ pin_subpackage('ray-autoscaler', exact=True) }}  # [not win]
+    test:
+      imports:
+        # dummy test; actual tests are in subpackages
+        - ray
+
+  - name: ray-core
+    script: build-core.sh  # [not win]
+    script: build-core.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cython >=0.29
+        - bazel <=3.4.1  # [not win]
+        - bazel  # [win]
+        - curl
+        - make
+      host:
+        # pickle5 needs to be here, otherwise setup.py tries
+        # to install it and it fails on conda-forge Windows CI
+        - pickle5  # [py<38]
+        - packaging
+        - python
+        - pip
+      run:
+        - python
+        - aiohttp
+        - aiohttp-cors
+        - aioredis
+        - click >=7.0
+        - colorama
+        - colorful
+        - filelock
+        - googlesearch
+        # gpustat-0.6.0 has a dependency which does not exist on Windows;
+        # skip it there until gpustat is fixed as it is optional
+        - gpustat  # [not win]
+        - grpcio >=1.28.1
+        - jsonschema
+        - msgpack-python >=1.0.0, <2.0.0
+        - numpy >=1.16
+        - protobuf >=3.8.0
+        - psutil
+        - pyyaml
+        - requests
+        - redis-py >=3.3.2, <3.5.0
+        - opencensus
+        - prometheus_client >=0.7.1
+        - pickle5  # [py<38]
+        - funcsigs
+        - setproctitle
+    test:
+      imports:
+        - ray
+        - ray._raylet
+        - ray.actor
+        - ray.profiling
+        - ray.runtime_context
+        - ray.state
+        - ray.worker
+
+  - name: ray-debug
+    build:
+      # some weird incompatibility when installing during tests... disabling for now
+      # wild guess is it is caused by py-spy using newer sysroot/glibc
+      skip: True
+    requirements:
+      host:
+        - python
+      run:
+        - python
+        - {{ pin_subpackage('ray-core', exact=True) }}
+        - py-spy >=0.2.0
+    test:
+      imports:
+        # there doesn't appear to be a debug specific module
+        - ray
+
+  - name: ray-dashboard
+    requirements:
+      host:
+        - python
+      run:
+        - python
+        - {{ pin_subpackage('ray-core', exact=True) }}
+    test:
+      imports:
+        - ray.dashboard
+
+  - name: ray-rllib
+    build:
+      entry_points:
+        - rllib = ray.rllib.scripts:cli
+    requirements:
+      host:
+        - python
+      run:
+        - python
+        - {{ pin_subpackage('ray-core', exact=True) }}
+        - tabulate
+        - tensorboardX
+        - pandas
+        - dataclasses  # [py<37]
+        - atari_py
+        - dm-tree
+        - gym-atari
+        - lz4
+        # until there is a build of opencv-python-headless which does not require
+        # full graphics stack we have to rely on user system having needed
+        #  graphics libraries installed
+        - opencv <=4.30.0
+        - pyyaml
+        - scipy
+    test:
+      imports:
+        - ray.rllib
+      commands:
+        - rllib --help
+
+  - name: ray-serve
+    requirements:
+      host:
+        - python
+      run:
+        - python
+        - {{ pin_subpackage('ray-core', exact=True) }}
+        - uvicorn
+        - flask
+        - requests
+        - pydantic <1.7
+        - dataclasses  # [py<37]
+    test:
+      imports:
+        - ray.serve
+
+  - name: ray-tune
+    build:
+      entry_points:
+        - tune = ray.tune.scripts:cli
+    requirements:
+      host:
+        - python
+      run:
+        - python
+        - {{ pin_subpackage('ray-core', exact=True) }}
+        - tabulate
+        - tensorboardX
+        - pandas
+        - dataclasses  # [py<37]
+    test:
+      imports:
+        - ray.tune
+
+  - name: ray-autoscaler
+    build:
+      # ray autoscaler relies heavily on using POSIX-compliant OpenSSH and rsync,
+      # neither of which are available on Windows; they are in WSL, but that is
+      # effectively a Linux version from conda point of view
+      skip: True  # [win]
+    requirements:
+      host:
+        - python
+      run:
+        - python
+        - {{ pin_subpackage('ray-core', exact=True) }}
+        - azure-common
+        - azure-mgmt-resource
+        - boto3
+        - google-api-python-client
+        - google-auth
+        - msrestazure
+    test:
+      imports:
+        - ray.autoscaler
+
+about:
+  home: https://github.com/ray-project/ray
+  license: Apache-2.0
+  license_family: Apache
+  license_file:
+    - LICENSE
+    - licenses/abseil-LICENSE.txt
+    - licenses/antirez-redis-COPYING.txt
+    - licenses/arrow-LICENSE.txt
+    - licenses/boost-LICENSE_1_0.txt
+    - licenses/boringssl-LICENSE.txt
+    - licenses/deckarep-golang-set-LICENSE.txt
+    - licenses/flatbuffers-LICENSE.txt
+    - licenses/gabime-spdlog-LICENSE.txt
+    - licenses/gflags-COPYING.txt
+    - licenses/glog-COPYING.txt
+    - licenses/go-logr-LICENSE.txt
+    - licenses/googletest-LICENSE.txt
+    - licenses/grpc-LICENSE.txt
+    - licenses/msgpack-COPYING.txt
+    - licenses/onsi-ginkgo-LICENSE.txt
+    - licenses/onsi-gomega-LICENSE.txt
+    - licenses/opencensus-LICENSE.txt
+    - licenses/opencensus-proto-LICENSE.txt
+    - licenses/prometheus-LICENSE.txt
+    - licenses/redis-hiredis-COPYING.txt
+    - licenses/tporadowski-redis-license.txt
+    - licenses/zlib-LICENSE.txt
+  summary: 'Ray is a fast and simple framework for building and running distributed applications.'
+  description: |
+    Ray is a fast and simple framework for building and running
+    distributed applications.
+  doc_url: https://ray.readthedocs.io/
+  dev_url: https://github.com/ray-project/ray
+
+extra:
+  recipe-maintainers:
+    - dHannasch
+    - h-vetinari
+    - vnlitvinov
