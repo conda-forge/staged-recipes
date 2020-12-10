@@ -33,7 +33,7 @@ CALL scons build -j%CPU_USE%
 IF ERRORLEVEL 1 GOTO :failure ELSE GOTO :success
 
 :failure
-type config.log
+REM TYPE config.log
 EXIT 1
 
 :success
