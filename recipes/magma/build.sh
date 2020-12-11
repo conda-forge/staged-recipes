@@ -17,7 +17,7 @@ CXXFLAGS="${CXXFLAGS//-std=c++17/-std=c++14}"
 mkdir build
 cd build
 cmake ${CMAKE_ARGS} .. \
-  -DUSE_FORTRAN=OFF \
+  -DUSE_FORTRAN=ON \
   -DGPU_TARGET="All" \
   -DCMAKE_INSTALL_PREFIX=$PREFIX \
   -DCUDA_ARCH_LIST="$CUDA_ARCH_LIST" \
