@@ -1,0 +1,42 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9fdccb2..40c41d5 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -119,7 +119,7 @@ if (CUDA_FOUND)
+     set( NV_SM    "" )
+     set( NV_COMP  "" )
+ 
+-    set(CUDA_SEPARABLE_COMPILATION ON)
++    set(CUDA_SEPARABLE_COMPILATION OFF)
+ 
+     # nvcc >= 6.5 supports -std=c++11, so propagate CXXFLAGS to NVCCFLAGS.
+     # Older nvcc didn't support -std=c++11, so previously we disabled propagation.
+@@ -259,11 +259,18 @@ if (CUDA_FOUND)
+         message( STATUS "    compile for CUDA arch 7.5 (Turing)" )
+     endif()
+ 
++    if ( ${GPU_TARGET} MATCHES "All")
++      set( MIN_ARCH 370)
++      SET( NV_SM ${CUDA_ARCH_LIST})
++      SET( NV_COMP "")
++    endif()
++
+     if (NOT MIN_ARCH)
+         message( FATAL_ERROR "GPU_TARGET must contain one or more of Fermi, Kepler, Maxwell, Pascal, Volta, Turing, or valid sm_[0-9][0-9]" )
+     endif()
+ 
+-        set( CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} -Xcompiler -fPIC -DHAVE_CUBLAS ${NV_SM} ${NV_COMP} ${FORTRAN_CONVENTION} )
++        set( CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} -DHAVE_CUBLAS -Xfatbin -compress-all -Xcompiler -fPIC -std=c++11 ${NV_SM} ${NV_COMP} ${FORTRAN_CONVENTION} )
++        MESSAGE(STATUS "CUDA_NVCC_FLAGS: ${CUDA_NVCC_FLAGS}")
+     add_definitions( "-DHAVE_CUBLAS -DMIN_CUDA_ARCH=${MIN_ARCH}" )
+     message( STATUS "Define -DHAVE_CUBLAS -DMIN_CUDA_ARCH=${MIN_ARCH}" )
+ endif()
+@@ -551,7 +558,7 @@ install( TARGETS magma magma_sparse ${blas_fix}
+          LIBRARY DESTINATION lib
+          ARCHIVE DESTINATION lib )
+ file( GLOB headers include/*.h sparse/include/*.h )
+-install( FILES ${headers} ${modules}
++install( FILES ${headers}
+          DESTINATION include )
+ 
+ # ----------------------------------------
