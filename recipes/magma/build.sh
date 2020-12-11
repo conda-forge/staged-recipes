@@ -19,5 +19,5 @@ cmake ${CMAKE_ARGS} .. \
   -DCUDA_ARCH_LIST="$CUDA_ARCH_LIST" \
   -DCUDA_TOOLKIT_INCLUDE=$CUDA_HOME/include
 
-make -j${CPU_COUNT}
+make -j${CPU_COUNT} VERBOSE=1
 make install
