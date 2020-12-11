@@ -10,6 +10,10 @@ elif [[ "$cuda_compiler_version" == "11.0" ]]; then
   CUDA_ARCH_LIST="$CUDA_ARCH_LIST -gencode arch=compute_80,code=sm_80"
 fi
 
+# std=c++11 is required to compile some .cu files
+CPPFLAGS="${CPPFLAGS//-std=c++17/-std=c++14}"
+CXXFLAGS="${CXXFLAGS//-std=c++17/-std=c++14}"
+
 mkdir build
 cd build
 cmake ${CMAKE_ARGS} .. \
