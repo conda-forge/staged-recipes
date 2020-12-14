@@ -34,20 +34,15 @@ def build_all(recipes_dir, arch):
     found_cuda = False
     found_centos7 = False
     for folder in folders:
-        print(folder)
         meta_yaml = os.path.join(recipes_dir, folder, "meta.yaml")
-        print(meta_yaml)
         if os.path.exists(meta_yaml):
-            print("found", meta_yaml)
             with(open(meta_yaml, "r")) as f:
                 text = ''.join(f.readlines())
-                print(text)
                 if 'cuda' in text:
                     found_cuda = True
                 if 'sysroot_linux-64' in text:
                     found_centos7 = True
     if found_cuda:
-        print('asdasd')
         print('##vso[task.setvariable variable=NEED_CUDA;isOutput=true]1')
     if found_centos7:
         print('##vso[task.setvariable variable=NEED_CENTOS7;isOutput=true]1')
