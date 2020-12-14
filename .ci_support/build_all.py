@@ -47,6 +47,7 @@ def build_all(recipes_dir, arch):
                 if 'sysroot_linux-64' in text:
                     found_centos7 = True
     if found_cuda:
+        print('asdasd')
         print('##vso[task.setvariable variable=NEED_CUDA;isOutput=true]1')
     if found_centos7:
         print('##vso[task.setvariable variable=NEED_CENTOS7;isOutput=true]1')
