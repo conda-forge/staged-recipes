@@ -3,8 +3,8 @@ if [ "$(uname)" == "Darwin" ]; then
 fi
 if [ "$(uname)" == "Linux" ]; then
     # revisit when c-f moves to gcc8
-    #ALLOPTS="${CFLAGS} -D__GG_NO_PRAGMA"
-    ALLOPTS="${CFLAGS}"
+    # * checked Dec 2020 at gcc9 and define still needed
+    ALLOPTS="${CFLAGS} -D__GG_NO_PRAGMA"
 fi
 
 ${BUILD_PREFIX}/bin/cmake \
