@@ -143,3 +143,31 @@ jobs:
   - publish: build_artifacts/linux-64/
     artifact: conda_pkgs_linux_64_cuda102
 
+- job: linux_64_centos7
+  dependsOn: linux_64
+  condition: and(not(eq(variables['Build.SourceBranch'], 'refs/heads/master')), eq(dependencies.linux_64.outputs['linux_64_build.NEED_CENTOS7'], '1'))
+  pool:
+    vmImage: ubuntu-16.04
+  timeoutInMinutes: 360
+  steps:
+  - script: |
+      # sudo pip install --upgrade pip
+      sudo pip install setuptools shyaml
+    displayName: Install dependencies
+
+  - script: |
+      set -e
+
+      # make sure there is a package directory so that artifact publishing works
+      mkdir -p build_artifacts/linux-64/
+
+      export CI=azure
+      export CONFIG=linux64
+      export IMAGE_NAME=quay.io/condaforge/linux-anvil-cos7-x86_64
+      export AZURE=True
+      .scripts/run_docker_build.sh
+
+    displayName: Run docker build for centos 7
+  - publish: build_artifacts/linux-64/
+    artifact: conda_pkgs_linux_64_centos7
+
