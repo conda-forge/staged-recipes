@@ -38,9 +38,6 @@ if [ "$(uname)" == "Darwin" ]; then
     perl -i -pe "s|\.so|${SHLIB_EXT}|;" *.rootmap
 fi
 
-cd ${PREFIX}/lib
-../bin/edmPluginRefresh plugin*${SHLIB_EXT}
-
 cd ${BLDDIR}
 cp -v lib/*.pcm "${PREFIX}"/lib
 cp -v lib/*.rootmap "${PREFIX}"/lib
