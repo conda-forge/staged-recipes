@@ -7,10 +7,10 @@ CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:$PWD/cmaketools
 
 # set graphics library to link
 if [ "$(uname)" == "Linux" ]; then
-    cmake_args="-DPYDOTVER=${PYDOTVER} -DPYVER=${CONDA_PY}"
+    cmake_args="-DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release"
     export CXXFLAGS="${CXXFLAGS}"
 else
-    cmake_args="-DCMAKE_OSX_SYSROOT=${CONDA_BUILD_SYSROOT} -DPYDOTVER=${PYDOTVER} -DPYVER=${CONDA_PY}"
+    cmake_args="-DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_SYSROOT=${CONDA_BUILD_SYSROOT}" 
 
     # Remove -std=c++14 from build ${CXXFLAGS} and use cmake to set std flags
     CXXFLAGS=$(echo "${CXXFLAGS}" | sed -E 's@-std=c\+\+[^ ]+@@g')
