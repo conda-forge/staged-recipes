@@ -5,7 +5,8 @@ if [[ "$(uname)" == "Darwin" ]]; then
     export AR_CMAKE_SETTING=
     export RANLIB_CMAKE_SETTING=
     # Workaround for missing C++17 feature when building the tests.
-    export CXXFLAGS="$CXXFLAGS -DCATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS"
+    # Also, workaround for compile issue on older OSX SDKs.
+    export CXXFLAGS="$CXXFLAGS -DCATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS -D_LIBCPP_DISABLE_AVAILABILITY"
 else
     export ENABLE_MPPP=yes
     # Workaround for making the LTO machinery work on Linux.
