@@ -7,6 +7,6 @@ cmake -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
 
 if errorlevel 1 exit 1
 
-cmake --build . --target ALL_BUILD --config Release
+cmake --build . --target install --config Release
 
 if errorlevel 1 exit 1
