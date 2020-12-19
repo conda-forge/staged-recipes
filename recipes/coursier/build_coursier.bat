@@ -8,7 +8,9 @@ md "%PREFIX%\Scripts" || goto :ERROR
 :: TODO: remove debugging
 dir
 
-call coursier ^
+java ^
+    -noverify ^
+    -jar coursier ^
     bootstrap ^
     "io.get-coursier::coursier-cli:%PKG_VERSION%" ^
     --java-opt "-noverify" ^
