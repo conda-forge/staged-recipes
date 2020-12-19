@@ -5,6 +5,9 @@ set "COURSIER_CACHE=%SRC_DIR%\cache"
 md "%COURSIER_CACHE%" || goto :ERROR
 md "%PREFIX%\Scripts" || goto :ERROR
 
+:: TODO: remove debugging
+dir
+
 call coursier ^
     bootstrap ^
     "io.get-coursier::coursier-cli:%PKG_VERSION%" ^
@@ -19,5 +22,5 @@ call coursier ^
 goto :EOF
 
 :ERROR
-echo FAIL Building %PKG_NAME% with error #%errorlevel%.
+echo FAIL Building %PKG_NAME% %PKG_VERSION% with error #%errorlevel%.
 exit /b 1
