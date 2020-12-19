@@ -3,7 +3,7 @@
 set "COURSIER_CACHE=%SRC_DIR%\cache"
 
 md "%COURSIER_CACHE%" || goto :ERROR
-md "%SCRIPTS%" || goto :ERROR
+md "%PREFIX%\Scripts" || goto :ERROR
 
 call coursier ^
     bootstrap ^
@@ -12,7 +12,7 @@ call coursier ^
     --no-default ^
     -r central ^
     -r typesafe:ivy-releases ^
-    -f -o "%SCRIPTS%\coursier" ^
+    -f -o "%PREFIX%\Scripts\coursier" ^
     --standalone ^
     || goto :ERROR
 
