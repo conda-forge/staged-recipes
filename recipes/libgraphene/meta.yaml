@@ -1,0 +1,59 @@
+{% set name = "graphene" %}
+{% set version = "1.10.4" %}
+{% set sha256 = "b2a45f230f332478553bd79666eca8df1d1c6dbf208c344ba9f5120592772414" %}
+
+package:
+    # graphene is already taken by an unrelated python package
+    name: "lib{{ name|lower }}"
+    version: {{ version }}
+
+source:
+    sha256: {{ sha256 }}
+    url: https://github.com/ebassi/{{ name }}/releases/download/{{ version }}/{{ name }}-{{ version }}.tar.xz
+
+build:
+  number: 0
+  skip: true  # [win and vc<14]
+
+requirements:
+  build:
+    - pkg-config
+    - {{ compiler('c') }}
+    - meson
+    - ninja
+    - gobject-introspection
+  host:
+    - glib
+  run:
+    - libglib
+
+test:
+  requires:
+    - pkg-config
+    - pygobject
+
+  commands:
+    # verify that libs get installed and can be located through pkg-config
+    {% set pc = "graphene-1.0" %}
+    {% set lib = "graphene-1.0" %}
+    {% set gi = "Graphene-1.0" %}
+    - "test -f $PREFIX/lib/lib{{ lib }}${SHLIB_EXT}"  # [unix]
+    - "test -f `pkg-config --variable=libdir --dont-define-prefix {{ pc }}`/lib{{ lib }}${SHLIB_EXT}"  # [unix]
+    - "if not exist %PREFIX%\\Library\\bin\\{{ lib }}-0.dll exit 1"  # [win]
+    - for /f "usebackq tokens=*" %%a in (`pkg-config --variable=exec_prefix --dont-define-prefix {{ pc }}`) do if not exist "%%a/bin/{{ lib }}-0.dll" exit 1  # [win]
+    - "if not exist %PREFIX%\\Library\\lib\\{{ lib }}.lib exit 1"  # [win]
+    - for /f "usebackq tokens=*" %%a in (`pkg-config --variable=libdir --dont-define-prefix {{ pc }}`) do if not exist "%%a/{{ lib }}.lib" exit 1  # [win]
+    - "test -f $PREFIX/lib/girepository-1.0/{{ gi }}.typelib"  # [unix]
+    - "if not exist %PREFIX%\\Library\\lib\\girepository-1.0\\{{ gi }}.typelib exit 1"   # [win]
+
+
+about:
+  home: https://github.com/ebassi/graphene
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE.txt
+  summary: "A thin layer of types for graphic libraries"
+
+extra:
+  recipe-maintainers:
+    - tschoonj
