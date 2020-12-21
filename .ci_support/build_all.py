@@ -31,6 +31,21 @@ def build_all(recipes_dir, arch):
         print("Found no recipes to build")
         return
 
+    found_cuda = False
+    found_centos7 = False
+    for folder in folders:
+        meta_yaml = os.path.join(recipes_dir, folder, "meta.yaml")
+        if os.path.exists(meta_yaml):
+            with(open(meta_yaml, "r")) as f:
+                text = ''.join(f.readlines())
+                if 'cuda' in text:
+                    found_cuda = True
+                if 'sysroot_linux-64' in text:
+                    found_centos7 = True
+    if found_cuda:
+        print('##vso[task.setvariable variable=NEED_CUDA;isOutput=true]1')
+    if found_centos7:
+        print('##vso[task.setvariable variable=NEED_CENTOS7;isOutput=true]1')
     for folder in folders:
         built = False
         cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
