@@ -23,10 +23,10 @@ fi
 if [ -z "${IMAGE_NAME}" ]; then
     SHYAML_INSTALLED="$(shyaml -h || echo NO)"
     if [ "${SHYAML_INSTALLED}" == "NO" ]; then
-        echo "WARNING: DOCKER_IMAGE variable not set and shyaml not installed. Falling back to condaforge/linux-anvil-comp7"
-        IMAGE_NAME="condaforge/linux-anvil-comp7"
+        echo "WARNING: DOCKER_IMAGE variable not set and shyaml not installed. Falling back to quay.io/condaforge/linux-anvil-comp7"
+        IMAGE_NAME="quay.io/condaforge/linux-anvil-comp7"
     else
-        IMAGE_NAME="$(cat "${REPO_ROOT}/.ci_support/${CONFIG}.yaml" | shyaml get-value docker_image.0 condaforge/linux-anvil-comp7 )"
+        IMAGE_NAME="$(cat "${REPO_ROOT}/.ci_support/${CONFIG}.yaml" | shyaml get-value docker_image.0 quay.io/condaforge/linux-anvil-comp7 )"
     fi
 fi
 
@@ -46,6 +46,7 @@ docker run ${DOCKER_RUN_ARGS} \
            -e AZURE=${AZURE} \
            -e CONFIG \
            -e CI \
+           -e CF_CUDA_VERSION \
            $IMAGE_NAME \
            bash \
            /home/conda/staged-recipes/${PROVIDER_DIR}/build_steps.sh

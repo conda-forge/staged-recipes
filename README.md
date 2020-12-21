@@ -5,9 +5,13 @@ This repo is a holding area for recipes destined for a conda-forge feedstock rep
 [![Join the chat at https://gitter.im/conda-forge/conda-forge.github.io](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/conda-forge/conda-forge.github.io)
 
 
-## Build status
+## Feedstock conversion status
 
-[![Build Status](https://travis-ci.com/conda-forge/staged-recipes.svg?branch=master)](https://travis-ci.com/conda-forge/staged-recipes)
+[![Build Status](https://github.com/conda-forge/staged-recipes/workflows/Create%20feedstocks/badge.svg)](https://github.com/conda-forge/staged-recipes/actions?query=workflow%3A%22Create+feedstocks%22)
+
+Failures with the above job are often caused by API rate limits from the various services used by conda-forge.
+This can result in empty feedstock repositories and will resolve itself automatically.
+If the issue persists, support can be found [on Gitter](https://gitter.im/conda-forge/conda-forge.github.io).
 
 ## Getting started
 
@@ -19,9 +23,10 @@ This repo is a holding area for recipes destined for a conda-forge feedstock rep
 
 ## Grayskull - recipe generator for Python packages on `pypi`
 
-For Python packages available on `pypi` it is possible to use [grayskull](https://github.com/marcelotrevisani/grayskull) to generate the recipe. The user should review the recipe generated, specially the license and dependencies.
+For Python packages available on `pypi` it is possible to use [grayskull](https://github.com/conda-incubator/grayskull) to generate the recipe. The user should review the recipe generated, specially the license and dependencies.
 
 Installing `grayskull`: `conda install -c conda-forge grayskull`
+
 Generating recipe: `grayskull pypi PACKAGE_NAME_HERE`
 
 
@@ -131,7 +136,7 @@ If your PR is passing all checks, but has not been acted on by the staged recipe
 maintainers, you can ping @conda-forge/staged-recipes to request action. You do
 not need to wait any specific amount of time once the recipe is ready to go.
 
-If your recipe still does not recieve any attention after a few days, you may
+If your recipe still does not receive any attention after a few days, you may
 attempt to re-ping @conda-forge/staged-recipes. You may also attempt to bring
 the PR up in our Gitter chat room at https://gitter.im/conda-forge/conda-forge.github.io
 
