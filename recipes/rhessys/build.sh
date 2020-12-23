@@ -6,6 +6,7 @@ fi
 
 export F_MASTER=$(pwd)
 export FC_ENV=$(uname)
+export PKG_VERSION="7.2.0"
 
 export INCLUDES='-I${PREFIX}/include'
 export CFLAGS="$CFLAGS -fPIC -I$PREFIX/include"
