@@ -45,7 +45,7 @@ def list_recipes():
     for recipe_dir in recipes:
         # We don't list the "example" feedstock. It is an example, and is there
         # to be helpful.
-        # .DS_Store is created by macOS to store custom atributes of its
+        # .DS_Store is created by macOS to store custom attributes of its
         # containing folder.
         if recipe_dir in ['example', '.DS_Store']:
             continue
