@@ -3,11 +3,11 @@ set -ex
 
 if [ "${mpi}" != "nompi" ]; then
   MPI=yes
-  SUFFIX="_onenode"
+  SUFFIX=""
   export FC=mpifort CC=mpicc
 else
   MPI=no
-  SUFFIX=""
+  SUFFIX="_onenode"
 fi
 
 # Use full optimization
