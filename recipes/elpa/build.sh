@@ -32,7 +32,7 @@ make build -j 4
 make install
 
 # Create a pkg-config file without version suffix as well
-cp ${PREFIX}/lib/pkgconfig/elpa${SUFFIX}-{${version},}.pc
+cp ${PREFIX}/lib/pkgconfig/elpa${SUFFIX}{-*,}.pc
 
 popd
 
@@ -45,6 +45,6 @@ make build -j 4
 make install
 
 # Create a pkg-config file without version suffix as well
-cp ${PREFIX}/lib/pkgconfig/elpa${SUFFIX}_openmp-{${version},}.pc
+cp ${PREFIX}/lib/pkgconfig/elpa${SUFFIX}_openmp{-*,}.pc
 
 popd
