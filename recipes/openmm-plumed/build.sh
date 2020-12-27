@@ -19,7 +19,13 @@ if [[ -n ${CUDA_HOME-} ]]; then
     CMAKE_FLAGS+=" -DCMAKE_LIBRARY_PATH=${CUDA_HOME}/lib64/stubs"
     CMAKE_FLAGS+=" -DPLUMED_BUILD_CUDA_LIB=ON"
     CMAKE_FLAGS+=" -DPLUMED_BUILD_OPENCL_LIB=ON"
-elif [[ "$target_platform" == osx* ]]; then
+else
+    # just for debugging; final package will ship all platforms
+    CMAKE_FLAGS+=" -DPLUMED_BUILD_CUDA_LIB=OFF"
+    CMAKE_FLAGS+=" -DPLUMED_BUILD_OPENCL_LIB=OFF"
+fi
+
+if [[ "$target_platform" == osx* ]]; then
     CMAKE_FLAGS+=" -DCMAKE_OSX_SYSROOT=${CONDA_BUILD_SYSROOT}"
     CMAKE_FLAGS+=" -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}"
 fi
