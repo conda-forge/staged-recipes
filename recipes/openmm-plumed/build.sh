@@ -15,10 +15,9 @@ CMAKE_FLAGS+=" -DPLUMED_LIBRARY_DIR=${PREFIX}/lib"
 CMAKE_FLAGS+=" -DPLUMED_BUILD_OPENCL_LIB=OFF"
 
 if [[ "$target_platform" == linux-64 || "$target_platform" == linux-ppc64le ]]; then
-    # CMAKE_FLAGS+=" -DCUDA_TOOLKIT_ROOT_DIR=${CUDA_HOME}"
-    # CMAKE_FLAGS+=" -DCMAKE_LIBRARY_PATH=${CUDA_HOME}/lib64/stubs"
-    # CMAKE_FLAGS+=" -DPLUMED_BUILD_CUDA_LIB=true"
-    echo "CUDA can only be enabled in a feedstock"
+    CMAKE_FLAGS+=" -DCUDA_TOOLKIT_ROOT_DIR=${CUDA_HOME}"
+    CMAKE_FLAGS+=" -DCMAKE_LIBRARY_PATH=${CUDA_HOME}/lib64/stubs"
+    CMAKE_FLAGS+=" -DPLUMED_BUILD_CUDA_LIB=ON"
 elif [[ "$target_platform" == osx* ]]; then
     CMAKE_FLAGS+=" -DCMAKE_OSX_SYSROOT=${CONDA_BUILD_SYSROOT}"
     CMAKE_FLAGS+=" -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}"
