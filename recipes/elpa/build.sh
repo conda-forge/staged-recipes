@@ -28,7 +28,7 @@ pushd build
 ../configure "${conf_options[@]}" ..
 
 make build -j 4
-make check TEST_FLAGS="1500 50 16"
+#make check TEST_FLAGS="1500 50 16"
 make install
 
 # Create a pkg-config file without version suffix as well
@@ -41,7 +41,7 @@ pushd build_openmp
 ../configure --enable-openmp "${conf_options[@]}" ..
 
 make build -j 4
-make check TEST_FLAGS="1500 50 16" OMP_NUM_THREADS=2 ELPA_DEFAULT_omp_threads=2
+#make check TEST_FLAGS="1500 50 16" OMP_NUM_THREADS=2 ELPA_DEFAULT_omp_threads=2
 make install
 
 # Create a pkg-config file without version suffix as well
