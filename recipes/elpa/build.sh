@@ -17,7 +17,7 @@ conf_options=(
 
 mkdir build
 pushd build
-./configure "${conf_options[@]}" ..
+../configure "${conf_options[@]}" ..
 
 make build -j 4
 make check TEST_FLAGS="1500 50 16"
@@ -30,7 +30,7 @@ popd
 
 mkdir build_openmp
 pushd build_openmp
-./configure "${conf_options[@]}" --enable-openmp ..
+../configure "${conf_options[@]}" --enable-openmp ..
 
 make build -j 4
 make check TEST_FLAGS="1500 50 16" OMP_NUM_THREADS=2 ELPA_DEFAULT_omp_threads=2
