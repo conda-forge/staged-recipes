@@ -11,8 +11,8 @@ else
 fi
 
 # Use full optimization
-export CFLAGS="-mavx2 -mfma ${CFLAGS//-O2/-O3}"
-export FFLAGS="-mavx2 -mfma ${FFLAGS//-O2/-O3}"
+export CFLAGS="-mavx2 -mfma ${CFLAGS}"
+export FFLAGS="-mavx2 -mfma ${FFLAGS}"
 
 # fdep program uses FORTRAN_CPP ?= cpp -P -traditional -Wall -Werror
 export FORTRAN_CPP="${CPP} -P -traditional"
@@ -20,6 +20,7 @@ export FORTRAN_CPP="${CPP} -P -traditional"
 conf_options=(
    "--prefix=${PREFIX}"
    "--with-mpi=${MPI}"
+   "--disable-sse-assembly"
    "--disable-avx512"
 )
 
