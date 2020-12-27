@@ -4,6 +4,7 @@ set -ex
 if [ "${mpi}" != "nompi" ]; then
   MPI=yes
   SUFFIX="_onenode"
+  export FC=mpifort CC=mpicc
 else
   MPI=no
   SUFFIX=""
