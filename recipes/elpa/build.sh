@@ -20,7 +20,6 @@ export FORTRAN_CPP="${CPP} -P -traditional"
 conf_options=(
    "--prefix=${PREFIX}"
    "--with-mpi=${MPI}"
-   "--disable-sse-assembly"
    "--disable-avx512"
 )
 
