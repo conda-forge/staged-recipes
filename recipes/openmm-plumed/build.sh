@@ -14,7 +14,8 @@ CMAKE_FLAGS+=" -DPLUMED_LIBRARY_DIR=${PREFIX}/lib"
 # This is not working for now
 CMAKE_FLAGS+=" -DPLUMED_BUILD_OPENCL_LIB=OFF"
 
-if [[ "$target_platform" == linux-64 || "$target_platform" == linux-ppc64le ]]; then
+# if CUDA_HOME is defined and not empty, we enable CUDA
+if [[ -n ${CUDA_HOME-} ]]; then
     CMAKE_FLAGS+=" -DCUDA_TOOLKIT_ROOT_DIR=${CUDA_HOME}"
     CMAKE_FLAGS+=" -DCMAKE_LIBRARY_PATH=${CUDA_HOME}/lib64/stubs"
     CMAKE_FLAGS+=" -DPLUMED_BUILD_CUDA_LIB=OFF"
