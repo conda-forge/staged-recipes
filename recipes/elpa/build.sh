@@ -4,26 +4,20 @@ set -ex
 if [ "${mpi}" != "nompi" ]; then
   MPI=yes
   SUFFIX="_onenode"
-  FC=mpifort
-  CC=mpicc
+  export FC=mpifort CC=mpicc
 else
   MPI=no
   SUFFIX=""
 fi
 
 # Use full optimization
-CFLAGS="${CFLAGS//-O2/-O3} -mavx2 -mfma -funsafe-loop-optimizations -funsafe-math-optimizations -ftree-vect-loop-version"
-FFLAGS="${FFLAGS//-O2/-O3} -mavx2 -mfma"
+export CFLAGS="-mavx2 -mfma ${CFLAGS//-O2/-O3}"
+export FFLAGS="-mavx2 -mfma ${FFLAGS//-O2/-O3}"
 
 conf_options=(
    "--prefix=${PREFIX}"
    "--with-mpi=${MPI}"
    "--disable-avx512"
-   "FC=\"${FC}\""
-   "CC=\"${CC}\""
-   "FFLAGS=\"${FFLAGS}\""
-   "CFLAGS=\"${CFLAGS}\""
-   "LDFLAGS=\"${LDFLAGS}\""
 )
 
 mkdir build
