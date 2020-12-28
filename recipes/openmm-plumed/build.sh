@@ -40,4 +40,4 @@ test -d ${PREFIX}/include/plumed/lepton.bak && mv ${PREFIX}/include/plumed/lepto
 
 # Include test executables too
 mkdir -p ${PREFIX}/share/openmm-plumed/tests
-find . -name 'Test*' -executable -type f -exec mv {} ${PREFIX}/share/openmm-plumed/tests/ \;
+find . -name 'Test*' -perm +0111 -type f -exec mv {} ${PREFIX}/share/openmm-plumed/tests/ \;
