@@ -9,7 +9,7 @@ cmake -G "NMake Makefiles" ^
       -DCMAKE_BUILD_TYPE=Release ^
       -DDEBUG=OFF ^
       -DOPENMP=set ^
-      -DBUILD_SHARED_LIBS=ON ^
+      -DBUILD_SHARED_LIBS=OFF ^
       ..
 if errorlevel 1 exit 1
 
