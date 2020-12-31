@@ -1,0 +1,98 @@
+{% set version = "1.2.0" %}
+
+package:
+  name: cutensor
+  version: {{ version }}
+
+source:
+  {% set cuda_ver = version.replace(".", "") %}
+  url: https://github.com/JuliaBinaryWrappers/CUTENSOR_CUDA{{ cuda_ver }}_jll.jl/releases/download/CUTENSOR_CUDA{{ cuda_ver }}-v{{ version }}%2B0/CUTENSOR_CUDA{{ cuda_ver }}.v{{ version }}.x86_64-linux-gnu.tar.gz  # [linux64 and cuda_compiler_version in ("10.1",)]
+  sha256: df9e79b72bd0e862443b485694a66f09811181e822b2ca5526a373ed7c18b632  # [linux64 and cuda_compiler_version == "10.1"]
+#  url: https://github.com/JuliaBinaryWrappers/CUTENSOR_CUDA102_jll.jl/releases/download/CUTENSOR_CUDA102-v{{ version }}%2B0/CUTENSOR_CUDA102.v{{ version }}.x86_64-linux-gnu.tar.gz  # [linux64 and cuda_compiler_version == "10.2"]
+#  url: https://github.com/JuliaBinaryWrappers/CUTENSOR_CUDA110_jll.jl/releases/download/CUTENSOR_CUDA110-v{{ version }}%2B0/CUTENSOR_CUDA110.v{{ version }}.x86_64-linux-gnu.tar.gz  # [linux64 and cuda_compiler_version == "11.0"]
+#  sha256:   # [linux64 and cuda_compiler_version == "10.2"]
+#  sha256:   # [linux64 and cuda_compiler_version == "11.0"]
+
+#  url: https://github.com/JuliaBinaryWrappers/CUTENSOR_CUDA101_jll.jl/releases/download/CUTENSOR_CUDA101-v{{ version }}%2B0/CUTENSOR_CUDA101.v{{ version }}.powerpc64le-linux-gnu.tar.gz  # [ppc64le and cuda_compiler_version == "10.1"]
+#  url: https://github.com/JuliaBinaryWrappers/CUTENSOR_CUDA102_jll.jl/releases/download/CUTENSOR_CUDA102-v{{ version }}%2B0/CUTENSOR_CUDA102.v{{ version }}.powerpc64le-linux-gnu.tar.gz  # [ppc64le and cuda_compiler_version == "10.2"]
+#  url: https://github.com/JuliaBinaryWrappers/CUTENSOR_CUDA110_jll.jl/releases/download/CUTENSOR_CUDA110-v{{ version }}%2B0/CUTENSOR_CUDA110.v{{ version }}.powerpc64le-linux-gnu.tar.gz  # [ppc64le and cuda_compiler_version == "11.0"]
+#  sha256:   # [ppc64le and cuda_compiler_version == "10.1"]
+#  sha256:   # [ppc64le and cuda_compiler_version == "10.2"]
+#  sha256:   # [ppc64le and cuda_compiler_version == "11.0"]
+#
+#  url: https://github.com/JuliaBinaryWrappers/CUTENSOR_CUDA101_jll.jl/releases/download/CUTENSOR_CUDA101-v{{ version }}%2B0/CUTENSOR_CUDA101.v{{ version }}.x86_64-w64-mingw32.tar.gz  # [win64 and cuda_compiler_version == "10.1"]
+#  url: https://github.com/JuliaBinaryWrappers/CUTENSOR_CUDA102_jll.jl/releases/download/CUTENSOR_CUDA102-v{{ version }}%2B0/CUTENSOR_CUDA102.v{{ version }}.x86_64-w64-mingw32.tar.gz  # [win64 and cuda_compiler_version == "10.2"]
+#  url: https://github.com/JuliaBinaryWrappers/CUTENSOR_CUDA110_jll.jl/releases/download/CUTENSOR_CUDA110-v{{ version }}%2B0/CUTENSOR_CUDA110.v{{ version }}.x86_64-w64-mingw32.tar.gz  # [win64 and cuda_compiler_version == "11.0"]
+#  sha256:   # [win64 and cuda_compiler_version == "10.1"]
+#  sha256:   # [win64 and cuda_compiler_version == "10.2"]
+#  sha256:   # [win64 and cuda_compiler_version == "11.0"]
+
+build:
+  number: 0
+  skip: True   # [not linux64 or cuda_compiler_version != "10.1"]  ## in ("None", "9.2", "10.0")]
+  script:
+    - mkdir -p $PREFIX/include               # [unix]
+    - cp -r include/* $PREFIX/include/       # [unix]
+    - mkdir -p $PREFIX/lib                   # [unix]
+    - mv lib/libcutensor.so* $PREFIX/lib/     # [linux64]
+    #- mv lib/libcudnn*.so* $PREFIX/lib/       # [ppc64le]
+    #- mkdir %LIBRARY_INC%                    # [win]
+    #- copy %SRC_DIR%\\include\\cudnn*.h %LIBRARY_INC%\\     # [win]
+    #- mkdir %LIBRARY_LIB%                    # [win]
+    #- copy %SRC_DIR%\\lib\\x64\\cudnn*.lib %LIBRARY_LIB%\\  # [win]
+    #- mkdir %LIBRARY_BIN%                    # [win]
+    #- copy %SRC_DIR%\\bin\\cudnn*_8.dll %LIBRARY_BIN%\\     # [win]
+  ignore_run_exports_from:
+    - {{ compiler('c') }}    # [linux]
+  run_exports:
+    - {{ pin_subpackage('cutensor') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cuda') }}
+    - sysroot_linux-64 2.17  # [linux64]
+  host:
+  run:
+    # Only GCC_3.0 or older symbols present
+    - libgcc-ng >=3.0     # [linux]
+    # Only GLIBCXX_3.4 or older symbols present
+    - libstdcxx-ng >=3.4  # [linux]
+  run_constrained:
+    # Only GLIBC_2.17 or older symbols present
+    - __glibc >=2.17      # [ppc64le]
+
+#test:
+#  commands:
+#    - if not exist %LIBRARY_INC%/cudnn.h exit 1        # [win]
+#    - if not exist %LIBRARY_INC%/cudnn_adv_train.h exit 1  # [win]
+#    - if not exist %LIBRARY_LIB%/cudnn.lib exit 1      # [win]
+#    - if not exist %LIBRARY_LIB%/cudnn_adv_train.lib exit 1      # [win]
+#    - if not exist %LIBRARY_BIN%/cudnn64_8.dll exit 1  # [win]
+#    - if not exist %LIBRARY_BIN%/cudnn_adv_train64_8.dll exit 1  # [win]
+#    - test -f $PREFIX/include/cudnn.h                  # [linux]
+#    - test -f $PREFIX/include/cudnn_adv_train.h        # [linux]
+#    - test -f $PREFIX/lib/libcudnn.so                  # [linux]
+#    - test -f $PREFIX/lib/libcudnn_adv_train.so        # [linux]
+
+about:
+  home: https://developer.nvidia.com/cudnn
+  license: cuDNN Software License Agreement
+  license_file: NVIDIA_SLA_cuDNN_Support.txt
+  license_url: https://docs.nvidia.com/deeplearning/cudnn/sla/index.html
+  summary: "NVIDIA's cuDNN deep neural network acceleration library"
+  description: |
+    NVIDIA CUDA Deep Neural Network (cuDNN) is a GPU-accelerated library of
+    primitives for deep neural networks. It provides highly tuned
+    implementations of routines arising frequently in DNN applications.
+
+    License Agreements:- The packages are governed by the NVIDIA cuDNN
+    Software License Agreement (EULA). By downloading and using the packages,
+    you accept the terms and conditions of the NVIDIA cuDNN EULA -
+    https://docs.nvidia.com/deeplearning/cudnn/sla/index.html
+  doc_url: https://docs.nvidia.com/deeplearning/cudnn/
+  dev_url: https://developer.nvidia.com/rdp/cudnn-download
+
+extra:
+  recipe-maintainers:
+    - isuruf
