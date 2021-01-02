@@ -8,7 +8,7 @@ cd sourcecode_linux/
 # Adapted from compile_parallel.txt
 # (the file hardcodes gfortran, command line options, and windows line endings)
 
-$FC $FCFLAGS -fopenmp -static-libgfortran -o Chargemol_09_26_2017_linux_parallel \
+$FC $FFLAGS -fopenmp -static-libgfortran -o Chargemol_09_26_2017_linux_parallel \
   module_precision.f08 \
   module_global_parameters.f08 \
   module_common_variable_declarations.f08 \
