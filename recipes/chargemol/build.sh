@@ -70,3 +70,6 @@ $FC $FFLAGS -fopenmp -o Chargemol_09_26_2017_linux_parallel \
   chargemol.f08
 
 cp Chargemol_09_26_2017_linux_parallel ${PREFIX}/bin/chargemol
+
+cd ../
+cd ../
