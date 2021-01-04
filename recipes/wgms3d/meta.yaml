@@ -1,8 +1,3 @@
-# Note: there are many handy hints in comments in this example -- remove them when you've finalized your recipe
-
-# Jinja variables help maintain the recipe as you'll update the version only here.
-# Using the name variable with the URL in line 14 is convenient
-# when copying and pasting from another recipe, but not really needed.
 {% set name = "wgms3d" %}
 {% set version = "2.0" %}
 {% set variant = "openblas" %}
@@ -11,24 +6,11 @@ package:
   name: {{ name|lower }}
   version: {{ version }}
 
-# source:
-  # url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
-  # If getting the source from GitHub, remove the line above,
-  # uncomment the line below, and modify as needed. Use releases if available:
-  # url: https://github.com/simplejson/simplejson/releases/download/{{ version }}/simplejson-{{ version }}.tar.gz
-  # and otherwise fall back to archive: 
-  # url: https://github.com/simplejson/simplejson/archive/v{{ version }}.tar.gz
-  # sha256: d58439c548433adcda98e695be53e526ba940a4b9c44fb9a05d92cd495cdd47f
-  # sha256 is the preferred checksum -- you can get it for a file with:
-  #  `openssl sha256 <file name>`.
-  # You may need the openssl package, available on conda-forge:
-  #  `conda install openssl -c conda-forge``
 
 source:
     fn: wgms3d-{{ version }}.tar.gz
     url: http://www.soundtracker.org/raw/wgms3d/wgms3d-{{ version }}.tar.gz
     sha256: cba974d049db4162904602858bb0bc2069af8c83c9360e2c9eadb1ef560ac3fa
-
 
 
 build:
@@ -39,41 +21,54 @@ build:
 
 requirements:
   build:
-    - blas 1.1 {{ variant }}
-    - openblas 0.2.19|0.2.19.*
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('fortran') }}
     - cmake
-    - gcc  # [not win]
+    - make
+    - llvm-openmp  # [osx]
     - arpack
     - superlu 5*
+  host:
+    - {{ mpi }}
+    - metis
+    - parmetis
+    - libblas
+    - liblapack
+    - llvm-openmp  # [osx]
   run:
-    - blas 1.1 {{ variant }}
-    - openblas 0.2.19|0.2.19.*
-    - libgcc  # [linux]
-    - libgfortran  # [osx]
+    # metis and parmetis are missing a run_exports section 
+    - metis
+    - parmetis
+    - llvm-openmp  # [osx]
+    - {{ pin_compatible('metis', max_pin='x.x') }}
+    - {{ pin_compatible('parmetis', max_pin='x.x') }}
 
+# requirements:
+#   build:
+#     - blas 1.1 {{ variant }}
+#     - openblas 0.2.19|0.2.19.*
+#     - cmake
+#     - gcc  # [not win]
+#   run:
+#     - blas 1.1 {{ variant }}
+#     - openblas 0.2.19|0.2.19.*
+#     - libgcc  # [linux]
+#     - libgfortran  # [osx]
 
-# test:
-  # Some packages might need a `test/commands` key to check CLI.
-  # List all the packages/modules that `run_test.py` imports.
-  # imports:
-  #   - simplejson
-  #   - simplejson.tests
+test:
+  commands:
+    - test -f ${PREFIX}/lib/libsuperlu_dist.a
+    - test -f ${PREFIX}/lib/libsuperlu_dist.dylib  # [osx]
+    - test -f ${PREFIX}/lib/libsuperlu_dist.so     # [linux]
+
 
 about:
   home: https://github.com/smartalecH/wgms3d
-  # Remember to specify the license variants for BSD, Apache, GPL, and LGPL.
-  # Use the SPDX identifier, e.g: GPL-2.0-only instead of GNU General Public License version 2.0
-  # See https://spdx.org/licenses/
   license: GPL-3.0
-  # The license_family, i.e. "BSD" if license is "BSD-3-Clause". (optional)
   license_family: GPL3
-  # It is strongly encouraged to include a license file in the package,
-  # (even if the license doesn't require it) using the license_file entry.
-  # See https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#license-file
   license_file: LICENSE.txt
   summary: 'wgms3d - a full-vectorial finite-difference mode solver.'
-
-  # The remaining entries in this section are optional, but recommended.
   description: |
       wgms3d - a full-vectorial finite-difference mode solver.
   doc_url: http://www.soundtracker.org/raw/wgms3d/installation.html
