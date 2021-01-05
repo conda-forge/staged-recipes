@@ -2,7 +2,7 @@
 cmake ^
       -H"%SRC_DIR%" ^
       -Bbuild ^
-      -GNinja ^
+      -G"NMake Makefiles" ^
       -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
       -DCMAKE_BUILD_TYPE=Release ^
       -DCMAKE_INSTALL_LIBDIR="Library\lib" ^
@@ -22,7 +22,7 @@ if errorlevel 1 exit 1
 :: build
 cmake --build build ^
       --config Release ^
-      -- -j %CPU_COUNT% -v -d stats
+      -- -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
 :: install
