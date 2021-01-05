@@ -1,6 +1,6 @@
 # configure
 cmake \
-      -S${SRC_DIR} \
+      -H${SRC_DIR} \
       -Bbuild \
       -GNinja \
       -DCMAKE_INSTALL_PREFIX=${PREFIX} \
