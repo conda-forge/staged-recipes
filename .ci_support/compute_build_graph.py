@@ -218,9 +218,8 @@ def add_recipe_to_graph(recipe_dir, graph, run, worker, conda_resolve,
     try:
         rendered = _get_or_render_metadata(recipe_dir, worker, config=config, finalize=finalize)
     except (IOError, SystemExit) as e:
-        log.exception('Exception raised!')
-        log.warn('invalid recipe dir: %s - skipping', recipe_dir)
-        return None
+        log.exception('invalid recipe dir: %s', recipe_dir)
+        raise
 
     name = None
     for (metadata, _, _) in rendered:
