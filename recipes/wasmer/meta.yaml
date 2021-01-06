@@ -1,55 +1,68 @@
 {% set name = "wasmer" %}
-{% set version = "0.7.0" %}
+{% set version = "1.0.0" %}
 
 package:
-  name: {{ name|lower }}
+  name: {{ name }}
   version: {{ version }}
 
 source:
   url: https://github.com/wasmerio/{{ name }}/archive/{{ version }}.tar.gz
-  sha256: a173b515a2fd4b4f035160ef5323102f54b9a830f04ed05a8a33ffd3fc15746c
+  sha256: 1526fadeb8cec686373bfe0ef9f497a08ebfb936e9e6dba8a6b091680ea05190
 
 build:
   skip: true  # [win]
   number: 0
-  ignore_run_exports:
-    - openssl
-  # cribbed from @conda-forge/cyrus-sasl-feedstock
-  missing_dso_whitelist:          # [osx]
-    - /usr/lib/libresolv.9.dylib  # [osx]
 
 requirements:
   build:
-    - {{ compiler("cxx") }}  # [linux]
-    - cmake
-    - make
-    - rust >=1.36
-    - llvm >=8
+    - {{ compiler("c") }}
+    - {{ compiler("cxx") }}
+    - rust >=1.47
+    - llvmdev >=10
   host:
     - libffi
     - openssl
-    - llvmdev >=8
   run: []
+
+# TODO: ideally have some "canonical" WASM to run...
+{% set test_wasm = "tests/wasi-wast/wasi/snapshot1/hello.wasm" %}
+{% set test_text = "Hello, world!" %}
 
 test:
   source_files:
-    - examples/cowsay.wasm
+    - {{ test_wasm }}
   commands:
     - wasmer --version
     - wasmer --help
-    - wasmer validate examples/cowsay.wasm
-    - wasmer run examples/cowsay.wasm "{{ version }}"
+    - wasmer validate {{ test_wasm }}
+    - wasmer run {{ test_wasm }}
+    - wasmer run {{ test_wasm }} | grep '{{ test_text }}'
+    # TODO: enable C API, multiple outputs, etc.
+    # - mkdir .wsmr
+    # {% for backend in ["singlepass", "cranelift", "llvm"] %}
+    # - wasmer run --{{ backend }} {{ test_wasm }}
+    # - wasmer run --{{ backend }} {{ test_wasm }} | grep '{{ test_text }}'
+    # - WASMER_DIR=$PREFIX wasmer create-exe --{{ backend }} {{ test_wasm }} -o ./hello-{{ backend }}
+    # - ls -lathr hello-{{ backend }}
+    # - ./hello-{{ backend }}
+    # - ./hello-{{ backend }} | grep '{{ test_text }}'
+    # {% endfor %}
 
 about:
   home: https://wasmer.io
   license: MIT
   license_family: MIT
-  license_file: LICENSE
-  summary: 'Universal WebAssembly runtime'
+  license_file:
+    - LICENSE
+    # TODO: this is... some of the third-party licenses... need the whole rust license toolchain
+    - ATTRIBUTIONS.md
+  summary: Universal WebAssembly runtime
   description: |
     Wasmer is a standalone JIT WebAssembly runtime, aiming to be fully
     compatible with WASI and Emscripten.
   dev_url: https://github.com/wasmerio/wasmer
+  doc_url: https://docs.wasmer.io
+  doc_source_url: https://github.com/wasmerio/docs.wasmer.io
 
 extra:
   recipe-maintainers:
