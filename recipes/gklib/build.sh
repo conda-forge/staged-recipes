@@ -6,7 +6,7 @@ cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_PREFIX_PATH=$PREFIX \
       -DDEBUG=OFF \
       -DOPENMP=set \
-      -DBUILD_SHARED_LIBS=OFF \
+      -DBUILD_SHARED_LIBS=ON \
       ..
 
 cmake --build . --config Release
