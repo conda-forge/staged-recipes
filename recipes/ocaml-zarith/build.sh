@@ -1,4 +1,4 @@
 ./configure
-make -j${CPU_COUNT}
+make -j1
 make install
 make tests
