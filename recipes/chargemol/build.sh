@@ -69,7 +69,12 @@ $FC $FFLAGS -fopenmp -o Chargemol_09_26_2017_linux_parallel \
   module_print_atomic_densities_file.f08 \
   chargemol.f08
 
+# install chargemol binary
 cp Chargemol_09_26_2017_linux_parallel ${PREFIX}/bin/chargemol
 
 cd ../
 cd ../
+
+# install atomic densities directory
+mkdir -p ${PREFIX}/share/chargemol
+cp -r atomic_densities ${PREFIX}/share/chargemol
