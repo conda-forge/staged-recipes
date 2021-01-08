@@ -9,7 +9,7 @@ cmake -G"Ninja" ^
       -DCMAKE_INSTALL_BINDIR="%LIBRARY_BIN%" ^
       -DCMAKE_INSTALL_DATADIR="%LIBRARY_PREFIX%" ^
       -DPYMOD_INSTALL_LIBDIR="/../../Lib/site-packages" ^
-      -DINSTALL_PYMOD=ON ^
+      -DINSTALL_PYMOD=OFF ^
       -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996" ^
       -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=true ^
       -DBUILD_SHARED_LIBS=ON ^
