@@ -10,5 +10,6 @@ ln -s ../chabazite.XSF chabazite.XSF
 sed -i "s#/home/tamanz/bin/atomic_densities/#${DENSITY_DIRECTORY}#g" job_control.txt
 
 chargemol
+ls -ltra
 grep "Finished chargemol" chabazite.output
 cd -
