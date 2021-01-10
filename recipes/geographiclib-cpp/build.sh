@@ -1,5 +1,6 @@
 #! /bin/sh -e
 mkdir -p build && cd build
+
 cmake \
     -DGEOGRAPHICLIB_LIB_TYPE=SHARED \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
