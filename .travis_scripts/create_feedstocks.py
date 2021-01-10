@@ -31,7 +31,7 @@ from ruamel.yaml import YAML
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
 DEBUG = False
 
-REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch"]
+REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch", "systems"]
 
 recipe_directory_name = 'recipes'
 
@@ -45,7 +45,9 @@ def list_recipes():
     for recipe_dir in recipes:
         # We don't list the "example" feedstock. It is an example, and is there
         # to be helpful.
-        if recipe_dir == 'example':
+        # .DS_Store is created by macOS to store custom attributes of its
+        # containing folder.
+        if recipe_dir in ['example', '.DS_Store']:
             continue
         path = os.path.abspath(os.path.join(recipe_directory_name, recipe_dir))
         yield path, get_feedstock_name_from_meta(MetaData(path))
