@@ -1,16 +1,17 @@
+setlocal EnableDelayedExpansion
+
 mkdir build
 cd build
 
 cmake -G "NMake Makefiles" ^
-    -DGEOGRAPHICLIB_LIB_TYPE=SHARED ^
-    -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
-    -DCMAKE_INCLUDE_PATH="%CONDA_PREFIX%/include" ^
-    -DCMAKE_LIBRARY_PATH="%CONDA_PREFIX%/lib" ^
+    -DGEOGRAPHICLIB_LIB_TYP:STRINGE=SHARED ^
+    -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
+    -DCMAKE_BUILD_TYPE:STRING=Release ^
     ..
 if errorlevel 1 exit 1
 
-cmake --build . --config Release
+nmake
 if errorlevel 1 exit 1
 
-cmake --build . --config Release --target install
+nmake install
 if errorlevel 1 exit 1
