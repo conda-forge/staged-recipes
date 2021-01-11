@@ -4,4 +4,5 @@ mklink "atomic_densities" "%PREFIX%\share\chargemol\atomic_densities\"
 
 REM Pass directory containing jobcontrol.txt
 ( echo "%cd%\" ) | chargemol
-CD -
+DIR
+CD ..\..\..
