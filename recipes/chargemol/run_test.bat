@@ -3,5 +3,5 @@ COPY ..\chabazite.XSF .
 mklink "atomic_densities/" "%PREFIX%\share\chargemol\atomic_densities\"
 
 REM Pass directory containing jobcontrol.txt
-( echo . ) | chargemol
+( echo "%cd%" ) | chargemol
 CD -
