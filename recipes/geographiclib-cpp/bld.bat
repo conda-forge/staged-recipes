@@ -4,7 +4,7 @@ mkdir build
 cd build
 
 cmake -G "NMake Makefiles" ^
-    -DGEOGRAPHICLIB_LIB_TYP:STRINGE=SHARED ^
+    -DGEOGRAPHICLIB_LIB_TYPE:STRING=SHARED ^
     -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
     -DCMAKE_BUILD_TYPE:STRING=Release ^
     ..
