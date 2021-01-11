@@ -14,7 +14,7 @@ cmake -G"Ninja" ^
       -DBUILD_SHARED_LIBS=ON ^
       -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
       -DENABLE_GENERIC=ON ^
-      -DPYTHON_EXECUTABLE=%BUILD_PREFIX%/bin/python ^
+      -DPYTHON_EXECUTABLE=%BUILD_PREFIX%/python.exe ^
       -DMAX_AM=8
 if errorlevel 1 exit 1
 
