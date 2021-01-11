@@ -1,3 +1,4 @@
+REM use pre-compiled executable for windows
 mkdir %PREFIX%\bin
 
 COPY chargemol_FORTRAN_09_26_2017\compiled_binaries\windows\Chargemol_09_26_2017_windows_64bits_parallel_command_line.exe %PREFIX%\bin\chargemol.exe
