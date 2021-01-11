@@ -8,4 +8,7 @@ cmake \
     ..
 
 make -j$CPU_COUNT
+
+make test
+
 make install
