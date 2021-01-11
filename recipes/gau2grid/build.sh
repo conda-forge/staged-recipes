@@ -15,11 +15,10 @@ ${BUILD_PREFIX}/bin/cmake \
     -DCMAKE_C_COMPILER=${CC} \
     -DCMAKE_C_FLAGS="${ALLOPTS}" \
     -DCMAKE_INSTALL_LIBDIR=lib \
-    -DPYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
     -DINSTALL_PYMOD=OFF \
     -DBUILD_SHARED_LIBS=ON \
     -DENABLE_XHOST=OFF \
-    -DPYTHON_EXECUTABLE=${PYTHON} \
+    -DPYTHON_EXECUTABLE=${BUILD_PREFIX}/bin/python \
     -DMAX_AM=8
 
 cd build
@@ -28,3 +27,7 @@ make -j${CPU_COUNT}
 make install
 
 # tests outside build phase
+
+# when pygau2grid returns
+# *    -DPYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
+# *    -DPYTHON_EXECUTABLE=${PYTHON} \
