@@ -7,6 +7,9 @@ if [ "$(uname)" == "Linux" ]; then
     ALLOPTS="${CFLAGS} -D__GG_NO_PRAGMA"
 fi
 
+echo $PYTHON
+echo $PY_VER
+
 ${BUILD_PREFIX}/bin/cmake \
     -H${SRC_DIR} \
     -Bbuild \
