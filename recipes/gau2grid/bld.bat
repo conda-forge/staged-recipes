@@ -27,9 +27,9 @@ if errorlevel 1 exit 1
 :: tests outside build phase
 
 set ERRANT2=%PREFIX%\Library\share\cmake\gau2grid\gau2gridTargets-release.cmake
-echo %ERRANT2%
-powershell -Command "(Get-Content %ERRANT2%) -replace %PREFIX%, '/opt/anaconda1anaconda2anaconda3/' | Out-File %ERRANT2%"
-echo %ERRANT2%
+type %ERRANT2%
+powershell -Command "(Get-Content %ERRANT2%) -replace '%PREFIX%', '/opt/anaconda1anaconda2anaconda3/' | Out-File %ERRANT2%"
+type %ERRANT2%
 
 :: When pygau2grid returns
 ::      -DPYMOD_INSTALL_LIBDIR="/../../Lib/site-packages" ^
