@@ -36,12 +36,14 @@ requirements:
     - pip
     - swig
     - openmm
-    - pytorch  # [cuda_compiler_version not in (undefined, 'None')]
+    - pytorch-gpu  # [cuda_compiler_version not in (undefined, 'None')]
     - ocl-icd  # [linux]
     - khronos-opencl-icd-loader  # [osx]
   run:
     - python
-    - {{ pin_compatible('pytorch') }}  # [cuda_compiler_version not in (undefined, 'None')]
+    - pytorch  # [cuda_compiler_version not in (undefined, 'None')]
+    # ^ needed so conda build does not complain about overlinking
+    - {{ pin_compatible('pytorch-gpu') }}  # [cuda_compiler_version not in (undefined, 'None')]
     - {{ pin_compatible('openmm',  min_pin='x.x', max_pin='x.x') }}
     - ocl-icd  # [linux]
     - ocl-icd-system  # [linux]
@@ -51,6 +53,27 @@ requirements:
 test:
   imports:
     - openmmtorch
+  commands: |
+    cd ${CONDA_PREFIX}/share/{{ name }}/tests
+    set +e
+    summary=""
+    exitcode=0
+    for f in Test*; do
+      if [[ $f == *Cuda* || $f == *OpenCL* ]]; then
+        continue
+      fi
+      echo "Running $f..."
+      ./${f}
+      thisexitcode=$?
+      summary+="\n${f}: "
+      if [[ $thisexitcode == 0 ]]; then summary+="OK"; else summary+="FAILED"; fi
+      ((exitcode+=$?))
+    done
+    echo "-------"
+    echo "Summary"
+    echo "-------"
+    echo -e "${summary}"
+    exit $exitcode
 
 about:
   home: https://github.com/openmm/openmm-torch
