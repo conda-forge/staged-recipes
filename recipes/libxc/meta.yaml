@@ -1,0 +1,74 @@
+{% set name = "libxc" %}
+#{% set version = "5.0.0" %}
+#{% set sha256 = "b4206940db57ba4ddb9cb635fd852914c8dd045cb07bab32427013e3ab294f4f" %}
+{% set version = "5.1.0rc1" %}
+{% set sha256 = "7dade4ab80bf27c76d3a85339c5e79eaaa272bbc568f7eab9c5d69cb4e03b7e6" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  #url: https://gitlab.com/libxc/libxc/-/archive/{{ version }}/libxc-{{ version }}.tar.bz2
+  url: https://gitlab.com/loriab/libxc/-/archive/cmake_win_fresh/libxc-cmake_win_fresh.tar.gz
+#  url: https://gitlab.com/libxc/libxc/-/archive/hotfix5.1.0/libxc-hotfix5.1.0.tar.gz
+#  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_subpackage('libxc', max_pin='x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('fortran') }}  # [linux]
+    - cmake >=3.1
+    - ninja                      # [win]
+    - perl
+
+test:
+  commands:
+    - dir "%PREFIX%\Library"                                # [win]
+    - dir "%PREFIX%"\Library\include                        # [win]
+    - ls -l $PREFIX/lib                                     # [unix]
+    - ls -l $PREFIX/share/cmake/Libxc                       # [unix]
+    # Verify library
+    - test -L $PREFIX/lib/libxc$SHLIB_EXT                   # [unix]
+    - test ! -f $PREFIX/lib/libxc.a                         # [unix]
+    - if not exist %PREFIX%\\Library\\lib\\xc.lib exit 1    # [win]
+    - if not exist %PREFIX%\\Library\\bin\\xc.dll exit 1    # [win]
+    - test -f $PREFIX/lib/libxcf90$SHLIB_EXT                # [linux]
+    - test -f $PREFIX/lib/libxcf03$SHLIB_EXT                # [linux]
+    # Verify accessories
+    - test -f $PREFIX/include/xc.h                          # [unix]
+    - if not exist %PREFIX%\\Library\\include\\xc.h exit 1  # [win]
+    - test -f $PREFIX/share/cmake/Libxc/LibxcConfig.cmake   # [unix]
+    - if not exist %PREFIX%\\Library\\share\\cmake\\Libxc\\LibxcConfig.cmake exit 1  # [win]
+    - test -f $PREFIX/lib/pkgconfig/libxc.pc                # [unix]
+    - test -f $PREFIX/lib/pkgconfig/libxcf90.pc             # [linux]
+    - test -f $PREFIX/lib/pkgconfig/libxcf03.pc             # [linux]
+    # Inspect linkage
+    - xc-info 100                                           # [unix]
+    - xc-info.exe 100                                       # [win]
+    - ldd -v $PREFIX/lib/libxc$SHLIB_EXT                    # [linux]
+    - ldd -v $PREFIX/bin/xc-info                            # [linux]
+    - otool -L $PREFIX/lib/libxc$SHLIB_EXT                  # [osx]
+    - conda inspect objects -p $PREFIX $PKG_NAME            # [osx]
+    - conda inspect linkages --show-files --groupby=dependency libxc  # [unix]
+
+about:
+  home: http://www.tddft.org/programs/Libxc
+  dev_url: https://gitlab.com/libxc/libxc
+  doc_url: https://www.tddft.org/programs/libxc/manual/libxc-5.0.x/
+  license: MPL-2.0
+  license_url: https://opensource.org/licenses/MPL-2.0
+  license_file: COPYING
+  license_family: Other
+  summary: M.A.L. Marques's exchange-correlation functionals for density-functional theory
+
+extra:
+  recipe-maintainers:
+    - bjodah
+    - jan-janssen
+    - loriab
