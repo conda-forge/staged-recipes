@@ -31,4 +31,4 @@ make -j$CPU_COUNT PythonInstall
 # Include test executables too
 mkdir -p ${PREFIX}/share/${PKG_NAME}/tests
 find . -name 'Test*' -perm +0111 -type f -exec cp {} ${PREFIX}/share/${PKG_NAME}/tests/ \;
-cp tests ${PREFIX}/share/${PKG_NAME}/tests/
+cp -r tests ${PREFIX}/share/${PKG_NAME}/tests/
