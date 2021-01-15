@@ -1,14 +1,7 @@
 {% set name = "impact-t" %}
 {% set version = "2.0" %}
 
-{% set build = 1000 %}
-# ensure mpi is defined (needed for conda-smithy recipe-lint)
-{% set mpi = mpi or 'nompi' %}
-
-{% if mpi == 'nompi' %}
-# prioritize nompi variant via build number
-{% set build = build + 100 %}
-{% endif %}
+{% set build = 0 %}
 
 package:
   name: {{ name|lower }}
@@ -21,26 +14,6 @@ source:
 build:
   number: {{ build }}
 
-  # add build string so packages can depend on
-  # mpi or nompi variants explicitly:
-  # `pkg * mpi_mpich_*` for mpich
-  # `pkg * mpi_*` for any mpi
-  # `pkg * nompi_*` for no mpi
-
-  {% if mpi != 'nompi' %}
-  {% set mpi_prefix = "mpi_" + mpi %}
-  {% else %}
-  {% set mpi_prefix = "nompi" %}
-  {% endif %}
-  string: "{{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}"
-
-  {% if mpi != 'nompi' %}
-
-  run_exports:
-    - {{ name }} * {{ mpi_prefix }}_*
-  {% endif %}
-
-
 requirements:
   build:
     - make
@@ -49,15 +22,11 @@ requirements:
     - {{ compiler('fortran') }}              # [not win]
     - {{ compiler('m2w64_fortran') }}        # [win]
     - cmake
-    - {{ mpi }}  # [mpi != 'nompi']
   host:
-  run:
-    - {{ mpi }}  # [mpi != 'nompi']
 
 test:
   commands:
     - which ImpactTexe  # [unix]
-    - which ImpactTexe-mpi  # [unix and mpi != 'nompi']
     - ImpactTexe   # [win]
 
 about:
