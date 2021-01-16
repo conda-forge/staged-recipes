@@ -1,0 +1,143 @@
+{% set name = "gau2grid" %}
+{% set version = "2.0.6" %}
+{% set sha256 = "36217829819d569bc8d22c7c87ac5f07d3aa11e85a840dabd5d1cb29cd27ecf8" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/dgasmith/{{ name }}/archive/v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  binary_relocation: true
+  skip: true  # [py2k]
+
+requirements:
+  build:
+    - cmake >=3.0
+    - {{ compiler('c') }}
+    - ninja  # [win]
+    - make  # [unix]
+  host:
+    - numpy
+    - python
+
+outputs:
+  - name: gau2grid
+    build:
+      run_exports:
+        - {{ pin_subpackage('gau2grid', max_pin='x') }}
+#      ignore_run_exports:
+#        # for C library, these are purely build tools, not run deps
+#        - numpy
+#        - python
+#        - python_abi
+    requirements:
+      build:
+        - cmake >=3.0
+        - {{ compiler('c') }}
+        - ninja  # [win]
+        - make  # [unix]
+      host:
+        - numpy
+        - python
+    files:
+      - include/gau2grid              # [unix]
+      - lib/libgg*                    # [unix]
+      - share/cmake/gau2grid          # [unix]
+      - Library/include/gau2grid      # [win]
+      - Library/lib/gg*               # [win]
+      - Library/share/cmake/gau2grid  # [win]
+    test:
+      commands:
+        # Verify library
+        - test -L $PREFIX/lib/libgg$SHLIB_EXT                                # [unix]
+        - if not exist %PREFIX%\\Library\\lib\\gg.lib exit 1                 # [win]
+        # Inspect linkage
+        - ldd -v $PREFIX/lib/libgg$SHLIB_EXT                                 # [linux]
+        - otool -L $PREFIX/lib/libgg$SHLIB_EXT                               # [osx]
+        - conda inspect linkages --show-files --groupby=dependency gau2grid  # [unix]
+        - conda inspect objects -p $PREFIX $PKG_NAME                         # [osx]
+    about:
+      home: https://github.com/dgasmith/gau2grid
+      dev_url: https://github.com/dgasmith/gau2grid
+      doc_url: https://github.com/dgasmith/gau2grid/blob/master/README.md
+      doc_source_url: https://github.com/dgasmith/gau2grid/blob/master/docs/source/index.rst
+      license: BSD-3-Clause
+      license_url: https://opensource.org/licenses/BSD-3-Clause
+      license_file: LICENSE
+      license_family: BSD
+      summary: "D.G.A. Smith's C library for fast computation of a Gaussian and its derivative on a grid"
+      description: >
+        A collocation code for computing gaussians on a grid of the form:
+        ```
+        out_Lp = x^l y^m z^n \sum_i coeff_i e^(exponent_i * (|center - p|)^2)
+        ```
+        , where the returned matrix dimension are the angular momentum (L) by number of requested points (p).
+
+  - name: pygau2grid
+    requirements:
+      build:
+        - cmake >=3.0
+        - {{ compiler('c') }}
+        - ninja  # [win]
+        - make  # [unix]
+      host:
+        - numpy
+        - python
+      run:
+        - numpy
+        - python
+    files:
+      - {{ SP_DIR }}/gau2grid       # [unix]
+      - Lib/site-packages/gau2grid  # [win]
+    test:
+      requires:
+        - pytest
+      imports:
+        - gau2grid
+      commands:
+        - ls -l $SP_DIR/gau2grid                          # [unix]
+        - dir %SP_DIR%\gau2grid                           # [win]
+        # Verify library
+        - test -f $SP_DIR/gau2grid/gg$SHLIB_EXT           # [unix]
+        - if not exist %SP_DIR%\\gau2grid\\gg.dll exit 1  # [win]
+        # Inspect linkage
+        - ldd -v $SP_DIR/gau2grid/gg$SHLIB_EXT            # [linux]
+        - otool -L $SP_DIR/gau2grid/gg$SHLIB_EXT          # [osx]
+        - conda inspect linkages --show-files --groupby=dependency pygau2grid  # [unix]
+        - conda inspect objects -p $PREFIX $PKG_NAME      # [osx]
+        # Actually test
+        - export GAU2GRID_FORCE_C_TEST=1                  # [unix]
+        - set GAU2GRID_FORCE_C_TEST=1                     # [win]
+        - python -c "import sys; import gau2grid as gg; sys.exit(gg.test())"
+    about:
+      home: https://github.com/dgasmith/gau2grid
+      dev_url: https://github.com/dgasmith/gau2grid
+      doc_url: https://github.com/dgasmith/gau2grid/blob/master/README.md
+      doc_source_url: https://github.com/dgasmith/gau2grid/blob/master/docs/source/index.rst
+      license: BSD-3-Clause
+      license_url: https://opensource.org/licenses/BSD-3-Clause
+      license_file: LICENSE
+      license_family: BSD
+      summary: "D.G.A. Smith's C-based python module for fast computation of a Gaussian and its derivative on a grid"
+      description: >
+        A collocation code for computing gaussians on a grid of the form:
+        ```
+        out_Lp = x^l y^m z^n \sum_i coeff_i e^(exponent_i * (|center - p|)^2)
+        ```
+        , where the returned matrix dimension are the angular momentum (L) by number of requested points (p).
+
+about:
+  home: https://github.com/dgasmith/gau2grid
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: "D.G.A. Smith's C library for fast computation of a Gaussian and its derivative on a grid"
+
+extra:
+  recipe-maintainers:
+    - dgasmith
+    - loriab

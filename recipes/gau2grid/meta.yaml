@@ -1,0 +1,66 @@
+{% set name = "gau2grid" %}
+{% set version = "2.0.7" %}
+{% set sha256 = "66e7205646e1e3685e5dd4eea8281fc92b0b8b45ce97ae24b72a09e15a3fd62f" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/dgasmith/{{ name }}/archive/v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 1
+  run_exports:
+    - {{ pin_subpackage('gau2grid', max_pin='x') }}
+
+requirements:
+  build:
+    - cmake >=3.0
+    - {{ compiler('c') }}
+    - ninja  # [win]
+    - make  # [unix]
+    #  numpy and python in build, not host, since used as build tools and to avoid python_abi dependency
+    - numpy
+    - python 3.8.*
+
+test:
+  commands:
+    # Verify library
+    - test -L $PREFIX/lib/libgg$SHLIB_EXT                                   # [unix]
+    - test ! -f $PREFIX/lib/libgg.a                                         # [unix]
+    - if not exist %PREFIX%\\Library\\lib\\gg.lib exit 1                    # [win]
+    - if not exist %PREFIX%\\Library\\bin\\gg.dll exit 1                    # [win]
+    # Inspect linkage
+    - ldd -v $PREFIX/lib/libgg$SHLIB_EXT                                    # [linux]
+    - otool -L $PREFIX/lib/libgg$SHLIB_EXT                                  # [osx]
+    - conda inspect linkages --show-files --groupby=dependency gau2grid     # [unix]
+    - conda inspect objects -p $PREFIX $PKG_NAME                            # [osx]
+    # Verify accessories
+    - test -f $PREFIX/include/gau2grid/gau2grid.h                           # [unix]
+    - if not exist %PREFIX%\\Library\\include\\gau2grid\\gau2grid.h exit 1  # [win]
+    - test -f $PREFIX/share/cmake/gau2grid/gau2gridConfig.cmake             # [unix]
+    - if not exist %PREFIX%\\Library\\share\\cmake\\gau2grid\\gau2gridConfig.cmake exit 1  # [win]
+
+about:
+  home: https://github.com/dgasmith/gau2grid
+  dev_url: https://github.com/dgasmith/gau2grid
+  doc_url: https://github.com/dgasmith/gau2grid/blob/master/README.md
+  doc_source_url: https://github.com/dgasmith/gau2grid/blob/master/docs/source/index.rst
+  license: BSD-3-Clause
+  license_url: https://opensource.org/licenses/BSD-3-Clause
+  license_file: LICENSE
+  license_family: BSD
+  summary: "D.G.A. Smith's C library for fast computation of a Gaussian and its derivative on a grid"
+  description: >
+    A collocation code for computing gaussians on a grid of the form:
+    ```
+    out_Lp = x^l y^m z^n \sum_i coeff_i e^(exponent_i * (|center - p|)^2)
+    ```
+    , where the returned matrix dimension are the angular momentum (L) by number of requested points (p).
+
+extra:
+  recipe-maintainers:
+    - dgasmith
+    - loriab
