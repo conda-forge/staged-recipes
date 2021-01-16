@@ -8,7 +8,7 @@ cmake \
     -DUSE_MPI=OFF \
     ../src
 
-make -j${CPU_COUNT} install
+make -j${CPU_COUNT} VERBOSE=1 install
 
 if [[ "$mpi" != "nompi" ]]; then
      cd ..
@@ -19,5 +19,5 @@ if [[ "$mpi" != "nompi" ]]; then
          -DUSE_MPI=ON \
          ../src
 
-     make -j${CPU_COUNT} install
+     make -j${CPU_COUNT} VERBOSE=1 install
 fi
