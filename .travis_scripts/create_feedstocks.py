@@ -31,7 +31,7 @@ from ruamel.yaml import YAML
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
 DEBUG = False
 
-REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch"]
+REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch", "systems"]
 
 recipe_directory_name = 'recipes'
 
@@ -45,7 +45,9 @@ def list_recipes():
     for recipe_dir in recipes:
         # We don't list the "example" feedstock. It is an example, and is there
         # to be helpful.
-        if recipe_dir == 'example':
+        # .DS_Store is created by macOS to store custom attributes of its
+        # containing folder.
+        if recipe_dir in ['example', '.DS_Store']:
             continue
         path = os.path.abspath(os.path.join(recipe_directory_name, recipe_dir))
         yield path, get_feedstock_name_from_meta(MetaData(path))
@@ -138,7 +140,7 @@ def sleep_until_reset(gh):
 if __name__ == '__main__':
     exit_code = 0
 
-    is_merged_pr = os.environ.get('BUILD_SOURCEBRANCHNAME') == 'master'
+    is_merged_pr = os.environ.get('CF_CURRENT_BRANCH') == 'master'
 
     smithy_conf = os.path.expanduser('~/.conda-smithy')
     if not os.path.exists(smithy_conf):
@@ -252,7 +254,7 @@ if __name__ == '__main__':
                 continue
             print("\n\nregistering CI services for %s..." % name)
             if num >= 10:
-                exit_code = 1
+                exit_code = 0
                 break
             # Try to register each feedstock with CI.
             # However sometimes their APIs have issues for whatever reason.
@@ -268,7 +270,7 @@ if __name__ == '__main__':
                 subprocess.check_call(
                     ['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
-                exit_code = 1
+                exit_code = 0
                 traceback.print_exception(*sys.exc_info())
                 continue
 
@@ -308,7 +310,7 @@ if __name__ == '__main__':
                 subprocess.check_call(
                     ['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
-                exit_code = 1
+                exit_code = 0
                 traceback.print_exception(*sys.exc_info())
                 continue
 
@@ -406,7 +408,7 @@ if __name__ == '__main__':
                 stderr=subprocess.STDOUT)
             subprocess.check_call(['git', 'commit', '-m', msg])
             # Capture the output, as it may contain the GH_TOKEN.
-            branch = os.environ.get('BUILD_SOURCEBRANCHNAME')
+            branch = os.environ.get('CF_CURRENT_BRANCH')
             out = subprocess.check_output(
                 ['git', 'push', 'upstream_with_token', 'HEAD:%s' % branch],
                 stderr=subprocess.STDOUT)
