@@ -6,7 +6,7 @@ export CXXFLAGS=$(echo "$CXXFLAGS" | perl -pe 's/-std=\S+\s/-std=c++11 /')
 ./configure --prefix=$PREFIX --disable-local --enable-shared \
   --includedir=$PREFIX/include/psrchive --with-Qt-dir=no \
   PGPLOT_DIR=$PREFIX/include/pgplot
-make -j2
+make -j${CPU_COUNT}
 make install
 
 # Set up PSRCHIVE environment variable
