@@ -1,0 +1,93 @@
+{% set name = "openmm-torch" %}
+{% set version = "0.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/openmm/openmm-torch/archive/v{{ version }}.tar.gz
+  sha256: 6ff3c2d903729eb9145c02e694fe943c52cf9263736f9db26bb84511fbb2d71d
+
+build:
+  number: 0
+  skip: true  # [win or (linux and cuda_compiler_version in (undefined, 'None'))]
+  rpaths:
+    - lib/
+    - {{ SP_DIR }}/torch/lib
+  missing_dso_whitelist:
+    - "*/libcuda.*"  # [linux64 or ppc64le]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version not in (undefined, 'None')]
+    - {{ cdt('mesa-libgl-devel') }}  # [linux]
+    - cmake
+    - make
+  host:
+    - python
+    - pip
+    - swig
+    - openmm
+    - pytorch-gpu  # [cuda_compiler_version not in (undefined, 'None')]
+    - pytorch-cpu  # [osx]
+    - ocl-icd  # [linux]
+    - khronos-opencl-icd-loader  # [osx]
+  run:
+    - python
+    - pytorch
+    # ^ needed so conda build does not complain about overlinking
+    - {{ pin_compatible('pytorch-gpu') }}  # [cuda_compiler_version not in (undefined, 'None')]
+    - {{ pin_compatible('pytorch-cpu') }}  # [osx]
+    - {{ pin_compatible('openmm',  min_pin='x.x', max_pin='x.x') }}
+    - ocl-icd  # [linux]
+    - ocl-icd-system  # [linux]
+    - khronos-opencl-icd-loader  # [osx]
+    - ocl_icd_wrapper_apple      # [osx]
+
+test:
+  imports:
+    - openmmtorch
+  commands: |
+    cd ${CONDA_PREFIX}/share/{{ name }}/tests
+    set +e
+    summary=""
+    exitcode=0
+    for f in Test*; do
+      if [[ $f == *Cuda* || $f == *OpenCL* ]]; then
+        continue
+      fi
+      echo "Running $f..."
+      ./${f}
+      thisexitcode=$?
+      summary+="\n${f}: "
+      if [[ $thisexitcode == 0 ]]; then summary+="OK"; else summary+="FAILED"; fi
+      ((exitcode+=$thisexitcode))
+    done
+    echo "-------"
+    echo "Summary"
+    echo "-------"
+    echo -e "${summary}"
+    exit $exitcode
+
+about:
+  home: https://github.com/openmm/openmm-torch
+  license: MIT
+  license_family: MIT
+  license_file: README.md
+  summary: 'OpenMM plugin to define forces with neural networks'
+  description: |
+    This is a plugin for OpenMM that allows neural networks to be
+    used for defining forces. It is implemented with PyTorch.
+    To use it, you create a PyTorch model that takes particle
+    positions as input and produces energy as output. This plugin
+    uses the model to apply forces to particles during a simulation.
+  doc_url: https://github.com/openmm/openmm-torch
+  dev_url: https://github.com/openmm/openmm-torch
+
+extra:
+  recipe-maintainers:
+    - jaimergp
+    - peastman
