@@ -71,7 +71,7 @@ def build_all(recipes_dir, arch):
                 if 'MACOSX_SDK_VERSION' in config:
                     for version in config['MACOSX_SDK_VERSION']:
                         version = tuple([int(x) for x in version.split('.')])
-                        sdk_version = max(deployment_version, version)
+                        sdk_version = max(sdk_version, deployment_version, version)
 
     with open(variant_config_file, 'r') as f:
         variant_text = ''.join(f.readlines())
@@ -90,6 +90,9 @@ def build_all(recipes_dir, arch):
 
     with open(variant_config_file, 'w') as f:
         f.write(variant_text)
+        
+    if platform == "osx" and (sdk_version != (0, 0) or deployment_version != (0, 0)):
+        subprocess.run("run_conda_forge_build_setup", shell=True, check=True)
 
     print("Building {} with conda-forge/label/main".format(','.join(folders)))
     channel_urls = ['local', 'conda-forge', 'defaults']
