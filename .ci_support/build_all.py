@@ -31,6 +31,11 @@ def build_all(recipes_dir, arch):
         print("Found no recipes to build")
         return
 
+    platform = get_host_platform()
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    variant_config_file = os.path.join(script_dir, '{}{}.yaml'.format(
+        platform, arch))
+
     found_cuda = False
     found_centos7 = False
     for folder in folders:
@@ -68,6 +73,34 @@ def build_all(recipes_dir, arch):
                 if not built:
                     old_comp_folders.append(folder)
                     continue
+            if platform == 'osx' and (
+                    'MACOSX_DEPLOYMENT_TARGET' in text or
+                    'MACOSX_SDK_VERSION' in text):
+                deployment_version = (0, 0)
+                sdk_version = (0, 0)
+                config = safe_load(text)
+
+                with open(variant_config_file, 'r') as f:
+                    variant_text = ''.join(f.readlines())
+                variant_config = safe_load(variant_text)
+
+                if 'MACOSX_DEPLOYMENT_TARGET' in config:
+                    for version in config['MACOSX_DEPLOYMENT_TARGET']:
+                        version = tuple([int(x) for x in version.split('.')])
+                        deployment_version = max(deployment_version, version)
+                if 'MACOSX_SDK_VERSION' in config:
+                    for version in config['MACOSX_SDK_VERSION']:
+                        version = tuple([int(x) for x in version.split('.')])
+                        sdk_version = max(deployment_version, version)
+
+                max_version = max(deployment_version, sdk_version)
+                if max_version != (0, 0):
+                    max_version = '.'.join([str(x) for x in max_version])
+                    variant_config['MACOSX_DEPLOYMENT_TARGET'] = [max_version]
+                    variant_config['MACOSX_SDK_VERSION'] = [max_version]
+                    with open(variant_config_file, 'w') as f:
+                        new_file = safe_dump(variant_config)
+                        f.write(new_file)
         if not built:
             new_comp_folders.append(folder)
 
