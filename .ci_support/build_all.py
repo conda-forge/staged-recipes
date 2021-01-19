@@ -95,21 +95,21 @@ def build_all(recipes_dir, arch):
 
     with open(variant_config_file, 'r') as f:
         variant_text = ''.join(f.readlines())
-        variant_config = safe_load(variant_text)
 
     if deployment_version != (0, 0):
         deployment_version = '.'.join([str(x) for x in deployment_version])
         print("Overriding MACOSX_DEPLOYMENT_TARGET to be ", deployment_version)
-        variant_config['MACOSX_DEPLOYMENT_TARGET'] = [deployment_version]
+        variant_text += '\nMACOSX_DEPLOYMENT_TARGET:\n'
+        variant_text += f'- {deployment_version}\n'
 
     if sdk_version != (0, 0):
         sdk_version = '.'.join([str(x) for x in sdk_version])
         print("Overriding MACOSX_SDK_VERSION to be ", sdk_version)
-        variant_config['MACOSX_SDK_VERSION'] = [sdk_version]
+        variant_text += '\nMACOSX_SDK_VERSION:\n'
+        variant_text += f'- {sdk_version}\n'
 
     with open(variant_config_file, 'w') as f:
-        new_file = safe_dump(variant_config)
-        f.write(new_file)
+        f.write(variant_text)
 
     if old_comp_folders:
         print("Building {} with conda-forge/label/cf201901".format(','.join(old_comp_folders)))
