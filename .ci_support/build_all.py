@@ -51,6 +51,9 @@ def build_all(recipes_dir, arch):
         print('##vso[task.setvariable variable=NEED_CUDA;isOutput=true]1')
     if found_centos7:
         print('##vso[task.setvariable variable=NEED_CENTOS7;isOutput=true]1')
+
+    deployment_version = (0, 0)
+    sdk_version = (0, 0)
     for folder in folders:
         built = False
         cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
@@ -76,13 +79,7 @@ def build_all(recipes_dir, arch):
             if platform == 'osx' and (
                     'MACOSX_DEPLOYMENT_TARGET' in text or
                     'MACOSX_SDK_VERSION' in text):
-                deployment_version = (0, 0)
-                sdk_version = (0, 0)
                 config = safe_load(text)
-
-                with open(variant_config_file, 'r') as f:
-                    variant_text = ''.join(f.readlines())
-                variant_config = safe_load(variant_text)
 
                 if 'MACOSX_DEPLOYMENT_TARGET' in config:
                     for version in config['MACOSX_DEPLOYMENT_TARGET']:
@@ -93,16 +90,26 @@ def build_all(recipes_dir, arch):
                         version = tuple([int(x) for x in version.split('.')])
                         sdk_version = max(deployment_version, version)
 
-                max_version = max(deployment_version, sdk_version)
-                if max_version != (0, 0):
-                    max_version = '.'.join([str(x) for x in max_version])
-                    variant_config['MACOSX_DEPLOYMENT_TARGET'] = [max_version]
-                    variant_config['MACOSX_SDK_VERSION'] = [max_version]
-                    with open(variant_config_file, 'w') as f:
-                        new_file = safe_dump(variant_config)
-                        f.write(new_file)
         if not built:
             new_comp_folders.append(folder)
+
+    with open(variant_config_file, 'r') as f:
+        variant_text = ''.join(f.readlines())
+        variant_config = safe_load(variant_text)
+
+    if deployment_version != (0, 0):
+        deployment_version = '.'.join([str(x) for x in deployment_version])
+        print("Overriding MACOSX_DEPLOYMENT_TARGET to be ", deployment_version)
+        variant_config['MACOSX_DEPLOYMENT_TARGET'] = [deployment_version]
+
+    if sdk_version != (0, 0):
+        sdk_version = '.'.join([str(x) for x in sdk_version])
+        print("Overriding MACOSX_SDK_VERSION to be ", sdk_version)
+        variant_config['MACOSX_SDK_VERSION'] = [sdk_version]
+
+    with open(variant_config_file, 'w') as f:
+        new_file = safe_dump(variant_config)
+        f.write(new_file)
 
     if old_comp_folders:
         print("Building {} with conda-forge/label/cf201901".format(','.join(old_comp_folders)))
