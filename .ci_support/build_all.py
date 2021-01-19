@@ -31,6 +31,11 @@ def build_all(recipes_dir, arch):
         print("Found no recipes to build")
         return
 
+    platform = get_host_platform()
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    variant_config_file = os.path.join(script_dir, '{}{}.yaml'.format(
+        platform, arch))
+
     found_cuda = False
     found_centos7 = False
     for folder in folders:
@@ -46,39 +51,49 @@ def build_all(recipes_dir, arch):
         print('##vso[task.setvariable variable=NEED_CUDA;isOutput=true]1')
     if found_centos7:
         print('##vso[task.setvariable variable=NEED_CENTOS7;isOutput=true]1')
+
+    deployment_version = (0, 0)
+    sdk_version = (0, 0)
     for folder in folders:
-        built = False
         cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
         if os.path.exists(cbc):
             with open(cbc, "r") as f:
                 text = ''.join(f.readlines())
-            if 'channel_sources' in text:
-                specific_config = safe_load(text)
-                if "channel_targets" not in specific_config:
-                    raise RuntimeError("channel_targets not found in {}".format(folder))
-                if "channel_sources" in specific_config:
-                    for row in specific_config["channel_sources"]:
-                        channels = [c.strip() for c in row.split(",")]
-                        if channels != ['conda-forge', 'defaults'] and \
-                                channels != ['conda-forge/label/cf201901', 'defaults']:
-                            print("Not a standard configuration of channel_sources. Building {} individually.".format(folder))
-                            conda_build.api.build([os.path.join(recipes_dir, folder)], config=get_config(arch, channels))
-                            built = True
-                            break
-                if not built:
-                    old_comp_folders.append(folder)
-                    continue
-        if not built:
-            new_comp_folders.append(folder)
+            if platform == 'osx' and (
+                    'MACOSX_DEPLOYMENT_TARGET' in text or
+                    'MACOSX_SDK_VERSION' in text):
+                config = safe_load(text)
 
-    if old_comp_folders:
-        print("Building {} with conda-forge/label/cf201901".format(','.join(old_comp_folders)))
-        channel_urls = ['local', 'conda-forge/label/cf201901', 'defaults']
-        build_folders(recipes_dir, old_comp_folders, arch, channel_urls)
-    if new_comp_folders:
-        print("Building {} with conda-forge/label/main".format(','.join(new_comp_folders)))
-        channel_urls = ['local', 'conda-forge', 'defaults']
-        build_folders(recipes_dir, new_comp_folders, arch, channel_urls)
+                if 'MACOSX_DEPLOYMENT_TARGET' in config:
+                    for version in config['MACOSX_DEPLOYMENT_TARGET']:
+                        version = tuple([int(x) for x in version.split('.')])
+                        deployment_version = max(deployment_version, version)
+                if 'MACOSX_SDK_VERSION' in config:
+                    for version in config['MACOSX_SDK_VERSION']:
+                        version = tuple([int(x) for x in version.split('.')])
+                        sdk_version = max(deployment_version, version)
+
+    with open(variant_config_file, 'r') as f:
+        variant_text = ''.join(f.readlines())
+
+    if deployment_version != (0, 0):
+        deployment_version = '.'.join([str(x) for x in deployment_version])
+        print("Overriding MACOSX_DEPLOYMENT_TARGET to be ", deployment_version)
+        variant_text += '\nMACOSX_DEPLOYMENT_TARGET:\n'
+        variant_text += f'- {deployment_version}\n'
+
+    if sdk_version != (0, 0):
+        sdk_version = '.'.join([str(x) for x in sdk_version])
+        print("Overriding MACOSX_SDK_VERSION to be ", sdk_version)
+        variant_text += '\nMACOSX_SDK_VERSION:\n'
+        variant_text += f'- {sdk_version}\n'
+
+    with open(variant_config_file, 'w') as f:
+        f.write(variant_text)
+
+    print("Building {} with conda-forge/label/main".format(','.join(folders)))
+    channel_urls = ['local', 'conda-forge', 'defaults']
+    build_folders(recipes_dir, folders, arch, channel_urls)
 
 
 
