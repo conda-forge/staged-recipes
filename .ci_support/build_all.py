@@ -91,7 +91,7 @@ def build_all(recipes_dir, arch):
 
     with open(variant_config_file, 'w') as f:
         f.write(variant_text)
-        
+
     if platform == "osx" and (sdk_version != (0, 0) or deployment_version != (0, 0)):
         subprocess.run("run_conda_forge_build_setup", shell=True, check=True)
 
