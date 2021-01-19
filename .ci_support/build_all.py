@@ -55,27 +55,10 @@ def build_all(recipes_dir, arch):
     deployment_version = (0, 0)
     sdk_version = (0, 0)
     for folder in folders:
-        built = False
         cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
         if os.path.exists(cbc):
             with open(cbc, "r") as f:
                 text = ''.join(f.readlines())
-            if 'channel_sources' in text:
-                specific_config = safe_load(text)
-                if "channel_targets" not in specific_config:
-                    raise RuntimeError("channel_targets not found in {}".format(folder))
-                if "channel_sources" in specific_config:
-                    for row in specific_config["channel_sources"]:
-                        channels = [c.strip() for c in row.split(",")]
-                        if channels != ['conda-forge', 'defaults'] and \
-                                channels != ['conda-forge/label/cf201901', 'defaults']:
-                            print("Not a standard configuration of channel_sources. Building {} individually.".format(folder))
-                            conda_build.api.build([os.path.join(recipes_dir, folder)], config=get_config(arch, channels))
-                            built = True
-                            break
-                if not built:
-                    old_comp_folders.append(folder)
-                    continue
             if platform == 'osx' and (
                     'MACOSX_DEPLOYMENT_TARGET' in text or
                     'MACOSX_SDK_VERSION' in text):
@@ -89,9 +72,6 @@ def build_all(recipes_dir, arch):
                     for version in config['MACOSX_SDK_VERSION']:
                         version = tuple([int(x) for x in version.split('.')])
                         sdk_version = max(deployment_version, version)
-
-        if not built:
-            new_comp_folders.append(folder)
 
     with open(variant_config_file, 'r') as f:
         variant_text = ''.join(f.readlines())
@@ -111,14 +91,9 @@ def build_all(recipes_dir, arch):
         new_file = safe_dump(variant_config)
         f.write(new_file)
 
-    if old_comp_folders:
-        print("Building {} with conda-forge/label/cf201901".format(','.join(old_comp_folders)))
-        channel_urls = ['local', 'conda-forge/label/cf201901', 'defaults']
-        build_folders(recipes_dir, old_comp_folders, arch, channel_urls)
-    if new_comp_folders:
-        print("Building {} with conda-forge/label/main".format(','.join(new_comp_folders)))
-        channel_urls = ['local', 'conda-forge', 'defaults']
-        build_folders(recipes_dir, new_comp_folders, arch, channel_urls)
+    print("Building {} with conda-forge/label/main".format(','.join(folders)))
+    channel_urls = ['local', 'conda-forge', 'defaults']
+    build_folders(recipes_dir, folders, arch, channel_urls)
 
 
 
