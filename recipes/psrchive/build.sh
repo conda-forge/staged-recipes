@@ -2,6 +2,11 @@
 
 # Change to right C++ standard for psrchive:
 export CXXFLAGS=$(echo "$CXXFLAGS" | perl -pe 's/-std=\S+\s/-std=c++11 /')
+echo "build.sh updated CXXFLAGS=${CXXFLAGS}"
+
+# Remove library stripping option (MacOS)
+export LDFLAGS=$(echo "$LDFLAGS" | sed 's/-Wl,-dead_strip_dylibs//')
+echo "build.sh updated LDFLAGS=${LDFLAGS}"
 
 ./configure --prefix=$PREFIX --disable-local --enable-shared \
   --includedir=$PREFIX/include/psrchive --with-Qt-dir=no \
