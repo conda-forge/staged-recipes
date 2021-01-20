@@ -4,7 +4,7 @@ mkdir %PREFIX%\bin
 CD chargemol_FORTRAN_09_26_2017
 CD sourcecode_windows_command_line
 
-gfortran.exe -fopenmp -o Chargemol_09_26_2017_windows_parallel ^
+gfortran.exe -v -fopenmp -o Chargemol_09_26_2017_windows_parallel ^
   module_precision.f08 ^
   module_global_parameters.f08 ^
   module_common_variable_declarations.f08 ^
@@ -64,6 +64,8 @@ gfortran.exe -fopenmp -o Chargemol_09_26_2017_windows_parallel ^
   module_print_overlap_populations.f08 ^
   module_print_atomic_densities_file.f08 ^
   chargemol.f08
+
+DIR
 
 COPY Chargemol_09_26_2017_windows_parallel %PREFIX%\bin\chargemol.exe
 REM COPY chargemol_FORTRAN_09_26_2017\compiled_binaries\windows\Chargemol_09_26_2017_windows_64bits_parallel_GUI.exe %PREFIX%\bin\chargemol_gui.exe
