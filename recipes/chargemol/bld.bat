@@ -4,7 +4,7 @@ mkdir %PREFIX%\bin
 CD chargemol_FORTRAN_09_26_2017
 CD sourcecode_windows_command_line
 
-flang.exe -v -fopenmp -o Chargemol_09_26_2017_windows_parallel ^
+gfortran.exe -fopenmp -o Chargemol_09_26_2017_windows_parallel ^
   module_precision.f08 ^
   module_global_parameters.f08 ^
   module_common_variable_declarations.f08 ^
