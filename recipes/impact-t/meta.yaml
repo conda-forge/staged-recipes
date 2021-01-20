@@ -1,0 +1,79 @@
+{% set name = "impact-t" %}
+{% set version = "2.0" %}
+
+{% set build = 0 %}
+# ensure mpi is defined (needed for conda-smithy recipe-lint)
+{% set mpi = mpi or 'nompi' %}
+
+{% if mpi == 'nompi' %}
+# prioritize nompi variant via build number
+{% set build = build + 100 %}
+{% endif %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/hhslepicka/IMPACT-T/archive/v{{ version }}.tar.gz
+  sha256: a486ba796af3b7a937d168a9208c92e156c02735cb5d42b25a10fb8516e98f34
+
+build:
+  number: {{ build }}
+
+  # add build string so packages can depend on
+  # mpi or nompi variants explicitly:
+  # `pkg * mpi_mpich_*` for mpich
+  # `pkg * mpi_*` for any mpi
+  # `pkg * nompi_*` for no mpi
+
+  {% if mpi != 'nompi' %}
+  {% set mpi_prefix = "mpi_" + mpi %}
+  {% else %}
+  {% set mpi_prefix = "nompi" %}
+  {% endif %}
+  string: "{{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}"
+
+  {% if mpi != 'nompi' %}
+
+  run_exports:
+    - {{ name }} * {{ mpi_prefix }}_*
+  {% endif %}
+
+requirements:
+  build:
+    - make
+    - {{ compiler('c') }}                    # [not win]
+    - {{ compiler('m2w64_c') }}              # [win]
+    - {{ compiler('fortran') }}              # [not win]
+    - {{ compiler('m2w64_fortran') }}        # [win]
+    - cmake
+  host:
+    - {{ mpi }}  # [mpi != 'nompi']
+  run:
+    - {{ mpi }}  # [mpi != 'nompi']
+
+test:
+  commands:
+    - which ImpactTexe  # [unix]
+    - which ImpactTexe-mpi  # [unix and mpi != 'nompi']
+    - where ImpactTexe  # [win]
+
+about:
+  home: https://github.com/hhslepicka/IMPACT-T
+  license: BSD-3-Clause-LBNL
+  license_family: BSD
+  license_file: src/license.txt
+  summary: IMPACT-T, A 3D Parallel Particle Tracking Code in Time Domain
+  description: |
+    IMPACT-T is a fully three-dimensional program to track relativistic
+    charged particles taking into account space charge forces, 
+    short-range longitudinal and transverse wakefields, coherent
+    synchrotron radiation (CSR) wakefield in accelerators.
+  doc_url: https://amac.lbl.gov/~jiqiang/IMPACT-T/index.html
+  dev_url: https://github.com/hhslepicka/IMPACT-T
+
+extra:
+  recipe-maintainers:
+    - hhslepicka
+    - ChristopherMayes
