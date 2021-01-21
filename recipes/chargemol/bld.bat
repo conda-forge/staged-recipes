@@ -67,7 +67,7 @@ gfortran.exe -v -fopenmp -o Chargemol_09_26_2017_windows_parallel ^
 
 DIR
 
-COPY Chargemol_09_26_2017_windows_parallel %PREFIX%\bin\chargemol.exe
+COPY Chargemol_09_26_2017_windows_parallel.exe %PREFIX%\bin\chargemol.exe
 REM COPY chargemol_FORTRAN_09_26_2017\compiled_binaries\windows\Chargemol_09_26_2017_windows_64bits_parallel_GUI.exe %PREFIX%\bin\chargemol_gui.exe
 REM COPY chargemol_FORTRAN_09_26_2017\compiled_binaries\windows\pthreadGC2-64.dll %PREFIX%\bin
 
