@@ -1,0 +1,46 @@
+From d4c1e20cd5ab0aa4962e79c9c2e03bca899f2449 Mon Sep 17 00:00:00 2001
+From: Ray Donnelly <mingw.android@gmail.com>
+Date: Mon, 31 Oct 2016 18:25:35 -0400
+Subject: [PATCH 18/42] Conda: LD_LIBRARY_PATH considered harmful
+
+(and DYLD_FALLBACK_LIBRARY_PATH useless due to SIP)
+---
+ src/cpp/core/r_util/REnvironmentPosix.cpp | 2 ++
+ src/cpp/session/CMakeLists.txt            | 1 +
+ 2 files changed, 3 insertions(+)
+
+diff --git a/src/cpp/core/r_util/REnvironmentPosix.cpp b/src/cpp/core/r_util/REnvironmentPosix.cpp
+index b836aa4ae1..6e009e601a 100644
+--- a/src/cpp/core/r_util/REnvironmentPosix.cpp
++++ b/src/cpp/core/r_util/REnvironmentPosix.cpp
+@@ -738,6 +738,7 @@ bool detectREnvironment(const FilePath& whichRScript,
+                                    resolveRPath(rHomePath,
+                                                 scriptVars["R_DOC_DIR"])));
+ 
++#if !defined(CONDA_BUILD) // This breaks everything on Linux (LD_LIBRARY_PATH ends up without /usr/lib64 etc).
+    // determine library path (existing + r lib dir + r extra lib dirs)
+    std::string libraryPath = rLibraryPath(rHomePath,
+                                           rLibPath,
+@@ -745,6 +746,7 @@ bool detectREnvironment(const FilePath& whichRScript,
+                                           ldLibraryPath);
+    
+    pVars->push_back(std::make_pair(kLibraryPathEnvVariable, libraryPath));
++#endif
+ 
+    // set R_ARCH on the mac if we are running against CRAN R
+ #ifdef __APPLE__
+diff --git a/src/cpp/session/CMakeLists.txt b/src/cpp/session/CMakeLists.txt
+index 3605786a3e..101f03efce 100644
+--- a/src/cpp/session/CMakeLists.txt
++++ b/src/cpp/session/CMakeLists.txt
+@@ -421,6 +421,7 @@ if(DEFINED ENV{CONDA_BUILD})
+    # which point to directories outside the build tree to the install RPATH
+    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+ endif()
++
+ # define executable
+ add_stripped_executable(rsession ${SESSION_SOURCE_FILES} ${SESSION_HEADER_FILES})
+ 
+-- 
+2.28.0.windows.1
+

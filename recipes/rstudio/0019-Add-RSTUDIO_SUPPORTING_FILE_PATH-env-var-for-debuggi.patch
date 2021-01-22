@@ -1,0 +1,47 @@
+From 95467eda53e9d830e3b3f229c17f22b59b34a724 Mon Sep 17 00:00:00 2001
+From: Ray Donnelly <mingw.android@gmail.com>
+Date: Wed, 2 Nov 2016 12:46:50 +0000
+Subject: [PATCH 19/42] Add RSTUDIO_SUPPORTING_FILE_PATH env var for debugging
+
+Typically, for a CONDA_BUILD, this will be `share/rstudio` from a previous
+installation, e.g. `${CONDA_PREFIX}/share/rstudio`
+---
+ src/cpp/desktop/DesktopSessionLauncher.cpp | 1 +
+ src/cpp/session/SessionOptions.cpp         | 9 +++++++++
+ 2 files changed, 10 insertions(+)
+
+diff --git a/src/cpp/desktop/DesktopSessionLauncher.cpp b/src/cpp/desktop/DesktopSessionLauncher.cpp
+index e714903ed4..14d6146bdd 100644
+--- a/src/cpp/desktop/DesktopSessionLauncher.cpp
++++ b/src/cpp/desktop/DesktopSessionLauncher.cpp
+@@ -128,6 +128,7 @@ Error SessionLauncher::launchFirstSession()
+ 
+    RUN_DIAGNOSTICS_LOG("\nAttempting to launch R session...");
+    logEnvVar("RSTUDIO_WHICH_R");
++   logEnvVar("RSTUDIO_SUPPORTING_FILE_PATH");
+    logEnvVar("R_HOME");
+    logEnvVar("R_DOC_DIR");
+    logEnvVar("R_INCLUDE_DIR");
+diff --git a/src/cpp/session/SessionOptions.cpp b/src/cpp/session/SessionOptions.cpp
+index 9fc6f04677..44368eed92 100644
+--- a/src/cpp/session/SessionOptions.cpp
++++ b/src/cpp/session/SessionOptions.cpp
+@@ -99,6 +99,15 @@ core::ProgramStatus Options::read(int argc, char * const argv[], std::ostream& o
+ #endif
+       error = core::system::installPath("..", boost::dll::program_location().string().c_str(), &resourcePath_);
+ 
++   if (error || !resourcePath_.exists())
++   {
++      // debugging in Xcode/QtCreator/Visual Studio => some minor path manipulation.
++      FilePath& supportingFilePath_ = resourcePath_;
++      supportingFilePath_ = FilePath(core::system::getenv("RSTUDIO_SUPPORTING_FILE_PATH"));
++      if (error && supportingFilePath_.exists())
++         error = Success();
++   }
++
+    if (error)
+    {
+       LOG_ERROR_MESSAGE("Unable to determine install path: "+error.getSummary());
+-- 
+2.28.0.windows.1
+

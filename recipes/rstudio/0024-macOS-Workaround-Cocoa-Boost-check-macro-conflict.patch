@@ -1,0 +1,48 @@
+From 9e2b795d23dbc22ea4e19d3343a0b066930492be Mon Sep 17 00:00:00 2001
+From: Ray Donnelly <mingw.android@gmail.com>
+Date: Wed, 18 Oct 2017 13:09:27 +0000
+Subject: [PATCH 24/42] macOS: Workaround Cocoa/Boost 'check' macro conflict
+
+Apple have a macro in Cocoa somewhere called check()
+which conflicts with the Boost assert macros.
+
+See: https://github.com/facebook/osquery/pull/3613/files
+and: https://svn.boost.org/trac10/ticket/6219
+---
+ CMakeGlobals.txt       | 3 +++
+ src/cpp/CMakeLists.txt | 5 +++++
+ 2 files changed, 8 insertions(+)
+
+diff --git a/CMakeGlobals.txt b/CMakeGlobals.txt
+index cbd44639ea..a952a86add 100644
+--- a/CMakeGlobals.txt
++++ b/CMakeGlobals.txt
+@@ -60,6 +60,9 @@ if (NOT RSTUDIO_UNIT_TESTS_DISABLED)
+   add_definitions(-DRSTUDIO_UNIT_TESTS_ENABLED)
+ endif()
+ 
++# Boost 1.65 / macOS fix: https://stackoverflow.com/q/31665095
++add_definitions(-D__ASSERT_MACROS_DEFINE_VERSIONS_WITHOUT_UNDERSCORES=0)
++
+ # platform specific default for targets
+ if(NOT RSTUDIO_TARGET)
+    set(RSTUDIO_TARGET "Development")
+diff --git a/src/cpp/CMakeLists.txt b/src/cpp/CMakeLists.txt
+index a155f1ad18..50952a90b0 100644
+--- a/src/cpp/CMakeLists.txt
++++ b/src/cpp/CMakeLists.txt
+@@ -153,6 +153,11 @@ if(UNIX)
+          add_definitions(-Wrestrict)
+          add_definitions(-Wnull-dereference)
+       endif()
++      # Apple have a macro in Cocoa somewhere called check()
++      # which conflicts with the Boost assert macros.
++      # See: https://github.com/facebook/osquery/pull/3613/files
++      # and: https://svn.boost.org/trac10/ticket/6219
++      add_definitions(-D__ASSERT_MACROS_DEFINE_VERSIONS_WITHOUT_UNDERSCORES=0)
+    endif()
+ 
+ # Win32 specific global directives
+-- 
+2.28.0.windows.1
+

@@ -1,0 +1,37 @@
+From de75aa7a542238cac3a74893a269b673cc1343e2 Mon Sep 17 00:00:00 2001
+From: Ray Donnelly <mingw.android@gmail.com>
+Date: Wed, 2 Nov 2016 23:05:56 +0000
+Subject: [PATCH 33/42] Conda: Allow symlinks in gwt/html/js
+
+---
+ src/cpp/core/http/Util.cpp | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/src/cpp/core/http/Util.cpp b/src/cpp/core/http/Util.cpp
+index 9af1ff8b6b..04510032cb 100644
+--- a/src/cpp/core/http/Util.cpp
++++ b/src/cpp/core/http/Util.cpp
+@@ -417,9 +417,20 @@ core::FilePath requestedFile(const std::string& wwwLocalPath,
+    // calculate "real" requested path
+    FilePath realRequestedPath;
+    FilePath requestedPath = wwwRealPath.completePath(relativePath);
++#ifdef CONDA_BUILD
++   // Conda will use symlinks instead of hardlinks when hardlinks
++   // cannot be used. If we were to follow them, we would end up
++   // not inside the www path, so we do not do that.
++   realRequestedPath = FilePath(requestedPath.absolutePath());
++   error = realRequestedPath.exists()
++              ? Success()
++              : fileNotFoundError(realRequestedPath.absolutePath(),
++                                  ERROR_LOCATION);
++#else
+    error = core::system::realPath(
+       requestedPath.getAbsolutePath(),
+                                   &realRequestedPath);
++#endif
+    if (error)
+    {
+       // log if this isn't file not found
+-- 
+2.28.0.windows.1
+

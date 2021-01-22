@@ -1,0 +1,70 @@
+From 99df6b9527161346ee4d79f3f584049da7e5de4a Mon Sep 17 00:00:00 2001
+From: Ray Donnelly <mingw.android@gmail.com>
+Date: Wed, 28 Mar 2018 21:29:26 +0100
+Subject: [PATCH 12/42] Conda: Define CONDA_BUILD when ENV{CONDA_BUILD} for
+ rstudio and rsession
+
+---
+ src/cpp/core/CMakeLists.txt    |  4 ++++
+ src/cpp/session/CMakeLists.txt | 20 +++++++++++++++++++-
+ 2 files changed, 23 insertions(+), 1 deletion(-)
+
+diff --git a/src/cpp/core/CMakeLists.txt b/src/cpp/core/CMakeLists.txt
+index e1f66a61fc..a58fe093f1 100644
+--- a/src/cpp/core/CMakeLists.txt
++++ b/src/cpp/core/CMakeLists.txt
+@@ -345,6 +345,10 @@ target_link_libraries(rstudio-core
+    ${CORE_SYSTEM_LIBRARIES}
+ )
+ 
++if(DEFINED ENV{CONDA_BUILD})
++   target_compile_definitions(rstudio-core PRIVATE "-DCONDA_BUILD")
++endif()
++
+ # define executable (for running unit tests)
+ if (RSTUDIO_UNIT_TESTS_ENABLED)
+ 
+diff --git a/src/cpp/session/CMakeLists.txt b/src/cpp/session/CMakeLists.txt
+index 15d61f4d83..3605786a3e 100644
+--- a/src/cpp/session/CMakeLists.txt
++++ b/src/cpp/session/CMakeLists.txt
+@@ -25,7 +25,7 @@ endif()
+ if(NOT EXISTS "${RSTUDIO_DEPENDENCIES_DIR}/common/mathjax-27")
+   message(FATAL_ERROR "Mathjax 2.7 not found (re-run install-dependencies script to install)")
+ endif()
+-if(NOT EXISTS "${RSTUDIO_DEPENDENCIES_DIR}/common/pandoc")
++if(NOT DEFINED ENV{CONDA_BUILD} AND NOT EXISTS "${RSTUDIO_DEPENDENCIES_DIR}/common/pandoc")
+   message(FATAL_ERROR "pandoc not found (re-run install-dependencies script to install)")
+ endif()
+ 
+@@ -407,9 +407,27 @@ if(WIN32)
+    endif()
+ endif()
+ 
++if(DEFINED ENV{CONDA_BUILD})
++   # use, i.e. don't skip the full RPATH for the build tree
++   set(CMAKE_SKIP_BUILD_RPATH FALSE)
++
++   # when building, don't use the install RPATH already
++   # (but later on when installing)
++   set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
++
++   set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
++
++   # add the automatically determined parts of the RPATH
++   # which point to directories outside the build tree to the install RPATH
++   set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
++endif()
+ # define executable
+ add_stripped_executable(rsession ${SESSION_SOURCE_FILES} ${SESSION_HEADER_FILES})
+ 
++if(DEFINED ENV{CONDA_BUILD})
++   target_compile_definitions(rsession PRIVATE "-DCONDA_BUILD")
++endif()
++
+ # skip libR RPATH at development time
+ if(RSTUDIO_DEVELOPMENT OR RSTUDIO_RUN_IN_PLACE)
+    set_target_properties(rsession PROPERTIES SKIP_BUILD_RPATH TRUE)
+-- 
+2.28.0.windows.1
+

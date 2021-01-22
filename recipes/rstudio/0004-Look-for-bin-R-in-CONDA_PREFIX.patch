@@ -1,0 +1,99 @@
+From 1102e78f72b5ace04e2e917aa71e7e714df0f43a Mon Sep 17 00:00:00 2001
+From: Ray Donnelly <mingw.android@gmail.com>
+Date: Wed, 19 Oct 2016 14:59:07 +0100
+Subject: [PATCH 04/42] Look for `bin/R` in `$CONDA_PREFIX`
+
+And also relative to the executable folder.
+
+.. on all OSes this is `lib/R/bin/R`.
+---
+ src/cpp/core/r_util/REnvironmentPosix.cpp | 12 +++++++++
+ src/cpp/desktop/DesktopRVersion.cpp       | 30 +++++++++++++++++++++++
+ 2 files changed, 42 insertions(+)
+
+diff --git a/src/cpp/core/r_util/REnvironmentPosix.cpp b/src/cpp/core/r_util/REnvironmentPosix.cpp
+index 9e3a060e7d..b836aa4ae1 100644
+--- a/src/cpp/core/r_util/REnvironmentPosix.cpp
++++ b/src/cpp/core/r_util/REnvironmentPosix.cpp
+@@ -109,6 +109,18 @@ FilePath systemDefaultRScript(std::string* pErrMsg)
+ {
+    // define potential paths
+    std::vector<std::string> rScriptPaths;
++#if defined(CONDA_BUILD)
++   // The CONDA_PREFIX enviornment variable should get preference, followed
++   // by a relative path from the executable. This is similar to what we do
++   // in REnviornmentPosix.cpp
++   char* conda_prefix = getenv("CONDA_PREFIX");
++   if (conda_prefix != NULL)
++       rScriptPaths.push_back(std::string(conda_prefix) + "/bin/R");
++   FilePath prefix;
++   Error error = core::system::installPath("../bin/R", NULL, &prefix);
++   if (prefix.exists())
++      rScriptPaths.push_back(prefix.absolutePath());
++#endif
+    rScriptPaths.push_back("/usr/bin/R");
+    rScriptPaths.push_back("/usr/local/bin/R");
+    rScriptPaths.push_back("/opt/local/bin/R");
+diff --git a/src/cpp/desktop/DesktopRVersion.cpp b/src/cpp/desktop/DesktopRVersion.cpp
+index 2535d63d69..ed32920178 100644
+--- a/src/cpp/desktop/DesktopRVersion.cpp
++++ b/src/cpp/desktop/DesktopRVersion.cpp
+@@ -269,6 +269,27 @@ void enumRegistry(QList<RVersion>* pResults)
+    enumRegistry(ArchX64, HKEY_LOCAL_MACHINE, pResults);
+ }
+ 
++#if defined(CONDA_BUILD)
++void enumConda(QList<RVersion>* pResults)
++{
++   // The CONDA_PREFIX enviornment variable should get preference, followed
++   // by a relative path from the executable. This is similar to what we do
++   // in REnviornmentPosix.cpp
++   char* conda_prefix = getenv("CONDA_PREFIX");
++   // New Unix-a-like layout followed by the old Windows layout.
++   const char* pfxs[2] = {"/lib/R", "/R"};
++   const char* pfxs2[2] = {"/../../../lib/R", "/../../../R"};
++   for (int i = 0; i < 2; ++i) {
++      if (conda_prefix != NULL)
++         versionsFromRHome(QString::fromStdString(std::string(conda_prefix) + pfxs[i]), pResults);
++      QDir executable_path = QDir(QCoreApplication::applicationFilePath() + QString::fromLatin1(pfxs2[i])).absolutePath();
++      QString wtf = executable_path.absolutePath();
++      if (executable_path.exists())
++         versionsFromRHome(executable_path, pResults);
++   }
++}
++#endif
++
+ // Return all valid versions of R we can find, nicely sorted and de-duped.
+ // You can explicitly pass in versions that you know about (that may or
+ // may not be valid) using the versions param.
+@@ -276,6 +297,9 @@ QList<RVersion> allRVersions(QList<RVersion> versions)
+ {
+    versionsFromRHome(QString::fromStdString(system::getenv("R_HOME")),
+                      &versions);
++#if defined(CONDA_BUILD)
++   enumConda(&versions);
++#endif
+    enumRegistry(&versions);
+    enumProgramFiles(&versions);
+ 
+@@ -342,11 +366,17 @@ RVersion detectPreferredFromRegistry(HKEY key, Architecture architecture)
+ 
+ RVersion autoDetect(Architecture architecture, bool preferredOnly)
+ {
++#if !defined(CONDA_BUILD)
++   // Disable registry checks for conda, enumRegistry() is checked anyway,
++   // and conda doesn't consider the system R to be the preferred version.
++   // If anything, enumConda()'s result could be used here instead, though
++   // R_HOME still gets preference. RSTUDIO_WHICH_R is not used on Winodws
+    RVersion preferred = detectPreferredFromRegistry(HKEY_CURRENT_USER, architecture);
+    if (!preferred.isValid())
+        preferred = detectPreferredFromRegistry(HKEY_LOCAL_MACHINE, architecture);
+    if (preferred.isValid())
+       return preferred;
++#endif
+    if (preferredOnly)
+       return RVersion();
+ 
+-- 
+2.28.0.windows.1
+

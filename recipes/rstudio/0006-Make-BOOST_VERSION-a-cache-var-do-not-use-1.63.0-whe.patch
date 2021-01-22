@@ -1,0 +1,67 @@
+From a55587b1890dc88162c9471758fc42c566d99d5e Mon Sep 17 00:00:00 2001
+From: Ray Donnelly <mingw.android@gmail.com>
+Date: Sat, 24 Mar 2018 10:39:05 +0000
+Subject: [PATCH 06/42] Make BOOST_VERSION a cache var, do not use 1.63.0 when
+ DEFINED ENV{CONDA_BUILD}
+
+---
+ dependencies/common/install-common                         | 4 +++-
+ src/cpp/CMakeLists.txt                                     | 5 +++++
+ src/cpp/session/http/SessionHttpConnectionListenerImpl.hpp | 2 +-
+ 3 files changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/dependencies/common/install-common b/dependencies/common/install-common
+index 4f2b28bacf..2c595c9f28 100755
+--- a/dependencies/common/install-common
++++ b/dependencies/common/install-common
+@@ -19,7 +19,9 @@ set -e
+ 
+ ./install-dictionaries
+ ./install-mathjax
+-./install-boost
++if [[ -z ${CONDA_BUILD} ]]; then
++  ./install-boost
++fi
+ ./install-pandoc
+ ./install-packages
+ ./install-sentry-cli
+diff --git a/src/cpp/CMakeLists.txt b/src/cpp/CMakeLists.txt
+index 34f3a1aa10..180e352fb1 100644
+--- a/src/cpp/CMakeLists.txt
++++ b/src/cpp/CMakeLists.txt
+@@ -189,6 +189,9 @@ if(RSTUDIO_PACKAGE_BUILD)
+    add_definitions(-DRSTUDIO_PACKAGE_BUILD)
+ endif()
+ 
++# Boost.Signals is no longer being maintained and is now deprecated. Please switch to Boost.Signals2
++add_definitions(-DBOOST_SIGNALS_NO_DEPRECATION_WARNING)
++
+ # determine whether we should statically link boost. we always do this
+ # unless we are building a non-packaged build on linux (in which case
+ # boost dynamic libraries are presumed to be installed on the system ldpath)
+@@ -206,6 +209,8 @@ if(NOT RSTUDIO_USE_SYSTEM_BOOST)
+    set(Boost_NO_SYSTEM_PATHS ON)
+ endif()
+ 
++set(BOOST_VERSION 1.63.0 CACHE STRING "Boost version to use")
++
+ # disable Boost Signals deprecation warning
+ add_definitions(-DBOOST_SIGNALS_NO_DEPRECATION_WARNING)
+ 
+diff --git a/src/cpp/session/http/SessionHttpConnectionListenerImpl.hpp b/src/cpp/session/http/SessionHttpConnectionListenerImpl.hpp
+index 3c0f4f20bb..119bcde166 100644
+--- a/src/cpp/session/http/SessionHttpConnectionListenerImpl.hpp
++++ b/src/cpp/session/http/SessionHttpConnectionListenerImpl.hpp
+@@ -24,8 +24,8 @@
+ #include <boost/asio/placeholders.hpp>
+ #include <boost/algorithm/string/predicate.hpp>
+ 
+-#include <core/Macros.hpp>
+ #include <core/BoostThread.hpp>
++#include <core/Macros.hpp>
+ #include <shared_core/FilePath.hpp>
+ #include <core/FileLock.hpp>
+ #include <shared_core/Error.hpp>
+-- 
+2.28.0.windows.1
+
