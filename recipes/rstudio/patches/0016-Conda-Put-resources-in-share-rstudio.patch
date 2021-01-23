@@ -1,7 +1,7 @@
-From 525b8550b45a85c014b89b7ef52d2d32e4cd800b Mon Sep 17 00:00:00 2001
+From e38a84089618fd765198644e44678cfc6cc614af Mon Sep 17 00:00:00 2001
 From: Ray Donnelly <mingw.android@gmail.com>
 Date: Mon, 31 Oct 2016 12:01:00 +0000
-Subject: [PATCH 16/42] Conda: Put resources in share/rstudio
+Subject: [PATCH 16/41] Conda: Put resources in share/rstudio
 
 ..on all platforms.
 
@@ -17,16 +17,15 @@ Add resolveIDEPath for Xcode and/or QtCreator debugging
  src/cpp/r/R/Diagnostics.R                     |  15 +--
  src/cpp/session/SessionMain.cpp               |  10 +-
  src/cpp/session/SessionOptions.cpp            | 101 +++++++++++++++++-
- .../include/session/SessionConstants.hpp      |  21 ++++
- .../include/session/SessionOptions.gen.hpp    |  11 +-
+ .../include/session/SessionConstants.hpp      |  25 +++++
  .../include/session/SessionOptions.hpp        |  17 +++
- 10 files changed, 213 insertions(+), 20 deletions(-)
+ 9 files changed, 210 insertions(+), 16 deletions(-)
 
 diff --git a/CMakeGlobals.txt b/CMakeGlobals.txt
-index 04a8d68f29..cbd44639ea 100644
+index 0b51c91df8..a775938161 100644
 --- a/CMakeGlobals.txt
 +++ b/CMakeGlobals.txt
-@@ -179,7 +179,7 @@ else()
+@@ -181,7 +181,7 @@ else()
     else()
       set(RSTUDIO_INSTALL_BIN bin)
     endif()
@@ -36,7 +35,7 @@ index 04a8d68f29..cbd44639ea 100644
  
  # if the install prefix is /usr/local then tweak as appropriate
 diff --git a/src/cpp/core/system/Win32System.cpp b/src/cpp/core/system/Win32System.cpp
-index 74ca314aa1..4b25bb883f 100644
+index 0d1203dd55..6d932cf89d 100644
 --- a/src/cpp/core/system/Win32System.cpp
 +++ b/src/cpp/core/system/Win32System.cpp
 @@ -522,7 +522,10 @@ Error installPath(const std::string& relativeToExecutable,
@@ -52,7 +51,7 @@ index 74ca314aa1..4b25bb883f 100644
     return Success();
  }
 diff --git a/src/cpp/desktop/DesktopMain.cpp b/src/cpp/desktop/DesktopMain.cpp
-index 46d78b51df..276f91b610 100644
+index 23142ffaff..73e5d82d7e 100644
 --- a/src/cpp/desktop/DesktopMain.cpp
 +++ b/src/cpp/desktop/DesktopMain.cpp
 @@ -56,6 +56,12 @@
@@ -68,7 +67,7 @@ index 46d78b51df..276f91b610 100644
  QProcess* pRSessionProcess;
  QString sharedSecret;
  
-@@ -801,6 +807,45 @@ int main(int argc, char* argv[])
+@@ -819,6 +825,45 @@ int main(int argc, char* argv[])
  #endif
        }
  
@@ -115,10 +114,10 @@ index 46d78b51df..276f91b610 100644
        desktop::options().setScriptsPath(scriptsPath);
  
 diff --git a/src/cpp/desktop/DesktopOptions.cpp b/src/cpp/desktop/DesktopOptions.cpp
-index 03c5f600e9..6afba2b1e2 100644
+index 673870d935..1633bf4617 100644
 --- a/src/cpp/desktop/DesktopOptions.cpp
 +++ b/src/cpp/desktop/DesktopOptions.cpp
-@@ -442,6 +442,7 @@ FilePath Options::supportingFilePath() const
+@@ -446,6 +446,7 @@ FilePath Options::supportingFilePath() const
  {
     if (supportingFilePath_.isEmpty())
     {
@@ -126,7 +125,7 @@ index 03c5f600e9..6afba2b1e2 100644
        // default to install path
        core::system::installPath("..",
                                  QApplication::arguments().at(0).toUtf8(),
-@@ -451,6 +452,11 @@ FilePath Options::supportingFilePath() const
+@@ -455,6 +456,11 @@ FilePath Options::supportingFilePath() const
  #ifdef __APPLE__
           if (supportingFilePath_.completePath("Info.plist").exists())
              supportingFilePath_ = supportingFilePath_.completePath("Resources");
@@ -139,7 +138,7 @@ index 03c5f600e9..6afba2b1e2 100644
     }
     return supportingFilePath_;
 diff --git a/src/cpp/r/R/Diagnostics.R b/src/cpp/r/R/Diagnostics.R
-index 35861ad706..3588d31df4 100644
+index 2e4e177bd8..e4cfbe5e05 100644
 --- a/src/cpp/r/R/Diagnostics.R
 +++ b/src/cpp/r/R/Diagnostics.R
 @@ -222,13 +222,14 @@ sensitive information before submitting your diagnostics report.
@@ -165,10 +164,10 @@ index 35861ad706..3588d31df4 100644
      
    if (file.exists(binaryPath)) {
 diff --git a/src/cpp/session/SessionMain.cpp b/src/cpp/session/SessionMain.cpp
-index 03076e22f3..cd1a766fea 100644
+index dab2ad37a7..782912888f 100644
 --- a/src/cpp/session/SessionMain.cpp
 +++ b/src/cpp/session/SessionMain.cpp
-@@ -1908,13 +1908,17 @@ int main (int argc, char * const argv[])
+@@ -1864,13 +1864,17 @@ int main (int argc, char * const argv[])
           core::thread::safeLaunchThread(detectParentTermination);
  
        // set the rpostback absolute path
@@ -190,7 +189,7 @@ index 03076e22f3..cd1a766fea 100644
        if (!options.verifyInstallation())
        {
 diff --git a/src/cpp/session/SessionOptions.cpp b/src/cpp/session/SessionOptions.cpp
-index da33662da9..9fc6f04677 100644
+index b01fb348a8..263b279b9d 100644
 --- a/src/cpp/session/SessionOptions.cpp
 +++ b/src/cpp/session/SessionOptions.cpp
 @@ -13,6 +13,11 @@
@@ -205,7 +204,7 @@ index da33662da9..9fc6f04677 100644
  #include <session/SessionOptions.hpp>
  
  #include <boost/algorithm/string/trim.hpp>
-@@ -87,7 +92,13 @@ core::ProgramStatus Options::read(int argc, char * const argv[], std::ostream& o
+@@ -89,7 +94,13 @@ core::ProgramStatus Options::read(int argc, char * const argv[], std::ostream& o
     core::system::unsetenv(kMonitorSharedSecretEnvVar);
  
     // compute the resource path
@@ -220,7 +219,7 @@ index da33662da9..9fc6f04677 100644
     if (error)
     {
        LOG_ERROR_MESSAGE("Unable to determine install path: "+error.getSummary());
-@@ -95,13 +106,13 @@ core::ProgramStatus Options::read(int argc, char * const argv[], std::ostream& o
+@@ -97,13 +108,13 @@ core::ProgramStatus Options::read(int argc, char * const argv[], std::ostream& o
     }
  
     // detect running in OSX bundle and tweak resource path
@@ -236,7 +235,7 @@ index da33662da9..9fc6f04677 100644
     if (resourcePath_.completePath("x86").exists())
     {
        resourcePath_ = resourcePath_.getParent();
-@@ -271,6 +282,7 @@ core::ProgramStatus Options::read(int argc, char * const argv[], std::ostream& o
+@@ -595,6 +606,7 @@ core::ProgramStatus Options::read(int argc, char * const argv[], std::ostream& o
     resolvePath(resourcePath_, &sessionLibraryPath_);
     resolvePath(resourcePath_, &sessionPackageArchivesPath_);
     resolvePostbackPath(resourcePath_, &rpostbackPath_);
@@ -244,7 +243,7 @@ index da33662da9..9fc6f04677 100644
  #ifdef _WIN32
     resolvePath(resourcePath_, &consoleIoPath_);
     resolvePath(resourcePath_, &gnudiffPath_);
-@@ -286,10 +298,14 @@ core::ProgramStatus Options::read(int argc, char * const argv[], std::ostream& o
+@@ -610,10 +622,14 @@ core::ProgramStatus Options::read(int argc, char * const argv[], std::ostream& o
     std::string completion;
     if (pty.isWithin(resourcePath_))
     {
@@ -259,7 +258,7 @@ index da33662da9..9fc6f04677 100644
  #endif
     }
     else
-@@ -488,7 +504,71 @@ void Options::resolvePath(const FilePath& resourcePath,
+@@ -812,7 +828,71 @@ void Options::resolvePath(const FilePath& resourcePath,
                            std::string* pPath)
  {
     if (!pPath->empty())
@@ -332,7 +331,7 @@ index da33662da9..9fc6f04677 100644
  }
  
  #ifdef __APPLE__
-@@ -543,19 +623,32 @@ void Options::resolveRsclangPath(const FilePath& resourcePath,
+@@ -867,19 +947,32 @@ void Options::resolveRsclangPath(const FilePath& resourcePath,
  void Options::resolvePostbackPath(const FilePath& resourcePath,
                                    std::string* pPath)
  {
@@ -366,17 +365,17 @@ index da33662da9..9fc6f04677 100644
  #endif
     
 diff --git a/src/cpp/session/include/session/SessionConstants.hpp b/src/cpp/session/include/session/SessionConstants.hpp
-index e26e371dbc..8edcf286a6 100644
+index 2f2eb9830d..3abbedf37d 100644
 --- a/src/cpp/session/include/session/SessionConstants.hpp
 +++ b/src/cpp/session/include/session/SessionConstants.hpp
-@@ -122,9 +122,30 @@
+@@ -121,6 +121,31 @@
  #define kSessionTmpDirEnvVar       "RS_SESSION_TMP_DIR"
  #define kSessionTmpDir             "rstudio-rsession"
  
 +#if !defined(CONDA_BUILD)
- #define kDefaultPandocPath         "bin/pandoc"
- #define kDefaultPostbackPath       "bin/postback/rpostback"
- #define kDefaultRsclangPath        "bin/rsclang"
++#define kDefaultPandocPath         "bin/pandoc"
++#define kDefaultPostbackPath       "bin/postback/rpostback"
++#define kDefaultRsclangPath        "bin/rsclang"
 +#define kDefaultDiagnosticsPath    "bin/diagnostics"
 +#define kDefaultConsoleIoPath      "bin/consoleio"
 +#define kDefaultGnuDiffPath        "bin/gnudiff"
@@ -397,44 +396,16 @@ index e26e371dbc..8edcf286a6 100644
 +#define kDefaultGnuGrepPath        "../../mingw-w64/bin"
 +#define kDefaultMsysSshPath        "../../usr/bin"
 +#endif
- 
++
  // json rpc methods we handle (the rest are delegated to the HttpServer)
- const char * const kClientInit = "client_init";
-diff --git a/src/cpp/session/include/session/SessionOptions.gen.hpp b/src/cpp/session/include/session/SessionOptions.gen.hpp
-index fa8c62dd5b..4ac3aa10fc 100644
---- a/src/cpp/session/include/session/SessionOptions.gen.hpp
-+++ b/src/cpp/session/include/session/SessionOptions.gen.hpp
-@@ -310,17 +310,20 @@ protected:
-       ("external-rpostback-path",
-       value<std::string>(&rpostbackPath_)->default_value(kDefaultPostbackPath),
-       "Specifies the path to the rpostback executable.")
-+      ("external-diagnostics-path",
-+       value<std::string>(&diagnosticsPath_)->default_value(kDefaultDiagnosticsPath),
-+       "Path to diagnostics executable")
-       ("external-consoleio-path",
--      value<std::string>(&consoleIoPath_)->default_value("bin/consoleio.exe"),
-+      value<std::string>(&consoleIoPath_)->default_value(kDefaultConsoleIoPath),
-       "Specifies the path to the consoleio executable.")
-       ("external-gnudiff-path",
--      value<std::string>(&gnudiffPath_)->default_value("bin/gnudiff"),
-+      value<std::string>(&gnudiffPath_)->default_value(kDefaultGnuDiffPath),
-       "Specifies the path to gnudiff utilities (Windows-only).")
-       ("external-gnugrep-path",
--      value<std::string>(&gnugrepPath_)->default_value("bin/gnugrep"),
-+      value<std::string>(&gnugrepPath_)->default_value(kDefaultGnuGrepPath),
-       "Specifies the path to gnugrep utilities (Windows-only).")
-       ("external-msysssh-path",
--      value<std::string>(&msysSshPath_)->default_value("bin/msys-ssh-1000-18"),
-+      value<std::string>(&msysSshPath_)->default_value(kDefaultMsysSshPath),
-       "Specifies the path to msys_ssh utilities (Windows-only).")
-       ("external-sumatra-path",
-       value<std::string>(&sumatraPath_)->default_value("bin/sumatra"),
+ const char * const kClientInit = "client_init" ;
+ const char * const kEditCompleted = "edit_completed";
 diff --git a/src/cpp/session/include/session/SessionOptions.hpp b/src/cpp/session/include/session/SessionOptions.hpp
-index 719a2fb253..90dae6d806 100644
+index e60fcdfb80..2b24d72538 100644
 --- a/src/cpp/session/include/session/SessionOptions.hpp
 +++ b/src/cpp/session/include/session/SessionOptions.hpp
-@@ -83,6 +83,11 @@ public:
-       return core::FilePath(userScratchPath_.c_str());
+@@ -476,6 +476,11 @@ public:
+       return core::FilePath(userScratchPath_.c_str()); 
     }
  
 +   core::FilePath diagnosticsPath() const
@@ -445,9 +416,9 @@ index 719a2fb253..90dae6d806 100644
     core::FilePath userLogPath() const
     {
        return userScratchPath().completeChildPath("log");
-@@ -284,6 +289,18 @@ private:
-    void resolvePostbackPath(const core::FilePath& resourcePath, std::string* pPath);
+@@ -640,6 +645,18 @@ private:
     void resolvePandocPath(const core::FilePath& resourcePath, std::string* pPath);
+ 
     void resolveRsclangPath(const core::FilePath& resourcePath, std::string* pPath);
 +   void resolveIDEPath(const std::string& projectName,
 +                       const std::string& exeName,
@@ -462,8 +433,8 @@ index 719a2fb253..90dae6d806 100644
 +   void resolveDiagnosticsPath(const core::FilePath& resourcePath,
 +                               std::string* pPath);
  
-    void resolveOverlayOptions();
-    bool allowOverlay() const;
+    void addOverlayOptions(boost::program_options::options_description* pOpt);
+    bool validateOverlayOptions(std::string* pErrMsg, std::ostream& osWarnings);
 -- 
-2.28.0.windows.1
+2.29.2.windows.3
 
