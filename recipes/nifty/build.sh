@@ -10,6 +10,12 @@ PY_VER=$(python -c "import sys; print('{}.{}'.format(*sys.version_info[:2]))")
 PY_ABIFLAGS=$(python -c "import sys; print('' if sys.version_info.major == 2 else sys.abiflags)")
 PY_ABI=${PY_VER}${PY_ABIFLAGS}
 
+# cannot build with c++ 17 on macos due to vigra issues, see
+# https://github.com/ukoethe/vigra/issues/481
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    CXX_FLAGS="${CXX_FLAGS/std=c++17/std=c++14}"
+fi
+
 ##
 ## Configure
 ##

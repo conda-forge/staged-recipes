@@ -9,10 +9,12 @@ cmake .. -G "%CMAKE_GENERATOR%" ^
          -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
          -DBOOST_ROOT="%LIBRARY_PREFIX%" ^
          -DBUILD_NIFTY_PYTHON=ON ^
-         -DWITH_HDF5=ON ^
-         -DWITH_Z5=ON ^
-         -DWITH_ZLIB=ON ^
-         -DWITH_BLOSC=ON^
+         -DWITH_HDF5=OFF ^
+         -DWITH_Z5=OFF ^
          -DPYTHON_EXECUTABLE="%PYTHON%"
+REM FIXME z5 builds fail on windows
+REM         -DWITH_Z5=ON ^
+REM         -DWITH_ZLIB=ON ^
+REM         -DWITH_BLOSC=ON ^
 
 cmake --build . --config %CONFIGURATION% --target install
