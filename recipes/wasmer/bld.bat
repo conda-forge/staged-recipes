@@ -5,11 +5,14 @@
 cd lib/cli
 
 :: build
-cargo install --root "$PREFIX" --path . --features "cranelift llvm singlepass" || goto :error
+cargo install --root "%PREFIX%" --path . --features "cranelift llvm singlepass" || goto :error
+
+set WASMER_BIN=%PREFIX%\bin\wasmer.exe
 
 :: move to scripts
+dir %WASMER_BIN%
 md %SCRIPTS% || echo "%SCRIPTS% already exists"
-move %PREFIX%\bin\wasmer.exe %SCRIPTS% || goto :error
+move %WASMER_BIN% %SCRIPTS% || goto :error
 
 :: install cargo-license and dump licenses
 set CARGO_LICENSE_BIN=%BUILD_PREFIX%\.cargo\bin\cargo-license
