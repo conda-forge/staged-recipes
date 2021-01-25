@@ -13,22 +13,10 @@ if errorlevel 1 exit 1
 cp mecab.h "%PREFIX%\include\"
 if errorlevel 1 exit 1
 
-cp libmecab.dll "%PREFIX%\lib\" 
-if errorlevel 1 exit 1
-cp libmecab.lib "%PREFIX%\lib\" 
+cp libmecab.* "%PREFIX%\lib\" 
 if errorlevel 1 exit 1
 
-cp mecab.exe "%PREFIX%\bin\"
-if errorlevel 1 exit 1
-cp mecab-cost-train.exe "%PREFIX%\bin\"
-if errorlevel 1 exit 1
-cp mecab-dict-gen.exe "%PREFIX%\bin\"
-if errorlevel 1 exit 1
-cp mecab-dict-index.exe "%PREFIX%\bin\"
-if errorlevel 1 exit 1
-cp mecab-system-eval.exe "%PREFIX%\bin\"
-if errorlevel 1 exit 1
-cp mecab-test-gen.exe "%PREFIX%\bin\"
+cp *.exe "%PREFIX%\bin\"
 if errorlevel 1 exit 1
 
 if errorlevel 1 exit /b 1
