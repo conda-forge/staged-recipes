@@ -3,7 +3,6 @@
 set -o xtrace -o nounset -o pipefail -o errexit
 
 export RUST_BACKTRACE=1
-export CARGO_LICENSES_FILE=$SRC_DIR/$PKG_NAME-$PKG_VERSION-cargo-dependencies.json
 
 if [ $(uname) = Darwin ] ; then
   export RUSTFLAGS="-C link-args=-Wl,-rpath,${PREFIX}/lib"
@@ -17,10 +16,10 @@ cd lib/cli
 cargo install --locked --root "$PREFIX" --path . --features "cranelift llvm singlepass"
 
 # install cargo-license and dump licenses
-cargo install cargo-license
+export CARGO_LICENSES_FILE=$SRC_DIR/$PKG_NAME-$PKG_VERSION-cargo-dependencies.json
 
-export CARGO_LICENSE_BIN=$BUILD_PREFIX/.cargo/bin/cargo-license
-$CARGO_LICENSE_BIN --json > $CARGO_LICENSES_FILE
+cargo install --root "$BUILD_PREFIX" cargo-license
+cargo-license --json > $CARGO_LICENSES_FILE
 ls -lathr $CARGO_LICENSES_FILE
 
 # remove extra build files
