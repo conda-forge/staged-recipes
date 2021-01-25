@@ -1,3 +1,7 @@
 #!/usr/bin/env sh 
 
-tests/run-eval.sh && tests/run-dics.sh && test/run-cost-train.sh
+set -e
+set +x
+
+$PREFIX/bin/mecab -v
+$PREFIX/bin/mecab -h || true
