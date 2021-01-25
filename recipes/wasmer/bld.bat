@@ -1,8 +1,10 @@
 :: NOTE: mostly derived from
 :: https://github.com/conda-forge/py-spy-feedstock/blob/master/recipe/bld.bat
 
+cd lib/cli
+
 :: build
-cargo install --root "$PREFIX" --path lib/cli --features "cranelift llvm singlepass" || goto :error
+cargo install --root "$PREFIX" --path . --features "cranelift llvm singlepass" || goto :error
 
 :: move to scripts
 md %SCRIPTS% || echo "%SCRIPTS% already exists"

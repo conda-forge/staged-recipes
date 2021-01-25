@@ -11,8 +11,10 @@ else
   export RUSTFLAGS="-C link-arg=-Wl,-rpath-link,${PREFIX}/lib -L${PREFIX}/lib"
 fi
 
+cd lib/cli
+
 # build statically linked binary with Rust
-cargo install --locked --root "$PREFIX" --path lib/cli --features "cranelift llvm singlepass"
+cargo install --locked --root "$PREFIX" --path . --features "cranelift llvm singlepass"
 
 # install cargo-license and dump licenses
 cargo install cargo-license
