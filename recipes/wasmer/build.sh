@@ -21,6 +21,8 @@ export CARGO_LICENSES_FILE=$SRC_DIR/$PKG_NAME-$PKG_VERSION-cargo-dependencies.js
 cargo install --root "$BUILD_PREFIX" cargo-license
 cargo-license --json > $CARGO_LICENSES_FILE
 ls -lathr $CARGO_LICENSES_FILE
+# TODO: remove this?
+cat $CARGO_LICENSES_FILE
 
 # remove extra build files
 rm -f "${PREFIX}/.crates2.json"
