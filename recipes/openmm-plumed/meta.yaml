@@ -1,0 +1,79 @@
+{% set name = "openmm-plumed" %}
+{% set version = "1.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/openmm/openmm-plumed/archive/v{{ version }}.tar.gz
+  sha256: 97cbffab7a452a3c8f0b00c301c9a796b752ee73e30dc5c1b2435678dd7c73ed
+  patches:
+  - cmakelists.patch
+
+build:
+  number: 0
+  skip: true  # [win]
+  missing_dso_whitelist:
+    - "*/libcuda.*"    # [linux64 or ppc64le]
+    # For some reason conda fails to patch Test* executables linking to this library
+    # However, they run locally :/
+    - "*/libOpenMMPlumed.dylib"  # [osx]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [linux and cuda_compiler_version != 'None']
+    - {{ cdt('mesa-libgl-devel') }}  # [linux]
+    - cmake
+    - make
+  host:
+    - python
+    - pip
+    - openmm
+    - plumed >=2.7
+    - swig
+    - ocl-icd  # [linux]
+    - khronos-opencl-icd-loader  # [osx]
+  run:
+    - python
+    - {{ pin_compatible('openmm', min_pin='x.x', max_pin='x.x') }}
+    - plumed >=2.7
+    - ocl-icd  # [linux]
+    - ocl-icd-system  # [linux]
+    - khronos-opencl-icd-loader  # [osx]
+    - ocl_icd_wrapper_apple      # [osx]
+
+test:
+  imports:
+    - openmmplumed
+  commands: |
+    cd ${PREFIX}/share/openmm-plumed/tests
+    set +e
+    for f in Test*; do
+      if [[ $f == *Cuda* || $f == *OpenCL* ]]; then
+        continue
+      fi
+      ./${f}
+      ((exitcode+=$?))
+    done
+    exit $exitcode
+
+
+about:
+  home: https://github.com/openmm/openmm-plumed
+  license: MIT
+  license_file: README.md
+  summary: 'A connection between OpenMM and PLUMED'
+  description: |
+    This project provides a connection between OpenMM and PLUMED.
+    It allows you to bias or analyze an OpenMM simulation based
+    on collective variables.
+  doc_url: https://github.com/openmm/openmm-plumed
+  dev_url: https://github.com/openmm/openmm-plumed
+
+extra:
+  recipe-maintainers:
+    - jaimergp
+    - peastman
