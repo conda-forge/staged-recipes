@@ -18,7 +18,9 @@ cargo install --locked --root "$PREFIX" --path . --features "cranelift llvm sing
 
 # install cargo-license and dump licenses
 cargo install cargo-license
-cargo-license --json > $CARGO_LICENSES_FILE
+
+export CARGO_LICENSE_BIN=$BUILD_PREFIX/.cargo/bin/cargo-license
+$CARGO_LICENSE_BIN --json > $CARGO_LICENSES_FILE
 ls -lathr $CARGO_LICENSES_FILE
 
 # remove extra build files
