@@ -15,7 +15,7 @@ md %SCRIPTS% || echo "%SCRIPTS% already exists"
 move %WASMER_BIN% %SCRIPTS% || goto :error
 
 :: install cargo-license and dump licenses
-set CARGO_LICENSE_BIN=%BUILD_PREFIX%\.cargo\bin\cargo-license
+set CARGO_LICENSE_BIN=%BUILD_PREFIX%\bin\cargo-license.exe
 set CARGO_LICENSES_FILE=%SRC_DIR%\%PKG_NAME%-%PKG_VERSION%-cargo-dependencies.json
 
 cargo install --root "%BUILD_PREFIX%" cargo-license
