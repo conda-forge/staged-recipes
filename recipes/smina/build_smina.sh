@@ -18,6 +18,3 @@ cmake ${SRC_DIR} ${CMAKE_ARGS} \
 make -j${CPU_COUNT}
 
 cp smina ${PREFIX}/bin
-
-mkdir -p ${PREFIX}/share/smina/examples
-cp ../examples/* ${PREFIX}/share/smina/examples

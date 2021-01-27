@@ -21,11 +21,7 @@ cmake %SRC_DIR% %CMAKE_ARGS% ^
 
 cmake --build . || goto :error
 
-copy /q smina.exe %LIBRARY_PREFIX%\bin || goto :error
-
-mkdir %LIBRARY_PREFIX%\share\smina || goto :error
-robocopy /S /Q ..\examples %LIBRARY_PREFIX%\share\smina || goto :error
-
+copy smina.exe %LIBRARY_PREFIX%\bin || goto :error
 
 goto :EOF
 
