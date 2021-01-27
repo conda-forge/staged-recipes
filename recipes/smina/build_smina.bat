@@ -27,6 +27,8 @@ mkdir %LIBRARY_PREFIX%\share\smina || goto :error
 robocopy /S /Q ..\examples %LIBRARY_PREFIX%\share\smina || goto :error
 
 
+goto :EOF
+
 :error
 set errorcode=!errorlevel!
 echo Failed with error !errorcode!
