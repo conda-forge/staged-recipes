@@ -6,6 +6,11 @@ rmdir build /S /Q
 mkdir build
 cd build
 
+:: Patch version.cpp
+echo const char* GIT_REV="%GIT_DESCRIBE_HASH%+%GIT_DESCRIBE_NUMBER%"; >  version.cpp
+echo const char* GIT_TAG="%PKG_VERSION%";  >> version.cpp
+echo const char* GIT_BRANCH="conda-forge"; >> version.cpp
+
 cmake %SRC_DIR% %CMAKE_ARGS% ^
     -GNinja ^
     -DCMAKE_BUILD_TYPE=Release ^
@@ -14,7 +19,7 @@ cmake %SRC_DIR% %CMAKE_ARGS% ^
     -DOPENBABEL3_LIBRARIES="%LIBRARY_PREFIX%/bin/openbabel-3.lib" ^
     || goto :error
 
-cmake --build . -v || goto :error
+cmake --build . || goto :error
 
 copy /q smina.exe %LIBRARY_PREFIX%\bin || goto :error
 
