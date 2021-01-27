@@ -13,8 +13,7 @@ echo "const char* GIT_BRANCH=\"conda-forge\";" >> version.cpp
 cmake ${SRC_DIR} ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-    -DOPENBABEL_DIR="${PREFIX}" \
-    -DOPENBABEL3_LIBRARIES="${PREFIX}/bin/openbabel-3.lib"
+    -DOPENBABEL_DIR="${PREFIX}"
 
 make -j${CPU_COUNT}
 
