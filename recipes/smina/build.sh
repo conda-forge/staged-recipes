@@ -3,6 +3,7 @@
 set -euxo pipefail
 
 CMAKE_FLAGS="${CMAKE_ARGS} -DCMAKE_PREFIX_PATH=${PREFIX} -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_BUILD_TYPE=Release"
+export OPENBABEL_INCLUDE_DIR="${PREFIX}/include"
 
 mkdir build
 cd build
