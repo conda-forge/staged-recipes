@@ -2,13 +2,20 @@
 
 set -euxo pipefail
 
-CMAKE_FLAGS="${CMAKE_ARGS} -DCMAKE_PREFIX_PATH=${PREFIX} -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_BUILD_TYPE=Release"
-export OPENBABEL_INCLUDE_DIR="${PREFIX}/include"
-
 mkdir build
 cd build
 
-cmake ${CMAKE_FLAGS} ${SRC_DIR}
+# Patch version.cpp
+echo "const char* GIT_REV=\"${GIT_HASH}\";"    >  version.cpp
+echo "const char* GIT_TAG=\"${PKG_VERSION}\";" >> version.cpp
+echo "const char* GIT_BRANCH=\"conda-forge\";" >> version.cpp
+
+cmake ${SRC_DIR} ${CMAKE_ARGS} \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+    -DOPENBABEL_DIR="${PREFIX}" \
+    -DOPENBABEL3_LIBRARIES="${PREFIX}/bin/openbabel-3.lib"
+
 make -j${CPU_COUNT}
 
 cp smina ${PREFIX}/bin

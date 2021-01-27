@@ -7,7 +7,7 @@ mkdir build
 cd build
 
 :: Patch version.cpp
-echo const char* GIT_REV="%GIT_DESCRIBE_HASH%+%GIT_DESCRIBE_NUMBER%"; >  version.cpp
+echo const char* GIT_REV="%GIT_HASH%";     >  version.cpp
 echo const char* GIT_TAG="%PKG_VERSION%";  >> version.cpp
 echo const char* GIT_BRANCH="conda-forge"; >> version.cpp
 
