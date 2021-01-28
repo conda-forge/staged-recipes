@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
 
 ./configure --prefix=$PREFIX --with-charset=utf8
-make 
+make -j${CPU_COUNT}
 make install
