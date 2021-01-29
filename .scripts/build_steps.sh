@@ -24,6 +24,9 @@ CONDARC
 # Copy the host recipes folder so we don't ever muck with it
 cp -r /home/conda/staged-recipes ~/staged-recipes-copy
 
+# Remove any macOS system files
+find ~/staged-recipes-copy/recipes -maxdepth 1 -name ".DS_Store" -delete
+
 # Find the recipes from master in this PR and remove them.
 echo "Pending recipes."
 ls -la ~/staged-recipes-copy/recipes
