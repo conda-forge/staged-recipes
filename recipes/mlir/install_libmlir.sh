@@ -7,6 +7,7 @@ cd $PREFIX
 rm -rf libexec share bin include
 mv lib lib2
 mkdir lib
+cp lib2/libLLVM* lib/
 if [[ "$PKG_NAME" == "libmlir" ]]; then
     cp lib2/libMLIR${SHLIB_EXT} lib/
     cp lib2/libmlir_runner_utils${SHLIB_EXT} lib/
