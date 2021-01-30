@@ -142,8 +142,7 @@ using a special command in a comment on the PR to get the attention of the `stag
 
 If your recipe still does not receive any attention after a few days, you may
 attempt to re-ping @conda-forge/staged-recipes. You may also attempt to bring
-the PR up in our Gitter chat room at https://gitter.im/conda-forge/conda-forge.github.io
-or on our [Keybase chat](https://keybase.io/team/condaforge.chat) if your recipe isn't reviewed promptly.
+the PR up in our Gitter chat room at https://gitter.im/conda-forge/conda-forge.github.io.
 
 All apologies in advance if your recipe PR does not recieve prompt attention.
 This is a high volume repository and issues can easily be missed. We are always
@@ -172,4 +171,3 @@ cxx_compiler:                           # [unix]
 fortran_compiler:                       # [unix]
 - gfortran                              # [unix]
 ```
-
