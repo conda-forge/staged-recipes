@@ -8,4 +8,3 @@ cmake -GNinja ^
   ..\mlir
 
 ninja -j%CPU_COUNT%
-ninja install
