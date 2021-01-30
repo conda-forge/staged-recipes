@@ -1,0 +1,188 @@
+diff --git a/mlir/CMakeLists.txt b/mlir/CMakeLists.txt
+index 806eb42..9df661c 100644
+--- a/mlir/CMakeLists.txt
++++ b/mlir/CMakeLists.txt
+@@ -1,10 +1,37 @@
+ # MLIR project.
++
++# Check if MLIR is built as a standalone project.
++if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
++  project(mlir)
++  cmake_minimum_required(VERSION 3.13.4)
++
++  find_package(LLVM CONFIG REQUIRED)
++  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${LLVM_CMAKE_DIR})
++  include(HandleLLVMOptions)
++  include(AddLLVM)
++  include(TableGen)
++
++  include_directories(${LLVM_INCLUDE_DIRS})
++
++  set(LLVM_MAIN_SRC_DIR ${CMAKE_SOURCE_DIR}/../llvm CACHE PATH
++      "Path to LLVM source tree")
++  set(UNITTEST_DIR ${LLVM_MAIN_SRC_DIR}/utils/unittest)
++  if(EXISTS ${UNITTEST_DIR}/googletest/include/gtest/gtest.h)
++    add_subdirectory(${UNITTEST_DIR} utils/unittest)
++  endif()
++
++  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY
++    "${CMAKE_CURRENT_BINARY_DIR}/lib${LLVM_LIBDIR_SUFFIX}")
++  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
++endif()
++
+ set(MLIR_MAIN_SRC_DIR     ${CMAKE_CURRENT_SOURCE_DIR}  )
+ set(MLIR_MAIN_INCLUDE_DIR ${MLIR_MAIN_SRC_DIR}/include )
+ 
+ set(MLIR_SOURCE_DIR  ${CMAKE_CURRENT_SOURCE_DIR})
+ set(MLIR_BINARY_DIR  ${CMAKE_CURRENT_BINARY_DIR})
+ set(MLIR_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/include)
++set(MLIR_TOOLS_DIR   ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+ 
+ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
+ 
+@@ -95,7 +122,11 @@ add_subdirectory(include/mlir)
+ add_subdirectory(lib)
+ if (MLIR_INCLUDE_TESTS)
+   add_definitions(-DMLIR_INCLUDE_TESTS)
+-  add_subdirectory(unittests)
++  if (TARGET gtest)
++    add_subdirectory(unittests)
++  else()
++    message(WARNING "gtest not found, unittests will not be available")
++  endif()
+   add_subdirectory(test)
+ endif()
+ if (MLIR_INCLUDE_INTEGRATION_TESTS)
+diff --git a/mlir/lib/Conversion/GPUToNVVM/CMakeLists.txt b/mlir/lib/Conversion/GPUToNVVM/CMakeLists.txt
+index a0e8d6d..7d6e562 100644
+--- a/mlir/lib/Conversion/GPUToNVVM/CMakeLists.txt
++++ b/mlir/lib/Conversion/GPUToNVVM/CMakeLists.txt
+@@ -1,6 +1,7 @@
+ set(LLVM_TARGET_DEFINITIONS GPUToNVVM.td)
+ mlir_tablegen(GPUToNVVM.cpp.inc -gen-rewriters)
+ add_public_tablegen_target(MLIRGPUToNVVMIncGen)
++include_directories(${CMAKE_CURRENT_BINARY_DIR})
+ 
+ add_mlir_conversion_library(MLIRGPUToNVVMTransforms
+   LowerGpuOpsToNVVMOps.cpp
+diff --git a/mlir/lib/Conversion/GPUToROCDL/CMakeLists.txt b/mlir/lib/Conversion/GPUToROCDL/CMakeLists.txt
+index 0871b27..16dd0b5 100644
+--- a/mlir/lib/Conversion/GPUToROCDL/CMakeLists.txt
++++ b/mlir/lib/Conversion/GPUToROCDL/CMakeLists.txt
+@@ -1,6 +1,7 @@
+ set(LLVM_TARGET_DEFINITIONS GPUToROCDL.td)
+ mlir_tablegen(GPUToROCDL.cpp.inc -gen-rewriters)
+ add_public_tablegen_target(MLIRGPUToROCDLIncGen)
++include_directories(${CMAKE_CURRENT_BINARY_DIR})
+ 
+ add_mlir_conversion_library(MLIRGPUToROCDLTransforms
+   LowerGpuOpsToROCDLOps.cpp
+diff --git a/mlir/lib/Conversion/GPUToSPIRV/CMakeLists.txt b/mlir/lib/Conversion/GPUToSPIRV/CMakeLists.txt
+index cce793f..62b0c44 100644
+--- a/mlir/lib/Conversion/GPUToSPIRV/CMakeLists.txt
++++ b/mlir/lib/Conversion/GPUToSPIRV/CMakeLists.txt
+@@ -1,6 +1,7 @@
+ set(LLVM_TARGET_DEFINITIONS GPUToSPIRV.td)
+ mlir_tablegen(GPUToSPIRV.cpp.inc -gen-rewriters)
+ add_public_tablegen_target(MLIRGPUToSPIRVIncGen)
++include_directories(${CMAKE_CURRENT_BINARY_DIR})
+ 
+ add_mlir_conversion_library(MLIRGPUToSPIRVTransforms
+   ConvertGPUToSPIRV.cpp
+diff --git a/mlir/lib/Conversion/ShapeToStandard/CMakeLists.txt b/mlir/lib/Conversion/ShapeToStandard/CMakeLists.txt
+index 4d97af2..007ff69 100644
+--- a/mlir/lib/Conversion/ShapeToStandard/CMakeLists.txt
++++ b/mlir/lib/Conversion/ShapeToStandard/CMakeLists.txt
+@@ -2,6 +2,7 @@ set(LLVM_TARGET_DEFINITIONS ShapeToStandardPatterns.td)
+ mlir_tablegen(ShapeToStandardPatterns.inc -gen-rewriters)
+ add_public_tablegen_target(ShapeToStandardPatternsIncGen)
+ 
++include_directories(${CMAKE_CURRENT_BINARY_DIR})
+ add_mlir_conversion_library(MLIRShapeToStandard
+   ShapeToStandard.cpp
+ 
+diff --git a/mlir/lib/Dialect/SPIRV/CMakeLists.txt b/mlir/lib/Dialect/SPIRV/CMakeLists.txt
+index fd34c14..8d745c0 100644
+--- a/mlir/lib/Dialect/SPIRV/CMakeLists.txt
++++ b/mlir/lib/Dialect/SPIRV/CMakeLists.txt
+@@ -5,6 +5,7 @@ endif()
+ set(LLVM_TARGET_DEFINITIONS SPIRVCanonicalization.td)
+ mlir_tablegen(SPIRVCanonicalization.inc -gen-rewriters)
+ add_public_tablegen_target(MLIRSPIRVCanonicalizationIncGen)
++include_directories(${CMAKE_CURRENT_BINARY_DIR})
+ 
+ add_mlir_dialect_library(MLIRSPIRV
+   LayoutUtils.cpp
+diff --git a/mlir/lib/Dialect/Shape/IR/CMakeLists.txt b/mlir/lib/Dialect/Shape/IR/CMakeLists.txt
+index 84e085f..3e4f73f 100644
+--- a/mlir/lib/Dialect/Shape/IR/CMakeLists.txt
++++ b/mlir/lib/Dialect/Shape/IR/CMakeLists.txt
+@@ -1,6 +1,7 @@
+ set(LLVM_TARGET_DEFINITIONS ShapeCanonicalization.td)
+ mlir_tablegen(ShapeCanonicalization.inc -gen-rewriters)
+ add_public_tablegen_target(MLIRShapeCanonicalizationIncGen)
++include_directories(${CMAKE_CURRENT_BINARY_DIR})
+ 
+ add_mlir_dialect_library(MLIRShape
+   Shape.cpp
+diff --git a/mlir/test/CMakeLists.txt b/mlir/test/CMakeLists.txt
+index b663d37..b9a27a1 100644
+--- a/mlir/test/CMakeLists.txt
++++ b/mlir/test/CMakeLists.txt
+@@ -39,7 +39,6 @@ configure_lit_site_cfg(
+ 
+ set(MLIR_TEST_DEPENDS
+   FileCheck count not
+-  MLIRUnitTests
+   mlir-cpu-runner
+   mlir-edsc-builder-api-test
+   mlir-linalg-ods-gen
+@@ -53,6 +52,9 @@ set(MLIR_TEST_DEPENDS
+   mlir_runner_utils
+   mlir_c_runner_utils
+   )
++if(TARGET gtest)
++  list(APPEND MLIR_TEST_DEPENDS MLIRUnitTests)
++endif()
+ 
+ if(LLVM_BUILD_EXAMPLES)
+   list(APPEND MLIR_TEST_DEPENDS
+diff --git a/mlir/test/lib/Dialect/Test/CMakeLists.txt b/mlir/test/lib/Dialect/Test/CMakeLists.txt
+index b48d464..75cdac3 100644
+--- a/mlir/test/lib/Dialect/Test/CMakeLists.txt
++++ b/mlir/test/lib/Dialect/Test/CMakeLists.txt
+@@ -2,6 +2,7 @@ set(LLVM_OPTIONAL_SOURCES
+   TestDialect.cpp
+   TestPatterns.cpp
+ )
++include_directories(${CMAKE_CURRENT_BINARY_DIR})
+ 
+ set(LLVM_TARGET_DEFINITIONS TestInterfaces.td)
+ mlir_tablegen(TestTypeInterfaces.h.inc -gen-type-interface-decls)
+diff --git a/mlir/test/lit.cfg.py b/mlir/test/lit.cfg.py
+index 2ef1710..7330ca4 100644
+--- a/mlir/test/lit.cfg.py
++++ b/mlir/test/lit.cfg.py
+@@ -59,6 +59,10 @@ tools = [
+     'mlir-tblgen',
+     'mlir-translate',
+     'mlir-edsc-builder-api-test',
++    'mlir-cpu-runner',
++    'mlir-linalg-ods-gen',
++    'mlir-reduce',
++    'mlir-sdbm-api-test',
+ ]
+ 
+ # The following tools are optional
+diff --git a/mlir/unittests/TableGen/CMakeLists.txt b/mlir/unittests/TableGen/CMakeLists.txt
+index cb4dea6..03194e8 100644
+--- a/mlir/unittests/TableGen/CMakeLists.txt
++++ b/mlir/unittests/TableGen/CMakeLists.txt
+@@ -8,6 +8,7 @@ mlir_tablegen(StructAttrGenTest.h.inc -gen-struct-attr-decls)
+ mlir_tablegen(StructAttrGenTest.cpp.inc -gen-struct-attr-defs)
+ add_public_tablegen_target(MLIRTableGenStructAttrIncGen)
+ 
++include_directories(${CMAKE_CURRENT_BINARY_DIR})
+ add_mlir_unittest(MLIRTableGenTests
+   EnumsGenTest.cpp
+   StructsGenTest.cpp

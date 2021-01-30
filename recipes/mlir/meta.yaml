@@ -1,0 +1,116 @@
+{% set version = "11.0.1" %}
+{% set major_version = version.split(".")[0] %}
+
+package:
+  name: mlir-split
+  version: {{ version }}
+
+source:
+  - url: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{ version.replace(".rc", "-rc") }}/llvm-project-{{ version.replace(".rc", "rc") }}.src.tar.xz
+    sha256: af95d00f833dd67114b21c3cfe72dff2e1cdab627651f977b087a837136d653b
+    patches:
+      # https://reviews.llvm.org/D85464
+      - out-of-tree.diff
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - cmake
+    - make                    # [unix]
+    - {{ compiler('cxx') }}
+  host:
+    - llvmdev {{ version }}
+    - llvm {{ version }}
+
+outputs:
+  - name: mlir
+    script: install_mlir.sh  # [unix]
+    script: install_mlir.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja  # [win]
+        - make   # [unix]
+        - llvmdev {{ version }}    # [build_platform != target_platform]
+      host:
+        - {{ pin_subpackage("libmlir", exact=True) }}
+        - llvmdev {{ version }}
+      run:
+        - {{ pin_subpackage("libmlir", exact=True) }}
+        - llvmdev {{ version }}
+    test:
+      commands:
+        - test -f "$PREFIX/include/mlir-c/Core.h"                  # [unix]
+        - test -f "$PREFIX/lib/libMLIRIR.a"                        # [unix]
+        - if not exist %LIBRARY_INC%\\mlir-c\\Core.h exit 1        # [win]
+        - if not exist %LIBRARY_LIB%\\MLIRIR.lib exit 1            # [win]
+
+  - name: libmlir{{ major_version }}
+    script: install_libmlir.sh  # [unix]
+    build:
+      run_exports:
+        - {{ pin_subpackage("libmlir" + major_version, max_pin="x.x") }}   # [unix]
+      skip: true  # [win]
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja  # [win]
+        - make   # [unix]
+        - llvmdev {{ version }}    # [build_platform != target_platform]
+      host:
+        - llvmdev {{ version }}
+        - llvm {{ version }}
+    test:
+      commands:
+        - test ! -f "$PREFIX/lib/libMLIR$SHLIB_EXT"                                # [unix]
+        - test ! -f "$PREFIX/lib/libmlir_runner_utils$SHLIB_EXT"                   # [unix]
+        - test ! -f "$PREFIX/lib/libmlir_c_runner_utils$SHLIB_EXT"                 # [unix]
+        - test ! -f "$PREFIX/lib/libmlir_c_runner_utils_static.a"                  # [unix]
+        - test -f "$PREFIX/lib/libMLIR.so.{{ major_version }}"                     # [linux]
+        - test -f "$PREFIX/lib/libmlir_runner_utils.so.{{ major_version }}"        # [linux]
+        - test -f "$PREFIX/lib/libmlir_c_runner_utils.so.{{ major_version }}"      # [linux]
+        - test -f "$PREFIX/lib/libMLIR.{{ major_version }}.dylib"                  # [osx]
+        - test -f "$PREFIX/lib/libmlir_runner_utils.{{ major_version }}.dylib"     # [osx]
+        - test -f "$PREFIX/lib/libmlir_c_runner_utils.{{ major_version }}.dylib"   # [osx]
+
+  - name: libmlir
+    script: install_libmlir.sh  # [unix]
+    build:
+      {% if not win %}
+      run_exports:   # [unix]
+        - {{ pin_subpackage("libmlir" + major_version, max_pin="x.x") }}   # [unix]
+      {% endif %}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja  # [win]
+        - make   # [unix]
+        - llvmdev {{ version }}    # [build_platform != target_platform]
+      host:
+        - llvmdev {{ version }}
+        - llvm {{ version }}
+        - {{ pin_subpackage("libmlir" + major_version, exact=True) }}  # [unix]
+      run:
+        - {{ pin_subpackage("libmlir" + major_version, exact=True) }}  # [unix]
+    test:
+      commands:
+        - test -f "$PREFIX/lib/libMLIR${SHLIB_EXT}"            # [unix]
+        - if exist %LIBRARY_BIN%\\libmlir.dll exit 1           # [win]
+
+about:
+  home: http://llvm.org/
+  license: Apache-2.0 WITH LLVM-exception
+  license_file: mlir/LICENSE.TXT
+  license_family: Apache
+  summary: Multi-Level IR Compiler Framework
+
+extra:
+  recipe-maintainers:
+    - isuruf
+    - kaushikcfd
+  feedstock-name: mlir
