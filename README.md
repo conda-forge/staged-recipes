@@ -136,9 +136,13 @@ If your PR is passing all checks, but has not been acted on by the staged recipe
 maintainers, you can ping @conda-forge/staged-recipes to request action. You do
 not need to wait any specific amount of time once the recipe is ready to go.
 
+Due to GitHub limitations first time contributors to conda-forge are unable
+to ping these teams. You can [ping the team](https://conda-forge.org/docs/maintainer/infrastructure.html#conda-forge-admin-please-ping-team)
+using a special command in a comment on the PR to get the attention of the `staged-recipes` team.
+
 If your recipe still does not receive any attention after a few days, you may
 attempt to re-ping @conda-forge/staged-recipes. You may also attempt to bring
-the PR up in our Gitter chat room at https://gitter.im/conda-forge/conda-forge.github.io
+the PR up in our Gitter chat room at https://gitter.im/conda-forge/conda-forge.github.io.
 
 All apologies in advance if your recipe PR does not recieve prompt attention.
 This is a high volume repository and issues can easily be missed. We are always
@@ -167,4 +171,3 @@ cxx_compiler:                           # [unix]
 fortran_compiler:                       # [unix]
 - gfortran                              # [unix]
 ```
-
