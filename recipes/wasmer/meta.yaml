@@ -1,0 +1,554 @@
+{% set name = "wasmer" %}
+{% set version = "1.0.1" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/wasmerio/{{ name }}/archive/{{ version }}.tar.gz
+  sha256: ca5ea30bfd0700b5f89dace19516991dbc9ef38cf451f5bf11cab283e5f12777
+
+build:
+  # TODO: determine if we can use a newer OSX, or somehow push upstream on the missing pieces
+  skip: true  # [osx]
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler("c") }}
+    - {{ compiler("cxx") }}
+    - {{ compiler("rust") }}
+    - llvmdev >=10
+  host:
+    - libffi
+    - openssl
+    - zlib
+  run: []
+
+# TODO: Also Included in the 1.0.1 release is an experimental, minified version
+#       of wasmer called wasmer-headless that can only run precompiled Wasm modules.
+# outputs:
+
+# TODO: ideally have some "canonical" WASM to run...
+{% set test_wasm = "tests/wasi-wast/wasi/snapshot1/hello.wasm" %}
+{% set test_text = "Hello, world!" %}
+
+test:
+  source_files:
+    - {{ name }}-{{ version }}-cargo-dependencies.json
+    - {{ test_wasm }}
+  files:
+    # TODO: we should probably generalize and package this as e.g.
+    #       pytest-(conda-)cargo-liceneses, once we get cargo-licenses built
+    - test_licenses.py
+  requires:
+    - python >=3.6
+    - pytest
+    - ruamel_yaml
+  commands:
+    - wasmer --version
+    - wasmer --help
+    # TODO: remove jinja templates
+    - wasmer validate {{ test_wasm }}
+    - wasmer run {{ test_wasm }}
+    - wasmer run {{ test_wasm }} | grep '{{ test_text }}'
+    - python test_licenses.py --ignore wasmer,wasmer-engine-dummy
+    # TODO: enable C API, multiple outputs, use python testing infra, etc.
+    # - mkdir .wsmr
+    # {% for backend in ["singlepass", "cranelift", "llvm"] %}
+    # - wasmer run --{{ backend }} {{ test_wasm }}
+    # - wasmer run --{{ backend }} {{ test_wasm }} | grep '{{ test_text }}'
+    # - WASMER_DIR=$PREFIX wasmer create-exe --{{ backend }} {{ test_wasm }} -o ./hello-{{ backend }}
+    # - ls -lathr hello-{{ backend }}
+    # - ./hello-{{ backend }}
+    # - ./hello-{{ backend }} | grep '{{ test_text }}'
+    # {% endfor %}
+
+about:
+  home: https://wasmer.io
+  license: MIT
+  license_family: MIT
+  summary: Universal WebAssembly runtime
+  description: |
+    Wasmer is a standalone JIT WebAssembly runtime, aiming to be fully
+    compatible with WASI and Emscripten.
+  dev_url: https://github.com/wasmerio/wasmer
+  doc_url: https://docs.wasmer.io
+  doc_source_url: https://github.com/wasmerio/docs.wasmer.io
+  license_file:
+    - LICENSE
+    # TODO: this is... some of the third-party licenses... need the whole rust license toolchain
+    - ATTRIBUTIONS.md
+    # these are... found by various means
+
+    - library_licenses/base64-LICENSE-APACHE  # [win]
+    - library_licenses/base64-LICENSE-MIT  # [win]
+    - library_licenses/blake2b_simd-LICENSE  # [win]
+    - library_licenses/bumpalo-LICENSE-APACHE  # [win]
+    - library_licenses/bumpalo-LICENSE-MIT  # [win]
+    - library_licenses/cloudabi-LICENSE  # [win]
+    - library_licenses/fuchsia-cprng-LICENSE  # [win]
+    - library_licenses/hermit-abi-LICENSE-APACHE  # [win]
+    - library_licenses/hermit-abi-LICENSE-MIT  # [win]
+    - library_licenses/js-sys-LICENSE-APACHE  # [win]
+    - library_licenses/js-sys-LICENSE-MIT  # [win]
+    - library_licenses/mach-LICENSE-APACHE  # [win]
+    - library_licenses/mach-LICENSE-MIT  # [win]
+    - library_licenses/miow-LICENSE-APACHE  # [win]
+    - library_licenses/miow-LICENSE-MIT  # [win]
+    - library_licenses/num-integer-LICENSE-APACHE  # [win]
+    - library_licenses/num-integer-LICENSE-MIT  # [win]
+    - library_licenses/num-iter-LICENSE-APACHE  # [win]
+    - library_licenses/num-iter-LICENSE-MIT  # [win]
+    - library_licenses/num-LICENSE-APACHE  # [win]
+    - library_licenses/num-LICENSE-MIT  # [win]
+    - library_licenses/orbclient-LICENSE-MIT  # [win]
+    - library_licenses/rand_hc-COPYRIGHT  # [win]
+    - library_licenses/rand_hc-LICENSE-APACHE  # [win]
+    - library_licenses/rand_hc-LICENSE-MIT  # [win]
+    - library_licenses/rand_isaac-COPYRIGHT  # [win]
+    - library_licenses/rand_isaac-LICENSE-APACHE  # [win]
+    - library_licenses/rand_isaac-LICENSE-MIT  # [win]
+    - library_licenses/rand_jitter-COPYRIGHT  # [win]
+    - library_licenses/rand_jitter-LICENSE-APACHE  # [win]
+    - library_licenses/rand_jitter-LICENSE-MIT  # [win]
+    - library_licenses/rand_os-COPYRIGHT  # [win]
+    - library_licenses/rand_os-LICENSE-APACHE  # [win]
+    - library_licenses/rand_os-LICENSE-MIT  # [win]
+    - library_licenses/rand_pcg-COPYRIGHT  # [win]
+    - library_licenses/rand_pcg-LICENSE-APACHE  # [win]
+    - library_licenses/rand_pcg-LICENSE-MIT  # [win]
+    - library_licenses/rand_xorshift-COPYRIGHT  # [win]
+    - library_licenses/rand_xorshift-LICENSE-APACHE  # [win]
+    - library_licenses/rand_xorshift-LICENSE-MIT  # [win]
+    - library_licenses/rdrand-LICENSE  # [win]
+    - library_licenses/redox_syscall-LICENSE  # [win]
+    - library_licenses/redox_users-LICENSE  # [win]
+    - library_licenses/rust-argon2-LICENSE-APACHE  # [win]
+    - library_licenses/rust-argon2-LICENSE-MIT  # [win]
+    - library_licenses/sdl2-LICENSE  # [win]
+    - library_licenses/sdl2-sys-LICENSE  # [win]
+    - library_licenses/socket2-LICENSE-APACHE  # [win]
+    - library_licenses/socket2-LICENSE-MIT  # [win]
+    - library_licenses/wasi-LICENSE-APACHE  # [win]
+    - library_licenses/wasi-LICENSE-MIT  # [win]
+    - library_licenses/wasm-bindgen-backend-LICENSE-APACHE  # [win]
+    - library_licenses/wasm-bindgen-backend-LICENSE-MIT  # [win]
+    - library_licenses/wasm-bindgen-LICENSE-APACHE  # [win]
+    - library_licenses/wasm-bindgen-LICENSE-MIT  # [win]
+    - library_licenses/wasm-bindgen-macro-LICENSE-APACHE  # [win]
+    - library_licenses/wasm-bindgen-macro-LICENSE-MIT  # [win]
+    - library_licenses/wasm-bindgen-macro-support-LICENSE-APACHE  # [win]
+    - library_licenses/wasm-bindgen-macro-support-LICENSE-MIT  # [win]
+    - library_licenses/wasm-bindgen-shared-LICENSE-APACHE  # [win]
+    - library_licenses/wasm-bindgen-shared-LICENSE-MIT  # [win]
+    - library_licenses/web-sys-LICENSE-APACHE  # [win]
+    - library_licenses/web-sys-LICENSE-MIT  # [win]
+    - library_licenses/winapi-i686-pc-windows-gnu-LICENSE-APACHE  # [win]
+    - library_licenses/winapi-i686-pc-windows-gnu-LICENSE-MIT  # [win]
+    - library_licenses/winapi-LICENSE-APACHE  # [win]
+    - library_licenses/winapi-LICENSE-MIT  # [win]
+    - library_licenses/winapi-util-COPYING  # [win]
+    - library_licenses/winapi-util-LICENSE-MIT  # [win]
+    - library_licenses/winapi-util-UNLICENSE  # [win]
+    - library_licenses/winapi-x86_64-pc-windows-gnu-LICENSE-APACHE  # [win]
+    - library_licenses/winapi-x86_64-pc-windows-gnu-LICENSE-MIT  # [win]
+
+
+    - library_licenses/more-asserts-LICENSE-CC0
+    - library_licenses/predicates-tree-LICENSE-APACHE
+    - library_licenses/predicates-tree-LICENSE-MIT
+    - library_licenses/wast-LICENSE-MIT
+    - library_licenses/abort_on_panic-LICENSE.txt
+    - library_licenses/addr2line-LICENSE-APACHE
+    - library_licenses/addr2line-LICENSE-MIT
+    - library_licenses/adler-LICENSE-APACHE
+    - library_licenses/adler-LICENSE-MIT
+    - library_licenses/aho-corasick-COPYING
+    - library_licenses/aho-corasick-LICENSE-MIT
+    - library_licenses/aho-corasick-UNLICENSE
+    - library_licenses/ansi_term-LICENCE
+    - library_licenses/ansi_term-LICENCE-MIT
+    - library_licenses/ansi_term-LICENSE
+    - library_licenses/anyhow-LICENSE-APACHE
+    - library_licenses/anyhow-LICENSE-MIT
+    - library_licenses/arrayref-LICENSE
+    - library_licenses/arrayvec-LICENSE-APACHE
+    - library_licenses/arrayvec-LICENSE-MIT
+    - library_licenses/assert_cmd-LICENSE-APACHE
+    - library_licenses/assert_cmd-LICENSE-MIT
+    - library_licenses/atty-LICENSE
+    - library_licenses/autocfg-LICENSE-APACHE
+    - library_licenses/autocfg-LICENSE-MIT
+    - library_licenses/backtrace-LICENSE-APACHE
+    - library_licenses/backtrace-LICENSE-MIT
+    - library_licenses/bincode-LICENSE.md
+    - library_licenses/bitflags-LICENSE-APACHE
+    - library_licenses/bitflags-LICENSE-MIT
+    - library_licenses/blake3-LICENSE
+    - library_licenses/bstr-COPYING
+    - library_licenses/bstr-LICENSE-APACHE
+    - library_licenses/bstr-LICENSE-MIT
+    - library_licenses/build-deps-LICENSE-APACHE
+    - library_licenses/build-deps-LICENSE-MIT
+    - library_licenses/byteorder-COPYING
+    - library_licenses/byteorder-LICENSE-MIT
+    - library_licenses/byteorder-UNLICENSE
+    - library_licenses/bytesize-LICENSE
+    - library_licenses/cast-LICENSE-APACHE
+    - library_licenses/cast-LICENSE-MIT
+    - library_licenses/cbindgen-LICENSE
+    - library_licenses/cc-LICENSE-APACHE
+    - library_licenses/cc-LICENSE-MIT
+    - library_licenses/cfg-if-LICENSE-APACHE
+    - library_licenses/cfg-if-LICENSE-MIT
+    - library_licenses/clap-LICENSE-APACHE
+    - library_licenses/clap-LICENSE-MIT
+    - library_licenses/colored-LICENSE
+    - library_licenses/compiletest_rs-LICENSE-APACHE
+    - library_licenses/compiletest_rs-LICENSE-MIT
+    - library_licenses/const_fn-LICENSE-APACHE
+    - library_licenses/const_fn-LICENSE-MIT
+    - library_licenses/constant_time_eq-LICENSE.txt
+    - library_licenses/cranelift-bforest-LICENSE
+    - library_licenses/cranelift-codegen-LICENSE
+    - library_licenses/cranelift-codegen-meta-LICENSE
+    - library_licenses/cranelift-codegen-shared-LICENSE
+    - library_licenses/cranelift-entity-LICENSE
+    - library_licenses/cranelift-frontend-LICENSE
+    - library_licenses/crc32fast-LICENSE-APACHE
+    - library_licenses/crc32fast-LICENSE-MIT
+    - library_licenses/criterion-LICENSE-APACHE
+    - library_licenses/criterion-LICENSE-MIT
+    - library_licenses/criterion-plot-LICENSE-APACHE
+    - library_licenses/criterion-plot-LICENSE-MIT
+    - library_licenses/crossbeam-channel-LICENSE-APACHE
+    - library_licenses/crossbeam-channel-LICENSE-MIT
+    - library_licenses/crossbeam-deque-LICENSE-APACHE
+    - library_licenses/crossbeam-deque-LICENSE-MIT
+    - library_licenses/crossbeam-epoch-LICENSE-APACHE
+    - library_licenses/crossbeam-epoch-LICENSE-MIT
+    - library_licenses/crossbeam-utils-LICENSE-APACHE
+    - library_licenses/crossbeam-utils-LICENSE-MIT
+    - library_licenses/crypto-mac-LICENSE-APACHE
+    - library_licenses/crypto-mac-LICENSE-MIT
+    - library_licenses/csv-COPYING
+    - library_licenses/csv-core-COPYING
+    - library_licenses/csv-core-LICENSE-MIT
+    - library_licenses/csv-core-UNLICENSE
+    - library_licenses/csv-LICENSE-MIT
+    - library_licenses/csv-UNLICENSE
+    - library_licenses/ctor-LICENSE-APACHE
+    - library_licenses/ctor-LICENSE-MIT
+    - library_licenses/darling_core-LICENSE
+    - library_licenses/darling_macro-LICENSE
+    - library_licenses/darling-LICENSE
+    - library_licenses/diff-LICENSE-APACHE
+    - library_licenses/diff-LICENSE-MIT
+    - library_licenses/difference-LICENSE
+    - library_licenses/digest-LICENSE-APACHE
+    - library_licenses/digest-LICENSE-MIT
+    - library_licenses/dirs-LICENSE-APACHE
+    - library_licenses/dirs-LICENSE-MIT
+    - library_licenses/dirs-sys-LICENSE-APACHE
+    - library_licenses/dirs-sys-LICENSE-MIT
+    - library_licenses/distance-LICENCE
+    - library_licenses/doc-comment-LICENSE
+    - library_licenses/downcast-rs-LICENSE-APACHE
+    - library_licenses/downcast-rs-LICENSE-MIT
+    - library_licenses/dynasm-LICENSE
+    - library_licenses/dynasmrt-LICENSE
+    - library_licenses/either-LICENSE-APACHE
+    - library_licenses/either-LICENSE-MIT
+    - library_licenses/erased-serde-LICENSE-APACHE
+    - library_licenses/erased-serde-LICENSE-MIT
+    - library_licenses/fallible-iterator-LICENSE-APACHE
+    - library_licenses/fallible-iterator-LICENSE-MIT
+    - library_licenses/filetime-LICENSE-APACHE
+    - library_licenses/filetime-LICENSE-MIT
+    - library_licenses/float-cmp-LICENSE
+    - library_licenses/fnv-LICENSE-APACHE
+    - library_licenses/fnv-LICENSE-MIT
+    - library_licenses/generational-arena-LICENSE
+    - library_licenses/generic-array-LICENSE
+    - library_licenses/getopts-LICENSE-APACHE
+    - library_licenses/getopts-LICENSE-MIT
+    - library_licenses/getrandom-LICENSE-APACHE
+    - library_licenses/getrandom-LICENSE-MIT
+    - library_licenses/ghost-LICENSE-APACHE
+    - library_licenses/ghost-LICENSE-MIT
+    - library_licenses/gimli-LICENSE-APACHE
+    - library_licenses/gimli-LICENSE-MIT
+    - library_licenses/glob-LICENSE-APACHE
+    - library_licenses/glob-LICENSE-MIT
+    - library_licenses/goblin-LICENSE
+    - library_licenses/half-LICENSE-APACHE
+    - library_licenses/half-LICENSE-MIT
+    - library_licenses/hashbrown-LICENSE-APACHE
+    - library_licenses/hashbrown-LICENSE-MIT
+    - library_licenses/heck-LICENSE-APACHE
+    - library_licenses/heck-LICENSE-MIT
+    - library_licenses/hex-LICENSE-APACHE
+    - library_licenses/hex-LICENSE-MIT
+    - library_licenses/ident_case-LICENSE
+    - library_licenses/indexmap-LICENSE-APACHE
+    - library_licenses/indexmap-LICENSE-MIT
+    - library_licenses/inkwell_internals-LICENSE
+    - library_licenses/inkwell-LICENSE
+    - library_licenses/inline-c-LICENSE.md
+    - library_licenses/inline-c-macro-LICENSE.md
+    - library_licenses/instant-LICENSE
+    - library_licenses/inventory-impl-LICENSE-APACHE
+    - library_licenses/inventory-impl-LICENSE-MIT
+    - library_licenses/inventory-LICENSE-APACHE
+    - library_licenses/inventory-LICENSE-MIT
+    - library_licenses/itertools-LICENSE-APACHE
+    - library_licenses/itertools-LICENSE-MIT
+    - library_licenses/itoa-LICENSE-APACHE
+    - library_licenses/itoa-LICENSE-MIT
+    - library_licenses/lazy_static-LICENSE-APACHE
+    - library_licenses/lazy_static-LICENSE-MIT
+    - library_licenses/leb128-LICENSE-APACHE
+    - library_licenses/leb128-LICENSE-MIT
+    - library_licenses/libc-LICENSE-APACHE
+    - library_licenses/libc-LICENSE-MIT
+    - library_licenses/libffi-LICENSE-APACHE
+    - library_licenses/libffi-LICENSE-MIT
+    - library_licenses/libffi-sys-LICENSE-APACHE
+    - library_licenses/libffi-sys-LICENSE-MIT
+    - library_licenses/libloading-LICENSE
+    - library_licenses/llvm-sys-LICENSE
+    - library_licenses/llvm-sys-LICENSE
+    - library_licenses/lock_api-LICENSE-APACHE
+    - library_licenses/lock_api-LICENSE-MIT
+    - library_licenses/log-LICENSE-APACHE
+    - library_licenses/log-LICENSE-MIT
+    - library_licenses/make-cmd-LICENSE-APACHE
+    - library_licenses/make-cmd-LICENSE-MIT
+    - library_licenses/maybe-uninit-LICENSE-APACHE
+    - library_licenses/maybe-uninit-LICENSE-MIT
+    - library_licenses/memchr-COPYING
+    - library_licenses/memchr-LICENSE-MIT
+    - library_licenses/memchr-UNLICENSE
+    - library_licenses/memmap-LICENSE-APACHE
+    - library_licenses/memmap-LICENSE-MIT
+    - library_licenses/memmap2-LICENSE-APACHE
+    - library_licenses/memmap2-LICENSE-MIT
+    - library_licenses/memoffset-LICENSE
+    - library_licenses/minifb-LICENSE
+    - library_licenses/minifb-LICENSE-APACHE
+    - library_licenses/minifb-LICENSE-MIT
+    - library_licenses/miniz_oxide-LICENSE
+    - library_licenses/nix-LICENSE
+    - library_licenses/nom-LICENSE
+    - library_licenses/normalize-line-endings-LICENSE
+    - library_licenses/num_cpus-LICENSE-APACHE
+    - library_licenses/num_cpus-LICENSE-MIT
+    - library_licenses/num-traits-LICENSE-APACHE
+    - library_licenses/num-traits-LICENSE-MIT
+    - library_licenses/object-LICENSE-APACHE
+    - library_licenses/object-LICENSE-MIT
+    - library_licenses/once_cell-LICENSE-APACHE
+    - library_licenses/once_cell-LICENSE-MIT
+    - library_licenses/oorandom-LICENSE-MIT
+    - library_licenses/parking_lot_core-LICENSE-APACHE
+    - library_licenses/parking_lot_core-LICENSE-MIT
+    - library_licenses/parking_lot-LICENSE-APACHE
+    - library_licenses/parking_lot-LICENSE-MIT
+    - library_licenses/paste-LICENSE-APACHE
+    - library_licenses/paste-LICENSE-MIT
+    - library_licenses/pest-LICENSE-APACHE
+    - library_licenses/pest-LICENSE-MIT
+    - library_licenses/pin-project-lite-LICENSE-APACHE
+    - library_licenses/pin-project-lite-LICENSE-MIT
+    - library_licenses/pkg-config-LICENSE-APACHE
+    - library_licenses/pkg-config-LICENSE-MIT
+    - library_licenses/plain-LICENSE-APACHE
+    - library_licenses/plain-LICENSE-MIT
+    - library_licenses/plotters-LICENSE
+    - library_licenses/ppv-lite86-LICENSE-APACHE
+    - library_licenses/ppv-lite86-LICENSE-MIT
+    - library_licenses/predicates-core-LICENSE-APACHE
+    - library_licenses/predicates-core-LICENSE-MIT
+    - library_licenses/predicates-LICENSE-APACHE
+    - library_licenses/predicates-LICENSE-MIT
+    - library_licenses/proc-macro-error-attr-LICENSE-APACHE
+    - library_licenses/proc-macro-error-attr-LICENSE-MIT
+    - library_licenses/proc-macro-error-LICENSE-APACHE
+    - library_licenses/proc-macro-error-LICENSE-MIT
+    - library_licenses/proc-macro2-LICENSE-APACHE
+    - library_licenses/proc-macro2-LICENSE-MIT
+    - library_licenses/quote-LICENSE-APACHE
+    - library_licenses/quote-LICENSE-MIT
+    - library_licenses/rand_chacha-COPYRIGHT
+    - library_licenses/rand_chacha-LICENSE-APACHE
+    - library_licenses/rand_chacha-LICENSE-MIT
+    - library_licenses/rand_core-COPYRIGHT
+    - library_licenses/rand_core-LICENSE-APACHE
+    - library_licenses/rand_core-LICENSE-MIT
+    - library_licenses/rand-COPYRIGHT
+    - library_licenses/rand-LICENSE-APACHE
+    - library_licenses/rand-LICENSE-MIT
+    - library_licenses/raw-cpuid-LICENSE.md
+    - library_licenses/raw-window-handle-LICENSE-APACHE.md
+    - library_licenses/raw-window-handle-LICENSE-MIT.md
+    - library_licenses/raw-window-handle-LICENSE-ZLIB.md
+    - library_licenses/rayon-core-LICENSE-APACHE
+    - library_licenses/rayon-core-LICENSE-MIT
+    - library_licenses/rayon-LICENSE-APACHE
+    - library_licenses/rayon-LICENSE-MIT
+    - library_licenses/ref_thread_local-LICENSE
+    - library_licenses/regalloc-LICENSE
+    - library_licenses/regex-automata-COPYING
+    - library_licenses/regex-automata-LICENSE-MIT
+    - library_licenses/regex-automata-UNLICENSE
+    - library_licenses/regex-LICENSE-APACHE
+    - library_licenses/regex-LICENSE-MIT
+    - library_licenses/regex-syntax-LICENSE-APACHE
+    - library_licenses/regex-syntax-LICENSE-MIT
+    - library_licenses/region-LICENSE
+    - library_licenses/remove_dir_all-LICENCE-APACHE
+    - library_licenses/remove_dir_all-LICENCE-MIT
+    - library_licenses/rustc_version-LICENSE-APACHE
+    - library_licenses/rustc_version-LICENSE-MIT
+    - library_licenses/rustc-demangle-LICENSE-APACHE
+    - library_licenses/rustc-demangle-LICENSE-MIT
+    - library_licenses/rustc-hash-LICENSE-APACHE
+    - library_licenses/rustc-hash-LICENSE-MIT
+    - library_licenses/rustfix-LICENSE-APACHE
+    - library_licenses/rustfix-LICENSE-MIT
+    - library_licenses/ryu-LICENSE-APACHE
+    - library_licenses/ryu-LICENSE-BOOST
+    - library_licenses/same-file-COPYING
+    - library_licenses/same-file-LICENSE-MIT
+    - library_licenses/same-file-UNLICENSE
+    - library_licenses/scopeguard-LICENSE-APACHE
+    - library_licenses/scopeguard-LICENSE-MIT
+    - library_licenses/scroll_derive-LICENSE
+    - library_licenses/scroll-LICENSE
+    - library_licenses/semver-LICENSE-APACHE
+    - library_licenses/semver-LICENSE-MIT
+    - library_licenses/semver-parser-LICENSE-APACHE
+    - library_licenses/semver-parser-LICENSE-MIT
+    - library_licenses/serde_bytes-LICENSE-APACHE
+    - library_licenses/serde_bytes-LICENSE-MIT
+    - library_licenses/serde_cbor-LICENSE-APACHE
+    - library_licenses/serde_cbor-LICENSE-MIT
+    - library_licenses/serde_derive-LICENSE-APACHE
+    - library_licenses/serde_derive-LICENSE-MIT
+    - library_licenses/serde_json-LICENSE-APACHE
+    - library_licenses/serde_json-LICENSE-MIT
+    - library_licenses/serde-LICENSE-APACHE
+    - library_licenses/serde-LICENSE-MIT
+    - library_licenses/smallvec-LICENSE-APACHE
+    - library_licenses/smallvec-LICENSE-MIT
+    - library_licenses/stable_deref_trait-LICENSE-APACHE
+    - library_licenses/stable_deref_trait-LICENSE-MIT
+    - library_licenses/strsim-LICENSE
+    - library_licenses/structopt-derive-LICENSE-APACHE
+    - library_licenses/structopt-derive-LICENSE-MIT
+    - library_licenses/structopt-LICENSE-APACHE
+    - library_licenses/structopt-LICENSE-MIT
+    - library_licenses/subtle-LICENSE
+    - library_licenses/syn-LICENSE-APACHE
+    - library_licenses/syn-LICENSE-MIT
+    - library_licenses/target-lexicon-LICENSE
+    - library_licenses/tempfile-LICENSE-APACHE
+    - library_licenses/tempfile-LICENSE-MIT
+    - library_licenses/term-LICENSE-APACHE
+    - library_licenses/term-LICENSE-MIT
+    - library_licenses/test-generator-LICENSE-APACHE
+    - library_licenses/test-generator-LICENSE-MIT
+    - library_licenses/tester-LICENSE-APACHE
+    - library_licenses/tester-LICENSE-MIT
+    - library_licenses/textwrap-LICENSE
+    - library_licenses/thiserror-impl-LICENSE-APACHE
+    - library_licenses/thiserror-impl-LICENSE-MIT
+    - library_licenses/thiserror-LICENSE-APACHE
+    - library_licenses/thiserror-LICENSE-MIT
+    - library_licenses/thread_local-LICENSE-APACHE
+    - library_licenses/thread_local-LICENSE-MIT
+    - library_licenses/time-LICENSE-APACHE
+    - library_licenses/time-LICENSE-MIT
+    - library_licenses/tinytemplate-LICENSE-APACHE
+    - library_licenses/tinytemplate-LICENSE-MIT
+    - library_licenses/toml-LICENSE-APACHE
+    - library_licenses/toml-LICENSE-MIT
+    - library_licenses/tracing-attributes-LICENSE
+    - library_licenses/tracing-core-LICENSE
+    - library_licenses/tracing-LICENSE
+    - library_licenses/treeline-LICENSE
+    - library_licenses/typenum-LICENSE
+    - library_licenses/typetag-impl-LICENSE-APACHE
+    - library_licenses/typetag-impl-LICENSE-MIT
+    - library_licenses/typetag-LICENSE-APACHE
+    - library_licenses/typetag-LICENSE-MIT
+    - library_licenses/ucd-trie-LICENSE-APACHE
+    - library_licenses/ucd-trie-LICENSE-MIT
+    - library_licenses/unicode-segmentation-COPYRIGHT
+    - library_licenses/unicode-segmentation-LICENSE-APACHE
+    - library_licenses/unicode-segmentation-LICENSE-MIT
+    - library_licenses/unicode-width-COPYRIGHT
+    - library_licenses/unicode-width-LICENSE-APACHE
+    - library_licenses/unicode-width-LICENSE-MIT
+    - library_licenses/unicode-xid-COPYRIGHT
+    - library_licenses/unicode-xid-LICENSE-APACHE
+    - library_licenses/unicode-xid-LICENSE-MIT
+    - library_licenses/vec_map-LICENSE-APACHE
+    - library_licenses/vec_map-LICENSE-MIT
+    - library_licenses/version_check-LICENSE-APACHE
+    - library_licenses/version_check-LICENSE-MIT
+    - library_licenses/void-LICENSE-APACHE
+    - library_licenses/void-LICENSE-MIT
+    - library_licenses/wait-timeout-LICENSE-APACHE
+    - library_licenses/wait-timeout-LICENSE-MIT
+    - library_licenses/walkdir-COPYING
+    - library_licenses/walkdir-LICENSE-MIT
+    - library_licenses/walkdir-UNLICENSE
+    - library_licenses/wasmer_enumset_derive-LICENSE-APACHE
+    - library_licenses/wasmer_enumset_derive-LICENSE-MIT
+    - library_licenses/wasmer_enumset-LICENSE-APACHE
+    - library_licenses/wasmer_enumset-LICENSE-MIT
+    - library_licenses/wasmer-c-api-LICENSE
+    - library_licenses/wasmer-cache-LICENSE
+    - library_licenses/wasmer-cli-LICENSE
+    - library_licenses/wasmer-compiler-cranelift-LICENSE
+    - library_licenses/wasmer-compiler-LICENSE
+    - library_licenses/wasmer-compiler-llvm-LICENSE
+    - library_licenses/wasmer-compiler-singlepass-LICENSE
+    - library_licenses/wasmer-derive-LICENSE
+    - library_licenses/wasmer-emscripten-LICENSE
+    - library_licenses/wasmer-engine-jit-LICENSE
+    - library_licenses/wasmer-engine-LICENSE
+    - library_licenses/wasmer-engine-native-LICENSE
+    - library_licenses/wasmer-engine-object-file-LICENSE
+    - library_licenses/wasmer-integration-tests-cli-LICENSE
+    - library_licenses/wasmer-middlewares-LICENSE
+    - library_licenses/wasmer-object-LICENSE
+    - library_licenses/wasmer-types-LICENSE
+    - library_licenses/wasmer-vm-LICENSE
+    - library_licenses/wasmer-wasi-experimental-io-devices-LICENSE
+    - library_licenses/wasmer-wasi-LICENSE
+    - library_licenses/wasmer-wast-LICENSE
+    - library_licenses/wasmer-workspace-LICENSE
+    - library_licenses/wasmparser-LICENSE
+    - library_licenses/wast-LICENSE-APACHE
+    - library_licenses/wat-LICENSE
+    - library_licenses/wayland-client-LICENSE.txt
+    - library_licenses/wayland-commons-LICENSE.txt
+    - library_licenses/wayland-cursor-LICENSE.txt
+    - library_licenses/wayland-protocols-LICENSE.txt
+    - library_licenses/wayland-scanner-LICENSE.txt
+    - library_licenses/wayland-sys-LICENSE.txt
+    - library_licenses/which-LICENSE.txt
+    - library_licenses/x11-dl-LICENSE-MIT
+    - library_licenses/xcursor-LICENSE
+    - library_licenses/xkb-LICENSE
+    - library_licenses/xkbcommon-sys-LICENSE
+    - library_licenses/xml-rs-LICENSE
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
+    - wolfv
