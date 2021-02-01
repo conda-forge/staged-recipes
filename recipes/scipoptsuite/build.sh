@@ -15,11 +15,20 @@ if [ "${OSTYPE}" == "linux-gnu" ] ; then
 fi
 
 # BLISS_DIR is looked up in scip/cmake/Modules.FindBliss.cmake
-cmake -B scip-build -S "${SRC_DIR}/scip" \
+cmake -B scipoptsuite-build -S "${SRC_DIR}/scipoptsuite" \
       -D CMAKE_BUILD_TYPE=Release \
-      -D BLISS_DIR="${PWD}/bliss-install" \
-      -D READLINE=ON \
       -D PARASCIP=ON \
-      -D IPOPT=ON
-cmake --build scip-build --parallel ${CPU_COUNT}
-cmake --install scip-build --prefix "${PREFIX}"
+      -D PAPILO=ON \
+      -D SOPLEX=ON \
+      -D GCG=OFF \
+      -D BOOST=ON \
+      -D GMP=ON \
+      -D QUADMATH=ON \
+      -D IPOPT=ON \
+      -D ZLIB=ON \
+      -D READLINE=ON \
+      -D SYM=bliss \
+      -D BLISS_DIR="${PWD}/bliss-install" \
+      -D EXPRINT=cppad
+cmake --build scipoptsuite-build --parallel ${CPU_COUNT}
+cmake --install scipoptsuite-build --prefix "${PREFIX}"

@@ -1,0 +1,123 @@
+{% set scip_version = "7.0.2" %}
+{% set soplex_version = "5.0.2" %}
+{% set bliss_version = "0.73.1" %}
+
+package:
+  name: scipoptsuite
+  version: {{ scip_version }}
+
+source:
+  - url: https://scip.zib.de/download/release/scipoptsuite-{{ scip_version }}.tgz
+    sha256: f81b5a2c1c0eb949cf06bd50f42826e55284fa1269a6f28a92ac1a06d9c93a03
+    folder: scipoptsuite
+  - url: https://github.com/ds4dm/Bliss/archive/v{{ bliss_version }}.tar.gz
+    sha256: 59425cf35d8da7db61e73674edb97bded0767485a24aa33836a1f3c08a017695
+    folder: bliss
+
+build:
+  number: 0
+  skip: True  # [win]
+
+requirements:
+  build:
+    - {{ compiler('fortran') }}
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake >=3.15
+    - make
+  host:
+    - boost-cpp
+    - tbb-devel
+    - libblas
+    - zlib
+    - gmp
+    - readline
+    - libgcc-ng  # [linux] Quadmath
+    - ipopt
+    - cppad
+
+outputs:
+
+  - name: scip
+    version: {{ scip_version }}
+    build:
+      run_exports:
+        - {{ pin_subpackage('scip') }}
+    requirements:
+      build:
+        - {{ compiler('fortran') }}
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+      host:
+        - tbb-devel
+        - libblas
+        - zlib
+        - gmp
+        - readline
+        - libgcc-ng  # [linux] Quadmath
+        - ipopt
+        - cppad
+    files:
+      - "lib/libscip*"
+      - "lib/cmake/scip/"
+      - "include/blockmemshell/"
+      - "include/dijkstra/"
+      - "include/lpi/"
+      - "include/nlpi/"
+      - "include/objscip/"
+      - "include/scip/"
+      - "include/symmetry/"
+      - "include/tclique/"
+      - "include/tinycthread/"
+      - "include/tpi/"
+      - "include/xml/"
+      - "bin/scip"
+    test:
+      script: run_scip_test.sh
+      source_files:
+        - scipoptsuite/scip/examples/Queens
+      requires:
+        - {{ compiler('cxx') }}
+        - cmake >=3.15
+        - make
+
+  - name: soplex
+    version: {{ soplex_version }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - zlib
+        - gmp
+        - boost-cpp
+      run:
+        # libboost_program_options.so needed by bin/soplex.
+        # boost does not set run_exports so it is needed in run requirements.
+        - boost-cpp
+    files:
+      - "lib/libsoplex*"
+      - "lib/cmake/soplex/"
+      - "include/soplex*"
+      - "include/soplex/"
+      - "bin/soplex"
+    test:
+      script: run_soplex_test.sh
+      source_files:
+        - scipoptsuite/soplex/src/example.cpp
+      requires:
+        - {{ compiler('cxx') }}
+        - cmake >=3.15
+        - make
+
+
+about:
+  home: https://scipopt.org/
+  license: ZIB-Academic
+  license_file:
+    - scipoptsuite/COPYING
+    - bliss/COPYING.LESSER
+  summary: Mixed Integer Programming (MIP) solver and Branch-and-Cut-and-Price Framework
+
+extra:
+  recipe-maintainers:
+    - AntoinePrv
