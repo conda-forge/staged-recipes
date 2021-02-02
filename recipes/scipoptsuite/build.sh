@@ -21,6 +21,7 @@ cmake -B scipoptsuite-build -S "${SRC_DIR}/scipoptsuite" \
       -D PAPILO=ON \
       -D SOPLEX=ON \
       -D GCG=ON \
+      -D ZIMPL=ON \
       -D BOOST=ON \
       -D GMP=ON \
       -D QUADMATH=ON \
