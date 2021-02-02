@@ -20,7 +20,7 @@ cmake -B scipoptsuite-build -S "${SRC_DIR}/scipoptsuite" \
       -D PARASCIP=ON \
       -D PAPILO=ON \
       -D SOPLEX=ON \
-      -D GCG=OFF \
+      -D GCG=ON \
       -D BOOST=ON \
       -D GMP=ON \
       -D QUADMATH=ON \
@@ -29,6 +29,8 @@ cmake -B scipoptsuite-build -S "${SRC_DIR}/scipoptsuite" \
       -D READLINE=ON \
       -D SYM=bliss \
       -D BLISS_DIR="${PWD}/bliss-install" \
-      -D EXPRINT=cppad
+      -D EXPRINT=cppad \
+      -D GSL=ON \
+      -D CLIQUER=ON
 cmake --build scipoptsuite-build --parallel ${CPU_COUNT}
 cmake --install scipoptsuite-build --prefix "${PREFIX}"
