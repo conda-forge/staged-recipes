@@ -14,8 +14,8 @@ PYTEST_ARGS = ["-vv"] + dict(
     ],
     # too slow for realtime tests
     Darwin=["-k", "not(test_rt)"],
-    # test assumes POSIX paths
-    Windows=["-k", "not(exception_chaining)"],
+    # test assumes POSIX paths... and is too slow
+    Windows=["-k", "not(exception_chaining or test_rt)"],
 )[platform.system()]
 
 if __name__ == "__main__":
