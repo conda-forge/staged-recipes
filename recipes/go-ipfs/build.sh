@@ -6,10 +6,9 @@ export CGO_ENABLED=1
 
 module='github.com/ipfs/go-ipfs'
 
-make build GOTAGS=openssl
-mkdir -p $PREFIX/bin
-cp cmd/ipfs/ipfs $PREFIX/bin/ipfs
-
+make -C "src/${module}" \
+  install \
+  GOTAGS=openssl
 
 gather_licenses() {
   # shellcheck disable=SC2039  # Allow widely supported non-POSIX local keyword.
@@ -47,4 +46,4 @@ cat "${2}"
   rm -r "${acc_dir}" "${tmp_dir}"
 }
 
-gather_licenses ./third-party-licenses.txt "${module}/cmd/ipfs/ipfs"
+# gather_licenses ./third-party-licenses.txt "${module}/cmd/ipfs"
