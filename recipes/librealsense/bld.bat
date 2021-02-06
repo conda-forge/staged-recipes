@@ -1,6 +1,8 @@
 mkdir build
 cd build
 
+cp %SRC_DIR%\src\win7\drivers\IntelRealSense_D400_series_win7.inf %SRC_DIR%
+
 cmake -GNinja ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
     -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
