@@ -14,5 +14,5 @@ cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DBUILD_SHARED_LIBS=ON \
       $SRC_DIR
 
-make -j${CPU_COUNT}
+VERBOSE=1 make -j${CPU_COUNT}
 make install
