@@ -15,5 +15,5 @@ cmake -GNinja \
       -DBUILD_UNIT_TESTS=OFF \
       $SRC_DIR
 
-make -j${CPU_COUNT}
-make install
+cmake --build . --config Release 
+cmake --install . --config Release 
