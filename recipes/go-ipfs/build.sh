@@ -46,4 +46,24 @@ cat "${2}"
   rm -r "${acc_dir}" "${tmp_dir}"
 }
 
+# TODO: figure out what to do with
+#
 # gather_licenses ./third-party-licenses.txt "${module}/cmd/ipfs"
+#
+# fails with
+# F0206 15:06:39.374624  156753 main.go:43] one or more libraries have an incompatible/unknown license:
+# map["unknown":[
+#     "github.com/ipfs/go-ipfs/vendor/github.com/ipfs/bbloom"
+#     "github.com/ipfs/go-ipfs/vendor/github.com/ipfs/go-cidutil"
+#     "github.com/ipfs/go-ipfs/vendor/github.com/ipfs/go-cidutil/cidenc"
+#     "github.com/ipfs/go-ipfs/vendor/github.com/ipfs/go-ipld-git"
+#     "github.com/ipfs/go-ipfs/vendor/github.com/ipfs/go-verifcid"
+#     "github.com/ipfs/go-ipfs/vendor/github.com/ipld/go-car"
+#     "github.com/ipfs/go-ipfs/vendor/github.com/ipld/go-car/util"
+#     "github.com/ipfs/go-ipfs/vendor/github.com/libp2p/go-libp2p-asn-util"
+#     "github.com/ipfs/go-ipfs/vendor/github.com/libp2p/go-libp2p-noise"
+#     "github.com/ipfs/go-ipfs/vendor/github.com/libp2p/go-libp2p-noise/pb"
+#     "github.com/ipfs/go-ipfs/vendor/github.com/multiformats/go-base36"
+#     "github.com/ipfs/go-ipfs/vendor/github.com/whyrusleeping/base32"
+#     "github.com/ipfs/go-ipfs/vendor/github.com/whyrusleeping/cbor-gen"
+#]]
