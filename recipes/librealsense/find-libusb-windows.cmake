@@ -1,5 +1,3 @@
-diff --git a/CMake/libusb_config.cmake b/CMake/libusb_config.cmake
-index ca221ca66d..cf48bc547f 100644
 --- a/CMake/libusb_config.cmake
 +++ b/CMake/libusb_config.cmake
 @@ -1,5 +1,5 @@
