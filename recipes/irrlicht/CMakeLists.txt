@@ -209,6 +209,9 @@ elseif(UNIX)
     # Find X11 and OpenGL
     find_package(X11 REQUIRED)
     find_package(OpenGL REQUIRED)
+    
+    message(STATUS "X11_INCLUDE_DIR: ${X11_INCLUDE_DIR}")
+    target_include_directories(Irrlicht PRIVATE ${X11_INCLUDE_DIR})
 
     # X11 and OpenGL
     target_link_libraries(Irrlicht
