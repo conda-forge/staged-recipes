@@ -11,4 +11,5 @@ ipfs cat /ipfs/QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc/readme | tee readm
 cat readme | grep Hello
 
 echo "does it add"
-ipfs add readme
+ipfs add readme | tee added.txt
+cat added.txt | grep QmPZ9gcCEpqKTo6aq61g2nXGUhM4iCL3ewB6LDXZCtioEB
