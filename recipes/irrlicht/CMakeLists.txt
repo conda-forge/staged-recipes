@@ -205,12 +205,16 @@ elseif(UNIX)
 
     # Debug macro
     target_compile_options(Irrlicht PRIVATE $<$<CONFIG:Debug>:-D_DEBUG>)
+    
+    # Find X11 and OpenGL
+    find_package(X11 REQUIRED)
+    find_package(OpenGL REQUIRED)
 
     # X11 and OpenGL
     target_link_libraries(Irrlicht
-        PRIVATE X11
-        PRIVATE GL
-        PRIVATE Xxf86vm)
+        PRIVATE X11::X11
+        PRIVATE OpenGL::GL
+        PRIVATE X11::Xxf86vm)
 endif()
 
 # Installation
