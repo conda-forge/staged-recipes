@@ -14,6 +14,7 @@ cmake -GNinja ^
     -DFORCE_RSUSB_BACKEND=ON ^
     -DBUILD_EXAMPLES=OFF ^
     -DBUILD_UNIT_TESTS=OFF ^
+    -DLIBUSB_LIB=%LIBRARY_LIB%\libusb-1.0.lib ^
     %SRC_DIR%
 if errorlevel 1 exit 1
 
