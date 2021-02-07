@@ -45,7 +45,7 @@ endif()
 set(IRR_UNICODE_PATH 0 CACHE BOOL "Whether to enable unicode path support on windows")
 set(IRR_FAST_MATH 0 CACHE BOOL "Whether to enable fast maths (at the expense of precision)")
 set(IRR_DIRECTX_SDK ${DXSDK} CACHE PATH "Path to the DirectX SDK (for DirectX 9, this folder should contain /Include, /Lib)")
-set(IRR_BUILD_TOOLS 1 CACHE BOOL "Whether to generate the tools")
+set(IRR_BUILD_TOOLS 0 CACHE BOOL "Whether to generate the tools")
 set(IRR_BUILD_DIRECTX 0 CACHE BOOL "Whether to build DirectX")
 option(BUILD_SHARED_LIBS "Build libraries as shared as opposed to static" ON)
 
