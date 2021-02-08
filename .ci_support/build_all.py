@@ -100,7 +100,6 @@ def build_all(recipes_dir, arch):
     build_folders(recipes_dir, folders, arch, channel_urls)
 
 
-
 def get_config(arch, channel_urls):
     exclusive_config_file = os.path.join(conda_build.conda_interface.root_dir,
                                          'conda_build_config.yaml')
