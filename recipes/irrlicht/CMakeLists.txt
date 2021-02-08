@@ -97,9 +97,9 @@ set(IRR_ALL_SRC_FILES
     )
     
 if(APPLE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -x objective-c++")
     file(GLOB IRR_SRC_FILES_MACOS "${IRR_SRC_DIR}/MacOSX/*.mm" "${IRR_SRC_DIR}/MacOSX/*.h" )
-	list(APPEND IRR_ALL_SRC_FILES ${IRR_SRC_FILES_MACOS})
-	add_definitions(-DMACOSX)
+    list(APPEND IRR_ALL_SRC_FILES ${IRR_SRC_FILES_MACOS})
     set_source_files_properties("${IRR_SRC_DIR}/Irrlicht.cpp"
                                 "${IRR_SRC_DIR}/COpenGLDriver.cpp" 
                                 PROPERTIES COMPILE_FLAGS "-x objective-c++")
