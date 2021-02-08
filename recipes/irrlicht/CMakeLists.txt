@@ -210,14 +210,14 @@ elseif(UNIX)
     find_package(X11 REQUIRED)
     find_package(OpenGL REQUIRED)
     
-    message(STATUS "X11_INCLUDE_DIR: ${X11_INCLUDE_DIR}")
-    target_include_directories(Irrlicht PRIVATE ${X11_INCLUDE_DIR})
-
     # X11 and OpenGL
     target_link_libraries(Irrlicht
         PRIVATE X11::X11
-        PRIVATE OpenGL::GL
-        PRIVATE X11::Xxf86vm)
+        PRIVATE OpenGL::GL)
+        
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        target_link_libraries(Irrlicht PRIVATE X11::Xxf86vm)
+    endif()
 endif()
 
 # Installation
