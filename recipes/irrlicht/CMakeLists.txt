@@ -206,10 +206,6 @@ elseif(UNIX)
         PRIVATE -fno-exceptions
         PRIVATE -fno-strict-aliasing)
 
-    # Disable RTTI on C++ files only (no sense for C files)
-    set_source_files_properties(${IRR_SRC_FILES} ${IRR_SRC_FILES_AESGLADMAN}
-        PROPERTIES COMPILE_FLAGS -fno-rtti)
-
     # Debug macro
     target_compile_options(Irrlicht PRIVATE $<$<CONFIG:Debug>:-D_DEBUG>)
     
