@@ -99,8 +99,8 @@ set(IRR_ALL_SRC_FILES
 if(APPLE)
     file(GLOB IRR_SRC_FILES_MACOS "${IRR_SRC_DIR}/MacOSX/*.mm" "${IRR_SRC_DIR}/MacOSX/*.h" )
     list(APPEND IRR_ALL_SRC_FILES ${IRR_SRC_FILES_MACOS})
-    set_source_files_properties("${IRR_SRC_DIR}/Irrlicht.cpp" PROPERTIES COMPILE_OPTIONS -x objective-c++)
-    set_source_files_properties("${IRR_SRC_DIR}/COpenGLDriver.cpp" PROPERTIES COMPILE_OPTIONS -x objective-c++)
+    set_source_files_properties("${IRR_SRC_DIR}/Irrlicht.cpp" PROPERTIES COMPILE_OPTIONS "SHELL:-x objective-c++")
+    set_source_files_properties("${IRR_SRC_DIR}/COpenGLDriver.cpp" PROPERTIES COMPILE_OPTIONS "SHELL:-x objective-c++")
 endif()
 
 add_library(Irrlicht ${IRR_ALL_SRC_FILES})
