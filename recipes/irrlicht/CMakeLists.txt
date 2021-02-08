@@ -95,6 +95,15 @@ set(IRR_ALL_SRC_FILES
     ${IRR_SRC_FILES_AESGLADMAN}
     ${IRR_SRC_FILES_LZMA}
     )
+    
+if(APPLE)
+    file(GLOB IRR_SRC_FILES_MACOS "${IRR_SRC_DIR}/MacOSX/*.mm" "${IRR_SRC_DIR}/MacOSX/*.h" )
+	list(APPEND IRR_ALL_SRC_FILES ${IRR_SRC_FILES_MACOS})
+	add_definitions(-DMACOSX)
+    set_source_files_properties("${IRR_SRC_DIR}/Irrlicht.cpp"
+                                "${IRR_SRC_DIR}/COpenGLDriver.cpp" 
+                                PROPERTIES COMPILE_FLAGS "-x objective-c++")
+endif()
 
 add_library(Irrlicht ${IRR_ALL_SRC_FILES})
 
@@ -217,6 +226,15 @@ elseif(UNIX)
         
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         target_link_libraries(Irrlicht PRIVATE X11::Xxf86vm)
+    endif()
+    
+    if(APPLE)
+	    find_library(COCOA_LIB Cocoa)
+	    find_library(CARBON_LIB Carbon)
+	    find_library(IOKIT_LIB IOKit)
+	    target_link_libraries(Irrlicht PRIVATE ${IOKIT_LIB} ${COCOA_LIB} ${CARBON_LIB})
+	    target_compile_definitions(Irrlicht PRIVATE MACOSX)
+        target_include_directories(Irrlicht PRIVATE ${IRR_SRC_DIR}/MacOSX)
     endif()
 endif()
 
