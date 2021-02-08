@@ -41,13 +41,13 @@ export RSTUDIO_VERSION_MINOR=$(echo ${PKG_VERSION} | cut -d. -f2)
 export RSTUDIO_VERSION_PATCH=$(echo ${PKG_VERSION} | cut -d. -f3)
 
 pushd dependencies/common
-  ./install-gwt
+# ./install-gwt
   ./install-dictionaries
   ./install-mathjax
 # ./install-boost
 # ./install-pandoc
 # ./install-libclang
-  ./install-packages
+# ./install-packages
 popd
 
 if [[ ${target_platform} == osx-64 ]]; then
