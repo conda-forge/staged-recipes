@@ -5,6 +5,7 @@ echo "This is CXXFLAGS: $CXXFLAGS"
 mkdir build && cd build
 
 # GNU extensions are required by Irrlicht
+CXXFLAGS=$(echo "${CXXFLAGS}" | sed "s/-std=c++14/-std=gnu++14/g")
 CXXFLAGS=$(echo "${CXXFLAGS}" | sed "s/-std=c++17/-std=gnu++17/g")
 
 cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
