@@ -59,11 +59,11 @@ test_libmadam() (
 )
 
 print_double_line
-case "${BASH_SOURCE##*/}" in
-build.sh)
+case "$BASH_SOURCE" in
+*build.sh)
 	install_libmadam
 	;;
-run_test.sh)
+*run_test.sh)
 	test_libmadam
 	;;
 *)
