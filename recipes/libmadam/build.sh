@@ -10,6 +10,11 @@ print_line() {
 	echo --------------------------------------------------------------------------------
 }
 
+printerr() {
+	printf '%s\n' "$@" >&2
+	exit 1
+}
+
 install_libmadam() (
 	cd "$SRC_DIR" || return
 
@@ -60,6 +65,9 @@ build.sh)
 	;;
 run_test.sh)
 	test_libmadam
+	;;
+*)
+	echo printerr "unknown BASE_SOURCE $BASH_SOURCE"
 	;;
 esac
 print_double_line
