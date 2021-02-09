@@ -30,7 +30,13 @@ install_libmadam() (
 		MPICC=mpicc \
 		FCFLAGS="-O3 -fPIC -pthread" \
 		CFLAGS="-O3 -fPIC -pthread" \
-		./configure --prefix="$PREFIX"
+		./configure --prefix="$PREFIX" || {
+			print_line
+			echo fail to configure, showing config.log:
+			print_line
+			cat config.log
+			exit 1
+		}
 
 	print_line
 	echo 'Running make...'
