@@ -1,5 +1,5 @@
 
-stackvana-build afw
+stackvana-build lsst_distrib
 
 # get the (de)activate scripts
 for CHANGE in "activate" "deactivate"; do
