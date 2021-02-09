@@ -26,6 +26,8 @@ install_libmadam() (
 	echo 'Running configure...'
 	FC=gfortran \
 		MPIFC=mpifort \
+		CC=gcc \
+		MPICC=mpicc \
 		FCFLAGS="-O3 -fPIC -pthread" \
 		CFLAGS="-O3 -fPIC -pthread" \
 		./configure --prefix="$PREFIX"
