@@ -112,8 +112,6 @@ def get_config(arch, channel_urls):
         variant_config_files.append(variant_config_file)
 
     error_overlinking = (get_host_platform() != "win")
-    ### remove before merging
-    error_overlinking = False
 
     config = conda_build.api.Config(
         variant_config_files=variant_config_files, arch=arch,
