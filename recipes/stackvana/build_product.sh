@@ -4,6 +4,7 @@ export EUPSPKG_NJOBS=2
 ###############################################################################
 # now build eigen and symlink it to where it can be found by default
 # this is for scarlet
+# this can be removed once eigen 3.4 is in use
 echo "
 Building eigen and making the symlinks..."
 stackvana-build eigen
@@ -14,10 +15,4 @@ else
 fi
 ln -s ${eigendir}/include/eigen3/Eigen ${PREFIX}/include/Eigen
 
-stackvana-build lsst_distrib
-
-# get the (de)activate scripts
-for CHANGE in "activate" "deactivate"; do
-    mkdir -p "${PREFIX}/etc/conda/${CHANGE}.d"
-    cp "${RECIPE_DIR}/${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.sh"
-done
+stackvana-build ${eups_product}
