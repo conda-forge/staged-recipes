@@ -7,7 +7,7 @@ meson_options=(
    "--buildtype=release"
    "--default-library=shared"
    "--warnlevel=0"
-   "-Dla_backend=netlib"
+   "-Dblas=netlib"
    ".."
 )
 
