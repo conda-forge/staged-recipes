@@ -1,13 +1,18 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-meson _build --prefix=${PREFIX} -Dlibdir=lib -Dbuildtype=release
-pushd _build
+set -ex
 
-# build
-meson complile -v
+meson_config_args=(
+  --prefix="$PREFIX"
+  --libdir=lib
+  --wrap-mode=nofallback
+  --buildtype=release
+  --backend=ninja
+  -Dtests=false
+)
 
-# test
-meson test
-
-# install
-meson install
+mkdir forgebuild
+cd forgebuild
+meson setup .. "${meson_config_args[@]}"
+ninja -v
+ninja install
