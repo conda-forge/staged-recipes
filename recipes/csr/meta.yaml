@@ -1,0 +1,72 @@
+{% set name = "csr" %}
+{% set version = "0.1.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: 941242456064e5ea4c511e13babe842094deeaeb87ecb34fb870ba59b2665fc0
+
+build:
+  number: 0
+  skip: True  # [py<36 or python_impl == 'pypy']
+  script: |
+    # On MKL-supported platforms, we want to make the MKL kernel available
+    {{ PYTHON }} build_mkl.py  # [x86_64]
+    {{ PYTHON }} -m pip install --no-deps -vv .
+
+requirements:
+  build:
+    # X86-64 needs the dependencies to build the MKL extension
+    - {{ compiler('c') }}  # [x86_64]
+  host:
+    - python
+    - pip
+    - flit-core >=2
+    - cffi >=1.12.2  # [x86_64]
+    - mkl-devel       # [x86_64]
+  run:
+    - python
+    - numba >=0.51
+    - numpy >=1.16
+    - scipy
+    - cffi >=1.12.2  # [x86_64]
+
+test:
+  requires:
+    - pytest
+    - hypothesis
+    - pytest-benchmark
+    - libblas=*=*mkl  # [x86_64]
+  source_files:
+    - pytest.ini
+    - conftest.py
+    - tests
+    - tests/*.py
+  imports:
+    - csr
+    - csr.kernel
+    # make sure the MKL kernel works on x86-64
+    - csr.kernels.mkl  # [x86_64]
+  commands:
+    # run the tests, but with the lower-overhead Hypothesis profile
+    - python -m pytest tests --hypothesis-profile=nojit
+
+about:
+  home: https://csr.lenskit.org
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: 'Compressed sparse matrices for Python and Numba'
+  # The remaining entries in this section are optional, but recommended.
+  description: |
+    CSR is a compressed sparse row sparse matrix package for Python,
+    with Numba-accessible APIs and optional MKL acceleration.
+  doc_url: https://csr.lenskit.org
+  dev_url: https://github.com/lenskit/csr
+
+extra:
+  recipe-maintainers:
+    - mdekstrand
