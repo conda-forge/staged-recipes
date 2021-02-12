@@ -1,0 +1,338 @@
+diff --git a/minimock.py b/minimock.py
+index ebd1500..9c23b19 100644
+--- a/minimock.py
++++ b/minimock.py
+@@ -38,7 +38,7 @@ constructor).  These are all the core parts of a mock library.  The
+ implementation is simple because most of the work is done by doctest.
+ """
+ 
+-__all__ = ["mock", "restore", "Mock", "TraceTracker", "assert_same_trace"]
++__all__ = ("mock", "restore", "Mock", "TraceTracker", "assert_same_trace")
+ 
+ import sys
+ import inspect
+@@ -48,7 +48,7 @@ import textwrap
+ 
+ try:
+     import builtins
+-except ImportError:
++except ImportError:  # pragma: PY2
+     # python < 3
+     import __builtin__ as builtins
+     try:
+@@ -58,18 +58,14 @@ except ImportError:
+ else:
+     # python 3
+     from io import StringIO
+-try:
+-    next
+-except NameError:
+-    # python < 2.6
+-    def next(x):
+-        return x.next()
++
+ 
+ # A list of mocked objects. Each item is a tuple of (original object,
+ # namespace dict, object name, and a list of object attributes).
+ #
+ mocked = []
+ 
++
+ def lookup_by_name(name, nsdicts):
+     """
+     Look up an object by name from a sequence of namespace dictionaries.
+@@ -79,12 +75,12 @@ def lookup_by_name(name, nsdicts):
+     of the object that completes the name.
+ 
+         >>> import os
+-        >>> nsdict, obj_name, attrs = lookup_by_name("os.path.isdir", 
++        >>> nsdict, obj_name, attrs = lookup_by_name("os.path.basename",
+         ...     (locals(),))
+         >>> obj_name, attrs
+-        ('os', ['path', 'isdir'])
++        ('os', ['path', 'basename'])
+         >>> getattr(getattr(nsdict[obj_name], attrs[0]), attrs[1])  # doctest: +ELLIPSIS
+-        <function isdir at ...>
++        <function basename at ...>
+         >>> lookup_by_name("os.monkey", (locals(),))
+         Traceback (most recent call last):
+           ...
+@@ -112,6 +108,7 @@ def lookup_by_name(name, nsdicts):
+ 
+     raise NameError("name '%s' is not defined" % name)
+ 
++
+ def mock(name, nsdicts=None, mock_obj=None, **kw):
+     """
+     Mock the named object, placing a Mock instance in the correct namespace
+@@ -244,6 +241,7 @@ def mock(name, nsdicts=None, mock_obj=None, **kw):
+ 
+     mocked.append((original, nsdict, obj_name, attrs))
+ 
++
+ def restore():
+     """
+     Restore all mocked objects.
+@@ -265,18 +263,19 @@ def restore():
+                     tmp = getattr(tmp, attr)
+             setattr(tmp, attrs[-1], original)
+ 
++
+ def assert_same_trace(tracker, want):
+     r"""
+     Check that the mock objects using ``tracker`` have been used as expected.
+-    
++
+     :param tracker: a :class:`TraceTracker` instance
+     :param want: the expected :class:`Printer` output
+     :type want: string
+     :raises: :exc:`AssertionError` if the expected and observed outputs don't
+         match
+-    
++
+     Example::
+-    
++
+             >>> tt = TraceTracker()
+             >>> m = Mock('mock_obj', tracker=tt)
+             >>> m.some_meth('dummy argument')
+@@ -288,7 +287,8 @@ def assert_same_trace(tracker, want):
+             AssertionError...
+     """
+     assert tracker.check(want), tracker.diff(want)
+-    
++
++
+ class AbstractTracker(object):
+     def __init__(self, *args, **kw):
+         raise NotImplementedError
+@@ -299,6 +299,7 @@ class AbstractTracker(object):
+     def set(self, *args, **kw):
+         raise NotImplementedError
+ 
++
+ class Printer(AbstractTracker):
+     """Prints all calls to the file it's instantiated with.
+     Can take any object that implements `write'.
+@@ -316,14 +317,15 @@ class Printer(AbstractTracker):
+                 func_name, ',\n    '.join(parts))
+         self.file.write(msg)
+ 
+-    def set(self, obj_name, attr, value): 
++    def set(self, obj_name, attr, value):
+         """
+         >>> z = Mock('z', show_attrs=True)
+         >>> z.a = 2
+         Set z.a = 2
+         """
+         self.file.write('Set %s.%s = %r\n' % (obj_name, attr, value))
+-        
++
++
+ class TraceTracker(Printer):
+     """
+     :class:`AbstractTracker` implementation for using MiniMock in non-
+@@ -335,22 +337,22 @@ class TraceTracker(Printer):
+         self.out = StringIO()
+         super(TraceTracker, self).__init__(self.out, *args, **kw)
+         self.checker = MinimockOutputChecker()
+-        self.options =  doctest.ELLIPSIS
++        self.options = doctest.ELLIPSIS
+         self.options |= doctest.NORMALIZE_INDENTATION
+         self.options |= doctest.NORMALIZE_FUNCTION_PARAMETERS
+         self.options |= doctest.REPORT_UDIFF
+-        
++
+     def check(self, want):
+         r"""
+         Compare observed MiniMock usage with that which we expected.
+-        
++
+         :param want: the :class:`Printer` output that results from expected
+             usage of mocked objects
+         :type want: string
+         :rtype: a ``True`` value if the check passed, ``False`` otherwise
+-        
++
+         Example::
+-        
++
+             >>> tt = TraceTracker()
+             >>> m = Mock('mock_obj', tracker=tt)
+             >>> m.some_meth('arg1')
+@@ -362,21 +364,21 @@ class TraceTracker(Printer):
+             False
+         """
+         return self.checker.check_output(want, self.dump(),
+-            optionflags=self.options)
+-        
++                                         optionflags=self.options)
++
+     def diff(self, want):
+         r"""
+         Analyse differences between observed MiniMock usage and that which
+         we expected, if any.
+-        
++
+         :param want: the :class:`Printer` output that results from expected
+             usage of mocked objects
+         :type want: string
+         :rtype: a string summary of differences between the observed usage and
+             the ``want`` parameter
+-        
++
+         Example::
+-        
++
+             >>> tt = TraceTracker()
+             >>> m = Mock('mock_obj', tracker=tt)
+             >>> m.some_meth('dummy argument')
+@@ -391,14 +393,15 @@ class TraceTracker(Printer):
+             return ''
+         else:
+             return self.checker.output_difference(doctest.Example("", want),
+-                self.dump(), optionflags=self.options)
+-        
++                                                  self.dump(),
++                                                  optionflags=self.options)
++
+     def dump(self):
+         r"""
+         Return the MiniMock object usage so far.
+-        
++
+         Example::
+-        
++
+             >>> tt = TraceTracker()
+             >>> m = Mock('mock_obj', tracker=tt)
+             >>> m.some_meth('dummy argument')
+@@ -434,7 +437,7 @@ def normalize_function_parameters(text):
+           are separated by a single space ' '.
+ 
+     Example::
+-        
++
+         >>> tt = TraceTracker()
+         >>> foo = Mock("foo", tracker=tt)
+         >>> expect_mock_output = '''\
+@@ -457,7 +460,7 @@ def normalize_function_parameters(text):
+         re.compile(r"\(\s+(\S)"): r"(\1",
+         re.compile(r"(\S)\s+\)"): r"\1)",
+         re.compile(r",\s*(\S)"): r", \1",
+-        }
++    }
+     for search_pattern, replace_pattern in normalize_map.items():
+         normalized_text = re.sub(
+             search_pattern, replace_pattern, normalized_text)
+@@ -491,9 +494,12 @@ class MinimockOutputChecker(doctest.OutputChecker, object):
+ class _DefaultTracker(object):
+     def __repr__(self):
+         return '(default tracker)'
++
++
+ DefaultTracker = _DefaultTracker()
+ del _DefaultTracker
+ 
++
+ class Mock(object):
+ 
+     def __init__(self, name, returns=None, returns_iter=None,
+@@ -543,8 +549,8 @@ class Mock(object):
+             else:
+                 new_name = attr
+             self.mock_attrs[attr] = Mock(new_name,
+-                show_attrs=self.mock_show_attrs,
+-                tracker=self.mock_tracker)
++                                         show_attrs=self.mock_show_attrs,
++                                         tracker=self.mock_tracker)
+         return self.mock_attrs[attr]
+ 
+     def __setattr__(self, attr, value):
+@@ -555,17 +561,18 @@ class Mock(object):
+             'mock_returns_iter',
+             'mock_tracker',
+             'mock_show_attrs',
+-            )):
++        )):
+             if attr == 'mock_returns_iter' and value is not None:
+                 value = iter(value)
+             object.__setattr__(self, attr, value)
+         else:
+             if self.mock_show_attrs and self.mock_tracker is not None:
+                 self.mock_tracker.set(self.mock_name, attr, value)
+-            self.mock_attrs[attr] = value 
++            self.mock_attrs[attr] = value
++
+ 
+ __test__ = {
+-    "Mock" :
++    "Mock":
+     r"""
+     Test setting various "mock_" attributes on an existing Mock object.
+ 
+@@ -597,7 +604,7 @@ __test__ = {
+     Set mock_obj.a = 2
+     """,
+ 
+-    "mock" :
++    "mock":
+     r"""
+     An additional test for mocking a function accessed directly (i.e.
+     not via object attributes).
+diff --git a/setup.py b/setup.py
+index 7d28ac4..5934917 100644
+--- a/setup.py
++++ b/setup.py
+@@ -1,39 +1,36 @@
+ from setuptools import setup
+ 
+-version = '1.2.8'
++version = '1.2.9.dev0'
+ 
+ try:
+     from os.path import join, dirname
+-    doc_dir = join(dirname(__file__), 'docs')
+-    index = open(join(doc_dir, 'index.rst')).read()
+-    changelog = open(join(doc_dir, 'changelog.rst')).read()
+-    long_description = '\n'.join((index, changelog))
+-except IOError:
+-    long_description = 'Please see docs/index.rst for more info'
++    readme = open('README.rst').read()
++    changelog = open('CHANGELOG.rst').read()
++    long_description = '\n'.join((readme, changelog))
++except:
++    long_description = 'See https://github.com/lowks/minimock for more info'
+ 
+ setup(
+     name='MiniMock',
+     version=version,
+     description='The simplest possible mock library',
+     long_description=long_description,
++    long_description_content_type='text/x-rst; charset=UTF-8',
+     classifiers=[
+         'Development Status :: 5 - Production/Stable',
+         'License :: OSI Approved :: MIT License',
+         'Topic :: Software Development :: Testing',
+         "Programming Language :: Python",
+-        "Programming Language :: Python :: 2",
+-        "Programming Language :: Python :: 2.5",
+-        "Programming Language :: Python :: 2.6",
+         "Programming Language :: Python :: 2.7",
+         "Programming Language :: Python :: 3",
+-        ],
++    ],
+     keywords='mock testing unittest',
+     author='Ian Bicking',
+     author_email='ianb@colorstudy.com',
+-    maintainer='Josh Bronson',
+-    maintainer_email='jabronson@gmail.com',
+-    url='http://pypi.python.org/pypi/MiniMock',
++    maintainer='Low Kian Seong',
++    maintainer_email='kianseong@gmail.com',
++    url='https://github.com/lowks/minimock',
+     license='MIT',
+     py_modules=['minimock'],
+     zip_safe=True,
+-    )
++)
