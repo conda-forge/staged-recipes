@@ -13,8 +13,9 @@ else
 fi
 
 cmake \
-    -DBoost_NO_BOOST_CMAKE=ON \
     -DCMAKE_BUILD_TYPE=Release \
+    -DPython3_EXECUTABLE=$PREFIX/bin/python \
+    -DBoost_NO_BOOST_CMAKE=ON \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DCMAKE_PREFIX_PATH=$PREFIX \
     -DHEYOKA_PY_ENABLE_IPO=yes \
