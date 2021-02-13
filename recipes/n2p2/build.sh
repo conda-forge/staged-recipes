@@ -2,7 +2,7 @@
 cd src
 export CFLAGS=${CFLAGS}" -isystem $PREFIX/include/eigen3"
 make -j${NUM_CPUS} libnnp libnnpif libnnptrain pynnp
-mkdir -p ${PREFIX}/include ${PREFIX}/lib ${SP_DIR}
-mv ${SRC_DIR}/src/pynnp/pynnp* ${SP_DIR}
+mkdir -p ${PREFIX}/include ${PREFIX}/lib ${PREFIX}/python${PY_VER}/site-packages
+mv ${SRC_DIR}/lib/pynnp* ${PREFIX}/python${PY_VER}/site-packages
 cp ${SRC_DIR}/lib/* ${PREFIX}/lib
 cp ${SRC_DIR}/include/* ${PREFIX}/include
