@@ -12,5 +12,6 @@ cp ${SRC_DIR}/include/* ${PREFIX}/include
 # Build application
 export CFLAGS=${CXXFLAGS}" -std=c++11"
 export CC=${CXX}
+export LDFLAGS=${LDFLAGS}" -lrt"
 make -j${NUM_CPUS} all-app
 cp ${SRC_DIR}/bin/* ${PREFIX}/bin
