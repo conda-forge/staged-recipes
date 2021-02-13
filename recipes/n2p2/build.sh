@@ -10,7 +10,7 @@ cp ${SRC_DIR}/lib/* ${PREFIX}/lib
 cp ${SRC_DIR}/include/* ${PREFIX}/include
 
 # Build application
-export CFLAGS=${CXXFLAGS}" -std=c++11"
+export CFLAGS=${CXXFLAGS}
 export CC=${CXX}
 make -j${NUM_CPUS} all-app
 cp ${SRC_DIR}/bin/* ${PREFIX}/bin
