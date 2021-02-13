@@ -3,7 +3,6 @@ cd src
 
 # Build libraries
 export CFLAGS=${CFLAGS}" -isystem $PREFIX/include/eigen3"
-export LDFLAGS=${LDFLAGS}" -lrt"
 make -j${NUM_CPUS} libnnp libnnpif libnnptrain pynnp
 mkdir -p ${PREFIX}/include ${PREFIX}/lib ${PREFIX}/bin ${PREFIX}/python${PY_VER}/site-packages
 mv ${SRC_DIR}/lib/pynnp* ${SP_DIR}
