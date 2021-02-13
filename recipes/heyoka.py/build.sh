@@ -3,7 +3,7 @@
 mkdir build
 cd build
 
-if [[ "$(uname)" == "Darwin" ]]; then
+if [[ "$target_platform" == osx-* ]]; then
     export AR_CMAKE_SETTING=
     export RANLIB_CMAKE_SETTING=
 else
@@ -12,7 +12,7 @@ else
     export RANLIB_CMAKE_SETTING="-DCMAKE_CXX_COMPILER_RANLIB=$GCC_RANLIB -DCMAKE_C_COMPILER_RANLIB=$GCC_RANLIB"
 fi
 
-cmake \
+cmake ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=Release \
     -DPython3_EXECUTABLE=$PREFIX/bin/python \
     -DBoost_NO_BOOST_CMAKE=ON \
