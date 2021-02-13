@@ -4,8 +4,8 @@ mkdir build
 cd build
 
 if [[ "$target_platform" == osx-* ]]; then
-    export AR_CMAKE_SETTING="-DCMAKE_CXX_COMPILER_AR=$AR -DCMAKE_C_COMPILER_AR=$AR"
-    export RANLIB_CMAKE_SETTING="-DCMAKE_CXX_COMPILER_RANLIB=$RANLIB -DCMAKE_C_COMPILER_RANLIB=$RANLIB"
+    export AR_CMAKE_SETTING="-DCMAKE_CXX_COMPILER_AR=$BUILD_PREFIX/bin/x86_64-apple-darwin13.4.0-ar -DCMAKE_C_COMPILER_AR=$BUILD_PREFIX/bin/x86_64-apple-darwin13.4.0-ar"
+    export RANLIB_CMAKE_SETTING="-DCMAKE_CXX_COMPILER_RANLIB=$BUILD_PREFIX/bin/x86_64-apple-darwin13.4.0-ranlib -DCMAKE_C_COMPILER_RANLIB=$BUILD_PREFIX/bin/x86_64-apple-darwin13.4.0-ranlib"
 else
     # Workaround for making the LTO machinery work on Linux.
     export AR_CMAKE_SETTING="-DCMAKE_CXX_COMPILER_AR=$GCC_AR -DCMAKE_C_COMPILER_AR=$GCC_AR"
