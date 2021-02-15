@@ -1,5 +1,5 @@
 #!/bin/bash
 
-./configure --disable-Werror
+./configure --disable-Werror --prefix=$PREFIX
 make
 make install
