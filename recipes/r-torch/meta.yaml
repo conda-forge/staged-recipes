@@ -8,9 +8,8 @@ package:
 
 source:
   url:
-    - {{ cran_mirror }}/src/contrib/torch_{{ version }}.tar.gz
-    - {{ cran_mirror }}/src/contrib/Archive/torch/torch_{{ version }}.tar.gz
-  sha256: 68127ec33c202e50a7b52f89dd5f573b2c65dee69308d940fa2baca51ec2ede3
+    - https://github.com/mlverse/torch/archive/v{{ version }}.tar.gz
+  sha256: 88de5a76767cb0aa36574859131722f27368d2dad978fc55a51bbe40e14191f0
 
 build:
   merge_build_host: True  # [win]
@@ -18,10 +17,14 @@ build:
   rpaths:
     - lib/R/lib/
     - lib/
+    - {{ SP_DIR }}/torch/lib
   skip: true  # [osx or cuda_compiler_version != "None"]
   missing_dso_whitelist:
     - "*/nvcuda.dll"   # [win]
-    - "*/libcuda.*"  # [linux64 or ppc64le]
+    - "*/libcuda.*"
+    - "*/liblantern.*"
+    - "*/libtorch*"
+    - "*/libc10.*"
 
 requirements:
   build:
@@ -36,12 +39,14 @@ requirements:
     - {{ posix }}coreutils         # [win]
     - {{ posix }}zip               # [win]
     - cross-r-base {{ r_base }}    # [build_platform != target_platform]
+    - cmake
+    - ninja
     - libgomp   # [linux]
     - llvm-openmp    # [osx]
+    - glog
+    - protobuf
 
   host:
-    - python
-    - pytorch
     - cudnn                           # [cuda_compiler_version != "None"]
     - nccl                            # [cuda_compiler_version != "None"]
     - {{ pin_compatible('cudnn') }}   # [cuda_compiler_version != "None"]
@@ -58,7 +63,6 @@ requirements:
     - r-rlang
     - r-withr
   run:
-    - pytorch
     - cudatoolkit  # [cuda_compiler_version != "None"]
     - r-base
     - {{ native }}gcc-libs  # [win]
@@ -74,7 +78,7 @@ requirements:
 
 test:
   commands:
-    - $R -e "library('torch')"           # [not win]
+    - $R -e "library('torch'); torch_tensor(1)"           # [not win]
     - "\"%R%\" -e \"library('torch')\""  # [win]
 
 about:
