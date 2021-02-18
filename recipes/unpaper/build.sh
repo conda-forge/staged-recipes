@@ -5,7 +5,7 @@ automake --add-missing
 autoconf
 
 ./configure --prefix=$PREFIX
-make
+make -j$CPU_COUNT
 ## Tests are broken on osx
 ## see https://github.com/unpaper/unpaper/issues/77
 if [[ ${target_platform} == osx-* ]]; then
