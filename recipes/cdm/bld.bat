@@ -1,6 +1,6 @@
 mkdir build && cd build
 
-set PKG_CONFIG_PATH=%LIBRARY_LIB%
+set PKG_CONFIG_PATH=%LIBRARY_LIB%\pkgconfig
 
 cmake -LAH -G "NMake Makefiles" ^
   -DCMAKE_INSTALL_PREFIX:PATH=%LIBRARY_PREFIX% ^
