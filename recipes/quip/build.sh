@@ -6,5 +6,5 @@ export F95FLAGS=${FFLAGS}
 export EXTRA_LINKOPTS=${LDFLAGS}
 
 make config 
-make -j ${NUM_CPUS}
+make
 make install-quippy
