@@ -3,6 +3,7 @@ export MATH_LINKOPTS="-llapack -lblas"
 export PYTHON="${PREFIX}/bin/python"
 export PIP="${PREFIX}/bin/pip"
 export F95FLAGS=${FFLAGS}
+export LDFLAGS="-fopenmp "${LDFLAGS}
 export EXTRA_LINKOPTS=${LDFLAGS}
 
 make config 
