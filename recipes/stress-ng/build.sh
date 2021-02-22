@@ -7,10 +7,9 @@ mkdir build
 # CC=gcc make install
 
 # ## Attempt static build
-
-make clean
-BUILD_PREFIX=build STATIC=1 make
-
-# ## Build with pedantic
 # make clean
-# PEDANTIC=1 make --prefix=build
+# BUILD_PREFIX=build STATIC=1 make
+
+## Build with pedantic
+make clean
+BUILD_PREFIX=build PEDANTIC=1 make --prefix=build
