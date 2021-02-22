@@ -1,4 +1,6 @@
 
-make && make install
+mkdir build
+
+make && make install --prefix=build
 
 
