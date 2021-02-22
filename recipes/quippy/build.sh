@@ -8,4 +8,5 @@ export EXTRA_LINKOPTS=${LDFLAGS}
 
 make config 
 make
+make test
 make install-quippy
