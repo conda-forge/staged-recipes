@@ -4,7 +4,7 @@ mkdir build
 
 ## Attempt BSD build
 CC=gcc make clean
-CC=gcc make install --prefix=build
+CC=gcc make install
 
 # ## Attempt static build
 # make clean
