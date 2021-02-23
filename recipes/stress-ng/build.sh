@@ -1,6 +1,7 @@
 
 make clean
-make
+## do static build
+STATIC=1 make
 
 make lite-test
 
