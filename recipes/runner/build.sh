@@ -1,4 +1,3 @@
-
 #!/bin/bash
 cd src
 make serial
