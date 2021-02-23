@@ -12,10 +12,6 @@ sed -i.bak -e '262s/# u/u/' wrapper/CMakeLists.txt
 # old C++ binary ABI. The OpenMM package from conda-forge uses the new ABI.
 sed -i.bak -e '555s/ABI=0/ABI=1/' corelib/CMakeLists.txt
 
-# Set the MACOSX_DEPLOYMENT_TARGET to make sure that we can work with
-# Mavericks or above (needed by Qt5).
-export MACOSX_DEPLOYMENT_TARGET="10.9"
-
 # Make the build directories.
 mkdir -p build/corelib
 mkdir -p build/wrapper
