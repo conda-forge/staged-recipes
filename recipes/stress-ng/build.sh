@@ -13,3 +13,5 @@ mkdir build
 ## Build with pedantic
 make clean
 BUILD_PREFIX=build PEDANTIC=1 make
+
+make lite-test
