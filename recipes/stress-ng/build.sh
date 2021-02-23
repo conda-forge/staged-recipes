@@ -1,7 +1,7 @@
 
 make clean
 ## do static build
-STATIC=1 make
+STATIC=1 CC="-lm -lc -latomic" make
 
 make lite-test
 
