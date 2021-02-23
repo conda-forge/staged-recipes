@@ -7,5 +7,7 @@ make
 
 PREFIX="./build" make lite-test
 
+make install
+
 #echo "cp -v ./stress-ng ${PREFIX}/"
 #cp -v ./stress-ng ${PREFIX}/
