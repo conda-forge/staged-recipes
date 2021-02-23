@@ -1,14 +1,11 @@
-mkdir build
+export DESTDIR=${PREFIX}
 
+# Build
 make clean
-## STATIC builds fail
-##STATIC=1 CC="-lm -lc -latomic" make
 make
 
-export DESTDIR=${PREFIX}
-#make lite-test
+# Test
+make lite-test
 
+# Install
 make install
-
-#echo "cp -v ./stress-ng ${PREFIX}/"
-#cp -v ./stress-ng ${PREFIX}/
