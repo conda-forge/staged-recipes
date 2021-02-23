@@ -5,7 +5,8 @@ make clean
 ##STATIC=1 CC="-lm -lc -latomic" make
 make
 
-PREFIX="./build" make lite-test
+export DESTDIR="bin"
+#make lite-test
 
 make install
 
