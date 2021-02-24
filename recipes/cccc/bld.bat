@@ -1,5 +1,6 @@
 @rem bld.bat (build_msvc.bat for conda)
-@echo off
+setlocal EnableDelayedExpansion
+echo on
 
 rem This file builds and tests CCCC under Microsoft Visual C++ Toolkit 2003
 rem (distributed freely by Microsoft).
@@ -12,6 +13,9 @@ set CL_EXE="cl.exe"
 set CL_ARGS=-nologo -c -D_CRT_SECURE_NO_WARNINGS -I "%INCLUDE%" -EHsc
 set LINK_EXE="link.exe"
 set LINK_ARGS=-libpath:"%LIBPATH%" -subsystem:console
+
+REM for conda install
+set "BIN_DIR=%PREFIX%\\bin"
 
 set arg1=%1
 
@@ -105,6 +109,7 @@ for %%f in ( %A_SOURCES% ) do (
 )
 
 %LINK_EXE% %LINK_ARGS% *.obj -out:cccc.exe
+if exist cccc.exe copy cccc.exe ..
 cd ..
 endlocal
 
@@ -140,8 +145,8 @@ endlocal
 
 REM install snippet for conda
 REM if "%CONDA_BUILD%"=="1" generates syntax error
-if not exist %PREFIX%\bin mkdir %PREFIX%\bin
-copy cccc/cccc.exe %PREFIX%\bin\cccc.exe
+mkdir "%BIN_DIR%"
+copy /Y cccc.exe "%BIN_DIR%"
 
 
 rem The visual C++ addin can't be built using MS Visual C++ Toolkit 2003
