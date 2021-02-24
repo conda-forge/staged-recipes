@@ -1,4 +1,4 @@
-@rem build_msvc.bat
+@rem bld.bat (build_msvc.bat for conda)
 @echo off
 
 rem This file builds and tests CCCC under Microsoft Visual C++ Toolkit 2003
@@ -25,19 +25,13 @@ if "%arg1%"=="--installer" (
    goto :buildInstaller
 )
 
-
-if "%arg1%"=="--clean" (
-   for %%d in ( pccts\dlg pccts\antlr cccc ) do (
-      if exist %%d\*.obj del %%d\*.obj
-      if exist %%d\*.exe del %%d\*.exe
-   )
-   if exist pccts\bin rmdir /s /q pccts\bin
-   mkdir pccts\bin
-) else (
-   if not exist pccts\bin\dlg.exe goto :noPCCTS
-   if not exist pccts\bin\antlr.exe goto :noPCCTS
-   goto :buildCCCC
+REM do not require clean for CI
+for %%d in ( pccts\dlg pccts\antlr cccc ) do (
+   if exist %%d\*.obj del %%d\*.obj
+   if exist %%d\*.exe del %%d\*.exe
 )
+if exist pccts\bin rmdir /s /q pccts\bin
+if not exist pccts\bin mkdir pccts\bin
 
 
 setlocal
@@ -145,8 +139,10 @@ cd ..
 endlocal
 
 REM install snippet for conda
-if not exist %PREFIX%\bin mkdir %PREFIX%\bin
-copy cccc/cccc.exe %PREFIX%\bin\cccc.exe
+IF "%CONDA_BUILD%" ==  "1" (
+   if not exist %PREFIX%\bin mkdir %PREFIX%\bin
+   copy cccc/cccc.exe %PREFIX%\bin\cccc.exe
+)
 
 rem The visual C++ addin can't be built using MS Visual C++ Toolkit 2003
 rem because it doesn't provide MFC header files and libraries
