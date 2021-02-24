@@ -1,2 +1,3 @@
+cd src
 make serial
-mv RuNNer.serial.x ${PREFIX}/bin/RuNNer
+mv ${PREFIX}/bin/projects/runner-wfas/src/RuNNer.serial.x ${PREFIX}/bin/runner-wfas
