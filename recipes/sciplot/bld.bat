@@ -19,6 +19,9 @@ REM Build step
 ninja install
 if errorlevel 1 exit 1
 
+REM Due to /FORCE:MULTIPLE, the executable for the test does not work.
+REM Solution is to use a newer version of MSVC (e.g., 14.2 instead of 14.1)
+
 REM Test step
-tests\Release\sciplot-cpptests.exe
+REM tests\Release\sciplot-cpptests.exe
 if errorlevel 1 exit 1
