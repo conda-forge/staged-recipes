@@ -139,7 +139,7 @@ cd ..
 endlocal
 
 REM install snippet for conda
-IF "%CONDA_BUILD%" ==  "1" (
+if "%CONDA_BUILD%"=="1" (
    if not exist %PREFIX%\bin mkdir %PREFIX%\bin
    copy cccc/cccc.exe %PREFIX%\bin\cccc.exe
 )
