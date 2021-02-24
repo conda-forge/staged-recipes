@@ -139,10 +139,10 @@ cd ..
 endlocal
 
 REM install snippet for conda
-if "%CONDA_BUILD%"=="1" (
-   if not exist %PREFIX%\bin mkdir %PREFIX%\bin
-   copy cccc/cccc.exe %PREFIX%\bin\cccc.exe
-)
+REM if "%CONDA_BUILD%"=="1" generates syntax error
+if not exist %PREFIX%\bin mkdir %PREFIX%\bin
+copy cccc/cccc.exe %PREFIX%\bin\cccc.exe
+
 
 rem The visual C++ addin can't be built using MS Visual C++ Toolkit 2003
 rem because it doesn't provide MFC header files and libraries
