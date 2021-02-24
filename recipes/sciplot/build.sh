@@ -15,3 +15,6 @@ cmake .. \
 
 # Build step
 ninja install
+
+# Test step
+./tests/sciplot-cpptests

@@ -18,3 +18,7 @@ if errorlevel 1 exit 1
 REM Build step
 ninja install
 if errorlevel 1 exit 1
+
+REM Test step
+tests\Release\sciplot-cpptests.exe
+if errorlevel 1 exit 1
