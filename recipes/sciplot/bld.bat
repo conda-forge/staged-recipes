@@ -6,8 +6,13 @@ cmake .. ^
     -GNinja ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
-    -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%
-    -DCMAKE_EXE_LINKER_FLAGS="/FORCE:MULTIPLE"  REM This is needed to to bug in MSVC 14.1 in dealing with inline definitions of static data members (Plot::m_counter and Figure::m_counter)
+    -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
+    -DCMAKE_EXE_LINKER_FLAGS="/FORCE:MULTIPLE"
+
+REM Note: /FORCE:MULTIPLE is needed because of a bug in MSVC 14.1
+REM in dealing with inline definitions of static
+REM data members (Plot::m_counter and Figure::m_counter)
+
 if errorlevel 1 exit 1
 
 REM Build step
