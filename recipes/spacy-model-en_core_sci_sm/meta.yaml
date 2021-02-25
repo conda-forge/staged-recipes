@@ -1,5 +1,5 @@
 {% set prefix = "spacy-model-" %}
-{% set name = "en_core_sci_sm" %}
+{% set name = "en_core_sci_" %}
 {% set version = "0.4.0" %}
 
 package:
@@ -7,20 +7,34 @@ package:
   version: {{ version }}
 
 source:
-  - url: url: https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v{{ version }}/{{ name }}-{{ version }}.tar.gz
+
+package:
+  name: {{ prefix|lower }}{{ name[:-1]|lower }}
+  version: {{ version }}
+
+source:
+  - url: url: https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v{{ version }}/{{ name }}sm-{{ version }}.tar.gz
     sha256: ce30c9c97a4a6ab1f296d84cf587da6b1e3e867b53c17f2197e8f422de69b899
+    folder: sm
+  - url: url: https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v{{ version }}/{{ name }}md-{{ version }}.tar.gz
+    sha256: 9ca2cf8f3b066d0a7e69c10d9cca8822bcfa7fb8c9772bc90f8780629a81e974
+    folder: md
+  - url: url: https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v{{ version }}/{{ name }}lg-{{ version }}.tar.gz
+    sha256: e74856f331229be751cb3df4e0cde41f1fdc45de35088d037fc9b8634550e85d
+    folder: lg
   - url: http://www.apache.org/licenses/LICENSE-2.0
     sha256: bf598be48348623cae0c27829884b0e5f9151dde6068fdb657299b489a06e46b
+
 build:
   noarch: python
   number: 0
-  script: "{{ PYTHON }} -m pip install . -vv"
 
 requirements:
   host:
     - python >=3.6
     - pip
   run:
+    - setuptools
     - python >=3.6
 
 test:
@@ -28,13 +42,37 @@ test:
     - echo "make lint happy"
 
 outputs:
-  - name: {{ prefix }}{{ name }}
+  - name: {{ prefix }}{{ name }}sm
     files:
+      - sm
       - LICENSE
     build:
       noarch: python
       number: 0
-      script: {{ PYTHON }} -m pip install . --no-deps -vv
+      script: cd sm && {{ PYTHON }} -m pip install . --no-deps -vv
+    requirements:
+      host:
+        - python
+        - pip
+      run:
+        - python
+        - setuptools
+    test:
+      imports:
+        - {{ name }}sm
+      requires:
+        - spacy {{ version.split('.')[0] }}.{{ version.split('.')[1] }}.*
+      commands:
+        - python -c "__import__('{{ name }}sm').load()"
+        - python -c "__import__('spacy').load('{{ name }}sm')"
+  - name: {{ prefix }}{{ name }}md
+    files:
+      - md
+      - LICENSE
+    build:
+      noarch: python
+      number: 0
+      script: cd md && {{ PYTHON }} -m pip install . --no-deps -vv
     requirements:
       host:
         - python >=3.6
@@ -44,21 +82,44 @@ outputs:
         - setuptools
     test:
       imports:
-        - {{ name }}sm
+        - {{ name }}md
       requires:
         - spacy {{ version.split('.')[0] }}.{{ version.split('.')[1] }}.*
       commands:
-        - python -c "__import__('{{ name }}').load()"
-        - python -c "__import__('spacy').load('{{ name }}')"
+        - python -c "__import__('{{ name }}md').load()"
+        - python -c "__import__('spacy').load('{{ name }}md')"
+  - name: {{ prefix }}{{ name }}lg
+    files:
+      - lg
+      - LICENSE
+    build:
+      noarch: python
+      number: 0
+      script: cd lg && {{ PYTHON }} -m pip install . --no-deps -vv
+    requirements:
+      host:
+        - python >=3.6
+        - pip
+      run:
+        - python >=3.6
+        - setuptools
+    test:
+      imports:
+        - {{ name }}lg
+      requires:
+        - spacy {{ version.split('.')[0] }}.{{ version.split('.')[1] }}.*
+      commands:
+        - python -c "__import__('{{ name }}lg').load()"
+        - python -c "__import__('spacy').load('{{ name }}lg')"
 
 about:
   home: https://allenai.github.io/scispacy/
   license: Apache-2.0
   license_family: APACHE
   license_file: LICENSE
-  summary: 'A full spaCy pipeline for biomedical data with a ~100k vocabulary.'
+  summary: 'A full SpaCy pipeline and models for scientific/biomedical documents.'
   description: |
-    en_core_sci_sm is a full spaCy pipeline for biomedical data with a ~100k vocabulary.
+    A full SpaCy pipeline and models for scientific/biomedical documents.
   doc_url: https://allenai.github.io/scispacy/
   dev_url: https://github.com/allenai/scispacy
   
