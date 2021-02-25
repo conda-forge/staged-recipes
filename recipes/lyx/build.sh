@@ -8,6 +8,6 @@ else
     ./configure --prefix=$PREFIX --enable-qt5 --without-included-boost --without-included-mythes
 fi
 
-make
+make -j$CPU_COUNT
 make check
 make install
