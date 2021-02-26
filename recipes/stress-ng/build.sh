@@ -1,8 +1,9 @@
-export DESTDIR=${PREFIX}
+export BINDIR=${PREFIX}
+export CFLAGS=" -lm -lc -latomic "
 
 # Build
 make clean
-STATIC=1 CC=" -lm -lc -latomic " make
+STATIC=1 make
 
 # Test
 make lite-test
