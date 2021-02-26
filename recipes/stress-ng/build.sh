@@ -2,7 +2,7 @@ export DESTDIR=${PREFIX}
 
 # Build
 make clean
-STATIC=1 CC="-lm -lc -latomic" make
+STATIC=1 CC=" -lm -lc -latomic " make
 
 # Test
 make lite-test
