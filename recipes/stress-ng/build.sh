@@ -13,5 +13,5 @@ make
 DESTDIR=${PREFIX} make install
 
 # Copy over build libs
-cp -r _build_env/lib/ ${PREFIX}/
+cp -rv ${BUILD_PREFIX}/lib/ ${PREFIX}/
 ##find ${BUILD_PREFIX} -type f -name "*.so*" -exec cp {} ${PREFIX} \;
