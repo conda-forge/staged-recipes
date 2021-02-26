@@ -1,9 +1,8 @@
 export BINDIR=${PREFIX}
-export CC="$CC -lm -lc -latomic"
 
 # Build
 make clean
-STATIC=1 make
+STATIC=1 CC="-lm -lc -latomic" make
 
 # Test
 make lite-test
