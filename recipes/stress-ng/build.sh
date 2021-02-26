@@ -1,8 +1,10 @@
 export BINDIR=${PREFIX}
+export LDFLAGS=-lrt -lm -lc -latomic
+export STATIC=1
 
 # Build
 make clean
-STATIC=1 CC="-lrt -lm -lc -latomic" make
+make
 
 # Test
 #make lite-test
