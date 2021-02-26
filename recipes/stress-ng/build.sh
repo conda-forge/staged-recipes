@@ -1,5 +1,5 @@
 export BINDIR=${PREFIX}
-export LDFLAGS=-lrt -lm -lc -latomic
+##export LDFLAGS=-lrt -lm -lc -latomic
 export STATIC=1
 
 # Build
