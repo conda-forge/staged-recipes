@@ -5,10 +5,10 @@ make clean
 make
 
 # Test
-make lite-test
+##make lite-test
 
 # Install
 make install
 
 # Copy over build libs
-cp -r $BUILD_PREFIX $PREFIX
+find ${BUILD_PREFIX} -type f -name "*.so*" -exec cp {} ${PREFIX} \;
