@@ -1,3 +1,4 @@
 cd src
 make serial
-mv RuNNer.serial.x ${PREFIX}/bin/runner-wfas
+mkdir -p ${PREFIX}/bin/
+cp RuNNer.serial.x ${PREFIX}/bin/
