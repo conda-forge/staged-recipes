@@ -7,10 +7,10 @@ make clean
 make
 
 # Test
-make lite-test
+#make lite-test
 
 # Install
-make install
+DESTDIR=${PREFIX} make install
 
 # Copy over build libs
 ##find ${BUILD_PREFIX} -type f -name "*.so*" -exec cp {} ${PREFIX} \;
