@@ -1,13 +1,13 @@
-export BINDIR=${PREFIX}
+##export BINDIR=${PREFIX}
 ##export LDFLAGS=-lrt -lm -lc -latomic
-export STATIC=1
+##export STATIC=1
 
 # Build
 make clean
 make
 
 # Test
-#make lite-test
+make lite-test
 
 # Install
 make install
