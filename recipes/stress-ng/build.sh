@@ -1,5 +1,5 @@
 export BINDIR=${PREFIX}
-export CFLAGS=" -lm -lc -latomic "
+export CFLAGS="$CFLAGS -lm -lc -latomic"
 
 # Build
 make clean
