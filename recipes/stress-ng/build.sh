@@ -5,7 +5,7 @@ make clean
 STATIC=1 LDFLAGS="-lm -lc -latomic" make
 
 # Test
-make lite-test
+#make lite-test
 
 # Install
 make install
