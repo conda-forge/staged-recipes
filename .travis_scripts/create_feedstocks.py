@@ -354,6 +354,8 @@ if __name__ == '__main__':
     # Update status based on the remote.
     subprocess.check_call(['git', 'stash', '--keep-index', '--include-untracked'])
     subprocess.check_call(['git', 'fetch'])
+    # CBURR: Debugging
+    subprocess.check_call(['git', 'status'])
     subprocess.check_call(['git', 'rebase', '--autostash'])
     subprocess.check_call(['git', 'add', '.'])
     try:
