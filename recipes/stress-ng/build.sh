@@ -1,17 +1,14 @@
-##export BINDIR=${PREFIX}
-##export LDFLAGS=-lrt -lm -lc -latomic
-##export STATIC=1
+#!/bin/bash
+
+sed -i.bak 's/^BINDIR.*//g' Makefile
 
 # Build
 make clean
 make
 
 # Test
-#make lite-test
+make lite-test
 
 # Install
-DESTDIR=${PREFIX} make install
+DESTDIR=${PREFIX} BINDIR=/bin/ make install
 
-# Copy over build libs
-cp -rv ${BUILD_PREFIX}/lib/ ${PREFIX}/
-##find ${BUILD_PREFIX} -type f -name "*.so*" -exec cp {} ${PREFIX} \;
