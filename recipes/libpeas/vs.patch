@@ -1,0 +1,1290 @@
+From c882c281913d37e76ee9b839c5b4845de8094787 Mon Sep 17 00:00:00 2001
+From: Chun-wei Fan <fanchunwei@src.gnome.org>
+Date: Fri, 15 Nov 2019 14:26:17 +0800
+Subject: [PATCH 01/12] meson: Improve Python detection on Windows
+
+Standard Windows binaries from www.python.org typically come as an MSI
+installer, which do not include pkg-config files for us, and it is often
+the case that people have multiple installations of Python on their
+systems, such as having both 32-bit and 64-bit installations of Python,
+so we need to go a bit harder to look for Python 2,x/3.x installations,
+by:
+
+-Allow people to explicitly input a full path to their Python 2.x/3.x
+ interpreters, so that the right include/lib paths for the desired
+ Python installation(s) can be discovered and utilized.
+
+-If no explicit path is specified, let Meson's Python module look for
+ the installations for us instead.
+---
+ meson.build       | 18 ++++++++++++++++++
+ meson_options.txt |  7 +++++++
+ 2 files changed, 25 insertions(+)
+
+diff --git a/meson.build b/meson.build
+index dfa8004d..56aa7c33 100644
+--- a/meson.build
++++ b/meson.build
+@@ -11,6 +11,7 @@ project(
+ gnome = import('gnome')
+ i18n = import('i18n')
+ pkg = import('pkgconfig')
++pymod = import('python')
+ 
+ # Versioning
+ version = meson.project_version()
+@@ -115,7 +116,24 @@ if not python3_dep.found()
+   python3_dep = dependency('python3', version: python3_req, required: false)
+ endif
+ 
++if host_machine.system() == 'windows' and not python3_dep.found()
++  python3 = pymod.find_installation(get_option('python3_path'),
++                                    required: false)
++  if python3.found()
++    python3_dep = python3.dependency(version: python3_req, required: false)
++  endif
++endif
++
++
+ python2_dep = dependency('python2', version: python2_req, required: false)
++if host_machine.system() == 'windows' and not python2_dep.found()
++  python2 = pymod.find_installation(get_option('python2_path') != '' ? get_option('python2_path') : 'python2',
++                                    required: false)
++  if python2.found()
++    python2_dep = python2.dependency(version: python2_req, required: false)
++  endif
++endif
++
+ pygobject_dep = dependency('pygobject-3.0', version: pygobject_req, required: false)
+ lua51_dep = dependency('lua51', version: lua_req, required: false)
+ if not lua51_dep.found()
+diff --git a/meson_options.txt b/meson_options.txt
+index 18e17790..9c4a4bf5 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -9,6 +9,13 @@ option('python3',
+        type: 'boolean', value: true,
+        description: 'Enable Python 3 support (requires pygobject)')
+ 
++option('python2_path',
++       type: 'string', value: '',
++       description: 'Path to Python 2.x interpreter (Windows only)')
++option('python3_path',
++       type: 'string', value: '',
++       description: 'Path to Python 3.x interpreter (Windows only)')
++
+ option('introspection',
+        type: 'boolean', value: true,
+        description: 'Generate introspection data (requires gobject-introspection)')
+-- 
+GitLab
+
+
+From c34c89ca4ac5b1688e580341e8703fbbdd79dfda Mon Sep 17 00:00:00 2001
+From: Chun-wei Fan <fanchunwei@src.gnome.org>
+Date: Fri, 15 Nov 2019 14:32:34 +0800
+Subject: [PATCH 02/12] meson: Don't use 'cp' to copy files
+
+'cp' is a UNIX/BASH shell-only command, which does not exist on standard
+Windows cmd.exe shells by default, so use a Python script that tries to
+do similar things.
+---
+ copyfile.py                                       | 15 +++++++++++++++
+ meson.build                                       |  3 +++
+ peas-demo/plugins/helloworld/meson.build          |  2 +-
+ peas-demo/plugins/luahello/meson.build            |  2 +-
+ peas-demo/plugins/pythonhello/meson.build         |  2 +-
+ peas-demo/plugins/secondtime/meson.build          |  2 +-
+ .../plugins/builtin-configurable/meson.build      |  2 +-
+ .../libpeas-gtk/plugins/configurable/meson.build  |  2 +-
+ tests/libpeas-gtk/plugins/meson.build             |  2 +-
+ .../plugins/valid-custom-icon/meson.build         |  2 +-
+ tests/libpeas/plugins/embedded/meson.build        |  2 +-
+ tests/libpeas/plugins/extension-c/meson.build     |  4 ++--
+ tests/libpeas/plugins/extension-lua/meson.build   |  2 +-
+ tests/libpeas/plugins/meson.build                 |  2 +-
+ tests/plugins/builtin/meson.build                 |  2 +-
+ tests/plugins/has-dep/meson.build                 |  2 +-
+ tests/plugins/loadable/meson.build                |  2 +-
+ tests/plugins/meson.build                         |  2 +-
+ tests/plugins/self-dep/meson.build                |  2 +-
+ 19 files changed, 36 insertions(+), 18 deletions(-)
+ create mode 100644 copyfile.py
+
+diff --git a/copyfile.py b/copyfile.py
+new file mode 100644
+index 00000000..b57734fe
+--- /dev/null
++++ b/copyfile.py
+@@ -0,0 +1,15 @@
++#!/usr/bin/env python3
++
++# Replace calls to 'cp' with Python
++
++import shutil
++import sys
++
++if len(sys.argv) < 3:
++    raise ValueError('Usage: %s <srcfiles> <destfile>' % sys.argv[0])
++
++last_arg_index = len(sys.argv) - 1
++destdir = sys.argv[last_arg_index]
++
++for x in range(1, last_arg_index):
++    shutil.copy(sys.argv[x], destdir)
+diff --git a/meson.build b/meson.build
+index 56aa7c33..7efb71b4 100644
+--- a/meson.build
++++ b/meson.build
+@@ -258,6 +258,9 @@ if build_python3_loader and not python3_found
+   build_python3_loader = false
+ endif
+ 
++# Replace 'cp' calls
++copyfile_script = find_program('copyfile.py')
++
+ subdir('libpeas')
+ if build_gtk_widgetry == true
+   subdir('libpeas-gtk')
+diff --git a/peas-demo/plugins/helloworld/meson.build b/peas-demo/plugins/helloworld/meson.build
+index 0e325cee..73743615 100644
+--- a/peas-demo/plugins/helloworld/meson.build
++++ b/peas-demo/plugins/helloworld/meson.build
+@@ -27,7 +27,7 @@ custom_target(
+   'lib@0@-data'.format(libhelloworld_name),
+   input: libhelloworld_plugin_data,
+   output: libhelloworld_plugin_data,
+-  command: ['cp', '@INPUT@', '@OUTDIR@'],
++  command: [copyfile_script, '@INPUT@', '@OUTDIR@'],
+   build_by_default: true,
+   install_dir: join_paths(peas_demo_plugins_dir, 'helloworld'),
+   install: true,
+diff --git a/peas-demo/plugins/luahello/meson.build b/peas-demo/plugins/luahello/meson.build
+index 90d0daec..0d6997df 100644
+--- a/peas-demo/plugins/luahello/meson.build
++++ b/peas-demo/plugins/luahello/meson.build
+@@ -9,7 +9,7 @@ custom_target(
+   '@0@-data'.format(luahello_name),
+   input: luahello_plugin_data,
+   output: luahello_plugin_data,
+-  command: ['cp', '@INPUT@', '@OUTDIR@'],
++  command: [copyfile_script, '@INPUT@', '@OUTDIR@'],
+   build_by_default: true,
+   install_dir: join_paths(peas_demo_plugins_dir, 'luahello'),
+   install: true,
+diff --git a/peas-demo/plugins/pythonhello/meson.build b/peas-demo/plugins/pythonhello/meson.build
+index 7ba44060..64e42022 100644
+--- a/peas-demo/plugins/pythonhello/meson.build
++++ b/peas-demo/plugins/pythonhello/meson.build
+@@ -9,7 +9,7 @@ custom_target(
+   '@0@-data'.format(pythonhello_name),
+   input: pythonhello_plugin_data,
+   output: pythonhello_plugin_data,
+-  command: ['cp', '@INPUT@', '@OUTDIR@'],
++  command: [copyfile_script, '@INPUT@', '@OUTDIR@'],
+   build_by_default: true,
+   install_dir: join_paths(peas_demo_plugins_dir, 'pythonhello'),
+   install: true,
+diff --git a/peas-demo/plugins/secondtime/meson.build b/peas-demo/plugins/secondtime/meson.build
+index 30c0dace..e79097a5 100644
+--- a/peas-demo/plugins/secondtime/meson.build
++++ b/peas-demo/plugins/secondtime/meson.build
+@@ -26,7 +26,7 @@ custom_target(
+   'lib@0@-data'.format(libsecondtime_name),
+   input: libsecondtime_plugin_data,
+   output: libsecondtime_plugin_data,
+-  command: ['cp', '@INPUT@', '@OUTDIR@'],
++  command: [copyfile_script, '@INPUT@', '@OUTDIR@'],
+   build_by_default: true,
+   install_dir: join_paths(peas_demo_plugins_dir, 'secondtime'),
+   install: true,
+diff --git a/tests/libpeas-gtk/plugins/builtin-configurable/meson.build b/tests/libpeas-gtk/plugins/builtin-configurable/meson.build
+index c967f5d4..4ce8c6f7 100644
+--- a/tests/libpeas-gtk/plugins/builtin-configurable/meson.build
++++ b/tests/libpeas-gtk/plugins/builtin-configurable/meson.build
+@@ -32,6 +32,6 @@ custom_target(
+   'lib@0@-data'.format(libbuiltin_configurable_name),
+   input: libbuiltin_configurable_plugin_data,
+   output: libbuiltin_configurable_plugin_data,
+-  command: ['cp', '@INPUT@', '@OUTDIR@'],
++  command: [copyfile_script, '@INPUT@', '@OUTDIR@'],
+   build_by_default: true,
+ )
+diff --git a/tests/libpeas-gtk/plugins/configurable/meson.build b/tests/libpeas-gtk/plugins/configurable/meson.build
+index 553066b8..9c8f885d 100644
+--- a/tests/libpeas-gtk/plugins/configurable/meson.build
++++ b/tests/libpeas-gtk/plugins/configurable/meson.build
+@@ -32,6 +32,6 @@ custom_target(
+   'lib@0@-data'.format(libconfigurable_name),
+   input: libconfigurable_plugin_data,
+   output: libconfigurable_plugin_data,
+-  command: ['cp', '@INPUT@', '@OUTDIR@'],
++  command: [copyfile_script, '@INPUT@', '@OUTDIR@'],
+   build_by_default: true,
+ )
+diff --git a/tests/libpeas-gtk/plugins/meson.build b/tests/libpeas-gtk/plugins/meson.build
+index 432607f2..be1c7044 100644
+--- a/tests/libpeas-gtk/plugins/meson.build
++++ b/tests/libpeas-gtk/plugins/meson.build
+@@ -9,7 +9,7 @@ custom_target(
+   'libpeas-gtk-test-data',
+   input: libpeas_gtk_plugins_data,
+   output: libpeas_gtk_plugins_data,
+-  command: ['cp', '@INPUT@', '@OUTDIR@'],
++  command: [copyfile_script, '@INPUT@', '@OUTDIR@'],
+   build_by_default: true,
+ )
+ 
+diff --git a/tests/libpeas-gtk/plugins/valid-custom-icon/meson.build b/tests/libpeas-gtk/plugins/valid-custom-icon/meson.build
+index b5ec5765..e1aac3b3 100644
+--- a/tests/libpeas-gtk/plugins/valid-custom-icon/meson.build
++++ b/tests/libpeas-gtk/plugins/valid-custom-icon/meson.build
+@@ -9,6 +9,6 @@ custom_target(
+   '@0@-data'.format(valid_custom_icon_name),
+   input: valid_custom_icon_plugin_data,
+   output: valid_custom_icon_plugin_data,
+-  command: ['cp', '@INPUT@', '@OUTDIR@'],
++  command: [copyfile_script, '@INPUT@', '@OUTDIR@'],
+   build_by_default: true,
+ )
+diff --git a/tests/libpeas/plugins/embedded/meson.build b/tests/libpeas/plugins/embedded/meson.build
+index b56c0c9f..c3e1b938 100644
+--- a/tests/libpeas/plugins/embedded/meson.build
++++ b/tests/libpeas/plugins/embedded/meson.build
+@@ -47,6 +47,6 @@ custom_target(
+   '@0@-data'.format(libembedded_name),
+   input: libembedded_plugin_data,
+   output: libembedded_plugin_data,
+-  command: ['cp', '@INPUT@', '@OUTDIR@'],
++  command: [copyfile_script, '@INPUT@', '@OUTDIR@'],
+   build_by_default: true,
+ )
+diff --git a/tests/libpeas/plugins/extension-c/meson.build b/tests/libpeas/plugins/extension-c/meson.build
+index ab03c4ca..1c4030eb 100644
+--- a/tests/libpeas/plugins/extension-c/meson.build
++++ b/tests/libpeas/plugins/extension-c/meson.build
+@@ -35,7 +35,7 @@ custom_target(
+   'lib@0@-data'.format(libextension_c_name),
+   input: libextension_c_plugin_data,
+   output: libextension_c_plugin_data,
+-  command: ['cp', '@INPUT@', '@OUTDIR@'],
++  command: [copyfile_script, '@INPUT@', '@OUTDIR@'],
+   build_by_default: true,
+ )
+ 
+@@ -59,6 +59,6 @@ custom_target(
+   'lib@0@-data'.format(libextension_c_missing_name),
+   input: libextension_c_missing_plugin_data,
+   output: libextension_c_missing_plugin_data,
+-  command: ['cp', '@INPUT@', '@OUTDIR@'],
++  command: [copyfile_script, '@INPUT@', '@OUTDIR@'],
+   build_by_default: true,
+ )
+diff --git a/tests/libpeas/plugins/extension-lua/meson.build b/tests/libpeas/plugins/extension-lua/meson.build
+index f113a397..1e87f447 100644
+--- a/tests/libpeas/plugins/extension-lua/meson.build
++++ b/tests/libpeas/plugins/extension-lua/meson.build
+@@ -10,6 +10,6 @@ custom_target(
+   '@0@-data'.format(extension_lua_name),
+   input: extension_lua_plugin_data,
+   output: extension_lua_plugin_data,
+-  command: ['cp', '@INPUT@', '@OUTDIR@'],
++  command: [copyfile_script, '@INPUT@', '@OUTDIR@'],
+   build_by_default: true,
+ )
+diff --git a/tests/libpeas/plugins/meson.build b/tests/libpeas/plugins/meson.build
+index babe6936..f410684b 100644
+--- a/tests/libpeas/plugins/meson.build
++++ b/tests/libpeas/plugins/meson.build
+@@ -17,7 +17,7 @@ custom_target(
+   'libpeas-test-data',
+   input: libpeas_plugins_data,
+   output: libpeas_plugins_data,
+-  command: ['cp', '@INPUT@', '@OUTDIR@'],
++  command: [copyfile_script, '@INPUT@', '@OUTDIR@'],
+   build_by_default: true,
+ )
+ 
+diff --git a/tests/plugins/builtin/meson.build b/tests/plugins/builtin/meson.build
+index 2a462546..1603c30a 100644
+--- a/tests/plugins/builtin/meson.build
++++ b/tests/plugins/builtin/meson.build
+@@ -29,6 +29,6 @@ custom_target(
+   'lib@0@-data'.format(libbuiltin_name),
+   input: libbuiltin_plugin_data,
+   output: libbuiltin_plugin_data,
+-  command: ['cp', '@INPUT@', '@OUTDIR@'],
++  command: [copyfile_script, '@INPUT@', '@OUTDIR@'],
+   build_by_default: true,
+ )
+diff --git a/tests/plugins/has-dep/meson.build b/tests/plugins/has-dep/meson.build
+index eddef12e..21a4da77 100644
+--- a/tests/plugins/has-dep/meson.build
++++ b/tests/plugins/has-dep/meson.build
+@@ -30,6 +30,6 @@ custom_target(
+   'lib@0@-data'.format(libhas_dep_name),
+   input: libhas_dep_plugin_data,
+   output: libhas_dep_plugin_data,
+-  command: ['cp', '@INPUT@', '@OUTDIR@'],
++  command: [copyfile_script, '@INPUT@', '@OUTDIR@'],
+   build_by_default: true,
+ )
+diff --git a/tests/plugins/loadable/meson.build b/tests/plugins/loadable/meson.build
+index 522959ac..76ee40b3 100644
+--- a/tests/plugins/loadable/meson.build
++++ b/tests/plugins/loadable/meson.build
+@@ -29,6 +29,6 @@ custom_target(
+   'lib@0@-data'.format(libloadable_name),
+   input: libloadable_plugin_data,
+   output: libloadable_plugin_data,
+-  command: ['cp', '@INPUT@', '@OUTDIR@'],
++  command: [copyfile_script, '@INPUT@', '@OUTDIR@'],
+   build_by_default: true,
+ )
+diff --git a/tests/plugins/meson.build b/tests/plugins/meson.build
+index c19a8fb4..03d16274 100644
+--- a/tests/plugins/meson.build
++++ b/tests/plugins/meson.build
+@@ -10,7 +10,7 @@ custom_target(
+   '@0@-data'.format(generic_name),
+   input: generic_plugins_data,
+   output: generic_plugins_data,
+-  command: ['cp', '@INPUT@', '@OUTDIR@'],
++  command: [copyfile_script, '@INPUT@', '@OUTDIR@'],
+   build_by_default: true,
+ )
+ 
+diff --git a/tests/plugins/self-dep/meson.build b/tests/plugins/self-dep/meson.build
+index 4cf04710..f44ee2cf 100644
+--- a/tests/plugins/self-dep/meson.build
++++ b/tests/plugins/self-dep/meson.build
+@@ -29,6 +29,6 @@ custom_target(
+   'lib@0@-data'.format(libself_dep_name),
+   input: libself_dep_plugin_data,
+   output: libself_dep_plugin_data,
+-  command: ['cp', '@INPUT@', '@OUTDIR@'],
++  command: [copyfile_script, '@INPUT@', '@OUTDIR@'],
+   build_by_default: true,
+ )
+\ No newline at end of file
+-- 
+GitLab
+
+
+From a3bd59bf7b2441c4575b0d82c671684df89d5243 Mon Sep 17 00:00:00 2001
+From: Chun-wei Fan <fanchunwei@src.gnome.org>
+Date: Fri, 15 Nov 2019 16:55:58 +0800
+Subject: [PATCH 03/12] tests: Ensure symbols are exported on MSVC builds
+
+Use a macro that is defined appropriately so that we also export the
+symbols of the test DLLs on Visual Studio builds as well.
+---
+ tests/libpeas-gtk/testing/testing.h           |  5 ++++
+ .../introspection/introspection-abstract.h    |  7 +++++
+ .../introspection/introspection-base.h        |  7 +++++
+ .../introspection/introspection-callable.h    | 10 +++++++
+ .../introspection-has-prerequisite.h          |  3 +++
+ .../introspection-prerequisite.h              |  3 +++
+ .../introspection-unimplemented.h             |  3 +++
+ .../plugins/embedded/embedded-plugin.h        |  3 +++
+ tests/libpeas/testing/testing-extension.h     |  7 +++++
+ tests/libpeas/testing/testing.h               |  2 ++
+ tests/testing-util/peas-test-common.h         | 26 +++++++++++++++++++
+ tests/testing-util/testing-util.h             | 17 ++++++++++++
+ 12 files changed, 93 insertions(+)
+ create mode 100644 tests/testing-util/peas-test-common.h
+
+diff --git a/tests/libpeas-gtk/testing/testing.h b/tests/libpeas-gtk/testing/testing.h
+index d75deed6..9126238e 100644
+--- a/tests/libpeas-gtk/testing/testing.h
++++ b/tests/libpeas-gtk/testing/testing.h
+@@ -28,17 +28,22 @@
+ 
+ G_BEGIN_DECLS
+ 
++PEAS_TEST_EXPORT
+ void            testing_init                     (gint                       *argc,
+                                                   gchar                    ***argv);
+ 
++PEAS_TEST_EXPORT
+ PeasEngine     *testing_engine_new               (void);
+ 
++PEAS_TEST_EXPORT
+ PeasPluginInfo *testing_get_plugin_info_for_iter (PeasGtkPluginManagerView   *view,
+                                                   GtkTreeIter                *iter);
++PEAS_TEST_EXPORT
+ gboolean        testing_get_iter_for_plugin_info (PeasGtkPluginManagerView   *view,
+                                                   PeasPluginInfo             *info,
+                                                   GtkTreeIter                *iter);
+ 
++PEAS_TEST_EXPORT
+ void            testing_show_widget              (gpointer                    widget);
+ 
+ /* libtesting-util functions which do not need to be overridden */
+diff --git a/tests/libpeas/introspection/introspection-abstract.h b/tests/libpeas/introspection/introspection-abstract.h
+index bfff2c46..2b02c8e0 100644
+--- a/tests/libpeas/introspection/introspection-abstract.h
++++ b/tests/libpeas/introspection/introspection-abstract.h
+@@ -24,6 +24,8 @@
+ 
+ #include <libpeas/peas.h>
+ 
++#include "../../testing-util/peas-test-common.h"
++
+ G_BEGIN_DECLS
+ 
+ /*
+@@ -49,9 +51,14 @@ struct _IntrospectionAbstractClass {
+ /*
+  * Public methods
+  */
++PEAS_TEST_EXPORT
+ GType  introspection_abstract_get_type  (void) G_GNUC_CONST;
+ 
++
++PEAS_TEST_EXPORT
+ gint   introspection_abstract_get_value (IntrospectionAbstract *abstract);
++
++PEAS_TEST_EXPORT
+ void   introspection_abstract_set_value (IntrospectionAbstract *abstract,
+                                          gint                   value);
+ 
+diff --git a/tests/libpeas/introspection/introspection-base.h b/tests/libpeas/introspection/introspection-base.h
+index 64b052ff..06b2ba3b 100644
+--- a/tests/libpeas/introspection/introspection-base.h
++++ b/tests/libpeas/introspection/introspection-base.h
+@@ -24,6 +24,8 @@
+ 
+ #include <libpeas/peas.h>
+ 
++#include "../../testing-util/peas-test-common.h"
++
+ G_BEGIN_DECLS
+ 
+ /*
+@@ -49,9 +51,14 @@ struct _IntrospectionBaseInterface {
+ /*
+  * Public methods
+  */
++PEAS_TEST_EXPORT
+ GType      introspection_base_get_type     (void) G_GNUC_CONST;
+ 
++
++PEAS_TEST_EXPORT
+ const PeasPluginInfo *introspection_base_get_plugin_info (IntrospectionBase *base);
++
++PEAS_TEST_EXPORT
+ GSettings            *introspection_base_get_settings    (IntrospectionBase *base);
+ 
+ G_END_DECLS
+diff --git a/tests/libpeas/introspection/introspection-callable.h b/tests/libpeas/introspection/introspection-callable.h
+index 69c0fd02..4f8f5251 100644
+--- a/tests/libpeas/introspection/introspection-callable.h
++++ b/tests/libpeas/introspection/introspection-callable.h
+@@ -24,6 +24,8 @@
+ 
+ #include <glib-object.h>
+ 
++#include "../../testing-util/peas-test-common.h"
++
+ G_BEGIN_DECLS
+ 
+ /*
+@@ -58,13 +60,21 @@ struct _IntrospectionCallableInterface {
+ /*
+  * Public methods
+  */
++PEAS_TEST_EXPORT
+ GType        introspection_callable_get_type         (void) G_GNUC_CONST;
+ 
++PEAS_TEST_EXPORT
+ gchar       *introspection_callable_call_with_return (IntrospectionCallable *callable);
+ 
++
++PEAS_TEST_EXPORT
+ void         introspection_callable_call_no_args     (IntrospectionCallable *callable);
++
++PEAS_TEST_EXPORT
+ void         introspection_callable_call_single_arg  (IntrospectionCallable *callable,
+                                                       gboolean              *called);
++
++PEAS_TEST_EXPORT
+ void         introspection_callable_call_multi_args  (IntrospectionCallable *callable,
+                                                       gint                   in,
+                                                       gint                  *out,
+diff --git a/tests/libpeas/introspection/introspection-has-prerequisite.h b/tests/libpeas/introspection/introspection-has-prerequisite.h
+index 61e13bf0..29d25e4f 100644
+--- a/tests/libpeas/introspection/introspection-has-prerequisite.h
++++ b/tests/libpeas/introspection/introspection-has-prerequisite.h
+@@ -24,6 +24,8 @@
+ 
+ #include <glib-object.h>
+ 
++#include "../../testing-util/peas-test-common.h"
++
+ G_BEGIN_DECLS
+ 
+ /*
+@@ -45,6 +47,7 @@ struct _IntrospectionHasPrerequisiteInterface {
+ /*
+  * Public methods
+  */
++PEAS_TEST_EXPORT
+ GType        introspection_has_prerequisite_get_type         (void) G_GNUC_CONST;
+ 
+ G_END_DECLS
+diff --git a/tests/libpeas/introspection/introspection-prerequisite.h b/tests/libpeas/introspection/introspection-prerequisite.h
+index f600d9ff..f9f2c85c 100644
+--- a/tests/libpeas/introspection/introspection-prerequisite.h
++++ b/tests/libpeas/introspection/introspection-prerequisite.h
+@@ -24,6 +24,8 @@
+ 
+ #include <libpeas/peas.h>
+ 
++#include "../../testing-util/peas-test-common.h"
++
+ G_BEGIN_DECLS
+ 
+ /*
+@@ -49,6 +51,7 @@ struct _IntrospectionPrerequisiteClass {
+ /*
+  * Public methods
+  */
++PEAS_TEST_EXPORT
+ GType        introspection_prerequisite_get_type         (void) G_GNUC_CONST;
+ 
+ G_END_DECLS
+diff --git a/tests/libpeas/introspection/introspection-unimplemented.h b/tests/libpeas/introspection/introspection-unimplemented.h
+index 832ab881..f4c6dc8f 100644
+--- a/tests/libpeas/introspection/introspection-unimplemented.h
++++ b/tests/libpeas/introspection/introspection-unimplemented.h
+@@ -24,6 +24,8 @@
+ 
+ #include <glib-object.h>
+ 
++#include "../../testing-util/peas-test-common.h"
++
+ G_BEGIN_DECLS
+ 
+ /*
+@@ -45,6 +47,7 @@ struct _IntrospectionUnimplementedInterface {
+ /*
+  * Public methods
+  */
++PEAS_TEST_EXPORT
+ GType introspection_unimplemented_get_type (void)  G_GNUC_CONST;
+ 
+ G_END_DECLS
+diff --git a/tests/libpeas/plugins/embedded/embedded-plugin.h b/tests/libpeas/plugins/embedded/embedded-plugin.h
+index b4111e5e..122c5a37 100644
+--- a/tests/libpeas/plugins/embedded/embedded-plugin.h
++++ b/tests/libpeas/plugins/embedded/embedded-plugin.h
+@@ -24,6 +24,8 @@
+ 
+ #include <libpeas/peas.h>
+ 
++#include "../../../testing-util/peas-test-common.h"
++
+ G_BEGIN_DECLS
+ 
+ #define TESTING_TYPE_EMBEDDED_PLUGIN         (testing_embedded_plugin_get_type ())
+@@ -44,6 +46,7 @@ struct _TestingEmbeddedPluginClass {
+   PeasExtensionBaseClass parent_class;
+ };
+ 
++PEAS_TEST_EXPORT
+ GType                testing_embedded_plugin_get_type       (void) G_GNUC_CONST;
+ G_MODULE_EXPORT void testing_embedded_plugin_register_types (PeasObjectModule *module);
+ 
+diff --git a/tests/libpeas/testing/testing-extension.h b/tests/libpeas/testing/testing-extension.h
+index 7794620c..03f5a841 100644
+--- a/tests/libpeas/testing/testing-extension.h
++++ b/tests/libpeas/testing/testing-extension.h
+@@ -28,11 +28,18 @@
+ 
+ G_BEGIN_DECLS
+ 
++PEAS_TEST_EXPORT
+ void testing_extension_basic      (const gchar   *loader);
++
++PEAS_TEST_EXPORT
+ void testing_extension_callable   (const gchar   *loader);
++
++PEAS_TEST_EXPORT
+ void testing_extension_add        (const gchar   *path,
+                                    GTestDataFunc  func);
+ 
++
++PEAS_TEST_EXPORT
+ int testing_extension_run_tests   (void);
+ 
+ #define testing_extension_all(loader) \
+diff --git a/tests/libpeas/testing/testing.h b/tests/libpeas/testing/testing.h
+index d71fdbe6..cdc9fddf 100644
+--- a/tests/libpeas/testing/testing.h
++++ b/tests/libpeas/testing/testing.h
+@@ -27,9 +27,11 @@
+ 
+ G_BEGIN_DECLS
+ 
++PEAS_TEST_EXPORT
+ void        testing_init             (gint    *argc,
+                                       gchar ***argv);
+ 
++PEAS_TEST_EXPORT
+ PeasEngine *testing_engine_new_full  (gboolean nonglobal_loaders);
+ 
+ #define testing_engine_new() (testing_engine_new_full (FALSE))
+diff --git a/tests/testing-util/peas-test-common.h b/tests/testing-util/peas-test-common.h
+new file mode 100644
+index 00000000..20281ee9
+--- /dev/null
++++ b/tests/testing-util/peas-test-common.h
+@@ -0,0 +1,26 @@
++/*
++ * peas-test-common.h
++ * This file is part of libpeas
++ *
++ * Copyright (C) 2019 - Chun-wei Fan
++ *
++ * libpeas is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2.1 of the License, or (at your option) any later version.
++ *
++ * libpeas is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public
++ * License along with this library; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA.
++ */
++
++#ifdef _MSC_VER
++# define PEAS_TEST_EXPORT __declspec (dllexport)
++#else
++# define PEAS_TEST_EXPORT
++#endif
+\ No newline at end of file
+diff --git a/tests/testing-util/testing-util.h b/tests/testing-util/testing-util.h
+index 0986d5aa..27caf9d6 100644
+--- a/tests/testing-util/testing-util.h
++++ b/tests/testing-util/testing-util.h
+@@ -24,18 +24,35 @@
+ 
+ #include <libpeas/peas-engine.h>
+ 
++#include "peas-test-common.h"
++
+ G_BEGIN_DECLS
+ 
++PEAS_TEST_EXPORT
+ void        testing_util_envars          (void);
++
++PEAS_TEST_EXPORT
+ void        testing_util_init            (void);
+ 
++
++PEAS_TEST_EXPORT
+ PeasEngine *testing_util_engine_new_full (gboolean    nonglobal_loaders);
++
++PEAS_TEST_EXPORT
+ void        testing_util_engine_free     (PeasEngine *engine);
+ 
++
++PEAS_TEST_EXPORT
+ int         testing_util_run_tests       (void);
+ 
++
++PEAS_TEST_EXPORT
+ void        testing_util_push_log_hook   (const gchar *pattern);
++
++PEAS_TEST_EXPORT
+ void        testing_util_pop_log_hook    (void);
++
++PEAS_TEST_EXPORT
+ void        testing_util_pop_log_hooks   (void);
+ 
+ 
+-- 
+GitLab
+
+
+From fd57c27fece4b9d4279d03948adb5a8d10e3b872 Mon Sep 17 00:00:00 2001
+From: Chun-wei Fan <fanchunwei@src.gnome.org>
+Date: Fri, 15 Nov 2019 16:57:14 +0800
+Subject: [PATCH 04/12] tests: Construct paths appropriately
+
+Use G_DIR_SEPARATOR_S so that we don't confuse between forward and
+backward slashes, so that tests won't fail unecessarily.
+---
+ tests/libpeas/plugin-info.c     | 4 ++--
+ tests/libpeas/testing/testing.c | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/tests/libpeas/plugin-info.c b/tests/libpeas/plugin-info.c
+index 693a0cd0..d8628768 100644
+--- a/tests/libpeas/plugin-info.c
++++ b/tests/libpeas/plugin-info.c
+@@ -73,7 +73,7 @@ test_plugin_info_verify_full_info (PeasEngine *engine)
+ 
+   g_assert_cmpstr (peas_plugin_info_get_module_name (info), ==, "full-info");
+   g_assert (g_str_has_suffix (peas_plugin_info_get_module_dir (info), "/tests/plugins"));
+-  g_assert (g_str_has_suffix (peas_plugin_info_get_data_dir (info), "/tests/plugins/full-info"));
++  g_assert (g_str_has_suffix (peas_plugin_info_get_data_dir (info), "/tests/plugins" G_DIR_SEPARATOR_S "full-info"));
+ 
+   g_assert_cmpstr (peas_plugin_info_get_dependencies (info)[0], ==, "something");
+   g_assert_cmpstr (peas_plugin_info_get_dependencies (info)[1], ==, "something-else");
+@@ -111,7 +111,7 @@ test_plugin_info_verify_min_info (PeasEngine *engine)
+ 
+   g_assert_cmpstr (peas_plugin_info_get_module_name (info), ==, "min-info");
+   g_assert (g_str_has_suffix (peas_plugin_info_get_module_dir (info), "/tests/plugins"));
+-  g_assert (g_str_has_suffix (peas_plugin_info_get_data_dir (info), "/tests/plugins/min-info"));
++  g_assert (g_str_has_suffix (peas_plugin_info_get_data_dir (info), "/tests/plugins" G_DIR_SEPARATOR_S "min-info"));
+ 
+   g_assert_cmpstr (peas_plugin_info_get_dependencies (info)[0], ==, NULL);
+ 
+diff --git a/tests/libpeas/testing/testing.c b/tests/libpeas/testing/testing.c
+index 1d06dcd5..49b94f32 100644
+--- a/tests/libpeas/testing/testing.c
++++ b/tests/libpeas/testing/testing.c
+@@ -77,10 +77,10 @@ testing_engine_new_full (gboolean nonglobal_loaders)
+   testing_util_push_log_hook ("*Error loading *unkown-loader.plugin*");
+ 
+   testing_util_push_log_hook ("Bad plugin file '"
+-                              BUILDDIR "*/embedded*.plugin': "
++                              BUILDDIR "*" G_DIR_SEPARATOR_S "embedded*.plugin': "
+                               "embedded plugins must be a resource");
+   testing_util_push_log_hook ("Error loading '"
+-                              BUILDDIR "*/embedded*.plugin'*");
++                              BUILDDIR "*" G_DIR_SEPARATOR_S "embedded*.plugin'*");
+ 
+   testing_util_push_log_hook ("Bad plugin file '"
+                               BUILDDIR "*embedded-invalid-loader.plugin': "
+-- 
+GitLab
+
+
+From 37d70f4a282f990c19aee17ba838df6dd8602957 Mon Sep 17 00:00:00 2001
+From: Chun-wei Fan <fanchunwei@src.gnome.org>
+Date: Tue, 19 Nov 2019 16:34:49 +0800
+Subject: [PATCH 05/12] peas-object-module.c: Add fallback module search for
+ Windows
+
+When we specify the plugin module name via a plugin file,
+g_module_build_path() will append a 'lib' prefix to the final filename
+of the module DLL, which may cause the module load to fail because the
+module DLL is not built with the 'lib' prefix for its filename, which
+is often the case for Meson builds with Visual Studio and also likely
+in other scenarios.
+
+Fix this by adding a fallback check for Windows, that we look for the
+module DLL without the 'lib' prefix by appending '.dll' to the module
+name that we pass into g_module_build_path(), if we can't find the
+module DLL with the 'lib' prefix.
+---
+ libpeas/peas-object-module.c | 29 ++++++++++++++++++++++++++++-
+ 1 file changed, 28 insertions(+), 1 deletion(-)
+
+diff --git a/libpeas/peas-object-module.c b/libpeas/peas-object-module.c
+index 10e7d82d..d48b6fbf 100644
+--- a/libpeas/peas-object-module.c
++++ b/libpeas/peas-object-module.c
+@@ -108,8 +108,23 @@ peas_object_module_load (GTypeModule *gmodule)
+     {
+       gchar *path;
+       GModuleFlags flags = 0;
++      gchar *fallback_path = NULL;
+ 
+-      path = g_module_build_path (priv->path, priv->module_name);
++#ifdef G_OS_WIN32
++      if (!g_str_has_suffix (priv->module_name, "." G_MODULE_SUFFIX))
++        {
++          /* On Windows, g_module_build_path() will add a "lib" prefix,
++           * to the module_name unless a ".dll" suffix is appended to the
++           * module_name. So, we also try to look for a DLL whose filename
++           * is the module name in the case that lib<module_name>.dll is
++           * not found, as it is commonly the case on Meson builds and
++           * also likely in other cases.
++           */
++          gchar *mod_file = g_strconcat (priv->module_name, "." G_MODULE_SUFFIX, NULL);
++          fallback_path = g_module_build_path (priv->path, mod_file);
++          g_free (mod_file);
++        }
++#endif
+ 
+       /* g_module_build_path() will add G_MODULE_SUFFIX to the path,
+        * however g_module_open() will only try to load the libtool archive
+@@ -117,6 +132,8 @@ peas_object_module_load (GTypeModule *gmodule)
+        * which allows uninstalled builds to load plugins as well, as there
+        * is only the .la file in the build directory.
+        */
++      path = g_module_build_path (priv->path, priv->module_name);
++
+       if (G_MODULE_SUFFIX[0] != '\0' && g_str_has_suffix (path, "." G_MODULE_SUFFIX))
+         path[strlen (path) - strlen (G_MODULE_SUFFIX) - 1] = '\0';
+ 
+@@ -125,6 +142,16 @@ peas_object_module_load (GTypeModule *gmodule)
+ 
+       /* Bind symbols immediately to avoid errors long after loading */
+       priv->library = g_module_open (path, flags);
++
++      /* Windows case if lib<module_name>.dll cannot be found */
++      if (fallback_path != NULL)
++        {
++          if (priv->library == NULL)
++            priv->library = g_module_open (fallback_path, flags);
++
++          g_free (fallback_path);
++        }
++
+       g_free (path);
+     }
+ 
+-- 
+GitLab
+
+
+From df637cf9c020acc19394d425242bc8ee9510128d Mon Sep 17 00:00:00 2001
+From: Chun-wei Fan <fanchunwei@src.gnome.org>
+Date: Tue, 19 Nov 2019 18:00:16 +0800
+Subject: [PATCH 06/12] meson.build: Improve lua search on Windows
+
+On Windows, especially Visual Studio builds, lua does not come with a
+pkg-config file, so we may need to look for the dependencies manually.
+
+We first reverse the order of the search in such situations, by looking
+for whether we have lua.exe or luajit.exe in our path, and then we look
+for the lua headers and the lua library[1].  If they could be found, we
+proceed to look for lua-lgi and build as we did before.
+
+[1]: lua51.lib for luajit or lua5[3|2|1].lib for lua 5.[3|2|1].
+---
+ meson.build | 46 +++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 45 insertions(+), 1 deletion(-)
+
+diff --git a/meson.build b/meson.build
+index 7efb71b4..95fa9866 100644
+--- a/meson.build
++++ b/meson.build
+@@ -2,7 +2,7 @@ project(
+   'libpeas', 'c',
+   version: '1.28.0',
+   license: 'LGPLv2.1+',
+-  meson_version: '>= 0.49.0',
++  meson_version: '>= 0.50.0',
+   default_options: [
+     'buildtype=debugoptimized',
+   ]
+@@ -149,7 +149,51 @@ endif
+ luajit_prg = find_program('luajit', required: false)
+ xmllint_prg = find_program('xmllint', required: false)
+ 
++if cc.get_id() == 'msvc'
++  if luajit_prg.found()
++    # luajit has lua51.lib as its import library
++    lua_names = ['lua51']
++  else
++    lua_names = ['lua53', 'lua52', 'lua51']
++  endif
++
++  lua_headers = ['lua.h', 'lualib.h', 'lauxlib.h']
++  # On Windows, the lua program may be named as lua.exe
++  foreach lua: lua_names + ['lua']
++    if not lua51_prg.found() and not luajit_prg.found()
++      lua51_prg = find_program(lua, required: false)
++    endif
++    if lua51_prg.found()
++      if lua != 'lua'
++        lua51_dep = cc.find_library(lua, has_headers: lua_headers, required: false)
++      endif
++    endif
++  endforeach
++
++  if not lua51_dep.found() and not luajit_dep.found()
++    foreach lualib: lua_names
++      if luajit_prg.found()
++        if not luajit_dep.found()
++          luajit_dep = cc.find_library(lualib, has_headers: lua_headers, required: false)
++        endif
++      endif
++
++      if lua51_prg.found()
++        if not lua51_dep.found()
++          lua51_dep = cc.find_library(lualib, has_headers: lua_headers, required: false)
++        endif
++      endif
++    endforeach
++  endif
++endif
++
++lua_found = false
++
+ if (luajit_dep.found() and luajit_prg.found()) or (lua51_dep.found() and lua51_prg.found())
++  lua_found = true
++endif
++
++if lua_found
+     if luajit_prg.found()
+         lua_prg = luajit_prg
+     else
+-- 
+GitLab
+
+
+From e646e945d1420c38622376393039cb3cd2ac4d1f Mon Sep 17 00:00:00 2001
+From: Chun-wei Fan <fanchunwei@src.gnome.org>
+Date: Tue, 19 Nov 2019 18:05:03 +0800
+Subject: [PATCH 07/12] build: Fix installation and some GTK tests
+
+Don't specify the install directory for libpeas and libpeas-gtk, as we
+need the DLLs to be in $(prefix)/bin and the .lib's/.so's to be in
+$(libdir), which Meson sorts out for us automatically.
+
+Also, just export the internal symbols for the tests when we build
+libpeas-gtk, as GObject on Windows really doesn't like the idea of
+mixing static .lib's with DLLs (i.e. a static libpeas-gtk mixing with a
+DLL libpeas).
+---
+ libpeas-gtk/meson.build                     | 18 ------------------
+ libpeas-gtk/peas-gtk-plugin-manager-store.h |  4 ++++
+ libpeas/meson.build                         |  1 -
+ tests/libpeas-gtk/testing/meson.build       |  2 +-
+ 4 files changed, 5 insertions(+), 20 deletions(-)
+
+diff --git a/libpeas-gtk/meson.build b/libpeas-gtk/meson.build
+index 8fa0856a..daf98ec6 100644
+--- a/libpeas-gtk/meson.build
++++ b/libpeas-gtk/meson.build
+@@ -42,16 +42,6 @@ install_headers(
+   )
+ )
+ 
+-# Static library used for testing symbol access
+-libpeas_gtk_test = static_library(
+-  package_gtk_string.strip('lib'),
+-  libpeas_gtk_c,
+-  include_directories: rootdir,
+-  dependencies: libpeas_gtk_deps,
+-  c_args: libpeas_gtk_c_args,
+-  link_args: libpeas_gtk_link_args,
+-)
+-
+ libpeas_gtk_sha = library(
+   package_gtk_string.strip('lib'),
+   libpeas_gtk_c,
+@@ -62,7 +52,6 @@ libpeas_gtk_sha = library(
+   c_args: libpeas_gtk_c_args,
+   link_args: libpeas_gtk_link_args,
+   install: true,
+-  install_dir: libdir,
+ )
+ 
+ libpeas_gtk_dep_sources = []
+@@ -105,13 +94,6 @@ libpeas_gtk_dep = declare_dependency(
+   sources: libpeas_gtk_dep_sources,
+ )
+ 
+-libpeas_gtk_test_dep = declare_dependency(
+-  link_with: libpeas_gtk_test,
+-  dependencies: libpeas_gtk_deps,
+-  include_directories: rootdir,
+-  sources: libpeas_gtk_dep_sources,
+-)
+-
+ libpeas_gtk_pc_reqs = [
+   glib_dep,
+   gtk_dep,
+diff --git a/libpeas-gtk/peas-gtk-plugin-manager-store.h b/libpeas-gtk/peas-gtk-plugin-manager-store.h
+index 729ff070..6c3a13b4 100644
+--- a/libpeas-gtk/peas-gtk-plugin-manager-store.h
++++ b/libpeas-gtk/peas-gtk-plugin-manager-store.h
+@@ -65,6 +65,7 @@ struct _PeasGtkPluginManagerStoreClass {
+ };
+ 
+ GType                       peas_gtk_plugin_manager_store_get_type              (void) G_GNUC_CONST;
++PEAS_AVAILABLE_IN_ALL
+ PeasGtkPluginManagerStore  *peas_gtk_plugin_manager_store_new                   (PeasEngine                *engine);
+ 
+ void                        peas_gtk_plugin_manager_store_reload                (PeasGtkPluginManagerStore *store);
+@@ -72,6 +73,7 @@ void                        peas_gtk_plugin_manager_store_reload
+ void                        peas_gtk_plugin_manager_store_set_enabled           (PeasGtkPluginManagerStore *store,
+                                                                                  GtkTreeIter               *iter,
+                                                                                  gboolean                   enabled);
++PEAS_AVAILABLE_IN_ALL
+ gboolean                    peas_gtk_plugin_manager_store_get_enabled           (PeasGtkPluginManagerStore *store,
+                                                                                  GtkTreeIter               *iter);
+ void                        peas_gtk_plugin_manager_store_set_all_enabled       (PeasGtkPluginManagerStore *store,
+@@ -82,9 +84,11 @@ void                        peas_gtk_plugin_manager_store_toggle_enabled
+ gboolean                    peas_gtk_plugin_manager_store_can_enable            (PeasGtkPluginManagerStore *store,
+                                                                                  GtkTreeIter               *iter);
+ 
++PEAS_AVAILABLE_IN_ALL
+ PeasPluginInfo             *peas_gtk_plugin_manager_store_get_plugin            (PeasGtkPluginManagerStore *store,
+                                                                                  GtkTreeIter               *iter);
+ 
++PEAS_AVAILABLE_IN_ALL
+ gboolean                    peas_gtk_plugin_manager_store_get_iter_from_plugin  (PeasGtkPluginManagerStore *store,
+                                                                                  GtkTreeIter               *iter,
+                                                                                  const PeasPluginInfo      *info);
+diff --git a/libpeas/meson.build b/libpeas/meson.build
+index 2e1f2c2a..d32c6b91 100644
+--- a/libpeas/meson.build
++++ b/libpeas/meson.build
+@@ -111,7 +111,6 @@ libpeas_sha = library(
+   objc_args: libpeas_c_args,
+   link_args: libpeas_link_args,
+   install: true,
+-  install_dir: libdir,
+ )
+ 
+ libpeas_dep_sources = [
+diff --git a/tests/libpeas-gtk/testing/meson.build b/tests/libpeas-gtk/testing/meson.build
+index 102013a8..646f42d6 100644
+--- a/tests/libpeas-gtk/testing/meson.build
++++ b/tests/libpeas-gtk/testing/meson.build
+@@ -13,7 +13,7 @@ libpeas_gtk_testing_deps = [
+   glib_dep,
+   introspection_dep,
+   libpeas_dep,
+-  libpeas_gtk_test_dep,
++  libpeas_gtk_dep,
+   libtesting_util_dep,
+ ]
+ 
+-- 
+GitLab
+
+
+From aad052d6808fbd79d139f94fc88dc3e6f0947910 Mon Sep 17 00:00:00 2001
+From: Chun-wei Fan <fanchunwei@src.gnome.org>
+Date: Wed, 20 Nov 2019 15:36:32 +0800
+Subject: [PATCH 08/12] test/libpeas-gtk/plugin-manager: Use en-US locale on
+ Windows
+
+This will allow the tests here to pass on non-English versions of
+Windows when translations of the GTK+ stack is present.
+---
+ tests/libpeas-gtk/plugin-manager.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/tests/libpeas-gtk/plugin-manager.c b/tests/libpeas-gtk/plugin-manager.c
+index 614cceab..f2e9147b 100644
+--- a/tests/libpeas-gtk/plugin-manager.c
++++ b/tests/libpeas-gtk/plugin-manager.c
+@@ -27,6 +27,11 @@
+ #include <libpeas/peas-i18n-priv.h>
+ #include <libpeas-gtk/peas-gtk.h>
+ 
++#ifdef G_OS_WIN32
++#define WIN32_LEAN_AND_MEAN
++#include <windows.h>
++#endif
++
+ #include "testing/testing.h"
+ 
+ typedef struct _TestFixture TestFixture;
+@@ -381,6 +386,10 @@ main (int    argc,
+ {
+   testing_init (&argc, &argv);
+ 
++#ifdef G_OS_WIN32
++  SetThreadLocale (MAKELCID (MAKELANGID (LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT));
++#endif
++
+ #define TEST(path, ftest) \
+   g_test_add ("/gtk/plugin-manager/" path, TestFixture, \
+               (gpointer) test_gtk_plugin_manager_##ftest, \
+-- 
+GitLab
+
+
+From 58b749f9bfe00bdd63f82db8f45228d9f841a83b Mon Sep 17 00:00:00 2001
+From: Chun-wei Fan <fanchunwei@src.gnome.org>
+Date: Wed, 20 Nov 2019 15:38:41 +0800
+Subject: [PATCH 09/12] embedded tests: Force export of generated resource code
+
+The 'export' option for glib-compile-resources needs to be updated for
+Visual Studio builds, so that such symbols are really exported.  Before
+this happens in GLib-2.64.4, force export of the symbols we need for the
+tests.
+---
+ tests/libpeas/plugins/embedded/meson.build | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/tests/libpeas/plugins/embedded/meson.build b/tests/libpeas/plugins/embedded/meson.build
+index c3e1b938..00232bf9 100644
+--- a/tests/libpeas/plugins/embedded/meson.build
++++ b/tests/libpeas/plugins/embedded/meson.build
+@@ -1,5 +1,11 @@
+ libembedded_name = 'embedded'
+ 
++if cc.get_id() == 'msvc' and glib_dep.version() < '2.64.4'
++  libembedded_link_args = ['-export:embedded_register_resource']
++else
++  libembedded_link_args = []
++endif
++
+ libembedded_public_h = [
+   'embedded-plugin.h',
+ ]
+@@ -34,6 +40,7 @@ libembedded_lib = shared_library(
+   libembedded_c + libembedded_res,
+   include_directories: rootdir,
+   dependencies: libembedded_deps,
++  link_args: libembedded_link_args,
+   install: false,
+ )
+ 
+-- 
+GitLab
+
+
+From 861cb1c34e12c1e35cb1c6beabce59a123cc3772 Mon Sep 17 00:00:00 2001
+From: Chun-wei Fan <fanchunwei@src.gnome.org>
+Date: Mon, 15 Oct 2018 14:46:38 +0800
+Subject: [PATCH 10/12] Python Loader: Do not hardcode localedir on Windows
+
+We construct them dynamically according to the path that the libpeas DLL
+is in, so that they can be relocated easily on Windows, which is often
+the case there.
+---
+ loaders/python/peas-python-internal.c  | 4 ++++
+ loaders/python/peas-python-internal.py | 7 ++++++-
+ 2 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/loaders/python/peas-python-internal.c b/loaders/python/peas-python-internal.c
+index 58891887..f15b941f 100644
+--- a/loaders/python/peas-python-internal.c
++++ b/loaders/python/peas-python-internal.c
+@@ -68,6 +68,7 @@ peas_python_internal_setup (gboolean already_initialized)
+   PyObject *builtins_module, *globals, *result;
+   PyObject *code = NULL, *failed_method = NULL;
+   gboolean success = FALSE;
++  char *localedir = NULL;
+ 
+ #define goto_error_if_failed(cond) \
+   G_STMT_START { \
+@@ -128,8 +129,11 @@ peas_python_internal_setup (gboolean already_initialized)
+                                                     prgname) == 0);
+   goto_error_if_failed (PyModule_AddStringMacro (internal_module,
+                                                  GETTEXT_PACKAGE) == 0);
++
++#ifndef G_OS_WIN32
+   goto_error_if_failed (PyModule_AddStringMacro (internal_module,
+                                                  PEAS_LOCALEDIR) == 0);
++#endif
+ 
+   globals = PyModule_GetDict (internal_module);
+   result = PyEval_EvalCode ((gpointer) code, globals, globals);
+diff --git a/loaders/python/peas-python-internal.py b/loaders/python/peas-python-internal.py
+index 1a0a7457..86360b39 100644
+--- a/loaders/python/peas-python-internal.py
++++ b/loaders/python/peas-python-internal.py
+@@ -43,7 +43,12 @@ class Hooks(object):
+ 
+         sys.argv = [PRGNAME]
+ 
+-        gettext.install(GETTEXT_PACKAGE, PEAS_LOCALEDIR)
++        if os.name == 'nt':
++            basedir = GLib.win32_get_package_installation_directory_of_module(None)
++            peas_locale_dir = os.path.join (basedir, 'share', 'locale')
++            gettext.install(GETTEXT_PACKAGE, peas_locale_dir)
++        else:
++            gettext.install(GETTEXT_PACKAGE, PEAS_LOCALEDIR)
+ 
+         self.__module_cache = {}
+         self.__extension_cache = {}
+-- 
+GitLab
+
+
+From 1656eb4188bf0388795c1422248ae193a0f30311 Mon Sep 17 00:00:00 2001
+From: Chun-wei Fan <fanchunwei@src.gnome.org>
+Date: Mon, 15 Oct 2018 17:39:40 +0800
+Subject: [PATCH 11/12] peas-demo: Don't hardcode installed paths on Windows
+
+Construct the paths dynamically, since things tend to be relocated on
+Windows regularly.
+---
+ peas-demo/peas-demo.c | 33 ++++++++++++++++++++++++++++++---
+ 1 file changed, 30 insertions(+), 3 deletions(-)
+
+diff --git a/peas-demo/peas-demo.c b/peas-demo/peas-demo.c
+index 466a3923..c6c0cf3f 100644
+--- a/peas-demo/peas-demo.c
++++ b/peas-demo/peas-demo.c
+@@ -154,9 +154,36 @@ main (int    argc,
+   if (run_from_build_dir)
+     peas_engine_add_search_path (engine, PEAS_BUILDDIR "/peas-demo/plugins", NULL);
+   else
+-    peas_engine_add_search_path (engine,
+-                                 PEAS_LIBDIR "/peas-demo/plugins/",
+-                                 PEAS_PREFIX "/share/peas-demo/plugins");
++    {
++      char *prefix;
++      char *demo_pluginlibdir, *demo_plugindatadir;
++
++      peas_engine_add_search_path (engine,
++                                   PEAS_LIBDIR "/peas-demo/plugins/",
++                                   PEAS_PREFIX "/share/peas-demo/plugins");
++
++#ifdef G_OS_WIN32
++      /* this is so that the paths are relocatable on Windows */
++      prefix = g_win32_get_package_installation_directory_of_module (NULL);
++      demo_pluginlibdir = g_build_filename (prefix,
++                                            "lib",
++                                            "peas-demo",
++                                            "plugins",
++                                            NULL);
++      demo_plugindatadir = g_build_filename (prefix,
++                                             "share",
++                                             "peas-demo",
++                                             "plugins",
++                                             NULL);
++      peas_engine_add_search_path (engine,
++                                   demo_pluginlibdir,
++                                   demo_plugindatadir);
++
++      g_free (demo_plugindatadir);
++      g_free (demo_pluginlibdir);
++      g_free (prefix);
++#endif
++    }
+ 
+   n_windows = 0;
+   main_window = create_main_window ();
+-- 
+GitLab
+
+
+From e5eac65068df193f237f7bd900bdb437d8508e93 Mon Sep 17 00:00:00 2001
+From: Chun-wei Fan <fanchunwei@src.gnome.org>
+Date: Wed, 29 Apr 2020 18:56:21 +0800
+Subject: [PATCH 12/12] peas-dirs.c: Fix building on Visual Studio
+
+libloadersapi.h should not have been included directly, just include
+windows.h with WIN32_LEAN_AND_MEAN defined.
+---
+ libpeas/peas-dirs.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/libpeas/peas-dirs.c b/libpeas/peas-dirs.c
+index 7cb08e20..6f182e2b 100644
+--- a/libpeas/peas-dirs.c
++++ b/libpeas/peas-dirs.c
+@@ -32,7 +32,8 @@
+ #ifdef G_OS_WIN32
+ // inspired by gobject-introspection...
+ 
+-#include <libloaderapi.h>
++#define WIN32_LEAN_AND_MEAN
++#include <windows.h>
+ 
+ static HMODULE libpeas_dll = NULL;
+ 
+-- 
+GitLab
+
