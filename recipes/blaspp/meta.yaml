@@ -1,0 +1,76 @@
+{% set name = "blaspp" %}
+{% set version = "2020.10.02" %}
+{% set build = 0 %}
+{% set sha256 = "36e45bb5a8793ba5d7bc7c34fc263f91f92b0946634682937041221a6bf1a150" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: {{ version }}.tar.gz
+  url: https://bitbucket.org/icl/blaspp/downloads/blaspp-{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+  patches:
+    # Fix MSVC builds
+    # https://bitbucket.org/icl/blaspp/pull-requests/31/wip-msvc-windows-builds
+    - 0001-GNU-extension-__attribute__-format.patch
+    - 0002-Complex-Support-OpenBLAS-w-MSVC.patch
+    - 0003-Missing-include-for-std-max.patch
+    - 0004-Install-RUNTIME.patch
+
+build:
+  number: {{ build }}
+
+  run_exports:
+    # no ABI compatibility between releases
+    - blaspp {{ version }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - make           # [unix]
+    - ninja          # [win]
+    - cmake >=3.15.0
+    - llvm-openmp    # [osx]
+    - libgomp        # [linux]
+  host:
+    - libblas
+    - libcblas
+
+test:
+  commands:
+    - test -f ${PREFIX}/lib/libblaspp${SHLIB_EXT}                                 # [unix]
+    - if exist %LIBRARY_PREFIX%\bin\blaspp.dll (exit 0) else (exit 1)             # [win]
+
+    - test -f ${PREFIX}/lib/blaspp/blasppConfig.cmake                             # [unix]
+    - if exist %LIBRARY_PREFIX%\lib\blaspp\blasppConfig.cmake (exit 0) else (exit 1)  # [win]
+
+about:
+  home: https://icl.utk.edu/slate/
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: C++ API for the Basic Linear Algebra Subroutines
+
+  description: |
+    The Basic Linear Algebra Subprograms (BLAS) have been around for many
+    decades and serve as the de facto standard for performance-portable and
+    numerically robust implementation of essential linear algebra
+    functionality. Originally, they were written in Fortran, and later
+    furnished with a C API (CBLAS).
+    The objective of BLAS++ is to provide a convenient, performance oriented
+    API for development in the C++ language, that, for the most part, preserves
+    established conventions, while, at the same time, takes advantages of
+    modern C++ features, such as: namespaces, templates, exceptions, etc.
+    BLAS++ is part of the SLATE project (Software for Linear Algebra Targeting
+    Exascale), which is funded by the Department of Energy as part of its
+    Exascale Computing Initiative (ECP). Closely related to BLAS++ is the
+    LAPACK++ project, which provides a C++ API for LAPACK.
+  doc_url: https://icl.bitbucket.io/blaspp/
+  dev_url: https://bitbucket.org/icl/blaspp
+
+extra:
+  recipe-maintainers:
+    - ax3l
