@@ -1,0 +1,79 @@
+{% set name = "lapackpp" %}
+{% set version = "2020.10.02" %}
+{% set build = 0 %}
+{% set sha256 = "8dde9b95d75b494c4f8b893d68034e95b7a7541981359acb97b6c1c4a9c45cd9" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: {{ version }}.tar.gz
+  url: https://bitbucket.org/icl/lapackpp/downloads/lapackpp-{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+  patches:
+    # Fix MSVC builds
+    # https://bitbucket.org/icl/lapackpp/pull-requests/13/msvc-windows-builds
+    - 0001-WINDOWS_EXPORT_ALL_SYMBOLS.patch
+    - 0002-Install-CMake-Dir.patch
+    - 0003-Install-RUNTIME.patch
+    - 0004-Complex-Support-MSVC.patch
+    - 0005-GNU-extension-__attribute__-format.patch
+
+build:
+  number: {{ build }}
+
+  run_exports:
+    # no ABI compatibility between releases
+    - lapackpp {{ version }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - make           # [unix]
+    - ninja          # [win]
+    - cmake >=3.15.0
+  host:
+    - blaspp =={{ version }}
+    - liblapack
+    - liblapacke
+
+test:
+  commands:
+    - test -f ${PREFIX}/lib/liblapackpp${SHLIB_EXT}                               # [unix]
+    - if exist %LIBRARY_PREFIX%\bin\lapackpp.dll (exit 0) else (exit 1)           # [win]
+
+    - test -f ${PREFIX}/lib/lapackpp/lapackppConfig.cmake                                 # [unix]
+    - if exist %LIBRARY_PREFIX%\lib\lapackpp\lapackppConfig.cmake (exit 0) else (exit 1)  # [win]
+
+about:
+  home: https://icl.utk.edu/slate/
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: C++ API for the Linear Algebra PACKage
+
+  description: |
+    The Linear Algebra PACKage (LAPACK) is a standard software library for
+    numerical linear algebra. It provides routines for solving systems of
+    linear equations and linear least squares problems, eigenvalue problems,
+    and singular value decomposition. It also includes routines to implement
+    the associated matrix factorizations such as LU, QR, Cholesky, etc.
+    LAPACK was originally written in FORTRAN 77, and moved to Fortran 90 in
+    version 3.2 (2008). LAPACK provides routines for handling both real and
+    complex matrices in both single and double precision.
+    The objective of LAPACK++ is to provide a convenient, performance oriented
+    API for development in the C++ language, that, for the most part, preserves
+    established conventions, while, at the same time, takes advantages of
+    modern C++ features, such as: namespaces, templates, exceptions, etc.
+    LAPACK++ is part of the SLATE project (Software for Linear Algebra
+    Targeting Exascale), which is funded by the Department of Energy as part of
+    its Exascale Computing Initiative (ECP). Closely related to LAPACK++ is the
+    BLAS++ project, which provides a C++ API for BLAS and Batch BLAS.
+  doc_url: https://icl.bitbucket.io/lapackpp/
+  dev_url: https://bitbucket.org/icl/lapackpp
+
+extra:
+  recipe-maintainers:
+    - ax3l

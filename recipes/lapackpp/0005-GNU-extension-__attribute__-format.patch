@@ -1,0 +1,58 @@
+From 8745046877a21cb46e36e23dc72d2ed40e933bda Mon Sep 17 00:00:00 2001
+From: Axel Huebl <axel.huebl@plasma.ninja>
+Date: Sat, 6 Mar 2021 23:08:46 -0800
+Subject: [PATCH 5/5] GNU extension: __attribute__((format))
+
+Wrap this into a macro since it's a GNU extension.
+
+Breaks MSVC.
+---
+ include/lapack/util.hh | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/include/lapack/util.hh b/include/lapack/util.hh
+index b39cc64..d6916e4 100644
+--- a/include/lapack/util.hh
++++ b/include/lapack/util.hh
+@@ -75,13 +75,19 @@ inline void throw_if( bool cond, const char* condstr, const char* func )
+     }
+ }
+ 
++#if defined(_MSC_VER)
++#   define LAPACKPP_ATTR_FORMAT(I, F)
++#else
++#   define LAPACKPP_ATTR_FORMAT(I, F) __attribute__((format( printf, I, F )))
++#endif
++
+ // -----------------------------------------------------------------------------
+ // internal helper function; throws Error if cond is true
+ // uses printf-style format for error message
+ // called by lapack_error_if_msg macro
+ // condstr is ignored, but differentiates this from other version.
+ inline void throw_if( bool cond, const char* condstr, const char* func, const char* format, ... )
+-    __attribute__((format( printf, 4, 5 )));
++    LAPACKPP_ATTR_FORMAT(4, 5);
+ 
+ inline void throw_if( bool cond, const char* condstr, const char* func, const char* format, ... )
+ {
+@@ -99,7 +105,7 @@ inline void throw_if( bool cond, const char* condstr, const char* func, const ch
+ // uses printf-style format for error message
+ // called by lapack_error_if_msg macro
+ inline void abort_if( bool cond, const char* func,  const char* format, ... )
+-    __attribute__((format( printf, 3, 4 )));
++    LAPACKPP_ATTR_FORMAT(3, 4);
+ 
+ inline void abort_if( bool cond, const char* func,  const char* format, ... )
+ {
+@@ -114,6 +120,8 @@ inline void abort_if( bool cond, const char* func,  const char* format, ... )
+     }
+ }
+ 
++#undef LAPACKPP_ATTR_FORMAT
++
+ } // namespace internal
+ 
+ // -----------------------------------------------------------------------------
+-- 
+2.25.1
+
