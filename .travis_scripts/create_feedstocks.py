@@ -262,7 +262,7 @@ if __name__ == '__main__':
             # After going through all the recipes and removing the converted ones,
             # we fail the build so that people are aware that things did not clear.
             try:
-                write_token('anaconda', os.environ['PROD_BINSTAR_TOKEN'])
+                write_token('anaconda', os.environ['STAGING_BINSTAR_TOKEN'])
                 subprocess.check_call(
                     ['conda', 'smithy', 'register-ci', '--without-appveyor',
                      '--without-webservice', '--feedstock_directory',
