@@ -3,8 +3,8 @@
 #     UNI-C, Denmark; Univ. of Tennessee, USA; NAG Ltd., UK
 #     August 5, 2000
 #
-FC	 = gfortran -ffree-form
-FC1      = gfortran -ffixed-form
+FC_fr	 = $(FC) -ffree-form
+FC_ff    = $(FC) -ffixed-form
 # -dcfuns  Enable recognition of non-standard double
 #          precision  complex intrinsic functions
 # -dusty   Allows the compilation and execution of "legacy"
@@ -32,16 +32,16 @@ SUF      = f90
 
 XX = 'rm' -f $@; \
         'rm' -f $@.res; \
-	$(FC) $(OPTS0) -o $@ $(MODLIB) $@.$(SUF) $(OPTLIB) $(LIBS); \
+	$(FC_fr) $(OPTS0) -o $@ $(MODLIB) $@.$(SUF) $(OPTLIB) $(LIBS); \
         $@ < $@.dat > $@.res; \
         'rm' -f $@
 
-YY = $(FC) $(OPTS0) -o $@ $(MODLIB) $@.$(SUF) $(OPTLIB) $(LIBS)
+YY = $(FC_fr) $(OPTS0) -o $@ $(MODLIB) $@.$(SUF) $(OPTLIB) $(LIBS)
 
 .SUFFIXES: .f90 .f .o
 
 .$(SUF).o: 
-	$(FC) $(OPTS3) $<
+	$(FC_fr) $(OPTS3) $<
 
 .f.o:
-	$(FC1) $(OPTS3) $<
+	$(FC_ff) $(OPTS3) $<
