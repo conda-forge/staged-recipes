@@ -3,6 +3,8 @@ cp $RECIPE_DIR/make.inc .
 cd SRC/
 make single_double_complex_dcomplex
 
+mkdir -p $PREFIX/include
+mkdir -p $PREFIX/lib
 
 echo "***** DEBUG:"
 
