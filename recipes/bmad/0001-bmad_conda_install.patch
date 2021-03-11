@@ -1,0 +1,143 @@
+diff --git a/bmad/CMakeLists.txt b/bmad/CMakeLists.txt
+index 7422aee..e7e65f6 100644
+--- a/bmad/CMakeLists.txt
++++ b/bmad/CMakeLists.txt
+@@ -7,8 +7,17 @@ SET (CREATE_SHARED true)
+ 
+ SET (PLOT_LINK_LIBS $ENV{PLOT_LINK_LIBS})
+ 
+-SET (INC_DIRS
++# If this is a conda build, xraylib is contained
++# one level deeper in the include folder
++IF ($ENV{ACC_CONDA_BUILD})
++  SET (INC_DIRS
++    $ENV{CONDA_PREFIX}/include/xraylib/
+   )
++ELSE ()
++  set (INC_DIRS
++
++  )
++ENDIF ()
+ 
+ SET (SRC_DIRS 
+   code 
+diff --git a/fgsl/acc_build_fgsl b/fgsl/acc_build_fgsl
+index 826f20b..44cfd2d 100755
+--- a/fgsl/acc_build_fgsl
++++ b/fgsl/acc_build_fgsl
+@@ -15,6 +15,11 @@ func_configure_make_install () {
+             BUILD_SHARED=1
+             ;;
+     esac
++    case "${ACC_CONDA_BUILD}" in
++        "Y" | "y" | "1" )
++            CONDA_BUILD=1
++            ;;
++    esac
+ 
+     cd ${WORK_DIR}
+ 
+@@ -22,17 +27,23 @@ func_configure_make_install () {
+ 
+     if [ ! -e ALREADY_BUILT ] ; then
+ 
+-	if ( [[ "${ACC_PKG}" ]] && [[ "${ACC_PKG}/${BUILD_TYPE}/lib/libgsl*19*" ]] ) ; then
+-	    export GSLLIBDIR=${ACC_PKG}/${BUILD_TYPE}/lib
+-	    export GSLINCDIR=${ACC_PKG}/${BUILD_TYPE}/include
+-	    echo -e "Uisng GSL version 2.3 library in ${ACC_PKG}/${BUILD_TYPE}/lib\n"
+-	elif [[ "${OUTPUT_DIR}/lib/libgsl*19*" ]] ; then
+-	    export GSLLIBDIR=${OUTPUT_DIR}/lib
+-	    export GSLINCDIR=${OUTPUT_DIR}/include
+-	    echo -e "Uisng GSL version 2.3 library in ${OUTPUT_DIR}/lib\n"
+-	else
+-	    echo -e "Required GSL version 2.3 not found, exiting...\n"
+-	    exit 72
++	if ( [[ "${CONDA_BUILD}" ]] ) ; then
++            export GSLLIBDIR=${CONDA_PREFIX}/lib
++	    export GSLINCDIR=${CONDA_PREFIX}/include
++	    echo -e "Uisng GSL library from conda in ${GSLLIBDIR}\n"
++        else
++    	    if ( [[ "${ACC_PKG}" ]] && [[ "${ACC_PKG}/${BUILD_TYPE}/lib/libgsl*19*" ]] ) ; then
++	        export GSLLIBDIR=${ACC_PKG}/${BUILD_TYPE}/lib
++	        export GSLINCDIR=${ACC_PKG}/${BUILD_TYPE}/include
++	        echo -e "Uisng GSL version 2.3 library in ${ACC_PKG}/${BUILD_TYPE}/lib\n"
++	    elif [[ "${OUTPUT_DIR}/lib/libgsl*19*" ]] ; then
++	        export GSLLIBDIR=${OUTPUT_DIR}/lib
++	        export GSLINCDIR=${OUTPUT_DIR}/include
++	        echo -e "Uisng GSL version 2.3 library in ${OUTPUT_DIR}/lib\n"
++	    else
++	        echo -e "Required GSL version 2.3 not found, exiting...\n"
++	        exit 72
++	    fi
+ 	fi
+ 
+ 	[ "${ACC_ENABLE_OPENMP}" == "Y" ] && CONFIG_OPTIONS="--enable-openmp"
+diff --git a/tao/cmake.tao b/tao/cmake.tao
+index 333fd3f..502007a 100644
+--- a/tao/cmake.tao
++++ b/tao/cmake.tao
+@@ -29,6 +29,13 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+   link_directories(/opt/local/lib)
+ ENDIF ()
+ 
++# If this is a conda build we must expand the
++# library search with the CONDA_PREFIX/lib
++# folder.
++IF ($ENV{ACC_CONDA_BUILD})
++  link_directories($ENV{CONDA_PREFIX}/lib)
++ENDIF ()
++
+ IF ($ENV{ACC_PLOT_PACKAGE} MATCHES "plplot")
+   IF (NOT ${MSYS})
+   SET (SHARED_LINK_LIBS
+diff --git a/util/Distribution_User_Utility_Wrapper b/util/Distribution_User_Utility_Wrapper
+index efadc40..41d0674 100755
+--- a/util/Distribution_User_Utility_Wrapper
++++ b/util/Distribution_User_Utility_Wrapper
+@@ -11,11 +11,24 @@
+ [ "${ACC_PLOT_PACKAGE}" == "pgplot" ] && export ACC_PLOT_PACKAGE_DIR="PGPLOT" 
+ [ "${ACC_PLOT_PACKAGE}" == "plplot" ] && export ACC_PLOT_PACKAGE_DIR="plplot"
+ 
+-# List of Project Directories - Order here matters!
+-DIRLIST=( ${ACC_PLOT_PACKAGE_DIR} hdf5 fftw lapack gsl fgsl forest recipes_f-90_LEPP sim_utils xraylib bmad tao cpp_bmad_interface examples bsim util_programs lux regression_tests )
++case "${ACC_CONDA_BUILD}" in
++    "Y" | "y" | "1" )
++    CONDA_BUILD=1
++    ;;
++esac
++
++if ( [[ "${CONDA_BUILD}" ]] ) ; then
++    DIRLIST=( fgsl forest recipes_f-90_LEPP sim_utils bmad tao cpp_bmad_interface bsim util_programs lux )
++    # plplot is not available via conda so we use the source with bmad and build it
++    [ "${ACC_PLOT_PACKAGE}" == "plplot" ] && DIRLIST=( plplot ${DIRLIST[*]} )
++else
++    # List of Project Directories - Order here matters!
++    DIRLIST=( ${ACC_PLOT_PACKAGE_DIR} hdf5 fftw lapack gsl fgsl forest recipes_f-90_LEPP sim_utils xraylib bmad tao cpp_bmad_interface examples bsim util_programs lux regression_tests )
++
++    # Build OpenMPI, if requested
++    [ "${ACC_ENABLE_MPI}" == "Y" ] && DIRLIST=( openmpi ${DIRLIST[*]} )
++fi
+ 
+-# Build OpenMPI, if requested
+-[ "${ACC_ENABLE_MPI}" == "Y" ] && DIRLIST=( openmpi ${DIRLIST[*]} )
+ 
+ # General Distribution Build Function
+ func_dist_build () { 
+diff --git a/util/dist_prefs b/util/dist_prefs
+index 293a3d3..fde0b85 100644
+--- a/util/dist_prefs
++++ b/util/dist_prefs
+@@ -157,3 +157,13 @@ export ACC_ENABLE_PROFILING="N"
+ # value is "2" and cannot be set lower than "1"
+ #-----------------------------------------------------------
+ export ACC_SET_GMAKE_JOBS="2"
++
++#-----------------------------------------------------------
++# By default the conda build flag is off.
++# Setting the variable ACC_CONDA_BUILD here to "Y" will
++# enable the compilation path assuming external
++# dependencies from the system and it will also reduce
++# the number of targets to only essential pieces.
++# E.g.: regression tests are not compiled
++#-----------------------------------------------------------
++export ACC_CONDA_BUILD="N"
