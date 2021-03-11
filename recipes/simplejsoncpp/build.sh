@@ -5,8 +5,8 @@ mkdir -p ${PREFIX}/lib/simplejsoncpp/
 
 make \
   CXX="${CXX}" \
-  all
-cp obj/*a   $PREFIX/lib/simplejsoncpp/
+  dynamic
+cp obj/*so  $PREFIX/lib/simplejsoncpp/
 cp src/*\.h $PREFIX/include/simplejsoncpp/
 cd ..
 
