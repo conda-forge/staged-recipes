@@ -25,3 +25,6 @@ cmake \
     -D BUILD_NCORES=$CPU_COUNT \
     ../../wrapper
 cmake --build . --target install -- VERBOSE=1 -j$CPU_COUNT
+
+# Remove the redundant files in the pkgs directory.
+rm -r ${PREFIX}/pkgs/sire-*
