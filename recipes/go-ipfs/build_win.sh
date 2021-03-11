@@ -3,13 +3,13 @@ set -eux
 
 export GOPATH="$( pwd )"
 export CGO_ENABLED=0
-export CGO_CFLAGS="${CFLAGS}"
-export CGO_CXXFLAGS="${CPPFLAGS}"
-export CGO_LDFLAGS="${LDFLAGS}"
 export GOFLAGS="-buildmode=pie -trimpath -ldflags=-linkmode=external -mod=vendor -modcacherw"
 
-# the only omission from the unix build, needs investigation
+# omissions from the unix build, needs investigation
 # export GOTAGS="openssl"
+# export CGO_CFLAGS="${CFLAGS}"
+# export CGO_CXXFLAGS="${CPPFLAGS}"
+# export CGO_LDFLAGS="${LDFLAGS}"
 
 module='github.com/ipfs/go-ipfs'
 
