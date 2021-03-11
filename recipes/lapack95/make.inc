@@ -23,11 +23,10 @@ OPTLIB   =
 LAPACK_PATH = $(PREFIX)/lib
 
 LAPACK95 = ../lapack95.a
-LAPACK77 = $(LAPACK_PATH)/liblapack.a
-TMG77    = $(LAPACK_PATH)/libtmglib.a
-BLAS     = $(LAPACK_PATH)/libblas.a
+LAPACK77 = $(LAPACK_PATH)/liblapack.so
+BLAS     = $(LAPACK_PATH)/libblas.so
 
-LIBS     = $(LAPACK95) $(TMG77) $(LAPACK77) $(BLAS)
+LIBS     = $(LAPACK95) $(LAPACK77) $(BLAS)
 SUF      = f90
 
 XX = 'rm' -f $@; \
