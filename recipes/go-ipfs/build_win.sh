@@ -14,3 +14,5 @@ export GOFLAGS="-buildmode=pie -trimpath -ldflags=-linkmode=external -mod=vendor
 module='github.com/ipfs/go-ipfs'
 
 make -C "src/${module}" install nofuse
+
+bash $RECIPE_DIR/build_library_licenses.sh
