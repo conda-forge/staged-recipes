@@ -15,8 +15,12 @@ elif [[ "$target_platform" == osx-* ]]; then
   echo "******* conda list ********"
   conda list -p $PREFIX
 
+  echo "******* ls lapack ********"
+  ls -lahtr $PREFIX/lib/liblapack.dylib
+
   echo "******* nm lapack ********"
   nm $PREFIX/lib/liblapack.dylib | grep clagge
+  
   echo "************ DEBUG **************"
 
   $FC -shared -o liblapack95.dylib -Wl,-all_load lapack95.a -Wl,-noall_load $PREFIX/lib/liblapack.dylib $PREFIX/lib/libblas.dylib
