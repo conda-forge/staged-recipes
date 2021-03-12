@@ -13,7 +13,7 @@ if [[ "$target_platform" == linux-* ]]; then
 elif [[ "$target_platform" == osx-* ]]; then
   echo "************ DEBUG **************"
   echo "******* conda list ********"
-  conda list
+  conda list -p $PREFIX
 
   echo "******* nm lapack ********"
   nm $PREFIX/lib/liblapack.dylib | grep clagge
