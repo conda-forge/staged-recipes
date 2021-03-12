@@ -14,8 +14,6 @@ export ZEROMQ_VERSION=$(jq -r '.dependencies["zeromq"]' package.json)
 npm install "zeromq@${ZEROMQ_VERSION/^}" --zmq-shared --build-from-source
 npm install
 find . -name zeromq.node
-npm ci --prefer-offline
-find . -name zeromq.node
 rm -r node_modules/zeromq/prebuilds
 find . -name zeromq.node
 npm run package
