@@ -22,20 +22,12 @@ OPTLIB   =
 
 LAPACK_PATH = $(PREFIX)/lib
 
-LAPACK95 = ../lapack95.a
+LAPACK95 = ../lapack95$(SHLIB_EXT)
 LAPACK77 = $(LAPACK_PATH)/liblapack$(SHLIB_EXT)
 BLAS     = $(LAPACK_PATH)/libblas$(SHLIB_EXT)
 
-LIBS     = $(LAPACK95) $(LAPACK77) $(BLAS)
+LIBS     = $(LAPACK77) $(BLAS)
 SUF      = f90
-
-XX = 'rm' -f $@; \
-        'rm' -f $@.res; \
-	$(FC_fr) $(OPTS0) -o $@ $(MODLIB) $@.$(SUF) $(OPTLIB) $(LIBS); \
-        $@ < $@.dat > $@.res; \
-        'rm' -f $@
-
-YY = $(FC_fr) $(OPTS0) -o $@ $(MODLIB) $@.$(SUF) $(OPTLIB) $(LIBS)
 
 .SUFFIXES: .f90 .f .o
 
