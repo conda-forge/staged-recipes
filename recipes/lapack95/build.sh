@@ -11,6 +11,14 @@ mkdir -p $PREFIX/lib
 if [[ "$target_platform" == linux-* ]]; then
   $FC  -shared -o liblapack95.so -Wl,--whole-archive lapack95.a -Wl,--no-whole-archive $PREFIX/lib/liblapack.so $PREFIX/lib/libblas.so
 elif [[ "$target_platform" == osx-* ]]; then
+  echo "************ DEBUG **************"
+  echo "******* conda list ********"
+  conda list
+
+  echo "******* nm lapack ********"
+  nm $PREFIX/lib/liblapack.dylib | grep clagge
+  echo "************ DEBUG **************"
+
   $FC -shared -o liblapack95.dylib -Wl,-all_load lapack95.a -Wl,-noall_load $PREFIX/lib/liblapack.dylib $PREFIX/lib/libblas.dylib
 fi
 
