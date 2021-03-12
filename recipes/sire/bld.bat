@@ -5,6 +5,7 @@ mkdir build\wrapper
 cd build\corelib
 cmake ^
     -G "NMake Makefiles JOM" ^
+    -D CMAKE_BUILD_TYPE=Release ^
     -D ANACONDA_BUILD=ON ^
     -D ANACONDA_BASE=%LIBRARY_PREFIX% ^
     -D BUILD_NCORES=%NUMBER_OF_PROCESSORS% ^
@@ -19,6 +20,7 @@ if errorlevel 1 exit 1
 cd ..\wrapper
 cmake ^
     -G "NMake Makefiles JOM" ^
+    -D CMAKE_BUILD_TYPE=Release ^
     -D ANACONDA_BUILD=ON ^
     -D ANACONDA_BASE=%LIBRARY_PREFIX% ^
     -D BUILD_NCORES=%NUMBER_OF_PROCESSORS% ^
