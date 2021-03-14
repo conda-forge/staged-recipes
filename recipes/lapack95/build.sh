@@ -23,7 +23,7 @@ elif [[ "$target_platform" == osx-* ]]; then
   
   echo "************ DEBUG **************"
 
-  $FC -shared -o liblapack95.dylib -undefined dynamic_lookup -Wl,-all_load lapack95.a -Wl,-noall_load $PREFIX/lib/liblapack.dylib $PREFIX/lib/libblas.dylib
+  $FC -shared -o liblapack95.dylib -Wl,-undefined -Wl,dynamic_lookup -Wl,-all_load lapack95.a -Wl,-noall_load $PREFIX/lib/liblapack.dylib $PREFIX/lib/libblas.dylib
 fi
 
 cp liblapack95$SHLIB_EXT $PREFIX/lib/liblapack95$SHLIB_EXT
