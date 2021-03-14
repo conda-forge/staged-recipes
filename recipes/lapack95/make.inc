@@ -24,9 +24,10 @@ LAPACK_PATH = $(PREFIX)/lib
 
 LAPACK95 = ../lapack95$(SHLIB_EXT)
 LAPACK77 = $(LAPACK_PATH)/liblapack$(SHLIB_EXT)
+TMG77    = $(LAPACK_PATH)/libtmglib$(SHLIB_EXT)
 BLAS     = $(LAPACK_PATH)/libblas$(SHLIB_EXT)
 
-LIBS     = $(LAPACK77) $(BLAS)
+LIBS     = $(TMG77) $(LAPACK77) $(BLAS)
 SUF      = f90
 
 .SUFFIXES: .f90 .f .o
