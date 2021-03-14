@@ -19,7 +19,7 @@ elif [[ "$target_platform" == osx-* ]]; then
   ls -lahtr $PREFIX/lib/liblapack.dylib
 
   echo "******* nm lapack ********"
-  nm $PREFIX/lib/liblapack.dylib | grep clagge
+  nm $PREFIX/lib/liblapack.dylib
   
   echo "************ DEBUG **************"
 
