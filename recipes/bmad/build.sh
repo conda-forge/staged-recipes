@@ -15,9 +15,19 @@ export ACC_SET_GMAKE_JOBS="2"
 export ACC_CONDA_BUILD="Y"
 EOF
 
-ln -s -T $FC $BUILD_PREFIX/bin/gfortran
-
 source util/dist_source_me
+
+echo "******** DEBUG *******"
+echo "**** echo PATH "
+echo $PATH
+
+echo "**** list all fortran under bin "
+ls -lahtr $PREFIX/bin/*fortran*
+
+echo "**** which gfortran "
+which gfortran
+
+echo "******** DEBUG *******"
 
 util/dist_build_production
 
