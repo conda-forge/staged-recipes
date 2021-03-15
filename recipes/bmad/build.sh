@@ -21,8 +21,14 @@ echo "******** DEBUG *******"
 echo "**** echo PATH "
 echo $PATH
 
-echo "**** list all fortran under bin "
-ls -lahtr $PREFIX/bin/*fortran*
+echo "**** conda list "
+conda list -p $PREFIX
+
+echo "**** list all fortran under PREFIX/bin "
+ls -lahtr $PREFIX/bin/
+
+echo "**** list all fortran under BUILD_PREFIX/bin "
+ls -lahtr $BUILD_PREFIX/bin/
 
 echo "**** which gfortran "
 which gfortran
