@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+echo "**** Setting up util/dist_prefs"
+
 cat <<EOF >> util/dist_prefs
 export DIST_F90_REQUEST="gfortran"
 export ACC_PLOT_PACKAGE="pgplot"
@@ -15,6 +17,7 @@ export ACC_SET_GMAKE_JOBS="2"
 export ACC_CONDA_BUILD="Y"
 EOF
 
+echo "**** Invoking dist_source_me"
 source util/dist_source_me
 
 echo "******** DEBUG *******"
