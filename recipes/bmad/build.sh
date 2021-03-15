@@ -30,6 +30,9 @@ ls -lahtr $PREFIX/bin/
 echo "**** list all fortran under BUILD_PREFIX/bin "
 ls -lahtr $BUILD_PREFIX/bin/
 
+echo "**** creating gfortran link "
+ln -s $GFORTRAN $BUILD_PREFIX/bin/gfortran
+
 echo "**** which gfortran "
 which gfortran
 
