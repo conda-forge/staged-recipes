@@ -36,6 +36,12 @@ ln -s $GFORTRAN $BUILD_PREFIX/bin/gfortran
 echo "**** which gfortran "
 which gfortran
 
+echo "**** list all libs under PREFIX/lib"
+ls -lahtr $PREFIX/lib
+
+echo "**** list all libs under BUILD_PREFIX/lib"
+ls -lahtr $BUILD_PREFIX/lib
+
 echo "******** DEBUG *******"
 
 util/dist_build_production
