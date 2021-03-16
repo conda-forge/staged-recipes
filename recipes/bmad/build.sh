@@ -3,6 +3,7 @@
 echo "**** Setting up util/dist_prefs"
 
 cat <<EOF >> util/dist_prefs
+export DIST_SETUP_QUIET="Y"
 export DIST_F90_REQUEST="gfortran"
 export ACC_PLOT_PACKAGE="pgplot"
 export ACC_PLOT_DISPLAY_TYPE="X"
