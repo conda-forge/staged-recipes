@@ -1,13 +1,13 @@
 #!/bin/bash
+set -e
 
-SRC="$SRC_DIR"
-BLD=`pwd`
-INS="$PREFIX"
+BLD="build"
+mkdir -p "$BLD"
 
-cmake \
+cmake -H"$SRC_DIR/source" -B"$BLD" \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-    -DCMAKE_INSTALL_PREFIX="$INS" \
-    "$SRC"
+    -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+    -DCMAKE_INSTALL_LIBDIR="$PREFIX/lib"
 
 cmake --build "$BLD" --target "all"
 

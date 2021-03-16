@@ -7,6 +7,7 @@ mkdir -p "$BLD"
 cmake -H"$SRC_DIR/source" -B"$BLD" \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+    -DCMAKE_INSTALL_LIBDIR="$PREFIX/lib" \
     -DBUILD_SHARED_LIBS=BOTH \
     -Deccodes_DIR="$PREFIX/lib/cmake/eccodes" \
     -Dmi-cpptest_DIR="$PREFIX/lib/cmake/mi-cpptest" \
