@@ -18,9 +18,6 @@ export ACC_SET_GMAKE_JOBS="2"
 export ACC_CONDA_BUILD="Y"
 EOF
 
-echo "**** Invoking dist_source_me"
-source util/dist_source_me
-
 echo "******** DEBUG *******"
 echo "**** echo PATH "
 echo $PATH
@@ -47,6 +44,9 @@ echo "**** list all libs under BUILD_PREFIX/lib"
 ls -lahtr $BUILD_PREFIX/lib
 
 echo "******** DEBUG *******"
+
+echo "**** Invoking dist_source_me"
+source util/dist_source_me
 
 util/dist_build_production
 
