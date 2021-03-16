@@ -1,0 +1,93 @@
+{% set version = "0.0.1" %}
+{% set patch_version = "73" %}
+
+package:
+  name: cutensor
+  version: {{ version }}.{{ patch_version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/libcusparse_lt/{{ version }}/local_installers/libcusparse_lt-linux-x86_64-{{ version }}.{{ patch_version }}.tar.gz   # [linux64 and cuda_compiler_version in ("10.1", "10.2", "11.0")]
+  # url: https://developer.download.nvidia.com/compute/libcusparse_lt/{{ version }}/local_installers/libcusparse_lt-linux-ppc64le-{{ version }}.{{ patch_version }}.tar.gz  # [ppc64le and cuda_compiler_version in ("10.1", "10.2", "11.0")]
+  # url: https://developer.download.nvidia.com/compute/libcusparse_lt/{{ version }}/local_installers/libcusparse_lt-linux-sbsa-{{ version }}.{{ patch_version }}.tar.gz  # [aarch64 and cuda_compiler_version in ("10.1", "10.2", "11.0")]
+  # url: https://developer.download.nvidia.com/compute/libcusparse_lt/{{ version }}/local_installers/libcusparse_lt_{{ version }}.exe  # [win64 and cuda_compiler_version in ("10.1", "10.2", "11.0")]
+
+
+  # TBD
+  sha256: 954ee22b80d6b82fd4decd42b7faead86af7c3817653b458620a66174e5b89b6  # [linux64]
+  # sha256: d914a721b8a6bbfbf4f2bdea3bb51775e5df39abc383d415b3b06bbde2a47e6e  # [ppc64le]
+  # sha256: 031b75946d2ce22f8c2736f7b4216b9377406afcb35012093a66e2801bfe2990  # [aarch64]
+  # sha256: 88d3e2c662e601214ef5caa26ca2db0492eab6ec3bf9dc9a746bb1a7b8c3aab2  # [win64]
+
+build:
+  number: 0
+  skip: True  # [win32 or cuda_compiler_version in ("None", "9.2", "10.0")]
+  script:
+    - mkdir -p $PREFIX/include                                                # [unix]
+    - cp -r include/* $PREFIX/include/                                        # [unix]
+    - mkdir -p $PREFIX/lib64                                                  # [unix]
+    - mv lib64/{{ cuda_compiler_version }}/libcusparseLt.so* $PREFIX/lib64/   # [unix]
+
+    # - mkdir %LIBRARY_INC%                                                                                                 # [win64]
+    # - copy %SRC_DIR%\\libcusparse_lt\\libcusparse_lt\\include\\cusparseLt.h %LIBRARY_INC%\\                               # [win64]
+    # - mkdir %LIBRARY_INC%\\cusparseLt                                                                                     # [win64]
+    # - copy %SRC_DIR%\\libcusparse_lt\\libcusparse_lt\\include\\cusparseLt\\types.h %LIBRARY_INC%\\cusparseLt              # [win64]
+    # - mkdir %LIBRARY_BIN%                                                                                                 # [win64]
+    # - copy %SRC_DIR%\\libcusparse_lt\\libcusparse_lt\\lib64\\{{ cuda_compiler_version }}\\cusparseLt.dll %LIBRARY_BIN%\\  # [win64]
+    # - mkdir %LIBRARY_LIB%                                                                                                 # [win64]
+    # - copy %SRC_DIR%\\libcusparse_lt\\libcusparse_lt\\lib64\\{{ cuda_compiler_version }}\\cusparseLt.lib %LIBRARY_LIB%\\  # [win64]
+  ignore_run_exports_from:
+    - {{ compiler('c') }}    # [linux]
+  run_exports:
+    - {{ pin_subpackage('cusparseLt') }}
+  missing_dso_whitelist:
+    - '*/libgomp.*'  # [linux]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cuda') }}
+    - sysroot_linux-64 2.17  # [linux64]
+    - libgomp  # [linux]
+  run:
+    # Only GCC_3.0 or older symbols present
+    - libgcc-ng >=3.0     # [linux]
+    # Only GLIBCXX_3.4 or older symbols present
+    - libstdcxx-ng >=3.4  # [linux]
+  run_constrained:
+    # Only GLIBC_2.17 or older symbols present
+    - __glibc >=2.17      # [linux]
+
+test:
+  commands:
+    - test -f $PREFIX/include/cusparseLt.h                    # [linux]
+    # - test -f $PREFIX/include/cusparseLt/types.h              # [linux]
+    - test -f $PREFIX/lib64/libcusparseLt.so                  # [linux]
+
+    # - if not exist %LIBRARY_INC%\\cusparseLt.h exit 1         # [win64]
+    # - if not exist %LIBRARY_INC%\\cusparseLt\\types.h exit 1  # [win64]
+    # - if not exist %LIBRARY_BIN%\\cusparseLt.dll exit 1       # [win64]
+    # - if not exist %LIBRARY_LIB%\\cusparseLt.lib exit 1       # [win64]
+
+about:
+  home: https://developer.nvidia.com/cusparselt
+  license: cuSPARSELt Software License Agreement
+  license_url: https://docs.nvidia.com/cuda/cusparselt/license.html
+  license_file: license.pdf
+  license_file: libcusparse_lt/libcusparse_lt/license.pdf
+  summary: "Tensor Linear Algebra on NVIDIA GPUs"
+  description: |
+    NVIDIA cuSPARSELt is a high-performance CUDA library dedicated to general
+    matrix-matrix operations in which at least one operand is a sparse matrix.
+    The cuSPARSELt APIs allow flexibility in the algorithm/operation selection,
+    epilogue, and matrix characteristics, including memory layout,
+    alignment, and data types.
+    License Agreements:- The packages are governed by the NVIDIA cuSPARSELt
+    Software License Agreement (EULA). By downloading and using the packages,
+    you accept the terms and conditions of the NVIDIA cuSPARSELt EULA -
+    https://docs.nvidia.com/cuda/cusparselt/license.html
+  doc_url: https://docs.nvidia.com/cuda/cusparselt/index.html
+  dev_url: https://developer.nvidia.com/cusparselt/downloads
+
+extra:
+  recipe-maintainers:
+    - mnicely
