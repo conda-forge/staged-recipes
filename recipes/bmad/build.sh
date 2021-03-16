@@ -3,7 +3,6 @@
 echo "**** Setting up util/dist_prefs"
 
 cat <<EOF >> util/dist_prefs
-export DIST_SETUP_QUIET="Y"
 export DIST_F90_REQUEST="gfortran"
 export ACC_PLOT_PACKAGE="pgplot"
 export ACC_PLOT_DISPLAY_TYPE="X"
@@ -17,6 +16,9 @@ export ACC_ENABLE_PROFILING="N"
 export ACC_SET_GMAKE_JOBS="2"
 export ACC_CONDA_BUILD="Y"
 EOF
+
+echo "**** Invoking dist_source_me"
+source util/dist_source_me
 
 echo "******** DEBUG *******"
 echo "**** echo PATH "
@@ -44,9 +46,6 @@ echo "**** list all libs under BUILD_PREFIX/lib"
 ls -lahtr $BUILD_PREFIX/lib
 
 echo "******** DEBUG *******"
-
-echo "**** Invoking dist_source_me"
-source util/dist_source_me
 
 util/dist_build_production
 
