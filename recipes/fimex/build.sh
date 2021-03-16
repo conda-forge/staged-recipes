@@ -1,6 +1,16 @@
 #!/bin/bash
 set -e
 
+# see https://docs.conda.io/projects/conda-build/en/latest/resources/compiler-tools.html#an-aside-on-cmake-and-sysroots
+# from https://github.com/conda-forge/libnetcdf-feedstock/blob/master/recipe/
+declare -a CMAKE_PLATFORM_FLAGS
+if [[ ${HOST} =~ .*darwin.* ]]; then
+  CMAKE_PLATFORM_FLAGS+=(-DCMAKE_OSX_SYSROOT="${CONDA_BUILD_SYSROOT}")
+  export LDFLAGS=$(echo "${LDFLAGS}" | sed "s/-Wl,-dead_strip_dylibs//g")
+else
+  CMAKE_PLATFORM_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
+fi
+
 BLD="build"
 mkdir -p "$BLD"
 
