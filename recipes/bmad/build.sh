@@ -18,7 +18,7 @@ export ACC_CONDA_BUILD="Y"
 EOF
 
 echo "**** Invoking dist_source_me"
-source util/dist_source_me || true
+source util/dist_source_me
 
 echo "******** DEBUG *******"
 echo "**** echo PATH "
