@@ -10,17 +10,20 @@ if errorlevel 1 exit 1
 copy /B gdalconst_*.dll %LIBRARY_BIN%
 if errorlevel 1 exit 1
 
-copy  apps/*.cs %SCRIPTS%
+echo %PREFIX%
+echo copy apps to "%PREFIX%\Scripts"
+
+copy apps\*.cs "%REFIX%\Scripts"
 if errorlevel 1 exit 1
 
-copy  const/*.cs %SCRIPTS%
+copy  const\*.cs "%REFIX%\Scripts"
 if errorlevel 1 exit 1
 
-copy  gdal/*.cs %SCRIPTS%
+copy  gdal\*.cs "%REFIX%\Scripts"
 if errorlevel 1 exit 1
 
-copy  ogr/*.cs %SCRIPTS%
+copy  ogr\*.cs "%REFIX%\Scripts"
 if errorlevel 1 exit 1
 
-copy  osr/*.cs %SCRIPTS%
+copy  osr\*.cs "%REFIX%\Scripts"
 if errorlevel 1 exit 1
