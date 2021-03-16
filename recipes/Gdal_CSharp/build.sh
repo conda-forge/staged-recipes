@@ -64,6 +64,10 @@ bash configure --prefix=${PREFIX} \
                --verbose \
                ${OPTS}
 
+cd swig/csharp
+
+./mkinterface.sh
+
 make -j $CPU_COUNT ${VERBOSE_AT}
 
 if [[ $target_platform =~ linux.* ]]; then
