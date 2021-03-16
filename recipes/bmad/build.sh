@@ -17,8 +17,10 @@ export ACC_SET_GMAKE_JOBS="2"
 export ACC_CONDA_BUILD="Y"
 EOF
 
-echo "**** creating gfortran link "
-ln -s $GFORTRAN $BUILD_PREFIX/bin/gfortran
+if [[ "$target_platform" == linux-* ]]; then
+  echo "**** creating gfortran link "
+  ln -s $GFORTRAN $BUILD_PREFIX/bin/gfortran
+fi
 
 echo "**** Invoking dist_source_me"
 source util/dist_source_me
