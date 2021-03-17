@@ -34,7 +34,8 @@ cmake -H"$SRC_DIR/source" -B"$BLD" \
     -DENABLE_FORTRAN=YES \
     -DENABLE_PRORADXML=NO \
     -DENABLE_FIMEX_OMP=YES \
-    -DENABLE_PYTHON=YES
+    -DENABLE_PYTHON=YES \
+    ${CMAKE_PLATFORM_FLAGS[@]}
 
 cmake --build "$BLD" --target "all"
 
