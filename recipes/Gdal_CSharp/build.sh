@@ -3,9 +3,6 @@
 
 set -ex # Abort on error.
 
-# recommended in https://gitter.im/conda-forge/conda-forge.github.io?at=5c40da7f95e17b45256960ce
-find ${PREFIX}/lib -name '*.la' -delete
-
 # Force python bindings to not be built.
 unset PYTHON
 
@@ -19,13 +16,14 @@ fi
 
 # See https://github.com/AnacondaRecipes/aggregate/pull/103
 if [[ $target_platform =~ linux.* ]]; then
-  export LDFLAGS="${LDFLAGS} -Wl,-rpath-link,${PREFIX}/lib"
+  export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib -Wl,-rpath-link,${PREFIX}/lib"
   mkdir -p ${PREFIX}/include/linux
   cp ${RECIPE_DIR}/userfaultfd.h ${PREFIX}/include/linux/userfaultfd.h
 fi
 
-# `--without-pam` was removed.
-# See https://github.com/conda-forge/gdal-feedstock/pull/47 for the discussion.
+cp ${RECIPE_DIR}/libgdal.la ../..
+
+dir ../..
 
 bash configure --prefix=${PREFIX} \
                --host=${HOST} \
@@ -67,9 +65,13 @@ bash configure --prefix=${PREFIX} \
 
 cd swig/csharp
 
-./mkinterface.sh
+cp ${RECIPE_DIR}/libgdal.la ../..
+mkdir ../../.libs
+cp ${PREFIX}/lib/libgdal.so ../../.libs
 
-make -j $CPU_COUNT ${VERBOSE_AT}
+make ${VERBOSE_AT} interface
+
+make ${VERBOSE_AT}
 
 if [[ $target_platform =~ linux.* ]]; then
   rm ${PREFIX}/include/linux/userfaultfd.h
