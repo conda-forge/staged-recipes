@@ -14,9 +14,8 @@ fi
 BLD="build"
 mkdir -p "$BLD"
 
-PY_EXE=$(python -c "import sys; print(sys.executable)")
-
 cmake -H"$SRC_DIR/source" -B"$BLD" \
+     ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
     -DCMAKE_INSTALL_LIBDIR="$PREFIX/lib" \
@@ -26,7 +25,7 @@ cmake -H"$SRC_DIR/source" -B"$BLD" \
     -Dmi-programoptions_DIR="$PREFIX/lib/cmake/mi-programoptions" \
     -Dpybind11_DIR="$PREFIX/share/cmake/pybind11" \
     -DTEST_EXTRADATA_DIR="$SRC_DIR/testdata" \
-    -DPYTHON_EXECUTABLE="$PY_EXE" \
+    -DPYTHON_EXECUTABLE="$PYTHON" \
     -DENABLE_FIMEX_VERSIONNUMBERED=NO \
     -DENABLE_ECCODES=YES \
     -DENABLE_LOG4CPP=YES \

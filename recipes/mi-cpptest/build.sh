@@ -5,6 +5,7 @@ BLD="build"
 mkdir -p "$BLD"
 
 cmake -H"$SRC_DIR/source" -B"$BLD" \
+     ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
     -DCMAKE_INSTALL_LIBDIR="$PREFIX/lib"
