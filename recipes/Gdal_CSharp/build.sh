@@ -23,7 +23,7 @@ fi
 
 cp ${RECIPE_DIR}/libgdal.la ../..
 mkdir ../../.libs
-cp ${PREFIX}/lib/libgdal.so ../../.libs
+cp ${PREFIX}/lib/libgdal.* ../../.libs
 
 bash configure --prefix=${PREFIX} \
                --host=${HOST} \
