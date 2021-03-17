@@ -65,7 +65,9 @@ bash configure --prefix=${PREFIX} \
 
 cd swig/csharp
 
-
+cp ${RECIPE_DIR}/libgdal.la ../..
+mkdir ../../.libs
+cp ${PREFIX}/lib/libgdal.so ../../.libs
 
 make ${VERBOSE_AT} interface
 
