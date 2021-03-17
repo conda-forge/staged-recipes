@@ -22,7 +22,7 @@ if [[ $target_platform =~ linux.* ]]; then
 fi
 
 cp ${RECIPE_DIR}/libgdal.la ../..
-mkdir ../../.libs
+mkdir -p ../../.libs
 cp ${PREFIX}/lib/libgdal.* ../../.libs
 
 bash configure --prefix=${PREFIX} \
@@ -39,8 +39,9 @@ bash configure --prefix=${PREFIX} \
                --with-tiledb=${PREFIX} \
                --with-jpeg=${PREFIX} \
                --with-kea=${PREFIX}/bin/kea-config \
+               --with-kea=${PREFIX}/bin/kea-config \
                --with-libiconv-prefix=${PREFIX} \
-               --with-lib.*n-c=${PREFIX} \
+               --with-libjson-c=${PREFIX} \
                --with-libkml=${PREFIX} \
                --with-liblzma=yes \
                --with-libtiff=${PREFIX} \
@@ -64,10 +65,6 @@ bash configure --prefix=${PREFIX} \
                ${OPTS}
 
 cd swig/csharp
-
-cp ${RECIPE_DIR}/libgdal.la ../..
-mkdir -p ../../.libs
-cp ${PREFIX}/lib/libgdal.* ../../.libs
 
 make ${VERBOSE_AT} interface
 
