@@ -22,8 +22,8 @@ if [[ $target_platform =~ linux.* ]]; then
 fi
 
 cp ${RECIPE_DIR}/libgdal.la ../..
-
-dir ../..
+mkdir ../../.libs
+cp ${PREFIX}/lib/libgdal.so ../../.libs
 
 bash configure --prefix=${PREFIX} \
                --host=${HOST} \
