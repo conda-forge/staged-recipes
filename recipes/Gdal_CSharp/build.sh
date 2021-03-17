@@ -21,10 +21,6 @@ if [[ $target_platform =~ linux.* ]]; then
   cp ${RECIPE_DIR}/userfaultfd.h ${PREFIX}/include/linux/userfaultfd.h
 fi
 
-cp ${RECIPE_DIR}/libgdal.la ../..
-mkdir -p ../../.libs
-cp ${PREFIX}/lib/libgdal.* ../../.libs
-
 bash configure --prefix=${PREFIX} \
                --host=${HOST} \
                --with-curl \
@@ -65,6 +61,10 @@ bash configure --prefix=${PREFIX} \
                ${OPTS}
 
 cd swig/csharp
+
+cp ${RECIPE_DIR}/libgdal.la ../..
+mkdir -p ../../.libs
+cp ${PREFIX}/lib/libgdal.* ../../.libs
 
 make ${VERBOSE_AT} interface
 
