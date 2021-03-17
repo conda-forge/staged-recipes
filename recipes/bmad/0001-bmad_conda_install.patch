@@ -1,5 +1,5 @@
 diff --git a/bmad/CMakeLists.txt b/bmad/CMakeLists.txt
-index 7422aee..e7e65f6 100644
+index 7422aee..9abaeaf 100644
 --- a/bmad/CMakeLists.txt
 +++ b/bmad/CMakeLists.txt
 @@ -7,8 +7,17 @@ SET (CREATE_SHARED true)
@@ -22,7 +22,7 @@ index 7422aee..e7e65f6 100644
  SET (SRC_DIRS 
    code 
 diff --git a/fgsl/acc_build_fgsl b/fgsl/acc_build_fgsl
-index 826f20b..44cfd2d 100755
+index 826f20b..97d911b 100755
 --- a/fgsl/acc_build_fgsl
 +++ b/fgsl/acc_build_fgsl
 @@ -15,6 +15,11 @@ func_configure_make_install () {
@@ -73,7 +73,7 @@ index 826f20b..44cfd2d 100755
  
  	[ "${ACC_ENABLE_OPENMP}" == "Y" ] && CONFIG_OPTIONS="--enable-openmp"
 diff --git a/tao/cmake.tao b/tao/cmake.tao
-index 333fd3f..502007a 100644
+index 333fd3f..ae8cff4 100644
 --- a/tao/cmake.tao
 +++ b/tao/cmake.tao
 @@ -29,6 +29,13 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -123,6 +123,26 @@ index efadc40..41d0674 100755
  
  # General Distribution Build Function
  func_dist_build () { 
+diff --git a/util/acc_build_common b/util/acc_build_common
+index 6c4e1ef..5cd6a2d 100755
+--- a/util/acc_build_common
++++ b/util/acc_build_common
+@@ -168,6 +168,15 @@ func_set_fpic_flags () {
+ # Function to check for required MacPorts install on Mac OS X
+ 
+ func_check_macports () {
++    case "${ACC_CONDA_BUILD}" in
++        "Y" | "y" | "1" )
++            CONDA_BUILD=1
++            ;;
++    esac
++
++    if ( [[ "${CONDA_BUILD}" ]] ) ; then
++	    return
++    fi
+ 
+     if ( [ `uname` == "Darwin" ] ) ; then
+ 	if ( [ "$(type gcc &> /dev/null ; echo $?)" -eq 0 ] ) ; then
 diff --git a/util/dist_prefs b/util/dist_prefs
 index 293a3d3..fde0b85 100644
 --- a/util/dist_prefs
@@ -142,11 +162,34 @@ index 293a3d3..fde0b85 100644
 +#-----------------------------------------------------------
 +export ACC_CONDA_BUILD="N"
 diff --git a/util/dist_source_me b/util/dist_source_me
-index da736ea..fc31984 100644
+index da736ea..84d16f7 100644
 --- a/util/dist_source_me
 +++ b/util/dist_source_me
-@@ -394,7 +394,7 @@ func_add_bmad_path () {
- # Set universal ACC_ROOT_DIR variable. Defined for both
+@@ -69,10 +69,22 @@ func_set_os_env () {
+ 	fi
+     fi
+ 
++    case "${ACC_CONDA_BUILD}" in
++        "Y" | "y" | "1" )
++            CONDA_BUILD=1 
++            ;;
++    esac
++
++	if ( [[ "${CONDA_BUILD}" ]] ) ; then
++	    echo "********* ABORTING"
++	    return;
++    fi
++
+     # For Mac OS X "Darwin"
+     if [ "$(uname)" == "Darwin" ] ; then
+ 	# Force MacPorts gcc/g++ as GNU compiler
+ 	if [ -e /opt/local/bin/gcc ] ; then
++	    echo "****** Setting CC to gcc."
+ 	    export CC=gcc
+ 	    export CXX=g++
+ 	fi
+@@ -394,7 +406,7 @@ func_add_bmad_path () {
+ # Set universal ACC_ROOT_DIR variable. Defined for both 
  # Release and Distribution Builds.
  #-----------------------------------------------------------------
 -DIST_SETUP_LOG=${HOME}/.Bmad_Dist_Setup_Log.tmp
@@ -154,15 +197,30 @@ index da736ea..fc31984 100644
  CWD=$(pwd)
  CWD_DIR_CHECK=$(func_is_dir_toplevel ${CWD})
  DIST_BASE_DIR_CHECK=$(func_is_dir_toplevel ${DIST_BASE_DIR})
-@@ -412,7 +412,6 @@ if ( [ "${CWD_DIR_CHECK}" == "Y" ] && [[ ! ${CWD} -ef ${DIST_BASE_DIR} ]]) ; the
-     func_set_os_env
-     func_set_bmad_env
+@@ -408,18 +420,17 @@ if ( [ "${CWD_DIR_CHECK}" == "Y" ] && [[ ! ${CWD} -ef ${DIST_BASE_DIR} ]]) ; the
+     export DIST_BASE_DIR=${CWD}
+     echo -e "\nCurrent working directory is the root of a Bmad Distribution tree." \
+ 	> ${DIST_SETUP_LOG}
+-
+-    func_set_os_env
+-    func_set_bmad_env
++    
++	func_set_bmad_env
++    func_set_os_env    
      func_add_bmad_path
 -    func_check_fortran_version
-
+ 
  elif ( [ "${DIST_BASE_DIR_CHECK}" == "Y" ] ) ; then
      echo -e "\nThe working directory of the Bmad Distribution tree is defined by DIST_BASE_DIR." \
-@@ -450,4 +449,3 @@ echo -e "     https://wiki.classe.cornell.edu/ACC/ACL/OffsiteDoc\n" \
+ 	> ${DIST_SETUP_LOG}
+ 
+-    func_set_os_env
+     func_set_bmad_env
++    func_set_os_env
+     func_add_bmad_path
+     func_check_fortran_version
+ 
+@@ -450,4 +461,3 @@ echo -e "     https://wiki.classe.cornell.edu/ACC/ACL/OffsiteDoc\n" \
  #-----------------------------------------------------------------
  # Display Logfile, unless requested not to.
  #-----------------------------------------------------------------

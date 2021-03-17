@@ -19,23 +19,6 @@ EOF
 
 echo "**** Invoking dist_source_me"
 source util/dist_source_me
-echo "**** Done with dist_source_me"
-
-
-
-echo "******** DEBUG *******"
-echo "**** echo PATH "
-echo $PATH
-
-echo "**** conda list "
-conda list -p $PREFIX
-
-echo "**** list all fortran under PREFIX/bin "
-ls -lahtr $PREFIX/bin/
-
-echo "**** list all fortran under BUILD_PREFIX/bin "
-ls -lahtr $BUILD_PREFIX/bin/
-
 
 if [[ "$target_platform" == linux-* ]]; then
   echo "**** creating gfortran link "
@@ -45,17 +28,8 @@ fi
 echo "**** which gfortran "
 which gfortran
 
-echo "**** list all libs under PREFIX/lib"
-ls -lahtr $PREFIX/lib
-
-echo "**** list all libs under BUILD_PREFIX/lib"
-ls -lahtr $BUILD_PREFIX/lib
-
-echo "******** DEBUG *******"
-
 echo "**** Invoking dist_build_production"
 util/dist_build_production
-echo "**** Done with dist_build_production"
 
 # create folders if they don't exist yet
 mkdir -p $PREFIX/bin
