@@ -3,7 +3,7 @@
 md "%SRC_DIR%"\build
 pushd "%SRC_DIR%"\build
 set TBBROOT=%LIBRARY_PREFIX%
-cmake -GNinja ^
+cmake -GNinja %CMAKE_ARGS% ^
   -DDNNL_CPU_RUNTIME=TBB ^
   -DDNNL_GPU_RUNTIME=NONE ^
   ..
