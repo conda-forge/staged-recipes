@@ -7,6 +7,7 @@ cmake ^
     -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_INSTALL_LIBDIR=lib ^
+    -DGOOGLETEST_GIT=ON ^
     %SRC_DIR%
 if errorlevel 1 exit 1
 
