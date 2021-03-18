@@ -1,0 +1,73 @@
+{% set version = "0.0.1" %}
+{% set patch_version = "73" %}
+
+package:
+  name: cusparselt
+  version: {{ version }}.{{ patch_version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/libcusparse_lt/{{ version }}/local_installers/libcusparse_lt-linux-x86_64-{{ version }}.{{ patch_version }}.tar.gz   # [linux64 and cuda_compiler_version in ("10.1", "10.2", "11.0")]
+
+  sha256: 63a5a854b2df4477ae48284a23c1b7c7632c23fe418434fa70a2ff8ac238b27e  # [linux64]
+
+build:
+  number: 0
+  skip: True  # [not linux or cuda_compiler_version != "11.0"]
+  script:
+    - mkdir -p $PREFIX/include                                                # [unix]
+    - cp -r include/* $PREFIX/include/                                        # [unix]
+    - mkdir -p $PREFIX/lib64                                                  # [unix]
+    - mv lib64/{{ cuda_compiler_version }}/libcusparseLt.so* $PREFIX/lib64/   # [unix]
+
+  ignore_run_exports_from:
+    - {{ compiler('c') }}    # [linux]
+    - {{ compiler('cuda') }}  # [cuda_compiler_version == "11.0"]
+  run_exports:
+    - {{ pin_subpackage('cusparseLt', exact=True) }}
+  missing_dso_whitelist:
+    - '*/libgomp.*'  # [linux]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cuda') }}
+    - sysroot_linux-64 2.17  # [linux64]
+    - libgomp  # [linux]
+  run:
+    # Only GCC_3.0 or older symbols present
+    - libgcc-ng >=3.0     # [linux]
+    # Only GLIBCXX_3.4 or older symbols present
+    - libstdcxx-ng >=3.4  # [linux]
+    - cudatoolkit 11.*
+  run_constrained:
+    # Only GLIBC_2.17 or older symbols present
+    - __glibc >=2.17      # [linux]
+
+test:
+  commands:
+    - test -f $PREFIX/include/cusparseLt.h                    # [linux]
+    - test -f $PREFIX/lib64/libcusparseLt.so                  # [linux]
+
+about:
+  home: https://developer.nvidia.com/cusparselt
+  license: LicenseRef-cuSPARSELt-Software-License-Agreement
+  license_url: https://docs.nvidia.com/cuda/cusparselt/license.html
+  license_file: libcusparse_lt/libcusparse_lt/license.pdf
+  summary: "Tensor Linear Algebra on NVIDIA GPUs"
+  description: |
+    NVIDIA cuSPARSELt is a high-performance CUDA library dedicated to general
+    matrix-matrix operations in which at least one operand is a sparse matrix.
+    The cuSPARSELt APIs allow flexibility in the algorithm/operation selection,
+    epilogue, and matrix characteristics, including memory layout,
+    alignment, and data types.
+    License Agreements:- The packages are governed by the NVIDIA cuSPARSELt
+    Software License Agreement (EULA). By downloading and using the packages,
+    you accept the terms and conditions of the NVIDIA cuSPARSELt EULA -
+    https://docs.nvidia.com/cuda/cusparselt/license.html
+  doc_url: https://docs.nvidia.com/cuda/cusparselt/index.html
+  dev_url: https://developer.nvidia.com/cusparselt/downloads
+
+extra:
+  recipe-maintainers:
+    - mnicely
+    - leofang
