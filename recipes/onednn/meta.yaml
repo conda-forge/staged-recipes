@@ -1,0 +1,86 @@
+{% set name = "oneDNN" %}
+{% set version = "2.1.2" %}
+# TODO: Put this in conda_build_config.yaml once we support multiple variants
+{% set dnnl_cpu_runtime = "tbb" %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/oneapi-src/{{ name }}/archive/v{{ version }}.tar.gz
+  sha256: cca53231ec99878dc7ef3cf4984525df4691b8174e703b40dd530c50531ecea0
+  patches:
+    - 1009.patch
+
+build:
+  number: 0
+
+outputs:
+  - name: {{ name|lower }}
+    script: build-onednn.sh  # [not win]
+    script: bld-onednn.bat   # [win]
+    version: {{ version }}
+    build:
+      string: {{ dnnl_cpu_runtime }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+      run_exports:
+        - {{ pin_subpackage("onednn", max_pin="x") }}
+      # TODO: Add track_features once we support more than a single variant
+    requirements:
+      build:
+        - cmake
+        - ninja
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - llvm-openmp  # [osx]
+      host:
+        - tbb
+        - tbb-devel
+    about:
+      home: https://github.com/oneapi-src/oneDNN
+      license: Apache-2.0
+      license_file:
+        - THIRD-PARTY-PROGRAMS
+        - LICENSE
+      summary: "oneAPI Deep Neural Network Library (oneDNN)"
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libdnnl${SHLIB_EXT}  # [unix]
+        - test -f ${PREFIX}/lib/libmkldnn${SHLIB_EXT}  # [unix]
+        - test -f ${PREFIX}/include/oneapi/dnnl/dnnl.h  # [unix]
+        - if not exist %LIBRARY_PREFIX%\\bin\\dnnl.dll exit 1  # [win]
+        - if not exist %LIBRARY_PREFIX%\\lib\\dnnl.lib exit 1  # [win]
+        - if not exist %LIBRARY_PREFIX%\\include\\dnnl.h exit 1  # [win]
+  - name: {{ name|lower }}-cpu-{{ dnnl_cpu_runtime }}
+    version: {{ version }}
+    build:
+      string: {{ dnnl_cpu_runtime }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+      run_exports:
+        - {{ pin_subpackage("onednn", max_pin="x") }}
+      # TODO: Add track_features once we support more than a single variant
+    requirements:
+      host:
+        - {{ pin_subpackage('onednn', exact=True) }}
+      run:
+        - {{ pin_subpackage('onednn', exact=True) }}
+    about:
+      home: https://github.com/oneapi-src/oneDNN
+      license: Apache-2.0
+      license_file: LICENSE
+      summary: "oneAPI Deep Neural Network Library (oneDNN)"
+    test:
+      commands:
+        - exit 0
+
+about:
+  home: https://github.com/oneapi-src/oneDNN
+  license: Apache-2.0
+  license_file:
+   - LICENSE
+   - THIRD-PARTY-PROGRAMS
+  summary: "oneAPI Deep Neural Network Library (oneDNN)"
+
+extra:
+  feedstock-name: {{ name|lower }}
+  recipe-maintainers:
+    - xhochy
