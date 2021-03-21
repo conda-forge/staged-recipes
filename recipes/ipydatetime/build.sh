@@ -3,5 +3,5 @@ set -ex
 
 $PYTHON -m pip install . -vv
 npm pack jupyter-widget-datetime@${PKG_VERSION}
-mkdir -p ${PREFIX}/share/jupyter/lab/extensions/js
-cp ${PKG_NAME}-${PKG_VERSION}.tgz ${PREFIX}/share/jupyter/lab/extensions/js
+mkdir -p jupyter-widget-datetime/share/jupyter/lab/extensions/js
+cp jupyter-widget-datetime-${PKG_VERSION}.tgz jupyter-widget-datetime/share/jupyter/lab/extensions/js
