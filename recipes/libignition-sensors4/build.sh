@@ -10,6 +10,7 @@ cmake ${CMAKE_ARGS} \
       -DCMAKE_INSTALL_LIBDIR=lib \
       -DCMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP=True \
       -DBUILD_SHARED_LIBS=ON \
+      -DBUILD_TESTING=ON \
       ..
 
 cmake --build . --config Release
