@@ -105,26 +105,6 @@ def _impl(ctx):
             flag_set(
                 actions = all_compile_actions,
                 flag_groups = [flag_group(flags = "${CFLAGS} ${CPPFLAGS}".split(" "))],
-                #flag_groups = [
-                #    flag_group(
-                #        flags = [
-                #            # TODO: Use CFLAGS
-                #            #"-march=core2",
-                #            #"-mtune=haswell",
-                #            #"-mssse3",
-                #            "-ftree-vectorize",
-                #            "-fPIC",
-                #            "-fPIE",
-                #            "-fstack-protector-strong",
-                #            "-O2",
-                #            "-pipe",
-                #            "-fno-lto",
-                #            # Why is "__thread" not supported by arm64?
-                #            "-DGOOGLE_PROTOBUF_NO_THREADLOCAL=1",
-                #            "-mmacosx-version-min=11.0"
-                #            ],
-                #    ),
-                #],
             ),
         ],
     )
@@ -138,21 +118,6 @@ def _impl(ctx):
                     ACTION_NAMES.objcpp_compile,
                 ],
                 flag_groups = [flag_group(flags = "${CXXFLAGS} ${CPPFLAGS}".split(" "))],
-                #flag_groups = [
-                #    flag_group(
-                #        flags = [
-                #            # TODO: Use CXXFLAGS
-                #            #"-march",
-                #            #"core2",
-                #            #"-mtune=haswell",
-                #            #"-mssse3",
-                #            "-stdlib=libc++",
-                #            "-std=c++14",
-                #            "-DOS_MACOSX",
-                #            "-fno-autolink",
-                #            ],
-                #    ),
-                #],
             ),
         ],
     )
@@ -174,17 +139,6 @@ def _impl(ctx):
                     ACTION_NAMES.clif_match,
                 ],
                 flag_groups = [flag_group(flags = "${CXXFLAGS} ${CPPFLAGS}".split(" "))],
-                #flag_groups = [
-                #    flag_group(
-                #        flags = [
-                #            # TODO: Use CXXFLAGS
-                #            "-stdlib=libc++",
-                #            "-fvisibility-inlines-hidden",
-                #            "-std=c++14",
-                #            "-fmessage-length=0"
-                #            ],
-                #    ),
-                #],
             ),
         ],
     )
@@ -245,25 +199,6 @@ def _impl(ctx):
                     ACTION_NAMES.clif_match,
                 ],
                 flag_groups = [flag_group(flags = "-lc++ ${LDFLAGS}".split(" "))],
-                #flag_groups = [
-                #    flag_group(
-                #        # TODO: Use LDFLAGS
-                #        flags = [
-                #            "-Wl,-pie",
-                #            "-headerpad_max_install_names",
-                #            "-Wl,-dead_strip_dylibs",
-                #            "-undefined",
-                #            "dynamic_lookup",
-                #            "-force_load",
-                #            "${BUILD_PREFIX}/lib/libc++.a",
-                #            "-force_load",
-                #            "${BUILD_PREFIX}/lib/libc++abi.a",
-                #            "-nostdlib",
-                #            "-lc",
-                #            "-isysroot${CONDA_BUILD_SYSROOT}",
-                #            ]
-                #    ),
-                #],
             ),
         ],
     )
@@ -275,7 +210,6 @@ def _impl(ctx):
             flag_set(
                 actions = all_link_actions +
                           ["objc-executable", "objc++-executable"],
-                # flag_groups = [flag_group(flags = ["-lc++", "-framework", "IOKit", "-mmacosx-version-min=11.0"])],
                 flag_groups = [flag_group(flags = "-lc++ ${LDFLAGS}".split(" "))],
             ),
         ],
@@ -361,17 +295,12 @@ def _impl(ctx):
         "${PREFIX}/include",
     ]
 
-    #host_system_name = "local",
-    # target_system_name = "local",
-    #target_cpu = "darwin",
     return cc_common.create_cc_toolchain_config_info(
         ctx = ctx,
         toolchain_identifier = "local",
         host_system_name = "x86_64-apple-macosx",
-        #host_system_name = "x86_64-apple-macosx",
         target_system_name = "x86_64-apple-macosx",
         target_cpu = "darwin_x86_64",
-        #target_cpu = "darwin_arm64",
         target_libc = "macosx",
         compiler = "compiler",
         abi_version = "local",
