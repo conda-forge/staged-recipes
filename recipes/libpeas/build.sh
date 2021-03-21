@@ -8,5 +8,5 @@ meson setup builddir \
       	-Dvapi=false \
       	-Dwidgetry=true \
       	-Ddemos=false
-ninja -v -C builddir -j ${CPU_COUNT}
-ninja -C builddir install -j ${CPU_COUNT}
+ninja -v -C builddir -j 1
+ninja -C builddir install -j 1
