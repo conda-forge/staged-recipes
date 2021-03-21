@@ -21,6 +21,19 @@ index 7422aee..9abaeaf 100644
  
  SET (SRC_DIRS 
    code 
+diff --git a/build_system/Master.cmake b/build_system/Master.cmake
+index bfac3db..6522bf9 100644
+--- a/build_system/Master.cmake
++++ b/build_system/Master.cmake
+@@ -235,8 +235,6 @@ ENDIF ()
+ 
+ IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND NOT $ENV{ACC_PLOT_PACKAGE} MATCHES "none")
+   SET (ACC_PLOT_LIB_DIRS /usr/lib64)
+-ELSEIF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+-  SET (ACC_PLOT_LIB_DIRS /opt/local/lib /opt/X11/lib)
+ ENDIF ()
+ 
+ IF (${CMAKE_Fortran_COMPILER} STREQUAL "ifort" AND "$ENV{ACC_ENABLE_SHARED}" MATCHES "Y")
 diff --git a/fgsl/acc_build_fgsl b/fgsl/acc_build_fgsl
 index 826f20b..97d911b 100755
 --- a/fgsl/acc_build_fgsl
@@ -73,23 +86,38 @@ index 826f20b..97d911b 100755
  
  	[ "${ACC_ENABLE_OPENMP}" == "Y" ] && CONFIG_OPTIONS="--enable-openmp"
 diff --git a/tao/cmake.tao b/tao/cmake.tao
-index 333fd3f..ae8cff4 100644
+index 333fd3f..58baac3 100644
 --- a/tao/cmake.tao
 +++ b/tao/cmake.tao
-@@ -29,6 +29,13 @@ IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-   link_directories(/opt/local/lib)
- ENDIF ()
+@@ -25,8 +25,11 @@ SET (LINK_LIBS
+   hdf5
+ )
  
+-IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+-  link_directories(/opt/local/lib)
 +# If this is a conda build we must expand the
 +# library search with the PREFIX/lib
 +# folder.
 +IF ($ENV{ACC_CONDA_BUILD})
 +  link_directories($ENV{PREFIX}/lib)
-+ENDIF ()
-+
+ ENDIF ()
+ 
  IF ($ENV{ACC_PLOT_PACKAGE} MATCHES "plplot")
-   IF (NOT ${MSYS})
-   SET (SHARED_LINK_LIBS
+diff --git a/tao/customization/cmake.custom_tao b/tao/customization/cmake.custom_tao
+index 503c1c5..4ebd846 100644
+--- a/tao/customization/cmake.custom_tao
++++ b/tao/customization/cmake.custom_tao
+@@ -23,10 +23,6 @@ set (LINK_LIBS
+   hdf5
+ )
+ 
+-IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+-  link_directories(/opt/local/lib)
+-ENDIF ()
+-
+ IF ($ENV{ACC_PLOT_PACKAGE} MATCHES "plplot")
+   set (SHARED_LINK_LIBS
+     pangocairo-1.0
 diff --git a/util/Distribution_User_Utility_Wrapper b/util/Distribution_User_Utility_Wrapper
 index efadc40..41d0674 100755
 --- a/util/Distribution_User_Utility_Wrapper
@@ -124,30 +152,81 @@ index efadc40..41d0674 100755
  # General Distribution Build Function
  func_dist_build () { 
 diff --git a/util/acc_build_common b/util/acc_build_common
-index 6c4e1ef..5cd6a2d 100755
+index 6c4e1ef..da63504 100755
 --- a/util/acc_build_common
 +++ b/util/acc_build_common
-@@ -168,6 +168,15 @@ func_set_fpic_flags () {
+@@ -168,40 +168,14 @@ func_set_fpic_flags () {
  # Function to check for required MacPorts install on Mac OS X
  
  func_check_macports () {
-+    case "${ACC_CONDA_BUILD}" in
-+        "Y" | "y" | "1" )
-+            CONDA_BUILD=1
-+            ;;
-+    esac
-+
 +    if ( [[ "${CONDA_BUILD}" ]] ) ; then
 +	    return
 +    fi
  
      if ( [ `uname` == "Darwin" ] ) ; then
  	if ( [ "$(type gcc &> /dev/null ; echo $?)" -eq 0 ] ) ; then
+ 	    export VER=$(uname -r | cut -d. -f1)
+ 	    export GCC_PATH=$(type gcc | cut -d" " -f3)
+-	    if ( [ "${GCC_PATH}" != "/usr/local/bin/gcc" ] ) ; then
+-		if ( [ "${VER}" -gt 11 ] && [ ! -d "/opt/local/etc/macports" ] ) ; then 
+-		    echo -e \
+-			 "\nCan't find GNU GCC, please install MacPorts, using instructions on:" \
+-			 "\n\n    http://www.macports.org/install.php" \
+-			 "\n\nThen follow instructions on:" \
+-			 "\n\n    ${ACC_LIB_TOOLS_WIKI}\n"
+-		    exit 69
+-		elif [ ! -L /opt/local/bin/gcc ] ; then
+-		    echo -e \
+-			 "\nNo selected MacPorts gcc version..." \
+-			 "\n\nPlease follow instructions on:" \
+-		    "\n\n    ${ACC_LIB_TOOLS_WIKI}\n"
+-		    exit 70
+-		elif ( [ "${GCC_PATH}" == "/usr/bin/gcc" ] && [ -d "/opt/local/etc/macports" ] ) ; then
+-		    echo -e \
+-			 "\nWarning: MacPorts gcc is not in your PATH..." \
+-			 "\nPlease add the following line to the bottom of your ~/.bash_profile or ~/.bashrc file:" \
+-			 "\n\n    export PATH=/opt/local/bin:/opt/local/sbin:\$PATH" \
+-			 "\n\nThen logout and log back in, cd into the Bmad distribution folder and" \
+-			 "\nreinitialize the Bmad Environment using:" \
+-			 "\n\n    source util/dist_source_me\n"
+-		    exit 78
+-		elif [ "${GCC_PATH}" == "/opt/local/bin/gcc" ] ; then
+-		    export CC=gcc
+-		fi
+-	    elif ( [ "${GCC_PATH}" == "/usr/local/bin/gcc" ] ) ; then
+-		export CC=gcc
+-	    fi
+ 	else
+ 	    echo -e \
+ 		 "\nCan't find GCC, please install Xcode and MacPorts, using instructions on:" \
+@@ -508,10 +482,6 @@ func_install_utilities () {
+ 	fi
+     }
+ 
+-    if ( [ `uname` == "Darwin" ] && [ -d "/opt/local/libexec/gnubin" ] ) ; then
+-        export PATH=/opt/local/libexec/gnubin${PATH:+:${PATH}}
+-    fi
+-
+     export PATH=${UTIL_DIR}/bin:${OTHER_OUTPUT_DIR}/gnu_utilities/bin${PATH:+:${PATH}}
+     export LD_LIBRARY_PATH=${UTIL_DIR}/lib:${OTHER_OUTPUT_DIR}/gnu_utilities/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+ 
+@@ -699,6 +669,11 @@ func_cleanup_variables () {
+ 
+ 
+ # Main script
++case "${ACC_CONDA_BUILD}" in
++    "Y" | "y" | "1" )
++        CONDA_BUILD=1
++        ;;
++esac
+ 
+ if ( [ "${1}" == "-debug" ] || [ "${1}" == "-production" ] ) ; then
+ 
 diff --git a/util/dist_prefs b/util/dist_prefs
-index 293a3d3..fde0b85 100644
+index 293a3d3..0538d90 100644
 --- a/util/dist_prefs
 +++ b/util/dist_prefs
-@@ -157,3 +157,13 @@ export ACC_ENABLE_PROFILING="N"
+@@ -157,3 +157,25 @@ export ACC_ENABLE_PROFILING="N"
  # value is "2" and cannot be set lower than "1"
  #-----------------------------------------------------------
  export ACC_SET_GMAKE_JOBS="2"
@@ -161,14 +240,33 @@ index 293a3d3..fde0b85 100644
 +# E.g.: regression tests are not compiled
 +#-----------------------------------------------------------
 +export ACC_CONDA_BUILD="N"
++export DIST_F90_REQUEST="gfortran"
++export ACC_PLOT_PACKAGE="pgplot"
++export ACC_PLOT_DISPLAY_TYPE="X"
++export ACC_ENABLE_OPENMP="N"
++export ACC_ENABLE_MPI="N"
++export ACC_FORCE_BUILTIN_MPI="N"
++export ACC_ENABLE_GFORTRAN_OPTIMIZATION="Y"
++export ACC_ENABLE_SHARED="Y"
++export ACC_ENABLE_FPIC="Y"
++export ACC_ENABLE_PROFILING="N"
++export ACC_SET_GMAKE_JOBS="8"
++export ACC_CONDA_BUILD="Y"
 diff --git a/util/dist_source_me b/util/dist_source_me
-index da736ea..84d16f7 100644
+index da736ea..3a9f554 100644
 --- a/util/dist_source_me
 +++ b/util/dist_source_me
-@@ -69,10 +69,22 @@ func_set_os_env () {
+@@ -69,14 +69,16 @@ func_set_os_env () {
  	fi
      fi
  
+-    # For Mac OS X "Darwin"
+-    if [ "$(uname)" == "Darwin" ] ; then
+-	# Force MacPorts gcc/g++ as GNU compiler
+-	if [ -e /opt/local/bin/gcc ] ; then
+-	    export CC=gcc
+-	    export CXX=g++
+-	fi
 +    case "${ACC_CONDA_BUILD}" in
 +        "Y" | "y" | "1" )
 +            CONDA_BUILD=1 
@@ -176,19 +274,23 @@ index da736ea..84d16f7 100644
 +    esac
 +
 +	if ( [[ "${CONDA_BUILD}" ]] ) ; then
-+	    echo "********* ABORTING"
 +	    return;
-+    fi
+     fi
 +
-     # For Mac OS X "Darwin"
-     if [ "$(uname)" == "Darwin" ] ; then
- 	# Force MacPorts gcc/g++ as GNU compiler
- 	if [ -e /opt/local/bin/gcc ] ; then
-+	    echo "****** Setting CC to gcc."
- 	    export CC=gcc
- 	    export CXX=g++
+ }
+ 
+ 
+@@ -364,9 +366,6 @@ func_add_bmad_path () {
+ 
+ 	    if ( [ "${DIST_F90_REQUEST}" == "ifort" ] && [ -d /opt/intel/lib ] ) ; then
+ 		export DYLD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/opt/intel/lib
+-
+-	    elif [ -d /opt/local/lib ] ; then
+-	     	export DYLD_LIBRARY_PATH=${LD_LIBRARY_PATH}
+ 	    fi
  	fi
-@@ -394,7 +406,7 @@ func_add_bmad_path () {
+     fi
+@@ -394,7 +393,7 @@ func_add_bmad_path () {
  # Set universal ACC_ROOT_DIR variable. Defined for both 
  # Release and Distribution Builds.
  #-----------------------------------------------------------------
@@ -197,15 +299,14 @@ index da736ea..84d16f7 100644
  CWD=$(pwd)
  CWD_DIR_CHECK=$(func_is_dir_toplevel ${CWD})
  DIST_BASE_DIR_CHECK=$(func_is_dir_toplevel ${DIST_BASE_DIR})
-@@ -408,18 +420,17 @@ if ( [ "${CWD_DIR_CHECK}" == "Y" ] && [[ ! ${CWD} -ef ${DIST_BASE_DIR} ]]) ; the
+@@ -408,18 +407,17 @@ if ( [ "${CWD_DIR_CHECK}" == "Y" ] && [[ ! ${CWD} -ef ${DIST_BASE_DIR} ]]) ; the
      export DIST_BASE_DIR=${CWD}
      echo -e "\nCurrent working directory is the root of a Bmad Distribution tree." \
  	> ${DIST_SETUP_LOG}
 -
 -    func_set_os_env
--    func_set_bmad_env
 +    
-+	func_set_bmad_env
+     func_set_bmad_env
 +    func_set_os_env    
      func_add_bmad_path
 -    func_check_fortran_version
@@ -220,7 +321,7 @@ index da736ea..84d16f7 100644
      func_add_bmad_path
      func_check_fortran_version
  
-@@ -450,4 +461,3 @@ echo -e "     https://wiki.classe.cornell.edu/ACC/ACL/OffsiteDoc\n" \
+@@ -450,4 +448,3 @@ echo -e "     https://wiki.classe.cornell.edu/ACC/ACL/OffsiteDoc\n" \
  #-----------------------------------------------------------------
  # Display Logfile, unless requested not to.
  #-----------------------------------------------------------------

@@ -6,7 +6,7 @@ cat <<EOF >> util/dist_prefs
 export DIST_F90_REQUEST="gfortran"
 export ACC_PLOT_PACKAGE="pgplot"
 export ACC_PLOT_DISPLAY_TYPE="X"
-export ACC_ENABLE_OPENMP="Y"
+export ACC_ENABLE_OPENMP="N"
 export ACC_ENABLE_MPI="N"
 export ACC_FORCE_BUILTIN_MPI="N"
 export ACC_ENABLE_GFORTRAN_OPTIMIZATION="Y"
