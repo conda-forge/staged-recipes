@@ -9,6 +9,7 @@ cmake ^
     -DCMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP=True ^
     -DCMAKE_INSTALL_LIBDIR=lib ^
     -DBUILD_SHARED_LIBS=ON ^
+    -DBUILD_TESTING=ON ^
     %SRC_DIR%
 if errorlevel 1 exit 1
 
