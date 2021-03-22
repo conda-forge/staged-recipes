@@ -8,3 +8,5 @@ cmake .. ${CMAKE_ARGS} \
 	-DGTSAM_INSTALL_CPPUNITLITE=OFF
 
 ninja install
+
+# ninja test
