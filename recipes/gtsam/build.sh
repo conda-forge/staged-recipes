@@ -9,4 +9,4 @@ cmake .. ${CMAKE_ARGS} \
 
 ninja install
 
-# ninja test
+ninja check
