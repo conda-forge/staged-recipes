@@ -2,4 +2,4 @@ set -e
 
 ./configure.py
 
-$PYTHON setup.py install --single-version-externally-managed --record record.txt
+$PYTHON -m pip install . -vv
