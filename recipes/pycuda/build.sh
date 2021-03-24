@@ -1,5 +1,5 @@
 set -e
 
-./configure.py
+./configure.py --enable-shared
 
 $PYTHON -m pip install . -vv
