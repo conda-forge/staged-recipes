@@ -30,4 +30,8 @@ crystal_src_dir=crystal-1.0.0
 cd $crystal_src_dir
 ls
 make
-make std_spec compiler_spec
+# make std_spec || true
+# make compiler_spec
+
+install -Dm755 ".build/crystal" "$$PREFIX/bin/crystal"
+cp -r src "$PREFIX/lib/crystal"
