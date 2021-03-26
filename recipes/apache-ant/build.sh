@@ -1,12 +1,7 @@
 #!/bin/bash
 
-./build.sh dist
-cd apache-ant-${PKG_VERSION}
-
-for i in etc lib bin; do
-  mkdir -p "${PREFIX}/$i"
-  cp -rv $i/* "${PREFIX}/$i"
-done
+export ANT_HOME="${PREFIX}"
+./build.sh install
 
 # ensure that ANT_HOME is set correctly
 mkdir -p $PREFIX/etc/conda/activate.d
