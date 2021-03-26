@@ -1,7 +1,5 @@
 #!/bin/bash
 
-export JAVA_HOME="${PREFIX}"
-
 ./build.sh dist
 cd apache-ant-${PKG_VERSION}
 

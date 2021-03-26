@@ -1,4 +1,3 @@
-set JAVA_HOME=%LIBRARY_PREFIX%
 
 call build.bat dist
 if errorlevel 1 exit 1
