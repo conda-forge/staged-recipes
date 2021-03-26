@@ -1,3 +1,4 @@
+set PBR_VERSION=%PKG_VERSION%
 REM Use PEP517 to install the package
 %PYTHON% setup.py bdist_wheel
 REM Install wheel
