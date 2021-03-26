@@ -1,0 +1,1 @@
+robocopy %SRC_DIR%\%PKG_NAME%-%PKG_VERSION% %PREFIX% /COPYALL /E
