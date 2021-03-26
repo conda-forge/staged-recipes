@@ -1,0 +1,145 @@
+{% set name = "gtk" %}
+{% set version = "4.0.3" %}
+{% set version_majmin = '.'.join(version.split('.', 2)[:2]) %}
+
+package:
+  name: gtk4  # note customization
+  version: {{ version }}
+
+source:
+  url: https://download.gnome.org/sources/{{ name }}/{{ version_majmin }}/{{ name }}-{{ version }}.tar.xz
+  sha256: d7c9893725790b50bd9a3bb278856d9d543b44b6b9b951d7b60e7bdecc131890
+  patches:
+    # https://gitlab.gnome.org/GNOME/gtk/-/merge_requests/3342
+    - gdkmacosglcontext.c.patch  # [osx]
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_subpackage('gtk4', max_pin='x') }}
+    # gtk apps need at least a default icon set for fallback
+    - adwaita-icon-theme
+  ignore_run_exports_from:
+    - {{ compiler('cxx') }}
+  missing_dso_whitelist:
+    - /usr/lib/libcups.2.dylib    # [osx]
+
+requirements:
+  build:
+    # restrict to working meson, see https://github.com/conda-forge/gtk3-feedstock/pull/26
+    - meson 0.56.2
+    - ninja
+    - gobject-introspection
+    - pkg-config
+    - {{ compiler('c') }}
+    # sassc needs a C++ compiler
+    - {{ compiler('cxx') }}
+  host:
+    - cairo
+    - epoxy
+    - freetype
+    - gdk-pixbuf
+    - gettext  # [osx]
+    - glib
+    - libgraphene
+    - harfbuzz
+    - libcups  # [linux]
+    - libiconv  # [win]
+    - pango
+    - xorg-libice  # [linux]
+    - xorg-libsm  # [linux]
+    - xorg-libx11  # [linux]
+    - xorg-libxcomposite  # [linux]
+    - xorg-libxcursor  # [linux]
+    - xorg-libxdamage  # [linux]
+    - xorg-libxext  # [linux]
+    - xorg-libxi  # [linux]
+    - xorg-libxinerama  # [linux]
+    - xorg-libxfixes  # [linux]
+    - xorg-libxrandr  # [linux]
+    - xorg-libxrender  # [linux]
+    - xorg-libxtst  # [linux]
+    - xorg-xineramaproto  # [linux]
+    - xorg-xproto  # [linux]
+  run:
+    - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.12") }}  # [osx and x86_64]
+    - hicolor-icon-theme
+    - pango
+    - libgraphene
+    - fribidi
+    - fontconfig
+    - {{ pin_compatible('libcups') }}  # [linux]
+    # The post-links scripts uses gio-querymodules from glib-tools
+    - glib-tools
+    - xorg-libx11  # [linux]
+    - xorg-libxcomposite  # [linux]
+    - xorg-libxcursor  # [linux]
+    - xorg-libxdamage  # [linux]
+    - xorg-libxext  # [linux]
+    - xorg-libxi  # [linux]
+    - xorg-libxinerama  # [linux]
+    - xorg-libxfixes  # [linux]
+    - xorg-libxrandr  # [linux]
+    - xorg-xineramaproto  # [linux]
+    - xorg-xproto  # [linux]
+
+test:
+  requires:
+    - pygobject
+  commands:
+    # check that the binaries can run
+    - gtk4-encode-symbolic-svg --help
+    - gtk4-launch --help  # [unix]
+    - gtk4-update-icon-cache --help
+    # other binaries require a display, check that they get installed
+    {% set cmds = ["gtk4-builder-tool", "gtk4-query-settings"] %}
+    {% for cmd in cmds %}
+    - command -v {{ cmd }}  # [unix]
+    - where {{ cmd }}  # [win]
+    {% endfor %}
+
+    # verify that (some) headers get installed
+    - test -f $PREFIX/include/gtk-4.0/gdk/gdk.h  # [unix]
+    - test -f $PREFIX/include/gtk-4.0/gsk/gsk.h  # [unix]
+    - test -f $PREFIX/include/gtk-4.0/gtk/gtk.h  # [unix]
+    - if not exist %PREFIX%\\Library\\include\\gtk-4.0\\gdk\\gdk.h exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\include\\gtk-4.0\\gsk\\gsk.h exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\include\\gtk-4.0\\gtk\\gtk.h exit 1  # [win]
+
+    # verify that pkgconfig files get installed
+    {% set pcs = ["gtk4"] %}
+    {% set pcs = pcs + ["gtk4-unix-print"] %}  # [unix]
+    {% set pcs = pcs + ["gtk4-x11"] %}  # [linux]
+    {% set pcs = pcs + ["gtk4-macos"] %}  # [osx]
+    {% set pcs = pcs + ["gtk4-win32"] %}  # [win]
+    {% for pc in pcs %}
+    - test -f $PREFIX/lib/pkgconfig/{{ pc }}.pc  # [unix]
+    - if not exist %PREFIX%\\Library\\lib\\pkgconfig\\{{ pc }}.pc exit 1  # [win]
+    {% endfor %}
+    
+    # check gi typelibs
+    {% set gis = ["Gdk-4.0", "Gsk-4.0", "Gtk-4.0"] %}
+    {% for gi in gis %}
+    - "test -f $PREFIX/lib/girepository-1.0/{{ gi }}.typelib"  # [unix]
+    - "if not exist %PREFIX%\\Library\\lib\\girepository-1.0\\{{ gi }}.typelib exit 1"   # [win]
+    {% endfor %}
+
+
+about:
+  home: http://www.gtk.org/
+  license: LGPL-2.0-or-later
+  license_family: LGPL
+  license_file: COPYING
+  summary: Version 4 of the Gtk+ graphical toolkit
+  description: |
+    GTK is a multi-platform toolkit for creating graphical user interfaces.
+    Offering a complete set of widgets, GTK is suitable for projects ranging
+    from small one-off projects to complete application suites.
+  doc_url: https://developer.gnome.org/gtk4/
+  dev_url: https://gitlab.gnome.org/GNOME/gtk
+
+extra:
+  recipe-maintainers:
+    - ryanvolz
+    - pkgw
+    - tschoonj
