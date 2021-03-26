@@ -3,6 +3,6 @@ if [ -d ${SRC_DIR}/${PKG_NAME}-${PKG_VERSION} ]; then
 else
     DIR = ${SRC_DIR}
 if
-for subfolder in "bin" "class" "dist" "lib" "sample-data" "stoplists" "LICENSE" "README.md" do
+for subfolder in "bin" "class" "dist" "lib" "sample-data" "stoplists" "LICENSE" "README.md"; do
     cp -r ${DIR}/${subfolder} ${PREFIX}
 done
