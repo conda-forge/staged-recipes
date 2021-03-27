@@ -1,0 +1,5 @@
+unset ARCHDEFS
+unset SIFDECODE
+unset CUTEST
+unset MASTSIF
+unset MYARCH
