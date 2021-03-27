@@ -14,7 +14,7 @@ CMAKE_FLAGS+=" -DCMAKE_LIBRARY_PATH=${CUDA_HOME}/lib64/stubs"
 # Build openmm plugin in subdirectory and install.
 mkdir -p build
 cd build
-cmake ${CMAKE_FLAGS} ${SRC_DIR}
+cmake ${CMAKE_FLAGS} ${SRC_DIR}/plugin
 make -j$CPU_COUNT install
 make -j$CPU_COUNT PythonInstall
 
