@@ -10,10 +10,7 @@ CMAKE_FLAGS+=" -DBUILD_TESTING=ON"
 CMAKE_FLAGS+=" -DOPENMM_DIR=${PREFIX}"
 CMAKE_FLAGS+=" -DCUDA_TOOLKIT_ROOT_DIR=${CUDA_HOME}"
 CMAKE_FLAGS+=" -DCMAKE_LIBRARY_PATH=${CUDA_HOME}/lib64/stubs"
-ls ${PREFIX}/include
-ls ${PREFIX}/include/eigen3
 export EIGEN3_INCLUDE_DIR=${PREFIX}/include/eigen3
-ls ${EIGEN3_INCLUDE_DIR}
 
 # Build openmm plugin in subdirectory and install.
 mkdir -p build
