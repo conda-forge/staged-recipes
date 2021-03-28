@@ -21,4 +21,4 @@ make -j$CPU_COUNT PythonInstall
 
 # Perform meld python install
 cd ..
-pip instal . -vv
+pip install . -vv
