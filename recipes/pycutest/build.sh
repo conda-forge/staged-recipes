@@ -31,10 +31,10 @@ sed 's/^AR\s*=.*/AR=$(AR)/g' -i ${SIFDECODE}/makefiles/* ${CUTEST}/makefiles/*
 sed 's/^RANLIB\s*=.*/RANLIB=$(RANLIB)/g' -i ${SIFDECODE}/makefiles/* ${CUTEST}/makefiles/*
 
 # install everything under share
-cp -r ${SIFDECODE} ${PREFIX}/share/sifdecode
-cp -r ${CUTEST} ${PREFIX}/share/cutest
-cp -r ${ARCHDEFS} ${PREFIX}/share/archdefs
-cp -r ${MASTSIF} ${PREFIX}/share/mastsif
+mv ${SIFDECODE} ${PREFIX}/share/$(basename ${SIFDECODE})
+mv ${CUTEST} ${PREFIX}/share/$(basename ${CUTEST})
+mv ${ARCHDEFS} ${PREFIX}/share/$(basename ${ARCHDEFS})
+mv ${MASTSIF} ${PREFIX}/share/$(basename ${MASTSIF})
 
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
 # This will allow them to be run on environment activation.
