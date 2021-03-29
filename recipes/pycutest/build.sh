@@ -13,18 +13,22 @@ export SIFDECODE=${SRC_DIR}/sifdecode
 export MASTSIF=${SRC_DIR}/mastsif
 export CUTEST=${SRC_DIR}/cutest
 
-# fix hardcoded compilers
+# fix hardcoded compilers and related tools
 sed 's/^FORTRAN=.*/FORTRAN=$GFORTRAN/g' -i ${ARCHDEFS}/*compiler.*
 sed 's/^CC=.*/CC=$GCC/g' -i ${ARCHDEFS}/*compiler.*
+sed 's/^AR=.*/CC=$AR/g' -i ${ARCHDEFS}/*compiler.*
+sed 's/^RANLIB=.*/CC=$RANLIB/g' -i ${ARCHDEFS}/*compiler.*
 
 # build
 pushd ${CUTEST}
 ${ARCHDEFS}/install_optrove < ${RECIPE_DIR}/install-options
 popd
 
-# fix hardcoded compilers in generated makefiles configs
+# fix hardcoded compilers and related tools in generated makefiles configs
 sed 's/^FORTRAN\s*=.*/FORTRAN=$(GFORTRAN)/g' -i ${SIFDECODE}/makefiles/* ${CUTEST}/makefiles/*
 sed 's/^CC\s*=.*/CC=$(GCC)/g' -i ${SIFDECODE}/makefiles/* ${CUTEST}/makefiles/*
+sed 's/^AR\s*=.*/AR=$(AR)/g' -i ${SIFDECODE}/makefiles/* ${CUTEST}/makefiles/*
+sed 's/^RANLIB\s*=.*/RANLIB=$(RANLIB)/g' -i ${SIFDECODE}/makefiles/* ${CUTEST}/makefiles/*
 
 # install everything under share
 cp -r ${SIFDECODE} ${PREFIX}/share/sifdecode
