@@ -1,5 +1,6 @@
 #!/bin/bash
 
+mkdir -p "${PREFIX}"
 export ANT_HOME="${PREFIX}"
 ./build.sh install
 
