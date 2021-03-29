@@ -3,3 +3,11 @@ unset SIFDECODE
 unset CUTEST
 unset MASTSIF
 unset MYARCH
+
+# restore initial standard variables
+export PATH=${_CONDA_PYCUTEST_OLD_PATH}
+export MANPATH=${_CONDA_PYCUTEST_OLD_MANPATH}
+
+unset _CONDA_PYCUTEST_OLD_PATH
+unset _CONDA_PYCUTEST_OLD_MANPATH
+
