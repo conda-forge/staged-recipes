@@ -11,6 +11,10 @@ export SIFDECODE=${SRC_DIR}/sifdecode
 export MASTSIF=${SRC_DIR}/mastsif
 export CUTEST=${SRC_DIR}/cutest
 
+# fix hardcoded compilers
+sed 's/^FORTRAN=.*/FORTRAN=$GFORTRAN/g' -i archdefs/?compiler.*
+sed 's/^CC=.*/CC=$GCC/g' -i archdefs/?compiler.*
+
 # build
 pushd ${CUTEST}
 ${ARCHDEFS}/install_optrove < ${RECIPE_DIR}/install-options
