@@ -16,8 +16,8 @@ export CUTEST=${SRC_DIR}/cutest
 # fix hardcoded compilers and related tools
 sed 's/^FORTRAN=.*/FORTRAN=$GFORTRAN/g' -i ${ARCHDEFS}/*compiler.*
 sed 's/^CC=.*/CC=$GCC/g' -i ${ARCHDEFS}/*compiler.*
-sed 's/^AR=.*/CC=$AR/g' -i ${ARCHDEFS}/*compiler.*
-sed 's/^RANLIB=.*/CC=$RANLIB/g' -i ${ARCHDEFS}/*compiler.*
+sed 's/^AR=.*/AR=$AR/g' -i ${ARCHDEFS}/*compiler.*
+sed 's/^RANLIB=.*/RANLIB=$RANLIB/g' -i ${ARCHDEFS}/*compiler.*
 
 # build
 pushd ${CUTEST}
