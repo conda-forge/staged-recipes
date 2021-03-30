@@ -1,7 +1,12 @@
 
-set ANT_HOME=%LIBRARY_PREFIX%
-call build.bat install
+call build.bat dist
 if errorlevel 1 exit 1
+
+cd apache-ant-%PKG_VERSION%
+
+xcopy /f /s /y /i bin\* %LIBRARY_BIN%
+xcopy /f /s /y /i etc %LIBRARY_PREFIX%\etc
+xcopy /f /s /y /i lib\* %LIBRARY_LIB%
 
 :: ensure that ANT_HOME is set correctly
 mkdir %PREFIX%\etc\conda\activate.d
