@@ -1,0 +1,48 @@
+# use this if our build script changes and we need to increment beyond intel's version
+{% set dstbuildnum = '0' %}
+{% set version = "2021.1.2" %}
+{% set buildnum = "266" %}  # [linux]
+{% set buildnum = "265" %}  # [win]
+
+package:
+  name: intel-opencl-runtime
+  version: {{ version }}
+
+source:
+  - url: https://anaconda.org/intel/opencl_rt/{{ version }}/download/{{ target_platform }}/opencl_rt-{{ version }}-intel_{{ buildnum }}.tar.bz2
+    folder: intel-opencl-runtime
+
+build:
+  number: {{ buildnum|int + dstbuildnum|int }}
+  binary_relocation: false
+  detect_binary_files_with_prefix: false
+  skip: True    # [osx or not x86]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+  host:
+    - tbb {{ version.split('.')[0] }}.*
+    - ocl-icd  # [linux]
+  run:
+    - tbb {{ version.split('.')[0] }}.*
+    - ocl-icd  # [linux]
+    - khronos-opencl-icd-loader  # [osx or win]
+
+test:
+  requires:
+    - pyopencl
+  commands:
+    - PYOPENCL_CTX=intel python -c "import opencl as cl;cl._csc()"  # [unix]
+
+about:
+  home: https://software.intel.com/content/www/us/en/develop/tools/opencl-cpu-runtime.html
+  license: LicenseRef-ProprietaryIntel
+  summary: 'Intel OpenCL runtime for CPUs'
+  license_file:
+    - intel-opencl-runtime/info/licenses/license.txt
+    - intel-opencl-runtime/info/licenses/tpp.txt
+
+extra:
+  recipe-maintainers:
+    - isuruf
