@@ -1,8 +1,6 @@
-set "src=%SRC_DIR%\%PKG_NAME%"
-COPY %SRC_DIR%\mkl-devel\info\licenses\license.txt %SRC_DIR%
-COPY %SRC_DIR%\mkl-devel\info\licenses\tpp.txt %SRC_DIR%
-robocopy /E "%src%" "%PREFIX%"
+mkdir "%LIBRARY_PREFIX%\intel-ocl-cpu"
+set "src=%SRC_DIR%\%PKG_NAME%\Shared Libraries\"
+robocopy /E "%src%" "%LIBRARY_LIB%\intel-ocl-cpu"
 if %ERRORLEVEL% GEQ 8 exit 1
 
-:: replace old info folder with our new regenerated one
-rd /s /q %PREFIX%\info
+echo %LIBRARY_LIB%\intel-ocl-cpu\intelocl64.dll > %LIBRARY_PREFIX%\etc\OpenCL\vendors\intel-ocl-cpu.icd
