@@ -10,7 +10,8 @@ cmake ${CMAKE_ARGS} \
       -DCMAKE_INSTALL_LIBDIR=lib \
       -DCMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP=True \
       -DBUILD_SHARED_LIBS=ON \
-      -DBUILD_TESTING=OFF \
+      -DBUILD_TESTING=ON \
+      -DIGN_UTILS_VENDOR_CLI11=OFF \
       ..
 
 cmake --build . --config Release --parallel ${CPU_COUNT}
