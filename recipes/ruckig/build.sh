@@ -14,7 +14,9 @@ cmake --build . --config Release
 cmake --build . --config Release --target install
 
 # Install manually Python extension
+echo "Copying Python library to $SP_DIR"
 cp ruckig.cpython* $SP_DIR
+ls $SP_DIR | grep ruckig
 
 if [[ "${CONDA_BUILD_CROSS_COMPILATION}" != "1" ]]; then
 ctest --output-on-failure -C Release
