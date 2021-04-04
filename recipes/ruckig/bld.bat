@@ -20,7 +20,7 @@ cmake --build . --config Release --target install
 if errorlevel 1 exit 1
 
 :: Install manually Python extension
-cp ruckig.cpython* %SP_DIR%
+cp ruckig.cp* %SP_DIR%
 
 :: Test.
 ctest -C Release
