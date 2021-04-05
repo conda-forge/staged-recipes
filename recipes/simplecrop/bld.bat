@@ -1,3 +1,4 @@
+cd src
 mkdir build && cd build
 
 cmake -LAH -G "NMake Makefiles" ^
