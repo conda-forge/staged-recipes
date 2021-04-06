@@ -3,13 +3,13 @@ set -eox pipefail
 
 PREFIX=$(echo "${PREFIX}" | tr '\\' '/')
 
-mkdir -p $PREFIX/bin
-cp -r $SRC_DIR/* $PREFIX
+mkdir -p $PREFIX/bin/tools
+cp -r $SRC_DIR/* $PREFIX/bin
 
 if [[ "${build_platform}" == "win-64" ]]; then
-    mv $PREFIX/CMD.exe $PREFIX/metamorpheus.exe
+    mv $PREFIX/bin/CMD.exe $PREFIX/bin/metamorpheus.exe
 else
-    cp $RECIPE_DIR/metamorpheus $PREFIX/metamorpheus
-    chmod +x $PREFIX/metamorpheus
+    cp $RECIPE_DIR/metamorpheus $PREFIX/bin/tools/
+    chmod +x $PREFIX/bin/tools/metamorpheus
 fi
 
