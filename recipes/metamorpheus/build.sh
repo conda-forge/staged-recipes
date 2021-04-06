@@ -2,7 +2,14 @@
 set -eox pipefail
 
 PREFIX=$(echo "${PREFIX}" | tr '\\' '/')
-METAMORPHEUS_ROOT=$PREFIX/dotnet/tools/metamorpheus
+
+if [[ "${build_platform}" == "win-64" ]]; then
+    DOTNET_ROOT="${PREFIX}/dotnet"
+else
+    DOTNET_ROOT="${PREFIX}/lib/dotnet"
+fi
+
+METAMORPHEUS_ROOT=$DOTNET_ROOT/tools/metamorpheus
 
 mkdir -p $PREFIX/bin $METAMORPHEUS_ROOT
 cp -r $SRC_DIR/* $METAMORPHEUS_ROOT
