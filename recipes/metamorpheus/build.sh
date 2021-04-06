@@ -2,7 +2,7 @@
 set -eox pipefail
 
 PREFIX=$(echo "${PREFIX}" | tr '\\' '/')
-METAMORPHEUS_ROOT=$DOTNET_ROOT/tools/metamorpheus
+METAMORPHEUS_ROOT=$PREFIX/dotnet/tools/metamorpheus
 
 mkdir -p $PREFIX/bin $METAMORPHEUS_ROOT
 cp -r $SRC_DIR/* $METAMORPHEUS_ROOT
