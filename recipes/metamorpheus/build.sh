@@ -8,9 +8,9 @@ mkdir -p $METAMORPHEUS_ROOT
 cp -r $SRC_DIR/* $METAMORPHEUS_ROOT
 
 if [[ "${build_platform}" == "win-64" ]]; then
-    mv $METAMORPHEUS_ROOT/CMD.exe $METAMORPHEUS_ROOT/metamorpheus.exe
+    cp $RECIPE_DIR/metamorpheus.cmd $PREFIX/bin
 else
-    cp $RECIPE_DIR/metamorpheus $METAMORPHEUS_ROOT
-    chmod +x $METAMORPHEUS_ROOT/metamorpheus
+    cp $RECIPE_DIR/metamorpheus $PREFIX/bin
+    chmod +x $PREFIX/bin/metamorpheus
 fi
 
