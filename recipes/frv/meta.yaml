@@ -1,0 +1,79 @@
+{% set name = "Frv" %}
+{% set version = "v4r35p6" %}
+
+# handle Virgo version number format
+{% set semver_version = version|
+    replace('v', '', 1)|
+    replace('r', '.', 1)|
+    replace('p', '.', 1)
+ %}
+
+# dependencies
+{% set framel_version = "8.41.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ semver_version }}
+
+source:
+  url: https://git.ligo.org/virgo/virgoapp/{{ name }}/-/archive/{{ version }}/{{ name }}-{{ version }}.tar.gz
+  sha256: 3d07a5df369620a842c370eece499a02cce78d3ef7eb5d0a89026f11b2ba55b4
+  patches:
+    # remove whitespace from pkg-config requirements in cmake
+    - pkg-config-requirements.patch
+
+build:
+  ignore_run_exports:
+    - m2w64-gcc-libs  # [win]
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}  # [not win]
+    - {{ compiler('m2w64_c') }}  # [win]
+    - cmake
+    - make  # [unix]
+    - ninja  # [win]
+    - pkg-config
+  host:
+    - fftw
+    - libframel >={{ framel_version }}
+  run:
+    - fftw
+    - libframel >={{ framel_version }}
+
+test:
+  requires:
+    - pkg-config
+  commands:
+    - if not exist %LIBRARY_INC%\\frv\\Frv.h exit 1  # [win]
+    - test -f ${PREFIX}/include/frv/Frv.h  # [unix]
+    - pkg-config --print-errors --exact-version "{{ semver_version }}" frv
+
+about:
+  home: https://git.ligo.org/virgo/virgoApp/{{ name }}/
+  dev_url: https://git.ligo.org/virgo/virgoApp/{{ name }}.git
+  license: LGPL-2.1-or-later
+  license_family: LGPL
+  license_file: COPYING
+  summary: The Frame Vector Library (Frv)
+  description: |
+    Frv is a utility library dedicated to vector manipulation.
+    The vectors used in this package are the Frame Library vectors (FrVect)
+    described in the frame specification.
+    The only part frame library part used in this library is the vector
+    definition from the FrameL.h.
+
+    This library is intended to simplify the access of date for the various
+    vectors.
+    It provides most of the basic tools to do vector algebra and basic signal
+    processing.
+
+    This code is written in C. It is thread safe and could be easily used in C
+    or C++ software.
+
+extra:
+  recipe-maintainers:
+    - duncanmmacleod
+    - fcarbogn
+    - rhyspoulton
