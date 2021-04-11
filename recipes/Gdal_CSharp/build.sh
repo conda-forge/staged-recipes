@@ -21,6 +21,8 @@ if [[ $target_platform =~ linux.* ]]; then
   cp ${RECIPE_DIR}/userfaultfd.h ${PREFIX}/include/linux/userfaultfd.h
 fi
 
+cd gdal
+
 bash configure --prefix=${PREFIX} \
                --host=${HOST} \
                --with-curl \
@@ -58,6 +60,7 @@ bash configure --prefix=${PREFIX} \
                --without-python \
                --disable-static \
                --verbose \
+               --with-libgdal=${PREFIX}/lib/libgdal.28.dylib
                ${OPTS}
 
 cd swig/csharp
@@ -71,13 +74,11 @@ else
   cp ${PREFIX}/lib/libgdal.* ../..
 fi
 
-make ${VERBOSE_AT} interface
+make generate
 
-make ${VERBOSE_AT}
+make
 
-make install ${VERBOSE_AT}
-
-make test ${VERBOSE_AT}
+make test
 
 if [[ $target_platform =~ linux.* ]]; then
   rm ${PREFIX}/include/linux/userfaultfd.h
