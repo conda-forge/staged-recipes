@@ -69,6 +69,7 @@ if [[ $target_platform =~ linux.* ]]; then
 else
   cp ${RECIPE_DIR}/libgdal.la.mac ../../libgdal.la
   cp ${PREFIX}/lib/libgdal.* ../..
+fi
 
 make ${VERBOSE_AT} interface
 
