@@ -62,9 +62,13 @@ bash configure --prefix=${PREFIX} \
 
 cd swig/csharp
 
-cp ${RECIPE_DIR}/libgdal.la ../..
-mkdir -p ../../.libs
-cp ${PREFIX}/lib/libgdal.* ../../.libs
+if [[ $target_platform =~ linux.* ]]; then
+  cp ${RECIPE_DIR}/libgdal.la.linuxx ../../libgdal.la
+  mkdir -p ../../.libs
+  cp ${PREFIX}/lib/libgdal.* ../../.libs
+else
+  cp ${RECIPE_DIR}/libgdal.la.mac ../../libgdal.la
+  cp ${PREFIX}/lib/libgdal.* ../..
 
 make ${VERBOSE_AT} interface
 
@@ -76,3 +80,9 @@ if [[ $target_platform =~ linux.* ]]; then
   rm ${PREFIX}/include/linux/userfaultfd.h
 fi
 
+#install librarues
+cp *.dll $PREFIX/lib || :
+cp *.dll.config $PREFIX/lib || :
+cp .libs/*.dylib $PREFIX/lib || :
+cp .libs/*.so $PREFIX/lib || :
+cp *.exe $PREFIX/bin || :
