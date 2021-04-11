@@ -5,4 +5,7 @@ from pathlib import Path
 
 INSTALL_JSON = Path(sys.prefix) / "share/jupyter/labextensions/install.json"
 
-INSTALL_JSON.unlink()
+if INSTALL_JSON.exists():
+    INSTALL_JSON.unlink()
+else:
+    print("Didn't find, couldn't delete", INSTALL_JSON)
