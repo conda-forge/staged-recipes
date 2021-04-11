@@ -1,0 +1,116 @@
+{% set name = "qrcode-artistic" %}
+{% set version = "2.1.0" %}
+{% set build_number = "0" %}
+{% set min_python = ">=3.6" %}
+
+package:
+  name: {{ name }}-build
+  version: {{ version }}
+
+source:
+  - folder: dist
+    url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/qrcode-artistic-{{ version }}.tar.gz
+    sha256: 29d43db365e32e5fab08afc7810e7890ece1a4d145b8a08364e1d9b4eaccf6ff
+  - folder: src
+    url: https://github.com/heuer/qrcode-artistic/archive/refs/tags/{{ version }}.tar.gz
+    sha256: b83265d06a2b820fa8a7a9d8fa3ef94f727fecabd6df06af5797f052fd4eb2ab
+
+build:
+  number: {{ build_number }}
+  noarch: python
+
+requirements:
+  host:
+    - pip
+    - python {{ min_python }}
+  run:
+    - python {{ min_python }}
+
+test:
+  commands:
+    - echo "tests in subpackages"
+
+outputs:
+  - name: {{ name }}-base
+    version: {{ version }}
+    build:
+      build_number: {{ build_number }}
+      noarch: python
+      script: cd dist && {{ PYTHON }} -m pip install . -vv
+    requirements:
+      host:
+        - pip
+        - python {{ min_python }}
+      run:
+        - pillow
+        - python {{ min_python }}
+        - segno >=1.0.2,<2
+    test:
+      requires:
+        - pip
+      imports:
+        - qrcode_artistic
+      commands:
+        - pip check
+
+  - name: {{ name }}-svg
+    version: {{ version }}
+    build:
+      build_number: {{ build_number }}
+      noarch: python
+    requirements:
+      host:
+        - pip
+        - python {{ min_python }}
+      run:
+        - python {{ min_python }}
+        - {{ name }}-base =={{ version }}.*
+        - cairosvg >=2.4,<3
+    test:
+      requires:
+        - pip
+      imports:
+        - qrcode_artistic
+      commands:
+        - pip check
+
+  - name: {{ name }}
+    version: {{ version }}
+    build:
+      build_number: {{ build_number }}
+      noarch: python
+    requirements:
+      host:
+        - pip
+        - python {{ min_python }}
+      run:
+        - python {{ min_python }}
+        - {{ name }}-base =={{ version }}.*
+        - {{ name }}-svg =={{ version }}.*
+    test:
+      source_files:
+        - src/tests
+        - src/images
+      requires:
+        - pip
+        - pytest >=6,<7
+        - pytest-cov
+        - pyzbar >=0.1.8,<0.2  # [unix]
+        # TODO: fix upstream https://github.com/conda-forge/pyzbar-feedstock/issues/1
+        - zbar  # [unix]
+      imports:
+        - qrcode_artistic
+      commands:
+        - pip check
+        - cd src
+        - pytest -vv --cov=qrcode_artistic --cov-report=term-missing:skip-covered --cov-fail-under=100 --no-cov-on-fail  # [unix]
+
+about:
+  home: https://github.com/heuer/qrcode-artistic
+  summary: Artistic (Micro) QR Code plugin for Segno
+  license: BSD-3-Clause
+  license_file: dist/LICENSE
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
