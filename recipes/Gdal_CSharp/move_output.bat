@@ -10,20 +10,20 @@ if errorlevel 1 exit 1
 copy /B gdalconst_*.dll %LIBRARY_BIN%
 if errorlevel 1 exit 1
 
-echo %PREFIX%
-echo copy apps to "%PREFIX%\Scripts"
+mkdir %PREFIX%\Library\share\%PKG_NAME%
+if errorlevel exit 1
 
-copy apps\*.cs "%REFIX%\Scripts"
+copy apps\*.cs %PREFIX%\Library\share\%PKG_NAME%
 if errorlevel 1 exit 1
 
-copy  const\*.cs "%REFIX%\Scripts"
+copy  const\*.cs %PREFIX%\Library\share\%PKG_NAME%
 if errorlevel 1 exit 1
 
-copy  gdal\*.cs "%REFIX%\Scripts"
+copy  gdal\*.cs %PREFIX%\Library\share\%PKG_NAME%
 if errorlevel 1 exit 1
 
-copy  ogr\*.cs "%REFIX%\Scripts"
+copy  ogr\*.cs %PREFIX%\Library\share\%PKG_NAME%
 if errorlevel 1 exit 1
 
-copy  osr\*.cs "%REFIX%\Scripts"
+copy  osr\*.cs %PREFIX%\Library\share\%PKG_NAME%
 if errorlevel 1 exit 1
