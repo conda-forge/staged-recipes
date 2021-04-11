@@ -77,6 +77,8 @@ make ${VERBOSE_AT}
 
 make install ${VERBOSE_AT}
 
+make test ${VERBOSE_AT}
+
 if [[ $target_platform =~ linux.* ]]; then
   rm ${PREFIX}/include/linux/userfaultfd.h
 fi
