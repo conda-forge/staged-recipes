@@ -62,7 +62,11 @@ bash configure --prefix=${PREFIX} \
 
 cd swig/csharp
 
-export LIBGDAL_=${PREFIX}/lib/$(ls ${PREFIX}/lib | egrep 'libgdal\...\..*')
+if [[ $target_platform =~ linux.* ]]; then
+  export LIBGDAL_=${PREFIX}/lib/$(ls ${PREFIX}/lib | egrep 'libgdal.so\...\..++')
+else
+  export LIBGDAL_=${PREFIX}/lib/$(ls ${PREFIX}/lib | egrep 'libgdal\...\..*')
+fi
 echo $LIBGDAL_ test
 
 
