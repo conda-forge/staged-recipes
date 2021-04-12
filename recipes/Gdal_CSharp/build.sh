@@ -62,7 +62,8 @@ bash configure --prefix=${PREFIX} \
 
 cd swig/csharp
 
-export LIBGDAL_=${PREFIX}/lib/$(ls ${PREFIX}/lib | grep libgdal.*.*)
+export LIBGDAL_=${PREFIX}/lib/$(ls ${PREFIX}/lib | egrep 'libgdal\...\..*')
+echo $LIBGDAL_ test
 
 
 cp -f ${RECIPE_DIR}/SWIGmake.base ..
