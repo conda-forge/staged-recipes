@@ -13,5 +13,8 @@ if errorlevel 1 exit 1
 nmake /f makefile.vc %BLD_OPTS%
 if errorlevel 1 exit 1
 
+nmake /f makefile.vc test
+if errorlevel 1 exit 1
+
 call "%RECIPE_DIR%\move_output.bat"
 if errorlevel 1 exit 1
