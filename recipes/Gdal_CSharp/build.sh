@@ -21,8 +21,6 @@ if [[ $target_platform =~ linux.* ]]; then
   cp ${RECIPE_DIR}/userfaultfd.h ${PREFIX}/include/linux/userfaultfd.h
 fi
 
-cd gdal
-
 bash configure --prefix=${PREFIX} \
                --host=${HOST} \
                --with-curl \
@@ -60,7 +58,6 @@ bash configure --prefix=${PREFIX} \
                --without-python \
                --disable-static \
                --verbose \
-               --with-libgdal=${PREFIX}/lib/libgdal.28.dylib
                ${OPTS}
 
 cd swig/csharp
@@ -73,6 +70,9 @@ else
   cp ${RECIPE_DIR}/libgdal.la.mac ../../libgdal.la
   cp ${PREFIX}/lib/libgdal.* ../..
 fi
+
+cp -f ${RECIPE_DIR}/SWIGmake.base ..
+cp -f ${RECIPE_DIR}/GNUmakefile .
 
 make generate
 
