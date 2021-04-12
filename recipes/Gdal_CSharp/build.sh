@@ -62,14 +62,8 @@ bash configure --prefix=${PREFIX} \
 
 cd swig/csharp
 
-if [[ $target_platform =~ linux.* ]]; then
-  cp ${RECIPE_DIR}/libgdal.la.linuxx ../../libgdal.la
-  mkdir -p ../../.libs
-  cp ${PREFIX}/lib/libgdal.* ../../.libs
-else
-  cp ${RECIPE_DIR}/libgdal.la.mac ../../libgdal.la
-  cp ${PREFIX}/lib/libgdal.* ../..
-fi
+export LIBGDAL_=${PREFIX}/lib/$(ls ${PREFIX}/lib | grep libgdal.*.*)
+
 
 cp -f ${RECIPE_DIR}/SWIGmake.base ..
 cp -f ${RECIPE_DIR}/GNUmakefile .
