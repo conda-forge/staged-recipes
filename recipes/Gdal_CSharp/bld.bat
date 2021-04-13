@@ -4,17 +4,26 @@ if errorlevel 1 exit 1
 cd swig\csharp
 if errorlevel 1 exit 1
 
-copy /B "%LIBRARY_PREFIX%\lib\gdal_i.lib" ..\..
+copy /B "%RECIPE_DIR%\gdal_test.cs" apps
 if errorlevel 1 exit 1
 
-nmake /f makefile.vc interface
+nmake /f "%RECIPE_DIR%\makefile.vc" interface
 if errorlevel 1 exit 1
 
-nmake /f makefile.vc %BLD_OPTS%
+nmake /f "%RECIPE_DIR%\makefile.vc" %BLD_OPTS%
 if errorlevel 1 exit 1
 
-nmake /f "%RECIPE_DIR%/makefile_test.vc" test
+nmake /f "%RECIPE_DIR%\makefile.vc" test
 if errorlevel 1 exit 1
 
-call "%RECIPE_DIR%\move_output.bat"
+copy /B *.dll %LIBRARY_BIN%
+if errorlevel 1 exit 1
+
+copy /B *.exe %LIBRARY_BIN%
+if errorlevel 1 exit 1
+
+copy /B *.json %LIBRARY_BIN%
+if errorlevel 1 exit 1
+
+copy /B *.pdb %LIBRARY_BIN%
 if errorlevel 1 exit 1
