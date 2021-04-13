@@ -91,6 +91,7 @@ samples: gdalconst_csharp.dll gdal_csharp.dll ogr_csharp.dll osr_csharp.dll
 	$(CSC) /r:gdal_csharp.dll /out:GDALOverviews.exe apps/GDALOverviews.cs
 	$(CSC) /r:gdal_csharp.dll /out:GDALCreateCopy.exe apps/GDALCreateCopy.cs
 	$(CSC) /r:gdal_csharp.dll /out:GDALGetHistogram.exe apps/GDALGetHistogram.cs
+	$(CSC) /r:gdal_csharp.dll /out:gdal_test.exe ${RECIPE_DIR}/gdal_test.cs
 
 vagrant_safe_test:
 	LC_ALL=C mono createdata.exe Data pointlayer
