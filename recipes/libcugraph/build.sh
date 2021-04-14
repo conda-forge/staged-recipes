@@ -31,5 +31,6 @@ cmake -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} \
       -DBUILD_STATIC_FAISS=${BUILD_STATIC_FAISS} \
       -DBUILD_TESTS=${BUILD_CPP_TESTS} \
       -DBUILD_CUGRAPH_MG_TESTS=${BUILD_CPP_MG_TESTS} \
-      ${CUGRAPH_SRC_DIR}/cpp
+      "${CUGRAPH_SRC_DIR}/cpp" \
+      || (cat "${CUGRAPH_SRC_DIR}/cpp/build/CMakeFiles/CMakeOutput.log" && cat "${CUGRAPH_SRC_DIR}/cpp/build/CMakeFiles/CMakeError.log" && exit 1)
 cmake --build "${LIBCUGRAPH_BUILD_DIR}" -j${PARALLEL_LEVEL} --target ${INSTALL_TARGET} ${VERBOSE_FLAG}
