@@ -1,0 +1,74 @@
+From 118166c918c154472d7baa3facdae5b1a0f33c08 Mon Sep 17 00:00:00 2001
+From: "Uwe L. Korn" <uwe.korn@quantco.com>
+Date: Fri, 30 Apr 2021 09:03:35 +0200
+Subject: [PATCH] Use more system libraries
+
+---
+ cmake/CMakeLists.txt | 30 ++++++++++++++++++++----------
+ 1 file changed, 20 insertions(+), 10 deletions(-)
+
+diff --git a/cmake/CMakeLists.txt b/cmake/CMakeLists.txt
+index a078937..951ddba 100644
+--- a/cmake/CMakeLists.txt
++++ b/cmake/CMakeLists.txt
+@@ -591,13 +591,6 @@ if(Protobuf_FOUND OR Protobuf_FOUND)
+   message("Use protobuf from preinstalled system lib")
+   if (onnxruntime_USE_FULL_PROTOBUF)
+     set(PROTOBUF_LIB protobuf::libprotobuf)
+-    #We have a check here but most of the cmake users don't know the Protobuf_USE_STATIC_LIBS
+-    # variable exists and may leave it in a wrong state.
+-    if(NOT Protobuf_USE_STATIC_LIBS)
+-      #Indeed here should be a warning, not a fatal error. ONNX Runtime itself can work in such a
+-      #setting but it may cause compatibility issue when ONNX Runtime is integrated with the other ONNX ecosystem softwares.
+-      message(FATAL_ERROR "Please enable Protobuf_USE_STATIC_LIBS")
+-    endif()
+   else()
+     set(PROTOBUF_LIB protobuf::libprotobuf-lite)
+   endif()
+@@ -657,7 +650,13 @@ get_filename_component(ORTTRAINING_ROOT "${ORTTRAINING_ROOT}" ABSOLUTE)
+ get_filename_component(REPO_ROOT "${REPO_ROOT}" ABSOLUTE)
+ set(ONNXRUNTIME_INCLUDE_DIR ${REPO_ROOT}/include/onnxruntime)
+ 
+-add_subdirectory(external/date EXCLUDE_FROM_ALL)
++if(onnxruntime_PREFER_SYSTEM_LIB)
++  find_package(date)
++  add_library(date_interface ALIAS date::date)
++endif()
++if(NOT TARGET date::date)
++  add_subdirectory(external/date EXCLUDE_FROM_ALL)
++endif()
+ 
+ set(SAFEINT_INCLUDE_DIR ${REPO_ROOT}/cmake/external/SafeInt)
+ add_library(safeint_interface INTERFACE)
+@@ -668,7 +667,12 @@ if(onnxruntime_DISABLE_EXCEPTIONS)
+   add_compile_definitions(optional_CONFIG_NO_EXCEPTIONS=1)
+ endif()
+ 
+-add_subdirectory(external/mp11 EXCLUDE_FROM_ALL)
++if(onnxruntime_PREFER_SYSTEM_LIB)
++  find_package(boost_mp11)
++endif()
++if(NOT TARGET Boost::mp11)
++  add_subdirectory(external/mp11 EXCLUDE_FROM_ALL)
++endif()
+ 
+ if(onnxruntime_PREFER_SYSTEM_LIB)
+   find_package(re2)
+@@ -947,7 +951,13 @@ set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "FLATBUFFERS_BUILD_TESTS" FORCE)
+ set(FLATBUFFERS_INSTALL OFF CACHE BOOL "FLATBUFFERS_INSTALL" FORCE)
+ set(FLATBUFFERS_BUILD_FLATHASH OFF CACHE BOOL "FLATBUFFERS_BUILD_FLATHASH" FORCE)
+ set(FLATBUFFERS_BUILD_FLATLIB ON CACHE BOOL "FLATBUFFERS_BUILD_FLATLIB" FORCE)
+-add_subdirectory(external/flatbuffers EXCLUDE_FROM_ALL)
++if(onnxruntime_PREFER_SYSTEM_LIB)
++  find_package(Flatbuffers)
++  add_library(flatbuffers ALIAS flatbuffers::flatbuffers)
++endif()
++if(NOT TARGET flatbuffers::flatbuffers)
++  add_subdirectory(external/flatbuffers EXCLUDE_FROM_ALL)
++endif()
+ list(APPEND onnxruntime_EXTERNAL_DEPENDENCIES flatbuffers)
+ list(APPEND onnxruntime_EXTERNAL_LIBRARIES flatbuffers)
+ 
+-- 
+2.30.1 (Apple Git-130)
+
