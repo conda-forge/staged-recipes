@@ -10,6 +10,6 @@ go-licenses save "${SRC_DIR}/cmd/micro" --save_path=./thirdparty-licenses
 
 # remove all go files incorrectly copied into thirdparty-licenses
 pushd ./thirdparty-licenses/layeh.com/gopher-luar/
-rm -fv !("LICENSE")
+rm -v !("LICENSE")
 popd
 
