@@ -1,3 +1,5 @@
+ls
+pwd
 # from https://github.com/Homebrew/homebrew-core/blob/master/Formula/semgrep.rb
 opam init --disable-sandboxing --no-setup # disable-sandboxing needed because I'm not sure we have bwrap
 opam switch create ocaml-base-compiler.4.10.2
