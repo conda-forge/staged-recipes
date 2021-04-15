@@ -1,12 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -ex
 
-pushd plugins_bad
+./configure --prefix="$PREFIX"
+#            --enable-introspection
 
-./configure --prefix="$PREFIX"  \
-            --enable-opengl     \
-            --enable-introspection \
-            --enable-x264
+#            --enable-opengl     \
+#            --enable-x264 \
 
 make -j ${CPU_COUNT}
-make install
 make check
+make install
