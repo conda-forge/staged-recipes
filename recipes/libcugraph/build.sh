@@ -34,7 +34,7 @@ export CUDA_NVCC_EXECUTABLE=$(which nvcc)
 # recipe specifying compiler('cuda') ), however cmake does not pick up these
 # library dirs (possibly because the base env lib dirs are not searched by
 # default). One solution is to "conda install cudatoolkit" into the build env
-# which will install the libs in the standaed lib location, but another is to
+# which will install the libs in the standard lib location, but another is to
 # just tell cmake where they are in the base. Warning: this may not be the best
 # way to do that...
 CUDATK_LIB_DIR=$(dirname $(find $(conda env list|grep base|awk '{print $2}') -name libcublas.so))
