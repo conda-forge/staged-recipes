@@ -23,10 +23,22 @@ export BUILD_CPP_MG_TESTS=OFF
 export BUILD_STATIC_FAISS=OFF
 export PARALLEL_LEVEL=${CPU_COUNT}
 export INSTALL_TARGET=install
-export VERBOSE_FLAG=""
+export VERBOSE_FLAG="-v"
+
 # Use the nvcc wrapper installed with cudatoolkit, assumed to be first in PATH.
 # This ensures nvcc calls the compiler in the conda env.
 export CUDA_NVCC_EXECUTABLE=$(which nvcc)
+
+# The lib dir containing the cudatoolkit libraries needs to be added to the link
+# line. cudatoolkit is present in the base conda env lib dir (from the conda
+# recipe specifying compiler('cuda') ), however cmake does not pick up these
+# library dirs (possibly because the base env lib dirs are not searched by
+# default). One solution is to "conda install cudatoolkit" into the build env
+# which will install the libs in the standaed lib location, but another is to
+# just tell cmake where they are in the base. Warning: this may not be the best
+# way to do that...
+CUDATK_LIB_DIR=$(dirname $(find $(conda env list|grep base|awk '{print $2}') -name libcublas.so))
+export CXXFLAGS="${CXXFLAGS} -L${CUDATK_LIB_DIR}"
 
 mkdir -p ${LIBCUGRAPH_BUILD_DIR}
 cd ${LIBCUGRAPH_BUILD_DIR}
