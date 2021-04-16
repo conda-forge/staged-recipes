@@ -21,13 +21,15 @@ export BUILD_STATIC_FAISS=OFF
 export PARALLEL_LEVEL=${CPU_COUNT}
 export INSTALL_TARGET=install
 export VERBOSE_FLAG=""
+# Use the nvcc wrapper installed via cudatoolkit, assumed to be first in PATH.
+# This ensures nvcc calls the compiler in the conda env.
+export CUDA_NVCC_EXECUTABLE=$(which nvcc)
 
 mkdir -p ${LIBCUGRAPH_BUILD_DIR}
 cd ${LIBCUGRAPH_BUILD_DIR}
 cmake -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} \
       ${GPU_ARCH} \
       -DDISABLE_DEPRECATION_WARNING=${BUILD_DISABLE_DEPRECATION_WARNING} \
-      -DCUDA_TOOLKIT_ROOT_DIR=${CUDA_HOME} \
       -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
       -DBUILD_STATIC_FAISS=${BUILD_STATIC_FAISS} \
       -DBUILD_TESTS=${BUILD_CPP_TESTS} \
