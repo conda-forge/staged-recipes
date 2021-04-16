@@ -4,7 +4,7 @@ opam switch create ocaml-base-compiler.4.10.2
 
 # Patch Semgrep's Makefile so it will patch ocaml-tree-sitter BUT ONLY AFTER git submodule is initialized.
 # This patch will in turn make Semgrep Makefile patch the script in ocaml-tree-sitter
-git apply 0001-patch-ocaml-tree-sitter-submodule-to-remove-sudo.patch
+git apply ${RECIPE_DIR}/0001-patch-ocaml-tree-sitter-submodule-to-remove-sudo.patch
 
 opam exec -- make setup
 
