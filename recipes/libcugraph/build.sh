@@ -35,4 +35,19 @@ cmake -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} \
       -DBUILD_TESTS=${BUILD_CPP_TESTS} \
       -DBUILD_CUGRAPH_MG_TESTS=${BUILD_CPP_MG_TESTS} \
       "${CUGRAPH_SRC_DIR}/cpp"
+
+ERRCODE=$?
+if (( ${ERRCODE} != 0 )); then
+   echo "********************************************************************************"
+   echo "* START OF: ${CUGRAPH_SRC_DIR}/cpp/build/CMakeFiles/CMakeOutput.log"
+   cat ${CUGRAPH_SRC_DIR}/cpp/build/CMakeFiles/CMakeOutput.log
+   echo "* END OF: ${CUGRAPH_SRC_DIR}/cpp/build/CMakeFiles/CMakeOutput.log"
+   echo "********************************************************************************"
+   echo "* START OF: ${CUGRAPH_SRC_DIR}/cpp/build/CMakeFiles/CMakeError.log"
+   cat ${CUGRAPH_SRC_DIR}/cpp/build/CMakeFiles/CMakeError.log
+   echo "* END OF: ${CUGRAPH_SRC_DIR}/cpp/build/CMakeFiles/CMakeError.log"
+   echo "********************************************************************************"
+   exit ${ERRCODE}
+fi
+
 cmake --build "${LIBCUGRAPH_BUILD_DIR}" -j${PARALLEL_LEVEL} --target ${INSTALL_TARGET} ${VERBOSE_FLAG}
