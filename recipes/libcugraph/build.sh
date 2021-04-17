@@ -68,3 +68,40 @@ if (( ${ERRCODE} != 0 )); then
 fi
 
 cmake --build "${LIBCUGRAPH_BUILD_DIR}" -j${PARALLEL_LEVEL} --target ${INSTALL_TARGET} ${VERBOSE_FLAG}
+
+# FIXME: The v0.19.0a cugraph sources in the tarfile used on 2021-04-16 do not
+# appear to have the update to generate the version_config.hpp file, so generate
+# it here. If the final release of the v0.19 cugraph sources does have the
+# generated file, this should still not cause harm. This should be removed for a
+# 0.20+ build.
+VERSION_CONFIG_IN='/*
+ * Copyright (c) 2021, NVIDIA CORPORATION.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#pragma once
+
+#define CUGRAPH_VERSION_MAJOR @CUGRAPH_VERSION_MAJOR@
+#define CUGRAPH_VERSION_MINOR @CUGRAPH_VERSION_MINOR@
+#define CUGRAPH_VERSION_PATCH @CUGRAPH_VERSION_PATCH@
+'
+VERSION_CONFIG_OUT=${INSTALL_PREFIX}/include/cugraph/version_config.hpp
+CMAKELISTS_TXT=${CUGRAPH_SRC_DIR}/cpp/CMakeLists.txt
+CUGRAPH_VER_STRING=$(grep "project(CUGRAPH" ${CMAKELISTS_TXT}|awk '{print $3}')
+MAJOR=$(echo "${CUGRAPH_VER_STRING}"|cut -d'.' -f1)
+MINOR=$(echo "${CUGRAPH_VER_STRING}"|cut -d'.' -f2)
+PATCH=$(echo "${CUGRAPH_VER_STRING}"|cut -d'.' -f3)
+echo "${VERSION_CONFIG_IN}" > ${VERSION_CONFIG_OUT}
+sed -i "s/@CUGRAPH_VERSION_MAJOR@/${MAJOR}/g" ${VERSION_CONFIG_OUT}
+sed -i "s/@CUGRAPH_VERSION_MINOR@/${MINOR}/g" ${VERSION_CONFIG_OUT}
+sed -i "s/@CUGRAPH_VERSION_PATCH@/${PATCH}/g" ${VERSION_CONFIG_OUT}
