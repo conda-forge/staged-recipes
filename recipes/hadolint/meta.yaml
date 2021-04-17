@@ -1,32 +1,37 @@
-# Note: there are many handy hints in comments in this example -- remove them when you've finalized your recipe
-
-# Jinja variables help maintain the recipe as you'll update the version only here.
-# Using the name variable with the URL in line 14 is convenient
-# when copying and pasting from another recipe, but not really needed.
 {% set name = "hadolint" %}
 {% set version = "2.1.0" %}
+{% set native = 'm2w64-' if win else '' %}
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  url: https://github.com/hadolint/hadolint/archive/refs/tags/v{{ version }}.tar.gz
-  sha256: e631a86392bdf6ebfed737f99f05558b7f06b063215180b41d6e9d7fb8fe6ce4
+  - url: https://github.com/hadolint/hadolint/archive/refs/tags/v{{ version }}.tar.gz  # [not linux]
+    sha256: e631a86392bdf6ebfed737f99f05558b7f06b063215180b41d6e9d7fb8fe6ce4  # [not linux]
+  - url: https://github.com/hadolint/hadolint/releases/download/v{{ version }}/hadolint-Linux-x86_64  # [linux]
+    sha256: ecaf24a8d9dec2f5e16a8f951a6de51bfa9e43f285f4c751b208a9d90c66a0ce  # [linux]
 
 build:
   number: 0
-  script: "stack install --local-bin-path ${PREFIX}/bin/"
+
+  missing_dso_whitelist:
+    - /usr/lib/libiconv.2.dylib  # [osx]
 
 requirements:
+  build:
+    - stack                     # [not linux]
+    - {{native}}binutils
+
   host:
-    - ghc =8.2.2  # [linux]
-    - stack
+    - gmp  # [osx]
+
+  run:
+    - gmp  # [osx]
 
 test:
   commands:
-   - hadolint --version | grep "Haskell Dockerfile Linter {{ version }}-no-git"  # [not win]
-   - ${PREFIX}/bin/hadolint --version | grep "Haskell Dockerfile Linter {{ version }}-no-git"  # [win]
+   - hadolint --version | grep "Haskell Dockerfile Linter {{ version }}-no-git"
 
 about:
   home: https://github.com/hadolint/hadolint
