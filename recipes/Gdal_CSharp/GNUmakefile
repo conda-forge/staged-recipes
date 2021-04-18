@@ -32,7 +32,7 @@ SWIG_GDALCONST_WRAP = -namespace OSGeo.GDAL -dllimport gdalconst_wrap -outdir co
 SWIG_OGR_WRAP = -namespace OSGeo.OGR -dllimport ogr_wrap -outdir ogr
 SWIG_OSR_WRAP = -namespace OSGeo.OSR -dllimport osr_wrap -outdir osr
 
-APPS = $(patsubst %.cs, %.exe, $(wildcard apps/*.cs))
+APPS = $(notdir $(patsubst %.cs, %.exe, $(wildcard apps/*.cs)))
 
 clean:
 	-rm -f ${CSHARP_MODULES} *.$(OBJ_EXT) *.config *.dll *.mdb *.exe *.config
@@ -76,31 +76,19 @@ $(CSHARP_MODULES): lib%_wrap.$(SO_EXT): %_wrap.$(OBJ_EXT)
 	$(CC) $(CFLAGS) $(SUPPRESSW) $(GDAL_INCLUDE) -c $<
 
 osr_csharp.dll: libosr_wrap.$(SO_EXT)
-	cp template.csproj osr/osr_csharp.csproj
-	cd osr; ${PREFIX}/lib/dotnet/dotnet build -r osx-x64 -c RELEASE osr_csharp.csproj -o "../dotnet"
 	$(CSC) /unsafe /debug:full /target:library /out:osr_csharp.dll osr/*.cs AssemblyInfo.cs
 
 ogr_csharp.dll: libogr_wrap.$(SO_EXT) 
-	cp template.csproj ogr/ogr_csharp.csproj
-	${PREFIX}/lib/dotnet/dotnet add ogr/ogr_csharp.csproj reference osr/osr_csharp.csproj
-	cd ogr; ${PREFIX}/lib/dotnet/dotnet build -r osx-x64 -c RELEASE ogr_csharp.csproj -o "../dotnet"
 	$(CSC) /unsafe /debug:full /target:library /r:osr_csharp.dll /out:ogr_csharp.dll ogr/*.cs AssemblyInfo.cs
 	
 gdal_csharp.dll: libgdal_wrap.$(SO_EXT) 
-	cp template.csproj gdal/gdal_csharp.csproj
-	${PREFIX}/lib/dotnet/dotnet add gdal/gdal_csharp.csproj reference osr/osr_csharp.csproj ogr/ogr_csharp.csproj
-	cd gdal; ${PREFIX}/lib/dotnet/dotnet build -r osx-x64 -c RELEASE gdal_csharp.csproj -o "../dotnet"
 	$(CSC) /unsafe /debug:full /target:library /r:osr_csharp.dll /r:ogr_csharp.dll /out:gdal_csharp.dll gdal/*.cs AssemblyInfo.cs
 
 gdalconst_csharp.dll: libgdalconst_wrap.$(SO_EXT)
-	cp template.csproj const/gdalconst_csharp.csproj
-	cd const; ${PREFIX}/lib/dotnet/dotnet build -r osx-x64 -c RELEASE gdalconst_csharp.csproj -o "../dotnet"
 	$(CSC) /unsafe /debug:full /target:library /out:gdalconst_csharp.dll const/*.cs AssemblyInfo.cs
 
-%.exe: %.csproj
-	${PREFIX}/lib/dotnet/dotnet add $< package System.Drawing.Common
-	cd apps; ${PREFIX}/lib/dotnet/dotnet build -r osx-x64 -c RELEASE -o ".." ../$<
-	$(CSC) /r:gdal_csharp.dll /r:ogr_csharp.dll /r:osr_csharp.dll /r:System.Drawing.dll /out:$@ $(basename $@).cs
+%.exe:
+	$(CSC) /r:gdal_csharp.dll /r:ogr_csharp.dll /r:osr_csharp.dll /r:System.Drawing.dll /out:$(notdir $@) $(basename $@).cs
 
 %.csproj: %.cs
 	echo '<Project Sdk="Microsoft.NET.Sdk">' > $@
@@ -114,7 +102,7 @@ gdalconst_csharp.dll: libgdalconst_wrap.$(SO_EXT)
 	echo '<Reference Include="../dotnet/gdal_csharp.dll" />'  >>  $@
 	echo '<Reference Include="../dotnet/ogr_csharp.dll" />'  >>  $@
 	echo '<Reference Include="../dotnet/osr_csharp.dll" />'  >>  $@
-	echo '<Compile Include="../'$<'" />' >>  $@
+	echo '<Compile Include="'$(notdir $<)'" />' >>  $@
 	echo '</ItemGroup>' >>  $@
 	echo '</Project>' >>  $@
 	
