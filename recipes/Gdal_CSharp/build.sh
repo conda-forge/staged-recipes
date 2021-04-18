@@ -61,6 +61,7 @@ bash configure --prefix=${PREFIX} \
                ${OPTS}
 
 cd swig/csharp
+mkdir dotnet
 
 if [[ $target_platform =~ linux.* ]]; then
   export LIBGDAL_=${PREFIX}/lib/$(ls ${PREFIX}/lib | egrep 'libgdal.so\...\..++')
@@ -72,6 +73,7 @@ echo $LIBGDAL_ test
 
 cp -f ${RECIPE_DIR}/SWIGmake.base ..
 cp -f ${RECIPE_DIR}/GNUmakefile .
+cp -f ${RECIPE_DIR}/gdal_test.cs apps
 
 make generate
 
@@ -83,11 +85,13 @@ if [[ $target_platform =~ linux.* ]]; then
   rm ${PREFIX}/include/linux/userfaultfd.h
 fi
 
-#install librarues
+#install libraries
 cp *.dll $PREFIX/lib || :
-cp *.dll.config $PREFIX/lib || :
+cp *.csproj $PREFIX/lib || :
 cp .libs/*.dylib $PREFIX/lib || :
 cp .libs/*.so $PREFIX/lib || :
+cp dotnet $PREFIX/lib || :
+cp *.json $PREFIX/lib || :
 cp *.exe $PREFIX/bin || :
 
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
