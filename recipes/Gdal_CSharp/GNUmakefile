@@ -88,7 +88,7 @@ gdalconst_csharp.dll: libgdalconst_wrap.$(SO_EXT)
 	$(CSC) /unsafe /debug:full /target:library /out:gdalconst_csharp.dll const/*.cs AssemblyInfo.cs
 
 %.exe:
-	$(CSC) /r:gdal_csharp.dll /r:ogr_csharp.dll /r:osr_csharp.dll /r:System.Drawing.dll /out:$(notdir $@) $(basename $@).cs
+	$(CSC) /r:gdal_csharp.dll /r:ogr_csharp.dll /r:osr_csharp.dll /r:System.Drawing.dll /out:$@ apps/$(basename $@).cs
 
 %.csproj: %.cs
 	echo '<Project Sdk="Microsoft.NET.Sdk">' > $@
