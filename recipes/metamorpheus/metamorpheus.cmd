@@ -1,1 +1,1 @@
-@"%DOTNET_ROOT%\tools\metamorpheus\CMD.exe" %*
+@"%DOTNET_TOOLS%\metamorpheus\CMD.exe" %*
