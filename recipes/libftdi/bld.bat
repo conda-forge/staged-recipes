@@ -9,6 +9,9 @@ cmake ^
     -G "Ninja" ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
     -DCMAKE_BUILD_TYPE=Release ^
+    -DFTDI_EEPROM=OFF ^
+    -DSTATICLIBS=OFF ^
+    -DEXAMPLES=OFF ^
     %SRC_DIR%
 if errorlevel 1 exit 1
 
