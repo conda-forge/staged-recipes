@@ -1,0 +1,58 @@
+{% set provider = "ec" %}
+{% set goname = "github.com/elastic/terraform-provider-"+provider.lower() %}
+{% set version = "0.1.1" %}
+
+{% set name = goname.split('/')[-1] %}
+{% set pkg_src = ('src/'+goname).replace("/",os.sep) %}
+
+{% set x4_plugin = name + '_v' + version + "_x4" + (".exe" if win else "")%}
+
+{% set sha256 = "0c19f8d2567e663991b351c8333d498ba28643c3c09ceadd107093b4e1825c21" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - folder:  {{ pkg_src }}
+    url: https://{{ goname }}/archive/v{{ version }}.tar.gz
+    sha256: {{ sha256 }}
+
+
+build:
+  number: 0
+  script:
+    - pushd {{ pkg_src }}
+    - go build -v -o $GOBIN/{{ x4_plugin }} .  # [unix]
+    - go build -v -o %GOBIN%\{{ x4_plugin }} .  # [win]
+
+requirements:
+  build:
+    - {{ compiler('go') }} >=1.16
+  run:
+    - terraform >=0.13  # [unix]
+    - terraform >=0.12.29  # [win]
+
+test:
+  requires:         # [win]
+    - m2-bash       # [win]
+    - m2-coreutils  # [win]
+
+  commands:
+    - bash -euf -c "echo 'provider \"{{ provider|lower }}\" { version=\"{{ version }}\" }' > init.tf"
+
+    - terraform init
+    # Tests that no plugins were downloaded
+    - test -f .terraform/plugins/{{ goos }}_{{ goarch }}/lock.json
+    - test ! -f .terraform/plugins/{{ goos }}_{{ goarch }}/{{ x4_plugin }}
+
+about:
+  home: https://www.terraform.io
+  license: MPL-2.0
+  summary: Terraform provider for the Elastic Cloud API
+  doc_url: https://registry.terraform.io/providers/elastic/ec/latest/docs
+  dev_url: https://github.com/elastic/terraform-provider-ec
+
+extra:
+  recipe-maintainers:
+    - conda-forge/terraform
