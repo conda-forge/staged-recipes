@@ -3,7 +3,7 @@ set -eox pipefail
 
 PREFIX=$(echo "${PREFIX}" | tr '\\' '/')
 
-if [[ "${build_platform}" == "win-64" ]]; then
+if [[ "${target_platform}" == "win-64" ]]; then
     DOTNET_ROOT="${PREFIX}/dotnet"
 else
     DOTNET_ROOT="${PREFIX}/lib/dotnet"
