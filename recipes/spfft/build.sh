@@ -3,6 +3,9 @@ cd build
 cmake .. -DCMAKE_INSTALL_PREFIX="${PREFIX}"  -DSPFFT_MPI=ON -DSPFFT_OMP=ON -DSPFFT_GPU_BACKEND=OFF -DSPFFT_GPU_DIRECT=OFF -DSPFFT_SINGLE_PRECISION=ON -DSPFFT_STATIC=OFF -DSPFFT_FORTRAN=ON -DSPFFT_BUILD_TESTS=ON
 make -j2
 
+# workaround to run Open MPI in docker container
+export OMPI_MCA_plm_rsh_agent=sh
+
 # run tests
 ./tests/run_local_tests
 mpirun -n 2 ./tests/run_mpi_tests
