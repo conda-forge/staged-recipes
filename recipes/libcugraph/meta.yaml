@@ -1,0 +1,62 @@
+{% set name = "libcugraph" %}
+{% set version = "0.19.0a" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/rapidsai/cugraph/archive/refs/tags/v{{ version }}.tar.gz
+    sha256: eea8eb788ee2e9f369b6d4911c8cb7c4819453e17aa855eac14af86ee27f627e
+    folder: cugraph
+  # libcugraph depends on the RMM header-only library of the same version.
+  - url: https://github.com/rapidsai/rmm/archive/refs/tags/v{{ version }}.tar.gz
+    sha256: aa2b6542e51e9d3bec1c4053ab2a06af8fb8e9a94be3832418109904ebebb276
+    folder: rmm
+
+build:
+  number: 0
+  skip: true  # [(not linux) or (cuda_compiler_version == "None")]
+  run_exports:
+    - {{ pin_subpackage(name, max_pin="x.x") }}
+  missing_dso_whitelist:
+    - "*/libcuda.*"
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - cmake >=3.12.4
+    - make
+    - libgomp
+  host:
+    - boost-cpp
+    - nccl
+    - libfaiss =*=*_cuda
+    - spdlog =1.7.0
+
+test:
+  commands:
+    # Only testing for select headers and the library
+    - test -f $PREFIX/include/cugraph/version_config.hpp
+    - test -f $PREFIX/include/cugraph/algorithms.hpp
+    - test -f $PREFIX/include/cugraph/graph.hpp
+    - test -f $PREFIX/lib/libcugraph.so
+
+about:
+  home: https://github.com/rapidsai/cugraph
+  license: Apache-2.0 AND BSD-3-Clause
+  license_file:
+    - cugraph/LICENSE
+    - rmm/LICENSE
+    - cugraph/cpp/build/gunrock/src/gunrock_ext/LICENSE.TXT
+    - cugraph/cpp/build/raft/src/raft/LICENSE
+    - cugraph/cpp/build/_deps/thrust-src/LICENSE
+    - cugraph/cpp/build/_deps/cuco-src/LICENSE
+    - cugraph/cpp/build/cuhornet/src/cuhornet/LICENSE
+  summary: 'GPU accelerated graph algorithms'
+
+extra:
+  recipe-maintainers:
+    - rlratzel
