@@ -1,6 +1,14 @@
 @REM Build Windows package from tracktable source
-set "CXX=cl.exe"
-set "CC=cl.exe"
+
+REM This is a fix for a problem in Azure+CMake where CMake is finding a
+REM different compiler (GCC, etc.) instead of MSVC
+REM See: https://github.com/conda-forge/conda-forge.github.io/issues/714
+@echo.
+@echo CC: "%CC%" -^> "cl.exe"
+set CC=cl.exe
+@echo CXX: "%CXX%" -^> "cl.exe"
+set CXX=cl.exe
+
 echo ENVIRONMENT_VARS
 set
 mkdir build
@@ -15,6 +23,7 @@ cmake^
  -DBUILD_DOCUMENTATION=OFF^
  -DPython3_EXECUTABLE:FILEPATH=%PYTHON%^
  -DPython3_ROOT_DIR:PATH=%PREFIX%^
+ -DCMAKE_CXX_COMPILER=cl.exe^
  %SRC_DIR%^
  -LA
 if errorlevel 1 exit 1
