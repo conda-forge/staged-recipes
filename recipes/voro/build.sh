@@ -1,8 +1,8 @@
 #!/bin/bash
 
 mkdir -p ${PREFIX}/bin
+mkdir -p ${PREFIX}/lib
 
-cd voro++
 make
 cp src/voro++ ${PREFIX}/bin/
-cd ../
+cp src/libvoro++.a  ${PREFIX}/lib
