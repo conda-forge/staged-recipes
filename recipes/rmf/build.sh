@@ -8,4 +8,4 @@ cmake -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PYTHONDIR=${SP_DIR} \
       -DCMAKE_INSTALL_LIBDIR=lib \
       ..
-ninja install -j${CPU_COUNT}
+ninja install
