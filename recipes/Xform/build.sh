@@ -9,6 +9,7 @@ meson_config_args=(
   --buildtype=release
   --backend=ninja
   -Dtests=false
+  -Db_lundef=false
 )
 
 mkdir forgebuild
