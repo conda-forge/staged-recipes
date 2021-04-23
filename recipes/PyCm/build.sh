@@ -19,6 +19,3 @@ cmake --build . --parallel ${CPU_COUNT} --target install
 
 # test
 ctest
-
-pushd ..
-$PYTHON setup.py install
