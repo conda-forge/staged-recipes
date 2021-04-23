@@ -10,7 +10,6 @@ cmake ${SRC_DIR} \
 	-DCMAKE_INSTALL_DATADIR:PATH=${SRC_DIR}/trash \
 	-DCMAKE_INSTALL_LIBDIR:PATH="lib" \
 	-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
-;
 
 # build
 cmake --build . --parallel ${CPU_COUNT}
