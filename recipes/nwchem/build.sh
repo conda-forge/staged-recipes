@@ -9,13 +9,14 @@ export USE_MPIF="y"
 export USE_MPIF4="y"
 
 export MPI_LOC="$PREFIX" #location of openmpi installation
-export CC="gcc"
-export FC="gfortran"
+#export CC="gcc"
+#export FC="gfortran"
 
 #=================================================
 #=NWChem=Settings
 #=================================================
-export NWCHEM_TOP="$SRC_DIR/nwchem-${PKG_VERSION}"
+export NWCHEM_TOP="$SRC_DIR"
+#export NWCHEM_TOP="$SRC_DIR/nwchem-${PKG_VERSION}"
 
 if [[ $ARCH = 64 ]]; then
 	export TARGET=LINUX64
@@ -31,7 +32,7 @@ export USE_NOFSCHECK=Y
 
 export PYTHONHOME="$PREFIX"
 export PYTHONPATH="./:$NWCHEM_TOP/contrib/python/"
-export PYTHONVERSION="2.7"
+#export PYTHONVERSION="2.7"
 export USE_PYTHONCONFIG=y
 
 export BLASOPT="-lopenblas -lpthread -lrt"
