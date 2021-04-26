@@ -1,8 +1,10 @@
 #!/bin/bash
 
-FC=mpif90 ./configure.sh AUTO
+export FC=mpif90 
+export CC="mpicc -I${PREFIX}/include/libxml2"
+./configure.sh AUTO
 
-make
+cd build; make; cd -
 
 mkdir -p ${PREFIX}/bin
 cp build/fleur_MPI ${PREFIX}/bin
