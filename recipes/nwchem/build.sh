@@ -39,6 +39,8 @@ export BLASOPT="-lopenblas -lpthread -lrt"
 export BLAS_SIZE=4
 export USE_64TO32=y
 
+export LAPACK_LIB="-lopenblas"
+
 export USE_SCALAPACK=y
 export SCALAPACK_SIZE=4
 export SCALAPACK="$PREFIX"
