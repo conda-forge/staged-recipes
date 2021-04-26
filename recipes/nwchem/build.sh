@@ -1,4 +1,5 @@
 #!/bin/bash
+set -ex
 
 #=================================================
 #=GA=Settings
@@ -9,8 +10,8 @@ export USE_MPIF="y"
 export USE_MPIF4="y"
 
 export MPI_LOC="$PREFIX" #location of openmpi installation
-export CC="${CC}"
-export FC="${FC}"
+#export CC="${CC}"
+#export FC="${FC}"
 
 #=================================================
 #=NWChem=Settings
@@ -46,7 +47,8 @@ export SCALAPACK_SIZE=4
 export SCALAPACK="$PREFIX"
 
 cd "$NWCHEM_TOP"/src
-make nwchem_config
+CC=${CC} make nwchem_config
+cat nwchem_config.h
 make 64_to_32
 make
 
