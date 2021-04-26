@@ -9,8 +9,8 @@ export USE_MPIF="y"
 export USE_MPIF4="y"
 
 export MPI_LOC="$PREFIX" #location of openmpi installation
-#export CC="gcc"
-#export FC="gfortran"
+export CC="${CC}"
+export FC="${FC}"
 
 #=================================================
 #=NWChem=Settings
