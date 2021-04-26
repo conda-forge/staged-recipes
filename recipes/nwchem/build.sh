@@ -48,7 +48,7 @@ export SCALAPACK="$PREFIX"
 
 cd "$NWCHEM_TOP"/src
 CC=${CC} make nwchem_config
-cat src/config/nwchem_config.h
+cat ${SRC_DIR}/src/config/nwchem_config.h
 make 64_to_32
 make
 
