@@ -19,4 +19,3 @@ mkdir -p ${PREFIX}/bin
 cp -r bin/* ${PREFIX}/bin
 mkdir -p ${PREFIX}/lib
 cp -r lib/external/*/*/lib/*.* ${PREFIX}/lib
-cp -r lib/external/*/*/v4/serial/lib/*.* ${PREFIX}/lib
