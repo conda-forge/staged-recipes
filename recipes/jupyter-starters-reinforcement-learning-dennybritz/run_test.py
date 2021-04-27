@@ -5,12 +5,15 @@ import pytest
 import subprocess
 import sys
 import os
+import json
 
 # TODO: parametrize most of the inputs
 
 PREFIX = Path(os.environ["PREFIX"])
 PKG_NAME = os.environ["PKG_NAME"]
 ROOT = PREFIX / f"share/jupyter/starters/{PKG_NAME}"
+ETC = PREFIX / "etc/jupyter"
+APPS = ["notebook", "server"]
 
 # the solutions sometimes invoke big tensorflow calls
 SKIP = ["Solution"]
@@ -46,6 +49,17 @@ def test_nbconvert(notebook, path, capsys):
     for err in DISALLOWED_ERRORS:
         assert err not in captured.out, captured.out
         assert err not in captured.err, captured.err
+
+
+@pytest.mark.parametrize("app", APPS)
+def test_jupyter_config(app):
+    conf_file = ETC / f"jupyter_{app}_config.d/{PKG_NAME}.json"
+    conf = json.loads(conf_file.read_text())
+    print(conf)
+    for key, starter in conf["StarterManager"]["extra_starters"].items():
+        src = starter["src"]
+        assert Path(src).exists()
+        assert src.startswith(str(PREFIX))
 
 
 if __name__ == "__main__":
