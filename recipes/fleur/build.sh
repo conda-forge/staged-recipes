@@ -6,7 +6,8 @@ ls "${PREFIX}/include/libxml2/libxml"
 
 export FC=mpif90 
 export CC="mpicc"
-export CFLAGS="${CFLAGS} -I${PREFIX}/include/libxml2"
+export LIBXML2_INCLUDE_DIR=${PREFIX}/include/libxml2
+#export CFLAGS="${CFLAGS} -I$"
 ./configure.sh AUTO
 
 cd build; make; cd -
