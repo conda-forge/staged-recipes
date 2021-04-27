@@ -1,15 +1,15 @@
 """ test a jupyter-starter
 """
-from pathlib import Path
+import json
+import os
 import pytest
 import subprocess
 import sys
-import os
-import json
+from pathlib import Path
 
 # TODO: parametrize most of the inputs
 
-PREFIX = Path(os.environ["PREFIX"])
+PREFIX = Path(os.environ["PREFIX"]).resolve()
 PKG_NAME = os.environ["PKG_NAME"]
 ROOT = PREFIX / f"share/jupyter/starters/{PKG_NAME}"
 ETC = PREFIX / "etc/jupyter"
@@ -54,12 +54,13 @@ def test_nbconvert(notebook, path, capsys):
 @pytest.mark.parametrize("app", APPS)
 def test_jupyter_config(app):
     conf_file = ETC / f"jupyter_{app}_config.d/{PKG_NAME}.json"
-    conf = json.loads(conf_file.read_text())
-    print(conf)
+    conf_text = conf_file.read_text()
+    print(conf_text)
+    conf = json.loads(conf_text)
     for key, starter in conf["StarterManager"]["extra_starters"].items():
-        src = starter["src"]
-        assert Path(src).exists()
-        assert src.startswith(str(PREFIX))
+        src = Path(starter["src"]).resolve()
+        assert src.exists()
+        assert str(src).startswith(str(PREFIX))
 
 
 if __name__ == "__main__":

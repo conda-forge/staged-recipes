@@ -1,11 +1,11 @@
 """build a jupyter-starter
 """
-from pathlib import Path
+import json
 import os
+import re
 import shutil
 import sys
-import re
-import json
+from pathlib import Path
 
 REPO = sys.argv[1]
 AUTHOR = sys.argv[2]
