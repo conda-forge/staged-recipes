@@ -26,32 +26,10 @@ appendToPath () {
         done
 }
 
-if [[ $target_platform =~ linux.* ]]; then
-    export PATH_TYPE=DYLD_LIBRARY_PATH
-    if [ -z ${LD_LIBRARY_PATH} ]; then
-        export LD_LIBRARY_PATH=/usr/lib:$CONDA_PREFIX/lib
-    else
-        prependToPath /usr/lib
-        appendToPath $CONDA_PREFIX/lib
-    fi
-    export PATH_TYPE=MONO_PATH
-    if [ -z ${MONO_PATH} ]; then
-        export MONO_PATH=$CONDA_PREFIX/lib
-    else
-        appendToPath $CONDA_PREFIX/lib
-    fi
+export PATH_TYPE=MONO_PATH
+if [ -z ${MONO_PATH} ]; then
+    export MONO_PATH=$CONDA_PREFIX/lib
 else
-    export PATH_TYPE=DYLD_LIBRARY_PATH
-    if [ -z ${DYLD_LIBRARY_PATH} ]; then
-        export DYLD_LIBRARY_PATH=/usr/lib:$CONDA_PREFIX/lib
-    else
-        prependToPath /usr/lib
-        appendToPath $CONDA_PREFIX/lib
-    fi
-    export PATH_TYPE=MONO_PATH
-    if [ -z ${MONO_PATH} ]; then
-        export MONO_PATH=$CONDA_PREFIX/lib
-    else
-        appendToPath $CONDA_PREFIX/lib
-    fi
+    export CS_OLD_MONO_PATH=$MONO_PATH
+    appendToPath $CONDA_PREFIX/lib
 fi
