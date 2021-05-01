@@ -49,10 +49,10 @@ export SCALAPACK_SIZE=4
 export SCALAPACK="$PREFIX"
 
 cd "$NWCHEM_TOP"/src
-make nwchem_config
+make CC=${CC} CC_=${CC_} FC=${FC} FC_=${FC_} nwchem_config
 cat ${SRC_DIR}/src/config/nwchem_config.h
 make 64_to_32
-make
+make CC=${CC} CC_=${CC_} FC=${FC} FC_=${FC_}
 
 
 mkdir -p "$PREFIX"/share/nwchem/libraryps/
