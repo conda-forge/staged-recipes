@@ -1,0 +1,68 @@
+{% set version = "1.12.2" %}
+{% set build = 0 %}
+
+# recipe-lint fails if mpi is undefined
+{% set mpi = mpi or 'mpich' %}
+{% if mpi == "mpich" %}
+# prioritize mpich via build number
+{% set build = build + 100 %}
+{% endif %}
+
+package:
+  name: libpnetcdf
+  version: {{ version }}
+
+source:
+  url: https://parallel-netcdf.github.io/Release/pnetcdf-{{ version }}.tar.gz
+  sha256: 3ef1411875b07955f519a5b03278c31e566976357ddfc74c2493a1076e7d7c74
+
+build:
+  number: {{ build }}
+  skip: True  # [win]
+  {% set mpi_prefix = "mpi_" + mpi %}
+  # add build string so packages can depend on
+  # mpi variants
+  # dependencies:
+  # `PKG_NAME * mpi_mpich_*` for mpich
+  # `PKG_NAME * mpi_*` for any mpi
+  string: "{{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}"
+
+  # mpi builds require the right mpi
+  {% set build_pin = mpi_prefix + '_*' %}
+
+  run_exports:
+    - {{ pin_subpackage('libpnetcdf') }} {{ build_pin }}
+
+requirements:
+  build:
+    - cmake
+    - make
+    - m4
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('fortran') }}
+  host:
+    - {{ mpi }}
+    - libnetcdf * {{ mpi_prefix }}_*
+  run:
+    - {{ mpi }}
+    - libnetcdf
+    - libnetcdf * {{ mpi_prefix }}_*
+
+test:
+  commands:
+    - pnetcdf-config --all
+    - test -f ${PREFIX}/lib/libpnetcdf.a
+
+about:
+  home: https://parallel-netcdf.github.io/
+  license: custom
+  license_file: COPYRIGHT
+  summary: |
+    PnetCDF is a high-performance parallel I/O library for accessing Unidata's
+    NetCDF, files in classic formats, specifically the formats of CDF-1, 2, and
+    5.
+
+extra:
+  recipe-maintainers:
+    - xylar
