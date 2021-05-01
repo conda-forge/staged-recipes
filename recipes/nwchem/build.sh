@@ -10,8 +10,10 @@ export USE_MPIF="y"
 export USE_MPIF4="y"
 
 export MPI_LOC="$PREFIX" #location of openmpi installation
-#export CC="${CC}"
 #export FC="${FC}"
+export _FC=gfortran
+#export CC="${CC}"
+export _CC=gcc
 
 #=================================================
 #=NWChem=Settings
@@ -47,10 +49,10 @@ export SCALAPACK_SIZE=4
 export SCALAPACK="$PREFIX"
 
 cd "$NWCHEM_TOP"/src
-CC="${CC}" make nwchem_config
+make nwchem_config
 cat ${SRC_DIR}/src/config/nwchem_config.h
 make 64_to_32
-CC="${CC}" make
+make
 
 
 mkdir -p "$PREFIX"/share/nwchem/libraryps/
