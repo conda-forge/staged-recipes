@@ -29,14 +29,15 @@ else
 	export NWCHEM_TARGET=LINUX
 fi
 
-export NWCHEM_MODULES="all python nwxc"
+#export NWCHEM_MODULES="all python nwxc"
+export NWCHEM_MODULES="all python"
 export NWCHEM_LONG_PATHS=y
 export USE_NOFSCHECK=Y
 
-export PYTHONHOME="$PREFIX"
-export PYTHONPATH="./:$NWCHEM_TOP/contrib/python/"
+#export PYTHONHOME="$PREFIX"
+#export PYTHONPATH="./:$NWCHEM_TOP/contrib/python/"
 #export PYTHONVERSION="2.7"
-export USE_PYTHONCONFIG=y
+#export USE_PYTHONCONFIG=y
 
 export BLASOPT="-lopenblas -lpthread -lrt"
 export BLAS_SIZE=4
@@ -44,15 +45,14 @@ export USE_64TO32=y
 
 export LAPACK_LIB="-lopenblas"
 
-export USE_SCALAPACK=y
 export SCALAPACK_SIZE=4
-export SCALAPACK="$PREFIX"
+export SCALAPACK_LIB="-L$PREFIX -lscalapack"
 
 cd "$NWCHEM_TOP"/src
 make CC=${CC} _CC=${_CC} FC=${FC} _FC=${_FC} nwchem_config
 cat ${SRC_DIR}/src/config/nwchem_config.h
 make 64_to_32
-make CC=${CC} _CC=${_CC} FC=${FC} _FC=${_FC}
+make CC=${CC} DEPEND_CC=${CC} _CC=${_CC} FC=${FC} _FC=${_FC} V=1
 
 
 mkdir -p "$PREFIX"/share/nwchem/libraryps/
