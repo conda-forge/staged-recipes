@@ -1,6 +1,6 @@
 #!/bin/bash -f
 
-export NWCHEM_TOP=$SRC_DIR/nwchem-6.8
+export NWCHEM_TOP=$SRC_DIR
 export NWCHEM_EXECUTABLE=$PREFIX/bin/nwchem
 export NWCHEM_TARGET=""
 export MPIRUN_PATH=$PREFIX/bin/mpirun 

@@ -19,7 +19,6 @@ export _CC=gcc
 #=NWChem=Settings
 #=================================================
 export NWCHEM_TOP="$SRC_DIR"
-#export NWCHEM_TOP="$SRC_DIR/nwchem-${PKG_VERSION}"
 
 if [[ $ARCH = 64 ]]; then
 	export TARGET=LINUX64
