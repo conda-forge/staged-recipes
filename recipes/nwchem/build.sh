@@ -38,20 +38,21 @@ export USE_NOFSCHECK=Y
 #export PYTHONVERSION="2.7"
 #export USE_PYTHONCONFIG=y
 
-export BLASOPT="-lopenblas -lpthread -lrt"
+export BLASOPT="-L$PREFIX/lib -lopenblas -lpthread -lrt"
 export BLAS_SIZE=4
 export USE_64TO32=y
 
 export LAPACK_LIB="-lopenblas"
 
 export SCALAPACK_SIZE=4
-export SCALAPACK_LIB="-L$PREFIX -lscalapack"
+export SCALAPACK_LIB="-L$PREFIX/lib -lscalapack"
 
 cd "$NWCHEM_TOP"/src
 make CC=${CC} _CC=${_CC} FC=${FC} _FC=${_FC} nwchem_config
 cat ${SRC_DIR}/src/config/nwchem_config.h
 make 64_to_32
 make CC=${CC} DEPEND_CC=${CC} _CC=${_CC} FC=${FC} _FC=${_FC} V=1
+cat config.log
 
 
 mkdir -p "$PREFIX"/share/nwchem/libraryps/
