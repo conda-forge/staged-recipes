@@ -1,31 +1,32 @@
-{% set name = "tensorboard_data_server" %}
+{% set name = "tensorboard-data-server" %}
 {% set version = "0.6.0" %}
+{% set _name = "tensorboard_data_server" %}
+{% set _tb_version = "2.5.0" %}
 
-{% set platform = "manylinux2010_x86_64" %}  # [linux64]
-{% set platform = "macosx_10_9_x86_64" %}  # [osx]
-{% set platform = "any" %}  # [not linux64 and not osx]
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  # url: https://pypi.io/packages/py3/t/{{ name }}/{{ name }}-{{ version }}-py3-none-any.whl  # [not linux64 and not osx]
-  # url: https://pypi.io/packages/py3/t/{{ name }}/{{ name }}-{{ version }}-py3-none-manylinux2010_x86_64.whl  # [linux64]
-  # url: https://pypi.io/packages/py3/t/{{ name }}/{{ name }}-{{ version }}-py3-none-macosx_10_9_x86_64.whl  # [osx]
-  url: https://pypi.io/packages/py3/t/{{ name }}/{{ name }}-{{ version }}-py3-none-{{ platform }}.whl
-  sha256: b620e520d3d535ceb896557acca0029fd7fd2f9f408af35abc2d2dad91f0345d  # [linux64]
-  sha256: 2d723d73e3a3b0a4498f56c64c39e2e26ac192414891df22c9f152b7058fd6bc  # [osx]
-  sha256: a4b8e1c3fc85237b3afeef450db06c9a9b25f5854ad27c21667a90808acd1822  # [not linux64 and not osx]
+  git_url: https://github.com/tensorflow/tensorboard
+  # data server versions are not tagged or directly downloadable, so we have to use the commit ID
+  git_tag: 1d4d904c1cc69ccdd7ed59f8539624eeb5c7a831
 
 build:
   number: 0
-  script: {{ PYTHON }} -m pip install --no-deps --ignore-installed ./{{ name }}-{{ version }}-py3-none-{{ platform }}.whl
+  script:
+    - cd tensorboard/data/server
+    - cargo build --release
+    - cd pip_package
+    - {{ PYTHON }} build.py --out-dir=/tmp/ --server-binary=../target/release/rustboard
+    - {{ PYTHON }} -m pip install --no-deps --ignore-installed /tmp/{{ _name }}-{{ version }}-*.whl
 
 requirements:
   host:
     - python
     - pip
+    - rust
   run:
     - python
 
