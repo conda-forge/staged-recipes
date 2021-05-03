@@ -52,7 +52,6 @@ make CC=${CC} _CC=${_CC} FC=${FC} _FC=${_FC} nwchem_config
 cat ${SRC_DIR}/src/config/nwchem_config.h
 make 64_to_32
 make CC=${CC} DEPEND_CC=${CC} _CC=${_CC} FC=${FC} _FC=${_FC} V=1
-cat config.log
 
 
 mkdir -p "$PREFIX"/share/nwchem/libraryps/
