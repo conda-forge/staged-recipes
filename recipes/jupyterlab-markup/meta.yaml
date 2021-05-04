@@ -12,15 +12,17 @@ build:
   number: 0
   noarch: python
   script:
+    # despite `PIP_NO_BUILD_ISOLATION=1`, unlink the `pyproject.toml`...
     - {{ PYTHON }} -c "__import__('pathlib').Path('pyproject.toml').unlink()"
+    # ... so `--skip-npm` is honored, and we don't need `nodejs` and...
     - {{ PYTHON }} -m pip install . --install-option="--skip-npm" . -vv
 
 requirements:
   host:
+    # ... `jupyterlab`, which is declared in pyproject.toml
     - jupyter-packaging >=0.9,<1.0.0a0
     - pip
     - python >=3.7
-    - wheel
   run:
     - jupyterlab >=3.0,<4.0.0a0
     - python >=3.7
@@ -30,19 +32,22 @@ test:
     - jupyterlab_markup
   commands:
     - pip check
-    - pip check
     - jupyter labextension list
+    # at least redirects work the same way everywhere!
     - jupyter labextension list 1>labextensions 2>&1
-    - cat labextensions | grep "jupyterlab-markup.*OK.*jupyterlab_markup"  # [unix]
+    # use this gnarly `python` instead of `grep` because windows... the version
+    # dots will be kinda loose-goosey... but it's still valid. stars for invisible ANSI codes
+    - python -c "assert __import__('re').findall('jupyterlab-markup.*v{{ version }}.*enabled.*OK.*jupyterlab_markup', __import__('pathlib').Path('labextensions').read_text(encoding='utf-8'))"
   requires:
     - pip
 
 about:
   home: https://github.com/agoose77/jupyterlab-markup
-  summary: Extensible markdown rendering support in markdown
+  summary: Extensible markdown rendering support in JupyterLab
   license: BSD-3-Clause
   license_file: LICENSE
 
 extra:
   recipe-maintainers:
     - bollwyvl
+    - agoose77
