@@ -1,0 +1,52 @@
+{% set version = "1.0.0" %}
+
+package:
+  name: jupyterlab-markup
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/j/jupyterlab-markup/jupyterlab_markup-{{ version }}.tar.gz
+  sha256: 44b3789c9bc652f09719a24f79b2ff83675f2360a77586f099989dbeb6cf2984
+
+build:
+  number: 0
+  noarch: python
+  script:
+    # despite `PIP_NO_BUILD_ISOLATION=1`, unlink the `pyproject.toml`...
+    - {{ PYTHON }} -c "__import__('pathlib').Path('pyproject.toml').unlink()"
+    # ... so `--skip-npm` is honored, and we don't need `nodejs` and...
+    - {{ PYTHON }} -m pip install . --install-option="--skip-npm" . -vv
+
+requirements:
+  host:
+    # ... `jupyterlab`, which is declared in pyproject.toml
+    - jupyter-packaging >=0.9,<1.0.0a0
+    - pip
+    - python >=3.7
+  run:
+    - jupyterlab >=3.0,<4.0.0a0
+    - python >=3.7
+
+test:
+  imports:
+    - jupyterlab_markup
+  commands:
+    - pip check
+    - jupyter labextension list
+    - jupyter labextension list >labextensions 2>&1
+    # use this gnarly `python` instead of `grep` because windows... the version
+    # dots will be kinda loose-goosey... but it's still valid. stars for invisible ANSI codes
+    - python -c "assert __import__('re').findall('jupyterlab-markup.*v{{ version }}.*enabled.*ok.*jupyterlab_markup', open('labextensions').read().lower())"
+  requires:
+    - pip
+
+about:
+  home: https://github.com/agoose77/jupyterlab-markup
+  summary: Extensible markdown rendering support in JupyterLab
+  license: BSD-3-Clause
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
+    - agoose77
