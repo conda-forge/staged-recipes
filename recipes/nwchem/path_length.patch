@@ -1,0 +1,131 @@
+From 78c3689b262369b1e0ab379d4df30e060c121678 Mon Sep 17 00:00:00 2001
+From: edoapra <edoardo.apra@gmail.com>
+Date: Tue, 4 May 2021 15:16:55 -0700
+Subject: [PATCH] increase max size of name of basis library to 1024
+ https://github.com/nwchemgit/nwchem/issues/359
+
+---
+ src/basis/bas_input.F    | 11 +++++------
+ src/basis/baslibraryP.fh |  4 ++--
+ src/inp/inp.fh           |  1 +
+ src/util/util_nwchemrc.F | 16 ++++++++--------
+ 4 files changed, 16 insertions(+), 16 deletions(-)
+
+diff --git a/src/basis/bas_input.F b/src/basis/bas_input.F
+index d521d3995d..97c82f599d 100644
+--- a/src/basis/bas_input.F
++++ b/src/basis/bas_input.F
+@@ -55,7 +55,7 @@ subroutine bas_input(rtdb)
+       integer nopt
+       parameter (nopt = 12)
+       character*10 opts(nopt)
+-      character*255 test, name, filename, standard
++      character*MXLGT test, name, filename, standard
+       character*255 ecpname, soname
+       character*1000 errmsg
+       logical status, ospherical, osegment, oprint
+@@ -354,7 +354,7 @@ subroutine bas_input_body(basis, osegment, oIs_rel, oHas_Star)
+ c     
+       character*16 tag, tag_in_lib
+       character*16 type_of_cont, rel_shell
+-      character*255 field, standard, filename
++      character*MXLGT field, standard, filename
+       integer nltypes           ! No. of known angular momentum types
+       integer nsptypes          ! No. of known sp type shells
+       integer nopts             ! No. of options
+@@ -919,8 +919,8 @@ subroutine bas_tag_lib(basis, osegment, tag, tag_in_lib,
+       character*14 id_str_ecp
+       character*2 symbol
+       character*16 element
+-      character*255 string
+-      character*255 filestring
++      character*MXLGT string
++      character*MXLGT filestring
+       character*4 type_of_cont
+       integer atn, lenn, lena
+       integer nltypes           ! No. of known angular momentum types
+@@ -928,7 +928,7 @@ subroutine bas_tag_lib(basis, osegment, tag, tag_in_lib,
+       parameter (nltypes = 7, nsptypes = 3)
+       character*1 ltypes(nltypes)
+       character*2 sptypes(nsptypes)
+-      character*255 field
++      character*MXLGT field
+       logical status
+       logical oIs_ecp           ! ecp library function read?
+       logical oIs_so            ! so library function read?
+@@ -1247,7 +1247,6 @@ subroutine bas_library_file(libname)
+       character*(*) libname ! [output] filename for library file
+ *local
+       character*256 compiled_name
+-      character*128 test
+       character*24  basis_library
+       integer length
+       integer unitrc
+diff --git a/src/basis/baslibraryP.fh b/src/basis/baslibraryP.fh
+index f5b3e9051c..ec1dcdc125 100644
+--- a/src/basis/baslibraryP.fh
++++ b/src/basis/baslibraryP.fh
+@@ -1,3 +1,3 @@
+-* $Id$
+-      character*256 user_library_name
++* $Id$#
++      character*MXLGT user_library_name
+       common /bas_input_library/ user_library_name
+diff --git a/src/inp/inp.fh b/src/inp/inp.fh
+index 60bd71cf0c..9ff354f451 100644
+--- a/src/inp/inp.fh
++++ b/src/inp/inp.fh
+@@ -10,3 +10,4 @@
+      $     inp_strtok, inp_read_physical_line, inp_contains, 
+      $     inp_ilist_size
+ c $Id$
++#define MXLGT 1024
+\ No newline at end of file
+diff --git a/src/util/util_nwchemrc.F b/src/util/util_nwchemrc.F
+index 75ea4cd1a0..7e1a9b1fe8 100644
+--- a/src/util/util_nwchemrc.F
++++ b/src/util/util_nwchemrc.F
+@@ -27,7 +27,7 @@ logical function util_nwchemrc_put(key,value)
+ c
+       character*(*) key,value
+ c
+-      character*255 home,nwchrc
++      character*MXLGT home,nwchrc
+       character*1020 mystring
+       character*1 dummy
+       integer lenkey
+@@ -85,7 +85,7 @@ logical function util_nwchemrc_get(key,value)
+ c
+       character*(*) key,value
+ c
+-      character*255 home,nwchrc,card,rightcard
++      character*MXLGT home,nwchrc,card,rightcard
+       integer indexv,lenkey,lencrd,istart,util_getblnk
+       integer ipass
+       external util_getblnk
+@@ -127,8 +127,8 @@ logical function util_nwchemrc_get(key,value)
+ c         Find the start (after skipping any white spaces) and length
+ c         of the key.
+ c
+-          istart=util_getblnk(card,255)
+-          lencrd=index(card(istart:255),' ')-1
++          istart=util_getblnk(card,MXLGT)
++          lencrd=index(card(istart:MXLGT),' ')-1
+ c
+ c         Check whether the length and text of the key on the card and
+ c         the requested key match. If so, we have found the key and
+@@ -137,10 +137,10 @@ logical function util_nwchemrc_get(key,value)
+           if (lencrd.eq.lenkey.and.
+      +        card(istart:lencrd+istart).eq.key(1:lenkey)) then
+             indexv=lencrd+istart+1
+-            rightcard=card(indexv:255)
+-            istart=util_getblnk(rightcard,255)
+-            lencrd=index(rightcard(istart:255),'#')-1
+-            if (lencrd.le.-1) lencrd=255-istart+1
++            rightcard=card(indexv:MXLGT)
++            istart=util_getblnk(rightcard,MXLGT)
++            lencrd=index(rightcard(istart:MXLGT),'#')-1
++            if (lencrd.le.-1) lencrd=MXLGT-istart+1
+             lencrd=inp_strlen(rightcard(istart:lencrd+istart-1))-1
+             value=rightcard(istart:lencrd+istart)
+             found=.true.
