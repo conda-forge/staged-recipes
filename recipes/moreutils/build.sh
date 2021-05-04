@@ -6,5 +6,10 @@ set -x
 sed -i 's/^MANS=.*/MANS=/' Makefile
 sed -i 's/install $(MANS)/# install $(MANS)/' Makefile
 
+# Fix perl path
+for f in vipe ts vidir zrun chronic; do
+    sed -i.bak 's,#!/usr/bin/perl,#!/usr/bin/env perl,' $f
+done
+
 make PREFIX=$PREFIX CC=$CC
 make install PREFIX=$PREFIX CC=$CC
