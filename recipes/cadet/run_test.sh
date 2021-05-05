@@ -7,6 +7,8 @@ test -x $PREFIX/bin/createSCLang
 test -x $PREFIX/bin/createSCLin
 test -x $PREFIX/bin/createSCLinStep
 
-test -f $PREFIX/lib/libcadet.so.4.1.0
+VERSION=$($PREFIX/bin/cadet-cli --version | grep -Po '\d+.\d+.\d+' | head -n1)
+
+test -f $PREFIX/lib/libcadet.so.$VERSION
 test -L $PREFIX/lib/libcadet.so
 test -L $PREFIX/lib/libcadet.so.0
