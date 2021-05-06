@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH}"
+export HDF5_DIR=${PREFIX}
 
 python setup.py build
 
