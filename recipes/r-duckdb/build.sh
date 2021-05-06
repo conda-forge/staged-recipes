@@ -6,9 +6,7 @@ export DISABLE_AUTOBREW=1
 mv DESCRIPTION DESCRIPTION.old
 grep -va '^Priority: ' DESCRIPTION.old > DESCRIPTION
 
-# unset macosx-version-min hardcoded in clang CPPFLAGS
-export CPPFLAGS="$(echo ${CPPFLAGS:-} | sed -E 's@\-mmacosx\-version\-min=[^ ]*@@g')"
-echo "CPPFLAGS=$CPPFLAGS"
+export MACOSX_VERSION_MIN="10.13"
 
 ${R} CMD INSTALL --build . ${R_ARGS}
 
