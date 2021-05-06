@@ -16,4 +16,7 @@ export NWCHEM_BASIS_LIBRARY=$SRC_DIR/src/basis/libraries/
 cd $NWCHEM_TOP/QA
 ./doafewqmtests.mpi 2
 
+# just checking...
+perl nwparse.pl testoutputs/h2o_opt.out
+
 cat $NWCHEM_TOP/QA/testoutputs/h2o_opt.out
