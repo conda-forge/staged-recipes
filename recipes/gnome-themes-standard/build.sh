@@ -62,6 +62,6 @@ export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$BUILD_PREFIX/lib/pkgconfig
     --prefix="${PREFIX}" \
     "${configure_args[@]}"
 
-make V=0 -j$CPU_COUNT
+make -j$CPU_COUNT
 # make check -j$CPU_COUNT
 make install -j$CPU_COUNT
