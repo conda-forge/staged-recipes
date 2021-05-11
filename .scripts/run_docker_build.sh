@@ -46,6 +46,7 @@ docker run ${DOCKER_RUN_ARGS} \
            -e AZURE=${AZURE} \
            -e CONFIG \
            -e CI \
+           -e CF_CUDA_VERSION \
            $IMAGE_NAME \
            bash \
            /home/conda/staged-recipes/${PROVIDER_DIR}/build_steps.sh
