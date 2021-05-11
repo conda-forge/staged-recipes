@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export PKG_CONFIG_PATH="$PREFIX"/lib/pkgconfig
+export PKG_CONFIG_PATH="$BUILD_PREFIX"/lib/pkgconfig
 CFLAGS="-O3 -DSTANDALONE $(pkg-config --cflags cfitsio)"
 LDFLAGS="$(pkg-config --libs cfitsio)"
 OBJS=(
