@@ -1,6 +1,6 @@
 #!/bin/bash
 # Get an updated config.sub and config.guess
-cp $BUILD_PREFIX/share/gnuconfig/config.* ./root-source/graf2d/asimage/src/libAfterImage
+cp $BUILD_PREFIX/share/gnuconfig/config.* .
 
 autoconf
 
