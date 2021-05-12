@@ -10,7 +10,7 @@ mkdir -p build/wrapper
 
 # Build and install the core library.
 cd build/corelib
-cmake \
+cmake ${CMAKE_ARGS} \
     -D ANACONDA_BUILD=ON \
     -D ANACONDA_BASE=${PREFIX} \
     -D BUILD_NCORES=$CPU_COUNT \
@@ -19,7 +19,7 @@ cmake --build . --target install -- VERBOSE=1 -j$CPU_COUNT
 
 # Build and install the Python wrappers.
 cd ../wrapper
-cmake \
+cmake ${CMAKE_ARGS} \
     -D ANACONDA_BUILD=ON \
     -D ANACONDA_BASE=${PREFIX} \
     -D BUILD_NCORES=$CPU_COUNT \
