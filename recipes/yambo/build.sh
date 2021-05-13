@@ -13,7 +13,7 @@ export FPP="${FC} -E -P -cpp"
     #--with-petsc-path="${PREFIX}" \
 
 
-make all
+make -j$CPU_COUNT all
 
 mkdir -p ${PREFIX}/bin
 cp -r bin/* ${PREFIX}/bin
