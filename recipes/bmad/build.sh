@@ -25,9 +25,6 @@ if [[ "$target_platform" == linux-* ]]; then
   ln -s $GFORTRAN $BUILD_PREFIX/bin/gfortran
 fi
 
-echo "**** which gfortran "
-which gfortran
-
 echo "**** Invoking dist_build_production"
 util/dist_build_production
 
@@ -37,17 +34,30 @@ mkdir -p $PREFIX/lib
 mkdir -p $PREFIX/include/bmad
 mkdir -p $PREFIX/share/doc/tao
 
+# Fix rpath for MacOS
+if [[ "$target_platform" == osx-* ]]; then
+  echo "Fixing MacOS rpath with Python: ${CONDA_PYTHON_EXE}"
+  ${CONDA_PYTHON_EXE} ${RECIPE_DIR}/fix_rpath_macos.py
+fi
+
+## Remove all test binaries
+rm -f production/bin/*test*
+
 ## install products
 # binaries
 cp -r production/bin/* $PREFIX/bin/.
 # headers
 cp -r production/include/* $PREFIX/include/.
 # libraries
-cp -r production/lib/* $PREFIX/lib
+cp -r production/lib/* $PREFIX/lib/.
 # fortran modules
 cp -r production/modules/* $PREFIX/include/bmad/.
 # tao documenation files
-cp -r tao/doc/ $PREFIX/share/doc/tao/.
+cp -r tao/doc $PREFIX/share/doc/tao/.
+
+# Eliminate lib folder to avoid issues:
+rm -rf production/lib
+rm -rf production/bin
 
 # Create auxiliary dirs
 mkdir -p $PREFIX/etc/conda/activate.d
