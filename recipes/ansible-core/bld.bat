@@ -1,2 +1,2 @@
-mklink ./lib/ansible/release.py ./lib/ansible/ansible_release.py
+mklink build/lib/ansible/ansible_release.py build/lib/ansible/release.py
 %PYTHON% -m pip install . -vv
