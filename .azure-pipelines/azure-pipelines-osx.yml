@@ -1,68 +1,25 @@
+# This file was generated automatically from conda-smithy. To update this configuration,
+# update the conda-forge.yml and/or the recipe/meta.yaml.
+# -*- mode: yaml -*-
+
 jobs:
-- job: osx_64
+- job: osx
+  condition: not(eq(variables['Build.SourceBranch'], 'refs/heads/master'))
   pool:
-    vmImage: macOS-10.13
+    vmImage: macOS-10.15
   strategy:
-    maxParallel: 8
     matrix:
-      osx:
-        CONFIG: azure-osx-64-comp7
-        CF_MAX_PY_VER: 37
-  timeoutInMinutes: 240
+      osx_64:
+        CONFIG: osx64
+    maxParallel: 8
+  timeoutInMinutes: 360
+
   steps:
-  # TODO: Fast finish on azure pipelines?
   - script: |
-      echo "Fast Finish"
-  
-  - script: |
-      echo "Removing homebrew from Azure to avoid conflicts."
-      curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/uninstall > ~/uninstall_homebrew
-      chmod +x ~/uninstall_homebrew
-      ~/uninstall_homebrew -fq
-      rm ~/uninstall_homebrew
-    displayName: Remove homebrew
+      export CI=azure
+      ./.scripts/run_osx_build.sh
+    displayName: Run OSX build
 
-  - script: |
-      echo "Installing Miniconda"
-      set -x -e
-      curl -o $(Build.StagingDirectory)/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
-      chmod +x $(Build.StagingDirectory)/miniconda.sh
-      $(Build.StagingDirectory)/miniconda.sh -b -p $(Build.StagingDirectory)/miniconda
-      export PATH=$(Build.StagingDirectory)/miniconda/bin:$PATH
-      echo "Setting up Conda environment"
-    displayName: 'Install miniconda'
+  - publish: /Users/runner/miniforge3/conda-bld/osx-64/
+    artifact: conda_pkgs_osx
 
-  - script: |
-      export PATH=$(Build.StagingDirectory)/miniconda/bin:$PATH
-      set -x -e
-      conda install --yes --quiet -c conda-forge conda-forge-ci-setup=2 networkx conda-forge-pinning
-    displayName: 'Add conda-forge-ci-setup=2'
-
-  - script: |
-      set -x -e
-      export PATH=$(Build.StagingDirectory)/miniconda/bin:$PATH
-      echo "Configuring conda."
-
-      setup_conda_rc ./ ./recipes ./.ci_support/${CONFIG}.yaml
-
-      source run_conda_forge_build_setup
-      conda update --yes --quiet --all
-    env: {
-      OSX_FORCE_SDK_DOWNLOAD: "1"
-    }
-    displayName: Configure conda and conda-build
-
-  - script: |
-      # Find the recipes from master in this PR and remove them.
-      export PATH=$(Build.StagingDirectory)/miniconda/bin:$PATH
-
-      echo ""
-      echo "Finding recipes merged in master and removing them from the build."
-      pushd ./recipes > /dev/null
-      git fetch --force origin master:master
-      git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf {} && echo Removing recipe: {}"
-      popd > /dev/null
-      echo ""
-
-      # We just want to build all of the recipes.
-      python .ci_support/build_all.py ./recipes
