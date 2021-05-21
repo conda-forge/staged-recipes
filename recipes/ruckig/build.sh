@@ -11,6 +11,7 @@ cmake ${CMAKE_ARGS} .. \
       -DPYBIND11_FINDPYTHON:BOOL=ON \
       -DBUILD_PYTHON_MODULE:BOOL=ON \
       -DPYTHON_EXECUTABLE:PATH=$PYTHON \
+      -DPython_EXECUTABLE:PATH=$PYTHON \
       -DPython3_EXECUTABLE:PATH=$PYTHON
 
 cmake --build . --config Release
