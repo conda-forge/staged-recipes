@@ -10,8 +10,8 @@ cmake ${CMAKE_ARGS} .. \
       -DCMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP=True \
       -DPYBIND11_FINDPYTHON:BOOL=ON \
       -DBUILD_PYTHON_MODULE:BOOL=ON \
-      -DPYTHON_EXECUTABLE=$PYTHON \
-      -DPython3_EXECUTABLE=$PYTHON
+      -DPYTHON_EXECUTABLE:PATH=$PYTHON \
+      -DPython3_EXECUTABLE:PATH=$PYTHON
 
 cmake --build . --config Release
 cmake --build . --config Release --target install
