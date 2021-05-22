@@ -1,0 +1,72 @@
+{% set name = "libaugeas" %}
+{% set version = "1.12.0" %}
+
+package:
+  name: {{ name }}-split
+  version: {{ version }}
+
+source:
+  url: http://download.augeas.net/augeas-{{ version }}.tar.gz
+  sha256: 321942c9cc32185e2e9cb72d0a70eea106635b50269075aca6714e3ec282cb87
+
+build:
+  number: 0
+
+outputs:
+  - name: libaugeas
+    script: install.sh
+    build:
+      # https://github.com/hercules-team/augeas/issues/612
+      skip: True  # [win]
+      run_exports:
+        # https://abi-laboratory.pro/index.php?view=timeline&l=augeas
+        - {{ pin_subpackage('libaugeas', max_pin='x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - make
+        - pkg-config
+      host:
+        - readline
+        - libxml2
+    test:
+      requires:
+        - pkg-config
+      commands:
+        - test -f $PREFIX/lib/libaugeas${SHLIB_EXT}
+        - test -f $PREFIX/include/augeas.h
+        - test ! -f $PREFIX/lib/libaugeas.a
+        - export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+        - test -f $PREFIX/lib/pkgconfig/augeas.pc
+        - pkg-config --cflags augeas
+
+  - name: libaugeas-static
+    script: install.sh
+    build:
+      # https://github.com/hercules-team/augeas/issues/612
+      skip: True  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - make
+        - pkg-config
+      host:
+        - {{ pin_subpackage('libaugeas', exact=True) }}
+      run:
+        - {{ pin_subpackage('libaugeas', exact=True) }}
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libaugeas.a
+
+about:
+  home: http://augeas.net/
+  license: LGPL-2.1-only
+  license_family: GPL
+  license_file: COPYING
+  summary: 'A configuration editing tool and API'
+  doc_url: http://augeas.net/docs/index.html
+  dev_url: https://github.com/hercules-team/augeas
+
+extra:
+  recipe-maintainers:
+    - nehaljwani
