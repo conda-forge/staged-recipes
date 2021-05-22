@@ -11,6 +11,7 @@ cmake $CMAKE_ARGS -G Ninja \
     -DBUILD_SHARED_LIBS:BOOL=ON \
     -DBUILD_TESTING:BOOL=OFF \
     -DANTS_SUPERBUILD:BOOL=OFF \
+    -DUSE_VTK:BOOL=ON \
     ..
 
 cmake --build .
