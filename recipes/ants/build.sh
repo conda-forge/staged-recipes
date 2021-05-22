@@ -15,4 +15,6 @@ cmake $CMAKE_ARGS -G Ninja \
     -DUSE_SYSTEM_ITK:BOOL=ON \
     ..
 
+cmake --build .
+
 cmake --install .
