@@ -2,11 +2,7 @@
 
 set -x
 
-export MPICXX=mpicxx
-export MFEM_PREFIX=$PREFIX
-export MFEM_USE_MPI=YES
-
-make config
+make config CXX=$CXX PREFIX=$PREFIX MFEM_USE_MPI=YES
 
 cat config/config.mk
 
