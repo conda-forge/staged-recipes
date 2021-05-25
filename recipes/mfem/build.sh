@@ -2,7 +2,7 @@
 
 set -x
 
-make config CXX=$CXX PREFIX=$PREFIX MFEM_USE_MPI=YES
+make config CXX=$CXX PREFIX=$PREFIX MFEM_USE_MPI=YES CXXFLAGS=$CXXFLAGS
 
 cat config/config.mk
 
