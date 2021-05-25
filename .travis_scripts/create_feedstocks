@@ -6,7 +6,8 @@ set -x
 # Ensure we are on the latest commit
 # of the branch where we are converting
 # recipes from. Currently this is `master`.
-git checkout "${TRAVIS_BRANCH}"
+export CF_CURRENT_BRANCH="${GITHUB_REF/refs\/heads\//}"
+git checkout "${CF_CURRENT_BRANCH}"
 
 # 2 core available on Travis CI Linux workers: https://docs.travis-ci.com/user/ci-environment/#Virtualization-environments
 # CPU_COUNT is passed through conda build: https://github.com/conda/conda-build/pull/1149
@@ -17,8 +18,9 @@ export PYTHONUNBUFFERED=1
 # Install Miniconda.
 echo ""
 echo "Installing a fresh version of Miniconda."
-curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh > ~/miniconda.sh
+curl -L https://repo.continuum.io/miniconda/Miniconda3-4.6.14-Linux-x86_64.sh > ~/miniconda.sh
 bash ~/miniconda.sh -b -p ~/miniconda
+touch ~/miniconda/conda-meta/pinned
 (
     source ~/miniconda/bin/activate root
 
@@ -31,11 +33,19 @@ bash ~/miniconda.sh -b -p ~/miniconda
     conda config --add channels conda-forge
 
     unset conda
-    conda update -n root --yes --quiet conda conda-env
+    conda update -n root --yes --quiet conda
 )
 source ~/miniconda/bin/activate root
 
-conda install --yes --quiet conda-forge-ci-setup=2.* conda-smithy=3.* conda-forge-pinning git=2.12.2 conda-build>=3.16
+conda install --yes --quiet \
+  conda-forge-ci-setup=3.* \
+  "conda-smithy>=3.7.1,<4.0.0a0" \
+  conda-forge-pinning \
+  git=2.12.2 \
+  "conda-build>=3.16" \
+  "gitpython>=3.0.8" \
+  requests \
+  ruamel.yaml
 
 conda info
 conda config --get
@@ -43,9 +53,7 @@ conda config --get
 set +x
 mkdir -p ~/.conda-smithy
 echo $TRAVIS_TOKEN > ~/.conda-smithy/travis.token
+echo $PROD_BINSTAR_TOKEN > ~/.conda-smithy/anaconda.token
 set -x
 
-python .travis_scripts/create_feedstocks.py || {
-    python .travis_scripts/trigger_travis_build.py "conda-forge/staged-recipes";
-    exit 1;
-};
+python .travis_scripts/create_feedstocks.py
