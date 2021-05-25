@@ -2,9 +2,9 @@
 
 set -x
 
-export MFEM_CXX=mpicxx
-export MFEM_HOST_CXX=mpicxx
+export MPICXX=mpicxx
 export MFEM_PREFIX=$PREFIX
+export MFEM_USE_MPI=YES
 
 make config
 
