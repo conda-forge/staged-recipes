@@ -10,5 +10,5 @@ make lib -j${CPU_COUNT}
 make install
 
 if [[ "$CONDA_BUILD_CROSS_COMPILATION" != "1" ]]; then
-  make test
+  make check
 fi
