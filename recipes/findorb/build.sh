@@ -2,10 +2,6 @@
 
 set -e
 
-CFLAGS="$CFLAGS -I $CONDA_PREFIX/include"
-CXXFLAGS="$CXXFLAGS -I $CONDA_PREFIX/include -L $CONDA_PREFIX/lib"
-LDFLAGS="$LDFLAGS -L $CONDA_PREFIX/lib"
-
 # helpful while developing from local sources that may be partially built
 for s in lunar jpl_eph sat_code find_orb; do
 	(cd sources/$s && make clean)
