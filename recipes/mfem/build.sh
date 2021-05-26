@@ -10,8 +10,8 @@ make lib -j${CPU_COUNT}
 make install
 
 if [[ "$CONDA_BUILD_CROSS_COMPILATION" != "1" ]]; then
-	if [[ "$mpi" == "openmpi" ]]; then
-  	export OMPI_MCA_plm=isolated
+  if [[ "$mpi" == "openmpi" ]]; then
+    export OMPI_MCA_plm=isolated
     export OMPI_MCA_btl_vader_single_copy_mechanism=none
     export OMPI_MCA_rmaps_base_oversubscribe=yes
     export OMPI_ALLOW_RUN_AS_ROOT=1
