@@ -1,0 +1,79 @@
+{% set name = "finesse" %}
+{% set version = "3.0a1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/finesse-{{ version }}.tar.gz
+  sha256: a2645e8b3f39b34861ebf030dae81b49aa872f33a2782def5b327df74a4ea63a
+  patches:
+    # use $CPU_COUNT variable in parallel build
+    - cpu-count.patch
+    # patch test suite to prevent opening files twice
+    - test-tmp-files.patch
+
+build:
+  number: 0
+  skip: true   # [py<38]
+  entry_points:
+    - kat3 = finesse.__main__:cli
+  script: {{ PYTHON }} -m pip install . -vv  # [not win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}  # [not win]
+    - {{ compiler('m2w64_c') }}  # [win]
+  host:
+    - cython
+    - libpython  # [win]
+    - numpy
+    - pip
+    - python
+    - setuptools
+    - setuptools-scm
+    - suitesparse
+  run:
+    - click
+    - click-default-group
+    - cython
+    - deprecated
+    - h5py
+    - matplotlib-base
+    - networkx
+    - {{ pin_compatible('numpy') }}
+    - python
+    - scipy
+    - sly
+    - sympy
+    - tabulate
+
+test:
+  requires:
+    - faker
+    - hypothesis
+    - pip
+    - pytest
+  source_files:
+    - tests/
+  imports:
+    - finesse
+    - finesse.analysis
+  commands:
+    # check requirements
+    - python -m pip check
+    # run unit tests
+    - python -m pytest tests/
+    # check entry points
+    - kat3 --help
+
+about:
+  home: https://www.gwoptics.org/finesse
+  summary: A simulation tool for modelling laser interferometers
+  license: MIT
+  license_file: LICENSES.md
+
+extra:
+  recipe-maintainers:
+    - duncanmmacleod
