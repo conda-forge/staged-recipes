@@ -11,7 +11,7 @@ cmake $CMAKE_ARGS -GNinja \
 
 cmake --build .
 
-ctest .
+ctest --extra-verbose --output-on-failure .
 
 cmake --install .
 
