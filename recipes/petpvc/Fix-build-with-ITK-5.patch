@@ -1,0 +1,105 @@
+From 7c448eeb07bfe8b065d7c000d68441867da12494 Mon Sep 17 00:00:00 2001
+From: Ghislain Antony Vaillant <ghisvail@gmail.com>
+Date: Sat, 29 May 2021 01:22:36 +0200
+Subject: [PATCH] Fix build with ITK 5
+
+---
+ test/CreateTestImage.cxx | 52 ++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 52 insertions(+)
+
+diff --git a/test/CreateTestImage.cxx b/test/CreateTestImage.cxx
+index befa5e7..a6b4165 100644
+--- a/test/CreateTestImage.cxx
++++ b/test/CreateTestImage.cxx
+@@ -35,7 +35,11 @@
+ 
+ #include "itkSpatialObjectToImageFilter.h"
+ #include "itkEllipseSpatialObject.h"
++#if ITK_VERSION_MAJOR >= 5
++#include "itkTubeSpatialObject.h"
++#else
+ #include "itkCylinderSpatialObject.h"
++#endif
+ #include "itkGroupSpatialObject.h"
+ #include "itkImageFileWriter.h"
+ #include <itkBinaryThresholdImageFilter.h>
+@@ -105,7 +109,11 @@ int main( int argc, char *argv[] )
+         //  SpatialObjects that we plan to group, and we instantiate as well the type
+         //  of the SpatialObject that will hold the group together.
+         typedef itk::EllipseSpatialObject< Dimension >   EllipseType;
++#if ITK_VERSION_MAJOR >= 5
++        typedef itk::TubeSpatialObject< Dimension >      CylinderType;
++#else
+         typedef itk::CylinderSpatialObject               CylinderType;
++#endif
+         typedef itk::GroupSpatialObject< Dimension >     GroupType;
+         typedef itk::SpatialObject< Dimension >          SpatialObjectType;
+         //
+@@ -148,6 +156,43 @@ int main( int argc, char *argv[] )
+             //  The Elementary shapes have internal parameters of their own. These
+             //  parameters define the geometrical characteristics of the basic shapes.
+             //  For example, a cylinder is defined by its radius and height.
++#if ITK_VERSION_MAJOR >= 5
++            ellipse->SetRadiusInObjectSpace(  size[0] * 0.2 * spacing[0] );
++
++            typename CylinderType::PointType point;
++            typename CylinderType::TubePointType tubePoint;
++            typename CylinderType::TubePointListType tubePointList;
++
++            point[0] = 0.0;
++            point[1] = 0.0;
++            point[2] = 0.0;
++            tubePoint.SetPositionInObjectSpace(point);
++            tubePoint.SetRadiusInObjectSpace(size[0] * 0.2 * spacing[0]);
++            tubePointList.push_back(tubePoint);
++            point[0] = size[0] * 0.2 * spacing[0];
++            point[1] = size[1] * 0.2 * spacing[1];
++            point[2] = size[2] * 0.2 * spacing[2];
++            tubePoint.SetPositionInObjectSpace(point);
++            tubePoint.SetRadiusInObjectSpace(size[0] * 0.2 * spacing[0]);
++            tubePointList.push_back(tubePoint);
++            cylinder1->SetPoints(tubePointList);
++
++            tubePointList.clear();
++
++            point[0] = 0.0;
++            point[1] = 0.0;
++            point[2] = 0.0;
++            tubePoint.SetPositionInObjectSpace(point);
++            tubePoint.SetRadiusInObjectSpace(size[0] * 0.2 * spacing[0]);
++            tubePointList.push_back(tubePoint);
++            point[0] = size[0] * 0.30 * spacing[0];
++            point[1] = size[1] * 0.30 * spacing[1];
++            point[2] = size[2] * 0.30 * spacing[2];
++            tubePoint.SetPositionInObjectSpace(point);
++            tubePoint.SetRadiusInObjectSpace(size[0] * 0.2 * spacing[0]);
++            tubePointList.push_back(tubePoint);
++            cylinder2->SetPoints(tubePointList);
++#else
+             ellipse->SetRadius(  size[0] * 0.2 * spacing[0] );
+ 
+             cylinder1->SetRadius(  size[0] * 0.2 * spacing[0] );
+@@ -155,6 +200,7 @@ int main( int argc, char *argv[] )
+ 
+             cylinder1->SetHeight( size[2] * 0.30 * spacing[2]);
+             cylinder2->SetHeight( size[2] * 0.30 * spacing[2]);
++#endif
+             //
+             //  Each one of these components will be placed in a different position and
+             //  orientation. We define transforms in order to specify those relative
+@@ -195,9 +241,15 @@ int main( int argc, char *argv[] )
+             //  The elementary shapes are aggregated in a parent group, that in turn is
+             //  passed as input to the filter.
+             GroupType::Pointer group = GroupType::New();
++#if ITK_VERSION_MAJOR >= 5
++            group->AddChild( ellipse );
++            group->AddChild( cylinder1 );
++            group->AddChild( cylinder2 );
++#else
+             group->AddSpatialObject( ellipse );
+             group->AddSpatialObject( cylinder1 );
+             group->AddSpatialObject( cylinder2 );
++#endif
+ 
+             //
+             //  By default, the filter will rasterize the aggregation of elementary
