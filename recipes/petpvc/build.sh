@@ -14,3 +14,5 @@ cmake --build .
 ctest .
 
 cmake --install .
+
+rm -rf $PREFIX/parc
