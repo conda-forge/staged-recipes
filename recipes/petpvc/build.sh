@@ -11,4 +11,6 @@ cmake $CMAKE_ARGS -G Ninja \
 
 cmake --build .
 
+ctest .
+
 cmake --install .
