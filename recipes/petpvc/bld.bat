@@ -19,4 +19,4 @@ if errorlevel 1 exit 1
 cmake --install .
 if errorlevel 1 exit 1
 
-rmdir /s /q %LIBRARY_PREFIX%\parc
+rmdir /s /q "%LIBRARY_PREFIX%\parc"
