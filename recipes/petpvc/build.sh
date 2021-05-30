@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
-BUILD_DIR=$SRC_DIR/build
-mkdir $BUILD_DIR
-cd $BUILD_DIR
+mkdir build
+cd build
 
 cmake $CMAKE_ARGS -GNinja \
     -DCMAKE_BUILD_TYPE:STRING=Release \
