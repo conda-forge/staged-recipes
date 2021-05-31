@@ -1,0 +1,78 @@
+diff --git a/tests/functional/cli/conftest.py b/tests/functional/cli/conftest.py
+index f3453958..f78e64e2 100644
+--- a/tests/functional/cli/conftest.py
++++ b/tests/functional/cli/conftest.py
+@@ -33,9 +33,9 @@ def isolated_cli(cli):
+ 
+ 
+ @pytest.fixture
+-def input_file():
++def input_file(tmp_path):
+     """A temporary file containing valid kat script."""
+-    with NamedTemporaryFile("r+") as fobj:
++    tmpfile = tmp_path / "kat.tmp"
++    with open(tmpfile, "w") as fobj:
+         fobj.write(SCRIPT)
+-        fobj.flush()
+-        yield fobj
++    yield str(tmpfile)
+diff --git a/tests/functional/cli/test_info.py b/tests/functional/cli/test_info.py
+index 79b2268d..13ea0316 100644
+--- a/tests/functional/cli/test_info.py
++++ b/tests/functional/cli/test_info.py
+@@ -6,6 +6,6 @@ from .util import sanitized_output
+ 
+ def test_info(cli, input_file):
+     """Test info output."""
+-    cli_result = cli.invoke(info, [input_file.name])
++    cli_result = cli.invoke(info, [input_file])
+     assert "Summary:" in sanitized_output(cli_result)
+     assert cli_result.exit_code == 0
+diff --git a/tests/functional/cli/test_run.py b/tests/functional/cli/test_run.py
+index 9ab2817a..5d51f892 100644
+--- a/tests/functional/cli/test_run.py
++++ b/tests/functional/cli/test_run.py
+@@ -8,9 +8,9 @@ from .util import sanitized_output
+ 
+ def test_run_same_as_python_api(isolated_cli, input_file):
+     """Test that running kat script via CLI same as calling :meth:`finesse.script.parse_file`."""
+-    cli_result = isolated_cli.invoke(run, [input_file.name, "--no-plot"])
++    cli_result = isolated_cli.invoke(run, [input_file, "--no-plot"])
+ 
+-    api_model = parse_file(input_file.name)
++    api_model = parse_file(input_file)
+     api_solution = api_model.run()
+ 
+     assert str(api_solution) in sanitized_output(cli_result)
+@@ -19,23 +19,23 @@ def test_run_same_as_python_api(isolated_cli, input_file):
+ 
+ def test_trace_flag(isolated_cli, input_file):
+     """Test the --trace run flag."""
+-    cli_result = isolated_cli.invoke(run, [input_file.name, "--no-plot", "--trace"])
++    cli_result = isolated_cli.invoke(run, [input_file, "--no-plot", "--trace"])
+     assert "Trace:" in sanitized_output(cli_result)
+     assert cli_result.exit_code == 0
+ 
+ 
+ def test_no_trace_flag(isolated_cli, input_file):
+     """Test the --trace run flag."""
+-    cli_result = isolated_cli.invoke(run, [input_file.name, "--no-plot", "--no-trace"])
++    cli_result = isolated_cli.invoke(run, [input_file, "--no-plot", "--no-trace"])
+     assert "Trace:" not in sanitized_output(cli_result)
+     assert cli_result.exit_code == 0
+ 
+ 
+-def test_parse_error(isolated_cli):
++def test_parse_error(isolated_cli, tmp_path):
+     """Test that parsing errors appear in the output."""
+-    with NamedTemporaryFile("r+") as fobj:
++    tmp_file = str(tmp_path / "kat.tmp")
++    with open(tmp_file, "w") as fobj:
+         fobj.write("laser l1 __fake_param__=1")
+-        fobj.flush()
+-        cli_result = isolated_cli.invoke(run, [fobj.name, "--no-plot"])
+-        assert "ERROR:" in sanitized_output(cli_result)
+-        assert cli_result.exit_code > 0
++    cli_result = isolated_cli.invoke(run, [tmp_file, "--no-plot"])
++    assert "ERROR:" in sanitized_output(cli_result)
++    assert cli_result.exit_code > 0
