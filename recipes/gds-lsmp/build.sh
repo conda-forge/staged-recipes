@@ -6,6 +6,7 @@ set -e
 ./configure \
 	--disable-static \
 	--enable-shared \
+	--includedir=${PREFIX}/include/gds \
 	--prefix=${PREFIX} \
 ;
 
