@@ -9,11 +9,12 @@ cmake $CMAKE_ARGS -G Ninja \
     -DCMAKE_INSTALL_LIBDIR:STRING=lib \
     -DCMAKE_INSTALL_PREFIX:STRING=$PREFIX \
     -DBUILD_SHARED_LIBS:BOOL=ON \
-    -DBUILD_TESTING:BOOL=OFF \
     -DANTS_SUPERBUILD:BOOL=OFF \
     -DITK_USE_SYSTEM_FFTW:BOOL=ON
     ..
 
 cmake --build .
+
+ctest --extra-verbose --output-on-failure .
 
 cmake --install .
