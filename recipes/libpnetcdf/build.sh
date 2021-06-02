@@ -10,4 +10,9 @@ export MPIF90=mpifort
     --enable-shared
 
 make
+# serial tests
+make check
+# lighter weight parallel tests (4 MPI tasks)
+make ptest
+
 make install
