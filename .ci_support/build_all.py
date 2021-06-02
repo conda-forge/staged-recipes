@@ -9,9 +9,9 @@ import sys
 import subprocess
 
 try:
-    from ruamel_yaml import safe_load, safe_dump
+    from ruamel_yaml import BaseLoader, load
 except ImportError:
-    from yaml import safe_load, safe_dump
+    from yaml import BaseLoader, load
 
 
 def get_host_platform():
@@ -63,7 +63,7 @@ def build_all(recipes_dir, arch):
             if platform == 'osx' and (
                     'MACOSX_DEPLOYMENT_TARGET' in text or
                     'MACOSX_SDK_VERSION' in text):
-                config = safe_load(text)
+                config = load(text, Loader=BaseLoader)
 
                 if 'MACOSX_DEPLOYMENT_TARGET' in config:
                     for version in config['MACOSX_DEPLOYMENT_TARGET']:
@@ -150,7 +150,7 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
 
     d = OrderedDict()
     for node in order:
-        d[G.node[node]['meta'].meta_path] = 1
+        d[G.nodes[node]['meta'].meta_path] = 1
 
     for recipe in d.keys():
         conda_build.api.build([recipe], config=get_config(arch, channel_urls))
