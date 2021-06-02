@@ -45,7 +45,9 @@ def list_recipes():
     for recipe_dir in recipes:
         # We don't list the "example" feedstock. It is an example, and is there
         # to be helpful.
-        if recipe_dir == 'example':
+        # .DS_Store is created by macOS to store custom attributes of its
+        # containing folder.
+        if recipe_dir in ['example', '.DS_Store']:
             continue
         path = os.path.abspath(os.path.join(recipe_directory_name, recipe_dir))
         yield path, get_feedstock_name_from_meta(MetaData(path))
@@ -260,7 +262,7 @@ if __name__ == '__main__':
             # After going through all the recipes and removing the converted ones,
             # we fail the build so that people are aware that things did not clear.
             try:
-                write_token('anaconda', os.environ['PROD_BINSTAR_TOKEN'])
+                write_token('anaconda', os.environ['STAGING_BINSTAR_TOKEN'])
                 subprocess.check_call(
                     ['conda', 'smithy', 'register-ci', '--without-appveyor',
                      '--without-webservice', '--feedstock_directory',
@@ -352,6 +354,8 @@ if __name__ == '__main__':
     # Update status based on the remote.
     subprocess.check_call(['git', 'stash', '--keep-index', '--include-untracked'])
     subprocess.check_call(['git', 'fetch'])
+    # CBURR: Debugging
+    subprocess.check_call(['git', 'status'])
     subprocess.check_call(['git', 'rebase', '--autostash'])
     subprocess.check_call(['git', 'add', '.'])
     try:
