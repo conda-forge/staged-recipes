@@ -3,6 +3,9 @@ setlocal EnableDelayedExpansion
 mkdir build
 cd build
 
+set CFLAGS="%CFLAGS% -I %LIBRARY_PREFIX%\include\eigen3"
+set CXXFLAGS="%CXXFLAGS% -I %LIBRARY_PREFIX%\include\eigen3"
+
 cmake -GNinja ^
     -DCMAKE_BUILD_TYPE:STRING=Release ^
     -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
