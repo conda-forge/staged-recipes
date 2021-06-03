@@ -1,0 +1,137 @@
+{% set name = "gds-root-extensions" %}
+{% set version = "2.19.4" %}
+
+# dependencies
+{% set gds_base_version = "2.19.5" %}
+{% set gds_lsmp_version = "2.19.7" %}
+{% set gds_frameio_version = "2.19.5" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://software.igwn.org/sources/source/{{ name }}-{{ version }}.tar.gz
+  sha256: 275c43b5e6ad61357e1a1053210fe05522cfae0fa77213fa72a13ae3948b0995
+
+build:
+  number: 0
+  skip: true  # [win]
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - make
+    - pkg-config
+  host:
+    - gds-base >={{ gds_base_version }}
+    - gds-base-crtools >={{ gds_base_version }}
+    - gds-base-gdstrig >={{ gds_base_version }}
+    - gds-frameio-base >={{ gds_frameio_version }}
+    - gds-lsmp >={{ gds_lsmp_version }}
+    - root_base
+    - root-binaries
+
+outputs:
+  - name: gds-root-extensions-base
+    build:
+      ignore_run_exports:
+        # header required, no libraries
+        - gds-base-crtools
+      run_exports:
+        - {{ pin_subpackage("gds-root-extensions-base", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - gds-base >={{ gds_base_version }}
+        - gds-base-crtools >={{ gds_base_version }}
+        - gds-base-gdstrig >={{ gds_base_version }}
+        - gds-frameio-base >={{ gds_frameio_version }}
+        - gds-lsmp >={{ gds_lsmp_version }}
+        - ldas-tools-al
+        - ldas-tools-framecpp
+        - root_base
+        - root-binaries
+      run:
+        - gds-base >={{ gds_base_version }}
+        - gds-frameio-base >={{ gds_frameio_version }}
+        - gds-lsmp >={{ gds_lsmp_version }}
+        - ldas-tools-al
+        - ldas-tools-framecpp
+        - root_base
+    files:
+      - share/gds/setup/root-setup
+      - lib/libgdsevent{{ SHLIB_EXT }}*
+      - lib/libRframefast*
+      - lib/libRframeio*
+      - lib/libRgdsbase*
+      - lib/libRgdsevent*
+      - lib/libRgdscntr*
+      - lib/libRgdsmath*
+      - lib/libRgdstrig*
+      - lib/libRxsil*
+    test:
+      requires:
+        - root-binaries
+      commands:
+        - test -f ${PREFIX}/lib/libRframeio${SHLIB_EXT}  # [not linux]
+        - root -b -l -x -q -e 'gSystem->Load("libRframeio");'  # [linux]
+        - root -b -l -x -q -e 'gSystem->Load("libRgdsevent");'  # [linux]
+    about:
+      home: https://wiki.ligo.org/Computing/DASWG/DMT
+      dev_url: https://git.ligo.org/gds/gds.git
+      license: GPL-2.0-only
+      license_family: GPL
+      license_file: COPYING
+      summary: GDS ROOT extensions
+      description: |
+        GDS ROOT extensions
+
+  - name: gds-root-extensions-crtools
+    build:
+      run_exports:
+        - {{ pin_subpackage("gds-root-extensions-crtools", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - gds-base >={{ gds_base_version }}
+        - root_base
+        - root-binaries
+      run:
+        - gds-base >={{ gds_base_version }}
+        - {{ pin_subpackage("gds-root-extensions-base", exact=True) }}
+        - root_base
+    files:
+      - lib/libRdmtsigp*
+    test:
+      requires:
+        - root-binaries
+      commands:
+        - test -f ${PREFIX}/lib/libRdmtsigp${SHLIB_EXT}  # [not linux]
+        - root -b -x -q -e 'gSystem->Load("libRdmtsigp")'  # [linux]
+    about:
+      home: https://wiki.ligo.org/Computing/DASWG/DMT
+      dev_url: https://git.ligo.org/gds/gds.git
+      license: GPL-2.0-only
+      license_family: GPL
+      license_file: COPYING
+      summary: GDS control room tools
+      description: |
+        GDS ROOT extensions for control rooms
+
+about:
+  home: https://wiki.ligo.org/Computing/DASWG/DMT
+  dev_url: https://git.ligo.org/gds/gds.git
+  license: GPL-2.0-only
+  license_family: GPL
+  license_file: COPYING
+  summary: GDS ROOT extensions
+  description: |
+    GDS ROOT extensions
+
+extra:
+  recipe-maintainers:
+    - duncanmmacleod
+    - emaros
