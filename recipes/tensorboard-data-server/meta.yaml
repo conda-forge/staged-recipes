@@ -1,0 +1,48 @@
+{% set name = "tensorboard-data-server" %}
+{% set version = "0.6.0" %}
+{% set _name = "tensorboard_data_server" %}
+{% set git_rev = "1d4d904c1cc69ccdd7ed59f8539624eeb5c7a831" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  # data server versions are not tagged, so we have to use the ID of the relevant rev
+  url: https://github.com/tensorflow/tensorboard/archive/{{ git_rev }}.zip
+  sha256: e17b02eb493cb11b92db11fea4ac75805a119e68def636b455dec69bdcca31ef
+  patches:
+    - 0001-Do-not-try-to-remove-tmpdir-on-Windows.patch  # [win]
+
+# Windows is currently unsupported, so we build an universal dummy wheel instead for Windows
+# See https://github.com/tensorflow/tensorboard/blob/348af4c/tensorboard/data/server/pip_package/build.py#L78-L86
+build:
+  script_env:
+    - WHEELNAME={{ _name }}-{{ version }}-py3-none-any.whl  # [win]
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}  # [not win]
+  host:
+    - python
+    - pip
+    - rust  # [not win]
+    - openssl  # [not win]
+  run:
+    - python
+
+test:
+  imports:
+    - tensorboard_data_server
+
+about:
+  home: https://github.com/tensorflow/tensorboard
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: 'Data server for TensorBoard'
+  dev_url: https://github.com/tensorflow/tensorboard/tree/master/tensorboard/data/server
+
+extra:
+  recipe-maintainers:
+    - mdraw
