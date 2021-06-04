@@ -1,10 +1,6 @@
-:: We use the conda boost package, which includes
-:: zlib support, but defining BOOST_ALL_DYN_LINK (below) makes boost try to
-:: link against boost_zlib*.lib, which doesn't exist. Override this by
-:: explicitly naming the boost library to link against - since there isn't
-:: one, link against kernel32 instead (which pretty much everything links
-:: against, so this doesn't introduce an extra dependency)
-set EXTRA_CXX_FLAGS=/bigobj -DBOOST_ZLIB_BINARY=kernel32
+echo on
+
+echo "Resolve symlinks"
 
 :: tools/dev_tools is a symlink, but this doesn't always work on Windows,
 :: so copy the original contents
@@ -21,6 +17,8 @@ if errorlevel 1 exit 1
 :: add Python script to fix npctransport protobuf headers
 copy "%RECIPE_DIR%\patch_protoc.py" modules\npctransport\patch_protoc.py
 if errorlevel 1 exit 1
+
+echo "Build app wrapper"
 
 :: build app wrapper
 copy "%RECIPE_DIR%\app_wrapper.c" .
@@ -43,13 +41,22 @@ set PERCPPCOMP="-DIMP_PER_CPP_COMPILATION=cgal"
 :: Don't build the scratch or cnmultifit modules
 set DISABLED="scratch:cnmultifit"
 
+:: We use the conda boost package, which includes
+:: zlib support, but defining BOOST_ALL_DYN_LINK (below) makes boost try to
+:: link against boost_zlib*.lib, which doesn't exist. Override this by
+:: explicitly naming the boost library to link against - since there isn't
+:: one, link against kernel32 instead (which pretty much everything links
+:: against, so this doesn't introduce an extra dependency)
+
 cmake -DUSE_PYTHON2=off ^
       -DCMAKE_PREFIX_PATH="%PREFIX:\=/%;%PREFIX:\=/%\Library" ^
       -DCMAKE_BUILD_TYPE=Release -DIMP_DISABLED_MODULES=%DISABLED% ^
-      -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
+      -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX:\=/%" ^
+      -DCMAKE_INSTALL_LIBDIR=bin ^
+      -DCMAKE_INSTALL_CMAKEDIR="lib/cmake/IMP" ^
       -DCMAKE_INSTALL_PYTHONDIR="%SP_DIR:\=/%" ^
       -DIMP_USE_SYSTEM_RMF=on -DIMP_USE_SYSTEM_IHM=on ^
-      -DCMAKE_CXX_FLAGS="/DBOOST_ALL_DYN_LINK /EHsc /D_HDF5USEDLL_ /DH5_BUILT_AS_DYNAMIC_LIB /DPROTOBUF_USE_DLLS /DWIN32 /DGSL_DLL /DMSMPI_NO_DEPRECATE_20 %EXTRA_CXX_FLAGS%" ^
+      -DCMAKE_CXX_FLAGS="/DBOOST_ALL_DYN_LINK /EHsc /D_HDF5USEDLL_ /DH5_BUILT_AS_DYNAMIC_LIB /DPROTOBUF_USE_DLLS /DWIN32 /DGSL_DLL /DMSMPI_NO_DEPRECATE_20 /bigobj /DBOOST_ZLIB_BINARY=kernel32" ^
       %PERCPPCOMP% -G Ninja ..
 if errorlevel 1 exit 1
 
@@ -61,16 +68,8 @@ if errorlevel 1 exit 1
 ninja install
 if errorlevel 1 exit 1
 
-:: Patch IMP Python module to add paths containing Anaconda DLLs to search path
-python "%RECIPE_DIR%\add_dll_search_path.py" "%SP_DIR%\IMP" "%PREFIX%\Library\bin" "%PREFIX%\Library\lib" "%SP_DIR%\IMP\__init__.py"
-if errorlevel 1 exit 1
-
-:: Add wrappers to path for each command line tool
+:: Add wrappers to path for each Python command line tool
+:: (all files without an extension)
 cd bin
-:: Handle Python tools (all files without an extension)
-for /f %%f in ('dir /b *.') do copy "%SRC_DIR%\app_wrapper.exe" "%PREFIX%\%%f.exe"
-if errorlevel 1 exit 1
-
-:: Handle C++ tools (all files with .exe extension)
-for /f %%f in ('dir /b *.exe') do copy "%SRC_DIR%\app_wrapper.exe" "%PREFIX%\%%f"
+for /f %%f in ('dir /b *.') do copy "%SRC_DIR%\app_wrapper.exe" "%PREFIX%\Library\bin\%%f.exe"
 if errorlevel 1 exit 1

@@ -10,49 +10,19 @@
    they are Python files. This doesn't work on Windows though, since
    Windows relies on the file extension.
 
-   Both Python and C++ command line tools in the IMP conda package are
-   installed in Library\bin\. This directory is not in the PATH. Furthermore,
-   they both pull in DLLs installed in either Library\bin\ or Library\lib\,
-   and these directories are not in the PATH either (so Windows won't be able
-   to find the DLLs).
-
-   To remedy these problems, we provide this wrapper. Compile with
+   To remedy this problem, we provide this wrapper. Compile with
       cl app_wrapper.c shell32.lib
    then copy the resulting app_wrapper.exe to myapp.exe and install in
    the top-level Anaconda directory. Then a user should be able to simply
-   type 'myapp', and the right C++ or Python tool will be run with the
-   correct PATH set.
+   type 'myapp', and the right Python tool will be run.
 */
 
-/* Add the two given subdirectories of topdir to PATH */
-static void add_to_path_env(const char *topdir, const char *subdir1,
-                            const char *subdir2)
+/* Get full path to fname in topdir */
+static char *get_new_full_path(const char *topdir, const char *fname)
 {
-  char *new_path;
-  char *orig_path = getenv("PATH");
-  /*printf("%s\n", orig_path); */
-  new_path = malloc(strlen(topdir) * 2 + strlen(subdir1) + strlen(subdir2)
-                    + 8 + strlen(orig_path));
-  strcpy(new_path, "PATH=");
-  strcat(new_path, topdir);
-  strcat(new_path, subdir1);
-  strcat(new_path, ";");
-  strcat(new_path, topdir);
-  strcat(new_path, subdir2);
-  strcat(new_path, ";");
-  strcat(new_path, orig_path);
-  /*printf("%s\n", new_path);*/
-  putenv(new_path);
-  /* Don't free new_path; it is now part of the environment */
-}
-
-/* Get full path to fname in topdir/subdir */
-static char *get_new_full_path(const char *topdir, const char *subdir,
-                               const char *fname)
-{
-  char *newpath = malloc(strlen(topdir) + strlen(subdir) + strlen(fname) + 1);
+  char *newpath = malloc(strlen(topdir) + strlen(fname) + 2);
   strcpy(newpath, topdir);
-  strcat(newpath, subdir);
+  strcat(newpath, "\\");
   strcat(newpath, fname);
   return newpath;
 }
@@ -116,18 +86,38 @@ static char *make_python_parameters(const char *orig_param, const char *binary)
   return param;
 }
 
+/* Remove the last component of the path in place */
+static void remove_last_component(char *dir)
+{
+  char *pt;
+  if (!dir || !*dir) return;
+  /* Remove trailing slash if present */
+  if (dir[strlen(dir)-1] == '\\') {
+    dir[strlen(dir)-1] = '\0';
+  }
+  /* Remove everything after the last slash */
+  pt = strrchr(dir, '\\');
+  if (pt) {
+    *pt = '\0';
+  }
+}
+
 /* Get the full path to the Anaconda Python. */
 static char* get_python_binary(const char *topdir)
 {
   char *python = malloc(strlen(topdir) + 12);
   strcpy(python, topdir);
+  /* Remove last two components of the path (we are in Library/bin; python
+     is in the top-level directory) */
+  remove_last_component(python);
+  remove_last_component(python);
   strcat(python, "\\python.exe");
   return python;
 }
 
-/* Run the given binary, passing it the parameters we ourselves were given.
-   If the binary is actually a Python script, be sure to run it with Python. */
-static DWORD run_binary(const char *binary, const char *topdir, int is_python)
+/* Run the given Python script, passing it the parameters we ourselves
+   were given. */
+static DWORD run_binary(const char *binary, const char *topdir)
 {
   SHELLEXECUTEINFO si;
   BOOL bResult;
@@ -139,16 +129,13 @@ static DWORD run_binary(const char *binary, const char *topdir, int is_python)
   /* Wait for the spawned process to finish, so that any output goes to the
      console *before* the next command prompt */
   si.fMask = SEE_MASK_NO_CONSOLE | SEE_MASK_NOASYNC | SEE_MASK_NOCLOSEPROCESS;
-  if (is_python) {
+  {
     char *orig_param = param;
     python = get_python_binary(topdir);
     si.lpFile = python;
     param = make_python_parameters(find_param_start(param), binary);
     free(orig_param);
     si.lpParameters = param;
-  } else {
-    si.lpFile = binary;
-    si.lpParameters = find_param_start(param);
   }
   si.nShow = SW_SHOWNA;
   bResult = ShellExecuteEx(&si);
@@ -171,20 +158,15 @@ static DWORD run_binary(const char *binary, const char *topdir, int is_python)
 }
 
 int main(int argc, char *argv[]) {
-  static const char *library_lib = "\\Library\\lib\\";
-  static const char *library_bin = "\\Library\\bin\\";
   int is_python;
   char *dir, *fname, *new_full_path;
   DWORD return_code;
 
   get_full_path(&dir, &fname);
   /*printf("%s, %s\n", dir, fname);*/
-  add_to_path_env(dir, library_lib, library_bin);
-  new_full_path = get_new_full_path(dir, library_bin, fname);
-  /* If file (without extension) exists, then it must be a Python script */
-  is_python = (_access(new_full_path, 0) == 0);
+  new_full_path = get_new_full_path(dir, fname);
   /*printf("new full path %s, %d\n", new_full_path, is_python);*/
-  return_code = run_binary(new_full_path, dir, is_python);
+  return_code = run_binary(new_full_path, dir);
   free(dir);
   free(fname);
   free(new_full_path);
