@@ -2,17 +2,21 @@ echo on
 
 echo "Resolve symlinks"
 
-:: tools/dev_tools is a symlink, but this doesn't always work on Windows,
-:: so copy the original contents
-rd /q /s tools\dev_tools
-if errorlevel 1 exit 1
-mkdir tools\dev_tools
-if errorlevel 1 exit 1
-copy modules\rmf\dependency\RMF\tools\dev_tools\* tools\dev_tools\
-if errorlevel 1 exit 1
-mkdir tools\dev_tools\python_tools
-copy modules\rmf\dependency\RMF\tools\dev_tools\python_tools\* tools\dev_tools\python_tools\
-if errorlevel 1 exit 1
+:: tools/dev_tools is a symlink, but many Windows variants don't support
+:: links, so copy the original contents if necessary
+IF NOT EXIST "tools\dev_tools\README.md" (
+  dir tools
+  rename tools\dev_tools dev_tools.old
+  if errorlevel 1 exit 1
+  mkdir tools\dev_tools
+  if errorlevel 1 exit 1
+  copy modules\rmf\dependency\RMF\tools\dev_tools\* tools\dev_tools\
+  if errorlevel 1 exit 1
+  mkdir tools\dev_tools\python_tools
+  if errorlevel 1 exit 1
+  copy modules\rmf\dependency\RMF\tools\dev_tools\python_tools\* tools\dev_tools\python_tools\
+  if errorlevel 1 exit 1
+)
 
 :: add Python script to fix npctransport protobuf headers
 copy "%RECIPE_DIR%\patch_protoc.py" modules\npctransport\patch_protoc.py
