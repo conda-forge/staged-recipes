@@ -24,3 +24,6 @@ cmake -DCMAKE_BUILD_TYPE=Release -DIMP_DISABLED_MODULES=${DISABLED} \
 python "${RECIPE_DIR}/check_disabled_modules.py" ${DISABLED} || exit 1
 
 ninja install
+
+# Don't distribute example application
+rm -f ${PREFIX}/bin/imp_example_app

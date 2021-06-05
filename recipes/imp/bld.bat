@@ -77,3 +77,6 @@ if errorlevel 1 exit 1
 cd bin
 for /f %%f in ('dir /b *.') do copy "%SRC_DIR%\app_wrapper.exe" "%PREFIX%\Library\bin\%%f.exe"
 if errorlevel 1 exit 1
+
+:: Don't distribute example application
+del "%LIBRARY_PREFIX%\bin\imp_example_app.exe"
