@@ -1,5 +1,5 @@
 {% set name = "cmdstan" %}
-{% set version = "2.26.1" %}
+{% set version = "2.27.0" %}
 
 package:
   name: {{ name|lower }}
@@ -7,29 +7,34 @@ package:
 
 source:
   url: https://github.com/stan-dev/{{ name }}/releases/download/v{{ version }}/{{ name }}-{{ version }}.tar.gz
-  sha256: d944d23ac7ed5ebf924d859f3a1f3052891161e2c70313503f21257ea13f0b0c
+  sha256: ff71f4d255cf26c2d8366a8173402656a659399468871305056aa3d56329c1d5
 
 build:
   number: 0
-  # If the installation is complex, or different between Unix and Windows, use separate bld.bat and build.sh files instead of this key.
-  # By default, the package will be built for the Python versions supported by conda-forge and for all major OSs.
-  # Add the line "skip: True  # [py<35]" (for example) to limit to Python 3.5 and newer, or "skip: True  # [not win]" to limit to Windows.
-  # script: "{{ PYTHON }} -m pip install . -vv"
+  # Keep it simple for now, only build on Linux.
+  skip: true  # [not linux]
+  script:
+    # I also
+    - python -c "from cmdstanpy.install_cmdstan import *; install_version('.', verbose=True)"
+    - mv ./bin "${PREFIX}"
+    # No segfault in build env
+    - stanc --help
 
 requirements:
   build:
-    - {{ compiler('c') }}  # [not win]
-    # - {{ compiler('cxx') }}  # [not win]
-    - {{ compiler('m2w64_c') }}  # [win]
-    # - {{ compiler('m2w64_cxx') }}  # [win]  
+    - {{ compiler('gcc') }}  # [not win]
+    - {{ compiler('m2w64_gcc') }}  # [win]
+    # This is contains the Python build script
+    - cmdstanpy
   run:
-    - {{ compiler('c') }}  # [not win]
-    # - {{ compiler('cxx') }}  # [not win]
-    - {{ compiler('m2w64_c') }}  # [win]
-    # - {{ compiler('m2w64_cxx') }}  # [win]  
+    - {{ compiler('gcc') }}  # [not win]
+    - {{ compiler('m2w64_gcc') }}  # [win]
+    # Included here for troubleshooting to keep run/build as similar as possible.
+    - cmdstanpy
 
 test:
   commands:
+    # Causes segfault:
     - stanc --help
     - stansummary --help
 
