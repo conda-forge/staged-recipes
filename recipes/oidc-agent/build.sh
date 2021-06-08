@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 set -x
 
-if [[ "$target_platform" == linux-* ]]; then
-    export LD_LIBRARY_PATH=$PREFIX/lib
-fi
+export LD_LIBRARY_PATH=$PREFIX/lib
 
 declare -a ARGS
 ARGS+=("CC=${CC}")
