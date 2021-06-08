@@ -1,46 +1,69 @@
-# Note: there are many handy hints in comments in this example -- remove them when you've finalized your recipe
-
-# Jinja variables help maintain the recipe as you'll update the version only here.
-# Using the name variable with the URL in line 14 is convenient
-# when copying and pasting from another recipe, but not really needed.
-{% set name = "mxnet" %}
-{% set version = "1.8.0" %}
+{% set build_number = "0" %}
 
 package:
-  name: {{ name|lower }}
-  version: {{ version }}
+  name: mxnet
+  version: {{ mxnet_version }}
 
 source:
-  url: https://github.com/apache/incubator-mxnet/archive/tags/{{ version }}.tar.gz
-  sha256: 976e0193622378b9174d6ff95b8d1e5369e66945c5345a13c642748b51eb9758
+  #git_url: https://github.com/apache/incubator-mxnet.git
+  #git_rev: {{ mxnet_version }}
+  git_url: https://github.com/apache/incubator-mxnet.git
+  git_tag: {{ mxnet_version }}
 
 build:
-  number: 0
+  string: {{ mxnet_variant_str }}_py{{ python_version }}_{{ build_number }}
+  number: {{ build_number }}
+  skip: True              # [win and vc<14]
+  missing_dso_whitelist:  # [linux]
+    - libcuda.so.1        # [linux]
 
 requirements:
-  script: build-mxnet.sh  # [not win]
   build:
-    - cmake
-    - ninja
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
+    - pkg-config  # [not win]
+    - make        # [not win]
+    - cmake
+    - ninja
+    - protobuf
+    - python {{ python_version }}
     - llvm-openmp  # [osx]
     - libgomp   # [linux]
   host:
-    # GPU requirements
-    - cudnn
-    - nccl
-    - python
-    - numpy
-    - openblas
-    - onednn
-    - pip
+    - mkl-dnn
+    - mkl-devel
+    - llvm-openmp  # [osx]
+    - libgomp   # [linux]
+    - openblas-devel
+    - libopencv
+    - cython
+    - cudatoolkit {{ cudatoolkit_version }}  # ['cu' in str(mxnet_variant_str)]
+    - cudnn {{ cudnn_version }}              # ['cu' in str(mxnet_variant_str)]
+    - nccl {{ nccl_version }}                # ['cu' in str(mxnet_variant_str)]
+    - python {{ python_version }}
+    # Numpy's C API is not used
+    - numpy >=1.16.0,<2.0.0
+    - requests >=2.20.0,<3
+    - setuptools
   run:
+    - _mutex_mxnet {{ mxnet_variant_version }} {{ mxnet_variant_str }}
+    - cudatoolkit {{ cudatoolkit_version }}  # ['cu' in str(mxnet_variant_str)]
+    - cudnn {{ cudnn_version }}              # ['cu' in str(mxnet_variant_str)]
+    - nccl {{ nccl_version }}                # ['cu' in str(mxnet_variant_str)]
+    - libgcc-ng
+    - libgfortran
+    - {{ pin_compatible('mkl-dnn') }}
+    - {{ pin_compatible('llvm-openmp') }}    # [osx]
+    - {{ pin_compatible('libgomp') }}        # [linux]
+    - numpy >=1.16.0,<2.0.0
+    - requests >=2.20.0,<3
     - python
 
 test:
+  files:
+    - run_test.py
   imports:
-    - import mxnet 
+    - mxnet
 
 about:
   home: http://mxnet.io
