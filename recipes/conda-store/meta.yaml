@@ -1,40 +1,68 @@
-{% set name = "conda-store" %}
-{% set version = "0.1.2" %}
+{% set name = "conda-store-split" %}
+{% set version = "0.2.5" %}
+{% set build = 0 %}
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
-  sha256: a7d52708f292372d5911cd08c724ab422d3cb9dca00ba1930773088c4d954c94
+  - url: https://pypi.io/packages/source/c/conda-store/conda_store-{{ version }}.tar.gz
+    sha256: bbfdfd0f8224e128147523edc0d44c400fdeb164e5053454c15b81db306843f2
+    folder: conda-store
+  - url: https://pypi.io/packages/source/c/conda-store-server/conda-store-server-{{ version }}.tar.gz
+    sha256: 4622e5e32ee7948db41ee1e9767bf8fc9bdc260a57665c85fb3c6110db35de48
+    folder: conda-store-server
 
-build:
-  number: 0
-  noarch: python
-  script: "{{ PYTHON }} -m pip install . -vv"
+outputs:
+  - name: "conda-store"
+    version: {{ version }}
+    script: "build_conda_store.sh"
+    build:
+      number: {{ build }}
+      noarch: python
+    requirements:
+      host:
+        - python >=3.6
+        - pip
+        - jupyter-packaging
+      run:
+        - python >=3.6
+        - jupyterlab >=3
 
-requirements:
-  host:
-    - python >=3.6
-    - pip
-  run:
-    - python >=3.6
-    - conda-docker
-    - conda-pack
-    - sqlalchemy
-    - requests
-    - flask
-    - flask-cors
-    - pyyaml
-    - pydantic
-    - minio
+    test:
+      imports:
+        - conda_store
 
-test:
-  imports:
-    - conda_store
-    - conda_store.server
-    - conda_store.cli
+  - name: "conda-store-server"
+    version: {{ version }}
+    script: "build_conda_store_server.sh"
+    build:
+      number: {{ build }}
+      noarch: python
+    requirements:
+      host:
+        - python >=3.6
+        - pip
+      run:
+        - python >=3.6
+        - conda-docker
+        - conda-pack
+        - sqlalchemy
+        - requests
+        - flask
+        - flask-cors
+        - pyyaml
+        - pydantic
+        - minio
+        - typer
+
+    test:
+      imports:
+        - conda_store_server
+        - conda_store_server.cli
+      commands:
+        - conda-store-server --help
 
 about:
   home: https://github.com/Quansight/conda-store
@@ -53,3 +81,4 @@ about:
 extra:
   recipe-maintainers:
     - costrouc
+    - jaimergp
