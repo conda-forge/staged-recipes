@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -x
 
+if [[ "$target_platform" == linux-* ]]; then
+    export LD_LIBRARY_PATH=$PREFIX/lib
+fi
+
 declare -a ARGS
 ARGS+=("CC=${CC}")
 ARGS+=("LINKER=${CC}")
