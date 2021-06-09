@@ -4,11 +4,11 @@
     --prefix="${PREFIX}"  \
     --enable-libxml2-backend
 
-make
+make -j${CPU_COUNT}
 make install
 
 pushd tools
-make
+make -j${CPU_COUNT}
 make install
 popd
 
