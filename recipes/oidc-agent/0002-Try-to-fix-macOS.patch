@@ -1,0 +1,78 @@
+From aea8d7840767d2ead5f159123f126669d2ad1e10 Mon Sep 17 00:00:00 2001
+From: Chris Burr <christopher.burr@cern.ch>
+Date: Tue, 8 Jun 2021 11:29:13 +0200
+Subject: [PATCH] Try to fix macOS
+
+---
+ Makefile | 20 +++++++++++---------
+ 1 file changed, 11 insertions(+), 9 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 42d43dd..a7b2129 100644
+--- a/Makefile
++++ b/Makefile
+@@ -77,19 +77,17 @@ endif
+ CC       ?= gcc
+ # compiling flags here
+ CFLAGS   = -g -L$(PREFIX)/lib -std=c99 -I$(SRCDIR) -I$(LIBDIR)  -Wall -Wextra -fno-common
+-ifndef MAC_OS
+ ifndef NODPKG
+ 	CFLAGS   +=$(shell dpkg-buildflags --get CPPFLAGS)
+ 	CFLAGS   +=$(shell dpkg-buildflags --get CFLAGS)
+ endif
+-	CFLAGS += $(shell pkg-config --cflags libsecret-1)
+-endif
++CFLAGS += $(shell pkg-config --cflags libsecret-1)
+ TEST_CFLAGS = $(CFLAGS) -I.
+ 
+ # Linker options
+ LINKER   ?= gcc
+ ifdef MAC_OS
+-LFLAGS   = $(shell pkg-config --libs libsodium) -largp
++LFLAGS   = -rpath $(PREFIX)/lib $(shell pkg-config --libs libsodium) -largp
+ else
+ LFLAGS   = $(shell pkg-config --libs libsodium) $(shell pkg-config --libs libseccomp) -fno-common
+ ifndef NODPKG
+@@ -103,22 +101,26 @@ ifeq ($(USE_LIST_SO),1)
+ 	LFLAGS += -llist
+ endif
+ AGENT_LFLAGS = -lcurl -lmicrohttpd $(LFLAGS)
+-ifndef MAC_OS
++ifdef MAC_OS
++	AGENT_LFLAGS += -rpath $(PREFIX)/lib
++else MAC_OS
+ 	AGENT_LFLAGS += -lsecret-1 -lglib-2.0
+ endif
+ AGENTSERVER_LFLAGS = -lcurl -lmicrohttpd $(LFLAGS)
+ GEN_LFLAGS = $(LFLAGS) -lmicrohttpd
+ ADD_LFLAGS = $(LFLAGS)
+ ifdef MAC_OS
+-CLIENT_LFLAGS = -L$(APILIB) -largp -loidc-agent.$(LIBVERSION) $(shell pkg-config --libs libsodium)
++	CLIENT_LFLAGS = -rpath $(PREFIX)/lib -L$(APILIB) -largp -loidc-agent.$(LIBVERSION) $(shell pkg-config --libs libsodium)
+ else
+-CLIENT_LFLAGS = -L$(APILIB) -l:$(SHARED_LIB_NAME_FULL) $(shell pkg-config --libs libsodium) $(shell pkg-config --libs libseccomp)
++	CLIENT_LFLAGS = -L$(APILIB) -l:$(SHARED_LIB_NAME_FULL) $(shell pkg-config --libs libsodium) $(shell pkg-config --libs libseccomp)
+ ifndef NODPKG
+ 	CLIENT_LFLAGS += $(shell dpkg-buildflags --get LDFLAGS)
+ endif
+ endif
+ LIB_LFLAGS = -lc $(shell pkg-config --libs libsodium)
+-ifndef MAC_OS
++ifdef MAC_OS
++	LIB_LFLAGS += -rpath $(PREFIX)/lib
++else
+ ifndef NODPKG
+ 	LIB_FLAGS += $(shell dpkg-buildflags --get LDFLAGS)
+ endif
+@@ -575,7 +577,7 @@ $(APILIB)/liboidc-agent.a: $(APILIB) $(API_OBJECTS)
+ 
+ $(APILIB)/$(SHARED_LIB_NAME_FULL): create_picobj_dir_structure $(APILIB) $(PIC_OBJECTS)
+ ifdef MAC_OS
+-	@$(LINKER) -dynamiclib -fpic -Wl, -o $@ $(PIC_OBJECTS) $(LIB_LFLAGS)
++	@$(LINKER) -dynamiclib -install_name "@rpath/$(SONAME)" -fpic -Wl, -o $@ $(PIC_OBJECTS) $(LIB_LFLAGS)
+ else
+ 	@$(LINKER) -shared -fpic -Wl,-z,defs,-soname,$(SONAME) -o $@ $(PIC_OBJECTS) $(LIB_LFLAGS)
+ endif
+-- 
+2.31.1
+

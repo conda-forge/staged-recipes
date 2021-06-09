@@ -1,0 +1,61 @@
+From 6c8490d70632526a8c6293b3f815a76408fd8ed8 Mon Sep 17 00:00:00 2001
+From: zachmann <gabriel.zachmann@kit.edu>
+Date: Tue, 1 Jun 2021 08:38:12 +0200
+Subject: [PATCH] Add patch to use correct compilers
+
+---
+ Makefile | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index aa4eff7..42d43dd 100644
+--- a/Makefile
++++ b/Makefile
+@@ -74,9 +74,9 @@ else
+ endif
+ 
+ # Compiler options
+-CC       = gcc
++CC       ?= gcc
+ # compiling flags here
+-CFLAGS   = -g -std=c99 -I$(SRCDIR) -I$(LIBDIR)  -Wall -Wextra -fno-common
++CFLAGS   = -g -L$(PREFIX)/lib -std=c99 -I$(SRCDIR) -I$(LIBDIR)  -Wall -Wextra -fno-common
+ ifndef MAC_OS
+ ifndef NODPKG
+ 	CFLAGS   +=$(shell dpkg-buildflags --get CPPFLAGS)
+@@ -87,11 +87,11 @@ endif
+ TEST_CFLAGS = $(CFLAGS) -I.
+ 
+ # Linker options
+-LINKER   = gcc
++LINKER   ?= gcc
+ ifdef MAC_OS
+-LFLAGS   = -lsodium -largp
++LFLAGS   = $(shell pkg-config --libs libsodium) -largp
+ else
+-LFLAGS   = -lsodium -lseccomp -fno-common
++LFLAGS   = $(shell pkg-config --libs libsodium) $(shell pkg-config --libs libseccomp) -fno-common
+ ifndef NODPKG
+ LFLAGS +=$(shell dpkg-buildflags --get LDFLAGS)
+ endif
+@@ -110,14 +110,14 @@ AGENTSERVER_LFLAGS = -lcurl -lmicrohttpd $(LFLAGS)
+ GEN_LFLAGS = $(LFLAGS) -lmicrohttpd
+ ADD_LFLAGS = $(LFLAGS)
+ ifdef MAC_OS
+-CLIENT_LFLAGS = -L$(APILIB) -largp -loidc-agent.$(LIBVERSION) -lsodium
++CLIENT_LFLAGS = -L$(APILIB) -largp -loidc-agent.$(LIBVERSION) $(shell pkg-config --libs libsodium)
+ else
+-CLIENT_LFLAGS = -L$(APILIB) -l:$(SHARED_LIB_NAME_FULL) -lsodium -lseccomp
++CLIENT_LFLAGS = -L$(APILIB) -l:$(SHARED_LIB_NAME_FULL) $(shell pkg-config --libs libsodium) $(shell pkg-config --libs libseccomp)
+ ifndef NODPKG
+ 	CLIENT_LFLAGS += $(shell dpkg-buildflags --get LDFLAGS)
+ endif
+ endif
+-LIB_LFLAGS = -lc -lsodium
++LIB_LFLAGS = -lc $(shell pkg-config --libs libsodium)
+ ifndef MAC_OS
+ ifndef NODPKG
+ 	LIB_FLAGS += $(shell dpkg-buildflags --get LDFLAGS)
+-- 
+2.31.1
+
