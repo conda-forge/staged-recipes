@@ -1,1 +1,0 @@
-${PYTHON} -m pip install ./conda-store-server -vv --no-deps
