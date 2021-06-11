@@ -42,7 +42,7 @@ def build_all(recipes_dir, arch):
     for folder in folders:
         meta_yaml = os.path.join(recipes_dir, folder, "meta.yaml")
         if os.path.exists(meta_yaml):
-            with(open(meta_yaml, "r")) as f:
+            with(open(meta_yaml, "r", encoding="utf-8")) as f:
                 text = ''.join(f.readlines())
                 if 'cuda' in text:
                     found_cuda = True
