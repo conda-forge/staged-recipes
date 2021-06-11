@@ -18,10 +18,6 @@ IF NOT EXIST "tools\dev_tools\README.md" (
   if errorlevel 1 exit 1
 )
 
-:: add Python script to fix npctransport protobuf headers
-copy "%RECIPE_DIR%\patch_protoc.py" modules\npctransport\patch_protoc.py
-if errorlevel 1 exit 1
-
 echo "Build app wrapper"
 
 :: build app wrapper
