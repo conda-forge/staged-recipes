@@ -3,4 +3,4 @@
 set -euo pipefail
 
 cd ${SRC_DIR}
-IPOPT_DIR=${CONDA_PREFIX} ${PYTHON} -m pip install . -vv
+IPOPT_DIR=${PREFIX} ${PYTHON} -m pip install . -vv
