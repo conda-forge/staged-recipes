@@ -2,5 +2,5 @@
 
 export EIGEN_CFLAGS=$(pkg-config --cflags eigen3)
 
-./configure -nogui -noshared -openmp
+./configure -conda -nogui -noshared -openmp
 ./build -verbose
