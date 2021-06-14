@@ -1,0 +1,162 @@
+From 45b636df0d5cbdf6fb640e8f72171d5fc017fd19 Mon Sep 17 00:00:00 2001
+From: Giulio Girardi <giulio.girardi@protechgroup.it>
+Date: Thu, 10 Jun 2021 19:14:33 +0200
+Subject: [PATCH 2/4] Update display system to support multiple mimes
+
+Note that classes are still displayed only with custom formatting.
+
+Ref: #35
+---
+ share/xeus-octave/@sym/display.m |  4 ++--
+ share/xeus-octave/@tf/display.m  |  3 ++-
+ share/xeus-octave/display.m      | 23 +++++++++++++++--------
+ src/xoctave/display.cpp          | 32 +++++++++++++++++++++-----------
+ 4 files changed, 40 insertions(+), 22 deletions(-)
+
+diff --git a/share/xeus-octave/@sym/display.m b/share/xeus-octave/@sym/display.m
+index 78782c6..9bbecaa 100644
+--- a/share/xeus-octave/@sym/display.m
++++ b/share/xeus-octave/@sym/display.m
+@@ -1,7 +1,7 @@
+ function display(x)
+       name = private_disp_name(x, inputname (1));
+-
+-      display_data("text/latex", [ "$$" name, "=", latex(x) ,"$$"]);
++      out.("text/latex") = [ "$$" name, "=", latex(x) ,"$$"];
++      display_data(out);
+ end
+ 
+ ##
+diff --git a/share/xeus-octave/@tf/display.m b/share/xeus-octave/@tf/display.m
+index f579267..fbe24cb 100644
+--- a/share/xeus-octave/@tf/display.m
++++ b/share/xeus-octave/@tf/display.m
+@@ -55,7 +55,8 @@ function display(sys)
+ 		out = [ out " \\end{bmatrix} " ];
+ 	endif
+ 
+-	display_data("text/latex", [ "$$ " out, " $$"]);
++	dout.("text/latex") = [ "$$ " out, " $$"];
++	display_data(dout);
+ 
+ 	display (sys.lti);  # display sampling time
+ 
+diff --git a/share/xeus-octave/display.m b/share/xeus-octave/display.m
+index fe3465a..791cee7 100644
+--- a/share/xeus-octave/display.m
++++ b/share/xeus-octave/display.m
+@@ -78,7 +78,6 @@ function display(varargin)
+ 					try
+ 						displayjson(name, value);
+ 					catch
+-						warning("jsonencode function not present")
+ 						displaytext(name, value);
+ 					end
+ 				otherwise
+@@ -90,11 +89,15 @@ function display(varargin)
+ end
+ 
+ function displaymatrixhtml (name, value, fmt)
+-	display_data("text/html", __matrix_to_html__(name, value, fmt));
++	out.("text/html") = __matrix_to_html__(name, value, fmt);
++	out.("text/plain") = [name, " = ", disp(value)];
++	display_data(out);
+ end
+ 
+ function displaymatrixlatex (name, value, fmt)
+-	display_data("text/latex", __matrix_to_latex__(name, value, fmt));
++	out.("text/latex") = __matrix_to_latex__(name, value, fmt);
++	out.("text/plain") = [name, " = ", disp(value)];
++	display_data(out);
+ end
+ 
+ function displayscalarlatex (name, value)
+@@ -102,17 +105,21 @@ function displayscalarlatex (name, value)
+ 	x = [ x num2str(value) ];
+ 	x = [ x "$$" ];
+ 
+-	display_data("text/latex", x);
++	out.("text/latex") = x;
++	out.("text/plain") = [name, " = ", disp(value)];
++	display_data(out);
+ end
+ 
+ function displayjson (name, value)
+-	metadata.root = name;
+-
+-	display_data("application/json", jsonencode(value), true, jsonencode(metadata));
++	metadata.("application/json").root = name;
++	out.("application/json") = jsonencode(value);
++	out.("text/plain") = [name, " = ", disp(value)];
++	display_data(out);
+ end
+ 
+ function displaytext (name, value)
+-	display_data("text/plain", [name, " = ", disp(value)]);
++	out.("text/plain") = [name, " = ", disp(value)];
++	display_data(out);
+ end
+ 
+ 
+diff --git a/src/xoctave/display.cpp b/src/xoctave/display.cpp
+index aeeaad7..d45989f 100644
+--- a/src/xoctave/display.cpp
++++ b/src/xoctave/display.cpp
+@@ -22,8 +22,10 @@
+ #include <octave/cdef-package.h>
+ #include <octave/defun-int.h>
+ #include <octave/interpreter.h>
++#include <octave/oct-map.h>
+ #include <octave/symtab.h>
+ 
++#include <iostream>
+ #include <nlohmann/json.hpp>
+ #include <regex>
+ 
+@@ -35,24 +37,32 @@ namespace xoctave::display {
+ namespace {
+ 
+ octave_value_list display_data(const octave_value_list& args, int /*nargout*/) {
+-	if (args.length() < 2 || args.length() > 4)
++	if (args.length() < 1 || args.length() > 2)
+ 		print_usage();
+ 
+-	std::string type = args(0).xstring_value("TYPE must be a string");
+-	std::string value = args(1).xstring_value("VALUE must be a string");
++	nlohmann::json data;
++	octave_map d = args(0).xmap_value("DATA must be a map");
++
++	for (auto value : d) {
++		auto v = d.contents(value.second);
++		if (value.first == "application/json")
++			data[value.first] = nlohmann::json::parse(v(0).xstring_value("DATA contents must be strings"));
++		else
++			data[value.first] = v(0).xstring_value("DATA contents must be strings");
++	}
+ 
+-	nlohmann::json d;
+ 	nlohmann::json metadata;
+ 
+-	if (args.length() > 2 && args(2).xbool_value("ENCODE must be a boolean flag"))
+-		d[type] = nlohmann::json::parse(value);
+-	else
+-		d[type] = value;
++	if (args.length() > 1) {
++		octave_map m = args(0).xmap_value("METADATA must be a map");
+ 
+-	if (args.length() > 3)
+-		metadata[type] = nlohmann::json::parse(args(3).xstring_value("METADATA must be a json string"));
++		for (auto value : m) {
++			auto v = m.contents(value.second);
++			data[value.first] = v(0).xstring_value("METADATA contents must be strings");
++		}
++	}
+ 
+-	dynamic_cast<xoctave::xoctave_interpreter&>(xeus::get_interpreter()).display_data(d, metadata);
++	dynamic_cast<xoctave::xoctave_interpreter&>(xeus::get_interpreter()).display_data(data, metadata);
+ 
+ 	return ovl();
+ }
+-- 
+2.30.2
+

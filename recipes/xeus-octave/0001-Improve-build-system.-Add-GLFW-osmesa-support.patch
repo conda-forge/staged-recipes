@@ -1,0 +1,495 @@
+From 2eb09f87db004dcfdf4cbb8a6d8851662a91b9f0 Mon Sep 17 00:00:00 2001
+From: Giulio Girardi <giulio.girardi@protechgroup.it>
+Date: Wed, 9 Jun 2021 20:53:48 +0200
+Subject: [PATCH 1/4] Improve build system. Add GLFW osmesa support
+
+Close: #39
+Close: #38
+Close: #37
+Close: #36
+---
+ .gitignore                      |   3 +-
+ CMakeLists.txt                  | 119 ++++++++++++--------------------
+ CMakePresets.json               |  37 ++++++++++
+ README.md                       |  29 +++++++-
+ cmake/Modules/FindOrFetch.cmake |  58 ++++++++++++++++
+ src/toolkits/notebook.cpp       |  29 ++++++--
+ src/toolkits/notebook.hpp       |   4 +-
+ 7 files changed, 192 insertions(+), 87 deletions(-)
+ create mode 100644 CMakePresets.json
+ create mode 100644 cmake/Modules/FindOrFetch.cmake
+
+diff --git a/.gitignore b/.gitignore
+index ecb53a6..ab5a5e0 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -6,4 +6,5 @@ compile_commands.json
+ *.code-workspace
+ plotly
+ .cache
+-.ipynb_checkpoints
+\ No newline at end of file
++.ipynb_checkpoints
++CMakeUserPresets.json
+\ No newline at end of file
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index dfcec19..383c76f 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -19,91 +19,57 @@
+ cmake_minimum_required(VERSION 3.15)
+ 
+ set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
++set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+ 
+ project(xeus-octave
+         VERSION 0.0.1)
+ 
+-include(FetchContent)
+ include(GNUInstallDirs)
+ 
+ set(CMAKE_CXX_STANDARD 17)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+ 
+-################################################################################
+-# FETCH LIBRARIES
++set(GLFW3_OSMESA_BACKEND FALSE CACHE BOOL "Use the osmesa GLFW backend (for software rendering)")
++
++# Fetch libraries
+ ################################################################################
+ 
+-FetchContent_Declare(
++include(FindOrFetch)
++
++find_or_fetch_package(
+   cppzmq
+-  GIT_REPOSITORY https://github.com/zeromq/cppzmq.git
+-  GIT_TAG        v4.7.1
++  https://github.com/zeromq/cppzmq.git v4.7.1
++  CPPZMQ_BUILD_TESTS OFF
+ )
+ 
+-FetchContent_Declare(
++find_or_fetch_package(
+   xtl
+-  GIT_REPOSITORY https://github.com/xtensor-stack/xtl.git
+-  GIT_TAG        0.7.2
++  https://github.com/xtensor-stack/xtl.git 0.7.2
+ )
+ 
+-FetchContent_Declare(
++find_or_fetch_package(
+   xeus
+-  GIT_REPOSITORY https://github.com/jupyter-xeus/xeus.git
+-  GIT_TAG        1.0.0
++  https://github.com/jupyter-xeus/xeus.git 1.0.0
++  XEUS_BUILD_SHARED_LIBS OFF
+ )
+ 
+-FetchContent_Declare(
+-  xproperty
+-  GIT_REPOSITORY https://github.com/jupyter-xeus/xproperty.git
+-  GIT_TAG        0.11.0
++find_or_fetch_package(
++  glfw3
++  https://github.com/glfw/glfw 3.3.4
++  GLFW_USE_OSMESA ${GLFW3_OSMESA_BACKEND}
++  BUILD_SHARED_LIBS OFF
+ )
+ 
+-FetchContent_Declare(
+-  xwidgets
+-  GIT_REPOSITORY https://github.com/jupyter-xeus/xwidgets.git
+-  GIT_TAG        f21198f5934c90b034afee9b36c47b0e7b456c6b
+-)
+-
+-macro(FetchContent_MakeAvailableCustom content)
+-  FetchContent_GetProperties(${content})
+-  if(NOT ${content}_POPULATED)
+-    FetchContent_Populate(${content})
+-    add_subdirectory(${${content}_SOURCE_DIR} ${${content}_BINARY_DIR} EXCLUDE_FROM_ALL)
+-    # This is a hack...
+-    set(${content}_DIR ${${content}_BINARY_DIR})
+-  endif()
+-endmacro()
+-
+-# cppzmq
+-set(CPPZMQ_BUILD_TESTS OFF)
+-FetchContent_MakeAvailableCustom(cppzmq)
+-
+-# xtl
+-FetchContent_MakeAvailableCustom(xtl)
+-
+-# xeus
+-set(XEUS_BUILD_SHARED_LIBS OFF)
+-FetchContent_MakeAvailableCustom(xeus)
+-
+-# xproperty
+-FetchContent_MakeAvailableCustom(xproperty)
+-
+-# xwidgets
+-set(XWIDGETS_BUILD_SHARED_LIBS OFF)
+-FetchContent_MakeAvailableCustom(xwidgets)
+-
+-################################################################################
+-# FIND OCTAVE
++# Deps
+ ################################################################################
+-find_package(PkgConfig REQUIRED)
+-find_package(xeus REQUIRED)
+-find_package(xwidgets REQUIRED)
+-find_package(xproperty REQUIRED)
+ find_package(PNG REQUIRED)
+ 
+-pkg_check_modules(octinterp REQUIRED IMPORTED_TARGET octinterp)
++# Octave
++################################################################################
++find_package(PkgConfig REQUIRED)
+ 
+-set(NOTEBOOK_TOOLKIT_RENDER_TYPE "GPU" CACHE STRING "Rendering type for OpenGL native graphics toolkit. (Can be GPU, CPU, NONE)")
++pkg_check_modules(octinterp REQUIRED IMPORTED_TARGET GLOBAL octinterp)
+ 
+ set(EXECUTABLE_NAME xeus-octave)
+ 
+@@ -138,27 +104,29 @@ add_executable(${EXECUTABLE_NAME} ${XEUS_OCTAVE_SRC})
+ # Override path needed by kernel
+ target_compile_definitions(${EXECUTABLE_NAME} PRIVATE XOCTAVE_OVERRIDE_PATH="${CMAKE_INSTALL_PREFIX}/share/xeus-octave")
+ 
+-target_link_libraries(${EXECUTABLE_NAME} xeus-static xwidgets-static xproperty pthread)
++if (XEUS_FETCH)
++  target_link_libraries(${EXECUTABLE_NAME} xeus-static)
++else()
++  target_link_libraries(${EXECUTABLE_NAME} xeus)
++endif()
++
++target_link_libraries(${EXECUTABLE_NAME} pthread)
+ target_link_libraries(${EXECUTABLE_NAME} PkgConfig::octinterp)
+-target_link_libraries(${EXECUTABLE_NAME} PNG::PNG)
+ 
+-if (NOTEBOOK_TOOLKIT_RENDER_TYPE STREQUAL "GPU")
+-  find_package(OpenGL REQUIRED)
+-  pkg_check_modules(glfw3 REQUIRED IMPORTED_TARGET glfw3)
+-  set(NOTEBOOK_TOOLKIT_ENABLED ON)
+-  target_link_libraries(${EXECUTABLE_NAME} PkgConfig::glfw3 OpenGL::GL)
+-  message(STATUS "Notebook graphics toolkit will use hardware rendering")
+-elseif (NOTEBOOK_TOOLKIT_RENDER_TYPE STREQUAL "CPU")
++if (GLFW3_OSMESA_BACKEND)
+   pkg_check_modules(osmesa REQUIRED IMPORTED_TARGET osmesa)
+-  pkg_check_modules(glfw3 REQUIRED IMPORTED_TARGET glfw3)
+-  set(NOTEBOOK_TOOLKIT_ENABLED ON)
+-  set(NOTEBOOK_TOOLKIT_CPU ON)
+-  target_link_libraries(${EXECUTABLE_NAME} PkgConfig::glfw3 PkgConfig::osmesa)
+-  message(STATUS "Notebook graphics toolkit will use software rendering")
+-else ()
+-  message(STATUS "The notebook graphics toolkit will be disabled")
++  target_link_libraries(${EXECUTABLE_NAME} PkgConfig::osmesa)
++  set(NOTEBOOK_TOOLKIT_CPU TRUE)
++else()
++  find_package(OpenGL REQUIRED)
++  target_link_libraries(${EXECUTABLE_NAME} OpenGL::OpenGL)
+ endif()
+ 
++target_link_libraries(${EXECUTABLE_NAME} glfw)
++target_link_libraries(${EXECUTABLE_NAME} PNG::PNG)
++
++set(NOTEBOOK_TOOLKIT_ENABLED ON)
++
+ configure_file(
+   "${CMAKE_SOURCE_DIR}/config.h.in"
+   "${CMAKE_BINARY_DIR}/config.h"
+@@ -180,9 +148,8 @@ set_target_properties(${EXECUTABLE_NAME} PROPERTIES
+ )
+ 
+ # Installation
+-# ============
++################################################################################
+ 
+-# Install my_kernel
+ install(TARGETS ${EXECUTABLE_NAME}
+         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+ 
+diff --git a/CMakePresets.json b/CMakePresets.json
+new file mode 100644
+index 0000000..7e6f48f
+--- /dev/null
++++ b/CMakePresets.json
+@@ -0,0 +1,37 @@
++{
++    "version": 2,
++    "configurePresets": [
++        {
++            "name": "base",
++            "displayName": "Base",
++            "description": "Base profile containing common settings",
++            "binaryDir": "${sourceDir}/build/${presetName}",
++            "generator": "Unix Makefiles",
++            "hidden": true
++        },
++        {
++            "name": "debug",
++            "description": "Debug",
++            "displayName": "Debug",
++            "cacheVariables": {
++                "CMAKE_BUILD_TYPE": "Debug"
++            },
++            "inherits": [
++                "base"
++            ]
++        },
++        {
++            "name": "debug_osmesa",
++            "description": "Debug with software rendering",
++            "displayName": "Debug+Osmesa",
++            "cacheVariables": {
++                "CMAKE_BUILD_TYPE": "Debug",
++                "GLFW3_FETCH": "TRUE",
++                "GLFW3_OSMESA_BACKEND": "TRUE"
++            },
++            "inherits": [
++                "base"
++            ]
++        }
++    ]
++}
+\ No newline at end of file
+diff --git a/README.md b/README.md
+index 035e9e8..c4891be 100644
+--- a/README.md
++++ b/README.md
+@@ -10,7 +10,8 @@ many types with ease.
+ 
+ Available visualisations are:
+ 
+-* Advanced plots using [plotly](https://github.com/plotly/plotly.js), with zoom, cursors, and hover tooltips
++* Image based plot rendering (using Octave native toolkit)
++* Experimental plots using [plotly](https://github.com/plotly/plotly.js), with zoom, cursors, and hover tooltips
+ * Matrices shown as tables
+ * Structs shown as json
+ * Symbolic classes as latex
+@@ -31,12 +32,38 @@ $ make
+ $ sudo make install
+ ```
+ 
++CMake will download and statically link xeus libraries within the final kernel binary if it cannot find them in the filesystem.
++
++This behaviour can be overridden by setting the CMake `<package>_FETCH` variable to `TRUE`, which forces CMake to explicitly download and build all the following dependencies.
++
++| Library | Variable            |
++| ------- | ------------------- |
++| cppzmq  | `CPPZMQ_FETCH=TRUE` |
++| xtl     | `XTL_FETCH=TRUE`    |
++| xeus    | `XEUS_FETCH=TRUE`   |
++| glfw3   | `GLFW3_FETCH=TRUE`  |
++
+ If you use Jupyter lab you also need the plotly extension (nteract ships it by default):
+ 
+ ```
+ $ jupyter labextension install jupyterlab-plotly
+ ```
+ 
++### Building for headless systems
++
++Octave uses OpenGL for rendering, which means that it needs a display server to render figures. In order to work on headless systems (e.g. servers) `xeus-octave` supports linking against glfw with osmesa backend (a software based OpenGL implementation). For this set the `GLFW3_OSMESA_BACKEND` variable to `TRUE`.
++
++Usually distributions do not provide glfw with the osmesa backend, so it's probably best to build glfw in-tree with the `GLFW3_FETCH` option.
++
++This is an example invocation:
++
++```
++$ mkdir build && cd build
++$ cmake -DGLFW3_OSMESA_BACKEND=TRUE -DGLFW3_FETCH=TRUE ..
++$ make
++$ sudo make install
++```
++
+ ### Arch Linux users
+ 
+ For arch linux users a PKGBUILD has been provided (you still need to install jupyterlab plotly extension)
+diff --git a/cmake/Modules/FindOrFetch.cmake b/cmake/Modules/FindOrFetch.cmake
+new file mode 100644
+index 0000000..37d3bf4
+--- /dev/null
++++ b/cmake/Modules/FindOrFetch.cmake
+@@ -0,0 +1,58 @@
++include(FetchContent)
++find_package(PkgConfig REQUIRED)
++
++# Common functions for managing dependencies
++################################################################################
++
++macro(find_or_fetch_package package repo tag)
++  # Set the package name
++  string(TOUPPER ${package} PACKAGE_NAME)
++
++  if(NOT ${PACKAGE_NAME}_FETCH)
++    # Try finding the package
++    find_package(${package} QUIET)
++
++  endif()
++
++  # If the find_package fails or if it's been set in the cmake cache to be
++  # forcefully fetched
++  if(NOT ${package}_FOUND)
++    if(NOT ${PACKAGE_NAME}_FETCH)
++      message(STATUS "${package} not found. Fetching it.")
++    else()
++      message(STATUS "${package} is being fetched.")
++    endif()
++    # Fetch the package from source
++    FetchContent_Declare(${package} GIT_REPOSITORY ${repo} GIT_TAG ${tag})
++    # Signal that we fetch this package
++    set(${PACKAGE_NAME}_FETCH TRUE)
++
++    # Set the variables specified in the remaining macro arguments
++    set(SET_VARS "${ARGN}")
++    list(LENGTH SET_VARS SET_VARS_LEN)
++    if (SET_VARS_LEN)
++      math(EXPR SET_VARS_LEN "${SET_VARS_LEN}-1")
++      foreach(VAR_NAME_INDEX RANGE 0 ${SET_VARS_LEN} 2)
++        math(EXPR VAR_VALUE_INDEX "${VAR_NAME_INDEX}+1")
++
++        list(GET SET_VARS ${VAR_NAME_INDEX} VAR_NAME)
++        list(GET SET_VARS ${VAR_VALUE_INDEX} VAR_VALUE)
++        set(${VAR_NAME} ${VAR_VALUE})
++      endforeach()
++    endif()
++
++    message(STATUS "Begin ${package} output --")
++
++    # Hacky solution to be sure to include the fetched package in the build
++    FetchContent_GetProperties(${package})
++    if(NOT ${package}_POPULATED)
++      FetchContent_Populate(${package})
++      add_subdirectory(${${package}_SOURCE_DIR} ${${package}_BINARY_DIR} EXCLUDE_FROM_ALL)
++      set(${package}_DIR ${${package}_BINARY_DIR})
++    endif()
++
++    message(STATUS "End ${package} output --")
++  else()
++    message(STATUS "Found ${package}.")
++  endif()
++endmacro()
+diff --git a/src/toolkits/notebook.cpp b/src/toolkits/notebook.cpp
+index f0493f9..d7c103b 100644
+--- a/src/toolkits/notebook.cpp
++++ b/src/toolkits/notebook.cpp
+@@ -59,6 +59,10 @@ using namespace nlohmann;
+ namespace xoctave {
+ 
+ notebook_graphics_toolkit::notebook_graphics_toolkit(octave::interpreter& interpreter) : base_graphics_toolkit("notebook"), m_interpreter(interpreter) {
++	glfwSetErrorCallback([](int error, const char* description) {
++		std::clog << "GLFW Error: " << description << " (" << error << ")" << std::endl;
++	});
++
+ 	glfwInitHint(GLFW_COCOA_MENUBAR, GLFW_FALSE);
+ 
+ 	if (!glfwInit()) {
+@@ -68,6 +72,7 @@ notebook_graphics_toolkit::notebook_graphics_toolkit(octave::interpreter& interp
+ 
+ 	glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+ 
++#ifndef NOTEBOOK_TOOLKIT_CPU
+ 	window = glfwCreateWindow(100, 100, "", NULL, NULL);
+ 	if (!window) {
+ 		glfwTerminate();
+@@ -79,11 +84,15 @@ notebook_graphics_toolkit::notebook_graphics_toolkit(octave::interpreter& interp
+ #ifndef NDEBUG
+ 	std::clog << "OpenGL vendor: " << glGetString(GL_VENDOR) << std::endl;
+ #endif
++
++#endif
+ }
+ 
+ notebook_graphics_toolkit::~notebook_graphics_toolkit() {
++#ifndef NOTEBOOK_TOOLKIT_CPU
+ 	if (window)
+ 		glfwDestroyWindow(window);
++#endif
+ 
+ 	glfwTerminate();
+ }
+@@ -94,7 +103,10 @@ bool notebook_graphics_toolkit::initialize(const graphics_object& go) {
+ 		figure::properties& figureProperties = dynamic_cast<figure::properties&>(graphics_object(go).get_properties());
+ 		float xscale, yscale;
+ 
+-		glfwGetMonitorContentScale(glfwGetPrimaryMonitor(), &xscale, &yscale);
++		if (auto* monitor = glfwGetPrimaryMonitor())
++			glfwGetMonitorContentScale(monitor, &xscale, &yscale);
++		else
++			xscale = yscale = 1;
+ 
+ 		float dpr = std::max(xscale, yscale);
+ 
+@@ -142,7 +154,12 @@ void notebook_graphics_toolkit::redraw_figure(const graphics_object& go) const {
+ 	octave::opengl_functions m_glfcns;
+ 	octave::opengl_renderer m_renderer(m_glfcns);
+ 
++#ifdef NOTEBOOK_TOOLKIT_CPU
++	auto window = glfwCreateWindow(width, height, "", NULL, NULL);
++	glfwMakeContextCurrent(window);
++#else
+ 	glfwSetWindowSize(window, width, height);
++#endif
+ 
+ 	m_renderer.set_viewport(width, height);
+ 	m_renderer.set_device_pixel_ratio(dpr);
+@@ -160,12 +177,8 @@ void notebook_graphics_toolkit::redraw_figure(const graphics_object& go) const {
+ 
+ 	unsigned char* screen;
+ 
+-#ifdef NOTEBOOK_TOOLKIT_CPU
+-	glfwGetOSMesaColorBuffer(window, &width, &height, NULL, (void**) &screen);
+-#else
+ 	screen = new unsigned char[width * height * 3];
+ 	glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, screen);
+-#endif
+ 
+ #ifndef NDEBUG
+ 	auto encode_start = high_resolution_clock::now();
+@@ -220,15 +233,17 @@ void notebook_graphics_toolkit::redraw_figure(const graphics_object& go) const {
+ 	std::clog << "Send time: " << send_duration.count() << std::endl;
+ #endif
+ 
+-#ifndef NOTEBOOK_TOOLKIT_CPU
+ 	delete[] screen;
+-#endif
+ 
+ #ifndef NDEBUG
+ 	auto stop = high_resolution_clock::now();
+ 	auto duration = duration_cast<microseconds>(stop - start);
+ 	std::clog << "Draw time: " << duration.count() << std::endl;
+ #endif
++
++#ifdef NOTEBOOK_TOOLKIT_CPU
++	glfwDestroyWindow(window);
++#endif
+ }
+ 
+ void notebook_graphics_toolkit::update(const graphics_object&, int) {
+diff --git a/src/toolkits/notebook.hpp b/src/toolkits/notebook.hpp
+index c4b54b7..757cbf7 100644
+--- a/src/toolkits/notebook.hpp
++++ b/src/toolkits/notebook.hpp
+@@ -33,8 +33,6 @@
+ #include <nlohmann/json.hpp>
+ 
+ #include "opengl.hpp"
+-#include "xwidgets/xtransport.hpp"
+-#include "xwidgets/xwidget.hpp"
+ 
+ namespace xoctave {
+ 
+@@ -53,7 +51,9 @@ public:
+ 	void finalize(const graphics_object &) override;
+ 
+ private:
++#ifndef NOTEBOOK_TOOLKIT_CPU
+ 	GLFWwindow *window = nullptr;
++#endif
+ 	octave::interpreter &m_interpreter;
+ };
+ 
+-- 
+2.30.2
+
