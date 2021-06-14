@@ -1,0 +1,82 @@
+{% set name = "impact-z" %}
+{% set version = "2.1" %}
+
+{% set build = 0 %}
+# ensure mpi is defined (needed for conda-smithy recipe-lint)
+{% set mpi = mpi or 'nompi' %}
+
+{% if mpi == 'nompi' %}
+# prioritize nompi variant via build number
+{% set build = build + 100 %}
+{% endif %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/hhslepicka/IMPACT-Z/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 44e0a5dae4771f4bd80271e5f16a491fd4765f51c716a660f95a39440c6c6489
+
+build:
+  number: {{ build }}
+
+  # add build string so packages can depend on
+  # mpi or nompi variants explicitly:
+  # `pkg * mpi_mpich_*` for mpich
+  # `pkg * mpi_*` for any mpi
+  # `pkg * nompi_*` for no mpi
+
+  {% if mpi != 'nompi' %}
+  {% set mpi_prefix = "mpi_" + mpi %}
+  {% else %}
+  {% set mpi_prefix = "nompi" %}
+  {% endif %}
+  string: "{{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}"
+
+  {% if mpi != 'nompi' %}
+
+  run_exports:
+    - {{ name }} * {{ mpi_prefix }}_*
+  {% endif %}
+
+requirements:
+  build:
+    - make
+    - {{ compiler('c') }}                    # [not win]
+    - {{ compiler('m2w64_c') }}              # [win]
+    - {{ compiler('fortran') }}              # [not win]
+    - {{ compiler('m2w64_fortran') }}        # [win]
+    - cmake
+    - openmpi  # [mpi == "openmpi" and (build_platform != target_platform)]
+  host:
+    - {{ mpi }}  # [mpi != 'nompi']
+  run:
+    - {{ mpi }}  # [mpi != 'nompi']
+
+test:
+  commands:
+    - which ImpactZexe  # [unix]
+    - which ImpactZexe-mpi  # [unix and mpi != 'nompi']
+    - where ImpactZexe  # [win]
+
+about:
+  home: https://github.com/impact-lbl/IMPACT-Z
+  license: BSD-3-Clause-LBNL
+  license_family: BSD
+  license_file: license.txt
+  summary: IMPACT-Z: Integrated Map and Particle ACcelerator Tracking Code
+  description: |
+    IMPACT-Z is a parallel+serial particle-in-cell code whose primary purpose
+    is to model the dynamics of multiple charged particle beams in linear and
+    ring accelerators. The code uses longitudinal position (z) as independent
+    variable and includes the effects of externally applied fields from magnets
+    and accelerating cavities as well as the effect of self-fields (space 
+    charge fields).
+  doc_url: https://amac.lbl.gov/~jiqiang/IMPACT/index.html
+  dev_url: https://github.com/impact-lbl/IMPACT-Z
+
+extra:
+  recipe-maintainers:
+    - hhslepicka
+    - ChristopherMayes
