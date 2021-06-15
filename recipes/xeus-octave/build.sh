@@ -1,6 +1,6 @@
 
 #!/bin/bash
 
-cmake -DCMAKE_INSTALL_PREFIX=$PREFIX
+cmake ${CMAKE_ARGS}
 
 make install -j8
