@@ -1,6 +1,6 @@
 
 #!/bin/bash
 
-cmake ${CMAKE_ARGS}
+cmake -GNinja ${CMAKE_ARGS}
 
-make install -j8
+ninja install
