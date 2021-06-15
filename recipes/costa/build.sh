@@ -1,8 +1,13 @@
-# select ARCH file and version
+if [[ "$PKG_NAME" == "costa-scalapack" ]]; then
+  COSTA_SCALAPACK=CUSTOM
+else
+  COSTA_SCALAPACK=OFF
+fi
+
+
 cmake \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DCOSTA_SCALAPACK=$COSTA_SCALAPACK \
-    -DBUILD_SHARED_LIBS=ON \
     -DCOSTA_WITH_TESTS=ON \
     $CMAKE_ARG
 
