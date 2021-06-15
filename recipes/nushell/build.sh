@@ -3,7 +3,7 @@
 set -o xtrace -o nounset -o pipefail -o errexit
 
 # build statically linked binary with Rust
-cargo install --features pcre2 --root "$PREFIX" --path .
+cargo install --root "$PREFIX" --path .
 
 # strip debug symbols
 "$STRIP" "$PREFIX/bin/nu"
