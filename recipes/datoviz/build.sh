@@ -21,7 +21,7 @@ elif [[ "$OSTYPE" == "msys" ]]; then
 else
 
     # Build the docker image.
-    sudo docker build -t datoviz_wheel -f Dockerfile_wheel .
+    docker build -t datoviz_wheel -f Dockerfile_wheel .
 
     # Clean up the Cython bindings before running the docker container.
     cd bindings/cython && \
@@ -32,8 +32,8 @@ else
     # Make the wheel and repair it.
     # Build a container based on a manylinux image, + Vulkan and other things needed by the
     # datoviz build script.
-    sudo docker run --rm -v $ROOT_DIR:/io datoviz_wheel /io/wheel.sh && \
+    docker run --rm -v $ROOT_DIR:/io datoviz_wheel /io/wheel.sh && \
     USER=`users | awk '{print $1}'`
-    sudo chown -R $USER:$USER bindings/cython/dist
+    chown -R $USER:$USER bindings/cython/dist
 
 fi
