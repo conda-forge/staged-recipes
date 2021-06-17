@@ -1,3 +1,12 @@
+---
+name: General question
+about: Ask a general question about staged-recipes
+title: ''
+labels: ''
+assignees: ''
+
+---
+
 <!--
 Please note that conda-forge team doesn't follow this repo because
 of the high volume of notifications. If you would like to get the
