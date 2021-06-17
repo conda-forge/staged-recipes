@@ -16,7 +16,7 @@ Finally, don't hesitate to create an initial PR and we'll be happy to help you f
 -->
 # Some links to get you started
 - [Currently available conda-forge packages](https://conda-forge.org/feedstock-outputs/)
-- [The conda-forge docs](https://conda-forge.org/#add_recipe)
+- [The conda-forge docs](https://conda-forge.org/docs/maintainer/adding_pkgs.html#the-staging-process)
 - [Grayskull](https://github.com/conda-incubator/grayskull) - to automatically generate a recipe for packages on PyPI
 - [The conda r skeleton helpers](https://github.com/bgruening/conda_r_skeleton_helper) - to automatically generate a recipe for packages on CRAN
 
