@@ -1,6 +1,6 @@
 ---
 name: Package request
-about: Requesting a package for conda-forge
+about: Request a package for conda-forge
 title: "[Package request]"
 labels: Package request
 assignees: ''
