@@ -15,6 +15,7 @@ Please also note, that you do not need to be the original maintainer of the pack
 Finally, don't hesitate to create an initial PR and we'll be happy to help you from there.
 -->
 # Some links to get you started
+- [Currently available conda-forge packages](https://conda-forge.org/feedstock-outputs/)
 - [The conda-forge docs](https://conda-forge.org/#add_recipe)
 - [Grayskull](https://github.com/conda-incubator/grayskull) - to automatically generate a recipe for packages on PyPI
 - [The conda r skeleton helpers](https://github.com/bgruening/conda_r_skeleton_helper) - to automatically generate a recipe for packages on CRAN
@@ -28,5 +29,5 @@ Finally, don't hesitate to create an initial PR and we'll be happy to help you f
 - _Additional comments_:
 
 # Before submitting
-- [ ] Please [verify](https://conda-forge.org/feedstock-outputs/), that the package does not already exist (Also check with _hyphens_ vs. _underscores_ and added identifiers like `python-` and `r-`).
+- [ ] Verify that the package does not already exist (Also check with _hyphens_ vs. _underscores_ and added identifiers like `python-` and `r-`).
 - [ ] Check that no previous [issue](https://github.com/conda-forge/staged-recipes/issues) exists and that no [PR](https://github.com/conda-forge/staged-recipes/pulls) is currently open. 
