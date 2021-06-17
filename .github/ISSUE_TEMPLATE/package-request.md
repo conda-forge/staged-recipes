@@ -14,7 +14,7 @@ Some information on how to get started with adding a package can be found in the
 Please also note, that you do not need to be the original maintainer of the package to add it to conda forge.
 Finally, don't hesitate to create an initial PR and we'll be happy to help you from there.
 -->
-# Some links to get you started
+# Some links to get started
 - [Currently available conda-forge packages](https://conda-forge.org/feedstock-outputs/)
 - [The conda-forge docs](https://conda-forge.org/docs/maintainer/adding_pkgs.html#the-staging-process)
 - [Grayskull](https://github.com/conda-incubator/grayskull) - to automatically generate a recipe for packages on PyPI
