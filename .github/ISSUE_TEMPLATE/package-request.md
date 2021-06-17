@@ -1,6 +1,6 @@
 ---
 name: Package request
-about: Request a package for conda-forge
+about: Request a package you would like to have added to the conda-forge channel
 title: "[Package request]"
 labels: Package request
 assignees: ''
@@ -10,7 +10,7 @@ assignees: ''
 <!-- Use this template if you would like to have a new package added to conda-forge.
 As we are all volunteers here, please note though that we cannot always accommodate your request but encourage you to try to submit the package yourself.
 
-Some information on how to get started can be found in the conda-forge docs, linked below.
+Some information on how to get started with adding a package can be found in the conda-forge docs, linked below.
 Please also note, that you do not need to be the original maintainer of the package to add it to conda forge.
 Finally, don't hesitate to create an initial PR and we'll be happy to help you from there.
 -->
