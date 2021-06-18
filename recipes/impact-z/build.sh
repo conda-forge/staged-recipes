@@ -4,8 +4,6 @@
 export OPAL_PREFIX=$PREFIX
 
 if [[ "$target_platform" == osx* ]]; then
-    CMAKE_FLAGS+=" -DCMAKE_OSX_SYSROOT=${CONDA_BUILD_SYSROOT}"
-    CMAKE_FLAGS+=" -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}"
     # Hack around https://github.com/conda-forge/gfortran_osx-64-feedstock/issues/11
     # Taken from https://github.com/awvwgk/staged-recipes/tree/dftd4/recipes/dftd4
     # See contents of fake-bin/cc1 for an explanation
