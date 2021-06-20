@@ -20,7 +20,7 @@ case "$os" in
         exit 1
         ;;
 esac
-configure.sh
+bash configure.sh
 cd "build/$os-Release"
 cmake --build . 
 cmake --install --prefix ${PREFIX}
