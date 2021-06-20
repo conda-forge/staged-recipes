@@ -1,96 +1,38 @@
+# This file was generated automatically from conda-smithy. To update this configuration,
+# update the conda-forge.yml and/or the recipe/meta.yaml.
+# -*- mode: yaml -*-
+
 jobs:
-- job: linux_64
-  condition: not(eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+- job: linux
   pool:
     vmImage: ubuntu-latest
+  strategy:
+    matrix:
+      linux_64_:
+        CONFIG: linux_64_
+        UPLOAD_PACKAGES: 'True'
+        DOCKER_IMAGE: quay.io/condaforge/linux-anvil-comp7
   timeoutInMinutes: 360
+
   steps:
   - script: |
-      # sudo pip install --upgrade pip
-      sudo pip install setuptools shyaml
-    displayName: Install dependencies
+         rm -rf /opt/ghc
+         df -h
+    displayName: Manage disk space
+
+  # configure qemu binfmt-misc running.  This allows us to run docker containers
+  # embedded qemu-static
+  - script: |
+      docker run --rm --privileged multiarch/qemu-user-static:register --reset --credential yes
+      ls /proc/sys/fs/binfmt_misc/
+    condition: not(startsWith(variables['CONFIG'], 'linux_64'))
+    displayName: Configure binfmt_misc
 
   - script: |
-      set -e
-
-      # make sure there is a package directory so that artifact publishing works
-      mkdir -p build_artifacts/{noarch,linux-64}/
-
-      export CI=azure
-      export CONFIG=linux64
-      export IMAGE_NAME=quay.io/condaforge/linux-anvil-comp7
-      export AZURE=True
-      .scripts/run_docker_build.sh
-
+        export CI=azure
+        export GIT_BRANCH=$BUILD_SOURCEBRANCHNAME
+        export FEEDSTOCK_NAME=$(basename ${BUILD_REPOSITORY_NAME})
+        .scripts/run_docker_build.sh
     displayName: Run docker build
-    name: linux_64_build
-
-  - publish: build_artifacts/linux-64/
-    artifact: conda_pkgs_linux
-
-  - publish: build_artifacts/noarch/
-    artifact: conda_pkgs_noarch
-
-- job: linux_64_cuda_102
-  dependsOn: linux_64
-  condition: and(not(eq(variables['Build.SourceBranch'], 'refs/heads/master')), eq(dependencies.linux_64.outputs['linux_64_build.NEED_CUDA'], '1'))
-  pool:
-    vmImage: ubuntu-latest
-  timeoutInMinutes: 360
-  variables:
-    NEED_CENTOS7: $[ dependencies.linux_64.outputs['linux_64_build.NEED_CENTOS7'] ]
-  steps:
-  - script: |
-      # sudo pip install --upgrade pip
-      sudo pip install setuptools shyaml
-    displayName: Install dependencies
-
-  - script: |
-      set -e
-
-      # make sure there is a package directory so that artifact publishing works
-      mkdir -p build_artifacts/linux-64/
-
-      export CI=azure
-      export CONFIG=linux64
-      if [[ "$(NEED_CENTOS7)" == "1" ]]; then
-        export IMAGE_NAME=quay.io/condaforge/linux-anvil-cos7-cuda:10.2
-      else
-        export IMAGE_NAME=quay.io/condaforge/linux-anvil-cuda:10.2
-      fi
-      export AZURE=True
-      export CF_CUDA_VERSION="10.2"
-      .scripts/run_docker_build.sh
-
-    displayName: Run docker build for CUDA 10.2
-  - publish: build_artifacts/linux-64/
-    artifact: conda_pkgs_linux_64_cuda102
-
-- job: linux_64_centos7
-  dependsOn: linux_64
-  condition: and(not(eq(variables['Build.SourceBranch'], 'refs/heads/master')), eq(dependencies.linux_64.outputs['linux_64_build.NEED_CENTOS7'], '1'))
-  pool:
-    vmImage: ubuntu-latest
-  timeoutInMinutes: 360
-  steps:
-  - script: |
-      # sudo pip install --upgrade pip
-      sudo pip install setuptools shyaml
-    displayName: Install dependencies
-
-  - script: |
-      set -e
-
-      # make sure there is a package directory so that artifact publishing works
-      mkdir -p build_artifacts/linux-64/
-
-      export CI=azure
-      export CONFIG=linux64
-      export IMAGE_NAME=quay.io/condaforge/linux-anvil-cos7-x86_64
-      export AZURE=True
-      .scripts/run_docker_build.sh
-
-    displayName: Run docker build for centos 7
-  - publish: build_artifacts/linux-64/
-    artifact: conda_pkgs_linux_64_centos7
-
+    env:
+      BINSTAR_TOKEN: $(BINSTAR_TOKEN)
