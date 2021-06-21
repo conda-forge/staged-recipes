@@ -24,4 +24,12 @@ else
   export FORCE_CUDA=1
 fi
 
+echo "ENVIRONMENT VARIABLE VALUES ARE:"
+env
+
+echo "COMPILER VERSIONS ARE:"
+nvcc --version
+$GCC --version
+
+echo "BUILDING PYTHON PACKAGE:"
 ${PYTHON} -m pip install . -vv
