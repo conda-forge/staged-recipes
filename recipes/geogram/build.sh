@@ -1,4 +1,5 @@
 os=`uname -a`
+echo os 
 case "$os" in
     Linux*x86_64*)
         os=Linux64-gcc-dynamic
