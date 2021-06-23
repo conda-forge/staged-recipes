@@ -1,4 +1,3 @@
-# Conda build recipe for liblsl
 
 {% set name = "liblsl" %}
 {% set version = "1.14.1b8" %}
@@ -11,25 +10,28 @@ source:
   url: https://github.com/sccn/{{ name }}/archive/refs/tags/v{{ version }}.tar.gz
   sha256: 196d28608f0c91fb589fd6392e5f4bf2c4d6d5ee4a68ae1df22bf7352a7621b4
 
-{% set common_cmake_args = "-DCMAKE_BUILD_TYPE=Release -DLSL_BUNDLED_PUGIXML=OFF -DLSL_UNIXFOLDERS=ON -S . -B build" %}
-
 build:
   number: 0
-  script:
-  - 'cmake $CMAKE_ARGS {{ common_cmake_args }}'  # [not win]
-  - 'cmake -DCMAKE_INSTALL_PREFIX="{{ PREFIX }}" -DCMAKE_PREFIX_PATH="{{ PREFIX }}" {{ common_cmake_args }} -G "%CMAKE_GEN%"'  # [win]
-  - 'cmake --build build --config Release -j --target install'
+  run_exports:
+    - liblsl
 
 requirements:
   build:
     - cmake >=3.12
     - {{ compiler('cxx') }}
-    - pugixml
   host:
+    - pugixml
 
 test:
   commands:
     - lslver
+    - test -f $PREFIX/include/lsl_c.h  # [unix]
+    - test -f $PREFIX/include/lsl_cpp.h  # [unix]
+    - if not exist %LIBRARY_INC%\\lsl_c.h exit 1  # [win]
+    - if not exist %LIBRARY_INC%\\lsl_cpp.h exit 1  # [win]
+    - test -f $PREFIX/lib/liblsl.so  # [linux]
+    - test -f $PREFIX/lib/liblsl.dylib  # [osx]
+    - if not exist %PREFIX%\\Library\\bin\\lsl.dll exit 1  # [win]
 
 about:
   home: https://github.com/sccn/liblsl
