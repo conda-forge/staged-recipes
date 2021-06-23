@@ -11,7 +11,7 @@ dir %SRC_DIR%\target
 
 if not exist %LIBRARY_LIB% mkdir %LIBRARY_LIB%
 
-copy "%SRC_DIR%\target\plantuml-v%PKG_VERSION%" "%LIBRARY_LIB%\" || goto :error
+copy "%SRC_DIR%\target\plantuml-v%PKG_VERSION%.jar" "%LIBRARY_LIB%\" || goto :error
 
 if not exist %LIBRARY_BIN% mkdir %LIBRARY_BIN%
 
