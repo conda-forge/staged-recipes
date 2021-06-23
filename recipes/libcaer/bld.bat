@@ -7,7 +7,7 @@ cmake ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DUDEV_INSTALL=False ^
-    -DENABLE_OPENCV=1
+    -DENABLE_OPENCV=1 ^
     %SRC_DIR%
 if errorlevel 1 exit 1
 
