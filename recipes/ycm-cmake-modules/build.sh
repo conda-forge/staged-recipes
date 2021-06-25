@@ -9,4 +9,5 @@ cmake ${CMAKE_ARGS} -GNinja .. \
 
 cmake --build . --config Release
 cmake --build . --config Release --target install
-ctest --output-on-failure -C Release
+# Some tests disabled due to https://github.com/robotology/ycm/issues/382
+ctest --output-on-failure -C Release -E "YCMBootstrap-not-use-system|YCMBootstrap-disable-find|RunCMake.IncludeUrl"
