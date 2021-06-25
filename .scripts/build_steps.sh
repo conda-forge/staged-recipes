@@ -24,6 +24,9 @@ CONDARC
 # Copy the host recipes folder so we don't ever muck with it
 cp -r /home/conda/staged-recipes ~/staged-recipes-copy
 
+# Remove any macOS system files
+find ~/staged-recipes-copy/recipes -maxdepth 1 -name ".DS_Store" -delete
+
 # Find the recipes from master in this PR and remove them.
 echo "Pending recipes."
 ls -la ~/staged-recipes-copy/recipes
@@ -39,7 +42,7 @@ popd > /dev/null
 # Make sure build_artifacts is a valid channel
 conda index /home/conda/staged-recipes/build_artifacts
 
-conda install --yes --quiet "conda>4.7.12" conda-forge-ci-setup=3.* conda-forge-pinning networkx=2.3 "conda-build>=3.16"
+conda install --yes --quiet "conda>4.7.12" conda-forge-ci-setup=3.* conda-forge-pinning networkx=2.4 "conda-build>=3.16"
 export FEEDSTOCK_ROOT="${FEEDSTOCK_ROOT:-/home/conda/staged-recipes}"
 export CI_SUPPORT="/home/conda/staged-recipes-copy/.ci_support"
 setup_conda_rc "${FEEDSTOCK_ROOT}" "/home/conda/staged-recipes-copy/recipes" "${CI_SUPPORT}/${CONFIG}.yaml"
