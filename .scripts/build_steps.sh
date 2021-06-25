@@ -35,7 +35,8 @@ pushd /home/conda/staged-recipes/recipes > /dev/null
 if [ "${AZURE}" == "True" ]; then
     git fetch --force origin master:master
 fi
-git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf ~/staged-recipes-copy/recipes/{} && echo Removing recipe: {}"
+# git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf ~/staged-recipes-copy/recipes/{} && echo Removing recipe: {}"
+echo example | xargs -I {} sh -c "rm -rf ~/staged-recipes-copy/recipes/{} && echo Removing recipe: {}"
 popd > /dev/null
 
 
