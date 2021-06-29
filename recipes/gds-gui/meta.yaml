@@ -1,0 +1,82 @@
+{% set name = "gds-gui" %}
+{% set version = "2.19.5" %}
+
+# dependencies
+{% set gds_base_version = "2.19.6" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://software.igwn.org/sources/source/{{ name }}-{{ version }}.tar.gz
+  sha256: b1050d7fc66619c6ea2fabad69f859e7ef115188fe2189f3be5905ffdebd358b
+  patches:
+    - tggtest-includes.patch
+
+build:
+  number: 0
+  skip: true  # [win]
+
+outputs:
+  - name: gds-gui-crtools
+    script: build-crtools.sh
+    build:
+      ignore_run_exports:
+        # header needed only
+        - gds-base-gdstrig
+      run_exports:
+        - {{ pin_subpackage("gds-gui-crtools", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - make
+        - pkg-config
+      host:
+        - gds-base >={{ gds_base_version }}
+        - gds-base-crtools >={{ gds_base_version }}
+        - root_base
+        - root-binaries
+      run:
+        - gds-base >={{ gds_base_version }}
+        - gds-base-crtools >={{ gds_base_version }}
+        - root_base
+    test:
+      requires:
+        - pkg-config
+        - root-binaries
+      commands:
+        # basic file existence
+        - test -f ${PREFIX}/include/gds/dttview/TLGMath.hh  # [unix]
+        - test -f ${PREFIX}/lib/libRdttview${SHLIB_EXT}  # [unix]
+        # check root extensions
+        - root -b -l -x -q -e "gInterpreter->AddIncludePath(\"${PREFIX}/include/gds\"); gSystem->Load(\"libRdttview\");"  # [linux]
+        - root -b -l -x -q -e "gInterpreter->AddIncludePath(\"${PREFIX}/include/gds\"); gSystem->Load(\"libRgdsplot\");"  # [linux]
+        - root -b -l -x -q -e "gInterpreter->AddIncludePath(\"${PREFIX}/include/gds\"); gSystem->Load(\"libRligogui\");"  # [linux]
+        # check pkg-config files
+        - pkg-config --print-errors --exact-version {{ version }} gdsdttview  # [unix]
+        - pkg-config --print-errors --exact-version {{ version }} gdsligogui  # [unix]
+    about:
+      home: https://wiki.ligo.org/Computing/DASWG/DMT
+      dev_url: https://git.ligo.org/gds/gds.git
+      license: GPL-2.0-only
+      license_family: GPL
+      license_file: COPYING
+      summary: GDS control room tools
+      description: |
+        GDS control room tools and GUI libraries
+
+about:
+  home: https://wiki.ligo.org/Computing/DASWG/DMT
+  dev_url: https://git.ligo.org/gds/gds.git
+  license: GPL-2.0-only
+  license_family: GPL
+  license_file: COPYING
+  summary: GDS GUI libraries
+  description: |
+    GDS control room tools and GUI libraries
+
+extra:
+  recipe-maintainers:
+    - duncanmmacleod
+    - emaros
