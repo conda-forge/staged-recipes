@@ -1,3 +1,3 @@
-cmake . 
+cmake -DCMAKE-INSTALL-PREFIX="%LIBRARY_PREFIX%" . 
 cmake --build . --config release
-cmake --install . --config release --prefix="%LIBRARY_PREFIX%"
+cmake --install . --config release 
