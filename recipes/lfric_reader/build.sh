@@ -3,7 +3,8 @@ cmake CMakeLists.txt \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_INSTALL_LIBDIR=lib \
-      -DBUILD_SHARED_LIBS=ON
+      -DBUILD_SHARED_LIBS=ON \
+      -DBUILD_TESTING=OFF
 cmake --build . --target install --config Release
 
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
