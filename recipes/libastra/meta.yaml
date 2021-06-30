@@ -1,0 +1,55 @@
+{% set version = "1.9.9" %}
+
+package:
+  name: libastra
+  version: {{ version }}
+
+source:
+  url: https://github.com/tomopy/astra-toolbox/archive/refs/tags/{{ version }}.tar.gz
+  sha256: fc8c1bc2553cd93e570e1991b44df301c89ce7d9521033672f2d9d421af94beb
+
+build:
+  run_exports:
+    - {{ pin_subpackage('libastra', max_pin='x.x.x') }}
+  number: 0
+  string: "{{ "cuda" + cuda_compiler_version|string }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}"
+  skip: true  # [(not linux) or cuda_compiler_version == "None"]
+  script:
+    cmake
+    -G Ninja
+    -DCMAKE_BUILD_TYPE=Release
+    ${CMAKE_ARGS} ${SRC_DIR} && ninja install
+
+requirements:
+  build:
+    - {{ compiler('cuda') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+  host:
+    - boost-cpp
+    - cudatoolkit
+
+test:
+  requires:
+  # libastra uses header-only from Boost, but the unit tests actually link to libboost_unit_test_framework.so
+    - boost-cpp
+  source_files:
+    - tests/astratest
+  commands:
+    - test -f $PREFIX/lib/libastra${SHLIB_EXT}
+    - test -f $PREFIX/lib/libastra${SHLIB_EXT}.{{ version }}
+    - "LD_LIBRARY_PATH=$PREFIX/lib:$LD_LIBRARY_PATH ./tests/astratest"
+
+about:
+  home: http://www.astra-toolbox.com
+  license: GPL-3.0-only
+  license_file:
+    - COPYING
+    - lib/licenses/rapidxml.txt
+  summary: 'libastra is a C++ library of high-performance GPU primitives for 2D
+  and 3D tomography.'
+
+extra:
+  recipe-maintainers:
+    - carterbox
