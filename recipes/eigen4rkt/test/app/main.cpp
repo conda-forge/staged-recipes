@@ -1,34 +1,14 @@
-#include <Optima/Optima.hpp>
-using namespace Optima;
+#include <iostream>
+#include <Eigen/Dense>
 
-int main(int argc, char **argv)
+using Eigen::MatrixXd;
+
+int main()
 {
-    // Solve the following problem:
-    // min( (x-1)**2 + (y-1)**2 ) subject to x = y and x,y >= 0
-
-    Dims dims;
-    dims.x = 2; // number of variables
-    dims.be = 1; // number of linear equality constraints
-
-    Problem problem(dims);
-    problem.Aex = Matrix{{ {1.0, -1.0} }};
-    problem.be = Vector{{ 0.0 }};
-    problem.f = [](ObjectiveResultRef res, VectorView x, VectorView p, VectorView c, ObjectiveOptions opts)
-    {
-        res.f = (x[0] - 1)*(x[0] - 1) + (x[1] - 1)*(x[1] - 1);
-        res.fx = 2.0 * (x - 1);
-        res.fxx = 2.0 * identity(2, 2);
-    };
-
-    State state(dims);
-
-    Options options;
-    options.output.active = true;
-
-    Solver solver;
-    solver.setOptions(options);
-
-    solver.solve(problem, state);
-
-    std::cout << state.x << std::endl;
+    MatrixXd m(2,2);
+    m(0,0) = 3;
+    m(1,0) = 2.5;
+    m(0,1) = -1;
+    m(1,1) = m(1,0) + m(0,1);
+    std::cout << m << std::endl;
 }
