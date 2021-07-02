@@ -10,8 +10,6 @@ echo "Using $JOBS parallel jobs out of $((CPU_COUNT*2)) available to build eigen
 
 # Configure the build of eigen4rkt
 cmake -S . -B build ${CMAKE_ARGS} \
-    -DCMAKE_PREFIX_PATH=${PREFIX} \
-    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DCMAKE_BUILD_TYPE=Release
 
 # Build eigen4rkt in $PREFIX (and install eigen via ExternalProject_Add (no need for --target install))
