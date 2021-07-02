@@ -1,4 +1,4 @@
-@REM Configure the build of phreeqc4rkt
+@REM Configure the build of yaml-cpp4rkt
 cmake -S . -B build ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
@@ -8,6 +8,6 @@ cmake -S . -B build ^
     -DYAML_CPP_BUILD_TESTS=OFF
 
 
-@REM Build and install phreeqc4rkt in %LIBRARY_PREFIX%
+@REM Build and install yaml-cpp4rkt in %LIBRARY_PREFIX%
 @REM Note: No need for --parallel below, since cmake takes care of the /MP flag for MSVC
 cmake --build build --config Release --target install
