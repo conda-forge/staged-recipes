@@ -9,9 +9,8 @@ JOBS=$((CPU_COUNT*2 - 1))
 echo "Using $JOBS parallel jobs out of $((CPU_COUNT*2)) available to build phreeqc4rkt."
 
 # Configure the build of phreeqc4rkt
-cmake -S . -B build \
+cmake -S . -B build ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DCMAKE_INSTALL_LIBDIR=lib \
     -DCMAKE_VERBOSE_MAKEFILE=ON
 
