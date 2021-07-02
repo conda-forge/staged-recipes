@@ -14,5 +14,5 @@ cmake -S . -B build ${CMAKE_ARGS} \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DCMAKE_BUILD_TYPE=Release
 
-# Build and install eigen4rkt in $PREFIX
-cmake --build build --target install --parallel $JOBS
+# Build eigen4rkt in $PREFIX (and install eigen via ExternalProject_Add (no need for --target install))
+cmake --build build --parallel $JOBS
