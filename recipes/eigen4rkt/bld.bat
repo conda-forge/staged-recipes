@@ -9,6 +9,7 @@ if errorlevel 1 exit 1
 
 @REM Build and install eigen4rkt in %LIBRARY_PREFIX%
 @REM Note: No need for --parallel below, since cmake takes care of the /MP flag for MSVC
-cmake --build build --config Release --target install
+@REM Install eigen via ExternalProject_Add (no need for --target install)
+cmake --build build --config Release
 
 if errorlevel 1 exit 1
