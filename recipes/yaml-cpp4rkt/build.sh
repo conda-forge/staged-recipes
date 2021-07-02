@@ -11,8 +11,6 @@ echo "Using $JOBS parallel jobs out of $((CPU_COUNT*2)) available to build yaml-
 # Configure the build of yaml-cpp4rkt
 cmake -S . -B build ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_PREFIX_PATH=$PREFIX \
-    -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DBUILD_SHARED_LIBS=ON \
     -DYAML_BUILD_SHARED_LIBS=ON \
     -DYAML_CPP_BUILD_TESTS=OFF
