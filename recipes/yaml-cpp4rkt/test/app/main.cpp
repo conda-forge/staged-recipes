@@ -7,5 +7,7 @@ int main()
 
     assert(node.IsSequence());
 
+    std::cout << "Successful execution of application that links against yaml-cpp4rkt!" << std::endl;
+
     return 0;
 }
