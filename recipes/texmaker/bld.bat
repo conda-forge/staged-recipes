@@ -1,4 +1,8 @@
-qmake -set prefix %PREFIX%
+@echo on
+mkdir build
+if errorlevel 1 exit /B 1
+cd build
+if errorlevel 1 exit /B 1
 
 qmake ^
     QMAKE_CC=%CC% ^
@@ -8,7 +12,12 @@ qmake ^
     QMAKE_OBJDUMP=%OBJDUMP% ^
     QMAKE_STRIP=%STRIP% ^
     QMAKE_AR="%AR% ^
-    texmaker.pro
+    ..\texmaker.pro
+if errorlevel 1 exit /B 1
 
-make
-make install PREFIX=$PREFIX
+jom -j$CPU_COUNT
+jom -j%CPU_COUNT%
+if errorlevel 1 exit /B 1
+jom check
+if errorlevel 1 exit /B 1
+jom install

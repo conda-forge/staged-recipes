@@ -1,6 +1,7 @@
 #!/bin/bash
 
-qmake -set prefix $PREFIX
+mkdir build
+cd build
 
 qmake \
     PREFIX=$PREFIX \
@@ -11,6 +12,8 @@ qmake \
     QMAKE_OBJDUMP=${OBJDUMP} \
     QMAKE_STRIP=${STRIP} \
     QMAKE_AR="${AR} cqs" \
-    texmaker.pro
+    ../texmaker.pro
+
 make -j$CPU_COUNT
-bash -c "qmake -set prefix $PREFIX; make install PREFIX=$PREFIX; exit 0" || true
+make check
+make install
