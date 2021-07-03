@@ -10,5 +10,5 @@ qmake ^
     QMAKE_AR="%AR% ^
     texmaker.pro
 
-make -j$CPU_COUNT
+make
 make install PREFIX=$PREFIX
