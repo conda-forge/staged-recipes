@@ -8,7 +8,6 @@ qmake ^
     QMAKE_OBJDUMP=%OBJDUMP% ^
     QMAKE_STRIP=%STRIP% ^
     QMAKE_AR="%AR% ^
-    cqs" ^
     texmaker.pro
 
 make -j$CPU_COUNT
