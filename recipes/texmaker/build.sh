@@ -16,5 +16,5 @@ qmake \
 
 make -j$CPU_COUNT
 make check
-sed -i 's:(INSTALL_ROOT)/usr:(INSTALL_ROOT):g' Makefile
+sed -i 's:(INSTALL_ROOT)/usr:(INSTALL_ROOT)/$PREFIX:g' Makefile
 make install
