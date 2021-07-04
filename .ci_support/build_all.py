@@ -42,7 +42,7 @@ def build_all(recipes_dir, arch):
     for folder in folders:
         meta_yaml = os.path.join(recipes_dir, folder, "meta.yaml")
         if os.path.exists(meta_yaml):
-            with(open(meta_yaml, "r")) as f:
+            with(open(meta_yaml, "r", encoding="utf-8")) as f:
                 text = ''.join(f.readlines())
                 if 'cuda' in text:
                     found_cuda = True
@@ -150,7 +150,7 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
 
     d = OrderedDict()
     for node in order:
-        d[G.node[node]['meta'].meta_path] = 1
+        d[G.nodes[node]['meta'].meta_path] = 1
 
     for recipe in d.keys():
         conda_build.api.build([recipe], config=get_config(arch, channel_urls))
