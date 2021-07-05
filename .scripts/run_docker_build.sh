@@ -5,7 +5,7 @@
 REPO_ROOT=$(cd "$(dirname "$0")/.."; pwd;)
 ARTIFACTS="$REPO_ROOT/build_artifacts"
 THISDIR="$( cd "$( dirname "$0" )" >/dev/null && pwd )"
-PROVIDER_DIR="$(basename $THISDIR)"
+PROVIDER_DIR="$(basename "$THISDIR")"
 AZURE="${AZURE:-False}"
 
 docker info
@@ -23,10 +23,10 @@ fi
 if [ -z "${IMAGE_NAME}" ]; then
     SHYAML_INSTALLED="$(shyaml -h || echo NO)"
     if [ "${SHYAML_INSTALLED}" == "NO" ]; then
-        echo "WARNING: DOCKER_IMAGE variable not set and shyaml not installed. Falling back to condaforge/linux-anvil-comp7"
-        IMAGE_NAME="condaforge/linux-anvil-comp7"
+        echo "WARNING: DOCKER_IMAGE variable not set and shyaml not installed. Falling back to quay.io/condaforge/linux-anvil-comp7"
+        IMAGE_NAME="quay.io/condaforge/linux-anvil-comp7"
     else
-        IMAGE_NAME="$(cat "${REPO_ROOT}/.ci_support/${CONFIG}.yaml" | shyaml get-value docker_image.0 condaforge/linux-anvil-comp7 )"
+        IMAGE_NAME="$(cat "${REPO_ROOT}/.ci_support/${CONFIG}.yaml" | shyaml get-value docker_image.0 quay.io/condaforge/linux-anvil-comp7 )"
     fi
 fi
 
@@ -41,14 +41,15 @@ if [ "${AZURE}" == "True" ]; then
 fi
 
 docker run ${DOCKER_RUN_ARGS} \
-           -v ${REPO_ROOT}:/home/conda/staged-recipes \
+           -v "${REPO_ROOT}:/home/conda/staged-recipes" \
            -e HOST_USER_ID=${HOST_USER_ID} \
            -e AZURE=${AZURE} \
            -e CONFIG \
            -e CI \
+           -e CF_CUDA_VERSION \
            $IMAGE_NAME \
            bash \
-           /home/conda/staged-recipes/${PROVIDER_DIR}/build_steps.sh
+           "/home/conda/staged-recipes/${PROVIDER_DIR}/build_steps.sh"
 
 # verify that the end of the script was reached
 test -f "$DONE_CANARY"
