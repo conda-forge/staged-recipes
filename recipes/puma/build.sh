@@ -1,3 +1,6 @@
+#!/bin/bash
+set -e  # exit when any command fails
+
 # PuMA C++ library
 cd install 
 
@@ -50,3 +53,16 @@ cd "$SRC_DIR"/gui/build
 qmake
 make -j
 make install
+
+
+# pumapy
+cd "$SRC_DIR"
+
+# this is to fix a bug with OpenGL on MacOS Big Sur
+if [ "$(uname)" == "Darwin" ]; then
+    if [ -f "$SP_DIR"/OpenGL/platform/ctypesloader.py ]; then
+        sed -i '' 's/util.find_library( name )/"\/System\/Library\/Frameworks\/{}.framework\/{}".format(name,name)/g' "$SP_DIR"/OpenGL/platform/ctypesloader.py
+    fi
+fi
+
+$PYTHON setup.py install --single-version-externally-managed --record=record.txt
