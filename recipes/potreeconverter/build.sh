@@ -15,12 +15,8 @@ ln -s $CONDA_PREFIX/pkgs/tbb-2*/lib/* $CONDA_PREFIX/pkgs/tbb-devel-2*/lib/
 # Copy tbb files so make compiling can see them
 cd /opt/conda/x86_64-conda-linux-gnu/include/c++/*
 mkdir tbb oneapi
-ln -s $CONDA_PREFIX/pkgs/tbb-devel-20*/include/tbb/* /opt/conda/x86_64-conda-linux-gnu/include/c++/*/tbb
-ln -s $CONDA_PREFIX/pkgs/tbb-devel-20*/include/oneapi/* /opt/conda/x86_64-conda-linux-gnu/include/c++/*/oneapi
-cd /usr/lib/
-mkdir tbb oneapi
-ln -s $CONDA_PREFIX/pkgs/tbb-devel-20*/include/tbb/* /opt/conda/x86_64-conda-linux-gnu/include/c++/*/tbb
-ln -s $CONDA_PREFIX/pkgs/tbb-devel-20*/include/oneapi/* /opt/conda/x86_64-conda-linux-gnu/include/c++/*/oneapi
+ln -s $CONDA_PREFIX/pkgs/tbb-devel-20*/include/tbb/* tbb
+ln -s $CONDA_PREFIX/pkgs/tbb-devel-20*/include/oneapi/* oneapi
 
 
 mkdir $RECIPE_DIR/build/
