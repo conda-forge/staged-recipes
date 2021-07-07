@@ -1,10 +1,13 @@
 {% set name = "timemory" %}
 {% set version = "3.2.1rc14" %}
 
-{% set config_extra = "--enable-cuda" %}  # [linux and cuda_compiler_version != "None"]
-{% set config_extra = "--disable-cuda" %}  # [not linux or cuda_compiler_version == "None"]
+{% set jobs = "1" %}  # [linux and cuda_compiler_version != "None"]
+{% set jobs = "2" %}  # [not (linux and cuda_compiler_version != "None")]
 
-{% set generator = "Visual\\ Studio\\ 16\\ 2019" %}  # [win]
+{% set config_extra = "--enable-cuda" %}  # [linux and cuda_compiler_version != "None"]
+{% set config_extra = "--disable-cuda" %}  # [not (linux and cuda_compiler_version != "None")]
+
+{% set generator = "Visual\ Studio\ 16\ 2019" %}  # [win]
 {% set generator = "Ninja" %}  # [not win]
 
 {% set cmake_extra = "-A x64" %}  # [win]
@@ -22,8 +25,8 @@ source:
 build:
   number: 0
   script: "{{ PYTHON }} setup.py install --single-version-externally-managed --record record.txt \
-    -j 1 \
-    -G '{{ generator }}' \
+    -j {{ jobs }} \
+    -G {{ generator }} \
     --cxx-standard=17 \
     --enable-portable \
     --enable-static-libs \
@@ -40,19 +43,19 @@ build:
     --disable-caliper \
     --disable-dyninst \
     --disable-gperftools \
-    --disable-python-hatchet \
     --disable-compiler-instrumentation \
     --skip-generator-test \
     {{ config_extra }} \
     -- \
     {{ cmake_extra }}"
-  skip: true  # [osx]
+  skip: true  # [osx or py!=37]
 
 requirements:
   build:
     - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
-    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+    - {{ compiler('cxx') }}  # [not (linux and cuda_compiler_version != "None")]
+    - cxx-compiler <= 1.1.0  # [linux and cuda_compiler_version != "None"]
+    - {{ compiler('cuda') }}  # [linux and cuda_compiler_version != "None"]
     - cmake
     - ninja
   host:
@@ -75,10 +78,14 @@ requirements:
 test:
   imports:
     - timemory
+    - timemory.settings
     - timemory.profiler
     - timemory.trace
-    - timemory.settings
     - timemory.util
+  requires:
+    - pytest
+  commands:
+    - pytest -s --pyargs timemory
 
 about:
   home: https://github.com/NERSC/timemory.git
