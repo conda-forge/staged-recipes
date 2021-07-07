@@ -1,7 +1,14 @@
 {% set name = "timemory" %}
 {% set version = "3.2.1rc14" %}
-{% set script_extra = "--enable-cuda -- -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc" %}  # [cuda_compiler_version != "None"]
-{% set script_extra = "" %}  # [cuda_compiler_version == "None"]
+
+{% set config_extra = "--enable-cuda" %}  # [linux and cuda_compiler_version != "None"]
+{% set config_extra = "--disable-cuda" %}  # [not linux or cuda_compiler_version == "None"]
+
+{% set generator = "-G 'Visual Studio 16 2019'" %}  # [win]
+{% set generator = "-G Ninja" %}  # [not win]
+
+{% set cmake_extra = "-A x64" %}  # [win]
+{% set cmake_extra = "-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc" %}  # [linux and cuda_compiler_version != "None"]
 
 package:
   name: '{{ name|lower }}'
@@ -14,8 +21,8 @@ source:
 build:
   number: 0
   script: "{{ PYTHON }} setup.py install --single-version-externally-managed --record record.txt \
-    -j 2 \
-    -G Ninja \
+    -j 1 \
+    {{ generator }} \
     --cxx-standard=17 \
     --enable-portable \
     --enable-static-libs \
@@ -34,8 +41,10 @@ build:
     --disable-gperftools \
     --disable-python-hatchet \
     --disable-compiler-instrumentation \
-    {{ script_extra }}"
-  skip: true  # [osx]
+    --skip-generator-test \
+    {{ config_extra }} \
+    -- \
+    {{ cmake_extra }}"
 
 requirements:
   build:
