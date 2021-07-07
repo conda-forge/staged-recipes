@@ -25,16 +25,15 @@ mkdir -p bin
 cd bin
 
 PY_VERSION="$(python -c 'import sys; print(sys.version_info[1])')"
-PY_VERSION_M=$PY_VERSION
-if [ $PYNUM -le 7 ]; then
-    PY_VERSION_M=$PY_VERSIONm
+if [ $PY_VERSION -le 7 ]; then
+    PY_VERSION="${PY_VERSION}m"
 fi
 
 # compilation options
 cmake -D BUILD_PYTHON_INTERFACE=ON \
       -D CMAKE_INSTALL_PREFIX=$PREFIX \
-      -D PYTHON_INCLUDE_DIR="$BUILD_PREFIX"/include/python3.$PY_VERSION_M \
-      -D PYTHON_LIBRARY="$BUILD_PREFIX"/lib/libpython3.$PY_VERSION_M$SHLIB_EXT \
+      -D PYTHON_INCLUDE_DIR="$BUILD_PREFIX"/include/python3.$PY_VERSION \
+      -D PYTHON_LIBRARY="$BUILD_PREFIX"/lib/libpython3.$PY_VERSION$SHLIB_EXT \
       -D PYTHON_SITEPACKAGES_DIR="$SP_DIR" \
       -D BUILD_GUI=OFF \
       -D BUILD_RENDERER=OFF \
