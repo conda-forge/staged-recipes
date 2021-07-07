@@ -2,7 +2,7 @@
 set -e  # exit when any command fails
 
 # Test PuMA C++ library
-PuMA_DIR="$SRC_DIR"
+PuMA_DIR=$PWD
 
 pumaX_testing 1
 
@@ -18,5 +18,5 @@ killall pumaGUI
 
 
 # Test pumapy
-cd "$SRC_DIR"/python/tests
+cd python/tests
 $PYTHON -m unittest test_workspace.TestWorkspace
