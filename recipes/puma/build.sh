@@ -10,7 +10,7 @@ cd install
 mkdir -p cmake-build-release
 cd cmake-build-release
 cmake -D CONDA_PREFIX=$BUILD_PREFIX \
-      -D MAKE_INSTALL_PREFIX=$PREFIX \
+      -D CMAKE_INSTALL_PREFIX=$PREFIX \
       "$SRC_DIR"/cpp
 make -j
 make install
