@@ -10,10 +10,12 @@ cd install
 mkdir -p cmake-build-release
 cd cmake-build-release
 cmake -D CONDA_PREFIX=$BUILD_PREFIX \
-      -D PREFIX=$PREFIX \
+      -D MAKE_INSTALL_PREFIX=$PREFIX \
       "$SRC_DIR"/cpp
 make -j
 make install
+rm ${PREFIX}/bin/pumaX_examples
+rm ${PREFIX}/bin/pumaX_main
 
 
 # TexGen
@@ -49,7 +51,7 @@ make install
 
 # PuMA GUI
 cd "$SRC_DIR"/gui/build
-qmake
+qmake "BUILD_PREFIX=$BUILD_PREFIX" "INSTALL_PREFIX=$PREFIX"
 make -j
 make install
 
