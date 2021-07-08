@@ -1,6 +1,4 @@
-#echo "CXX=g++" >> make/local
-
-echo "TBB_CXX_TYPE=gcc" >> make/local
+echo "TBB_CXX_TYPE=$c_compiler"  >> make/local
 
 make clean-all
 
