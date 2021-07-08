@@ -19,7 +19,7 @@ rm ${PREFIX}/bin/pumaX_main
 
 
 # TexGen
-cd TexGen
+cd "$SRC_DIR"/install/TexGen
 mkdir -p bin
 cd bin
 
