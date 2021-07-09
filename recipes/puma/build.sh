@@ -19,10 +19,7 @@ rm ${PREFIX}/bin/pumaX_main
 
 
 # TexGen
-if [ ! -d "./TexGen" ]; then
-    git clone --single-branch --branch py3 https://github.com/fsemerar/TexGen.git
-fi
-cd TexGen
+cd "$SRC_DIR"/install/TexGen
 mkdir -p bin
 cd bin
 
@@ -51,6 +48,15 @@ make install
 
 # PuMA GUI
 cd "$SRC_DIR"/gui/build
+
+# this is to fix a libGL path problem on linux
+if [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+    FILE="$CONDA_PREFIX"/x86_64-conda-linux-gnu/sysroot/usr/lib64/libGL.so.1
+    if [ -f "$FILE" ]; then
+        cp "$CONDA_PREFIX"/x86_64-conda-linux-gnu/sysroot/usr/lib64/libGL.so.1 "$CONDA_PREFIX"/x86_64-conda-linux-gnu/sysroot/usr/lib64/libGL.so
+    fi
+fi
+
 qmake "BUILD_PREFIX=$BUILD_PREFIX" "INSTALL_PREFIX=$PREFIX"
 make -j
 make install
