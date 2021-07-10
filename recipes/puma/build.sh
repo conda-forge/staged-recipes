@@ -57,10 +57,4 @@ make install
 cd "$SRC_DIR"
 
 # this is to fix a bug with OpenGL on MacOS Big Sur
-if [ "$(uname)" == "Darwin" ]; then
-    if [ -f "$SP_DIR"/OpenGL/platform/ctypesloader.py ]; then
-        sed -i '' 's/util.find_library( name )/"\/System\/Library\/Frameworks\/{}.framework\/{}".format(name,name)/g' "$SP_DIR"/OpenGL/platform/ctypesloader.py
-    fi
-fi
-
 $PYTHON setup.py install --single-version-externally-managed --record=record.txt
