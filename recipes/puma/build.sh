@@ -51,10 +51,3 @@ cd "$SRC_DIR"/gui/build
 qmake "BUILD_PREFIX=$BUILD_PREFIX" "INSTALL_PREFIX=$PREFIX"
 make -j
 make install
-
-
-# pumapy
-cd "$SRC_DIR"
-
-# this is to fix a bug with OpenGL on MacOS Big Sur
-$PYTHON setup.py install --single-version-externally-managed --record=record.txt
