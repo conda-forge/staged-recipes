@@ -1,7 +1,13 @@
 #!/bin/bash
 set -e  # exit when any command fails
 
-# PuMA C++ library
+
+# INSTALL pumapy
+cd "$SRC_DIR"
+$PYTHON setup.py install --single-version-externally-managed --record=record.txt
+
+
+# INSTALL PuMA C++ library
 cd install 
 
 "$SRC_DIR"/cpp/src/createCMakeLists_src.sh
@@ -18,7 +24,7 @@ rm ${PREFIX}/bin/pumaX_examples
 rm ${PREFIX}/bin/pumaX_main
 
 
-# TexGen
+# INSTALL TexGen
 cd "$SRC_DIR"/install/TexGen
 mkdir -p bin
 cd bin
@@ -46,7 +52,7 @@ make -j
 make install
 
 
-# PuMA GUI
+# INSTALL PuMA GUI
 cd "$SRC_DIR"/gui/build
 qmake "BUILD_PREFIX=$BUILD_PREFIX" "INSTALL_PREFIX=$PREFIX"
 make -j
