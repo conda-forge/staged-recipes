@@ -1,0 +1,87 @@
+{% set name = "bml" %}
+{% set version = "1.3.1" %}
+{% set build = 0 %}
+{% set mpi = mpi or "nompi" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/lanl/{{ name }}/archive/v{{ version }}.tar.gz
+  sha256: d9cbf95467f7a97d0eaa5a1a7a16481a160464c930a593bce4f2a32b012e2c24
+
+{% if mpi == "nompi" %}
+{% set build = build + 100 %}
+{% endif %}
+build:
+  number: {{ build }}
+  skip: true  # [win]
+
+  script: "export INSTALL_DIR=${PREFIX}; ./build.sh"
+  script_env:
+    - CMAKE_BUILD_TYPE=Release
+    - BUILD_SHARED_LIBS=yes
+    - BML_OPENMP=yes
+    - BML_MPI=yes  # [mpi != "nompi"]
+    - BML_COMPLEX=yes
+    - BML_TESTING=yes
+    - BLAS_VENDOR=GNU
+
+  {% if mpi != "nompi" %}
+  {% set mpi_prefix = "mpi_" + mpi %}
+  {% else %}
+  {% set mpi_prefix = "nompi" %}
+  {% endif %}
+  string: {{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}
+
+  {% if mpi != "nompi" %}
+  run_exports:
+    - {{ name }} * {{ mpi_prefix }}_*
+  {% endif %}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('fortran') }}
+    - cmake
+    - make
+  host:
+    - {{ mpi }}  # [mpi != "nompi"]
+    - libblas
+    - liblapack
+    - llvm-openmp  # [osx]
+    - libgomp  # [linux and not aarch64]
+  run:
+    - {{ mpi }}  # [mpi != "nompi"]
+    - libblas
+    - liblapack
+
+test:
+  requires:
+    - pkg-config
+  commands:
+    - pkg-config {{ name }} --exact-version {{ version }}
+    - test -f $PREFIX/include/bml.h
+    - test -f $PREFIX/include/bml.mod
+    - test -f $PREFIX/lib/libbml${SHLIB_EXT}
+    - test -f $PREFIX/lib/libbml_fortran${SHLIB_EXT}
+
+about:
+  home: https://lanl.github.io/bml
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE.md
+  summary: The Basic Matrix Library (bml)
+  description: |
+    The basic matrix library (bml) is a collection of various matrix data formats
+    (for dense and sparse) and their associated algorithms for basic matrix operations.
+    Application programming interfaces (API) are available for both C and Fortran.
+    The current status of this library allows us to use two different formats
+    for representing matrix data. Currently these formats are dense, ELLPACK-R,
+    ELLBLOCK, ELLSORT, and CSR.
+  dev_url: https://github.com/lanl/bml
+
+extra:
+  recipe-maintainers:
+    - awvwgk
