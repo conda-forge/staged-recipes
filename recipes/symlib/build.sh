@@ -1,6 +1,6 @@
 #!/bin/bash
 cd src/
-make F90=gfortran
+make
 cp libutils.a ${PREFIX}/lib
 cp libsym.a ${PREFIX}/lib
 cp libcomparestructs.a ${PREFIX}/lib
