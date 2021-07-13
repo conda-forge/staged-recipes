@@ -9,10 +9,6 @@ $PYTHON setup.py install --single-version-externally-managed --record=record.txt
 
 # INSTALL PuMA C++ library
 cd install 
-
-"$SRC_DIR"/cpp/src/createCMakeLists_src.sh
-"$SRC_DIR"/cpp/test/createCMakeLists_test.sh
-
 mkdir -p cmake-build-release
 cd cmake-build-release
 cmake -D CONDA_PREFIX=$BUILD_PREFIX \
