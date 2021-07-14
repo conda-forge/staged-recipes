@@ -31,8 +31,8 @@ pushd custom_clang_toolchain
   sed -i "" "s:\${LIBTOOL}:${LIBTOOL}:" cc_toolchain_config.bzl
 popd
 
-pushd differential-privacy
+pushd cc
 bazel build --logging=6 --subcommands --verbose_failures --crosstool_top=//custom_clang_toolchain:toolchain differential-privacy
 popd
 mkdir -p $PREFIX/bin
-cp bazel-bin/differential-privacy $PREFIX/bin
+cp bazel-bin/cc/differential-privacy $PREFIX/bin
