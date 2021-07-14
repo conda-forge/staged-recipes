@@ -1,6 +1,9 @@
 #!/bin/bash
 
-set -euxo pipefail
+set -ex
+
+cd cc
+bazel build ...
 
 if [[ "${target_platform}" == "osx-arm64" ]]; then
   export LDFLAGS="${LDFLAGS} -mmacosx-version-min=11.0"
