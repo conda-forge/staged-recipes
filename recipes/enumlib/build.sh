@@ -1,5 +1,5 @@
 #!/bin/bash
-export FFLAGS=${FFLAGS}" -ffree-line-length-none"
+export FFLAGS=${FFLAGS}" -ffree-line-length-none -p symlib/src"
 cd src
 
 make
