@@ -7,8 +7,8 @@ if [[ "${target_platform}" == "osx-arm64" ]]; then
 fi
 export BAZEL_USE_CPP_ONLY_TOOLCHAIN=1
 
-cp -r ${RECIPE_DIR}/custom_toolchain .
-pushd custom_toolchain
+cp -r ${RECIPE_DIR}/custom_clang_toolchain .
+pushd custom_clang_toolchain
   sed -e "s:\${CLANG}:${CLANG}:" \
       -e "s:\${INSTALL_NAME_TOOL}:${INSTALL_NAME_TOOL}:" \
       -e "s:\${CONDA_BUILD_SYSROOT}:${CONDA_BUILD_SYSROOT}:" \
