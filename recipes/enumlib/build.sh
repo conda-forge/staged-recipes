@@ -1,6 +1,9 @@
 #!/bin/bash
 export FFLAGS=${FFLAGS}" -ffree-line-length-none -p ${SRC_DIR}/symlib/src"
-cd src
+cd symlib/src
+make
+ls 
+cd ../../src
 
 make
 make enum.x
