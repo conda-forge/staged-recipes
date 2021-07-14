@@ -6,5 +6,6 @@ make
 make enum.x
 make polya.x
 
+mkdir -p ${PREFIX}/bin
 cp enum.x ${PREFIX}/bin/enum.x
 cp polya.x ${PREFIX}/bin/polya.x
