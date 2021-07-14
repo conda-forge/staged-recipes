@@ -1,5 +1,5 @@
 #!/bin/bash
-export FFLAGS=${FFLAGS}" -ffree-line-length-none -p ${SRC_DIR}/symlib/src"
+export FFLAGS=${FFLAGS}" -ffree-line-length-none -I${SRC_DIR}/symlib/src"
 cd symlib/src
 make
 ls 
