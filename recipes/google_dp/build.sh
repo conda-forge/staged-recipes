@@ -6,7 +6,7 @@ if [[ "${target_platform}" == "osx-arm64" ]]; then
   export LDFLAGS="${LDFLAGS} -mmacosx-version-min=11.0"
 fi
 export BAZEL_USE_CPP_ONLY_TOOLCHAIN=1
-
+# set up bazel config file for conda provided clang toolchain
 cp -r ${RECIPE_DIR}/custom_clang_toolchain .
 pushd custom_clang_toolchain
   sed -e "s:\${CLANG}:${CLANG}:" \
@@ -28,8 +28,8 @@ pushd custom_clang_toolchain
   sed -i "" "s:\${LIBTOOL}:${LIBTOOL}:" cc_toolchain_config.bzl
 popd
 
-pushd compiler
+pushd differential-privacy
 bazel build --logging=6 --subcommands --verbose_failures --crosstool_top=//custom_clang_toolchain:toolchain differential-privacy
 popd
 mkdir -p $PREFIX/bin
-cp bazel-bin/compiler/differential-privacy $PREFIX/bin
+cp bazel-bin/differential-privacy $PREFIX/bin
