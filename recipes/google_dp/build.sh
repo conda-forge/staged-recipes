@@ -1,14 +1,12 @@
 #!/bin/bash
 
-set -ex
-
-cd cc
-bazel build ...
+set -euxo pipefail
 
 if [[ "${target_platform}" == "osx-arm64" ]]; then
   export LDFLAGS="${LDFLAGS} -mmacosx-version-min=11.0"
 fi
 export BAZEL_USE_CPP_ONLY_TOOLCHAIN=1
+sed -i "" "s:\${BUILD_PREFIX}:${BUILD_PREFIX}:" protobuf.BUILD
 # set up bazel config file for conda provided clang toolchain
 cp -r ${RECIPE_DIR}/custom_clang_toolchain .
 pushd custom_clang_toolchain
@@ -32,7 +30,7 @@ pushd custom_clang_toolchain
 popd
 
 pushd cc
-bazel build ...
+bazel build --logging=6 --subcommands --verbose_failures --crosstool_top=//custom_clang_toolchain:toolchain differential-privacy
 popd
 mkdir -p $PREFIX/bin
 cp bazel-bin/cc/differential-privacy $PREFIX/bin
