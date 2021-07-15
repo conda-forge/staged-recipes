@@ -2,7 +2,7 @@
 
 set -euxo pipefail
 
-pushd differential-privacy/cc
+pushd cc
 bazel build ... --test_output=errors --keep_going --verbose_failures=true
 popd
 mkdir -p $PREFIX/bin
