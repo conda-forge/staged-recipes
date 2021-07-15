@@ -17,4 +17,4 @@ case "$(uname)" in
         ;;
 esac
 
-exec python -m pytest -vv test
+exec python -m pytest -vv --ci -m 'not miniconda' test
