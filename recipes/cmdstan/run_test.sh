@@ -1,4 +1,4 @@
-cd $PREFIX/cmdstan
+cd $PREFIX/bin/cmdstan
 # bernoulli example
 make examples/bernoulli/bernoulli
 ./examples/bernoulli/bernoulli sample data file=examples/bernoulli/bernoulli.data.json
