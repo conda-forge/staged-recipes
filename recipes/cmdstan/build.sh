@@ -2,6 +2,8 @@ echo "TBB_CXX_TYPE=$c_compiler"  >> make/local
 
 make clean-all
 
-make -j8 build
+ls $PREFIX/lib
+TBB_LIB=$PREFIX/lib make -j8 build
 
-cp -r . $PREFIX/cmdstan
+mkdir -p $PREFIX/bin
+cp -r . $PREFIX/bin/cmdstan
