@@ -6,7 +6,6 @@ if [[ "${target_platform}" == "osx-arm64" ]]; then
   export LDFLAGS="${LDFLAGS} -mmacosx-version-min=11.0"
 fi
 export BAZEL_USE_CPP_ONLY_TOOLCHAIN=1
-sed -i "" "s:\${BUILD_PREFIX}:${BUILD_PREFIX}:" protobuf.BUILD
 # set up bazel config file for conda provided clang toolchain
 cp -r ${RECIPE_DIR}/custom_clang_toolchain .
 pushd custom_clang_toolchain
