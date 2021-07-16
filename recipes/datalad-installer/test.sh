@@ -10,11 +10,6 @@ case "$(uname)" in
         # Related issue: <https://github.com/conda/conda/issues/9360>
         export TMPDIR=/tmp
         ;;
-    MINGW*)
-        # To avoid <https://github.com/conda/conda/issues/10501>
-        mkdir -p /c/tmp
-        export TMPDIR='C:\tmp'
-        ;;
 esac
 
 exec python -m pytest -vv --ci -m 'not miniconda' test
