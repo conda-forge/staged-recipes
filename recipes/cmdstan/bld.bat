@@ -1,6 +1,6 @@
 echo TBB_CXX_TYPE=gcc >> make/local
 if errorlevel 1 exit 1
-echo TBB_INTERFACE_NEW=true >> make/local
+:: echo TBB_INTERFACE_NEW=true >> make/local
 if errorlevel 1 exit 1
 echo TBB_INC=%PREFIX%/include/ >> make/local
 if errorlevel 1 exit 1
