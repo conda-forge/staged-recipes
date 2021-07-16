@@ -5,8 +5,8 @@ cd $PREFIX/bin/cmdstan
 
 echo "TBB_CXX_TYPE=$c_compiler"  >> make/local
 #echo "TBB_INTERFACE_NEW=true" >> make/local
-#echo "TBB_INC=$PREFIX/include/" >> make/local
-#echo "TBB_LIB=$PREFIX/lib/" >> make/local
+echo "TBB_INC=$PREFIX/include/" >> make/local
+echo "TBB_LIB=$PREFIX/lib/" >> make/local
 
 make clean-all
 
