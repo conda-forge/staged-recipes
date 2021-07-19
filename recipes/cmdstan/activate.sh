@@ -1,1 +1,1 @@
-export CMDSTAN= $PREFIX/bin/cmdstan
+export CMDSTAN=$PREFIX/bin/cmdstan
