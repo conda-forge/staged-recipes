@@ -18,7 +18,7 @@ def _impl(ctx):
     tool_paths = [
         tool_path(
             name = "gcc",
-            path = "cc_wrapper.sh",
+            path = "${GCC}",
         ),
         tool_path(
             name = "ld",
@@ -142,6 +142,25 @@ def _impl(ctx):
             ),
         ],
     )
+    
+    if "TARGET_PLATFORM".startswith("osx"):
+        toolchain_include_directories_flags = [
+            "-isystem",
+            "${BUILD_PREFIX}/include/c++/v1",
+            "-isystem",
+            "${BUILD_PREFIX}/lib/clang/${COMPILER_VERSION}/include",
+            "-isystem",
+            "${CONDA_BUILD_SYSROOT}/usr/include",
+            "-isystem",
+            "${CONDA_BUILD_SYSROOT}/System/Library/Frameworks",
+            "-isystem",
+            "${PREFIX}/include",
+        ]
+    else:
+        toolchain_include_directories_flags = [
+            "-isystem",
+            "${PREFIX}/include",
+        ]
 
     toolchain_include_directories_feature = feature(
         name = "toolchain_include_directories",
@@ -162,19 +181,7 @@ def _impl(ctx):
                 ],
                 flag_groups = [
                     flag_group(
-                        flags = [
-                            "-isystem",
-                            "${BUILD_PREFIX}/include/c++/v1",
-                            "-isystem",
-                            # TODO: Don't hardcode clang version
-                            "${BUILD_PREFIX}/lib/clang/11.1.0/include",
-                            "-isystem",
-                            "${CONDA_BUILD_SYSROOT}/usr/include",
-                            "-isystem",
-                            "${CONDA_BUILD_SYSROOT}/System/Library/Frameworks",
-                            "-isystem",
-                            "${PREFIX}/include",
-                        ],
+                        flags = toolchain_include_directories_flags,
                     ),
                 ],
             ),
@@ -198,7 +205,7 @@ def _impl(ctx):
                     ACTION_NAMES.lto_backend,
                     ACTION_NAMES.clif_match,
                 ],
-                flag_groups = [flag_group(flags = "-lc++ ${LDFLAGS}".split(" "))],
+                flag_groups = [flag_group(flags = "-l${LIBCXX} ${LDFLAGS}".split(" "))],
             ),
         ],
     )
@@ -210,7 +217,7 @@ def _impl(ctx):
             flag_set(
                 actions = all_link_actions +
                           ["objc-executable", "objc++-executable"],
-                flag_groups = [flag_group(flags = "-lc++ ${LDFLAGS}".split(" "))],
+                flag_groups = [flag_group(flags = "-l${LIBCXX} ${LDFLAGS}".split(" "))],
             ),
         ],
     )
@@ -286,22 +293,30 @@ def _impl(ctx):
         ],
     )
 
-    cxx_builtin_include_directories = [
-        "${CONDA_BUILD_SYSROOT}/System/Library/Frameworks",
-        "${CONDA_BUILD_SYSROOT}/usr/include",
-        # TODO: Don't hardcode clang version
-        "${BUILD_PREFIX}/lib/clang/11.1.0/include",
-        "${BUILD_PREFIX}/include/c++/v1",
-        "${PREFIX}/include",
-    ]
+    if "TARGET_PLATFORM".startswith("osx"):
+        cxx_builtin_include_directories = [
+            "${CONDA_BUILD_SYSROOT}/System/Library/Frameworks",
+            "${CONDA_BUILD_SYSROOT}/usr/include",
+            "${BUILD_PREFIX}/lib/clang/${COMPILER_VERSION}/include",
+            "${BUILD_PREFIX}/include/c++/v1",
+            "${PREFIX}/include",
+        ]
+    else:
+        cxx_builtin_include_directories = [
+            "${CONDA_BUILD_SYSROOT}/usr/include",
+	    "${BUILD_PREFIX}/lib/gcc/${HOST}/${COMPILER_VERSION}",
+	    "${BUILD_PREFIX}/${HOST}/include/c++/${COMPILER_VERSION}",
+            "${PREFIX}/include",
+        ]
 
     return cc_common.create_cc_toolchain_config_info(
         ctx = ctx,
         toolchain_identifier = "local",
-        host_system_name = "x86_64-apple-macosx",
-        target_system_name = "x86_64-apple-macosx",
-        target_cpu = "darwin_x86_64",
-        target_libc = "macosx",
+	host_system_name = "local",
+        #host_system_name = "TARGET_CPU",
+        target_system_name = "TARGET_SYSTEM",
+        target_cpu = "TARGET_CPU",
+        target_libc = "TARGET_LIBC",
         compiler = "compiler",
         abi_version = "local",
         abi_libc_version = "local",
