@@ -33,7 +33,7 @@ if [[ "${target_platform}" == "osx-64" ]]; then
   TARGET_CPU=darwin
 fi
 
-export BUILD_TARGET="//differential-privacy/cc:build"
+export BUILD_TARGET="//differential-privacy/cc/cc:build"
 # Get rid of unwanted defaults
 sed -i -e "/PROTOBUF_INCLUDE_PATH/c\ " .bazelrc
 sed -i -e "/PREFIX/c\ " .bazelrc
