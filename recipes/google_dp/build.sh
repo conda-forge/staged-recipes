@@ -33,8 +33,13 @@ if [[ "${target_platform}" == "osx-64" ]]; then
   TARGET_CPU=darwin
 fi
 
-pushd cc
-bazel build ... --logging=6 --subcommands --verbose_failures --crosstool_top=//custom_clang_toolchain:toolchain
-popd
-mkdir -p $PREFIX/bin
-cp bazel-bin/cc $PREFIX/bin
+export BUILD_TARGET="//differential-privacy/cc:build"
+# Get rid of unwanted defaults
+sed -i -e "/PROTOBUF_INCLUDE_PATH/c\ " .bazelrc
+sed -i -e "/PREFIX/c\ " .bazelrc
+
+./configure
+echo "build --config=noaws" >> .bazelrc
+
+# build using bazel
+bazel ${BAZEL_OPTS} build ${BUILD_OPTS} ${BUILD_TARGET}
