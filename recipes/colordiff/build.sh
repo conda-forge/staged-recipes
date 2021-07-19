@@ -8,4 +8,9 @@ make INSTALL_DIR= DESTDIR=$PREFIX install
 
 which perl
 
+which env
+
+/usr/bin/env perl
+/usr/bin/env perl -w
+
 colordiff
