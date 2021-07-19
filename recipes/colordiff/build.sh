@@ -10,7 +10,7 @@ which perl
 
 which env
 
-/usr/bin/env perl
-/usr/bin/env perl -w
+/usr/bin/env perl -V
+/usr/bin/env perl -V -w
 
 colordiff
