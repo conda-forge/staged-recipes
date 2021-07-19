@@ -33,7 +33,6 @@ if [[ "${target_platform}" == "osx-64" ]]; then
   TARGET_CPU=darwin
 fi
 
-export BUILD_TARGET="//differential-privacy/cc/cc:build"
 # Get rid of unwanted defaults
 sed -i -e "/PROTOBUF_INCLUDE_PATH/c\ " .bazelrc
 sed -i -e "/PREFIX/c\ " .bazelrc
@@ -42,4 +41,5 @@ sed -i -e "/PREFIX/c\ " .bazelrc
 echo "build --config=noaws" >> .bazelrc
 
 # build using bazel
-bazel ${BAZEL_OPTS} build ${BUILD_OPTS} ${BUILD_TARGET}
+cd cc
+bazel build ...
