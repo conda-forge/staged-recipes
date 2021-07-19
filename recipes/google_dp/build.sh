@@ -33,13 +33,6 @@ if [[ "${target_platform}" == "osx-64" ]]; then
   TARGET_CPU=darwin
 fi
 
-# Get rid of unwanted defaults
-sed -i -e "/PROTOBUF_INCLUDE_PATH/c\ " .bazelrc
-sed -i -e "/PREFIX/c\ " .bazelrc
-
-./configure
-echo "build --config=noaws" >> .bazelrc
-
 # build using bazel
 cd cc
 bazel build ...
