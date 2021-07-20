@@ -39,7 +39,7 @@ if [[ "${target_platform}" == "osx-arm64" ]]; then
   BUILD_OPTS="${BUILD_OPTS} --config=macos_arm64"
 fi
 
-export BUILD_TARGET="//differential-privacy/cc:BUILD //differential-privacy:BUILD"
+export BUILD_TARGET="//differential-privacy/cc //differential-privacy"
 
 # Get rid of unwanted defaults
 sed -i -e "/PROTOBUF_INCLUDE_PATH/c\ " .bazelrc
