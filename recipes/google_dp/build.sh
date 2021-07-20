@@ -42,7 +42,7 @@ fi
 export BUILD_TARGET="//differential-privacy/cc //differential-privacy"
 
 # Get rid of unwanted defaults
-sed -i -e "/PROTOBUF_INCLUDE_PATH/c\ " .bazelrc
+sed -i -e "/com_google_protobuf/c\ " .bazelrc
 sed -i -e "/PREFIX/c\ " .bazelrc
 
 ./configure
