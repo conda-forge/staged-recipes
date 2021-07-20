@@ -11,7 +11,7 @@ $PYTHON setup.py install --single-version-externally-managed --record=record.txt
 cd install 
 mkdir -p cmake-build-release
 cd cmake-build-release
-cmake -D CONDA_PREFIX=$BUILD_PREFIX \
+cmake -D CONDA_PREFIX=$PREFIX \
       -D CMAKE_INSTALL_PREFIX=$PREFIX \
       "$SRC_DIR"/cpp
 make -j
@@ -33,8 +33,8 @@ fi
 # compilation options
 cmake -D BUILD_PYTHON_INTERFACE=ON \
       -D CMAKE_INSTALL_PREFIX=$PREFIX \
-      -D PYTHON_INCLUDE_DIR="$BUILD_PREFIX"/include/python3.$PY_VERSION \
-      -D PYTHON_LIBRARY="$BUILD_PREFIX"/lib/libpython3.$PY_VERSION$SHLIB_EXT \
+      -D PYTHON_INCLUDE_DIR="$PREFIX"/include/python3.$PY_VERSION \
+      -D PYTHON_LIBRARY="$PREFIX"/lib/libpython3.$PY_VERSION$SHLIB_EXT \
       -D PYTHON_SITEPACKAGES_DIR="$SP_DIR" \
       -D BUILD_GUI=OFF \
       -D BUILD_RENDERER=OFF \
@@ -50,6 +50,6 @@ make install
 
 # INSTALL PuMA GUI
 cd "$SRC_DIR"/gui/build
-qmake "BUILD_PREFIX=$BUILD_PREFIX" "INSTALL_PREFIX=$PREFIX"
+qmake "BUILD_PREFIX=$PREFIX" "INSTALL_PREFIX=$PREFIX"
 make -j
 make install
