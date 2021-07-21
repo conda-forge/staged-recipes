@@ -28,8 +28,5 @@ if [[ "${target_platform}" == "osx-arm64" ]]; then
   BUILD_OPTS="${BUILD_OPTS} --config=macos_arm64"
 fi
 
-./configure
-echo "build --config=noaws" >> .bazelrc
-
 cd cc
 bazel build ...
