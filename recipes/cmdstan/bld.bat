@@ -1,9 +1,9 @@
-DIR %LIBRARY_INC%
+DIR %LIBRARY_INC%/tbb
+DIR %LIBRARY_LIB%
+
 :: try some unix-ifying
 set LIBRARY_LIB=%LIBRARY_LIB:\=/%
 set LIBRARY_INC=%LIBRARY_INC:\=/%
-
-DIR %LIBRARY_INC%
 
 echo TBB_CXX_TYPE=gcc >> make\local
 if errorlevel 1 exit 1
@@ -23,8 +23,8 @@ Xcopy /s /e . %PREFIX%\bin\cmdstan
 if errorlevel 1 exit 1
 
 :: activate/deactivate setup
+echo CMDSTAN=%PREFIX%\bin\cmdstan >> %RECIPE_DIR%\activate.bat
 setlocal EnableDelayedExpansion
-
 :: Copy the [de]activate scripts to %PREFIX%\etc\conda\[de]activate.d.
 :: This will allow them to be run on environment activation.
 for %%F in (activate deactivate) DO (
