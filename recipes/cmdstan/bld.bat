@@ -1,3 +1,9 @@
+:: try some unix-ifying
+set LIBRARY_LIB=%LIBRARY_LIB:\=/%
+set LIBRARY_INC=%LIBRARY_INC:\=/%
+
+echo %LIBRARY_INC%
+
 echo TBB_CXX_TYPE=gcc >> make\local
 if errorlevel 1 exit 1
 :: echo TBB_INTERFACE_NEW=true >> make\local
