@@ -1,4 +1,7 @@
 :: run bernoulli example
+echo %CMDSTAN%
+echo %PATH%
+
 cd %PREFIX%\Library\bin\cmdstan
 mingw32-make examples/bernoulli/bernoulli.exe
 if errorlevel 1 exit 1
