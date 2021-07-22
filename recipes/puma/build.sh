@@ -58,3 +58,5 @@ qmake \
       INSTALL_PREFIX=$PREFIX
 make -j$CPU_COUNT
 make install
+
+echo -e "\n### END OF INSTALLATION ###\n"
