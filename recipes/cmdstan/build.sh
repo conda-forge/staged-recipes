@@ -15,7 +15,13 @@ make clean-all
 
 make build -j${CPU_COUNT}
 
+# set up an alias. see https://github.com/stan-dev/cmdstan/issues/1024
+echo "#!/bin/bash" > "${PREFIX}/bin/cmdstan_model"
+echo "fname=\${1%.stan}" >> "${PREFIX}/bin/cmdstan_model"
+echo "make -C ${PREFIX}/bin/cmdstan \$(realpath --relative-to=${PREFIX}/bin/cmdstan \$fname)" >> "${PREFIX}/bin/cmdstan_model"
+chmod +x "${PREFIX}/bin/cmdstan_model"
 
+# activate script
 echo "CMDSTAN=${PREFIX}/bin/cmdstan" > "${RECIPE_DIR}/activate.sh"
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
 # This will allow them to be run on environment activation.

@@ -1,3 +1,5 @@
+echo $CMDSTAN
+
 cd $PREFIX/bin/cmdstan
 # bernoulli example
 make examples/bernoulli/bernoulli
