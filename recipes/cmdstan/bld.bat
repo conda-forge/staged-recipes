@@ -1,7 +1,7 @@
-echo d | Xcopy /s /e /y . %PREFIX%\bin\cmdstan > NUL
+echo d | Xcopy /s /e /y . %PREFIX%\Library\bin\cmdstan > NUL
 if errorlevel 1 exit 1
 
-cd %PREFIX%\bin\cmdstan
+cd %PREFIX%\Library\bin\cmdstan
 
 echo TBB_CXX_TYPE=gcc >> make\local
 if errorlevel 1 exit 1
@@ -15,7 +15,7 @@ mingw32-make build -j%CPU_COUNT%
 if errorlevel 1 exit 1
 
 :: activate/deactivate setup
-echo CMDSTAN=%PREFIX%\bin\cmdstan > %RECIPE_DIR%\activate.bat
+echo CMDSTAN=%PREFIX%\Library\bin\cmdstan > %RECIPE_DIR%\activate.bat
 :: setlocal EnableDelayedExpansion
 :: Copy the [de]activate scripts to %PREFIX%\etc\conda\[de]activate.d.
 :: This will allow them to be run on environment activation.
