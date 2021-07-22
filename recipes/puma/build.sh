@@ -50,6 +50,9 @@ make install
 
 # INSTALL PuMA GUI
 cd "$SRC_DIR"/gui/build
+if [ "$(uname)" != "Darwin" ]; then  # required for linux
+      echo "QMAKE_LIBS_OPENGL=${BUILD_PREFIX}/${HOST}/sysroot/usr/lib64/libGL.so" >> pumaGUI.pro
+fi
 qmake "BUILD_PREFIX=$PREFIX" "INSTALL_PREFIX=$PREFIX"
 make -j
 make install
