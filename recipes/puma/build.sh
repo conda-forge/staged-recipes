@@ -2,35 +2,32 @@
 set -e  # exit when any command fails
 
 
-# INSTALL pumapy
+echo "### INSTALLING pumapy ###"
 cd "$SRC_DIR"
 $PYTHON setup.py install --single-version-externally-managed --record=record.txt
 
 
-# INSTALL PuMA C++ library
+echo "### INSTALLING PuMA C++ library ###"
 cd install 
 mkdir -p cmake-build-release
 cd cmake-build-release
 cmake -D CONDA_PREFIX=$PREFIX \
       -D CMAKE_INSTALL_PREFIX=$PREFIX \
       "$SRC_DIR"/cpp
-make -j
+make -j$CPU_COUNT
 make install
 rm ${PREFIX}/bin/pumaX_examples
 rm ${PREFIX}/bin/pumaX_main
 
 
-# INSTALL TexGen
+echo "### INSTALLING TexGen ###"
 cd "$SRC_DIR"/install/TexGen
 mkdir -p bin
 cd bin
-
 PY_VERSION="$(python -c 'import sys; print(sys.version_info[1])')"
 if [ $PY_VERSION -le 7 ]; then
     PY_VERSION="${PY_VERSION}m"
 fi
-
-# compilation options
 cmake -D BUILD_PYTHON_INTERFACE=ON \
       -D CMAKE_INSTALL_PREFIX=$PREFIX \
       -D PYTHON_INCLUDE_DIR="$PREFIX"/include/python3.$PY_VERSION \
@@ -43,16 +40,27 @@ cmake -D BUILD_PYTHON_INTERFACE=ON \
       -D CMAKE_INSTALL_RPATH="$PREFIX"/lib \
       -D BUILD_SHARED_LIBS=OFF \
       ..
-
-make -j
+make -j$CPU_COUNT
 make install
 
 
-# INSTALL PuMA GUI
+echo "### INSTALLING PuMA GUI ###"
 cd "$SRC_DIR"/gui/build
 if [ "$(uname)" != "Darwin" ]; then  # required for linux
+      # openGL workaround
       echo "QMAKE_LIBS_OPENGL=${BUILD_PREFIX}/${HOST}/sysroot/usr/lib64/libGL.so" >> pumaGUI.pro
+        # missing g++ workaround.
+      ln -s ${GXX} g++ || true
+      chmod +x g++
+      export PATH=${PWD}:${PATH}
 fi
-qmake "BUILD_PREFIX=$PREFIX" "INSTALL_PREFIX=$PREFIX"
-make -j
+export CC=$(basename ${CC})
+export CXX=$(basename ${CXX})
+qmake \
+      QMAKE_CC=${CC} \
+      QMAKE_CXX=${CXX} \
+      QMAKE_LINK=${CXX} \
+      BUILD_PREFIX=$PREFIX \
+      INSTALL_PREFIX=$PREFIX
+make -j$CPU_COUNT
 make install
