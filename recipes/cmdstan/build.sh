@@ -16,7 +16,7 @@ make clean-all
 make build -j${CPU_COUNT}
 
 
-echo "CMDSTAN=${PREFIX}/bin/cmdstan" >> "${RECIPE_DIR}/activate.sh"
+echo "CMDSTAN=${PREFIX}/bin/cmdstan" > "${RECIPE_DIR}/activate.sh"
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
 # This will allow them to be run on environment activation.
 for CHANGE in "activate" "deactivate"
