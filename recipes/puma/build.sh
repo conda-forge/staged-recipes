@@ -2,12 +2,12 @@
 set -e  # exit when any command fails
 
 
-echo "### INSTALLING pumapy ###"
+echo -e "\n### INSTALLING pumapy ###\n"
 cd "$SRC_DIR"
 $PYTHON setup.py install --single-version-externally-managed --record=record.txt
 
 
-echo "### INSTALLING PuMA C++ library ###"
+echo -e "\n### INSTALLING PuMA C++ library ###\n"
 cd install 
 mkdir -p cmake-build-release
 cd cmake-build-release
@@ -20,7 +20,7 @@ rm ${PREFIX}/bin/pumaX_examples
 rm ${PREFIX}/bin/pumaX_main
 
 
-echo "### INSTALLING TexGen ###"
+echo -e "\n### INSTALLING TexGen ###\n"
 cd "$SRC_DIR"/install/TexGen
 mkdir -p bin
 cd bin
@@ -44,22 +44,16 @@ make -j$CPU_COUNT
 make install
 
 
-echo "### INSTALLING PuMA GUI ###"
+echo -e "\n### INSTALLING PuMA GUI ###\n"
 cd "$SRC_DIR"/gui/build
-if [ "$(uname)" != "Darwin" ]; then  # required for linux
-      # openGL workaround
+# workarounds for openGL and g++ on linux
+if [ "$(uname)" != "Darwin" ]; then
       echo "QMAKE_LIBS_OPENGL=${BUILD_PREFIX}/${HOST}/sysroot/usr/lib64/libGL.so" >> pumaGUI.pro
-        # missing g++ workaround.
       ln -s ${GXX} g++ || true
       chmod +x g++
       export PATH=${PWD}:${PATH}
 fi
-export CC=$(basename ${CC})
-export CXX=$(basename ${CXX})
 qmake \
-      QMAKE_CC=${CC} \
-      QMAKE_CXX=${CXX} \
-      QMAKE_LINK=${CXX} \
       BUILD_PREFIX=$PREFIX \
       INSTALL_PREFIX=$PREFIX
 make -j$CPU_COUNT
