@@ -5,5 +5,5 @@ cd shared-data\python\
 dir
 dir dist
 
-%PYTHON% -m pip install dist\*.whl
+%PYTHON% -m pip install dist/*
 
