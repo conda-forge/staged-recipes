@@ -22,7 +22,7 @@ echo "make -C ${PREFIX}/bin/cmdstan \$(realpath --relative-to=${PREFIX}/bin/cmds
 chmod +x "${PREFIX}/bin/cmdstan_model"
 
 # activate script
-echo "CMDSTAN=${PREFIX}/bin/cmdstan" > "${RECIPE_DIR}/activate.sh"
+echo "export CMDSTAN=${PREFIX}/bin/cmdstan" > "${RECIPE_DIR}/activate.sh"
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
 # This will allow them to be run on environment activation.
 for CHANGE in "activate" "deactivate"

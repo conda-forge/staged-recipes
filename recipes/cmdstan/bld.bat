@@ -1,15 +1,15 @@
 
-:: activate/deactivate setup
-echo SET CMDSTAN=%PREFIX%\Library\bin\cmdstan > %RECIPE_DIR%\activate.bat
-
+:: activate/deactivate setup - cmd, pwsh, and bash 
+echo SET CMDSTAN=%PREFIX%\Library\bin\cmdstan\> %RECIPE_DIR%\activate.bat
+echo $Env:CMDSTAN="%PREFIX%\Library\bin\cmdstan"> %RECIPE_DIR%\activate.ps1
+echo export CMDSTAN=%PREFIX%/Library/bin/cmdstan> %RECIPE_DIR%\activate.sh
 :: Copy the [de]activate scripts to %PREFIX%\etc\conda\[de]activate.d.
 :: This will allow them to be run on environment activation.
 for %%F in (activate deactivate) DO (
     if not exist %PREFIX%\etc\conda\%%F.d mkdir %PREFIX%\etc\conda\%%F.d
     copy %RECIPE_DIR%\%%F.bat %PREFIX%\etc\conda\%%F.d\%PKG_NAME%_%%F.bat
-    type %PREFIX%\etc\conda\%%F.d\%PKG_NAME%_%%F.bat
-    :: Copy unix shell activation scripts, needed by Windows Bash users
-    ::if exists %RECIPE_DIR%\%%F.sh copy %RECIPE_DIR%\%%F.sh %PREFIX%\etc\conda\%%F.d\%PKG_NAME%_%%F.sh
+    copy %RECIPE_DIR%\%%F.ps1 %PREFIX%\etc\conda\%%F.d\%PKG_NAME%_%%F.ps1
+    copy %RECIPE_DIR%\%%F.sh %PREFIX%\etc\conda\%%F.d\%PKG_NAME%_%%F.sh
 )
 
 
