@@ -4,7 +4,8 @@ cd shared-data\python\
 
 dir
 dir dist
-dir dist\*.whl
 
-%PYTHON% -m pip install "%CD%\dist\*.whl"
+for /f "tokens=* USEBACKQ" %%g in (`dir /b dist\*.whl`) do (set "whl=%%g")
+
+%PYTHON% -m pip install dist\%whl% -vv
 
