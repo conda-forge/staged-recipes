@@ -1,0 +1,130 @@
+{% set name = "airspyhf" %}
+{% set version = "1.6.8" %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/airspy/{{ name }}/archive/{{ version }}.tar.gz
+  sha256: cd1e5ae89e09b813b096ae4a328e352c9432a582e03fd7da86760ba60efa77ab
+  patches:
+    - add_getopt.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    ## libudev is on its own in CentOS 6, packaged with systemd in CentOS 7
+    #- {{ cdt('libudev-devel') }}  # [linux and cdt_name=='cos6']
+    #- {{ cdt('systemd-devel') }}  # [linux and cdt_name=='cos7']
+    - {{ cdt('libudev-devel') }}  # [linux]
+    - ninja
+    - pkg-config
+  host:
+    - libusb
+    - pthreads-win32  # [win]
+
+outputs:
+  - name: libairspyhf
+    script: install.sh  # [unix]
+    script: install.bat  # [not unix]
+    build:
+      run_exports:
+        - {{ pin_subpackage('libairspyhf', max_pin='x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - cmake
+        - ninja
+      host:
+        - libusb
+        - pthreads-win32  # [win]
+      run:
+        - pthreads-win32  # [win]
+    test:
+      commands:
+        # verify that headers get installed
+        - test -f $PREFIX/include/libairspyhf/airspyhf.h  # [not win]
+        - test -f $PREFIX/include/libairspyhf/airspyhf_commands.h  # [not win]
+        - test -f $PREFIX/include/libairspyhf/iqbalancer.h  # [not win]
+        - if not exist %PREFIX%\\Library\\include\\libairspyhf\\airspyhf.h exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\include\\libairspyhf\\airspyhf_commands.h exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\include\\libairspyhf\\iqbalancer.h exit 1  # [win]
+
+        # verify that libraries get installed
+        - test -f $PREFIX/lib/libairspyhf${SHLIB_EXT}  # [not win]
+        - if not exist %PREFIX%\\Library\\bin\\airspyhf.dll exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\airspyhf.lib exit 1  # [win]
+  - name: airspyhf
+    script: install.sh  # [unix]
+    script: install.bat  # [not unix]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage('libairspyhf', exact=True) }}
+      run:
+        - {{ pin_subpackage('libairspyhf', exact=True) }}
+    test:
+      commands:
+        # verify that some executables run without error
+        - airspyhf_lib_version
+
+        # verify that the remaining executables can be run
+        {% set cmds = ["airspyhf_calibrate", "airspyhf_gpio"] %}
+        {% set cmds = cmds + ["airspyhf_info", "airspyhf_rx"] %}
+        {% for cmd in cmds %}
+        - {{ cmd }} || ec=$?; if [ $ec -gt 1 ]; then exit $ec; fi  # [not win]
+        - {{ cmd }} || if !ERRORLEVEL! LEQ 1 cmd /c "exit /b 0"  # [win]
+        {% endfor %}
+
+        # verify that udev rule gets installed
+        - test -f $PREFIX/lib/udev/rules.d/52-airspyhf.rules  # [linux]
+
+about:
+  home: https://github.com/airspy/airspyhf
+  license: BSD-3-Clause AND LGPL-2.1-or-later
+  license_file:
+    - LICENSE
+    - tools/getopt/LICENSE.md
+  summary: Host software for AirSpy HF+, a high performance SDR for the HF and VHF bands
+  description: |
+    Airspy is a line of Popular Software-Defined Radio (SDR) receivers
+    developed to achieve High Performance and Affordable Price using innovative
+    combinations of DSP and RF techniques. The goal is to satisfy the most
+    demanding telecommunications professionals and radio enthusiasts while
+    being a serious alternative to both cost sensitive and higher end
+    receivers. Airspy Radios feature world class reception quality and ease of
+    use thanks to the tight integration with the de facto standard free SDR#
+    software for signal acquisition, analysis and demodulation.
+
+    The `libairspyhf` package contains the library for Airspy HF+ devices, and
+    the `airspyhf` package contains command line tools for using the devices.
+
+    For Linux users of `airspyhf`, you will likely want to link the provided
+    udev rule into your system installation in order for the hardware to have
+    the correct permissions:
+
+        sudo ln -s $CONDA_PREFIX/lib/udev/rules.d/52-airspyhf.rules /etc/udev/rules.d/
+        sudo udevadm control --reload
+        sudo udevadm trigger
+
+    Then, make sure your user account belongs to the plugdev group in order to
+    be able to access your device:
+
+        sudo usermod -a -G plugdev <user>
+
+    You may have to restart for this change to take effect.
+  dev_url: https://github.com/airspy/airspyhf
+
+extra:
+  feedstock-name: airspyhf
+  recipe-maintainers:
+    - ryanvolz
