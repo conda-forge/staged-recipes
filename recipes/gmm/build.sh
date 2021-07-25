@@ -4,6 +4,6 @@
 # configure first using conda prefix
 ./configure --prefix=${PREFIX}
 # make it
-make
+make -j$CPU_COUNT
 # now install it
 make install
