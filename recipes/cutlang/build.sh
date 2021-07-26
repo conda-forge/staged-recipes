@@ -1,15 +1,20 @@
-# Temp
-wget -O LICENSE https://raw.githubusercontent.com/unelg/CutLang/master/LICENSE
-cp LICENSE $PREFIX/bin/cutlang/LICENSE
-# Temp
-
 BUILD_PREFIX=$PREFIX
 
 mkdir -p $PREFIX/bin
 
+# Temp
+wget -O LICENSE https://raw.githubusercontent.com/unelg/CutLang/master/LICENSE
+# Temp
+
 cd CLA
 make clean
 cp -R ../ $PREFIX/bin/cutlang
+
+# Temp
+cd ..
+cp LICENSE $PREFIX/bin/cutlang/LICENSE
+cd CLA
+# Temp
 
 rm -rf $PREFIX/bin/cutlang/.github
 rm -rf $PREFIX/bin/cutlang/.git
