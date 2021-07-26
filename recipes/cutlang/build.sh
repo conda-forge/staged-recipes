@@ -1,3 +1,8 @@
+# Temp
+wget -O LICENSE https://raw.githubusercontent.com/unelg/CutLang/master/LICENSE
+cp LICENSE $PREFIX/bin/cutlang/LICENSE
+# Temp
+
 BUILD_PREFIX=$PREFIX
 
 mkdir -p $PREFIX/bin
@@ -10,11 +15,6 @@ rm -rf $PREFIX/bin/cutlang/.github
 rm -rf $PREFIX/bin/cutlang/.git
 
 cd $PREFIX/bin/cutlang/CLA
-
-# Temp
-wget -O LICENSE https://raw.githubusercontent.com/unelg/CutLang/master/LICENSE
-cp LICENSE $PREFIX/bin/cutlang/LICENSE
-# Temp
 
 make
 
