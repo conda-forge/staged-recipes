@@ -1,8 +1,8 @@
 mkdir -p $PREFIX/bin
 
-cd $RECIPE_DIR/CLA
+cd CLA
 make clean
-cp -R $RECIPE_DIR $PREFIX/bin/cutlang
+cp -R ../ $PREFIX/bin/cutlang
 
 rm -rf $PREFIX/bin/cutlang/.github
 rm -rf $PREFIX/bin/cutlang/.git
