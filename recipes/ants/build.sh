@@ -10,6 +10,8 @@ cmake $CMAKE_ARGS -G Ninja \
     -DBUILD_SHARED_LIBS:BOOL=ON \
     -DANTS_SUPERBUILD:BOOL=OFF \
     -DITK_USE_SYSTEM_FFTW:BOOL=ON \
+    -DRUN_LONG_TESTS=OFF \
+    -DRUN_SHORT_TESTS=ON \
     ..
 
 cmake --build .
