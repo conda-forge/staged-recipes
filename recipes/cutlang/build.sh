@@ -10,6 +10,12 @@ rm -rf $PREFIX/bin/cutlang/.github
 rm -rf $PREFIX/bin/cutlang/.git
 
 cd $PREFIX/bin/cutlang/CLA
+
+# Temp
+wget -O LICENSE https://raw.githubusercontent.com/unelg/CutLang/master/LICENSE
+mv LICENSE $PREFIX/bin/cutlang/LICENSE
+# Temp
+
 make
 
 echo "build.sh done"
