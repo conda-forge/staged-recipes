@@ -13,7 +13,7 @@ cd $PREFIX/bin/cutlang/CLA
 
 # Temp
 wget -O LICENSE https://raw.githubusercontent.com/unelg/CutLang/master/LICENSE
-mv LICENSE $PREFIX/bin/cutlang/LICENSE
+cp LICENSE $PREFIX/bin/cutlang/LICENSE
 # Temp
 
 make
