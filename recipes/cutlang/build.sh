@@ -10,7 +10,7 @@ cd CLA
 make clean
 cp -R ../ $PREFIX/bin/cutlang
 
-# Temp.
+# Temp
 cd ..
 cp LICENSE $PREFIX/bin/cutlang/LICENSE
 cd CLA
