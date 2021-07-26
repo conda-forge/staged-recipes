@@ -1,3 +1,5 @@
+BUILD_PREFIX=$PREFIX
+
 mkdir -p $PREFIX/bin
 
 cd CLA
