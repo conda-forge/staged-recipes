@@ -2,31 +2,23 @@
 
 set -ex
 
-export PATH="$PWD:$PATH"
-export CC=$(basename $CC)
-export CXX=$(basename $CXX)
-export LIBDIR=$PREFIX/lib
-export INCLUDEDIR=$PREFIX/include
-
-mkdir -p ./bazel_output_base
-export BAZEL_OPTS=""
-export CC_OPT_FLAGS="${CFLAGS}"
-
-# Quick debug:
-# cp -r ${RECIPE_DIR}/build.sh . && bazel clean && bash -x build.sh --logging=6 | tee log.txt
-# Dependency graph:
-# bazel query 'deps(//tensorflow/tools/lib_package:libtensorflow)' --output graph > graph.in
+export BAZEL_OPT=""
 if [[ "${target_platform}" == osx-* ]]; then
   export LDFLAGS="${LDFLAGS} -lz -framework CoreFoundation -Xlinker -undefined -Xlinker dynamic_lookup"
+  # The feature deselection can be removed again with bazel 5.0
+  # https://github.com/abseil/abseil-cpp/issues/848
+  export BAZEL_OPT="${BAZEL_OPT} --features=-supports_dynamic_linker"
 else
   export LDFLAGS="${LDFLAGS} -lrt"
 fi
-
-source ${RECIPE_DIR}/gen-bazel-toolchain.sh
-
 if [[ "${target_platform}" == "osx-arm64" ]]; then
-  BUILD_OPTS="${BUILD_OPTS} --config=macos_arm64"
+  export LDFLAGS="${LDFLAGS} -mmacosx-version-min=11.0"
 fi
 
-cd cc
-bazel build ...
+sed -ie "s:\${BUILD_PREFIX}:${BUILD_PREFIX}:" protobuf.BUILD
+sed -ie "s:\${SRC_DIR}:${SRC_DIR}:" differential_privacy_deps.bzl
+
+pushd cc
+source gen-bazel-toolchain
+bazel clean
+bazel build --crosstool_top=//bazel_toolchain:toolchain --define=PROTOBUF_INCLUDE_PATH=${PREFIX}/include --cpu=${TARGET_CPU} ${BAZEL_OPT} ...
