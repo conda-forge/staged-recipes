@@ -1,4 +1,5 @@
 #!/bin/bash
+set -ex
 
 wget http://www.hepforge.org/archive/cutlang/cms_opendata_ttbar.root
 wget http://www.hepforge.org/archive/cutlang/atla_opendata_had_ttbar.root
