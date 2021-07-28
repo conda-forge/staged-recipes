@@ -3,7 +3,7 @@
 mkdir build
 cd build
 
-cmake --trace \
+cmake $CMAKE_ARGS --trace \
   -DCMAKE_BUILD_TYPE="Release" \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
   -DCMAKE_PREFIX_PATH="$PREFIX" \
@@ -20,5 +20,5 @@ cmake --trace \
   -DZLIB_LIBRARY_DIR="${PREFIX}/lib" \
   ..
 
-make
+make -j$CPU_COUNT
 make install
