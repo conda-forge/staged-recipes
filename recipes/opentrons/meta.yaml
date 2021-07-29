@@ -1,8 +1,7 @@
-{% set name = "opentrons" %}
 {% set version = "4.4.0" %}
 
 package:
-  name: {{ name|lower }}
+  name: opentrons
   version: {{ version }}
 
 source:
@@ -13,28 +12,52 @@ source:
 
 build:
   number: 0
-  entry_points:
-    - opentrons_simulate = opentrons.simulate:main
-    - opentrons_execute = opentrons.execute:main
-  skip: true  # [py<37]
 
-requirements:
-  host:
-    - python
-    - pip
-  run:
-    - python
-    - aionotify >=0.2.0  # [linux]
-    - jsonschema >=3.0.2,<4
-    - numpy >=1.15.1
-    - opentrons_shared_data =={{ version }}
-    - pydantic >=1.4
-    - pyserial >=3.5
-    - typing-extensions >=3.7.4.3
+outputs:
+  - name: opentrons_shared_data
+    script: install-shared-data.bat  # [win]
+    script: install-shared-data.sh   # [not win]
+    build:
+      noarch: python
+    requirements:
+      host:
+        - python >=3.7
+        - pip
+      run:
+        - python >=3.7
+        - jsonschema >=3.0.2,<4
+    test:
+      imports:
+        - opentrons_shared_data
+      commands:
+        - pip check
+      requires:
+        - pip
 
-test:
-  imports:
-    - opentrons
+  - name: opentrons
+    script: install-opentrons.bat  # [win]
+    script: install-opentrons.sh   # [not win]
+    build:
+      entry_points:
+        - opentrons_simulate = opentrons.simulate:main
+        - opentrons_execute = opentrons.execute:main
+      skip: true  # [py<37]
+    requirements:
+      host:
+        - python
+        - pip
+      run:
+        - python
+        - aionotify >=0.2.0  # [linux]
+        - jsonschema >=3.0.2,<4
+        - numpy >=1.15.1
+        - pydantic >=1.4
+        - pyserial >=3.5
+        - typing-extensions >=3.7.4.3
+        - {{ pin_subpackage('opentrons_shared_data', max_pin="x.x.x") }}
+    test:
+      imports:
+        - opentrons
 
 about:
   home: https://www.opentrons.com
@@ -43,7 +66,7 @@ about:
   summary: |
     The Opentrons API is a simple framework designed to make writing automated
     biology lab protocols easy
-  dev_url: https://github.com/Opentrons/opentrons/tree/edge/api
+  dev_url: https://github.com/Opentrons/opentrons
   doc_url: https://docs.opentrons.com
 
 extra:
