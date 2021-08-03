@@ -2,7 +2,8 @@ cd src/cxx
 cmake ${CMAKE_ARGS} CMakeLists.txt \
       -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_SHARED_LIBS=ON \
-      -DBUILD_TESTING=OFF
+      -DBUILD_TESTING=OFF \
+      -DPython3_EXECUTABLE="$PYTHON"
 cmake --build . --target install --config Release
 
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
