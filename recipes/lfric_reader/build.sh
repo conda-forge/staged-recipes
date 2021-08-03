@@ -1,8 +1,6 @@
 cd src/cxx
-cmake CMakeLists.txt \
+cmake ${CMAKE_ARGS} CMakeLists.txt \
       -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=$PREFIX \
-      -DCMAKE_INSTALL_LIBDIR=lib \
       -DBUILD_SHARED_LIBS=ON \
       -DBUILD_TESTING=OFF
 cmake --build . --target install --config Release
