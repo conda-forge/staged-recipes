@@ -1,8 +1,8 @@
 
 :: activate/deactivate setup - cmd, pwsh, and bash 
-echo SET CMDSTAN=%PREFIX%\Library\bin\cmdstan\> %RECIPE_DIR%\activate.bat
-echo $Env:CMDSTAN="%PREFIX%\Library\bin\cmdstan"> %RECIPE_DIR%\activate.ps1
-echo export CMDSTAN=%PREFIX%/Library/bin/cmdstan> %RECIPE_DIR%\activate.sh
+echo SET CMDSTAN=%PREFIX%\Library\bin\cmdstan\>> %RECIPE_DIR%\activate.bat
+echo $Env:CMDSTAN="%PREFIX%\Library\bin\cmdstan">> %RECIPE_DIR%\activate.ps1
+echo export CMDSTAN=%PREFIX%/Library/bin/cmdstan>> %RECIPE_DIR%\activate.sh
 :: Copy the [de]activate scripts to %PREFIX%\etc\conda\[de]activate.d.
 :: This will allow them to be run on environment activation.
 for %%F in (activate deactivate) DO (
