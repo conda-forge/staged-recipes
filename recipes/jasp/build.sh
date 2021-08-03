@@ -15,9 +15,6 @@ sed -i "s:/usr/:${PREFIX}/:g" JASP.pri
 sed -i "s:/usr/:${PREFIX}/:g" JASP-Desktop/utilities/appdirs.cpp
 sed -i "s:/usr/:${PREFIX}/:g" JASP-Desktop/JASP-Desktop.pro
 
-## qmake can't find libGL.so otherwise
-echo "QMAKE_LIBS_OPENGL=${BUILD_PREFIX}/${HOST}/sysroot/usr/lib64/libGL.so" >> JASP.pro
-
 mkdir build
 cd build
 
@@ -44,7 +41,6 @@ qmake \
     _R_HOME=${PREFIX}/lib/R \
     JASP_R_HOME=${PREFIX}/lib/R \
     CURRENT_R_VERSION=${CURRENT_R_VERSION} \
-    QMAKE_LIBS_OPENGL=${BUILD_PREFIX}/${HOST}/sysroot/usr/lib64/libGL.so \
     QMAKE_CC=$(basename ${CC}) \
     QMAKE_CXX=$(basename ${CXX}) \
     QMAKE_LINK=$(basename ${CXX}) \
