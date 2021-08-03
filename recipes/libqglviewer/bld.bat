@@ -11,4 +11,10 @@ jom -j%CPU_COUNT%
 if errorlevel 1 exit /B 1
 jom check
 if errorlevel 1 exit /B 1
-jom install
+
+COPY QGLViewer\QGLViewer2.dll %LIBRARY_BIN%
+COPY QGLViewer\QGLViewer2.lib %LIBRARY_LIB%
+mkdir  %LIBRARY_INC%\QGLViewer
+COPY QGLViewer\*.h %LIBRARY_INC%\QGLViewer
+mkdir  %LIBRARY_INC%\QGLViewer\VRender
+COPY QGLViewer\VRender\*.h %LIBRARY_INC%\QGLViewer\VRender
