@@ -12,6 +12,8 @@ cmake $CMAKE_ARGS -G Ninja \
     -DITK_USE_SYSTEM_FFTW:BOOL=ON \
     -DRUN_LONG_TESTS=OFF \
     -DRUN_SHORT_TESTS=ON \
+    -DUSE_SYSTEM_ITK:BOOL=ON \
+    -DUSE_SYSTEM_VTK:BOOL=ON \
     ..
 
 cmake --build .
