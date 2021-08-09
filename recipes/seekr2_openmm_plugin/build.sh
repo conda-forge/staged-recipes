@@ -21,6 +21,9 @@ if [[ "$target_platform" == linux* ]]; then
 fi
 
 # Build in subdirectory and install.
+ls ${PREFIX}/lib
+ls ${PREFIX}/lib/plugins
+
 mkdir build
 cd build
 cmake ${CMAKE_FLAGS} ${SRC_DIR}/seekr2plugin
