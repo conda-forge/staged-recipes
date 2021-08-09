@@ -21,8 +21,13 @@ if [[ "$target_platform" == linux* ]]; then
 fi
 
 # Build in subdirectory and install.
+echo "ls $PREFIX/lib"
 ls ${PREFIX}/lib
+echo "ls $PREFIX/lib/plugins"
 ls ${PREFIX}/lib/plugins
+echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+echo "ls $CUDA_HOME/lib64/:"
+ls $CUDA_HOME/lib64/
 
 mkdir build
 cd build
