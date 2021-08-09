@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=Release" -DSEEKR2_BUILD_OPENCL_LIB=OFF -DOPENMM_DIR=$PREFIX
+CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=Release -DSEEKR2_BUILD_OPENCL_LIB=OFF -DOPENMM_DIR=$PREFIX"
 
 if [[ "$target_platform" == linux* ]]; then
     # CFLAGS
@@ -23,6 +23,10 @@ fi
 # Build in subdirectory and install.
 mkdir build
 cd build
-cmake ${CMAKE_FLAGS} ${SRC_DIR}
+cmake ${CMAKE_FLAGS} ${SRC_DIR}/seekr2plugin
 make
 make install PythonInstall
+
+for lib in ${PREFIX}/lib/plugins/*${SHLIB_EXT}; do
+    ln -s $lib ${PREFIX}/lib/$(basename $lib) || true
+done
