@@ -1,2 +1,0 @@
-$Env:CMDSTAN=$Env:CMDSTAN_OLD
-$Env:CMDSTAN_OLD=$null
