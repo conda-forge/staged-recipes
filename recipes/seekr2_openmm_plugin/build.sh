@@ -26,8 +26,10 @@ ls ${PREFIX}/lib
 echo "ls $PREFIX/lib/plugins"
 ls ${PREFIX}/lib/plugins
 echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
-echo "ls $CUDA_HOME/lib64/:"
-ls $CUDA_HOME/lib64/
+echo "ls $CUDA_HOME/lib64/stubs:"
+ls $CUDA_HOME/lib64/stubs
+echo "setting soft link"
+ln -s /lib64/libcuda.so ${PREFIX}/lib/libcuda.so.1
 
 mkdir build
 cd build
