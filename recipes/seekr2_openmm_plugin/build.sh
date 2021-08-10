@@ -17,7 +17,7 @@ if [[ "$target_platform" == linux* ]]; then
     CMAKE_FLAGS+=" -DCUDA_TOOLKIT_ROOT_DIR=${CUDA_HOME}"
     # From: https://github.com/floydhub/dl-docker/issues/59
     CMAKE_FLAGS+=" -DCMAKE_LIBRARY_PATH=${CUDA_HOME}/lib64/stubs"
-    CMAKE_FLAGS+=" -DCUDA_CUDA_LIBRARY=$CUDA_HOME/lib64/stubs/libcuda.so"
+    CMAKE_FLAGS+=" -DCUDA_CUDA_LIBRARY=${CUDA_HOME}/lib64/stubs/libcuda.so"
     
 fi
 
