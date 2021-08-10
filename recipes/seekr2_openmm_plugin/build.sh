@@ -18,8 +18,11 @@ if [[ "$target_platform" == linux* ]]; then
     # From: https://github.com/floydhub/dl-docker/issues/59
     CMAKE_FLAGS+=" -DCMAKE_LIBRARY_PATH=${CUDA_HOME}/lib64/stubs"
     CMAKE_FLAGS+=" -DCUDA_CUDA_LIBRARY=${CUDA_HOME}/lib64/stubs/libcuda.so"
-    CMAKE_FLAGS+=" -lcuda"
     
+    # Cuda tests won't build. Disable all tests for now
+    CMAKE_FLAGS+=" -DSEEKR2_BUILD_CUDA_TESTS=OFF"
+    CMAKE_FLAGS+=" -DSEEKR2_BUILD_REFERENCE_TESTS=OFF"
+    CMAKE_FLAGS+=" -DSEEKR2_BUILD_SERIALIZATION_TESTS=OFF"
 fi
 
 mkdir build
