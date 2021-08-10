@@ -24,7 +24,7 @@ fi
 # Build in subdirectory and install.
 ls $CUDA_HOME/lib64/stubs
 echo "setting soft link"
-#sudo ln -s /lib64/libcuda.so /lib64/libcuda.so.1
+sudo ln -s /lib64/libcuda.so /lib64/libcuda.so.1
 #echo "ls /lib64"
 #ls /lib64/
 
