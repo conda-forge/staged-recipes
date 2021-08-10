@@ -17,19 +17,18 @@ if [[ "$target_platform" == linux* ]]; then
     CMAKE_FLAGS+=" -DCUDA_TOOLKIT_ROOT_DIR=${CUDA_HOME}"
     # From: https://github.com/floydhub/dl-docker/issues/59
     CMAKE_FLAGS+=" -DCMAKE_LIBRARY_PATH=${CUDA_HOME}/lib64/stubs"
+    CMAKE_FLAGS+=" -DCUDA_CUDA_LIBRARY=/lib64/libcuda.so"
     
 fi
 
 # Build in subdirectory and install.
-echo "ls $PREFIX/lib"
-ls ${PREFIX}/lib
-echo "ls $PREFIX/lib/plugins"
-ls ${PREFIX}/lib/plugins
-echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
-echo "ls $CUDA_HOME/lib64/stubs:"
 ls $CUDA_HOME/lib64/stubs
 echo "setting soft link"
-ln -s /lib64/libcuda.so ${PREFIX}/lib/libcuda.so.1
+ln -s /lib64/libcuda.so /lib64/libcuda.so.1
+echo "ls /lib64"
+ls /lib64/
+
+export LD_LIBRARY_PATH=/lib64:$LD_LIBRARY_PATH
 
 mkdir build
 cd build
