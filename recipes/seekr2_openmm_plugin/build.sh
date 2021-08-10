@@ -20,8 +20,8 @@ if [[ "$target_platform" == linux* ]]; then
     CMAKE_FLAGS+=" -DCUDA_CUDA_LIBRARY=${CUDA_HOME}/lib64/stubs/libcuda.so"
     
     # Cuda tests won't build. Disable all tests for now
-    CMAKE_FLAGS+=" -DSEEKR2_BUILD_CUDA_TESTS=OFF"
-    CMAKE_FLAGS+=" -DSEEKR2_BUILD_REFERENCE_TESTS=OFF"
+    CMAKE_FLAGS+=" -DSEEKR2_CUDA_BUILD_TESTS=OFF"
+    CMAKE_FLAGS+=" -DSEEKR2_REFERENCE_BUILD_TESTS=OFF"
     CMAKE_FLAGS+=" -DSEEKR2_BUILD_SERIALIZATION_TESTS=OFF"
 fi
 
