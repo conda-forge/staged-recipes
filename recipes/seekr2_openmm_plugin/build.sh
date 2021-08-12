@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CMAKE_FLAGS="-DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=Release -DSEEKR2_BUILD_OPENCL_LIB=OFF -DOPENMM_DIR=$PREFIX"
+CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -DSEEKR2_BUILD_OPENCL_LIB=OFF -DOPENMM_DIR=$PREFIX"
 
 if [[ "$target_platform" == linux* ]]; then
     # CFLAGS
@@ -11,24 +11,24 @@ if [[ "$target_platform" == linux* ]]; then
     LDFLAGS+=" $LDPATHFLAGS"
 
     # Use GCC
-    CMAKE_FLAGS+=" -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX"
+    CMAKE_ARGS+=" -DCMAKE_C_COMPILER=$CC -DCMAKE_CXX_COMPILER=$CXX"
 
     # CUDA_HOME is defined by nvcc metapackage
-    CMAKE_FLAGS+=" -DCUDA_TOOLKIT_ROOT_DIR=${CUDA_HOME}"
+    CMAKE_ARGS+=" -DCUDA_TOOLKIT_ROOT_DIR=${CUDA_HOME}"
     # From: https://github.com/floydhub/dl-docker/issues/59
-    CMAKE_FLAGS+=" -DCMAKE_LIBRARY_PATH=${CUDA_HOME}/lib64/stubs"
-    CMAKE_FLAGS+=" -DCUDA_CUDA_LIBRARY=${CUDA_HOME}/lib64/stubs/libcuda.so"
+    CMAKE_ARGS+=" -DCMAKE_LIBRARY_PATH=${CUDA_HOME}/lib64/stubs"
+    CMAKE_ARGS+=" -DCUDA_CUDA_LIBRARY=${CUDA_HOME}/lib64/stubs/libcuda.so"
     
     # Cuda tests won't build. Disable all tests for now
-    CMAKE_FLAGS+=" -DSEEKR2_CUDA_BUILD_TESTS=OFF"
-    CMAKE_FLAGS+=" -DSEEKR2_REFERENCE_BUILD_TESTS=OFF"
-    CMAKE_FLAGS+=" -DSEEKR2_BUILD_SERIALIZATION_TESTS=OFF"
+    CMAKE_ARGS+=" -DSEEKR2_CUDA_BUILD_TESTS=OFF"
+    CMAKE_ARGS+=" -DSEEKR2_REFERENCE_BUILD_TESTS=OFF"
+    CMAKE_ARGS+=" -DSEEKR2_BUILD_SERIALIZATION_TESTS=OFF"
 fi
 
 mkdir build
 cd build
-cmake ${CMAKE_FLAGS} ${SRC_DIR}/seekr2plugin
-make
+cmake ${CMAKE_ARGS} ${SRC_DIR}/seekr2plugin
+make -j $CPU_COUNT
 make install PythonInstall
 
 for lib in ${PREFIX}/lib/plugins/*${SHLIB_EXT}; do
