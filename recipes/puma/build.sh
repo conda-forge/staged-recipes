@@ -2,11 +2,6 @@
 set -e  # exit when any command fails
 
 
-echo -e "\n### INSTALLING pumapy ###\n"
-cd "$SRC_DIR"
-$PYTHON setup.py install --single-version-externally-managed --record=record.txt
-
-
 echo -e "\n### INSTALLING PuMA C++ library ###\n"
 cd install 
 mkdir -p cmake-build-release
@@ -42,6 +37,11 @@ cmake -D BUILD_PYTHON_INTERFACE=ON \
       ..
 make -j$CPU_COUNT
 make install
+
+
+echo -e "\n### INSTALLING pumapy ###\n"
+cd "$SRC_DIR"
+$PYTHON setup.py install --single-version-externally-managed --record=record.txt
 
 
 echo -e "\n### INSTALLING PuMA GUI ###\n"
