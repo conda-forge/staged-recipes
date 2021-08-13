@@ -14,7 +14,7 @@ from __future__ import print_function
 
 from conda_build.metadata import MetaData
 from conda_smithy.utils import get_feedstock_name_from_meta
-from conda_smithy.github import accept_all_repository_invitations
+from conda_smithy.github import accept_all_repository_invitations, remove_from_project
 from contextlib import contextmanager
 from datetime import datetime
 from github import Github, GithubException
