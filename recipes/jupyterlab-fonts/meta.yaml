@@ -1,0 +1,63 @@
+{% set version = "2.0.0" %}
+{% set name = "jupyterlab-fonts" %}
+{% set ns = "@deathbeds" %}
+{% set extensions = [
+  "jupyterlab-fonts",
+  "jupyterlab-font-anonymous-pro",
+  "jupyterlab-font-dejavu-sans-mono",
+  "jupyterlab-font-fira-code",
+] %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: 9c553ee9a1794859ba346e49473f1b260bbeba818e02f5651a9a91043ec0c912
+
+build:
+  number: 0
+  noarch: python
+  script:
+    - {{ PYTHON }} -m pip install . -vv
+    {% for ext in extensions %}
+    - cp {{ RECIPE_DIR }}/install.json {{ PREFIX }}/share/jupyter/labextensions/{{ ns }}/{{ ext }}/  # [unix]
+    - copy {{ RECIPE_DIR }}\install.json {{ PREFIX }}\share\jupyter\labextensions\{{ ns }}\{{ ext }}\  # [win]
+    {% endfor %}
+
+
+requirements:
+  host:
+    - pip
+    - python >=3.7
+  run:
+    - jupyterlab 3.*
+    - python >=3.7
+
+test:
+  requires:
+    - pip
+  imports:
+    - jupyterlab_fonts
+  commands:
+    - pip check
+    - jupyter labextension list
+    - jupyter labextension list 1>labextensions 2>&1
+    {% for ext in extensions %}
+    - cat labextensions | grep "{{ ns }}/{{ ext }} v{{ version.replace('.', '\\.') }}.*OK.*\(conda, {{ name }}\)"  # [unix]
+    {% endfor %}
+
+about:
+  home: https://github.com/deathbeds/jupyterlab-fonts
+  summary: Interactive Typography and Style for JupyterLab
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    {% for ext in extensions %}
+    - src/jupyterlab_fonts/labextensions/{{ ns }}/{{ ext }}/static/third-party-licenses.json
+    {% endfor %}
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
