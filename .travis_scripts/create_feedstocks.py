@@ -359,6 +359,7 @@ if __name__ == '__main__':
             # Remove this recipe from the repo.
             if is_merged_pr:
                 subprocess.check_call(['git', 'rm', '-rf', recipe_dir])
+                remove_from_project(gh_travis, 'conda-forge', name + '-feedstock')
 
     # Update status based on the remote.
     subprocess.check_call(['git', 'stash', '--keep-index', '--include-untracked'])
