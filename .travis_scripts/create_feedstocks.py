@@ -14,6 +14,7 @@ from __future__ import print_function
 
 from conda_build.metadata import MetaData
 from conda_smithy.utils import get_feedstock_name_from_meta
+from conda_smithy.github import accept_all_repository_invitations
 from contextlib import contextmanager
 from datetime import datetime
 from github import Github, GithubException
@@ -161,6 +162,8 @@ if __name__ == '__main__':
     gh_drone = Github(os.environ['GH_DRONE_TOKEN'])
     gh_drone_remaining = print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
+    gh_travis = Github(os.environ['GH_TRAVIS_TOKEN'])
+
     gh = None
     if 'GH_TOKEN' in os.environ:
         write_token('github', os.environ['GH_TOKEN'])
@@ -235,8 +238,14 @@ if __name__ == '__main__':
                         ['git', 'checkout', '-b' 'master'], cwd=feedstock_dir)
             print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
             subprocess.check_call(
-                ['conda', 'smithy', 'register-github', feedstock_dir] + owner_info)
+                ['conda', 'smithy', 'register-github', feedstock_dir]
+                + owner_info
+                + ['--extra-admin-users', 'cf-blacksmithy']
+            )
             print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+
+        print("Accepting all repo invites")
+        accept_all_repository_invitations(gh_travis)
 
         from conda_smithy.ci_register import drone_sync
         print("Running drone sync (can take ~100s)")
