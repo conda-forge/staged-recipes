@@ -1,0 +1,3 @@
+#!/bin/bash
+
+export QT_XCB_GL_INTEGRATION="$_ORIG_QT_XCB_GL_INTEGRATION"
