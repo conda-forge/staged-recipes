@@ -1,0 +1,90 @@
+{% set name = "exact-real" %}
+{% set version = "2.0.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/flatsurf/exact-real/releases/download/{{ version }}/exact-real-{{ version }}.tar.gz
+  sha256: b18e00573ef97110ef828abb42e91b192ecd0007d2af98e85a289c463b3c8c47
+
+build:
+  number: 0
+  # dependency e-antic is not available for Windows on conda-forge yet
+  skip: true  # [win]
+
+outputs:
+  - name: libexactreal
+    script: build-libexactreal.sh  # [not win]
+    script: build-libexactreal.bat  # [win]
+    run_exports:
+      - {{ pin_subpackage("libexactreal") }}
+    requirements:
+      build:
+        - libtool   # [unix]
+        - automake  # [unix]
+        - make      # [unix]
+        - autotools_clang_conda  # [win]
+        - gnuconfig  # [unix]
+        - {{ compiler('cxx') }}
+      host:
+        - arb
+        - boost-cpp
+        - e-antic
+        - gmp  # [unix]
+        - mpir  # [win]
+    test:
+      commands:
+        - test -f $PREFIX/include/exact-real/exact-real.h  # [unix]
+        - test -f $PREFIX/lib/libexactreal.so              # [linux]
+        - test -f $PREFIX/lib/libexactreal.dylib           # [osx]
+  - name: pyexactreal
+    script: build-pyexactreal.sh  # [not win]
+    script: bld-pyexactreal.bat  # [win]
+    requirements:
+      build:
+        - python                              # [build_platform != target_platform]
+        - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+        - libtool   # [unix]
+        - automake  # [unix]
+        - make      # [unix]
+        - autotools_clang_conda  # [win]
+        - gnuconfig  # [unix]
+        - {{ compiler('cxx') }}
+      host:
+        - boost-cpp
+        - python
+        - cppyy
+        - cppyythonizations
+        - setuptools
+        - pytest
+        - {{ pin_subpackage("libexactreal") }}
+      run:
+        # cppyy dynamically compiles C++ wrappers at runtime, therefore we need C++ headers of boost.
+        - boost-cpp
+        - python
+        - cppyy
+        - cppyythonizations
+        # A subpackage does not see the run_exports of another subpackage:
+        # https://github.com/conda/conda-build/issues/3478
+        - {{ pin_subpackage("libexactreal") }}
+    test:
+      imports:
+        - pyexactreal
+
+about:
+  home: https://github.com/flatsurf/exact-real
+  license: GPL-3.0-or-later
+  license_family: GPL
+  license_file: COPYING
+  summary: Lazy computations with real numbers in C++ and Python
+  description: |
+    exact-real is a C++/Python library which provides exact lazy computations
+    in the Real Numbers. In particular it provides arithmetic and comparisons
+    of (random) transcendental numbers.
+  dev_url: https://github.com/flatsurf/exact-real
+
+extra:
+  recipe-maintainers:
+    - saraedum
