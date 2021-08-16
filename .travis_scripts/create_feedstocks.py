@@ -18,10 +18,6 @@ from conda_smithy.github import (
     accept_all_repository_invitations,
     remove_from_project,
 )
-from conda_smithy.ci_register import (
-    add_project_to_travis,
-    travis_cleanup,
-)
 from contextlib import contextmanager
 from datetime import datetime
 from github import Github, GithubException
@@ -276,6 +272,7 @@ if __name__ == '__main__':
             # we fail the build so that people are aware that things did not clear.
 
             # hack to help travis work
+            from conda_smithy.ci_register import add_project_to_travis            
             add_project_to_travis("conda-forge", name + "-feedstock")
             # end of hack
 
@@ -368,6 +365,7 @@ if __name__ == '__main__':
             # Remove this recipe from the repo.
             if is_merged_pr:
                 subprocess.check_call(['git', 'rm', '-rf', recipe_dir])
+                from conda_smithy.ci_register import travis_cleanup
                 travis_cleanup("conda-forge", name + "-feedstock")
 
     # Update status based on the remote.
