@@ -253,6 +253,7 @@ if __name__ == '__main__':
         drone_sync()
         time.sleep(100)  # actually wait
         print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+        print_rate_limiting_info(gh_travis, 'GH_TRAVIS_TOKEN')
 
         # Break the previous loop to allow the TravisCI registering
         # to take place only once per function call.
