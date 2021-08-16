@@ -14,7 +14,12 @@ from __future__ import print_function
 
 from conda_build.metadata import MetaData
 from conda_smithy.utils import get_feedstock_name_from_meta
-from conda_smithy.github import accept_all_repository_invitations, remove_from_project
+from conda_smithy.github import (
+    accept_all_repository_invitations,
+    remove_from_project,
+    add_project_to_travis,
+    travis_cleanup,
+)
 from contextlib import contextmanager
 from datetime import datetime
 from github import Github, GithubException
@@ -270,6 +275,11 @@ if __name__ == '__main__':
             # In order to bank our progress, we note the error and handle it.
             # After going through all the recipes and removing the converted ones,
             # we fail the build so that people are aware that things did not clear.
+
+            # hack to help travis work
+            add_project_to_travis("conda-forge", name + "-feedstock")
+            # end of hack
+
             try:
                 write_token('anaconda', os.environ['STAGING_BINSTAR_TOKEN'])
                 subprocess.check_call(
@@ -359,7 +369,7 @@ if __name__ == '__main__':
             # Remove this recipe from the repo.
             if is_merged_pr:
                 subprocess.check_call(['git', 'rm', '-rf', recipe_dir])
-                remove_from_project(gh_travis, 'conda-forge', name + '-feedstock')
+                travis_cleanup("conda-forge", name + "-feedstock")
 
     # Update status based on the remote.
     subprocess.check_call(['git', 'stash', '--keep-index', '--include-untracked'])
