@@ -12,8 +12,3 @@ cd python
 
 # Apply PEP517 to install the package
 maturin build --release -i $PYTHON
-
-cd ../target/wheels
-
-# Install wheel manually
-$PYTHON -m pip install *.whl
