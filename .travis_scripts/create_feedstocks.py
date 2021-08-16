@@ -17,6 +17,8 @@ from conda_smithy.utils import get_feedstock_name_from_meta
 from conda_smithy.github import (
     accept_all_repository_invitations,
     remove_from_project,
+)
+from conda_smithy.ci_register import (
     add_project_to_travis,
     travis_cleanup,
 )
