@@ -251,9 +251,6 @@ if __name__ == '__main__':
             )
             print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
-        print("Accepting all repo invites")
-        accept_all_repository_invitations(gh_travis)
-
         from conda_smithy.ci_register import drone_sync
         print("Running drone sync (can take ~100s)")
         print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
