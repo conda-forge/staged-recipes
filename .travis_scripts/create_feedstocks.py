@@ -14,6 +14,10 @@ from __future__ import print_function
 
 from conda_build.metadata import MetaData
 from conda_smithy.utils import get_feedstock_name_from_meta
+from conda_smithy.github import (
+    accept_all_repository_invitations,
+    remove_from_project,
+)
 from contextlib import contextmanager
 from datetime import datetime
 from github import Github, GithubException
@@ -161,6 +165,8 @@ if __name__ == '__main__':
     gh_drone = Github(os.environ['GH_DRONE_TOKEN'])
     gh_drone_remaining = print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
+    gh_travis = Github(os.environ['GH_TRAVIS_TOKEN'])
+
     gh = None
     if 'GH_TOKEN' in os.environ:
         write_token('github', os.environ['GH_TOKEN'])
@@ -235,7 +241,10 @@ if __name__ == '__main__':
                         ['git', 'checkout', '-b' 'master'], cwd=feedstock_dir)
             print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
             subprocess.check_call(
-                ['conda', 'smithy', 'register-github', feedstock_dir] + owner_info)
+                ['conda', 'smithy', 'register-github', feedstock_dir]
+                + owner_info
+                + ['--extra-admin-users', gh_travis.get_user().login]
+            )
             print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
         from conda_smithy.ci_register import drone_sync
@@ -244,6 +253,7 @@ if __name__ == '__main__':
         drone_sync()
         time.sleep(100)  # actually wait
         print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+        print_rate_limiting_info(gh_travis, 'GH_TRAVIS_TOKEN')
 
         # Break the previous loop to allow the TravisCI registering
         # to take place only once per function call.
@@ -261,6 +271,12 @@ if __name__ == '__main__':
             # In order to bank our progress, we note the error and handle it.
             # After going through all the recipes and removing the converted ones,
             # we fail the build so that people are aware that things did not clear.
+
+            # hack to help travis work
+            from conda_smithy.ci_register import add_project_to_travis            
+            add_project_to_travis("conda-forge", name + "-feedstock")
+            # end of hack
+
             try:
                 write_token('anaconda', os.environ['STAGING_BINSTAR_TOKEN'])
                 subprocess.check_call(
@@ -350,6 +366,8 @@ if __name__ == '__main__':
             # Remove this recipe from the repo.
             if is_merged_pr:
                 subprocess.check_call(['git', 'rm', '-rf', recipe_dir])
+                from conda_smithy.ci_register import travis_cleanup
+                travis_cleanup("conda-forge", name + "-feedstock")
 
     # Update status based on the remote.
     subprocess.check_call(['git', 'stash', '--keep-index', '--include-untracked'])
