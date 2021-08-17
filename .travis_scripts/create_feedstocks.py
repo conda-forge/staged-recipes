@@ -243,7 +243,7 @@ if __name__ == '__main__':
             subprocess.check_call(
                 ['conda', 'smithy', 'register-github', feedstock_dir]
                 + owner_info
-                + ['--extra-admin-users', gh_travis.get_user().loging]
+                + ['--extra-admin-users', gh_travis.get_user().login]
             )
             print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
