@@ -1,18 +1,16 @@
 #!/usr/bin/env bash
 set -ex
 
-meson_options=(
-   "--prefix=${PREFIX}"
-   "--libdir=lib"
-   "--buildtype=release"
-   "--warnlevel=0"
-   "-Dla_backend=mkl"
-   "-Ddefault_library=shared"
-   ".."
+cmake_options=(
+   "-DCMAKE_INSTALL_PREFIX=${PREFIX}"
+   "-DCMAKE_INSTALL_LIBDIR=lib"
+   "-DBUILD_SHARED_LIBS=ON"
+   "-GNinja"
+   ..
 )
 
 mkdir -p _build
 pushd _build
 
-meson "${meson_options[@]}"
-ninja install
+cmake "${cmake_options[@]}"
+ninja all install
