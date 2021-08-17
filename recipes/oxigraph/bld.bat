@@ -1,13 +1,21 @@
-REM Based on bld.bat from pysyntect-feedstock
-REM https://github.com/conda-forge/pysyntect-feedstock/
+@echo on
 
-REM Create temp folder
-mkdir tmpbuild_%PY_VER%
+set RUST_BACKTRACE=1
 set TEMP=%CD%\tmpbuild_%PY_VER%
-REM Print Rust version
-rustc --version
+
+mkdir %TEMP%
 
 cd python
+    maturin build --release -i %PYTHON% || exit 1
+cd %SRC_DIR%
 
-REM Use PEP517 to install the package
-maturin build --release -i %PYTHON%
+cd server
+    cargo build --release || exit 1
+cd %SRC_DIR%
+
+cd wikibase
+    cargo build --release || exit 1
+cd %SRC_DIR%
+
+dir target/release
+dir target/wheels

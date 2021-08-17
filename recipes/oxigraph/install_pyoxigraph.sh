@@ -1,5 +1,3 @@
-#!/usr/bin/env bashss
+#!/usr/bin/env bash
 cd target/wheels
-
-# Install wheel manually
 $PYTHON -m pip install *.whl
