@@ -14,13 +14,10 @@ else
   make Configure name=linux_musl
 fi
 echo Build Icon, run a sample of the test suite, and install upon success
-#TRUE_PREFIX=$(echo $PREFIX | sed -e 's/\/_h_env_placehold.*//')
-TRUE_PREFIX=$PREFIX
-readlink -f $TRUE_PREFIX
 make \
 && make Samples \
-&& mkdir -p ${TRUE_PREFIX}/usr/local \
-&& mkdir -p ${TRUE_PREFIX}/bin \
-&& make Install dest=${TRUE_PREFIX}/usr/local/icon \
-&& (pushd ${TRUE_PREFIX}/bin && ln -s ../usr/local/icon/bin/* .)
-
+&& mkdir -p ${PREFIX}/usr/local \
+&& mkdir -p ${PREFIX}/bin \
+&& make Install dest=${PREFIX}/usr/local/icon \
+&& (pushd ${PREFIX}/bin && ln -s ../usr/local/icon/bin/* .) \
+&& sed -e "1,/Note Well/d" ${RECIPE_DIR}/LICENSE.txt > ${PREFIX}/usr/local/icon/LICENSE.txt
