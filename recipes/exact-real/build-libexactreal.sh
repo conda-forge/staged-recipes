@@ -4,6 +4,8 @@ set -ex
 if [[ "$target_platform" == osx* ]]; then
     CXXFLAGS="$CXXFLAGS -fno-common"
     CXXFLAGS="$CXXFLAGS -std=c++17"
+    # macOS does not support std::uncaught_exceptions() before 10.12
+    CXXFLAGS="-DCATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS"
 fi
 
 if [[ "$target_platform" == win* ]]; then
