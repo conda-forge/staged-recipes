@@ -27,3 +27,6 @@ make check || (cat test/test-suite.log; false)
 fi
 make install
 
+if [[ "$target_platform" == win* ]]; then
+    rm $PREFIX/lib/gmpxx.lib
+fi
