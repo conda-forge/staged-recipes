@@ -3,11 +3,12 @@ set -ex
 
 if [[ "$target_platform" == osx* ]]; then
     CXXFLAGS="$CXXFLAGS -fno-common"
+    CXXFLAGS="$CXXFLAGS -std=c++17"
 fi
 
 if [[ "$target_platform" == win* ]]; then
     cp $PREFIX/lib/gmp.lib $PREFIX/lib/gmpxx.lib
-    CXXFLAGS="$CXXFLAGS -std=c++14"
+    CXXFLAGS="$CXXFLAGS -std=c++17"
 fi
 
 cd pyexactreal
