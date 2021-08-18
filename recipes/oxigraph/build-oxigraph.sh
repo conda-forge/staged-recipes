@@ -11,14 +11,14 @@ rustc --version
 
 if [[ $PKG_NAME == "oxigraph-server" ]]; then
     cd $SRC_DIR/server
-    cargo build --release
+    cargo build --release --verbose
     mkdir -p $PREFIX/bin
     cp $SRC_DIR/target/release/oxigraph_server $PREFIX/bin/
 fi
 
 if [[ $PKG_NAME == "oxigraph-wikibase" ]]; then
     cd $SRC_DIR/wikibase
-    cargo build --release
+    cargo build --release --verbose
     mkdir -p $PREFIX/bin
     cp $SRC_DIR/target/release/oxigraph_wikibase $PREFIX/bin/
 fi
