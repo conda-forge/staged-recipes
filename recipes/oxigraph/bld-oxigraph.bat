@@ -7,6 +7,8 @@ set TEMP=%SRC_DIR%\tmpbuild_%PY_VER%
 
 mkdir %TEMP%
 
+rustc --version
+
 IF %PKG_NAME% eq "oxigraph-server" (
     cd server
         cargo build --release || exit 1
@@ -15,6 +17,16 @@ IF %PKG_NAME% eq "oxigraph-server" (
     dir target/release
 
     copy target/release/oxigraph_server %SCRIPTS%
+)
+
+IF %PKG_NAME% eq "oxigraph-wikibase" (
+    cd wikibase
+        cargo build --release || exit 1
+    cd %SRC_DIR%
+
+    dir target/release
+
+    copy target/release/oxigraph_wikibase %SCRIPTS%
 )
 
 IF %PKG_NAME% eq "pyoxigraph" (
