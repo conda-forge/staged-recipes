@@ -9,7 +9,7 @@ mkdir %TEMP%
 
 rustc --version
 
-IF %PKG_NAME% eq "oxigraph-server" (
+IF "%PKG_NAME%" == "oxigraph-server" (
     cd server
         cargo build --release || exit 1
     cd %SRC_DIR%
@@ -19,7 +19,7 @@ IF %PKG_NAME% eq "oxigraph-server" (
     copy target/release/oxigraph_server %SCRIPTS%
 )
 
-IF %PKG_NAME% eq "oxigraph-wikibase" (
+IF "%PKG_NAME%" == "oxigraph-wikibase" (
     cd wikibase
         cargo build --release || exit 1
     cd %SRC_DIR%
@@ -29,7 +29,7 @@ IF %PKG_NAME% eq "oxigraph-wikibase" (
     copy target/release/oxigraph_wikibase %SCRIPTS%
 )
 
-IF %PKG_NAME% eq "pyoxigraph" (
+IF "%PKG_NAME%" == "pyoxigraph" (
     cd %SRC_DIR%\python
         maturin build --release -i %PYTHON% || exit 1
     cd %SRC_DIR%
