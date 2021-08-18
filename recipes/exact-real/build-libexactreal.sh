@@ -3,6 +3,7 @@ set -ex
 
 if [[ "$target_platform" == osx* ]]; then
     CXXFLAGS="$CXXFLAGS -fno-common"
+    CXXFLAGS="$CXXFLAGS -std=c++17"
 fi
 
 if [[ "$target_platform" == win* ]]; then
