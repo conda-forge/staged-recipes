@@ -3,7 +3,7 @@
 Convert all recipes into feedstocks.
 
 This script is to be run in a TravisCI context, with all secret environment
-variables defined (BINSTAR_TOKEN, GH_TOKEN)
+variables defined (STAGING_BINSTAR_TOKEN, GH_TOKEN)
 
 Such as:
 
@@ -14,10 +14,6 @@ from __future__ import print_function
 
 from conda_build.metadata import MetaData
 from conda_smithy.utils import get_feedstock_name_from_meta
-from conda_smithy.github import (
-    accept_all_repository_invitations,
-    remove_from_project,
-)
 from contextlib import contextmanager
 from datetime import datetime
 from github import Github, GithubException
@@ -161,6 +157,10 @@ if __name__ == '__main__':
         write_token('azure', os.environ['AZURE_TOKEN'])
     if 'DRONE_TOKEN' in os.environ:
         write_token('drone', os.environ['DRONE_TOKEN'])
+    if 'TRAVIS_TOKEN' in os.environ:
+        write_token('travis', os.environ['TRAVIS_TOKEN'])
+    if 'STAGING_BINSTAR_TOKEN' in os.environ:
+        write_token('anaconda', os.environ['STAGING_BINSTAR_TOKEN'])
 
     gh_drone = Github(os.environ['GH_DRONE_TOKEN'])
     gh_drone_remaining = print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
@@ -273,12 +273,11 @@ if __name__ == '__main__':
             # we fail the build so that people are aware that things did not clear.
 
             # hack to help travis work
-            from conda_smithy.ci_register import add_project_to_travis            
+            from conda_smithy.ci_register import add_project_to_travis
             add_project_to_travis("conda-forge", name + "-feedstock")
             # end of hack
 
             try:
-                write_token('anaconda', os.environ['STAGING_BINSTAR_TOKEN'])
                 subprocess.check_call(
                     ['conda', 'smithy', 'register-ci', '--without-appveyor',
                      '--without-webservice', '--feedstock_directory',
@@ -306,10 +305,12 @@ if __name__ == '__main__':
                         ['conda', 'smithy', 'register-feedstock-token',
                          '--feedstock_directory', feedstock_dir] + owner_info)
 
-                write_token('anaconda', os.environ['STAGING_BINSTAR_TOKEN'])
+                # add staging token env var to all CI probiders except appveyor
+                # and azure
+                # azure has it by default and appveyor is not used
                 subprocess.check_call(
                     ['conda', 'smithy', 'rotate-binstar-token',
-                     '--without-appveyor',
+                     '--without-appveyor', '--without-azure',
                      '--token_name', 'STAGING_BINSTAR_TOKEN'],
                     cwd=feedstock_dir)
 
