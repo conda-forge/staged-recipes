@@ -18,3 +18,8 @@ test "$(go env GOPATH)" == "${PWD}/gopath"
 # Print diagnostics
 go env
 
+go mod init example.com/hello_world
+go build .
+if [[ "${cross_target_platform}" == "${build_platform}" ]]; then
+  ./hello_world
+fi
