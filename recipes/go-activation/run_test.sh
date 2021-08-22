@@ -20,6 +20,6 @@ go env
 
 go mod init example.com/hello_world
 go build .
-if [[ "${cross_target_platform}" == "${build_platform}" ]]; then
+if [[ "${cross_target_platform}" == "${build_platform}" || "${CMAKE_CROSSCOMPILING_EMULATOR}" != "" ]]; then
   ./hello_world
 fi
