@@ -13,28 +13,32 @@ source:
 
 build:
   number: 0
-  skip: true  # [not linux]
-  missing_dso_whitelist:
-    - $RPATH/libc.* 
-    - /lib/libc.so.6
-    - /lib64/libc.so.6
+  ignore_run_exports:        # Cf comment above
+    - libstdcxx-ng           # [linux]
+    - libcxx                 # [osx]
+  run_exports:
+    - {{ pin_subpackage('libhiredis', max_pin='x.x') }}
 
 requirements:
   build:
     - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
     - cmake
     - make
 
   host:
     - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
 
   run:
     - redis
 
 test:
   commands:
-    - ldd ${PREFIX}/lib/libhiredis.so
-    - test -f ${PREFIX}/include/hiredis/hiredis.h
+    - ldd ${PREFIX}/lib/libhiredis.so  # [linux]
+    - test -f ${PREFIX}/include/hiredis/hiredis.h  # [unix]
+    - test -f ${PREFIX}/lib/libhiredis.{{ soversion }}${SHLIB_EXT}  # [osx]
+    - if not exist %PREFIX%\\Library\\include\\hiredis\\hiredis.h exit 1  # [win]
     - echo "TODO? - Pkg tests require redis server."
 
 about:
