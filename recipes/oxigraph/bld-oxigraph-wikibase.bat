@@ -15,4 +15,6 @@ cargo build --release --verbose || exit 1
 
 if not exist "%SCRIPTS%" mkdir %SCRIPTS%
 
-copy %SRC_DIR%\target\release\oxigraph_wikibase %SCRIPTS% || exit 1
+dir %SRC_DIR%\target\release
+
+copy %SRC_DIR%\target\release\oxigraph_wikibase.exe %SCRIPTS% || exit 1
