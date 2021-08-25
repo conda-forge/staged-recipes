@@ -14,6 +14,7 @@ cd %SRC_DIR%\python
 maturin build --release -i %PYTHON% || exit 1
 
 chcp 65001
+
 FOR %%w IN (%SRC_DIR%\target\wheels\*.whl) DO (
     %PYTHON% -m pip install %%w --build %TEMP% || exit 1
 )

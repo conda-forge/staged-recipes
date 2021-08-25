@@ -13,4 +13,6 @@ cd %SRC_DIR%\server
 
 cargo build --release --verbose || exit 1
 
+if not exist "%SCRIPTS%" mkdir %SCRIPTS%
+
 copy %SRC_DIR%\target\release\oxigraph_server %SCRIPTS% || exit 1
