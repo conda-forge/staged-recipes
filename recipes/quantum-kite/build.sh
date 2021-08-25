@@ -25,25 +25,6 @@ make install
 
 echo "---EJH--- Installing kite.py"
 cd $KITE_ROOT
-mkdir kite
-mv kite.py kite/kite.py
-touch kite/__init__.py
-cat > setup.py <<EOF
-#!/usr/bin/env python
-from distutils.core import setup
-
-setup(name='kite',
-      version='1.0',
-      description='',
-      author='Edward Higgins',
-      author_email='ed.higgins@york.ac.uk',
-      url='https://quantum-kite.com',
-      packages=['kite'],
-     )
-
-EOF
-echo "---EJH--- Wrote setup.py:"
-cat setup.py
 
 python setup.py install
 echo "---EJH--- Done!"
