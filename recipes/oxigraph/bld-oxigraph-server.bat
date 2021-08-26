@@ -18,3 +18,6 @@ if not exist "%SCRIPTS%" mkdir %SCRIPTS%
 dir %SRC_DIR%\target\release
 
 copy %SRC_DIR%\target\release\oxigraph_server.exe %SCRIPTS% || exit 1
+
+del /F /Q "%PREFIX%\.crates2.json"
+del /F /Q "%PREFIX%\.crates.toml"

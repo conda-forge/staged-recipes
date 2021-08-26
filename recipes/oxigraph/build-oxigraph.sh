@@ -28,3 +28,6 @@ if [[ $PKG_NAME == "pyoxigraph" ]]; then
     maturin build --release -i $PYTHON
     $PYTHON -m pip install $SRC_DIR/target/wheels/*.whl
 fi
+
+rm -f "${PREFIX}/.crates.toml"
+rm -f "${PREFIX}/.crates2.json"

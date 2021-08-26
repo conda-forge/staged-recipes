@@ -18,3 +18,6 @@ chcp 65001
 FOR %%w IN (%SRC_DIR%\target\wheels\*.whl) DO (
     %PYTHON% -m pip install %%w --build %TEMP% || exit 1
 )
+
+del /F /Q "%PREFIX%\.crates2.json"
+del /F /Q "%PREFIX%\.crates.toml"
