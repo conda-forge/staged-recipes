@@ -16,16 +16,12 @@ mkdir -p $CARGO_HOME
 
 if [[ $PKG_NAME == "oxigraph-server" ]]; then
     cd $SRC_DIR/server
-    cargo build --release
-    mkdir -p $PREFIX/bin
-    cp $SRC_DIR/target/release/oxigraph_server $PREFIX/bin/
+    cargo install --root $PREFIX --path .
 fi
 
 if [[ $PKG_NAME == "oxigraph-wikibase" ]]; then
     cd $SRC_DIR/wikibase
-    cargo build --release
-    mkdir -p $PREFIX/bin
-    cp $SRC_DIR/target/release/oxigraph_wikibase $PREFIX/bin/
+    cargo install --root $PREFIX --path .
 fi
 
 if [[ $PKG_NAME == "pyoxigraph" ]]; then
