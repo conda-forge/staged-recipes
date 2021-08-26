@@ -11,7 +11,7 @@ rustc --version
 
 cd %SRC_DIR%\server
 
-cargo build --release --verbose || exit 1
+cargo build --release || exit 1
 
 if not exist "%SCRIPTS%" mkdir %SCRIPTS%
 
