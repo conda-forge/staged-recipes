@@ -1,7 +1,7 @@
 #!/bin/bash
 set -ex
 
-src="$SRC_DIR/$PKG_NAME"
+src="$SRC_DIR"
 mkdir -p $PREFIX/lib/intel-ocl-cpu
 
 # Move to intel-ocl-cpu to avoid clashes with intel-opencl-clang
