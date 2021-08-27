@@ -3,7 +3,7 @@ if [[ -n "${_CONDA_RESTORE_PATH}" ]]; then
   unset _CONDA_RESTORE_PATH
 fi
 
-if [[ -n "${_CONDA_RESTORE_MINTPY_HOME}"]]; then
+if [[ -n "${_CONDA_RESTORE_MINTPY_HOME}" ]]; then
   export MINTPY_HOME=${_CONDA_RESTORE_MINTPY_HOME}
   unset _CONDA_RESTORE_MINTPY_HOME
 fi
