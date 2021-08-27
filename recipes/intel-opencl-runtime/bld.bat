@@ -1,5 +1,5 @@
 mkdir "%LIBRARY_PREFIX%\intel-ocl-cpu"
-set "src=%SRC_DIR%\Library\lib"
+set "src=%SRC_DIR%\%PKG_NAME%\Library\lib"
 robocopy /E "%src%" "%LIBRARY_LIB%\intel-ocl-cpu"
 if %ERRORLEVEL% GEQ 8 exit 1
 
