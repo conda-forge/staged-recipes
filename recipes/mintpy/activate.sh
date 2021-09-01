@@ -1,12 +1,7 @@
 export _CONDA_RESTORE_PATH=${PATH}
-
 export _CONDA_RESTORE_MINTPY_HOME=${MINTPY_HOME}
-if [[ -n "${MINTPY_HOME}" ]]; then
-  # suppress MintPy import print statement
-  export MINTPY_HOME=foobar
-fi
 
-_mintpy_home=$(python -c 'from pathlib import Path; import mintpy; print(Path(mintpy.__file__).parent)')
-export PATH=${PATH}:${_mintpy_home}
-export MINTPY_HOME=${_mintpy_home}
-unset _mintpy_home
+PYTHON_SITE_PACKAGES=$(python -c "import os; from sysconfig import get_paths; print(os.path.relpath(get_paths()['purelib'], '${CONDA_PREFIX}'))")
+
+export MINTPY_HOME=${PREFIX}/${PYTHON_SITE_PACKAGES}/mintpy
+export PATH=${PATH}:${MINTPY_HOME}
