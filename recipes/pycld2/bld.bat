@@ -1,2 +1,7 @@
-"%PYTHON%" -m pip install -U pycld2
+mkdir build
+cd build
+
+set "CFLAGS= -LD"
+
+"%PYTHON%" -m pip install --no-deps --ignore-installed  .
 if errorlevel 1 exit 1
