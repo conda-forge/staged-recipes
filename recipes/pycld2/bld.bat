@@ -1,7 +1,2 @@
-mkdir build
-cd build
-
-set "CFLAGS= -LD"
-
-"%PYTHON%" -m pip install --no-deps --ignore-installed  .
+"%PYTHON%" -m pip install 
 if errorlevel 1 exit 1
