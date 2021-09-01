@@ -1,2 +1,2 @@
-$PYTHON -m pip install --no-deps --ignore-installed  .
+"%PYTHON%" setup.py install
 if errorlevel 1 exit 1
