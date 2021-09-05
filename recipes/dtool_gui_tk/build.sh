@@ -1,6 +1,6 @@
 #!/bin/bash
 if [ "$(uname)" == "Linux" ]; then
-    export DISPLAY=localhost:1.0
+    export DISPLAY=:1
 fi
 
 python -m pip install . -vv
