@@ -1,0 +1,69 @@
+{% set version = '0.1.5' %}
+{% set posix = 'm2-' if win else '' %}
+{% set native = 'm2w64-' if win else '' %}
+
+package:
+  name: r-rcppsimdjson
+  version: {{ version|replace("-", "_") }}
+
+source:
+  url:
+    - {{ cran_mirror }}/src/contrib/RcppSimdJson_{{ version }}.tar.gz
+    - {{ cran_mirror }}/src/contrib/Archive/RcppSimdJson/RcppSimdJson_{{ version }}.tar.gz
+  sha256: 97eadc7c719b3aedd540d1047feb9cf0bd3355e26a74094e8015291e9e612de5
+
+build:
+  merge_build_host: True  # [win]
+  number: 0
+  # Win compile error
+  skip: true  # [win]
+  rpaths:
+    - lib/R/lib/
+    - lib/
+
+requirements:
+  build:
+    - {{ compiler('c') }}              # [not win]
+    - {{ compiler('m2w64_c') }}        # [win]
+    - {{ compiler('cxx') }}            # [not win]
+    - {{ compiler('m2w64_cxx') }}      # [win]
+    - {{ posix }}filesystem        # [win]
+    - {{ posix }}sed               # [win]
+    - {{ posix }}grep              # [win]
+    - {{ posix }}autoconf
+    - {{ posix }}automake          # [not win]
+    - {{ posix }}automake-wrapper  # [win]
+    - {{ posix }}pkg-config
+    - {{ posix }}make
+    - {{ posix }}coreutils         # [win]
+    - {{ posix }}zip               # [win]
+    - cross-r-base {{ r_base }}    # [build_platform != target_platform]
+  host:
+    - r-base
+    - r-rcpp
+  run:
+    - r-base
+    - {{ native }}gcc-libs         # [win]
+    - r-rcpp
+
+test:
+  commands:
+    - $R -e "library('RcppSimdJson')"           # [not win]
+    - "\"%R%\" -e \"library('RcppSimdJson')\""  # [win]
+
+about:
+  home: https://github.com/eddelbuettel/rcppsimdjson/
+  license: GPL-2.0-or-later
+  summary: The 'JSON' format is ubiquitous for data interchange, and the 'simdjson' library written
+    by Daniel Lemire (and many contributors) provides a high-performance parser for
+    these files which by relying on parallel 'SIMD' instruction manages to parse these
+    files as faster than disk speed. See the <arXiv:1902.08318> paper for more details
+    about 'simdjson'.  This package parses 'JSON' from string, file, or remote URLs
+    under a variety of settings.
+  license_family: GPL2
+  license_file:
+    - {{ environ["PREFIX"] }}/lib/R/share/licenses/GPL-2
+
+extra:
+  recipe-maintainers:
+    - conda-forge/r
