@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cmake -DCMAKE_INSTALL_PREFIX=$PREFIX $SRC_DIR
+cmake -S $SRC_DIR -DBUILD_SHARED_LIBS=YES -DCMAKE_INSTALL_PREFIX=$PREFIX  
 make
 make test
 make install
