@@ -9,7 +9,7 @@ cmake --install build
 ## from https://github.com/archlinux/svntogit-community/blob/packages/mbedtls/trunk/PKGBUILD 
 # rename generic utils
   local _prog _baseprog
-  for _prog in "$PREFIX"/usr/bin/*; do
+  for _prog in "$PREFIX"/bin/*; do
 	_baseprog=$(basename "$_prog")
     mv -v "$_prog" "${_prog//$_baseprog/mbedtls_$_baseprog}"
   done
