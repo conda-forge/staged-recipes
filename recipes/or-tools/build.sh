@@ -1,6 +1,5 @@
 #!/bin/sh
 
-mkdir build && cd build
 export CXXFLAGS="${CXXFLAGS//-std=c++17/}"
 export CXXFLAGS="$CXXFLAGS -std=c++11"
 
