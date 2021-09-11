@@ -3,7 +3,7 @@ mkdir build
 cd build
 
 cmake -G "NMake Makefiles" ^
-      ${CMAKE_ARGS} ^
+      %CMAKE_ARGS% ^
       -DCMAKE_INSTALL_PREFIX=$PREFIX ^
       -DCMAKE_INSTALL_LIBDIR=lib ^
       -DPODOFO_BUILD_SHARED=1 ^
