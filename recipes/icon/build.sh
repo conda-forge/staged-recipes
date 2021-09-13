@@ -30,9 +30,14 @@ mkdir -p ${DEPLOY}/ipl/packs ; cp -R ${SRC_DIR}/ipl/packs/*  ${DEPLOY}/ipl/packs
 mkdir -p ${DEPLOY}/ipl/procs ; cp    ${SRC_DIR}/ipl/procs/*  ${DEPLOY}/ipl/procs/
 mkdir -p ${DEPLOY}/ipl/progs ; cp    ${SRC_DIR}/ipl/progs/*  ${DEPLOY}/ipl/progs/
 
-# Remove ucode from lib to reduce the size of the conda package by almost half;
-#   the price of doing so is a prolonged first activation.
+# Save cfuncs.u? because we have to omit from the build the build tools
+#   needed to reconstruct it via ipl/cfuncs/Makefile
+cp ${DEPLOY}/lib/cfunc.u? ${DEPLOY}/
+# Remove remaining ucode from lib to reduce the size of the conda package by
+#   almost half; the cost of this is a (slightly) prolonged first activation.
 rm ${DEPLOY}/lib/*.u?
+# restore cfuncs.u?
+mv ${DEPLOY}/cfunc.u? ${DEPLOY}/lib/
 
 # Create instructions to make extension libraries in C
 mkdir -p ${DEPLOY}/doc ; cp ${SRC_DIR}/doc/* ${DEPLOY}/doc/
