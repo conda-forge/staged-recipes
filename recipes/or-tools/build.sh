@@ -3,7 +3,7 @@
 export CXXFLAGS="${CXXFLAGS//-std=c++17/}"
 export CXXFLAGS="$CXXFLAGS -std=c++11"
 
-cmake -DCMAKE_INSTALL_PREFIX=$PREFIX \
+cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_LIBDIR=lib \
       -BUILD_DEPS=OFF \
