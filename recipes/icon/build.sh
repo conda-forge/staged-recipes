@@ -30,6 +30,10 @@ mkdir -p ${DEPLOY}/ipl/packs ; cp -R ${SRC_DIR}/ipl/packs/*  ${DEPLOY}/ipl/packs
 mkdir -p ${DEPLOY}/ipl/procs ; cp    ${SRC_DIR}/ipl/procs/*  ${DEPLOY}/ipl/procs/
 mkdir -p ${DEPLOY}/ipl/progs ; cp    ${SRC_DIR}/ipl/progs/*  ${DEPLOY}/ipl/progs/
 
+# Remove ucode from lib to reduce the size of the conda package by almost half;
+#   the price of doing so is a prolonged first activation.
+rm ${DEPLOY}/lib/*.u?
+
 # Create instructions to make extension libraries in C
 mkdir -p ${DEPLOY}/doc ; cp ${SRC_DIR}/doc/* ${DEPLOY}/doc/
 echo '
@@ -77,6 +81,14 @@ if [ -z "${MANPATH}" ]; then
   export MANPATH=${CONDA_PREFIX}/icon/man:/usr/share/man
 else
   export MANPATH=${CONDA_PREFIX}/icon/man
+fi
+
+if [ ! -e ${CONDA_PREFIX}/icon/lib/zipread.u2 ]; then
+  # echo Initializing ucode in library ...
+  pushd ${CONDA_PREFIX}/icon/ipl/procs > /dev/null
+  LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
+  popd > /dev/null
+  # echo ... done
 fi
 
 cat > ${CONDA_PREFIX}/README_icon << .
