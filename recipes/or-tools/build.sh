@@ -1,14 +1,13 @@
 #!/bin/sh
 
+mkdir build
+
 cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_LIBDIR=lib \
       -BUILD_DEPS=OFF \
       -DUSE_SCIP=OFF \
-      $SRC_DIR
+      -S. \
+      -B build
 
-make -j${CPU_COUNT}
-make install
-
-# run tests
-make test
+cmake --build build --target install -j${CPU_COUNT}
