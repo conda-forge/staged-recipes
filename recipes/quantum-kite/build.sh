@@ -20,4 +20,4 @@ make install
 
 # Install kite.py package
 cd $KITE_ROOT
-python setup.py install
+PYTHON -m pip install . -vv

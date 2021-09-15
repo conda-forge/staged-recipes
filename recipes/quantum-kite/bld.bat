@@ -6,7 +6,7 @@ mkdir build && cd build
 cmake -DCMAKE_INSTALL_PREFIX:PATH=%PREFIX% ..
 make -j%CPU_COUNT%
 make install
-
+ {
 REM Install KITE-tools
 cd %KITE_ROOT%
 cd tools
@@ -18,4 +18,6 @@ make install
 
 REM Install kite.py package
 cd %KITE_ROOT%
-python setup.py install
+
+PYTHON -m pip install . -vv
+
