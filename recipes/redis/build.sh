@@ -1,6 +1,8 @@
 #!/bin/bash
 
-unset ARCH
+echo "#include <stdatomic.h>" > foo.c
+x86_64-apple-darwin13.4.0-clang -std=c11 -c foo.c -o foo.o
 
-make
-make install
+ls foo*
+
+exit 1
