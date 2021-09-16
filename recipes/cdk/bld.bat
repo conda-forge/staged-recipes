@@ -1,4 +1,3 @@
-@REM Skip the tests because they require to have a tango database running
 cmd.exe /c mvn install -DskipTests
 
 @REM Generate third party license report

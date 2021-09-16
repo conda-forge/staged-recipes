@@ -1,4 +1,3 @@
-# Skip the tests because they require to have a tango database running
 mvn install -DskipTests
 
 # Generate third party license report
