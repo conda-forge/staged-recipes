@@ -1,5 +1,8 @@
 #!/bin/bash
 
-make
+make BUILD_TLS=yes
 make PREFIX=$PREFIX install
-make test
+
+if [[ "$target_platform" == osx* ]]; then
+  make test
+fi
