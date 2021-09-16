@@ -1,4 +1,5 @@
 #!/bin/bash
 
-make BUILD_TLS=yes
+make
 make PREFIX=$PREFIX install
+make test
