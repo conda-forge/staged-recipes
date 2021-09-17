@@ -1,0 +1,198 @@
+{% set name = "systemd" %}
+{% set version = "249" %}
+{% set build = "0" %}
+{% set libudev_abi_version = "1" %}
+{% set libsystemd_abi_version = "0" %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/{{ name }}/{{ name }}/archive/v{{ version }}.tar.gz
+  sha256: 174091ce5f2c02123f76d546622b14078097af105870086d18d55c1c2667d855
+
+build:
+  number: {{ build }}
+  skip: true  # [not linux]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - coreutils
+    - gperf
+    - jinja2
+    - meson
+    - ninja
+    - pkg-config
+    - python
+    - sysroot_linux-64 2.17  # [linux64]
+  host:
+    - elfutils
+    - libacl
+    - libcap
+    - libgcrypt
+    - lz4-c
+    - p11-kit
+    - libseccomp
+    - openssl
+    - util-linux
+    - xz
+    - zstd
+
+outputs:
+  - name: libudev{{ libudev_abi_version }}
+    files:
+      - lib/libudev.so.{{ libudev_abi_version }}
+      - lib/libudev.so.{{ libudev_abi_version }}.*
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - sysroot_linux-64 2.17  # [linux64]
+    test:
+      commands:
+        # verify that library and its symlink gets installed
+        # symlink
+        - test -h $PREFIX/lib/libudev.so.{{ libudev_abi_version }}
+        # library
+        - test -f $PREFIX/lib/libudev.so.{{ libudev_abi_version }}
+    about:
+      home: https://www.freedesktop.org/wiki/Software/systemd/
+      dev_url: https://github.com/systemd/systemd
+      license: LGPL-2.1-or-later
+      license_file: LICENSE.LGPL2.1
+      summary: Library to access udev device information
+
+  - name: libudev
+    files:
+      - include/libudev.h
+      - lib/pkgconfig/libudev.pc
+      - lib/libudev.so
+    build:
+      # set build string to ensure unique outputs for each build of libudevN
+      string: {{ pin_subpackage('libudev' + libudev_abi_version, exact=True).split(' ')[-1] }}
+      run_exports:
+        - {{ pin_subpackage('libudev' + libudev_abi_version, max_pin='') }}
+    requirements:
+      run:
+        - {{ pin_subpackage('libudev' + libudev_abi_version, exact=True) }}
+    test:
+      commands:
+        # verify that header gets installed
+        - test -f $PREFIX/include/libudev.h
+
+        # verify that pkgconfig files get installed
+        - test -f $PREFIX/lib/pkgconfig/libudev.pc
+
+        # verify that library symlink gets installed and points to the library
+        - test -h $PREFIX/lib/libudev.so
+        - test -f $PREFIX/lib/libudev.so
+    about:
+      home: https://www.freedesktop.org/wiki/Software/systemd/
+      dev_url: https://github.com/systemd/systemd
+      license: LGPL-2.1-or-later
+      license_file: LICENSE.LGPL2.1
+      summary: Development package for the udev library
+
+  - name: libsystemd{{ libsystemd_abi_version }}
+    files:
+      - lib/libsystemd.so.{{ libsystemd_abi_version }}
+      - lib/libsystemd.so.{{ libsystemd_abi_version }}.*
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - sysroot_linux-64 2.17  # [linux64]
+      host:
+        - libcap
+        - libgcrypt
+        - lz4-c
+        - xz
+        - zstd
+    test:
+      commands:
+        # verify that library and its symlink gets installed
+        # symlink
+        - test -h $PREFIX/lib/libsystemd.so.{{ libsystemd_abi_version }}
+        # library
+        - test -f $PREFIX/lib/libsystemd.so.{{ libsystemd_abi_version }}
+    about:
+      home: https://www.freedesktop.org/wiki/Software/systemd/
+      dev_url: https://github.com/systemd/systemd
+      license: LGPL-2.1-or-later
+      license_file: LICENSE.LGPL2.1
+      summary: Library for interfacing with systemd
+
+  - name: libsystemd
+    files:
+      - include/systemd
+      - lib/pkgconfig/libsystemd.pc
+      - lib/libsystemd.so
+    build:
+      # set build string to ensure unique outputs for each build of libudevN
+      string: {{ pin_subpackage('libsystemd' + libsystemd_abi_version, exact=True).split(' ')[-1] }}
+      run_exports:
+        - {{ pin_subpackage('libsystemd' + libsystemd_abi_version, max_pin='') }}
+    requirements:
+      run:
+        - {{ pin_subpackage('libsystemd' + libsystemd_abi_version, exact=True) }}
+    test:
+      commands:
+        # verify that headers get installed
+        - test -f $PREFIX/include/systemd/_sd-common.h
+        - test -f $PREFIX/include/systemd/sd-bus-protocol.h
+        - test -f $PREFIX/include/systemd/sd-bus-vtable.h
+        - test -f $PREFIX/include/systemd/sd-bus.h
+        - test -f $PREFIX/include/systemd/sd-daemon.h
+        - test -f $PREFIX/include/systemd/sd-device.h
+        - test -f $PREFIX/include/systemd/sd-event.h
+        - test -f $PREFIX/include/systemd/sd-hwdb.h
+        - test -f $PREFIX/include/systemd/sd-id128.h
+        - test -f $PREFIX/include/systemd/sd-journal.h
+        - test -f $PREFIX/include/systemd/sd-login.h
+        - test -f $PREFIX/include/systemd/sd-messages.h
+        - test -f $PREFIX/include/systemd/sd-path.h
+
+        # verify that pkgconfig files get installed
+        - test -f $PREFIX/lib/pkgconfig/libsystemd.pc
+
+        # verify that library gets installed and points to the library
+        - test -h $PREFIX/lib/libsystemd.so
+        - test -f $PREFIX/lib/libsystemd.so
+    about:
+      home: https://www.freedesktop.org/wiki/Software/systemd/
+      dev_url: https://github.com/systemd/systemd
+      license: LGPL-2.1-or-later
+      license_file: LICENSE.LGPL2.1
+      summary: Development package for the systemd library
+
+about:
+  home: https://www.freedesktop.org/wiki/Software/systemd/
+  license: LGPL-2.1-or-later AND GPL-2.0-or-later
+  license_file:
+    - LICENSE.LGPL2.1
+    - LICENSE.GPL2
+  summary: System and Service Manager
+  description: |
+    systemd is a suite of basic building blocks for a Linux system. It provides
+    a system and service manager that runs as PID 1 and starts the rest of the
+    system.
+
+    systemd provides aggressive parallelization capabilities, uses socket and
+    D-Bus activation for starting services, offers on-demand starting of
+    daemons, keeps track of processes using Linux control groups, maintains
+    mount and automount points, and implements an elaborate transactional
+    dependency-based service control logic. systemd supports SysV and LSB init
+    scripts and works as a replacement for sysvinit.
+
+    Other parts include a logging daemon, utilities to control basic system
+    configuration like the hostname, date, locale, maintain a list of logged-in
+    users and running containers and virtual machines, system accounts, runtime
+    directories and settings, and daemons to manage simple network
+    configuration, network time synchronization, log forwarding, and name
+    resolution.
+  dev_url: https://github.com/systemd/systemd
+
+extra:
+  feedstock-name: {{ name }}
+  recipe-maintainers:
+    - ryanvolz
