@@ -5,7 +5,9 @@ if [[ "$target_platform" == osx* ]]; then
     CXXFLAGS="$CXXFLAGS -fno-common"
     CXXFLAGS="$CXXFLAGS -std=c++17"
     # macOS does not support std::uncaught_exceptions() before 10.12
-    CXXFLAGS="-DCATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS"
+    CXXFLAGS="$CXXFLAGS -DCATCH_CONFIG_NO_CPP17_UNCAUGHT_EXCEPTIONS"
+    # re-enable mem_fun_ref in macOS when building with C++17 (used by dependency PPL.)
+    CXXFLAGS="$CXXFLAGS -D_LIBCPP_ENABLE_CXX17_REMOVED_BINDERS"
 fi
 
 if [[ "$target_platform" == win* ]]; then
