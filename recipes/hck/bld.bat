@@ -1,11 +1,11 @@
 :: Install cargo-license
-set CARGO_HOME=%BUILD_PREFIX%\cargo
-mkdir %CARGO_HOME%
-icacls %CARGO_HOME% /grant Users:F
-cargo install cargo-bundle-licenses
+@REM set CARGO_HOME=%BUILD_PREFIX%\cargo
+@REM mkdir %CARGO_HOME%
+@REM icacls %CARGO_HOME% /grant Users:F
+@REM cargo install cargo-bundle-licenses
 :: Check that all downstream libraries licenses are present
-set PATH=%PATH%;%CARGO_HOME%\bin
-cargo bundle-licenses --format yaml --output CI.THIRDPARTY.yml --previous THIRDPARTY.yml --check-previous
+@REM set PATH=%PATH%;%CARGO_HOME%\bin
+cargo-bundle-licenses --format yaml --output CI.THIRDPARTY.yml --previous THIRDPARTY.yml --check-previous
 
 :: build
 cargo install --locked --root "%PREFIX%" --path . || goto :error
