@@ -1,13 +1,22 @@
-#!/bin/bash -euo
+#!/usr/bin/env bash
 
-# Add workaround for SSH-based Git connections from Rust/cargo.  See https://github.com/rust-lang/cargo/issues/2078 for details.
-# We set CARGO_HOME because we don't pass on HOME to conda-build, thus rendering the default "${HOME}/.cargo" defunct.
-export CARGO_NET_GIT_FETCH_WITH_CLI=true CARGO_HOME="$(pwd)/.cargo"
-# Make sure bindgen passes on our compiler flags.
-export BINDGEN_EXTRA_CLANG_ARGS="${CPPFLAGS} ${CFLAGS} ${LDFLAGS}"
-if [[ -n "$OSX_ARCH" ]]; then
-    # Set this so that it doesn't fail with open ssl errors
-    export RUSTFLAGS="-C link-arg=-undefined -C link-arg=dynamic_lookup"
-fi
+set -o xtrace -o nounset -o pipefail -o errexit
 
-RUST_BACKTRACE=1 cargo install --verbose --path . --root $PREFIX
+### Assert licenses are available
+# Install cargo-license
+export CARGO_HOME="$BUILD_PREFIX/cargo"
+mkdir $CARGO_HOME
+cargo install cargo-bundle-licenses
+
+# Check that all downstream libraries licenses are present
+export PATH=$PATH:$CARGO_HOME/bin
+cargo bundle-licenses --format yaml --output CI.THIRDPARTY.yml --previous THIRDPARTY.yml --check-previous
+
+# build statically linked binary with Rust
+cargo install --locked --root "$PREFIX" --path .
+
+# strip debug symbols
+"$STRIP" "$PREFIX/bin/crabz"
+
+# remove extra build file
+rm -f "${PREFIX}/.crates.toml"
