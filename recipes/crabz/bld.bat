@@ -2,7 +2,7 @@
 set CARGO_HOME=%BUILD_PREFIX%\cargo
 mkdir %CARGO_HOME%
 icacls %CARGO_HOME% /grant Users:F
-cargo isntall cargo-bundle-licenses
+cargo install cargo-bundle-licenses
 :: Check that all downstream libraries licenses are present
 set PATH=%PATH%;%CARGO_HOME%\bin
 cargo bundle-licenses --format yaml --output CI.THIRDPARTY.yml --previous THIRDPARTY.yml --check-previous
