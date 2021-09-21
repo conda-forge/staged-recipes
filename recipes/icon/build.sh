@@ -16,6 +16,7 @@ DEPLOY=${PREFIX}/icon
 
 # Install the basics
 make Install dest=${DEPLOY}
+mv ${DEPLOY}/man ${PREFIX}/man
 
 # Put executables onto the path
 (pushd ${PREFIX}/bin && ln -s ../icon/bin/* .)
@@ -33,9 +34,20 @@ mkdir -p ${DEPLOY}/ipl/progs ; cp    ${SRC_DIR}/ipl/progs/*  ${DEPLOY}/ipl/progs
 # Save cfuncs.u? because we have to omit from the build the build tools
 #   needed to reconstruct it via ipl/cfuncs/Makefile
 cp ${DEPLOY}/lib/cfunc.u? ${DEPLOY}/
-# Remove remaining ucode from lib to reduce the size of the conda package by
-#   almost half; the cost of this is a (slightly) prolonged first activation.
+# Removing the ucode from lib would reduce the size of the conda package by
+#   almost half; the cost of this would be a (slightly) prolonged first activation.
+du -sh --apparent-size ${DEPLOY}/lib > ${DEPLOY}/lib/initial_size
 rm ${DEPLOY}/lib/*.u?
+# However, it apparently is better to increase the size of the package rather
+#   than defering this task to the activation; the reason for removing lib/*.u?
+#   above is that the default *.u? includes some files (2 Mb out of 4.6 Mb)
+#   that are not relevant to this conda pkg.
+pushd ${DEPLOY}/ipl/procs
+unset LPATH
+../../bin/icont -usc *.icn; mv *.u? ../../lib
+popd
+du -sh --apparent-size ${DEPLOY}/lib > ${DEPLOY}/lib/final_size
+
 # restore cfuncs.u?
 mv ${DEPLOY}/cfunc.u? ${DEPLOY}/lib/
 
@@ -80,23 +92,8 @@ echo '#!/bin/sh
 # set up IPL envar
 export IPL_OLD=${IPL}
 export IPL=${CONDA_PREFIX}/icon/ipl
-# set up MANPATH envar
-export MANPATH_OLD=${MANPATH}
-if [ -z "${MANPATH}" ]; then
-  export MANPATH=${CONDA_PREFIX}/icon/man:/usr/share/man
-else
-  export MANPATH=${CONDA_PREFIX}/icon/man
-fi
-
-if [ ! -e ${CONDA_PREFIX}/icon/lib/zipread.u2 ]; then
-  # echo Initializing ucode in library ...
-  pushd ${CONDA_PREFIX}/icon/ipl/procs > /dev/null
-  LPATH= ../../bin/icont -usc *.icn; mv *.u? ../../lib
-  popd > /dev/null
-  # echo ... done
-fi
-
-cat > ${CONDA_PREFIX}/README_icon << .
+if [ ! -e ${CONDA_PREFIX}/README_icon ]; then
+  cat > ${CONDA_PREFIX}/README_icon << .
     For offline help for icon:
       man icon
 
@@ -107,7 +104,7 @@ cat > ${CONDA_PREFIX}/README_icon << .
       https://www.cs.arizona.edu/icon
 
     The Icon Programing Library is at \${IPL}:
-      ${IPL}
+      $(readlink -f ${IPL})
 
     This build for '${BUILD}' omits language
     support for graphics; the IPL programs and procedures for
@@ -119,6 +116,7 @@ cat > ${CONDA_PREFIX}/README_icon << .
     To build loadable C functions, see:
       $(readlink -f ${IPL}/../doc/condagcc.txt)
 .
+fi
 ' >> ${PREFIX}/etc/conda/activate.d/activate-icon.sh
 
 # Create or append deactivation script to reset IPL envar
