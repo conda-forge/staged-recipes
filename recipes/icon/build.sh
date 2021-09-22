@@ -129,12 +129,5 @@ else
   export IPL=${IPL_OLD}
 fi
 unset IPL_OLD
-# revert MANPATH envar
-if [ -z "${MANPATH_OLD}" ]; then
-  unset MANPATH
-else
-  export MANPATH=${MANPATH_OLD}
-fi
-unset MANPATH_OLD
 ' >> ${PREFIX}/etc/conda/deactivate.d/deactivate-icon.sh
 
