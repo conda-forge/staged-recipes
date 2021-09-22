@@ -86,14 +86,7 @@ echo '
 # It will be necessary but not sufficient to install gxx_linux-64.
 ' >> ${DEPLOY}/doc/condagcc.txt
 
-# Create or append activation script to set envars and README
-mkdir -p ${PREFIX}/etc/conda/activate.d
-echo '#!/bin/sh
-# set up IPL envar
-export IPL_OLD=${IPL}
-export IPL=${CONDA_PREFIX}/icon/ipl
-if [ ! -e ${CONDA_PREFIX}/README_icon ]; then
-  cat > ${CONDA_PREFIX}/README_icon << .
+cat > ${PREFIX}/README_icon << .
     For offline help for icon:
       man icon
 
@@ -103,8 +96,8 @@ if [ ! -e ${CONDA_PREFIX}/README_icon ]; then
     For info regarding the Icon programming language, please see:
       https://www.cs.arizona.edu/icon
 
-    The Icon Programing Library is at \${IPL}:
-      ${CONDA_PREFIX}/icon/ipl
+    The Icon Programing Library is at \${IPL}, which points to:
+      \${CONDA_PREFIX}/icon/ipl
 
     This build for '${BUILD}' omits language
     support for graphics; the IPL programs and procedures for
@@ -114,9 +107,15 @@ if [ ! -e ${CONDA_PREFIX}/README_icon ]; then
       http://unicon.org/
 
     To build loadable C functions, see:
-      ${CONDA_PREFIX}/icon/doc/condagcc.txt
+      \${CONDA_PREFIX}/icon/doc/condagcc.txt
 .
-fi
+
+# Create or append activation script to set envars and README
+mkdir -p ${PREFIX}/etc/conda/activate.d
+echo '#!/bin/sh
+# set up IPL envar
+export IPL_OLD=${IPL}
+export IPL=${CONDA_PREFIX}/icon/ipl
 ' >> ${PREFIX}/etc/conda/activate.d/activate-icon.sh
 
 # Create or append deactivation script to reset IPL envar
