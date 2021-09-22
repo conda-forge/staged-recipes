@@ -104,7 +104,7 @@ if [ ! -e ${CONDA_PREFIX}/README_icon ]; then
       https://www.cs.arizona.edu/icon
 
     The Icon Programing Library is at \${IPL}:
-      $(readlink -f ${IPL})
+      ${CONDA_PREFIX}/icon/ipl
 
     This build for '${BUILD}' omits language
     support for graphics; the IPL programs and procedures for
@@ -114,7 +114,7 @@ if [ ! -e ${CONDA_PREFIX}/README_icon ]; then
       http://unicon.org/
 
     To build loadable C functions, see:
-      $(readlink -f ${IPL}/../doc/condagcc.txt)
+      ${CONDA_PREFIX}/icon/doc/condagcc.txt
 .
 fi
 ' >> ${PREFIX}/etc/conda/activate.d/activate-icon.sh
