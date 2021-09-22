@@ -1,43 +1,98 @@
-{% set version = "0.38.196" %}
+{% set version = '0.38.196' %}
+
+{% set posix = 'm2-' if win else '' %}
+{% set native = 'm2w64-' if win else '' %}
 
 package:
   name: r-l1pack
-  version: {{ version }}
+  version: {{ version|replace("-", "_") }}
 
 source:
   url:
-    - https://cran.r-project.org/src/contrib/L1pack_{{ version }}.tar.gz
+    - {{ cran_mirror }}/src/contrib/L1pack_{{ version }}.tar.gz
+    - {{ cran_mirror }}/src/contrib/Archive/L1pack/L1pack_{{ version }}.tar.gz
   sha256: 141c5a79ade0534eb86e5ade5e85b710b5cb91af4792f0fdddc299cb43985eb1
 
 build:
+  merge_build_host: True  # [win]
+  # If this is a new build for the same version, increment the build number.
   number: 0
-  noarch: generic
+  # no skip
+
+  # This is required to make R link correctly on Linux.
   rpaths:
     - lib/R/lib/
     - lib/
 
+# Suggests: heavy
 requirements:
+  build:
+    - {{ compiler('c') }}              # [not win]
+    - {{ compiler('m2w64_c') }}        # [win]
+    - {{ compiler('fortran') }}        # [not win]
+    - {{ compiler('m2w64_fortran') }}  # [win]
+    - {{ posix }}filesystem        # [win]
+    - {{ posix }}make
+    - {{ posix }}sed               # [win]
+    - {{ posix }}coreutils         # [win]
+    - {{ posix }}zip               # [win]
+    - cross-r-base {{ r_base }}    # [build_platform != target_platform]
+
   host:
     - r-base
-    - r-roxygen2 >=6.0.1
     - r-fastmatrix
     - r-heavy
+
   run:
     - r-base
+    - {{native}}gcc-libs         # [win]
     - r-fastmatrix
     - r-heavy
 
 test:
   commands:
-    - $R -e "library('L1pack')"
+    # You can put additional test commands to be run here.
+    - $R -e "library('L1pack')"           # [not win]
+    - "\"%R%\" -e \"library('L1pack')\""  # [win]
+
+  # You can also put a file called run_test.py, run_test.sh, or run_test.bat
+  # in the recipe that will be run at test time.
+
+  # requires:
+    # Put any additional test requirements here.
 
 about:
   home: http://l1pack.mat.utfsm.cl/
   license: GPL-2.0-or-later
-  summary: "L1 estimation for linear regression, density, distribution function, quantile function and random number generation for univariate and multivariate Laplace distribution."
-  license_family: GPL
-  license_file: '{{ environ["PREFIX"] }}/lib/R/share/licenses/GPL-3'
+  summary: L1 estimation for linear regression, density, distribution function, quantile function
+    and random number generation for univariate and multivariate Laplace distribution.
+  license_family: GPL3
+  license_file:
+    - '{{ environ["PREFIX"] }}/lib/R/share/licenses/GPL-3'
 
-extra:
-  recipe-maintainers:
-    - PelzKo
+# The original CRAN metadata for this package was:
+
+# Type: Package
+# Package: L1pack
+# Title: Routines for L1 Estimation
+# Version: 0.38.196
+# Date: 2020-10-15
+# Authors@R: c(person(given = "Felipe", family = "Osorio", role = c("aut", "cre"), email = "felipe.osorios@usm.cl", comment = c(ORCID = "0000-0002-4675-5201")), person(given = "Tymoteusz", family = "Wolodzko", role = "aut"))
+# Author: Felipe Osorio [aut, cre] (<https://orcid.org/0000-0002-4675-5201>), Tymoteusz Wolodzko [aut]
+# Maintainer: Felipe Osorio <felipe.osorios@usm.cl>
+# Description: L1 estimation for linear regression, density, distribution function, quantile function and random number generation for univariate and multivariate Laplace distribution.
+# Depends: R(>= 3.5.0), fastmatrix
+# LinkingTo: fastmatrix
+# Imports: stats, grDevices, graphics
+# Suggests: heavy
+# License: GPL-3
+# URL: http://l1pack.mat.utfsm.cl/
+# NeedsCompilation: yes
+# LazyLoad: yes
+# Packaged: 2020-10-14 21:39:57 UTC; felipe
+# Repository: CRAN
+# Date/Publication: 2020-10-15 05:00:21 UTC
+
+# See
+# https://docs.conda.io/projects/conda-build for
+# more information about meta.yaml
