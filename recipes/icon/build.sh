@@ -53,7 +53,7 @@ mv ${DEPLOY}/cfunc.u? ${DEPLOY}/lib/
 
 # Create instructions to make extension libraries in C
 mkdir -p ${DEPLOY}/doc ; cp ${SRC_DIR}/doc/* ${DEPLOY}/doc/
-echo '
+cat > ${DEPLOY}/doc/condagcc.txt << .
 #!/bin/env bash
 
 # To build loadable C functions as described at
@@ -63,16 +63,12 @@ echo '
     # get the build tools
     conda install -c conda-forge gcc_linux-64 make sed binutils
 
-    # set the envars that would be set by `conda activate ...`
-    . $CONDA_PREFIX/etc/conda/activate.d/activate-gcc_linux-64.sh
-    . $CONDA_PREFIX/etc/conda/activate.d/activate-binutils_linux-64.sh
-
     # change to the directory with the example
     set -x
-    pushd ${CONDA_PREFIX}/icon/ipl/packs/loadfunc
+    pushd \${CONDA_PREFIX}/icon/ipl/packs/loadfunc
 
     # build and verify the example
-    make CC=${CC} && ls -l libdemo.so && ./ddtest
+    make CC=\${CC} PROGS='btest ddtest dldemo tnet newsgrp' && ls -l libdemo.so && ./ddtest
 
     # uncomment to clean up, if desired
     #make clean
@@ -81,10 +77,10 @@ echo '
     popd
 
 # Bug: Building with C++, e.g.,
-#   ${CONDA_PREFIX}/icon/ipl/packs/loadfuncpp
+#   \${CONDA_PREFIX}/icon/ipl/packs/loadfuncpp
 # has not yet been successful in a conda environment.
 # It will be necessary but not sufficient to install gxx_linux-64.
-' >> ${DEPLOY}/doc/condagcc.txt
+.
 
 cat > ${PREFIX}/README_icon << .
     For offline help for icon:
