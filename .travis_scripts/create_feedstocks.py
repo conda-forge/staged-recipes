@@ -140,7 +140,7 @@ def sleep_until_reset(gh):
 if __name__ == '__main__':
     exit_code = 0
 
-    is_merged_pr = os.environ.get('CF_CURRENT_BRANCH') == 'master'
+    is_merged_pr = os.environ.get('CF_CURRENT_BRANCH') == 'main'
 
     smithy_conf = os.path.expanduser('~/.conda-smithy')
     if not os.path.exists(smithy_conf):
