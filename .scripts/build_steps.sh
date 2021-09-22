@@ -27,15 +27,15 @@ cp -r /home/conda/staged-recipes ~/staged-recipes-copy
 # Remove any macOS system files
 find ~/staged-recipes-copy/recipes -maxdepth 1 -name ".DS_Store" -delete
 
-# Find the recipes from master in this PR and remove them.
+# Find the recipes from main in this PR and remove them.
 echo "Pending recipes."
 ls -la ~/staged-recipes-copy/recipes
-echo "Finding recipes merged in master and removing them from the build."
+echo "Finding recipes merged in main and removing them from the build."
 pushd /home/conda/staged-recipes/recipes > /dev/null
 if [ "${AZURE}" == "True" ]; then
-    git fetch --force origin master:master
+    git fetch --force origin main:main
 fi
-git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf ~/staged-recipes-copy/recipes/{} && echo Removing recipe: {}"
+git ls-tree --name-only main -- . | xargs -I {} sh -c "rm -rf ~/staged-recipes-copy/recipes/{} && echo Removing recipe: {}"
 popd > /dev/null
 
 
