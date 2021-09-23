@@ -1,3 +1,6 @@
+:: check licenses
+cargo-bundle-licenses --format yaml --output CI.THIRDPARTY.yml --previous "%RECIPE_DIR%\THIRDPARTY.yml" --check-previous
+
 :: build
 cargo install --locked --root "%LIBRARY_PREFIX%" --path . || goto :error
 
