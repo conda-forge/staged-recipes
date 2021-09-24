@@ -1,3 +1,4 @@
 #!/bin/bash
-cmake -B _build_intel -DCMAKE_BUILD_TYPE=Release .
-make -C _build_intel DESTDIR=${PREFIX} install
+cmake -B build_dir -DCMAKE_BUILD_TYPE=Release .
+make -C build_dir
+cp crest ${PREFIX}/bin
