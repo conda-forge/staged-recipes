@@ -1,0 +1,66 @@
+diff --git a/setup.py b/setup.py
+index ef993f1..15baeaf 100755
+--- a/setup.py
++++ b/setup.py
+@@ -18,6 +18,7 @@
+ import io
+ import re
+ from os import path
++import platform
+ 
+ import setuptools
+ 
+@@ -29,7 +30,7 @@ BIND_PATH = path.join(HERE, "bindings")
+ # See internal/compile_libs.sh for some detail.  Note that this is *not*
+ # simply internal/*.cc
+ src_files = [
+-    path.join(CLD2_PATH, "internal/", i)
++    path.join("cld2/internal/", i)
+     for i in (
+         "cld2_generated_cjk_compatible.cc",
+         "cld2_generated_deltaocta0122.cc",
+@@ -58,7 +59,7 @@ src_files = [
+     )
+ ]
+ src_files.extend(
+-    [path.join(BIND_PATH, "pycldmodule.cc"), path.join(BIND_PATH, "encodings.cc")]
++    ["bindings/pycldmodule.cc", "bindings/encodings.cc"]
+ )
+ for i in src_files:
+     if not path.exists(i):
+@@ -66,16 +67,30 @@ for i in src_files:
+ 
+ include_dirs = [path.join(CLD2_PATH, "internal"), path.join(CLD2_PATH, "public")]
+ 
++is_64bits = sys.maxsize > 2 ** 32
++compile_args = ["-w", "-O2", "-fPIC"]
++if platform.machine() == 'x86_64':
++    compile_args.append("-m64")
++
++kwargs = dict(
++    sources=src_files,
++    include_dirs=include_dirs,
++    language="c++",
++    # TODO: -m64 may break 32 bit builds
++    extra_compile_args=compile_args,
++)
++if platform.system() == "Darwin":
++    kwargs["extra_compile_args"] = ["-std=c++11", "-stdlib=libc++"]
++    kwargs["extra_link_args"] = ['-stdlib=libc++']
++else:
++    kwargs["extra_compile_args"] = ["-std=c++11"]
++
+ module = setuptools.Extension(
+     # First arg (name) is the full name of the extension, including
+     # any packages - ie. not a filename or pathname, but Python dotted
+     # name.
+     "pycld2._pycld2",
+-    sources=src_files,
+-    include_dirs=include_dirs,
+-    language="c++",
+-    # TODO: -m64 may break 32 bit builds
+-    extra_compile_args=["-w", "-O2", "-m64", "-fPIC"],
++    **kwargs
+ )
+ 
+ # We define version as PYCLD2_VERSION in the C++ module.
