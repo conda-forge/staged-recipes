@@ -14,6 +14,6 @@ cmake ${CMAKE_ARGS} \
     -DINSTALL_LIBDIR=lib \
     ..
 
-make -k -j${CPU_COUNT} || true
+make -k -j${CPU_COUNT}
 
 make install
