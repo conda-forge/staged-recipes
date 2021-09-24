@@ -4,7 +4,7 @@ set -e -x
 mkdir build
 cd build
 
-cmake \
+cmake ${CMAKE_ARGS} \
     -DENABLE_FORMAT=OFF \
     -DBUILD_SHARED_LIBS=ON \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
