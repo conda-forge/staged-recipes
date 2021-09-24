@@ -1,7 +1,8 @@
 mkdir build && cd build
 
 :: Set INSTALL_DOCREADMEDIR to a junk path to avoid installing the README into PREFIX
-cmake -GNinja ^
+cmake %CMAKE_ARGS% ^
+      -GNinja ^
       -DCMAKE_BUILD_TYPE="Release" ^
       -DCMAKE_C_FLAGS="-I%LIBRARY_INC%" ^
       -DCMAKE_CXX_FLAGS="-I%LIBRARY_INC%" ^
