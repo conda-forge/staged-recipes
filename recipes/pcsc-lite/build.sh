@@ -1,5 +1,6 @@
+#!/bin/bash
 
-BUILD_OPTS="
+export BUILD_OPTS="
     --disable-dependency-tracking
 	--disable-silent-rules
     --prefix=$PREFIX
@@ -7,8 +8,8 @@ BUILD_OPTS="
 	--disable-libsystemd
 "
 
-if [[ "$target_platform" == "linux*" ]]; then
-    BUILD_OPTS="${BUILD_OPTS} --disable-libudev"
+if [[ $target_platform =~ linux.* ]]; then
+    export BUILD_OPTS="${BUILD_OPTS} --disable-libudev"
 fi
 
 ./configure ${BUILD_OPTS}
