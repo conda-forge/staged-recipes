@@ -9,7 +9,7 @@ export BUILD_OPTS="
 "
 
 if [[ $target_platform =~ linux.* ]]; then
-    export BUILD_OPTS="${BUILD_OPTS} --disable-libudev"
+    export BUILD_OPTS="${BUILD_OPTS} --disable-libudev LIBUSB_LIBS=$PREFIX/lib/libusb-1.0.so"
 fi
 
 ./configure ${BUILD_OPTS}
