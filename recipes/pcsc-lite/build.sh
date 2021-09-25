@@ -8,7 +8,7 @@ BUILD_OPTS="
 "
 
 if [[ "$target_platform" == "linux*" ]]; then
-    BUILD_OPTS="${BUILD_OPTS} --disable-udev"
+    BUILD_OPTS="${BUILD_OPTS} --disable-libudev"
 fi
 
 ./configure ${BUILD_OPTS}
