@@ -1,4 +1,4 @@
-#! bin/sh
+#! /bin/sh
 
 ./configure --prefix=${PREFIX} --disable-static
 make
