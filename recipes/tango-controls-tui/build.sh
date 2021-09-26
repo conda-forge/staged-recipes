@@ -10,7 +10,7 @@ cargo-license --json > dependencies.json
 cat dependencies.json
 python $RECIPE_DIR/check_licenses.py
 
-cargo install --root "$PREFIX" --path .
+cargo install --locked --root "$PREFIX" --path .
 
 # strip debug symbols
 "$STRIP" "$PREFIX/bin/tango-controls-tui"
