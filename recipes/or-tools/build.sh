@@ -6,6 +6,8 @@ cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -BUILD_DEPS=OFF \
       -DUSE_SCIP=OFF \
       -S. \
-      -Bbuild
+      -Bbuild \
+      -DBUILD_SAMPLES=OFF \
+      -DBUILD_EXAMPLES=OFF
 
 cmake --build build --target install -j${CPU_COUNT}
