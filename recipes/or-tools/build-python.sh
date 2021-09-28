@@ -9,6 +9,7 @@ cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -Bbuild \
       -DBUILD_SAMPLES=OFF \
       -DBUILD_EXAMPLES=OFF \
-      -BUILD_PYTHON=ON
+      -BUILD_PYTHON=ON \
+      -DPython_EXECUTABLE="$PYTHON"
 
 cmake --build build --target install -j${CPU_COUNT}
