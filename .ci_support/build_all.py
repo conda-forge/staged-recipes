@@ -9,9 +9,9 @@ import sys
 import subprocess
 
 try:
-    from ruamel_yaml import safe_load, safe_dump
+    from ruamel_yaml import BaseLoader, load
 except ImportError:
-    from yaml import safe_load, safe_dump
+    from yaml import BaseLoader, load
 
 
 def get_host_platform():
@@ -42,7 +42,7 @@ def build_all(recipes_dir, arch):
     for folder in folders:
         meta_yaml = os.path.join(recipes_dir, folder, "meta.yaml")
         if os.path.exists(meta_yaml):
-            with(open(meta_yaml, "r")) as f:
+            with(open(meta_yaml, "r", encoding="utf-8")) as f:
                 text = ''.join(f.readlines())
                 if 'cuda' in text:
                     found_cuda = True
@@ -63,7 +63,7 @@ def build_all(recipes_dir, arch):
             if platform == 'osx' and (
                     'MACOSX_DEPLOYMENT_TARGET' in text or
                     'MACOSX_SDK_VERSION' in text):
-                config = safe_load(text)
+                config = load(text, Loader=BaseLoader)
 
                 if 'MACOSX_DEPLOYMENT_TARGET' in config:
                     for version in config['MACOSX_DEPLOYMENT_TARGET']:
@@ -98,7 +98,6 @@ def build_all(recipes_dir, arch):
     print("Building {} with conda-forge/label/main".format(','.join(folders)))
     channel_urls = ['local', 'conda-forge', 'defaults']
     build_folders(recipes_dir, folders, arch, channel_urls)
-
 
 
 def get_config(arch, channel_urls):
@@ -151,7 +150,7 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
 
     d = OrderedDict()
     for node in order:
-        d[G.node[node]['meta'].meta_path] = 1
+        d[G.nodes[node]['meta'].meta_path] = 1
 
     for recipe in d.keys():
         conda_build.api.build([recipe], config=get_config(arch, channel_urls))
