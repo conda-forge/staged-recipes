@@ -1,0 +1,23 @@
+if [[ $(uname) == "Linux" ]]; then
+    cd ${SRC_DIR}/build/linux/release
+    export C_PLATFORM="-static -pthread"
+#    cp ${RECIPE_DIR}/Makefile_linux Makefile
+fi
+
+if [[ $(uname) == "Darwin" ]]; then
+    cd ${SRC_DIR}/build/mac/release
+    export C_PLATFORM="-pthread"
+#    cp ${RECIPE_DIR}/Makefile_mac Makefile
+fi
+
+cp ${RECIPE_DIR}/Makefile Makefile
+cp ${RECIPE_DIR}/makefile_common ../..
+cp ${RECIPE_DIR}/__init__.py ../../python/vina
+
+make #C_PLATFORM=${C_PLATFORM}
+
+cp vina ${PREFIX}/bin
+cp vina_split ${PREFIX}/bin
+
+cd ${SRC_DIR}/build/python
+python setup.py build install
