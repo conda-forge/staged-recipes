@@ -277,10 +277,10 @@ def add_intradependencies(graph):
     """ensure that downstream packages wait for upstream build/test (not use existing
     available packages)"""
     for node in graph.nodes():
-        if 'meta' not in graph.node[node]:
+        if 'meta' not in graph.nodes[node]:
             continue
         # get build dependencies
-        m = graph.node[node]['meta']
+        m = graph.nodes[node]['meta']
         # this is pretty hard. Realistically, we would want to know
         # what the build and host platforms are on the build machine.
         # However, all we know right now is what machine we're actually
@@ -298,11 +298,11 @@ def add_intradependencies(graph):
                    [conda_interface.MatchSpec(dep) for dep in test_requires or []])
 
         for dep in deps:
-            name_matches = (n for n in graph.nodes() if graph.node[n]['meta'].name() == dep.name)
+            name_matches = (n for n in graph.nodes() if graph.nodes[n]['meta'].name() == dep.name)
             for matching_node in name_matches:
                 # are any of these build dependencies also nodes in our graph?
                 if (match_peer_job(conda_interface.MatchSpec(dep),
-                                   graph.node[matching_node]['meta'],
+                                   graph.nodes[matching_node]['meta'],
                                    m) and
                          (node, matching_node) not in graph.edges()):
                     # add edges if they don't already exist
@@ -319,8 +319,8 @@ def collapse_subpackage_nodes(graph):
     # group nodes by their recipe path first, then within those groups by their variant
     node_groups = {}
     for node in graph.nodes():
-        if 'meta' in graph.node[node]:
-            meta = graph.node[node]['meta']
+        if 'meta' in graph.nodes[node]:
+            meta = graph.nodes[node]['meta']
             meta_path = meta.meta_path or meta.meta['extra']['parent_recipe']['path']
             master = False
 
@@ -346,16 +346,16 @@ def collapse_subpackage_nodes(graph):
             #     package/name from recipe given by common recipe path.
             subpackages = subgroup.get('subpackages')
             if 'master' not in subgroup:
-                sp0 = graph.node[subpackages[0]]
+                sp0 = graph.nodes[subpackages[0]]
                 master_meta = MetaData(recipe_path, config=sp0['meta'].config)
                 worker = sp0['worker']
                 master_key = package_key(master_meta, worker['label'])
                 graph.add_node(master_key, meta=master_meta, worker=worker)
-                master = graph.node[master_key]
+                master = graph.nodes[master_key]
             else:
                 master = subgroup['master']
-                master_key = package_key(graph.node[master]['meta'],
-                                         graph.node[master]['worker']['label'])
+                master_key = package_key(graph.nodes[master]['meta'],
+                                         graph.nodes[master]['worker']['label'])
             # fold in dependencies for all of the other subpackages within a group.  This is just
             #     the intersection of the edges between all nodes.  Store this on the "master" node.
             if subpackages:
@@ -451,7 +451,7 @@ def add_dependency_nodes_and_edges(node, graph, run, worker, conda_resolve, reci
 
     changes graph in place.
     '''
-    metadata = graph.node[node]['meta']
+    metadata = graph.nodes[node]['meta']
     # for plain test runs, ignore build reqs.
     deps = get_run_test_deps(metadata)
     recipes_dir = recipes_dir or os.getcwd()
@@ -507,7 +507,7 @@ def expand_run(graph, conda_resolve, worker, run, steps=0, max_downstream=5,
             for predecessor in full_graph.predecessors(node):
                 if max_downstream < 0 or (downstream - initial_nodes) < max_downstream:
                     add_recipe_to_graph(
-                        os.path.dirname(full_graph.node[predecessor]['meta'].meta_path),
+                        os.path.dirname(full_graph.nodes[predecessor]['meta'].meta_path),
                         task_graph, run=run, worker=worker, conda_resolve=conda_resolve,
                         recipes_dir=recipes_dir, finalize=finalize)
                     downstream += 1
