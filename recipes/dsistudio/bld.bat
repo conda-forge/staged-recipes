@@ -6,7 +6,7 @@ REM del dsi_studio_win.zip
 mkdir build
 cd build
 qmake ../src/dsi_studio.pro -spec win32-msvc "CONFIG+=qtquickcompiler"
-jom.exe qmake_all
+jom qmake_all
 dir
 move ./release/dsi_studio.exe $PREFIX/
 cd ..
