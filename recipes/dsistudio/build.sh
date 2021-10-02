@@ -1,12 +1,7 @@
+gcc --version
+g++ --version
+qmake --version
 
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  curl -sSLO 'https://github.com/frankyeh/DSI-Studio/releases/download/2021.10/dsi_studio_mac.dmg'
-  hdiutil mount dsi_studio_mac.dmg
-  cp -R /Volumes/dsi_studio/dsi_studio.app $PREFIX
-  exit
-fi
-
-cp $BUILD_PREFIX/lib/libQt* $PREFIX/lib 
 echo "COMPILE DSI STUDIO"
 cd $SRC_DIR
 mkdir -p build
