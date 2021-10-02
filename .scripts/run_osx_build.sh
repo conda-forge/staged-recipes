@@ -23,7 +23,7 @@ source ${HOME}/miniforge3/etc/profile.d/conda.sh
 conda activate base
 
 echo -e "\n\nInstalling conda-forge-ci-setup=3 and conda-build."
-conda install -n base --yes --quiet "conda>4.7.12" conda-forge-ci-setup=3.* conda-forge-pinning networkx=2.3 "conda-build>=3.16"
+conda install -n base --yes --quiet "conda>4.7.12" conda-forge-ci-setup=3.* conda-forge-pinning networkx=2.4 "conda-build>=3.16"
 
 
 
@@ -48,16 +48,15 @@ set -e
 # make sure there is a package directory so that artifact publishing works
 mkdir -p /Users/runner/miniforge3/conda-bld/osx-64/
 
-# Find the recipes from master in this PR and remove them.
+# Find the recipes from main in this PR and remove them.
 
 echo ""
-echo "Finding recipes merged in master and removing them from the build."
+echo "Finding recipes merged in main and removing them from the build."
 pushd ./recipes > /dev/null
-git fetch --force origin master:master
-git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf {} && echo Removing recipe: {}"
+git fetch --force origin main:main
+git ls-tree --name-only main -- . | xargs -I {} sh -c "rm -rf {} && echo Removing recipe: {}"
 popd > /dev/null
 echo ""
 
 # We just want to build all of the recipes.
 python .ci_support/build_all.py
-

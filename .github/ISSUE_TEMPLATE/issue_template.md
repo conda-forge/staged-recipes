@@ -1,3 +1,12 @@
+---
+name: General question
+about: Ask a general question about staged-recipes
+title: ''
+labels: ''
+assignees: ''
+
+---
+
 <!--
 Please note that conda-forge team doesn't follow this repo because
 of the high volume of notifications. If you would like to get the
@@ -11,5 +20,4 @@ attention of the conda-forge team, please do one of the following,
 
 3. If you need help, join our community chat room at
    gitter.im/conda-forge/conda-forge.github.io
-   or on our [Keybase chat](https://keybase.io/team/condaforge.chat)
 -->
