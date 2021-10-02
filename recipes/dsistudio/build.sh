@@ -2,12 +2,16 @@ echo "COMPILE DSI STUDIO"
 cd $SRC_DIR
 mkdir -p build
 cd build
-qmake ../src/dsi_studio.pro
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    qmake ../src/dsi_studio.pro -spec macx-clang CONFIG+=qtquickcompiler
+else
+    qmake ../src/dsi_studio.pro
+fi
 make
 cd ..
 
-echo "DOWNLOAD ATLAS PACKAGES"
 
+echo "DOWNLOAD ATLAS PACKAGES"
 cd $SRC_DIR
 mv build/dsi_studio .
 chmod 755 dsi_studio
