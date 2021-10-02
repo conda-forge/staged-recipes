@@ -1,7 +1,3 @@
-gcc --version
-g++ --version
-qmake --version
-
 echo "COMPILE DSI STUDIO"
 cd $SRC_DIR
 mkdir -p build
