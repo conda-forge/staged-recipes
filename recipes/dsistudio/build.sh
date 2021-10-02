@@ -1,7 +1,7 @@
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
   curl -sSLO 'https://github.com/frankyeh/DSI-Studio/releases/download/2021.10/dsi_studio_mac.dmg'
-  hdiutil mount dsi_studio_64_mac.dmg
+  hdiutil mount dsi_studio_mac.dmg
   cp /Volumes/dsi_studio/dsi_studio.app $PREFIX
   exit
 fi
