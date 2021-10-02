@@ -8,23 +8,14 @@ cd ..
 
 echo "DOWNLOAD ATLAS PACKAGES"
 
-curl -sSLO 'https://github.com/frankyeh/DSI-Studio/releases/download/2021.10/dsi_studio_win.zip'
-unzip dsi_studio_win.zip
-rm dsi_studio_win.zip
-cd dsi_studio_64
-rm *.dll
-rm *.exe
-rm -rf iconengines
-rm -rf imageformats
-rm -rf platforms
-rm -rf styles
-mv ../build/dsi_studio .
-mv ../src/dsi_studio.ico .
-
-cd ..
+cd $SRC_DIR
+mv build/dsi_studio .
+chmod 755 dsi_studio
+mv src/dsi_studio.ico .
 rm -rf src build
-
-mv dsi_studio_64/* $PREFIX/
+git clone https://github.com/frankyeh/DSI-Studio-atlas.git
+mv DSI-Studio-atlas atlas
+cp * $PREFIX/
 
 
 
