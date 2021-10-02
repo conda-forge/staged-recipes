@@ -1,12 +1,15 @@
 if [[ $(uname) == "Linux" ]]; then
     cd ${SRC_DIR}/build/linux/release
-    C_PLATFORM="-static -pthread"
+    export C_PLATFORM="-static -pthread"
 fi
 
 if [[ $(uname) == "Darwin" ]]; then
     cd ${SRC_DIR}/build/mac/release
-    C_PLATFORM="-pthread"
+    export C_PLATFORM="-pthread"
 fi
+
+export GPP=${CXX}
+export PREFIX=${PREFIX}
 
 cp ${RECIPE_DIR}/Makefile Makefile
 cp ${RECIPE_DIR}/makefile_common ../..
