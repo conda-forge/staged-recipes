@@ -15,9 +15,6 @@ if [[ ${HOST} =~ .*linux.* ]]; then
   export PATH=${PWD}:${PATH}
 fi
 
-echo "show include"
-ls ${BUILD_PREFIX}/include
-
 qmake \
     PREFIX=$PREFIX \
     NO_QT_VERSION_SUFFIX=1 \
