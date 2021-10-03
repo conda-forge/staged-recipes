@@ -3,7 +3,7 @@ cd $SRC_DIR
 mkdir -p build
 cd build
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    qmake ../src/dsi_studio.pro -spec macx-g++ CONFIG+=qtquickcompiler
+    qmake ../src/dsi_studio.pro -spec macx-clang CONFIG+=qtquickcompiler
 else
     qmake ../src/dsi_studio.pro
 fi
