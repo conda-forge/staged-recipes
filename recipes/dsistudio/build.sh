@@ -32,14 +32,17 @@ cd ..
 
 
 echo "DOWNLOAD ATLAS PACKAGES"
+
 cd $SRC_DIR
-mv build/dsi_studio .
-chmod 755 dsi_studio
-mv src/dsi_studio.ico .
-rm -rf src build
+chmod 755 build/dsi_studio
+mv build/dsi_studio $PREFIX/
+mv src/other/* $PREFIX/
+mv src/dsi_studio.ico $PREFIX/
 git clone https://github.com/frankyeh/DSI-Studio-atlas.git
-mv DSI-Studio-atlas atlas
-cp * $PREFIX/
+mv DSI-Studio-atlas $PREFIX/atlas
+
+rm -rf src build
+
 
 
 
