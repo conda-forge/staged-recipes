@@ -15,12 +15,20 @@ if [[ ${HOST} =~ .*linux.* ]]; then
   export PATH=${PWD}:${PATH}
 fi
 
+
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  echo "locate BOOST"
+  ls /usr/local/
+  locate boost
+fi
+
 qmake \
     PREFIX=$PREFIX \
     NO_QT_VERSION_SUFFIX=1 \
     QMAKE_CC=${CC} \
     QMAKE_CXX=${CXX} \
     QMAKE_LINK=${CXX} \
+    QMAKE_INCDIR=/usr/local
     QMAKE_RANLIB=${RANLIB} \
     QMAKE_OBJDUMP=${OBJDUMP} \
     QMAKE_STRIP=${STRIP} \
