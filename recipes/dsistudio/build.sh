@@ -28,7 +28,7 @@ qmake \
     QMAKE_CC=${CC} \
     QMAKE_CXX=${CXX} \
     QMAKE_LINK=${CXX} \
-    QMAKE_INCDIR=/usr/local
+    QMAKE_INCDIR=/usr/local \
     QMAKE_RANLIB=${RANLIB} \
     QMAKE_OBJDUMP=${OBJDUMP} \
     QMAKE_STRIP=${STRIP} \
