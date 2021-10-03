@@ -1,13 +1,33 @@
+#!/bin/bash
+set -ex
+
+
 echo "COMPILE DSI STUDIO"
-cd $SRC_DIR
-mkdir -p build
+
+[[ -d build ]] || mkdir build
 cd build
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    qmake ../src/dsi_studio.pro -spec macx-clang CONFIG+=qtquickcompiler
-else
-    qmake ../src/dsi_studio.pro
+
+
+if [[ ${HOST} =~ .*linux.* ]]; then
+  # Missing g++ workaround.
+  ln -s ${GXX} g++ || true
+  chmod +x g++
+  export PATH=${PWD}:${PATH}
 fi
-make
+
+qmake \
+    PREFIX=$PREFIX \
+    NO_QT_VERSION_SUFFIX=1 \
+    QMAKE_CC=${CC} \
+    QMAKE_CXX=${CXX} \
+    QMAKE_LINK=${CXX} \
+    QMAKE_RANLIB=${RANLIB} \
+    QMAKE_OBJDUMP=${OBJDUMP} \
+    QMAKE_STRIP=${STRIP} \
+    QMAKE_AR="${AR} cqs" \
+    ../src/dsi_studio.pro
+
+make -j$CPU_COUNT
 cd ..
 
 
