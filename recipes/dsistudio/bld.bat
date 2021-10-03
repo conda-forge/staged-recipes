@@ -9,7 +9,7 @@ if errorlevel 1 exit /B 1
 cd build
 if errorlevel 1 exit /B 1
 
-qmake QMAKE_CC=%CC% QMAKE_CXX=%CXX% ../src/dsi_studio.pro
+qmake QMAKE_CC=%CC% QMAKE_CXX=%CXX% QMAKE_LIBS="-lOpenGL32 -lGlu32 -lz"../src/dsi_studio.pro
 if errorlevel 1 exit /B 1
 
 jom -j%CPU_COUNT%
