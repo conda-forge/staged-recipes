@@ -7,14 +7,6 @@ echo "COMPILE DSI STUDIO"
 [[ -d build ]] || mkdir build
 cd build
 
-
-if [[ ${HOST} =~ .*linux.* ]]; then
-  # Missing g++ workaround.
-  ln -s ${GXX} g++ || true
-  chmod +x g++
-  export PATH=${PWD}:${PATH}
-fi
-
 qmake \
     PREFIX=$PREFIX \
     NO_QT_VERSION_SUFFIX=1 \
