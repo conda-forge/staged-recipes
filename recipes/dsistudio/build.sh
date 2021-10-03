@@ -20,6 +20,7 @@ qmake \
     NO_QT_VERSION_SUFFIX=1 \
     QMAKE_CC=${CC} \
     QMAKE_CXX=${CXX} \
+    QMAKE_LIBS= \
     QMAKE_LINK=${CXX} \
     QMAKE_RANLIB=${RANLIB} \
     QMAKE_OBJDUMP=${OBJDUMP} \
