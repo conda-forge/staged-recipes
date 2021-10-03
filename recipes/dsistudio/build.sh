@@ -33,6 +33,15 @@ cd ..
 
 echo "DOWNLOAD ATLAS PACKAGES"
 
+if [[ "$OSTYPE" == "darwin"* ]]; then
+   cd $SRC_DIR
+   mv src/other/* build/dsi_studio.app/Contents/MacOS/
+   git clone https://github.com/frankyeh/DSI-Studio-atlas.git
+   mv DSI-Studio-atlas build/dsi_studio.app/Contents/MacOS/atlas
+   mv build/dsi_studio.app $PREFIX/
+   exit
+fi
+
 cd $SRC_DIR
 chmod 755 build/dsi_studio
 mv build/dsi_studio $PREFIX/
