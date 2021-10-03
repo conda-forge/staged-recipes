@@ -1,7 +1,7 @@
 @echo on
 move %SRC_DIR%\atlas %PREFIX%\atlas
-move %SRC_DIR%\src\device.txt %PREFIX%
-move %SRC_DIR%\src\color_map %PREFIX%\color_map
+move %SRC_DIR%\src\others\device.txt %PREFIX%
+move %SRC_DIR%\src\others\color_map %PREFIX%\color_map
    
 mkdir build
 cd build
