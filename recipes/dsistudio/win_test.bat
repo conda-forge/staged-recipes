@@ -1,0 +1,1 @@
+copy C:\bld\win-64\dsistudio*.tar.bz2 C:\Miniconda\conda-bld\win-64\

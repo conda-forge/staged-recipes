@@ -13,7 +13,7 @@ jom install
 cd..
 
 copy %SRC_DIR%\build\release\dsi_studio.exe %PREFIX%
-
+windeployqt %PREFIX%\dsi_studio.exe
 
 
 
