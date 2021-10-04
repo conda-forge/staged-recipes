@@ -1,0 +1,549 @@
+From c8c7db1edc40e7e53c67f252b27251cc7da67a02 Mon Sep 17 00:00:00 2001
+From: Jan Janssen <janssen@lanl.gov>
+Date: Mon, 4 Oct 2021 16:07:56 -0600
+Subject: [PATCH] Python3 fixes
+
+---
+ bin/dump2xdat              |  4 ++--
+ bin/kmc                    | 41 +++++++++++++++++++-------------------
+ bin/mobfil                 |  3 ++-
+ bin/neighbors              |  7 ++++---
+ bin/oldexpectra            |  5 +++--
+ bin/pdf-make.py            | 13 ++++++------
+ bin/splitxdat              |  7 ++++---
+ bin/tsase                  | 10 +++++-----
+ bin/water_solvate          |  5 +++--
+ bin/water_solvate_z        | 13 ++++++------
+ tsase/examples/cp2k_neb.py |  4 ++--
+ tsase/statistics/pdfstats  | 37 +++++++++++++++++-----------------
+ 12 files changed, 79 insertions(+), 70 deletions(-)
+
+diff --git a/bin/dump2xdat b/bin/dump2xdat
+index 4786e17..a146930 100755
+--- a/bin/dump2xdat
++++ b/bin/dump2xdat
+@@ -44,7 +44,7 @@ def main():
+     from ase.io import write
+     trajectory = []
+     filename = sys.argv[1]
+-    print 'reading', filename
++    print('reading', filename)
+     trajectory += read_dump(filename)
+             
+             ## write frames to POSCARs            
+@@ -57,7 +57,7 @@ def main():
+             pos = atoms.get_scaled_positions()
+             with open(name, "a") as myfile:
+                 myfile.write("\n")
+-                for j in xrange(len(atoms)):
++                for j in range(len(atoms)):
+                     myfile.write('  %.15f  %.15f  %.15f \n' % (pos[j, 0], pos[j,1], pos[j,2]))
+ 
+ 
+diff --git a/bin/kmc b/bin/kmc
+index 48c7584..fcbd199 100755
+--- a/bin/kmc
++++ b/bin/kmc
+@@ -1,5 +1,6 @@
+ #!/usr/bin/env python
+ # coding: utf-8
++from __future__ import print_function
+ import argparse
+ import numpy
+ import os
+@@ -14,28 +15,28 @@ from tsase.io import read_con, write_con
+ from scipy.interpolate import interp1d
+ 
+ def log(message):
+-    print message
++    print(message)
+ 
+ def tabulate(table, header=None):
+     ncols = len(table[0])
+     if header is not None:
+         assert(len(header) == len(table[0]))
+-        column_widths = [ len(header[i]) for i in xrange(ncols) ] 
++        column_widths = [ len(header[i]) for i in range(ncols) ]
+     else:
+-        column_widths = [ 0 for i in xrange(ncols) ] 
++        column_widths = [ 0 for i in range(ncols) ]
+     for row in table:
+         for i,column in enumerate(row):
+             column_widths[i] = max(len(str(column)), column_widths[i])
+ 
+     if header is not None:
+-        for i in xrange(ncols):
+-            print '%*s' % (column_widths[i]+2,header[i],),
+-        print
++        for i in range(ncols):
++            print('%*s' % (column_widths[i]+2,header[i],),)
++        print()
+ 
+     for row in table:
+-        for i in xrange(ncols):
+-            print '%*s' % (column_widths[i]+2,row[i],),
+-        print
++        for i in range(ncols):
++            print('%*s' % (column_widths[i]+2,row[i],),)
++        print()
+ 
+ def parse_results(path):
+     '''
+@@ -100,7 +101,7 @@ def add_process(db, reactant, saddle, product, forward_prefactor=None, reverse_p
+ def read_eon_result(db, path='.'):
+     results_path = os.path.join(path, 'results.dat')
+     if os.path.isfile(results_path):
+-        print 'found eon result: %s' % path
++        print('found eon result: %s' % path)
+         results = parse_results(results_path)
+     else:
+         return
+@@ -255,18 +256,18 @@ def export_graph(db):
+     if len(db['connections']) == 0:
+         return
+ 
+-    print 'graph kmc {'
++    print('graph kmc {')
+     for key in db['connections']:
+         minima = db['connections'][key]
+-        print '    %i -- %i;' % (minima[0], minima[1])
++        print('    %i -- %i;' % (minima[0], minima[1]))
+ 
+     energies = [ atoms.get_potential_energy() for atoms in db['minima'].values() ]
+     min_energy = min(energies)
+     for key in db['minima']:
+         energy = db['minima'][key].get_potential_energy()
+-        print '    %i [label="%i: %.3f eV"];' % (key, key, energy - min_energy)
++        print('    %i [label="%i: %.3f eV"];' % (key, key, energy - min_energy))
+ 
+-    print '}'
++    print('}')
+ 
+ def print_info(db, filename):
+     nminima = len(db['minima'])
+@@ -274,9 +275,9 @@ def print_info(db, filename):
+     if nminima > 0:
+         atoms = db['minima'][0]
+         formula = atoms.get_chemical_formula()
+-        print '%s: formula %s: %i minima %i saddles' % (filename, formula, nminima, nsaddles)
++        print('%s: formula %s: %i minima %i saddles' % (filename, formula, nminima, nsaddles))
+     else:
+-        print '%s: empty database' % filename
++        print('%s: empty database' % filename)
+ 
+ def rate(barrier, prefactor, temperature):
+     kB = 8.61e-5
+@@ -284,11 +285,11 @@ def rate(barrier, prefactor, temperature):
+ 
+ def run_kmc(db, state, steps, temperature=300.0):
+     current_state = state
+-    print '%6s %12s' % ('state', 'time')
+-    print '%6i %12.4e' % (current_state, 0.0)
++    print('%6s %12s' % ('state', 'time'))
++    print('%6i %12.4e' % (current_state, 0.0))
+ 
+     t = 0.0
+-    for i in xrange(steps):
++    for i in range(steps):
+ 
+         rate_table = {}
+         for key in db['saddles']:
+@@ -310,7 +311,7 @@ def run_kmc(db, state, steps, temperature=300.0):
+                 else:
+                     current_state = db['connections'][j][1]
+                 break
+-        print '%6i %12.4e' % (current_state, t)
++        print('%6i %12.4e' % (current_state, t))
+ 
+ def initialize_db(path):
+     def make_table(name):
+diff --git a/bin/mobfil b/bin/mobfil
+index ef8a3cc..0b0b476 100755
+--- a/bin/mobfil
++++ b/bin/mobfil
+@@ -1,5 +1,6 @@
+ #!/usr/bin/env python
+ 
++from __future__ import print_function
+ import sys
+ import numpy as np
+ 
+@@ -10,7 +11,7 @@ try:
+     fout = sys.argv[2]
+     cut = float(sys.argv[3])
+ except:
+-    print '\nusage: mobfil in.con out.con cutoff\n'
++    print('\nusage: mobfil in.con out.con cutoff\n')
+ 
+ traj = tsase.io.read(fin)
+ 
+diff --git a/bin/neighbors b/bin/neighbors
+index 73ec42c..8e29009 100755
+--- a/bin/neighbors
++++ b/bin/neighbors
+@@ -1,4 +1,5 @@
+ #!/usr/bin/env python
++from __future__ import print_function
+ import tsase
+ from sys import argv, stdout
+ import numpy as np
+@@ -13,7 +14,7 @@ atoms = tsase.io.read(argv[1], skip =0, every=1)
+ if type(atoms) == type([]):
+     atoms = atoms[0]
+ 
+-print "ion      neighbors"
++print("ion      neighbors")
+ for i in range(len(atoms)):
+     distances = []
+     indices = []
+@@ -36,7 +37,7 @@ for i in range(len(atoms)):
+             else:
+                 colors.append('')
+ 
+-    print "%3i %2s: " % (i, atoms[i].symbol),
++    print("%3i %2s: " % (i, atoms[i].symbol),)
+     permute = np.argsort(distances)
+     distances = np.array(distances)[permute]
+     indices = np.array(indices)[permute]
+@@ -46,5 +47,5 @@ for i in range(len(atoms)):
+         stdout.write("%3i %.3f " % (indices[i], distances[i]))
+         stdout.write(ENDC)
+         if (i+1)%6 == 0 and i+1 != len(distances): stdout.write("\n        ")
+-    print
++    print()
+ 
+diff --git a/bin/oldexpectra b/bin/oldexpectra
+index 7f7548f..2d2b5a4 100755
+--- a/bin/oldexpectra
++++ b/bin/oldexpectra
+@@ -1,5 +1,6 @@
+ #!/usr/bin/env python
+ 
++from __future__ import print_function
+ import sys
+ from optparse import OptionParser, OptionGroup
+ import math
+@@ -260,7 +261,7 @@ class Logger:
+             if not self.logfile:
+                 self.logfile = open(self.logpath, 'w', 1)
+             self.logfile.write(msg+'\n')
+-            print msg
++            print(msg)
+ log = Logger('expectra.log').log
+ 
+ 
+@@ -301,7 +302,7 @@ class PDF:
+         else:
+             hist /= len(self.atoms)
+ 
+-        for i in xrange(len(hist)):
++        for i in range(len(hist)):
+             f.write("%8.4f %.6f\n" % (center[i], hist[i]))
+         f.close()
+ 
+diff --git a/bin/pdf-make.py b/bin/pdf-make.py
+index 6f91f79..c4428f1 100755
+--- a/bin/pdf-make.py
++++ b/bin/pdf-make.py
+@@ -1,5 +1,6 @@
+ #!/usr/bin/env python
+ 
++from __future__ import print_function
+ import ase
+ from ase.io import read
+ from tsase.io.con import read_con
+@@ -42,9 +43,9 @@ def main():
+ def integ(x,tck,constant=0.0):
+     x = np.atleast_1d(x)   
+     out = np.zeros(x.shape, dtype=x.dtype)
+-    for n in xrange(len(out)):
++    for n in range(len(out)):
+         out[n] = interpolate.splint(x[n-1],x[n],tck)
+-        print out[n]
++        print(out[n])
+         out += constant
+         return out
+ 
+@@ -52,7 +53,7 @@ def integ(x,tck,constant=0.0):
+ def snapshots_command(args):
+     trajectory = []
+     for filename in args.trajectories:
+-        print 'reading', filename
++        print('reading', filename)
+   #      trajectory += read(filename, args.skip, args.every)
+         if filename[-3:] == 'con':
+             trajectory += read_con(filename)
+@@ -83,8 +84,8 @@ def snapshots_command(args):
+     dist=np.zeros(shape=(nbins))
+ 
+     ##Loop over pairs of atoms in snapshots
+-    for l in xrange(len(atoms)-1):
+-            for j in xrange(l+1, len(atoms)):  
++    for l in range(len(atoms)-1):
++            for j in range(l+1, len(atoms)):
+                 d = atoms.get_distance(l,j, True)
+                 if d < bi/2.0:
+                     k = int(round(d/bin_size))
+@@ -93,7 +94,7 @@ def snapshots_command(args):
+     natoms= float(len(atoms))
+     rho= natoms/atoms.get_volume()
+     bs_vol=(4.0/3.0)*np.pi*bin_size*bin_size* bin_size
+-    for l in xrange(1, nbins):
++    for l in range(1, nbins):
+         dist[l] = bin_size*(0.5+l)   
+         norm_factor= ((l+1)*(l+1)*(l+1)-l*l*l)*rho*bs_vol
+         hist[l] = hist[l]/norm_factor/natoms/len(trajectory)
+diff --git a/bin/splitxdat b/bin/splitxdat
+index 79c587b..4786c72 100755
+--- a/bin/splitxdat
++++ b/bin/splitxdat
+@@ -1,4 +1,5 @@
+ #!/usr/bin/env python
++from __future__ import print_function
+ import ase
+ from ase.io import write
+ from tsase.io import read
+@@ -72,7 +73,7 @@ def read_xdatcar(filename, skip=0, every=1, trunc=False, frange=1):
+ def snapshots_command(args):
+     trajectory = []
+     for filename in args.trajectories:
+-        print 'reading', filename
++        print('reading', filename)
+         trajectory += read_xdatcar(filename, args.skip, args.every, args.trunc, args.frange)
+ 
+     ## write frames to POSCARs 
+@@ -91,7 +92,7 @@ def group_command(args):
+ 
+     trajectory = []   
+     for filename in args.trajectories:
+-        print 'reading', filename
++        print('reading', filename)
+         trajectory += read_xdatcar(filename, args.skip, args.every, args.trunc, args.frange)    
+         
+         write_xdatcar(trajectory, args)
+@@ -110,7 +111,7 @@ def write_xdatcar(trajectory, args):
+             pos = atoms.get_scaled_positions()
+             with open(name, "a") as myfile:
+                 myfile.write("\n")
+-                for j in xrange(len(atoms)):
++                for j in range(len(atoms)):
+                     myfile.write('  %.15f  %.15f  %.15f \n' % (pos[j, 0], pos[j,1], pos[j,2]))
+ 
+ 
+diff --git a/bin/tsase b/bin/tsase
+index ccde2ff..eb02791 100755
+--- a/bin/tsase
++++ b/bin/tsase
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env python
+ 
+ # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+-
++from __future__ import print_function
+ import code
+ import readline
+ import sys
+@@ -64,7 +64,7 @@ class Shell(code.InteractiveConsole):
+                 value = ' '.join(cmd.strip().split()[2:])
+                 add_alias(alias, value)
+             except:
+-                print "Failed to create alias."
++                print("Failed to create alias.")
+             return ""
+ 
+         # If the user unaliases an alias, delete it.
+@@ -122,12 +122,12 @@ class Shell(code.InteractiveConsole):
+                 else:
+                     os.chdir(os.path.expanduser(cmd.split()[1]))
+             except:
+-                print "cd: " + cmd.split()[1] + ": Not a directory."
++                print("cd: " + cmd.split()[1] + ": Not a directory.")
+         # Otherwise, make the system call.
+         else:
+             if os.system(cmd):
+                 # Print the python error string.
+-                print "\033[31m" + traceback.format_exc().split("\n")[-2] + "\033[0m"
++                print("\033[31m" + traceback.format_exc().split("\n")[-2] + "\033[0m")
+ 
+ 
+     def showsyntaxerror(self, filename = None):
+@@ -224,7 +224,7 @@ if __name__ == "__main__":
+         f = open(userrc, 'r')
+         f.close()
+     except:
+-        print "\nCreating an empty configuration file: " + userrc
++        print("\nCreating an empty configuration file: " + userrc)
+         f = open(userrc, 'w')
+         f.close
+     loadrc(userrc)
+diff --git a/bin/water_solvate b/bin/water_solvate
+index a581bae..6fd24bd 100755
+--- a/bin/water_solvate
++++ b/bin/water_solvate
+@@ -1,4 +1,5 @@
+ #!/usr/bin/env python
++from __future__ import print_function
+ from ase.io import read, write
+ from ase import Atoms
+ from math import pi, sin, cos
+@@ -61,13 +62,13 @@ def solvate(particle, thickness, padding, molecules):
+                     (min(pos[:,1])-padding, max(pos[:,1])+padding),
+                     (min(pos[:,2])-padding, max(pos[:,2])+padding))
+ 
+-    print 'Adding %i H2O molecules' % molecules
++    print('Adding %i H2O molecules' % molecules)
+     sys.stdout.write('Progress: ')
+     for i in range(molecules):
+         add_water(particle, bounding_box)
+         sys.stdout.write('%i '%(i+1))
+         sys.stdout.flush()
+-    print
++    print()
+ 
+     return particle
+ 
+diff --git a/bin/water_solvate_z b/bin/water_solvate_z
+index 6835a0c..fb4a43e 100755
+--- a/bin/water_solvate_z
++++ b/bin/water_solvate_z
+@@ -1,4 +1,5 @@
+ #!/usr/bin/env python
++from __future__ import print_function
+ from ase.io import read, write
+ from ase import Atoms
+ from math import pi, sin, cos
+@@ -84,17 +85,17 @@ def solvate(particle, thickness, padding, molecules, lsort):
+     cell_novac=cell.copy()
+     cell_novac[2,:] = cell_novac[2,:]-(thickness-2.*padding)*cell_novac[2,:]/np.linalg.norm(cell_novac[2,:])
+     vol = np.linalg.det(cell) - np.linalg.det(cell_novac)
+-    print 'Your cell is %.3f Angstrom^3' % vol 
+-    print 'It can fit %i(ice) to %i(water) water molecules' % ( int(vol*0.030642831608863625) ,int(vol*0.03342732803410454))
+-    print 'You chose to add %i water molecules' % molecules
++    print('Your cell is %.3f Angstrom^3' % vol)
++    print('It can fit %i(ice) to %i(water) water molecules' % ( int(vol*0.030642831608863625) ,int(vol*0.03342732803410454)))
++    print('You chose to add %i water molecules' % molecules)
+ 
+-    print 'Adding %i H2O molecules' % molecules
++    print('Adding %i H2O molecules' % molecules)
+     sys.stdout.write('Progress: ')
+     for i in range(molecules):
+         add_water(particle, bounding_box)
+         sys.stdout.write('%i '%(i+1))
+         sys.stdout.flush()
+-    print
++    print()
+     if lsort:
+         particle=sort(particle)
+ 
+@@ -110,7 +111,7 @@ if __name__ == '__main__':
+     parser.add_argument('lsort', type=str2bool, help='sort or not')
+     args = parser.parse_args()
+     particle = read(args.structure)
+-    print args.lsort
++    print(args.lsort)
+     solvated_particle = solvate(particle, args.thickness, args.padding, args.molecules, args.lsort)
+     #solvated_particle.wrap()
+     write('POSCAR_%iH2O'%args.molecules, solvated_particle, 'vasp')
+diff --git a/tsase/examples/cp2k_neb.py b/tsase/examples/cp2k_neb.py
+index 8394cd8..ae4a7b3 100644
+--- a/tsase/examples/cp2k_neb.py
++++ b/tsase/examples/cp2k_neb.py
+@@ -169,13 +169,13 @@ def main():
+                 xc=None,
+                 label='N2O4-NH4', inp=inp)
+ 
+-"""Read the reactant coordinates"""
++    """Read the reactant coordinates"""
+     p1 = read('reactant.xyz',index=0,format='xyz')
+     p1.set_cell([[20,0,0],[0,20,0],[0,0,20]],scale_atoms=False,fix=None)
+     p1.set_pbc((True, True, True))
+     p1.set_calculator(calc)
+ 
+-"""Read the product coordinates"""
++    """Read the product coordinates"""
+     p2 = read('product.xyz',index=0,format='xyz')
+     p2.set_cell([[20,0,0],[0,20,0],[0,0,20]],scale_atoms=False,fix=None)
+     p2.set_pbc((True, True, True))
+diff --git a/tsase/statistics/pdfstats b/tsase/statistics/pdfstats
+index 8ecb525..76e5069 100755
+--- a/tsase/statistics/pdfstats
++++ b/tsase/statistics/pdfstats
+@@ -1,4 +1,5 @@
+ #!/usr/bin/env python
++from __future__ import print_function
+ import numpy
+ 
+ from expectra.io import read_xdatcar, read_con
+@@ -70,7 +71,7 @@ class Accumulator:
+         elif x > self.max:
+             self.max = x
+ 
+-        for i in xrange(1,5):
++        for i in range(1,5):
+             self.sums[i] += x**float(i)
+ 
+     def mean(self):
+@@ -115,27 +116,27 @@ class Accumulator:
+         return r
+ 
+     def describe_short(self):
+-        print 'min: %.3f' % self.min,
+-        print 'max: %.3f' % self.max,
+-        print 'avg: %.3f' % self.mean(),
+-        print 'var: %.5f' % self.var(),
+-        print 'c3: %.3e' % self.cumulant(3),
+-        print 'c4: %.3e' % self.cumulant(4),
+-        print
++        print('min: %.3f' % self.min,)
++        print('max: %.3f' % self.max,)
++        print('avg: %.3f' % self.mean(),)
++        print('var: %.5f' % self.var(),)
++        print('c3: %.3e' % self.cumulant(3),)
++        print('c4: %.3e' % self.cumulant(4),)
++        print()
+ 
+     def describe(self):
+-        print 'min:          %f' % self.min
+-        print 'max:          %f' % self.max
+-        print 'mean:         %f' % self.mean()
+-        print 'variance:     %f' % self.var()
+-        print '3rd cumulant: %f' % self.cumulant(3)
+-        print '4th cumulant: %f' % self.cumulant(4)
++        print('min:          %f' % self.min)
++        print('max:          %f' % self.max)
++        print('mean:         %f' % self.mean())
++        print('variance:     %f' % self.var())
++        print('3rd cumulant: %f' % self.cumulant(3))
++        print('4th cumulant: %f' % self.cumulant(4))
+ 
+ def snapshots_command(args):
+     trajectory = []
+-    print 'neighbor-cutoff of %.2f Angstrom' % args.neighbor_cutoff
++    print('neighbor-cutoff of %.2f Angstrom' % args.neighbor_cutoff)
+     for filename in args.trajectories:
+-        print 'reading', filename
++        print('reading', filename)
+         if filename[-3:] == 'con':
+             trajectory += read_con(filename)[args.skip::args.every]
+         elif filename.startswith('POSCAR') or filename.startswith('CONTCAR'):
+@@ -156,7 +157,7 @@ def snapshots_command(args):
+             nl = NeighborList(len(atoms)*[args.neighbor_cutoff/2.0], skin=0.3, 
+                     self_interaction=False, bothways=False)
+         nl.update(atoms)
+-        for j in xrange(len(atoms)):
++        for j in range(len(atoms)):
+             indicies, offsets = nl.get_neighbors(j)
+             for k, offset in zip(indicies, offsets):
+                 r = numpy.linalg.norm(atoms.positions[j] - (atoms.positions[k] + numpy.dot(offset, atoms.get_cell())))
+@@ -165,7 +166,7 @@ def snapshots_command(args):
+                 if r >= args.neighbor_cutoff: continue
+                 if r <= args.neighbor_cutoff_min: continue
+                 acc.push(r)
+-        print '%4i/%i: N: %.2f' % (i+1,len(trajectory),2*acc.N/(float(i+1)*len(atoms))),
++        print('%4i/%i: N: %.2f' % (i+1,len(trajectory),2*acc.N/(float(i+1)*len(atoms))))
+         try:
+             acc.describe_short()
+         except:
+-- 
+GitLab
+
