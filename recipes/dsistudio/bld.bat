@@ -10,6 +10,10 @@ qmake QMAKE_CC=%CC% QMAKE_CXX=%CXX% QMAKE_LIBS="-lOpenGL32 -lGlu32 -lz" ../src/d
 jom -j%CPU_COUNT%
 jom check
 jom install
+cd..
+
+copy %SRC_DIR%\build\release\dsi_studio.exe %PREFIX%
+
 
 
 
