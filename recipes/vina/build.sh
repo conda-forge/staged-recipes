@@ -8,6 +8,9 @@ if [[ $(uname) == "Darwin" ]]; then
     export C_PLATFORM="-pthread"
 fi
 
+export GPP=${CXX}
+export PREFIX=${PREFIX}
+
 cp ${RECIPE_DIR}/Makefile Makefile
 cp ${RECIPE_DIR}/makefile_common ../..
 cp ${RECIPE_DIR}/__init__.py ../../python/vina
