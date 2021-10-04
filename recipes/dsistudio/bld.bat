@@ -1,4 +1,5 @@
 @echo on
+rd /s /q %SRC_DIR%\atlas\.git
 move %SRC_DIR%\atlas %PREFIX%\atlas
 move %SRC_DIR%\src\others\device.txt %PREFIX%
 move %SRC_DIR%\src\others\color_map %PREFIX%\color_map
