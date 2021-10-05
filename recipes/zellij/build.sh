@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-cargo install --locked --root "$PREFIX"
+cargo install --path "$PREFIX"
