@@ -1,11 +1,9 @@
 if [[ $(uname) == "Linux" ]]; then
     cd ${SRC_DIR}/build/linux/release
-    export C_PLATFORM="-static -pthread"
 fi
 
 if [[ $(uname) == "Darwin" ]]; then
     cd ${SRC_DIR}/build/mac/release
-    export C_PLATFORM="-pthread"
 fi
 
 export GPP=${CXX}
