@@ -1,7 +1,5 @@
 #!/bin/sh
 
-echo Building python
-
 cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_LIBDIR=lib \
@@ -15,3 +13,6 @@ cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DPython3_EXECUTABLE="$PYTHON"
 
 cmake --build build -j${CPU_COUNT}
+
+${PYTHON} -m pip install . --no-deps -vv
+
