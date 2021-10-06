@@ -7,7 +7,7 @@ rm -rf ./*
 export HDF5_ROOT=${PREFIX}
 
 cmake .. \
-  ${CMAKE_ARGS} \
+  "${CMAKE_ARGS}" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
   -DCMAKE_PREFIX_PATH="${PREFIX}" \
@@ -26,5 +26,4 @@ cmake .. \
 ninja -j${CPU_COUNT}
 ninja install
 
-exit ${ret_code}
 
