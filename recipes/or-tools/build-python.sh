@@ -12,6 +12,6 @@ cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DBUILD_SAMPLES=OFF \
       -DBUILD_EXAMPLES=OFF \
       -BUILD_PYTHON=ON \
-      -DPython_EXECUTABLE="$PYTHON"
+      -DPython3_EXECUTABLE="$PYTHON"
 
-cmake --build build --target install -j${CPU_COUNT}
+cmake --build build --target python_package -j${CPU_COUNT}
