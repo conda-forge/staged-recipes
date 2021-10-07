@@ -47,6 +47,7 @@ docker run ${DOCKER_RUN_ARGS} \
            -e CONFIG \
            -e CI \
            -e CF_CUDA_VERSION \
+           -e DEFAULT_LINUX_VERSION \
            $IMAGE_NAME \
            bash \
            "/home/conda/staged-recipes/${PROVIDER_DIR}/build_steps.sh"
