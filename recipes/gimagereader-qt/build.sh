@@ -8,5 +8,5 @@ cmake -G Ninja \
       -DCMAKE_INSTALL_LIBDIR=lib \
       -DINTERFACE_TYPE=qt5 \
       ..
-cmake --build .
+cmake --build . -- -j${CPU_COUNT}
 cmake --install .
