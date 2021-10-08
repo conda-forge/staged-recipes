@@ -1,4 +1,5 @@
 ### Assert licenses are available
+cp $RECIPE_DIR/Cargo.lock .
 # Install cargo-license
 export CARGO_HOME="$BUILD_PREFIX/cargo"
 mkdir $CARGO_HOME
