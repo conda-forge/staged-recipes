@@ -1,0 +1,85 @@
+{% set name = "costa" %}
+{% set version = "2.0" %}
+
+package:
+  name: {{ name }}_variants
+  version: {{ version }}
+
+source:
+  url: https://github.com/eth-cscs/COSTA/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 0692a9c962282899894ccdbc7006216c835473a6999f1080c10bf94f23094521
+
+build:
+  number: 0
+  skip: True  # [win]
+
+outputs:
+  - name: costa
+    script: build-costa.sh
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - cmake
+      host:
+        - {{ mpi }}
+        - libgomp      # [linux]
+        - llvm-openmp  # [osx]
+        - pkgconfig    # [osx]
+      run:
+        - {{ mpi }}
+    
+    test:
+      commands:
+        - test -f "${PREFIX}/lib64/libcosta.a"  # [linux]
+        - test -f "${PREFIX}/lib/libcosta.a"  # [osx]
+
+    about:
+      summary: Communication-Optimal Shuffle & Transpose Algorithm (COSTA)
+
+  - name: costa-scalapack
+    script: build-costa.sh
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - cmake
+      host:
+        - {{ mpi }}
+        - scalapack
+        - libgomp      # [linux]
+        - llvm-openmp  # [osx]
+        - pkgconfig    # [osx]
+      run:
+        - {{ mpi }}
+        - scalapack
+    
+    test:
+      commands:
+        - test -f "${PREFIX}/lib64/libcosta.a"  # [linux]
+
+        - test -f "${PREFIX}/lib64/libcosta_scalapack.a"  # [linux]
+
+        - test -f "${PREFIX}/lib64/libcosta_prefixed_scalapack.a"  # [linux]
+
+        - test -f "${PREFIX}/lib/libcosta.a"  # [osx]
+        - test -f "${PREFIX}/lib/libcosta_scalapack.a"  # [osx]
+        - test -f "${PREFIX}/lib/libcosta_prefixed_scalapack.a"  # [osx]
+
+    about:
+      summary: COSTA with scalapack wrappers for drop-in replacement
+
+
+about:
+  home: https://github.com/eth-cscs/COSTA
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: Communication-Optimal Shuffle & Transpose Algorithm
+  description: |
+    COSTA is a communication-optimal, highly-optimised algorithm for data redistribution accross multiple processors, using MPI and OpenMP and offering the possibility to transpose and scale some or all data. It implements scalapack routines for matrix scale & transpose operations (sub(C) = alpha * sub(A)^T + beta * C, provided by pxtran(u)) and data redistribution (sub(C) = sub(A), provided by pxgemr2d) and outperforms other scalapack implementations by orders of magnitude in some cases. Unlike previous redistribution algorithms, COSTA will also propose the relabelling of MPI ranks that minimizes the data reshuffling cost, leaving to users to decide if they want to use it. This way, if the initial and the target data distributions differ up to a rank permutation, COSTA will perform no communication, whereas other algorithms will reshuffle all the data. Thanks to its optimizations, significant speedups will be achieved even if the proposed rank relabelling is not used.
+  doc_url: https://github.com/eth-cscs/COSTA
+  dev_url: https://github.com/eth-cscs/COSTA
+
+extra:
+  recipe-maintainers:
+    - kabicm
+    - ltalirz
