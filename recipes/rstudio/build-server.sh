@@ -1,6 +1,6 @@
 #!/bin/bash
-set +e
-set +x
+set -ex
+echo ==========   Welcome to build-server.sh  ==============
 echo ================   ENVIRONMENT VARS  ==================
 echo =============    for debugging purposes   =============
 printenv | sort
@@ -12,12 +12,11 @@ conda list
 conda list --prefix $PREFIX
 conda list --prefix $BUILD_PREFIX
 
-echo ###################################################
-echo ###################################################
-echo ############   THIS IS AN ALPHA VERSION  ##########
-echo ####   There is lot of debugging-code in here  ####
-echo ###################################################
-echo ###################################################
+echo ============================================================
+echo ================   THIS IS AN ALPHA VERSION  ===============
+echo ========   There is lot of debugging-code in here  =========
+echo ============================================================
+echo ============================================================
 
 
 
@@ -57,7 +56,7 @@ yarn install )
 
 
 mkdir -p dependencies/common/node/10.19.0/bin/
-ln -s $BUILD_PREFIX/bin/node dependencies/common/node/10.19.0/bin/
+ln -fs $BUILD_PREFIX/bin/node dependencies/common/node/10.19.0/bin/
 # which node|xargs ln -s
 
 # Problem with installing soci_postgresql into host env, so install it in build and copy it here:
@@ -78,12 +77,12 @@ _CMAKE_EXTRA_CONFIG+=(-DPTHREAD_LIBRARIES=${LIBPTHREAD})
 _CMAKE_EXTRA_CONFIG+=(-DUTIL_LIBRARIES=${LIBUTIL})
 _CMAKE_EXTRA_CONFIG+=(-DRT_LIBRARIES=${LIBRT})
 # May only be necessary for server?
-PAM_INCLUDE_DIR=$(dirname `find ${PREFIX} -name security -type d | grep include/security`)
+PAM_INCLUDE_DIR=$(dirname `find ${PREFIX} -name security -type d | grep include/security | head -1`)
 export CPPFLAGS="${CPPFLAGS} -Wl,-rpath-link,${PREFIX}/lib -I$BUILD_PREFIX/include"
 export CXXFLAGS="${CXXFLAGS} -Wl,-rpath-link,${PREFIX}/lib -I$PAM_INCLUDE_DIR -I$BUILD_PREFIX/include"
 export CFLAGS="${CFLAGS} -Wl,-rpath-link,${PREFIX}/lib"
 if [[ ${RSTUDIO_TARGET} == Server ]]; then
-PAM_INCLUDE_DIR=$(dirname `find ${PREFIX} -name security -type d | grep include/security`)
+PAM_INCLUDE_DIR=$(dirname `find ${PREFIX} -name security -type d | grep include/security | head -1`)
 OTHER_SYSROOT_DIR=$(dirname ${PAM_INCLUDE_DIR})
 MAIN_SYSROOT_DIR=$(dirname ${PREFIX}/${BUILD}/sysroot/usr)
 LIBPAM=$(find ${PREFIX} -name "libpam.so")

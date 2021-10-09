@@ -1,5 +1,6 @@
-#!/bin/sh
-
+#!/bin/bash
+set -ex
+echo =============   Welcome to build.sh  ==================
 echo ================   ENVIRONMENT VARS  ==================
 echo =============    for debugging purposes   =============
 printenv | sort
@@ -11,12 +12,11 @@ conda list
 conda list --prefix $PREFIX
 conda list --prefix $BUILD_PREFIX
 
-echo ###################################################
-echo ###################################################
-echo ############   THIS IS AN ALPHA VERSION  ##########
-echo ####   There is lot of debugging-code in here  ####
-echo ###################################################
-echo ###################################################
+echo ============================================================
+echo ================   THIS IS AN ALPHA VERSION  ===============
+echo ========   There is lot of debugging-code in here  =========
+echo ============================================================
+echo ============================================================
 
 
 _DEBUG=no
