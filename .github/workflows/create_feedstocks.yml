@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          token: ${{ github.token }}
 
       - name: Prevent multiple jobs running in parallel
         id: conversion_lock
@@ -26,6 +28,17 @@ jobs:
           poll-interval-seconds: 2
           github-token: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
+        
+      - name: commit any changes upon checkout
+        run: |
+          git config --global user.email "pelson.pub+conda-forge@gmail.com"
+          git config --global user.name "conda-forge-admin"
+          git add *
+          git commit -am "make sure we have no windows line endings" || exit 0
+          for i in `seq 1 5`; do
+            git pull
+            git push
+          done
 
       - name: Run feedstock creation
         # outcome is evaluated before continue-on-error above
@@ -38,9 +51,6 @@ jobs:
             fi
 
             echo "Creating feedstocks from the recipe(s)."
-
-            git config --global user.name "GitHub Actions on github.com/conda-forge/staged-recipes"
-            git config --global user.email "conda-forge@googlegroups.com"
 
             source ./.travis_scripts/create_feedstocks
         env:
