@@ -1,13 +1,23 @@
 #!/bin/bash
 set +e
 set +x
+echo ================   ENVIRONMENT VARS  ==================
+echo =============    for debugging purposes   =============
+printenv | sort
 
-###################################################
-###################################################
-############   THIS IS AN ALPHA VERSION  ##########
-####   There is lot of debugging-code in here  ####
-###################################################
-###################################################
+echo ===================  Conda Envs  ====================
+conda env list
+conda list
+## for debugging of dependency problems:
+conda list --prefix $PREFIX
+conda list --prefix $BUILD_PREFIX
+
+echo ###################################################
+echo ###################################################
+echo ############   THIS IS AN ALPHA VERSION  ##########
+echo ####   There is lot of debugging-code in here  ####
+echo ###################################################
+echo ###################################################
 
 
 

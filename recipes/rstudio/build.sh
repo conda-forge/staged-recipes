@@ -1,5 +1,24 @@
 #!/bin/sh
 
+echo ================   ENVIRONMENT VARS  ==================
+echo =============    for debugging purposes   =============
+printenv | sort
+
+echo ===================  Conda Envs  ====================
+conda env list
+conda list
+## for debugging of dependency problems:
+conda list --prefix $PREFIX
+conda list --prefix $BUILD_PREFIX
+
+echo ###################################################
+echo ###################################################
+echo ############   THIS IS AN ALPHA VERSION  ##########
+echo ####   There is lot of debugging-code in here  ####
+echo ###################################################
+echo ###################################################
+
+
 _DEBUG=no
 if [[ ${_DEBUG} == yes ]]; then
   # BUILD_TYPE=RelWithDebInfo
