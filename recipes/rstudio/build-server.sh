@@ -31,6 +31,9 @@ cat src/cpp/core/system/Xdg.cpp | sed -e "s|\"/etc\"|\"${PREFIX}/etc\"|" > _XDG_
 mv _XDG_tmp.cpp src/cpp/core/system/Xdg.cpp
 
 export RSTUDIO_TARGET=Server
+
+export PAM_FROM_CDT=false
+
 # install
 # if(NOT EXISTS "${RSTUDIO_DEPENDENCIES_DIR}/common/dictionaries")
 export RSTUDIO_DEPENDENCIES_DIR=$PREFIX/share/
@@ -77,25 +80,36 @@ _CMAKE_EXTRA_CONFIG+=(-DPTHREAD_LIBRARIES=${LIBPTHREAD})
 _CMAKE_EXTRA_CONFIG+=(-DUTIL_LIBRARIES=${LIBUTIL})
 _CMAKE_EXTRA_CONFIG+=(-DRT_LIBRARIES=${LIBRT})
 # May only be necessary for server?
-PAM_INCLUDE_DIR=$(dirname `find ${PREFIX} -name security -type d | grep include/security | head -1`)
+if [[ $PAM_FROM_CDT == true ]] ; then
+    PAM_INCLUDE_DIR=$(dirname `find ${PREFIX} -name security -type d | grep include/security | head -1`)
+    PAM_INCLUDE_DIR=/usr/include
+fi
 export CPPFLAGS="${CPPFLAGS} -Wl,-rpath-link,${PREFIX}/lib -I$BUILD_PREFIX/include"
-export CXXFLAGS="${CXXFLAGS} -Wl,-rpath-link,${PREFIX}/lib -I$PAM_INCLUDE_DIR -I$BUILD_PREFIX/include"
+export CXXFLAGS="${CXXFLAGS} -Wl,-rpath-link,${PREFIX}/lib -I$BUILD_PREFIX/include"
+# export CXXFLAGS="${CXXFLAGS} -Wl,-rpath-link,${PREFIX}/lib -I$PAM_INCLUDE_DIR -I$BUILD_PREFIX/include"
 export CFLAGS="${CFLAGS} -Wl,-rpath-link,${PREFIX}/lib"
-if [[ ${RSTUDIO_TARGET} == Server ]]; then
-PAM_INCLUDE_DIR=$(dirname `find ${PREFIX} -name security -type d | grep include/security | head -1`)
-OTHER_SYSROOT_DIR=$(dirname ${PAM_INCLUDE_DIR})
+
+if [[ x${RSTUDIO_TARGET} == xServer ]]; then
+
 MAIN_SYSROOT_DIR=$(dirname ${PREFIX}/${BUILD}/sysroot/usr)
-LIBPAM=$(find ${PREFIX} -name "libpam.so")
-LIBAUDIT=$(find ${PREFIX} -name "libaudit.so.1")
 LIBDL=$(find ${PREFIX} -name "libdl.so")
-## currently pam is under x86_64-conda_cos6-linux-gnu and not unter BUILD=x86_64-conda-linux-gnu
-# _CMAKE_EXTRA_CONFIG+=(-DPAM_INCLUDE_DIR=${BUILD_PREFIX}/${BUILD}/sysroot/usr/include)
-_CMAKE_EXTRA_CONFIG+=(-DPAM_INCLUDE_DIR=${PAM_INCLUDE_DIR})
-_CMAKE_EXTRA_CONFIG+=(-DPAM_INCLUDE_DIRS=${PAM_INCLUDE_DIR})
+
+if [[ $PAM_FROM_CDT == true ]] ; then
+    OTHER_SYSROOT_DIR=$(dirname ${PAM_INCLUDE_DIR})
+    LIBPAM=$(find ${PREFIX} -name "libpam.so")
+    LIBAUDIT=$(find ${PREFIX} -name "libaudit.so.1")
+    ## currently pam is under x86_64-conda_cos6-linux-gnu and not unter BUILD=x86_64-conda-linux-gnu
+    # _CMAKE_EXTRA_CONFIG+=(-DPAM_INCLUDE_DIR=${BUILD_PREFIX}/${BUILD}/sysroot/usr/include)
+    _CMAKE_EXTRA_CONFIG+=(-DPAM_INCLUDE_DIR=${PAM_INCLUDE_DIR})
+    _CMAKE_EXTRA_CONFIG+=(-DPAM_INCLUDE_DIRS=${PAM_INCLUDE_DIR})
+    _CMAKE_EXTRA_CONFIG+=(-DCMAKE_PREFIX_PATH=${PREFIX}\;${BUILD_PREFIX}\;${MAIN_SYSROOT_DIR}\;${OTHER_SYSROOT_DIR})
+    _CMAKE_EXTRA_CONFIG+=(-DCMAKE_SYSTEM_INCLUDE_PATH=${PREFIX}/include\;${BUILD_PREFIX}/include\;${MAIN_SYSROOT_DIR}/include\;${OTHER_SYSROOT_DIR}/include)
+    _CMAKE_EXTRA_CONFIG+=(-DPAM_LIBRARY="${LIBPAM};${LIBAUDIT}")
+else
+    _CMAKE_EXTRA_CONFIG+=(-DCMAKE_PREFIX_PATH=${PREFIX}\;${BUILD_PREFIX}\;${MAIN_SYSROOT_DIR})
+    _CMAKE_EXTRA_CONFIG+=(-DCMAKE_SYSTEM_INCLUDE_PATH=${PREFIX}/include\;${BUILD_PREFIX}/include\;${MAIN_SYSROOT_DIR}/include)
+fi
 _CMAKE_EXTRA_CONFIG+=(-DSOCI_INCLUDE_BUILD_DIR=${BUILD_PREFIX}/include)
-_CMAKE_EXTRA_CONFIG+=(-DCMAKE_PREFIX_PATH=${PREFIX}\;${BUILD_PREFIX}\;${MAIN_SYSROOT_DIR}\;${OTHER_SYSROOT_DIR})
-_CMAKE_EXTRA_CONFIG+=(-DCMAKE_SYSTEM_INCLUDE_PATH=${PREFIX}/include\;${BUILD_PREFIX}/include\;${MAIN_SYSROOT_DIR}/include\;${OTHER_SYSROOT_DIR}/include)
-_CMAKE_EXTRA_CONFIG+=(-DPAM_LIBRARY="${LIBPAM};${LIBAUDIT}")
 _CMAKE_EXTRA_CONFIG+=(-DDL_LIBRARIES=${LIBDL})
 fi
 
