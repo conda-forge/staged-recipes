@@ -106,8 +106,11 @@ if [[ $PAM_FROM_CDT == true ]] ; then
     _CMAKE_EXTRA_CONFIG+=(-DCMAKE_SYSTEM_INCLUDE_PATH=${PREFIX}/include\;${BUILD_PREFIX}/include\;${MAIN_SYSROOT_DIR}/include\;${OTHER_SYSROOT_DIR}/include)
     _CMAKE_EXTRA_CONFIG+=(-DPAM_LIBRARY="${LIBPAM};${LIBAUDIT}")
 else
+    _CMAKE_EXTRA_CONFIG+=(-DPAM_INCLUDE_DIRS=/usr/include)
+    _CMAKE_EXTRA_CONFIG+=(-DPAM_INCLUDE_DIR=/usr/include)
+    _CMAKE_EXTRA_CONFIG+=(-DCMAKE_CXX_FLAGS="-Wl,-rpath-link,${PREFIX}/lib,-rpath-link,/usr/lib64,-rpath-link,/lib64 -I$BUILD_PREFIX/include -I/usr/include")
     _CMAKE_EXTRA_CONFIG+=(-DCMAKE_PREFIX_PATH=${PREFIX}\;${BUILD_PREFIX}\;${MAIN_SYSROOT_DIR})
-    _CMAKE_EXTRA_CONFIG+=(-DCMAKE_SYSTEM_INCLUDE_PATH=${PREFIX}/include\;${BUILD_PREFIX}/include\;${MAIN_SYSROOT_DIR}/include)
+    _CMAKE_EXTRA_CONFIG+=(-DCMAKE_SYSTEM_INCLUDE_PATH=${PREFIX}/include\;${BUILD_PREFIX}/include\;${MAIN_SYSROOT_DIR}/include\;/usr/include)
 fi
 _CMAKE_EXTRA_CONFIG+=(-DSOCI_INCLUDE_BUILD_DIR=${BUILD_PREFIX}/include)
 _CMAKE_EXTRA_CONFIG+=(-DDL_LIBRARIES=${LIBDL})
@@ -161,7 +164,7 @@ mkdir -p $PREFIX/var/{run,lock,log,lib}/rstudio-server
 touch $PREFIX/var/{run,lock,log,lib}/rstudio-server/.mkdir
 
 echo server-data-dir=$PREFIX/var/run/rstudio-server >> $RSERVER_CONF
-echo database-config-file=$DB_CONF_FILE >> $cRSERVER_CONF
+echo database-config-file=$DB_CONF_FILE >> $RSERVER_CONF
 echo server-pid-file=$PREFIX/var/run/rstudio-server.pid >> $RSERVER_CONF
 # maybe set the user by default to the installation user ?!?
 echo server-user=conda >> $RSERVER_CONF
