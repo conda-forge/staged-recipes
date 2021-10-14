@@ -165,6 +165,12 @@ def check_recipes_in_correct_dir(root_dir, correct_dir):
         if len(path.parts) != 3:
             raise RuntimeError(f"recipe {path.parts} in wrong directory")
 
+
+def use_mambabuild():
+    from boa.cli.mambabuild import prepare
+    prepare()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--arch', default='64',
@@ -172,4 +178,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     check_recipes_in_correct_dir(root_dir, "recipes")
+    use_mambabuild()
     build_all(os.path.join(root_dir, "recipes"), args.arch)
