@@ -167,7 +167,7 @@ def check_recipes_in_correct_dir(root_dir, correct_dir):
 
 
 def read_mambabuild():
-    cf = os.path.join(recipes_dir, folder, "conda-forge.yaml")
+    cf = os.path.join(recipes_dir, folder, "conda-forge.yml")
     if os.path.exists(cf):
         with open(cf, "r") as f:
             text = ''.join(f.readlines())
