@@ -13,7 +13,6 @@ if [[ ${target_platform} == linux-* ]]; then
 fi
 
 ./configure --prefix=${PREFIX}           \
-            ${HOST_BUILD}                \
             --as=yasm                    \
             --enable-shared              \
             --disable-install-docs       \
