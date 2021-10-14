@@ -170,11 +170,8 @@ def read_mambabuild():
     cf = os.path.join(recipes_dir, folder, "conda-forge.yml")
     if os.path.exists(cf):
         with open(cf, "r") as f:
-            text = ''.join(f.readlines())
-            if '"build_with_mambabuild": False' in text:
-                return False
-            else:
-                return True
+            cfy = yaml.safe_load(fp.read())
+        return cfy.get("build_with_mambabuild", True)
     else:
         return True
 
