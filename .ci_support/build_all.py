@@ -194,4 +194,5 @@ if __name__ == "__main__":
     use_mamba = read_mambabuild(os.path.join(root_dir, "recipes"))
     if use_mamba:
       use_mambabuild()
+      subprocess.run(["conda", "clean", "--all"], shell=True, check=True)
     build_all(os.path.join(root_dir, "recipes"), args.arch)
