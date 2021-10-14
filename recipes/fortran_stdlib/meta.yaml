@@ -1,0 +1,50 @@
+{% set name = "fortran_stdlib" %}
+{% set version = "0.1.0" %}
+{% set build = 0 %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/fortran-lang/stdlib/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 0c715b9fc15102817c591d78c4a21ebba392512e8feb18fa5d0bdbcdebdcd52c
+
+build:
+  number: {{ build }}
+  skip: True  # [win]
+  script:
+    - cmake ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON -G Ninja -B _build
+    - cmake --build _build
+    - ctest --test-dir _build --output-on-failure --parallel  # [build_platform != target_platform]
+    - cmake --install _build
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('fortran') }}
+    - cmake
+    - ninja
+    - fypp
+
+test:
+  requires:
+    - pkg-config
+  commands:
+    - pkg-config {{ name }} --exact-version {{ version }}
+    - test -f $PREFIX/lib/lib{{ name }}${SHLIB_EXT}
+
+about:
+  home: https://github.com/fortran-lang/stdlib
+  license: MIT
+  license_family: MIT
+  license_file:
+    - LICENSE
+  summary: Fortran standard library
+  doc_url: https://stdlib.fortran-lang.org
+  dev_url: https://github.com/fortran-lang/stdlib
+
+extra:
+  recipe-maintainers:
+    - awvwgk
+    - mardiehl
