@@ -1,0 +1,66 @@
+{% set name = "NTPoly" %}
+{% set version = "2.7.0" %}
+{% set build = 0 %}
+{% set mpi = mpi or "mpich" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/william-dawson/{{ name }}/archive/refs/tags/{{ name|lower }}-v{{ version }}.tar.gz
+  sha256: db4a7cd12f2020739cb96d9f438e525e5a0d695575da89fff88d56365fe8dfde
+
+build:
+  number: {{ build }}
+  skip: True  # [win]
+  script:
+    - export CXX="$PREFIX/bin/mpicxx" CC="$PREFIX/bin/mpicc" FC="$PREFIX/bin/mpifort"
+    - cmake ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON -G Ninja -B _build
+    - cmake --build _build
+    - cmake --install _build
+
+  {% set mpi_prefix = "mpi_" + mpi %}
+  string: "{{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}"
+
+  run_exports:
+    - {{ name|lower }} * {{ mpi_prefix }}_*
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('fortran') }}
+    - cmake
+    - ninja
+  host:
+    - {{ mpi }}
+    - libblas
+    - liblapack
+    - llvm-openmp  # [osx]
+    - libgomp  # [linux]
+  run:
+    - {{ mpi }}
+    - libblas
+    - liblapack
+
+
+test:
+  commands:
+    - test -f $PREFIX/lib/lib{{ name }}${SHLIB_EXT}
+    - test -f $PREFIX/lib/lib{{ name }}CPP${SHLIB_EXT}
+    - test -f $PREFIX/lib/lib{{ name }}Wrapper${SHLIB_EXT}
+
+about:
+  home: https://william-dawson.github.io/NTPoly/
+  license: MIT
+  license_family: MIT
+  license_file:
+    - LICENSE
+  summary: A massively parallel library for computing the functions of sparse matrices.
+  doc_url: https://william-dawson.github.io/NTPoly/documentation/
+  dev_url: https://github.com/william-dawson/NTPoly/tree/ntpoly-v2.7.0
+
+extra:
+  recipe-maintainers:
+    - awvwgk
