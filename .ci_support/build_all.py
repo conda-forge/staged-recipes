@@ -175,6 +175,8 @@ def read_mambabuild():
                 return False
             else:
                 return True
+    else:
+        return True
 
 
 def use_mambabuild():
