@@ -8,6 +8,10 @@ else
   EXTRA_CONF="--enable-runtime-cpu-detect"
 fi
 
+if [[ ${target_platform} == linux-* ]]; then
+  LDFLAGS="$LDFLAGS -pthread"
+fi
+
 ./configure --prefix=${PREFIX}           \
             ${HOST_BUILD}                \
             --as=yasm                    \
