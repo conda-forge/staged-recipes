@@ -166,14 +166,16 @@ def check_recipes_in_correct_dir(root_dir, correct_dir):
             raise RuntimeError(f"recipe {path.parts} in wrong directory")
 
 
-def read_mambabuild():
-    cf = os.path.join(recipes_dir, folder, "conda-forge.yml")
-    if os.path.exists(cf):
-        with open(cf, "r") as f:
-            cfy = yaml.safe_load(fp.read())
-        return cfy.get("build_with_mambabuild", True)
-    else:
-        return True
+def read_mambabuild(recipes_dir):
+    folders = os.listdir(recipes_dir)
+    use_it = True
+    for folder in folders:
+        cf = os.path.join(recipes_dir, folder, "conda-forge.yml")
+        if os.path.exists(cf):
+            with open(cf, "r") as f:
+                cfy = yaml.safe_load(f.read())
+            use_it = use_it and cfy.get("build_with_mambabuild", True)
+    return use_it
 
 
 def use_mambabuild():
@@ -188,7 +190,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     check_recipes_in_correct_dir(root_dir, "recipes")
-    use_mamba = read_mambabuild()
+    use_mamba = read_mambabuild(os.path.join(root_dir, "recipes"))
     if use_mamba:
       use_mambabuild()
     build_all(os.path.join(root_dir, "recipes"), args.arch)
