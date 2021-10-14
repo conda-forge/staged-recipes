@@ -5,10 +5,7 @@ cd build || true
 
 export HDF5_ROOT=${PREFIX}
 
-echo "CMAKE_ARGS: ${CMAKE_ARGS}"
-
-cmake .. \
-  -DCMAKE_BUILD_TYPE=Release \
+cmake .. ${CMAKE_ARGS} \
   -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
   -DCMAKE_PREFIX_PATH="${PREFIX}" \
   -DCMAKE_OSX_SYSROOT="${CONDA_BUILD_SYSROOT}" \
