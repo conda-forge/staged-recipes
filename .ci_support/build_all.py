@@ -7,6 +7,7 @@ import os
 from collections import OrderedDict
 import sys
 import subprocess
+import yaml
 
 try:
     from ruamel_yaml import BaseLoader, load
