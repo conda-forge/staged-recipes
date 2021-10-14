@@ -2,9 +2,10 @@
 
 mkdir -p build
 cd build || true
-rm -rf ./*
 
 export HDF5_ROOT=${PREFIX}
+
+echo "CMAKE_ARGS: ${CMAKE_ARGS}"
 
 cmake .. \
   "${CMAKE_ARGS}" \
@@ -25,5 +26,4 @@ cmake .. \
 
 ninja -j${CPU_COUNT}
 ninja install
-
 
