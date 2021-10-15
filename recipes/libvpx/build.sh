@@ -15,6 +15,7 @@ fi
 ./configure --prefix=${PREFIX}           \
             --as=yasm                    \
             --enable-shared              \
+            --disable-static             \
             --disable-install-docs       \
             --disable-install-srcs       \
             --enable-vp8                 \
