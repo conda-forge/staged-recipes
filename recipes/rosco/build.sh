@@ -1,5 +1,7 @@
 #!/bin/bash
 
+python setup.py install
+
 mkdir build
 cd build 
 
