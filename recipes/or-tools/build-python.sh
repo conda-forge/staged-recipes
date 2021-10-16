@@ -14,6 +14,7 @@ cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DPython3_EXECUTABLE="$PYTHON"
       -DPYTHON_INCLUDE_DIR=$(${PYTHON} -c 'import sysconfig; print(sysconfig.get_paths()["include"])') \
       -DPYTHON_LIBRARY=${PREFIX}/lib \
+      -DPYTHON_EXECUTABLE:FILEPATH=${PREFIX}/bin/python
 
 cmake --build build -j${CPU_COUNT}
 
