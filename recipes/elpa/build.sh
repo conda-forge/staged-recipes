@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -ex
 
+if [ "${mpi}" == "openmpi" ]; then
+  export OMPI_MCA_plm=isolated
+  export OMPI_MCA_btl_vader_single_copy_mechanism=none
+  export OMPI_MCA_rmaps_base_oversubscribe=yes
+fi
+
 if [ "${mpi}" != "nompi" ]; then
   MPI=yes
   SUFFIX=""
