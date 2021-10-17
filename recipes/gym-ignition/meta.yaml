@@ -1,0 +1,135 @@
+{% set name = "gym-ignition-split" %}
+{% set version = "1.3.0.post0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/robotology/gym-ignition/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 6ae47711b0941f47030c1e9b7821d1259aa7e622d07914a261f1470d41d1524c
+
+build:
+  number: 0
+  skip: true  # [win]
+
+outputs:
+
+  - name: libscenario
+    script: build_libscenario.sh  # [unix]
+    build:
+      run_exports:
+        - {{ pin_subpackage("libscenario", max_pin="x.x") }}
+    requirements:
+      build:
+        - cmake
+        - ninja
+        - pkg-config
+        - {{ compiler("cxx") }}
+        - {{ cdt("mesa-libgl-devel") }}  # [linux]
+      host:
+        - eigen
+        - idyntree
+        - libignition-gazebo6
+      run:
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libGazeboSimulator.so  # [linux]
+        - test -f ${PREFIX}/lib/libGazeboSimulator.dylib  # [osx]
+        - test -f ${PREFIX}/lib/cmake/Scenario/ScenarioConfig.cmake  # [unix]
+        - test -f ${PREFIX}/lib/cmake/ScenarioGazebo/ScenarioGazeboConfig.cmake  # [unix]
+
+  - name: scenariopy
+    script: build_scenariopy.sh  # [unix]
+    build:
+      run_exports:
+        - {{ pin_subpackage("scenariopy", max_pin="x.x") }}
+    requirements:
+      build:
+        - cmake
+        - {{ compiler("cxx") }}
+        - {{ cdt("mesa-libgl-devel") }}  # [linux]
+        - ninja
+        - pkg-config
+        - swig
+      host:
+        - build
+        - cmake-build-extension
+        - idyntree
+        - libignition-gazebo6
+        - pip
+        - python
+      run:
+        - {{ pin_subpackage("libscenario", exact=True) }}
+        - packaging
+    test:
+      imports:
+        - scenario
+      commands:
+        - pip check
+      requires:
+        - pip
+
+  - name: scenario
+    build:
+      run_exports:
+        - {{ pin_subpackage("scenario", max_pin="x.x") }}
+    requirements:
+      run:
+        - {{ pin_subpackage("scenariopy", exact=True) }}
+        - {{ pin_subpackage("libscenario", exact=True) }}
+    test:
+      imports:
+        - scenario
+      commands:
+        - pip check
+        - test -f ${PREFIX}/lib/libGazeboSimulator.so  # [linux]
+        - test -f ${PREFIX}/lib/libGazeboSimulator.dylib  # [osx]
+        - test -f ${PREFIX}/lib/cmake/Scenario/ScenarioConfig.cmake  # [unix]
+        - test -f ${PREFIX}/lib/cmake/ScenarioGazebo/ScenarioGazeboConfig.cmake  # [unix]
+      requires:
+        - pip
+
+  - name: gym-ignition
+    build:
+      noarch: python
+      run_exports:
+        - {{ pin_subpackage("gym-ignition", max_pin="x.x") }}
+    script: build_gym_ignition.sh  # [unix]
+    requirements:
+      host:
+        - pip
+        - python
+      run:
+        - gym
+        - gym-ignition-models
+        - idyntree
+        - lxml
+        - numpy
+        - {{ pin_subpackage("scenariopy", max_pin="x.x") }}
+        - scipy
+    test:
+      source_files:
+        - tests
+        - setup.cfg
+      imports:
+        - gym_ignition
+      commands:
+        # - pip check (needs idyntree installed with pip during conda build)
+        - sed -i "s|def test_angular_acceleration|def _test_angular_acceleration|g" tests/test_scenario/test_link_velocities.py
+        - pytest
+      requires:
+        - pip
+        - pytest
+        - pytest-icdiff
+
+about:
+  home: https://github.com/robotology/gym-ignition
+  summary: A toolkit for developing OpenAI Gym environments simulated with Ignition Gazebo.
+  dev_url: https://github.com/robotology/gym-ignition
+  license: LGPL-2.1-or-later
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - diegoferigo
