@@ -1,0 +1,65 @@
+{% set name = "pspBLAS" %}
+{% set version = "1.0.0" %}
+{% set build = 0 %}
+{% set mpi = mpi or "mpich" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://gitlab.com/ElectronicStructureLibrary/omm-bundle/-/archive/v{{ version }}/omm-bundle-v{{ version }}.tar.gz
+  sha256: 815f849d4a603383e6553db4e97fe695882b40e4bbc6f33577bc2556166949af
+
+build:
+  number: {{ build }}
+  skip: True  # [win]
+  script:
+    - CC="$PREFIX/bin/mpicc" FC="$PREFIX/bin/mpifort"
+    - pushd {{ name }} && bash autogen.sh && popd
+    - {{ name }}/configure --prefix=$PREFIX {{ name }}
+    - make -j 0
+    - make install
+
+  {% set mpi_prefix = "mpi_" + mpi %}
+  string: "{{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}"
+
+  run_exports:
+    - {{ name }} * {{ mpi_prefix }}_*
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('fortran') }}
+    - automake
+    - autoconf
+    - make
+  host:
+    - {{ mpi }}
+    - scalapack
+    - libblas
+    - liblapack
+    - llvm-openmp  # [osx]
+    - libgomp  # [linux]
+  run:
+    - {{ mpi }}
+    - scalapack
+    - libblas
+    - liblapack
+
+test:
+  commands:
+    - test -f $PREFIX/lib/lib{{ name }}${SHLIB_EXT}
+
+about:
+  home: https://gitlab.com/ElectronicStructureLibrary/omm-bundle
+  license: BSD-2-Clause
+  license_family: BSD
+  license_file:
+    - {{ name }}/COPYING
+  summary: Extensible distributed-memory parallel library offering a basic set of linear algebra primitives
+  dev_url: https://gitlab.com/ElectronicStructureLibrary/omm-bundle/-/tree/master/pspBLAS
+
+extra:
+  recipe-maintainers:
+    - awvwgk
