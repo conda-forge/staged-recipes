@@ -15,5 +15,5 @@ cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX \
 
 cmake --build build -j${CPU_COUNT}
 
-${PYTHON} -m pip install . --no-deps -vv
+${PYTHON} -m pip install build --no-deps -vv
 
