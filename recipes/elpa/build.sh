@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 set -ex
 
-if [ "${mpi}" == "openmpi" ]; then
-  export OMPI_MCA_plm=isolated
-  export OMPI_MCA_btl_vader_single_copy_mechanism=none
-  export OMPI_MCA_rmaps_base_oversubscribe=yes
-fi
+# Selected number of tests that can run on a CI machine
+tests=(
+  "validate_real_2stage_banded_default.sh"
+)
 
 if [ "${mpi}" != "nompi" ]; then
   MPI=yes
@@ -14,6 +13,12 @@ if [ "${mpi}" != "nompi" ]; then
 else
   MPI=no
   SUFFIX="_onenode"
+fi
+
+if [ "${mpi}" == "openmpi" ]; then
+  export OMPI_MCA_plm=isolated
+  export OMPI_MCA_btl_vader_single_copy_mechanism=none
+  export OMPI_MCA_rmaps_base_oversubscribe=yes
 fi
 
 # Use full optimization
@@ -29,12 +34,15 @@ conf_options=(
    "--disable-avx512"
 )
 
+# First build without OpenMP
 mkdir build
 pushd build
 ../configure "${conf_options[@]}"
 
-make -j 4
-#make check TEST_FLAGS="1500 50 16"
+make -j ${CPU_COUNT:-1}
+for t in ${tests[@]}; do
+  make $t && timeout 30 ./$t
+done
 make install
 
 # Create a pkg-config file without version suffix as well
@@ -42,12 +50,15 @@ cp ${PREFIX}/lib/pkgconfig/elpa${SUFFIX}{-*,}.pc
 
 popd
 
+# Second build with OpenMP
 mkdir build_openmp
 pushd build_openmp
 ../configure --enable-openmp "${conf_options[@]}"
 
-make -j 4
-#make check TEST_FLAGS="1500 50 16" OMP_NUM_THREADS=2 ELPA_DEFAULT_omp_threads=2
+make -j ${CPU_COUNT:-1}
+for t in ${tests[@]}; do
+  make $t && timeout 30 ./$t
+done
 make install
 
 # Create a pkg-config file without version suffix as well
