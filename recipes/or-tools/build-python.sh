@@ -1,7 +1,5 @@
 #!/bin/sh
 
-echo $PREFIX/bin/python -c "import mypy-protobuf; print(mypy-protobuf.__version__)"
-
 cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_LIBDIR=lib \
@@ -17,5 +15,5 @@ cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX \
 
 cmake --build build -j${CPU_COUNT}
 
-${PYTHON} -m pip install . -vv
+${PYTHON} -m pip install . --no-deps -vv
 
