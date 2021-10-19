@@ -15,4 +15,4 @@ cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX \
 
 cmake --build build -j${CPU_COUNT}
 
-${PYTHON} -m pip install --no-deps -vv --find-links=${CMAKE_CURRENT_BINARY_DIR}/python/dist ${PROJECT_NAME}
+${PYTHON} -m pip install --no-deps -vv python
