@@ -15,4 +15,4 @@ cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX \
 
 cmake --build build -j${CPU_COUNT}
 
-{{ PYTHON }} -m pip install --find-links=build/python/dist ortools -vv
+${PYTHON} -m pip install --find-links=build/python/dist ortools -vv
