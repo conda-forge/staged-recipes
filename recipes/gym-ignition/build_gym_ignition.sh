@@ -1,3 +1,9 @@
+echo
+echo "====================="
+echo "Building gym-ignition"
+echo "====================="
+echo
+
 # Fix Python package version
 sed -i.bak "s|name = gym_ignition|name = gym_ignition\nversion=$PKG_VERSION|g" setup.cfg
 diff -u setup.cfg.bak setup.cfg || true

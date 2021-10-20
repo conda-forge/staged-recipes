@@ -1,3 +1,9 @@
+echo
+echo "==================="
+echo "Building scenariopy"
+echo "==================="
+echo
+
 # Fix Python package version
 sed -i.bak "s|name = scenario|name = scenario\nversion=$PKG_VERSION|g" scenario/setup.cfg
 diff -u scenario/setup.cfg.bak scenario/setup.cfg || true

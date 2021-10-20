@@ -1,3 +1,9 @@
+echo
+echo "===================="
+echo "Building libscenario"
+echo "===================="
+echo
+
 cmake \
     -S ./scenario/ \
     -B build/ \
