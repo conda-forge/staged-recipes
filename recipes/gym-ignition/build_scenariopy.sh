@@ -4,6 +4,11 @@ sed -i "s|\[tool.setuptools_scm\]||g" pyproject.toml
 sed -i 's|root = "../"||g' pyproject.toml
 sed -i 's|local_scheme = "dirty-tag"||g' pyproject.toml
 
+cat setup.cfg
+echo
+cat pyproject.toml
+echo
+
 $PYTHON \
     -m build \
     --wheel \
