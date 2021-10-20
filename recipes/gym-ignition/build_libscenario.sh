@@ -1,7 +1,7 @@
 echo
-echo "===================="
-echo "Building libscenario"
-echo "===================="
+echo "============================"
+echo "Building libscenario (py$PY_VER)"
+echo "============================"
 echo
 
 cmake \

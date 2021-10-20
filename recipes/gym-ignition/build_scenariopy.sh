@@ -1,7 +1,7 @@
 echo
-echo "==================="
-echo "Building scenariopy"
-echo "==================="
+echo "==========================="
+echo "Building scenariopy (py$PY_VER)"
+echo "==========================="
 echo
 
 # Fix Python package version
