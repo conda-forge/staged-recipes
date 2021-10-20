@@ -8,13 +8,18 @@ package:
 source:
   url: https://github.com/johnlees/{{ name|lower }}/archive/v{{ version }}.tar.gz
   sha256: 264286ee630fd6bdadb632c2eb1bda119992693f13c9a0eac8d4eb42b69a07ae
+  patches:
+    - 0001-Fixes-to-OS-X-and-CUDA-builds.patch
 
 build:
   number: 0
   skip: true  # [py2k or win or cuda_compiler_version in ("9.2", "10.0", "10.1")]
   script:
-    - export SCE_BUILD_ENV="conda_forge" && {{ PYTHON }} -m pip install . --no-deps -vv  # [cuda_compiler_version == "None"]
-    - export SCE_BUILD_ENV="conda_forge_cuda" && {{ PYTHON }} -m pip install . --no-deps -vv  # [linux64 and cuda_compiler_version != "None"]
+    - export SCE_BUILD_ENV="conda_forge"  # [cuda_compiler_version == "None"]
+    - export SCE_BUILD_ENV="conda_forge_cuda"  # [linux64 and cuda_compiler_version != "None"]
+    - export GENARCH="-gencode arch=compute_70,code=sm_70 -gencode arch=compute_75,code=sm_75"  # [cuda_compiler_version == "None"]
+    - export GENARCH=$GENARCH" -gencode arch=compute_80,code=sm_80 -gencode arch=compute_86,code=sm_86"  # [cuda_compiler_version in ("11.0", "11.1", "11.2", "11.3", "11.4")]
+    - {{ PYTHON }} -m pip install . --no-deps -vv
   missing_dso_whitelist:
     - '*/libcuda.*'
   ignore_run_exports:
@@ -47,6 +52,7 @@ requirements:
     - matplotlib-base
     - hdbscan
     - pp-sketchlib >=1.7.0
+    - hdf5 !=1.10.6-nompi_h3c11f04_101
     - h5py
     - tqdm
     - ffmpeg
