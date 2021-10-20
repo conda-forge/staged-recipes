@@ -8,7 +8,7 @@ cargo-bundle-licenses \
     --output THIRDPARTY.yml
 
 # build statically linked binary with Rust
-cargo install --locked --features pcre2 --root "$PREFIX" --path .
+cargo install --locked --root "$PREFIX" --path .
 
 # strip debug symbols
 "$STRIP" "$PREFIX/bin/qsv"
