@@ -7,6 +7,7 @@ import os
 from collections import OrderedDict
 import sys
 import subprocess
+import yaml
 
 try:
     from ruamel_yaml import BaseLoader, load
@@ -96,7 +97,7 @@ def build_all(recipes_dir, arch):
         subprocess.run("run_conda_forge_build_setup", shell=True, check=True)
 
     print("Building {} with conda-forge/label/main".format(','.join(folders)))
-    channel_urls = ['local', 'conda-forge', 'defaults']
+    channel_urls = ['local', 'conda-forge']
     build_folders(recipes_dir, folders, arch, channel_urls)
 
 
@@ -165,6 +166,24 @@ def check_recipes_in_correct_dir(root_dir, correct_dir):
         if len(path.parts) != 3:
             raise RuntimeError(f"recipe {path.parts} in wrong directory")
 
+
+def read_mambabuild(recipes_dir):
+    folders = os.listdir(recipes_dir)
+    use_it = True
+    for folder in folders:
+        cf = os.path.join(recipes_dir, folder, "conda-forge.yml")
+        if os.path.exists(cf):
+            with open(cf, "r") as f:
+                cfy = yaml.safe_load(f.read())
+            use_it = use_it and cfy.get("build_with_mambabuild", True)
+    return use_it
+
+
+def use_mambabuild():
+    from boa.cli.mambabuild import prepare
+    prepare()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--arch', default='64',
@@ -172,4 +191,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     check_recipes_in_correct_dir(root_dir, "recipes")
+    use_mamba = read_mambabuild(os.path.join(root_dir, "recipes"))
+    if use_mamba:
+      use_mambabuild()
+      subprocess.run("conda clean --all --yes", shell=True, check=True)
     build_all(os.path.join(root_dir, "recipes"), args.arch)
