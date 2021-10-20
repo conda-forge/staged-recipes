@@ -1,13 +1,8 @@
 # Fix Python package version
-sed -i.bak "s|name = scenario|name = scenario\nversion=$PKG_VERSION|g" setup.cfg
-sed -i.bak "s|\[tool.setuptools_scm\]||g" pyproject.toml
-sed -i.bak 's|root = "../"||g' pyproject.toml
-sed -i.bak 's|local_scheme = "dirty-tag"||g' pyproject.toml
-
-cat setup.cfg
-echo
-cat pyproject.toml
-echo
+sed -i.bak "s|name = scenario|name = scenario\nversion=$PKG_VERSION|g" scenario/setup.cfg
+sed -i.bak "s|\[tool.setuptools_scm\]||g" scenario/pyproject.toml
+sed -i.bak 's|root = "../"||g' scenario/pyproject.toml
+sed -i.bak 's|local_scheme = "dirty-tag"||g' scenario/pyproject.toml
 
 $PYTHON \
     -m build \
