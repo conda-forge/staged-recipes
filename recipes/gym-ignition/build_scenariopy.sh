@@ -14,6 +14,7 @@ diff -u scenario/pyproject.toml.bak scenario/pyproject.toml || true
 sed -i.bak 's|local_scheme = "dirty-tag"||g' scenario/pyproject.toml
 diff -u scenario/pyproject.toml.bak scenario/pyproject.toml || true
 
+# Generate wheel
 $PYTHON \
     -m build \
     --wheel \
@@ -24,4 +25,10 @@ $PYTHON \
     "-C--global-option=-DSCENARIO_BUILD_SHARED_LIBRARY:BOOL=ON" \
     "-C--global-option=--component=python" \
     ./scenario/
+
+# Install Python package
 pip install --no-deps dist/*.whl
+
+# Restore original files
+mv setup.cfg.bak setup.cfg
+mv pyproject.toml.bak pyproject.toml
