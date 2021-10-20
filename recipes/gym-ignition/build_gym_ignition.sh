@@ -1,7 +1,7 @@
 echo
-echo "====================="
-echo "Building gym-ignition"
-echo "====================="
+echo "============================="
+echo "Building gym-ignition (py$PY_VER)"
+echo "============================="
 echo
 
 # Fix Python package version
