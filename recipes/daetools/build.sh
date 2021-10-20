@@ -14,16 +14,16 @@ mkdir -p bin
 ln -sf $CXX bin/g++
 export PATH=`pwd`/bin:$PATH
 
-sh compile.sh cool_prop 2> /dev/null
-sh compile.sh units 2> /dev/null
-sh compile.sh config 2> /dev/null
-sh compile.sh core 2> /dev/null
+sh compile.sh cool_prop
+sh compile.sh units
+sh compile.sh config
+sh compile.sh core
 
-sh compile.sh idas 2> /dev/null
-sh compile.sh data_reporting 2> /dev/null
+sh compile.sh idas 
+sh compile.sh data_reporting
 
-sh compile.sh activity 2> /dev/null
-sh compile.sh superlu 2> /dev/null
+sh compile.sh activity
+sh compile.sh superlu
 
 cd daetools-package
 $PYTHON -m pip install . 
