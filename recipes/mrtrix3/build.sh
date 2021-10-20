@@ -6,4 +6,4 @@ fi
 
 ARCH=native ./configure -conda -nogui -verbose
 ./build -verbose
-cp -r bin lib share $PREFIX
+cp -r bin lib share "$PREFIX"
