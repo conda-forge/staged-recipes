@@ -6,19 +6,16 @@ if errorlevel 1 exit 1
 xcopy /e /k /h /i /q %cd% %outdir%
 if errorlevel 1 exit 1
 
-tar -c -z -f %outdir%/runtime.tgz -C %outdir%/runtime .
+powershell Compress-Archive -Path %outdir%/runtime -DestinationPath %outdir%/runtime.zip
 if errorlevel 1 exit 1
 
 rmdir %outdir%/runtime
 if errorlevel 1 exit 1
 
-cd %outdir%
+powershell Compress-Archive -Path %outdir%/*.dll -DestinationPath %outdir%/dll.zip
 if errorlevel 1 exit 1
 
-tar -c -z -f dlls.tgz *.dll
-if errorlevel 1 exit 1
-
-del *.dll
+del %outdir%/*.dll
 if errorlevel 1 exit 1
 
 mklink %PREFIX%\bin\sirius.exe %outdir%\sirius.exe
