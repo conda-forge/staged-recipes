@@ -15,14 +15,17 @@ sed -i.tmp 's|root = "../"||g' scenario/pyproject.toml
 sed -i.tmp 's|local_scheme = "dirty-tag"||g' scenario/pyproject.toml
 diff -u scenario/pyproject.toml{.orig,} || true
 
-# Delete wheel folder
-rm -rf _dist_conda/
+# Create a temp dist folder
+dist_folder=$(mktemp -d)
+
+# Delete the build folder
+rm -rf build/
 
 # Generate the wheel
 $PYTHON \
     -m build \
     --wheel \
-    --outdir _dist_conda \
+    --outdir ${dist_folder}/ \
     --no-isolation \
     --skip-dependency-check \
     "-C--global-option=build_ext" \
@@ -30,14 +33,14 @@ $PYTHON \
     "-C--global-option=--component=python" \
     ./scenario/
 
+# Delete the build folder
+rm -rf build/
+
 # Install Python package
 pip install \
-  --no-index --find-links=./_dist_conda/ \
+  --no-index --find-links=${dist_folder}/ \
   --no-build-isolation --no-deps \
   scenario
-
-# Delete wheel folder
-rm -rf _dist_conda/
 
 # Restore original files
 mv scenario/setup.cfg{.orig,}

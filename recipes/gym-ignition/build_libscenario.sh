@@ -4,16 +4,24 @@ echo "Building libscenario"
 echo "===================="
 echo
 
+# Create a temp build folder
+build_folder=$(mktemp -d)
+
+# Configure the CMake project
 cmake \
     -S ./scenario/ \
-    -B build/ \
+    -B ${build_folder}/ \
     -GNinja \
     -DCMAKE_INSTALL_LIBDIR=lib \
     -DCMAKE_INSTALL_PREFIX:PATH=$PREFIX \
     -DSCENARIO_USE_IGNITION:BOOL=ON \
     -DSCENARIO_ENABLE_BINDINGS:BOOL=OFF
-cmake --build build/
-cmake --install build
+
+# Compile the CMake project
+cmake --build ${build_folder}/
+
+# Install the CMake project
+cmake --install ${build_folder}/
 
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
 # This will allow them to be run on environment activation.
