@@ -6,7 +6,7 @@ REM Install KITEx
 echo EJH - Building KITEx
  
 mkdir build && cd build
-ccmake -DCMAKE_INSTALL_PREFIX:PATH=%PREFIX% ..
+cmake -DCMAKE_INSTALL_PREFIX:PATH=%PREFIX% -DCMAKE_MAKE_PROGRAM=make ..
 make -j%CPU_COUNT%
 make install
 
@@ -15,7 +15,7 @@ echo "EJH - Building KITE-tools"
 cd %KITE_ROOT%
 cd tools
 mkdir build && cd build
-ccmake -DCMAKE_INSTALL_PREFIX:PATH=%PREFIX% ..
+cmake -DCMAKE_INSTALL_PREFIX:PATH=%PREFIX% -DCMAKE_MAKE_PROGRAM=make ..
 make -j%CPU_COUNT%
 make install
 
