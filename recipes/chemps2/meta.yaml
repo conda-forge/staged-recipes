@@ -1,0 +1,86 @@
+{% set version = "1.8.9" %}
+{% set name = "chemps2" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  git_url: git@github.com:SebWouters/CheMPS2.git       # [linux]
+  git_url: https://github.com/SebWouters/CheMPS2.git   # [osx]
+  git_tag: d8ac508  # M2: hdf5 1.10.6 no intel-openmp, L0,1,2/M0,1: v1.8.9 + 1 = d8ac508, L2: mkl 2019/2020, L1/M1: mkl 2019, hdf5 1.10.5
+
+build:
+  number: 0
+  binary_relocation: true
+  skip: true                                           # [win]
+
+requirements:
+  build:
+    - {{ pin_subpackage('chemps2', max_pin='x.x.x') }}
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake >=3.11
+  ignore_run_exports:
+    # not using hdf5's fortran interface
+    - libgfortran-ng
+    - mkl                                           # [linux]
+  run_exports:
+    - llvm-openmp                                     # [osx]
+  host:
+    - python {{ python }}
+    - cython
+    - mkl-devel {{ mkl }}                           # [blas_impl == 'mkl']
+    - openblas-devel {{ openblas }}                 # [blas_impl == 'openblas']
+    - numpy >=1.12.0
+    - hdf5 {{ hdf5 }}
+    - zlib {{ zlib }}
+  run:
+    - python {{ python }}
+    - intel-openmp                                  # [linux]
+    - {{ pin_compatible('mkl', upper_bound='2021.0') }}  # [linux]
+
+# files:
+#   - bin/chemps2
+#   - include/chemps2
+#   - lib/libchemps2*
+#   - share/cmake/CheMPS2
+
+test:
+  commands:
+    # Verify library and executable
+    - test -f $PREFIX/bin/chemps2
+    - test -f $PREFIX/lib/libchemps2$SHLIB_EXT
+    # Inspect linkage
+    - ldd -r -u $PREFIX/lib/libchemps2$SHLIB_EXT && return 0  # [linux]
+    - ldd -v $PREFIX/lib/libchemps2$SHLIB_EXT                 # [linux]
+    - otool -L $PREFIX/lib/libchemps2$SHLIB_EXT               # [osx]
+    - conda inspect linkages --show-files --groupby=dependency chemps2
+    - conda inspect objects -p $PREFIX $PKG_NAME              # [osx]
+
+about:
+    home: http://sebwouters.github.io/CheMPS2
+    dev_url: http://github.com/SebWouters/CheMPS2
+    doc_url: http://sebwouters.github.io/CheMPS2/index.html
+    doc_source_url: https://github.com/SebWouters/CheMPS2/tree/master/sphinx
+    license: GPL-2.0-or-later
+    license_file: LICENSE
+    license_url: https://opensource.org/licenses/GPL-2.0
+    license_family: GPL
+    summary: "S. Wouters' spin-adapted implementation of DMRG for ab initio quantum chemistry"
+    description: >
+      CheMPS2 is a scientific library which contains a spin-adapted implementation of the density matrix renormalization group (DMRG) for ab initio quantum chemistry. This wavefunction method allows to obtain numerical accuracy in active spaces beyond the capabilities of full configuration interaction (FCI), and allows to extract the 2-, 3-, and 4-particle reduced density matrices (2-, 3- and 4-RDM) of the active space.
+
+      For general active spaces up to 40 electrons in 40 orbitals can be handled with DMRG, and for one-dimensional active spaces up to 100 electrons in 100 orbitals. The 2-RDM of these active spaces can also be easily extracted, while the 3- and 4-RDM are limited to about 28 orbitals.
+
+      When the active space size becomes prohibitively expensive for FCI, DMRG can be used to replace the FCI solver in the complete active space self consistent field (CASSCF) method and the corresponding complete active space second order perturbation theory (CASPT2). The corresponding methods are called DMRG-SCF and DMRG-CASPT2, respectively. For DMRG-SCF the active space 2-RDM is required, and for DMRG-CASPT2 the active space 4-RDM.
+
+      CheMPS2 is designed for high-performance computers, with a hybrid parallelization for mixed distributed and shared memory architectures, realized with the Message Passing Interface (MPI) and the Open Multi-Processing (OpenMP) API.
+
+      The CheMPS2 library can be interfaced with quantum chemistry codes which can handle R(O)HF calculations and molecular orbital matrix elements. This has been done for psi4 and pyscf, as described in the user manual. Usage of the library is illustrated in the c++ and python tests.
+
+      The CheMPS2 binary allows to perform DMRG-SCF and DMRG-CASPT2 calculations based on input files. Molecular orbital matrix elements should then be provided in FCIDUMP format. Usage of the binary is illustrated in the binary example.
+
+extra:
+  recipe-maintainers:
+    - mattwthompson
