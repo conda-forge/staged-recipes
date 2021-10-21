@@ -5,14 +5,15 @@ echo "==========================="
 echo
 
 # Fix Python package version
-sed -i.bak -e $"s|name = scenario|name = scenario\\nversion=$PKG_VERSION|g" scenario/setup.cfg
-diff -u scenario/setup.cfg{.bak,} || true
-sed -i.bak "s|\[tool.setuptools_scm\]||g" scenario/pyproject.toml
-diff -u scenario/pyproject.toml{.bak,} || true
-sed -i.bak 's|root = "../"||g' scenario/pyproject.toml
-diff -u scenario/pyproject.toml{.bak,} || true
-sed -i.bak 's|local_scheme = "dirty-tag"||g' scenario/pyproject.toml
-diff -u scenario/pyproject.toml{.bak,} || true
+sed -i.orig 's|name = scenario|name = scenario\'$'\nversion =|g' scenario/setup.cfg
+sed -i.tmp "s|version =|version = $PKG_VERSION|g" scenario/setup.cfg
+diff -u scenario/setup.cfg{.orig,} || true
+
+# Disable setuptools_scm
+sed -i.orig "s|\[tool.setuptools_scm\]||g" scenario/pyproject.toml
+sed -i.tmp 's|root = "../"||g' scenario/pyproject.toml
+sed -i.tmp 's|local_scheme = "dirty-tag"||g' scenario/pyproject.toml
+diff -u scenario/pyproject.toml{.orig,} || true
 
 # Delete wheel folder
 rm -rf _dist_conda/
@@ -39,5 +40,5 @@ pip install \
 rm -rf _dist_conda/
 
 # Restore original files
-mv scenario/setup.cfg{.bak,}
-mv scenario/pyproject.toml{.bak,}
+mv scenario/setup.cfg{.orig,}
+mv scenario/pyproject.toml{.orig,}
