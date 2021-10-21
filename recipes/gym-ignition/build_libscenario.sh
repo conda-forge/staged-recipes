@@ -8,6 +8,7 @@ cmake \
     -S ./scenario/ \
     -B build/ \
     -GNinja \
+    -DCMAKE_INSTALL_LIBDIR=lib \
     -DCMAKE_INSTALL_PREFIX:PATH=$PREFIX \
     -DSCENARIO_USE_IGNITION:BOOL=ON \
     -DSCENARIO_ENABLE_BINDINGS:BOOL=OFF
