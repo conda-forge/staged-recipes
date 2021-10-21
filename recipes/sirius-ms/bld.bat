@@ -9,7 +9,7 @@ if errorlevel 1 exit 1
 powershell Compress-Archive -Path %outdir%\runtime -DestinationPath %outdir%\runtime.zip
 if errorlevel 1 exit 1
 
-rmdir %outdir%\runtime
+rmdir /s /q %outdir%\runtime
 if errorlevel 1 exit 1
 
 powershell Compress-Archive -Path %outdir%\*.dll -DestinationPath %outdir%\dll.zip
