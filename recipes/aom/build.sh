@@ -7,6 +7,7 @@ cd build-stage
 
 cmake -DCMAKE_BUILD_TYPE="Release"                 \
       -DCMAKE_INSTALL_PREFIX=${PREFIX}             \
+      -DCMAKE_INSTALL_LIBDIR:PATH=${PREFIX}/lib    \
       -DBUILD_SHARED_LIBS=ON                       \
       -DENABLE_DOCS=OFF                            \
       -DENABLE_EXAMPLES=ON                         \
