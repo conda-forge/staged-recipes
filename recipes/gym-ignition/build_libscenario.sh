@@ -13,7 +13,7 @@ echo "##[endgroup]"
 echo
 
 # Create a temp build folder
-build_folder=$(mktemp -d --suffix _libscenario)
+build_folder=$(mktemp -d)
 
 # Configure the CMake project
 cmake \
