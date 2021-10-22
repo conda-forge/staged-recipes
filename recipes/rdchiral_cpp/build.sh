@@ -4,9 +4,9 @@ mkdir -p build
 cd build/
 
 cmake -DCMAKE_BUILD_TYPE=Release \
-    -DRDKIT_DIR=${CONDA_PREFIX} \
+    -DRDKIT_DIR=${PREFIX} \
     -DUSE_PYTHON=ON \
-    -DCMAKE_INSTALL_PREFIX=${CONDA_PREFIX} \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     ..
 
 make
