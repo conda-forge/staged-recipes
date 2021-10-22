@@ -3,6 +3,8 @@
 mkdir -p build
 cd build/
 
+ls -l ${CONDA_PREFIX}/lib/libRDKit*
+
 cmake -DCMAKE_BUILD_TYPE=Release \
     -DRDKIT_DIR=${CONDA_PREFIX} \
     -DUSE_PYTHON=ON \
