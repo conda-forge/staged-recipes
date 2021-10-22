@@ -23,7 +23,7 @@ make -j${CPU_COUNT}
 
 # --- Pixel depth 10
 cd ../10bit
-cmake ../source
+cmake ../source                      \
     -DHIGH_BIT_DEPTH=ON              \
     -DEXPORT_C_API=OFF               \
     -DENABLE_SHARED=OFF              \
