@@ -6,8 +6,6 @@ echo "${section}Building libscenario"
 echo "${section}===================="
 echo
 
-##[section]Start of a section
-
 # Print the CI environment
 echo "##[group] Environment"
 env
