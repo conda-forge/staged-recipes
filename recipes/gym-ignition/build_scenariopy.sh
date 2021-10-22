@@ -4,6 +4,11 @@ echo "Building scenariopy (py$PY_VER)"
 echo "==========================="
 echo
 
+# Print the CI environment
+echo "##[group] Environment"
+env
+echo "##[endgroup]"
+
 # Fix Python package version
 sed -i.orig 's|name = scenario|name = scenario\'$'\nversion =|g' scenario/setup.cfg
 sed -i.tmp "s|version =|version = $PKG_VERSION|g" scenario/setup.cfg

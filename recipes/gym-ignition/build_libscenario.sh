@@ -4,6 +4,11 @@ echo "Building libscenario"
 echo "===================="
 echo
 
+# Print the CI environment
+echo "##[group] Environment"
+env
+echo "##[endgroup]"
+
 # Create a temp build folder
 build_folder=$(mktemp -d)
 

@@ -4,6 +4,11 @@ echo "Building gym-ignition (py$PY_VER)"
 echo "============================="
 echo
 
+# Print the CI environment
+echo "##[group] Environment"
+env
+echo "##[endgroup]"
+
 # Fix Python package version
 sed -i.orig 's|name = gym_ignition|name = gym_ignition\'$'\nversion =|g' setup.cfg
 sed -i.tmp "s|version =|version = $PKG_VERSION|g" setup.cfg
