@@ -19,8 +19,8 @@ diff -u scenario\setup.cfg.orig scenario\setup.cfg
 
 :: Disable setuptools_scm
 sed -i.orig "s|\[tool.setuptools_scm\]||g" scenario\pyproject.toml
-sed -i.tmp 's|root = "../"||g' scenario\pyproject.toml
-sed -i.tmp 's|local_scheme = "dirty-tag"||g' scenario\pyproject.toml
+sed -i.tmp "s|root = ""../""||g" scenario\pyproject.toml
+sed -i.tmp "s|local_scheme = ""dirty-tag""||g" scenario\pyproject.toml
 diff -u scenario\pyproject.toml.orig scenario\pyproject.toml
 
 :: Delete wheel folder
