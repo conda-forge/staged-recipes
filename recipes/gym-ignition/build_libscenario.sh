@@ -1,4 +1,4 @@
-section="##[section]"
+test "$CI" = "azure" && section="##[section]" || section=""
 
 echo
 echo "${section}===================="
