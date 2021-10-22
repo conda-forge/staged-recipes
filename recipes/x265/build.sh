@@ -1,58 +1,60 @@
 #!/bin/bash
 
+# Based on
+# - https://bitbucket.org/multicoreware/x265_git/src/master/build/linux/multilib.sh
+# - https://github.com/Homebrew/homebrew-core/blob/master/Formula/x265.rb
+
 set -ex
 
-# --- Pixel depth 10
-mkdir build-10
-pushd build-10
-cmake -LAH                                         \
-      -DCMAKE_RULE_MESSAGES=ON                     \
-      -DCMAKE_VERBOSE_MAKEFILE=OFF                 \
-      -DCMAKE_BUILD_TYPE="Release"                 \
-      -DCMAKE_INSTALL_PREFIX=${PREFIX}             \
-      -DHIGH_BIT_DEPTH=TRUE                        \
-      -DEXPORT_C_API=FALSE                         \
-      -DENABLE_CLI=FALSE                           \
-      -DENABLE_SHARED=FALSE                        \
-      ../source
-make -j${CPU_COUNT}
-popd
-
+mkdir 8bit 10bit 12bit
 
 # --- Pixel depth 12
-mkdir build-12
-pushd build-12
-cmake -LAH                                         \
-      -DCMAKE_RULE_MESSAGES=ON                     \
-      -DCMAKE_VERBOSE_MAKEFILE=OFF                 \
-      -DCMAKE_BUILD_TYPE="Release"                 \
-      -DCMAKE_INSTALL_PREFIX=${PREFIX}             \
-      -DHIGH_BIT_DEPTH=TRUE                        \
-      -DEXPORT_C_API=FALSE                         \
-      -DENABLE_CLI=FALSE                           \
-      -DENABLE_SHARED=FALSE                        \
-      -DMAIN12=ON                                  \
-      ../source
-make -j${CPU_COUNT}
-popd
+cd 12bit
+cmake ../source                      \
+    -DHIGH_BIT_DEPTH=ON              \
+    -DEXPORT_C_API=OFF               \
+    -DENABLE_SHARED=OFF              \
+    -DENABLE_CLI=OFF                 \
+    -DMAIN12=ON                      \
+    -DCMAKE_BUILD_TYPE="Release"     \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
 
-# --- Put all together
-mkdir build-8
-pushd build-8
-ln -s ../build-10/libx265.a libx265_main10.a
-ln -s ../build-12/libx265.a libx265_main12.a
-
-cmake -LAH                                         \
-      -DCMAKE_RULE_MESSAGES=ON                     \
-      -DCMAKE_VERBOSE_MAKEFILE=OFF                 \
-      -DCMAKE_BUILD_TYPE="Release"                 \
-      -DCMAKE_INSTALL_PREFIX=${PREFIX}             \
-      -DENABLE_SHARED=TRUE                         \
-      -DENABLE_HDR10_PLUS=TRUE                     \
-      -DLINKED_10BIT=ON                            \
-      -DLINKED_12BIT=ON                            \
-      -DEXTRA_LIB='x265_main10.a;x265_main12.a'    \
-      -DEXTRA_LINK_FLAGS='-L .'                    \
-      ../source
 make -j${CPU_COUNT}
+
+# --- Pixel depth 10
+cd ../10bit
+cmake ../source
+    -DHIGH_BIT_DEPTH=ON              \
+    -DEXPORT_C_API=OFF               \
+    -DENABLE_SHARED=OFF              \
+    -DENABLE_CLI=OFF                 \
+    -DENABLE_HDR10_PLUS=ON           \
+    -DCMAKE_BUILD_TYPE="Release"     \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+
+make -j${CPU_COUNT}
+
+# --- Pixel depth 8, and put it all together
+cd ../8bit
+ln -sf ../10bit/libx265.a libx265_main10.a
+ln -sf ../12bit/libx265.a libx265_main12.a
+
+cmake ../source                                  \
+    -DCMAKE_BUILD_TYPE="Release"                 \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX}             \
+    -DENABLE_SHARED=TRUE                         \
+    -DLINKED_10BIT=ON                            \
+    -DLINKED_12BIT=ON                            \
+    -DEXTRA_LIB='x265_main10.a;x265_main12.a'    \
+    -DEXTRA_LINK_FLAGS='-L .'                    \
+
+make -j${CPU_COUNT}
+
+if [[ $(uname) == "Darwin" ]]; then
+    libtool -static -o libx265.a libx265_main.a libx265_main10.a libx265_main12.a
+else
+    ar cr libx265.a libx265_main.a libx265_main10.a libx265_main12.a
+    ranlib libx265.a
+fi
+
 make install
