@@ -13,8 +13,8 @@ echo ##[endgroup]
 echo.
 
 :: Fix Python package version
-sed -i.orig 's|name = scenario|name = scenario\'$'\nversion =|g' scenario\setup.cfg
-sed -i.tmp "s|version =|version = $PKG_VERSION|g" scenario\setup.cfg
+sed -i.orig "s|name = scenario|name = scenario\nversion =|g" scenario\setup.cfg
+sed -i.tmp "s|version =|version = %PKG_VERSION%|g" scenario\setup.cfg
 diff -u scenario\setup.cfg.orig scenario\setup.cfg
 
 :: Disable setuptools_scm
