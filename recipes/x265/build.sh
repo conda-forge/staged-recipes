@@ -50,6 +50,8 @@ cmake ../source                                  \
 
 make -j${CPU_COUNT}
 
+mv libx265.a libx265_main.a
+
 if [[ $(uname) == "Darwin" ]]; then
     libtool -static -o libx265.a libx265_main.a libx265_main10.a libx265_main12.a
 else
