@@ -48,9 +48,8 @@ docker run ${DOCKER_RUN_ARGS} \
            -e CI \
            -e CF_CUDA_VERSION \
            $IMAGE_NAME \
-           bash -l -c \
+           bash \
            "/home/conda/staged-recipes/${PROVIDER_DIR}/build_steps.sh"
-
 
 # verify that the end of the script was reached
 test -f "$DONE_CANARY"
