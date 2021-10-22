@@ -12,6 +12,11 @@ set
 echo ##[endgroup]
 echo.
 
+:: Enable clang compiler
+set "CC=clang-cl.exe"
+set "CXX=clang-cl.exe"
+set "CL=/MP"
+
 :: Configure the CMake project
 cmake ^
     -S .\scenario\ ^
