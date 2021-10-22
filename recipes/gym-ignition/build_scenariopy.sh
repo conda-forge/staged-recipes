@@ -1,13 +1,16 @@
+section="##[section]"
+
 echo
-echo "==========================="
-echo "Building scenariopy (py$PY_VER)"
-echo "==========================="
+echo "${section}==========================="
+echo "${section}Building scenariopy (py$PY_VER)"
+echo "${section}==========================="
 echo
 
 # Print the CI environment
 echo "##[group] Environment"
 env
 echo "##[endgroup]"
+echo
 
 # Fix Python package version
 sed -i.orig 's|name = scenario|name = scenario\'$'\nversion =|g' scenario/setup.cfg
@@ -50,3 +53,5 @@ pip install \
 # Restore original files
 mv scenario/setup.cfg{.orig,}
 mv scenario/pyproject.toml{.orig,}
+
+echo "${section}Finishing: building scenariopy"

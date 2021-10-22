@@ -1,13 +1,18 @@
+section="##[section]"
+
 echo
-echo "===================="
-echo "Building libscenario"
-echo "===================="
+echo "${section}===================="
+echo "${section}Building libscenario"
+echo "${section}===================="
 echo
+
+##[section]Start of a section
 
 # Print the CI environment
 echo "##[group] Environment"
 env
 echo "##[endgroup]"
+echo
 
 # Create a temp build folder
 build_folder=$(mktemp -d)
@@ -34,3 +39,5 @@ for CHANGE in "activate" "deactivate" ; do
     mkdir -p "${PREFIX}/etc/conda/${CHANGE}.d"
     cp "${RECIPE_DIR}/${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.sh"
 done
+
+echo "${section}Finishing: building libscenario"

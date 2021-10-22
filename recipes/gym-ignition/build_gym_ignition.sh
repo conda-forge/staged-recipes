@@ -1,13 +1,16 @@
+section="##[section]"
+
 echo
-echo "============================="
-echo "Building gym-ignition (py$PY_VER)"
-echo "============================="
+echo "${section}============================="
+echo "${section}Building gym-ignition (py$PY_VER)"
+echo "${section}============================="
 echo
 
 # Print the CI environment
 echo "##[group] Environment"
 env
 echo "##[endgroup]"
+echo
 
 # Fix Python package version
 sed -i.orig 's|name = gym_ignition|name = gym_ignition\'$'\nversion =|g' setup.cfg
@@ -25,3 +28,5 @@ pip install --no-build-isolation --no-deps .
 # Restore original files
 mv setup.cfg{.orig,}
 mv pyproject.toml{.orig,}
+
+echo "${section}Finishing: building gym-ignition"
