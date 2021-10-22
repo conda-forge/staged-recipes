@@ -9,7 +9,7 @@ cmake -DCMAKE_BUILD_TYPE="Release"                 \
       -DCMAKE_INSTALL_PREFIX=${PREFIX}             \
       -DBUILD_SHARED_LIBS=ON                       \
       -DENABLE_DOCS=OFF                            \
-      -DENABLE_EXAMPLES=OFF                        \
+      -DENABLE_EXAMPLES=ON                         \
       -DENABLE_TESTS=OFF                           \
       ..
 
