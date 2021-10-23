@@ -12,16 +12,11 @@ set
 echo ##[endgroup]
 echo.
 
-:: Enable clang compiler
-set "CC=clang-cl.exe"
-set "CXX=clang-cl.exe"
-set "CL=/MP"
-
 :: Configure the CMake project
 cmake ^
     -S .\scenario\ ^
     -B build\ ^
-    -G "NMake Makefiles" ^
+    -GNinja ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_INSTALL_PREFIX:PATH=%LIBRARY_PREFIX% ^
     -DSCENARIO_USE_IGNITION:BOOL=ON ^
