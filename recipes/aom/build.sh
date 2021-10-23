@@ -14,7 +14,7 @@ cmake -DCMAKE_BUILD_TYPE="Release"                 \
       -DENABLE_TESTS=OFF                           \
       ..
 
-make -j${CPU_COUNT}
+make
 
 # beware, tests are expensive (data downloads & many of them, some fairly slow)
 # to enable: set cmake above, uncomment python in meta.yaml, uncomment below
