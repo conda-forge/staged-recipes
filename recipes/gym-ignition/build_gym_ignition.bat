@@ -1,9 +1,9 @@
 set section=##[section]
 
 echo.
-echo %section%=============================
-echo %section%Building gym-ignition (py$PY_VER)
-echo %section%=============================
+echo %section%=====================
+echo %section%Building gym-ignition
+echo %section%=====================
 echo.
 
 :: Print the CI environment
