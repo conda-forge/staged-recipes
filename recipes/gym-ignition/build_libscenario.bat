@@ -21,7 +21,7 @@ set "CL=/MP"
 cmake ^
     -S .\scenario\ ^
     -B build\ ^
-    -GNinja ^
+    -G "NMake Makefiles" ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_INSTALL_PREFIX:PATH=%LIBRARY_PREFIX% ^
     -DSCENARIO_USE_IGNITION:BOOL=ON ^
