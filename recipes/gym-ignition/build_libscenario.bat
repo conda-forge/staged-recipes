@@ -25,9 +25,11 @@ if errorlevel 1 exit 1
 
 :: Compile the CMake project
 cmake --build build\
+if errorlevel 1 exit 1
 
 :: Install the CMake project
 cmake --install build\
+if errorlevel 1 exit 1
 
 :: TODO: activate / deactivate
 
