@@ -1,5 +1,7 @@
+test "$CI" = "azure" && section="##[section]" || section=""
+
 echo
-echo "================="
-echo "Building scenario"
-echo "================="
+echo "${section}================="
+echo "${section}Building scenario"
+echo "${section}================="
 echo
