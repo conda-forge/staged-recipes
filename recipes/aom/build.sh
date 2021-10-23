@@ -14,6 +14,7 @@ cmake -DCMAKE_BUILD_TYPE="Release"                 \
       -DENABLE_TESTS=OFF                           \
       ..
 
+# Parallel build fails spuriously, so only build in serial
 make
 
 # beware, tests are expensive (data downloads & many of them, some fairly slow)
