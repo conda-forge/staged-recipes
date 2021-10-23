@@ -133,26 +133,34 @@ outputs:
       requires:
         - pip
 
-#  - name: scenario
-#    script: build_scenario.sh  # [unix]
-#    build:
-#      run_exports:
-#        - {{ pin_subpackage("scenario", max_pin="x.x") }}
-#    requirements:
-#      run:
-#        - {{ pin_subpackage("scenariopy", exact=True) }}
-#        - {{ pin_subpackage("libscenario", exact=True) }}
-#    test:
-#      imports:
-#        - scenario
-#      commands:
-#        - pip check
-#        - test -f ${PREFIX}/lib/libGazeboSimulator.so  # [linux]
-#        - test -f ${PREFIX}/lib/libGazeboSimulator.dylib  # [osx]
-#        - test -f ${PREFIX}/lib/cmake/Scenario/ScenarioConfig.cmake  # [unix]
-#        - test -f ${PREFIX}/lib/cmake/ScenarioGazebo/ScenarioGazeboConfig.cmake  # [unix]
-#      requires:
-#        - pip
+  - name: scenario
+    script: build_scenario.sh  # [unix]
+    script: build_scenario.bat  # [win]
+    build:
+      skip: true  # [win or osx or py<38]
+    requirements:
+      run:
+        - {{ pin_subpackage("libscenario", exact=True) }}
+        - {{ pin_subpackage("scenariopy", exact=True) }}
+    test:
+      imports:
+        - scenario
+      commands:
+        - pip check
+        # Inspect activate scripts
+        - env | grep IGN_GAZEBO_SYSTEM_PLUGIN_PATH  # [unix]
+        - set IGN_GAZEBO_SYSTEM_PLUGIN_PATH # [win]
+        # Check existence of ScenarIO Gazebo library
+        - test -f ${PREFIX}/lib/libGazeboSimulator.so  # [linux]
+        - test -f ${PREFIX}/lib/libGazeboSimulator.dylib  # [osx]
+        - if not exist %PREFIX%\\Library\\lib\\GazeboSimulator.lib exit 1  # [win]
+        # Check existence of ScenarIO and ScenarIO Gazebo CMake targets
+        - test -f ${PREFIX}/lib/cmake/Scenario/ScenarioConfig.cmake  # [unix]
+        - test -f ${PREFIX}/lib/cmake/ScenarioGazebo/ScenarioGazeboConfig.cmake  # [unix]
+        - if not exist %PREFIX%\\Library\\lib\\cmake\\Scenario\\ScenarioConfig.cmake exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\cmake\\ScenarioGazebo\\ScenarioGazeboConfig.cmake exit 1  # [win]
+      requires:
+        - pip
 
   - name: gym-ignition
     script: build_gym_ignition.sh  # [unix]
