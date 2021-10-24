@@ -3,6 +3,7 @@ set -e
 #export JAVA_HOME=$("/usr/libexec/java_home");
 export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64/
 /bin/uname -a
+which java
 echo JAVA: ${JAVA_HOME}
 # Typically $GXX is set by activate.d in conda
 # based on our compiler('cxx') dependency
