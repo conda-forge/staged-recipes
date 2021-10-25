@@ -1,0 +1,112 @@
+From 5bcbbbdd70753d557b2273329c0490549731d8ef Mon Sep 17 00:00:00 2001
+From: J-Donald Tournier <jdtournier@gmail.com>
+Date: Fri, 22 Oct 2021 13:10:43 +0100
+Subject: [PATCH] configure: add noexec capability
+
+---
+ configure | 44 ++++++++++++++++++++++++--------------------
+ 1 file changed, 24 insertions(+), 20 deletions(-)
+
+diff --git a/configure b/configure
+index 06e2f9f8a..7a7345122 100755
+--- a/configure
++++ b/configure
+@@ -169,9 +169,12 @@ ENVIRONMENT VARIABLES
+         Note that this path will be stored in the config file and used during
+         subsequent invocations of the build process. It only needs to be
+         specified correctly at configure time.
++
++   CONDAFORGE
++        settings required to build on conda-forge. Activates -conda.
+ '''
+ 
+-import subprocess, sys, os, platform, tempfile, shlex, re, copy
++import subprocess, sys, os, platform, tempfile, shlex, re, copy, struct
+ system = platform.system().lower()
+ 
+ # on Windows, need to use MSYS2 version of python - not MinGW version:
+@@ -191,6 +194,7 @@ R_module = False
+ openmp = False
+ dev = False
+ conda = False
++noexec = False
+ 
+ optimlevel = 3
+ 
+@@ -284,6 +288,11 @@ report ("""
+ MRtrix build type requested: """ + build_type + '\n\n')
+ 
+ 
++if 'CONDAFORGE' in os.environ.keys():
++  conda = True
++  noexec = True
++
++
+ # if not using conda, remove any mention of conda from PATH:
+ issue_conda_warning = False
+ if conda:
+@@ -542,6 +551,8 @@ def compile (source, compiler_flags, linker_flags): # pylint: disable=redefined-
+             'OBJECTS': objfile.name,
+             'EXECUTABLE': out.name }), LinkError)
+ 
++        if noexec:
++          return 'ok (no exec)'
+         return execute ([ './'+out.name ], RunError)[1]
+ 
+ 
+@@ -854,21 +865,11 @@ if not noshared:
+ 
+ 
+ report ('Detecting pointer size: ')
+-try:
+-  pointer_size = int (compile ('''
+-#include <iostream>
+-int main() {
+-  std::cout << sizeof(void*);
+-  return (0);
+-}
+-''', cpp_flags, ld_flags))
+-  report (str(8*pointer_size) + ' bit\n')
+-  if pointer_size == 8:
+-    cpp_flags += [ '-DMRTRIX_WORD64' ]
+-  elif pointer_size != 4:
+-    error ('unexpected pointer size!')
+-except Exception as excp:
+-  error ('unexpected exception of type ' + type(excp).__name__ + ': ' + str(excp) +  configure_log_hint)
++pointer_size = struct.calcsize('P')
++if pointer_size == 8:
++  cpp_flags += [ '-DMRTRIX_WORD64' ]
++elif pointer_size != 4:
++  error ('unexpected pointer size!')
+ 
+ 
+ 
+@@ -1264,7 +1265,7 @@ int main() { Foo f; }
+       with open (os.path.join (qt_dir.name, 'qt.pro'), 'w') as f:
+         f.write (filetext)
+ 
+-      qmake_cmd = [ qmake ]
++      qmake_cmd = [ qmake, 'QMAKE_CXX='+cpp[0], 'QMAKE_LINK='+ld[0] ]
+ 
+       try:
+         (qmake_retcode, qmake_stderr) = execute (qmake_cmd, QMakeError, raise_on_non_zero_exit_code = False, cwd=qt_dir.name)[0:3:2]
+@@ -1343,10 +1344,13 @@ int main() { Foo f; }
+       execute ([ cpp[0], '-c' ] + cpp_flags + qt_cflags + [ 'qt_moc.cpp', '-o', 'qt_moc.o' ], \
+           CompileError, cwd=qt_dir.name)
+ 
+-      execute ([ cpp[0] ] + ld_flags + [ 'qt_moc.o', 'qt.o', '-o', 'qt' ] + qt_ldflags, \
+-          LinkError, cwd=qt_dir.name)
++      if noexec:
++        report ('ok (no exec)')
++      else:
++        execute ([ cpp[0] ] + ld_flags + [ 'qt_moc.o', 'qt.o', '-o', 'qt' ] + qt_ldflags, \
++            LinkError, cwd=qt_dir.name)
+ 
+-      report (execute ([ os.path.join(qt_dir.name, 'qt') ], RunError)[1] + '\n')
++        report (execute ([ os.path.join(qt_dir.name, 'qt') ], RunError)[1] + '\n')
+ 
+ 
+   except QMakeError:
+-- 
+2.33.1
+
