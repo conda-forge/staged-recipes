@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -e
 #export JAVA_HOME=$("/usr/libexec/java_home");
-export JAVA_HOME=/usr/lib/jvm/default-java
+echo ${CONDA_PREFIX}
+export JAVA_HOME=${CONDA_PREFIX}
 /bin/uname -a
 java -version
 echo JAVA: ${JAVA_HOME}
