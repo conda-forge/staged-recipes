@@ -5,6 +5,7 @@ echo ${CONDA_PREFIX}
 export JAVA_HOME=${CONDA_PREFIX}
 /bin/uname -a
 java -version
+alias python='python3'
 echo JAVA: ${JAVA_HOME}
 # Typically $GXX is set by activate.d in conda
 # based on our compiler('cxx') dependency
