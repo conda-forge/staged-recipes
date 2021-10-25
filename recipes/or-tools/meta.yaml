@@ -1,0 +1,170 @@
+{% set name = "or-tools" %}
+{% set package_name = "ortools" %}
+{% set version = "9.1" %}
+{% set home = "https://developers.google.com/optimization" %}
+{% set license = "Apache-2.0" %}
+{% set license_family = "Apache" %}
+{% set license_file = "LICENSE-2.0.txt" %}
+{% set dev_url = "https://github.com/google/or-tools" %}
+
+
+package:
+  name: {{ name|lower }}-package
+  version: {{ version }}
+
+source:
+  url: https://github.com/google/or-tools/archive/v{{ version }}.tar.gz
+  sha256: b51ca3b08f768de5a0c1029f7127264640e50d9c7b83383a175109ef213bd307
+  patches:
+    - 0001-Fix-import-and-fail-install.patch
+    - 0002-Do-not-install-dependencies.patch
+
+# The meta package
+
+build:
+  number: 0
+  skip: True  # [not linux]
+
+outputs:
+  # The core package
+  - name: {{ package_name }}-cpp
+    script: build-cpp.sh
+
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake >=3.18
+        # Source: https://github.com/google/or-tools/blob/stable/cmake/python.cmake#L6
+        - git
+        - pkg-config
+      host:
+        - abseil-cpp =20210324.2
+        - libprotobuf
+        - zlib 1.2.11
+        # coin or deps
+        - coin-or-utils 2.11.4
+        - coin-or-osi 0.108.6
+        - coin-or-clp 1.17.4
+        - coin-or-cgl 0.60.3
+        - coin-or-cbc 2.10.5
+        # Source: https://github.com/google/or-tools/blob/stable/cmake/dependencies/CMakeLists.txt
+      run_constrained:
+        - scip =7.0.1
+    
+    test:
+      commands:
+        - test -f $PREFIX/lib/libortools${SHLIB_EXT}
+        - test -f $PREFIX/lib/cmake/ortools/ortoolsTargets.cmake
+        - test -f $PREFIX/lib/cmake/ortools/ortoolsConfig.cmake
+        - test -f $PREFIX/include/ortools_export.h
+        - test -f $PREFIX/include/ortools/algorithms/dense_doubly_linked_list.h
+
+    about:
+      home: {{ home }}
+      license: {{ license }}
+      license_family: {{ license_family }}
+      license_file: {{ license_file }}
+      summary: 'Google Operations Research Tools (or-tools)'
+      description: |
+        OR-Tools is an open source software suite for optimization, tuned for tackling
+        the world's toughest problems in vehicle routing, flows, integer and linear
+        programming, and constraint programming.
+
+        After modeling your problem in the programming language of your choice, you
+        can use any of a half dozen solvers to solve it: commercial solvers such as
+        Gurobi or CPLEX, or open-source solvers such as SCIP, GLPK, or Google's GLOP
+        and award-winning CP-SAT.
+      dev_url: {{ dev_url }}
+
+      # The python package.
+  - name: {{ package_name }}-python
+    script: build-python.sh
+
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake >=3.18
+        - git
+        - mypy-protobuf
+        - pkg-config
+        - setuptools
+        - swig >=4.0
+      host:
+        - abseil-cpp =20210324.2
+        - absl-py >=0.13
+        - libprotobuf
+        - mypy-protobuf
+        - pip >=9.0.1
+        - python >=3.6
+        - wheel
+        - zlib 1.2.11
+        # coin or deps
+        - coin-or-utils 2.11.4
+        - coin-or-osi 0.108.6
+        - coin-or-clp 1.17.4
+        - coin-or-cgl 0.60.3
+        - coin-or-cbc 2.10.5
+      run:
+        - absl-py >=0.13
+        - mypy-protobuf
+        - protobuf
+        - python >=3.6
+        # Source: https://github.com/google/or-tools/blob/stable/ortools/python/setup.py.in#L44
+      run_constrained:
+        - scip =7.0.1
+
+    test:
+      imports:
+        - ortools
+        - ortools.linear_solver.pywraplp
+      commands:
+        - pip check
+        - ${PYTHON} cmake/samples/python/sample.py
+        - ${PYTHON} ortools/sat/samples/assignment_sat.py
+      requires:
+        - pip
+      source_files:
+        - cmake/samples/python/sample.py
+        - ortools/sat/samples/assignment_sat.py
+    
+    about:
+      home: {{ home }}
+      license: {{ license }}
+      license_family: {{ license_family }}
+      license_file: {{ license_file }}
+      summary: 'Google Operations Research Tools (or-tools) python package'
+      description: |
+        OR-Tools is an open source software suite for optimization, tuned for tackling
+        the world's toughest problems in vehicle routing, flows, integer and linear
+        programming, and constraint programming.
+
+        After modeling your problem in the programming language of your choice, you
+        can use any of a half dozen solvers to solve it: commercial solvers such as
+        Gurobi or CPLEX, or open-source solvers such as SCIP, GLPK, or Google's GLOP
+        and award-winning CP-SAT.
+      dev_url: {{ dev_url }}
+
+about:
+  home: {{ home }}
+  license: {{ license }}
+  license_family: {{ license_family }}
+  license_file: {{ license_file }}
+  summary: 'Google Operations Research Tools (or-tools) python package'
+  description: |
+    OR-Tools is an open source software suite for optimization, tuned for tackling
+    the world's toughest problems in vehicle routing, flows, integer and linear
+    programming, and constraint programming.
+
+    After modeling your problem in the programming language of your choice, you
+    can use any of a half dozen solvers to solve it: commercial solvers such as
+    Gurobi or CPLEX, or open-source solvers such as SCIP, GLPK, or Google's GLOP
+    and award-winning CP-SAT.
+  dev_url: {{ dev_url }}
+
+extra:
+  recipe-maintainers:
+    - wolfv
+    - BastianZim
+  feedstock-name: or-tools
