@@ -15,6 +15,6 @@ cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX \
 
 cmake --build build -j${CPU_COUNT}
 
-echo Install beginns here
+echo Install begins here
 
 ${PYTHON} -m pip install --no-index --find-links=build/python/dist ortools -vv
