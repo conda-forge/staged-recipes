@@ -7,6 +7,7 @@ export JAVA_HOME=${CONDA_PREFIX}
 java -version
 alias python='python3'
 echo JAVA: ${JAVA_HOME}
+python --version
 # Typically $GXX is set by activate.d in conda
 # based on our compiler('cxx') dependency
 # https://conda.io/docs/user-guide/tasks/build-packages/compiler-tools.html
