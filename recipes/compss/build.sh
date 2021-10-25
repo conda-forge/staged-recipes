@@ -5,8 +5,8 @@ echo ${CONDA_PREFIX}
 export JAVA_HOME=${CONDA_PREFIX}
 /bin/uname -a
 java -version
-alias python='python3'
 echo JAVA: ${JAVA_HOME}
+python --version
 # Typically $GXX is set by activate.d in conda
 # based on our compiler('cxx') dependency
 # https://conda.io/docs/user-guide/tasks/build-packages/compiler-tools.html
@@ -34,7 +34,7 @@ export CXXFLAGS="-I$BOOST_INCLUDE_DIR"
 
 echo Package workdir: "${PREFIX} $SRC_DIR"
 # Run the COMPSs install script
-./install -T -A ${PREFIX}
+./install --only-python-3 -T -A ${PREFIX}
 
 #export TIMES=$("sed 's/.*_\(.*\)\/.*/\1/' <<< \"${SRC_DIR}\"")
 TIMES=$(sed 's/\(^.*_\)\(.*\)\(\/.*$\)/\2/' <<< ${SRC_DIR})
