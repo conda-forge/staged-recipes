@@ -18,7 +18,10 @@ if errorlevel 1 exit 1
 del %outdir%\*.dll
 if errorlevel 1 exit 1
 
-mklink %PREFIX%\bin\sirius.exe %outdir%\sirius.exe
+cd %PREFIX%
+if errorlevel 1 exit 1
+
+mklink bin\sirius.exe share\%PKG_NAME%-%PKG_VERSION%-%PKG_BUILDNUM%\sirius.exe
 if errorlevel 1 exit 1
 
 dir %outdir%
