@@ -2,12 +2,11 @@
 
 set -ex
 
-cd Build
-
 if [[ $target_platform == linux-* ]]; then
-    export LDLIBS="$LDLIBS -lrt"  # for clock_gettime
-    export LDFLAGS="$LDFLAGS -lrt"  # for clock_gettime
+    echo "target_link_libraries(SvtAv1EncApp rt)" >> Source/App/EncApp/CMakeLists.txt
 fi
+
+cd Build
 
 cmake ${CMAKE_ARGS}              \
       -DCMAKE_BUILD_TYPE=Release \
