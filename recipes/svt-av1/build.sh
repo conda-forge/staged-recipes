@@ -5,7 +5,7 @@ set -ex
 cd Build
 
 if [[ $target_platform == linux-* ]]; then
-    export LIBS="$LIBS -lrt"  # for clock_gettime
+    export LDLIBS="$LDLIBS -lrt"  # for clock_gettime
     export LDFLAGS="$LDFLAGS -lrt"  # for clock_gettime
 fi
 
