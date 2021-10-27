@@ -1,7 +1,6 @@
 SET outdir=%PREFIX%\share\%PKG_NAME%-%PKG_VERSION%-%PKG_BUILDNUM%
-rem SET outdir=%PREFIX%\Library
 
-mkdir "%PREFIX%\Scripts"
+if not exist "%PREFIX%\Scripts" mkdir "%PREFIX%\Scripts"
 if errorlevel 1 exit 1
 
 mklink "%PREFIX%\Scripts\sirius.exe" "%outdir%\sirius.exe"
