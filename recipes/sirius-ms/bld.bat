@@ -1,7 +1,7 @@
 SET outdir=%PREFIX%\share\%PKG_NAME%-%PKG_VERSION%-%PKG_BUILDNUM%
 
-mkdir "%PREFIX%\bin"
-if errorlevel 1 exit 1
+rem mkdir "%PREFIX%\bin"
+rem if errorlevel 1 exit 1
 
 xcopy /e /k /h /i /q "%cd%" "%outdir%"
 if errorlevel 1 exit 1
@@ -18,8 +18,8 @@ if errorlevel 1 exit 1
 del "%outdir%\*.dll"
 if errorlevel 1 exit 1
 
-mklink "%PREFIX%\bin\sirius.exe" "%outdir%\sirius.exe"
-if errorlevel 1 exit 1
+rem mklink "%PREFIX%\bin\sirius.exe" "%outdir%\sirius.exe"
+rem if errorlevel 1 exit 1
 
 dir %outdir%
 if errorlevel 1 exit 1
