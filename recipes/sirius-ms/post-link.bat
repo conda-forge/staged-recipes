@@ -1,14 +1,4 @@
-rem SET outdir=%PREFIX%\share\%PKG_NAME%-%PKG_VERSION%-%PKG_BUILDNUM%
 SET outdir=%PREFIX%\bin
-
-rem if not exist "%PREFIX%\Scripts" mkdir "%PREFIX%\Scripts"
-rem if errorlevel 1 exit 1
-
-rem mklink "%PREFIX%\Scripts\sirius.exe" "%outdir%\sirius.exe"
-rem if errorlevel 1 exit 1
-
-rem mklink "%PREFIX%\Scripts\sirius-gui.exe" "%outdir%\sirius-gui.exe"
-rem if errorlevel 1 exit 1
 
 powershell -Command "Expand-Archive -LiteralPath %outdir%\runtime.zip -DestinationPath %outdir%"
 if errorlevel 1 exit 1
@@ -20,7 +10,4 @@ powershell -Command "Expand-Archive -LiteralPath %outdir%\dlls.zip -DestinationP
 if errorlevel 1 exit 1
 
 del %outdir%\dlls.zip
-if errorlevel 1 exit 1
-
-dir %outdir%
 if errorlevel 1 exit 1

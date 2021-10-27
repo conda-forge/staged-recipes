@@ -1,4 +1,3 @@
-rem SET outdir=%PREFIX%\share\%PKG_NAME%-%PKG_VERSION%-%PKG_BUILDNUM%
 SET outdir=%PREFIX%\bin
 
 xcopy /e /k /h /i /q "%cd%" "%outdir%"
@@ -14,7 +13,4 @@ powershell -Command "Get-ChildItem -Path %outdir%\*.dll | Compress-Archive -Dest
 if errorlevel 1 exit 1
 
 del "%outdir%\*.dll"
-if errorlevel 1 exit 1
-
-dir %outdir%
 if errorlevel 1 exit 1

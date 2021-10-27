@@ -1,7 +1,7 @@
 #!/bin/bash
 outdir="${PREFIX}"/share/$PKG_NAME-$PKG_VERSION-$PKG_BUILDNUM
-# unpack library directory
 
+# unpack protected library directories
 if [ "$(uname)" == "Darwin" ]; then
     # Do something under Mac OS X platform
     mkdir $outdir/Contents/native
