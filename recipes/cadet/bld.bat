@@ -7,7 +7,6 @@ cmake ^
     -DCMAKE_INSTALL_PREFIX=%PREFIX% ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DENABLE_CADET_MEX=OFF ^
-    -DBLA_VENDOR=Intel10_64lp_seq ^
     ..
 
 nmake
