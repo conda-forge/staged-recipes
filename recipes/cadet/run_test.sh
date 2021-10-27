@@ -7,7 +7,7 @@ test -x $PREFIX/bin/createSCLang
 test -x $PREFIX/bin/createSCLin
 test -x $PREFIX/bin/createSCLinStep
 
-VERSION=$($PREFIX/bin/cadet-cli --version | grep -Po '\d+.\d+.\d+' | head -n1)
+VERSION=$($PREFIX/bin/cadet-cli --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
 
 test -f $PREFIX/lib/libcadet.so.$VERSION
 test -L $PREFIX/lib/libcadet.so
