@@ -1,5 +1,6 @@
 outdir=$PREFIX/share/$PKG_NAME-$PKG_VERSION-$PKG_BUILDNUM
 
+
 if [[ ${target_platform} =~ linux.* ]] ; then
     mkdir -p $outdir
     mkdir -p $PREFIX/bin
@@ -11,6 +12,8 @@ if [[ ${target_platform} =~ linux.* ]] ; then
     rm -r $outdir/lib
 
     ln -s $outdir/bin/sirius $PREFIX/bin
+    ln -s $outdir/bin/sirius-gui $PREFIX/bin
+
 elif [[ ${target_platform} =~ osx.* ]] ; then
      mkdir -p $outdir/Contents
      mkdir -p $PREFIX/bin
@@ -25,4 +28,5 @@ elif [[ ${target_platform} =~ osx.* ]] ; then
      rm -r $outdir/Contents/native
 
      ln -s $outdir/Contents/MacOS/sirius $PREFIX/bin
+     ln -s $outdir/Contents/MacOS/sirius-gui $PREFIX/bin
 fi
