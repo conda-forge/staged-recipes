@@ -1,3 +1,5 @@
+set -xeuo pipefail
+
 test -x $PREFIX/bin/cadet-cli
 test -x $PREFIX/bin/convertFile
 test -x $PREFIX/bin/createConvBenchmark
