@@ -1,5 +1,5 @@
-rem SET outdir=%PREFIX%\share\%PKG_NAME%-%PKG_VERSION%-%PKG_BUILDNUM%
-SET outdir=%PREFIX%\Library
+SET outdir=%PREFIX%\share\%PKG_NAME%-%PKG_VERSION%-%PKG_BUILDNUM%
+rem SET outdir=%PREFIX%\Library
 
 mkdir "%PREFIX%\Scripts"
 if errorlevel 1 exit 1
