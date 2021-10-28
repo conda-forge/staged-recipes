@@ -1,0 +1,88 @@
+{% set version = "1.2.7.1" %}
+{% set suitesparse_for_win_version = "5.7.2" %}
+
+# This recipe is based on CVXOPT's recipe:
+# https://github.com/conda-forge/cvxopt-feedstock/blob/master/recipe
+package:
+  name: kvxopt
+  version: {{ version }}
+
+
+source:
+  - url: https://pypi.io/packages/source/k/kvxopt/kvxopt-{{ version }}.tar.gz
+    sha256: 308239dedadcf5a6274cf4170607c8e8a364e65eb43c1d40add2ef742e31a50f
+
+  # on windows, building suitesparse in directly works much better than trying to build it separately and link it in
+  - url: https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/v{{ suitesparse_for_win_version }}.tar.gz  # [win]
+    sha256: fe3bc7c3bd1efdfa5cffffb5cebf021ff024c83b5daf0ab445429d3d741bd3ad  # [win]
+    folder: suitesparse  # [win] 
+    patches:   # [win]
+      - 0001-remove-BLAS_NO_UNDERSCORE-on-windows.patch                                                        # [win]
+
+
+build:
+  skip: true  # [py<35]
+  number: 0
+
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - {{ compiler('c') }}
+  host:
+    - libblas
+    - liblapack
+    - python
+    - setuptools
+    - gsl
+    - fftw
+    - dsdp
+    - glpk
+    - libosqp
+    # suitesparse is linked against on windows, and compiled-in on windows, because yeah, windows.
+    - suitesparse          # [not win]
+  run:
+    - python
+    - gsl
+    - fftw
+    - dsdp
+    - glpk
+    - libosqp
+    - suitesparse          # [not win]
+  run_constrained:
+    # CVXOPT and KVXOPT can be on the same environment. But include file cvxopt.h not. This can be changed in the future
+    - cvxopt ==999999999
+
+test:
+  imports:
+    - kvxopt
+    - kvxopt.base
+    - kvxopt.blas
+    - kvxopt.cholmod
+    - kvxopt.lapack
+    - kvxopt.misc_solvers
+    - kvxopt.umfpack
+    - kvxopt.glpk
+    - kvxopt.fftw
+    - kvxopt.klu
+    - kvxopt.osqp
+    - kvxopt.fftw
+    - kvxopt.gsl
+    - kvxopt.glpk
+  source_files:
+    - tests/*
+    - examples/*
+  requires:
+    - pytest
+
+about:
+  home: https://github.com/sanurielf/kvxopt
+  license: GPL-3.0-or-later
+  license_file: LICENSE
+  summary: Convex optimization package and Suite Sparse interface
+  doc_url: https://github.com/sanurielf/kvxopt
+  dev_url: https://github.com/sanurielf/kvxopt
+
+extra:
+  recipe-maintainers:
+    - sanurielf
