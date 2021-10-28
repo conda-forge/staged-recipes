@@ -10,7 +10,8 @@ cmake ${CMAKE_ARGS} -GNinja .. \
       -DPXR_BUILD_IMAGING:BOOL=OFF \
       -DPXR_BUILD_USD_IMAGING:BOOL=OFF \
       -DPXR_ENABLE_PYTHON_SUPPORT:BOOL=OFF \
-      -DCMAKE_EXPORT_NO_PACKAGE_REGISTRY:BOOL=ON
+      -DCMAKE_EXPORT_NO_PACKAGE_REGISTRY:BOOL=ON \
+      -DPXR_USE_PYTHON_3:BOOL=ON
 
 cmake --build . --config Release 
 cmake --build . --config Release --target install
