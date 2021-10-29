@@ -27,9 +27,9 @@ if [[ "${omm:-vendor}" = "vendor" ]]; then
   OMM_OPT="-DUSE_EXTERNAL_OMM=OFF"
 else
   OMM_OPT="-DUSE_EXTERNAL_OMM=ON"
-  INC_PATHS=($(pkg-config libOMM --cflags-only-I | sed s+-I++g) "${INC_PATH[@]}")
-  LIB_PATHS=($(pkg-config libOMM --libs-only-L) "${LIB_PATHS[@]}")
-  LIBS=($(pkg-config libOMM --libs-only-l) "${LIBS[@]}")
+  INC_PATHS=($(pkg-config libOMM MatrixSwitch --cflags-only-I | sed s+-I++g) "${INC_PATHS[@]}")
+  LIB_PATHS=($(pkg-config libOMM MatrixSwitch --libs-only-L) "${LIB_PATHS[@]}")
+  LIBS=($(pkg-config libOMM MatrixSwitch --libs-only-l) "${LIBS[@]}")
 fi
 
 cmake_options=(
