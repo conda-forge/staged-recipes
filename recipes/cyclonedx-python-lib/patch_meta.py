@@ -13,9 +13,9 @@ SETUP_PY = DIST / "setup.py"
 
 (DIST / "pyproject.toml").unlink()
 
-text = SETUP_PY.read_text()
+text = SETUP_PY.read_text(encoding="utf-8")
 
 for pattern, replacement in PATCHES.items():
     text = re.sub(pattern, replacement, text)
 
-SETUP_PY.write_text(text)
+SETUP_PY.write_text(text, encoding="utf-8")
