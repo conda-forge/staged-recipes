@@ -41,12 +41,14 @@ if [ "${AZURE}" == "True" ]; then
 fi
 
 docker run ${DOCKER_RUN_ARGS} \
+           --pull always \
            -v "${REPO_ROOT}:/home/conda/staged-recipes" \
            -e HOST_USER_ID=${HOST_USER_ID} \
            -e AZURE=${AZURE} \
            -e CONFIG \
            -e CI \
            -e CF_CUDA_VERSION \
+           -e DEFAULT_LINUX_VERSION \
            $IMAGE_NAME \
            bash \
            "/home/conda/staged-recipes/${PROVIDER_DIR}/build_steps.sh"
