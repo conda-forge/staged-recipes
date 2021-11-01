@@ -1,1 +1,2 @@
-${PYTHON} -m pip install cirq-rigetti -vv
+cd cirq-rigetti
+${PYTHON} -m pip install . -vv

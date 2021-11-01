@@ -1,1 +1,2 @@
-${PYTHON} -m pip install cirq-web -vv
+cd cirq-web
+${PYTHON} -m pip install . -vv

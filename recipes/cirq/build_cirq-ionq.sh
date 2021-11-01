@@ -1,1 +1,2 @@
-${PYTHON} -m pip install cirq-ionq -vv
+cd cirq-ionq
+${PYTHON} -m pip install . -vv

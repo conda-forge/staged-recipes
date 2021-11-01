@@ -1,1 +1,2 @@
-${PYTHON} -m pip install cirq-core -vv
+cd cirq-core
+${PYTHON} -m pip install . -vv

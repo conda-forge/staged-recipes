@@ -1,1 +1,2 @@
-${PYTHON} -m pip install cirq-aqt -vv
+cd cirq-aqt
+${PYTHON} -m pip install . -vv

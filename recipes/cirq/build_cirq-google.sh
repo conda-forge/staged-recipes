@@ -1,1 +1,2 @@
-${PYTHON} -m pip install cirq-google -vv
+cd cirq-google
+${PYTHON} -m pip install . -vv
