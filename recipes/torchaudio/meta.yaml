@@ -1,0 +1,61 @@
+requirements:
+  build:
+    - {{ compiler('c') }} # [win]
+    - {{ compiler('cxx') }} # [win]
+
+  host:
+    - python
+    - setuptools
+    - cmake
+    - ninja
+    - defaults::numpy >=1.11
+    - pytorch-mutex 1.0 {{ build_variant }}  # [not osx ]
+    {{ environ.get('CONDA_PYTORCH_BUILD_CONSTRAINT', 'pytorch') }}
+    {{ environ.get('CONDA_EXTRA_BUILD_CONSTRAINT', '') }}
+    {{ environ.get('CONDA_CUDATOOLKIT_CONSTRAINT', '') }}
+
+  run:
+    - python
+    - defaults::numpy >=1.11
+    - pytorch-mutex 1.0 {{ build_variant }}  # [not osx ]
+    {{ environ.get('CONDA_PYTORCH_CONSTRAINT', 'pytorch') }}
+    {{ environ.get('CONDA_CUDATOOLKIT_CONSTRAINT', '') }}
+
+  {% if build_variant == 'cpu' %}
+  run_constrained:
+    - cpuonly
+  {% elif not osx %}
+  run_constrained:
+     - cpuonly <0
+  {% endif %}
+
+build:
+  string: py{{py}}_{{ environ.get('CU_VERSION', 'cpu') }}
+  script_env:
+    - BUILD_VERSION
+    - USE_CUDA
+    - TORCH_CUDA_ARCH_LIST
+
+test:
+  imports:
+    - torchaudio
+    - torchaudio.datasets
+    - torchaudio.kaldi_io
+    - torchaudio.sox_effects
+    - torchaudio.transforms
+
+  source_files:
+    - test
+
+  requires:
+    - pytest
+    # Ideally we would test this, but conda doesn't provide librosa
+    # - librosa >=0.4.3
+    - scipy
+    - pytorch-mutex 1.0 {{ build_variant }}  # [not osx ]
+
+about:
+  home: https://github.com/pytorch/audio
+  license: BSD
+  license_file: LICENSE
+  summary: 'simple audio I/O for pytorch'
