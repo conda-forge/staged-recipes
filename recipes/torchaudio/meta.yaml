@@ -4,7 +4,7 @@
 
 package:
   name: {{ name|lower }}
-  version: {{ version }}
+  version: "{{ environ.get('BUILD_VERSION', '0.0.0') }}"
 
 source:
   url: https://github.com/pytorch/audio/archive/v0.10.0.tar.gz
@@ -34,20 +34,33 @@ requirements:
     - ninja
     - cudnn                                  # [cuda_compiler_version != "None"]
     - numpy
-    - pytorch-mutex 1.0-cpu                  # [cuda_compiler_version == "None"]
-    - pytorch-mutex 1.0-cuda                 # [cuda_compiler_version != "None"]
+    - pytorch-mutex 1.0 {{ build_variant }}  # [not osx ]
     - pytorch
     - pytorch-gpu                            # [cuda_compiler_version != "None"]
     - pytorch-cpu                            # [cuda_compiler_version == "None"]
   run:
     - python
     - pytorch
-    - pytorch-mutex 1.0-cpu                  # [cuda_compiler_version == "None"]
-    - pytorch-mutex 1.0-cuda                 # [cuda_compiler_version != "None"]
+    - pytorch-mutex 1.0 {{ build_variant }}  # [not osx ]
     - pytorch-gpu                            # [cuda_compiler_version != "None"]
     - pytorch-cpu                            # [cuda_compiler_version == "None"]
     - {{ pin_compatible('cudnn') }}          # [cuda_compiler_version != "None"]
     - {{ pin_compatible('numpy') }}
+
+  {% if build_variant == 'cpu' %}
+  run_constrained:
+    - cpuonly
+  {% elif not osx %}
+  run_constrained:
+     - cpuonly <0
+  {% endif %}
+
+build:
+  string: py{{py}}_{{ environ.get('CU_VERSION', 'cpu') }}
+  script_env:
+    - BUILD_VERSION
+    - USE_CUDA
+    - TORCH_CUDA_ARCH_LIST
 
 test:
   requires:
