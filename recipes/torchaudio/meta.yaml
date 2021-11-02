@@ -1,81 +1,37 @@
-{% set build_variant = environ.get('CONDA_BUILD_VARIANT', 'cpu') %}
-{% set name = "torchaudio" %}
-{% set version = "0.10.0" %}
-{% set torch_proc_type = "cuda" if cuda_compiler_version != "None" else "cpu" %}
+{% set name = "audio" %}{% set version = "0.10.0" %}
+
 
 package:
   name: {{ name|lower }}
-  version: "{{ environ.get('BUILD_VERSION', '0.0.0') }}"
+  version: {{ version }}
 
 source:
-  url: https://github.com/pytorch/audio/archive/v {{ version }} .tar.gz
+  url: https://github.com/pytorch/audio/archive/v0.10.0.tar.gz
   sha256: 9d0413434eefd2a483bf4006440c02940d15e597ab75703aa3ae2c6d5297e7ad
 
 build:
   number: 0
-  script: build.sh   # [not win]
-  script: bld.bat    # [win]
+  script: {{ PYTHON }} -m pip install . -vv
 
 requirements:
   build:
     - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
-    - {{ compiler('cuda') }}                 # [cuda_compiler_version != "None"]
-    - sysroot_linux-64 ==2.17                # [linux64]
-    - python                                 # [build_platform != target_platform]
-    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
-    - numpy                                  # [build_platform != target_platform]
-
   host:
-    - python
     - pip
-    - setuptools
-    - cmake
-    - ninja
-    - cudnn                                  # [cuda_compiler_version != "None"]
-    - numpy
-    - pytorch-mutex 1.0 {{ build_variant }}  # [not osx ]
+    - python
     - pytorch
-    - pytorch-gpu                            # [cuda_compiler_version != "None"]
-    - pytorch-cpu                            # [cuda_compiler_version == "None"]
   run:
     - python
     - pytorch
-    - pytorch-mutex 1.0 {{ build_variant }}  # [not osx ]
-    - pytorch-gpu                            # [cuda_compiler_version != "None"]
-    - pytorch-cpu                            # [cuda_compiler_version == "None"]
-    - {{ pin_compatible('cudnn') }}          # [cuda_compiler_version != "None"]
-    - {{ pin_compatible('numpy') }}
-
-  {% if build_variant == 'cpu' %}
-  run_constrained:
-    - cpuonly
-  {% elif not osx %}
-  run_constrained:
-     - cpuonly <0
-  {% endif %}
-
-build:
-  string: py{{py}}_{{ environ.get('CU_VERSION', 'cpu') }}
-  script_env:
-    - BUILD_VERSION
-    - USE_CUDA
-    - TORCH_CUDA_ARCH_LIST
 
 test:
-  requires:
-    - pytest
-    - av
-    - requests
-    - scipy
-  source_files:
-    - test
   imports:
     - torchaudio
-    - torchaudio.datasets
-    - torchaudio.kaldi_io
-    - torchaudio.sox_effects
-    - torchaudio.transforms
+    - torchaudio._internal
+  commands:
+    - pip check
+  requires:
+    - pip
 
 about:
   home: https://github.com/pytorch/audio
