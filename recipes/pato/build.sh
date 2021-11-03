@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e  # exit when any command fails
+set +x
 
 echo -e "\n### INSTALLING PATO ###\n"
 rm -rf volume
@@ -10,6 +11,6 @@ cd $SRC_DIR/volume/OpenFOAM/dependencies/parmgridgen
 tar xvf ParMGridGen-0.0.2.tar.gz
 cd ParMGridGen-0.0.2
 make
-cd $SRC_DIR/volume/OpenFOAM/OpenFOAM-7
-source etc/bashrc
-./Allwmake
+#cd $SRC_DIR/volume/OpenFOAM/OpenFOAM-7
+#source etc/bashrc
+#./Allwmake
