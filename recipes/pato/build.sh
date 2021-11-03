@@ -9,6 +9,8 @@ if [ "$(uname)" = "Darwin" ]; then
     mkdir volume
     hdiutil attach -mountpoint volume pato_releases_conda.sparsebundle
     mv src/* volume/
+    cd $SRC_DIR/volume/OpenFOAM
+    tar xvf OpenFOAM-7.tar
     cd $SRC_DIR/volume/OpenFOAM/dependencies/parmgridgen
     rm -rf ParMGridGen-0.0.2
     tar xvf ParMGridGen-0.0.2.tar.gz
