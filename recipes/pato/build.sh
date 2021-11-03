@@ -4,10 +4,11 @@ set -x
 
 echo -e "\n### INSTALLING PATO ###\n"
 if [ "$(uname)" = "Darwin" ]; then
+    hdiutil create -size 16g -type SPARSEBUNDLE -fs HFSX -volname pato_releases_conda -fsargs -s pato_releases_conda.sparsebundle 
     rm -rf volume
     mkdir volume
     hdiutil attach -mountpoint volume pato_releases_conda.sparsebundle
-    cat volume/README.md
+    mv src/* volume/
     cd $SRC_DIR/volume/OpenFOAM/dependencies/parmgridgen
     rm -rf ParMGridGen-0.0.2
     tar xvf ParMGridGen-0.0.2.tar.gz
