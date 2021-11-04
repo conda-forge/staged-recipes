@@ -2,12 +2,6 @@ import argparse
 import os
 import platform
 
-_lib_extensions = {
-    'Linux': 'so',
-    'Darwin': 'dylib',
-    'Windows': 'lib',
-}
-
 
 def _print_exists(filename):
     """Prints the names of missing files.
@@ -32,14 +26,23 @@ def libraries_exist(major, minor, patch):
 
     filename = os.path.join(os.environ['PREFIX'], 'lib', 'libavif')
 
-    extension = _lib_extensions[platform.system()]
-
     if platform.system() == 'Darwin':
-        for library in [f'{filename}.{major}.{minor}.{patch}.{extension}']:
+        for library in [
+                f'{filename}.dylib',
+                f'{filename}.{major}.dylib',
+                f'{filename}.{major}.{minor}.{patch}.dylib',
+        ]:
             exists = exists and _print_exists(library)
-
-    else:  # Windows Linux
-        for library in [f'{filename}.{extension}.{major}.{minor}.{patch}']:
+    elif platform.system() == 'Windows':
+        exists = exists and _print_exists(f'{filename}.lib')
+        exists = exists and _print_exists(
+            os.path.join(os.environ['PREFIX'], 'bin', 'libavif.dll'))
+    else:  # Linux
+        for library in [
+                f'{filename}.so',
+                f'{filename}.so.{major}',
+                f'{filename}.so.{major}.{minor}.{patch}',
+        ]:
             exists = exists and _print_exists(library)
 
     return exists
