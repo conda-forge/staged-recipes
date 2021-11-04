@@ -9,6 +9,7 @@ def _print_exists(filename):
     Return False if anything is missing else return True.
     """
     if os.path.exists(filename):
+        print(f"FOUND: {filename}")
         return True
     else:
         print(f"ERROR: {filename} is MISSING!")
@@ -34,9 +35,10 @@ def libraries_exist(major, minor, patch):
         ]:
             exists = exists and _print_exists(library)
     elif platform.system() == 'Windows':
-        exists = exists and _print_exists(f'{filename}.lib')
         exists = exists and _print_exists(
-            os.path.join(os.environ['PREFIX'], 'bin', 'libavif.dll'))
+            os.path.join(os.environ['PREFIX'], 'lib', 'avif.lib'))
+        exists = exists and _print_exists(
+            os.path.join(os.environ['PREFIX'], 'bin', 'avif.dll'))
     else:  # Linux
         for library in [
                 f'{filename}.so',
