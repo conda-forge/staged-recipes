@@ -2,7 +2,7 @@ mkdir build
 cd build
 
 # Other codecs cannot be enabled because they are not on conda-forge
-cmake .. -GNinja \
+cmake .. "${CMAKE_ARGS}" -GNinja \
 -DCMAKE_INSTALL_PREFIX="$PREFIX" \
 -DCMAKE_INSTALL_LIBDIR=lib \
 -DBUILD_SHARED_LIBS=ON \
