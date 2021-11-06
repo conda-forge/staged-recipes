@@ -5,4 +5,4 @@ cd _build
 cmake ../dxtbx "-DCMAKE_INSTALL_PREFIX=$PREFIX" "-DPython_EXECUTABLE=$PYTHON"
 cmake --build .
 cmake --install .
-pip install ../dxtbx
+$PYTHON -mpip install ../dxtbx
