@@ -2,7 +2,7 @@
 
 mkdir _build
 cd _build
-cmake ../dxtbx "-DCMAKE_INSTALL_PREFIX=$PREFIX"
-make
-make install
+cmake ../dxtbx "-DCMAKE_INSTALL_PREFIX=$PREFIX" "-DPython_EXECUTABLE=$PYTHON"
+cmake --build .
+cmake --install .
 pip install ../dxtbx
