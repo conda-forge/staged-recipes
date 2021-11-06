@@ -2,6 +2,7 @@
 
 set -ex
 
+mkdir -p $PREFIX/share/man/man1/
 
 for f in average bound interval normalize random range round; do
     sed -i.bak "s,/usr/bin/perl -w,$PREFIX/bin/perl," $f
