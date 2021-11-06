@@ -12,5 +12,5 @@ done
 for f in numgrep numprocess numsum; do
     cp $f $PREFIX/bin/
     pod2man $f > $f.1
-    cp num$f.1 $PREFIX/share/man/man1/
+    cp $f.1 $PREFIX/share/man/man1/
 done
