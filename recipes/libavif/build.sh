@@ -13,4 +13,6 @@ cmake .. "${CMAKE_ARGS}" -GNinja \
 -DAVIF_CODEC_DAV1D=OFF \
 -DAVIF_CODEC_LIBGAV1=OFF
 
+./aviftest ../tests/data/
+
 ninja install
