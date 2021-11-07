@@ -15,6 +15,9 @@ cmake .. -GNinja ^
 -DAVIF_CODEC_LIBGAV1=OFF
 if errorlevel 1 exit /b 1
 
+ninja
+if errorlevel 1 exit /b 1
+
 .\aviftest ..\tests\data\
 if errorlevel 1 exit /b 1
 
