@@ -6,6 +6,7 @@ export PYTHONPATH=${SRC_DIR}/pywrap/
 ${PYTHON} -m bindgen -n ${CPU_COUNT} \
 	-i ${PREFIX}/include/ \
 	-i ${PREFIX}/include/vtk-9.0/ \
+	-i ${PREFIX}/include/c++/v1/ \
 	-i ${PREFIX}/lib/clang/10.0.1/include/ \
 	-l ${PREFIX}/lib/libclang.so \
 	-v parse ocp.toml out.pkl
