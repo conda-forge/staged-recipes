@@ -11,13 +11,13 @@ if [[ ${PLATFORM} = 'Darwin' ]]; then
   EXTRA_INCLUDES+=(-i ${PREFIX}/include/c++/v1/)
 elif [[ ${PLATFORM} = 'Linux' ]]; then
   CLANGLIB=${PREFIX}/lib/libclang.so
+  EXTRA_INCLUDES+=(-i ${PREFIX}/x86_64-conda-linux-gnu/include/c++/10.3.0/)
 fi
 
 export PYTHONPATH=${SRC_DIR}/pywrap/
 ${PYTHON} -m bindgen -n ${CPU_COUNT} \
 	-i ${PREFIX}/include/ \
 	-i ${PREFIX}/include/vtk-9.0/ \
-	-i ${PREFIX}/include/c++/v1/ \
 	-i ${PREFIX}/lib/clang/10.0.1/include/ \
 	"${EXTRA_INCLUDES[@]}" \
 	-l ${CLANGLIB} \
