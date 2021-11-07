@@ -11,7 +11,7 @@ if [[ ${PLATFORM} = 'Darwin' ]]; then
   EXTRA_INCLUDES+=(-i ${PREFIX}/include/c++/v1/)
 elif [[ ${PLATFORM} = 'Linux' ]]; then
   CLANGLIB=${PREFIX}/lib/libclang.so
-  EXTRA_INCLUDES+=(-i ${PREFIX}/x86_64-conda-linux-gnu/include/c++/10.3.0/)
+  EXTRA_INCLUDES+=(-i ${PREFIX}/x86_64-conda-linux-gnu/include/c++/11.2.0/)
 fi
 
 export PYTHONPATH=${SRC_DIR}/pywrap/
