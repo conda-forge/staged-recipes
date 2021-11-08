@@ -14,6 +14,7 @@ elif [[ ${PLATFORM} = 'Linux' ]]; then
   EXTRA_INCLUDES+=(-i ${PREFIX}/x86_64-conda-linux-gnu/include/c++/10.3.0/)
   EXTRA_INCLUDES+=(-i ${PREFIX}/x86_64-conda-linux-gnu/include/c++/10.3.0/parallel/)
   EXTRA_INCLUDES+=(-i ${PREFIX}/x86_64-conda-linux-gnu/include/c++/10.3.0/x86_64-conda-linux-gnu/)
+  EXTRA_INCLUDES+=(-i ${PREFIX}/x86_64-conda-linux-gnu/sysroot/usr/include/)
 fi
 
 export PYTHONPATH=${SRC_DIR}/pywrap/
