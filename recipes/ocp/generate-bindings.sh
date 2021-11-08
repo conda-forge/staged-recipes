@@ -12,6 +12,7 @@ if [[ ${PLATFORM} = 'Darwin' ]]; then
 elif [[ ${PLATFORM} = 'Linux' ]]; then
   CLANGLIB=${PREFIX}/lib/libclang.so
   EXTRA_INCLUDES+=(-i ${PREFIX}/x86_64-conda-linux-gnu/include/c++/10.3.0/)
+  EXTRA_INCLUDES+=(-i ${PREFIX}/x86_64-conda-linux-gnu/include/c++/10.3.0/parallel/)
   EXTRA_INCLUDES+=(-i ${PREFIX}/x86_64-conda-linux-gnu/include/c++/10.3.0/x86_64-conda-linux-gnu/)
 fi
 
