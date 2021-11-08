@@ -20,6 +20,7 @@ export PYTHONPATH=${SRC_DIR}/pywrap/
 ${PYTHON} -m bindgen -n ${CPU_COUNT} \
 	-i ${PREFIX}/include/ \
 	-i ${PREFIX}/include/vtk-9.0/ \
+  "${EXTRA_INCLUDES[@]}" \
 	-i ${PREFIX}/lib/clang/10.0.1/include/ \
 	"${EXTRA_INCLUDES[@]}" \
 	-l ${CLANGLIB} \
