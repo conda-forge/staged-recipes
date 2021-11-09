@@ -1,45 +1,83 @@
-{% set name = "audio" %}{% set version = "0.10.0" %}
-
-
+{% set build_version = "0.10.0" %}
+{% set build_variant = "cuda" if cuda_compiler_version != "None" esle "cpu" %}
 package:
-  name: {{ name|lower }}
-  version: {{ version }}
+  name: torchaudio
+  version: {{ build_version }}
 
 source:
-  url: https://github.com/pytorch/audio/archive/v0.10.0.tar.gz
+  url: https://github.com/pytorch/audio/archive/v{{ build_version }}.tar.gz
   sha256: 9d0413434eefd2a483bf4006440c02940d15e597ab75703aa3ae2c6d5297e7ad
 
 build:
   number: 0
-  script: {{ PYTHON }} -m pip install . -vv
+  skip: true  # [win]
 
 requirements:
   build:
-    - {{ compiler('c') }}
-    - {{ compiler('c++') }}
+    - {{ compiler('c') }} # [win]
+    - {{ compiler('cxx') }} # [win]
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+    string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ torch_proc_type }}                                                  # [cuda_compiler_version == "None"]
+    string: py{{ CONDA_PY }}cuda{{ cuda_compiler_version|replace('.', '') }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ torch_proc_type }}  # [cuda_compiler_version != "None"]
+
   host:
-    - pip
-    - cmake
     - python
-    - pytorch
+    - setuptools
+    - cmake
+    - ninja
+    - numpy >=1.11
+    - pytorch-mutex 1.0 {{ build_variant }}  # [not osx ]
+    - pytorch==1.10.0
+    - openblas
+    - cudatoolkit >=11.2  # [cuda_compiler_version == "cu112"]
+    - cudatoolkit >=11.3  # [cuda_compiler_version == "cu113"]
   run:
     - python
-    - pytorch
+    - numpy >=1.11
+    - pytorch-mutex 1.0 {{ build_variant }}  # [not osx ]
+    - pytorch==1.10.0
+    - cudatoolkit >=11.2  # [cuda_compiler_version == "cu112"]
+    - cudatoolkit >=11.3  # [cuda_compiler_version == "cu113"]
+
+  {% if build_variant == 'cpu' %}
+  run_constrained:
+    - cpuonly
+  {% elif not osx %}
+  run_constrained:
+     - cpuonly <0
+  {% endif %}
+
+build:
+  string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ torch_proc_type }}                                                  # [cuda_compiler_version == "None"]
+  string: py{{ CONDA_PY }}cuda{{ cuda_compiler_version|replace('.', '') }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ torch_proc_type }}  # [cuda_compiler_version != "None"]
+  
+  #script_env:
+    #- build_version
+    #- USE_CUDA
+    #- TORCH_CUDA_ARCH_LIST
 
 test:
   imports:
     - torchaudio
-    - torchaudio._internal
-  commands:
-    - pip check
+    - torchaudio.datasets
+    - torchaudio.kaldi_io
+    - torchaudio.sox_effects
+    - torchaudio.transforms
+
+  source_files:
+    - test
+
   requires:
-    - pip
+    - pytest
+    - librosa >=0.4.3
+    - scipy
+    - pytorch-mutex 1.0 {{ build_variant }}  # [not osx ]
 
 about:
   home: https://github.com/pytorch/audio
-  license: BSD-2-Clause
+  license: BSD
   license_file: LICENSE
-  summary: simple audio I/O for pytorch
+  summary: 'simple audio I/O for pytorch'
 
 extra:
   recipe-maintainers:
