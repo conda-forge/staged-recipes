@@ -4,25 +4,25 @@ set -x
 
 echo -e "\n### INSTALLING PATO ###\n"
 if [ "$(uname)" = "Darwin" ]; then
-#    ls /usr/local/lib
-    ls /Users/runner/mambaforge/conda-bld/pato*/_build_env/lib
-    ls /Users/runner/mambaforge/conda-bld/pato*
-#    hdiutil create -size 16g -type SPARSEBUNDLE -fs HFSX -volname pato_releases_conda -fsargs -s pato_releases_conda.sparsebundle
-#    rm -rf volume
-#    mkdir volume
-#    hdiutil attach -mountpoint volume pato_releases_conda.sparsebundle
-#    mv src/* volume/
-#    cd $SRC_DIR/volume/OpenFOAM
-#    tar xvf OpenFOAM-7.tar
-#    cd $SRC_DIR/volume/OpenFOAM/dependencies/parmgridgen
-#    rm -rf ParMGridGen-0.0.2
-#    tar xvf ParMGridGen-0.0.2.tar.gz
-#    cd ParMGridGen-0.0.2
-#    make
-#    # [ "$(ulimit -n)" -lt "4096" ] && ulimit -n 4096
-#    cd $SRC_DIR/volume/OpenFOAM/OpenFOAM-7
-#    source etc/bashrc
-#    ./Allwmake
+    export dir_tmp=$(dirname $(dirname `find /Users/runner/mambaforge/conda-bld -name libscotch.dylib | sort -n | tail -n 1`))
+    echo $dir_tmp
+    ls $dir_tmp/lib
+    hdiutil create -size 16g -type SPARSEBUNDLE -fs HFSX -volname pato_releases_conda -fsargs -s pato_releases_conda.sparsebundle
+    rm -rf volume
+    mkdir volume
+    hdiutil attach -mountpoint volume pato_releases_conda.sparsebundle
+    mv src/* volume/
+    cd $SRC_DIR/volume/OpenFOAM
+    tar xvf OpenFOAM-7.tar
+    cd $SRC_DIR/volume/OpenFOAM/dependencies/parmgridgen
+    rm -rf ParMGridGen-0.0.2
+    tar xvf ParMGridGen-0.0.2.tar.gz
+    cd ParMGridGen-0.0.2
+    make
+    # [ "$(ulimit -n)" -lt "4096" ] && ulimit -n 4096
+    cd $SRC_DIR/volume/OpenFOAM/OpenFOAM-7
+    source etc/bashrc
+    ./Allwmake
 
 
 
