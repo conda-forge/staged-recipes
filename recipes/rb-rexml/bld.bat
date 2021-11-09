@@ -1,2 +1,2 @@
-call gem install --no-document --env-shebang --norc -N --local --verbose --ignore-dependencies %PKG_NAME%-%PKG_VERSION%.gem
-call gem unpack %PKG_NAME%-%PKG_VERSION%.gem
+call gem install --no-document --env-shebang --norc -N --local --verbose --ignore-dependencies package.gem
+call gem unpack package.gem
