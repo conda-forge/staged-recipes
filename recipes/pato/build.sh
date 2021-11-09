@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -e  # exit when any command fails
+set -e  # exit when any command fails
 set -x
 
 echo -e "\n### INSTALLING PATO ###\n"
