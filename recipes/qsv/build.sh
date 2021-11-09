@@ -8,7 +8,7 @@ cargo-bundle-licenses \
     --output THIRDPARTY.yml
 
 # build statically linked binary with Rust
-cargo install --root "$PREFIX" --path . --no-default-features
+cargo install --root "$PREFIX" --path . --no-default-features --verbose
 
 # remove extra build file
 rm -f "${PREFIX}/.crates.toml"
