@@ -1,12 +1,12 @@
 #!/bin/bash
-set -e  # exit when any command fails
+#set -e  # exit when any command fails
 set -x
 
 echo -e "\n### INSTALLING PATO ###\n"
 if [ "$(uname)" = "Darwin" ]; then
-    ls /usr/local/lib
-    ls /Users/runner/mambaforge/conda-bld/pato*
+#    ls /usr/local/lib
     ls /Users/runner/mambaforge/conda-bld/pato*/_build_env/lib
+    ls /Users/runner/mambaforge/conda-bld/pato*
 #    hdiutil create -size 16g -type SPARSEBUNDLE -fs HFSX -volname pato_releases_conda -fsargs -s pato_releases_conda.sparsebundle
 #    rm -rf volume
 #    mkdir volume
