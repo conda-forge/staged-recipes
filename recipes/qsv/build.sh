@@ -8,7 +8,13 @@ cargo-bundle-licenses \
     --output THIRDPARTY.yml
 
 # build statically linked binary with Rust
-cargo install --root "$PREFIX" --path . --no-default-features --verbose
+# with different parms for Linux and macOS
+os_type=$(echo $OSTYPE | cut -c 1-6)
+if [[ "$os_type" == "darwin" ]]; then
+  cargo install --root "$PREFIX" --path . --no-default-features --target x86_64-apple-darwin
+else
+  cargo install --root "$PREFIX" --path . 
+fi
 
 # remove extra build file
 rm -f "${PREFIX}/.crates.toml"
