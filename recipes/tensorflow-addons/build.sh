@@ -15,6 +15,7 @@ if [[ ${cuda_compiler_version} != "None" ]]; then
     export TF_CUDA_PATHS="${PREFIX},${CUDA_HOME}"
     export TF_CUDA_VERSION="${cuda_compiler_version}"
     export TF_CUDNN_VERSION="${cudnn}"
+    export GCC_HOST_COMPILER_PATH="${GCC}"
     export CUDA_TOOLKIT_PATH="${CUDA_HOME}"
     export CUDNN_INSTALL_PATH="${PREFIX}"
 
