@@ -1,0 +1,42 @@
+Description: Fix numround result when using -n option
+Origin: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=714220
+Last-Update: 2016-08-06
+Index: num-utils-0.5/round
+===================================================================
+--- round	2016-08-07 15:25:53.045408806 +0200
++++ round	2016-08-07 15:26:12.973930454 +0200
+@@ -114,11 +114,11 @@
+             my $newnumber;
+             print STDERR "original number: $number\n" if ($verbose >= 2);
+             if ($opts{'c'}) {
+-                $newnumber = ceiling_number($number);
++                $newnumber = round_number($factor, $number, 1);
+             } elsif ($opts{'f'}) {
+-                $newnumber = floor_number($number);
++                $newnumber = round_number($factor, $number, -1);
+             } else {
+-                $newnumber = round_number($factor, $number);
++                $newnumber = round_number($factor, $number, 0);
+             }
+             print "$newnumber\n";
+         }
+@@ -133,13 +133,16 @@
+ sub round_number {
+     my $factor = shift;
+     my $number = shift;
++    my $direction = shift;
++    my $sign = ( $number >= 0 ? 1 : -1 );
+     my $rounded_number;
+     $factor = abs($factor);
++    $number += $sign * 0.5 * $factor if $direction == 0;
+ 
+-    if ($number >= 0) {
+-        $rounded_number = $factor * floor(($number + 0.5 * $factor) / $factor);
++    if ($sign >= 0 and $direction == 0 or $direction < 0) {
++        $rounded_number = $factor * floor($number / $factor);
+     } else {
+-        $rounded_number = $factor * ceil(($number - 0.5 * $factor) / $factor);
++        $rounded_number = $factor * ceil($number / $factor);
+     }
+     return $rounded_number;
+ }
