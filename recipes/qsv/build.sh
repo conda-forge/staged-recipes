@@ -11,8 +11,7 @@ cargo-bundle-licenses \
 # with different parms for Linux and macOS
 os_type=$(echo $OSTYPE | cut -c 1-6)
 if [[ "$os_type" == "darwin" ]]; then
-  export RUST_BACKTRACE=1
-  cargo install --root "$PREFIX" --path . --no-default-features --target x86_64-apple-darwin
+  RUST_BACKTRACE=1 bash -c cargo install --root "$PREFIX" --path . --no-default-features --target x86_64-apple-darwin
 else
   cargo install --root "$PREFIX" --path . 
 fi
