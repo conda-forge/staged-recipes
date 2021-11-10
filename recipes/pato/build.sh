@@ -29,6 +29,7 @@ if [ "$(uname)" = "Darwin" ]; then
     rm -rf PATO-dev-2.3.1
     tar xvf PATO-dev-2.3.1.tar.gz
     cd PATO-dev-2.3.1
+    export PATO_DIR=$PWD
     source bashrc
     ./Allwmake
 fi
