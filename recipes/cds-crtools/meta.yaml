@@ -1,0 +1,972 @@
+{% set name = "cds-crtools" %}
+{% set version = "3.0.2" %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  url: https://git.ligo.org/cds/dtt/-/archive/release{{ version }}/dtt-release{{ version }}.tar.gz
+  sha256: 2e8bfba90497938fc6012cdb21c1a8b2b1db143e3f3986524c015023cf22ce61
+  patches:
+    # use C++-17 standard
+    - cxx_standard-17.patch
+    # patch rpcgen arguments to find cpp
+    - rpcgen-cpp-path.patch
+
+build:
+  number: 0
+  skip: true  # [not linux]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - make  # [unix]
+    - pkg-config  # [unix]
+    - python
+  host:
+    - cyrus-sasl
+    - expat
+    - fftw
+    - gds-base
+    - gds-base-crtools
+    - gds-gui-crtools
+    - gds-base-gdstrig
+    - gds-lsmp
+    - gds-root-extensions-crtools
+    - readline
+    - root_base
+
+outputs:
+  # -- C libraries ----------
+
+  - name: libawg
+    build:
+      ignore_run_exports:
+        - openssl
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - gds-base
+        - {{ pin_subpackage('libtestpoint', exact=True) }}
+        - openssl
+      run:
+        - gds-base
+        - {{ pin_subpackage('libtestpoint', exact=True) }}
+    files:
+      - include/gds/dtt/awg*.h
+      - include/gds/dtt/excitation.hh
+      - include/gds/dtt/gdsrand.h
+      - lib/libawg{{ SHLIB_EXT }}*
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libawg${SHLIB_EXT}  # [unix]
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Library used to interface with awgtpman, the waveform excitation program used at LIGO
+      description: |
+        `libawg` is an interface for opening, configuring, and controlling excitations
+        on the LIGO real-time data acquisition system.
+
+  - name: libdfm
+    build:
+      ignore_run_exports:
+        - openssl
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - gds-base
+        - {{ pin_subpackage('libfantom', exact=True) }}
+        - {{ pin_subpackage('libtestpoint', exact=True) }}
+        - openssl
+      run:
+        - gds-base
+        - {{ pin_subpackage('libfantom', exact=True) }}
+        - {{ pin_subpackage('libtestpoint', exact=True) }}
+    files:
+      - include/gds/dfm/dataacc.hh
+      - include/gds/dfm/dfm.hh
+      - include/gds/dfm/dfmapi.hh
+      - include/gds/dfm/dfmfunc.hh
+      - include/gds/dfm/dfmlars.hh
+      - include/gds/dfm/dfmnds.hh
+      - include/gds/dfm/dfmsends.hh
+      - include/gds/dfm/dfmsm.hh
+      - include/gds/dfm/dfmtype.hh
+      - include/gds/dfm/udn.hh
+      - lib/libdfm{{ SHLIB_EXT }}*
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libdfm${SHLIB_EXT}  # [unix]
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Library for interfacing with LIGO's data flow manager
+      description: |
+        DMT is part of the LIGO real-time data acquisition system
+
+  - name: libdtt
+    build:
+      ignore_run_exports:
+        - openssl
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - expat
+        - gds-base
+        - gds-base-crtools
+        - {{ pin_subpackage('libawg', exact=True) }}
+        - {{ pin_subpackage('libdfm', exact=True) }}
+        - {{ pin_subpackage('libfantom', exact=True) }}
+        - {{ pin_subpackage('libtestpoint', exact=True) }}
+        - openssl
+        - readline
+      run:
+        - expat
+        - gds-base
+        - gds-base-crtools
+        - {{ pin_subpackage('libawg', exact=True) }}
+        - {{ pin_subpackage('libdfm', exact=True) }}
+        - {{ pin_subpackage('libfantom', exact=True) }}
+        - {{ pin_subpackage('libtestpoint', exact=True) }}
+        - readline
+    files:
+      - lib/libdtt{{ SHLIB_EXT }}*
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libdtt${SHLIB_EXT}  # [unix]
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Library containing the functionality of LIGO's Diagnostics Test Tools.
+      description: |
+        `libdtt` is an interface for creating and running diagnostics tests on
+        the LIGO real-time data acquisition system.
+
+  - name: libfantom
+    build:
+      ignore_run_exports:
+        - openssl
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - gds-base
+        - gds-lsmp
+        - openssl
+        - readline
+      run:
+        - gds-base
+        - gds-lsmp
+        - readline
+    files:
+      - include/gds/fantom/
+      - lib/libfantom{{ SHLIB_EXT }}*
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libfantom${SHLIB_EXT}  # [unix]
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Library for translation of LIGO data frames and LIGO NDS data.
+      description: |
+        `libfantom` is a LIGO data access library for
+        translating data frames and NDS data.
+
+  - name: libfilterfile
+    build:
+      ignore_run_exports:
+        - openssl
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - gds-base
+        - openssl
+      run:
+        - gds-base
+    files:
+      - include/foton/Filter*.hh
+      - lib/libfilterfile{{ SHLIB_EXT }}*
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libfilterfile${SHLIB_EXT}  # [unix]
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: C++ library for manipulating foton filter files.
+      description: |
+        `libfilterfile` is an interface for reading and writing foton filter files,
+        used at LIGO to encode filter coefficients.
+
+  - name: libfilterwiz
+    build:
+      ignore_run_exports:
+        - openssl
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - gds-base
+        - {{ pin_subpackage('libfilterfile', exact=True) }}
+        - openssl
+      run:
+        - gds-base
+        - {{ pin_subpackage('libfilterfile', exact=True) }}
+    files:
+      - include/foton/TLGFilter*.hh
+      - lib/libfilterwiz{{ SHLIB_EXT }}*
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libfilterwiz${SHLIB_EXT}  # [unix]
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Functions for creating foton-style filter design windows.
+      description: |
+        Other LIGO programs such as `awggui` and `diaggui` use `libfilterwiz` to create
+        `foton`-style filter design windows for one-off filters.
+
+  - name: libsistr
+    build:
+      ignore_run_exports:
+        - openssl
+    requirements:
+      build:
+        - {{ compiler('c') }}
+      host:
+        - gds-base
+        - {{ pin_subpackage('libawg', exact=True) }}
+        - {{ pin_subpackage('libtestpoint', exact=True) }}
+        - openssl
+      run:
+        - gds-base
+        - {{ pin_subpackage('libawg', exact=True) }}
+        - {{ pin_subpackage('libtestpoint', exact=True) }}
+    files:
+      - include/gds/dtt/SIStr.h
+      - lib/libSIStr{{ SHLIB_EXT }}*
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libSIStr${SHLIB_EXT}  # [unix]
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Library for sending arbitrary data as excitations using LIGO's awgtpman.
+      description: |
+        `libsistr` is a library used for streaming custom excitations.
+
+  - name: libtestpoint
+    build:
+      ignore_run_exports:
+        - openssl
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - gds-base
+        - openssl
+      run:
+        - gds-base
+    files:
+      - include/gds/dtt/testpoint*
+      - lib/libtestpoint{{ SHLIB_EXT }}*
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libtestpoint${SHLIB_EXT}  # [unix]
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Library for manipulating LIGO test points.
+      description: |
+        `libtestpoint` allows opening and closing of test points on the LIGO
+        real-time data acquisition system.
+
+  - name: crtools-gui-libraries
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - gds-base
+        - gds-base-crtools
+        - gds-gui-crtools
+        - {{ pin_subpackage('libdfm', exact=True) }}
+        - {{ pin_subpackage('libfantom', exact=True) }}
+        - root_base
+      run:
+        - gds-base
+        - gds-base-crtools
+        - gds-gui-crtools
+        - {{ pin_subpackage('libdfm', exact=True) }}
+        - {{ pin_subpackage('libfantom', exact=True) }}
+        - root_base
+    files:
+      - include/dmtview/
+      - include/dtt/dttgui/
+      - include/gds/dfm/dfmgui.hh
+      - include/gds/dfm/montype.hh
+      - include/gds/dfm/TLGDfmChannels.hh
+      - include/gds/dfm/TLGDfmMonitors.hh
+      - include/gds/dfm/TLGDfmSel.hh
+      - include/gds/dfm/TLGDfmServer.hh
+      - include/gds/dfm/TLGDfmTimes.hh
+      - include/gds/libdax/
+      - lib/libdfmgui{{ SHLIB_EXT }}*
+      - lib/libdmtview{{ SHLIB_EXT }}*
+      - lib/libdttgui{{ SHLIB_EXT }}*
+      - lib/liblidax{{ SHLIB_EXT }}*
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libdfmgui${SHLIB_EXT}  # [unix]
+        - test -f ${PREFIX}/lib/libdttgui${SHLIB_EXT}  # [unix]
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Common libraries used by LIGO control room graphical programs.
+      description: |
+        The gui libraries provide basic widgets to control room tools apps.
+
+  - name: crtools-root-libraries
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - gds-base
+        - {{ pin_subpackage('crtools-gui-libraries', exact=True) }}
+        - {{ pin_subpackage('libfilterfile', exact=True) }}
+        - root_base
+      run:
+        - {{ pin_subpackage('crtools-gui-libraries', exact=True) }}
+        - {{ pin_subpackage('libfilterfile', exact=True) }}
+        - root_base
+    files:
+      - lib/dmtview*.pcm
+      - lib/libRdmtview{{ SHLIB_EXT }}*
+      - lib/dttgui*.pcm
+      - lib/libRdttgui{{ SHLIB_EXT }}*
+      - lib/filterfile*.pcm
+      - lib/libRfilterfile{{ SHLIB_EXT }}*
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libRdttgui${SHLIB_EXT}  # [unix]
+        - root -b -l -x -q -e 'gSystem->Load("libRdttgui");'  # [linux]
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Common ROOT dictionary libraries used by LIGO control room programs.
+      description: |
+        ROOT dictionaries allow dynamic access to C++ objects.
+
+  # -- python libraries -----
+
+  - name: python-foton
+    script: build-python-foton.sh
+    build:
+      noarch: python
+    requirements:
+      build:
+        - cmake
+        - pkg-config
+      host:
+        - python
+        - root_base
+      run:
+        - {{ pin_subpackage('crtools-root-libraries', exact=True) }}
+        - gds-root-extensions-crtools
+        - numpy
+        - python
+        - root_base
+        - scipy
+        - {{ pin_subpackage('crtools-root-libraries', exact=True) }}
+    test:
+      source_files:
+        - src/python/foton/
+      commands:
+        - (cd src/python/foton/; python foton_test.py)
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Python bindings for foton functions
+      description: |
+        Library for design, inspection and manipulation of filters and
+        LIGO style filter files.
+
+  - name: python-awg
+    script: build-python-awg.sh
+    build:
+      noarch: python
+    requirements:
+      build:
+        - cmake
+        - pkg-config
+      host:
+        - python
+        - root_base
+      run:
+        - {{ pin_subpackage('libawg', exact=True) }}
+        - {{ pin_subpackage('libtestpoint', exact=True) }}
+        - {{ pin_subpackage('libsistr', exact=True) }}
+        - numpy
+        - python
+        - root_base
+        - scipy
+    test:
+      imports:
+        - awg
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Python bindings to libawg
+      description: |
+        Create excitations using LIGO\'s awgtpman using Python.
+        The awg module allows simple python scripting of excitations
+        on the LIGO data acquisition system.
+
+  # -- script packages ------
+
+  - name: chndump
+    requirements:
+      build:
+        - {{ compiler('c') }}
+      host:
+        - {{ pin_subpackage('libdtt', exact=True) }}
+      run:
+        - {{ pin_subpackage('libdtt', exact=True) }}
+    files:
+      - bin/chndump
+    test:
+      commands:
+        # chndump -h returns exit code 1 (command not found is 127)
+        - chndump -h || test $? -eq 1  # [unix]
+
+  - name: dmtviewer
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - gds-base
+        - gds-base-crtools
+        - gds-gui-crtools
+        - {{ pin_subpackage('crtools-gui-libraries', exact=True) }}
+        - root_base
+      run:
+        - gds-base
+        - gds-base-crtools
+        - gds-gui-crtools
+        - {{ pin_subpackage('crtools-gui-libraries', exact=True) }}
+        - root_base
+    files:
+      - bin/dmtviewer
+    test:
+      commands:
+        - dmtviewer -h
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Graphical program for viewing output of DMT monitors.
+      description: |
+        DMT viewer is used in LIGO control rooms to display DMT data.
+
+  - name: dtt-awggui
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - {{ pin_subpackage('crtools-gui-libraries', exact=True) }}
+        - gds-base
+        - gds-gui-crtools
+        - {{ pin_subpackage('libawg', exact=True) }}
+        - {{ pin_subpackage('libtestpoint', exact=True) }}
+        - root_base
+      run:
+        - {{ pin_subpackage('crtools-gui-libraries', exact=True) }}
+        - gds-base
+        - gds-gui-crtools
+        - {{ pin_subpackage('libawg', exact=True) }}
+        - {{ pin_subpackage('libtestpoint', exact=True) }}
+        - root_base
+    files:
+      - bin/awggui
+    test:
+      commands:
+        - awggui -h
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Graphical program for running excitations using LIGO's awgtpman.
+      description: |
+        `awggui` is an interface for creating excitations on LIGO's data
+        acquisition system, including many periodic functions, random noise
+        excitations, and custom user-defined excitations.
+
+  - name: dtt-awgstream
+    build:
+      ignore_run_exports:
+        - openssl
+    requirements:
+      build:
+        - {{ compiler('c') }}
+      host:
+        - {{ pin_subpackage('crtools-gui-libraries', exact=True) }}
+        - gds-base
+        - {{ pin_subpackage('libawg', exact=True) }}
+        - {{ pin_subpackage('libdtt', exact=True) }}
+        - {{ pin_subpackage('libsistr', exact=True) }}
+        - {{ pin_subpackage('libtestpoint', exact=True) }}
+        - openssl
+      run:
+        - {{ pin_subpackage('crtools-gui-libraries', exact=True) }}
+        - gds-base
+        - {{ pin_subpackage('libawg', exact=True) }}
+        - {{ pin_subpackage('libdtt', exact=True) }}
+        - {{ pin_subpackage('libsistr', exact=True) }}
+        - {{ pin_subpackage('libtestpoint', exact=True) }}
+    files:
+      - bin/awgstream
+      - bin/awgexc_run
+    test:
+      commands:
+        - awgstream
+        - awgexc_run || test $? -eq 1  # [unix]
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Stream arbitrary data as an excitation using LIGO's awgtpman.
+      description: |
+        Includes awgexec_run program for streaming excitations from Matlab.
+
+  - name: dtt-diag
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - {{ pin_subpackage('libdtt', exact=True) }}
+      run:
+        - {{ pin_subpackage('libdtt', exact=True) }}
+    files:
+      - bin/diag
+    test:
+      commands:
+        - diag -help
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Command line program for running LIGO's Diagnostics Test Tools
+      description: |
+        `diag` is suitable for scripting diagnostics test and excitations on LIGO's
+        real-time data acquisition system.
+
+  - name: dtt-diagd
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - {{ pin_subpackage('libdtt', exact=True) }}
+      run:
+        - {{ pin_subpackage('libdtt', exact=True) }}
+    files:
+      - bin/diagd
+    test:
+      commands:
+       - test -x ${PREFIX}/bin/diagd  # [unix]
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Daemon for running LIGO's Diagnostics Test Tools remotely
+      description: |
+        `diagd` is suitable for remotely running diagnostics test
+        and excitations on LIGO's real-time data acquisition system.
+
+  - name: dtt-diaggui
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - gds-base
+        - gds-gui-crtools
+        - {{ pin_subpackage('crtools-gui-libraries', exact=True) }}
+        - {{ pin_subpackage('libdfm', exact=True) }}
+        - {{ pin_subpackage('libdtt', exact=True) }}
+        - {{ pin_subpackage('libfantom', exact=True) }}
+        - root_base
+      run:
+        - gds-base
+        - gds-gui-crtools
+        - {{ pin_subpackage('crtools-gui-libraries', exact=True) }}
+        - {{ pin_subpackage('libdfm', exact=True) }}
+        - {{ pin_subpackage('libdtt', exact=True) }}
+        - {{ pin_subpackage('libfantom', exact=True) }}
+        - root_base
+    files:
+      - bin/diaggui
+    test:
+      commands:
+       - diaggui -h
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Graphical program for running LIGO's Diagnostics Test Tools.
+      description: |
+        `diaggui` is a user interface for running diagnostics tests, creating
+        excitations, calculating results on LIGO's real time system data
+        acquisition system.
+
+  - name: dtt-monitors
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+    files:
+      - bin/InspiralRange
+    test:
+      commands:
+        - echo -e "10 1e-21\n50 1e-22\n100 1e-23\n200 1e-22" | InspiralRange 4000
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Monitors used in LIGO control rooms.
+      description: |
+        Monitors include InspiralRange.
+
+  - name: dtt-multiawgstream
+    requirements:
+      build:
+        - {{ compiler('c') }}
+      host:
+        - gds-base
+        - {{ pin_subpackage('libawg', exact=True) }}
+        - {{ pin_subpackage('libdtt', exact=True) }}
+        - {{ pin_subpackage('libtestpoint', exact=True) }}
+      run:
+        - gds-base
+        - {{ pin_subpackage('libawg', exact=True) }}
+        - {{ pin_subpackage('libdtt', exact=True) }}
+        - {{ pin_subpackage('libtestpoint', exact=True) }}
+    files:
+      - bin/multiawgstream
+    test:
+      commands:
+        - multiawgstream
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Stream multiple arbitrary data sets as excitations using LIGO's awgtpman.
+      description: |
+        Stream arbitrary data to multiple exciatation channels at once on
+        LIGO's real-time data acquisition system.
+
+  - name: dtt-tpcmd
+    requirements:
+      build:
+        - {{ compiler('c') }}
+      host:
+        - {{ pin_subpackage('libtestpoint', exact=True) }}
+      run:
+        - {{ pin_subpackage('libtestpoint', exact=True) }}
+    files:
+      - bin/tpcmd
+    test:
+      commands:
+        - tpcmd -h || test $? -eq 1  # [unix]
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Command line tool for manipulating test points using LIGO's awgtpman.
+      description: |
+        Close and open test points on LIGO's real-time data acquisition system
+
+  - name: dtt-xml-tools
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - gds-base
+        - {{ pin_subpackage('libdtt', exact=True) }}
+        - {{ pin_subpackage('libtestpoint', exact=True) }}
+      run:
+        - gds-base
+        - {{ pin_subpackage('libdtt', exact=True) }}
+        - {{ pin_subpackage('libtestpoint', exact=True) }}
+    files:
+      - bin/xmlconv
+      - bin/xmldata
+      - bin/xmldir
+    test:
+      commands:
+        - xmlconv -h
+        - xmldata -h
+        - xmldir -h
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Command line tools for XML files produced using DTT.
+      description: |
+        Includes xmlconv, xmldata, and xmldir.  Files can be produced by diag or diaggui.
+
+  - name: fantom
+    requirements:
+      build:
+        - {{ compiler('c') }}
+      host:
+        - {{ pin_subpackage('libfantom', exact=True) }}
+      run:
+        - {{ pin_subpackage('libfantom', exact=True) }}
+    files:
+      - bin/fantom
+    test:
+      commands:
+        - fantom -h || test $? -eq 1  # [unix]
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Command-line program for translation of LIGO frame and NDS data.
+      description: |
+        `fantom` can be used to translate from different LIGO data formats.
+
+  - name: foton
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - {{ pin_subpackage('crtools-gui-libraries', exact=True) }}
+        - gds-base
+        - {{ pin_subpackage('libfilterfile', exact=True) }}
+        - {{ pin_subpackage('libfilterwiz', exact=True) }}
+        - root_base
+      run:
+        - {{ pin_subpackage('crtools-gui-libraries', exact=True) }}
+        - gds-base
+        - {{ pin_subpackage('libfilterfile', exact=True) }}
+        - {{ pin_subpackage('libfilterwiz', exact=True) }}
+        - root_base
+    files:
+      - bin/foton
+    test:
+      commands:
+        - foton -h
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Graphical program for designing and generating filters.
+      description: |
+        `foton` is used at LIGO to design and display filters,
+        then generate filter files usable by the LIGO real-time
+        data acquisition system.
+        A variety of design strategies are supported.
+
+  - name: lidax
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        - {{ pin_subpackage('crtools-gui-libraries', exact=True) }}
+        - gds-base
+        - {{ pin_subpackage('libdfm', exact=True) }}
+        - root_base
+      run:
+        - {{ pin_subpackage('crtools-gui-libraries', exact=True) }}
+        - gds-base
+        - {{ pin_subpackage('libdfm', exact=True) }}
+        - root_base
+    files:
+      - bin/lidax
+      - bin/udnls
+    test:
+      commands:
+        - lidax -h
+        - lidax -H NDSSERVER
+        - udnls -h
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: Graphical program for retrieving LIGO data.
+      description: |
+        lidax reads LIGO frame files.
+
+  # -- metapackage ----------
+
+  - name: cds-crtools
+    requirements:
+      host:
+        - python
+      run:
+        - python
+        # all of the outputs
+        - {{ pin_subpackage('chndump', exact=True) }}
+        - {{ pin_subpackage('dmtviewer', exact=True) }}
+        - {{ pin_subpackage('dtt-diag', exact=True) }}
+        - {{ pin_subpackage('dtt-diagd', exact=True) }}
+        - {{ pin_subpackage('dtt-diaggui', exact=True) }}
+        - {{ pin_subpackage('dtt-awggui', exact=True) }}
+        - {{ pin_subpackage('dtt-awgstream', exact=True) }}
+        - {{ pin_subpackage('dtt-multiawgstream', exact=True) }}
+        - {{ pin_subpackage('dtt-tpcmd', exact=True) }}
+        - {{ pin_subpackage('dtt-xml-tools', exact=True) }}
+        - {{ pin_subpackage('foton', exact=True) }}
+        - {{ pin_subpackage('lidax', exact=True) }}
+        - {{ pin_subpackage('python-awg', exact=True) }}
+        - {{ pin_subpackage('python-foton', exact=True) }}
+    test:
+      commands:
+        - diaggui -h
+        - foton -h
+    about:
+      home: https://git.ligo.org/cds/dtt
+      dev_url: https://git.ligo.org/cds/dtt.git
+      license: GPL-2.0-or-later
+      license_family: GPL
+      license_file:
+        - COPYING
+        - COPYING-GPL-3
+      summary: CDS Control Room tools
+      description: |
+        cds-crtools is a metapackage that installs several programs
+        used to control LIGO-style interfrometers. The package includes
+        `diag`, `diagd`, `diaggui`, `awggui`, `tpcmd`, `chndump`
+        along with `foton`, the filter design program, and others.
+
+about:
+  home: https://git.ligo.org/cds/dtt
+  dev_url: https://git.ligo.org/cds/dtt.git
+  license: GPL-2.0-or-later
+  license_family: GPL
+  license_file:
+    - COPYING
+    - COPYING-GPL-3
+  summary: CDS Control Room tools
+
+extra:
+  feedstock-name: cds-crtools
+  recipe-maintainers:
+    - duncanmmacleod
+    - evonreis
