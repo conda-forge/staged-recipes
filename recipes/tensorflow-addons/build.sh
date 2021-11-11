@@ -40,7 +40,6 @@ python ./configure.py
 # ironically, configure.py cannot be configured, so sed it is...
 sed -i'' -e "s:TF_HEADER_DIR=.*:TF_HEADER_DIR=\"$PREFIX/include\":" \
     -e "s:TF_SHARED_LIBRARY_DIR=.*:TF_SHARED_LIBRARY_DIR=\"$PREFIX/lib\":" \
-    -e "s:TF_SHARED_LIBRARY_NAME=.*:TF_SHARED_LIBRARY_NAME=\"libtensorflow.so\":" \
     .bazelrc
 # show result (& sleep to allow log to catch up)
 cat .bazelrc
