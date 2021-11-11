@@ -22,7 +22,7 @@ cmake \
 cmake --build . --parallel ${CPU_COUNT} --verbose
 
 # test
-if [[ $build_platform == $target_platform ]]; then
+if [[ $build_platform == $target_platform || $target_platform == linux-* ]]; then
 	ctest --parallel ${CPU_COUNT} --verbose
 fi
 
