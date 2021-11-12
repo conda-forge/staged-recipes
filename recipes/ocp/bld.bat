@@ -6,7 +6,7 @@ set CONDA_PREFIX=%PREFIX%
 
 if errorlevel 1 exit 1
 
-cmake --build build -- -j%CPU_COUNT%
+cmake --build build
 
 if errorlevel 1 exit 1
 
