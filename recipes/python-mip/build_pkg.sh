@@ -9,6 +9,9 @@ export SETUPTOOLS_SCM_PRETEND_VERSION="$PKG_VERSION"
 export PMIP_CBC_LIBRARY=$PREFIX/lib/libCbc${SHLIB_EXT}
 python -m pip install . -vv
 
+# debug
+python -c "import mip; print('Successfully could import mip!')"
+
 # take care of activation scripts;
 # from https://conda-forge.org/docs/maintainer/adding_pkgs.html#activate-scripts
 
