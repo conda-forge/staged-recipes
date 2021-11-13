@@ -11,6 +11,7 @@ python -m pip install . -vv
 
 # debug
 python -c "import mip; print('Successfully could import mip!')"
+python -c "import mip; print(mip.__file__)"
 
 # take care of activation scripts;
 # from https://conda-forge.org/docs/maintainer/adding_pkgs.html#activate-scripts
