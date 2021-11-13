@@ -15,8 +15,6 @@ if [[ "$target_platform" == win* ]]; then
     CXXFLAGS="$CXXFLAGS -std=c++17"
 fi
 
-cd gmpxxll
-
 # Get an updated config.sub and config.guess
 cp $BUILD_PREFIX/share/gnuconfig/config.* .
 
