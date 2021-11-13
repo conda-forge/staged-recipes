@@ -13,10 +13,10 @@ fi
 if [[ "$target_platform" == win* ]]; then
     cp $PREFIX/lib/gmp.lib $PREFIX/lib/gmpxx.lib
     CXXFLAGS="$CXXFLAGS -std=c++17"
+else
+    # Get an updated config.sub and config.guess
+    cp $BUILD_PREFIX/share/gnuconfig/config.* .
 fi
-
-# Get an updated config.sub and config.guess
-cp $BUILD_PREFIX/share/gnuconfig/config.* .
 
 ./configure --prefix="$PREFIX" --without-benchmark || (cat config.log; false)
 [[ "$target_platform" == "win-64" ]] && patch_libtool
