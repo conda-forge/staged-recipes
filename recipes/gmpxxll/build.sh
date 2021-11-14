@@ -18,9 +18,6 @@ else
     cp $BUILD_PREFIX/share/gnuconfig/config.* .
 fi
 
-# This line can be dropped once the patches have been upstreamed.
-autoreconf -ivf
-
 ./configure --prefix="$PREFIX" --without-benchmark || (cat config.log; false)
 
 make -j${CPU_COUNT}
