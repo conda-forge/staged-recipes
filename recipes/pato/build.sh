@@ -12,6 +12,7 @@ if [ "$(uname)" = "Darwin" ]; then
     hdiutil attach -mountpoint volume pato_releases_conda.sparsebundle
     # get OpenFOAM src
     mv src/* volume/
+    rm -rf src
     cd $SRC_DIR/volume/OpenFOAM
     tar xvf OpenFOAM-7.tar
     # compile ParMGridGen
@@ -31,5 +32,7 @@ if [ "$(uname)" = "Darwin" ]; then
     cd PATO-dev-2.3.1
     export PATO_DIR=$PWD
     source bashrc
+    lib_name=$PATO_DIR/src/thirdParty/mutation++/install/lib/libmutation++.dylib
+    install_name_tool -id $lib_name $lib_name
     ./Allwmake
 fi
