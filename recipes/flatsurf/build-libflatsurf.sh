@@ -24,9 +24,6 @@ cp $BUILD_PREFIX/share/gnuconfig/config.* .
 [[ "$target_platform" == "win-64" ]] && patch_libtool
 
 make -j${CPU_COUNT}
-if [[ "${CONDA_BUILD_CROSS_COMPILATION}" != "1" ]]; then
-make check || (cat test/test-suite.log; false)
-fi
 make install
 
 if [[ "$target_platform" == win* ]]; then
