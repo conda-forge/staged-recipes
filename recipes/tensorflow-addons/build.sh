@@ -45,7 +45,8 @@ sed -i'' -e "s:TF_HEADER_DIR=.*:TF_HEADER_DIR=\"$PREFIX/include\":" \
 cat .bazelrc
 sleep 2
 
-bazel build build_pip_pkg
+# use conda-forge wrapper for bazel, called bazel-toolchain
+bazel-toolchain build build_pip_pkg
 
 # build a whl file
 mkdir -p $SRC_DIR/tf_addons_pkg
