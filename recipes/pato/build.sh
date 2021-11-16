@@ -25,14 +25,18 @@ if [ "$(uname)" = "Darwin" ]; then
     cd $SRC_DIR/volume/OpenFOAM/OpenFOAM-7
     source etc/bashrc
     ./Allwmake
-    # compile PATO-2.3.1
+    # get PATO-2.3.1
     cd $SRC_DIR/volume/PATO
     rm -rf PATO-dev-2.3.1
     tar xvf PATO-dev-2.3.1.tar.gz
     cd PATO-dev-2.3.1
     export PATO_DIR=$PWD
     source bashrc
+    # Patch for PATO-dev-2.3.1
     lib_name=$PATO_DIR/src/thirdParty/mutation++/install/lib/libmutation++.dylib
     install_name_tool -id $lib_name $lib_name
+    # Compite PATO-dev-2.3.1
     ./Allwmake
+    # Move the executables and libraries to $PREFIX
+    python move_exec.py
 fi
