@@ -4,41 +4,30 @@ set -ex
 
 export CC="$PREFIX/bin/mpicc" FC="$PREFIX/bin/mpifort" CXX="$PREFIX/bin/mpicxx"
 
-INC_PATHS=()
-LIB_PATHS=()
-LIBS=("-lscalapack" "-llapack" "-lblas")
-if [[ "${elpa:-vendor}" = "vendor" ]]; then
-  ELPA_OPT="-DUSE_EXTERNAL_ELPA=OFF"
-else
-  ELPA_OPT="-DUSE_EXTERNAL_ELPA=ON"
-  INC_PATHS=($(pkg-config elpa --cflags-only-I | sed s+-I++g) "${INC_PATH[@]}")
-  LIB_PATHS=($(pkg-config elpa --libs-only-L) "${LIB_PATHS[@]}")
-  LIBS=($(pkg-config elpa --libs-only-l) "${LIBS[@]}")
-fi
-
-if [[ "${ntpoly:-vendor}" = "vendor" ]]; then
-  NTPOLY_OPT="-DUSE_EXTERNAL_NTPOLY=OFF"
-else
-  NTPOLY_OPT="-DUSE_EXTERNAL_NTPOLY=ON"
-  LIBS=("-lNTPoly" "${LIBS[@]}")
-fi
-
-if [[ "${omm:-vendor}" = "vendor" ]]; then
-  OMM_OPT="-DUSE_EXTERNAL_OMM=OFF"
-else
-  OMM_OPT="-DUSE_EXTERNAL_OMM=ON"
-  INC_PATHS=($(pkg-config libOMM MatrixSwitch --cflags-only-I | sed s+-I++g) "${INC_PATHS[@]}")
-  LIB_PATHS=($(pkg-config libOMM MatrixSwitch --libs-only-L) "${LIB_PATHS[@]}")
-  LIBS=($(pkg-config libOMM MatrixSwitch --libs-only-l) "${LIBS[@]}")
-fi
+INC_PATHS=(
+  $(pkg-config elpa_openmp --cflags-only-I | sed s+-I++g)
+  $(pkg-config libOMM MatrixSwitch --cflags-only-I | sed s+-I++g)
+)
+LIB_PATHS=(
+  $(pkg-config elpa_openmp --libs-only-L)
+  $(pkg-config libOMM MatrixSwitch --libs-only-L)
+)
+LIBS=(
+  $(pkg-config elpa_openmp --libs-only-l)
+  "-lNTPoly"
+  $(pkg-config libOMM MatrixSwitch --libs-only-l)
+  "-lscalapack"
+  "-llapack"
+  "-lblas"
+)
 
 cmake_options=(
   ${CMAKE_ARGS}
   "-DCMAKE_Fortran_COMPILER=$FC"
   "-DCMAKE_C_COMPILER=$CC"
-  "${ELPA_OPT}"
-  "${NTPOLY_OPT}"
-  "${OMM_OPT}"
+  "-DUSE_EXTERNAL_ELPA=ON"
+  "-DUSE_EXTERNAL_NTPOLY=ON"
+  "-DUSE_EXTERNAL_OMM=ON"
   "-DBUILD_SHARED_LIBS=ON"
   "-DLIBS=${LIBS[*]// /;}"
   "-DLIB_PATHS=${LIB_PATHS[*]// /;}"
