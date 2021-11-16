@@ -32,10 +32,14 @@ if [ "$(uname)" = "Darwin" ]; then
     cd PATO-dev-2.3.1
     export PATO_DIR=$PWD
     source bashrc
-    # Patch for PATO-dev-2.3.1
-    lib_name=$PATO_DIR/src/thirdParty/mutation++/install/lib/libmutation++.dylib
-    install_name_tool -id $lib_name $lib_name
-    # Compite PATO-dev-2.3.1
+    # Patch PATO-dev-2.3.1
+    sed -ie '12 a\
+    if [ "$(uname)" = "Darwin" ]; then\
+       lib_name=$PATO_DIR/src/thirdParty/mutation++/install/lib/libmutation++.dylib\
+       install_name_tool -id $lib_name $lib_name\
+    fi
+' Allwmake
+    # Compile PATO-dev-2.3.1
     ./Allwmake
     # Move the executables and libraries to $PREFIX
     python move_exec.py
