@@ -1,25 +1,7 @@
 #!/bin/bash
 
 echo "selected_scheme scheme-full
-TEXDIR $PREFIX
-TEXMFLOCAL $PREFIX/texmf-local
-TEXMFSYSVAR $PREFIX/texmf-var
-TEXMFSYSCONFIG $PREFIX/texmf-config
-TEXMFVAR $PREFIX/texmf-var
-TEXMFCONFIG $PREFIX/texmf-config
-TEXMFHOME $PREFIX/texmf-local
-instopt_adjustpath 1
-instopt_adjustrepo 1
-instopt_write18_restricted 1
-tlpdbopt_create_formats 1
-tlpdbopt_desktop_integration 0
-tlpdbopt_file_assocs 1
-tlpdbopt_generate_updmap 0
-tlpdbopt_install_docfiles 0
-tlpdbopt_install_srcfiles 0
-11tlpdbopt_sys_bin $PREFIX/bin
-tlpdbopt_sys_info $PREFIX/info
-tlpdbopt_sys_man $PREFIX/man" > texlive-profile
+TEXDIR $PREFIX" > texlive-profile
 
 ./install-tl -profile texlive-profile
 
