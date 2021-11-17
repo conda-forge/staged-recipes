@@ -44,4 +44,5 @@ if [ "$(uname)" = "Darwin" ]; then
     # Move the executables and libraries to $PREFIX
     cd $SRC_DIR
     python move_exec.py
+    hdiutil detach volume
 fi
