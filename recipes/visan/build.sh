@@ -12,5 +12,5 @@ cmake $CMAKE_ARGS \
   -DCMAKE_OSX_SYSROOT="${SDKROOT}" \
   ..
 
-make -j$CPU_COUNT VERBOSE=1
+make -j$CPU_COUNT
 make install
