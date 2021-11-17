@@ -17,12 +17,11 @@ tlpdbopt_file_assocs 1
 tlpdbopt_generate_updmap 0
 tlpdbopt_install_docfiles 0
 tlpdbopt_install_srcfiles 0
-tlpdbopt_post_code 1
-tlpdbopt_sys_bin $PREFIX/bin
+11tlpdbopt_sys_bin $PREFIX/bin
 tlpdbopt_sys_info $PREFIX/info
 tlpdbopt_sys_man $PREFIX/man" > texlive-profile
 
-./install-tl -profile texlive-profile
+./install-tl -profile tlpkg/texlive.profile
 
 cd $PREFIX/bin
 # The installer places symlinks to binaries in the $PREFIX/bin folder
