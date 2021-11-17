@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e  # exit when any command fails
+set -x # show the commands
 
 echo -e "\n### TESTING PATO ###\n"
 which runtests

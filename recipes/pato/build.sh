@@ -37,10 +37,11 @@ if [ "$(uname)" = "Darwin" ]; then
     if [ "$(uname)" = "Darwin" ]; then\
        lib_name=$PATO_DIR/src/thirdParty/mutation++/install/lib/libmutation++.dylib\
        install_name_tool -id $lib_name $lib_name\
-    fi
+    fi\
 ' Allwmake
     # Compile PATO-dev-2.3.1
     ./Allwmake
     # Move the executables and libraries to $PREFIX
+    cd $SRC_DIR
     python move_exec.py
 fi
