@@ -4,7 +4,7 @@ set -xeuf
 
 pushd src/
 
-source OpenFOAM-v2106/etc/bashrc
+source src/OpenFOAM-v2106/etc/bashrc
 
 foamSystemCheck
 
