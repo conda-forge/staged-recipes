@@ -1,0 +1,76 @@
+{% set name = "elsi" %}
+{% set version = "2.7.1" %}
+{% set build = 0 %}
+{% set mpi = mpi or "mpich" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://gitlab.com/elsi_project/elsi_interface/-/archive/v{{ version }}/elsi_interface-v{{ version }}.tar.gz
+  sha256: 64034014fa62d3d87dbc6be286782dd61fd2a3a574ab2e45341d6dcdc12e8340
+
+build:
+  number: {{ build }}
+  skip: True  # [win]
+
+  {% set mpi_prefix = "mpi_" + mpi %}
+  string: "{{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}"
+
+  run_exports:
+    - {{ name|lower }} * {{ mpi_prefix }}_*
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('fortran') }}
+    - cmake
+    - ninja
+    - pkg-config
+    - llvm-openmp  # [osx]
+    - libgomp  # [linux]
+  host:
+    - {{ mpi }}
+    - libomm * {{ mpi_prefix }}_*
+    - matrixswitch * {{ mpi_prefix }}_*
+    - elpa * {{ mpi_prefix }}_*
+    - ntpoly * {{ mpi_prefix }}_*
+    - scalapack
+    - libblas
+    - liblapack
+  run:
+    - {{ mpi }}
+    - libomm * {{ mpi_prefix }}_*
+    - matrixswitch * {{ mpi_prefix }}_*
+    - elpa * {{ mpi_prefix }}_*
+    - ntpoly * {{ mpi_prefix }}_*
+    - scalapack
+
+
+test:
+  requires:
+    - pkg-config
+  commands:
+    - pkg-config {{ name }} --exact-version {{ version }}
+    - test -f $PREFIX/include/{{ name }}.h
+    - test -f $PREFIX/include/{{ name }}.mod
+    - test -f $PREFIX/lib/lib{{ name }}${SHLIB_EXT}
+
+about:
+  home: https://wordpress.elsi-interchange.org/
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file:
+    - LICENSE
+    # FortJSON is BSD-3-Clause, but developed by the ELSI team
+    # https://gitlab.com/elsi_project/elsi_interface/-/issues/52
+    - external/FortJSON/LICENSE
+  summary: >-
+    Unified software interface designed for electronic structure codes to connect
+    with various high-performance eigensolvers and density matrix solvers.
+  dev_url: https://gitlab.com/elsi_project/elsi_interface
+
+extra:
+  recipe-maintainers:
+    - awvwgk
