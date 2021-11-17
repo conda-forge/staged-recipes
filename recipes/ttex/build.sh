@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "selected_scheme scheme-small
+echo "selected_scheme scheme-full
 TEXDIR $PREFIX
 TEXMFLOCAL $PREFIX/texmf-local
 TEXMFSYSVAR $PREFIX/texmf-var
@@ -21,7 +21,7 @@ tlpdbopt_install_srcfiles 0
 tlpdbopt_sys_info $PREFIX/info
 tlpdbopt_sys_man $PREFIX/man" > texlive-profile
 
-./install-tl -profile tlpkg/texlive.profile
+./install-tl -profile texlive-profile
 
 cd $PREFIX/bin
 # The installer places symlinks to binaries in the $PREFIX/bin folder
