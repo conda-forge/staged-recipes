@@ -1,11 +1,9 @@
 #!/bin/bash
 
-foamSystemCheck
-
 source src/OpenFOAM-v2106/etc/bashrc
 
-foamSystemCheck
+# foamSystemCheck
 
-foam
+# foam
 
-./Allwmake -s -l
+# ./Allwmake -s -l
