@@ -1,8 +1,6 @@
 #!/bin/bash
 
-set -x
-
-export LD_LIBRARY_PATH=${PREFIX}/lib
+foamSystemCheck
 
 source src/OpenFOAM-v2106/etc/bashrc
 
