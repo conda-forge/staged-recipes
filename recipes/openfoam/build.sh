@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -xeuf
+set -e
+set -x
 
 source src/OpenFOAM-v2106/etc/bashrc
 
