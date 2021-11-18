@@ -1,6 +1,8 @@
 #!/bin/bash
 
-source src/OpenFOAM-v2106/etc/bashrc
+echo "Hello!"
+
+# source src/OpenFOAM-v2106/etc/bashrc
 
 # foamSystemCheck
 
