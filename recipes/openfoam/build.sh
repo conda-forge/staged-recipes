@@ -358,8 +358,177 @@ fi
 # Cleanup temporary information
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+echo "hello!!!!"
+
 # Unload shell functions
-. "$WM_PROJECT_DIR/etc/config.sh/functions"
+# . "$WM_PROJECT_DIR/etc/config.sh/functions"
+if [ -z "$WM_SHELL_FUNCTIONS" ]
+then
+    # Not previously loaded/defined - define now
+
+    # Temporary environment variable to track loading/unloading of functions
+    WM_SHELL_FUNCTIONS=loaded
+
+    # Cleaning environment variables
+    foamClean="$WM_PROJECT_DIR/bin/foamCleanPath"
+
+    # Cleaning environment variables
+    unset -f _foamClean 2>/dev/null
+    _foamClean()
+    {
+         foamVar_name="$1"
+         shift
+         eval "$($foamClean -sh-env="$foamVar_name" "$@")"
+         unset "foamVar_name"
+    }
+
+    # Echo values to stderr when FOAM_VERBOSE is on, no-op otherwise
+    # Source an etc file, possibly with some verbosity
+    # - use eval to avoid intermediate variables (ksh doesn't have 'local')
+    unset -f _foamEcho 2>/dev/null
+    unset -f _foamEtc 2>/dev/null
+    if [ -n "$FOAM_VERBOSE" ] && [ -n "$PS1" ]
+    then
+        _foamEcho() { echo "$@" 1>&2; }
+        _foamEtc() {
+            eval "$("$WM_PROJECT_DIR"/bin/foamEtcFile -sh-verbose "$@")";
+        }
+    else
+        _foamEcho() { true; }
+        _foamEtc() {
+            eval "$("$WM_PROJECT_DIR"/bin/foamEtcFile -sh "$@")";
+        }
+    fi
+
+    # Prepend PATH
+    unset -f _foamAddPath 2>/dev/null
+    _foamAddPath()
+    {
+        [ -n "$1" ] && export PATH="$1:$PATH"
+    }
+
+    # Prepend MANPATH
+    unset -f _foamAddMan 2>/dev/null
+    _foamAddMan()
+    {
+        [ -n "$1" ] && export MANPATH="$1:$MANPATH"
+    }
+
+    # Prepend LD_LIBRARY_PATH
+    unset -f _foamAddLib 2>/dev/null
+    _foamAddLib()
+    {
+        [ -n "$1" ] && export LD_LIBRARY_PATH="$1:$LD_LIBRARY_PATH"
+    }
+
+    # Prepend to LD_LIBRARY_PATH with additional checking
+    # $1 = base directory for 'lib' or 'lib64'
+    # $2 = fallback libname ('lib' or 'lib64')
+    #
+    # 0) Skip entirely if directory ends in "-none" or "-system".
+    #    These special cases (disabled, system directories) should not require
+    #    adjustment of LD_LIBRARY_PATH
+    # 1) Check for dir/lib64 and dir/lib
+    # 2) Use fallback if the previous failed
+    #
+    # Return 0 on success
+    unset -f _foamAddLibAuto 2>/dev/null
+    _foamAddLibAuto()
+    {
+        # Note ksh does not have 'local' thus these ugly variable names
+        foamVar_prefix="$1"
+        foamVar_end="${1##*-}"
+
+        # Do not add (none) or a system directory
+        if [ -z "$foamVar_prefix" ] || [ "$foamVar_end" = none ] || [ "$foamVar_end" = system ]
+        then
+            unset foamVar_prefix foamVar_end
+            return 1
+        elif [ -d "$foamVar_prefix" ]
+        then
+            for foamVar_end in lib$WM_COMPILER_LIB_ARCH lib
+            do
+                if [ -d "$foamVar_prefix/$foamVar_end" ]
+                then
+                    export LD_LIBRARY_PATH="$foamVar_prefix/$foamVar_end:$LD_LIBRARY_PATH"
+                    unset foamVar_prefix foamVar_end
+                    return 0
+                fi
+            done
+        fi
+
+        # Use fallback. Add without checking existence of the directory
+        foamVar_end=$2
+        if [ -n "$foamVar_end" ]
+        then
+            case "$foamVar_end" in
+            /*)     # An absolute path
+                export LD_LIBRARY_PATH="$foamVar_end:$LD_LIBRARY_PATH"
+                ;;
+            (*)     # Relative to prefix
+                export LD_LIBRARY_PATH="$foamVar_prefix/$foamVar_end:$LD_LIBRARY_PATH"
+                ;;
+            esac
+            unset foamVar_prefix foamVar_end
+            return 0
+        fi
+
+        unset foamVar_prefix foamVar_end
+        return 1    # Nothing set
+    }
+
+
+    # Special treatment for Darwin
+    # - DYLD_LIBRARY_PATH instead of LD_LIBRARY_PATH
+    if [ "$(uname -s 2>/dev/null)" = Darwin ]
+    then
+        unset -f _foamAddLib _foamAddLibAuto 2>/dev/null
+
+        # Prepend DYLD_LIBRARY_PATH
+        _foamAddLib()
+        {
+            [ -n "$1" ] && export DYLD_LIBRARY_PATH="$1:$DYLD_LIBRARY_PATH"
+        }
+
+        # Prepend to DYLD_LIBRARY_PATH with additional checking
+        # - use lib-dir script instead of rewriting
+        _foamAddLibAuto()
+        {
+            eval "$("$WM_PROJECT_DIR"/bin/tools/lib-dir -sh "$@")";
+        }
+    fi
+
+
+    #--------------------------------------------------------------------------
+    # Avoid any ThirdParty settings that may have 'leaked' into the environment
+
+    unset MPI_ARCH_PATH
+    unset ADIOS_ARCH_PATH
+    unset ADIOS1_ARCH_PATH
+    unset ADIOS2_ARCH_PATH
+    unset BOOST_ARCH_PATH
+    unset CCMIO_ARCH_PATH
+    unset CGAL_ARCH_PATH
+    unset FFTW_ARCH_PATH
+    unset GPERFTOOLS_ARCH_PATH
+    unset GMP_ARCH_PATH
+    unset MPFR_ARCH_PATH
+    unset LLVM_ARCH_PATH
+    unset MESA_ARCH_PATH
+    unset METIS_ARCH_PATH
+    unset SCOTCH_ARCH_PATH
+
+else
+    # Was previously loaded/defined - now unset
+
+    unset -f _foamAddPath _foamAddMan _foamAddLib _foamAddLibAuto 2>/dev/null
+    unset -f _foamClean _foamEcho _foamEtc 2>/dev/null
+    unset foamClean
+    unset WM_SHELL_FUNCTIONS
+
+fi
+
+
 
 # Variables (done as the last statement for a clean exit code)
 unset cleaned foamOldDirs foundDir prefixDir
