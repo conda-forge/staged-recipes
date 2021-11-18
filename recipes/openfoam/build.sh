@@ -4,6 +4,6 @@ set -x
 
 cd foam
 
-. foam/OpenFOAM-v2106/etc/bashrc
+. OpenFOAM-v2106/etc/bashrc
 
 foam
