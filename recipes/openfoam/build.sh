@@ -2,8 +2,10 @@
 
 set -x
 
-cd foam
+mv foam $HOME/foam
 
-. OpenFOAM-v2106/etc/bashrc
+cd $HOME/foam
+
+. $HOME/foam/OpenFOAM-v2106/etc/bashrc
 
 foam
