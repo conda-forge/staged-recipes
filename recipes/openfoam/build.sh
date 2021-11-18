@@ -7,8 +7,7 @@ set -x
 # $CONDA_PREFIX/etc/conda/activate.d/activate-gfortran_linux-64.sh
 # $CONDA_PREFIX/etc/conda/activate.d/activate-binutils_linux-64.sh
 
-mkdir $HOME/openfoam
-mv foam $HOME/openfoam
+mv foam $HOME/
 
 cd $CONDA_PREFIX/bin/
 ln -s x86_64-conda_cos6-linux-gnu-gcc gcc
