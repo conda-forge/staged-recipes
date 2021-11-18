@@ -7,6 +7,9 @@ set -x
 # $CONDA_PREFIX/etc/conda/activate.d/activate-gfortran_linux-64.sh
 # $CONDA_PREFIX/etc/conda/activate.d/activate-binutils_linux-64.sh
 
+mkdir $HOME/openfoam
+mv foam $HOME/openfoam
+
 cd $CONDA_PREFIX/bin/
 ln -s x86_64-conda_cos6-linux-gnu-gcc gcc
 ln -s x86_64-conda_cos6-linux-gnu-g++ g++
@@ -20,8 +23,7 @@ ln -s x86_64-conda_cos6-linux-gnu-ld.bfd ld.bfd
 ln -s x86_64-conda_cos6-linux-gnu-ld.gold ld.gold
 ln -s x86_64-conda_cos6-linux-gnu-ar ar
 
-mkdir $HOME/openfoam
-mv foam $HOME/openfoam
+
 cd $HOME/openfoam
 
 # git clone https://github.com/OpenFOAM/OpenFOAM-8.git
