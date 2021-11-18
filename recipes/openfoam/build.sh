@@ -2,7 +2,7 @@
 
 echo "Hello!"
 
-# source src/OpenFOAM-v2106/etc/bashrc
+cat src/OpenFOAM-v2106/etc/bashrc
 
 # foamSystemCheck
 
