@@ -23,7 +23,7 @@ ln -s x86_64-conda_cos6-linux-gnu-ld.gold ld.gold
 ln -s x86_64-conda_cos6-linux-gnu-ar ar
 
 
-cd $HOME/openfoam
+cd $HOME/foam
 
 # git clone https://github.com/OpenFOAM/OpenFOAM-8.git
 # git clone https://github.com/OpenFOAM/ThirdParty-8.git
