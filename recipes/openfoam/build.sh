@@ -2,8 +2,6 @@
 
 echo "Hello!"
 
-cd src/OpenFOAM-v2106/etc/
-
 # [WM_PROJECT_VERSION] - A human-readable version name
 # A development version is often named 'com' - as in www.openfoam.com
 export WM_PROJECT_VERSION=v2106
@@ -118,7 +116,7 @@ foamOldDirs="$WM_PROJECT_DIR $WM_THIRD_PARTY_DIR \
     $FOAM_MODULE_APPBIN $FOAM_MODULE_LIBBIN"
 
 # [WM_PROJECT_DIR] - Location of this OpenFOAM version
-export WM_PROJECT_DIR="$projectDir"
+export WM_PROJECT_DIR=src/OpenFOAM-v2106
 
 # [WM_PROJECT_USER_DIR] - Location of user files
 export WM_PROJECT_USER_DIR="$HOME/$WM_PROJECT/$USER-$WM_PROJECT_VERSION"
@@ -144,8 +142,9 @@ fi
 # Cleanup variables (done as final statement for a clean exit code)
 unset foamOldDirs projectDir
 
-cd ..
+cd src/OpenFOAM-v2106
 
+ls
 
 # foamSystemCheck
 
