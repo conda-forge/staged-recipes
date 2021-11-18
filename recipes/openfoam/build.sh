@@ -61,9 +61,9 @@ export WM_PROJECT=OpenFOAM
 #    This can be removed if an absolute path is provided for WM_PROJECT_DIR
 #    later on in this file
 # --
-projectDir="${BASH_SOURCE:-${ZSH_NAME:+$0}}";
-[ -n "$projectDir" ] && projectDir="$(\cd $(dirname $projectDir)/.. && \pwd -L)" ||\
-projectDir="$HOME/OpenFOAM/OpenFOAM-$WM_PROJECT_VERSION"
+# projectDir="${BASH_SOURCE:-${ZSH_NAME:+$0}}";
+# [ -n "$projectDir" ] && projectDir="$(\cd $(dirname $projectDir)/.. && \pwd -L)" ||\
+# projectDir="$HOME/OpenFOAM/OpenFOAM-$WM_PROJECT_VERSION"
 # projectDir="/opt/openfoam/OpenFOAM-$WM_PROJECT_VERSION"
 # projectDir="/usr/local/OpenFOAM/OpenFOAM-$WM_PROJECT_VERSION"
 ################################################################################
@@ -119,11 +119,15 @@ foamOldDirs="$WM_PROJECT_DIR $WM_THIRD_PARTY_DIR \
     $WM_PROJECT_SITE $FOAM_SITE_APPBIN $FOAM_SITE_LIBBIN \
     $FOAM_MODULE_APPBIN $FOAM_MODULE_LIBBIN"
 
+echo "Hello!"
+
 # [WM_PROJECT_DIR] - Location of this OpenFOAM version
 export WM_PROJECT_DIR=src/OpenFOAM-v2106
 
+echo "Hello!"
+
 # [WM_PROJECT_USER_DIR] - Location of user files
-export WM_PROJECT_USER_DIR="$HOME/$WM_PROJECT/$USER-$WM_PROJECT_VERSION"
+export WM_PROJECT_USER_DIR="$HOME"
 
 # [WM_PROJECT_SITE] - Location of site-specific (group) files
 # Default (unset) implies WM_PROJECT_DIR/site
@@ -137,7 +141,9 @@ if [ -d "$WM_PROJECT_DIR" ]
 then
     if [ -n "$FOAM_VERBOSE" ] && [ -n "$PS1" ]
     then
+        echo "Hello!"
         echo "source $WM_PROJECT_DIR/etc/config.sh/setup" 1>&2
+        echo "Hello!"
     fi
     . "$WM_PROJECT_DIR/etc/config.sh/setup" "$@"
 else
@@ -150,11 +156,15 @@ echo "Hello!"
 # Cleanup variables (done as final statement for a clean exit code)
 unset foamOldDirs projectDir
 
+echo "Hello!"
+
 cd src/OpenFOAM-v2106
 
 echo "Hello!"
 
 ls
+
+echo "Hello!"
 
 # foamSystemCheck
 
