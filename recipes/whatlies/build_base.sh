@@ -6,4 +6,5 @@ PIP_NO_BUILD_ISOLATION=False \
     PIP_IGNORE_INSTALLED=True \
     PIP_NO_INDEX=True \
     PYTHONDONTWRITEBYTECODE=True \
-    ${PYTHON} -m pip install . --no-deps -vv
+    #${PYTHON} -m pip install . --no-deps -vv
+    ${PYTHON} -m pip install . --no-deps -vv --no-index
