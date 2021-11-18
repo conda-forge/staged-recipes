@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x 
+
 echo "Hello!"
 
 # [WM_PROJECT_VERSION] - A human-readable version name
@@ -106,6 +108,8 @@ projectDir="$HOME/OpenFOAM/OpenFOAM-$WM_PROJECT_VERSION"
 # Set after sourcing or via <prefs.sh> to avoid surprises.
 unset FOAM_EXTRA_CFLAGS FOAM_EXTRA_CXXFLAGS FOAM_EXTRA_LDFLAGS
 
+echo "Hello!"
+
 ################################################################################
 # NO (NORMAL) USER EDITING BELOW HERE
 
@@ -125,6 +129,8 @@ export WM_PROJECT_USER_DIR="$HOME/$WM_PROJECT/$USER-$WM_PROJECT_VERSION"
 # Default (unset) implies WM_PROJECT_DIR/site
 # Normally defined in calling environment
 
+echo "Hello!"
+
 
 # Finalize setup of OpenFOAM environment
 if [ -d "$WM_PROJECT_DIR" ]
@@ -139,10 +145,14 @@ else
     echo "No directory: $WM_PROJECT_DIR" 1>&2
 fi
 
+echo "Hello!"
+
 # Cleanup variables (done as final statement for a clean exit code)
 unset foamOldDirs projectDir
 
 cd src/OpenFOAM-v2106
+
+echo "Hello!"
 
 ls
 
