@@ -27,7 +27,11 @@ cd $HOME/openfoam
 git clone https://github.com/OpenFOAM/OpenFOAM-8.git
 git clone https://github.com/OpenFOAM/ThirdParty-8.git
 
+echo "before bashrc"
+
 source OpenFOAM-8/etc/bashrc
+
+echo "after bashrc" 
 
 cd ThirdParty-8/
 
