@@ -2,4 +2,6 @@
 
 # set -euo pipefail
 
-${PYTHON} -m pip install . --no-deps -vv --no-index
+${PYTHON} -m pip install . -vv \
+    ##--no-deps \
+    --no-index \
