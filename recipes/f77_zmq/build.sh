@@ -7,4 +7,5 @@
 
 make
 make check
+cat ./test-suite.log
 make install
