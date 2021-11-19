@@ -3,7 +3,8 @@
 ./configure \
 ￼    --prefix=${PREFIX} \
 ￼    --libdir=${PREFIX}/lib \
-￼    --includedir=${PREFIX}/include 
+￼    --includedir=${PREFIX}/include
 
 make
+make check
 make install
