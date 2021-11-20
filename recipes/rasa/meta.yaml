@@ -1,0 +1,94 @@
+{% set name = "whatlies" %}
+{% set version = "3.0.0rc3" %}
+{% set build_num = 0 %}
+
+package:
+  name: {{ name|lower }}-meta
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: d8ef87e706e38efb658cb232b51abb9f97c7d282cfe61314a5187ace28a70150
+
+build:
+  noarch: python
+  number: {{ build_num }}
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --ignore-installed
+  entry_points:
+    - load_requirements = fetch_requirements:load_requirements
+  script_env:
+    - PACKAGE_REQUIREMENTS_SPEC={{ load_requirements("requirements.txt") }}
+
+{% set libs = load_requirements("requirements.txt") %}
+{% set pyver = libs.get("python", {}).get("version", ">=3.7,<3.9") %}
+
+outputs:
+  - name: {{ name|lower }}
+    build:
+      noarch: python
+      entry_points:
+        - load_requirements = fetch_requirements:load_requirements
+      script_env:
+        - PACKAGE_REQUIREMENTS_SPEC={{ load_requirements("requirements.txt") }}
+    script: build_base.sh
+    requirements:
+      {% set libs = load_requirements("requirements.txt") %}
+      {% set pyver = libs.get("python", {}).get("version", ">=3.7,<3.9") %}
+      host:
+        - pip
+        - python {{ pyver }}
+      run:
+        - python {{ pyver }}
+      run_constrained:
+        {% for libname, libspec in libs.items() %}   
+        {% if libname|lower != "python" %}
+        - {{ libname }} {{ libspec.get("version") }}
+        {% endif %}
+        {% endfor %}
+
+
+about:
+  home: https://rasa.com/
+  summary: |
+    "Open source machine learning framework to automate text 
+    and voice-based conversations: NLU, dialogue management, 
+    connect to Slack, Facebook, and more - Create chatbots 
+    and voice assistants"
+  license: Apache-2.0
+  license_file: LICENSE
+  description: |
+    "Rasa is an open source machine learning framework to automate text-
+    and voice-based conversations. With Rasa, you can build contextual 
+    assistants on:
+    
+      - Facebook Messenger
+      - Slack
+      - Google Hangouts
+      - Webex Teams
+      - Microsoft Bot Framework
+      - Rocket.Chat
+      - Mattermost
+      - Telegram
+      - Twilio
+      - Your own custom conversational channels
+    
+    or voice assistants as:
+
+      - Alexa Skills
+      - Google Home Actions
+
+    Rasa helps you build contextual assistants capable of having layered 
+    conversations with lots of back-and-forth. In order for a human to 
+    have a meaningful exchange with a contextual assistant, the assistant 
+    needs to be able to use context to build on things that were previously 
+    discussed – Rasa enables you to build assistants that can do this in 
+    a scalable way.
+    "
+  doc_url: https://rasa.com/docs
+  dev_url: https://github.com/RasaHQ/rasa/
+
+extra:
+  recipe-maintainers:
+    - sugatoray
+    #- koaning
+  feedstock-name: {{ name|lower }}
