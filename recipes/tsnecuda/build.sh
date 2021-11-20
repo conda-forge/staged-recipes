@@ -51,7 +51,7 @@ echo "Set up extra cmake-args: CUDA_CONFIG_ARGS=${CUDA_CONFIG_ARGS+"${CUDA_CONFI
 rm "${BUILD_PREFIX}/bin/nvcc"
 
 # debug: make sure we pick up the our own c-compiler
-export CC=$BUILD_PREFIX/bin/x86_64-conda-linux-gnu-cc
+ln -s $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-cc $BUILD_PREFIX/bin/gcc
 
 cmake \
     -DWITH_ZMQ=TRUE \
