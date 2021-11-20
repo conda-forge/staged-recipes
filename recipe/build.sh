@@ -9,18 +9,18 @@ set -x
 
 mv foam $HOME/
 
-cd $CONDA_PREFIX/bin/
-ln -s x86_64-conda_cos6-linux-gnu-gcc gcc
-ln -s x86_64-conda_cos6-linux-gnu-g++ g++
-ln -s x86_64-conda_cos6-linux-gnu-c++ c++
-ln -s x86_64-conda_cos6-linux-gnu-gfortran gfortran
-ln -s x86_64-conda_cos6-linux-gnu-ld ld
-ln -s x86_64-conda_cos6-linux-gnu-as as
-ln -s x86_64-conda_cos6-linux-gnu-nm nm
-ln -s x86_64-conda_cos6-linux-gnu-cpp cpp
-ln -s x86_64-conda_cos6-linux-gnu-ld.bfd ld.bfd
-ln -s x86_64-conda_cos6-linux-gnu-ld.gold ld.gold
-ln -s x86_64-conda_cos6-linux-gnu-ar ar
+# cd $CONDA_PREFIX/bin/
+# ln -s x86_64-conda_cos6-linux-gnu-gcc gcc
+# ln -s x86_64-conda_cos6-linux-gnu-g++ g++
+# ln -s x86_64-conda_cos6-linux-gnu-c++ c++
+# ln -s x86_64-conda_cos6-linux-gnu-gfortran gfortran
+# ln -s x86_64-conda_cos6-linux-gnu-ld ld
+# ln -s x86_64-conda_cos6-linux-gnu-as as
+# ln -s x86_64-conda_cos6-linux-gnu-nm nm
+# ln -s x86_64-conda_cos6-linux-gnu-cpp cpp
+# ln -s x86_64-conda_cos6-linux-gnu-ld.bfd ld.bfd
+# ln -s x86_64-conda_cos6-linux-gnu-ld.gold ld.gold
+# ln -s x86_64-conda_cos6-linux-gnu-ar ar
 
 
 cd $HOME/foam
@@ -34,7 +34,7 @@ source OpenFOAM-v2106/etc/bashrc
 
 echo "after bashrc" 
 
-cd ThirdParty-8/
+cd ThirdParty-v2106/
 
 # cat "CFLAGS  += -I $CONDA_PREFIX/pkgs/zlib-*/include" >> etc/wmakeFiles/scotch/Makefile.inc.i686_pc_linux2.shlib-OpenFOAM
 
