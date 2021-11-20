@@ -80,6 +80,7 @@ docker pull "${DOCKER_IMAGE}"
 docker run ${DOCKER_RUN_ARGS} \
            -v "${RECIPE_ROOT}":/home/conda/recipe_root:rw,z,delegated \
            -v "${FEEDSTOCK_ROOT}":/home/conda/feedstock_root:rw,z,delegated \
+           --privileged \
            -e CONFIG \
            -e HOST_USER_ID \
            -e UPLOAD_PACKAGES \
