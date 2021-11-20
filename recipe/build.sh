@@ -34,17 +34,17 @@ source OpenFOAM-v2106/etc/bashrc
 
 echo "after bashrc" 
 
-# cd ThirdParty-8/
+cd ThirdParty-8/
 
 # cat "CFLAGS  += -I $CONDA_PREFIX/pkgs/zlib-*/include" >> etc/wmakeFiles/scotch/Makefile.inc.i686_pc_linux2.shlib-OpenFOAM
 
 # cat "LDFLAGS += -L /home/mojtaba/miniconda3/pkgs/zlib-1.2.11-h7b6447c_3/lib" >> etc/wmakeFiles/scotch/Makefile.inc.i686_pc_linux2.shlib-OpenFOAM
 
-# ./Allwmake
+./Allwmake
 
-# wmRefresh
+wmRefresh
 
-# cd ../OpenFOAM-v2106/
+cd ../OpenFOAM-v2106/
 
 # cat "CFLAGS += -I /home/mojtaba/miniconda3/pkgs/zlib-1.2.11-h7b6447c_3/include -I /home/mojtaba/miniconda3/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c
 
@@ -62,4 +62,4 @@ echo "after bashrc"
 
 # cat "LIB_LIBS = $(FOAM_LIBBIN)/libOSspecific.o -L$(FOAM_LIBBIN)/dummy -lPstream -L /home/mojtaba/miniconda3/pkgs/zlib-1.2.11-h7b6447c_3/lib -lz" >> src/OpenFOAM/Make/options
 
-# ./Allwmake -j
+./Allwmake -j
