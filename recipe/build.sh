@@ -7,7 +7,7 @@ ls $CONDA_PREFIX/bin/
 mv foam $HOME/
 
 # cd $CONDA_PREFIX/bin/
-# ln -s x86_64-conda-linux-gnu-gcc gcc
+ln -s x86_64-conda-linux-gnu-gcc gcc
 # ln -s x86_64-conda-linux-gnu-g++ g++
 # ln -s x86_64-conda-linux-gnu-c++ c++
 # ln -s x86_64-conda_cos6-linux-gnu-gfortran gfortran
@@ -46,6 +46,7 @@ source ../OpenFOAM-v2106/etc/bashrc
 export gcc=$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-gcc
 
 cd ../OpenFOAM-v2106/
+ln -s x86_64-conda-linux-gnu-gcc gcc
 
 # cat "CFLAGS += -I /home/mojtaba/miniconda3/pkgs/zlib-1.2.11-h7b6447c_3/include -I /home/mojtaba/miniconda3/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c
 
