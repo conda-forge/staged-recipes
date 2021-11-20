@@ -4,6 +4,9 @@ set -x
 
 ls $CONDA_PREFIX/bin/
 ls $CONDA_PREFIX/
+ls /opt/conda/pkgs/
+ls /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/
+
 mv foam $HOME/
 
 cd $CONDA_PREFIX/bin/
