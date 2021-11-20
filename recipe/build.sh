@@ -42,7 +42,7 @@ cd ThirdParty-v2106/
 
 ./Allwmake
 
-wmRefresh
+# wmRefresh
 
 cd ../OpenFOAM-v2106/
 
