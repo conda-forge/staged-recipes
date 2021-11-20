@@ -29,8 +29,8 @@ echo "after bashrc"
 
 cd ThirdParty-v2106/
 
-# cat "CFLAGS  += -I $CONDA_PREFIX/pkgs/zlib-*/include" >> etc/wmakeFiles/scotch/Makefile.inc.i686_pc_linux2.shlib-OpenFOAM
-# cat "LDFLAGS += -L /home/mojtaba/miniconda3/pkgs/zlib-1.2.11-h7b6447c_3/lib" >> etc/wmakeFiles/scotch/Makefile.inc.i686_pc_linux2.shlib-OpenFOAM
+cat "CFLAGS  += -I $CONDA_PREFIX/pkgs/zlib-1.2.11-h36c2ea0_1013/include" >> etc/wmakeFiles/scotch/Makefile.inc.i686_pc_linux2.shlib-OpenFOAM
+cat "LDFLAGS += -L $CONDA_PREFIX/pkgs/zlib-1.2.11-h36c2ea0_1013/lib" >> etc/wmakeFiles/scotch/Makefile.inc.i686_pc_linux2.shlib-OpenFOAM
 
 ./Allwmake
 
@@ -38,12 +38,13 @@ ls $CONDA_PREFIX/bin/
 
 cd ../OpenFOAM-v2106/
 
-cat "CFLAGS += -I $CONDA_PREFIX/bin/pkgs/zlib-1.2.11-h36c2ea0_1013/include -I /home/mojtaba/miniconda3/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c
-cat "c++FLAGS += -I $CONDA_PREFIX/bin/pkgs/zlib-1.2.11-h36c2ea0_1013/include -I /home/mojtaba/miniconda3/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c++
+cat "CFLAGS += -I $CONDA_PREFIX/pkgs/zlib-1.2.11-h36c2ea0_1013/include -I $CONDA_PREFIX/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c
+cat "c++FLAGS += -I $CONDA_PREFIX/pkgs/zlib-1.2.11-h36c2ea0_1013/include -I $CONDA_PREFIX/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c++
 
-# cat "CFLAGS += -I /home/mojtaba/miniconda3/pkgs/zlib-1.2.11-h7b6447c_3/include -I /home/mojtaba/miniconda3/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c
+cat "CFLAGS += -I$CONDA_PREFIX/pkgs/zlib-1.2.11-h7b6447c_3/include -I $CONDA_PREFIX/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c
 
-# cat "c++FLAGS += -I /home/mojtaba/miniconda3/pkgs/zlib-1.2.11-h7b6447c_3/include -I /home/mojtaba/miniconda3/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c++
+cat "c++FLAGS += -I $CONDA_PREFIX/pkgs/zlib-1.2.11-h7b6447c_3/include -I $CONDA_PREFIX/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c++
+
 # cat "c++FLAGS += -Wl,-rpath-link,/home/mojtaba/openfoam/ThirdParty-8/platforms/linux64Gcc/gperftools-svn/lib" >> wmake/rules/linux64Gcc/c++
 # cat "c++FLAGS += -Wl,-rpath-link,/home/mojtaba/openfoam/OpenFOAM-8/platforms/linux64GccDPInt32Opt/lib/openmpi-system" >> 
 # cat "c++FLAGS += -Wl,-rpath-link,/home/mojtaba/openfoam/ThirdParty-8/platforms/linux64GccDPInt32/lib/openmpi-system" >> wmake/rules/linux64Gcc/c++
