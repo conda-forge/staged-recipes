@@ -50,6 +50,9 @@ echo "Set up extra cmake-args: CUDA_CONFIG_ARGS=${CUDA_CONFIG_ARGS+"${CUDA_CONFI
 # NOTE: It's okay for us to not use the wrapper since CMake adds -ccbin itself.
 rm "${BUILD_PREFIX}/bin/nvcc"
 
+# debug: make sure we pick up the our own c-compiler
+export CC=$BUILD_PREFIX/bin/x86_64-conda-linux-gnu-cc
+
 cmake \
     -DWITH_ZMQ=TRUE \
     -DBUILD_TEST=TRUE \
