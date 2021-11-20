@@ -5,4 +5,6 @@ ${PYTHON} -m pip install . -vv \
     --no-index \
     --ignore-installed && \
 
-    fetch_requirements.py -p "requirements.txt" -v
+    #${PYTHON} fetch_requirements.py -p "requirements.txt" -v
+    export PACKAGE_REQUIREMENTS_SPEC=$(${PYTHON} fetch_requirements.py -p "requirements.txt" -v) && \
+          echo -e "\n\tPACKAGE_REQUIREMENTS_SPEC = "${PACKAGE_REQUIREMENTS_SPEC}"\n"
