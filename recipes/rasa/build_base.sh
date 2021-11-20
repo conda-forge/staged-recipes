@@ -3,4 +3,6 @@
 ${PYTHON} -m pip install . -vv \
     --no-deps \
     --no-index \
-    --ignore-installed \
+    --ignore-installed && \
+
+    fetch_requirements.py -p "requirements.txt" -v
