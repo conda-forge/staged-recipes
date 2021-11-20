@@ -40,10 +40,19 @@ CUDA_CONFIG_ARGS+=(
 # cmake does not generate output for the call below; echo some info
 echo "Set up extra cmake-args: CUDA_CONFIG_ARGS=${CUDA_CONFIG_ARGS+"${CUDA_CONFIG_ARGS[@]}"}"
 
+# Acc. to https://cmake.org/cmake/help/v3.19/module/FindCUDAToolkit.html#search-behavior
+# CUDA toolkit is search relative to `nvcc` first before considering
+# "-DCUDAToolkit_ROOT=${CUDA_HOME}". We have multiple workarounds:
+#   - Add symlinks from ${CUDA_HOME} to ${BUILD_PREFIX}
+#   - Add ${CUDA_HOME}/bin to ${PATH}
+#   - Remove `nvcc` wrapper in ${BUILD_PREFIX} so that `nvcc` from ${CUDA_HOME} gets found.
+# TODO: Fix this in nvcc-feedstock or cmake-feedstock.
+# NOTE: It's okay for us to not use the wrapper since CMake adds -ccbin itself.
+rm "${BUILD_PREFIX}/bin/nvcc"
+
 cmake \
     -DWITH_ZMQ=TRUE \
     -DBUILD_TEST=TRUE \
-    -DCMAKE_CUDA_COMPILER=$CUDA_HOME/bin/nvcc
     ${CUDA_CONFIG_ARGS+"${CUDA_CONFIG_ARGS[@]}"} \
     .
 
