@@ -3,6 +3,7 @@
 set -ex
 
 cmake \
+    -DCMAKE_CUDA_COMPILER=$CONDA_PREFIX/bin/nvcc
     -DBUILD_TEST=TRUE \
     -DWITH_ZMQ=TRUE \
     .
