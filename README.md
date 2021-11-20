@@ -34,7 +34,7 @@ Generating recipe: `grayskull pypi PACKAGE_NAME_HERE`
 
 ### 1. **How do I start editing the recipe?**
 
-Look at one of [these examples](https://github.com/conda-forge/staged-recipes/tree/master/recipes)
+Look at one of [these examples](https://github.com/conda-forge/staged-recipes/tree/main/recipes)
 in this repository and modify it as necessary.
 
 Your final recipe should have no comments and follow the order in the example.
@@ -106,7 +106,7 @@ The maintainers "job" is to:
 
 ### 10. Why are there recipes already in the `recipes` directory? Should I do something about it?
 
-When a PR of recipe(s) is ready to go, it is merged into `master`. This will trigger a CI build specially designed to convert the recipe(s). However, for any number of reasons the recipe(s) may not be converted right away. In the interim, the recipe(s) will remain in `master` until they can be converted. There is no action required on the part of recipe contributors to resolve this. Also it should have no impact on any other PRs being proposed. If these recipe(s) pending conversion do cause issues for your submission, please ping `conda-forge/core` for help.
+When a PR of recipe(s) is ready to go, it is merged into `main`. This will trigger a CI build specially designed to convert the recipe(s). However, for any number of reasons the recipe(s) may not be converted right away. In the interim, the recipe(s) will remain in `main` until they can be converted. There is no action required on the part of recipe contributors to resolve this. Also it should have no impact on any other PRs being proposed. If these recipe(s) pending conversion do cause issues for your submission, please ping `conda-forge/core` for help.
 
 ### 11. **Some checks failed, but it wasn't my recipe! How do I trigger a rebuild?**
 
@@ -126,7 +126,7 @@ If the problem was due to scripts in the `staged-recipes` repository, you may be
 # these lines:
 # git remote add upstream https://github.com/conda-forge/staged-recipes.git
 # git fetch --all
-git rebase upstream/master
+git rebase upstream/main
 git push -f
 ```
 

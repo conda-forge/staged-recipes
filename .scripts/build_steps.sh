@@ -12,7 +12,6 @@ cat >~/.condarc <<CONDARC
 
 channels:
  - conda-forge
- - defaults
 
 conda-build:
  root-dir: /home/conda/staged-recipes/build_artifacts
@@ -27,22 +26,22 @@ cp -r /home/conda/staged-recipes ~/staged-recipes-copy
 # Remove any macOS system files
 find ~/staged-recipes-copy/recipes -maxdepth 1 -name ".DS_Store" -delete
 
-# Find the recipes from master in this PR and remove them.
+# Find the recipes from main in this PR and remove them.
 echo "Pending recipes."
 ls -la ~/staged-recipes-copy/recipes
-echo "Finding recipes merged in master and removing them from the build."
+echo "Finding recipes merged in main and removing them from the build."
 pushd /home/conda/staged-recipes/recipes > /dev/null
 if [ "${AZURE}" == "True" ]; then
-    git fetch --force origin master:master
+    git fetch --force origin main:main
 fi
-git ls-tree --name-only master -- . | xargs -I {} sh -c "rm -rf ~/staged-recipes-copy/recipes/{} && echo Removing recipe: {}"
+git ls-tree --name-only main -- . | xargs -I {} sh -c "rm -rf ~/staged-recipes-copy/recipes/{} && echo Removing recipe: {}"
 popd > /dev/null
 
 
 # Make sure build_artifacts is a valid channel
 conda index /home/conda/staged-recipes/build_artifacts
 
-conda install --yes --quiet "conda>4.7.12" conda-forge-ci-setup=3.* conda-forge-pinning networkx=2.3 "conda-build>=3.16"
+mamba install --yes --quiet "conda>4.7.12" conda-forge-ci-setup=3.* conda-forge-pinning networkx=2.4 "conda-build>=3.16" "boa"
 export FEEDSTOCK_ROOT="${FEEDSTOCK_ROOT:-/home/conda/staged-recipes}"
 export CI_SUPPORT="/home/conda/staged-recipes-copy/.ci_support"
 setup_conda_rc "${FEEDSTOCK_ROOT}" "/home/conda/staged-recipes-copy/recipes" "${CI_SUPPORT}/${CONFIG}.yaml"
