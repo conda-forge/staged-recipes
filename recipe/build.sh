@@ -2,17 +2,12 @@
 
 set -x
 
-$CONDA_PREFIX/etc/conda/activate.d/activate-gcc_linux-64.sh
-$CONDA_PREFIX/etc/conda/activate.d/activate-gxx_linux-64.sh
-$CONDA_PREFIX/etc/conda/activate.d/activate-gfortran_linux-64.sh
-$CONDA_PREFIX/etc/conda/activate.d/activate-binutils_linux-64.sh
-
 mv foam $HOME/
 
 # cd $CONDA_PREFIX/bin/
-# ln -s x86_64-conda_cos6-linux-gnu-gcc gcc
-# ln -s x86_64-conda_cos6-linux-gnu-g++ g++
-# ln -s x86_64-conda_cos6-linux-gnu-c++ c++
+ln -s x86_64-conda-linux-gnu-gcc gcc
+ln -s x86_64-conda-linux-gnu-g++ g++
+ln -s x86_64-conda-linux-gnu-c++ c++
 # ln -s x86_64-conda_cos6-linux-gnu-gfortran gfortran
 # ln -s x86_64-conda_cos6-linux-gnu-ld ld
 # ln -s x86_64-conda_cos6-linux-gnu-as as
