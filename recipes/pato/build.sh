@@ -39,6 +39,9 @@ if [ "$(uname)" = "Darwin" ]; then
        install_name_tool -id $lib_name $lib_name\
     fi\
 ' Allwmake
+    sed -i "" -e 's/endTime_factor 1/endTime_factor 10/g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/utilities/tests/testframework/runtests_options
+    sed -i "" -e 's/\$(PATO_DIR)\/install\/lib\/libPATOx.so//g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/solvers/basics/heatTransfer/Make/options
+    sed	-i "" -e 's/-I\$(LIB_PATO)\/libPATOx\/lnInclude//g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/solvers/basics/heatTransfer/Make/options
     # Compile PATO-dev-2.3.1
     ./Allwmake
     # Move the executables and libraries to $PREFIX

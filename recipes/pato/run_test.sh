@@ -8,7 +8,9 @@ if [ ! -d volume ]; then
 fi
 # attach volume
 hdiutil attach -mountpoint volume pato_releases_conda.sparsebundle
-which runtests
+source $SRC_DIR/volume/OpenFOAM/OpenFOAM-7/etc/bashrc
 export PATO_DIR=$SRC_DIR/volume/PATO/PATO-dev-2.3.1
+source $PATO_DIR/bashrc
+which runtests
 runtests
 hdiutil detach volume
