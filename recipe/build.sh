@@ -39,6 +39,8 @@ cd ThirdParty-v2106/
 
 # wmRefresh
 
+export gcc=$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-gcc
+
 cd ../OpenFOAM-v2106/
 
 # cat "CFLAGS += -I /home/mojtaba/miniconda3/pkgs/zlib-1.2.11-h7b6447c_3/include -I /home/mojtaba/miniconda3/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c
