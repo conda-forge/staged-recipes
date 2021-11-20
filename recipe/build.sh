@@ -3,7 +3,7 @@
 set -x
 
 ls $CONDA_PREFIX/bin/
-ls $CONDA_PREFIX/pkgs/
+ls $CONDA_PREFIX/
 mv foam $HOME/
 
 cd $CONDA_PREFIX/bin/
