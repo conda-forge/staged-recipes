@@ -2,6 +2,8 @@
 
 set -x
 
+ls $CONDA_PREFIX/bin/
+
 mv foam $HOME/
 
 # cd $CONDA_PREFIX/bin/
@@ -37,7 +39,9 @@ cd ThirdParty-v2106/
 
 ./Allwmake
 
-# wmRefresh
+ls $CONDA_PREFIX/bin/
+
+source ../OpenFOAM-v2106/etc/bashrc
 
 export gcc=$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-gcc
 
