@@ -46,7 +46,8 @@ cat .bazelrc
 sleep 2
 
 # use conda-forge wrapper for bazel, called bazel-toolchain
-bazel-toolchain build build_pip_pkg
+source gen-bazel-toolchain
+bazel --crosstool_top=//bazel_toolchain:toolchain --target_cpu ${TARGET_CPU} build build_pip_pkg
 
 # build a whl file
 mkdir -p $SRC_DIR/tf_addons_pkg
