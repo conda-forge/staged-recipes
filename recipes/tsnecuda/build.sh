@@ -41,9 +41,9 @@ CUDA_CONFIG_ARGS+=(
 echo "Set up extra cmake-args: CUDA_CONFIG_ARGS=${CUDA_CONFIG_ARGS+"${CUDA_CONFIG_ARGS[@]}"}"
 
 cmake \
-    -DCMAKE_CUDA_COMPILER=$CUDA_HOME/bin/nvcc
-    -DBUILD_TEST=TRUE \
     -DWITH_ZMQ=TRUE \
+    -DBUILD_TEST=TRUE \
+    -DCMAKE_CUDA_COMPILER=$CUDA_HOME/bin/nvcc
     ${CUDA_CONFIG_ARGS+"${CUDA_CONFIG_ARGS[@]}"} \
     .
 
