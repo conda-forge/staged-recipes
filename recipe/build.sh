@@ -29,8 +29,8 @@ echo "after bashrc"
 
 cd ThirdParty-v2106/
 
-cat "CFLAGS  += -I $CONDA_PREFIX/pkgs/zlib-1.2.11-h36c2ea0_1013/include" >> etc/makeFiles/scotch/Makefile.inc.OpenFOAM-Linux.shlib
-cat "LDFLAGS += -L $CONDA_PREFIX/pkgs/zlib-1.2.11-h36c2ea0_1013/lib" >> etc/makeFiles/scotch/Makefile.inc.OpenFOAM-Linux.shlib
+cat "CFLAGS  += -I $CONDA_PREFIX/pkgs/libzlib-1.2.11-h36c2ea0_1013/include" >> etc/makeFiles/scotch/Makefile.inc.OpenFOAM-Linux.shlib
+cat "LDFLAGS += -L $CONDA_PREFIX/pkgs/libzlib-1.2.11-h36c2ea0_1013/lib" >> etc/makeFiles/scotch/Makefile.inc.OpenFOAM-Linux.shlib
 
 ./Allwmake
 
@@ -38,10 +38,10 @@ ls $CONDA_PREFIX/bin/
 
 cd ../OpenFOAM-v2106/
 
-cat "CFLAGS += -I $CONDA_PREFIX/pkgs/zlib-1.2.11-h36c2ea0_1013/include -I $CONDA_PREFIX/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c
-cat "c++FLAGS += -I $CONDA_PREFIX/pkgs/zlib-1.2.11-h36c2ea0_1013/include -I $CONDA_PREFIX/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c++
+cat "CFLAGS += -I $CONDA_PREFIX/pkgs/libzlib-1.2.11-h36c2ea0_1013/include -I $CONDA_PREFIX/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c
+cat "c++FLAGS += -I $CONDA_PREFIX/pkgs/libzlib-1.2.11-h36c2ea0_1013/include -I $CONDA_PREFIX/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c++
 
-cat "CFLAGS += -I$CONDA_PREFIX/pkgs/zlib-1.2.11-h7b6447c_3/include -I $CONDA_PREFIX/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c
+cat "CFLAGS += -I$CONDA_PREFIX/pkgs/libzlib-1.2.11-h7b6447c_3/include -I $CONDA_PREFIX/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c
 
 cat "c++FLAGS += -I $CONDA_PREFIX/pkgs/zlib-1.2.11-h7b6447c_3/include -I $CONDA_PREFIX/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c++
 
@@ -52,11 +52,11 @@ cat "c++FLAGS += -Wl,-rpath-link,$HOME/foam/ThirdParty-v2106/platforms/linux64Gc
 cat "c++FLAGS += -Wl,-rpath-link,$HOME/foam/OpenFOAM-v2106/platforms/linux64GccDPInt32Opt/lib" >> wmake/rules/linux64Gcc/c++
 cat "c++FLAGS += -Wl,-rpath-link,$HOME/foam/ThirdParty-v2106/platforms/linux64GccDPInt32/lib" >> wmake/rules/linux64Gcc/c++
 cat "c++FLAGS += -Wl,-rpath-link,$HOME/foam/OpenFOAM-v2106/platforms/linux64GccDPInt32Opt/lib/dummy" >> wmake/rules/linux64Gcc/c++
-cat "c++FLAGS += -Wl,-rpath-link,$CONDA_PREFIX/pkgs/zlib-1.2.11-h36c2ea0_1013/lib" >> wmake/rules/linux64Gcc/c++
+cat "c++FLAGS += -Wl,-rpath-link,$CONDA_PREFIX/pkgs/libzlib-1.2.11-h36c2ea0_1013/lib" >> wmake/rules/linux64Gcc/c++
 cat "c++FLAGS += -Wl,-rpath-link,$CONDA_PREFIX/lib" >> wmake/rules/linux64Gcc/c++
 
 
-# cat "LIB_LIBS = $(FOAM_LIBBIN)/libOSspecific.o -L$(FOAM_LIBBIN)/dummy -lPstream -L $CONDA_PREFIX/pkgs/zlib-1.2.11-h36c2ea0_1013/lib -lz" >> src/OpenFOAM/Make/options
+cat "LIB_LIBS += -L $CONDA_PREFIX/pkgs/zlib-1.2.11-h36c2ea0_1013/lib -lz" >> src/OpenFOAM/Make/options
 
 ./Allwmake -j
 
