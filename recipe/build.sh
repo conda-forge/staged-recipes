@@ -19,7 +19,6 @@ ln -s x86_64-conda_cos6-linux-gnu-ld.bfd ld.bfd
 ln -s x86_64-conda_cos6-linux-gnu-ld.gold ld.gold
 ln -s x86_64-conda_cos6-linux-gnu-ar ar
 
-
 cd $HOME/foam
 
 echo "before bashrc"
@@ -38,6 +37,9 @@ cd ThirdParty-v2106/
 ls $CONDA_PREFIX/bin/
 
 cd ../OpenFOAM-v2106/
+
+cat "CFLAGS += -I $CONDA_PREFIX/bin/pkgs/zlib-1.2.11-h36c2ea0_1013/include -I /home/mojtaba/miniconda3/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c
+cat "c++FLAGS += -I $CONDA_PREFIX/bin/pkgs/zlib-1.2.11-h36c2ea0_1013/include -I /home/mojtaba/miniconda3/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c++
 
 # cat "CFLAGS += -I /home/mojtaba/miniconda3/pkgs/zlib-1.2.11-h7b6447c_3/include -I /home/mojtaba/miniconda3/pkgs/flex-2.6.4-ha10e3a4_1/include/" >> wmake/rules/linux64Gcc/c
 
