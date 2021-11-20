@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 cat << EOF >> texlive.profile
 selected_scheme scheme-minimal
 TEXDIR /tmp/texlive
@@ -14,7 +16,7 @@ option_src 0
 EOF
 
 
-# echo "selected_scheme scheme-small
+# echo "selected_scheme infra-only
 # TEXDIR $PREFIX
 # TEXMFLOCAL $PREFIX/texmf-local
 # TEXMFSYSVAR $PREFIX/texmf-var
@@ -40,7 +42,7 @@ EOF
 ./install-tl -profile texlive.profile
 export PATH=/tmp/texlive/bin/x86_64-linux:$PATH
 
-tlmgr --help
+tlmgr install babel babel-english latex latex-bin latex-fonts latexconfig xetex
 
 # cd $PREFIX/bin
 # # The installer places symlinks to binaries in the $PREFIX/bin folder
