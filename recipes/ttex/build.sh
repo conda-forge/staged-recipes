@@ -37,7 +37,7 @@ EOF
 # tlpdbopt_sys_man $PREFIX/man" > texlive-profile
 
 
-./install-tl -profile texlive-profile
+./install-tl -profile texlive.profile
 export PATH=/tmp/texlive/bin/x86_64-linux:$PATH
 
 tlmgr --help
