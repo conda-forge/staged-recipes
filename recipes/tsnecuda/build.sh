@@ -52,6 +52,8 @@ rm "${BUILD_PREFIX}/bin/nvcc"
 
 # debug: make sure we pick up the our own c-compiler
 ln -s $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-cc $BUILD_PREFIX/bin/gcc
+ln -s $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-c++ $BUILD_PREFIX/bin/c++
+ln -s $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-g++ $BUILD_PREFIX/bin/g++
 
 cmake \
     -DWITH_ZMQ=TRUE \
