@@ -2,10 +2,10 @@
 
 set -x
 
-# $CONDA_PREFIX/etc/conda/activate.d/activate-gcc_linux-64.sh
-# $CONDA_PREFIX/etc/conda/activate.d/activate-gxx_linux-64.sh
-# $CONDA_PREFIX/etc/conda/activate.d/activate-gfortran_linux-64.sh
-# $CONDA_PREFIX/etc/conda/activate.d/activate-binutils_linux-64.sh
+$CONDA_PREFIX/etc/conda/activate.d/activate-gcc_linux-64.sh
+$CONDA_PREFIX/etc/conda/activate.d/activate-gxx_linux-64.sh
+$CONDA_PREFIX/etc/conda/activate.d/activate-gfortran_linux-64.sh
+$CONDA_PREFIX/etc/conda/activate.d/activate-binutils_linux-64.sh
 
 mv foam $HOME/
 
