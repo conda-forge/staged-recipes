@@ -1,6 +1,8 @@
 #!/bin/bash
 
-set -ex
+set -euxo pipefail
+
+rm -rf build || true
 
 CMAKE_FLAGS="${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_BUILD_TYPE=Release"
 CMAKE_FLAGS+=" -DTorch_DIR=$CONDA_PREFIX/lib/python3.9/site-packages/torch/share/cmake/Torch"
