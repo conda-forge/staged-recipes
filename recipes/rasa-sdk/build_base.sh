@@ -3,4 +3,4 @@
 ${PYTHON} -m pip install . -vv \
     --no-deps \
     --no-index \
-    --ignore-installed 
+    #--ignore-installed 
