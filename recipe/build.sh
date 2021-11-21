@@ -58,7 +58,7 @@ export PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig:$PREFIX/share/pkgconfig"
 [[ -d "${SHARE_DIR}/texmf-dist/scripts/texlive" ]] || mkdir -p "${SHARE_DIR}/texmf-dist/scripts/texlive"
 
 cat << EOF >> texlive.profile
-selected_scheme scheme-minimal
+selected_scheme medium-minimal
 TEXDIR $PREFIX
 TEXMFCONFIG $PREFIX/texmf-config
 TEXMFHOME $PREFIX/texmf-local
@@ -97,9 +97,9 @@ EOF
 ./install-tl -profile texlive.profile
 export PATH=$PREFIX/bin/x86_64-linux:$PATH
 
-# Remove info and man pages.
-rm -rf ${SHARE_DIR}/man
-rm -rf ${SHARE_DIR}/info
+# # Remove info and man pages.
+# rm -rf ${SHARE_DIR}/man
+# rm -rf ${SHARE_DIR}/info
 
 # mv ${SHARE_DIR}/texmf-dist/web2c/texmf.cnf tmp.cnf
 # sed \
@@ -114,11 +114,11 @@ ls $PREFIX/
 ls $PREFIX/bin/
 
 tlmgr update --self
-tlmgr install l3build
-tlmgr install latex-bin luahbtex platex uplatex tex xetex
-tlmgr install amsmath tools
-tlmgr install metafont mfware
-tlmgr install bibtex lualatex-math
+# tlmgr install l3build
+# tlmgr install latex-bin luahbtex platex uplatex tex xetex
+# tlmgr install amsmath tools
+# tlmgr install metafont mfware
+# tlmgr install bibtex lualatex-math
 
 # tlmgr install babel babel-english latex latex-bin latex-fonts latexconfig xetex
 
