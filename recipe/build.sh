@@ -43,14 +43,14 @@ fi
 # up before building. It doesn't seem to handle multivalued TEXMFCNF entries,
 # so we patch that up after install.
 
-mv $SRC_DIR/texk/kpathsea/texmf.cnf tmp.cnf
-sed \
-    -e "s|TEXMFROOT =.*|TEXMFROOT = ${SHARE_DIR}|" \
-    -e "s|TEXMFLOCAL =.*|TEXMFLOCAL = ${SHARE_DIR}/texmf-local|" \
-    -e "/^TEXMFCNF/,/^}/d" \
-    -e "s|%TEXMFCNF =.*|TEXMFCNF = ${SHARE_DIR}/texmf-dist/web2c|" \
-    <tmp.cnf >$SRC_DIR/texk/kpathsea/texmf.cnf
-rm -f tmp.cnf
+# mv $SRC_DIR/texk/kpathsea/texmf.cnf tmp.cnf
+# sed \
+#     -e "s|TEXMFROOT =.*|TEXMFROOT = ${SHARE_DIR}|" \
+#     -e "s|TEXMFLOCAL =.*|TEXMFLOCAL = ${SHARE_DIR}/texmf-local|" \
+#     -e "/^TEXMFCNF/,/^}/d" \
+#     -e "s|%TEXMFCNF =.*|TEXMFCNF = ${SHARE_DIR}/texmf-dist/web2c|" \
+#     <tmp.cnf >$SRC_DIR/texk/kpathsea/texmf.cnf
+# rm -f tmp.cnf
 
 export PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig:$PREFIX/share/pkgconfig"
 
@@ -58,13 +58,13 @@ export PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig:$PREFIX/share/pkgconfig"
 [[ -d "${SHARE_DIR}/texmf-dist/scripts/texlive" ]] || mkdir -p "${SHARE_DIR}/texmf-dist/scripts/texlive"
 
 cat << EOF >> texlive.profile
-selected_scheme scheme-minimal
-TEXDIR /tmp/texlive
-TEXMFCONFIG ~/.texlive2015/texmf-config
-TEXMFHOME ~/texmf
-TEXMFLOCAL /tmp/texlive/texmf-local
-TEXMFSYSCONFIG /tmp/texlive/texmf-config
-TEXMFSYSVAR /tmp/texlive/texmf-var
+selected_scheme scheme-infraonly
+TEXDIR $PREFIX
+TEXMFCONFIG $PREFIX/texmf-config
+TEXMFHOME $PREFIX/texmf-local
+TEXMFLOCAL $PREFIX/texmf-local
+TEXMFSYSCONFIG $PREFIX/texmf-config
+TEXMFSYSVAR $PREFIX/texmf-var
 TEXMFVAR ~/.texlive2015/texmf-var
 option_doc 0
 option_src 0
@@ -95,7 +95,7 @@ EOF
 
 
 ./install-tl -profile texlive.profile
-export PATH=/tmp/texlive/bin/x86_64-linux:$PATH
+export PATH=$PREFIX/bin/x86_64-linux:$PATH
 
 # Remove info and man pages.
 rm -rf ${SHARE_DIR}/man
@@ -111,8 +111,14 @@ rm -f tmp.cnf
 ln -s $PREFIX/bin/pdftex $PREFIX/bin/pdflatex
 ln -s $PREFIX/bin/pdftex $PREFIX/bin/latex
 
+tlmgr update --self
+tlmgr install l3build
+tlmgr install latex-bin luahbtex platex uplatex tex xetex
+tlmgr install amsmath tools
+tlmgr install metafont mfware
+tlmgr install bibtex lualatex-math
 
-tlmgr install babel babel-english latex latex-bin latex-fonts latexconfig xetex
+# tlmgr install babel babel-english latex latex-bin latex-fonts latexconfig xetex
 
 # cd $PREFIX/bin
 # # The installer places symlinks to binaries in the $PREFIX/bin folder
