@@ -101,15 +101,17 @@ export PATH=$PREFIX/bin/x86_64-linux:$PATH
 rm -rf ${SHARE_DIR}/man
 rm -rf ${SHARE_DIR}/info
 
-mv ${SHARE_DIR}/texmf-dist/web2c/texmf.cnf tmp.cnf
-sed \
-    -e "s|TEXMFCNF =.*|TEXMFCNF = {${SHARE_DIR}/texmf-local/web2c, ${SHARE_DIR}/texmf-dist/web2c}|" \
-    <tmp.cnf >${SHARE_DIR}/texmf-dist/web2c/texmf.cnf
-rm -f tmp.cnf
+# mv ${SHARE_DIR}/texmf-dist/web2c/texmf.cnf tmp.cnf
+# sed \
+#     -e "s|TEXMFCNF =.*|TEXMFCNF = {${SHARE_DIR}/texmf-local/web2c, ${SHARE_DIR}/texmf-dist/web2c}|" \
+#     <tmp.cnf >${SHARE_DIR}/texmf-dist/web2c/texmf.cnf
+# rm -f tmp.cnf
 
 # Create symlinks for pdflatex and latex
 ln -s $PREFIX/bin/pdftex $PREFIX/bin/pdflatex
 ln -s $PREFIX/bin/pdftex $PREFIX/bin/latex
+ls $PREFIX/
+ls $PREFIX/bin/
 
 tlmgr update --self
 tlmgr install l3build
