@@ -62,7 +62,7 @@ cmake \
 # compile
 make -j$CPU_COUNT
 
-cd build/python
+cd python
 
 # why -e ...?
 pip install -e .
