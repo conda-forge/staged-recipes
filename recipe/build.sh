@@ -58,7 +58,7 @@ export PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig:$PREFIX/share/pkgconfig"
 [[ -d "${SHARE_DIR}/texmf-dist/scripts/texlive" ]] || mkdir -p "${SHARE_DIR}/texmf-dist/scripts/texlive"
 
 cat << EOF >> texlive.profile
-selected_scheme medium-scheme
+selected_scheme scheme-medium
 TEXDIR $PREFIX
 TEXMFCONFIG $PREFIX/texmf-config
 TEXMFHOME $PREFIX/texmf-local
