@@ -108,8 +108,8 @@ export PATH=$PREFIX/bin/x86_64-linux:$PATH
 # rm -f tmp.cnf
 
 # Create symlinks for pdflatex and latex
-ln -s $PREFIX/bin/pdftex $PREFIX/bin/pdflatex
-ln -s $PREFIX/bin/pdftex $PREFIX/bin/latex
+# ln -s $PREFIX/bin/pdftex $PREFIX/bin/pdflatex
+# ln -s $PREFIX/bin/pdftex $PREFIX/bin/latex
 ls $PREFIX/
 ls $PREFIX/bin/
 
