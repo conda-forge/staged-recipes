@@ -3,11 +3,11 @@ About ttex
 
 Home: https://www.tug.org/texlive/
 
-Package license: LPPL
+Package license: GPL-2.0-or-later AND GPL-2.0-only AND GPL-3.0-only AND LPPL-1.3c AND LPPL-1.0 AND Artistic-1.0 AND Apache-2.0 AND MIT AND BSD-3-Clause
 
 Feedstock license: [BSD-3-Clause](https://github.com/conda-forge/staged-recipes-feedstock/blob/master/LICENSE.txt)
 
-Summary: Core binaries of the TeXLive distribution.
+Summary: An easy way to get up and running with the TeX document production system.
 
 Current build status
 ====================
@@ -170,4 +170,5 @@ In order to produce a uniquely identifiable distribution:
 Feedstock Maintainers
 =====================
 
+* [@ngam](https://github.com/ngam/)
 
