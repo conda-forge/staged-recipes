@@ -1,6 +1,61 @@
 #!/bin/bash
 
+set -e
 set -x
+
+unset TEXMFCNF; export TEXMFCNF
+LANG=C; export LANG
+
+# Need the fallback path for testing in some cases.
+if [ "$(uname)" == "Darwin" ]
+then
+    export LIBRARY_SEARCH_VAR=DYLD_FALLBACK_LIBRARY_PATH
+else
+    export LIBRARY_SEARCH_VAR=LD_LIBRARY_PATH
+fi
+
+# Using texlive just does not work, various sub-parts ignore that and use PREFIX/share
+# SHARE_DIR=${PREFIX}/share/texlive
+SHARE_DIR=${PREFIX}/share
+
+declare -a CONFIG_EXTRA
+if [[ ${target_platform} =~ .*ppc.* ]]; then
+  # luajit is incompatible with powerpc.
+  CONFIG_EXTRA+=(--disable-luajittex)
+  CONFIG_EXTRA+=(--disable-mfluajit)
+fi
+
+TEST_SEGFAULT=no
+
+if [[ ${TEST_SEGFAULT} == yes ]]; then
+  # -O2 results in:
+  # FAIL: mplibdir/mptraptest.test
+  # FAIL: pdftexdir/pdftosrc.test
+  # .. so (sorry!)
+  export CFLAGS="${CFLAGS} -O0 -ggdb"
+  export CXXFLAGS="${CXXFLAGS} -O0 -ggdb"
+  CONFIG_EXTRA+=(--enable-debug)
+else
+  CONFIG_EXTRA+=(--disable-debug)
+fi
+
+# kpathsea scans the texmf.cnf file to set up its hardcoded paths, so set them
+# up before building. It doesn't seem to handle multivalued TEXMFCNF entries,
+# so we patch that up after install.
+
+mv $SRC_DIR/texk/kpathsea/texmf.cnf tmp.cnf
+sed \
+    -e "s|TEXMFROOT =.*|TEXMFROOT = ${SHARE_DIR}|" \
+    -e "s|TEXMFLOCAL =.*|TEXMFLOCAL = ${SHARE_DIR}/texmf-local|" \
+    -e "/^TEXMFCNF/,/^}/d" \
+    -e "s|%TEXMFCNF =.*|TEXMFCNF = ${SHARE_DIR}/texmf-dist/web2c|" \
+    <tmp.cnf >$SRC_DIR/texk/kpathsea/texmf.cnf
+rm -f tmp.cnf
+
+export PKG_CONFIG_LIBDIR="$PREFIX/lib/pkgconfig:$PREFIX/share/pkgconfig"
+
+[[ -d "${SHARE_DIR}/tlpkg/TeXLive" ]] || mkdir -p "${SHARE_DIR}/tlpkg/TeXLive"
+[[ -d "${SHARE_DIR}/texmf-dist/scripts/texlive" ]] || mkdir -p "${SHARE_DIR}/texmf-dist/scripts/texlive"
 
 cat << EOF >> texlive.profile
 selected_scheme scheme-minimal
@@ -41,6 +96,21 @@ EOF
 
 ./install-tl -profile texlive.profile
 export PATH=/tmp/texlive/bin/x86_64-linux:$PATH
+
+# Remove info and man pages.
+rm -rf ${SHARE_DIR}/man
+rm -rf ${SHARE_DIR}/info
+
+mv ${SHARE_DIR}/texmf-dist/web2c/texmf.cnf tmp.cnf
+sed \
+    -e "s|TEXMFCNF =.*|TEXMFCNF = {${SHARE_DIR}/texmf-local/web2c, ${SHARE_DIR}/texmf-dist/web2c}|" \
+    <tmp.cnf >${SHARE_DIR}/texmf-dist/web2c/texmf.cnf
+rm -f tmp.cnf
+
+# Create symlinks for pdflatex and latex
+ln -s $PREFIX/bin/pdftex $PREFIX/bin/pdflatex
+ln -s $PREFIX/bin/pdftex $PREFIX/bin/latex
+
 
 tlmgr install babel babel-english latex latex-bin latex-fonts latexconfig xetex
 
