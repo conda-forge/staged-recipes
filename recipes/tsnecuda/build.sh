@@ -56,8 +56,7 @@ ln -s $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-c++ $BUILD_PREFIX/bin/c++
 ln -s $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-g++ $BUILD_PREFIX/bin/g++
 
 cmake \
-    -DWITH_ZMQ=ON \
-    -DBUILD_TEST=TRUE \
+    -DZMQ_INCLUDE_DIR=$PREFIX/include/zmqpp \
     ${CUDA_CONFIG_ARGS+"${CUDA_CONFIG_ARGS[@]}"} \
     .
 
