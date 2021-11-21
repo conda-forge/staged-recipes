@@ -8,5 +8,5 @@ make -j$CPU_COUNT
 # test
 make quicktest
 
-# install
-make install
+# install (cannot use 'make install')
+cp ./trec_eval $PREFIX/bin
