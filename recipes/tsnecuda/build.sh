@@ -63,6 +63,4 @@ cmake \
 make -j$CPU_COUNT
 
 cd python
-
-# why -e ...?
-pip install -e .
+pip install .
