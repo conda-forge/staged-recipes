@@ -1,7 +1,7 @@
 mkdir build
 cd build
 
-cmake -G "NMake Makefiles" ^
+cmake -LAH -G "NMake Makefiles" ^
       -D CMAKE_BUILD_TYPE=Release ^
       -D CMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
       -D CMAKE_INSTALL_LIBDIR:PATH=%LIBRARY_LIB% ^
