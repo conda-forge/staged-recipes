@@ -7,7 +7,7 @@ ls $CONDA_PREFIX/
 ls /opt/conda/pkgs/
 ls /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/
 
-mv foam $PREFIX/
+cp -r foam $PREFIX/
 
 ln -s $CONDA_PREFIX/bin/x86_64-conda-linux-gnu-gcc $CONDA_PREFIX/bin/gcc
 ln -s $CONDA_PREFIX/bin/x86_64-conda-linux-gnu-g++ $CONDA_PREFIX/bin/g++
