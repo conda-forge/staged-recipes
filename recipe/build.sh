@@ -7,7 +7,6 @@ ls $CONDA_PREFIX/
 ls /opt/conda/pkgs/
 ls /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/
 
-mv foam $HOME/
 
 cd $CONDA_PREFIX/bin/
 ln -s x86_64-conda-linux-gnu-gcc gcc
@@ -22,7 +21,7 @@ ln -s x86_64-conda-linux-gnu-ld.bfd ld.bfd
 ln -s x86_64-conda-linux-gnu-ld.gold ld.gold
 ln -s x86_64-conda-linux-gnu-ar ar
 
-cd $HOME/foam
+cd foam
 
 echo "before bashrc"
 
@@ -63,12 +62,9 @@ echo "LIB_LIBS += -L /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/lib -lz" >> src/O
 
 ./Allwmake -j
 
-source $HOME/foam/OpenFOAM-v2106/etc/bashrc
+cd ..
+source OpenFOAM-v2106/etc/bashrc
 
-cd $HOME
-mkdir tests
-cd tests/
-cp $HOME/foam/OpenFOAM-v2106/tutorials/incompressible/simpleFoam/pitzDaily . -r
-cd pitzDaily/
-blockMesh
-simpleFoam
+foamInstallationTest
+
+foamTestTutorial -full incompressible/simpleFoam/pitzDaily
