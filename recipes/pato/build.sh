@@ -60,5 +60,13 @@ if [ "$(uname)" = "Darwin" ]; then
     if [ ! -d $PREFIX/src ]; then
 	mkdir $PREFIX/src
     fi
+    if [ ! -d $PREFIX/src/volume ]; then
+        mkdir $PREFIX/src/volume
+    fi
     scp pato_releases_conda.sparsebundle $PREFIX/src/pato_releases_conda.sparsebundle
+    # create pato-env
+    echo "echo hdiutil attach -mountpoint \\\$PREFIX/src/volume \\\$PREFIX/src/pato_releases_conda.sparsebundle\;" > $PREFIX/src/pato-env
+    echo "echo source \\\$PREFIX/src/volume/OpenFOAM/OpenFOAM-7/etc/bashrc\;" >> $PREFIX/src/pato-env
+    echo "echo export PATO_DIR=\\\$PREFIX/src/volume/PATO/PATO-dev-2.3.1\;" >> $PREFIX/src/pato-env
+    echo "echo source \\\$PATO_DIR/bashrc" >> $PREFIX/src/pato-env
 fi
