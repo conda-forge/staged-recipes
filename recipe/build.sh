@@ -7,6 +7,8 @@ ls $CONDA_PREFIX/
 ls /opt/conda/pkgs/
 ls /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/
 
+mv foam $PREFIX/
+
 ln -s $CONDA_PREFIX/bin/x86_64-conda-linux-gnu-gcc $CONDA_PREFIX/bin/gcc
 ln -s $CONDA_PREFIX/bin/x86_64-conda-linux-gnu-g++ $CONDA_PREFIX/bin/g++
 ln -s $CONDA_PREFIX/bin/x86_64-conda-linux-gnu-c++ $CONDA_PREFIX/bin/c++
@@ -19,7 +21,7 @@ ln -s $CONDA_PREFIX/bin/x86_64-conda-linux-gnu-ld.bfd $CONDA_PREFIX/bin/ld.bfd
 ln -s $CONDA_PREFIX/bin/x86_64-conda-linux-gnu-ld.gold $CONDA_PREFIX/bin/ld.gold
 ln -s $CONDA_PREFIX/bin/x86_64-conda-linux-gnu-ar $CONDA_PREFIX/bin/ar
 
-cd foam
+cd $PREFIX/foam
 
 echo "before bashrc"
 
