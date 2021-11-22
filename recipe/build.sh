@@ -7,19 +7,17 @@ ls $CONDA_PREFIX/
 ls /opt/conda/pkgs/
 ls /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/
 
-
-cd $CONDA_PREFIX/bin/
-ln -s x86_64-conda-linux-gnu-gcc gcc
-ln -s x86_64-conda-linux-gnu-g++ g++
-ln -s x86_64-conda-linux-gnu-c++ c++
-ln -s x86_64-conda-linux-gnu-gfortran gfortran
-ln -s x86_64-conda-linux-gnu-ld ld
-ln -s x86_64-conda-linux-gnu-as as
-ln -s x86_64-conda-linux-gnu-nm nm
-ln -s x86_64-conda-linux-gnu-cpp cpp
-ln -s x86_64-conda-linux-gnu-ld.bfd ld.bfd
-ln -s x86_64-conda-linux-gnu-ld.gold ld.gold
-ln -s x86_64-conda-linux-gnu-ar ar
+ln -s $CONDA_PREFIX/bin/x86_64-conda-linux-gnu-gcc $CONDA_PREFIX/bin/gcc
+ln -s $CONDA_PREFIX/bin/x86_64-conda-linux-gnu-g++ $CONDA_PREFIX/bin/g++
+ln -s $CONDA_PREFIX/bin/x86_64-conda-linux-gnu-c++ $CONDA_PREFIX/bin/c++
+ln -s $CONDA_PREFIX/bin/x86_64-conda-linux-gnu-gfortran $CONDA_PREFIX/bin/gfortran
+ln -s $CONDA_PREFIX/bin/x86_64-conda-linux-gnu-ld $CONDA_PREFIX/bin/ld
+ln -s $CONDA_PREFIX/bin/x86_64-conda-linux-gnu-as $CONDA_PREFIX/bin/as
+ln -s $CONDA_PREFIX/bin/x86_64-conda-linux-gnu-nm $CONDA_PREFIX/bin/nm
+ln -s $CONDA_PREFIX/bin/x86_64-conda-linux-gnu-cpp $CONDA_PREFIX/bin/cpp
+ln -s $CONDA_PREFIX/bin/x86_64-conda-linux-gnu-ld.bfd $CONDA_PREFIX/bin/ld.bfd
+ln -s $CONDA_PREFIX/bin/x86_64-conda-linux-gnu-ld.gold $CONDA_PREFIX/bin/ld.gold
+ln -s $CONDA_PREFIX/bin/x86_64-conda-linux-gnu-ar $CONDA_PREFIX/bin/ar
 
 cd foam
 
