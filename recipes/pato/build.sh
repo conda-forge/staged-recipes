@@ -2,19 +2,6 @@
 set -e  # exit when any command fails
 set -x
 
-if [ "$(uname)" = "Darwin" ]; then
-    hdiutil create -size 16g -type SPARSEBUNDLE -fs HFSX -volname pato_releases_conda -fsargs -s pato_releases_conda.sparsebundle
-    rm -rf volume
-    mkdir volume
-    hdiutil attach -mountpoint volume pato_releases_conda.sparsebundle
-    mv src/* volume/
-    rm -rf src
-    cd $SRC_DIR/volume/OpenFOAM
-    tar xvf OpenFOAM-7.tar
-    cd $SRC_DIR/volume/PATO
-    tar xvf PATO-dev-2.3.1.tar.gz
-fi
-exit 0
 echo -e "\n### INSTALLING PATO ###\n"
 if [ "$(uname)" = "Darwin" ]; then
     # create volume
