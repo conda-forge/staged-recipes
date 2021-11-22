@@ -56,4 +56,9 @@ if [ "$(uname)" = "Darwin" ]; then
     cd $SRC_DIR
     python move_exec.py
     hdiutil detach volume
+    # create src and copy pato_releases_conda.sparsebundle
+    if [ ! -d $PREFIX/src ]; then
+	mkdir $PREFIX/src
+    fi
+    scp pato_releases_conda.sparsebundle $PREFIX/src/pato_releases_conda.sparsebundle
 fi
