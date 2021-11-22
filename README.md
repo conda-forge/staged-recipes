@@ -1,19 +1,19 @@
 About openfoam
 ==============
 
-Home: https://develop.openfoam.com/Development/ThirdParty-common/blob/develop/BUILD.md
+Home: https://develop.openfoam.com/Development/openfoam/-/blob/master/doc/Build.md
 
 Package license: GPL-2.0-or-later
 
 Feedstock license: [BSD-3-Clause](https://github.com/conda-forge/staged-recipes-feedstock/blob/master/LICENSE.txt)
 
-Summary: Open FOAM
+Summary: OpenFOAM
 
-Development: https://develop.openfoam.com/Development/ThirdParty-common/blob/develop/BUILD.md
+Development: https://develop.openfoam.com/Development/openfoam/-/blob/master/doc/Build.md
 
-Documentation: https://develop.openfoam.com/Development/ThirdParty-common/blob/develop/BUILD.md
+Documentation: https://develop.openfoam.com/Development/openfoam/-/blob/master/doc/Build.md
 
-OpenFOAMS
+OpenFOAM, the free CFD software!
 
 
 Current build status
