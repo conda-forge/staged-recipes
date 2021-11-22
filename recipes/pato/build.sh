@@ -10,9 +10,17 @@ if [ "$(uname)" = "Darwin" ]; then
     mkdir volume
     # attach volume
     hdiutil attach -mountpoint volume pato_releases_conda.sparsebundle
-    # get OpenFOAM src
+    # move src to volume
     mv src/* volume/
     rm -rf src
+    # compile gsed
+    cd $SRC_DIR/volume/sed
+    tar xvf sed-4.8.tar.gz
+    cd $SRC_DIR/volume/sed/sed-4.8
+    ./configure --prefix=$PREFIX
+    make; make install
+    mv $PREFIX/bin/sed $PREFIX/bin/gsed
+    # get OpenFOAM src 
     cd $SRC_DIR/volume/OpenFOAM
     tar xvf OpenFOAM-7.tar
     # compile ParMGridGen
