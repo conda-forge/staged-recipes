@@ -34,11 +34,24 @@ cd ThirdParty-v2106/
 echo "CFLAGS  += -I /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/include" >> etc/makeFiles/scotch/Makefile.inc.OpenFOAM-Linux.shlib
 echo "LDFLAGS += -L /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/lib" >> etc/makeFiles/scotch/Makefile.inc.OpenFOAM-Linux.shlib
 
-./Allwmake
+# ./Allwmake
+
+
 
 ls /opt/conda/pkgs/
 
 cd ../OpenFOAM-v2106/
+
+bin/tools/foamConfigurePaths \
+    -system-compiler Gcc \
+    -openmpi-system \
+    -boost boost-system \
+    -cgal  cgal-system \
+    -fftw  fftw-system \
+    -kahip kahip-none \
+    -scotch scotch-system \
+    ;
+
 
 echo "CFLAGS += -I /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/include -I /opt/conda/pkgs/flex-2.6.4-h58526e2_1004/include/" >> wmake/rules/linux64Gcc/c
 echo "c++FLAGS += -I /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/include -I /opt/conda/pkgs/flex-2.6.4-h58526e2_1004/include/" >> wmake/rules/linux64Gcc/c++
