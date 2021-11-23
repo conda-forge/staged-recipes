@@ -34,7 +34,7 @@ cd ThirdParty-v2106/
 echo "CFLAGS  += -I /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/include" >> etc/makeFiles/scotch/Makefile.inc.OpenFOAM-Linux.shlib
 echo "LDFLAGS += -L /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/lib" >> etc/makeFiles/scotch/Makefile.inc.OpenFOAM-Linux.shlib
 
-# ./Allwmake
+./Allwmake
 
 ls /opt/conda/pkgs/
 
