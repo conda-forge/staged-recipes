@@ -1,5 +1,7 @@
-call "%VS140COMNTOOLS%..\VC\bin\vcvars32.bat"
-cd win
-echo %PREFIX%
-nmake -f makefile.vc TCLDIR=%PREFIX%/Library/
-nmake -f makefile.vc install
+copy %RECIPE_DIR%\build.sh build.sh
+
+set MSYSTEM=MINGW%ARCH%
+set MSYS2_PATH_TYPE=inherit
+bash build.sh
+if errorlevel 1 exit 1
+exit 0
