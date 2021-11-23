@@ -47,6 +47,7 @@ sleep 2
 
 # use conda-forge wrapper for bazel, called bazel-toolchain
 source gen-bazel-toolchain
+./gen-bazel-toolchain
 bazel --crosstool_top=//bazel_toolchain:toolchain --target_cpu ${TARGET_CPU} build build_pip_pkg
 
 # build a whl file
