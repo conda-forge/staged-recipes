@@ -60,14 +60,14 @@ echo "c++FLAGS += -Wl,-rpath-link,/opt/conda/lib" >> wmake/rules/linux64Gcc/c++
 
 echo "LIB_LIBS += -L /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/lib -lz" >> src/OpenFOAM/Make/options
 
-# ./Allwmake -j
+./Allwmake -j
 
-# cd ..
+cd ..
 
-# source OpenFOAM-v2106/etc/bashrc
+source OpenFOAM-v2106/etc/bashrc
 
-# cd .. 
+cd .. 
 
-# foamInstallationTest
+foamInstallationTest
 
-# foamTestTutorial -full incompressible/simpleFoam/pitzDaily
+foamTestTutorial -full incompressible/simpleFoam/pitzDaily
