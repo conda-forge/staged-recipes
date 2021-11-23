@@ -47,6 +47,9 @@ bin/tools/foamConfigurePaths \
     -openmpi-system \
     -boost boost-system \
     -cgal  cgal-system \
+    -adios adios-system \
+    -adios2 adios2-system \
+    -metis metis-system \
     -fftw  fftw-system \
     -kahip kahip-none \
     -scotch scotch-system \
