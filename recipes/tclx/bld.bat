@@ -23,6 +23,7 @@ if %ERRORLEVEL% GTR 0 exit 1
 popd
 
 set INCLUDE=%INCLUDE%;c:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Include
+copy %LIBRARY_PREFIX%\bin\tclsh86t.exe %LIBRARY_PREFIX%\bin\tclsh.exe
 
 
 copy %RECIPE_DIR%\build.sh build.sh
