@@ -32,4 +32,5 @@ dir
 cd %PREFIX%
 cd Library
 cd lib
+cd tclx8.6
 dir
