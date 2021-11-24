@@ -55,18 +55,25 @@ if [ "$(uname)" = "Darwin" ]; then
     # Move the executables and libraries to $PREFIX
     cd $SRC_DIR
     python move_exec.py
+    # remove the original bin/lib folders
+    rm -rf $FOAM_APPBIN
+    rm -rf $FOAM_LIBBIN 
+    rm -rf $PATO_DIR/install
+    rm -rf $MPP_DIRECTORY/install
+    # detach volume
     hdiutil detach volume
     # create src and copy pato_releases_conda.sparsebundle
     if [ ! -d $PREFIX/src ]; then
-	mkdir $PREFIX/src
+	mkdir -p $PREFIX/src
     fi
     if [ ! -d $PREFIX/src/volume ]; then
-        mkdir $PREFIX/src/volume
+        mkdir -p $PREFIX/src/volume
     fi
     scp -r pato_releases_conda.sparsebundle $PREFIX/src/pato_releases_conda.sparsebundle
     # create pato-env
-    echo "echo hdiutil attach -mountpoint \\\$PREFIX/src/volume \\\$PREFIX/src/pato_releases_conda.sparsebundle\;" > $PREFIX/src/pato-env
-    echo "echo source \\\$PREFIX/src/volume/OpenFOAM/OpenFOAM-7/etc/bashrc\;" >> $PREFIX/src/pato-env
-    echo "echo export PATO_DIR=\\\$PREFIX/src/volume/PATO/PATO-dev-2.3.1\;" >> $PREFIX/src/pato-env
+    echo "echo hdiutil attach -mountpoint \\\$CONDA_PREFIX/src/volume \\\$CONDA_PREFIX/src/pato_releases_conda.sparsebundle\;" > $PREFIX/src/pato-env
+    echo "echo source \\\$CONDA_PREFIX/src/volume/OpenFOAM/OpenFOAM-7/etc/bashrc\;" >> $PREFIX/src/pato-env
+    echo "echo export PATO_DIR=\\\$CONDA_PREFIX/src/volume/PATO/PATO-dev-2.3.1\;" >> $PREFIX/src/pato-env
     echo "echo source \\\$PATO_DIR/bashrc" >> $PREFIX/src/pato-env
+    chmod +x $PREFIX/src/pato-env
 fi
