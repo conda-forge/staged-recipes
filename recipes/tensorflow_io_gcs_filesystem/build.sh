@@ -7,8 +7,8 @@
 ./configure.sh
 
 
-# Alias python3 to python, needed by bazel
-ln -s /usr/bin/python3 /usr/bin/python
+# # Alias python3 to python, needed by bazel
+# ln -s /usr/bin/python3 /usr/bin/python
 
 # Add any optimization on bazel command, e.g., --compilation_mode=opt,
 #   --copt=-msse4.2, --remote_cache=, etc.
