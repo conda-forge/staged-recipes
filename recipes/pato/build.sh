@@ -54,18 +54,10 @@ if [ "$(uname)" = "Darwin" ]; then
     ./Allwmake
     # Move the executables and libraries to $PREFIX
     cd $SRC_DIR
-    python move_exec.py
-    # remove the original bin/lib folders
-    rm -rf $FOAM_APPBIN
-    rm -rf $FOAM_LIBBIN 
-    rm -rf $PATO_DIR/install
-    rm -rf $MPP_DIRECTORY/install
+    python change_lib_path.py
     # detach volume
     hdiutil detach volume
-    # create src and copy pato_releases_conda.sparsebundle
-    if [ ! -d $PREFIX/src ]; then
-	mkdir -p $PREFIX/src
-    fi
+    # create src/volume and copy pato_releases_conda.sparsebundle
     if [ ! -d $PREFIX/src/volume ]; then
         mkdir -p $PREFIX/src/volume
     fi
@@ -76,4 +68,24 @@ if [ "$(uname)" = "Darwin" ]; then
     echo "echo export PATO_DIR=\\\$CONDA_PREFIX/src/volume/PATO/PATO-dev-2.3.1\;" >> $PREFIX/src/pato-env
     echo "echo source \\\$PATO_DIR/bashrc" >> $PREFIX/src/pato-env
     chmod +x $PREFIX/src/pato-env
+    # create pato-unset
+    echo "echo source \\\$CONDA_PREFIX/src/volume/OpenFOAM/OpenFOAM-7/etc/config.sh/unset\;" > $PREFIX/src/pato-unset
+    echo "echo unset PATO_DIR\;" >> $PREFIX/src/pato-unset
+    echo "echo unset LIB_PATO\;" >> $PREFIX/src/pato-unset
+    echo "echo unset PATO_UNIT_TESTING\;" >> $PREFIX/src/pato-unset
+    echo "echo unset PATO_TUTORIALS\;" >> $PREFIX/src/pato-unset
+    echo "echo unset MPP_DIRECTORY\;" >> $PREFIX/src/pato-unset
+    echo "echo unset MPP_DATA_DIRECTORY\;" >> $PREFIX/src/pato-unset
+    echo "echo unalias pato\;" >> $PREFIX/src/pato-unset
+    echo "echo unalias solo\;" >> $PREFIX/src/pato-unset
+    echo "echo unalias utio\;" >> $PREFIX/src/pato-unset
+    echo "echo unalias libo\;" >> $PREFIX/src/pato-unset
+    echo "echo unalias tuto\;" >> $PREFIX/src/pato-unset
+    echo "echo unalias 1D\;" >> $PREFIX/src/pato-unset
+    echo "echo unalias 1\;" >> $PREFIX/src/pato-unset
+    echo "echo unalias 2D\;" >> $PREFIX/src/pato-unset
+    echo "echo unalias 3D\;" >> $PREFIX/src/pato-unset
+    echo "echo unalias muto\;" >> $PREFIX/src/pato-unset
+    echo "echo hdiutil detach \\\$CONDA_PREFIX/src/volume" >> $PREFIX/src/pato-unset
+    chmod +x $PREFIX/src/pato-unset
 fi
