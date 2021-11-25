@@ -1,4 +1,4 @@
-./configure --exec-prefix=$LIBRARY_PREFIX/lib/ --with-tcl=$LIBRARY_PREFIX/lib/ --with-help --enable-threads
+./configure --exec-prefix=$LIBRARY_PREFIX/ --with-tcl=$LIBRARY_PREFIX/lib/ --with-help --enable-threads
 echo "make"
 make
 echo "make test"
