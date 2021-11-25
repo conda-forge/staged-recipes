@@ -14,6 +14,10 @@
 #   --copt=-msse4.2, --remote_cache=, etc.
 # export BAZEL_OPTIMIZATION=
 
+# Get rid of unwanted defaults
+sed -i -e "/PROTOBUF_INCLUDE_PATH/c\ " .bazelrc
+sed -i -e "/PREFIX/c\ " .bazelrc
+
 # Build shared libraries
 bazel build -s --verbose_failures $BAZEL_OPTIMIZATION //tensorflow_io/... //tensorflow_io_gcs_filesystem/...
 
