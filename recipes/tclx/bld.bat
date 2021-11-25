@@ -28,7 +28,11 @@ copy %LIBRARY_PREFIX%\bin\tclsh86t.exe %LIBRARY_PREFIX%\bin\tclsh.exe
 
 copy %RECIPE_DIR%\build.sh build.sh
 where tclsh
+echo "pwd"
+echo %cd%
 sh build.sh
+echo "pwd"
+echo %cd%
 
 echo "copying tcl file"
 copy autoload.tcl %PREFIX%/Library/lib/tclx8.6/autoload.tcl
