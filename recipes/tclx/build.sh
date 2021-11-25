@@ -5,7 +5,7 @@ echo "make test"
 pwd
 make test
 echo "make install"
-make install
+make install 'DESTDIR=$PREFIX/Library/'
 echo "Finished installing"
 pwd
 echo find . -name 'autoload'
