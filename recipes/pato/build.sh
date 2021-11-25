@@ -4,6 +4,13 @@ set -x
 
 echo -e "\n### INSTALLING PATO ###\n"
 if [ "$(uname)" = "Darwin" ]; then
+    # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
+    # This will allow them to be run on environment activation.
+    for CHANGE in "activate" "deactivate"
+    do
+	mkdir -p "${PREFIX}/etc/conda/${CHANGE}.d"
+	cp "${RECIPE_DIR}/${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.sh"
+    done
     # create volume
     hdiutil create -size 16g -type SPARSEBUNDLE -fs HFSX -volname pato_releases_conda -fsargs -s pato_releases_conda.sparsebundle
     rm -rf volume
