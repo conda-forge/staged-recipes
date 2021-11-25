@@ -6,3 +6,4 @@ make test
 echo "make install"
 make install
 echo "Finished installing"
+find . -name 'autoload'
