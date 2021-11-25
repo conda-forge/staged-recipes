@@ -7,8 +7,9 @@
 
 make
 FAILURE=0
-make check || FAILURE=1
-if [[ $FAILURE -eq 1 ]] ; then
+make check || FAILURE=$?
+if [[ $FAILURE -ne 0 ]] ; then
   cat ./test-suite.log
+  exit $FAILURE
 fi
 make install
