@@ -41,3 +41,14 @@ cd tclx8.6
 dir
 cd ..
 tree
+cd ..
+cd ..
+cd ..
+cd ..
+cd ..
+cd ..
+cd ..
+cd ..
+cd ..
+cd ..
+tree
