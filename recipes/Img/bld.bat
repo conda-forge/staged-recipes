@@ -23,6 +23,16 @@ if %ERRORLEVEL% GTR 0 exit 1
 popd
 
 set INCLUDE=%INCLUDE%;c:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Include
+
+:: Tk build
+
+pushd tk_source\win
+nmake -f makefile.vc INSTALLDIR=%LIBRARY_PREFIX% MACHINE=%MACHINE% TCLDIR=..\..\tcl_source release
+nmake -f makefile.vc INSTALLDIR=%LIBRARY_PREFIX% MACHINE=%MACHINE% TCLDIR=..\..\tcl_source install
+if %ERRORLEVEL% GTR 0 exit 1
+
+:: Make sure that `wish` can be called without the version info.
+copy %LIBRARY_PREFIX%\bin\wish86t.exe %LIBRARY_PREFIX%\bin\wish.exe
 copy %LIBRARY_PREFIX%\bin\tclsh86t.exe %LIBRARY_PREFIX%\bin\tclsh.exe
 
 copy %RECIPE_DIR%\build.sh build.sh
