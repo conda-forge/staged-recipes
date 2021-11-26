@@ -26,4 +26,7 @@ if [[ ${cuda_compiler_version} != "None" ]]; then
     export USE_CUDA="ON"
 fi
 
+export CMAKE_C_COMPILER="$CC"
+export CMAKE_CXX_COMPILER="$CXX"
+
 python -m pip install . -vv
