@@ -1,3 +1,5 @@
+mkdir -p $LIBRARY_PREFIX/lib/tclx8.6
+echo "created new folder"
 ./configure --exec-prefix=$LIBRARY_PREFIX/ --with-tcl=$LIBRARY_PREFIX/lib/ --with-help --enable-threads
 echo "make"
 make
