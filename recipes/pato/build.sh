@@ -54,7 +54,7 @@ if [ "$(uname)" = "Darwin" ]; then
        install_name_tool -id $lib_name $lib_name\
     fi\
 ' Allwmake
-    sed -i "" -e 's/endTime_factor 1/endTime_factor 10/g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/utilities/tests/testframework/runtests_options
+    sed -i "" -e 's/endTime_factor 1/endTime_factor 20/g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/utilities/tests/testframework/runtests_options
     sed -i "" -e 's/\$(PATO_DIR)\/install\/lib\/libPATOx.so//g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/solvers/basics/heatTransfer/Make/options
     sed	-i "" -e 's/-I\$(LIB_PATO)\/libPATOx\/lnInclude//g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/solvers/basics/heatTransfer/Make/options
     sed -i "" -e 's/==/=/g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/bashrc
@@ -70,30 +70,4 @@ if [ "$(uname)" = "Darwin" ]; then
         mkdir -p $PREFIX/src/volume
     fi
     scp -r pato_releases_conda.sparsebundle $PREFIX/src/pato_releases_conda.sparsebundle
-    # create pato-env
-    echo "echo hdiutil attach -mountpoint \\\$CONDA_PREFIX/src/volume \\\$CONDA_PREFIX/src/pato_releases_conda.sparsebundle\;" > $PREFIX/src/pato-env
-    echo "echo source \\\$CONDA_PREFIX/src/volume/OpenFOAM/OpenFOAM-7/etc/bashrc\;" >> $PREFIX/src/pato-env
-    echo "echo export PATO_DIR=\\\$CONDA_PREFIX/src/volume/PATO/PATO-dev-2.3.1\;" >> $PREFIX/src/pato-env
-    echo "echo source \\\$PATO_DIR/bashrc" >> $PREFIX/src/pato-env
-    chmod +x $PREFIX/src/pato-env
-    # create pato-unset
-    echo "echo source \\\$CONDA_PREFIX/src/volume/OpenFOAM/OpenFOAM-7/etc/config.sh/unset\;" > $PREFIX/src/pato-unset
-    echo "echo unset PATO_DIR\;" >> $PREFIX/src/pato-unset
-    echo "echo unset LIB_PATO\;" >> $PREFIX/src/pato-unset
-    echo "echo unset PATO_UNIT_TESTING\;" >> $PREFIX/src/pato-unset
-    echo "echo unset PATO_TUTORIALS\;" >> $PREFIX/src/pato-unset
-    echo "echo unset MPP_DIRECTORY\;" >> $PREFIX/src/pato-unset
-    echo "echo unset MPP_DATA_DIRECTORY\;" >> $PREFIX/src/pato-unset
-    echo "echo unalias pato\;" >> $PREFIX/src/pato-unset
-    echo "echo unalias solo\;" >> $PREFIX/src/pato-unset
-    echo "echo unalias utio\;" >> $PREFIX/src/pato-unset
-    echo "echo unalias libo\;" >> $PREFIX/src/pato-unset
-    echo "echo unalias tuto\;" >> $PREFIX/src/pato-unset
-    echo "echo unalias 1D\;" >> $PREFIX/src/pato-unset
-    echo "echo unalias 1\;" >> $PREFIX/src/pato-unset
-    echo "echo unalias 2D\;" >> $PREFIX/src/pato-unset
-    echo "echo unalias 3D\;" >> $PREFIX/src/pato-unset
-    echo "echo unalias muto\;" >> $PREFIX/src/pato-unset
-    echo "echo hdiutil detach \\\$CONDA_PREFIX/src/volume" >> $PREFIX/src/pato-unset
-    chmod +x $PREFIX/src/pato-unset
 fi
