@@ -1,3 +1,3 @@
-./configure --exec-prefix=$LIBRARY_PREFIX/ --with-tcl=$LIBRARY_PREFIX/lib/ --with-help --enable-threads
+./configure --exec-prefix=$LIBRARY_PREFIX/ --with-tcl=$LIBRARY_PREFIX/lib/ --with-tk=$LIBRARY_PREFIX/lib/  --enable-threads
 make
 make install
