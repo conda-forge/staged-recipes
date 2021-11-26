@@ -11,3 +11,5 @@ make install
 echo "Finished installing"
 pwd
 echo find . -name 'autoload'
+cd $LIBRARY_PREFIX/lib/tclx8.6/
+ls -a
