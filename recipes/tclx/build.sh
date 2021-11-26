@@ -10,6 +10,9 @@ echo "make install"
 make install
 echo "Finished installing"
 pwd
-echo find . -name 'autoload'
+cp library/*.tcl $LIBRARY_PREFIX/lib/tclx8.6/
+cp tclx86.dll $LIBRARY_PREFIX/lib/tclx8.6/
+cp pkgIndex.tcl $LIBRARY_PREFIX/lib/tclx8.6/
+
 cd $LIBRARY_PREFIX/lib/tclx8.6/
 ls -a
