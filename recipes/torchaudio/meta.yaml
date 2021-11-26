@@ -1,0 +1,68 @@
+{% set version = "0.10.0" %}
+# waiting for https://github.com/conda-forge/conda-forge-pinning-feedstock/pull/1890
+{% set pytorch_maj_min = "1.10" %}
+
+package:
+  name: torchaudio
+  version: {{ version }}
+
+source:
+  url: https://github.com/pytorch/audio/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 9d0413434eefd2a483bf4006440c02940d15e597ab75703aa3ae2c6d5297e7ad
+
+build:
+  number: 0
+  # missing dependency: https://github.com/conda-forge/pytorch-cpu-feedstock/issues/32
+  skip: true  # [win]
+  script: {{ PYTHON }} -m pip install . -vv
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+  host:
+    - python
+    - pip
+    - pytorch {{ pytorch_maj_min }}.*
+    - pytorch-cpu  # [cuda_compiler_version == "None"]
+    - pytorch-gpu  # [cuda_compiler_version != "None"]
+  run:
+    - python
+    - kaldi_io
+    - numpy
+    # due to lack of ABI, we need the same version at runtime
+    - pytorch {{ pytorch_maj_min }}.*
+    - pytorch-cpu  # [cuda_compiler_version == "None"]
+    - pytorch-gpu  # [cuda_compiler_version != "None"]
+test:
+  requires:
+    - pytest
+    - librosa
+    - scipy
+  source_files:
+    - test/
+  imports:
+    - torchaudio
+    - torchaudio.backend
+    - torchaudio.compliance
+    - torchaudio.datasets
+    - torchaudio.functional
+    - torchaudio.models
+    - torchaudio.pipelines
+    - torchaudio.kaldi_io
+    - torchaudio.utils
+    - torchaudio.sox_effects
+    - torchaudio.transforms
+  commands:
+    - pytest -v test/
+
+about:
+  home: https://github.com/pytorch/audio
+  license: BSD-2-Clause
+  license_file: LICENSE
+  summary: Data manipulation and transformation for audio signal processing, powered by PyTorch
+  dev_url: https://github.com/pytorch/audio
+
+extra:
+  recipe-maintainers:
+    - h-vetinari
