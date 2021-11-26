@@ -34,6 +34,7 @@ sh build.sh
 echo "pwd"
 echo %cd%
 
+
 echo "copying tcl file"
 copy autoload.tcl %PREFIX%/Library/lib/tclx8.6/autoload.tcl
 
