@@ -1,0 +1,104 @@
+{% set version = "3.9.0" %}
+
+package:
+  name: singularityce
+  version: {{ version }}
+
+source:
+  - folder: src/github.com/sylabs/singularityce
+    url: https://github.com/sylabs/singularity/releases/download/v{{ version }}/singularity-ce-{{ version }}.tar.gz
+    sha256: 3569928cbd907fe90c52f6a809f5f8e99f597237c5a25a9dce07e3efb3b1447a
+    patches:
+      - patches/0003-Use-external-CNI.patch
+      - patches/0004-Find-unsquashfs-from-PATH.diff
+      - patches/set-version-from-env.patch
+
+build:
+  number: 0
+  skip: true  # [not linux]
+  # The binary is made runtime relocatable using the included patch
+  detect_binary_files_with_prefix: false
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cgo') }}
+    - sysroot_linux-64 2.17  # [linux64]
+    - make
+    - pkg-config
+    - go-dep
+    - sed
+  host:
+    - libuuid  # [linux]
+    - libarchive
+    - libseccomp  # [linux]
+    - openssl
+  run:
+    # CNI version from singularity/Gopkg.lock
+    - cni-plugins >=0.7.4  # [linux]
+    - squashfs-tools  # [linux]
+  run_constrained:
+    - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx]
+
+test:
+  commands:
+    - singularity --help
+    # disable these tests to ensure verbosity problem isn't from here (ngam)
+    - singularity --version
+
+    # Ensure the version is set correctly
+    - singularity --version | grep {{ version }}
+
+    # Ensure we are using conda's CNI
+    - test ! -d $PREFIX/libexec/singularity/cni
+    - test -d $PREFIX/lib/cni
+
+    - test ! -d $PREFIX/etc/singularity/network
+    - test -f $PREFIX/etc/cni/net.d/00_bridge.conflist
+
+    # UserNS test
+    # ngam 20211115: ppc64le build without --sandbox (otherwise fails with mount problems)
+    # ngam 20211115: likely related to below issue re --privileged
+    - singularity build lolcow docker://godlovedc/lolcow  # [ppc64le]
+    - singularity build --sandbox lolcow docker://godlovedc/lolcow  # [not ppc64le]
+
+    # The remaining tests are disabled on ppc64le due to issues launching docker with --privileged
+    # Either run the container or fail due to user namespaces being disabled
+    - "singularity --verbose --debug run -u lolcow || (singularity --verbose --debug run -u lolcow 2>&1 | grep 'Failed to create user namespace: user namespace requires to set')"  # [linux64]
+
+    # https://github.com/hpcng/singularity/issues/5668
+    - singularity pull library://alpine  # [linux64]
+    - singularity --verbose --debug run -u alpine_latest.sif echo "Hello world"  # [linux64]
+
+about:
+  home: https://www.sylabs.io/singularity/
+  license: BSD-3-Clause
+  license_file: src/github.com/sylabs/singularityce/LICENSE-LBNL.md
+  summary: 'SingularityCE is the Community Edition of Singularity, an open source container platform designed to be simple, fast, and secure.'
+
+  description: |
+
+    SingularityCE is the Community Edition of Singularity, 
+    an open source container platform designed to be 
+    simple, fast, and secure.
+
+
+    Singularity is a container platform focused on supporting "Mobility of
+    Compute"
+
+    Mobility of Compute encapsulates the development to compute model where
+    developers can work in an environment of their choosing and creation and
+    when the developer needs additional compute resources, this environment
+    can easily be copied and executed on other platforms. Additionally as the
+    primary use case for Singularity is targeted towards computational
+    portability, many of the barriers to entry of other container solutions do
+    not apply to Singularity making it an ideal solution for users (both
+    computational and non-computational) and HPC centers.
+
+  dev_url: https://github.com/sylabs/singularity
+  doc_url: https://www.sylabs.io/docs/
+
+extra:
+  recipe-maintainers:
+    - ngam
