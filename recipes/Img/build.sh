@@ -7,7 +7,7 @@ if [[ ${ARCH} == 64 ]]; then
     ARCH_FLAG="--enable-64bit"
 fi
 
-pushd tcl_source/win
+pushd tcl_source/unix
   # autoreconf -vfi
   ./configure  --prefix="${PREFIX}"  \
                --host=${HOST}        \
@@ -16,7 +16,7 @@ pushd tcl_source/win
   make install install-private-headers
 popd
 
-pushd tk_source/win
+pushd tk_source/unix
   # autoreconf -vfi
   ./configure --prefix="${PREFIX}"        \
               --host=${HOST}              \
