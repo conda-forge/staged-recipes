@@ -42,7 +42,7 @@ sed -i.bak -e "s,${SRC_DIR}/tk_source/unix,${PREFIX}/lib,g" -e "s,${SRC_DIR}/tk_
 rm -f ${PREFIX}/lib/tkConfig.sh.bak
 rm -f ${PREFIX}/lib/tclConfig.sh.bak
 
-locate tkConfig.sh
-./configure --exec-prefix=$LIBRARY_PREFIX/ --with-tcl=$LIBRARY_PREFIX/lib/ --with-tk=$LIBRARY_PREFIX/lib/  --enable-threads
-make
-make install
+#locate tkConfig.sh
+#./configure --exec-prefix=$LIBRARY_PREFIX/ --with-tcl=$LIBRARY_PREFIX/lib/ --with-tk=$LIBRARY_PREFIX/lib/  --enable-threads
+#make
+#make install
