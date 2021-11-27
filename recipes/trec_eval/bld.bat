@@ -1,6 +1,11 @@
 @echo on
 
+:: compile
 make
+if %ERRORLEVEL% neq 0 exit 1
+
+:: test
+make quicktest
 if %ERRORLEVEL% neq 0 exit 1
 
 :: install
