@@ -46,6 +46,9 @@ popd
 echo "tkimg building"
 rem cd %PREFIX%\Library\lib\
 dir
+cd tk_source/win
+tree
+
 copy %RECIPE_DIR%\build.sh build.sh
 rem sh build.sh
 
