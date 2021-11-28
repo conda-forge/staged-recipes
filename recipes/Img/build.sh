@@ -7,7 +7,7 @@ if [[ ${ARCH} == 64 ]]; then
     ARCH_FLAG="--enable-64bit"
 fi
 
-pushd tcl_source/unix
+pushd tcl_source/win
   # autoreconf -vfi
   ./configure  --prefix="${PREFIX}"  \
                --host=${HOST}        \
@@ -16,7 +16,7 @@ pushd tcl_source/unix
   make install install-private-headers
 popd
 
-pushd tk_source/unix
+pushd tk_source/win
   # autoreconf -vfi
   ./configure --prefix="${PREFIX}"        \
               --host=${HOST}              \
@@ -37,7 +37,7 @@ rm -rf "${PREFIX}"/{man,share}
 cp "${SRC_DIR}"/tk_source/{unix,macosx,generic}/*.h "${PREFIX}"/include/
 
 # Remove buildroot traces
-sed -i.bak -e "s,${SRC_DIR}/tk_source/unix,${PREFIX}/lib,g" -e "s,${SRC_DIR}/tk_source,${PREFIX}/include,g" ${PREFIX}/lib/tkConfig.sh
+sed -i.bak -e "s,${SRC_DIR}/tk_source/win,${PREFIX}/lib,g" -e "s,${SRC_DIR}/tk_source,${PREFIX}/include,g" ${PREFIX}/lib/tkConfig.sh
 #sed -i.bak -e "s,${SRC_DIR}/tcl_source/unix,${PREFIX}/lib,g" -e "s,${SRC_DIR}/tcl${PKG_VERSION},${PREFIX}/include,g" ${PREFIX}/lib/tclConfig.sh
 rm -f ${PREFIX}/lib/tkConfig.sh.bak
 rm -f ${PREFIX}/lib/tclConfig.sh.bak
