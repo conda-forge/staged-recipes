@@ -47,7 +47,7 @@ echo "tkimg building"
 rem cd %PREFIX%\Library\lib\
 dir
 cd tk_source
-tree
+dir
 
 copy %RECIPE_DIR%\build.sh build.sh
 rem sh build.sh
