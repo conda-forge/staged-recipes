@@ -1,20 +1,20 @@
-rem if "%ARCH%"=="32" (
-rem    set MACHINE="IX86"
-rem    :: A different SDK is needed when build with VS 2017 and 2015
-rem    :: http://wiki.tcl.tk/54819
-rem    if "%VS_MAJOR%"=="14" (
-rem     echo "Switching SDK versions"
-rem     call "%VS140COMNTOOLS%..\..\VC\vcvarsall.bat" x86 10.0.15063.0
-rem    )
-rem ) else (
-rem   set MACHINE="AMD64"
+if "%ARCH%"=="32" (
+   set MACHINE="IX86"
+   :: A different SDK is needed when build with VS 2017 and 2015
+   :: http://wiki.tcl.tk/54819
+   if "%VS_MAJOR%"=="14" (
+    echo "Switching SDK versions"
+    call "%VS140COMNTOOLS%..\..\VC\vcvarsall.bat" x86 10.0.15063.0
+   )
+) else (
+  set MACHINE="AMD64"
   :: A different SDK is needed when build with VS 2017 and 2015
   :: http://wiki.tcl.tk/54819
-rem   if "%VS_MAJOR%"=="14" (
-rem     echo "Switching SDK versions"
-rem     call "%VS140COMNTOOLS%..\..\VC\vcvarsall.bat" x64 10.0.15063.0
-rem   )
-rem )
+  if "%VS_MAJOR%"=="14" (
+    echo "Switching SDK versions"
+    call "%VS140COMNTOOLS%..\..\VC\vcvarsall.bat" x64 10.0.15063.0
+  )
+)
 
 rem pushd tcl_source\win
 rem nmake -f makefile.vc INSTALLDIR=%LIBRARY_PREFIX% MACHINE=%MACHINE% release
