@@ -1,0 +1,58 @@
+{% set version = "9.0.8" %}
+
+package:
+  name: trec_eval
+  version: {{ version }}
+
+source:
+  url: https://github.com/usnistgov/trec_eval/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: c3994a73103ec842e12df693749584a45814c35c36dcc15f38984bd463566ba1
+  patches:
+    - patches/0001-correct-the-version-number.patch
+    - patches/0002-don-t-hardcode-compiler.patch
+    - patches/0003-add-necessary-windows-sources-to-make-file.patch  # [win]
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - make
+test:
+  source_files:
+    - test/
+  commands:
+    # equivalent of upstream quicktest, cf.
+    # https://github.com/usnistgov/trec_eval/blob/v9.0.8/Makefile#L58-L70
+    {% if unix %}
+    - trec_eval test/qrels.test test/results.test | diff - test/out.test
+    - trec_eval -m all_trec test/qrels.test test/results.test | diff - test/out.test.a
+    - trec_eval -m all_trec -q test/qrels.test test/results.test | diff - test/out.test.aq
+    - trec_eval -m all_trec -q -c test/qrels.test test/results.trunc | diff - test/out.test.aqc
+    - trec_eval -m all_trec -q -c -M100 test/qrels.test test/results.trunc | diff - test/out.test.aqcM
+    - trec_eval -m all_trec -mrelstring.20 -q -l2 test/qrels.rel_level test/results.test | diff - test/out.test.aql
+    - trec_eval -m all_prefs -q -R prefs test/prefs.test test/prefs.results.test | diff - test/out.test.prefs
+    - trec_eval -m all_prefs -q -R qrels_prefs test/qrels.test test/results.test | diff - test/out.test.qrels_prefs
+    - trec_eval -m qrels_jg -q -R qrels_jg  test/qrels.123 test/results.test | diff - test/out.test.qrels_jg
+    - trec_eval -q -miprec_at_recall..10,.20,.25,.75,.50 -m P.5,7,3 -m recall.20,2000 -m Rprec_mult.5.0,0.2,0.35 -mutility.2,-1,0,0 -m 11pt_avg..25,.5,.75 -mndcg.1=3,2=9,4=4.5 -mndcg_cut.10,20,23.4 -msuccess.2,5,20 test/qrels.test test/results.test | diff - test/out.test.meas_params
+    - trec_eval -q -m all_trec -Z test/zscores_file test/qrels.test test/results.test | diff - test/out.test.aqZ
+    {% else %}
+    # only one test for windows; too much hassle to translate everything
+    - trec_eval test/qrels.test test/results.test > tmp
+    - FC tmp test/out.test
+    {% endif %}
+
+about:
+  home: https://github.com/usnistgov/trec_eval
+  # The work of NIST is in the public domain; the trec_eval repo itself does not
+  # contain a license file, but see https://github.com/usnistgov/trec_eval/issues/10
+  # & https://www.nist.gov/open/copyright-fair-use-and-licensing-statements-srd-data-software-and-technical-series-publications
+  license: NIST-PD
+  license_file: LICENSE
+  summary: Evaluation software used in the Text Retrieval Conference
+  dev_url: https://github.com/usnistgov/trec_eval
+
+extra:
+  recipe-maintainers:
+    - h-vetinari
