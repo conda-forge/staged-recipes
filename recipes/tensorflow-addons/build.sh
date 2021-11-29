@@ -47,7 +47,10 @@ sleep 2
 
 # use conda-forge wrapper for bazel, called bazel-toolchain
 source gen-bazel-toolchain
-bazel build --crosstool_top=//bazel_toolchain:toolchain build_pip_pkg
+bazel build \
+    --crosstool_top=//bazel_toolchain:toolchain \
+    --copt="-I$SP_DIR/tensorflow/include" \
+    build_pip_pkg
 
 # build a whl file
 mkdir -p $SRC_DIR/tf_addons_pkg
