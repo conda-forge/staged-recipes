@@ -15,3 +15,4 @@ source $PATO_DIR/bashrc
 which runtests
 runtests
 hdiutil detach volume
+sleep 20

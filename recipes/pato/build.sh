@@ -54,7 +54,7 @@ if [ "$(uname)" = "Darwin" ]; then
        install_name_tool -id $lib_name $lib_name\
     fi\
 ' Allwmake
-    sed -i "" -e 's/endTime_factor 1/endTime_factor 20/g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/utilities/tests/testframework/runtests_options
+    sed -i "" -e 's/endTime_factor 1/endTime_factor 15/g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/utilities/tests/testframework/runtests_options
     sed -i "" -e 's/\$(PATO_DIR)\/install\/lib\/libPATOx.so//g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/solvers/basics/heatTransfer/Make/options
     sed	-i "" -e 's/-I\$(LIB_PATO)\/libPATOx\/lnInclude//g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/solvers/basics/heatTransfer/Make/options
     sed -i "" -e 's/==/=/g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/bashrc
@@ -65,6 +65,7 @@ if [ "$(uname)" = "Darwin" ]; then
     python change_lib_path.py
     # detach volume
     hdiutil detach volume
+    sleep 20
     # create src/volume and copy pato_releases_conda.sparsebundle
     if [ ! -d $PREFIX/src/volume ]; then
         mkdir -p $PREFIX/src/volume
