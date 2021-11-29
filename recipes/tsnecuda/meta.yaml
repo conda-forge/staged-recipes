@@ -1,0 +1,76 @@
+{% set version = "3.0.0" %}
+
+package:
+  name: tsnecuda
+  version: {{ version }}
+
+source:
+  - url: https://github.com/CannyLab/tsne-cuda/archive/refs/tags/{{ version }}.tar.gz
+    sha256: 6f5a0c5c0c54a4a74837e0e84fa37396ca6912a2031bdf6e846d5c01254e3e2c
+    patches:
+      # do not try to detect (or set) "build number" from git;
+      # we're only building released versions anyway
+      - patches/0001-do-not-try-to-detect-set-build-number.patch
+      - patches/0002-add-patch_level-to-version_string.patch
+      - patches/0003-adapt-path-that-depends-on-invocation-in-a-build-dir.patch
+      - patches/0004-fix-version-insertion-in-src-exe-main.cu.patch
+  # include submodule (not in github tarball due to dear-github/dear-github#214), c.f.
+  # https://github.com/CannyLab/tsne-cuda/tree/{{ version }}/third_party
+  - git_url: https://github.com/jarro2783/cxxopts.git
+    git_rev: c713b44d92e4ea2569101fa6bdf60afa311b29a3
+    folder: third_party/cxxopts
+
+
+build:
+  number: 0
+  # only linux for the moment
+  skip: true  # [not linux]
+  skip: true  # [cuda_compiler_version == "None"]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - cmake
+    - make
+  host:
+    - python
+    - pip
+    # package uses zmq hpp-headers
+    - cppzmq
+    - gflags
+    - gmock
+    - libblas
+    - liblapack
+    - libfaiss =1.6.5=*cuda
+  run:
+    - python
+    - libfaiss =1.6.5=*cuda
+    - numpy
+    # unfortunately run-depends on setuptools due to pkg_resources.resource_filename
+    # https://github.com/CannyLab/tsne-cuda/blob/3.0.0/src/python/tsnecuda/TSNE.py#L138
+    - setuptools
+    # despite building with cppzmq, conda wants zeromq here
+    - zeromq
+test:
+  imports:
+    - tsnecuda
+  commands:
+    # wants to load cublas unconditionally, which fails in CI
+    # - python -c "import tsnecuda; tsnecuda.test()"
+
+about:
+  home: https://github.com/CannyLab/tsne-cuda
+  license: BSD-3-Clause AND MIT
+  license_file:
+    - LICENSE.tsnecuda
+    - LICENSE.cxxopt
+
+  summary: GPU Accelerated t-SNE for CUDA with Python bindings
+  dev_url: https://github.com/CannyLab/tsne-cuda
+
+extra:
+  recipe-maintainers:
+    - h-vetinari
