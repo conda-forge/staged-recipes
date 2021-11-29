@@ -1,0 +1,64 @@
+{% set name = "tensorflow-quantum" %}
+{% set version = "0.5.1" %}
+
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/tensorflow/quantum/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: c6a4a72366334673c38cd06329f17889278db4dba8060beb891ef3c489fb72a8
+
+build:
+  number: 0
+  skip: true   # [ py<36 or py>38 or win]
+  script:
+    - cd quantum
+    - ./configure.sh
+    - bazel build -c opt --cxxopt="-O3" --cxxopt="-march=native" --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" release:build_pip_package
+    - bazel-bin/release/build_pip_package /tmp/tfquantum/
+    - {{ PYTHON }} -m pip install {{ name|lower }}-{{ version }}-py3-none-any.whl -vv
+    - ./scripts/test_all.sh
+
+requirements:
+  host:
+    - bazel
+  run:
+    - python
+    - cirq-core==0.13.1
+    - cirq-google==0.13.1
+    - sympy==1.8
+    - numpy==1.19.5  # TensorFlow can detect if it was built against other versions.
+    - nbconvert==5.6.1
+    - nbformat==4.4.0
+    - pylint==2.4.4
+    - yapf==0.28.0
+    - tensorflow==2.5.1
+    # Needed for compatibility with cirq program protos.
+    - googleapis-common-protos==1.52.0
+    - google-api-core==1.21.0
+    - google-auth==1.18.0
+    - google-api-python-client==1.8.0
+    - grpcio==1.34.1
+    - protobuf==3.17.3
+
+test:
+  imports:
+    - tensorflow_quantum
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://www.tensorflow.org/quantum/overview
+  summary: Hybrid Quantum-Classical Machine Learning in TensorFlow
+  dev_url: https://github.com/tensorflow/quantum
+  doc_url: https://www.tensorflow.org/quantum/api_docs/python/tfq
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - BastianZim
