@@ -3,7 +3,7 @@
 Convert all recipes into feedstocks.
 
 This script is to be run in a TravisCI context, with all secret environment
-variables defined (BINSTAR_TOKEN, GH_TOKEN)
+variables defined (STAGING_BINSTAR_TOKEN, GH_TOKEN)
 
 Such as:
 
@@ -140,7 +140,7 @@ def sleep_until_reset(gh):
 if __name__ == '__main__':
     exit_code = 0
 
-    is_merged_pr = os.environ.get('CF_CURRENT_BRANCH') == 'master'
+    is_merged_pr = os.environ.get('CF_CURRENT_BRANCH') == 'main'
 
     smithy_conf = os.path.expanduser('~/.conda-smithy')
     if not os.path.exists(smithy_conf):
@@ -157,9 +157,15 @@ if __name__ == '__main__':
         write_token('azure', os.environ['AZURE_TOKEN'])
     if 'DRONE_TOKEN' in os.environ:
         write_token('drone', os.environ['DRONE_TOKEN'])
+    if 'TRAVIS_TOKEN' in os.environ:
+        write_token('travis', os.environ['TRAVIS_TOKEN'])
+    if 'STAGING_BINSTAR_TOKEN' in os.environ:
+        write_token('anaconda', os.environ['STAGING_BINSTAR_TOKEN'])
 
     gh_drone = Github(os.environ['GH_DRONE_TOKEN'])
     gh_drone_remaining = print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+
+    gh_travis = Github(os.environ['GH_TRAVIS_TOKEN'])
 
     gh = None
     if 'GH_TOKEN' in os.environ:
@@ -235,7 +241,12 @@ if __name__ == '__main__':
                         ['git', 'checkout', '-b' 'master'], cwd=feedstock_dir)
             print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
             subprocess.check_call(
-                ['conda', 'smithy', 'register-github', feedstock_dir] + owner_info)
+                ['conda', 'smithy', 'register-github', feedstock_dir]
+                + owner_info
+                # hack to help travis work
+                # + ['--extra-admin-users', gh_travis.get_user().login]
+                # end of hack
+            )
             print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
         from conda_smithy.ci_register import drone_sync
@@ -261,8 +272,14 @@ if __name__ == '__main__':
             # In order to bank our progress, we note the error and handle it.
             # After going through all the recipes and removing the converted ones,
             # we fail the build so that people are aware that things did not clear.
+
+            # hack to help travis work
+            # from conda_smithy.ci_register import add_project_to_travis
+            # add_project_to_travis("conda-forge", name + "-feedstock")
+            # print_rate_limiting_info(gh_travis, 'GH_TRAVIS_TOKEN')
+            # end of hack
+
             try:
-                write_token('anaconda', os.environ['PROD_BINSTAR_TOKEN'])
                 subprocess.check_call(
                     ['conda', 'smithy', 'register-ci', '--without-appveyor',
                      '--without-webservice', '--feedstock_directory',
@@ -290,10 +307,12 @@ if __name__ == '__main__':
                         ['conda', 'smithy', 'register-feedstock-token',
                          '--feedstock_directory', feedstock_dir] + owner_info)
 
-                write_token('anaconda', os.environ['STAGING_BINSTAR_TOKEN'])
+                # add staging token env var to all CI probiders except appveyor
+                # and azure
+                # azure has it by default and appveyor is not used
                 subprocess.check_call(
                     ['conda', 'smithy', 'rotate-binstar-token',
-                     '--without-appveyor',
+                     '--without-appveyor', '--without-azure',
                      '--token_name', 'STAGING_BINSTAR_TOKEN'],
                     cwd=feedstock_dir)
 
@@ -350,10 +369,16 @@ if __name__ == '__main__':
             # Remove this recipe from the repo.
             if is_merged_pr:
                 subprocess.check_call(['git', 'rm', '-rf', recipe_dir])
+                # hack to help travis work
+                # from conda_smithy.ci_register import travis_cleanup
+                # travis_cleanup("conda-forge", name + "-feedstock")
+                # end of hack
 
     # Update status based on the remote.
     subprocess.check_call(['git', 'stash', '--keep-index', '--include-untracked'])
     subprocess.check_call(['git', 'fetch'])
+    # CBURR: Debugging
+    subprocess.check_call(['git', 'status'])
     subprocess.check_call(['git', 'rebase', '--autostash'])
     subprocess.check_call(['git', 'add', '.'])
     try:
@@ -403,7 +428,7 @@ if __name__ == '__main__':
             # Capture the output, as it may contain the GH_TOKEN.
             out = subprocess.check_output(
                 ['git', 'remote', 'add', 'upstream_with_token',
-                 'https://conda-forge-manager:{}@github.com/'
+                 'https://x-access-token:{}@github.com/'
                  'conda-forge/staged-recipes'.format(os.environ['GH_TOKEN'])],
                 stderr=subprocess.STDOUT)
             subprocess.check_call(['git', 'commit', '-m', msg])
@@ -420,5 +445,7 @@ if __name__ == '__main__':
         print_rate_limiting_info(gh, 'GH_TOKEN')
     if gh_drone:
         print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+    if gh_travis:
+        print_rate_limiting_info(gh_travis, 'GH_TRAVIS_TOKEN')
 
     sys.exit(exit_code)

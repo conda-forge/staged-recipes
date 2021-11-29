@@ -34,7 +34,7 @@ Generating recipe: `grayskull pypi PACKAGE_NAME_HERE`
 
 ### 1. **How do I start editing the recipe?**
 
-Look at one of [these examples](https://github.com/conda-forge/staged-recipes/tree/master/recipes)
+Look at one of [these examples](https://github.com/conda-forge/staged-recipes/tree/main/recipes)
 in this repository and modify it as necessary.
 
 Your final recipe should have no comments and follow the order in the example.
@@ -106,7 +106,7 @@ The maintainers "job" is to:
 
 ### 10. Why are there recipes already in the `recipes` directory? Should I do something about it?
 
-When a PR of recipe(s) is ready to go, it is merged into `master`. This will trigger a CI build specially designed to convert the recipe(s). However, for any number of reasons the recipe(s) may not be converted right away. In the interim, the recipe(s) will remain in `master` until they can be converted. There is no action required on the part of recipe contributors to resolve this. Also it should have no impact on any other PRs being proposed. If these recipe(s) pending conversion do cause issues for your submission, please ping `conda-forge/core` for help.
+When a PR of recipe(s) is ready to go, it is merged into `main`. This will trigger a CI build specially designed to convert the recipe(s). However, for any number of reasons the recipe(s) may not be converted right away. In the interim, the recipe(s) will remain in `main` until they can be converted. There is no action required on the part of recipe contributors to resolve this. Also it should have no impact on any other PRs being proposed. If these recipe(s) pending conversion do cause issues for your submission, please ping `conda-forge/core` for help.
 
 ### 11. **Some checks failed, but it wasn't my recipe! How do I trigger a rebuild?**
 
@@ -126,7 +126,7 @@ If the problem was due to scripts in the `staged-recipes` repository, you may be
 # these lines:
 # git remote add upstream https://github.com/conda-forge/staged-recipes.git
 # git fetch --all
-git rebase upstream/master
+git rebase upstream/main
 git push -f
 ```
 
@@ -136,35 +136,15 @@ If your PR is passing all checks, but has not been acted on by the staged recipe
 maintainers, you can ping @conda-forge/staged-recipes to request action. You do
 not need to wait any specific amount of time once the recipe is ready to go.
 
+Due to GitHub limitations first time contributors to conda-forge are unable
+to ping these teams. You can [ping the team](https://conda-forge.org/docs/maintainer/infrastructure.html#conda-forge-admin-please-ping-team)
+using a special command in a comment on the PR to get the attention of the `staged-recipes` team.
+
 If your recipe still does not receive any attention after a few days, you may
 attempt to re-ping @conda-forge/staged-recipes. You may also attempt to bring
-the PR up in our Gitter chat room at https://gitter.im/conda-forge/conda-forge.github.io
+the PR up in our Gitter chat room at https://gitter.im/conda-forge/conda-forge.github.io.
 
 All apologies in advance if your recipe PR does not recieve prompt attention.
 This is a high volume repository and issues can easily be missed. We are always
 looking for more staged-recipe reviewers. If you are interested in volunteering,
 please contact a member of @conda-forge/core. We'd love to have the help!
-
-### 13. How to build with old compilers (GCC v4) on staged-recipes?
-
-First, don't. Second, please don't.
-
-Add a `conda_build_config.yaml` file inside the recipe folder with the contents
-
-```yaml
-channel_sources:
-- conda-forge/label/cf201901,defaults   # [unix]
-- conda-forge,defaults                  # [win]
-channel_targets:
-- conda-forge cf201901                  # [unix]
-- conda-forge main                      # [win]
-c_compiler:                             # [unix]
-- gcc                                   # [linux]
-- clang                                 # [osx]
-cxx_compiler:                           # [unix]
-- gxx                                   # [linux]
-- clangxx                               # [osx]
-fortran_compiler:                       # [unix]
-- gfortran                              # [unix]
-```
-
