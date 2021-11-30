@@ -15,7 +15,7 @@ cmake \
     -Bbuild \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DSHARED_ONLY=ON \
-    -DENABLE_OPENMP=OFF \
+    -DENABLE_OPENMP=ON \
     -DENABLE_XHOST=OFF \
     -DENABLE_GENERIC=OFF \
     -DMKL=ON \
