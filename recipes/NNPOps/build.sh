@@ -55,7 +55,7 @@ ln -s $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-c++ $BUILD_PREFIX/bin/c++
 ln -s $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-g++ $BUILD_PREFIX/bin/g++
 
 CMAKE_FLAGS="${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_BUILD_TYPE=Release"
-CMAKE_FLAGS+=" -DTorch_DIR=$CONDA_PREFIX/lib/python3.9/site-packages/torch/share/cmake/Torch"
+CMAKE_FLAGS+=" -DTorch_DIR=$CONDA_PREFIX/lib/python3.7/site-packages/torch/share/cmake/Torch"
 CMAKE_FLAGS+=" -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX"
 
 mkdir build && cd build
