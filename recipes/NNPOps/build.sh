@@ -4,6 +4,9 @@ set -euxo pipefail
 
 rm -rf build || true
 
+# function for facilitate version comparison; cf. https://stackoverflow.com/a/37939589
+function version2int { echo "$@" | awk -F. '{ printf("%d%02d\n", $1, $2); }'; }
+
 # adapted from https://github.com/conda-forge/faiss-split-feedstock/blob/master/recipe/build-lib.sh
 declare -a CUDA_CONFIG_ARGS
 
