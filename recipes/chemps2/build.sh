@@ -10,7 +10,7 @@ LAPACK_INTERJECT="${PREFIX}/lib/libmkl_rt.so"
 # ALLOPTS="-gnu-prefix=${HOST}- ${OPTS}"
 
 # configure
-${PREFIX}/bin/cmake \
+cmake \
     -H${SRC_DIR} \
     -Bbuild \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
