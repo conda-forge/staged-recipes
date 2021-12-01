@@ -1,0 +1,145 @@
+From 16578d1a599f914acd421b595be655e3a63c731d Mon Sep 17 00:00:00 2001
+From: Ray Donnelly <mingw.android@gmail.com>
+Date: Mon, 10 Dec 2018 14:45:19 -0600
+Subject: [PATCH 2/6] qtbase: osx: allow any xcrun in PATH
+
+Change-Id: I6066837f34fbed47340aa280d696e9deb3c79fc7
+---
+ configure                            | 10 +++++-----
+ mkspecs/features/mac/default_pre.prf |  8 ++++----
+ mkspecs/features/mac/sdk.mk          |  2 +-
+ mkspecs/features/mac/sdk.prf         |  4 ++--
+ qtbase/mkspecs/features/mac/sdk.mk   | 12 ++++++++++++
+ 5 files changed, 24 insertions(+), 12 deletions(-)
+ create mode 100644 qtbase/mkspecs/features/mac/sdk.mk
+
+diff --git a/qtbase/configure b/qtbase/configure
+index ef7bad1bfc..0d1f198d9f 100755
+--- a/qtbase/configure
++++ b/qtbase/configure
+@@ -232,7 +232,7 @@ macSDKify()
+ 
+     sdk=$(getSingleQMakeVariable "QMAKE_MAC_SDK" "$1")
+     if [ -z "$sdk" ]; then echo "QMAKE_MAC_SDK must be set when building on Mac" >&2; exit 1; fi
+-    sysroot=$(/usr/bin/xcrun --sdk $sdk --show-sdk-path 2>/dev/null)
++    sysroot=$(xcrun --sdk $sdk --show-sdk-path 2>/dev/null)
+     if [ -z "$sysroot" ]; then echo "Failed to resolve SDK path for '$sdk'" >&2; exit 1; fi
+ 
+     case "$sdk" in
+@@ -267,7 +267,7 @@ macSDKify()
+                 # Prefix tool with toolchain path
+                 var=$(echo "$line" | cut -d '=' -f 1)
+                 val=$(echo "$line" | cut -d '=' -f 2-)
+-                sdk_val=$(/usr/bin/xcrun -sdk $sdk -find $(echo $val | cut -d ' ' -f 1))
++                sdk_val=$(xcrun -sdk $sdk -find $(echo $val | cut -d ' ' -f 1))
+                 val=$(echo $sdk_val $(echo $val | cut -s -d ' ' -f 2-))
+                 echo "$var=$val"
+             ;;
+@@ -318,7 +318,7 @@ fi
+ #-------------------------------------------------------------------------------
+ 
+ if [ "$BUILD_ON_MAC" = "yes" ]; then
+-    if ! /usr/bin/xcode-select --print-path >/dev/null 2>&1; then
++    if ! xcode-select --print-path >/dev/null 2>&1; then
+         echo >&2
+         echo "   No Xcode selected. Please install Xcode via the App Store, " >&2
+         echo "   or the command line developer tools via xcode-select --install, " >&2
+@@ -329,8 +329,8 @@ if [ "$BUILD_ON_MAC" = "yes" ]; then
+     fi
+ 
+     # In the else case we are probably using a Command Line Tools installation
+-    if /usr/bin/xcrun -find xcodebuild >/dev/null 2>&1; then
+-        if ! /usr/bin/xcrun xcodebuild -license check 2>/dev/null; then
++    if xcrun -find xcodebuild >/dev/null 2>&1; then
++        if ! xcrun xcodebuild -license check 2>/dev/null; then
+             echo >&2
+             echo "   Xcode setup not complete. You need to confirm the license" >&2
+             echo "   agreement by running 'sudo xcrun xcodebuild -license accept'." >&2
+diff --git a/qtbase/mkspecs/features/mac/default_pre.prf b/qtbase/mkspecs/features/mac/default_pre.prf
+index e3534561a5..56a7e62155 100644
+--- a/qtbase/mkspecs/features/mac/default_pre.prf
++++ b/qtbase/mkspecs/features/mac/default_pre.prf
+@@ -3,7 +3,7 @@ load(default_pre)
+ 
+ isEmpty(QMAKE_XCODE_DEVELOPER_PATH) {
+     # Get path of Xcode's Developer directory
+-    QMAKE_XCODE_DEVELOPER_PATH = $$system("/usr/bin/xcode-select --print-path 2>/dev/null")
++    QMAKE_XCODE_DEVELOPER_PATH = $$system("xcode-select --print-path 2>/dev/null")
+     isEmpty(QMAKE_XCODE_DEVELOPER_PATH): \
+         error("Xcode path is not set. Please use xcode-select to choose Xcode installation path.")
+ 
+@@ -13,16 +13,16 @@ isEmpty(QMAKE_XCODE_DEVELOPER_PATH) {
+ }
+ 
+ isEmpty(QMAKE_XCODEBUILD_PATH): \
+-    QMAKE_XCODEBUILD_PATH = $$system("/usr/bin/xcrun -find xcodebuild 2>/dev/null")
++    QMAKE_XCODEBUILD_PATH = $$system("xcrun -find xcodebuild 2>/dev/null")
+ 
+ !isEmpty(QMAKE_XCODEBUILD_PATH) {
+     # Make sure Xcode is set up properly
+-    !system("/usr/bin/xcrun xcodebuild -license check 2>/dev/null"): \
++    !system("xcrun xcodebuild -license check 2>/dev/null"): \
+         error("Xcode not set up properly. You need to confirm the license agreement by running 'sudo xcrun xcodebuild -license accept'.")
+ 
+     isEmpty(QMAKE_XCODE_VERSION) {
+         # Extract Xcode version using xcodebuild
+-        xcode_version = $$system("/usr/bin/xcrun xcodebuild -version")
++        xcode_version = $$system("xcrun xcodebuild -version")
+         QMAKE_XCODE_VERSION = $$member(xcode_version, 1)
+         isEmpty(QMAKE_XCODE_VERSION): error("Could not resolve Xcode version.")
+         unset(xcode_version)
+diff --git a/qtbase/mkspecs/features/mac/sdk.mk b/qtbase/mkspecs/features/mac/sdk.mk
+index c40f58c987..349a0e58f2 100644
+--- a/qtbase/mkspecs/features/mac/sdk.mk
++++ b/qtbase/mkspecs/features/mac/sdk.mk
+@@ -1,6 +1,6 @@
+ 
+ ifeq ($(QT_MAC_SDK_NO_VERSION_CHECK),)
+-    CHECK_SDK_COMMAND = /usr/bin/xcrun --sdk $(EXPORT_QMAKE_MAC_SDK) -show-sdk-version 2>&1
++    CHECK_SDK_COMMAND = xcrun --sdk $(EXPORT_QMAKE_MAC_SDK) -show-sdk-version 2>&1
+     CURRENT_MAC_SDK_VERSION := $(shell DEVELOPER_DIR=$(EXPORT_QMAKE_XCODE_DEVELOPER_PATH) $(CHECK_SDK_COMMAND))
+     ifneq ($(CURRENT_MAC_SDK_VERSION),$(EXPORT_QMAKE_MAC_SDK_VERSION))
+         # We don't want to complain about out of date SDK unless the target needs to be remade.
+diff --git a/qtbase/mkspecs/features/mac/sdk.prf b/qtbase/mkspecs/features/mac/sdk.prf
+index 3a9c2778bb..12c1c82639 100644
+--- a/qtbase/mkspecs/features/mac/sdk.prf
++++ b/qtbase/mkspecs/features/mac/sdk.prf
+@@ -18,7 +18,7 @@ defineReplace(xcodeSDKInfo) {
+         sdk = $$QMAKE_MAC_SDK
+ 
+     isEmpty(QMAKE_MAC_SDK.$${sdk}.$${info}) {
+-        QMAKE_MAC_SDK.$${sdk}.$${info} = $$system("/usr/bin/xcrun --sdk $$sdk $$infoarg 2>/dev/null")
++        QMAKE_MAC_SDK.$${sdk}.$${info} = $$system("xcrun --sdk $$sdk $$infoarg 2>/dev/null")
+         # --show-sdk-platform-path won't work for Command Line Tools; this is fine
+         # only used by the XCTest backend to testlib
+         isEmpty(QMAKE_MAC_SDK.$${sdk}.$${info}):if(!isEmpty(QMAKE_XCODEBUILD_PATH)|!equals(infoarg, "--show-sdk-platform-path")): \
+@@ -53,7 +53,7 @@ for(tool, $$list(QMAKE_CC QMAKE_CXX QMAKE_FIX_RPATH QMAKE_AR QMAKE_RANLIB QMAKE_
+     value = $$eval($$tool)
+     isEmpty(value): next()
+ 
+-    sysrooted = $$system("/usr/bin/xcrun -sdk $$QMAKE_MAC_SDK -find $$first(value) 2>/dev/null")
++    sysrooted = $$system("xcrun -sdk $$QMAKE_MAC_SDK -find $$first(value) 2>/dev/null")
+     isEmpty(sysrooted): next()
+ 
+     $$tool = $$sysrooted $$member(value, 1, -1)
+diff --git a/qtbase/qtbase/mkspecs/features/mac/sdk.mk b/qtbase/qtbase/mkspecs/features/mac/sdk.mk
+new file mode 100644
+index 0000000000..f912d6016a
+--- /dev/null
++++ b/qtbase/qtbase/mkspecs/features/mac/sdk.mk
+@@ -0,0 +1,12 @@
++CURRENT_MAC_SDK_VERSION := $(shell DEVELOPER_DIR=$(EXPORT_QMAKE_XCODE_DEVELOPER_PATH) xcrun --sdk $(EXPORT_QMAKE_MAC_SDK) -show-sdk-version)
++
++ifneq ($(CURRENT_MAC_SDK_VERSION),$(EXPORT_QMAKE_MAC_SDK_VERSION))
++    $(info The platform SDK has been changed from version $(EXPORT_QMAKE_MAC_SDK_VERSION) to version $(CURRENT_MAC_SDK_VERSION).)
++    $(info This requires a fresh build. Please wipe the build directory completely,)
++    $(info including any .qmake.stash and .qmake.cache files generated by qmake.)
++    # FIXME: Ideally this should be advertised as just running make distclean, or we
++    # should even do it automatically by having proper makefile dependencies between
++    # .qmake.stash and the SDK version, but as qmake doesn't seem to be consistent in
++    # how it deals with .qmake.stash as a dependency we need to defer that until later.
++    $(error ^)
++endif
+-- 
+2.20.1
+
