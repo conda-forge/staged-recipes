@@ -21,7 +21,6 @@ if [[ "${target_platform}" == "osx-arm64" ]]; then
   export LDFLAGS="${LDFLAGS} -mmacosx-version-min=11.0"
 fi
 
-sed -ie "s:\${BUILD_PREFIX}:${BUILD_PREFIX}:" protobuf.BUILD
 sed -ie "s:\${SRC_DIR}:${SRC_DIR}:" third_party/repo.bzl
 
 pushd cc
