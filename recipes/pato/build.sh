@@ -63,6 +63,9 @@ tar xvf OpenFOAM-7.tar
 tar xvf ThirdParty-7.tar
 # compile OpenFOAM-7
 cd $SRC_DIR/volume/OpenFOAM/OpenFOAM-7
+if [ "$(uname)" = "Linux" ]; then
+    alias wmRefresh=""
+fi
 source etc/bashrc
 ./Allwmake
 
