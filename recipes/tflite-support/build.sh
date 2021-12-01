@@ -23,7 +23,6 @@ fi
 
 sed -ie "s:\${SRC_DIR}:${SRC_DIR}:" third_party/repo.bzl
 
-pushd cc
 source gen-bazel-toolchain
 bazel clean
 bazel build --crosstool_top=//bazel_toolchain:toolchain --define=PROTOBUF_INCLUDE_PATH=${PREFIX}/include --cpu=${TARGET_CPU} ${BAZEL_OPT} ...
