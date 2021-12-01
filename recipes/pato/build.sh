@@ -43,6 +43,7 @@ if [ "$(uname)" = "Darwin" ]; then
     ./configure --prefix=$PREFIX
     make; make install
     mv $PREFIX/bin/sed $PREFIX/bin/gsed
+    alias sed=gsed
 fi
 
 # compile ParMGridGen
@@ -50,7 +51,7 @@ cd $SRC_DIR/volume/parmgridgen
 tar xvf ParMGridGen-0.0.2.tar.gz
 cd ParMGridGen-0.0.2
 if [ "$(uname)" = "Linux" ]; then
-    sed -i "" -e "s/clang/gcc/g" Makefile.in
+    sed -i 's/clang/gcc/g' Makefile.in
     cat Makefile.in
 fi
 make
@@ -69,16 +70,13 @@ source etc/bashrc
 cd $SRC_DIR/volume/PATO
 tar xvf PATO-dev-2.3.1.tar.gz
 # Patch PATO-dev-2.3.1
-sed -ie '12 a\
-if [ "$(uname)" = "Darwin" ]; then\
-   lib_name=$PATO_DIR/src/thirdParty/mutation++/install/lib/libmutation++.dylib\
-   install_name_tool -id $lib_name $lib_name\
-fi\
-' Allwmake
-sed -i "" -e 's/endTime_factor 1/endTime_factor 15/g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/utilities/tests/testframework/runtests_options
-sed -i "" -e 's/\$(PATO_DIR)\/install\/lib\/libPATOx.so//g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/solvers/basics/heatTransfer/Make/options
-sed	-i "" -e 's/-I\$(LIB_PATO)\/libPATOx\/lnInclude//g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/solvers/basics/heatTransfer/Make/options
-sed -i "" -e 's/==/=/g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/bashrc
+sed -i '12 a\    if [ "$(uname)" = "Darwin" ]; then\
+        lib_name=$PATO_DIR/src/thirdParty/mutation++/install/lib/libmutation++.dylib\
+        install_name_tool -id $lib_name $lib_name\n    fi' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/Allwmake
+sed -i 's/endTime_factor \+[0-9]*/endTime_factor 15/g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/utilities/tests/testframework/runtests_options
+sed -i 's/\$(PATO_DIR)\/install\/lib\/libPATOx.so//g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/solvers/basics/heatTransfer/Make/options
+sed -i 's/-I\$(LIB_PATO)\/libPATOx\/lnInclude//g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/solvers/basics/heatTransfer/Make/options
+sed -i 's/==/=/g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/bashrc
 # source PATO
 cd PATO-dev-2.3.1
 export PATO_DIR=$PWD
