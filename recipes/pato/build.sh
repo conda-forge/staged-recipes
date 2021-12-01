@@ -91,9 +91,6 @@ source bashrc
 cd $SRC_DIR
 python change_lib_path.py
 
-echo environmentComposition 0
-cat $SRC_DIR/volume/PATO/PATO-dev-2.3.1/data/Environments/RawData/Earth/environmentComposition
-
 if [ "$(uname)" = "Darwin" ]; then
     # detach volume
     hdiutil detach volume
