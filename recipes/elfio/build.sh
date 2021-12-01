@@ -7,6 +7,9 @@ autoreconf -fiv
 ./configure --prefix=$PREFIX
 make
 
-make check || { cat test-suite.log; exit 1; }
+if [[ $(uname) == Linux ]]; then
+    # The tests only run on Linux (executables must be ELF files)
+    make check || { cat test-suite.log; exit 1; }
+fi
 
 make install
