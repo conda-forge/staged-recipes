@@ -7,6 +7,6 @@ autoreconf -fiv
 ./configure --prefix=$PREFIX
 make
 
-make check
+make check || { cat test-suite.log; exit 1; }
 
 make install
