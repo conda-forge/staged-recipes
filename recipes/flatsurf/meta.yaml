@@ -1,0 +1,93 @@
+{% set name = "flatsurf" %}
+{% set version = "3.9.3" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/flatsurf/{{ name }}/releases/download/{{ version }}/{{ name }}-{{ version }}.tar.gz
+  sha256: c2f564e02be656814e0414bb852a3fb1ee1e664c08408b6af21f8e077b5fcdd8
+
+build:
+  number: 0
+  # dependency libeantic is not available for Windows on conda-forge yet
+  skip: true  # [win]
+
+outputs:
+  - name: libflatsurf
+    script: build-libflatsurf.sh   # [not win]
+    script: build-libflatsurf.bat  # [win]
+    run_exports:
+      - {{ pin_subpackage("libflatsurf") }}
+    requirements:
+      build:
+        - libtool    # [unix]
+        - automake   # [unix]
+        - make       # [unix]
+        - gnuconfig  # [unix]
+        - autotools_clang_conda  # [win]
+        - {{ compiler('cxx') }}
+      host:
+        - arb
+        - boost-cpp
+        - fmt
+        - gmp   # [unix]
+        - mpir  # [win]
+        - libflint
+        - libintervalxt
+        - libexactreal
+        - libeantic
+        - gmpxxll
+    test:
+      commands:
+        - test -f $PREFIX/include/flatsurf/flatsurf.hpp  # [unix]
+        - test -f $PREFIX/lib/libflatsurf${SHLIB_EXT}      # [unix]
+  - name: pyflatsurf
+    script: build-pyflatsurf.sh  # [not win]
+    script: bld-pyflatsurf.bat  # [win]
+    requirements:
+      build:
+        - python                              # [build_platform != target_platform]
+        - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+        - libtool   # [unix]
+        - automake  # [unix]
+        - make      # [unix]
+        - autotools_clang_conda  # [win]
+        - gnuconfig  # [unix]
+        - {{ compiler('cxx') }}
+      host:
+        - boost-cpp
+        - python
+        - cppyy
+        - cppyythonizations
+        - setuptools
+        - pytest
+        - pyexactreal
+        - {{ pin_subpackage("libflatsurf") }}
+      run:
+        # cppyy dynamically compiles C++ wrappers at runtime, therefore we need C++ headers of boost.
+        - boost-cpp
+        - python
+        - cppyy
+        - cppyythonizations
+        - gmpxxyy
+        - pyexactreal
+        # A subpackage does not see the run_exports of another subpackage:
+        # https://github.com/conda/conda-build/issues/3478
+        - {{ pin_subpackage("libflatsurf") }}
+    test:
+      imports:
+        - pyflatsurf
+
+about:
+  home: https://github.com/flatsurf/flatsurf
+  license: GPL-3.0-or-later
+  license_family: GPL
+  license_file: COPYING
+  summary: Algorithms on Flat Triangulations
+  dev_url: https://github.com/flatsurf/flatsurf
+
+extra:
+  recipe-maintainers:
+    - saraedum
