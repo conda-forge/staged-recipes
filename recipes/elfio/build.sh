@@ -13,3 +13,7 @@ if [[ $(uname) == Linux ]]; then
 fi
 
 make install
+
+# Do not package the test binaries
+ls $PREFIX/bin/*
+rm -rf $PREFIX/bin/*
