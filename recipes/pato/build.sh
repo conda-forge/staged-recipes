@@ -45,26 +45,29 @@ if [ "$(uname)" = "Darwin" ]; then
     mv $PREFIX/bin/sed $PREFIX/bin/gsed
 fi
 
-# get OpenFOAM src
-cd $SRC_DIR/volume/OpenFOAM
-tar xvf OpenFOAM-7.tar
-tar xvf ThirdParty-7.tar
 # compile ParMGridGen
 cd $SRC_DIR/volume/parmgridgen
 tar xvf ParMGridGen-0.0.2.tar.gz
 cd ParMGridGen-0.0.2
+if [ "$(uname)" = "Linux" ]; then
+    sed -i "" -e "s/clang/gcc/g" Makefile.in
+    cat Makefile.in
+fi
 make
 cp bin/mgridgen $PREFIX/bin/mgridgen
+
+# get OpenFOAM src
+cd $SRC_DIR/volume/OpenFOAM
+tar xvf OpenFOAM-7.tar
+tar xvf ThirdParty-7.tar
 # compile OpenFOAM-7
 cd $SRC_DIR/volume/OpenFOAM/OpenFOAM-7
 source etc/bashrc
 ./Allwmake
+
 # get PATO-2.3.1
 cd $SRC_DIR/volume/PATO
 tar xvf PATO-dev-2.3.1.tar.gz
-cd PATO-dev-2.3.1
-export PATO_DIR=$PWD
-source bashrc
 # Patch PATO-dev-2.3.1
 sed -ie '12 a\
 if [ "$(uname)" = "Darwin" ]; then\
@@ -76,13 +79,20 @@ sed -i "" -e 's/endTime_factor 1/endTime_factor 15/g' $SRC_DIR/volume/PATO/PATO-
 sed -i "" -e 's/\$(PATO_DIR)\/install\/lib\/libPATOx.so//g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/solvers/basics/heatTransfer/Make/options
 sed	-i "" -e 's/-I\$(LIB_PATO)\/libPATOx\/lnInclude//g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/solvers/basics/heatTransfer/Make/options
 sed -i "" -e 's/==/=/g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/bashrc
+# source PATO
+cd PATO-dev-2.3.1
+export PATO_DIR=$PWD
+source bashrc
 # Compile PATO-dev-2.3.1
 ./Allwmake
-# Move the executables and libraries to $PREFIX
+
+# Change the libraries paths to $PREFIX
 cd $SRC_DIR
 python change_lib_path.py
+
 echo environmentComposition 0
 cat $SRC_DIR/volume/PATO/PATO-dev-2.3.1/data/Environments/RawData/Earth/environmentComposition
+
 if [ "$(uname)" = "Darwin" ]; then
     # detach volume
     hdiutil detach volume
