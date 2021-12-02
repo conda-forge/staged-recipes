@@ -64,7 +64,7 @@ if [ "$(uname)" = "Linux" ]; then
     ls .
     cd $SRC_DIR/volume/parmgridgen/ParMGridGen-0.0.2
     $sed_cmd -i "s/clang/gcc/g" Makefile.in
-    cat Makefile.in
+    export CPLUS_INCLUDE_PATH=$BUILD_PREFIX/include
 fi
 make
 cp bin/mgridgen $PREFIX/bin/mgridgen
