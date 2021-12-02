@@ -52,14 +52,12 @@ cd $SRC_DIR/volume/parmgridgen
 tar xvf ParMGridGen-0.0.2.tar.gz
 cd ParMGridGen-0.0.2
 if [ "$(uname)" = "Linux" ]; then
-    compiler=gcc
-    if ! command -V $compiler &> /dev/null; then
-	compiler=x86_64-conda-linux-gnu-gcc
+    alias gcc=x86_64-conda-linux-gnu-gcc
+    if ! command -V gcc &> /dev/null; then
+	echo Error: gcc not found. >&2
+	exit 1
     fi
-    echo "using compiler=$compiler"
-    ls $BUILD_PREFIX/bin
-    which $compiler
-    $sed_cmd -i "s/clang/$compiler/g" Makefile.in
+    $sed_cmd -i "s/clang/gcc/g" Makefile.in
     cat Makefile.in
 fi
 make
