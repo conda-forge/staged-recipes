@@ -53,10 +53,16 @@ tar xvf ParMGridGen-0.0.2.tar.gz
 cd ParMGridGen-0.0.2
 if [ "$(uname)" = "Linux" ]; then
     dir_gcc=$(dirname `which x86_64-conda-linux-gnu-gcc`)
-    ln -s $dir_gcc/x86_64-conda-linux-gnu-gcc $dir_gcc/gcc
-    ln -s $dir_gcc/x86_64-conda-linux-gnu-g++ $dir_gcc/g++
-    which gcc
-    which g++
+    cd $dir_gcc
+    files=`find . -name "x86_64-conda-linux-gnu-*" -type f`
+    for x in $files
+    do
+	old_name=${x#"./"}
+	new_name=${x#"./x86_64-conda-linux-gnu-"}
+	ln -s $old_name $new_name
+    done
+    ls .
+    cd $SRC_DIR/volume/parmgridgen/ParMGridGen-0.0.2
     $sed_cmd -i "s/clang/gcc/g" Makefile.in
     cat Makefile.in
 fi
