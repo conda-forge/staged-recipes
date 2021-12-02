@@ -98,8 +98,11 @@ cd $SRC_DIR
 python change_lib_path.py
 
 if [ "$(uname)" = "Darwin" ]; then
+    # copy environmentComposition
+    cp $SRC_DIR/volume/PATO/PATO-dev-2.3.1/data/Environments/RawData/Earth/environmentComposition $PREFIX/src/environmentComposition
     # detach volume
     hdiutil detach volume
     # move pato_releases_conda.sparsebundle to $PREFIX
     mv pato_releases_conda.sparsebundle $PREFIX/src/pato_releases_conda.sparsebundle
 fi
+
