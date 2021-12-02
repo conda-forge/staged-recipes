@@ -52,8 +52,13 @@ cd $SRC_DIR/volume/parmgridgen
 tar xvf ParMGridGen-0.0.2.tar.gz
 cd ParMGridGen-0.0.2
 if [ "$(uname)" = "Linux" ]; then
-    echo using c_compiler=$c_compiler
-    $sed_cmd -i 's/clang/$c_compiler/g' Makefile.in
+    compiler=gcc
+    if ! command -V $compiler &> /dev/null; then
+	compiler=gcc_linux-64
+    fi
+    echo "using compiler=$(compiler)"
+    $sed_cmd -i 's/clang/$(compiler)/g' Makefile.in
+    cat Makefile.in
 fi
 make
 cp bin/mgridgen $PREFIX/bin/mgridgen
