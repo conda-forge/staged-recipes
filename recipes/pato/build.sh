@@ -64,6 +64,7 @@ if [ "$(uname)" = "Linux" ]; then
     ls .
     cd $SRC_DIR/volume/parmgridgen/ParMGridGen-0.0.2
     $sed_cmd -i "s/clang/gcc/g" Makefile.in
+    export C_INCLUDE_PATH=$BUILD_PREFIX/include
     export CPLUS_INCLUDE_PATH=$BUILD_PREFIX/include
 fi
 make
