@@ -54,10 +54,12 @@ cd ParMGridGen-0.0.2
 if [ "$(uname)" = "Linux" ]; then
     compiler=gcc
     if ! command -V $compiler &> /dev/null; then
-	compiler=gcc_linux-64
+	compiler=x86_64-conda-linux-gnu-gcc
     fi
-    echo "using compiler=$(compiler)"
-    $sed_cmd -i 's/clang/$(compiler)/g' Makefile.in
+    echo "using compiler=$compiler"
+    ls $BUILD_PREFIX/bin
+    which $compiler
+    $sed_cmd -i "s/clang/$compiler/g" Makefile.in
     cat Makefile.in
 fi
 make
