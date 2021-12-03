@@ -16,8 +16,10 @@ done
 cd $SRC_DIR
 rm -rf volume
 mkdir volume
-if [ ! -d $PREFIX/src/volume ]; then
-    mkdir -p $PREFIX/src/volume
+if [ "$(uname)" = "Darwin" ]; then
+    if [ ! -d $PREFIX/src/volume ]; then
+	mkdir -p $PREFIX/src/volume
+    fi
 fi
 
 if [ "$(uname)" = "Linux" ]; then
@@ -102,7 +104,24 @@ source bashrc
 
 # Change the libraries paths to $PREFIX
 cd $SRC_DIR
-python change_lib_path.py
+if [ "$(uname)" = "Darwin" ]; then
+    python change_lib_path_macos.py
+fi
+if [ "$(uname)" = "Linux" ]; then
+    ldd	`which PATOx`
+    echo run script change_lib_path_linux.py
+    python change_lib_path_linux.py
+    ldd `which PATOx`
+    readelf -d `which PATOx`
+fi
+
+# Copy the source files to PREFIX
+if [ "$(uname)" = "Linux" ]; then
+    if [ ! -d $PREFIX/src ]; then
+	mkdir -p $PREFIX/src
+    fi
+    cp -r $SRC_DIR/volume $PREFIX/src/volume
+fi
 
 if [ "$(uname)" = "Darwin" ]; then
     # copy environmentComposition
@@ -110,6 +129,6 @@ if [ "$(uname)" = "Darwin" ]; then
     # detach volume
     hdiutil detach volume
     # move pato_releases_conda.sparsebundle to $PREFIX
-    mv pato_releases_conda.sparsebundle $PREFIX/src/pato_releases_conda.sparsebundle
+    cp -r pato_releases_conda.sparsebundle $PREFIX/src/pato_releases_conda.sparsebundle
 fi
 

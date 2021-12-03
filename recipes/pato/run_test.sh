@@ -24,3 +24,8 @@ source $PATO_DIR/bashrc
 # run tests
 which runtests
 runtests
+
+if [ "$(uname)" = "Darwin" ]; then
+    # detach volume
+    hdiutil detach volume
+fi
