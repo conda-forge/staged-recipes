@@ -40,9 +40,7 @@ CUDA_CONFIG_ARGS+=(
     -DCMAKE_CUDA_ARCHITECTURES="${CMAKE_CUDA_ARCHS}"
 )
 # cmake does not generate output for the call below; echo some info
-if [[ -n ${CUDA_HOME-} ]]; then
-    echo "Set up extra cmake-args: CUDA_CONFIG_ARGS=${CUDA_CONFIG_ARGS+"${CUDA_CONFIG_ARGS[@]}"}"
-fi
+echo "Set up extra cmake-args: CUDA_CONFIG_ARGS=${CUDA_CONFIG_ARGS+"${CUDA_CONFIG_ARGS[@]}"}"
 # Acc. to https://cmake.org/cmake/help/v3.19/module/FindCUDAToolkit.html#search-behavior
 # CUDA toolkit is search relative to `nvcc` first before considering
 # "-DCUDAToolkit_ROOT=${CUDA_HOME}". We have multiple workarounds:
