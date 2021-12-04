@@ -12,21 +12,17 @@ do
     cp "${RECIPE_DIR}/${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.sh"
 done
 
-# create volume folders
-cd $SRC_DIR
-rm -rf volume
-mkdir volume
-if [ "$(uname)" = "Darwin" ]; then
-    if [ ! -d $PREFIX/src/volume ]; then
-	mkdir -p $PREFIX/src/volume
-    fi
+# create volume folder
+if [ ! -d $PREFIX/src/volume ]; then
+    mkdir -p $PREFIX/src/volume
 fi
-
+cd $PREFIX/src
+    
 if [ "$(uname)" = "Linux" ]; then
     # move src to volume
-    mv src/Linux/* volume/
-    mv src/Both/* volume/
-    rm -rf src
+    mv $SRC_DIR/src/Linux/* $PREFIX/src/volume/
+    mv $SRC_DIR/src/Both/* $PREFIX/src/volume/
+    rm -rf $SRC_DIR/src
     sed_cmd=sed
 fi
 
@@ -36,13 +32,13 @@ if [ "$(uname)" = "Darwin" ]; then
     # attach volume
     hdiutil attach -mountpoint volume pato_releases_conda.sparsebundle
     # move src to volume
-    mv src/MacOS/* volume/
-    mv src/Both/* volume/
-    rm -rf src
+    mv $SRC_DIR/src/MacOS/* $PREFIX/src/volume/
+    mv $SRC_DIR/src/Both/* $PREFIX/src/volume/
+    rm -rf $SRC_DIR/src
     # compile gsed
-    cd $SRC_DIR/volume/sed
+    cd $PREFIX/src/volume/sed
     tar xvf sed-4.8.tar.gz
-    cd $SRC_DIR/volume/sed/sed-4.8
+    cd $PREFIX/src/volume/sed/sed-4.8
     ./configure --prefix=$PREFIX
     make; make install
     mv $PREFIX/bin/sed $PREFIX/bin/gsed
@@ -50,7 +46,7 @@ if [ "$(uname)" = "Darwin" ]; then
 fi
 
 # compile ParMGridGen
-cd $SRC_DIR/volume/parmgridgen
+cd $PREFIX/src/volume/parmgridgen
 tar xvf ParMGridGen-0.0.2.tar.gz
 cd ParMGridGen-0.0.2
 if [ "$(uname)" = "Linux" ]; then
@@ -63,7 +59,6 @@ if [ "$(uname)" = "Linux" ]; then
 	new_name=${x#"./x86_64-conda-linux-gnu-"}
 	ln -s $old_name $new_name
     done
-    ls .
     cd $SRC_DIR/volume/parmgridgen/ParMGridGen-0.0.2
     $sed_cmd -i "s/clang/gcc/g" Makefile.in
     export C_INCLUDE_PATH=$BUILD_PREFIX/include
@@ -73,11 +68,11 @@ make
 cp bin/mgridgen $PREFIX/bin/mgridgen
 
 # get OpenFOAM src
-cd $SRC_DIR/volume/OpenFOAM
+cd $PREFIX/src/volume/OpenFOAM
 tar xvf OpenFOAM-7.tar
 tar xvf ThirdParty-7.tar
 # compile OpenFOAM-7
-cd $SRC_DIR/volume/OpenFOAM/OpenFOAM-7
+cd $PREFIX/src/volume/OpenFOAM/OpenFOAM-7
 if [ "$(uname)" = "Linux" ]; then
     alias wmRefresh=""
 fi
@@ -85,7 +80,7 @@ source etc/bashrc
 ./Allwmake
 
 # get PATO-2.3.1
-cd $SRC_DIR/volume/PATO
+cd $PREFIX/src/volume/PATO
 tar xvf PATO-dev-2.3.1.tar.gz
 # Patch PATO-dev-2.3.1
 $sed_cmd -i '12 a\    if [ "$(uname)" = "Darwin" ]; then' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/Allwmake
@@ -115,20 +110,10 @@ if [ "$(uname)" = "Linux" ]; then
     readelf -d `which PATOx`
 fi
 
-# Copy the source files to PREFIX
-if [ "$(uname)" = "Linux" ]; then
-    if [ ! -d $PREFIX/src ]; then
-	mkdir -p $PREFIX/src
-    fi
-    cp -r $SRC_DIR/volume $PREFIX/src/volume
-fi
-
 if [ "$(uname)" = "Darwin" ]; then
     # copy environmentComposition
-    cp $SRC_DIR/volume/PATO/PATO-dev-2.3.1/data/Environments/RawData/Earth/environmentComposition $PREFIX/src/environmentComposition
+    cp $PREFIX/src/volume/PATO/PATO-dev-2.3.1/data/Environments/RawData/Earth/environmentComposition $PREFIX/src/environmentComposition
     # detach volume
     hdiutil detach volume
-    # move pato_releases_conda.sparsebundle to $PREFIX
-    cp -r pato_releases_conda.sparsebundle $PREFIX/src/pato_releases_conda.sparsebundle
 fi
 
