@@ -59,7 +59,7 @@ if [ "$(uname)" = "Linux" ]; then
 	new_name=${x#"./x86_64-conda-linux-gnu-"}
 	ln -s $old_name $new_name
     done
-    cd $SRC_DIR/volume/parmgridgen/ParMGridGen-0.0.2
+    cd $PREFIX/src/volume/parmgridgen/ParMGridGen-0.0.2
     $sed_cmd -i "s/clang/gcc/g" Makefile.in
     export C_INCLUDE_PATH=$BUILD_PREFIX/include
     export CPLUS_INCLUDE_PATH=$BUILD_PREFIX/include
