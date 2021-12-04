@@ -74,12 +74,13 @@ cd $PREFIX/src/volume/OpenFOAM
 tar xvf OpenFOAM-7.tar
 tar xvf ThirdParty-7.tar
 # compile OpenFOAM-7
+export WM_NCOMPPROCS=`nproc` # parallel build
 cd $PREFIX/src/volume/OpenFOAM/OpenFOAM-7
 if [ "$(uname)" = "Linux" ]; then
     alias wmRefresh=""
 fi
 source etc/bashrc
-./Allwmake
+./Allwmake -j
 
 # get PATO-2.3.1
 cd $PREFIX/src/volume/PATO
