@@ -16,7 +16,7 @@ def _print_exists(filename):
         return False
 
 
-def libraries_exist(major, minor, patch):
+def libraries_exist(prefix, major, minor, patch):
     """Check that the AVIF library is installed for given version.
 
     Return False if anything is missing else return True.
@@ -25,7 +25,7 @@ def libraries_exist(major, minor, patch):
     """
     exists = True
 
-    filename = os.path.join(os.environ['PREFIX'], 'lib', 'libavif')
+    filename = os.path.join(prefix, 'lib', 'libavif')
 
     if platform.system() == 'Darwin':
         for library in [
@@ -36,9 +36,9 @@ def libraries_exist(major, minor, patch):
             exists = exists and _print_exists(library)
     elif platform.system() == 'Windows':
         exists = exists and _print_exists(
-            os.path.join(os.environ['PREFIX'], 'lib', 'avif.lib'))
+            os.path.join(prefix, 'lib', 'avif.lib'))
         exists = exists and _print_exists(
-            os.path.join(os.environ['PREFIX'], 'bin', 'avif.dll'))
+            os.path.join(prefix, 'bin', 'avif.dll'))
     else:  # Linux
         for library in [
                 f'{filename}.so',
@@ -58,7 +58,7 @@ def cmake_config_exist():
     exists = True
 
     exists = exists and _print_exists(
-        os.path.join(os.environ['PREFIX'], 'lib', 'pkgconfig', 'libavif.pc'))
+        os.path.join(prefix, 'lib', 'pkgconfig', 'libavif.pc'))
 
     for middle in [
             '',
@@ -66,15 +66,14 @@ def cmake_config_exist():
             '-version',
     ]:
         exists = exists and _print_exists(
-            os.path.join(os.environ['PREFIX'], 'lib', 'cmake', 'libavif',
+            os.path.join(prefix, 'lib', 'cmake', 'libavif',
                          f'libavif-config{middle}.cmake'))
 
     return exists
 
 
-def headers_exist():
-    return _print_exists(
-        os.path.join(os.environ['PREFIX'], 'include', 'avif', 'avif.h'))
+def headers_exist(prefix):
+    return _print_exists(os.path.join(prefix, 'include', 'avif', 'avif.h'))
 
 
 if __name__ == '__main__':
@@ -84,6 +83,10 @@ if __name__ == '__main__':
     parser.add_argument('MINOR', type=int, help='Minor library version')
     parser.add_argument('PATCH', type=int, help='Patch library version')
     args = parser.parse_args()
-    assert (libraries_exist(args.MAJOR, args.MINOR, args.PATCH)
-            and headers_exist()
-            and cmake_config_exist()), "There are libavif files missing!"
+    if platform.system() == 'Windows':
+        prefix = os.environ['LIBRARY_PREFIX']
+    else:
+        prefix = os.environ['PREFIX']
+    assert (libraries_exist(prefix, args.MAJOR, args.MINOR, args.PATCH)
+            and headers_exist(prefix)
+            and cmake_config_exist(prefix)), "There are libavif files missing!"
