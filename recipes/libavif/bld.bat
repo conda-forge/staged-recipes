@@ -4,7 +4,8 @@ if errorlevel 1 exit /b 1
 
 :: Other codecs cannot be enabled because they are not on conda-forge
 cmake .. -GNinja ^
--DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
+-DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
+-DCMAKE_PREFIX_PATH:PATH="%LIBRARY_PREFIX%" ^
 -DCMAKE_INSTALL_LIBDIR=lib ^
 -DCMAKE_BUILD_TYPE=Release ^
 -DBUILD_SHARED_LIBS=ON ^
