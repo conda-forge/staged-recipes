@@ -23,7 +23,7 @@ def libraries_exist(prefix, major, minor, patch):
 
     NOTE: libavif release number does not match the shared library version.
     """
-    exists = True
+    exists = []
 
     filename = os.path.join(prefix, 'lib', 'libavif')
 
@@ -33,47 +33,46 @@ def libraries_exist(prefix, major, minor, patch):
                 f'{filename}.{major}.dylib',
                 f'{filename}.{major}.{minor}.{patch}.dylib',
         ]:
-            exists = exists and _print_exists(library)
+            exists.append(_print_exists(library))
     elif platform.system() == 'Windows':
-        exists = exists and _print_exists(
-            os.path.join(prefix, 'lib', 'avif.lib'))
-        exists = exists and _print_exists(
-            os.path.join(prefix, 'bin', 'avif.dll'))
+        exists.append(_print_exists(os.path.join(prefix, 'lib', 'avif.lib')))
+        exists.append(_print_exists(os.path.join(prefix, 'bin', 'avif.dll')))
     else:  # Linux
         for library in [
                 f'{filename}.so',
                 f'{filename}.so.{major}',
                 f'{filename}.so.{major}.{minor}.{patch}',
         ]:
-            exists = exists and _print_exists(library)
+            exists.append(_print_exists(library))
 
     return exists
 
 
-def cmake_config_exist():
+def cmake_config_exist(prefix):
     """Checks that CMAKE config and pkgconfig files were installed.
 
     Return False if anything is missing else return True.
     """
-    exists = True
+    exists = []
 
-    exists = exists and _print_exists(
-        os.path.join(prefix, 'lib', 'pkgconfig', 'libavif.pc'))
+    exists.append(
+        _print_exists(os.path.join(prefix, 'lib', 'pkgconfig', 'libavif.pc')))
 
     for middle in [
             '',
             '-release',
             '-version',
     ]:
-        exists = exists and _print_exists(
-            os.path.join(prefix, 'lib', 'cmake', 'libavif',
-                         f'libavif-config{middle}.cmake'))
+        exists.append(
+            _print_exists(
+                os.path.join(prefix, 'lib', 'cmake', 'libavif',
+                             f'libavif-config{middle}.cmake')))
 
     return exists
 
 
 def headers_exist(prefix):
-    return _print_exists(os.path.join(prefix, 'include', 'avif', 'avif.h'))
+    return [_print_exists(os.path.join(prefix, 'include', 'avif', 'avif.h'))]
 
 
 if __name__ == '__main__':
@@ -87,6 +86,7 @@ if __name__ == '__main__':
         prefix = os.environ['LIBRARY_PREFIX']
     else:
         prefix = os.environ['PREFIX']
-    assert (libraries_exist(prefix, args.MAJOR, args.MINOR, args.PATCH)
-            and headers_exist(prefix)
-            and cmake_config_exist(prefix)), "There are libavif files missing!"
+    is_missing = (libraries_exist(prefix, args.MAJOR, args.MINOR, args.PATCH) +
+                  headers_exist(prefix) + cmake_config_exist(prefix))
+    for exists in is_missing:
+        assert exists, "There are libavif files missing!"
