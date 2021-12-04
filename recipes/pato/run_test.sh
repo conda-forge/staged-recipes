@@ -19,6 +19,7 @@ which runtests
 runtests
 
 if [ "$(uname)" = "Darwin" ]; then
+    cd $PREFIX/src
     # detach volume
-    hdiutil detach $PREFIX/src/volume
+    hdiutil detach volume
 fi
