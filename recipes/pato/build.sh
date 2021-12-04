@@ -23,6 +23,7 @@ if [ "$(uname)" = "Linux" ]; then
     mv $SRC_DIR/src/Linux/* $PREFIX/src/volume/
     mv $SRC_DIR/src/Both/* $PREFIX/src/volume/
     rm -rf $SRC_DIR/src
+    mv $SRC_DIR/script change_lib_path_linux.py $PREFIX/src/
     sed_cmd=sed
 fi
 
@@ -35,6 +36,7 @@ if [ "$(uname)" = "Darwin" ]; then
     mv $SRC_DIR/src/MacOS/* $PREFIX/src/volume/
     mv $SRC_DIR/src/Both/* $PREFIX/src/volume/
     rm -rf $SRC_DIR/src
+    mv $SRC_DIR/change_lib_path_macos.py $PREFIX/src/
     # compile gsed
     cd $PREFIX/src/volume/sed
     tar xvf sed-4.8.tar.gz
@@ -83,13 +85,13 @@ source etc/bashrc
 cd $PREFIX/src/volume/PATO
 tar xvf PATO-dev-2.3.1.tar.gz
 # Patch PATO-dev-2.3.1
-$sed_cmd -i '12 a\    if [ "$(uname)" = "Darwin" ]; then' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/Allwmake
-$sed_cmd -i '13 a\        lib_name=$PATO_DIR/src/thirdParty/mutation++/install/lib/libmutation++.dylib' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/Allwmake
-$sed_cmd -i '14 a\        install_name_tool -id $lib_name $lib_name\n    fi' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/Allwmake
-$sed_cmd -i 's/endTime_factor \+[0-9]*/endTime_factor 15/g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/utilities/tests/testframework/runtests_options
-$sed_cmd -i 's/\$(PATO_DIR)\/install\/lib\/libPATOx.so//g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/solvers/basics/heatTransfer/Make/options
-$sed_cmd -i 's/-I\$(LIB_PATO)\/libPATOx\/lnInclude//g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/src/applications/solvers/basics/heatTransfer/Make/options
-$sed_cmd -i 's/==/=/g' $SRC_DIR/volume/PATO/PATO-dev-2.3.1/bashrc
+$sed_cmd -i '12 a\    if [ "$(uname)" = "Darwin" ]; then' $PREFIX/src/volume/PATO/PATO-dev-2.3.1/Allwmake
+$sed_cmd -i '13 a\        lib_name=$PATO_DIR/src/thirdParty/mutation++/install/lib/libmutation++.dylib' $PREFIX/src/volume/PATO/PATO-dev-2.3.1/Allwmake
+$sed_cmd -i '14 a\        install_name_tool -id $lib_name $lib_name\n    fi' $PREFIX/src/volume/PATO/PATO-dev-2.3.1/Allwmake
+$sed_cmd -i 's/endTime_factor \+[0-9]*/endTime_factor 15/g' $PREFIX/src/volume/PATO/PATO-dev-2.3.1/src/applications/utilities/tests/testframework/runtests_options
+$sed_cmd -i 's/\$(PATO_DIR)\/install\/lib\/libPATOx.so//g' $PREFIX/src/volume/PATO/PATO-dev-2.3.1/src/applications/solvers/basics/heatTransfer/Make/options
+$sed_cmd -i 's/-I\$(LIB_PATO)\/libPATOx\/lnInclude//g' $PREFIX/src/volume/PATO/PATO-dev-2.3.1/src/applications/solvers/basics/heatTransfer/Make/options
+$sed_cmd -i 's/==/=/g' $PREFIX/src/volume/PATO/PATO-dev-2.3.1/bashrc
 # source PATO
 cd PATO-dev-2.3.1
 export PATO_DIR=$PWD
@@ -98,14 +100,17 @@ source bashrc
 ./Allwmake
 
 # Change the libraries paths to $PREFIX
-cd $SRC_DIR
+cd $PREFIX/src
+export SRC_DIR=$PWD # for the python scripts
 if [ "$(uname)" = "Darwin" ]; then
     python change_lib_path_macos.py
+    rm -f change_lib_path_macos.py
 fi
 if [ "$(uname)" = "Linux" ]; then
     ldd	`which PATOx`
     echo run script change_lib_path_linux.py
     python change_lib_path_linux.py
+    rm -f change_lib_path_linux.py
     ldd `which PATOx`
     readelf -d `which PATOx`
 fi
