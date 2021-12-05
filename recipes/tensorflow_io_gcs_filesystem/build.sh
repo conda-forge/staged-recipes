@@ -19,7 +19,10 @@ sed -i -e "/PROTOBUF_INCLUDE_PATH/c\ " .bazelrc
 sed -i -e "/PREFIX/c\ " .bazelrc
 
 # Build shared libraries
-bazel build -s --verbose_failures --define=PROTOBUF_INCLUDE=${PREFIX}/include --define=PREFIX=${PREFIX} $BAZEL_OPTIMIZATION //tensorflow_io/... //tensorflow_io_gcs_filesystem/...
+bazel build -s --verbose_failures \
+  --define=PROTOBUF_INCLUDE=${PREFIX}/include \
+  --define=PREFIX=${PREFIX} \
+  $BAZEL_OPTIMIZATION //tensorflow_io/... //tensorflow_io_gcs_filesystem/...
 
 # # Once build is complete, shared libraries will be available in
 # # `bazel-bin/tensorflow_io/core`, `bazel-bin/tensorflow_io/python/ops` and
