@@ -2,5 +2,7 @@
 
 set -x
 
-mkdir -p $PREFIX/bin
-cp -r bin $PREFIX/bin
+tree
+mkdir -p
+cp -r bin $PREFIX
+tree $PREFIX
