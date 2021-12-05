@@ -2,12 +2,6 @@
 
 set -x
 
-pwd
-
-./configure
+./configure --prefix=${PREFIX}
 make
-
-pwd
-
-mkdir -p $PREFIX/bin
-cp src/sample $PREFIX/bin/sample
+make install
