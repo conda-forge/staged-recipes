@@ -2,5 +2,5 @@
 
 set -x
 
-make
-make test-nobuild
+mkdir -p $PREFIX/bin
+cp -r bin $PREFIX/bin
