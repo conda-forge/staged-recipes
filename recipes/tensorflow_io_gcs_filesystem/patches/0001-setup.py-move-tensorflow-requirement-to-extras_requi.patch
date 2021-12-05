@@ -1,0 +1,105 @@
+From f6362ac25c7b6215e2e7fa25e1c5375e601b76e5 Mon Sep 17 00:00:00 2001
+From: Luca Toscano <elukey@users.noreply.github.com>
+Date: Sun, 14 Nov 2021 03:31:23 +0100
+Subject: [PATCH] setup.py: move tensorflow requirement to extras_require
+ (#1551)
+
+The AMD ROCm project maintains a fork of the Tensorflow package
+called 'tensorflow-rocm', a drop-in replacement for 'tensorflow'.
+The fact that tensorflow-io states only 'tensorflow' as specific
+dependency makes it hard to use 'tensorflow-rocm', since both
+don't work whell in the same environment.
+
+This change follows what's done for tensorflow-addons in
+https://github.com/tensorflow/addons/commit/61ebf40b1cd97506e4e43bdcf30c20c43d1597cc,
+namely:
+- Move the 'tensorflow' requirement to extras_require.
+- Add new extras_require for tensorflow-{rocm,cpu,gpu}
+
+Fixes #1548
+---
+ .github/workflows/build.wheel.sh |  3 ++-
+ .github/workflows/build.yml      |  1 +
+ README.md                        | 10 ++++++++++
+ setup.py                         | 10 ++++++++--
+ 4 files changed, 21 insertions(+), 3 deletions(-)
+
+diff --git a/.github/workflows/build.wheel.sh b/.github/workflows/build.wheel.sh
+index 62130b4..c25ba12 100755
+--- a/.github/workflows/build.wheel.sh
++++ b/.github/workflows/build.wheel.sh
+@@ -8,7 +8,8 @@ run_test() {
+   CPYTHON_VERSION=$($entry -c 'import sys; print(str(sys.version_info[0])+str(sys.version_info[1]))')
+   (cd wheelhouse && $entry -m pip install tensorflow_io_gcs_filesystem-*-cp${CPYTHON_VERSION}-*.whl)
+   (cd wheelhouse && $entry -m pip install tensorflow_io-*-cp${CPYTHON_VERSION}-*.whl)
+-  $entry -m pip install -q pytest pytest-benchmark pytest-xdist boto3 fastavro avro-python3 scikit-image pandas pyarrow==3.0.0 google-cloud-pubsub==2.1.0 google-cloud-bigtable==1.6.0 google-cloud-bigquery-storage==1.1.0 google-cloud-bigquery==2.3.1 google-cloud-storage==1.32.0 PyYAML==5.3.1 azure-storage-blob==12.8.1 azure-cli==2.29.0
++  TF_VERSION=$(/usr/bin/grep tensorflow tensorflow_io/python/ops/version_ops.py | /usr/bin/cut -d '"' -f 2)
++  $entry -m pip install -q $TF_VERSION pytest pytest-benchmark pytest-xdist boto3 fastavro avro-python3 scikit-image pandas pyarrow==3.0.0 google-cloud-pubsub==2.1.0 google-cloud-bigtable==1.6.0 google-cloud-bigquery-storage==1.1.0 google-cloud-bigquery==2.3.1 google-cloud-storage==1.32.0 PyYAML==5.3.1 azure-storage-blob==12.8.1 azure-cli==2.29.0
+   (cd tests && $entry -m pytest --benchmark-disable -v --import-mode=append --forked --numprocesses=auto --dist loadfile $(find . -type f \( -iname "test_*.py" ! \( -iname "test_standalone_*.py" \) \)))
+   (cd tests && $entry -m pytest --benchmark-disable -v --import-mode=append $(find . -type f \( -iname "test_standalone_*.py" \)))
+ }
+diff --git a/.github/workflows/build.yml b/.github/workflows/build.yml
+index 631972e..01773b9 100644
+--- a/.github/workflows/build.yml
++++ b/.github/workflows/build.yml
+@@ -413,6 +413,7 @@ jobs:
+           python --version
+           (cd wheel && ls tensorflow_io_gcs_filesystem-*.whl | xargs python -m pip install && cd ..)
+           (cd wheel && ls tensorflow_io-*.whl | xargs python -m pip install && cd ..)
++          (grep tensorflow tensorflow_io/python/ops/version_ops.py | sed -e "s/require = //g" | xargs python -m pip install)
+       - name: Test ${{ matrix.python }} Windows
+         shell: cmd
+         run: |
+diff --git a/README.md b/README.md
+index aa596e1..57c1070 100644
+--- a/README.md
++++ b/README.md
+@@ -83,6 +83,16 @@ People who are a little more adventurous can also try our nightly binaries:
+ $ pip install tensorflow-io-nightly
+ ```
+ 
++To ensure you have a version of TensorFlow that is compatible with TensorFlow-IO,
++you can specify the `tensorflow` extra requirement during install:
++
++```
++pip install tensorflow-io[tensorflow]
++```
++
++Similar extras exist for the `tensorflow-gpu`, `tensorflow-cpu` and `tensorflow-rocm`
++packages.
++
+ ### Docker Images
+ 
+ In addition to the pip packages, the docker images can be used to quickly get started.
+diff --git a/setup.py b/setup.py
+index 87b7a2f..f807a1c 100644
+--- a/setup.py
++++ b/setup.py
+@@ -77,9 +77,9 @@ if "--nightly" in sys.argv:
+ 
+ install_requires = []
+ if project == "tensorflow-io":
+-    install_requires = [require] + ["{}=={}".format(e, version) for e in subpackages]
++    install_requires = ["{}=={}".format(e, version) for e in subpackages]
+ elif project == "tensorflow-io-nightly":
+-    install_requires = [require] + [
++    install_requires = [
+         "{}-nightly=={}".format(e, version) for e in subpackages
+     ]
+ 
+@@ -176,6 +176,12 @@ setuptools.setup(
+     packages=setuptools.find_packages(where=".", exclude=exclude),
+     python_requires=">=3.6, <3.10",
+     install_requires=install_requires,
++    extras_require={
++        "tensorflow": [require],
++        "tensorflow-gpu": [require.replace('tensorflow', 'tensorflow-gpu')],
++        "tensorflow-cpu": [require.replace('tensorflow', 'tensorflow-cpu')],
++        "tensorflow-rocm": [require.replace('tensorflow', 'tensorflow-rocm')],
++    },
+     package_data={".": ["*.so"],},
+     project_urls={
+         "Source": "https://github.com/tensorflow/io",
+-- 
+2.32.0.windows.2
+
