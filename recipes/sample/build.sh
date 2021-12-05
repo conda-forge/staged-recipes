@@ -2,3 +2,5 @@
 
 ./configure
 make
+make install
+make check
