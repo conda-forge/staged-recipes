@@ -6,8 +6,8 @@ make DCOMPILER=ldc2
 make test-nobuild DCOMPILER=ldc2
 
 for fname in $(ls bin/*); do
-  readelf -d ${fname}
-  patchelf --set-rpath '$PREFIX/lib' ${fname}
-  readelf -d ${fname}
+  patchelf --remove-rpath ${fname}
+  patchelf --add-rpath '$PREFIX/lib' ${fname}
+  patchelf --read-rpath ${fname}
 done
 cp -r bin $PREFIX
