@@ -21,7 +21,7 @@ show_channel_urls: true
 CONDARC
 
 # Copy the host recipes folder so we don't ever muck with it
-cp -r /home/conda/staged-recipes ~/staged-recipes-copy
+ln -sf /home/conda/staged-recipes ~/staged-recipes-copy
 
 # Remove any macOS system files
 find ~/staged-recipes-copy/recipes -maxdepth 1 -name ".DS_Store" -delete
