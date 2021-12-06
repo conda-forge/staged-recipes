@@ -97,7 +97,7 @@ def build_all(recipes_dir, arch):
         subprocess.run("run_conda_forge_build_setup", shell=True, check=True)
 
     print("Building {} with conda-forge/label/main".format(','.join(folders)))
-    channel_urls = ['local', 'conda-forge', 'pytorch']
+    channel_urls = ['local', 'conda-forge']
     build_folders(recipes_dir, folders, arch, channel_urls)
 
 
