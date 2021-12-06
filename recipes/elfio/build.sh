@@ -2,17 +2,13 @@
 
 set -ex
 
-autoreconf -fiv
+cmake ${CMAKE_ARGS} -G Ninja -B _build -DELFIO_BUILD_TESTS=on
 
-./configure --prefix=$PREFIX
-make
+cmake --build _build
 
-if [[ $(uname) == Linux ]]; then
+if [[ $(uname) == "Linux" ]]; then
     # The tests only run on Linux (executables must be ELF files)
-    make check || { cat test-suite.log; exit 1; }
+    (cd _build && ctest)
 fi
 
-make install
-
-# Do not package the test binaries
-rm -rf $PREFIX/bin/*
+cmake --install _build
