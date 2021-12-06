@@ -107,14 +107,14 @@ if [ "$(uname)" = "Darwin" ]; then
     python change_lib_path_macos.py
     rm -f change_lib_path_macos.py
 fi
-if [ "$(uname)" = "Linux" ]; then
-    ldd	`which PATOx`
-    echo run script change_lib_path_linux.py
-    python change_lib_path_linux.py
-    rm -f change_lib_path_linux.py
-    ldd `which PATOx`
-    readelf -d `which PATOx`
-fi
+#if [ "$(uname)" = "Linux" ]; then
+#    ldd	`which PATOx`
+#    echo run script change_lib_path_linux.py
+#    python change_lib_path_linux.py
+#    rm -f change_lib_path_linux.py
+#    ldd `which PATOx`
+#    readelf -d `which PATOx`
+#fi
 
 if [ "$(uname)" = "Darwin" ]; then
     # copy environmentComposition
