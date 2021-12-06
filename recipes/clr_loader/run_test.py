@@ -8,6 +8,8 @@ import clr_loader
 
 if sys.platform == 'win32':
     clr_loader.get_netfx()
+if sys.platform != 'win32':
+    clr_loader.get_mono()
 dotnet_runtime = os.getenv('dotnet_runtime')
 runtime_config = {
     'runtimeOptions': {
