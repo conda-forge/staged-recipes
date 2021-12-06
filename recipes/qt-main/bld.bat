@@ -22,10 +22,6 @@ for /F "usebackq delims=" %%F in (`dir /b /ad-h`) do (
 popd
 endlocal
 
-:: Make sure jom is picked up
-set PATH=%cd%\jom;%PATH%
-SET PATH=%cd%\qtbase\bin;%_ROOT%\gnuwin32\bin;%PATH%
-
 :: Set LLVM path in order to build docs
 set LLVM_INSTALL_DIR=%PREFIX%\Library
 
