@@ -12,17 +12,17 @@ echo "after bashrc"
 
 cd OpenFOAM-v2106/
 
-bin/tools/foamConfigurePaths \
-    -system-compiler Gcc \
-    -openmpi-system \
-    -boost boost-system \
-    -cgal  cgal-system \
-    -adios adios-system \
-    -adios2 adios2-system \
-    -metis metis-system \
-    -fftw  fftw-system \
-    -kahip kahip-none \
-    -scotch scotch-system \
+# bin/tools/foamConfigurePaths \
+#     -system-compiler Gcc \
+#     -openmpi-system \
+#     -boost boost-system \
+#     -cgal  cgal-system \
+#     -adios adios-system \
+#     -adios2 adios2-system \
+#     -metis metis-system \
+#     -fftw  fftw-system \
+#     -kahip kahip-none \
+#     -scotch scotch-system \
 
 # echo "CFLAGS += -I /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/include -I /opt/conda/pkgs/flex-2.6.4-h58526e2_1004/include/" >> wmake/rules/linux64Gcc/c
 # echo "c++FLAGS += -I /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/include -I /opt/conda/pkgs/flex-2.6.4-h58526e2_1004/include/" >> wmake/rules/linux64Gcc/c++
