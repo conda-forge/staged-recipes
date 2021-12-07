@@ -2,7 +2,7 @@
 
 set -x
 
-make DCOMPILER=ldc2
+make DCOMPILER=ldc2 DFLAGS="-L-L${PREFIX}/lib -L-rpath=${PREFIX}/lib"
 make test-nobuild DCOMPILER=ldc2
 
 # for fname in $(ls bin/*); do
