@@ -24,18 +24,17 @@ bin/tools/foamConfigurePaths \
     -kahip kahip-none \
     -scotch scotch-system \
 
+# echo "CFLAGS += -I /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/include -I /opt/conda/pkgs/flex-2.6.4-h58526e2_1004/include/" >> wmake/rules/linux64Gcc/c
+# echo "c++FLAGS += -I /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/include -I /opt/conda/pkgs/flex-2.6.4-h58526e2_1004/include/" >> wmake/rules/linux64Gcc/c++
 
-echo "CFLAGS += -I /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/include -I /opt/conda/pkgs/flex-2.6.4-h58526e2_1004/include/" >> wmake/rules/linux64Gcc/c
-echo "c++FLAGS += -I /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/include -I /opt/conda/pkgs/flex-2.6.4-h58526e2_1004/include/" >> wmake/rules/linux64Gcc/c++
+# echo "CFLAGS += -I /opt/conda/pkgs/zlib-1.2.11-h7b6447c_3/include -I /opt/conda/pkgs/flex-2.6.4-h58526e2_1004/include/" >> wmake/rules/linux64Gcc/c
 
-echo "CFLAGS += -I /opt/conda/pkgs/zlib-1.2.11-h7b6447c_3/include -I /opt/conda/pkgs/flex-2.6.4-h58526e2_1004/include/" >> wmake/rules/linux64Gcc/c
+# echo "c++FLAGS += -I /opt/conda/pkgs/zlib-1.2.11-h7b6447c_3/include -I /opt/conda/pkgs/flex-2.6.4-h58526e2_1004/include/" >> wmake/rules/linux64Gcc/c++
 
-echo "c++FLAGS += -I /opt/conda/pkgs/zlib-1.2.11-h7b6447c_3/include -I /opt/conda/pkgs/flex-2.6.4-h58526e2_1004/include/" >> wmake/rules/linux64Gcc/c++
+# echo "c++FLAGS += -Wl,-rpath-link,/opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/lib" >> wmake/rules/linux64Gcc/c++
+# echo "c++FLAGS += -Wl,-rpath-link,/opt/conda/lib" >> wmake/rules/linux64Gcc/c++
 
-echo "c++FLAGS += -Wl,-rpath-link,/opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/lib" >> wmake/rules/linux64Gcc/c++
-echo "c++FLAGS += -Wl,-rpath-link,/opt/conda/lib" >> wmake/rules/linux64Gcc/c++
-
-echo "LIB_LIBS += -L /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/lib -lz" >> src/OpenFOAM/Make/options
+# echo "LIB_LIBS += -L /opt/conda/pkgs/zlib-1.2.11-h36c2ea0_1013/lib -lz" >> src/OpenFOAM/Make/options
 
 ./Allwmake -j
 
