@@ -1,3 +1,5 @@
 set -x
 
-./configure && make MAKEINFO=true && make install
+./configure --prefix=${PREFIX} && \
+make MAKEINFO=true && \
+make install
