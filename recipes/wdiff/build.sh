@@ -1,3 +1,3 @@
 set -x
 
-./configure && make && make install
+./configure && make MAKEINFO=true && make install
