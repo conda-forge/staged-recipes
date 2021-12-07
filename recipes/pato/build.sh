@@ -115,6 +115,11 @@ fi
 #    ldd `which PATOx`
 #    readelf -d `which PATOx`
 #fi
+if [ "$(uname)" = "Linux" ]; then
+    cd $PREFIX/src
+    tar czvf volume.tar volume
+    rm -rf volume
+fi
 
 if [ "$(uname)" = "Darwin" ]; then
     # copy environmentComposition

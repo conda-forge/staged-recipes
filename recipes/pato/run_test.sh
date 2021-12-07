@@ -3,6 +3,9 @@ set -e  # exit when any command fails
 set -x # show the commands
 
 cd $PREFIX/src
+if [ "$(uname)" = "Linux" ]; then
+    tar xvf volume.tar
+fi
 if [ "$(uname)" = "Darwin" ]; then
     # copy environmentComposition
     cp $PREFIX/src/environmentComposition $PREFIX/src/volume/PATO/PATO-dev-2.3.1/data/Environments/RawData/Earth/environmentComposition
