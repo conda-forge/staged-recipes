@@ -1,4 +1,5 @@
 setlocal EnableDelayedExpansion
+
 set BUILD_DIR="%SRC_DIR%/../bl_build_folder"
 cmake -S . -B %BUILD_DIR% ^
     -C %SRC_DIR%/build_files/cmake/config/blender_release.cmake -G Ninja ^
