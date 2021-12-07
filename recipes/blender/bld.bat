@@ -6,3 +6,4 @@ cmake -S . -B %BUILD_DIR% ^
 if errorlevel 1 exit 1
 
 cmake --build %BUILD_DIR% --target install
+if errorlevel 1 exit 1
