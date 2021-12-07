@@ -14,6 +14,9 @@ fi
 
 echo -e "\n### TESTING PATO ###\n"
 # source OpenFOAM and PATO
+if [ "$(uname)" = "Linux" ]; then
+    alias wmRefresh=""
+fi
 source $PREFIX/src/volume/OpenFOAM/OpenFOAM-7/etc/bashrc
 export PATO_DIR=$PREFIX/src/volume/PATO/PATO-dev-2.3.1
 source $PATO_DIR/bashrc

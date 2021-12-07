@@ -23,7 +23,7 @@ if [ "$(uname)" = "Linux" ]; then
     mv $SRC_DIR/src/Linux/* $PREFIX/src/volume/
     mv $SRC_DIR/src/Both/* $PREFIX/src/volume/
     rm -rf $SRC_DIR/src
-    mv $SRC_DIR/change_lib_path_linux.py $PREFIX/src/
+    #mv $SRC_DIR/change_lib_path_linux.py $PREFIX/src/
     sed_cmd=sed
 fi
 
