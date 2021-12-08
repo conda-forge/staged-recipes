@@ -1,9 +1,6 @@
 #!/bin/bash
 
-./configure \
-￼    --prefix=${PREFIX} \
-￼    --libdir=${PREFIX}/lib \
-￼    --includedir=${PREFIX}/include
+./configure --prefix=${PREFIX} --libdir=${PREFIX}/lib --includedir=${PREFIX}/include
 
 make
 FAILURE=0
