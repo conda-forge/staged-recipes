@@ -66,8 +66,16 @@ else
 fi
 
 mkdir -p "${PREFIX}/etc/conda/activate.d"
+mkdir -p "${PREFIX}/etc/conda/deactivate.d"
 touch "${PREFIX}/bin/${gmx}"
 chmod +x "${PREFIX}/bin/${gmx}"
+
+# Copy the deactivate scripts for conda
+cp gromacs_deactivate.sh "${PREFIX}/etc/conda/deactivate.d"
+cp gromacs_deactivate.csh "${PREFIX}/etc/conda/deactivate.d"
+
+
+# Create the activate scripts for conda
 
 # We need to find CPU-type descriptors so we know which GROMACS SIMD flavor
 # to use. On Darwin, `sysctl -a` can have lines that look like
@@ -118,6 +126,7 @@ case "$OSTYPE" in
              ;;
 esac
 
+### Bash script (for activate and for direct access through conda run)
 # Search first for AVX2, then AVX. Fall back on SSE2
 { cat <<EOF
 #! /bin/bash
@@ -147,3 +156,28 @@ EOF
 cat >> "${PREFIX}/bin/${gmx}" <<EOF
 exec "\$( _gromacs_bin_dir )/${gmx}" "\${@}"
 EOF
+
+### Tcsh script (only for activate)
+{ cat <<EOF
+#! /bin/tcsh
+
+setenv hwlist `${hardware_info_command}`
+
+if ( `echo \$hwlist | grep -c 'avx512f'` > 0 && -d "${PREFIX}/bin.AVX_512" && `"${PREFIX}/bin.AVX_512/identifyavx512fmaunits" | grep -c 2` > 0 ) then
+    setenv arch AVX_512
+else 
+    if ( `echo \$hwlist | grep -c avx2` > 0 && -d "${PREFIX}/bin.AVX2_256" ) then
+        setenv arch AVX2_256
+    else 
+        if ( `echo \$hwlist | grep -c avx` > 0 && -d "${PREFIX}/bin.AVX_256" ) then
+            setenv arch AVX_256 
+        else
+            setenv arch SSE2
+        endif
+    endif
+endif
+
+source "${PREFIX}/bin.\$arch/GMXRC"
+
+EOF
+} > "${PREFIX}/etc/conda/activate.d/gromacs_activate.csh"
