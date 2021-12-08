@@ -7,7 +7,7 @@ if [ "$(uname)" = "Darwin" ]; then
 fi
 if [ "$(uname)" = "Linux" ]; then
     if [ ! -d $CONDA_PREFIX/src/volume ]; then
-	tar xvf $CONDA_PREFIX/src/volume.tar -C $CONDA_PREFIX/src
+	tar xvf $CONDA_PREFIX/src/volume.tar -C $CONDA_PREFIX/src > /dev/null
     fi
 fi
 if [ -f $CONDA_PREFIX/src/volume/OpenFOAM/OpenFOAM-7/etc/bashrc ]; then
