@@ -20,12 +20,17 @@ source:
   - url: https://github.com/matter-it-does/blender_svn/releases/download/{{ version }}/darwin.zip  # [osx and x86]
     folder: ../lib/darwin                                                                          # [osx and x86]
     sha256: eee84f6aad9127a0957b7268774231578d87fa324a3527eef573b19317cbce44                       # [osx and x86]
+  - url: https://github.com/matter-it-does/blender_svn/releases/download/{{ version }}/linux_centos7_x86_64.zip  # [linux64]
+    folder: ../lib/linux_centos7_x86_64                                                                          # [linux64]
+    sha256: 40b943c1e9dd5a0f232cb0cd6ade31fa622f0cdef5d8c75018828932d49a3c86                                     # [linux64]
 
 build:
-  skip: True  # [not osx]
+  skip: True  # [not ((linux and cdt_name == 'cos7') or (osx))]
   number: 0
   script:
+    - set -ex                                                                             # [unix]
     - export BUILD_DIR="${SRC_DIR}/../bl_build_folder"                                    # [osx]
+    - export BUILD_CMAKE_ARGS="-DWITH_INSTALL_PORTABLE=0 -DCMAKE_INSTALL_PREFIX=$PREFIX"  # [linux]
     - make ninja                                                                          # [unix]
     - mkdir -p "${PREFIX}/bin/"                                                           # [osx]
     - cp -f -R "${BUILD_DIR}/bin/Blender.app/" "${PREFIX}/bin/Blender.app"                # [osx]
@@ -37,6 +42,8 @@ build:
     - /usr/lib/libedit.3.dylib                                                            # [osx]
     - /usr/lib/libncurses.5.4.dylib                                                       # [osx]
     - /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation       # [osx]
+    # Tests can confirm what's missing.
+    - "*"                                                                                 # [linux]
 
 requirements:
   build:
@@ -45,11 +52,42 @@ requirements:
     - make
     - cmake
     - ninja
+    - sysroot_linux-64 2.17                 # [linux]
+    - {{ cdt('libx11-devel') }}             # [linux]
+    - {{ cdt('xorg-x11-proto-devel') }}     # [linux]
+    - {{ cdt('libxxf86vm') }}               # [linux]
+    - {{ cdt('libxxf86vm-devel') }}         # [linux]
+    - {{ cdt('libxi-devel') }}              # [linux]
+    - {{ cdt('libxext-devel') }}            # [linux]
+    - {{ cdt('libxcursor-devel') }}         # [linux]
+    - {{ cdt('libxrandr-devel') }}          # [linux]
+    - {{ cdt('libxinerama-devel') }}        # [linux]
+    - {{ cdt('libxfixes-devel') }}          # [linux]
+    - {{ cdt('mesa-libgl-devel') }}         # [linux]
+    - {{ cdt('mesa-dri-drivers') }}         # [linux]
+    - {{ cdt('libselinux') }}               # [linux]
+    - {{ cdt('libxdamage') }}               # [linux]
+    - {{ cdt('libxrender-devel') }}         # [linux]
+    - glew                                  # [linux]
+  host:
+    - xorg-libxfixes             # [linux]
+    - xorg-libxi                 # [linux]
+    - _openmp_mutex              # [linux]
+    - ncurses                    # [linux]
+    - libnsl                     # [linux]
+  run:
+    - xorg-libxfixes             # [linux]
+    - xorg-libxi                 # [linux]
+    - _openmp_mutex              # [linux]
+    - ncurses                    # [linux]
+    - libnsl                     # [linux]
 
 test:
   commands:
     - Blender --version     # [osx]
     - Blender --help        # [osx]
+    - blender --version     # [linux]
+    - blender --help        # [linux]
 
 about:
   home: https://blender.org
