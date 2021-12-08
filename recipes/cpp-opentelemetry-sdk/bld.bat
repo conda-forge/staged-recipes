@@ -3,6 +3,9 @@
 mkdir build-cpp
 if errorlevel 1 exit 1
 
+# Release tarballs do not contain the required Protobuf definitions.
+robocopy /S /E %CONDA_PREFIX%\share\opentelemetry\opentelemetry-proto\opentelemetry .\third_party\opentelemetry-proto\
+
 cd build-cpp
 cmake .. ^
       -GNinja %
