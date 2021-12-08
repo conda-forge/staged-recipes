@@ -7,7 +7,6 @@ cd build-cpp
 cmake .. ^
       -GNinja %
       -DCMAKE_BUILD_TYPE=Release %
-      -DCMAKE_CXX_FLAGS="$CXXFLAGS" %
       -DCMAKE_PREFIX_PATH=%CONDA_PREFIX% %
       -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% %
       -DBUILD_TESTING=OFF %
