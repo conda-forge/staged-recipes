@@ -12,6 +12,9 @@ if [ "$(uname)" = "Linux" ]; then
     fi
 fi
 if [ -f $CONDA_PREFIX/src/volume/OpenFOAM/OpenFOAM-7/etc/bashrc ]; then
+    if [ "$(uname)" = "Linux" ]; then
+	alias wmRefresh=""
+    fi
     source $CONDA_PREFIX/src/volume/OpenFOAM/OpenFOAM-7/etc/bashrc
 fi
 if [ -f $CONDA_PREFIX/src/volume/PATO/PATO-dev-2.3.1/bashrc ]; then
