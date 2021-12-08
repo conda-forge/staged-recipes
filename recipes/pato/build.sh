@@ -110,7 +110,7 @@ fi
 # Archive volume
 if [ "$(uname)" = "Linux" ]; then
     cd $PREFIX/src
-    tar czvf volume.tar volume
+    tar czvf volume.tar volume < /dev/null
     rm -rf volume
 fi
 

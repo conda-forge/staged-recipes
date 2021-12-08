@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+echo activate OpenFOAM and PATO
 if [ "$(uname)" = "Darwin" ]; then
     if [ ! -d $CONDA_PREFIX/src/volume ]; then
 	mkdir -p $CONDA_PREFIX/src/volume
