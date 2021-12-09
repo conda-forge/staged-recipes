@@ -2,6 +2,10 @@
 
 export PATH=$PATH:/mingw64/bin/
 
+env
+pwd
+ls -al
+
 ARCH_FLAG=""
 if [[ ${ARCH} == 64 ]]; then
     ARCH_FLAG="--enable-64bit"
