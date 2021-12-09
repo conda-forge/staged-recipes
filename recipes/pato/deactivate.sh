@@ -53,5 +53,4 @@ if [ "$(uname)" = "Linux" ]; then
 	unalias 3D 2>/dev/null
 	unalias muto 2>/dev/null
     fi
-    rm -rf $CONDA_PREFIX/src/volume
 fi

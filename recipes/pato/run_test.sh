@@ -13,6 +13,9 @@ fi
 which runtests
 runtests
 
+if [ "$(uname)" = "Linux" ]; then
+    rm -rf volume
+fi
 if [ "$(uname)" = "Darwin" ]; then
     cd $PREFIX/src
     # detach volume
