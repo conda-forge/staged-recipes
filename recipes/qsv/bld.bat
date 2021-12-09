@@ -2,7 +2,7 @@
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
 
 :: build
-cargo install --root "%LIBRARY_PREFIX%" --path . || goto :error
+cargo install --root "%LIBRARY_PREFIX%" --path . --all-features || goto :error
 
 :: remove extra build file
 del /F /Q "%LIBRARY_PREFIX%\.crates.toml"
