@@ -1,0 +1,68 @@
+{% set name = "EigenExa" %}
+{% set version = "2.9" %}
+{% set build = 0 %}
+{% set mpi = mpi or "mpich" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://www.r-ccs.riken.jp/labs/lpnctrt/projects/{{ name|lower }}/{{ name }}-{{ version }}.tar.gz
+  sha256: 8788922035bf67abf1a7aecf8e30dd7564de387fda4ecd11c6b4cf9259d25990
+  patches:
+    - omp.patch
+
+build:
+  number: {{ build }}
+  skip: true  # [win or osx]
+  script:
+    - set -ex
+    - export OMPI_MCA_plm=isolated OMPI_MCA_btl_vader_single_copy_mechanism=none OMPI_MCA_rmaps_base_oversubscribe=yes  # [mpi == "openmpi"]
+    - export CC="$PREFIX/bin/mpicc" FC="$PREFIX/bin/mpifort" F77="$PREFIX/bin/mpifort"
+    - export FFLAGS="$FFLAGS -fopenmp"  # [osx]
+    - ./bootstrap
+    - ./configure --prefix=$PREFIX --enable-mpi={{ mpi }}
+    - make
+    - make check  # [build_platform == target_platform]
+    - make install
+
+  {% set mpi_prefix = "mpi_" + mpi %}
+  string: {{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}
+
+  run_exports:
+    - {{ name|lower }} * {{ mpi_prefix }}_*
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('fortran') }}
+    - automake
+    - autoconf
+    - make
+    - perl
+    - llvm-openmp  # [osx]
+    - libgomp  # [linux]
+  host:
+    - {{ mpi }}
+    - scalapack
+    - libblas
+    - liblapack
+  run:
+    - {{ mpi }}
+    - scalapack
+
+test:
+  commands:
+    - test -f $PREFIX/lib/lib{{ name }}${SHLIB_EXT}
+
+about:
+  home: https://www.r-ccs.riken.jp/labs/lpnctrt/projects/eigenexa/index.html
+  license: BSD-2-Clause
+  license_file:
+    - LICENCE.txt
+  summary: Massively parallel implementations of direct, dense eigensolver
+
+extra:
+  recipe-maintainers:
+    - awvwgk
