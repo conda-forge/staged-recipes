@@ -71,8 +71,9 @@ touch "${PREFIX}/bin/${gmx}"
 chmod +x "${PREFIX}/bin/${gmx}"
 
 # Copy the deactivate scripts for conda
-cp gromacs_deactivate.sh "${PREFIX}/etc/conda/deactivate.d"
-cp gromacs_deactivate.csh "${PREFIX}/etc/conda/deactivate.d"
+cp "${RECIPE_DIR}/gromacs_deactivate.sh" "${PREFIX}/etc/conda/deactivate.d/"
+cp "${RECIPE_DIR}/gromacs_deactivate.csh" "${PREFIX}/etc/conda/deactivate.d/"
+
 
 
 # Create the activate scripts for conda
