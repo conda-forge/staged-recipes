@@ -13,6 +13,13 @@ fi
 which runtests
 runtests
 
+cd $PREFIX/src/volume/PATO/PATO-dev-2.3.1/tutorials/1D/WoodPyrolysisCylinder1D
+./Allclean
+./Allrun
+cd $PREFIX/src/volume/PATO/PATO-dev-2.3.1/tutorials/2D/AblationTestCase_3.x
+./Allclean
+./Allrun
+
 if [ "$(uname)" = "Darwin" ]; then
     cd $PREFIX/src
     # detach volume
