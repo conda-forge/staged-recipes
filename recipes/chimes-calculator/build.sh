@@ -4,8 +4,7 @@ set -ex
 cmake --version
 
 cmake_options=(
-   "-DCMAKE_INSTALL_PREFIX=${PREFIX}"
-   "-DCMAKE_INSTALL_LIBDIR=lib"
+   ${CMAKE_ARGS}
    "-DBUILD_SHARED_LIBS=ON"
    "-DWITH_FORTRAN08_API=ON"
    "-GNinja"
