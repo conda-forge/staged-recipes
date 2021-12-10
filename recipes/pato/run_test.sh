@@ -3,12 +3,7 @@ set -e  # exit when any command fails
 set -x # show the commands
 
 echo -e "\n### TESTING PATO ###\n"
-cd $PREFIX/src
-if [ "$(uname)" = "Darwin" ]; then
-    # copy environmentComposition
-    cp $PREFIX/src/environmentComposition $PREFIX/src/volume/PATO/PATO-dev-2.3.1/data/Environments/RawData/Earth/environmentComposition
-    rm -f $PREFIX/src/environmentComposition
-fi
+cd $PREFIX
 # run tests
 which runtests
 runtests
