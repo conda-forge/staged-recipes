@@ -4,11 +4,13 @@
 
 make
 FAILURE=0
-export LD_LIBRARY_PATH=$LD_LIBRRAY_PATH:${PREFIX}/lib
-export DYLD_LIBRARY_PATH=$DYLD_LIBRRAY_PATH:${PREFIX}/lib
-make check || FAILURE=$?
-if [[ $FAILURE -ne 0 ]] ; then
-  cat ./test-suite.log
-  exit $FAILURE
+
+# Check if we are on Linux
+if [[ test -f ${PREFIX}/lib/libzmq.so ]] ; then
+  make check || FAILURE=$?
+  if [[ $FAILURE -ne 0 ]] ; then
+    cat ./test-suite.log
+    exit $FAILURE
+  fi
 fi
 make install
