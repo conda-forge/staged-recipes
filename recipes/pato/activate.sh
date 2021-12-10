@@ -7,7 +7,7 @@ if [ "$(uname)" = "Darwin" ]; then
     hdiutil attach -mountpoint $CONDA_PREFIX/src/volume $CONDA_PREFIX/src/pato_releases_conda.sparsebundle
 fi
 if [ "$(uname)" = "Linux" ]; then
-    if [ ! -d $CONDA_PREFIX/src/volume ]; then
+    if [ ! -d $CONDA_PREFIX/src/volume ] && [ -z "${CONDA_ROOT}" ]; then
 	tar xvf $CONDA_PREFIX/src/volume.tar -C $CONDA_PREFIX/src > /dev/null
     fi
     dir_gcc=$(dirname `which x86_64-conda-linux-gnu-gcc`)
