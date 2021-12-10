@@ -3,8 +3,10 @@
 mkdir build-cpp
 if errorlevel 1 exit 1
 
-# Release tarballs do not contain the required Protobuf definitions.
+REM Release tarballs do not contain the required Protobuf definitions.
 robocopy /S /E %LIBRARY_PREFIX%\share\opentelemetry\opentelemetry-proto\opentelemetry .\third_party\opentelemetry-proto\opentelemetry
+REM Stop CMake from trying to git clone the Protobuf definitions.
+mkdir .\third_party\opentelemetry-proto\.git
 
 cd build-cpp
 cmake .. ^

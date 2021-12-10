@@ -6,6 +6,8 @@ export CMAKE_ARGS="${CMAKE_ARGS} -DCMAKE_CXX_STANDARD=11"
 
 # Release tarballs do not contain the required Protobuf definitions.
 cp -r $PREFIX/share/opentelemetry/opentelemetry-proto/opentelemetry ./third_party/opentelemetry-proto/
+# Stop CMake from trying to git clone the Protobuf definitions.
+mkdir ./third_party/opentelemetry-proto/.git
 
 mkdir -p build-cpp
 pushd build-cpp
