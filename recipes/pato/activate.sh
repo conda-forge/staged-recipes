@@ -38,5 +38,5 @@ if [ "$(uname)" = "Darwin" ]; then
 	    cp $CONDA_PREFIX/src/environmentComposition $CONDA_PREFIX/src/volume/PATO/PATO-dev-2.3.1/data/Environments/RawData/Earth/environmentComposition
 	    rm -f $CONDA_PREFIX/src/environmentComposition
 	fi
-   fi
+    fi
 fi
