@@ -11,6 +11,10 @@ for /F "usebackq delims=" %%F in (`dir /b /ad-h`) do (
 popd
 endlocal
 
+:: Chromium requires Python 2.7 to generate compilation outputs.
+conda create -y --prefix "%SRC_DIR%\win_python" python=2.7 -c conda-forge
+set PATH=%SRC_DIR%\win_python;%PATH%
+
 set PATH=%cd%\jom;%PATH%
 SET PATH=%cd%\gnuwin32\gnuwin32\bin;%cd%\gnuwin32\bin;%PATH%
 
