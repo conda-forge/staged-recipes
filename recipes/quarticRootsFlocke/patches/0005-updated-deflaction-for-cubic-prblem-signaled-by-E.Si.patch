@@ -1,0 +1,109 @@
+From 632f2e7a1b094962d780ab38697f93c34f783735 Mon Sep 17 00:00:00 2001
+From: Enrico Bertolazzi <enrico.bertolazzi@unitn.it>
+Date: Sat, 11 Sep 2021 14:41:48 +0200
+Subject: [PATCH 05/13] updated deflaction for cubic (prblem signaled by
+ E.Siego)
+
+---
+ Makefile                       |  2 +-
+ src/PolynomialRoots-2-Cubic.cc | 31 ++++++++++++++++++++++++++-----
+ src_tests/check_3_quartic.cc   | 14 +++++++++++++-
+ 3 files changed, 40 insertions(+), 7 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 0a6bd39..7ada289 100644
+--- a/Makefile
++++ b/Makefile
+@@ -35,7 +35,7 @@ endif
+ ifneq (,$(findstring Darwin, $(OS)))
+   WARN        = -Wall -Weverything -Wno-sign-compare -Wno-global-constructors -Wno-padded -Wno-documentation-unknown-command -Wno-poison-system-directories
+   LIBS        = -L./lib -lQuartic
+-  CXXFLAGS    = $(WARN) -O3 -fPIC
++  CXXFLAGS    = $(WARN) -O3 -fPIC -std=c++11
+   AR          = libtool -static -o
+   LDCONFIG    =
+   DYNAMIC_EXT = .dylib
+diff --git a/src/PolynomialRoots-2-Cubic.cc b/src/PolynomialRoots-2-Cubic.cc
+index 8f7c3d7..46bc1cb 100644
+--- a/src/PolynomialRoots-2-Cubic.cc
++++ b/src/PolynomialRoots-2-Cubic.cc
+@@ -456,17 +456,38 @@ namespace PolynomialRoots {
+     // scale root
+     r2 *= scale;
+ 
++    /*
+     // deflate
+     // x^3 + aa*x^2 + bb*x + cc
+     //    = (x-r2)*(x^2+b1*x+b0)
+     //    = x^3 + x^2 * ( b1 - r2 ) + x * ( b0 - b1*r2 ) - r2 * b0
+     //
+-    //    aa == b1 - r2        -> b1 = aa+r2
+-    //    bb == b0 - b1*r2     -> b1 = (b0-bb)/r2
+-    //    cc == -r2 * b0       -> b0 = -cc/r2
++    //    aa == b1 - r2
++    //    bb == b0 - b1*r2
++    //    cc == -r2 * b0
++    //
++    //  Solve the overdetermined linear system:
++    //
++    //  / 0    1  \            / aa + r2 \
++    //  |         |  / b0 \    |         |
++    //  | 1   -r2 |  |    |  = |   bb    |
++    //  |         |  \ b1 /    |         |
++    //  \ -r2  0  /            \   cc    /
++    //
++    //  if |r2| < 1 then solve 
++    //
++    //  / 0    1  \  / b0 \    / aa + r2 \
++    //  |         |  |    | =  |         |
++    //  \ -r2  0  /  \ b1 /    \   cc    /
++    //
++    //  otherwise solve
++    //
++    //  / 1   -r2 \  / b0 \   / bb \
++    //  |         |  |    | = |    |
++    //  \ -r2  0  /  \ b1 /   \ cc /
++    */
+     valueType b0 = -cc/r2;
+-    //valueType b1 = aa+r2; // changed deflaction, seems more accurate
+-    valueType b1 = (b0-bb)/r2;
++    valueType b1 = std::abs(r2) < 1 ? aa+r2 : -(cc/r2+bb)/r2;
+ 
+     // solve quadratic polynomial
+     Quadratic qsolve( 1.0, b1, b0 );
+diff --git a/src_tests/check_3_quartic.cc b/src_tests/check_3_quartic.cc
+index cf98aa7..07d6ef0 100644
+--- a/src_tests/check_3_quartic.cc
++++ b/src_tests/check_3_quartic.cc
+@@ -151,6 +151,17 @@ static double quartic21[] = {
+   -0.0116136513934813456055961111701
+ };
+ 
++// Emanuele Siego example #3
++static double rootQuarticReal22[] = { -1.5226962261856962e-08, 1.5226962261856962e-08, 0.0029426967763176593, 0.0029426967763176593 };
++static double rootQuarticImag22[] = { 0, 0, 0, 0 };
++static double quartic22[] = {
++  86594.643180459301,
++  -509.64355468067714,
++  0.74986322275510664,
++  0.0000000000000000,
++  -1.7386537088520670e-16
++};
++
+ #define DO_TEST( N ) \
+   cout << "\n\nText N." << N << '\n'; \
+   do_test( quartic##N, rootQuarticReal##N, rootQuarticImag##N )
+@@ -203,8 +214,9 @@ main() {
+   DO_TEST(18);
+   DO_TEST(19);
+   DO_TEST(20);
+-  #endif
+   DO_TEST(21);
++  #endif
++  DO_TEST(22);
+   cout << "\n\nALL DONE!\n";
+   return 0;
+ }
+-- 
+2.34.1
+
