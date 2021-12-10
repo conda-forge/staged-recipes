@@ -32,3 +32,8 @@ if [ -f $CONDA_PREFIX/src/volume/PATO/PATO-dev-2.3.1/bashrc ]; then
     export PATO_DIR=$CONDA_PREFIX/src/volume/PATO/PATO-dev-2.3.1
     source $PATO_DIR/bashrc
 fi
+if [ "$(uname)" = "Darwin" ]; then
+    if [ -f $CONDA_PREFIX/src/volume/PATO/PATO-dev-2.3.1/data/Environments/RawData/Mars/environmentComposition ]; then
+	cp $CONDA_PREFIX/src/environmentComposition $CONDA_PREFIX/src/volume/PATO/PATO-dev-2.3.1/data/Environments/RawData/Mars/environmentComposition
+    fi
+fi
