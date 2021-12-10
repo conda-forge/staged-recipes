@@ -6,7 +6,7 @@ make
 FAILURE=0
 
 # Check if we are on Linux
-if [[ test -f ${PREFIX}/lib/libzmq.so ]] ; then
+if [[ -f ${PREFIX}/lib/libzmq.so ]] ; then
   make check || FAILURE=$?
   if [[ $FAILURE -ne 0 ]] ; then
     cat ./test-suite.log
