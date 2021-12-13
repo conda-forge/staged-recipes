@@ -1,0 +1,16 @@
+set CMAKE_ARGS=%CMAKE_ARGS% -B build
+set CMAKE_ARGS=%CMAKE_ARGS% -S .
+set CMAKE_ARGS=%CMAKE_ARGS% -G Ninja
+set CMAKE_ARGS=%CMAKE_ARGS% -DENABLE_CTEST=ON
+set CMAKE_ARGS=%CMAKE_ARGS% -DBUILD_EXECUTABLE=ON
+set CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_BUILD_TYPE=Release
+set CMAKE_ARGS=%CMAKE_ARGS% -DCMAKE_INSTALL_PREFIX="${PREFIX}"
+
+echo "CMAKE_ARGS: ${CMAKE_ARGS}"
+echo "PREFIX: ${PREFIX}"
+
+cmake %CMAKE_ARGS%
+
+cmake --build build
+cmake --install build
+cmake --build build --target test
