@@ -12,7 +12,7 @@ popd
 endlocal
 
 :: Chromium requires Python 2.7 to generate compilation outputs.
-conda create -y --prefix "%SRC_DIR%\win_python" python=2.7 -c conda-forge
+conda create -y --prefix "%SRC_DIR%\win_python" python=2.7 -c pkgs/main
 set PATH=%SRC_DIR%\win_python;%PATH%
 
 set PATH=%cd%\jom;%PATH%
