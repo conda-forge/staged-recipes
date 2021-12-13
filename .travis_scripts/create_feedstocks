@@ -5,7 +5,7 @@ set -x
 
 # Ensure we are on the latest commit
 # of the branch where we are converting
-# recipes from. Currently this is `master`.
+# recipes from. Currently this is `main`.
 export CF_CURRENT_BRANCH="${GITHUB_REF/refs\/heads\//}"
 git checkout "${CF_CURRENT_BRANCH}"
 
@@ -15,14 +15,14 @@ export CPU_COUNT=2
 
 export PYTHONUNBUFFERED=1
 
-# Install Miniconda.
+# Install Mambaforge.
 echo ""
-echo "Installing a fresh version of Miniconda."
-curl -L https://repo.continuum.io/miniconda/Miniconda3-4.6.14-Linux-x86_64.sh > ~/miniconda.sh
-bash ~/miniconda.sh -b -p ~/miniconda
-touch ~/miniconda/conda-meta/pinned
+echo "Installing a fresh version of Mambaforge."
+curl -L https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh > ~/Mambaforge.sh
+bash ~/Mambaforge.sh -b -p ~/Mambaforge
+touch ~/Mambaforge/conda-meta/pinned
 (
-    source ~/miniconda/bin/activate root
+    source ~/Mambaforge/bin/activate root
 
     # Configure conda.
     echo ""
@@ -30,30 +30,24 @@ touch ~/miniconda/conda-meta/pinned
     conda config --set show_channel_urls true
     conda config --set auto_update_conda false
     conda config --set add_pip_as_python_dependency false
-    conda config --add channels conda-forge
 
     unset conda
-    conda update -n root --yes --quiet conda
+    mamba update -n root --yes --quiet conda mamba
 )
-source ~/miniconda/bin/activate root
+source ~/Mambaforge/bin/activate root
 
-conda install --yes --quiet \
+mamba install --yes --quiet \
   conda-forge-ci-setup=3.* \
   "conda-smithy>=3.7.1,<4.0.0a0" \
   conda-forge-pinning \
-  git=2.12.2 \
   "conda-build>=3.16" \
   "gitpython>=3.0.8" \
   requests \
-  ruamel.yaml
+  ruamel.yaml \
+  "gitpython<3.1.20"
 
 conda info
+mamba info
 conda config --get
-
-set +x
-mkdir -p ~/.conda-smithy
-echo $TRAVIS_TOKEN > ~/.conda-smithy/travis.token
-echo $PROD_BINSTAR_TOKEN > ~/.conda-smithy/anaconda.token
-set -x
 
 python .travis_scripts/create_feedstocks.py
