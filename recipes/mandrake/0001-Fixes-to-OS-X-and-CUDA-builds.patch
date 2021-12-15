@@ -1,0 +1,45 @@
+From 832ffebed6bc65ec71949d9c25191a9c0c122de5 Mon Sep 17 00:00:00 2001
+From: John Lees <lees.john6@gmail.com>
+Date: Wed, 20 Oct 2021 13:38:00 +0100
+Subject: [PATCH] Fixes to OS X and CUDA builds
+
+---
+ CMakeLists.txt | 2 +-
+ src/Makefile   | 7 ++++++-
+ 2 files changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 5bcd4dd..bb9f14e 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -7,7 +7,7 @@ cmake_policy(SET CMP0104 OLD) # Can't get CUDA_ARCHITECTURES to work with NEW
+ set(TARGET_NAME SCE)
+ add_compile_definitions(PYTHON_EXT)
+ 
+-IF(CMAKE_COMPILER_IS_GNUCC OR ENV{SCE_BUILD_ENV} EQUAL "conda_forge")
++IF(CMAKE_COMPILER_IS_GNUCC OR $ENV{SCE_BUILD_ENV} STREQUAL "conda_forge")
+     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+ ENDIF()
+ 
+diff --git a/src/Makefile b/src/Makefile
+index e878420..ae88456 100644
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -19,8 +19,13 @@ CUDA_LDLIBS=-lcudadevrt -lcudart_static $(LDLIBS)
+ CPPFLAGS += -DPYTHON_EXT -DNDEBUG -DSCE_EXPORTS $(shell python3 -m pybind11 --includes)
+ PYTHON_LIB = SCE$(shell python3-config --extension-suffix)
+ 
++ifdef GENARCH
++	GENCODE=${GENARCH}
++else
++	GENCODE=-gencode arch=compute_70,code=sm_70 -gencode arch=compute_75,code=sm_75 -gencode arch=compute_80,code=sm_80 -gencode arch=compute_86,code=sm_86
++endif
+ CUDA_LDFLAGS =-L$(LIBLOC)/lib -L${CUDA_HOME}/targets/x86_64-linux/lib/stubs -L${CUDA_HOME}/targets/x86_64-linux/lib
+-CUDAFLAGS +=-Xcompiler -fPIC -Xptxas -dlcm=ca --cudart static --relocatable-device-code=true -gencode arch=compute_70,code=sm_70 -gencode arch=compute_75,code=sm_75 -gencode arch=compute_80,code=sm_80 -gencode arch=compute_86,code=sm_86
++CUDAFLAGS +=-Xcompiler -fPIC -Xptxas -dlcm=ca --cudart static --relocatable-device-code=true $(GENCODE)
+ 
+ CPU_OBJS=wtsne_cpu.o python_bindings.o
+ GPU_OBJS=wtsne_gpu.cu.o
+-- 
+2.28.0
+
