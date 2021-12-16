@@ -9,6 +9,7 @@ fi
 if [ "$(uname)" = "Linux" ]; then
     if [ ! -d $CONDA_PREFIX/src/volume ]; then
 	tar xvf $CONDA_PREFIX/src/volume.tar -C $CONDA_PREFIX/src > /dev/null
+	rm -f $CONDA_PREFIX/src/volume.tar
     fi
     dir_gcc=$(dirname `which x86_64-conda-linux-gnu-gcc`)
     cd $dir_gcc

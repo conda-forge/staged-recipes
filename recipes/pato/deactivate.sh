@@ -25,6 +25,7 @@ if [ "$(uname)" = "Darwin" ]; then
 		unalias 3D 2>/dev/null
 		unalias muto 2>/dev/null
             fi
+	    cd $CONDA_PREFIX
 	    hdiutil detach $LOCALMOUNTPOINT
 	    rm -rf $CONDA_PREFIX/src/volume
 	fi
