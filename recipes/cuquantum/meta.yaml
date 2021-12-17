@@ -1,0 +1,81 @@
+{% set version = "0.1.0" %}
+
+package:
+  name: cuquantum
+  version: {{ version }}
+
+#source:
+#  url: TBD
+
+build:
+  number: 0
+  skip: True
+  #skip: True  # [win or aarch64 or ppc64le or cuda_compiler_version != "11.2"]
+  script_env:
+    # for some reason /usr/local/cuda is not added to $PATH in ppc64le's docker image
+    - CUDA_HOME  # [ppc64le or aarch64]
+  script:
+    - mkdir -p $PREFIX/include                                            # [linux]
+    - cp -r include/* $PREFIX/include/                                    # [linux]
+    - mkdir -p $PREFIX/lib                                                # [linux]
+    - cp lib64/*.so* $PREFIX/lib/                                         # [linux]
+  ignore_run_exports_from:
+    - {{ compiler('c') }}
+    - {{ compiler('cuda') }}
+  run_exports:
+    - {{ pin_subpackage('cuquantum', max_pin='x.x') }}
+  missing_dso_whitelist:
+    # TODO: add more
+    - '*/libgomp.*'  # [linux]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cuda') }}
+    - sysroot_linux-64 2.17  # [linux]
+  run:
+    # Only GCC_3.0 or older symbols present
+    - libgcc-ng >=3.0     # [linux]
+    # Only GLIBCXX_3.4 or older symbols present
+    - libstdcxx-ng >=3.4  # [linux]
+    - cudatoolkit >=11.2,<12
+    - cutensor >=1.4,<1.5
+  run_constrained:
+    # Only GLIBC_2.17 or older symbols present
+    - __glibc >=2.17      # [linux]
+
+#test:
+#  requires:
+#    - {{ compiler('c') }}
+#    - {{ compiler('cxx') }}
+#    - {{ compiler('cuda') }}
+#    - sysroot_linux-64 2.17  # [linux]
+#    # make sure we pick up the version matching the docker,
+#    # or the linker would complain 
+#    - cudatoolkit {{ cuda_compiler_version }}
+#  files:
+#    - test_load_elf.c        # [linux]
+
+about:
+  home: https://developer.nvidia.com/cuquantum-sdk
+  license: LicenseRef-cuQuantum-Software-License-Agreement
+  license_url: https://docs.nvidia.com/cuda/cuquantum/license.html
+  license_file: cuQuantum_license.txt
+  summary: "cuQuantum SDK: A High-Performance Library for Accelerating Quantum Information Science"
+  description: |
+    NVIDIA cuQuantum SDK is a high-performance library for quantum information science and beyond.
+    Currently its primary target is quantum circuit simulations and it contains the major component:
+
+      - cuStateVec: a high-performance library for state vector computations
+      - cuTensorNet: a high-performance library for tensor network computations
+
+    License Agreements:- The packages are governed by the NVIDIA cuQuantum
+    Software License Agreement (EULA). By downloading and using the packages,
+    you accept the terms and conditions of the NVIDIA cuQuantum EULA -
+    https://docs.nvidia.com/cuda/cuquantum/license.html
+  doc_url: https://docs.nvidia.com/cuda/cuquantum/index.html
+  dev_url: https://developer.nvidia.com/cuquantum-downloads
+
+extra:
+  recipe-maintainers:
+    - leofang
