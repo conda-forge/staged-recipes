@@ -1,19 +1,17 @@
 #!/bin/bash
 
-export PATH=$PATH:/mingw64/bin/
+set -xe
 
-env
-pwd
-ls -al
+export PATH=$PATH:/mingw64/bin/
 
 ARCH_FLAG=""
 if [[ ${ARCH} == 64 ]]; then
     ARCH_FLAG="--enable-64bit"
 fi
 
-./configure --prefix=${PREFIX}        \
-            --with-tcl=${PREFIX}/lib  \
-            --with-tk=${PREFIX}/lib   \
+./configure --prefix=${CYGWIN_PREFIX}        \
+            --with-tcl=${CYGWIN_PREFIX}/lib  \
+            --with-tk=${CYGWIN_PREFIX}/lib   \
 			${ARCH_FLAG}
 make -j${CPU_COUNT} ${VERBOSE_AT}
 make install
