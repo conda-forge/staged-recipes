@@ -14,11 +14,23 @@ build:
   number: 0
   noarch: python
   script: 
+    ## Show the rendered recipe
+    - echo -e "\n>>> Show recipe '{{ name }}/meta.yaml' <<<\n\n"
+    - echo -e $(cat $RECIPE_DIR/meta.yaml)  # [not win]
+    ## Ensure inclusion of requirements.txt
     {% set reqfile = "requirements.txt" %}
     {% set reqsource = name ~ ".egg-info/requires.txt" %}
     # IF {{ reqfile }} is NOT PRESENT, COPY {{ reqfile }} from {{ reqsource }}
+    - echo -e "\n>>> ENSURE INCLUSION OF '{{ reqfile }}' <<<\n\n"
     - if [ ! -f {{ reqfile }} ] && [ -f {{ reqsource }} ]; then cp {{ reqsource }} {{ reqfile }}; fi  # [not win]
-    - copy {{ name }}.egg-info\requires.txt {{ reqfile }}  # [win]
+    #- copy {{ name }}.egg-info\requires.txt {{ reqfile }}  # [win]
+    - copy {{ reqsource | replace('/', '\\') }} {{ reqfile }}  # [win]
+    ## Ensure exclusion of tests folder
+    {% set testsfolder = "test" %}
+    - echo -e "\n>>> ENSURE EXCLUSION OF '{{ testsfolder }}' <<<\n\n"
+    - rm -rf {{ testsfolder }}  # [not win]
+    - rmdir /s /q "{{ testsfolder | replace('/', '\\') }}"  # [win]
+    ## Install package {{ name }} from PyPI
     - {{ PYTHON }} -m pip install . -vv
 
 requirements:
