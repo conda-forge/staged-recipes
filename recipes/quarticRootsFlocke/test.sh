@@ -8,7 +8,7 @@ fi
 
 ls -1 "${PREFIX}/lib/*uart*"
 
-test -f "${PREFIX}/lib/libQuartic_${PLATFORM}_static.a"
+test -f "${PREFIX}/lib/libQuarticStatic.a"
 test -f "${PREFIX}/include/Quartic/PolynomialRoots.hh"
 ${CXX} ${CXXFLAGS} \
   -L"${PREFIX}/lib" \
@@ -18,5 +18,5 @@ ${CXX} ${CXXFLAGS} \
   -Wall \
   -Wextra \
   -Werror \
-  -lQuartic_${PLATFORM}_static
+  -lQuarticStatic
 ./test_linkage

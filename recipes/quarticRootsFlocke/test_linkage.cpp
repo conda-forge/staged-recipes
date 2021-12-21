@@ -1,7 +1,7 @@
 #include <array>
 #include <iostream>
 
-#include "PolynomialRoots.hh"
+#include "Quartic/PolynomialRoots.hh"
 
 
 int main() {
