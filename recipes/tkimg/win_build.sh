@@ -9,9 +9,13 @@ if [[ ${ARCH} == 64 ]]; then
     ARCH_FLAG="--enable-64bit"
 fi
 
-./configure --prefix=${CYGWIN_PREFIX}        \
-            --with-tcl=${CYGWIN_PREFIX}/lib  \
-            --with-tk=${CYGWIN_PREFIX}/lib   \
+MSYS_PREFIX=${CYGWIN_PREFIX/\/cygdrive/}
+
+ls -al $MSYS_PREFIX
+
+./configure --prefix=${MSYS_PREFIX}        \
+            --with-tcl=${MSYS_PREFIX}/lib  \
+            --with-tk=${MSYS_PREFIX}/lib   \
 			${ARCH_FLAG}
 make -j${CPU_COUNT} ${VERBOSE_AT}
 make install
