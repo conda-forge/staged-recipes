@@ -6,8 +6,6 @@ else
   PLATFORM=linux
 fi
 
-ls -1 "${PREFIX}/lib/*uart*"
-
 test -f "${PREFIX}/lib/libQuarticStatic.a"
 test -f "${PREFIX}/include/Quartic/PolynomialRoots.hh"
 ${CXX} ${CXXFLAGS} \
@@ -20,3 +18,10 @@ ${CXX} ${CXXFLAGS} \
   -Werror \
   -lQuarticStatic
 ./test_linkage
+
+cmake \
+    -B build \
+    -S "${RECIPE_DIR}/test-link-quarticRootsFlocke" \
+    -G Ninja
+cmake --build build
+./build/test_linkage
