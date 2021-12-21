@@ -11,11 +11,9 @@ fi
 
 MSYS_PREFIX=${CYGWIN_PREFIX/\/cygdrive/}
 
-ls -al $MSYS_PREFIX
-
-./configure --prefix=${MSYS_PREFIX}        \
-            --with-tcl=${MSYS_PREFIX}/lib  \
-            --with-tk=${MSYS_PREFIX}/lib   \
+./configure --prefix=${MSYS_PREFIX}/Library        \
+            --with-tcl=${MSYS_PREFIX}/Library/lib  \
+            --with-tk=${MSYS_PREFIX}/Library/lib   \
 			${ARCH_FLAG}
 make -j${CPU_COUNT} ${VERBOSE_AT}
 make install
