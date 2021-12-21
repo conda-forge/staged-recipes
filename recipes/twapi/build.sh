@@ -1,0 +1,3 @@
+TCL_LIB_PATH=${PREFIX}/lib/${PKG_NAME}${PKG_VERSION}
+mkdir -p $TCL_LIB_PATH
+cp -v *.* $TCL_LIB_PATH/
