@@ -1,0 +1,77 @@
+{% set name = "openmolcas" %}
+{% set version = "21.10" %}
+
+# Define build matrix for MPI vs. non-mpi
+# ensure mpi is defined (needed for conda-smithy recipe-lint)
+{% set mpi = mpi or 'nompi' %}
+{% set build = 0 %}
+{% if mpi == 'nompi' %}
+# prioritize 'nompi' variant via build number
+{% set build = build + 1000 %}
+{% endif %}
+
+{% set build_string = "py{}_{}_{}".format(environ.get('CONDA_PY', ''), mpi, build) %}
+
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+  string: {{ build_string }}
+
+source:
+  url: https://gitlab.com/Molcas/OpenMolcas/-/archive/v{{ version }}/OpenMolcas-v{{ version }}.tar.gz 
+  sha256: 46f30c47a9f30e030cf1a4ac8b73964da81657ea9093654da057a21c7fac63f3
+
+build:
+  number: {{ build }}
+  skip: true  # [win]
+
+requirements:
+  build:
+    - git
+    - {{ compiler('c') }}
+    - {{ compiler('fortran') }}
+    - cmake >=2.8.12
+    - make
+  host:
+    - python
+    - pip
+    - {{ mpi }}  # [mpi != 'nompi']
+    - libblas  # [osx]
+    - openblas * *openmp*  # [linux]
+    - hdf5
+  run:
+    - python
+    - {{ mpi }}  # [mpi != 'nompi']
+    - libblas  # [osx]
+    - openblas * *openmp*  # [linux]
+    - hdf5
+
+test:
+  commands:
+    - pyopenmolcas --help
+
+about:
+  home: https://molcas.gitlab.io/OpenMolcas/sphinx
+  # Remember to specify the license variants for BSD, Apache, GPL, and LGPL.
+  # Use the SPDX identifier, e.g: GPL-2.0-only instead of GNU General Public License version 2.0
+  # See https://spdx.org/licenses/
+  license: LGPL-2.1
+  license_family: GPL
+  # It is strongly encouraged to include a license file in the package,
+  # (even if the license doesn't require it) using the license_file entry.
+  # See https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#license-file
+  license_file: LICENSE
+  summary: 'A quantum chemistry software package developed by scientists
+and intended to be used by scientists'
+  # The remaining entries in this section are optional, but recommended.
+  description: |
+      OpenMolcas is a quantum chemistry software package developed by scientists and intended to be used by scientists. It includes programs to apply many different electronic structure methods to chemical systems, but its key feature is the multiconfigurational approach, with methods like CASSCF and CASPT2.
+      OpenMolcas is not a fork or reimplementation of Molcas, it is a large part of the Molcas codebase that has been released as free and open-source software (FOSS) under the Lesser General Public License (LGPL). 
+      Some parts of Molcas remain under a different license by decision of their authors (or impossibility to reach them), and are therefore not included in OpenMolcas.
+  doc_url: https://molcas.gitlab.io/OpenMolcas/sphinx
+  dev_url: https://gitlab.com/Molcas/OpenMolcas
+
+extra:
+  recipe-maintainers:
+    - ltalirz
