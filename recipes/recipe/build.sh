@@ -5,6 +5,9 @@ mkdir build
 cd build
 
 cmake .. \
-    -DLINALG=OpenBLAS \
+
+#    -DLINALG=OpenBLAS \
 
 make
+
+pymolcas verify
