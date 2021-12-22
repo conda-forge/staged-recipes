@@ -12,6 +12,7 @@ fi
 
 scons -j $MYNCPU install prefix=$PREFIX
 
+python -m pip install . --no-deps
 # Add more build steps here, if they are necessary.
 
 # See http://docs.continuum.io/conda/build.html
