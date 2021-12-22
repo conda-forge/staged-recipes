@@ -1,17 +1,20 @@
 #!/bin/bash
 
-ARCH_FLAG=""
+autoreconf --force --install
+
+configure_args=(
+    --prefix="${PREFIX}"
+    --with-tcl="${PREFIX}/lib"
+    --with-tk="${PREFIX}/lib"
+)
+
 if [[ ${ARCH} == 64 ]]; then
-    ARCH_FLAG="--enable-64bit"
+    configure_args+=(
+        --enable-64bit
+    )
 fi
 
-ls -al $PREFIX
-ls -al $PREFIX/include
-ls -al $BUILD_PREFIX/include
+./configure "${configure_args[@]}"
 
-./configure --prefix=${PREFIX}        \
-            --with-tcl=${PREFIX}/lib  \
-            --with-tk=${PREFIX}/lib   \
-			${ARCH_FLAG}
 make -j${CPU_COUNT} ${VERBOSE_AT}
 make install
