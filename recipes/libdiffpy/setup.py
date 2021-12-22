@@ -12,11 +12,7 @@ MYDIR = os.path.dirname(os.path.abspath(__file__))
 SITESCONSDIR = os.path.abspath(os.path.join(MYDIR, '../site_scons'))
 sys.path.insert(0, SITESCONSDIR)
 
-from libdiffpybuildutils import gitinfo
-
-ginfo = gitinfo()
-
 setup(
     name='libdiffpy',
-    version=ginfo['version'],
+    version="",
 )
