@@ -1,0 +1,80 @@
+{% set version = "0.25" %}
+
+package:
+  name: charliecloud
+  version: {{ version }}
+
+source:
+  url: https://github.com/hpc/charliecloud/releases/download/v{{ version }}/charliecloud-{{ version }}.tar.gz
+  sha256: 62d6fd211e3a573f54578e1b01d5c298f9788b7eaf2db46ac94c2dcef604cc94
+  patches:
+    # this hard-turns the flag OFF for building the tests (otherwise fail)
+    # it also hard-turns the flag ON for ch-image.
+    - hardcode_build.diff
+
+build:
+  number: 0
+  skip: true  # [not linux]
+  script:
+    - ./configure --prefix=$PREFIX
+    - make
+    - make check
+    - make install
+
+  missing_dso_whitelist:
+    - $RPATH/libsotest.so.1
+    
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - sysroot_linux-64 2.17  # [linux64]
+    - make
+    
+  host:
+  # not clear if python (>=3.6) + requests (>=2.6.0) are needed at all?
+    - python
+    - requests >=2.6.0
+  
+  # strictly speaking:
+  # squashfs + squashfuse are not needed
+  # however, it is best to bundle them here
+  # otherwise the pkg is meaningless... 
+  run:
+    - python
+    - requests >=2.6.0
+    - squashfs-tools >=4.2
+    - squashfuse >=0.1.100
+
+test:
+  commands:
+    - echo "testing..."
+    - ch-build --help
+    - ch-run --help
+    - ch-run --version
+    - ch-builder2tar --help
+    - ch-tar2dir --help
+#     # try the tutorial: 
+#     # https://hpc.github.io/charliecloud/tutorial.html#seconds-to-charliecloud
+#     - cd $PREFIX/share/doc/charliecloud/examples/hello
+#     - ch-build -t hello . --force
+#     - ch-builder2tar hello /var/tmp
+#     - ch-tar2dir /var/tmp/hello.tar.gz /var/tmp
+# #     # all tests pass up to ch-run because of problem with user+mnt usernames
+# #     # in conda-forge build centos build containers
+# #     - ch-run /var/tmp/hello -- echo "I'm in a container"
+
+about:
+  home: https://hpc.github.io/charliecloud
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Lightweight user-defined software stacks for high-performance computing.
+
+  description: Lightweight user-defined software stacks for high-performance computing.
+
+
+  dev_url: https://github.com/hpc/charliecloud
+  doc_url: https://hpc.github.io/charliecloud
+
+extra:
+  recipe-maintainers:
+    - ngam
