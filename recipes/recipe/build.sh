@@ -22,3 +22,5 @@ make
 
 # Full test suite is taking too long
 pymolcas verify .basic
+
+make install
