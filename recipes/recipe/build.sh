@@ -15,7 +15,7 @@ else
 
     cmake .. \
         -DLINALG=Manual \
-        -DLINALG_LIBRARIES="$PREFIX/lib/libopenblas64_.so:$PREFIX/lib/liblapack.so" \
+        -DLINALG_LIBRARIES="-lopenblas64_ -llapack" \
         -DCMAKE_INSTALL_PREFIX=${PREFIX}
 
         #-DLINALG=OpenBLAS \
