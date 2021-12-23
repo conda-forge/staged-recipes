@@ -20,6 +20,9 @@ else
         -DLINALG_LIBRARIES="-lopenblas64_ -llapack" \
         -DCMAKE_INSTALL_PREFIX=${PREFIX}
 
+    # cpp executable name harcoded in CMakeLists.txt
+    ln -s $CPP ${PREFIX}/bin/cpp
+
         #-DLINALG=OpenBLAS \
         #-DOPENBLASROOT=$PREFIX \
 fi
