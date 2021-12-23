@@ -8,13 +8,15 @@ cd build
 if [[ ! -z "$MACOSX_DEPLOYMENT_TARGET" ]]; then
 
     cmake .. \
-        -DLINALG=Accelerate
+        -DLINALG=Accelerate \
+        -CMAKE_INSTALL_PREFIX=${PREFIX}
 
 else
 
     cmake .. \
         -DLINALG=OpenBLAS \
-        -DOPENBLASROOT=$PREFIX
+        -DOPENBLASROOT=$PREFIX \
+        -CMAKE_INSTALL_PREFIX=${PREFIX}
 fi
 
 
