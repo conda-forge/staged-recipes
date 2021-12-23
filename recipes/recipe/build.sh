@@ -8,12 +8,14 @@ cd build
 if [[ ! -z "$MACOSX_DEPLOYMENT_TARGET" ]]; then
 
     cmake .. \
+        -DDMRG=ON \
         -DLINALG=Accelerate \
         -DCMAKE_INSTALL_PREFIX=${PREFIX}
 
 else
 
     cmake .. \
+        -DDMRG=ON \
         -DLINALG=Manual \
         -DLINALG_LIBRARIES="-lopenblas64_ -llapack" \
         -DCMAKE_INSTALL_PREFIX=${PREFIX}
