@@ -75,7 +75,6 @@ cp "${RECIPE_DIR}/gromacs_deactivate.sh" "${PREFIX}/etc/conda/deactivate.d/"
 cp "${RECIPE_DIR}/gromacs_deactivate.csh" "${PREFIX}/etc/conda/deactivate.d/"
 
 
-
 # Create the activate scripts for conda
 
 # We need to find CPU-type descriptors so we know which GROMACS SIMD flavor
