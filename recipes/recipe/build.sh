@@ -1,6 +1,6 @@
 #!/bin/bash
 set -ex
 
-cmake -H. -bbuild
+cmake -H. -Bbuild
 
 cmake --build build --target install
