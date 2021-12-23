@@ -9,14 +9,17 @@ if [[ ! -z "$MACOSX_DEPLOYMENT_TARGET" ]]; then
 
     cmake .. \
         -DLINALG=Accelerate \
-        -CMAKE_INSTALL_PREFIX=${PREFIX}
+        -DCMAKE_INSTALL_PREFIX=${PREFIX}
 
 else
 
     cmake .. \
-        -DLINALG=OpenBLAS \
-        -DOPENBLASROOT=$PREFIX \
-        -CMAKE_INSTALL_PREFIX=${PREFIX}
+        -DLINALG=Manual \
+        -DLINALG_LIBRARIES="$PREFIX/lib/libopenblas64_.so:$PREFIX/lib/liblapack.so" \
+        -DCMAKE_INSTALL_PREFIX=${PREFIX}
+
+        #-DLINALG=OpenBLAS \
+        #-DOPENBLASROOT=$PREFIX \
 fi
 
 
