@@ -5,8 +5,8 @@ mkdir build
 cd build
 
 cmake .. \
-
-#    -DLINALG=OpenBLAS \
+    -DLINALG=OpenBLAS \
+    -DOPENBLASROOT=$PREFIX \
 
 make
 
