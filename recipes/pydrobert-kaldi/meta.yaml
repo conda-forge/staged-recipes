@@ -1,0 +1,77 @@
+{% set name = "pydrobert-kaldi" %}
+{% set version = "0.6.0" %}
+
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/pydrobert-kaldi-{{ version }}.tar.gz
+  sha256: 82f713d3f974d3b1530fa7091ecf03065549a816c2c6b5e06a2cb388ff6385dd
+  patches:
+    - blas.patch
+
+build:
+  number: 0
+  skip: true   # [py2k]
+  entry_points:
+    - write-table-to-pickle = pydrobert.kaldi.command_line:write_table_to_pickle
+    - write-pickle-to-table = pydrobert.kaldi.command_line:write_pickle_to_table
+    - compute-error-rate = pydrobert.kaldi.command_line:compute_error_rate
+    - normalize-feat-lens = pydrobert.kaldi.command_line:normalize_feat_lens
+    - write-table-to-torch-dir = pydrobert.kaldi.command_line:write_table_to_torch_dir
+    - write-torch-dir-to-table = pydrobert.kaldi.command_line:write_torch_dir_to_table
+  script_env:
+    # We're actually using the netlib reference, but there isn't a difference
+    # to the Kaldi source.
+    - OPENBLASROOT={{ PREFIX }}
+  script: {{ PYTHON }} -m pip install . -vv
+  ignore_run_exports_from:
+    - blas-devel
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+  host:
+    - pip
+    - python
+    - numpy
+    - libcblas
+    - liblapacke
+    - blas-devel * netlib
+    - setuptools-scm
+    - swig
+  run:
+    - {{ pin_compatible('numpy') }}
+    - python
+  run_constrained:
+    - pydrobert-param >0.2.0
+    - pydrobert-pytorch >0.2.1
+    - pydrobert-speech >0.1.0
+
+test:
+  imports:
+    - pydrobert
+    - pydrobert.kaldi
+  commands:
+    - pip check
+    - write-table-to-pickle --help
+    - write-pickle-to-table --help
+    - compute-error-rate --help
+    - normalize-feat-lens --help
+    - write-table-to-torch-dir --help
+    - write-torch-dir-to-table --help
+  requires:
+    - pip
+    - pytorch-cpu
+
+about:
+  home: https://github.com/sdrobert/pydrobert-kaldi
+  summary: Swig bindings for Kaldi
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - sdrobert
