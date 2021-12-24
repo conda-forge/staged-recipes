@@ -10,6 +10,7 @@ if [[ ! -z "$MACOSX_DEPLOYMENT_TARGET" ]]; then
     cmake .. \
         -DDMRG=ON \
         -DLINALG=Accelerate \
+        -DBOOST_INCLUDE_DIR=${PREFIX}/include \
         -DCMAKE_INSTALL_PREFIX=${PREFIX}
 
 else
