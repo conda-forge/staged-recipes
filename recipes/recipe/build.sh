@@ -1,7 +1,22 @@
 #!/bin/bash
 set -ex
 
+if [[ "$mpi" == "nompi" ]]; then
+
 cmake -H. -Bbuild \
-    -DCMAKE_INSTALL_PREFIX=${PREFIX}
+    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+    -DENABLE_OPENMP=ON \
+    -DHDF5_hdf5_fortran_LIBRARY=$PREFIX/lib/libhdf5.dylib
+
+else
+
+cmake -H. -Bbuild \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+    -DHDF5_hdf5_fortran_LIBRARY=$PREFIX/lib/libhdf5.dylib \
+    -DENABLE_OPENMP=ON \
+    -DENABLE_MPI=ON \
+    -DENABLE_SCALAPACK=ON
+fi
+
 
 cmake --build build --target install
