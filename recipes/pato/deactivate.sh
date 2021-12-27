@@ -27,7 +27,10 @@ if [ "$(uname)" = "Darwin" ]; then
             fi
 	    cd $CONDA_PREFIX
 	    hdiutil detach $LOCALMOUNTPOINT
-	    rm -rf $CONDA_PREFIX/src/volume
+	    if mount | grep "on $LOCALMOUNTPOINT" > /dev/null; then
+		echo Error with hdiutil detach $LOCALMOUNTPOINT 1>&2
+		exit 0
+	    fi
 	fi
     fi
 fi
