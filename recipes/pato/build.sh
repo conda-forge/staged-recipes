@@ -67,6 +67,8 @@ if [ "$(uname)" = "Linux" ]; then
 fi
 make
 cp bin/mgridgen $PREFIX/bin/mgridgen
+cp MGridGen/IMlib/libIMlib.a .
+cp libmgrid.a libMGridGen.a
 
 # get foam-extend src
 cd $PREFIX/src/volume/foam-extend
