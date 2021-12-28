@@ -23,10 +23,18 @@ if [ "$(uname)" = "Linux" ]; then
 	fi
     done
 fi
-if [ -f $CONDA_PREFIX/src/volume/foam-extend/foam-extend-4.1_for_openfoam_7/etc/bashrc ]; then
-    source $CONDA_PREFIX/src/volume/foam-extend/foam-extend-4.1_for_openfoam_7/etc/bashrc
+if [ -f $CONDA_PREFIX/src/volume/foam-extend/foam-extend-4.1_for_openfoam-7/etc/bashrc ]; then
+    CURRENT_DIR=$PWD
+    cd $CONDA_PREFIX/src/volume
+    if [ ! -f $CONDA_PREFIX/src/volume/.foam-extend_WM_OPTIONS.sh ]; then
+         echo "source $CONDA_PREFIX/src/volume/foam-extend/foam-extend-4.1_for_openfoam-7/etc/bashrc > /dev/null 2>&1" > .foam-extend_WM_OPTIONS.sh
+         echo "echo \$WM_OPTIONS" >> .foam-extend_WM_OPTIONS.sh
+	 chmod +x .foam-extend_WM_OPTIONS.sh
+    fi
+    FOAM_EXTEND_WM_OPTIONS=$(./.foam-extend_WM_OPTIONS.sh)
+    cd $CURRENT_DIR
     export FOAM_EXTEND_SRC=$CONDA_PREFIX/src/volume/foam-extend/foam-extend-4.1_for_openfoam-7/src
-    export FOAM_EXTEND_LIB=$CONDA_PREFIX/src/volume/foam-extend/foam-extend-4.1_for_openfoam-7/lib/$WM_OPTIONS
+    export FOAM_EXTEND_LIB=$CONDA_PREFIX/src/volume/foam-extend/foam-extend-4.1_for_openfoam-7/lib/$FOAM_EXTEND_WM_OPTIONS
 fi
 if [ -f $CONDA_PREFIX/src/volume/OpenFOAM/OpenFOAM-7/etc/bashrc ]; then
     if [ "$(uname)" = "Linux" ]; then
