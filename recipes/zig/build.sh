@@ -2,8 +2,8 @@
 
 set -ex
 
-CXX=clang++
-CC=clang
+CXX=g++
+CC=gcc
 
 mkdir -p build
 cd build
