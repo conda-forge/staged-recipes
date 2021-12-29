@@ -4,10 +4,10 @@ set -ex
 
 if [[ "$mpi" == "nompi" ]]; then
 
-cmake -H. -Bbuild \
+cmake ${CMAKE_ARGS} -H. -Bbuild \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DENABLE_OPENMP=ON \
-    -DHDF5_hdf5_fortran_LIBRARY=$PREFIX/lib/libhdf5.dylib
+    -DHDF5_hdf5_fortran_LIBRARY=$PREFIX/lib/libhdf5${SHLIB_EXT}
 
 else
 
