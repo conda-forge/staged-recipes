@@ -1,6 +1,7 @@
 #!/bin/bash
 set -ex
 
+
 if [[ "$mpi" == "nompi" ]]; then
 
 cmake -H. -Bbuild \
@@ -15,7 +16,8 @@ cmake -H. -Bbuild \
     -DHDF5_hdf5_fortran_LIBRARY=$PREFIX/lib/libhdf5.dylib \
     -DENABLE_OPENMP=ON \
     -DENABLE_MPI=ON \
-    -DENABLE_SCALAPACK=ON
+    -DENABLE_SCALAPACK=ON \
+    -DSCALAPACK_LIBRARIES="-lscalapack"
 fi
 
 
