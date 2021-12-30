@@ -13,7 +13,7 @@ else
 
 cmake -H. -Bbuild \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
-    -DHDF5_hdf5_fortran_LIBRARY=$PREFIX/lib/libhdf5${SHLIB_EXT}
+    -DHDF5_hdf5_fortran_LIBRARY=$PREFIX/lib/libhdf5${SHLIB_EXT} \
     -DENABLE_OPENMP=ON \
     -DENABLE_MPI=ON \
     -DENABLE_SCALAPACK=ON \
