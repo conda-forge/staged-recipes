@@ -2,10 +2,8 @@ mkdir build
 cd build
 
 cmake -G Ninja ^
-      -DCHEMICALFUN_PYTHON_INSTALL_PREFIX="%PREFIX%" ^
+      -DCHEMICALFUN_PYTHON_INSTALL_PREFIX:PATH="%PREFIX%" ^
       -DCMAKE_BUILD_TYPE=Release ^
-      -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
-      -DCMAKE_INCLUDE_PATH:PATH="%LIBRARY_INC%" ^
       ..
 if errorlevel 1 exit 1
 ninja install
