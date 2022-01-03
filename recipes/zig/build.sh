@@ -2,6 +2,9 @@
 
 set -ex
 
+CC=clang
+CXX=clang++
+
 mkdir -p build
 cd build
 
