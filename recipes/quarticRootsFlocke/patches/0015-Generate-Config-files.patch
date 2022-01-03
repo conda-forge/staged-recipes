@@ -1,0 +1,107 @@
+From 6469a9965eab59f4a55010d183df33e3dabef84b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jo=C3=A3o=20Paulo=20Taylor=20Ienczak=20Zanette?=
+ <jptiz@esss.co>
+Date: Thu, 16 Dec 2021 16:29:04 -0300
+Subject: [PATCH 15/17] Generate Config files
+
+---
+ CMakeInstall.txt              | 24 ++++++++++++++++++++++++
+ CMakeLists.txt                |  2 ++
+ QuarticConfig.cmake.in        | 10 ++++++++++
+ QuarticConfigVersion.cmake.in | 12 ++++++++++++
+ 4 files changed, 48 insertions(+)
+ create mode 100644 QuarticConfig.cmake.in
+ create mode 100644 QuarticConfigVersion.cmake.in
+
+diff --git a/CMakeInstall.txt b/CMakeInstall.txt
+index 7f2bd8f..0b747d9 100644
+--- a/CMakeInstall.txt
++++ b/CMakeInstall.txt
+@@ -16,6 +16,24 @@ endif()
+ #MESSAGE( STATUS "\n\n\nINSTALL_PREFIX           = ${INSTALL_PREFIX}\n\n\n")
+ MESSAGE(STATUS "\n\n\nPUBLIC_HEADER_DESTINATION           = ${PUBLIC_HEADER_DESTINATION}\n\n\n")
+ 
++set(INCLUDE_INSTALL_DIR "${PROJECT_PUBLIC_HEADER_DESTINATION}")
++
++set(PACKAGE_CONFIG_PATH_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}")
++set(PACKAGE_CONFIG_PATH "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake")
++set(PACKAGE_CONFIG_VERSION_PATH "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake")
++
++configure_package_config_file(
++  QuarticConfig.cmake.in "${PACKAGE_CONFIG_PATH}"
++  INSTALL_DESTINATION "${INSTALL_PREFIX}/lib/${PROJECT_NAME}"
++  PATH_VARS INCLUDE_INSTALL_DIR
++)
++
++write_basic_package_version_file(
++  "${PACKAGE_CONFIG_VERSION_PATH}"
++  VERSION "${VERSION}"
++  COMPATIBILITY SameMajorVersion
++)
++
+ set(INSTALL_TARGETS ${STATIC_PROJECT})
+ if(BUILD_SHARED)
+   set(INSTALL_TARGETS ${INSTALL_TARGETS} ${DYNAMIC_PROJECT})
+@@ -28,6 +46,12 @@ install(
+   PUBLIC_HEADER DESTINATION "${PROJECT_PUBLIC_HEADER_DESTINATION}"
+ )
+ 
++install(
++  FILES "${PACKAGE_CONFIG_PATH}"
++        "${PACKAGE_CONFIG_VERSION_PATH}"
++  DESTINATION "${INSTALL_PREFIX}/lib/${PROJECT_NAME}"
++)
++
+ if(INSTALL_HERE)
+   add_custom_command(
+     TARGET ${STATIC_PROJECT} POST_BUILD
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 7817145..5d4b525 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -28,6 +28,8 @@ project(
+   HOMEPAGE_URL "https://ebertolazzi.github.io/quarticRootsFlocke/"
+ )
+ 
++include(CMakePackageConfigHelpers)
++
+ # NOTE: Predictable target name
+ set(STATIC_PROJECT "${PROJECT_NAME}Static")
+ set(DYNAMIC_PROJECT "${PROJECT_NAME}")
+diff --git a/QuarticConfig.cmake.in b/QuarticConfig.cmake.in
+new file mode 100644
+index 0000000..3af59e0
+--- /dev/null
++++ b/QuarticConfig.cmake.in
+@@ -0,0 +1,10 @@
++set(QUARTIC_VERSION "@QUARTIC_VERSION@")
++
++@PACKAGE_INIT@
++
++set_and_check(QUARTIC_INCLUDE_DIR "@PACKAGE_INCLUDE_INSTALL_DIR@")
++
++# Should include both static and dynamic libraries as needed.
++# All targets are included as LIBRARIES as long as it is known this project
++# only generates libraries.
++set(QUARTIC_LIBRARIES "${INSTALL_TARGETS}")
+diff --git a/QuarticConfigVersion.cmake.in b/QuarticConfigVersion.cmake.in
+new file mode 100644
+index 0000000..55c116c
+--- /dev/null
++++ b/QuarticConfigVersion.cmake.in
+@@ -0,0 +1,12 @@
++set(PACKAGE_VERSION "@QUARTIC_VERSION@")
++
++# Check whether the requested PACKAGE_FIND_VERSION is compatible
++if("${PACKAGE_VERSION}" VERSION_LESS "${PACKAGE_FIND_VERSION}")
++  set(PACKAGE_VERSION_COMPATIBLE FALSE)
++else()
++  set(PACKAGE_VERSION_COMPATIBLE TRUE)
++  if ("${PACKAGE_VERSION}" VERSION_EQUAL "${PACKAGE_FIND_VERSION}")
++    set(PACKAGE_VERSION_EXACT TRUE)
++  endif()
++endif()
++
+-- 
+2.34.1
+

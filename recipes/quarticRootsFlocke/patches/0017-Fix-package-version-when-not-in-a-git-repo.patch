@@ -1,0 +1,89 @@
+From 1ed727623e1b958200368f07d7c6c5fac67e172a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jo=C3=A3o=20Paulo=20Taylor=20Ienczak=20Zanette?=
+ <jpaulotiz@gmail.com>
+Date: Fri, 17 Dec 2021 12:12:12 -0300
+Subject: [PATCH 17/17] Fix package version when not in a git repo
+
+---
+ CMakeInstall.txt | 26 ++++++++++++++------------
+ CMakeLists.txt   | 13 ++++++++++---
+ 2 files changed, 24 insertions(+), 15 deletions(-)
+
+diff --git a/CMakeInstall.txt b/CMakeInstall.txt
+index 0b747d9..4d0c457 100644
+--- a/CMakeInstall.txt
++++ b/CMakeInstall.txt
+@@ -14,7 +14,7 @@ endif()
+ #MESSAGE( STATUS "\n\n\nCMAKE_HOME_DIRECTORY     = ${CMAKE_HOME_DIRECTORY}\n\n\n")
+ #MESSAGE( STATUS "\n\n\nCMAKE_CURRENT_SOURCE_DIR = ${CMAKE_CURRENT_SOURCE_DIR}\n\n\n")
+ #MESSAGE( STATUS "\n\n\nINSTALL_PREFIX           = ${INSTALL_PREFIX}\n\n\n")
+-MESSAGE(STATUS "\n\n\nPUBLIC_HEADER_DESTINATION           = ${PUBLIC_HEADER_DESTINATION}\n\n\n")
++MESSAGE(STATUS "-- PUBLIC_HEADER_DESTINATION           = ${PUBLIC_HEADER_DESTINATION}")
+ 
+ set(INCLUDE_INSTALL_DIR "${PROJECT_PUBLIC_HEADER_DESTINATION}")
+ 
+@@ -22,17 +22,19 @@ set(PACKAGE_CONFIG_PATH_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}")
+ set(PACKAGE_CONFIG_PATH "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake")
+ set(PACKAGE_CONFIG_VERSION_PATH "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake")
+ 
+-configure_package_config_file(
+-  QuarticConfig.cmake.in "${PACKAGE_CONFIG_PATH}"
+-  INSTALL_DESTINATION "${INSTALL_PREFIX}/lib/${PROJECT_NAME}"
+-  PATH_VARS INCLUDE_INSTALL_DIR
+-)
+-
+-write_basic_package_version_file(
+-  "${PACKAGE_CONFIG_VERSION_PATH}"
+-  VERSION "${VERSION}"
+-  COMPATIBILITY SameMajorVersion
+-)
++function(generate_project_config_cmake PROJECT_VERSION)
++    configure_package_config_file(
++      QuarticConfig.cmake.in "${PACKAGE_CONFIG_PATH}"
++      INSTALL_DESTINATION "${INSTALL_PREFIX}/lib/${PROJECT_NAME}"
++      PATH_VARS INCLUDE_INSTALL_DIR
++    )
++
++    write_basic_package_version_file(
++      "${PACKAGE_CONFIG_VERSION_PATH}"
++      VERSION "${PROJECT_VERSION}"
++      COMPATIBILITY SameMajorVersion
++    )
++endfunction()
+ 
+ set(INSTALL_TARGETS ${STATIC_PROJECT})
+ if(BUILD_SHARED)
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 06a4a50..5bf4acb 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -18,9 +18,15 @@ if(ENABLE_CTEST)
+   enable_testing()
+ endif()
+ 
+-# get version from the git tag
+-execute_process(COMMAND git describe --tags --abbrev=0 OUTPUT_VARIABLE VERSION)
+-string(REGEX REPLACE "\n$" "" VERSION "${VERSION}")
++# get version from the git tag if a custom version string is not provided
++message(STATUS "----- Version is currently set to ${VERSION}")
++if(NOT DEFINED VERSION)
++    execute_process(COMMAND git describe --tags --abbrev=0 OUTPUT_VARIABLE VERSION)
++    string(REGEX REPLACE "\n$" "" VERSION "${VERSION}")
++    message(STATUS "----- Version from Git: ${VERSION}")
++else()
++    message(STATUS "----- Version (predef): ${VERSION}")
++endif()
+ 
+ project(
+   Quartic
+@@ -112,6 +118,7 @@ endif()
+ # INSTALL TARGETS
+ 
+ include(./CMakeInstall.txt)
++generate_project_config_cmake("${PROJECT_VERSION}")
+ 
+ message(STATUS "Using ${SSE_FLAGS} extensions")
+ message(STATUS "C compiler                  = ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER}")
+-- 
+2.34.1
+
