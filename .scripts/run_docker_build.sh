@@ -5,7 +5,7 @@
 REPO_ROOT=$(cd "$(dirname "$0")/.."; pwd;)
 ARTIFACTS="$REPO_ROOT/build_artifacts"
 THISDIR="$( cd "$( dirname "$0" )" >/dev/null && pwd )"
-PROVIDER_DIR="$(basename $THISDIR)"
+PROVIDER_DIR="$(basename "$THISDIR")"
 AZURE="${AZURE:-False}"
 
 docker info
@@ -41,15 +41,17 @@ if [ "${AZURE}" == "True" ]; then
 fi
 
 docker run ${DOCKER_RUN_ARGS} \
-           -v ${REPO_ROOT}:/home/conda/staged-recipes \
+           --pull always \
+           -v "${REPO_ROOT}:/home/conda/staged-recipes" \
            -e HOST_USER_ID=${HOST_USER_ID} \
            -e AZURE=${AZURE} \
            -e CONFIG \
            -e CI \
            -e CF_CUDA_VERSION \
+           -e DEFAULT_LINUX_VERSION \
            $IMAGE_NAME \
            bash \
-           /home/conda/staged-recipes/${PROVIDER_DIR}/build_steps.sh
+           "/home/conda/staged-recipes/${PROVIDER_DIR}/build_steps.sh"
 
 # verify that the end of the script was reached
 test -f "$DONE_CANARY"
