@@ -14,6 +14,7 @@ cmake .. \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_C_COMPILER=${CC} \
   -DCMAKE_CXX_COMPILER=${CXX} \
+  -DZIG_PREFER_CLANG_CPP_DYLIB=yes
 
 cmake --build .
 cmake --install . -v
