@@ -8,7 +8,7 @@ CXX=clang++
 mkdir -p build
 cd build
 
-cmake .. \
+cmake .. ${CMAKE_ARGS} \
   -DCMAKE_INSTALL_PREFIX=${PREFIX} \
   -DCMAKE_PREFIX_PATH=${PREFIX} \
   -DCMAKE_BUILD_TYPE=Release \
