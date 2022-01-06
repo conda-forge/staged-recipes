@@ -1,0 +1,84 @@
+{% set name = "cpptraj" %}
+{% set version = "5.1.0" %}
+{% set build = 0 %}
+{% set mpi = mpi or "nompi" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/Amber-MD/{{ name }}/archive/refs/tags/v{{ version }}.tar.gz
+    sha256: 4fa9465e48070999583657731a7f638d62f91441b7ec4967cb32f816f125b793
+  - url: https://github.com/Amber-MD/cmake-buildscripts/archive/2c5c9332283a9632afd9abe276fd8fe46609b7f3.tar.gz
+    sha256: 0198288fb205ae4b4597e58a2cced7aa3e69a22b41976f68f1ee80f746f4f71d
+    folder: cmake
+
+{% if mpi == "nompi" %}
+{% set build = build + 100 %}
+{% endif %}
+build:
+  number: {{ build }}
+  skip: true  # [win]
+  script:
+    - set -ex
+    - CMAKE_OPTS="-DCOMPILER=MANUAL -DBUILD_SHARED_LIBS=ON"
+    - CMAKE_OPTS="${CMAKE_OPTS} -DMPI=ON"  # [mpi != "nompi"]
+    - cmake ${CMAKE_ARGS} ${CMAKE_OPTS} -G Ninja -B _build
+    - cmake --build _build
+    - CPPTRAJ=../_build/src/cpptraj make -C test  # [build_platform == target_platform]
+    - cmake --install _build
+
+  {% if mpi != "nompi" %}
+  {% set mpi_prefix = "mpi_" + mpi %}
+  {% else %}
+  {% set mpi_prefix = "nompi" %}
+  {% endif %}
+  string: "{{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}"
+
+  {% if mpi != "nompi" %}
+  run_exports:
+    - {{ name }} * {{ mpi_prefix }}_*
+  {% endif %}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('fortran') }}
+    - cmake
+    - ninja
+    - make
+    - llvm-openmp  # [osx]
+    - libgomp  # [linux]
+  host:
+    - {{ mpi }}  # [mpi != "nompi"]
+    - libblas
+    - liblapack
+    - fftw
+    - netcdf4
+    - readline
+    - zlib
+  run:
+    - {{ mpi }}  # [mpi != "nompi"]
+    - fftw
+    - netcdf4
+    - readline
+    - zlib
+
+
+test:
+  commands:
+    - cpptraj --version
+
+about:
+  home: https://github.com/Amber-MD/cpptraj
+  license: GPL-3.0-only
+  license_family: GPL
+  license_file:
+    - LICENSE
+  summary: Biomolecular simulation trajectory/data analysis
+
+extra:
+  recipe-maintainers:
+    - awvwgk
