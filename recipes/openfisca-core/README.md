@@ -16,4 +16,8 @@ That require to :
 
 ## How to update
 - Edit the meta.yaml fork at XXX
+  - Update the package version
+  - Update the sha256:
+    - `curl -sL https://pypi.io/packages/source/O/OpenFisca-Core/OpenFisca-Core-35.7.6.tar.gz | openssl sha256`
+    - Copy the hash in the `sha256` field of meta.yaml
 - Make a PR to the master of original repository
