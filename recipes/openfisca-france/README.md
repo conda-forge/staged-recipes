@@ -9,6 +9,7 @@ The advantage of the second option is a better CI (made by Anaconda team on Wind
 
 So we use the second option.
 That require to :
+- Have a tar.gz on Pypi : it was the case for OpenFisca-Core, but not OpenFisca-France.
 - Fork an Anaconda repo https://github.com/conda-forge/staged-recipes in the OpenFisca project
 - Add an openfisca-core folder in recipes
 - Add a meta.yaml to describe the package
@@ -18,6 +19,6 @@ That require to :
 - Edit the meta.yaml fork at XXX
   - Update the package version
   - Update the sha256:
-    - `curl -sL https://pypi.io/packages/source/O/OpenFisca-Core/OpenFisca-Core-35.7.6.tar.gz | openssl sha256`
+    - `curl -sL https://pypi.io/packages/source/O/OpenFisca-France/OpenFisca-France-99.0.1.linux-x86_64.tar.gz | openssl sha256`
     - Copy the hash in the `sha256` field of meta.yaml
 - Make a PR to the master of original repository
