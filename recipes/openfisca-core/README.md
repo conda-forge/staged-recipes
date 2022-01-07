@@ -1,8 +1,19 @@
 # Anaconda publish
 
-Hello, for Anaconda, I better understand the system, there is in fact three possibilities :
+For Anaconda, there is in fact three possibilities :
 1- The easiest is to add a meta.yaml in of-core and push to an openfisca account to an openfisca "channel" (~ repository) on Anaconda.
 2- An harder one is to push to "Conda-Forge" wich is an official channel with 16 674 package.
 3- The hardest/impossible is to add openfisca to the main repo "anaconda", where there is 2 587 packages like pandas.
+
 The advantage of the second option is a better CI (made by Anaconda team on Windows, Linux and MacOS) and an easiest way to install for our user. The first option require our users to add our own channel.
-So I'm going with the second option. That require to fork an Anaconda repo in the OpenFisca project to configure the meta.yaml required by conda. This fork is then used to make a PR to Anaconda.
+
+So we use the second option.
+That require to :
+- Fork an Anaconda repo https://github.com/conda-forge/staged-recipes in the OpenFisca project
+- Add an openfisca-core folder in recipes
+- Add a meta.yaml to describe the package
+- Make a PR to the master of original repository
+
+## How to update
+- Edit the meta.yaml fork at XXX
+- Make a PR to the master of original repository
