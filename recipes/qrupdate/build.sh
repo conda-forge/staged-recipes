@@ -1,5 +1,6 @@
 #!/bin/env bash
 
+make lib FC=${FC} FFLAGS="${FFLAGS} -fimplicit-none -O3 -funroll-loops" LDFLAGS="${LDFLAGS}" PREFIX=${PREFIX}
 make solib FC=${FC} FFLAGS="${FFLAGS} -fimplicit-none -O3 -funroll-loops" LDFLAGS="${LDFLAGS}" PREFIX=${PREFIX}
 make test FFLAGS="${FFLAGS} -fimplicit-none -O3 -funroll-loops -fallow-argument-mismatch"
 
