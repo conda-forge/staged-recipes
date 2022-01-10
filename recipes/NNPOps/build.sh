@@ -59,6 +59,7 @@ ln -s $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-g++ $BUILD_PREFIX/bin/g++
 CMAKE_FLAGS="${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_BUILD_TYPE=Release"
 CMAKE_FLAGS+=" -DTorch_DIR=$SP_DIR/torch/share/cmake/Torch"
 CMAKE_FLAGS+=" -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX"
+CMALE_FLAGS+=" -DENABLE_CUDA=false"
 
 mkdir build && cd build
 cmake ${CMAKE_FLAGS} ${SRC_DIR}
