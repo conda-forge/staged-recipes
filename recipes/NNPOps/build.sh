@@ -49,7 +49,7 @@ echo "Set up extra cmake-args: CUDA_CONFIG_ARGS=${CUDA_CONFIG_ARGS+"${CUDA_CONFI
 #   - Remove `nvcc` wrapper in ${BUILD_PREFIX} so that `nvcc` from ${CUDA_HOME} gets found.
 # TODO: Fix this in nvcc-feedstock or cmake-feedstock.
 # NOTE: It's okay for us to not use the wrapper since CMake adds -ccbin itself.
-rm "${BUILD_PREFIX}/bin/nvcc"
+rm "${BUILD_PREFIX}/bin/nvcc" || true
 
 # workaround for cmake-vs-nvcc: make sure we pick up the our own c-compiler
 ln -s $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-cc $BUILD_PREFIX/bin/gcc
