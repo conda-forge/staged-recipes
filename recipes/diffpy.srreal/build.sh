@@ -4,6 +4,12 @@ export CPATH="${PREFIX}/include:$CPATH"
 export LIBRARY_PATH="${PREFIX}/lib:$LIBRARY_PATH"
 MYNCPU=$(( (CPU_COUNT > 8) ? 8 : CPU_COUNT ))
 
+# drop linker flags that spuriously remove linkage with libgslcblas
+LDFLAGS="${LDFLAGS/-Wl,-dead_strip_dylibs/}"
+
+# Apply sconscript.local customizations.
+cp ${RECIPE_DIR}/sconscript.local ./
+
 if [ `uname` == Darwin ]; then
     export DYLD_FALLBACK_LIBRARY_PATH="${PREFIX}/lib"
 else
