@@ -1,2 +1,2 @@
 cd python/interpret 
-%PYTHON% -m pip install -e .
+%PYTHON% -m pip install . -vv
