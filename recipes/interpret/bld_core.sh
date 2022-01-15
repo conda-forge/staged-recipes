@@ -1,5 +1,5 @@
 chmod +x build.sh
-cd ../python/interpret-core/
+cd python/interpret-core/
 $PYTHON setup.py build
-$PYTHON setup.py install
+$PYTHON -m pip install --no-deps .
 
