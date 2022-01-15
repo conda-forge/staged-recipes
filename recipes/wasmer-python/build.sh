@@ -1,3 +1,7 @@
+#!/usr/bin/env bash
+set -eux
+
+
 cargo install just
 just prelude
 source .env/bin/activate
