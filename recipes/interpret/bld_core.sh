@@ -1,6 +1,5 @@
 chmod +x build.sh
-cp -r shared python/interpret-core/symbolic/shared 
-cd python/interpret-core
+cd ../python/interpret-core/
 $PYTHON setup.py build
 $PYTHON setup.py install
 
