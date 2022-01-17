@@ -1,10 +1,7 @@
 import psiresp
 import numpy as np
 
-mol = psiresp.Molecule(qcmol={
-    "symbols": ["H", "H"],
-    "geometry": [0, 0, -3, 0, 0, 3],
-})
+mol = psiresp.Molecule.from_smiles("CC")
 mol.generate_conformers()
 mol.generate_orientations()
 orientation = mol.conformers[0].orientations[0]
