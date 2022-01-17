@@ -152,7 +152,6 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
     d = OrderedDict()
     for node in order:
         d[G.nodes[node]['meta'].meta_path] = 1
-    print("index_path=", index_path, "recipes_dir=", recipes_dir, "folders=", folders)
     for recipe in d.keys():
         conda_build.api.build([recipe], config=get_config(arch, channel_urls))
 
