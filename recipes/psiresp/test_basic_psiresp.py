@@ -4,6 +4,7 @@ import numpy as np
 mol = psiresp.Molecule(qcmol={
     "symbols": ["H", "H"],
     "geometry": [0, 0, -3, 0, 0, 3],
+    "connectivity": [[0, 1, 1]],
 })
 mol.generate_conformers()
 mol.generate_orientations()
