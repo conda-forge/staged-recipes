@@ -1,11 +1,11 @@
 #!/usr/bin/env csh
 #
-# Deconfigure a conda environment for Omicron
+# Deconfigure a conda environment for VetoPerf
 #
 
-if ($?OMICRON_HTML) then
-	setenv OMICRON_HTML "$CONDA_BACKUP_OMICRON_HTML"
-	unsetenv CONDA_BACKUP_OMICRON_HTML
+if ($?VETOPERF_HTML) then
+	setenv VETOPERF_HTML "$CONDA_BACKUP_VETOPERF_HTML"
+	unsetenv CONDA_BACKUP_VETOPERF_HTML
 else
-	unsetenv OMICRON_HTML
+	unsetenv VETOPERF_HTML
 endif
