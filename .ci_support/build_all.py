@@ -52,7 +52,7 @@ def build_all(recipes_dir, arch):
     if found_cuda:
         print('##vso[task.setvariable variable=NEED_CUDA;isOutput=true]1')
     if found_centos7:
-        print('##vso[task.setvariable variable=NEED_CENTOS7;isOutput=true]1')
+        os.environ["DEFAULT_LINUX_VERSION"] = "cos7"
 
     deployment_version = (0, 0)
     sdk_version = (0, 0)
