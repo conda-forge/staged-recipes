@@ -24,6 +24,10 @@ build:
     - mkdir -p $PREFIX/include                                            # [linux]
     - cp -r include/* $PREFIX/include/                                    # [linux]
     - mkdir -p $PREFIX/lib                                                # [linux]
+
+    # In cuStateVec, no rpath/runpath is set.
+    # In cuTensorNet, $ORIGIN is set as rpath/runpath.
+    - patchelf --set-rpath $PREFIX/lib lib/libcustatevec.so               # [linux]
     - mv lib/*.so* $PREFIX/lib/                                           # [linux]
 
     # Patch for conda-forge:
@@ -37,12 +41,6 @@ build:
     - {{ compiler('cuda') }}
   run_exports:
     - {{ pin_subpackage('cuquantum', max_pin='x.x') }}
-  missing_dso_whitelist:
-    - '*/libgomp.*'        # [linux]
-    - '*/libgcc_s.so*'     # [linux]
-    - '*/libcublas.so*'    # [linux]
-    - '*/libcublasLt.so*'  # [linux]
-    - '*/libcutensor.so*'  # [linux]
 
 requirements:
   build:
@@ -50,7 +48,10 @@ requirements:
     - {{ compiler('cuda') }}
     - sysroot_linux-64 2.17  # [linux]
   host:
-    - patchelf >=0.12  # [aarch64]
+    - patchelf >=0.12                          # [linux]
+    # to suppress ".so not found" errors
+    - cudatoolkit {{ cuda_compiler_version }}  # [linux]
+    - cutensor 1.4.*                           # [linux]
   run:
     # Only GCC_3.0 or older symbols present
     - libgcc-ng >=3.0     # [linux]
