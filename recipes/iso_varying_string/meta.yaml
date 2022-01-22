@@ -1,0 +1,47 @@
+{% set name = "iso_varying_string" %}
+{% set version = "2.3.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url:  https://gitlab.com/everythingfunctional/{{ name }}/-/archive/v{{ version }}/{{ name }}-v{{ version }}.tar.gz
+  sha256: 7d003ec444ca68f74e62588449ebe29e40721e61b14b830046d11b176d31f912
+
+build:
+  number: 0
+  script:
+    - set -ex  # [unix]
+    - export FFLAGS="${FFLAGS} -fcoarray=single"  # [unix]
+    - set FFLAGS=-fcoarray=single  # [win]
+    - cmake ${CMAKE_ARGS} -DBUILD_SHARED_LIBS=ON -B_build -GNinja  # [unix]
+    - cmake -DCMAKE_INSTALL_PREFIX=%PREFIX% -DBUILD_SHARED_LIBS=ON -B_build -GNinja  # [win]
+    - cmake --build _build
+    - cmake --install _build
+
+  run_exports:
+    - {{ pin_subpackage(name, max_pin='x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('fortran') }}  # [unix]
+    - {{ compiler('m2w64_fortran') }}  # [win]
+    - cmake
+    - ninja
+
+test:
+  commands:
+    - test -f $PREFIX/lib/lib{{ name }}$SHLIB_EXT  # [unix]
+    - test -f $PREFIX/include/{{ name }}.mod  # [unix]
+    - if not exist %PREFIX%\include\{{ name }}.mod exit 1  # [win]
+
+about:
+  home: https://gitlab.com/everythingfunctional/iso_varying_string
+  license: MIT
+  license_file: LICENSE
+  summary: Implementation of the Fortran ISO_VARYING_STRING module in accordance with the standard
+
+extra:
+  recipe-maintainers:
+    - awvwgk
