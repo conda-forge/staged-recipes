@@ -33,7 +33,12 @@
 WHEEL_URL_PREFIX="https://pypi.io/packages/source/${PKG_NAME:0:1}/${PKG_NAME}/${PKG_NAME}-${PKG_VERSION}"
 
 if [ `uname` == Darwin ]; then
-    WHEEL_URL_SUFFIX="macosx_10_9_x86_64"
+    if [ "$PKG_VER" == "2.6.0" ]; then
+        WHEEL_URL_SUFFIX="macosx_10_9_x86_64"
+    elif [ "$PKG_VER" == "2.7.3" ]; then
+        WHEEL_URL_SUFFIX="macosx_10_9_x86_64"
+    fi
+    
     if [ "$PY_VER" == "3.7" ]; then
         WHEEL_URL_MID="m"
     elif [ "$PY_VER" == "3.8" ]; then
@@ -44,7 +49,11 @@ if [ `uname` == Darwin ]; then
 fi
 
 if [ `uname` == Linux ]; then
-    WHEEL_URL_SUFFIX="manylinux2010_x86_64"
+    if [ "$PKG_VER" == "2.6.0" ]; then
+        WHEEL_URL_SUFFIX="manylinux1_x86_64"
+    elif [ "$PKG_VER" == "2.7.3" ]; then
+        WHEEL_URL_SUFFIX="manylinux2010_x86_64"
+    fi
     if [ "$PY_VER" == "3.7" ]; then
         WHEEL_URL_MID="m"
     elif [ "$PY_VER" == "3.8" ]; then
