@@ -65,4 +65,4 @@ fi
 
 WHEEL_URL="${WHEEL_URL_PREFIX}-cp${CONDA_PY}-cp${CONDA_PY}${WHEEL_URL_MID}-${WHEEL_URL_SUFFIX}.whl"
 
-pip install --no-deps "${WHEEL_URL}${WHEEM_MID_CHAR}-${WHEEL_SUFFIX}.whl"
+pip install --no-deps "${WHEEL_URL}"
