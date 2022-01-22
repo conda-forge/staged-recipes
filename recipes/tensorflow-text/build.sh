@@ -36,11 +36,11 @@
 WHEEL_URL_PREFIX="https://pypi.debian.net/${PKG_NAME}/"
 
 if [ `uname` == Darwin ]; then
-    if [ "$PKG_VERSION" == "2.6.0" ]; then
-        WHEEL_URL_SUFFIX="macosx_10_9_x86_64"
-    elif [ "$PKG_VERSION" == "2.7.3" ]; then
-        WHEEL_URL_SUFFIX="macosx_10_9_x86_64"
-    fi
+    # if [ "$PKG_VERSION" == "2.6.0" ]; then
+    #     WHEEL_URL_SUFFIX="macosx_10_9_x86_64"
+    # elif [ "$PKG_VERSION" == "2.7.3" ]; then
+    #     WHEEL_URL_SUFFIX="macosx_10_9_x86_64"
+    # fi
     
     if [ "$PY_VER" == "3.7" ]; then
         WHEEL_URL_MID="m"
@@ -52,23 +52,26 @@ if [ `uname` == Darwin ]; then
 fi
 
 if [ `uname` == Linux ]; then
-    if [ "$PKG_VERSION" == "2.6.0" ]; then
-        WHEEL_URL_SUFFIX="manylinux1_x86_64"
-    elif [ "$PKG_VERSION" == "2.7.3" ]; then
-        WHEEL_URL_SUFFIX="manylinux2010_x86_64"
-    fi
+    # if [ "$PKG_VERSION" == "2.6.0" ]; then
+    #     WHEEL_URL_SUFFIX="manylinux1_x86_64"
+    # elif [ "$PKG_VERSION" == "2.7.3" ]; then
+    #     WHEEL_URL_SUFFIX="manylinux2010_x86_64"
+    # fi
 
     if [ "$PY_VER" == "3.7" ]; then
-        WHEEL_URL_MID="m"
+        # WHEEL_URL_MID="m"
+        WHEEL_URL="https://files.pythonhosted.org/packages/70/0c/5d573a87248778e9422c53cd6a8c758f95da3598c7b246adf1545bb2ffca/tensorflow_text-2.6.0-cp37-cp37m-manylinux1_x86_64.whl"
     elif [ "$PY_VER" == "3.8" ]; then
-        WHEEL_URL_MID=""
+        # WHEEL_URL_MID=""
+        WHEEL_URL="https://files.pythonhosted.org/packages/6b/7c/c538ee905f04dd72753adf6f742666fedb06629475846fddee1cf8cc2cc3/tensorflow_text-2.6.0-cp38-cp38-manylinux1_x86_64.whl"
     elif [ "$PY_VER" == "3.9" ]; then
-        WHEEL_URL_MID=""
+        # WHEEL_URL_MID=""
+        WHEEL_URL="https://files.pythonhosted.org/packages/aa/29/f80bb874188c8b04a51805320e51501031b7e80a5b684fe3632313b7ba75/tensorflow_text-2.6.0-cp39-cp39-manylinux1_x86_64.whl"
     fi 
 fi
 
-WHEEL_FILE="${PKG_NAME}-${PKG_VERSION}-cp${CONDA_PY}-cp${CONDA_PY}${WHEEL_URL_MID}-${WHEEL_URL_SUFFIX}.whl"
+# WHEEL_FILE="${PKG_NAME}-${PKG_VERSION}-cp${CONDA_PY}-cp${CONDA_PY}${WHEEL_URL_MID}-${WHEEL_URL_SUFFIX}.whl"
 
-WHEEL_URL="${WHEEL_URL_PREFIX}${WHEEL_FILE}"
+# WHEEL_URL="${WHEEL_URL_PREFIX}${WHEEL_FILE}"
 
 pip install --no-deps "${WHEEL_URL}"
