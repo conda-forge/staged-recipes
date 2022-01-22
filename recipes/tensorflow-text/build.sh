@@ -35,7 +35,7 @@
 
 WHEEL_URL_PREFIX="https://pypi.debian.net/${PKG_NAME}/"
 
-if [ `uname` == Darwin ]; then
+if [ "uname" == Darwin ]; then
     # if [ "$PKG_VERSION" == "2.6.0" ]; then
     #     WHEEL_URL_SUFFIX="macosx_10_9_x86_64"
     # elif [ "$PKG_VERSION" == "2.7.3" ]; then
@@ -51,7 +51,7 @@ if [ `uname` == Darwin ]; then
     fi 
 fi
 
-if [ `uname` == Linux ]; then
+if [ "uname" == Linux ]; then
     # if [ "$PKG_VERSION" == "2.6.0" ]; then
     #     WHEEL_URL_SUFFIX="manylinux1_x86_64"
     # elif [ "$PKG_VERSION" == "2.7.3" ]; then
