@@ -1,0 +1,106 @@
+From 175be49002a6f656891b401aabf1bdc433046176 Mon Sep 17 00:00:00 2001
+From: ngam <67342040+ngam@users.noreply.github.com>
+Date: Sat, 22 Jan 2022 21:09:49 -0500
+Subject: [PATCH 5/5] put tvm away maybe
+
+---
+ CMakeLists.txt | 43 +------------------------------------------
+ 1 file changed, 1 insertion(+), 42 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 22a825c1c..c31750d0d 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -339,8 +339,6 @@ foreach(var ${C_CXX_INCLUDE_DIRECTORIES})
+ endforeach()
+ 
+ include_directories("include")
+-include_directories("3rdparty/tvm/nnvm/include")
+-include_directories("3rdparty/tvm/include")
+ 
+ if(UNIX)
+   find_library(RTLIB rt)
+@@ -499,36 +497,16 @@ endif()
+ FILE(GLOB_RECURSE SOURCE "src/*.cc" "src/*.h" "include/*.h")
+ FILE(GLOB_RECURSE CUDA "src/*.cu" "src/*.cuh")
+ 
+-if(MSVC)
+-  FILE(GLOB_RECURSE TVM_BRIDGE_SOURCE "src/*/tvm_bridge.cc")
+-  list(REMOVE_ITEM SOURCE ${TVM_BRIDGE_SOURCE})
+-endif()
+-
+ if(NOT USE_INTGEMM)
+   FILE(GLOB_RECURSE INTGEMM_OPERATOR_SOURCE "src/operator/contrib/intgemm/*.cc" "src/operator/contrib/intgemm/*.h")
+   list(REMOVE_ITEM SOURCE ${INTGEMM_OPERATOR_SOURCE})
+ endif()
+ 
+-# add nnvm to source
+-FILE(GLOB_RECURSE NNVMSOURCE
+-  3rdparty/tvm/nnvm/src/c_api/*.cc
+-  3rdparty/tvm/nnvm/src/core/*.cc
+-  3rdparty/tvm/nnvm/src/pass/*.cc
+-  3rdparty/tvm/nnvm/src/c_api/*.h
+-  3rdparty/tvm/nnvm/src/core/*.h
+-  3rdparty/tvm/nnvm/src/pass/*.h
+-  3rdparty/tvm/nnvm/include/*.h)
+-add_library(nnvm OBJECT ${NNVMSOURCE})
+-set_target_properties(nnvm PROPERTIES CXX_CLANG_TIDY "")  # don't lint 3rdparty dependency
+-list(APPEND SOURCE $<TARGET_OBJECTS:nnvm>)
+-
+ add_library(miniz STATIC "3rdparty/miniz/miniz.c")
+ target_include_directories(miniz PUBLIC "3rdparty/miniz")
+ list(APPEND mxnet_LINKER_LIBS miniz)
+ 
+ # add source group
+-FILE(GLOB_RECURSE GROUP_SOURCE "src/*.cc" "3rdparty/tvm/nnvm/*.cc" "plugin/*.cc")
+-FILE(GLOB_RECURSE GROUP_Include "src/*.h" "3rdparty/tvm/nnvm/*.h" "3rdparty/mshadow/mshadow/*.h" "plugin/*.h")
+ FILE(GLOB_RECURSE GROUP_CUDA "src/*.cu" "src/*.cuh" "3rdparty/mshadow/mshadow/*.cuh" "plugin/*.cu"
+   "plugin/*.cuh" "3rdparty/nvidia_cub/cub/*.cuh")
+ assign_source_group("Source" ${GROUP_SOURCE})
+@@ -853,34 +831,15 @@ if(USE_INTGEMM)
+   target_link_libraries(mxnet PRIVATE intgemm)
+ endif()
+ 
+-function(BuildTVMOP)
+-  # scope the variables in BuildTVM.cmake to avoid conflict
+-  include(cmake/BuildTVM.cmake)
+-  add_subdirectory("3rdparty/tvm")
+-  set_target_properties(tvm PROPERTIES CXX_CLANG_TIDY "")  # don't lint 3rdparty dependency
+-  set_target_properties(tvm_runtime PROPERTIES CXX_CLANG_TIDY "")  # don't lint 3rdparty dependency
+-endfunction()
+-
+ if(USE_TVM_OP)
+   list(APPEND mxnet_LINKER_LIBS tvm_runtime)
+-  BuildTVMOP()
+   find_package(Python3 REQUIRED)
+-  set(TVM_OP_COMPILE_OPTIONS "-o${CMAKE_CURRENT_BINARY_DIR}" "--config" "${CMAKE_CURRENT_BINARY_DIR}/tvmop.conf" "-L" "${CMAKE_CURRENT_BINARY_DIR}/3rdparty/tvm")
+   if(UNIX AND NOT APPLE)
+     set(LD_LIBRARY_PATH "LD_LIBRARY_PATH")
+   elseif(APPLE)
+     set(LD_LIBRARY_PATH "DYLD_LIBRARY_PATH")
+   endif()
+-  if(USE_CUDA)
+-    set(TVM_OP_COMPILE_OPTIONS "${TVM_OP_COMPILE_OPTIONS}" "--cuda-arch" "\"${CUDA_ARCH_FLAGS}\"")
+-  endif()
+ 
+-  add_custom_command(TARGET mxnet POST_BUILD
+-    COMMAND ${CMAKE_COMMAND} -E env
+-    PYTHONPATH="${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/tvm/python:${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/tvm/topi/python:${CMAKE_CURRENT_SOURCE_DIR}/contrib"
+-    ${LD_LIBRARY_PATH}=${CMAKE_CURRENT_BINARY_DIR}:${CMAKE_CURRENT_BINARY_DIR}/3rdparty/tvm:$ENV{${LD_LIBRARY_PATH}}
+-    ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/contrib/tvmop/compile.py ${TVM_OP_COMPILE_OPTIONS}
+-  )
+ endif()
+ 
+ if(USE_PLUGINS_WARPCTC)
+@@ -935,7 +894,7 @@ install(DIRECTORY ${CMAKE_INSTALL_PREFIX}/include/dlpack/ DESTINATION ${CMAKE_IN
+ install(DIRECTORY ${CMAKE_INSTALL_PREFIX}/include/dmlc/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/mshadow/mshadow/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mshadow)
+ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/mxnet/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mxnet)
+-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/tvm/nnvm/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
++install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/tvm/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+ if(INSTALL_EXAMPLES)
+   install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/example  DESTINATION ${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME})
+ endif()
+-- 
+2.34.1
+

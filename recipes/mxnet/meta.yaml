@@ -1,0 +1,167 @@
+{% set name = "mxnet" %}
+{% set version = "2.0.0.beta0.rc1" %}
+{% set sha256 = "dfb741a07971b2607474b299ac880ba07e9fdaf217404c7d20bd5a4762324f26" %}
+{% set build_number = "0" %}
+{% set proc_type = "cuda" if cuda_compiler_version != "None" else "cpu" %}
+
+package:
+  name: mxnet
+  version: {{ version }}
+
+source:
+  - url: https://github.com/apache/incubator-{{ name }}/archive/refs/tags/v{{ version }}.tar.gz
+    sha256: {{ sha256 }}
+  # build as provided upstream:
+  # see some discussion here:
+  # https://github.com/apache/incubator-mxnet/issues/19610
+  - url: https://github.com/dmlc/dmlc-core/archive/5df8305.tar.gz
+    sha256: a8046f752f36005564d2924b4b6f73e1aea3cce7ff10f9e19d99ad6a22a045b2
+    folder: 3rdparty/dmlc-core
+  - url: https://github.com/dmlc/ps-lite/archive/34fd45c.tar.gz
+    sha256: ec5d5baab8bbf0c3983ad5f18d7f963f15ae7cd4d154ec204b03c1dceccf209b
+    folder: 3rdparty/ps-lite
+  - url: https://github.com/dmlc/dlpack/archive/3efc489.tar.gz
+    sha256: b59586ce69bcf3efdbf3cf4803fadfeaae4948044e2b8d89cf912194cf28f233
+    folder: 3rdparty/dlpack
+  - url: https://github.com/google/googletest/archive/eb9225c.tar.gz
+    sha256: a4cb4b0c3ebb191b798594aca674ad47eee255dcb4c26885cf7f49777703484f
+    folder: 3rdparty/googletest
+  - url: https://github.com/apache/incubator-tvm/archive/efdac94.tar.gz
+    sha256: 656c38d66baeab885b0212602148bb55ad3cf7d22f52ded8ece53f88e103a2f5
+    folder: 3rdparty/tvm
+  - url: https://github.com/onnx/onnx-tensorrt/archive/2eb74d9.tar.gz
+    sha256: df99819727445c247fb5c21c2fd825ded3269376867457ae84fa6d6f1c0ae331
+    folder: 3rdparty/onnx-tensorrt
+  - url: https://github.com/NVlabs/cub/archive/0158fa1.tar.gz
+    sha256: 43424c4c17a997d1d730c89ec14688671245de7941e02b388d7d3df6ea53777a
+    folder: 3rdparty/nvidia_cub
+  - url: https://github.com/nih-at/libzip/releases/download/v1.8.0/libzip-1.8.0.tar.gz
+    sha256: 30ee55868c0a698d3c600492f2bea4eb62c53849bcf696d21af5eb65f3f3839e
+    folder: 3rdparty/libzip
+  - url: https://github.com/kpu/intgemm/archive/8f28282.tar.gz
+    sha256: bc8bd8015613a13747eb769876385ec53e8c1ea7ae3f8414521dc53b8fcdfc65
+    folder: 3rdparty/intgemm
+  # this onednn folder is unneeded, but somewhere cmake looks for it...
+  # so keep it for now
+  - url: https://github.com/oneapi-src/oneDNN/archive/f40443c.tar.gz
+    sha256: da1dd1bb68ce3318db11e57971f975653e84adcb7d65cd879e558f2245e6de9a
+    folder: 3rdparty/onednn
+  - patches:
+    # must be in order
+    # start with onednn and shared stuff
+    # 0001 will stop it from building onednn
+    - patches/0001-use-existing-onednn-and-make-shared.patch
+    # it still builds other libraries above
+    - patches/0002-edit-setup-py.patch
+    # then aarch64 and ppc64le specific
+    # then osx-64 specific 
+    # then linux-64 specific
+    - patches/0003-put-dlpack-away.patch  # [unix and (target_platform != "osx-arm64")]
+    - patches/0004-put-dmlc-away-maybe.patch  # [unix and x86_64]
+    # - patches/0005-put-tvm-away-maybe.patch  # [unix and x86_64]
+
+build:
+  number: {{ build_number }}
+  skip: True  # [win or cuda_compiler_version != "None"]
+  string: py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ proc_type }}  # [cuda_compiler_version == "None"]
+  string: py{{ CONDA_PY }}{{ cuda_compiler_version|replace('.', '') }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}_{{ proc_type }}  # [cuda_compiler_version != "None"]
+  run_exports:
+    # ensure matching proc-type
+    - mxnet =*=*_{{ proc_type }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('fortran') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+    - make
+    - cmake
+    - ccache
+    - pkgconfig
+    - pkg-config
+
+  host:
+    # for library pkg, libmxnet
+    - openblas
+    - llvm-openmp  # [unix]
+    - mkl  # [target_platform != "osx-arm64"]
+    - mkl-include  # [target_platform != "osx-arm64"]
+    - libopencv
+    - graphviz
+    - onednn
+    - cudnn  # [cuda_compiler_version != "None"]
+    - nccl  # [cuda_compiler_version != "None"]
+    - cutensor  # [cuda_compiler_version != "None"]
+    - libjpeg-turbo
+    - libprotobuf
+    # for python pkg, mxnet
+    - python
+    - pip
+    - setuptools
+    - requests >=2.20.0,<3
+    # for 3rdparty stuff
+    - dlpack  # [unix and (target_platform != "osx-arm64")]
+    - dmlc  # [unix and (target_platform != "osx-arm64")]
+    # - libtvm  # [unix and x86_64]
+    # - tvm-py  # [unix and x86_64]
+    # - nnvm  # [unix and x86_64]
+
+  run:
+    # for library pkg, libmxnet 
+    - {{ pin_compatible('openblas') }}
+    - {{ pin_compatible('llvm-openmp') }}  # [unix]
+    - {{ pin_compatible('mkl') }}  # [target_platform != "osx-arm64"]
+    - {{ pin_compatible('libopencv') }}
+    - {{ pin_compatible('graphviz') }}
+    - {{ pin_compatible('onednn') }}
+    - {{ pin_compatible('cudnn') }}  # [cuda_compiler_version != "None"]
+    - {{ pin_compatible('nccl') }}  # [cuda_compiler_version != "None"]
+    - {{ pin_compatible('cutensor') }}  # [cuda_compiler_version != "None"]
+    - {{ pin_compatible('libjpeg-turbo') }}
+    - {{ pin_compatible('libprotobuf') }}
+    # for python pkg, mxnet
+    - python
+    - numpy >=1.17
+    - requests >=2.20.0,<3
+    - python-graphviz >=0.8.1,<0.9.0
+    # for 3rdparty stuff
+    - {{ pin_compatible('dlpack') }}  # [unix and (target_platform != "osx-arm64")]
+    - {{ pin_compatible('dmlc') }}  # [unix and (target_platform != "osx-arm64")]
+    # - {{ pin_compatible('libtvm') }}  # [unix and x86_64]
+    # - {{ pin_compatible('tvm-py') }}  # [unix and x86_64]
+    # - {{ pin_compatible('nnvm') }}  # [unix and x86_64]
+
+test:
+  imports:
+    - mxnet
+  requires:
+    - pip
+  commands:
+    - pip check
+    - test -f "${PREFIX}/lib/libmxnet${SHLIB_EXT}"  # [unix]
+    - python -c "import mxnet as mx; print(mx.runtime.feature_list())"
+
+about:
+  home: http://mxnet.io
+  license: Apache-2.0
+  license_family: Apache
+  license_file: LICENSE
+  summary: MXNet is a deep learning framework designed for both efficiency and flexibility
+  description: |
+    Apache MXNet (incubating) is a deep learning framework designed for both
+    efficiency and flexibility. It allows you to mix symbolic and imperative
+    programming to maximize efficiency and productivity. At its core, MXNet
+    contains a dynamic dependency scheduler that automatically parallelizes both
+    symbolic and imperative operations on the fly. A graph optimization layer on
+    top of that makes symbolic execution fast and memory efficient. MXNet is
+    portable and lightweight, scaling effectively to multiple GPUs and multiple
+    machines. MXNet is also more than a deep learning project. It is also a
+    collection of blue prints and guidelines for building deep learning systems,
+    and interesting insights of DL systems for hackers.
+  doc_url: https://mxnet.incubator.apache.org/
+  dev_url: https://github.com/apache/incubator-mxnet
+
+extra:
+  recipe-maintainers:
+    - ngam
