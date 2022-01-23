@@ -30,7 +30,7 @@ if [ -z "${DOCKER_IMAGE}" ]; then
             DOCKER_IMAGE="quay.io/condaforge/linux-anvil-comp7"
         fi
     else
-        DOCKER_IMAGE="$(cat "${FEEDSTOCK_ROOT}/.ci_support/${CONFIG}.yaml" | shyaml get-value docker_image.0 quay.io/condaforge/linux-anvil-comp7 )"
+        DOCKER_IMAGE="$(cat "${REPO_ROOT}/.ci_support/${CONFIG}.yaml" | shyaml get-value docker_image.0 quay.io/condaforge/linux-anvil-comp7 )"
     fi
 fi
 
