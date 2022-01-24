@@ -14,7 +14,7 @@ ${GCC} test_load_elf.c -std=c99 -Werror -ldl -o test_load_elf
 ./test_load_elf $PREFIX/lib/libcutensornet.so
 
 # compilation test
-git clone https://github.com/NVIDIA/cuQuantum.git sample_linux/
+git clone -b v0.1.0.0 https://github.com/NVIDIA/cuQuantum.git sample_linux/
 cd sample_linux/samples/
 pushd .
 #NVCC_FLAGS=""
