@@ -16,8 +16,16 @@ elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
        cp config/distribution/linux_cpu_mkl.cmake config.cmake
    elif [[ $cuda_compiler_version == 11.0 ]]; then
        cp config/distribution/linux_cu110.cmake config.cmake
+       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64/stubs
    elif [[ $cuda_compiler_version == 11.2 ]]; then
        cp config/distribution/linux_cu112.cmake config.cmake  
+       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64/stubs
+       # setting LD_LIBRARY_PATH to potential fix future cuda builds. 
+       # Details from CI runs (limited to 6 hours):
+       # - run fails around 90% through cmake with around 5.5 hours
+       # - complains about not finding `libnvidia-ml.so.1`
+       # - we have `libnvidia-ml.so` in /usr/local/cuda/lib64/stubs
+       # - we could maybe make symlink here too?
    fi
 fi
 
