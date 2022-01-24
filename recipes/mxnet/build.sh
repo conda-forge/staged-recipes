@@ -31,6 +31,10 @@ fi
 
 rm -rf build; mkdir build && cd build
 
+# consider adding: -DBUILD_SHARED_LIBS=ON \
+# causing ps-lite to fail?
+# need to maybe add ps-lite pkg to cf
+
 cmake \
        -DCMAKE_PREFIX_PATH=$PREFIX \
        -DCMAKE_BUILD_TYPE=Release \
@@ -40,7 +44,6 @@ cmake \
        -DUSE_CPP_PACKAGE=ON \
        -DUSE_OPENMP=ON \
        -DBLA_STATIC=OFF \
-       -DBUILD_SHARED_LIBS=ON \
        ${CMAKE_ARGS_BLAS} \
        ${CMAKE_ARGS} \
 ..
@@ -49,7 +52,6 @@ make -j ${CPU_COUNT}
 make install
 
 cd ../python
-# ${PYTHON} setup.py install
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
     export MXNET_LIBRARY_PATH=${PREFIX}/lib/libmxnet.dylib
