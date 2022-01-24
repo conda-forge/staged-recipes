@@ -50,5 +50,4 @@ mkdir build && cd build
 cmake ${CMAKE_FLAGS} ${SRC_DIR}
 make -j$CPU_COUNT
 make -j$CPU_COUNT install
-# Skipping tests since we are running out of diskspace on staged-recipes with testing deps 
-#CTEST_OUTPUT_ON_FAILURE=1 ctest --verbose --exclude-regex TestCuda
+CTEST_OUTPUT_ON_FAILURE=1 ctest --verbose --exclude-regex TestCuda
