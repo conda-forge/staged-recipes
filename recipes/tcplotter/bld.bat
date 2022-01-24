@@ -1,7 +1,10 @@
 :: Build tcplotter command-line utilities using cmake
 
+:: Change working directory to archive directory
+cd "%PKG_NAME%"
+
 :: Create build directory
-cd "%SRC_DIR%\src"
+cd "src"
 mkdir build
 if errorlevel 1 exit 1
 cd build

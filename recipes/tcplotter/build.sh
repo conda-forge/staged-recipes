@@ -3,6 +3,9 @@
 # Configure to exit in the event of errors
 set -e
 
+# Change directories to source directory
+cd $PKG_NAME
+
 # Create build directory
 cd src
 mkdir build && cd build
