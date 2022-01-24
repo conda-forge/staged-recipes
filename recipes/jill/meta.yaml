@@ -6,13 +6,24 @@ package:
   version: {{ version }}
 
 source:
-  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/jill-{{ version }}.tar.gz
-  sha256: 48ea86a508f87dab0293d00634b4e8c6677cb00676e617b6c46345bc10af5e10
+  - url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/jill-{{ version }}.tar.gz
+    sha256: 48ea86a508f87dab0293d00634b4e8c6677cb00676e617b6c46345bc10af5e10
+  #- url: https://raw.githubusercontent.com/johnnychen94/jill.py/master/requirements.txt
 
 build:
   number: 0
   noarch: python
-  script: {{ PYTHON }} -m pip install . -vv
+  script: 
+    ## Ensure inclusion of requirements.txt
+    {% set reqfile = "requirements.txt" %}
+    {% set reqsource = name ~ ".egg-info/requires.txt" %}
+    # IF {{ reqfile }} is NOT PRESENT, COPY {{ reqfile }} from {{ reqsource }}
+    - echo -e "\n>>> ENSURE INCLUSION OF '{{ reqfile }}' <<<\n\n"
+    - if [ ! -f {{ reqfile }} ] && [ -f {{ reqsource }} ]; then cp {{ reqsource }} {{ reqfile }}; fi  # [not win]
+    #- copy {{ name }}.egg-info\requires.txt {{ reqfile }}  # [win]
+    - copy {{ reqsource | replace('/', '\\') }} {{ reqfile }}  # [win]
+    ## Install package
+    - {{ PYTHON }} -m pip install . -vv
 
 requirements:
   host:
