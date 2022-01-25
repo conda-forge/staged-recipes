@@ -11,7 +11,7 @@ cd build
 if errorlevel 1 exit 1
 
 :: Build with cmake
-cmake -G "MinGW Makefiles" -A x64 ..
+cmake -G "MinGW Makefiles" ..
 if errorlevel 1 exit 1
 cmake --build .
 if errorlevel 1 exit 1
