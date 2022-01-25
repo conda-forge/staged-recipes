@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -ex
+export CMAKE_GENERATOR=Ninja
 
 mkdir build
 cd build
