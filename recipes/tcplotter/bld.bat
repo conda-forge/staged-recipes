@@ -19,3 +19,7 @@ if errorlevel 1 exit 1
 :: Install executables to bin directory
 cmake --build . --target install --prefix=%PREFIX%
 if errorlevel 1 exit 1
+
+:: Install tcplotter
+cd "%SRC_DIR%"
+$PYTHON -m pip install . -vv

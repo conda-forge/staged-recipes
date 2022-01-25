@@ -16,3 +16,7 @@ cmake --build .
 
 # Install executables to bin directory
 cmake --install . --prefix=$PREFIX
+
+# Install tcplotter
+cd $SRC_DIR
+$PYTHON -m pip install . -vv
