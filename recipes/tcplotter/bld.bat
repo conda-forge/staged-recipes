@@ -11,7 +11,7 @@ cd build
 if errorlevel 1 exit 1
 
 :: Build with cmake
-cmake ..
+cmake -G "Visual Studio 16 2019" -A x64 ..
 if errorlevel 1 exit 1
 cmake --build .
 if errorlevel 1 exit 1
