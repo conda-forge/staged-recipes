@@ -11,13 +11,13 @@ cd build
 if errorlevel 1 exit 1
 
 :: Build with cmake
-cmake -G "MinGW Makefiles" -DCMAKE_CXX_STANDARD=11 --prefix=%PREFIX% ..
+cmake -G "MinGW Makefiles" -D CMAKE_CXX_STANDARD=11 -D CMAKE_INSTALL_PREFIX=%PREFIX% ..
 if errorlevel 1 exit 1
 cmake --build .
 if errorlevel 1 exit 1
 
 :: Install executables to bin directory
-cmake --install . --prefix=%PREFIX%
+cmake --build . --target install
 if errorlevel 1 exit 1
 
 :: Install tcplotter
