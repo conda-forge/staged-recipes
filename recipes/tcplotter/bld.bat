@@ -17,7 +17,7 @@ cmake --build .
 if errorlevel 1 exit 1
 
 :: Install executables to bin directory
-cmake --build . --target install
+cmake --install . --prefix=%PREFIX%
 if errorlevel 1 exit 1
 
 :: Install tcplotter
