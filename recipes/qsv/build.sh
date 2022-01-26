@@ -2,6 +2,7 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
+rustup update
 
 cargo-bundle-licenses \
     --format yaml \
