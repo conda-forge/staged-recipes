@@ -13,7 +13,7 @@ if errorlevel 1 exit 1
 :: Build with cmake
 cmake -G "MinGW Makefiles" ..
 if errorlevel 1 exit 1
-cmake --build .
+cmake --build -DCMAKE_CXX_STANDARD=11 .
 if errorlevel 1 exit 1
 
 :: Install executables to bin directory
