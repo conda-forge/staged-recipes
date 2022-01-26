@@ -11,7 +11,7 @@ cd build
 if errorlevel 1 exit 1
 
 :: Build with cmake
-cmake -G "MinGW Makefiles" -D CMAKE_CXX_STANDARD=11 -D CMAKE_INSTALL_PREFIX=%PREFIX% ..
+cmake -G "MinGW Makefiles" -D CMAKE_CXX_STANDARD=11 -D CMAKE_INSTALL_PREFIX="%PREFIX%" ..
 if errorlevel 1 exit 1
 cmake --build .
 if errorlevel 1 exit 1
@@ -22,4 +22,4 @@ if errorlevel 1 exit 1
 
 :: Install tcplotter
 cd "%SRC_DIR%"
-%PYTHON% -m pip install . -vv
+"%PYTHON%" -m pip install . -vv
