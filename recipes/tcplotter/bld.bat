@@ -22,4 +22,4 @@ if errorlevel 1 exit 1
 
 :: Install tcplotter
 cd "%SRC_DIR%"
-$PYTHON -m pip install . -vv
+%PYTHON% -m pip install . -vv
