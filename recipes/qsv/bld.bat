@@ -1,9 +1,6 @@
 :: check licenses
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
 
-:: get latest rust stable
-rustup update
-
 :: build
 cargo install --root "%LIBRARY_PREFIX%" --path . --all-features || goto :error
 
