@@ -11,10 +11,10 @@ cargo-bundle-licenses \
 # with different parms for Linux and macOS
 os_type=$(echo $OSTYPE | cut -c 1-6)
 if [[ "$os_type" == "darwin" ]]; then
-  export RUST_BACKTRACE=1
-  cargo install --root "$PREFIX" --path . --no-default-features --target x86_64-apple-darwin --features apply,generate,lua,foreach
+  export RUST_BACKTRACE=full
+  cargo install --root "$PREFIX" --path . --no-default-features --target x86_64-apple-darwin --features apply,generate,lua,foreach,python
 else
-  cargo install --root "$PREFIX" --path . --features apply,generate,lua,foreach
+  cargo install --root "$PREFIX" --path . --features apply,generate,lua,foreach,python
 fi
 
 # remove extra build file
