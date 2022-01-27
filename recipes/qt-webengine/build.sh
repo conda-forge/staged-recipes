@@ -59,31 +59,17 @@ if [[ $(uname) == "Linux" ]]; then
 
     #cat config.log
     #exit 1
-    CPATH=$PREFIX/include:$BUILD_PREFIX/src/core/api make -j$(nproc)
+    CPATH=$PREFIX/include:$BUILD_PREFIX/src/core/api make -jCPU_COUNT
     make install
 fi
 
 if [[ $(uname) == "Darwin" ]]; then
-    export AR=$(basename ${AR})
-    export RANLIB=$(basename ${RANLIB})
-    export STRIP=$(basename ${STRIP})
-    export OBJDUMP=$(basename ${OBJDUMP})
-    export CC=$(basename ${CC})
-    export CXX=$(basename ${CXX})
-
     # Let Qt set its own flags and vars
     for x in OSX_ARCH CFLAGS CXXFLAGS LDFLAGS
     do
         unset $x
     done
 
-    # Some test runs 'clang -v', but I do not want to add it as a requirement just for that.
-    ln -s "${CXX}" ${HOST}-clang || true
-    # For ltcg we cannot use libtool (or at least not the macOS 10.9 system one) due to lack of LLVM bitcode support.
-    ln -s "${LIBTOOL}" libtool || true
-    # Just in-case our strip is better than the system one.
-    ln -s "${STRIP}" strip || true
-    chmod +x ${HOST}-clang libtool strip
     # Qt passes clang flags to LD (e.g. -stdlib=c++)
     export LD=${CXX}
     PATH=${PWD}:${PATH}
