@@ -18,7 +18,11 @@ rm -rf $PREFIX/lib/intel-ocl-cpu/libOpenCL.*
 
 # symlink libtbb to intel-ocl-cpu dir
 for f in $PREFIX/lib/libtbbmalloc.so* $PREFIX/lib/libtbb.so* $PREFIX/lib/libxml2.so* $PREFIX/lib/libz.so*; do
-  ln -sf $f $PREFIX/lib/intel-ocl-cpu/$(basename $f)
+  if [[ -L $f ]]; then
+    ln -sf $f $PREFIX/lib/intel-ocl-cpu/$(basename $f)
+  else
+    rm $f
+  fi
 done
 
 # Add an icd file
