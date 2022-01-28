@@ -7,6 +7,8 @@
 {% set oneccl_version = "2021.5.0" %}
 {% set oneccl_build_number = "478" %}
 
+{% set tbb_version = "2021.0.0" %}
+
 # use this if our build script changes and we need to increment beyond intel's version
 {% set dst_build_number = '0' %}
 
@@ -33,6 +35,8 @@ source:
     folder: dpcpp_impl_{{ target_platform }}
   - url: https://anaconda.org/intel/dpcpp_{{ target_platform }}/{{ version }}/download/{{ target_platform }}/dpcpp_{{ target_platform }}-{{ version }}-intel_{{ intel_build_number }}.tar.bz2
     folder: dpcpp_{{ target_platform }}
+  - url: https://anaconda.org/intel/intel-opencl-rt/{{ version }}/download/{{ target_platform }}/intel-opencl-rt-{{ version }}-intel_{{ intel_build_number }}.tar.bz2
+    folder: intel-opencl-rt
   {% endif %}
   {% if linux64 %}
   - url: https://anaconda.org/intel/oneccl-devel/{{ oneccl_version }}/download/{{ target_platform }}/oneccl-devel-{{ oneccl_version }}-intel_{{ oneccl_build_number }}.tar.bz2
@@ -129,6 +133,54 @@ outputs:
         - ls -A1 ${PREFIX}/lib/*  # [unix]
         - dir %PREFIX%\Library\bin\*  # [win]
 
+  - name: intel-opencl-rt
+    script: opencl-rt-build.sh   # [unix]
+    script: opencl-rt-bld.bat  # [win]
+    build:
+      skip: True  # [win32 or osx]
+      missing_dso_whitelist:
+        - '*'
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - sysroot_linux-64 2.17  # [linux]
+        - patchelf               # [linux]
+      host:
+        - tbb-devel {{ tbb_version.split('.')[0] }}.*
+        - ocl-icd  # [linux]
+        - khronos-opencl-icd-loader  # [osx or win]
+        - zlib
+        - libxml2
+        - {{ pin_subpackage('intel-cmplr-lib-rt', exact=True) }}
+      run:
+        - {{ pin_subpackage('intel-cmplr-lic-rt', exact=True) }}
+        - {{ pin_subpackage('intel-cmplr-lib-rt', exact=True) }}
+    about:
+      home: https://software.intel.com/content/www/us/en/develop/tools.html
+      doc_url: https://software.intel.com/content/www/us/en/develop/tools.html
+      dev_url: https://software.intel.com/content/www/us/en/develop/tools.html
+      summary: Intel® CPU Runtime for OpenCL(TM) Applications
+      license: LicenseRef-Proprietary-Intel-End-User-License-Agreement-for-Developer-Tools
+      license_family: Proprietary
+      license_file:
+        - intel-opencl-rt/info/licenses/license.txt
+        - intel-opencl-rt/info/licenses/tpp.txt
+      description: |
+        Intel® CPU Runtime for OpenCL(TM) Applications
+        This package is a repackaged set of binaries obtained directly from Intel's Anaconda.org channel.
+    test:
+      requires:
+        - pyopencl
+        - curl
+      commands:
+        - test -f $PREFIX/lib/intel-ocl-cpu/libintelocl.so          # [linux]
+        - export OCL_ICD_DEBUG=7                                    # [linux]
+        - curl -O https://raw.githubusercontent.com/inducer/pyopencl/v2021.2.13/examples/demo.py
+        - export PYOPENCL_CTX=intel  # [unix]
+        - set PYOPENCL_CTX=intel     # [win]
+        - python demo.py
+
   - name: dpcpp-cpp-rt
     script: repack.sh   # [unix]
     script: repack.bat  # [win]
@@ -142,8 +194,7 @@ outputs:
         - llvm-openmp              # [not linux]
         - {{ pin_subpackage('intel-cmplr-lic-rt', exact=True) }}
         - {{ pin_subpackage('intel-cmplr-lib-rt', exact=True) }}  # [not osx]
-        # Removing this initial dependency for validation - depends on intergration of intel-opencl-rt as separate feedstock
-        #- {{ pin_subpackage('intel-opencl-rt', exact=True) }}     # [not osx]
+        - {{ pin_subpackage('intel-opencl-rt', exact=True) }}     # [not osx]
     about:
       home: https://software.intel.com/content/www/us/en/develop/tools.html
       doc_url: https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/dpc-compiler.html
