@@ -8,7 +8,9 @@ mkdir -p $PREFIX/lib/intel-ocl-cpu
 cp -rv "$src/lib/"* "$PREFIX/lib/intel-ocl-cpu/"
 
 for f in $PREFIX/lib/intel-ocl-cpu/*.so*; do
-  patchelf --set-rpath '$ORIGIN/:$ORIGIN/../'
+  if [[ ! -L $f ]]; then
+    patchelf --set-rpath '$ORIGIN/:$ORIGIN/../' $f
+  fi
 done
 
 # Use conda-forge's opencl loader
