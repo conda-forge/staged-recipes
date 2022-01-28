@@ -20,8 +20,6 @@ rm -rf $PREFIX/lib/intel-ocl-cpu/libOpenCL.*
 for f in $PREFIX/lib/libtbbmalloc.so* $PREFIX/lib/libtbb.so* $PREFIX/lib/libxml2.so* $PREFIX/lib/libz.so*; do
   if [[ -L $f ]]; then
     ln -sf ../$(basename $f) $PREFIX/lib/intel-ocl-cpu/$(basename $f)
-  else
-    rm $f
   fi
 done
 
