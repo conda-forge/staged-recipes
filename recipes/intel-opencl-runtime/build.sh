@@ -9,7 +9,7 @@ cp -rv "$src/lib/"* "$PREFIX/lib/intel-ocl-cpu/"
 
 for f in $PREFIX/lib/intel-ocl-cpu/*.so.*; do
   if [[ ! -L $f ]]; then
-    patchelf --set-rpath '$ORIGIN/:$ORIGIN/../' $f
+    patchelf --force-rpath --set-rpath '$ORIGIN/:$ORIGIN/../' $f
   fi
 done
 
