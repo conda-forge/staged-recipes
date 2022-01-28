@@ -1,0 +1,85 @@
+{% set version = "0.1.0" %}
+{% set patch_version = "30" %}
+
+package:
+  name: cuquantum
+  version: {{ version }}.{{ patch_version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuquantum/{{ version }}/local_installers/cuquantum-linux-x86_64-{{ version }}.{{ patch_version }}-archive.tar.xz   # [linux64]
+  url: https://developer.download.nvidia.com/compute/cuquantum/{{ version }}/local_installers/cuquantum-linux-sbsa-{{ version }}.{{ patch_version }}-archive.tar.xz     # [aarch64]
+  url: https://developer.download.nvidia.com/compute/cuquantum/{{ version }}/local_installers/cuquantum-linux-ppc64le-{{ version }}.{{ patch_version }}-archive.tar.xz  # [ppc64le]
+
+  sha256: 8ad8e98f14275ffe0de02574be5c86224af1c657c41baf02c16440301ffe0aae  # [linux64]
+  sha256: 3dd04cf08f1323318e0e63a7e28bc904c426ced3367aca809fba7e7beef94063  # [aarch64]
+  sha256: 0eb84eef619a1cfab5870fb585200a9869a197866685252e4ca8187322809554  # [ppc64le]
+
+build:
+  number: 2
+  skip: True  # [win or ppc64le or cuda_compiler_version != "11.2"]
+  script_env:
+    # for some reason /usr/local/cuda is not added to $PATH in ppc64le's docker image
+    - CUDA_HOME  # [ppc64le or aarch64]
+  script:
+    - mkdir -p $PREFIX/include                                            # [linux]
+    - cp -r include/* $PREFIX/include/                                    # [linux]
+    - mkdir -p $PREFIX/lib                                                # [linux]
+    - mv lib/*.so* $PREFIX/lib/                                           # [linux]
+
+    # Patch for conda-forge:
+    # According to the CUDA support matrix, we require glibc 2.27+ on aarch64-sbsa,
+    # while conda-forge is still on 2.17. However, given that powf is the only
+    # offending symbol that needs a newer glibc, it is the easist if we just patch
+    # it.
+    - patchelf --clear-symbol-version powf $PREFIX/lib/libcustatevec.so   # [aarch64]
+  run_exports:
+    - {{ pin_subpackage('cuquantum', max_pin='x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cuda') }}
+    - sysroot_linux-64 2.17  # [linux]
+  host:
+    - patchelf >=0.12                          # [aarch64]
+    # to suppress ".so not found" errors
+    - cutensor 1.4.*                           # [linux]
+  run:
+    - {{ pin_compatible('cutensor', max_pin='x.x') }}
+
+test:
+  requires:
+    - git
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - sysroot_linux-64 2.17  # [linux]
+    # make sure we pick up the version matching the docker,
+    # or the linker would complain 
+    - cudatoolkit {{ cuda_compiler_version }}
+  files:
+    - test_load_elf.c        # [linux]
+
+about:
+  home: https://developer.nvidia.com/cuquantum-sdk
+  license: LicenseRef-cuQuantum-Software-License-Agreement
+  license_url: https://docs.nvidia.com/cuda/cuquantum/license.html
+  license_file: docs/cuQuantum_license.pdf
+  summary: "cuQuantum SDK: A High-Performance Library for Accelerating Quantum Information Science"
+  description: |
+    NVIDIA cuQuantum SDK is a high-performance library for quantum information science and beyond.
+    Currently its primary target is quantum circuit simulations and it contains the major component:
+
+      - cuStateVec: a high-performance library for state vector computations
+      - cuTensorNet: a high-performance library for tensor network computations
+
+    License Agreements:- The packages are governed by the NVIDIA cuQuantum
+    Software License Agreement (EULA). By downloading and using the packages,
+    you accept the terms and conditions of the NVIDIA cuQuantum EULA -
+    https://docs.nvidia.com/cuda/cuquantum/license.html
+  doc_url: https://docs.nvidia.com/cuda/cuquantum/index.html
+  dev_url: https://developer.nvidia.com/cuquantum-downloads
+
+extra:
+  recipe-maintainers:
+    - leofang
