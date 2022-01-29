@@ -11,6 +11,7 @@
 
 # use this if our build script changes and we need to increment beyond intel's version
 {% set dst_build_number = '0' %}
+{% set build_number = intel_build_number|int + dst_build_number|int %}
 
 package:
   name: intel-compiler-repack
@@ -44,15 +45,10 @@ source:
   {% endif %}
 
 build:
-  number: {{ intel_build_number|int + dst_build_number|int }}
+  number: {{ build_number }}
   binary_relocation: false
   detect_binary_files_with_prefix: false
   skip: True                                  # [not (linux64 or win or osx)]
-  missing_dso_whitelist:
-    # these are binary repackages after all.
-    # Note: any output that specifies a 'build' section will need to include this
-    # because it gets overwritten? what about binary_relocation / detect_binary_files_with_prefix?
-    - '*'
 
 outputs:
   - name: intel-cmplr-lic-rt
@@ -81,8 +77,14 @@ outputs:
     script: repack.bat  # [win]
     build:
       skip: True  # [osx]
-      missing_dso_whitelist:
-        - '*'
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+      host:
+        - ocl-icd  # [linux]
+        - zlib
+      run:
     about:
       home: https://software.intel.com/content/www/us/en/develop/tools.html
       doc_url: https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/dpc-compiler.html
@@ -104,15 +106,17 @@ outputs:
   - name: intel-fortran-rt
     script: repack.sh   # [unix]
     script: repack.bat  # [win]
-    build:
-      missing_dso_whitelist:
-        - '*'
-      runpath_whitelist:
-        - "/opt/intel/compilers_and_libraries/linux/mpi/intel64/lib"
     requirements:
+      build:
+        - {{ compiler('c') }}
+        - patchelf                 # [linux]
+      host:
+        - mpich                    # [linux]
+        - {{ pin_subpackage('intel-cmplr-lib-rt', exact=True) }}  # [not osx]
       run:
         - _openmp_mutex * *_llvm   # [linux]
         - llvm-openmp              # [not linux]
+        - mpich
         - {{ pin_subpackage('intel-cmplr-lic-rt', exact=True) }}
         - {{ pin_subpackage('intel-cmplr-lib-rt', exact=True) }}  # [not osx]
     about:
@@ -138,8 +142,6 @@ outputs:
     script: opencl-rt-bld.bat  # [win]
     build:
       skip: True  # [win32 or osx]
-      missing_dso_whitelist:
-        - '*'
     requirements:
       build:
         - {{ compiler('c') }}
@@ -155,7 +157,8 @@ outputs:
         - {{ pin_subpackage('intel-cmplr-lib-rt', exact=True) }}
       run:
         - {{ pin_subpackage('intel-cmplr-lic-rt', exact=True) }}
-        - {{ pin_subpackage('intel-cmplr-lib-rt', exact=True) }}
+        # TODO figure out why pin_subpackage does not work for below
+        - intel-cmplr-lib-rt {{ version }}
     about:
       home: https://software.intel.com/content/www/us/en/develop/tools.html
       doc_url: https://software.intel.com/content/www/us/en/develop/tools.html
@@ -187,8 +190,14 @@ outputs:
     build:
       skip: True  # [win32]
       missing_dso_whitelist:
-        - '*'
+        - '**/libze_loader.so.1'
     requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+      host:
+        - {{ pin_subpackage('intel-cmplr-lib-rt', exact=True) }}  # [not osx]
+        - ocl-icd   # [linux]
       run:
         - _openmp_mutex * *_llvm   # [linux]
         - llvm-openmp              # [not linux]
@@ -218,14 +227,24 @@ outputs:
     script: repack.bat  # [win]
     build:
       skip: True  # [not (linux64 or win64)]
-      missing_dso_whitelist:
-        - '*'
       run_exports:
         # 1. strong so if gets added if this package is in the build requirement section.
         # 2. Pin to year for now, similar to MKL.
         strong:
           - {{ pin_subpackage("dpcpp-cpp-rt", max_pin="x") }}
     requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+      host:
+        - zlib
+        - libxml2
+        - ocl-icd  # [linux]
+        - {{ pin_subpackage('dpcpp-cpp-rt', exact=True) }}
+        # FIXME due to a conda-build bug, we need to tell conda-build that dpcpp-cpp-rt depends
+        # on llvm openmp instead of gnu
+        - _openmp_mutex * *_llvm   # [linux]
+        - llvm-openmp              # [not linux]
       run:
         - {{ pin_subpackage('dpcpp-cpp-rt', exact=True) }}
 
@@ -255,8 +274,6 @@ outputs:
     script: repack.bat  # [win]
     build:
       skip: True  # [not (linux64 or win64)]
-      missing_dso_whitelist:
-        - '*'
       run_exports:
         # 1. strong so if gets added if this package is in the build requirement section.
         # 2. Pin to year for now, similar to MKL.
@@ -294,7 +311,23 @@ outputs:
       number: {{ oneccl_build_number|int + dst_build_number|int }}
       skip: True  # [not linux64]
       missing_dso_whitelist:
-        - '*'
+        - '**/libfabric.so.1'
+        - '**/libze_loader.so.1'
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+      host:
+        - mpich                    # [linux]
+        - {{ pin_subpackage('intel-cmplr-lib-rt', exact=True) }}
+        - {{ pin_subpackage('dpcpp-cpp-rt', exact=True) }}
+        # FIXME due to a conda-build bug, we need to tell conda-build that dpcpp-cpp-rt depends
+        # on llvm openmp instead of gnu
+        - _openmp_mutex * *_llvm   # [linux]
+        - llvm-openmp              # [not linux]
+      run:
+        - {{ pin_subpackage('intel-cmplr-lib-rt', exact=True) }}
+        - {{ pin_subpackage('dpcpp-cpp-rt', exact=True) }}
     about:
       home: https://software.intel.com/content/www/us/en/develop/tools.html
       doc_url: https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/oneccl.htm
