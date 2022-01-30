@@ -1,0 +1,175 @@
+From 5262dcf4b402c5b678b3bec02a9b20e0d670cba5 Mon Sep 17 00:00:00 2001
+From: Mark Harfouche <mark.harfouche@gmail.com>
+Date: Sun, 30 Jan 2022 12:58:32 -0500
+Subject: [PATCH] Fix exporting symbols between contrib and main dll
+
+---
+ CMakeLists.txt            |  3 +-
+ hwy/contrib/image/image.h |  2 +-
+ hwy/highway_export.h      | 60 ++++++++++++++++++++++++++++++++++++++-
+ hwy/tests/test_util.h     | 28 +++++++++---------
+ 4 files changed, 76 insertions(+), 17 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 4dba035..833a4bc 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -221,7 +221,8 @@ target_include_directories(hwy PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+ target_compile_features(hwy PUBLIC cxx_std_11)
+ set_target_properties(hwy PROPERTIES
+   LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/hwy/hwy.version)
+-if(UNIX)
++if(APPLE)
++elseif(UNIX)
+   set_property(TARGET hwy APPEND_STRING PROPERTY
+     LINK_FLAGS " -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/hwy/hwy.version")
+ endif()
+diff --git a/hwy/contrib/image/image.h b/hwy/contrib/image/image.h
+index ae52a9e..da91481 100644
+--- a/hwy/contrib/image/image.h
++++ b/hwy/contrib/image/image.h
+@@ -33,7 +33,7 @@ namespace hwy {
+ 
+ // Type-independent parts of Image<> - reduces code duplication and facilitates
+ // moving member function implementations to cc file.
+-struct HWY_DLLEXPORT ImageBase {
++struct HWY_CONTRIB_DLLEXPORT ImageBase {
+   // Returns required alignment in bytes for externally allocated memory.
+   static size_t VectorSize();
+ 
+diff --git a/hwy/highway_export.h b/hwy/highway_export.h
+index d60b787..e3d2546 100644
+--- a/hwy/highway_export.h
++++ b/hwy/highway_export.h
+@@ -17,9 +17,14 @@
+ #ifdef HWY_STATIC_DEFINE
+ #define HWY_DLLEXPORT
+ #define HWY_NO_EXPORT
++#define HWY_CONTRIB_DLLEXPORT
++#define HWY_CONTRIB_NO_EXPORT
++#define HWY_TEST_DLLEXPORT
++#define HWY_TEST_NO_EXPORT
+ #else
++
+ #ifndef HWY_DLLEXPORT
+-#if defined(hwy_EXPORTS) || defined(hwy_contrib_EXPORTS) || defined(hwy_test_EXPORTS)
++#if defined(hwy_EXPORTS)
+ /* We are building this library */
+ #ifdef _WIN32
+ #define HWY_DLLEXPORT __declspec(dllexport)
+@@ -43,6 +48,59 @@
+ #define HWY_NO_EXPORT __attribute__((visibility("hidden")))
+ #endif
+ #endif
++
++#ifndef HWY_CONTRIB_DLLEXPORT
++#if defined(hwy_contrib_EXPORTS)
++/* We are building this library */
++#ifdef _WIN32
++#define HWY_CONTRIB_DLLEXPORT __declspec(dllexport)
++#else
++#define HWY_CONTRIB_DLLEXPORT __attribute__((visibility("default")))
++#endif
++#else
++/* We are using this library */
++#ifdef _WIN32
++#define HWY_CONTRIB_DLLEXPORT __declspec(dllimport)
++#else
++#define HWY_CONTRIB_DLLEXPORT __attribute__((visibility("default")))
++#endif
++#endif
++#endif
++
++#ifndef HWY_CONTRIB_NO_EXPORT
++#ifdef _WIN32
++#define HWY_CONTRIB_NO_EXPORT
++#else
++#define HWY_CONTRIB_NO_EXPORT __attribute__((visibility("hidden")))
++#endif
++#endif
++
++#ifndef HWY_TEST_DLLEXPORT
++#if defined(hwy_test_EXPORTS)
++/* We are building this library */
++#ifdef _WIN32
++#define HWY_TEST_DLLEXPORT __declspec(dllexport)
++#else
++#define HWY_TEST_DLLEXPORT __attribute__((visibility("default")))
++#endif
++#else
++/* We are using this library */
++#ifdef _WIN32
++#define HWY_TEST_DLLEXPORT __declspec(dllimport)
++#else
++#define HWY_TEST_DLLEXPORT __attribute__((visibility("default")))
++#endif
++#endif
++#endif
++
++#ifndef HWY_TEST_NO_EXPORT
++#ifdef _WIN32
++#define HWY_TEST_NO_EXPORT
++#else
++#define HWY_TEST_NO_EXPORT __attribute__((visibility("hidden")))
++#endif
++#endif
++
+ #endif
+ 
+ #endif /* HWY_DLLEXPORT_H */
+diff --git a/hwy/tests/test_util.h b/hwy/tests/test_util.h
+index 8e1e21a..ac75fe1 100644
+--- a/hwy/tests/test_util.h
++++ b/hwy/tests/test_util.h
+@@ -86,8 +86,8 @@ inline void PreventElision(T&& output) {
+ #endif  // HWY_COMPILER_MSVC
+ }
+ 
+-HWY_DLLEXPORT bool BytesEqual(const void* p1, const void* p2, const size_t size,
+-                              size_t* pos = nullptr);
++HWY_TEST_DLLEXPORT bool BytesEqual(const void* p1, const void* p2,
++                                   const size_t size, size_t* pos = nullptr);
+ 
+ void AssertStringEqual(const char* expected, const char* actual,
+                        const char* target_name, const char* filename, int line);
+@@ -131,25 +131,25 @@ HWY_INLINE TypeInfo MakeTypeInfo() {
+   return info;
+ }
+ 
+-HWY_DLLEXPORT bool IsEqual(const TypeInfo& info, const void* expected_ptr,
+-                           const void* actual_ptr);
++HWY_TEST_DLLEXPORT bool IsEqual(const TypeInfo& info, const void* expected_ptr,
++                                const void* actual_ptr);
+ 
+-HWY_DLLEXPORT void TypeName(const TypeInfo& info, size_t N, char* string100);
++HWY_TEST_DLLEXPORT void TypeName(const TypeInfo& info, size_t N, char* string100);
+ 
+-HWY_DLLEXPORT void PrintArray(const TypeInfo& info, const char* caption,
+-                              const void* array_void, size_t N,
+-                              size_t lane_u = 0, size_t max_lanes = 7);
++HWY_TEST_DLLEXPORT void PrintArray(const TypeInfo& info, const char* caption,
++                                   const void* array_void, size_t N,
++                                   size_t lane_u = 0, size_t max_lanes = 7);
+ 
+-HWY_DLLEXPORT HWY_NORETURN void PrintMismatchAndAbort(
++HWY_TEST_DLLEXPORT HWY_NORETURN void PrintMismatchAndAbort(
+     const TypeInfo& info, const void* expected_ptr, const void* actual_ptr,
+     const char* target_name, const char* filename, int line, size_t lane = 0,
+     size_t num_lanes = 1);
+ 
+-HWY_DLLEXPORT void AssertArrayEqual(const TypeInfo& info,
+-                                    const void* expected_void,
+-                                    const void* actual_void, size_t N,
+-                                    const char* target_name,
+-                                    const char* filename, int line);
++HWY_TEST_DLLEXPORT void AssertArrayEqual(const TypeInfo& info,
++                                         const void* expected_void,
++                                         const void* actual_void, size_t N,
++                                         const char* target_name,
++                                         const char* filename, int line);
+ 
+ }  // namespace detail
+ 
+-- 
+2.32.0
+

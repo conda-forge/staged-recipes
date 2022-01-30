@@ -1,0 +1,63 @@
+From 881ed4821659ffc4cfb12721382777ef8950eafb Mon Sep 17 00:00:00 2001
+From: Don <don.j.olmstead@gmail.com>
+Date: Fri, 12 Nov 2021 11:24:11 -0800
+Subject: [PATCH] Provide individual toggles for build options
+
+Split `HWY_EXAMPLES_TESTS_INSTALL` into `HWY_ENABLE_EXAMPLES`, `BUILD_TESTING` and `HWY_ENABLE_INSTALL`. The `HWY_ENABLE_*` values are set to `ON` by default to mirror previous behavior. `BUILD_TESTING` which is created when CTest is included, is set to `ON` by default so use that rather than creating a `HWY_ENABLE_TESTING` value.
+---
+ CMakeLists.txt | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index a7776b7..7c43cb1 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -46,7 +46,8 @@ set(HWY_CMAKE_ARM7 OFF CACHE BOOL "Set copts for ARMv7 with NEON?")
+ # arise due to compiler/platform changes. Enable this in CI/tests.
+ set(HWY_WARNINGS_ARE_ERRORS OFF CACHE BOOL "Add -Werror flag?")
+ 
+-set(HWY_EXAMPLES_TESTS_INSTALL ON CACHE BOOL "Build examples, tests, install?")
++set(HWY_ENABLE_EXAMPLES ON CACHE BOOL "Build examples")
++set(HWY_ENABLE_INSTALL ON CACHE BOOL "Install library")
+ 
+ include(CheckCXXSourceCompiles)
+ check_cxx_source_compiles(
+@@ -244,9 +245,10 @@ add_custom_command(TARGET hwy_list_targets POST_BUILD
+ # --------------------------------------------------------
+ # Allow skipping the following sections for projects that do not need them:
+ # tests, examples, benchmarks and installation.
+-if (HWY_EXAMPLES_TESTS_INSTALL)
+ 
+ # -------------------------------------------------------- install library
++if (HWY_ENABLE_INSTALL)
++
+ install(TARGETS hwy
+   DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+ # Install all the headers keeping the relative path to the current directory
+@@ -291,7 +293,9 @@ foreach (pc libhwy.pc libhwy-contrib.pc libhwy-test.pc)
+       DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+ endforeach()
+ 
++endif() # HWY_ENABLE_INSTALL
+ # -------------------------------------------------------- Examples
++if (HWY_ENABLE_EXAMPLES)
+ 
+ # Avoids mismatch between GTest's static CRT and our dynamic.
+ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+@@ -308,6 +312,7 @@ target_link_libraries(hwy_benchmark hwy)
+ set_target_properties(hwy_benchmark
+     PROPERTIES RUNTIME_OUTPUT_DIRECTORY "examples/")
+ 
++endif() # HWY_ENABLE_EXAMPLES
+ # -------------------------------------------------------- Tests
+ 
+ include(CTest)
+@@ -413,5 +418,3 @@ endforeach ()
+ target_sources(skeleton_test PRIVATE hwy/examples/skeleton.cc)
+ 
+ endif() # BUILD_TESTING
+-
+-endif() # HWY_EXAMPLES_TESTS_INSTALL
+-- 
+2.32.0
+
