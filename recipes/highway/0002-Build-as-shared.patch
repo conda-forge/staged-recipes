@@ -1,0 +1,403 @@
+From 2b29958549167e568f62347d51ff5dd523878cd0 Mon Sep 17 00:00:00 2001
+From: Mark Harfouche <mark.harfouche@gmail.com>
+Date: Sun, 30 Jan 2022 22:59:03 -0500
+Subject: [PATCH 2/5] Build as shared
+
+---
+ CMakeLists.txt            | 25 ++++++++++++++++++++---
+ hwy/aligned_allocator.h   | 21 +++++++++++--------
+ hwy/base.h                |  3 ++-
+ hwy/contrib/image/image.h |  3 ++-
+ hwy/highway_export.h      | 43 +++++++++++++++++++++++++++++++++++++++
+ hwy/nanobenchmark.h       | 10 +++++----
+ hwy/targets.h             | 13 ++++++------
+ hwy/tests/test_util.h     | 39 +++++++++++++++++------------------
+ libhwy.pc.in              |  2 +-
+ 9 files changed, 115 insertions(+), 44 deletions(-)
+ create mode 100644 hwy/highway_export.h
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index d910e3c..a7776b7 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -76,6 +76,7 @@ set(HWY_SOURCES
+     hwy/detect_targets.h  # private
+     hwy/foreach_target.h
+     hwy/highway.h
++    hwy/highway_export.h
+     hwy/nanobenchmark.cc
+     hwy/nanobenchmark.h
+     hwy/ops/arm_neon-inl.h
+@@ -192,17 +193,35 @@ else()
+ 
+ endif()  # !MSVC
+ 
+-add_library(hwy STATIC ${HWY_SOURCES})
++# By default prefer STATIC build (legacy behavior)
++option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
++# only expose shared option to advanced users:
++mark_as_advanced(BUILD_SHARED_LIBS)
++# Define visibility settings globally:
++set(CMAKE_CXX_VISIBILITY_PRESET hidden)
++set(CMAKE_VISIBILITY_INLINES_HIDDEN 1)
++
++# This preprocessor define will drive the build, also used in the *.pc files:
++if(BUILD_SHARED_LIBS)
++  set(DLLEXPORT_TO_DEFINE "HWY_SHARED_DEFINE")
++else()
++  set(DLLEXPORT_TO_DEFINE "HWY_STATIC_DEFINE")
++endif()
++
++add_library(hwy ${HWY_SOURCES})
++target_compile_definitions(hwy PUBLIC "${DLLEXPORT_TO_DEFINE}")
+ target_compile_options(hwy PRIVATE ${HWY_FLAGS})
+ set_property(TARGET hwy PROPERTY POSITION_INDEPENDENT_CODE ON)
+ target_include_directories(hwy PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+ 
+-add_library(hwy_contrib STATIC ${HWY_CONTRIB_SOURCES})
++add_library(hwy_contrib ${HWY_CONTRIB_SOURCES})
++target_link_libraries(hwy_contrib hwy)
+ target_compile_options(hwy_contrib PRIVATE ${HWY_FLAGS})
+ set_property(TARGET hwy_contrib PROPERTY POSITION_INDEPENDENT_CODE ON)
+ target_include_directories(hwy_contrib PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+ 
+-add_library(hwy_test STATIC ${HWY_TEST_SOURCES})
++add_library(hwy_test ${HWY_TEST_SOURCES})
++target_link_libraries(hwy_test hwy)
+ target_compile_options(hwy_test PRIVATE ${HWY_FLAGS})
+ set_property(TARGET hwy_test PROPERTY POSITION_INDEPENDENT_CODE ON)
+ target_include_directories(hwy_test PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+diff --git a/hwy/aligned_allocator.h b/hwy/aligned_allocator.h
+index 1e76cef..ff8c08d 100644
+--- a/hwy/aligned_allocator.h
++++ b/hwy/aligned_allocator.h
+@@ -18,8 +18,11 @@
+ // Memory allocator with support for alignment and offsets.
+ 
+ #include <stddef.h>
++
+ #include <memory>
+ 
++#include "hwy/highway_export.h"
++
+ namespace hwy {
+ 
+ // Minimum alignment of allocated memory for use in HWY_ASSUME_ALIGNED, which
+@@ -36,15 +39,15 @@ using FreePtr = void (*)(void* opaque, void* memory);
+ // bytes of newly allocated memory, aligned to the larger of HWY_ALIGNMENT and
+ // the vector size. Calls `alloc` with the passed `opaque` pointer to obtain
+ // memory or malloc() if it is null.
+-void* AllocateAlignedBytes(size_t payload_size, AllocPtr alloc_ptr,
+-                           void* opaque_ptr);
++HWY_DLLEXPORT void* AllocateAlignedBytes(size_t payload_size,
++                                         AllocPtr alloc_ptr, void* opaque_ptr);
+ 
+ // Frees all memory. No effect if `aligned_pointer` == nullptr, otherwise it
+ // must have been returned from a previous call to `AllocateAlignedBytes`.
+ // Calls `free_ptr` with the passed `opaque_ptr` pointer to free the memory; if
+ // `free_ptr` function is null, uses the default free().
+-void FreeAlignedBytes(const void* aligned_pointer, FreePtr free_ptr,
+-                      void* opaque_ptr);
++HWY_DLLEXPORT void FreeAlignedBytes(const void* aligned_pointer,
++                                    FreePtr free_ptr, void* opaque_ptr);
+ 
+ // Class that deletes the aligned pointer passed to operator() calling the
+ // destructor before freeing the pointer. This is equivalent to the
+@@ -76,8 +79,10 @@ class AlignedDeleter {
+   // array. TypeArrayDeleter<T> would match this prototype.
+   using ArrayDeleter = void (*)(void* t_ptr, size_t t_size);
+ 
+-  static void DeleteAlignedArray(void* aligned_pointer, FreePtr free_ptr,
+-                                 void* opaque_ptr, ArrayDeleter deleter);
++  HWY_DLLEXPORT static void DeleteAlignedArray(void* aligned_pointer,
++                                               FreePtr free_ptr,
++                                               void* opaque_ptr,
++                                               ArrayDeleter deleter);
+ 
+   FreePtr free_;
+   void* opaque_ptr_;
+@@ -107,8 +112,8 @@ template <typename T, typename... Args>
+ AlignedUniquePtr<T> MakeUniqueAligned(Args&&... args) {
+   T* ptr = static_cast<T*>(AllocateAlignedBytes(
+       sizeof(T), /*alloc_ptr=*/nullptr, /*opaque_ptr=*/nullptr));
+-  return AlignedUniquePtr<T>(
+-      new (ptr) T(std::forward<Args>(args)...), AlignedDeleter());
++  return AlignedUniquePtr<T>(new (ptr) T(std::forward<Args>(args)...),
++                             AlignedDeleter());
+ }
+ 
+ // Helpers for array allocators (avoids overflow)
+diff --git a/hwy/base.h b/hwy/base.h
+index 009373f..b84104f 100644
+--- a/hwy/base.h
++++ b/hwy/base.h
+@@ -24,6 +24,7 @@
+ #include <cfloat>
+ 
+ #include "hwy/detect_compiler_arch.h"
++#include "hwy/highway_export.h"
+ 
+ //------------------------------------------------------------------------------
+ // Compiler-specific definitions
+@@ -727,7 +728,7 @@ HWY_API bfloat16_t BF16FromF32(float f) {
+   return bf;
+ }
+ 
+-HWY_NORETURN void HWY_FORMAT(3, 4)
++HWY_DLLEXPORT HWY_NORETURN void HWY_FORMAT(3, 4)
+     Abort(const char* file, int line, const char* format, ...);
+ 
+ }  // namespace hwy
+diff --git a/hwy/contrib/image/image.h b/hwy/contrib/image/image.h
+index 1affde9..25db4ef 100644
+--- a/hwy/contrib/image/image.h
++++ b/hwy/contrib/image/image.h
+@@ -27,12 +27,13 @@
+ 
+ #include "hwy/aligned_allocator.h"
+ #include "hwy/base.h"
++#include "hwy/highway_export.h"
+ 
+ namespace hwy {
+ 
+ // Type-independent parts of Image<> - reduces code duplication and facilitates
+ // moving member function implementations to cc file.
+-struct ImageBase {
++struct HWY_DLLEXPORT ImageBase {
+   // Returns required alignment in bytes for externally allocated memory.
+   static size_t VectorSize();
+ 
+diff --git a/hwy/highway_export.h b/hwy/highway_export.h
+new file mode 100644
+index 0000000..d9231a3
+--- /dev/null
++++ b/hwy/highway_export.h
+@@ -0,0 +1,43 @@
++// Pseudo-generated file to handle both cmake & bazel build system.
++
++// Initial generation done using cmake code:
++// include(GenerateExportHeader)
++// generate_export_header(hwy EXPORT_MACRO_NAME HWY_DLLEXPORT EXPORT_FILE_NAME
++// hwy/highway_export.h)
++// code reformatted using clang-format --style=Google
++
++#ifndef HWY_DLLEXPORT_H
++#define HWY_DLLEXPORT_H
++
++#ifdef HWY_STATIC_DEFINE
++#define HWY_DLLEXPORT
++#define HWY_NO_EXPORT
++#else
++#ifndef HWY_DLLEXPORT
++#if defined(hwy_EXPORTS) || defined(hwy_contrib_EXPORTS) || defined(hwy_test_EXPORTS)
++/* We are building this library */
++#ifdef _WIN32
++#define HWY_DLLEXPORT __declspec(dllexport)
++#else
++#define HWY_DLLEXPORT __attribute__((visibility("default")))
++#endif
++#else
++/* We are using this library */
++#ifdef _WIN32
++#define HWY_DLLEXPORT __declspec(dllimport)
++#else
++#define HWY_DLLEXPORT __attribute__((visibility("default")))
++#endif
++#endif
++#endif
++
++#ifndef HWY_NO_EXPORT
++#ifdef _WIN32
++#define HWY_NO_EXPORT
++#else
++#define HWY_NO_EXPORT __attribute__((visibility("hidden")))
++#endif
++#endif
++#endif
++
++#endif /* HWY_DLLEXPORT_H */
+diff --git a/hwy/nanobenchmark.h b/hwy/nanobenchmark.h
+index 18065f8..d8ed9bb 100644
+--- a/hwy/nanobenchmark.h
++++ b/hwy/nanobenchmark.h
+@@ -47,6 +47,8 @@
+ #include <stddef.h>
+ #include <stdint.h>
+ 
++#include "hwy/highway_export.h"
++
+ // Enables sanity checks that verify correct operation at the cost of
+ // longer benchmark runs.
+ #ifndef NANOBENCHMARK_ENABLE_CHECKS
+@@ -88,7 +90,7 @@ uint64_t TimerResolution();
+ 
+ // Returns 1, but without the compiler knowing what the value is. This prevents
+ // optimizing out code.
+-int Unpredictable1();
++HWY_DLLEXPORT int Unpredictable1();
+ 
+ // Input influencing the function being measured (e.g. number of bytes to copy).
+ using FuncInput = size_t;
+@@ -164,9 +166,9 @@ struct Result {
+ //   uniform distribution over [0, 4) could be represented as {3,0,2,1}.
+ // Returns how many Result were written to "results": one per unique input, or
+ //   zero if the measurement failed (an error message goes to stderr).
+-size_t Measure(const Func func, const uint8_t* arg, const FuncInput* inputs,
+-               const size_t num_inputs, Result* results,
+-               const Params& p = Params());
++HWY_DLLEXPORT size_t Measure(const Func func, const uint8_t* arg,
++                             const FuncInput* inputs, const size_t num_inputs,
++                             Result* results, const Params& p = Params());
+ 
+ // Calls operator() of the given closure (lambda function).
+ template <class Closure>
+diff --git a/hwy/targets.h b/hwy/targets.h
+index 95381e4..7eb9859 100644
+--- a/hwy/targets.h
++++ b/hwy/targets.h
+@@ -22,6 +22,7 @@
+ 
+ #include "hwy/base.h"
+ #include "hwy/detect_targets.h"
++#include "hwy/highway_export.h"
+ 
+ namespace hwy {
+ 
+@@ -29,7 +30,7 @@ namespace hwy {
+ // Implemented in targets.cc; unconditionally compiled to support the use case
+ // of binary-only distributions. The HWY_SUPPORTED_TARGETS wrapper may allow
+ // eliding calls to this function.
+-uint32_t SupportedTargets();
++HWY_DLLEXPORT uint32_t SupportedTargets();
+ 
+ // Evaluates to a function call, or literal if there is a single target.
+ #if (HWY_TARGETS & (HWY_TARGETS - 1)) == 0
+@@ -44,7 +45,7 @@ uint32_t SupportedTargets();
+ // lower target is desired. For this reason, attempts to disable targets which
+ // are in HWY_ENABLED_BASELINE have no effect so SupportedTargets() always
+ // returns at least the baseline target.
+-void DisableTargets(uint32_t disabled_targets);
++HWY_DLLEXPORT void DisableTargets(uint32_t disabled_targets);
+ 
+ // Set the mock mask of CPU supported targets instead of the actual CPU
+ // supported targets computed in SupportedTargets(). The return value of
+@@ -52,11 +53,11 @@ void DisableTargets(uint32_t disabled_targets);
+ // regardless of this mock, to prevent accidentally adding targets that are
+ // known to be buggy in the current CPU. Call with a mask of 0 to disable the
+ // mock and use the actual CPU supported targets instead.
+-void SetSupportedTargetsForTest(uint32_t targets);
++HWY_DLLEXPORT void SetSupportedTargetsForTest(uint32_t targets);
+ 
+ // Returns whether the SupportedTargets() function was called since the last
+ // SetSupportedTargetsForTest() call.
+-bool SupportedTargetsCalledForTest();
++HWY_DLLEXPORT bool SupportedTargetsCalledForTest();
+ 
+ // Return the list of targets in HWY_TARGETS supported by the CPU as a list of
+ // individual HWY_* target macros such as HWY_SCALAR or HWY_NEON. This list
+@@ -225,7 +226,7 @@ struct ChosenTarget {
+  public:
+   // Update the ChosenTarget mask based on the current CPU supported
+   // targets.
+-  void Update();
++  HWY_DLLEXPORT void Update();
+ 
+   // Reset the ChosenTarget to the uninitialized state.
+   void DeInit() { mask_.store(1); }
+@@ -249,7 +250,7 @@ struct ChosenTarget {
+   std::atomic<uint32_t> mask_{1};
+ };
+ 
+-extern ChosenTarget chosen_target;
++HWY_DLLEXPORT extern ChosenTarget chosen_target;
+ 
+ }  // namespace hwy
+ 
+diff --git a/hwy/tests/test_util.h b/hwy/tests/test_util.h
+index 076d82b..ad1aa00 100644
+--- a/hwy/tests/test_util.h
++++ b/hwy/tests/test_util.h
+@@ -26,6 +26,7 @@
+ #include "hwy/aligned_allocator.h"
+ #include "hwy/base.h"
+ #include "hwy/highway.h"
++#include "hwy/highway_export.h"
+ 
+ namespace hwy {
+ 
+@@ -67,9 +68,7 @@ static HWY_INLINE uint32_t Random32(RandomState* rng) {
+   return static_cast<uint32_t>((*rng)());
+ }
+ 
+-static HWY_INLINE uint64_t Random64(RandomState* rng) {
+-  return (*rng)();
+-}
++static HWY_INLINE uint64_t Random64(RandomState* rng) { return (*rng)(); }
+ 
+ // Prevents the compiler from eliding the computations that led to "output".
+ // Works by indicating to the compiler that "output" is being read and modified.
+@@ -84,8 +83,8 @@ inline void PreventElision(T&& output) {
+ #endif  // HWY_COMPILER_MSVC
+ }
+ 
+-bool BytesEqual(const void* p1, const void* p2, const size_t size,
+-                size_t* pos = nullptr);
++HWY_DLLEXPORT bool BytesEqual(const void* p1, const void* p2, const size_t size,
++                              size_t* pos = nullptr);
+ 
+ void AssertStringEqual(const char* expected, const char* actual,
+                        const char* target_name, const char* filename, int line);
+@@ -129,25 +128,25 @@ HWY_INLINE TypeInfo MakeTypeInfo() {
+   return info;
+ }
+ 
+-bool IsEqual(const TypeInfo& info, const void* expected_ptr,
+-             const void* actual_ptr);
++HWY_DLLEXPORT bool IsEqual(const TypeInfo& info, const void* expected_ptr,
++                           const void* actual_ptr);
+ 
+-void TypeName(const TypeInfo& info, size_t N, char* string100);
++HWY_DLLEXPORT void TypeName(const TypeInfo& info, size_t N, char* string100);
+ 
+-void PrintArray(const TypeInfo& info, const char* caption,
+-                const void* array_void, size_t N, size_t lane_u = 0,
+-                size_t max_lanes = 7);
++HWY_DLLEXPORT void PrintArray(const TypeInfo& info, const char* caption,
++                              const void* array_void, size_t N,
++                              size_t lane_u = 0, size_t max_lanes = 7);
+ 
+-HWY_NORETURN void PrintMismatchAndAbort(const TypeInfo& info,
+-                                        const void* expected_ptr,
+-                                        const void* actual_ptr,
+-                                        const char* target_name,
+-                                        const char* filename, int line,
+-                                        size_t lane = 0, size_t num_lanes = 1);
++HWY_DLLEXPORT HWY_NORETURN void PrintMismatchAndAbort(
++    const TypeInfo& info, const void* expected_ptr, const void* actual_ptr,
++    const char* target_name, const char* filename, int line, size_t lane = 0,
++    size_t num_lanes = 1);
+ 
+-void AssertArrayEqual(const TypeInfo& info, const void* expected_void,
+-                      const void* actual_void, size_t N,
+-                      const char* target_name, const char* filename, int line);
++HWY_DLLEXPORT void AssertArrayEqual(const TypeInfo& info,
++                                    const void* expected_void,
++                                    const void* actual_void, size_t N,
++                                    const char* target_name,
++                                    const char* filename, int line);
+ 
+ }  // namespace detail
+ 
+diff --git a/libhwy.pc.in b/libhwy.pc.in
+index 2ada0e8..6439892 100644
+--- a/libhwy.pc.in
++++ b/libhwy.pc.in
+@@ -7,4 +7,4 @@ Name: libhwy
+ Description: Efficient and performance-portable SIMD wrapper
+ Version: @HWY_LIBRARY_VERSION@
+ Libs: -L${libdir} -lhwy
+-Cflags: -I${includedir}
++Cflags: -I${includedir} -D@DLLEXPORT_TO_DEFINE@
+-- 
+2.32.0
+
