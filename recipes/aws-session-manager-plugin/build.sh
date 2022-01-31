@@ -1,9 +1,8 @@
 #!/bin/bash
 set -eu
 
-# https://docs.conda.io/projects/conda-build/en/latest/user-guide/environment-variables.html#environment-variables-set-during-the-build-process
 
-if [ -n "${MACOSX_DEPLOYMENT_TARGET:-}" ]; then
+if [[ "${target_platform}" == osx-* ]]; then
   MACHINE=darwin
 else
   MACHINE=linux
