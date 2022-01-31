@@ -25,6 +25,12 @@ def get_host_platform():
         return "win"
 
 
+def get_config_name(arch):
+    platform = get_host_platform()
+    return os.environ.get("CONFIG", "{}{}".format(platform, arch))
+
+
+
 def build_all(recipes_dir, arch):
     folders = os.listdir(recipes_dir)
     old_comp_folders = []
@@ -35,8 +41,7 @@ def build_all(recipes_dir, arch):
 
     platform = get_host_platform()
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    variant_config_file = os.path.join(script_dir, '{}{}.yaml'.format(
-        platform, arch))
+    variant_config_file = os.path.join(script_dir, "{}.yaml".format(get_config_name(arch)))
 
     found_cuda = False
     found_centos7 = False
