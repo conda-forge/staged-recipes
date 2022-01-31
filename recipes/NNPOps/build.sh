@@ -29,7 +29,7 @@ elif [ $(version2int $cuda_compiler_version) -ge $(version2int "10.0") ]; then
     ARCHES=( "${DEPRECATED_IN_11[@]}" "${ARCHES[@]}" )
 fi
 for arch in "${ARCHES[@]}"; do
-    CMAKE_CUDA_ARCHS="${CMAKE_CUDA_ARCHS+${CMAKE_CUDA_ARCHS};}${arch}-real"
+    CMAKE_CUDA_ARCHS="${CMAKE_CUDA_ARCHS+${CMAKE_CUDA_ARCHS};}${arch}"
 done
 # for -real vs. -virtual, see cmake.org/cmake/help/latest/prop_tgt/CUDA_ARCHITECTURES.html
 # this is to support PTX JIT compilation; see first link above or cf.
