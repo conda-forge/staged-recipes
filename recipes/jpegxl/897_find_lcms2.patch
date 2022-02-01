@@ -1,0 +1,96 @@
+From 04b479d3a641790f585c391f7a6c5146d6704491 Mon Sep 17 00:00:00 2001
+From: Don <don.j.olmstead@gmail.com>
+Date: Mon, 22 Nov 2021 14:50:05 -0800
+Subject: [PATCH] Add find module for lcms2
+
+The module looks for lcms2 using pkg-config if available otherwise it will look for the library in the CMAKE_PREFIX_PATH. If found a target is created that mirrors the in source build of the library.
+---
+ cmake/FindLCMS2.cmake      | 59 ++++++++++++++++++++++++++++++++++++++
+ third_party/CMakeLists.txt |  6 ++--
+ 2 files changed, 61 insertions(+), 4 deletions(-)
+ create mode 100644 cmake/FindLCMS2.cmake
+
+diff --git a/cmake/FindLCMS2.cmake b/cmake/FindLCMS2.cmake
+new file mode 100644
+index 000000000..c36f7f9ed
+--- /dev/null
++++ b/cmake/FindLCMS2.cmake
+@@ -0,0 +1,59 @@
++# Copyright (c) the JPEG XL Project Authors. All rights reserved.
++#
++# Use of this source code is governed by a BSD-style
++# license that can be found in the LICENSE file.
++
++find_package(PkgConfig QUIET)
++if (PkgConfig_FOUND)
++  pkg_check_modules(PC_LCMS2 QUIET libLCMS2)
++  set(LCMS2_VERSION ${PC_LCMS2_VERSION})
++endif ()
++
++find_path(LCMS2_INCLUDE_DIR
++  NAMES lcms2.h
++  HINTS ${PC_LCMS2_INCLUDEDIR} ${PC_LCMS2_INCLUDE_DIRS}
++)
++
++find_library(LCMS2_LIBRARY
++  NAMES ${LCMS2_NAMES} lcms2 liblcms2 lcms-2 liblcms-2
++  HINTS ${PC_LCMS2_LIBDIR} ${PC_LCMS2_LIBRARY_DIRS}
++)
++
++if (LCMS2_INCLUDE_DIR AND NOT LCMS_VERSION)
++    file(READ ${LCMS2_INCLUDE_DIR}/lcms2.h LCMS2_VERSION_CONTENT)
++    string(REGEX MATCH "#define[ \t]+LCMS_VERSION[ \t]+([0-9]+)[ \t]*\n" LCMS2_VERSION_MATCH ${LCMS2_VERSION_CONTENT})
++    if (LCMS2_VERSION_MATCH)
++        string(SUBSTRING ${CMAKE_MATCH_1} 0 1 LCMS2_VERSION_MAJOR)
++        string(SUBSTRING ${CMAKE_MATCH_1} 1 2 LCMS2_VERSION_MINOR)
++        set(LCMS2_VERSION "${LCMS2_VERSION_MAJOR}.${LCMS2_VERSION_MINOR}")
++    endif ()
++endif ()
++
++include(FindPackageHandleStandardArgs)
++find_package_handle_standard_args(LCMS2
++  FOUND_VAR LCMS2_FOUND
++  REQUIRED_VARS LCMS2_LIBRARY LCMS2_INCLUDE_DIR
++  VERSION_VAR LCMS2_VERSION
++)
++
++if (LCMS2_LIBRARY AND NOT TARGET lcms2)
++  add_library(lcms2 INTERFACE IMPORTED GLOBAL)
++
++  if(${CMAKE_VERSION} VERSION_LESS "3.13.5")
++    set_property(TARGET lcms2 PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${LCMS2_INCLUDE_DIR})
++    target_link_libraries(lcms2 INTERFACE ${LCMS2_LIBRARY})
++    set_property(TARGET lcms2 PROPERTY INTERFACE_COMPILE_OPTIONS ${PC_LCMS2_CFLAGS_OTHER})
++  else()
++    target_include_directories(lcms2 INTERFACE ${LCMS2_INCLUDE_DIR})
++    target_link_libraries(lcms2 INTERFACE ${LCMS2_LIBRARY})
++    target_link_options(lcms2 INTERFACE ${PC_LCMS2_LDFLAGS_OTHER})
++    target_compile_options(lcms2 INTERFACE ${PC_LCMS2_CFLAGS_OTHER})
++  endif()
++endif()
++
++mark_as_advanced(LCMS2_INCLUDE_DIR LCMS2_LIBRARY)
++
++if (LCMS2_FOUND)
++    set(LCMS2_LIBRARIES ${LCMS2_LIBRARY})
++    set(LCMS2_INCLUDE_DIRS ${LCMS2_INCLUDE_DIR})
++endif ()
+diff --git a/third_party/CMakeLists.txt b/third_party/CMakeLists.txt
+index 13a257d68..8bc930e7c 100644
+--- a/third_party/CMakeLists.txt
++++ b/third_party/CMakeLists.txt
+@@ -192,12 +192,10 @@ if (JPEGXL_ENABLE_SKCMS OR JPEGXL_ENABLE_PLUGINS)
+ endif ()
+ if (JPEGXL_ENABLE_VIEWERS OR NOT JPEGXL_ENABLE_SKCMS)
+   if( NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/lcms/.git" OR JPEGXL_FORCE_SYSTEM_LCMS2 )
+-    pkg_check_modules(Lcms2 IMPORTED_TARGET lcms2>=2.10)
+-    if ( NOT Lcms2_FOUND )
++    find_package(LCMS2 2.10)
++    if ( NOT LCMS2_FOUND )
+       message(FATAL_ERROR "Please install lcms2 or run git submodule update --init")
+     endif ()
+-    add_library(lcms2 INTERFACE)
+-    target_link_libraries(lcms2 INTERFACE PkgConfig::Lcms2)
+   else()
+     include(lcms2.cmake)
+     configure_file("${CMAKE_CURRENT_SOURCE_DIR}/lcms/COPYING"
