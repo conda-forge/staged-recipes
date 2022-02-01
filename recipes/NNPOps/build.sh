@@ -34,7 +34,7 @@ done
 # for -real vs. -virtual, see cmake.org/cmake/help/latest/prop_tgt/CUDA_ARCHITECTURES.html
 # this is to support PTX JIT compilation; see first link above or cf.
 # devblogs.nvidia.com/cuda-pro-tip-understand-fat-binaries-jit-caching
-CMAKE_CUDA_ARCHS="${CMAKE_CUDA_ARCHS+${CMAKE_CUDA_ARCHS}}"
+CMAKE_CUDA_ARCHS="${CMAKE_CUDA_ARCHS};${LATEST_ARCH}-real;${LATEST_ARCH}-virtual"
 
 CUDA_CONFIG_ARGS+=(
     -DCMAKE_CUDA_ARCHITECTURES="${CMAKE_CUDA_ARCHS}"
