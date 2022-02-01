@@ -1,6 +1,8 @@
 set -ex
 CXXFLAGS="-D__STDC_FORMAT_MACROS ${CXXFLAGS}"
-LDFLAGS="-lrt ${LDFLAGS}"
+if [[ "${target_platform}" == linux-* ]]; then
+    LDFLAGS="-lrt ${LDFLAGS}"
+fi
 # rm -rf build
 mkdir build
 cd build
