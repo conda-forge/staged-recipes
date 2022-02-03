@@ -12,4 +12,4 @@ cmake .. \
 
 cmake --build . --target install
 
-make test
+make test --output-on-failure
