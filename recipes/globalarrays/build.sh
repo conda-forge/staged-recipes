@@ -12,4 +12,6 @@ cmake .. \
 
 cmake --build . --target install
 
+export OMPI_MCA_plm_rsh_agent=sh
+
 CTEST_OUTPUT_ON_FAILURE=ON make test
