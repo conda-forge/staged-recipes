@@ -11,3 +11,5 @@ cmake .. \
  -DENABLE_TESTS=ON
 
 cmake --build . --target install
+
+make test
