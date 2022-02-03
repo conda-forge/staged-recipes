@@ -10,6 +10,7 @@ cmake ${CMAKE_ARGS} -H. -Bbuild \
     -DHDF5_hdf5_fortran_LIBRARY=$PREFIX/lib/libhdf5${SHLIB_EXT}
 
 else
+export FC=mpifort
 
 cmake -H. -Bbuild \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
