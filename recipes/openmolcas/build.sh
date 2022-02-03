@@ -20,17 +20,19 @@ else
         -DNEVPT2=ON \
         -DOPENMP=ON \
         -DMPI=ON \
-        -DGA=ON \
         -DLINALG=Manual \
         -DLINALG_LIBRARIES="-lopenblas64_ -llapack" \
         -DCMAKE_INSTALL_PREFIX=${PREFIX}
+
+        #-DLINALG=OpenBLAS \
+        #-DOPENBLASROOT=$PREFIX \
+        # globalarrays not yet on conda-forge!
+        #    -DGA=ON \
 
     #  FC=mpif90 CC=mpicc CXX=mpicxx cmake    
     # cpp executable name harcoded in CMakeLists.txt
     ln -s $CPP ${PREFIX}/bin/cpp
 
-        #-DLINALG=OpenBLAS \
-        #-DOPENBLASROOT=$PREFIX \
 fi
 
 
