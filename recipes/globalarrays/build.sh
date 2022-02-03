@@ -6,6 +6,8 @@ cd build
 
 cmake .. 
 
+cmake --build build --target install
+
 
 #configopts = ' --with-mpi --enable-i8'
 #configopts += ' --with-blas8="-L$MLROOT/lib/intel64 -lmkl_sequential -lmkl_intel_ilp64"'
