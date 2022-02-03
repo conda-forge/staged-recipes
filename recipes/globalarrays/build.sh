@@ -6,7 +6,7 @@ cd build
 
 cmake .. 
 
-cmake --build build --target install
+cmake --build . --target install
 
 
 #configopts = ' --with-mpi --enable-i8'
