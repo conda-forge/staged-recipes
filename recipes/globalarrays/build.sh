@@ -4,8 +4,10 @@ set -ex
 mkdir build
 cd build
 
-cmake ..  -DCMAKE_INSTALL_PREFIX=${PREFIX}
+export MPIEXEC_MAX_NUMPROCS=2
+
+cmake .. \
+ -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+ -DENABLE_TESTS=ON
 
 cmake --build . --target install
-
-make check MPIEXEC="mpirun -np 2"
