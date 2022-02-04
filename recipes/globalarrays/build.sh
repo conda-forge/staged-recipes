@@ -4,7 +4,7 @@ set -ex
 mkdir build
 cd build
 
-export MPIEXEC_MAX_NUMPROCS=2
+export MPIEXEC_MAX_NUMPROCS=4
 
 cmake .. \
  -DCMAKE_INSTALL_PREFIX=${PREFIX} \
