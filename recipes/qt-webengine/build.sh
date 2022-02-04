@@ -59,7 +59,7 @@ if [[ $(uname) == "Linux" ]]; then
 
     #cat config.log
     #exit 1
-    CPATH=$PREFIX/include:$BUILD_PREFIX/src/core/api make -jCPU_COUNT
+    CPATH=$PREFIX/include:$BUILD_PREFIX/src/core/api make -j$CPU_COUNT
     make install
 fi
 
