@@ -30,7 +30,6 @@ def get_config_name(arch):
     return os.environ.get("CONFIG", "{}{}".format(platform, arch))
 
 
-
 def build_all(recipes_dir, arch):
     folders = os.listdir(recipes_dir)
     old_comp_folders = []
@@ -112,8 +111,8 @@ def get_config(arch, channel_urls):
     platform = get_host_platform()
     script_dir = os.path.dirname(os.path.realpath(__file__))
     variant_config_files = []
-    variant_config_file = os.path.join(script_dir, '{}{}.yaml'.format(
-        platform, arch))
+    variant_config_file = os.path.join(script_dir, '{}.yaml'.format(
+        get_config_name(arch)))
     if os.path.exists(variant_config_file):
         variant_config_files.append(variant_config_file)
 
