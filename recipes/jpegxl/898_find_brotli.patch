@@ -1,0 +1,161 @@
+From fc1862cb5def828431d979af2ae6a3f2025f7e67 Mon Sep 17 00:00:00 2001
+From: Don <don.j.olmstead@gmail.com>
+Date: Mon, 22 Nov 2021 14:57:17 -0800
+Subject: [PATCH] Add find module for brotli
+
+The module looks for brotli using pkg-config if available otherwise it will look for the library in the CMAKE_PREFIX_PATH. If found a target is created that mirrors the in source build of the library.
+
+The brotli headers do not have versioning so a minimum version is not requested.
+---
+ cmake/FindBrotli.cmake     | 85 ++++++++++++++++++++++++++++++++++++++
+ third_party/CMakeLists.txt | 45 +-------------------
+ 2 files changed, 87 insertions(+), 43 deletions(-)
+ create mode 100644 cmake/FindBrotli.cmake
+
+diff --git a/cmake/FindBrotli.cmake b/cmake/FindBrotli.cmake
+new file mode 100644
+index 000000000..568356fe4
+--- /dev/null
++++ b/cmake/FindBrotli.cmake
+@@ -0,0 +1,85 @@
++# Copyright (c) the JPEG XL Project Authors. All rights reserved.
++#
++# Use of this source code is governed by a BSD-style
++# license that can be found in the LICENSE file.
++
++set(brlibs brotlicommon brotlienc brotlidec)
++
++find_package(PkgConfig QUIET)
++if (PkgConfig_FOUND)
++  foreach(brlib IN ITEMS ${brlibs})
++    string(TOUPPER "${brlib}" BRPREFIX)
++    pkg_check_modules("PC_${BRPREFIX}" lib${brlib})
++  endforeach()
++endif()
++
++find_path(BROTLI_INCLUDE_DIR
++  NAMES brotli/decode.h
++  HINTS ${PC_BROTLICOMMON_INCLUDEDIR} ${PC_BROTLICOMMON_INCLUDE_DIRS}
++)
++
++foreach(brlib IN ITEMS ${brlibs})
++  string(TOUPPER "${brlib}" BRPREFIX)
++  find_library(${BRPREFIX}_LIBRARY
++    NAMES ${${BRPREFIX}_NAMES} ${brlib}
++    HINTS ${PC_${BRPREFIX}_LIBDIR} ${PC_${BRPREFIX}_LIBRARY_DIRS}
++  )
++
++  if (${BRPREFIX}_LIBRARY AND NOT TARGET ${brlib})
++    if(${CMAKE_VERSION} VERSION_LESS "3.13.5")
++    add_library(${brlib} INTERFACE IMPORTED GLOBAL)
++      set_property(TARGET ${brlib} PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${BROTLI_INCLUDE_DIR})
++      target_link_libraries(${brlib} INTERFACE ${${BRPREFIX}_LIBRARY})
++      set_property(TARGET ${brlib} PROPERTY INTERFACE_COMPILE_OPTIONS ${PC_${BRPREFIX}_CFLAGS_OTHER})
++
++      add_library(${brlib}-static INTERFACE IMPORTED GLOBAL)
++      set_property(TARGET ${brlib}-static PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${BROTLI_INCLUDE_DIR})
++      target_link_libraries(${brlib}-static INTERFACE ${${BRPREFIX}_LIBRARY})
++      set_property(TARGET ${brlib}-static PROPERTY INTERFACE_COMPILE_OPTIONS ${PC_${BRPREFIX}_CFLAGS_OTHER})
++    else()
++    add_library(${brlib} INTERFACE IMPORTED GLOBAL)
++      target_include_directories(${brlib}
++        INTERFACE ${BROTLI_INCLUDE_DIR})
++      target_link_libraries(${brlib}
++        INTERFACE ${${BRPREFIX}_LIBRARY})
++      target_link_options(${brlib}
++        INTERFACE ${PC_${BRPREFIX}_LDFLAGS_OTHER})
++      target_compile_options(${brlib}
++        INTERFACE ${PC_${BRPREFIX}_CFLAGS_OTHER})
++
++      # TODO(deymo): Remove the -static library versions, this target is
++      # currently needed by brunsli.cmake. When importing it this way, the
++      # brotli*-static target is just an alias.
++      add_library(${brlib}-static ALIAS ${brlib})
++    endif()
++  endif()
++endforeach()
++
++if (BROTLICOMMON_FOUND AND BROTLIENC_FOUND AND BROTLIDEC_FOUND)
++  set(Brotli_FOUND ON)
++else ()
++  set(Brotli_FOUND OFF)
++endif()
++
++include(FindPackageHandleStandardArgs)
++find_package_handle_standard_args(Brotli
++  FOUND_VAR Brotli_FOUND
++  REQUIRED_VARS
++    BROTLI_INCLUDE_DIR
++    BROTLICOMMON_LIBRARY
++    BROTLIENC_LIBRARY
++    BROTLIDEC_LIBRARY
++  VERSION_VAR Brotli_VERSION
++)
++
++mark_as_advanced(
++  BROTLI_INCLUDE_DIR
++  BROTLICOMMON_LIBRARY
++  BROTLIENC_LIBRARY
++  BROTLIDEC_LIBRARY
++)
++
++if (Brotli_FOUND)
++  set(Brotli_LIBRARIES ${BROTLICOMMON_LIBRARY} ${BROTLIENC_LIBRARY} ${BROTLIDEC_LIBRARY})
++  set(Brotli_INCLUDE_DIRS ${BROTLI_INCLUDE_DIR})
++endif()
+diff --git a/third_party/CMakeLists.txt b/third_party/CMakeLists.txt
+index 8bc930e7c..690ce9a8e 100644
+--- a/third_party/CMakeLists.txt
++++ b/third_party/CMakeLists.txt
+@@ -114,49 +114,8 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/lodepng/LICENSE"
+ # brotli
+ if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/brotli/c/include/brotli/decode.h" OR
+     JPEGXL_FORCE_SYSTEM_BROTLI)
+-  # Create the libbrotli* and libbrotli*-static targets.
+-  foreach(brlib IN ITEMS brotlienc brotlidec brotlicommon)
+-    # Use uppercase like "BROTLIENC" for the cmake variables
+-    string(TOUPPER "${brlib}" BRPREFIX)
+-    pkg_check_modules(${BRPREFIX} lib${brlib})
+-    if (${BRPREFIX}_FOUND)
+-      if(${CMAKE_VERSION} VERSION_LESS "3.13.5")
+-        add_library(${brlib} INTERFACE IMPORTED GLOBAL)
+-        set_property(TARGET ${brlib} PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${${BRPREFIX}_INCLUDE_DIR})
+-        target_link_libraries(${brlib} INTERFACE ${${BRPREFIX}_LDFLAGS})
+-        set_property(TARGET ${brlib} PROPERTY INTERFACE_COMPILE_OPTIONS ${${BRPREFIX}_CFLAGS_OTHER})
+-
+-        add_library(${brlib}-static INTERFACE IMPORTED GLOBAL)
+-        set_property(TARGET ${brlib}-static PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${${BRPREFIX}_INCLUDE_DIR})
+-        target_link_libraries(${brlib}-static INTERFACE ${${BRPREFIX}_LDFLAGS})
+-        set_property(TARGET ${brlib}-static PROPERTY INTERFACE_COMPILE_OPTIONS ${${BRPREFIX}_CFLAGS_OTHER})
+-      else()
+-        add_library(${brlib} INTERFACE IMPORTED GLOBAL)
+-        target_include_directories(${brlib}
+-            INTERFACE ${${BRPREFIX}_INCLUDE_DIRS})
+-        target_link_libraries(${brlib}
+-            INTERFACE ${${BRPREFIX}_LINK_LIBRARIES})
+-        target_link_options(${brlib}
+-            INTERFACE ${${BRPREFIX}_LDFLAGS_OTHER})
+-        target_compile_options(${brlib}
+-            INTERFACE ${${BRPREFIX}_CFLAGS_OTHER})
+-
+-        # TODO(deymo): Remove the -static library versions, this target is
+-        # currently needed by brunsli.cmake. When importing it this way, the
+-        # brotli*-static target is just an alias.
+-        add_library(${brlib}-static ALIAS ${brlib})
+-      endif()
+-    endif()
+-    unset(BRPREFIX)
+-  endforeach()
+-
+-  if (BROTLIENC_FOUND AND BROTLIDEC_FOUND AND BROTLICOMMON_FOUND)
+-    set(BROTLI_FOUND 1)
+-  else()
+-    set(BROTLI_FOUND 0)
+-  endif()
+-
+-  if (NOT BROTLI_FOUND)
++  find_package(Brotli)
++  if (NOT Brotli_FOUND)
+     message(FATAL_ERROR
+         "Brotli not found, install brotli-dev or download brotli source code to"
+         " third_party/brotli from https://github.com/google/brotli. You can use"

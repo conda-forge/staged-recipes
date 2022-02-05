@@ -1,0 +1,141 @@
+From 42f3bbd7319ec6bc80c83d6cf5f6327a09e7c6bf Mon Sep 17 00:00:00 2001
+From: Don <don.j.olmstead@gmail.com>
+Date: Mon, 15 Nov 2021 11:31:56 -0800
+Subject: [PATCH] Add find module for hwy
+
+The module looks for hwy using pkg-config if available otherwise it will look for the library in the `CMAKE_PREFIX_PATH`. If found a target is created that mirrors the in source build of the library.
+---
+ AUTHORS                    |  1 +
+ CMakeLists.txt             |  1 +
+ cmake/FindHWY.cmake        | 66 ++++++++++++++++++++++++++++++++++++++
+ third_party/CMakeLists.txt | 13 +-------
+ 4 files changed, 69 insertions(+), 12 deletions(-)
+ create mode 100644 cmake/FindHWY.cmake
+
+diff --git a/AUTHORS b/AUTHORS
+index 3974dc88c..eaba05894 100644
+--- a/AUTHORS
++++ b/AUTHORS
+@@ -21,6 +21,7 @@ Alexander Sago <cagelight@gmail.com>
+ Andrius Lukas Narbutas <andrius4669@gmail.com>
+ Artem Selishchev
+ Dirk Lemstra <dirk@lemstra.org>
++Don Olmstead <don.j.olmstead@gmail.com>
+ Jon Sneyers <jon@cloudinary.com>
+ Kleis Auke Wolthuizen <github@kleisauke.nl>
+ Leo Izen <leo.izen@gmail.com>
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 41b9f3dd5..641565db3 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -5,6 +5,7 @@
+ 
+ # Ubuntu bionic ships with cmake 3.10.
+ cmake_minimum_required(VERSION 3.10)
++list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+ 
+ # Honor VISIBILITY_INLINES_HIDDEN on all types of targets.
+ if(POLICY CMP0063)
+diff --git a/cmake/FindHWY.cmake b/cmake/FindHWY.cmake
+new file mode 100644
+index 000000000..267b4224e
+--- /dev/null
++++ b/cmake/FindHWY.cmake
+@@ -0,0 +1,66 @@
++# Copyright (c) the JPEG XL Project Authors. All rights reserved.
++#
++# Use of this source code is governed by a BSD-style
++# license that can be found in the LICENSE file.
++
++find_package(PkgConfig QUIET)
++if (PkgConfig_FOUND)
++  pkg_check_modules(PC_HWY QUIET libhwy)
++  set(HWY_VERSION ${PC_HWY_VERSION})
++endif ()
++
++find_path(HWY_INCLUDE_DIR
++  NAMES hwy/highway.h
++  HINTS ${PC_HWY_INCLUDEDIR} ${PC_HWY_INCLUDE_DIRS}
++)
++
++find_library(HWY_LIBRARY
++  NAMES ${HWY_NAMES} hwy
++  HINTS ${PC_HWY_LIBDIR} ${PC_HWY_LIBRARY_DIRS}
++)
++
++if (HWY_INCLUDE_DIR AND NOT HWY_VERSION)
++  if (EXISTS "${HWY_INCLUDE_DIR}/hwy/highway.h")
++    file(READ "${HWY_INCLUDE_DIR}/hwy/highway.h" HWY_VERSION_CONTENT)
++
++    string(REGEX MATCH "#define HWY_MAJOR +([0-9]+)" _dummy "${HWY_VERSION_CONTENT}")
++    set(HWY_VERSION_MAJOR "${CMAKE_MATCH_1}")
++
++    string(REGEX MATCH "#define +HWY_MINOR +([0-9]+)" _dummy "${HWY_VERSION_CONTENT}")
++    set(HWY_VERSION_MINOR "${CMAKE_MATCH_1}")
++
++    string(REGEX MATCH "#define +HWY_PATCH +([0-9]+)" _dummy "${HWY_VERSION_CONTENT}")
++    set(HWY_VERSION_PATCH "${CMAKE_MATCH_1}")
++
++    set(HWY_VERSION "${HWY_VERSION_MAJOR}.${HWY_VERSION_MINOR}.${HWY_VERSION_PATCH}")
++  endif ()
++endif ()
++
++include(FindPackageHandleStandardArgs)
++find_package_handle_standard_args(HWY
++  FOUND_VAR HWY_FOUND
++  REQUIRED_VARS HWY_LIBRARY HWY_INCLUDE_DIR
++  VERSION_VAR HWY_VERSION
++)
++
++if (HWY_LIBRARY AND NOT TARGET hwy)
++  add_library(hwy INTERFACE IMPORTED GLOBAL)
++
++  if(${CMAKE_VERSION} VERSION_LESS "3.13.5")
++    set_property(TARGET hwy PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${HWY_INCLUDE_DIR})
++    target_link_libraries(hwy INTERFACE ${HWY_LIBRARY})
++    set_property(TARGET hwy PROPERTY INTERFACE_COMPILE_OPTIONS ${PC_HWY_CFLAGS_OTHER})
++  else()
++    target_include_directories(hwy INTERFACE ${HWY_INCLUDE_DIR})
++    target_link_libraries(hwy INTERFACE ${HWY_LIBRARY})
++    target_link_options(hwy INTERFACE ${PC_HWY_LDFLAGS_OTHER})
++    target_compile_options(hwy INTERFACE ${PC_HWY_CFLAGS_OTHER})
++  endif()
++endif()
++
++mark_as_advanced(HWY_INCLUDE_DIR HWY_LIBRARY)
++
++if (HWY_FOUND)
++    set(HWY_LIBRARIES ${HWY_LIBRARY})
++    set(HWY_INCLUDE_DIRS ${HWY_INCLUDE_DIR})
++endif ()
+diff --git a/third_party/CMakeLists.txt b/third_party/CMakeLists.txt
+index 01a658b6e..d686085ea 100644
+--- a/third_party/CMakeLists.txt
++++ b/third_party/CMakeLists.txt
+@@ -88,7 +88,7 @@ if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/highway/CMakeLists.txt" AND
+   configure_file("${CMAKE_CURRENT_SOURCE_DIR}/highway/LICENSE"
+                  ${PROJECT_BINARY_DIR}/LICENSE.highway COPYONLY)
+ else()
+-  pkg_check_modules(HWY libhwy)
++  find_package(HWY 0.15.0)
+   if (NOT HWY_FOUND)
+     message(FATAL_ERROR
+         "Highway library (hwy) not found. Install libhwy-dev or download it "
+@@ -96,17 +96,6 @@ else()
+         "Highway is required to build JPEG XL. You can run "
+         "${PROJECT_SOURCE_DIR}/deps.sh to download this dependency.")
+   endif()
+-  add_library(hwy INTERFACE IMPORTED GLOBAL)
+-  if(${CMAKE_VERSION} VERSION_LESS "3.13.5")
+-    set_property(TARGET hwy PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${HWY_INCLUDE_DIR})
+-    target_link_libraries(hwy INTERFACE ${HWY_LDFLAGS})
+-    set_property(TARGET hwy PROPERTY INTERFACE_COMPILE_OPTIONS ${HWY_CFLAGS_OTHER})
+-  else()
+-    target_include_directories(hwy INTERFACE ${HWY_INCLUDE_DIRS})
+-    target_link_libraries(hwy INTERFACE ${HWY_LINK_LIBRARIES})
+-    target_link_options(hwy INTERFACE ${HWY_LDFLAGS_OTHER})
+-    target_compile_options(hwy INTERFACE ${HWY_CFLAGS_OTHER})
+-  endif()
+   if(JPEGXL_DEP_LICENSE_DIR)
+     configure_file("${JPEGXL_DEP_LICENSE_DIR}/libhwy-dev/copyright"
+                    ${PROJECT_BINARY_DIR}/LICENSE.highway COPYONLY)
