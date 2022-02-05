@@ -10,7 +10,7 @@ source:
   sha256: 5b2cc602604f75ed6a9323cd4cd0585a1c806d3465f50ecb7ff31772b80f2edb
 
 build:
-  # noarch disabled because unidist packages are platform specific because of ray and mpi4py
+  # noarch disabled because the recipe now has selector for Ray, see below
   # noarch: python
   number: 0
   skip: true  # [py<37]
@@ -25,30 +25,17 @@ outputs:
         - python
       run:
         - python
-        # unidist-core has multiprocessing and python backends by default
-        - {{ pin_subpackage('unidist-core', exact=True) }}
+        - {{ pin_subpackage('unidist', exact=True) }}
         - {{ pin_subpackage('unidist-dask', exact=True) }}
         # ray does not have OSX builds yet
         - {{ pin_subpackage('unidist-ray', exact=True) }}   # [not osx]
-        # mpi4py does not have win32 and linux32
-        - {{ pin_subpackage('unidist-mpi', exact=True) }}   # [not win32 or not linux32]
+        - {{ pin_subpackage('unidist-mpi', exact=True) }}
     test:
       imports:
         # dummy test; actual tests are in subpackages
         - unidist
 
-  # compatibility with packagename before split into options
   - name: unidist
-    requirements:
-      host:
-        - python
-      run:
-        - python
-    test:
-      imports:
-        - unidist
-
-  - name: unidist-core
     build:
       script: python -m pip install . --ignore-installed -vv
     requirements:
@@ -63,17 +50,19 @@ outputs:
       imports:
         - unidist
       commands:
+        # unidist has multiprocessing and python backends by default so we test both
         - python -c "import unidist; import unidist.config as cfg; cfg.Backend.put('python'); unidist.init(); ref = unidist.put(1); unidist.get(ref)"
         - python -c "import unidist; import unidist.config as cfg; cfg.Backend.put('multiprocessing'); unidist.init(); ref = unidist.put(1); unidist.get(ref)"
 
   - name: unidist-dask
     build:
+      noarch: python
     requirements:
       host:
         - python
       run:
         - python
-        - {{ pin_subpackage('unidist-core', exact=True) }}
+        - {{ pin_subpackage('unidist', exact=True) }}
         - dask >=2.22.0
         - distributed >=2.22.0
     test:
@@ -93,7 +82,7 @@ outputs:
         - python
       run:
         - python
-        - {{ pin_subpackage('unidist-core', exact=True) }}
+        - {{ pin_subpackage('unidist', exact=True) }}
         - ray-default >=1.4.0
         # aioredis 2.x breaks Ray
         # ref: https://github.com/conda-forge/ray-packages-feedstock/issues/38
@@ -106,14 +95,13 @@ outputs:
 
   - name: unidist-mpi
     build:
-      # There is no mpi4py in conda-forge for win32 and linux32 yet.
-      skip: true  # [win32 or linux32]
+      noarch: python
     requirements:
       host:
         - python
       run:
         - python
-        - {{ pin_subpackage('unidist-core', exact=True) }}
+        - {{ pin_subpackage('unidist', exact=True) }}
         - mpi4py >=3.0.3
         - msgpack-python
     test:
