@@ -6,6 +6,7 @@ if [[ "$mpi" == "nompi" ]]; then
 
 cmake ${CMAKE_ARGS} -H. -Bbuild \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+    -DBUILD_SHARED_LIBS=ON
     -DENABLE_OPENMP=ON \
     -DHDF5_hdf5_fortran_LIBRARY=$PREFIX/lib/libhdf5${SHLIB_EXT}
 
