@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -eux
-export CLANG_BIN=$PREFIX/bin/clang
+export CLANG_BIN=$BUILD_PREFIX/bin/clang
 
 $CLANG_BIN --version
 
