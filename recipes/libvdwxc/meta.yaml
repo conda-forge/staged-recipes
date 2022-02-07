@@ -1,0 +1,75 @@
+{% set name = "libvdwxc" %}
+{% set version = '0.4.0' %}
+{% set build_number = 0 %}
+{% set mpi = mpi or 'nompi' %}
+
+{% if mpi != 'nompi' %}
+  {% set mpi_prefix = "mpi_" + mpi %}
+{% else %}
+  {% set mpi_prefix = "nompi" %}
+{% endif %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://launchpad.net/{{ name }}/stable/{{ version }}/+download/{{ name }}-{{ version }}.tar.gz
+  sha256: 3524feb5bb2be86b4688f71653502146b181e66f3f75b8bdaf23dd1ae4a56b33
+
+build:
+  skip: True # [not unix]
+  number: {{ build_number }}
+  string: "{{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build_number }}"
+  run_exports:
+    - {{ pin_compatible('numpy', min_pin='x.x', max_pin='x.x') }}
+    {% if mpi != 'nompi' %}
+    - {{ name }} * {{ mpi_prefix }}_*
+    {% endif %}
+  script:
+    - mkdir build && cd build
+    - ../configure --prefix={{ PREFIX }} CC=$CC FC=$FC CFLAGS="$CFLAGS -O3 -ffast-math -funroll-loops" FCFLAGS="$FCFLAGS -O3 -ffast-math -funroll-loops" --with-fftw={{ PREFIX }} # [mpi == 'nompi']
+    - ../configure --prefix={{ PREFIX }} CC=mpicc FC=mpifort CFLAGS="$CFLAGS -O3 -ffast-math -funroll-loops" FCFLAGS="$CFLAGS -O3 -ffast-math -funroll-loops" --with-fftw={{ PREFIX }} --with-mpi={{ PREFIX }} # [mpi != 'nompi']
+    - make -j$CPU_COUNT
+    - make check
+    - make install
+    - rm -rf {{ PREFIX }}/bin/libvdw_*test
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('fortran') }}
+    - {{ mpi }}-mpicc # [mpi != 'nompi']
+    - {{ mpi }}-mpifort # [mpi != 'nompi']
+  host:
+    - {{ mpi }} # [mpi != 'nompi']
+    - fftw * {{ mpi_prefix }}_*
+
+
+test:
+  requires:
+    - python >= 3
+  commands:
+    - test -f ${PREFIX}/lib/libvdwxc.a || exit 1 # [unix]
+    - test -f ${PREFIX}/lib/libvdwxcfort.a || exit 1 # [unix]
+    - test -f ${PREFIX}/include/vdwxc.h || exit 1  # [unix]
+    - test -f ${PREFIX}/include/vdwxcfort.f90 || exit 1 # [unix]
+    - test -f ${PREFIX}/include/vdwxc_mpi.h || exit 1 # [unix and (mpi != 'nompi')]
+    - python -c "import ctypes; ctypes.cdll[r'${PREFIX}/lib/libvdwxc${SHLIB_EXT}']" # [unix]
+    - python -c "import ctypes; ctypes.cdll[r'${PREFIX}/lib/libvdwxcfort${SHLIB_EXT}']" # [unix]
+
+    
+about:
+  home: https://libvdwxc.org
+  dev_url: https://gitlab.com/libvdwxc/libvdwxc
+  doc_url: https://libvdwxc.org/index.html
+  license: GPL-3.0+
+  license_url: https://opensource.org/licenses/GPL-3.0
+  license_file: COPYING
+  license_family: Other
+  summary: Portable C library of density functionals with van der Waals interactions for density functional theory
+
+
+extra:
+  recipe-maintainers:
+    - gdonval
