@@ -7,6 +7,7 @@ import os
 from collections import OrderedDict
 import sys
 import subprocess
+import yaml
 
 try:
     from ruamel_yaml import BaseLoader, load
@@ -24,6 +25,12 @@ def get_host_platform():
         return "win"
 
 
+def get_config_name(arch):
+    platform = get_host_platform()
+    return os.environ.get("CONFIG", "{}{}".format(platform, arch))
+
+
+
 def build_all(recipes_dir, arch):
     folders = os.listdir(recipes_dir)
     old_comp_folders = []
@@ -34,8 +41,7 @@ def build_all(recipes_dir, arch):
 
     platform = get_host_platform()
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    variant_config_file = os.path.join(script_dir, '{}{}.yaml'.format(
-        platform, arch))
+    variant_config_file = os.path.join(script_dir, "{}.yaml".format(get_config_name(arch)))
 
     found_cuda = False
     found_centos7 = False
@@ -51,7 +57,7 @@ def build_all(recipes_dir, arch):
     if found_cuda:
         print('##vso[task.setvariable variable=NEED_CUDA;isOutput=true]1')
     if found_centos7:
-        print('##vso[task.setvariable variable=NEED_CENTOS7;isOutput=true]1')
+        os.environ["DEFAULT_LINUX_VERSION"] = "cos7"
 
     deployment_version = (0, 0)
     sdk_version = (0, 0)
@@ -96,7 +102,7 @@ def build_all(recipes_dir, arch):
         subprocess.run("run_conda_forge_build_setup", shell=True, check=True)
 
     print("Building {} with conda-forge/label/main".format(','.join(folders)))
-    channel_urls = ['local', 'conda-forge', 'defaults']
+    channel_urls = ['local', 'conda-forge']
     build_folders(recipes_dir, folders, arch, channel_urls)
 
 
@@ -165,6 +171,24 @@ def check_recipes_in_correct_dir(root_dir, correct_dir):
         if len(path.parts) != 3:
             raise RuntimeError(f"recipe {path.parts} in wrong directory")
 
+
+def read_mambabuild(recipes_dir):
+    folders = os.listdir(recipes_dir)
+    use_it = True
+    for folder in folders:
+        cf = os.path.join(recipes_dir, folder, "conda-forge.yml")
+        if os.path.exists(cf):
+            with open(cf, "r") as f:
+                cfy = yaml.safe_load(f.read())
+            use_it = use_it and cfy.get("build_with_mambabuild", True)
+    return use_it
+
+
+def use_mambabuild():
+    from boa.cli.mambabuild import prepare
+    prepare()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--arch', default='64',
@@ -172,4 +196,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     check_recipes_in_correct_dir(root_dir, "recipes")
+    use_mamba = read_mambabuild(os.path.join(root_dir, "recipes"))
+    if use_mamba:
+      use_mambabuild()
+      subprocess.run("conda clean --all --yes", shell=True, check=True)
     build_all(os.path.join(root_dir, "recipes"), args.arch)
