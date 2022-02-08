@@ -1,0 +1,135 @@
+From df86ec57515a21bc9c6dab62ea048725677d2c5c Mon Sep 17 00:00:00 2001
+From: martinRenou <martin.renou@gmail.com>
+Date: Tue, 8 Feb 2022 15:37:24 +0100
+Subject: [PATCH 1/1] Remove node
+
+---
+ playwright.cmd                 |  3 +++
+ playwright.sh                  |  3 +++
+ playwright/_impl/_driver.py    |  6 +++---
+ playwright/_impl/_transport.py |  5 ++---
+ setup.py                       | 25 +++++++++++++++++++++++++
+ tests/conftest.py              |  4 ++--
+ 6 files changed, 38 insertions(+), 8 deletions(-)
+ create mode 100644 playwright.cmd
+ create mode 100755 playwright.sh
+
+diff --git a/playwright.cmd b/playwright.cmd
+new file mode 100644
+index 0000000..ffd94bb
+--- /dev/null
++++ b/playwright.cmd
+@@ -0,0 +1,3 @@
++@ECHO OFF
++SETLOCAL
++"%~dp0\%PREFIX%\bin\node.exe" "%~dp0\package\lib\cli\cli.js" %*
+diff --git a/playwright.sh b/playwright.sh
+new file mode 100755
+index 0000000..ad71d68
+--- /dev/null
++++ b/playwright.sh
+@@ -0,0 +1,3 @@
++#!/bin/sh
++SCRIPT_PATH="$(cd "$(dirname "$0")" ; pwd -P)"
++"$CONDA_PREFIX/bin/node" "$SCRIPT_PATH/package/lib/cli/cli.js" "$@"
+diff --git a/playwright/_impl/_driver.py b/playwright/_impl/_driver.py
+index bd41c25..4ee3ceb 100644
+--- a/playwright/_impl/_driver.py
++++ b/playwright/_impl/_driver.py
+@@ -22,12 +22,12 @@ import playwright
+ from playwright._repo_version import version
+ 
+ 
+-def compute_driver_executable() -> Path:
++def compute_driver_executable() -> str:
+     package_path = Path(inspect.getfile(playwright)).parent
+     platform = sys.platform
+     if platform == "win32":
+-        return package_path / "driver" / "playwright.cmd"
+-    return package_path / "driver" / "playwright.sh"
++        return str(package_path / "driver" / "playwright.cmd")
++    return 'bash ' + str(package_path / "driver" / "playwright.sh")
+ 
+ 
+ if sys.version_info.major == 3 and sys.version_info.minor == 7:
+diff --git a/playwright/_impl/_transport.py b/playwright/_impl/_transport.py
+index 9c26e4f..c8fe960 100644
+--- a/playwright/_impl/_transport.py
++++ b/playwright/_impl/_transport.py
+@@ -121,9 +121,8 @@ class PipeTransport(Transport):
+             if getattr(sys, "frozen", False):
+                 env.setdefault("PLAYWRIGHT_BROWSERS_PATH", "0")
+ 
+-            self._proc = await asyncio.create_subprocess_exec(
+-                str(self._driver_executable),
+-                "run-driver",
++            self._proc = await asyncio.create_subprocess_shell(
++                str(self._driver_executable) + ' run-driver',
+                 stdin=asyncio.subprocess.PIPE,
+                 stdout=asyncio.subprocess.PIPE,
+                 stderr=_get_stderr_fileno(),
+diff --git a/setup.py b/setup.py
+index 196ddd6..355edb7 100644
+--- a/setup.py
++++ b/setup.py
+@@ -153,9 +153,24 @@ class PlaywrightBDistWheelCommand(BDistWheelCommand):
+                 driver_root = os.path.abspath(f"driver/{wheel_bundle['zip_name']}")
+                 for dir_path, _, files in os.walk(driver_root):
+                     for file in files:
++                        # Not copying node executable. We'll use conda-forge's one
++                        if file == 'node' or file == 'node.exe':
++                            continue
++
++                        # Patching playwright scripts
++                        if file == 'playwright.sh':
++                            from_path = os.path.join(Path(__file__).parent, 'playwright.sh')
++                            zip.write(from_path, "playwright/driver/playwright.sh")
++                            continue
++                        if file == 'playwright.cmd':
++                            from_path = os.path.join(Path(__file__).parent, 'playwright.cmd')
++                            zip.write(from_path, "playwright/driver/playwright.cmd")
++                            continue
++
+                         from_path = os.path.join(dir_path, file)
+                         to_path = os.path.relpath(from_path, driver_root)
+                         zip.write(from_path, f"playwright/driver/{to_path}")
++
+                 zip.writestr(
+                     "playwright/driver/README.md",
+                     f"{wheel_bundle['wheel']} driver package",
+@@ -195,6 +210,16 @@ class PlaywrightBDistWheelCommand(BDistWheelCommand):
+         zip_file = f"driver/playwright-{driver_version}-{zip_name}.zip"
+         with zipfile.ZipFile(zip_file, "r") as zip:
+             extractall(zip, "playwright/driver")
++        if sys.platform == "win32":
++            os.remove("playwright/driver/node.exe")
++        else:
++            os.remove("playwright/driver/node")
++
++        from_path = os.path.join(Path(__file__).parent, 'playwright.sh')
++        shutil.copy2(from_path, "playwright/driver/playwright.sh")
++
++        from_path = os.path.join(Path(__file__).parent, 'playwright.cmd')
++        shutil.copy2(from_path, "playwright/driver/playwright.cmd")
+ 
+ 
+ setup(
+diff --git a/tests/conftest.py b/tests/conftest.py
+index be7194f..a5f665a 100644
+--- a/tests/conftest.py
++++ b/tests/conftest.py
+@@ -216,9 +216,9 @@ class RemoteServer:
+     ) -> None:
+         driver_dir = Path(inspect.getfile(playwright)).parent / "driver"
+         if sys.platform == "win32":
+-            node_executable = driver_dir / "node.exe"
++            node_executable = "node.exe"
+         else:
+-            node_executable = driver_dir / "node"
++            node_executable = "node"
+         cli_js = driver_dir / "package" / "lib" / "cli" / "cli.js"
+         tmpfile.write_text(json.dumps(launch_server_options))
+         self.process = subprocess.Popen(
+-- 
+2.34.1
+
