@@ -1,6 +1,6 @@
 ## `dotnet/runtime` License
 
-*Source:* https://github.com/dotnet/runtime/blob/main/LICENSE.TXT
+*Source:* https://github.com/dotnet/runtime/blob/4822e3c3aa77eb82b2fb33c9321f923cf11ddde6/LICENSE.TXT
 
 ----
 
