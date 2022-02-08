@@ -12,5 +12,15 @@ git clone -b v1.2.2 https://github.com/USCiLab/cereal.git cereal
 
 popd
 
+# Builds and does some basic tests
 $SRC_DIR/install.sh "$PREFIX"
+
+# Install the header files
+mkdir -p $PREFIX/include/sdsl
+cp -a include $PREFIX
+rm -f $PREFIX/include/sdsl/.gitignore
+
+mkdir -p $PREFIX/lib/cmake/sdsl-lite
+install -pm 644 sdsl-lite.pc.cmake $PREFIX/lib/cmake/sdsl-lite/
+
 
