@@ -17,4 +17,3 @@ make install
 
 # Removes binaries built and used by `make check` 
 rm -rf $PREFIX/bin/libvdw_*test
-rm -rf $PREFIX/bin/libvdw_*test
