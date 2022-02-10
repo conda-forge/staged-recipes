@@ -1,13 +1,14 @@
 mkdir build
 cd build
 
-cmake .. ${CMAKE_ARGS} ^
+cmake ^
     -GNinja ^
     -DGTSAM_BUILD_WITH_MARCH_NATIVE=OFF ^
     -DGTSAM_USE_SYSTEM_EIGEN=ON ^
     -DGTSAM_INSTALL_CPPUNITLITE=OFF ^
     -DGTSAM_BUILD_PYTHON=ON ^
-    -DPython3_EXECUTABLE=%PYTHON%
+    -DPython3_EXECUTABLE=%PYTHON% ^
+    %SRC_DIR%
 
 ninja install
 
