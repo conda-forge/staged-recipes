@@ -10,7 +10,6 @@ cmake ^
     -DBoost_USE_STATIC_LIBS=OFF ^
     -DBOOST_ROOT="%LIBRARY_PREFIX%" ^
     -DBoost_NO_SYSTEM_PATHS=ON ^
-    -DBoost_NO_BOOST_CMAKE=ON ^
     -DPython3_EXECUTABLE=%PYTHON% ^
     %SRC_DIR%
 
