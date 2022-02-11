@@ -12,6 +12,7 @@ cmake ^
     -DBoost_NO_SYSTEM_PATHS=ON ^
     -DPython3_EXECUTABLE=%PYTHON% ^
     -DPython_EXECUTABLE=%PYTHON% ^
+    -DPYTHON_EXECUTABLE=%PYTHON% ^
     %SRC_DIR%
 
 ninja install
