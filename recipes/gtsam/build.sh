@@ -8,7 +8,8 @@ cmake .. ${CMAKE_ARGS} \
         -DGTSAM_INSTALL_CPPUNITLITE=OFF \
         -DGTSAM_BUILD_PYTHON=ON \
         -DPython3_EXECUTABLE=$PYTHON \
-        -DPython_EXECUTABLE=$PYTHON
+        -DPython_EXECUTABLE=$PYTHON \
+        -DPYTHON_EXECUTABLE=$PYTHON
 
 ninja install
 
