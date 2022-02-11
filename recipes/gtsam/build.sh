@@ -7,7 +7,8 @@ cmake .. ${CMAKE_ARGS} \
         -DGTSAM_USE_SYSTEM_EIGEN=ON \
         -DGTSAM_INSTALL_CPPUNITLITE=OFF \
         -DGTSAM_BUILD_PYTHON=ON \
-        -DPython3_EXECUTABLE=$PREFIX/bin/python
+        -DPython3_EXECUTABLE=$PYTHON \
+        -DPython_EXECUTABLE=$PYTHON
 
 ninja install
 
