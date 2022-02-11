@@ -1,0 +1,133 @@
+{% set name = "unidist" %}
+{% set version = "0.1.0" %}
+
+package:
+  name: {{ name }}-packages
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: 5b2cc602604f75ed6a9323cd4cd0585a1c806d3465f50ecb7ff31772b80f2edb
+
+build:
+  noarch: python
+  number: 0
+
+# the outputs map the unidist options on PyPI (see upstream definition
+# https://github.com/modin-project/unidist/blob/0.1.0/setup.py#L39-L55)
+# from "unidist[<option>]" to "unidist-<option>" as a conda-forge package
+outputs:
+  - name: unidist-all
+    build:
+      noarch: python
+    requirements:
+      host:
+        - python >=3.7.1
+      run:
+        - python >=3.7.1
+        - {{ pin_subpackage('unidist', exact=True) }}
+        - {{ pin_subpackage('unidist-dask', exact=True) }}
+        - {{ pin_subpackage('unidist-ray', exact=True) }}
+        - {{ pin_subpackage('unidist-mpi', exact=True) }}
+    test:
+      imports:
+        # dummy test; actual tests are in subpackages
+        - unidist
+
+  - name: unidist
+    build:
+      noarch: python
+      script: python -m pip install . --ignore-installed -vv
+      entry_points:
+        - unidist = unidist.cli.__main__:main
+    requirements:
+      host:
+        - pip
+        - python >=3.7.1
+      run:
+        - python >=3.7.1
+        - packaging
+        - cloudpickle
+    test:
+      imports:
+        - unidist
+      commands:
+        # unidist has multiprocessing and python backends by default so we test both
+        - python -c "import unidist; import unidist.config as cfg; cfg.Backend.put('python'); unidist.init(); ref = unidist.put(1); unidist.get(ref)"
+        - python -c "import unidist; import unidist.config as cfg; cfg.Backend.put('multiprocessing'); unidist.init(); ref = unidist.put(1); unidist.get(ref)"
+        - unidist --help
+
+  - name: unidist-dask
+    build:
+      noarch: python
+    requirements:
+      host:
+        - python >=3.7.1
+      run:
+        - python >=3.7.1
+        - {{ pin_subpackage('unidist', exact=True) }}
+        - dask >=2.22.0
+        - distributed >=2.22.0
+    test:
+      imports:
+        - unidist
+      commands:
+        - python -c "import unidist; import unidist.config as cfg; cfg.Backend.put('dask'); unidist.init(); ref = unidist.put(1); unidist.get(ref)"
+
+  - name: unidist-ray
+    build:
+      noarch: python
+    requirements:
+      host:
+        - python >=3.7.1
+      run:
+        - python >=3.7.1
+        - {{ pin_subpackage('unidist', exact=True) }}
+        - ray-default >=1.4.0
+        # aioredis 2.x breaks Ray
+        # ref: https://github.com/conda-forge/ray-packages-feedstock/issues/38
+        - aioredis <2
+    test:
+      imports:
+        - unidist
+      commands:
+        - python -c "import unidist; import unidist.config as cfg; cfg.Backend.put('ray'); unidist.init(); ref = unidist.put(1); unidist.get(ref)"
+
+  - name: unidist-mpi
+    build:
+      noarch: python
+    requirements:
+      host:
+        - python >=3.7.1
+      run:
+        - python >=3.7.1
+        - {{ pin_subpackage('unidist', exact=True) }}
+        - mpi4py >=3.0.3
+        - msgpack-python
+    test:
+      # We do not run actual tests for mpi backend because
+      # those are currently failing on Windows.
+      # See more in https://github.com/modin-project/unidist/issues/69.
+      # We should run the tests after the issue is fixed.
+      imports:
+        - unidist
+
+about:
+  home: https://github.com/modin-project/unidist
+  license: Apache-2.0 AND LicenseRef-Public-Domain
+  license_family: Apache
+  license_file:
+    - LICENSE
+    - licenses/versioneer-LICENSE.txt
+  summary: Unified Distributed Execution
+  description: |
+    unidist is a framework that is intended to provide the unified API
+    for distributed execution by supporting various performant execution backends.
+    At the moment the following backends are supported under the hood:
+    Ray, MPI, Dask, Python Multiprocessing, as well as a sequential Python backend for debugging.
+  doc_url: https://unidist.readthedocs.io/
+  dev_url: https://github.com/modin-project/unidist
+
+extra:
+  recipe-maintainers:
+    - YarShev
