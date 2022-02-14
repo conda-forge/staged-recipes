@@ -1,1 +1,1 @@
-python setup.py install
+"%PYTHON%" ./spam/setup.py install
