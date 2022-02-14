@@ -110,7 +110,6 @@ def get_config(arch, channel_urls):
                                            'conda_build_config.yaml')]
     platform = get_host_platform()
     script_dir = os.path.dirname(os.path.realpath(__file__))
-
     # since variant builds override recipe/conda_build_config.yaml, see
     # https://github.com/conda/conda-build/blob/3.21.8/conda_build/variants.py#L175-L181
     # we need to make sure not to use variant_configs here, otherwise
@@ -119,7 +118,6 @@ def get_config(arch, channel_urls):
         get_config_name(arch)))
     if os.path.exists(exclusive_config_file):
         exclusive_config_files.append(exclusive_config_file)
-
 
     error_overlinking = (get_host_platform() != "win")
 
