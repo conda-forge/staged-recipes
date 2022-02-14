@@ -1,0 +1,178 @@
+From 069a1e8f0ce887a12d8fb81f125439987f355873 Mon Sep 17 00:00:00 2001
+From: Qiming Sun <osirpt.sun@gmail.com>
+Date: Wed, 22 Dec 2021 14:19:44 -0800
+Subject: [PATCH 1/3] Update lib.map_with_prefetch (Fix #1138)
+
+---
+ pyscf/lib/misc.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pyscf/lib/misc.py b/pyscf/lib/misc.py
+index c3bfbd650..29d759fb2 100644
+--- a/pyscf/lib/misc.py
++++ b/pyscf/lib/misc.py
+@@ -271,7 +271,7 @@ def map_with_prefetch(func, *iterables):
+         import imp
+         global_import_lock = imp.lock_held()
+ 
+-    if global_import_lock:
++    if not ASYNC_IO or global_import_lock:
+         for task in zip(*iterables):
+             yield func(*task)
+ 
+
+From 00b4c25420352487c6d159febef978293044a9a3 Mon Sep 17 00:00:00 2001
+From: Qiming Sun <osirpt.sun@gmail.com>
+Date: Thu, 23 Dec 2021 00:51:17 -0800
+Subject: [PATCH 2/3] Fix bug in GDF when using Cartesian basis (fix issue
+ #1117)
+
+---
+ pyscf/pbc/df/df.py            |  2 +-
+ pyscf/pbc/df/test/test_df.py  | 23 ++++++++++++++++++++++-
+ pyscf/pbc/df/test/test_mdf.py | 21 +++++++++++++++++++++
+ 3 files changed, 44 insertions(+), 2 deletions(-)
+
+diff --git a/pyscf/pbc/df/df.py b/pyscf/pbc/df/df.py
+index d1ef453ad..b0e8b1249 100644
+--- a/pyscf/pbc/df/df.py
++++ b/pyscf/pbc/df/df.py
+@@ -278,7 +278,7 @@ def make_kpt(uniq_kptji_id, cholesky_j2c):
+             nao_pair = nao*(nao+1)//2
+ 
+             if cell.dimension == 3:
+-                vbar = fuse(mydf.auxbar(fused_cell))
++                vbar = mydf.auxbar(fused_cell)
+                 ovlp = cell.pbc_intor('int1e_ovlp', hermi=1, kpts=adapted_kptjs)
+                 ovlp = [lib.pack_tril(s) for s in ovlp]
+         else:
+diff --git a/pyscf/pbc/df/test/test_df.py b/pyscf/pbc/df/test/test_df.py
+index 848fc3351..948e2b682 100644
+--- a/pyscf/pbc/df/test/test_df.py
++++ b/pyscf/pbc/df/test/test_df.py
+@@ -19,7 +19,7 @@
+ from pyscf import ao2mo, gto
+ from pyscf.pbc import gto as pgto
+ from pyscf.pbc import scf as pscf
+-from pyscf.pbc.df import df
++from pyscf.pbc.df import df, aug_etb, FFTDF
+ #from mpi4pyscf.pbc.df import df
+ pyscf.pbc.DEBUG = False
+ 
+@@ -147,6 +147,27 @@ def test_modrho_basis(self):
+             self.assertAlmostEqual(abs(es - es1).max(), 0, 15)
+             self.assertAlmostEqual(abs(cs - cs1).max(), 0, 15)
+ 
++    # issue #1117
++    def test_cell_with_cart(self):
++        cell = pgto.M(
++            atom='Li 0 0 0; H 2 2 2',
++            a=(numpy.ones([3, 3]) - numpy.eye(3)) * 2,
++            cart=True,
++            basis={'H': '''
++H   S
++0.5    1''',
++                   'Li': '''
++Li  S
++0.8    1
++0.4    1
++Li  P
++0.8    1
++0.4    1'''})
++
++        eri0 = FFTDF(cell).get_eri()
++        eri1 = df.GDF(cell).set(auxbasis=aug_etb(cell)).get_eri()
++        self.assertAlmostEqual(abs(eri1-eri0).max(), 0, 2)
++
+ 
+ if __name__ == '__main__':
+     print("Full Tests for df")
+diff --git a/pyscf/pbc/df/test/test_mdf.py b/pyscf/pbc/df/test/test_mdf.py
+index 7e3d6b1f5..0a9cb3edb 100644
+--- a/pyscf/pbc/df/test/test_mdf.py
++++ b/pyscf/pbc/df/test/test_mdf.py
+@@ -192,6 +192,27 @@ def test_get_eri_0123_1(self):
+         self.assertAlmostEqual(abs(eri0123.imag.sum()), 0.18510527268199378, 6)
+         self.assertAlmostEqual(lib.fp(eri0123), 1.7644500565943559+0.30677193151572507j, 6)
+ 
++    # issue #1117
++    def test_cell_with_cart(self):
++        cell = pgto.M(
++            atom='Li 0 0 0; H 2 2 2',
++            a=(numpy.ones([3, 3]) - numpy.eye(3)) * 2,
++            cart=True,
++            basis={'H': '''
++H   S
++0.5    1''',
++                   'Li': '''
++Li  S
++0.8    1
++0.4    1
++Li  P
++0.8    1
++0.4    1'''})
++
++        eri0 = df.FFTDF(cell).get_eri()
++        eri1 = mdf.MDF(cell).set(auxbasis=df.aug_etb(cell)).get_eri()
++        self.assertAlmostEqual(abs(eri1-eri0).max(), 0, 5)
++
+ if __name__ == '__main__':
+     print("Full Tests for mdf")
+     unittest.main()
+
+From 085e509356e3d725e4d6d4d1cf5342dd531301e2 Mon Sep 17 00:00:00 2001
+From: Qiming Sun <osirpt.sun@gmail.com>
+Date: Thu, 23 Dec 2021 08:34:49 -0800
+Subject: [PATCH 3/3] Fix issue #1118
+
+---
+ pyscf/grad/ccsd.py  | 5 +++--
+ pyscf/grad/uccsd.py | 5 +++--
+ 2 files changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/pyscf/grad/ccsd.py b/pyscf/grad/ccsd.py
+index c683882e3..cae2e8e6d 100644
+--- a/pyscf/grad/ccsd.py
++++ b/pyscf/grad/ccsd.py
+@@ -29,6 +29,7 @@
+ from pyscf.cc import ccsd
+ from pyscf.cc import _ccsd
+ from pyscf.cc import ccsd_rdm
++from pyscf.ao2mo import _ao2mo
+ from pyscf.scf import cphf
+ from pyscf.grad import rhf as rhf_grad
+ from pyscf.grad.mp2 import _shell_prange, _index_frozen_active
+@@ -319,8 +320,8 @@ def _rdm2_mo2ao(mycc, d2, mo_coeff, fsave=None):
+     nao_pair = nao * (nao+1) // 2
+     nvir_pair = nvir * (nvir+1) //2
+ 
+-    fdrv = getattr(_ccsd.libcc, 'AO2MOnr_e2_drv')
+-    ftrans = _ccsd.libcc.AO2MOtranse2_nr_s1
++    fdrv = _ao2mo.libao2mo.AO2MOnr_e2_drv
++    ftrans = _ao2mo.libao2mo.AO2MOtranse2_nr_s1
+     fmm = _ccsd.libcc.CCmmm_transpose_sum
+     pao_loc = ctypes.POINTER(ctypes.c_void_p)()
+     def _trans(vin, orbs_slice, out=None):
+diff --git a/pyscf/grad/uccsd.py b/pyscf/grad/uccsd.py
+index ba8d102f4..f7b3fb7ff 100644
+--- a/pyscf/grad/uccsd.py
++++ b/pyscf/grad/uccsd.py
+@@ -29,6 +29,7 @@
+ from pyscf.cc import ccsd
+ from pyscf.cc import _ccsd
+ from pyscf.cc import uccsd_rdm
++from pyscf.ao2mo import _ao2mo
+ from pyscf.scf import ucphf
+ from pyscf.grad import rhf as rhf_grad
+ from pyscf.grad import ccsd as ccsd_grad
+@@ -323,8 +324,8 @@ def _rdm2_mo2ao(mycc, d2, mo_coeff, fsave=None):
+     nvira_pair = nvira * (nvira+1) //2
+     nvirb_pair = nvirb * (nvirb+1) //2
+ 
+-    fdrv = getattr(_ccsd.libcc, 'AO2MOnr_e2_drv')
+-    ftrans = _ccsd.libcc.AO2MOtranse2_nr_s1
++    fdrv = _ao2mo.libao2mo.AO2MOnr_e2_drv
++    ftrans = _ao2mo.libao2mo.AO2MOtranse2_nr_s1
+     fmm = _ccsd.libcc.CCmmm_transpose_sum
+     pao_loc = ctypes.POINTER(ctypes.c_void_p)()
+     def _trans(vin, mo_coeff, orbs_slice, out=None):
