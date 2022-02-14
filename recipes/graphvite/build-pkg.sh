@@ -42,7 +42,6 @@ cmake \
 
 make
 make install
-cd ..
 
-cd python
+cd ../python
 $PYTHON setup.py install
