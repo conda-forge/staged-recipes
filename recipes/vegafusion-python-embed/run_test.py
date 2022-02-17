@@ -1,0 +1,2 @@
+import vegafusion_embed
+vegafusion_embed.PyTaskGraphRuntime(4)
