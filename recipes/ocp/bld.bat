@@ -7,7 +7,7 @@ cmake -B build -S "%SRC_DIR%" ^
     -DPython3_FIND_STRATEGY=LOCATION ^
     -DPython3_ROOT_DIR=%CONDA_PREFIX% ^
     -DCMAKE_LINKER=lld-link.exe ^
-    -DCMAKE_MODULE_LINKER_FLAGS="/FORCE:MULTIPLE"
+    -DCMAKE_MODULE_LINKER_FLAGS="/machine:x64 /FORCE:MULTIPLE"
 if errorlevel 1 exit 1
 
 cmake --build build -j %CPU_COUNT% -- -v -k 0
