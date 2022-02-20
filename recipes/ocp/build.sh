@@ -11,4 +11,4 @@ CONDA_PREFIX="${PREFIX}" cmake -B build -S "${SRC_DIR}/src" \
 	-DCMAKE_BUILD_TYPE=Release
 
 cmake --build build -j ${CPU_COUNT}
-cmake --install .
+cmake --install build
