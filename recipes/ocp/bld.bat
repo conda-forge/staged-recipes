@@ -11,6 +11,7 @@ cmake -B build -S "%SRC_DIR%" ^
 if errorlevel 1 exit 1
 
 cmake --build build -- -v -k 0
+cmake --build build -- -v -k 0
 if errorlevel 1 exit 1
 
 if not exist "%SP_DIR%" mkdir "%SP_DIR%"
