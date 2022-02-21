@@ -1,3 +1,4 @@
+@echo on
 mkdir build
 cd build
 
@@ -8,6 +9,10 @@ cmake -GNinja ^
   -DLLVM_BUILD_TOOLS=ON ^
   -DLLVM_BUILD_UTILS=ON ^
   ..\mlir
+if errorlevel 1 exit 1
 
 ninja mlir-tblgen
-copy bin/mlir-tblgen.exe %LIBRARY_PREFIX%/bin
+if errorlevel 1 exit 1
+
+copy bin\mlir-tblgen.exe %LIBRARY_PREFIX%\bin
+if errorlevel 1 exit 1
