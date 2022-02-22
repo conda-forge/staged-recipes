@@ -1,0 +1,67 @@
+{% set name = "plplot" %}
+{% set version = "5.15.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: http://downloads.sourceforge.net/sourceforge/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: b92de4d8f626a9b20c84fc94f4f6a9976edd76e33fb1eae44f6804bdcc628c7b
+
+build:
+  number: 0
+  script:
+    - set -ex  # [unix]
+    - CMAKE_ARGS=${CMAKE_ARGS//-DCMAKE_INSTALL_LIBDIR=lib/}  # [unix]
+    - >
+       cmake
+       ${CMAKE_ARGS}  # [unix]
+       -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%  # [win]
+       -DENABLE_octave=OFF
+       -DENABLE_tcl=ON
+       -DENABLE_tk=ON
+       -DBUILD_TEST=ON
+       -B_build
+       -GNinja
+    - cmake --build _build
+    - ctest --test-dir _build  # [build_platform == target_platform]
+    - cmake --install _build
+
+  run_exports:
+    - {{ pin_subpackage(name, max_pin='x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}  # [unix]
+    - {{ compiler('cxx') }}  # [unix]
+    - {{ compiler('fortran') }}  # [unix]
+    - {{ compiler('m2w64_c') }}  # [win]
+    - {{ compiler('m2w64_cxx') }}  # [win]
+    - {{ compiler('m2w64_fortran') }}  # [win]
+    - cmake
+    - ninja
+    - pkg-config
+  host:
+    - tk
+  run:
+    - tk
+
+test:
+  requires:
+    - pkg-config
+  commands:
+    - pkg-config --exact-version {{ version }} {{ name }}
+    - pkg-config --exact-version {{ version }} {{ name }}-tcl
+    - pkg-config --exact-version {{ version }} {{ name }}-fortran
+    - pkg-config --exact-version {{ version }} {{ name }}-c++
+
+about:
+  home: http://plplot.sourceforge.net
+  license: LGPL-2.0-or-later
+  license_file: Copyright
+  summary: A cross-platform software package for creating scientific plots
+
+extra:
+  recipe-maintainers:
+    - awvwgk
