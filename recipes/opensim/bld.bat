@@ -5,9 +5,7 @@ cd build_dep
 cmake ../opensim-core-source/dependencies -G Ninja -LAH ^
     -DCMAKE_BUILD_TYPE="Release" ^
     -DCMAKE_INSTALL_PREFIX=../opensim_dependencies_install ^
-    -DSUPERBUILD_simbody=OFF ^
-    -DSUPERBUILD_docopt=OFF ^
-    -DSUPERBUILD_BTK=OFF
+    -DSUPERBUILD_ezc3d=ON
 ninja
 
 cd ..
