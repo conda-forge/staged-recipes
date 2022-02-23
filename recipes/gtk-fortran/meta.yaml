@@ -1,0 +1,74 @@
+{% set name = "gtk-4-fortran" %}
+{% set version = "4.1.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/vmagnin/gtk-fortran/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: a172ac76d691d9fd83ad3b61751cfd362b3909ec0886876445200063c14c6707
+  patches:
+    - cmake.patch
+
+build:
+  number: 0
+  skip: true  # [win]
+  script:
+    - set -ex  # [unix]
+    - export FFLAGS="${FFLAGS} -ffree-line-length-none"  # [unix]
+    - set PKG_CONFIG_PATH=%PREFIX%\Library\lib\pkgconfig;%PREFIX%\lib\pkgconfig  # [win]
+    - >
+       cmake
+       ${CMAKE_ARGS}  # [unix]
+       -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%  # [win]
+       -B_build
+       -GNinja
+    - cmake --build _build
+    - ctest --test-dir _build -R '^(regex|pixbuf_without_gui|tests)$'
+    - cmake --install _build
+
+  run_exports:
+    - {{ pin_subpackage(name, max_pin='x') }}
+  ignore_run_exports:
+    - plplot
+
+requirements:
+  build:
+    - {{ compiler('fortran') }}  # [unix]
+    - {{ compiler('m2w64_fortran') }}  # [win]
+    - cmake
+    - ninja
+    - pkg-config
+  host:
+    - glib
+    - gtk4
+    - plplot
+  run:
+    - gdk-pixbuf
+    - cairo
+
+test:
+  requires:
+    - pkg-config
+  commands:
+    - pkg-config --exact-version {{ version }} {{ name }}
+    - test -f $PREFIX/lib/lib{{ name }}$SHLIB_EXT  # [unix]
+
+about:
+  home: https://github.com/vmagnin/gtk-fortran
+  doc_url: https://github.com/vmagnin/gtk-fortran/wiki
+  license: GPL-3.0-or-later
+  license_file: LICENSE
+  summary: GTK / Fortran bindings
+  description: |
+    The gtk-fortran project aims to offer scientists programming in Fortran a
+    cross-platform library to build Graphical User Interfaces (GUI).
+    Gtk-fortran is a partial GTK / Fortran binding 100% written in Fortran, thanks
+    to the ISO_C_BINDING module for interoperability between C and Fortran, which
+    is a part of the Fortran 2003 standard.
+
+extra:
+  recipe-maintainers:
+    - awvwgk
+    - vmagnin
