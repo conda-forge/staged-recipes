@@ -9,10 +9,17 @@ cd build
 export LLVM_LIBRARY_DIR="$PREFIX/lib"
 export LLVM_INCLUDE_DIRS="$PREFIX/include"
 
+declare -a CMAKE_EXTRA_ARGS
 if [ ${cuda_compiler_version} != "None" ]; then
-    export EXTRA="-DPYTHON_INCLUDE_DIRS=\"$PREFIX/include;$CUDA_HOME/include\" -DCUTLASS_LIBRARY_DIR=$PREFIX/lib -DCUTLASS_INCLUDE_DIR=$PREFIX/include"
+    CMAKE_EXTRA_ARGS+=(
+        -DPYTHON_INCLUDE_DIRS="$PREFIX/include;$CUDA_HOME/include"
+        -DCUTLASS_LIBRARY_DIR=$PREFIX/lib
+        -DCUTLASS_INCLUDE_DIR=$PREFIX/include
+    )
 else
-    export EXTRA="-DPYTHON_INCLUDE_DIRS=$PREFIX/include"
+    CMAKE_EXTRA_ARGS+=(
+        -DPYTHON_INCLUDE_DIRS="-DPYTHON_INCLUDE_DIRS=$PREFIX/include"
+    )
 fi
 
 cmake \
@@ -21,7 +28,7 @@ cmake \
     -DBUILD_PYTHON_MODULE=ON \
     -DLLVM_LIBRARY_DIR=$PREFIX/lib \
     -DLLVM_INCLUDE_DIRS=$PREFIX/include \
-    ${EXTRA}
+    ${CMAKE_EXTRA_ARGS+"${CMAKE_EXTRA_ARGS[@]}"} \
     ..
 
 make
