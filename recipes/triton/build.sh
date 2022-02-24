@@ -9,16 +9,18 @@ cd build
 export LLVM_LIBRARY_DIR="$PREFIX/lib"
 export LLVM_INCLUDE_DIRS="$PREFIX/include"
 
+PYTHON_INCLUDE_DIR=$(python -c "from distutils.sysconfig import get_python_inc; print(get_python_inc())")
+
 declare -a CMAKE_EXTRA_ARGS
 if [ ${cuda_compiler_version} != "None" ]; then
     CMAKE_EXTRA_ARGS+=(
-        -DPYTHON_INCLUDE_DIRS="$PREFIX/include;$CUDA_HOME/include"
+        -DPYTHON_INCLUDE_DIRS="$PYTHON_INCLUDE_DIR;$CUDA_HOME/include"
         -DCUTLASS_LIBRARY_DIR=$PREFIX/lib
         -DCUTLASS_INCLUDE_DIR=$PREFIX/include
     )
 else
     CMAKE_EXTRA_ARGS+=(
-        -DPYTHON_INCLUDE_DIRS="-DPYTHON_INCLUDE_DIRS=$PREFIX/include"
+        -DPYTHON_INCLUDE_DIRS="$PYTHON_INCLUDE_DIR"
     )
 fi
 
