@@ -8,7 +8,8 @@ cmake ../opensim-core-source/dependencies -LAH \
     -DCMAKE_OSX_SYSROOT=${CONDA_BUILD_SYSROOT} \
     -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET} \
     -DCMAKE_BUILD_TYPE="Release" \
-    -DSUPERBUILD_ezc3d=ON \
+    -DSUPERBUILD_ezc3d=OFF \
+    -DSUPERBUILD_simbody=OFF \
     -DCMAKE_INSTALL_PREFIX=../opensim_dependencies_install \
     -DCMAKE_INSTALL_LIBDIR="lib"
 make --jobs ${CPU_COUNT}
