@@ -14,6 +14,8 @@ ninja
 cd ..
 mkdir build
 cd build
+dir ../opensim_dependencies_install
+
 cmake ../opensim-core-source -G Ninja -LAH ^
     -DCMAKE_BUILD_TYPE="Release" ^
     -DOPENSIM_DEPENDENCIES_DIR=../opensim_dependencies_install ^
