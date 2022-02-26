@@ -1,0 +1,60 @@
+{% set name = "m17-cxx-demod" %}
+{% set version = "2.3" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/mobilinkd/m17-cxx-demod/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 5dac28a7aa0c252e06b1ef1723acf0ddb6630a2a8ede07f15809cd2faef0b367
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake >=3.9
+    - make  # [not win]
+    - ninja  # [win]
+    - pkg-config  # [not win]
+  host:
+    - boost-cpp
+    - codec2
+  run:
+    - boost-cpp
+    - codec2
+
+test:
+  requires:
+    - gtest
+    - gmock
+  commands:
+    # verify that commands run (will print usage statement)
+    {% set cmds = ["m17-mod --help", "m17-demod --help"] %}
+    {% for cmd in cmds %}
+    - {{ cmd }} || ec=$?; if [ "$ec" -gt 1 ]; then exit $ec; fi  # [not win]
+    - {{ cmd }} || if !ERRORLEVEL! LEQ 1 cmd /c "exit /b 0"  # [win]
+    {% endfor %}
+
+    # verify that (some) headers get installed
+    - test -f $PREFIX/include/m17cxx/M17Modulator.h # [not win]
+    - if not exist %PREFIX%\\Library\\include\\m17cxx\\M17Modulator.h exit 1  # [win]
+
+about:
+  home: https://github.com/mobilinkd/m17-cxx-demod
+  license: GPL-3.0-or-later
+  license_family: GPL
+  license_file: LICENSE
+  summary: M17 Modulator & Demodulator in C++ (GPL)
+  description: |
+    m17-cxx-demod from mobilinkd has programs that modulate or demodulate data according to the M17 specification https://m17-project.github.io/M17_spec 
+  doc_url: https://github.com/mobilinkd/m17-cxx-demod/blob/master/README.md
+  dev_url: https://github.com/mobilinkd/m17-cxx-demod
+
+extra:
+  recipe-maintainers:
+    - n1ai
+    - ryanvolz
