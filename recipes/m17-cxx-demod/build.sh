@@ -8,9 +8,6 @@ cd build
 cmake_config_args=(
     -DCMAKE_BUILD_TYPE=Release
     -DCMAKE_INSTALL_PREFIX=$PREFIX
-    -DLIB_SUFFIX=""
-    -DENABLE_DOXYGEN=OFF
-    -DENABLE_TESTING=ON
 )
 
 cmake ${CMAKE_ARGS} -G "Ninja" .. "${cmake_config_args[@]}"

@@ -10,8 +10,6 @@ cmake -G "Ninja" ^
     -DCMAKE_BUILD_TYPE:STRING=Release ^
     -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
     -DCMAKE_PREFIX_PATH:PATH="%LIBRARY_PREFIX%" ^
-    -DENABLE_DOXYGEN=OFF ^
-    -DENABLE_TESTING=ON ^
     ..
 if errorlevel 1 exit 1
 
