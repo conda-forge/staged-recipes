@@ -1,0 +1,49 @@
+{% set version = "1.6.1" %}
+
+package:
+  name: keyutils
+  version: {{ version }}
+
+source:
+  url: https://people.redhat.com/~dhowells/keyutils/keyutils-{{ version }}.tar.bz2
+  sha256: c8b15722ae51d95b9ad76cc6d49a4c2cc19b0c60f72f61fb9bf43eea7cbd64ce
+  patches:
+    - 0001-Make-endian-detection-in-work-on-non-RHEL-distributi.patch
+    - 0002-Fix-installing-shared-library-symlinks-with-DESTDIR.patch
+
+build:
+  number: 0
+  skip: true  # [not linux]
+  run_exports:
+    # https://abi-laboratory.pro/tracker/timeline/keyutils/
+    - {{ pin_subpackage('keyutils', max_pin='x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - make
+    - file
+
+test:
+  commands:
+    - test -f ${PREFIX}/lib/libkeyutils.so
+    - keyctl --version | grep '{{ version }}'
+    # These tests can't work inside docker without additional security flags
+    # - keyctl add user cf-keyctl-key cf-keyctl-value @s
+    # - keyctl print $(keyctl search @s user cf-keyctl-key) | grep cf-keyctl-value
+    # - keyctl unlink $(keyctl search @s user cf-keyctl-key) @s
+
+about:
+  home: https://people.redhat.com/~dhowells/keyutils/
+  license: LGPL-2.1-or-later
+  license_file: LICENCE.LGPL
+  summary: Linux Key Management Utilities
+  description: |
+    Keyutils is a set of utilities for managing the key retention facility in
+    the kernel, which can be used by filesystems, block devices and more to
+    gain and retain the authorization and encryption keys required to perform
+    secure operations.
+
+extra:
+  recipe-maintainers:
+    - chrisburr
