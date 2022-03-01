@@ -4,10 +4,6 @@
 export CXXFLAGS=$(echo "$CXXFLAGS" | perl -pe 's/-std=\S+\s/ /')
 echo "build.sh updated CXXFLAGS=${CXXFLAGS}"
 
-# Remove library stripping option (MacOS)
-#export LDFLAGS=$(echo "$LDFLAGS" | sed 's/-Wl,-dead_strip_dylibs//')
-#echo "build.sh updated LDFLAGS=${LDFLAGS}"
-
 # Build for these backend data formats
 echo "asp fits guppi lwa sigproc vdif" > backends.list
 
