@@ -13,6 +13,7 @@ source:
     - patches/0003-add-missing-header.patch
     - patches/0004-properly-point-to-triton-includes.patch
     - patches/0005-bail-out-gracefully-if-nvidia-smi-not-found.patch
+    - patches/0006-fixturize-device.patch
 
 build:
   number: 0
@@ -31,7 +32,7 @@ requirements:
     - pip
     - llvmdev =11
     # available only on CUDA 11+
-    - cutlass                 # [cuda_compiler_version != "10.2"]
+    - cutlass                      # [cuda_compiler_version != "10.2"]
     - libzlib
   run:
     - python
@@ -41,6 +42,8 @@ requirements:
 test:
   imports:
     - triton
+    - triton._C.libtriton
+    - triton._C.libtriton.cutlass   # [cuda_compiler_version != "10.2"]
   requires:
     - pip
     - pytest
@@ -49,7 +52,8 @@ test:
     - python/test
   commands:
     - pip check
-    - pytest -v python/test/regression
+    # test_performance.py not only expects a GPU but _exact_ clockspeeds...
+    - pytest -v python/test -k "not test_perfomance"
 
 about:
   home: https://github.com/openai/triton

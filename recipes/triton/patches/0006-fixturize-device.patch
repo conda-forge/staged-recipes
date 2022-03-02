@@ -1,0 +1,419 @@
+From 2f8262e24a940317d9f483a29d3d0b355319f7c1 Mon Sep 17 00:00:00 2001
+From: "H. Vetinari" <h.vetinari@gmx.com>
+Date: Wed, 2 Mar 2022 17:26:00 +1100
+Subject: [PATCH 6/6] fixturize device
+
+---
+ python/test/conftest.py                       | 15 ++++++
+ python/test/regression/test_performance.py    | 10 ++--
+ python/test/unit/language/test_core.py        | 47 +++++++++----------
+ python/test/unit/language/test_random.py      |  6 +--
+ .../test/unit/operators/test_blocksparse.py   | 17 +++----
+ .../test/unit/operators/test_cross_entropy.py |  6 +--
+ python/test/unit/operators/test_matmul.py     |  6 +--
+ 7 files changed, 61 insertions(+), 46 deletions(-)
+ create mode 100644 python/test/conftest.py
+
+diff --git a/python/test/conftest.py b/python/test/conftest.py
+new file mode 100644
+index 00000000..874b1ff3
+--- /dev/null
++++ b/python/test/conftest.py
+@@ -0,0 +1,15 @@
++import pytest
++import torch
++
++devices = ['cpu']
++
++if torch.cuda.is_available():
++    devices += ['cuda']
++
++
++@pytest.fixture(params=devices, scope="session")
++def device(request):
++    """
++    Fixture for CPU/GPU device in pytorch
++    """
++    return request.param
+diff --git a/python/test/regression/test_performance.py b/python/test/regression/test_performance.py
+index e205828d..38e35e54 100644
+--- a/python/test/regression/test_performance.py
++++ b/python/test/regression/test_performance.py
+@@ -47,14 +47,14 @@ matmul_data = {
+ #   (256 , 256 , 32768) : {'v100': 0.},
+ }
+ @pytest.mark.parametrize('M, N, K', matmul_data.keys())
+-def test_matmul(M, N, K):
++def test_matmul(M, N, K, device):
+     ref_gpu_util = matmul_data[(M, N, K)]['v100']
+     cur_sm_clock = nvsmi(['clocks.current.sm'])[0]
+     ref_sm_clock = 1350
+     max_gpu_perf = 1e-6*80*8*128*cur_sm_clock
+     assert abs(cur_sm_clock - ref_sm_clock) < 10, f'GPU SMs must run at {ref_sm_clock} MHz'
+-    a = torch.randn((M, K), dtype=torch.float16, device='cuda')
+-    b = torch.randn((K, N), dtype=torch.float16, device='cuda')
++    a = torch.randn((M, K), dtype=torch.float16, device=device)
++    b = torch.randn((K, N), dtype=torch.float16, device=device)
+     fn = lambda: triton.ops.matmul(a, b)
+     ms = triton.testing.do_bench(fn, percentiles=None, warmup=10, rep=1000)
+     cur_gpu_perf = 2.*M*N*K/ms * 1e-9
+@@ -90,13 +90,13 @@ elementwise_data = {
+ }
+ 
+ @pytest.mark.parametrize('N', elementwise_data.keys())
+-def test_elementwise(N):
++def test_elementwise(N, device):
+     ref_gpu_util = elementwise_data[N]['v100']
+     cur_mem_clock = nvsmi(['clocks.current.memory'])[0]
+     ref_mem_clock = 877
+     max_gpu_perf = 512*2*ref_mem_clock*1e-3
+     assert abs(cur_mem_clock - ref_mem_clock) < 10, f'GPU memmory must run at {ref_mem_clock} MHz'
+-    z = torch.empty((N, ), dtype=torch.float16, device='cuda')
++    z = torch.empty((N, ), dtype=torch.float16, device=device)
+     x = torch.randn_like(z)
+     y = torch.randn_like(z)
+     grid = lambda meta: (triton.cdiv(N, meta['BLOCK_SIZE']), )
+diff --git a/python/test/unit/language/test_core.py b/python/test/unit/language/test_core.py
+index 25054f0d..cf3f5d8d 100644
+--- a/python/test/unit/language/test_core.py
++++ b/python/test/unit/language/test_core.py
+@@ -37,7 +37,7 @@ def patch_kernel(template, to_replace):
+ @pytest.mark.parametrize("dtype_x", [
+     (dtype_x) for dtype_x in dtypes
+ ])
+-def test_empty_kernel(dtype_x, device='cuda'):
++def test_empty_kernel(dtype_x, device):
+     SIZE = 128
+     @triton.jit
+     def kernel(X, **meta):
+@@ -46,7 +46,7 @@ def test_empty_kernel(dtype_x, device='cuda'):
+     kernel[(1, )](x, SIZE=SIZE, num_warps=4)
+ 
+ # generic test functions
+-def _test_unary(dtype_x, expr, torch_expr=None, device='cuda'):
++def _test_unary(dtype_x, expr, torch_expr=None, device=None):
+     SIZE = 128
+     # define the kernel / launch-grid
+     @triton.jit
+@@ -69,7 +69,7 @@ def _test_unary(dtype_x, expr, torch_expr=None, device='cuda'):
+     triton.testing.assert_almost_equal(z_ref, z_tri)
+ 
+ 
+-def _test_binary(dtype_x, dtype_y, expr, mode_x='real', mode_y='real', device='cuda'):
++def _test_binary(dtype_x, dtype_y, expr, device, mode_x='real', mode_y='real'):
+     SIZE = 128
+     # define the kernel / launch-grid
+     @triton.jit
+@@ -104,7 +104,7 @@ def _test_binary(dtype_x, dtype_y, expr, mode_x='real', mode_y='real', device='c
+   for dtype_x in dtypes \
+   for dtype_y in dtypes
+ ])
+-def test_bin_op(dtype_x, dtype_y, expr, device='cuda'):
++def test_bin_op(dtype_x, dtype_y, expr, device):
+     _test_binary(dtype_x, dtype_y, expr, device=device)
+ 
+ 
+@@ -117,7 +117,7 @@ def test_bin_op(dtype_x, dtype_y, expr, device='cuda'):
+   for dtype_x in dtypes \
+   for dtype_y in dtypes
+ ])
+-def test_bitwise_op(dtype_x, dtype_y, expr, device='cuda'):
++def test_bitwise_op(dtype_x, dtype_y, expr, device):
+     if 'float' in dtype_x + dtype_y:
+         with pytest.raises(RuntimeError):
+             _test_binary(dtype_x, dtype_y, expr, device=device)
+@@ -145,7 +145,7 @@ ops = ['==', '!=', '>', '<', '>=', '<=']
+                            ('nan' , 'nan')]
+ 
+ ])
+-def test_compare_op(dtype_x, dtype_y, expr, mode_x, mode_y, device='cuda'):
++def test_compare_op(dtype_x, dtype_y, expr, mode_x, mode_y, device):
+     _test_binary(dtype_x, dtype_y, expr, mode_x=mode_x, mode_y=mode_y, device=device)
+ 
+ 
+@@ -157,7 +157,7 @@ def test_compare_op(dtype_x, dtype_y, expr, mode_x, mode_y, device='cuda'):
+ ] + [\
+     (dtype_x, f' ~x') for dtype_x in int_dtypes
+      ])
+-def test_unary_op(dtype_x, expr, device='cuda'):
++def test_unary_op(dtype_x, expr, device):
+     _test_unary(dtype_x, expr, device=device)
+ 
+ # ----------------
+@@ -170,7 +170,7 @@ def test_unary_op(dtype_x, expr, device='cuda'):
+ @pytest.mark.parametrize("expr", [
+     'exp', 'log', 'cos', 'sin'
+ ])
+-def test_math_op(expr, device='cuda'):
++def test_math_op(expr, device):
+     _test_unary('float32', f'tl.{expr}(x)', f'torch.{expr}(x) ', device=device)
+ 
+ 
+@@ -194,7 +194,7 @@ def make_ptr_str(name, shape):
+     ['None, :', ':, None',\
+      'None, :, :', ':, :, None']\
+ ])
+-def test_index1d(expr, device='cuda'):
++def test_index1d(expr, device):
+     dtype = torch.int32
+     rank_x = expr.count(':')
+     rank_y = expr.count(',') + 1
+@@ -241,8 +241,7 @@ def fn(a, b):
+             a * b
+ 
+ 
+-def test_tuples():
+-    device = 'cuda'
++def test_tuples(device):
+ 
+     @triton.jit
+     def with_fn(X, Y, A, B, C):
+@@ -284,7 +283,7 @@ def test_tuples():
+     ('min', 'int32', mode), ('min', 'float32', mode),\
+     ]
+     for mode in ['all_neg', 'all_pos', 'min_neg', 'max_pos']]))
+-def test_atomic_rmw(op, dtype_x, mode, device='cuda'):
++def test_atomic_rmw(op, dtype_x, mode, device):
+     dtype_x = cvt[dtype_x]
+     n_programs = 5
+ 
+@@ -339,7 +338,7 @@ def test_atomic_rmw(op, dtype_x, mode, device='cuda'):
+     ('bfloat16', 'float32', False),
+     ('float32', 'int32', True)
+ ])
+-def test_cast(dtype_x, dtype_z, bitcast, device='cuda'):
++def test_cast(dtype_x, dtype_z, bitcast, device):
+     x = torch.tensor([43.5], dtype=cvt[dtype_x], device=device)
+ 
+     # triton kernel
+@@ -368,7 +367,7 @@ def test_cast(dtype_x, dtype_z, bitcast, device='cuda'):
+   [(dtype, shape) \
+         for dtype in dtypes\
+         for shape in [128, 512]])
+-def test_reduce1d(dtype, shape, device='cuda'):
++def test_reduce1d(dtype, shape, device):
+     dtype = cvt[dtype]
+ 
+     # triton kernel
+@@ -391,7 +390,7 @@ def test_reduce1d(dtype, shape, device='cuda'):
+   [(dtype, shape, 1) \
+         for dtype in ['float32']\
+         for shape in [(1, 1024)]])
+-def test_reduce2d(dtype, shape, axis, device='cuda'):
++def test_reduce2d(dtype, shape, axis, device):
+     dtype = cvt[dtype]
+     # triton kernel
+     @triton.jit
+@@ -424,7 +423,7 @@ def test_reduce2d(dtype, shape, axis, device='cuda'):
+         for dtype in ['float32']\
+         for shape in [(128, 128)]\
+         for perm  in [(1, 0)]])
+-def test_permute(dtype, shape, perm, device='cuda'):
++def test_permute(dtype, shape, perm, device):
+     dtype = cvt[dtype]
+     # triton kernel
+     @triton.jit
+@@ -458,7 +457,7 @@ def test_permute(dtype, shape, perm, device='cuda'):
+ # ---------------
+ 
+ @pytest.mark.parametrize("epilogue", ['none', 'add-matrix', 'add-rows', 'add-cols'])
+-def test_dot(epilogue, device='cuda'):
++def test_dot(epilogue, device):
+     torch.manual_seed(0)
+     # triton kernel
+     @triton.jit
+@@ -515,7 +514,7 @@ def test_dot(epilogue, device='cuda'):
+     assert 'ld.global.v4' in ptx
+     assert 'st.global.v4' in ptx
+ 
+-def test_dot_without_load():
++def test_dot_without_load(device):
+     @triton.jit
+     def kernel(out, **meta):
+         pid = tl.program_id(axis=0)
+@@ -526,7 +525,7 @@ def test_dot_without_load():
+         pout = out + tl.arange(0, 32)[:, None]*32 + tl.arange(0, 32)[None, :]
+         tl.store(pout, c)
+         
+-    out = torch.ones((32,32), dtype=torch.float32, device="cuda")
++    out = torch.ones((32,32), dtype=torch.float32, device=device)
+     kernel[(1,)](out)
+ 
+ # ---------------
+@@ -534,7 +533,7 @@ def test_dot_without_load():
+ # ---------------
+ 
+ @pytest.mark.parametrize("start", [0, 1, 7, 16])
+-def test_arange(start, device='cuda'):
++def test_arange(start, device):
+     BLOCK = 128
+     z_tri = torch.empty(BLOCK, dtype=torch.int32, device=device)
+     @triton.jit
+@@ -552,7 +551,7 @@ def test_arange(start, device='cuda'):
+ # 'bfloat16': torch.bfloat16,
+ # Testing masked loads with an intermate copy to shared memory run.
+ @pytest.mark.parametrize("dtype", [torch.float16, torch.float32])
+-def test_masked_load_shared_memory(dtype, device='cuda'):
++def test_masked_load_shared_memory(dtype, device):
+     M = 32
+     N = 32
+     K = 8
+@@ -601,8 +600,8 @@ def test_masked_load_shared_memory(dtype, device='cuda'):
+ 
+ @pytest.mark.parametrize("cache", ["", ".ca", ".cg"])
+ def test_load_cache_modifier(cache):
+-    src = torch.empty(128, device='cuda')
+-    dst = torch.empty(128, device='cuda')
++    src = torch.empty(128, device)
++    dst = torch.empty(128, device)
+ 
+     @triton.jit
+     def _kernel(dst, src, **meta):
+@@ -642,7 +641,7 @@ def test_load_cache_modifier(cache):
+ # ---------------
+ # test noop
+ #----------------
+-def test_noop(device='cuda'):
++def test_noop(device):
+     @triton.jit
+     def kernel(**meta):
+         pass
+diff --git a/python/test/unit/language/test_random.py b/python/test/unit/language/test_random.py
+index 4c1261f1..4958642f 100644
+--- a/python/test/unit/language/test_random.py
++++ b/python/test/unit/language/test_random.py
+@@ -114,7 +114,7 @@ BLOCK = 1024
+     [(size, seed) for size in ['10', '4,53', '10000']\
+                   for seed in [0, 42, 124, 54, 0xffffffff, 0xdeadbeefcafeb0ba]]
+ )
+-def test_randint(size, seed, device='cuda'):
++def test_randint(size, seed, device):
+     size = list(map(int, size.split(',')))
+     @triton.jit
+     def kernel(X, N, seed):
+@@ -137,7 +137,7 @@ def test_randint(size, seed, device='cuda'):
+     [(size, seed) for size in [1000000]\
+                   for seed in [0, 42, 124, 54]]
+ )
+-def test_rand(size, seed, device='cuda'):
++def test_rand(size, seed, device):
+     @triton.jit
+     def kernel(X, N, seed):
+         offset = tl.program_id(0) * BLOCK + tl.arange(0, BLOCK)
+@@ -155,7 +155,7 @@ def test_rand(size, seed, device='cuda'):
+     [(size, seed) for size in [1000000]\
+                   for seed in [0, 42, 124, 54]]
+ )
+-def test_randn(size, seed, device='cuda'):
++def test_randn(size, seed, device):
+     @triton.jit
+     def kernel(X, N, seed):
+         offset = tl.program_id(0) * BLOCK + tl.arange(0, BLOCK)
+diff --git a/python/test/unit/operators/test_blocksparse.py b/python/test/unit/operators/test_blocksparse.py
+index 3b9a1c17..b580a2b8 100644
+--- a/python/test/unit/operators/test_blocksparse.py
++++ b/python/test/unit/operators/test_blocksparse.py
+@@ -8,12 +8,12 @@ import pytest
+ @pytest.mark.parametrize("TRANS_B", [False, True])
+ @pytest.mark.parametrize("BLOCK", [16, 32, 64])
+ @pytest.mark.parametrize("DTYPE", [torch.float16])
+-def test_matmul(MODE, TRANS_A, TRANS_B, BLOCK, DTYPE, Z=3, H=2, M=512, N=384, K=256):
++def test_matmul(MODE, TRANS_A, TRANS_B, BLOCK, DTYPE, device, Z=3, H=2, M=512, N=384, K=256):
+     # set seed
+     torch.random.manual_seed(0)
+     # create inputs
+-    a = torch.randn((Z, H, K, M) if TRANS_A else (Z, H, M, K), dtype=DTYPE, device="cuda")
+-    b = torch.randn((Z, H, N, K) if TRANS_B else (Z, H, K, N), dtype=DTYPE, device="cuda")
++    a = torch.randn((Z, H, K, M) if TRANS_A else (Z, H, M, K), dtype=DTYPE, device=device)
++    b = torch.randn((Z, H, N, K) if TRANS_B else (Z, H, K, N), dtype=DTYPE, device=device)
+     shape = {
+         "sdd": (M, N),
+         "dsd": (a.shape[2], a.shape[3]),
+@@ -40,7 +40,7 @@ def test_matmul(MODE, TRANS_A, TRANS_B, BLOCK, DTYPE, Z=3, H=2, M=512, N=384, K=
+ @pytest.mark.parametrize("BLOCK", [16, 32, 64])
+ @pytest.mark.parametrize("WIDTH", [256, 576, 1024, 1792])
+ @pytest.mark.parametrize("DTYPE", [torch.float16, torch.float32])
+-def test_softmax(BLOCK, WIDTH, DTYPE):
++def test_softmax(BLOCK, WIDTH, DTYPE, device):
+     is_causal = True
+     # set seed
+     torch.random.manual_seed(0)
+@@ -48,12 +48,12 @@ def test_softmax(BLOCK, WIDTH, DTYPE):
+     scale = 0.4
+     # create inputs
+     layout = torch.randint(2, (H, M // BLOCK, N // BLOCK))
+-    x = torch.randn((Z, H, M, N), dtype=DTYPE, requires_grad=True, device="cuda")
+-    at_mask = torch.randint(low=0, high=2, size=(N, N), dtype=torch.bool, requires_grad=False, device="cuda")
++    x = torch.randn((Z, H, M, N), dtype=DTYPE, requires_grad=True, device=device)
++    at_mask = torch.randint(low=0, high=2, size=(N, N), dtype=torch.bool, requires_grad=False, device=device)
+     # make sure each row has at least one non-zero element
+     torch.diagonal(layout)[:] = 1
+     torch.diagonal(at_mask)[:] = 1
+-    kp_mask = torch.randint(low=0, high=2, size=(Z, N), dtype=DTYPE, requires_grad=False, device="cuda")
++    kp_mask = torch.randint(low=0, high=2, size=(Z, N), dtype=DTYPE, requires_grad=False, device=device)
+     kp_mask[:] = 0
+     kp_mask[kp_mask == 1.0] = float("-inf")
+     # triton result
+@@ -86,6 +86,7 @@ def test_softmax(BLOCK, WIDTH, DTYPE):
+ def test_attention_fwd_bwd(
+     block,
+     dtype,
++    device,
+     input_scale=1.0,
+     scale=1 / 8.0,
+     n_ctx=256,
+@@ -100,7 +101,7 @@ def test_attention_fwd_bwd(
+     attn_mask = torch.tril(
+         torch.ones(
+             [n_ctx, n_ctx],
+-            device="cuda",
++            device=device,
+             dtype=dtype,
+         ),
+         diagonal=0,
+diff --git a/python/test/unit/operators/test_cross_entropy.py b/python/test/unit/operators/test_cross_entropy.py
+index 48cb303b..8a683319 100644
+--- a/python/test/unit/operators/test_cross_entropy.py
++++ b/python/test/unit/operators/test_cross_entropy.py
+@@ -10,11 +10,11 @@ import pytest
+                         for mode  in ['forward', 'backward']
+     ]
+                          )
+-def test_op(M, N, dtype, mode):
++def test_op(M, N, dtype, mode, device):
+     dtype = {'float16': torch.float16, 'float32': torch.float32}[dtype]
+     # create inputs
+-    x = torch.randn(M, N, dtype=dtype, device='cuda', requires_grad=True)
+-    idx = 4 + torch.ones(M, dtype=torch.int64, device='cuda')
++    x = torch.randn(M, N, dtype=dtype, device=device, requires_grad=True)
++    idx = 4 + torch.ones(M, dtype=torch.int64, device=device)
+     # forward pass
+     tt_y = triton.ops.cross_entropy(x, idx)
+     th_y = torch.nn.CrossEntropyLoss(reduction="none")(x, idx)
+diff --git a/python/test/unit/operators/test_matmul.py b/python/test/unit/operators/test_matmul.py
+index dbf1974c..00d27360 100644
+--- a/python/test/unit/operators/test_matmul.py
++++ b/python/test/unit/operators/test_matmul.py
+@@ -63,7 +63,7 @@ import torch
+         ]
+     ),
+ )
+-def test_op(BLOCK_M, BLOCK_N, BLOCK_K, SPLIT_K, NWARP, NSTAGE, M, N, K, AT, BT, DTYPE):
++def test_op(BLOCK_M, BLOCK_N, BLOCK_K, SPLIT_K, NWARP, NSTAGE, M, N, K, AT, BT, DTYPE, device):
+     torch.manual_seed(0)
+     # nuke kernel decorators -- will set meta-parameters manually
+     META = {'BLOCK_M': BLOCK_M, 'BLOCK_N': BLOCK_N, 'BLOCK_K': BLOCK_K, 'SPLIT_K': SPLIT_K}
+@@ -79,8 +79,8 @@ def test_op(BLOCK_M, BLOCK_N, BLOCK_K, SPLIT_K, NWARP, NSTAGE, M, N, K, AT, BT,
+     K = BLOCK_K * SPLIT_K if K is None else K
+     # allocate/transpose inputs
+     DTYPE = {"float16": torch.float16, "float32": torch.float32}[DTYPE]
+-    a = .1*torch.randn((K, M) if AT else (M, K), device="cuda", dtype=DTYPE)
+-    b = .1*torch.randn((N, K) if BT else (K, N), device="cuda", dtype=DTYPE)
++    a = .1*torch.randn((K, M) if AT else (M, K), device=device, dtype=DTYPE)
++    b = .1*torch.randn((N, K) if BT else (K, N), device=device, dtype=DTYPE)
+     a = a.t() if AT else a
+     b = b.t() if BT else b
+     # run test
+-- 
+2.35.1.windows.2
+
