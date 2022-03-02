@@ -1,4 +1,4 @@
-From f87e78ed1d68ece7907df5e4836c961655ee632a Mon Sep 17 00:00:00 2001
+From 001db328d815c52e5148e25f895b3bb197f48803 Mon Sep 17 00:00:00 2001
 From: "H. Vetinari" <h.vetinari@gmx.com>
 Date: Wed, 2 Mar 2022 17:26:00 +1100
 Subject: [PATCH 6/6] fixturize device
@@ -8,10 +8,10 @@ Subject: [PATCH 6/6] fixturize device
  python/test/regression/test_performance.py    | 10 ++--
  python/test/unit/language/test_core.py        | 47 +++++++++----------
  python/test/unit/language/test_random.py      |  6 +--
- .../test/unit/operators/test_blocksparse.py   | 17 +++----
+ .../test/unit/operators/test_blocksparse.py   | 21 +++++----
  .../test/unit/operators/test_cross_entropy.py |  6 +--
  python/test/unit/operators/test_matmul.py     |  6 +--
- 7 files changed, 61 insertions(+), 46 deletions(-)
+ 7 files changed, 63 insertions(+), 48 deletions(-)
  create mode 100644 python/test/conftest.py
 
 diff --git a/python/test/conftest.py b/python/test/conftest.py
@@ -310,7 +310,7 @@ index 4c1261f1..4958642f 100644
      def kernel(X, N, seed):
          offset = tl.program_id(0) * BLOCK + tl.arange(0, BLOCK)
 diff --git a/python/test/unit/operators/test_blocksparse.py b/python/test/unit/operators/test_blocksparse.py
-index 3b9a1c17..b580a2b8 100644
+index 3b9a1c17..55608499 100644
 --- a/python/test/unit/operators/test_blocksparse.py
 +++ b/python/test/unit/operators/test_blocksparse.py
 @@ -8,12 +8,12 @@ import pytest
@@ -362,7 +362,13 @@ index 3b9a1c17..b580a2b8 100644
      input_scale=1.0,
      scale=1 / 8.0,
      n_ctx=256,
-@@ -100,7 +101,7 @@ def test_attention_fwd_bwd(
+@@ -95,12 +96,12 @@ def test_attention_fwd_bwd(
+     # inputs
+     qkv_shape = (batch_size, n_heads, n_ctx, 64)
+     qkvs = [
+-        torch.nn.Parameter(input_scale * torch.randn(qkv_shape), requires_grad=True).to(dtype).cuda() for _ in range(3)
++        torch.nn.Parameter(input_scale * torch.randn(qkv_shape), requires_grad=True).to(dtype, device=device) for _ in range(3)
+     ]
      attn_mask = torch.tril(
          torch.ones(
              [n_ctx, n_ctx],
@@ -371,6 +377,15 @@ index 3b9a1c17..b580a2b8 100644
              dtype=dtype,
          ),
          diagonal=0,
+@@ -121,7 +122,7 @@ def test_attention_fwd_bwd(
+ 
+     # Torch version:
+     torch_q, torch_k, torch_v = [x.clone() for x in qkvs]
+-    attn_mask = 1e6 * (-1 + (attn_mask.reshape((1, 1, n_ctx, n_ctx)).cuda()))
++    attn_mask = 1e6 * (-1 + (attn_mask.reshape((1, 1, n_ctx, n_ctx)).to(device=device)))
+     torch_q.retain_grad()
+     torch_k.retain_grad()
+     torch_v.retain_grad()
 diff --git a/python/test/unit/operators/test_cross_entropy.py b/python/test/unit/operators/test_cross_entropy.py
 index 48cb303b..8a683319 100644
 --- a/python/test/unit/operators/test_cross_entropy.py
