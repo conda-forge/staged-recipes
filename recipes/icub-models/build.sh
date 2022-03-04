@@ -20,7 +20,7 @@ ctest --output-on-failure -C Release
 # This will allow them to be run on environment activation.
 for CHANGE in "activate" "deactivate"
 do
-    multisheller ${RECIPE_DIR}/${CHANGE}.msh
+    multisheller ${RECIPE_DIR}/${CHANGE}.msh --output ./${CHANGE}
     mkdir -p "${PREFIX}/etc/conda/${CHANGE}.d"
     cp "${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.sh"
     cp "${CHANGE}.bash" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.bash"
