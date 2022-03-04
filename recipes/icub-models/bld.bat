@@ -31,7 +31,7 @@ setlocal EnableDelayedExpansion
 :: Generate and copy the [de]activate scripts to %PREFIX%\etc\conda\[de]activate.d.
 :: This will allow them to be run on environment activation.
 for %%F in (activate deactivate) DO (
-    multisheller %RECIPE_DIR%\%%F.msh
+    multisheller %RECIPE_DIR%\%%F.msh --output .\%%F
 
     if not exist %PREFIX%\etc\conda\%%F.d mkdir %PREFIX%\etc\conda\%%F.d
     copy %%F.bat %PREFIX%\etc\conda\%%F.d\%PKG_NAME%_%%F.bat
