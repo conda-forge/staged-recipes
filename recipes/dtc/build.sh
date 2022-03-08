@@ -9,10 +9,15 @@ make all pylibfdt V=1 \
     CFLAGS="$CFLAGS" \
     CPPFLAGS="-I libfdt $CPPFLAGS"
 
-# pylibfdt tests depend on outputs of other tests that happen to
-# run before them.  We run full 'make check' in the build directory
-# so that we can copy those binary artifacts (dtb files) in pylibfdt's
-# test.source_files
-make check V=1 \
-    CFLAGS="$CFLAGS" \
-    CPPFLAGS="-I libfdt -I . $CPPFLAGS"
+if [[ "$(uname -s)" != "Darwin" ]]; then
+    # make check doesn't build on osx due to GCC-specific assembly directives in tests/trees.S
+    # So, we only do minimal existance and import testing on the osx package
+
+    # pylibfdt tests depend on outputs of other tests that happen to
+    # run before them.  We run full 'make check' in the build directory
+    # so that we can copy those binary artifacts (dtb files) in pylibfdt's
+    # test.source_files
+    make check V=1 \
+	CFLAGS="$CFLAGS" \
+	CPPFLAGS="-I libfdt -I . $CPPFLAGS"
+fi
