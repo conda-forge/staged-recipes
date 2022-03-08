@@ -1,0 +1,168 @@
+{% set version = '1.6.1' %}
+{% set major_ver = version.split(".")[0] %}
+
+package:
+  name: dtc-package
+  version: {{ version }}
+
+source:
+  url: https://git.kernel.org/pub/scm/utils/dtc/dtc.git/snapshot/dtc-{{ version }}.tar.gz
+  sha256: 6401c9a0f577a270df4632bf0f3e5454ccc7a5ca3caefa67a3e1c29c9c6b8c60
+
+build:
+  number: 0
+  skip: true  # [win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - bison
+    - flex
+    - make
+    - swig
+    - pkg-config
+  host:
+    - python {{ python }}
+    - yaml
+    - valgrind
+  run:
+    - python {{ python }}
+
+outputs:
+  - name: dtc
+    script: install.sh
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - make
+      host:
+        - {{ pin_subpackage("libfdt", exact=True) }}
+        - yaml
+        - valgrind
+      run:
+        - {{ pin_subpackage("libfdt", max_pin="x.x") }}
+    test:
+      requires:
+        - {{ compiler('c') }}
+        - make
+      source_files:
+        - util.c 
+        - util.h
+        - version_gen.h
+        - tests
+      commands:
+        - convert-dtsv0 --help
+        - dtc --help
+          # dtdiff is a shell script that can pipe two device-tree files through dtc and diff them
+          # there are no specific tests for it in the dtc testsuite and the diff isn't completely
+          # clean even if you run 'dtdiff tests/test_tree1.{dts,dtb}' because the representation
+          # of various data is formatted slightly differently in the unpacked dtb
+        - 'test -x "$PREFIX"/bin/dtdiff'
+        - fdtdump --help
+        - fdtget --help
+        - fdtoverlay --help
+        - fdtput --help
+        # There is only one compilation unit needed from the toplevel project. Running the tests
+        # from inside tests subdir removes the binaries and library target from the prereqs and
+        # that's what we want for testing the packaged artifacts. So, we copy three tiny files
+        # from the toplevel project into tests and then we can 'cleanly' rerun the tests using the
+        # packaged artifacts
+        - cp util.c util.h version_gen.h tests
+        # use Makefile.tests directly so that binaries won't be built but used from installed package
+        # NO_PYTHON because we test that in pylibfdt
+        # VECHO=: to enable Makefile.tests to stand on it's own
+        # LDLIBS=-lfdt to correctly find installed libfdt instead of having in-tree library an explicit dependency listed in the link command
+        # LIBDL= needs to also include -lfdt because of how it is used in rules to override the  builtin and not use LDLIBS
+        # TESTS_PREFIX=./ to work around 'cd $TEST_PREFIX' in check recipe
+        # TEST_BINDIR="$PREFIX/bin" because testutils.sh hardcodes the paths to binaries, defaulting to ../
+        - 'NO_PYTHON=1 TEST_BINDIR="$PREFIX/bin" make -C tests -f Makefile.tests VECHO=: LDLIBS=-lfdt tests_clean check TESTS_PREFIX=./ LIBDL="-lfdt -ldl"'  # [linux]
+        # make check doesn't build cleanly on osx due to GCC-specific directive usage in tests/trees.S, so we don't do that testing on osx
+    about:
+      summary: 'Linux Kernel Device Tree Compiler (dtc)'
+      description: |
+       Device Tree Compiler (dtc) toolchain for working with device
+       tree source and binary files
+      license: GPL-2.0-or-later
+      license_family: GPL2
+      license_file: 
+        - GPL
+        - README.license
+  - name: pylibfdt
+    script: install.sh
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - make
+        - swig
+      host:
+        - python {{ python }}
+      run:
+        - python {{ python }}
+    test:
+      imports:
+        - libfdt
+      # we can only due extended testing on linux due to GCC-specific assembly being used to
+      # generate the dtb files below
+      source_files:                # [linux]
+        - tests/pylibfdt_tests.py  # [linux]
+        - tests/test_tree1.dtb     # [linux]
+        - tests/test_props.dtb     # [linux]
+        - tests/aliases.dtb        # [linux]
+      commands:  # [linux]
+        - "cd tests && python ./pylibfdt_tests.py"  # [linux]
+    about:
+      summary: 'Python Bindings for Linux Kernel Device Tree library (libfdt)'
+      description: |
+       Python bindings for libfdt, a utility library for reading and manipulating the Linux Kernel
+       Device Tree binary format.
+      license: GPL-2.0-or-later OR BSD-2-Clause
+      license_family: BSD
+      license_file: 
+        - GPL
+        - BSD-2-Clause
+        - README.license
+  - name: libfdt
+    script: install.sh
+    build:
+      run_exports:
+        - {{ pin_subpackage("libfdt", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - make
+    test:
+      commands:
+        # tests/run_tests.sh -t libfdt depends on having dtc and the other binaries installed
+        # we include those tests when packaging 'dtc' because it depends on having 'libfdt'
+        - test -f $PREFIX/include/libfdt.h
+        - test -f $PREFIX/include/fdt.h
+        - test -f $PREFIX/include/libfdt_env.h
+        - test -f $PREFIX/lib/libfdt-{{ version }}${SHLIB_EXT}
+        - test -f $PREFIX/lib/libfdt.a
+        - test -f $PREFIX/lib/libfdt${SHLIB_EXT}
+        - test -f $PREFIX/lib/libfdt${SHLIB_EXT}.{{ major_ver }}
+    about:
+      summary: 'Linux Kernel Device Tree library (libfdt)'
+      description: |
+       libfdt, a utility library for reading and manipulating the Linux Kernel
+       Device Tree binary format.
+      license: GPL-2.0-or-later OR BSD-2-Clause
+      license_family: BSD
+      license_file: 
+        - GPL
+        - BSD-2-Clause
+        - README.license
+
+
+about:
+  home: https://git.kernel.org/pub/scm/utils/dtc/dtc.git
+  summary: 'Toplevel for subpackages dtc, libfdt and pylibfdt'
+  license: GPL-2.0-or-later
+  license_family: GPL
+  license_file:
+    - GPL
+    - README.license
+
+extra:
+  recipe-maintainers:
+    - timsnyder
