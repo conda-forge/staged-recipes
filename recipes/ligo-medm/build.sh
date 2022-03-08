@@ -2,7 +2,6 @@
 
 set -ex
 
-export EPICS_BASE="${PREFIX}/epics"
 export TOP="${EPICS_BASE}/extensions"
 export MOTIF_INC="${PREFIX}/include"
 export MOTIF_LIB="${PREFIX}/lib"
