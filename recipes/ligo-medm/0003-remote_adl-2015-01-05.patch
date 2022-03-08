@@ -1,0 +1,1551 @@
+diff --git a/medm/Makefile b/medm/Makefile
+index f145b6c..972e46b 100644
+--- a/medm/Makefile
++++ b/medm/Makefile
+@@ -185,6 +185,8 @@ USR_LIBS_Linux = Xm Xt Xp Xmu X11 Xext
+ #Do not use PROD_LDFLAGS_Darwin because it goes after OP_SYS_LDFLAGS
+ USR_LDFLAGS_Darwin = -L/usr/X11/lib /opt/local/lib/libXm.a /opt/local/lib/libjpeg.a /opt/local/lib/libiconv.a
+ 
++USR_CFLAGS += -O0 -g3
++
+ WIN32_RUNTIME=MD
+ USR_CFLAGS_WIN32 += /DWIN32 /D_WINDOWS
+ USR_LDFLAGS_WIN32 += /SUBSYSTEM:WINDOWS
+@@ -254,6 +256,9 @@ SRCS += updateMonitors.c
+ SRCS += updateTask.c
+ SRCS += utils.c
+ SRCS += xgif.c
++SRCS += membuffer.c
++SRCS += network.c
++SRCS += cache.c
+ 
+ RCS_WIN32 += medm.rc
+ 
+diff --git a/medm/cache.c b/medm/cache.c
+new file mode 100644
+--- /dev/null
++++ b/medm/cache.c
+@@ -0,0 +1,186 @@
++#include <stdlib.h>
++#include <string.h>
++#include <time.h>
++
++#include "cache.h"
++
++#define MEM_BUF_CACHE_ENTRIES 50
++
++typedef struct {
++	char *path;
++	MemBuffer *m;
++	time_t lastAccess;
++} cacheEntry;
++
++static cacheEntry *_cache = NULL;
++
++/**
++ * Initialize the MemBuffer cache
++ */
++static void _chInitialize() {
++	if (!_cache) {
++		_cache = calloc(MEM_BUF_CACHE_ENTRIES, sizeof(cacheEntry));
++	}
++}
++
++/**
++ * Given a cache entry, clear it out, freeing all resources held by it
++ *
++ * @param entry The cacheEntry to cleanup
++ */
++static void _chClearEntry(cacheEntry *entry) {
++	if (entry) {
++		if (entry->path) {
++			free(entry->path);
++			entry->path = NULL;
++		}
++		entry->m = mbClose(entry->m);
++		entry->lastAccess = (time_t)-1;
++	}
++}
++
++/**
++ * Given a cacheEntry sets its path, MemBuffer, and last access time
++ *
++ * The lastAccess time is set to the current time.
++ *
++ * @param entry The entry to set.  It will be cleared if it already holds data.
++ * @param path The path to set in the entry
++ * @param m The MemBuffer clone and insert into the entry.
++ * @return 1 on success else 0.  If 0 is returned then entry is not modified.
++ */
++static int _chSetEntry(cacheEntry *entry, const char *path, const MemBuffer *m) {
++	char *tmpPath = NULL;
++	MemBuffer *tmpM = NULL;
++	size_t len = 0;
++
++	if (!entry || !path || !m) {
++		return 0;
++	}
++	len = strlen(path) + 1;
++	tmpPath = malloc(len);
++	if (!tmpPath) {
++		return 0;
++	}
++	tmpM = mbClone(m);
++	if (!tmpM) {
++		free(tmpPath);
++		return 0;
++	}
++	strncpy(tmpPath, path, len);
++	tmpPath[len-1] = '\0';
++
++	/* clean up any old remains of the entry first */
++	_chClearEntry(entry);
++
++	/* now set everything */
++	entry->path = tmpPath;
++	entry->m = tmpM;
++	entry->lastAccess = time(NULL);
++
++	return 1;
++}
++
++/**
++ * Return an empty cacheEntry
++ *
++ * Returns the first empty cacheEntry or clears out and returns the entry with the oldest lastAccess field
++ *
++ * @return A cacheEntry * for use in the cache, NULL if the cache has not been initialized.
++ */
++static cacheEntry *_chGetNewEntry() {
++	cacheEntry *cur = NULL, *end = NULL, *oldest = NULL;
++	time_t timestamp = time(NULL) + 1;
++
++	if (!_cache) {
++		return NULL;
++	}
++	end = _cache + MEM_BUF_CACHE_ENTRIES;
++	for (cur = _cache; cur < end; cur++) {
++		if (!cur->path) {
++			_chClearEntry(cur);
++			return cur;
++		}
++		if (cur->lastAccess < timestamp) {
++			timestamp = cur->lastAccess;
++			oldest = cur;
++		}
++	}
++	/* didn't find a match, return the oldest */
++	_chClearEntry(oldest);
++	return oldest;
++}
++
++/**
++ * Return the cacheEntry associated with the given path
++ *
++ * @param path NULL terminated string used to key the entry.
++ * @return NULL or the cacheEntry associated with the path
++ */
++static cacheEntry *_chGetEntry(const char *path) {
++	cacheEntry *cur = NULL, *end = NULL;
++
++	if (!_cache) {
++		return NULL;
++	}
++	end = _cache + MEM_BUF_CACHE_ENTRIES;
++	for (cur = _cache; cur < end; cur++) {
++		if (cur->path) {
++			if (strcmp(cur->path, path) == 0) {
++				return cur;
++			}
++		}
++	}
++	return NULL;
++}
++
++/** FIXME: To be pedantic, add a tear-down function */
++
++/**
++ * Add an item to the cache.
++ *
++ * The item is cloned into the cache, so m must still be tracked by the caller.
++ *
++ * There is no indication if it was successful or not.  Repeatedly adding the same key will overwrite the entry.
++ */
++void chAddItem(const char *path, const MemBuffer *m) {
++	cacheEntry *entry = NULL;
++
++	if (!path) {
++		return;
++	}
++	_chInitialize();
++	entry = _chGetEntry(path);
++	if (!entry) {
++		entry = _chGetNewEntry();
++		if (!entry) {
++			return;
++		}
++	}
++	/* clear the old entry, we could do this using a temp object and swap
++	 * but we have already declared we are invalidating the cache, so just kill it.
++	 */
++	_chClearEntry(entry);
++
++	_chSetEntry(entry, path, m);
++}
++
++/**
++ * Retrieve an item from the cache
++ *
++ * @param path The key to lookup the item in the cache.  NULL terminated string.
++ * @return A pointer to a MemBuffer containing the data that was cached, or NULL if it could not be looked up.  It is the responsibilty of the calling function to call closeMemBuffer on this value.
++ */
++MemBuffer *chGetItem(const char *path) {
++	cacheEntry *entry = NULL;
++
++	if (!_cache || !path) {
++		return NULL;
++	}
++	entry = _chGetEntry(path);
++	if (!entry) {
++		return NULL;
++	}
++	entry->lastAccess = time(NULL);
++	return mbClone(entry->m);
++}
+diff --git a/medm/cache.h b/medm/cache.h
+new file mode 100644
+--- /dev/null
++++ b/medm/cache.h
+@@ -0,0 +1,14 @@
++#ifndef __MEMBUF_CACHE_H__
++#define __MEMBUF_CACHE_H__
++
++#include "membuffer.h"
++
++/** NOT THREAD SAFE */
++
++extern void chAddItem(const char *path, const MemBuffer *m);
++
++/** NOT THREAD SAFE */
++
++extern MemBuffer *chGetItem(const char *path);
++
++#endif
+diff --git a/medm/display.c b/medm/display.c
+--- a/medm/display.c
++++ b/medm/display.c
+@@ -131,6 +131,7 @@ DisplayInfo *allocateDisplayInfo()
+     displayInfo->selectedElementsAreHighlighted = False;
+ 
+     displayInfo->filePtr = NULL;
++    displayInfo->memBuf = NULL;
+     displayInfo->newDisplay = True;
+     displayInfo->elementsExecuted = False;
+     displayInfo->positionDisplay = False;
+@@ -333,6 +334,7 @@ void dmCleanupDisplayInfo(DisplayInfo *displayInfo, Boolean cleanupDisplayList)
+     }
+     displayInfo->drawingAreaBackgroundColor = 0;
+     displayInfo->drawingAreaForegroundColor = 0;
++    displayInfo->memBuf = mbClose(displayInfo->memBuf);
+ }
+ 
+ 
+@@ -679,7 +681,10 @@ void dmDisplayListParse(DisplayInfo *displayInfoIn, FILE *filePtr,
+ 	    cdi->newDisplay = False;
+ 	}
+     }
+-
++    printf("CDI: %d, filePtr: %d, memBuf %d\n", (int)cdi, (int)(cdi?cdi->filePtr:NULL), (int)(cdi?cdi->memBuf:NULL));
++    if (cdi->filePtr == NULL && cdi->memBuf == NULL && isNetworkRequest(filename)) {
++        cdi->memBuf = getResourceFromURL(filename);
++    }
+     cdi->fromRelatedDisplayExecution = fromRelatedDisplayExecution;
+ 
+   /* Generate the name-value table for macro substitutions (related display) */
+diff --git a/medm/medm.c b/medm/medm.c
+--- a/medm/medm.c
++++ b/medm/medm.c
+@@ -29,6 +29,8 @@
+ #define FULLPATHNAME_SIZE 100
+ #define DEBUG_ERRORHANDLER 0
+ 
++#define LIGO_BUILD_NOTE "Unstable development build 2015-01-05+"
++
+ #define ALLOCATE_STORAGE
+ #include "medm.h"
+ #include <Xm/RepType.h>
+@@ -952,6 +954,7 @@ request_t *parseCommandLine(int argc, char *argv[])
+   /* Parse the display name */
+   for (i = argsUsed + 1; i < argc; i++)
+     {
++      printf("arg: %s\n", argv[i]);
+       Boolean canAccess;
+       char *fileStr;
+ 
+@@ -975,44 +978,7 @@ request_t *parseCommandLine(int argc, char *argv[])
+       fullPathName[0] = '\0';
+ 
+       /* Found string with right suffix - presume it's a valid display name */
+-      canAccess = !access(fileStr, R_OK | F_OK);
+-      if (canAccess)
+-        {
+-          int status;
+-
+-          /* Found the file.  Convert to a full path. */
+-          status = convertNameToFullPath(fileStr, fullPathName, PATH_MAX);
+-          if (!status)
+-            canAccess = False;
+-        }
+-      else
+-        {
+-          /* Not found, try with directory specified in the environment */
+-          char *dir = NULL;
+-          char name[PATH_MAX];
+-          int startPos;
+-
+-          dir = getenv("EPICS_DISPLAY_PATH");
+-          if (dir != NULL)
+-            {
+-              startPos = 0;
+-              while (extractStringBetweenColons(dir, name, startPos, &startPos))
+-                {
+-                  if (strlen(name) + strlen(fileStr) <
+-                      (size_t)(PATH_MAX - 1))
+-                    {
+-                      strcpy(fullPathName, name);
+-#ifndef VMS
+-                      strcat(fullPathName, MEDM_DIR_DELIMITER_STRING);
+-#endif
+-                      strcat(fullPathName, fileStr);
+-                      canAccess = !access(fullPathName, R_OK | F_OK);
+-                      if (canAccess)
+-                        break;
+-                    }
+-                }
+-            }
+-        }
++      canAccess = locateResource(fullPathName, fileStr, PATH_MAX);
+       if (canAccess)
+         {
+           /* build the request */
+@@ -1042,7 +1008,7 @@ request_t *parseCommandLine(int argc, char *argv[])
+         }
+       else
+         {
+-          medmPrintf(1, "\nCannot access file: %s\n", fileStr);
++          medmPrintf(1, "\n---Cannot access file: %s\n", fileStr);
+         }
+     }
+   return request;
+@@ -4061,6 +4027,10 @@ int main(int argc, char *argv[])
+       fileStr = request->fileList[i];
+       if (fileStr)
+         {
++        if (isNetworkRequest(fileStr)) {
++          dmDisplayListParse(NULL, NULL, request->macroString,fileStr,
++            request->displayGeometry, (Boolean)False);
++        } else {
+           filePtr = fopen(fileStr, "r");
+           if (filePtr)
+             {
+@@ -4072,6 +4042,7 @@ int main(int argc, char *argv[])
+             {
+               medmPrintf(1, "\nCannot open display file: \"%s\"\n", fileStr);
+             }
++          }
+         }
+     }
+   if ((displayInfoListHead->next) &&
+@@ -4094,7 +4065,9 @@ int main(int argc, char *argv[])
+                                                                   "Developed at Argonne National Laboratory\n"
+                                                                   "     by Mark Anderson, Fred Vong, & Ken Evans\n"
+                                                                   "Extended for CDEV at Jefferson Laboratory\n"
+-                                                                  "     by Jie Chen",
++                                                                  "     by Jie Chen\n"
++                                                                  "With patches for the LIGO Lab\n\n"
++                                                                  LIGO_BUILD_NOTE,
+                                                                   fontListTable[4],
+                                                                   -1, -1, 5);
+ #else
+@@ -4107,7 +4080,9 @@ int main(int argc, char *argv[])
+                                                                   fontListTable[6],
+                                                                   versionString,
+                                                                   "Developed at Argonne National Laboratory\n"
+-                                                                  "     by Mark Anderson, Fred Vong, & Ken Evans",
++                                                                  "     by Mark Anderson, Fred Vong, & Ken Evans\n"
++                                                                  "With patches for the LIGO Lab\n\n"
++                                                                  LIGO_BUILD_NOTE,
+                                                                   fontListTable[4],
+                                                                   -1, -1, 5);
+ #endif
+diff --git a/medm/medmCommon.c b/medm/medmCommon.c
+--- a/medm/medmCommon.c
++++ b/medm/medmCommon.c
+@@ -25,6 +25,8 @@
+  * necessary to include P (private) header files in applications.) */
+ #include <X11/IntrinsicP.h>
+ 
++#include "membuffer.h"
++
+ void parseAttr(DisplayInfo *displayInfo, DlBasicAttribute *attr);
+ void parseDynamicAttr(DisplayInfo *displayInfo, DlDynamicAttribute *dynAttr);
+ void parseDynAttrMod(DisplayInfo *displayInfo, DlDynamicAttribute *dynAttr);
+@@ -1370,6 +1372,30 @@ DlColormap *parseAndExtractExternalColormap(DisplayInfo *displayInfo,
+     return(dlColormap);
+ }
+ 
++static int do_getc(DisplayInfo *displayInfo) {
++  if (displayInfo) {
++    if (displayInfo->filePtr) {
++      return getc(displayInfo->filePtr);
++    }
++    if (displayInfo->memBuf) {
++      return mbGetc(displayInfo->memBuf);
++    }
++  }
++  return EOF;
++}
++
++static int do_ungetc(int ch, DisplayInfo *displayInfo) {
++  if (displayInfo) {
++    if (displayInfo->filePtr) {
++      return ungetc(ch, displayInfo->filePtr);
++    }
++    if (displayInfo->memBuf) {
++      return mbUngetc(ch, displayInfo->memBuf);
++    }
++  }
++  return EOF;
++}
++
+ 
+  /* A lexical analyzer (as a state machine), based upon ideas from
+   *   "Advanced Unix Programming" by Marc J. Rochkind, with
+@@ -1378,19 +1404,19 @@ DlColormap *parseAndExtractExternalColormap(DisplayInfo *displayInfo,
+   *   nameValueTable..value */
+ TOKEN getToken(DisplayInfo *displayInfo, char *word)
+ {
+-    FILE *filePtr;
++    //FILE *filePtr;
+     enum {NEUTRAL,INQUOTE,INWORD,INMACRO} state = NEUTRAL, savedState = NEUTRAL;
+     int c;
+     char *w, *value;
+     char *m, macro[MAX_TOKEN_LENGTH];
+     int j;
+ 
+-    filePtr = displayInfo->filePtr;
++    //filePtr = displayInfo->filePtr;
+ 
+     w = word;
+     m = macro;
+ 
+-    while( (c=getc(filePtr)) != EOF) {
++    while( (c=do_getc(displayInfo)) != EOF) {
+ 	switch (state) {
+ 	case NEUTRAL:
+ 	    switch(c) {
+@@ -1399,7 +1425,7 @@ TOKEN getToken(DisplayInfo *displayInfo, char *word)
+ 	    case '}' : return(T_RIGHT_BRACE);
+ 	    case '"' : state = INQUOTE;
+ 		break;
+-	    case '$' : c=getc(filePtr);
++	    case '$' : c=do_getc(displayInfo);
+ 	      /* only do macro substitution if in execute mode or
+ 	       * parsing a composite file */
+ 		if((globalDisplayListTraversalMode == DL_EXECUTE ||
+@@ -1428,7 +1454,7 @@ TOKEN getToken(DisplayInfo *displayInfo, char *word)
+ 	case INQUOTE:
+ 	    switch(c) {
+ 	    case '"' : *w = '\0'; return(T_WORD);
+-	    case '$' : c=getc(filePtr);
++	    case '$' : c=do_getc(displayInfo);
+ 	      /* only do macro substitution if in execute mode */
+ 		if((globalDisplayListTraversalMode == DL_EXECUTE ||
+ 		     parsingCompositeFile) && c == '(' ) {
+@@ -1436,7 +1462,7 @@ TOKEN getToken(DisplayInfo *displayInfo, char *word)
+ 		    state = INMACRO;
+ 		} else {
+ 		    *w++ = '$';
+-	            ungetc(c,filePtr);
++	            do_ungetc(c,displayInfo);
+ 		}
+ 		break;
+ 	    default  : *w++ = c;
+@@ -1478,7 +1504,7 @@ TOKEN getToken(DisplayInfo *displayInfo, char *word)
+ 	    case '(' :
+ 	    case ',' :
+ 	    case ')' :
+-	    case '"' : ungetc(c,filePtr); *w = '\0'; return(T_WORD);
++	    case '"' : do_ungetc(c,displayInfo); *w = '\0'; return(T_WORD);
+ 	    default  : *w++ = c;
+ 		break;
+ 	    }
+diff --git a/medm/medmComposite.c b/medm/medmComposite.c
+--- a/medm/medmComposite.c
++++ b/medm/medmComposite.c
+@@ -605,13 +605,15 @@ DlElement *parseComposite(DisplayInfo *displayInfo)
+ static void compositeFileParse(DisplayInfo *displayInfo,
+   DlElement *dlElement)
+ {
+-    FILE *filePtr, *savedFilePtr;
++    FILE *savedFilePtr;
++    MemBuffer *mBuf = NULL, *savedMBuf = NULL;
+     int savedVersionNumber;
+     NameValueTable *savedNameValueTable = NULL;
+     int savedNumNameValues = 0;
+     char filename[MAX_TOKEN_LENGTH];
+     char macroString[MAX_TOKEN_LENGTH];
+     char token[MAX_TOKEN_LENGTH];
++    char resourcePath[PATH_MAX];
+     TOKEN tokenType;
+     DlFile *dlFile;
+     DlElement *pE, *pD;
+@@ -641,21 +643,38 @@ static void compositeFileParse(DisplayInfo *displayInfo,
+     }
+ 
+   /* Open the file */
+-    filePtr = dmOpenUsableFile(filename, displayInfo->dlFile->name);
++    /*filePtr = dmOpenUsableFile(filename, displayInfo->dlFile->name);
+     if(!filePtr) {
+ 	medmPrintf(1,"\ncompositeFileParse: Cannot open file\n"
+ 	  "  filename: %s\n",dlComposite->compositeFile);
+ 	return;
++    }*/
++    if (!locateResourceFromParent(resourcePath,filename,displayInfo->dlFile->name, PATH_MAX)) {
++    	medmPrintf(1,"\ncompositeFileParse: Cannot locate file\n"
++	  "  filename: %s\n",dlComposite->compositeFile);
++    	return;
++    }
++    /* Load the file into a memory buffer, either from the network or from disk */
++    if (isNetworkRequest(resourcePath)) {
++    	mBuf = getResourceFromURL(resourcePath);
++    } else {
++    	mBuf = mbNewFromFile(resourcePath, "rt");
++    }
++    if (!mBuf) {
++    	medmPrintf(1,"\ncompositeFileParse: Cannot load file\n"
++    		  "  filename: %s\n",dlComposite->compositeFile);
++    	    	return;
+     }
+-
+   /* Since getToken() uses the displayInfo, we have to save the file
+      pointer in the displayInfo and plug in the current one.  We have
+      to save the version number. (It is zero for a new display.) And
+      we have to save the macros and substitute the ones specified */
+     parsingCompositeFile = True;
+     savedFilePtr = displayInfo->filePtr;
++    savedMBuf = displayInfo->memBuf;
+     savedVersionNumber = displayInfo->versionNumber;
+-    displayInfo->filePtr = filePtr;
++    displayInfo->filePtr = NULL;
++    displayInfo->memBuf = mBuf;
+   /* Only do this if there is a macro string, otherwise use the
+    * existing macros */
+     if(*macroString) {
+@@ -677,7 +696,6 @@ static void compositeFileParse(DisplayInfo *displayInfo,
+ 	medmPostMsg(1,"compositeFileParse: Invalid .adl file "
+ 	  "(First block is not file block)\n"
+ 	  "  file: %s\n",filename);
+-	fclose(filePtr);
+ 	goto RETURN;
+     }
+   /* Plug the current version number into the displayInfo */
+@@ -704,7 +722,6 @@ static void compositeFileParse(DisplayInfo *displayInfo,
+       token, tokenType) != T_EOF) {
+ 	tokenType=getToken(displayInfo,token);
+     }
+-    fclose(filePtr);
+ 
+   /* Rearrange the composite to fit its contents */
+     minX = INT_MAX; minY = INT_MAX;
+@@ -765,9 +782,9 @@ static void compositeFileParse(DisplayInfo *displayInfo,
+ #endif
+ 
+   RETURN:
+-
+   /* Restore displayInfo file parameters */
+     displayInfo->filePtr = savedFilePtr;
++    displayInfo->memBuf = savedMBuf;
+     displayInfo->versionNumber = savedVersionNumber;
+     if(*macroString) {
+ 	free ((char *)displayInfo->nameValueTable);    
+@@ -775,6 +792,8 @@ static void compositeFileParse(DisplayInfo *displayInfo,
+ 	displayInfo->numNameValues = savedNumNameValues;
+     }
+     parsingCompositeFile = False;
++  /* clean up mem buffer */
++    mBuf = mbClose(mBuf);
+ }
+ 
+ void writeDlCompositeChildren(FILE *stream, DlElement *dlElement,
+diff --git a/medm/medmRelatedDisplay.c b/medm/medmRelatedDisplay.c
+--- a/medm/medmRelatedDisplay.c
++++ b/medm/medmRelatedDisplay.c
+@@ -963,6 +963,9 @@ void relatedDisplayCreateNewDisplay(DisplayInfo *displayInfo,
+     filename[MAX_TOKEN_LENGTH-1] = '\0';
+     argsString = pEntry->args;
+ 
++    debugf(0, "relatedDisplayCreateNewDisplay: displayInfo=%x replaceDisplay=%s\n"
++      "  filename=%s\n",
++      displayInfo,replaceDisplay?"True":"False",filename);
+ #if DEBUG_FONTS
+     print("relatedDisplayCreateNewDisplay: displayInfo=%x replaceDisplay=%s\n"
+       "  filename=%s\n",
+@@ -1012,14 +1015,19 @@ void relatedDisplayCreateNewDisplay(DisplayInfo *displayInfo,
+ 
+       /* There is no existing display to use.  Try to find a file,
+          passing the parent's path. */
+-	filePtr = dmOpenUsableFile(filename, displayInfo->dlFile->name);
+-	if(filePtr == NULL) {
++	//filePtr = dmOpenUsableFile(filename, displayInfo->dlFile->name);
++	filePtr = 0;
++	/* FIXME: how do we relate to relative paths here !!!!! */
++	if (!locateResourceFromParent(filename, pEntry->name, displayInfo->dlFile->name, MAX_TOKEN_LENGTH)) {
+ 	    sprintf(token,
+-	      "Cannot open related display:\n  %s\nCheck %s\n",
+-	      filename, "EPICS_DISPLAY_PATH");
++	      "Cannot open related display:\n  %s\nCheck %s and %s\n",
++		  pEntry->name, "EPICS_DISPLAY_PATH", "EPICS_REMOTE_PATH");
+ 	    dmSetAndPopupWarningDialog(displayInfo,token,"OK",NULL,NULL);
+ 	    medmPostMsg(1,token);
+ 	} else {
++		if (!isNetworkRequest(filename)) {
++			filePtr = fopen(filename, "rt");
++		}
+ 	    if(replaceDisplay || pEntry->mode == REPLACE_DISPLAY) {
+ 	      /* Don't look for an existing one.  Just reparse this one. */
+ 		dmDisplayListParse(displayInfo,filePtr,processedArgs,
+@@ -1028,7 +1036,9 @@ void relatedDisplayCreateNewDisplay(DisplayInfo *displayInfo,
+ 		dmDisplayListParse(NULL,filePtr,processedArgs,
+ 		  filename,NULL,(Boolean)True);
+ 	    }
+-	    fclose(filePtr);
++	    if (filePtr) {
++	    	fclose(filePtr);
++	    }
+ 
+ 	  /* Refresh the display list dialog box */
+ 	    refreshDisplayListDlg();
+diff --git a/medm/medmWidget.h b/medm/medmWidget.h
+--- a/medm/medmWidget.h
++++ b/medm/medmWidget.h
+@@ -35,6 +35,8 @@
+ #  include <time.h>
+ #endif
+ 
++#include "membuffer.h"
++
+ /* This is ugly, but we need it for the action table */
+ #if 0
+ extern void popupValuatorKeyboardEntry(Widget, XEvent*, String *, Cardinal *);
+@@ -272,6 +274,7 @@ typedef struct {
+ typedef struct _DisplayInfo
+ {
+   FILE *filePtr;
++  MemBuffer *memBuf;
+   int versionNumber;
+   /* Widgets and main pixmap */
+   Widget shell;
+diff --git a/medm/membuffer.c b/medm/membuffer.c
+new file mode 100644
+--- /dev/null
++++ b/medm/membuffer.c
+@@ -0,0 +1,283 @@
++#include <string.h>
++#include <stdlib.h>
++#include <stdio.h>
++#include "membuffer.h"
++
++#define NO_READBACK ((int)-1)
++
++#define CURL_PREFIX "/usr/bin/curl -sw '%{http_code}' "
++#define HTTP_STATUS_LEN 3
++#define BUFFER_SIZE (64*1024)
++
++/**
++ * Write callback which will progressivly fill up a MemBuffer
++ *
++ * This is designed to be compatible with the write callback methods for curl
++ *
++ * @param ptr The incoming data of length size*nmemb
++ * @param size the size of each entry at ptr
++ * @param nmemb the number of entries in ptr
++ * @param userdata the MemBuffer to add the data to
++ * @return the number of bytes added to the MemBuffer
++ */
++static size_t _mbWriteCB(char *ptr, size_t size, size_t nmemb, void *userdata)
++{
++	unsigned char *new_ptr = 0;
++	MemBuffer *m = (MemBuffer *)userdata;
++	size_t total = size*nmemb;
++	new_ptr = realloc(m->data, total + m->length);
++	if (!ptr) {
++		return 0;
++	}
++	m->data = new_ptr;
++	memcpy(m->data + m->length, ptr, total);
++	m->length += total;
++	return total;
++}
++
++/**
++ * Load the given file into the given MemBuffer
++ *
++ * @param m The buffer
++ * @param f The file pointer to read data from
++ * @returns 1 if the entire file was loaded, else 0 (the memory buffer will be in a valid state but may have a part of the file loaded)
++ */
++static int _mbLoadFromFile(MemBuffer *m, FILE *f) {
++	char dataBuffer[BUFFER_SIZE];
++	size_t count = 0;
++	int result = 0;
++
++	if (!m || !f) {
++		return result;
++	}
++	result = 1;
++	while ((count = fread(dataBuffer, 1, BUFFER_SIZE, f)) > 0) {
++		if (_mbWriteCB(dataBuffer, 1, count, m) != count) {
++			result = 0;
++			break;
++		}
++	}
++	return result;
++}
++
++/**
++ * Load the contents of a url into the MemBuffer
++ *
++ * @param m the destination buffer
++ * @param url the url to load
++ * @return 1 on success, 0 on failure (the buffer may contain partial data)
++ */
++static int _mbFetchURLToBuffer(MemBuffer *m, const char *url) {
++	int result = 0;
++	FILE *f = 0;
++	char * cmdBuffer = 0;
++	char code[HTTP_STATUS_LEN+1];
++	size_t len = 0;
++	int i;
++
++	if (!m || !url) {
++		return 0;
++	}
++	len = strlen(url) + strlen(CURL_PREFIX) + 1;
++	cmdBuffer = malloc(len);
++	if (!cmdBuffer) {
++		goto done;
++	}
++	memset(cmdBuffer, 0, len);
++	strcat(cmdBuffer, CURL_PREFIX);
++	strcat(cmdBuffer, url);
++	cmdBuffer[len-1] = 0;
++	/*	c = curl_easy_init();
++	if (!c) {
++		return 0;
++	}
++	if (curl_easy_setopt(c, CURLOPT_URL, url) != CURLE_OK) {
++		goto done;
++	}
++	if (curl_easy_setopt(c, CURLOPT_WRITEDATA, (void *)m) != CURLE_OK) {
++		goto done;
++	}
++	if (curl_easy_setopt(c, CURLOPT_WRITEFUNCTION, MemBufferWriteCallback) != CURLE_OK) {
++		goto done;
++	}
++	if (curl_easy_perform(c) != CURLE_OK) {
++		goto done;
++	}*/
++	printf("cmdBuffer = \"%s\"\n", cmdBuffer);
++	f = popen(cmdBuffer, "r");
++	if (!f) {
++		goto done;
++	}
++	result = _mbLoadFromFile(m, f);
++	/* extract the status code */
++	if (m->length < HTTP_STATUS_LEN) {
++		result = 0;
++		goto done;
++	}
++	code[HTTP_STATUS_LEN] = '\0';
++	for (i = HTTP_STATUS_LEN; i;) {
++		i--;
++		m->length--;
++		code[i] = m->data[m->length];
++	}
++	if (strcmp(code, "200") != 0) {
++		result = 0;
++	}
++	/*
++	printf("----------------------\n");
++	printf("%s\n", (char *)m->data);
++	printf("----------------------\n");
++	*/
++done:
++	/*if (c) {
++		curl_easy_cleanup(c);
++	}*/
++	if (cmdBuffer) {
++		free(cmdBuffer);
++	}
++	if (f) {
++		pclose(f);
++		f = 0;
++	}
++	return result;
++}
++
++/**
++ * Create an empty MemBuffer
++ * @returns A pointer to an empty MemBuffer or NULL on failure
++ */
++static MemBuffer *_mbNewBuffer() {
++	MemBuffer *m = malloc(sizeof(MemBuffer));
++	if (m == NULL) {
++		return m;
++	}
++	m->data = NULL;
++	m->length = 0;
++	m->index = 0;
++	m->backBuffer = NO_READBACK;
++	return m;
++}
++
++/**
++ * Return the contents of the given URL in a MemBuffer object
++ * @return A pointer to a MemBuffer containing the contents of the URL or NULL on an error
++ */
++MemBuffer *mbNewFromURL(const char *url) {
++	MemBuffer *m = _mbNewBuffer();
++	if (m == NULL) {
++		return m;
++	}
++	if (!_mbFetchURLToBuffer(m, url)) {
++		m = mbClose(m);
++	}
++	return m;
++}
++
++/**
++ * Return the contents of the given file in a MemBuffer object
++ * @param fname The name of the file (NULL terminated)
++ * @param mode The mode to open the file in.  Permitted values are "rb", "rt", "r"
++ * @return A pointer to a MemBuffer containing the contents of the file or NULL on an error
++ */
++MemBuffer *mbNewFromFile(const char *fname, const char *mode) {
++	MemBuffer *m = _mbNewBuffer();
++	FILE *f = NULL;
++
++	if (!fname || !mode) {
++		return NULL;
++	}
++	if (strcmp(mode,"rb") != 0 && strcmp(mode,"rt") != 0 && strcmp(mode, "r") != 0) {
++		return NULL;
++	}
++	if (m == NULL) {
++		return m;
++	}
++	f = fopen(fname, mode);
++	if (!f) {
++		m = mbClose(m);
++	} else {
++		if (!_mbLoadFromFile(m, f)) {
++			m = mbClose(m);
++		}
++	}
++	if (f) {
++		fclose(f);
++	}
++	return m;
++}
++
++MemBuffer *mbClone(const MemBuffer *m) {
++	MemBuffer *tmp = NULL;
++
++	if (!m) {
++		return NULL;
++	}
++	tmp = _mbNewBuffer();
++	if (!tmp) {
++		return NULL;
++	}
++	tmp->data = malloc(m->length);
++	if (!tmp->data) {
++		mbClose(tmp);
++		return NULL;
++	}
++	memcpy(tmp->data, m->data, m->length);
++	tmp->length = m->length;
++	tmp->index = m->index;
++	tmp->backBuffer = m->backBuffer;
++	return tmp;
++}
++
++/**
++ * Free and cleanup a MemBuffer
++ *
++ * @param m The MemBuffer to free (safe to pass NULL to)
++ * @return NULL.  For use as m = mbClose(m) to clean things up
++ */
++MemBuffer *mbClose(MemBuffer *m) {
++	if (m) {
++		if (m->data) {
++			free(m->data);
++		}
++		free (m);
++	}
++	return NULL;
++}
++
++/**
++ * getc for a MemBuffer
++ *
++ * @param m The MemBuffer to read a character from
++ * @return The next character or EOF
++ */
++int mbGetc(MemBuffer *m) {
++	int result = EOF;
++	if (!m || !m->data || m->index >= m->length) {
++		return EOF;
++	}
++	if (m->backBuffer != NO_READBACK) {
++		result = m->backBuffer;
++		m->backBuffer = NO_READBACK;
++	} else {
++		result = (int)(m->data[m->index]);
++		m->index++;
++	}
++	return result;
++}
++
++/**
++ * ungetc for a MemBuffer
++ *
++ * Only allows for 1 character pushback at a time.
++ *
++ * @param c The character to unget
++ * @param m The MemBuffer to put the character in
++ * @return c or EOF if there is not enough space to unget
++ */
++int mbUngetc(int c, MemBuffer *m) {
++	if (!m || m->backBuffer != NO_READBACK) {
++		return EOF;
++	}
++	m->backBuffer = c;
++	return c;
++}
+diff --git a/medm/membuffer.h b/medm/membuffer.h
+new file mode 100644
+--- /dev/null
++++ b/medm/membuffer.h
+@@ -0,0 +1,19 @@
++#ifndef __MEM_BUFFER_H__
++#define __MEM_BUFFER_H__
++
++typedef struct {
++	unsigned char *data;
++	size_t length;
++	size_t index;
++	int	backBuffer;
++} MemBuffer;
++
++extern MemBuffer *mbNewFromURL(const char *url);
++extern MemBuffer *mbNewFromFile(const char *fname, const char *mode);
++extern MemBuffer *mbClone(const MemBuffer *m);
++extern MemBuffer *mbClose(MemBuffer *m);
++
++extern int mbGetc(MemBuffer *m);
++extern int mbUngetc(int c, MemBuffer *m);
++
++#endif 
+diff --git a/medm/network.c b/medm/network.c
+new file mode 100644
+--- /dev/null
++++ b/medm/network.c
+@@ -0,0 +1,250 @@
++#include <unistd.h>
++#include <strings.h>
++#include <stdlib.h>
++#include <errno.h>
++#include <stdio.h>
++#include <stdarg.h>
++
++#include "medm.h"
++#include "proto.h"
++#include "membuffer.h"
++#include "cache.h"
++
++#define ACCESS_OK 0
++#define ACCESS_ERR -1
++
++/* in the spirit of syslog */
++#define PRIORITY_DEBUG 0
++#define PRIORITY_INFO  1
++#define PRIORITY_NOTICE 2
++#define PRIORITY_WARNING 3
++#define PRIORITY_ERR 4
++#define PRIORITY_CRIT 5
++#define PRIORITY_ALERT 6
++#define PRIORITY_EMERG 7
++
++static int debug_level = PRIORITY_DEBUG;
++
++/**
++ * priority based debugging to stderr
++ */
++void debugf(int priority, char *format, ...) {
++	char *buf = NULL;
++	va_list args;
++
++	if (priority < debug_level) {
++		return;
++	}
++	va_start(args, format);
++
++	if (vasprintf(&buf, format, args) < 0) {
++		goto cleanup;
++	}
++	fprintf(stderr, "%s\n", buf);
++cleanup:
++	if (buf != NULL) {
++		free(buf);
++	}
++	va_end(args);
++}
++
++/**
++ * Is a given path a network resource.
++ *
++ * @param path The path to check. (Null terminated string)
++ * @return 0 if it is not a network path, 1 if it is.  The check is made by looking for http:// or https:// in the path
++ *
++ */
++int isNetworkRequest(const char *path) {
++	debugf(PRIORITY_DEBUG, "isNetworkRequest %s", (path?path:""));
++	if (!path) {
++		return 0;
++	}
++	if (strstr(path, "http://") == path || strstr(path, "https://") == path) {
++		return 1;
++	}
++	return 0;
++}
++
++/**
++ * Can the given path be accessed.  This is a replacement for 'access' that understands networked requests
++ *
++ * @param path The path to check (Null terminated string)
++ * @param amode The access mode requested (W_OK, R_OK, F_OK, ...)
++ * @returns -1 if it can be accessed, else 0 (as per the 'access' function)
++ */
++static int canAccess(const char *path, int amode) {
++	/* define exit values to match the access function */
++	MemBuffer *memBuf = NULL;
++	int result = ACCESS_ERR;
++
++	if (isNetworkRequest(path)) {
++		/* currently we do not support putting data via the network */
++		if ((amode & W_OK) != 0) {
++			errno = EACCES;
++		} else {
++			memBuf = chGetItem(path);
++			if (memBuf) {
++				debugf(PRIORITY_DEBUG, "found %s in cache", path);
++			} else {
++				memBuf = mbNewFromURL(path);
++				chAddItem(path, memBuf);
++			}
++			if (memBuf) {
++				debugf(PRIORITY_DEBUG, "newMemBufferFromURL(%s) returned success with a length of %d", path, memBuf->length);
++				result = ACCESS_OK;
++				memBuf = mbClose(memBuf);
++			} else {
++				errno = EACCES;
++			}
++		}
++	} else {
++		result = access(path, amode);
++	}
++	debugf(PRIORITY_DEBUG, "canAccess('%s', %d) = %d", path, amode, result);
++	return result;
++}
++
++/**
++ * Given a name, determine where the actual resource is located.
++ *
++ * Searches directly for the given path, trying under each path in EPICS_DISPLAY_PATH, and then under
++ * network paths in EPICS_REMOTE_PATH
++ *
++ * @param fullPathBuf A character buffer of size buffer_size to hold the result
++ * @name The name (path) of the resource to locate
++ * @buffer_size The size of fullPathBuf
++ * @return 1 if the resouce could be found, a full path is put in fullPathBuf, else 0 (the contents of fullPathBuf are undefined in this case)
++ */
++int locateResource(char *fullPathBuf, char *name, size_t buffer_size) {
++	char *dir = NULL;
++	int startPos = 0;
++	char root[PATH_MAX];
++
++	if (!fullPathBuf || !name || strlen(name) >= buffer_size || buffer_size <= 1) {
++		debugf(PRIORITY_ERR, "locateResource called with bad parameters");
++		return 0;
++	}
++	debugf(PRIORITY_DEBUG, "locateResource '%s'", name);
++	if (canAccess(name, R_OK|F_OK) == ACCESS_OK) {
++		debugf(PRIORITY_DEBUG, "can directly access '%s'", name);
++		if (!isNetworkRequest(name)) {
++			if (!convertNameToFullPath(name, fullPathBuf, buffer_size)) {
++				debugf(PRIORITY_DEBUG, "Cannot determine full path for %s, returning 0", name);
++				return 0;
++			}
++		} else {
++			strncpy(fullPathBuf, name, buffer_size);
++			fullPathBuf[buffer_size-1] = '\0';
++		}
++		debugf(PRIORITY_DEBUG, "locateResource(%s...) returning 1", name);
++		return 1;
++	}
++	/* now check for local copies in EPICS_DISPLAY_PATH */
++	dir = getenv("EPICS_DISPLAY_PATH");
++	if (dir != NULL) {
++		while(extractStringBetweenColons(dir,root,startPos,&startPos)) {
++			debugf(PRIORITY_DEBUG, "searching for '%s' in '%s'", name, root);
++			if(strlen(root)+strlen(name) < (size_t)(PATH_MAX - 1)) {
++				strcpy(fullPathBuf,root);
++		#ifndef VMS
++				strcat(fullPathBuf,MEDM_DIR_DELIMITER_STRING);
++		#endif
++				strcat(fullPathBuf,name);
++				if (canAccess(fullPathBuf,R_OK|F_OK) == ACCESS_OK) {
++					debugf(PRIORITY_DEBUG, "locateResource(%s...) returning 1", name);
++					return 1;
++				}
++			}
++		}
++	}
++	/* now check for remote copies in EPICS_REMOTE_PATH */
++	dir = getenv("EPICS_REMOTE_PATH");
++	if (dir != NULL) {
++		while(extractStringBetweenMarker(dir,root,startPos,&startPos,';')) {
++			debugf(PRIORITY_DEBUG, "searching for '%s' in '%s'", name, root);
++			if(strlen(root)+strlen(name) < (size_t)(PATH_MAX - 1)) {
++				strcpy(fullPathBuf,root);
++		#ifndef VMS
++				strcat(fullPathBuf,MEDM_DIR_DELIMITER_STRING);
++		#endif
++				strcat(fullPathBuf,name);
++				if (canAccess(fullPathBuf,R_OK|F_OK) == ACCESS_OK) {
++					debugf(PRIORITY_DEBUG, "locateResource(%s...) returning 1", name);
++					return 1;
++				}
++			}
++		}
++	}
++	debugf(PRIORITY_DEBUG, "Could not find '%s'", name);
++	debugf(PRIORITY_DEBUG, "locateResource(%s...) returning 0", name);
++	return 0;
++}
++
++/**
++ * Given a name, determine where the actual resource is located.
++ *
++ * Searches directly for the given path, trying under each path in EPICS_DISPLAY_PATH, and then under
++ * network paths in EPICS_REMOTE_PATH.  If this fails it looks for a relative reference from the location of the parent/referring display.
++ *
++ * This is essentially a replacement for dmOpenUsableFile and should probably be used to rework that function.
++ *
++ * @param fullPathBuf A character buffer of size buffer_size to hold the result
++ * @name The name (path) of the resource to locate
++ * @parentName The parent or calling display path.  Used to resolve relative paths.
++ * @buffer_size The size of fullPathBuf
++ * @return 1 if the resource could be found, a full path is put in fullPathBuf, else 0 (the contents of fullPathBuf are undefined in this case)
++ */
++int locateResourceFromParent(char *fullPathBuf, char *name, char *parentName, size_t buffer_size) {
++	int result = 0;
++	char *end = NULL;
++	char *nameBuf = NULL;
++	size_t rootLen = 0, len = 0;
++
++	if (!fullPathBuf || !name || buffer_size <= 1) {
++		return 0;
++	}
++	result = locateResource(fullPathBuf, name, buffer_size);
++	debugf(PRIORITY_DEBUG, "locateResourceFromParent, first on pass on %s returned %d", name, result);
++	if (result || !parentName || name[0] == MEDM_DIR_DELIMITER_CHAR) {
++		debugf(PRIORITY_DEBUG, "Not continuing to evaluate path, locateResourceFromParent returning %d", result);
++		return result;
++	}
++	// find the last directory delimiter in the parent
++	end = strrchr(parentName, MEDM_DIR_DELIMITER_CHAR);
++	if (end == NULL) {
++		debugf(PRIORITY_DEBUG, "locateResourceFromParent, cannot find path delimiter in parent path returning %d", result);
++		return result;
++	}
++	// try and build up a path that includes the parent path (to the last directory marker) and name
++	rootLen = end - parentName + 1;
++	len = rootLen + strlen(name) + 1 + 1;
++	// fail if we cannot fit this in fullPathBuf or cannot allocate a buffer
++	if (len <= buffer_size) {
++		nameBuf = malloc(len);
++		if (nameBuf) {
++			memcpy(nameBuf, parentName, rootLen);
++			nameBuf[rootLen] = '\0';
++			strncat(nameBuf, name, len-rootLen+1);
++			nameBuf[len-1] = '\0';
++
++			debugf(PRIORITY_DEBUG, "Attempting to look up file as %s", nameBuf);
++			result = locateResource(fullPathBuf, nameBuf, buffer_size);
++			free(nameBuf);
++		}
++	}
++	debugf(PRIORITY_DEBUG, "locateResourceFromParent returning %d", result);
++	return result;
++}
++
++MemBuffer *getResourceFromURL(const char *path) {
++	MemBuffer *m = chGetItem(path);
++	if (m) {
++		debugf(PRIORITY_DEBUG, "getResourceFromURL found %s in the cache", path);
++	} else {
++		m = mbNewFromURL(path);
++		chAddItem(path, m);
++	}
++	return m;
++}
++
+diff --git a/medm/proto.h b/medm/proto.h
+--- a/medm/proto.h
++++ b/medm/proto.h
+@@ -15,6 +15,8 @@
+  *****************************************************************************
+ */
+ 
++#include "membuffer.h"
++
+ #ifndef __PROTO_H__
+ #define __PROTO_H__
+ 
+@@ -494,6 +496,8 @@ long longFval(double f);
+ Pixel alarmColor(int type);
+ Boolean extractStringBetweenColons(char *input, char *output, int startPos,
+   int  *endPos);
++Boolean extractStringBetweenMarker(char *input, char *output, int startPos,
++  int  *endPos, char marker);
+ int isPath(const char *fileString);
+ int convertNameToFullPath(const char *name, char *pathName, int nChars);
+ void convertDirDelimiterToWIN32(char *pathName);
+@@ -679,4 +683,11 @@ DlColormap *parseAndExtractExternalColormap(DisplayInfo *displayInfo,
+ void parseAndSkip(DisplayInfo *displayInfo);
+ TOKEN getToken(DisplayInfo *displayInfo, char *word);
+ 
++/* network.c */
++void debugf(int priority, char *format, ...);
++int isNetworkRequest(const char *path);
++int locateResource(char *fullPathBuf, char *name, size_t buffer_size);
++int locateResourceFromParent(char *fullPathBuf, char *name, char *parentName, size_t buffer_size);
++MemBuffer *getResourceFromURL(const char *path);
++
+ #endif  /* __PROTO_H__ */
+diff --git a/medm/utils.c b/medm/utils.c
+--- a/medm/utils.c
++++ b/medm/utils.c
+@@ -44,6 +44,8 @@
+ #include "medm.h"
+ #include <sys/stat.h>
+ 
++#include "membuffer.h"
++
+ /* Include this after medm.h to avoid problems with Exceed 6 */
+ #ifdef WIN32
+ /* In MSVC timeval is in winsock.h, winsock2.h, ws2spi.h, nowhere else */
+@@ -136,18 +138,14 @@ void hsort(double array[], int indx[], int n)
+     }
+ }
+ 
+-/*
+- *  extract strings between colons from input to output
+- *    this function works as an iterator...
+- */
+-Boolean extractStringBetweenColons(char *input, char *output,
+-  int  startPos, int  *endPos)
++Boolean extractStringBetweenMarker(char *input, char *output, int startPos,
++  int  *endPos, char marker)
+ {
+     int i, j;
+ 
+     i = startPos; j = 0;
+     while(input[i] != '\0') {
+-	if(input[i] != MEDM_PATH_DELIMITER) {
++	if(input[i] != marker) {
+ 	    output[j++] = input[i];
+ 	} else break;
+ 	i++;
+@@ -162,6 +160,15 @@ Boolean extractStringBetweenColons(char *input, char *output,
+     else
+       return(True);
+ }
++/*
++ *  extract strings between colons from input to output
++ *    this function works as an iterator...
++ */
++Boolean extractStringBetweenColons(char *input, char *output,
++  int  startPos, int  *endPos)
++{
++	return extractStringBetweenMarker(input, output, startPos, endPos, MEDM_PATH_DELIMITER);
++}
+ 
+ /* Check if the name is a pathname */
+ int isPath(const char *fileString)
+@@ -3173,6 +3180,7 @@ void  moveSelectedElementsAfterElement(DisplayInfo *displayInfo,
+  *  A. Ivanov, K. Thorne, January, 2012 LIGO 
+  */
+ void read_macros(char *str, char *buf) {
++  char fullPathName[MAX_TOKEN_LENGTH];
+   char *pch = strtok (str,",");
+   *buf = 0;
+   while (pch != NULL)
+@@ -3196,29 +3204,36 @@ void read_macros(char *str, char *buf) {
+                         if (argv[1] == 0) {
+                                  medmPrintf(1, "Unspecified file name in macro read command\n");
+                         } else {
+-				char *fname=STRDUP(argv[1]);
+-                                FILE *fp = fopen(fname, "r");
+-                                if (fp == 0) {
+-                                        medmPrintf(1, "Cannot open macro file %s\n", fname);
+-                                } else {
+-                                        struct stat st;
+-                                        char buffer[MAX_TOKEN_LENGTH];
+-                                        fstat(fileno(fp), &st);
+-					size_t bytes_read;
+-                                        if (st.st_size > (MAX_TOKEN_LENGTH-1)) {
+-                                                medmPrintf(1, "File %s too big\n", fname);
+-                                        } else {		
+-	                                        bytes_read = fread(buffer, sizeof(char), st.st_size, fp);
+-                                                buffer[st.st_size] = 0;
+-                                               /* Trim trailing space */
+-                                                char *end = buffer + strlen(buffer) - 1;
+-                                                while(end > buffer && isspace(*end)) end--;
+-                                                /* Write new null terminator */
+-                                                *(end+1) = 0;
+-                                                strcat(buf, buffer);
+-                                        }
+-                                        fclose(fp);
+-                                }
++                        		char *fname=STRDUP(argv[1]);
++								if (!locateResource(fullPathName, fname, MAX_TOKEN_LENGTH)) {
++									medmPrintf(1, "Cannot locate macro file %s\n", fname);
++								} else {
++									MemBuffer *m = NULL;
++									if (isNetworkRequest(fullPathName)) {
++										m = getResourceFromURL(fullPathName);
++									} else {
++										m = mbNewFromFile(fullPathName, "rt");
++									}
++									if (!m) {
++										medmPrintf(1, "Unable to load macro file %s\n", fullPathName);
++									} else {
++										if ((m->length + strlen(buf)) > MAX_TOKEN_LENGTH-1) {
++											medmPrintf(1, "File %s too big\n", fullPathName);
++										} else {
++											char *end = buf;
++											while (*end != '\0') {
++												end++;
++											}
++											memcpy(end, m->data, m->length);
++											end += m->length;
++											*end = '\0';
++											end--;
++											while (end > buf && isspace(*end)) end--;
++											*(end+1) = '\0';
++										}
++										m = mbClose(m);
++									}
++							}
+                         }
+                 } else {
+                         medmPrintf(1, "Unknown macro command %s\n", argv[0]);
+diff --git a/medm/xgif.c b/medm/xgif.c
+--- a/medm/xgif.c
++++ b/medm/xgif.c
+@@ -80,7 +80,8 @@ static int readCode(void);
+ #define MASK6   0x40
+ #define MASK7   0x80
+ 
+-FILE *fp;
++/* why is this a global?  it is only used in loadGif? */
++/*FILE *fp;*/
+ 
+ int BitOffset;                    /* Bit Offset of next code */
+ int XC, YC;                       /* Output X and Y coords of current pixel */
+@@ -665,12 +666,11 @@ static Boolean loadGIF(DisplayInfo *displayInfo, DlImage *dlImage)
+     register int i,j;
+     static Byte lmasks[8]={0xff, 0xfe, 0xfc, 0xf8, 0xf0, 0xe0, 0xc0, 0x80};
+     Byte lmask;
+-    char fullPathName[PATH_MAX], dirName[PATH_MAX];
+-    char *dir;
+-    int startPos;
++    char fullPathName[PATH_MAX];
+     int nFrames;
+     Pixmap tempPixmap=(Pixmap)0;
+     int prevFrame;
++    MemBuffer *mBuf = NULL;
+ 
+ #if DEBUG_DISPOSAL
+     print("loadGIF\n");
+@@ -678,7 +678,6 @@ static Boolean loadGIF(DisplayInfo *displayInfo, DlImage *dlImage)
+ 
+     gif=dlImage->privateData;
+     fname=dlImage->imageName;
+-    fp=NULL;
+     RawGIF=NULL;
+     Raster=NULL;
+     error=True;
+@@ -686,94 +685,45 @@ static Boolean loadGIF(DisplayInfo *displayInfo, DlImage *dlImage)
+   /* Initialize some globals */
+     ScreenDepth=DefaultDepth(display,screenNum);
+ 
+-    if(strcmp(fname,"-") == 0) {
++    /** not reading from stdin right now */
++/*    if(strcmp(fname,"-") == 0) {
+ 	fp=stdin;
+ 	fname="<stdin>";
+-    } else {
++    } else {*/
+ #ifdef WIN32
+       /* WIN32 opens files in text mode by default and then throws out CRLF */
+-	fp=fopen(fname,"rb");
++	/*fp=fopen(fname,"rb");*/
+ #else
+-	fp=fopen(fname,"r");
+-#endif
+-#if DEBUG_OPEN
+-	print("loadGIF: fopen(1): fp=%x |%s|\n",fp,fname);
++	/*fp=fopen(fname,"r");*/
+ #endif
+-    }
+-
+-  /* If not found and the name is a full path then can do no more */
+-    if(fp == NULL && isPath(fname)) {
+-	medmPrintf(1,"\nloadGIF: Cannot open file:\n"
+-	  "  %s\n",fname);
+ #if DEBUG_OPEN
+-	print("loadGIF: fopen(isPath): fp=%x |%s|\n",fp,fname);
++	/*print("loadGIF: fopen(1): fp=%x |%s|\n",fp,fname);*/
+ #endif
+-	goto CLEANUP;
+-    }
++    /*}*/
+ 
+-  /* If not found yet, use path of ADL file */
+-    if(fp == NULL && displayInfo && displayInfo->dlFile) {
+-	char *stringPtr;
+-
+-	strncpy(fullPathName, displayInfo->dlFile->name, PATH_MAX);
+-	fullPathName[PATH_MAX-1] = '\0';
+-	if(fullPathName[0]) {
+-	    stringPtr = strrchr(fullPathName, MEDM_DIR_DELIMITER_CHAR);
+-	    if(stringPtr) {
+-		*(++stringPtr) = '\0';
+-		strcat(fullPathName, fname);
+-#ifdef WIN32
+-	      /* WIN32 opens files in text mode by default and then throws out CRLF */
+-		fp=fopen(fullPathName,"rb");
+-#else
+-		fp=fopen(fullPathName,"r");
+-#endif
+-#if DEBUG_OPEN
+-		print("loadGIF: fopen(2): fp=%x |%s|\n",fp,fullPathName);
+-#endif
+-	    }
+-	}
++    if (!locateResourceFromParent(fullPathName, fname, (displayInfo->dlFile ? displayInfo->dlFile->name : NULL), PATH_MAX)) {
++    	medmPrintf(1, "\nloadGIF: Cannot locate file:\n %s\n", fname);
++    	goto CLEANUP;
+     }
+-
+-  /* If not found yet, look in EPICS_DISPLAY_PATH directories */
+-    if(fp == NULL) {
+-	dir=getenv("EPICS_DISPLAY_PATH");
+-	if(dir != NULL) {
+-	    startPos=0;
+-	    while(fp == NULL &&
+-	      extractStringBetweenColons(dir,dirName,startPos,&startPos)) {
+-		strcpy(fullPathName,dirName);
+-		strcat(fullPathName,MEDM_DIR_DELIMITER_STRING);
+-		strcat(fullPathName,fname);
+-#ifdef WIN32
+-	      /* WIN32 opens files in text mode by default and then throws out CRLF */
+-		fp=fopen(fullPathName,"rb");
+-#else
+-		fp=fopen(fullPathName,"r");
+-#endif
+-#if DEBUG_OPEN
+-	print("loadGIF: fopen(3): fp=%x |%s|\n",fp,fullPathName);
+-#endif
+-	    }
+-	}
++    if (isNetworkRequest(fullPathName)) {
++    	mBuf = getResourceFromURL(fullPathName);
++    } else {
++    	mBuf = mbNewFromFile(fullPathName, "rb");
+     }
+-    if(fp == NULL) {
+-	medmPrintf(1,"\nloadGIF: Cannot open file:\n"
+-	  "  %s\n",fname);
+-	goto CLEANUP;
++    if (!mBuf) {
++    	medmPrintf(1,"\nloadGIF: Cannot load file:\n %s\n", fullPathName);
++    	goto CLEANUP;
+     }
+ 
+-  /* Find the size of the file */
+-    fseek(fp, 0L, SEEK_END);
+-    filesize=(int) ftell(fp);
+-    fseek(fp, 0L, SEEK_SET);
++    filesize=(int) mBuf->length;
+ 
+   /* Allocate memory for the raw data */
+-    if(!(ptr=RawGIF=(Byte *)malloc(filesize))) {
++  ptr = RawGIF = (Byte *)(mBuf->data);
++  /*  if(!(ptr=RawGIF=(Byte *)malloc(filesize))) {
+ 	medmPrintf(1,"\nloadGIF: Not enough memory to store GIF file:\n"
+ 	  "  %s\n",fname);
+ 	goto CLEANUP;
+-    }
++    }*/
+ 
+   /* Allocate memory for the raster data */
+     if(!(Raster=(Byte *)malloc(filesize))) {
+@@ -782,15 +732,6 @@ static Boolean loadGIF(DisplayInfo *displayInfo, DlImage *dlImage)
+ 	goto CLEANUP;
+     }
+ 
+-  /* Read the file in one chunk */
+-    if(fread((char *)ptr, filesize, 1, fp) != 1) {
+-	char *errstring=strerror(ferror(fp));
+-
+-	medmPrintf(1,"\nloadGIF: Cannot read file:\n"
+-	  "  %s\n  %s\n",fname,errstring);
+-	goto CLEANUP;
+-    }
+-
+   /* Parse the Header */
+   /* Parse the Signature (3 bytes) and the Version (3 bytes) */
+     if(!strncmp((char *)ptr, "GIF89a", 6)) {
+@@ -1376,13 +1317,14 @@ static Boolean loadGIF(DisplayInfo *displayInfo, DlImage *dlImage)
+ 
+   /* Clean up */
+   CLEANUP:
+-    if(fp && fp != stdin) fclose(fp);
++    /*if(fp && fp != stdin) fclose(fp);*/
++    mBuf = mbClose(mBuf);
+     if(Raster) {
+ 	free((char *)Raster);
+ 	Raster=NULL;
+     }
+     if(RawGIF) {
+-	free((char *)RawGIF);
++	/*free((char *)RawGIF);*/
+ 	Raster=NULL;
+     }
+     if(tempPixmap) XFreePixmap(display,tempPixmap);
