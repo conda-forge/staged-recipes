@@ -7,6 +7,7 @@
 env LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH}" \
   ./configure --prefix=${PREFIX}
 make
+make check
 make install
 
 # The build produces some libtool `.la` files. Remove them. See
