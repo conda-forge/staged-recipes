@@ -20,7 +20,3 @@ export SETUPTOOLS_SCM_PRETEND_VERSION="$PKG_VERSION"
 export PMIP_CBC_LIBRARY=$PREFIX/lib/libCbc${SHLIB_EXT}
 
 python -m pip install . -vv --prefix=$PREFIX
-
-# debug
-python -c "import mip; print('Successfully could import mip!')"
-python -c "import mip; print(mip.__file__)"
