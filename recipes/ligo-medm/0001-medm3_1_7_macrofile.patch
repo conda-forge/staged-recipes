@@ -1,0 +1,113 @@
+--- medm3_1_7/medm/utils.c	2012-06-21 15:03:01.000000000 -0500
++++ medm3_1_7/medm/utils.c	2013-03-07 15:47:14.453023205 -0600
+@@ -42,6 +42,7 @@
+ #include <cvtFast.h>
+ #include <postfix.h>
+ #include "medm.h"
++#include <sys/stat.h>
+ 
+ /* Include this after medm.h to avoid problems with Exceed 6 */
+ #ifdef WIN32
+@@ -3167,6 +3168,69 @@
+ }
+ 
+ /*** Name value table routines ***/
++/* 
++ * read_macros - allow %(read macro_file) option 
++ *  A. Ivanov, K. Thorne, January, 2012 LIGO 
++ */
++void read_macros(char *str, char *buf) {
++  char *pch = strtok (str,",");
++  *buf = 0;
++  while (pch != NULL)
++  {
++    if (*pch == '%' && pch[1] == '(') {
++        /* This is the directive to do stuff */
++        /* skip over "$(" */
++        pch+=2;  
++        /* find closing bracket */
++        char *endbrkt = strstr(pch,")");
++        if (endbrkt) {
++                *endbrkt = 0;
++                /* Split the string into two fields */
++                char **ap, *argv[2];
++                for (ap = argv; (*ap = strsep(&pch, " \t")) != NULL;)
++                   if (**ap != '\0')
++                           if (++ap >= &argv[2])
++                                   break;
++                if (!strcmp("read", argv[0])) {
++                        /* Open the file */
++                        if (argv[1] == 0) {
++                                 medmPrintf(1, "Unspecified file name in macro read command\n");
++                        } else {
++				char *fname=STRDUP(argv[1]);
++                                FILE *fp = fopen(fname, "r");
++                                if (fp == 0) {
++                                        medmPrintf(1, "Cannot open macro file %s\n", fname);
++                                } else {
++                                        struct stat st;
++                                        char buffer[MAX_TOKEN_LENGTH];
++                                        fstat(fileno(fp), &st);
++					size_t bytes_read;
++                                        if (st.st_size > (MAX_TOKEN_LENGTH-1)) {
++                                                medmPrintf(1, "File %s too big\n", fname);
++                                        } else {		
++	                                        bytes_read = fread(buffer, sizeof(char), st.st_size, fp);
++                                                buffer[st.st_size] = 0;
++                                               /* Trim trailing space */
++                                                char *end = buffer + strlen(buffer) - 1;
++                                                while(end > buffer && isspace(*end)) end--;
++                                                /* Write new null terminator */
++                                                *(end+1) = 0;
++                                                strcat(buf, buffer);
++                                        }
++                                        fclose(fp);
++                                }
++                        }
++                } else {
++                        medmPrintf(1, "Unknown macro command %s\n", argv[0]);
++                }
++        }
++    } else {
++        strcat(buf, pch);
++    }
++    pch = strtok (NULL, ",");
++    if (pch) strcat(buf, ",");
++  }
++}
+ 
+ /*
+  * generate a name-value table from the passed-in argument string
+@@ -3176,7 +3240,7 @@
+  */
+ NameValueTable *generateNameValueTable(char *argsString, int *numNameValues)
+ {
+-    char *copyOfArgsString,  *name, *value;
++    char *name, *value;
+     char *s1;
+     char nameEntry[80], valueEntry[80];
+     int i = 0, j = 0, tableIndex = 0, numPairs = 0, numEntries = 0;
+@@ -3185,11 +3249,13 @@
+ 
+ 
+     nameTable = NULL;
+-    copyOfArgsString = NULL;
+ 
+     if(argsString != NULL) {
+ 
+-	copyOfArgsString = STRDUP(argsString);
++	char copyOfArgsString[MAX_TOKEN_LENGTH];
++	char *strcp = STRDUP(argsString);
++	read_macros(strcp, copyOfArgsString);
++	free(strcp);
+       /* see how many a=b name/value pairs are in the string */
+ 	numPairs = 0;
+ 	i = 0;
+@@ -3233,7 +3299,6 @@
+ 		tableIndex++;
+ 	    }
+ 	}
+-	if(copyOfArgsString) free(copyOfArgsString);
+ 
+     } else {
+ 
