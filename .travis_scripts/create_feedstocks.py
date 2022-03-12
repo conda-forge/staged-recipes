@@ -104,7 +104,7 @@ def _set_default_branch(feedstock_dir, default_branch):
         cfg["upload_on_branch"] = default_branch
 
     with open(os.path.join(feedstock_dir, "conda-forge.yml"), "w") as fp:
-        yaml.dump(_cfg, fp)
+        yaml.dump(cfg, fp)
 
 
 def feedstock_token_exists(organization, name):
