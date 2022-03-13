@@ -12,10 +12,9 @@ if [[ $(uname) == Linux ]]; then
     tar xvf $SRC_DIR/mozjs/data.tar.gz
     BIN_LOCATION=$PREFIX/opt/couchdb/bin/couchdb
 elif [[ $(uname) == Darwin ]]; then
-    ls couchdb
-    pkgutil --expand couchdb.pkg couchdb
-    cp -rf CouchDB.app/* $APP_DIR
-    BIN_LOCATION=$APP_DIR/Contents/MacOS/firefox
+    find couchdb
+    cp -rf couchdb/* $APP_DIR
+    BIN_LOCATION=$APP_DIR/Contents/Resources/couchdbx-core/bin/couchdb
 fi
 
 # Write launch script and make executable
