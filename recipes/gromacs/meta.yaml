@@ -1,0 +1,77 @@
+# Update from download page, e.g. https://manual.gromacs.org/documentation/2021/download.html
+# For latest release, see
+# https://manual.gromacs.org/documentation/
+{% set name = "gromacs" %}
+{% set version = "2022" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://ftp.gromacs.org/gromacs/gromacs-{{ version }}.tar.gz
+  sha256: fad60d606c02e6164018692c6c9f2c159a9130c2bf32e8c5f4f1b6ba2dda2b68
+
+build:
+  number: 0
+  string: >-
+    nompi_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [mpi == 'nompi']
+    mpi_{{ mpi }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [mpi != 'nompi']
+  skip: True  # [win]
+
+requirements:
+  build:
+    - make
+    - {{ compiler('cxx') }}
+    - cmake >3.13
+    - pocl
+    - python >3.5
+    - perl
+    - libgomp  # [linux]
+    - llvm-openmp  # [osx]
+  host:
+    - ocl-icd  # [linux]
+    - khronos-opencl-icd-loader  # [osx]
+    - libhwloc 2.*
+    - fftw
+    - {{ mpi }}  # [mpi != 'nompi']
+  run:
+    - ocl-icd  # [linux]
+    - khronos-opencl-icd-loader  # [osx]
+    - ocl_icd_wrapper_apple  # [osx]
+    - fftw
+    - libhwloc 2.*
+    - {{ mpi }}  # [mpi != 'nompi']
+
+test:
+  commands:
+    - gmx -version  # [mpi == 'nompi']
+    - export OMPI_MCA_plm=isolated  # [mpi == "openmpi" and linux]
+    - export OMPI_MCA_btl_vader_single_copy_mechanism=none  # [mpi == "openmpi" and linux]
+    - export OMPI_MCA_rmaps_base_oversubscribe=yes  # [mpi == "openmpi" and linux]
+    - gmx_mpi -version  # [mpi != 'nompi']
+
+about:
+  home: https://www.gromacs.org/
+  license: LGPL-2.1-or-later
+  license_family: GPL
+  license_file: COPYING
+  summary: 'GROMACS is a versatile package to perform molecular dynamics.'
+  description: |
+    GROMACS is a versatile package to perform molecular dynamics, i.e. 
+    simulate the Newtonian equations of motion for systems with hundreds 
+    to millions of particles. It is primarily designed for biochemical 
+    molecules like proteins, lipids and nucleic acids that have a lot of
+    complicated bonded interactions, but since GROMACS is extremely fast
+    at calculating the nonbonded interactions (that usually dominate
+    simulations) many groups are also using it for research on
+    non-biological systems, e.g. polymers.
+  doc_url: https://www.gromacs.org
+  dev_url: https://github.com/gromacs/gromacs
+
+extra:
+  recipe-maintainers:
+    - douglowe
+    - jan-janssen
+    - mabraham
+    - simonbray
