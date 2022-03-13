@@ -47,7 +47,7 @@ docker run ${DOCKER_RUN_ARGS} \
            -e AZURE=${AZURE} \
            -e CONFIG \
            -e CI \
-	   -e DEFAULT_LINUX_VERSION \
+           -e DEFAULT_LINUX_VERSION \
            "${DOCKER_IMAGE}" \
            bash \
            "/home/conda/staged-recipes/${PROVIDER_DIR}/build_steps.sh"
