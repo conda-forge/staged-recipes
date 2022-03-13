@@ -84,28 +84,6 @@ fi
 source etc/bashrc
 ./Allwmake -j
 
-# get foam-extend src
-cd $PREFIX/src/volume/foam-extend
-tar xvf foam-extend-4.1_for_openfoam-7.tar
-# compile foam-extend 4.1
-cd $PREFIX/src/volume/foam-extend/foam-extend-4.1_for_openfoam-7/etc
-if [ "$(uname)" = "Linux" ]; then
-    alias wmRefresh=""
-fi
-echo "#!/bin/bash" > $SRC_DIR/build_foam-extend_for_openfoam.sh
-echo "set -e" >> $SRC_DIR/build_foam-extend_for_openfoam.sh
-echo "set -x" >> $SRC_DIR/build_foam-extend_for_openfoam.sh
-echo "cp prefs.sh-build prefs.sh # using PREFIX" >> $SRC_DIR/build_foam-extend_for_openfoam.sh
-echo "set +e" >> $SRC_DIR/build_foam-extend_for_openfoam.sh
-echo "source \$PREFIX/src/volume/OpenFOAM/OpenFOAM-7/etc/config.sh/unset" >> $SRC_DIR/build_foam-extend_for_openfoam.sh
-echo "source bashrc" >> $SRC_DIR/build_foam-extend_for_openfoam.sh
-echo "set -e" >> $SRC_DIR/build_foam-extend_for_openfoam.sh
-echo "cp prefs.sh-run prefs.sh # using CONDA_PREFIX" >> $SRC_DIR/build_foam-extend_for_openfoam.sh
-echo "cd $PREFIX/src/volume/foam-extend/foam-extend-4.1_for_openfoam-7" >> $SRC_DIR/build_foam-extend_for_openfoam.sh
-echo "./Allwmake -j" >> $SRC_DIR/build_foam-extend_for_openfoam.sh
-chmod +x $SRC_DIR/build_foam-extend_for_openfoam.sh
-$SRC_DIR/build_foam-extend_for_openfoam.sh
-
 # get PATO-2.3.1
 cd $PREFIX/src/volume/PATO
 tar xvf PATO-dev-2.3.1.tar.gz
