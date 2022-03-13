@@ -1,6 +1,12 @@
 {% set name = "optimum" %}
 {% set version = "1.0.0" %}
 
+# Set "use_entry_points = True" once the entry-points 
+#    are properly defined in upstream.
+#    - Track Issue: https://github.com/huggingface/optimum/issues/95
+{% set use_entry_points = False %}
+
+
 package:
   name: {{ name|lower }}
   version: {{ version }}
@@ -11,13 +17,19 @@ source:
 
 build:
   number: 0
-  noarch: python
-  # entry_points:
-  #   - optimum_export=optimum.onnxruntime.convert:main
-  #   - optimum_optimize=optimum.onnxruntime.optimize_model:main
-  #   - optimum_export_optimize=optimum.onnxruntime.convert_and_optimize:main
+  noarch: python  
+  {% if use_entry_points %}
+  entry_points:
+    - optimum_export=optimum.onnxruntime.convert:main
+    - optimum_optimize=optimum.onnxruntime.optimize_model:main
+    - optimum_export_optimize=optimum.onnxruntime.convert_and_optimize:main
+  {% endif %}
   script:
+    # See why this is necessary where "use_entry_points" is defined above.
+    {% if not use_entry_points %}
     - cp -f {{ environ.get("RECIPE_DIR") }}/assets/setup.py setup.py  # [not win]
+    - copy {{ environ.get("RECIPE_DIR") }}\assets\setup.py setup.py  # [win]
+    {% endif %}
     - {{ PYTHON }} -m pip install . -vv
 
 requirements:
@@ -40,15 +52,20 @@ test:
     - optimum
   commands:
     - pip check
-    # - optimum_export --help
-    # - optimum_optimize --help
-    # - optimum_export_optimize --help
+    {% if use_entry_points %}
+    - optimum_export --help
+    - optimum_optimize --help
+    - optimum_export_optimize --help
+    {% endif %}
   requires:
     - pip
 
 about:
   home: https://huggingface.co/hardware
-  summary: Optimum Library is an extension of the Hugging Face Transformers library, providing a framework to integrate third-party libraries from Hardware Partners and interface with their specific functionality.
+  summary: |
+    Optimum Library is an extension of the Hugging Face Transformers 
+    library, providing a framework to integrate third-party libraries 
+    from Hardware Partners and interface with their specific functionality.
   license: Apache-2.0
   license_file: LICENSE
   doc_url: https://github.com/huggingface/optimum
