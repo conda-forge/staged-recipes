@@ -1,9 +1,9 @@
-if not exist %LIBRARY_BIN% mkdir %LIBRARY_BIN% || exit 1
+if not exist %LIBRARY_PREFIX% mkdir %LIBRARY_PREFIX% || exit 1
 
 dir couchdb
 
-start "Install Firefox MSI" /wait msiexec.exe /i couchdb\apache-couchdb-%PKG_VERSION%.msi APPLICATIONFOLDER=%LIBRARY_BIN% ADMINUSER=admin ADMINPASSWORD=admin /quiet /norestart /l install.log || exit 1
+start "Install Firefox MSI" /wait msiexec.exe /i couchdb\apache-couchdb-%PKG_VERSION%.msi APPLICATIONFOLDER=%LIBRARY_PREFIX% ADMINUSER=admin ADMINPASSWORD=admin /quiet /norestart /l install.log || exit 1
 
-dir %LIBRARY_BIN%
+dir %LIBRARY_PREFIX%
 
 type install.log
