@@ -21,7 +21,7 @@ the full review team `@conda-forge/staged-recipes`.
 
 Once the PR is ready for review, please contact
 `@conda-forge/staged-recipes` to have it merged by writing
-`@conda-forge-admin, please ping team` in a new comment.
+<code>@</code>`conda-forge-admin, please ping team` in a new comment.
 
 Due to GitHub limitations first time contributors to conda-forge are unable
 to ping these teams. You can [ping the team][1] using a special command in
