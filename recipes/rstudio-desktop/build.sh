@@ -66,6 +66,7 @@ make -j${CPU_COUNT} -C build install
 ln -sfT ${PREFIX}/lib/mathjax ${PREFIX}/lib/rstudio/resources/mathjax-27
 ln -sfT ${PREFIX}/share/hunspell_dictionaries ${PREFIX}/lib/rstudio/resources/dictionaries
 ln -sfT ${PREFIX}/bin/pandoc ${PREFIX}/lib/rstudio/bin/pandoc/pandoc
+ln -sfT ${PREFIX}/lib/rstudio/resources ${PREFIX}/lib/rstudio/bin/resources
 
 ## Cleanup
 rm -rf ${PREFIX}/opt/rstudio-tools
