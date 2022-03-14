@@ -1,8 +1,9 @@
 {% set name = "torchaudio" %}
 {% set version = "0.11.0" %}
+{% set torch_proc_type = "cuda" if cuda_compiler_version != "None" else "cpu" %}
 
 package:
-  name: {{ name|lower }}
+  name: torchaudio-split
   version: {{ version }}
 
 source:
@@ -11,66 +12,73 @@ source:
 
 build:
   number: 0
-  script: "{{ PYTHON }} -m pip install . -vv"
-  skip: true  # [py<37]
+  skip: true  # [win]
 
 requirements:
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-  host:
-    - cmake
-    - ffmpeg
-    - ninja
-    - numpy >=1.11  # [py<=39]
-    - numpy >=1.21.2  # [py>39]
-    - pip
-    - pkg-config
-    - python
-    - pytorch-mutex
-    - setuptools
-  run:
-    - python
+
+outputs:
+  - name: torchaudio
+    script: build-torch.sh  # [not win]
+    script: build-torch.bat  # [win]
+    build:
+      string: cpu_py{{ COND_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version == "None"]
+      string: cuda{{ cuda_cimpiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+    requirements:
+      build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+    - sysroot_linux-64 ==2.17  # [linux64]
+    - python  # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+    - numpy  # [build_platform != target_platform]
+    - pytorch  # [build_platform != target_platform]
+    - pytorch =*={{ torch_proc_type }}*  # [build_platform != target_platform]
+    host:
+      - cmake
+      - cudnn  # [cuda_compiler_version != "None"]
+      - ffmpeg >=4.1
+      - ninja
+      - numpy >=1.11  # [py<=39]
+      - numpy >=1.21.2  # [py>39]
+      - pip
+      - pkg-config  # [not win]
+      - python
+      - pytorch
+      - pytorch =*={{ torch_proc_type }}*
+      - setuptools
+    run:
+      - {{ pin_compatible('cudnn') }}  # [cuda_compiler_version != "None"]
+      - {{ pin_compatible('numpy') }}
+      - python
+      - pytorch
+    run_constrained:
+      - pytorch =*={{ torch_proc_type }}*
 
 test:
-  # Some packages might need a `test/commands` key to check CLI.
-  # List all the packages/modules that `run_test.py` imports.
+  source_files:
+    - tests
   imports:
-    - simplejson
-    - simplejson.tests
-  # For python packages, it is useful to run pip check. However, sometimes the
-  # metadata used by pip is out of date. Thus this section is optional if it is
-  # failing.
-  requires:
-    - pip
+    - torchaudio
+    - torchaudio.datasets
+    - torchaudio.kaldi_io
+    - torchaudio.sox_effects
+    - torchaudio.transforms
   commands:
-    - pip check
+    - pytest -vvv --capture=tee-sys tests
+  requires:
+    - pytest
+    - scipy
 
 about:
-  home: https://github.com/simplejson/simplejson
-  # Remember to specify the license variants for BSD, Apache, GPL, and LGPL.
-  # Use the SPDX identifier, e.g: GPL-2.0-only instead of GNU General Public License version 2.0
-  # See https://spdx.org/licenses/
-  license: MIT
-  # The license_family, i.e. "BSD" if license is "BSD-3-Clause". (optional)
-  license_family: MIT
-  # It is strongly encouraged to include a license file in the package,
-  # (even if the license doesn't require it) using the license_file entry.
-  # See https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#license-file
-  license_file: LICENSE.txt
-  summary: 'Simple, fast, extensible JSON encoder/decoder for Python'
-  # The remaining entries in this section are optional, but recommended.
-  description: |
-    simplejson is a simple, fast, complete, correct and extensible
-    JSON <https://json.org> encoder and decoder for Python 2.5+ and
-    Python 3.3+. It is pure Python code with no dependencies, but includes
-    an optional C extension for a serious speed boost.
-  doc_url: https://simplejson.readthedocs.io/
-  dev_url: https://github.com/simplejson/simplejson
+  home: https://github.com/pytorch/audio
+  license: BSD
+  license_file: LICENSE
+  summary: 'simple audio I/O for pytorch'
 
 extra:
   recipe-maintainers:
-    # GitHub IDs for maintainers of the recipe.
-    # Always check with the people listed below if they are OK becoming maintainers of the recipe. (There will be spam!)
-    - LisaSimpson
-    - LandoCalrissian
+    - thewchan
