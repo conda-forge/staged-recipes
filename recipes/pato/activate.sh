@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 echo activate OpenFOAM and PATO
 if [ "$(uname)" = "Darwin" ]; then
+    CURRENT_DIR=$PWD
+    LOCALMOUNTPOINT="$CONDA_PREFIX/src/volume"
+    if [ -d $LOCALMOUNTPOINT ]; then
+        if mount | grep "on $LOCALMOUNTPOINT" > /dev/null; then
+            cd $CONDA_PREFIX
+            hdiutil detach $LOCALMOUNTPOINT
+	    cd $CURRENT_DIR
+        fi
+    fi
     if [ ! -d $CONDA_PREFIX/src/volume ]; then
 	mkdir -p $CONDA_PREFIX/src/volume
     fi
