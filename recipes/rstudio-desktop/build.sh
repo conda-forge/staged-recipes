@@ -45,9 +45,6 @@ ln -sfT common/pandoc pandoc
 ln -sfT common/node node
 popd
 
-## somehow the build process tries to delete this...
-chmod ugo-w "${PREFIX}/x86_64-conda-linux-gnu/lib/libstdc*"
-
 cmake -S . -B build \
       -DRSTUDIO_TARGET=Desktop \
       -DCMAKE_BUILD_TYPE=Release \
@@ -64,8 +61,6 @@ cmake -S . -B build \
       -DSOCI_SQLITE_LIB=${PREFIX}/lib/libsoci_sqlite3.so
 
 make -j${CPU_COUNT} -C build install
-
-chmod u+w "${PREFIX}/x86_64-conda-linux-gnu/lib/libstdc*"
 
 # Fix symlinks
 ln -sfT ${PREFIX}/lib/mathjax ${PREFIX}/lib/rstudio/resources/mathjax-27
