@@ -74,6 +74,39 @@ def repo_exists(gh, organization, name):
         raise
 
 
+def repo_default_branch(gh, organization, name):
+    # Use the organization provided.
+    org = gh.get_organization(organization)
+    try:
+        repo = org.get_repo(name)
+        return repo.default_branch
+    except GithubException as e:
+        if e.status == 404:
+            return "main"
+        raise
+
+
+def _set_default_branch(feedstock_dir, default_branch):
+    yaml = YAML()
+    with open(os.path.join(feedstock_dir, "conda-forge.yml"), "r") as fp:
+        cfg = yaml.load(fp.read())
+
+    if "github" not in cfg:
+        cfg["github"] = {}
+    cfg["github"]["branch_name"] = default_branch
+    cfg["github"]["tooling_branch_name"] = "main"
+
+    if (
+        "upload_on_branch" in cfg
+        and cfg["upload_on_branch"] != default_branch
+        and cfg["upload_on_branch"] in ["master", "main"]
+    ):
+        cfg["upload_on_branch"] = default_branch
+
+    with open(os.path.join(feedstock_dir, "conda-forge.yml"), "w") as fp:
+        yaml.dump(cfg, fp)
+
+
 def feedstock_token_exists(organization, name):
     r = requests.get(
         "https://api.github.com/repos/%s/"
@@ -207,8 +240,6 @@ if __name__ == '__main__':
                 # thing without having any metadata issues.
                 continue
 
-            feedstock_dirs.append([feedstock_dir, name, recipe_dir])
-
             subprocess.check_call([
                 'git', 'remote', 'add', 'upstream_with_token',
                 'https://conda-forge-manager:{}@github.com/'
@@ -220,26 +251,40 @@ if __name__ == '__main__':
                 cwd=feedstock_dir
             )
             print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+
             # Sometimes we already have the feedstock created. We need to
             # deal with that case.
             if repo_exists(gh, 'conda-forge', name + '-feedstock'):
+                default_branch = repo_default_branch(
+                    gh, 'conda-forge', name + '-feedstock'
+                )
                 subprocess.check_call(
                     ['git', 'fetch', 'upstream_with_token'], cwd=feedstock_dir)
                 subprocess.check_call(
-                    ['git', 'branch', '-m', 'master', 'old'], cwd=feedstock_dir)
+                    ['git', 'branch', '-m', default_branch, 'old'], cwd=feedstock_dir)
                 try:
                     subprocess.check_call(
                         [
-                            'git', 'checkout', '-b', 'master',
-                            'upstream_with_token/master'
+                            'git', 'checkout', '-b', default_branch,
+                            'upstream_with_token/%s' % default_branch
                         ],
                         cwd=feedstock_dir)
                 except subprocess.CalledProcessError:
                     # Sometimes, we have a repo, but there are no commits on
                     # it! Just catch that case.
                     subprocess.check_call(
-                        ['git', 'checkout', '-b' 'master'], cwd=feedstock_dir)
+                        ['git', 'checkout', '-b', default_branch], cwd=feedstock_dir)
+            else:
+                default_branch = "main"
+
+            feedstock_dirs.append([feedstock_dir, name, recipe_dir, default_branch])
+
             print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+
+            # set the default branch in the conda-forge.yml
+            _set_default_branch(feedstock_dir, default_branch)
+
+            # now register with github
             subprocess.check_call(
                 ['conda', 'smithy', 'register-github', feedstock_dir]
                 + owner_info
@@ -250,17 +295,21 @@ if __name__ == '__main__':
             print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
         from conda_smithy.ci_register import drone_sync
-        print("Running drone sync (can take ~100s)")
+        print("Running drone sync (can take ~100s)", flush=True)
         print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
         drone_sync()
-        time.sleep(100)  # actually wait
+        for _drone_i in range(10):
+            print("syncing drone - %d seconds left" % (10*(10 - _drone_i)), flush=True)
+            time.sleep(10)  # actually wait
         print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
         # Break the previous loop to allow the TravisCI registering
         # to take place only once per function call.
         # Without this, intermittent failures to synch the TravisCI repos ensue.
         # Hang on to any CI registration errors that occur and raise them at the end.
-        for num, (feedstock_dir, name, recipe_dir) in enumerate(feedstock_dirs):
+        for num, (feedstock_dir, name, recipe_dir, default_branch) in enumerate(
+            feedstock_dirs
+        ):
             if name.lower() in REPO_SKIP_LIST:
                 continue
             print("\n\nregistering CI services for %s..." % name)
@@ -342,7 +391,10 @@ if __name__ == '__main__':
                 try:
                     # Capture the output, as it may contain the GH_TOKEN.
                     out = subprocess.check_output(
-                        ['git', 'push', 'upstream_with_token', 'HEAD:master'],
+                        [
+                            'git', 'push', 'upstream_with_token',
+                            'HEAD:%s' % default_branch
+                        ],
                         cwd=feedstock_dir,
                         stderr=subprocess.STDOUT)
                     break
@@ -352,17 +404,20 @@ if __name__ == '__main__':
                 # Likely another job has already pushed to this repo.
                 # Place our changes on top of theirs and try again.
                 out = subprocess.check_output(
-                    ['git', 'fetch', 'upstream_with_token', 'master'],
+                    ['git', 'fetch', 'upstream_with_token', default_branch],
                     cwd=feedstock_dir,
                     stderr=subprocess.STDOUT)
                 try:
                     subprocess.check_call(
-                        ['git', 'rebase', 'upstream_with_token/master', 'master'],
+                        [
+                            'git', 'rebase',
+                            'upstream_with_token/%s' % default_branch, default_branch
+                        ],
                         cwd=feedstock_dir)
                 except subprocess.CalledProcessError:
-                    # Handle rebase failure by choosing the changes in `master`.
+                    # Handle rebase failure by choosing the changes in default_branch.
                     subprocess.check_call(
-                        ['git', 'checkout', 'master', '--', '.'],
+                        ['git', 'checkout', default_branch, '--', '.'],
                         cwd=feedstock_dir)
                     subprocess.check_call(
                         ['git', 'rebase', '--continue'], cwd=feedstock_dir)
