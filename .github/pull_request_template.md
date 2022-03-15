@@ -2,7 +2,7 @@
 Thank you very much for putting in this recipe PR!
 
 This repository is very active, so if you need help with
-a PR or once it's ready for review, please let the right people know.
+a PR, please let the right people know.
 There are language-specific teams for reviewing recipes.
 
 Currently available teams are:
@@ -19,6 +19,10 @@ Currently available teams are:
 If your PR doesn't fall into those categories please contact
 the full review team `@conda-forge/staged-recipes`.
 
+Once the PR is ready for review, please contact
+`@conda-forge/staged-recipes` to have it merged by writing
+<code>@</code>`conda-forge-admin, please ping team` in a new comment.
+
 Due to GitHub limitations first time contributors to conda-forge are unable
 to ping these teams. You can [ping the team][1] using a special command in
 a comment on the PR to get the attention of the `staged-recipes` team. You can
@@ -30,7 +34,7 @@ also consider asking on our [Gitter channel][2] if your recipe isn't reviewed pr
 
 Checklist
 - [ ] Title of this PR is meaningful: e.g. "Adding my_nifty_package", not "updated meta.yaml".
-- [ ] License file is packaged (see [here](https://github.com/conda-forge/staged-recipes/blob/main/recipes/example/meta.yaml#L57-L66) for an example).
+- [ ] License file is packaged (see [here](https://github.com/conda-forge/staged-recipes/blob/5eddbd7fc9d1502169089da06c3688d9759be978/recipes/example/meta.yaml#L64-L73) for an example).
 - [ ] Source is from official source.
 - [ ] Package does not vendor other packages. (If a package uses the source of another package, they should be separate packages or the licenses of all packages need to be packaged).
 - [ ] If static libraries are linked in, the license of the static library is packaged.
