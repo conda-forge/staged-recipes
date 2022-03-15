@@ -4,7 +4,7 @@ if [ "$(uname)" = "Darwin" ]; then
     CURRENT_DIR=$PWD
     LOCALMOUNTPOINT="$CONDA_PREFIX/src/volume"
     if [ -d $LOCALMOUNTPOINT ]; then
-        if mount | grep "on $LOCALMOUNTPOINT" > /dev/null; then
+        if mount | grep "on $LOCALMOUNTPOINT " > /dev/null; then
             cd $CONDA_PREFIX
             hdiutil detach $LOCALMOUNTPOINT
 	    cd $CURRENT_DIR

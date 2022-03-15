@@ -3,7 +3,7 @@ echo deactivate OpenFOAM and PATO
 if [ "$(uname)" = "Darwin" ]; then
     LOCALMOUNTPOINT="$CONDA_PREFIX/src/volume"
     if [ -d $LOCALMOUNTPOINT ]; then
-	if mount | grep "on $LOCALMOUNTPOINT" > /dev/null; then
+	if mount | grep "on $LOCALMOUNTPOINT " > /dev/null; then
 	    if [ -f $CONDA_PREFIX/src/volume/OpenFOAM/OpenFOAM-7/etc/config.sh/unset ] && [ ! -z "${WM_PROJECT_DIR}" ]; then
 		source $CONDA_PREFIX/src/volume/OpenFOAM/OpenFOAM-7/etc/config.sh/unset
 	    fi
