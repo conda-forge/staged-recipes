@@ -29,10 +29,10 @@ export SOCI_SQLITE_LIB=${PREFIX}/lib/libsoci_sqlite3.so
 ## build documentation we create symlinks in the expected locations
 ## to the conda-forge equivalents
 pushd dependencies/common
-_pandocver=$(grep -oP "(?<=PANDOC_VERSION=\").*(?=\"$)" install-pandoc)
+_pandocver=$(rg -o --pcre2 "(?<=PANDOC_VERSION=\").*(?=\"$)" install-pandoc)
 install -d pandoc/${_pandocver}
 ln -sfT ${PREFIX}/bin/pandoc pandoc/${_pandocver}/pandoc
-_nodever=$(grep -oP "(?<=NODE_VERSION=\").*(?=\"$)" ../tools/rstudio-tools.sh)
+_nodever=$(rg -o --pcre2 "(?<=NODE_VERSION=\").*(?=\"$)" ../tools/rstudio-tools.sh)
 install -d node
 ln -sfT ${BUILD_PREFIX} node/${_nodever}
 ln -sfT ${PREFIX}/share/hunspell_dictionaries dictionaries
