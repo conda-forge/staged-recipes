@@ -1,0 +1,82 @@
+From bfdb1080364c91c92ad73924c5ac4a6c0fb9b386 Mon Sep 17 00:00:00 2001
+From: Ista Zahn <istazahn@gmail.com>
+Date: Tue, 15 Mar 2022 19:13:30 -0400
+Subject: [PATCH] fix setup
+
+---
+ setup.py                  | 15 +++++++--------
+ src/pdftopng/pdftopng.cpp |  1 -
+ 2 files changed, 7 insertions(+), 9 deletions(-)
+
+diff --git a/setup.py b/setup.py
+index 7ca89c9..4eec9ba 100644
+--- a/setup.py
++++ b/setup.py
+@@ -9,6 +9,7 @@ import pybind11
+ from setuptools.command.build_ext import build_ext
+ from setuptools import setup, Extension, find_packages
+ 
++PREFIX = os.getenv('PREFIX')
+ 
+ here = os.path.abspath(os.path.dirname(__file__))
+ about = {}
+@@ -25,7 +26,7 @@ requires = [
+ dev_requires = ["Pillow>=8.2.0", "pytest>=6.2.3", "pytest-cov>=2.11.1"]
+ dev_requires = dev_requires + requires
+ 
+-poppler_dir = os.path.join(os.getcwd(), "lib", "poppler")
++poppler_dir = os.path.join(PREFIX, "include", "poppler")
+ build_dir = os.path.join(poppler_dir, "build")
+ library_dirs = []
+ libraries = []
+@@ -34,14 +35,12 @@ if sys.platform == "win32":
+     # https://docs.python.org/3/library/platform.html#platform.architecture
+     x = "x64" if sys.maxsize > 2 ** 32 else "x86"
+ 
+-    poppler_dir = os.path.join(os.getcwd(), "lib", "poppler")
++    poppler_dir = os.path.join(PREFIX, "Library", "include", "poppler")
+     build_dir = os.path.join(poppler_dir, f"build_win_{x}")
+ 
+     # set VCPKG_INSTALLATION_ROOT=C:\dev\vcpkg
+-    vcpkg_lib_dir = os.path.join(
+-        os.environ["VCPKG_INSTALLATION_ROOT"], "installed", f"{x}-windows", "lib"
+-    )
+-    poppler_lib_dir = os.path.join(build_dir, "Release")
++    vcpkg_lib_dir = os.path.join(PREFIX, "Library", "lib")
++    poppler_lib_dir = os.path.join(PREFIX,  "Library", "include", "poppler")
+ 
+     library_dirs.extend([vcpkg_lib_dir, poppler_lib_dir])
+     libraries.extend(
+@@ -100,7 +99,7 @@ def cpp_flag(compiler):
+     """Return the -std=c++[11/14/17] compiler flag.
+     The newer version is prefered over c++11 (when it is available).
+     """
+-    flags = ["-std=c++14", "-std=c++11"]
++    flags = ["-std=c++17", "-std=c++14", "-std=c++11"]
+ 
+     for flag in flags:
+         if has_flag(compiler, flag):
+@@ -125,7 +124,7 @@ class BuildExt(build_ext):
+ 
+     l_opts = {
+         "msvc": [],
+-        "unix": ["-Wl,-rpath,lib/poppler/build", f"lib/poppler/build/{soname}"],
++        "unix": ["-Wl,-rpath,"+os.path.join(PREFIX,"lib"), os.path.join(PREFIX,"lib",soname)],
+     }
+ 
+     if sys.platform == "darwin":
+diff --git a/src/pdftopng/pdftopng.cpp b/src/pdftopng/pdftopng.cpp
+index 26f2791..164024c 100644
+--- a/src/pdftopng/pdftopng.cpp
++++ b/src/pdftopng/pdftopng.cpp
+@@ -43,7 +43,6 @@
+ //
+ //========================================================================
+ 
+-#include "config.h"
+ #include <poppler-config.h>
+ #ifdef _WIN32
+ #    include <fcntl.h> // for O_BINARY
+-- 
+2.35.1
+
