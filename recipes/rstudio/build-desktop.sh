@@ -7,7 +7,9 @@ export RSTUDIO_VERSION_MINOR=$(echo ${PKG_VERSION} | cut -d. -f2)
 export RSTUDIO_VERSION_PATCH=$(echo ${PKG_VERSION} | cut -d. -f3)
 export RSTUDIO_VERSION_SUFFIX="+443"
 export GIT_COMMIT=fc9e217
-export PACKAGE_OS=$(uname -om)
+
+[[ $(uname) == Linux ]] && export PACKAGE_OS=$(uname -om)
+[[ $(uname) == Darwin ]] && export PACKAGE_OS=$(uname)
 
 export BUILD_TYPE=Release
 export RSTUDIO_TARGET=Desktop
