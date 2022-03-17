@@ -1,0 +1,64 @@
+{% set name = "roounfold" %}
+{% set version = "2.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://gitlab.cern.ch/RooUnfold/RooUnfold/-/archive/{{ version }}/RooUnfold-{{ version }}.tar.gz
+  sha256: c67eb2cd8aab7271fd440638ee9b322a744cf91207e72aa605663f85d3310303
+
+build:
+  number: 0
+  skip: True  # [win]
+  script:
+    - pip install . -vvv
+    - mv $SP_DIR/RooUnfold/libRooUnfold* $PREFIX/lib
+    - mv $SP_DIR/RooUnfold/*.h $PREFIX/include
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - cmake
+    - make
+    - sysroot_linux-64 2.17  # [linux64]
+  host:
+    - root_base
+    - python
+    - scikit-build
+  run:
+    - python
+  run_constrained:
+    - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx]
+
+test:
+  source_files:
+    - examples/RooUnfoldExample.py
+    - examples/RooUnfoldExample.cxx
+  commands:
+    - python examples/RooUnfoldExample.py
+    - root -b -l -x -q examples/RooUnfoldExample.cxx
+
+about:
+  home: https://gitlab.cern.ch/RooUnfold/RooUnfold
+  # license: MIT AND GPL-3.0-or-later
+  # license_file: Licence.md
+  summary: ROOT Unfolding Framework
+  description: |
+    RooUnfold is a framework for unfolding (AKA "deconvolution" or "unsmearing"). It currently implements six methods:
+
+      - iterative ("Bayesian"; as proposed by [D'Agostini](https://arxiv.org/abs/1010.0632));
+      - singular value decomposition ([SVD](https://arxiv.org/abs/hep-ph/9509307), as proposed by Höcker and Kartvelishvili and implemented in [TSVDUnfold](https://root.cern.ch/doc/master/classTSVDUnfold.html));
+      - bin-by-bin (simple correction factors);
+      - an interface to the [TUnfold](https://root.cern.ch/doc/master/classTUnfold.html) method developed by [Stefan Schmitt](https://arxiv.org/abs/1205.6201);
+      - simple inversion of the response matrix without regularisation; and
+      - [iterative dynamically stabilized unfolding (IDS)](https://arxiv.org/abs/0907.3791) by Bogdan Malaescu, implemented by Chris Meyer.
+
+    It can be used from the [ROOT](https://root.cern.ch/) prompt, from C++ (Cling) or Python (PyROOT) scripts, or linked against the ROOT libraries.
+  doc_url: https://gitlab.cern.ch/RooUnfold/RooUnfold
+  dev_url: https://statisticalmethods.web.cern.ch/StatisticalMethods/unfolding/RooUnfold_01-Methods/
+
+extra:
+  recipe-maintainers:
+    - chrisburr
