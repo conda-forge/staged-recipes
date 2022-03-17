@@ -273,4 +273,9 @@ autoreconf --install
 	    --enable-distro \
 	    --enable-nolibrary
 
-make check || { cat ./test-suite.log; exit 1 }
+deathcat() {
+    cat "$@"
+    exit 1
+}
+
+make check || deathcat ./test-suite.log

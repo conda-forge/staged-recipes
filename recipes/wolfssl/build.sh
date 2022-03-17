@@ -15,7 +15,12 @@ autoreconf --install
 	    --with-libz="$PREFIX" \
 	    --enable-distro
 
+deathcat() {
+    cat "$@"
+    exit 1
+}
+
 make 
-make check || { cat ./test-suite.log; exit 1 }
+make check || deathcat ./test-suite.log
 make install
 
