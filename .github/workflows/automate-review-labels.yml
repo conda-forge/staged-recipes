@@ -18,6 +18,7 @@
       runs-on: ubuntu-latest
       steps:
         - name: check-teams
+          id: check_teams
           uses: actions/github-script@v6
           with:
             result-encoding: json
@@ -44,7 +45,7 @@
                   if (result) {
                       label = team.replace("@conda-forge/help-", "");
                       label_no_staged = label.replace("@conda-forge/", "");
-                      let found_label = true;
+                      found_label = true;
                       github.rest.issues.addLabels({
                           issue_number: context.issue.number,
                           owner: context.repo.owner,
@@ -55,9 +56,9 @@
                   }
               };
               return found_label
-        - name: add-labels
+        - name: remove-labels
           if: >
-            steps.check-teams.outputs.result
+            (steps.check_teams.outputs.result == 'true')
             && contains(github.event.issue.labels.*.name, 'Awaiting author contribution')
           uses: actions/github-script@v6
           with:
@@ -86,6 +87,7 @@
       runs-on: ubuntu-latest
       steps:
         - name: check-membership
+          id: check_membership
           uses: actions/github-script@v6
           with:
             github-token: ${{ secrets.GH_TOKEN }}
@@ -102,13 +104,15 @@
               membership_response.then(function(result) {
                  console.log(result);
                  if (result.data.state == 'active'){
-                   return;
+                   return true;
                  } else {
-                   throw new Error('Reviewer not active member of conda-forge/staged-recipes');
+                   return false;
                  }
               });
-        - name: swap-labels
-          if: ${{ success() }}
+        - name: remove-labels
+          if: >
+            (steps.check_membership.outputs.result == 'true')
+            && contains(github.event.issue.labels.*.name, 'review-requested')
           uses: actions/github-script@v6
           with:
             script: |
@@ -118,6 +122,12 @@
                   repo: context.repo.repo,
                   name: ['review-requested']
               });
+        - name: add-labels
+          if: >
+            (steps.check_membership.outputs.result == 'true')
+          uses: actions/github-script@v6
+          with:
+            script: |
               github.rest.issues.addLabels({
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
