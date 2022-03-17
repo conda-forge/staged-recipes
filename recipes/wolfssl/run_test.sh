@@ -12,12 +12,6 @@ pkg-config --exact-version="$PKG_VERSION" "$PKG_NAME"
 # assumes test.source_files has '*' in it and we have the contents of the build dir
 make distclean
 
-# hack configure.ac to expose ENABLE_NO_LIBRARY to cmdline
-for p in "$RECIPE_DIR"/test-patches/*; do
-    patch -p1 <"$p"
-done
-
-
 autoreconf --install
 ./configure --prefix="$PREFIX" \
             --enable-jobserver="$CPU_COUNT" \
