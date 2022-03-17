@@ -14,7 +14,7 @@ cmake -GNinja ^
 	  -DWOLFSSL_EXAMPLES=yes ^
 	  .. || exit 1
 
-cmake -j %CPU_COUNT% --build . || exit 1
+cmake  --build . -j %CPU_COUNT% || exit 1
 
 ctest -N
 ctest -j %CPU_COUNT%

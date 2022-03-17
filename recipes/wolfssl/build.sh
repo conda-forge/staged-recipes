@@ -16,6 +16,6 @@ autoreconf --install
 	    --enable-distro
 
 make 
-make check
+make check || { cat ./test-suite.log; exit 1 }
 make install
 
