@@ -332,6 +332,7 @@ if __name__ == '__main__':
                 subprocess.check_call(
                     ['conda', 'smithy', 'register-ci', '--without-appveyor',
                      '--without-webservice', '--feedstock_directory',
+                     '--without-circle',
                      feedstock_dir] + owner_info)
                 subprocess.check_call(
                     ['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
