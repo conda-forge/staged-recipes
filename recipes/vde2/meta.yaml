@@ -1,23 +1,31 @@
 {% set name = "vde2" %}
-#{% set version = "2.3.2" %}
-{% set version = environ.get('GIT_DESCRIBE_TAG', 'untagged')|string|replace('-','_') %}
+{% set version = "2.3.2" %}
+#{% set version = environ.get('GIT_DESCRIBE_TAG', 'untagged')|string|replace('-','_') %}
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  #url: https://sourceforge.net/projects/vde/files/vde2/{{ version }}/vde2-{{ version }}.tar.gz/download
-  #https://downloads.sourceforge.net/project/vde/vde2/2.3.2/vde2-2.3.2.tar.bz2
-  #?ts=gAAAAABiMRgVKsFCOs_5zIkVOVNElOLtWTXzwU7bLITHEGkxqxhQ-eBCKErqFvo9ozr8EXRbQdjZpzn8KAtw2J98b5lphmJJuw%3D%3D&r=https%3A%2F%2Fsourceforge.net%2Fprojects%2Fvde%2Ffiles%2Fvde2%2F2.3.2%2Fvde2-2.3.2.tar.bz2%2Fdownload
+  url: https://downloads.sourceforge.net/project/vde/vde2/{{ version }}/vde2-{{ version }}.tar.bz2
+  sha256: cbea9b7e03097f87a6b5e98b07890d2275848f1fe4b9fcda77b8994148bc9542
+  patches:
+    - patches/0001-configure-do-not-test-for-CXX-it-s-not-needed.patch
+    - patches/0002-build-Fix-parallel-make.patch
   # url: https://github.com/virtualsquare/vde-2/archive/refs/tags/vde-2.tar.gz  # comment is that this was v2.3.2 on sourceforge
-  git_url: https://github.com/virtualsquare/vde-2.git
+  #git_url: https://github.com/virtualsquare/vde-2.git
 
 build:
-  #number: 0
-  number: {{ environ.get('GIT_DESCRIBE_NUMBER', '0') }}
-  string: {{ [environ.get('PKG_BUILDNUM', ''), ('h' + environ.get('PKG_HASH', '')), environ.get('GIT_DESCRIBE_HASH', '')]|join('_') }}
+  number: 0
   skip: True  # [win]
+
+#source:
+#  # url: https://github.com/virtualsquare/vde-2/archive/refs/tags/vde-2.tar.gz  # comment is that this was v2.3.2 on sourceforge
+#  #git_url: https://github.com/virtualsquare/vde-2.git
+#
+#build:
+#  number: {{ environ.get('GIT_DESCRIBE_NUMBER', '0') }}
+#  string: {{ [environ.get('PKG_BUILDNUM', ''), ('h' + environ.get('PKG_HASH', '')), environ.get('GIT_DESCRIBE_HASH', '')]|join('_') }}
 
 requirements:
   build:
@@ -29,8 +37,20 @@ requirements:
     - libtool
     - make
   host:
-    - wolfssl
     - libpcap
+    # 2.3.2 breaks after openssl 1.1.0 with
+    # cryptcab.c:25:23: error: storage size of 'ctx' isn't known
+    #  25 | static EVP_CIPHER_CTX ctx;
+    #     |                       ^~~
+    # see https://github.com/openssl/openssl/issues/4749
+    - openssl<1.1 # changes to wolfssl for new cryptcab at 2019-01-14 8599321526d0a31925fe55cabbe132b752cb268a
+    # and then we can no longer solve for modern python because 
+    # The reported errors are:
+    # - Encountered problems while solving:
+    # - package python-3.7.5-hffdb5ce_0_cpython requires openssl >=1.1.1i,<1.1.2a, but none of the providers can be installed
+    - python
+  run:
+    - python
 
 # XXX Add some tests!
 #test:
