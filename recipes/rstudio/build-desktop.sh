@@ -73,9 +73,6 @@ cmake -S . -B build \
 
 make -j${CPU_COUNT} -C build install
 
-## Cleanup
-rm -rf ${PREFIX}/opt/rstudio-tools
-
 # Binary wrapper script
 if [[ $(uname) == Linux ]]
 then
@@ -87,4 +84,7 @@ ${PREFIX}/lib/rstudio/bin/rstudio \"\$@\"
 fi
 
 [[ $(uname) == Darwin ]] && ln -s "${PREFIX}/lib/rstudio/RStudio.app/Contents/MacOS/RStudio" "${PREFIX}/bin/rstudio"
+
+## Cleanup
+rm -rf ${PREFIX}/opt/rstudio-tools
 
