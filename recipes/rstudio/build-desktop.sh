@@ -58,7 +58,7 @@ cmake -S . -B build \
       -DQT_QMAKE_EXECUTABLE="${PREFIX}/bin/make" \
       -DBoost_NO_BOOST_CMAKE=ON \
       -DBOOST_ROOT=$PREFIX \
-      -DBOOST_INCLUDEDIR=${PREFIX}/include \
+      -DBOOST_INCLUDEDIR=${PREFIX}/include/boost \
       -DBOOST_LIBRARYDIR=${PREFIX}/lib \
       -DQUARTO_ENABLED=FALSE \
       -DRSTUDIO_BUNDLE_QT=FALSE \
