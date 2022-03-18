@@ -56,7 +56,7 @@ cmake -S . -B build \
       -DRSTUDIO_USE_SYSTEM_BOOST=yes \
       -DRSTUDIO_USE_SYSTEM_YAML_CPP=yes \
       -DQT_QMAKE_EXECUTABLE="${PREFIX}/bin/make" \
-      -DBoost_NO_BOOST_CMAKE=ON \
+      -DBoost_NO_BOOST_CMAKE=OFF \
       -DBOOST_ROOT=$PREFIX \
       -DBOOST_INCLUDEDIR=${PREFIX}/include/boost \
       -DBOOST_LIBRARYDIR=${PREFIX}/lib \
