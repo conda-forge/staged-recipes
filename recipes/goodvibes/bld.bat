@@ -1,6 +1,6 @@
 :: Save source for C code and remove compiled libraries
-ren "%SP_DIR%\goodvibes\share\symmetry.c" symmetry.c
-rd /S /Q "%SP_DIR%\goodvibes\share\"
+ren "%SRC_DIR%\goodvibes\share\symmetry.c" symmetry.c
+rd /S /Q "%SRC_DIR%\goodvibes\share\"
 
 :: Install Python
 "%PYTHON%" -m pip install . -vv
