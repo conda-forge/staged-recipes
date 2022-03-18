@@ -26,6 +26,8 @@ ln -s ${PREFIX}/* ${SOCI_BIN_DIR}
 export SOCI_CORE_LIB=${PREFIX}/lib/libsoci_core.so
 export SOCI_POSTGRESQL_LIB=${PREFIX}/lib/libsoci_postgresql.so
 export SOCI_SQLITE_LIB=${PREFIX}/lib/libsoci_sqlite3.so
+export RSTUDIO_DISABLE_CRASHPAD=1
+export RSTUDIO_CRASHPAD_ENABLED=FALSE
 
 ## Instead of installing dependencies as instructed by the upstream
 ## build documentation we create symlinks in the expected locations
@@ -62,6 +64,7 @@ cmake -S . -B build \
       -DBOOST_LIBRARYDIR=${PREFIX}/lib \
       -DQUARTO_ENABLED=FALSE \
       -DRSTUDIO_DISABLE_CRASHPAD=1 \
+      -DRSTUDIO_CRASHPAD_ENABLED=FALSE \
       -DRSTUDIO_BUNDLE_QT=FALSE \
       -DRSTUDIO_USE_SYSTEM_SOCI=yes \
       -DSOCI_CORE_LIB=${PREFIX}/lib/libsoci_core.$SONAME \
