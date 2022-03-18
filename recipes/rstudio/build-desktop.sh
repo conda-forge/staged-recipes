@@ -61,6 +61,7 @@ cmake -S . -B build \
       -DBOOST_INCLUDEDIR=${PREFIX}/include/boost \
       -DBOOST_LIBRARYDIR=${PREFIX}/lib \
       -DQUARTO_ENABLED=FALSE \
+      -DRSTUDIO_DISABLE_CRASHPAD=1 \
       -DRSTUDIO_BUNDLE_QT=FALSE \
       -DRSTUDIO_USE_SYSTEM_SOCI=yes \
       -DSOCI_CORE_LIB=${PREFIX}/lib/libsoci_core.$SONAME \
