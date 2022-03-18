@@ -1,0 +1,169 @@
+{% set name = "vdeplug4-split" %}
+{% set version = "4.0.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/rd235/vdeplug4/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 2299fb2f26508716b5c08d9fdae62c2516372d833540c8307d45634a2848d57a
+
+build:
+  number: 0
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - cmake
+  host:
+    - libexecs
+
+outputs:
+  - name: libvdeplug4
+    build:
+      run_exports:
+        - {{ pin_subpackage('libvdeplug4', max_pin='x.x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - cmake
+      host:
+        - libexecs
+    script: install.bat        # [win]  get full contents in initial build in CI
+    files:                     # [unix]
+      - include/libvdeplug*    # [unix]
+      - lib/libvdeplug*        # [unix]
+      - lib/vdeplug            # [unix]
+      - share/doc              # [unix]
+      - man/man1/libvdeplug4*  # [unix]
+      - man/man3               # [unix]
+    test:
+      commands:
+        - SHLIB_EXT=so     # [linux]
+        - SHLIB_EXT=dylib  # [osx]
+        - test -f ${PREFIX}/include/libvdeplug.h                             # [unix]
+        - test -f ${PREFIX}/include/libvdeplug_mod.h                         # [unix]
+        - test -f ${PREFIX}/lib/libvdeplug.a                                 # [unix]
+        - test -h ${PREFIX}/lib/libvdeplug_mod.${SHLIB_EXT}                  # [unix]
+        - test -h ${PREFIX}/lib/libvdeplug_mod.${SHLIB_EXT}.2                # [unix]
+        - test -h ${PREFIX}/lib/libvdeplug.${SHLIB_EXT}                      # [unix]
+        - test -h ${PREFIX}/lib/libvdeplug.${SHLIB_EXT}.2                    # [unix]
+        #- test -x ${PREFIX}/lib/libvdeplug.${SHLIB_EXT}.{{ version }}       # [unix]
+        #- test -x ${PREFIX}/lib/libvdeplug.${SHLIB_EXT}.{{ version }}       # [unix]
+        # 4.0.1 still installing DSO to 4.0.0 name                           # [unix]
+        - test -x ${PREFIX}/lib/libvdeplug.${SHLIB_EXT}.4.0.0                # [unix]
+        - test -x ${PREFIX}/lib/libvdeplug.${SHLIB_EXT}.4.0.0                # [unix]
+        - test -x ${PREFIX}/lib/vdeplug/libvdeplug_null.${SHLIB_EXT}         # [unix]
+        - test -x ${PREFIX}/lib/vdeplug/libvdeplug_seqpacket.${SHLIB_EXT}    # [unix]
+        - test -x ${PREFIX}/lib/vdeplug/libvdeplug_tap.${SHLIB_EXT}          # [unix]
+        - test -x ${PREFIX}/lib/vdeplug/libvdeplug_udp.${SHLIB_EXT}          # [unix]
+        - test -x ${PREFIX}/lib/vdeplug/libvdeplug_cmd.${SHLIB_EXT}          # [unix]
+        - test -x ${PREFIX}/lib/vdeplug/libvdeplug_ptp.${SHLIB_EXT}          # [unix]
+        - test -x ${PREFIX}/lib/vdeplug/libvdeplug_vxlan.${SHLIB_EXT}        # [unix]
+        - test -x ${PREFIX}/lib/vdeplug/libvdeplug_vde.${SHLIB_EXT}          # [unix]
+        - test -x ${PREFIX}/lib/vdeplug/libvdeplug_vxvde.${SHLIB_EXT}        # [unix]
+        - test -x ${PREFIX}/lib/vdeplug/libvdeplug_hub.${SHLIB_EXT}          # [unix]
+        - test -x ${PREFIX}/lib/vdeplug/libvdeplug_bonding.${SHLIB_EXT}      # [unix]
+        - test -x ${PREFIX}/lib/vdeplug/libvdeplug_multi.${SHLIB_EXT}        # [unix]
+        - test -x ${PREFIX}/lib/vdeplug/libvdeplug_switch.${SHLIB_EXT}       # [unix]
+    about:
+      home: https://github.com/rd235/vdeplug4
+      license: LGPL-2.1-only
+      license_family: GPL
+      license_file: 
+          - COPYING.libvdeplug4
+      summary: 'VDE: Virtual Distributed Ethernet. Plug your VM directly to the cloud.'
+      description: |
+        This software package includes a modular library (libvdeplug)
+
+        The new libvdeplug library is backwards compatible with the previous versions (so it is already supported
+                        by qemu, kvm, virtualbox, user-mode-linux, view-os, lwipv6, picotcp and all the other VM or virtual
+                        stacks supporting vde2).
+
+        The new library supports plug-ins so it is open to new developments in vrtual networking.
+
+        Several plug-ins are provided as standard extensions of the library (batteries included):
+        - vde: connect to legacy vde_switch (provided by vde2)
+        - ptp: peer to peer connection between two VM
+        - tap: connect a VM or a virtual network to
+        - vxlan: connect vde switches or other vde networks to vxlan
+        - vxvde: this plug-in implements distributed virtual switches
+        - udp: udp tunnelling
+      dev_url: https://github.com/rd235/vdeplug4
+  - name: vdeplug4
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - cmake
+      host:
+        - {{ pin_subpackage('libvdeplug4', exact=True) }}
+        - libexecs
+      run:
+        - {{ pin_subpackage('libvdeplug4', exact=True) }}
+    #script: install.sh
+    files:                     # [unix]
+      - bin/dpipe              # [unix]
+      - bin/vde_plug           # [unix]
+      - man/man1/dpipe.1       # [unix]
+      - man/man1/vde_plug.1    # [unix]
+    test:
+      commands:
+        # dpipe and vde_plug exit non-zero for their --help and don't have --version
+        # will just existence check them until there are better tests
+        - test -x ${PREFIX}/bin/dpipe       # [unix]
+        - test -x ${PREFIX}/bin/vde_plug    # [unix]
+    about:
+      home: https://github.com/rd235/vdeplug4
+      license: GPL-2.0-only
+      license_family: GPL
+      license_file: 
+          - COPYING
+      summary: 'VDE: Virtual Distributed Ethernet. Plug your VM directly to the cloud.'
+      description: |
+        This software package includes some utility tools (vde_plug and dpipe)
+
+        The new libvdeplug library is backwards compatible with the previous versions (so it is already supported
+                        by qemu, kvm, virtualbox, user-mode-linux, view-os, lwipv6, picotcp and all the other VM or virtual
+                        stacks supporting vde2).
+
+        The new library supports plug-ins so it is open to new developments in vrtual networking.
+
+        Several plug-ins are provided as standard extensions of the library (batteries included):
+        - vde: connect to legacy vde_switch (provided by vde2)
+        - ptp: peer to peer connection between two VM
+        - tap: connect a VM or a virtual network to
+        - vxlan: connect vde switches or other vde networks to vxlan
+        - vxvde: this plug-in implements distributed virtual switches
+        - udp: udp tunnelling
+      dev_url: https://github.com/rd235/vdeplug4
+
+
+about:
+  home: https://github.com/rd235/vdeplug4
+  license: GPL-2.0-only
+  license_family: GPL
+  license_file: 
+      - COPYING
+      - COPYING.libvdeplug4
+  summary: 'VDE: Virtual Distributed Ethernet. Plug your VM directly to the cloud.'
+  description: |
+    This software package includes a modular library (libvdeplug) and some utility tools (vde_plug and dpipe)
+
+    The new libvdeplug library is backwards compatible with the previous versions (so it is already supported
+                    by qemu, kvm, virtualbox, user-mode-linux, view-os, lwipv6, picotcp and all the other VM or virtual
+                    stacks supporting vde2).
+
+    The new library supports plug-ins so it is open to new developments in vrtual networking.
+
+    Several plug-ins are provided as standard extensions of the library (batteries included):
+    - vde: connect to legacy vde_switch (provided by vde2)
+    - ptp: peer to peer connection between two VM
+    - tap: connect a VM or a virtual network to
+    - vxlan: connect vde switches or other vde networks to vxlan
+    - vxvde: this plug-in implements distributed virtual switches
+    - udp: udp tunnelling
+  dev_url: https://github.com/rd235/vdeplug4
+
+extra:
+  recipe-maintainers:
+    - timsnyder
