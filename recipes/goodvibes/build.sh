@@ -5,6 +5,7 @@ rm -rf "$SRC_DIR/goodvibes/share/"
 
 "${PYTHON}" -m pip install . -vv
 
+mkdir "$SP_DIR/goodvibes/share"
 if [[ $target_platform == linux* ]]; then
   "$CC" -shared -o "$SP_DIR/goodvibes/share/symmetry_test.so" -fPIC symmetry.c
 else
