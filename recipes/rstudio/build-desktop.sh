@@ -10,6 +10,8 @@ export GIT_COMMIT=fc9e217
 
 [[ $(uname) == Linux ]] && export PACKAGE_OS=$(uname -om)
 [[ $(uname) == Darwin ]] && export PACKAGE_OS=$(uname)
+[[ $(uname) == Linux ]] && SONAME=so
+[[ $(uname) == Darwin ]] && SONAME=dylib
 
 export BUILD_TYPE=Release
 export RSTUDIO_TARGET=Desktop
@@ -55,12 +57,15 @@ cmake -S . -B build \
       -DRSTUDIO_USE_SYSTEM_YAML_CPP=yes \
       -DQT_QMAKE_EXECUTABLE="${PREFIX}/bin/make" \
       -DBoost_NO_BOOST_CMAKE=ON \
+      -DBOOST_ROOT=$PREFIX \
+      -DBOOST_INCLUDEDIR=${PREFIX}/include \
+      -DBOOST_LIBRARYDIR=${PREFIX}/lib \
       -DQUARTO_ENABLED=FALSE \
       -DRSTUDIO_BUNDLE_QT=FALSE \
       -DRSTUDIO_USE_SYSTEM_SOCI=yes \
-      -DSOCI_CORE_LIB=${PREFIX}/lib/libsoci_core.so \
-      -DSOCI_POSTGRESQL_LIB=${PREFIX}/lib/libsoci_postgresql.so \
-      -DSOCI_SQLITE_LIB=${PREFIX}/lib/libsoci_sqlite3.so
+      -DSOCI_CORE_LIB=${PREFIX}/lib/libsoci_core.$SONAME \
+      -DSOCI_POSTGRESQL_LIB=${PREFIX}/lib/libsoci_postgresql.$SONAME \
+      -DSOCI_SQLITE_LIB=${PREFIX}/lib/libsoci_sqlite3.$SONAME
 
 make -j${CPU_COUNT} -C build install
 
