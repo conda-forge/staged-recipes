@@ -1,0 +1,98 @@
+{% set name = "qemu" %}
+{% set version = "5.0.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  # if you download the source from GH archive it will be incomplete and you'll get
+  # ERROR: missing file $SRC_DIR/ui/keycodemapdb/README
+  #
+  # This is not a GIT checkout but module content appears to
+  # be missing. Do not use 'git archive' or GitHub download links
+  # to acquire QEMU source archives. Non-GIT builds are only
+  # supported with source archives linked from:
+  # 
+  #   https://www.qemu.org/download/#source
+  # 
+  # Developers working with GIT can use scripts/archive-source.sh
+  # if they need to create valid source archives.
+  #
+  #url: https://github.com/qemu/qemu/archive/refs/tags/v{{ version }}.tar.gz
+  url: https://download.qemu.org/qemu-{{ version }}.tar.xz
+
+build:
+  number: 0
+  skip: True  # [win]
+  skip: True  # [osx]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - sysroot_linux-64 2.17  # [linux64]  see below regarding kernel-headers
+    - make
+    - pkg-config
+    - bison
+    - flex
+    - gdb
+    - python # needed to run some tests, not to link against
+  host:
+    - gtk3  # [linux] ?
+    - glib
+    - libfdt
+    - pixman
+      # qemu also requires being built against kernel-headers >= 2.6.38 because of it's use of
+      # MADV_NOHUGEPAGE in a call to madvise.  See:
+      # $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-cc -iquote $SRC_DIR/build/contrib/libvhost-user -iquote contrib/libvhost-user -iquote $SRC_DIR/tcg/i386 -isystem $SRC_DIR/linux-headers -isystem $SRC_DIR/build/linux-headers -iquote . -iquote $SRC_DIR -iquote $SRC_DIR/accel/tcg -iquote $SRC_DIR/include -iquote $SRC_DIR/disas/libvixl -I$PREFIX/include/pixman-1 -I$SRC_DIR/dtc/libfdt -I$PREFIX/include -pthread -I$PREFIX/include -I$PREFIX/include/glib-2.0 -I$PREFIX/lib/glib-2.0/include -I$PREFIX/include -fPIE -DPIE -m64 -mcx16 -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -Wstrict-prototypes -Wredundant-decls -Wall -Wundef -Wwrite-strings -Wmissing-prototypes -fno-strict-aliasing -fno-common -fwrapv -std=gnu99  -Wexpansion-to-defined -Wendif-labels -Wno-shift-negative-value -Wno-missing-include-dirs -Wempty-body -Wnested-externs -Wformat-security -Wformat-y2k -Winit-self -Wignored-qualifiers -Wold-style-declaration -Wold-style-definition -Wtype-limits -fstack-protector-strong -I$PREFIX/include -I$PREFIX/include/libpng16 -I$PREFIX/include -I$SRC_DIR/capstone/include -I$SRC_DIR/tests -I$SRC_DIR/tests/qtest -MMD -MP -MT contrib/libvhost-user/libvhost-user.o -MF contrib/libvhost-user/libvhost-user.d -O2 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -g -march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -ffunction-sections -pipe -isystem $PREFIX/include -fdebug-prefix-map=$SRC_DIR=/usr/local/src/conda/qemu-5.0.0 -fdebug-prefix-map=$PREFIX=/usr/local/src/conda-prefix  -c -o contrib/libvhost-user/libvhost-user.o $SRC_DIR/contrib/libvhost-user/libvhost-user.c
+      #/home/conda/staged-recipes/build_artifacts/qemu_1647659211102/work/contrib/libvhost-user/libvhost-user.c: In function 'vu_set_mem_table_exec_postcopy':
+      #/home/conda/staged-recipes/build_artifacts/qemu_1647659211102/work/contrib/libvhost-user/libvhost-user.c:683:23: error: 'MADV_NOHUGEPAGE' undeclared (first use in this function); did you mean 'QEMU_MADV_NOHUGEPAGE'?
+      #  683 |                       MADV_NOHUGEPAGE);
+      #      |                       ^~~~~~~~~~~~~~~
+      #      |                       QEMU_MADV_NOHUGEPAGE
+      # https://man7.org/linux/man-pages/man2/madvise.2.html
+      # I needed the following when building in a non-conda-forge build environment but they give
+      # alternate instructions on using cos7 in https://conda-forge.org/docs/maintainer/knowledge_base.html#using-centos-7 
+
+      #- kernel-headers_linux-64 >=2.6.38  # [linux]
+
+test:
+  commands:
+
+about:
+  home: https://qemu.org
+  license: GPL-2.0-only
+  license_family: GPL
+  license_file: 
+      - LICENSE
+      - COPYING
+      - COPYING.lib
+  summary: 'QEMU is a generic and open source machine & userspace emulator and virtualizer.'
+  description: |
+    QEMU is capable of emulating a complete machine in software without any need for hardware
+    virtualization support. By using dynamic translation, it achieves very good performance. QEMU
+    can also integrate with the Xen and KVM hypervisors to provide emulated hardware while allowing
+    the hypervisor to manage the CPU. With hypervisor support, QEMU can achieve near native
+    performance for CPUs. When QEMU emulates CPUs directly it is capable of running operating
+    systems made for one machine (e.g. an ARMv7 board) on a different machine (e.g. an x86_64 PC
+    board).
+
+    QEMU is also capable of providing userspace API virtualization for Linux and BSD kernel
+    interfaces. This allows binaries compiled against one architecture ABI (e.g. the Linux PPC64
+    ABI) to be run on a host using a different architecture ABI (e.g. the Linux x86_64 ABI). This
+    does not involve any hardware emulation, simply CPU and syscall emulation.
+
+    QEMU aims to fit into a variety of use cases. It can be invoked directly by users wishing to
+    have full control over its behaviour and settings. It also aims to facilitate integration into
+    higher level management layers, by providing a stable command line interface and monitor API. It
+    is commonly invoked indirectly via the libvirt library when using open source applications such
+    as oVirt, OpenStack and virt-manager.
+
+    QEMU as a whole is released under the GNU General Public License, version 2. For full licensing
+    details, consult the LICENSE file.
+  doc_url: https://www.qemu.org/support/
+  dev_url: https://github.com/qemu/qemu
+
+extra:
+  recipe-maintainers:
+    - timsnyder
