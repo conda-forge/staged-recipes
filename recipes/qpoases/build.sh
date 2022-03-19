@@ -1,4 +1,6 @@
 #!/bin/sh
+# Ensure the version is correct in the sources
+grep 'PACKAGE_VERSION "'$PKG_VERSION'"' CMakeLists.txt
 
 mkdir build
 cd build
