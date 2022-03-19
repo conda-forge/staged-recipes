@@ -54,6 +54,7 @@ popd
 cmake -S . -B build \
       -DRSTUDIO_TARGET=Desktop \
       -DCMAKE_BUILD_TYPE=Release \
+      -dRSTUDIO_PACKAGE_BUILD=1 \
       -DCMAKE_INSTALL_PREFIX="${PREFIX}/lib/rstudio" \
       -DRSTUDIO_USE_SYSTEM_BOOST=yes \
       -DRSTUDIO_USE_SYSTEM_YAML_CPP=yes \
