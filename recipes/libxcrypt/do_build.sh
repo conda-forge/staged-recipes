@@ -3,7 +3,9 @@ set -eu
 
 make clean || true
 export CFLAGS="${CFLAGS} -Wno-error"
-export PERL=$BUILD_PREFIX/bin/perl
+if [[ "${PERL:-}" = "$PREFIX"* ]]; then
+    export PERL=$BUILD_PREFIX/bin/perl
+fi
 
 if [[ "${OBSOLETE_API}" == "" ]]; then
     echo "Value for --enable-obsolete-api not given via OBSOLETE_API environment variable"
