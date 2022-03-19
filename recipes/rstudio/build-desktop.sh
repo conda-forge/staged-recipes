@@ -57,7 +57,7 @@ cmake -S . -B build \
       -DCMAKE_INSTALL_PREFIX="${PREFIX}/lib/rstudio" \
       -DRSTUDIO_USE_SYSTEM_BOOST=yes \
       -DRSTUDIO_USE_SYSTEM_YAML_CPP=yes \
-      -DQT_QMAKE_EXECUTABLE="${PREFIX}/bin/make" \
+      -DQT_QMAKE_EXECUTABLE="${PREFIX}/bin/qmake" \
       -DBoost_NO_BOOST_CMAKE=OFF \
       -DBOOST_ROOT=$PREFIX \
       -DBOOST_INCLUDEDIR=${PREFIX}/include/boost \
