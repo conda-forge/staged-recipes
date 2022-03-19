@@ -1,0 +1,45 @@
+From db80cfaf044a968da7fb8b0d94c712160c9af6bc Mon Sep 17 00:00:00 2001
+From: Jan Dubois <jan@jandubois.com>
+Date: Tue, 7 Dec 2021 13:25:17 -0800
+Subject: [PATCH 60/62] In vde_switch retry send() when it returns ENOBUFS on
+ Darwin and FreeBSD
+
+On these platforms ENOBUFS can be returned by send() even on blocking
+sockets.
+
+Signed-off-by: Jan Dubois <jan.dubois@suse.com>
+---
+ src/vde_switch/datasock.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/src/vde_switch/datasock.c b/src/vde_switch/datasock.c
+index 1910fb162..be655e7b5 100644
+--- a/src/vde_switch/datasock.c
++++ b/src/vde_switch/datasock.c
+@@ -15,6 +15,7 @@
+ #include <stdlib.h>
+ #include <stdint.h>
+ #include <libgen.h>
++#include <sched.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ #include <sys/ioctl.h>
+@@ -87,8 +88,14 @@ union request {
+ 
+ static int send_datasock(int fd_ctl, int fd_data, void *packet, int len, int port)
+ {
+-	if (send(fd_data, packet, len, 0) < 0) {
++	while (send(fd_data, packet, len, 0) < 0) {
+ 		int rv=errno;
++#if defined(VDE_DARWIN) || defined(VDE_FREEBSD)
++		if(rv == ENOBUFS) {
++			sched_yield();
++			continue;
++		}
++#endif
+ 		if(rv != EAGAIN && rv != EWOULDBLOCK) 
+ 			printlog(LOG_WARNING,"send_sockaddr port %d: %s",port,strerror(errno));
+ 		else
+-- 
+2.35.0
+

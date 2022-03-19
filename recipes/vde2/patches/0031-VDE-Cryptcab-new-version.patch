@@ -1,0 +1,1417 @@
+From 73e53a2e790cc4dbf7f4f76fd4ca62c7f5a0e70c Mon Sep 17 00:00:00 2001
+From: Daniele Lacamera <root@danielinux.net>
+Date: Mon, 14 Jan 2019 02:50:00 +0100
+Subject: [PATCH 31/62] VDE Cryptcab: new version
+
+- Removed dependency on OpenSSL
+- Using wolfSSL for crypto
+- Changed cipher to ChaCha
+- Using better IV rotation
+- Receiver now correctly verifies crc of incoming packets
+---
+ configure.ac                           |  12 +-
+ man/vde_cryptcab.1                     |   6 +-
+ src/vde_cryptcab/Makefile.am           |   4 +-
+ src/vde_cryptcab/crc32.c               |   9 +-
+ src/vde_cryptcab/crc32.h               |   6 +-
+ src/vde_cryptcab/cryptcab.c            | 295 ++++++++++---------------
+ src/vde_cryptcab/cryptcab.h            |  19 +-
+ src/vde_cryptcab/vde_cryptcab_client.c | 137 ++++++------
+ src/vde_cryptcab/vde_cryptcab_server.c | 145 ++++++------
+ 9 files changed, 294 insertions(+), 339 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index c8f6d3257..babf52b32 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -42,7 +42,7 @@ AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h netinet/in.h stddef.h stdint.h \
+ 
+ AC_CHECK_HEADERS([syslimits.h sys/syslimits.h])
+ 
+-AC_CHECK_HEADERS([openssl/blowfish.h], [],
++AC_CHECK_HEADERS([wolfssl/wolfcrypt/chacha.h], [],
+   [add_cryptcab_support=no ; warn_cryptcab=yes])
+ 
+ AC_CHECK_HEADERS([sysexits.h],
+@@ -129,10 +129,10 @@ AC_ARG_ENABLE([experimental],
+     [Enable experimental features (async notifies, plugin support, packet counter)]),
+   [if test $enableval = "yes"; then enable_experimental=yes; fi])
+ 
+-# Disable vde_cryptcab? (depends on ssl, maybe unwanted)
++# Disable vde_cryptcab? (depends on wolfssl, maybe unwanted)
+ AC_ARG_ENABLE([cryptcab],
+   AS_HELP_STRING([--disable-cryptcab],
+-    [Disable libcrypto-dependend vde_cryptcab compilation]),
++    [Disable vde_cryptcab compilation]),
+   [if test $enableval = "no" ; then add_cryptcab_support=no ; warn_cryptcab=no ; fi])
+ 
+ # Disable vde_over_ns? (not working on android, maybe unwanted)
+@@ -347,9 +347,9 @@ AS_ECHO
+ AS_ECHO
+ if ! test x$add_cryptcab_support = "xyes" ; then
+   if test x$warn_cryptcab = "xyes" ; then
+-    AC_MSG_WARN([VDE CryptCab support has been disabled because libcrypto is
+-not installed on your system, or because openssl/blowfish.h could not be found.
+-Please install them if you want CryptCab to be compiled and installed.])
++    AC_MSG_WARN([VDE CryptCab support has been disabled because wolfSSL is
++not installed on your system, or because wolfssl/wolfcrypt/chacha.h could not be found.
++Please install libwolfssl if you want CryptCab to be compiled and installed.])
+     AS_ECHO
+   fi
+ fi
+diff --git a/man/vde_cryptcab.1 b/man/vde_cryptcab.1
+index 16f5dd649..23eb0823b 100644
+--- a/man/vde_cryptcab.1
++++ b/man/vde_cryptcab.1
+@@ -38,16 +38,16 @@ A
+ \fBvde_cryptcab\fP 
+ is a distributed cable manager for VDE switches.
+ It allows two VDE switches on two machines to communicate
+-using a blowfish encrypted channel.
++using a ChaCha encrypted channel.
+ 
+ When used in client mode (i.e., with -c option), it generates a random
+-blowfish key, and uses
++ChaCha key, and uses
+ .B scp (1)
+ to transfer the key to the remote server.
+ 
+ On the client side, the environment variable SCP_EXTRA_OPTIONS may be set in order 
+ to append options to the scp command line (this is useful for example when dropbear or
+-another non-standard ssh client is used to transfer the blowfish key).
++another non-standard ssh client is used to transfer the ChaCha key).
+ 
+ After a 4-way handshake phase to verify client credentials, server and 
+ client will exchange VDE datagrams encapsulating them into cryptograms
+diff --git a/src/vde_cryptcab/Makefile.am b/src/vde_cryptcab/Makefile.am
+index a589600d8..9e13fae8c 100644
+--- a/src/vde_cryptcab/Makefile.am
++++ b/src/vde_cryptcab/Makefile.am
+@@ -3,7 +3,7 @@ bin_PROGRAMS = vde_cryptcab
+ 
+ # Avoid wrong optimizations due to strict aliasing rules when making casts
+ # between socket structs.
+-AM_CFLAGS = -fno-strict-aliasing
++AM_CFLAGS = -fno-strict-aliasing -DHAVE_CHACHA -DTFM_TIMING_RESISTANT -DNO_ECC -DNO_RSA
+ 
+ if ENABLE_PROFILE
+   AM_CFLAGS += -pg --coverage
+@@ -11,4 +11,4 @@ if ENABLE_PROFILE
+ endif
+ 
+ vde_cryptcab_SOURCES = crc32.c crc32.h cryptcab.h cryptcab.c vde_cryptcab_server.c vde_cryptcab_client.c
+-vde_cryptcab_LDADD = $(top_builddir)/src/common/libvdecommon.la -lcrypto $(top_builddir)/src/lib/libvdeplug.la
++vde_cryptcab_LDADD = $(top_builddir)/src/common/libvdecommon.la -lwolfssl $(top_builddir)/src/lib/libvdeplug.la
+diff --git a/src/vde_cryptcab/crc32.c b/src/vde_cryptcab/crc32.c
+index b90824dec..492dfafe9 100644
+--- a/src/vde_cryptcab/crc32.c
++++ b/src/vde_cryptcab/crc32.c
+@@ -5,15 +5,14 @@
+  *
+  * Released under the terms of GNU GPL v.2
+  * (http://www.gnu.org/licenses/old-licenses/gpl-2.0.html)
+- * with the additional exemption that
+- * compiling, linking, and/or using OpenSSL is allowed.
+  *
+- * based on implementation by Finn Yannick Jacobs  Krzysztof Dabrowski, ElysiuM deeZine 
++ * based on implementation by Finn Yannick Jacobs Krzysztof Dabrowski, ElysiuM deeZine
+  *
+  */
+ 
+ #include <stdio.h>
+ #include <stdlib.h>
++#include <stdint.h>
+ #include <sys/types.h>
+ 
+ #include <config.h>
+@@ -24,14 +23,14 @@
+  *		so make sure, you call it before using the other
+  *		functions!
+  */
+-u_int32_t crc_tab[256];
++uint32_t crc_tab[256];
+ 
+ /* chksum_crc() -- to a given block, this one calculates the
+  *				crc32-checksum until the length is
+  *				reached. the crc32-checksum will be
+  *				the result.
+  */
+-u_int32_t chksum_crc32 (unsigned char *block, unsigned int length)
++uint32_t chksum_crc32(unsigned char *block, unsigned int length)
+ {
+    unsigned long crc;
+    unsigned long i;
+diff --git a/src/vde_cryptcab/crc32.h b/src/vde_cryptcab/crc32.h
+index 5f8240160..be307bdda 100644
+--- a/src/vde_cryptcab/crc32.h
++++ b/src/vde_cryptcab/crc32.h
+@@ -5,17 +5,15 @@
+  *
+  * Released under the terms of GNU GPL v.2
+  * (http://www.gnu.org/licenses/old-licenses/gpl-2.0.html)
+- * with the additional exemption that
+- * compiling, linking, and/or using OpenSSL is allowed.
+- *
+- * based on implementation by Finn Yannick Jacobs  Krzysztof Dabrowski, ElysiuM deeZine 
+  *
+  */
+ 
+ #ifndef _CRC32_H
+ #define _CRC32_H
++#include <stdint.h>
+ 
+ void chksum_crc32gentab();
++uint32_t chksum_crc32(unsigned char *block, unsigned int length);
+ unsigned char *crc32(unsigned char *block, unsigned int len);
+ 
+ #endif
+diff --git a/src/vde_cryptcab/cryptcab.c b/src/vde_cryptcab/cryptcab.c
+index c5b447473..d362347d8 100644
+--- a/src/vde_cryptcab/cryptcab.c
++++ b/src/vde_cryptcab/cryptcab.c
+@@ -5,12 +5,11 @@
+  *
+  * Released under the terms of GNU GPL v.2
+  * (http://www.gnu.org/licenses/old-licenses/gpl-2.0.html)
+- * with the additional exemption that
+- * compiling, linking, and/or using OpenSSL is allowed.
+  *
+  */
+ 
+ #include "cryptcab.h"
++#include <stdarg.h>
+ 
+ /*
+  * Usage implies exit.
+@@ -21,9 +20,8 @@ static void Usage(char *programname)
+ 	fprintf(stderr,"Usage: %s [-s socketname] [-c [remoteuser@]remotehost[:remoteport]] [-p localport] [-P pre-shared/key/path] [-d] [-x] [-v]\n",programname);
+ 	exit(1);
+ }
+-	
+-static EVP_CIPHER_CTX ctx;
+-static int ctx_initialized = 0;
++
++ChaCha ctx;
+ static int encryption_disabled = 0;
+ static int nfd;
+ static unsigned long long mycounter=1;
+@@ -58,8 +56,6 @@ void set_nfd(int fd){
+ int
+ isvalid_timestamp(unsigned char *block, int size, struct peer *p)
+ {
+-	
+-	
+ 	int i;
+ 	unsigned long long pktcounter=0;
+ 	for(i=0;i<8;i++){
+@@ -72,13 +68,13 @@ isvalid_timestamp(unsigned char *block, int size, struct peer *p)
+ 		//fprintf(stderr,"bad timestamp!\n");
+ 		return 0;
+ 	}
+-	
++
+ }
+ 
+ /*
+  * Check CRC32 Checksum from incoming datagram
+  */
+-int 
++	int
+ isvalid_crc32(unsigned char *block, int len)
+ {
+ 	unsigned char *crc=(unsigned char *)crc32(block,len-4);
+@@ -86,93 +82,34 @@ isvalid_crc32(unsigned char *block, int len)
+ 		free(crc);
+ 		return 1;
+ 	}else{
+-			
++
+ 		//fprintf(stderr,"bad crc32!\n");
+ 		free(crc);
+ 		return 0;
+ 	}
+ }
+ 
+-int data_encrypt(unsigned char *src, unsigned char *dst, int len, struct peer *p)
++int data_encrypt_decrypt(unsigned char *src, unsigned char *dst, int len, unsigned char *key, unsigned char *iv)
+ {
+-	int tlen, olen, ulen;
++	int tlen, olen;
+ 
+-  ulen = len - (len % 8);
+-	
+ 	if (encryption_disabled){
+ 		memcpy(dst,src,len);
+ 		return len;
+ 	}
+-
+-	if (!ctx_initialized) {
+-		EVP_CIPHER_CTX_init (&ctx);
+-		ctx_initialized = 1;
+-	}
+-	
+-	EVP_EncryptInit (&ctx, EVP_bf_cbc (), p->key, p->iv);
+-	if (EVP_EncryptUpdate (&ctx, dst, &olen, src, len) != 1)
+-	{
+-		fprintf (stderr,"error in encrypt update\n");
+-		olen = -1;
+-		goto cleanup;
+-	}
+-
+-	if (EVP_EncryptFinal (&ctx, dst + ulen, &tlen) != 1)
+-	{
+-		fprintf (stderr,"error in encrypt final\n");
+-		olen = -1;
+-		goto cleanup;
+-	}
+-	olen += tlen;
+-
+-cleanup:
+-	EVP_CIPHER_CTX_cleanup(&ctx);	
+-	return olen;
+-}
+-
+-int data_decrypt(unsigned char *src, unsigned char *dst, int len, struct peer *p)
+-{
+-	int tlen, olen, ulen;
+-
+-  ulen = len - (len % 8);
+-
+-	if (encryption_disabled){
+-		memcpy(dst,src,len);
++	wc_Chacha_SetKey(&ctx, key, CHACHA_MAX_KEY_SZ);
++	wc_Chacha_SetIV(&ctx, iv, CHACHA_IV_BYTES);
++	if (wc_Chacha_Process(&ctx, dst, src, len) == 0)
+ 		return len;
+-	}
+-	
+-	if (!ctx_initialized) {
+-		EVP_CIPHER_CTX_init (&ctx);
+-		ctx_initialized = 1;
+-	}
+-
+-	EVP_DecryptInit (&ctx, EVP_bf_cbc (), p->key, p->iv);
+-	if (EVP_DecryptUpdate (&ctx, dst, &olen, src, ulen) != 1)
+-	{
+-		fprintf (stderr,"error in decrypt update\n");
+-		olen = -1;
+-		goto cleanup;
+-	}
+-
+-	if (EVP_DecryptFinal (&ctx, dst + ulen, &tlen) != 1)
+-	{
+-		fprintf (stderr,"error in decrypt final, ulen = %d, tlen = %d\n", ulen, tlen);
+-		olen = -1;
+-		goto cleanup;
+-	}
+-	olen += tlen;
+-
+-cleanup:
+-	EVP_CIPHER_CTX_cleanup(&ctx);	
+-	return olen;
+ }
+ 
++
+ /*
+  * Include a progressive number into outgoing datagram,
+  * to prevent packet replication/injection attack.
+- * 
++ *
+  */
+-void
++	void
+ set_timestamp(unsigned char *block)
+ {
+ 	int i;
+@@ -180,49 +117,43 @@ set_timestamp(unsigned char *block)
+ 		block[i]=(unsigned char)(mycounter>>(i*8))&(0x00000000000000FF);
+ 	}
+ 	mycounter++;
+-	
+-		
+ }
+ 
+ 
+ /*
+  * Send an udp datagram to specified peer.
+  */
+-void
++	void
+ send_udp (unsigned char *data, size_t len, struct peer *p, unsigned char flags)
+ {
+-		  
++
+ 	unsigned char outpkt[MAXPKT];
+ 	unsigned char *outbuf=outpkt+1;
+ 	int olen;
+ 	struct sockaddr_in *destination=&(p->in_a);
+ 	unsigned char *crc;
+ 
+-  if (len + 8 - 1 > MAXPKT) {
+-    len = MAXPKT - 8 + 1;
+-	  vc_printlog(2,"Warning: Cropping down packet size to %d", len);
+-  }
++	if (len + 8 - 1 > MAXPKT) {
++		len = MAXPKT - 8 + 1;
++		vc_printlog(2,"Warning: Cropping down packet size to %d", len);
++	}
+ 
+ 
+ 	if (encryption_disabled || (flags==CMD_CHALLENGE || flags==CMD_LOGIN || flags==CMD_DENY || flags==CMD_AUTH_OK || flags == CMD_KEEPALIVE)){
+ 		memcpy(outbuf,data,len);
+ 		olen=len;
+ 	}else{
+-		if(flags==PKT_DATA){
+-			set_timestamp(data+len);
+-			len+=8;
+-			
+-			crc = crc32(data,len);
+-			memcpy(data+len,crc,4);
+-			free(crc);
+-			len+=4;
+-			
+-		}
+-		olen = data_encrypt(data,outbuf,len,p);
++		unsigned char *tail = outbuf + len;
++		crc = crc32(data,len);
++		memcpy(tail,crc,4);
++		free(crc);
++		set_timestamp(tail + 4);
++		olen = data_encrypt_decrypt(data, outbuf, len, p->key, tail);
++		olen+=12;
+ 	}
+ 	outpkt[0]=flags;
+ 	sendto(nfd, outpkt, olen + 1, 0, (struct sockaddr *) destination,
+-	    	sizeof(struct sockaddr_in));
++			sizeof(struct sockaddr_in));
+ 	vc_printlog(4,"UDP Sent %dB datagram.",olen+1);
+ }
+ 
+@@ -239,10 +170,10 @@ vde_plug(struct peer *p, char *plugname)
+ }
+ 
+ /*
+- * Send a virtual frame to the vde_plug process associated 
++ * Send a virtual frame to the vde_plug process associated
+  * with the peer
+  */
+-void
++	void
+ send_vdeplug(const char *data, size_t len, struct peer *p)
+ {
+ 	static unsigned int outbuf[MAXPKT];
+@@ -250,19 +181,19 @@ send_vdeplug(const char *data, size_t len, struct peer *p)
+ 	static u_int16_t outlen;
+ 	if(len<=0)
+ 		return;
+-	
++
+ 	if(outp==0 && (len >=2) ){
+ 		outlen=2;
+ 		outlen+=(unsigned char)data[1];
+ 		outlen+=((unsigned char)(data[0]))<<8;
+ 	}
+-	
++
+ 	if(len>=outlen){
+ 		vde_send(p->plug,data,outlen,0);
+ 		send_vdeplug(data+outlen,len-outlen, p);
+ 		return;
+ 	}
+-		
++
+ 	memcpy(outbuf+outp,data,len);
+ 	outp+=len;
+ 	if(outp>=outlen){
+@@ -290,7 +221,7 @@ int main(int argc, char **argv, char **env)
+ 	int daemonize = 0;
+ 
+ 	scp_extra_options=getenv("SCP_EXTRA_OPTIONS");
+-	
++
+ 
+ 	while (1) {
+ 		int option_index = 0;
+@@ -300,94 +231,94 @@ int main(int argc, char **argv, char **env)
+ 		char *pusr,*pport, *vvv=NULL;
+ 
+ 		static struct option long_options[] = {
+-		        {"sock", 1, 0, 's'},
+-		        {"vdesock", 1, 0, 's'},
+-		        {"unix", 1, 0, 's'},
+-		        {"localport", 1, 0, 'p'},
+-		        {"connect",1,0,'c'},
+-		        {"preshared ",1,0,'P'},
++			{"sock", 1, 0, 's'},
++			{"vdesock", 1, 0, 's'},
++			{"unix", 1, 0, 's'},
++			{"localport", 1, 0, 'p'},
++			{"connect",1,0,'c'},
++			{"preshared ",1,0,'P'},
+ 			{"noencrypt",0,0,'x'},
+ 			{"keepalive",0,0,'k'},
+ 			{"verbose",optional_argument,0,'v'},
+-		        {"help",0,0,'h'},
+-		        {"daemon",0,0,'d'},
+-		        {0, 0, 0, 0}
++			{"help",0,0,'h'},
++			{"daemon",0,0,'d'},
++			{0, 0, 0, 0}
+ 		};
+ 		c = GETOPT_LONG (argc, argv, "s:p:c:P:hv::xkd",
+-		      	  long_options, &option_index);
++				long_options, &option_index);
+ 		if (c == -1)
+-		        break;
++			break;
+ 		switch (c) {
+-		        case 's':
+-		      	  plugname=strdup(optarg);
+-		      	  break;
++			case 's':
++				plugname=strdup(optarg);
++				break;
+ 			case 'v':
+-			  verbose=1;
+-			  if(optarg)
+-		      	  	vvv=strdup(optarg);
+-			  while(vvv && *vvv++ == 'v')
+-			  	verbose++;
+-			  break;
++				verbose=1;
++				if(optarg)
++					vvv=strdup(optarg);
++				while(vvv && *vvv++ == 'v')
++					verbose++;
++				break;
+ 			case 'x':
+-			  enc_type = ENC_NOENC;
+-			  break;
+-		        case 'c':
+-		      	  ctl_socket=strdup(optarg);
+-
+-		      	  pusr=strchr(ctl_socket,sepusr);
+-		      	  pport=strchr(ctl_socket,sepport);
+-		      	  
+-		      	  if( ( pusr != strrchr(ctl_socket,sepusr)) || 
+-		      		(pport != strrchr(ctl_socket,sepport)) ||
+-		      			(pport && pusr>pport) )
+-		      		  Usage(programname);
+-		      	  
+-		      	  if(!pusr && !pport){
+-		      		  remoteusr=NULL;
+-		      		  remoteport=PORTNO;
+-		      		  remotehost=strdup(ctl_socket);
+-		      		  break;
+-		      	  }
+-		      	  if(!pport){
+-		      	  	  remoteusr=(char *)strndup(ctl_socket,pusr-ctl_socket);
+-		      		  remotehost=(char *)strndup(pusr+1,strlen(ctl_socket)-strlen(remoteusr)-1);
+-		      		  remoteport=PORTNO;
+-		      		  break;
+-		      	  }
+-				  if(!pusr){
+-		      		  remoteusr=NULL;
+-		      	  	  remotehost=(char *)strndup(ctl_socket,pport-ctl_socket);
+-		      		  remoteport=atoi((char *)strndup(pport+1,strlen(ctl_socket)-strlen(remotehost)-1));
+-		      		  break;
+-		      	  }
+-		      	  remoteusr=(char *)strndup(ctl_socket,pusr-ctl_socket);
+-		      	  remotehost=(char *)strndup(pusr+1,pport-pusr-1);
+-		      	  remoteport=atoi((char *)strndup(pport+1,strlen(ctl_socket)-strlen(remotehost)-strlen(remoteusr)-2));
+-		      	  break;
+-
+-		        case 'p':
+-		      	udp_port=atoi(optarg);
+-		      	break;
+-		      	
+-		        case 'P': 
+-		      	pre_shared=strdup(optarg);
+-		      	fprintf(stderr,"Using pre-shared key %s\n",pre_shared);
+-			enc_type = ENC_PRESHARED;
+-		      	break;
++				enc_type = ENC_NOENC;
++				break;
++			case 'c':
++				ctl_socket=strdup(optarg);
++
++				pusr=strchr(ctl_socket,sepusr);
++				pport=strchr(ctl_socket,sepport);
++
++				if( ( pusr != strrchr(ctl_socket,sepusr)) ||
++						(pport != strrchr(ctl_socket,sepport)) ||
++						(pport && pusr>pport) )
++					Usage(programname);
++
++				if(!pusr && !pport){
++					remoteusr=NULL;
++					remoteport=PORTNO;
++					remotehost=strdup(ctl_socket);
++					break;
++				}
++				if(!pport){
++					remoteusr=(char *)strndup(ctl_socket,pusr-ctl_socket);
++					remotehost=(char *)strndup(pusr+1,strlen(ctl_socket)-strlen(remoteusr)-1);
++					remoteport=PORTNO;
++					break;
++				}
++				if(!pusr){
++					remoteusr=NULL;
++					remotehost=(char *)strndup(ctl_socket,pport-ctl_socket);
++					remoteport=atoi((char *)strndup(pport+1,strlen(ctl_socket)-strlen(remotehost)-1));
++					break;
++				}
++				remoteusr=(char *)strndup(ctl_socket,pusr-ctl_socket);
++				remotehost=(char *)strndup(pusr+1,pport-pusr-1);
++				remoteport=atoi((char *)strndup(pport+1,strlen(ctl_socket)-strlen(remotehost)-strlen(remoteusr)-2));
++				break;
++
++			case 'p':
++				udp_port=atoi(optarg);
++				break;
++
++			case 'P':
++				pre_shared=strdup(optarg);
++				fprintf(stderr,"Using pre-shared key %s\n",pre_shared);
++				enc_type = ENC_PRESHARED;
++				break;
+ 			case 'k':
+-			keepalives=1;
+-			break;
++				keepalives=1;
++				break;
+ 			case 'd':
+-			daemonize=1;
+-			break;
++				daemonize=1;
++				break;
+ 
+-		        case 'h':
+-		        default:
+-		      	  Usage(programname);
++			case 'h':
++			default:
++				Usage(programname);
+ 		}
+ 	}
+-	if(optind < argc) 
+-		  Usage(programname);
++	if(optind < argc)
++		Usage(programname);
+ 	if (keepalives && remotehost==NULL){
+ 		fprintf(stderr,"\nkeepalive option is valid in client mode only.\n\n");
+ 		Usage(programname);
+@@ -396,11 +327,11 @@ int main(int argc, char **argv, char **env)
+ 		fprintf(stderr,"\nWarning: Not using pre-shared key mode, encryption disabled.\n\n");
+ 		pre_shared = NULL;
+ 	}
+-		
+-	
++
++
+ 	vc_printlog(1,"Verbosity: %d", verbose);
+ 	chksum_crc32gentab();	
+-	
++
+ 	switch(enc_type){
+ 		case ENC_NOENC:
+ 			vc_printlog(1,"Encryption Disabled.");
+@@ -419,10 +350,10 @@ int main(int argc, char **argv, char **env)
+ 			close(STDIN_FILENO);
+ 			close(STDOUT_FILENO);
+ 			if (fork() > 0)
+-				exit(0); 
++				exit(0);
+ 		} else exit(0);
+ 	}
+-	  
++
+ 	if(!remotehost){
+ 		cryptcab_server(plugname, udp_port, enc_type, pre_shared);
+ 	} else {
+diff --git a/src/vde_cryptcab/cryptcab.h b/src/vde_cryptcab/cryptcab.h
+index e346e601a..d76d08124 100644
+--- a/src/vde_cryptcab/cryptcab.h
++++ b/src/vde_cryptcab/cryptcab.h
+@@ -5,8 +5,6 @@
+  *
+  * Released under the terms of GNU GPL v.2
+  * (http://www.gnu.org/licenses/old-licenses/gpl-2.0.html)
+- * with the additional exemption that
+- * compiling, linking, and/or using OpenSSL is allowed.
+  *
+  */
+ 
+@@ -43,8 +41,7 @@
+ #define PORTNO 7667
+ 
+ 
+-#include <openssl/blowfish.h>
+-#include <openssl/evp.h>
++#include <wolfssl/wolfcrypt/chacha.h>
+ #include <sys/stat.h>
+ #include <sys/types.h>
+ #include <sys/ioctl.h>
+@@ -106,6 +103,7 @@
+ 
+ #define SESSION_TIMEOUT 120
+ #define CHALLENGE_TIMEOUT 20
++#define CRYPTCAB_CHALLENGE_SIZE 128
+ #define PRELOGIN_TIMEOUT 3
+ #define EXPIRE_NOW 0
+ #define time_now(x) gettimeofday(x,NULL)
+@@ -123,10 +121,10 @@ struct peer
+ {
+ 	struct peer *next;		/* Next list element		*/	
+ 	unsigned long long counter; 	/* Progressive N number 	*/
+-	unsigned char key[16];		/* Blowfish key			*/
+-	unsigned char iv[8];		/* Blowfish vector		*/
++	unsigned char key[CHACHA_MAX_KEY_SZ];		/* Chacha key			*/
++	unsigned char iv[CHACHA_IV_BYTES];		/* Chacha vector		*/
+ 	char id[FILENAMESIZE];		/* Filename for key on server	*/
+-	char challenge[128];		/* 128B Challenge for 4WHS	*/
++	char challenge[CRYPTCAB_CHALLENGE_SIZE];		/* 128B Challenge for 4WHS	*/
+ 	struct sockaddr_in in_a;	/* Current transport address	*/
+ 	struct sockaddr_in handover_a;	/* Handover transport address	*/
+ 	struct timeval expire;		/* Expiration timer		*/
+@@ -139,7 +137,7 @@ struct peer
+ 
+ 
+ /*
+- * Each datagram received from network or from vde_plug 
++ * Each datagram received from network or from vde_plug
+  * is arranged into a struct like this.
+  */
+ struct datagram
+@@ -152,7 +150,7 @@ struct datagram
+ 
+ void vc_printlog(int priority, const char *format, ...);
+ 
+-void 
++void
+ send_udp(unsigned char *data, size_t len, struct peer *p, unsigned char flags );
+ 
+ void
+@@ -165,8 +163,7 @@ int isvalid_crc32(unsigned char *block, int len);
+ void disable_encryption(void);
+ void set_nfd(int fd);
+ int isvalid_timestamp(unsigned char *block, int size, struct peer *p);
+-int data_encrypt(unsigned char *src, unsigned char *dst, int len, struct peer *p);
+-int data_decrypt(unsigned char *src, unsigned char *dst, int len, struct peer *p);
++int data_encrypt_decrypt(unsigned char *src, unsigned char *dst, int len, unsigned char *key, unsigned char *iv);
+ void set_timestamp(unsigned char *block);
+ void send_udp (unsigned char *data, size_t len, struct peer *p, unsigned char flags);
+ void send_vdeplug(const char *data, size_t len, struct peer *p);
+diff --git a/src/vde_cryptcab/vde_cryptcab_client.c b/src/vde_cryptcab/vde_cryptcab_client.c
+index f40b57d66..1bf1060b1 100644
+--- a/src/vde_cryptcab/vde_cryptcab_client.c
++++ b/src/vde_cryptcab/vde_cryptcab_client.c
+@@ -5,9 +5,7 @@
+  *
+  * Released under the terms of GNU GPL v.2
+  * (http://www.gnu.org/licenses/old-licenses/gpl-2.0.html)
+- * with the additional exemption that
+- * compiling, linking, and/or using OpenSSL is allowed.
+- * 
++ *
+  */
+ 
+ #include "cryptcab.h"
+@@ -34,32 +32,32 @@ static void send_keepalive(struct peer *p){
+ /*
+  * Send a login packet. This is the first phase of 4WHS
+  */
+-static void
+-blowfish_login(struct peer *p)
++	static void
++chacha_login(struct peer *p)
+ {
+ 	send_udp((unsigned char*)p->id,FILENAMESIZE,p,CMD_LOGIN);
+ }
+ 
+ static void try_to_login(struct peer *p)
+ {
+-	static struct timeval last_login_time; 
++	static struct timeval last_login_time;
+ 	struct timeval now;
+ 	gettimeofday(&now, 0);
+-	if (now.tv_sec < last_login_time.tv_sec  || now.tv_sec - last_login_time.tv_sec < 5) {
+-		vc_printlog(4,"Attempt to login to  %s (udp port %hu): please wait, login in progress...",remotehost,remoteport);
++	if (now.tv_sec < last_login_time.tv_sec || now.tv_sec - last_login_time.tv_sec < 5) {
++		vc_printlog(4,"Attempt to login to %s (udp port %hu): please wait, login in progress...",remotehost,remoteport);
+ 		return;
+ 	}
+-		
++
+ 	vc_printlog(2,"Logging in to %s (udp port %hu)",remotehost,remoteport);
+-	blowfish_login(p);
++	chacha_login(p);
+ 	gettimeofday(&last_login_time, 0);
+ }
+ 
+ 
+ /*
+- * Receive a challenge. Try to send response encrypted with local blowfish key.
++ * Receive a challenge. Try to send response encrypted with local chacha key.
+  */
+-static void 
++	static void
+ rcv_challenge(struct datagram *pkt, struct peer *p)
+ {
+ 	send_udp(pkt->data+1,pkt->len-1,p,CMD_RESPONSE);
+@@ -67,60 +65,60 @@ rcv_challenge(struct datagram *pkt, struct peer *p)
+ }
+ 
+ /*
+- * Generate a new blowfish key, store it in a local file and fill the fields
++ * Generate a new chacha key, store it in a local file and fill the fields
+  * of peer structure.
+  * Client only.
+  */
+-static struct peer
++	static struct peer
+ *generate_key (struct peer *ret)
+ {
+ 	int fd=-1, od=-1;
+-	unsigned char key[16];
+-	unsigned char iv[8];
++	unsigned char key[CHACHA_MAX_KEY_SZ];
++	unsigned char iv[CHACHA_IV_BYTES];
+ 	char *path;
+ 	char random[]="/dev/urandom";
+ 	if (pre_shared){
+ 		path=pre_shared;
+-		vc_printlog(2,"Reading pre-shared Blowfish key...");	
++		vc_printlog(2,"Reading pre-shared Chacha key...");	
+ 	}else{
+ 		path=random;
+-		vc_printlog(2,"Generating Blowfish key...");	
++		vc_printlog(2,"Generating ChaCha key...");	
+ 	}
+ 
+ 
+ 	if ( ((fd = open (path, O_RDONLY)) == -1)||
+-			 ((read (fd, key, 16)) == -1) ||
+-			 ((read (fd, iv, 8)) == -1) )
++			((read (fd, key, CHACHA_MAX_KEY_SZ)) == -1) ||
++			((read (fd, iv, CHACHA_IV_BYTES)) == -1) )
+ 	{
+ 
+ 		perror ("Error Creating key.\n");
+ 		goto failure;
+ 	}
+-	
++
+ 	close (fd);
+-	
+-  memset(keyname + strlen(keyname) - 10, 'X', 6);
+-  od = mkostemps(keyname, 4, O_RDWR | O_CREAT | O_TRUNC);
++
++	memset(keyname + strlen(keyname) - 10, 'X', 6);
++	od = mkostemps(keyname, 4, O_RDWR | O_CREAT | O_TRUNC);
+ 	if (od < 0){
+-		perror ("blowfish.key mktemp error");
++		perror ("chacha.key mktemp error");
+ 		goto failure;
+ 	}
+ 	memset(ret,0, sizeof(struct peer));
+ 
+-  strncpy(ret->id,
+-          keyname + strlen("/tmp/"), 
+-          strlen(keyname) - strlen("/tmp/") - strlen(".key"));
++	strncpy(ret->id,
++			keyname + strlen("/tmp/"),
++			strlen(keyname) - strlen("/tmp/") - strlen(".key"));
+ 
+ 	memcpy(ret->key,key,16);
+ 	memcpy(ret->iv,iv,8);
+ 	if (write(od,key,16) < 0 || write(od,iv,8) < 0) {
+-		perror("Could not write blowfish key");
++		perror("Could not write chacha key");
+ 		goto failure;
+ 	}
+ 	close (od);
+ 	vc_printlog(2,"Done.");	
+ 	return ret;
+-	
++
+ failure:
+ 	if (fd != -1)
+ 		close(fd);
+@@ -131,7 +129,7 @@ failure:
+ 
+ 
+ /*
+- * Call the generate_key() and then transmit the key to the server via 
++ * Call the generate_key() and then transmit the key to the server via
+  * OpenSSH secure copy.
+  */
+ static struct peer *generate_and_xmit(struct peer *ret){
+@@ -144,7 +142,7 @@ static struct peer *generate_and_xmit(struct peer *ret){
+ 		fprintf(stderr,"Couldn't create the secret key.\n");
+ 		exit(255);
+ 	}
+-	
++
+ 	target=gethostbyname(remotehost);
+ 	if (target == NULL)
+ 	{
+@@ -158,17 +156,17 @@ static struct peer *generate_and_xmit(struct peer *ret){
+ 		char *cmd[]={"scp",NULL, NULL, NULL,0};
+ 		pid_t pid;
+ 		int status;
+-    int cmd_idx = 1;
++		int cmd_idx = 1;
+ 		vc_printlog(2,"Sending key over ssh channel:");
+-    if (scp_extra_options)
+-      cmd[cmd_idx++] = scp_extra_options;
++		if (scp_extra_options)
++			cmd[cmd_idx++] = scp_extra_options;
+ 		if(remoteusr)
+ 			snprintf(dest,PATH_MAX,"%s@%s:/tmp/.%s.key",remoteusr, remotehost, ret->id);
+ 		else
+ 			snprintf(dest,PATH_MAX,"%s:/tmp/.%s.key", remotehost, ret->id);
+-    snprintf(source, PATH_MAX, "/tmp/%s.key", ret->id);
+-    cmd[cmd_idx++] = source;
+-    cmd[cmd_idx++] = dest;
++		snprintf(source, PATH_MAX, "/tmp/%s.key", ret->id);
++		cmd[cmd_idx++] = source;
++		cmd[cmd_idx++] = dest;
+ 
+ 
+ 		if ((pid=fork()) == 0) {
+@@ -195,7 +193,7 @@ static int recv_datagram(struct datagram *pkt, int nfd, struct peer *p1)
+ 	socklen_t peerlen;
+ 	int datafd;
+ 	struct timeval now;
+-	
++
+ 	datafd = vde_datafd(p1->plug);
+ 	while(datafd < 0) {
+ 		vc_printlog(4,"waiting for vde_libs...");
+@@ -206,16 +204,16 @@ static int recv_datagram(struct datagram *pkt, int nfd, struct peer *p1)
+ 
+ 	pfd[0].fd=nfd;
+ 	pfd[0].events=POLLIN|POLLHUP;
+-	pfd[1].fd = datafd; 
++	pfd[1].fd = datafd;
+ 	pfd[1].events = POLLIN|POLLHUP;
+ 
+-	 do{
++	do{
+ 		pollret = poll(pfd,2,1000);
+ 		if(pollret<0){
+-		 	if(errno==EINTR)
+-		   		return 0;
+-		 	perror("poll");
+-		 	exit(1);
++			if(errno==EINTR)
++				return 0;
++			perror("poll");
++			exit(1);
+ 		}
+ 
+ 		gettimeofday(&now,NULL);
+@@ -223,15 +221,15 @@ static int recv_datagram(struct datagram *pkt, int nfd, struct peer *p1)
+ 		if (after(now,last_out_time) && p1->state == ST_AUTH){
+ 			send_keepalive(p1);
+ 		}
+-   	} while (pollret==0);
++	} while (pollret==0);
++
+ 
+-  
+ 	for(;;){
+ 		if (pfd[0].revents&POLLIN) {
+ 			struct sockaddr_in ipaddress;
+ 			peerlen = sizeof(struct sockaddr_in);
+ 			pkt->len = recvfrom(nfd, pkt->data, MAXPKT, 0,
+-				(struct sockaddr *) &ipaddress, &peerlen);
++					(struct sockaddr *) &ipaddress, &peerlen);
+ 			if(ipaddress.sin_addr.s_addr == p1->in_a.sin_addr.s_addr){
+ 				pkt->orig=p1;
+ 				pkt->src = SRC_UDP;
+@@ -242,9 +240,9 @@ static int recv_datagram(struct datagram *pkt, int nfd, struct peer *p1)
+ 			}
+ 		}
+ 
+-	 	if (pfd[1].revents&POLLHUP){
++		if (pfd[1].revents&POLLHUP){
+ 			vc_printlog(1,"VDE Error");
+-		} 
++		}
+ 		if (pfd[1].revents&POLLIN) {
+ 			vc_printlog(4,"VDE Pkt");
+ 			pkt->len = vde_recv(p1->plug, pkt->data, MAXPKT,0);
+@@ -265,7 +263,7 @@ void cryptcab_client(char *_plugname, unsigned short udp_port, enum e_enc_type _
+ 	struct datagram pkt, pkt_dec;
+ 	struct peer _peer;
+ 	struct peer *p1 = &_peer;
+-	
++
+ 	plugname = _plugname;
+ 	remoteusr = _remoteusr;
+ 	remotehost = _remotehost;
+@@ -289,10 +287,10 @@ void cryptcab_client(char *_plugname, unsigned short udp_port, enum e_enc_type _
+ 	myaddr.sin_family = AF_INET;
+ 	myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+ 	myaddr.sin_port = htons(udp_port);
+-	
++
+ 	wire = socket(PF_INET,SOCK_DGRAM,0);
+ 	if (bind(wire,(struct sockaddr *) &myaddr, sizeof(myaddr))<0)
+-		        {perror("bind socket"); exit(3);}
++	{perror("bind socket"); exit(3);}
+ 
+ 	set_nfd(wire);
+ 
+@@ -301,7 +299,7 @@ void cryptcab_client(char *_plugname, unsigned short udp_port, enum e_enc_type _
+ 	p1->next = NULL;
+ 	try_to_login(p1);
+ 	usleep(100000);
+-	
++
+ 	for(;;){
+ 		r = recv_datagram(&pkt, wire, p1);
+ 		if (r == 0)
+@@ -309,7 +307,7 @@ void cryptcab_client(char *_plugname, unsigned short udp_port, enum e_enc_type _
+ 
+ 		if(pkt.src==SRC_VDE){
+ 			if(p1->state==ST_AUTH){
+-				vc_printlog(4,"VDE pkt received (%d Bytes)",pkt.len); 
++				vc_printlog(4,"VDE pkt received (%d Bytes)",pkt.len);
+ 				send_udp(pkt.data, pkt.len, p1, PKT_DATA);
+ 				gettimeofday(&last_out_time,NULL);
+ 			}else{
+@@ -328,10 +326,23 @@ void cryptcab_client(char *_plugname, unsigned short udp_port, enum e_enc_type _
+ 					vc_printlog(2,"Successfully authenticated.");
+ 					break;
+ 				case ST_AUTH + PKT_DATA:
+-					vc_printlog(4,"Data pkt received (%d Bytes)",pkt.len); 
+-					pkt_dec.len = data_decrypt(pkt.data+1, pkt_dec.data, pkt.len-1, p1);
+-					
+-					vde_send(p1->plug,pkt_dec.data,pkt_dec.len,0);	
++					{
++						unsigned int len = pkt.len - 1;
++						unsigned char *p = (pkt.data + 1);
++						unsigned char *tail = (p + len - 12);
++						uint32_t crc;
++
++						crc = tail[0] + (tail[1] << 8) +
++							(tail[2] << 16) + (tail[3] << 24);
++						len -= 12;
++						pkt_dec.len = data_encrypt_decrypt(p, pkt_dec.data, len, p1->key, tail);
++						if (crc == chksum_crc32(pkt_dec.data,pkt_dec.len)) {
++							vc_printlog(4,"Data pkt received (%d Bytes)",pkt.len);
++							vde_send(p1->plug,pkt_dec.data,pkt_dec.len,0);	
++						} else {
++							vc_printlog(4,"CRC error, incoming data packet discarded (%d Bytes)",pkt.len);
++						}
++					}
+ 					break;
+ 				case ST_OPENING + CMD_DENY:
+ 				case ST_WAIT_AUTH + CMD_DENY:
+@@ -343,12 +354,12 @@ void cryptcab_client(char *_plugname, unsigned short udp_port, enum e_enc_type _
+ 					try_to_login(p1);
+ 					break;
+ 				default:
+-					vc_printlog(4,"Unknown/undesired pkt received. (state: 0x%X code: 0x%X )", p1->state, (unsigned char)pkt.data[0]); 
++					vc_printlog(4,"Unknown/undesired pkt received. (state: 0x%X code: 0x%X )", p1->state, (unsigned char)pkt.data[0]);
+ 			}
+-			
++
+ 		}
+-		
++
+ 	}
+ 	exit (0);
+-} 
++}
+ 
+diff --git a/src/vde_cryptcab/vde_cryptcab_server.c b/src/vde_cryptcab/vde_cryptcab_server.c
+index 29df01672..6624c3cdd 100644
+--- a/src/vde_cryptcab/vde_cryptcab_server.c
++++ b/src/vde_cryptcab/vde_cryptcab_server.c
+@@ -5,8 +5,6 @@
+  *
+  * Released under the terms of GNU GPL v.2
+  * (http://www.gnu.org/licenses/old-licenses/gpl-2.0.html)
+- * with the additional exemption that
+- * compiling, linking, and/or using OpenSSL is allowed.
+  *
+  */
+ 
+@@ -57,7 +55,7 @@ static void _populatepoll(struct pollfd *pfd, struct peer *iter,int index, struc
+ 		_populatepoll(pfd,iter->next,index, peerlist);
+ 		return;
+ 	}
+-	
++
+ 	_populatepoll(pfd,iter->next,index, peerlist);
+ }
+ 
+@@ -69,7 +67,7 @@ struct peer *_getpeer(struct sockaddr_in saddr, struct peer *sublist)
+ 	if(sublist->in_a.sin_addr.s_addr==saddr.sin_addr.s_addr && sublist->in_a.sin_port==saddr.sin_port)
+ 		return sublist;
+ 	return _getpeer(saddr,sublist->next);
+-	
++
+ }
+ 
+ 
+@@ -99,7 +97,7 @@ static void remove_peerlist(struct peer *sublist)
+ 	}
+ 	remove_peerlist(sublist->next);
+ }
+-	
++
+ 
+ 
+ static struct peer *clean_peerlist(struct peer *sublist)
+@@ -107,7 +105,7 @@ static struct peer *clean_peerlist(struct peer *sublist)
+ 	struct timeval now;
+ 	char filename[128];
+ 	struct peer *nxt;
+-	
++
+ 	if (sublist == list) {
+ 		vc_printlog(4, "Cleaning list of peer from expired clients....");
+ 	}
+@@ -116,9 +114,9 @@ static struct peer *clean_peerlist(struct peer *sublist)
+ 		return NULL;
+ 	nxt=sublist->next;
+ 	gettimeofday(&now,NULL);
+-	if(after(now,sublist->expire) 
+-//	  || (sublist->state == ST_AUTH && sublist->plug) 
+-		){
++	if(after(now,sublist->expire)
++			// || (sublist->state == ST_AUTH && sublist->plug)
++	  ){
+ 		vc_printlog(1,"Client %s : expired.",inet_ntoa(sublist->in_a.sin_addr));
+ 		vc_printlog(4,"Client %s : expire time: %lu, now= %lu.",inet_ntoa(sublist->in_a.sin_addr),sublist->expire.tv_sec,now.tv_sec);
+ 		if (sublist->plug){
+@@ -143,9 +141,9 @@ static struct peer *clean_peerlist(struct peer *sublist)
+ 
+ 
+ /*
+- * Returns a list of all the peer in the peer list, adding their 
++ * Returns a list of all the peer in the peer list, adding their
+  * network socket to pollfd.
+- * This is called in blowfish_select, to populate the pollfd structure.
++ * This is called in chacha_select, to populate the pollfd structure.
+  */
+ static struct peer *populate_peerlist(struct pollfd *pfd)
+ {
+@@ -166,12 +164,12 @@ static struct peer *getpeer(struct sockaddr_in saddr)
+ {
+ 	struct peer *iter=list;
+ 	return (_getpeer(saddr,iter));
+-			
++
+ }
+ 
+ 
+ /*
+- * Get a pointer to the peer in the list which key filename is the same of that in the login datagram. 
++ * Get a pointer to the peer in the list which key filename is the same of that in the login datagram.
+  */
+ 
+ static void
+@@ -182,7 +180,7 @@ do_exit(int signo){
+ }
+ 
+ 
+-static void 
++	static void
+ set_expire(struct peer *p, unsigned char cmd)
+ {
+ 	struct timeval now;
+@@ -191,25 +189,25 @@ set_expire(struct peer *p, unsigned char cmd)
+ 
+ 	switch (cmd){
+ 		case EXPIRE_NOW:
+-		p->expire.tv_sec = now.tv_sec + PRELOGIN_TIMEOUT;
+-		break;
++			p->expire.tv_sec = now.tv_sec + PRELOGIN_TIMEOUT;
++			break;
+ 
+ 		case CMD_CHALLENGE:
+-		p->expire.tv_sec = now.tv_sec + CHALLENGE_TIMEOUT;
+-		break;
++			p->expire.tv_sec = now.tv_sec + CHALLENGE_TIMEOUT;
++			break;
+ 
+ 		case CMD_LOGIN:
+-		p->expire.tv_sec = now.tv_sec + PRELOGIN_TIMEOUT;
+-		break;
++			p->expire.tv_sec = now.tv_sec + PRELOGIN_TIMEOUT;
++			break;
+ 
+ 		default:
+-		p->expire.tv_sec = now.tv_sec + SESSION_TIMEOUT;
+-		break;
++			p->expire.tv_sec = now.tv_sec + SESSION_TIMEOUT;
++			break;
+ 	}
+ }
+-	
+ 
+-static void
++
++	static void
+ deny_access(struct peer *p)
+ {
+ 	send_udp((unsigned char *)"Access Denied.\0",15,p,CMD_DENY);
+@@ -220,12 +218,12 @@ deny_access(struct peer *p)
+ /*
+  * Send a "Challenge" 4WHS packet.
+  */
+-static void
++	static void
+ send_challenge(struct peer *p)
+ {
+ 	int fd;
+ 	if ( ((fd = open ("/dev/urandom", O_RDONLY)) == -1)||
+-			 ((read (fd, p->challenge, 128)) != -1))
++			((read (fd, p->challenge, 128)) != -1))
+ 	{	
+ 		send_udp((unsigned char *)p->challenge,128,p,PKT_CTL|CMD_CHALLENGE);
+ 	}		
+@@ -236,7 +234,7 @@ send_challenge(struct peer *p)
+ /*
+  * Send a "Auth OK" 4WHS packet.
+  */
+-static void
++	static void
+ send_auth_ok(struct peer *p)
+ {
+ 	send_udp(NULL,0,p,CMD_AUTH_OK);
+@@ -248,7 +246,7 @@ send_auth_ok(struct peer *p)
+ /*
+  * Receive a login request. Send challenge.
+  */
+-static void
++	static void
+ rcv_login(struct datagram *pkt, char *pre_shared)
+ {
+ 	int fd;
+@@ -260,9 +258,9 @@ rcv_login(struct datagram *pkt, char *pre_shared)
+ 	sync();
+ 	usleep(10000);	
+ 	if (((fd = open (filename, O_RDONLY)) == -1)||
+- 			((read (fd, pkt->orig->key, 16)) == -1) ||
++			((read (fd, pkt->orig->key, 16)) == -1) ||
+ 			((read (fd, pkt->orig->iv, 8)) == -1) ){
+-		perror ("blowfish.key open error");
++		perror ("chacha.key open error");
+ 		deny_access(pkt->orig);
+ 		return;
+ 	}
+@@ -280,25 +278,33 @@ rcv_login(struct datagram *pkt, char *pre_shared)
+  * Receive a response from challenge. Validate encryption and send "ok auth"
+  * or "access denied"
+  */
+-static void
++	static void
+ rcv_response(struct datagram *pkt)
+ {
+ 	unsigned char response[MAXPKT];
+ 	int rlen;
+ 	struct peer *p = pkt->orig;
+- 
+-	rlen = data_decrypt(pkt->data + 1, response, pkt->len - 1, p);
+-	
+-	if (rlen > 0 && strncmp((char *)response, p->challenge,128)==0){
++	unsigned int len = pkt->len - 1;
++	unsigned char *head = pkt->data + 1;
++	unsigned char *tail = head + len - 12;
++	if (len != CRYPTCAB_CHALLENGE_SIZE + 12) {
++		vc_printlog(4, "Cannot authenticate: wrong packet len %d\n", len);
++		deny_access(p);
++		return;
++	}
++	rlen = data_encrypt_decrypt(head, response, CRYPTCAB_CHALLENGE_SIZE, p->key, tail);
++	if ((rlen == CRYPTCAB_CHALLENGE_SIZE) && strncmp((char *)response, p->challenge,CRYPTCAB_CHALLENGE_SIZE)==0){
+ 		p->state = ST_AUTH;
++		vc_printlog(4, "Client authenticated.\n");
+ 		send_auth_ok(p);
+ 	} else {
++		vc_printlog(4, "Client access denied.\n");
+ 		deny_access(p);
+ 	}
+ }
+ /*
+  * Main select routine.
+- * A poll will wake up whenever a new packet is available to read, either from one 
++ * A poll will wake up whenever a new packet is available to read, either from one
+  * of the vde_plug attached, or from udp socket.
+  * Returns a struct datagram aware of its own source.
+  */
+@@ -311,7 +317,7 @@ static int recv_datagram_srv(struct datagram *pkt, int nfd)
+ 	static int i=1;
+ 
+ 	if (pfd)
+-	     free(pfd);
++		free(pfd);
+ 
+ 	pfd=malloc((1+numberofpeers())*sizeof(struct pollfd));
+ 
+@@ -321,24 +327,24 @@ static int recv_datagram_srv(struct datagram *pkt, int nfd)
+ 
+ 	pollret = poll(pfd,1+numberofpeers(),1000);
+ 	if(pollret<0){
+-	 	if(errno==EINTR)
+-	   		return 0;
+-	 	perror("poll");
+-	 	exit(1);
++		if(errno==EINTR)
++			return 0;
++		perror("poll");
++		exit(1);
+ 	}
+ 	if (pollret == 0) {
+ 		list = clean_peerlist(list);
+ 		return 0;
+ 	}
+ 
+-  
++
+ 	for(;;){
+ 		if (pfd[0].revents&POLLIN) {
+ 			struct sockaddr_in ipaddress;
+ 			peerlen = sizeof(struct sockaddr_in);
+ 			pkt->len = recvfrom(nfd, pkt->data, MAXPKT, 0,
+-				(struct sockaddr *) &ipaddress, &peerlen);
+-	  
++					(struct sockaddr *) &ipaddress, &peerlen);
++
+ 			pkt->orig=getpeer(ipaddress);
+ 			if(!pkt->orig){
+ 				pkt->orig=malloc(sizeof(struct peer));
+@@ -355,7 +361,7 @@ static int recv_datagram_srv(struct datagram *pkt, int nfd)
+ 		}
+ 
+ 		// This increment comes with "static int i" def, to ensure fairness among peers.
+-		i++;	  
++		i++;
+ 		if(i>numberofpeers()) {
+ 			i=1;
+ 		}
+@@ -364,7 +370,7 @@ static int recv_datagram_srv(struct datagram *pkt, int nfd)
+ 			usleep(10000);
+ 			return 0;
+ 		}
+-	  
++
+ 		if (pfd[i].revents&POLLIN && peerlist[i].plug != NULL ) {
+ 			pkt->len = vde_recv(peerlist[i].plug, pkt->data, MAXPKT,0);
+ 			if(pkt->len<1)
+@@ -386,7 +392,7 @@ void cryptcab_server(char *_plugname, unsigned short udp_port, enum e_enc_type _
+ 	struct sigaction sa_timer;
+ 	struct sigaction sa_exit;
+ 	struct peer *p1;
+-	
++
+ 	enc_type = _enc_type;
+ 	plugname = _plugname;
+ 
+@@ -396,7 +402,7 @@ void cryptcab_server(char *_plugname, unsigned short udp_port, enum e_enc_type _
+ 	sa_exit.sa_handler = do_exit;
+ 	sigaction(SIGINT, &sa_exit, NULL);
+ 	sigaction(SIGTERM, &sa_exit, NULL);
+-	
++
+ 	if(enc_type == ENC_PRESHARED && (!pre_shared || access(pre_shared,R_OK)!=0)){
+ 		fprintf(stderr,"Error accessing pre-shared key %s\n",pre_shared);
+ 		perror ("access");
+@@ -410,19 +416,19 @@ void cryptcab_server(char *_plugname, unsigned short udp_port, enum e_enc_type _
+ 	myaddr.sin_family = AF_INET;
+ 	myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+ 	myaddr.sin_port = htons(udp_port);
+-	
++
+ 	wire = socket(PF_INET,SOCK_DGRAM,0);
+ 	if (bind(wire,(struct sockaddr *) &myaddr, sizeof(myaddr))<0)
+-		        {perror("bind socket"); exit(3);}
++	{perror("bind socket"); exit(3);}
+ 
+ 	set_nfd(wire);
+-	
++
+ 	for(;;){
+ 		r = recv_datagram_srv(&pkt, wire);
+ 		if (r == 0)
+ 			continue;
+ 
+-//		fprintf(stderr,".");
++		//		fprintf(stderr,".");
+ 		p1 = pkt.orig;
+ 		if(pkt.src==SRC_VDE){
+ 			if(p1->state==ST_AUTH){
+@@ -433,10 +439,23 @@ void cryptcab_server(char *_plugname, unsigned short udp_port, enum e_enc_type _
+ 		else if(pkt.src==SRC_UDP){
+ 			switch(p1->state + pkt.data[0]) {
+ 				case (ST_AUTH + PKT_DATA):
+-					vc_printlog(4,"Data pkt received (%d Bytes)",pkt.len); 
+-					pkt_dec.len = data_decrypt(pkt.data+1, pkt_dec.data, pkt.len-1, p1);
+-					set_expire(p1, CMD_KEEPALIVE);
+-					vde_send(p1->plug,pkt_dec.data,pkt_dec.len,0);	
++					{
++						unsigned int len = pkt.len - 1;
++						unsigned char *p = (pkt.data + 1);
++						unsigned char *tail = (p + len - 12);
++						uint32_t crc;
++
++						crc = tail[0] + (tail[1] << 8) +
++							(tail[2] << 16) + (tail[3] << 24);
++						len -= 12;
++						pkt_dec.len = data_encrypt_decrypt(p, pkt_dec.data, len, p1->key, tail);
++						if (crc == chksum_crc32(pkt_dec.data,pkt_dec.len)) {
++							vc_printlog(4,"Data pkt received (%d Bytes)",pkt.len);
++							vde_send(p1->plug,pkt_dec.data,pkt_dec.len,0);	
++						} else {
++							vc_printlog(4,"CRC error, incoming data packet discarded (%d Bytes)",pkt.len);
++						}
++					}
+ 					break;
+ 				case (ST_AUTH + CMD_KEEPALIVE):
+ 					vc_printlog(4,"Keepalive received from %s",inet_ntoa(p1->in_a.sin_addr));
+@@ -446,28 +465,28 @@ void cryptcab_server(char *_plugname, unsigned short udp_port, enum e_enc_type _
+ 				case ST_AUTH + CMD_LOGIN:
+ 					set_expire(p1, EXPIRE_NOW);
+ 				case ST_CLOSED + CMD_LOGIN:
+-					vc_printlog(4,"Login pkt received."); 
++					vc_printlog(4,"Login pkt received.");
+ 					p1->state=ST_OPENING;
+ 					p1->counter=0;
+ 					rcv_login(&pkt,pre_shared);
+ 					break;
+-				
++
+ 				case ST_CHALLENGE + CMD_RESPONSE:
+-					vc_printlog(4,"Response pkt received."); 
++					vc_printlog(4,"Response pkt received.");
+ 					//fprintf(stderr, "Receiving response\n");
+ 					rcv_response(&pkt);
+ 					break;
+ 
+ 				default:
+-					vc_printlog(4,"Unknown/undesired pkt received. (state: 0x%X code: 0x%X )", p1->state, (unsigned char)pkt.data[0]); 
++					vc_printlog(4,"Unknown/undesired pkt received. (state: 0x%X code: 0x%X )", p1->state, (unsigned char)pkt.data[0]);
+ 					if (p1->state != ST_AUTH)
+ 						deny_access(pkt.orig);					
+ 					else
+ 						send_auth_ok(pkt.orig);
+ 			}	
+-			
++
+ 		}
+-		
++
+ 	}
+ 	exit (0);
+-} 
++}
+-- 
+2.35.0
+

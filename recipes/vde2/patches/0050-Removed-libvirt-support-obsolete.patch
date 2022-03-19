@@ -1,0 +1,189 @@
+From bc47d34ea4183ffcf0803249d8b1d052c2b4e712 Mon Sep 17 00:00:00 2001
+From: Daniele Lacamera <dan@danielinux.net>
+Date: Sun, 5 Sep 2021 11:12:09 +0200
+Subject: [PATCH 50/62] Removed libvirt support (obsolete)
+
+---
+ libvirt/README                  |  22 -----
+ libvirt/libvirt-0.8.7.vde.patch | 140 --------------------------------
+ 2 files changed, 162 deletions(-)
+ delete mode 100644 libvirt/README
+ delete mode 100644 libvirt/libvirt-0.8.7.vde.patch
+
+diff --git a/libvirt/README b/libvirt/README
+deleted file mode 100644
+index bf308b413..000000000
+--- a/libvirt/README
++++ /dev/null
+@@ -1,22 +0,0 @@
+-This patch defines and manages the syntax:
+-
+-<domain ....>
+- <device>
+-   <interface type='vde'>
+-	 ...
+-	 	<switch path='/tmp/vde.ctl'/>
+-	 </interface>
+- </device>
+-</domain>
+-
+-the switch tag can be omitted: vde uses the default switch.
+-qemu/kvm support: tested.
+-user-mode linux support is included but not tested yet.
+-libvirt vde support for virtualbox has not been coded yet.
+-
+-INSTALL:
+-download libvirt-0.8.7
+-..../libvirt-0.8.7$ patch -p 1 < libvirt-0.8.7.vde.patch
+-..../libvirt-0.8.7$ configure
+-..../libvirt-0.8.7$ make
+-..../libvirt-0.8.7$ sudo make install
+diff --git a/libvirt/libvirt-0.8.7.vde.patch b/libvirt/libvirt-0.8.7.vde.patch
+deleted file mode 100644
+index baba961fc..000000000
+--- a/libvirt/libvirt-0.8.7.vde.patch
++++ /dev/null
+@@ -1,140 +0,0 @@
+---- a/src/lxc/lxc_driver.c  2011-01-10 11:49:49.000000000 +0100
+-+++ b/src/lxc/lxc_driver.c  2011-01-10 11:50:03.000000000 +0100
+-@@ -1083,6 +1083,7 @@
+-         case VIR_DOMAIN_NET_TYPE_INTERNAL:
+-         case VIR_DOMAIN_NET_TYPE_DIRECT:
+-         case VIR_DOMAIN_NET_TYPE_LAST:
+-+        case VIR_DOMAIN_NET_TYPE_VDE:
+-             break;
+-         }
+- 
+---- a/src/uml/uml_conf.c  2011-01-10 12:03:54.000000000 +0100
+-+++ b/src/uml/uml_conf.c  2011-01-10 13:26:08.000000000 +0100
+-@@ -269,6 +269,14 @@
+-         virBufferVSprintf(&buf, "tuntap,%s", def->ifname);
+-         break;
+- 
+-+    case VIR_DOMAIN_NET_TYPE_VDE:
+-+        /* ethNNN=vde,vde_switch,macaddr,port,group,mode,description */
+-+        if (def->data.vde.vdeswitch) {
+-+          virBufferVSprintf(&buf, "vde,%s", def->data.vde.vdeswitch);
+-+        } else
+-+          virBufferAddLit(&buf, "vde");
+-+        break;
+-+
+-     case VIR_DOMAIN_NET_TYPE_INTERNAL:
+-         umlReportError(VIR_ERR_INTERNAL_ERROR, "%s",
+-                        _("internal networking type not supported"));
+---- a/src/conf/domain_conf.h  2011-01-10 11:41:07.000000000 +0100
+-+++ b/src/conf/domain_conf.h  2011-01-10 13:21:08.000000000 +0100
+-@@ -288,6 +288,7 @@
+-     VIR_DOMAIN_NET_TYPE_BRIDGE,
+-     VIR_DOMAIN_NET_TYPE_INTERNAL,
+-     VIR_DOMAIN_NET_TYPE_DIRECT,
+-+    VIR_DOMAIN_NET_TYPE_VDE,
+- 
+-     VIR_DOMAIN_NET_TYPE_LAST,
+- };
+-@@ -336,6 +337,9 @@
+-             int mode;
+-             virVirtualPortProfileParams virtPortProfile;
+-         } direct;
+-+        struct {
+-+          char *vdeswitch;
+-+        } vde;
+-     } data;
+-     char *ifname;
+-     virDomainDeviceInfo info;
+---- a/src/conf/domain_conf.c  2011-01-10 11:42:04.000000000 +0100
+-+++ b/src/conf/domain_conf.c  2011-01-10 14:49:46.000000000 +0100
+-@@ -182,7 +182,8 @@
+-               "network",
+-               "bridge",
+-               "internal",
+--              "direct")
+-+              "direct",
+-+              "vde")
+- 
+- VIR_ENUM_IMPL(virDomainChrChannelTarget,
+-               VIR_DOMAIN_CHR_CHANNEL_TARGET_TYPE_LAST,
+-@@ -598,6 +599,10 @@
+-         VIR_FREE(def->data.direct.linkdev);
+-         break;
+- 
+-+    case VIR_DOMAIN_NET_TYPE_VDE:
+-+        VIR_FREE(def->data.vde.vdeswitch);
+-+        break;
+-+
+-     case VIR_DOMAIN_NET_TYPE_USER:
+-     case VIR_DOMAIN_NET_TYPE_LAST:
+-         break;
+-@@ -2293,6 +2298,7 @@
+-     char *internal = NULL;
+-     char *devaddr = NULL;
+-     char *mode = NULL;
+-+    char *vdeswitch = NULL;
+-     virNWFilterHashTablePtr filterparams = NULL;
+-     virVirtualPortProfileParams virtPort;
+-     bool virtPortParsed = false;
+-@@ -2379,7 +2385,11 @@
+-                        xmlStrEqual(cur->name, BAD_CAST "state")) {
+-                 /* Legacy back-compat. Don't add any more attributes here */
+-                 devaddr = virXMLPropString(cur, "devaddr");
+--            }
+-+            } else if ((vdeswitch == NULL) &&
+-+                def->type == VIR_DOMAIN_NET_TYPE_VDE &&
+-+                xmlStrEqual(cur->name, BAD_CAST "switch")) {
+-+              vdeswitch = virXMLPropString(cur, "path");
+-+            }
+-         }
+-         cur = cur->next;
+-     }
+-@@ -2529,6 +2539,11 @@
+- 
+-         break;
+- 
+-+    case VIR_DOMAIN_NET_TYPE_VDE:
+-+        def->data.vde.vdeswitch = vdeswitch;
+-+        vdeswitch = NULL;
+-+        break;
+-+
+-     case VIR_DOMAIN_NET_TYPE_USER:
+-     case VIR_DOMAIN_NET_TYPE_LAST:
+-         break;
+-@@ -6263,6 +6278,12 @@
+-                                     "      ");
+-         break;
+- 
+-+    case VIR_DOMAIN_NET_TYPE_VDE:
+-+        if (def->data.vde.vdeswitch)
+-+          virBufferEscapeString(buf, "      <switch path='%s'/>\n",
+-+              def->data.vde.vdeswitch);
+-+        break;
+-+
+-     case VIR_DOMAIN_NET_TYPE_USER:
+-     case VIR_DOMAIN_NET_TYPE_LAST:
+-         break;
+---- a/src/qemu/qemu_command.c  2011-01-10 13:11:17.000000000 +0100
+-+++ b/src/qemu/qemu_command.c  2011-01-10 13:26:28.000000000 +0100
+-@@ -1602,12 +1602,21 @@
+-         case VIR_DOMAIN_NET_TYPE_BRIDGE:
+-         case VIR_DOMAIN_NET_TYPE_INTERNAL:
+-         case VIR_DOMAIN_NET_TYPE_DIRECT:
+-+        case VIR_DOMAIN_NET_TYPE_VDE:
+-         case VIR_DOMAIN_NET_TYPE_LAST:
+-             break;
+-         }
+-         type_sep = ',';
+-         break;
+- 
+-+    case VIR_DOMAIN_NET_TYPE_VDE:
+-+        virBufferAddLit(&buf, "vde");
+-+        if (net->data.vde.vdeswitch)
+-+          virBufferVSprintf(&buf, "%csock=%s",
+-+              type_sep,
+-+              net->data.vde.vdeswitch);
+-+        break;
+-+
+-     case VIR_DOMAIN_NET_TYPE_USER:
+-     default:
+-         virBufferAddLit(&buf, "user");
+-- 
+2.35.0
+

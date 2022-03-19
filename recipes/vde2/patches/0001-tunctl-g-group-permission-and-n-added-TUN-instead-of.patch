@@ -1,0 +1,237 @@
+From f1c6d6488bee8405957be5b02bb154685122d02e Mon Sep 17 00:00:00 2001
+From: rd235 <rd235@users.noreply.github.com>
+Date: Sat, 3 Dec 2011 11:13:56 +0000
+Subject: [PATCH 01/62] tunctl: -g (group permission) and -n added (TUN instead
+ of TAP).
+
+---
+ man/vde_tunctl.8 |  20 ++++++---
+ src/vde_tunctl.c | 106 +++++++++++++++++++++++++++++++++--------------
+ 2 files changed, 90 insertions(+), 36 deletions(-)
+
+diff --git a/man/vde_tunctl.8 b/man/vde_tunctl.8
+index f3f517c8c..5467f2e2f 100644
+--- a/man/vde_tunctl.8
++++ b/man/vde_tunctl.8
+@@ -3,9 +3,9 @@
+ vde_tunctl \(em create and manage persistent TUN/TAP interfaces 
+ .SH "SYNOPSIS" 
+ .PP 
+-\fBvde_tunctl\fR [\fB-f\fP \fItun-clone-device\fR]  [\fB-u\fP \fIowner\fR]  [\fB-t\fP \fIdevice-name\fR]  
++\fBvde_tunctl\fR [\fB-f\fP \fIclone-dev\fR] [\fB-u\fP \fIowner\fR] [\fB-g\fP \fIgroup\fR] [\fB-n\fR] [\fB-t\fP \fIdev-name\fR]  
+ .PP 
+-\fBvde_tunctl\fR [\fB-f\fP \fItun-clone-device\fR] \fB-d\fP \fIdevice-name\fR  
++\fBvde_tunctl\fR [\fB-f\fP \fIclone-dev\fR] \fB-d\fP \fIdev-name\fR  
+ .SH "DESCRIPTION" 
+ .PP 
+ \fBvde_tunctl\fR allows the host sysadmin to 
+@@ -13,7 +13,10 @@ preconfigure a TUN/TAP device for use by a particular user.  That
+ user may open and use the device, but may not change any aspects 
+ of the host side of the interface. 
+ .PP
+-vde_tunctl is a simple copy of \fBtunctl\fR done for practical purposes.
++vde_tunctl is an extension of \fBtunctl\fR.
++.PP
++vde_tunctl defines tap interfaces unless \fIdev-name\fR begins by "tun" or
++the option \fR-n\fR appears in the command line. 
+ .SH "USAGE" 
+ .PP 
+ To create an interface for use by a particular user, invoke 
+@@ -22,7 +25,6 @@ tunctl without the \-d option:
+ .nf 
+ # \fBvde_tunctl \-u someuser\fP  
+ Set 'tap0' persistent and owned by uid 500 
+- 
+ .fi 
+ .PP 
+ Then, configure the interface as normal: 
+@@ -39,8 +41,16 @@ To delete the interface, use the \-d option:
+ .nf 
+ # \fBvde_tunctl \-d tap0\fP  
+ Set 'tap0' nonpersistent 
+- 
+ .fi 
++
++To create or destroy a tun interface (instead of tap):
++.nf
++# \fBvde_tunctl -n \-u someuser\fP
++Set 'tun0' persistent and owned by uid 500
++# \fBvde_tunctl \-d tun0\fP
++Set 'tun0' nonpersistent
++.fi
++
+ .SH "SEE ALSO" 
+ .PP 
+ \fBvde_switch\fP(1)
+diff --git a/src/vde_tunctl.c b/src/vde_tunctl.c
+index 2c7d1379c..e9f7a337c 100644
+--- a/src/vde_tunctl.c
++++ b/src/vde_tunctl.c
+@@ -9,23 +9,26 @@
+ #include <fcntl.h>
+ #include <unistd.h>
+ #include <pwd.h>
++#include <grp.h>
+ #include <net/if.h>
+ #include <sys/ioctl.h>
+ #include <linux/if_tun.h>
+ 
+-#include <config.h>
+-#include <vde.h>
+-#include <vdecommon.h>
++/* TUNSETGROUP appeared in 2.6.23 */
++#ifndef TUNSETGROUP
++#define TUNSETGROUP   _IOW('T', 206, int)
++#endif
+ 
+ static void Usage(char *name)
+ {
+-  fprintf(stderr, "Create: %s [-b] [-u owner] [-t device-name] "
++  fprintf(stderr, "Create: %s [-b] [-u owner] [-g group] [-n] [-t device-name] "
+ 	  "[-f tun-clone-device]\n", name);
+   fprintf(stderr, "Delete: %s -d device-name [-f tun-clone-device]\n\n", 
+ 	  name);
+   fprintf(stderr, "The default tun clone device is /dev/net/tun - some systems"
+ 	  " use\n/dev/misc/net/tun instead\n\n");
+   fprintf(stderr, "-b will result in brief output (just the device name)\n");
++  fprintf(stderr, "-n create a tun interface (not needed if the device name prefix is tun\n");
+   exit(1);
+ }
+ 
+@@ -33,38 +36,58 @@ int main(int argc, char **argv)
+ {
+   struct ifreq ifr;
+   struct passwd *pw;
+-  long owner = geteuid();
++	struct group *gr; 
++	uid_t owner = -1;
++	gid_t group = -1; 
+   int tap_fd, opt, delete = 0, brief = 0;
++	int type=IFF_TAP;
++
+   char *tun = "", *file = "/dev/net/tun", *name = argv[0], *end;
+ 
+-  while((opt = getopt(argc, argv, "bd:f:t:u:")) > 0){
++  while((opt = getopt(argc, argv, "bd:f:t:u:in")) > 0){
+     switch(opt) {
+       case 'b':
+         brief = 1;
+         break;
+       case 'd':
+         delete = 1;
+-	tun = optarg;
++				tun = optarg;
+         break;
+       case 'f':
+-	file = optarg;
+-	break;
++				file = optarg;
++				break;
+       case 'u':
+-	pw = getpwnam(optarg);
+-	if(pw != NULL){
+-	  owner = pw->pw_uid;
+-	  break;
+-	}
+-        owner = strtol(optarg, &end, 0);
+-	if(*end != '\0'){
+-	  fprintf(stderr, "'%s' is neither a username nor a numeric uid.\n",
+-		  optarg);
+-	  Usage(name);
+-	}
+-        break;
+-      case 't':
++				pw = getpwnam(optarg);
++				if(pw != NULL){
++					owner = pw->pw_uid;
++					break;
++				}
++				owner = strtol(optarg, &end, 0);
++				if(*end != '\0'){
++					fprintf(stderr, "'%s' is neither a username nor a numeric uid.\n",
++							optarg);
++					Usage(name);
++				}
++				break;
++			case 'g':
++				gr = getgrnam(optarg);
++				if(gr != NULL){
++					group = gr->gr_gid;
++					break;
++				}
++				group = strtol(optarg, &end, 0);
++				if(*end != '\0'){
++					fprintf(stderr, "'%s' is neither a groupname nor a numeric group.\n",
++							optarg);
++					Usage(name);
++				}
++				break;
++			case 't':
+         tun = optarg;
+         break;
++			case 'n':
++				type = IFF_TUN;
++				break;
+       case 'h':
+       default:
+         Usage(name);
+@@ -85,7 +108,8 @@ int main(int argc, char **argv)
+ 
+   memset(&ifr, 0, sizeof(ifr));
+ 
+-  ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
++	if (strncmp(tun,"tun",3)==0) type=IFF_TUN;
++  ifr.ifr_flags = type | IFF_NO_PI;
+   strncpy(ifr.ifr_name, tun, sizeof(ifr.ifr_name) - 1);
+   if(ioctl(tap_fd, TUNSETIFF, (void *) &ifr) < 0){
+     perror("TUNSETIFF");
+@@ -100,18 +124,38 @@ int main(int argc, char **argv)
+     printf("Set '%s' nonpersistent\n", ifr.ifr_name);
+   }
+   else {
++		/* emulate behaviour prior to TUNSETGROUP */
++		if(owner == -1 && group == -1) {
++			owner = geteuid();
++		}
++
++		if(owner != -1) {
++			if(ioctl(tap_fd, TUNSETOWNER, owner) < 0){
++				perror("TUNSETOWNER");
++				exit(1);
++			}
++		}
++		if(group != -1) {
++			if(ioctl(tap_fd, TUNSETGROUP, group) < 0){
++				perror("TUNSETGROUP");
++				exit(1);
++			}
++		}
++
+     if(ioctl(tap_fd, TUNSETPERSIST, 1) < 0){
+       perror("TUNSETPERSIST");
+       exit(1);
+     }
+-    if(ioctl(tap_fd, TUNSETOWNER, owner) < 0){
+-      perror("TUNSETPERSIST");
+-      exit(1);
+-    } 
+     if(brief)
+       printf("%s\n", ifr.ifr_name);
+-    else printf("Set '%s' persistent and owned by uid %ld\n", ifr.ifr_name, 
+-		owner);
+-  }
+-  return(0);
++		else {
++			printf("Set '%s' persistent and owned by", ifr.ifr_name);
++			if(owner != -1)
++				printf(" uid %d", owner);
++			if(group != -1)
++				printf(" gid %d", group);
++			printf("\n");
++		}
++	}
++	return(0);
+ }
+-- 
+2.35.0
+

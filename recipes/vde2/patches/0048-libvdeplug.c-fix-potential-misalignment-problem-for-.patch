@@ -1,0 +1,42 @@
+From c591b520d8bda323f9ac50624661a63de7f5aa49 Mon Sep 17 00:00:00 2001
+From: Renzo Davoli <renzo@cs.unibo.it>
+Date: Fri, 3 Sep 2021 12:21:10 +0200
+Subject: [PATCH 48/62] libvdeplug.c: fix potential misalignment problem for
+ bind
+
+---
+ src/lib/libvdeplug.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/src/lib/libvdeplug.c b/src/lib/libvdeplug.c
+index 20cb2de79..4a085e4b2 100644
+--- a/src/lib/libvdeplug.c
++++ b/src/lib/libvdeplug.c
+@@ -478,9 +478,11 @@ VDECONN *vde_open_real(char *given_sockname, char *descr,int interface_version,
+ 		memset(req.sock.sun_path, 0, sizeof(req.sock.sun_path));
+ 		do
+ 		{
++			struct sockaddr_un reqsock;
+ 			/* Here sockname is the last successful one in the previous step. */
+ 			sprintf(req.sock.sun_path, "%s/.%05d-%05d", sockname, pid, sockno++);
+-			res=bind(conn->fddata, (struct sockaddr *) &req.sock, sizeof (req.sock));
++			reqsock = req.sock;
++			res=bind(conn->fddata, (struct sockaddr *) &reqsock, sizeof (req.sock));
+ 		}
+ 		while (res < 0 && errno == EADDRINUSE);
+ 
+@@ -494,8 +496,10 @@ VDECONN *vde_open_real(char *given_sockname, char *descr,int interface_version,
+ 				memset(req.sock.sun_path, 0, sizeof(req.sock.sun_path));
+ 				do 
+ 				{
++					struct sockaddr_un reqsock;
+ 					sprintf(req.sock.sun_path, "%s/vde.%05d-%05d", fallback_dirname[i], pid, sockno++);
+-					res = bind(conn->fddata, (struct sockaddr *) &req.sock, sizeof (req.sock));
++					reqsock = req.sock;
++					res = bind(conn->fddata, (struct sockaddr *) &reqsock, sizeof (req.sock));
+ 				}
+ 				while (res < 0 && errno == EADDRINUSE);
+ 			}
+-- 
+2.35.0
+

@@ -1,0 +1,165 @@
+From 56fc6aa05f561a093439d4e5f2a459e9cdf3fb2a Mon Sep 17 00:00:00 2001
+From: Ludovico Gardenghi <lu@dovi.co>
+Date: Sun, 12 Oct 2014 20:05:22 +0000
+Subject: [PATCH 20/62] Clean up unused variables.
+
+---
+ src/common/canonicalize.c       | 4 ----
+ src/lib/python/vdeplug_python.c | 2 --
+ src/slirpvde/tftp.c             | 3 ---
+ src/vde_router/vde_router.c     | 3 +--
+ src/vde_router/vder_olsr.c      | 2 --
+ src/vde_switch/bitarray.h       | 2 +-
+ src/vde_switch/plugins/dump.c   | 5 ++---
+ 7 files changed, 4 insertions(+), 17 deletions(-)
+
+diff --git a/src/common/canonicalize.c b/src/common/canonicalize.c
+index 457834f7c..13d0e5e0a 100644
+--- a/src/common/canonicalize.c
++++ b/src/common/canonicalize.c
+@@ -51,7 +51,6 @@ char *vde_realpath(const char *name, char *resolved)
+ 	char *resolved_root = resolved + 1;
+ 	char *ret_path = NULL;
+ 	int num_links = 0;
+-	int validstat = 0;
+ 	struct stat *pst = NULL;
+ 
+ 	if (!name || !resolved)
+@@ -128,7 +127,6 @@ char *vde_realpath(const char *name, char *resolved)
+ 		else if (end - start == 2 && start[0] == '.' && start[1] == '.')
+ 		{
+ 			/* Back up to previous component, ignore if at root already.  */
+-			validstat = 0;
+ 			if (dest > resolved_root)
+ 				while ((--dest)[-1] != '/');
+ 		}
+@@ -151,7 +149,6 @@ char *vde_realpath(const char *name, char *resolved)
+ 			*dest = '\0';
+ 
+ 			/*check the dir along the path */
+-			validstat = 1;
+ 			if (lstat(resolved, pst) < 0)
+ 				goto abort;
+ 			else
+@@ -169,7 +166,6 @@ char *vde_realpath(const char *name, char *resolved)
+ 					}
+ 
+ 					/* symlink! */
+-					validstat = 0;
+ 					n = readlink (resolved, buf, PATH_MAX);
+ 					if (n < 0)
+ 						goto abort;
+diff --git a/src/lib/python/vdeplug_python.c b/src/lib/python/vdeplug_python.c
+index cf9e9c5b6..9d70e7266 100644
+--- a/src/lib/python/vdeplug_python.c
++++ b/src/lib/python/vdeplug_python.c
+@@ -16,13 +16,11 @@ static PyObject *vdeplug_open(PyObject *self, PyObject *args)
+ 	struct vde_open_args vde_args = {0,NULL,0777};
+ 	char *vde_sock = NULL, *vde_descr = NULL;
+ 	VDECONN *ret;
+-	int e;
+ 
+ 	if (!PyArg_ParseTuple(args, "ss|isi", &vde_sock, &vde_descr, &vde_args.port, &vde_args.group, &vde_args.mode))
+ 		goto failure; 
+ 
+ 	ret = vde_open_real(vde_sock, vde_descr, 1, &vde_args);
+-	e = errno;
+ 	if (!ret)
+ 		goto failure;
+ 	else
+diff --git a/src/slirpvde/tftp.c b/src/slirpvde/tftp.c
+index 96c0e0c67..67e9f2b9d 100644
+--- a/src/slirpvde/tftp.c
++++ b/src/slirpvde/tftp.c
+@@ -161,7 +161,6 @@ static void tftp_send_error(struct tftp_session *spt,
+   struct sockaddr_in saddr, daddr;
+   struct mbuf *m;
+   struct tftp_t *tp;
+-  int nobytes;
+ 
+   m = m_get(spt->slirp);
+ 
+@@ -185,8 +184,6 @@ static void tftp_send_error(struct tftp_session *spt,
+   daddr.sin_addr = spt->client_ip;
+   daddr.sin_port = spt->client_port;
+ 
+-  nobytes = 2;
+-
+   m->m_len = sizeof(struct tftp_t) - 514 + 3 + strlen(msg) -
+         sizeof(struct ip) - sizeof(struct udphdr);
+ 
+diff --git a/src/vde_router/vde_router.c b/src/vde_router/vde_router.c
+index 236923f9e..722d1988d 100644
+--- a/src/vde_router/vde_router.c
++++ b/src/vde_router/vde_router.c
+@@ -1387,7 +1387,7 @@ int main(int argc, char *argv[])
+ 	char cmd[MAXCMD];
+ 	int npfd = 0;
+ 	struct pollfd pfd[MAXCONN];
+-	int consoleindex = -1, mgmtindex = -1;
++	int mgmtindex = -1;
+ 	int i, n, daemon = 0;
+ 	char *pidfile = NULL, *configfile = NULL;
+ 	int option_index;
+@@ -1459,7 +1459,6 @@ int main(int argc, char *argv[])
+ 		}
+ 		setsid();
+ 	} else {
+-		consoleindex = npfd;
+ 		pfd[npfd].fd = STDIN_FILENO;
+ 		pfd[npfd].events = POLLIN | POLLHUP;
+ 		write(STDOUT_FILENO,header,strlen(header));
+diff --git a/src/vde_router/vder_olsr.c b/src/vde_router/vder_olsr.c
+index 645e305e4..cc2a3e815 100644
+--- a/src/vde_router/vder_olsr.c
++++ b/src/vde_router/vder_olsr.c
+@@ -608,7 +608,6 @@ static int reconsider_topology(uint8_t *buf, int size, struct olsr_route_entry *
+ static void olsr_recv(uint8_t *buffer, int len)
+ {
+ 	struct olsrmsg *msg;
+-	struct olsr_hmsg_tc *msg_tc;
+ 	struct olsrhdr *outohdr, *oh = (struct olsrhdr *) buffer;
+ 	struct olsr_route_entry *ancestor;
+ 	int parsed = 0;
+@@ -653,7 +652,6 @@ static void olsr_recv(uint8_t *buffer, int len)
+ 				recv_mid(buffer + parsed + sizeof(struct olsrmsg), ntohs(msg->size) - (sizeof(struct olsrmsg)), origin);
+ 				break;
+ 			case OLSRMSG_TC:
+-				msg_tc = (struct olsr_hmsg_tc *) (buffer + parsed);
+ 				if (reconsider_topology(buffer + parsed + sizeof(struct olsrmsg), ntohs(msg->size) - (sizeof(struct olsrmsg)), origin) < 1)
+ 					msg->ttl = 0;
+ 				else {
+diff --git a/src/vde_switch/bitarray.h b/src/vde_switch/bitarray.h
+index 88352d26b..5daec724c 100644
+--- a/src/vde_switch/bitarray.h
++++ b/src/vde_switch/bitarray.h
+@@ -142,7 +142,7 @@ static inline void ba_zap(bitarray x,int n)
+ 	 for (__i=0; __i< max; __i++) \
+ 	 for (__v=(X)[__i],__j=0; __j < __VDEWORDSIZE; __v >>=1, __j++) \
+ 	 if (__v & 1) {(K)=__i*__VDEWORDSIZE+__j;(EXPR);} \
+-	 0; })
++	 (K); })
+ 
+ static inline int ba_card(bitarray x,int n)
+ {
+diff --git a/src/vde_switch/plugins/dump.c b/src/vde_switch/plugins/dump.c
+index 6132158dd..09d04e222 100644
+--- a/src/vde_switch/plugins/dump.c
++++ b/src/vde_switch/plugins/dump.c
+@@ -32,11 +32,10 @@ static struct dbgcl dl[]= {
+ static int dump(char *arg)
+ {
+ 	int active=atoi(arg);
+-	int rv;
+ 	if (active)
+-		rv=eventadd(testevent,"packet",dl);
++		eventadd(testevent,"packet",dl);
+ 	else
+-		rv=eventdel(testevent,"packet",dl);
++		eventdel(testevent,"packet",dl);
+ 	return 0;
+ }
+ 
+-- 
+2.35.0
+

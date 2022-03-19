@@ -1,0 +1,81 @@
+From ad3432988ab4c34c4f9e3929586e3900f4579686 Mon Sep 17 00:00:00 2001
+From: Daniele Lacamera <dan@danielinux.net>
+Date: Sun, 6 Oct 2019 13:04:44 +0200
+Subject: [PATCH 43/62] fixed a few more compiler warnings
+
+---
+ src/lib/libvdesnmp.c        |  4 +++-
+ src/vde_l3/vde_l3.c         | 12 ++++++------
+ src/vde_router/vde_router.c |  2 +-
+ 3 files changed, 10 insertions(+), 8 deletions(-)
+
+diff --git a/src/lib/libvdesnmp.c b/src/lib/libvdesnmp.c
+index 5cee51b53..33a08b622 100644
+--- a/src/lib/libvdesnmp.c
++++ b/src/lib/libvdesnmp.c
+@@ -261,7 +261,9 @@ int counters_parse(void){
+ 						PORTDOWN(curport-1);
+ 					} else if( strncmp(portstatus, "ACTIVE", 6) == 0 ){
+ 						PORTUP(curport-1);
+-						strncpy(pl->desc, portdesc, strlen(portdesc)-1);
++						/* Ensure string is null-terminated before strcopy */
++						portdesc[DESC_MAXLEN - 1] = (char)0;
++						strcpy(pl->desc, portdesc);
+ 					}
+ 
+ 					inpkts = inbytes = outpkts = outbytes = 0;
+diff --git a/src/vde_l3/vde_l3.c b/src/vde_l3/vde_l3.c
+index 128067cea..f97abd536 100644
+--- a/src/vde_l3/vde_l3.c
++++ b/src/vde_l3/vde_l3.c
+@@ -428,12 +428,12 @@ static void swap_macaddr(uint8_t addr1[], uint8_t addr2[])
+ /* 
+  * Swap src/dst ip addresses at given mem addresses
+  */
+-static void swap_ipaddr(uint32_t *addr1, uint32_t *addr2)
++static void swap_ipaddr(void *addr1, void *addr2)
+ {
+-	uint32_t tmp;
+-	memcpy(&tmp,addr1,4);
++	uint8_t tmp[sizeof(uint32_t)];
++	memcpy(tmp,addr1,4);
+ 	memcpy(addr1,addr2,4);
+-	memcpy(addr2,&tmp,4);
++	memcpy(addr2,tmp,4);
+ }
+ 
+ 
+@@ -535,7 +535,7 @@ size_t arp_reply(struct vde_iface *oif, struct vde_buff *vdb)
+ 	ah =(struct arp_header *)iphead(vdb);
+ 	ah->opcode = htons(ARP_REPLY);
+ 	swap_macaddr(ah->s_mac, ah->d_mac);
+-        memcpy(ah->s_mac, oif->mac,6);
++	memcpy(ah->s_mac, oif->mac,6);
+ 	swap_ipaddr(&(ah->s_addr), &(ah->d_addr));
+ 
+ 	return(raw_send(oif,vdb));
+@@ -1460,7 +1460,7 @@ int main(int argc, char *argv[])
+ 	i=0;
+ 	while (vif) {
+ 		pfd[i].fd = vde_datafd(vif->vdec);
+-     		pfd[i++].events=POLLIN | POLLHUP;
++		pfd[i++].events=POLLIN | POLLHUP;
+ 		vif = vif->next;
+ 	}
+ 	npfd = numif;
+diff --git a/src/vde_router/vde_router.c b/src/vde_router/vde_router.c
+index bcd3c3a80..df54bf71b 100644
+--- a/src/vde_router/vde_router.c
++++ b/src/vde_router/vde_router.c
+@@ -579,7 +579,7 @@ static void show_filter(int fd, struct vder_filter *filter)
+ 		snprintf(source, 10, "eth%d", filter->src_iface->interface_id);
+ 	}
+ 	if (filter->tos >= 0) {
+-		snprintf(tos, 10, "tos %d", filter->tos);
++		snprintf(tos, 10, "tos %3d", (uint8_t)filter->tos);
+ 	}
+ 	if (filter->proto > 0) {
+ 		proto_name(filter->proto, proto);
+-- 
+2.35.0
+

@@ -1,0 +1,97 @@
+From 3bf7d1d101c0764055d1763b554d7064f6aad080 Mon Sep 17 00:00:00 2001
+From: Akihiro Suda <akihiro.suda.cz@hco.ntt.co.jp>
+Date: Fri, 27 Aug 2021 14:27:21 +0900
+Subject: [PATCH 47/62] vde_switch: add `-nostdin` flag to allow stdin to be
+ closed
+
+Starting with commit 6d2dbf2 (Jan 15, 2014), vde_switch could no longer
+start up when stdin is closed:
+
+  $ vde_switch </dev/null
+  vde_switch: EOF on stdin, cleaning up and exiting
+
+This commit adds `-nostdin` flag to allow stdin to be closed.
+
+Required for running vde_switch with macOS launchd.
+
+Close issue 30
+
+Signed-off-by: Akihiro Suda <akihiro.suda.cz@hco.ntt.co.jp>
+---
+ man/vde_switch.1          |  3 +++
+ src/vde_switch/consmgmt.c | 10 ++++++++--
+ 2 files changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/man/vde_switch.1 b/man/vde_switch.1
+index 604fa065b..24c9080ff 100644
+--- a/man/vde_switch.1
++++ b/man/vde_switch.1
+@@ -84,6 +84,9 @@ Run as a daemon. Use syslog for logging.
+ rc file to set the initial switch configuration. This rc file has the same syntax of
+ the command line interface.
+ .TP
++.B \-nostdin
++Allow stdin to be closed.
++.TP
+ .B \-h 
+ help. Please use it for a more complete list of options.
+ vde_switch is a modular program, options vary depending of the compiled-in modules.
+diff --git a/src/vde_switch/consmgmt.c b/src/vde_switch/consmgmt.c
+index eb59d368a..1085b8623 100644
+--- a/src/vde_switch/consmgmt.c
++++ b/src/vde_switch/consmgmt.c
+@@ -47,6 +47,7 @@ static char *rcfile;
+ static char *pidfile = NULL;
+ static char pidfile_path[PATH_MAX];
+ static int daemonize = 0;
++static int nostdin = 0;
+ static unsigned int console_type=-1;
+ static unsigned int mgmt_ctl=-1;
+ static unsigned int mgmt_data=-1;
+@@ -495,6 +496,7 @@ static void cleanup(unsigned char type,int fd,void *private_data)
+ 
+ #define MGMTMODEARG 0x100
+ #define MGMTGROUPARG 0x101
++#define NOSTDINARG 0x102
+ 
+ static struct option long_options[] = {
+ 	{"daemon", 0, 0, 'd'},
+@@ -503,6 +505,7 @@ static struct option long_options[] = {
+ 	{"mgmt", 1, 0, 'M'},
+ 	{"mgmtmode", 1, 0, MGMTMODEARG},
+ 	{"mgmtgroup", 1, 0, MGMTGROUPARG},
++	{"nostdin", 0, 0, NOSTDINARG},
+ #ifdef DEBUGOPT
+ 	{"debugclients",1,0,'D'},
+ #endif
+@@ -520,6 +523,7 @@ static void usage(void)
+ 			"  -M, --mgmt SOCK            path of the management UNIX socket\n"
+ 			"      --mgmtmode MODE        management UNIX socket access mode (octal)\n"
+ 			"      --mgmtgroup GROUP      management UNIX socket group name\n"
++			"      --nostdin              Allow stdin to be closed\n"
+ #ifdef DEBUGOPT
+ 			"  -D, --debugclients #       number of debug clients allowed\n"
+ #endif
+@@ -554,7 +558,9 @@ static int parseopt(int c, char *optarg)
+ 			}
+ 			mgmt_group = grp->gr_gid;
+ 			break;
+-
++		case NOSTDINARG:
++			nostdin=1;
++			break;
+ 		default:
+ 			outc=c;
+ 	}
+@@ -570,7 +576,7 @@ static void init(void)
+ 	}
+ 	/* add stdin (if tty), connect and data fds to the set of fds we wait for
+ 	 *    * input */
+-	if(!daemonize)
++	if(!daemonize && !nostdin)
+ 	{
+ 		console_type=add_type(&swmi,0);
+ 		add_fd(0,console_type,NULL);
+-- 
+2.35.0
+

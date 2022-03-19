@@ -1,0 +1,5871 @@
+From 72f0bd946aa6be2c0a7ce8710735b2982be3256a Mon Sep 17 00:00:00 2001
+From: Daniele Lacamera <danielinux@users.noreply.github.com>
+Date: Mon, 30 Jan 2012 13:09:09 +0000
+Subject: [PATCH 05/62] Merged from branch vde-router (r520:r541)
+
+Introducing the "vde_router" component.
+---
+ configure.ac                   |   27 +-
+ man/Makefile.am                |    2 +-
+ man/vde_router.1               |   61 ++
+ src/Makefile.am                |    4 +
+ src/vde_router/Makefile.am     |   19 +
+ src/vde_router/rbtree.c        |  451 ++++++++++
+ src/vde_router/rbtree.h        |  188 ++++
+ src/vde_router/vde_headers.h   |   96 ++
+ src/vde_router/vde_router.c    | 1510 ++++++++++++++++++++++++++++++++
+ src/vde_router/vde_router.h    |  168 ++++
+ src/vde_router/vder_arp.c      |  190 ++++
+ src/vde_router/vder_arp.h      |   33 +
+ src/vde_router/vder_datalink.c |  612 +++++++++++++
+ src/vde_router/vder_datalink.h |   74 ++
+ src/vde_router/vder_dhcp.c     |  468 ++++++++++
+ src/vde_router/vder_dhcp.h     |  110 +++
+ src/vde_router/vder_icmp.c     |   86 ++
+ src/vde_router/vder_icmp.h     |   13 +
+ src/vde_router/vder_olsr.c     |  726 +++++++++++++++
+ src/vde_router/vder_olsr.h     |   71 ++
+ src/vde_router/vder_packet.c   |  223 +++++
+ src/vde_router/vder_packet.h   |   17 +
+ src/vde_router/vder_queue.c    |  202 +++++
+ src/vde_router/vder_queue.h    |   31 +
+ src/vde_router/vder_udp.c      |  187 ++++
+ src/vde_router/vder_udp.h      |   34 +
+ 26 files changed, 5601 insertions(+), 2 deletions(-)
+ create mode 100644 man/vde_router.1
+ create mode 100644 src/vde_router/Makefile.am
+ create mode 100644 src/vde_router/rbtree.c
+ create mode 100644 src/vde_router/rbtree.h
+ create mode 100644 src/vde_router/vde_headers.h
+ create mode 100644 src/vde_router/vde_router.c
+ create mode 100644 src/vde_router/vde_router.h
+ create mode 100644 src/vde_router/vder_arp.c
+ create mode 100644 src/vde_router/vder_arp.h
+ create mode 100644 src/vde_router/vder_datalink.c
+ create mode 100644 src/vde_router/vder_datalink.h
+ create mode 100644 src/vde_router/vder_dhcp.c
+ create mode 100644 src/vde_router/vder_dhcp.h
+ create mode 100644 src/vde_router/vder_icmp.c
+ create mode 100644 src/vde_router/vder_icmp.h
+ create mode 100644 src/vde_router/vder_olsr.c
+ create mode 100644 src/vde_router/vder_olsr.h
+ create mode 100644 src/vde_router/vder_packet.c
+ create mode 100644 src/vde_router/vder_packet.h
+ create mode 100644 src/vde_router/vder_queue.c
+ create mode 100644 src/vde_router/vder_queue.h
+ create mode 100644 src/vde_router/vder_udp.c
+ create mode 100644 src/vde_router/vder_udp.h
+
+diff --git a/configure.ac b/configure.ac
+index ced1fc3eb..56f3dd16d 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -1,4 +1,4 @@
+-#                                               -*- Autoconf -*-
++#                                               -*- Autoconf -*-/
+ # Process this file with autoconf to produce a configure script.
+ 
+ AC_PREREQ(2.59)
+@@ -25,6 +25,9 @@ AC_CHECK_LIB([dl], [dlopen])
+ AC_CHECK_LIB([crypto], [EVP_EncryptInit],
+   [add_cryptcab_support=yes],
+   [add_cryptcab_support=no ; warn_cryptcab=yes])
++AC_CHECK_LIB([pthread], [pthread_create],
++  [enable_router=yes],
++  [enable_router=no ; warn_router=yes])
+ AC_CHECK_LIB([pcap], [pcap_open_dead],
+   [add_pcap=yes],
+   [add_pcap=no ; warn_pcap=yes])
+@@ -124,6 +127,12 @@ AC_ARG_ENABLE([cryptcab],
+     [Disable libcrypto-dependend vde_cryptcab compilation]),
+   [if test $enableval = "no" ; then add_cryptcab_support=no ; warn_cryptcab=no ; fi])
+ 
++# Disable vde_router? (depends on lpthread, maybe unwanted)
++AC_ARG_ENABLE([router],
++  AS_HELP_STRING([--disable-router],
++    [Disable libpthread-dependent vde_router compilation]),
++  [if test $enableval = "no" ; then enable_router=no ; warn_router=no ; fi])
++
+ # Check of tuntap device
+ AC_ARG_ENABLE([tuntap],
+   AS_HELP_STRING([--disable-tuntap], [Disable tuntap compilation]), [:],
+@@ -212,6 +221,7 @@ fi
+ 
+ 
+ AM_CONDITIONAL(ENABLE_CRYPTCAB, test "$add_cryptcab_support" = yes)
++AM_CONDITIONAL(ENABLE_ROUTER, test "$enable_router" = yes)
+ AM_CONDITIONAL(ENABLE_PYTHON, test "$enable_python" = yes)
+ AM_CONDITIONAL(ENABLE_PCAP, test "$add_pcap" = yes)
+ AM_CONDITIONAL(CAN_MAKE_LIBVDETAP, test "$can_make_libvdetap" = yes)
+@@ -244,6 +254,7 @@ AC_CONFIG_FILES(
+   [src/vdetaplib/Makefile]
+   [src/vde_l3/Makefile]
+   [src/vde_cryptcab/Makefile]
++  [src/vde_router/Makefile]
+   [src/slirpvde/Makefile]
+   [src/vde_switch/plugins/Makefile]
+ )
+@@ -260,6 +271,12 @@ else
+   AS_ECHO " - VDE CryptCab............ disabled"
+ fi
+ 
++if test x$enable_router = "xyes" ; then
++  AS_ECHO " + VDE Router.............. enabled"
++else
++  AS_ECHO " - VDE Router.............. disabled"
++fi
++
+ if test x$enable_python = "xyes" ; then
+   AS_ECHO " + Python Libraries........ enabled"
+ else
+@@ -307,6 +324,14 @@ Please install them if you want CryptCab to be compiled and installed.])
+   fi
+ fi
+ 
++if ! test x$enable_router = "xyes" ; then
++  if test x$warn_router = "xyes" ; then
++    AC_MSG_WARN([VDE Router support has been disabled because libpthread is
++not installed on your system.])
++    AS_ECHO
++  fi
++fi
++
+ if ! test x$enable_python = "xyes" ; then
+     AC_MSG_WARN([Python libraries support has been disabled because python is
+ not installed on your system, or because it could not be found. Please install
+diff --git a/man/Makefile.am b/man/Makefile.am
+index 490a1593d..3c1000098 100644
+--- a/man/Makefile.am
++++ b/man/Makefile.am
+@@ -1,4 +1,4 @@
+-static_mans = dpipe.1 slirpvde.1 unixterm.1 vde_plug.1 vdeq.1 vde_switch.1 wirefilter.1 vde_cryptcab.1 vde_plug2tap.1 vde_over_ns.1 vde_l3.1 vde_tunctl.8 vde_autolink.1 unixcmd.1 vdeterm.1
++static_mans = dpipe.1 slirpvde.1 unixterm.1 vde_plug.1 vdeq.1 vde_switch.1 wirefilter.1 vde_cryptcab.1 vde_plug2tap.1 vde_over_ns.1 vde_l3.1 vde_tunctl.8 vde_autolink.1 unixcmd.1 vdeterm.1 vde_router.1
+ if ENABLE_PCAP
+   static_mans += vde_pcapplug.1
+ endif
+diff --git a/man/vde_router.1 b/man/vde_router.1
+new file mode 100644
+index 000000000..82b9a7f63
+--- /dev/null
++++ b/man/vde_router.1
+@@ -0,0 +1,61 @@
++.TH VDE_ROUTER 1 "December 16, 2011" "Virtual Distributed Ethernet"
++.SH NAME
++vde_router \- Virtual Distributed Ethernet Router.
++.SH SYNOPSIS
++.B vde_router
++\fB\-c\fI configfile\fR
++[\fB\-d\fI]
++[\fB\-M\fI mgmt_socket\fR]
++[\fB\-m\fI mgmt_mode\fR]
++[\fB\-p\fI pidfile\fR]
++.br
++.SH DESCRIPTION
++A
++\fBvde_router\fP 
++
++
++
++.SH OPTIONS
++.TP
++.B -d
++Daemonize the process and put in background.
++
++.TP
++.B -r \fIconfigfile\fR
++Parse configuration parameters from \fBconfigfile\fP at startup
++
++
++.TP
++.B -M \fImgmt_socket
++the unix socket where the parameters (interfaces addresses, routes, etc.) can be checked and
++changed runtime. \fBunixterm\fP(1) can be used as a remote terminal for wirefilter.
++
++.TP
++.B -m \fImgmt_mode
++Specify the permission for the access to \fBmgmt_socket\fP
++
++.TP
++.B -p \fIpidfile
++Save the process id to \fBpidfile\fP
++
++
++.SH NOTICE
++Virtual Distributed Ethernet is not related in any way with
++www.vde.com ("Verband der Elektrotechnik, Elektronik und Informationstechnik"
++i.e. the German "Association for Electrical, Electronic & Information
++Technologies").
++
++.SH SEE ALSO
++\fBvde_switch\fP(1),
++\fBvdeq\fP(1),
++\fBunixterm\fP(1),
++\fBvde_cryptcab\fP(1),
++\fBwirefilter\fP(1).
++.br
++.SH AUTHORS
++VDE_ROUTER is a tool by Daniele Lacamera <root@danielinux.net>
++
++VDE is a project by Renzo Davoli <renzo@cs.unibo.it>
++
++Red-Black Tree used to implement ARP tables is a free port to userspace from the Linux kernel, by Andrea Arcangeli and David Woodhouse. 
++
+diff --git a/src/Makefile.am b/src/Makefile.am
+index 0c02021aa..49f8b7879 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -31,6 +31,10 @@ if ENABLE_CRYPTCAB
+   SUBDIRS += vde_cryptcab
+ endif
+ 
++if ENABLE_ROUTER
++  SUBDIRS += vde_router
++endif
++
+ if ENABLE_KERNEL_SWITCH
+   SUBDIRS += kvde_switch
+ endif
+diff --git a/src/vde_router/Makefile.am b/src/vde_router/Makefile.am
+new file mode 100644
+index 000000000..c544ca339
+--- /dev/null
++++ b/src/vde_router/Makefile.am
+@@ -0,0 +1,19 @@
++
++moddir = $(pkglibdir)/vde_router
++
++AM_LDFLAGS = -module -avoid-version -export-dynamic
++AM_LIBTOOLFLAGS = --tag=disable-static
++AM_CPPFLAGS = -I$(top_srcdir)/include
++
++if ENABLE_PROFILE
++  AM_CFLAGS = -pg --coverage
++  AM_LDFLAGS += -pg --coverage
++endif
++
++bin_PROGRAMS = vde_router
++vde_router_SOURCES = rbtree.h  vde_headers.h  vder_arp.h  vder_datalink.h  vder_icmp.h \
++    vde_router.h  vder_packet.h	vder_queue.h rbtree.c  vder_arp.c  vder_datalink.c \
++    vder_icmp.c  vde_router.c  vder_packet.c  vder_queue.c vder_udp.c vder_dhcp.c \
++	vder_olsr.c
++
++vde_router_LDADD = $(top_builddir)/src/common/libvdecommon.la $(top_builddir)/src/lib/libvdeplug.la -lpthread
+diff --git a/src/vde_router/rbtree.c b/src/vde_router/rbtree.c
+new file mode 100644
+index 000000000..130adbec6
+--- /dev/null
++++ b/src/vde_router/rbtree.c
+@@ -0,0 +1,451 @@
++/*
++  Red Black Trees
++  (C) 1999  Andrea Arcangeli <andrea@suse.de>
++  (C) 2002  David Woodhouse <dwmw2@infradead.org>
++  
++  This program is free software; you can redistribute it and/or modify
++  it under the terms of the GNU General Public License as published by
++  the Free Software Foundation; either version 2 of the License, or
++  (at your option) any later version.
++
++  This program is distributed in the hope that it will be useful,
++  but WITHOUT ANY WARRANTY; without even the implied warranty of
++  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++  GNU General Public License for more details.
++
++  You should have received a copy of the GNU General Public License
++  along with this program; if not, write to the Free Software
++  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++
++  linux/lib/rbtree.c
++*/
++
++#include "rbtree.h"
++
++static void __rb_rotate_left(struct rb_node *node, struct rb_root *root)
++{
++	struct rb_node *right = node->rb_right;
++	struct rb_node *parent = rb_parent(node);
++
++	if ((node->rb_right = right->rb_left))
++		rb_set_parent(right->rb_left, node);
++	right->rb_left = node;
++
++	rb_set_parent(right, parent);
++
++	if (parent)
++	{
++		if (node == parent->rb_left)
++			parent->rb_left = right;
++		else
++			parent->rb_right = right;
++	}
++	else
++		root->rb_node = right;
++	rb_set_parent(node, right);
++}
++
++static void __rb_rotate_right(struct rb_node *node, struct rb_root *root)
++{
++	struct rb_node *left = node->rb_left;
++	struct rb_node *parent = rb_parent(node);
++
++	if ((node->rb_left = left->rb_right))
++		rb_set_parent(left->rb_right, node);
++	left->rb_right = node;
++
++	rb_set_parent(left, parent);
++
++	if (parent)
++	{
++		if (node == parent->rb_right)
++			parent->rb_right = left;
++		else
++			parent->rb_left = left;
++	}
++	else
++		root->rb_node = left;
++	rb_set_parent(node, left);
++}
++
++void rb_insert_color(struct rb_node *node, struct rb_root *root)
++{
++	struct rb_node *parent, *gparent;
++
++	while ((parent = rb_parent(node)) && rb_is_red(parent))
++	{
++		gparent = rb_parent(parent);
++
++		if (parent == gparent->rb_left)
++		{
++			{
++				register struct rb_node *uncle = gparent->rb_right;
++				if (uncle && rb_is_red(uncle))
++				{
++					rb_set_black(uncle);
++					rb_set_black(parent);
++					rb_set_red(gparent);
++					node = gparent;
++					continue;
++				}
++			}
++
++			if (parent->rb_right == node)
++			{
++				register struct rb_node *tmp;
++				__rb_rotate_left(parent, root);
++				tmp = parent;
++				parent = node;
++				node = tmp;
++			}
++
++			rb_set_black(parent);
++			rb_set_red(gparent);
++			__rb_rotate_right(gparent, root);
++		} else {
++			{
++				register struct rb_node *uncle = gparent->rb_left;
++				if (uncle && rb_is_red(uncle))
++				{
++					rb_set_black(uncle);
++					rb_set_black(parent);
++					rb_set_red(gparent);
++					node = gparent;
++					continue;
++				}
++			}
++
++			if (parent->rb_left == node)
++			{
++				register struct rb_node *tmp;
++				__rb_rotate_right(parent, root);
++				tmp = parent;
++				parent = node;
++				node = tmp;
++			}
++
++			rb_set_black(parent);
++			rb_set_red(gparent);
++			__rb_rotate_left(gparent, root);
++		}
++	}
++
++	rb_set_black(root->rb_node);
++}
++
++static void __rb_erase_color(struct rb_node *node, struct rb_node *parent,
++			     struct rb_root *root)
++{
++	struct rb_node *other;
++
++	while ((!node || rb_is_black(node)) && node != root->rb_node)
++	{
++		if (parent->rb_left == node)
++		{
++			other = parent->rb_right;
++			if (rb_is_red(other))
++			{
++				rb_set_black(other);
++				rb_set_red(parent);
++				__rb_rotate_left(parent, root);
++				other = parent->rb_right;
++			}
++			if ((!other->rb_left || rb_is_black(other->rb_left)) &&
++			    (!other->rb_right || rb_is_black(other->rb_right)))
++			{
++				rb_set_red(other);
++				node = parent;
++				parent = rb_parent(node);
++			}
++			else
++			{
++				if (!other->rb_right || rb_is_black(other->rb_right))
++				{
++					rb_set_black(other->rb_left);
++					rb_set_red(other);
++					__rb_rotate_right(other, root);
++					other = parent->rb_right;
++				}
++				rb_set_color(other, rb_color(parent));
++				rb_set_black(parent);
++				rb_set_black(other->rb_right);
++				__rb_rotate_left(parent, root);
++				node = root->rb_node;
++				break;
++			}
++		}
++		else
++		{
++			other = parent->rb_left;
++			if (rb_is_red(other))
++			{
++				rb_set_black(other);
++				rb_set_red(parent);
++				__rb_rotate_right(parent, root);
++				other = parent->rb_left;
++			}
++			if ((!other->rb_left || rb_is_black(other->rb_left)) &&
++			    (!other->rb_right || rb_is_black(other->rb_right)))
++			{
++				rb_set_red(other);
++				node = parent;
++				parent = rb_parent(node);
++			}
++			else
++			{
++				if (!other->rb_left || rb_is_black(other->rb_left))
++				{
++					rb_set_black(other->rb_right);
++					rb_set_red(other);
++					__rb_rotate_left(other, root);
++					other = parent->rb_left;
++				}
++				rb_set_color(other, rb_color(parent));
++				rb_set_black(parent);
++				rb_set_black(other->rb_left);
++				__rb_rotate_right(parent, root);
++				node = root->rb_node;
++				break;
++			}
++		}
++	}
++	if (node)
++		rb_set_black(node);
++}
++
++void rb_erase(struct rb_node *node, struct rb_root *root)
++{
++	struct rb_node *child, *parent;
++	int color;
++
++	if (!node->rb_left)
++		child = node->rb_right;
++	else if (!node->rb_right)
++		child = node->rb_left;
++	else
++	{
++		struct rb_node *old = node, *left;
++
++		node = node->rb_right;
++		while ((left = node->rb_left) != NULL)
++			node = left;
++
++		if (rb_parent(old)) {
++			if (rb_parent(old)->rb_left == old)
++				rb_parent(old)->rb_left = node;
++			else
++				rb_parent(old)->rb_right = node;
++		} else
++			root->rb_node = node;
++
++		child = node->rb_right;
++		parent = rb_parent(node);
++		color = rb_color(node);
++
++		if (parent == old) {
++			parent = node;
++		} else {
++			if (child)
++				rb_set_parent(child, parent);
++			parent->rb_left = child;
++
++			node->rb_right = old->rb_right;
++			rb_set_parent(old->rb_right, node);
++		}
++
++		node->rb_parent_color = old->rb_parent_color;
++		node->rb_left = old->rb_left;
++		rb_set_parent(old->rb_left, node);
++
++		goto color;
++	}
++
++	parent = rb_parent(node);
++	color = rb_color(node);
++
++	if (child)
++		rb_set_parent(child, parent);
++	if (parent)
++	{
++		if (parent->rb_left == node)
++			parent->rb_left = child;
++		else
++			parent->rb_right = child;
++	}
++	else
++		root->rb_node = child;
++
++ color:
++	if (color == RB_BLACK)
++		__rb_erase_color(child, parent, root);
++}
++
++static void rb_augment_path(struct rb_node *node, rb_augment_f func, void *data)
++{
++	struct rb_node *parent;
++
++up:
++	func(node, data);
++	parent = rb_parent(node);
++	if (!parent)
++		return;
++
++	if (node == parent->rb_left && parent->rb_right)
++		func(parent->rb_right, data);
++	else if (parent->rb_left)
++		func(parent->rb_left, data);
++
++	node = parent;
++	goto up;
++}
++
++/*
++ * after inserting @node into the tree, update the tree to account for
++ * both the new entry and any damage done by rebalance
++ */
++void rb_augment_insert(struct rb_node *node, rb_augment_f func, void *data)
++{
++	if (node->rb_left)
++		node = node->rb_left;
++	else if (node->rb_right)
++		node = node->rb_right;
++
++	rb_augment_path(node, func, data);
++}
++
++/*
++ * before removing the node, find the deepest node on the rebalance path
++ * that will still be there after @node gets removed
++ */
++struct rb_node *rb_augment_erase_begin(struct rb_node *node)
++{
++	struct rb_node *deepest;
++
++	if (!node->rb_right && !node->rb_left)
++		deepest = rb_parent(node);
++	else if (!node->rb_right)
++		deepest = node->rb_left;
++	else if (!node->rb_left)
++		deepest = node->rb_right;
++	else {
++		deepest = rb_next(node);
++		if (deepest->rb_right)
++			deepest = deepest->rb_right;
++		else if (rb_parent(deepest) != node)
++			deepest = rb_parent(deepest);
++	}
++
++	return deepest;
++}
++
++/*
++ * after removal, update the tree to account for the removed entry
++ * and any rebalance damage.
++ */
++void rb_augment_erase_end(struct rb_node *node, rb_augment_f func, void *data)
++{
++	if (node)
++		rb_augment_path(node, func, data);
++}
++
++/*
++ * This function returns the first node (in sort order) of the tree.
++ */
++struct rb_node *rb_first(const struct rb_root *root)
++{
++	struct rb_node	*n;
++
++	n = root->rb_node;
++	if (!n)
++		return NULL;
++	while (n->rb_left)
++		n = n->rb_left;
++	return n;
++}
++
++struct rb_node *rb_last(const struct rb_root *root)
++{
++	struct rb_node	*n;
++
++	n = root->rb_node;
++	if (!n)
++		return NULL;
++	while (n->rb_right)
++		n = n->rb_right;
++	return n;
++}
++
++struct rb_node *rb_next(const struct rb_node *node)
++{
++	struct rb_node *parent;
++
++	if (rb_parent(node) == node)
++		return NULL;
++
++	/* If we have a right-hand child, go down and then left as far
++	   as we can. */
++	if (node->rb_right) {
++		node = node->rb_right; 
++		while (node->rb_left)
++			node=node->rb_left;
++		return (struct rb_node *)node;
++	}
++
++	/* No right-hand children.  Everything down and left is
++	   smaller than us, so any 'next' node must be in the general
++	   direction of our parent. Go up the tree; any time the
++	   ancestor is a right-hand child of its parent, keep going
++	   up. First time it's a left-hand child of its parent, said
++	   parent is our 'next' node. */
++	while ((parent = rb_parent(node)) && node == parent->rb_right)
++		node = parent;
++
++	return parent;
++}
++
++struct rb_node *rb_prev(const struct rb_node *node)
++{
++	struct rb_node *parent;
++
++	if (rb_parent(node) == node)
++		return NULL;
++
++	/* If we have a left-hand child, go down and then right as far
++	   as we can. */
++	if (node->rb_left) {
++		node = node->rb_left; 
++		while (node->rb_right)
++			node=node->rb_right;
++		return (struct rb_node *)node;
++	}
++
++	/* No left-hand children. Go up till we find an ancestor which
++	   is a right-hand child of its parent */
++	while ((parent = rb_parent(node)) && node == parent->rb_left)
++		node = parent;
++
++	return parent;
++}
++
++void rb_replace_node(struct rb_node *victim, struct rb_node *new,
++		     struct rb_root *root)
++{
++	struct rb_node *parent = rb_parent(victim);
++
++	/* Set the surrounding nodes to point to the replacement */
++	if (parent) {
++		if (victim == parent->rb_left)
++			parent->rb_left = new;
++		else
++			parent->rb_right = new;
++	} else {
++		root->rb_node = new;
++	}
++	if (victim->rb_left)
++		rb_set_parent(victim->rb_left, new);
++	if (victim->rb_right)
++		rb_set_parent(victim->rb_right, new);
++
++	/* Copy the pointers/colour from the victim to the replacement */
++	*new = *victim;
++}
+diff --git a/src/vde_router/rbtree.h b/src/vde_router/rbtree.h
+new file mode 100644
+index 000000000..27d0dc24b
+--- /dev/null
++++ b/src/vde_router/rbtree.h
+@@ -0,0 +1,188 @@
++/*
++  Red Black Trees
++  (C) 1999  Andrea Arcangeli <andrea@suse.de>
++  
++  This program is free software; you can redistribute it and/or modify
++  it under the terms of the GNU General Public License as published by
++  the Free Software Foundation; either version 2 of the License, or
++  (at your option) any later version.
++
++  This program is distributed in the hope that it will be useful,
++  but WITHOUT ANY WARRANTY; without even the implied warranty of
++  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++  GNU General Public License for more details.
++
++  You should have received a copy of the GNU General Public License
++  along with this program; if not, write to the Free Software
++  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++
++  linux/include/linux/rbtree.h
++
++  To use rbtrees you'll have to implement your own insert and search cores.
++  This will avoid us to use callbacks and to drop drammatically performances.
++  I know it's not the cleaner way,  but in C (not in C++) to get
++  performances and genericity...
++
++  Some example of insert and search follows here. The search is a plain
++  normal search over an ordered tree. The insert instead must be implemented
++  in two steps: First, the code must insert the element in order as a red leaf
++  in the tree, and then the support library function rb_insert_color() must
++  be called. Such function will do the not trivial work to rebalance the
++  rbtree, if necessary.
++
++-----------------------------------------------------------------------
++static inline struct page * rb_search_page_cache(struct inode * inode,
++						 unsigned long offset)
++{
++	struct rb_node * n = inode->i_rb_page_cache.rb_node;
++	struct page * page;
++
++	while (n)
++	{
++		page = rb_entry(n, struct page, rb_page_cache);
++
++		if (offset < page->offset)
++			n = n->rb_left;
++		else if (offset > page->offset)
++			n = n->rb_right;
++		else
++			return page;
++	}
++	return NULL;
++}
++
++static inline struct page * __rb_insert_page_cache(struct inode * inode,
++						   unsigned long offset,
++						   struct rb_node * node)
++{
++	struct rb_node ** p = &inode->i_rb_page_cache.rb_node;
++	struct rb_node * parent = NULL;
++	struct page * page;
++
++	while (*p)
++	{
++		parent = *p;
++		page = rb_entry(parent, struct page, rb_page_cache);
++
++		if (offset < page->offset)
++			p = &(*p)->rb_left;
++		else if (offset > page->offset)
++			p = &(*p)->rb_right;
++		else
++			return page;
++	}
++
++	rb_link_node(node, parent, p);
++
++	return NULL;
++}
++
++static inline struct page * rb_insert_page_cache(struct inode * inode,
++						 unsigned long offset,
++						 struct rb_node * node)
++{
++	struct page * ret;
++	if ((ret = __rb_insert_page_cache(inode, offset, node)))
++		goto out;
++	rb_insert_color(node, &inode->i_rb_page_cache);
++ out:
++	return ret;
++}
++-----------------------------------------------------------------------
++*/
++
++#ifndef	_RBTREE_H
++#define	_RBTREE_H
++
++#include <stddef.h>
++
++/** 
++ * container_of - cast a member of a structure out to the containing structure
++ * @ptr:    the pointer to the member.
++ * @type:   the type of the container struct this is embedded in.
++ * @member: the name of the member within the struct.
++ *  
++ */
++#define container_of(ptr, type, member) ({          \
++        const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
++        (type *)( (char *)__mptr - offsetof(type,member) );})
++
++
++struct rb_node
++{
++	unsigned long  rb_parent_color;
++#define	RB_RED		0
++#define	RB_BLACK	1
++	struct rb_node *rb_right;
++	struct rb_node *rb_left;
++} __attribute__((aligned(sizeof(long))));
++    /* The alignment might seem pointless, but allegedly CRIS needs it */
++
++struct rb_root
++{
++	struct rb_node *rb_node;
++};
++
++
++#define rb_parent(r)   ((struct rb_node *)((r)->rb_parent_color & ~3))
++#define rb_color(r)   ((r)->rb_parent_color & 1)
++#define rb_is_red(r)   (!rb_color(r))
++#define rb_is_black(r) rb_color(r)
++#define rb_set_red(r)  do { (r)->rb_parent_color &= ~1; } while (0)
++#define rb_set_black(r)  do { (r)->rb_parent_color |= 1; } while (0)
++
++static inline void rb_set_parent(struct rb_node *rb, struct rb_node *p)
++{
++	rb->rb_parent_color = (rb->rb_parent_color & 3) | (unsigned long)p;
++}
++static inline void rb_set_color(struct rb_node *rb, int color)
++{
++	rb->rb_parent_color = (rb->rb_parent_color & ~1) | color;
++}
++
++#define RB_ROOT	(struct rb_root) { NULL, }
++#define	rb_entry(ptr, type, member) container_of(ptr, type, member)
++
++#define RB_EMPTY_ROOT(root)	((root)->rb_node == NULL)
++#define RB_EMPTY_NODE(node)	(rb_parent(node) == node)
++#define RB_CLEAR_NODE(node)	(rb_set_parent(node, node))
++
++static inline void rb_init_node(struct rb_node *rb)
++{
++	rb->rb_parent_color = 0;
++	rb->rb_right = NULL;
++	rb->rb_left = NULL;
++	RB_CLEAR_NODE(rb);
++}
++
++extern void rb_insert_color(struct rb_node *, struct rb_root *);
++extern void rb_erase(struct rb_node *, struct rb_root *);
++
++typedef void (*rb_augment_f)(struct rb_node *node, void *data);
++
++extern void rb_augment_insert(struct rb_node *node,
++			      rb_augment_f func, void *data);
++extern struct rb_node *rb_augment_erase_begin(struct rb_node *node);
++extern void rb_augment_erase_end(struct rb_node *node,
++				 rb_augment_f func, void *data);
++
++/* Find logical next and previous nodes in a tree */
++extern struct rb_node *rb_next(const struct rb_node *);
++extern struct rb_node *rb_prev(const struct rb_node *);
++extern struct rb_node *rb_first(const struct rb_root *);
++extern struct rb_node *rb_last(const struct rb_root *);
++
++/* Fast replacement of a single node without remove/rebalance/add/rebalance */
++extern void rb_replace_node(struct rb_node *victim, struct rb_node *new, 
++			    struct rb_root *root);
++
++static inline void rb_link_node(struct rb_node * node, struct rb_node * parent,
++				struct rb_node ** rb_link)
++{
++	node->rb_parent_color = (unsigned long )parent;
++	node->rb_left = node->rb_right = NULL;
++
++	*rb_link = node;
++}
++
++#endif	/* _RBTREE_H */
+diff --git a/src/vde_router/vde_headers.h b/src/vde_router/vde_headers.h
+new file mode 100644
+index 000000000..21cd87012
+--- /dev/null
++++ b/src/vde_router/vde_headers.h
+@@ -0,0 +1,96 @@
++/* VDE_ROUTER (C) 2007:2011 Daniele Lacamera
++ *
++ * Licensed under the GPLv2
++ *
++ */
++
++#ifndef __VDE_BUFF_H
++#define __VDE_BUFF_H
++#include <stdint.h>
++
++#include <sys/types.h>
++#include <netinet/in.h>
++#include <netinet/in_systm.h>
++#include <netinet/ip.h>
++#include <netinet/ip_icmp.h>
++
++
++#define PTYPE_IP 0x0800
++#define PTYPE_ARP 0x0806
++
++#define PROTO_ICMP 1
++#define PROTO_TCP 6
++#define PROTO_UDP 17
++
++#if defined(VDE_FREEBSD) || defined(VDE_DARWIN)
++struct iphdr
++{
++#if BYTE_ORDER == LITTLE_ENDIAN
++	unsigned int ihl:4;
++	unsigned int version:4;
++#elif BYTE_ORDER == BIG_ENDIAN
++	unsigned int version:4;
++	unsigned int ihl:4;
++#endif
++	u_int8_t tos;
++	u_int16_t tot_len;
++	u_int16_t id;
++	u_int16_t frag_off;
++	u_int8_t ttl;
++	u_int8_t protocol;
++	u_int16_t check;
++	u_int32_t saddr;
++	u_int32_t daddr;
++	/*The options start here. */
++};
++#endif
++
++struct 
++__attribute__ ((__packed__)) 
++vde_ethernet_header
++{
++	uint8_t dst[6];
++	uint8_t src[6];
++	uint16_t buftype;
++};
++
++
++
++/* Arp */
++#define ARP_REQUEST 1
++#define ARP_REPLY 2
++
++#define ETHERNET_ADDRESS_SIZE 6
++#define IP_ADDRESS_SIZE 4
++
++#define ETH_BCAST (unsigned char *)"\xFF\xFF\xFF\xFF\xFF\xFF" 
++#define HTYPE_ETH 1
++
++struct
++__attribute__ ((__packed__)) 
++vde_arp_header
++{
++	uint16_t htype;
++	uint16_t ptype;
++	uint8_t hsize;
++	uint8_t	psize;
++	uint16_t opcode;
++	uint8_t s_mac[6];
++	uint32_t s_addr;
++	uint8_t d_mac[6];
++	uint32_t d_addr;	
++};
++
++#define ethhead(vb) ((struct vde_ethernet_header *)(vb->data))
++#define is_arp(vb) ( ((ethhead(vb))->buftype) == PTYPE_ARP )
++#define is_ip(vb) ( ((ethhead(vb))->buftype) == PTYPE_IP )
++#define is_bcast(vb) ( strncmp((ethhead(vb))->dst, ETH_BCAST) == 0)
++#define check_destination(vb,mac) ( strncmp((ethhead(vb))->dst, mac) == 0)
++
++#define iphead(vb) ((struct iphdr *)(vb->data + 14))
++#define udp_pseudohead(vb) ((uint8_t *)(vb->data + 14 + sizeof(struct iphdr) - (2 * sizeof(uint32_t))))
++#define footprint(vb) ((uint8_t *)(vb->data + 14))
++#define arphead(vb) ((struct vde_arp_header *)(vb->data + 14))
++#define payload(vb) ((uint8_t *)(vb->data + 14 + sizeof(struct iphdr)))
++
++#endif
+diff --git a/src/vde_router/vde_router.c b/src/vde_router/vde_router.c
+new file mode 100644
+index 000000000..236923f9e
+--- /dev/null
++++ b/src/vde_router/vde_router.c
+@@ -0,0 +1,1510 @@
++/* VDE_ROUTER (C) 2007:2011 Daniele Lacamera
++ *
++ * Licensed under the GPLv2
++ *
++ * Description: this module is just a frontend for command line,
++ * configuration, etc.
++ *
++ * For the router engine see vder_datalink.c
++ */
++#include "vder_olsr.h"
++#include "vder_datalink.h"
++#include "vde_router.h"
++#include "vder_queue.h"
++#include "vder_packet.h"
++#include "vder_dhcp.h"
++#include <stdlib.h>
++#include <unistd.h>
++#include <stdio.h>
++#include <stdarg.h>
++#include <fcntl.h>
++#include <sys/poll.h>
++#include <string.h>
++#include <errno.h>
++#include <sys/socket.h>
++#include <sys/un.h>
++#include <sys/stat.h>
++#include <netinet/in.h>
++#include <arpa/inet.h>
++#include <getopt.h>
++#include <libgen.h>
++
++
++static char *mgmt;
++static int mgmtmode=0700;
++static char *progname;
++#define MAXCMD 128
++
++#define match_input(c, i) ((strncmp(c, i, strlen(c)) == 0) && (strlen(c) == strlen(i)))
++
++extern struct vde_router Router;
++
++static char header[]="\nVDE Router  \n(C) D.Lacamera 2011 - GPLv2\n";
++static char prompt[]="\nVDE-Router$ ";
++
++static void printoutc(int fd, const char *format, ...)
++{
++	va_list arg;
++	char outbuf[MAXCMD+1];
++
++	va_start (arg, format);
++	vsnprintf(outbuf,MAXCMD,format,arg);
++	strcat(outbuf,"\n");
++	write(fd,outbuf,strlen(outbuf));
++}
++static int help(int fd,char *s)
++{
++	char *nextargs = NULL, *arg;
++	arg = strtok_r(s, " ", &nextargs);
++	if(!arg) {
++		/* No arguments */
++		printoutc(fd, "COMMAND      HELP");
++		printoutc(fd, "------------ ------------");
++		printoutc(fd, "help         print a summary of mgmt commands. Use \"help <command>\" for details.");
++		printoutc(fd, "connect      create a new interface connect it to vde socket");
++		printoutc(fd, "ifconfig     show/change interface addresses configuration");
++		printoutc(fd, "dhcpd	    start/stop dhcp server on a specific interface");
++		printoutc(fd, "olsr 	    start/stop OLSR");
++		printoutc(fd, "route        show/change routing table");
++		printoutc(fd, "arp			show neighbors ip/mac associations");
++		printoutc(fd, "queue        show/change outgoing frames queues");
++		printoutc(fd, "ipfilter     show/change ip filtering configuration");
++		printoutc(fd, "stats        print interface statistics");
++		printoutc(fd, "logout       close current management session");
++		printoutc(fd, "shutdown     turn the router off");
++		return 0;
++	} else if (match_input("help",arg)) {
++		printoutc(fd, "help         print a summary of mgmt commands.");
++		printoutc(fd, "Use \"help <command>\" for details.");
++		return 0;
++	} else if (match_input("connect",arg)) {
++		printoutc(fd, "Syntax:");
++		printoutc(fd, "\tconnect <vde_sock_path> [<macaddress>]");
++		printoutc(fd, "Connects to a vde socket at path <vde_sock_path> by creating a new virtual ethernet device.");
++		printoutc(fd, "If no <macaddress> is provided, it will be assigned automatically.");
++		printoutc(fd, "");
++		printoutc(fd, "Examples:");
++		printoutc(fd, "connect /var/run/vde.ctl");
++		printoutc(fd, "connect /var/run/my_sock.ctl 00:11:22:33:44:55");
++		return 0;
++	} else if (match_input("ifconfig",arg)) {
++		printoutc(fd, "Syntax:");
++		printoutc(fd, "\tifconfig [<devname> [<action> <address> <netmask>]]");
++		printoutc(fd, "--or--");
++		printoutc(fd, "\tifconfig <devname> add dhcp");
++		printoutc(fd, "Show/store IP address configuration. If no <devname> is provided, the default action");
++		printoutc(fd, "will be to display the current configuration for all the existing ethernet devices.");
++		printoutc(fd, "<action> can be \"add\" or \"del\". If \"add\" is specified, all other arguments are mandatory.");
++		printoutc(fd, "If \"del\" is specified, only <address> will be used to search for an existing entry.");
++		printoutc(fd, "Each virtual ethernet can be associated to more than one IP addresses. A static route for");
++		printoutc(fd, "the resulting neighborhood will be added.");
++		printoutc(fd, "Dhcp option allows to ask for a dynamic IP address.");
++		printoutc(fd, "");
++		printoutc(fd, "Examples:");
++		printoutc(fd, "ifconfig");
++		printoutc(fd, "ifconfig eth0");
++		printoutc(fd, "ifconfig eth1 add 10.0.0.1 255.0.0.0");
++		printoutc(fd, "ifconfig eth1 add dhcp");
++		printoutc(fd, "ifconfig eth1 del 10.0.0.1");
++		return 0;
++	} else if (match_input("dhcpd",arg)) {
++		printoutc(fd, "Syntax:");
++		printoutc(fd, "\tdhcpd start <devname> <dhcp_pool_start> <dhcp_pool_end>");
++		printoutc(fd, "--or--");
++		printoutc(fd, "\tdhcpd stop <devname>");
++		printoutc(fd, "Start/stop DHCP server on a specific interface. Devices/machines connected to the router");
++		printoutc(fd, "will be provided with a dynamic IP address on request.");
++		printoutc(fd, "");
++		printoutc(fd, "Examples:");
++		printoutc(fd, "dhcpd start eth0 10.0.0.101 10.0.0.120");
++		printoutc(fd, "dhcpd stop eth0");
++		return 0;
++	} else if (match_input("olsr",arg)) {
++		printoutc(fd, "Syntax:");
++		printoutc(fd, "\tolsr start <devname> [<devname> [<devname> [<...>]]]");
++		printoutc(fd, "--or--");
++		printoutc(fd, "\tolsr stop");
++		printoutc(fd, "Start/stop olsr service on specified interface(s). Devices/machines connected to the router");
++		printoutc(fd, "will be notified about routing via OLSR messages");
++		printoutc(fd, "");
++		printoutc(fd, "Examples:");
++		printoutc(fd, "olsr start eth0 eth1");
++		printoutc(fd, "olsr stop");
++		return 0;
++	} else if (match_input("route",arg)) {
++		printoutc(fd, "Syntax:");
++		printoutc(fd, "\troute [<action> <address> <netmask> [gw <gateway>] [via <interface>] [metric <metric>]]");
++		printoutc(fd, "--or--");
++		printoutc(fd, "\troute <action> default [address]");
++		printoutc(fd, "Show/store routing table information. If no <action> is given, the default behavior is to");
++		printoutc(fd, "show the current (full) routing table.");
++		printoutc(fd, "<action> can be \"add\" or \"del\". If \"add\" or \"del\" is specified, address and netmask are");
++		printoutc(fd, "mandatory, unless the \"default\" keyword is present. \"default\" is used to manage default ");
++		printoutc(fd, "gateway entry.");
++		printoutc(fd, "");
++		printoutc(fd, "Examples:");
++		printoutc(fd, "route");
++		printoutc(fd, "route add default 10.0.0.254");
++		printoutc(fd, "route del default");
++		printoutc(fd, "route add 192.168.0.0 255.255.0.0 gw 10.0.0.253 metric 2");
++		printoutc(fd, "route add 192.168.1.0 255.255.255.0 via eth2");
++		return 0;
++	} else if (match_input("queue",arg)) {
++		printoutc(fd, "Syntax:");
++		printoutc(fd, "\tqueue [<devname>:<queuename> <policy> <policy_options>]");
++		printoutc(fd, "");
++		printoutc(fd, "Show/store queuing policy information. If no <action> is specified,");
++		printoutc(fd, "the current queue policy and information are displayed, otherwise you need");
++		printoutc(fd, "to specify the options for the selected queue.");
++		printoutc(fd, "");
++		printoutc(fd, "Selecting the queue consists in naming the interface and the associated queue.");
++		printoutc(fd, "Every interface has one \":output\" queue and 32 priority queues named from");
++		printoutc(fd, "\":prio0\" to \":prio31\".");
++		printoutc(fd, "");
++		printoutc(fd, "The following policies are available:");
++		printoutc(fd, "");
++		printoutc(fd, "- 'unlimited' (default).");
++		printoutc(fd, "\tthis policy requires no options. It is the default policy, and it will allow");
++		printoutc(fd, "\tto enqueue virtually an unlimited amount of data before it is dequeued.");
++		printoutc(fd, "");
++		printoutc(fd, "- 'fifo' (usage: fifo limit <limit>)");
++		printoutc(fd, "\tthis policy will allow at most <limit> bytes to be enqueued, and a tail-drop");
++		printoutc(fd, "\twill be adopted to all the exceeding frames when the queue is full.");
++		printoutc(fd, "");
++		printoutc(fd, "");
++		printoutc(fd, "- 'red' (usage: red min <min> max <max> probability <P> limit <limit>)");
++		printoutc(fd, "\tthis is the \"Random Early Detection\" queuing policy. It consists of setting");
++		printoutc(fd, "\ta dynamic limit to the queue during the enqueue operation. The probability");
++		printoutc(fd, "\tof dropping packets during enqueue will be 0 under <min> bytes, then it will ");
++		printoutc(fd, "\tincrease linearly to reach <P> between <min> and <max>. Between <max> and <limit>");
++		printoutc(fd, "\tit will be <P>. Over the physical limit <limit>, all packets will be dropped (P=1).");
++		printoutc(fd, "");
++		printoutc(fd, "- 'token' (usage: tbf limit <limit> bitrate <bitrate>");
++		printoutc(fd, "\tThis is the \"Token Bucket\" queuing policy, allowing traffic to be dequeued at");
++		printoutc(fd, "\tthe specified <bitrate>. Enqueuing will be limited to <limit> bytes, so if the");
++		printoutc(fd, "\tqueue is full all the exceeding frames will be dropped.");
++		printoutc(fd, "Examples:");
++		printoutc(fd, "queue");
++		printoutc(fd, "queue eth0:output fifo limit 40000");
++		printoutc(fd, "queue eth0:prio3 red min 80000 max 160000 probability 0.1 limit 300000");
++		printoutc(fd, "queue eth0:prio15 unlimited");
++		return 0;
++	} else if (match_input("ipfilter",arg)) {
++		printoutc(fd, "Syntax:");
++		printoutc(fd, "\tipfilter [<action> [src <interface>] [from <address> <netmask>]");
++		printoutc(fd, "		 [to <address> <netmask>] [proto <proto>] [tos <tos>]");
++		printoutc(fd, "		 [sport <sport>] [dport <dport>] <filter_action> [<priority>]]");
++		printoutc(fd, "Show/store IP filtering information. If no <action> is specified, ");
++		printoutc(fd, "the current ip filtering table is shown, else <action> can be \"add\" or \"del\"");
++		printoutc(fd, "If \"add\" is specified, no other argument is mandatory but the <filter_action>.");
++		printoutc(fd, "<filter_action> can be one of \"accept\" \"drop\" \"reject\" or \"prio\". Accept is the");
++		printoutc(fd, "default behavior. \"reject\" is like \"drop\" except that it will send a icmp packet filtered ");
++		printoutc(fd, "towards the source every time the rule is hit. \"prio\" changes the priority of the ");
++		printoutc(fd, "packet when it gets inserted to the output queue system, allowing IP-based QoS.");
++		printoutc(fd, "When \"prio\" is selected as <filter_action>, the argument <priority> is mandatory.");
++		printoutc(fd, "If <del> is specified as <action>, all the arguments must match the previously ");
++		printoutc(fd, "inserted rule, except the <filter_action> and the <priority> that get discarded.");
++		printoutc(fd, "");
++		printoutc(fd, "Please note that the rules will be processed on the inverse order as they were ");
++		printoutc(fd, "inserted, so to drop all packets from eth0 except those coming from 10.0.0.3, insert");
++		printoutc(fd, "the rules in the followinf order (generic to specific):");
++		printoutc(fd, "");
++		printoutc(fd, "ipfilter add src eth0 drop");
++		printoutc(fd, "ipfilter add src eth0 from 10.0.0.3 255.255.255.255 accept");
++		printoutc(fd, "");
++		printoutc(fd, "other Examples:");
++		printoutc(fd, "");
++		printoutc(fd, "ipfilter");
++		printoutc(fd, "ipfilter add src eth1 tos 2 to 172.16.0.0 255.255.0.0 prio 7");
++		printoutc(fd, "ipfilter del src eth1 tos 2 to 172.16.0.0 255.255.0.0");
++		return 0;
++	} else if (match_input("arp",arg)) {
++		printoutc(fd, "Syntax:");
++		printoutc(fd, "\tarp");
++		return 0;
++	} else if (match_input("stats",arg)) {
++		printoutc(fd, "Syntax:");
++		printoutc(fd, "\tstats");
++		return 0;
++	} else if (match_input("logout",arg)) {
++		printoutc(fd, "Syntax:");
++		printoutc(fd, "\tlogout");
++		return 0;
++	} else if (match_input("shutdown",arg)) {
++		printoutc(fd, "Syntax:");
++		printoutc(fd, "\tshutdown");
++		return 0;
++	} else {
++		printoutc(fd, "No help available for %s", arg);
++	}
++	return ENOENT;
++}
++
++static int logout(int fd,char *s)
++{
++	return EPIPE;
++}
++
++static int doshutdown(int fd,char *s)
++{
++	exit(0);
++}
++
++
++static int not_understood(int fd, char *s)
++{
++	printoutc(fd, "parameter \"%s\" not understood. Try \"help\"", s);
++	return EINVAL;
++}
++
++static void show_ifconfig(int fd, struct vder_iface *iface)
++{
++	struct vder_ip4address *addr;
++	printoutc(fd, "Interface: eth%d mac:%02x:%02x:%02x:%02x:%02x:%02x sock:%s",
++					iface->interface_id, iface->macaddr[0],iface->macaddr[1],iface->macaddr[2],
++					iface->macaddr[3],iface->macaddr[4],iface->macaddr[5],
++					iface->vde_sock
++			 );
++	addr = iface->address_list;
++	while(addr) {
++			char *txt_address, *txt_netmask;
++			txt_address = strdup(vder_ntoa(addr->address));
++			txt_netmask= strdup(vder_ntoa(addr->netmask));
++			if (addr->address == (uint32_t)(-1))
++				printoutc(fd, "\tAcquiring one IP address via DHCP...");
++			else
++				printoutc(fd, "\taddress: %s netmask: %s", txt_address, txt_netmask);
++			free(txt_address);
++			free(txt_netmask);
++			addr = addr->next;
++	}
++}
++
++enum command_action_enum {
++	ACTION_DELETE = 0,
++	ACTION_ADD,
++	ACTION_ADD_DEFAULT,
++	ACTION_DEL_DEFAULT
++};
++
++static inline int is_unicast(uint32_t addr)
++{
++	uint32_t h_addr = ntohl(addr);
++	if ( (h_addr == 0) ||(h_addr >= 0xe0000000) )
++		return 0;
++	return 1;
++}
++
++static inline int is_netmask(uint32_t addr)
++{
++	int i;
++	uint32_t h_netmask = ntohl(addr), valid_value = 0;
++	for (i = 31; i >= 0; i--) {
++		valid_value += (1 << i);
++		if (h_netmask == valid_value)
++			return 1;
++	}
++	return 0;
++}
++
++static inline int not_a_number(char *p)
++{
++	if (!p)
++		return 1; 
++	if ((p[0] < '0') || (p[0] > '9'))
++		return 1; 
++	return 0;
++}
++
++static struct vder_iface *select_interface(char *arg)
++{
++	struct vder_iface *iface, *selected = NULL;;
++	int iface_id;
++
++
++	if (strncmp(arg,"eth",3)) {
++		return NULL;
++	}
++
++	if (not_a_number(arg + 3))
++		return NULL;
++
++	iface_id = strtol(arg + 3, NULL, 10);
++	iface = Router.iflist;
++	while(iface) {
++		if (iface_id == iface->interface_id) {
++			selected = iface;
++			break;
++		}
++		iface = iface->next;
++	}
++	return selected;
++}
++
++
++static int ifconfig(int fd,char *s)
++{
++	char *nextargs = NULL, *arg;
++	struct vder_iface *iface;
++	arg = strtok_r(s, " ", &nextargs);
++	if(!arg) {
++		/* No arguments */
++		iface = Router.iflist;
++		while(iface) {
++			show_ifconfig(fd, iface);
++			printoutc(fd, "");
++			iface = iface->next;
++		}
++		return 0;
++	} else {
++		struct vder_iface *selected;
++		struct in_addr temp_address, temp_netmask;
++		enum command_action_enum action = -1;
++		selected = select_interface(arg);
++		if (!selected) {
++			printoutc(fd, "Interface %s not found.", arg);
++			return ENOENT;
++		}
++		arg = strtok_r(NULL, " ", &nextargs);
++		if (!arg) {
++			show_ifconfig(fd, selected);
++			return 0;
++		}
++		if ((!arg) || (strlen(arg) != 3) || ((strncmp(arg, "add", 3) != 0) && (strncmp(arg, "del", 3) != 0))) {
++			printoutc(fd, "Invalid action \"%s\".", arg);
++			return EINVAL;
++		}
++		if (strncmp(arg, "del", 3) == 0)
++			action = ACTION_DELETE;
++		else
++			action = ACTION_ADD;
++
++		arg = strtok_r(NULL, " ", &nextargs);
++		if (!arg) {
++			not_understood(fd, "");
++			return EINVAL;
++		}
++		if (match_input("dhcp", arg)) {
++			temp_address.s_addr = (uint32_t)(-1);
++			pthread_create(&selected->dhcpclient, 0, dhcp_client_loop, selected); 
++		}
++		else if (!inet_aton(arg, &temp_address) || !is_unicast(temp_address.s_addr)) {
++			printoutc(fd, "Invalid address \"%s\"", arg);
++			return EINVAL;
++		}
++		arg = strtok_r(NULL, " ", &nextargs);
++		if (!arg && (action == ACTION_ADD) && (temp_address.s_addr != (uint32_t)(-1))) {
++			printoutc(fd, "Error: parameter 'netmask' required.");
++			return EINVAL;
++		}
++		if ((action == ACTION_ADD) && (temp_address.s_addr != (uint32_t)(-1)) &&
++			(!inet_aton(arg, &temp_netmask) || !is_netmask(temp_netmask.s_addr))) {
++			printoutc(fd, "Invalid netmask \"%s\"", arg);
++			return EINVAL;
++		}
++		if (action == ACTION_ADD) {
++			if (vder_iface_address_add(selected, temp_address.s_addr, temp_netmask.s_addr) != 0)
++				return errno;
++		} else {
++			if (vder_iface_address_del(selected, temp_address.s_addr) != 0)
++				return errno;
++		}
++
++	}
++	return 0;
++
++}
++
++static void show_route(int fd, struct vder_route *ro)
++{
++	char *dest = strdup(vder_ntoa(ro->dest_addr));
++	char *netmask = strdup(vder_ntoa(ro->netmask));
++	char *gateway = strdup(vder_ntoa(ro->gateway));
++	if (ro->iface)
++		printoutc(fd, "destination %s netmask %s gw %s via eth%d metric %d %s", dest, netmask, gateway,
++			 ro->iface->interface_id, ro->metric,
++			 ro->netmask==0?"default":"");
++	else
++		printoutc(fd, "destination %s netmask %s gw %s metric %d %s", dest, netmask, gateway,
++			 ro->metric,
++			 ro->netmask==0?"default":"");
++
++
++	free(dest);
++	free(netmask);
++	free(gateway);
++}
++
++static int route(int fd,char *s)
++{
++	char *nextargs = NULL, *arg;
++	struct vder_route *ro;
++	struct vder_iface *selected = NULL;
++	struct in_addr temp_address, temp_netmask, temp_gateway;
++	int metric = 1;
++	enum command_action_enum action = -1;
++
++	arg = strtok_r(s, " ", &nextargs);
++	if(!arg) {
++		/* No arguments */
++		ro = Router.routing_table;
++		while(ro) {
++			show_route(fd, ro);
++			ro = ro->next;
++		}
++		return 0;
++	}
++
++	if ((!arg) || (strlen(arg) != 3) || ((strncmp(arg, "add", 3) != 0) && (strncmp(arg, "del", 3) != 0))) {
++		printoutc(fd, "Invalid action \"%s\".", arg);
++		return EINVAL;
++	}
++	if (strncmp(arg, "del", 3) == 0)
++		action = ACTION_DELETE;
++	else
++		action = ACTION_ADD;
++
++	arg = strtok_r(NULL, " ", &nextargs);
++	if (!arg) {
++		not_understood(fd, "");
++		return EINVAL;
++	}
++	if (match_input("default", arg)) {
++		if (action == ACTION_ADD)
++			action = ACTION_ADD_DEFAULT;
++		if (action == ACTION_DELETE) {
++			if (vder_route_del(0, 0, 1))
++				return errno;
++			else
++				return 0;
++		}
++		arg = strtok_r(NULL, " ", &nextargs);
++	}
++
++	if (!inet_aton(arg, &temp_address) || !is_unicast(temp_address.s_addr)) {
++		printoutc(fd, "Invalid address \"%s\"", arg);
++		return EINVAL;
++	}
++
++	if (action == ACTION_ADD_DEFAULT) {
++		if (vder_route_add(0, 0, temp_address.s_addr, 1, NULL))
++			return errno;
++		else
++			return 0;
++	}
++
++	arg = strtok_r(NULL, " ", &nextargs);
++	if (!arg) {
++		printoutc(fd, "Error: parameter 'netmask' required.");
++		return EINVAL;
++	}
++
++	if (!inet_aton(arg, &temp_netmask) || !is_netmask(temp_netmask.s_addr)) {
++		printoutc(fd, "Invalid netmask \"%s\"", arg);
++		return EINVAL;
++	}
++
++	arg = strtok_r(NULL, " ", &nextargs);
++	while(arg) {
++		if (match_input("via", arg)) {
++			arg = strtok_r(NULL, " ", &nextargs);
++			selected = select_interface(arg);
++			if (!selected)
++				return EINVAL;
++		} else if (match_input("gw", arg)) {
++			arg = strtok_r(NULL, " ", &nextargs);
++			if (!inet_aton(arg, &temp_gateway) || !is_unicast(temp_gateway.s_addr)) {
++				printoutc(fd, "Invalid gateway \"%s\"", arg);
++				return EINVAL;
++			}
++		} else if (match_input("metric", arg)) {
++			arg = strtok_r(NULL, " ", &nextargs);
++			metric = atoi(arg);
++			if (metric < 1) {
++				printoutc(fd, "Invalid metric \"%s\"", arg);
++				return EINVAL;
++			}
++		} else {
++			return EINVAL;
++		}
++		arg = strtok_r(NULL, " ", &nextargs);
++	}
++
++	if ((action == ACTION_DELETE) &&
++		   (vder_route_del(temp_address.s_addr, temp_netmask.s_addr, metric))) {
++			return errno;
++	} else if ((action == ACTION_ADD) &&
++		   (vder_route_add(temp_address.s_addr, temp_netmask.s_addr, temp_gateway.s_addr, metric, selected))) {
++		return errno;
++	}
++	return 0;
++}
++
++const char action_name[4][30] = {"accept", "prio", "reject", "drop" };
++
++static void proto_name(uint8_t proto, char *name)
++{
++	switch(proto) {
++		case IPPROTO_ICMP:
++			sprintf(name, "icmp");
++			break;
++		case IPPROTO_IGMP:
++			sprintf(name, "igmp");
++			break;
++		case IPPROTO_TCP:
++			sprintf(name, "tcp");
++			break;
++		case IPPROTO_UDP:
++			sprintf(name, "udp");
++			break;
++		default:
++			sprintf(name, "unknown(%d)", ntohs(proto));
++	}
++}
++
++
++static void show_filter(int fd, struct vder_filter *filter)
++{
++	char *saddr_address = strdup(vder_ntoa(filter->saddr.address));
++	char *daddr_address = strdup(vder_ntoa(filter->daddr.address));
++	char *saddr_netmask = strdup(vder_ntoa(filter->saddr.netmask));
++	char *daddr_netmask = strdup(vder_ntoa(filter->daddr.netmask));
++	char source[10] = "any";
++	char tos[10] = "any";
++	char proto[30] = "any";
++
++
++	if (filter->src_iface){
++		snprintf(source, 10, "eth%d", filter->src_iface->interface_id);
++	}
++	if (filter->tos >= 0) {
++		snprintf(tos, 10, "tos %d", filter->tos);
++	}
++	if (filter->proto > 0) {
++		proto_name(filter->proto, proto);
++	}
++	printoutc(fd, "[iface: %s] %s:%d/%s -> %s:%d/%s proto %s tos %s verdict: %s Stats: %d packets, %d bytes",
++			 source, saddr_address, ntohs(filter->sport), saddr_netmask, daddr_address, ntohs(filter->dport), daddr_netmask, proto, tos,
++			 action_name[filter->action], filter->stats_packets, filter->stats_bytes);
++
++	free(saddr_address);
++	free(saddr_netmask);
++	free(daddr_address);
++	free(daddr_netmask);
++}
++
++
++static int filter(int fd,char *s)
++{
++	struct vder_filter *cur = Router.filtering_table;
++	int action;
++	struct vder_iface *vif = NULL;
++	uint8_t proto = 0;
++	struct in_addr s_addr = {0}, s_nm = {0}, d_addr = {0}, d_nm = {0};
++	uint16_t sport = 0, dport = 0;
++	int tos = -1;
++	uint8_t priority = PRIO_BESTEFFORT;
++	enum filter_action filter_action = filter_invalid;
++	char *nextargs = NULL, *arg;
++
++	arg = strtok_r(s, " ", &nextargs);
++	if(!arg) {
++		/* No arguments */
++		while(cur) {
++			show_filter(fd, cur);
++			cur = cur->next;
++		}
++		return 0;
++	}
++
++	if ((!arg) || (strlen(arg) != 3) || ((strncmp(arg, "add", 3) != 0) && (strncmp(arg, "del", 3) != 0))) {
++		printoutc(fd, "Invalid action \"%s\".", arg);
++		return EINVAL;
++	}
++	if (strncmp(arg, "del", 3) == 0)
++		action = ACTION_DELETE;
++	else
++		action = ACTION_ADD;
++
++	arg = strtok_r(NULL, " ", &nextargs);
++	if (!arg) {
++		not_understood(fd, "");
++		return EINVAL;
++	}
++
++	while(arg) {
++		if (match_input("src", arg)) {
++			arg = strtok_r(NULL, " ", &nextargs);
++			if (!arg)
++				return EINVAL;
++			vif = select_interface(arg);
++		} else if(match_input("proto", arg)) {
++			arg = strtok_r(NULL, " ", &nextargs);
++			if (!arg)
++				return EINVAL;
++			if (not_a_number(arg)) {
++				if (match_input("tcp", arg))
++					proto = IPPROTO_TCP;
++				else if (match_input("udp", arg)) 
++					proto = IPPROTO_UDP;
++				else if (match_input("igmp", arg))
++					proto = IPPROTO_IGMP;
++				else if (match_input("icmp", arg))
++					proto = IPPROTO_ICMP;
++				else {
++					printoutc(fd, "Invalid protocol \"%s\"", arg);
++					return EINVAL;
++				}
++			} else {
++				proto = atoi(arg);
++				if (proto <= 0) {
++					printoutc(fd, "Invalid protocol \"%s\"", arg);
++					return EINVAL;
++				}
++			}
++		} else if (match_input("from",arg)) {
++			arg = strtok_r(NULL, " ", &nextargs);
++			if (!arg)
++				return EINVAL;
++			if (!inet_aton(arg, &s_addr) || !is_unicast(s_addr.s_addr)) {
++				printoutc(fd, "Invalid from address \"%s\"", arg);
++				return EINVAL;
++			}
++			arg = strtok_r(NULL, " ", &nextargs);
++			if (!arg) {
++				printoutc(fd, "from address: netmask is required");
++				return EINVAL;
++			}
++			if (!inet_aton(arg, &s_nm) || !is_netmask(s_nm.s_addr)) {
++				printoutc(fd, "Invalid netmask \"%s\"", arg);
++				return EINVAL;
++			}
++		} else if (match_input("to",arg)) {
++			arg = strtok_r(NULL, " ", &nextargs);
++			if (!arg)
++				return EINVAL;
++			if (!inet_aton(arg, &d_addr) || !is_unicast(d_addr.s_addr)) {
++				printoutc(fd, "Invalid from address \"%s\"", arg);
++				return EINVAL;
++			}
++			arg = strtok_r(NULL, " ", &nextargs);
++			if (!arg) {
++				printoutc(fd, "from address: netmask is required");
++				return EINVAL;
++			}
++			if (!inet_aton(arg, &d_nm) || !is_netmask(d_nm.s_addr)) {
++				printoutc(fd, "Invalid netmask \"%s\"", arg);
++				return EINVAL;
++			}
++		} else if (match_input("tos",arg)) {
++			arg = strtok_r(NULL, " ", &nextargs);
++			if (!arg)
++				return EINVAL;
++			tos = atoi(arg);
++			if ((tos < 0) || not_a_number(arg)) {
++				printoutc(fd, "Invalid tos %s", arg);
++				return EINVAL;
++			}
++		} else if (match_input("sport",arg)) {
++			arg = strtok_r(NULL, " ", &nextargs);
++			if (!arg)
++				return EINVAL;
++			if ((sport < 0) || not_a_number(arg)) {
++				printoutc(fd, "Invalid sport %s", arg);
++				return EINVAL;
++			}
++			sport = htons(atoi(arg));
++		} else if (match_input("dport",arg)) {
++			arg = strtok_r(NULL, " ", &nextargs);
++			if (!arg)
++				return EINVAL;
++			if (not_a_number(arg)) {
++				printoutc(fd, "Invalid dport %s", arg);
++				return EINVAL;
++			}
++			dport = htons(atoi(arg));
++		} else if (match_input("prio",arg)) {
++			if (filter_action != filter_invalid) {
++				printoutc(fd, "Invalid double action for filter");
++			}
++			arg = strtok_r(NULL, " ", &nextargs);
++			if (!arg)
++				return EINVAL;
++			priority = atoi(arg);
++			if ((priority < 0) || (priority >= PRIO_NUM) || not_a_number(arg)) {
++				printoutc(fd, "Invalid priority %s", arg);
++				return EINVAL;
++			}
++			filter_action = filter_priority;
++		} else if (match_input("accept",arg)) {
++			if (filter_action != filter_invalid) {
++				printoutc(fd, "Invalid double action for filter");
++			}
++			filter_action = filter_accept;
++		} else if (match_input("reject",arg)) {
++			if (filter_action != filter_invalid) {
++				printoutc(fd, "Invalid double action for filter");
++			}
++			filter_action = filter_reject;
++		} else if (match_input("drop",arg)) {
++			if (filter_action != filter_invalid) {
++				printoutc(fd, "Invalid double action for filter");
++			}
++			filter_action = filter_drop;
++		}
++		arg = strtok_r(NULL, " ", &nextargs);
++	}
++	if ((filter_action == filter_invalid) && (action == ACTION_ADD)) {
++		printoutc(fd, "Error: an action is required for filter");
++		return EINVAL;
++	}
++	if (action == ACTION_ADD) {
++		if (vder_filter_add(vif, proto, s_addr.s_addr, s_nm.s_addr, d_addr.s_addr, d_nm.s_addr, tos, sport, dport, filter_action, priority))
++			return errno;
++	} else {
++		if (vder_filter_del(vif, proto, s_addr.s_addr, s_nm.s_addr, d_addr.s_addr, d_nm.s_addr, tos, sport, dport))
++			return errno;
++	}
++	return 0;
++}
++
++
++static void fill_queue_info(struct vder_queue *q, char *info)
++{
++	if(!q)
++		return;
++	switch(q->policy) {
++		case QPOLICY_UNLIMITED:
++			snprintf(info, MAXCMD, "unlimited");
++			break;
++		case QPOLICY_FIFO:
++			snprintf(info, MAXCMD, "pfifo limit: %u (%d packets dropped)", 
++				q->policy_opt.fifo.limit,
++				q->policy_opt.fifo.stats_drop);
++			break;
++		case QPOLICY_RED:
++			snprintf(info, MAXCMD, "red min: %u, max: %u, probability: %lf limit: %u (%d packets dropped, %d packets fired)", 
++				q->policy_opt.red.min,
++				q->policy_opt.red.max,
++				q->policy_opt.red.P,
++				q->policy_opt.red.limit,
++				q->policy_opt.red.stats_drop,
++				q->policy_opt.red.stats_probability_drop
++				);
++			break;
++		case QPOLICY_TOKEN:
++			snprintf(info, MAXCMD, "token interval: %llu usec, limit: %u (%u packets dropped)",
++				q->policy_opt.token.interval,
++				q->policy_opt.token.limit,
++				q->policy_opt.token.stats_drop);
++			break;
++	}
++}
++
++
++static void show_queues(int fd, struct vder_iface *vif)
++{
++	char ifname[10];
++	char queue_info[MAXCMD];
++	int i;
++	if (!vif)
++		return;
++
++	snprintf(ifname, 10, "eth%d", vif->interface_id);
++
++	fill_queue_info(&vif->out_q, queue_info);
++	printoutc(fd, "%s:output %s size: %lu", ifname, queue_info, vif->out_q.size);
++	for (i = 0; i < 32; i++) {
++		fill_queue_info(&vif->prio_q[i], queue_info);
++		printoutc(fd, "%s:prio%d %s size: %lu", ifname, i, queue_info, vif->prio_q[i].size);
++	}
++}
++
++
++/*!!  Warning  !!*/
++/* 0 == ERROR here! */
++double get_labeled_arg(int fd, char *label, char **nextargs) {
++	char *arg = strtok_r(NULL, " ", nextargs);
++	if (!arg) {
++		printoutc(fd, "missing parameter '%s'", label);
++		return 0.0; //error
++	}
++	if (!match_input(label, arg)) {
++		printoutc(fd, "invalid parameter \"%s\", expecting \"%s\"", arg, label);
++		return 0.0; //error
++	}
++	arg = strtok_r(NULL, " ", nextargs);
++	if (not_a_number(arg) && arg[0] != '.') {
++		printoutc(fd, "invalid value \"%s\"", arg);
++		return 0.0; //error
++	}
++	return strtod(arg, NULL);
++}
++
++
++
++static int queue(int fd, char *s)
++{
++	struct vder_iface *cur = Router.iflist, *selected = NULL;
++	struct vder_queue *q;
++	char *nextargs, *arg;
++	int if_id;
++	int prio_id = -1;
++	char output_word[MAXCMD] = "";
++	enum queue_policy_e newpolicy;
++
++	arg = strtok_r(s, " ", &nextargs);
++	if(!arg) {
++		/* No arguments */
++		while(cur) {
++			show_queues(fd, cur);
++			cur = cur->next;
++		}
++		return 0;
++	}
++	if ((sscanf(arg, "eth%d:prio%d", &if_id, &prio_id) != 2) && (sscanf(arg, "eth%d:%s", &if_id, output_word) != 2))
++		return EINVAL;
++	else {
++		if (prio_id < 0 && !match_input("output", output_word)) {
++			return EINVAL;
++		}
++		cur = Router.iflist;
++		while(cur) {
++			if (cur->interface_id == if_id) {
++				selected = cur;
++				break;
++			}
++			cur = cur->next;
++		}
++
++		if (!selected) {
++			printoutc(fd, "Cannot find interface eth%d", if_id);
++			return ENOENT;
++		}
++
++		/* Match policy */
++		arg = strtok_r(NULL, " ", &nextargs);
++		if (!arg) {
++			printoutc(fd, "queue: queue policy required");
++			return EINVAL;
++		}
++		if (match_input("unlimited", arg)) {
++			newpolicy = QPOLICY_UNLIMITED;
++		} else if (match_input("fifo", arg)) {
++			newpolicy = QPOLICY_FIFO;
++		} else if (match_input("red", arg)) {
++			newpolicy = QPOLICY_RED;
++		} else if (match_input("token", arg)) {
++			newpolicy = QPOLICY_TOKEN;
++		} else {
++			printoutc(fd, "queue: invalid queue policy \"%s\"", arg);
++			return EINVAL;
++		}
++		if (prio_id >= 0) {
++			if (prio_id > 31) {
++				printoutc(fd, "Invalid priority queue %s", arg);
++				return EINVAL;
++			}
++			q = &selected->prio_q[prio_id];
++		} else {
++			printoutc(fd, "selected if=%d, outq", if_id);
++			q = &selected->out_q;
++		}
++
++		/* Match arguments */
++		if (newpolicy == QPOLICY_UNLIMITED) {
++			qunlimited_setup(q);
++		} else if (newpolicy == QPOLICY_FIFO) {
++			uint32_t limit;
++			arg = strtok_r(NULL, " ", &nextargs);
++			if (!arg) {
++				printoutc(fd, "fifo: missing parameter 'limit'");
++				return EINVAL;
++			}
++			if (!match_input("limit", arg)) {
++				printoutc(fd, "fifo: invalid parameter \"%s\"", arg);
++				return EINVAL;
++			}
++			arg = strtok_r(NULL, " ", &nextargs);
++			if (not_a_number(arg)) {
++				printoutc(fd, "fifo: invalid limit");
++				return EINVAL;
++			}
++			limit = strtol(arg, NULL, 10);
++			qfifo_setup(q,limit);
++
++		} else if (newpolicy == QPOLICY_RED) {
++			uint32_t min, max, limit;
++			double P;
++			min = (uint32_t) get_labeled_arg(fd,"min", &nextargs);
++			max = (uint32_t) get_labeled_arg(fd,"max", &nextargs);
++			P = get_labeled_arg(fd,"probability", &nextargs);
++			limit = (uint32_t) get_labeled_arg(fd,"limit", &nextargs);
++			if (!min || !max || !limit)
++				return EINVAL;
++			qred_setup(q, min, max, P, limit);
++		} else if (newpolicy == QPOLICY_TOKEN) {
++			uint32_t limit, bitrate;
++			limit = (uint32_t) get_labeled_arg(fd, "limit", &nextargs);
++			bitrate = (uint32_t) get_labeled_arg(fd, "bitrate", &nextargs);
++			if (!limit || !bitrate)
++				return EINVAL;
++			qtoken_setup(q, bitrate, limit);
++		}
++		return 0;
++	}
++}
++
++static int doconnect(int fd,char *s)
++{
++	char *nextargs = NULL, *arg;
++	struct vder_iface *created = NULL;
++	int mac[6];
++	uint8_t outmac[6], *newmac = NULL;
++	char sock[1024];
++
++	arg = strtok_r(s, " ", &nextargs);
++	if (!arg) {
++		printoutc(fd, "sock argument is required.");
++		return EINVAL;
++	} else {
++		strncpy(sock, arg, 1023);
++	}
++	arg = strtok_r(NULL, " ", &nextargs);
++	if (arg) {
++		if ((sscanf(arg,"%02x:%02x:%02x:%02x:%02x:%02x",&mac[0],
++			&mac[1], &mac[2], &mac[3], &mac[4], &mac[5] )) != ETHERNET_ADDRESS_SIZE) {
++
++			printoutc(fd, "invalid mac address \"%s\"", arg);
++			return EINVAL;
++		} else {
++			outmac[0] = (uint8_t)mac[0];
++			outmac[1] = (uint8_t)mac[1];
++			outmac[2] = (uint8_t)mac[2];
++			outmac[3] = (uint8_t)mac[3];
++			outmac[4] = (uint8_t)mac[4];
++			outmac[5] = (uint8_t)mac[5];
++			newmac = outmac;
++		}
++	}
++	created = vder_iface_new(sock, newmac);
++	if (created == NULL)
++		return errno;
++	pthread_create(&created->sender, 0, vder_core_send_loop, created);
++	pthread_create(&created->receiver, 0, vder_core_recv_loop, created);
++	pthread_create(&created->queue_manager, 0, vder_core_queuer_loop, created);
++
++	printoutc(fd, "Created interface eth%d", created->interface_id);
++	return 0;
++}
++
++static int stats(int fd, char *args)
++{
++	struct vder_iface *iface;
++	if (strlen(args) > 0)
++		return EINVAL;
++	iface = Router.iflist;
++	while(iface) {
++		printoutc(fd, "eth%d frames sent:%d, frames received:%d",
++			iface->interface_id, iface->stats.sent, iface->stats.recvd);
++		printoutc(fd, "");
++		iface = iface->next;
++	}
++	return 0;
++}
++
++static int arp(int fd, char *args)
++{
++	struct vder_iface *iface;
++	struct rb_node *node;
++	if (strlen(args) > 0)
++		return EINVAL;
++	iface = Router.iflist;
++	while(iface) {
++		node = iface->arp_table.rb_node;
++		while (node) {
++			struct vder_arp_entry *ae = rb_entry(node, struct vder_arp_entry, rb_node);
++			char *txt_address = strdup(vder_ntoa(ae->ipaddr));
++			printoutc(fd, "%s %02x:%02x:%02x:%02x:%02x:%02x (eth%d)", txt_address,
++				ae->macaddr[0], ae->macaddr[1], ae->macaddr[2], ae->macaddr[3], ae->macaddr[4], ae->macaddr[5],
++				iface->interface_id);
++			free(txt_address);
++			node = node->rb_left;
++		}
++		node = iface->arp_table.rb_node;
++		if (node)
++			node = node->rb_right;
++		while (node) {
++			struct vder_arp_entry *ae = rb_entry(node, struct vder_arp_entry, rb_node);
++			char *txt_address = strdup(vder_ntoa(ae->ipaddr));
++			printoutc(fd, "%s %02x:%02x:%02x:%02x:%02x:%02x (eth%d)", txt_address,
++				ae->macaddr[0], ae->macaddr[1], ae->macaddr[2], ae->macaddr[3], ae->macaddr[4], ae->macaddr[5],
++				iface->interface_id);
++			free(txt_address);
++			node = node->rb_right;
++		}
++		iface = iface->next;
++	}
++	return 0;
++}
++
++
++#define DEFAULT_LEASE_TIME htonl(0xa8c0)
++static int dhcpd(int fd,char *s)
++{
++	char *nextargs = NULL, *arg;
++	struct vder_dhcpd_settings *dhcpd_settings;
++	struct vder_iface *selected = NULL;
++	struct in_addr temp_pool_start, temp_pool_end;
++	enum command_action_enum action = -1;
++
++	arg = strtok_r(s, " ", &nextargs);
++	if(!arg) {
++		printoutc(fd, "Error: arguments required");
++		return EINVAL;
++	}
++	if ((!arg) || (strlen(arg) < 4) || ((strncmp(arg, "start", 5) != 0) && (strncmp(arg, "stop", 4) != 0))) {
++		printoutc(fd, "Invalid action \"%s\".", arg);
++		return EINVAL;
++	}
++	if (strncmp(arg, "start", 5) == 0)
++		action = ACTION_ADD;
++	else
++		action = ACTION_DELETE;
++
++
++	arg = strtok_r(NULL, " ", &nextargs);
++	if (!arg) {
++		not_understood(fd, "");
++		return EINVAL;
++	}
++	if ((strlen(arg) < 4) || (strncmp(arg, "eth", 3)!= 0)) {
++		printoutc(fd, "Invalid interface \"%s\".", arg);
++		return EINVAL;
++	}
++	selected = select_interface(arg);
++	if (!selected)
++		return ENXIO;
++
++	if (action == ACTION_ADD) {
++		arg = strtok_r(NULL, " ", &nextargs);
++		if (!arg) {
++			not_understood(fd, "");
++			return EINVAL;
++		}
++
++		if (!inet_aton(arg, &temp_pool_start) || !is_unicast(temp_pool_start.s_addr)) {
++			printoutc(fd, "Invalid pool start address \"%s\"", arg);
++			return EINVAL;
++		}
++
++		arg = strtok_r(NULL, " ", &nextargs);
++		if (!arg) {
++			not_understood(fd, "");
++			return EINVAL;
++		}
++		if (!inet_aton(arg, &temp_pool_end) || !is_unicast(temp_pool_end.s_addr)) {
++			printoutc(fd, "Invalid pool end address \"%s\"", arg);
++			return EINVAL;
++		}
++
++		dhcpd_settings = malloc(sizeof(struct vder_dhcpd_settings));
++		if (!dhcpd_settings)
++			return ENOMEM;
++
++		dhcpd_settings->iface = selected;
++		dhcpd_settings->my_ip = vder_get_right_localip(selected, temp_pool_start.s_addr);
++		dhcpd_settings->netmask = vder_get_netmask(selected, dhcpd_settings->my_ip);
++		dhcpd_settings->pool_start = temp_pool_start.s_addr;
++		dhcpd_settings->pool_end = temp_pool_end.s_addr;
++		dhcpd_settings->lease_time = DEFAULT_LEASE_TIME;
++		dhcpd_settings->flags = 0;
++		selected->dhcpd_started = 1;
++		pthread_create(&selected->dhcpd, 0, dhcp_server_loop, dhcpd_settings); 
++	} else if (selected->dhcpd_started) {
++		pthread_cancel(selected->dhcpd);
++		selected->dhcpd_started = 0;
++	}
++	return 0;
++}
++
++static int olsr(int fd,char *s)
++{
++	char *nextargs = NULL, *arg;
++	struct olsr_setup *olsr_settings;
++	struct vder_iface *selected = NULL;
++	enum command_action_enum action = -1;
++	static pthread_t olsr_thread;
++
++
++	arg = strtok_r(s, " ", &nextargs);
++	if(!arg) {
++		printoutc(fd, "Error: arguments required");
++		return EINVAL;
++	}
++	if ((!arg) || (strlen(arg) < 4) || ((strncmp(arg, "start", 5) != 0) && (strncmp(arg, "stop", 4) != 0))) {
++		printoutc(fd, "Invalid action \"%s\".", arg);
++		return EINVAL;
++	}
++	if (strncmp(arg, "start", 5) == 0)
++		action = ACTION_ADD;
++	else
++		action = ACTION_DELETE;
++
++	if (action == ACTION_ADD) {
++		olsr_settings = malloc(sizeof(struct olsr_setup));
++		memset(olsr_settings, 0, sizeof(struct olsr_setup));
++		arg = strtok_r(NULL, " ", &nextargs);
++		while (arg) {
++			if ((strlen(arg) < 4) || (strncmp(arg, "eth", 3)!= 0)) {
++				printoutc(fd, "Invalid interface \"%s\".", arg);
++				free(olsr_settings);
++				return EINVAL;
++			}
++			selected = select_interface(arg);
++			if (!selected) {
++				free(olsr_settings);
++				return ENXIO;
++			}
++			olsr_settings->ifaces[olsr_settings->n_ifaces++] = selected;
++			arg = strtok_r(NULL, " ", &nextargs);
++		}
++		if (olsr_settings->n_ifaces == 0) {
++			free(olsr_settings);
++			return EINVAL;
++		}
++		pthread_create(&olsr_thread, 0, vder_olsr_loop, olsr_settings); 
++	} else {
++		pthread_cancel(olsr_thread);
++		/* stop */
++	}
++	return 0;
++}
++
++
++#define WITHFILE 0x80
++static struct comlist {
++	char *tag;
++	int (*fun)(int fd,char *arg);
++	unsigned char type;
++} commandlist [] = {
++	{"help", help, WITHFILE},
++	{"ifconfig", ifconfig, WITHFILE},
++	{"arp", arp, WITHFILE},
++	{"route", route, WITHFILE},
++	{"connect", doconnect, 0},
++	{"stats", stats, WITHFILE},
++	{"ipfilter", filter, WITHFILE},
++	{"queue", queue, WITHFILE},
++	{"dhcpd", dhcpd, 0 },
++	{"olsr", olsr, 0 },
++	{"logout",logout, 0},
++	{"shutdown",doshutdown, 0}
++};
++
++#define NCL sizeof(commandlist)/sizeof(struct comlist)
++
++static inline void delnl(char *buf)
++{
++	int len=strlen(buf)-1;
++	while (len>0 && 
++				(buf[len]=='\n' || buf[len]==' ' || buf[len]=='\t')) {
++		buf[len]=0;
++		len--;
++	}
++}
++
++static int handle_cmd(int fd,char *inbuf)
++{
++	int rv=ENOSYS;
++	int i;
++	char *cmd=inbuf;
++	while (*inbuf == ' ' || *inbuf == '\t' || *inbuf == '\n') inbuf++;
++	delnl(inbuf);
++	if (*inbuf != '\0' && *inbuf != '#') {
++		for (i=0; i<NCL 
++				&& strncmp(commandlist[i].tag,inbuf,strlen(commandlist[i].tag))!=0;
++				i++)
++			;
++		if (i<NCL)
++		{
++			inbuf += strlen(commandlist[i].tag);
++			while (*inbuf == ' ' || *inbuf == '\t') inbuf++;
++			if (fd>=0 && commandlist[i].type & WITHFILE)
++				printoutc(fd,"0000 DATA END WITH '.'");
++			rv=commandlist[i].fun(fd,inbuf);
++			if (fd>=0 && commandlist[i].type & WITHFILE)
++				printoutc(fd,".");
++		}
++		if (fd >= 0) {
++			if (rv == 0) {
++				printoutc(fd,"1000 Success");
++			} else {
++				printoutc(fd,"1%03d %s",rv,strerror(rv));
++			}
++		} else if (rv != 0) {
++			fprintf(stderr,"rc command error: %s %s",cmd,strerror(rv));
++		}
++		return rv;
++	}
++	return rv;
++}
++
++
++static int mgmtcommand(int fd)
++{
++	char buf[MAXCMD+1];
++	int n,rv;
++	int outfd=fd;
++	if (fd==STDIN_FILENO)
++		outfd=STDOUT_FILENO;
++
++	n = read(fd, buf, MAXCMD);
++	if (n<0) {
++		fprintf(stderr,"%s: read from mgmt %s",progname,strerror(errno));
++		return -1;
++	}
++	else if (n==0){ 
++		return -1;
++		/* Remote end has closed connection. */
++	}
++	else {
++		buf[n]=0;
++		rv=handle_cmd(outfd,buf);
++		if (rv>=0)
++			write(outfd,prompt,strlen(prompt));
++		return rv;
++	}
++}
++
++static int delmgmtconn(int i,struct pollfd *pfd,int nfds)
++{
++	if (i<nfds) {
++		close(pfd[i].fd);
++		if (pfd[i].fd == STDIN_FILENO) /* close stdin implies exit */
++			exit(0);
++		memmove(pfd+i,pfd+i+1,sizeof (struct pollfd) * (nfds-i-1));
++		nfds--;
++	}
++	return nfds;
++}
++
++static int openmgmt(char *mgmt)
++{
++	int mgmtconnfd;
++	struct sockaddr_un sun;
++	int one = 1;
++
++	if((mgmtconnfd = socket(PF_UNIX, SOCK_STREAM, 0)) < 0){
++		fprintf(stderr,"%s: mgmt socket: %s",progname,strerror(errno));
++		exit(1);
++	}
++	if(setsockopt(mgmtconnfd, SOL_SOCKET, SO_REUSEADDR, (char *) &one,
++				sizeof(one)) < 0){
++		fprintf(stderr,"%s: mgmt setsockopt: %s",progname,strerror(errno));
++		exit(1);
++	}
++	if(fcntl(mgmtconnfd, F_SETFL, O_NONBLOCK) < 0){
++		fprintf(stderr,"%s: Setting O_NONBLOCK on mgmt fd: %s",progname,strerror(errno));
++		exit(1);
++	}
++	sun.sun_family = PF_UNIX;
++	snprintf(sun.sun_path,sizeof(sun.sun_path),"%s",mgmt);
++	if(bind(mgmtconnfd, (struct sockaddr *) &sun, sizeof(sun)) < 0){
++		fprintf(stderr,"%s: mgmt bind %s",progname,strerror(errno));
++		exit(1);
++	}
++	chmod(sun.sun_path,mgmtmode);
++	if(listen(mgmtconnfd, 15) < 0){
++		fprintf(stderr,"%s: mgmt listen: %s",progname,strerror(errno));
++		exit(1);
++	}
++	return mgmtconnfd;
++}
++
++int config_readline (int fd, char *l)
++{
++	int len = 0;
++	while(read(fd, &l[len], 1) > 0) {
++
++		/* Skip leading spaces and empty lines */
++		if ((len == 0) && (l[len]=='\n' || l[len]==' ' || l[len]=='\t'))
++			continue;
++
++		if (l[len] == '\n') {
++			l[len] = (char)0;
++			break;
++		} else {
++			if (++len == MAXCMD) {
++				l[MAXCMD-1] = 0;
++				break;
++			}
++		}
++	}
++	return len;
++}
++
++#define MAXCONN 6
++static int newmgmtconn(int fd,struct pollfd *pfd,int nfds)
++{
++	int new;
++	unsigned int len;
++	char buf[MAXCMD];
++	struct sockaddr addr;
++	new = accept(fd, &addr, &len);
++	if(new < 0) {
++		fprintf(stderr, "mgmt accept %s",strerror(errno));
++		return nfds;
++	}
++	if (nfds < MAXCONN) {
++		snprintf(buf,MAXCMD,header);
++		write(new,buf,strlen(buf));
++		write(new,prompt,strlen(prompt));
++		pfd[nfds].fd=new;
++		pfd[nfds].events=POLLIN | POLLHUP;
++		return ++nfds;
++	} else {
++		fprintf(stderr,"too many mgmt connections\n");
++		close (new);
++		return nfds;
++	}
++}
++
++void cleanup(void)
++{
++	if(mgmt)
++		unlink(mgmt);
++}
++
++void usage(void)
++{
++	fprintf(stderr, "Usage: %s [-c configfile] [-M mgmt_socket] [-m mgmt_mode] [-p pidfile] [-d]\n", progname);
++	exit(1);
++}
++
++int main(int argc, char *argv[])
++{
++	char cmd[MAXCMD];
++	int npfd = 0;
++	struct pollfd pfd[MAXCONN];
++	int consoleindex = -1, mgmtindex = -1;
++	int i, n, daemon = 0;
++	char *pidfile = NULL, *configfile = NULL;
++	int option_index;
++	static struct option long_options[] = {
++		{"help",0 , 0, 'h'},
++		{"config",1 , 0, 'c'},
++		{"mgmt", 1, 0, 'M'},
++		{"mgmtmode", 1, 0, 'm'},
++		{"daemon",0 , 0, 'd'},
++		{"pidfile", 1, 0, 'p'},
++		{0,0,0,0}
++	};
++	progname=basename(argv[0]);
++	vderouter_init();
++	atexit(cleanup);
++
++	while(1) {
++		int c;
++		c = getopt_long (argc, argv, "hM:c:dmp:", long_options, &option_index);
++		if (c<0)
++			break;
++		switch (c) {
++			case 'h':
++				usage();
++				break;
++			case 'c':
++				configfile = strdup(optarg);
++				break;
++			case 'M':
++				mgmt=strdup(optarg);
++				break;
++			case 'm':
++				sscanf(optarg,"%o",&mgmtmode);
++				break;
++			case 'd':
++				daemon=1;
++				break;
++			case 'p':
++				pidfile=strdup(optarg);
++				break;
++			default:
++				usage();
++				break;
++		}
++	}
++	if (optind < argc)
++		usage();
++
++	if (configfile) {
++		int fd = open(configfile, O_RDONLY);
++		if (fd < 0) {
++			perror("Opening configuration file");
++			exit(1);
++		}
++		while (config_readline(fd,cmd) > 0) {
++			handle_cmd(STDOUT_FILENO, cmd);
++		}
++		close(fd);
++	}
++
++	if (daemon) {
++		close(STDIN_FILENO);
++		close(STDOUT_FILENO);
++		if (fork() > 0) {
++			exit (0);
++		}
++		if (fork() > 0) {
++			exit (0);
++		}
++		setsid();
++	} else {
++		consoleindex = npfd;
++		pfd[npfd].fd = STDIN_FILENO;
++		pfd[npfd].events = POLLIN | POLLHUP;
++		write(STDOUT_FILENO,header,strlen(header));
++		write(STDOUT_FILENO,prompt,strlen(prompt));
++		npfd++;
++	}
++
++	if (pidfile) {
++		int pid_fd = open(pidfile, O_WRONLY|O_CREAT|O_TRUNC, 0644);
++		char pidstr[7] = "";
++		if (pid_fd >= 0) {
++			snprintf(pidstr, 6, "%d", getpid());
++			write(pid_fd, pidstr, strlen(pidstr));
++			close(pid_fd);
++		} else {
++			fprintf(stderr, "Cannot open pidfile: %s", strerror(errno));
++		}
++	}
++
++	if(mgmt != NULL) {
++		int mgmtfd = openmgmt(mgmt);
++		mgmtindex = npfd;
++		pfd[npfd].fd = mgmtfd;
++		pfd[npfd].events = POLLIN | POLLHUP;
++		npfd++;
++	}
++
++
++	while(1) {
++		n = poll(pfd, npfd, -1);
++		if (n>0) {
++			for (i = 0; i < npfd; i++) {
++				if ((pfd[i].revents == POLLIN) && (i == mgmtindex)) {
++					npfd = newmgmtconn(pfd[i].fd, pfd, npfd);
++					break;
++				} else if (i != mgmtindex) {
++					if (pfd[i].revents == POLLIN) {
++						mgmtcommand(pfd[i].fd);
++					} else if (pfd[i].revents&POLLHUP) {
++						npfd = delmgmtconn(i, pfd, npfd);
++						break;
++					}
++				}
++			}
++		}
++	}
++	exit(0);
++}
+diff --git a/src/vde_router/vde_router.h b/src/vde_router/vde_router.h
+new file mode 100644
+index 000000000..7f83d4a71
+--- /dev/null
++++ b/src/vde_router/vde_router.h
+@@ -0,0 +1,168 @@
++/* VDE_ROUTER (C) 2007:2011 Daniele Lacamera
++ *
++ * Licensed under the GPLv2
++ *
++ */
++
++#ifndef _VDER_ROUTER
++#define _VDER_ROUTER
++#include <libvdeplug.h>
++#include <stdint.h>
++#include <pthread.h>
++#include "rbtree.h"
++#include <semaphore.h>
++
++struct vde_router;
++struct vder_queue;
++
++/* IP address (generic) */
++struct vder_ip4address {
++	struct vder_ip4address *next;
++	uint32_t address;
++	uint32_t netmask;
++};
++
++
++/*
++ * Filter interface
++ */
++enum filter_action {
++	filter_accept = 0,
++	filter_priority,
++	filter_reject,
++	filter_drop,
++	filter_invalid = 255
++};
++
++struct vder_filter {
++	struct vder_filter *next;
++	struct vder_iface *src_iface;
++	uint8_t proto;
++	struct vder_ip4address saddr;
++	struct vder_ip4address daddr;
++	uint16_t sport;
++	uint16_t dport;
++	int tos;
++	enum filter_action action;
++	uint8_t priority;
++	uint32_t stats_packets;
++	uint32_t stats_bytes;
++};
++
++
++
++/* route */
++struct vder_route {
++	struct vder_route *next;
++	uint32_t dest_addr;
++	uint32_t netmask;
++	uint32_t gateway;
++	uint16_t metric;
++	struct vder_iface *iface;
++};
++
++struct vder_timed_dequeue {
++	struct vder_timed_dequeue *next;
++	uint64_t last_out;
++	uint32_t interval;
++	struct vder_queue *q;
++};
++
++struct vde_router {
++	struct vder_iface *iflist;
++	struct vder_route *routing_table;
++	struct vder_filter *filtering_table;
++	struct vder_timed_dequeue *timed_dequeue;
++	pthread_mutex_t global_config_lock;
++	pthread_t timer;
++	uint32_t smallest_interval;
++};
++
++/* Buffer structure */
++
++struct __attribute__ ((__packed__)) vde_buff 
++{
++	struct vde_buff *next;
++	int len;
++	struct vder_iface *src;
++	uint8_t priority;
++	unsigned char data[0];
++};
++
++#define QTYPE_OUT 0
++#define QTYPE_PRIO 1
++
++#define PRIO_ARP 1
++#define PRIO_BESTEFFORT 15
++#define PRIO_NUM 32
++
++enum queue_policy_e {
++	QPOLICY_UNLIMITED = 0,
++	QPOLICY_FIFO,
++	QPOLICY_RED,
++	QPOLICY_TOKEN
++};
++
++/* Queue */
++struct vder_queue {
++	uint32_t n; /*< Number of packets */
++	uint32_t size; /*< this is in bytes */
++	pthread_mutex_t lock;
++	sem_t semaphore;
++	struct vde_buff *head;
++	struct vde_buff *tail;
++	uint8_t type;
++	sem_t *prio_semaphore;
++
++	enum queue_policy_e policy;
++	int (*may_enqueue)(struct vder_queue *q, struct vde_buff *vb);
++	int (*may_dequeue)(struct vder_queue *q);
++	union policy_opt_e {
++		struct {
++			uint32_t limit;
++			uint32_t stats_drop;
++		} fifo;
++		struct {
++			uint32_t min;
++			uint32_t max;
++			double P;
++			uint32_t limit;
++			uint32_t stats_drop;
++			uint32_t stats_probability_drop;
++		} red;
++		struct {
++			uint32_t limit;
++			uint32_t stats_drop;
++			unsigned long long interval;
++		} token;
++	}policy_opt;
++};
++
++
++struct vder_iface {
++	uint8_t interface_id;
++	struct vder_iface *next;
++	struct vder_ip4address *address_list;
++	uint8_t macaddr[6];
++	VDECONN *vdec;
++	char vde_sock[1024];
++	struct rb_root arp_table;
++	struct vder_queue out_q;
++
++	struct vder_queue prio_q[256];
++	sem_t prio_semaphore;
++
++	struct vde_router *router;
++	pthread_t sender;
++	pthread_t receiver;
++	pthread_t queue_manager;
++	pthread_t dhcpd;
++	pthread_t dhcpclient;
++	int dhcpd_started;
++	struct {
++		uint32_t sent;
++		uint32_t recvd;
++	} stats;
++};
++
++#endif
+diff --git a/src/vde_router/vder_arp.c b/src/vde_router/vder_arp.c
+new file mode 100644
+index 000000000..1aa6dc585
+--- /dev/null
++++ b/src/vde_router/vder_arp.c
+@@ -0,0 +1,190 @@
++/* VDE_ROUTER (C) 2007:2011 Daniele Lacamera
++ *
++ * Licensed under the GPLv2
++ *
++ */
++#include "vde_router.h"
++#include "vder_arp.h"
++#include "vde_headers.h"
++#include "vder_datalink.h"
++#include <unistd.h>
++#include <string.h>
++#include <stdlib.h>
++#include <errno.h>
++#include "rbtree.h"
++
++void vder_add_arp_entry(struct vder_iface *vif, struct vder_arp_entry *p)
++{
++	struct rb_node **link, *parent;
++	uint32_t hostorder_ip = ntohl(p->ipaddr);
++	link = &vif->arp_table.rb_node;
++	parent = *link;
++	while (*link) {
++		struct vder_arp_entry *entry;
++		parent = *link;
++		entry = rb_entry(parent, struct vder_arp_entry, rb_node);
++		if (ntohl(entry->ipaddr) > hostorder_ip) {
++			link = &(*link)->rb_left;
++		} else if (ntohl(entry->ipaddr) < hostorder_ip){
++			link = &(*link)->rb_right;
++		} else {
++			/* Update existing entry */
++			memcpy(entry->macaddr,p->macaddr,6);
++			return;
++		}
++	}
++	rb_link_node(&p->rb_node, parent, link);
++	rb_insert_color(&p->rb_node, &vif->arp_table);
++}
++
++struct vder_arp_entry *vder_get_arp_entry(struct vder_iface *vif, uint32_t addr)
++{
++	struct rb_node *node;
++	struct vder_arp_entry *found=NULL;
++	uint32_t hostorder_ip = ntohl(addr);
++	node = vif->arp_table.rb_node;
++	while(node) {
++		struct vder_arp_entry *entry = rb_entry(node, struct vder_arp_entry, rb_node);
++		if (ntohl(entry->ipaddr) > hostorder_ip)
++			node = node->rb_left;
++		else if (ntohl(entry->ipaddr) < hostorder_ip)
++			node = node->rb_right;
++		else {
++			found = entry;
++			break;
++		}
++	}
++	return found;
++}
++
++/**
++ * Prepare and send an arp query
++ */
++size_t vder_arp_query(struct vder_iface *oif, uint32_t tgt)
++{
++	struct vde_ethernet_header *vdeh;
++	struct vde_arp_header *ah;
++	struct vde_buff *vdb;
++
++	vdb = (struct vde_buff *) malloc(sizeof(struct vde_buff) + 60);
++	vdb->len = 60;
++
++	/* set frame type to ARP */
++	vdeh = ethhead(vdb);
++	vdeh->buftype = htons(PTYPE_ARP);
++
++	/* build arp payload */
++	ah = arphead(vdb);
++	ah->htype = htons(HTYPE_ETH);
++	ah->ptype = htons(PTYPE_IP);
++	ah->hsize = ETHERNET_ADDRESS_SIZE;
++	ah->psize = IP_ADDRESS_SIZE;
++	ah->opcode = htons(ARP_REQUEST);
++	memcpy(ah->s_mac, oif->macaddr,6);
++	ah->s_addr = vder_get_right_localip(oif, tgt); 
++	if (ah->s_addr == 0) {
++		if (oif->address_list) 
++			ah->s_addr = oif->address_list->address;
++		else
++			return -1;
++	}
++	memset(ah->d_mac,0,6);
++	ah->d_addr = tgt;
++	vdb->priority = PRIO_ARP;
++	return vder_sendto(oif, vdb, ETH_BCAST);
++}
++
++/**
++ * Reply to given arp request, if needed
++ */
++size_t vder_arp_reply(struct vder_iface *oif, struct vde_buff *vdb)
++{
++	struct vde_arp_header *ah;
++	uint32_t ipaddr_tmp;
++	struct vde_buff *vdb_copy;
++	ah = arphead(vdb);
++	ah->opcode = htons(ARP_REPLY);
++	memcpy(ah->d_mac, ah->s_mac, 6);
++    memcpy(ah->s_mac, oif->macaddr,6);
++	ipaddr_tmp = ah->s_addr;
++	ah->s_addr = ah->d_addr;
++	ah->d_addr = ipaddr_tmp;
++	vdb_copy = malloc(sizeof(struct vde_buff) + vdb->len);
++	memcpy(vdb_copy, vdb, (sizeof(struct vde_buff) + vdb->len));
++	vdb->priority = PRIO_ARP;
++	return vder_sendto(oif, vdb_copy, ah->d_mac);
++}
++
++/* Parse an incoming arp packet */
++int vder_parse_arp(struct vder_iface *vif, struct vde_buff *vdb)
++{
++	struct vde_arp_header *ah;
++	struct vder_arp_entry *ae=(struct vder_arp_entry*)malloc(sizeof(struct vder_arp_entry));
++	if (!ae)
++		return -1;
++	ah = arphead(vdb);
++	memcpy(ae->macaddr,ah->s_mac,6);
++	ae->ipaddr = ah->s_addr;
++
++	vder_add_arp_entry(vif, ae);
++
++	if(ntohs(ah->opcode) == ARP_REQUEST)
++		vder_arp_reply(vif, vdb);
++	return 0;
++}
++
++struct vder_arp_entry *vder_arp_get_record_by_macaddr(struct vder_iface *vif, uint8_t *mac)
++{
++	struct rb_node *node;
++	struct vder_arp_entry *found=NULL;
++	node = vif->arp_table.rb_node;
++	while(node) {
++		struct vder_arp_entry *entry = rb_entry(node, struct vder_arp_entry, rb_node);
++		if (memcmp(entry->macaddr, mac, ETHERNET_ADDRESS_SIZE) == 0) {
++			found = entry;
++			break;
++		}
++		node = node->rb_left;
++	}
++	if (found)
++		return found;
++	node = vif->arp_table.rb_node;
++	while(node) {
++		struct vder_arp_entry *entry = rb_entry(node, struct vder_arp_entry, rb_node);
++		if (memcmp(entry->macaddr, mac, ETHERNET_ADDRESS_SIZE) == 0) {
++			found = entry;
++			break;
++		}
++		node = node->rb_right;
++	}
++	return found;
++}
++
++int vder_arp_get_neighbors(struct vder_iface *vif, uint32_t *neighbors, int vector_size)
++{
++	int i = 0;
++	struct rb_node *node;
++	if (vector_size <= 0)
++		return -EINVAL;
++
++	node = vif->arp_table.rb_node;
++	while(node) {
++		struct vder_arp_entry *entry = rb_entry(node, struct vder_arp_entry, rb_node);
++		neighbors[i++] = entry->ipaddr;
++		if (i == vector_size)
++			return i;
++		node = node->rb_left;
++	}
++	node = vif->arp_table.rb_node;
++	if (!node)
++		return i;
++	node = node->rb_right;
++	while(node) {
++		struct vder_arp_entry *entry = rb_entry(node, struct vder_arp_entry, rb_node);
++		neighbors[i++] = entry->ipaddr;
++		if (i == vector_size)
++			return i;
++		node = node->rb_right;
++	}
++	return i;
++}
+diff --git a/src/vde_router/vder_arp.h b/src/vde_router/vder_arp.h
+new file mode 100644
+index 000000000..bdd8a401a
+--- /dev/null
++++ b/src/vde_router/vder_arp.h
+@@ -0,0 +1,33 @@
++/* VDE_ROUTER (C) 2007:2011 Daniele Lacamera
++ *
++ * Licensed under the GPLv2
++ *
++ */
++#ifndef __VDER_ARP
++#define __VDER_ARP
++#include "vde_router.h"
++#include <stdint.h>
++
++/* Interface */
++struct vder_arp_entry {
++	struct rb_node rb_node;
++	uint32_t ipaddr;
++	uint8_t macaddr[6];
++};
++
++void vder_add_arp_entry(struct vder_iface *vif, struct vder_arp_entry *p);
++struct vder_arp_entry *vder_get_arp_entry(struct vder_iface *vif, uint32_t addr);
++size_t vder_arp_query(struct vder_iface *oif, uint32_t tgt);
++size_t vder_arp_reply(struct vder_iface *oif, struct vde_buff *vdb);
++/* Parse an incoming arp packet */;
++int vder_parse_arp(struct vder_iface *vif, struct vde_buff *vdb);
++
++
++/* O(N) search by macaddr (required by dhcp server) */
++struct vder_arp_entry *vder_arp_get_record_by_macaddr(struct vder_iface *vif, uint8_t *mac);
++
++/* O(N) list of neighbors (required by olsr) */
++int vder_arp_get_neighbors(struct vder_iface *vif, uint32_t *neighbors, int vector_size);
++
++#endif
++
+diff --git a/src/vde_router/vder_datalink.c b/src/vde_router/vder_datalink.c
+new file mode 100644
+index 000000000..484bcc488
+--- /dev/null
++++ b/src/vde_router/vder_datalink.c
+@@ -0,0 +1,612 @@
++/* VDE_ROUTER (C) 2007:2011 Daniele Lacamera
++ *
++ * Licensed under the GPLv2
++ *
++ */
++#include "vde_router.h"
++#include "vde_headers.h"
++#include "vder_queue.h"
++#include "vder_packet.h"
++#include "vder_icmp.h"
++#include <unistd.h>
++#include <string.h>
++#include <stdlib.h>
++#include <libvdeplug.h>
++#include <errno.h>
++#include <pthread.h>
++#include <semaphore.h>
++#include <sys/time.h>
++#include <stdio.h>
++
++struct vde_router Router = {};
++
++
++
++/* MAC Addresses helpers. */
++
++const uint8_t macaddr_vendor[3] = {0,2,5};
++
++static uint8_t interfaces_list_lenght(void)
++{
++	uint8_t len = 0;
++	struct vder_iface *vif = Router.iflist;
++	while(vif) {
++		len++;
++		vif = vif->next;
++	}
++	return len;
++}
++
++static void new_macaddress(struct vder_iface *vif)
++{
++	uint16_t pid = getpid();
++	memcpy(vif->macaddr, macaddr_vendor, 3);
++	vif->macaddr[3] = (pid & 0xFF00) >> 8;
++	vif->macaddr[4] = (pid & 0xFF);
++	vif->macaddr[5] = vif->interface_id;
++}
++
++
++/* Queue management */
++
++static void queue_init(struct vder_queue *q)
++{
++	memset(q, 0, sizeof(struct vder_queue));
++	pthread_mutex_init(&q->lock, NULL);
++	qunlimited_setup(q);
++}
++
++#define microseconds(tv) (unsigned long long)((tv.tv_sec * 1000000) + (tv.tv_usec));
++
++static void *vder_timer_loop(void *arg)
++{
++	struct timeval now_tv;
++	struct timespec interval = {};
++	unsigned long long now;
++	struct vder_timed_dequeue *cur;
++	while(1) {
++		gettimeofday(&now_tv, NULL);
++		now = microseconds(now_tv);
++		cur = Router.timed_dequeue;
++		pthread_mutex_lock(&Router.global_config_lock);
++		while(cur) {
++			while (now > (cur->last_out + cur->interval)) {
++				if (cur->q) {
++					if (cur->q->type == QTYPE_OUT)
++						sem_post(&cur->q->semaphore);
++					else
++						sem_post(cur->q->prio_semaphore);
++					cur->last_out += cur->interval;
++					if (cur->last_out > now)
++						cur->last_out = now;
++				}
++			}
++			cur = cur->next;
++		}
++		pthread_mutex_unlock(&Router.global_config_lock);
++		interval.tv_sec = 0;
++		interval.tv_nsec = Router.smallest_interval / 1000;
++		if (Router.timed_dequeue) 
++			nanosleep(&interval, NULL);
++		else
++			sleep(2);
++	}
++	return 0;
++}
++
++
++void vder_timed_dequeue_add(struct vder_queue *q, uint32_t interval)
++{
++	struct vder_timed_dequeue *new = malloc(sizeof(struct vder_timed_dequeue));
++	struct timeval now_tv;
++	pthread_mutex_lock(&Router.global_config_lock);
++	gettimeofday(&now_tv, 0);
++	if (!new)
++		return;
++	new->interval = interval;
++	new->q = q;
++	new->last_out = microseconds(now_tv);
++	new->next = Router.timed_dequeue;
++	Router.timed_dequeue = new;
++	if (Router.smallest_interval > new->interval) {
++		Router.smallest_interval = new->interval;
++	}
++	pthread_mutex_unlock(&Router.global_config_lock);
++}
++
++void vder_timed_dequeue_del(struct vder_queue *q) 
++{
++	struct vder_timed_dequeue *prev = NULL, *cur = Router.timed_dequeue;
++	pthread_mutex_lock(&Router.global_config_lock);
++	while(cur) {
++		if (cur->q == q) {
++			if (!prev)
++				Router.timed_dequeue = cur->next;
++			else
++				prev->next = cur->next;
++			free(cur);
++			break;
++		}
++		prev = cur;
++		cur = cur->next;
++	}
++	pthread_mutex_unlock(&Router.global_config_lock);
++}
++
++/* Global router initialization */
++void vderouter_init(void)
++{
++	memset(&Router, 0, sizeof(Router));
++	pthread_create(&Router.timer, 0, vder_timer_loop, NULL); 
++	pthread_mutex_init(&Router.global_config_lock, NULL);
++	Router.smallest_interval = 100000;
++
++}
++
++/* Route management */
++
++uint32_t vder_get_right_localip(struct vder_iface *vif, uint32_t dst)
++{
++	struct vder_ip4address *cur = vif->address_list;
++	while(cur) {
++		if ((cur->address & cur->netmask) == (dst & cur->netmask))
++			return cur->address;
++		cur = cur->next;
++	}
++	return 0U;
++}
++
++uint32_t vder_get_netmask(struct vder_iface *vif, uint32_t localip)
++{
++	struct vder_ip4address *cur = vif->address_list;
++	while(cur) {
++		if (cur->address == localip)
++			return cur->netmask;
++		cur = cur->next;
++	}
++	return 0U;
++}
++
++uint32_t vder_get_network(uint32_t localip, uint32_t netmask)
++{
++	return (localip & netmask);
++}
++
++uint32_t vder_get_broadcast(uint32_t localip, uint32_t netmask)
++{
++	return (localip | (~netmask));
++}
++
++/* insert route, ordered by netmask, metric.
++ *  Default gw will be the last ones.
++ */
++int vder_route_add(uint32_t address, uint32_t netmask, uint32_t gateway, uint16_t metric, struct vder_iface *dst)
++{
++	struct vder_route *cur, *prev, *ro = malloc(sizeof(struct vder_route));
++	uint32_t l_addr, l_nm;
++	int ret = -1;
++	if (!ro)
++		return -1;
++	pthread_mutex_lock(&Router.global_config_lock);
++	l_addr = ntohl(address);
++	l_nm = ntohl(netmask);
++
++	/* Address is "network part" only */
++	l_addr &= l_nm;
++	ro->dest_addr = htonl(l_addr);
++	ro->netmask = netmask;
++	ro->gateway = gateway;
++	ro->metric = metric;
++	if (dst) 
++		ro->iface = dst;
++	else {
++		struct vder_route *next_hop = vder_get_route(gateway);
++		if (!next_hop) {
++			errno = EHOSTUNREACH;
++			goto out_unlock;
++		}
++		ro->iface = next_hop->iface; 
++	}
++
++	/* Is this route already there? */
++	cur = Router.routing_table;
++	while(cur) {
++		if ((cur->dest_addr == ro->dest_addr) && (cur->netmask == ro->netmask) && (cur->metric == ro->metric)) {
++			errno = EEXIST;
++			goto out_unlock;
++		}
++		cur = cur->next;
++	}
++
++	cur = Router.routing_table;
++	prev = NULL;
++	if (!cur) {
++		Router.routing_table = ro;
++		ro->next = NULL;
++	} else {
++		while(cur) {
++			if (ntohl(cur->netmask) < ntohl(ro->netmask) ||
++			  ((cur->netmask == ro->netmask) && (cur->metric < ro->metric))) {
++				if (!prev) {
++					Router.routing_table = ro;
++					ro->next = cur;
++					ret = 0; /* Successfully inserted as first member */
++					goto out_unlock;
++				} else {
++					prev->next = ro;
++					ro->next = cur;
++					ret = 0; /* Successfully inserted between prev and cur */
++					goto out_unlock;
++				}
++			}
++			prev = cur;
++			cur = cur->next;
++		}
++		/* if we got here, the current route must be inserted after the last one */
++		prev->next = ro;
++		ro->next = NULL;
++		ret = 0;
++	}
++
++out_unlock:
++	pthread_mutex_unlock(&Router.global_config_lock);
++	return ret;
++}
++
++int vder_route_del(uint32_t address, uint32_t netmask, int metric)
++{
++	struct vder_route *cur = Router.routing_table, *prev = NULL;
++	int retval = -1;
++	pthread_mutex_lock(&Router.global_config_lock);
++	while(cur) {
++		if ((cur->dest_addr == address) &&
++		 (cur->netmask == netmask) &&
++		 (cur->metric == metric)) {
++			if (prev) {
++				prev->next = cur->next;
++			} else {
++				Router.routing_table = cur->next;
++			}
++			free(cur);
++			retval = 0;
++			break;
++		}
++		prev = cur;
++		cur = cur->next;
++	}
++	pthread_mutex_unlock(&Router.global_config_lock);
++	return retval;
++}
++
++struct vder_route * vder_get_route(uint32_t address)
++{
++	struct vder_route *cur = Router.routing_table;
++	uint32_t l_addr, r_addr, r_netmask;
++	l_addr = ntohl(address);
++	while(cur) {
++		r_addr = ntohl(cur->dest_addr);
++		r_netmask = ntohl(cur->netmask);
++		if ((l_addr & r_netmask) == r_addr)
++			break;
++		cur = cur->next;
++	}
++	return cur;
++}
++
++int vder_default_route(uint32_t gateway, int metric)
++{
++	struct vder_route *dst = vder_get_route(gateway);
++	if (!dst || (!dst->dest_addr) || dst->gateway)
++		return -EINVAL;
++	return vder_route_add(0, 0, gateway, metric, dst->iface);
++}
++
++/* Interface management */
++
++struct vder_iface *vder_iface_new(char *sock, uint8_t *macaddr)
++{
++	struct vder_iface *vif = (struct vder_iface *) malloc(sizeof(struct vder_iface)), *cur;
++    struct vde_open_args open_args={.mode=0700};
++	int i;
++	if (!vif)
++		return NULL;
++
++	pthread_mutex_lock(&Router.global_config_lock);
++
++	vif->vdec = vde_open(sock, "vde_router", &open_args); 
++	if (vif->vdec == NULL) {
++		perror("vde_open");
++		free(vif);
++		vif = NULL;
++		goto out;
++	}
++
++	sem_init(&vif->out_q.semaphore, 0, 0);
++	sem_init(&vif->prio_semaphore, 0, 0);
++
++	queue_init(&vif->out_q);
++	vif->out_q.type = QTYPE_OUT;
++	for (i=0; i< PRIO_NUM; i++) {
++		queue_init(&(vif->prio_q[i]));
++		vif->prio_q[i].type = QTYPE_PRIO;
++		vif->prio_q[i].prio_semaphore = &vif->prio_semaphore;
++	}
++
++	vif->interface_id = interfaces_list_lenght();
++	if (!macaddr)
++		new_macaddress(vif);
++	else
++		memcpy(vif->macaddr, macaddr, 6);
++	vif->arp_table = RB_ROOT;
++	vif->address_list = NULL;
++	vif->router = &Router;
++	vif->next = NULL;
++	cur = Router.iflist;
++	strncpy(vif->vde_sock, sock, 1023);
++	if(!cur) {
++		Router.iflist = vif;
++	} else {
++		while(cur->next)
++			cur = cur->next;
++		cur->next = vif;
++	}
++
++out:
++	pthread_mutex_unlock(&Router.global_config_lock);
++	return vif;
++}
++
++int vder_iface_address_add(struct vder_iface *iface, uint32_t addr, uint32_t netmask)
++{
++	struct vder_ip4address *address = malloc(sizeof(struct vder_ip4address));
++	struct vder_ip4address *cur = iface->address_list;
++	if (!address) {
++		errno = EINVAL;
++		return -1;
++	}
++	while(cur) {
++		if (cur->address == addr) {
++			free(address);
++			errno = EADDRINUSE;
++			return -1;
++		}
++		cur = cur->next;
++	}
++
++	pthread_mutex_lock(&Router.global_config_lock);
++	address->address = addr;
++	address->netmask = netmask;
++	address->next = iface->address_list;
++	iface->address_list = address;
++	pthread_mutex_unlock(&Router.global_config_lock);
++
++	/* Add static route towards neightbors */
++	if (addr != (uint32_t) (-1))
++		vder_route_add(address->address, address->netmask, 0U, 1, iface);
++
++	return 0;
++}
++
++int vder_iface_address_del(struct vder_iface *iface, uint32_t addr)
++{
++	struct vder_ip4address *cur = iface->address_list, *prev = NULL;
++	uint32_t netmask = 0U;
++	pthread_mutex_lock(&Router.global_config_lock);
++	while(cur) {
++		if (cur->address == addr) {
++			if (prev) {
++				prev->next = cur->next;
++			} else {
++				iface->address_list = cur->next;
++			}
++			netmask = cur->netmask;
++			free(cur);
++		}
++		prev = cur;
++		cur = cur->next;
++	}
++	pthread_mutex_unlock(&Router.global_config_lock);
++
++	/* Get rid of the previously added route */
++	if(netmask) {
++		vder_route_del((addr & netmask), netmask, 1);
++		return 0;
++	} else {
++		errno = ENOENT;
++		return -1;
++	}
++}
++
++int vder_sendto(struct vder_iface *iface, struct vde_buff *vb, uint8_t *dst)
++{
++	struct vde_ethernet_header *eth;
++	if (!vb || !dst) {
++		errno = EINVAL;
++		return -1;
++	}
++	eth = ethhead(vb);
++	memcpy(eth->dst, dst, 6);
++	memcpy(eth->src, iface->macaddr, 6);
++	enqueue(&(iface->prio_q[vb->priority]), vb);
++	return 0;
++}
++
++
++int vder_recv(struct vder_iface *iface, struct vde_buff *vb, int len)
++{
++	vb->len = vde_recv(iface->vdec, vb->data, len, 0);
++	vb->src = iface;
++	return vb->len;
++}
++
++void *vder_core_send_loop(void *vde_if_arg)
++{
++	struct vder_iface *vde_if = vde_if_arg;
++	struct vde_buff *buf;
++	while(1) {
++		buf = dequeue(&vde_if->out_q);
++		if (!buf)
++			continue;
++		vde_send(vde_if->vdec, buf->data, buf->len, 0);
++		vde_if->stats.sent++;
++		free(buf);
++	}
++}
++
++void *vder_core_recv_loop(void *vde_if_arg)
++{
++	struct vder_iface *vde_if = vde_if_arg;
++	while(1) {
++		(void) vder_packet_recv(vde_if, -1);
++		vde_if->stats.recvd++;
++	}
++}
++
++void *vder_core_queuer_loop(void *vde_if_arg)
++{
++	struct vder_iface *vde_if = vde_if_arg;
++	struct vde_buff *buf;
++	while(1) {
++		buf = prio_dequeue(vde_if);
++		if (!buf)
++			continue;
++		enqueue(&vde_if->out_q, buf);
++	}
++}
++
++int vder_ipaddress_is_local(uint32_t addr) {
++	struct vder_iface *iface = Router.iflist;
++	while (iface) {
++		struct vder_ip4address *cur = iface->address_list;
++		while(cur) {
++			if ((cur->address == addr)|| (cur->address == (uint32_t)(-1))) {
++				return 1;
++			}
++			cur = cur->next;
++		}
++		iface = iface->next;
++	}
++	return 0;
++}
++
++int vder_ipaddress_is_broadcast(uint32_t addr) 
++{
++	struct vder_iface *iface = Router.iflist;
++	if (addr == (uint32_t)(-1))
++		return 1;
++	while (iface) {
++		struct vder_ip4address *cur = iface->address_list;
++		while(cur) {
++			if (((cur->address & cur->netmask) == (addr & cur->netmask)) && ((cur->netmask | addr) == 0xFFFFFFFF)) {
++				return 1;
++			}
++			cur = cur->next;
++		}
++		iface = iface->next;
++	}
++	return 0;
++}
++
++
++
++/* IP filter management */
++int vder_filter_del(struct vder_iface *src, uint8_t proto,
++		uint32_t saddr_address, uint32_t saddr_netmask,
++		uint32_t daddr_address, uint32_t daddr_netmask,
++		int tos,
++		uint16_t sport, uint16_t dport)
++{
++	struct vder_filter *prev = NULL, *search = Router.filtering_table;
++	while(search) {
++		if ( (search->src_iface == src) &&
++			(search->saddr.address == saddr_address) &&
++			(search->saddr.netmask  == saddr_netmask) &&
++			(search->daddr.address  == daddr_address) &&
++			(search->daddr.netmask  == daddr_netmask) &&
++			(search->sport == sport) &&
++			(search->dport == dport) &&
++			(search->tos == tos)
++		) {
++			if (!prev) {
++				Router.filtering_table = search->next;
++			} else {
++				prev->next = search->next;
++			}
++			free(search);
++			return 0;
++		}
++		prev = search;
++		search = search->next;
++	}
++	errno = ENOENT;
++	return -1;
++}
++
++int vder_filter_add(struct vder_iface *src, uint8_t proto,
++		uint32_t saddr_address, uint32_t saddr_netmask,
++		uint32_t daddr_address, uint32_t daddr_netmask,
++		int tos,
++		uint16_t sport, uint16_t dport,
++		enum filter_action action, uint8_t priority)
++{
++	struct vder_filter *new = malloc(sizeof(struct vder_filter));
++	if (!new)
++		return -1;
++	new->src_iface = src;
++	new->saddr.address = saddr_address;
++	new->saddr.netmask = saddr_netmask;
++	new->daddr.address = daddr_address;
++	new->daddr.netmask = daddr_netmask;
++	new->sport = sport;
++	new->dport = dport;
++	new->tos = tos;
++	new->proto = proto;
++	new->stats_packets = 0U;
++	new->stats_bytes = 0U;
++	new->action = action;
++	new->next = Router.filtering_table;
++	Router.filtering_table = new;
++	return 0;
++}
++
++int vder_filter(struct vde_buff *buf)
++{
++	struct iphdr *ip = iphead(buf);
++	struct vder_filter *selected = NULL, *cur = Router.filtering_table;
++	uint8_t foot[sizeof(struct iphdr) + 8];
++	while(cur) {
++		if ( (!cur->src_iface || (cur->src_iface == buf->src)) &&
++			 (!cur->proto     || (cur->proto == ip->protocol)) &&
++			 ( (cur->tos < 0) || ((uint8_t)cur->tos == ip->tos)) &&
++			 (!cur->saddr.address || (cur->saddr.address == (cur->saddr.netmask & ip->saddr))) &&
++			 (!cur->daddr.address || (cur->daddr.address == (cur->daddr.netmask & ip->daddr))) &&
++			 (!cur->sport || (cur->sport == transport_sport(buf))) &&
++			 (!cur->dport || (cur->dport == transport_dport(buf)))
++			) {
++				selected = cur;
++				break;
++		}
++		cur = cur->next;
++	}
++	if (selected) {
++		selected->stats_packets++;
++		selected->stats_bytes += buf->len;
++		switch(selected->action) {
++			case filter_priority:
++				buf->priority = selected->priority;
++				/* fall through */
++			case filter_accept:
++				return 0;
++
++			case filter_reject:
++				memcpy(foot, footprint(buf), sizeof(struct iphdr) + 8);
++				vder_icmp_filter(ip->saddr, foot);
++				/* fall through */
++			case filter_drop:
++				return 1;
++			default: 
++				return 0;
++		}
++	}
++	return 0; /* Default (no rule set): accept. */
++}
+diff --git a/src/vde_router/vder_datalink.h b/src/vde_router/vder_datalink.h
+new file mode 100644
+index 000000000..3509d2754
+--- /dev/null
++++ b/src/vde_router/vder_datalink.h
+@@ -0,0 +1,74 @@
++/* VDE_ROUTER (C) 2007:2011 Daniele Lacamera
++ *
++ * Licensed under the GPLv2
++ *
++ */
++#ifndef _VDER_DATALINK
++#define _VDER_DATALINK
++#include <stdint.h>
++#include "vde_headers.h"
++#include "vde_router.h"
++
++
++/* Global router initialization */
++void vderouter_init(void);
++
++/* Route management */
++
++uint32_t vder_get_right_localip(struct vder_iface *vif, uint32_t dst);
++uint32_t vder_get_netmask(struct vder_iface *vif, uint32_t localip);
++uint32_t vder_get_network(uint32_t localip, uint32_t netmask);
++uint32_t vder_get_broadcast(uint32_t localip, uint32_t netmask);
++
++int vder_route_add(uint32_t address, uint32_t netmask, uint32_t gateway, uint16_t metric, struct vder_iface *dst);
++int vder_route_del(uint32_t address, uint32_t netmask, int metric);
++struct vder_route * vder_get_route(uint32_t address);
++int vder_default_route(uint32_t gateway, int metric);
++uint32_t vder_get_right_localip(struct vder_iface *vif, uint32_t dst);
++int vder_ipaddress_is_local(uint32_t addr);
++int vder_ipaddress_is_broadcast(uint32_t addr);
++
++
++/* Interface management */
++
++struct vder_iface *vder_iface_new(char *sock, uint8_t *macaddr);
++int vder_iface_address_add(struct vder_iface *iface, uint32_t addr, uint32_t netmask);
++int vder_iface_address_del(struct vder_iface *iface, uint32_t addr);
++int vder_sendto(struct vder_iface *iface, struct vde_buff *vb, uint8_t *dst);
++
++struct vder_iface *vder_iface_new(char *sock, uint8_t *macaddr);
++int vder_iface_address_add(struct vder_iface *iface, uint32_t addr, uint32_t netmask);
++int vder_iface_address_del(struct vder_iface *iface, uint32_t addr);
++int vder_send(struct vder_iface *iface, struct vde_buff *vb, int len, uint8_t *dst);
++int vder_recv(struct vder_iface *iface, struct vde_buff *vb, int len);
++
++/* Thread-loops */
++void *vder_core_send_loop(void *);
++void *vder_core_recv_loop(void *);
++void *vder_core_queuer_loop(void *);
++
++/* timed dequeues (token bucket) */
++void vder_timed_dequeue_add(struct vder_queue *q, uint32_t interval);
++void vder_timed_dequeue_del(struct vder_queue *q);
++
++
++/* Filter */
++int vder_filter_del(struct vder_iface *src, uint8_t proto,
++		uint32_t saddr_address, uint32_t saddr_netmask,
++		uint32_t daddr_address, uint32_t daddr_netmask,
++		int tos,
++		uint16_t sport, uint16_t dport);
++int vder_filter_add(struct vder_iface *src, uint8_t proto,
++		uint32_t saddr_address, uint32_t saddr_netmask,
++		uint32_t daddr_address, uint32_t daddr_netmask,
++		int tos,
++		uint16_t sport, uint16_t dport,
++		enum filter_action action, uint8_t priority);
++
++int vder_filter(struct vde_buff *buf);
++
++/* Get TCP/UDP header ports */
++#define transport_sport(vdb) *((uint16_t *)((unsigned char*)(payload(vdb)) + 0))
++#define transport_dport(vdb) *((uint16_t *)((unsigned char*)(payload(vdb)) + 2))
++
++#endif
+diff --git a/src/vde_router/vder_dhcp.c b/src/vde_router/vder_dhcp.c
+new file mode 100644
+index 000000000..3edc0b05b
+--- /dev/null
++++ b/src/vde_router/vder_dhcp.c
+@@ -0,0 +1,468 @@
++#include "vder_udp.h"
++#include "vder_arp.h"
++#include "vder_dhcp.h"
++#include <stdio.h>
++#include <stdlib.h>
++#include <unistd.h>
++#include <sys/time.h>
++
++static struct vder_dhcp_negotiation *Negotiation_list;
++static struct vder_udp_socket *udpsock;
++static struct vder_dhcpd_settings Settings;
++
++static struct vder_dhcp_negotiation *
++get_negotiation_by_xid(uint32_t xid)
++{
++	struct vder_dhcp_negotiation *cur = Negotiation_list;
++	while (cur) {
++		if (cur->xid == xid)
++			return cur;
++		cur = cur->next;
++	}
++	return NULL;
++}
++
++static uint8_t dhcp_get_next_option(uint8_t *begin, uint8_t *data, int *len, uint8_t **nextopt)
++{
++	uint8_t *p;
++	uint8_t type;
++	uint8_t opt_len;
++
++	if (!begin)
++		p = *nextopt;
++	else
++		p = begin;
++
++	type = *p;
++	*nextopt = ++p;
++	if ((type == DHCPOPT_END) || (type == DHCPOPT_PAD)) {
++		memset(data, 0, *len);
++		len = 0;
++		return type;
++	}
++	opt_len = *p;
++	p++;
++	if (*len > opt_len)
++		*len = opt_len;
++	memcpy(data, p, *len);
++	*nextopt = p + opt_len;
++	return type;
++}
++
++static int is_options_valid(uint8_t *opt_buffer, int len)
++{
++	uint8_t *p = opt_buffer;
++	while (len > 0) {
++		if (*p == DHCPOPT_END)
++			return 1;
++		else if (*p == DHCPOPT_PAD) {
++			p++;
++			len--;
++		} else {
++			uint8_t opt_len;
++			p++;
++			len--;
++			opt_len = *p;
++			p += opt_len + 1;
++			len -= opt_len;
++		}
++	}
++	return 0;
++}
++
++#define DHCP_DATAGRAM_SIZE 300
++#define OPENDNS (htonl(0xd043dede))
++
++static void dhcpd_make_reply(struct vder_dhcp_negotiation *dn, uint8_t reply_type)
++{
++
++	uint8_t buf_out[DHCP_DATAGRAM_SIZE] = {0};
++	struct dhcphdr *dh_out = (struct dhcphdr *) buf_out;
++	uint32_t server_address = vder_get_right_localip(Settings.iface, Settings.pool_next);
++	uint32_t netmask = vder_get_netmask(Settings.iface, server_address);
++	uint32_t bcast = vder_get_broadcast(server_address, netmask);
++	uint32_t dns_server = OPENDNS;
++
++	int sent = 0;
++
++
++	memcpy(dh_out->hwaddr, dn->hwaddr, HLEN_ETHER);
++	dh_out->op = DHCP_OP_REPLY;
++	dh_out->htype = HTYPE_ETHER;
++	dh_out->hlen = HLEN_ETHER;
++	dh_out->xid = dn->xid;
++	dh_out->yiaddr = dn->arp->ipaddr;
++	dh_out->siaddr = server_address;
++	dh_out->dhcp_magic = DHCPD_MAGIC_COOKIE;
++
++	/* Option: msg type, len 1 */
++	dh_out->options[0] = DHCPOPT_MSGTYPE;
++	dh_out->options[1] = 1;
++	dh_out->options[2] = reply_type;
++
++	/* Option: server id, len 4 */
++	dh_out->options[3] = DHCPOPT_SERVERID;
++	dh_out->options[4] = 4;
++	memcpy(dh_out->options + 5, &server_address, 4);
++
++	/* Option: Lease time, len 4 */
++	dh_out->options[9] = DHCPOPT_LEASETIME;
++	dh_out->options[10] = 4;
++	memcpy(dh_out->options + 11, &Settings.lease_time, 4);
++
++	/* Option: Netmask, len 4 */
++	dh_out->options[15] = DHCPOPT_NETMASK;
++	dh_out->options[16] = 4;
++	memcpy(dh_out->options + 17, &netmask, 4);
++
++	/* Option: Router, len 4 */
++	dh_out->options[21] = DHCPOPT_ROUTER;
++	dh_out->options[22] = 4;
++	memcpy(dh_out->options + 23, &server_address, 4);
++
++	/* Option: Broadcast, len 4 */
++	dh_out->options[27] = DHCPOPT_BCAST;
++	dh_out->options[28] = 4;
++	memcpy(dh_out->options + 29, &bcast, 4);
++
++	/* Option: DNS, len 4 */
++	dh_out->options[33] = DHCPOPT_DNS;
++	dh_out->options[34] = 4;
++	memcpy(dh_out->options + 35, &dns_server, 4);
++
++	dh_out->options[40] = DHCPOPT_END;
++
++	sent = vder_udpsocket_sendto(udpsock, buf_out, DHCP_DATAGRAM_SIZE, dh_out->yiaddr, DHCP_CLIENT_PORT);
++	if (sent < 0) {
++		perror("udp sendto");
++	}
++}
++
++#define dhcpd_make_offer(x) dhcpd_make_reply(x, DHCP_MSG_OFFER)
++#define dhcpd_make_ack(x) dhcpd_make_reply(x, DHCP_MSG_ACK)
++
++#define ip_inrange(x) ((ntohl(x) >= ntohl(Settings.pool_start)) && (ntohl(x) <= ntohl(Settings.pool_end)))
++
++static void dhcp_recv(uint8_t *buffer, int len)
++{
++	struct dhcphdr *dhdr = (struct dhcphdr *) buffer;
++	struct vder_dhcp_negotiation *dn = get_negotiation_by_xid(dhdr->xid);
++	uint8_t *nextopt, opt_data[20], opt_type;
++	int opt_len = 20;
++
++
++	if (!is_options_valid(dhdr->options, len - sizeof(struct dhcphdr)))
++		return;
++
++
++
++	if (!dn) {
++		dn = malloc(sizeof(struct vder_dhcp_negotiation));
++		memset(dn, 0, sizeof(struct vder_dhcp_negotiation));
++		dn->xid = dhdr->xid;
++		dn->state = DHCPSTATE_DISCOVER;
++		memcpy(dn->hwaddr, dhdr->hwaddr, HLEN_ETHER);
++		dn->next = Negotiation_list;
++		Negotiation_list = dn;
++		dn->arp = vder_arp_get_record_by_macaddr(Settings.iface, dn->hwaddr);
++		if (!dn->arp) {
++			dn->arp = malloc(sizeof(struct vder_arp_entry));
++			if (!dn->arp)
++				return;
++			memcpy(dn->arp->macaddr, dn->hwaddr, HLEN_ETHER);
++			dn->arp->ipaddr = Settings.pool_next;
++			Settings.pool_next = htonl(ntohl(Settings.pool_next) + 1);
++			vder_add_arp_entry(Settings.iface, dn->arp);
++		}
++	}
++
++	if (!ip_inrange(dn->arp->ipaddr))
++		return;
++
++
++	opt_type = dhcp_get_next_option(dhdr->options, opt_data, &opt_len, &nextopt);
++	while (opt_type != DHCPOPT_END) {
++		/* parse interesting options here */
++		if (opt_type == DHCPOPT_MSGTYPE) {
++
++			/* server simple state machine */
++			uint8_t msg_type = opt_data[0];
++			if (msg_type == DHCP_MSG_DISCOVER) {
++				dhcpd_make_offer(dn);
++				dn->state = DHCPSTATE_OFFER;
++				return;
++			} else if (msg_type == DHCP_MSG_REQUEST) {
++				dhcpd_make_ack(dn);
++				return;
++			}
++		}
++		opt_len = 20;
++		opt_type = dhcp_get_next_option(NULL, opt_data, &opt_len, &nextopt);
++	}
++}
++
++
++void *dhcp_server_loop(void *ptr_settings)
++{
++	uint32_t from_ip;
++	uint16_t from_port;
++
++	unsigned char buffer[2000];
++	int len;
++
++	memcpy(&Settings, ptr_settings, sizeof(struct vder_dhcpd_settings));
++	Settings.pool_next = Settings.pool_start;
++	free(ptr_settings);
++
++
++	if(!Settings.iface)
++		return NULL;
++	if (!udpsock)
++		udpsock = vder_udpsocket_open(DHCPD_PORT);
++	if (!udpsock)
++		return NULL;
++
++
++	while(1) {
++		len = vder_udpsocket_recvfrom(udpsock, buffer, 2000, &from_ip, &from_port, -1);
++		if (len < 0) {
++			perror("udp recv");
++			return NULL;
++		}
++		if ((from_ip == 0) && (from_port == DHCP_CLIENT_PORT)) {
++			dhcp_recv(buffer, len);
++		}
++	}
++}
++
++
++
++struct dhcp_client_cookie
++{
++	uint32_t xid;
++	uint32_t address;
++	uint32_t netmask;
++	uint32_t gateway;
++	uint32_t server_id;
++	uint32_t lease_time;
++	struct vder_udp_socket *socket;
++	struct vder_iface *iface;
++	struct timeval start_time;
++	int attempt;
++	enum dhcp_negotiation_state state;
++};
++
++static int dhclient_recv_offer(struct dhcp_client_cookie *cli, uint8_t *data, int len)
++{
++	struct dhcphdr *dhdr = (struct dhcphdr *) data;
++	uint8_t *nextopt, opt_data[20], opt_type;
++	int opt_len = 20;
++	uint8_t msg_type = 0xFF;
++
++
++	if (dhdr->xid != cli->xid) {
++		printf("bad xid\n");
++		return 0;
++	}
++
++	if (!is_options_valid(dhdr->options, len - sizeof(struct dhcphdr))) {
++		printf("bad options\n");
++		return 0;
++	}
++
++	cli->address = dhdr->yiaddr;
++
++	opt_type = dhcp_get_next_option(dhdr->options, opt_data, &opt_len, &nextopt);
++	while (opt_type != DHCPOPT_END) {
++		if (opt_type == DHCPOPT_MSGTYPE)
++			msg_type = opt_data[0];
++		if ((opt_type == DHCPOPT_LEASETIME) && (opt_len == 4))
++			memcpy(&cli->lease_time, opt_data, 4);
++		if ((opt_type == DHCPOPT_ROUTER) && (opt_len == 4))
++			memcpy(&cli->gateway, opt_data, 4);
++		if ((opt_type == DHCPOPT_NETMASK) && (opt_len == 4))
++			memcpy(&cli->netmask, opt_data, 4);
++		if ((opt_type == DHCPOPT_SERVERID) && (opt_len == 4))
++			memcpy(&cli->server_id, opt_data, 4);
++
++		opt_len = 20;
++		opt_type = dhcp_get_next_option(NULL, opt_data, &opt_len, &nextopt);
++	}
++	if ((msg_type != DHCP_MSG_OFFER) || !cli->lease_time || !cli->netmask || !cli->server_id )
++		return 0;
++	return 1;
++}
++
++static int dhclient_recv_ack(struct dhcp_client_cookie *cli, uint8_t *data, int len)
++{
++	struct dhcphdr *dhdr = (struct dhcphdr *) data;
++	uint8_t *nextopt, opt_data[20], opt_type;
++	int opt_len = 20;
++	uint8_t msg_type = 0xFF;
++
++	if (dhdr->xid != cli->xid)
++		return 0;
++
++	if (!is_options_valid(dhdr->options, len - sizeof(struct dhcphdr)))
++		return 0;
++
++
++	opt_type = dhcp_get_next_option(dhdr->options, opt_data, &opt_len, &nextopt);
++	while (opt_type != DHCPOPT_END) {
++		if (opt_type == DHCPOPT_MSGTYPE)
++			msg_type = opt_data[0];
++
++		opt_len = 20;
++		opt_type = dhcp_get_next_option(NULL, opt_data, &opt_len, &nextopt);
++	}
++	if (msg_type != DHCP_MSG_ACK)
++		return 0;
++	return 1;
++}
++
++
++static void dhclient_send(struct dhcp_client_cookie *cli, uint8_t msg_type)
++{
++
++	uint8_t buf_out[DHCP_DATAGRAM_SIZE] = {0};
++	struct dhcphdr *dh_out = (struct dhcphdr *) buf_out;
++	int sent = 0;
++	struct timeval now;
++	int i = 0;
++	gettimeofday(&now, NULL);
++
++	memcpy(dh_out->hwaddr, cli->iface->macaddr, HLEN_ETHER);
++	dh_out->op = DHCP_OP_REQUEST;
++	dh_out->htype = HTYPE_ETHER;
++	dh_out->hlen = HLEN_ETHER;
++	dh_out->xid = cli->xid;
++	dh_out->secs = (msg_type == DHCP_MSG_REQUEST)?0:htons(now.tv_sec - cli->start_time.tv_sec);
++	dh_out->dhcp_magic = DHCPD_MAGIC_COOKIE;
++
++
++	/* Option: msg type, len 1 */
++	dh_out->options[i++] = DHCPOPT_MSGTYPE;
++	dh_out->options[i++] = 1;
++	dh_out->options[i++] = msg_type;
++
++	if (msg_type == DHCP_MSG_REQUEST) {
++		dh_out->options[i++] = DHCPOPT_REQIP;
++		dh_out->options[i++] = 4;
++		dh_out->options[i++] = (ntohl(cli->address) & 0xFF000000) >> 24;
++		dh_out->options[i++] = (ntohl(cli->address) & 0xFF0000) >> 16;
++		dh_out->options[i++] = (ntohl(cli->address) & 0xFF00) >> 8;
++		dh_out->options[i++] = (ntohl(cli->address) & 0xFF);
++		dh_out->options[i++] = DHCPOPT_SERVERID;
++		dh_out->options[i++] = 4;
++		dh_out->options[i++] = (ntohl(cli->server_id) & 0xFF000000) >> 24;
++		dh_out->options[i++] = (ntohl(cli->server_id) & 0xFF0000) >> 16;
++		dh_out->options[i++] = (ntohl(cli->server_id) & 0xFF00) >> 8;
++		dh_out->options[i++] = (ntohl(cli->server_id) & 0xFF);
++	}
++
++	/* Option: req list, len 4 */
++	dh_out->options[i++] = DHCPOPT_PARMLIST;
++	dh_out->options[i++] = 5;
++	dh_out->options[i++] = DHCPOPT_NETMASK;
++	dh_out->options[i++] = DHCPOPT_BCAST;
++	dh_out->options[i++] = DHCPOPT_TIME;
++	dh_out->options[i++] = DHCPOPT_ROUTER;
++	dh_out->options[i++] = DHCPOPT_HOSTNAME;
++
++	dh_out->options[i] = DHCPOPT_END;
++
++	sent = vder_udpsocket_sendto_broadcast(cli->socket, buf_out, DHCP_DATAGRAM_SIZE, cli->iface, (uint32_t)(-1), DHCPD_PORT);
++	if (sent < 0) {
++		perror("udp sendto");
++	}
++}
++
++void dhcp_retry(struct dhcp_client_cookie *client)
++{
++	const int MAX_RETRY = 5;
++	if (++client->attempt > MAX_RETRY) {
++		gettimeofday(&client->start_time, NULL);
++		client->attempt = 0;
++		client->xid ^= client->start_time.tv_usec ^ client->start_time.tv_sec;
++	}
++}
++
++void *dhcp_client_loop(void *iface)
++{
++	unsigned char buffer[2000];
++	int len;
++	struct dhcp_client_cookie client;
++	uint16_t from_port;
++	uint32_t from_ip;
++
++	memset(&client, 0, sizeof(client));
++
++	client.iface = (struct vder_iface *) iface;
++	client.state = DHCPSTATE_DISCOVER;
++	client.socket = vder_udpsocket_open(DHCP_CLIENT_PORT);
++	if (!client.socket) {
++		perror("dhcp client socket");
++		return NULL;
++	}
++
++	gettimeofday(&client.start_time, NULL);
++	client.attempt = 0;
++	client.xid = client.start_time.tv_usec ^ client.start_time.tv_sec;
++
++
++	if (!client.socket) {
++		return NULL;
++	}
++
++	while(1) {
++		switch (client.state) {
++			case DHCPSTATE_DISCOVER:
++				dhcp_retry(&client);
++				dhclient_send(&client, DHCP_MSG_DISCOVER);
++				len = vder_udpsocket_recvfrom(client.socket, buffer, 2000, &from_ip, &from_port, 5000);
++				if (len < 0) {
++					perror("udp recv");
++					return NULL;
++				}
++				if (len > 0) {
++					if (dhclient_recv_offer(&client, buffer, len)) {
++						client.state = DHCPSTATE_REQUEST;
++					}
++				}
++				break;
++			case DHCPSTATE_REQUEST:
++				dhclient_send(&client, DHCP_MSG_REQUEST);
++				len = vder_udpsocket_recvfrom(client.socket, buffer, 2000, &from_ip, &from_port, 10000);
++				if (len < 0) {
++					perror("udp recv");
++					return NULL;
++				}
++				if (len == 0)
++					break;
++				if (dhclient_recv_ack(&client, buffer, len))
++					client.state = DHCPSTATE_ACK;
++				else {
++					if (client.address)
++						vder_iface_address_del(client.iface, client.address);
++					client.state = DHCPSTATE_DISCOVER;
++					client.address = 0;
++					client.netmask = 0;
++					client.gateway = 0;
++				}
++				break;
++			case DHCPSTATE_ACK:
++				vder_iface_address_del(client.iface, (uint32_t)-1);
++				vder_iface_address_add(client.iface, client.address, client.netmask);
++				if ((client.gateway != 0) && ((client.gateway & client.netmask) == (client.address & client.netmask)))
++					vder_route_add(0, 0, client.gateway, 1, client.iface);
++				sleep(ntohl(client.lease_time));
++				client.state = DHCPSTATE_REQUEST;
++				break;
++			default:
++				client.address = 0;
++				client.netmask = 0;
++				client.gateway = 0;
++				client.state = DHCPSTATE_DISCOVER;
++		}
++	}
++}
+diff --git a/src/vde_router/vder_dhcp.h b/src/vde_router/vder_dhcp.h
+new file mode 100644
+index 000000000..1961a7aa7
+--- /dev/null
++++ b/src/vde_router/vder_dhcp.h
+@@ -0,0 +1,110 @@
++#ifndef __VDER_DHCPD
++#define __VDER_DHCPD
++
++#include "vder_arp.h"
++
++#define DHCPD_PORT (htons(67))
++#define DHCP_CLIENT_PORT (htons(68))
++
++
++#define DHCP_GATEWAY 0x01
++#define DHCP_DNS 0x02
++
++struct vder_dhcpd_settings
++{
++	struct vder_iface *iface;
++	uint32_t my_ip;
++	uint32_t netmask;
++	uint32_t pool_start;
++	uint32_t pool_next;
++	uint32_t pool_end;
++	unsigned long lease_time;
++	uint8_t flags;
++};
++
++#define DHCP_OP_REQUEST 1
++#define DHCP_OP_REPLY   2
++
++#define HTYPE_ETHER 1
++#define HLEN_ETHER 6
++
++#define FLAG_BROADCAST (htons(0xF000))
++
++#define DHCPD_MAGIC_COOKIE (htonl(0x63825363))
++
++/* DHCP OPTIONS, RFC2132 */
++#define DHCPOPT_PAD 			0x00
++#define DHCPOPT_NETMASK 		0x01
++#define DHCPOPT_TIME			0x02
++#define DHCPOPT_ROUTER 			0x03
++#define DHCPOPT_DNS				0x06
++#define DHCPOPT_HOSTNAME		0x0c
++#define DHCPOPT_DOMAINNAME		0x0f
++#define DHCPOPT_MTU 			0x1a
++#define DHCPOPT_BCAST 			0x1c
++#define DHCPOPT_NETBIOSNS	 	0x2c
++#define DHCPOPT_NETBIOSSCOPE 	0x2f
++
++#define DHCPOPT_REQIP			0x32
++#define DHCPOPT_LEASETIME 		0x33
++#define DHCPOPT_MSGTYPE			0x35
++#define DHCPOPT_SERVERID 		0x36
++#define DHCPOPT_PARMLIST 		0x37
++#define DHCPOPT_RENEWALTIME 	0x3a
++#define DHCPOPT_REBINDINGTIME	0x3b
++#define DHCPOPT_DOMAINSEARCH	0x77
++#define DHCPOPT_STATICROUTE		0x79
++#define DHCPOPT_END 			0xFF
++
++/* DHCP MESSAGE TYPE */
++#define DHCP_MSG_DISCOVER 		1
++#define DHCP_MSG_OFFER 			2
++#define DHCP_MSG_REQUEST		3
++#define DHCP_MSG_DECLINE		4
++#define DHCP_MSG_ACK			5
++#define DHCP_MSG_NAK			6
++#define DHCP_MSG_RELEASE		7
++#define DHCP_MSG_INFORM			8
++
++
++struct __attribute__((packed)) dhcphdr
++{
++	uint8_t op;
++	uint8_t htype;
++	uint8_t hlen;
++	uint8_t hops; //zero
++	uint32_t xid; //store this in the request
++	uint16_t secs; // ignore
++	uint16_t flags;
++	uint32_t ciaddr; // client address - if asking for renewal
++	uint32_t yiaddr; // your address (client)
++	uint32_t siaddr; // dhcp offered address
++	uint32_t giaddr; // relay agent, bootp.
++	uint8_t hwaddr[6];
++	uint8_t hwaddr_padding[10];
++	char 	hostname[64];
++	char	bootp_filename[128]; 
++	uint32_t dhcp_magic;
++	uint8_t options[0];
++};
++
++enum dhcp_negotiation_state {
++	DHCPSTATE_DISCOVER = 0,
++	DHCPSTATE_OFFER,
++	DHCPSTATE_REQUEST,
++	DHCPSTATE_ACK
++};
++
++struct vder_dhcp_negotiation {
++	struct vder_dhcp_negotiation *next;
++	uint32_t xid;
++	uint8_t hwaddr[6];
++	uint32_t assigned_address;
++	enum dhcp_negotiation_state state;
++	struct vder_arp_entry *arp;
++};
++
++void *dhcp_server_loop(void *ptr_iface);
++void *dhcp_client_loop(void *ptr_iface);
++
++#endif
+diff --git a/src/vde_router/vder_icmp.c b/src/vde_router/vder_icmp.c
+new file mode 100644
+index 000000000..cfe316375
+--- /dev/null
++++ b/src/vde_router/vder_icmp.c
+@@ -0,0 +1,86 @@
++/* VDE_ROUTER (C) 2007:2011 Daniele Lacamera
++ *
++ * Licensed under the GPLv2
++ *
++ */
++#include "vde_router.h"
++#include "vde_headers.h"
++#include "vder_packet.h"
++#include <unistd.h>
++#include <string.h>
++#include <stdlib.h>
++#include <errno.h>
++
++static int vder_icmp_send(uint32_t dest, uint8_t type, uint8_t code, uint8_t *foot)
++{
++	struct icmp *ich;
++	struct vde_buff *vdb;
++	uint8_t *dst_footprint;
++
++	vdb = malloc(sizeof(struct vde_buff) + sizeof(struct vde_ethernet_header) +
++		sizeof(struct iphdr) + 8 + sizeof(struct iphdr) + 8);
++
++	vdb->len = sizeof(struct vde_ethernet_header) + sizeof(struct iphdr) + 8 + sizeof(struct iphdr) + 8;
++
++	ich = (struct icmp *)payload(vdb);
++	ich->icmp_type = type;
++	ich->icmp_code = code;
++    ich->icmp_hun.ih_pmtu.ipm_void = 0;
++	ich->icmp_hun.ih_pmtu.ipm_nextmtu = htons(1500);
++	dst_footprint = (uint8_t *)payload(vdb) + 8;
++	memcpy(dst_footprint, foot, sizeof(struct iphdr) + 8);
++
++	ich->icmp_cksum = 0;
++	ich->icmp_cksum = htons(net_checksum(payload(vdb), vdb->len - sizeof(struct iphdr) - 14));
++
++	vdb->priority = 31;
++	vder_packet_send(vdb, dest, PROTO_ICMP);
++	return 0;
++}
++
++/**
++ * Send a ICMP_PROTOCOL_UNREACHABLE if so.
++ *
++ */
++int vder_icmp_service_unreachable(uint32_t dst, uint8_t *foot)
++{
++	return vder_icmp_send(dst, ICMP_UNREACH, ICMP_UNREACH_PROTOCOL, foot);
++}
++int vder_icmp_host_unreachable(uint32_t dst, uint8_t *foot)
++{
++	return vder_icmp_send(dst, ICMP_UNREACH, ICMP_UNREACH_HOST, foot);
++}
++
++int vder_icmp_ttl_expired(uint32_t dst, uint8_t *foot)
++{
++	return vder_icmp_send(dst, ICMP_TIME_EXCEEDED, ICMP_TIMXCEED_INTRANS, foot);
++}
++
++int vder_icmp_filter(uint32_t dst, uint8_t *foot)
++{
++	return vder_icmp_send(dst, ICMP_UNREACH, ICMP_UNREACH_FILTER_PROHIB, foot);
++}
++
++/* Parse an incoming icmp packet
++ */
++int vder_icmp_recv(struct vde_buff *vdb)
++{
++	struct icmp *ich;
++	struct iphdr *iph;
++	uint32_t tmp_ipaddr;
++	struct vde_buff *vdb_copy = malloc(vdb->len + sizeof(struct vde_buff));
++	ich = (struct icmp *) payload(vdb);
++	iph = iphead(vdb);
++	if (ich->icmp_type == ICMP_ECHO){
++		tmp_ipaddr = iph->saddr;
++		iph->saddr = iph->daddr;
++		iph->daddr = tmp_ipaddr;
++		ich->icmp_type = ICMP_ECHOREPLY;
++		ich->icmp_cksum = 0;
++		ich->icmp_cksum = htons(net_checksum(payload(vdb), vdb->len - sizeof(struct iphdr) - 14));
++		iph->check = htons(vder_ip_checksum(iph));
++	}
++	memcpy(vdb_copy, vdb, sizeof(struct vde_buff) + vdb->len);
++	vder_packet_send(vdb_copy, iph->daddr, PROTO_ICMP);
++	return 0;
++}
+diff --git a/src/vde_router/vder_icmp.h b/src/vde_router/vder_icmp.h
+new file mode 100644
+index 000000000..9f1a6f991
+--- /dev/null
++++ b/src/vde_router/vder_icmp.h
+@@ -0,0 +1,13 @@
++/* VDE_ROUTER (C) 2007:2011 Daniele Lacamera
++ *
++ * Licensed under the GPLv2
++ *
++ */
++#ifndef __VDER_ICMP
++#define __VDER_ICMP
++int vder_icmp_service_unreachable(uint32_t dst, uint8_t *foot);
++int vder_icmp_host_unreachable(uint32_t dst, uint8_t *foot);
++int vder_icmp_recv(struct vde_buff *vdb);
++int vder_icmp_filter(uint32_t dst, uint8_t *foot);
++int vder_icmp_ttl_expired(uint32_t dst, uint8_t *foot);
++#endif
+diff --git a/src/vde_router/vder_olsr.c b/src/vde_router/vder_olsr.c
+new file mode 100644
+index 000000000..2a1240ea8
+--- /dev/null
++++ b/src/vde_router/vder_olsr.c
+@@ -0,0 +1,726 @@
++/* VDE_ROUTER (C) 2007:2012 Daniele Lacamera
++ *
++ * Licensed under the GPLv2
++ * OLSR implementation loosely based on RFC3626 :)
++ *
++ */
++#include "vder_udp.h"
++#include "vder_arp.h"
++#include "vder_olsr.h"
++#include <stdio.h>
++#include <stdlib.h>
++#include <unistd.h>
++#include <sys/time.h>
++
++
++#define OLSR_MSG_INTERVAL 2000
++#define HOST_NETMASK (htonl(0xFFFFFFFF))
++#ifndef MIN
++# define MIN(a,b) (a<b?a:b)
++#endif
++
++#define fresher(a,b) ((a>b) || ((b - a) > 32768))
++
++static struct vder_udp_socket *udpsock;
++static struct olsr_setup *settings;
++uint16_t my_ansn = 0;
++uint16_t fresh_ansn = 0;
++
++struct olsr_route_entry
++{
++	struct olsr_route_entry *next;
++	long 		time_left;
++	uint32_t			destination;
++	struct olsr_route_entry *gateway;
++	struct vder_iface 	*iface;
++	uint16_t			metric;
++	uint8_t				link_type;
++	struct olsr_route_entry *children;
++	uint16_t ansn;
++	uint8_t lq, nlq;
++	uint8_t *advertised_tc;
++};
++
++static struct olsr_route_entry *Local_interfaces;
++
++struct olsr_route_entry *olsr_get_ethentry(struct vder_iface *vif)
++{
++	struct olsr_route_entry *cur = Local_interfaces;
++	while(cur) {
++		if (cur->iface == vif)
++			return cur;
++		cur = cur->next;
++	}
++	return NULL;
++}
++
++static struct olsr_route_entry *get_next_hop(struct olsr_route_entry *dst)
++{
++	struct olsr_route_entry *hop = dst;
++	while(hop) {
++		if(hop->metric <= 1)
++			return hop;
++		hop = hop->gateway;
++	}
++	return NULL;
++}
++
++static inline void olsr_route_add(struct olsr_route_entry *el)
++{
++	struct olsr_route_entry *nexthop;
++
++	if (fresher(fresh_ansn, my_ansn))
++		my_ansn = fresh_ansn + 1;
++	else
++		my_ansn++;
++
++	if (el->gateway) {
++		/* 2-hops route or more */
++		el->next = el->gateway->children;
++		el->gateway->children = el;
++		nexthop = get_next_hop(el);
++		vder_route_add(el->destination, HOST_NETMASK, nexthop->destination, el->metric, NULL);
++		el->link_type = OLSRLINK_MPR;
++	} else if (el->iface) {
++		/* neighbor */
++		struct olsr_route_entry *ei = olsr_get_ethentry(el->iface);
++		el->link_type = OLSRLINK_SYMMETRIC;
++		if (ei) {
++			el->next = ei->children;
++			ei->children = el;
++		}
++	}
++}
++
++static inline void olsr_route_del(struct olsr_route_entry *r)
++{
++	struct olsr_route_entry *cur, *prev = NULL, *lst;
++	if (fresher(fresh_ansn, my_ansn))
++		my_ansn = fresh_ansn + 1;
++	if (r->gateway) {
++		lst = r->gateway->children;
++	} else if (r->iface) {
++		lst = olsr_get_ethentry(r->iface);
++	} else {
++		lst = Local_interfaces;
++	}
++	cur = lst, prev = NULL;
++	while(cur) {
++		if (cur == r) {
++			/* found */
++			if (r->gateway) {
++				vder_route_del(r->destination, HOST_NETMASK, r->metric);
++
++				if (!prev)
++					r->gateway->children = r->next;
++				else
++					prev->next = r->next;
++			}
++
++			while (r->children) {
++				olsr_route_del(r->children);
++				/* Orphans must die. */
++				free(r->children);
++			}
++			return;
++		}
++		prev = cur;
++		cur = cur->next;
++	}
++}
++
++static struct olsr_route_entry *get_route_by_address(struct olsr_route_entry *lst, uint32_t ip)
++{
++	struct olsr_route_entry *found;
++	if(lst) {
++		if (lst->destination == ip) {
++			return lst;
++		}
++		found = get_route_by_address(lst->children, ip);
++		if (found)
++			return found;
++		found = get_route_by_address(lst->next, ip);
++		if (found)
++			return found;
++	}
++	return NULL;
++}
++
++static void refresh_neighbors(struct vder_iface *iface)
++{
++	uint32_t neighbors[256];
++	int i;
++	struct olsr_route_entry *found = NULL, *ancestor = NULL;
++	int n_vec_size = vder_arp_get_neighbors(iface, neighbors, 256);
++
++	ancestor = olsr_get_ethentry(iface);
++	if (!ancestor)
++		return;
++
++	for (i = 0; i < n_vec_size; i++) {
++		found = get_route_by_address(Local_interfaces, neighbors[i]);
++		if (found) {
++			if (found->metric > 1) { /* Reposition among neighbors */
++				olsr_route_del(found);
++				found->gateway = olsr_get_ethentry(iface);
++				found->iface = iface;
++				found->metric = 1;
++				found->lq = 0xFF;
++				found->nlq = 0xFF;
++				olsr_route_add(found);
++			}
++			found->link_type = OLSRLINK_SYMMETRIC;
++			found->time_left = (OLSR_MSG_INTERVAL << 2);
++		} else {
++			struct olsr_route_entry *e = malloc(sizeof (struct olsr_route_entry));
++			if (!e) {
++				perror("olsr: adding local route entry");
++				return;
++			}
++			memset(e, 0, sizeof(struct olsr_route_entry));
++			e->destination = neighbors[i];
++			e->link_type = OLSRLINK_SYMMETRIC;
++			e->time_left = (OLSR_MSG_INTERVAL << 2);
++			e->gateway = olsr_get_ethentry(iface);
++			e->iface = iface;
++			e->metric = 1;
++			e->lq = 0xFF;
++			e->nlq = 0xFF;
++			olsr_route_add(e);
++		}
++	}
++}
++
++static void olsr_garbage_collector(struct olsr_route_entry *sublist)
++{
++	if(!sublist)
++		return;
++	if ((sublist->time_left--) <= 0) {
++		olsr_route_del(sublist);
++		free(sublist);
++		return;
++	}
++	olsr_garbage_collector(sublist->children);
++	olsr_garbage_collector(sublist->next);
++}
++
++
++static void refresh_routes(void)
++{
++	int i;
++	struct olsr_route_entry *local, *neighbor = NULL;
++
++	/* Refresh local entries */
++
++	/* Step 1: set zero expire time for local addresses and neighbors*/
++	local = Local_interfaces;
++	while(local) {
++		local->time_left = 0;
++		neighbor = local->children;
++		while (neighbor && (neighbor->metric < 2)) {
++			//printf("Setting to zero. Neigh: %08x metric %d\n", neighbor->destination, neighbor->metric);
++			neighbor->time_left = 0;
++			neighbor = neighbor->next;
++		}
++		local = local->next;
++	}
++
++	/* Step 2: refresh timer for entries that are still valid. 
++	 * Add new entries.
++	 */
++	for (i = 0; i < settings->n_ifaces; i++) {
++		struct vder_iface *icur = settings->ifaces[i];
++		local = olsr_get_ethentry(icur);
++		if (local) {
++			local->time_left = (OLSR_MSG_INTERVAL << 2);
++		} else if (icur->address_list) {
++			struct olsr_route_entry *e = malloc(sizeof (struct olsr_route_entry));
++			if (!e) {
++				perror("olsr: adding local route entry");
++				return;
++			}
++			memset(e, 0, sizeof(struct olsr_route_entry));
++			e->destination = icur->address_list->address; /* Always pick the first address */
++			e->time_left = (OLSR_MSG_INTERVAL << 2);
++			e->iface = icur;
++			e->metric = 0;
++			e->lq = 0xFF;
++			e->nlq = 0xFF;
++			e->next = Local_interfaces;
++			Local_interfaces = e;
++		}
++		refresh_neighbors(icur);
++	}
++
++}
++
++static int olsr_build_hello_neighbors(uint8_t *buf, int size)
++{
++	int ret = 0;
++	struct olsr_route_entry *local, *neighbor;
++	struct olsr_neighbor *dst = (struct olsr_neighbor *) buf;
++	local = Local_interfaces;
++	while (local) {
++		neighbor = local->children;
++		while (neighbor) {
++			struct olsr_link *li = (struct olsr_link *) (buf + ret);
++			li->link_code = neighbor->link_type;
++			li->reserved = 0;
++			li->link_msg_size = htons(sizeof(struct olsr_neighbor) + sizeof(struct olsr_link));
++			ret += sizeof(struct olsr_link);
++			dst = (struct olsr_neighbor *) (buf+ret);
++			dst->addr = neighbor->destination;
++			dst->nlq = neighbor->nlq;
++			dst->lq = neighbor->lq;
++			dst->reserved = 0;
++			ret += sizeof(struct olsr_neighbor);
++			if (ret >= size)
++				return ret - sizeof(struct olsr_neighbor) - sizeof(struct olsr_link);
++			neighbor = neighbor->next;
++		}
++		local = local->next;
++	}
++	return ret;
++}
++
++static int olsr_build_tc_neighbors(uint8_t *buf, int size)
++{
++	int ret = 0;
++	struct olsr_route_entry *local, *neighbor;
++	struct olsr_neighbor *dst = (struct olsr_neighbor *) buf;
++	local = Local_interfaces;
++	while (local) {
++		neighbor = local->children;
++		while (neighbor) {
++			dst->addr = neighbor->destination;
++			dst->nlq = neighbor->nlq;
++			dst->lq = neighbor->lq;
++			dst->reserved = 0;
++			ret += sizeof(struct olsr_neighbor);
++			dst = (struct olsr_neighbor *) (buf + ret);
++			if (ret >= size)
++				return ret - sizeof(struct olsr_neighbor);
++			neighbor = neighbor->next;
++		}
++		local = local->next;
++	}
++	return ret;
++}
++
++static int olsr_build_mid(uint8_t *buf, int size, struct vder_iface *excluded)
++{
++	int ret = 0;
++	struct olsr_route_entry *local;
++	uint32_t *dst = (uint32_t *) buf;
++	local = Local_interfaces;
++	while (local) {
++		if (local->iface != excluded) {
++			*dst = local->destination;
++			ret += sizeof(uint32_t);
++			dst = (uint32_t *) (buf + ret);
++			if (ret >= size)
++				return ret - sizeof(uint32_t);
++		}
++		local = local->next;
++	}
++	return ret;
++}
++
++static uint16_t pkt_counter = 0;
++static void olsr_make_dgram(struct vder_iface *vif)
++{
++	uint8_t dgram[2000];
++	int size = 0, r;
++	struct vder_ip4address *ep;
++	struct olsrhdr *ohdr;
++	uint32_t netmask, bcast;
++	struct olsrmsg *msg_hello, *msg_mid, *msg_tc;
++	struct olsr_hmsg_hello *hello;
++	struct olsr_hmsg_tc *tc;
++	static uint8_t hello_counter = 0, mid_counter = 0, tc_counter = 0;
++
++	ohdr = (struct olsrhdr *)dgram;
++	size += sizeof(struct olsrhdr);
++
++	ep = vif->address_list; /* Take first address */
++	if (!ep)
++		return;
++	netmask = vder_get_netmask(vif, ep->address);
++	bcast = vder_get_broadcast(ep->address, netmask);
++
++
++
++	/* HELLO Message */
++
++	msg_hello = (struct olsrmsg *) (dgram + size);
++	size += sizeof(struct olsrmsg);
++	msg_hello->type = OLSRMSG_HELLO;
++	msg_hello->vtime = 0x2c;
++	msg_hello->orig = ep->address;
++	msg_hello->ttl = 1;
++	msg_hello->hop = 0;
++	msg_hello->seq = htons(hello_counter++);
++	hello = (struct olsr_hmsg_hello *)(dgram + size);
++	size += sizeof(struct olsr_hmsg_hello);
++	hello->reserved = 0;
++	hello->htime = 0x05; /* Todo: find and define values */
++	hello->willingness = 0x07;
++	r = olsr_build_hello_neighbors(dgram + size, 2000 - size);
++	if (r < 0) {
++		perror("Building hello message");
++		return;
++	}
++	size += r;
++	msg_hello->size = htons(sizeof(struct olsrmsg) + sizeof(struct olsr_hmsg_hello) + r);
++
++	/* MID Message */
++
++	msg_mid = (struct olsrmsg *)(dgram + size);
++	size += sizeof(struct olsrmsg);
++	msg_mid->type = OLSRMSG_MID;
++	msg_mid->vtime = 60; /* one hot minute */
++	msg_mid->orig = ep->address;
++	msg_mid->ttl = 0xFF;
++	msg_mid->hop = 0;
++	msg_mid->seq = htons(mid_counter++);
++	r = olsr_build_mid(dgram + size, 2000 - size, vif);
++	if (r < 0) {
++		perror("Building mid message");
++		return;
++	}
++	if (r == 0) {
++		size -= sizeof(struct olsrmsg);
++	} else {
++		size += r;
++		msg_mid->size = htons(sizeof(struct olsrmsg) + r);
++	}
++
++	msg_tc = (struct olsrmsg *) (dgram + size);
++	size += sizeof(struct olsrmsg);
++	msg_tc->type = OLSRMSG_TC;
++	msg_tc->vtime = 0x2c; 
++	msg_tc->orig = ep->address;
++	msg_tc->ttl = 0xFF;
++	msg_tc->hop = 0;
++	msg_tc->seq = htons(tc_counter++);
++	tc = (struct olsr_hmsg_tc *)(dgram + size);
++	size += sizeof(struct olsr_hmsg_tc);
++	tc->ansn = htons(my_ansn);
++	r = olsr_build_tc_neighbors(dgram + size, 2000 - size);
++	if (r < 0) {
++		perror("Building tc message");
++		return;
++	}
++	size += r;
++	msg_tc->size = htons(sizeof(struct olsrmsg) + sizeof(struct olsr_hmsg_tc) + r);
++
++	/* Finalize olsr packet */
++	ohdr->len = htons(size);
++	ohdr->seq = htons(pkt_counter++);
++
++	/* Send the thing out */
++	if ( 0 > vder_udpsocket_sendto_broadcast(udpsock, dgram, size, vif, bcast, OLSR_PORT) ) {
++		perror("olsr send");
++	}
++}
++
++static inline void arp_storm(uint32_t addr)
++{
++	int i;
++	for (i = 0; i < settings->n_ifaces; i++) {
++		vder_arp_query(settings->ifaces[i], addr);
++	}
++}
++
++static void recv_mid(uint8_t *buffer, int len, struct olsr_route_entry *origin) 
++{
++	int parsed = 0;
++	uint32_t *address;
++	struct olsr_route_entry *e;
++
++	if (len % sizeof(uint32_t)) /*drop*/
++		return;
++
++	while (len > parsed) {
++		address = (uint32_t *)(buffer + parsed);
++		e = get_route_by_address(Local_interfaces, *address);
++		if (!e) {
++			e = malloc(sizeof(struct olsr_route_entry));
++			if (!e) {
++				perror("olsr allocating route");
++				return;
++			}
++			memset(e, 0, sizeof(struct olsr_route_entry));
++			e->time_left = (OLSR_MSG_INTERVAL << 2);
++			e->destination = *address;
++			e->gateway = origin;
++			e->iface = origin->iface;
++			e->metric = origin->metric + 1;
++			e->lq = origin->lq;
++			e->nlq = origin->nlq;
++			olsr_route_add(e);
++			arp_storm(e->destination);
++		} else if (e->metric > (origin->metric + 1)) {
++			olsr_route_del(e);
++			e->metric = origin->metric;
++			e->gateway = origin;
++			olsr_route_add(e);
++		}
++		parsed += sizeof(uint32_t);
++	}
++}
++
++static void recv_hello(uint8_t *buffer, int len, struct olsr_route_entry *origin)
++{
++	struct olsr_link *li;
++	struct olsr_route_entry *e;
++	int parsed = 0;
++	struct olsr_neighbor *neigh;
++
++	if (!origin)
++		return;
++
++	while (len > parsed) {
++		li = (struct olsr_link *) buffer;
++		neigh = (struct olsr_neighbor *)(buffer + parsed + sizeof(struct olsr_link));
++		parsed += ntohs(li->link_msg_size);
++		e = get_route_by_address(Local_interfaces, neigh->addr);
++		if (!e) {
++			e = malloc(sizeof(struct olsr_route_entry));
++			if (!e) {
++				perror("olsr allocating route");
++				return;
++			}
++			memset(e, 0, sizeof(struct olsr_route_entry));
++			e->time_left = (OLSR_MSG_INTERVAL << 2);
++			e->destination = neigh->addr;
++			e->gateway = origin;
++			e->iface = origin->iface;
++			e->metric = origin->metric + 1;
++			e->link_type = OLSRLINK_UNKNOWN;
++			e->lq = MIN(origin->lq, neigh->lq);
++			e->nlq = MIN(origin->nlq, neigh->nlq);
++			olsr_route_add(e);
++			arp_storm(e->destination);
++		} else if ((e->gateway != origin) && (e->metric > (origin->metric + 1))) {
++			olsr_route_del(e);
++			e->metric = origin->metric + 1;
++			e->gateway = origin;
++			olsr_route_add(e);
++		}
++	}
++}
++
++static int reconsider_topology(uint8_t *buf, int size, struct olsr_route_entry *e)
++{
++	struct olsr_hmsg_tc *tc = (struct olsr_hmsg_tc *) buf;
++	uint16_t new_ansn = ntohs(tc->ansn);
++	int parsed = sizeof(struct olsr_hmsg_tc);
++	struct olsr_route_entry *rt;
++	struct olsr_neighbor *n;
++
++	if (e->advertised_tc && fresher(new_ansn, e->ansn))
++	{
++		free(e->advertised_tc);
++		e->advertised_tc = NULL;
++	}
++
++	if (fresher(new_ansn, fresh_ansn)) {
++		fresh_ansn = new_ansn;
++	}
++
++	if (!e->advertised_tc) {
++		e->advertised_tc = malloc(size);
++		if (!e) {
++			perror("Allocating forward packet");
++			return -1;
++		}
++		memcpy(e->advertised_tc, buf, size);
++		e->ansn = new_ansn;
++		while (parsed < size) {
++			n = (struct olsr_neighbor *) (buf + parsed);
++			parsed += sizeof(struct olsr_neighbor);
++			rt = get_route_by_address(Local_interfaces, n->addr);
++			if (rt && (rt->gateway == e)) {
++				/* Refresh existing node */
++				rt->time_left = e->time_left;
++			} else if (!rt || (rt->metric > (e->metric + 1)) || (rt->nlq < n->nlq)) {
++				if (!rt) {
++					rt = malloc(sizeof (struct olsr_route_entry));
++					memset(rt, 0, sizeof(struct olsr_route_entry));
++					rt->destination = n->addr;
++				} else {
++					olsr_route_del(rt);
++				}
++				rt->link_type = OLSRLINK_UNKNOWN;
++				rt->iface = e->iface;
++				rt->gateway = e;
++				rt->metric = e->metric + 1;
++				rt->lq = n->lq;
++				rt->nlq = n->nlq;
++				rt->time_left = e->time_left;
++				olsr_route_add(rt);
++			}
++		}
++		return 1;
++	} else {
++		return 0;
++	}
++}
++
++static void olsr_recv(uint8_t *buffer, int len)
++{
++	struct olsrmsg *msg;
++	struct olsr_hmsg_tc *msg_tc;
++	struct olsrhdr *outohdr, *oh = (struct olsrhdr *) buffer;
++	struct olsr_route_entry *ancestor;
++	int parsed = 0;
++	uint8_t outmsg[2000];
++	int outsize = 0;
++	if (len != ntohs(oh->len)) {
++		return;
++	}
++	parsed += sizeof(struct olsrhdr);
++
++	outohdr = (struct olsrhdr *)outmsg;
++	outsize += sizeof(struct olsrhdr);
++
++	while (len > parsed) {
++		struct olsr_route_entry *origin;
++		msg = (struct olsrmsg *) (buffer + parsed);
++		origin = get_route_by_address(Local_interfaces, msg->orig);
++		if (!origin) {
++			/* Discard this msg while it is not from known host */
++			arp_storm(msg->orig);
++			parsed += ntohs(msg->size);
++			continue;
++		}
++		/* We know this is a Master host and a neighbor */
++		origin->link_type = OLSRLINK_MPR;
++		origin->time_left = 288; /* TODO: get from msg->vtime */
++		switch(msg->type) {
++			case OLSRMSG_HELLO:
++				ancestor = olsr_get_ethentry(origin->iface);
++				if ((origin->metric > 1) && ancestor) {
++					olsr_route_del(origin);
++					origin->gateway = ancestor;
++					origin->metric = 1;
++					olsr_route_add(origin);
++				}
++				recv_hello(buffer + parsed + sizeof(struct olsrmsg) + sizeof(struct olsr_hmsg_hello),
++					ntohs(msg->size) - (sizeof(struct olsrmsg)) - sizeof(struct olsr_hmsg_hello),
++					origin);
++				msg->ttl = 0;
++				break;
++			case OLSRMSG_MID:
++				recv_mid(buffer + parsed + sizeof(struct olsrmsg), ntohs(msg->size) - (sizeof(struct olsrmsg)), origin);
++				break;
++			case OLSRMSG_TC:
++				msg_tc = (struct olsr_hmsg_tc *) (buffer + parsed);
++				if (reconsider_topology(buffer + parsed + sizeof(struct olsrmsg), ntohs(msg->size) - (sizeof(struct olsrmsg)), origin) < 1)
++					msg->ttl = 0;
++				else {
++					msg->hop = origin->metric;
++				}
++				break;
++			default:
++				return;
++		}
++		if ((--msg->ttl) > 0) {
++			memcpy(outmsg + outsize, msg, ntohs(msg->size));
++			outsize += ntohs(msg->size);
++		}
++		parsed += ntohs(msg->size);
++	}
++
++	if (outsize > sizeof(struct olsrhdr)) {
++		int j;
++		uint32_t netmask, bcast;
++		struct vder_ip4address *addr;
++		struct vder_iface *vif;
++		/* Finalize FWD packet */
++		outohdr->len = htons(outsize);
++		outohdr->seq = htons(pkt_counter++);
++
++
++		/* Send the thing out */
++		for (j = 0; j < settings->n_ifaces; j++) {
++			vif = settings->ifaces[j];
++			addr = vif->address_list; /* Take first address */
++			if (!addr)
++				continue;
++			netmask = vder_get_netmask(vif, addr->address);
++			bcast = vder_get_broadcast(addr->address, netmask);
++			if ( 0 > vder_udpsocket_sendto_broadcast(udpsock, outmsg, outsize, vif, bcast, OLSR_PORT) ) {
++				perror("olsr send");
++			}
++		}
++	}
++}
++
++
++void *vder_olsr_loop(void *olsr_settings)
++{
++	uint32_t from_ip;
++	uint16_t from_port;
++	unsigned char buffer[2000];
++	int len;
++	int i;
++	struct timeval now, last_out;
++
++	settings = (struct olsr_setup *) olsr_settings;
++	if(settings->n_ifaces <= 0)
++		return NULL;
++	if (!udpsock)
++		udpsock = vder_udpsocket_open(OLSR_PORT);
++	if (!udpsock)
++		return NULL;
++
++	for (i = 0; i < settings->n_ifaces; i++) {
++		struct vder_ip4address *a = settings->ifaces[i]->address_list;
++		while(a) {
++			struct olsr_route_entry *e = malloc(sizeof(struct olsr_route_entry));
++			if (!e) {
++				perror("initializing interfaces");
++				return NULL;
++			}
++			memset(e, 0, sizeof(struct olsr_route_entry));
++			e->destination = a->address;
++			e->link_type = OLSRLINK_SYMMETRIC;
++			e->time_left = (OLSR_MSG_INTERVAL << 2);
++			e->gateway = NULL;
++			e->iface = settings->ifaces[i];
++			e->metric = 0;
++			e->lq = 0xFF;
++			e->nlq = 0xFF;
++			e->next = Local_interfaces;
++			Local_interfaces = e;
++			a = a->next;
++		}
++	}
++
++	gettimeofday(&last_out, NULL);
++	refresh_routes();
++
++	while(1) {
++		len = vder_udpsocket_recvfrom(udpsock, buffer, 100, &from_ip, &from_port, -1);
++		if (len < 0) {
++			perror("udp recv");
++			return NULL;
++		}
++		if ((len > 0) && (from_port == OLSR_PORT)) {
++			olsr_recv(buffer, len);
++		}
++		usleep(200000);
++		gettimeofday(&now, NULL);
++		if (last_out.tv_sec == now.tv_sec)
++			continue;
++		/* Remove expired entries */
++		olsr_garbage_collector(Local_interfaces);
++		refresh_routes();
++		last_out = now;
++		for (i = 0; i < settings->n_ifaces; i++)
++			olsr_make_dgram(settings->ifaces[i]);
++	}
++}
++
+diff --git a/src/vde_router/vder_olsr.h b/src/vde_router/vder_olsr.h
+new file mode 100644
+index 000000000..fb7d53734
+--- /dev/null
++++ b/src/vde_router/vder_olsr.h
+@@ -0,0 +1,71 @@
++#ifndef __VDER_OLSR
++#define __VDER_OLSR
++
++#include "vder_arp.h"
++#include "vde_router.h"
++
++#define OLSR_PORT (htons(698))
++
++#define OLSRMSG_HELLO 	0xc9
++#define OLSRMSG_MID		0x03
++#define OLSRMSG_TC		0xca
++
++#define OLSRLINK_SYMMETRIC 0x06
++#define OLSRLINK_UNKNOWN 0x08
++#define OLSRLINK_MPR	0x0a
++
++struct __attribute__((packed)) olsr_link
++{
++	uint8_t link_code;
++	uint8_t reserved;
++	uint16_t link_msg_size;
++};
++
++struct __attribute__((packed)) olsr_neighbor
++{
++	uint32_t addr;
++	uint8_t  lq;
++	uint8_t  nlq;
++	uint16_t reserved;
++};
++
++struct __attribute__((packed)) olsr_hmsg_hello
++{
++	uint16_t reserved;
++	uint8_t htime;
++	uint8_t willingness;
++};
++
++struct __attribute__((packed)) olsr_hmsg_tc
++{
++	uint16_t ansn;
++	uint16_t reserved;
++};
++
++
++struct __attribute__((packed)) olsrmsg
++{
++	uint8_t type;
++	uint8_t vtime;
++	uint16_t size;
++	uint32_t orig;
++	uint8_t ttl;
++	uint8_t hop;
++	uint16_t seq;
++};
++
++struct __attribute__((packed)) olsrhdr
++{
++	uint16_t len;
++	uint16_t seq;
++};
++
++
++struct olsr_setup {
++	int n_ifaces;
++	struct vder_iface *ifaces[64];
++};
++
++void *vder_olsr_loop(void *olsr_setup);
++
++#endif
+diff --git a/src/vde_router/vder_packet.c b/src/vde_router/vder_packet.c
+new file mode 100644
+index 000000000..dd46d55aa
+--- /dev/null
++++ b/src/vde_router/vder_packet.c
+@@ -0,0 +1,223 @@
++/* VDE_ROUTER (C) 2007:2011 Daniele Lacamera
++ *
++ * Licensed under the GPLv2
++ *
++ */
++#include "vder_datalink.h"
++#include "vder_arp.h"
++#include "vder_icmp.h"
++#include "vder_udp.h"
++#include <sys/poll.h>
++#include <unistd.h>
++#include <string.h>
++#include <stdlib.h>
++#include <errno.h>
++#include <netinet/in.h>
++#include <arpa/inet.h>
++
++#define MAX_PACKET_SIZE 2000
++
++char *vder_ntoa(uint32_t addr)
++{
++	struct in_addr a;
++	char *res;
++	a.s_addr = addr;
++	res = inet_ntoa(a);
++	return res;
++}
++
++/*
++ * Forward the ip packet to next hop. TTL is decreased,
++ * checksum is set again for coherence, and TTL overdue
++ * packets are not forwarded.
++ */
++int vder_ip_decrease_ttl(struct vde_buff *vdb){
++	struct iphdr *iph=iphead(vdb);
++	iph->ttl--;
++	iph->check++;
++	if(iph->ttl < 1)
++		return -1; /* TODO: send ICMP with TTL expired */
++	else
++		return 0;
++}
++/**
++ * Calculate checksum of a given string
++ */
++uint16_t net_checksum(void *inbuf, int len)
++{
++	uint8_t *buf = (uint8_t *) inbuf;
++	uint32_t sum = 0, carry=0;
++	int i=0;
++	for(i=0; i<len; i++){
++		if (i%2){
++			sum+=buf[i];
++		}else{
++			sum+=( buf[i] << 8);
++		}
++	}
++	carry = (sum&0xFFFF0000) >>16;
++	sum = (sum&0x0000FFFF);
++	return (uint16_t) ~(sum + carry)  ;
++}
++
++/**
++ * Calculate ip-header checksum. it's a wrapper for checksum();
++ */
++uint16_t vder_ip_checksum(struct iphdr *iph)
++{
++	iph->check = 0U;
++	return net_checksum((uint8_t*)iph,sizeof(struct iphdr));
++}
++
++#define DEFAULT_TTL 64
++
++int vder_ip_input(struct vde_buff *vb)
++{
++	struct iphdr *iph = iphead(vb);
++	int recvd = 0;
++	int is_broadcast = vder_ipaddress_is_broadcast(iph->daddr);
++
++	if (!vder_ipaddress_is_local(iph->daddr) && !is_broadcast)
++		return 0;
++
++	switch(iph->protocol) {
++		case PROTO_ICMP:
++			vder_icmp_recv(vb);
++			recvd=1;
++			break;
++		case PROTO_UDP:
++			if (vder_udp_recv(vb) == 1)
++				recvd=1;
++			break;
++	}
++	if (!recvd && !is_broadcast)
++		vder_icmp_service_unreachable((uint32_t)iph->saddr, footprint(vb));
++	return 1;
++}
++
++int vder_packet_send(struct vde_buff *vdb, uint32_t dst_ip, uint8_t protocol)
++{
++	struct iphdr *iph=iphead(vdb);
++	struct vde_ethernet_header *eth = ethhead(vdb);
++	struct vder_route *ro;
++	struct vder_arp_entry *ae;
++
++	uint32_t destination = dst_ip;
++
++	eth->buftype = htons(PTYPE_IP);
++
++	memset(iph,0x45,1);
++	iph->tos = 0;
++	iph->frag_off=htons(0x4000); // Don't fragment.
++	iph->tot_len = htons(vdb->len - sizeof(struct vde_ethernet_header));
++	iph->id = 0;
++	iph->protocol = protocol;
++	iph->ttl = DEFAULT_TTL;
++	iph->daddr = dst_ip;
++	ro = vder_get_route(dst_ip);
++	if (!ro)
++		return -1;
++
++	if (ro->gateway != 0) {
++		destination = ro->gateway;
++	}
++	iph->saddr = vder_get_right_localip(ro->iface, destination);
++	iph->check = htons(vder_ip_checksum(iph));
++	ae = vder_get_arp_entry(ro->iface, destination);
++	if (!ae) {
++		vder_arp_query(ro->iface, destination);
++		return -1;
++	}
++	return vder_sendto(ro->iface, vdb, ae->macaddr);
++}
++
++int vder_packet_broadcast(struct vde_buff *vdb, struct vder_iface *iface, uint32_t dst_ip, uint8_t protocol)
++{
++	struct iphdr *iph=iphead(vdb);
++	struct vde_ethernet_header *eth = ethhead(vdb);
++	uint8_t bcast_macaddr[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
++
++	eth->buftype = htons(PTYPE_IP);
++
++	memset(iph,0x45,1);
++	iph->tos = 0;
++	iph->frag_off=htons(0x4000); // Don't fragment.
++	iph->tot_len = htons(vdb->len - sizeof(struct vde_ethernet_header));
++	iph->id = 0;
++	iph->protocol = protocol;
++	iph->ttl = DEFAULT_TTL;
++	iph->daddr = dst_ip;
++	if (dst_ip != (htonl((uint32_t) -1)))
++		iph->saddr = vder_get_right_localip(iface, iph->daddr);
++	else
++		iph->saddr = 0;
++	iph->check = htons(vder_ip_checksum(iph));
++	return vder_sendto(iface, vdb, bcast_macaddr);
++}
++
++void vder_packet_recv(struct vder_iface *vif, int timeout)
++{
++	struct pollfd pfd;
++	int pollr;
++	struct vde_buff *vb = NULL, *packet = NULL;
++	char temp_buffer[MAX_PACKET_SIZE];
++	pfd.events = POLLIN;
++	pfd.fd = vde_datafd(vif->vdec);
++	pollr = poll(&pfd, 1, timeout);
++	if (pollr <= 0)
++		return;
++	vb = (struct vde_buff *) temp_buffer;
++	if (vder_recv(vif, vb, MAX_PACKET_SIZE - sizeof(struct vde_buff)) >= 0) {
++		struct vde_ethernet_header *eth = ethhead(vb);
++		/* 1. Filter out packets that are not for us */
++		if (memcmp(eth->dst, vif->macaddr, 6) && 
++			memcmp(eth->dst, ETH_BCAST, 6) ) {
++				return;
++		}
++
++		if (ntohs(eth->buftype) == PTYPE_ARP) {
++			/* Parse ARP information */
++			vder_parse_arp(vif, vb);
++		} else if (ntohs(eth->buftype) == PTYPE_IP) {
++
++			if (vder_filter(vb)) {
++				return;
++			}
++			/* If there is some interesting payload, allocate a packet buffer */
++			packet = malloc(vb->len + sizeof(struct vde_buff));
++			if (!packet)
++				return;
++			memcpy(packet, vb, vb->len + sizeof(struct vde_buff));
++
++			/** TODO: input packet filter here **/
++			packet->priority = PRIO_BESTEFFORT;
++
++			if (vder_ip_input(packet)) {
++				/* If the packet is for us, process it here. */
++				//free(packet);
++				return;
++			} else {
++				struct iphdr *hdr = iphead(packet);
++				uint32_t sender = hdr->saddr;
++				uint8_t foot[sizeof(hdr) + 8];
++
++				memcpy(foot, footprint(packet), sizeof(struct iphdr) + 8);
++				if (vder_ip_decrease_ttl(packet)) {
++					vder_icmp_ttl_expired(sender, foot);
++					return;
++				}
++				if (vder_packet_send(packet, hdr->daddr, hdr->protocol) < 0) {
++					vder_icmp_host_unreachable(sender, foot);
++					return;
++				} else {
++					/* success, packet is routed. */
++					return;
++				}
++			}
++		} else {
++			/**  buffer type not supported. **/
++			/** place your IPV6 code here :) **/
++		}
++	}
++}
++
+diff --git a/src/vde_router/vder_packet.h b/src/vde_router/vder_packet.h
+new file mode 100644
+index 000000000..e89cb5c2f
+--- /dev/null
++++ b/src/vde_router/vder_packet.h
+@@ -0,0 +1,17 @@
++/* VDE_ROUTER (C) 2007:2011 Daniele Lacamera
++ *
++ * Licensed under the GPLv2
++ *
++ */
++#ifndef _VDER_PACKET
++#define _VDER_PACKET
++
++#define DEFAULT_TTL 64
++uint16_t vder_ip_checksum(struct iphdr *iph);
++void vder_packet_recv(struct vder_iface *vif, int timeout);
++uint16_t net_checksum(void *inbuf, int len);
++int vder_packet_send(struct vde_buff *vdb, uint32_t dst_ip, uint8_t protocol);
++int vder_packet_broadcast(struct vde_buff *vdb, struct vder_iface *iface, uint32_t dst_ip, uint8_t protocol);
++char *vder_ntoa(uint32_t addr);
++
++#endif
+diff --git a/src/vde_router/vder_queue.c b/src/vde_router/vder_queue.c
+new file mode 100644
+index 000000000..f05ecfb93
+--- /dev/null
++++ b/src/vde_router/vder_queue.c
+@@ -0,0 +1,202 @@
++/* VDE_ROUTER (C) 2007:2011 Daniele Lacamera
++ *
++ * Licensed under the GPLv2
++ *
++ */
++#include "vder_queue.h"
++#include "vde_router.h"
++#include <stdlib.h>
++
++void enqueue(struct vder_queue *q, struct vde_buff *b)
++{
++	pthread_mutex_lock(&q->lock);
++
++	if (!q->may_enqueue(q, b)) {
++		free(b);
++		pthread_mutex_unlock(&q->lock);
++		return;
++	}
++
++	b->next = NULL;
++	if (!q->head) {
++		q->head = b;
++		q->tail = b;
++	} else {
++		q->tail->next = b;
++		q->tail = b;
++	}
++	q->size += b->len;
++	q->n++;
++	pthread_mutex_unlock(&q->lock);
++	if (q->policy != QPOLICY_TOKEN) {
++		if (q->type != QTYPE_PRIO)
++			sem_post(&q->semaphore);
++		else
++			sem_post(q->prio_semaphore);
++	}
++}
++
++struct vde_buff *prio_dequeue(struct vder_iface *vif)
++{
++	struct vder_queue *q;
++	int i;
++	struct vde_buff *ret = NULL;
++	sem_wait(&vif->prio_semaphore);
++	for (i = 0; i < PRIO_NUM; i++) {
++		q = &(vif->prio_q[i]);
++		pthread_mutex_lock(&q->lock);
++		if (q->size == 0){
++			pthread_mutex_unlock(&q->lock);
++			continue;
++		}
++		if (q->n) {
++			ret = q->head;
++			q->head = ret->next;
++			q->n--;
++			q->size -= ret->len;
++			if (q->n == 0) {
++				q->tail = NULL;
++				q->head = NULL;
++			}
++			pthread_mutex_unlock(&q->lock);
++			break;
++		}
++		pthread_mutex_unlock(&q->lock);
++	}
++	return ret;
++}
++
++struct vde_buff *dequeue(struct vder_queue *q)
++{
++	struct vde_buff *ret = NULL;
++	if (q->type != QTYPE_PRIO)
++		sem_wait(&q->semaphore);
++	else
++		return NULL;
++	pthread_mutex_lock(&q->lock);
++	if (q->n) {
++		ret = q->head;
++		q->head = ret->next;
++		q->n--;
++		q->size -= ret->len;
++		if (q->n == 0) {
++			q->tail = NULL;
++			q->head = NULL;
++		}
++	}
++	pthread_mutex_unlock(&q->lock);
++	return ret;
++}
++
++/* Unlimited policy */
++int qunlimited_may_enqueue(struct vder_queue *q, struct vde_buff *b)
++{
++	return 1;
++}
++
++
++void qunlimited_setup(struct vder_queue *q)
++{
++	pthread_mutex_lock(&q->lock);
++	if (q->policy == QPOLICY_TOKEN) {
++		vder_timed_dequeue_del(q);
++	}
++	q->policy = QPOLICY_UNLIMITED;
++	q->may_enqueue = qunlimited_may_enqueue;
++	pthread_mutex_unlock(&q->lock);
++}
++
++
++/* Fifo policy */
++int qfifo_may_enqueue(struct vder_queue *q, struct vde_buff *b)
++{
++	if (q->policy_opt.fifo.limit > q->size)
++		return 1;
++	else {
++		q->policy_opt.fifo.stats_drop++;
++		return 0;
++	}
++}
++
++
++void qfifo_setup(struct vder_queue *q, uint32_t limit)
++{
++	pthread_mutex_lock(&q->lock);
++	if (q->policy == QPOLICY_TOKEN) {
++		vder_timed_dequeue_del(q);
++	}
++	q->policy = QPOLICY_FIFO;
++	q->policy_opt.fifo.limit = limit;
++	q->policy_opt.fifo.stats_drop = 0;
++	q->may_enqueue = qfifo_may_enqueue;
++	pthread_mutex_unlock(&q->lock);
++}
++
++/* Random early detection */
++int qred_may_enqueue(struct vder_queue *q, struct vde_buff *b)
++{
++	double red_probability;
++	if (q->policy_opt.red.min > q->size) {
++		return 1;
++	} else if (q->policy_opt.red.max > q->size) {
++		red_probability = q->policy_opt.red.P *
++				((double)q->size - (double)q->policy_opt.red.min /
++				((double)q->policy_opt.red.max - (double)q->policy_opt.red.min));
++	} else if (q->policy_opt.red.limit > q->size) {
++		red_probability = q->policy_opt.red.P;
++	} else {
++		q->policy_opt.red.stats_drop++;
++		return 0;
++	}
++	if (drand48() < red_probability) {
++		q->policy_opt.red.stats_probability_drop++;
++		return 0;
++	}
++	return 1;
++}
++
++
++void qred_setup(struct vder_queue *q, uint32_t min, uint32_t max, double P, uint32_t limit)
++{
++	pthread_mutex_lock(&q->lock);
++	if (q->policy == QPOLICY_TOKEN) {
++		vder_timed_dequeue_del(q);
++	}
++	q->policy = QPOLICY_RED;
++	q->policy_opt.red.min = min;
++	q->policy_opt.red.max = max;
++	q->policy_opt.red.P = P;
++	q->policy_opt.red.limit = limit;
++	q->policy_opt.red.stats_drop = 0;
++	q->policy_opt.red.stats_probability_drop = 0;
++	q->may_enqueue = qred_may_enqueue;
++	pthread_mutex_unlock(&q->lock);
++}
++
++#define IDEAL_PACKET_SIZE 1500
++
++int qtoken_may_enqueue(struct vder_queue *q, struct vde_buff *b)
++{
++	if (q->policy_opt.token.limit > q->size)
++		return 1;
++	else {
++		q->policy_opt.token.stats_drop++;
++		return 0;
++	}
++}
++
++void qtoken_setup(struct vder_queue *q, uint32_t bitrate, uint32_t limit)
++{
++	pthread_mutex_lock(&q->lock);
++	q->policy_opt.token.interval = (1000000 * IDEAL_PACKET_SIZE) / ((bitrate >> 3));
++	q->policy_opt.token.limit = limit;
++	q->policy_opt.token.stats_drop = 0U;
++	if (q->policy == QPOLICY_TOKEN) {
++		vder_timed_dequeue_del(q);
++	}
++	q->policy = QPOLICY_TOKEN;
++	vder_timed_dequeue_add(q, q->policy_opt.token.interval);
++	q->may_enqueue = qtoken_may_enqueue;
++	pthread_mutex_unlock(&q->lock);
++}
++
+diff --git a/src/vde_router/vder_queue.h b/src/vde_router/vder_queue.h
+new file mode 100644
+index 000000000..d81e63a87
+--- /dev/null
++++ b/src/vde_router/vder_queue.h
+@@ -0,0 +1,31 @@
++/* VDE_ROUTER (C) 2007:2011 Daniele Lacamera
++ *
++ * Licensed under the GPLv2
++ *
++ */
++#ifndef __VDER_QUEUE
++#define __VDER_QUEUE
++#include <stdint.h>
++#include "vde_router.h"
++#include "vder_datalink.h"
++void enqueue(struct vder_queue *q, struct vde_buff *b);
++struct vde_buff *prio_dequeue(struct vder_iface *vif);
++struct vde_buff *dequeue(struct vder_queue *q);
++
++void qunlimited_setup(struct vder_queue *q);
++void qfifo_setup(struct vder_queue *q, uint32_t limit);
++void qred_setup(struct vder_queue *q, uint32_t min, uint32_t max, double P, uint32_t limit);
++void qtoken_setup(struct vder_queue *q, uint32_t bitrate, uint32_t limit);
++
++
++int qunlimited_may_enqueue(struct vder_queue *q, struct vde_buff *b);
++int qunlimited_may_dequeue(struct vder_queue *q);
++
++int qfifo_may_enqueue(struct vder_queue *q, struct vde_buff *b);
++int qfifo_may_dequeue(struct vder_queue *q);
++
++int qred_may_enqueue(struct vder_queue *q, struct vde_buff *b);
++int qred_may_dequeue(struct vder_queue *q);
++
++
++#endif
+diff --git a/src/vde_router/vder_udp.c b/src/vde_router/vder_udp.c
+new file mode 100644
+index 000000000..6e47ac6ef
+--- /dev/null
++++ b/src/vde_router/vder_udp.c
+@@ -0,0 +1,187 @@
++#include "vder_udp.h"
++#include <stdio.h>
++#include <unistd.h>
++
++/* UDP header, rfc 768 */
++
++struct __attribute__((packed)) udphdr {
++	uint16_t sport, dport, len, crc;
++};
++
++static struct vder_udp_socket *socket_list = NULL;
++
++
++/* interface toward the router */
++int vder_udp_recv(struct vde_buff *buf)
++{
++	struct vder_udp_socket *cur = socket_list;
++	int found = 0;
++	struct vde_buff *copy = NULL;
++	uint16_t port = transport_dport(buf);
++
++	while(cur) {
++		if (cur->port == port) {
++			if (!found) {
++				enqueue(&cur->inq, buf);
++				found = 1;
++			} else {
++				copy = malloc(sizeof(struct vde_buff) + buf->len);
++				if (!copy)
++					break;
++				memcpy(copy, buf, sizeof(struct vde_buff) + buf->len);
++				enqueue(&cur->inq, copy);
++			}
++		}
++		cur = cur->next;
++	}
++	return found;
++}
++
++struct vder_udp_socket *vder_udpsocket_open(uint16_t port)
++{
++
++	struct vder_udp_socket *vu;
++
++	if (port == 0) {
++		errno = EINVAL;
++		return NULL;
++	}
++
++	vu = malloc(sizeof(struct vder_udp_socket));
++	if (!vu)
++		return NULL;
++
++	memset(&vu->inq, 0, sizeof(struct vder_queue));
++	pthread_mutex_init(&vu->inq.lock, NULL);
++	qfifo_setup(&vu->inq, UDPSOCK_BUFFER_SIZE);
++	vu->port = port;
++	vu->next = socket_list;
++	socket_list = vu;
++	return vu;
++}
++
++void vder_udp_close(struct vder_udp_socket *sock)
++{
++	struct vder_udp_socket *prev = NULL, *cur = socket_list;
++	while(cur) {
++		if (cur == sock) {
++			if (!prev) {
++				socket_list = cur->next;
++			} else {
++				prev->next = cur->next;
++			}
++			free(sock);
++			return;
++		}
++		prev = cur;
++		cur = cur->next;
++	}
++}
++
++
++int vder_udpsocket_sendto(struct vder_udp_socket *sock, void *data, size_t len, uint32_t dst, uint16_t dstport)
++{
++	struct vde_buff *b;
++	struct udphdr *uh;
++	uint8_t *datagram;
++	struct vder_route *ro;
++	int bufsize;
++	if (len <= 0) {
++		errno = EINVAL;
++		return -1;
++	}
++	len += sizeof(struct udphdr);
++
++	ro = vder_get_route(dst);
++	if (!ro) {
++		errno = EHOSTUNREACH;
++		return -1;
++	}
++
++	bufsize = sizeof(struct vde_buff) + sizeof(struct vde_ethernet_header) + sizeof(struct iphdr) + sizeof(struct udphdr) + len;
++	b = malloc(bufsize);
++	if (!b)
++		return -1;
++	b->len = bufsize - sizeof(struct vde_buff);
++	b->src = NULL;
++	b->priority = PRIO_BESTEFFORT;
++	uh = (struct udphdr *) payload(b);
++	datagram = (uint8_t *)((payload(b) + sizeof(struct udphdr)));
++	memcpy(datagram, data, len);
++
++	uh->sport = sock->port;
++	uh->dport = dstport;
++	uh->len = htons(len);
++	uh->crc = 0;
++	vder_packet_send(b, dst, PROTO_UDP);
++	return len;
++}
++
++int vder_udpsocket_sendto_broadcast(struct vder_udp_socket *sock, void *data, size_t len,
++	struct vder_iface *iface, uint32_t dst, uint16_t dstport)
++{
++	struct vde_buff *b;
++	struct udphdr *uh;
++	uint8_t *datagram;
++	int bufsize;
++	if (len <= 0) {
++		errno = EINVAL;
++		return -1;
++	}
++	len += sizeof(struct udphdr);
++
++	bufsize = sizeof(struct vde_buff) + sizeof(struct vde_ethernet_header) + sizeof(struct iphdr) + sizeof(struct udphdr) + len;
++	b = malloc(bufsize);
++	if (!b)
++		return -1;
++	b->len = bufsize - sizeof(struct vde_buff);
++	b->src = NULL;
++	b->priority = PRIO_BESTEFFORT;
++	uh = (struct udphdr *) payload(b);
++	datagram = (uint8_t *)((payload(b) + sizeof(struct udphdr)));
++	memcpy(datagram, data, len);
++
++	uh->sport = sock->port;
++	uh->dport = dstport;
++	uh->len = htons(len);
++	uh->crc = 0;
++	vder_packet_broadcast(b, iface, dst, PROTO_UDP);
++	return len;
++}
++
++
++int vder_udpsocket_recvfrom(struct vder_udp_socket *sock, void *data, size_t len, uint32_t *from, uint16_t *fromport, int timeout)
++{
++	struct vde_buff *b;
++	struct udphdr *uh;
++	uint8_t *datagram;
++
++	if (len <= 0) {
++		errno = EINVAL;
++		return -1;
++	}
++
++	while ((timeout > 0) && (sock->inq.n == 0)) {
++		usleep(10000);
++		timeout -= 10;
++		if (timeout < 0)
++			timeout = 0;
++	}
++
++	if ((timeout == 0) && (sock->inq.n == 0)) {
++		return 0;
++	}
++
++	do {
++		b = dequeue(&sock->inq);
++	} while(!b);
++	uh = (struct udphdr *) payload(b);
++	datagram = (uint8_t *)(payload(b) + sizeof(struct udphdr));
++	if (ntohs(uh->len) < len)
++		len = ntohs(uh->len) - sizeof (struct udphdr);
++	memcpy(data, datagram, len);
++	*fromport = uh->sport;
++	return len;
++}
++
++
+diff --git a/src/vde_router/vder_udp.h b/src/vde_router/vder_udp.h
+new file mode 100644
+index 000000000..58afa78f4
+--- /dev/null
++++ b/src/vde_router/vder_udp.h
+@@ -0,0 +1,34 @@
++#include "vde_headers.h"
++#include "vde_router.h"
++#include "vder_queue.h"
++#include "vder_datalink.h"
++#include "vder_packet.h"
++#include <stdint.h>
++#include <errno.h>
++#include <stdlib.h>
++#include <string.h>
++#ifndef __VDER_UDP_H
++#define __VDER_UDP_H
++
++
++struct vder_udp_socket {
++	struct vder_udp_socket *next;
++	uint16_t port;
++	struct vder_queue inq;
++};
++
++#define UDPSOCK_BUFFER_SIZE 1024 * 16
++
++struct vder_udp_socket *get_by_port(uint16_t port);
++
++
++/* interface toward the router */
++int vder_udp_recv(struct vde_buff *buf);
++struct vder_udp_socket *vder_udpsocket_open(uint16_t port);
++void vder_udp_close(struct vder_udp_socket *sock);
++int vder_udpsocket_sendto(struct vder_udp_socket *sock, void *data, size_t len, uint32_t dst, uint16_t dstport);
++int vder_udpsocket_sendto_broadcast(struct vder_udp_socket *sock, void *data, size_t len,
++	struct vder_iface *iface, uint32_t dst, uint16_t dstport);
++int vder_udpsocket_recvfrom(struct vder_udp_socket *sock, void *data, size_t len, uint32_t *from, uint16_t *fromport, int timeout);
++
++#endif
+-- 
+2.35.0
+

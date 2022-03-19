@@ -1,0 +1,341 @@
+From 4ba30991979e46ef4dcbe55fac41f47abc595c9e Mon Sep 17 00:00:00 2001
+From: Jordi Guillaumes Pons <jguillaumes@gmail.com>
+Date: Tue, 28 Nov 2017 20:15:10 +0100
+Subject: [PATCH 28/62] vde_router: add <config.h> header file to sources so
+ the OS-based conditionals work
+
+---
+ .gitignore                     |  2 ++
+ src/vde_router/vde_headers.h   | 20 +++++++++++++++-----
+ src/vde_router/vde_router.c    | 25 +++++++++++++------------
+ src/vde_router/vder_datalink.c | 19 +++++++++++--------
+ src/vde_router/vder_icmp.c     |  3 +++
+ src/vde_router/vder_packet.c   |  6 ++++--
+ src/vde_router/vder_udp.c      |  4 ++--
+ 7 files changed, 50 insertions(+), 29 deletions(-)
+
+diff --git a/.gitignore b/.gitignore
+index dfd6a7f05..3241d0871 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -53,3 +53,5 @@ src/vdetaplib/vdetap
+ src/vdeterm
+ src/wirefilter
+ src/kvde_switch/kvde_switch
++src/vde_router/vde_router
++
+diff --git a/src/vde_router/vde_headers.h b/src/vde_router/vde_headers.h
+index 21cd87012..db32f2a26 100644
+--- a/src/vde_router/vde_headers.h
++++ b/src/vde_router/vde_headers.h
+@@ -22,6 +22,15 @@
+ #define PROTO_TCP 6
+ #define PROTO_UDP 17
+ 
++#define XSTR(x) STR(x)
++#define STR(x) #x
++
++#ifdef VDE_DARWIN
++#pragma message "Darwin!"
++#else
++#pragma message "No Darwin!"
++#endif
++
+ #if defined(VDE_FREEBSD) || defined(VDE_DARWIN)
+ struct iphdr
+ {
+@@ -43,10 +52,11 @@ struct iphdr
+ 	u_int32_t daddr;
+ 	/*The options start here. */
+ };
++#define ICMP_TIME_EXCEEDED ICMP_TIMXCEED
+ #endif
+ 
+-struct 
+-__attribute__ ((__packed__)) 
++struct
++__attribute__ ((__packed__))
+ vde_ethernet_header
+ {
+ 	uint8_t dst[6];
+@@ -63,11 +73,11 @@ vde_ethernet_header
+ #define ETHERNET_ADDRESS_SIZE 6
+ #define IP_ADDRESS_SIZE 4
+ 
+-#define ETH_BCAST (unsigned char *)"\xFF\xFF\xFF\xFF\xFF\xFF" 
++#define ETH_BCAST (unsigned char *)"\xFF\xFF\xFF\xFF\xFF\xFF"
+ #define HTYPE_ETH 1
+ 
+ struct
+-__attribute__ ((__packed__)) 
++__attribute__ ((__packed__))
+ vde_arp_header
+ {
+ 	uint16_t htype;
+@@ -78,7 +88,7 @@ vde_arp_header
+ 	uint8_t s_mac[6];
+ 	uint32_t s_addr;
+ 	uint8_t d_mac[6];
+-	uint32_t d_addr;	
++	uint32_t d_addr;
+ };
+ 
+ #define ethhead(vb) ((struct vde_ethernet_header *)(vb->data))
+diff --git a/src/vde_router/vde_router.c b/src/vde_router/vde_router.c
+index 3f7887d91..bcd3c3a80 100644
+--- a/src/vde_router/vde_router.c
++++ b/src/vde_router/vde_router.c
+@@ -7,6 +7,8 @@
+  *
+  * For the router engine see vder_datalink.c
+  */
++#include <config.h>
++
+ #include "vder_olsr.h"
+ #include "vder_datalink.h"
+ #include "vde_router.h"
+@@ -29,7 +31,6 @@
+ #include <getopt.h>
+ #include <libgen.h>
+ 
+-
+ static char *mgmt;
+ static int mgmtmode=0700;
+ static char *progname;
+@@ -310,9 +311,9 @@ static inline int is_netmask(uint32_t addr)
+ static inline int not_a_number(char *p)
+ {
+ 	if (!p)
+-		return 1; 
++		return 1;
+ 	if ((p[0] < '0') || (p[0] > '9'))
+-		return 1; 
++		return 1;
+ 	return 0;
+ }
+ 
+@@ -386,7 +387,7 @@ static int ifconfig(int fd,char *s)
+ 		}
+ 		if (match_input("dhcp", arg)) {
+ 			temp_address.s_addr = (uint32_t)(-1);
+-			pthread_create(&selected->dhcpclient, 0, dhcp_client_loop, selected); 
++			pthread_create(&selected->dhcpclient, 0, dhcp_client_loop, selected);
+ 		}
+ 		else if (!inet_aton(arg, &temp_address) || !is_unicast(temp_address.s_addr)) {
+ 			printoutc(fd, "Invalid address \"%s\"", arg);
+@@ -645,7 +646,7 @@ static int filter(int fd,char *s)
+ 			if (not_a_number(arg)) {
+ 				if (match_input("tcp", arg))
+ 					proto = IPPROTO_TCP;
+-				else if (match_input("udp", arg)) 
++				else if (match_input("udp", arg))
+ 					proto = IPPROTO_UDP;
+ 				else if (match_input("igmp", arg))
+ 					proto = IPPROTO_IGMP;
+@@ -778,12 +779,12 @@ static void fill_queue_info(struct vder_queue *q, char *info)
+ 			snprintf(info, MAXCMD, "unlimited");
+ 			break;
+ 		case QPOLICY_FIFO:
+-			snprintf(info, MAXCMD, "pfifo limit: %u (%d packets dropped)", 
++			snprintf(info, MAXCMD, "pfifo limit: %u (%d packets dropped)",
+ 				q->policy_opt.fifo.limit,
+ 				q->policy_opt.fifo.stats_drop);
+ 			break;
+ 		case QPOLICY_RED:
+-			snprintf(info, MAXCMD, "red min: %u, max: %u, probability: %lf limit: %u (%d packets dropped, %d packets fired)", 
++			snprintf(info, MAXCMD, "red min: %u, max: %u, probability: %lf limit: %u (%d packets dropped, %d packets fired)",
+ 				q->policy_opt.red.min,
+ 				q->policy_opt.red.max,
+ 				q->policy_opt.red.P,
+@@ -1120,7 +1121,7 @@ static int dhcpd(int fd,char *s)
+ 		dhcpd_settings->lease_time = DEFAULT_LEASE_TIME;
+ 		dhcpd_settings->flags = 0;
+ 		selected->dhcpd_started = 1;
+-		pthread_create(&selected->dhcpd, 0, dhcp_server_loop, dhcpd_settings); 
++		pthread_create(&selected->dhcpd, 0, dhcp_server_loop, dhcpd_settings);
+ 	} else if (selected->dhcpd_started) {
+ 		pthread_cancel(selected->dhcpd);
+ 		selected->dhcpd_started = 0;
+@@ -1173,7 +1174,7 @@ static int olsr(int fd,char *s)
+ 			free(olsr_settings);
+ 			return EINVAL;
+ 		}
+-		pthread_create(&olsr_thread, 0, vder_olsr_loop, olsr_settings); 
++		pthread_create(&olsr_thread, 0, vder_olsr_loop, olsr_settings);
+ 	} else {
+ 		pthread_cancel(olsr_thread);
+ 		/* stop */
+@@ -1207,7 +1208,7 @@ static struct comlist {
+ static inline void delnl(char *buf)
+ {
+ 	int len=strlen(buf)-1;
+-	while (len>0 && 
++	while (len>0 &&
+ 				(buf[len]=='\n' || buf[len]==' ' || buf[len]=='\t')) {
+ 		buf[len]=0;
+ 		len--;
+@@ -1222,7 +1223,7 @@ static int handle_cmd(int fd,char *inbuf)
+ 	while (*inbuf == ' ' || *inbuf == '\t' || *inbuf == '\n') inbuf++;
+ 	delnl(inbuf);
+ 	if (*inbuf != '\0' && *inbuf != '#') {
+-		for (i=0; i<NCL 
++		for (i=0; i<NCL
+ 				&& strncmp(commandlist[i].tag,inbuf,strlen(commandlist[i].tag))!=0;
+ 				i++)
+ 			;
+@@ -1264,7 +1265,7 @@ static int mgmtcommand(int fd)
+ 		fprintf(stderr,"%s: read from mgmt %s",progname,strerror(errno));
+ 		return -1;
+ 	}
+-	else if (n==0){ 
++	else if (n==0){
+ 		return -1;
+ 		/* Remote end has closed connection. */
+ 	}
+diff --git a/src/vde_router/vder_datalink.c b/src/vde_router/vder_datalink.c
+index 484bcc488..1ff6c7fd2 100644
+--- a/src/vde_router/vder_datalink.c
++++ b/src/vde_router/vder_datalink.c
+@@ -3,6 +3,9 @@
+  * Licensed under the GPLv2
+  *
+  */
++
++#include <config.h>
++
+ #include "vde_router.h"
+ #include "vde_headers.h"
+ #include "vder_queue.h"
+@@ -86,7 +89,7 @@ static void *vder_timer_loop(void *arg)
+ 		pthread_mutex_unlock(&Router.global_config_lock);
+ 		interval.tv_sec = 0;
+ 		interval.tv_nsec = Router.smallest_interval / 1000;
+-		if (Router.timed_dequeue) 
++		if (Router.timed_dequeue)
+ 			nanosleep(&interval, NULL);
+ 		else
+ 			sleep(2);
+@@ -114,7 +117,7 @@ void vder_timed_dequeue_add(struct vder_queue *q, uint32_t interval)
+ 	pthread_mutex_unlock(&Router.global_config_lock);
+ }
+ 
+-void vder_timed_dequeue_del(struct vder_queue *q) 
++void vder_timed_dequeue_del(struct vder_queue *q)
+ {
+ 	struct vder_timed_dequeue *prev = NULL, *cur = Router.timed_dequeue;
+ 	pthread_mutex_lock(&Router.global_config_lock);
+@@ -137,7 +140,7 @@ void vder_timed_dequeue_del(struct vder_queue *q)
+ void vderouter_init(void)
+ {
+ 	memset(&Router, 0, sizeof(Router));
+-	pthread_create(&Router.timer, 0, vder_timer_loop, NULL); 
++	pthread_create(&Router.timer, 0, vder_timer_loop, NULL);
+ 	pthread_mutex_init(&Router.global_config_lock, NULL);
+ 	Router.smallest_interval = 100000;
+ 
+@@ -197,7 +200,7 @@ int vder_route_add(uint32_t address, uint32_t netmask, uint32_t gateway, uint16_
+ 	ro->netmask = netmask;
+ 	ro->gateway = gateway;
+ 	ro->metric = metric;
+-	if (dst) 
++	if (dst)
+ 		ro->iface = dst;
+ 	else {
+ 		struct vder_route *next_hop = vder_get_route(gateway);
+@@ -205,7 +208,7 @@ int vder_route_add(uint32_t address, uint32_t netmask, uint32_t gateway, uint16_
+ 			errno = EHOSTUNREACH;
+ 			goto out_unlock;
+ 		}
+-		ro->iface = next_hop->iface; 
++		ro->iface = next_hop->iface;
+ 	}
+ 
+ 	/* Is this route already there? */
+@@ -313,7 +316,7 @@ struct vder_iface *vder_iface_new(char *sock, uint8_t *macaddr)
+ 
+ 	pthread_mutex_lock(&Router.global_config_lock);
+ 
+-	vif->vdec = vde_open(sock, "vde_router", &open_args); 
++	vif->vdec = vde_open(sock, "vde_router", &open_args);
+ 	if (vif->vdec == NULL) {
+ 		perror("vde_open");
+ 		free(vif);
+@@ -489,7 +492,7 @@ int vder_ipaddress_is_local(uint32_t addr) {
+ 	return 0;
+ }
+ 
+-int vder_ipaddress_is_broadcast(uint32_t addr) 
++int vder_ipaddress_is_broadcast(uint32_t addr)
+ {
+ 	struct vder_iface *iface = Router.iflist;
+ 	if (addr == (uint32_t)(-1))
+@@ -604,7 +607,7 @@ int vder_filter(struct vde_buff *buf)
+ 				/* fall through */
+ 			case filter_drop:
+ 				return 1;
+-			default: 
++			default:
+ 				return 0;
+ 		}
+ 	}
+diff --git a/src/vde_router/vder_icmp.c b/src/vde_router/vder_icmp.c
+index cfe316375..034322805 100644
+--- a/src/vde_router/vder_icmp.c
++++ b/src/vde_router/vder_icmp.c
+@@ -3,6 +3,9 @@
+  * Licensed under the GPLv2
+  *
+  */
++
++#include <config.h>
++
+ #include "vde_router.h"
+ #include "vde_headers.h"
+ #include "vder_packet.h"
+diff --git a/src/vde_router/vder_packet.c b/src/vde_router/vder_packet.c
+index dd46d55aa..e654fdcbd 100644
+--- a/src/vde_router/vder_packet.c
++++ b/src/vde_router/vder_packet.c
+@@ -3,6 +3,9 @@
+  * Licensed under the GPLv2
+  *
+  */
++
++#include <config.h>
++
+ #include "vder_datalink.h"
+ #include "vder_arp.h"
+ #include "vder_icmp.h"
+@@ -170,7 +173,7 @@ void vder_packet_recv(struct vder_iface *vif, int timeout)
+ 	if (vder_recv(vif, vb, MAX_PACKET_SIZE - sizeof(struct vde_buff)) >= 0) {
+ 		struct vde_ethernet_header *eth = ethhead(vb);
+ 		/* 1. Filter out packets that are not for us */
+-		if (memcmp(eth->dst, vif->macaddr, 6) && 
++		if (memcmp(eth->dst, vif->macaddr, 6) &&
+ 			memcmp(eth->dst, ETH_BCAST, 6) ) {
+ 				return;
+ 		}
+@@ -220,4 +223,3 @@ void vder_packet_recv(struct vder_iface *vif, int timeout)
+ 		}
+ 	}
+ }
+-
+diff --git a/src/vde_router/vder_udp.c b/src/vde_router/vder_udp.c
+index 6e47ac6ef..bbe45cd55 100644
+--- a/src/vde_router/vder_udp.c
++++ b/src/vde_router/vder_udp.c
+@@ -1,3 +1,5 @@
++#include <config.h>
++
+ #include "vder_udp.h"
+ #include <stdio.h>
+ #include <unistd.h>
+@@ -183,5 +185,3 @@ int vder_udpsocket_recvfrom(struct vder_udp_socket *sock, void *data, size_t len
+ 	*fromport = uh->sport;
+ 	return len;
+ }
+-
+-
+-- 
+2.35.0
+

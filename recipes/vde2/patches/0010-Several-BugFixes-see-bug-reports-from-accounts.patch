@@ -1,0 +1,265 @@
+From f79e1a1c59c9636416b2d341d437df5aad85f860 Mon Sep 17 00:00:00 2001
+From: rd235 <rd235@users.noreply.github.com>
+Date: Mon, 4 Mar 2013 17:56:00 +0000
+Subject: [PATCH 10/62] Several BugFixes (see bug-reports from "accounts")
+
+---
+ src/kvde_switch/consmgmt.c             |  6 +++---
+ src/vde_autolink.c                     |  6 +++---
+ src/vde_cryptcab/cryptcab.c            |  2 +-
+ src/vde_cryptcab/vde_cryptcab_client.c | 28 ++++++++++++++------------
+ src/vde_pcapplug.c                     |  6 +++---
+ src/vde_plug2tap.c                     |  6 +++---
+ src/vde_switch/consmgmt.c              | 10 ++++-----
+ src/vde_switch/plugins/iplog.c         |  2 +-
+ src/wirefilter.c                       |  6 +++---
+ 9 files changed, 37 insertions(+), 35 deletions(-)
+
+diff --git a/src/kvde_switch/consmgmt.c b/src/kvde_switch/consmgmt.c
+index d72d20c24..baf8df3e0 100644
+--- a/src/kvde_switch/consmgmt.c
++++ b/src/kvde_switch/consmgmt.c
+@@ -462,9 +462,9 @@ static void handle_io(unsigned char type,int fd,int revents,void *unused)
+ static void save_pidfile()
+ {
+ 	if(pidfile[0] != '/')
+-		strncat(pidfile_path, pidfile, PATH_MAX - strlen(pidfile_path));
++		strncat(pidfile_path, pidfile, PATH_MAX - strlen(pidfile_path) - 1);
+ 	else
+-		strcpy(pidfile_path, pidfile);
++		strncpy(pidfile_path, pidfile, PATH_MAX - 1);
+ 
+ 	int fd = open(pidfile_path,
+ 			O_WRONLY | O_CREAT | O_EXCL,
+@@ -575,7 +575,7 @@ static void init(void)
+ 
+ 	/* saves current path in pidfile_path, because otherwise with daemonize() we
+ 	 *    * forget it */
+-	if(getcwd(pidfile_path, PATH_MAX-1) == NULL) {
++	if(getcwd(pidfile_path, PATH_MAX-2) == NULL) {
+ 		printlog(LOG_ERR, "getcwd: %s", strerror(errno));
+ 		exit(1);
+ 	}
+diff --git a/src/vde_autolink.c b/src/vde_autolink.c
+index 09c1f4547..720165e2b 100644
+--- a/src/vde_autolink.c
++++ b/src/vde_autolink.c
+@@ -1269,9 +1269,9 @@ static void loadrcfile(void)
+ static void save_pidfile()
+ {
+ 	if(pidfile[0] != '/')
+-		strncat(pidfile_path, pidfile, PATH_MAX - strlen(pidfile_path));
++		strncat(pidfile_path, pidfile, PATH_MAX - strlen(pidfile_path) - 1);
+ 	else
+-		strcpy(pidfile_path, pidfile);
++		strncpy(pidfile_path, pidfile, PATH_MAX - 1);
+ 
+ 	int fd = open(pidfile_path,
+ 			O_WRONLY | O_CREAT | O_EXCL,
+@@ -1392,7 +1392,7 @@ int main(int argc,char **argv)
+ 		npfd++;
+ 	}
+ 
+-	if(getcwd(pidfile_path, PATH_MAX-1) == NULL) {
++	if(getcwd(pidfile_path, PATH_MAX-2) == NULL) {
+ 		printlog(LOG_ERR, "getcwd: %s", strerror(errno));
+ 		exit(1);
+ 	}
+diff --git a/src/vde_cryptcab/cryptcab.c b/src/vde_cryptcab/cryptcab.c
+index c1f14fd1c..dc47adf0d 100644
+--- a/src/vde_cryptcab/cryptcab.c
++++ b/src/vde_cryptcab/cryptcab.c
+@@ -82,7 +82,7 @@ int
+ isvalid_crc32(unsigned char *block, int len)
+ {
+ 	unsigned char *crc=(unsigned char *)crc32(block,len-4);
+-	if(strncmp((char*)block+(len-4),(char*)crc,4)==0){
++	if(memcmp((char*)block+(len-4),(char*)crc,4)==0){
+ 		free(crc);
+ 		return 1;
+ 	}else{
+diff --git a/src/vde_cryptcab/vde_cryptcab_client.c b/src/vde_cryptcab/vde_cryptcab_client.c
+index 13d6186ec..99dc02001 100644
+--- a/src/vde_cryptcab/vde_cryptcab_client.c
++++ b/src/vde_cryptcab/vde_cryptcab_client.c
+@@ -111,7 +111,7 @@ static struct peer
+ 	
+ 	close (fd);
+ 	
+-	if ((od = creat ("/tmp/.blowfish.key",0600)) == -1){
++	if ((od = open("/tmp/.blowfish.key",O_CREAT|O_WRONLY|O_TRUNC|O_EXCL,0600)) == -1){
+ 		perror ("blowfish.key creat error");
+ 		goto failure;
+ 	}
+@@ -139,8 +139,7 @@ failure:
+  * OpenSSH secure copy.
+  */
+ static struct peer *generate_and_xmit(struct peer *ret){
+-	char command[255];
+-	int res;
++	char command[PATH_MAX];
+ 	struct hostent *target;
+ 
+ 	ret=generate_key(ret);
+@@ -160,20 +159,23 @@ static struct peer *generate_and_xmit(struct peer *ret){
+ 	ret->in_a.sin_port = htons(remoteport);
+ 	ret->in_a.sin_addr.s_addr=((struct in_addr *)(target->h_addr))->s_addr;
+ 	if(!pre_shared){		
++		char *cmd[]={"scp",NULL,"/tmp/.blowfish.key",NULL,0};
++		pid_t pid;
++		int status;
+ 		vc_printlog(2,"Sending key over ssh channel:");
++		cmd[1]=scp_extra_options?scp_extra_options:"";
+ 		if(remoteusr)
+-			sprintf(command,"scp %s /tmp/.blowfish.key %s@%s:/tmp/.%s.key 2>&1", 
+-				scp_extra_options?scp_extra_options:"",
+-				remoteusr, remotehost, ret->id);	
++			snprintf(command,PATH_MAX,"%s@%s:/tmp/.%s.key",remoteusr, remotehost, ret->id);
+ 		else
+-			sprintf(command,"scp %s /tmp/.blowfish.key %s:/tmp/.%s.key 2>&1", 
+-				scp_extra_options?scp_extra_options:"",
+-				remotehost, ret->id);
++			snprintf(command,PATH_MAX,"%s:/tmp/.%s.key", remotehost, ret->id);
+ 
+-		//fprintf(stderr,"Contacting host: %s ",remotehost);
+-		res=system(command);
+-		
+-		if(res==0){
++		if ((pid=fork()) == 0) {
++			dup2(1,2);
++			execvp(cmd[0],cmd);
++		}
++		waitpid(pid,&status,0);
++
++		if(WEXITSTATUS(status)==0){
+ 			vc_printlog(2,"Key successfully transferred using a secure channel.");
+ 		}else{
+ 			fprintf(stderr,"Couldn't transfer the secret key.\n");
+diff --git a/src/vde_pcapplug.c b/src/vde_pcapplug.c
+index f5c7bccc1..372d795cf 100644
+--- a/src/vde_pcapplug.c
++++ b/src/vde_pcapplug.c
+@@ -161,9 +161,9 @@ unsigned char bufin[BUFSIZE];
+ static void save_pidfile()
+ {
+ 	if(pidfile[0] != '/')
+-		strncat(pidfile_path, pidfile, PATH_MAX - strlen(pidfile_path));
++		strncat(pidfile_path, pidfile, PATH_MAX - strlen(pidfile_path) - 1);
+ 	else
+-		strcpy(pidfile_path, pidfile);
++		strncpy(pidfile_path, pidfile, PATH_MAX - 1);
+ 
+ 	int fd = open(pidfile_path,
+ 			O_WRONLY | O_CREAT | O_EXCL,
+@@ -326,7 +326,7 @@ int main(int argc, char **argv)
+ 	}
+ 	/* saves current path in pidfile_path, because otherwise with daemonize() we
+ 	 * forget it */
+-	if(getcwd(pidfile_path, PATH_MAX-1) == NULL) {
++	if(getcwd(pidfile_path, PATH_MAX-2) == NULL) {
+ 		printlog(LOG_ERR, "getcwd: %s", strerror(errno));
+ 		exit(1);
+ 	}
+diff --git a/src/vde_plug2tap.c b/src/vde_plug2tap.c
+index d12326525..02b2d58c0 100644
+--- a/src/vde_plug2tap.c
++++ b/src/vde_plug2tap.c
+@@ -207,9 +207,9 @@ unsigned char bufin[BUFSIZE];
+ static void save_pidfile()
+ {
+ 	if(pidfile[0] != '/')
+-		strncat(pidfile_path, pidfile, PATH_MAX - strlen(pidfile_path));
++		strncat(pidfile_path, pidfile, PATH_MAX - strlen(pidfile_path) - 1);
+ 	else
+-		strcpy(pidfile_path, pidfile);
++		strncpy(pidfile_path, pidfile, PATH_MAX - 1);
+ 
+ 	int fd = open(pidfile_path,
+ 			O_WRONLY | O_CREAT | O_EXCL,
+@@ -316,7 +316,7 @@ int main(int argc, char **argv)
+ 	}
+ 	/* saves current path in pidfile_path, because otherwise with daemonize() we
+ 	 * forget it */
+-	if(getcwd(pidfile_path, PATH_MAX-1) == NULL) {
++	if(getcwd(pidfile_path, PATH_MAX-2) == NULL) {
+ 		printlog(LOG_ERR, "getcwd: %s", strerror(errno));
+ 		exit(1);
+ 	}
+diff --git a/src/vde_switch/consmgmt.c b/src/vde_switch/consmgmt.c
+index 09545f765..f2e76c18e 100644
+--- a/src/vde_switch/consmgmt.c
++++ b/src/vde_switch/consmgmt.c
+@@ -452,9 +452,9 @@ static void handle_io(unsigned char type,int fd,int revents,void *private_data)
+ static void save_pidfile()
+ {
+ 	if(pidfile[0] != '/')
+-		strncat(pidfile_path, pidfile, PATH_MAX - strlen(pidfile_path));
++		strncat(pidfile_path, pidfile, PATH_MAX - strlen(pidfile_path) - 1);
+ 	else
+-		strcpy(pidfile_path, pidfile);
++	  strncpy(pidfile_path, pidfile, PATH_MAX - 1);
+ 
+ 	int fd = open(pidfile_path,
+ 			O_WRONLY | O_CREAT | O_EXCL,
+@@ -578,7 +578,7 @@ static void init(void)
+ 
+ 	/* saves current path in pidfile_path, because otherwise with daemonize() we
+ 	 *    * forget it */
+-	if(getcwd(pidfile_path, PATH_MAX-1) == NULL) {
++	if(getcwd(pidfile_path, PATH_MAX-2) == NULL) {
+ 		printlog(LOG_ERR, "getcwd: %s", strerror(errno));
+ 		exit(1);
+ 	}
+@@ -846,9 +846,9 @@ void *plugin_dlopen(const char *modname, int flag)
+ 	if ((handle = dlopen(modname, flag)))
+ 		return handle;
+ 
+-	/* If there is no home directory, use CWD */
++	/* If there is no home directory, use / */
+ 	if (!homedir)
+-		homedir = ".";
++		homedir = "/";
+ 
+ 	tplen = strlen(modname) +
+ 		strlen(MODULES_EXT) + 2 + // + 1 is for a '/' and + 1 for \0
+diff --git a/src/vde_switch/plugins/iplog.c b/src/vde_switch/plugins/iplog.c
+index dc2ad5457..3bb113c84 100644
+--- a/src/vde_switch/plugins/iplog.c
++++ b/src/vde_switch/plugins/iplog.c
+@@ -214,7 +214,7 @@ static void ip_find_in_hash_update(int len, unsigned char *addr, unsigned char *
+ 				ctime_r(&ntime,stime);
+ 				writev(logfilefd,iov,3);
+ 			} else if (logfilefd != -1) 
+-				syslog(LOG_INFO, msg);
++				syslog(LOG_INFO, "%s", msg);
+ 			DBGOUT(D_LOGIP_NEWIP,"%s",msg);
+ 		}
+ 	}
+diff --git a/src/wirefilter.c b/src/wirefilter.c
+index 498d84b1d..12b823349 100644
+--- a/src/wirefilter.c
++++ b/src/wirefilter.c
+@@ -813,9 +813,9 @@ static int check_open_fifos_n_plugs(struct pollfd *pfd,int *outfd,char *vdepath[
+ static void save_pidfile()
+ {
+ 	if(pidfile[0] != '/')
+-		strncat(pidfile_path, pidfile, PATH_MAX - strlen(pidfile_path));
++		strncat(pidfile_path, pidfile, PATH_MAX - strlen(pidfile_path) - 1);
+ 	else
+-		strcpy(pidfile_path, pidfile);
++		strncpy(pidfile_path, pidfile, PATH_MAX - 1);
+ 
+ 	int fd = open(pidfile_path,
+ 			O_WRONLY | O_CREAT | O_EXCL,
+@@ -1607,7 +1607,7 @@ int main(int argc,char *argv[])
+ 
+ 	/* saves current path in pidfile_path, because otherwise with daemonize() we
+ 	 * forget it */
+-	if(getcwd(pidfile_path, PATH_MAX-1) == NULL) {
++	if(getcwd(pidfile_path, PATH_MAX-2) == NULL) {
+ 		printlog(LOG_ERR, "getcwd: %s", strerror(errno));
+ 		exit(1);
+ 	}
+-- 
+2.35.0
+

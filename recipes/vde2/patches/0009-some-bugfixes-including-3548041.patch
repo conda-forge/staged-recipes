@@ -1,0 +1,113 @@
+From 41e2e5e147c7c03a67b56ba17fac078f943c6bb3 Mon Sep 17 00:00:00 2001
+From: rd235 <rd235@users.noreply.github.com>
+Date: Fri, 3 Aug 2012 15:01:30 +0000
+Subject: [PATCH 09/62] some bugfixes (including 3548041)
+
+---
+ src/vde_pcapplug.c | 14 ++++++++------
+ src/vde_plug.c     |  4 +++-
+ src/vde_plug2tap.c |  6 ++++--
+ src/vdeterm.c      |  2 +-
+ 4 files changed, 16 insertions(+), 10 deletions(-)
+
+diff --git a/src/vde_pcapplug.c b/src/vde_pcapplug.c
+index 24261136e..f5c7bccc1 100644
+--- a/src/vde_pcapplug.c
++++ b/src/vde_pcapplug.c
+@@ -259,7 +259,6 @@ int main(int argc, char **argv)
+ 	static char *sockname=NULL;
+ 	static char *ifname=NULL;
+ 	int daemonize=0;
+-	int result;
+ 	char errbuf[PCAP_ERRBUF_SIZE];
+ 	int pcapfd;
+ 	register ssize_t nx;
+@@ -332,6 +331,13 @@ int main(int argc, char **argv)
+ 		exit(1);
+ 	}
+ 	strcat(pidfile_path, "/");
++
++	conn=vde_open(sockname,"vde_pcapplug:",&open_args);
++	if (conn == NULL) {
++		printlog(LOG_ERR,"vde_open %s: %s",sockname?sockname:"DEF_SWITCH",strerror(errno));
++		exit(1);
++	}
++
+ 	if (daemonize && daemon(0, 0)) {
+ 		printlog(LOG_ERR,"daemon: %s",strerror(errno));
+ 		exit(1);
+@@ -365,16 +371,12 @@ int main(int argc, char **argv)
+ 	}
+ 	setup_fd(pcapfd);
+ 
+-	conn=vde_open(sockname,"vde_pcapplug:",&open_args);
+-	if (conn == NULL)
+-		exit(1);
+-
+ 	pollv[0].fd=pcapfd;
+ 	pollv[1].fd=vde_datafd(conn);
+ 	pollv[2].fd=vde_ctlfd(conn);
+ 
+ 	for(;;) {
+-		result=poll(pollv,3,-1);
++		poll(pollv,3,-1);
+ 		if ((pollv[0].revents | pollv[1].revents | pollv[2].revents) & POLLHUP ||
+ 				pollv[2].revents & POLLIN) 
+ 			break;
+diff --git a/src/vde_plug.c b/src/vde_plug.c
+index d41c6a85e..b79317513 100644
+--- a/src/vde_plug.c
++++ b/src/vde_plug.c
+@@ -373,8 +373,10 @@ int main(int argc, char **argv)
+ 	atexit(cleanup);
+ 	setsighandlers();
+ 	conn=vde_open(sockname,"vde_plug:",&open_args);
+-	if (conn == NULL)
++	if (conn == NULL) {
++		fprintf(stderr,"vde_open %s: %s\n",sockname?sockname:"DEF_SWITCH",strerror(errno));
+ 		exit(1);
++	}
+ 
+ 	vdestream=vdestream_open(conn,STDOUT_FILENO,vdeplug_recv,vdeplug_err);
+ 
+diff --git a/src/vde_plug2tap.c b/src/vde_plug2tap.c
+index 116ad0b56..d12326525 100644
+--- a/src/vde_plug2tap.c
++++ b/src/vde_plug2tap.c
+@@ -344,9 +344,11 @@ int main(int argc, char **argv)
+ 	pollv[0].fd=tapfd;
+ 
+ 	if (sockname==NULL || strcmp(sockname,"-") != 0) {
+-		conn=vde_open(sockname,"vde_plug:",&open_args);
+-		if (conn == NULL)
++		conn=vde_open(sockname,"vde_plug2tap:",&open_args);
++		if (conn == NULL) {
++			printlog(LOG_ERR,"vde_open %s: %s",sockname?sockname:"DEF_SWITCH",strerror(errno));
+ 			exit(1);
++		}
+ 		pollv[1].fd=vde_datafd(conn);
+ 		pollv[2].fd=vde_ctlfd(conn);
+ 		npollv=3;
+diff --git a/src/vdeterm.c b/src/vdeterm.c
+index b383d2062..e1be16cb8 100644
+--- a/src/vdeterm.c
++++ b/src/vdeterm.c
+@@ -116,6 +116,7 @@ int main(int argc,char *argv[])
+ 	//static int fileout[]={STDOUT_FILENO,STDOUT_FILENO};
+ 	struct vdehiststat *vdehst;
+ 	setsighandlers();
++	tcgetattr(STDIN_FILENO,&tiop);
+ 	atexit(cleanup);
+ 	sun.sun_family=PF_UNIX;
+ 	snprintf(sun.sun_path,sizeof(sun.sun_path),"%s",argv[1]);
+@@ -128,7 +129,6 @@ int main(int argc,char *argv[])
+ 		perror("Socket connecting error");
+ 		exit(-1);
+ 	}
+-	tcgetattr(STDIN_FILENO,&tiop);
+ 	newtiop=tiop;
+ 	newtiop.c_cc[VMIN]=1;
+ 	newtiop.c_cc[VTIME]=0;
+-- 
+2.35.0
+

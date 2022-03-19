@@ -1,0 +1,3633 @@
+From e71be491b42f27ffa423b984a98e5853836b5c7f Mon Sep 17 00:00:00 2001
+From: Daniele Lacamera <dan@danielinux.net>
+Date: Sun, 5 Sep 2021 11:37:04 +0200
+Subject: [PATCH 54/62] Removed old/deprecated modules
+
+---
+ configure.ac                        |   67 --
+ src/Makefile.am                     |   18 +-
+ src/lib/Makefile.am                 |    4 -
+ src/lib/python/Makefile.am          |   12 -
+ src/lib/python/VdePlug.py           |   89 --
+ src/lib/python/VdePlug_example.py   |   30 -
+ src/lib/python/VdeStream_example.py |   21 -
+ src/lib/python/vdeplug_python.c     |  102 --
+ src/unixterm.c                      |   54 -
+ src/vde_l3/Makefile.am              |   24 -
+ src/vde_l3/bfifo.c                  |  117 --
+ src/vde_l3/pfifo.c                  |  117 --
+ src/vde_l3/tbf.c                    |  204 ----
+ src/vde_l3/vde_buff.h               |  180 ---
+ src/vde_l3/vde_l3.c                 | 1575 ---------------------------
+ src/vde_l3/vde_l3.h                 |   52 -
+ src/vde_tunctl.c                    |  161 ---
+ src/vdeq.c                          |  559 ----------
+ 18 files changed, 1 insertion(+), 3385 deletions(-)
+ delete mode 100644 src/lib/python/Makefile.am
+ delete mode 100755 src/lib/python/VdePlug.py
+ delete mode 100755 src/lib/python/VdePlug_example.py
+ delete mode 100755 src/lib/python/VdeStream_example.py
+ delete mode 100644 src/lib/python/vdeplug_python.c
+ delete mode 100644 src/unixterm.c
+ delete mode 100644 src/vde_l3/Makefile.am
+ delete mode 100644 src/vde_l3/bfifo.c
+ delete mode 100644 src/vde_l3/pfifo.c
+ delete mode 100644 src/vde_l3/tbf.c
+ delete mode 100644 src/vde_l3/vde_buff.h
+ delete mode 100644 src/vde_l3/vde_l3.c
+ delete mode 100644 src/vde_l3/vde_l3.h
+ delete mode 100644 src/vde_tunctl.c
+ delete mode 100644 src/vdeq.c
+
+diff --git a/configure.ac b/configure.ac
+index f442250b0..e2f9314f4 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -163,7 +163,6 @@ AC_ARG_ENABLE([tuntap],
+         [AC_DEFINE([HAVE_TUNTAP], 1, [If defined, tuntap support is compiled in])],
+         [warn_tuntap=yes])
+       can_make_libvdetap=yes
+-      can_make_vdetunctl=yes
+       ;;
+     darwin*)
+       # I don't use AC_CHECK_FILES because I need test -e and not test -r
+@@ -213,42 +212,11 @@ AC_ARG_ENABLE([kernel-switch],
+     AC_DEFINE([USE_IPN], 1, [If defined, enable support for IPN socket])
+   fi])
+ 
+-# python bindings
+-AC_ARG_ENABLE([python],
+-  AS_HELP_STRING([--disable-python], [Disable python bindings]),
+-  [enable_python=$enableval],
+-  [enable_python=yes]
+-)
+-
+-if test x"$enable_python" = x"yes"; then
+-  # check python
+-  AM_PATH_PYTHON([2.5])
+-  AC_PATH_PROG(PYTHON_CONFIG, python$PYTHON_VERSION-config)
+-  if test x"$PYTHON_CONFIG" = x""; then
+-    AC_PATH_PROG(PYTHON_CONFIG, python-config)
+-  fi
+-  if test x"$PYTHON_CONFIG" = x""; then
+-    # not found, give up
+-    enable_python=no
+-  else
+-    PYTHON_CFLAGS=`$PYTHON_CONFIG --includes`
+-    PYTHON_LIBS=`$PYTHON_CONFIG --libs`
+-    PYTHON_INCLUDES="$PYTHON_CFLAGS"
+-  fi
+-  AC_SUBST(PYTHON_CFLAGS)
+-  AC_SUBST(PYTHON_INCLUDES)
+-  AC_SUBST(PYTHON_LIBS)
+-fi
+-
+-
+ AM_CONDITIONAL(ENABLE_CRYPTCAB, test "$add_cryptcab_support" = yes)
+ AM_CONDITIONAL(ENABLE_VDE_OVER_NS, test "$add_over_ns_support" = yes)
+ AM_CONDITIONAL(ENABLE_ROUTER, test "$enable_router" = yes)
+-AM_CONDITIONAL(ENABLE_VXLAN, test "$enable_vxlan" = yes)
+-AM_CONDITIONAL(ENABLE_PYTHON, test "$enable_python" = yes)
+ AM_CONDITIONAL(ENABLE_PCAP, test "$add_pcap" = yes)
+ AM_CONDITIONAL(CAN_MAKE_LIBVDETAP, test "$can_make_libvdetap" = yes)
+-AM_CONDITIONAL(CAN_MAKE_VDETUNCTL, test "$can_make_vdetunctl" = yes)
+ AM_CONDITIONAL(ENABLE_EXPERIMENTAL, test "$enable_experimental" = yes)
+ AM_CONDITIONAL(ENABLE_PROFILE, test "$enable_profile" = yes)
+ AM_CONDITIONAL(DARWIN_GCC, test "$darwin_gcc" = yes)
+@@ -267,17 +235,14 @@ AC_CONFIG_FILES(
+   [src/lib/vdesnmp.pc]
+   [src/lib/vdeplug.pc]
+   [src/lib/vdehist.pc]
+-  [src/lib/python/Makefile]
+   [src/lib/vdemgmt/Makefile]
+   [src/lib/vdemgmt/vdemgmt.pc]
+   [src/vde_switch/Makefile]
+   [src/vde_over_ns/Makefile]
+   [src/common/Makefile]
+   [src/vdetaplib/Makefile]
+-  [src/vde_l3/Makefile]
+   [src/vde_cryptcab/Makefile]
+   [src/vde_router/Makefile]
+-  [src/vde_vxlan/Makefile]
+   [src/vde_switch/plugins/Makefile]
+ )
+ AC_OUTPUT
+@@ -299,18 +264,6 @@ else
+   AS_ECHO " - VDE Router.............. disabled"
+ fi
+ 
+-if test x$enable_vxlan = "xyes" ; then
+-  AS_ECHO " + VDE VXLAN............... enabled"
+-else
+-  AS_ECHO " - VDE VXLAN............... disabled"
+-fi
+-
+-if test x$enable_python = "xyes" ; then
+-  AS_ECHO " + Python Libraries........ enabled"
+-else
+-  AS_ECHO " - Python Libraries........ disabled"
+-fi
+-
+ if test x$warn_tuntap = "xyes" ; then
+   AS_ECHO " - TAP support............. disabled"
+ else
+@@ -335,12 +288,6 @@ else
+   AS_ECHO " - Profiling options....... disabled"
+ fi
+ 
+-if test x$enable_kernel_switch = "xyes" ; then
+-  AS_ECHO " + Kernel switch........... enabled"
+-else
+-  AS_ECHO " - Kernel switch........... disabled"
+-fi
+-
+ AS_ECHO
+ AS_ECHO
+ if ! test x$add_cryptcab_support = "xyes" ; then
+@@ -368,20 +315,6 @@ not installed on your system.])
+   fi
+ fi
+ 
+-if ! test x$enable_vxlan = "xyes" ; then
+-  if test x$warn_vxlan = "xyes" ; then
+-    AC_MSG_WARN([VDE VXLAN support has been disabled.])
+-    AS_ECHO
+-  fi
+-fi
+-
+-if ! test x$enable_python = "xyes" ; then
+-    AC_MSG_WARN([Python libraries support has been disabled because python is
+-not installed on your system, or because it could not be found. Please install
+-it if you want Python libraries to be compiled and installed.])
+-    AS_ECHO
+-fi
+-
+ if ! test x$add_pcap = "xyes" ; then
+   if test x$warn_pcap = "xyes" ; then
+     AC_MSG_WARN([VDE vde_pcapplug and packet dump plugin have been disabled
+diff --git a/src/Makefile.am b/src/Makefile.am
+index 728872728..477c21c49 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -1,25 +1,18 @@
+ SUBDIRS = \
+ 	common \
+ 	lib \
+-	vde_switch \
+-	vde_l3
++	vde_switch
+ 
+ bin_PROGRAMS = \
+ 	dpipe \
+ 	unixcmd \
+-	unixterm \
+ 	vde_autolink \
+ 	vde_plug2tap \
+ 	vde_plug \
+-	vdeq \
+ 	wirefilter \
+ 	vdeterm
+ 
+ 
+-if CAN_MAKE_VDETUNCTL
+-  sbin_PROGRAMS = vde_tunctl
+-endif
+-
+ if CAN_MAKE_LIBVDETAP
+   SUBDIRS += vdetaplib
+ endif
+@@ -36,10 +29,6 @@ if ENABLE_ROUTER
+   SUBDIRS += vde_router
+ endif
+ 
+-if ENABLE_VXLAN
+-  SUBDIRS += vde_vxlan
+-endif
+-
+ if ENABLE_PCAP
+   bin_PROGRAMS += vde_pcapplug
+ endif
+@@ -59,19 +48,14 @@ if ENABLE_PCAP
+   vde_pcapplug_LDADD = $(LDADD) lib/libvdeplug.la -lpcap
+ endif
+ vde_plug_LDADD = $(LDADD) lib/libvdeplug.la
+-vdeq_LDADD = $(LDADD) lib/libvdeplug.la
+ wirefilter_LDADD = $(LDADD) lib/libvdeplug.la
+ vdeterm_LDADD = $(LDADD) lib/libvdeplug.la lib/libvdehist.la
+ 
+ install-exec-hook:
+ 	rm -f $(DESTDIR)$(bindir)/vdecmd
+ 	(cd $(DESTDIR)$(bindir) && $(LN_S) unixcmd vdecmd)
+-	rm -f $(DESTDIR)$(bindir)/vdeqemu $(DESTDIR)$(bindir)/vdekvm
+-	(cd $(DESTDIR)$(bindir) && $(LN_S) vdeq vdeqemu && $(LN_S) vdeq vdekvm )
+ 	rm -f $(DESTDIR)$(bindir)/vdeo
+-	rm -f $(DESTDIR)$(bindir)/vdeoqemu
+ 
+ uninstall-local:
+ 	rm -f $(bindir)/vdecmd
+-	rm -f $(bindir)/vdeqemu $(bindir)/vdekvm
+ 
+diff --git a/src/lib/Makefile.am b/src/lib/Makefile.am
+index e05bec3bf..a68f0bc99 100644
+--- a/src/lib/Makefile.am
++++ b/src/lib/Makefile.am
+@@ -24,9 +24,5 @@ libvdeplug_la_LDFLAGS = $(AM_LDFLAGS) -version-number 3:0:1 -export-dynamic
+ libvdehist_la_LIBADD = $(LIBADD)
+ libvdehist_la_LDFLAGS = $(AM_LDFLAGS) -version-number 0:0:1 -export-dynamic
+ 
+-if ENABLE_PYTHON
+-SUBDIRS += . python
+-endif
+-
+ pkgconfigdir = $(libdir)/pkgconfig
+ pkgconfig_DATA = vdesnmp.pc vdeplug.pc vdehist.pc
+diff --git a/src/lib/python/Makefile.am b/src/lib/python/Makefile.am
+deleted file mode 100644
+index b4d6e2bac..000000000
+--- a/src/lib/python/Makefile.am
++++ /dev/null
+@@ -1,12 +0,0 @@
+-moddir = $(pythondir)
+-
+-AM_LIBTOOLFLAGS = --tag=disable-static
+-
+-LIBADD = $(top_builddir)/src/lib/libvdeplug.so
+-
+-mod_LTLIBRARIES = vdeplug_python.la
+-dist_python_SCRIPTS = VdePlug.py
+-
+-vdeplug_python_la_CFLAGS = -I$(top_srcdir)/include $(PYTHON_CFLAGS) $(PYTHON_INCLUDES)
+-vdeplug_python_la_LIBADD = $(PYTHON_LIBS) $(top_builddir)/src/lib/libvdeplug.la
+-vdeplug_python_la_LDFLAGS = -module -avoid-version
+diff --git a/src/lib/python/VdePlug.py b/src/lib/python/VdePlug.py
+deleted file mode 100755
+index 241c832bb..000000000
+--- a/src/lib/python/VdePlug.py
++++ /dev/null
+@@ -1,89 +0,0 @@
+-#!/usr/bin/python
+-
+-'''
+-
+- LibVdePlug/python wrapper
+- Copyright  2010 Daniele Lacamera
+-
+- Released under the terms of GNU LGPL v. 2.1
+- (see COPYING.libvdeplug in the main project directory)
+-
+-'''
+-
+-import vdeplug_python, os, sys, struct
+-from array import array
+-
+-
+-class VdeStream:
+-	def __init__(self, parent, outf, frecv = None, ferr = None):
+-		self.conn = parent
+-		self.outf = outf
+-		self.frecv = frecv
+-		self.ferr = ferr
+-		self.conn._streams.append(self)
+-		if (self.frecv == None):
+-			self.frecv=self.conn.send
+-		
+-	def recv(self, buf):
+-		(toth, totl) = struct.unpack("BB", buf[0:2])
+-		tot = (toth << 8) + totl
+-		buffer = buf[2:]
+-		if (len(buffer) < tot):
+-			sys.stderr.write("stream recv: wrong size %d, pkt is %d\n" % (tot, len(buffer)))
+-			return -1
+-		elif (len(buffer) > tot):
+-			self.frecv(buffer[0:tot])
+-			return self.recv(buffer[tot:]) # Recursion for remaining data
+-		elif (self.frecv(buffer) < 0):
+-			return -1
+-		
+-	def send(self, buf):
+-		if self.outf is None:
+-			return -1 
+-		lh = (len(buf)>>8) & 0xFF 
+-		ll = len(buf) & 0xFF
+-		a = struct.pack("BB", lh, ll)
+-		self.outf.write(a)
+-		self.outf.write(buf)
+-		self.outf.flush()
+-	
+-	
+-	
+-
+-
+-class VdePlug:
+-
+-	def __init__(self, sock=None, descr="Python", port=0, group=None, mode=0):
+-		self._magic = vdeplug_python.open(sock, descr)
+-		self._ctl = os.fdopen(vdeplug_python.ctlfd(self._magic))
+-		self._data = os.fdopen(vdeplug_python.datafd(self._magic), 'wb+', os.O_NONBLOCK)
+-		self._streams = []
+-
+-	def ctlfd(self):
+-		return self._ctl
+-
+-	def datafd(self):
+-		return self._data
+-
+-	def send(self, buffer):
+-		a = array('B', buffer)
+-		r = self._data.write(a)
+-		self._data.flush()
+-		return r
+-
+-	def recv(self, size):
+-		return os.read(self._data.fileno(), size)
+-
+-	def recvfrom_streams(self, buf):
+-		for s in self._streams:
+-			s.recv(buf)
+-
+-	def sendto_streams(self, buf):
+-		for s in self._streams:
+-			s.send(buf)
+-
+-	def close(self):
+-		vdeplug_python.close(self._magic)
+-		self._magic = None
+-		
+-
+diff --git a/src/lib/python/VdePlug_example.py b/src/lib/python/VdePlug_example.py
+deleted file mode 100755
+index 85fa3e840..000000000
+--- a/src/lib/python/VdePlug_example.py
++++ /dev/null
+@@ -1,30 +0,0 @@
+-#!/usr/bin/python
+-from VdePlug import VdePlug
+-from select import poll
+-import os, sys, struct
+-from select import POLLIN, POLLOUT, POLLHUP, POLLERR, POLLNVAL
+-
+-
+-v = VdePlug(sys.argv[1])
+-p = poll()
+-p.register(sys.stdin.fileno(), POLLIN)
+-p.register(v.datafd().fileno(), POLLIN)
+-while(True):
+-	pollret = p.poll()
+-	for (f,e) in pollret:
+-		if f == v.datafd().fileno() and (e & POLLIN):
+-			buffer = v.recv(2000)
+-			lh = (len(buffer)>>8) & 0xFF 
+-			ll = len(buffer) & 0xFF
+-			a = struct.pack("BB", lh, ll)
+-			sys.stdout.write(a)
+-			sys.stdout.write(buffer)
+-			sys.stdout.flush()
+-		elif f == sys.stdin.fileno() and (e & POLLIN):
+-			hdr = os.read(f, 2)
+-			(toth, totl) = struct.unpack("BB", hdr)
+-			tot = (toth << 8) + totl
+-			buffer = os.read(f, tot)
+-			v.send(buffer)
+-
+-
+diff --git a/src/lib/python/VdeStream_example.py b/src/lib/python/VdeStream_example.py
+deleted file mode 100755
+index d1d779970..000000000
+--- a/src/lib/python/VdeStream_example.py
++++ /dev/null
+@@ -1,21 +0,0 @@
+-#!/usr/bin/python
+-from VdePlug import VdePlug, VdeStream
+-from select import poll
+-import os, sys
+-from select import POLLIN, POLLOUT, POLLHUP, POLLERR, POLLNVAL
+-
+-
+-v = VdePlug(sys.argv[1])
+-s = VdeStream(v, sys.stdout)
+-p = poll()
+-p.register(sys.stdin.fileno(), POLLIN)
+-p.register(v.datafd().fileno(), POLLIN)
+-while(True):
+-	pollret = p.poll()
+-	for (f,e) in pollret:
+-		if f == v.datafd().fileno() and (e & POLLIN):
+-			buffer = v.recv(2000)
+-			v.sendto_streams(buffer)
+-		elif f == sys.stdin.fileno() and (e & POLLIN):
+-			buffer = os.read(f, 2000)
+-			v.recvfrom_streams(buffer)
+diff --git a/src/lib/python/vdeplug_python.c b/src/lib/python/vdeplug_python.c
+deleted file mode 100644
+index 9d70e7266..000000000
+--- a/src/lib/python/vdeplug_python.c
++++ /dev/null
+@@ -1,102 +0,0 @@
+-/*
+- * LibVdePlug/python wrapper
+- * Copyright © 2010 Daniele Lacamera
+- *
+- * Released under the terms of GNU LGPL v. 2.1
+- * (see COPYING.libvdeplug in the main project directory)
+- *
+- */
+-#include "Python.h"
+-#include <stdio.h>
+-#include "libvdeplug.h"
+-
+-
+-static PyObject *vdeplug_open(PyObject *self, PyObject *args)
+-{
+-	struct vde_open_args vde_args = {0,NULL,0777};
+-	char *vde_sock = NULL, *vde_descr = NULL;
+-	VDECONN *ret;
+-
+-	if (!PyArg_ParseTuple(args, "ss|isi", &vde_sock, &vde_descr, &vde_args.port, &vde_args.group, &vde_args.mode))
+-		goto failure; 
+-
+-	ret = vde_open_real(vde_sock, vde_descr, 1, &vde_args);
+-	if (!ret)
+-		goto failure;
+-	else
+-		return PyLong_FromUnsignedLong((unsigned long) ret);
+-
+-	
+-failure:
+-	return PyErr_SetFromErrno(PyExc_RuntimeError);
+-}
+-
+-static PyObject *vdeplug_ctlfd(PyObject *self, PyObject *args)
+-{
+-	VDECONN *conn;
+-	unsigned long vde_magic = 0;
+-
+-	if (!PyArg_ParseTuple(args, "k", &vde_magic))
+-		goto failure; 
+-	conn = (VDECONN *) vde_magic;
+-
+-	if (!conn)
+-		goto failure;
+-
+-	return Py_BuildValue("i", vde_ctlfd(conn));
+-	
+-failure:
+-	return PyErr_SetFromErrno(PyExc_RuntimeError);
+-}
+-
+-static PyObject *vdeplug_datafd(PyObject *self, PyObject *args)
+-{
+-	VDECONN *conn;
+-	unsigned long vde_magic = 0;
+-
+-	if (!PyArg_ParseTuple(args, "k", &vde_magic))
+-		goto failure; 
+-	conn = (VDECONN *) vde_magic;
+-
+-	if (!conn)
+-		goto failure;
+-
+-	return Py_BuildValue("i", vde_datafd(conn));
+-	
+-failure:
+-	return PyErr_SetFromErrno(PyExc_RuntimeError);
+-}
+-
+-static PyObject *vdeplug_close(PyObject *self, PyObject *args)
+-{
+-	VDECONN *conn;
+-	unsigned long vde_magic = 0;
+-
+-	if (!PyArg_ParseTuple(args, "k", &vde_magic))
+-		goto failure; 
+-	conn = (VDECONN *) vde_magic;
+-
+-	if (!conn)
+-		goto failure;
+-
+-	return Py_BuildValue("i", vde_close(conn));
+-	
+-failure:
+-	return PyErr_SetFromErrno(PyExc_RuntimeError);
+-}
+-
+-
+-
+-static PyMethodDef vdeplug_methods[] = {
+-    {"open",  vdeplug_open, METH_VARARGS},
+-    {"ctlfd",  vdeplug_ctlfd, METH_VARARGS},
+-    {"datafd",  vdeplug_datafd, METH_VARARGS},
+-    {"close",  vdeplug_close, METH_VARARGS},
+-    {NULL,      NULL}        /* Sentinel */
+-};
+-
+-void initvdeplug_python(void)
+-{
+-	(void) Py_InitModule("vdeplug_python", vdeplug_methods);
+-//	PyErr_SetString(PyExc_RuntimeError,"vdeplug error");
+-}
+diff --git a/src/unixterm.c b/src/unixterm.c
+deleted file mode 100644
+index 91c43ec0c..000000000
+--- a/src/unixterm.c
++++ /dev/null
+@@ -1,54 +0,0 @@
+-/* Copyright 2005 Renzo Davoli VDE-2
+- * Licensed under the GPLv2
+- *
+- * Minimal terminal emulator on a UNIX stream socket
+- */
+-
+-#include <stdio.h>
+-#include <fcntl.h>
+-#include <stdlib.h>
+-#include <unistd.h>
+-#include <sys/socket.h>
+-#include <sys/un.h>
+-
+-#include <config.h>
+-#include <vde.h>
+-#include <vdecommon.h>
+-
+-#define BUFSIZE 1024
+-char buf[BUFSIZE];
+-
+-int main(int argc,char *argv[])
+-{
+-	struct sockaddr_un sun;
+-	int fd;
+-	int rv;
+-	static struct pollfd pfd[]={
+-		{STDIN_FILENO,POLLIN | POLLHUP,0},
+-		{STDIN_FILENO,POLLIN | POLLHUP,0}};
+-	static int fileout[]={STDOUT_FILENO,STDOUT_FILENO};
+-	sun.sun_family=PF_UNIX;
+-	snprintf(sun.sun_path,sizeof(sun.sun_path),"%s",argv[1]);
+-	if((fd=socket(PF_UNIX,SOCK_STREAM,0))<0) {
+-		perror("Socket opening error");
+-		exit(-1);
+-	}
+-	if ((rv=connect(fd,(struct sockaddr *)(&sun),sizeof(sun))) < 0) {
+-		perror("Socket connecting error");
+-		exit(-1);
+-	}
+-	pfd[1].fd=fileout[0]=fd;
+-	while(1) {
+-		int m,i,n=poll(pfd,2,-1);
+-		for(i=0;n>0;i++) {
+-			if(pfd[i].revents & POLLHUP)
+-				exit(0);
+-			if(pfd[i].revents & POLLIN) {
+-				n--;
+-				if((m=read(pfd[i].fd,buf,BUFSIZE)) == 0)
+-					exit(0);
+-				write(fileout[i],buf,m);
+-			} 
+-		}
+-	}
+-}
+diff --git a/src/vde_l3/Makefile.am b/src/vde_l3/Makefile.am
+deleted file mode 100644
+index 748cb784a..000000000
+--- a/src/vde_l3/Makefile.am
++++ /dev/null
+@@ -1,24 +0,0 @@
+-
+-moddir = $(pkglibdir)/vde_l3
+-
+-AM_LDFLAGS = -module -avoid-version -export-dynamic
+-AM_LIBTOOLFLAGS = --tag=disable-static
+-AM_CPPFLAGS = -I$(top_srcdir)/include
+-
+-if ENABLE_PROFILE
+-  AM_CFLAGS = -pg --coverage
+-  AM_LDFLAGS += -pg --coverage
+-endif
+-
+-mod_LTLIBRARIES = pfifo.la tbf.la bfifo.la
+-pfifo_la_SOURCES = pfifo.c  vde_buff.h
+-tbf_la_SOURCES = tbf.c  vde_buff.h
+-bfifo_la_SOURCES = bfifo.c  vde_buff.h
+-
+-pfifo_la_LIBADD = $(top_builddir)/src/common/libvdecommon.la
+-bfifo_la_LIBADD = $(top_builddir)/src/common/libvdecommon.la
+-tbf_la_LIBADD = $(top_builddir)/src/common/libvdecommon.la
+-
+-bin_PROGRAMS = vde_l3
+-vde_l3_SOURCES = vde_l3.c vde_buff.h vde_l3.h
+-vde_l3_LDADD = $(top_builddir)/src/common/libvdecommon.la $(top_builddir)/src/lib/libvdeplug.la
+diff --git a/src/vde_l3/bfifo.c b/src/vde_l3/bfifo.c
+deleted file mode 100644
+index 6856310b6..000000000
+--- a/src/vde_l3/bfifo.c
++++ /dev/null
+@@ -1,117 +0,0 @@
+-/* 
+- * tc bfifo module 
+- * Usage: tc set <dev> bfifo limit <bytes>	
+- *
+- * */ 
+-#include <stdio.h>
+-#include <stdlib.h>
+-#include <string.h>
+-
+-#include <config.h>
+-#include <vde.h>
+-#include <vdecommon.h>
+-#include "vde_buff.h"
+-#include "vde_l3.h"
+-
+-/** Private per-interface structure
+- *
+- */
+-struct tc_bfifo
+-{
+-	uint32_t qlen;
+-	uint32_t limit;	
+-	uint32_t dropped;
+-};
+-
+-#define bfifo_tcpriv(x) (struct tc_bfifo*)(tcpriv(x))
+-
+-/*
+- * Enqueue function. Try to add the packet 'vdb' to the output queue
+- * of the interface 'vif'
+- *
+- * return value: 1 = packet was enqueued, 0 = packet was rejected
+- */
+-int bfifo_enqueue(struct vde_buff *vdb, struct vde_iface *vif)
+-{
+-	struct tc_bfifo *bfifo = bfifo_tcpriv(vif); 
+-	if ( (bfifo->qlen + vdb->len)  < bfifo->limit){
+-		bfifo->qlen += vdb->len;
+-		ufifo_enqueue(vdb,vif);
+-		return 1;
+-	}else{
+-		/* Queue Full: dropping. */
+-		free(vdb);
+-		bfifo->dropped++;
+-		return 0;
+-	}
+-}
+-
+-/* Dequeue function. Interface is ready to send the packet.
+- *
+- */
+-int bfifo_dequeue(struct vde_iface *vif)
+-{
+-	struct tc_bfifo *bfifo = bfifo_tcpriv(vif);
+-	(void)ufifo_dequeue(vif);
+-	if(bfifo->qlen > 0)
+-		bfifo->qlen -= vif->q_out->len;
+-	return (bfifo->qlen > 0);
+-}
+-
+-
+-
+-/* Function to initialize the queue on the given interface.
+- */
+-int bfifo_init(struct vde_iface *vif, char *args)
+-{
+-	struct tc_bfifo *bfifo=(struct tc_bfifo *)malloc(sizeof(struct tc_bfifo));
+-	int arglen = strlen(args) - 1;
+-	
+-	if ((arglen < 6) || strncmp(args,"limit ",6) || (sscanf(args+6, "%u",&(bfifo->limit)) < 1) )
+-		return 0;
+-
+-	bfifo->qlen = 0;
+-	bfifo->dropped = 0;
+-	vif->policy_name="bfifo";
+-	memcpy(vif->tc_priv, bfifo, sizeof(struct tc_bfifo));
+-	return 1;
+-}
+-
+-char *bfifo_tc_stats(struct vde_iface *vif)
+-{
+-	struct tc_bfifo *bfifo = bfifo_tcpriv(vif);
+-	char *statistics=(char*)malloc(256);
+-	snprintf(statistics,255,"Limit: %u bytes. Dropped: %u packets.", bfifo->limit, bfifo->dropped);
+-	return statistics;
+-	
+-}
+-
+-
+-/*
+- * Module symbol to load into module list.
+- *
+- */
+-struct routing_policy module_routing_policy=
+-{
+-	.name="bfifo",
+-	.help="Packet Fifo queue\nUsage: tc set <dev> bfifo limit <limit in bytes>\n",
+-	.policy_init = bfifo_init,
+-	.enqueue = bfifo_enqueue,
+-	.dequeue = bfifo_dequeue,
+-	.tc_stats = bfifo_tc_stats
+-};
+-
+-static void
+-__attribute__ ((constructor))
+-init (void)
+-{
+-	fprintf(stderr,"Loading library: bfifo.so\n");
+-
+-}
+-
+-	static void
+-	__attribute__ ((destructor))
+-fini (void)
+-{
+-
+-}
+diff --git a/src/vde_l3/pfifo.c b/src/vde_l3/pfifo.c
+deleted file mode 100644
+index 2a4c0e285..000000000
+--- a/src/vde_l3/pfifo.c
++++ /dev/null
+@@ -1,117 +0,0 @@
+-/* 
+- * tc pfifo module 
+- * Usage: tc set <dev> pfifo limit <packets>	
+- *
+- * */ 
+-#include <stdlib.h>
+-#include <string.h>
+-#include <stdio.h>
+-
+-#include <config.h>
+-#include <vde.h>
+-#include <vdecommon.h>
+-#include "vde_buff.h"
+-#include "vde_l3.h"
+-
+-/** Private per-interface structure
+- *
+- */
+-struct tc_pfifo
+-{
+-	uint32_t qlen;
+-	uint32_t limit;	
+-	uint32_t dropped;
+-};
+-
+-#define pfifo_tcpriv(x) (struct tc_pfifo*)(tcpriv(x))
+-
+-/*
+- * Enqueue function. Try to add the packet 'vdb' to the output queue
+- * of the interface 'vif'
+- *
+- * return value: 1 = packet was enqueued, 0 = packet was rejected
+- */
+-int pfifo_enqueue(struct vde_buff *vdb, struct vde_iface *vif)
+-{
+-	struct tc_pfifo *pfifo = pfifo_tcpriv(vif); 
+-	if (pfifo->qlen < pfifo->limit){
+-		pfifo->qlen++;
+-		ufifo_enqueue(vdb,vif);
+-		return 1;
+-	}else{
+-		/* Queue Full: dropping. */
+-		free(vdb);
+-		pfifo->dropped++;
+-		return 0;
+-	}
+-}
+-
+-/* Dequeue function. Interface is ready to send the packet.
+- *
+- */
+-int pfifo_dequeue(struct vde_iface *vif)
+-{
+-	struct tc_pfifo *pfifo = pfifo_tcpriv(vif);
+-	(void)ufifo_dequeue(vif);
+-	if(pfifo->qlen > 0)
+-		pfifo->qlen--;
+-	return (pfifo->qlen > 0);
+-}
+-
+-
+-
+-/* Function to initialize the queue on the given interface.
+- */
+-int pfifo_init(struct vde_iface *vif, char *args)
+-{
+-	struct tc_pfifo *pfifo=(struct tc_pfifo *)malloc(sizeof(struct tc_pfifo));
+-	int arglen = strlen(args) - 1;
+-	
+-	if ((arglen < 6) || strncmp(args,"limit ",6) || (sscanf(args+6, "%u",&(pfifo->limit)) < 1) )
+-		return 0;
+-
+-	pfifo->qlen = 0;
+-	pfifo->dropped = 0;
+-	vif->policy_name="pfifo";
+-	memcpy(vif->tc_priv, pfifo, sizeof(struct tc_pfifo));
+-	return 1;
+-}
+-
+-char *pfifo_tc_stats(struct vde_iface *vif)
+-{
+-	struct tc_pfifo *pfifo = pfifo_tcpriv(vif);
+-	char *statistics=(char*)malloc(256);
+-	snprintf(statistics,255,"Limit: %u packets. Dropped: %u packets.", pfifo->limit, pfifo->dropped);
+-	return statistics;
+-	
+-}
+-
+-
+-/*
+- * Module symbol to load into module list.
+- *
+- */
+-struct routing_policy module_routing_policy=
+-{
+-	.name="pfifo",
+-	.help="Packet Fifo queue\nUsage: tc set <dev> pfifo limit <packets>\n",
+-	.policy_init = pfifo_init,
+-	.enqueue = pfifo_enqueue,
+-	.dequeue = pfifo_dequeue,
+-	.tc_stats = pfifo_tc_stats
+-};
+-
+-static void
+-__attribute__ ((constructor))
+-init (void)
+-{
+-	fprintf(stderr,"Loading library: pfifo.so\n");
+-
+-}
+-
+-	static void
+-	__attribute__ ((destructor))
+-fini (void)
+-{
+-
+-}
+diff --git a/src/vde_l3/tbf.c b/src/vde_l3/tbf.c
+deleted file mode 100644
+index a76f953eb..000000000
+--- a/src/vde_l3/tbf.c
++++ /dev/null
+@@ -1,204 +0,0 @@
+-/* 
+- * tc token bucket module 
+- * Usage: tc set <dev> tbf rate <speed>[K|M] limit <packets> 	
+- * Alternate usage: tc set <dev> tbf rate <speed>[K|M] latency <ms>
+- *
+- *
+- *
+- * */ 
+-#include <stdio.h>
+-#include <stdlib.h>
+-#include <string.h>
+-#include <strings.h>
+-#include <sys/time.h>
+-#include <time.h>
+-#include "vde_buff.h"
+-
+-#include <config.h>
+-#include <vde.h>
+-#include <vdecommon.h>
+-#include "vde_l3.h"
+-
+-struct timeval add_t(struct timeval x, struct timeval y) 
+-{ 
+-	struct timeval ret = {
+-		.tv_sec = x.tv_sec + y.tv_sec + ((x.tv_usec + y.tv_usec) / 1000000),
+-		.tv_usec = (x.tv_usec + y.tv_usec) % 1000000
+-	};
+-	return ret;
+-}
+-#define before(x,y) x.tv_sec < y.tv_sec || (x.tv_sec == y.tv_sec && x.tv_usec < y.tv_usec)
+-
+-#define tbf_tcpriv(x) (struct tc_tbf*)(tcpriv(x))
+-
+-/** Private per-interface structure
+- *
+- */
+-struct tc_tbf
+-{
+-	uint32_t qlen; // Bytes.
+-	uint32_t limit;	// Bytes.
+-	uint32_t latency; // ms
+-	uint32_t rate; // bits/s
+-	uint32_t dropped; //packets
+-	uint32_t mtu;
+-	uint32_t bytes_out;
+-	struct timeval  delta;
+-	struct timeval last_out;
+-};
+-
+-
+-/*
+- * Enqueue function. Try to add the packet 'vdb' to the output queue
+- * of the interface 'vif'
+- *
+- * return value: 1 = packet was enqueued, 0 = packet was rejected
+- */
+-int tbf_enqueue(struct vde_buff *vdb, struct vde_iface *vif)
+-{
+-	struct tc_tbf *tbf = tbf_tcpriv(vif); 
+-	if (tbf->qlen < tbf->limit){
+-		tbf->qlen+=vdb->len;
+-		ufifo_enqueue(vdb,vif);
+-		if(vdb->len > tbf->mtu){
+-			tbf->mtu = vdb->len;
+-			tbf->delta.tv_usec = (1000000*tbf->mtu) / tbf->rate;
+-			if (tbf->latency){
+-				tbf->limit = (tbf->rate/tbf->mtu) * tbf->latency;
+-			}
+-		}
+-		return 1;
+-	}else{
+-		/* Queue Full: dropping. */
+-		free(vdb);
+-		tbf->dropped++;
+-		return 0;
+-	}
+-}
+-
+-/* Dequeue function. Interface is ready to send the packet.
+- *
+- */
+-int tbf_dequeue(struct vde_iface *vif)
+-{
+-	struct tc_tbf *tbf = tbf_tcpriv(vif);
+-	struct timeval now;
+-	struct timeval when;
+-	gettimeofday(&now,NULL);
+-	when = add_t (tbf->last_out, tbf->delta);
+-
+-	if (before(now, when))
+-		return 0;
+-
+-	tbf->bytes_out = vif->q_out->len;
+-	ufifo_dequeue(vif);
+-	tbf->qlen -= tbf->bytes_out;
+-	while (tbf->bytes_out >= tbf->mtu){
+-		memcpy(&tbf->last_out,&now,sizeof(struct timeval));
+-		tbf->bytes_out -= tbf->mtu;
+-	}
+-	return 1;
+-
+-}
+-
+-
+-
+-/* Function to initialize the queue on the given interface.
+- */
+-int tbf_init(struct vde_iface *vif, char *args)
+-{
+-	struct tc_tbf *tbf=(struct tc_tbf *)malloc(sizeof(struct tc_tbf));
+-	int arglen = strlen(args) - 1;
+-	uint32_t latency=0;
+-	char *rate;	
+-	if ((arglen < 5) || strncmp(args,"rate",4))
+-		goto fail;
+-	args=index(args,' ');
+-	if(args) *(args++)=(char)0;
+-	rate=args;
+-	if(!args || sscanf(args, "%u",&(tbf->rate)) < 1)
+-		goto fail;
+-	args=index(args,' ');
+-	if(args) *(args++)=(char)0;
+-	if(index(rate,'K')) tbf->rate *=1000;
+-	else if(index(rate,'M')) tbf->rate *=1000000;
+-	if(tbf->rate < 5000)
+-		goto fail;
+-	tbf->rate = (tbf->rate >> 3); // from bits/s --> to Bytes/s
+-
+-	if(strncmp(args,"latency",7)==0){
+-		args=index(args,' ');
+-		if(args) *(args++)=(char)0;
+-		if(!args || sscanf(args, "%u",&latency) < 1)
+-			goto fail;
+-	} else if (strncmp(args,"limit",5)==0){
+-		args=index(args,' ');
+-		if(args) *(args++)=(char)0;
+-		if(!args || sscanf(args, "%u",&(tbf->limit)) < 1)
+-			goto fail;
+-
+-
+-
+-	} else goto fail;
+-	
+-	tbf->mtu=1000;
+-	
+-	if(latency){
+-		tbf->limit = (tbf->rate/tbf->mtu) * latency;
+-	}
+-
+-
+-	tbf->latency = latency;
+-	gettimeofday(&tbf->last_out,NULL);
+-	tbf->qlen = 0;
+-	tbf->dropped = 0;
+-	tbf->bytes_out = 0;
+-	tbf->delta.tv_sec = 0;
+-	tbf->delta.tv_usec = (1000000*tbf->mtu) / tbf->rate;
+-	vif->policy_name="tbf";
+-	memcpy(vif->tc_priv, tbf, sizeof(struct tc_tbf));
+-	return 1;
+-
+-fail:
+-	return 0; 
+-
+-}
+-
+-char *tbf_tc_stats(struct vde_iface *vif)
+-{
+-	struct tc_tbf *tbf = tbf_tcpriv(vif);
+-	char *statistics=(char*)malloc(256);
+-	snprintf(statistics,255,"Shaping at Rate = %u Bytes/s, bucket limit: %u bytes. Overlimits: %u packets. MTU=%u", tbf->rate, tbf->limit, tbf->dropped, tbf->mtu);
+-	return statistics;
+-	
+-}
+-
+-
+-/*
+- * Module symbol to load into module list.
+- *
+- */
+-struct routing_policy module_routing_policy=
+-{
+-	.name="tbf",
+-	.help="Packet Fifo queue\nUsage: tc set <dev> tbf rate <speed>[K|M] ( limit <bytes> | latency <ms> )\n",
+-	.policy_init = tbf_init,
+-	.enqueue = tbf_enqueue,
+-	.dequeue = tbf_dequeue,
+-	.tc_stats = tbf_tc_stats
+-};
+-
+-static void
+-__attribute__ ((constructor))
+-init (void)
+-{
+-	fprintf(stderr,"Loading library: tbf.so\n");
+-
+-}
+-
+-	static void
+-	__attribute__ ((destructor))
+-fini (void)
+-{
+-
+-}
+diff --git a/src/vde_l3/vde_buff.h b/src/vde_l3/vde_buff.h
+deleted file mode 100644
+index 5cbf974c3..000000000
+--- a/src/vde_l3/vde_buff.h
++++ /dev/null
+@@ -1,180 +0,0 @@
+-/* VDE_ROUTER (C) 2007 Daniele Lacamera
+- *
+- * Licensed under the GPLv2
+- *
+- * This is a tiny v4 router that can be used to link 
+- * together two or more vde switches.
+- *
+- */
+-
+-#ifndef __VDE_BUFF_H
+-#define __VDE_BUFF_H
+-
+-#include <sys/types.h>
+-#include <netinet/in.h>
+-#include <netinet/in_systm.h>
+-#include <netinet/ip.h>
+-#include <netinet/ip_icmp.h>
+-
+-#include <config.h>
+-#include <libvdeplug.h>
+-
+-#define PTYPE_IP 0x0800
+-#define PTYPE_ARP 0x0806
+-
+-#define PROTO_ICMP 1
+-#define PROTO_TCP 6
+-#define PROTO_UDP 17
+-
+-#if defined(VDE_FREEBSD) || defined(VDE_DARWIN)
+-struct iphdr
+-{
+-#if BYTE_ORDER == LITTLE_ENDIAN
+-	unsigned int ihl:4;
+-	unsigned int version:4;
+-#elif BYTE_ORDER == BIG_ENDIAN
+-	unsigned int version:4;
+-	unsigned int ihl:4;
+-#endif
+-	u_int8_t tos;
+-	u_int16_t tot_len;
+-	u_int16_t id;
+-	u_int16_t frag_off;
+-	u_int8_t ttl;
+-	u_int8_t protocol;
+-	u_int16_t check;
+-	u_int32_t saddr;
+-	u_int32_t daddr;
+-	/*The options start here. */
+-};
+-#endif
+-
+-struct 
+-__attribute__ ((__packed__)) 
+-vde_ethernet_header
+-{
+-	uint8_t dst[6];
+-	uint8_t src[6];
+-	uint16_t buftype;
+-};
+-
+-
+-struct 
+-__attribute__ ((__packed__)) 
+-vde_buff
+-{
+-	struct vde_buff *next;
+-//	struct vde_ethernet_header eth_h;
+-//	struct iphdr 	ip_h;
+-	char	*data;
+-	unsigned long	len;
+-};
+-
+-struct 
+-vde_route
+-{
+-	struct vde_route *next;
+-	uint32_t network;
+-	uint32_t nm;
+-	uint32_t gw;
+-};
+-
+-
+-
+-
+-
+-struct vde_iface
+-{
+-	uint8_t id; 	// Interface number
+-	VDECONN *vdec;		// vde connector
+-	uint8_t mac[6];	// 6-byte unicast mac address
+-	uint32_t ipaddr;	// 4-byte ip address
+-	uint32_t nm;		// netmask
+-	struct vde_buff *q_in;	
+-	struct vde_buff *q_out;	
+-	
+-	/* Routing policy options */
+-	char *policy_name;
+-	int (*policy_init)(struct vde_iface *vif, char *args);
+-	int (*enqueue)(struct vde_buff *vdb, struct vde_iface *vif);
+-	int (*dequeue)(struct vde_iface *vif);
+-	char *(*tc_stats)(struct vde_iface *vif);
+-	uint32_t tc_priv[16];
+-
+-	
+-	struct vde_iface *next;
+-	
+-};
+-
+-#define TC_PRIV_SIZE 16 * sizeof(uint32_t)
+-
+-struct
+-routing_policy	
+-{
+-	char *name;
+-	char *help;
+-	int (*policy_init)(struct vde_iface *vif, char *args);
+-	int (*enqueue)(struct vde_buff *vdb, struct vde_iface *vif);
+-	int (*dequeue)(struct vde_iface *vif);
+-	char *(*tc_stats)(struct vde_iface *vif);
+-	struct routing_policy *next;
+-};
+-
+-
+-struct 
+-arp_entry
+-{
+-	uint8_t mac[6];
+-	uint32_t ipaddr;
+-	struct arp_entry *next;
+-};
+-
+-
+-struct 
+-vde_router
+-{
+-	struct vde_iface *interfaces;
+-	struct vde_route *route_table;
+-	struct arp_entry *arp_table;
+-	struct vde_buff *arp_pending;
+-	struct routing_policy *modlist;
+-	uint32_t default_gw;
+-};
+-
+-
+-
+-
+-/* Arp */
+-#define ARP_REQUEST 1
+-#define ARP_REPLY 2
+-
+-#define ETHERNET_ADDRESS_SIZE 6
+-#define IP_ADDRESS_SIZE 4
+-
+-#define ETH_BCAST "\xFF\xFF\xFF\xFF\xFF\xFF" 
+-#define HTYPE_ETH 1
+-
+-struct
+-__attribute__ ((__packed__)) 
+-arp_header
+-{
+-	uint16_t htype;
+-	uint16_t ptype;
+-	uint8_t hsize;
+-	uint8_t	psize;
+-	uint16_t opcode;
+-	uint8_t s_mac[6];
+-	uint32_t s_addr;
+-	uint8_t d_mac[6];
+-	uint32_t d_addr;	
+-};
+-
+-/*
+- * The main structure. Contains: interfaces, routing table,
+- * arp pending, etc.
+- */
+-extern struct vde_router VDEROUTER; 
+-void policy_register(struct routing_policy *r);
+-size_t raw_send(struct vde_iface *of,struct vde_buff *vdb);
+-
+-#endif
+diff --git a/src/vde_l3/vde_l3.c b/src/vde_l3/vde_l3.c
+deleted file mode 100644
+index f97abd536..000000000
+--- a/src/vde_l3/vde_l3.c
++++ /dev/null
+@@ -1,1575 +0,0 @@
+-/* VDE_ROUTER (C) 2007 Daniele Lacamera
+- *
+- * Licensed under the GPLv2
+- *
+- * This is a tiny v4 router that can be used to link 
+- * together two or more vde switches.
+- *
+- */
+-
+-#include <stdio.h>
+-#include <unistd.h>
+-#include <stdlib.h>
+-#include <string.h>
+-#include <getopt.h>
+-#include <errno.h>
+-#include <libgen.h>
+-#include <syslog.h>
+-#include <fcntl.h>
+-#include <time.h>
+-#include <signal.h>
+-#include <stdarg.h>
+-#include <sys/time.h>
+-#include <sys/types.h>
+-#include <sys/stat.h>
+-#include <sys/socket.h>
+-#include <netinet/in.h>
+-#include <arpa/inet.h>
+-#include <sys/un.h>
+-#include <dlfcn.h>
+-
+-#include <libvdeplug.h>
+-
+-#include <config.h>
+-#include <vde.h>
+-#include <vdecommon.h>
+-#include "vde_buff.h"
+-#include "vde_l3.h"
+-
+-
+-#define MAXCMD 255
+-#define DEBUG 0
+-
+-#if defined(VDE_FREEBSD) || defined(VDE_DARWIN) || defined(VDE_BIONIC)
+-#define ICMP_DEST_UNREACH 3
+-#define ICMP_PROT_UNREACH 2
+-#endif
+-
+-/*
+- * The main structure. Contains: interfaces, routing table,
+- * arp pending, etc.
+- */
+-struct vde_router VDEROUTER; 
+-
+-
+-
+-/* This is the default routing policy ( Unlimited fifo )
+- *
+- *
+- */
+-int ufifo_enqueue(struct vde_buff *vdb, struct vde_iface *vif)
+-{
+-	struct vde_buff *qo = vif->q_out;
+-	if (qo == NULL){
+-		vif->q_out=vdb;
+-		return 1;
+-	}
+-	while (qo->next!=NULL){
+-		qo=qo->next;
+-	}
+-	qo->next = vdb;
+-	return 1;
+-}
+-
+-int ufifo_dequeue(struct vde_iface *vif){
+-	struct vde_buff *vdb_out=vif->q_out;
+-	raw_send(vif,vdb_out);
+-	vif->q_out=vdb_out->next;
+-	return (vif->q_out?1:0);
+-}
+-
+-int ufifo_init(struct vde_iface *vif, char *args)
+-{
+-	vif->policy_name = "ufifo";
+-	return (strlen(args) == 0);
+-}
+-
+-char *nostats(struct vde_iface *vif)
+-{
+-	return "No Statistics Available.";
+-}
+-
+-
+-struct routing_policy unlimited_fifo_routing_policy ={
+-	.name = "ufifo",
+-	.help = "Unlimited FIFO (Default)\nUsage: tc set <dev> ufifo\n",
+-	.enqueue = ufifo_enqueue,
+-	.dequeue = ufifo_dequeue,
+-	.tc_stats = nostats,
+-	.policy_init = ufifo_init
+-};
+-
+-
+-inline struct vde_ethernet_header *ethhead(struct vde_buff *vdb)
+-{
+-	return (struct vde_ethernet_header*)(vdb->data);
+-}
+-
+-inline struct iphdr *iphead(struct vde_buff *vdb)
+-{
+-	return (struct iphdr*)(vdb->data + 14);
+-}
+-
+-inline void *payload(struct vde_buff *vdb)
+-{
+-	return (uint8_t*)(vdb->data + 14 + sizeof(struct iphdr));
+-}
+-
+-void *
+-tcpriv(struct vde_iface *vi)
+-{
+-	return (void *)(vi->tc_priv);
+-}
+-
+-void policy_register(struct routing_policy *r)
+-{
+-	struct routing_policy *p = VDEROUTER.modlist;
+-	if(p==NULL){
+-		VDEROUTER.modlist = r;
+-		return;
+-	}
+-	while (p->next!=NULL){
+-		p=p->next;
+-	}
+-	r->next=NULL;
+-	p->next=r;
+-}
+-
+-struct routing_policy *getpolicy(char *name)
+-{
+-	struct routing_policy *p = VDEROUTER.modlist;
+-	struct routing_policy *new;
+-	void *di;
+-	char libname[300],libname2[300],libname3[300];
+-	snprintf(libname,255,"%s.so",name);
+-	snprintf(libname2,255,"/usr/lib/vde2/vde_l3/%s.so",name);
+-	snprintf(libname3,255,"/usr/local/lib/vde2/vde_l3/%s.so",name);
+-
+-	while (p){
+-		if (!strncmp(name,p->name,255))
+-			return p;
+-		p=p->next;
+-	}
+-	
+-
+-	di = dlopen(libname,RTLD_LAZY);
+-	if (di == NULL)
+-		di = dlopen(libname2,RTLD_LAZY);
+-	if (di == NULL)
+-		di = dlopen(libname3,RTLD_LAZY);
+-
+-	if (di == NULL){
+-		fprintf(stderr,"Error loading module %s: %s\n",libname,dlerror());
+-		return NULL;
+-	}else{
+-		new = (struct routing_policy *) dlsym(di,"module_routing_policy");
+-		if(new!=NULL){
+-			policy_register(new);
+-			return new;
+-		}else{
+-			fprintf(stderr,"Error registering module %s: %s\n",libname,dlerror());
+-			return NULL;
+-		}
+-
+-	}	
+-}
+-
+-
+-void set_interface_policy (struct vde_iface *vif, struct routing_policy *rp)
+-{
+-	vif->enqueue = rp->enqueue;
+-	vif->dequeue = rp->dequeue;
+-
+-	if (rp->tc_stats)
+-		vif->tc_stats = rp->tc_stats;
+-	else
+-		vif->tc_stats = nostats;
+-
+-	vif->policy_init = rp->policy_init;
+-
+-}
+-
+-
+-static const int mgmtmode=0700;
+-static int max_total_sockets=0;
+-
+-static char *progname;
+-
+-
+-/* Small utility functions, to talk to humans.
+- */
+-static char *ip2ascii(uint32_t ip){
+-	struct in_addr ia_be;
+-	ia_be.s_addr = htonl(ip);
+-	return(strdup(inet_ntoa(ia_be)));
+-}
+-
+-uint8_t *ip2mac(uint32_t ip)
+-{
+-	uint8_t *ret =(uint8_t *) malloc(6);
+-	uint32_t bigendian_ip = htonl(ip);
+-	*ret = 0;
+-	*(ret+1) = 0xAA;
+-	memcpy(ret+2,&bigendian_ip,4); 
+-	return ret;
+-}
+-
+-
+-static char *mac2ascii(uint8_t *mac){
+-	char *res = calloc(1,18);
+-	snprintf(res,18,"%02X:%02X:%02X:%02X:%02X:%02X", mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]); 
+-	return res;
+-}
+-
+-
+-/*
+- * Get an interface from its id
+- */
+-static struct vde_iface *get_interface(int id){
+-	struct vde_iface *ifc = VDEROUTER.interfaces;
+-	while(ifc){
+-		if(ifc->id == id)
+-			return ifc;
+-		ifc = ifc->next;
+-	}
+-	return NULL;
+-}
+-
+-
+-
+-void usage(char *p)
+-{
+-	fprintf(stderr,"Usage: %s [-G default_gw] -v vde_sock1:ipaddess1/netmask1 [-v ...] [-v vde_sockN:ipaddessN/netmaskN]\n",p);
+-	fprintf(stderr,"          [-r network/netmask:gateway ] [-r ...] \n");
+-	
+-	fprintf(stderr,"Options:\n");
+-	fprintf(stderr,"-v VDESOCK:ADDRESS/NETMASK adds a network interface\n" \
+-		       "\twith address ADDRESS and netmask NETMASK. \n" \
+-		       "\tThe interface is connected to the vde socket VDESOCK.\n" \
+-		       "\t(At least one '-v' argument is required.)\n" \
+-		       "\n");
+-			
+-	fprintf(stderr,"-r ADDRESS/NETMASK:GATEWAY adds a static route to the network\n" \
+-		       "\tADDRESS with netmask NETMASK, through the gateway GATEWAY. \n" \
+-		       "\n");
+-	fprintf(stderr,"-G ADDRESS sets the router default gateway to ADDRESS.\n" \
+-		       "\n");
+-
+-	
+-	exit(1);
+-}
+-
+-
+-/* physically copy a vde_buff
+- */
+-struct vde_buff *buff_clone( struct vde_buff *orig)
+-{
+-	struct vde_buff *clone = (struct vde_buff *)calloc(1,sizeof(struct vde_buff));
+-	memcpy (clone,orig,sizeof(struct vde_buff));
+-	clone->data = (char *)calloc(1,orig->len);
+-	memcpy(clone->data,orig->data,orig->len);
+-	return clone;
+-}
+-
+-/** 
+- * Send a packet directly using the ethernet
+- */
+-size_t raw_send(struct vde_iface *of,struct vde_buff *vdb)
+-{
+-#if(DEBUG)
+-	fprintf(stderr,"Sending a %luB packet. VDECONN@%p. Protocol = %d through iface %d.\n",vdb->len,&(of->vdec),ntohs(*((uint16_t *)(vdb->data+12))),of->id);
+-#endif
+-	return vde_send(of->vdec,vdb->data,vdb->len,0);
+-}
+-
+-
+-int ip_input(struct vde_buff *vdb);
+-int ip_output(struct vde_buff *vdb, uint32_t dst, uint8_t protocol);
+-size_t arp_query(struct vde_iface *oif, uint32_t tgt);
+-struct vde_iface *is_neightbor(uint32_t addr);
+-
+-
+-/* ip output wrapper
+- */
+-int ip_output_ready(struct vde_buff *vdb){
+-	struct iphdr *iph = iphead(vdb);
+-	return ip_output(vdb,ntohl(iph->daddr), iph->protocol);
+-}
+-
+-/* List utilities
+- *
+- *
+- */
+-static struct vde_iface *add_iface(struct vde_iface *new, struct vde_iface *list)
+-{
+-	if(list==NULL)
+-		return new;
+-	
+-	list->next=add_iface(new,list->next);
+-	return list;
+-}
+-
+-static struct vde_route *add_route(struct vde_route *new, struct vde_route *list)
+-{
+-	if(list==NULL)
+-		return new;
+-	
+-	list->next=add_route(new,list->next);
+-	return list;
+-}
+-
+-static struct arp_entry *add_arp_entry(struct arp_entry *new, struct arp_entry *list)
+-{
+-	if(list==NULL)
+-		return new;
+-	
+-	list->next=add_arp_entry(new,list->next);
+-	return list;
+-}
+-
+-
+-/* Dequeue all pending packets that were
+- * waiting for arp IP/MAC association.
+- */
+-static void dequeue_pending(uint32_t addr)
+-{
+-	struct vde_buff *pq = VDEROUTER.arp_pending;
+-	struct vde_buff *tmp;
+-	struct iphdr *h=iphead(pq);
+-	if(ntohs(h->daddr) == addr){
+-		ip_output(pq, addr, h->protocol);
+-		VDEROUTER.arp_pending = pq->next;
+-	}
+-	while(pq->next){
+-		h=iphead(pq->next);
+-		if (h->daddr == addr) {
+-			ip_output(pq->next,addr,h->protocol);
+-			tmp=pq->next;	
+-			pq->next = tmp->next;
+-			//free(tmp);
+-		}
+-		pq=pq->next;
+-	}
+-}
+-
+-/*
+- * Get an arp entry from its ip.
+- */
+-static struct arp_entry *get_arp_entry(uint32_t ipaddr)
+-{
+-	struct arp_entry *a=VDEROUTER.arp_table;
+-	while (a){
+-		if (a->ipaddr == ipaddr)
+-			return a;
+-		a = a->next;
+-	}
+-	return NULL;
+-}
+-
+-
+-/* Prepare a vde_buff to be sent through a local interface
+- */
+-int neightbor_send(struct vde_iface *to, struct vde_buff *vdb) 
+-{
+-	struct arp_entry *ae;
+-	struct vde_ethernet_header *he;
+-	struct iphdr *iph = iphead(vdb);
+-	int packets_in = 0;
+-	ae = get_arp_entry(iph->daddr);	
+-	he=ethhead(vdb);
+-	if(ae){
+-		memcpy(he->src,to->mac, 6);
+-		memcpy(he->dst,ae->mac, 6);
+-		packets_in = to->enqueue(vdb,to);
+-		
+-	}else{	
+-		memset(he->src,0,6);
+-//		VDEROUTER.arp_pending=enqueue(vdb,VDEROUTER.arp_pending);
+-		arp_query(to, ntohl(iph->daddr));	
+-	}
+-	return packets_in;
+-}
+-
+-/* Prepare a vde_buff to be sent through a gateway 
+- */
+-int gateway_send(struct vde_buff *vdb, uint32_t gw)
+-{
+-	struct arp_entry *ae;
+-	struct vde_ethernet_header *he;
+-	struct vde_iface *to = is_neightbor(gw);
+-	int packets_in = 0;
+-	ae = get_arp_entry(htonl(gw));	
+-	he=ethhead(vdb);
+-	if(ae){
+-		memcpy(he->src,to->mac, 6);
+-		memcpy(he->dst,ae->mac, 6);
+-		packets_in = to->enqueue(vdb,to);
+-		
+-	}else{	
+-		memset(he->dst, 0, 6);
+-//		VDEROUTER.arp_pending=enqueue(vdb,VDEROUTER.arp_pending);
+-		arp_query(to, gw);	
+-	}
+-
+-	return packets_in;
+-}
+-
+-/* 
+- * Swap src/dst mac addresses at given mem addresses
+- */
+-static void swap_macaddr(uint8_t addr1[], uint8_t addr2[])
+-{
+-	uint8_t tmp[6];
+-	memcpy(tmp,addr1,6);
+-	memcpy(addr1,addr2,6);
+-	memcpy(addr2,tmp,6);
+-}
+-
+-/* 
+- * Swap src/dst ip addresses at given mem addresses
+- */
+-static void swap_ipaddr(void *addr1, void *addr2)
+-{
+-	uint8_t tmp[sizeof(uint32_t)];
+-	memcpy(tmp,addr1,4);
+-	memcpy(addr1,addr2,4);
+-	memcpy(addr2,tmp,4);
+-}
+-
+-
+-/*****
+- * Allocate a new vde_buff packet of given size
+- */
+-static struct vde_buff *vdebuff_alloc(size_t size)
+-{
+-	struct vde_buff *ret;
+-	struct vde_ethernet_header *veh;
+-
+-
+-	ret=(struct vde_buff *)calloc(1,sizeof(struct vde_buff));
+-//	fprintf(stderr,"ALLOCATING %lu Bytes of memory: ",size);
+-	ret->data=(char *)calloc(1,size+1);
+-	if(ret==NULL || ret->data==NULL){
+-		perror("Out of Memory.\n");
+-		exit(1);
+-	}
+-//	fprintf(stderr,"Done.\n",size);
+-	veh=ethhead(ret);
+-	// Set default packet type (IP)
+-	veh->buftype = htons(PTYPE_IP);
+-	ret->len = size;
+-	ret->next = NULL;
+-	return ret;
+-}
+-
+-/***
+- * Gets interface's mac address in a new array
+- */
+-static inline char *macaddr(struct vde_iface *vif)
+-{
+-	char *mac=(char*)calloc(1,ETHERNET_ADDRESS_SIZE);
+-	memcpy(mac,vif->mac,6);
+-	return mac;
+-}
+-
+-
+-
+-size_t vde_router_receive(struct vde_iface i)
+-{
+-
+-	return 0;
+-}
+-
+-
+-/* RFC 826 */
+-int is_arp_pending(struct vde_iface *of, uint8_t *mac){return 0;}
+-
+-
+-
+-
+-
+-/**
+- * Prepare and send an arp query
+- */
+-size_t arp_query(struct vde_iface *oif, uint32_t tgt)
+-{
+-	struct vde_ethernet_header *vdeh;
+-	struct arp_header *ah;
+-	struct vde_buff *vdb;
+-
+-	/* Allocate 60B buffer for ARP request */
+-	vdb = vdebuff_alloc(60);
+-
+-	/* populate eth header */
+-	vdeh = ethhead(vdb);
+-	memcpy(vdeh->dst, ETH_BCAST, 6);
+-	memcpy(vdeh->src, oif->mac ,6);
+-	vdeh->buftype = htons(PTYPE_ARP);
+-	
+-	/* build arp payload */
+-	ah =(struct arp_header *)iphead(vdb);
+-	ah->htype = htons(HTYPE_ETH);
+-	ah->ptype = htons(PTYPE_IP);
+-	ah->hsize = ETHERNET_ADDRESS_SIZE;
+-	ah->psize = IP_ADDRESS_SIZE;
+-	ah->opcode = htons(ARP_REQUEST);
+-	memcpy(ah->s_mac, oif->mac,6);
+-	ah->s_addr = htonl(oif->ipaddr); 
+-	memset(ah->d_mac,0,6);
+-	ah->d_addr = htonl(tgt);
+-	
+-	return(raw_send(oif,vdb));
+-	
+-}
+-
+-/**
+- * Reply to given arp request, if needed
+- */
+-size_t arp_reply(struct vde_iface *oif, struct vde_buff *vdb)
+-{
+-	struct vde_ethernet_header *vdeh;
+-	struct arp_header *ah;
+-	vdeh=ethhead(vdb);
+-	swap_macaddr(vdeh->src,vdeh->dst);
+-	memcpy(vdeh->src,oif->mac,6);
+-	ah =(struct arp_header *)iphead(vdb);
+-	ah->opcode = htons(ARP_REPLY);
+-	swap_macaddr(ah->s_mac, ah->d_mac);
+-	memcpy(ah->s_mac, oif->mac,6);
+-	swap_ipaddr(&(ah->s_addr), &(ah->d_addr));
+-
+-	return(raw_send(oif,vdb));
+-}
+-
+-
+-
+-/* Internet Protocol */
+-
+-/* get the interface struct from its address
+- */
+-struct vde_iface *get_iface_by_ipaddr(uint32_t addr)
+-{
+-	struct vde_iface *vif = VDEROUTER.interfaces;
+-	while(vif){
+-		if(vif->ipaddr == addr)
+-			return vif;
+-		vif = vif->next;
+-	}
+-	return NULL;
+-}
+-
+-/*
+- * Gets the interface through which we should be able to reach 
+- * the given ip address. If the destination is not a neighbor, 
+- * returns a NULL pointer.
+- */
+-struct vde_iface *is_neightbor(uint32_t addr)
+-{
+-	struct vde_iface *vif = VDEROUTER.interfaces;
+-	while(vif){
+-		if((vif->ipaddr&vif->nm) == (addr&vif->nm))
+-			return vif;
+-		vif = vif->next;
+-	}
+-	return NULL;
+-}
+-
+-
+-
+-/**
+- * Returns the ip address of the gateway for this destination.
+- * If more than one route matches, the route with the stricter 
+- * netmask is chosen.
+- */
+-uint32_t get_gateway(uint32_t addr)
+-{
+-	struct vde_route *vdr = VDEROUTER.route_table;
+-	uint32_t res = 0;
+-	uint32_t max_netmask = 0;
+-	while(vdr){
+-		if((vdr->network & vdr->nm) == (addr & vdr->nm) && vdr->nm > max_netmask){
+-			res = vdr->gw;
+-			max_netmask = vdr->nm;
+-		}
+-		vdr = vdr->next;
+-	}
+-	if(!res)
+-		return VDEROUTER.default_gw;
+-	return res;
+-}
+-
+-/* Parse an incoming arp packet */
+-int parse_arp(struct vde_buff *vdb)
+-{	
+-	struct arp_header *ah; 
+-	struct vde_iface *vif;
+-	struct arp_entry *ae=(struct arp_entry*)malloc(sizeof(struct arp_entry));;
+-	ah = (struct arp_header *)iphead(vdb);
+-	vif = get_iface_by_ipaddr(ntohl(ah->d_addr));
+-	if(!vif){
+-		return -1;
+-	}
+-	memcpy(ae->mac,ah->s_mac,6);
+-	ae->ipaddr=ah->s_addr;
+-	
+-	VDEROUTER.arp_table = add_arp_entry(ae,VDEROUTER.arp_table);
+-	switch(ntohs(ah->opcode)){
+-	case ARP_REQUEST:
+-		arp_reply(vif, vdb);
+-		return 0;
+-	case ARP_REPLY:
+-		if(is_arp_pending(vif,ah->s_mac)){
+-			dequeue_pending(ntohl(ah->s_addr));
+-			return 0;
+-		}
+-		break;
+-	}
+-	return -1;
+-}
+-
+-/*
+- *
+- *
+- * Wrapper for neightbor/gateway send
+- *
+- * */
+-int ip_send(struct vde_buff *vdb)
+-{
+-	struct vde_iface *oif;
+-	struct iphdr *iph=iphead(vdb);
+-	uint32_t gateway;
+-	oif = is_neightbor(ntohl(iph->daddr));
+-	if (oif!=NULL){
+-		return neightbor_send(oif,vdb);
+-	}
+-	gateway = get_gateway(ntohl(iph->daddr));
+-	if(gateway)
+-		return gateway_send(vdb,gateway);
+-	else 
+-		return -1;
+-}
+-
+-/*
+- * Forward the ip packet to next hop. TTL is decreased,
+- * checksum is set again for coherence, and TTL overdue
+- * packets are not forwarded.
+- */
+-int ip_forward(struct vde_buff *vdb){
+-	struct iphdr *iph=iphead(vdb);
+-	iph->ttl--;
+-	iph->check++;
+-	if(iph->ttl < 1)
+-		return -1;
+-	else 
+-		return ip_send(vdb);
+-}
+-
+-/** 
+- * Get a IP  packet
+- */
+-int parse_ip(struct vde_buff *vdb)
+-{
+-	struct vde_ethernet_header *eh;
+-	struct iphdr *iph=iphead(vdb);
+-	struct arp_entry *ae;
+-	eh=ethhead(vdb);
+-
+-	if(!get_arp_entry(iph->saddr)){
+-		ae=(struct arp_entry*)malloc(sizeof(struct arp_entry));;
+-		memcpy(ae->mac,eh->src,6);
+-		ae->ipaddr = iph->saddr;		
+-		VDEROUTER.arp_table = add_arp_entry(ae,VDEROUTER.arp_table);
+-	}
+-	if (get_iface_by_ipaddr(ntohl(iph->daddr))){
+-		return ip_input(vdb);
+-	}else{
+-		return ip_forward(vdb);
+-	}
+-}
+-
+-/**
+- * Calculate checksum of a given string
+- */
+-uint16_t checksum(uint8_t *buf, int len)
+-{
+-	uint32_t sum = 0, carry=0;
+-	int i=0;
+-	for(i=0; i<len; i++){
+-		if (i%2){	
+-			sum+=buf[i];
+-		}else{
+-			sum+=( buf[i] << 8);
+-		}
+-	}
+-	carry = (sum&0xFFFF0000) >>16;
+-	sum = (sum&0x0000FFFF);
+-	return (uint16_t) ~(sum + carry)  ;
+-}
+-
+-/**
+- * Calculate ip-header checksum. it's a wrapper for checksum();
+- */
+-uint16_t ip_checksum(struct iphdr *iph)
+-{
+-	iph->check = 0U;
+-	return checksum((uint8_t*)iph,sizeof(struct iphdr));
+-}
+-
+-#define DEFAULT_TTL 64
+-
+-/**
+- * Layer 4 protocols should call this to transmit.
+- */
+-int ip_output(struct vde_buff *vdb, uint32_t dst, uint8_t protocol)
+-{
+-	struct iphdr *iph=iphead(vdb);
+-	struct vde_iface *oif;
+-	memset(iph,0x45,1);	
+-	iph->tos = 0;
+-	iph->frag_off=htons(0x4000); // Don't fragment.
+-	iph->tot_len = htons(vdb->len - sizeof(struct vde_ethernet_header));
+-	iph->id = 0;
+-	iph->protocol = protocol;
+-	iph->ttl = DEFAULT_TTL;
+-	iph->check = htons(ip_checksum(iph));
+-	
+-	oif = is_neightbor(dst);
+-	if (!oif)
+-		oif=is_neightbor(get_gateway(dst));
+-
+-	if(!oif){
+-#if DEBUG
+-		fprintf(stderr, "Cannot determine the route to %08x",dst);
+-#endif
+-		return -1;
+-	}
+-
+-	
+-	iph->saddr = htonl(oif->ipaddr);
+-	iph->daddr = htonl(dst);
+-	iph->check = htons(ip_checksum(iph));
+-	return ip_send(vdb);
+-}
+-
+-/** 
+- * Send a ICMP_PROTOCOL_UNREACHABLE if so.
+- *
+- */
+-static int service_unreachable(struct vde_buff *buf_in)
+-{
+-	struct iphdr *iph_in;
+-	struct icmp *ich;
+-	struct vde_buff *vdb;
+-	static uint16_t ident=0;
+-	
+-
+-	vdb=vdebuff_alloc(sizeof(struct vde_ethernet_header) +
+-		sizeof(struct iphdr) + 8);
+-
+-	ich=(struct icmp *)payload(vdb);
+-	ich->icmp_type = ICMP_DEST_UNREACH;
+-	ich->icmp_code = ICMP_PROT_UNREACH;
+-	ich->icmp_hun.ih_idseq.icd_id = ident++;
+-	ich->icmp_hun.ih_idseq.icd_seq = 0;
+-	if(ident == 0xFFFF)
+-		ident = 0;
+-	ich->icmp_cksum = 0;
+-	ich->icmp_cksum = htons(checksum(payload(vdb), vdb->len - sizeof(struct iphdr) - 14));
+-	
+-	iph_in = iphead(buf_in);
+-	return ip_output(vdb,ntohl(iph_in->saddr),PROTO_ICMP); 	
+-
+-}
+-
+-/* Parse an incoming icmp packet
+- */
+-int parse_icmp(struct vde_buff *vdb)
+-{
+-	struct icmp *ich;
+-	struct iphdr *iph;
+-	ich = (struct icmp *) payload(vdb);
+-	iph = iphead(vdb);
+-	if (ich->icmp_type == ICMP_ECHO){
+-		swap_ipaddr(&iph->saddr,&iph->daddr);
+-		ich->icmp_type = ICMP_ECHOREPLY;
+-		ich->icmp_cksum = 0;
+-		ich->icmp_cksum = htons(checksum(payload(vdb), vdb->len - 34));
+-		iph->check = htons(ip_checksum(iph));
+-	}
+-		
+-	ip_output_ready(vdb);
+-	return 1;
+-		
+-}
+-
+-
+-// Returns if the ip is unicast
+-static uint32_t inline unicast_ip(uint32_t ip){
+-	if ((ip & 0xE0000000) == 0xE0000000)
+-		return 0;
+-	else
+-		return ip;
+-}
+-
+-
+-uint32_t ascii2ip(char *c){
+-	return (ntohl(inet_addr(c)));	
+-}
+-
+-//return >0 for valid netmasks.
+-uint32_t valid_nm(uint32_t nm)
+-{
+-	int i=31;
+-	uint32_t valid=0;
+-	for (i=31; i>=0; i--){
+-		valid+=(1<<i);
+-		if(nm == valid)
+-			return nm;
+-	}
+-	return 0;
+-}
+-
+-uint32_t ascii2nm(char *c){
+-	uint32_t res=ascii2ip(c);
+-	int nmval=0,i=31;
+-	if(!res){
+-		if (sscanf(c,"%d",&nmval)<0){
+-			return 0;
+-		}else{
+-			while(nmval>0 && nmval<32 && (i >= (32 - nmval)))
+-				res+=(1<<i--);
+-		}
+-	}
+-	return valid_nm(res);
+-}
+-
+-//check if mac address is multicast
+- 
+-static int is_multicast_mac(uint8_t *mac)
+-{
+-	if((mac[0]&0x01) && (mac[2]&0x5E))
+-		return 1;
+-	else return 0;
+-}
+-
+-static void printoutc(int fd, const char *format, ...)
+-{
+-	va_list arg;
+-	char outbuf[MAXCMD+1];
+-
+-	va_start (arg, format);
+-	vsnprintf(outbuf,MAXCMD,format,arg);
+-	strcat(outbuf,"\n");
+-	write(fd,outbuf,strlen(outbuf));
+-}
+-
+-static int showinfo(int fd,char *s)
+-{
+-	return -1;
+-}
+-
+-static int help(int fd,char *s)
+-{
+-	printoutc(fd, "help      					Display this inline help");
+-	printoutc(fd, "ifconfig [vdN [ADDRESS [netmask NETMASK]]]   	Display virtual ethernet options/configure virtual ethernet N");
+-	printoutc(fd, "route list					Print out the routing table");
+-	printoutc(fd, "route net ADDRESS/NETMASK gw GATEWAY     	Add static route");
+-	printoutc(fd, "route default gw GATEWAY     			Add default route");
+-	printoutc(fd, "tc ls     					Show each interface routing policy");
+-	printoutc(fd, "tc set DEV POLICY ARGS     			Change interface routing policy");
+-	printoutc(fd, "shutdown:  					shut the channel down");
+-	printoutc(fd, "logout:    					log out from this mgmt session");
+-	return 0;
+-}
+-
+-
+-static int route(int fd,char *s)
+-{
+-	int arglen=strlen(s);
+-	struct vde_iface *pi;
+-	struct vde_route *pr;
+-	s[arglen]='\0';
+-	if(arglen==1){
+-		goto routecmdfail;
+-	}
+-
+-	//Route list
+-	if(arglen == 5 && strncmp(s,"list",4)==0){
+-		printoutc(fd,"Destination\tGateway\t\tGenmask\t\tIface");
+-		pi = VDEROUTER.interfaces;
+-		while(pi){
+-			printoutc(fd,"%s\t%s\t\t%s\t\tvd%d",ip2ascii(pi->ipaddr&pi->nm),ip2ascii(0),ip2ascii(pi->nm),pi->id);
+-			pi=pi->next;
+-		}
+-		pr = VDEROUTER.route_table;
+-		while(pr){
+-			pi=is_neightbor(pr->gw);
+-			if(pi)
+-				printoutc(fd,"%s\t%s\t\t%s\t\tvd%d",ip2ascii(pr->network&pr->nm),ip2ascii(pr->gw),ip2ascii(pr->nm),pi->id);
+-			pr=pr->next;
+-		}
+-		pi=is_neightbor(VDEROUTER.default_gw);
+-		if(VDEROUTER.default_gw)
+-			printoutc(fd,"%s\t\t%s\t\t%s\t\tvd%d",ip2ascii(0),ip2ascii(VDEROUTER.default_gw),ip2ascii(0),pi->id);
+-	}
+-	//Route default
+-	if(strncmp(s,"default gw ",11)==0){
+-		VDEROUTER.default_gw = unicast_ip(ascii2ip(s+11));
+-		if(!VDEROUTER.default_gw){
+-			printoutc(fd,"Invalid gateway.");
+-			goto routecmdfail;
+-		}
+-		printoutc(fd,"Default route changed to %s", ip2ascii(VDEROUTER.default_gw));
+-		return 0;
+-	}
+-	//Route change/add
+-	if(strncmp(s,"net ",4)==0){
+-		char *addr,*nm,*gw;
+-		struct vde_route *new = malloc (sizeof(struct vde_route));
+-		addr=s+4;
+-		if(!addr)
+-			goto routecmdfail;
+-		nm=index(addr,'/');
+-		if(!nm)
+-			goto routecmdfail;
+-		*(nm++)=0;
+-		gw=index(nm,':');
+-		if(!gw)
+-			goto routecmdfail;
+-		*(gw++)=0;
+-		new->network = unicast_ip(ascii2ip(addr));
+-		new->gw = unicast_ip(ascii2ip(gw));
+-		new->nm = ascii2nm(nm);
+-
+-		pr = VDEROUTER.route_table;
+-		while(pr){
+-			if(new->network == pr->network && new->nm == pr->nm){
+-				pr->gw = new->gw;
+-				printoutc(fd,"Route successfully updated.");
+-				return 0;
+-			}
+-			pr = pr->next;
+-		}
+-		VDEROUTER.route_table = add_route(new, VDEROUTER.route_table);
+-		printoutc(fd,"Route successfully added.");
+-	}
+-
+-	return 0;
+-
+-routecmdfail:
+-	printoutc(fd, "'route' command usage:");
+-	printoutc(fd, "route list					Print out the routing table");
+-	printoutc(fd, "route net ADDRESS/NETMASK:GATEWAY     	Add/change static route");
+-	printoutc(fd, "route default gw GATEWAY     			Change default route");
+-	
+-	return 1;
+-}
+-
+-#define IF_SHALL 0
+-#define IF_SH1 1
+-#define IF_CHIP 2
+-#define IF_CHALL 3
+-
+-
+-static int if_display(int fd, char *iface){
+-	struct vde_iface *pi;
+-	int showone = 0;
+-	int iface_id;
+-	if(strncmp(iface,"all",3)==0){
+-		pi=VDEROUTER.interfaces;
+-	}else{
+-
+-		if(strncmp(iface,"vd",2)!=0){
+-			return -1;
+-		}
+-	
+-		iface_id = atoi(iface+2);
+-		pi = get_interface(iface_id);
+-		if(!pi){
+-			printoutc(fd, "Interface %s not found.",iface);
+-			return -1;
+-		}
+-		showone = 1;
+-	}
+-	while(pi){
+-		printoutc(fd, "vd%d\tLink encap: vde HWaddr %s",pi->id, mac2ascii(pi->mac));
+-		printoutc(fd, "\tinet addr:%s Netmask:%s", ip2ascii(pi->ipaddr),  ip2ascii(pi->nm));
+-		printoutc(fd,"");			
+-		if(showone) return 0;
+-		pi = pi->next;
+-	}
+-	return 0; 
+-
+-}
+-
+-
+-static int ifconfig(int fd, char *s)
+-{
+-	int arglen=strlen(s)-1;
+-	struct vde_iface *pi;
+-	char *addr,*nmtag,*nm=NULL,*iface;
+-	int iface_id;
+-	int mode;
+-	uint32_t tmp;
+-
+-	s[arglen]='\0';
+-	if(arglen == 0){
+-		if(if_display(fd,"all") < 0)
+-			goto cmdfail;
+-		else 
+-			return 0;
+-	}
+-
+-	iface=s;
+-	addr=index(iface,' ');
+-	if(!addr){
+-		if(if_display(fd,iface)<0)
+-			goto cmdfail;
+-		else
+-			return 0;
+-	}
+-	
+-	*(addr++)=0;
+-	nmtag=index(addr,' ');
+-	if(!nmtag){
+-		mode=IF_CHIP;
+-	} else {
+-		*(nmtag++)=0;
+-		nm=index(nmtag,' ');
+-		if(!nm)
+-			goto cmdfail;
+-		*(nm++)=0;
+-		mode = IF_CHALL;
+-	}
+-	
+-	if(strncmp(iface,"vd",2)!=0){
+-		goto cmdfail;
+-	}
+-	
+-	iface_id = atoi(iface+2);
+-	pi = get_interface(iface_id);
+-	if(!pi){
+-		printoutc(fd, "Interface %s not found.",iface);
+-		goto cmdfail;
+-	}
+-	
+-	tmp = unicast_ip(ascii2ip(addr));
+-	if(!tmp)
+-		goto cmdfail;
+-	pi->ipaddr = tmp;	
+-	printoutc(fd, "IP address for %s successfully changed.",iface);
+-	if (mode == IF_CHALL){
+-		tmp = ascii2nm(nm);
+-		if(!tmp)
+-			goto cmdfail;
+-		pi->nm = tmp;
+-		printoutc(fd, "Netmask for %s successfully changed.",iface);
+-	}
+-	return 0;
+-
+-cmdfail:
+-	printoutc(fd, "'ifconfig' command usage:");
+-	printoutc(fd, "ifconfig [vdN [ADDRESS [netmask NETMASK]]]");
+-	return 0;	
+-}
+-
+-static int traffic_control(int fd, char *s)
+-{
+-	int arglen=strlen(s)-1;
+-	struct vde_iface *pi;
+-	struct routing_policy *pp;
+-	char *iface, *policy, *args; 
+-	int ifnum;
+-	s[arglen]='\0';
+-	if(arglen==1){
+-		goto tccmdfail;
+-	}
+-
+-	//tc ls
+-	if (arglen == 2 && (strncmp(s,"ls",2)==0)){
+-		pi = VDEROUTER.interfaces;
+-		while (pi){
+-			printoutc(fd, "vd%d: %s. %s", pi->id, pi->policy_name, pi->tc_stats(pi));
+-			pi=pi->next;
+-		}
+-	return 0;
+-	}
+-	
+-	//tc set 
+-	if (arglen > 4 && (strncmp(s,"set",3) == 0)){
+-		iface = s+4;
+-		policy=index(iface,' ');
+-		if(policy)
+-			*(policy++)=(char)0;
+-		if((strncmp(iface,"vd",2)) || (sscanf(iface+2,"%d",&ifnum)<1))
+-			goto tccmdfail;
+-		args=index(policy,' ');
+-		if(args){
+-			*(args++)=(char)0;
+-		}else{
+-			args="";
+-		}
+-
+-		if(strlen(policy)<1)
+-			goto tccmdfail;
+-		
+-		// check interface existstence
+-		pi = VDEROUTER.interfaces;
+-		while (pi && pi->id != ifnum){
+-			pi=pi->next;
+-			if (!pi){
+-				printoutc(fd, "tc: Device vd%d not found.",ifnum);
+-				goto tccmdfail;
+-			}
+-		}
+-		// try to get module
+-		pp=getpolicy(policy);
+-		if(!pp){
+-			printoutc(fd, "Cannot load rp module %s.so",policy);
+-			goto tccmdfail;
+-		}else{
+-			set_interface_policy(pi, pp);
+-			if (!pi->policy_init(pi,args)){
+-				printoutc(fd, "%s: syntax error.\n%s",pp->name,pp->help);
+-				goto tccmdfail;
+-			}
+-		
+-		}
+-		printoutc(fd, "vd%d: queuing discipline set to %s.", pi->id, pi->policy_name);
+-		return 0;	
+-	} 
+-
+-tccmdfail:
+-	printoutc(fd, "'tc' command usage:");
+-	printoutc(fd, "tc ls					Print out the routing policy for each interface");
+-	printoutc(fd, "tc set <DEV> <policy> <arguments>     	Change routing policy");
+-	return 0;
+-
+-}
+-
+-static int logout(int fd,char *s)
+-{
+-	return -1;
+-}
+-
+-static int doshutdown(int fd,char *s)
+-{
+-	exit(0);
+-}
+-
+-
+-#define WITHFD 0x80
+-static struct comlist {
+-	char *tag;
+-	int (*fun)(int fd,char *arg);
+-	unsigned char type;
+-} commandlist [] = {
+-	{"help", help, WITHFD},
+-	{"showinfo",showinfo, WITHFD},
+-	{"ifconfig",ifconfig, 0},
+-	{"route",route, 0},
+-	{"logout",logout, 0},
+-	{"shutdown",doshutdown, 0},
+-	{"tc",traffic_control,0}
+-};
+-
+-#define NCL sizeof(commandlist)/sizeof(struct comlist)
+-
+-static int handle_cmd(int fd,char *inbuf)
+-{
+-	int rv=ENOSYS;
+-	int i;
+-	while (*inbuf == ' ' || *inbuf == '\t' || *inbuf == '\n') inbuf++;
+-	if (*inbuf != '\0' && *inbuf != '#') {
+-		for (i=0; i<NCL 
+-				&& strncmp(commandlist[i].tag,inbuf,strlen(commandlist[i].tag))!=0;
+-				i++)
+-			;
+-		if (i<NCL)
+-		{
+-			inbuf += strlen(commandlist[i].tag);
+-			while (*inbuf == ' ' || *inbuf == '\t') inbuf++;
+-			if (commandlist[i].type & WITHFD)
+-				printoutc(fd,"0000 DATA END WITH '.'");
+-			rv=commandlist[i].fun(fd,inbuf);
+-			if (commandlist[i].type & WITHFD)
+-				printoutc(fd,".");
+-		}
+-		return rv;
+-	}
+-	return rv;
+-}
+-
+-static char header[]="\nVDE Layer 3 Switch  V.%s\n(C) D.Lacamera 2007 - GPLv2\n";
+-static char prompt[]="\nVDE-L3$ ";
+-
+-static int mgmtcommand(int fd)
+-{
+-	char buf[MAXCMD+1];
+-	int n,rv;
+-	int outfd=fd;
+-	n = read(fd, buf, MAXCMD);
+-	if (n<0) {
+-		fprintf(stderr,"%s: read from mgmt %s",progname,strerror(errno));
+-		return -1;
+-	}
+-	else if (n==0){ 
+-		return -1;
+-		/* Remote end has closed connection. */
+-	}
+-	else {
+-		if (fd==STDIN_FILENO)
+-			outfd=STDOUT_FILENO;
+-		buf[n]=0;
+-		rv=handle_cmd(outfd,buf);
+-		if (rv>=0)
+-			write(outfd,prompt,strlen(prompt));
+-		return rv;
+-	}
+-}
+-
+-static int delmgmtconn(int i,struct pollfd *pfd,int nfds)
+-{
+-	if (i<nfds) {
+-		close(pfd[i].fd);
+-		if (pfd[i].fd == 0) /* close stdin implies exit */
+-			exit(0);
+-		memmove(pfd+i,pfd+i+1,sizeof (struct pollfd) * (nfds-i-1));
+-		nfds--;
+-	}
+-	return nfds;
+-}
+-
+-static int openmgmt(char *mgmt)
+-{
+-	int mgmtconnfd;
+-	struct sockaddr_un sun;
+-	int one = 1;
+-
+-	if((mgmtconnfd = socket(PF_UNIX, SOCK_STREAM, 0)) < 0){
+-		fprintf(stderr,"%s: mgmt socket: %s",progname,strerror(errno));
+-		exit(1);
+-	}
+-	if(setsockopt(mgmtconnfd, SOL_SOCKET, SO_REUSEADDR, (char *) &one,
+-				sizeof(one)) < 0){
+-		fprintf(stderr,"%s: mgmt setsockopt: %s",progname,strerror(errno));
+-		exit(1);
+-	}
+-	if(fcntl(mgmtconnfd, F_SETFL, O_NONBLOCK) < 0){
+-		fprintf(stderr,"%s: Setting O_NONBLOCK on mgmt fd: %s",progname,strerror(errno));
+-		exit(1);
+-	}
+-	sun.sun_family = PF_UNIX;
+-	snprintf(sun.sun_path,sizeof(sun.sun_path),"%s",mgmt);
+-	if(bind(mgmtconnfd, (struct sockaddr *) &sun, sizeof(sun)) < 0){
+-		fprintf(stderr,"%s: mgmt bind %s",progname,strerror(errno));
+-		exit(1);
+-	}
+-	chmod(sun.sun_path,mgmtmode);
+-	if(listen(mgmtconnfd, 15) < 0){
+-		fprintf(stderr,"%s: mgmt listen: %s",progname,strerror(errno));
+-		exit(1);
+-	}
+-	return mgmtconnfd;
+-}
+-
+-
+-
+-static int newmgmtconn(int fd,struct pollfd *pfd,int nfds)
+-{
+-	int new;
+-	unsigned int len=sizeof(struct sockaddr_un);
+-	char buf[MAXCMD];
+-	struct sockaddr addr;
+-	new = accept(fd, &addr, &len);
+-	if(new < 0){
+-		fprintf(stderr,"%s: mgmt accept %s",progname,strerror(errno));
+-		return nfds;
+-	}
+-	if (nfds < max_total_sockets) {
+-		snprintf(buf,MAXCMD,header,PACKAGE_VERSION);
+-		write(new,buf,strlen(buf));
+-		write(new,prompt,strlen(prompt));
+-		pfd[nfds].fd=new;
+-		pfd[nfds].events=POLLIN | POLLHUP;
+-		return ++nfds;
+-	} else {
+-		fprintf(stderr,"%s: too many mgmt connections",progname);
+-		close (new);
+-		return nfds;
+-	}
+-
+-}
+-
+-int main(int argc, char *argv[])
+-{
+-	struct vde_iface *vif;
+-	struct pollfd *pfd, *pfdout;
+-	struct vde_buff *vdb_in, *vdb_out;
+-	struct vde_route *vr;
+-	int i,pr,pktin;
+-	int numif=0,npfd=0;
+-	struct vde_ethernet_header *eh;
+-	char *vdesock,*argp, *ipaddr, *nm=NULL, *gw, *mgmt=NULL;
+-	struct vde_open_args open_args={.port=0,.group=NULL,.mode=0700};
+-	int option_index;
+-	struct routing_policy *rp;
+-
+-	int mgmtindex = -1;
+-
+-	static struct option long_options[] = {
+-		{"help",0 , 0, 'h'},
+-		{"route",1 , 0, 'r'},
+-		{"defaultgw", 1, 0, 'G'},
+-		{"vdeplug", 1, 0, 'v'},
+-		{"mgmt", 1, 0, 'M'},
+-//TODO		{"daemon",0 , 0,'d'},
+-	};
+-	progname=strdup(argv[0]);
+-	VDEROUTER.route_table = NULL;
+-	VDEROUTER.arp_table = NULL;
+-	VDEROUTER.arp_pending = NULL;
+-	VDEROUTER.modlist = NULL;
+-	VDEROUTER.default_gw = 0U;
+-	policy_register(&unlimited_fifo_routing_policy);
+-	
+-	while(1) {
+-		int c;
+-		c = GETOPT_LONG (argc, argv, "hM:r:G:v:",
+-				long_options, &option_index);
+-		if (c<0)
+-			break;
+-		switch (c) {
+-			case 'h':
+-				usage(progname);
+-				break;
+-			case 'M':
+-				mgmt=strdup(optarg);
+-				unlink(mgmt);
+-				break;
+-			case 'r':
+-				ipaddr=strdup(optarg);
+-				argp = index(ipaddr,'/');
+-				if(argp==NULL)
+-					usage(progname);
+-				*(argp++) = 0;
+-				gw = strdup(argp);
+-				argp = index(gw,':');
+-				if(argp==NULL)
+-					usage(progname);
+-				*(argp++) = 0;
+-				gw=strdup(argp);
+-				if (!gw)
+-					usage(progname);
+-				vr=(struct vde_route *)malloc(sizeof(struct vde_route));
+-				vr->network = unicast_ip(ascii2ip(ipaddr));
+-				vr->nm = ascii2nm(nm);
+-				vr->gw = unicast_ip(ascii2ip(gw));
+-				if(!vr->network){
+-					fprintf(stderr,"route: Cannot set network address to '%s'\n",ipaddr);
+-					usage(progname);
+-				}
+-				if(!vr->nm){
+-					fprintf(stderr,"route: Cannot set netmask to '%s'\n",nm);
+-					if(nm!=NULL && nm[0]=='0'){
+-						fprintf(stderr,"(Did you mean to set default gateway? then -G)\n");
+-					}
+-					usage(progname);
+-				}
+-				if(!vr->gw){
+-					fprintf(stderr,"route: Cannot set gateway address to '%s'\n",gw);
+-					usage(progname);
+-				}
+-				VDEROUTER.route_table = add_route(vr, VDEROUTER.route_table);
+-				break;
+-				
+-			case 'G':
+-				VDEROUTER.default_gw=unicast_ip(ascii2ip(optarg));
+-				if(!VDEROUTER.default_gw){
+-					fprintf(stderr,"Cannot set default gateway address to '%s'\n",optarg);
+-					usage(progname);
+-				}
+-				break;
+-			case 'v':
+-				vdesock=strdup(optarg);
+-				argp = index(vdesock,':');
+-				if(argp==NULL)
+-					usage(progname);
+-				*(argp++) = 0;
+-				ipaddr = strdup(argp);
+-				argp = index(ipaddr,'/');
+-				if(argp==NULL)
+-					usage(progname);
+-				*(argp++) = 0;
+-				nm=strdup(argp);
+-				if (!nm)
+-					usage(progname);
+-				
+-				vif = (struct vde_iface *) malloc(sizeof (struct vde_iface));
+-				
+-				vif->vdec = vde_open(vdesock,"vde_L3",&open_args);
+-				if(!vif->vdec){
+-					fprintf(stderr,"vdeplug %s: %s\n",vdesock,strerror(errno));
+-
+-				}	
+-				
+-				vif->ipaddr = unicast_ip(ascii2ip(ipaddr));
+-				if(!vif->ipaddr){
+-					fprintf(stderr,"vdeplug %s: Cannot set ip address to '%s'\n",vdesock,ipaddr);
+-					usage(progname);
+-				}
+-					
+-				vif->nm = ascii2nm(nm);
+-				if(!vif->nm){
+-					fprintf(stderr,"vdeplug %s: Cannot set netmask to '%s'\n",vdesock,nm);
+-					if(nm!=NULL && nm[0]=='0'){
+-						fprintf(stderr,"(Did you mean to set default gateway? then -G)\n");
+-					}
+-					usage(progname);
+-				}
+-
+-				vif->id=numif++;	
+-				memcpy(vif->mac,ip2mac(vif->ipaddr),6);
+-				vif->q_in = NULL;
+-				vif->q_out = NULL;
+-				vif->next = NULL;
+-				rp = getpolicy("ufifo");
+-				if (!rp)
+-					fprintf(stderr,"Error getting policy ufifo: %s",dlerror());
+-				set_interface_policy(vif,rp);
+-				if(!vif->policy_init(vif,"")){
+-					fprintf(stderr,"Error setting default policy.\n");
+-					exit(1);
+-				}
+-				
+-				VDEROUTER.interfaces = add_iface(vif, VDEROUTER.interfaces);
+-				break;
+-				
+-			default:
+-				usage(progname);
+-				break;
+-		}
+-	}
+-	if (optind < argc)
+-		usage(progname);
+-	if (!numif)
+-		usage(progname);
+-	max_total_sockets = numif + 4;
+-	pfd = (struct pollfd *) malloc ((max_total_sockets) * sizeof(struct pollfd));
+-	vif = VDEROUTER.interfaces;
+-	i=0;
+-	while (vif) {
+-		pfd[i].fd = vde_datafd(vif->vdec);
+-		pfd[i++].events=POLLIN | POLLHUP;
+-		vif = vif->next;
+-	}
+-	npfd = numif;
+-	if(mgmt != NULL) {
+-		int mgmtfd=openmgmt(mgmt);
+-		mgmtindex=npfd;
+-		pfd[mgmtindex].fd=mgmtfd;
+-		pfd[mgmtindex].events=POLLIN | POLLHUP;
+-		npfd++;
+-	}
+-	
+-for(;;)
+-  {	
+-	pr = poll(pfd,npfd,10);
+-	if (pr < 0){
+-		perror("poll");
+-		exit(2);
+-	}	
+-	pktin = 0;
+-	if(pr > 0){
+-		for(i=0,vif=VDEROUTER.interfaces; i<numif && vif!=NULL; i++, vif = vif->next){
+-			if(pfd[i].revents == POLLIN){
+-				pr--;
+-				vdb_in=vdebuff_alloc(1550);	
+-				if(!vdb_in)
+-					continue;
+-				vdb_in->len=vde_recv(vif->vdec,vdb_in->data,1548,0);
+-#if(DEBUG)
+-				fprintf(stderr,"Rcvd a %luB packet. VDECONN@%p. Protocol = %d.\n",vdb_in->len,&(vif->vdec),ntohs(*((uint16_t *)(vdb_in->data+12))));
+-#endif
+-				eh=ethhead(vdb_in);
+-				//Next line is a mac address filter.
+-				if((memcmp(eh->dst,vif->mac,6) == 0) || ((is_multicast_mac(eh->dst)) && (memcmp(eh->src,vif->mac,6)!=0))){
+-					if(eh->buftype == ntohs(PTYPE_ARP)){
+-						pktin += parse_arp(vdb_in);
+-					}
+-					if(eh->buftype == ntohs(PTYPE_IP)){
+-						pktin += parse_ip(vdb_in);
+-					}
+-				}
+-			}
+-		}
+-		if (pr>0) { // if there are still events to handle (performance: packet switching first)
+-			int mgmtfdstart=numif;
+-			if (mgmtindex >= 0) {
+-				if (pfd[mgmtindex].revents != 0) {
+-					npfd=newmgmtconn(pfd[mgmtindex].fd,pfd,npfd);
+-					pr--;
+-				}
+-				mgmtfdstart=mgmtindex+1;
+-			}
+-			if (mgmtfdstart >= 0 && npfd > mgmtfdstart) {
+-				int i;
+-				for (i=mgmtfdstart;i<npfd;i++) {
+-					if (pfd[i].revents & POLLHUP ||
+-							(pfd[i].revents & POLLIN && mgmtcommand(pfd[i].fd) < 0))
+-						npfd=delmgmtconn(i,pfd,npfd);
+-					if (pfd[i].revents) pr--;
+-				}
+-			} 
+-		}
+-
+-	}// END POLLRET > 0 
+-	int outqueues = 0, outloop = 0;
+-	pfdout = (struct pollfd *) malloc ((max_total_sockets) * sizeof(struct pollfd));
+-	vif=VDEROUTER.interfaces;
+-	while (vif){ 
+-		pfdout[outqueues].fd = vde_datafd(vif->vdec);
+-		pfdout[outqueues++].events = POLLOUT;
+-		vif = vif->next;
+-	}
+-
+-	vif=VDEROUTER.interfaces;
+-	if (poll(pfdout,outqueues,0) > 0){
+-		for(outloop = 0; outloop < outqueues; outloop++){
+-			if(pfdout[outloop].revents&POLLOUT && vif->q_out){
+-				vif->dequeue(vif);
+-			}
+-			vif=vif->next; 
+-		}
+-	}
+-
+-	while(VDEROUTER.arp_pending){
+-		vdb_out=VDEROUTER.arp_pending;
+-		ip_output_ready(vdb_out);
+-		VDEROUTER.arp_pending=vdb_out->next;
+-		//free(vdb_out);
+-	}
+-  }	
+-}
+-
+-/*
+- * After being parsed, this is the point where packets
+- * get to higher protocols
+- */
+-int ip_input(struct vde_buff *vdb)
+-{
+-
+-	struct iphdr *iph=iphead(vdb);
+-	if(*((uint8_t*)(iph)) != 0x45)
+-		return -1;
+-	switch(iph->protocol){
+-		case PROTO_ICMP:
+-			return parse_icmp(vdb);
+-		case PROTO_TCP:
+-		case PROTO_UDP:
+-		default:
+-			return service_unreachable(vdb);
+-	}
+-//	return -1; // not reached
+-}
+-
+diff --git a/src/vde_l3/vde_l3.h b/src/vde_l3/vde_l3.h
+deleted file mode 100644
+index 64d48b0f7..000000000
+--- a/src/vde_l3/vde_l3.h
++++ /dev/null
+@@ -1,52 +0,0 @@
+-#ifndef VDE_L3_H
+-#define VDE_L3_H
+-/* pfifo.c */
+-int pfifo_enqueue(struct vde_buff *vdb, struct vde_iface *vif);
+-int pfifo_dequeue(struct vde_iface *vif);
+-int pfifo_init(struct vde_iface *vif, char *args);
+-char *pfifo_tc_stats(struct vde_iface *vif);
+-/* bfifo.c */
+-int bfifo_enqueue(struct vde_buff *vdb, struct vde_iface *vif);
+-int bfifo_dequeue(struct vde_iface *vif);
+-int bfifo_init(struct vde_iface *vif, char *args);
+-char *bfifo_tc_stats(struct vde_iface *vif);
+-/* tbf.c */
+-struct timeval add_t(struct timeval x, struct timeval y);
+-int tbf_enqueue(struct vde_buff *vdb, struct vde_iface *vif);
+-int tbf_dequeue(struct vde_iface *vif);
+-int tbf_init(struct vde_iface *vif, char *args);
+-char *tbf_tc_stats(struct vde_iface *vif);
+-/* vde_l3.c */
+-int ufifo_enqueue(struct vde_buff *vdb, struct vde_iface *vif);
+-int ufifo_dequeue(struct vde_iface *vif);
+-int ufifo_init(struct vde_iface *vif, char *args);
+-char *nostats(struct vde_iface *vif);
+-void *tcpriv(struct vde_iface *vi);
+-struct routing_policy *getpolicy(char *name);
+-void set_interface_policy(struct vde_iface *vif, struct routing_policy *rp);
+-uint8_t *ip2mac(uint32_t ip);
+-void usage(char *p);
+-struct vde_buff *buff_clone(struct vde_buff *orig);
+-int ip_output_ready(struct vde_buff *vdb);
+-int neightbor_send(struct vde_iface *to, struct vde_buff *vdb);
+-int gateway_send(struct vde_buff *vdb, uint32_t gw);
+-size_t vde_router_receive(struct vde_iface i);
+-int is_arp_pending(struct vde_iface *of, uint8_t *mac);
+-size_t arp_query(struct vde_iface *oif, uint32_t tgt);
+-size_t arp_reply(struct vde_iface *oif, struct vde_buff *vdb);
+-struct vde_iface *get_iface_by_ipaddr(uint32_t addr);
+-struct vde_iface *is_neightbor(uint32_t addr);
+-uint32_t get_gateway(uint32_t addr);
+-int parse_arp(struct vde_buff *vdb);
+-int ip_send(struct vde_buff *vdb);
+-int ip_forward(struct vde_buff *vdb);
+-int parse_ip(struct vde_buff *vdb);
+-uint16_t checksum(uint8_t *buf, int len);
+-uint16_t ip_checksum(struct iphdr *iph);
+-int ip_output(struct vde_buff *vdb, uint32_t dst, uint8_t protocol);
+-int parse_icmp(struct vde_buff *vdb);
+-uint32_t ascii2ip(char *c);
+-uint32_t valid_nm(uint32_t nm);
+-uint32_t ascii2nm(char *c);
+-int ip_input(struct vde_buff *vdb);
+-#endif /* VDE_L3_H */
+diff --git a/src/vde_tunctl.c b/src/vde_tunctl.c
+deleted file mode 100644
+index e9f7a337c..000000000
+--- a/src/vde_tunctl.c
++++ /dev/null
+@@ -1,161 +0,0 @@
+-/* Copyright 2002 Jeff Dike
+- * Licensed under the GPL
+- */
+-
+-#include <stdio.h>
+-#include <stdlib.h>
+-#include <string.h>
+-#include <errno.h>
+-#include <fcntl.h>
+-#include <unistd.h>
+-#include <pwd.h>
+-#include <grp.h>
+-#include <net/if.h>
+-#include <sys/ioctl.h>
+-#include <linux/if_tun.h>
+-
+-/* TUNSETGROUP appeared in 2.6.23 */
+-#ifndef TUNSETGROUP
+-#define TUNSETGROUP   _IOW('T', 206, int)
+-#endif
+-
+-static void Usage(char *name)
+-{
+-  fprintf(stderr, "Create: %s [-b] [-u owner] [-g group] [-n] [-t device-name] "
+-	  "[-f tun-clone-device]\n", name);
+-  fprintf(stderr, "Delete: %s -d device-name [-f tun-clone-device]\n\n", 
+-	  name);
+-  fprintf(stderr, "The default tun clone device is /dev/net/tun - some systems"
+-	  " use\n/dev/misc/net/tun instead\n\n");
+-  fprintf(stderr, "-b will result in brief output (just the device name)\n");
+-  fprintf(stderr, "-n create a tun interface (not needed if the device name prefix is tun\n");
+-  exit(1);
+-}
+-
+-int main(int argc, char **argv)
+-{
+-  struct ifreq ifr;
+-  struct passwd *pw;
+-	struct group *gr; 
+-	uid_t owner = -1;
+-	gid_t group = -1; 
+-  int tap_fd, opt, delete = 0, brief = 0;
+-	int type=IFF_TAP;
+-
+-  char *tun = "", *file = "/dev/net/tun", *name = argv[0], *end;
+-
+-  while((opt = getopt(argc, argv, "bd:f:t:u:in")) > 0){
+-    switch(opt) {
+-      case 'b':
+-        brief = 1;
+-        break;
+-      case 'd':
+-        delete = 1;
+-				tun = optarg;
+-        break;
+-      case 'f':
+-				file = optarg;
+-				break;
+-      case 'u':
+-				pw = getpwnam(optarg);
+-				if(pw != NULL){
+-					owner = pw->pw_uid;
+-					break;
+-				}
+-				owner = strtol(optarg, &end, 0);
+-				if(*end != '\0'){
+-					fprintf(stderr, "'%s' is neither a username nor a numeric uid.\n",
+-							optarg);
+-					Usage(name);
+-				}
+-				break;
+-			case 'g':
+-				gr = getgrnam(optarg);
+-				if(gr != NULL){
+-					group = gr->gr_gid;
+-					break;
+-				}
+-				group = strtol(optarg, &end, 0);
+-				if(*end != '\0'){
+-					fprintf(stderr, "'%s' is neither a groupname nor a numeric group.\n",
+-							optarg);
+-					Usage(name);
+-				}
+-				break;
+-			case 't':
+-        tun = optarg;
+-        break;
+-			case 'n':
+-				type = IFF_TUN;
+-				break;
+-      case 'h':
+-      default:
+-        Usage(name);
+-    }
+-  }
+-
+-  argv += optind;
+-  argc -= optind;
+-
+-  if(argc > 0)
+-    Usage(name);
+-
+-  if((tap_fd = open(file, O_RDWR)) < 0){
+-    fprintf(stderr, "Failed to open '%s' : ", file);
+-    perror("");
+-    exit(1);
+-  }
+-
+-  memset(&ifr, 0, sizeof(ifr));
+-
+-	if (strncmp(tun,"tun",3)==0) type=IFF_TUN;
+-  ifr.ifr_flags = type | IFF_NO_PI;
+-  strncpy(ifr.ifr_name, tun, sizeof(ifr.ifr_name) - 1);
+-  if(ioctl(tap_fd, TUNSETIFF, (void *) &ifr) < 0){
+-    perror("TUNSETIFF");
+-    exit(1);
+-  }
+-
+-  if(delete){
+-    if(ioctl(tap_fd, TUNSETPERSIST, 0) < 0){
+-      perror("TUNSETPERSIST");
+-      exit(1);
+-    }    
+-    printf("Set '%s' nonpersistent\n", ifr.ifr_name);
+-  }
+-  else {
+-		/* emulate behaviour prior to TUNSETGROUP */
+-		if(owner == -1 && group == -1) {
+-			owner = geteuid();
+-		}
+-
+-		if(owner != -1) {
+-			if(ioctl(tap_fd, TUNSETOWNER, owner) < 0){
+-				perror("TUNSETOWNER");
+-				exit(1);
+-			}
+-		}
+-		if(group != -1) {
+-			if(ioctl(tap_fd, TUNSETGROUP, group) < 0){
+-				perror("TUNSETGROUP");
+-				exit(1);
+-			}
+-		}
+-
+-    if(ioctl(tap_fd, TUNSETPERSIST, 1) < 0){
+-      perror("TUNSETPERSIST");
+-      exit(1);
+-    }
+-    if(brief)
+-      printf("%s\n", ifr.ifr_name);
+-		else {
+-			printf("Set '%s' persistent and owned by", ifr.ifr_name);
+-			if(owner != -1)
+-				printf(" uid %d", owner);
+-			if(group != -1)
+-				printf(" gid %d", group);
+-			printf("\n");
+-		}
+-	}
+-	return(0);
+-}
+diff --git a/src/vdeq.c b/src/vdeq.c
+deleted file mode 100644
+index cf65763ff..000000000
+--- a/src/vdeq.c
++++ /dev/null
+@@ -1,559 +0,0 @@
+-/* Copyright 2003 Renzo Davoli 
+- * TNX: 2005.11.18 new syntax mgmt patch by Iain McFarlane <imcfarla@tiscali.co.uk>
+- * Licensed under the GPL
+- */
+-
+-#include <stdio.h>
+-#include <stdlib.h>
+-#include <signal.h>
+-#include <errno.h>
+-#include <unistd.h>
+-#include <string.h>
+-#include <stdint.h>
+-#include <libgen.h>
+-#include <signal.h>
+-#include <sys/ioctl.h>
+-#include <sys/socket.h>
+-#include <sys/un.h>
+-#include <sys/uio.h>
+-#include <sys/types.h>
+-#include <sys/wait.h>
+-#include <pwd.h>
+-
+-#include <config.h>
+-#include <vde.h>
+-#include <vdecommon.h>
+-
+-#include <libvdeplug.h>
+-
+-#define SWITCH_MAGIC 0xfeedface
+-#define BUFSIZE 2048
+-#define ETH_ALEN 6
+-#define MAXDESCR 128
+-
+-int exit_value = 256; /* out of range for exit status possible values */
+-static int nb_nics;
+-VDECONN **conn;
+-
+-unsigned char bufin[BUFSIZE];
+-
+-struct pollfd *pollv;
+-
+-char *filename;
+-char *vdeqname;
+-#define NUMW 10
+-
+-static int countnics(const char *s)
+-{
+-	int nics=1;
+-	while (*s) {
+-		if (*s==',') nics++;
+-		s++;
+-	}
+-	return nics;
+-}
+-
+-static int countnewnics(int argc,char *argv[])
+-{
+-	int nics=0;
+-	int netflag=0;
+-	while (argc > 0) {
+-		if (strcmp(argv[0],"-net")==0)
+-			netflag=1;
+-		else {
+-			if (netflag && (strncmp(argv[0],"vde",3)==0))
+-				nics++;
+-			netflag=0;
+-		}
+-		argv++;
+-		argc--;
+-	}
+-	return nics;
+-}
+-
+-static int isdaemonize(int argc,char *argv[])
+-{
+-	int daemonize=0;
+-	if(strcmp(filename,"qemu")==0){
+-		int daemonadds=0;
+-		while (argc > 0) {
+-			if (strcmp(argv[0],"-daemonize")==0)
+-				daemonize=1;
+-			if ((strcmp(argv[0],"-vnc")==0) || (strcmp(argv[0],"-nographic")==0))
+-				daemonadds=1;
+-			argv++;
+-			argc--;
+-		}
+-		if(daemonize && !daemonadds) daemonize = 0;
+-	}
+-	else {
+-		while (argc > 0 && !daemonize) {
+-			if (strcmp(argv[0],"-daemonize")==0)
+-				daemonize=1;
+-			else {
+-				argv++;
+-				argc--;
+-			}
+-		}
+-	}
+-	return daemonize;
+-}
+-
+-
+-static void usage(void) 
+-{
+-	if (strcmp(vdeqname,"vdeq") != 0 && strncmp(vdeqname,"vde",3)==0) {
+-		fprintf(stderr,"Usage: %s [-h]\n"
+-				"\t %s ...qemu options... -net vde[,vlan=n][,sock=sock] ... \n"
+-				"Old syntax:\n"
+-				"\t %s  [-sock sock1 [,sock2...]] qemu_options\n"
+-				"\t (%s executes a qemu machine named %s, \n\t  output of \"%s -h\" follows)\n\n", vdeqname,vdeqname,vdeqname,vdeqname,filename,filename);
+-		execlp(filename,filename,"-h",(char *) 0);
+-	} else {
+-		fprintf(stderr,"Usage: %s [-h]\n"
+-				"\t %s qemu_executable ...qemu options... -net vde[,vlan=n][,sock=sock] ... \n"
+-				"Old syntax:\n"
+-				"\t %s qemu_executable [-sock sock1 [,sock2...]] qemu_options\n", vdeqname,vdeqname, vdeqname);
+-		exit(0);
+-	}
+-}
+-
+-static void cleanup()
+-{
+-	int i;
+-	for (i=0; i<nb_nics; i++) {
+-		if (conn[i] != NULL)
+-			vde_close(conn[i]);
+-	}
+-}
+-
+-static void sig_handler(int sig)
+-{
+-	fprintf(stderr,"%s: Caught signal %d, cleaning up and exiting\n", vdeqname, sig);
+-	cleanup();
+-	signal(sig, SIG_DFL);
+-	if (sig == SIGTERM)
+-		_exit(0);
+-	else
+-		kill(getpid(), sig);
+-}
+-
+-static void setsighandlers()
+-{
+-	/* setting signal handlers.
+-	 * sets clean termination for SIGHUP, SIGINT and SIGTERM, and simply
+-	 * ignores all the others signals which could cause termination. */
+-	struct { int sig; const char *name; int ignore; } signals[] = {
+-		{ SIGHUP, "SIGHUP", 0 },
+-		{ SIGINT, "SIGINT", 0 },
+-		{ SIGPIPE, "SIGPIPE", 1 },
+-		{ SIGALRM, "SIGALRM", 1 },
+-		{ SIGTERM, "SIGTERM", 0 },
+-		{ SIGUSR1, "SIGUSR1", 1 },
+-		{ SIGUSR2, "SIGUSR2", 1 },
+-		{ SIGPROF, "SIGPROF", 1 },
+-		{ SIGVTALRM, "SIGVTALRM", 1 },
+-#ifdef VDE_LINUX
+-		{ SIGPOLL, "SIGPOLL", 1 },
+-#ifdef SIGSTKFLT
+-		{ SIGSTKFLT, "SIGSTKFLT", 1 },
+-#endif
+-		{ SIGIO, "SIGIO", 1 },
+-		{ SIGPWR, "SIGPWR", 1 },
+-#ifdef SIGUNUSED
+-		{ SIGUNUSED, "SIGUNUSED", 1 },
+-#endif
+-#endif
+-#ifdef VDE_DARWIN
+-		{ SIGXCPU, "SIGXCPU", 1 },
+-		{ SIGXFSZ, "SIGXFSZ", 1 },
+-#endif
+-		{ 0, NULL, 0 }
+-	};
+-
+-	int i;
+-	for(i = 0; signals[i].sig != 0; i++)
+-		if(signal(signals[i].sig,
+-					signals[i].ignore ? SIG_IGN : sig_handler) < 0)
+-			fprintf(stderr,"Setting handler for %s: %s\n", signals[i].name,
+-					strerror(errno));
+-}
+-
+-static void sigchld_handler(int sig)
+-{
+-	int ev;
+-	wait(&ev);
+-	if (WIFEXITED(ev))
+-		exit_value=WEXITSTATUS(ev);
+-	else
+-		exit_value=255;
+-}
+-
+-static int checkver(char *prog)
+-{
+-	char *newargv[3];
+-	int fd[2];
+-	int f,len,version=0;
+-	char buf[257];
+-	newargv[0]=prog;
+-	newargv[1]="-h";
+-	newargv[2]=0;
+-	buf[256]=0;
+-	if (pipe(fd) < 0) {
+-	  perror("pipe");
+-	  exit(1);
+-	}
+-	if ((f=fork()) > 0) {
+-		int status;
+-		close(fd[1]);
+-		len=read(fd[0],buf,256);
+-		if (len>0) {
+-			int i;
+-			for(i=0;i<len && version==0;i++) {
+-				if(strncmp(buf+i,"version ",8)==0) {
+-					int v1,v2,v3;
+-					sscanf(buf+i+8,"%d.%d.%d",&v1,&v2,&v3);
+-					version=(v1 << 16) + (v2 << 8) + v3;
+-				}
+-			}
+-		}
+-		close(fd[0]);
+-		waitpid(f,&status,0);
+-	}
+-	else if (f==0) {
+-		close(fd[0]);
+-		dup2(fd[1],1);
+-		dup2(fd[1],2);
+-		close(fd[1]);
+-		if (execvp(prog,newargv) < 0) {
+-			exit(1);
+-		}
+-	}
+-	return version;
+-}
+-
+-static char *parsevdearg(char *arg,char **sock,int *pport, int fd)
+-{
+-	char newarg[128];
+-	int vlan=0;
+-	*sock=NULL;
+-	*pport=0;
+-	printf("arg %s\n", arg);
+-	while(*arg){
+-		while (*arg==',') arg++;
+-		if (strncmp(arg,"vlan=",5)==0) {
+-			vlan=atoi(arg+5);
+-			while (*arg != 0 && *arg != ',')
+-				arg++;
+-		}
+-		else if (strncmp(arg,"sock=",5)==0) {
+-			arg+=5;
+-			if (*arg=='\"') {
+-				arg++;
+-				*sock=arg;
+-				while (*arg != 0 && *arg != '\"')
+-					arg++;
+-			} else {
+-				*sock=arg;
+-				while (*arg != 0 && *arg != ',')
+-					arg++;
+-			}
+-			if (*arg != 0) {
+-				*arg=0; arg++;
+-			}
+-		}
+-		else if (strncmp(arg,"port=",5)==0) {
+-			*pport=atoi(arg+5);
+-			while (*arg != 0 && *arg != ',')
+-				arg++;
+-		}
+-		else {
+-		  printf("WARNING: unknown parameter in argument %s\n", arg);
+-			exit(-1);
+-	  }
+-	}
+-
+-	snprintf(newarg,128,"tap,vlan=%d,fd=%d%s%s",vlan,fd,(*arg == 0)?"":",",arg);
+-	return strdup(newarg);
+-}
+-
+-int main(int argc, char **argv)
+-{
+-  char *argsock=NULL,**sockname;
+-	int *ports;
+-  int result;
+-  ssize_t nx;
+-  int newargc;
+-	int daemonize;
+-  char **newargv;
+-  typedef int pair[2];
+-  pair *sp;
+-  int i,j;
+-	int oldsyntax=0;
+-	int newsyntax=0;
+-	int ver;
+-  mode_t mode = 0700;
+-  vdeqname=basename(argv[0]);
+-
+-	fprintf(stderr,
+-	        "NOTE: %s is now DEPRECATED -- both QEMU and KVM have native support for\n"
+-	        "      VDE. This binary will be removed soon from the distribution, consider\n"
+-	        "      stopping using it.\n\n", vdeqname);
+-
+-	//callerpwd=getpwuid(getuid());
+-	/* OLD SYNTAX MGMT */
+-	if (strncmp(vdeqname,"vdeo",4) == 0) {
+-		oldsyntax=1;
+-		if (strcmp(vdeqname,"vdeoq") != 0) {
+-			filename=vdeqname+4;
+-		}
+-	}
+-	else if (strcmp(vdeqname,"vdeq") != 0 && strncmp(vdeqname,"vde",3)==0) {
+-		filename=vdeqname+3;
+-	}
+-	else if (argc > 1) {
+-	  filename=argv[1];
+-		argc--;
+-		argv++;
+-  } else {
+-	  usage();
+-  }
+-	daemonize=isdaemonize(argc-1,argv+1);
+-	if ((ver=checkver(filename)) < 0x800) 
+-		oldsyntax=1;
+-	if (!oldsyntax) {
+-		nb_nics=countnewnics(argc-1,argv+1);
+-		if (nb_nics > 0)
+-			newsyntax=1;
+-	}
+-  if ((argc > 1 && (
+-			  strcmp(argv[1],"-h")==0 ||
+-			  strcmp(argv[1],"-help")==0 ||
+-			  strcmp(argv[1],"--help")==0
+-			  )) || (
+-			  strcmp(filename,"-h")==0 ||
+-			  strcmp(filename,"-help")==0 ||
+-			  strcmp(filename,"--help")==0
+-		  )) {
+-	  usage();
+-  } else if (argc > 2 && (
+-		  (strcmp(argv[1],"-vdesock")==0) ||
+-		  (strcmp(argv[1],"-sock")==0) ||
+-		  (strcmp(argv[1],"-unix")==0))
+-	    ){
+-	  argsock=argv[2];
+-	  argv+=2;
+-	  argc-=2;
+-  } else
+-	  argsock=NULL;
+-
+-    if (argc > 2 && ((strcmp(argv[1],"--mod")==0))
+-	    ){
+-	sscanf(argv[2],"%o",(unsigned int *)&mode);
+-	argv+=2;
+-	argc-=2;
+-    }
+-
+-	if (!newsyntax) {
+-		if (argsock == NULL)
+-			nb_nics=1;
+-		else
+-			nb_nics=countnics(argsock);
+-		if (!oldsyntax && nb_nics > 1)
+-			fprintf(stderr,
+-					"Warning: all the vde connections will be connected to one net interface\n"
+-					"         to configure several interface use the new syntax -net vde\n");
+-	}
+-
+-	if ((sp= (pair *) malloc(nb_nics * 2 * sizeof (int)))<0) {
+-		perror("malloc nics");
+-		exit(1);
+-	}
+-
+-	if ((conn=(VDECONN **) calloc (nb_nics,sizeof(VDECONN *))) <0) {
+-	  perror("calloc conn");
+-	  exit(1);
+-  }
+-
+-  for (i=0; i<nb_nics; i++) {
+-  	if (socketpair(AF_UNIX, SOCK_DGRAM, 0, sp[i]) < 0){
+-	  	perror("socketpair");
+-	  	exit(1);
+-		}
+-  }
+-
+-	if ((sockname= (char **) malloc(sizeof(char *) * nb_nics))<0) {
+-		perror("malloc sockname");
+-		exit(1);
+-	}
+-  if ((ports= (int *) calloc(nb_nics, sizeof(int)))<0) {
+-	  perror("malloc ports");
+-	  exit(1);
+-  }
+-
+-	if (newsyntax)
+-	{
+-		int netflag;
+-		int vdeint;
+-		newargv=argv;
+-		newargc=argc;
+-		for (i=1,netflag=0,vdeint=0;i<argc;i++) {
+-			if (strcmp(argv[i],"-net")==0)
+-				netflag=1;
+-			else {
+-				if (netflag && strncmp(argv[i],"vde",3) == 0)
+-				{
+-					argv[i]=parsevdearg(argv[i]+3,&sockname[vdeint],&ports[vdeint],sp[vdeint][0]);
+-					vdeint++;
+-				}
+-				netflag=0;
+-			}
+-		}
+-	} else
+-  {
+-		if (argsock==NULL)
+-			sockname[0]=NULL;
+-		else
+-		{
+-			char *s=argsock;
+-			char oldch;
+-			i=0;
+-			do {
+-				sockname[i++]=s;
+-				while (*s != ',' && *s != '\0')
+-					s++;
+-				oldch=*s;
+-				*s=0;
+-				s++;
+-			} while (oldch != 0);
+-		}
+-
+-		/*  printf("-- %s --\n",numfd);
+-				printf("as %s\n",argsock);
+-				for (i=0; i<nb_nics; i++)
+-				printf("%d -> %s\n",i,sockname[i]); */
+-		newargc=argc+2+(2*nb_nics);
+-		if ((newargv=(char **) malloc ((newargc+1)* sizeof(char *))) <0) {
+-			perror("malloc");
+-			exit(1);
+-		}
+-
+-		newargv[0]=filename;
+-		if (oldsyntax) {
+-			for (i=0; i<nb_nics; i++) {
+-				char numfd[10];
+-				sprintf(numfd,"%d",sp[i][0]);
+-				newargv[2*i+1]="-tun-fd";
+-				newargv[2*i+2]=strdup(numfd);
+-			}
+-			{
+-				char nnics[10];
+-				sprintf(nnics,"%d",nb_nics);
+-				newargv[2*nb_nics+1]="-nics";
+-				newargv[2*nb_nics+2]=strdup(nnics);
+-			}
+-		} else {
+-			for (i=0; i<nb_nics; i++) {
+-				char numfd[30];
+-				sprintf(numfd,"tap,vlan=0,fd=%d",sp[i][0]);
+-				newargv[2*i+1]="-net";
+-				newargv[2*i+2]=strdup(numfd);
+-			}
+-			newargv[2*nb_nics+1]="-net";
+-			newargv[2*nb_nics+2]="nic";
+-		}
+-		for (i=(2*nb_nics)+3,j=1;j<argc;i++,j++) newargv[i]=argv[j];
+-
+-		newargv[i]=0;
+-	}
+-
+-  if ((pollv= (struct pollfd *) malloc(sizeof(struct pollfd) * 2 * nb_nics))<0) {
+-		perror("malloc pollfd");
+-	  exit(1);
+-  }
+-	setsighandlers();
+-  for (i=0; i<nb_nics; i++) {
+-		struct vde_open_args vdearg={ports[i],NULL,mode};
+-		conn[i]=vde_open(sockname[i],"vdeqemu",&vdearg);
+-	  pollv[2*i+1].fd=vde_datafd(conn[i]);
+-	  pollv[2*i].fd=sp[i][1];
+-	  pollv[2*i].events= pollv[2*i+1].events=POLLIN|POLLHUP;
+-  }
+-
+-#if 0
+-  {
+-	  int i=0;
+-	  while(newargv[i])
+-		  printf("%s ", newargv[i++]);
+-	  printf("\n");
+-  }
+-#endif
+-
+-  if (fork()) {
+-	  close(0); 
+-	  signal(SIGCHLD, sigchld_handler);
+-	  for (i=0; i<nb_nics; i++) 
+-		  close(sp[i][0]);
+-		if (daemonize)
+-			daemon(1,1);
+-	  for(;;) {
+-			if ((result=poll(pollv,2*nb_nics,-1)) < 0) {
+-				if (errno != EINTR) {
+-					perror("poll");
+-					cleanup();
+-					exit(1);
+-				} else {
+-					if ((exit_value < 256) || !daemonize)
+-					{
+-						cleanup();
+-						exit(exit_value);
+-					}
+-				}
+-			} else {
+-				for (i=0; i<nb_nics; i++) {
+-					if (pollv[2*i].revents & POLLHUP || pollv[2*i+1].revents & POLLHUP)
+-						break;
+-					if (pollv[2*i].revents & POLLIN) {
+-						if ((nx=read(sp[i][1],bufin,sizeof(bufin))) <= 0) {
+-							if (nx < 0) 
+-								perror("read");
+-							cleanup();
+-							exit(nx < 0);
+-						}
+-						//fprintf(stderr,"RX from qemu %d\n",nx);
+-						if (vde_send(conn[i],bufin,nx,0) < 0) {
+-							perror("sendto");
+-							cleanup();
+-							exit(1);
+-						}
+-					}
+-					if (pollv[2*i+1].revents & POLLIN) {
+-						if ((nx=vde_recv(conn[i],bufin,BUFSIZE,0)) < 0) {
+-							perror("recvfrom");
+-							cleanup();
+-							exit(1);
+-						}
+-						//fprintf(stderr,"TX to qemu %d\n",nx);
+-						if (write(sp[i][1],bufin,nx) < 0) {
+-							if (errno != ECONNREFUSED)
+-								perror("write");
+-							cleanup();
+-							exit(errno != ECONNREFUSED);
+-						}
+-					}
+-				}
+-			}
+-		}
+-	} else {
+-		for (i=0; i<nb_nics; i++) {
+-			close(sp[i][1]);
+-			close(vde_datafd(conn[i]));
+-			close(vde_ctlfd(conn[i]));
+-		}
+-		execvp(filename,newargv);
+-	}  
+-	cleanup();
+-	return(0);
+-}
+-
+-/* vim: set ts=2 sts=2 sw=2: */
+-- 
+2.35.0
+
