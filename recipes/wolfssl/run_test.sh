@@ -19,6 +19,10 @@ autoreconf --install
 	    --enable-distro \
 	    --enable-nolibrary
 
+# ensure that enable-nolibrary was used because configure doesn't
+# exit non-zero if it ignores an unknown option
+grep 'WARNING: unrecognized options' config.log && exit 1
+
 deathcat() {
     cat "$@"
     exit 1

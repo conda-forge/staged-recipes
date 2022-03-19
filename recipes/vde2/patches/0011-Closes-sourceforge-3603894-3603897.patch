@@ -1,0 +1,135 @@
+From aac612b4bca90fa06da7d64c3f27f105ce1671dd Mon Sep 17 00:00:00 2001
+From: Daniele Lacamera <danielinux@users.noreply.github.com>
+Date: Thu, 7 Mar 2013 20:18:59 +0000
+Subject: [PATCH 11/62] Closes sourceforge #3603894, #3603897.
+
+---
+ src/lib/libvdeplug.c                   |  8 +++--
+ src/vde_cryptcab/vde_cryptcab_client.c | 46 ++++++++++++++------------
+ 2 files changed, 30 insertions(+), 24 deletions(-)
+
+diff --git a/src/lib/libvdeplug.c b/src/lib/libvdeplug.c
+index 8076c5346..aa76b6a2d 100644
+--- a/src/lib/libvdeplug.c
++++ b/src/lib/libvdeplug.c
+@@ -586,8 +586,12 @@ abort:
+ 		errno=err;
+ 	}
+ cleanup:
+-	if (std_sockname) free(std_sockname);
+-	if (real_sockname) free(real_sockname);
++  {
++    int err=errno;
++  	if (std_sockname) free(std_sockname);
++  	if (real_sockname) free(real_sockname);
++    errno = err;
++  }
+ 	return conn;
+ }
+ 
+diff --git a/src/vde_cryptcab/vde_cryptcab_client.c b/src/vde_cryptcab/vde_cryptcab_client.c
+index 99dc02001..f40b57d66 100644
+--- a/src/vde_cryptcab/vde_cryptcab_client.c
++++ b/src/vde_cryptcab/vde_cryptcab_client.c
+@@ -20,6 +20,7 @@ static char *plugname, *pre_shared;
+ static struct timeval last_out_time;
+ static enum e_enc_type enc_type = ENC_SSH;
+ static char *scp_extra_options = NULL;
++static char keyname[] = "/tmp/vde_XXXXXX.key";
+ 
+ static void send_keepalive(struct peer *p){
+ 	if (!keepalives)
+@@ -73,10 +74,9 @@ rcv_challenge(struct datagram *pkt, struct peer *p)
+ static struct peer
+ *generate_key (struct peer *ret)
+ {
+-	int i, fd=-1, od=-1;
++	int fd=-1, od=-1;
+ 	unsigned char key[16];
+ 	unsigned char iv[8];
+-	unsigned char c;
+ 	char *path;
+ 	char random[]="/dev/urandom";
+ 	if (pre_shared){
+@@ -87,6 +87,7 @@ static struct peer
+ 		vc_printlog(2,"Generating Blowfish key...");	
+ 	}
+ 
++
+ 	if ( ((fd = open (path, O_RDONLY)) == -1)||
+ 			 ((read (fd, key, 16)) == -1) ||
+ 			 ((read (fd, iv, 8)) == -1) )
+@@ -96,25 +97,20 @@ static struct peer
+ 		goto failure;
+ 	}
+ 	
+-	memset(ret,0, sizeof(struct peer));	
+-
+-	for(i=0; i<FILENAMESIZE-1;i++){
+-		if (read(fd,&c,1) < 0) {
+-			perror("could not read filename ");
+-			goto failure;
+-		}
+-		c=(c%25);
+-		//fprintf(stderr,"c=%u\n",c);
+-		ret->id[i]=(char)('a' + c);
+-	}
+-	ret->id[FILENAMESIZE-1]='\0';
+-	
+ 	close (fd);
+ 	
+-	if ((od = open("/tmp/.blowfish.key",O_CREAT|O_WRONLY|O_TRUNC|O_EXCL,0600)) == -1){
+-		perror ("blowfish.key creat error");
++  memset(keyname + strlen(keyname) - 10, 'X', 6);
++  od = mkostemps(keyname, 4, O_RDWR | O_CREAT | O_TRUNC);
++	if (od < 0){
++		perror ("blowfish.key mktemp error");
+ 		goto failure;
+ 	}
++	memset(ret,0, sizeof(struct peer));
++
++  strncpy(ret->id,
++          keyname + strlen("/tmp/"), 
++          strlen(keyname) - strlen("/tmp/") - strlen(".key"));
++
+ 	memcpy(ret->key,key,16);
+ 	memcpy(ret->iv,iv,8);
+ 	if (write(od,key,16) < 0 || write(od,iv,8) < 0) {
+@@ -139,7 +135,7 @@ failure:
+  * OpenSSH secure copy.
+  */
+ static struct peer *generate_and_xmit(struct peer *ret){
+-	char command[PATH_MAX];
++	char source[PATH_MAX], dest[PATH_MAX];
+ 	struct hostent *target;
+ 
+ 	ret=generate_key(ret);
+@@ -159,15 +155,21 @@ static struct peer *generate_and_xmit(struct peer *ret){
+ 	ret->in_a.sin_port = htons(remoteport);
+ 	ret->in_a.sin_addr.s_addr=((struct in_addr *)(target->h_addr))->s_addr;
+ 	if(!pre_shared){		
+-		char *cmd[]={"scp",NULL,"/tmp/.blowfish.key",NULL,0};
++		char *cmd[]={"scp",NULL, NULL, NULL,0};
+ 		pid_t pid;
+ 		int status;
++    int cmd_idx = 1;
+ 		vc_printlog(2,"Sending key over ssh channel:");
+-		cmd[1]=scp_extra_options?scp_extra_options:"";
++    if (scp_extra_options)
++      cmd[cmd_idx++] = scp_extra_options;
+ 		if(remoteusr)
+-			snprintf(command,PATH_MAX,"%s@%s:/tmp/.%s.key",remoteusr, remotehost, ret->id);
++			snprintf(dest,PATH_MAX,"%s@%s:/tmp/.%s.key",remoteusr, remotehost, ret->id);
+ 		else
+-			snprintf(command,PATH_MAX,"%s:/tmp/.%s.key", remotehost, ret->id);
++			snprintf(dest,PATH_MAX,"%s:/tmp/.%s.key", remotehost, ret->id);
++    snprintf(source, PATH_MAX, "/tmp/%s.key", ret->id);
++    cmd[cmd_idx++] = source;
++    cmd[cmd_idx++] = dest;
++
+ 
+ 		if ((pid=fork()) == 0) {
+ 			dup2(1,2);
+-- 
+2.35.0
+

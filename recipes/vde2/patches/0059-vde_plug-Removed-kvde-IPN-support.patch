@@ -1,0 +1,176 @@
+From e7852fec8df485e24613f7fccc18de44ddc70e75 Mon Sep 17 00:00:00 2001
+From: Daniele Lacamera <dan@danielinux.net>
+Date: Sat, 18 Sep 2021 09:56:54 +0200
+Subject: [PATCH 59/62] [vde_plug] Removed kvde IPN support
+
+---
+ configure.ac         |   8 ----
+ src/lib/libvdeplug.c | 101 +++++--------------------------------------
+ 2 files changed, 10 insertions(+), 99 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index e2f9314f4..e8edb1390 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -204,14 +204,6 @@ AC_ARG_ENABLE([pcap],
+     [Disable pcap support (pdump plugin)]),
+   [if test $enableval = "no" ; then add_pcap=no ; warn_pcap=no ; fi])
+ 
+-AC_ARG_ENABLE([kernel-switch],
+-  AS_HELP_STRING([--enable-kernel-switch],
+-    [Compile support for in-kernel switch. ]),
+-  [if test $enableval = "yes"; then
+-    enable_kernel_switch=yes
+-    AC_DEFINE([USE_IPN], 1, [If defined, enable support for IPN socket])
+-  fi])
+-
+ AM_CONDITIONAL(ENABLE_CRYPTCAB, test "$add_cryptcab_support" = yes)
+ AM_CONDITIONAL(ENABLE_VDE_OVER_NS, test "$add_over_ns_support" = yes)
+ AM_CONDITIONAL(ENABLE_ROUTER, test "$enable_router" = yes)
+diff --git a/src/lib/libvdeplug.c b/src/lib/libvdeplug.c
+index 4a085e4b2..e01384ded 100644
+--- a/src/lib/libvdeplug.c
++++ b/src/lib/libvdeplug.c
+@@ -50,31 +50,6 @@
+ /* deprecated old name */
+ #define STDSOCK "/.vde2/stdsock"
+ 
+-#ifdef USE_IPN
+-#if 0
+-/* AF_IPN has not been officially assigned yet
+-	 we "steal" unused AF_NETBEUI in the meanwhile
+-	 this code will be uncommented when AF_IPN is assigned. */
+-#ifndef AF_IPN
+-#define AF_IPN    0  /* IPN sockets:       */
+-#define PF_IPN    AF_IPN
+-#endif
+-#endif
+-#ifndef AF_NETBEUI
+-#ifdef PF_NETBEUI
+-#define AF_NETBEUI PF_NETBEUI
+-#else
+-#define AF_NETBEUI 13
+-#endif
+-#endif
+-#define AF_IPN_STOLEN    AF_NETBEUI  /* IPN temporary sockets      */
+-#define PF_IPN_STOLEN    AF_IPN_STOLEN
+-#define IPN_ANY 0
+-
+-#define IPN_SO_PORT 0
+-#define IPN_SO_DESCR 1
+-#endif
+-
+ #ifndef MIN
+ #define MIN(X,Y) (((X)<(Y))?(X):(Y))
+ #endif
+@@ -213,64 +188,8 @@ VDECONN *vde_open_real(char *given_sockname, char *descr,int interface_version,
+ 			vde_realpath(given_sockname, real_sockname) == NULL)
+ 		goto abort;
+ 
+-#ifdef USE_IPN
+-#if 0
+-/* AF_IPN has not been officially assigned yet
+-	 we "steal" unused AF_NETBEUI in the meanwhile
+-	 this code will be uncommented when AF_IPN is assigned. */
+-	if((conn->fddata = socket(AF_IPN,SOCK_RAW,IPN_ANY)) >= 0) {
+-		/* IPN service exists */
+-		sockun.sun_family = AF_IPN;
+-	}
+-#endif
+-	if((flags & VDEFLAG_P2P) == 0 &&
+-			(conn->fddata = socket(AF_IPN_STOLEN,SOCK_RAW,IPN_ANY)) >= 0) {
+-		struct sockaddr_un sockun;
+-		memset(&sockun, 0, sizeof(sockun));
+-		/* IPN_STOLEN service exists */
+-		sockun.sun_family = AF_IPN_STOLEN;
+-		if (port != 0 || req.type == REQ_NEW_PORT0)
+-			setsockopt(conn->fddata,0,IPN_SO_PORT,&port,sizeof(port));
+-		/* If we're given a sockname, just try it */
+-		if (given_sockname)
+-		{
+-			snprintf(sockun.sun_path, sizeof(sockun.sun_path), "%s", sockname);
+-			res = connect(conn->fddata, (struct sockaddr *) &sockun, sizeof(sockun));
+-		}
+-		/* Else try all the fallback socknames, one by one */
+-		else
+-		{
+-			int i;
+-			for (i = 0, res = -1; fallback_sockname[i] && (res != 0); i++)
+-			{
+-				snprintf(sockun.sun_path, sizeof(sockun.sun_path), "%s", fallback_sockname[i]);
+-				res = connect(conn->fddata, (struct sockaddr *) &sockun, sizeof(sockun));
+-			}
+-		}
+-
+-		/* If one of the connect succeeded, we're done */
+-		if (res == 0)
+-		{
+-			int descrlen=snprintf(req.description,MAXDESCR,"%s user=%s PID=%d",
+-					descr,(callerpwd != NULL)?callerpwd->pw_name:"??",
+-					pid);
+-			if (ssh_client) {
+-				char *endofip=strchr(ssh_client,' ');
+-				if (endofip) *endofip=0;
+-				snprintf(req.description+descrlen,MAXDESCR-descrlen,
+-						" SSH=%s", ssh_client);
+-				if (endofip) *endofip=' ';
+-			}
+-			setsockopt(conn->fddata,0,IPN_SO_DESCR,req.description,
+-					strlen(req.description+1));
+-			conn->fdctl=-1;
+-			goto cleanup;
+-		} else
+-			close(conn->fddata);
+-	}
+-#endif
+ 	/* UDP connection */
+-  if (flags & VDEFLAG_UDP_SOCKET) {
++	if (flags & VDEFLAG_UDP_SOCKET) {
+ 		struct addrinfo hints;
+ 		struct addrinfo *result,*rp;
+ 		int s;
+@@ -334,7 +253,7 @@ VDECONN *vde_open_real(char *given_sockname, char *descr,int interface_version,
+ 		memcpy(conn->outsock, result->ai_addr, result->ai_addrlen);
+ 
+ 		freeaddrinfo(result);
+-		
++
+ 		goto cleanup;
+ 	}
+ 	/* define a female socket for point2point connection */
+@@ -526,11 +445,11 @@ VDECONN *vde_open_real(char *given_sockname, char *descr,int interface_version,
+ 			if ((mode & 077) == 0) {
+ 				if (stat(sockun.sun_path, &ctlstat) == 0) {
+ 					/* if the switch is owned by root or by the same user it should
+-						 work 0700 */
++					   work 0700 */
+ 					if (ctlstat.st_uid != 0 && ctlstat.st_uid != geteuid()) {
+ 						/* try to change the group ownership to the same of the switch */
+ 						/* this call succeeds if the vde user and the owner of the switch
+-							 belong to the group */
++						   belong to the group */
+ 						if (chown(req.sock.sun_path,-1,ctlstat.st_gid) == 0) 
+ 							mode |= 070;
+ 						else
+@@ -590,12 +509,12 @@ abort:
+ 		errno=err;
+ 	}
+ cleanup:
+-  {
+-    int err=errno;
+-  	if (std_sockname) free(std_sockname);
+-  	if (real_sockname) free(real_sockname);
+-    errno = err;
+-  }
++	{
++		int err=errno;
++		if (std_sockname) free(std_sockname);
++		if (real_sockname) free(real_sockname);
++		errno = err;
++	}
+ 	return conn;
+ }
+ 
+-- 
+2.35.0
+

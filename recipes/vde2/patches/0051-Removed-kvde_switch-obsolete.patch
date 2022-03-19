@@ -1,0 +1,2177 @@
+From 960450025eeaa76901525179aa9ed37cc01335d6 Mon Sep 17 00:00:00 2001
+From: Daniele Lacamera <dan@danielinux.net>
+Date: Sun, 5 Sep 2021 11:17:43 +0200
+Subject: [PATCH 51/62] Removed kvde_switch (obsolete)
+
+---
+ src/Makefile.am               |   5 -
+ src/kvde_switch/Makefile.am   |  18 -
+ src/kvde_switch/af_ipn.h      | 303 ------------
+ src/kvde_switch/consmgmt.c    | 877 ----------------------------------
+ src/kvde_switch/consmgmt.h    |  89 ----
+ src/kvde_switch/datasock.c    | 254 ----------
+ src/kvde_switch/datasock.h    |  13 -
+ src/kvde_switch/kvde_switch.c | 455 ------------------
+ src/kvde_switch/sockutils.c   |  50 --
+ src/kvde_switch/sockutils.h   |  11 -
+ 10 files changed, 2075 deletions(-)
+ delete mode 100644 src/kvde_switch/Makefile.am
+ delete mode 100644 src/kvde_switch/af_ipn.h
+ delete mode 100644 src/kvde_switch/consmgmt.c
+ delete mode 100644 src/kvde_switch/consmgmt.h
+ delete mode 100644 src/kvde_switch/datasock.c
+ delete mode 100644 src/kvde_switch/datasock.h
+ delete mode 100644 src/kvde_switch/kvde_switch.c
+ delete mode 100644 src/kvde_switch/sockutils.c
+ delete mode 100644 src/kvde_switch/sockutils.h
+
+diff --git a/src/Makefile.am b/src/Makefile.am
+index b458e4445..b786df45f 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -16,7 +16,6 @@ bin_PROGRAMS = \
+ 	wirefilter \
+ 	vdeterm
+ 
+-#DIST_SUBDIRS = $(SUBDIRS) vdetaplib vde_cryptcab kvde_switch
+ 
+ if CAN_MAKE_VDETUNCTL
+   sbin_PROGRAMS = vde_tunctl
+@@ -42,10 +41,6 @@ if ENABLE_VXLAN
+   SUBDIRS += vde_vxlan
+ endif
+ 
+-if ENABLE_KERNEL_SWITCH
+-  SUBDIRS += kvde_switch
+-endif
+-
+ if ENABLE_PCAP
+   bin_PROGRAMS += vde_pcapplug
+ endif
+diff --git a/src/kvde_switch/Makefile.am b/src/kvde_switch/Makefile.am
+deleted file mode 100644
+index b0e1b1689..000000000
+--- a/src/kvde_switch/Makefile.am
++++ /dev/null
+@@ -1,18 +0,0 @@
+-AM_CPPFLAGS = -I$(top_srcdir)/include
+-
+-if ENABLE_PROFILE
+-  AM_CFLAGS = -pg --coverage
+-  AM_LDFLAGS = -pg --coverage
+-endif
+-
+-noinst_HEADERS = af_ipn.h
+-
+-bin_PROGRAMS = kvde_switch
+-kvde_switch_SOURCES = consmgmt.c \
+-					  consmgmt.h \
+-					  datasock.c \
+-					  datasock.h \
+-					  kvde_switch.c \
+-					  sockutils.c \
+-					  sockutils.h
+-kvde_switch_LDADD = $(top_builddir)/src/common/libvdecommon.la
+diff --git a/src/kvde_switch/af_ipn.h b/src/kvde_switch/af_ipn.h
+deleted file mode 100644
+index f8eb34984..000000000
+--- a/src/kvde_switch/af_ipn.h
++++ /dev/null
+@@ -1,303 +0,0 @@
+-#ifndef __LINUX_NET_AFIPN_H
+-#define __LINUX_NET_AFIPN_H
+-#include <linux/socket.h>
+-
+-#ifdef IPN_STEALING
+-/* AF_NETBEUI seems to be unused */
+-#define AF_IPN AF_NETBEUI
+-#define PF_IPN AF_IPN
+-#define ipn_handle_frame_hook br_handle_frame_hook
+-#else
+-#ifndef AF_IPN
+-/* waiting for the official assigment of our AF */
+-/* #define AF_IPN ??? */
+-#define AF_IPN AF_NETBEUI
+-#define PF_IPN AF_IPN
+-#endif
+-#define AF_IPN_STOLEN AF_NETBEUI
+-#define PF_IPN_STOLEN AF_IPN_STOLEN
+-#endif
+-
+-#define IPN_ANY 0
+-#define IPN_BROADCAST 1
+-#define IPN_HUB 1
+-#define IPN_VDESWITCH 2
+-#define IPN_VDESWITCH_L3 3
+-
+-#define IPN_SO_PREBIND 0x80
+-#define IPN_SO_PORT 0
+-#define IPN_SO_DESCR 1
+-#define IPN_SO_CHANGE_NUMNODES 2
+-#define IPN_SO_HANDLE_OOB 3
+-#define IPN_SO_WANT_OOB_NUMNODES 4
+-#define IPN_SO_MTU (IPN_SO_PREBIND | 0)
+-#define IPN_SO_NUMNODES (IPN_SO_PREBIND | 1)
+-#define IPN_SO_MSGPOOLSIZE (IPN_SO_PREBIND | 2)
+-#define IPN_SO_FLAGS (IPN_SO_PREBIND | 3)
+-#define IPN_SO_MODE (IPN_SO_PREBIND | 4)
+-
+-#define IPN_PORTNO_ANY -1
+-
+-#define IPN_DESCRLEN 128
+-
+-#define IPN_FLAG_LOSSLESS 1
+-#define IPN_FLAG_EXCL 2
+-#define IPN_FLAG_FLEXMTU 4
+-#define IPN_FLAG_TERMINATED 0x1000
+-
+-/* ioctl request for IPN_REGISTER_CHRDEV
+- * @dev: first device (if major==0 alloc a dynamic major)
+- * @count: num of minors
+- * @name: device name
+- * */
+-struct chrdevreq {
+-	unsigned int major;
+-	unsigned int minor;
+-	int count;
+-	char name[64];
+-};
+-
+-/* Ioctl defines */
+-
+-#define IPN_CHECK               _IO('I', 199) 
+-#define IPN_SETPERSIST_NETDEV   _IOR('I', 200, struct ifreq) 
+-#define IPN_CLRPERSIST_NETDEV   _IOR('I', 201, struct ifreq) 
+-#define IPN_CONN_NETDEV         _IOR('I', 202, struct ifreq) 
+-#define IPN_JOIN_NETDEV         _IOR('I', 203, struct ifreq) 
+-#define IPN_SETPERSIST          _IOR('I', 204, struct ifreq) 
+-#define IPN_REGISTER_CHRDEV     _IOWR('I', 301, struct chrdevreq) 
+-#define IPN_UNREGISTER_CHRDEV   _IO('I', 302) 
+-#define IPN_JOIN_CHRDEV         _IOR('I', 303, struct chrdevreq) 
+-#define IPN_CHRDEV_PERSIST    	_IOR('I', 304, int) 
+-
+-#define IPN_OOB_NUMNODE_TAG	0
+-
+-/* OOB message for change of numnodes
+- * Common fields for oob IPN signaling:
+- * @level=level of the service who generated the oob
+- * @tag=tag of the message
+- * Specific fields:
+- * @numreaders=number of readers
+- * @numwriters=number of writers
+- * */
+-struct numnode_oob {
+-	int level;
+-	int tag;
+-	int numreaders;
+-	int numwriters;
+-};
+-
+-/* these flags are used in IPN_CONN_NETDEV*/
+-#define IPN_NODEFLAG_TAP   0x10    /* This is a tap interface */
+-#define IPN_NODEFLAG_GRAB  0x20    /* This is a grab of a real interface */
+-
+-#ifdef __KERNEL__
+-#include <linux/version.h>
+-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 24)
+-#define kmem_cache_create(A,B,C,D,E) kmem_cache_create((A),(B),(C),(D),(E),(E))
+-#endif
+-
+-#include <linux/mutex.h>
+-#include <linux/un.h>
+-#include <linux/poll.h>
+-#include <linux/device.h>
+-#include <net/sock.h>
+-#include <linux/netdevice.h>
+-
+-#define IPN_HASH_SIZE	256
+-
+-/* The AF_IPN socket */
+-struct msgpool_item;
+-struct ipn_network;
+-struct pre_bind_parms;
+-
+-/* 
+- * ipn_node
+- *
+- * @nodelist=pointers for connectqueue or unconnectqueue (see network)
+- * @protocol=kind of service 0->standard broadcast
+- * @flags= see IPN_NODEFLAG_xxx
+- * @shutdown= SEND_SHUTDOWN/RCV_SHUTDOWN and OOBRCV_SHUTDOWN
+- * @descr=description of this port
+- * @portno=when connected: port of the netowrk (<0 means unconnected)
+- * @msglock=mutex on the msg queue
+- * @totmsgcount=total # of pending msgs
+- * @oobmsgcount=# of pending oob msgs
+- * @msgqueue=queue of messages
+- * @oobmsgqueue=queue of messages
+- * @read_wait=waitqueue for reading
+- * @net=current network
+- * @dev=device (TAP or GRAB)
+- * @ipn=network we are connected to
+- * @pbp=temporary storage for parms that must be set prior to bind
+- * @proto_private=handle for protocol private data
+- */
+-struct ipn_node {
+-	struct list_head nodelist;
+-	int protocol;
+-	volatile unsigned char flags; 
+-	unsigned char shutdown;
+-	char descr[IPN_DESCRLEN];
+-	int portno;
+-	spinlock_t msglock;
+-	unsigned short totmsgcount;
+-	unsigned short oobmsgcount;
+-	struct list_head msgqueue;
+-	struct list_head oobmsgqueue;
+-	wait_queue_head_t read_wait;
+-	struct net *net;
+-	struct net_device *netdev;
+-	dev_t chrdev;
+-	struct ipn_network *ipn;
+-	struct pre_bind_parms *pbp;
+-	void *proto_private;
+-};
+-#define IPN_NODEFLAG_BOUND 0x1     /* bind succeeded */
+-#define IPN_NODEFLAG_INUSE 0x2     /* is currently "used" (0 for persistent, unbound interfaces) */
+-#define IPN_NODEFLAG_PERSIST 0x4   /* if persist does not disappear on close (net interfaces) */
+-#if 0 
+-/* these flags are used in IPN_CONN_NETDEV*/
+-#define IPN_NODEFLAG_TAP   0x10    /* This is a tap interface */
+-#define IPN_NODEFLAG_GRAB  0x20    /* This is a grab of a real interface */
+-#endif
+-#define IPN_NODEFLAG_DEVMASK 0x30  /* True if this is a device */
+-#define IPN_NODEFLAG_OOB_NUMNODES 0x40  /* Node wants OOB for NNODES */
+-
+-/*
+- * ipn_sock
+- * 
+- * unfortunately we must use a struct sock (most of the fields are useless) as
+- * this is the standard "agnostic" structure for socket implementation.
+- * This proofs that it is not "agnostic" enough!
+- */
+-
+-struct ipn_sock {
+-	struct sock sk;
+-	struct ipn_node *node;
+-};
+-
+-/* ipn_chrdev cdev to ipn_dev mapping, defined in ipn_chrdev.c */
+-struct ipn_chrdev;
+-
+-/* 
+- * ipn_network network descriptor
+- *
+- * @hnode=hash to find this entry (looking for i-node)
+- * @unconnectqueue=queue of unconnected (bound) nodes
+- * @connectqueue=queue of connected nodes (faster for broadcasting)
+- * @refcnt=reference count (bound or connected sockets)
+- * @dentry/@mnt=to keep the file system descriptor into memory
+- * @ipnn_lock=lock for protocol functions
+- * @protocol=kind of service
+- * @flags=flags (IPN_FLAG_LOSSLESS)
+- * @maxports=number of ports available in this network
+- * @msgpool_nelem=number of pending messages
+- * @msgpool_size=max number of pending messages *per net* when IPN_FLAG_LOSSLESS
+- * @msgpool_size=max number of pending messages *per port*when LOSSY
+- * @mtu=MTU
+- * @send_wait=wait queue waiting for a message in the msgpool (IPN_FLAG_LOSSLESS)
+- * @msgpool_cache=slab for msgpool (unused yet)
+- * @proto_private=handle for protocol private data
+- * @connports=array of connected sockets
+- * @chrdev=chr device(s) connected to this ipn_network
+- */
+-struct ipn_network {
+-	struct hlist_node hnode;
+-	struct list_head unconnectqueue;
+-	struct list_head connectqueue;
+-	int refcnt;
+-	struct dentry		*dentry;
+-  struct vfsmount		*mnt;
+-	struct semaphore ipnn_mutex;
+-	int sunaddr_len;
+-	struct sockaddr_un sunaddr;
+-	unsigned int protocol;
+-	unsigned int flags;
+-	int numreaders;
+-	int numwriters;
+-	atomic_t msgpool_nelem;
+-	unsigned short maxports;
+-	unsigned short msgpool_size;
+-	unsigned short mtu;
+-	wait_queue_head_t send_wait;
+-	struct kmem_cache *msgpool_cache;
+-	void *proto_private;
+-	struct ipn_node **connport;
+-	struct ipn_chrdev *chrdev;
+-};
+-
+-/* struct msgpool_item 
+- * the local copy of the message for dispatching
+- * @count refcount
+- * @len packet len
+- * @data payload
+- */
+-struct msgpool_item {
+-	atomic_t count;
+-	int len;
+-	unsigned char data[0];
+-};
+-
+-struct msgpool_item *ipn_msgpool_alloc(struct ipn_network *ipnn,int leaky,int len);
+-void ipn_msgpool_put(struct msgpool_item *old, struct ipn_network *ipnn);
+-
+-/* 
+- * protocol service:
+- *
+- * @refcnt: number of networks using this protocol
+- * @newport=upcall for reporting a new port. returns the portno, -1=error  
+- * @handlemsg=dispatch a message.
+- *            should call ipn_proto_sendmsg for each desctination
+- *            can allocate other msgitems using ipn_msgpool_alloc to send
+- *            different messages to different destinations;
+- * @delport=(may be null) reports the terminatio of a port
+- * @postnewport,@predelport: similar to newport/delport but during these calls
+- *            the node is (still) connected. Useful when protocols need
+- *            welcome and goodbye messages.
+- * @ipn_p_setsockopt
+- * @ipn_p_getsockopt
+- * @ipn_p_ioctl=(may be null) upcall to manage specific options or ctls.
+- */
+-struct ipn_protocol {
+-	int refcnt;
+-	int (*ipn_p_newport)(struct ipn_node *newport);
+-	int (*ipn_p_handlemsg)(struct ipn_node *from,struct msgpool_item *msgitem);
+-	void (*ipn_p_delport)(struct ipn_node *oldport);
+-	void (*ipn_p_postnewport)(struct ipn_node *newport);
+-	void (*ipn_p_predelport)(struct ipn_node *oldport);
+-	int (*ipn_p_newnet)(struct ipn_network *newnet);
+-	int (*ipn_p_resizenet)(struct ipn_network *net,int oldsize,int newsize);
+-	void (*ipn_p_delnet)(struct ipn_network *oldnet);
+-	int (*ipn_p_setsockopt)(struct ipn_node *port,int optname,
+-			char __user *optval, int optlen);
+-	int (*ipn_p_getsockopt)(struct ipn_node *port,int optname,
+-			char __user *optval, int *optlen);
+-	int (*ipn_p_ioctl)(struct ipn_node *port,unsigned int request, 
+-			unsigned long arg);
+-};
+-
+-int ipn_proto_register(int protocol,struct ipn_protocol *ipn_service);
+-int ipn_proto_deregister(int protocol);
+-
+-int ipn_proto_injectmsg(struct ipn_node *from, struct msgpool_item *msg);
+-void ipn_proto_sendmsg(struct ipn_node *to, struct msgpool_item *msg);
+-void ipn_proto_oobsendmsg(struct ipn_node *to, struct msgpool_item *msg);
+-
+-struct ipn_node *ipn_node_create(struct net *net);
+-int ipn_node_connect(struct ipn_node *ipn_node);
+-int ipn_node_create_connect(struct ipn_node **ipn_node_out,
+-		struct ipn_network *(* ipnn_map)(void *),void *ipnn_map_arg);
+-int ipn_node_release(struct ipn_node *ipn_node);
+-unsigned int ipn_node_poll(struct ipn_node *ipn_node, struct file *file, poll_table *wait);
+-int ipn_node_ioctl(struct ipn_node *ipn_node, unsigned int cmd, unsigned long arg);
+-int ipn_node_write(struct ipn_node *ipn_node, struct iovec *msg_iov, int len);
+-int ipn_node_read(struct ipn_node *ipn_node, struct iovec *msg_iov, size_t len, int *msg_flags, int flags);
+-struct ipn_network *ipn_find_network_byfun(
+-		    int (*fun)(struct ipn_network *,void *),void *funarg);
+-
+-#ifndef IPN_STEALING
+-extern struct sk_buff *(*ipn_handle_frame_hook)(struct ipn_node *p,
+-						struct sk_buff *skb);
+-#endif
+-#endif
+-#endif
+diff --git a/src/kvde_switch/consmgmt.c b/src/kvde_switch/consmgmt.c
+deleted file mode 100644
+index ff4d600e6..000000000
+--- a/src/kvde_switch/consmgmt.c
++++ /dev/null
+@@ -1,877 +0,0 @@
+-/* Copyright 2005,2006,2007 Renzo Davoli - VDE-2
+- * 2007 co-authors Ludovico Gardenghi, Filippo Giunchedi, Luca Bigliardi
+- * --pidfile/-p and cleanup management by Mattia Belletti (C) 2004.
+- * Licensed under the GPLv2
+- */
+-
+-#define _GNU_SOURCE
+-#include <stdio.h>
+-#include <fcntl.h>
+-#include <errno.h>
+-#include <string.h>
+-#include <unistd.h>
+-#include <syslog.h>
+-#include <stdlib.h>
+-#include <limits.h>
+-#include <libgen.h>
+-#include <sys/types.h>
+-#include <sys/stat.h>
+-#include <sys/ioctl.h>
+-#include <sys/socket.h>
+-#include <sys/un.h>
+-#include <sys/uio.h>
+-#include <net/if.h>
+-#include <stdarg.h>
+-#include <getopt.h>
+-#include <dlfcn.h>
+-#include <time.h>
+-
+-#include <config.h>
+-#include <vde.h>
+-#include <vdecommon.h>
+-
+-#include "../vde_switch/switch.h"
+-#include "sockutils.h"
+-#include "consmgmt.h"
+-
+-#define MAXCMD 128
+-
+-static struct swmodule swmi;
+-extern time_t starting_time;
+-
+-static int logok=0;
+-static char *rcfile;
+-static char *pidfile = NULL;
+-static char pidfile_path[PATH_MAX];
+-static int daemonize = 0;
+-static unsigned int console_type=-1;
+-static unsigned int mgmt_ctl=-1;
+-static unsigned int mgmt_data=-1;
+-static int mgmt_mode = 0600;
+-static char *mgmt_socket = NULL;
+-static char header[]="KVDE switch V.%s\n(C) Virtual Square Team (coord. R. Davoli) 2005,...,2008 - GPLv2\n";
+-static char prompt[]="\nvde$ ";
+-
+-static struct comlist *clh=NULL;
+-static struct comlist **clt=&clh;
+-#ifdef DEBUGOPT
+-#define DBGCLSTEP 8
+-static struct dbgcl *dbgclh=NULL;
+-static struct dbgcl **dbgclt=&dbgclh;
+-#define MGMTPORTNEW (dl) 
+-#define MGMTPORTDEL (dl+1) 
+-static struct dbgcl dl[]= {
+-	{"mgmt/+",NULL,D_MGMT|D_PLUS},
+-	{"mgmt/-",NULL,D_MGMT|D_MINUS}
+-};
+-#endif
+-#ifdef VDEPLUGIN
+-static struct plugin *pluginh=NULL;
+-static struct plugin **plugint=&pluginh;
+-#endif
+-
+-void addcl(int ncl,struct comlist *cl)
+-{
+-	int i;
+-	for (i=0;i<ncl;i++,cl++) {
+-		cl->next=NULL;
+-		(*clt)=cl;
+-		clt=(&cl->next);
+-	}
+-}
+-
+-void delcl(int ncl,struct comlist *cl)
+-{
+-	int i;
+-	for (i=0;i<ncl;i++,cl++) {
+-		struct comlist **p=&clh;
+-		while (*p != NULL) {
+-			if (*p == cl) 
+-				*p=cl->next;
+-			else {
+-				p=&(*p)->next;
+-				clt=p;
+-			}
+-		}
+-	}
+-}
+-
+-#ifdef DEBUGOPT
+-void adddbgcl(int ncl,struct dbgcl *cl)
+-{
+-	int i;
+-	for (i=0;i<ncl;i++,cl++) {
+-		cl->next=NULL;
+-		(*dbgclt)=cl;
+-		dbgclt=(&cl->next);
+-	}
+-}
+-
+-void deldbgcl(int ncl,struct dbgcl *cl)
+-{
+-	int i;
+-	for (i=0;i<ncl;i++,cl++) {
+-		struct dbgcl **p=&dbgclh;
+-		while (*p != NULL) {
+-			if (*p == cl) {
+-				if (cl->fds) free(cl->fds);
+-				if (cl->fun) free(cl->fun);
+-				*p=cl->next;
+-			} else {
+-				p=&(*p)->next;
+-				dbgclt=p;
+-			}
+-		}
+-	}
+-}
+-#endif
+-
+-#ifdef VDEPLUGIN
+-void addplugin(struct plugin *cl)
+-{
+-	cl->next=NULL;
+-	(*plugint)=cl;
+-	plugint=(&cl->next);
+-}
+-
+-void delplugin(struct plugin *cl)
+-{
+-	struct plugin **p=&pluginh;
+-	while (*p != NULL) {
+-		if (*p == cl)
+-			*p=cl->next;
+-		else {
+-			p=&(*p)->next;
+-			plugint=p;
+-		}
+-	}
+-}
+-#endif
+-
+-void printlog(int priority, const char *format, ...)
+-{
+-	va_list arg;
+-
+-	va_start (arg, format);
+-
+-	if (logok)
+-		vsyslog(priority,format,arg);
+-	else {
+-		fprintf(stderr,"%s: ",prog);
+-		vfprintf(stderr,format,arg);
+-		fprintf(stderr,"\n");
+-	}
+-	va_end (arg);
+-}
+-
+-#if 0
+-void printoutc(int fd, const char *format, ...)
+-{
+-	va_list arg;
+-
+-	va_start (arg, format);
+-#if 0
+-	if (fd < 0)
+-		printlog(LOG_INFO,format,arg);
+-	else {
+-#endif
+-		char outbuf[MAXCMD+1];
+-		vsnprintf(outbuf,MAXCMD,format,arg);
+-		strcat(outbuf,"\n");
+-		write(fd,outbuf,strlen(outbuf));
+-#if 0
+-	}
+-#endif
+-}
+-#endif
+-
+-void printoutc(FILE *f, const char *format, ...)
+-{
+-	va_list arg;
+-
+-	va_start (arg, format);
+-	if (f) {
+-		vfprintf(f,format,arg);
+-		fprintf(f,"\n");
+-	} else
+-		printlog(LOG_INFO,format,arg);
+-	va_end(arg);
+-}
+-
+-#ifdef DEBUGOPT
+-static char _dbgnl='\n';
+-void debugout(struct dbgcl* cl, const char *format, ...)
+-{
+-	va_list arg;
+-	char *msg;
+-	int i;
+-	char *header;
+-	struct iovec iov[]={{NULL,0},{NULL,0},{&_dbgnl,1}};
+-
+-	va_start (arg, format);
+-	iov[0].iov_len=asprintf(&header,"3%03o %s ",cl->tag & 0777,cl->path);
+-	iov[0].iov_base=header;
+-	iov[1].iov_len=vasprintf(&msg,format,arg);
+-	iov[1].iov_base=msg;
+-	va_end (arg);
+-
+-	for (i=0; i<cl->nfds; i++)
+-		writev(cl->fds[i],iov,3);
+-	free(header);
+-	free(msg);
+-}
+-
+-void eventout(struct dbgcl* cl, ...)
+-{
+-	int i;
+-	va_list arg;
+-	for (i=0; i<cl->nfun; i++) {
+-		va_start (arg, cl);
+-		(cl->fun[i])(cl,arg);
+-		va_end(arg);
+-	}
+-}
+-
+-int packetfilter(struct dbgcl* cl, ...)
+-{
+-	int i;
+-	va_list arg;
+-	int len;
+-	va_start (arg, cl);
+-	(void) va_arg(arg,int); /*port*/
+-	(void) va_arg(arg,char *); /*buf*/
+-	len=va_arg(arg,int);
+-	va_end(arg);
+-	for (i=0; i<cl->nfun && len>0; i++) {
+-		va_start (arg, cl);
+-		int rv=(cl->fun[i])(cl,arg);
+-		va_end (arg);
+-		if (rv!=0) 
+-			len=rv;
+-	}
+-	if (len < 0)
+-		return 0;
+-	else
+-		return len;
+-}
+-#endif
+-
+-void setmgmtperm(char *path)
+-{
+-	chmod(path,mgmt_mode);
+-}
+-
+-static int help(FILE *fd,char *arg)
+-{
+-	struct comlist *p;
+-	int n=strlen(arg);
+-	printoutc(fd,"%-18s %-15s %s","COMMAND PATH","SYNTAX","HELP");
+-	printoutc(fd,"%-18s %-15s %s","------------","--------------","------------");
+-	for (p=clh;p!=NULL;p=p->next)
+-		if (strncmp(p->path,arg,n) == 0) 
+-			printoutc(fd,"%-18s %-15s %s",p->path,p->syntax,p->help);
+-	return 0;
+-}
+-
+-static int handle_cmd(int type,int fd,char *inbuf)
+-{
+-	struct comlist *p;
+-	int rv=ENOSYS;
+-	while (*inbuf == ' ' || *inbuf == '\t') inbuf++;
+-	if (*inbuf != '\0' && *inbuf != '#') {
+-		char *outbuf;
+-		size_t outbufsize;
+-		FILE *f;
+-		if (fd >= 0)
+-			f=open_memstream(&outbuf,&outbufsize);
+-		else
+-			f=NULL;
+-		for (p=clh;p!=NULL && (p->doit==NULL || strncmp(p->path,inbuf,strlen(p->path))!=0); p=p->next)
+-			;
+-		if (p!=NULL)
+-		{
+-			inbuf += strlen(p->path);
+-			while (*inbuf == ' ' || *inbuf == '\t') inbuf++;
+-			if (p->type & WITHFD) {
+-				if (p->type & WITHFILE) {
+-					printoutc(f,"0000 DATA END WITH '.'");
+-					switch(p->type & ~(WITHFILE | WITHFD)){
+-						case NOARG: rv=p->doit(f,fd); break;
+-						case INTARG: rv=p->doit(f,fd,atoi(inbuf)); break;
+-						case STRARG: rv=p->doit(f,fd,inbuf); break;
+-					}
+-					printoutc(f,".");
+-				} else {
+-					switch(p->type & ~WITHFD){
+-						case NOARG: rv=p->doit(fd); break;
+-						case INTARG: rv=p->doit(fd,atoi(inbuf)); break;
+-						case STRARG: rv=p->doit(fd,inbuf); break;
+-					}
+-				}
+-			} else if (p->type & WITHFILE) {
+-				printoutc(f,"0000 DATA END WITH '.'");
+-				switch(p->type & ~WITHFILE){
+-					case NOARG: rv=p->doit(f); break;
+-					case INTARG: rv=p->doit(f,atoi(inbuf)); break;
+-					case STRARG: rv=p->doit(f,inbuf); break;
+-				}
+-				printoutc(f,".");
+-			} else {
+-				switch(p->type){
+-					case NOARG: rv=p->doit(); break;
+-					case INTARG: rv=p->doit(atoi(inbuf)); break;
+-					case STRARG: rv=p->doit(inbuf); break;
+-				}
+-			}
+-		}
+-		if (rv >= 0 && (rv > 0 || fd >= 0))
+-			printoutc(f,"1%03d %s",rv,strerror(rv));
+-		if (f) {
+-			fclose(f);
+-			write(fd,outbuf,outbufsize);
+-			free(outbuf);
+-		}
+-	}
+-	return rv;
+-}
+-
+-static int runscript(int fd,char *path) 
+-{
+-	FILE *f=fopen(path,"r");
+-	char buf[MAXCMD];
+-	if (f==NULL)
+-		return ENOENT;
+-	else {
+-		while (fgets(buf,MAXCMD,f) != NULL) {
+-			if (strlen(buf) > 1 && buf[strlen(buf)-1]=='\n') buf[strlen(buf)-1]= '\0';
+-			if (fd >= 0) {
+-				char *scriptprompt=NULL;
+-				asprintf(&scriptprompt,"vde[%s]: %s",path,buf);
+-				write(fd,scriptprompt,strlen(scriptprompt));
+-				free(scriptprompt);
+-			}
+-			handle_cmd(mgmt_data, fd, buf);
+-		}
+-		return 0;
+-	}
+-}
+-
+-void loadrcfile(void)
+-{
+-	if (rcfile != NULL)
+-		runscript(-1,rcfile);
+-	else {
+-		char path[PATH_MAX];
+-		snprintf(path,PATH_MAX,"%s/.vde2/vde_switch.rc",getenv("HOME"));
+-		if (access(path,R_OK) == 0)
+-			runscript(-1,path);
+-		else {
+-			if (access(STDRCFILE,R_OK) == 0)
+-				runscript(-1,STDRCFILE);
+-		}
+-	}
+-}
+-
+-void mgmtnewfd(int new)
+-{
+-	char buf[MAXCMD];
+-	if(fcntl(new, F_SETFL, O_NONBLOCK) < 0){
+-		printlog(LOG_WARNING,"mgmt fcntl - setting O_NONBLOCK %s",strerror(errno));
+-		close(new);
+-		return;
+-	}
+-
+-	add_fd(new,mgmt_data,NULL);
+-	EVENTOUT(MGMTPORTNEW,new);
+-	snprintf(buf,MAXCMD,header,PACKAGE_VERSION);
+-	write(new,buf,strlen(buf));
+-	write(new,prompt,strlen(prompt));
+-}
+-
+-#ifdef DEBUGOPT
+-static int debugdel(int fd,char *arg);
+-#endif
+-static char *EOS="9999 END OF SESSION";
+-static void handle_io(unsigned char type,int fd,int revents,void *unused)
+-{
+-	char buf[MAXCMD];
+-	if (type != mgmt_ctl) {
+-		int n=0;
+-
+-		if (revents & POLLIN) {
+-			n = read(fd, buf, sizeof(buf));
+-			if(n < 0){
+-				printlog(LOG_WARNING,"Reading from mgmt %s",strerror(errno));
+-			}
+-		}
+-		if (n==0) { /*EOF*/
+-			if (type == console_type) {
+-				printlog(LOG_WARNING,"EOF on stdin, cleaning up and exiting");
+-				exit(0);
+-			} else {
+-#ifdef DEBUGOPT
+-				debugdel(fd,"");
+-#endif
+-				remove_fd(fd);
+-			}
+-		} else {
+-			int cmdout;
+-			buf[n]=0;
+-			if (n>0 && buf[n-1] == '\n') buf[n-1] = 0;
+-			cmdout=handle_cmd(type,(type==console_type)?STDOUT_FILENO:fd,buf);
+-			if (cmdout >= 0)
+-				write(fd,prompt,strlen(prompt));
+-			else {
+-				if(type==mgmt_data) {
+-					write(fd,EOS,strlen(EOS));
+-#ifdef DEBUGOPT
+-					EVENTOUT(MGMTPORTDEL,fd);
+-					debugdel(fd,"");
+-#endif
+-					remove_fd(fd);
+-				}
+-				if (cmdout == -2)
+-					exit(0);
+-			}
+-		}
+-	} else  {/* mgmt ctl */
+-		struct sockaddr addr;
+-		int new;
+-		socklen_t len;
+-
+-		len = sizeof(addr);
+-		new = accept(fd, &addr, &len);
+-		if(new < 0){
+-			printlog(LOG_WARNING,"mgmt accept %s",strerror(errno));
+-			return;
+-		}
+-		if(fcntl(new, F_SETFL, O_NONBLOCK) < 0){
+-			printlog(LOG_WARNING,"mgmt fcntl - setting O_NONBLOCK %s",strerror(errno));
+-			close(new);
+-			return;
+-		}
+-
+-		add_fd(new,mgmt_data,NULL);
+-		EVENTOUT(MGMTPORTNEW,new);
+-		snprintf(buf,MAXCMD,header,PACKAGE_VERSION);
+-		write(new,buf,strlen(buf));
+-		write(new,prompt,strlen(prompt));
+-	}
+-}
+-
+-static void save_pidfile()
+-{
+-	if(pidfile[0] != '/')
+-		strncat(pidfile_path, pidfile, PATH_MAX - strlen(pidfile_path) - 1);
+-	else
+-		strncpy(pidfile_path, pidfile, PATH_MAX - 1);
+-
+-	int fd = open(pidfile_path,
+-			O_WRONLY | O_CREAT | O_EXCL,
+-			S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+-	FILE *f;
+-
+-	if(fd == -1) {
+-		printlog(LOG_ERR, "Error in pidfile creation: %s", strerror(errno));
+-		exit(1);
+-	}
+-
+-	if((f = fdopen(fd, "w")) == NULL) {
+-		printlog(LOG_ERR, "Error in FILE* construction: %s", strerror(errno));
+-		exit(1);
+-	}
+-
+-	if(fprintf(f, "%ld\n", (long int)getpid()) <= 0) {
+-		printlog(LOG_ERR, "Error in writing pidfile");
+-		exit(1);
+-	}
+-
+-	fclose(f);
+-}
+-
+-static void cleanup(unsigned char type,int fd,void *unused)
+-{
+-	if (fd < 0) {
+-		if((pidfile != NULL) && unlink(pidfile_path) < 0) {
+-			printlog(LOG_WARNING,"Couldn't remove pidfile '%s': %s", pidfile, strerror(errno));
+-		}
+-	} else {
+-		close(fd);
+-		if (type == mgmt_ctl && mgmt_socket != NULL) {
+-			unlink(mgmt_socket);
+-		}
+-	}
+-}
+-
+-#define MGMTMODEARG 0x100
+-
+-static struct option long_options[] = {
+-	{"daemon", 0, 0, 'd'},
+-	{"pidfile", 1, 0, 'p'},
+-	{"rcfile", 1, 0, 'f'},
+-	{"mgmt", 1, 0, 'M'},
+-	{"mgmtmode", 1, 0, MGMTMODEARG},
+-#ifdef DEBUGOPT
+-	{"debugclients",1,0,'D'},
+-#endif
+-};
+-
+-#define Nlong_options (sizeof(long_options)/sizeof(struct option));
+-
+-static void usage(void)
+-{
+-	printf(
+-			"(opts from consmgmt module)\n"
+-			"  -d, --daemon               Daemonize vde_switch once run\n"
+-			"  -p, --pidfile PIDFILE      Write pid of daemon to PIDFILE\n"
+-			"  -f, --rcfile               Configuration file (overrides %s and ~/.vderc)\n"
+-			"  -M, --mgmt SOCK            path of the management UNIX socket\n"
+-			"      --mgmtmode MODE        management UNIX socket access mode (octal)\n"
+-#ifdef DEBUGOPT
+-			"  -D, --debugclients #        number of debug clients allowed\n"
+-#endif
+-			,STDRCFILE);
+-}
+-
+-static int parseopt(int c, char *optarg)
+-{
+-	int outc=0;
+-	switch (c) {
+-		case 'd':
+-			daemonize=1;
+-			break;
+-		case 'p':
+-			pidfile=strdup(optarg);
+-			break;
+-		case 'f':
+-			rcfile=strdup(optarg);
+-			break;
+-		case 'M':
+-			mgmt_socket=strdup(optarg);
+-			break;
+-		case MGMTMODEARG:
+-			sscanf(optarg,"%o",&mgmt_mode);
+-			break;
+-		default:
+-			outc=c;
+-	}
+-	return outc;
+-}
+-
+-static void init(void)
+-{
+-	if (daemonize) {
+-		openlog(basename(prog), LOG_PID, 0);
+-		logok=1;
+-		syslog(LOG_INFO,"VDE_SWITCH started");
+-	}
+-	/* add stdin (if tty), connect and data fds to the set of fds we wait for
+-	 *    * input */
+-	if(!daemonize)
+-	{
+-		console_type=add_type(&swmi,0);
+-		add_fd(0,console_type,NULL);
+-	}
+-
+-	/* saves current path in pidfile_path, because otherwise with daemonize() we
+-	 *    * forget it */
+-	if(getcwd(pidfile_path, PATH_MAX-2) == NULL) {
+-		printlog(LOG_ERR, "getcwd: %s", strerror(errno));
+-		exit(1);
+-	}
+-	strcat(pidfile_path, "/");
+-	if (daemonize && daemon(0, 0)) {
+-		printlog(LOG_ERR,"daemon: %s",strerror(errno));
+-		exit(1);
+-	}
+-
+-	/* once here, we're sure we're the true process which will continue as a
+-	 *    * server: save PID file if needed */
+-	if(pidfile) save_pidfile();
+-
+-	if(mgmt_socket != NULL) {
+-		int mgmtconnfd;
+-		struct sockaddr_un sun;
+-		int one = 1;
+-
+-		if((mgmtconnfd = socket(PF_UNIX, SOCK_STREAM, 0)) < 0){
+-			printlog(LOG_ERR,"mgmt socket: %s",strerror(errno));
+-			return;
+-		}
+-		if(setsockopt(mgmtconnfd, SOL_SOCKET, SO_REUSEADDR, (char *) &one,
+-					sizeof(one)) < 0){
+-			printlog(LOG_ERR,"mgmt setsockopt: %s",strerror(errno));
+-			return;
+-		}
+-		if(fcntl(mgmtconnfd, F_SETFL, O_NONBLOCK) < 0){
+-			printlog(LOG_ERR,"Setting O_NONBLOCK on mgmt fd: %s",strerror(errno));
+-			return;
+-		}
+-		sun.sun_family = PF_UNIX;
+-		snprintf(sun.sun_path,sizeof(sun.sun_path),"%s",mgmt_socket);
+-		if(bind(mgmtconnfd, (struct sockaddr *) &sun, sizeof(sun)) < 0){
+-			if((errno == EADDRINUSE) && still_used(&sun)) return;
+-			else if(bind(mgmtconnfd, (struct sockaddr *) &sun, sizeof(sun)) < 0){
+-				printlog(LOG_ERR,"mgmt bind %s",strerror(errno));
+-				return;
+-			}
+-		}
+-		chmod(sun.sun_path,mgmt_mode);
+-		if(listen(mgmtconnfd, 15) < 0){
+-			printlog(LOG_ERR,"mgmt listen: %s",strerror(errno));
+-			return;
+-		}
+-		mgmt_ctl=add_type(&swmi,0);
+-		mgmt_data=add_type(&swmi,0);
+-		add_fd(mgmtconnfd,mgmt_ctl,NULL);
+-	}
+-}
+-
+-static int vde_logout() 
+-{ 
+-	return -1; 
+-}
+-
+-static int vde_shutdown() 
+-{ 
+-	printlog(LOG_WARNING,"Shutdown from mgmt command");
+-	return -2; 
+-}
+-
+-static int showinfo(FILE *fd) 
+-{
+-	printoutc(fd,header,PACKAGE_VERSION);
+-	printoutc(fd,"pid %d MAC %02x:%02x:%02x:%02x:%02x:%02x uptime %d",getpid(),
+-			switchmac[0], switchmac[1], switchmac[2], switchmac[3], switchmac[4], switchmac[5],
+-			time(NULL)-starting_time);
+-	if (mgmt_socket)
+-		printoutc(fd,"mgmt %s perm 0%03o",mgmt_socket,mgmt_mode);
+-	return 0;
+-}
+-
+-#ifdef DEBUGOPT
+-static int debuglist(FILE *f,int fd,char *path)
+-{
+-#define DEBUGFORMAT1 "%-22s %-3s %-6s %s"
+-#define DEBUGFORMAT2 "%-22s %03o %-6s %s"
+-	struct dbgcl *p;
+-	int i;
+-	int rv=ENOENT;
+-	printoutc(f,DEBUGFORMAT1,"CATEGORY", "TAG", "STATUS", "HELP");
+-	printoutc(f,DEBUGFORMAT1,"------------","---","------", "----");
+-	for (p=dbgclh; p!=NULL; p=p->next){
+-		if (p->help && strncmp(p->path, path, strlen(path)) == 0) {
+-			for (i=0; i<p->nfds && p->fds[i] != fd; i++)
+-				;
+-			rv=0;
+-			printoutc(f, DEBUGFORMAT2, p->path,  p->tag &0777, i<p->nfds ? "ON" : "OFF", p->help);
+-		}
+-	}
+-	return rv;
+-}
+-
+-/* EINVAL -> no matches
+- * EEXIST -> all the matches already include fd
+- * ENOMEM -> fd buffer realloc failed
+- * 0 otherwise */
+-static int debugadd(int fd,char *path) {
+-	struct dbgcl *p;
+-	int rv=EINVAL;
+-	for (p=dbgclh; p!=NULL; p=p->next) {
+-		if (p->help && strncmp(p->path, path, strlen(path)) == 0) {
+-			int i;
+-			if (rv==EINVAL) rv=EEXIST;
+-			for(i=0;i<p->nfds && (p->fds[i] != fd); i++)
+-				;
+-			if (i>=p->nfds) {
+-				if (i>=p->maxfds) {
+-					int newsize=p->maxfds+DBGCLSTEP;
+-					p->fds=realloc(p->fds,newsize*sizeof(int));
+-					if (p->fds) {
+-						p->maxfds=newsize;
+-						p->fds[i]=fd;
+-						p->nfds++;
+-						if (rv != ENOMEM) rv=0;
+-					} else
+-						rv=ENOMEM;
+-				} else {
+-					p->fds[i]=fd;
+-					p->nfds++;
+-					if (rv != ENOMEM) rv=0;
+-				} 
+-			}
+-		} 
+-	}
+-	return rv;
+-}
+-
+-/* EINVAL -> no matches
+- * ENOENT -> all the matches do not include fd
+- * 0 otherwise */
+-static int debugdel(int fd,char *path) {
+-	struct dbgcl *p;
+-	int rv=EINVAL;
+-	for (p=dbgclh; p!=NULL; p=p->next){
+-		if (strncmp(p->path, path, strlen(path)) == 0) {
+-			int i;
+-			if (rv==EINVAL) rv=ENOENT;
+-			for(i=0;i<p->nfds && (p->fds[i] != fd); i++)
+-				;
+-			if (i<p->nfds) {
+-				p->nfds--; /* the last one */
+-				p->fds[i]=p->fds[p->nfds]; /* swap it with the deleted element*/
+-				rv=0;
+-			} 
+-		}
+-	}
+-	return rv;
+-}
+-
+-int eventadd(int (*fun)(),char *path,void *arg) {
+-	struct dbgcl *p;
+-	int rv=EINVAL;
+-	for (p=dbgclh; p!=NULL; p=p->next) {
+-		if (strncmp(p->path, path, strlen(path)) == 0) {
+-			int i;
+-			if (rv==EINVAL) rv=EEXIST;
+-			for(i=0;i<p->nfun && (p->fun[i] != fun); i++)
+-				;
+-			if (i>=p->nfun) {
+-				if (i>=p->maxfun) {
+-					int newsize=p->maxfun+DBGCLSTEP;
+-					p->fun=realloc(p->fun,newsize*sizeof(int));
+-					p->funarg=realloc(p->funarg,newsize*sizeof(void *));
+-					if (p->fun && p->funarg) {
+-						p->maxfun=newsize;
+-						p->fun[i]=fun;
+-						p->funarg[i]=arg;
+-						p->nfun++;
+-						if (rv != ENOMEM) rv=0;
+-					} else
+-						rv=ENOMEM;
+-				} else {
+-					p->fun[i]=fun;
+-					p->nfun++;
+-					if (rv != ENOMEM) rv=0;
+-				}
+-			}
+-		}
+-	}
+-	return rv;
+-}
+-
+-/* EINVAL -> no matches
+- * ENOENT -> all the matches do not include fun
+- * 0 otherwise */
+-int eventdel(int (*fun)(),char *path,void *arg) {
+-	struct dbgcl *p;
+-	int rv=EINVAL;
+-	for (p=dbgclh; p!=NULL; p=p->next){
+-		if (strncmp(p->path, path, strlen(path)) == 0) {
+-			int i;
+-			if (rv==EINVAL) rv=ENOENT;
+-			for(i=0;i<p->nfun && (p->fun[i] != fun) && (p->funarg[i] != arg); i++)
+-				;
+-			if (i<p->nfun) {
+-				p->nfun--; /* the last one */
+-				p->fun[i]=p->fun[p->nfun]; /* swap it with the deleted element*/
+-				rv=0;
+-			}
+-		}
+-	}
+-	return rv;
+-}
+-
+-#endif
+-
+-#ifdef VDEPLUGIN
+-static int pluginlist(FILE *f,char *arg)
+-{
+-#define PLUGINFMT "%-22s %s"
+-	struct plugin *p;
+-	int rv=ENOENT;
+-	printoutc(f,PLUGINFMT,"NAME", "HELP");
+-	printoutc(f,PLUGINFMT,"------------","----");
+-	for (p=pluginh; p!=NULL; p=p->next){
+-		if (strncmp(p->name, arg, strlen(arg)) == 0) {
+-			printoutc(f,PLUGINFMT,p->name,p->help);
+-			rv=0;
+-		}
+-	}
+-	return rv;
+-}
+-
+-static int pluginadd(char *arg) {
+-	void *handle;
+-	struct plugin *p;
+-	int rv=ENOENT;
+-	if ((handle=dlopen(arg,RTLD_LAZY)) != NULL) {
+-		if ((p=(struct plugin *) dlsym(handle,"vde_plugin_data")) != NULL) {
+-			if (p->handle != NULL) { /* this dyn library is already loaded*/
+-				dlclose(handle);
+-				rv=EEXIST;
+-			} else {
+-				addplugin(p);
+-				p->handle=handle;
+-				rv=0;
+-			}
+-		} else {
+-			rv=EINVAL;
+-		}
+-	} 
+-	return rv;
+-}
+-
+-static int plugindel(char *arg) {
+-	int rv=ENOENT;
+-	struct plugin **p=&pluginh;
+-	while (*p!=NULL){
+-		if (strncmp((*p)->name, arg, strlen(arg)) == 0
+-				&& ((*p)->handle != NULL)) {
+-			struct plugin *this=*p;
+-			delplugin(this);
+-			dlclose(this->handle);
+-			rv=0;
+-		} else
+-			p=&(*p)->next;
+-	}
+-	return rv;
+-}
+-#endif
+-
+-static struct comlist cl[]={
+-	{"help","[arg]","Help (limited to arg when specified)",help,STRARG | WITHFILE},
+-	{"logout","","logout from this mgmt terminal",vde_logout,NOARG},
+-	{"shutdown","","shutdown of the switch",vde_shutdown,NOARG},
+-	{"showinfo","","show switch version and info",showinfo,NOARG|WITHFILE},
+-	{"load","path","load a configuration script",runscript,STRARG|WITHFD},
+-#ifdef DEBUGOPT
+-	{"debug","============","DEBUG MENU",NULL,NOARG},
+-	{"debug/list","","list debug categories",debuglist,STRARG|WITHFILE|WITHFD},
+-	{"debug/add","dbgpath","enable debug info for a given category",debugadd,WITHFD|STRARG},
+-	{"debug/del","dbgpath","disable debug info for a given category",debugdel,WITHFD|STRARG},
+-#endif
+-#ifdef VDEPLUGIN
+-	{"plugin","============","PLUGINS MENU",NULL,NOARG},
+-	{"plugin/list","","list plugins",pluginlist,STRARG|WITHFILE},
+-	{"plugin/add","library","load a plugin",pluginadd,STRARG},
+-	{"plugin/del","name","unload a plugin",plugindel,STRARG},
+-#endif
+-};
+-
+-void start_consmgmt(void)
+-{
+-	swmi.swmname="console-mgmt";
+-	swmi.swmnopts=Nlong_options;
+-	swmi.swmopts=long_options;
+-	swmi.usage=usage;
+-	swmi.parseopt=parseopt;
+-	swmi.init=init;
+-	swmi.handle_io=handle_io;
+-	swmi.cleanup=cleanup;
+-	ADDCL(cl);
+-#ifdef DEBUGOPT
+-	ADDDBGCL(dl);
+-#endif
+-	add_swm(&swmi);
+-}
+diff --git a/src/kvde_switch/consmgmt.h b/src/kvde_switch/consmgmt.h
+deleted file mode 100644
+index 22e51ae37..000000000
+--- a/src/kvde_switch/consmgmt.h
++++ /dev/null
+@@ -1,89 +0,0 @@
+-/* Copyright 2002 Jeff Dike
+- * Licensed under the GPL
+- */
+-
+-#ifndef __CONSMGMT_H__
+-#define __CONSMGMT_H__
+-#include <stdarg.h>
+-
+-struct comlist {
+-	char *path;
+-	char *syntax;
+-	char *help;
+-	int (*doit)();
+-	unsigned char type;
+-	struct comlist *next;
+-};
+-	
+-#define NOARG 0
+-#define INTARG 1
+-#define STRARG 2
+-#define WITHFILE 0x40
+-#define WITHFD 0x80
+-
+-void printlog(int priority, const char *format, ...);
+-void loadrcfile(void);
+-void setmgmtperm(char *path);
+-
+-void printoutc(FILE *fd, const char *format, ...);
+-void addcl(int ncl,struct comlist *cl);
+-#define ADDCL(CL) addcl(sizeof(CL)/sizeof(struct comlist),(CL))
+-
+-typedef int (*intfun)();
+-#ifdef DEBUGOPT
+-#define D_PACKET 01000
+-#define D_MGMT 02000
+-#define D_IN 01
+-#define D_OUT 02
+-#define D_PLUS 01
+-#define D_MINUS 02
+-#define D_DESCR 03
+-#define D_STATUS 04
+-#define D_ROOT 05
+-#define D_HASH 010
+-#define D_PORT 020
+-#define D_EP 030
+-#define D_FSTP 040
+-struct dbgcl {
+-	char *path; /* debug path for add/del */
+-	char *help; /* help string. just event mgmt when NULL */
+-	int tag;    /* tag for event mgmt and simple parsing */
+-	int *fds;   /* file descriptors for debug */
+-	intfun (*fun); /* function call dor plugin events */
+-	void **funarg; /* arg for function calls */
+-	unsigned short nfds; /* number of active fds */
+-	unsigned short nfun; /* number of active fun */
+-	unsigned short maxfds; /* current size of fds */
+-	unsigned short maxfun; /* current size of both fun and funarg */
+-	struct dbgcl *next;
+-};
+-void adddbgcl(int ncl, struct dbgcl* cl);
+-#define ADDDBGCL(CL) adddbgcl(sizeof(CL)/sizeof(struct dbgcl),(CL))
+-void debugout(struct dbgcl* cl, const char *format, ...);
+-void eventout(struct dbgcl* cl, ...);
+-int packetfilter(struct dbgcl* cl, ...);
+-#define DBGOUT(CL, ...) \
+-	if (__builtin_expect(((CL)->nfds) > 0, 0)) debugout((CL), __VA_ARGS__)
+-#define EVENTOUT(CL, ...) \
+-	if (__builtin_expect(((CL)->nfun) > 0, 0)) eventout((CL), __VA_ARGS__)
+-#define PACKETFILTER(CL, PORT, BUF, LEN) \
+-	(__builtin_expect((((CL)->nfun) == 0 || ((LEN)=packetfilter((CL), (PORT), (BUF), (LEN)))), 1))
+-	/*
+-#define PACKETFILTER(CL, PORT, BUF, LEN)  (LEN)
+-	*/
+-#else
+-#define DBGOUT(CL, ...) 
+-#define EVENTOUT(CL, ...) 
+-#define PACKETFILTER(CL, PORT, BUF, LEN)  (LEN)  
+-#endif /* DEBUGOPT */
+-
+-#endif
+-
+-#ifdef VDEPLUGIN
+-struct plugin {
+-	char *name;
+-	char *help;
+-	void *handle;
+-	struct plugin *next;
+-};
+-#endif
+diff --git a/src/kvde_switch/datasock.c b/src/kvde_switch/datasock.c
+deleted file mode 100644
+index c4aa5548e..000000000
+--- a/src/kvde_switch/datasock.c
++++ /dev/null
+@@ -1,254 +0,0 @@
+-/* Copyright 2005 Renzo Davoli - VDE-2
+- * --pidfile/-p and cleanup management by Mattia Belletti (C) 2004.
+- * Licensed under the GPLv2
+- * Modified by Ludovico Gardenghi 2005
+- * -g option (group management) by Daniel P. Berrange
+- * dir permission patch by Alessio Caprari 2006
+- */
+-
+-#include <stdio.h>
+-#include <fcntl.h>
+-#include <errno.h>
+-#include <string.h>
+-#include <unistd.h>
+-#include <syslog.h>
+-#include <stdlib.h>
+-#include <stdint.h>
+-#include <libgen.h>
+-#include <sys/types.h>
+-#include <sys/stat.h>
+-#include <sys/ioctl.h>
+-#include <sys/socket.h>
+-#include <sys/types.h>
+-#include <sys/un.h>
+-#include <net/if.h>
+-#include <stdarg.h>
+-#include <limits.h>
+-#include <grp.h>
+-#define _GNU_SOURCE
+-#include <getopt.h>
+-
+-#include <config.h>
+-#include <vde.h>
+-#include <vdecommon.h>
+-
+-#include "../vde_switch/switch.h"
+-#include "sockutils.h"
+-#include "consmgmt.h"
+-
+-#include <af_ipn.h>
+-
+-static struct swmodule swmi;
+-static unsigned int ctl_type;
+-static int mode = 0700;
+-
+-static char real_ctl_socket[PATH_MAX];
+-static char *ctl_socket = real_ctl_socket;
+-static gid_t grp_owner = -1;
+-
+-#define MODULENAME "kernel module interface"
+-
+-static void handle_io(unsigned char type,int fd,int revents,void *arg)
+-{
+-	/*here OOB messages will be delivered for debug options */
+-}
+-
+-static void cleanup(unsigned char type,int fd,void *unused)
+-{
+-	unlink(ctl_socket);
+-}
+-
+-static struct option long_options[] = {
+-	{"sock", 1, 0, 's'},
+-	{"vdesock", 1, 0, 's'},
+-	{"unix", 1, 0, 's'},
+-	{"mod", 1, 0, 'm'},
+-	{"group", 1, 0, 'g'},
+-	{"tap", 1, 0, 't'},
+-	{"grab", 1, 0, 'G'},
+-
+-};
+-
+-#define Nlong_options (sizeof(long_options)/sizeof(struct option));
+-
+-static void usage(void)
+-{
+-	printf(
+-			"(opts from datasock module)\n"
+-			"  -s, --sock SOCK            control directory pathname\n"
+-			"  -s, --vdesock SOCK         Same as --sock SOCK\n"
+-			"  -s, --unix SOCK            Same as --sock SOCK\n"
+-			"  -m, --mod MODE             Standard access mode for comm sockets (octal)\n"
+-			"  -g, --group GROUP          Group owner for comm sockets\n"
+-	    "  -t, --tap TAP           Enable routing through TAP tap interface\n"
+-	    "  -G, --grab INT          Enable routing grabbing an existing interface\n");
+-}
+-
+-struct extinterface {
+-	char type;
+-	char *name;
+-	struct extinterface *next;
+-};
+-
+-static struct extinterface *extifhead;
+-static struct extinterface **extiftail=&extifhead;
+-
+-static void addextinterface(char type,char *name)
+-{
+-	struct extinterface *new=malloc(sizeof (struct extinterface));
+-	if (new) {
+-		new->type=type;
+-		new->name=strdup(name);
+-		new->next=NULL;
+-		*extiftail=new;
+-		extiftail=&(new->next);
+-	}
+-}
+-
+-static void runextinterfaces(struct sockaddr_un *sun)
+-{
+-	struct extinterface *iface,*oldiface;
+-	struct ifreq ifr;
+-	for (iface=extifhead;iface != NULL;iface=oldiface)
+-	{
+-		int kvdefd;
+-		memset(&ifr, 0, sizeof(ifr));
+-		strncpy(ifr.ifr_name,iface->name,IFNAMSIZ);
+-		if (iface->type == 't')
+-			ifr.ifr_flags=IPN_NODEFLAG_TAP;
+-		else
+-			ifr.ifr_flags=IPN_NODEFLAG_GRAB;
+-		//  printf("ioctl\n");
+-		kvdefd = socket(AF_IPN,SOCK_RAW,IPN_VDESWITCH);
+-		if (kvdefd < 0) {
+-			kvdefd = socket(AF_IPN_STOLEN,SOCK_RAW,IPN_VDESWITCH);
+-			if (kvdefd < 0) {
+-				printlog(LOG_ERR,"kvde_switch grab/tap error socket");
+-				exit(-1);
+-			}
+-		}
+-		if(bind(kvdefd, (struct sockaddr *) sun, sizeof(*sun)) < 0) {
+-			printlog(LOG_ERR,"cannot bind socket grab/tap");
+-			exit(-1);
+-		}
+-		if (ioctl(kvdefd, IPN_CONN_NETDEV, (void *) &ifr) < 0) {
+-			printlog(LOG_ERR, "%s interface %s error: %s", iface->name,
+-					(iface->type == 't')?"tap":"grab",strerror(errno));
+-			exit(-1);
+-		}
+-		free(iface->name);
+-		oldiface=iface->next;
+-		free(iface);
+-	}
+-	extifhead=NULL;
+-}
+-
+-static int parseopt(int c, char *optarg)
+-{
+-	int outc=0;
+-	struct group *grp;
+-	switch (c) {
+-		case 's':
+-			/* This should returns NULL as the path probably does not exist */
+-			vde_realpath(optarg, ctl_socket);
+-			break;
+-		case 'm':
+-			sscanf(optarg,"%o",&mode);
+-			break;
+-		case 'g':
+-			if (!(grp = getgrnam(optarg))) {
+-				printlog(LOG_ERR, "No such group '%s'", optarg);
+-				exit(1);
+-			}
+-			grp_owner=grp->gr_gid;
+-			break;
+-		case 't':
+-		case 'G':
+-			addextinterface(c,optarg);
+-			break;
+-		default:
+-			outc=c;
+-	}
+-	return outc;
+-}
+-
+-int check_kernel_support(void) {
+-
+-	int kvdefd = socket(AF_IPN,SOCK_RAW,IPN_VDESWITCH);
+-	if (kvdefd < 0) {
+-		kvdefd = socket(AF_IPN_STOLEN,SOCK_RAW,IPN_VDESWITCH);
+-		if (kvdefd < 0) {
+-			printlog(LOG_ERR,"kvde_switch requires ipn and kvde_switch kernel modules loaded");
+-			return(-1);
+-		}
+-	}
+-	close(kvdefd);
+-	return 0;
+-}
+-
+-static void init(void)
+-{
+-	int kvdefd;
+-	struct sockaddr_un sun;
+-	int family = AF_IPN;
+-	kvdefd = socket(AF_IPN,SOCK_RAW,IPN_VDESWITCH);
+-	if (kvdefd < 0) {
+-		family=AF_IPN_STOLEN;
+-		kvdefd = socket(AF_IPN_STOLEN,SOCK_RAW,IPN_VDESWITCH);
+-		if (kvdefd < 0) {
+-			printlog(LOG_ERR,"kvde_switch requires ipn and kvde_switch kernel modules loaded");
+-			exit(-1);
+-		}
+-	}
+-	sun.sun_family = family;
+-	snprintf(sun.sun_path,sizeof(sun.sun_path),"%s",ctl_socket);
+-	if(bind(kvdefd, (struct sockaddr *) &sun, sizeof(sun)) < 0) {
+-		printlog(LOG_ERR,"cannot bind socket %s",ctl_socket);
+-		exit(-1);
+-	}
+-	if(chmod(ctl_socket, mode) <0) {
+-		printlog(LOG_ERR, "chmod: %s", strerror(errno));
+-		exit(1);
+-	}
+-	if(chown(ctl_socket,-1,grp_owner) < 0) {
+-		printlog(LOG_ERR, "chown: %s", strerror(errno));
+-		exit(1);
+-	}
+-	runextinterfaces(&sun);
+-	add_fd(kvdefd,ctl_type,NULL);
+-}
+-
+-static int showinfo(FILE *fd)
+-{
+-	printoutc(fd,"ctl dir %s",ctl_socket);
+-	printoutc(fd,"std mode 0%03o",mode);
+-	return 0;
+-}
+-
+-static struct comlist cl[]={
+-	{"ds","============","DATA SOCKET MENU",NULL,NOARG},
+-	{"ds/showinfo","","show ds info",showinfo,NOARG|WITHFILE},
+-};
+-
+-/*
+-static void delep (int fd, void* data, void *descr)
+-{
+-	if (fd>=0) remove_fd(fd);
+-	if (data) free(data);
+-	if (descr) free(descr);
+-}
+-*/
+-
+-void start_datasock(void)
+-{
+-	strcpy(ctl_socket,(geteuid()==0)?VDESTDSOCK:VDETMPSOCK);
+-	swmi.swmnopts=Nlong_options;
+-	swmi.swmopts=long_options;
+-	swmi.usage=usage;
+-	swmi.parseopt=parseopt;
+-	swmi.init=init;
+-	swmi.handle_io=handle_io;
+-	swmi.cleanup=cleanup;
+-	ADDCL(cl);
+-	add_swm(&swmi);
+-}
+diff --git a/src/kvde_switch/datasock.h b/src/kvde_switch/datasock.h
+deleted file mode 100644
+index 36d5e1322..000000000
+--- a/src/kvde_switch/datasock.h
++++ /dev/null
+@@ -1,13 +0,0 @@
+-/* Copyright 2002 Jeff Dike
+- * Licensed under the GPL
+- */
+-
+-#ifndef __DATASOCK_H__
+-#define __DATASOCK_H__
+-
+-int send_datasock(int fd, int ctl_fd, void *packet, int len, void *unused, int port);
+-int recv_datasock(int fd, void *packet, int maxlen, int port);
+-int open_datasock(char *dev);
+-int check_kernel_support(void); 
+-
+-#endif
+diff --git a/src/kvde_switch/kvde_switch.c b/src/kvde_switch/kvde_switch.c
+deleted file mode 100644
+index da4ee11e5..000000000
+--- a/src/kvde_switch/kvde_switch.c
++++ /dev/null
+@@ -1,455 +0,0 @@
+-/* Copyright 2005 Renzo Davoli VDE-2
+- * Licensed under the GPL
+- * --pidfile/-p and cleanup management by Mattia Belletti.
+- * some code remains from uml_switch Copyright 2001, 2002 Jeff Dike and others
+- * Modified by Ludovico Gardenghi 2005
+- */
+-
+-#include <unistd.h>
+-#define _GNU_SOURCE
+-#include <getopt.h>
+-#include <stdlib.h>
+-#include <stdio.h>
+-#include <string.h>
+-#include <signal.h>
+-#include <syslog.h>
+-#include <errno.h>
+-#include <sys/types.h>
+-#include <sys/stat.h>
+-#include <fcntl.h>
+-#include <sys/time.h>
+-#include <time.h>
+-
+-#include <config.h>
+-#include <vde.h>
+-#include <vdecommon.h>
+-
+-#include "../vde_switch/switch.h"
+-#include "consmgmt.h"
+-#include "datasock.h"
+-
+-time_t starting_time;
+-static struct swmodule *swmh;
+-
+-char *prog;
+-unsigned char switchmac[ETH_ALEN];
+-unsigned int priority=DEFAULT_PRIORITY;
+-
+-/* static int hash_size=INIT_HASH_SIZE; */
+-/* static int numports=INIT_NUMPORTS; */
+-
+-
+-static void recaddswm(struct swmodule **p,struct swmodule *new)
+-{
+-	struct swmodule *this=*p;
+-	if (this == NULL)
+-		*p=new;
+-	else 
+-		recaddswm(&(this->next),new);
+-}
+-
+-void add_swm(struct swmodule *new)
+-{
+-	static int lastlwmtag;
+-	new->swmtag= ++lastlwmtag;
+-	if (new != NULL && new->swmtag != 0) {
+-		new->next=NULL;
+-		recaddswm(&swmh,new);
+-	}
+-}
+-
+-static void recdelswm(struct swmodule **p,struct swmodule *old)
+-{
+-	struct swmodule *this=*p;
+-	if (this != NULL) {
+-		if(this == old)
+-			*p=this->next;
+-		else
+-			recdelswm(&(this->next),old);
+-	}
+-}
+-
+-void del_swm(struct swmodule *old)
+-{
+-	if (old != NULL) {
+-		recdelswm(&swmh,old);
+-	}
+-}
+-
+-/* FD MGMT */
+-struct pollplus {
+-	unsigned char type;
+-	void *private_data;
+-	time_t timestamp;
+-};
+-
+-static int nfds = 0;
+-static int nprio =0;
+-static struct pollfd *fds = NULL;
+-static struct pollplus **fdpp = NULL;
+-
+-static int maxfds = 0;
+-
+-static struct swmodule **fdtypes;
+-static int ntypes;
+-static int maxtypes;
+-
+-#define PRIOFLAG 0x80
+-#define TYPEMASK 0x7f
+-#define ISPRIO(X) ((X) & PRIOFLAG)
+-
+-#define TYPE2MGR(X) (fdtypes[((X) & TYPEMASK)])
+-
+-unsigned char add_type(struct swmodule *mgr,int prio)
+-{
+-	int i;
+-	if(ntypes==maxtypes) {
+-		maxtypes = maxtypes ? 2 * maxtypes : 8;
+-		if (maxtypes > PRIOFLAG) {
+-			printlog(LOG_ERR,"too many file types");
+-			exit(1);
+-		}
+-		if((fdtypes = realloc(fdtypes, maxtypes * sizeof(struct swmodule *))) == NULL){
+-			printlog(LOG_ERR,"realloc fdtypes %s",strerror(errno));
+-			exit(1);
+-		}
+-		memset(fdtypes+ntypes,0,sizeof(struct swmodule *) * maxtypes-ntypes);
+-		i=ntypes;
+-	} else
+-		for(i=0; fdtypes[i] != NULL; i++)
+-			;
+-	fdtypes[i]=mgr;
+-	ntypes++;
+-	return i | ((prio != 0)?PRIOFLAG:0);
+-}
+-
+-void del_type(unsigned char type)
+-{
+-	type &= TYPEMASK;
+-	if (type < maxtypes)
+-		fdtypes[type]=NULL;
+-	ntypes--;
+-}
+-
+-void add_fd(int fd,unsigned char type,void *private_data)
+-{
+-	struct pollfd *p;
+-	int index;
+-	/* enlarge fds and g_fdsdata array if needed */
+-	if(nfds == maxfds){
+-		maxfds = maxfds ? 2 * maxfds : 8;
+-		if((fds = realloc(fds, maxfds * sizeof(struct pollfd))) == NULL){
+-			printlog(LOG_ERR,"realloc fds %s",strerror(errno));
+-			exit(1);
+-		}
+-		if((fdpp = realloc(fdpp, maxfds * sizeof(struct pollplus *))) == NULL){
+-			printlog(LOG_ERR,"realloc pollplus %s",strerror(errno));
+-			exit(1);
+-		}
+-	}
+-	if (ISPRIO(type)) {
+-		fds[nfds]=fds[nprio];
+-		fdpp[nfds]=fdpp[nprio];
+-		index=nprio;
+-		nprio++;
+-	} else
+-		index=nfds;
+-	if((fdpp[index]=malloc(sizeof(struct pollplus))) == NULL) {
+-		printlog(LOG_ERR,"realloc pollplus elem %s",strerror(errno));
+-		exit(1);
+-	}
+-	p = &fds[index];
+-	p->fd = fd;
+-	p->events = POLLIN | POLLHUP;
+-	fdpp[index]->type=type;
+-	fdpp[index]->private_data=private_data;
+-	nfds++;
+-}
+-
+-static void file_cleanup(void)
+-{
+-	int i;
+-	for(i = 0; i < nfds; i++)
+-		TYPE2MGR(fdpp[i]->type)->cleanup(fdpp[i]->type,fds[i].fd,fdpp[i]->private_data);
+-}
+-
+-void remove_fd(int fd)
+-{
+-	int i;
+-
+-	for(i = 0; i < nfds; i++){
+-		if(fds[i].fd == fd) break;
+-	}
+-	if(i == nfds){
+-		printlog(LOG_WARNING,"remove_fd : Couldn't find descriptor %d", fd);
+-	} else {
+-		struct pollplus *old=fdpp[i];
+-		TYPE2MGR(fdpp[i]->type)->cleanup(fdpp[i]->type,fds[i].fd,fdpp[i]->private_data);
+-		if (ISPRIO(fdpp[i]->type)) nprio--;
+-		memmove(&fds[i], &fds[i + 1], (maxfds - i - 1) * sizeof(struct pollfd));
+-		memmove(&fdpp[i], &fdpp[i + 1], (maxfds - i - 1) * sizeof(struct pollplus *));
+-		free(old);
+-		nfds--;
+-	}
+-}
+-
+-static void main_loop()
+-{
+-	time_t now;
+-	int n,i;
+-	while(1) {
+-		n=poll(fds,nfds,-1);
+-		now=time(NULL);
+-		if(n < 0){ 
+-			if(errno != EINTR)
+-				printlog(LOG_WARNING,"poll %s",strerror(errno));
+-		} else {
+-			for(i = 0; /*i < nfds &&*/ n>0; i++){
+-				if(fds[i].revents != 0) {
+-					int prenfds=nfds;
+-					n--;
+-					fdpp[i]->timestamp=now;
+-					TYPE2MGR(fdpp[i]->type)->handle_io(fdpp[i]->type,fds[i].fd,fds[i].revents,fdpp[i]->private_data);
+-					if (nfds!=prenfds) /* the current fd has been deleted */
+-						break; /* PERFORMANCE it is faster returning to poll */
+-				}	
+-/* optimization: most used descriptors migrate to the head of the poll array */
+-			}
+-		}
+-	}
+-}
+-
+-/* starting/ending routines, main_loop, main*/
+-#define HASH_TABLE_SIZE_ARG 0x100
+-#define MACADDR_ARG         0x101
+-#define PRIORITY_ARG        0x102
+-
+-static void Usage(void) {
+-	struct swmodule *p;
+-	printf(
+-			"Usage: vde_switch [OPTIONS]\n"
+-			"Runs a VDE switch.\n"
+-			"(global opts)\n"
+-			"  -h, --help                 Display this help and exit\n"
+-			"  -v, --version              Display informations on version and exit\n"
+-			);
+-	for(p=swmh;p != NULL;p=p->next)
+-		if (p->usage != NULL)
+-			p->usage();
+-	printf(
+-			"\n"
+-			"Report bugs to "PACKAGE_BUGREPORT "\n"
+-			);
+-	exit(1);
+-}
+-
+-static void version(void)
+-{ 
+-	printf(
+-			"VDE " PACKAGE_VERSION "\n"
+-			"Copyright 2003,2004,2005,2006,2007,2008 Renzo Davoli\n"
+-			"VDE comes with NO WARRANTY, to the extent permitted by law.\n"
+-			"You may redistribute copies of VDE under the terms of the\n"
+-			"GNU General Public License v2.\n"
+-			"For more information about these matters, see the files\n"
+-			"named COPYING.\n");
+-	exit(check_kernel_support());
+-} 
+-
+-static struct option *optcpy(struct option *tgt, struct option *src, int n, int tag)
+-{
+-	int i;
+-	memcpy(tgt,src,sizeof(struct option) * n);
+-	for (i=0;i<n;i++) {
+-		tgt[i].val=(tgt[i].val & 0xffff) | tag << 16;
+-	}
+-	return tgt+n;
+-}
+-
+-static int parse_globopt(int c, char *optarg)
+-{
+-	int outc=0;
+-	switch (c) {
+-		case 'v':
+-			version();
+-			break;
+-		case 'h':
+-			Usage();
+-			break;
+-		default:
+-			outc=c;
+-	}
+-	return outc;
+-}
+-
+-static void parse_args(int argc, char **argv)
+-{
+-	struct swmodule *swmp;
+-	struct option *long_options;
+-	char *optstring;
+-	static struct option global_options[] = {
+-		{"help",0 , 0, 'h'},
+-		{"version", 0, 0, 'v'},
+-	};
+-	static struct option optail = {0,0,0,0};
+-#define N_global_options (sizeof(global_options)/sizeof(struct option))
+-	prog = argv[0];
+-	int totopts=N_global_options+1;
+-
+-	for(swmp=swmh;swmp != NULL;swmp=swmp->next)
+-		totopts += swmp->swmnopts;
+-	long_options=malloc(totopts * sizeof(struct option));
+-	optstring=malloc(2 * totopts * sizeof(char));
+-	if (long_options == NULL || optstring==NULL)
+-		exit(2);
+-	{ /* fill-in the long_options fields */
+-		int i;
+-		char *os=optstring;
+-		char last=0;
+-		struct option *opp=long_options;
+-		opp=optcpy(opp,global_options,N_global_options,0);
+-		for(swmp=swmh;swmp != NULL;swmp=swmp->next)
+-			opp=optcpy(opp,swmp->swmopts,swmp->swmnopts,swmp->swmtag);
+-		optcpy(opp,&optail,1,0);
+-		for (i=0;i<totopts-1;i++)
+-		{
+-			int val=long_options[i].val & 0xffff;
+-			if(val > ' ' && val <= '~' && val != last)
+-			{
+-				*os++=val;
+-				if(long_options[i].has_arg) *os++=':';
+-			}
+-		}
+-		*os=0;
+-	}
+-	{
+-		/* Parse args */
+-		int option_index = 0;
+-		int c;
+-		while (1) {
+-			c = GETOPT_LONG (argc, argv, optstring,
+-					long_options, &option_index);
+-			if (c == -1)
+-				break;
+-			c=parse_globopt(c,optarg);
+-			for(swmp=swmh;swmp != NULL && c!=0;swmp=swmp->next) {
+-				if (swmp->parseopt != NULL) {
+-					if((c >> 7) == 0)
+-						c=swmp->parseopt(c,optarg);
+-					else if ((c >> 16) == swmp->swmtag)
+-						swmp->parseopt(c & 0xffff,optarg),c=0;
+-				}
+-			}
+-		}
+-	}
+-	if(optind < argc)
+-		Usage();
+-	free(long_options);
+-	free(optstring);
+-}
+-
+-static void init_mods(void)
+-{
+-	struct swmodule *swmp;
+-
+-	/* Keep track of the initial cwd */
+-	int cwfd = open(".", O_RDONLY);
+-
+-	for(swmp=swmh;swmp != NULL;swmp=swmp->next)
+-		if (swmp->init != NULL)
+-		{
+-			swmp->init();
+-			if (cwfd >= 0)
+-				/* Restore cwd so each module will be initialized with the
+-				 * original cwd also if the previous one changed it. */
+-				if(fchdir(cwfd) < 0) {
+-					printlog(LOG_WARNING,"Error restoring original working dir");
+-				}
+-		}
+-	close(cwfd);
+-}
+-
+-static void cleanup(void)
+-{
+-	struct swmodule *swmp;
+-	file_cleanup();
+-	for(swmp=swmh;swmp != NULL;swmp=swmp->next)
+-		if (swmp->cleanup != NULL)
+-			swmp->cleanup(0,-1,NULL);
+-}
+-
+-static void sig_handler(int sig)
+-{
+-	printlog(LOG_ERR,"Caught signal %d, cleaning up and exiting", sig);
+-	cleanup();
+-	signal(sig, SIG_DFL);
+-	if (sig == SIGTERM)
+-		_exit(0);
+-	else
+-		kill(getpid(), sig);
+-}
+-
+-static void setsighandlers()
+-{
+-	/* setting signal handlers.
+-	 * sets clean termination for SIGHUP, SIGINT and SIGTERM, and simply
+-	 * ignores all the others signals which could cause termination. */
+-	struct { int sig; const char *name; int ignore; } signals[] = {
+-		{ SIGHUP, "SIGHUP", 0 },
+-		{ SIGINT, "SIGINT", 0 },
+-		{ SIGPIPE, "SIGPIPE", 1 },
+-		{ SIGALRM, "SIGALRM", 1 },
+-		{ SIGTERM, "SIGTERM", 0 },
+-		{ SIGUSR1, "SIGUSR1", 1 },
+-		{ SIGUSR2, "SIGUSR2", 1 },
+-		{ SIGPROF, "SIGPROF", 1 },
+-		{ SIGVTALRM, "SIGVTALRM", 1 },
+-#ifdef VDE_LINUX
+-		{ SIGPOLL, "SIGPOLL", 1 },
+-#ifdef SIGSTKFLT
+-		{ SIGSTKFLT, "SIGSTKFLT", 1 },
+-#endif
+-		{ SIGIO, "SIGIO", 1 },
+-		{ SIGPWR, "SIGPWR", 1 },
+-#ifdef SIGUNUSED
+-		{ SIGUNUSED, "SIGUNUSED", 1 },
+-#endif
+-#endif
+-#ifdef VDE_DARWIN
+-		{ SIGXCPU, "SIGXCPU", 1 },
+-		{ SIGXFSZ, "SIGXFSZ", 1 },
+-#endif
+-		{ 0, NULL, 0 }
+-	};
+-
+-	int i;
+-	for(i = 0; signals[i].sig != 0; i++)
+-		if(signal(signals[i].sig,
+-					signals[i].ignore ? SIG_IGN : sig_handler) < 0)
+-			printlog(LOG_ERR,"Setting handler for %s: %s", signals[i].name,
+-					strerror(errno));
+-}
+-
+-static void start_modules(void);
+-
+-int main(int argc, char **argv)
+-{
+-	starting_time=time(NULL);
+-	start_modules();
+-	parse_args(argc,argv);
+-	atexit(cleanup);
+-	setsighandlers();
+-	init_mods();
+-	loadrcfile();
+-	main_loop();
+-	return 0;
+-}
+-
+-/* modules: module references are only here! */
+-static void start_modules(void)
+-{
+-	void start_datasock(void);
+-	void start_consmgmt(void);
+-	start_datasock();
+-	start_consmgmt();
+-}
+diff --git a/src/kvde_switch/sockutils.c b/src/kvde_switch/sockutils.c
+deleted file mode 100644
+index b8314e89b..000000000
+--- a/src/kvde_switch/sockutils.c
++++ /dev/null
+@@ -1,50 +0,0 @@
+-/* Copyright 2005 Renzo Davoli - VDE-2
+- * Mattia Belletti (C) 2004.
+- * Licensed under the GPLv2
+- */ 
+-
+-#include <stdio.h>
+-#include <fcntl.h>
+-#include <errno.h>
+-#include <string.h>
+-#include <unistd.h>
+-#include <stdlib.h>
+-#include <stdint.h>
+-#include <libgen.h>
+-#include <syslog.h>
+-#include <sys/types.h>
+-#include <sys/ioctl.h>
+-#include <sys/socket.h>
+-#include <sys/un.h>
+-
+-#include <config.h>
+-#include <vde.h>
+-#include <vdecommon.h>
+-
+-#include "../vde_switch/switch.h"
+-#include "consmgmt.h"
+-
+-/* check to see if given unix socket is still in use; if it isn't, remove the
+- *  * socket from the file system */
+-int still_used(struct sockaddr_un *sun)
+-{
+-	int test_fd, ret = 1;
+-
+-	if((test_fd = socket(PF_UNIX, SOCK_STREAM, 0)) < 0){
+-		printlog(LOG_ERR,"socket %s",strerror(errno));
+-		return(1);
+-	}
+-	if(connect(test_fd, (struct sockaddr *) sun, sizeof(*sun)) < 0){
+-		if(errno == ECONNREFUSED){
+-			if(unlink(sun->sun_path) < 0){
+-				printlog(LOG_ERR,"Failed to removed unused socket '%s': %s",
+-						sun->sun_path,strerror(errno));
+-			}
+-			ret = 0;
+-		}
+-		else printlog(LOG_ERR,"connect %s",strerror(errno));
+-	}
+-	close(test_fd);
+-	return(ret);
+-}
+-
+diff --git a/src/kvde_switch/sockutils.h b/src/kvde_switch/sockutils.h
+deleted file mode 100644
+index e0b994853..000000000
+--- a/src/kvde_switch/sockutils.h
++++ /dev/null
+@@ -1,11 +0,0 @@
+-/* Copyright 2005 Renzo Davoli - VDE-2
+- * Mattia Belletti (C) 2004.
+- * Licensed under the GPLv2
+- */ 
+-
+-#ifndef _SOCKUTILS_H
+-#define _SOCKUTILS_H
+-
+-int still_used(struct sockaddr_un *sun);
+-
+-#endif
+-- 
+2.35.0
+

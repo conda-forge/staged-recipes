@@ -1,0 +1,172 @@
+From 0a940280ec4b4d660e603b42307d9a990be2662b Mon Sep 17 00:00:00 2001
+From: Daniele Lacamera <danielinux@users.noreply.github.com>
+Date: Thu, 2 Feb 2012 14:59:34 +0000
+Subject: [PATCH 07/62] [Vde_router] 	* OLSR - added time conversion
+ functions (Thanks to Julien Duraj) 	* Removed some hardcoded constants 
+ * Fixed blocking receive that was preventing messages to be sent when alone
+ in OLSR network
+
+---
+ src/vde_router/vder_olsr.c | 59 +++++++++++++++++++++++++++++++-------
+ 1 file changed, 48 insertions(+), 11 deletions(-)
+
+diff --git a/src/vde_router/vder_olsr.c b/src/vde_router/vder_olsr.c
+index 2a1240ea8..645e305e4 100644
+--- a/src/vde_router/vder_olsr.c
++++ b/src/vde_router/vder_olsr.c
+@@ -1,5 +1,6 @@
+ /* VDE_ROUTER (C) 2007:2012 Daniele Lacamera
+  *
++ * Time-conversion functions by Julien Duraj <julien@duraj.fr>
+  * Licensed under the GPLv2
+  * OLSR implementation loosely based on RFC3626 :)
+  *
+@@ -14,6 +15,7 @@
+ 
+ 
+ #define OLSR_MSG_INTERVAL 2000
++#define DGRAM_MAX_SIZE 1800
+ #define HOST_NETMASK (htonl(0xFFFFFFFF))
+ #ifndef MIN
+ # define MIN(a,b) (a<b?a:b)
+@@ -146,6 +148,41 @@ static struct olsr_route_entry *get_route_by_address(struct olsr_route_entry *ls
+ 	return NULL;
+ }
+ 
++#define OSLR_C 1/16.0
++#define DEFAULT_VTIME 288UL
++
++uint8_t seconds2olsr(uint32_t seconds)
++{
++    uint8_t a, b;
++
++    /* find largest b such as seconds/C >= 2^b */
++    for (b = 0; b <= 0x0f; b++) {
++        if (seconds * 16 < (1 << b)){
++            b--;
++            break;
++        }
++    }
++    /* compute the expression 16*(T/(C*(2^b))-1), which may not be a
++       integer, and round it up.  This results in the value for 'a' */
++    a = 16 * (seconds / (OSLR_C * (1 << b)) - 1);
++
++    /* if 'a' is equal to 16: increment 'b' by one, and set 'a' to 0 */
++    if (16 == a) {
++        b++;
++        a = 0;
++    }
++    return (a << 4) + b;
++}
++
++uint32_t olsr2seconds(uint8_t olsr)
++{
++    uint8_t a, b;
++    a = olsr >> 4;
++    b = olsr & 0x0f;
++    return OSLR_C * (1 + a/16.0) * (1 << b);
++}
++
++
+ static void refresh_neighbors(struct vder_iface *iface)
+ {
+ 	uint32_t neighbors[256];
+@@ -329,7 +366,7 @@ static int olsr_build_mid(uint8_t *buf, int size, struct vder_iface *excluded)
+ static uint16_t pkt_counter = 0;
+ static void olsr_make_dgram(struct vder_iface *vif)
+ {
+-	uint8_t dgram[2000];
++	uint8_t dgram[DGRAM_MAX_SIZE];
+ 	int size = 0, r;
+ 	struct vder_ip4address *ep;
+ 	struct olsrhdr *ohdr;
+@@ -355,7 +392,7 @@ static void olsr_make_dgram(struct vder_iface *vif)
+ 	msg_hello = (struct olsrmsg *) (dgram + size);
+ 	size += sizeof(struct olsrmsg);
+ 	msg_hello->type = OLSRMSG_HELLO;
+-	msg_hello->vtime = 0x2c;
++	msg_hello->vtime = seconds2olsr(DEFAULT_VTIME);
+ 	msg_hello->orig = ep->address;
+ 	msg_hello->ttl = 1;
+ 	msg_hello->hop = 0;
+@@ -365,7 +402,7 @@ static void olsr_make_dgram(struct vder_iface *vif)
+ 	hello->reserved = 0;
+ 	hello->htime = 0x05; /* Todo: find and define values */
+ 	hello->willingness = 0x07;
+-	r = olsr_build_hello_neighbors(dgram + size, 2000 - size);
++	r = olsr_build_hello_neighbors(dgram + size, DGRAM_MAX_SIZE - size);
+ 	if (r < 0) {
+ 		perror("Building hello message");
+ 		return;
+@@ -378,12 +415,12 @@ static void olsr_make_dgram(struct vder_iface *vif)
+ 	msg_mid = (struct olsrmsg *)(dgram + size);
+ 	size += sizeof(struct olsrmsg);
+ 	msg_mid->type = OLSRMSG_MID;
+-	msg_mid->vtime = 60; /* one hot minute */
++	msg_mid->vtime = seconds2olsr(60);
+ 	msg_mid->orig = ep->address;
+ 	msg_mid->ttl = 0xFF;
+ 	msg_mid->hop = 0;
+ 	msg_mid->seq = htons(mid_counter++);
+-	r = olsr_build_mid(dgram + size, 2000 - size, vif);
++	r = olsr_build_mid(dgram + size, DGRAM_MAX_SIZE - size, vif);
+ 	if (r < 0) {
+ 		perror("Building mid message");
+ 		return;
+@@ -398,7 +435,7 @@ static void olsr_make_dgram(struct vder_iface *vif)
+ 	msg_tc = (struct olsrmsg *) (dgram + size);
+ 	size += sizeof(struct olsrmsg);
+ 	msg_tc->type = OLSRMSG_TC;
+-	msg_tc->vtime = 0x2c; 
++	msg_tc->vtime = seconds2olsr(DEFAULT_VTIME); 
+ 	msg_tc->orig = ep->address;
+ 	msg_tc->ttl = 0xFF;
+ 	msg_tc->hop = 0;
+@@ -406,7 +443,7 @@ static void olsr_make_dgram(struct vder_iface *vif)
+ 	tc = (struct olsr_hmsg_tc *)(dgram + size);
+ 	size += sizeof(struct olsr_hmsg_tc);
+ 	tc->ansn = htons(my_ansn);
+-	r = olsr_build_tc_neighbors(dgram + size, 2000 - size);
++	r = olsr_build_tc_neighbors(dgram + size, DGRAM_MAX_SIZE  - size);
+ 	if (r < 0) {
+ 		perror("Building tc message");
+ 		return;
+@@ -575,7 +612,7 @@ static void olsr_recv(uint8_t *buffer, int len)
+ 	struct olsrhdr *outohdr, *oh = (struct olsrhdr *) buffer;
+ 	struct olsr_route_entry *ancestor;
+ 	int parsed = 0;
+-	uint8_t outmsg[2000];
++	uint8_t outmsg[DGRAM_MAX_SIZE];
+ 	int outsize = 0;
+ 	if (len != ntohs(oh->len)) {
+ 		return;
+@@ -597,7 +634,7 @@ static void olsr_recv(uint8_t *buffer, int len)
+ 		}
+ 		/* We know this is a Master host and a neighbor */
+ 		origin->link_type = OLSRLINK_MPR;
+-		origin->time_left = 288; /* TODO: get from msg->vtime */
++		origin->time_left = olsr2seconds(msg->vtime);
+ 		switch(msg->type) {
+ 			case OLSRMSG_HELLO:
+ 				ancestor = olsr_get_ethentry(origin->iface);
+@@ -663,7 +700,7 @@ void *vder_olsr_loop(void *olsr_settings)
+ {
+ 	uint32_t from_ip;
+ 	uint16_t from_port;
+-	unsigned char buffer[2000];
++	unsigned char buffer[DGRAM_MAX_SIZE];
+ 	int len;
+ 	int i;
+ 	struct timeval now, last_out;
+@@ -703,7 +740,7 @@ void *vder_olsr_loop(void *olsr_settings)
+ 	refresh_routes();
+ 
+ 	while(1) {
+-		len = vder_udpsocket_recvfrom(udpsock, buffer, 100, &from_ip, &from_port, -1);
++		len = vder_udpsocket_recvfrom(udpsock, buffer, DGRAM_MAX_SIZE, &from_ip, &from_port, 100);
+ 		if (len < 0) {
+ 			perror("udp recv");
+ 			return NULL;
+-- 
+2.35.0
+

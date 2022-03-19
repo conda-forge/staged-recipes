@@ -2,10 +2,7 @@
 
 set -ex
 
-if [[ ! -f ./configure ]]; then
-   autoreconf --install
-fi
-
+autoreconf --install
 ./configure --prefix="$PREFIX"
 
 make -j "$CPU_COUNT"
