@@ -2,6 +2,7 @@
 
 set -ex
 
+find .
 autoreconf --install
 ./configure --prefix="$PREFIX"
 
