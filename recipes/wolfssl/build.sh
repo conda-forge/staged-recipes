@@ -7,12 +7,8 @@ set -ex
 
 autoreconf --install
 
-# TODO refactor configure into another script that can be shared with build and just add
-# --enable-nolibrary to the run_test.sh invocation
-
-./configure --prefix="$PREFIX" \
-	    --with-libz="$PREFIX" \
-	    --enable-distro
+# configure command is shared with run_test.sh
+bash -ex "$RECIPE_DIR"/config.sh
 
 deathcat() {
     cat "$@"
@@ -20,11 +16,6 @@ deathcat() {
 }
 
 make  -j "$CPU_COUNT"
-# run tests sequentially because some of them
-# make use of bwrap to avoid collisions in the port
-# space and I doubt that we have it available in CI
-# timout the tests after 5 minutes, send sigkill 5 seconds after
-# being nice about it.
-timeout -k 5 5m make -j1 check || deathcat ./test-suite.log
+make check || deathcat ./test-suite.log
 make install
 

@@ -13,11 +13,8 @@ pkg-config --exact-version="$PKG_VERSION" "$PKG_NAME"
 make distclean
 
 autoreconf --install
-./configure --prefix="$PREFIX" \
-            --enable-jobserver="$CPU_COUNT" \
-	    --with-libz="$PREFIX" \
-	    --enable-distro \
-	    --enable-nolibrary
+
+bash -xe "$RECIPE_DIR/config.sh"  --enable-nolibrary
 
 # ensure that enable-nolibrary was used because configure doesn't
 # exit non-zero if it ignores an unknown option
@@ -28,4 +25,4 @@ deathcat() {
     exit 1
 }
 
-timeout -k 5 5m make -j1 check  || deathcat ./test-suite.log
+make -j1 check  || deathcat ./test-suite.log
