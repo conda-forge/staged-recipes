@@ -28,4 +28,4 @@ deathcat() {
     exit 1
 }
 
-make check || deathcat ./test-suite.log
+make -j1 check  || deathcat ./test-suite.log

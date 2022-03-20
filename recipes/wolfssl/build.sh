@@ -21,6 +21,9 @@ deathcat() {
 }
 
 make 
-make check || deathcat ./test-suite.log
+# run tests sequentially because some of them
+# make use of bwrap to avoid collisions in the port
+# space and I doubt that we have it available in CI
+make -j1 check || deathcat ./test-suite.log
 make install
 

@@ -5,9 +5,10 @@ mkdir build || exit 1
 cd build || exit 1
 
 :: The unit tests are behind WOLFSSL_EXAMPLES in CMakeLists.txt
+:: upstream uses msbuild to do their CI
+:: msbuild /m /p:PlatformToolset=v142 /p:Platform=x64 /p:Configuration=Release wolfssl64.sln
 
-cmake -GNinja ^
-      -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
+cmake -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
 	  -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
 	  -DCMAKE_BUILD_TYPE=Release ^
 	  -DWOLFSSL_REPRODUCIBLE_BUILD=yes ^
@@ -16,8 +17,7 @@ cmake -GNinja ^
 
 cmake  --build . -j %CPU_COUNT% || exit 1
 
-ctest -N
-ctest -j %CPU_COUNT%
+make check -j1
 
 REM put the error check back in place for after ctest before merging
 ::if errorlevel 1 exit 1
