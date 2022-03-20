@@ -11,7 +11,6 @@ autoreconf --install
 # --enable-nolibrary to the run_test.sh invocation
 
 ./configure --prefix="$PREFIX" \
-            --enable-jobserver="$CPU_COUNT" \
 	    --with-libz="$PREFIX" \
 	    --enable-distro
 
@@ -20,10 +19,12 @@ deathcat() {
     exit 1
 }
 
-make 
+make  -j "$CPU_COUNT"
 # run tests sequentially because some of them
 # make use of bwrap to avoid collisions in the port
 # space and I doubt that we have it available in CI
-make -j1 check || deathcat ./test-suite.log
+# timout the tests after 5 minutes, send sigkill 5 seconds after
+# being nice about it.
+timeout -k 5 5m make -j1 check || deathcat ./test-suite.log
 make install
 

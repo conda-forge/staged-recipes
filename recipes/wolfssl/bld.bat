@@ -17,7 +17,8 @@ cmake -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
 
 cmake  --build . -j %CPU_COUNT% || exit 1
 
-make check -j1
+:: lets see if coreutils timeout works on windows 5 minute timeout with kill 5s after 
+timeout -k5 5m make check -j1
 
 REM put the error check back in place for after ctest before merging
 ::if errorlevel 1 exit 1
