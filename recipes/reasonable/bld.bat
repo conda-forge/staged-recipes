@@ -5,6 +5,7 @@ set PYTHONUTF8=1
 set RUST_BACKTRACE=1
 set TEMP=%SRC_DIR%\tmpbuild_%PY_VER%
 set PYO3_PYTHON=%PYTHON%
+set PYO3_PRINT_CONFIG=1
 
 mkdir %TEMP%
 
