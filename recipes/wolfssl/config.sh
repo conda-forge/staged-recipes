@@ -24,4 +24,10 @@ set -ex
 # because it will properly record individual test
 # failure and give me a log to look at
 perl -i.bk -pe 's/^(?=\"\$@\")/timeout -k5 5m /' build-aux/test-driver
+set +e
 diff -U3 build-aux/test-driver{.bk,}
+if [[ $? != 1 ]]; then
+    echo "Patching build-aux/test-driver didn't seem to work"
+    exit 1
+fi
+set -e
