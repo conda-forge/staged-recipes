@@ -30,9 +30,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
    cd $SRC_DIR
    mv src/other/* build/dsi_studio.app/Contents/MacOS/
    mv src/dsi_studio.icns build/dsi_studio.app/Contents/Resources/
-   git clone https://github.com/frankyeh/DSI-Studio-atlas.git
-   rm -fr DSI-Studio-atlas/.git
-   mv DSI-Studio-atlas build/dsi_studio.app/Contents/MacOS/atlas
+   mv atlas build/dsi_studio.app/Contents/MacOS/atlas
    mv build/dsi_studio.app $PREFIX/
    exit
 fi
@@ -42,9 +40,7 @@ chmod 755 build/dsi_studio
 mv build/dsi_studio $PREFIX/
 mv src/other/* $PREFIX/
 mv src/dsi_studio.ico $PREFIX/
-git clone https://github.com/frankyeh/DSI-Studio-atlas.git
-rm -fr DSI-Studio-atlas/.git
-mv DSI-Studio-atlas $PREFIX/atlas
+mv atlas $PREFIX/atlas
 
 rm -rf src build
 
