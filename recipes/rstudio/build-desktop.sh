@@ -73,18 +73,6 @@ cmake -S . -B build \
 
 make -j${CPU_COUNT} -C build install
 
-# Binary wrapper script
-if [[ $(uname) == Linux ]]
-then
-ln -sfT ${PREFIX}/lib/rstudio/resources ${PREFIX}/lib/rstudio/bin/resources
-echo "#!/bin/env sh
-export RSTUDIO_CHROMIUM_ARGUMENTS=\"--no-sandbox\"
-${PREFIX}/lib/rstudio/bin/rstudio \"\$@\"
-" > "${PREFIX}/bin/rstudio"
-fi
-
-[[ $(uname) == Darwin ]] && ln -s "${PREFIX}/lib/rstudio/RStudio.app/Contents/MacOS/RStudio" "${PREFIX}/bin/rstudio"
-
 ## Cleanup
 rm -rf ${PREFIX}/opt/rstudio-tools
 
