@@ -54,7 +54,7 @@ popd
 cmake -S . -B build \
       -DRSTUDIO_TARGET=Desktop \
       -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX="${PREFIX}/lib/rstudio" \
+      -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
       -DRSTUDIO_USE_SYSTEM_BOOST=yes \
       -DRSTUDIO_USE_SYSTEM_YAML_CPP=yes \
       -DQT_QMAKE_EXECUTABLE="${PREFIX}/bin/qmake" \
