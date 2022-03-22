@@ -17,8 +17,9 @@ cmake -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
 
 cmake  --build . -j %CPU_COUNT% || exit 1
 
-:: lets see if coreutils timeout works on windows 5 minute timeout with kill 5s after 
-timeout -k5 5m make check -j1
+:: timeout running of the tests
+:: 5 minutes should be more than long enough
+ScriptRunner.exe -appvscript %RECIPE_DIR%\check.bat -appvScriptRunnerParameters -timeout=300
 
 REM put the error check back in place for after ctest before merging
 ::if errorlevel 1 exit 1
