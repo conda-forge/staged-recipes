@@ -33,7 +33,6 @@ if [[ $PKG_NAME == "python-wasmer-compiler-llvm" ]]; then
     maturin build --skip-auditwheel --compatibility manylinux2014 --bindings pyo3 --release --strip --interpreter $PYTHON --out wheels -m packages/compiler-llvm/Cargo.toml
 fi
 
-auditwheel show wheels/*.whl
 $PYTHON -m pip install -vv --no-build-isolation --no-deps wheels/*.whl
 
 if [[ $PKG_NAME == "python-wasmer" ]]; then
