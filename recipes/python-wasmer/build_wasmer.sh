@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -x
 
+echo BUILDING $PKG_NAME for `python --version` on $target_platform
 case "$target_platform" in
     linux-64) rust_env_arch=X86_64_UNKNOWN_LINUX_GNU ;;
     linux-aarch64) rust_env_arch=AARCH64_UNKNOWN_LINUX_GNU ;;
@@ -13,9 +14,6 @@ esac
 
 export CARGO_TARGET_${rust_env_arch}_LINKER=$CC
 export PYTHON_SYS_EXECUTABLE=$PYTHON
-
-echo BUILDING $PKG_NAME for `python --version`
-[[ -d wheels ]] && rm -r wheels
 
 if [[ $PKG_NAME == "python-wasmer" ]]; then
     maturin build --bindings pyo3  --release --strip --interpreter $PYTHON --out wheels -m packages/api/Cargo.toml
