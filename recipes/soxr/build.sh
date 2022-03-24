@@ -3,7 +3,7 @@
 mkdir build
 cd build
 
-cmake ${CMAKE_ARGS} -GNinja .. \
+cmake ${CMAKE_ARGS}  .. \
       -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_TESTS=ON
 
