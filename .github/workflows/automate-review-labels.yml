@@ -21,7 +21,7 @@
           id: check_teams
           uses: actions/github-script@v6
           with:
-            result-encoding: json
+            debug: true
             script: |
               const teams = [
                 '@conda-forge/staged-recipes',
@@ -52,12 +52,15 @@
                           repo: context.repo.repo,
                           labels: [label, 'review-requested']
                       });
+                      // NOTE: Team review request is required to be posted for
+                      // membership check to work.
                       github.rest.pulls.requestReviewers({
                         owner: context.repo.owner,
                         repo: context.repo.repo,
                         pull_number: context.issue.number,
                         team_reviewers: [slug],
                       });
+                  }
               };
               return found_label
         - name: remove-labels
@@ -78,57 +81,49 @@
     remove-review-requested-label:
       name: 'When reviewed, remove review-requested label'
       if: >
-        (
-          github.event.issue
-          && github.event.issue.pull_request
-          && (github.event.sender.login != github.event.issue.user.login)
-          && contains(github.event.issue.labels.*.name, 'review-requested')
-        ) || (
-          github.event.pull_request
-          && (github.event.sender.login != github.event.pull_request.user.login)
-          && contains(github.event.pull_request.labels.*.name, 'review-requested')
-        )
+        github.event.pull_request
+        && (github.event.sender.login != github.event.pull_request.user.login)
+        && contains(github.event.pull_request.labels.*.name, 'review-requested')
       runs-on: ubuntu-latest
       steps:
-        - name: check-membership
-          id: check_membership
+        - name: check-team-review
+          id: check_team_review
           uses: actions/github-script@v6
           with:
-            github-token: ${{ secrets.GH_TOKEN }}
+            debug: true
             script: |
-              // This step is separate from the labeling step because it uses a token
-              // with different permissions. If it is combined with the following step,
-              // then the labeling actions are marked as being completed by whomever
-              // created the token.
-              const membership_response = github.rest.teams.getMembershipForUserInOrg({
-                  org: 'conda-forge',
-                  team_slug: 'staged-recipes',
-                  username: '${{ github.event.sender.login }}'
+              const labelsPromise = github.rest.issues.listLabelsOnIssue({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
               });
-              membership_response.then(function(result) {
-                 console.log(result);
-                 if (result.data.state == 'active'){
-                   return true;
-                 } else {
-                   return false;
-                 }
+              const requestedReviewersPromise = github.rest.pulls.listRequestedReviewers({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
               });
-        - name: remove-labels
-          if: >
-            (steps.check_membership.outputs.result == 'true')
-            && contains(github.event.issue.labels.*.name, 'review-requested')
-          uses: actions/github-script@v6
-          with:
-            script: |
-              github.rest.issues.removeLabel({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  name: ['review-requested']
+              return Promise.all([labelsPromise, requestedReviewersPromise])
+                .then( responses => {
+                  console.log(responses);
+                  const labels = responses[0].data.map(a => a.name);
+                  const team_review_requests = responses[1].data.teams;
+                  console.log(labels);
+                  console.log(team_review_requests);
+                  console.log(team_review_requests.length);
+                  if (team_review_requests.length == 0){
+                    // Must have been reviewed by team member because no team
+                    // requests remaining. NOTE: If multiple teams requested,
+                    // review-requested label will not clear until all team
+                    // requests satisfied.
+                    console.log("No more requested team reviews.");
+                    return true;
+                  }
+                  console.log("Team reviews still pending.");
+                  return false;
               });
         - name: add-labels
           if: >
-            (steps.check_membership.outputs.result == 'true')
+            (steps.check_team_review.outputs.result == 'true')
           uses: actions/github-script@v6
           with:
             script: |
@@ -137,4 +132,17 @@
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   labels: ['Awaiting author contribution']
+              });
+        - name: remove-labels
+          if: >
+            (steps.check_team_review.outputs.result == 'true')
+            && contains(github.event.pull_request.labels.*.name, 'review-requested')
+          uses: actions/github-script@v6
+          with:
+            script: |
+              github.rest.issues.removeLabel({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: ['review-requested']
               });
