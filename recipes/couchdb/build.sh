@@ -13,20 +13,21 @@ APP_DIR=$PREFIX/bin/CouchdbApp
 mkdir -p $APP_DIR
 cp -rf couchdb/* $APP_DIR
 
-DBBIN_LOCATION=$APP_DIR/Contents/Resources/couchdbx-core/bin/couchdb
+CORE_ROOT=$APP_DIR/Contents/Resources/couchdbx-core
 # Write launch script and make executable
 LAUNCH_SCRIPT=$PREFIX/bin/couchdb
 cat <<EOF >$LAUNCH_SCRIPT
 #!/bin/bash
-$DBBIN_LOCATION "\$@"
+cd $CORE_ROOT
+./bin/couchdb "\$@"
 EOF
 chmod +x $LAUNCH_SCRIPT
 
-JSBIN_LOCATION=$APP_DIR/Contents/Resources/couchdbx-core/bin/couchjs
 JS_SCRIPT=$PREFIX/bin/couchjs
 cat <<EOF >$JS_SCRIPT
 #!/bin/bash
-$JSBIN_LOCATION "\$@"
+cd $CORE_ROOT
+./bin/couchjs "\$@"
 EOF
 chmod +x $JS_SCRIPT
 fi
