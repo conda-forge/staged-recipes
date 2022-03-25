@@ -5,8 +5,8 @@
 export RSTUDIO_VERSION_MAJOR=$(echo ${PKG_VERSION} | cut -d. -f1)
 export RSTUDIO_VERSION_MINOR=$(echo ${PKG_VERSION} | cut -d. -f2)
 export RSTUDIO_VERSION_PATCH=$(echo ${PKG_VERSION} | cut -d. -f3)
-export RSTUDIO_VERSION_SUFFIX="+443"
-export GIT_COMMIT=fc9e217
+export RSTUDIO_VERSION_SUFFIX="+461"
+export GIT_COMMIT=8aaa5d4
 
 [[ $(uname) == Linux ]] && export PACKAGE_OS=$(uname -om)
 [[ $(uname) == Darwin ]] && export PACKAGE_OS=$(uname)
@@ -73,18 +73,18 @@ cmake -S . -B build \
 
 make -j${CPU_COUNT} -C build install
 
-# Binary wrapper script
+## Put executable symlinks in bin and fixup some resource locations.
 if [[ $(uname) == Linux ]]
 then
-ln -sfT ${PREFIX}/lib/rstudio/resources ${PREFIX}/lib/rstudio/bin/resources
-echo "#!/bin/env sh
-export RSTUDIO_CHROMIUM_ARGUMENTS=\"--no-sandbox\"
-${PREFIX}/lib/rstudio/bin/rstudio \"\$@\"
-" > "${PREFIX}/bin/rstudio"
+    ln -sfTr ${PREFIX}/lib/rstudio/resources ${PREFIX}/lib/rstudio/bin/resources
+    ln -sfTr ${PREFIX}/lib/rstudio/bin/rstudio ${PREFIX}/bin/rstudio 
 fi
-
-[[ $(uname) == Darwin ]] && ln -s "${PREFIX}/lib/rstudio/RStudio.app/Contents/MacOS/RStudio" "${PREFIX}/bin/rstudio"
+if [[ $(uname) == Darwin ]]
+then
+    ln -sfr "${PREFIX}/lib/rstudio/RStudio.app/Contents/MacOS/RStudio" "${PREFIX}/bin/rstudio"
+    ln -sfr "${PREFIX}/lib/rstudio/RStudio.app/Contents/MacOS" "${PREFIX}/lib/rstudio/RStudio.app/Contents/session"
+    ln -sfr "${PREFIX}/lib/rstudio/RStudio.app/Contents/Resources/resources" "${PREFIX}/lib/rstudio/RStudio.app/Contents/resources"
+fi
 
 ## Cleanup
 rm -rf ${PREFIX}/opt/rstudio-tools
-
