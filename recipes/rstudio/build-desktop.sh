@@ -34,10 +34,10 @@ export RSTUDIO_CRASHPAD_ENABLED=FALSE
 ## to the conda-forge equivalents
 pushd dependencies/common
 _pandocver=$(rg -o --pcre2 "(?<=PANDOC_VERSION=\").*(?=\"$)" install-pandoc)
-install -d pandoc/${_pandocver}
-ln -sfT ${PREFIX}/bin/pandoc pandoc/${_pandocver}/pandoc
 _nodever=$(rg -o --pcre2 "(?<=NODE_VERSION=\").*(?=\"$)" ../tools/rstudio-tools.sh)
+install -d pandoc/${_pandocver}
 install -d node
+ln -sfT ${PREFIX}/bin/pandoc pandoc/${_pandocver}/pandoc
 ln -sfT ${BUILD_PREFIX} node/${_nodever}
 ln -sfT ${PREFIX}/share/hunspell_dictionaries dictionaries
 ln -sfT ${PREFIX}/lib/mathjax mathjax-27
@@ -45,10 +45,10 @@ popd
 
 # Fix links for src/cpp/session/CMakeLists.txt
 pushd dependencies
-ln -sfT common/dictionaries dictionaries
-ln -sfT common/mathjax-27 mathjax-27
-ln -sfT common/pandoc pandoc
-ln -sfT common/node node
+ln -sfT ${PREFIX}/bin/pandoc pandoc/${_pandocver}/pandoc
+ln -sfT ${BUILD_PREFIX} node/${_nodever}
+ln -sfT ${PREFIX}/share/hunspell_dictionaries dictionaries
+ln -sfT ${PREFIX}/lib/mathjax mathjax-27
 popd
 
 cmake -S . -B build \
@@ -82,8 +82,9 @@ fi
 if [[ $(uname) == Darwin ]]
 then
     ln -sfr "${PREFIX}/lib/rstudio/RStudio.app/Contents/MacOS/RStudio" "${PREFIX}/bin/rstudio"
+    ln -sfr "${PREFIX}/lib/rstudio/RStudio.app/Contents/Resources/resources/*" "${PREFIX}/lib/rstudio/RStudio.app/Contents/Resources/"
     ln -sfr "${PREFIX}/lib/rstudio/RStudio.app/Contents/MacOS" "${PREFIX}/lib/rstudio/RStudio.app/Contents/session"
-    ln -sfr "${PREFIX}/lib/rstudio/RStudio.app/Contents/Resources/resources" "${PREFIX}/lib/rstudio/RStudio.app/Contents/resources"
+    ln -sfr "${PREFIX}/lib/rstudio/RStudio.app/Contents/Resources/resources/*" "${PREFIX}/lib/rstudio/RStudio.app/Contents/Resources/"
 fi
 
 ## Cleanup
