@@ -45,6 +45,8 @@ popd
 
 # Fix links for src/cpp/session/CMakeLists.txt
 pushd dependencies
+install -d pandoc/${_pandocver}
+install -d node
 ln -sfT ${PREFIX}/bin/pandoc pandoc/${_pandocver}/pandoc
 ln -sfT ${BUILD_PREFIX} node/${_nodever}
 ln -sfT ${PREFIX}/share/hunspell_dictionaries dictionaries
