@@ -1,0 +1,84 @@
+{% set name = "pyg4ometry" %}
+{% set version = "1.0.1" %}
+{% set antlr_version = "4.7.2" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - url: https://bitbucket.org/jairhul/pyg4ometry/get/v{{ version }}.tar.gz
+    sha256: 90372cefdaafcc3101a3122ade18b684d5aa725998fb5cc03d7c411267312a9b
+    folder: pyg4ometry
+    patches:
+      - 0001-Fix-setting-includeSearchDirs-and-librarySearchDirs.patch
+      - 0002-Remove-test-only-dependencies.patch
+  - url: https://www.antlr.org/download/antlr-{{ antlr_version }}-complete.jar
+    sha256: 6852386d7975eff29171dae002cc223251510d35f291ae277948f381a7b380b4
+
+build:
+  number: 0
+  skip: true  # [win or py<38]
+  script:
+    - cd pyg4ometry
+    # Regenerate the antlr parsers so they can be used with a newer version of the runtime
+    - find pyg4ometry/ -name '*.g4' -print -exec java -jar "$SRC_DIR/antlr-{{ antlr_version }}-complete.jar" {} -Dlanguage=Python3 -visitor \;
+    # Update the antlr-python-runtime dependency pin for setuptools
+    - sed -E -i.bak 's@"antlr4-python3-runtime==.+"@"antlr4-python3-runtime=={{ antlr_version }}"@g' setup.py
+    - grep antlr4-python3-runtime=={{ antlr_version }} setup.py
+    # Build and install pyg4ometry itself
+    - {{ PYTHON }} -m pip install . -vv
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - make
+    - sed
+    - openjdk
+  host:
+    - python
+    - pip
+    - cgal
+    - vtk
+    - pybind11
+    - cython
+    - mpfr
+    - gmp
+  run:
+    - python
+    - antlr-python-runtime ={{ antlr_version }}
+    - matplotlib-base
+    - pandas
+    - networkx
+    - numpy
+    - vtk
+    - configparser
+    - sympy >=1.7
+    - scipy
+
+test:
+  imports:
+    - pyg4ometry
+    - pyg4ometry.convert
+    - pyg4ometry.fluka
+    - pyg4ometry.geant4
+    - pyg4ometry.visualisation
+  requires:
+    - pip
+  commands:
+    - pip check
+
+about:
+  home: https://bitbucket.org/jairhul/pyg4ometry/
+  license: GPL-3.0-only
+  license_file:
+    - pyg4ometry/LICENCE.txt
+    - pyg4ometry/COPYING.txt
+  summary: 'Python code for rapid creation and conversion of radiation transport Monte Carlo (Geant4 and Fluka) geometries'
+  doc_url: http://www.pp.rhul.ac.uk/bdsim/pyg4ometry/
+  dev_url: https://bitbucket.org/jairhul/pyg4ometry/
+
+extra:
+  recipe-maintainers:
+    - chrisburr
