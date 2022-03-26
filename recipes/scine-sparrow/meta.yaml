@@ -1,0 +1,74 @@
+{% set name = "sparrow" %}
+{% set pkg_name = "scine-" + name %}
+{% set version = "3.0.0" %}
+
+package:
+  name: {{ pkg_name }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/qcscine/sparrow/archive/refs/tags/{{ version }}.tar.gz
+    sha256: 70636871694c9363ae3fb2df5050bddb22667b71d875d5a7e9afd872f6a2b65d
+    fn: {{ name }}.tar.gz
+  - url: https://github.com/qcscine/development-utils/archive/refs/tags/4.0.0.tar.gz
+    sha256: 54002c2082b6bb75672ec66bf9cf3935bbdf6b085ed9b4d7174cbdedb7c2275d
+    fn: dev.tar.gz
+    folder: dev
+
+build:
+  number: 0
+  skip: true  # [win or osx]
+  script:
+    - set -ex
+    - >
+       cmake
+       ${CMAKE_ARGS}
+       -B _build -G Ninja
+       -DSCINE_MARCH=""
+    - cmake --build _build
+    - ctest --test-dir _build --output-on-failure -R '^Sparrow$'  # [build_platform == target_platform]
+    - cmake --install _build
+
+  run_exports:
+    - {{ pin_subpackage(pkg_name, max_pin='x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - pkg-config
+    - llvm-openmp  # [osx]
+    - libgomp  # [linux]
+  host:
+    - boost-cpp
+    - cereal
+    - eigen
+    - gtest
+    - gmock
+    - libblas
+    - scine-core
+    - scine-utilsos
+  run:
+    - boost-cpp
+    - cereal
+    - eigen
+
+test:
+  commands:
+    - test -f $PREFIX/bin/{{ name }}
+    - {{ name }} --help  # [build_platform == target_platform]
+
+
+about:
+  license: BSD-3-Clause
+  license_file: LICENSE.txt
+  summary: |
+    Sparrow is a code for fast semiempirical quantum chemical calculations
+  home: https://scine.ethz.ch/
+  dev_url: https://github.com/qcscine/sparrow
+
+extra:
+  recipe-maintainers:
+    - awvwgk

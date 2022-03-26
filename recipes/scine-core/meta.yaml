@@ -1,0 +1,66 @@
+{% set name = "core" %}
+{% set pkg_name = "scine-" + name %}
+{% set version = "4.0.0" %}
+
+package:
+  name: {{ pkg_name }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/qcscine/core/archive/refs/tags/{{ version }}.tar.gz
+    sha256: 955e56dcc5f18257d47777f69a5a08637bea25e76f1f6ec1ff05f2cc95828ecd
+    fn: {{ name }}.tar.gz
+  - url: https://github.com/qcscine/development-utils/archive/refs/tags/4.0.0.tar.gz
+    sha256: 54002c2082b6bb75672ec66bf9cf3935bbdf6b085ed9b4d7174cbdedb7c2275d
+    fn: dev.tar.gz
+    folder: dev
+
+build:
+  number: 0
+  skip: true  # [win or osx]
+  script:
+    - set -ex
+    - >
+       cmake
+       ${CMAKE_ARGS}
+       -B _build -G Ninja
+       -DSCINE_MARCH=""
+    - cmake --build _build
+    - ctest --test-dir _build --output-on-failure  # [build_platform == target_platform]
+    - cmake --install _build
+
+  run_exports:
+    - {{ pin_subpackage(pkg_name, max_pin='x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - pkg-config
+    - llvm-openmp  # [osx]
+    - libgomp  # [linux]
+    - gtest
+    - gmock
+  host:
+    - boost-cpp
+  run:
+    - boost-cpp
+
+test:
+  commands:
+    - test -f $PREFIX/lib/lib{{ name }}${SHLIB_EXT}
+
+
+about:
+  license: BSD-3-Clause
+  license_file: LICENSE.txt
+  summary: |
+    Core provides the functionality necessary to couple the individual SCINE modules together.
+  home: https://scine.ethz.ch/
+  dev_url: https://github.com/qcscine/core
+
+extra:
+  recipe-maintainers:
+    - awvwgk
