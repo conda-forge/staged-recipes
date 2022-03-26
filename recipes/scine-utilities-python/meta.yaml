@@ -1,0 +1,95 @@
+{% set name = "utilities" %}
+{% set pkg_name = "scine-" + name + "-python" %}
+{% set version = "4.0.0" %}
+
+package:
+  name: {{ pkg_name }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/qcscine/utilities/archive/refs/tags/{{ version }}.tar.gz
+    sha256: 3bcabd8f4270f0c1efd235a0d22506f4750b0ccffa99184d4362b95a1da7a1d4
+    fn: {{ name }}.tar.gz
+    patches:
+      - skip_library_build.patch
+  - url: https://github.com/qcscine/development-utils/archive/refs/tags/4.0.0.tar.gz
+    sha256: 54002c2082b6bb75672ec66bf9cf3935bbdf6b085ed9b4d7174cbdedb7c2275d
+    fn: dev.tar.gz
+    folder: dev
+    patches:
+      - pybind11_pin.patch
+
+build:
+  number: 0
+  skip: true  # [win or osx]
+  script:
+    - set -ex
+    - >
+       cmake
+       ${CMAKE_ARGS}
+       -B _build -G Ninja
+       -DPYTHON_EXECUTABLE={{ PYTHON }}
+       -DSCINE_MARCH=""
+       -DSCINE_SKIP_LIBRARY=ON
+       -DSCINE_BUILD_TESTS=OFF
+       -DSCINE_BUILD_PYTHON_BINDINGS=ON
+    - cmake --build _build
+    - cmake --install _build
+
+  run_exports:
+    - {{ pin_subpackage(pkg_name, max_pin='x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - pkg-config
+    - llvm-openmp  # [osx]
+    - libgomp  # [linux]
+  host:
+    - boost-cpp
+    - eigen
+    - gtest
+    - gmock
+    - libblas
+    - pip
+    - pybind11
+    - pybind11-abi
+    - python
+    - scine-core
+    - scine-utilsos
+    - yaml-cpp
+  run:
+    - boost-cpp
+    - eigen
+    - numpy
+    - pybind11
+    - python
+    - scipy
+    - yaml-cpp
+
+test:
+  imports:
+    - scine_utilities
+  source_files:
+    - src/Utils/Python/Tests/
+  requires:
+    - pip
+    - pytest
+  commands:
+    - pip check
+    - pytest src/Utils/Python/Tests/
+
+about:
+  license: BSD-3-Clause
+  license_file: LICENSE.txt
+  summary: |
+    Contains functionality which is used in most SCINE modules (Python bindings).
+  home: https://scine.ethz.ch/
+  dev_url: https://github.com/qcscine/utilities
+
+extra:
+  recipe-maintainers:
+    - awvwgk
