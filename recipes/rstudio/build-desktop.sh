@@ -83,9 +83,9 @@ then
 fi
 if [[ $(uname) == Darwin ]]
 then
-    ln -sfr "${PREFIX}/lib/rstudio/RStudio.app/Contents/MacOS/RStudio" "${PREFIX}/bin/rstudio"
-    ln -sfr "${PREFIX}/lib/rstudio/RStudio.app/Contents/Resources/resources/*" "${PREFIX}/lib/rstudio/RStudio.app/Contents/Resources/"
-    ln -sfr "${PREFIX}/lib/rstudio/RStudio.app/Contents/MacOS" "${PREFIX}/lib/rstudio/RStudio.app/Contents/session"
+    ln -sfr ${PREFIX}/lib/rstudio/RStudio.app/Contents/MacOS/RStudio ${PREFIX}/bin/rstudio
+    ln -sfr ${PREFIX}/lib/rstudio/RStudio.app/Contents/Resources/resources/* ${PREFIX}/lib/rstudio/RStudio.app/Contents/Resources/
+    ln -sfr ${PREFIX}/lib/rstudio/RStudio.app/Contents/MacOS ${PREFIX}/lib/rstudio/RStudio.app/Contents/session
 fi
 
 ## Cleanup
