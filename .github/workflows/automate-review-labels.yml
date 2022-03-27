@@ -1,0 +1,153 @@
+  name: 'Automated review labels'
+
+  on:
+    issue_comment:
+      types: [created]
+    pull_request_review:
+      types: [submitted]
+    pull_request_review_comment:
+      types: [created]
+
+  jobs:
+    add-review-team-label:
+      name: 'When pinged, label a PR with review team'
+      if: >
+        github.event.issue
+        && github.event.issue.pull_request
+        && !contains(github.event.issue.labels.*.name, 'review-requested')
+      runs-on: ubuntu-latest
+      steps:
+        - name: check-teams
+          id: check_teams
+          uses: actions/github-script@v6
+          with:
+            debug: true
+            script: |
+              const teams = [
+                '@conda-forge/staged-recipes',
+                '@conda-forge/help-c-cpp',
+                '@conda-forge/help-cdts',
+                '@conda-forge/help-go',
+                '@conda-forge/help-java',
+                '@conda-forge/help-julia',
+                '@conda-forge/help-nodejs',
+                '@conda-forge/help-perl',
+                '@conda-forge/help-python',
+                '@conda-forge/help-python-c',
+                '@conda-forge/help-r',
+                '@conda-forge/help-ruby'
+              ];
+              let found_label = false;
+              for (const team of teams) {
+                  let text = context.payload.comment.body;
+                  const regex = new RegExp(team + '[^\-]|' + team + '$');
+                  let result = regex.test(text);
+                  if (result) {
+                      const slug = team.replace("@conda-forge/", "");
+                      const label = slug.replace("help-", "");
+                      found_label = true;
+                      github.rest.issues.addLabels({
+                          issue_number: context.issue.number,
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          labels: [label, 'review-requested']
+                      });
+                      // NOTE: Team review request is required to be posted for
+                      // membership check to work.
+                      // https://docs.github.com/en/rest/reference/pulls#request-reviewers-for-a-pull-request
+                      // Successful response is 201
+                      const requestReviewersPromise = github.rest.pulls.requestReviewers({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        pull_number: context.issue.number,
+                        team_reviewers: [slug],
+                      });
+                      requestReviewersPromise.then(response => {
+                        console.log(response);
+                      });
+                  }
+              };
+              return found_label
+        - name: remove-labels
+          if: >
+            (steps.check_teams.outputs.result == 'true')
+            && contains(github.event.issue.labels.*.name, 'Awaiting author contribution')
+          uses: actions/github-script@v6
+          with:
+            script: |
+              github.rest.issues.removeLabel({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: ['Awaiting author contribution']
+              })
+
+
+    remove-review-requested-label:
+      name: 'When reviewed, remove review-requested label'
+      if: >
+        github.event.pull_request
+        && (github.event.sender.login != github.event.pull_request.user.login)
+        && contains(github.event.pull_request.labels.*.name, 'review-requested')
+      runs-on: ubuntu-latest
+      steps:
+        - name: check-team-review
+          id: check_team_review
+          uses: actions/github-script@v6
+          with:
+            debug: true
+            script: |
+              const labelsPromise = github.rest.issues.listLabelsOnIssue({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+              });
+              const requestedReviewersPromise = github.rest.pulls.listRequestedReviewers({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+              });
+              return Promise.all([labelsPromise, requestedReviewersPromise])
+                .then( responses => {
+                  console.log(responses);
+                  const labels = responses[0].data.map(a => a.name);
+                  const team_review_requests = responses[1].data.teams;
+                  console.log(labels);
+                  console.log(team_review_requests);
+                  console.log(team_review_requests.length);
+                  if (team_review_requests.length == 0){
+                    // Must have been reviewed by team member because no team
+                    // requests remaining. NOTE: If multiple teams requested,
+                    // review-requested label will not clear until all team
+                    // requests satisfied.
+                    console.log("No more requested team reviews.");
+                    return true;
+                  }
+                  console.log("Team reviews still pending.");
+                  return false;
+              });
+        - name: add-labels
+          if: >
+            (steps.check_team_review.outputs.result == 'true')
+          uses: actions/github-script@v6
+          with:
+            script: |
+              github.rest.issues.addLabels({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  labels: ['Awaiting author contribution']
+              });
+        - name: remove-labels
+          if: >
+            (steps.check_team_review.outputs.result == 'true')
+            && contains(github.event.pull_request.labels.*.name, 'review-requested')
+          uses: actions/github-script@v6
+          with:
+            script: |
+              github.rest.issues.removeLabel({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: ['review-requested']
+              });
