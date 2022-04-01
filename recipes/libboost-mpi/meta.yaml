@@ -1,0 +1,62 @@
+{% set version = "1.77.0" %}
+{% set filename = "boost_%s.tar.bz2" % version.replace(".", "_") %}
+
+package:
+  name: libboost-mpi
+  version: {{ version }}
+
+source:
+  url: https://boostorg.jfrog.io/artifactory/main/release/{{ version }}/source/{{ filename }}
+  sha256: fc9f85fc030e233142908241af7a846e60630aa7388de9a5fafb1f3a26840854
+  patches:
+    - 5eff1ecc8413b0dc93a1ab047d7fed751e6cb40e.patch  # [not win]
+
+build:
+  number: 1
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+
+  host:
+    - {{ mpi }}
+
+  run:
+    - boost-cpp
+    - {{ mpi }}
+
+  run_constrained:
+    - libboost <0
+
+test:
+  commands:
+    # Verify headers are removed.
+    - '! test -f $PREFIX/include/boost'                      # [unix]
+    - if exist %PREFIX%\\Library\\include\\boost exit 1      # [win]
+
+    # Verify static-only libraries.
+    - test -f $PREFIX/lib/libboost_exception.a                   # [unix]
+    - test -f $PREFIX/lib/libboost_test_exec_monitor.a           # [unix]
+
+    # Verify libraries.
+    {% set boost_libs = [
+            "mpi"
+    ] %}
+    {% for each_boost_lib in boost_libs %}
+    - test ! -f $PREFIX/lib/libboost_{{ each_boost_lib }}.a                                                 # [unix]
+    - test -f $PREFIX/lib/libboost_{{ each_boost_lib }}.dylib                                             # [osx]
+    - test -f $PREFIX/lib/libboost_{{ each_boost_lib }}.so                                                # [linux]
+    - if not exist %PREFIX%\\Library\\bin\\boost_{{ each_boost_lib }}.dll exit 1                          # [win]
+    - if not exist %PREFIX%\\Library\\lib\\boost_{{ each_boost_lib }}.lib exit 1                          # [win]
+    - if exist %PREFIX%\\Library\\lib\\libboost_{{ each_boost_lib }}.lib exit 1                       # [win]
+    {% endfor %}
+
+about:
+  home: http://www.boost.org/
+  license: BSL-1.0
+  license_file: LICENSE_1_0.txt
+  summary: Free peer-reviewed portable C++ source libraries.
+
+extra:
+  recipe-maintainers:
+    - sdebionne
