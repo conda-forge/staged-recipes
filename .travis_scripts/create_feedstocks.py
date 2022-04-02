@@ -330,7 +330,7 @@ if __name__ == '__main__':
 
             try:
                 subprocess.check_call(
-                    ['conda', 'smithy', 'register-ci', '--without-appveyor',
+                    ['conda', 'smithy', 'register-ci', '--without-appveyor', '--without-circle',
                      '--without-webservice', '--feedstock_directory',
                      feedstock_dir] + owner_info)
                 subprocess.check_call(
@@ -353,7 +353,7 @@ if __name__ == '__main__':
                         ['conda', 'smithy', 'generate-feedstock-token',
                          '--feedstock_directory', feedstock_dir] + owner_info)
                     subprocess.check_call(
-                        ['conda', 'smithy', 'register-feedstock-token',
+                        ['conda', 'smithy', 'register-feedstock-token', '--without-circle',
                          '--feedstock_directory', feedstock_dir] + owner_info)
 
                 # add staging token env var to all CI probiders except appveyor
@@ -362,7 +362,7 @@ if __name__ == '__main__':
                 subprocess.check_call(
                     ['conda', 'smithy', 'rotate-binstar-token',
                      '--without-appveyor', '--without-azure',
-                     "--without-github-actions",
+                     "--without-github-actions", '--without-circle',
                      '--token_name', 'STAGING_BINSTAR_TOKEN'],
                     cwd=feedstock_dir)
 
