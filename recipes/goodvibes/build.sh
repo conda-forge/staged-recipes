@@ -1,6 +1,7 @@
 #!/bin/bash
 
 mv "$SRC_DIR/goodvibes/share/symmetry.c" symmetry.c
+mv "$SRC_DIR/goodvibes/share/LICENSE.txt" symmetry.LICENSE.txt
 rm -rf "$SRC_DIR/goodvibes/share/"
 
 "${PYTHON}" -m pip install . -vv
