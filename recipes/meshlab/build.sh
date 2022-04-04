@@ -13,6 +13,7 @@ cmake ${SRC_DIR}/src ${CMAKE_ARGS} \
 	-DMESHLAB_SHADER_OUTPUT_DIR=./distrib/shaders \
     -DMESHLAB_BIN_INSTALL_DIR=${PREFIX}/bin \
     -DMESHLAB_LIB_INSTALL_DIR=${PREFIX}/lib \
+    -DCMAKE_INSTALL_DATAROOTDIR=${PREFIX}/share \
     -DMESHLAB_PLUGIN_INSTALL_DIR=${PREFIX}/share/meshlab/plugins \
     -DMESHLAB_SHADER_INSTALL_DIR=${PREFIX}/share/meshlab/shaders
 
