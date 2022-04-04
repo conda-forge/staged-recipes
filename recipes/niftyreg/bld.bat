@@ -5,7 +5,7 @@ cd build
 
 :: eigen3 is expected in this subdir; otherwise a bundled one is extracted
 mkdir third-party || goto :error
-mklink /D %LIBRARY_INC%\eigen3 third-party\eigen3 || goto :error
+mklink /D third-party\eigen3 %LIBRARY_INC%\eigen3 || goto :error
 
 cmake %SRC_DIR% ^
     %CMAKE_ARGS% ^
