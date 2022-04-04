@@ -9,7 +9,7 @@ mkdir %SRC_DIR%\third-party\eigen3
 cmake %SRC_DIR% ^
     %CMAKE_ARGS% ^
     -DCMAKE_BUILD_TYPE=Release ^
-    -DCMAKE_INSTALL_LIBDIR=%PREFIX%\lib
+    -DCMAKE_INSTALL_LIBDIR=%LIBRARY_LIB%
 
 make
 make install
