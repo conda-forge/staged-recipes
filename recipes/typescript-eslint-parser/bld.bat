@@ -1,6 +1,6 @@
 @echo on
 
-cd packages/eslint-plugin
+cd packages/parser
 if errorlevel 1 exit 1
 
 call yarn pack || goto :error
