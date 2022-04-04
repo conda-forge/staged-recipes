@@ -1,0 +1,70 @@
+{% set version = "1.1.2" %}
+
+package:
+  name: triton
+  version: {{ version }}
+
+source:
+  url: https://github.com/openai/triton/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 44040696460f1d02a7251dd59468d7405982b55e112a9999ec759718066f7708
+  patches:
+    - patches/0001-patch-include-paths-in-setup.py.patch
+    - patches/0002-add-missing-header.patch
+    - patches/0003-properly-point-to-triton-includes.patch
+    - patches/0004-point-to-system-CUDA-instead-of-vendored-header.patch
+
+build:
+  number: 0
+  # TODO: windows support should be available from next version;
+  #       CPU-only support still under development
+  skip: true  # [win or cuda_compiler_version == "None"]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - make
+    - cmake
+  host:
+    - python
+    - pip
+    - llvmdev =11
+    - libzlib
+  run:
+    - python
+    - filelock
+    - pytorch =*=cuda*
+
+test:
+  imports:
+    - triton
+    - triton._C.libtriton
+  requires:
+    - pip
+    - pytest
+    - scipy
+  source_files:
+    - python/test
+  commands:
+    - pip check
+    # test suite essentially depends on availability of a physical GPU,
+    # see https://github.com/openai/triton/issues/466;
+    # - pytest -v python/test
+
+about:
+  home: https://github.com/openai/triton
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: 'Development repository for the Triton language and compiler'
+  description: |
+    This is the development repository of Triton, a language and compiler for writing highly efficient custom Deep-Learning primitives.
+    The aim of Triton is to provide an open-source environment to write fast code at higher productivity than CUDA, but also with higher flexibility than other existing DSLs.
+  doc_url: https://triton-lang.org/
+  dev_url: https://github.com/openai/triton
+
+extra:
+  recipe-maintainers:
+    - erip
+    - h-vetinari
