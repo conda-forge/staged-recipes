@@ -4,8 +4,9 @@ rm -rf build || true
 mkdir -p build/
 cd build
 
-# create this directory so CMake doesn't use the bundled eigen
-mkdir -p ${SRC_DIR}/third-party/eigen3
+# eigen3 is expected in this subdir; otherwise a bundled one is extracted
+mkdir -p ./third-party
+ln -s ${PREFIX}/include/eigen3 ./third-party/eigen3
 
 cmake ${SRC_DIR} \
     ${CMAKE_ARGS} \
