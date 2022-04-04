@@ -9,7 +9,7 @@ mkdir -p ./third-party
 ln -s ${PREFIX}/include/eigen3 ./third-party/eigen3
 
 OUR_CMAKE_FLAGS=""
-if [[ $target_platform == "osx-*" ]]; then
+if [[ $target_platform == "osx-"* ]]; then
     OUR_CMAKE_FLAGS+="-DUSE_OPENMP=OFF"
 fi
 
