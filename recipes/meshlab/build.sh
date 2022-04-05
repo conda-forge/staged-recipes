@@ -4,6 +4,11 @@ rm -rf build || true
 mkdir -p build/distrib
 cd build
 
+if [[ $target_platform == osx-* ]]; then
+    mkdir -p distrib/meshlab.app/MacOS
+    mkdir -p distrib/meshlab.app/Contents/Resources
+fi
+
 cmake ${SRC_DIR}/src ${CMAKE_ARGS} \
     -DALLOW_OPTIONAL_EXTERNAL_MESHLAB_LIBRARIES=ON \
     -DBUILD_BUNDLED_SOURCES_WITHOUT_WARNINGS=OFF \
