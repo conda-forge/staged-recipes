@@ -19,4 +19,6 @@ cmake ${SRC_DIR} ${CMAKE_ARGS} \
     -DAPR_DENOISE=OFF
 
 make
-make install
+ls -alhR .
+
+cp libAPR${SHLIB_EXT} ${PREFIX}/lib/
