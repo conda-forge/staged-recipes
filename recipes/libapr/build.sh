@@ -19,6 +19,15 @@ cmake ${SRC_DIR} ${CMAKE_ARGS} \
     -DAPR_DENOISE=OFF
 
 make
-ls -alhR .
 
-cp libAPR${SHLIB_EXT} ${PREFIX}/lib/
+version_major_minor_micro=$(echo $PKG_VERSION | sed -re 's/\.[0-9]+$//')
+version_major=$(echo $PKG_VERSION | sed -e 's/\..*//')
+if [[ $target_platform == linux-* ]]; then
+    cp libAPR.so.${version_major_minor_micro} ${PREFIX}/lib/
+    ln -s ${PREFIX}/lib/libAPR.so.${version_major_minor_micro} ${PREFIX}/lib/libAPR.so.${version_major}
+    ln -s ${PREFIX}/lib/libAPR.so.${version_major_minor_micro} ${PREFIX}/lib/libAPR.so
+else
+    cp libAPR.${version_major_minor_micro}.dylib ${PREFIX}/lib/
+    ln -s ${PREFIX}/lib/libAPR.${version_major_minor_micro}.dylib ${PREFIX}/lib/libAPR.${version_major}.dylib
+    ln -s ${PREFIX}/lib/libAPR.${version_major_minor_micro}.dylib ${PREFIX}/lib/libAPR.dylib
+fi
