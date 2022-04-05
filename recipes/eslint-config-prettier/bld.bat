@@ -1,5 +1,10 @@
 @echo on
 
+call yarn build || goto :error
+if errorlevel 1 exit 1
+
+cd build
+
 call yarn pack || goto :error
 if errorlevel 1 exit 1
 
