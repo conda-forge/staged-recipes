@@ -16,4 +16,7 @@ cmake ${SRC_DIR} ${CMAKE_ARGS} \
     -DAPR_USE_CUDA=OFF \
     -DAPR_USE_OPENMP=ON \
     -DAPR_BENCHMARK=OFF \
-    -DAPR_DENOISE=OFF \
+    -DAPR_DENOISE=OFF
+
+make
+make install
