@@ -20,7 +20,7 @@ cmake ^
 -S %SRC_DIR%
 if errorlevel 1 exit 1
 
-cmake --build . -j $CPU_COUNT
+cmake --build . -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
 :: Tests will take approximately 8 minutes
