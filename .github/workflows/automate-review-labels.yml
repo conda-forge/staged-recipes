@@ -9,6 +9,7 @@
       types: [created]
 
   jobs:
+
     add-review-team-label:
       name: 'When pinged, label a PR with review team'
       if: >
@@ -21,7 +22,6 @@
           id: check_teams
           uses: actions/github-script@v6
           with:
-            debug: true
             script: |
               const teams = [
                 '@conda-forge/staged-recipes',
@@ -38,8 +38,6 @@
                 '@conda-forge/help-ruby'
               ];
               let found_label = false;
-              console.log('Issue number:');
-              console.log(context.issue.number);
               for (const team of teams) {
                   let text = context.payload.comment.body;
                   const regex = new RegExp(team + '[^\-]|' + team + '$');
@@ -54,22 +52,15 @@
                           repo: context.repo.repo,
                           labels: [label, 'review-requested']
                       });
-                      // NOTE: Team review request is required to be posted for
-                      // membership check to work.
-                      // https://docs.github.com/en/rest/reference/pulls#request-reviewers-for-a-pull-request
-                      // Successful response is 201
-                      const requestReviewersPromise = github.rest.pulls.requestReviewers({
-                        owner: context.repo.owner,
-                        repo: context.repo.repo,
-                        pull_number: context.issue.number,
-                        team_reviewers: [team.replace("@", "")],
-                      });
-                      requestReviewersPromise.then(response => {
-                        console.log(response);
-                      });
+                      // NOTE: GitHub Actions default token lacks permission to
+                      // assign teams for review; external bot required for
+                      // that feature.
+                      //
+                      https://github.com/conda-forge/staged-recipes/issues/18023#issuecomment-1080451231
+                      console.log(`Somebody mentioned ${slug}.`);
                   }
-              };
-              return found_label
+              }
+              return found_label;
         - name: remove-labels
           if: >
             (steps.check_teams.outputs.result == 'true')
@@ -84,7 +75,6 @@
                   name: ['Awaiting author contribution']
               })
 
-
     remove-review-requested-label:
       name: 'When reviewed, remove review-requested label'
       if: >
@@ -97,35 +87,20 @@
           id: check_team_review
           uses: actions/github-script@v6
           with:
-            debug: true
             script: |
-              const labelsPromise = github.rest.issues.listLabelsOnIssue({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-              });
               const requestedReviewersPromise = github.rest.pulls.listRequestedReviewers({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: context.issue.number,
               });
-              return Promise.all([labelsPromise, requestedReviewersPromise])
-                .then( responses => {
-                  console.log(responses);
-                  const labels = responses[0].data.map(a => a.name);
-                  const team_review_requests = responses[1].data.teams;
-                  console.log(labels);
-                  console.log(team_review_requests);
-                  console.log(team_review_requests.length);
-                  if (team_review_requests.length == 0){
-                    // Must have been reviewed by team member because no team
-                    // requests remaining. NOTE: If multiple teams requested,
-                    // review-requested label will not clear until all team
-                    // requests satisfied.
-                    console.log("No more requested team reviews.");
+              return requestedReviewersPromise.then( responses => {
+                  const team_review_requests = responses.data.teams;
+                  const user_review_requests = responses.data.users;
+                  if (team_review_requests.length == 0 && user_review_requests.length == 0){
+                    console.log("No more requested reviews.");
                     return true;
                   }
-                  console.log("Team reviews still pending.");
+                  console.log("Reviews still pending.");
                   return false;
               });
         - name: add-labels
