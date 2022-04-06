@@ -1,0 +1,91 @@
+{% set name = "kokkos" %}
+{% set version = "3.5.00" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/kokkos/kokkos/archive/refs/tags/{{ version }}.tar.gz
+  sha256: 748f06aed63b1e77e3653cd2f896ef0d2c64cb2e2d896d9e5a57fec3ff0244ff
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_compatible('kokkos') }}
+  script_env:
+   - Kokkos_OPT_ARGS=-Kokkos_ARCH_SKX=ON -Kokkos_ARCH_AMDAVX=ON Kokkos_ARCH_ZEN=ON -Kokkos_ARCH_ZEN2=ON -Kokkos_ARCH_ZEN3=ON  # [x86_64]
+   - Kokkos_OPT_ARGS=-Kokkos_ARCH_POWER7=ON -Kokkos_ARCH_POWER8=ON -Kokkos_ARCH_POWER9=ON  # [ppc64le]
+   - Kokkos_OPT_ARGS=-Kokkos_ARCH_ARMV80=ON -Kokkos_ARCH_ARMV81=ON  # [aarch64]
+  script:
+    - mkdir build
+    - cd build
+    - |
+      cmake \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=$PREFIX \
+      -DCMAKE_INSTALL_LIBDIR=lib \
+      -DBUILD_SHARED_LIBS=ON \
+      ${CMAKE_ARGS} \
+      -DKokkos_ENABLE_CUDA=OFF \
+      -DKokkos_ENABLE_OPENMP=ON \
+      -DKokkos_ENABLE_EXAMPLES=OFF \
+      -DKokkos_ENABLE_TESTS=ON \
+      -DKokkos_ENABLE_SERIAL=ON \
+      ${Kokkos_OPT_ARGS} \
+      -S ${SRC_DIR}
+    - cmake --build . -j $CPU_COUNT
+    # Tests will take approximately 8 minutes
+    - ctest --output-on-failure
+    - cmake --install .
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+  host:
+    - llvm-openmp  # [osx]
+    - libgomp      # [linux]
+
+test:
+  commands:
+  # Lots more CMake files; just checking for one
+    - test -f $PREFIX/lib/cmake/Kokkos/KokkosConfig.cmake  # [unix]
+  # Testing explicity for all shared libs, but not links
+    - test -f $PREFIX/lib/libkokkoscontainers.so.{{ version }}  # [linux]
+    - test -f $PREFIX/lib/libkokkoscore.so.{{ version }}  # [linux]
+    - test -f $PREFIX/lib/libkokkoscontainers.{{ version }}.dylib  # [osx]
+    - test -f $PREFIX/lib/libkokkoscore.{{ version }}.dylib  # [osx]
+    - if not exist %LIBRARY_LIB%\\libkokkoscontainers.lib exit 1  # [win]
+    - if not exist %LIBRARY_LIB%\\libkokkoscore.lib exit 1  # [win]
+  # There are lots more headers; only test for a few.
+  # Dumps many headers directly into include/,
+  # but all files are prefixed with Kokkos_
+    - test -f $PREFIX/include/Kokkos_Core.hpp  # [unix]
+    - test -f $PREFIX/include/OpenMP/Kokkos_OpenMP_Exec.hpp  # [unix]
+  # These are all the binaries
+    - test -f $PREFIX/bin/hpcbind  # [unix]
+    - test -f $PREFIX/bin/kokkos_launch_compiler  # [unix]
+    - test -f $PREFIX/bin/nvcc_wrapper  # [unix]
+
+about:
+  home: https://kokkos.org/
+  summary: |
+    Kokkos C++ Performance Portability Programming EcoSystem: The Programming
+    Model - Parallel Execution and Memory Abstraction
+  description: |
+    Kokkos Core implements a programming model in C++ for writing performance
+    portable applications targeting all major HPC platforms. For that purpose
+    it provides abstractions for both parallel execution of code and data
+    management. Kokkos is designed to target complex node architectures with
+    N-level memory hierarchies and multiple types of execution resources. It
+    currently can use CUDA, HIP, SYCL, HPX, OpenMP and C++ threads as backend
+    programming models with several other backends in development.
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  doc_url: https://github.com/kokkos/kokkos/wiki
+  dev_url: https://github.com/kokkos/kokkos
+
+extra:
+  recipe-maintainers:
+    - carterbox
