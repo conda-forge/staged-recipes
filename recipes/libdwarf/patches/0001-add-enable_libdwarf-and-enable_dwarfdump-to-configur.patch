@@ -1,0 +1,86 @@
+From 6469094f996f6c65131b2fe69ae9e4709c346602 Mon Sep 17 00:00:00 2001
+From: Tim Snyder <snyder.tim@gmail.com>
+Date: Sat, 9 Apr 2022 15:20:00 +0000
+Subject: [PATCH] add --enable_libdwarf and --enable_dwarfdump to configure
+
+By disabling libdwarf and dwarfdump with configure we can use the tests
+against already installed libdwarf and dwarfdump.
+---
+ Makefile.am  | 10 +++++++++-
+ configure.ac | 29 +++++++++++++++++++++++++++--
+ 2 files changed, 36 insertions(+), 3 deletions(-)
+
+diff --git a/Makefile.am b/Makefile.am
+index cdc9e97bf..7b175a53f 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -3,7 +3,15 @@
+ 
+ ACLOCAL_AMFLAGS = -I m4
+ 
+-SUBDIRS = src/lib/libdwarf src/bin/dwarfdump
++SUBDIRS =
++
++if HAVE_LIBDWARF
++SUBDIRS += src/lib/libdwarf
++endif
++
++if HAVE_DWARFDUMP
++SUBDIRS += src/bin/dwarfdump
++endif
+ 
+ if HAVE_DWARFGEN
+   SUBDIRS += src/lib/libdwarfp
+diff --git a/configure.ac b/configure.ac
+index 5d79f000c..16de2ed60 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -25,6 +25,31 @@ AC_CONFIG_MACRO_DIRS([m4])
+ 
+ ### Additional options to configure
+ 
++AC_ARG_ENABLE([libdwarf],
++   [AS_HELP_STRING([--enable-libdwarf],
++                   [enable libdwarf compilation @<:@default=yes@:>@])],
++   [
++    AS_IF(
++        [test "x${enableval}" = "xyes"],
++        [enable_libdwarf="yes" ],
++        [enable_libdwarf="no"])
++   ],
++   [enable_libdwarf="yes"])
++AM_CONDITIONAL([HAVE_LIBDWARF], [test "x${enable_libdwarf}" = "xyes"])
++
++AC_ARG_ENABLE([dwarfdump],
++   [AS_HELP_STRING([--enable-dwarfdump],
++                   [enable dwarfdump compilation @<:@default=yes@:>@])],
++   [
++    AS_IF(
++        [test "x${enableval}" = "xyes"],
++        [enable_dwarfdump="yes" ],
++        [enable_dwarfdump="no"])
++   ],
++   [enable_dwarfdump="yes"])
++AM_CONDITIONAL([HAVE_DWARFDUMP], [test "x${enable_dwarfdump}" = "xyes"])
++
++
+ AC_ARG_ENABLE([dwarfgen],
+    [AS_HELP_STRING([--enable-dwarfgen],
+                    [enable dwarfgen compilation @<:@default=no@:>@])],
+@@ -413,11 +438,11 @@ echo "  sanitize support.....: ${enable_sanitize}"
+ echo "  documentation........: ${enable_doc}"
+ echo "  BuildOS-BigEndian....: ${ac_cv_c_bigendian}"
+ echo
+-echo "  libdwarf.............: always"
++echo "  libdwarf.............: ${enable_libdwarf}"
+ echo "    elf64_getehdr......: ${have_getehdr}"
+ echo "    elf64_getshdr......: ${have_getshdr}"
+ echo "    libelf.............: ${dwarf_with_libelf}"
+-echo "  dwarfdump............: always"
++echo "  dwarfdump............: ${enable_dwarfdump}"
+ echo "  dwarfgen.............: ${enable_dwarfgen}"
+ echo "  dwarfexample.........: ${enable_dwarfexample}"
+ echo
+-- 
+2.35.1
+
