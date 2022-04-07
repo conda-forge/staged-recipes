@@ -13,6 +13,9 @@ build:
   number: 0
 
 outputs:
+
+  # Categorized requirements
+
   - name: tiled-array
     script: build-tiled.sh  # [unix]
     script: bld-tiled.bat  # [win]
@@ -30,7 +33,59 @@ outputs:
         - tiled.structures
         - tiled.structures.array
 
-  - name: tiled-client
+  - name: tiled-dataframe
+    script: build-tiled.sh  # [unix]
+    script: bld-tiled.bat  # [win]
+    requirements:
+      host:
+        - python
+        - pip
+      run:
+        - python
+        - dask
+        - pandas
+        - pyarrow
+    test:
+      imports:
+        - tiled
+        - tiled.structures
+        - tiled.structures.dataframe
+
+  - name: tiled-xarray
+    script: build-tiled.sh  # [unix]
+    script: bld-tiled.bat  # [win]
+    requirements:
+      host:
+        - python
+        - pip
+      run:
+        - python
+        - dask
+        - pandas
+        - pyarrow
+        - xarray
+    test:
+      imports:
+        - tiled
+        - tiled.structures
+        - tiled.structures.xarray
+
+  - name: tiled-compression
+    script: build-tiled.sh  # [unix]
+    script: bld-tiled.bat  # [win]
+    requirements:
+      host:
+        - python
+        - pip
+      run:
+        - python
+        - blosc
+        - lz4
+    test:
+      imports:
+        - tiled
+
+  - name: tiled-minimal-client
     script: build-tiled.sh  # [unix]
     script: bld-tiled.bat  # [win]
     build:
@@ -55,74 +110,10 @@ outputs:
       imports:
         - tiled
         - tiled.client
-        - tiled.client._async_bridge
-        - tiled.client.array
-        - tiled.client.base
-        - tiled.client.cache
-        - tiled.client.constructors
-        - tiled.client.context
-        - tiled.client.dataframe
-        - tiled.client.node
-        - tiled.client.utils
-        - tiled.client.xarray
       commands:
         - tiled --help
 
-  - name: tiled-compression
-    script: build-tiled.sh  # [unix]
-    script: bld-tiled.bat  # [win]
-    requirements:
-      host:
-        - python
-        - pip
-      run:
-        - python
-        - blosc
-        - lz4
-    test:
-      imports:
-        - tiled
-
-  - name: tiled-dataframe
-    script: build-tiled.sh  # [unix]
-    script: bld-tiled.bat  # [win]
-    requirements:
-      host:
-        - python
-        - pip
-      run:
-        - python
-        - dask
-        - pandas
-        - pyarrow
-    test:
-      imports:
-        - tiled
-        - tiled.structures
-        - tiled.structures.dataframe
-
-  - name: tiled-formats
-    script: build-tiled.sh  # [unix]
-    script: bld-tiled.bat  # [win]
-    requirements:
-      host:
-        - python
-        - pip
-      run:
-        - python
-        - h5py
-        - h5netcdf
-        - openpyxl
-        - pillow
-        - tifffile
-    test:
-      imports:
-        - tiled
-        - tiled.adapters
-        - tiled.adapters.hdf5
-        - tiled.adapters.tiff
-
-  - name: tiled-server
+  - name: tiled-minimal-server
     script: build-tiled.sh  # [unix]
     script: bld-tiled.bat  # [win]
     build:
@@ -164,6 +155,66 @@ outputs:
       imports:
         - tiled
         - tiled.server
+      commands:
+        - tiled --help
+
+  # End-user packages
+
+  - name: tiled-client
+    script: build-tiled.sh  # [unix]
+    script: bld-tiled.bat  # [win]
+    build:
+      entry_points:
+        - tiled = tiled.commandline.main:main
+    requirements:
+      host:
+        - python
+        - pip
+      run:
+        - python
+        - {{ pin_subpackage('tiled-minimal-client', max_pin="x.x.x") }}
+        - {{ pin_subpackage('tiled-array', max_pin="x.x.x") }}
+        - {{ pin_subpackage('tiled-dataframe', max_pin="x.x.x") }}
+        - {{ pin_subpackage('tiled-xarray', max_pin="x.x.x") }}
+        - {{ pin_subpackage('tiled-compression', max_pin="x.x.x") }}
+    test:
+      imports:
+        - tiled
+        - tiled.client
+        - tiled.client._async_bridge
+        - tiled.client.array
+        - tiled.client.base
+        - tiled.client.cache
+        - tiled.client.constructors
+        - tiled.client.context
+        - tiled.client.dataframe
+        - tiled.client.node
+        - tiled.client.utils
+        - tiled.client.xarray
+      commands:
+        - tiled --help
+
+  - name: tiled-server
+    script: build-tiled.sh  # [unix]
+    script: bld-tiled.bat  # [win]
+    build:
+      entry_points:
+        - tiled = tiled.commandline.main:main
+    requirements:
+      host:
+        - python
+        - pip
+      run:
+        - python
+        - {{ pin_subpackage('tiled-minimal-server', max_pin="x.x.x") }}
+        - {{ pin_subpackage('tiled-array', max_pin="x.x.x") }}
+        - {{ pin_subpackage('tiled-dataframe', max_pin="x.x.x") }}
+        - {{ pin_subpackage('tiled-xarray', max_pin="x.x.x") }}
+        - {{ pin_subpackage('tiled-compression', max_pin="x.x.x") }}
+    test:
+      imports:
+        - tiled
+        - tiled.server
         - tiled.server.app
         - tiled.server.authentication
         - tiled.server.compression
@@ -178,7 +229,7 @@ outputs:
       commands:
         - tiled --help
 
-  - name: tiled-xarray
+  - name: tiled-formats
     script: build-tiled.sh  # [unix]
     script: bld-tiled.bat  # [win]
     requirements:
@@ -187,15 +238,19 @@ outputs:
         - pip
       run:
         - python
-        - dask
-        - pyarrow
-        - xarray
+        - h5py
+        - h5netcdf
+        - openpyxl
+        - pillow
+        - tifffile
     test:
       imports:
         - tiled
-        - tiled.structures
-        - tiled.structures.xarray
+        - tiled.adapters
+        - tiled.adapters.hdf5
+        - tiled.adapters.tiff
 
+  # All:
   - name: tiled
     script: build-tiled.sh  # [unix]
     script: bld-tiled.bat  # [win]
@@ -208,13 +263,9 @@ outputs:
         - pip
       run:
         - python
-        - {{ pin_subpackage('tiled-array', max_pin="x.x.x") }}
         - {{ pin_subpackage('tiled-client', max_pin="x.x.x") }}
-        - {{ pin_subpackage('tiled-compression', max_pin="x.x.x") }}
-        - {{ pin_subpackage('tiled-dataframe', max_pin="x.x.x") }}
-        - {{ pin_subpackage('tiled-formats', max_pin="x.x.x") }}
         - {{ pin_subpackage('tiled-server', max_pin="x.x.x") }}
-        - {{ pin_subpackage('tiled-xarray', max_pin="x.x.x") }}
+        - {{ pin_subpackage('tiled-formats', max_pin="x.x.x") }}
     test:
       imports:
         - tiled
@@ -287,6 +338,6 @@ about:
 
 extra:
   recipe-maintainers:
+    - danielballan
     - gbischof
     - mrakitin
-    - danielballan
