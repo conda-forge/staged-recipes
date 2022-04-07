@@ -1,0 +1,37 @@
+--- setup.py	2022-04-06 13:34:29.000000000 +0200
++++ setup.py	2022-04-06 13:36:38.000000000 +0200
+@@ -22,6 +22,24 @@
+         if compiler not in self.openmp_compile_args:
+             compiler = '*'
+
++        ## QHull has a mix of C and C++ source files
++        ## Setuptools will apply the same flags to all files
++        ## GCC warns about passing -std=c++11 for C files
++        ## but Clang errors out
++        ## We need to patch the responsible method to filter
++        ## the passed flags depending on the extension
++
++        # 1. keep a ref to the original _compile method
++        original__compile = self.compiler._compile
++        # 2. create a patched variant for the _compile method
++        def patched__compile(obj, src, ext, cc_args, extra_postargs, pp_opts):
++            # remove c++ specific options for C files
++            if src.endswith('.c'):
++                extra_postargs = [arg for arg in extra_postargs if not arg.startswith("-std")]
++            return original__compile(obj, src, ext, cc_args, extra_postargs, pp_opts)
++        # 3. monkey patch the method
++        self.compiler._compile = patched__compile
++
+         _extra_compile_args = list(ext.extra_compile_args)
+         _extra_link_args    = list(ext.extra_link_args)
+         try:
+@@ -33,6 +51,9 @@
+             ext.extra_compile_args = _extra_compile_args
+             ext.extra_link_args    = _extra_link_args
+             super(build_ext_openmp, self).build_extension(ext)
++        finally:
++            # 4. restore to original, just in case
++            self.compiler._compile = original__compile
+
+
+ #------------------------------------------------------------------------------------
