@@ -14,7 +14,7 @@ patchelf --set-rpath '$ORIGIN' lib/libmozjs185.so.1.0.0
 
 cd $SRC_DIR/couchdb
 sed -i "s|-DXP_UNIX -I/usr/include/js -I/usr/local/include/js|-DXP_UNIX -I$PREFIX/include/js|g" src/couch/rebar.config.script
-sed -i "s|-L/usr/local/lib -lmozjs185 -lm|-L$PREFIX/lib -lmozjs185 -lm -Wl,-rpath,$PREFIX/lib|g" src/couch/rebar.config.script
+sed -i "s|-L/usr/local/lib -lmozjs185 -lm|-L$PREFIX/lib -lmozjs185 -lm|g" src/couch/rebar.config.script
 export ERL_CFLAGS="-I$PREFIX/include -I$PREFIX/include/js -I$PREFIX/lib/erlang/usr/include"
 export ERL_LDFLAGS="-L$PREFIX/lib"
 ./configure
