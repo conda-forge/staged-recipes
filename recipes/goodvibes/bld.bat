@@ -11,7 +11,9 @@ rd /S /Q "%SRC_DIR%\goodvibes\share\" || goto :error
 
 :: Compile C code and move to expected destination
 md %SP_DIR%\goodvibes\share\ || goto :error
-"%CC%" /LD symmetry.c /LINK /OUT:"%SP_DIR%\goodvibes\share\symmetry_win.dll" || goto :error
+"%CC%" /LD symmetry.c || goto :error
+dir /s /b
+copy symmetry.dll %SP_DIR%\goodvibes\share\symmetry_win.dll || goto :error
 
 goto :EOF
 
