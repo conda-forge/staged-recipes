@@ -17,7 +17,7 @@ sed -i "s|-DXP_UNIX -I/usr/include/js -I/usr/local/include/js|-DXP_UNIX -I$PREFI
 sed -i "s|-L/usr/local/lib -lmozjs185 -lm|-L$PREFIX/lib -lmozjs185 -lm|g" src/couch/rebar.config.script
 export ERL_CFLAGS="-I$PREFIX/include -I$PREFIX/include/js -I$PREFIX/lib/erlang/usr/include"
 export ERL_LDFLAGS="-L$PREFIX/lib"
-./configure
+./configure --erlang-md5
 make release
 
 install -dm755 $PREFIX/lib
