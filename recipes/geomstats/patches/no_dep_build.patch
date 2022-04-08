@@ -1,0 +1,100 @@
+From c1a095e5e90da5fd8932866e72b28ee23c6335b2 Mon Sep 17 00:00:00 2001
+From: yann_dm <yann.montmarin@gmail.com>
+Date: Fri, 8 Apr 2022 10:14:04 +0200
+Subject: [PATCH] No external dependance during building
+
+---
+ geomstats/__init__.py | 55 +++++++++++++++++++++++++++----------------
+ setup.py              |  9 +++++++
+ 2 files changed, 44 insertions(+), 20 deletions(-)
+
+diff --git a/geomstats/__init__.py b/geomstats/__init__.py
+index 7deee57d..9519d4cc 100644
+--- a/geomstats/__init__.py
++++ b/geomstats/__init__.py
+@@ -2,23 +2,38 @@
+ 
+ __version__ = "2.4.2"
+ 
+-import geomstats._backend
+-import geomstats._logging
+-import geomstats.geometry.discrete_curves
+-import geomstats.geometry.euclidean
+-import geomstats.geometry.hyperbolic
+-import geomstats.geometry.hypersphere
+-import geomstats.geometry.invariant_metric
+-import geomstats.geometry.landmarks
+-import geomstats.geometry.lie_algebra
+-import geomstats.geometry.lie_group
+-import geomstats.geometry.manifold
+-import geomstats.geometry.minkowski
+-import geomstats.geometry.poincare_polydisk
+-import geomstats.geometry.product_manifold
+-import geomstats.geometry.product_riemannian_metric
+-import geomstats.geometry.riemannian_metric
+-import geomstats.geometry.skew_symmetric_matrices
+-import geomstats.geometry.spd_matrices
+-import geomstats.geometry.special_euclidean
+-import geomstats.geometry.special_orthogonal  # NOQA
++try:
++    # This variable is injected in the __builtins__ by the build
++    # process. It is used to enable importing subpackages of sklearn when
++    # the binaries are not built
++    # mypy error: Cannot determine type of '__GEOMSTATS_SETUP__'
++    __GEOMSTATS_SETUP__  # type: ignore
++except NameError:
++    __GEOMSTATS_SETUP__ = False
++
++if __GEOMSTATS_SETUP__:
++    sys.stderr.write("Partial import of geomstats during build "
++                     "process as some run dependencie are missing.\n")
++    # We are not importing the rest of geomstats during the build
++    # process, as it may not be compiled yet
++else:
++    import geomstats._backend
++    import geomstats._logging
++    import geomstats.geometry.discrete_curves
++    import geomstats.geometry.euclidean
++    import geomstats.geometry.hyperbolic
++    import geomstats.geometry.hypersphere
++    import geomstats.geometry.invariant_metric
++    import geomstats.geometry.landmarks
++    import geomstats.geometry.lie_algebra
++    import geomstats.geometry.lie_group
++    import geomstats.geometry.manifold
++    import geomstats.geometry.minkowski
++    import geomstats.geometry.poincare_polydisk
++    import geomstats.geometry.product_manifold
++    import geomstats.geometry.product_riemannian_metric
++    import geomstats.geometry.riemannian_metric
++    import geomstats.geometry.skew_symmetric_matrices
++    import geomstats.geometry.spd_matrices
++    import geomstats.geometry.special_euclidean
++    import geomstats.geometry.special_orthogonal  # NOQA
+diff --git a/setup.py b/setup.py
+index d209b6ef..f4befb7d 100644
+--- a/setup.py
++++ b/setup.py
+@@ -1,10 +1,19 @@
+ """Create instructions to build the geomstats package."""
++import builtins
+ import os
+ import runpy
+ from itertools import chain
+ 
+ from setuptools import find_packages, setup
+ 
++# This is a bit (!) hackish: we are setting a global variable so that the
++# main geomstats __init__ can detect if it is being loaded by the setup
++# routine, to avoid attempting to load components that aren't built yet:
++# the numpy distutils extensions that are used by scikit-learn to
++# recursively build the compiled extensions in sub-packages is based on the
++# Python import machinery.
++builtins.__GEOMSTATS_SETUP__ = True
++
+ base_dir = os.path.dirname(os.path.abspath(__file__))
+ geomstats = runpy.run_path(os.path.join(base_dir, "geomstats", "__init__.py"))
+ 
+-- 
+2.17.1
+
