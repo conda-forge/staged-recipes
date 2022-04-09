@@ -1,0 +1,80 @@
+{% set name = "scine-sparrow-python" %}
+{% set version = "3.0.0" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/qcscine/sparrow/archive/refs/tags/{{ version }}.tar.gz
+    sha256: 70636871694c9363ae3fb2df5050bddb22667b71d875d5a7e9afd872f6a2b65d
+    fn: {{ name }}.tar.gz
+    patches:
+      - skip_library_build.patch
+  - url: https://github.com/qcscine/development-utils/archive/refs/tags/4.0.0.tar.gz
+    sha256: 54002c2082b6bb75672ec66bf9cf3935bbdf6b085ed9b4d7174cbdedb7c2275d
+    fn: dev.tar.gz
+    folder: dev
+
+build:
+  number: 0
+  skip: true  # [win]
+  script:
+    - set -ex
+    - >
+       cmake
+       ${CMAKE_ARGS}
+       -B _build -G Ninja
+       -DPYTHON_EXECUTABLE={{ PYTHON }}
+       -DSCINE_MARCH=""
+       -DSCINE_SKIP_LIBRARY=ON
+       -DSCINE_BUILD_TESTS=OFF
+       -DSCINE_BUILD_PYTHON_BINDINGS=ON
+    - cmake --build _build
+    - cmake --install _build
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - pkg-config
+    - llvm-openmp  # [osx]
+    - libgomp  # [linux]
+  host:
+    - boost-cpp
+    - eigen
+    - libblas
+    - pip
+    - python
+    - scine-sparrow {{ version }}
+    - yaml-cpp
+  run:
+    - python
+    - scine-utilities-python
+    - scine-sparrow {{ version }}
+
+test:
+  imports:
+    - scine_sparrow
+  source_files:
+    - src/Sparrow/Python/Tests/
+  requires:
+    - pip
+    - pytest
+  commands:
+    - pip check
+    - pytest src/Sparrow/Python/Tests/*.py
+
+about:
+  license: BSD-3-Clause
+  license_file: LICENSE.txt
+  summary: |
+    Sparrow is a code for fast semiempirical quantum chemical calculations (Python bindings)
+  home: https://scine.ethz.ch/
+  dev_url: https://github.com/qcscine/sparrow
+
+extra:
+  recipe-maintainers:
+    - awvwgk
