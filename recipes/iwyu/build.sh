@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-
-CC=clang
-CXX=clang++
-
 mkdir build
 cd build
 
