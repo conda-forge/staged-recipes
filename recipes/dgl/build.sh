@@ -9,7 +9,7 @@ git submodule init
 git submodule update --recursive
 mkdir build
 cd build
-cmake -DUSE_CUDA=ON -DUSE_OPENMP=ON -DCUDA_ARCH_NAME=All cmake ${CMAKE_FLAGS} ${SRC_DIR}
+cmake -DUSE_CUDA=ON -DUSE_OPENMP=ON -DCUDA_ARCH_NAME=All ${CMAKE_FLAGS} ${SRC_DIR}
 make -j$CPU_COUNT
 cd ../python
 $PYTHON setup.py install --single-version-externally-managed --record=record.txt
