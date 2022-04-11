@@ -15,5 +15,7 @@ mkdir build
 cd build
 cmake -DUSE_CUDA=ON -DUSE_OPENMP=ON -DCUDA_ARCH_NAME=All ${CUDA_CMAKE_OPTIONS} ${CMAKE_FLAGS} ${SRC_DIR}
 make -j$CPU_COUNT
+ls -l
 cd ../python
-$PYTHON setup.py install --single-version-externally-managed --record=record.txt
+ls -l
+${PYTHON} setup.py install --single-version-externally-managed --record=record.txt
