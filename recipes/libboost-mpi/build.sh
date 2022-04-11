@@ -65,6 +65,7 @@ fi
     threading=multi \
     runtime-link=shared \
     link=shared \
+    install-dependencies=off \
     toolset=${TOOLSET} \
     include="${INCLUDE_PATH}" \
     cxxflags="${CXXFLAGS}" \

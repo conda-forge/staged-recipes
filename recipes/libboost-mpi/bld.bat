@@ -22,6 +22,7 @@ echo ; >> %SRC_DIR%\project-config.jam
     variant=release ^
     threading=multi ^
     link=shared ^
+    install-dependencies=off ^
     -j%CPU_COUNT% ^
     --layout=system ^
     --with-mpi
