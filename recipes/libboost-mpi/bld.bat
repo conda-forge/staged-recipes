@@ -30,6 +30,9 @@ if errorlevel 1 exit 1
 :: Remove all headers as we only build Boost.MPI libraries.
 rmdir /s /q %LIBRARY_INC%\boost
 
+:: Remove all CMake config as we only build Boost.MPI libraries.
+rmdir /s /q %LIBRARY_LIB%\cmake
+
 :: Move dll's to LIBRARY_BIN
 move %LIBRARY_LIB%\boost*.dll "%LIBRARY_BIN%"
 if errorlevel 1 exit 1
