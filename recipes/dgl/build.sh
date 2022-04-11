@@ -5,8 +5,6 @@ rm -rf build || true
 
 CMAKE_FLAGS="${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_BUILD_TYPE=Release -DPython_EXECUTABLE=${PYTHON}"
 
-git submodule init
-git submodule update --recursive
 mkdir build
 cd build
 cmake -DUSE_CUDA=ON -DUSE_OPENMP=ON -DCUDA_ARCH_NAME=All ${CMAKE_FLAGS} ${SRC_DIR}
