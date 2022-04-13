@@ -1,7 +1,6 @@
 mkdir build
 cd build
 
-:: Compilation of Windows shared library is not supported (see https://github.com/coin-or/qpOASES/pull/109)
 cmake ^
     -G "Ninja" ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
