@@ -1,18 +1,18 @@
 
 @echo off
 
-echo "PREFIX: %PREFIX%" > %PREFIX%\.messages.txt
-set | FindStr "PKG" >> %PREFIX%\.messages.txt
+echo "Installing in %PREFIX%" > %PREFIX%\.messages.txt
+:: set | FindStr "PKG" > %PREFIX%\.messages.txt
 
-set PKG_BIN=%PREFIX%\bin2
-set PKG_INC=%PREFIX%\include
-set PKG_JRE=%PREFIX%\jre
-set PKG_JRE_BIN=%PREFIX%\jre\bin
-set PKG_JRE_LIB=%PREFIX%\jre\lib
-set PKG_LIB=%PREFIX%\lib
+set "PKG_BIN=%PREFIX%\bin"
+set "PKG_INC=%PREFIX%\include"
+set "PKG_JRE=%PREFIX%\jre"
+set "PKG_JRE_BIN=%PREFIX%\jre\bin"
+set "PKG_JRE_LIB=%PREFIX%\jre\lib"
+set "PKG_LIB=%PREFIX%\lib"
 
-set SRC_DIR="%ProgramFiles%\Java\jdk1.8.0_321"
-set SRC_DIR=%SRC_DIR:"=%
+:: should I be using `reg query ` to find the jdk directory path?
+set "SRC_DIR=%ProgramFiles%\Java\jdk1.8.0_321"
 
 :: Discovery
 SetLocal EnableExtensions EnableDelayedExpansion
