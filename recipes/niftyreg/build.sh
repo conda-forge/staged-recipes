@@ -20,4 +20,5 @@ cmake ${SRC_DIR} \
     $OUR_CMAKE_FLAGS
 
 make
+make check
 make install
