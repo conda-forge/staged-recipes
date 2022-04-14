@@ -29,16 +29,20 @@ if not exist "%SRC_DIR%" (
 
 echo Preparing to link *.exe files, from %SRC_DIR%. >> "%CONDA_PREFIX%\.messages.txt"
 
-set "REVERT_SCRIPT=%CONDA_PREFIX%\conda-link-meta\%PKG_UUID%\pre-unlink-aux.bat"
+set "REVERT_DIR=%CONDA_PREFIX%\conda-meso\%PKG_UUID%"
+if not exist "%REVERT_DIR%" mkdir "%REVERT_DIR%"
+
+set "REVERT_SCRIPT=%REVERT_DIR%\pre-unlink-aux.bat"
+echo Writing revert-script to %REVERT_SCRIPT% >> "%CONDA_PREFIX%\.messages.txt"
 type nul > "%REVERT_SCRIPT%"
 
-if not exist "%PKG_BIN%" mkdir -p "%PKG_BIN%"
+if not exist "%PKG_BIN%" mkdir "%PKG_BIN%"
 for /R "%SRC_DIR%\bin" %%G in (*.exe) do (
   if not exist "%PKG_BIN%\%%~nxG" (
     mklink "%PKG_BIN%\%%~nxG" "%%G" || echo failed linking "%PKG_BIN%\%%~nxG" "%%G" >> "%CONDA_PREFIX%\.messages.txt"
   )
   echo del "%PKG_BIN%\%%~nxG" >> "%REVERT_SCRIPT%"
 )
-echo "Successfully link *.exe files." >> "%CONDA_PREFIX%\.messages.txt"
+echo Successfully linked *.exe files. >> "%CONDA_PREFIX%\.messages.txt"
 
 exit /B 0
