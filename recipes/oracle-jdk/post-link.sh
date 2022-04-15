@@ -20,7 +20,7 @@ SetLocal EnableExtensions EnableDelayedExpansion
 if [ ! -d "${ORACLE_JDK_DIR}" ]; then
   {
     echo "The target JDK version has not been installed. ${ORACLE_JDK_DIR}";
-    echo "see https://www.oracle.com/java/technologies/downloads/#java8-windows";
+    echo "see https://www.oracle.com/java/technologies/downloads/#java8-linux";
     echo " jdk-8u321-linux-x64.rpm "
   } >> "${CONDA_PREFIX}/.messages.txt"
   exit 0
