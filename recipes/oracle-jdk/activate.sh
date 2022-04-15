@@ -1,11 +1,16 @@
 #!/bin/bash -euo
 
 PKG_UUID="${PKG_NAME}-${PKG_VERSION}_${PKG_BUILDNUM}"
-REVERT_DIR="${CONDA_PREFIX}/conda-meso/${PKG_UUID}"
-[ -e "${REVERT_DIR}" ] || mkdir -p "${REVERT_DIR}"
+MESO_DIR="${CONDA_PREFIX}/conda-meso/${PKG_UUID}"
+[ -e "${MESO_DIR}" ] || mkdir -p "${MESO_DIR}"
 
-REVERT_SCRIPT="${REVERT_DIR}/deactivate-aux.sh"
-touch "${REVERT_SCRIPT}"
+DISCOVER_SCRIPT="${MESO_DIR}/discovery.sh"
+if [ -f "${DISCOVER_SCRIPT}" ]; then
+  source "${DISCOVER_SCRIPT}"
+fi
+
+REVERT_SCRIPT="${MESO_DIR}/deactivate-aux.sh"
+printf "#!/bin/bash -euo\n" > "${REVERT_SCRIPT}"
 echo "Writing revert-script to ${REVERT_SCRIPT}"
 
 echo "JAVA_HOME=${JAVA_HOME}" >> "${REVERT_SCRIPT}"
