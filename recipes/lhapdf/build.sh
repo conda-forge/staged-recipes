@@ -3,6 +3,7 @@
 (cd wrappers/python && cython --cplus lhapdf.pyx)
 ./configure --prefix=$PREFIX
 make -j
+make check
 make install
 
 cd wrappers
