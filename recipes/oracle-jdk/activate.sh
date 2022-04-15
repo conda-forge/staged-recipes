@@ -2,7 +2,7 @@
 
 PKG_UUID="${PKG_NAME}-${PKG_VERSION}_${PKG_BUILDNUM}"
 REVERT_DIR="${CONDA_PREFIX}/conda-meso/${PKG_UUID}"
-[ -e "${REVERT_DIR}" ] || mkdir "${REVERT_DIR}"
+[ -e "${REVERT_DIR}" ] || mkdir -p "${REVERT_DIR}"
 
 REVERT_SCRIPT="${REVERT_DIR}/deactivate-aux.sh"
 touch "${REVERT_SCRIPT}"

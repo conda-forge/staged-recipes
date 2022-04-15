@@ -29,7 +29,7 @@ fi
 echo "Preparing to link *.exe files, from ${ORACLE_JDK_DIR}." >> "${CONDA_PREFIX}/.messages.txt"
 
 REVERT_DIR="${CONDA_PREFIX}/conda-meso/${PKG_UUID}"
-[ -e "%REVERT_DIR%" ] || mkdir "${REVERT_DIR}"
+[ -e "%REVERT_DIR%" ] || mkdir -p "${REVERT_DIR}"
 
 REVERT_SCRIPT="${REVERT_DIR}/pre-unlink-aux.sh"
 echo "Writing revert-script to ${REVERT_SCRIPT}" >> "${CONDA_PREFIX}/.messages.txt"
