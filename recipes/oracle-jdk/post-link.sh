@@ -17,13 +17,13 @@ export ORACLE_JDK_DIR="/usr/java/jdk1.8.0_321-amd64/"
 
 # Discovery
 SetLocal EnableExtensions EnableDelayedExpansion
-if [ -d "${ORACLE_JDK_DIR}" ]; then 
+if [ ! -d "${ORACLE_JDK_DIR}" ]; then
   {
     echo "The target JDK version has not been installed. ${ORACLE_JDK_DIR}";
     echo "see https://www.oracle.com/java/technologies/downloads/#java8-windows";
     echo " jdk-8u321-linux-x64.rpm "
   } >> "${CONDA_PREFIX}/.messages.txt"
-  exit 1
+  exit 0
 fi
 
 echo "Preparing to link *.exe files, from ${ORACLE_JDK_DIR}." >> "${CONDA_PREFIX}/.messages.txt"
@@ -33,15 +33,16 @@ REVERT_DIR="${CONDA_PREFIX}/conda-meso/${PKG_UUID}"
 
 REVERT_SCRIPT="${REVERT_DIR}/pre-unlink-aux.sh"
 echo "Writing revert-script to ${REVERT_SCRIPT}" >> "${CONDA_PREFIX}/.messages.txt"
-touch "${REVERT_SCRIPT}"
+printf "#!/bin/bash -euo\n" > "${REVERT_SCRIPT}"
 
 [ -d "${PKG_BIN}" ] || mkdir -p "${PKG_BIN}"
-for ix in "${ORACLE_JDK_DIR}/bin"/*.exe; do
+for ix in "${ORACLE_JDK_DIR}"/bin/*.exe; do
   BASE_NAME=$(basename -- "${ix}")
-  if [ ! -f "${PKG_BIN}/${BASE_NAME}" ]; then
-    ln "${PKG_BIN}/${BASE_NAME}" "${ix}" || echo "failed linking ${PKG_BIN}/${BASE_NAME} ${ix}" >> "${CONDA_PREFIX}/.messages.txt"
+  jx="${PKG_BIN}/${BASE_NAME}"
+  if [ ! -f  "$jx" ]; then
+    ln "${jx}" "${ix}" || echo "failed linking ${jx} ${ix}" >> "${CONDA_PREFIX}/.messages.txt"
   fi
-  echo "rm \"${PKG_BIN}/${BASE_NAME}\"" >> "${REVERT_SCRIPT}"
+  echo "rm \"${jx}\"" >> "${REVERT_SCRIPT}"
 done
 
 exit 0

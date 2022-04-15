@@ -20,7 +20,7 @@ if not exist "%ORACLE_JDK_DIR%" (
   echo "The target JDK version has not been installed. %ORACLE_JDK_DIR%" >> "%CONDA_PREFIX%\.messages.txt"
   echo "see https://www.oracle.com/java/technologies/downloads/#java8-windows" >> "%CONDA_PREFIX%\.messages.txt"
   echo " jdk-8u321-windows-x64.exe "  >> "%CONDA_PREFIX%\.messages.txt"
-  exit /B 1
+  exit /B 0
 )
 
 echo Preparing to link *.exe files, from %ORACLE_JDK_DIR%. >> "%CONDA_PREFIX%\.messages.txt"
@@ -34,10 +34,12 @@ type nul > "%REVERT_SCRIPT%"
 
 if not exist "%PKG_BIN%" mkdir "%PKG_BIN%"
 for /R "%ORACLE_JDK_DIR%\bin" %%G in (*.exe) do (
-  if not exist "%PKG_BIN%\%%~nxG" (
-    mklink "%PKG_BIN%\%%~nxG" "%%G" || echo failed linking "%PKG_BIN%\%%~nxG" "%%G" >> "%CONDA_PREFIX%\.messages.txt"
+  for %%H in ("%PKG_BIN%\%%~nxG") do (
+      if not exist "%%H" (
+        mklink "%%~sH" "%%~sG" || echo failed linking "%%H" "%%G" >> "%CONDA_PREFIX%\.messages.txt"
+      )
+      echo del "%%~sH" >> "%REVERT_SCRIPT%"
   )
-  echo del "%PKG_BIN%\%%~nxG" >> "%REVERT_SCRIPT%"
 )
 echo Successfully linked *.exe files. >> "%CONDA_PREFIX%\.messages.txt"
 
