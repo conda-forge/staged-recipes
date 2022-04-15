@@ -1,7 +1,5 @@
 
-@echo off
 
-set "PKG_UUID=%PKG_NAME%-%PKG_VERSION%_%PKG_BUILDNUM%"
 set "CONDA_MESO=%CONDA_PREFIX%\conda-meso\%PKG_UUID%"
 if not exist "%CONDA_MESO%" mkdir "%CONDA_MESO%"
 

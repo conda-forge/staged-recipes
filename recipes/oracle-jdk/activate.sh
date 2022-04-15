@@ -1,6 +1,5 @@
-#!/bin/bash -euo
 
-PKG_UUID="${PKG_NAME}-${PKG_VERSION}_${PKG_BUILDNUM}"
+# PKG_UUID="${PKG_NAME}-${PKG_VERSION}_${PKG_BUILDNUM}"
 CONDA_MESO="${CONDA_PREFIX}/conda-meso/${PKG_UUID}"
 [ -e "${CONDA_MESO}" ] || mkdir -p "${CONDA_MESO}"
 
