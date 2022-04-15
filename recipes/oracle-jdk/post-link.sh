@@ -11,8 +11,8 @@
 PKG_BIN="${CONDA_PREFIX}/bin"
 PKG_UUID="${PKG_NAME}-${PKG_VERSION}_${PKG_BUILDNUM}"
 
-MESO_DIR="${CONDA_PREFIX}/conda-meso/${PKG_UUID}"
-[ -e "%MESO_DIR%" ] || mkdir -p "${MESO_DIR}"
+CONDA_MESO="${CONDA_PREFIX}/conda-meso/${PKG_UUID}"
+[ -e "%CONDA_MESO%" ] || mkdir -p "${CONDA_MESO}"
 
 # Discovery
 # This is where the rpm puts it.
@@ -35,15 +35,15 @@ if [ ! -d "${ORACLE_JDK_DIR}" ]; then
   } >> "${CONDA_PREFIX}/.messages.txt"
   exit 0
 fi
-DISCOVER_SCRIPT="${MESO_DIR}/discovery.sh"
+DISCOVER_SCRIPT="${CONDA_MESO}/discovery.sh"
 echo "Writing pkg-script to ${DISCOVER_SCRIPT}" >> "${CONDA_PREFIX}/.messages.txt"
 echo "export ORACLE_JDK_DIR=${ORACLE_JDK_DIR}" > "$DISCOVER_SCRIPT"
 
 echo "Preparing to link *.exe files, from ${ORACLE_JDK_DIR}." >> "${CONDA_PREFIX}/.messages.txt"
 
-REVERT_SCRIPT="${MESO_DIR}/pre-unlink-aux.sh"
-echo "Writing revert-script to ${REVERT_SCRIPT}" >> "${CONDA_PREFIX}/.messages.txt"
-printf "#!/bin/bash -euo\n" > "${REVERT_SCRIPT}"
+UNLINK_SCRIPT="${CONDA_MESO}/pre-unlink-aux.sh"
+echo "Writing revert-script to ${UNLINK_SCRIPT}" >> "${CONDA_PREFIX}/.messages.txt"
+printf "#!/bin/bash -euo\n" > "${UNLINK_SCRIPT}"
 
 [ -d "${PKG_BIN}" ] || mkdir -p "${PKG_BIN}"
 for ix in "${ORACLE_JDK_DIR}"/bin/*.exe; do
@@ -52,7 +52,7 @@ for ix in "${ORACLE_JDK_DIR}"/bin/*.exe; do
   if [ ! -f  "$jx" ]; then
     ln "${jx}" "${ix}" || echo "failed linking ${jx} ${ix}" >> "${CONDA_PREFIX}/.messages.txt"
   fi
-  echo "rm \"${jx}\"" >> "${REVERT_SCRIPT}"
+  echo "rm \"${jx}\"" >> "${UNLINK_SCRIPT}"
 done
 
 exit 0

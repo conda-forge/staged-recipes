@@ -1,9 +1,9 @@
 #!/bin/bash -euo
 
 PKG_UUID="${PKG_NAME}-${PKG_VERSION}_${PKG_BUILDNUM}"
-REVERT_SCRIPT="${CONDA_PREFIX}/conda-activate-meta/${PKG_UUID}/deactivate-aux.sh"
+DEACTIVATE_SCRIPT="${CONDA_PREFIX}/conda-activate-meta/${PKG_UUID}/deactivate-aux.sh"
 
-if [ -f "${REVERT_SCRIPT}" ]; then
-  source "${REVERT_SCRIPT}"
-  rm "${REVERT_SCRIPT}"
+if [ -f "${DEACTIVATE_SCRIPT}" ]; then
+  source "${DEACTIVATE_SCRIPT}"
+  rm "${DEACTIVATE_SCRIPT}"
 fi

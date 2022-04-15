@@ -14,8 +14,8 @@ SetLocal EnableExtensions EnableDelayedExpansion
 set "PKG_BIN=%CONDA_PREFIX%\bin"
 set "PKG_UUID=%PKG_NAME%-%PKG_VERSION%_%PKG_BUILDNUM%"
 
-set "MESO_DIR=%CONDA_PREFIX%\conda-meso\%PKG_UUID%"
-if not exist "%MESO_DIR%" mkdir "%MESO_DIR%"
+set "CONDA_MESO=%CONDA_PREFIX%\conda-meso\%PKG_UUID%"
+if not exist "%CONDA_MESO%" mkdir "%CONDA_MESO%"
 
 :: Discovery
 :: should I be using `reg query ` to find the jdk directory path?
@@ -37,15 +37,15 @@ if not exist "%ORACLE_JDK_DIR%" (
     )  >> "%CONDA_PREFIX%\.messages.txt"
     exit /B 0
 )
-set "DISCOVER_SCRIPT=%MESO_DIR%\discovery.bat"
+set "DISCOVER_SCRIPT=%CONDA_MESO%\discovery.bat"
 echo Writing pkg-script to %DISCOVER_SCRIPT% >> "%CONDA_PREFIX%\.messages.txt"
 echo set "ORACLE_JDK_DIR=%ORACLE_JDK_DIR%" > "%DISCOVER_SCRIPT%"
 
 echo Preparing to link *.exe files, from %ORACLE_JDK_DIR%. >> "%CONDA_PREFIX%\.messages.txt"
 
-set "REVERT_SCRIPT=%MESO_DIR%\pre-unlink-aux.bat"
-echo Writing revert-script to %REVERT_SCRIPT% >> "%CONDA_PREFIX%\.messages.txt"
-type nul > "%REVERT_SCRIPT%"
+set "UNLINK_SCRIPT=%CONDA_MESO%\pre-unlink-aux.bat"
+echo Writing revert-script to %UNLINK_SCRIPT% >> "%CONDA_PREFIX%\.messages.txt"
+type nul > "%UNLINK_SCRIPT%"
 
 if not exist "%PKG_BIN%" mkdir "%PKG_BIN%"
 for /R "%ORACLE_JDK_DIR%\bin" %%G in (*.exe) do (
@@ -53,7 +53,7 @@ for /R "%ORACLE_JDK_DIR%\bin" %%G in (*.exe) do (
       if not exist "%%H" (
         mklink "%%H" "%%~sG" || echo failed linking "%%H" "%%G" >> "%CONDA_PREFIX%\.messages.txt"
       )
-      echo del "%%H" >> "%REVERT_SCRIPT%"
+      echo del "%%H" >> "%UNLINK_SCRIPT%"
   )
 )
 echo Successfully linked *.exe files. >> "%CONDA_PREFIX%\.messages.txt"
