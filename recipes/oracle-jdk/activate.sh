@@ -1,10 +1,13 @@
 #!/bin/bash -euo
 
 PKG_UUID="${PKG_NAME}-${PKG_VERSION}_${PKG_BUILDNUM}"
-REVERT_SCRIPT="${CONDA_PREFIX}\conda-activate-meta\${PKG_UUID}\deactivate-aux.bat"
+REVERT_DIR="${CONDA_PREFIX}/conda-meso/${PKG_UUID}"
+[ -e "${REVERT_DIR}" ] || mkdir "${REVERT_DIR}"
 
-REVERT_SCRIPT="${CONDA_PREFIX}\conda-link-meta\${PKG_UUID}\pre-unlink-aux.bat"
+REVERT_SCRIPT="${REVERT_DIR}/deactivate-aux.sh"
 touch "${REVERT_SCRIPT}"
-echo "JAVA_HOME=${JAVA_HOME}" >> "${REVERT_SCRIPT}"
+echo "Writing revert-script to ${REVERT_SCRIPT}"
 
-export JAVA_HOME="${ProgramFiles}\Java\jdk1.8.0_321"
+echo "JAVA_HOME=${JAVA_HOME}" >> "${REVERT_SCRIPT}"
+# the post-link script should have set ORACLE_JDK_DIR
+export JAVA_HOME="${ORACLE_JDK_DIR}/jdk1.8.0_321"

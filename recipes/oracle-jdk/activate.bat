@@ -7,7 +7,7 @@ if not exist "%REVERT_DIR%" mkdir "%REVERT_DIR%"
 
 set "REVERT_SCRIPT=%REVERT_DIR%\deactivate-aux.bat"
 type nul > "%REVERT_SCRIPT%"
-echo Writing revert-script to %REVERT_SCRIPT% >> "%CONDA_PREFIX%\.messages.txt"
+echo Writing revert-script to %REVERT_SCRIPT%
 
 echo set "JAVA_HOME=%JAVA_HOME%" >> "%REVERT_SCRIPT%"
 set "JAVA_HOME=%ProgramFiles%\Java\jdk1.8.0_321"
