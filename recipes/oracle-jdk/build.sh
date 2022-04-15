@@ -7,5 +7,9 @@
 for CHANGE in "activate" "deactivate"
 do
     mkdir -p "${PREFIX}/etc/conda/${CHANGE}.d"
-    cp "${RECIPE_DIR}/${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}-${CHANGE}.sh"
+    {
+          printf "#!/bin/bash -euo\n"
+          echo "PKG_UUID=\"${PKG_NAME}-${PKG_VERSION}_${PKG_BUILDNUM}\""
+          cat "${RECIPE_DIR}/${CHANGE}.sh"
+    } > "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}-${CHANGE}.sh"
 done

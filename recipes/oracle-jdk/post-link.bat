@@ -4,11 +4,11 @@
 SetLocal EnableExtensions EnableDelayedExpansion
 
 (
-    echo "Installing in %CONDA_PREFIX%"
-    echo "   CONDA_PREFIX: %CONDA_PREFIX%"
-    echo "   PKG_NAME:     %PKG_NAME%"
-    echo "   PKG_VERSION:  %PKG_VERSION%"
-    echo "   PKG_BUILDNUM: %PKG_BUILDNUM%"
+    echo Installing in %CONDA_PREFIX%
+    echo    CONDA_PREFIX: %CONDA_PREFIX%
+    echo    PKG_NAME:     %PKG_NAME%
+    echo    PKG_VERSION:  %PKG_VERSION%
+    echo    PKG_BUILDNUM: %PKG_BUILDNUM%
 ) > "%CONDA_PREFIX%\.messages.txt"
 
 set "PKG_BIN=%CONDA_PREFIX%\bin"
@@ -49,9 +49,9 @@ type nul > "%UNLINK_SCRIPT%"
 
 if not exist "%PKG_BIN%" mkdir "%PKG_BIN%"
 for /R "%ORACLE_JDK_DIR%\bin" %%G in (*.exe) do (
-  for %%H in ("%PKG_BIN%\%%~nxG") do (
+  for %%H in (%PKG_BIN%\%%~nxG) do (
       if not exist "%%H" (
-        mklink "%%H" "%%~sG" || echo failed linking "%%H" "%%G" >> "%CONDA_PREFIX%\.messages.txt"
+        mklink "%%H" "%%G" || echo failed linking "%%H" "%%G" >> "%CONDA_PREFIX%\.messages.txt"
       )
       echo del "%%H" >> "%UNLINK_SCRIPT%"
   )
