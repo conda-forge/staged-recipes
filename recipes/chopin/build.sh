@@ -8,4 +8,4 @@ find . -type f \( -iname "chopin.py" -o -iname "functions.py" \) -exec cp {} $PR
 rm -rf *
 
 # Make Python scripts executable
-chmod +x $PREFIX/bin/hdclass.py $PREFIX/bin/functions.py
+chmod +x $PREFIX/bin/chopin.py $PREFIX/bin/functions.py
