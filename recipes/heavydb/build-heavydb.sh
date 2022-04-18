@@ -4,28 +4,28 @@ set -ex
 
 export EXTRA_CMAKE_OPTIONS="-GNinja"
 
-export INSTALL_BASE=opt/omnisci
+export INSTALL_BASE=opt/heavyai
 export BUILD_EXT=cpu
 export RUN_DBE_TESTS=1
 
 # Set flags
 case "$PKG_NAME" in
 
-    omniscidb-common)
+    heavydb-common)
         export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DENABLE_IMPORT_PARQUET=OFF"
         ;;
 
-    omniscidbe)
+    heavydbe)
         export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DENABLE_DBE=ON"
         ;;
 
-    pyomniscidbe)
+    pyheavydbe)
         export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DENABLE_DBE=ON"
         ;;
 
-    omniscidb)
+    heavydb)
         # Make sure -fPIC is not in CXXFLAGS (that some conda packages may
-        # add), otherwise omniscidb server will crash when executing generated
+        # add), otherwise heavydb server will crash when executing generated
         # machine code:
         export CXXFLAGS="`echo $CXXFLAGS | sed 's/-fPIC//'`"
 
@@ -47,11 +47,11 @@ export EXTRA_CMAKE_OPTIONS="$EXTRA_CMAKE_OPTIONS -DCMAKE_C_COMPILER=${CC} -DCMAK
 #   2 - detect if sanity tests can be run, then set 1, otherwise set 0
 #
 # Ideally, this should be 2. However, the available conda-forge CI
-# disk space resourses are not sufficient for running the omniscidb
+# disk space resourses are not sufficient for running the heavydb
 # sanity tests in full. Hence we disable the tests:
 export RUN_TESTS=0
 
-if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" && "$PKG_NAME" != "omniscidb-common" ]]
+if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" && "$PKG_NAME" != "heavydb-common" ]]
 then
     export BUILD_EXT=cuda
     export RUN_DBE_TESTS=0
@@ -109,7 +109,7 @@ cd build
 # Run configure
 case "$PKG_NAME" in
 
-    omniscidb | omniscidbe | pyomniscidbe | omniscidb-common)
+    heavydb | heavydbe | pyheavydbe | heavydb-common)
 
         cmake -Wno-dev \
               -DCMAKE_PREFIX_PATH=$PREFIX \
@@ -135,26 +135,26 @@ esac
 # Run build
 case "$PKG_NAME" in
 
-    omniscidb-common)
+    heavydb-common)
 
         ninja QueryEngineFunctionsTargets mapd_java_components generate_cert_target
         ;;
 
-    omniscidbe)
+    heavydbe)
 
         ninja DBEngine
         ;;
 
-    pyomniscidbe)
+    pyheavydbe)
 
         cd Embedded
-        $PYTHON setup.py build_ext -g -f install
+        $PYTHON -m pip install .
         cd ..
         ;;
 
-    omniscidb)
+    heavydb)
 
-        ninja initdb omnisci_server omnisql StreamImporter KafkaImporter
+        ninja initheavy heavydb heavysql StreamImporter KafkaImporter
         ;;
 
     *)
@@ -167,9 +167,9 @@ cd ..
 # Run install
 case "$PKG_NAME" in
 
-    omniscidb-common)
+    heavydb-common)
         cmake --install build --component "include" --prefix $PREFIX/$INSTALL_BASE
-        cmake --install build --component "doc" --prefix $PREFIX/share/doc/omnisci
+        cmake --install build --component "doc" --prefix $PREFIX/share/doc/heavyai
         cmake --install build --component "data" --prefix $PREFIX/$INSTALL_BASE
         cmake --install build --component "thrift" --prefix $PREFIX/$INSTALL_BASE
         cmake --install build --component "QE" --prefix $PREFIX/$INSTALL_BASE
@@ -178,18 +178,18 @@ case "$PKG_NAME" in
 
         mkdir -p $PREFIX/include/
         cd $PREFIX/include
-        ln -s ../$INSTALL_BASE omnisci
+        ln -s ../$INSTALL_BASE heavydb
         cd -
 
         mkdir -p $PREFIX/$INSTALL_BASE/bin
         cd $PREFIX/$INSTALL_BASE/bin
-        ln -s ../startomnisci startomnisci
-        ln -s ../insert_sample_data omnisci_insert_sample_data
+        ln -s ../startheavy startheavy
+        ln -s ../insert_sample_data heavydb_insert_sample_data
         cd -
 
         ;;
 
-    omniscidbe)
+    heavydbe)
         cmake --install build --component "DBE" --prefix $PREFIX/$INSTALL_BASE
 
         mkdir -p $PREFIX/lib
@@ -203,14 +203,14 @@ case "$PKG_NAME" in
 #!/bin/bash
 
 # Backup environment variables (only if the variables are set)
-if [[ ! -z "\${OMNISCI_ROOT_PATH+x}" ]]
+if [[ ! -z "\${HEAVYAI_ROOT_PATH+x}" ]]
 then
-  export OMNISCI_ROOT_PATH_BACKUP="\${OMNISCI_ROOT_PATH:-}"
+  export HEAVYAI_ROOT_PATH_BACKUP="\${HEAVYAI_ROOT_PATH:-}"
 fi
 
-# OMNISCI_ROOT_PATH is requires for libDBEngine.so to determine the
-# the omnisci root path correctly.
-export OMNISCI_ROOT_PATH=\${CONDA_PREFIX}/${INSTALL_BASE}
+# HEAVYAI_ROOT_PATH is requires for libDBEngine.so to determine the
+# the heavyai root path correctly.
+export HEAVYAI_ROOT_PATH=\${CONDA_PREFIX}/${INSTALL_BASE}
 
 EOF
 
@@ -219,21 +219,20 @@ EOF
 #!/bin/bash
 
 # Restore environment variables (if there is anything to restore)
-if [[ ! -z "\${OMNISCI_ROOT_PATH_BACKUP+x}" ]]
+if [[ ! -z "\${HEAVYAI_ROOT_PATH_BACKUP+x}" ]]
 then
-  export OMNISCI_ROOT_PATH="\${OMNISCI_ROOT_PATH_BACKUP}"
-  unset OMNISCI_ROOT_PATH_BACKUP
+  export HEAVYAI_ROOT_PATH="\${HEAVYAI_ROOT_PATH_BACKUP}"
+  unset HEAVYAI_ROOT_PATH_BACKUP
 fi
 
 EOF
         ;;
 
-    omniscidb)
+    heavydb)
 
         cmake --install build --component "exe" --prefix $PREFIX/$INSTALL_BASE
 
         cd $PREFIX/$INSTALL_BASE/bin
-        mv initdb omnisci_initdb
         cd -
 
         # create activate/deactivate scripts
@@ -241,18 +240,18 @@ EOF
         cat > "${PREFIX}/etc/conda/activate.d/${PKG_NAME}_activate.sh" <<EOF
 #!/bin/bash
 
-# Avoid cuda and cpu variants of omniscidb in the same environment.
-if [[ ! -z "\${PATH_CONDA_OMNISCIDB_BACKUP+x}" ]]
+# Avoid cuda and cpu variants of heavydb in the same environment.
+if [[ ! -z "\${PATH_CONDA_HEAVYDB_BACKUP+x}" ]]
 then
-  echo "Unset PATH_CONDA_OMNISCIDB_BACKUP(=\${PATH_CONDA_OMNISCIDB_BACKUP}) when activating ${PKG_NAME} from \${CONDA_PREFIX}/${INSTALL_BASE}"
-  export PATH="\${PATH_CONDA_OMNISCIDB_BACKUP}"
-  unset PATH_CONDA_OMNISCIDB_BACKUP
+  echo "Unset PATH_CONDA_HEAVYDB_BACKUP(=\${PATH_CONDA_HEAVYDB_BACKUP}) when activating ${PKG_NAME} from \${CONDA_PREFIX}/${INSTALL_BASE}"
+  export PATH="\${PATH_CONDA_HEAVYDB_BACKUP}"
+  unset PATH_CONDA_HEAVYDB_BACKUP
 fi
 
 # Backup environment variables (only if the variables are set)
 if [[ ! -z "\${PATH+x}" ]]
 then
-  export PATH_CONDA_OMNISCIDB_BACKUP="\${PATH:-}"
+  export PATH_CONDA_HEAVYDB_BACKUP="\${PATH:-}"
 fi
 
 export PATH="\${CONDA_PREFIX}/${INSTALL_BASE}/bin:\${PATH}"
@@ -264,10 +263,10 @@ EOF
 #!/bin/bash
 
 # Restore environment variables (if there is anything to restore)
-if [[ ! -z "\${PATH_CONDA_OMNISCIDB_BACKUP+x}" ]]
+if [[ ! -z "\${PATH_CONDA_HEAVYDB_BACKUP+x}" ]]
 then
-  export PATH="\${PATH_CONDA_OMNISCIDB_BACKUP}"
-  unset PATH_CONDA_OMNISCIDB_BACKUP
+  export PATH="\${PATH_CONDA_HEAVYDB_BACKUP}"
+  unset PATH_CONDA_HEAVYDB_BACKUP
 fi
 
 EOF
@@ -282,13 +281,13 @@ esac
 # Run tests
 case "$PKG_NAME" in
 
-    omniscidb)
+    heavydb)
 
         if [[ "$RUN_TESTS" == "1" ]]
         then
             cd build
             mkdir tmp
-            $PREFIX/$INSTALL_BASE/bin/omnisci_initdb tmp
+            $PREFIX/$INSTALL_BASE/bin/initheavy tmp
             make sanity_tests
             rm -rf tmp
             cd -
@@ -297,7 +296,7 @@ case "$PKG_NAME" in
         fi
         ;;
 
-    pyomniscidbe)
+    pyheavydbe)
 
         if [[ "$RUN_DBE_TESTS" == "1" ]]
         then

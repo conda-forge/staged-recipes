@@ -45,7 +45,7 @@ cmake --build . --target QueryEngineFunctionsTargets mapd_java_components genera
 if errorlevel 1 exit 1
 
 cmake --install . --component "include" --prefix %PREFIX%
-cmake --install . --component "doc" --prefix %PREFIX%\share\doc\omnisci
+cmake --install . --component "doc" --prefix %PREFIX%\share\doc\heavyai
 cmake --install . --component "data" --prefix %PREFIX%
 cmake --install . --component "thrift" --prefix %PREFIX%
 cmake --install . --component "QE" --prefix %PREFIX%
