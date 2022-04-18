@@ -1,7 +1,6 @@
-conda create -n pyptv_py39 python=3.9 -y
+conda create -n pyptv_py38 python=3.8 -y
 conda update -n base -c defaults conda
-conda activate pyptv_py39
+conda activate pyptv_py38
 conda install swig pyyaml cython numpy -y
-pip install optv --index-url https://pypi.fury.io/pyptv
-pip install git+https://github.com/enthought/enable
-$PYTHON setup.py install     # Python command to install the script.
+pip install pyptv --index-url https://pypi.fury.io/pyptv --extra-index-url https://pypi.org/simple
+# $PYTHON setup.py install     # Python command to install the script.
