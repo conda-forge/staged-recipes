@@ -17,8 +17,8 @@ set "PKG_UUID=%PKG_NAME%-%PKG_VERSION%_%PKG_BUILDNUM%"
 set "CONDA_MESO=%CONDA_PREFIX%\conda-meso\%PKG_UUID%"
 if not exist "%CONDA_MESO%" mkdir "%CONDA_MESO%"
 
-:: Discovery
-:: should I be using `reg query ` to find the jdk directory path?
+rem  Discovery
+rem  should I be using `reg query ` to find the jdk directory path?
 set WIP=0
 for /D %%G in ("%ProgramFiles%\Java\jdk1.8.0_*") do (
   for /F "tokens=2,3,4 delims=-._" %%H in ("%%~nxG") do (
@@ -37,13 +37,13 @@ if not exist "%ORACLE_JDK_DIR%" (
     )  >> "%CONDA_PREFIX%\.messages.txt"
     exit /B 0
 )
-set "DISCOVER_SCRIPT=%CONDA_MESO%\discovery.bat"
-echo Writing pkg-script to %DISCOVER_SCRIPT% >> "%CONDA_PREFIX%\.messages.txt"
-echo set "ORACLE_JDK_DIR=%ORACLE_JDK_DIR%" > "%DISCOVER_SCRIPT%"
+set "DISCOVERY_SCRIPT=%CONDA_MESO%\discovery.bat"
+echo Writing pkg-script to %DISCOVERY_SCRIPT% >> "%CONDA_PREFIX%\.messages.txt"
+echo set "ORACLE_JDK_DIR=%ORACLE_JDK_DIR%" > "%DISCOVERY_SCRIPT%"
 
 echo Preparing to link *.exe files, from %ORACLE_JDK_DIR%. >> "%CONDA_PREFIX%\.messages.txt"
 
-set "UNLINK_SCRIPT=%CONDA_MESO%\pre-unlink-aux.bat"
+set "UNLINK_SCRIPT=%CONDA_MESO%\unlink-aux.bat"
 echo Writing revert-script to %UNLINK_SCRIPT% >> "%CONDA_PREFIX%\.messages.txt"
 type nul > "%UNLINK_SCRIPT%"
 

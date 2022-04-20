@@ -12,6 +12,13 @@ DEACTIVATE_SCRIPT="${CONDA_MESO}/deactivate-aux.sh"
 printf "#!/bin/bash -euo\n" > "${DEACTIVATE_SCRIPT}"
 echo "Writing revert-script to ${DEACTIVATE_SCRIPT}"
 
+
+echo "#  JDK8_HOME=\"${ORACLE_JDK_DIR}\"" >> "${DEACTIVATE_SCRIPT}"
+echo "JDK8_HOME=${JDK8_HOME}" >> "${DEACTIVATE_SCRIPT}"
+# the post-link script should have set ORACLE_JDK_DIR
+export JDK8_HOME="${ORACLE_JDK_DIR}"
+
+echo "# JAVA_HOME=\"${ORACLE_JDK_DIR}\"" >> "${DEACTIVATE_SCRIPT}"
 echo "JAVA_HOME=${JAVA_HOME}" >> "${DEACTIVATE_SCRIPT}"
 # the post-link script should have set ORACLE_JDK_DIR
-export JAVA_HOME="${ORACLE_JDK_DIR}/jdk1.8.0_321"
+export JAVA_HOME="${ORACLE_JDK_DIR}"

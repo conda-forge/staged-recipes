@@ -1,11 +1,11 @@
 #!/bin/bash -euo
 
 {
-  echo Installing in ${CONDA_PREFIX}
-  echo   CONDA_PREFIX: ${CONDA_PREFIX}
-  echo   PKG_NAME:     ${PKG_NAME}
-  echo   PKG_VERSION:  ${PKG_VERSION}
-  echo   PKG_BUILDNUM: ${PKG_BUILDNUM}
+  echo "Installing in ${CONDA_PREFIX}"
+  echo "  CONDA_PREFIX: ${CONDA_PREFIX}"
+  echo "  PKG_NAME:     ${PKG_NAME}"
+  echo "  PKG_VERSION:  ${PKG_VERSION}"
+  echo "  PKG_BUILDNUM: ${PKG_BUILDNUM}"
 } > "${CONDA_PREFIX}/.messages.txt"
 
 PKG_BIN="${CONDA_PREFIX}/bin"
@@ -35,23 +35,27 @@ if [ ! -d "${ORACLE_JDK_DIR}" ]; then
   } >> "${CONDA_PREFIX}/.messages.txt"
   exit 0
 fi
-DISCOVER_SCRIPT="${CONDA_MESO}/discovery.sh"
-echo "Writing pkg-script to ${DISCOVER_SCRIPT}" >> "${CONDA_PREFIX}/.messages.txt"
-echo "export ORACLE_JDK_DIR=${ORACLE_JDK_DIR}" > "$DISCOVER_SCRIPT"
+DISCOVERY_SCRIPT="${CONDA_MESO}/discovery.sh"
+echo "Writing pkg-script to ${DISCOVERY_SCRIPT}" >> "${CONDA_PREFIX}/.messages.txt"
+echo "export ORACLE_JDK_DIR=${ORACLE_JDK_DIR}" > "$DISCOVERY_SCRIPT"
 
 echo "Preparing to link *.exe files, from ${ORACLE_JDK_DIR}." >> "${CONDA_PREFIX}/.messages.txt"
 
-UNLINK_SCRIPT="${CONDA_MESO}/pre-unlink-aux.sh"
+UNLINK_SCRIPT="${CONDA_MESO}/unlink-aux.sh"
 echo "Writing revert-script to ${UNLINK_SCRIPT}" >> "${CONDA_PREFIX}/.messages.txt"
 printf "#!/bin/bash -euo\n" > "${UNLINK_SCRIPT}"
 
 [ -d "${PKG_BIN}" ] || mkdir -p "${PKG_BIN}"
-for ix in "${ORACLE_JDK_DIR}"/bin/*.exe; do
+for ix in "${ORACLE_JDK_DIR}"/bin/*; do
   BASE_NAME=$(basename -- "${ix}")
   jx="${PKG_BIN}/${BASE_NAME}"
-  if [ ! -f  "$jx" ]; then
-    ln "${jx}" "${ix}" || echo "failed linking ${jx} ${ix}" >> "${CONDA_PREFIX}/.messages.txt"
+  if [ -f  "$jx" ] ; then
+    rm "$jx"
+    echo "link ${jx} already exists" >> "${CONDA_PREFIX}/.messages.txt"
   fi
+
+  ln -s "${ix}" "${jx}" || echo "failed creating link ${jx} to ${ix}" >> "${CONDA_PREFIX}/.messages.txt"
+  echo "# ln -s \"${ix}\" \"${jx}\"" >> "${UNLINK_SCRIPT}"
   echo "rm \"${jx}\"" >> "${UNLINK_SCRIPT}"
 done
 

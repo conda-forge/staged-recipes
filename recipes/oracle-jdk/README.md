@@ -51,7 +51,7 @@ To that end I created a **conda-meso** folder.
 ```
 set "CONDA_MESO=%CONDA_PREFIX%\conda-meso\%PKG_NAME%-%PKG_VERSION%_%PKG_BUILDNUM%"
 set "DISCOVERY_SCRIPT=%CONDA_MESO%\discovery.bat"
-set "UNLINK_SCRIPT=%CONDA_MESO%\pre-unlink-aux.bat"
+set "UNLINK_SCRIPT=%CONDA_MESO%\unlink-aux.bat"
 set "DEACTIVATE_SCRIPT=%CONDA_MESO%\deactivate-aux.bat`
 ```
 

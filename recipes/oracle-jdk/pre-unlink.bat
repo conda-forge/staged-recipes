@@ -2,7 +2,7 @@
 @echo off
 
 set "PKG_UUID=%PKG_NAME%-%PKG_VERSION%_%PKG_BUILDNUM%"
-set "UNLINK_SCRIPT=%CONDA_PREFIX%\conda-meso\%PKG_UUID%\pre-unlink-aux.bat"
+set "UNLINK_SCRIPT=%CONDA_PREFIX%\conda-meso\%PKG_UUID%\unlink-aux.bat"
 echo unlink script %UNLINK_SCRIPT% > "%CONDA_PREFIX%\.messages.txt"
 
 if exist "%UNLINK_SCRIPT%" do (
