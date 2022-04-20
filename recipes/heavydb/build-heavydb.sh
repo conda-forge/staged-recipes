@@ -136,24 +136,24 @@ esac
 case "$PKG_NAME" in
 
     heavydb-common)
-
+        echo "Building heavydb-common"
         ninja QueryEngineFunctionsTargets mapd_java_components generate_cert_target
         ;;
 
     heavydbe)
-
+        echo "Building heavydbe"
         ninja DBEngine
         ;;
 
     pyheavydbe)
-
+        echo "Installing pyheavydbe"
         cd Embedded
         $PYTHON -m pip install .
         cd ..
         ;;
 
     heavydb)
-
+        echo "Building heavydb"
         ninja initheavy heavydb heavysql StreamImporter KafkaImporter
         ;;
 
@@ -168,6 +168,7 @@ cd ..
 case "$PKG_NAME" in
 
     heavydb-common)
+        echo "Installing heavydb-common"
         cmake --install build --component "include" --prefix $PREFIX/$INSTALL_BASE
         cmake --install build --component "doc" --prefix $PREFIX/share/doc/heavyai
         cmake --install build --component "data" --prefix $PREFIX/$INSTALL_BASE
@@ -190,6 +191,7 @@ case "$PKG_NAME" in
         ;;
 
     heavydbe)
+        echo "Installing heavydbe"
         cmake --install build --component "DBE" --prefix $PREFIX/$INSTALL_BASE
 
         mkdir -p $PREFIX/lib
@@ -229,7 +231,7 @@ EOF
         ;;
 
     heavydb)
-
+        echo "Installing heavydb"
         cmake --install build --component "exe" --prefix $PREFIX/$INSTALL_BASE
 
         cd $PREFIX/$INSTALL_BASE/bin
@@ -282,9 +284,10 @@ esac
 case "$PKG_NAME" in
 
     heavydb)
-
+        echo "Testing heavydb"
         if [[ "$RUN_TESTS" == "1" ]]
         then
+            echo "Sanity tests"
             cd build
             mkdir tmp
             $PREFIX/$INSTALL_BASE/bin/initheavy tmp
@@ -297,9 +300,10 @@ case "$PKG_NAME" in
         ;;
 
     pyheavydbe)
-
+        echo "Testing pyheavydbe"
         if [[ "$RUN_DBE_TESTS" == "1" ]]
         then
+            echo "Starting Python DBE tests"
             cd Embedded/test
             $PYTHON test_fsi.py
             $PYTHON test_readcsv.py
