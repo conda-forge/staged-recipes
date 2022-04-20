@@ -5,7 +5,7 @@ SNAP_USER="${SNAP_HOME}/.snap"
 
 # create dir for needed folders
 mkdir -p $SNAP_HOME
-mkdir -p $SNAP_USER
+mkdir -p $SNAP_USER/snap-python/snappy
 mkdir -p ${SNAP_HOME}/../snap-src
 mkdir -p $PREFIX/bin
 
@@ -14,7 +14,15 @@ ls -l ${SNAP_HOME} &>> $PREFIX/.messages.txt
 echo "ls -l ${SNAP_HOME}/../snap-src" &>> $PREFIX/.messages.txt
 ls -l ${SNAP_HOME}/../snap-src &>> $PREFIX/.messages.txt
 
+# install module 'jpy' (A bi-directional Python-Java bridge)
+git clone --depth 1 --branch 0.9.0 https://github.com/jpy-consortium/jpy.git ${SNAP_HOME}/../snap-src/jpy
+pip3 install --upgrade pip wheel
+(cd ${SNAP_HOME}/../snap-src/jpy && python3 setup.py bdist_wheel)
+# hack because ./snappy-conf will create this dir but also needs *.whl files...
+mkdir -p /root/.snap/snap-python/snappy
+cp ${SNAP_HOME}/../snap-src/jpy/dist/*.whl "$SNAP_USER/snap-python/snappy"
 
+# Install and update snap
 SNAP_PKG='esa-snap_sentinel_unix_8_0.sh'
 
 chmod 755 ${SNAP_HOME}/../snap-src/$SNAP_PKG
@@ -52,29 +60,29 @@ echo "setting python_version variable" &>> $PREFIX/.messages.txt
 python_version=$( $PREFIX/bin/python -c 'import sys; print("{}.{}".format(sys.version_info[0], sys.version_info[1]))' )
 echo "python_version is $python_version " &>> $PREFIX/.messages.txt
 
-# retrieving jpy wheel to copy in ${SNAP_USER}/snap-python/snappy directory
-jpy_file=$(find ${PREFIX}/jpy_wheel -name "jpy-*-cp*-cp*-linux_x86_64.whl")
-if [ -z "$jpy_file" ]
-then
-	echo "Jpy has not been installed correctly" &>> $PREFIX/.messages.txt
-	exit 1
-fi
+# # retrieving jpy wheel to copy in ${SNAP_USER}/snap-python/snappy directory
+# jpy_file=$(find ${PREFIX}/jpy_wheel -name "jpy-*-cp*-cp*-linux_x86_64.whl")
+# if [ -z "$jpy_file" ]
+# then
+# 	echo "Jpy has not been installed correctly" &>> $PREFIX/.messages.txt
+# 	exit 1
+# fi
 
-jpy_filename=$(basename $jpy_file)
+# jpy_filename=$(basename $jpy_file)
 
-# check if ${SNAP_USER}/snap-python/snappy directory exists, if not create it
-if [ -d "${SNAP_USER}/snap-python/snappy" ]
-then
-	echo "${SNAP_USER}/snap-python/snappy directory exists"  &>> $PREFIX/.messages.txt
-else
-	echo "creating ${SNAP_USER}/snap-python/snappy directory"  &>> $PREFIX/.messages.txt
-	mkdir -p ${SNAP_USER}/snap-python/snappy &>> $PREFIX/.messages.txt
-fi
+# # check if ${SNAP_USER}/snap-python/snappy directory exists, if not create it
+# if [ -d "${SNAP_USER}/snap-python/snappy" ]
+# then
+# 	echo "${SNAP_USER}/snap-python/snappy directory exists"  &>> $PREFIX/.messages.txt
+# else
+# 	echo "creating ${SNAP_USER}/snap-python/snappy directory"  &>> $PREFIX/.messages.txt
+# 	mkdir -p ${SNAP_USER}/snap-python/snappy &>> $PREFIX/.messages.txt
+# fi
 
-# copying jpy wheel to snappy folder
-echo "Copying $jpy_file to ${SNAP_USER}/snap-python/snappy/$jpy_filename" &>> $PREFIX/.messages.txt
-echo "running: cp ${jpy_file} ${SNAP_USER}/snap-python/snappy/$jpy_filename" &>> $PREFIX/.messages.txt
-cp ${jpy_file} ${SNAP_USER}/snap-python/snappy/$jpy_filename &>> $PREFIX/.messages.txt
+# # copying jpy wheel to snappy folder
+# echo "Copying $jpy_file to ${SNAP_USER}/snap-python/snappy/$jpy_filename" &>> $PREFIX/.messages.txt
+# echo "running: cp ${jpy_file} ${SNAP_USER}/snap-python/snappy/$jpy_filename" &>> $PREFIX/.messages.txt
+# cp ${jpy_file} ${SNAP_USER}/snap-python/snappy/$jpy_filename &>> $PREFIX/.messages.txt
 
 echo "running snappy-conf: ${SNAP_HOME}/bin/snappy-conf ${PREFIX}/bin/python ${SNAP_USER}/snap-python" &>> $PREFIX/.messages.txt
 
