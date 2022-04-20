@@ -41,11 +41,10 @@ cmake -G "NMake Makefiles" ^
       "%SRC_DIR%"
 if errorlevel 1 exit 1
 
-cmake --build . --target calciteserver_thrift initdb omnisci_server omnisql mapd_java_components StreamImporter KafkaImporter --config Release
+cmake --build . --target calciteserver_thrift initheavy heavydb heavysql mapd_java_components StreamImporter KafkaImporter --config Release
 if errorlevel 1 exit 1
 
 cmake --install . --component "exe" --prefix %PREFIX%
-COPY %PREFIX%\bin\initdb.exe %PREFIX%\bin\omnisci_initdb.exe
 if errorlevel 1 exit 1
 
 popd
