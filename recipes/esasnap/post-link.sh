@@ -19,7 +19,6 @@ git clone --depth 1 --branch 0.9.0 https://github.com/jpy-consortium/jpy.git ${S
 pip3 install --upgrade pip wheel
 (cd ${SNAP_HOME}/../snap-src/jpy && python3 setup.py bdist_wheel)
 # hack because ./snappy-conf will create this dir but also needs *.whl files...
-mkdir -p /root/.snap/snap-python/snappy
 cp ${SNAP_HOME}/../snap-src/jpy/dist/*.whl "$SNAP_USER/snap-python/snappy"
 
 # Install and update snap
