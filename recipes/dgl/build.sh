@@ -17,3 +17,6 @@ cmake -DUSE_CUDA=ON -DUSE_OPENMP=ON -DCUDA_ARCH_NAME=All ${CUDA_CMAKE_OPTIONS} $
 make -j$CPU_COUNT
 cd ../python
 ${PYTHON} setup.py install --single-version-externally-managed --record=record.txt
+
+# Fix some overlinking warnings/errors
+ln -s build/*/dgl/libdgl.so $PREFIX/lib
