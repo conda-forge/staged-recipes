@@ -1,5 +1,6 @@
 {% set name = "dgl" %}
 {% set version = "0.8.0post2" %}
+{% set torch_proc_type = "cuda" if cuda_compiler_version != "None" else "cpu" %}
 
 package:
   name: {{ name|lower }}
@@ -10,17 +11,20 @@ source:
     sha256: 2f7d81b4ba10cdd182b4d188786c5100afbb468b5eeb4ba9932b534db90d6e3b
 
 build:
+  skip: true  # [(not linux) or (cuda_compiler_version in (undefined, 'None'))]
   number: 0
   rpaths:
     - lib/
   missing_dso_whitelist:
     - '*/libcuda.*'  # [linux64]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
 
 requirements:
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
     - {{ compiler('cuda') }}  # [cuda_compiler_version not in (undefined, 'None')]
+    - sysroot_linux-64  2.17  # [linux64]    
     - cmake
 
   host:
@@ -34,9 +38,11 @@ requirements:
     - scipy >=1.1.0
     - networkx >=2.1
     - requests >=2.19.0
-    - pytorch
+    - pytorch =*={{ torch_proc_type }}*
     - tensorflow
     - tqdm
+  run_constrained:
+    - pytorch =*={{ torch_proc_type }}*
 
 test:
   imports:
@@ -61,4 +67,4 @@ about:
 
 extra:
   recipe-maintainers:
-    - knc6
+    - mikemhenry
