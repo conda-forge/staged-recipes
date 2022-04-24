@@ -6,7 +6,7 @@ cmake ../dials \
     "${CMAKE_ARGS}" \
     "-DCMAKE_INSTALL_PREFIX=$PREFIX" \
     "-DPython_EXECUTABLE=$PYTHON" \
-    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -GNinja
 cmake --build .
 cmake --install .
