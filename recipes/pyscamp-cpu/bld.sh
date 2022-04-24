@@ -1,0 +1,1 @@
+PYSCAMP_NO_PLATFORM_AUTOSELECT=1 ${PYTHON} setup.py install
