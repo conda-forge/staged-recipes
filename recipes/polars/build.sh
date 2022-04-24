@@ -21,6 +21,10 @@ mkdir $CARGO_HOME
 # Check that all downstream libraries licenses are present
 export PATH=$PATH:$CARGO_HOME/bin
 
+# setup caching for faster build
+cargo install sccache
+export RUSTC_WRAPPER=sccache
+
 # Apply PEP517 to install the package
 maturin build --release -i $PYTHON
 
