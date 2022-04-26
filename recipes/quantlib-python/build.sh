@@ -1,5 +1,4 @@
 #!/bin/bash
-QL_DIR=/opt/conda/
 
 ./autogen.sh
 ./configure PYTHON CXXFLAGS='-O1'
