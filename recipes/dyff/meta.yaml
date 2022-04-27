@@ -1,0 +1,49 @@
+{% set name = "dyff" %}
+{% set version = "1.5.1" %}
+
+{% set goname = "github.com/homeport/" + name.lower() %}
+{% set pkg_src = ('src/'+goname).replace("/",os.sep) %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - folder: {{ pkg_src }}
+    url: https://{{ goname }}/archive/v{{ version }}.tar.gz
+    sha256: 933d3545451019ccb35d799a4cf09e775b973d3b0b9ecef82c16e407ae6975c4
+
+build:
+  number: 0
+  script:
+    - GOBIN=$(go env GOBIN)  # [not win]
+    - FOR /F "delims=" %%i IN ('go env GOBIN') DO set "GOBIN=%%i"  # [win]
+    - pushd {{ pkg_src }}
+    - go build -v -o $GOBIN/{{ name }} -ldflags "-X github.com/homeport/dyff/internal/cmd.version={{ version }}" ./cmd/dyff  # [unix]
+    - go build -v -o %GOBIN%\{{ name }}.exe -ldflags "-X github.com/homeport/dyff/internal/cmd.version={{ version }}" .\cmd\dyff  # [win]
+    - go-licenses save ./cmd/dyff --save_path=./license-files  # [unix]
+    - go-licenses save .\cmd\dyff --save_path=.\license-files  # [win]
+
+requirements:
+  build:
+    - {{ compiler('go') }} >=1.12
+    - go-licenses
+
+test:
+  commands:
+    - dyff version
+
+about:
+  home: https://github.com/homeport/dyff
+  license: MIT
+  license_family: MIT
+  license_file:
+    - src/github.com/homeport/dyff/LICENSE
+    - src/github.com/homeport/dyff/license-files/
+  summary: A diff tool for YAML files, and sometimes JSON
+  doc_url: https://github.com/homeport/dyff/blob/{{ version }}/README.md
+  dev_url: https://github.com/homeport/dyff
+
+extra:
+  recipe-maintainers:
+    - asford
