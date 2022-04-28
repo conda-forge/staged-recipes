@@ -1,5 +1,5 @@
 export LIBXUL_DIST=$out
-export PYTHON="${buildPackages.python3.interpreter}"
+export PYTHON=python
 export M4=m4
 export AWK=awk
 export AC_MACRODIR=$PWD/build/autoconf/
