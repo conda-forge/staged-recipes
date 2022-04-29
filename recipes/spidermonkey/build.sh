@@ -1,7 +1,8 @@
 export LIBXUL_DIST=$out
 export M4=m4
 export AWK=awk
-export PERL=$(which perl)
+export LLVM_OBJDUMP=objdump
+
 # We can't build in js/src/, so create a build dir
 mkdir obj
 cd obj/
