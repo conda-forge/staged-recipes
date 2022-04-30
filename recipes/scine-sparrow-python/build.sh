@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
 set -ex
 
-cmake \
-    ${CMAKE_ARGS} \
-    -B _build -G Ninja \
-    -DPYTHON_EXECUTABLE=$PYTHON \
-    -DSCINE_MARCH="" \
-    -DSCINE_SKIP_LIBRARY=ON \
-    -DSCINE_BUILD_TESTS=OFF \
-    -DSCINE_BUILD_PYTHON_BINDINGS=ON
-cmake --build _build
-cmake --install _build
+mkdir scine_sparrow/
+sed \
+  -e s/@Sparrow_VERSION@/$PKG_VERSION/ \
+  -e s/@sparrow_PY_DEPS@// \
+  src/Sparrow/Python/setup.py > setup.py
+cp -r src/Sparrow/Python/__init__.py scine_sparrow/
+pip install . -vv
