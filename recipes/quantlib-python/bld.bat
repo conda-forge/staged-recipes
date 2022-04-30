@@ -1,6 +1,8 @@
 
 set QL_DIR=C:\Miniconda\
-copy /f  %RECIPE_DIR%\quantlib.hpp %PREFIX%\Library\include\ql
+
+echo "Overwriting quantlib.hpp"
+copy /f %RECIPE_DIR%\quantlib.hpp %PREFIX%\Library\include\ql\quantlib.hpp
 
 cd Python
 python setup.py build
