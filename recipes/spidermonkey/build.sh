@@ -2,6 +2,7 @@ export LIBXUL_DIST=$out
 export M4=m4
 export AWK=awk
 export LLVM_OBJDUMP=objdump
+export CPPFLAGS="-D__STDC_FORMAT_MACROS $CPPFLAGS"
 
 # We can't build in js/src/, so create a build dir
 mkdir obj
