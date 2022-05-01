@@ -12,5 +12,6 @@ cmake \
   ..
 
 cmake --build .
-ctest
 cmake --install . -v
+
+ctest
