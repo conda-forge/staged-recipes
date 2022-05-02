@@ -1,0 +1,84 @@
+diff --git a/src/Sparrow/CMakeLists.txt b/src/Sparrow/CMakeLists.txt
+index 3d67744..5f14bd6 100644
+--- a/src/Sparrow/CMakeLists.txt
++++ b/src/Sparrow/CMakeLists.txt
+@@ -17,6 +17,11 @@ if(NOT TARGET Boost::filesystem OR NOT TARGET Boost::program_options)
+   find_package(Boost REQUIRED COMPONENTS program_options filesystem)
+ endif()
+ 
++if(SCINE_BUILD_TESTS OR SCINE_BUILD_PYTHON_BINDINGS)
++  find_package(PythonInterp REQUIRED)
++endif()
++
++if(NOT SCINE_SKIP_LIBRARY)
+ # Sparrow is a Scine module and is always shared, never linked against
+ add_library(Sparrow SHARED ${SPARROW_MODULE_FILES})
+ 
+@@ -87,7 +92,6 @@ if(SCINE_BUILD_TESTS)
+     ${CMAKE_DL_LIBS}
+   )
+   add_test(NAME Sparrow COMMAND Sparrow_tests)
+-  find_package(PythonInterp REQUIRED)
+   if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+     set(TEST_SELECTION "::TestSparrowFast")
+   else()
+@@ -106,6 +110,10 @@ if(SCINE_BUILD_TESTS)
+     ENVIRONMENT PATH=${CMAKE_CURRENT_BINARY_DIR}:$ENV{PATH}
+   )
+ endif()
++else()
++include(ImportSparrow)
++import_sparrow()
++endif()
+ 
+ # Set the RPATH to be used when installing.
+ if(APPLE)
+@@ -115,6 +123,7 @@ else()
+   set(CMAKE_INSTALL_RPATH "\$ORIGIN;\$ORIGIN/../lib")
+ endif()
+ 
++if(NOT SCINE_SKIP_LIBRARY)
+ # Executable
+ add_executable(SparrowApp ${SPARROW_APP_FILES})
+ add_executable(Scine::SparrowApp ALIAS SparrowApp)
+@@ -144,6 +153,7 @@ target_link_libraries(RTSpectroscopyDriver
+ if(WIN32 AND MINGW)
+   target_link_libraries(SparrowApp PRIVATE ws2_32)
+ endif()
++endif()
+ 
+ # Python Bindings
+ if(SCINE_BUILD_PYTHON_BINDINGS)
+@@ -159,18 +169,22 @@ if(SCINE_BUILD_PYTHON_BINDINGS)
+   # Generate generator expressions for each targets and figure out filenames
+   # for the python setup file
+   set(sparrow_PY_DEPS "")
++  if(NOT SCINE_SKIP_LIBRARY)
+   foreach(target ${_py_targets_to_copy})
+     list(APPEND _py_target_gen_exprs "\$<TARGET_FILE:${target}>")
+     target_lib_filename(${target} _target_filename)
+     string(APPEND sparrow_PY_DEPS ", \"${_target_filename}\"")
+   endforeach()
+   message(STATUS "Targets to copy for python bindings: ${_py_targets_to_copy}")
++  endif()
+   unset(_py_targets_to_copy)
+ 
++  if(NOT SCINE_SKIP_LIBRARY)
+   add_custom_command(TARGET Sparrow POST_BUILD
+     COMMAND ${CMAKE_COMMAND} -E copy ${_py_target_gen_exprs} ${CMAKE_CURRENT_BINARY_DIR}/scine_sparrow
+     COMMENT "Copying required shared libraries into python package directory"
+   )
++  endif()
+   unset(_py_target_gen_exprs)
+ 
+   install(CODE
+@@ -245,7 +259,9 @@ if(SCINE_BUILD_PYTHON_BINDINGS)
+   )
+ endif()
+ 
++if(NOT SCINE_SKIP_LIBRARY)
+ add_subdirectory(Embed)
+ 
+ # Targets
+ install(TARGETS SparrowApp RUNTIME DESTINATION bin)
++endif()
