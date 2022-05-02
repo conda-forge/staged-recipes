@@ -1,0 +1,70 @@
+From c6f3c0c4b251fdd96acd92081d1b9d2fdd2412cd Mon Sep 17 00:00:00 2001
+From: Sebastian Ehlert <28669218+awvwgk@users.noreply.github.com>
+Date: Mon, 11 Apr 2022 23:07:54 +0200
+Subject: [PATCH] Allow finding installed xtb version
+
+---
+ CMakeLists.txt         | 34 ++++++++++++++++++++++++----------
+ src/Xtb/CMakeLists.txt |  2 +-
+ 2 files changed, 25 insertions(+), 11 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f3ae353..0079b25 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -13,18 +13,32 @@ enable_language(Fortran)
+ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/dev/cmake)
+ 
+ # Find xtb
+-find_package(xtb QUIET)
+-if(NOT TARGET lib-xtb-static)
+-  include(DownloadProject)
+-  download_project(
+-    PROJ xtb
+-    GIT_REPOSITORY https://github.com/grimme-lab/xtb.git
+-    GIT_TAG v6.4.1
+-    QUIET
+-    UPDATE_DISCONNECTED 1
++find_package(PkgConfig REQUIRED)
++pkg_check_modules(XTB REQUIRED xtb)
++if(XTB_FOUND)
++  add_library(xtb::xtb INTERFACE IMPORTED)
++  target_link_libraries(
++    xtb::xtb
++    INTERFACE
++    ${XTB_LINK_LIBRARIES}
+   )
+-  add_subdirectory(${xtb_SOURCE_DIR} ${xtb_BINARY_DIR})
++  target_include_directories(
++    xtb::xtb
++    INTERFACE
++    ${XTB_INCLUDE_DIRS}
++  )
++else()
++  include(FetchContent)
++  FetchContent_Declare(
++    xtb
++    GIT_REPOSITORY "https://github.com/grimme-lab/xtb"
++    GIT_TAG "v6.4.1"
++  )
++  FetchContent_MakeAvailable(xtb)
++
++  add_library(xtb::xtb INTERFACE IMPORTED)
+   if(TARGET lib-xtb-static)
++    target_link_libraries(xtb::xtb INTERFACE lib-xtb-static)
+     message(STATUS "xtb was not found in your PATH, so it was downloaded.")
+   else()
+     string(CONCAT error_msg
+diff --git a/src/Xtb/CMakeLists.txt b/src/Xtb/CMakeLists.txt
+index 7d58516..e2b7176 100644
+--- a/src/Xtb/CMakeLists.txt
++++ b/src/Xtb/CMakeLists.txt
+@@ -31,7 +31,7 @@ set_target_properties(Xtb PROPERTIES
+ target_link_libraries(Xtb
+   PRIVATE
+     Scine::UtilsOS
+-    lib-xtb-static
++    xtb::xtb
+     gfortran
+   PUBLIC
+     Scine::CoreHeaders
