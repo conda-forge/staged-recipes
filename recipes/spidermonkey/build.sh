@@ -10,3 +10,4 @@ cd obj/
 python ../configure.py --prefix=$PREFIX --enable-project=js --disable-ctypes --disable-jit --disable-jemalloc --enable-optimize --enable-hardening --with-intl-api --build-backends=RecursiveMake --with-system-icu --disable-debug --enable-gczeal
 make
 make install
+rm $PREFIX/lib/libjs_static.ajs
