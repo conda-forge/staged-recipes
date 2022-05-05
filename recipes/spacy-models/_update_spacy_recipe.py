@@ -3,6 +3,7 @@ import jinja2
 from subprocess import check_call
 from pathlib import Path
 import json
+import fnmatch
 import re
 
 DEV_URL = "https://github.com/explosion/spacy-models"
@@ -12,6 +13,10 @@ HEAD = "3d347dfd1755a004cf9b686edbffbfbec51515d8"
 # TODO: current fails if building _everything_ at once, restore when smaller
 # SIZE_PATTERN = "*"
 SIZE_PATTERN = "*_sm"
+SKIP_PATTERNS = [
+    # needs sudachipy
+    "ja_core*"
+]
 
 HERE = Path(__file__).parent
 REPO = HERE.parent / "_spacy_models_repo"
@@ -38,6 +43,7 @@ def update_recipe():
     all_metas = {
         p: json.load(p.open())
         for p in sorted((REPO / "meta").glob(f"{SIZE_PATTERN}-{VERSION}.json"))
+        if not any([fnmatch.fnmatch(p.name, pattern) for pattern in SKIP_PATTERNS])
     }
     template = jinja2.Template(
         TMPL.read_text(encoding="utf-8").strip(),
