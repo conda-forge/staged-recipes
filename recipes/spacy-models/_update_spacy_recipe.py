@@ -9,6 +9,10 @@ DEV_URL = "https://github.com/explosion/spacy-models"
 VERSION = "3.3.0"
 HEAD = "3d347dfd1755a004cf9b686edbffbfbec51515d8"
 
+# TODO: current fails if building _everything_ at once, restore when smaller
+# SIZE_PATTERN = "*"
+SIZE_PATTERN = "*_sm"
+
 HERE = Path(__file__).parent
 REPO = HERE.parent / "_spacy_models_repo"
 TMPL = HERE / "meta.yaml.j2"
@@ -33,7 +37,7 @@ def ensure_repo():
 def update_recipe():
     all_metas = {
         p: json.load(p.open())
-        for p in sorted((REPO / "meta").glob(f"*-{VERSION}.json"))
+        for p in sorted((REPO / "meta").glob(f"{SIZE_PATTERN}-{VERSION}.json"))
     }
     template = jinja2.Template(
         TMPL.read_text(encoding="utf-8").strip(),
