@@ -1,0 +1,204 @@
+--- tvips/adoc.l.orig
++++ tvips/adoc.l
+@@ -414,6 +414,7 @@ adoc_parse(FILE *stream, const char *zone)
+     if (adoclex_init_extra(&yylval, &scanner) != 0)
+         return (NULL);
+ 
++    item = NULL;
+     dict = root = metadata_item_new(NULL);
+     if (dict == NULL)
+         return (NULL);
+--- tvips/dan_test.c.orig
++++ tvips/dan_test.c
+@@ -101,7 +101,7 @@ main(int argc, char *argv[])
+     }
+     frame_free(bkg);
+ 
+-    fprintf(stderr, "Average intensity %zd\n", sum / (frame->panel->width * frame->panel->height));
++    fprintf(stderr, "Average intensity %llu\n", (unsigned long long int)(sum / (frame->panel->width * frame->panel->height)));
+ 
+ 
+     /* Write the output file.
+--- tvips/fixpoint.c.orig
++++ tvips/fixpoint.c
+@@ -398,8 +398,8 @@ programmatic2(const struct timespec *base, size_t nmemb)
+                  */
+ //                printf("%02zd: BREAKAGE UNDERSHOOT not in [%f, %f] %zd\n",
+ //                       i, offset_min[i], offset_max[i], k_cur);
+-                printf("%02zd: BREAKAGE UNDERSHOOT %ld not in [%f, %f] %zd\n",
+-                       i, base[i].tv_sec, offset_min + k[i] * p_min, offset_max + k[i] * p_max, k_cur);
++                printf("%02zd: BREAKAGE UNDERSHOOT %lld not in [%f, %f] %zd\n",
++                       i, (long long int)base[i].tv_sec, offset_min + k[i] * p_min, offset_max + k[i] * p_max, k_cur);
+                 for (j = i; j < nmemb; j++)
+                     k[j] += 1;
+                 ok = 0;
+@@ -443,9 +443,9 @@ programmatic2(const struct timespec *base, size_t nmemb)
+             offset_max = MIN(offset_max, o_max);
+ 
+ 
+-            printf("\n    %02zd: CHECK %ld %ld %zd %f [%f]\n",
++            printf("\n    %02zd: CHECK %lld %lld %zd %f [%f]\n",
+                    i,
+-                   base[i].tv_sec, base[0].tv_sec, k[i], p_max, o_min);
++                   (long long int)base[i].tv_sec, (long long int)base[0].tv_sec, k[i], p_max, o_min);
+ 
+             printf("    %02zd: LIMITS [%f, %f] [%f, %f] [%f, %f]\n",
+                    i,
+@@ -685,7 +685,7 @@ main(int argc, char *argv[])
+             seq[j].tv_sec = lrintf(floorf(period * i + offset));
+             seq[j].tv_nsec = 0;
+ 
+-            printf(" ### %3zd: %ld\n", j, seq[j].tv_sec);
++            printf(" ### %3zd: %lld\n", j, (long long int)seq[j].tv_sec);
+             j += 1;
+         }
+     }
+--- tvips/frame.c.orig
++++ tvips/frame.c
+@@ -61,10 +61,14 @@ static const char* C_wday[7] = {
+ static int
+ _strftime(char *buf, size_t maxsize, const struct tm *tm)
+ {
++#ifdef __MINGW32__
+     return (snprintf(buf, maxsize, "%s %s %2d %02d:%02d:%02d %d",
+                      C_wday[tm->tm_wday], C_mon[tm->tm_mon],
+                      tm->tm_mday, tm->tm_hour, tm->tm_min,
+                      tm->tm_sec, tm->tm_year + 1900));
++#else
++    return (strftime(buf, maxsize, "%a %b %e %H:%M:%S %Y", tm));
++#endif
+ }
+ 
+ 
+--- tvips/img2px.c.orig
++++ tvips/img2px.c
+@@ -1299,6 +1299,8 @@ _histogram(struct frame *frame, size_t counter, void *data)
+         double stddev;
+ 
+         mode = histogram->HHF + 1;
++        n_stddev = 0;
++        stddev = 0;
+         for (i = histogram->HHF + 2; i < 2 * histogram->HHF; i++) {
+             if (histogram->histogram[i] > histogram->histogram[mode]) {
+                 mode = i;
+--- tvips/mrc2smv.c.orig
++++ tvips/mrc2smv.c
+@@ -1124,7 +1124,6 @@ _mrc_readfile(FILE *stream,
+     default:
+         fprintf(stderr, "Invalid floating point machine stamp\n");
+         errno = EINVAL;
+-        break;
+         goto exit_error;
+     }
+ 
+@@ -1159,7 +1158,6 @@ _mrc_readfile(FILE *stream,
+     default:
+         fprintf(stderr, "Invalid integer machine stamp 0x%08x\n", machst);
+         errno = EINVAL;
+-        break;
+         goto exit_error;
+     }
+ 
+@@ -1545,8 +1543,8 @@ _mrc_readfile(FILE *stream,
+ 
+         if (fstat(fileno(stream), &sb) != 0)
+             goto exit_error;
+-        fprintf(stderr, "%ld trailing unparsed octets\n",
+-                sb.st_size - ftell(stream));
++        fprintf(stderr, "%lld trailing unparsed octets\n",
++                (long long int)(sb.st_size - ftell(stream)));
+     }
+ #ifdef DEBUG
+     metadata_item_dump(stdout, dict, 0, 0);
+--- tvips/tiff.c.orig
++++ tvips/tiff.c
+@@ -361,8 +361,8 @@ _tiff_raster(TIFF *tif, struct frame_panel *panel)
+     void *p;
+     tdata_t src_data;
+     tsize_t src_size;
+-    uint32 d, i, j, k, l, tl, tw, w;
+-    uint16 bps, spp, sf, pm;
++    uint32_t d, i, j, k, l, tl, tw, w;
++    uint16_t bps, spp, sf, pm;
+ 
+ 
+     /* Only grayscale images are supported.  Such images have a depth
+@@ -735,7 +735,7 @@ _strptime(const char *buf, struct tm *tm)
+ ssize_t
+ tvips_burst_frames(struct tvips_tiff *handle)
+ {
+-    uint32 length, max, min, width;
++    uint32_t length, max, min, width;
+ 
+     if (TIFFGetFieldDefaulted(handle->tif, TIFFTAG_IMAGELENGTH, &length) == 0 ||
+         TIFFGetFieldDefaulted(handle->tif, TIFFTAG_IMAGEWIDTH, &width) == 0) {
+@@ -940,8 +940,7 @@ int
+ tvips_read_header(struct tvips_tiff *handle)
+ {
+     void *p;
+-    uint32 offset;
+-    uint32_t version;
++    uint32_t offset, version;
+ 
+ 
+     /* Get a pointer to the TemData structure using the new tag, which
+@@ -1340,29 +1339,6 @@ _cap_to_uint16(double t, size_t *oflow, size_t *uflow)
+ }
+ 
+ 
+-/* The _strftime() function writes the timestamp from @p tm into the
+- * buffer @p buf on the form "%Y:%m:%d %H:%M:%S".  No more than @p
+- * maxsize characters will be placed into @p buf.  The function
+- * returns the number of characters that would have been placed in @p
+- * buf if @p maxsize were unlimited, not including the terminating
+- * NULL character.  If an output or encoding error occurs, a value
+- * less than zero is returned.
+- *
+- * XXX Duplication w.r.t. frame.c.
+- */
+-static int
+-_strftime(char *buf, size_t maxsize, const struct tm *tm)
+-{
+-    return (snprintf(buf, maxsize, "%04d:%02d:%02d %02d:%02d:%02d",
+-                     tm->tm_year + 1900,
+-                     tm->tm_mon + 1,
+-                     tm->tm_mday,
+-                     tm->tm_hour,
+-                     tm->tm_min,
+-                     tm->tm_sec));
+-}
+-
+-
+ /* XXX Misnomer: does not write the TVIPS dictionary.  Symmetry here:
+  * accept a stream or a handle?  Always write MINISWHITE.
+  */
+@@ -1400,8 +1376,8 @@ tvips_write_tiff(const struct frame *frame, float K, float M, FILE *stream)
+     time_t clock;
+     tsize_t sls, ss;
+     int ret;
+-    uint32 dss, i, l, w;
+-    uint16 bps, sf;
++    uint32_t dss, i, l, w;
++    uint16_t bps, sf;
+ 
+ 
+     buf = NULL;
+@@ -1510,7 +1486,7 @@ tvips_write_tiff(const struct frame *frame, float K, float M, FILE *stream)
+         if (p == NULL)
+             goto exit_error;
+         buf = p;
+-        i = _strftime(buf, len, &tm);
++        i = strftime(buf, len, "%Y:%m:%d %H:%M:%S", &tm);
+     }
+ 
+ 
+--- tvips/tvips.c.orig
++++ tvips/tvips.c
+@@ -897,6 +897,7 @@ tvips_frame_write(struct frame *frame, size_t counter, void *data)
+     /* If, at this stage, the output format is still undetermined
+      * (i.e. FORMAT_DEFAULT), choose SMV for historical reasons.
+      */
++    ret = 0;
+     switch (output->format) {
+     case FORMAT_CBF:
+         ret = -1;
