@@ -17,6 +17,10 @@ SKIP_PATTERNS = [
     # needs sudachipy
     "ja_core*"
 ]
+EXTRA_REQS = {
+    # TODO: remove after https://github.com/conda-forge/spacy-pkuseg-feedstock/pull/11
+    "spacy-pkuseg": ["cython"]
+}
 
 HERE = Path(__file__).parent
 REPO = HERE.parent / "_spacy_models_repo"
@@ -45,6 +49,14 @@ def update_recipe():
         for p in sorted((REPO / "meta").glob(f"{SIZE_PATTERN}-{VERSION}.json"))
         if not any([fnmatch.fnmatch(p.name, pattern) for pattern in SKIP_PATTERNS])
     }
+
+    for path, meta in all_metas.items():
+        for pattern, extra_reqs in EXTRA_REQS.items():
+            if any(pattern in req for req in meta["requirements"]):
+                print(f"""- {path.name} needs extra: {", ".join(extra_reqs)}""")
+                meta["requirements"] += extra_reqs
+        meta["requirements"] = sorted(set(meta["requirements"]))
+
     template = jinja2.Template(
         TMPL.read_text(encoding="utf-8").strip(),
         # use alternate template delimiters to avoid conflicts
