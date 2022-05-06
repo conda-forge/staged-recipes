@@ -1,8 +1,8 @@
 jobs:
 - job: win_64
-  condition: not(eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  condition: not(eq(variables['Build.SourceBranch'], 'refs/heads/main'))
   pool:
-    vmImage: vs2017-win2016
+    vmImage: windows-2019
   strategy:
     maxParallel: 4
     matrix:
@@ -13,50 +13,47 @@ jobs:
   steps:
     - task: CondaEnvironment@1
       inputs:
-        packageSpecs: 'python=3.6 conda-build>=3.18 conda>4.7.12 conda-forge::conda-forge-ci-setup=3 networkx=2.4 conda-forge-pinning' # Optional
+        packageSpecs: 'python=3.9 conda-build>=3.18 conda>4.7.12 conda-forge::conda-forge-ci-setup=3 networkx=2.4 conda-forge-pinning boa' # Optional
         installOptions: "-c conda-forge"
         updateConda: true
       displayName: Install conda-build and activate environment
 
     - script: set PYTHONUNBUFFERED=1
-
-    # Add our channels.
-    - script: conda.exe config --set show_channel_urls true
-      displayName: configure conda channels
-    - script: conda.exe config --remove channels defaults
-      displayName: configure conda channels
-    - script: conda.exe config --add channels defaults
-      displayName: configure conda channels
-
-    - script: conda.exe config --add channels conda-forge
-      displayName: configure conda channels
+      displayName: Set PYTHONUNBUFFERED
 
     # Configure the VM
-    - script: setup_conda_rc .\ .\recipes .\.ci_support\%CONFIG%.yaml
+    - script: |
+        call activate base
+        setup_conda_rc .\ ".\recipes" .\.ci_support\%CONFIG%.yaml
+      displayName: conda-forge CI setup
 
     # Configure the VM.
-    - script: call run_conda_forge_build_setup
+    - script: |
+        set "CI=azure"
+        call activate base
+        run_conda_forge_build_setup
       displayName: conda-forge build setup
 
-    # Find the recipes from master in this PR and remove them.
+    # Find the recipes from main in this PR and remove them.
     - script: |
-        git fetch --force origin master:master
+        git fetch --force origin main:main
         cd recipes
-        for /f "tokens=*" %%a in ('git ls-tree --name-only master -- .') do rmdir /s /q %%a && echo Removing recipe: %%a
+        for /f "tokens=*" %%a in ('git ls-tree --name-only main -- .') do rmdir /s /q %%a && echo Removing recipe: %%a
         cd ..
 
     - script: |
         REM make sure there is a package directory so that artifact publishing works
         setlocal enableextensions
-        if not exist C:\\Miniconda\\conda-bld\\win-64\\ mkdir C:\\Miniconda\\conda-bld\\win-64\\
+        if not exist C:\\bld\\win-64\\ mkdir C:\\bld\\win-64\\
       displayName: Make artifact dir
 
     # Special cased version setting some more things!
     - script: |
-        git fetch --force origin master:master
+        call activate base
+        git fetch --force origin main:main
         python .ci_support\build_all.py --arch 64
 
       displayName: Build recipe
 
-    - publish: C:\\Miniconda\\conda-bld\\win-64\\
+    - publish: C:\\bld\\win-64\\
       artifact: conda_pkgs_win
