@@ -65,8 +65,9 @@ build:
 
 A full description of selectors is [in the conda docs](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#preprocessing-selectors).
 
-Additionally, when pushing commits for a recipe that excludes Windows, put `[skip appveyor]` in the commit message to prevent CI tests
-on Windows from even starting.
+If the package can otherwise be `noarch` you can also skip it by using [virtual packages](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-virtual.html). 
+
+_Note_: As the package will always be built on linux, it needs to be at least available on there.
 
 
 ### 4. **What does the `build: 0` entry mean?**
