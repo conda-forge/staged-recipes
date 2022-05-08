@@ -3,9 +3,7 @@
 
 #include <ql/qldefines.hpp>
 #include <ql/version.hpp>
-#ifdef BOOST_MSVC
-#  include <ql/auto_link.hpp>
-#endif
+#include <ql/auto_link.hpp>
 
 #include <ql/auto_ptr.hpp>
 #include <ql/cashflow.hpp>
