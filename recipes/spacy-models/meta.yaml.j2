@@ -1,0 +1,80 @@
+{% set version = "<< version >>" %}
+# see https://github.com/explosion/spacy-models/blob/master/compatibility.json
+# but the pattern _generally_ seems to be x.x
+{% set spacy = "==" + (".".join(version.split(".")[:2])) + ".*" %}
+
+package:
+  name: spacy-models
+  version: {{ version }}
+
+source:
+  - url: https://raw.githubusercontent.com/explosion/spaCy/master/LICENSE
+    sha256: c07800e058b1b544eb9d47dd81687582fe6830c1ddc47f57521fc93628685915
+<% for p, m in all_metas.items() %>
+  - url: https://github.com/explosion/spacy-models/releases/download/<<m.lang >>_<< m.name >>-{{ version }}/<< m.lang >>_<< m.name >>-{{ version }}.tar.gz
+    sha256: << m.checksum >>
+    folder: <<m.lang >>_<< m.name >>
+<% endfor %>
+
+build:
+  noarch: python
+  number: 0
+
+requirements:
+  host:
+    - python >=3.6
+    - pip
+  run:
+    - setuptools
+    - python >=3.6
+
+test:
+  commands:
+    - echo "tests in subdir"
+
+outputs:
+<% for p, m in all_metas.items() %>
+  - name: spacy-model-<< m.lang >>_<< m.name >>
+    build:
+      noarch: python
+      script:
+        - cd << m.lang >>_<< m.name >> && {{ PYTHON }} -m pip install . -vv --no-deps
+    requirements:
+      host:
+        - python >=3.6
+        - pip
+      run:
+        - python >=3.6
+        - spacy {{ spacy }}<% for req in m.requirements %>
+        - << reqtify(req)  >>
+        <%- endfor %>
+    test:
+      imports:
+        - << m.lang >>_<< m.name >>
+      requires:
+        - pip
+      commands:
+        - pip check
+        - python -c "__import__('<< m.lang >>_<< m.name >>').load()"
+        - python -c "__import__('spacy').load('<< m.lang >>_<< m.name >>')"
+    about:
+      summary: << m.description.split(". ", 1)[0].strip() >>.
+      description: |-
+        << m.description.split(". ", 1)[1].strip() >>
+      license_file:
+        - << m.lang >>_<< m.name >>/LICENSE
+        - << m.lang >>_<< m.name >>/LICENSES_SOURCES
+<% endfor %>
+
+about:
+  home: https://spacy.io
+  license: MIT
+  license_file: LICENSE
+  summary: Models for the spaCy Natural Language Processing (NLP) library
+  doc_url: https://spacy.io/models
+  dev_url: << dev_url >>
+
+extra:
+  feedstock-name: spacy-models
+  recipe-maintainers:
+    - bollwyvl
