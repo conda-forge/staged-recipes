@@ -7,5 +7,3 @@ maturin build --no-sdist --release --strip --manylinux off --interpreter=%PYTHON
 FOR /F "delims=" %%i IN ('dir /s /b target\wheels\*.whl') DO set polars_wheel=%%i
 
 %PYTHON% -m pip install --ignore-installed --no-deps %polars_wheel% -vv
-
-cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
