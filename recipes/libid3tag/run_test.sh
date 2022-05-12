@@ -6,10 +6,10 @@ set -eux -o pipefail
 test -f $PREFIX/include/id3tag.h
 test -f $PREFIX/lib/libid3tag$SHLIB_EXT
 test -f $PREFIX/lib/pkgconfig/id3tag.pc
-test -f $PREFIX/lib/cmake/id3tagConfig.cmake
-test -f $PREFIX/lib/cmake/id3tagConfigVersion.cmake
-test -f $PREFIX/lib/cmake/id3tagTargets.cmake
-test -f $PREFIX/lib/cmake/id3tagTargets-noconfig.cmake
+test -f $PREFIX/lib/cmake/id3tag/id3tagConfig.cmake
+test -f $PREFIX/lib/cmake/id3tag/id3tagConfigVersion.cmake
+test -f $PREFIX/lib/cmake/id3tag/id3tagTargets.cmake
+test -f $PREFIX/lib/cmake/id3tag/id3tagTargets-noconfig.cmake
 
 # Compilation test
 # based on https://github.com/Homebrew/homebrew-core/blob/HEAD/Formula/libid3tag.rb
