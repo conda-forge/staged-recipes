@@ -5,8 +5,9 @@ if errorlevel 1 exit 1
 set "PATH=%SRC_DIR%\rust-nightly-install\bin;%PATH%"
 set "CMAKE_GENERATOR=NMake Makefiles"
 set "PYO3_PYTHON=%PYTHON%"
+set "RUSTFLAGS=-C target-feature=+fxsr,+sse,+sse2,+sse3,+ssse3,+sse4.1,+sse4.2,+popcnt,+avx,+fma"
 
-%PYTHON% -m maturin build --no-sdist --release --strip --manylinux off --rustc-extra-args="-C codegen-units=16 -C lto=thin -C target-cpu=native"
+maturin build --no-sdist --release --strip --manylinux off
 if errorlevel 1 exit 1
 
 FOR /F "delims=" %%i IN ('dir /s /b target\wheels\*.whl') DO set polars_wheel=%%i
