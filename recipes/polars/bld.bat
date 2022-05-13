@@ -2,11 +2,11 @@ FOR /F "delims=" %%i in ('cygpath.exe -u "%SRC_DIR%\rust-nightly-install"') DO s
 bash %SRC_DIR%\rust-nightly\install.sh --verbose --prefix=%pfx% --disable-ldconfig --components=rustc,cargo,rust-std-x86_64-pc-windows-msvc
 if errorlevel 1 exit 1
 
-set PATH="%SRC_DIR%\rust-nightly-install\bin;%PATH%"
-set CMAKE_GENERATOR="NMake Makefiles"
-set PYO3_PYTHON="%PYTHON%"
+set "PATH=%SRC_DIR%\rust-nightly-install\bin;%PATH%"
+set "CMAKE_GENERATOR=NMake Makefiles"
+set "PYO3_PYTHON=%PYTHON%"
 
-maturin build --no-sdist --release --strip --manylinux off --rustc-extra-args="-C codegen-units=16 -C lto=thin -C target-cpu=native"
+%PYTHON% -m maturin build --no-sdist --release --strip --manylinux off --rustc-extra-args="-C codegen-units=16 -C lto=thin -C target-cpu=native"
 if errorlevel 1 exit 1
 
 FOR /F "delims=" %%i IN ('dir /s /b target\wheels\*.whl') DO set polars_wheel=%%i
