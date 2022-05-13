@@ -11,4 +11,4 @@ maturin build --no-sdist --release --strip --manylinux off
 if errorlevel 1 exit 1
 
 FOR /F "delims=" %%i IN ('dir /s /b target\wheels\*.whl') DO set polars_wheel=%%i
-%PYTHON% -m pip install --ignore-installed --no-deps %polars_wheel% -vv
+%PYTHON% -m pip install --ignore-installed --no-deps %polars_wheel% -vv --no-clean
