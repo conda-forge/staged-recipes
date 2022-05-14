@@ -7,6 +7,10 @@ set "CMAKE_GENERATOR=NMake Makefiles"
 set "PYO3_PYTHON=%PYTHON%"
 set "RUSTFLAGS=-C target-feature=+fxsr,+sse,+sse2,+sse3,+ssse3,+sse4.1,+sse4.2,+popcnt,+avx,+fma"
 
+@REM Override temp dir for permission issues
+mkdir %SRC_DIR%\tmp
+set TMPDIR=%SRC_DIR\tmp
+
 maturin build --no-sdist --release --strip --manylinux off
 if errorlevel 1 exit 1
 
