@@ -1,0 +1,85 @@
+{% set version = '0.1.9-1' %}
+{% set posix = 'm2-' if win else '' %}
+{% set native = 'm2w64-' if win else '' %}
+
+package:
+  name: r-matrixextra
+  version: {{ version|replace("-", "_") }}
+
+source:
+  url:
+    - {{ cran_mirror }}/src/contrib/MatrixExtra_{{ version }}.tar.gz
+    - {{ cran_mirror }}/src/contrib/Archive/MatrixExtra/MatrixExtra_{{ version }}.tar.gz
+  sha256: 40eab057c6dae9e6f7e411430e101a73b932ade88bc48ad4d5fd314bf1bb0a25
+  patches:
+    - patch-misc.cpp-isinf.diff
+
+build:
+  merge_build_host: True  # [win]
+  number: 0
+  rpaths:
+    - lib/R/lib/
+    - lib/
+
+requirements:
+  build:
+    - {{ compiler('c') }}              # [not win]
+    - {{ compiler('m2w64_c') }}        # [win]
+    - {{ compiler('cxx') }}            # [not win]
+    - {{ compiler('m2w64_cxx') }}      # [win]
+    - {{ posix }}filesystem        # [win]
+    - {{ posix }}sed               # [win]
+    - {{ posix }}grep              # [win]
+    - {{ posix }}autoconf
+    - {{ posix }}automake          # [not win]
+    - {{ posix }}automake-wrapper  # [win]
+    - {{ posix }}pkg-config
+    - {{ posix }}make
+    - {{ posix }}coreutils         # [win]
+    - {{ posix }}zip               # [win]
+    - cross-r-base {{ r_base }}    # [build_platform != target_platform]
+    - llvm-openmp  # [osx]
+    - libgomp      # [linux]
+  host:
+    - r-base
+    - r-matrix >=1.3
+    - r-rcpp
+    - r-rhpcblasctl
+    - r-float
+    - libblas
+  run:
+    - r-base
+    - {{ native }}gcc-libs         # [win]
+    - r-matrix >=1.3
+    - r-rcpp
+    - r-rhpcblasctl
+    - r-float
+
+test:
+  commands:
+    - $R -e "library('MatrixExtra')"           # [not win]
+    - "\"%R%\" -e \"library('MatrixExtra')\""  # [win]
+
+about:
+  home: https://github.com/david-cortes/MatrixExtra
+  license: GPL-2.0-or-later
+  summary: 'Extends sparse matrix and vector classes from the ''Matrix'' package by providing:
+    (a) Methods and operators that work natively on CSR formats (compressed sparse row,
+    a.k.a. ''RsparseMatrix'') such as slicing/sub-setting, assignment, rbind(), mathematical
+    operators for CSR and COO such as addition ("+") or sqrt(), and methods such as
+    diag(); (b) Multi-threaded matrix multiplication and cross-product for many <sparse,
+    dense> types, including the ''float32'' type from ''float''; (c) Coercion methods
+    between pairs of classes which are not present in ''Matrix'', such as ''dgCMatrix''
+    -> ''ngRMatrix'', as well as convenience conversion functions; (d) Utility functions
+    for sparse matrices such as sorting the indices or removing zero-valued entries;
+    (e) Fast transposes that work by outputting in the opposite storage format; (f)
+    Faster replacements for many ''Matrix'' methods for all sparse types, such as slicing
+    and elementwise multiplication. (g) Convenience functions for sparse objects, such
+    as ''mapSparse'' or a shorter ''show'' method.'
+  license_family: GPL2
+  license_file:
+    - {{ environ["PREFIX"] }}/lib/R/share/licenses/GPL-2
+
+extra:
+  recipe-maintainers:
+    - conda-forge/r
