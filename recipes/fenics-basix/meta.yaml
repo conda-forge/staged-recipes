@@ -1,0 +1,76 @@
+{% set name = "fenics-basix" %}
+{% set version = "0.4.1" %}
+
+package:
+  name: {{ name|lower }}-meta
+  version: {{ version }}
+
+source:
+  url: https://github.com/fenics/basix/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 34de61ca3e39b1aa0392ec6dad292bb9ffaf965c0734a8638427b9d850180dc7
+
+build:
+  skip: true  # [win]
+  number: 0
+
+outputs:
+  - name: fenics-libbasix
+    script: build-libbasix.sh
+    build:
+      run_exports:
+        - {{ pin_subpackage("fenics-libbasix", max_pin="x.x.x") }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - cmake
+        - make
+        - pkg-config
+      host:
+        - libcblas
+        - liblapack
+        - xtensor
+    test:
+      commands:
+        - test -f $PREFIX/lib/libbasix${SHLIB_EXT}
+  - name: fenics-basix
+    script: build-basix-py.sh
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - cmake
+        - make
+        - pkg-config
+      host:
+        - python
+        - pip
+        - pybind11
+        - xtensor
+        - {{ pin_subpackage('fenics-libbasix', exact=True) }}
+      run:
+        - python
+        - {{ pin_subpackage('fenics-libbasix', exact=True) }}
+        - numpy
+    test:
+      requires:
+        - pytest
+        - pytest-xdist
+      source_files:
+        - test
+      imports:
+        - basix
+      commands:
+        - pytest -v test/test_create.py
+
+
+about:
+  home: https://fenicsproject.org
+  summary: Basix is a finite element definition and tabulation runtime library
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  doc_url: https://docs.fenicsproject.org/basix/main/
+  dev_url: https://github.com/fenics/basix
+
+extra:
+  recipe-maintainers:
+    - minrk
