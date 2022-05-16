@@ -23,4 +23,4 @@ python ../configure.py \
        --enable-gczeal \
        --enable-strip \
        --disable-install-strip
-make
+make -j$CPU_COUNT
