@@ -24,5 +24,3 @@ python ../configure.py \
        --enable-strip \
        --disable-install-strip
 make
-make install
-rm $PREFIX/lib/libjs_static.ajs
