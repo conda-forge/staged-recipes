@@ -8,6 +8,9 @@ export ERL_LDFLAGS="$LDFLAGS"
 export DRV_CFLAGS="$CFLAGS"
 export DRV_LDFLAGS="$LDFLAGS"
 
+ls $PREFIX/include
+ls $PREFIX/lib
+
 ./configure --erlang-md5 --spidermonkey-version 91
 make release
 
