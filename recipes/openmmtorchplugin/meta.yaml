@@ -1,4 +1,4 @@
-{% set name = "torchintegratorplugin" %}
+{% set name = "openmmtorchplugin" %}
 {% set version = "0.1" %}
 
 package:
@@ -6,17 +6,20 @@ package:
   version: {{ version }}
 
 source:
-  url: https://github.com/SCMusson/openmmtorchplugin.git
-  #sha256: 6ff3c2d903729eb9145c02e694fe943c52cf9263736f9db26bb84511fbb2d71d
+        #git_url: https://github.com/SCMusson/{{ name }}.git
+  #git_rev: v{{ version }}
+  path: /home/wppj21/Workshop/openmmtorchintegratorplugin
 
 build:
   number: 0
-  skip: true  # [win or (linux and cuda_compiler_version in (undefined, 'None'))]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                      # [cuda_compiler_version == "None"]
+  skip: True  # [win or (linux and cuda_compiler_version in (undefined, 'None', '10.2'))]
   rpaths:
     - lib/
     - {{ SP_DIR }}/torch/lib
   missing_dso_whitelist:
-    - "*/libcuda.*"  # [linux64 or ppc64le]
+    - '*/libcuda.*'  # [linux64 or ppc64le]
 
 requirements:
   build:
@@ -26,22 +29,26 @@ requirements:
     - {{ cdt('mesa-libgl-devel') }}  # [linux]
     - cmake
     - make
+      #- pytorch::pytorch
+      #- conda-forge::openmm
   host:
     - python
     - pip
     - swig
     - openmm
-    - pytorch-gpu  # [cuda_compiler_version not in (undefined, 'None')]
-    - pytorch-cpu  # [osx]
+    - pytorch::pytorch
+      #- cudatoolkit
+    - pytorch-gpu {{ pytorch_version }}  # [cuda_compiler_version not in (undefined, 'None')]
+    - pytorch-cpu {{ pytorch_version }}  # [osx]
     - ocl-icd  # [linux]
-    - khronos-opencl-icd-loader  # [osx]
+      #- khronos-opencl-icd-loader  # [osx]
   run:
     - python
     - pytorch
     # ^ needed so conda build does not complain about overlinking
-    - {{ pin_compatible('pytorch-gpu') }}  # [cuda_compiler_version not in (undefined, 'None')]
-    - {{ pin_compatible('pytorch-cpu') }}  # [osx]
-    - {{ pin_compatible('openmm',  min_pin='x.x', max_pin='x.x') }}
+    - {{ pin_compatible('pytorch-gpu',  max_pin='x.x.x') }}  # [cuda_compiler_version not in (undefined, 'None')]
+    - {{ pin_compatible('pytorch-cpu',  max_pin='x.x.x') }}  # [osx]
+    - {{ pin_compatible('openmm'), max_pin='x.x') }}
     - ocl-icd  # [linux]
     - ocl-icd-system  # [linux]
     - khronos-opencl-icd-loader  # [osx]
@@ -52,6 +59,7 @@ test:
     - torchintegratorplugin
   commands: |
     cd ${CONDA_PREFIX}/share/{{ name }}/tests
+    ls -al
     set +e
     summary=""
     exitcode=0
@@ -73,13 +81,12 @@ test:
     exit $exitcode
 about:
   home: https://github.com/SCMusson/openmmtorchplugin
-  license: GNU General Public Licence v3.0
-  license_family: GNU
   license_file: README.md
-  summary: 'OpenMM plugin to define forces with neural networks'
+  summary: OpenMM plugin to get forces for neural networks
   description: |
-    This is a plugin for OpenMM that allows neural networks to be
-    access forces and energy from OpenMM. It is implemented with PyTorch.
+    This is a plugin for OpenMM that allows neural networks to 
+    access force and energy.  It is implemented with PyTorch.
+  doc_url: https://github.com/SCMusson/openmmtorchplugin
   dev_url: https://github.com/SCMusson/openmmtorchplugin
 
 extra:
