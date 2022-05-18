@@ -4,7 +4,7 @@ set -eux
 export LIBRARY_LICENSES_PATH="$SRC_DIR/library_licenses/"
 
 go-licenses save \
-    $SRC_DIR/cmd/oras/ \
+    $SRC_DIR/cmd/nebula/ \
     --save_path "$LIBRARY_LICENSES_PATH" \
     2>&1 \
     | tee "$SRC_DIR/go-licenses.log" \
