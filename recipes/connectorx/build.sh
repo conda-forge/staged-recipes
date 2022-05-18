@@ -13,5 +13,5 @@ export RUSTFLAGS='-C target-feature=+fxsr,+sse,+sse2,+sse3,+ssse3,+sse4.1,+sse4.
 
 maturin build --no-sdist --release --strip --manylinux off --interpreter="${PYTHON}" -m connectorx-python/Cargo.toml
 
-"${PYTHON}" -m pip install $SRC_DIR/target/wheels/*.whl --no-deps -vv
+"${PYTHON}" -m pip install $SRC_DIR/connectorx-python/target/wheels/*.whl --no-deps -vv
 
