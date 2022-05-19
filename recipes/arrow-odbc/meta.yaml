@@ -1,0 +1,76 @@
+{% set name = "arrow_odbc" %}
+{% set version = "0.2.6" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: ec0249c1ee3b696b3126aff628c145f395d8867d9e258d78ac4e3871d6f9ff0d
+
+build:
+  number: 0
+  skip: true  # [win]
+  script:
+    - {{ PYTHON }} -m build --no-isolation
+    - {{ PYTHON }} -m pip install dist/*.whl --no-deps
+    - cargo-bundle-licenses
+
+requirements:
+  build:
+    - python                              # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+    - crossenv                            # [build_platform != target_platform]
+    - {{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - unixodbc
+  host:
+    - python
+    - build
+    - cffi
+    - maturin >=0.13,<0.14
+    - milksnake
+    - pip
+    - pyarrow
+    - unixodbc
+  run:
+    - python
+    - cffi
+    - pyarrow
+
+test:
+  imports:
+    - arrow_odbc
+
+  
+outputs:
+  - name: arrow_odbc
+  - name: arrow-odbc
+    build:
+      noarch: python
+    requirements:
+      host:
+        - python
+      run:
+        - python
+        - {{ pin_subpackage("arrow_odbc", exact=True) }}
+
+    test:
+      imports:
+        - arrow_odbc
+
+
+about:
+  home: https://github.com/pacman82/arrow-odbc-py
+  license: MIT
+  license_family: MIT
+  license_file:
+     - License
+     - THIRDPARTY.yml
+  summary: Read Apache Arrow batches from ODBC data sources in Python
+  dev_url: https://github.com/pacman82/arrow-odbc-py
+
+extra:
+  recipe-maintainers:
+    - timkpaine
