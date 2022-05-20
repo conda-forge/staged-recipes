@@ -9,7 +9,8 @@ cmake \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_RPATH=${PREFIX}/lib \
   -DBUILD_STATIC=OFF \
-  -DQMN_VERSION=${PKG_VERSION} \
+  -DBUILD_EXAMPLES=OFF \
+  -DADS_VERSION=${PKG_VERSION} \
   ..
 make install -j${CPU_COUNT}
 

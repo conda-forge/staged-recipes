@@ -9,7 +9,8 @@ cmake -LAH -G"NMake Makefiles"                               ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%"                ^
     -DCMAKE_BUILD_TYPE=Release                               ^
     -DBUILD_STATIC=OFF                                       ^
-    -DQMN_VERSION=%PKG_VERSION%                              ^
+    -DBUILD_EXAMPLES=OFF                                     ^
+    -DADS_VERSION=%PKG_VERSION%                              ^
     ..
 if errorlevel 1 exit 1
 
