@@ -1,0 +1,119 @@
+{% set name = "fenics-dolfinx" %}
+{% set version = "0.4.1" %}
+{% set extra = "" %}
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/fenics/dolfinx/archive/refs/tags/v{{ version }}{{ extra }}.tar.gz
+  sha256: 68dcf29a26c750fcea5e02d8d58411e3b054313c3bf6fcbc1d0f08dd2851117f
+build:
+  number: 0
+  skip: true  # [win]
+
+{% set mpi = "mpich" %}
+outputs:
+  - name: fenics-libdolfinx
+    script: build-libdolfinx.sh
+    build:
+      run_exports:
+        - {{ pin_subpackage("fenics-libdolfinx", max_pin="x.x.x") }}
+    requirements:
+      build:
+        - {{ compiler("cxx") }}
+        - cmake
+        - make
+        - pkg-config
+      host:
+        - {{ mpi }}
+        # - adios2  # optional, not ready yet
+        - boost-cpp
+        - hdf5 {{ hdf5 }} mpi_{{ mpi }}*
+        - parmetis
+        - ptscotch
+        - petsc
+        # slepc not yet packaged for mac-arm
+        - slepc  # [not (osx and arm64)]
+        - xtensor
+        - fenics-libbasix 0.4.*
+        - fenics-ufcx 0.4.*
+      run:
+        # host dependencies with run_exports
+        - {{ mpi }}
+        - hdf5 * mpi_{{ mpi }}*
+        - ptscotch
+        - petsc
+        - slepc  # [not (osx and arm64)]
+        - fenics-libbasix
+        # these don't have run_exports:
+        - fenics-ufcx
+        - boost-cpp
+        - parmetis
+        - xtensor
+    test:
+      script: test-libdolfinx.sh
+      source_files:
+        - cpp/test
+      requires:
+        - {{ compiler("cxx") }}
+        - pkg-config
+        - cmake
+        - make
+        - fenics-ffcx ==0.4.*,>=0.4.2
+  - name: fenics-dolfinx
+    build:
+      script:
+        - $PYTHON -m pip install -vv --no-deps ./python
+    requirements:
+      build:
+        - {{ compiler("cxx") }}
+        - cmake
+        - pkg-config
+      host:
+        - {{ mpi }}
+        - boost-cpp
+        - {{ pin_subpackage("fenics-libdolfinx", exact=True) }}
+        - python >=3.7
+        - pip
+        - setuptools >=58
+        - wheel
+        - pybind11
+        - xtensor
+        - petsc
+        - petsc4py
+        - slepc  # [not (osx and arm64)]
+        - slepc4py  # [not (osx and arm64)]
+      run:
+        - python
+        - {{ pin_subpackage("fenics-libdolfinx", exact=True) }}
+        - mpi4py
+        - numpy
+        - petsc4py
+        - slepc4py  # [not (osx and arm64)]
+        - fenics-basix ==0.4.*,>=0.4.1
+        - fenics-ffcx ==0.4.*,>=0.4.2
+        - fenics-ufl ==2022.1.*
+    test:
+      script: test-dolfinx.sh
+      source_files:
+        - python/test
+      requires:
+        - pip
+        - pytest >=6
+
+about:
+  home: https://fenicsproject.org
+  summary: The computational environment of FEniCSx
+  description: |
+    DOLFINx is the computational environment of FEniCSx
+    and implements the FEniCS Problem Solving Environment in Python and C++.
+  license: LGPL-3.0-or-later
+  license_family: LGPL
+  license_file: COPYING.LESSER
+  doc_url: https://docs.fenicsproject.org/dolfinx/v{{ version }}/
+  dev_url: https://github.com/fenics/dolfinx
+
+extra:
+  recipe-maintainers:
+    - minrk
