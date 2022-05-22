@@ -1,0 +1,76 @@
+{% set name = "ruckig" %}
+{% set version = "0.6.5" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/pantor/ruckig/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 19876f4cabda5b4fab9156641da281c1bd24f6e91c43bf423cf406a06d58ee14
+
+build:
+  number: 0
+  # add libruckig to the whitelist; it can apparently 
+  # not be found yet when ruckig-python is built
+  missing_dso_whitelist:
+    - lib/libruckig*
+
+requirements:
+  build:
+    - cmake
+    - make  # [unix]
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+  host:
+    - python {{ PY_VER }}*
+    - pybind11
+    - pybind11-abi
+
+outputs:
+  - name: ruckig
+    run_exports:
+      # No ABI docs or ABI Laboratory history, better be conservative
+      - {{ pin_subpackage(name, max_pin='x.x.x') }}
+    files:
+      - lib/libruckig*  # [unix]
+      - lib/cmake/ruckig  # [unix]
+      - include/ruckig  # [unix]
+      - share/ruckig  # [unix]
+      - Library/include/ruckig  # [win]
+      - Library/lib/ruckig.lib  # [win]
+      - Library/bin/ruckig.dll  # [win]
+      - Library/lib/cmake/ruckig  # [win]
+      - Library/share/ruckig  # [win]
+    test:
+      commands:
+        - test -f ${PREFIX}/include/ruckig/ruckig.hpp  # [unix]
+        - test -f ${PREFIX}/lib/cmake/ruckig/ruckig-config.cmake  # [unix]
+        - test -f ${PREFIX}/lib/libruckig${SHLIB_EXT}  # [unix]
+        - if not exist %LIBRARY_PREFIX%\include\ruckig\ruckig.hpp (exit 1)  # [win]
+        - if not exist %LIBRARY_PREFIX%\lib\cmake\ruckig\ruckig-config.cmake (exit 1)  # [win]
+        - if not exist %LIBRARY_PREFIX%\lib\ruckig.lib (exit 1)  # [win]
+        - if not exist %LIBRARY_PREFIX%\bin\ruckig.dll (exit 1)  # [win]
+
+  - name: ruckig-python
+    requirements:
+      run: 
+        - python {{ PY_VER }}*
+        - {{ pin_subpackage('ruckig', exact=True) }}
+    files:
+      - lib/python{{ PY_VER }}/site-packages/ruckig.cp*  # [unix]
+      - Lib/site-packages/ruckig.cp*  # [win]
+    test:
+      imports:
+        - ruckig
+
+about:
+  home: https://pantor.github.io/ruckig/
+  license: MIT
+  license_file: LICENSE
+  summary: |
+    Online Trajectory Generation for Robotic Manipulators. Real-time. Time-optimal. Jerk-constrained.
+
+extra:
+  recipe-maintainers:
+    - traversaro
