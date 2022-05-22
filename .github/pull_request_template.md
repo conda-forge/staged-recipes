@@ -1,32 +1,31 @@
 <!--
 Thank you very much for putting in this recipe PR!
 
-This repository is very active, so if you need help with
-a PR, please let the right people know.
-There are language-specific teams for reviewing recipes.
+This repository is very active, so if you need help with a PR, please let the
+right people know. There are language-specific teams for reviewing recipes.
 
-Currently available teams are:
-- python `@conda-forge/help-python`
-- python/c hybrid `@conda-forge/help-python-c`
-- r `@conda-forge/help-r`
-- java `@conda-forge/help-java`
-- nodejs `@conda-forge/help-nodejs`
-- c/c++ `@conda-forge/help-c-cpp`
-- perl `@conda-forge/help-perl`
-- Julia `@conda-forge/help-julia`
-- ruby `@conda-forge/help-ruby`
+| Language        | Name of review team           |
+| --------------- | ----------------------------- |
+| python          | `@conda-forge/help-python`    |
+| python/c hybrid | `@conda-forge/help-python-c`  |
+| r               | `@conda-forge/help-r`         |
+| java            | `@conda-forge/help-java`      |
+| nodejs          | `@conda-forge/help-nodejs`    |
+| c/c++           | `@conda-forge/help-c-cpp`     |
+| perl            | `@conda-forge/help-perl`      |
+| Julia           | `@conda-forge/help-julia`     |
+| ruby            | `@conda-forge/help-ruby`      |
+| other           | `@conda-forge/staged-recipes` |
 
-If your PR doesn't fall into those categories please contact
-the full review team `@conda-forge/staged-recipes`.
+Once the PR is ready for review, please mention one of the teams above in a
+new comment. i.e. `@conda-forge/help-some-language, ready for review!`
+Then, a bot will label the PR as 'review-requested'.
 
-Once the PR is ready for review, please contact
-`@conda-forge/staged-recipes` to have it merged by writing
-<code>@</code>`conda-forge-admin, please ping team` in a new comment.
-
-Due to GitHub limitations first time contributors to conda-forge are unable
-to ping these teams. You can [ping the team][1] using a special command in
-a comment on the PR to get the attention of the `staged-recipes` team. You can
-also consider asking on our [Gitter channel][2] if your recipe isn't reviewed promptly.
+Due to GitHub limitations, first time contributors to conda-forge are unable
+to ping conda-forge teams directly, but you can [ask a bot to ping the team][1]
+using a special command in a comment on the PR to get the attention of the
+`staged-recipes` team. You can also consider asking on our [Gitter channel][2]
+if your recipe isn't reviewed promptly.
 
 [1]: https://conda-forge.org/docs/maintainer/infrastructure.html#conda-forge-admin-please-ping-team
 [2]: https://gitter.im/conda-forge/conda-forge.github.io
