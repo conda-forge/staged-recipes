@@ -1,0 +1,117 @@
+diff --git a/cmake/MujocoDependencies.cmake b/cmake/MujocoDependencies.cmake
+index 56a1e64..89912dd 100644
+--- a/cmake/MujocoDependencies.cmake
++++ b/cmake/MujocoDependencies.cmake
+@@ -106,9 +106,9 @@ find_package(Git REQUIRED)
+ 
+ findorfetch(
+   USE_SYSTEM_PACKAGE
+-  OFF
++  ON
+   PACKAGE_NAME
+-  qhull
++  Qhull
+   LIBRARY_NAME
+   qhull
+   GIT_REPO
+@@ -130,18 +130,22 @@ findorfetch(
+   "true"
+   EXCLUDE_FROM_ALL
+ )
+-# MuJoCo includes a file from libqhull_r which is not exported by the qhull include directories.
+-# Add it to the target.
+-target_include_directories(
+-  qhullstatic_r INTERFACE $<BUILD_INTERFACE:${qhull_SOURCE_DIR}/src/libqhull_r>
+-)
+-target_compile_options(qhullstatic_r PRIVATE ${MUJOCO_MACOS_COMPILE_OPTIONS})
+-target_link_options(qhullstatic_r PRIVATE ${MUJOCO_MACOS_LINK_OPTIONS})
++if(NOT TARGET qhullstatic_r)
++  add_library(qhullstatic_r INTERFACE)
++  target_link_libraries(qhullstatic_r INTERFACE Qhull::qhull_r)
++  # Workaround as headers are installed in <prefix>/include/libqhull_r/something.h
++  # but mujoco include them as #include <something.h>
++  get_property(qhull_include_dirs TARGET Qhull::qhull_r PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
++  foreach(qhull_include_dir IN LISTS qhull_include_dirs)
++    target_include_directories(qhullstatic_r INTERFACE ${qhull_include_dirs}/libqhull_r)
++  endforeach()
++  target_include_directories(qhullstatic_r INTERFACE )
++endif()
+ 
+ set(tinyxml2_BUILD_TESTING OFF)
+ findorfetch(
+   USE_SYSTEM_PACKAGE
+-  OFF
++  ON
+   PACKAGE_NAME
+   tinyxml2
+   LIBRARY_NAME
+@@ -154,8 +158,6 @@ findorfetch(
+   tinyxml2
+   EXCLUDE_FROM_ALL
+ )
+-target_compile_options(tinyxml2 PRIVATE ${MUJOCO_MACOS_COMPILE_OPTIONS})
+-target_link_options(tinyxml2 PRIVATE ${MUJOCO_MACOS_LINK_OPTIONS})
+ 
+ findorfetch(
+   USE_SYSTEM_PACKAGE
+@@ -177,7 +179,7 @@ set(ENABLE_DOUBLE_PRECISION ON)
+ set(CCD_HIDE_ALL_SYMBOLS ON)
+ findorfetch(
+   USE_SYSTEM_PACKAGE
+-  OFF
++  ON
+   PACKAGE_NAME
+   ccd
+   LIBRARY_NAME
+@@ -190,19 +192,6 @@ findorfetch(
+   ccd
+   EXCLUDE_FROM_ALL
+ )
+-target_compile_options(ccd PRIVATE ${MUJOCO_MACOS_COMPILE_OPTIONS})
+-target_link_options(ccd PRIVATE ${MUJOCO_MACOS_LINK_OPTIONS})
+-
+-# libCCD has an unconditional `#define _CRT_SECURE_NO_WARNINGS` on Windows.
+-# TODO(stunya): Remove this after https://github.com/danfis/libccd/pull/77 is merged.
+-if(WIN32)
+-  if(MSVC)
+-    # C4005 is the MSVC equivalent of -Wmacro-redefined.
+-    target_compile_options(ccd PRIVATE /wd4005)
+-  else()
+-    target_compile_options(ccd PRIVATE -Wno-macro-redefined)
+-  endif()
+-endif()
+ 
+ if(MUJOCO_BUILD_TESTS)
+   set(ABSL_PROPAGATE_CXX_STD ON)
+@@ -217,7 +206,7 @@ if(MUJOCO_BUILD_TESTS)
+   set(ABSL_BUILD_TESTING OFF)
+   findorfetch(
+     USE_SYSTEM_PACKAGE
+-    OFF
++    ON
+     PACKAGE_NAME
+     absl
+     LIBRARY_NAME
+@@ -297,6 +286,9 @@ endif()
+ 
+ if(MUJOCO_TEST_PYTHON_UTIL)
+   add_compile_definitions(EIGEN_MPL2_ONLY)
++  find_package(Eigen3 REQUIRED)
++  # Doing that so the next if is not triggered
++  add_library(eigen ALIAS Eigen3::Eigen)
+   if(NOT TARGET eigen)
+     # Support new IN_LIST if() operator.
+     set(CMAKE_POLICY_DEFAULT_CMP0057 NEW)
+
+diff --git a/cmake/MujocoDependencies.cmake b/cmake/MujocoDependencies.cmake
+index 56a1e64..b27528e 100644
+--- a/cmake/MujocoDependencies.cmake
++++ b/cmake/MujocoDependencies.cmake
+@@ -79,6 +79,7 @@ set(BUILD_SHARED_LIBS
+     CACHE INTERNAL "Build SHARED libraries"
+ )
+ 
++find_package(lodepng REQUIRED)
+ if(NOT TARGET lodepng)
+   FetchContent_Declare(
+     lodepng
