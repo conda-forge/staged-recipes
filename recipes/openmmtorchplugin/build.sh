@@ -24,10 +24,12 @@ fi
 # Build in subdirectory and install.
 mkdir -p build
 cmake --version
-gcc --version
 cd build
 cmake ${CMAKE_ARGS} ${CMAKE_FLAGS} ${SRC_DIR}
 make -j$CPU_COUNT install
+
+cp ${SRC_DIR}/python/myOpenMMSwigHeaders.i ${PREFIX}/include/swig/
+
 make -j$CPU_COUNT PythonInstall
 
 # Include test executables too
