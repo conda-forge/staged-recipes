@@ -1,0 +1,52 @@
+{% set version = "0.0.0.20231103.1919.b61ae740" %}
+{% set gitrev = "b61ae740e0ce5ece994bf54b7866bba5eddc41d7" %}
+{% set sha256 = "b84b9b8659efa09b06d845261746cad42a628ff937cf8f9c8fa1a304ff6c5cef" %}
+
+package:
+  name: fbgemm
+  version: {{ version }}
+
+source:
+  url: https://github.com/pytorch/FBGEMM/archive/{{ gitrev }}.tar.gz
+  sha256: {{ sha256 }}
+  patches:
+    - shared_asmjit.patch
+
+build:
+  # You can probably build this for windows
+  skip: true  # [win]
+  number: 0
+  run_exports:
+    # 0 guarantees because they beleive in not creating real releases...
+    # https://github.com/pytorch/cpuinfo/issues/84
+    - {{ pin_subpackage('fbgemm', max_pin='x.x.x.x.x.x') }}
+
+requirements:
+  build:
+    - llvm-openmp  # [osx]
+    - libgomp      # [linux]
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - make  # [unix]
+  host:
+    - asmjit
+    - cpuinfo
+    # https://github.com/ROCmSoftwarePlatform/hipify_torch/
+    # - hipify_torch
+
+test:
+  commands:
+    - test -f ${PREFIX}/include/fbgemm/Fbgemm.h
+    - test -f ${PREFIX}/lib/libfbgemm${SHLIB_EXT}
+
+about:
+  home: https://github.com/pytorch/fbgemm/
+  summary: FBGEMM (Facebook GEneral Matrix Multiplication) is a low-precision, high-performance matrix-matrix multiplications and convolution library for server-side inference.
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk

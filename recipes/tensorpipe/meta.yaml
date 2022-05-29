@@ -1,0 +1,63 @@
+# To generate the version number
+{%- if false %}
+git clone git@github.com:pytorch/tensorpipe.git
+cd tensorpipe
+git pull
+echo 0.0.0.$(date  +%Y%m%d -d "$(git show -s --format=%ci HEAD)").$(git rev-list HEAD --count).$(git rev-parse --short HEAD)
+# Get the git sha
+git rev-parse HEAD
+wget --quiet https://github.com/pytorch/tensorpipe/archive/$(git rev-parse HEAD).tar.gz
+openssl sha256 $(git rev-parse HEAD).tar.gz
+{%- endif %}
+
+{% set gitrev = "bb1473a4b38b18268e8693044afdb8635bc8351b" %}
+{% set version = "0.0.0.20220513.930.bb1473a" %}
+
+
+package:
+  name: tensorpipe
+  version: {{ version }}
+
+source:
+  url: https://github.com/pytorch/tensorpipe/archive/{{ gitrev }}.tar.gz
+  sha256: b5ca4ee80dc9440d3b07e4ff60f878c880856751a95779703b1dc0f12580c36b
+
+build:
+  # You can probably build this for windows
+  skip: true  # [win]
+  skip: true
+  number: 0
+  run_exports:
+    # 0 guarantees because they beleive in not creating real releases...
+    # https://github.com/pytorch/cpuinfo/issues/84
+    - {{ pin_subpackage('tensorpipe', max_pin='x.x.x.x.x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - sysroot_linux-64  2.17  # [linux64]
+    - cmake
+    - make  # [unix]
+    - pybind11
+  host:
+    - libnop
+    - libuv
+  run:
+    - libuv
+
+test:
+  commands:
+    - test -f ${PREFIX}/include/tensorpipe/tensorpipe.h
+    - test -f ${PREFIX}/lib/libtensorpipe${SHLIB_EXT}
+
+about:
+  home: https://github.com/pytorch/tensorpipe
+  summary: The TensorPipe project provides a tensor-aware channel to transfer rich objects from one process to another.
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk

@@ -1,0 +1,361 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index e51760b5ae..cc9b0d1ada 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -959,7 +959,8 @@ include_directories(BEFORE ${PROJECT_SOURCE_DIR}/aten/src/)
+ include_directories(BEFORE ${PROJECT_BINARY_DIR}/aten/src/)
+ 
+ # ---[ Main build
+-add_subdirectory(c10)
++# add_subdirectory(c10)
++FIND_LIBRARY(C10_LIBRARY NAME c10 REQUIRED)
+ add_subdirectory(caffe2)
+ 
+ # --[ Documentation
+diff --git a/aten/src/ATen/native/quantized/cpu/qnnpack/CMakeLists.txt b/aten/src/ATen/native/quantized/cpu/qnnpack/CMakeLists.txt
+index 2c9ec7aa1e..1f208bf2a3 100644
+--- a/aten/src/ATen/native/quantized/cpu/qnnpack/CMakeLists.txt
++++ b/aten/src/ATen/native/quantized/cpu/qnnpack/CMakeLists.txt
+@@ -71,9 +71,6 @@ set(CONFU_DEPENDENCIES_SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps"
+ set(CONFU_DEPENDENCIES_BINARY_DIR "${CMAKE_BINARY_DIR}/deps"
+   CACHE PATH "Confu-style dependencies binary directory")
+ 
+-if(NOT DEFINED CLOG_SOURCE_DIR)
+-  set(CLOG_SOURCE_DIR "${PROJECT_SOURCE_DIR}/deps/clog")
+-endif()
+ 
+ if(NOT USE_SYSTEM_CPUINFO)
+   if(NOT DEFINED CPUINFO_SOURCE_DIR)
+@@ -324,16 +321,8 @@ set_target_properties(pytorch_qnnpack PROPERTIES PUBLIC_HEADER include/pytorch_q
+ set_target_properties(pytorch_qnnpack PROPERTIES PUBLIC_HEADER include/qnnpack_func.h)
+ 
+ # ---[ Configure clog
+-if(NOT TARGET clog)
+-  set(CLOG_BUILD_TESTS OFF CACHE BOOL "")
+-  set(CLOG_RUNTIME_TYPE "${CPUINFO_RUNTIME_TYPE}" CACHE STRING "")
+-  add_subdirectory(
+-    "${CLOG_SOURCE_DIR}"
+-    "${CONFU_DEPENDENCIES_BINARY_DIR}/clog")
+-  # We build static version of clog but a dynamic library may indirectly depend on it
+-  set_property(TARGET clog PROPERTY POSITION_INDEPENDENT_CODE ON)
+-endif()
+-target_link_libraries(pytorch_qnnpack PUBLIC clog)
++FIND_LIBRARY(CLOG_LIBRARY NAME clog REQUIRED)
++target_link_libraries(pytorch_qnnpack PRIVATE clog)
+ 
+ # ---[ Configure cpuinfo
+ if(NOT TARGET cpuinfo AND USE_SYSTEM_CPUINFO)
+diff --git a/caffe2/CMakeLists.txt b/caffe2/CMakeLists.txt
+index d57d7ebbd2..63e387b9d4 100644
+--- a/caffe2/CMakeLists.txt
++++ b/caffe2/CMakeLists.txt
+@@ -109,15 +109,6 @@ endif()
+ # Note: the folders that are being commented out have not been properly
+ # addressed yet.
+ 
+-if(NOT MSVC AND USE_XNNPACK)
+-  if(NOT TARGET fxdiv)
+-    set(FXDIV_BUILD_TESTS OFF CACHE BOOL "")
+-    set(FXDIV_BUILD_BENCHMARKS OFF CACHE BOOL "")
+-    add_subdirectory(
+-      "${FXDIV_SOURCE_DIR}"
+-      "${CMAKE_BINARY_DIR}/FXdiv")
+-  endif()
+-endif()
+ 
+ add_subdirectory(core)
+ add_subdirectory(serialize)
+@@ -966,10 +957,6 @@ if(USE_CUDA OR USE_ROCM)
+   target_include_directories(${TORCHLIB_FLAVOR} PRIVATE "${CMAKE_BINARY_DIR}/include")
+ endif()
+ 
+-if(NOT MSVC AND USE_XNNPACK)
+-  TARGET_LINK_LIBRARIES(torch_cpu PRIVATE fxdiv)
+-endif()
+-
+ # ==========================================================
+ # formerly-libtorch flags
+ # ==========================================================
+diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
+index 557ab649a4..19615bc0e4 100644
+--- a/cmake/Dependencies.cmake
++++ b/cmake/Dependencies.cmake
+@@ -482,57 +482,7 @@ list(APPEND Caffe2_DEPENDENCY_LIBS cpuinfo)
+ 
+ # ---[ QNNPACK
+ if(USE_QNNPACK)
+-  set(CAFFE2_THIRD_PARTY_ROOT "${PROJECT_SOURCE_DIR}/third_party")
+-
+-  if(NOT DEFINED QNNPACK_SOURCE_DIR)
+-    set(QNNPACK_SOURCE_DIR "${CAFFE2_THIRD_PARTY_ROOT}/QNNPACK" CACHE STRING "QNNPACK source directory")
+-  endif()
+-
+-  if(NOT TARGET qnnpack)
+-    if(NOT USE_SYSTEM_PTHREADPOOL AND USE_INTERNAL_PTHREADPOOL_IMPL)
+-      set(QNNPACK_CUSTOM_THREADPOOL ON CACHE BOOL "")
+-    endif()
+-
+-    set(QNNPACK_BUILD_TESTS OFF CACHE BOOL "")
+-    set(QNNPACK_BUILD_BENCHMARKS OFF CACHE BOOL "")
+-    set(QNNPACK_LIBRARY_TYPE "static" CACHE STRING "")
+-    add_subdirectory(
+-      "${QNNPACK_SOURCE_DIR}"
+-      "${CONFU_DEPENDENCIES_BINARY_DIR}/QNNPACK")
+-
+-    # TODO: See https://github.com/pytorch/pytorch/issues/56285
+-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+-      target_compile_options(qnnpack PRIVATE -Wno-deprecated-declarations)
+-    endif()
+-
+-    # We build static versions of QNNPACK and pthreadpool but link
+-    # them into a shared library for Caffe2, so they need PIC.
+-    set_property(TARGET qnnpack PROPERTY POSITION_INDEPENDENT_CODE ON)
+-    set_property(TARGET cpuinfo PROPERTY POSITION_INDEPENDENT_CODE ON)
+-
+-    if(QNNPACK_CUSTOM_THREADPOOL)
+-      target_compile_definitions(
+-        qnnpack PRIVATE
+-        pthreadpool_t=legacy_pthreadpool_t
+-        pthreadpool_function_1d_t=legacy_pthreadpool_function_1d_t
+-        pthreadpool_function_1d_tiled_t=legacy_pthreadpool_function_1d_tiled_t
+-        pthreadpool_function_2d_t=legacy_pthreadpool_function_2d_t
+-        pthreadpool_function_2d_tiled_t=legacy_pthreadpool_function_2d_tiled_t
+-        pthreadpool_function_3d_tiled_t=legacy_pthreadpool_function_3d_tiled_t
+-        pthreadpool_function_4d_tiled_t=legacy_pthreadpool_function_4d_tiled_t
+-        pthreadpool_create=legacy_pthreadpool_create
+-        pthreadpool_destroy=legacy_pthreadpool_destroy
+-        pthreadpool_get_threads_count=legacy_pthreadpool_get_threads_count
+-        pthreadpool_compute_1d=legacy_pthreadpool_compute_1d
+-        pthreadpool_parallelize_1d=legacy_pthreadpool_parallelize_1d
+-        pthreadpool_compute_1d_tiled=legacy_pthreadpool_compute_1d_tiled
+-        pthreadpool_compute_2d=legacy_pthreadpool_compute_2d
+-        pthreadpool_compute_2d_tiled=legacy_pthreadpool_compute_2d_tiled
+-        pthreadpool_compute_3d_tiled=legacy_pthreadpool_compute_3d_tiled
+-        pthreadpool_compute_4d_tiled=legacy_pthreadpool_compute_4d_tiled)
+-    endif()
+-  endif()
+-
++  FIND_LIBRARY(QNNPACK_LIBRARY NAME qnnpack REQUIRED)
+   list(APPEND Caffe2_DEPENDENCY_LIBS qnnpack)
+ endif()
+ 
+@@ -593,19 +543,8 @@ endif()
+ 
+ # ---[ NNPACK
+ if(USE_NNPACK)
+-  include(${CMAKE_CURRENT_LIST_DIR}/External/nnpack.cmake)
+-  if(NNPACK_FOUND)
+-    if(TARGET nnpack)
+-      # ---[ NNPACK is being built together with Caffe2: explicitly specify dependency
+-      list(APPEND Caffe2_DEPENDENCY_LIBS nnpack)
+-    else()
+-      include_directories(SYSTEM ${NNPACK_INCLUDE_DIRS})
+-      list(APPEND Caffe2_DEPENDENCY_LIBS ${NNPACK_LIBRARIES})
+-    endif()
+-  else()
+-    message(WARNING "Not compiling with NNPACK. Suppress this warning with -DUSE_NNPACK=OFF")
+-    caffe2_update_option(USE_NNPACK OFF)
+-  endif()
++    FIND_LIBRARY(NNPACK_LIBRARY NAME nnpack REQUIRED)
++    list(APPEND Caffe2_DEPENDENCY_LIBS nnpack)
+ endif()
+ 
+ # ---[ XNNPACK
+@@ -785,42 +724,8 @@ endif()
+ 
+ # ---[ FBGEMM
+ if(USE_FBGEMM)
+-  set(CAFFE2_THIRD_PARTY_ROOT "${PROJECT_SOURCE_DIR}/third_party")
+-  if(NOT DEFINED FBGEMM_SOURCE_DIR)
+-    set(FBGEMM_SOURCE_DIR "${CAFFE2_THIRD_PARTY_ROOT}/fbgemm" CACHE STRING "FBGEMM source directory")
+-  endif()
+-  if(NOT CAFFE2_COMPILER_SUPPORTS_AVX512_EXTENSIONS)
+-    message(WARNING
+-      "A compiler with AVX512 support is required for FBGEMM. "
+-      "Not compiling with FBGEMM. "
+-      "Turn this warning off by USE_FBGEMM=OFF.")
+-    set(USE_FBGEMM OFF)
+-  endif()
+-  if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+-    message(WARNING
+-      "x64 operating system is required for FBGEMM. "
+-      "Not compiling with FBGEMM. "
+-      "Turn this warning off by USE_FBGEMM=OFF.")
+-    set(USE_FBGEMM OFF)
+-  endif()
+-  if(USE_FBGEMM AND NOT TARGET fbgemm)
+-    set(FBGEMM_BUILD_TESTS OFF CACHE BOOL "")
+-    set(FBGEMM_BUILD_BENCHMARKS OFF CACHE BOOL "")
+-    if(MSVC AND BUILD_SHARED_LIBS)
+-      set(FBGEMM_LIBRARY_TYPE "shared" CACHE STRING "")
+-    else()
+-      set(FBGEMM_LIBRARY_TYPE "static" CACHE STRING "")
+-    endif()
+-    add_subdirectory("${FBGEMM_SOURCE_DIR}")
+-    set_property(TARGET fbgemm_generic PROPERTY POSITION_INDEPENDENT_CODE ON)
+-    set_property(TARGET fbgemm_avx2 PROPERTY POSITION_INDEPENDENT_CODE ON)
+-    set_property(TARGET fbgemm_avx512 PROPERTY POSITION_INDEPENDENT_CODE ON)
+-    set_property(TARGET fbgemm PROPERTY POSITION_INDEPENDENT_CODE ON)
+-  endif()
+-
+-  if(USE_FBGEMM)
++    FIND_LIBRARY(FBGEMM_LIBRARY NAME fbgemm REQUIRED)
+     list(APPEND Caffe2_DEPENDENCY_LIBS fbgemm)
+-  endif()
+ endif()
+ 
+ if(USE_FBGEMM)
+@@ -964,11 +869,7 @@ if(NOT TARGET fp16 AND NOT USE_SYSTEM_FP16)
+   add_subdirectory(
+     "${FP16_SOURCE_DIR}"
+     "${CONFU_DEPENDENCIES_BINARY_DIR}/FP16")
+-elseif(NOT TARGET fp16 AND USE_SYSTEM_FP16)
+-  add_library(fp16 STATIC "/usr/include/fp16.h")
+-  set_target_properties(fp16 PROPERTIES LINKER_LANGUAGE C)
+ endif()
+-list(APPEND Caffe2_DEPENDENCY_LIBS fp16)
+ 
+ # ---[ EIGEN
+ # Due to license considerations, we will only use the MPL2 parts of Eigen.
+@@ -1414,16 +1315,7 @@ if(USE_DISTRIBUTED AND USE_TENSORPIPE)
+   if(MSVC)
+     message(WARNING "Tensorpipe cannot be used on Windows.")
+   else()
+-    if(USE_CUDA)
+-      set(TP_USE_CUDA ON CACHE BOOL "" FORCE)
+-      set(TP_ENABLE_CUDA_IPC ON CACHE BOOL "" FORCE)
+-    endif()
+-    set(TP_BUILD_LIBUV ON CACHE BOOL "" FORCE)
+-    set(TP_STATIC_OR_SHARED STATIC CACHE STRING "" FORCE)
+-
+-    # Tensorpipe uses cuda_add_library
+-    torch_update_find_cuda_flags()
+-    add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/tensorpipe)
++    FIND_LIBRARY(TENSORPIPE_LIBRARY NAME tensorpipe REQUIRED)
+ 
+     list(APPEND Caffe2_DEPENDENCY_LIBS tensorpipe)
+     if(USE_CUDA)
+@@ -1489,7 +1381,7 @@ if(USE_ZSTD)
+ endif()
+ 
+ # ---[ Onnx
+-if(CAFFE2_CMAKE_BUILDING_WITH_MAIN_REPO AND NOT INTERN_DISABLE_ONNX)
++if(0 AND CAFFE2_CMAKE_BUILDING_WITH_MAIN_REPO AND NOT INTERN_DISABLE_ONNX)
+   if(EXISTS "${CAFFE2_CUSTOM_PROTOC_EXECUTABLE}")
+     set(ONNX_CUSTOM_PROTOC_EXECUTABLE ${CAFFE2_CUSTOM_PROTOC_EXECUTABLE})
+   endif()
+@@ -1550,6 +1442,8 @@ if(CAFFE2_CMAKE_BUILDING_WITH_MAIN_REPO AND NOT INTERN_DISABLE_ONNX)
+   # Recover the build shared libs option.
+   set(BUILD_SHARED_LIBS ${TEMP_BUILD_SHARED_LIBS})
+ endif()
++FIND_PACKAGE(ONNX REQUIRED)
++list(APPEND Caffe2_DEPENDENCY_LIBS onnx_proto onnx)
+ 
+ # --[ TensorRT integration with onnx-trt
+ function(add_onnx_tensorrt_subdir)
+@@ -1808,21 +1702,8 @@ endif()
+ #
+ # End ATen checks
+ #
+-set(TEMP_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
+-set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libs" FORCE)
+-add_subdirectory(${PROJECT_SOURCE_DIR}/third_party/fmt)
+-
+-# Disable compiler feature checks for `fmt`.
+-#
+-# CMake compiles a little program to check compiler features. Some of our build
+-# configurations (notably the mobile build analyzer) will populate
+-# CMAKE_CXX_FLAGS in ways that break feature checks. Since we already know
+-# `fmt` is compatible with a superset of the compilers that PyTorch is, it
+-# shouldn't be too bad to just disable the checks.
+-set_target_properties(fmt-header-only PROPERTIES INTERFACE_COMPILE_FEATURES "")
+-
++FIND_PACKAGE(fmt REQUIRED)
+ list(APPEND Caffe2_DEPENDENCY_LIBS fmt::fmt-header-only)
+-set(BUILD_SHARED_LIBS ${TEMP_BUILD_SHARED_LIBS} CACHE BOOL "Build shared libs" FORCE)
+ 
+ if(USE_BREAKPAD)
+   add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../third_party/breakpad)
+@@ -1859,16 +1740,6 @@ if(USE_KINETO)
+     message(STATUS "Using CPU-only version of Kineto")
+   endif()
+ 
+-  set(CAFFE2_THIRD_PARTY_ROOT "${PROJECT_SOURCE_DIR}/third_party" CACHE STRING "")
+-  set(KINETO_SOURCE_DIR "${CAFFE2_THIRD_PARTY_ROOT}/kineto/libkineto" CACHE STRING "")
+-  set(KINETO_BUILD_TESTS OFF CACHE BOOL "")
+-  set(KINETO_LIBRARY_TYPE "static" CACHE STRING "")
+-
+-  message(STATUS "Configuring Kineto dependency:")
+-  message(STATUS "  KINETO_SOURCE_DIR = ${KINETO_SOURCE_DIR}")
+-  message(STATUS "  KINETO_BUILD_TESTS = ${KINETO_BUILD_TESTS}")
+-  message(STATUS "  KINETO_LIBRARY_TYPE = ${KINETO_LIBRARY_TYPE}")
+-
+   if(NOT LIBKINETO_NOCUPTI)
+     set(CUDA_SOURCE_DIR "${CUDA_TOOLKIT_ROOT_DIR}" CACHE STRING "")
+     message(STATUS "  CUDA_SOURCE_DIR = ${CUDA_SOURCE_DIR}")
+@@ -1913,10 +1784,7 @@ if(USE_KINETO)
+     endif()
+   endif()
+ 
+-  if(NOT TARGET kineto)
+-    add_subdirectory("${KINETO_SOURCE_DIR}")
+-    set_property(TARGET kineto PROPERTY POSITION_INDEPENDENT_CODE ON)
+-  endif()
++  FIND_LIBRARY(KINETO_LIBRARY NAME kineto REQUIRED)
+   list(APPEND Caffe2_DEPENDENCY_LIBS kineto)
+   string(APPEND CMAKE_CXX_FLAGS " -DUSE_KINETO")
+   if(LIBKINETO_NOCUPTI)
+diff --git a/torch/csrc/autograd/profiler_kineto.cpp b/torch/csrc/autograd/profiler_kineto.cpp
+index b8bba50c40..37a0dfb9ae 100644
+--- a/torch/csrc/autograd/profiler_kineto.cpp
++++ b/torch/csrc/autograd/profiler_kineto.cpp
+@@ -20,8 +20,8 @@
+ #include <stdexcept>
+ 
+ #ifdef USE_KINETO
+-#include <libkineto.h>
+-#include <time_since_epoch.h>
++#include <kineto/libkineto.h>
++#include <kineto/time_since_epoch.h>
+ 
+ #ifndef _MSC_VER
+ // TODO: TO be removed, once this properly works from libkineto
+@@ -521,12 +521,7 @@ struct KinetoThreadLocalState : public ProfilerThreadLocalStateBase {
+       auto iter = tidSeq2activity.find(key);
+       if (iter != tidSeq2activity.end()) {
+         libkineto::GenericTraceActivity* fwd = iter->second;
+-#ifdef USE_KINETO_UPDATED
+         fwd->flow.start = true;
+-#else
+-        activity.flow.linkedActivity = fwd; // Only destination side set this,
+-                                            // to distinguish with start side.
+-#endif
+         activity.flow.id = fwd->flow.id = fwd_bwd_link_id;
+         activity.flow.type = fwd->flow.type = libkineto::kLinkFwdBwd;
+         ++fwd_bwd_link_id;
+diff --git a/torch/csrc/profiler/kineto_shim.cpp b/torch/csrc/profiler/kineto_shim.cpp
+index aea60edb74..3634f74831 100644
+--- a/torch/csrc/profiler/kineto_shim.cpp
++++ b/torch/csrc/profiler/kineto_shim.cpp
+@@ -3,7 +3,7 @@
+ #include <type_traits>
+ 
+ #ifdef USE_KINETO
+-#include <libkineto.h>
++#include <kineto/libkineto.h>
+ #endif
+ 
+ namespace torch {
+diff --git a/torch/csrc/profiler/util.cpp b/torch/csrc/profiler/util.cpp
+index 95c1c7c193..8cf05e1660 100644
+--- a/torch/csrc/profiler/util.cpp
++++ b/torch/csrc/profiler/util.cpp
+@@ -6,7 +6,7 @@
+ #include <c10/util/irange.h>
+ 
+ #ifdef USE_KINETO
+-#include <libkineto.h>
++#include <kineto/libkineto.h>
+ #endif
+ 
+ namespace torch {

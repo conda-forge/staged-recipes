@@ -1,0 +1,96 @@
+diff --git a/aten/src/ATen/native/quantized/cpu/qnnpack/CMakeLists.txt b/aten/src/ATen/native/quantized/cpu/qnnpack/CMakeLists.txt
+index 2c9ec7aa1e..336516b9aa 100644
+--- a/aten/src/ATen/native/quantized/cpu/qnnpack/CMakeLists.txt
++++ b/aten/src/ATen/native/quantized/cpu/qnnpack/CMakeLists.txt
+@@ -17,6 +17,7 @@ set(PYTORCH_QNNPACK_LIBRARY_TYPE "default" CACHE STRING "Type of library (shared
+ set_property(CACHE PYTORCH_QNNPACK_LIBRARY_TYPE PROPERTY STRINGS default static shared)
+ option(PYTORCH_QNNPACK_BUILD_TESTS "Build QNNPACK unit tests" ON)
+ option(PYTORCH_QNNPACK_BUILD_BENCHMARKS "Build QNNPACK benchmarks" ON)
++OPTION(PYTORCH_QNNPACK_USE_SYSTEM_LIBS "Use system-provided dependency libraries" OFF)
+ 
+ # Enable runtime requantization.
+ add_definitions(-DPYTORCH_QNNPACK_RUNTIME_QUANTIZATION=1)
+@@ -71,6 +72,7 @@ set(CONFU_DEPENDENCIES_SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps"
+ set(CONFU_DEPENDENCIES_BINARY_DIR "${CMAKE_BINARY_DIR}/deps"
+   CACHE PATH "Confu-style dependencies binary directory")
+ 
++IF (NOT PYTORCH_QNNPACK_USE_SYSTEM_LIBS)
+ if(NOT DEFINED CLOG_SOURCE_DIR)
+   set(CLOG_SOURCE_DIR "${PROJECT_SOURCE_DIR}/deps/clog")
+ endif()
+@@ -126,6 +128,7 @@ if(NOT DEFINED PTHREADPOOL_SOURCE_DIR AND NOT USE_SYSTEM_PTHREADPOOL)
+     WORKING_DIRECTORY "${CONFU_DEPENDENCIES_BINARY_DIR}/pthreadpool-download")
+   set(PTHREADPOOL_SOURCE_DIR "${CONFU_DEPENDENCIES_SOURCE_DIR}/pthreadpool" CACHE STRING "pthreadpool source directory")
+ endif()
++ENDIF()  # PYTORCH_QNNPACK_USE_SYSTEM_LIBS
+ 
+ if(PYTORCH_QNNPACK_BUILD_TESTS AND NOT DEFINED GOOGLETEST_SOURCE_DIR)
+   message(STATUS "Downloading Google Test to ${CONFU_DEPENDENCIES_SOURCE_DIR}/googletest (define GOOGLETEST_SOURCE_DIR to avoid it)")
+@@ -320,10 +323,10 @@ if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+ endif()
+ target_include_directories(pytorch_qnnpack PUBLIC include)
+ target_include_directories(pytorch_qnnpack PUBLIC src)
+-set_target_properties(pytorch_qnnpack PROPERTIES PUBLIC_HEADER include/pytorch_qnnpack.h)
+-set_target_properties(pytorch_qnnpack PROPERTIES PUBLIC_HEADER include/qnnpack_func.h)
++set_target_properties(pytorch_qnnpack PROPERTIES PUBLIC_HEADER "include/pytorch_qnnpack.h;include/qnnpack_func.h")
+ 
+ # ---[ Configure clog
++IF(NOT PYTORCH_QNNPACK_USE_SYSTEM_LIBS)
+ if(NOT TARGET clog)
+   set(CLOG_BUILD_TESTS OFF CACHE BOOL "")
+   set(CLOG_RUNTIME_TYPE "${CPUINFO_RUNTIME_TYPE}" CACHE STRING "")
+@@ -333,9 +336,13 @@ if(NOT TARGET clog)
+   # We build static version of clog but a dynamic library may indirectly depend on it
+   set_property(TARGET clog PROPERTY POSITION_INDEPENDENT_CODE ON)
+ endif()
++ELSE()
++    FIND_LIBRARY(CLOG_LIBRARY clog REQUIRED)
++ENDIF()
+ target_link_libraries(pytorch_qnnpack PUBLIC clog)
+ 
+ # ---[ Configure cpuinfo
++IF(NOT PYTORCH_QNNPACK_USE_SYSTEM_LIBS)
+ if(NOT TARGET cpuinfo AND USE_SYSTEM_CPUINFO)
+   add_library(cpuinfo SHARED IMPORTED)
+   find_library(CPUINFO_LIBRARY cpuinfo)
+@@ -353,9 +360,13 @@ elseif(NOT TARGET cpuinfo)
+     "${CPUINFO_SOURCE_DIR}"
+     "${CONFU_DEPENDENCIES_BINARY_DIR}/cpuinfo")
+ endif()
++ELSE()
++    FIND_LIBRARY(CPUINFO_LIBRARY cpuinfo REQUIRED)
++ENDIF()
+ target_link_libraries(pytorch_qnnpack PRIVATE cpuinfo)
+ 
+ # ---[ Configure pthreadpool
++IF(NOT PYTORCH_QNNPACK_USE_SYSTEM_LIBS)
+ if(NOT TARGET pthreadpool AND NOT USE_SYSTEM_PTHREADPOOL)
+   set(PTHREADPOOL_BUILD_TESTS OFF CACHE BOOL "")
+   set(PTHREADPOOL_BUILD_BENCHMARKS OFF CACHE BOOL "")
+@@ -373,6 +384,9 @@ elseif(NOT TARGET pthreadpool AND USE_SYSTEM_PTHREADPOOL)
+     IMPORTED_LOCATION "${PTHREADPOOL_LIBRARY}")
+   add_library(pthreadpool_interface INTERFACE)
+ endif()
++ELSE()
++    FIND_LIBRARY(PTHREADPOOL_LIBRARY pthreadpool REQUIRED)
++ENDIF()
+ if(PYTORCH_QNNPACK_CUSTOM_THREADPOOL)
+   # Depend on pthreadpool interface, but not on implementation.
+   # This is used when QNNPACK user (e.g. Caffe2) provides its own threadpool implementation.
+@@ -382,6 +396,7 @@ else()
+ endif()
+ 
+ # ---[ Configure FXdiv
++IF(NOT PYTORCH_QNNPACK_USE_SYSTEM_LIBS)
+ if(NOT TARGET fxdiv AND NOT USE_SYSTEM_FXDIV)
+   set(FXDIV_BUILD_TESTS OFF CACHE BOOL "")
+   set(FXDIV_BUILD_BENCHMARKS OFF CACHE BOOL "")
+@@ -429,6 +444,7 @@ elseif(NOT TARGET fp16 AND USE_SYSTEM_FP16)
+   set_target_properties(fp16 PROPERTIES LINKER_LANGUAGE C)
+ endif()
+ target_link_libraries(pytorch_qnnpack PRIVATE fp16)
++ENDIF()
+ 
+ install(TARGETS pytorch_qnnpack
+     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+
