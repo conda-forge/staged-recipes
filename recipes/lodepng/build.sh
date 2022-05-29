@@ -1,5 +1,7 @@
 #!/bin/sh
 
+cp $RECIPE_DIR/CMakeLists.txt $SRC_DIR
+
 mkdir build
 cd build
 
