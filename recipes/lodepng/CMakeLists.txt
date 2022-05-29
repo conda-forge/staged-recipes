@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.23)
 
+include(GNUInstallDirs)
+
 project(lodepng)
 
 # To build shared libraries in Windows, we set CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS to TRUE.
@@ -25,3 +27,6 @@ install(TARGETS lodepng
 
 install(EXPORT lodepng-targets 
         DESTINATION ${LODEPNG_CMAKE_INSTALL_DIR})
+
+install(FILES lodepng.h 
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
