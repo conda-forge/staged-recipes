@@ -1,2 +1,2 @@
-SET CMAKE_GENERATOR=Visual Studio 15 2017
+SET CMAKE_GENERATOR=Ninja
 "%PYTHON%" setup.py install
