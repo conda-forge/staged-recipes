@@ -15,4 +15,3 @@ cmake --build build-test --parallel "${CPU_COUNT}"
 cd build-test
 
 ctest -V --output-on-failure -R unittests
-mpiexec -n 2 ctest -V --output-on-failure -R unittests
