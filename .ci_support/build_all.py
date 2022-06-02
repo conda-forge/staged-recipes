@@ -80,13 +80,15 @@ def build_all(recipes_dir, arch):
                         version = tuple([int(x) for x in version.split('.')])
                         sdk_version = max(sdk_version, deployment_version, version)
 
-            if 'channel_sources' in text:
+            if 'channel_sources' not in text:
+                new_channel_urls = ['local', 'conda-forge']
+            else:
                 config = load(text, Loader=BaseLoader)
                 new_channel_urls = ['local'] + config['channel_sources'][0].split(',')
-                if channel_urls is None:
-                    channel_urls = new_channel_urls
-                elif channel_urls != new_channel_urls:
-                    raise ValueError(f'Detected different channel_sources in the recipes: {channel_urls} vs. {new_channel_urls}. Consider submitting them in separate PRs')
+            if channel_urls is None:
+                channel_urls = new_channel_urls
+            elif channel_urls != new_channel_urls:
+                raise ValueError(f'Detected different channel_sources in the recipes: {channel_urls} vs. {new_channel_urls}. Consider submitting them in separate PRs')
 
     if channel_urls is None:
         channel_urls = ['local', 'conda-forge']
