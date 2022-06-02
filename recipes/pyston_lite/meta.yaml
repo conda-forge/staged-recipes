@@ -1,0 +1,88 @@
+{% set name = "pyston_lite" %}
+{% set pyston_version = "2.3.4" %}
+{% set python_version = "3.8.* *_cpython" %}
+{% set build_num = 0 %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ pyston_version }}
+
+source:
+  - url: https://github.com/kmod/pyston/archive/bcbb8e939c28162e39d536622625961522424117.tar.gz
+    sha256: 753f3687d49173e860c737758b81d78419b74f3fd05abe6f05eb06c072cbf42c
+  # pyston-lite uses a preprocessing script from inside the LuaJIT repository (that is not
+  # packaged as part of the luajit package), but only as a build tool (ie is not included
+  # in the built artifacts).
+  - url: https://github.com/LuaJIT/LuaJIT/archive/e2c312e0deb874aa5fa8ce502c08d87deb38e82f.tar.gz
+    sha256: bff4764c19466def90667d2f7fcbd0781b8e62476b12105868f8e44babd03f8e
+    folder: pyston/LuaJIT/
+
+build:
+  number: {{ build_num }}
+
+  skip: True  # [not linux]
+  skip: True  # [not x86_64 and not aarch64 and not arm64]
+  # Despite the pin on a Python version, the build script will still build a
+  # "python 3.9" version of this package which depends on python 3.8. So skip it as well:
+  skip: True  # [py!=38]
+
+# In theory the requirements can/should be specified per-output, but in practice
+# conda-build will produce a corrupt package if the compiler dependency is not
+# specified at this top scope
+requirements:
+  build:
+    - {{ compiler('c') }}
+
+outputs:
+  - name: pyston_lite
+    # This 'script' line must go under 'outputs', not 'build'
+    script: build_pyston_lite.sh
+
+    build:
+      number: {{ build_num }}
+
+    requirements:
+      build:
+        # This dependency is required even though we specified it at the top-level scope
+        - {{ compiler('c') }}
+        # NB: listing a "python" dependence in this section will cause the package to misbuild
+      host:
+        - python {{ python_version }}
+        - make
+      run:
+        - python {{ python_version }}
+
+    test:
+      imports:
+        - pyston_lite
+
+  - name: pyston_lite_autoload
+
+    build:
+      number: {{ build_num }}
+      # This 'script' line must go under 'build', not 'outputs'
+      script: cd pyston/pyston_lite/autoload; python setup.py install -v
+      noarch: python
+
+    requirements:
+      host:
+        - python
+      run:
+        - {{ pin_subpackage('pyston_lite', exact=True) }}
+
+    test:
+      commands:
+        - python -c "import sys; assert 'pyston_lite' in sys.modules"
+
+about:
+  home: https://github.com/pyston/pyston
+  summary: 'A JIT for Python'
+  description: |
+      pyston-lite is the JIT component of Pyston, a faster implementation of Python.
+  license: PSF-2.0
+  license_file: LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - kmod
+    - undingen
