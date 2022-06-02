@@ -113,7 +113,7 @@ def build_all(recipes_dir, arch):
         subprocess.run("run_conda_forge_build_setup", shell=True, check=True)
 
     if 'conda-forge' not in channel_urls:
-        channel_urls.append('conda-forge')
+        raise ValueError('conda-forge needs to be part of channel_sources')
     print("Building {} with {}".format(','.join(folders), ','.join(channel_urls)))
     build_folders(recipes_dir, folders, arch, channel_urls)
 
