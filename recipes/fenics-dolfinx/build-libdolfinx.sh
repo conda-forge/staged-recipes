@@ -1,4 +1,4 @@
-# disable compatibility check
+# disable clang availability check
 if [[ "$target_platform" == "osx-64" ]]; then
   export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 fi
