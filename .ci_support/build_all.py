@@ -82,7 +82,7 @@ def build_all(recipes_dir, arch):
 
             if 'channel_sources' in text:
                 config = load(text, Loader=BaseLoader)
-                new_channel_urls = ['local'] + config['channel_sources'][0].split(',')
+                new_channel_urls = ['local'] + config['channel_sources'][0].split(',')
                 if channel_urls is None:
                     channel_urls = new_channel_urls
                 elif channel_urls != new_channel_urls:
