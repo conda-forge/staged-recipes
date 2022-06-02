@@ -60,7 +60,7 @@ def build_all(recipes_dir, arch):
 
     deployment_version = (0, 0)
     sdk_version = (0, 0)
-    channel_urls = ['local']
+    channel_urls = None
     for folder in folders:
         cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
         if os.path.exists(cbc):
@@ -82,7 +82,14 @@ def build_all(recipes_dir, arch):
 
             if 'channel_sources' in text:
                 config = load(text, Loader=BaseLoader)
-                channel_urls += config['channel_sources'][0].split(',')
+                new_channel_urls = ['local'] + config['channel_sources'][0].split(',')
+                if channel_urls is None:
+                    channel_urls = new_channel_urls
+                elif channel_urls != new_channel_urls:
+                    raise ValueError(f'Detected different channel_sources in the recipes: {channel_urls} vs. {new_channel_urls}. Consider submitting them in separate PRs')
+
+    if channel_urls is None:
+        channel_urls = ['local', 'conda-forge']
 
     with open(variant_config_file, 'r') as f:
         variant_text = ''.join(f.readlines())
@@ -106,7 +113,7 @@ def build_all(recipes_dir, arch):
         subprocess.run("run_conda_forge_build_setup", shell=True, check=True)
 
     if 'conda-forge' not in channel_urls:
-        channel_urls.append('conda-forge')
+        raise ValueError('conda-forge needs to be part of channel_sources')
     print("Building {} with {}".format(','.join(folders), ','.join(channel_urls)))
     build_folders(recipes_dir, folders, arch, channel_urls)
 
