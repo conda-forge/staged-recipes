@@ -32,6 +32,8 @@ cp ${SRC_DIR}/python/myOpenMMSwigHeaders.i ${PREFIX}/include/swig/
 
 make -j$CPU_COUNT PythonInstall
 
+rm ${PREFIX}/include/swig/myOpenMMSwigHeaders.i
+
 # Include test executables too
 mkdir -p ${PREFIX}/share/${PKG_NAME}/tests
 if [[ "$target_platform" == osx* ]]; then
