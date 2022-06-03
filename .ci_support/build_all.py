@@ -60,6 +60,7 @@ def build_all(recipes_dir, arch):
 
     deployment_version = (0, 0)
     sdk_version = (0, 0)
+    channel_urls = None
     for folder in folders:
         cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
         if os.path.exists(cbc):
@@ -78,6 +79,19 @@ def build_all(recipes_dir, arch):
                     for version in config['MACOSX_SDK_VERSION']:
                         version = tuple([int(x) for x in version.split('.')])
                         sdk_version = max(sdk_version, deployment_version, version)
+
+            if 'channel_sources' not in text:
+                new_channel_urls = ['local', 'conda-forge']
+            else:
+                config = load(text, Loader=BaseLoader)
+                new_channel_urls = ['local'] + config['channel_sources'][0].split(',')
+            if channel_urls is None:
+                channel_urls = new_channel_urls
+            elif channel_urls != new_channel_urls:
+                raise ValueError(f'Detected different channel_sources in the recipes: {channel_urls} vs. {new_channel_urls}. Consider submitting them in separate PRs')
+
+    if channel_urls is None:
+        channel_urls = ['local', 'conda-forge']
 
     with open(variant_config_file, 'r') as f:
         variant_text = ''.join(f.readlines())
@@ -100,8 +114,9 @@ def build_all(recipes_dir, arch):
     if platform == "osx" and (sdk_version != (0, 0) or deployment_version != (0, 0)):
         subprocess.run("run_conda_forge_build_setup", shell=True, check=True)
 
-    print("Building {} with conda-forge/label/main".format(','.join(folders)))
-    channel_urls = ['local', 'conda-forge']
+    if 'conda-forge' not in channel_urls:
+        raise ValueError('conda-forge needs to be part of channel_sources')
+    print("Building {} with {}".format(','.join(folders), ','.join(channel_urls)))
     build_folders(recipes_dir, folders, arch, channel_urls)
 
 
