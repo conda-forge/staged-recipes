@@ -1,6 +1,9 @@
 {% set name = "openmmtorchplugin" %}
 {% set version = "1.0.0" %}
 
+# see github.com/conda-forge/conda-forge.github.io/issues/1059 for naming discussion
+{% set torch_proc_type = "cuda" if cuda_compiler_version != "None" else "cpu" %}
+
 package:
   name: {{ name|lower }}
   version: {{ version }}
@@ -12,9 +15,10 @@ source:
 build:
   number: 0
   string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}   # [cuda_compiler_version != "None"]
-  string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                      # [cuda_compiler_version == "None"]
+  string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                                 # [cuda_compiler_version == "None"]
   skip: true  # [cuda_compiler_version in (undefined, 'None', '10.2')]
   skip: true  # [not linux]
+  # Set rpaths we need to link against libtorch.so, but it is located in site-packages
   rpaths:
     - lib/
     - {{ SP_DIR }}/torch/lib
@@ -27,30 +31,30 @@ requirements:
     - {{ cdt('mesa-libgl-devel') }}  # [linux]
     - cmake
     - make
-
-
-  host:
-    - python
-    - pip
     - swig
-    - openmm
-    - pytorch
-    - cudatoolkit  # [cuda_compiler_version not in (undefined, 'None')]
-    - ocl-icd  # [linux]
+  host:
     - khronos-opencl-icd-loader  # [osx]
-  run:
+    - ocl-icd  # [linux]
+    - openmm
+    - pip
     - python
-    - {{ pin_compatible('pytorch-gpu', max_pin='x.x.x') }}  # [cuda_compiler_version not in (undefined, 'None')]
-    - {{ pin_compatible('pytorch-cpu', max_pin='x.x.x') }}  # [osx]
+    # First for global version pin, second for build variant
+    - pytorch
+    - pytorch =*={{ torch_proc_type }}*
+  run:
+    - khronos-opencl-icd-loader  # [osx]
     - {{ pin_compatible('openmm', max_pin='x.x') }}
     - ocl-icd  # [linux]
     - ocl-icd-system  # [linux]
-    - khronos-opencl-icd-loader  # [osx]
-    - ocl_icd_wrapper_apple      # [osx]
+    - ocl_icd_wrapper_apple  # [osx]
+    - python
+  run_constrained:
+    - pytorch =*={{ torch_proc_type }}*
 
 test:
   imports:
     - torchintegratorplugin
+
 about:
   home: https://github.com/SCMusson/openmmtorchplugin
   license: GPL-3.0-only
@@ -58,7 +62,7 @@ about:
   summary: OpenMM plugin to get forces for neural networks
   description: |
     This is a plugin for OpenMM that allows neural networks to 
-    access force and energy.  It is implemented with PyTorch.
+    access force and energy. It is implemented with PyTorch.
   doc_url: https://github.com/SCMusson/openmmtorchplugin
   dev_url: https://github.com/SCMusson/openmmtorchplugin
 
