@@ -1,0 +1,92 @@
+{% set name = "fenics-ffcx-ufcx" %}
+{% set version = "0.4.2" %}
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  # PyPI sdist missing ufcx sources in 0.4.2. Should be fixed in 0.4.3
+  # url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}{{ extra }}.tar.gz
+  url: https://github.com/fenics/ffcx/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 3be6eef064d6ef907245db5b6cc15d4e603762e68b76e53e099935ca91ef1ee4
+build:
+  number: 1
+  skip: true  # [win]
+
+outputs:
+  - name: fenics-ufcx
+    script: build-ufcx.sh
+    build:
+      noarch: generic
+      ignore_run_exports:
+        # we don't use the compiler, but cmake still needs it
+        - {{ compiler("c") }}  # [linux]
+    requirements:
+      build:
+        - cmake
+        - make
+        - {{ compiler("c") }}  # [linux]
+    test:
+      script: test-ufcx.sh
+      files:
+        - test-ufcx
+      requires:
+        - pkg-config
+        - cmake
+        - make
+        - {{ compiler("cxx") }}
+      commands:
+        - test -f ${PREFIX}/include/ufcx.h
+        - pkg-config --cflags ufcx
+  - name: fenics-ffcx
+    build:
+      script: $PYTHON -m pip install -vv --no-deps .
+      noarch: python
+    requirements:
+      host:
+        - python >=3.7
+        - pip
+        - setuptools >=58,<61
+        - wheel
+      run:
+        - python >=3.7
+        - setuptools
+        - numpy
+        - cffi
+        - fenics-basix >=0.4.1,<0.5.0a0
+        - fenics-ufl ==2022.1.*
+    test:
+      files:
+        - test-ffcx
+      requires:
+        - pip
+        - pytest
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+      imports:
+        - ffcx
+      commands:
+        - pytest -v test-ffcx
+
+about:
+  home: https://fenicsproject.org
+  summary: The FEniCSx Form Compiler
+  description: |
+    FFCx is a new version of the FEniCS Form Compiler.
+    It is being actively developed and is compatible with DOLFINx.
+
+    FFCx is a compiler for finite element variational forms.
+    From a high-level description of the form in the Unified Form Language (UFL),
+    it generates efficient low-level C code that can be used to assemble the corresponding discrete operator (tensor).
+    In particular, a bilinear form may be assembled into a matrix and a linear form may be assembled into a vector.
+    FFCx may be used either from the command line (by invoking the ffcx command) or as a Python module (import ffcx).
+  license: LGPL-3.0-or-later
+  license_family: LGPL
+  license_file: COPYING.LESSER
+  doc_url: https://docs.fenicsproject.org/ffcx/v{{ version }}/
+  dev_url: https://github.com/fenics/ffcx
+
+extra:
+  feedstock-name: fenics-ffcx
+  recipe-maintainers:
+    - minrk
