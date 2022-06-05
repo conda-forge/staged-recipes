@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.23)
 
 include(GNUInstallDirs)
 
-project(lodepng)
+project(lodepng
+        VERSION "$ENV{PKG_VERSION}"
+        LANGUAGES CXX)
 
 # To build shared libraries in Windows, we set CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS to TRUE.
 # See https://cmake.org/cmake/help/v3.4/variable/CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS.html
