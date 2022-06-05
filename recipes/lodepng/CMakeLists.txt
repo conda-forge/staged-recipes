@@ -21,7 +21,12 @@ set(LODEPNG_CMAKE_INSTALL_DIR lib/cmake/lodepng)
 
 file(WRITE "${CMAKE_BINARY_DIR}/lodepng-config.cmake" 
            "include(\"\${CMAKE_CURRENT_LIST_DIR}/lodepng-targets.cmake\")")
-install(FILES "${CMAKE_BINARY_DIR}/lodepng-config.cmake" 
+           
+write_basic_package_version_file("${CMAKE_BINARY_DIR}/lodepng-config-version.cmake" 
+                                 COMPATIBILITY AnyNewerVersion)
+
+install(FILES "${CMAKE_BINARY_DIR}/lodepng-config.cmake"
+              "${CMAKE_BINARY_DIR}/lodepng-config-version.cmake"
         DESTINATION ${LODEPNG_CMAKE_INSTALL_DIR})
 
 install(TARGETS lodepng 
