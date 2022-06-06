@@ -17,17 +17,5 @@ cp -r rel/couchdb $PREFIX/lib/couchdb
 
 CORE_ROOT=$PREFIX/lib/couchdb
 
-# Write launch script and make executable
-LAUNCH_SCRIPT=$PREFIX/bin/couchdb
-cat <<EOF >$LAUNCH_SCRIPT
-#!/bin/bash
-$CORE_ROOT/bin/couchdb "\$@"
-EOF
-chmod +x $LAUNCH_SCRIPT
-
-JS_SCRIPT=$PREFIX/bin/couchjs
-cat <<EOF >$JS_SCRIPT
-#!/bin/bash
-$CORE_ROOT/bin/couchjs "\$@"
-EOF
-chmod +x $JS_SCRIPT
+ln -sf $CORE_ROOT/bin/couchdb $PREFIX/bin/couchdb
+ln -sf $CORE_ROOT/bin/couchjs $PREFIX/bin/couchjs
