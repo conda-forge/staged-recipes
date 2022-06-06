@@ -1,1 +1,1 @@
-${PYTHON} setup.py install
+SCAMP_ENABLE_BINARY_DISTRIBUTION=ON ${PYTHON} setup.py install
