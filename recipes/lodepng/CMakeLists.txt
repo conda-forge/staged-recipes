@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.23)
 
 include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
 
 project(lodepng
         VERSION "$ENV{PKG_VERSION}"
