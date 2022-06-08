@@ -3,7 +3,7 @@ ${PYTHON} -m pip install . -vv
 
 # non-standard layout for the install
 mkdir -p ${PREFIX}/pixcorrect/include
-cp ${RECIPE_DIR}/include/libfixcol.h ${PREFIX}/pixcorrect/include/libfixcol.h
+cp include/libfixcol.h ${PREFIX}/pixcorrect/include/libfixcol.h
 
 mkdir -p ${PREFIX}/pixcorrect/lib
 for nm in "libbiascorrect" "libbpm" "libfixcol" "libflatcorrect" "libmasksatr" "libfpnumber"; do
