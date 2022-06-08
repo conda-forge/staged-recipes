@@ -1,2 +1,2 @@
-mkdir -p ${PREFIX}/imsupport/include
-cp -r include/* ${PREFIX}/imsupport/include/.
+mkdir -p ${PREFIX}/include/imsupport
+cp -r include/* ${PREFIX}/include/imsupport/.
