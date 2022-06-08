@@ -1,3 +1,7 @@
+# this script is from the conda-forge/python-feedstock and is used to massage one
+# of the patches here
+
+
 import sys
 import re
 import tempfile
