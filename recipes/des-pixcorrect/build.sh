@@ -6,7 +6,7 @@ mkdir -p ${PREFIX}/pixcorrect/include
 cp include/libfixcol.h ${PREFIX}/pixcorrect/include/libfixcol.h
 
 mkdir -p ${PREFIX}/pixcorrect/lib
-for nm in "libbiascorrect" "libbpm" "libfixcol" "libflatcorrect" "libmasksatr" "libfpnumber"; do
+for nm in "biascorrect" "bpm" "fixcol" "flatcorrect" "masksatr" "fpnumber"; do
   mv ${SP_DIR}/${nm}.*.so ${PREFIX}/pixcorrect/lib/lib${nm}${SHLIB_EXT}
 done
 
