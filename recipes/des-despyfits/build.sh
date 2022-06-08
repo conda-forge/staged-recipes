@@ -9,7 +9,6 @@ mv ${PREFIX}/include/pixsupport.h ${PREFIX}/despyfits/include/pixsupport.h
 mkdir -p ${PREFIX}/despyfits/lib
 for nm in "desimage" "maskbits" "compressionhdu"; do
   mv ${SP_DIR}/${nm}.*${SHLIB_EXT} ${PREFIX}/despyfits/lib/lib${nm}${SHLIB_EXT}
-  ln -s ${PREFIX}/despyfits/lib/lib${nm}${SHLIB_EXT} ${SP_DIR}/despyfits/${nm}${SHLIB_EXT}
 done
 
 # copy the conda ones
