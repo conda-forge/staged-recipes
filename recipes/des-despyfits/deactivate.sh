@@ -1,3 +1,0 @@
-despyfits_backup_and_make_envvar deactivate DESPYFITS_DIR
-
-unset -f despyfits_backup_and_make_envvar

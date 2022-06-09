@@ -1,3 +1,0 @@
-pixcorrect_backup_and_make_envvar deactivate PIXCORRECT_DIR
-
-unset -f pixcorrect_backup_and_make_envvar
