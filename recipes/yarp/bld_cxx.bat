@@ -8,7 +8,6 @@ cmake -G "Ninja" ^
     -DBUILD_SHARED_LIBS:BOOL=ON ^
     -DYARP_COMPILE_BINDINGS:BOOL=OFF ^
     -DYARP_COMPILE_GUIS:BOOL=OFF ^
-    -DYARP_USE_SYSTEM_SQLite:BOOL=ON ^
     -DYARP_COMPILE_libYARP_math:BOOL=ON ^
     -DYARP_COMPILE_CARRIER_PLUGINS:BOOL=ON ^
     -DENABLE_yarpcar_bayer:BOOL=ON ^
@@ -47,7 +46,11 @@ cmake -G "Ninja" ^
     -DENABLE_yarpmod_fakeSpeaker:BOOL=ON ^
     -DYARP_COMPILE_RobotTestingFramework_ADDONS:BOOL=ON ^
     -DYARP_USE_I2C:BOOL=OFF ^
+    -DYARP_USE_JPEG:BOOL=ON ^
     -DYARP_USE_SDL:BOOL=ON ^
+    -DYARP_USE_SQLite:BOOL=ON ^
+    -DYARP_USE_SYSTEM_SQLite:BOOL=ON ^
+    -DYARP_USE_SOXR:BOOL=ON ^
     -DENABLE_yarpmod_usbCamera:BOOL=OFF ^
     -DENABLE_yarpmod_usbCameraRaw:BOOL=OFF ^
     -DCREATE_PYTHON:BOOL=OFF ^
