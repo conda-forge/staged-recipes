@@ -1,6 +1,8 @@
 mkdir build
 cd build
 
+:: JPEG_LIBRARY is specified as jpeg ships both shared and static libraries
+:: on Windows
 cmake -G "Ninja" ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
     -DCMAKE_BUILD_TYPE=Release ^
@@ -47,6 +49,7 @@ cmake -G "Ninja" ^
     -DYARP_COMPILE_RobotTestingFramework_ADDONS:BOOL=ON ^
     -DYARP_USE_I2C:BOOL=OFF ^
     -DYARP_USE_JPEG:BOOL=ON ^
+    -DJPEG_LIBRARY=%CONDA_PREFIX%\Library\lib\libjpeg.lib ^
     -DYARP_USE_SDL:BOOL=ON ^
     -DENABLE_yarpmod_usbCamera:BOOL=OFF ^
     -DENABLE_yarpmod_usbCameraRaw:BOOL=OFF ^
