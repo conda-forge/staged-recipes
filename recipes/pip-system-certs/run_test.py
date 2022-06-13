@@ -1,2 +1,0 @@
-import pip_system_certs.bootstrap
-assert pip_system_certs.bootstrap._registered
