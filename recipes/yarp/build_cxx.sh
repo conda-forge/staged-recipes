@@ -61,6 +61,8 @@ cmake ${CMAKE_ARGS} -GNinja .. \
     -DCREATE_PYTHON:BOOL=OFF \
     -DYARP_DISABLE_VERSION_SOURCE:BOOL=ON
 
+cat CMakeCache.txt
+
 cmake --build . --config Release
 cmake --build . --config Release --target install
 # Skip audio-related tests as they fail in the CI due to missing soundcard
