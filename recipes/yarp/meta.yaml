@@ -1,0 +1,136 @@
+{% set name = "yarp" %}
+{% set namecxx = "yarp-cxx" %}
+{% set namepython = "yarp-python" %}
+{% set version = "3.7.0" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/robotology/yarp/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 3b2275e0cc17ce41e44f6ae15adfc76e49a61f5ead8a6dd42ce2cd88fffdcbed
+  patches:
+    - 2852.patch
+
+build:
+  number: 0
+
+outputs:
+  - name: {{ namecxx }}
+    script: build_cxx.sh  # [unix]
+    script: bld_cxx.bat  # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage(namecxx, max_pin='x.x.x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        # Visual Studio 2017 is not supported
+        - vs2019_win-64  # [win]
+        - cmake
+        - pkg-config
+        - ninja
+        - multisheller
+        - {{ cdt('mesa-libgl-devel') }}  # [linux]
+        - {{ cdt('mesa-dri-drivers') }}  # [linux]
+        - {{ cdt('libselinux') }}  # [linux]
+        - {{ cdt('libxdamage') }}  # [linux]
+        - {{ cdt('libxxf86vm') }}  # [linux]
+        - {{ cdt('libxext') }}  # [linux]
+        - {{ cdt('libxcb') }}  # [linux]
+        - {{ cdt('libxfixes') }}  # [linux]
+        - {{ cdt('libxau') }}  # [linux]
+        - {{ cdt('expat') }}  # [linux]
+
+      host:
+        - ace
+        - tinyxml
+        - eigen
+        - sdl
+        - sqlite
+        - jpeg
+        - bash-completion  # [not win]
+        - libi2c  # [linux]
+        - ycm-cmake-modules
+        - robot-testing-framework
+        - xorg-libxfixes  # [linux]
+        - libpng
+        - libzlib
+        - soxr
+        - libedit  # [not win]
+
+      run:
+        # ycm and eigen are mentioned in the headers so needed when building
+        # against yarp-cxx
+        - ycm-cmake-modules
+        - eigen
+
+    test:
+      commands:
+        - yarp help
+        - test -f ${PREFIX}/include/yarp/os/all.h  # [not win]
+        - test -f ${PREFIX}/lib/libYARP_os.so  # [linux]
+        - test -f ${PREFIX}/lib/libYARP_os.dylib  # [osx]
+        - test -f ${PREFIX}/lib/cmake/YARP_os/YARP_osConfig.cmake  # [not win]
+        - if not exist %PREFIX%\\Library\\include\\yarp\\os\\all.h exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\YARP_os.lib exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\YARP_os.dll exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\cmake\\YARP_os\\YARP_osConfig.cmake exit 1  # [win]
+
+  - name: {{ namepython }}
+    script: build_py.sh  # [unix]
+    script: bld_py.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - swig
+        - ninja
+        - cmake
+        - python                                 # [build_platform != target_platform]
+        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+      host:
+        - {{ pin_subpackage(namecxx, exact=True) }}
+        - python
+        - pip
+      run:
+        - {{ pin_subpackage(namecxx, exact=True) }}
+        - python
+        - numpy
+    test:
+      commands:
+        - test $(pip list | grep yarp | tr -s " " | grep $PKG_VERSION | wc -l) -eq 1  # [unix]
+        - pip check
+      requires:
+        - pip
+      imports:
+        - yarp
+
+  - name: {{ name }}
+    build:
+      run_exports:
+        - {{ pin_subpackage(namecxx, max_pin='x.x.x') }}
+    requirements:
+      run:
+        - {{ pin_subpackage(namecxx, exact=True) }}
+        - {{ pin_subpackage(namepython, exact=True) }}
+    test:
+      imports:
+        - yarp
+
+about:
+  home: https://github.com/robotology/yarp
+  license: BSD-3-Clause AND MIT AND GPL-3.0-or-later
+  license_file: 
+    - COPYING
+    - extern/thrift/LICENSES/BSD-3-Clause.txt 
+    - extern/dirent/dirent/LICENSE
+    - extern/xmlrpcpp/xmlrpcpp/COPYING
+  summary: YARP is a library and toolkit for communication and device interfaces, used on everything from humanoids to embedded devices.
+
+
+extra:
+  recipe-maintainers:
+    - traversaro
