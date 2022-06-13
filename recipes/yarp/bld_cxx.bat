@@ -48,9 +48,6 @@ cmake -G "Ninja" ^
     -DYARP_USE_I2C:BOOL=OFF ^
     -DYARP_USE_JPEG:BOOL=ON ^
     -DYARP_USE_SDL:BOOL=ON ^
-    -DYARP_USE_SQLite:BOOL=ON ^
-    -DYARP_USE_SYSTEM_SQLite:BOOL=ON ^
-    -DYARP_USE_SOXR:BOOL=ON ^
     -DENABLE_yarpmod_usbCamera:BOOL=OFF ^
     -DENABLE_yarpmod_usbCameraRaw:BOOL=OFF ^
     -DCREATE_PYTHON:BOOL=OFF ^
