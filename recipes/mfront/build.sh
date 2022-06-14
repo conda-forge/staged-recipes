@@ -12,7 +12,7 @@ cd build
 #echo "boost include dir : "
 #ls $PREFIX/include/boost 
 cmake .. -DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake" -DCMAKE_BUILD_TYPE=Release -Dlocal-castem-header=ON -Denable-fortran=ON -Denable-aster=ON -Denable-cyrano=ON -DPython_ADDITIONAL_VERSIONS=${CONDA_PY} -Denable-python=ON -Denable-python-bindings=OFF -Denable-broken-boost-python-module-visibility-handling=ON -DCMAKE_INSTALL_PREFIX=$PREFIX
-make -j 2 # docker gets killed with higher parallelism
+make -j 1 # docker gets killed with higher parallelism
 make check -j
 make install
 
