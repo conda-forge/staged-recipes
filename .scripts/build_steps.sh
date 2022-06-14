@@ -55,4 +55,3 @@ find ~/staged-recipes-copy/recipes -mindepth 2 -maxdepth 2 -type f -name "yum_re
 python ${CI_SUPPORT}/build_all.py
 
 touch "/home/conda/staged-recipes/build_artifacts/conda-forge-build-done"
-sleep infinity
