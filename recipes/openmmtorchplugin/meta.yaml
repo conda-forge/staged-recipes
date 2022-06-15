@@ -1,0 +1,68 @@
+{% set name = "openmmtorchplugin" %}
+{% set version = "1.0.0" %}
+
+# see github.com/conda-forge/conda-forge.github.io/issues/1059 for naming discussion
+{% set torch_proc_type = "cuda" if cuda_compiler_version != "None" else "cpu" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/SCMusson/{{ name }}/archive/v{{ version }}.tar.gz
+  sha256: 1a9197c32209eaa37b9dcb1a7ef6ed30841ea5beed124b902485c20f5dd92021
+
+build:
+  number: 0
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}   # [cuda_compiler_version != "None"]
+  string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                                 # [cuda_compiler_version == "None"]
+  skip: true  # [cuda_compiler_version in (undefined, 'None', '10.2')]
+  skip: true  # [not unix]
+  # Set rpaths we need to link against libtorch.so, but it is located in site-packages
+  rpaths:
+    - lib/
+    - {{ SP_DIR }}/torch/lib
+  run_exports:
+    - {{ pin_subpackage( name|lower ) }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version not in (undefined, 'None')]
+    - {{ cdt('mesa-libgl-devel') }}  # [linux]
+    - cmake
+    - make
+    - swig
+  host:
+    - openmm
+    - pip
+    - python
+    # First for global version pin, second for build variant
+    - pytorch
+    - pytorch =*={{ torch_proc_type }}*
+  run:
+    - {{ pin_compatible('openmm', max_pin='x.x') }}
+    - python
+  run_constrained:
+    - pytorch =*={{ torch_proc_type }}*
+
+test:
+  imports:
+    - torchintegratorplugin
+  commands:
+    - test -f $PREFIX/include/TorchIntegratorKernels.h  # [unix]
+about:
+  home: https://github.com/SCMusson/openmmtorchplugin
+  license: GPL-3.0-only
+  license_file: LICENSE
+  summary: OpenMM plugin to get forces for neural networks
+  description: |
+    This is a plugin for OpenMM that allows neural networks to 
+    access force and energy. It is implemented with PyTorch.
+  doc_url: https://github.com/SCMusson/openmmtorchplugin
+  dev_url: https://github.com/SCMusson/openmmtorchplugin
+
+extra:
+  recipe-maintainers:
+    - SCMusson
