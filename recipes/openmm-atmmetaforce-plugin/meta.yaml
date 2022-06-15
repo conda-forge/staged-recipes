@@ -1,0 +1,72 @@
+{% set name = "openmm-atmmetaforce-plugin" %}
+{% set version = "0.2.4.2" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/Gallicchio-Lab/{{ name }}/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: e966b51b7d6935c97813c31d59e85499434b276a8f77f510984eb26dd1b7be09
+
+build:
+  number: 0
+  skip: true  # [not linux64]
+  skip: true  # [cuda_compiler_version in (undefined, 'None')]
+  run_exports:
+    # TODO: Relax max_pin at version 1.0 / stable API
+    - {{ pin_subpackage(name, max_pin='x.x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [linux]
+    - cmake
+    - swig
+
+  host:
+    - python
+    - openmm
+    - pthread-stubs
+    - lxml
+    
+  run:
+    - python
+    - numpy
+    # openmm package is missing a run_export as of 9 June 2022
+    - {{ pin_compatible('openmm') }}
+
+test:
+  requires:
+    - pocl  # [unix]
+    - pip
+  imports:
+    - simtk
+    - openmm
+    - numpy
+  commands:
+    - pip check
+    - test -f $PREFIX/lib/plugins/libATMMetaForcePluginCUDA$SHLIB_EXT  # [unix]
+    - test -f $PREFIX/lib/plugins/libATMMetaForcePluginOpenCL$SHLIB_EXT  # [unix]
+    - test -f $PREFIX/lib/plugins/libATMMetaForcePluginReference$SHLIB_EXT  # [unix]
+    - test -f $PREFIX/include/ATMMetaForce.h  # [unix]
+    - test -f $PREFIX/include/internal/ATMMetaForceImpl.h  # [unix]
+
+about:
+  home: https://github.com/Gallicchio-Lab/openmm-atmmetaforce-plugin.git
+  license: LGPL-2.0-only
+  license_family: LGPL
+  license_file:
+    - LICENSE
+  summary: The Alchemical Transfer Method Plugin for OpenMM
+  description: |
+     This plugin implements the Alchemical Transfer Potential (ATM) for the calculation
+     of absolute and relative binding free energies of molecular complexes
+     in OpenMM, a high performance toolkit for molecular simulation.
+  doc_url: https://github.com/Gallicchio-Lab/async_re-openmm/tree/master/examples
+  dev_url: https://github.com/Gallicchio-Lab/openmm-atmmetaforce-plugin.git
+
+extra:
+  recipe-maintainers:
+    - egallicc
