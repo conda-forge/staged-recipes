@@ -1,0 +1,206 @@
+diff --git a/src/CMake/icd.cmake b/src/CMake/icd.cmake
+index 5af36391f..37635a536 100644
+--- a/src/CMake/icd.cmake
++++ b/src/CMake/icd.cmake
+@@ -10,6 +10,6 @@ configure_file (
+   ${ICD_FILE_NAME}
+   )
+ 
+-set(OCL_ICD_INSTALL_PREFIX "/etc/OpenCL/vendors")
++set(OCL_ICD_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/etc/OpenCL/vendors")
+ 
+ install (FILES ${CMAKE_CURRENT_BINARY_DIR}/${ICD_FILE_NAME} DESTINATION ${OCL_ICD_INSTALL_PREFIX})
+diff --git a/src/CMake/nativeLnx.cmake b/src/CMake/nativeLnx.cmake
+index 0287c08e0..c7df3c937 100644
+--- a/src/CMake/nativeLnx.cmake
++++ b/src/CMake/nativeLnx.cmake
+@@ -64,13 +64,13 @@ execute_process(COMMAND ${UNAME} -r
+ # resolved in final target.  The tools (currently xbutil2 and xbmgmt2)
+ # will be statically linked.  Enabled only for ubuntu.
+ option(XRT_STATIC_BUILD "Enable static building of XRT" OFF)
+-if ( (${CMAKE_VERSION} VERSION_GREATER "3.16.0")
+-    AND (${XRT_NATIVE_BUILD} STREQUAL "yes")
+-    AND (${LINUX_FLAVOR} MATCHES "^(Ubuntu)")
+-    )
+-  message("-- Enabling static artifacts of XRT")
+-  set(XRT_STATIC_BUILD ON)
+-endif()
++#if ( (${CMAKE_VERSION} VERSION_GREATER "3.16.0")
++#    AND (${XRT_NATIVE_BUILD} STREQUAL "yes")
++#    AND (${LINUX_FLAVOR} MATCHES "^(Ubuntu)")
++#    )
++#  message("-- Enabling static artifacts of XRT")
++#  set(XRT_STATIC_BUILD ON)
++#endif()
+ 
+ # --- Boost ---
+ #set(Boost_DEBUG 1)
+@@ -181,7 +181,7 @@ install (FILES ${PY_TEST_SRC}
+   PERMISSIONS OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+   DESTINATION ${XRT_INSTALL_DIR}/test)
+ 
+-add_subdirectory("../tests/validate" "${CMAKE_CURRENT_BINARY_DIR}/validate_build")
++#add_subdirectory("../tests/validate" "${CMAKE_CURRENT_BINARY_DIR}/validate_build")
+ message("-- XRT version: ${XRT_VERSION_STRING}")
+ 
+ # -- CPack
+@@ -189,10 +189,10 @@ include (CMake/cpackLin.cmake)
+ 
+ set (XRT_DKMS_DRIVER_SRC_BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/runtime_src/core")
+ 
+-include (CMake/dkms.cmake)
+-include (CMake/dkms-aws.cmake)
+-include (CMake/dkms-azure.cmake)
+-include (CMake/dkms-container.cmake)
++#include (CMake/dkms.cmake)
++#include (CMake/dkms-aws.cmake)
++#include (CMake/dkms-azure.cmake)
++#include (CMake/dkms-container.cmake)
+ 
+ # --- ICD ---
+ include (CMake/icd.cmake)
+diff --git a/src/CMake/pkgconfig.cmake b/src/CMake/pkgconfig.cmake
+index bfc8abc79..c59e41e98 100644
+--- a/src/CMake/pkgconfig.cmake
++++ b/src/CMake/pkgconfig.cmake
+@@ -10,6 +10,8 @@ elseif (${LINUX_FLAVOR} MATCHES "^(RedHat|CentOS|Amazon|Fedora|SUSE)")
+ else ()
+   set(XRT_PKG_CONFIG_DIR "/usr/share/pkgconfig")
+ endif ()
++  
++set(XRT_PKG_CONFIG_DIR "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig")
+ 
+ configure_file (
+   ${XRT_SOURCE_DIR}/CMake/config/xrt.pc.in
+diff --git a/src/CMake/version.cmake b/src/CMake/version.cmake
+index b20969720..11bb3b373 100644
+--- a/src/CMake/version.cmake
++++ b/src/CMake/version.cmake
+@@ -61,8 +61,8 @@ install(FILES ${XRT_BINARY_DIR}/gen/version.json DESTINATION ${XRT_INSTALL_DIR})
+ endif()
+ 
+ # This is not required on MPSoC platform. To avoid yocto error, do NOT intall
+-if ((${XRT_NATIVE_BUILD} STREQUAL "yes") AND (NOT WIN32))
+-  # Copied over from dkms.cmake. TODO: cleanup
+-  set (XRT_DKMS_INSTALL_DIR "/usr/src/xrt-${XRT_VERSION_STRING}")
+-  install(FILES ${XRT_BINARY_DIR}/gen/version.h DESTINATION ${XRT_DKMS_INSTALL_DIR}/driver/include)
+-endif()
++#if ((${XRT_NATIVE_BUILD} STREQUAL "yes") AND (NOT WIN32))
++#  # Copied over from dkms.cmake. TODO: cleanup
++#  set (XRT_DKMS_INSTALL_DIR "/usr/src/xrt-${XRT_VERSION_STRING}")
++#  install(FILES ${XRT_BINARY_DIR}/gen/version.h DESTINATION ${XRT_DKMS_INSTALL_DIR}/driver/include)
++#endif()
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 8467aba56..54d79bbb0 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -66,10 +66,12 @@ if (NOT CMAKE_BUILD_TYPE)
+   set (CMAKE_BUILD_TYPE RelWithDebInfo)
+ endif (NOT CMAKE_BUILD_TYPE)
+ 
+-set (CMAKE_INSTALL_PREFIX "/opt/xilinx")
+-if (${XRT_NATIVE_BUILD} STREQUAL "no")
+-  set (CMAKE_INSTALL_PREFIX "/usr")
+-endif()
++if (NOT CMAKE_INSTALL_PREFIX)
++  set (CMAKE_INSTALL_PREFIX "/opt/xilinx")
++  if (${XRT_NATIVE_BUILD} STREQUAL "no")
++    set (CMAKE_INSTALL_PREFIX "/usr")
++  endif()
++endif (NOT CMAKE_INSTALL_PREFIX)
+ 
+ # Enable AIE even on x86.  This is POC, once
+ # complete we will remove the need for these
+diff --git a/src/runtime_src/core/pcie/tools/CMakeLists.txt b/src/runtime_src/core/pcie/tools/CMakeLists.txt
+index dff157d6a..38a3c2aaf 100644
+--- a/src/runtime_src/core/pcie/tools/CMakeLists.txt
++++ b/src/runtime_src/core/pcie/tools/CMakeLists.txt
+@@ -2,6 +2,6 @@
+ # Copyright (C) 2019-2021 Xilinx, Inc. All rights reserved.
+ #
+ if(NOT WIN32)
+-  add_subdirectory(cloud-daemon)
++  #add_subdirectory(cloud-daemon)
+   add_subdirectory(xbflash.qspi)
+ endif(NOT WIN32)
+diff --git a/src/runtime_src/core/pcie/tools/xbflash.qspi/CMakeLists.txt b/src/runtime_src/core/pcie/tools/xbflash.qspi/CMakeLists.txt
+index 3cf16d3ac..d6ba7f3d5 100644
+--- a/src/runtime_src/core/pcie/tools/xbflash.qspi/CMakeLists.txt
++++ b/src/runtime_src/core/pcie/tools/xbflash.qspi/CMakeLists.txt
+@@ -15,7 +15,7 @@ file(GLOB XBFLASH_QSPI_FILES
+ set(XBFLASH_QSPI_SRC ${XBFLASH_QSPI_FILES})
+ set(XBFLASH_NAME "xbflash.qspi")
+ set(XBFLASH_NAME_NEW "xbflash")
+-set(XBFLASH_INSTALL_DEST "/usr/local/bin")
++set(XBFLASH_INSTALL_DEST "${XRT_INSTALL_DIR}/bin")
+ set(XBFLASH_COMPONENT "xbflash")
+ 
+ add_executable(${XBFLASH_NAME} ${XBFLASH_QSPI_SRC})
+diff --git a/src/runtime_src/core/pcie/tools/xbflash.qspi/xqspips.cpp b/src/runtime_src/core/pcie/tools/xbflash.qspi/xqspips.cpp
+index bbc555404..d710dab1b 100644
+--- a/src/runtime_src/core/pcie/tools/xbflash.qspi/xqspips.cpp
++++ b/src/runtime_src/core/pcie/tools/xbflash.qspi/xqspips.cpp
+@@ -19,6 +19,7 @@
+ #include <iostream>
+ #include <cassert>
+ #include <cstring>
++#include <array>
+ #include "xqspips.h"
+ 
+ #include "unistd.h"
+diff --git a/src/runtime_src/core/pcie/tools/xbflash.qspi/xspi.cpp b/src/runtime_src/core/pcie/tools/xbflash.qspi/xspi.cpp
+index 014696b74..910fd633e 100644
+--- a/src/runtime_src/core/pcie/tools/xbflash.qspi/xspi.cpp
++++ b/src/runtime_src/core/pcie/tools/xbflash.qspi/xspi.cpp
+@@ -16,6 +16,7 @@
+ 
+ #include <iostream>
+ #include <string>
++#include <array>
+ #include <cassert>
+ #include <climits>
+ #include <cstring>
+diff --git a/src/runtime_src/core/tools/xbflash2/CMakeLists.txt b/src/runtime_src/core/tools/xbflash2/CMakeLists.txt
+index 0d09dfa4b..df70a0640 100755
+--- a/src/runtime_src/core/tools/xbflash2/CMakeLists.txt
++++ b/src/runtime_src/core/tools/xbflash2/CMakeLists.txt
+@@ -28,7 +28,7 @@ file(GLOB XBFLASH_QSPI_FILES
+ 
+ set(XBFLASH_QSPI_SRC ${XBFLASH_BASE_FILES} ${XBFLASH_QSPI_FILES})
+ set(XBFLASH_NAME "xbflash2")
+-set(XBFLASH_INSTALL_DEST "/usr/local/bin")
++set(XBFLASH_INSTALL_DEST "${XRT_INSTALL_DIR}/bin")
+ set(XBFLASH_COMPONENT "xbflash2")
+ 
+ add_executable(${XBFLASH_NAME} ${XBFLASH_QSPI_SRC})
+diff --git a/src/runtime_src/tools/xclbinutil/XclBinUtilities.cxx b/src/runtime_src/tools/xclbinutil/XclBinUtilities.cxx
+index e0a6a3b0c..9e405ce66 100644
+--- a/src/runtime_src/tools/xclbinutil/XclBinUtilities.cxx
++++ b/src/runtime_src/tools/xclbinutil/XclBinUtilities.cxx
+@@ -364,11 +364,11 @@ XclBinUtilities::stringToUInt64(const std::string& _sInteger, bool _bForceHex) {
+   if (_bForceHex || 
+       ((_sInteger.length() > 2) &&
+        (_sInteger[0] == '0') && (_sInteger[1] == 'x'))) {
+-    if (1 == sscanf(_sInteger.c_str(), "%" PRIx64 "", &value)) {
++    if (1 == sscanf(_sInteger.c_str(), "%lx", &value)) {
+       return value;
+     }
+   } else {
+-    if (1 == sscanf(_sInteger.c_str(), "%" PRId64 "", &value)) {
++    if (1 == sscanf(_sInteger.c_str(), "%ld", &value)) {
+       return value;
+     }
+   }
+diff --git a/src/runtime_src/xdp/CMakeLists.txt b/src/runtime_src/xdp/CMakeLists.txt
+index 4382df884..7a55cebec 100644
+--- a/src/runtime_src/xdp/CMakeLists.txt
++++ b/src/runtime_src/xdp/CMakeLists.txt
+@@ -449,7 +449,7 @@ install (TARGETS xdp_debug_plugin
+ 
+ # Only install these files for PCIe device for now, which is .
+ if (${XRT_NATIVE_BUILD} STREQUAL "yes")
+-set (APPDEBUG_INSTALL_PREFIX "/opt/xilinx/xrt/share/appdebug")
++set (APPDEBUG_INSTALL_PREFIX "${XRT_INSTALL_DIR}/share/appdebug")
+ install (FILES
+   ${XRT_XDP_APPDEBUG_DIR}/appdebug.py
+   ${XRT_XDP_APPDEBUG_DIR}/appdebugint.py
