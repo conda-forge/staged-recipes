@@ -8,7 +8,8 @@ cmake \
   -B $SRC_DIR/build-release  \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_PREFIX_PATH=${PREFIX} \
-  -DCMAKE_INSTALL_PREFIX=${PREFIX}
+  -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+  -DCMAKE_SKIP_INSTALL_RPATH=ON
 
 cmake --build $SRC_DIR/build-release --parallel ${CPU_COUNT}
 
