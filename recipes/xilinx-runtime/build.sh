@@ -13,3 +13,7 @@ cmake \
 cmake --build $SRC_DIR/build-release --parallel ${CPU_COUNT}
 
 cmake --install $SRC_DIR/build-release
+
+# XILINX_XRT
+mkdir -p $PREFIX/etc/conda/activate.d
+echo -e "#!/bin/env/bash\nexport XILINX_XRT=\$CONDA_PREFIX\n" > $PREFIX/etc/conda/activate.d/env_vars.sh
