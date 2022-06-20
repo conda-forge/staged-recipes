@@ -1,6 +1,6 @@
 diff -Naur XRT-202210.2.13.466/src/CMake/icd.cmake work/src/CMake/icd.cmake
 --- XRT-202210.2.13.466/src/CMake/icd.cmake	2022-04-14 12:29:02.000000000 -0700
-+++ work/src/CMake/icd.cmake	2022-06-19 10:00:15.404566229 -0700
++++ work/src/CMake/icd.cmake	2022-06-20 15:57:36.515329924 -0700
 @@ -10,6 +10,6 @@
    ${ICD_FILE_NAME}
    )
@@ -11,7 +11,7 @@ diff -Naur XRT-202210.2.13.466/src/CMake/icd.cmake work/src/CMake/icd.cmake
  install (FILES ${CMAKE_CURRENT_BINARY_DIR}/${ICD_FILE_NAME} DESTINATION ${OCL_ICD_INSTALL_PREFIX})
 diff -Naur XRT-202210.2.13.466/src/CMake/nativeLnx.cmake work/src/CMake/nativeLnx.cmake
 --- XRT-202210.2.13.466/src/CMake/nativeLnx.cmake	2022-04-14 12:29:02.000000000 -0700
-+++ work/src/CMake/nativeLnx.cmake	2022-06-19 10:04:12.433972775 -0700
++++ work/src/CMake/nativeLnx.cmake	2022-06-20 16:36:37.899391560 -0700
 @@ -64,13 +64,13 @@
  # resolved in final target.  The tools (currently xbutil2 and xbmgmt2)
  # will be statically linked.  Enabled only for ubuntu.
@@ -33,7 +33,7 @@ diff -Naur XRT-202210.2.13.466/src/CMake/nativeLnx.cmake work/src/CMake/nativeLn
  
  # --- Boost ---
  #set(Boost_DEBUG 1)
-@@ -115,7 +115,7 @@
+@@ -115,12 +115,12 @@
  find_package(Curses REQUIRED)
  
  # --- XRT Variables ---
@@ -42,6 +42,12 @@ diff -Naur XRT-202210.2.13.466/src/CMake/nativeLnx.cmake work/src/CMake/nativeLn
  set (XRT_INSTALL_BIN_DIR       "${XRT_INSTALL_DIR}/bin")
  set (XRT_INSTALL_UNWRAPPED_DIR "${XRT_INSTALL_BIN_DIR}/unwrapped")
  set (XRT_INSTALL_INCLUDE_DIR   "${XRT_INSTALL_DIR}/include")
+ set (XRT_INSTALL_LIB_DIR       "${XRT_INSTALL_DIR}/lib${LIB_SUFFIX}")
+-set (XRT_INSTALL_PYTHON_DIR    "${XRT_INSTALL_DIR}/python")
++set (XRT_INSTALL_PYTHON_DIR    "${PY_INSTALL_DIR}")
+ set (XRT_VALIDATE_DIR          "${XRT_INSTALL_DIR}/test")
+ set (XRT_NAMELINK_ONLY NAMELINK_ONLY)
+ set (XRT_NAMELINK_SKIP NAMELINK_SKIP)
 @@ -132,7 +132,7 @@
  # Note, that in order to disable RPATH insertion for a specific
  # target (say a static executable), use
@@ -51,7 +57,27 @@ diff -Naur XRT-202210.2.13.466/src/CMake/nativeLnx.cmake work/src/CMake/nativeLn
  
  # --- Release: eula ---
  file(GLOB XRT_EULA
-@@ -180,7 +180,7 @@
+@@ -165,8 +165,18 @@
+ add_subdirectory(xma)
+ #XMA settings END
+ 
++execute_process (COMMAND ${PYTHON_EXECUTABLE} -c "import site; sp=site.getsitepackages(); assert len(sp) == 1, f'site packages has len {len(sp)} != 1'; print(sp[0])"
++                 RESULT_VARIABLE _result
++                 OUTPUT_VARIABLE PYTHON_SITE_PACKAGES
++                 ERROR_QUIET
++                 OUTPUT_STRIP_TRAILING_WHITESPACE)
++if (_result)
++    message(FATAL_ERROR "non-zero exit when looking for site-packages. got ${PYTHON_SITE_PACKAGES}")
++endif()
++
++
+ # --- Python bindings ---
+-set(PY_INSTALL_DIR "${XRT_INSTALL_DIR}/python")
++set(PY_INSTALL_DIR "${PYTHON_SITE_PACKAGES}/pyxrt")
+ add_subdirectory(python)
+ 
+ # --- Python tests ---
+@@ -180,7 +190,7 @@
    PERMISSIONS OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
    DESTINATION ${XRT_INSTALL_DIR}/test)
  
@@ -60,7 +86,7 @@ diff -Naur XRT-202210.2.13.466/src/CMake/nativeLnx.cmake work/src/CMake/nativeLn
  message("-- XRT version: ${XRT_VERSION_STRING}")
  
  # -- CPack
-@@ -188,10 +188,10 @@
+@@ -188,10 +198,10 @@
  
  set (XRT_DKMS_DRIVER_SRC_BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/runtime_src/core")
  
@@ -77,7 +103,7 @@ diff -Naur XRT-202210.2.13.466/src/CMake/nativeLnx.cmake work/src/CMake/nativeLn
  include (CMake/icd.cmake)
 diff -Naur XRT-202210.2.13.466/src/CMake/pkgconfig.cmake work/src/CMake/pkgconfig.cmake
 --- XRT-202210.2.13.466/src/CMake/pkgconfig.cmake	2022-04-14 12:29:02.000000000 -0700
-+++ work/src/CMake/pkgconfig.cmake	2022-06-19 10:05:21.666383718 -0700
++++ work/src/CMake/pkgconfig.cmake	2022-06-20 15:57:36.515329924 -0700
 @@ -11,6 +11,8 @@
    set(XRT_PKG_CONFIG_DIR "/usr/share/pkgconfig")
  endif ()
@@ -89,7 +115,7 @@ diff -Naur XRT-202210.2.13.466/src/CMake/pkgconfig.cmake work/src/CMake/pkgconfi
    xrt.pc
 diff -Naur XRT-202210.2.13.466/src/CMake/version.cmake work/src/CMake/version.cmake
 --- XRT-202210.2.13.466/src/CMake/version.cmake	2022-04-14 12:29:02.000000000 -0700
-+++ work/src/CMake/version.cmake	2022-06-19 10:06:34.002814573 -0700
++++ work/src/CMake/version.cmake	2022-06-20 15:57:36.515329924 -0700
 @@ -63,8 +63,8 @@
  endif()
  
@@ -106,7 +132,7 @@ diff -Naur XRT-202210.2.13.466/src/CMake/version.cmake work/src/CMake/version.cm
 +#endif()
 diff -Naur XRT-202210.2.13.466/src/CMakeLists.txt work/src/CMakeLists.txt
 --- XRT-202210.2.13.466/src/CMakeLists.txt	2022-04-14 12:29:02.000000000 -0700
-+++ work/src/CMakeLists.txt	2022-06-19 10:07:59.471327068 -0700
++++ work/src/CMakeLists.txt	2022-06-20 15:57:36.515329924 -0700
 @@ -48,8 +48,10 @@
    -Wno-overloaded-virtual
     )
@@ -133,7 +159,7 @@ diff -Naur XRT-202210.2.13.466/src/CMakeLists.txt work/src/CMakeLists.txt
  # macros and defines.
 diff -Naur XRT-202210.2.13.466/src/runtime_src/core/pcie/tools/CMakeLists.txt work/src/runtime_src/core/pcie/tools/CMakeLists.txt
 --- XRT-202210.2.13.466/src/runtime_src/core/pcie/tools/CMakeLists.txt	2022-04-14 12:29:02.000000000 -0700
-+++ work/src/runtime_src/core/pcie/tools/CMakeLists.txt	2022-06-19 10:08:30.431512708 -0700
++++ work/src/runtime_src/core/pcie/tools/CMakeLists.txt	2022-06-20 15:57:36.515329924 -0700
 @@ -4,7 +4,7 @@
  if(NOT WIN32)
    add_subdirectory(xbutil)
@@ -145,7 +171,7 @@ diff -Naur XRT-202210.2.13.466/src/runtime_src/core/pcie/tools/CMakeLists.txt wo
  
 diff -Naur XRT-202210.2.13.466/src/runtime_src/core/pcie/tools/xbflash.qspi/CMakeLists.txt work/src/runtime_src/core/pcie/tools/xbflash.qspi/CMakeLists.txt
 --- XRT-202210.2.13.466/src/runtime_src/core/pcie/tools/xbflash.qspi/CMakeLists.txt	2022-04-14 12:29:02.000000000 -0700
-+++ work/src/runtime_src/core/pcie/tools/xbflash.qspi/CMakeLists.txt	2022-06-19 10:09:40.127930596 -0700
++++ work/src/runtime_src/core/pcie/tools/xbflash.qspi/CMakeLists.txt	2022-06-20 15:57:36.515329924 -0700
 @@ -15,7 +15,7 @@
  set(XBFLASH_QSPI_SRC ${XBFLASH_QSPI_FILES})
  set(XBFLASH_NAME "xbflash.qspi")
@@ -157,7 +183,7 @@ diff -Naur XRT-202210.2.13.466/src/runtime_src/core/pcie/tools/xbflash.qspi/CMak
  add_executable(${XBFLASH_NAME} ${XBFLASH_QSPI_SRC})
 diff -Naur XRT-202210.2.13.466/src/runtime_src/core/pcie/tools/xbflash.qspi/xqspips.cpp work/src/runtime_src/core/pcie/tools/xbflash.qspi/xqspips.cpp
 --- XRT-202210.2.13.466/src/runtime_src/core/pcie/tools/xbflash.qspi/xqspips.cpp	2022-04-14 12:29:02.000000000 -0700
-+++ work/src/runtime_src/core/pcie/tools/xbflash.qspi/xqspips.cpp	2022-06-19 10:11:17.812516264 -0700
++++ work/src/runtime_src/core/pcie/tools/xbflash.qspi/xqspips.cpp	2022-06-20 15:57:36.515329924 -0700
 @@ -19,6 +19,7 @@
  #include <iostream>
  #include <cassert>
@@ -168,7 +194,7 @@ diff -Naur XRT-202210.2.13.466/src/runtime_src/core/pcie/tools/xbflash.qspi/xqsp
  #include "unistd.h"
 diff -Naur XRT-202210.2.13.466/src/runtime_src/core/pcie/tools/xbflash.qspi/xspi.cpp work/src/runtime_src/core/pcie/tools/xbflash.qspi/xspi.cpp
 --- XRT-202210.2.13.466/src/runtime_src/core/pcie/tools/xbflash.qspi/xspi.cpp	2022-04-14 12:29:02.000000000 -0700
-+++ work/src/runtime_src/core/pcie/tools/xbflash.qspi/xspi.cpp	2022-06-19 10:11:37.244632764 -0700
++++ work/src/runtime_src/core/pcie/tools/xbflash.qspi/xspi.cpp	2022-06-20 15:57:36.515329924 -0700
 @@ -23,6 +23,7 @@
  #include <sys/types.h>
  #include <sys/stat.h>
@@ -179,7 +205,7 @@ diff -Naur XRT-202210.2.13.466/src/runtime_src/core/pcie/tools/xbflash.qspi/xspi
  
 diff -Naur XRT-202210.2.13.466/src/runtime_src/core/tools/xbflash2/CMakeLists.txt work/src/runtime_src/core/tools/xbflash2/CMakeLists.txt
 --- XRT-202210.2.13.466/src/runtime_src/core/tools/xbflash2/CMakeLists.txt	2022-04-14 12:29:02.000000000 -0700
-+++ work/src/runtime_src/core/tools/xbflash2/CMakeLists.txt	2022-06-19 10:10:38.948283259 -0700
++++ work/src/runtime_src/core/tools/xbflash2/CMakeLists.txt	2022-06-20 15:57:36.515329924 -0700
 @@ -28,7 +28,7 @@
  
  set(XBFLASH_QSPI_SRC ${XBFLASH_BASE_FILES} ${XBFLASH_QSPI_FILES})
@@ -191,7 +217,7 @@ diff -Naur XRT-202210.2.13.466/src/runtime_src/core/tools/xbflash2/CMakeLists.tx
  add_executable(${XBFLASH_NAME} ${XBFLASH_QSPI_SRC})
 diff -Naur XRT-202210.2.13.466/src/runtime_src/core/tools/xbtop/CMakeLists.txt work/src/runtime_src/core/tools/xbtop/CMakeLists.txt
 --- XRT-202210.2.13.466/src/runtime_src/core/tools/xbtop/CMakeLists.txt	2022-04-14 12:29:02.000000000 -0700
-+++ work/src/runtime_src/core/tools/xbtop/CMakeLists.txt	2022-06-19 11:16:17.344029754 -0700
++++ work/src/runtime_src/core/tools/xbtop/CMakeLists.txt	2022-06-20 15:57:36.515329924 -0700
 @@ -2,13 +2,13 @@
  # Copyright (C) 2022 Xilinx, Inc. All rights reserved.
  #
@@ -211,7 +237,7 @@ diff -Naur XRT-202210.2.13.466/src/runtime_src/core/tools/xbtop/CMakeLists.txt w
  
 diff -Naur XRT-202210.2.13.466/src/runtime_src/xdp/CMakeLists.txt work/src/runtime_src/xdp/CMakeLists.txt
 --- XRT-202210.2.13.466/src/runtime_src/xdp/CMakeLists.txt	2022-04-14 12:29:02.000000000 -0700
-+++ work/src/runtime_src/xdp/CMakeLists.txt	2022-06-19 10:12:30.848954129 -0700
++++ work/src/runtime_src/xdp/CMakeLists.txt	2022-06-20 15:57:36.515329924 -0700
 @@ -449,7 +449,7 @@
  
  # Only install these files for PCIe device for now, which is .

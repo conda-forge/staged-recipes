@@ -16,4 +16,6 @@ cmake --install $SRC_DIR/build-release
 
 # XILINX_XRT
 mkdir -p $PREFIX/etc/conda/activate.d
+mkdir -p $PREFIX/etc/conda/deactivate.d
 echo -e "#!/bin/env/bash\nexport XILINX_XRT=\$CONDA_PREFIX\n" > $PREFIX/etc/conda/activate.d/${PKG_NAME}_activate.sh
+echo -e "#!/bin/env/bash\nunset XILINX_XRT\n" > $PREFIX/etc/conda/deactivate.d/${PKG_NAME}_deactivate.sh
