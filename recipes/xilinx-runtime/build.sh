@@ -4,6 +4,7 @@ set -e
 mkdir -p $SRC_DIR/build-release
 
 cmake \
+  $CMAKE_ARGS \
   -S $SRC_DIR/src  \
   -B $SRC_DIR/build-release  \
   -DCMAKE_BUILD_TYPE=Release \
