@@ -11,7 +11,7 @@ diff -Naur XRT-202210.2.13.466/src/CMake/icd.cmake work/src/CMake/icd.cmake
  install (FILES ${CMAKE_CURRENT_BINARY_DIR}/${ICD_FILE_NAME} DESTINATION ${OCL_ICD_INSTALL_PREFIX})
 diff -Naur XRT-202210.2.13.466/src/CMake/nativeLnx.cmake work/src/CMake/nativeLnx.cmake
 --- XRT-202210.2.13.466/src/CMake/nativeLnx.cmake	2022-04-14 12:29:02.000000000 -0700
-+++ work/src/CMake/nativeLnx.cmake	2022-06-20 16:36:37.899391560 -0700
++++ work/src/CMake/nativeLnx.cmake	2022-06-20 19:50:40.186601870 -0700
 @@ -64,13 +64,13 @@
  # resolved in final target.  The tools (currently xbutil2 and xbmgmt2)
  # will be statically linked.  Enabled only for ubuntu.
@@ -33,9 +33,20 @@ diff -Naur XRT-202210.2.13.466/src/CMake/nativeLnx.cmake work/src/CMake/nativeLn
  
  # --- Boost ---
  #set(Boost_DEBUG 1)
-@@ -115,12 +115,12 @@
+@@ -114,13 +114,23 @@
+ INCLUDE (FindCurses)
  find_package(Curses REQUIRED)
  
++execute_process (COMMAND ${PYTHON_EXECUTABLE} -c "import site; sp=site.getsitepackages(); assert len(sp) == 1, f'site packages has len {len(sp)} != 1'; print(sp[0])"
++                 RESULT_VARIABLE _result
++                 OUTPUT_VARIABLE PYTHON_SITE_PACKAGES
++                 ERROR_QUIET
++                 OUTPUT_STRIP_TRAILING_WHITESPACE)
++if (_result)
++    message(FATAL_ERROR "non-zero exit when looking for site-packages. got ${PYTHON_SITE_PACKAGES}")
++endif()
++set(PY_INSTALL_DIR "${PYTHON_SITE_PACKAGES}/pyxrt")
++
  # --- XRT Variables ---
 -set (XRT_INSTALL_DIR           "xrt")
 +set (XRT_INSTALL_DIR           "${CMAKE_INSTALL_PREFIX}")
@@ -48,7 +59,7 @@ diff -Naur XRT-202210.2.13.466/src/CMake/nativeLnx.cmake work/src/CMake/nativeLn
  set (XRT_VALIDATE_DIR          "${XRT_INSTALL_DIR}/test")
  set (XRT_NAMELINK_ONLY NAMELINK_ONLY)
  set (XRT_NAMELINK_SKIP NAMELINK_SKIP)
-@@ -132,7 +132,7 @@
+@@ -132,7 +142,7 @@
  # Note, that in order to disable RPATH insertion for a specific
  # target (say a static executable), use
  #  set_target_properties(<target> PROPERTIES INSTALL_RPATH "")
@@ -57,23 +68,13 @@ diff -Naur XRT-202210.2.13.466/src/CMake/nativeLnx.cmake work/src/CMake/nativeLn
  
  # --- Release: eula ---
  file(GLOB XRT_EULA
-@@ -165,8 +165,18 @@
+@@ -165,8 +175,8 @@
  add_subdirectory(xma)
  #XMA settings END
  
-+execute_process (COMMAND ${PYTHON_EXECUTABLE} -c "import site; sp=site.getsitepackages(); assert len(sp) == 1, f'site packages has len {len(sp)} != 1'; print(sp[0])"
-+                 RESULT_VARIABLE _result
-+                 OUTPUT_VARIABLE PYTHON_SITE_PACKAGES
-+                 ERROR_QUIET
-+                 OUTPUT_STRIP_TRAILING_WHITESPACE)
-+if (_result)
-+    message(FATAL_ERROR "non-zero exit when looking for site-packages. got ${PYTHON_SITE_PACKAGES}")
-+endif()
-+
 +
  # --- Python bindings ---
 -set(PY_INSTALL_DIR "${XRT_INSTALL_DIR}/python")
-+set(PY_INSTALL_DIR "${PYTHON_SITE_PACKAGES}/pyxrt")
  add_subdirectory(python)
  
  # --- Python tests ---
