@@ -10,6 +10,7 @@ source:
   sha256: 9f8f5b6af227049b2f7d43722ca33608b059972dcf32ee2681c6482c32d467f5
 
 build:
+  number: 0
   noarch: python
   entry_points:
     - pyflyte-execute=flytekit.bin.entrypoint:execute_task_cmd
@@ -17,8 +18,17 @@ build:
     - pyflyte-map-execute=flytekit.bin.entrypoint:map_execute_task_cmd
     - pyflyte=flytekit.clis.sdk_in_container.pyflyte:main
     - flyte-cli=flytekit.clis.flyte_cli.main:_flyte_cli
-  script: {{ PYTHON }} -m pip install . -vv
-  number: 0
+  script:
+    ## Ensure inclusion of requirements.txt
+    {% set reqfile = "requirements.txt" %}
+    {% set reqsource = name ~ ".egg-info/requires.txt" %}
+    # IF {{ reqfile }} is NOT PRESENT, COPY {{ reqfile }} from {{ reqsource }}
+    - echo -e "\n>>> ENSURE INCLUSION OF '{{ reqfile }}' <<<\n\n"
+    - if [ ! -f {{ reqfile }} ] && [ -f {{ reqsource }} ]; then cp {{ reqsource }} {{ reqfile }}; fi  # [not win]
+    #- copy {{ name }}.egg-info\requires.txt {{ reqfile }}  # [win]
+    - copy {{ reqsource | replace('/', '\\') }} {{ reqfile }}  # [win] 
+    ## Install package {{ name }} from PyPI
+    - {{ PYTHON }} -m pip install . -vv
 
 requirements:
   host:
