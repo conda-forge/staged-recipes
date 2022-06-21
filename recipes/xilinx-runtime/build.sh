@@ -1,6 +1,10 @@
 #!/bin/env/bash
 set -e
 
+# Hack so ensure that the correct
+# version info is printed
+export XRT_VERSION_PATCH=466
+
 mkdir -p $SRC_DIR/build-release
 
 cmake \
