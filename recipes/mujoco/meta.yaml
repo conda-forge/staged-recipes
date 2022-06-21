@@ -24,6 +24,7 @@ source:
 build:
   number: 0
   skip: true  # [osx]
+  skip: true  # [py<37]
 
 outputs:
   - name: {{ namecxx }}
@@ -54,11 +55,10 @@ outputs:
     test:
       commands:
         - test -f ${PREFIX}/include/mujoco/mujoco.h  # [not win]
-        - test -f ${PREFIX}/lib/libmujoco.so  # [linux]
-        - test -f ${PREFIX}/lib/libmujoco.dylib  # [osx]
-        - if not exist %PREFIX%\\Library\\include\\mujoco\\mujoco.h exit 1  # [win]
-        - if not exist %PREFIX%\\Library\\lib\\mujoco.lib exit 1  # [win]
-        - if not exist %PREFIX%\\Library\\bin\\mujoco.dll exit 1  # [win]
+        - test -f ${PREFIX}/lib/libmujoco${SHLIB_EXT}  # [unix]
+        - if not exist %LIBRARY_INC%\\mujoco\\mujoco.h exit 1  # [win]
+        - if not exist %LIBRARY_LIB\\mujoco.lib exit 1  # [win]
+        - if not exist %LIBRARY_BIN%\\mujoco.dll exit 1  # [win]
 
   - name: {{ namepython }}
     script: build_py.sh  # [unix]
@@ -104,14 +104,16 @@ outputs:
         - mujoco
       requires:
         - pytest
+        - pip
       commands:
         - pytest --pyargs mujoco -v -k "not render"
+        - pip check
 
   - name: {{ name }}
     requirements:
       run:
         - {{ pin_subpackage(namecxx, exact=True) }}
-        - {{ pin_subpackage(namepython, exact=True) }}
+        - {{ pin_subpackage(namepython, max_pin='x.x.x') }}
     test:
       imports:
         - mujoco
