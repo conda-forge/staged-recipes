@@ -1,0 +1,131 @@
+{% set name = "mujoco" %}
+{% set namecxx = "mujoco-cxx" %}
+{% set namepython = "mujoco-python" %}
+{% set version = "2.2.0" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/deepmind/mujoco/archive/refs/tags/{{ version }}.tar.gz
+  sha256: 98cab2735817456c028e96ba34b2ee2c94cc4fab33ebcae15ab46fcc45a762ad
+  patches:
+    - python_remove_avx.patch
+    - python_remove_werror.patch
+    - disable_gcc_pragma.patch
+    - cxx_devendor.patch
+    - python_devendor.patch
+    - ccd_vec3_origin_link_problem.patch
+    - disable_copy_cxx_files_in_python_package.patch
+    - do_not_install_via_pip.patch
+
+
+build:
+  number: 0
+  skip: true  # [osx]
+  skip: true  # [py<37]
+
+outputs:
+  - name: {{ namecxx }}
+    script: build_cxx.sh  # [unix]
+    script: bld_cxx.bat  # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage(namecxx, max_pin='x.x.x') }}
+      # abseil-cpp is used only for tests, we can 
+      # safely ignore its run_exports
+      ignore_run_exports:
+        - abseil-cpp
+    requirements:
+      build:
+        - cmake
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - ninja
+        - clang  # [win]
+      host:
+        - eigen
+        - qhull
+        - tinyxml2
+        - libccd-double
+        - abseil-cpp
+        - lodepng
+
+    test:
+      commands:
+        - test -f ${PREFIX}/include/mujoco/mujoco.h  # [not win]
+        - test -f ${PREFIX}/lib/libmujoco${SHLIB_EXT}  # [unix]
+        - if not exist %LIBRARY_INC%\\mujoco\\mujoco.h exit 1  # [win]
+        - if not exist %LIBRARY_LIB%\\mujoco.lib exit 1  # [win]
+        - if not exist %LIBRARY_BIN%\\mujoco.dll exit 1  # [win]
+
+  - name: {{ namepython }}
+    script: build_py.sh  # [unix]
+    script: bld_py.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - make                                   # [not win]
+        - ninja                                  # [win]
+        - cmake
+        - python                                 # [build_platform != target_platform]
+        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+        - numpy                                  # [build_platform != target_platform]
+        - pip                                    # [build_platform != target_platform]
+        - setuptools                             # [build_platform != target_platform]
+        - absl-py                                # [build_platform != target_platform]
+        - clang                                  # [win]
+        - bash                                   # [not win]
+        - posix                                  # [win]
+      host:
+        - {{ pin_subpackage(namecxx, exact=True) }}
+        - eigen
+        - abseil-cpp
+        - python
+        - pip
+        - setuptools
+        - pybind11
+        - pybind11-abi
+        - numpy
+        - absl-py
+        - pyglfw
+        - pyopengl
+      run:
+        - {{ pin_subpackage(namecxx, exact=True) }}
+        - python
+        - numpy
+        - absl-py
+        - pyglfw
+        - pyopengl
+    test:
+      imports:
+        - mujoco
+      requires:
+        - pytest
+        - pip
+      commands:
+        - pytest --pyargs mujoco -v -k "not render"
+        - pip check
+
+  - name: {{ name }}
+    requirements:
+      run:
+        - {{ pin_subpackage(namecxx, exact=True) }}
+        - {{ pin_subpackage(namepython, max_pin='x.x.x') }}
+    test:
+      imports:
+        - mujoco
+
+about:
+  home: https://github.com/deepmind/mujoco
+  license: Apache-2.0
+  license_file: 
+    - LICENSE
+    - build/_deps/tinyobjloader-src/LICENSE
+  summary:  Multi-Joint dynamics with Contact. A general purpose multi-body dynamics simulator. 
+
+extra:
+  recipe-maintainers:
+    - traversaro
