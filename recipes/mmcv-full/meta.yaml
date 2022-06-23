@@ -10,46 +10,46 @@ package:
   version: {{ version }}
 
 source:
-  url: https://github.com/open-mmlab/mmcv.git
-  git_tag: v{{ version }}
+  url: https://github.com/open-mmlab/mmcv/archive/refs/tags/v{{ version }}.tar.gz
 build:
   number: {{ number }}
   skip: true  # [win]
 
 outputs:
-  - name: mmcv
+  - name: mmcv-full
     build:
       string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
       string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                      # [cuda_compiler_version == "None"]
       detect_binary_files_with_prefix: false
       run_exports:
-        - { { pin_subpackage('mmcv', max_pin='x.x') } }
+        - {{ pin_subpackage('mmcv-full', max_pin='x.x') }}
     script: build_mmcv.sh  # [not win]
     requirements:
       build:
         - python                                 # [build_platform != target_platform]
-          - cross-python_{{ target_platform }}     # [build_platform != target_platform]
-          - numpy                                  # [build_platform != target_platform]
-          - cffi                                   # [build_platform != target_platform]
-          - sysroot_linux-64  2.17  # [linux64]
-          - {{ compiler('c') }}
-          - {{ compiler('cxx') }}
-          - {{ compiler('cuda') }}    # [cuda_compiler_version != "None"]
-          # Dec 2020: it seems that git is broken on windows, so we use m2-git
-          - patch     # [not win]
-          - git       # [not win]
-          - libgomp   # [linux]
-          - llvm-openmp    # [osx]
-          # 2022/04/12 hmaarrfk
-          # Issues with recent version of CMake
-          # https://github.com/pytorch/pytorch/issues/74985
-          # Should be fixed in other versions
-          # https://gitlab.kitware.com/cmake/cmake/-/issues/23368
-          - cmake  != 3.23.0
-          - git       # [not win]
-          - ninja
-          - protobuf {{ libprotobuf }}
-          - make      # [linux]
+        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+        - numpy                                  # [build_platform != target_platform]
+        - cffi                                   # [build_platform != target_platform]
+        - sysroot_linux-64  2.17  # [linux64]
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}    # [cuda_compiler_version != "None"]
+        # Dec 2020: it seems that git is broken on windows, so we use m2-git
+        - patch     # [not win]
+        - git       # [not win]
+        - libgomp   # [linux]
+        - llvm-openmp    # [osx]
+        # 2022/04/12 hmaarrfk
+        # Issues with recent version of CMake
+        # https://github.com/pytorch/pytorch/issues/74985
+        # Should be fixed in other versions
+        # https://gitlab.kitware.com/cmake/cmake/-/issues/23368
+        - cmake  !=3.23.0
+        - git       # [not win]
+        - ninja
+        - protobuf {{ libprotobuf }}
+        - make      # [linux]
+        - pytorch
       host:
         # GPU requirements
         - cudnn                           # [cuda_compiler_version != "None"]
@@ -106,6 +106,7 @@ outputs:
         - typing_extensions
         # Need ninja to load C++ extensions
         - ninja
+        # Conda exposes the maximum CUDA version supported by the installed Nvidia drivers through a virtual package named __cuda. By default, conda will install the highest version available for the packages involved. To override this behaviour, you can define a CONDA_OVERRIDE_CUDA environment variable.
         # avoid that people without GPUs needlessly download ~0.5-1GB
         - __cuda  # [cuda_compiler_version != "None"]
 about:

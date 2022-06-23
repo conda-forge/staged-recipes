@@ -39,8 +39,6 @@ for ARG in $CMAKE_ARGS; do
 done
 unset CMAKE_INSTALL_PREFIX
 export TH_BINARY_BUILD=1
-export PYTORCH_BUILD_VERSION=$PKG_VERSION
-export PYTORCH_BUILD_NUMBER=$PKG_BUILDNUM
 
 export USE_NINJA=OFF
 export INSTALL_TEST=0
@@ -80,6 +78,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 fi
 
 export MAX_JOBS=${CPU_COUNT}
+export MMCV_WITH_OPS=1
 
 if [[ ${cuda_compiler_version} != "None" ]]; then
     export USE_CUDA=1
