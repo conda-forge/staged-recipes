@@ -23,6 +23,7 @@ fi
 
 # Dynamic libraries need to be lazily loaded so that torch
 # can be imported on system without a GPU
+# ^ is this the case for mmcv+cuda as well?
 LDFLAGS="${LDFLAGS//-Wl,-z,now/-Wl,-z,lazy}"
 
 export CMAKE_GENERATOR=Ninja
@@ -44,12 +45,8 @@ export USE_NINJA=OFF
 export INSTALL_TEST=0
 export BUILD_TEST=0
 
-export USE_SYSTEM_SLEEF=1
-# use our protobuf
-export BUILD_CUSTOM_PROTOBUF=OFF
-rm -rf $PREFIX/bin/protoc
 
-# I don't know where this folder comes from, but it's interfering with the build in osx-64
+# [pytorch-feedstock] I don't know where this folder comes from, but it's interfering with the build in osx-64
 rm -rf $PREFIX/git
 
 if [[ "$CONDA_BUILD_CROSS_COMPILATION" == 1 ]]; then
@@ -64,14 +61,12 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     # because it requires an non-bundled compile-time dependency (libuv
     # through gloo). This dependency is made available through meta.yaml, so
     # we can override the default and set USE_DISTRIBUTED=1.
-    export USE_DISTRIBUTED=1
 
     if [[ "$target_platform" == "osx-arm64" ]]; then
         export BLAS=OpenBLAS
         export USE_MKLDNN=0
         # There is a problem with pkg-config
         # See https://github.com/conda-forge/pkg-config-feedstock/issues/38
-        export USE_DISTRIBUTED=0
     fi
     $PYTHON -m pip install . --no-deps -vv
     exit 0

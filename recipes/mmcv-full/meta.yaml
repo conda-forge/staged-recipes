@@ -11,6 +11,7 @@ package:
 
 source:
   url: https://github.com/open-mmlab/mmcv/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 650929f52f1d0b2bae1bdaaa874e1e6dfdfa15f40bab5c366330488a9949ddd0
 build:
   number: {{ number }}
   skip: true  # [win]
@@ -33,7 +34,7 @@ outputs:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - {{ compiler('cuda') }}    # [cuda_compiler_version != "None"]
-        # Should be fixed in other versions
+        # [from pytorch-feedstock] Should be fixed in other versions
         # https://gitlab.kitware.com/cmake/cmake/-/issues/23368
         - cmake  !=3.23.0
         - ninja
@@ -61,6 +62,8 @@ outputs:
         # other requirements
         - python
         - {{ pin_compatible('numpy') }}
+        - addict
+        - packaging
         - Pillow
         - pyyaml
         - yapf
@@ -71,6 +74,27 @@ outputs:
         - pytorch
         # Conda exposes the maximum CUDA version supported by the installed Nvidia drivers through a virtual pockage
         - __cuda  # [cuda_compiler_version != "None"]
+    test:
+      requires:
+        - pytest
+        - requests
+        - scipy
+        - opencv
+        - python-lmdb
+        - libiconv
+        - tifffile
+        - python-dateutil
+        # - addict
+      imports:
+        - mmcv
+      source_files:
+        - tests
+      commands:
+        # ignoring cuda specific tests and IO tests that use tubrojpeg - conflicts with OpenCV (uses libjpeg)
+        - python3 -m pytest ./tests/ --ignore=./tests/test_ops --ignore=./tests/test_runner --ignore=./tests/test_image/test_io.py || true # [not win]
+        - python3 -c "import mmcv; print(mmcv.__version__)"
+
+
 about:
   home: https://github.com/open-mmlab/mmcv
   summary: 'Foundational library for computer vision research'
