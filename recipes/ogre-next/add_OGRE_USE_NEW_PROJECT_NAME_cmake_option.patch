@@ -1,0 +1,868 @@
+From 69c4f6cb01ef2a68d067ea102a4d658f06184d07 Mon Sep 17 00:00:00 2001
+From: "Matias N. Goldberg" <dark_sylinc@yahoo.com.ar>
+Date: Sat, 2 Apr 2022 15:14:18 -0300
+Subject: [PATCH] Add OGRE_USE_NEW_PROJECT_NAME CMake option
+
+When enabled, all projects and libraries will be named "OgreNext"
+instead of Ogre.
+---
+ CMake/Packages/FindOGRE.cmake                 |  41 +++---
+ CMake/Utils/AndroidMacros.cmake               |   6 +-
+ CMakeLists.txt                                |  20 ++-
+ Components/Hlms/Pbs/CMakeLists.txt            |  14 +-
+ Components/Hlms/Unlit/CMakeLists.txt          |  12 +-
+ Components/MeshLodGenerator/CMakeLists.txt    |  14 +-
+ Components/Overlay/CMakeLists.txt             |  14 +-
+ Components/PlanarReflections/CMakeLists.txt   |  12 +-
+ Components/SceneFormat/CMakeLists.txt         |  12 +-
+ OgreMain/CMakeLists.txt                       |  36 +++---
+ PlugIns/ParticleFX/CMakeLists.txt             |   2 +-
+ RenderSystems/Direct3D11/CMakeLists.txt       |   2 +-
+ RenderSystems/GL3Plus/CMakeLists.txt          |   2 +-
+ RenderSystems/Metal/CMakeLists.txt            |   4 +-
+ RenderSystems/NULL/CMakeLists.txt             |   2 +-
+ RenderSystems/Vulkan/CMakeLists.txt           |   2 +-
+ .../2.0/ApiUsage/SceneFormat/CMakeLists.txt   |   2 +-
+ Samples/2.0/CMakeLists.txt                    |   2 +-
+ Samples/2.0/Common/CMakeLists.txt             |   2 +-
+ .../CMake/Dependencies/OGRE.cmake             | 120 ++++++++++++++----
+ .../2.0/Tutorials/EmptyProject/CMakeLists.txt |   2 +
+ .../Tutorials/Tutorial_Memory/CMakeLists.txt  |   2 +-
+ .../Tutorials/Tutorial_Terrain/CMakeLists.txt |   2 +-
+ Tests/CMakeLists.txt                          |   2 +-
+ 24 files changed, 212 insertions(+), 117 deletions(-)
+
+diff --git a/CMake/Packages/FindOGRE.cmake b/CMake/Packages/FindOGRE.cmake
+index 2b8f20df630..54635572e42 100644
+--- a/CMake/Packages/FindOGRE.cmake
++++ b/CMake/Packages/FindOGRE.cmake
+@@ -25,11 +25,11 @@
+ #
+ # Additionally this script searches for the following optional
+ # parts of the Ogre package:
+-#  Plugin_CgProgramManager, Plugin_ParticleFX, 
+-#  RenderSystem_GL, RenderSystem_GL3Plus,
+-#  RenderSystem_GLES, RenderSystem_GLES2,
+-#  RenderSystem_Direct3D9, RenderSystem_Direct3D11
+-#  Paging, Terrain, Volume, Overlay
++#  Plugin_ParticleFX,
++#  RenderSystem_GL3Plus,
++#  RenderSystem_GLES2,
++#  RenderSystem_Direct3D11
++#  Paging, Volume, Overlay
+ #
+ # For each of these components, the following variables are defined:
+ #
+@@ -69,9 +69,9 @@ else ()
+ endif ()
+ 
+ if(APPLE AND NOT OGRE_STATIC)
+-	set(OGRE_LIBRARY_NAMES "Ogre${OGRE_LIB_SUFFIX}")
++    set(OGRE_LIBRARY_NAMES "OgreNext${OGRE_LIB_SUFFIX}" "Ogre${OGRE_LIB_SUFFIX}")
+ else()
+-    set(OGRE_LIBRARY_NAMES "OgreMain${OGRE_LIB_SUFFIX}")
++    set(OGRE_LIBRARY_NAMES "OgreNextMain${OGRE_LIB_SUFFIX}" "OgreMain${OGRE_LIB_SUFFIX}")
+ endif()
+ get_debug_names(OGRE_LIBRARY_NAMES)
+           
+@@ -79,11 +79,21 @@ get_debug_names(OGRE_LIBRARY_NAMES)
+ # OS specific guesses
+ if (WIN32)
+   set(OGRE_PREFIX_GUESSES
++    ${ENV_PROGRAMFILES}/OGRE-Next
++    C:/OgreNextSDK
+     ${ENV_PROGRAMFILES}/OGRE
+     C:/OgreSDK
+   )
+ elseif (UNIX)
+   set(OGRE_PREFIX_GUESSES
++    /opt/ogre-next
++    /opt/OGRE-Next
++    /usr/lib${LIB_SUFFIX}/ogre-next
++    /usr/lib${LIB_SUFFIX}/OGRE-Next
++    /usr/local/lib${LIB_SUFFIX}/ogre-next
++    /usr/local/lib${LIB_SUFFIX}/OGRE-Next
++    $ENV{HOME}/ogre-next
++    $ENV{HOME}/OGRE-Next
+     /opt/ogre
+     /opt/OGRE
+     /usr/lib${LIB_SUFFIX}/ogre
+@@ -146,9 +156,9 @@ else()
+ endif ()
+ 
+ # redo search if any of the environmental hints changed
+-set(OGRE_COMPONENTS Paging Terrain Volume Overlay 
+-  Plugin_CgProgramManager Plugin_ParticleFX
+-  RenderSystem_Direct3D11 RenderSystem_Direct3D9 RenderSystem_GL RenderSystem_GL3Plus RenderSystem_GLES RenderSystem_GLES2)
++set(OGRE_COMPONENTS Paging Volume Overlay
++  Plugin_ParticleFX
++  RenderSystem_Direct3D11 RenderSystem_GL3Plus RenderSystem_GLES2)
+ set(OGRE_RESET_VARS 
+   OGRE_CONFIG_INCLUDE_DIR OGRE_INCLUDE_DIR 
+   OGRE_FRAMEWORK_INCLUDES OGRE_FRAMEWORK_PATH OGRE_LIBRARY_FWK OGRE_LIBRARY_REL OGRE_LIBRARY_DBG
+@@ -361,9 +371,9 @@ set(OGRE_LIBRARY_DIRS ${OGRE_LIBRARY_DIR_REL} ${OGRE_LIBRARY_DIR_DBG})
+ # find binaries
+ if (NOT OGRE_STATIC)
+ 	if (WIN32)
+-		find_file(OGRE_BINARY_REL NAMES "OgreMain.dll" HINTS ${OGRE_BIN_SEARCH_PATH}
++        find_file(OGRE_BINARY_REL NAMES "OgreNextMain.dll" "OgreMain.dll" HINTS ${OGRE_BIN_SEARCH_PATH}
+           PATH_SUFFIXES "" Release RelWithDebInfo MinSizeRel)
+-		find_file(OGRE_BINARY_DBG NAMES "OgreMain_d.dll" HINTS ${OGRE_BIN_SEARCH_PATH}
++        find_file(OGRE_BINARY_DBG NAMES "OgreNextMain_d.dll" "OgreMain_d.dll" HINTS ${OGRE_BIN_SEARCH_PATH}
+           PATH_SUFFIXES "" Debug )
+ 	endif()
+ 	mark_as_advanced(OGRE_BINARY_REL OGRE_BINARY_DBG)
+@@ -389,7 +399,7 @@ macro(ogre_find_component COMPONENT HEADER PATH_HINTS)
+   set(OGRE_${COMPONENT}_FIND_QUIETLY ${OGRE_FIND_QUIETLY})
+   findpkg_begin(OGRE_${COMPONENT})
+   find_path(OGRE_${COMPONENT}_INCLUDE_DIR NAMES ${HEADER} HINTS ${OGRE_INCLUDE_DIRS} ${OGRE_PREFIX_SOURCE} PATH_SUFFIXES ${PATH_HINTS} ${COMPONENT} OGRE/${COMPONENT} )
+-  set(OGRE_${COMPONENT}_LIBRARY_NAMES "Ogre${COMPONENT}${OGRE_LIB_SUFFIX}")
++  set(OGRE_${COMPONENT}_LIBRARY_NAMES "OgreNext${COMPONENT}${OGRE_LIB_SUFFIX}" "Ogre${COMPONENT}${OGRE_LIB_SUFFIX}")
+   get_debug_names(OGRE_${COMPONENT}_LIBRARY_NAMES)
+   find_library(OGRE_${COMPONENT}_LIBRARY_REL NAMES ${OGRE_${COMPONENT}_LIBRARY_NAMES} HINTS ${OGRE_LIBRARY_DIR_REL} ${OGRE_FRAMEWORK_PATH} PATH_SUFFIXES "" "Release" "RelWithDebInfo" "MinSizeRel")
+   find_library(OGRE_${COMPONENT}_LIBRARY_DBG NAMES ${OGRE_${COMPONENT}_LIBRARY_NAMES_DBG} HINTS ${OGRE_LIBRARY_DIR_DBG} ${OGRE_FRAMEWORK_PATH} PATH_SUFFIXES "" "Debug")
+@@ -399,8 +409,8 @@ macro(ogre_find_component COMPONENT HEADER PATH_HINTS)
+     # find binaries
+     if (NOT OGRE_STATIC)
+ 	  if (WIN32)
+-	    find_file(OGRE_${COMPONENT}_BINARY_REL NAMES "Ogre${COMPONENT}.dll" HINTS ${OGRE_COMPONENT_SEARCH_PATH_REL} PATH_SUFFIXES "" bin bin/Release bin/RelWithDebInfo bin/MinSizeRel Release)
+-	    find_file(OGRE_${COMPONENT}_BINARY_DBG NAMES "Ogre${COMPONENT}_d.dll" HINTS ${OGRE_COMPONENT_SEARCH_PATH_DBG} PATH_SUFFIXES "" bin bin/Debug Debug)
++	    find_file(OGRE_${COMPONENT}_BINARY_REL NAMES "OgreNext${COMPONENT}.dll" "Ogre${COMPONENT}.dll" HINTS ${OGRE_COMPONENT_SEARCH_PATH_REL} PATH_SUFFIXES "" bin bin/Release bin/RelWithDebInfo bin/MinSizeRel Release)
++	    find_file(OGRE_${COMPONENT}_BINARY_DBG NAMES "OgreNext${COMPONENT}_d.dll" "Ogre${COMPONENT}_d.dll" HINTS ${OGRE_COMPONENT_SEARCH_PATH_DBG} PATH_SUFFIXES "" bin bin/Debug Debug)
+ 	  endif()
+ 	  mark_as_advanced(OGRE_${COMPONENT}_BINARY_REL OGRE_${COMPONENT}_BINARY_DBG)
+     endif()
+@@ -514,7 +524,6 @@ endmacro(ogre_find_plugin)
+ 
+ ogre_find_plugin(Plugin_CgProgramManager OgreCgProgram.h PlugIns/CgProgramManager/include)
+ ogre_find_plugin(Plugin_ParticleFX OgreParticleFXPrerequisites.h PlugIns/ParticleFX/include)
+-ogre_find_plugin(RenderSystem_GL OgreGLRenderSystem.h RenderSystems/GL/include)
+ ogre_find_plugin(RenderSystem_GL3Plus OgreGL3PlusRenderSystem.h RenderSystems/GL3Plus/include)
+ ogre_find_plugin(RenderSystem_GLES OgreGLESRenderSystem.h RenderSystems/GLES/include)
+ ogre_find_plugin(RenderSystem_GLES2 OgreGLES2RenderSystem.h RenderSystems/GLES2/include)
+diff --git a/CMake/Utils/AndroidMacros.cmake b/CMake/Utils/AndroidMacros.cmake
+index ef0fb0a81c3..d1a38803fa7 100644
+--- a/CMake/Utils/AndroidMacros.cmake
++++ b/CMake/Utils/AndroidMacros.cmake
+@@ -42,12 +42,10 @@ macro(create_android_proj ANDROID_PROJECT_TARGET)
+     ##################################################################    
+     	
+ 	if(OGRE_BUILD_RENDERSYSTEM_GLES2)
+-	    SET(DEPENDENCIES OgreMain RenderSystem_GLES2)
+-	else()
+-	    SET(DEPENDENCIES OgreMain RenderSystem_GLES)		
++	    SET(DEPENDENCIES ${OGRE_NEXT}Main RenderSystem_GLES2)
+ 	endif()
+ 	
+-	SET(DEPENDENCIES ${DEPENDENCIES} OgreTerrain OgreRTShaderSystem OgreMeshLodGenerator OgreOverlay OgrePaging OgreVolume Plugin_ParticleFX Plugin_OctreeSceneManager)
++	SET(DEPENDENCIES ${DEPENDENCIES} ${OGRE_NEXT}MeshLodGenerator ${OGRE_NEXT}Overlay ${OGRE_NEXT}Paging ${OGRE_NEXT}Volume Plugin_ParticleFX)
+ 	add_dependencies(${ANDROID_PROJECT_TARGET} ${DEPENDENCIES})
+ 	set(DEPEND_STATIC_LIBS "")	
+ 	foreach(DEPENDENCY ${DEPENDENCIES})
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f3f7e12c981..214575afee4 100755
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -249,14 +249,24 @@ if (APPLE AND OGRE_BUILD_RENDERSYSTEM_METAL)
+   endif ()
+ endif (APPLE AND OGRE_BUILD_RENDERSYSTEM_METAL)
+ 
++# This option needs to be set now
++option(OGRE_USE_NEW_PROJECT_NAME
++	"Libraries containing Ogre name will be called OgreNext, e.g. 'OgreNext.dll' instead of 'Ogre.dll'"
++	FALSE)
++if( OGRE_USE_NEW_PROJECT_NAME )
++	set( OGRE_NEXT "OgreNext" )
++else()
++	set( OGRE_NEXT "Ogre" )
++endif()
++
+ # Find dependencies
+ include(Dependencies)
+ # definitions for samples
+-set(OGRE_LIBRARIES OgreMain)
+-set(OGRE_MeshLodGenerator_LIBRARIES OgreMeshLodGenerator)
+-set(OGRE_Paging_LIBRARIES OgrePaging)
+-set(OGRE_Terrain_LIBRARIES OgreTerrain)
+-set(OGRE_Volume_LIBRARIES OgreVolume)
++set(OGRE_LIBRARIES ${OGRE_NEXT}Main)
++set(OGRE_MeshLodGenerator_LIBRARIES ${OGRE_NEXT}MeshLodGenerator)
++set(OGRE_Paging_LIBRARIES ${OGRE_NEXT}Paging)
++set(OGRE_Terrain_LIBRARIES ${OGRE_NEXT}Terrain)
++set(OGRE_Volume_LIBRARIES ${OGRE_NEXT}Volume)
+ 
+ # Specify build paths
+ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OGRE_BINARY_DIR}/lib")
+diff --git a/Components/Hlms/Pbs/CMakeLists.txt b/Components/Hlms/Pbs/CMakeLists.txt
+index be628b88b72..1f0b9c33862 100644
+--- a/Components/Hlms/Pbs/CMakeLists.txt
++++ b/Components/Hlms/Pbs/CMakeLists.txt
+@@ -9,7 +9,7 @@
+ 
+ # Configure Ogre HLMS Physically Based Shading for OpenGL 3.3+ and D3D11 build
+ 
+-PROJECT(OgreHlmsPbs)
++PROJECT(${OGRE_NEXT}HlmsPbs)
+ 
+ file(
+ 	GLOB HEADER_FILES
+@@ -40,16 +40,16 @@ if( OGRE_BUILD_COMPONENT_PLANAR_REFLECTIONS )
+ 	ogre_add_component_include_dir( PlanarReflections )
+ endif()
+ 
+-ogre_add_library(OgreHlmsPbs ${OGRE_COMP_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES})
+-set_target_properties(OgreHlmsPbs PROPERTIES VERSION ${OGRE_SOVERSION} SOVERSION ${OGRE_SOVERSION})
+-target_link_libraries(OgreHlmsPbs OgreMain)
++ogre_add_library(${OGRE_NEXT}HlmsPbs ${OGRE_COMP_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES})
++set_target_properties(${OGRE_NEXT}HlmsPbs PROPERTIES VERSION ${OGRE_SOVERSION} SOVERSION ${OGRE_SOVERSION})
++target_link_libraries(${OGRE_NEXT}HlmsPbs ${OGRE_NEXT}Main)
+ 
+ if( OGRE_BUILD_COMPONENT_PLANAR_REFLECTIONS )
+-	target_link_libraries( OgreHlmsPbs OgrePlanarReflections )
++	target_link_libraries( ${OGRE_NEXT}HlmsPbs ${OGRE_NEXT}PlanarReflections )
+ endif()
+ 
+-ogre_config_framework(OgreHlmsPbs)
+-ogre_config_component(OgreHlmsPbs)
++ogre_config_framework(${OGRE_NEXT}HlmsPbs)
++ogre_config_component(${OGRE_NEXT}HlmsPbs)
+ 
+ install (DIRECTORY include/
+         DESTINATION include/OGRE/Hlms/Pbs
+diff --git a/Components/Hlms/Unlit/CMakeLists.txt b/Components/Hlms/Unlit/CMakeLists.txt
+index 0f46fed7b0e..9629fd2ee3d 100644
+--- a/Components/Hlms/Unlit/CMakeLists.txt
++++ b/Components/Hlms/Unlit/CMakeLists.txt
+@@ -9,7 +9,7 @@
+ 
+ # Configure Ogre HLMS User Interface (2D) for OpenGL 3.3+ and D3D11 build
+ 
+-PROJECT(OgreHlmsUnlit)
++PROJECT(${OGRE_NEXT}HlmsUnlit)
+ 
+ file(
+     GLOB HEADER_FILES
+@@ -26,12 +26,12 @@ file(
+ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../Common/include)
+ 
+-ogre_add_library(OgreHlmsUnlit ${OGRE_COMP_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES})
+-set_target_properties(OgreHlmsUnlit PROPERTIES VERSION ${OGRE_SOVERSION} SOVERSION ${OGRE_SOVERSION})
+-target_link_libraries(OgreHlmsUnlit OgreMain)
++ogre_add_library(${OGRE_NEXT}HlmsUnlit ${OGRE_COMP_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES})
++set_target_properties(${OGRE_NEXT}HlmsUnlit PROPERTIES VERSION ${OGRE_SOVERSION} SOVERSION ${OGRE_SOVERSION})
++target_link_libraries(${OGRE_NEXT}HlmsUnlit ${OGRE_NEXT}Main)
+ 
+-ogre_config_framework(OgreHlmsUnlit)
+-ogre_config_component(OgreHlmsUnlit)
++ogre_config_framework(${OGRE_NEXT}HlmsUnlit)
++ogre_config_component(${OGRE_NEXT}HlmsUnlit)
+ 
+ install (DIRECTORY include/
+         DESTINATION include/OGRE/Hlms/Unlit
+diff --git a/Components/MeshLodGenerator/CMakeLists.txt b/Components/MeshLodGenerator/CMakeLists.txt
+index 0ad2fe6199b..01e42617237 100644
+--- a/Components/MeshLodGenerator/CMakeLists.txt
++++ b/Components/MeshLodGenerator/CMakeLists.txt
+@@ -11,7 +11,7 @@
+ # MeshLodGenerator optional component
+ ############################################################
+ 
+-PROJECT(OgreMeshLodGenerator)
++PROJECT(${OGRE_NEXT}MeshLodGenerator)
+ 
+ # define header and source files for the library
+ file(GLOB HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
+@@ -25,16 +25,16 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+ include_directories(${OGRE_SOURCE_DIR}/OgreMain/include)
+ 
+ # setup target
+-ogre_add_library(OgreMeshLodGenerator ${OGRE_COMP_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES})
+-set_target_properties(OgreMeshLodGenerator PROPERTIES VERSION ${OGRE_SOVERSION} SOVERSION ${OGRE_SOVERSION})
+-target_link_libraries(OgreMeshLodGenerator OgreMain)
++ogre_add_library(${OGRE_NEXT}MeshLodGenerator ${OGRE_COMP_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES})
++set_target_properties(${OGRE_NEXT}MeshLodGenerator PROPERTIES VERSION ${OGRE_SOVERSION} SOVERSION ${OGRE_SOVERSION})
++target_link_libraries(${OGRE_NEXT}MeshLodGenerator ${OGRE_NEXT}Main)
+ if (OGRE_CONFIG_THREADS)
+-  target_link_libraries(OgreMeshLodGenerator ${OGRE_THREAD_LIBRARIES})
++  target_link_libraries(${OGRE_NEXT}MeshLodGenerator ${OGRE_THREAD_LIBRARIES})
+ endif ()
+ 
+ # install 
+-ogre_config_framework(OgreMeshLodGenerator)
+-ogre_config_component(OgreMeshLodGenerator)
++ogre_config_framework(${OGRE_NEXT}MeshLodGenerator)
++ogre_config_component(${OGRE_NEXT}MeshLodGenerator)
+ 
+ install(FILES ${HEADER_FILES}
+   DESTINATION include/OGRE/MeshLodGenerator
+diff --git a/Components/Overlay/CMakeLists.txt b/Components/Overlay/CMakeLists.txt
+index 372e1be09eb..06f379c27d8 100644
+--- a/Components/Overlay/CMakeLists.txt
++++ b/Components/Overlay/CMakeLists.txt
+@@ -11,7 +11,7 @@
+ # Overlay optional component
+ ############################################################
+ 
+-PROJECT(OgreOverlay)
++PROJECT(${OGRE_NEXT}Overlay)
+ 
+ # define header and source files for the library
+ file(GLOB HEADER_FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
+@@ -29,16 +29,16 @@ ogre_add_component_include_dir(Hlms/Unlit)
+ ogre_add_component_include_dir(Hlms/Common)
+ 
+ # setup target
+-ogre_add_library(OgreOverlay ${OGRE_COMP_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES})
+-set_target_properties(OgreOverlay PROPERTIES VERSION ${OGRE_SOVERSION} SOVERSION ${OGRE_SOVERSION})
+-target_link_libraries(OgreOverlay OgreMain ${FREETYPE_LIBRARIES} OgreHlmsUnlit )
++ogre_add_library(${OGRE_NEXT}Overlay ${OGRE_COMP_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES})
++set_target_properties(${OGRE_NEXT}Overlay PROPERTIES VERSION ${OGRE_SOVERSION} SOVERSION ${OGRE_SOVERSION})
++target_link_libraries(${OGRE_NEXT}Overlay ${OGRE_NEXT}Main ${FREETYPE_LIBRARIES} ${OGRE_NEXT}HlmsUnlit )
+ if (OGRE_CONFIG_THREADS)
+-  target_link_libraries(OgreOverlay ${OGRE_THREAD_LIBRARIES})
++  target_link_libraries(${OGRE_NEXT}Overlay ${OGRE_THREAD_LIBRARIES})
+ endif ()
+ 
+ # install 
+-ogre_config_framework(OgreOverlay)
+-ogre_config_component(OgreOverlay)
++ogre_config_framework(${OGRE_NEXT}Overlay)
++ogre_config_component(${OGRE_NEXT}Overlay)
+ 
+ install(FILES ${HEADER_FILES}
+   DESTINATION include/OGRE/Overlay
+diff --git a/Components/PlanarReflections/CMakeLists.txt b/Components/PlanarReflections/CMakeLists.txt
+index c517bbced43..ec1706518c4 100644
+--- a/Components/PlanarReflections/CMakeLists.txt
++++ b/Components/PlanarReflections/CMakeLists.txt
+@@ -8,7 +8,7 @@
+ #-------------------------------------------------------------------
+ 
+ 
+-PROJECT(OgrePlanarReflections)
++PROJECT(${OGRE_NEXT}PlanarReflections)
+ 
+ file(
+ 	GLOB HEADER_FILES
+@@ -23,12 +23,12 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+ 
+ add_definitions( -DOgrePlanarReflections_EXPORTS )
+ 
+-ogre_add_library(OgrePlanarReflections ${OGRE_COMP_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES})
+-set_target_properties(OgrePlanarReflections PROPERTIES VERSION ${OGRE_SOVERSION} SOVERSION ${OGRE_SOVERSION})
+-target_link_libraries(OgrePlanarReflections OgreMain)
++ogre_add_library(${OGRE_NEXT}PlanarReflections ${OGRE_COMP_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES})
++set_target_properties(${OGRE_NEXT}PlanarReflections PROPERTIES VERSION ${OGRE_SOVERSION} SOVERSION ${OGRE_SOVERSION})
++target_link_libraries(${OGRE_NEXT}PlanarReflections ${OGRE_NEXT}Main)
+ 
+-ogre_config_framework(OgrePlanarReflections)
+-ogre_config_component(OgrePlanarReflections)
++ogre_config_framework(${OGRE_NEXT}PlanarReflections)
++ogre_config_component(${OGRE_NEXT}PlanarReflections)
+ 
+ install(FILES ${HEADER_FILES}
+   DESTINATION include/OGRE/PlanarReflections
+diff --git a/Components/SceneFormat/CMakeLists.txt b/Components/SceneFormat/CMakeLists.txt
+index 34ea9f85b24..63eec2fd6c1 100644
+--- a/Components/SceneFormat/CMakeLists.txt
++++ b/Components/SceneFormat/CMakeLists.txt
+@@ -8,7 +8,7 @@
+ #-------------------------------------------------------------------
+ 
+ 
+-PROJECT(OgreSceneFormat)
++PROJECT(${OGRE_NEXT}SceneFormat)
+ 
+ file(
+ 	GLOB HEADER_FILES
+@@ -26,12 +26,12 @@ ogre_add_component_include_dir(Hlms/Pbs)
+ 
+ add_definitions( -DOgreSceneFormat_EXPORTS )
+ 
+-ogre_add_library(OgreSceneFormat ${OGRE_COMP_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES})
+-set_target_properties(OgreSceneFormat PROPERTIES VERSION ${OGRE_SOVERSION} SOVERSION ${OGRE_SOVERSION})
+-target_link_libraries(OgreSceneFormat OgreMain OgreHlmsPbs)
++ogre_add_library(${OGRE_NEXT}SceneFormat ${OGRE_COMP_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES})
++set_target_properties(${OGRE_NEXT}SceneFormat PROPERTIES VERSION ${OGRE_SOVERSION} SOVERSION ${OGRE_SOVERSION})
++target_link_libraries(${OGRE_NEXT}SceneFormat ${OGRE_NEXT}Main ${OGRE_NEXT}HlmsPbs)
+ 
+-ogre_config_framework(OgreSceneFormat)
+-ogre_config_component(OgreSceneFormat)
++ogre_config_framework(${OGRE_NEXT}SceneFormat)
++ogre_config_component(${OGRE_NEXT}SceneFormat)
+ 
+ install(FILES ${HEADER_FILES}
+   DESTINATION include/OGRE/SceneFormat
+diff --git a/OgreMain/CMakeLists.txt b/OgreMain/CMakeLists.txt
+index 866d98126f3..9569d181004 100644
+--- a/OgreMain/CMakeLists.txt
++++ b/OgreMain/CMakeLists.txt
+@@ -8,10 +8,10 @@
+ #-------------------------------------------------------------------
+ 
+ ############################################################
+-# OgreMain core library
++# OgreNextMain core library
+ ############################################################
+ 
+-PROJECT(OgreMain)
++PROJECT(${OGRE_NEXT}Main)
+ 
+ function( add_filtered_h filterName fileString )
+ 	file(GLOB TMP_FILES ${fileString})
+@@ -406,19 +406,19 @@ set (TARGET_LINK_FLAGS "")
+ # setup OgreMain target
+ if (WINDOWS_STORE OR WINDOWS_PHONE)
+ 	# exclude OgreTimer.cpp from unity builds; causes problem
+-	ogre_add_library(OgreMain ${OGRE_LIB_TYPE} ${PREC_HEADER} ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADERS} ${PLATFORM_SOURCE_FILES} ${THREAD_HEADER_FILES} ${THREAD_SOURCE_FILES} SEPARATE "src/WIN32/OgreTimer.cpp")
++	ogre_add_library(${OGRE_NEXT}Main ${OGRE_LIB_TYPE} ${PREC_HEADER} ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADERS} ${PLATFORM_SOURCE_FILES} ${THREAD_HEADER_FILES} ${THREAD_SOURCE_FILES} SEPARATE "src/WIN32/OgreTimer.cpp")
+ else ()
+ 	# exclude OgreAlignedAllocator.cpp from unity builds; causes problems on Linux
+-	ogre_add_library(OgreMain ${OGRE_LIB_TYPE} ${PREC_HEADER} ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADERS} ${PLATFORM_SOURCE_FILES} ${THREAD_HEADER_FILES} ${THREAD_SOURCE_FILES} SEPARATE "src/OgreAlignedAllocator.cpp")
++	ogre_add_library(${OGRE_NEXT}Main ${OGRE_LIB_TYPE} ${PREC_HEADER} ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADERS} ${PLATFORM_SOURCE_FILES} ${THREAD_HEADER_FILES} ${THREAD_SOURCE_FILES} SEPARATE "src/OgreAlignedAllocator.cpp")
+ endif ()
+ # In visual studio 2010 - 64 bit we get this error: "LINK : fatal error LNK1210: exceeded internal ILK size limit; link with /INCREMENTAL:NO"
+ if(WIN32 AND MSVC10 AND CMAKE_CL_64)
+-  set_target_properties(OgreMain PROPERTIES 
++  set_target_properties(${OGRE_NEXT}Main PROPERTIES
+                         VERSION ${OGRE_SOVERSION}
+                         LINK_FLAGS "/INCREMENTAL:NO"
+                       )
+ else()
+-  set_target_properties(OgreMain PROPERTIES VERSION ${OGRE_SOVERSION} SOVERSION ${OGRE_SOVERSION})
++  set_target_properties(${OGRE_NEXT}Main PROPERTIES VERSION ${OGRE_SOVERSION} SOVERSION ${OGRE_SOVERSION})
+ endif()
+ 
+ if (NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+@@ -433,15 +433,15 @@ endif()
+ 
+ if (APPLE)
+   if (OGRE_BUILD_PLATFORM_APPLE_IOS)
+-    set_target_properties(OgreMain PROPERTIES INSTALL_NAME_DIR "OGRE")
++    set_target_properties(${OGRE_NEXT}Main PROPERTIES INSTALL_NAME_DIR "OGRE")
+   else ()
+-    set_target_properties(OgreMain PROPERTIES
++    set_target_properties(${OGRE_NEXT}Main PROPERTIES
+         LINK_FLAGS "-framework IOKit -framework Cocoa -framework Carbon -framework OpenGL -framework CoreVideo"
+     )
+ 
+     set(OGRE_OSX_BUILD_CONFIGURATION "$(PLATFORM_NAME)/$(CONFIGURATION)")
+   
+-  	add_custom_command(TARGET OgreMain POST_BUILD
++	add_custom_command(TARGET ${OGRE_NEXT}Main POST_BUILD
+ 		COMMAND mkdir ARGS -p ${OGRE_BINARY_DIR}/lib/${OGRE_OSX_BUILD_CONFIGURATION}/Ogre.framework/Headers/Threading
+         COMMAND ditto 
+ 		${OGRE_SOURCE_DIR}/OgreMain/include/Threading/*.h ${OGRE_BINARY_DIR}/lib/${OGRE_OSX_BUILD_CONFIGURATION}/Ogre.framework/Headers/Threading
+@@ -454,7 +454,7 @@ if (APPLE)
+     foreach(HEADER_PATH ${THREAD_HEADER_FILES})
+         get_filename_component(HEADER_FILE ${HEADER_PATH} NAME)
+         set(FWK_HEADER_PATH ${OGRE_BINARY_DIR}/lib/${OGRE_OSX_BUILD_CONFIGURATION}/Ogre.framework/Headers/${HEADER_FILE})
+-        add_custom_command(TARGET OgreMain POST_BUILD
++        add_custom_command(TARGET ${OGRE_NEXT}Main POST_BUILD
+             COMMAND rm -f ${FWK_HEADER_PATH}
+             )
+     endforeach()
+@@ -462,23 +462,23 @@ if (APPLE)
+     foreach(HEADER_PATH ${PLATFORM_HEADERS})
+         get_filename_component(HEADER_FILE ${HEADER_PATH} NAME)
+         set(FWK_HEADER_PATH ${OGRE_BINARY_DIR}/lib/${OGRE_OSX_BUILD_CONFIGURATION}/Ogre.framework/Headers/${HEADER_FILE})
+-        add_custom_command(TARGET OgreMain POST_BUILD
++        add_custom_command(TARGET ${OGRE_NEXT}Main POST_BUILD
+             COMMAND rm -f ${FWK_HEADER_PATH}
+             )
+     endforeach()
+ 
+-    ogre_config_framework(OgreMain)
++    ogre_config_framework(${OGRE_NEXT}Main)
+   endif ()
+ 
+   # Framework is called 'Ogre'
+   if (OGRE_BUILD_LIBS_AS_FRAMEWORKS)
+-    set_target_properties(OgreMain PROPERTIES	OUTPUT_NAME Ogre)
++    set_target_properties(${OGRE_NEXT}Main PROPERTIES	OUTPUT_NAME Ogre)
+   endif ()
+ endif ()
+-target_link_libraries(OgreMain ${LIBRARIES})
++target_link_libraries(${OGRE_NEXT}Main ${LIBRARIES})
+ if (MINGW)
+   # may need winsock htons functions for FreeImage
+-  target_link_libraries(OgreMain ws2_32)
++  target_link_libraries(${OGRE_NEXT}Main ws2_32)
+ endif ()
+ 
+ #set_source_files_properties( ${SOURCE_FILES} PROPERTIES HEADER_FILE_ONLY TRUE)
+@@ -488,13 +488,13 @@ endif ()
+ #set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/src/OgreSubMesh2.cpp" PROPERTIES HEADER_FILE_ONLY FALSE)
+ 
+ # specify a precompiled header to use
+-use_precompiled_header(OgreMain 
++use_precompiled_header(${OGRE_NEXT}Main
+   "${CMAKE_CURRENT_SOURCE_DIR}/include/OgreStableHeaders.h"
+   "${CMAKE_CURRENT_SOURCE_DIR}/src/OgrePrecompiledHeaders.cpp"
+ )
+ 
+-# install OgreMain
+-ogre_config_lib(OgreMain TRUE)
++# install ${OGRE_NEXT}Main
++ogre_config_lib(${OGRE_NEXT}Main TRUE)
+ foreach(HEADER_FILE ${HEADER_FILES})
+ 	string(REGEX REPLACE "((${CMAKE_CURRENT_SOURCE_DIR}|${OGRE_BINARY_DIR})/)?(include|src)/" "" RELATIVE_HEADER_FILE ${HEADER_FILE})
+ 	string(REGEX MATCH "((.*)/)+" HEADER_SUBDIRECTORY ${RELATIVE_HEADER_FILE})
+diff --git a/PlugIns/ParticleFX/CMakeLists.txt b/PlugIns/ParticleFX/CMakeLists.txt
+index d21587a4a62..568c08b9f87 100644
+--- a/PlugIns/ParticleFX/CMakeLists.txt
++++ b/PlugIns/ParticleFX/CMakeLists.txt
+@@ -17,7 +17,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+ add_definitions(-D_USRDLL)
+ 
+ ogre_add_library(Plugin_ParticleFX ${OGRE_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES})
+-target_link_libraries(Plugin_ParticleFX OgreMain)
++target_link_libraries(Plugin_ParticleFX ${OGRE_NEXT}Main)
+ if (NOT OGRE_STATIC)
+   set_target_properties(Plugin_ParticleFX PROPERTIES
+     COMPILE_DEFINITIONS OGRE_PARTICLEFXPLUGIN_EXPORTS
+diff --git a/RenderSystems/Direct3D11/CMakeLists.txt b/RenderSystems/Direct3D11/CMakeLists.txt
+index 832fc34d1c8..8621d263182 100644
+--- a/RenderSystems/Direct3D11/CMakeLists.txt
++++ b/RenderSystems/Direct3D11/CMakeLists.txt
+@@ -41,7 +41,7 @@ add_definitions(-D_USRDLL)
+ 
+ ogre_add_library(RenderSystem_Direct3D11 ${OGRE_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES})
+ target_link_libraries(RenderSystem_Direct3D11
+-  OgreMain
++  ${OGRE_NEXT}Main
+   ${DirectX11_LIBRARIES}
+ )
+ 
+diff --git a/RenderSystems/GL3Plus/CMakeLists.txt b/RenderSystems/GL3Plus/CMakeLists.txt
+index 58e3747dceb..0499a2a62fd 100644
+--- a/RenderSystems/GL3Plus/CMakeLists.txt
++++ b/RenderSystems/GL3Plus/CMakeLists.txt
+@@ -104,7 +104,7 @@ else()
+ 	  ${OGRE_LIB_TYPE} ${HEADER_FILES} ${GLSL_SOURCE} ${PLATFORM_HEADERS}
+ 	  ${PLATFORM_SOURCES} ${SOURCE_FILES})
+ endif()
+-target_link_libraries(RenderSystem_GL3Plus OgreMain ${OPENGL_LIBRARIES} ${PLATFORM_LIBS})
++target_link_libraries(RenderSystem_GL3Plus ${OGRE_NEXT}Main ${OPENGL_LIBRARIES} ${PLATFORM_LIBS})
+ 
+ if (NOT OGRE_STATIC)
+   set_target_properties(RenderSystem_GL3Plus PROPERTIES
+diff --git a/RenderSystems/Metal/CMakeLists.txt b/RenderSystems/Metal/CMakeLists.txt
+index 78802ea02b4..4eb8fc5b8a3 100644
+--- a/RenderSystems/Metal/CMakeLists.txt
++++ b/RenderSystems/Metal/CMakeLists.txt
+@@ -24,9 +24,9 @@ include_directories(
+ 
+ ogre_add_library(RenderSystem_Metal ${OGRE_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES})
+ if (OGRE_BUILD_PLATFORM_APPLE_IOS)
+-target_link_libraries(RenderSystem_Metal OgreMain "-framework Metal" "-framework QuartzCore")
++target_link_libraries(RenderSystem_Metal ${OGRE_NEXT}Main "-framework Metal" "-framework QuartzCore")
+ else()
+-target_link_libraries(RenderSystem_Metal OgreMain "-framework Metal" "-framework AppKit" "-framework QuartzCore")
++target_link_libraries(RenderSystem_Metal ${OGRE_NEXT}Main "-framework Metal" "-framework AppKit" "-framework QuartzCore")
+ endif()
+ 
+ target_compile_options(RenderSystem_Metal PRIVATE "-fobjc-arc")
+diff --git a/RenderSystems/NULL/CMakeLists.txt b/RenderSystems/NULL/CMakeLists.txt
+index 3fd12f47940..0fa97a41ac0 100644
+--- a/RenderSystems/NULL/CMakeLists.txt
++++ b/RenderSystems/NULL/CMakeLists.txt
+@@ -17,7 +17,7 @@ include_directories(
+ )
+ 
+ ogre_add_library(RenderSystem_NULL ${OGRE_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES})
+-target_link_libraries(RenderSystem_NULL OgreMain)
++target_link_libraries(RenderSystem_NULL ${OGRE_NEXT}Main)
+ 
+ if (OGRE_CONFIG_THREADS)
+   target_link_libraries(RenderSystem_NULL ${OGRE_THREAD_LIBRARIES})
+diff --git a/RenderSystems/Vulkan/CMakeLists.txt b/RenderSystems/Vulkan/CMakeLists.txt
+index d32da5bcbef..4929dd17d4f 100755
+--- a/RenderSystems/Vulkan/CMakeLists.txt
++++ b/RenderSystems/Vulkan/CMakeLists.txt
+@@ -33,7 +33,7 @@ include_directories(
+ include_directories( ${Vulkan_INCLUDE_DIRS} )
+ 
+ ogre_add_library(RenderSystem_Vulkan ${OGRE_LIB_TYPE} ${HEADER_FILES} ${SOURCE_FILES})
+-target_link_libraries(RenderSystem_Vulkan OgreMain ${Vulkan_LIBRARIES})
++target_link_libraries(RenderSystem_Vulkan ${OGRE_NEXT}Main ${Vulkan_LIBRARIES})
+ 
+ if( UNIX AND NOT ANDROID )
+ 	target_link_libraries(RenderSystem_Vulkan xcb-randr X11-xcb)
+diff --git a/Samples/2.0/ApiUsage/SceneFormat/CMakeLists.txt b/Samples/2.0/ApiUsage/SceneFormat/CMakeLists.txt
+index 9c11aad4802..d864134a47c 100644
+--- a/Samples/2.0/ApiUsage/SceneFormat/CMakeLists.txt
++++ b/Samples/2.0/ApiUsage/SceneFormat/CMakeLists.txt
+@@ -22,6 +22,6 @@ add_recursive( ./ SOURCE_FILES )
+ 
+ ogre_add_executable(Sample_SceneFormat WIN32 MACOSX_BUNDLE ${SOURCE_FILES} ${SAMPLE_COMMON_RESOURCES})
+ 
+-target_link_libraries(Sample_SceneFormat ${OGRE_LIBRARIES} ${OGRE_SAMPLES_LIBRARIES} OgreSceneFormat)
++target_link_libraries(Sample_SceneFormat ${OGRE_LIBRARIES} ${OGRE_SAMPLES_LIBRARIES} ${OGRE_NEXT}SceneFormat)
+ ogre_config_sample_lib(Sample_SceneFormat)
+ ogre_config_sample_pkg(Sample_SceneFormat)
+diff --git a/Samples/2.0/CMakeLists.txt b/Samples/2.0/CMakeLists.txt
+index c739e2e0533..2427859b29b 100644
+--- a/Samples/2.0/CMakeLists.txt
++++ b/Samples/2.0/CMakeLists.txt
+@@ -98,7 +98,7 @@ if( OGRE_BUILD_SAMPLES2 AND NOT OGRE_BUILD_SAMPLES2_SKIP )
+ endif()
+ 
+ if( OGRE_BUILD_SAMPLES2 AND NOT OGRE_BUILD_SAMPLES2_SKIP )
+-	set( OGRE_SAMPLES_LIBRARIES "OgreSamplesCommon" "OgreOverlay" )
++	set( OGRE_SAMPLES_LIBRARIES "OgreSamplesCommon" "${OGRE_NEXT}Overlay" )
+ 
+ 	if( OGRE_STATIC OR WINDOWS_STORE OR WINDOWS_PHONE )
+ 		if( OGRE_BUILD_RENDERSYSTEM_GL3PLUS )
+diff --git a/Samples/2.0/Common/CMakeLists.txt b/Samples/2.0/Common/CMakeLists.txt
+index adbe28cf895..ea87ac5b7a3 100644
+--- a/Samples/2.0/Common/CMakeLists.txt
++++ b/Samples/2.0/Common/CMakeLists.txt
+@@ -55,4 +55,4 @@ add_library(${OGRE_SAMPLES_COMMON_LIBRARY} STATIC ${SOURCE_FILES} ${HEADER_FILES
+ 
+ link_directories(${CMAKE_CURRENT_BINARY_DIR})
+ 
+-target_link_libraries(${OGRE_SAMPLES_COMMON_LIBRARY} ${SDL2_LIBRARY} OgreHlmsPbs OgreHlmsUnlit)
++target_link_libraries(${OGRE_SAMPLES_COMMON_LIBRARY} ${SDL2_LIBRARY} ${OGRE_NEXT}HlmsPbs ${OGRE_NEXT}HlmsUnlit)
+diff --git a/Samples/2.0/Tutorials/EmptyProject/CMake/Dependencies/OGRE.cmake b/Samples/2.0/Tutorials/EmptyProject/CMake/Dependencies/OGRE.cmake
+index 83cd1c712a7..01cb10138c5 100644
+--- a/Samples/2.0/Tutorials/EmptyProject/CMake/Dependencies/OGRE.cmake
++++ b/Samples/2.0/Tutorials/EmptyProject/CMake/Dependencies/OGRE.cmake
+@@ -60,6 +60,37 @@ endmacro()
+ 
+ #----------------------------------------------------------------------------------------
+ 
++# Outputs TRUE into RESULT_VARIABLE if Ogre was build as OgreNextMain.dll instead of OgreMain.dll
++macro( isOgreNext RESULT_VARIABLE )
++	if( WIN32 )
++		if( EXISTS "${OGRE_BINARIES}/bin/Debug/OgreNextMain_d.dll" OR
++			EXISTS "${OGRE_BINARIES}/bin/Release/OgreNextMain.dll" OR
++			EXISTS "${OGRE_BINARIES}/bin/RelWithDebInfo/OgreNextMain.dll" OR
++			EXISTS "${OGRE_BINARIES}/bin/MinSizeRel/OgreNextMain.dll" OR
++			EXISTS "${OGRE_BINARIES}/lib/Debug/OgreNextMainStatic_d.lib" OR
++			EXISTS "${OGRE_BINARIES}/lib/Release/OgreNextMainStatic.lib" OR
++			EXISTS "${OGRE_BINARIES}/lib/RelWithDebInfo/OgreNextMainStatic.lib" OR
++			EXISTS "${OGRE_BINARIES}/lib/MinSizeRel/OgreNextMainStatic.lib")
++			set( ${RESULT_VARIABLE} TRUE )
++		else()
++			set( ${RESULT_VARIABLE} FALSE )
++		endif()
++	else()
++		set( DEBUG_SUFFIX "" )
++		if( ${CMAKE_BUILD_TYPE} STREQUAL "Debug" )
++			set( DEBUG_SUFFIX "_d" )
++		endif()
++		if( EXISTS "${OGRE_BINARIES}/lib/libOgreNextMain${DEBUG_SUFFIX}.so" OR
++			EXISTS "${OGRE_BINARIES}/lib/libOgreNextMainStatic${DEBUG_SUFFIX}.a")
++			set( ${RESULT_VARIABLE} TRUE )
++		else()
++			set( ${RESULT_VARIABLE} FALSE )
++		endif()
++	endif()
++endmacro()
++
++#----------------------------------------------------------------------------------------
++
+ # Generates Plugins.cfg file out of user-editable Plugins.cfg.in file. Will automatically disable those plugins
+ # that were not built
+ # Copies all relevant DLLs: RenderSystem files, OgreOverlay, Hlms PBS & Unlit.
+@@ -94,14 +125,14 @@ macro( setupPluginFileFromTemplate BUILD_TYPE OGRE_USE_SCENE_FORMAT OGRE_USE_PLA
+ 
+ 		# Lists of DLLs to copy
+ 		set( OGRE_DLLS
+-				OgreMain
+-				OgreOverlay
+-				OgreHlmsPbs
+-				OgreHlmsUnlit
++				${OGRE_NEXT}Main
++				${OGRE_NEXT}Overlay
++				${OGRE_NEXT}HlmsPbs
++				${OGRE_NEXT}HlmsUnlit
+ 			)
+ 
+ 		if( ${OGRE_USE_SCENE_FORMAT} )
+-			set( OGRE_DLLS ${OGRE_DLLS} OgreSceneFormat )
++			set( OGRE_DLLS ${OGRE_DLLS} ${OGRE_NEXT}SceneFormat )
+ 		endif()
+ 
+ 		# Deal with OS and Ogre naming shenanigans:
+@@ -199,6 +230,14 @@ else()
+ 	link_directories( "${OGRE_BINARIES}/lib" )
+ endif()
+ 
++isOgreNext( OGRE_USE_NEW_NAME )
++message( STATUS ${OGRE_USE_NEW_NAME} )
++if( ${OGRE_USE_NEW_NAME} )
++	set( OGRE_NEXT "OgreNext" )
++else()
++	set( OGRE_NEXT "Ogre" )
++endif()
++
+ # Ogre config
+ include_directories( "${OGRE_SOURCE}/OgreMain/include" )
+ 
+@@ -229,6 +268,8 @@ else()
+ 	message( STATUS "Detected DLL build of Ogre" )
+ 	unset( OGRE_STATIC )
+ endif()
++findOgreBuildSetting( ${OGRE_BUILD_SETTINGS_STR} OGRE_BUILD_RENDERSYSTEM_GL3PLUS )
++findOgreBuildSetting( ${OGRE_BUILD_SETTINGS_STR} OGRE_BUILD_RENDERSYSTEM_D3D11 )
+ findOgreBuildSetting( ${OGRE_BUILD_SETTINGS_STR} OGRE_BUILD_RENDERSYSTEM_METAL )
+ findOgreBuildSetting( ${OGRE_BUILD_SETTINGS_STR} OGRE_BUILD_RENDERSYSTEM_VULKAN )
+ unset( OGRE_BUILD_SETTINGS_STR )
+@@ -250,34 +291,42 @@ if( NOT IOS )
+ 	endif()
+ endif()
+ 
+-set( OGRE_LIBRARIES
+-	debug OgreMain${OGRE_STATIC}${OGRE_DEBUG_SUFFIX}
+-	debug OgreOverlay${OGRE_STATIC}${OGRE_DEBUG_SUFFIX}
+-	debug OgreHlmsUnlit${OGRE_STATIC}${OGRE_DEBUG_SUFFIX}
+-	debug OgreHlmsPbs${OGRE_STATIC}${OGRE_DEBUG_SUFFIX}
+-
+-	optimized OgreMain${OGRE_STATIC}
+-	optimized OgreOverlay${OGRE_STATIC}
+-	optimized OgreHlmsUnlit${OGRE_STATIC}
+-	optimized OgreHlmsPbs${OGRE_STATIC}
+-	${OGRE_DEPENDENCY_LIBS}
+-	)
+-
+ if( ${OGRE_USE_SCENE_FORMAT} )
+ 	set( OGRE_LIBRARIES ${OGRE_LIBRARIES}
+-		debug OgreSceneFormat${OGRE_STATIC}${OGRE_DEBUG_SUFFIX}
+-		optimized OgreSceneFormat${OGRE_STATIC}
++		debug ${OGRE_NEXT}SceneFormat${OGRE_STATIC}${OGRE_DEBUG_SUFFIX}
++		optimized ${OGRE_NEXT}SceneFormat${OGRE_STATIC}
+ 		)
+ endif()
+ 
+ if( ${OGRE_USE_PLANAR_REFLECTIONS} )
+ 	set( OGRE_LIBRARIES ${OGRE_LIBRARIES}
+-		debug OgrePlanarReflections${OGRE_STATIC}${OGRE_DEBUG_SUFFIX}
+-		optimized OgrePlanarReflections${OGRE_STATIC}
++		debug ${OGRE_NEXT}PlanarReflections${OGRE_STATIC}${OGRE_DEBUG_SUFFIX}
++		optimized ${OGRE_NEXT}PlanarReflections${OGRE_STATIC}
+ 		)
+ endif()
+ 
+ if( OGRE_STATIC )
++	if( OGRE_BUILD_RENDERSYSTEM_D3D11 )
++		message( STATUS "Detected D3D11 RenderSystem. Linking against it." )
++		set( OGRE_LIBRARIES
++			${OGRE_LIBRARIES}
++			debug RenderSystem_Direct3D11${OGRE_STATIC}${OGRE_DEBUG_SUFFIX}
++			optimized RenderSystem_Direct3D11${OGRE_STATIC} )
++		include_directories( "${OGRE_SOURCE}/RenderSystems/Direct3D11/include" )
++	endif()
++	if( OGRE_BUILD_RENDERSYSTEM_GL3PLUS )
++		message( STATUS "Detected GL3+ RenderSystem. Linking against it." )
++		set( OGRE_LIBRARIES
++			${OGRE_LIBRARIES}
++			debug RenderSystem_GL3Plus${OGRE_STATIC}${OGRE_DEBUG_SUFFIX}
++			optimized RenderSystem_GL3Plus${OGRE_STATIC} )
++		include_directories( "${OGRE_SOURCE}/RenderSystems/GL3Plus/include"
++			"${OGRE_SOURCE}/RenderSystems/GL3Plus/include/GLSL")
++
++		if( UNIX )
++			set( OGRE_DEPENDENCY_LIBS ${OGRE_DEPENDENCY_LIBS} Xt Xrandr X11 GL )
++		endif()
++	endif()
+ 	if( OGRE_BUILD_RENDERSYSTEM_METAL )
+ 		message( STATUS "Detected Metal RenderSystem. Linking against it." )
+ 		set( OGRE_LIBRARIES
+@@ -293,9 +342,27 @@ if( OGRE_STATIC )
+ 			debug RenderSystem_Vulkan${OGRE_STATIC}${OGRE_DEBUG_SUFFIX}
+ 			optimized RenderSystem_Vulkan${OGRE_STATIC} )
+ 		include_directories( "${OGRE_SOURCE}/RenderSystems/Vulkan/include" )
++
++		set( OGRE_DEPENDENCY_LIBS ${OGRE_DEPENDENCY_LIBS} xcb X11-xcb xcb-randr )
+ 	endif()
+ endif()
+ 
++set( OGRE_LIBRARIES
++	${OGRE_LIBRARIES}
++
++	debug ${OGRE_NEXT}Overlay${OGRE_STATIC}${OGRE_DEBUG_SUFFIX}
++	debug ${OGRE_NEXT}HlmsUnlit${OGRE_STATIC}${OGRE_DEBUG_SUFFIX}
++	debug ${OGRE_NEXT}HlmsPbs${OGRE_STATIC}${OGRE_DEBUG_SUFFIX}
++	debug ${OGRE_NEXT}Main${OGRE_STATIC}${OGRE_DEBUG_SUFFIX}
++
++	optimized ${OGRE_NEXT}Overlay${OGRE_STATIC}
++	optimized ${OGRE_NEXT}HlmsUnlit${OGRE_STATIC}
++	optimized ${OGRE_NEXT}HlmsPbs${OGRE_STATIC}
++	optimized ${OGRE_NEXT}Main${OGRE_STATIC}
++
++	${OGRE_DEPENDENCY_LIBS}
++	)
++
+ set( OGRE_LIBRARIES_OUT ${OGRE_LIBRARIES} )
+ 
+ # Plugins.cfg
+@@ -370,5 +437,14 @@ macro( addStaticDependencies OGRE_SOURCE, OGRE_BINARIES, OGRE_BUILD_SETTINGS_STR
+ 			optimized ${ZZIPNAME} )
+ 	endif()
+ 
++	message( STATUS "Static lib needs freetype due to Overlays. Linking against it." )
++	set( TMP_DEPENDENCY_LIBS ${TMP_DEPENDENCY_LIBS}
++		debug freetype${OGRE_DEP_DEBUG_SUFFIX}
++		optimized freetype )
++
++	if( UNIX )
++		set( TMP_DEPENDENCY_LIBS ${TMP_DEPENDENCY_LIBS} dl Xt Xrandr X11 xcb Xaw )
++	endif()
++
+ 	set( OGRE_DEPENDENCY_LIBS ${TMP_DEPENDENCY_LIBS} )
+ endmacro()
+diff --git a/Samples/2.0/Tutorials/EmptyProject/CMakeLists.txt b/Samples/2.0/Tutorials/EmptyProject/CMakeLists.txt
+index 7089dff51e4..d1119560403 100644
+--- a/Samples/2.0/Tutorials/EmptyProject/CMakeLists.txt
++++ b/Samples/2.0/Tutorials/EmptyProject/CMakeLists.txt
+@@ -41,6 +41,8 @@ else()
+ endif()
+ 
+ include_directories( "./include" )
++# Ogre doesn't need this include, but we do because of Rapidjson in UnitTesting.cpp
++include_directories( "./Dependencies/Ogre/Dependencies/include" )
+ 
+ add_recursive( ./src SOURCES )
+ add_recursive( ./include HEADERS )
+diff --git a/Samples/2.0/Tutorials/Tutorial_Memory/CMakeLists.txt b/Samples/2.0/Tutorials/Tutorial_Memory/CMakeLists.txt
+index cbbb6744770..c7d5491d427 100644
+--- a/Samples/2.0/Tutorials/Tutorial_Memory/CMakeLists.txt
++++ b/Samples/2.0/Tutorials/Tutorial_Memory/CMakeLists.txt
+@@ -23,6 +23,6 @@ add_recursive( ./ SOURCE_FILES )
+ 
+ ogre_add_executable(Sample_Tutorial_Memory WIN32 MACOSX_BUNDLE ${SOURCE_FILES} ${SAMPLE_COMMON_RESOURCES})
+ 
+-target_link_libraries(Sample_Tutorial_Memory ${OGRE_LIBRARIES} ${OGRE_SAMPLES_LIBRARIES} OgreSceneFormat)
++target_link_libraries(Sample_Tutorial_Memory ${OGRE_LIBRARIES} ${OGRE_SAMPLES_LIBRARIES} ${OGRE_NEXT}SceneFormat)
+ ogre_config_sample_lib(Sample_Tutorial_Memory)
+ ogre_config_sample_pkg(Sample_Tutorial_Memory)
+diff --git a/Samples/2.0/Tutorials/Tutorial_Terrain/CMakeLists.txt b/Samples/2.0/Tutorials/Tutorial_Terrain/CMakeLists.txt
+index e8d1624064a..b5b227dee51 100644
+--- a/Samples/2.0/Tutorials/Tutorial_Terrain/CMakeLists.txt
++++ b/Samples/2.0/Tutorials/Tutorial_Terrain/CMakeLists.txt
+@@ -27,7 +27,7 @@ endif()
+ 
+ ogre_add_executable(Sample_Tutorial_Terrain WIN32 MACOSX_BUNDLE ${SOURCE_FILES} ${SAMPLE_COMMON_RESOURCES})
+ 
+-target_link_libraries(Sample_Tutorial_Terrain ${OGRE_LIBRARIES} ${OGRE_SAMPLES_LIBRARIES} OgreHlmsPbs)
++target_link_libraries(Sample_Tutorial_Terrain ${OGRE_LIBRARIES} ${OGRE_SAMPLES_LIBRARIES} ${OGRE_NEXT}HlmsPbs)
+ if( OGRE_BUILD_COMPONENT_PLANAR_REFLECTIONS )
+     target_link_libraries( Sample_Tutorial_Terrain OgrePlanarReflections )
+ endif()
+diff --git a/Tests/CMakeLists.txt b/Tests/CMakeLists.txt
+index 9f31aedfd04..5167104f0c2 100644
+--- a/Tests/CMakeLists.txt
++++ b/Tests/CMakeLists.txt
+@@ -145,7 +145,7 @@ if (OGRE_BUILD_TESTS)
+ 	  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/Components/Overlay/include
+ 	    ${OGRE_SOURCE_DIR}/Components/Overlay/include)
+ 	  
+-	  set(OGRE_LIBRARIES ${OGRE_LIBRARIES} OgreOverlay)
++	  set(OGRE_LIBRARIES ${OGRE_LIBRARIES} ${OGRE_NEXT}Overlay)
+ 	endif ()
+ 	add_executable(Test_Ogre WIN32 ${HEADER_FILES} ${SOURCE_FILES} ${RESOURCE_FILES} )
+ 	ogre_config_sample_exe(Test_Ogre)
+

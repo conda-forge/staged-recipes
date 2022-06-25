@@ -1,0 +1,82 @@
+{% set name = "ogre-next" %}
+{% set version = "2.3.0" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/OGRECave/ogre-next/archive/refs/tags/v{{ version }}.tar.gz
+    sha256: 3294eae7f8460f450a99fc82eff6a975d993ee591487c09957265852a71bea4a
+    patches:
+      - add_OGRE_USE_NEW_PROJECT_NAME_cmake_option.patch
+      - disable_cmake_modules_install.patch
+      - change_header_install_from_OGRE_to_OGRE-Next.patch
+      - change_plugin_installs_from_OGRE_to_OGRE-Next.patch
+      - fix_pc_files_generation.patch
+      - backport_hlms_bugfix.patch
+      - add_suffix_in_install_also_for_runtime.patch
+
+build:
+  number: 0
+  run_exports:
+    # See https://salsa.debian.org/ogre-team/ogre-next/-/blob/a27f70cd8c6b82e3fc207fefe557b43bc49634b4/debian/README.Debian
+    - {{ pin_subpackage(name, max_pin='x.x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - pkg-config
+    - ninja
+    - make  # [not win]
+    - {{ cdt('mesa-libgl-devel') }}  # [linux]
+    - {{ cdt('mesa-dri-drivers') }}  # [linux]
+    - {{ cdt('libselinux') }}  # [linux]
+    - {{ cdt('libxdamage') }}  # [linux]
+    - {{ cdt('libxxf86vm') }}  # [linux]
+    - {{ cdt('libxext') }}     # [linux]
+  host:
+    - xorg-libxfixes  # [linux]
+    - xorg-libxt  # [linux]
+    - xorg-libxaw  # [linux]
+    - xorg-libxrandr  # [linux]
+    - xorg-libx11  # [linux]
+    - freeimage
+    - freetype
+    - rapidjson
+    - zlib
+    - zziplib
+  run:
+    # workaround for https://github.com/conda-forge/xorg-libx11-feedstock/issues/15
+    - xorg-libxfixes  # [linux]
+    - xorg-libxt  # [linux]
+    - xorg-libxaw  # [linux]
+    - xorg-libxrandr  # [linux]
+    - xorg-libx11  # [linux]
+    - xorg-libx11  # [linux]
+
+# The path are compatible with the ogre-next Ubuntu package:
+# See https://packages.ubuntu.com/source/jammy/amd64/ogre-next
+test:
+  commands:
+    - test -f $PREFIX/include/OGRE-Next/OgreRoot.h  # [unix]
+    - test -f $PREFIX/lib/pkgconfig/OGRE-Next.pc  # [unix]
+    - test -f $PREFIX/lib/libOgreNextMain${SHLIB_EXT}  # [unix]
+    - test -f $PREFIX/lib/OGRE-Next//RenderSystem_NULL${SHLIB_EXT}  # [unix]
+    - if not exist %LIBRARY_INC%\\OGRE-Next\\OgreRoot.h exit 1  # [win]
+    - if not exist %LIBRARY_LIB%\\pkgconfig\\OGRE-Next.pc exit 1  # [win]
+    - if not exist %LIBRARY_BIN%\\OgreNextMain.dll exit 1  # [win]
+    - if not exist %LIBRARY_BIN%\\OGRE-Next\\RenderSystem_NULL.dll exit 1  # [win]
+
+about:
+  home: https://github.com/OGRECave/ogre-next
+  license: MIT
+  license_file: COPYING
+  summary:  aka ogre v2 - scene-oriented, flexible 3D C++ engine 
+
+extra:
+  recipe-maintainers:
+    - traversaro
+    - wolfv
