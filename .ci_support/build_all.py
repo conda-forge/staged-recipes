@@ -31,7 +31,7 @@ def get_config_name(arch):
 
 
 def build_all(recipes_dir, arch):
-    folders = os.listdir(recipes_dir)
+    folders = list(filter(os.path.isdir, os.listdir(recipes_dir)))
     old_comp_folders = []
     new_comp_folders = []
     if not folders:
