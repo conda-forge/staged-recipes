@@ -21,7 +21,7 @@ if [[ "$target_platform" == "osx-64" ]]; then
   export CFLAGS="$CFLAGS -DTARGET_OS_OSX=1"
 fi
 
-# Dynamic libraries need to be lazily loaded so that torch
+# (from pytorch-feedstock) Dynamic libraries need to be lazily loaded so that torch
 # can be imported on system without a GPU
 # ^ is this the case for mmcv+cuda as well?
 LDFLAGS="${LDFLAGS//-Wl,-z,now/-Wl,-z,lazy}"
@@ -41,36 +41,16 @@ done
 unset CMAKE_INSTALL_PREFIX
 export TH_BINARY_BUILD=1
 
-export USE_NINJA=OFF
 export INSTALL_TEST=0
 export BUILD_TEST=0
 
-
-# [pytorch-feedstock] I don't know where this folder comes from, but it's interfering with the build in osx-64
-rm -rf $PREFIX/git
 
 if [[ "$CONDA_BUILD_CROSS_COMPILATION" == 1 ]]; then
     export COMPILER_WORKS_EXITCODE=0
     export COMPILER_WORKS_EXITCODE__TRYRUN_OUTPUT=""
 fi
 
-# MacOS build is simple, and will not be for CUDA
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    # Produce macOS builds with torch.distributed support.
-    # This is enabled by default on Linux, but disabled by default on macOS,
-    # because it requires an non-bundled compile-time dependency (libuv
-    # through gloo). This dependency is made available through meta.yaml, so
-    # we can override the default and set USE_DISTRIBUTED=1.
 
-    if [[ "$target_platform" == "osx-arm64" ]]; then
-        export BLAS=OpenBLAS
-        export USE_MKLDNN=0
-        # There is a problem with pkg-config
-        # See https://github.com/conda-forge/pkg-config-feedstock/issues/38
-    fi
-    $PYTHON -m pip install . --no-deps -vv
-    exit 0
-fi
 
 export MAX_JOBS=${CPU_COUNT}
 export MMCV_WITH_OPS=1
@@ -96,18 +76,9 @@ if [[ ${cuda_compiler_version} != "None" ]]; then
     export TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
     export NCCL_ROOT_DIR=$PREFIX
     export NCCL_INCLUDE_DIR=$PREFIX/include
-    export USE_SYSTEM_NCCL=1
-    export USE_STATIC_NCCL=0
-    export USE_STATIC_CUDNN=0
     export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
-    export MAGMA_HOME="${PREFIX}"
 else
-    if [[ "$target_platform" == *-64 ]]; then
-      export BLAS="MKL"
-    fi
     export USE_CUDA=0
-    export USE_MKLDNN=1
-    export CMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake"
 fi
 
 export CMAKE_BUILD_TYPE=Release
