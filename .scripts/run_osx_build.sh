@@ -58,10 +58,5 @@ git ls-tree --name-only main -- . | xargs -I {} sh -c "rm -rf {} && echo Removin
 popd > /dev/null
 echo ""
 
-# remove .DS_Store file if finder created it
-if [ -f "./recipes/.DS_Store" ] ; then
-    rm "./recipes/.DS_Store"
-fi
-
 # We just want to build all of the recipes.
 python .ci_support/build_all.py
