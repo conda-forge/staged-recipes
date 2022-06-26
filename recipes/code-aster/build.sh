@@ -15,7 +15,7 @@ CMAKE_PLATFORM_FLAGS+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
 
 #export CFLAGS="${CFLAGS} -i sysroot ${CONDA_BUILD_SYSROOT}"
 #echo "CFLAGS=\"${CFLAGS} -i sysroot ${CONDA_BUILD_SYSROOT}\"" >> setup.cfg
-sed -i 's@cmake\ ..\ @cmake\ ..\ -DCMAKE_TOOLCHAIN_FILE='"${RECIPE_DIR}"'/cross-linux.cmake\ @g' products.py
+sed -i 's@cmake\ ..\ @cmake\ ..\ ${CMAKE_ARGS} -DCMAKE_TOOLCHAIN_FILE='"${RECIPE_DIR}"'/cross-linux.cmake\ @g' products.py
 
 sed -i 's/pylib = SC.get_python_lib(standard_lib=True)/pylib = osp.join(cfg["HOME_PYTHON"],"lib")/g' setup.py
 
