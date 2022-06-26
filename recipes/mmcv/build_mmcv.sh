@@ -1,57 +1,57 @@
 #!/bin/bash
 
-set -ex
-
-# clean up an existing cmake build directory
-rm -rf build
-
-# uncomment to debug cmake build
-export CMAKE_VERBOSE_MAKEFILE=1
-
-#export CFLAGS="$(echo $CFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
-#export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
-#export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
-#export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,-dead_strip_dylibs//g')"
-#export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
-#export CXXFLAGS="$CXXFLAGS -Wno-deprecated-declarations"
-#export CFLAGS="$CFLAGS -Wno-deprecated-declarations"
+#set -ex
 #
-#if [[ "$target_platform" == "osx-64" ]]; then
-#  export CXXFLAGS="$CXXFLAGS -DTARGET_OS_OSX=1"
-#  export CFLAGS="$CFLAGS -DTARGET_OS_OSX=1"
+## clean up an existing cmake build directory
+#rm -rf build
+#
+## uncomment to debug cmake build
+#export CMAKE_VERBOSE_MAKEFILE=1
+#
+##export CFLAGS="$(echo $CFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
+##export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
+##export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,--as-needed//g')"
+##export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,-dead_strip_dylibs//g')"
+##export LDFLAGS_LD="$(echo $LDFLAGS_LD | sed 's/-dead_strip_dylibs//g')"
+##export CXXFLAGS="$CXXFLAGS -Wno-deprecated-declarations"
+##export CFLAGS="$CFLAGS -Wno-deprecated-declarations"
+##
+##if [[ "$target_platform" == "osx-64" ]]; then
+##  export CXXFLAGS="$CXXFLAGS -DTARGET_OS_OSX=1"
+##  export CFLAGS="$CFLAGS -DTARGET_OS_OSX=1"
+##fi
+#
+## (from pytorch-feedstock) Dynamic libraries need to be lazily loaded so that torch
+## can be imported on system without a GPU
+## ^ is this the case for mmcv+cuda as well?
+##LDFLAGS="${LDFLAGS//-Wl,-z,now/-Wl,-z,lazy}"
+#
+##export CMAKE_GENERATOR=Ninja
+##export CMAKE_LIBRARY_PATH=$PREFIX/lib:$PREFIX/include:$CMAKE_LIBRARY_PATH
+##export CMAKE_PREFIX_PATH=$PREFIX
+##for ARG in $CMAKE_ARGS; do
+##  if [[ "$ARG" == "-DCMAKE_"* ]]; then
+##    cmake_arg=$(echo $ARG | cut -d= -f1)
+##    cmake_arg=$(echo $cmake_arg| cut -dD -f2-)
+##    cmake_val=$(echo $ARG | cut -d= -f2-)
+##    printf -v $cmake_arg "$cmake_val"
+##    export ${cmake_arg}
+##  fi
+##done
+##unset CMAKE_INSTALL_PREFIX
+##export TH_BINARY_BUILD=1
+#
+#export INSTALL_TEST=0
+#export BUILD_TEST=0
+#
+#
+#if [[ "$CONDA_BUILD_CROSS_COMPILATION" == 1 ]]; then
+#    export COMPILER_WORKS_EXITCODE=0
+#    export COMPILER_WORKS_EXITCODE__TRYRUN_OUTPUT=""
 #fi
-
-# (from pytorch-feedstock) Dynamic libraries need to be lazily loaded so that torch
-# can be imported on system without a GPU
-# ^ is this the case for mmcv+cuda as well?
-#LDFLAGS="${LDFLAGS//-Wl,-z,now/-Wl,-z,lazy}"
-
-#export CMAKE_GENERATOR=Ninja
-#export CMAKE_LIBRARY_PATH=$PREFIX/lib:$PREFIX/include:$CMAKE_LIBRARY_PATH
-#export CMAKE_PREFIX_PATH=$PREFIX
-#for ARG in $CMAKE_ARGS; do
-#  if [[ "$ARG" == "-DCMAKE_"* ]]; then
-#    cmake_arg=$(echo $ARG | cut -d= -f1)
-#    cmake_arg=$(echo $cmake_arg| cut -dD -f2-)
-#    cmake_val=$(echo $ARG | cut -d= -f2-)
-#    printf -v $cmake_arg "$cmake_val"
-#    export ${cmake_arg}
-#  fi
-#done
-#unset CMAKE_INSTALL_PREFIX
-#export TH_BINARY_BUILD=1
-
-export INSTALL_TEST=0
-export BUILD_TEST=0
-
-
-if [[ "$CONDA_BUILD_CROSS_COMPILATION" == 1 ]]; then
-    export COMPILER_WORKS_EXITCODE=0
-    export COMPILER_WORKS_EXITCODE__TRYRUN_OUTPUT=""
-fi
-
-
-
+#
+#
+#
 export MAX_JOBS=${CPU_COUNT}
 export MMCV_WITH_OPS=1
 
@@ -80,9 +80,9 @@ if [[ ${cuda_compiler_version} != "None" ]]; then
 else
     export USE_CUDA=0
 fi
-
-export CMAKE_BUILD_TYPE=Release
+#
+#export CMAKE_BUILD_TYPE=Release
 echo "CUDA_PATH=$CUDA_PATH"
 echo "CUDA_HOME=$CUDA_HOME"
 #$PYTHON -m pip install . --no-deps -vvv --no-clean
-$PYTHON -m pip install . --global-option=build_ext -vvv
+$PYTHON -m pip install . -vvv
