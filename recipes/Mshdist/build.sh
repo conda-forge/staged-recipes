@@ -10,4 +10,5 @@ mkdir -p build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_SKIP_BUILD_RPATH=TRUE
 #make VERBOSE=1
-make install
+cmake --build . --verbose --config Release
+cmake --install . --verbose
