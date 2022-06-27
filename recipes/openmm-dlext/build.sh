@@ -20,5 +20,5 @@ fi
 
 # Build and install
 BUILD_PATH=build/openmm-dlext
-cmake -S . -B $BUILD_PATH -Wno-dev
+cmake -S . -B $BUILD_PATH $CMAKE_FLAGS -Wno-dev
 cmake --build $BUILD_PATH --target install
