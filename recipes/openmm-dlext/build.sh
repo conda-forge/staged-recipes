@@ -6,9 +6,6 @@ rm -rf build || true
 
 CMAKE_FLAGS="  -DCMAKE_INSTALL_PREFIX=${PREFIX}"
 CMAKE_FLAGS+=" -DCMAKE_BUILD_TYPE=Release"
-
-CMAKE_FLAGS+=" -DOPENMM_DIR=${PREFIX}"
-
 # if CUDA_HOME is defined and not empty, we enable CUDA
 if [[ -n ${CUDA_HOME-} ]]; then
     CMAKE_FLAGS+=" -DCUDA_TOOLKIT_ROOT_DIR=${CUDA_HOME}"
