@@ -1,12 +1,21 @@
 #!/bin/bash
 
-#set -ex
+set -ex
+
+export PATH="$PWD:$PATH"
+
+
+export CC=$(basename $CC)
+export CXX=$(basename $CXX)
+#export LIBDIR=$PREFIX/lib
+#export INCLUDEDIR=$PREFIX/include
+
 #
 ## clean up an existing cmake build directory
 #rm -rf build
 #
 ## uncomment to debug cmake build
-#export CMAKE_VERBOSE_MAKEFILE=1
+export CMAKE_VERBOSE_MAKEFILE=1
 #
 ##export CFLAGS="$(echo $CFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
 ##export CXXFLAGS="$(echo $CXXFLAGS | sed 's/-fvisibility-inlines-hidden//g')"
@@ -23,12 +32,11 @@
 #
 ## (from pytorch-feedstock) Dynamic libraries need to be lazily loaded so that torch
 ## can be imported on system without a GPU
-## ^ is this the case for mmcv+cuda as well?
-##LDFLAGS="${LDFLAGS//-Wl,-z,now/-Wl,-z,lazy}"
+#LDFLAGS="${LDFLAGS//-Wl,-z,now/-Wl,-z,lazy}"
 #
 ##export CMAKE_GENERATOR=Ninja
-##export CMAKE_LIBRARY_PATH=$PREFIX/lib:$PREFIX/include:$CMAKE_LIBRARY_PATH
-##export CMAKE_PREFIX_PATH=$PREFIX
+#export CMAKE_LIBRARY_PATH=$PREFIX/lib:$PREFIX/include:$CMAKE_LIBRARY_PATH
+#export CMAKE_PREFIX_PATH=$PREFIX
 ##for ARG in $CMAKE_ARGS; do
 ##  if [[ "$ARG" == "-DCMAKE_"* ]]; then
 ##    cmake_arg=$(echo $ARG | cut -d= -f1)
@@ -56,7 +64,11 @@ export MAX_JOBS=${CPU_COUNT}
 export MMCV_WITH_OPS=1
 
 if [[ ${cuda_compiler_version} != "None" ]]; then
-    export USE_CUDA=1
+    export FORCE_CUDA="1"
+    export CUDA_HOME="/usr/local/cuda"
+    export CUDA_PATH=$CUDA_HOME
+    export PATH="$CUDA_HOME/bin:$PATH"
+    export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
     if [[ ${cuda_compiler_version} == 9.0* ]]; then
         export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;7.0+PTX"
     elif [[ ${cuda_compiler_version} == 9.2* ]]; then
@@ -70,19 +82,16 @@ if [[ ${cuda_compiler_version} != "None" ]]; then
     elif [[ ${cuda_compiler_version} == 11.2 ]]; then
         export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
     else
-        echo "unsupported cuda version. edit build_pytorch.sh"
+        echo "unsupported cuda version. edit build_mmcv.sh"
         exit 1
     fi
-    export TORCH_NVCC_FLAGS="-Xfatbin -compress-all"
-    export NCCL_ROOT_DIR=$PREFIX
-    export NCCL_INCLUDE_DIR=$PREFIX/include
-    export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
-else
-    export USE_CUDA=0
 fi
 #
-#export CMAKE_BUILD_TYPE=Release
-echo "CUDA_PATH=$CUDA_PATH"
-echo "CUDA_HOME=$CUDA_HOME"
+export CMAKE_BUILD_TYPE=Release
+#
+#echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+#echo "CMAKE_LIBRARY_PATH=$CMAKE_LIBRARY_PATH"
+
 #$PYTHON -m pip install . --no-deps -vvv --no-clean
-$PYTHON -m pip install . -vvv
+# we skip deps so opencv-python from pip is not pulled in
+$PYTHON -m pip install . -vvv --no-deps
