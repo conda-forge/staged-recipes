@@ -64,6 +64,7 @@ echo "HOME_MFRONT=\"$PREFIX\"" >> setup.cfg
 echo "_install_scotch = False" >> setup.cfg
 echo "HOME_SCOTCH=\"$PREFIX\"" >> setup.cfg
 $PYTHON setup.py install --prefix=$PREFIX --noprompt hdf5 med scotch astk metis tfel mumps homard aster
+tail -n 100 setup.log
 #$PYTHON setup.py install --prefix=$PREFIX --noprompt hdf5 med scotch astk metis mumps
 
 #ln -s $PREFIX/15.2/lib/aster $SP_DIR
