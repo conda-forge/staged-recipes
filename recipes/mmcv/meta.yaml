@@ -36,9 +36,9 @@ outputs:
         - python                                 # [build_platform != target_platform]
         - cross-python_{{ target_platform }}     # [build_platform != target_platform]
 #        - numpy                                  # [build_platform != target_platform]
-#        - sysroot_linux-64  2.17  # [linux64]
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
+        # this adds matching cuda requirement to run deps using __cuda package
         - {{ compiler('cuda') }}    # [cuda_compiler_version != "None"]
         # (from pytorch-feedstock) Should be fixed in other versions
         # https://gitlab.kitware.com/cmake/cmake/-/issues/23368
@@ -73,7 +73,7 @@ outputs:
         # from mmcv/circle config
 #        - ffmpeg >=4.0.0
       run:
-        # GPU requirements without run_exports
+        # intentionally skipping opencv and pytorch
         - addict
         - packaging
         - Pillow
@@ -82,7 +82,7 @@ outputs:
         - {{ pin_compatible('numpy') }}
         - typing_extensions
         # Need ninja to load C++ extensions (?)
-        - ninja
+#        - ninja
         # Conda exposes the maximum CUDA version supported by the installed Nvidia drivers through a virtual pockage
         - __cuda  # [cuda_compiler_version != "None"]
     test:
@@ -97,6 +97,7 @@ outputs:
         - libiconv
         - tifffile
         - python-dateutil
+        # mmcv provides binary wheels bound to specific pytorch version
         - pytorch-gpu 1.11 # [cuda_compiler_version != "None"]
         - pytorch 1.11 # [cuda_compiler_version == "None"]
         - torchvision
@@ -106,9 +107,11 @@ outputs:
       source_files:
         - tests
       commands:
-        # ignoring cuda specific tests and IO tests that use tubrojpeg - conflicts with OpenCV (uses libjpeg)
-        # test_geometric:test_imcrop - fails due to diff in cv2.imread of stored JPEG (turbojpeg vs libjpeg)
-        - python3 -m pytest ./tests/ --ignore=./tests/test_ops --ignore=./tests/test_runner --ignore=./tests/test_image/test_geometric.py --ignore=./tests/test_image/test_io.py  # [not win]
+        # ignored tests:
+        # test_onnx.py,test_tensorrt.py,test_tensorrt_preprocess.py - mccv currently compiled without onnx runtime
+        # test_geometric.py:test_imcrop - depending on what backend opencv uses it produces diff results (lipjpeg vs libturbojpeg)
+        # test_io.py - tries to import libturbojpeg that we don't install (conflicts with opencv that uses libjpeg)
+        - python3 -m pytest ./tests/ --ignore=./tests/test_ops/test_onnx.py --ignore=./tests/test_ops/test_tensorrt.py --ignore=./tests/test_ops/test_tensorrt_preprocess.py --ignore=./tests/test_image/test_geometric.py --ignore=./tests/test_image/test_io.py  # [not win]
         - python3 -c "import mmcv; print(mmcv.__version__)"
 
 

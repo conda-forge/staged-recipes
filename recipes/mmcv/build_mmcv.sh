@@ -34,7 +34,15 @@ export CMAKE_VERBOSE_MAKEFILE=1
 ## can be imported on system without a GPU
 #LDFLAGS="${LDFLAGS//-Wl,-z,now/-Wl,-z,lazy}"
 #
-##export CMAKE_GENERATOR=Ninja
+
+if [[ "$target_platform" == "osx-64" ]]; then
+  export CXXFLAGS="$CXXFLAGS -DTARGET_OS_OSX=1"
+  export CFLAGS="$CFLAGS -DTARGET_OS_OSX=1"
+fi
+
+export CMAKE_GENERATOR=Ninja
+LDFLAGS="${LDFLAGS//-Wl,-z,now/-Wl,-z,lazy}"
+
 #export CMAKE_LIBRARY_PATH=$PREFIX/lib:$PREFIX/include:$CMAKE_LIBRARY_PATH
 #export CMAKE_PREFIX_PATH=$PREFIX
 ##for ARG in $CMAKE_ARGS; do
