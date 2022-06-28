@@ -1,0 +1,63 @@
+{% set name = "nutpie" %}
+{% set version = "0.1.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/aseyboldt/nutpie/archive/v{{ version }}.tar.gz
+  sha256: bd69275a31c9c3510f9814b3988744790a2181e0820734e7b3643600012b355d
+
+build:
+  number: 0
+  skip: True  # [py<38]
+  script:
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - maturin build --bindings pyo3 --no-sdist --release --interpreter {{ PYTHON }} --out wheels
+    - {{ PYTHON }} -m pip install -vv --no-build-isolation --no-deps --no-index --find-links ./wheels nutpie
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - python
+    - setuptools
+    - pip
+    - maturin
+  run:
+    - python
+    - pymc-base
+    - arviz
+    - aesara
+    - aeppl
+    - numba
+    - fastprogress
+
+test:
+  imports:
+    - nutpie
+  requires:
+    - pytest
+  commands:
+    - pytest tests
+  source_files:
+    - tests
+
+about:
+  home: https://github.com/aseyboldt/nutpie
+  summary: 'A fast and simple sampler for bayesian posterior distributions'
+  description: |
+    nutpie implements NUTS, an advanced gradient based sampler
+    for posterior distributions, with an easy to use interface.
+  license: MIT
+  license_family: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  recipe-maintainers:
+    - aseyboldt
