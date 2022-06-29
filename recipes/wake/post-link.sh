@@ -4,7 +4,7 @@ if [[ -n "$PREFIX" ]]; then
     # if PREFIX is set then we're running as part of conda and we shouldn't
     # output anything except to $PREFIX/.messages.txt.  see bottom of:
     # https://docs.conda.io/projects/conda-build/en/latest/resources/link-scripts.html
-    exec >$PREFIX/.messages.txt 2&>1
+    exec >$PREFIX/.messages.txt 2>&1 
 fi
 
 header="You have successfully installed $PKG_NAME v$PKG_VERSION-$PKG_BUILDNUM."
@@ -21,11 +21,11 @@ die() {
     exit 0
 }
 
-type lsmod || die "However, I'm unable to check for FUSE without 'lsmod'\n" \
-                  "Make sure you have installed FUSE"
+type lsmod >/dev/null || die "However, I'm unable to check for FUSE without 'lsmod'\n" \
+                             "Make sure you have installed FUSE"
 
-lsmod | grep '^fuse' || die "However, it looks like you need to 'sudo modprobe fuse'\n" \
-			    "Make sure you have installed FUSE and it is running"
+lsmod | grep '^fuse' >/dev/null || die "However, it looks like you need to 'sudo modprobe fuse'\n" \
+			               "Make sure you have installed FUSE and it is running"
 
 nspath=/proc/sys/user/max_user_namespaces
 if [[ -f "$nspath" ]]; then
