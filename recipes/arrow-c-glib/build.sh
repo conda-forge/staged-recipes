@@ -3,10 +3,6 @@
 set -e
 set -x
 
-if [[ ${OSTYPE} == 'darwin'* ]]; then
-  export XML_CATALOG_FILES="${PREFIX}/etc/xml/catalog"
-fi
-
 meson setup \
   --prefix ${PREFIX} \
   --libdir ${PREFIX}/lib \
