@@ -1,0 +1,241 @@
+{% set name = "tiled" %}
+{% set version = "0.1.0a65" %}
+
+package:
+  name: tiled-suite
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/tiled-{{ version }}.tar.gz
+  sha256: e745146bd52d1167020064acae3398484878f2e6cbb63dcfd0aff927d1821fcb
+
+build:
+  number: 0
+
+outputs:
+  # Categorized requirements
+  - name: tiled-base
+    script: build-tiled.sh  # [unix]
+    script: bld-tiled.bat  # [win]
+    build:
+      # TODO: Make noarch when tiled-server is noarch
+      entry_points:
+        - tiled = tiled.commandline.main:main
+    requirements:
+      host:
+        - python
+        - pip
+      run:
+        - python
+
+  - name: tiled-array
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - dask
+        - numpy
+        - {{ pin_subpackage('tiled-base', max_pin='x.x.x') }}
+
+  - name: tiled-dataframe
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - pandas
+        - pyarrow
+        - {{ pin_subpackage('tiled-array', exact=True) }}
+
+  - name: tiled-xarray
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - xarray
+        - {{ pin_subpackage('tiled-dataframe', exact=True) }}
+
+
+  - name: tiled-compression
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - blosc
+        - lz4
+        - {{ pin_subpackage('tiled-base', max_pin='x.x.x') }}
+
+  - name: tiled-minimal-base
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - click !=8.1.0
+        - jsonschema
+        - msgpack-python >=1.0.0
+        - pyyaml
+        - typer
+        - {{ pin_subpackage('tiled-base', max_pin='x.x.x') }}
+
+  # End-user packages
+  - name: tiled-client
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - appdirs
+        - entrypoints
+        - heapdict
+        - httpx >=0.20.0
+        - {{ pin_subpackage('tiled-minimal-base', exact=True) }}
+        - {{ pin_subpackage('tiled-xarray', exact=True) }}
+        - {{ pin_subpackage('tiled-compression', exact=True) }}
+    test:
+      imports:
+        - tiled
+        - tiled.client
+        - tiled.client._async_bridge
+        - tiled.client.array
+        - tiled.client.base
+        - tiled.client.cache
+        - tiled.client.constructors
+        - tiled.client.context
+        - tiled.client.dataframe
+        - tiled.client.node
+        - tiled.client.utils
+        - tiled.client.xarray
+      commands:
+        - tiled --help
+
+  - name: tiled-server
+    requirements:
+      host:
+        - python
+      run:
+        - python
+        - aiofiles
+        - alembic
+        - anyio
+        - cachey
+        # TODO: Can be noarch when Python 3.7 is EOL in June 2023
+        - cached-property  # [py<38]
+        - cachetools
+        - dask
+        - fastapi
+        - jinja2
+        - jmespath
+        - orjson
+        - psutil
+        - prometheus_client
+        - pydantic >=1.8.2
+        - python-dateutil
+        - python-jose
+        - python-multipart
+        - sqlalchemy
+        - toolz
+        - uvicorn
+        - watchgod
+        - {{ pin_subpackage('tiled-minimal-base', exact=True) }}
+        - {{ pin_subpackage('tiled-xarray', exact=True) }}
+        - {{ pin_subpackage('tiled-compression', exact=True) }}
+    test:
+      imports:
+        - tiled
+        - tiled.server
+        - tiled.server.app
+        - tiled.server.authentication
+        - tiled.server.compression
+        - tiled.server.core
+        - tiled.server.dependencies
+        - tiled.server.etag
+        - tiled.server.object_cache
+        - tiled.server.router
+        - tiled.server.schemas
+        - tiled.server.settings
+        - tiled.server.utils
+      commands:
+        - tiled --help
+
+  - name: tiled-formats
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - h5py
+        - h5netcdf
+        - openpyxl
+        - pillow
+        - tifffile
+        - {{ pin_subpackage('tiled-base', max_pin='x.x.x') }}
+    test:
+      imports:
+        - tiled
+
+  # All:
+  - name: tiled
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage('tiled-client', exact=True) }}
+        # tiled-server is the only noarch output, so we cannot do exact pinning
+        # because there are multiple variants.
+        - {{ pin_subpackage('tiled-server', max_pin='x.x.x') }}
+        - {{ pin_subpackage('tiled-formats', exact=True) }}
+    test:
+      imports:
+        - tiled
+        - tiled._version
+        - tiled.adapters
+        - tiled.adapters.array
+        - tiled.adapters.dataframe
+        - tiled.adapters.excel
+        - tiled.adapters.files
+        - tiled.adapters.hdf5
+        - tiled.adapters.mapping
+        - tiled.adapters.tiff
+        - tiled.adapters.utils
+        - tiled.adapters.xarray
+        - tiled.authenticators
+        - tiled.client
+        - tiled.commandline
+        - tiled.commandline.main
+        - tiled.config
+        - tiled.database
+        - tiled.database.alembic_utils
+        - tiled.database.base
+        - tiled.database.core
+        - tiled.database.orm
+        - tiled.media_type_registration
+        - tiled.profiles
+        - tiled.queries
+        - tiled.query_registration
+        - tiled.scopes
+        - tiled.server
+        - tiled.structures
+        - tiled.structures.array
+        - tiled.structures.dataframe
+        - tiled.structures.image_serializer_helpers
+        - tiled.structures.node
+        - tiled.structures.xarray
+        - tiled.utils
+      commands:
+        - pip check
+        - tiled --help
+        - pytest --pyargs tiled._tests  # [not win]
+      requires:
+        - pip
+        - pytest  # [not win]
+        # broken build of httpcore package fails pipcheck
+        - httpcore !=0.13.3
+
+about:
+  home: https://github.com/bluesky/tiled
+  summary: Tile-based access to SciPy/PyData data structures over the web in many formats
+  license: BSD-3-Clause
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - danielballan
+    - gbischof
+    - mrakitin
