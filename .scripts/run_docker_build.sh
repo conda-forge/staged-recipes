@@ -46,15 +46,12 @@ fi
 
 docker pull "${DOCKER_IMAGE}"
 docker run ${DOCKER_RUN_ARGS} \
-           --mount type=bind,source="${REPO_ROOT}",target=/home/conda/staged-recipes \
+           -v "${REPO_ROOT}:/home/conda/staged-recipes" \
            -e HOST_USER_ID=${HOST_USER_ID} \
            -e AZURE=${AZURE} \
            -e CONFIG \
            -e CI \
            -e DEFAULT_LINUX_VERSION \
-	   --device /dev/fuse \
-	   --cap-add SYS_ADMIN \
-	   --security-opt apparmor:unconfined \
            "${DOCKER_IMAGE}" \
            bash \
            "/home/conda/staged-recipes/${PROVIDER_DIR}/build_steps.sh"
