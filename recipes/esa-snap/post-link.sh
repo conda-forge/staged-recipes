@@ -1,12 +1,5 @@
 #!/bin/bash
-SNAP_PKG='esa-snap_sentinel_unix_*.sh'
 
-chmod 755 $PREFIX/snap-src/$SNAP_PKG
-
-$PREFIX/snap-src/$SNAP_PKG -q -dir $PREFIX/snap &>> $PREFIX/.messages.txt
-ln -fs $PREFIX/snap/bin/snap ${PREFIX}/bin/snap
-
-rm -fr $PREFIX/snap-src/$SNAP_PKG
 
 SNAP_HOME="$PREFIX/snap/.snap"
 SNAP_PATH="$PREFIX/snap/"
