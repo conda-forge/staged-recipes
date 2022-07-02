@@ -18,8 +18,6 @@ cmake --build $SRC_DIR/build-release --parallel ${CPU_COUNT}
 
 cmake --install $SRC_DIR/build-release
 
-rm -f $PREFIX/lib/libxrt*.a $PREFIX/lib/libxilinx*.a
-
 # XILINX_XRT
 mkdir -p $PREFIX/etc/conda/activate.d
 mkdir -p $PREFIX/etc/conda/deactivate.d
