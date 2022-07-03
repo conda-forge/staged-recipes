@@ -12,11 +12,12 @@ cmake \
   -S $SRC_DIR/src  \
   -B $SRC_DIR/build-release  \
   -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_SKIP_INSTALL_RPATH=ON
+  -DCMAKE_SKIP_INSTALL_RPATH=ON \
+  -DXRT_STATIC_COMPONENT=xrt-static
 
 cmake --build $SRC_DIR/build-release --parallel ${CPU_COUNT}
 
-cmake --install $SRC_DIR/build-release
+cmake --install $SRC_DIR/build-release --component xrt
 
 # XILINX_XRT
 mkdir -p $PREFIX/etc/conda/activate.d
