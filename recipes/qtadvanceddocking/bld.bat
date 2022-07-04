@@ -1,6 +1,3 @@
-set CMAKE_CONFIG="Release"
-
-cd %SRC_DIR%
 mkdir build
 cd build
 
