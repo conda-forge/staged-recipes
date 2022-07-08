@@ -14,9 +14,6 @@ source:
 build:
   number: 0
   skip: true  # [win and vc<14]
-  run_exports:
-    # cppast uses semantic versioning
-    - {{ pin_subpackage("cppast") }}
 
 requirements:
   build:
@@ -34,15 +31,44 @@ requirements:
     - {{ pin_compatible('libclang') }}
     - {{ pin_compatible('clangxx') }}
 
-test:
-  files:
-    - sample.h
-  commands:
-    - cppast sample.h
-    - if not exist %LIBRARY_LIB%\cppast.lib exit 1  # [win]
-    - if not exist %LIBRARY_BIN%\cppast.dll exit 1  # [win]
-    - test -f $PREFIX/lib/libcppast.so              # [linux]
-    - test -f $PREFIX/lib/libcppast.dylib           # [osx]
+outputs:
+  - name: libcppast
+    script: install_libcppast.sh  # [unix]
+    script: install_libcppast.bat  # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage("libcppast", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+      host:
+        # Repeat all the host dependencies so we inherit the run-exports from
+        # the packages used during the build.
+        - boost-cpp
+        - clangdev
+        - type_safe
+        - tiny-process-library
+        - cxxopts
+      run:
+        - {{ pin_compatible('libclang') }}
+        - {{ pin_compatible('clangxx') }}
+    test:
+      commands:
+        - if not exist %LIBRARY_LIB%\cppast.lib exit 1  # [win]
+        - if not exist %LIBRARY_BIN%\cppast.dll exit 1  # [win]
+        - test -f $PREFIX/lib/libcppast.so              # [linux]
+        - test -f $PREFIX/lib/libcppast.dylib           # [osx]
+  - name: cppast
+    script: install_cppast.sh  # [unix]
+    script: install_cppast.bat  # [win]
+    requirements:
+      run:
+        - {{ pin_subpackage('libcppast', exact=True) }}
+    test:
+      files:
+        - sample.h
+      commands:
+        - cppast sample.h
 
 about:
   home: https://github.com/foonathan/cppast
