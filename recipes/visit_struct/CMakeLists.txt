@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(visit_struct)
+project(visit_struct LANGUAGES CXX)
 
 add_library(visit_struct INTERFACE)
 add_library(visit_struct::visit_struct ALIAS visit_struct)
