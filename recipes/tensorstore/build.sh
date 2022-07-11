@@ -21,7 +21,7 @@ system_libs+=,net_zlib
 system_libs+=,net_zstd
 
 export TENSORSTORE_SYSTEM_LIBS="$system_libs"
-export TENSORSTORE_BAZEL_BUILD_OPTIONS="--action_env=CB_BUILD_PREFIX=$BUILD_PREFIX --action_env=CB_PREFIX=$PREFIX"
+export TENSORSTORE_BAZEL_BUILD_OPTIONS="--define=CB_BUILD_PREFIX=$BUILD_PREFIX"
 
 # from https://github.com/google/tensorstore/issues/15
 export CPLUS_INCLUDE_PATH="${PREFIX}/include"
