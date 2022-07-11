@@ -27,7 +27,7 @@ export CPLUS_INCLUDE_PATH="${PREFIX}/include"
 export BAZEL_LINKOPTS="-Wl,-rpath=${PREFIX}/lib:-L${PREFIX}/lib"
 
 # replace bundled baselisk with a simpler forwarder to our own bazel in build prefix
-export BAZEL_EXE="${BUILD_PREFIX}/bin/bazel-real"
+export BAZEL_EXE="${BUILD_PREFIX}/bin/bazel"
 export TENSORSTORE_BAZELISK="${RECIPE_DIR}/bazelisk_shim.py"
 
 ${PYTHON} -m pip install . -vv
