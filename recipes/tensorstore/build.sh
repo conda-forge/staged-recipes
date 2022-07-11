@@ -21,7 +21,7 @@ system_libs+=,net_zlib
 system_libs+=,net_zstd
 
 export TENSORSTORE_SYSTEM_LIBS="$system_libs"
-export TENSORSTORE_BAZEL_STARTUP_OPTIONS="--action_env=PATH"
+export TENSORSTORE_BAZEL_BUILD_OPTIONS="--action_env=PATH"
 
 # from https://github.com/google/tensorstore/issues/15
 export CPLUS_INCLUDE_PATH="${PREFIX}/include"
