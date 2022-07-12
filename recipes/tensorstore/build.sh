@@ -32,12 +32,6 @@ build_options+=" --toolchain_resolution_debug"
 build_options+=" --local_cpu_resources=${CPU_COUNT}"
 export TENSORSTORE_BAZEL_BUILD_OPTIONS="$build_options"
 
-# if [[ $target_platform == "linux-*" ]]; then
-#     # from https://github.com/google/tensorstore/issues/15
-#     export CPLUS_INCLUDE_PATH="${PREFIX}/include"
-#     export BAZEL_LINKOPTS="-Wl,-rpath=${PREFIX}/lib:-L${PREFIX}/lib"
-# fi
-
 # replace bundled baselisk with a simpler forwarder to our own bazel in build prefix
 export BAZEL_EXE="${BUILD_PREFIX}/bin/bazel"
 export TENSORSTORE_BAZELISK="${RECIPE_DIR}/bazelisk_shim.py"
