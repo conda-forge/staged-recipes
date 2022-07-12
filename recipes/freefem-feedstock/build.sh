@@ -5,23 +5,22 @@ echo "**************** F R E E F E M  B U I L D  S T A R T S  H E R E **********
 
 autoreconf -i
 
-export FFLAGS=-Wno-argument-mismatch
+# Required to make linker look in correct prefix
+export LIBRARY_PATH="${PREFIX}/lib"
+export LD_LIBRARY_PATH="${PREFIX}/lib"
+
+./configure --help
 
 ./configure \
-    --with-hdf5=$PREFIX \
-    --enable-optim \
     --prefix=$PREFIX \
-    --enable-debug \
-    --with-mpi=no \
-    --with-nlopt=$PREFIX \
-    --with-hdf5=$PREFIX \
-    # --disable-scalapack \
-    # --enable-download \
+    --disable-download \
+    --enable-summary \
+    --disable-static \
 
 make -j $CPU_COUNT
 
-make install
+make -j $CPU_COUNT check
 
-#make check #-j$CPU_COUNT
+make install
 
 echo "**************** F R E E F E M  B U I L D  E N D S  H E R E ****************"
