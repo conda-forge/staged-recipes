@@ -2,6 +2,9 @@
 
 set -euxo pipefail
 
+export CC=$(basename $CC)
+export CXX=$(basename $CXX)
+
 source gen-bazel-toolchain
 
 system_libs=com_google_boringssl
