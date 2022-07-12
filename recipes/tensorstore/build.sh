@@ -5,7 +5,7 @@ set -euxo pipefail
 source gen-bazel-toolchain
 
 system_libs=com_google_boringssl
-system_libs=+,com_google_brotli
+system_libs+=,com_google_brotli
 system_libs+=,org_sourceware_bzip2
 system_libs+=,com_github_cares_cares
 system_libs+=,org_blosc_cblosc
