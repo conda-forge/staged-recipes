@@ -21,9 +21,9 @@ system_libs+=,net_zstd
 export TENSORSTORE_SYSTEM_LIBS="$system_libs"
 export TENSORSTORE_BAZEL_BUILD_OPTIONS="--define=CB_PREFIX=$PREFIX"
 
-# # from https://github.com/google/tensorstore/issues/15
-# export CPLUS_INCLUDE_PATH="${PREFIX}/include"
-# export BAZEL_LINKOPTS="-Wl,-rpath=${PREFIX}/lib:-L${PREFIX}/lib"
+# from https://github.com/google/tensorstore/issues/15
+export CPLUS_INCLUDE_PATH="${PREFIX}/include"
+export BAZEL_LINKOPTS="-Wl,-rpath=${PREFIX}/lib:-L${PREFIX}/lib"
 
 # replace bundled baselisk with a simpler forwarder to our own bazel in build prefix
 export BAZEL_EXE="${BUILD_PREFIX}/bin/bazel"
