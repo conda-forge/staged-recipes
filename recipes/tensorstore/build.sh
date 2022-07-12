@@ -2,6 +2,8 @@
 
 set -euxo pipefail
 
+source gen-bazel-toolchain
+
 system_libs=com_google_boringssl
 system_libs+=,com_google_brotli
 system_libs+=,org_sourceware_bzip2
@@ -17,19 +19,25 @@ system_libs+=,com_google_snappy
 system_libs+=,org_tukaani_xz
 system_libs+=,net_zlib
 system_libs+=,net_zstd
-
 export TENSORSTORE_SYSTEM_LIBS="$system_libs"
-export TENSORSTORE_BAZEL_BUILD_OPTIONS="--define=CB_PREFIX=$PREFIX"
 
-# from https://github.com/google/tensorstore/issues/15
-export CPLUS_INCLUDE_PATH="${PREFIX}/include"
-export BAZEL_LINKOPTS="-Wl,-rpath=${PREFIX}/lib:-L${PREFIX}/lib"
+build_options="--define=CB_PREFIX=$PREFIX"
+build_options+=" --crosstool_top=//bazel_toolchain:toolchain"
+build_options+=" --logging=6"
+build_options+=" --verbose_failures"
+build_options+=" --toolchain_resolution_debug"
+build_options+=" --local_cpu_resources=${CPU_COUNT}"
+export TENSORSTORE_BAZEL_BUILD_OPTIONS="$build_options"
+
+# if [[ $target_platform == "linux-*" ]]; then
+#     # from https://github.com/google/tensorstore/issues/15
+#     export CPLUS_INCLUDE_PATH="${PREFIX}/include"
+#     export BAZEL_LINKOPTS="-Wl,-rpath=${PREFIX}/lib:-L${PREFIX}/lib"
+# fi
 
 # replace bundled baselisk with a simpler forwarder to our own bazel in build prefix
 export BAZEL_EXE="${BUILD_PREFIX}/bin/bazel"
 export TENSORSTORE_BAZELISK="${RECIPE_DIR}/bazelisk_shim.py"
-
-source gen-bazel-toolchain
 
 ${PYTHON} -m pip install . -vv
 
