@@ -32,3 +32,7 @@ export BAZEL_EXE="${BUILD_PREFIX}/bin/bazel"
 export TENSORSTORE_BAZELISK="${RECIPE_DIR}/bazelisk_shim.py"
 
 ${PYTHON} -m pip install . -vv
+
+# Clean up a bit to speed-up prefix post-processing
+bazel clean || true
+bazel shutdown || true
