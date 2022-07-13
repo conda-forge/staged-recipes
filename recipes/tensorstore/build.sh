@@ -2,10 +2,11 @@
 
 set -euxo pipefail
 
-export CC=$(basename $CC)
-export CXX=$(basename $CXX)
-
-source gen-bazel-toolchain
+if $[[ $target_platform == "osx-*" ]]; then
+    CLANG="$CC_FOR_BUILD" source gen-bazel-toolchain
+else
+    source gen-bazel-toolchain
+fi
 
 system_libs=com_google_boringssl
 system_libs+=,com_google_brotli
