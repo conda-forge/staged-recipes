@@ -2,7 +2,7 @@
 
 set -euxo pipefail
 
-if $[[ $target_platform == "osx-*" ]]; then
+if [[ $target_platform == "osx-*" ]]; then
     CLANG="$CC_FOR_BUILD" source gen-bazel-toolchain
 else
     source gen-bazel-toolchain
