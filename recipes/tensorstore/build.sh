@@ -4,6 +4,10 @@ set -euxo pipefail
 
 if [[ $target_platform =~ osx.* ]]; then
     CLANG="$CC_FOR_BUILD" source gen-bazel-toolchain
+    # SDK's curl gets in the way
+    if [[ -d "$CONDA_BUILD_SYSROOT/usr/include/curl" ]]; then
+        mv "$CONDA_BUILD_SYSROOT/usr/include/curl" "$CONDA_BUILD_SYSROOT/usr/include/curl.do-not-use"
+    fi
 else
     source gen-bazel-toolchain
 fi
