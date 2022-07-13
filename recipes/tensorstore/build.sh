@@ -35,6 +35,7 @@ build_options+=" --logging=6"
 build_options+=" --verbose_failures"
 build_options+=" --toolchain_resolution_debug"
 build_options+=" --local_cpu_resources=${CPU_COUNT}"
+build_options+=" --subcommands"  # comment out for debugging
 export TENSORSTORE_BAZEL_BUILD_OPTIONS="$build_options"
 
 # replace bundled baselisk with a simpler forwarder to our own bazel in build prefix
