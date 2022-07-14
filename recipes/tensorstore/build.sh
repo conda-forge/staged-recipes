@@ -30,6 +30,7 @@ system_libs+=,net_zstd
 export TENSORSTORE_SYSTEM_LIBS="$system_libs"
 
 build_options="--define=CB_PREFIX=$PREFIX"
+build_options+=" --define=PY_VER=$PY_VER"
 build_options+=" --crosstool_top=//bazel_toolchain:toolchain"
 build_options+=" --logging=6"
 build_options+=" --verbose_failures"
