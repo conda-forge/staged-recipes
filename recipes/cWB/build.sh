@@ -6,9 +6,8 @@ mkdir -pv build
 pushd build
 
 cmake \
+  ${CMAKE_ARGS} \
   -DCMAKE_BUILD_TYPE:STRING=Release \
-  -DCMAKE_INSTALL_LIBDIR:PATH="lib" \
-  -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
   ${SRC_DIR}
 
 # build
