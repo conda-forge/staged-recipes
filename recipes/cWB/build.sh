@@ -19,7 +19,7 @@ cmake --build . --parallel ${CPU_COUNT} --verbose --target install
 # install activate/deactivate scripts
 for action in activate deactivate; do
 	mkdir -p ${PREFIX}/etc/conda/${action}.d
-        _target="${PREFIX}/etc/conda/${action}.d/activate-${PKG_NAME}.sh"
+        _target="${PREFIX}/etc/conda/${action}.d/${action}-${PKG_NAME}.sh"
 	echo "-- Installing: ${_target}"
 	cp "${PREFIX}/etc/cwb/cwb-${action}.sh" "${_target}"
 done
