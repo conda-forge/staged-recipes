@@ -28,6 +28,8 @@ system_libs+=",org_tukaani_xz"
 system_libs+=",net_zlib"
 system_libs+=",net_zstd"
 system_libs+=",com_github_pybind_pybind11"
+system_libs+=",com_github_nlohmann_json"
+# system_libs+=",com_google_absl"
 export TENSORSTORE_SYSTEM_LIBS="$system_libs"
 
 build_options="--define=CB_PREFIX=$PREFIX"
