@@ -12,25 +12,25 @@ else
     source gen-bazel-toolchain
 fi
 
-system_libs=com_google_boringssl
-system_libs+=,com_google_brotli
-system_libs+=,org_sourceware_bzip2
-system_libs+=,com_github_cares_cares
-system_libs+=,org_blosc_cblosc
-system_libs+=,se_curl
-system_libs+=,jpeg
-system_libs+=,png
-system_libs+=,org_lz4
-system_libs+=,nasm
-system_libs+=,org_nghttp2
-system_libs+=,com_google_snappy
-system_libs+=,org_tukaani_xz
-system_libs+=,net_zlib
-system_libs+=,net_zstd
+system_libs="com_google_boringssl"
+system_libs+=",com_google_brotli"
+system_libs+=",org_sourceware_bzip2"
+system_libs+=",com_github_cares_cares"
+system_libs+=",org_blosc_cblosc"
+system_libs+=",se_curl"
+system_libs+=",jpeg"
+system_libs+=",png"
+system_libs+=",org_lz4"
+system_libs+=",nasm"
+system_libs+=",org_nghttp2"
+system_libs+=",com_google_snappy"
+system_libs+=",org_tukaani_xz"
+system_libs+=",net_zlib"
+system_libs+=",net_zstd"
+system_libs+=",com_github_pybind_pybind11"
 export TENSORSTORE_SYSTEM_LIBS="$system_libs"
 
 build_options="--define=CB_PREFIX=$PREFIX"
-build_options+=" --define=PY_VER=$PY_VER"
 build_options+=" --crosstool_top=//bazel_toolchain:toolchain"
 build_options+=" --logging=6"
 build_options+=" --verbose_failures"
