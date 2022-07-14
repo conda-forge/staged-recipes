@@ -11,7 +11,7 @@ cmake \
   ${SRC_DIR}
 
 # build
-cmake --build . --parallel ${CPU_COUNT} --verbose > build.log
+cmake --build . --parallel ${CPU_COUNT} --verbose
 
 # install
 cmake --build . --parallel ${CPU_COUNT} --verbose --target install
