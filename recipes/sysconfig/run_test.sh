@@ -1,1 +1,1 @@
-./tisysconfig.sh --help
+tisysconfig.sh --help
