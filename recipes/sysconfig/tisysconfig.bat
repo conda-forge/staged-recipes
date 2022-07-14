@@ -11,4 +11,4 @@ if "%1" == "-g" (
 	set NODEFLAGS=--inspect --debug-brk
 )
 
-nodejs %NODEFLAGS% %tisysconfig_dir%\cli.js %*
+node %NODEFLAGS% %tisysconfig_dir%\cli.js %*

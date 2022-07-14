@@ -12,4 +12,4 @@ if [ "$1" = "-g" ]; then
     nodeFlags="$nodeFlags --inspect --debug-brk"
 fi
 
-nodejs $nodeFlags "$tisysconfig_dir/cli.js" "$@"
+node $nodeFlags "$tisysconfig_dir/cli.js" "$@"
