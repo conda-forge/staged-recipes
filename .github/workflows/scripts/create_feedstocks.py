@@ -31,7 +31,7 @@ from ruamel.yaml import YAML
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
 DEBUG = False
 
-REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch", "systems"]
+REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch", "systems", "ctx"]
 
 recipe_directory_name = 'recipes'
 
@@ -225,6 +225,9 @@ if __name__ == '__main__':
         for recipe_dir, name in list_recipes():
             if name.lower() in REPO_SKIP_LIST:
                 continue
+            if name.lower() == "ctx":
+                sys.exit(1)
+
             feedstock_dir = os.path.join(feedstocks_dir, name + '-feedstock')
             print('Making feedstock for {}'.format(name))
             try:
