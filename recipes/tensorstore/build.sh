@@ -25,6 +25,7 @@ system_libs+=",org_tukaani_xz"
 system_libs+=",net_zlib"
 system_libs+=",com_github_pybind_pybind11"
 system_libs+=",com_github_nlohmann_json"
+system_libs+=",org_aomedia_avif"
 # system_libs+=",com_google_absl"
 export TENSORSTORE_SYSTEM_LIBS="$system_libs"
 
@@ -46,13 +47,9 @@ ${PYTHON} -m pip install . -vv
 # Save vendored licenses
 mkdir -p licenses
 cp bazel-work/external/com_google_absl/LICENSE "${SRC_DIR}/licenses/com_google_absl.txt"
-cp bazel-work/external/com_google_libyuv/LICENSE "${SRC_DIR}/licenses/com_google_libyuv.txt"
 cp bazel-work/external/com_google_re2/LICENSE "${SRC_DIR}/licenses/com_google_re2.txt"
 cp bazel-work/external/com_google_riegeli/LICENSE "${SRC_DIR}/licenses/com_google_riegeli.txt"
 cp bazel-work/external/net_sourceforge_half/LICENSE.txt "${SRC_DIR}/licenses/net_sourceforge_half.txt"
-cp bazel-work/external/org_aomedia_aom/LICENSE "${SRC_DIR}/licenses/org_aomedia_aom.txt"
-cp bazel-work/external/org_aomedia_avif/LICENSE "${SRC_DIR}/licenses/org_aomedia_avif.txt"
-cp bazel-work/external/org_videolan_dav1d/COPYING "${SRC_DIR}/licenses/org_videolan_dav1d.txt"
 
 # Clean up a bit to speed-up prefix post-processing
 bazel clean || true
