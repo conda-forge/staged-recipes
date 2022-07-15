@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Install futile
-cd ../../futile
+cd futile
 autoreconf --install
 mkdir build
 cd build
@@ -10,7 +10,7 @@ make
 make install
 
 # Install spred
-cd spred
+cd ../../spred
 autoreconf --install
 mkdir build
 cd build
