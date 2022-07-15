@@ -1,2 +1,2 @@
-source $SRC_DIR/build/install/bin/bigdftvars.sh
+source $PREFIX/bin/bigdftvars.sh
 
