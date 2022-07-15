@@ -36,7 +36,7 @@ fi
 jpy_filename=$(basename $jpy_file)
 
 
-cp jpy_file ${SNAP_HOME}/../snap-src/
+cp ${jpy_file} ${SNAP_HOME}/../snap-src/
 
 
 echo "list files in ls -l ${SNAP_HOME}/../snap-src/jpy" &>> $PREFIX/.messages.txt
