@@ -27,6 +27,15 @@ cd build
 make
 make install
 
+# Install chess
+cd ../../chess
+autoreconf --install
+mkdir build
+cd build
+../configure
+make
+make install
+
 # Install pseudo
 cd ../../pseudo
 autoreconf --install
