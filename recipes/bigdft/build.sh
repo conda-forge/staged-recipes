@@ -53,3 +53,12 @@ cd build
 ../configure
 make
 make install
+
+# Install bigdft
+cd ../../bigdft
+autoreconf --install
+mkdir build
+cd build
+../configure
+make
+make install
