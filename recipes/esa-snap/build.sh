@@ -3,6 +3,14 @@
 target=$PREFIX/opt/snap
 mkdir -p $target/.snap
 mkdir -p $PREFIX/opt/snap-src
+SNAP_HOME="$PREFIX/opt/snap"
+SNAP_USER="${SNAP_HOME}/.snap"
+
+# create dir for needed folders
+mkdir -p $SNAP_HOME
+mkdir -p $SNAP_USER/snap-python/snappy
+mkdir -p ${SNAP_HOME}/../snap-src
+mkdir -p $PREFIX/bin
 
 cp -r $SRC_DIR/* $PREFIX/opt/snap-src
 
