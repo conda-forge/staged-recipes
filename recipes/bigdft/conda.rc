@@ -1,0 +1,45 @@
+#This is the configuration file for the BigDFT installer
+#This is a python script which is executed by the build suite 
+
+#Add the condition testing to run tests and includes PyYaml
+conditions.add("testing")
+#List the module the this rcfile will build
+modules = ['spred',]
+
+def env_configuration():
+    '''
+    Species the configure line for various autotools packages.
+    '''
+    from sys import platform
+    from os import environ
+    env = {}
+    env["FC"] = "mpifort"
+    env["CC"] = environ["CC_FOR_BUILD"]
+    env["CXX"] = environ["CXX_FOR_BUILD"]
+    env["CFLAGS"] = "-O2 -DCONDA " + environ["CFLAGS"]
+    env["CPPFLAGS"] = environ["CPPFLAGS"]
+    env["FCFLAGS"] = "-O2 -fopenmp -fallow-argument-mismatch " + environ["FORTRANFLAGS"]
+    env["--with-ext-linalg"] = "-llapack -lblas"
+    return " ".join(['"' + x + '=' + y + '"' for x, y in env.items()])
+
+def cmake_configuration():
+    """
+    Configure cmake apps
+    """
+    from os import getcwd, path, environ
+    from sys import platform
+
+    cmake_flags = {}
+    cmake_flags["CMAKE_Fortran_FLAGS_RELEASE"] = "-O2 -fopenmp " + environ["FORTRANFLAGS"]
+    cmake_flags["CMAKE_Fortran_FLAGS_RELEASE"] += " -fallow-argument-mismatch"
+    cmake_flags["CMAKE_Fortran_COMPILER"] = "mpifort"
+    cmake_flags["CMAKE_PREFIX_PATH"] = path.join(getcwd(), "install")
+    cmake_flags["CMAKE_INSTALL_PREFIX"] = cmake_flags["CMAKE_PREFIX_PATH"]
+
+    total = " ${CMAKE_ARGS}"
+    total += " ".join(['-D' + x + '="' + y + '"' for x, y in cmake_flags.items()])
+    return total
+
+#here follow the configuration instructions for the modules built
+autogenargs = env_configuration()
+cmakeargs = cmake_configuration()

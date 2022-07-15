@@ -1,0 +1,49 @@
+{% set name = "BigDFT" %}
+{% set version = "1.9.3" %}
+{% set build = 1 %}
+{% set mpi = mpi or "mpich" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  git_url: https://gitlab.com/l_sim/bigdft-suite.git
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('fortran') }}
+    - cmake
+    - llvm-openmp  # [osx]
+    - libgomp  # [linux]
+    - autoconf
+    - automake
+    - numpy
+    - {{ mpi }}  # [mpi == "openmpi" and build_platform != target_platform]
+  host:
+    - {{ mpi }}
+    - libblas
+    - liblapack
+  run:
+    - {{ mpi }}
+
+build:
+  number: {{ build }}
+  script:
+    - cp $RECIPE_DIR/conda.rc .
+    - cp $RECIPE_DIR/patch.txt .
+    - patch futile/flib/utils.c patch.txt 
+    - mkdir build
+    - cd build
+    - python ../Installer.py -y autogen
+    - python ../Installer.py -y build -f ../conda.rc
+
+about:
+  home: https://bigdft.org
+  license_family: GPL3
+
+extra:
+  recipe-maintainers:
+    - william-dawson
