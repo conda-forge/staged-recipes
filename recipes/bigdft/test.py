@@ -15,3 +15,5 @@ inp.set_xc("PBE")
 inp.set_hgrid(0.4)
 
 log = code.run(sys=sys, input=inp)
+print(log.energy)
+

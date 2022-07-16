@@ -1,6 +1,12 @@
+# Files
 cp $RECIPE_DIR/conda.rc .
-cp $RECIPE_DIR/patch.txt .
-patch futile/flib/utils.c patch.txt 
+cp $RECIPE_DIR/patch*.txt .
+
+# Patches
+patch futile/flib/utils.c patch_utils.txt 
+patch bigdft/src/output.f90  patch_output.txt 
+
+# Build
 mkdir build
 cd build
 python ../Installer.py -y autogen
