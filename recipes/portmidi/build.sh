@@ -10,4 +10,4 @@ cmake -G Ninja \
     ..
 
 cmake --build .
-cmake --install --prefix $PREFIX
+cmake --install . --prefix $PREFIX
