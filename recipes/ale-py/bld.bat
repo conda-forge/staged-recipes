@@ -14,7 +14,7 @@ if %ERRORLEVEL% neq 0 exit 1
 cmake --build .
 if %ERRORLEVEL% neq 0 exit 1
 
-cmake --install --prefix $PREFIX
+cmake --install . --prefix $PREFIX
 if %ERRORLEVEL% neq 0 exit 1
 
 cd ..
