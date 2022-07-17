@@ -1,10 +1,11 @@
 # Files
 cp $RECIPE_DIR/conda.rc .
-cp $RECIPE_DIR/patch*.txt .
+cp $RECIPE_DIR/*patch .
 
 # Patches
-patch futile/flib/utils.c patch_utils.txt 
-patch bigdft/src/output.f90  patch_output.txt 
+patch futile/flib/utils.c utils.patch
+patch bigdft/src/output.f90 output.patch
+cp pybigdft.patch PyBigDFT/pyproject.toml
 
 # Build
 mkdir build
