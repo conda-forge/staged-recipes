@@ -4,11 +4,12 @@ set -ex
 mkdir build
 cd build
 
-cmake -DCMAKE_BUILD_TYPE=Release \
-      -DBUILD_CPP_LIB=ON \
-      -DBUILD_PYTHON_LIB=ON \
-      -DSDL_SUPPORT=ON \
-      ..
+cmake -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_CPP_LIB=ON \
+    -DBUILD_PYTHON_LIB=ON \
+    -DSDL_SUPPORT=ON \
+    ..
 
 cmake --build .
 cmake --install --prefix $PREFIX

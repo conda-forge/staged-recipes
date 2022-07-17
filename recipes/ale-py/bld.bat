@@ -3,11 +3,12 @@
 mkdir build
 cd build
 
-cmake -DCMAKE_BUILD_TYPE=Release ^
-      -DBUILD_CPP_LIB=ON ^
-      -DBUILD_PYTHON_LIB=ON ^
-      -DSDL_SUPPORT=ON ^
-      ..
+cmake -G Ninja ^
+    -DCMAKE_BUILD_TYPE=Release ^
+    -DBUILD_CPP_LIB=ON ^
+    -DBUILD_PYTHON_LIB=ON ^
+    -DSDL_SUPPORT=ON ^
+    ..
 if %ERRORLEVEL% neq 0 exit 1
 
 cmake --build .
