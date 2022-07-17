@@ -12,5 +12,5 @@ if %ERRORLEVEL% neq 0 exit 1
 cmake --build .
 if %ERRORLEVEL% neq 0 exit 1
 
-cmake --install . --prefix %PREFIX%
+cmake --install . --prefix %PREFIX%\Library
 if %ERRORLEVEL% neq 0 exit 1
