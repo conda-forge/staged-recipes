@@ -1,6 +1,6 @@
 # Files
 cp $RECIPE_DIR/conda.rc .
-cp $RECIPE_DIR/*patch .
+cp $RECIPE_DIR/patches/* .
 
 # Patches
 patch futile/flib/utils.c utils.patch
