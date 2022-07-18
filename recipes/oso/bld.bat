@@ -2,7 +2,7 @@
 
 cargo build -p polar-c-api
 
-cd %SRC_DIR%\languages\python\oso
+cd %SRC_DIR%/languages/python/oso
 
 make build
 
