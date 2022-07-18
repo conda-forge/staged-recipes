@@ -14,7 +14,7 @@ cmake \
 cmake --build . --parallel ${CPU_COUNT} --verbose
 
 # install
-cmake --build . --parallel ${CPU_COUNT} --verbose --target install
+cmake --install .
 
 # install activate/deactivate scripts
 for action in activate deactivate; do
