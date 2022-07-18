@@ -26,6 +26,19 @@ if [[ ${cuda_compiler_version} != "None" ]]; then
     export USE_CUDA="ON"
 fi
 
+# set integration knobs, c.f.
+# https://github.com/pytorch/audio/blob/v0.10.0/build_tools/setup_helpers/extension.py#L37-L39
+# used in various places, e.g.
+# vendored sources: https://github.com/pytorch/audio/tree/main/third_party
+# integrations: https://github.com/pytorch/audio/tree/main/torchaudio/csrc
+
+# kaldi is a weird case, see https://github.com/pytorch/audio/issues/1269
+export BUILD_KALDI=False
+# needs patch to use conda-forge build
+export BUILD_SOX=True
+# doesn't contain vendored sources
+export BUILD_RNNT=True
+
 export CMAKE_C_COMPILER="$CC"
 export CMAKE_CXX_COMPILER="$CXX"
 
