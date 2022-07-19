@@ -2,6 +2,8 @@
 
 set -ex
 
+pip check
+
 mkdir _db
 mongod --dbpath $PWD/_db &
 sleep 2
