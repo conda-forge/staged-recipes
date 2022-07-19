@@ -7,7 +7,7 @@ pushd _build
 
 # run cmake
 cmake ${CMAKE_ARGS} .. \
-    -Gninja \
+    -GNinja \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
     -DCMAKE_PREFIX_PATH=$PREFIX \
