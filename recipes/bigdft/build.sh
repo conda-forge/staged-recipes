@@ -8,6 +8,7 @@ patch bigdft/src/output.f90 output.patch
 cp pybigdft.patch PyBigDFT/pyproject.toml
 
 # Build
+export JHBUILD_RUN_AS_ROOT="please do it"
 mkdir build
 cd build
 python ../Installer.py -y autogen
