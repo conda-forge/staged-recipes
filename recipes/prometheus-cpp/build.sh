@@ -19,7 +19,9 @@ cmake .. \
 cmake --build . --parallel 4
 
 # run tests
-ctest -V
+if [ "${build_platform}" == "${target_platform}" ]; then
+    ctest -V
+fi 
 
 # install the libraries and headers
 cmake --install .
