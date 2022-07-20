@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(visit_struct LANGUAGES CXX)
+project(visit_struct LANGUAGES CXX VERSION "$ENV{PKG_VERSION}")
 
 add_library(visit_struct INTERFACE)
 add_library(visit_struct::visit_struct ALIAS visit_struct)
@@ -16,7 +16,15 @@ install(DIRECTORY include/visit_struct
 install(TARGETS visit_struct
         EXPORT visit_struct)
 
+set(VISIT_STRUCT_CMAKE_INSTALL_DIR share/visit_struct)
+
 install(EXPORT visit_struct
         FILE visit_struct-config.cmake
         NAMESPACE visit_struct::
-        DESTINATION share/visit_struct)
+        DESTINATION ${VISIT_STRUCT_CMAKE_INSTALL_DIR})
+
+write_basic_package_version_file("${CMAKE_BINARY_DIR}/visit_struct-version.cmake"
+                                 COMPATIBILITY ExactVersion)
+
+install(FILES "${CMAKE_BINARY_DIR}/visit_struct-version.cmake"
+        DESTINATION ${VISIT_STRUCT_CMAKE_INSTALL_DIR})
