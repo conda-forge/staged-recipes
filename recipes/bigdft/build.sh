@@ -1,10 +1,5 @@
 # Files
 cp $RECIPE_DIR/conda.rc .
-cp $RECIPE_DIR/patches/* .
-
-# Patches
-patch futile/flib/utils.c utils.patch
-patch bigdft/src/output.f90 output.patch
 
 # Build
 export JHBUILD_RUN_AS_ROOT="please do it"
