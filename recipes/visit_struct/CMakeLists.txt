@@ -23,6 +23,7 @@ install(EXPORT visit_struct
         NAMESPACE visit_struct::
         DESTINATION ${VISIT_STRUCT_CMAKE_INSTALL_DIR})
 
+include(CMakePackageConfigHelpers)
 write_basic_package_version_file("${CMAKE_BINARY_DIR}/visit_struct-version.cmake"
                                  COMPATIBILITY ExactVersion)
 
