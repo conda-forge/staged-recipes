@@ -1,0 +1,63 @@
+{% set name = "oso" %}
+{% set build_number = 0 %}
+{% set version = "0.26.1" %}
+{% set min_rust = "rust >=1.46" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/osohq/oso/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 412b62ca46b649cd2b0ddfd9027180eeda9aa8d4f059da44978fa56ac103e90a
+
+build:
+  number: {{ build_number }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ min_rust }}
+    - cargo-bundle-licenses
+  host:
+    - make
+    - clangdev  # [not osx]
+    - openssl
+    - python
+    - pip
+    - cffi >=1.0.0
+  run:
+    - python
+    # fails pip check: https://github.com/conda-forge/importlib_metadata-feedstock/issues/88
+    - importlib-metadata !=4.7.1
+    - cffi >=1.0.0
+
+test:
+  source_files:
+    - languages/python/oso/tests
+  imports:
+    - oso
+    - polar
+  commands:
+    - cd languages/python/oso
+    - pip check
+    - pytest -vv tests --cov=oso --cov=polar --no-cov-on-fail --cov-report=term-missing:skip-covered --cov-fail-under=84 -k "not test_parser_errors and not test_repr_when_logging"
+  requires:
+    - pip
+    - pytest-cov
+    - ruamel_yaml
+    - sqlalchemy
+
+about:
+  home: https://github.com/osohq/oso
+  summary: 'Oso is a batteries-included framework for building authorization in your application.'
+  license: Apache-2.0
+  license_file: LICENSE
+  doc_url: https://docs.osohq.com/
+  dev_url: https://github.com/osohq/oso
+
+extra:
+  recipe-maintainers:
+    - alexpilot11
+    - bollwyvl
