@@ -25,8 +25,13 @@ def get_host_platform():
         return "win"
 
 
+def get_config_name(arch):
+    platform = get_host_platform()
+    return os.environ.get("CONFIG", "{}{}".format(platform, arch))
+
+
 def build_all(recipes_dir, arch):
-    folders = os.listdir(recipes_dir)
+    folders = list(filter(lambda d: os.path.isdir(os.path.join(recipes_dir, d)), os.listdir(recipes_dir)))
     old_comp_folders = []
     new_comp_folders = []
     if not folders:
@@ -35,8 +40,7 @@ def build_all(recipes_dir, arch):
 
     platform = get_host_platform()
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    variant_config_file = os.path.join(script_dir, '{}{}.yaml'.format(
-        platform, arch))
+    variant_config_file = os.path.join(script_dir, "{}.yaml".format(get_config_name(arch)))
 
     found_cuda = False
     found_centos7 = False
@@ -56,6 +60,7 @@ def build_all(recipes_dir, arch):
 
     deployment_version = (0, 0)
     sdk_version = (0, 0)
+    channel_urls = None
     for folder in folders:
         cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
         if os.path.exists(cbc):
@@ -74,6 +79,19 @@ def build_all(recipes_dir, arch):
                     for version in config['MACOSX_SDK_VERSION']:
                         version = tuple([int(x) for x in version.split('.')])
                         sdk_version = max(sdk_version, deployment_version, version)
+
+            if 'channel_sources' not in text:
+                new_channel_urls = ['local', 'conda-forge']
+            else:
+                config = load(text, Loader=BaseLoader)
+                new_channel_urls = ['local'] + config['channel_sources'][0].split(',')
+            if channel_urls is None:
+                channel_urls = new_channel_urls
+            elif channel_urls != new_channel_urls:
+                raise ValueError(f'Detected different channel_sources in the recipes: {channel_urls} vs. {new_channel_urls}. Consider submitting them in separate PRs')
+
+    if channel_urls is None:
+        channel_urls = ['local', 'conda-forge']
 
     with open(variant_config_file, 'r') as f:
         variant_text = ''.join(f.readlines())
@@ -96,28 +114,32 @@ def build_all(recipes_dir, arch):
     if platform == "osx" and (sdk_version != (0, 0) or deployment_version != (0, 0)):
         subprocess.run("run_conda_forge_build_setup", shell=True, check=True)
 
-    print("Building {} with conda-forge/label/main".format(','.join(folders)))
-    channel_urls = ['local', 'conda-forge']
+    if 'conda-forge' not in channel_urls:
+        raise ValueError('conda-forge needs to be part of channel_sources')
+    print("Building {} with {}".format(','.join(folders), ','.join(channel_urls)))
     build_folders(recipes_dir, folders, arch, channel_urls)
 
 
 def get_config(arch, channel_urls):
-    exclusive_config_file = os.path.join(conda_build.conda_interface.root_dir,
-                                         'conda_build_config.yaml')
+    exclusive_config_files = [os.path.join(conda_build.conda_interface.root_dir,
+                                           'conda_build_config.yaml')]
     platform = get_host_platform()
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    variant_config_files = []
-    variant_config_file = os.path.join(script_dir, '{}{}.yaml'.format(
-        platform, arch))
-    if os.path.exists(variant_config_file):
-        variant_config_files.append(variant_config_file)
+    # since variant builds override recipe/conda_build_config.yaml, see
+    # https://github.com/conda/conda-build/blob/3.21.8/conda_build/variants.py#L175-L181
+    # we need to make sure not to use variant_configs here, otherwise
+    # staged-recipes PRs cannot override anything using the recipe-cbc.
+    exclusive_config_file = os.path.join(script_dir, '{}.yaml'.format(
+        get_config_name(arch)))
+    if os.path.exists(exclusive_config_file):
+        exclusive_config_files.append(exclusive_config_file)
 
     error_overlinking = (get_host_platform() != "win")
 
     config = conda_build.api.Config(
-        variant_config_files=variant_config_files, arch=arch,
-        exclusive_config_file=exclusive_config_file, channel_urls=channel_urls,
-        error_overlinking=error_overlinking)
+        arch=arch, exclusive_config_files=exclusive_config_files,
+        channel_urls=channel_urls, error_overlinking=error_overlinking,
+    )
     return config
 
 
@@ -161,6 +183,9 @@ def check_recipes_in_correct_dir(root_dir, correct_dir):
     from pathlib import Path
     for path in Path(root_dir).rglob('meta.yaml'):
         path = path.absolute().relative_to(root_dir)
+        if path.parts[0] == 'build_artifacts':
+            # ignore pkg_cache in build_artifacts
+            continue
         if path.parts[0] != correct_dir:
             raise RuntimeError(f"recipe {path.parts} in wrong directory")
         if len(path.parts) != 3:
