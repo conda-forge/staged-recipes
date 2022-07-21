@@ -1,0 +1,58 @@
+{% set name = "dav1d" %}
+{% set version = "1.0.0" %}
+# library version is different from project version
+# Check 'meson.build' upstream in every release!
+{% set so_name = "6.6.0" %}
+{% set so_name_major = "6" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://code.videolan.org/videolan/dav1d/-/archive/{{ version }}/dav1d-{{ version }}.tar.gz
+  sha256: 047b8229511a82b5718a1d34c86c067b078efd02f602986d2ed09b23182ec136
+
+build:
+  number: 0
+  script:
+    - set -ex
+    - >
+        meson setup _build
+        ${MESON_ARGS:---prefix=${PREFIX} --libdir=lib}  # [unix]
+        --prefix=%LIBRARY_PREFIX%  # [win]
+        --buildtype=release -Denable_tests=false
+    - meson compile -C _build
+    - meson install -C _build --no-rebuild
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - meson >=0.49
+    - ninja
+    - nasm >=2.14
+
+test:
+  commands:
+    - dav1d -v
+    - test -f ${PREFIX}/lib/libdav1d{{ SHLIB_EXT }}                       # [unix]
+    - test -f ${PREFIX}/lib/libdav1d.{{ so_name_major }}{{ SHLIB_EXT }}   # [osx]
+    - test -f ${PREFIX}/lib/libdav1d{{ SHLIB_EXT }}.{{ so_name_major }}   # [linux]
+    - test -f ${PREFIX}/lib/libdav1d{{ SHLIB_EXT }}.{{ so_name }}         # [linux]
+    - if not exist %PREFIX%\\Library\\bin\\dav1d.dll exit 1               # [win]
+    - if not exist %PREFIX%\\Library\\lib\\dav1d.lib exit 1               # [win]
+    - test -f ${PREFIX}/include/dav1d/dav1d.h                             # [unix]
+    - if not exist %PREFIX%\\Library\\include\\dav1d\\dav1d.h exit 1      # [win]
+    - test -f ${PREFIX}/lib/pkgconfig/dav1d.pc                         # [unix]
+    - if not exist %PREFIX%\\Library\\lib\\pkgconfig\\dav1d.pc exit 1  # [win]
+
+about:
+  home: https://code.videolan.org/videolan/dav1d
+  summary: dav1d is the fastest AV1 decoder on all platforms
+  license: BSD-2-Clause
+  license_family: BSD
+  license_file: COPYING
+
+extra:
+  recipe-maintainers:
+    - jaimergp
