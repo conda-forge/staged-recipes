@@ -1,3 +1,3 @@
 import importlib
 
-importlib.import_module("types-aiobotocore")
+importlib.import_module("aiobotocore-stubs")
