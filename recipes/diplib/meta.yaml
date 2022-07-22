@@ -1,37 +1,60 @@
 {% set name = "diplib" %}
-{% set version = "3.1.0" %}
+{% set version = "3.3.0" %}
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
-  sha256: 2b3a0c466fb4a1014ea131c2b8ea7c519f9278eba73d6fcb361b7bdb4fd494e9
+  url: https://github.com/DIPlib/diplib/archive/refs/tags/{{ version }}.tar.gz
+  sha256: 01c6fc164d973fe89a9a9b04082a2915aeaedfbd207bf78ce3f83aa298b603d7
+  patches:
+    - pydip.patch
+    - vendored_deps.patch
 
 build:
   number: 0
-  script: "{{ PYTHON }} -m pip install . -vv"
+  skip: true  # [win]
 
 requirements:
   build:
-    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - make
+    - llvm-openmp  # [osx]
+    - libgomp      # [linux]
   host:
     - python
     - pip
+    - freeglut  # [linux]
+    - glfw
+    - fftw
+    - freetype
+    # unvendored
+    - libics
+    - libtiff
+    - eigen
+    - pybind11
+    - pybind11-abi
   run:
     - python
+    - {{ pin_compatible('glfw', max_pin='x.x') }}
 
 test:
   imports:
-    - import diplib
+    - diplib
   requires:
     - pip
   commands:
     - pip check
+    - "dipview 2>&1 | grep 'Usage: dipview'"
+    - test -f "$PREFIX/lib/libDIP${SHLIB_EXT}"
+    - test -f "$PREFIX/lib/libDIPviewer${SHLIB_EXT}"
+    - test -f "$PREFIX/bin/dipview"
+    - test -f "$PREFIX/include/dipviewer.h"
 
 about:
-  home: https://github.com/simplejson/simplejson
+  home: https://github.com/DIPlib/diplib
   license: Apache License 2.0
   license_family: Apache
   license_file: LICENSE.txt
@@ -41,6 +64,8 @@ about:
     library and development environment for quantitative image
     analysis, be it applied to microscopy, radiology,
     astronomy, or anything in between.
+
 extra:
   recipe-maintainers:
     - goanpeca
+    - jaimergp
