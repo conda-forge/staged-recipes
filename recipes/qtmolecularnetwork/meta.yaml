@@ -1,4 +1,5 @@
-{% set version = "0.6.1" %}
+{% set version = "0.6.2" %}
+{% set rdkit_version = "2022.03" %}
 
 package:
     name: qtmolecularnetwork
@@ -6,42 +7,43 @@ package:
 
 source:
     url: https://github.com/metgem/QtMolecularNetwork/archive/v{{ version }}.tar.gz
-    sha256: 455329bbf0d2223637012181de6ff8b3fe9e64cb204f0c934df8a59a2a0f9692
+    sha256: 947557699055d58d41c83903069e6cfd91d8b3a7db6634e3459022d4fb3f06e0
     patches:
         - 0001-libcxx.patch                   # [linux]
 
 build:
     number: 0
-    missing_dso_whitelist:
-        - $RPATH/libRDKitDepictor.1.dylib     # [osx]
-        - $RPATH/libRDKitMolDraw2D.1.dylib    # [osx]
-        - $RPATH/libRDKitSmilesParse.1.dylib  # [osx]
-        - $RPATH/libRDKitRDInchiLib.1.dylib   # [osx]
-        - $RPATH/libRDKitDepictor.so.1        # [linux]
-        - $RPATH/libRDKitMolDraw2D.so.1       # [linux]
-        - $RPATH/libRDKitSmilesParse.so.1     # [linux]
-        - $RPATH/libRDKitRDInchiLib.so.1      # [linux]
 
 requirements:
     build:
-        - python {{ python }}
         - cmake
         - {{ compiler('cxx') }}
         - make                                # [not win]
-        - rdkit-dev
         - eigen
-        - mesalib                             # [unix]
-        - make                                # [not win]
+        - {{ cdt('mesa-libgl-devel') }}       # [linux]
+        - {{ cdt('mesa-dri-drivers') }}       # [linux]
+        - {{ cdt('libselinux') }}             # [linux]
+        - {{ cdt('libxdamage') }}             # [linux]
+        - {{ cdt('libxxf86vm') }}             # [linux]
+        - {{ cdt('libxext') }}                # [linux]
     host:
+        - python {{ python }}
+        - cairo
+        - freetype
         - qt-main >=5.15
+        - rdkit-dev ={{ rdkit_version }}
     run:
-        - rdkit
+        - rdkit ={{ rdkit_version }}
     
 test:
     commands:
-        - if not exist %LIBRARY_BIN%\\qtmolecularnetwork.dll exit 1  # [win]
-        - test -f $PREFIX/lib/libqtmolecularnetwork${SHLIB_EXT}      # [unix]
-
+        - if not exist %LIBRARY_BIN%\\qtmolecularnetwork.dll exit 1                    # [win]
+        - if not exist %LIBRARY_INC%\\qtmolecularnetwork\\node.h exit 1                # [win]
+        - if not exist %LIBRARY_LIB%\\cmake\\qtmolecularnetwork\\qtmolecularnetworkConfig.cmake exit 1  # [win]
+        - test -f $PREFIX/lib/libqtmolecularnetwork${SHLIB_EXT}                        # [unix]
+        - test -f $PREFIX/include/qtmolecularnetwork/node.h                            # [unix]
+        - test -f $PREFIX/lib/cmake/qtmolecularnetwork/qtmolecularnetworkConfig.cmake  # [unix]
+        
 outputs:
   - name: qtmolecularnetwork
   - name: pyside2mn
@@ -67,22 +69,23 @@ outputs:
         - {{ cdt('libxxf86vm') }}             # [linux]
         - {{ cdt('libxext') }}                # [linux]
       host:
-        - qtmolecularnetwork
+        - {{ pin_subpackage('qtmolecularnetwork', exact=True) }}
         - python {{ python }}
-        - rdkit-dev
+        - rdkit-dev ={{ rdkit_version }}
         - pyside2 >=5.15
         - qt-main >=5.15
         - eigen
         - pip
         - setuptools
         - libclang
+        - cairo
+        - freetype
       run:
-        - python
-        - qtmolecularnetwork
+        - python {{ python }}
+        - {{ pin_subpackage('qtmolecularnetwork', exact=True) }}
         - pywin32                             # [win]
         - pyside2 >=5.15
-        - qt-main >=5.15
-        - rdkit
+        - rdkit ={{ rdkit_version }}
         - tinycss2
     test:
       imports:
