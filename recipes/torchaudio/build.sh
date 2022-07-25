@@ -33,11 +33,11 @@ fi
 # integrations: https://github.com/pytorch/audio/tree/main/torchaudio/csrc
 
 # kaldi is a weird case, see https://github.com/pytorch/audio/issues/1269
-export BUILD_KALDI=False
+export BUILD_KALDI=0
 # needs patch to use conda-forge build
-export BUILD_SOX=True
+export BUILD_SOX=1
 # doesn't contain vendored sources
-export BUILD_RNNT=True
+export BUILD_RNNT=1
 
 export CMAKE_C_COMPILER="$CC"
 export CMAKE_CXX_COMPILER="$CXX"
