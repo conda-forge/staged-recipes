@@ -89,18 +89,32 @@
             github-token: ${{ secrets.GH_TOKEN }}
             script: |
               console.log(`Label was removed by ${context.payload.sender.login}`);
-              const membership = github.rest.teams.getMembershipForUserInOrg({
-                org: 'conda-forge',
-                team_slug: 'staged-recipes',
-                username: context.payload.sender.login,
-              });
-              return membership.then((result) => {
-                if (result.status == 200 && result.data.state == 'active'){
-                return true;
-              } else {
-                console.log(result);
-                return false;
+              let memberships = [];
+              for (const team of ['staged-recipes', 'core']) {
+                  const membership = github.rest.teams.getMembershipForUserInOrg({
+                      org: 'conda-forge',
+                      team_slug: team,
+                      username: context.payload.sender.login,
+                  });
+                  memberships.push(membership.then((result) => {
+                      if (result.status == 200 && result.data.state == 'active') {
+                          console.log('User is authorized');
+                          return true;
+                      } else {
+                          console.log('User is nonactive');
+                          return false;
+                      }
+                  }).catch((error) => {
+                      // Non-membership raises an HttpError
+                      return false;
+                  }));
               }
+              return Promise.all(memberships).then((values) => {
+                  let is_authorized = false;
+                  for (const m of values) {
+                      is_authorized = is_authorized || m;
+                  }
+                  return is_authorized;
               });
         - name: add-labels
           if: >
