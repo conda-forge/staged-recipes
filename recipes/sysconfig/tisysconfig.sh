@@ -4,7 +4,7 @@
 #
 # For help, use -h or --help
 
-tisysconfig_dir=$CONDA_PREFIX/Library/lib/tisysconfig/dist/
+tisysconfig_dir=$CONDA_PREFIX/lib/tisysconfig/dist/
 
 nodeFlags=""
 if [ "$1" = "-g" ]; then
