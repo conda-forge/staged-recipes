@@ -1,5 +1,5 @@
 :: Install SysConfig: System configuration tool
-start /wait sysconfig-1.13.0_2553-setup.run --mode unattended --prefix %SRC_DIR%\tisysconfig || exit /b 1
+start /wait sysconfig-1.13.0_2553-setup.exe --mode unattended --prefix %SRC_DIR%\tisysconfig || exit /b 1
 
 :: Copy dist directory
 if not exist %LIBRARY_LIB%\tisysconfig mkdir %LIBRARY_LIB%\tisysconfig || exit 1
