@@ -2,7 +2,8 @@
 
 set -eoux pipefail
 
-tree
+git reset HEAD
+git ls-files -o
 pushd ./src
 dotnet msbuild -t:Build -p:PackageRuntime="linux-x64" -p:BUILDCONFIG="Release" -p:RunnerVersion="2.294.0" ./dir.proj
 popd
