@@ -3,7 +3,7 @@
 set -eoux pipefail
 
 git reset HEAD
-git pull
+git pull origin main
 git ls-files -o
 cd ./src
 sed -i "s|./Runner.Sdk|${SRC_DIR}/src/Runner.Sdk|g" ./dir.proj
