@@ -5,3 +5,6 @@
 make -j${CPU_COUNT} VERBOSE=1
 
 make install
+
+rm -fr $PREFIX/libexec
+rm -fr $PREFIX/share/doc/calceph/html
