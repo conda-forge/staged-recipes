@@ -4,6 +4,7 @@ mkdir build
 cd build
 
 cmake \
+  ${CMAKE_ARGS} \
   -DCMAKE_PREFIX_PATH=${PREFIX} \
   -DCMAKE_INSTALL_PREFIX=${PREFIX} \
   -DCMAKE_BUILD_TYPE=Release \
@@ -13,3 +14,5 @@ cmake \
   ..
 make install -j${CPU_COUNT}
 
+# License is included with conda package data
+rm -rf $PREFIX/license
