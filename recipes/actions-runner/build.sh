@@ -22,11 +22,25 @@ tee "$PREFIX/bin/actions-runner" > /dev/null << 'EOF'
 
 set -e
 
-script=$1
+cmd=$1
+shift
 
 cd "$CONDA_PREFIX/lib/actions-runner"
-shift
-exec "./${script}.sh" "$@"
+
+if [[ "$cmd" == "config" ]]; then
+  source ./env.sh
+  shopt -s nocasematch
+  if [[ "$1" == "remove" ]]; then
+      ./bin/Runner.Listener "$@"
+  else
+      ./bin/Runner.Listener configure "$@"
+  fi
+elif [[ "$cmd" == "run" ]]; then
+  exec ./run.sh "$@"
+else
+  echo "Unknown command ${cmd}!"
+  exit 1
+fi
 EOF
 
 chmod +x "$PREFIX/bin/actions-runner"
