@@ -28,7 +28,6 @@ system_libs+=",org_aomedia_avif"
 export TENSORSTORE_SYSTEM_LIBS="$system_libs"
 
 build_options=""
-build_options+=" --define=CB_PREFIX=$PREFIX"
 build_options+=" --crosstool_top=//bazel_toolchain:toolchain"
 build_options+=" --logging=6"
 build_options+=" --verbose_failures"
