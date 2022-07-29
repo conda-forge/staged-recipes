@@ -4,6 +4,8 @@ cargo build --release
 IF %errorlevel% NEQ 0 exit 1
 
 MKDIR %LIBRARY_PREFIX%\lib
+dir target
+DIR target\release
 COPY target\release\libplugin.dll %LIBRARY_PREFIX%\lib\deno_dom.dll
 
 MKDIR "%PREFIX%\etc\conda\activate.d"
