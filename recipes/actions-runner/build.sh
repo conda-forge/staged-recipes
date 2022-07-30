@@ -46,8 +46,10 @@ EOF
 chmod +x "$PREFIX/bin/actions-runner"
 
 # copy activate/deactivate scripts
-cp ./activate.d/* "${PREFIX}/etc/conda/activate.d/"
-cp ./deactivate.d/* "${PREFIX}/etc/conda/deactivate.d/"
+mkdir -p "${PREFIX}/etc/conda/activate.d"
+cp -r "${RECIPE_DIR}/activate.d/." "${PREFIX}/etc/conda/activate.d/"
+mkdir -p "${PREFIX}/etc/conda/deactivate.d"
+cp -r "${RECIPE_DIR}/deactivate.d/." "${PREFIX}/etc/conda/deactivate.d/"
 
 # point vendored node to CF version
 mkdir -p "${PREFIX}/lib/actions-runner/externals/node16/bin"
