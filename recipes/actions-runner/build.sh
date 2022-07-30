@@ -14,10 +14,10 @@ cp -R ./src/Misc/layoutroot/* ./_layout/
 rm -f ./_layout/*.cmd
 cp -R ./src/Misc/layoutbin/* ./_layout/bin/
 
-cp -R ./_layout $PREFIX/lib/actions-runner
+cp -R ./_layout "${PREFIX}/lib/actions-runner"
 
 # Add actions-runner script
-tee "$PREFIX/bin/actions-runner" > /dev/null << 'EOF'
+tee "${PREFIX}/bin/actions-runner" > /dev/null << 'EOF'
 #!/bin/bash
 
 set -e
@@ -44,3 +44,11 @@ fi
 EOF
 
 chmod +x "$PREFIX/bin/actions-runner"
+
+# copy activate/deactivate scripts
+cp ./activate.d/* "${PREFIX}/etc/conda/activate.d/"
+cp ./deactivate.d/* "${PREFIX}/etc/conda/deactivate.d/"
+
+# point vendored node to CF version
+mkdir -p "${PREFIX}/lib/actions-runner/externals/node16/bin"
+ln -s "$(which node)" "${PREFIX}/lib/actions-runner/externals/node16/bin/node"
