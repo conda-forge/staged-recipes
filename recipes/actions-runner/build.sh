@@ -53,4 +53,4 @@ cp -r "${RECIPE_DIR}/deactivate.d/." "${PREFIX}/etc/conda/deactivate.d/"
 
 # point vendored node to CF version
 mkdir -p "${PREFIX}/lib/actions-runner/externals/node16/bin"
-ln -s "$(which node)" "${PREFIX}/lib/actions-runner/externals/node16/bin/node"
+ln -s "${PREFIX}/bin/node" "${PREFIX}/lib/actions-runner/externals/node16/bin/node"
