@@ -1,3 +1,4 @@
-MKDIR %LIBRARY_BIN%
+MKDIR %LIBRARY_BIN%\src
 COPY sass.bat %LIBRARY_BIN%
-XCOPY /e /i src %LIBRARY_BIN%\src
+COPY src\sass.snapshot %LIBRARY_BIN%\src
+COPY src\dart.exe %LIBRARY_BIN%\src
