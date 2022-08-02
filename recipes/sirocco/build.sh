@@ -1,6 +1,6 @@
 #!/bin/bash
 
 autoreconf --install
-./configure --prefix=$PREFIX/local --libdir=$PREFIX/local/lib
+./configure --prefix=$PREFIX --libdir=$PREFIX/lib
 make -j${CPU_COUNT}
 make install
