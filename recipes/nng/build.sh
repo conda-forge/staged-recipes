@@ -12,7 +12,7 @@ if [[ "$target_platform" == osx-arm64 ]]; then
 		-DENABLE_TESTING=Off
 
 else
-	cmake -B . -S . \
+	cmake -B build -S . \
 		${CMAKE_ARGS} \
                 -G Ninja \
 		-DCMAKE_INSTALL_PREFIX=$PREFIX \
@@ -21,5 +21,6 @@ else
 		-DCMAKE_VERBOSE_MAKEFILE=ON
 fi
 
+cd build
 ninja
 ninja install
