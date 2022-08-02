@@ -22,5 +22,4 @@ else
 fi
 
 ninja
-ninja test
 ninja install
