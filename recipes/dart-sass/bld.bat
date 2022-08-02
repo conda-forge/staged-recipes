@@ -1,3 +1,3 @@
-MKDIR %PREFIX%\Scripts
-COPY sass.bat %PREFIX%\Scripts
-XCOPY /e /i src %PREFIX%\Scripts\src
+MKDIR %LIBRARY_BIN%
+COPY sass.bat %LIBRARY_BIN%
+XCOPY /e /i src %LIBRARY_BIN%\src
