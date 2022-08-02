@@ -1,16 +1,14 @@
 :: Setup directory structure
 mkdir build
 if errorlevel 1 exit 1
-cd build
-if errorlevel 1 exit 1
 
 :: Configure 
-cmake -G "Ninja" ^
+cmake -G "Ninja" -B "build" -S . ^
          -DCMAKE_BUILD_TYPE=Release ^
          -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
          -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
-         -DCMAKE_VERBOSE_MAKEFILE=ON ^
-         .
+         -DCMAKE_VERBOSE_MAKEFILE=ON
+
 if errorlevel 1 exit 1
 
 :: Build and install
