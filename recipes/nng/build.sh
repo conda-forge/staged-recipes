@@ -23,4 +23,5 @@ fi
 
 cd build
 ninja
+ninja test
 ninja install
