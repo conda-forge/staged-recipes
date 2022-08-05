@@ -1,0 +1,15 @@
+#!/bin/bash
+
+CMAKE_FLAGS="  -DCMAKE_INSTALL_PREFIX=${PREFIX}"
+
+if [[ "$target_platform" == osx* ]]; then
+    CMAKE_FLAGS+=" -DPython_ROOT_DIR=${PREFIX}"
+    CMAKE_FLAGS+=" -DCMAKE_OSX_SYSROOT=${CONDA_BUILD_SYSROOT}"
+    CMAKE_FLAGS+=" -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}"
+fi
+
+mkdir build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_PYTHON_WRAPPER=ON
+make
+
