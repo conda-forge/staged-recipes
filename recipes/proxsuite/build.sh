@@ -2,12 +2,7 @@
 
 if [ "$(uname)" == "Darwin" ]; then
   # for Mac OSX
-  export MACOSX_VERSION_MIN="10.14"
-  export CXXFLAGS="${CXXFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
-  export LDFLAGS="${LDFLAGS} -mmacosx-version-min=${MACOSX_VERSION_MIN}"
-  export LINKFLAGS="${LDFLAGS}"
-  export MACOSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}"
-  export CMAKE_OSX_DEPLOYMENT_TARGET="${MACOSX_VERSION_MIN}"
+  export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY -D_LIBCPP_USING_IF_EXISTS"
 fi
 
 mkdir build
