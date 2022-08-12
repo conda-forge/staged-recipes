@@ -1,0 +1,2 @@
+MKDIR "%LIBRARY_BIN%"
+COPY ghcup.exe "%LIBRARY_BIN%"
