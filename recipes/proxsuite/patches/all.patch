@@ -1,36 +1,51 @@
 diff --git a/include/proxsuite/linalg/veg/memory/alloc.hpp b/include/proxsuite/linalg/veg/memory/alloc.hpp
-index eb3f19a..89d5fbd 100644
+index eb3f19a..2fb35b1 100644
 --- a/include/proxsuite/linalg/veg/memory/alloc.hpp
 +++ b/include/proxsuite/linalg/veg/memory/alloc.hpp
-@@ -12,6 +12,7 @@
- #include <cstddef> // std::max_align_t
- #include <cstdlib> // std::{malloc, free, realloc}, ::{aligned_alloc, free}
+@@ -14,6 +14,7 @@
  #ifndef __APPLE__
-+#include <stdlib.h>
  #include <malloc.h> // ::malloc_usable_size
  #else
++#include <AvailabilityMacros.h>
  #include <malloc/malloc.h>
-@@ -22,6 +23,19 @@
+ #define malloc_usable_size malloc_size
+ #endif
+@@ -22,6 +23,34 @@
  namespace proxsuite {
  namespace linalg {
  namespace veg {
 +
 +#ifdef __APPLE__
-+namespace _ {
++namespace alignment {
 +
-+VEG_INLINE auto
-+_aligned_alloc(size_t alignment, size_t size) -> void*
++#if MAC_OS_X_VERSION_MIN_REQUIRED >= 101500
++VEG_INLINE void*
++aligned_alloc(std::size_t alignment, std::size_t size)
 +{
-+  return aligned_alloc(alignment, size);
++  return std::aligned_alloc(alignment, size);
 +}
++#elif MAC_OS_X_VERSION_MIN_REQUIRED >= 1090
++VEG_INLINE void*
++aligned_alloc(std::size_t alignment, std::size_t size)
++{
++  if (alignment < sizeof(void*)) {
++    alignment = sizeof(void*);
++  }
++  void* p;
++  if (::posix_memalign(&p, alignment, size) != 0) {
++    p = 0;
++  }
++  return p;
++}
++#endif
 +
-+}
++} // namespace alignment
 +#endif
 +
  namespace mem {
  enum struct CopyAvailable
  {
-@@ -60,10 +74,12 @@ VEG_INLINE auto
+@@ -60,10 +89,12 @@ VEG_INLINE auto
  aligned_alloc(usize align, usize size) noexcept -> void*
  {
    usize const mask = align - 1;
@@ -40,7 +55,7 @@ index eb3f19a..89d5fbd 100644
 +#if defined(_WIN32)
    return _aligned_malloc((size + mask) & ~mask, align);
 +#elif defined(__APPLE__)
-+  return _::_aligned_alloc(align, (size + mask) & ~mask);
++  return alignment::aligned_alloc(align, (size + mask) & ~mask);
 +#else
 +  return std::aligned_alloc(align, (size + mask) & ~mask);
  #endif
