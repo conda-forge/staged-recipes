@@ -2,7 +2,7 @@
 
 if [ "$(uname)" == "Darwin" ]; then
   # for Mac OSX
-  export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY -D_LIBCPP_USING_IF_EXISTS"
+  export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 fi
 
 mkdir build
