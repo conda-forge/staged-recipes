@@ -1,0 +1,120 @@
+{% set version = "0.6.2" %}
+{% set rdkit_version = "2022.03" %}
+
+package:
+    name: qtmolecularnetwork
+    version: {{ version }}
+
+source:
+    url: https://github.com/metgem/QtMolecularNetwork/archive/v{{ version }}.tar.gz
+    sha256: 947557699055d58d41c83903069e6cfd91d8b3a7db6634e3459022d4fb3f06e0
+    patches:
+        - 0001-libcxx.patch                   # [linux]
+
+build:
+    number: 0
+    run_exports:
+    # FIXME: Adjust pin according to future ABI compatability guarantees
+      - {{ pin_subpackage('qtmolecularnetwork', max_pin='x.x.x') }}
+    ignore_run_exports_from:
+    # Just used to satisfy CMake; not used in shared library
+      - cairo
+      - freetype
+
+requirements:
+    build:
+        - cmake
+        - {{ compiler('cxx') }}
+        - make                                # [not win]
+        - {{ cdt('mesa-libgl-devel') }}       # [linux]
+        - {{ cdt('mesa-dri-drivers') }}       # [linux]
+        - {{ cdt('libselinux') }}             # [linux]
+        - {{ cdt('libxdamage') }}             # [linux]
+        - {{ cdt('libxxf86vm') }}             # [linux]
+        - {{ cdt('libxext') }}                # [linux]
+    host:
+        - cairo
+        - freetype
+        - boost-cpp
+        - eigen
+        - qt-main >=5.15
+        - {{ pin_compatible('rdkit', max_pin='x.x') }}
+        - {{ pin_compatible('rdkit-dev', max_pin='x.x') }}  # [win]
+    run:
+        - {{ pin_compatible('rdkit', max_pin='x.x') }}
+
+test:
+    commands:
+        - if not exist %LIBRARY_BIN%\\qtmolecularnetwork.dll exit 1                    # [win]
+        - if not exist %LIBRARY_INC%\\qtmolecularnetwork\\node.h exit 1                # [win]
+        - if not exist %LIBRARY_LIB%\\cmake\\qtmolecularnetwork\\qtmolecularnetworkConfig.cmake exit 1  # [win]
+        - test -f $PREFIX/lib/libqtmolecularnetwork${SHLIB_EXT}                        # [unix]
+        - test -f $PREFIX/include/qtmolecularnetwork/node.h                            # [unix]
+        - test -f $PREFIX/lib/cmake/qtmolecularnetwork/qtmolecularnetworkConfig.cmake  # [unix]
+
+outputs:
+  - name: qtmolecularnetwork
+  - name: pyside2mn
+    script: build-python.sh  # [unix]
+    script: bld-python.bat   # [win]
+    build:
+      script_env:
+        - CMAKE_GENERATOR_PLATFORM=           # [win]
+        - CMAKE_GENERATOR_TOOLSET=            # [win]
+        - CMAKE_GENERATOR=                    # [win]
+      ignore_run_exports_from:
+      # Just used for shiboken/pyside2 not used for python module
+        - clangdev  # [not osx]
+        - libcxx    # [not osx]
+
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - clangdev
+        - cmake
+        - make                                # [not win]
+        - libcxx                              # [linux]
+        - {{ cdt('mesa-libgl-devel') }}       # [linux]
+        - {{ cdt('mesa-dri-drivers') }}       # [linux]
+        - {{ cdt('libselinux') }}             # [linux]
+        - {{ cdt('libxdamage') }}             # [linux]
+        - {{ cdt('libxxf86vm') }}             # [linux]
+        - {{ cdt('libxext') }}                # [linux]
+      host:
+        - {{ pin_subpackage('qtmolecularnetwork', exact=True) }}
+        - {{ pin_compatible('rdkit-dev', max_pin='x.x') }}  # [win]
+        - {{ pin_compatible('rdkit', max_pin='x.x') }}
+        - python
+        - pyside2 >=5.15
+        - qt-main >=5.15
+        - eigen
+        - pip
+        - setuptools
+        - cairo
+        - freetype
+      run:
+        - python
+        - {{ pin_subpackage('qtmolecularnetwork', exact=True) }}
+        - {{ pin_compatible('rdkit', max_pin='x.x') }}
+        - pywin32                             # [win]
+        - pyside2 >=5.15
+        - tinycss2
+    test:
+      imports:
+        - PySide2MolecularNetwork
+        - PySide2MolecularNetwork.qmn
+
+about:
+    home: https://github.com/metgem/QtMolecularNetwork
+    license: GPL-3.0-or-later
+    license_family: GPL
+    license_file: 'LICENSE'
+    summary: 'Widgets used for visualisation of graph in MetGem'
+    description: 'Widgets used for visualisation of graph in `MetGem`'
+    doc_url: ''
+    dev_url: 'https://github.com/metgem/QtMolecularNetwork'
+
+extra:
+    recipe-maintainers:
+      - n-elie
