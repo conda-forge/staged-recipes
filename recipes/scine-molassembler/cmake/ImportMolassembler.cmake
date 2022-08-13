@@ -1,0 +1,15 @@
+macro(import_molassembler)
+  # If the target already exists, do nothing
+  if(TARGET Scine::Molassembler)
+    message(STATUS "Scine::Molassembler present.")
+  else()
+    # Try to find the package locally
+    find_package(ScineMolassembler CONFIG REQUIRED)
+    if(TARGET Scine::Molassembler)
+      message(STATUS "Scine::Molassembler found locally at ${ScineMolassembler_DIR}")
+    else()
+      add_library(Scine::Molassembler INTERFACE IMPORTED)
+      target_link_libraries(Scine::Molassembler INTERFACE molassembler)
+    endif()
+  endif()
+endmacro()
