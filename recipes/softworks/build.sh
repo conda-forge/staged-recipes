@@ -4,6 +4,7 @@ mkdir -p "${PREFIX}/lib/skill/softworks"
 cp -rf "softworks" \
        "${PREFIX}/lib/skill/"
 
+echo ''
 echo "Create or append to the SKILL environment data.reg"
 { \
 echo "SOFTINCLUDE ${PREFIX}/lib/skill/Softworks/src/python/SdmPy.data.reg;"; \
