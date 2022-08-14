@@ -13,7 +13,7 @@ case $MSLVERSION in
   cp -R $SRC_DIR/ModelicaServices $PREFIX/"lib/omlibrary/ModelicaServices 4.0.0"
 ;;
 *)
-  echo don\'t know
+  echo don\'t know what to build. MSLVERSION requests a non existing version or not defined.
   exit 1
 ;;
 esac
