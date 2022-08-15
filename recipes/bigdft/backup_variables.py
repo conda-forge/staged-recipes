@@ -29,3 +29,4 @@ if __name__ == "__main__":
     with open(restore_file, "w") as ofile:
         for var in variables:
             ofile.write("export " + var + "=$" + var + "_CONDA\n")
+            ofile.write("unset " + var + "_CONDA\n")
