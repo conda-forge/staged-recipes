@@ -7,7 +7,7 @@ mkdir build
 cd build
 python ../Installer.py -y autogen
 python ../Installer.py -y build -f ../conda.rc
-python $RECIPE_DIR/backup_variables.py install/bin/bigdftvars.sh
+python $RECIPE_DIR/backup_variables.py $PREFIX/bin/bigdftvars.sh
 
 # Activate script
 mkdir -p "${PREFIX}/etc/conda/activate.d"
