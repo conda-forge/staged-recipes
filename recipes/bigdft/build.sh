@@ -7,6 +7,9 @@ mkdir build
 cd build
 python ../Installer.py -y autogen
 python ../Installer.py -y build -f ../conda.rc
+
+echo "::::Backuping up variables"
+ls
 python $RECIPE_DIR/backup_variables.py $PREFIX/bin/bigdftvars.sh
 
 # Activate script
