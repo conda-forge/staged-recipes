@@ -1,0 +1,98 @@
+{% set name = "scine-molassembler" %}
+{% set version = "1.2.1" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+# Note: Python bindings can't be built separately from library, due to symbol visibility.
+#       Some symbols are only visible in an intermediary static library which is used
+#       to link the Python bindings, but not installed.
+#       See https://github.com/qcscine/molassembler/issues/8
+
+source:
+  - url: https://github.com/qcscine/molassembler/archive/refs/tags/{{ version }}.tar.gz
+    sha256: c9fea41d383b7f54cf8a3ed4dabebe9e942fe3ef5b47895e3533e8ce42dacd38
+    patches:
+      # See https://github.com/qcscine/molassembler/issues/4
+      - patches/nlohmann_json.patch
+      # See https://github.com/qcscine/molassembler/issues/3
+      - patches/nauty_thread_local.patch
+      # See https://github.com/qcscine/molassembler/issues/7
+      - patches/no_duplicate.patch
+  - url: https://github.com/qcscine/development-utils/archive/refs/tags/5.0.1.tar.gz
+    sha256: 089ca500fc191e04a968ea166d2fe80178b227bc2e6d3926523fa2eee5f6492d
+    folder: dev
+    patches:
+      # See https://github.com/qcscine/development-utils/issues/2
+      - patches/pybind11_pin.patch
+
+build:
+  number: 0
+  skip: true  # [win]
+
+  run_exports:
+    - {{ pin_subpackage(name, max_pin='x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - pkg-config
+    - llvm-openmp  # [osx]
+    - libgomp  # [linux]
+    - python                              # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+    - pybind11                            # [build_platform != target_platform]
+  host:
+    - boost-cpp
+    - eigen
+    - gtest
+    - gmock
+    - nauty
+    - libblas  # [linux]
+    - pip
+    - python
+    - pybind11
+    - pybind11-abi
+    - nlohmann_json
+    - ringdecomposerlib
+    - scine-utilsos
+  run:
+    - boost-cpp
+    - nauty
+    - python
+    - scine-utilities-python
+
+test:
+  imports:
+    - scine_molassembler
+  requires:
+    - pip
+  commands:
+    - test -f $PREFIX/lib/libmolassembler${SHLIB_EXT}
+    - test ! -f $PREFIX/lib/libmolassembler.a
+    - pip check
+
+about:
+  license: BSD-3-Clause
+  license_file: LICENSE.txt
+  summary: |
+    Chemoinformatics toolkit with support for inorganic molecules
+  description: |
+    Molassembler is a C++ library that aims to facilitate conversions between
+    Cartesian and graph representations of molecules. It provides the necessary
+    functionality to represent a molecule as a graph, modify it in graph space,
+    and generate new coordinates from graphs. It can capture the absolute configuration
+    of inorganic molecules with multidentate and haptic ligands from Cartesian
+    coordinates and enumerate non-superposable stereopermutations at non-terminal
+    atoms and non-isotropic bonds at arbitrary local shapes ranging up to the
+    icosahedron and cuboctahedron.
+  home: https://scine.ethz.ch/
+  dev_url: https://github.com/qcscine/molassembler
+
+extra:
+  recipe-maintainers:
+    - awvwgk
