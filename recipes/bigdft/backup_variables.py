@@ -24,17 +24,18 @@ if __name__ == "__main__":
     backup_file = join(dirname(var_file), "backup_conda.sh")
     with open(backup_file, "w") as ofile:
         for var, val in variables.items():
+            ofile.write("export " + var + "_CONDA=")
             if val is None:
-                continue
-            ofile.write("export " + var + "_CONDA=" + val + "\n")
+                ofile.write('""')
+            else:
+                ofile.write(val)
             ofile.write("\n")
 
     # Write a script that restores those values
     restore_file = join(dirname(var_file), "restore_conda.sh")
     with open(restore_file, "w") as ofile:
         for var, val in variables.items():
-            if val is None:
-                ofile.write("unset " + var + "\n")
-            else:
-                ofile.write("export " + var + "=$" + var + "_CONDA\n")
-                ofile.write("unset " + var + "_CONDA\n")
+            ofile.write("export " + var + "=$" + var + "_CONDA\n")
+    print(backup_file)
+    print(restore_file)
+    pass
