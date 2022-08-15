@@ -8,9 +8,8 @@ cd build
 python ../Installer.py -y autogen
 python ../Installer.py -y build -f ../conda.rc
 
-echo "::::Backuping up variables"
-ls
 python $RECIPE_DIR/backup_variables.py $PREFIX/bin/bigdftvars.sh
+cat $PREFIX/bin/*conda.sh
 
 # Activate script
 mkdir -p "${PREFIX}/etc/conda/activate.d"
