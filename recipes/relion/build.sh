@@ -1,9 +1,11 @@
 export CC=gcc
 export CXX=g++
 
-mkdir relion
-tar -xvf 3.1.3.tar.gz -C relion
+export OMPI_CC=mpicc
+export OMPI_CXX=mpicxx
 
-mkdir -p build && cd build
-cmake -DGUI=ON -DFORCE_OWN_FLTK=ON ../relion
-make -j 24
+BUILD_DIRECTORY=${PREFIX}/build
+
+mkdir ${PREFIX}/build && cd ${PREFIX}/build
+cmake -DGUI=ON -DFORCE_OWN_FLTK=OFF -DFORCE_OWN_FFTW=OFF $SRC_DIR
+make -j $CPU_COUNT
