@@ -8,6 +8,7 @@ mkdir build; cd build
 
 cmake \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
+    -DPYTHON_INSTALL_PREFIX=$SP_DIR \
     -DEigen3_ROOT=$PREFIX/include \
     -DKokkos_ENABLE_PTHREAD=ON \
     -DKokkos_ENABLE_SERIAL=ON \
