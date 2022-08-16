@@ -1,5 +1,5 @@
-export CC=gcc
-export CXX=g++
+export CC=$GCC
+export CXX=$GXX
 
 export OMPI_CC=mpicc
 export OMPI_CXX=mpicxx
@@ -14,3 +14,5 @@ cmake \
 -DBUILD_SHARED_LIBS=ON \
 $SRC_DIR
 make -j $CPU_COUNT
+
+# todo: figure out where to copy binaries for package?
