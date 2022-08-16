@@ -1,9 +1,3 @@
-export CC=$GCC
-export CXX=$GXX
-
-export OMPI_CC=mpicc
-export OMPI_CXX=mpicxx
-
 CMAKE_ARGS+=" -DCMAKE_INSTALL_PREFIX=${PREFIX}"
 CMAKE_ARGS+=" -DCMAKE_BUILD_TYPE=Release"
 CMAKE_ARGS+=" -DFORCE_OWN_FLTK=OFF"
