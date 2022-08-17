@@ -1,0 +1,71 @@
+jobs:
+- job: win_64
+  condition: not(eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  pool:
+    vmImage: windows-2019
+  strategy:
+    maxParallel: 4
+    matrix:
+      win:
+        CONFIG: win64
+  timeoutInMinutes: 360
+  steps:
+    - task: PythonScript@0
+      displayName: 'Download Miniforge'
+      inputs:
+        scriptSource: inline
+        script: |
+          import urllib.request
+          url = 'https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Windows-x86_64.exe'
+          path = r"$(Build.ArtifactStagingDirectory)/Miniforge.exe"
+          urllib.request.urlretrieve(url, path)
+    - script: |
+        start /wait "" %BUILD_ARTIFACTSTAGINGDIRECTORY%\Miniforge.exe /InstallationType=JustMe /RegisterPython=0 /S /D=C:\Miniforge
+      displayName: Install Miniforge
+    - powershell: Write-Host "##vso[task.prependpath]C:\Miniforge\Scripts"
+      displayName: Add conda to PATH
+
+    - script: |
+        call activate base
+        mamba.exe install 'python=3.9' 'conda-build>=3.18' 'conda>4.7.12' 'conda-forge-ci-setup=3' 'networkx=2.4' conda-forge-pinning boa  -c conda-forge --strict-channel-priority --yes
+      displayName: Install conda-build
+
+    - script: set PYTHONUNBUFFERED=1
+      displayName: Set PYTHONUNBUFFERED
+
+    # Configure the VM
+    - script: |
+        call activate base
+        setup_conda_rc .\ ".\recipes" .\.ci_support\%CONFIG%.yaml
+      displayName: conda-forge CI setup
+
+    # Configure the VM.
+    - script: |
+        set "CI=azure"
+        call activate base
+        run_conda_forge_build_setup
+      displayName: conda-forge build setup
+
+    # Find the recipes from main in this PR and remove them.
+    - script: |
+        git fetch --force origin main:main
+        cd recipes
+        for /f "tokens=*" %%a in ('git ls-tree --name-only main -- .') do rmdir /s /q %%a && echo Removing recipe: %%a
+        cd ..
+
+    - script: |
+        REM make sure there is a package directory so that artifact publishing works
+        setlocal enableextensions
+        if not exist C:\\bld\\win-64\\ mkdir C:\\bld\\win-64\\
+      displayName: Make artifact dir
+
+    # Special cased version setting some more things!
+    - script: |
+        call activate base
+        git fetch --force origin main:main
+        python .ci_support\build_all.py --arch 64
+
+      displayName: Build recipe
+
+    - publish: C:\\bld\\win-64\\
+      artifact: conda_pkgs_win
