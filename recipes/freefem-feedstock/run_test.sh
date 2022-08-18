@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -ex
 
 test -f $PREFIX/bin/FreeFem++
 test -f $PREFIX/bin/FreeFem++-nw
