@@ -1,5 +1,4 @@
 import numpy as np
-#import math
 
 from numpy import linalg as LA
 
