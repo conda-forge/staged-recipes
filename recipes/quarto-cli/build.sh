@@ -3,6 +3,7 @@ set -ex
 export QUARTO_VENDOR_BINARIES=false
 export QUARTO_NO_SYMLINK=1
 export QUARTO_DENO=$PREFIX/bin/deno
+export DENO_BIN_PATH=$PREFIX/bin/deno
 export QUARTO_DENO_DOM=$DENO_DOM_PLUGIN
 export QUARTO_PANDOC=$PREFIX/bin/pandoc
 export QUARTO_ESBUILD=$PREFIX/bin/esbuild
