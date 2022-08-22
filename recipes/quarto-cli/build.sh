@@ -18,8 +18,6 @@ source package/src/set_package_paths.sh
 source configuration
 
 bash configure.sh
-
-bash package/src/quarto-bld update-html-dependencies
 bash package/src/quarto-bld prepare-dist
 
 # here-doc tab indented

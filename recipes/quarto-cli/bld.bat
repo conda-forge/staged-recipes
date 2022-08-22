@@ -13,7 +13,6 @@ SET QUARTO_DART_SASS=%LIBRARY_BIN%\sass.exe
 @REM SET QUARTO_SHARE_PATH=%LIBRARY_PREFIX%\share\quarto
 
 call configure.cmd
-call package\src\quarto-bld.cmd update-html-dependencies
 call package\src\quarto-bld.cmd prepare-dist
 
 MKDIR %PREFIX%\etc\conda\activate.d
