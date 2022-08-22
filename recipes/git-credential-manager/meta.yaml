@@ -1,0 +1,57 @@
+{% set name = "git-credential-manager" %}
+{% set version = "2.0.785" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/GitCredentialManager/{{ name }}/archive/v{{ version }}.tar.gz
+  sha256: 41ce59a717b773718d45de487624c1eae8497cd735ef79878ee4baf8b14d9b64
+
+build:
+  skip: true  # [not linux64]
+  script: |
+    set -eoux pipefail
+    # Set correct install location
+    sed -i -E 's|^\s*INSTALL_LOCATION="(.*)"$|    INSTALL_LOCATION="${PREFIX}"|g' ./src/linux/Packaging.Linux/build.sh
+    # Set the correct version
+    echo $(jq '.version = "{{ version }}"' version.json) > version.json
+    # Build app
+    dotnet build ./src/linux/Packaging.Linux/Packaging.Linux.csproj -c Release -p:InstallFromSource=true
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - dotnet  >=6
+    - jq
+  host:
+    - fontconfig
+    - lttng-ust              # [linux64]
+    - zlib                   # [unix]
+  run:
+    - dotnet-runtime  >=6
+    - krb5                   # [unix]
+    - lttng-ust              # [linux64]
+
+test:
+  requires:
+    - git
+  commands:
+    - git-credential-manager-core --version
+
+about:
+  home: https://github.com/GitCredentialManager/git-credential-manager
+  summary: 'Secure, cross-platform Git credential storage'
+  description: |
+    Secure, cross-platform Git credential storage with authentication to
+    GitHub, Azure Repos, and other popular Git hosting services.
+  license: MIT
+  license_file:
+    - LICENSE
+    - NOTICE
+
+extra:
+  recipe-maintainers:
+    - dhirschfeld
