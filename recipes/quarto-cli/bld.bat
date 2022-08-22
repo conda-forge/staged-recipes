@@ -26,7 +26,7 @@ MKDIR %PREFIX%\etc\conda\activate.d
   echo SET "QUARTO_DENO_DOM=%DENO_DOM_PLUGIN%"
   echo SET "QUARTO_PANDOC=%LIBRARY_BIN:\=/%\pandoc.exe"
   echo SET "QUARTO_ESBUILD=%LIBRARY_BIN:\=/%\esbuild.exe"
-  echo SET "QUARTO_DART_SASS=%LIBRARY_BIN:\=/%\sass.bat"
+  echo SET "QUARTO_DART_SASS=%LIBRARY_BIN:\=/%\sass.exe"
   echo SET "QUARTO_SHARE_PATH=%LIBRARY_PREFIX:\=/%\share\quarto"
 ) > %PREFIX%\etc\conda\activate.d\quarto.bat
 

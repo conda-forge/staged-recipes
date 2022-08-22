@@ -11,6 +11,7 @@ export QUARTO_DART_SASS=$PREFIX/bin/sass
 
 export QUARTO_PACKAGE_PATH=$SRC_DIR/package
 export QUARTO_DIST_PATH=$PREFIX
+export QUARTO_BIN_PATH=$PREFIX/bin
 export QUARTO_SHARE_PATH=$PREFIX/share/quarto
 
 source package/src/set_package_paths.sh
