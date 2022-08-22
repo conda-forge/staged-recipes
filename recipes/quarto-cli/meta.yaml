@@ -2,6 +2,7 @@
 {% set deno_version = load_file_regex(load_file='./configuration', regex_pattern='export\sDENO=v(\S+)') %}
 {% set deno_dom_version = load_file_regex(load_file='configuration', regex_pattern='export DENO_DOM=v([^-]+)') %}
 {% set pandoc_version = load_file_regex(load_file='configuration', regex_pattern='export PANDOC=(\S+)') %}
+{% set call="call" if win else "" %}
 
 package:
   name: quarto
@@ -16,6 +17,7 @@ source:
     #    in the quarto setup script. The right way to do this is to figure out how to allow the variables to be overridden in the
     #    generated win_configuration.bat file.
     - 0001-win-conda-path-overrides.patch
+    - 0002-conda-install-path-for-tinytex.patch
 
 build:
   number: 0
@@ -44,11 +46,13 @@ requirements:
 
 test:
   commands:
-    - quarto install tool tinytex
-    - quarto check
-    - quarto render hello.qmd --debug --log-level debug --verbose --to pdf
-    - quarto render hello.qmd --debug --log-level debug --verbose --to html
-    - quarto -h
+    # since quarto is a cmd script, we have to run these with "call" or else they exit the
+    #    tests based on the status of the first command (successful or not)
+    - {{ call }} quarto install tool tinytex
+    - {{ call }} quarto check
+    - {{ call }} quarto render hello.qmd --debug --log-level debug --verbose --to pdf
+    - {{ call }} quarto render hello.qmd --debug --log-level debug --verbose --to html
+    - {{ call }} quarto -h
   files:
     - hello.qmd
   requires:
