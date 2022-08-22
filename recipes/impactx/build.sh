@@ -12,9 +12,9 @@ if [[ ${target_platform} =~ osx.* ]]; then
 fi
 
 # IPO/LTO does only work with certain toolchains
-WarpX_IPO=ON
+ImpactX_IPO=ON
 if [[ ${target_platform} =~ osx.* ]]; then
-    WarpX_IPO=OFF
+    ImpactX_IPO=OFF
 fi
 
 # configure
