@@ -8,6 +8,7 @@ if errorlevel 1 exit 1
 :: configure
 cmake ^
     -S %SRC_DIR% -B build                 ^
+    %CMAKE_ARGS%                          ^
     -G "Ninja"                            ^
     -DCMAKE_BUILD_TYPE=RelWithDebInfo     ^
     -DCMAKE_C_COMPILER=clang-cl           ^
