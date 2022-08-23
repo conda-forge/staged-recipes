@@ -1,0 +1,150 @@
+{% set version = "0.1.0" %}  # PEP 386
+{% set source_version = "0.1" %}
+{% set base_version = "0.1.0" %}
+{% set number = "0" %}
+{% set cuda_enabled = cuda_compiler_version is not undefined and cuda_compiler_version == '11.0' %}
+{% set build_ext_version = "1.0.0" %}
+{% set build_ext = "cuda" if cuda_enabled else "cpu" %}
+{% set build_string = "h{}_{}".format(PKG_HASH, number) %}
+{% set build_string_ext = "{}_{}".format(build_string, build_ext) %}
+{% set py_build_string_ext = "py{}{}_{}".format(CONDA_PY, build_string, build_ext) %}
+{% set py_build_string = "py{}{}".format(CONDA_PY, build_string) %}
+{% set install_base = "opt/hdk" %}
+{% set arrow_version = "6.*" %}
+{% set arrow_proc_version = "3.*" %}
+{% set llvm_version = "12" %}
+
+package:
+  name: hdk
+  version: {{ version }}
+
+source:
+  url: https://github.com/intel-ai/hdk/releases/download/v{{ source_version }}/v{{ source_version }}.full.tar.gz
+  sha256: 3de25732870b384a0cfd28009d29999d44f0d8ea4f32add8d3ba810fa56eb0de
+
+build:
+  number: {{ number }}
+  skip: true  # [cuda_compiler_version not in (undefined, "None", "11.0")]
+
+outputs:
+  
+  - name: pyhdk
+    version: {{ version }}
+    script: build-hdk.sh
+    build:
+      string: {{ py_build_string_ext }}
+      skip: true  # [cuda_compiler_version not in (undefined, "None", "11.0") or not linux64]
+      missing_dso_whitelist:
+        - '*/libcuda.*'  # [cuda_compiler_version not in (undefined, "None")]
+      track_features:
+        {{ "- arrow-cuda" if cuda_enabled else "" }}
+      missing_dso_whitelist:
+        - '*/libjvm.so'
+      ignore_run_exports:
+        - arrow-cpp {{ arrow_version }}        
+        - cudatoolkit    # [cuda_compiler_version not in (undefined, "None")]
+        - double-conversion
+        - fmt
+        - glog
+        - libclang-cpp        
+        - ncurses
+        - pyarrow {{ arrow_version }}
+        - python
+        - tbb
+        - zlib
+      rpaths:
+        - lib
+        # path for libjvm.so searching
+        - lib/server
+        # fixes "not found" in `ldd $PREFIX/lib64/libQueryEngine.so` output
+        - {{ install_base }}/lib64
+      run_exports:
+        - {{ pin_subpackage('pyhdk',  max_pin='x.x.x') }}
+    requirements:
+      build:        
+        # c compiler is specified here to get run constraint pins correct, presumably..
+        - {{ compiler('c') }}        
+        - {{ compiler('cxx') }}
+        - {{ compiler("cuda") }}  # [cuda_compiler_version not in (undefined, "None")]
+        - clangdev {{ llvm_version }}
+        # clang++ is used for generating the bytecodes of extension functions
+        - clangxx {{ llvm_version }}
+        - cmake
+        - llvmdev {{ llvm_version }}
+        - make        
+        - maven
+        - ninja        
+      host:        
+        - arrow-cpp ={{ arrow_version }}=*{{ build_ext }}
+        - boost-cpp
+        - clangdev {{ llvm_version }}
+        - cython
+        - glog
+        - llvmdev {{ llvm_version }}
+        - llvm {{ llvm_version }}        
+        - numpy
+        - pyarrow ={{ arrow_version }}=*{{ build_ext }}        
+        - pytest        
+        #FIXME: this constraint might be removed completely when multiversion pythons will be supported
+        - python 3.9
+        - tbb
+        - tbb-devel
+      run:        
+        - arrow-cpp-proc {{ arrow_proc_version }} {{ build_ext }}
+        - boost-cpp
+        - gxx_{{ target_platform }}
+        - {{ pin_compatible('libclang-cpp', max_pin='x.x') }}
+        - pyarrow ={{ arrow_version }}=*{{ build_ext }}
+        #FIXME: we need to remove the constraint and support not only 3.9
+        - python 3.9
+        - openjdk 11.*        
+        - zlib
+        - tbb
+  
+      run_constrained:
+        - arrow-cpp-proc {{ arrow_proc_version }} {{ build_ext }}
+        - cudatoolkit >=11.0  # [cuda_compiler_version not in (undefined, "None")]  
+    test:
+      requires:
+        - pytest
+        - numpy
+        - pandas
+      imports:
+        - pyhdk
+      source_files:
+        - python/tests/test_pyhdk_bindings.py
+        - python/tests/test_pyhdk_sql.py
+      commands:
+        - python python/tests/test_pyhdk_bindings.py
+        - python python/tests/test_pyhdk_sql.py
+
+    about:
+      home: https://github.com/intel-ai/hdk
+      license: Apache-2.0
+      license_family: APACHE
+      license_file: LICENSE
+      summary: oneHDK
+
+      description: |
+        oneHDK
+      doc_url: https://github.com/intel-ai/hdk
+      dev_url: https://github.com/intel-ai/hdk
+
+about:
+  home: https://github.com/intel-ai/hdk
+  license: Apache-2.0
+  license_family: APACHE
+  license_file: LICENSE
+  summary: oneHDK
+
+  description: |
+    oneHDK
+  doc_url: https://github.com/intel-ai/hdk
+  dev_url: https://github.com/intel-ai/hdk
+
+extra:
+  recipe-maintainers:
+    - alexbaden
+    - ienkovich
+    - Garra1980
+    - vlad-penkin
