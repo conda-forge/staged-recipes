@@ -21,7 +21,8 @@ cmake ^
     -DImpactX_COMPUTE=NOACC ^
     -DImpactX_LIB=ON        ^
     -DImpactX_MPI=OFF       ^
-    -DImpactX_PYTHON=ON
+    -DImpactX_PYTHON=ON     ^
+    -DPython_EXECUTABLE=%PYTHON%
 if errorlevel 1 exit 1
 
 :: build

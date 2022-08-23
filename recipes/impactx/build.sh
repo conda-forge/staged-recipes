@@ -32,7 +32,7 @@ cmake \
     -DImpactX_LIB=ON      \
     -DImpactX_MPI=OFF     \
     -DImpactX_PYTHON=ON   \
-    -DPython3_FIND_STRATEGY=LOCATION
+    -DPython_EXECUTABLE=${PYTHON}
 
 # build
 cmake --build build --parallel ${CPU_COUNT}
