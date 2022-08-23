@@ -31,7 +31,8 @@ cmake \
     -DImpactX_pyamrex_branch=c11acfaf08162fe42c5ee07c086d23f2874fa779 \
     -DImpactX_LIB=ON      \
     -DImpactX_MPI=OFF     \
-    -DImpactX_PYTHON=ON
+    -DImpactX_PYTHON=ON   \
+    -DPython3_FIND_STRATEGY=LOCATION
 
 # build
 cmake --build build --parallel ${CPU_COUNT}
