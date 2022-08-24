@@ -1,5 +1,6 @@
 # Files
 cp $RECIPE_DIR/conda.rc .
+cp -r $RECIPE_DIR/licenses .
 
 # Build
 export JHBUILD_RUN_AS_ROOT="please do it"
