@@ -1,3 +1,5 @@
+ls  # debug
+
 ./configure \
 --prefix $PREFIX \
 --srcdir=$SRC_DIR \
@@ -8,4 +10,4 @@
 
 make -j $CPU_COUNT && make install
 
-ls $PREFIX/bin
+ls $PREFIX/bin  # debug
