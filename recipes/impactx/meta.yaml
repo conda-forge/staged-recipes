@@ -1,0 +1,98 @@
+{% set name = "impactx" %}
+{% set version = "22.08" %}
+{% set build = 0 %}
+{% set sha256 = "a4636fe0383f15bd4e2f128a94c537e25bdf7d09772c095ac6b2e9c66b9da385" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/ECP-WarpX/impactx/archive/{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: {{ build }}
+  run_exports:
+    # releases are not (yet) compatible
+    - impactx {{ version }}
+  # wait for 22.09 for Windows builds
+  # https://github.com/ECP-WarpX/impactx/pull/205
+  skip: True  # [win]
+
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - ccache        # [unix]
+    - clang         # [win]
+    - cmake >=3.20.0
+    - lld           # [win]
+    # TODO: add libxml2 dep in lld-feedstock
+    - libxml2       # [win]
+    - make          # [unix]
+    - ninja         # [win]
+    - libgomp       # [linux]
+    - llvm-openmp   # [osx or win]
+  host:
+    - pip
+    - python
+    - setuptools
+    - wheel
+    - pkgconfig
+    # ctest
+    - matplotlib-base  # [build_platform == target_platform]
+    - numpy            # [build_platform == target_platform]
+    - pandas           # [build_platform == target_platform]
+    - pytest           # [build_platform == target_platform]
+    - python           # [build_platform == target_platform]
+    - scipy            # [build_platform == target_platform]
+  run:
+    - matplotlib-base
+    - numpy
+    - pandas
+    - python
+    - scipy
+
+test:
+  requires:
+    - python
+  source_files:
+    - examples/fodo/input_fodo.in
+    - examples/fodo/run_fodo.py
+  files:
+    - test.sh   # [unix]
+    - test.bat  # [win]
+  imports:
+    - impactx
+  commands:
+    - test -f ${PREFIX}/bin/impactx.NOMPI.NOACC.DP  # [unix]
+
+    - if not exist %LIBRARY_PREFIX%\bin\impactx.NOMPI.NOACC.DP.exe exit 1  # [win]
+    # smoke tests: execute
+    - ./test.sh      # [unix and build_platform == target_platform]
+    - call test.bat  # [win]
+
+about:
+  home: https://impactx.readthedocs.io
+  license: BSD-3-Clause-LBNL
+  license_family: BSD
+  license_file: LICENSE.txt
+  summary: ImpactX is an s-based beam dynamics code for particle accelerator research & design.
+
+  description: |
+    ImpactX is an s-based beam dynamics code for particle accelerator research & design.
+    It's the next generation of the IMPACT-Z code.
+
+  doc_url: https://impactx.readthedocs.io
+  dev_url: https://github.com/ECP-WarpX/impactx
+
+extra:
+  recipe-maintainers:
+    - ax3l
+    - cemitch99
+    - n01r
+    - RemiLehe
+    - RTSandberg
