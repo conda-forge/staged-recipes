@@ -3,7 +3,6 @@
 {% set base_version = "0.1.0" %}
 {% set number = "0" %}
 {% set cuda_enabled = cuda_compiler_version is not undefined and cuda_compiler_version == '11.0' %}
-{% set build_ext_version = "1.0.0" %}
 {% set build_ext = "cuda" if cuda_enabled else "cpu" %}
 {% set build_string = "h{}_{}".format(PKG_HASH, number) %}
 {% set build_string_ext = "{}_{}".format(build_string, build_ext) %}
@@ -24,16 +23,17 @@ source:
 
 build:
   number: {{ number }}
-  skip: true  # [cuda_compiler_version not in (undefined, "None", "11.0")]
+  skip: True  # [cuda_compiler_version not in (undefined, "None", "11.0")]
+  skip: True  # [not linux64]
 
 outputs:
-  
+
   - name: pyhdk
     version: {{ version }}
     script: build-hdk.sh
     build:
       string: {{ py_build_string_ext }}
-      skip: true  # [cuda_compiler_version not in (undefined, "None", "11.0") or not linux64]
+      skip: True  # [py not in (38, 39)]
       missing_dso_whitelist:
         - '*/libcuda.*'  # [cuda_compiler_version not in (undefined, "None")]
         - '*/libjvm.so'
@@ -46,9 +46,9 @@ outputs:
         # fixes "overlinking check failed"
         - {{ install_base }}/lib64
     requirements:
-      build:        
+      build:
         # c compiler is specified here to get run constraint pins correct, presumably..
-        - {{ compiler('c') }}        
+        - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - {{ compiler("cuda") }}  # [cuda_compiler_version not in (undefined, "None")]
         - clangdev {{ llvm_version }}
@@ -56,39 +56,34 @@ outputs:
         - clangxx {{ llvm_version }}
         - cmake
         - llvmdev {{ llvm_version }}
-        - make        
+        - make
         - maven
-        - ninja        
-      host:        
+        - ninja
+      host:
         - arrow-cpp ={{ arrow_version }}=*{{ build_ext }}
         - boost-cpp
         - clangdev {{ llvm_version }}
         - cython
         - glog
         - llvmdev {{ llvm_version }}
-        - llvm {{ llvm_version }}        
+        - llvm {{ llvm_version }}
         - numpy
-        - pyarrow ={{ arrow_version }}=*{{ build_ext }}        
-        - pytest        
-        #FIXME: this constraint might be removed completely when multiversion pythons will be supported
-        - python 3.9
-        - tbb
-        - tbb-devel
-      run:        
-        - arrow-cpp-proc {{ arrow_proc_version }} {{ build_ext }}
-        - boost-cpp
-        - gxx_{{ target_platform }}
-        - {{ pin_compatible('libclang-cpp', max_pin='x.x') }}
         - pyarrow ={{ arrow_version }}=*{{ build_ext }}
-        #FIXME: we need to remove the constraint and support not only 3.9
-        - python 3.9
-        - openjdk 11.*        
+        - python
+        - tbb-devel
+      run:
+        - arrow-cpp-proc {{ arrow_proc_version }} {{ build_ext }}
+        - pyarrow ={{ arrow_version }}=*{{ build_ext }}
+        - python
+        - openjdk 11.*
         - zlib
         - tbb
-  
+        - boost-cpp
+
       run_constrained:
         - arrow-cpp-proc {{ arrow_proc_version }} {{ build_ext }}
-        - cudatoolkit >=11.0  # [cuda_compiler_version not in (undefined, "None")]  
+        - cudatoolkit >=11.0  # [cuda_compiler_version not in (undefined, "None")]
+
     test:
       requires:
         - pytest
