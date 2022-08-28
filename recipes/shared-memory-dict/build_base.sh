@@ -1,1 +1,1 @@
-${PYTHON} -m pip install . --no-deps -vv
+${PYTHON} -m pip install . --no-deps --no-build-isolation -vv
