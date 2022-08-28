@@ -1,0 +1,77 @@
+{% set version = "2.5.8" %}
+{% set ver = version.replace(".", "_") %}
+{% set build = 0 %}
+
+# recipe-lint fails if mpi is undefined
+{% set mpi = mpi or 'mpich' %}
+{% if mpi == "mpich" %}
+# prioritize mpich via build number
+{% set build = build + 100 %}
+{% endif %}
+
+package:
+  name: parallelio
+  version: {{ version }}
+
+source:
+  url: https://github.com/NCAR/ParallelIO/archive/refs/tags/pio{{ ver }}.tar.gz
+  sha256: f2584fb4310ff7da39d51efbe3f334efd0ac53ae2995e5fc157decccc0570a89
+
+build:
+  number: {{ build }}
+  skip: True  # [win]
+  {% set mpi_prefix = "mpi_" + mpi %}
+  # add build string so packages can depend on
+  # mpi variants
+  # dependencies:
+  # `PKG_NAME * mpi_mpich_*` for mpich
+  # `PKG_NAME * mpi_*` for any mpi
+  string: "{{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}"
+
+  # mpi builds require the right mpi
+  {% set build_pin = mpi_prefix + '_*' %}
+
+  run_exports:
+    - {{ pin_subpackage('parallelio', max_pin='x.x.x') }} {{ build_pin }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('fortran') }}
+    - cmake
+    - make
+    - llvm-openmp  # [osx]
+    - libgomp      # [linux]
+  host:
+    - {{ mpi }}
+    # these need to be listed twice so conda-smithy build picks up the pins
+    - hdf5
+    - hdf5 * {{ mpi_prefix }}_*
+    - libnetcdf
+    - libnetcdf * {{ mpi_prefix }}_*
+    - netcdf-fortran
+    - netcdf-fortran * {{ mpi_prefix }}_*
+  run:
+    - {{ mpi }}
+    - hdf5 * {{ mpi_prefix }}_*
+    - libnetcdf * {{ mpi_prefix }}_*
+    - netcdf-fortran * {{ mpi_prefix }}_*
+
+test:
+  commands:
+    - test -f ${PREFIX}/lib/libpioc${SHLIB_EXT}
+    - test -f ${PREFIX}/lib/libpiof${SHLIB_EXT}
+
+about:
+  home: https://github.com/NCAR/ParallelIO
+  license: Apache-2.0
+  license_family: Apache
+  license_file: LICENSE
+  summary: A high-level Parallel I/O Library for structured grid applications
+  dev_url: https://github.com/NCAR/ParallelIO
+  doc_url: https://ncar.github.io/ParallelIO/
+
+extra:
+  recipe-maintainers:
+    - xylar
