@@ -1,2 +1,2 @@
-set PBR_VERSION=3.4.3
+set PBR_VERSION=%PKG_VERSION%
 %PYTHON% -m pip install . -vv
