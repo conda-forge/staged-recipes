@@ -14,7 +14,9 @@ FC=mpifort CC=mpicc CXX=mpicxx cmake \
     -DPIO_ENABLE_EXAMPLES:BOOL=OFF \
     -DPIO_ENABLE_TIMING:BOOL=OFF \
     -DNetCDF_C_PATH=$NETCDF_C_PATH \
-    -DNetCDF_Fortran_PATH=$NETCDF_FORTRAN_PATH ..
+    -DNetCDF_Fortran_PATH=$NETCDF_FORTRAN_PATH \
+    -DWITH_PNETCDF:BOOL=OFF \
+    ..
 
 make
 
