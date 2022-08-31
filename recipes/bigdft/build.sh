@@ -8,6 +8,8 @@ cd build
 python ../Installer.py -y autogen
 python ../Installer.py -y build -f ../conda.rc
 
+ls $PREFIX/lib/
+
 python $RECIPE_DIR/backup_variables.py $PREFIX/bin/bigdftvars.sh
 cat $PREFIX/bin/*conda.sh
 
