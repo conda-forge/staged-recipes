@@ -1,6 +1,5 @@
 # Test that we can import everything
 import futile
-import gi
 import BigDFT
 
 # Test A Full Calculation with PyBigDFT
@@ -22,13 +21,4 @@ inp.set_hgrid(0.4)
 
 log = code.run(sys=sys, input=inp)
 print(log.energy)
-
-# Test a calculation using GIBinding
-from BigDFT.Calculators import GIBinding
-code = GIBinding()
-inp["posinp"] = sys.get_posinp()
-code.set(inp)
-out = code.run()
-print(out.eKS)
-
 
