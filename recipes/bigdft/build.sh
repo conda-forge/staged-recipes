@@ -8,9 +8,6 @@ cd build
 python ../Installer.py -y autogen
 python ../Installer.py -y build -f ../conda.rc
 
-# Remove Extra Files
-rm -r $PREFIX/__jhbuild
-
 # Environment variables
 python $RECIPE_DIR/backup_variables.py $PREFIX/bin/bigdftvars.sh
 cat $PREFIX/bin/*conda.sh
@@ -21,5 +18,9 @@ cp "${RECIPE_DIR}/activate.sh" "${PREFIX}/etc/conda/activate.d/${PKG_NAME}_activ
 mkdir -p "${PREFIX}/etc/conda/deactivate.d"
 cp "${RECIPE_DIR}/deactivate.sh" "${PREFIX}/etc/conda/deactivate.d/${PKG_NAME}_deactivate.sh"
 
+# Remove Extra Files
+echo "REMOVING EXTRA FILES"
 ls $PREFIX/
 ls $PREFIX/lib
+
+rm -r $PREFIX/__jhbuild
