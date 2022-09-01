@@ -19,8 +19,4 @@ mkdir -p "${PREFIX}/etc/conda/deactivate.d"
 cp "${RECIPE_DIR}/deactivate.sh" "${PREFIX}/etc/conda/deactivate.d/${PKG_NAME}_deactivate.sh"
 
 # Remove Extra Files
-echo "REMOVING EXTRA FILES"
-ls $PREFIX/
-ls $PREFIX/lib
-
-rm -r $PREFIX/__jhbuild
+rm -r $PREFIX/_jhbuild
