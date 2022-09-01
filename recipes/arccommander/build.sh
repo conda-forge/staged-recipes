@@ -5,7 +5,7 @@ if [[ "${target_platform}" == "osx-64" ]]; then
     cp "publish/osx-x64/arc" "${PREFIX}"
     chmod u+x "${PREFIX}/arc"
 else
-    dotnet publish -c Release -p:UseAppHost=false
+    dotnet publish src/ArcCommander -c Release -p:UseAppHost=false
     PREFIX=$(echo "${PREFIX}" | tr '\\' '/')
     DOTNET_ROOT="${PREFIX}/lib/dotnet"
     TOOL_ROOT=$DOTNET_ROOT/tools/arccommander
