@@ -1,4 +1,8 @@
-cd $SRC_DIR
+cd %SRC_DIR%
 dotnet tool restore
-dotnet fake build -t publishBinariesWin
-copy publish\win-x64\arc.exe %PREFIX%
+dotnet publish src\ArcCommander -c Release -p:UseAppHost=false
+set DOTNET_ROOT="%PREFIX%\lib\dotnet"
+set TOOL_ROOT="%DOTNET_ROOT%\tools\arccommander"
+mkdir %PREFIX%\bin %TOOL_ROOT%
+robocopy /E %SRC_DIR%\src\ArcCommander\bin\Release\net6.0\ %TOOL_ROOT%
+copy "%RECIPE_DIR%\arc.bat" "%PREFIX%\bin\arc.bat"
