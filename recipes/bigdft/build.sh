@@ -20,4 +20,12 @@ cp "${RECIPE_DIR}/deactivate.sh" "${PREFIX}/etc/conda/deactivate.d/${PKG_NAME}_d
 
 # Remove Extra Files
 rm -r $PREFIX/_jhbuild
-ls $PREFIX/lib
+rm $PREFIX/lib/libabinit.a
+rm $PREFIX/lib/libatlab-1.a
+rm $PREFIX/lib/libbigdft-1.a
+rm $PREFIX/lib/libCheSS-1.a
+rm $PREFIX/lib/libdicts.a
+rm $PREFIX/lib/libfutile-1.a
+rm $PREFIX/lib/libGaIn.a
+rm $PREFIX/lib/liborbs.a
+rm $PREFIX/lib/libPSolver-1.a
