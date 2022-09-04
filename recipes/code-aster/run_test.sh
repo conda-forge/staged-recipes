@@ -7,11 +7,11 @@ ls -l $SP_DIR
 
 as_run --test forma01a
 as_run --test sslp114a
-#as_run --test mumps02a
-#as_run --test mumps01a
+as_run --test mumps02a
+as_run --test mumps01a
 ##as_run --test mfron01a # missing mfront exe
 #as_run --test ssnl127a
-#as_run --test umat001a
+as_run --test umat001a
 ##as_run --test hplv101a # missing mfront exe
 #as_run --test zzzz413a
 #as_run --test comp003a
