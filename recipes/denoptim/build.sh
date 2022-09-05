@@ -1,4 +1,5 @@
-#!/bin/bash -euo
+#!/bin/bash
+set -euo pipefail
 
 # Build
 cd "$SRC_DIR"
