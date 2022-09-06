@@ -7,7 +7,6 @@ test -f ${PREFIX}/lib/libbigdft-1.so.9
 test -f ${PREFIX}/lib/libCheSS-1.so.2
 test -f ${PREFIX}/lib/libfmalloc-1.so.9
 test -f ${PREFIX}/lib/libfutile-1.so.9
-test -f ${PREFIX}/lib/liborbs.so.0
 test -f ${PREFIX}/lib/libPSolver-1.so.9
 
 # Check for header
