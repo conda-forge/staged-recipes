@@ -8,3 +8,5 @@ cmake --build build --parallel
 
 # test
 ctest build
+
+exit 1
