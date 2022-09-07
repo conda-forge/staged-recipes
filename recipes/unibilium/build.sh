@@ -3,12 +3,10 @@
 set -o xtrace -o nounset -o pipefail -o errexit
 
 # Use the libtool for now
-export LIBTOOL=${BUILD_PREFIX}/bin/libtool
+export LIBTOOL="${BUILD_PREFIX}/bin/libtool"
+
 make
+make install "PREFIX=${PREFIX}"
 
-# Install it to the prefix
-make install "DESTDIR=${PREFIX}"
-
-# Remove the static library
-# so that we only keep the dynamic library
-rm -rf "${PREFIX}/usr/local/lib/libunibilium.a"
+# Only keep dynamic library
+rm -rf "${PREFIX}/lib/libunibilium.a"
