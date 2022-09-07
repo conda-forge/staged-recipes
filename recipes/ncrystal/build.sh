@@ -1,9 +1,7 @@
 #!/bin/bash
 set -x
 set -e
-which cmake
-cmake --version
-$PYTHON --version
+
 mkdir -p build
 cd build
 
@@ -26,6 +24,9 @@ cmake \
 
 make -j${CPU_COUNT:-1}
 make install
+
+#Note: There is no "make test" or "make ctest" functionality for NCrystal
+#      yet. If it appears in the future, we should add it here.
 
 TMPNCRYSTALLIBNAME=$(cat ./cfg_ncrystal_libname.txt)
 cat <<EOF > ./ncrystal_pypkg/NCrystal/_nclibpath.py
