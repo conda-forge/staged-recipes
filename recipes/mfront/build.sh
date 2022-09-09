@@ -5,8 +5,8 @@ echo "**************** M F R O N T  B U I L D  S T A R T S  H E R E ************
 
 # https://docs.conda.io/projects/conda-build/en/latest/resources/compiler-tools.html#an-aside-on-cmake-and-sysroots
 
-#export LDFLAGS="--sysroot ${CONDA_BUILD_SYSROOT} -L${CONDA_BUILD_SYSROOT}/lib64 -lm -lpthread -L${CONDA_BUILD_SYSROOT}/usr/lib64 -lrt -ldl -L${PREFIX}/lib -lz -lgomp"
-#export CXXFLAGS="${CXXFLAGS} -isysroot ${CONDA_BUILD_SYSROOT} -I${PREFIX}/include"
+export LDFLAGS="--sysroot ${CONDA_BUILD_SYSROOT} -L${CONDA_BUILD_SYSROOT}/lib64 -lm -lpthread -L${CONDA_BUILD_SYSROOT}/usr/lib64 -lrt -ldl -L${PREFIX}/lib -lz -lgomp"
+export CXXFLAGS="${CXXFLAGS} -isysroot ${CONDA_BUILD_SYSROOT} -I${PREFIX}/include"
 mkdir build -p
 cd build
 #echo "boost include dir : "
