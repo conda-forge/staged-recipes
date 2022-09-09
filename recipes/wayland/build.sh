@@ -1,7 +1,6 @@
 #!/bin/sh
 set -x
 set -e
-set -u
 
 # Bare bones development headers and libraries
 meson build \
