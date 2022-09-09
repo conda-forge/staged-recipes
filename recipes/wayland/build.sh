@@ -8,6 +8,8 @@ meson build \
     -Ddocumentation=false \
     -Dtests=false \
     -Ddtd_validation=false \
-    --prefix=${PREFIX}
+    --prefix=${PREFIX} \
+    -Dlibdir=lib \
+    ${MESON_ARGS}
 ninja -C build install
 
