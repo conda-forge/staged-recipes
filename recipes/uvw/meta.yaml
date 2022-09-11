@@ -1,0 +1,50 @@
+{% set name = "libuvw" %}
+{% set version = "2.12.1" %}
+{% set libuv_version = "1.44" %}
+{% set sha256 = "3460842778e91e7d2fae4201e49e4521e9d94fbbf3891ae6c52d3c9fc0673598" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: {{ name }}-{{ version }}.tar.gz
+  url: https://github.com/skypjack/uvw/archive/v{{ version }}_libuv_v{{ libuv_version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_subpackage(name, max_pin='x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - make  # [unix]
+    - pkg-config
+  host:
+    # Since libuv is not in the conda-forge-pinning-feedstock yet, we need to select a libuv version explicitly
+    - libuv {{ libuv_version }}
+  run:
+    # Since libuv is lacking a run_exports, we need to pin the version used at runtime; see https://github.com/conda-forge/libuv-feedstock/pull/58
+    - libuv {{ libuv_version }}
+
+test:
+  commands:
+    - test -f ${PREFIX}/include/uvw.hpp            # [unix]
+    - test -f ${PREFIX}/lib/libuvw${SHLIB_EXT}     # [not win]
+    - if not exist %LIBRARY_INC%\uvw.hpp (exit 1)  # [win]
+    - if not exist %LIBRARY_LIB%\uvw.lib (exit 1)  # [win]
+
+about:
+  home: https://github.com/skypjack/uvw
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: A C++ wrapper for libuv, a multi-platform support library with a focus on asynchronous I/O
+
+extra:
+  recipe-maintainers:
+    - asafkahlon
