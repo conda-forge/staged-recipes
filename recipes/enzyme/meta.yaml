@@ -1,0 +1,63 @@
+{% set name = "enzyme" %}
+{% set version = "0.0.37" %}
+{% set build_number = 0 %}
+
+# Needed for the linter even though it's specified in conda_build_config.yaml
+{% set llvm_major_version = llvm_major_version or "12" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/EnzymeAD/Enzyme/archive/v{{ version }}.tar.gz
+  sha256: 9648c67351e27c5f568baa338c15bf6197374f425a4c99654bbd2c25b25e24e8
+
+build:
+  number: {{ build_number }}
+  string: llvm{{ llvm_major_version }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+  # Loadable modules are not supported by LLVM on Windows
+  skip: True  # [win]
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - lit
+  host:
+    - {{ "libllvm" + llvm_major_version }}
+    - llvmdev {{ llvm_major_version }}
+    - clangdev {{ llvm_major_version }}
+    - llvm
+    - lit
+  run:
+    - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("12.5") }}  # [osx and x86_64]
+    - {{ "libllvm" + llvm_major_version }}
+  run_constrained:
+    - llvmdev {{ llvm_major_version + ".*" }}
+
+test:
+   commands:
+     - test -f $PREFIX/lib/LLVMEnzyme-{{ llvm_major_version }}${SHLIB_EXT}  # [unix]
+     - test -f $PREFIX/lib/LLDEnzyme-{{ llvm_major_version }}${SHLIB_EXT}   # [unix]
+     - test -f $PREFIX/lib/ClangEnzyme-{{ llvm_major_version }}${SHLIB_EXT} # [unix]
+
+about:
+  home: https://enzyme.mit.edu/
+  license: Apache-2.0 WITH LLVM-exception
+  license_file: LICENSE
+  summary: 'High-performance automatic differentiation of LLVM'
+  description: |
+    The Enzyme project is a tool that takes arbitrary existing code as
+    LLVM IR and computes the derivative (and gradient) of that function.
+    This allows developers to use Enzyme to automatically create gradients
+    of their source code without much additional work.
+  doc_url: https://enzyme.mit.edu/
+  dev_url: https://github.com/EnzymeAD/Enzyme
+
+extra:
+  recipe-maintainers:
+    - ludgerpaehler
+    - wsmoses
+
