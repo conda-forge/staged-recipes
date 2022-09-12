@@ -1,6 +1,3 @@
-echo "Getting version"
-set -e && (cd $SRC_DIR && make version)
-
 echo "Running make sbt-build..."
 set -e && (cd $SRC_DIR && make sbt-build)
 
