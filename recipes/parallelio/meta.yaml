@@ -5,9 +5,11 @@
 # recipe-lint fails if mpi is undefined
 {% set mpi = mpi or 'mpich' %}
 {% if mpi == "mpich" %}
-# prioritize mpich via build number
-{% set build = build + 100 %}
+  # prioritize mpich via build number
+  {% set build = build + 100 %}
 {% endif %}
+
+{% set mpi_prefix = "mpi_" + mpi %}
 
 package:
   name: parallelio
@@ -20,19 +22,12 @@ source:
 build:
   number: {{ build }}
   skip: True  # [win]
-  {% set mpi_prefix = "mpi_" + mpi %}
-  # add build string so packages can depend on
-  # mpi variants
-  # dependencies:
+  # add build string so packages can depend on mpi variants dependencies:
   # `PKG_NAME * mpi_mpich_*` for mpich
   # `PKG_NAME * mpi_*` for any mpi
   string: "{{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}"
-
-  # mpi builds require the right mpi
-  {% set build_pin = mpi_prefix + '_*' %}
-
   run_exports:
-    - {{ pin_subpackage('parallelio', max_pin='x.x.x') }} {{ build_pin }}
+    - {{ pin_subpackage('parallelio', max_pin='x.x.x') }} {{ mpi_prefix }}_*
 
 requirements:
   build:
@@ -62,6 +57,7 @@ test:
   commands:
     - test -f ${PREFIX}/lib/libpioc${SHLIB_EXT}
     - test -f ${PREFIX}/lib/libpiof${SHLIB_EXT}
+    - test -f ${PREFIX}/include/pio.h
 
 about:
   home: https://github.com/NCAR/ParallelIO
