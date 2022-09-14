@@ -18,9 +18,9 @@ FC=mpifort CC=mpicc cmake \
     -DWITH_PNETCDF:BOOL=OFF \
     ..
 
-make
+cmake --build .
 
 # make tests
 # ctest
 
-make install
+cmake --install .
