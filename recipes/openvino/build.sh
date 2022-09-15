@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+set +ex
+
+if [[ "${target_platform}" != "${build_platform}" ]]; then
+    CMAKE_ARGS="${CMAKE_ARGS} -DProtobuf_PROTOC_EXECUTABLE=$BUILD_PREFIX/bin/protoc"
+fi
+
+# TODO: whether we need this
+export PKG_CONFIG_LIBDIR=$PREFIX/lib
+export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$PREFIX/lib/pkgconfig
+
+mkdir -p build
+cd build
+cmake ${CMAKE_ARGS}                      \
+    -DCMAKE_BUILD_TYPE="Release"         \
+    -DENABLE_INTEL_CPU=ON                \
+    -DENABLE_INTEL_GPU=ON                \
+    -DENABLE_INTEL_GNA=ON                \
+    -DENABLE_INTEL_MYRIAD_COMMON=ON      \
+    -DENABLE_OV_IR_FRONTEND=ON           \
+    -DENABLE_OV_ONNX_FRONTEND=ON         \
+    -DENABLE_OV_PADDLE_FRONTEND=ON       \
+    -DENABLE_OV_TF_FRONTEND=ON           \
+    -DENABLE_OPENCV=OFF                  \
+    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+    -DCMAKE_C_COMPILER_LAUNCHER=ccache   \
+    -DENABLE_SYSTEM_TBB=ON               \
+    -DENABLE_SYSTEM_PUGIXML=ON           \
+    -DENABLE_CPPLINT=OFF                 \
+    -DENABLE_CLANG_FORMAT=OFF            \
+    -DENABLE_IR_V7_READER=OFF            \
+    -DENABLE_NCC_STYLE=OFF               \
+    -DENABLE_TEMPLATE=OFF                \
+    -DENABLE_REQUIREMENTS_INSTALL=OFF    \
+    ..
+
+# TODO: add usage of OpenVINO Conrtib repo
+
+cmake --build . --target all -v -j128 -- -k
+# cmake --build . --target install
