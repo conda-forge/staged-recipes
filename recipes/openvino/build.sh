@@ -13,7 +13,7 @@ export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$PREFIX/lib/pkgconfig
 mkdir -p build
 cd build
 cmake ${CMAKE_ARGS}                      \
-    -DCMAKE_BUILD_TYPE="Release"         \
+    -DCMAKE_BUILD_TYPE=Release           \
     -DENABLE_INTEL_CPU=ON                \
     -DENABLE_INTEL_GPU=ON                \
     -DENABLE_INTEL_GNA=ON                \
@@ -33,6 +33,7 @@ cmake ${CMAKE_ARGS}                      \
     -DENABLE_NCC_STYLE=OFF               \
     -DENABLE_TEMPLATE=OFF                \
     -DENABLE_REQUIREMENTS_INSTALL=OFF    \
+    -UCPACK_GENERATOR                    \
     ..
 
 # TODO: add usage of OpenVINO Conrtib repo
