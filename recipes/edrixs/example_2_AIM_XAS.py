@@ -143,7 +143,7 @@ trans_c2n = edrixs.tmat_c2r('d',True)
 # are used here. See :ref:`sphx_glr_auto_examples_example_1_crystal_field.py`
 # for more details if needed.
 ten_dq = 0.56
-CF = np.zeros((norb_d, norb_d), dtype=np.complex)
+CF = np.zeros((norb_d, norb_d), dtype=complex)
 diagonal_indices = np.arange(norb_d)
 
 orbital_energies = np.array([e for orbital_energy in
@@ -178,12 +178,12 @@ imp_mat_n = CF + soc + E_dc_mat
 # only one bath, with 10 spin-orbitals. We initialize the matrix to
 # :code:`norb_d` and then split the energies according to :code:`ten_dq_bath`.
 ten_dq_bath = 1.44
-bath_level = np.full((nbath, norb_d), E_L, dtype=np.complex)
+bath_level = np.full((nbath, norb_d), E_L, dtype=complex)
 bath_level[0, :2] += ten_dq_bath*.6  # 3z2-r2
 bath_level[0, 2:6] -= ten_dq_bath*.4  # zx/yz
 bath_level[0, 6:8] += ten_dq_bath*.6  # x2-y2
 bath_level[0, 8:] -= ten_dq_bath*.4  # xy
-bath_level_n = np.full((nbath, norb_d), E_Lc, dtype=np.complex)
+bath_level_n = np.full((nbath, norb_d), E_Lc, dtype=complex)
 bath_level_n[0, :2] += ten_dq_bath*.6  # 3z2-r2
 bath_level_n[0, 2:6] -= ten_dq_bath*.4  # zx/yz
 bath_level_n[0, 6:8] += ten_dq_bath*.6  # x2-y2
@@ -198,7 +198,7 @@ bath_level_n[0, 8:] -= ten_dq_bath*.4  # xy
 Veg = 2.06
 Vt2g = 1.21
     
-hyb = np.zeros((nbath, norb_d), dtype=np.complex)
+hyb = np.zeros((nbath, norb_d), dtype=complex)
 hyb[0, :2] = Veg  # 3z2-r2
 hyb[0, 2:6] = Vt2g  # zx/yz
 hyb[0, 6:8] = Veg  # x2-y2
