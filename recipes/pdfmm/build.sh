@@ -11,7 +11,8 @@ cmake -B build \
   -DCMAKE_CXX_STANDARD=17 \
   -DPDFMM_BUILD_STATIC=OFF \
   -DPDFMM_USE_VISIBILITY=ON \
-  -DPDFMM_BUILD_LIB_ONLY=ON
+  -DPDFMM_BUILD_LIB_ONLY=ON \
+  ${CMAKE_ARGS}
 
 # build
 cmake --build build
