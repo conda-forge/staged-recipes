@@ -19,3 +19,8 @@ cmake --build build
 
 # install
 cmake --install build --prefix=${PREFIX}
+
+# copy missing header files
+cp ${SRC_DIR}/src/pdfmm/pdfmm-base.h ${PREFIX}/include/pdfmm/pdfmm-base.h
+cp ${SRC_DIR}/src/pdfmm/pdfmm-contrib.h ${PREFIX}/include/pdfmm/pdfmm-contrib.h
+
