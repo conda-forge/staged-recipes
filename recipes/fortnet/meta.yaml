@@ -1,0 +1,84 @@
+{% set name = "fortnet" %}
+{% set version = "0.7.1" %}
+{% set build = 0 %}
+{% set mpi = mpi or "nompi" %}
+{% set origin = "vanderhe" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/{{ origin }}/{{ name }}/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: a7537585e947e3352324b866533b7756a6cfb5ff1524e3a2ff16929d9283cb39
+
+{% if mpi == "nompi" %}
+{% set build = build + 100 %}
+{% endif %}
+build:
+  number: {{ build }}
+  skip: True  # [not linux]
+
+  {% if mpi != "nompi" %}
+  {% set mpi_prefix = "mpi_" + mpi %}
+  {% else %}
+  {% set mpi_prefix = "nompi" %}
+  {% endif %}
+  string: "{{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}"
+
+  {% if mpi != "nompi" %}
+  run_exports:
+    - {{ name }} * {{ mpi_prefix }}_*
+  {% endif %}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('fortran') }}
+    - python
+    - h5py
+    - numpy
+    - cmake
+    - ninja
+    - fypp
+    - wget  # [build_platform == target_platform]
+    - hdf5 >=1.10.4  # [build_platform != target_platform]
+    - hdf5 * nompi_*  # [build_platform != target_platform]
+  host:
+    - {{ mpi }}  # [mpi != "nompi"]
+    - mpifx * mpi_{{ mpi }}_*  # [mpi != "nompi"]
+    - libblas
+    - liblapack
+    - hdf5 >=1.10.4
+    - hdf5 * nompi_*
+  run:
+    - {{ mpi }}  # [mpi != "nompi"]
+    - {{ pin_compatible('mpifx', max_pin='x.x') }} mpi_{{ mpi }}_*  # [mpi != "nompi"]
+    # hdf5 >=1.10.4 has run_exports
+    - hdf5
+
+test:
+  commands:
+    - export OMPI_MCA_plm=isolated OMPI_MCA_btl_vader_single_copy_mechanism=none OMPI_MCA_rmaps_base_oversubscribe=yes  # [mpi == "openmpi"]
+    - test -f $PREFIX/bin/fnet
+    - $PREFIX/bin/fnet | grep "Error in opening file"  # [mpi == "nompi" and build_platform == target_platform]
+    - mpiexec $PREFIX/bin/fnet | grep "Error in opening file"  # [mpi != "nompi" and build_platform == target_platform]
+    - test -f $PREFIX/lib/libfortnet${SHLIB_EXT}
+
+about:
+  home: https://github.com/{{ origin }}/{{ name }}
+  license: LGPL-3.0-or-later
+  license_family: LGPL
+  license_file:
+    - "LICENSE"
+    - "COPYING"
+    - "COPYING.LESSER"
+    - "external/fsockets/LICENSE"
+    - "external/xmlf90/LICENSE"
+  summary: "Fortnet, a software package for training Behler-Parrinello neural networks"
+  doc_url: https://{{ name }}.readthedocs.io
+  dev_url: https://github.com/{{ origin }}/{{ name }}
+
+extra:
+  recipe-maintainers:
+    - vanderhe
