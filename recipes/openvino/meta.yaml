@@ -6,22 +6,12 @@ package:
   version: {{ version }}
 
 source:
-  # path to local openvino build
   path: ../../../openvino
-  # url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
-  # If getting the source from GitHub, remove the line above,
-  # uncomment the line below, and modify as needed. Use releases if available:
-  # url: https://github.com/{{ name }}/{{ name }}/archive/refs/tags/v{{ version }}.tar.gz
-  # and otherwise fall back to archive:
-  # url: https://github.com/simplejson/simplejson/archive/v{{ version }}.tar.gz
+  # url: https://github.com/openvinotoolkit/{{ name }}/archive/refs/tags/{{ version }}.tar.gz
+  # fn: {{ version }}.tar.gz
   # sha256: 5522f3113924325499f15cd8a3fe47a42dfa127a6b76c1921b51cf3c3f2a6aa6
-  # sha256 is the preferred checksum -- you can get it for a file with:
-  #  `openssl sha256 <file name>`.
-  # You may need the openssl package, available on conda-forge:
-  #  `conda install openssl -c conda-forge``
 
 build:
-  skip: True  # [py<=36]"
   number: 0
 
 requirements:
@@ -30,45 +20,86 @@ requirements:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
     - git
-    - cmake
+    - cmake >=3.13
     - ccache
-    - ninja
+    - ninja # [win]
+    - make  # [not win]
     # python
-    - python
+    - python >=3.6
     - cython
     # common
-    - tbb-devel
-    - pugixml # static version is provided
-    - zlib # samples
     # - gflags # compile tool
     # cpu
-    - sysroot_linux-64=2.17
+    - sysroot_linux-64 =2.17
     # myriad
     - pkg-config
-    - libusb
   host:
-    - tbb
-    - gflags # compile tool
+    # - gflags # compile tool
+    - tbb >=2021.5
+    - pugixml # static version is provided
+    # myriad
     - libusb
   run:
-    - tbb
-    - gflags # compile tool
+    # - gflags # compile tool
+    - tbb >=2021.5
     - libusb
 
 test:
   files:
     - bin/intel64/Release/ieUnitTests
   commands:
+     # are they running?
     - bin/intel64/Release/ieUnitTests
 
 outputs:
   - name: libopenvino
     version: {{ version }}
     script: install.sh
+    about:
+      summary: OpenVINO Core Runtime library
+    test:
+      source_files:
+        - bin/intel64/Release/ieUnitTests
+      commands:
+        {% set openvino_libs = [] %}
+        {{ openvino_libs.append("") or "" }}
+        {{ openvino_libs.append("_c") or "" }}
+        {{ openvino_libs.append("_ir_frontend") or "" }}
+        {{ openvino_libs.append("_paddle_frontend") or "" }}
+        {{ openvino_libs.append("_onnx_frontend") or "" }}
+        {% for openvino_lib in openvino_libs %}
+        - test -f $PREFIX/runtime/lib/intel64/libopenvino{{ openvino_lib }}${SHLIB_EXT}.{{ version }} # [unix]
+        {% endfor %}
+        - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PREFIX/runtime/lib/intel64 # [unix]
+        - bin/intel64/Release/ieUnitTests --gtest_filter=-*ExtensionTests* # [unix]
 
   - name: libopenvino-dev
     version: {{ version }}
     script: install_dev.sh
+    about:
+      summary: OpenVINO Runtime Development files
+    requirements:
+      run:
+        - {{ pin_subpackage('libopenvino', exact=True) }} # dev package is for specific version of openvino
+    test:
+      requires:
+        - {{ compiler('cxx') }}
+        - {{ compiler('c') }}
+        - ninja  # [win]
+        - make   # [not win]
+        - cmake >=3.13
+        - zlib
+        - nlohmann_json
+        - gflags
+      source_files:
+        - samples
+        - thirdparty/cnpy
+      commands:
+        - mkdir -p samples/cpp/thirdparty
+        - cp -R thirdparty/cnpy samples/cpp/thirdparty/cnpy
+        - cmake -DOpenVINO_DIR=$PREFIX/runtime/cmake -S samples/cpp -B samples_cpp_build
+        - cmake --build samples_cpp_build --parallel
+        - samples_cpp_build/intel64/hello_query_device
 
     # requirements:
     #   build:
@@ -92,11 +123,13 @@ about:
     high-performance and rich deployment options, from edge to cloud
   license: Apache-2.0
   license_family: Apache
-  # It is required to include a license file in the package,
-  # (even if the license doesn't require it) using the license_file entry.
-  # Please also note that some projects have multiple license files which all need to be added using a valid yaml list.
-  # See https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#license-file
-  # license_file: LICENSE.txt
+  license_file:
+    - LICENSE
+    - licensing/third-party-programs.txt
+    - licensing/onednn_third-party-programs.txt
+    - licensing/runtime-third-party-programs.txt
+    - licensing/tbb_third-party-programs.txt
+    - licensing/third-party-programs.txt
   doc_url: https://docs.openvino.ai/latest/index.html
   dev_url: https://github.com/openvinotoolkit/openvino
 

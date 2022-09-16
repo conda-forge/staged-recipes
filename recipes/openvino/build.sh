@@ -33,10 +33,13 @@ cmake ${CMAKE_ARGS}                      \
     -DENABLE_NCC_STYLE=OFF               \
     -DENABLE_TEMPLATE=OFF                \
     -DENABLE_REQUIREMENTS_INSTALL=OFF    \
-    -UCPACK_GENERATOR                    \
+    -DENABLE_SAMPLES=OFF                 \
+    -DENABLE_TESTS=ON                    \
+    -DENABLE_DATA=OFF                    \
     ..
 
 # TODO: add usage of OpenVINO Conrtib repo
 
-cmake --build . --target all -v -j128 -- -k
+make -j128 -k
+# cmake --build . --target all -v -j128 -- -k
 # cmake --build . --target install
