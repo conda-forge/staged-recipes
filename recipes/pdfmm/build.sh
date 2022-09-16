@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -ex
+
 CXX_FLAGS="${CXX_FLAGS} -fmessage-length=0 -fstack-protector-all -Ofast -D_FORTIFY_SOURCE=2"
 CXX_FLAGS="${CXX_FLAGS} -funwind-tables -fpic -fasynchronous-unwind-tables"
 
