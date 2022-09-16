@@ -1,39 +1,34 @@
 #!/usr/bin/env bash
 
-# -*- mode: jinja-shell -*-
+set -x
 
-source .scripts/logging_utils.sh
+echo -e "\n\nInstalling a fresh version of Mambaforge."
+if [[ ${CI} == "travis" ]]; then
+  echo -en 'travis_fold:start:install_mambaforge\\r'
+fi
+MAMBAFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download"
+MAMBAFORGE_FILE="Mambaforge-MacOSX-x86_64.sh"
+curl -L -O "${MAMBAFORGE_URL}/${MAMBAFORGE_FILE}"
+bash $MAMBAFORGE_FILE -b
+if [[ ${CI} == "travis" ]]; then
+  echo -en 'travis_fold:end:install_mambaforge\\r'
+fi
 
-set -xe
+echo -e "\n\nConfiguring conda."
+if [[ ${CI} == "travis" ]]; then
+  echo -en 'travis_fold:start:configure_conda\\r'
+fi
 
-MINIFORGE_HOME=${MINIFORGE_HOME:-${HOME}/miniforge3}
-
-( startgroup "Installing a fresh version of Miniforge" ) 2> /dev/null
-
-MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download"
-MINIFORGE_FILE="Mambaforge-MacOSX-$(uname -m).sh"
-curl -L -O "${MINIFORGE_URL}/${MINIFORGE_FILE}"
-rm -rf ${MINIFORGE_HOME}
-bash $MINIFORGE_FILE -b -p ${MINIFORGE_HOME}
-
-( endgroup "Installing a fresh version of Miniforge" ) 2> /dev/null
-
-( startgroup "Configuring conda" ) 2> /dev/null
-
-source ${MINIFORGE_HOME}/etc/profile.d/conda.sh
+source ${HOME}/Mambaforge/etc/profile.d/conda.sh
 conda activate base
 
-echo -e "\n\nInstalling ['conda-forge-ci-setup=3'] and conda-build."
-mamba install --update-specs --quiet --yes --channel conda-forge \
-    conda-build pip boa conda-forge-ci-setup=3
-mamba update --update-specs --yes --quiet --channel conda-forge \
-    conda-build pip boa conda-forge-ci-setup=3
+echo -e "\n\nInstalling conda-forge-ci-setup=3, conda-build and boa."
+mamba install -n base --yes --quiet "conda>4.7.12" conda-forge-ci-setup=3.* conda-forge-pinning networkx=2.4 "conda-build>=3.16" "boa"
 
 
 
 echo -e "\n\nSetting up the condarc and mangling the compiler."
-setup_conda_rc ./ ./recipe ./.ci_support/${CONFIG}.yaml
-
+setup_conda_rc ./ ./recipes ./.ci_support/${CONFIG}.yaml
 if [[ "${CI:-}" != "" ]]; then
   mangle_compiler ./ ./recipe .ci_support/${CONFIG}.yaml
 fi
@@ -50,37 +45,24 @@ echo -e "\n\nRunning the build setup script."
 source run_conda_forge_build_setup
 
 
-
-( endgroup "Configuring conda" ) 2> /dev/null
-
-echo -e "\n\nMaking the build clobber file"
-make_build_number ./ ./recipe ./.ci_support/${CONFIG}.yaml
-
-
-if [[ -f LICENSE.txt ]]; then
-  cp LICENSE.txt "recipe/recipe-scripts-license.txt"
+if [[ ${CI} == "travis" ]]; then
+  echo -en 'travis_fold:end:configure_conda\\r'
 fi
 
-if [[ "${BUILD_WITH_CONDA_DEBUG:-0}" == 1 ]]; then
-    if [[ "x${BUILD_OUTPUT_ID:-}" != "x" ]]; then
-        EXTRA_CB_OPTIONS="${EXTRA_CB_OPTIONS:-} --output-id ${BUILD_OUTPUT_ID}"
-    fi
-    conda debug ./recipe -m ./.ci_support/${CONFIG}.yaml \
-        ${EXTRA_CB_OPTIONS:-} \
-        --clobber-file ./.ci_support/clobber_${CONFIG}.yaml
+set -e
 
-    # Drop into an interactive shell
-    /bin/bash
-else
-    conda mambabuild ./recipe -m ./.ci_support/${CONFIG}.yaml \
-        --suppress-variables ${EXTRA_CB_OPTIONS:-} \
-        --clobber-file ./.ci_support/clobber_${CONFIG}.yaml
+# make sure there is a package directory so that artifact publishing works
+mkdir -p /Users/runner/Mambaforge/conda-bld/osx-64/
 
-    ( startgroup "Uploading packages" ) 2> /dev/null
+# Find the recipes from main in this PR and remove them.
 
-    if [[ "${UPLOAD_PACKAGES}" != "False" ]] && [[ "${IS_PR_BUILD}" == "False" ]]; then
-      upload_package  ./ ./recipe ./.ci_support/${CONFIG}.yaml
-    fi
+echo ""
+echo "Finding recipes merged in main and removing them from the build."
+pushd ./recipes > /dev/null
+git fetch --force origin main:main
+git ls-tree --name-only main -- . | xargs -I {} sh -c "rm -rf {} && echo Removing recipe: {}"
+popd > /dev/null
+echo ""
 
-    ( endgroup "Uploading packages" ) 2> /dev/null
-fi
+# We just want to build all of the recipes.
+python .ci_support/build_all.py
