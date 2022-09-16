@@ -1,0 +1,62 @@
+From 7268f1071a490fdebc61cc005424c1db0e9a3d42 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Julian=20R=C3=BCth?= <julian.rueth@fsfe.org>
+Date: Sat, 17 Sep 2022 01:54:55 +0300
+Subject: [PATCH] Fix compilation if tpl uses wstring for command lines
+
+we just pretend that the input is UTF-8 encoded. If that's not the case
+then there will likely be strange errors due to the wrong encoding.
+---
+ src/libclang/libclang_parser.cpp | 21 ++++++++++++++++++---
+ 1 file changed, 18 insertions(+), 3 deletions(-)
+
+diff --git a/src/libclang/libclang_parser.cpp b/src/libclang/libclang_parser.cpp
+index b45290b..bf3238a 100644
+--- a/src/libclang/libclang_parser.cpp
++++ b/src/libclang/libclang_parser.cpp
+@@ -6,6 +6,9 @@
+ #include <cstring>
+ #include <fstream>
+ #include <vector>
++#include <locale>
++#include <codecvt>
++#include <string>
+ 
+ #include <clang-c/CXCompilationDatabase.h>
+ #include <process.hpp>
+@@ -245,10 +248,22 @@ libclang_compile_config::libclang_compile_config(const libclang_compilation_data
+ 
+ namespace
+ {
++// Convert the input to a string that tiny-process-library (tpl) understands.
++// If tpl uses wstring, then pretend that the input is UTF-8 and widen it to UTF-16.
++// Otherwise, return the input unchanged.
++tpl::Process::string_type widen(const std::string& s)
++{
++  if (std::is_same_v<tpl::Process::string_type, std::string>)
++    return s;
++
++  // see https://stackoverflow.com/a/18597384/812379
++  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
++  return converter.from_bytes(s);
++}
++
+ bool is_valid_binary(const std::string& binary)
+ {
+-    tpl::Process process(
+-        binary + " -v", "", [](const char*, std::size_t) {}, [](const char*, std::size_t) {});
++    tpl::Process process(widen(binary) + widen(" -v"));
+     return process.get_exit_status() == 0;
+ }
+ 
+@@ -262,7 +277,7 @@ void add_default_include_dirs(libclang_compile_config& config)
+ {
+     std::string  verbose_output;
+     tpl::Process process(
+-        detail::libclang_compile_config_access::clang_binary(config) + " -x c++ -v -", "",
++        widen(detail::libclang_compile_config_access::clang_binary(config)) + widen(" -x c++ -v -"), tpl::Process::string_type(),
+         [](const char*, std::size_t) {},
+         [&](const char* str, std::size_t n) { verbose_output.append(str, n); }, true);
+     process.write("", 1);
+-- 
+2.37.1
+
