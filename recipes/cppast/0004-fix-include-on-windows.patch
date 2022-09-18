@@ -1,4 +1,4 @@
-From 83f3eca31b6ddf869cee4f165a0db09813c6a4e6 Mon Sep 17 00:00:00 2001
+From 7083a19f96f5cced39a867b35ce8015e097cdfc6 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Julian=20R=C3=BCth?= <julian.rueth@fsfe.org>
 Date: Sun, 18 Sep 2022 16:17:47 +0300
 Subject: [PATCH] Use INCLUDE environment variable
@@ -11,24 +11,25 @@ variables so that cl.exe uses conda-forge's include paths and libraries,
 namely it sets the INCLUDE environment variable.
 
 However, this does not configure the environment variables that clang++
-uses. Therefore, the logic that this patch removes still uses the system
-header files from MSVC which causes problems.
+uses and also these are not the correct includes for clang++. Therefore,
+the logic that this patch removes uses the system header files from MSVC
+which causes problems.
 
-Here, we tell clang++ to also use the INCLUDE variable for cl.exe since
-that provides the correct default include path.
+Here, we tell clang++ to use include/ from the CONDA_PREFIX which should
+be considered the default include paths in a conda setup.
 
 Note that we do not need to do anything about library paths since cppast
 does not perform any linking or compiling but only runs the
 preprocessor.
 ---
- src/libclang/libclang_parser.cpp | 64 +++++++++-----------------------
- 1 file changed, 18 insertions(+), 46 deletions(-)
+ src/libclang/libclang_parser.cpp | 51 +++-----------------------------
+ 1 file changed, 4 insertions(+), 47 deletions(-)
 
 diff --git a/src/libclang/libclang_parser.cpp b/src/libclang/libclang_parser.cpp
-index cdacc8a..dc77fcf 100644
+index cdacc8a..98d6430 100644
 --- a/src/libclang/libclang_parser.cpp
 +++ b/src/libclang/libclang_parser.cpp
-@@ -260,53 +260,25 @@ bool is_valid_binary(const std::string& binary)
+@@ -260,54 +260,11 @@ bool is_valid_binary(const std::string& binary)
  
  void add_default_include_dirs(libclang_compile_config& config)
  {
@@ -77,29 +78,16 @@ index cdacc8a..dc77fcf 100644
 -            else
 -                path += c;
 -        }
-+    const char* include = std::getenv("INCLUDE");
-+    if (include == nullptr)
++    const char* prefix = std::getenv("CONDA_PREFIX");
++    if (prefix == nullptr)
 +      return;
-+
-+    std::string paths = include;
-+    while (true) {
-+      std::string path = paths;
-+
-+      size_t end = paths.find(';');
-+      if (end != std::string::npos)
-+        path = path.substr(0, end);
-+
-+      if (!path.empty())
-+        config.add_include_dir(path);
-+
-+      if (end == std::string::npos)
-+        break;
  
 -        config.add_include_dir(std::move(path));
-+      paths = paths.substr(end + 1);
-     }
+-    }
++    config.add_include_dir(std::string(prefix) + "\\Library\\include");
  }
  } // namespace
+ 
 -- 
 2.37.3
 
