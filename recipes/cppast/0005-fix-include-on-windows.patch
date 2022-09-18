@@ -1,0 +1,99 @@
+From 94de65c7513f180c9b3c4916c7e81a484a28b31a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Julian=20R=C3=BCth?= <julian.rueth@fsfe.org>
+Date: Sun, 18 Sep 2022 13:52:15 +0300
+Subject: [PATCH] Use INCLUDE environment variable
+
+this patch is only relevant on Windows and only for conda-forge.
+
+On Windows, when installing cxx-compiler, we get a clang with the cl.exe
+wrappers. The packages that cxx-compiler pulls in, set the environment
+variables so that cl.exe uses conda-forge's include paths and libraries,
+namely it sets the INCLUDE environment variable.
+
+However, this does not configure the environment variables that clang++
+uses. Therefore, the logic that this patch removes still uses the system
+header files from MSVC which causes problems.
+
+Here, we tell clang++ to also use the INCLUDE variable for cl.exe since
+that provides the correct default include path.
+
+Note that we do not need to do anything about library paths since cppast
+does not perform any linking or compiling but only runs the
+preprocessor.
+---
+ src/libclang/libclang_parser.cpp | 52 +++-----------------------------
+ 1 file changed, 4 insertions(+), 48 deletions(-)
+
+diff --git a/src/libclang/libclang_parser.cpp b/src/libclang/libclang_parser.cpp
+index e39a308..b32bacc 100644
+--- a/src/libclang/libclang_parser.cpp
++++ b/src/libclang/libclang_parser.cpp
+@@ -7,6 +7,7 @@
+ #include <fstream>
+ #include <vector>
+ #include <string>
++#include <cstdlib>
+ 
+ #include <clang-c/CXCompilationDatabase.h>
+ #include <process.hpp>
+@@ -261,54 +262,9 @@ bool is_valid_binary(const std::string& binary)
+ 
+ void add_default_include_dirs(libclang_compile_config& config)
+ {
+-    std::string  verbose_output;
+-    tpl::Process process(
+-        detail::widen<tpl::Process::string_type>(detail::libclang_compile_config_access::clang_binary(config)) + detail::widen<tpl::Process::string_type>(" -x c++ -v -"), tpl::Process::string_type(),
+-        [](const char*, std::size_t) {},
+-        [&](const char* str, std::size_t n) { verbose_output.append(str, n); }, true);
+-    process.write("", 1);
+-    process.close_stdin();
+-    process.get_exit_status();
+-
+-    auto pos = verbose_output.find("#include <...>");
+-    DEBUG_ASSERT(pos != std::string::npos, detail::assert_handler{});
+-    while (verbose_output[pos] != '\n')
+-        ++pos;
+-    ++pos;
+-
+-    // now every line is an include path, starting with a space
+-    while (verbose_output[pos] == ' ')
+-    {
+-        auto start = pos + 1;
+-        while (verbose_output[pos] != '\r' && verbose_output[pos] != '\n')
+-            ++pos;
+-        auto end = pos;
+-        ++pos;
+-
+-        auto        line = verbose_output.substr(start, end - start);
+-        std::string path;
+-        for (auto c : line)
+-        {
+-            if (c == ' ')
+-            { // escape spaces
+-#if CPPAST_DETAIL_WINDOWS
+-                path += "^ ";
+-#else
+-                path += "\\ ";
+-#endif
+-            }
+-            // clang under MacOS adds comments to paths using '(' at the end, so they have to be
+-            // ignored however, Windows uses '(' in paths, so they don't have to be ignored
+-#if !CPPAST_DETAIL_WINDOWS
+-            else if (c == '(')
+-                break;
+-#endif
+-            else
+-                path += c;
+-        }
+-
+-        config.add_include_dir(std::move(path));
+-    }
++    const char* include = std::getenv("INCLUDE");
++    if (include != nullptr)
++      config.add_include_dir(include);
+ }
+ } // namespace
+ 
+-- 
+2.37.3
+
