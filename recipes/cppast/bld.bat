@@ -9,6 +9,7 @@ cmake -G "NMake Makefiles" ^
       -DCMAKE_BUILD_TYPE:STRING=Release ^
       -DCMAKE_LIBRARY_PATH:PATH="%LIBRARY_PREFIX%;%LIBRARY_PREFIX%/bin" ^
       -DBUILD_SHARED_LIBS:BOOL=ON ^
+      -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS:BOOL=ON ^
       ..
 
 if errorlevel 1 exit 1
