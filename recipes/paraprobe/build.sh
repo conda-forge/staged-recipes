@@ -20,11 +20,12 @@ cp ../thirdparty/mandatory/hdf5cxxwrapper/src/cxx/* src/cxx/
 cp ../../../voro++/src/* src/cxx/
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
 make
+ls
 cd ..
 
 mkdir compiled_code
-cp paraprobe-utils/CMakeFiles/paraprobe-utils.dir${SRC_DIR}/paraprobe-toolbox/code/paraprobe-utils/src/cxx/* compiled_code/
-
+#cp paraprobe-utils/CMakeFiles/paraprobe-utils.dir${SRC_DIR}/paraprobe-toolbox/code/paraprobe-utils/src/cxx/* compiled_code/
+cp paraprobe-utils/CMakeFiles/paraprobe-utils.dir/src/cxx/* compiled_code/
 
 cd paraprobe-ranger
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
