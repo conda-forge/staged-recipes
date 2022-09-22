@@ -1,0 +1,74 @@
+{% set name = "kubo" %}
+{% set version = "0.15.0" %}
+{% set gomodule = "github.com/ipfs/" ~ name %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  - folder: src/{{ gomodule }}
+    url: https://{{ gomodule }}/releases/download/v{{ version }}/{{ name }}-source.tar.gz
+    sha256: 1a4398d46d822976cc6c75e4c39bf6ec799f909225da764e9a38d96f3b9a456b
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - go >=1.18  # [unix]
+    - go-cgo >=1.18  # [unix]
+    - {{ compiler('go') }}  # [win]
+    - posix  # [win]
+    - go-licenses
+    - make  # [unix]
+  host:
+    - openssl  # [unix]
+  run_constrained:
+    - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.14") }}  # [osx and x86_64]
+    - go-ipfs >=9000
+
+{% set cid = "/ipfs/QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc" %}
+{% set ipfs_args = "-c ./.ipfs-repo --debug" %}
+
+test:
+  commands:
+    - ipfs --version
+    - ipfs --help
+    - ipfs commands
+    - ipfs {{ ipfs_args }} init
+    - ipfs {{ ipfs_args }} ls {{ cid }}
+    - ipfs {{ ipfs_args }} refs {{ cid }}
+    - ipfs {{ ipfs_args }} cat {{ cid }}/readme
+    - ipfs {{ ipfs_args }} get {{ cid }}
+    - echo 'hello world' > hello.txt
+    - ipfs {{ ipfs_args }} add hello.txt
+
+about:
+  home: https://ipfs.tech
+  license: Apache-2.0 or MIT
+  license_file:
+    # directly provided by upstream
+    - src/{{ gomodule }}/LICENSE-APACHE
+    - src/{{ gomodule }}/LICENSE-MIT
+    - library_licenses/
+    - go-licenses.log
+
+  summary: IPFS implementation in Go
+
+  description: |
+    Kubo (go-ipfs) the earliest and most widely used implementation of IPFS.
+
+    It includes:
+      - an IPFS daemon server
+      - extensive command line tooling
+      - an HTTP Gateway (/ipfs/, /ipns/) for serving content to HTTP browsers
+      - an HTTP RPC API (/api/v0) for controlling the daemon node
+
+  doc_url: https://docs.ipfs.tech
+  dev_url: https://{{ gomodule }}
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
