@@ -1,4 +1,9 @@
 
+mpifort=$(which mpifort)
+mv $mpifort $mpifort.orig
+sed 's/\(enable_wrapper_rpath=\)"yes"/\1"no"/' $mpifort.orig >$mpifort
+chmod +x $mpifort
+
 echo ${SP_DIR}
 
 #test python building
