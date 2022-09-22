@@ -13,8 +13,9 @@ cp -rf paraprobe-toolbox/code/paraprobe-transcoder/src/python/* ${SP_DIR}/parapr
 
 
 cd paraprobe-toolbox
-cd paraprobe-utils
 cd code
+cd paraprobe-utils
+
 cp ../code/thirdparty/mandatory/hdf5cxxwrapper/src/cxx/* src/cxx/
 cp ../../voro++/src/* src/cxx/
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
