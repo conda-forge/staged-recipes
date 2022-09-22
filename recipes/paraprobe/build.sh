@@ -17,7 +17,7 @@ cd code
 cd paraprobe-utils
 
 cp ../thirdparty/mandatory/hdf5cxxwrapper/src/cxx/* src/cxx/
-cp ../../voro++/src/* src/cxx/
+cp ../../../voro++/src/* src/cxx/
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
 make
 cd ..
