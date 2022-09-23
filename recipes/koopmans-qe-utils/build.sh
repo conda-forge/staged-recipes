@@ -4,8 +4,6 @@ set -ex
 mkdir build
 cd build
 
-ls $PREFIX/lib
-
 cmake .. \
     -DQE_ENABLE_MPI=ON \
     -DQE_ENABLE_OPENMP=ON \
