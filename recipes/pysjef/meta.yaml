@@ -6,8 +6,8 @@
 # Using the name variable with the URL in line 14 is convenient
 # when copying and pasting from another recipe, but not really needed.
 {% set name = "pysjef" %}
-###{% set version = "1.24.0" %}
-{% set version = "1.24.1" %}
+{% set version = "1.24.0" %}
+###{% set version = "1.24.1" %}
 
 package:
   name: {{ name|lower }}
@@ -18,12 +18,12 @@ source:
   # url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
   # If getting the source from GitHub, remove the line above,
   # uncomment the line below, and modify as needed. Use releases if available:
-  ###url: https://github.com/molpro/sjef/archive/refs/tags//{{ version }}.tar.gz
-  url: https://github.com/nick-wilson/sjef/archive/refs/tags/{{ version }}.tar.gz
+  url: https://github.com/molpro/sjef/archive/refs/tags//{{ version }}.tar.gz
+  ###url: https://github.com/nick-wilson/sjef/archive/refs/tags/{{ version }}.tar.gz
   # and otherwise fall back to archive:
   # url: https://github.com/simplejson/simplejson/archive/v{{ version }}.tar.gz
-  ###sha256: 52fbde358acba17d70c4fa2828610352aa4ca05d22a344e167dfc614928d6f18
-  sha256: fb47c069625d2df4baeda8cdf63a385d33cf602c3b7720c41bb8f21833c3b798
+  sha256: 52fbde358acba17d70c4fa2828610352aa4ca05d22a344e167dfc614928d6f18
+  ###sha256: fb47c069625d2df4baeda8cdf63a385d33cf602c3b7720c41bb8f21833c3b798
   # sha256 is the preferred checksum -- you can get it for a file with:
   #  `openssl sha256 <file name>`.
   # You may need the openssl package, available on conda-forge:
@@ -41,9 +41,10 @@ build:
   # https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#preprocessing-selectors
   skip: True # [win]
   script:
-    - cmake -B cmake-build .                   # [unix]
-    - cmake --build cmake-build                # [unix]
-    - cmake -P cmake-build/cmake_install.cmake # [unix]
+    - echo __version__ = \"{{ version }}\" > pysjef/pysjef/_version.py # [unix]
+    - cmake -B cmake-build . -DCMAKE_INSTALL_PREFIX=$PREFIX -DBUILD_TESTS=OFF -DBUILD_PROGRAM=OFF # [unix]
+    - cmake --build cmake-build -t install # [unix]
+    - cd pysjef && {{ PYTHON }} -m pip install . -vv # [unix]
   number: 0
 
 requirements:
@@ -52,13 +53,31 @@ requirements:
     # Compilers are named 'c', 'cxx' and 'fortran'.
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-  host:
-    - python
+    - cmake >=3.14
+    - make
+    - python >=3.10
     - pip
-    - cmake
-    - boost-cpp
+    - cython >=0.24
+    - boost-cpp >=1.71
+    - regex
+    - pugixml >=1.10
+    - numpy >=1.17
+    - lxml >=4.0
+  host:
+    - python >=3.10
+    - pip
+    - cython >=0.24
+    - boost-cpp >=1.71
+    - regex
+    - pugixml >=1.10
+    - numpy >=1.17
   run:
-    - python
+    - python >=3.10
+    - numpy >=1.17
+    - boost-cpp >=1.71
+    - lxml >=4.0
+    - regex
+    - rsync
 
 test:
   # Some packages might need a `test/commands` key to check CLI.
@@ -70,13 +89,14 @@ test:
   # failing.
   requires:
     - pip
-    - rsync
   commands:
     - pip check
 
 about:
   home: https://github.com/molpro/sjef
   summary: 'Simple Job Execution Framework'
+  summary: |
+        Python Simple Job Execution Framework (Pysjef) is pronounced pie-chef
   description: A library that supports the running of any program asynchronously either locally, directly on a remote machine, or via a batch queueing system
   # Remember to specify the license variants for BSD, Apache, GPL, and LGPL.
   # Use the SPDX identifier, e.g: GPL-2.0-only instead of GNU General Public License version 2.0
@@ -89,7 +109,7 @@ about:
   # (even if the license doesn't require it) using the license_file entry.
   # Please also note that some projects have multiple license files which all need to be added using a valid yaml list.
   # See https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#license-file
-  license_file: LICENSE.txt
+  license_file: LICENSE
   # The doc_url and dev_url are optional.
   doc_url: https://molpro.gitlab.io/pysjef
   dev_url: https://github.com/molpro/sjef
