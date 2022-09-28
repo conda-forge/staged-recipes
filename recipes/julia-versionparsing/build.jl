@@ -1,5 +1,8 @@
 #!/bin/env julia
 
+name="VersionParsing"
+uuid="81def892-9a0e-5fdd-b105-ffc91e053289"
+
 using Pkg, UUIDs
 
 const CONDA_PREFIX = ENV["PREFIX"]
@@ -10,11 +13,11 @@ const BUILD_DEPOT = joinpath(CONDA_PREFIX, "share", "julia_build_depot")
 #Pkg.add("${name}")
 
 # Add the local git repository that conda build cloned
-uuid = UUID("${uuid}"); nothing # suppress output
+uuid = UUID(uuid); nothing # suppress output
 spec = PackageSpec(
-    name="${name}",
+    name=name,
     uuid=uuid,
-    path="${PREFIX}/share/julia/clones/${name}.jl",
+    path="$CONDA_PREFIX/share/julia/clones/$name.jl",
 )
 Pkg.add(spec)
 
