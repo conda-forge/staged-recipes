@@ -32,7 +32,7 @@ for directory in directories
     try
         mv(joinpath(BUILD_DEPOT, directory), joinpath(JULIA_DEPOT, directory))
     catch err
-        @warn "Could not move \$directory" err
+        @warn "Could not move $directory" err
     end
 end
 
