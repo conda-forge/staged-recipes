@@ -6,8 +6,7 @@ cd build
 cmake ${CMAKE_ARGS} -GNinja .. \
       -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_TESTING:BOOL=ON \
-      -DLIEGROUPCONTROLLERS_COMPILE_tests:BOOL=ON \
-      -DROBOMETRY_USES_SYSTEM_nlohmann_json:BOOL=ON
+      -DLIEGROUPCONTROLLERS_COMPILE_tests:BOOL=ON
 
 cmake --build . --config Release
 cmake --build . --config Release --target install
