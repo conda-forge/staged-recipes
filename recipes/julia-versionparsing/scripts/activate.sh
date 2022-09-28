@@ -1,13 +1,17 @@
 #!/bin/sh
 
-export name="VersionParsing"
-export uuid="81def892-9a0e-5fdd-b105-ffc91e053289"
-export version="1.3.0"
+name="VersionParsing"
+uuid="81def892-9a0e-5fdd-b105-ffc91e053289"
 
 julia <<JULIA_PACKAGE_INSTALL_SCRIPT
 using Pkg, UUIDs
 uuid = UUID("${uuid}"); nothing # suppress output
 if !haskey(Pkg.dependencies(), uuid)
-    Pkg.add(PackageSpec(name="${name}", uuid="${uuid}", version="${version}"))
+    spec = PackageSpec(
+        name="${name}",
+        uuid=uuid,
+        path="${CONDA_PREFIX}/share/julia/clones/VersionParsing.jl",
+    )
+    Pkg.add(spec)
 end
 JULIA_PACKAGE_INSTALL_SCRIPT
