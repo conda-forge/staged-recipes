@@ -30,9 +30,13 @@ Pkg.add(spec)
 
 # Select certain folders
 mkpath(BUILD_DEPOT)
-const directories = ("packages", "clones")
+const directories = ("packages", "artifacts", "clones")
 for directory in directories
-    mv(joinpath(JULIA_DEPOT, directory), joinpath(BUILD_DEPOT, directory))
+    try
+        mv(joinpath(JULIA_DEPOT, directory), joinpath(BUILD_DEPOT, directory))
+    catch err
+        @warn "Could not move \$directory" err
+    end
 end
 JULIA_PACKAGE_BUILD_SCRIPT
 
