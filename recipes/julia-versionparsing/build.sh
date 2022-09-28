@@ -5,7 +5,7 @@ uuid="81def892-9a0e-5fdd-b105-ffc91e053289"
 
 # Copy the git cloned repository into the PREFIX
 mkdir -p "${PREFIX}/share/julia/clones/"
-mv "${SRC_DIR}/${name}.jl" "${PREFIX}/share/julia/clones/"
+cp -r "${SRC_DIR}/${name}.jl" "${PREFIX}/share/julia/clones/"
 
 # Add the package from the clone, copy packages, artifacts, and clones into temp repository
 julia "${RECIPE_DIR}/build.jl"
