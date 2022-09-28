@@ -7,6 +7,10 @@ uuid="81def892-9a0e-5fdd-b105-ffc91e053289"
 mkdir -p "${PREFIX}/share/julia/clones/"
 mv "${SRC_DIR}/${name}.jl" "${PREFIX}/share/julia/clones/"
 
+ls "${PREFIX}/share/julia"
+ls "${PREFIX}/share/julia/clones"
+ls "${PREFIX}/share/julia/clones/VersionParsing.jl"
+
 # Add the package from the clone, copy packages, artifacts, and clones into temp repository
 julia <<JULIA_PACKAGE_BUILD_SCRIPT
 using Pkg, UUIDs
