@@ -36,3 +36,5 @@ for directory in directories
     end
 end
 
+# Remove the temporary build depot
+rm(BUILD_DEPOT, recursive=true)
