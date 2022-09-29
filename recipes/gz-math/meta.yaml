@@ -1,0 +1,107 @@
+{% set component_name = "cmake" %}
+{% set repo_name = "gz-" + component_name %}
+{% set version = "7.0.0" %}
+{% set major_version = version.split('.')[0] %}
+{% set name = repo_name + major_version %}
+{% set component_version = component_name + major_version %}
+{% set cxx_name = "lib" + name %}
+{% set python_name = name + "-python" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/gazebosim/{{ repo_name }}/archive/{{ repo_name }}{{ major_version }}_{{ version }}.tar.gz
+    sha256: bf16e70b26e9b33323e17c4a298499e50299641a7c384904b331f2fb247c84cf
+
+build:
+  number: 0
+
+outputs:
+  - name: {{ cxx_name }}
+    script: build_cxx.sh  # [unix]
+    script: bld_cxx.bat  # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage(cxx_name, max_pin='x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - pkg-config
+        - ninja
+      host:
+        - libgz-cmake3
+        - eigen
+      run:
+        - libgz-cmake3
+        - eigen
+
+    test:
+      commands:
+        - test -f ${PREFIX}/include/gz/{{ component_version }}/gz/{{ component_name }}.hh  # [not win]
+        - test -f ${PREFIX}/lib/lib{{ name }}.so  # [linux]
+        - test -f ${PREFIX}/lib/lib{{ name }}.dylib  # [osx]
+        - test -f ${PREFIX}/lib/cmake/{{ name }}/{{ name }}-config.cmake  # [not win]
+        - if exist %PREFIX%\\Library\\include\\gz\\{{ component_version }}\\gz\\{{ component_name }}.hh exit 1  # [win]
+        - if exist $PREFIX$\\Library\\lib\\{{ name }}.lib exit 1  # [win]
+        - if exist $PREFIX$\\Library\\bin\\{{ name }}.dll exit 1  # [win]
+        - if exist %PREFIX%\\Library\\lib\\cmake\\{{ name }}\\{{ name }}-config.cmake exit 1  # [win]
+
+  - name: {{ python_name }}
+    script: build_py.sh  # [unix]
+    script: bld_py.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - swig
+        - ninja
+        - cmake
+        - pkg-config
+        - python                                 # [build_platform != target_platform]
+        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+        - pybind11                               # [build_platform != target_platform]
+        - pybind11-abi                           # [build_platform != target_platform]
+      host:
+        - {{ pin_subpackage(cxx_name, exact=True) }}
+        - python
+        - pip
+        - pybind11
+        - pybind11-abi
+      run:
+        - {{ pin_subpackage(cxx_name, exact=True) }}
+        - python
+    test:
+      commands:
+        - pip check
+      requires:
+        - pip
+      imports:
+        - gz.math7
+
+  - name: {{ name }}
+    build:
+      run_exports:
+        - {{ pin_subpackage(cxx_name, max_pin='x.x.x') }}
+    requirements:
+      run:
+        - {{ pin_subpackage(cxx_name, exact=True) }}
+        - {{ pin_subpackage(python_name, max_pin='x.x.x') }}
+    test:
+      imports:
+        - gz.math7
+
+about:
+  home: https://github.com/gazebosim/gz-math
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: General purpose math library for robot applications. 
+
+extra:
+  recipe-maintainers:
+    - wolfv
+    - traversaro
+    - j-rivero
