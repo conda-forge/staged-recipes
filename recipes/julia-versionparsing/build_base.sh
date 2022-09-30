@@ -9,10 +9,18 @@ export JULIA_DEPOT_PATH="${JULIA_BUILD_DEPOT}"
 
 
 # Add the package from the clone, copy packages, artifacts, and clones into temp repository
-julia "${RECIPE_DIR}/build.jl"
+# DISABLED, reenable for depot install
+#julia "${RECIPE_DIR}/build.jl"
 
-# Move .git directory so that it gets packaged
-mv "${PREFIX}/share/julia/clones/${JULIA_PKG_NAME}.jl/.git" "${PREFIX}/share/julia/clones/${JULIA_PKG_NAME}.jl/git" 
+if [[ -d "${PREFIX}/share/julia/clones/${JULIA_PKG_NAME}.jl/.git" ]]
+then
+    # Do not pack hooks
+    rm -rf "${PREFIX}/share/julia/clones/${JULIA_PKG_NAME}.jl/.git/hooks"
+    # Move .git directory so that it gets packaged
+    mv "${PREFIX}/share/julia/clones/${JULIA_PKG_NAME}.jl/.git" "${PREFIX}/share/julia/clones/${JULIA_PKG_NAME}.jl/git" 
+else
+    echo "${PREFIX}/share/julia/clones/${JULIA_PKG_NAME}.jl is not a git repository"
+fi
 
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
 # This will allow them to be run on environment activation.
