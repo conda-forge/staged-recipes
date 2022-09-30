@@ -22,6 +22,7 @@ do
     cp "${RECIPE_DIR}/scripts/${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/zz_${PKG_NAME}_${CHANGE}.sh"
 done
 
+# Populate activate script with name, uuid, and version info
 sed -i "3 a \\
 name=\"${JULIA_PKG_NAME}\"\\
 uuid=\"${JULIA_PKG_UUID}\"\\
