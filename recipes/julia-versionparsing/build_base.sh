@@ -9,8 +9,7 @@ export JULIA_DEPOT_PATH="${JULIA_BUILD_DEPOT}"
 
 
 # Add the package from the clone, copy packages, artifacts, and clones into temp repository
-# DISABLED, reenable for depot install
-#julia "${RECIPE_DIR}/build.jl"
+julia "${RECIPE_DIR}/build.jl"
 
 if [[ -d "${PREFIX}/share/julia/clones/${JULIA_PKG_NAME}.jl/.git" ]]
 then
