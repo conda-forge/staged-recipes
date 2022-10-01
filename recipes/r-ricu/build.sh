@@ -1,2 +1,3 @@
-"%R%" CMD INSTALL --build . %R_ARGS%
-IF %ERRORLEVEL% NEQ 0 exit /B 1
+#!/bin/bash
+export DISABLE_AUTOBREW=1
+${R} CMD INSTALL --build . ${R_ARGS}
