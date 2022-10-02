@@ -1,18 +1,13 @@
 
 set -o errexit -o pipefail
 
-if [[ -f Build.PL ]]; then
-    perl Build.PL
-    perl ./Build
-    perl ./Build test
-    perl ./Build install --installdirs vendor
-elif [[ -f Makefile.PL ]]; then
+if [[ -f Makefile.PL ]]; then
     perl Makefile.PL INSTALLDIRS=vendor
     make
     make test
     make install
 else
-    echo 'Unable to find Build.PL or Makefile.PL. You need to modify build.sh.'
+    echo 'Unable to find Makefile.PL. You need to modify build.sh.'
     exit 1
 fi
 
