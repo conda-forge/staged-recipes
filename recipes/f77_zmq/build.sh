@@ -1,6 +1,6 @@
 #!/bin/bash
 
-./configure --prefix=${PREFIX} --libdir=${PREFIX}/lib --includedir=${PREFIX}/include
+./configure --prefix=${PREFIX} --libdir=${PREFIX}/lib --includedir=${PREFIX}/include --disable-static
 
 make
 FAILURE=0
