@@ -1,6 +1,6 @@
 #!/bin/sh
 
-mkdir build
+mkdir -p build
 cd build
 
 cmake ${CMAKE_ARGS} -GNinja .. \
