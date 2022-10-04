@@ -1,0 +1,74 @@
+{% set version = "1.1.0" %}
+
+package:
+  name: apptainer
+  version: {{ version }}
+
+source:
+  - folder: src/github.com/apptainer/apptainer
+    url: https://github.com/apptainer/apptainer/releases/download/v{{ version }}/apptainer-{{ version }}.tar.gz
+    sha256: 1772f25c8770f976abb82c29053b77183930426a83eb3e43b9f8068c3e88ac30
+    patches:
+      #- patches/0003-Use-external-CNI.patch
+      #- patches/0004-Find-unsquashfs-from-PATH.diff
+      #- patches/set-version-from-env.patch
+
+build:
+  number: 0
+  skip: true  # [not linux]
+  # The binary is made runtime relocatable using the included patch
+  detect_binary_files_with_prefix: false
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - go >=1.16
+    - sysroot_linux-64 2.17  # [linux64]
+    - make
+    - pkg-config
+    - go-dep
+    - sed
+  host:
+    - libuuid  # [linux]
+    - libarchive
+    - libseccomp  # [linux]
+    - openssl
+  run:
+    # CNI version from singularity/Gopkg.lock
+    - cni-plugins >=0.7.4  # [linux]
+    - squashfs-tools  # [linux]
+  run_constrained:
+    - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx]
+
+test:
+  commands:
+    - apptainer --help
+    # disable these tests to ensure verbosity problem isn't from here (ngam)
+    - apptainer --version
+
+    # Ensure the version is set correctly
+    #- apptainer --version | grep {{ version }}
+
+    # Ensure we are using conda's CNI
+    #- test ! -d $PREFIX/libexec/apptainer/cni
+    #- test -d $PREFIX/lib/cni
+
+    #- test ! -d $PREFIX/etc/apptainer/network
+    #- test -f $PREFIX/etc/cni/net.d/00_bridge.conflist
+ 
+about:
+  home: https://apptainer.org/
+  license: BSD-3-Clause
+  license_file: src/github.com/apptainer/apptainer/LICENSE.md
+  summary: 'Apptainer: Application containers for Linux'
+
+  description: |
+    Apptainer/Singularity is the most widely used container system for HPC. It is designed to execute applications at bare-metal performance while being secure, portable, and 100% reproducible. Apptainer is an open-source project with a friendly community of developers and users. The user base continues to expand, with Apptainer/Singularity now used across industry and academia in many areas of work.
+
+  dev_url: https://github.com/apptainer/apptainer/blob/main/CONTRIBUTING.md
+  doc_url: https://apptainer.org/docs/
+
+extra:
+  recipe-maintainers:
+    - multimeric
