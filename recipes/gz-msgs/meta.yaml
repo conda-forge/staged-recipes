@@ -1,0 +1,85 @@
+{% set component_name = "msgs" %}
+{% set repo_name = "gz-" + component_name %}
+{% set version = "9.0.0" %}
+{% set major_version = version.split('.')[0] %}
+{% set name = repo_name + major_version %}
+{% set component_version = component_name + major_version %}
+{% set cxx_name = "lib" + name %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/gazebosim/{{ repo_name }}/archive/{{ repo_name }}{{ major_version }}_{{ version }}.tar.gz
+    sha256: ddf12c0c8e7cf5f5e2d0c64b3313da2da47151bc6f4007b25185e8f809eb42b0
+
+build:
+  number: 0
+
+outputs:
+  - name: {{ cxx_name }}
+    script: build_cxx.sh  # [unix]
+    script: bld_cxx.bat  # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage(cxx_name, max_pin='x') }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ compiler('c') }}
+        - ninja
+        - cmake
+        - pkg-config
+        # We need all host deps also in build for cross-compiling
+        - libgz-math7  # [build_platform != target_platform]
+        - libgz-tools2  # [build_platform != target_platform]
+        - tinyxml2  # [build_platform != target_platform]
+        - libprotobuf  # [build_platform != target_platform]
+      host:
+        - libgz-math7
+        - libgz-tools2
+        - tinyxml2
+        - libprotobuf
+    test:
+      commands:
+        - test -f ${PREFIX}/include/gz/{{ component_version }}/gz/{{ component_name }}.hh  # [not win]
+        - test -f ${PREFIX}/lib/lib{{ name }}.so  # [linux]
+        - test -f ${PREFIX}/lib/lib{{ name }}.dylib  # [osx]
+        - test -f ${PREFIX}/lib/cmake/{{ name }}/{{ name }}-config.cmake  # [not win]
+        - if not exist %PREFIX%\\Library\\include\\gz\\{{ component_version }}\\gz\\{{ component_name }}.hh exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\{{ name }}.lib exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\{{ name }}.dll exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\cmake\\{{ name }}\\{{ name }}-config.cmake exit 1  # [win]
+
+  - name: {{ name }}
+    build:
+      run_exports:
+        - {{ pin_subpackage(cxx_name, max_pin='x') }}
+    requirements:
+      run:
+        - {{ pin_subpackage(cxx_name, exact=True) }}
+    test:
+      commands:
+        - test -f ${PREFIX}/include/gz/{{ component_version }}/gz/{{ component_name }}.hh  # [not win]
+        - test -f ${PREFIX}/lib/lib{{ name }}.so  # [linux]
+        - test -f ${PREFIX}/lib/lib{{ name }}.dylib  # [osx]
+        - test -f ${PREFIX}/lib/cmake/{{ name }}/{{ name }}-config.cmake  # [not win]
+        - if not exist %PREFIX%\\Library\\include\\gz\\{{ component_version }}\\gz\\{{ component_name }}.hh exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\{{ name }}.lib exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\{{ name }}.dll exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\cmake\\{{ name }}\\{{ name }}-config.cmake exit 1  # [win]
+
+about:
+  home: https://github.com/gazebosim/{{ repo_name }}
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: 'Messages for Gazebo robot simulation.'
+
+extra:
+  feedstock-name: {{ repo_name }}
+  recipe-maintainers:
+    - wolfv
+    - traversaro
+    - j-rivero
+    - Tobias-Fischer
