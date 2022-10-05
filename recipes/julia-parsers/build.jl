@@ -59,7 +59,7 @@ for directory in directories
     if isdir(build_dir)
         mv(build_dir, target_dir)
     else
-        @warn "$bulid_dir does not exist"
+        @warn "$build_dir does not exist"
     end
 end
 
