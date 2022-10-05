@@ -20,4 +20,5 @@ export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
     --prefix=${PREFIX}
 
 make kcp
+make check
 make install
