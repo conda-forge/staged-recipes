@@ -40,7 +40,7 @@ if isdir(joinpath(path, ".git"))
         rev="v$PKG_VERSION"
     )
     Pkg.add(spec)
-else
+elseif isdir(path)
     # "Develop" the package without a git repository
     # Package cache for this package is likely not created
     spec = PackageSpec(
