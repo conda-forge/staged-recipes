@@ -6,13 +6,25 @@ package:
   version: {{ version }}
 
 source:
-  path: ../../../openvino
-  # url: https://github.com/openvinotoolkit/{{ name }}/archive/refs/tags/{{ version }}.tar.gz
-  # fn: {{ version }}.tar.gz
-  # sha256: 5522f3113924325499f15cd8a3fe47a42dfa127a6b76c1921b51cf3c3f2a6aa6
+  - path: ../../../{{ name }}
+    folder: openvino_sources
+  # - url: https://github.com/openvinotoolkit/{{ name }}/archive/refs/tags/{{ version }}.tar.gz
+  #   fn: {{ version }}.tar.gz
+  #   sha256: 5522f3113924325499f15cd8a3fe47a42dfa127a6b76c1921b51cf3c3f2a6aa6
+  # - git_url: https://github.com/openvinotoolkit/{{ name }}.git
+  #   git_rev: {{ version }}
+  #   git_depth: 1
+  # - git_url: https://github.com/openvinotoolkit/{{ name }}_contrib.git
+  #   folder: openvino_sources/src/plugins
 
 build:
   number: 0
+  missing_dso_whitelist:
+    - /lib64/libm.so.6           # [linux]
+    - /lib64/libstdc.so.6        # [linux]
+    - /lib64/libpthread.so.0     # [linux]
+    - /lib64/libc.so.6           # [linux]
+    - /lib64/libgcc_s.so.1       # [linux]
 
 requirements:
   build:
@@ -27,29 +39,16 @@ requirements:
     # python
     - python >=3.6
     - cython
-    # common
-    # - gflags # compile tool
-    # cpu
-    - sysroot_linux-64 =2.17
-    # myriad
-    - pkg-config
-  host:
-    # - gflags # compile tool
-    - tbb >=2021.5
+    # core
     - pugixml # static version is provided
-    # myriad
-    - libusb
-  run:
-    # - gflags # compile tool
-    - tbb >=2021.5
-    - libusb
-
-test:
-  files:
-    - bin/intel64/Release/ieUnitTests
-  commands:
-     # are they running?
-    - bin/intel64/Release/ieUnitTests
+    - tbb-devel >=2021.5
+    # cpu
+    - sysroot_linux-64 =2.17 # [linux]
+    - pkg-config # myriad: to find libusb
+  host:
+    - tbb >=2021.5 # core: starting from this version TBB contains TBBBind
+    - libusb >=1.0.24 # myriad: this version support Apple Silicon
+    - khronos-opencl-icd-loader # [win or osx]
 
 outputs:
   - name: libopenvino
@@ -57,9 +56,17 @@ outputs:
     script: install.sh
     about:
       summary: OpenVINO Core Runtime library
+    requirements:
+      host:
+        - tbb >=2021.5
+        - libhwloc >=2.5 # starting from this version hwloc supports Apple Silicon
+      run:
+        - tbb >=2021.5 # TBB does not provide 'run_exports'
+      run_exports:
+        - libopenvino
     test:
       source_files:
-        - bin/intel64/Release/ieUnitTests
+        - openvino_sources/bin/intel64/Release/ieUnitTests
       commands:
         {% set openvino_libs = [] %}
         {{ openvino_libs.append("") or "" }}
@@ -68,10 +75,35 @@ outputs:
         {{ openvino_libs.append("_paddle_frontend") or "" }}
         {{ openvino_libs.append("_onnx_frontend") or "" }}
         {% for openvino_lib in openvino_libs %}
-        - test -f $PREFIX/runtime/lib/intel64/libopenvino{{ openvino_lib }}${SHLIB_EXT}.{{ version }} # [unix]
+        - test -f $PREFIX/lib/libopenvino{{ openvino_lib }}${SHLIB_EXT}.{{ version }}       # [unix]
+        - test -f $PREFIX/lib/openvino{{ openvino_lib }}${SHLIB_EXT}                        # [win]
         {% endfor %}
-        - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PREFIX/runtime/lib/intel64 # [unix]
-        - bin/intel64/Release/ieUnitTests --gtest_filter=-*ExtensionTests* # [unix]
+        - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PREFIX/lib                               # [unix]
+        - export PATH=$PATH:$PREFIX/lib                                                     # [win]
+        - openvino_sources/bin/intel64/Release/ieUnitTests --gtest_filter=-*ExtensionTests*
+
+  - name: libopenvino-plugins
+    version: {{ version }}
+    script: install_plugins.sh
+    about:
+      summary: OpenVINO Inference Plugins
+    requirements:
+      run:
+        - libopenvino
+    test:
+      commands:
+        {% set openvino_plugin_libs = [] %}
+        {{ openvino_plugin_libs.append("intel_cpu") or "" }}
+        {{ openvino_plugin_libs.append("intel_gpu") or "" }}
+        {{ openvino_plugin_libs.append("intel_gna") or "" }}
+        {{ openvino_plugin_libs.append("intel_myriad") or "" }}
+        {{ openvino_plugin_libs.append("auto") or "" }}
+        {{ openvino_plugin_libs.append("auto_batch") or "" }}
+        {{ openvino_plugin_libs.append("hetero") or "" }}
+        {% for openvino_plugin_lib in openvino_plugin_libs %}
+        - test -f $PREFIX/lib/openvino-{{ version }}/libopenvino_{{ openvino_plugin_lib }}_plugin${SHLIB_EXT} # [unix]
+        - test -f $PREFIX/lib/openvino-{{ version }}/openvino_{{ openvino_plugin_lib }}_plugin${SHLIB_EXT}    # [win]
+        {% endfor %}
 
   - name: libopenvino-dev
     version: {{ version }}
@@ -80,7 +112,8 @@ outputs:
       summary: OpenVINO Runtime Development files
     requirements:
       run:
-        - {{ pin_subpackage('libopenvino', exact=True) }} # dev package is for specific version of openvino
+        - libopenvino
+        - libopenvino-plugins
     test:
       requires:
         - {{ compiler('cxx') }}
@@ -90,26 +123,17 @@ outputs:
         - cmake >=3.13
         - zlib
         - nlohmann_json
-        - gflags
       source_files:
-        - samples
-        - thirdparty/cnpy
+        - openvino_sources/samples
+        - openvino_sources/thirdparty/cnpy
+        - openvino_sources/thirdparty/gflags
       commands:
-        - mkdir -p samples/cpp/thirdparty
-        - cp -R thirdparty/cnpy samples/cpp/thirdparty/cnpy
-        - cmake -DOpenVINO_DIR=$PREFIX/runtime/cmake -S samples/cpp -B samples_cpp_build
-        - cmake --build samples_cpp_build --parallel
+        - mkdir -p openvino_sources/samples/cpp/thirdparty
+        - cp -R openvino_sources/thirdparty/cnpy openvino_sources/samples/cpp/thirdparty/cnpy
+        - cp -R openvino_sources/thirdparty/gflags openvino_sources/samples/cpp/thirdparty/gflags
+        - cmake -S openvino_sources/samples/cpp -B samples_cpp_build
+        - cmake --build samples_cpp_build --parallel $CPU_COUNT
         - samples_cpp_build/intel64/hello_query_device
-
-    # requirements:
-    #   build:
-    #     - some-dep
-    #   run:
-    #     - some-dep
-    # test:
-    #   script: some-other-script.py
-  # - name: subpackage-name
-  #   script: move-files.py
 
 about:
   home: https://github.com/openvinotoolkit/openvino
@@ -129,7 +153,6 @@ about:
     - licensing/onednn_third-party-programs.txt
     - licensing/runtime-third-party-programs.txt
     - licensing/tbb_third-party-programs.txt
-    - licensing/third-party-programs.txt
   doc_url: https://docs.openvino.ai/latest/index.html
   dev_url: https://github.com/openvinotoolkit/openvino
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# !/usr/bin/env bash
 
 set +ex
 
@@ -10,14 +10,14 @@ fi
 export PKG_CONFIG_LIBDIR=$PREFIX/lib
 export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$PREFIX/lib/pkgconfig
 
-mkdir -p build
-cd build
+mkdir -p openvino-build
+
 cmake ${CMAKE_ARGS}                      \
     -DCMAKE_BUILD_TYPE=Release           \
     -DENABLE_INTEL_CPU=ON                \
     -DENABLE_INTEL_GPU=ON                \
     -DENABLE_INTEL_GNA=ON                \
-    -DENABLE_INTEL_MYRIAD_COMMON=ON      \
+    -DENABLE_INTEL_MYRIAD=ON             \
     -DENABLE_OV_IR_FRONTEND=ON           \
     -DENABLE_OV_ONNX_FRONTEND=ON         \
     -DENABLE_OV_PADDLE_FRONTEND=ON       \
@@ -36,10 +36,12 @@ cmake ${CMAKE_ARGS}                      \
     -DENABLE_SAMPLES=OFF                 \
     -DENABLE_TESTS=ON                    \
     -DENABLE_DATA=OFF                    \
-    ..
+    -DBUILD_nvidia_plugin=OFF            \
+    -DBUILD_java_api=OFF                 \
+    -DCPACK_GENERATOR=CONDA-FORGE        \
+    -S openvino_sources \
+    -B openvino-build
 
 # TODO: add usage of OpenVINO Conrtib repo
 
-make -j128 -k
-# cmake --build . --target all -v -j128 -- -k
-# cmake --build . --target install
+cmake --build openvino-build --config Release --parallel $CPU_COUNT -- -k
