@@ -15,6 +15,7 @@ export FC="mpif90"
 export FFLAGS="${FFLAGS} -fallow-argument-mismatch -L${PREFIX}/lib"
 export LD="mpif90"
 export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
+export DFLAGS="-D__FFTW3 -D__MPI -D__PARA"
 
 ./configure \
     --prefix=${PREFIX}
