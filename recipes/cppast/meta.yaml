@@ -1,0 +1,89 @@
+{% set name = "cppast" %}
+{% set version = "0.1.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/foonathan/cppast/archive/refs/tags/v{{ version }}.zip
+  sha256: 06f11c7a86263f10187ce45977e78c53b597032b4d24f501cd54f41ceae53721
+  patches:
+    - 0001-do-not-vendor-external-dependencies.patch
+    # Upstreamed at https://github.com/foonathan/cppast/pull/145
+    - 0002-install-library-binary.patch
+    - 0003-simplify-cmake.patch
+
+build:
+  number: 0
+  skip: true  # [win and vc<14]
+  run_exports:
+    # cppast does not to be too careful about not breaking their ABI so we pin strictly when building against it.
+    - {{ pin_subpackage('cppast', max_pin='x.x.x') }}
+  ignore_run_exports_from:  # [win]
+    # We do not link against zlib so we do not need it at runtime.
+    - zlib  # [win]
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - cmake
+    - make  # [not win]
+    - ninja  # [win]
+  host:
+    - type_safe
+    - tiny-process-library
+    - cxxopts
+    # clangdev provides clang header files we build against
+    - clangdev
+    - libclang
+    # llvmdev provides LLVMConfig.cmake needed by the build system
+    - llvmdev
+    # The cmake setup of LLVM on Windows needs the zlib headers
+    - zlib  # [win]
+  run:
+    - clangxx >=4.0.0
+
+test:
+  requires:
+    # To parse sample.h we need the type_traits headers shipped with the C++
+    # compiler on Linux & macOS.
+    # We do not use compiler('cxx') here since on macOS, that is a clang that
+    # might not be compatible with the libclang installed.
+    - cxx-compiler
+  files:
+    - sample.h
+  commands:
+    - if not exist %LIBRARY_INC%\cppast\cppast_fwd.hpp exit 1  # [win]
+    - if not exist %LIBRARY_LIB%\cppast.lib exit 1             # [win]
+    - if not exist %LIBRARY_BIN%\cppast.dll exit 1             # [win]
+    - test -f $PREFIX/include/cppast/cppast_fwd.hpp            # [unix]
+    - test -f $PREFIX/lib/libcppast.so                         # [linux]
+    - test -f $PREFIX/lib/libcppast.dylib                      # [osx]
+    - cppast sample.h                                          # [unix]
+    # When parsing Microsoft's C++ headers, we need to disable some #line
+    # macros that clang gets confused by:
+    # https://github.com/foonathan/cppast/issues/46
+    - cppast --msvc_compatibility sample.h                     # [win]
+
+about:
+  home: https://github.com/foonathan/cppast
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE.md
+  summary: 'Library interface to the C++ AST'
+  description: |
+    If you're writing a tool that needs access to the C++ AST (i.e.
+    documentation generator, reflection library, …), your only option apart
+    from writing your own parser is to use clang. It offers three interfaces
+    for tools, but the only one that really works for standalone applications
+    is libclang. However, libclang has various limitations and does not expose
+    the entire AST.
+    So there is no feasible option — except for this library. It was originally
+    a part of the standardese documentation generator, but has been extracted
+    into an independent library.
+  dev_url: https://github.com/foonathan/cppast
+
+extra:
+  recipe-maintainers:
+    - saraedum
