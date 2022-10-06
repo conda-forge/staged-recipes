@@ -20,5 +20,6 @@ export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
     --prefix=${PREFIX}
 
 make kcp
+export OMPI_MCA_plm_rsh_agent=sh
 make check
 make install
