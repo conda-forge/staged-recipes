@@ -32,12 +32,10 @@ requirements:
     - make  # [not win]
     - pkg-config # to find zlib and libusb
     # python
-    - python >=3.6
+    - python >=3.7
     - cython >=0.29
     - sysroot_linux-64 =2.17 # [linux and x86_64]
   host:
-    - libgcc-ng # [linux]
-    - libstdcxx-ng # [linux]
     # core
     - tbb-devel >=2021.5
     - pugixml # static version is provided
@@ -62,15 +60,12 @@ outputs:
       summary: OpenVINO Core Runtime library
     build:
       run_exports:
-        - {{ pin_subpackage('libopenvino', max_pin='x.x.x') }}
+        - {{ pin_subpackage('libopenvino', exact=True) }}
     requirements:
       host:
-        # - libgcc-ng # [linux]
-        # - libstdcxx-ng # [linux]
-        - tbb >=2021.5
         - libhwloc >=2.5 # starting from this version hwloc supports Apple Silicon
       run:
-        - tbb >=2021.5 # TBB does not provide 'run_exports'
+        - tbb >=2021.5 # TBB does not provide 'run_exports', otherwise we can put it into 'host'
     test:
       source_files:
         - openvino_sources/bin/intel64/Release/ieUnitTests
@@ -96,11 +91,14 @@ outputs:
       summary: OpenVINO Inference Plugins
     build:
       run_exports:
-        - {{ pin_subpackage('libopenvino-plugins', max_pin='x.x.x') }}
+        - {{ pin_subpackage('libopenvino-plugins', exact=True) }}
     requirements:
+      host:
+        - libusb >=1.0.24
       run:
-      - libopenvino
-      - khronos-opencl-icd-loader # [win or osx]
+        - {{ pin_subpackage('libopenvino', exact=True) }}
+        - ocl-icd-system # [linux and x86_64]
+        - tbb >=2021.5 # TBB does not provide 'run_exports'
     test:
       commands:
         {% set openvino_plugin_libs = [] %}
@@ -121,13 +119,10 @@ outputs:
     script: install_dev.sh
     about:
       summary: OpenVINO Runtime Development files
-    build:
-      overlinking_ignore_patterns:
-        - 
     requirements:
-      - libopenvino
-      - libopenvino-plugins
-      - tbb-devel >=2021.5 # TODO: we don't want to have a dependency on TBB cmake !!!!
+      run:
+        - {{ pin_subpackage('libopenvino-plugins', exact=True) }}
+        - tbb-devel >=2021.5 # TODO: we don't want to have a dependency on TBB cmake !!!!
     test:
       requires:
         - {{ compiler('cxx') }}

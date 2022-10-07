@@ -38,7 +38,8 @@ cmake ${CMAKE_ARGS}                      \
     -DBUILD_nvidia_plugin=OFF            \
     -DBUILD_java_api=OFF                 \
     -DCPACK_GENERATOR=CONDA-FORGE        \
-    -S openvino_sources \
+    -DENABLE_WHEEL=OFF                   \
+    -S openvino_sources                  \
     -B openvino-build
 
 # TODO: add usage of OpenVINO Conrtib repo
