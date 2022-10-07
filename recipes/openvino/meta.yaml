@@ -19,12 +19,6 @@ source:
 
 build:
   number: 0
-  missing_dso_whitelist:
-    - /lib64/libm.so.6           # [linux]
-    - /lib64/libstdc.so.6        # [linux]
-    - /lib64/libpthread.so.0     # [linux]
-    - /lib64/libc.so.6           # [linux]
-    - /lib64/libgcc_s.so.1       # [linux]
 
 requirements:
   build:
@@ -36,19 +30,29 @@ requirements:
     - ccache
     - ninja # [win]
     - make  # [not win]
+    - pkg-config # to find zlib and libusb
     # python
     - python >=3.6
-    - cython
-    # core
-    - pugixml # static version is provided
-    - tbb-devel >=2021.5
-    # cpu
-    - sysroot_linux-64 =2.17 # [linux]
-    - pkg-config # myriad: to find libusb
+    - cython >=0.29
+    - sysroot_linux-64 =2.17 # [linux and x86_64]
   host:
-    - tbb >=2021.5 # core: starting from this version TBB contains TBBBind
-    - libusb >=1.0.24 # myriad: this version support Apple Silicon
-    - khronos-opencl-icd-loader # [win or osx]
+    - libgcc-ng # [linux]
+    - libstdcxx-ng # [linux]
+    # core
+    - tbb-devel >=2021.5
+    - pugixml # static version is provided
+    # myriad
+    - libusb >=1.0.24
+    # samples
+    - zlib
+    - nlohmann_json
+    - opencv
+    - gflags
+  # TODO: fix to enable openvino meta-package
+  # run:
+  #   - libopenvino
+  #   - libopenvino-plugins
+  #   - libopenvino-dev
 
 outputs:
   - name: libopenvino
@@ -56,14 +60,17 @@ outputs:
     script: install.sh
     about:
       summary: OpenVINO Core Runtime library
+    build:
+      run_exports:
+        - {{ pin_subpackage('libopenvino', max_pin='x.x.x') }}
     requirements:
       host:
+        # - libgcc-ng # [linux]
+        # - libstdcxx-ng # [linux]
         - tbb >=2021.5
         - libhwloc >=2.5 # starting from this version hwloc supports Apple Silicon
       run:
         - tbb >=2021.5 # TBB does not provide 'run_exports'
-      run_exports:
-        - libopenvino
     test:
       source_files:
         - openvino_sources/bin/intel64/Release/ieUnitTests
@@ -87,9 +94,13 @@ outputs:
     script: install_plugins.sh
     about:
       summary: OpenVINO Inference Plugins
+    build:
+      run_exports:
+        - {{ pin_subpackage('libopenvino-plugins', max_pin='x.x.x') }}
     requirements:
       run:
-        - libopenvino
+      - libopenvino
+      - khronos-opencl-icd-loader # [win or osx]
     test:
       commands:
         {% set openvino_plugin_libs = [] %}
@@ -110,10 +121,13 @@ outputs:
     script: install_dev.sh
     about:
       summary: OpenVINO Runtime Development files
+    build:
+      overlinking_ignore_patterns:
+        - 
     requirements:
-      run:
-        - libopenvino
-        - libopenvino-plugins
+      - libopenvino
+      - libopenvino-plugins
+      - tbb-devel >=2021.5 # TODO: we don't want to have a dependency on TBB cmake !!!!
     test:
       requires:
         - {{ compiler('cxx') }}
@@ -123,14 +137,14 @@ outputs:
         - cmake >=3.13
         - zlib
         - nlohmann_json
+        - opencv
+        - gflags
       source_files:
         - openvino_sources/samples
         - openvino_sources/thirdparty/cnpy
-        - openvino_sources/thirdparty/gflags
       commands:
         - mkdir -p openvino_sources/samples/cpp/thirdparty
         - cp -R openvino_sources/thirdparty/cnpy openvino_sources/samples/cpp/thirdparty/cnpy
-        - cp -R openvino_sources/thirdparty/gflags openvino_sources/samples/cpp/thirdparty/gflags
         - cmake -S openvino_sources/samples/cpp -B samples_cpp_build
         - cmake --build samples_cpp_build --parallel $CPU_COUNT
         - samples_cpp_build/intel64/hello_query_device
