@@ -1,0 +1,88 @@
+{% set component_name = "fuel-tools" %}
+{% set cmake_name = "fuel_tools" %}
+{% set repo_name = "gz-" + component_name %}
+{% set version = "8_8.0.0" %}
+{% set version_package = version.split('_')[1] %}
+{% set major_version = version_package.split('.')[0] %}
+{% set name = repo_name + major_version %}
+{% set component_version = component_name + major_version %}
+{% set cmake_version = cmake_name + major_version %}
+{% set cxx_name = "lib" + name %}
+
+package:
+  name: {{ name }}
+  version: {{ version_package }}
+
+source:
+  - url: https://github.com/gazebosim/{{ repo_name }}/archive/{{ repo_name }}{{ version }}.tar.gz
+    sha256: 3351fe587de35303921dc6af5ebf0b919ca9dbe49a74a47c023667b8c277e396
+
+build:
+  number: 0
+
+outputs:
+  - name: {{ cxx_name }}
+    script: build_cxx.sh  # [unix]
+    script: bld_cxx.bat  # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage(cxx_name, max_pin='x') }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ compiler('c') }}
+        - cmake
+        - ninja
+        - pkgconfig
+      host:
+        - libgz-cmake3
+        - libgz-math7
+        - libgz-msgs9
+        - libgz-common5
+        - libgz-tools2
+        - libcurl
+        - jsoncpp
+        - libzip
+        - yaml
+        - tinyxml2
+        - libprotobuf
+    test:
+      commands:
+        - test -f ${PREFIX}/include/gz/{{ cmake_version }}/gz/{{ cmake_name }}.hh  # [not win]
+        - test -f ${PREFIX}/lib/libgz-{{ cmake_version }}.so  # [linux]
+        - test -f ${PREFIX}/lib/libgz-{{ cmake_version }}.dylib  # [osx]
+        - test -f ${PREFIX}/lib/cmake/gz-{{ cmake_version }}/gz-{{ cmake_version }}-config.cmake  # [not win]
+        - if not exist %PREFIX%\\Library\\include\\gz\\{{ cmake_version }}\\gz\\{{ cmake_name }}.hh exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\gz-{{ cmake_version }}.lib exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\gz-{{ cmake_version }}.dll exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\cmake\\gz-{{ cmake_version }}\\gz-{{ cmake_version }}-config.cmake exit 1  # [win]
+
+  - name: {{ name }}
+    build:
+      run_exports:
+        - {{ pin_subpackage(cxx_name, max_pin='x') }}
+    requirements:
+      run:
+        - {{ pin_subpackage(cxx_name, exact=True) }}
+    test:
+      commands:
+        - test -f ${PREFIX}/include/gz/{{ cmake_version }}/gz/{{ cmake_name }}.hh  # [not win]
+        - test -f ${PREFIX}/lib/libgz-{{ cmake_version }}.so  # [linux]
+        - test -f ${PREFIX}/lib/libgz-{{ cmake_version }}.dylib  # [osx]
+        - test -f ${PREFIX}/lib/cmake/gz-{{ cmake_version }}/gz-{{ cmake_version }}-config.cmake  # [not win]
+        - if not exist %PREFIX%\\Library\\include\\gz\\{{ cmake_version }}\\gz\\{{ cmake_name }}.hh exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\gz-{{ cmake_version }}.lib exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\gz-{{ cmake_version }}.dll exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\cmake\\gz-{{ cmake_version }}\\gz-{{ cmake_version }}-config.cmake exit 1  # [win]
+
+about:
+  home: https://github.com/gazebosim/{{ repo_name }}
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: 'A client library and command line tools for interacting with Gazebo Fuel servers.'
+
+extra:
+  feedstock-name: {{ repo_name }}
+  recipe-maintainers:
+    - traversaro
+    - Tobias-Fischer
