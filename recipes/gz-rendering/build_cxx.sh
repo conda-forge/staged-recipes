@@ -9,7 +9,8 @@ fi
 # See https://github.com/conda-forge/staged-recipes/pull/18792#issuecomment-1114606992
 export CXXFLAGS="-D__STDC_FORMAT_MACROS $CXXFLAGS"
 
-mkdir -p build
+rm -rf build
+mkdir build
 cd build
 
 export CFLAGS="${CFLAGS} -DGLX_GLXEXT_LEGACY"
