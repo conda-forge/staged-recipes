@@ -52,7 +52,7 @@ fi
 set -e
 
 # make sure there is a package directory so that artifact publishing works
-mkdir -p /Users/runner/Mambaforge/conda-bld/osx-64/
+# mkdir -p /Users/runner/Mambaforge/conda-bld/osx-64/
 
 # Find the recipes from main in this PR and remove them.
 
