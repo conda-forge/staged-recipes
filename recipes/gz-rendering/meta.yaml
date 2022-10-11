@@ -1,0 +1,101 @@
+{% set component_name = "rendering" %}
+{% set repo_name = "gz-" + component_name %}
+{% set version = "7.0.0" %}
+{% set major_version = version.split('.')[0] %}
+{% set name = repo_name + major_version %}
+{% set component_version = component_name + major_version %}
+{% set cxx_name = "lib" + name %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/gazebosim/{{ repo_name }}/archive/{{ repo_name }}{{ major_version }}_{{ version }}.tar.gz
+    sha256: e8f1d000aade838e6eb080b63f3b699ef4f2b83b8734dd11a8b2891843137309
+
+build:
+  number: 0
+
+outputs:
+  - name: {{ cxx_name }}
+    script: build_cxx.sh  # [unix]
+    script: bld_cxx.bat  # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage(cxx_name, max_pin='x') }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ compiler('c') }}
+        - ninja
+        - cmake
+        - pkg-config
+        # x11
+        - {{ cdt('mesa-libgl-devel') }}      # [unix and not (osx and arm64)]
+        - {{ cdt('mesa-dri-drivers') }}      # [unix and not (osx and arm64)]
+        - {{ cdt('libselinux') }}            # [linux]
+        - {{ cdt('libxdamage') }}            # [linux]
+        - {{ cdt('libxxf86vm') }}            # [linux]
+        - {{ cdt('libxfixes') }}             # [linux]
+        - {{ cdt('libxext') }}               # [linux]
+        - {{ cdt('libxau') }}                # [linux]
+      host:
+        - xorg-libx11                        # [unix]
+        - xorg-libxext                       # [unix]
+        - libglu                             # [linux]
+        - libgz-math7
+        - libgz-common5
+        - libgz-plugin2
+        - libgz-utils2
+        - ogre-next
+        {% if OGRE_VERSION == "1.10" %}
+        - ogre 1.10.*
+        {% else %}
+        - ogre 1.12.*
+        {% endif %}
+      run:
+        - xorg-libx11                        # [unix]
+        - xorg-libxext                       # [unix]
+        - libglu                             # [linux]
+        - {{ pin_compatible('ogre', max_pin='x.x') }}
+    test:
+      commands:
+        - test -f ${PREFIX}/include/gz/{{ component_version }}/gz/{{ component_name }}.hh  # [not win]
+        - test -f ${PREFIX}/lib/lib{{ name }}.so  # [linux]
+        - test -f ${PREFIX}/lib/lib{{ name }}.dylib  # [osx]
+        - test -f ${PREFIX}/lib/cmake/{{ name }}/{{ name }}-config.cmake  # [not win]
+        - if not exist %PREFIX%\\Library\\include\\gz\\{{ component_version }}\\gz\\{{ component_name }}.hh exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\{{ name }}.lib exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\{{ name }}.dll exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\cmake\\{{ name }}\\{{ name }}-config.cmake exit 1  # [win]
+
+  - name: {{ name }}
+    build:
+      run_exports:
+        - {{ pin_subpackage(cxx_name, max_pin='x') }}
+    requirements:
+      run:
+        - {{ pin_subpackage(cxx_name, exact=True) }}
+    test:
+      commands:
+        - test -f ${PREFIX}/include/gz/{{ component_version }}/gz/{{ component_name }}.hh  # [not win]
+        - test -f ${PREFIX}/lib/lib{{ name }}.so  # [linux]
+        - test -f ${PREFIX}/lib/lib{{ name }}.dylib  # [osx]
+        - test -f ${PREFIX}/lib/cmake/{{ name }}/{{ name }}-config.cmake  # [not win]
+        - if not exist %PREFIX%\\Library\\include\\gz\\{{ component_version }}\\gz\\{{ component_name }}.hh exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\{{ name }}.lib exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\{{ name }}.dll exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\cmake\\{{ name }}\\{{ name }}-config.cmake exit 1  # [win]
+
+about:
+  home: https://github.com/gazebosim/{{ repo_name }}
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: 'C++ library designed to provide an abstraction for different rendering engines. It offers unified APIs for creating 3D graphics applications.'
+
+extra:
+  feedstock-name: {{ repo_name }}
+  recipe-maintainers:
+    - wolfv
+    - traversaro
