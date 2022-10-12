@@ -30,11 +30,14 @@ rm -rf bin/*.dSYM
 # Do it manually.
 mkdir -p $PREFIX/bin \
     $PREFIX/lib \
-    $PREFIX/include \
+    $PREFIX/lib/pkgconfig \
+    $PREFIX/include
 
 cp -a bin/* $PREFIX/bin
 cp -a libwcs/libwcs.${libsuffix} $PREFIX/lib
 cp -a libwcs/*.h $PREFIX/include
+sed -e "s|@PREFIX@|$PREFIX|;s|@PKG_NAME@|$PKG_NAME|;s|@PKG_VERSION@|$PKG_VERSION|" \
+    $RECIPE_DIR/wcstools.pc.in > $PREFIX/lib/pkgconfig/wcstools.pc
 
 # Normalize permissions
 chmod 755 $PREFIX/bin/* $PREFIX/lib/libwcs.${libsuffix}
