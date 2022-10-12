@@ -13,6 +13,8 @@ pushd src/github.com/apptainer/${PKG_NAME}
 CGO_CPPFLAGS=$(echo "${CGO_CPPFLAGS}" | sed -E 's@FORTIFY_SOURCE=[0-9]@FORTIFY_SOURCE=0@g')
 export CGO_CPPFLAGS
 
+echo "$PKG_VERSION" > VERSION
+
 # configure
 ./mconfig \
   -P release-stripped \
