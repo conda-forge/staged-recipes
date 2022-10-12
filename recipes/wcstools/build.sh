@@ -31,9 +31,11 @@ rm -rf bin/*.dSYM
 mkdir -p $PREFIX/bin \
     $PREFIX/lib \
     $PREFIX/lib/pkgconfig \
-    $PREFIX/include
+    $PREFIX/include \
+    $PREFIX/share/man
 
-cp -a bin/* $PREFIX/bin
+cp -a wcstools bin/* $PREFIX/bin
+cp -a man/man1 $PREFIX/share/man
 cp -a libwcs/libwcs.${libsuffix} $PREFIX/lib
 cp -a libwcs/*.h $PREFIX/include
 sed -e "s|@PREFIX@|$PREFIX|;s|@PKG_NAME@|$PKG_NAME|;s|@PKG_VERSION@|$PKG_VERSION|" \
