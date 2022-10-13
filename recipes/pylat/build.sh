@@ -11,9 +11,11 @@ python -m numpy.f2py -c -m ipcorr ipcorr.f90
 #ln -s calcdistances.*.so calcdistances.so
 #ln -s calccomf.*.so calccomf.so
 
-cp calccomf*.so ${PREFIX}/bin/.
-cp calcdistances*.so ${PREFIX}/bin/.
-cp ipcorr*.so ${PREFIX}/bin/.
+mkdir ${PREFIX}/bin/src
+
+cp calccomf*.so ${PREFIX}/bin/src/.
+cp calcdistances*.so ${PREFIX}/bin/src/.
+cp ipcorr*.so ${PREFIX}/bin/src/.
 
 cd ..
 
