@@ -1,6 +1,7 @@
 cd ${SRC_DIR}
 ls
 cd src
+ls
 python -m numpy.f2py -c -m calccomf calcCOM.f90
 python -m numpy.f2py -c -m calcdistances calcdistances.f90
 python -m numpy.f2py -c -m ipcorr ipcorr.f90
@@ -20,3 +21,5 @@ cp ipcorr*.so ${PREFIX}/bin/src/.
 cd ..
 
 cp PyLAT.py ${PREFIX}/bin/.
+ls ${PREFIX}/bin/
+ls ${PREFIX}/bin/src/
