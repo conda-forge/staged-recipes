@@ -4,24 +4,35 @@ set -x
 # Select platform library suffix
 libsuffix="so"
 if [[ $target_platform == osx-* ]]; then
-    libsuffix=dylib
+    libsuffix="dylib"
 fi
 
 # Force position independant code generation
 export CFLAGS="$CFLAGS -fPIC"
 
-# Build
-make -j${CPU_COUNT} \
-    CC="$CC" \
-    CFLAGS="$CFLAGS" \
-    CPPFLAGS="$CPPFLAGS" \
-    FFLAGS="$FFLAGS" \
-    LDFLAGS="$LDFLAGS"
-
-# The makefile doesn't provide a shared library target
+# Short circuit:
+#   Build the static archive without compiling the programs
 pushd libwcs
+    make -j${CPU_COUNT} \
+        CC="$CC" \
+        CFLAGS="$CFLAGS" \
+        CPPFLAGS="$CPPFLAGS" \
+        FFLAGS="$FFLAGS" \
+        LDFLAGS="$LDFLAGS"
+
+    # Build the shared library
     $CC -shared -lm -o libwcs.${libsuffix} *.o
 popd
+
+rdelim="="
+if [[ $target_platform == osx-* ]]; then
+    rdelim=","
+fi
+
+# The top-level makefile only supports CFLAGS
+# Override LIBWCS variable:
+#   Link to the shared library instead of the static archive
+make LIBWCS="-L./libwcs -lwcs -Wl,-rpath${rdelim}$PREFIX/lib"
 
 # Remove debug artifacts (osx specific)
 rm -rf bin/*.dSYM
@@ -42,5 +53,6 @@ sed -e "s|@PREFIX@|$PREFIX|;s|@PKG_NAME@|$PKG_NAME|;s|@PKG_VERSION@|$PKG_VERSION
     $RECIPE_DIR/wcstools.pc.in > $PREFIX/lib/pkgconfig/wcstools.pc
 
 # Normalize permissions
-chmod 755 $PREFIX/bin/* $PREFIX/lib/libwcs.${libsuffix}
-chmod 644 $PREFIX/include/*.h
+chmod -R 755 $PREFIX/bin $PREFIX/lib/libwcs.${libsuffix}
+find $PREFIX/include $PREFIX/lib/pkgconfig $PREFIX/share/man -type f \
+    | xargs -I'{}' chmod 644 '{}'
