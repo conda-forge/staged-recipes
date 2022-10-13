@@ -14,12 +14,10 @@ python -m numpy.f2py -c -m ipcorr ipcorr.f90
 
 mkdir ${PREFIX}/bin/src
 
-cp calccomf*.so ${PREFIX}/bin/src/.
-cp calcdistances*.so ${PREFIX}/bin/src/.
-cp ipcorr*.so ${PREFIX}/bin/src/.
+cp calccomf*.so ${PREFIX}/bin/src/calccomf.so
+cp calcdistances*.so ${PREFIX}/bin/src/calcdistances.so
+cp ipcorr*.so ${PREFIX}/bin/src/ipcorr.so
 
 cd ..
 
 cp PyLAT.py ${PREFIX}/bin/.
-ls ${PREFIX}/bin/
-ls ${PREFIX}/bin/src/
