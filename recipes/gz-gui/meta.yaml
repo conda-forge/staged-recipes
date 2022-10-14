@@ -1,0 +1,96 @@
+{% set component_name = "gui" %}
+{% set repo_name = "gz-" + component_name %}
+{% set version = "7.0.0" %}
+{% set major_version = version.split('.')[0] %}
+{% set name = repo_name + major_version %}
+{% set component_version = component_name + major_version %}
+{% set cxx_name = "lib" + name %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/gazebosim/{{ repo_name }}/archive/{{ repo_name }}{{ major_version }}_{{ version }}.tar.gz
+    sha256: ba70e06e9ba4cd0f79ecf77d2ac9cd2ae2bec24d6f6a131f8db939cafe4987f3
+
+build:
+  number: 0
+
+outputs:
+  - name: {{ cxx_name }}
+    script: build_cxx.sh  # [unix]
+    script: bld_cxx.bat  # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage(cxx_name, max_pin='x') }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ compiler('c') }}
+        - ninja
+        - cmake
+        - pkg-config
+        - {{ cdt('mesa-libgl-devel') }}  # [linux]
+        - {{ cdt('mesa-dri-drivers') }}  # [linux]
+        - {{ cdt('libselinux') }}  # [linux]
+        - {{ cdt('libxdamage') }}  # [linux]
+        - {{ cdt('libxxf86vm') }}  # [linux]
+        - {{ cdt('libxext') }}     # [linux]
+      host:
+        - libgz-cmake3
+        - libprotobuf
+        - tinyxml2
+        - libgz-math7
+        - libgz-common5
+        - libgz-plugin2
+        - libgz-transport12
+        - libgz-rendering7
+        - libgz-msgs9
+        - libgz-tools2
+        - libgz-utils2
+        - qt-main
+        - xorg-libxfixes  # [linux]
+        - ogre  {{ ogre }}
+    test:
+      commands:
+        - test -f ${PREFIX}/include/gz/{{ component_version }}/gz/{{ component_name }}.hh  # [not win]
+        - test -f ${PREFIX}/lib/lib{{ name }}.so  # [linux]
+        - test -f ${PREFIX}/lib/lib{{ name }}.dylib  # [osx]
+        - test -f ${PREFIX}/lib/cmake/{{ name }}/{{ name }}-config.cmake  # [not win]
+        - if not exist %PREFIX%\\Library\\include\\gz\\{{ component_version }}\\gz\\{{ component_name }}.hh exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\{{ name }}.lib exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\{{ name }}.dll exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\cmake\\{{ name }}\\{{ name }}-config.cmake exit 1  # [win]
+
+  - name: {{ name }}
+    build:
+      run_exports:
+        - {{ pin_subpackage(cxx_name, max_pin='x') }}
+    requirements:
+      run:
+        - {{ pin_subpackage(cxx_name, exact=True) }}
+    test:
+      commands:
+        - test -f ${PREFIX}/include/gz/{{ component_version }}/gz/{{ component_name }}.hh  # [not win]
+        - test -f ${PREFIX}/lib/lib{{ name }}.so  # [linux]
+        - test -f ${PREFIX}/lib/lib{{ name }}.dylib  # [osx]
+        - test -f ${PREFIX}/lib/cmake/{{ name }}/{{ name }}-config.cmake  # [not win]
+        - if not exist %PREFIX%\\Library\\include\\gz\\{{ component_version }}\\gz\\{{ component_name }}.hh exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\{{ name }}.lib exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\{{ name }}.dll exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\cmake\\{{ name }}\\{{ name }}-config.cmake exit 1  # [win]
+
+about:
+  home: https://github.com/gazebosim/{{ repo_name }}
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: ' Builds on top of Qt to provide widgets which are useful when developing robotics applications, such as a 3D view, plots, dashboard, etc, and can be used together in a convenient unified interface.'
+
+extra:
+  feedstock-name: {{ repo_name }}
+  recipe-maintainers:
+    - wolfv
+    - traversaro
+    - Tobias-Fischer
+    - j-rivero
