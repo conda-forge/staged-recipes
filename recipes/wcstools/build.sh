@@ -32,7 +32,7 @@ fi
 # The top-level makefile only supports CFLAGS
 # Override LIBWCS variable:
 #   Link to the shared library instead of the static archive
-make LIBWCS="-L./libwcs -lwcs -Wl,-rpath${rdelim}$PREFIX/lib"
+make CC="$CC" LIBWCS="-L./libwcs -lwcs -Wl,-rpath${rdelim}$PREFIX/lib"
 
 # Remove debug artifacts (osx specific)
 rm -rf bin/*.dSYM
