@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
 set -x
 
-# Select platform library suffix
+rdelim="="
+if [[ $target_platform == osx-* ]]; then
+    rdelim=","
+fi
+
+LIBWCS="-L./libwcs -lwcs -Wl,-rpath${rdelim}$PREFIX/lib"
 libsuffix="so"
+
 if [[ $target_platform == osx-* ]]; then
     libsuffix="dylib"
-    CFLAGS="$CFLAGS -headerpad_max_install_names"
+    LIBWCS="$LIBWCS -Wl,-headerpad_max_install_names"
 fi
 
 # Force position independant code generation
@@ -25,15 +31,10 @@ pushd libwcs
     $CC -shared -lm -o libwcs.${libsuffix} *.o
 popd
 
-rdelim="="
-if [[ $target_platform == osx-* ]]; then
-    rdelim=","
-fi
-
 # The top-level makefile only supports CFLAGS
 # Override LIBWCS variable:
 #   Link to the shared library instead of the static archive
-make CC="$CC" LIBWCS="-L./libwcs -lwcs -Wl,-rpath${rdelim}$PREFIX/lib"
+make CC="$CC" LIBWCS="$LIBWCS"
 
 # Remove debug artifacts (osx specific)
 rm -rf bin/*.dSYM
