@@ -11,5 +11,3 @@ else
     echo 'Unable to find Makefile.PL. You need to modify build.sh.'
     exit 1
 fi
-
-
