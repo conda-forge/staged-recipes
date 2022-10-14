@@ -54,5 +54,6 @@ sed -e "s|@PREFIX@|$PREFIX|;s|@PKG_NAME@|$PKG_NAME|;s|@PKG_VERSION@|$PKG_VERSION
 
 # Normalize permissions
 chmod -R 755 $PREFIX/bin $PREFIX/lib/libwcs.${libsuffix}
-find $PREFIX/include $PREFIX/lib/pkgconfig $PREFIX/share/man -type f \
-    | xargs -I'{}' chmod 644 '{}'
+find $PREFIX/include $PREFIX/lib/pkgconfig $PREFIX/share/man \
+    -type f \
+    -exec chmod 644 '{}' \;
