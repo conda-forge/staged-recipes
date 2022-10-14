@@ -15,6 +15,7 @@ cd build
 cmake ${CMAKE_ARGS} -GNinja .. \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP=True \
+      -DBUILD_TESTING:BOOL=OFF \
       -DSKIP_PYBIND11:BOOL=ON
 
 cmake --build . --config Release
