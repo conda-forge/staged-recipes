@@ -5,6 +5,7 @@ set -x
 libsuffix="so"
 if [[ $target_platform == osx-* ]]; then
     libsuffix="dylib"
+    CFLAGS="$CFLAGS -headerpad_max_install_names"
 fi
 
 # Force position independant code generation
