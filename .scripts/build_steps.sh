@@ -5,6 +5,8 @@
 # changes to this script, consider a proposal to conda-smithy so that other feedstocks can also
 # benefit from the improvement.
 
+git config --global --add safe.directory '*'
+
 set -xeuo pipefail
 export PYTHONUNBUFFERED=1
 
