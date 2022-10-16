@@ -6,8 +6,17 @@ package:
   version: {{ version }}
 
 source:
-  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/awslambdaric-{{ version }}.tar.gz
-  sha256: dad646f566aa7ec9b7179f16ca6741a2bea148abec6ed5947f86d00607e0a9a2
+  - url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/awslambdaric-{{ version }}.tar.gz
+    sha256: dad646f566aa7ec9b7179f16ca6741a2bea148abec6ed5947f86d00607e0a9a2
+    patches:
+      # Replace the pinned simplejson constraint with >=3.17.2,<3.18
+      - relax-simplejson.patch
+      # Please see awslabs/aws-lambda-cpp#94, remove once aws-lambda-cpp is upgraded to 0.2.7
+      - aws-lambda-cpp-0.2.6-update-backward-cpp.patch
+  - url: https://raw.githubusercontent.com/bombela/backward-cpp/v1.6/backward.hpp
+    sha256: 404aa26ecc36be08f92c03b05505561e064f6f1f7cffcbda77a7d4959e4c07f2
+    folder: deps/patches
+    fn: backward.h
 
 build:
   skip: true  # [py2k]
@@ -15,13 +24,22 @@ build:
   number: 0
 
 requirements:
+   build:
+     - {{ compiler('c') }}  # [linux]
+     - {{ compiler('cxx') }}  # [linux]
+     - automake  # [linux]
+     - autoconf  # [linux]
+     - cmake  # [linux]
+     - libtool  # [linux]
+     - make  # [linux]
+     - pkg-config  # [linux]
   host:
     - pip
     - python
   run:
-    - importlib-metadata >=2.0  # [py<38],==2.*
+    - importlib-metadata >=2.0,<3  # [py<38]
     - python
-    - simplejson ==3.17.2
+    - simplejson >=3.17.2,<3.18
 
 test:
   imports:
@@ -34,7 +52,7 @@ test:
 about:
   home: https://github.com/aws/aws-lambda-python-runtime-interface-client
   summary: AWS Lambda Runtime Interface Client for Python
-  license: BSD-3-Clause & Apache-2.0
+  license: BSD-3-Clause AND Apache-2.0
   license_file:
     - NOTICE
     - LICENSE
