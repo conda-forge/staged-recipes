@@ -1,4 +1,4 @@
-setlocal EnableDelayedExpansion
+@echo On
 
 if "%cuda_compiler_version%" == "None" (
     set build_with_cuda=
@@ -49,15 +49,20 @@ if errorlevel 1 exit 1
 
 :: Install binary
 if not exist "%LIBRARY_BIN%" mkdir %LIBRARY_BIN%
-xcopy /y katago.exe %LIBRARY_BIN%\katago.exe
+copy katago.exe %LIBRARY_BIN%
+if errorlevel 1 exit 1
 
 :: Install config files
-if not exist "%LIBRARY_PREFIX%\var\configs\" mkdir %LIBRARY_PREFIX%\var\configs\
-xcopy /y /s /e configs\ %LIBRARY_PREFIX%\var\configs\
+if not exist "%LIBRARY_PREFIX%\var\" mkdir "%LIBRARY_PREFIX%\var\"
+xcopy /y /s /i configs %LIBRARY_PREFIX%\var\configs
+if errorlevel 1 exit 1
 
 :: Download latest NN
 set KATAGO_WEIGTHS_DIR="%LIBRARY_PREFIX%\var\weights\"
 set KATAGO_WEIGTHS_NAME="kata1-b40c256-s11840935168-d2898845681.bin.gz"
-curl https://media.katagotraining.org/uploaded/networks/models/kata1/${KATAGO_WEIGTHS_NAME} --output ${KATAGO_WEIGTHS_NAME}
+curl https://media.katagotraining.org/uploaded/networks/models/kata1/%KATAGO_WEIGTHS_NAME% --output %KATAGO_WEIGTHS_NAME%
+if errorlevel 1 exit 1
+
 if not exist "%KATAGO_WEIGTHS_DIR%" mkdir %KATAGO_WEIGTHS_DIR%
-xcopy /y %KATAGO_WEIGTHS_NAME% %KATAGO_WEIGTHS_DIR%\%KATAGO_WEIGTHS_NAME%
+copy %KATAGO_WEIGTHS_NAME% %KATAGO_WEIGTHS_DIR%\%KATAGO_WEIGTHS_NAME%
+if errorlevel 1 exit 1
