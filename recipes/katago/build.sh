@@ -18,6 +18,13 @@ else
   export USE_CUDA=0
 fi
 
+# Enable AVX2 on Linux and disable on OSX
+if [[ "$target_platform" == "osx-64" ]]; then
+  export USE_AVX2=0
+else
+  export USE_AVX2=1
+fi
+
 cmake ${CMAKE_ARGS} . \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=$PREFIX \
@@ -25,7 +32,7 @@ cmake ${CMAKE_ARGS} . \
   -DCMAKE_INSTALL_LIBDIR=lib \
   -DUSE_BACKEND=${KATAGO_BACKEND} \
   -DNO_GIT_REVISION=1 \
-  -DUSE_AVX2=1
+  -DUSE_AVX2=${USE_AVX2}
 
 make -j $CPU_COUNT
 
