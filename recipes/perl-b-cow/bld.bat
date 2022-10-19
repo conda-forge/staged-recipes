@@ -18,5 +18,3 @@ IF exist Build.PL (
     ECHO 'Unable to find Build.PL or Makefile.PL. You need to modify bld.bat.'
     exit 1
 )
-
-
