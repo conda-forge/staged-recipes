@@ -1,28 +1,95 @@
-From 135bcc60e8b403ec6c9b71b985c86f5d4be48b5b Mon Sep 17 00:00:00 2001
-From: Samee <sameeul@gmail.com>
-Date: Thu, 22 Sep 2022 20:55:56 +0000
-Subject: [PATCH] Fix CUDA Kernel Issue
+From 1853ed5213426e94096c669b932a70c2223614a6 Mon Sep 17 00:00:00 2001
+From: sameeul <sameeul@gmail.com>
+Date: Thu, 20 Oct 2022 13:53:42 -0400
+Subject: [PATCH] Fix CMake Issues
 
 ---
- CMakeLists.txt       | 5 ++++-
- tests/CMakeLists.txt | 2 +-
- 2 files changed, 5 insertions(+), 2 deletions(-)
+ CMakeLists.txt       | 50 +++++++++++++++++++++++++-------------------
+ tests/CMakeLists.txt |  2 +-
+ 2 files changed, 30 insertions(+), 22 deletions(-)
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 4a845e1..531775e 100644
+index 4a845e1..b9935de 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -34,6 +34,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+@@ -33,6 +33,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ 
  if(USEGPU)
      enable_language("CUDA")
-     add_definitions(-DUSE_GPU)
 +	SET(CMAKE_CUDA_ARCHITECTURES ${CUDA_ARCH_LIST})
 +	set_property(GLOBAL PROPERTY CUDA_ARCHITECTURES "${CUDA_ARCH_LIST}")
 +	message("Building with compute capability for ${CUDA_ARCH_LIST}.")
+     add_definitions(-DUSE_GPU)
  	if (CUDA_VERSION_MAJOR STREQUAL "10")
  		set(CMAKE_CUDA_STANDARD 14)
- 	elseif (CUDA_VERSION_MAJOR STREQUAL "11")
-@@ -200,13 +203,13 @@ else ()
+@@ -43,10 +46,12 @@ if(USEGPU)
+ endif()
+ 
+ #since xtensor does not built with GCC 7.5 and lower
++option(OMEZARR "Support OMEZarr" ON)
+ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+ 	if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 7.5) 
+ 		add_definitions(-DOMEZARR_SUPPORT)
+ 	else()
++		set(OMEZARR OFF)
+ 		message(WARNING "OMEZarr support is not available with GCC 7.5 and older compiler.")
+ 	endif()
+ else()
+@@ -165,30 +170,32 @@ if (TIFF_FOUND)
+ endif (TIFF_FOUND)
+ 
+ #== Required for OMEZarr 
+-find_package(BLOSC REQUIRED)
+-if(BLOSC_FOUND)
+-	target_compile_definitions(backend PRIVATE -DWITH_BLOSC)
+-	target_link_libraries(backend PRIVATE ${BLOSC_LIBRARIES})
+-	if(BUILD_CLI)
+-		target_compile_definitions(nyxus PRIVATE -DWITH_BLOSC)
+-		target_compile_definitions(nyxushie PRIVATE -DWITH_BLOSC) 	
+-		target_link_libraries(nyxus PRIVATE ${BLOSC_LIBRARIES})	
+-		target_link_libraries(nyxushie PRIVATE ${BLOSC_LIBRARIES})	
++if(OMEZARR)
++	find_package(BLOSC REQUIRED)
++	if(BLOSC_FOUND)
++		target_compile_definitions(backend PRIVATE -DWITH_BLOSC)
++		target_link_libraries(backend PRIVATE ${BLOSC_LIBRARIES})
++		if(BUILD_CLI)
++			target_compile_definitions(nyxus PRIVATE -DWITH_BLOSC)
++			target_compile_definitions(nyxushie PRIVATE -DWITH_BLOSC) 	
++			target_link_libraries(nyxus PRIVATE ${BLOSC_LIBRARIES})	
++			target_link_libraries(nyxushie PRIVATE ${BLOSC_LIBRARIES})	
++		endif()
+ 	endif()
++	
++	find_package(Boost REQUIRED)
++	if(Boost_FOUND)
++		include_directories(${Boost_INCLUDE_DIR})
++	endif()
++	
++	find_package(nlohmann_json REQUIRED)
++	if(nlohmann_json_FOUND)
++		include_directories(${nlohmann_json_INCLUDE_DIR})
++	endif()
++	
++	find_file(Z5 "z5/z5.hxx" REQUIRED)	
+ endif()
+ 
+-find_package(Boost REQUIRED)
+-if(Boost_FOUND)
+-	include_directories(${Boost_INCLUDE_DIR})
+-endif()
+-
+-find_package(nlohmann_json REQUIRED)
+-if(nlohmann_json_FOUND)
+-	include_directories(${nlohmann_json_INCLUDE_DIR})
+-endif()
+-
+-find_file(Z5 "z5/z5.hxx" REQUIRED)
+-
+ find_package(Threads QUIET)
+ if (Threads_FOUND)
+     if (CMAKE_USE_PTHREADS_INIT)
+@@ -200,6 +207,7 @@ else ()
  endif ()
  
  if(USEGPU)
@@ -30,13 +97,6 @@ index 4a845e1..531775e 100644
  	set(GPU_SOURCE_FILES
  		src/nyx/gpu/gpu_helpers.cu
  		src/nyx/gpu/image_moments.cu
-         src/nyx/gpu/gabor.cu
- 	)
- 	add_library(nyxus_gpu ${GPU_SOURCE_FILES})
--
- 	if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
- 		target_compile_options(nyxus_gpu PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-fPIC>)
- 	endif()
 diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
 index 7f0c9c7..a85db5f 100755
 --- a/tests/CMakeLists.txt
@@ -51,5 +111,5 @@ index 7f0c9c7..a85db5f 100755
  		target_compile_options(runAllTests PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-fPIC>)
  	endif()
 -- 
-2.32.0
+2.30.2
 
