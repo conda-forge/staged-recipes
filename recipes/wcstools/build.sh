@@ -1,24 +1,33 @@
 #!/usr/bin/env bash
+#
+# The following modifications have been made to prevent collision
+# with the "wcslib" package:
+#   - The "libwcs" library has been renamed to "libwcstools"
+#   - The headers have been moved to "include/wcstools"
+#
 set -x
 
-rdelim="="
-if [[ $target_platform == osx-* ]]; then
-    rdelim=","
-fi
+bindir=$PREFIX/bin
+incdir=$PREFIX/include
+libdir=$PREFIX/lib
+datadir=$PREFIX/share
+mandir=$datadir/man
 
-LIBWCS="-L./libwcs -lwcs -Wl,-rpath${rdelim}$PREFIX/lib"
+# Prepare library linkage
+LIBWCS="-L./libwcs -lwcstools $LDFLAGS"
 libsuffix="so"
-
 if [[ $target_platform == osx-* ]]; then
     libsuffix="dylib"
     LIBWCS="$LIBWCS -Wl,-headerpad_max_install_names"
 fi
-
+libname="libwcstools.${libsuffix}"
+    
 # Force position independant code generation
 export CFLAGS="$CFLAGS -fPIC"
 
 # Short circuit:
-#   Build the static archive without compiling the programs
+#   - Build the static archive without compiling the programs
+#   - The static archive is omitted from the package
 pushd libwcs
     make -j${CPU_COUNT} \
         CC="$CC" \
@@ -28,34 +37,31 @@ pushd libwcs
         LDFLAGS="$LDFLAGS"
 
     # Build the shared library
-    $CC -shared -lm -o libwcs.${libsuffix} *.o
+    $CC -shared -lm -o "$libname" *.o
 popd
 
-# The top-level makefile only supports CFLAGS
 # Override LIBWCS variable:
-#   Link to the shared library instead of the static archive
+#   - Link to the shared library instead of the static archive
 make CC="$CC" LIBWCS="$LIBWCS"
 
 # Remove debug artifacts (osx specific)
 rm -rf bin/*.dSYM
 
 # The makefile doesn't provide an install target.
-# Do it manually.
-mkdir -p $PREFIX/bin \
-    $PREFIX/lib \
-    $PREFIX/lib/pkgconfig \
-    $PREFIX/include \
-    $PREFIX/share/man
+mkdir -p $bindir \
+    $libdir/pkgconfig \
+    $incdir/wcstools \
+    $mandir
 
-cp -a wcstools bin/* $PREFIX/bin
-cp -a man/man1 $PREFIX/share/man
-cp -a libwcs/libwcs.${libsuffix} $PREFIX/lib
-cp -a libwcs/*.h $PREFIX/include
+cp -a wcstools bin/* $bindir
+cp -a man/man1 $mandir
+cp -a libwcs/$libname $libdir
+cp -a libwcs/*.h $incdir/wcstools
 sed -e "s|@PREFIX@|$PREFIX|;s|@PKG_NAME@|$PKG_NAME|;s|@PKG_VERSION@|$PKG_VERSION|" \
-    $RECIPE_DIR/wcstools.pc.in > $PREFIX/lib/pkgconfig/wcstools.pc
+    $RECIPE_DIR/wcstools.pc.in > $libdir/pkgconfig/wcstools.pc
 
 # Normalize permissions
-chmod -R 755 $PREFIX/bin $PREFIX/lib/libwcs.${libsuffix}
-find $PREFIX/include $PREFIX/lib/pkgconfig $PREFIX/share/man \
+chmod -R 755 $bindir $libdir/$libname
+find $incdir $libdir/pkgconfig $mandir \
     -type f \
     -exec chmod 644 '{}' \;
