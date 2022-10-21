@@ -103,7 +103,7 @@ The maintainers "job" is to:
 
 - keep the feedstock updated by merging eventual maintenance PRs from conda-forge's bots;
 - keep the package updated by bumping the version whenever there is a new release;
-- answer eventual question about the package on the feedstock issue tracker.
+- answer eventual questions about the package on the feedstock issue tracker.
 
 ### 10. Why are there recipes already in the `recipes` directory? Should I do something about it?
 
@@ -114,7 +114,7 @@ When a PR of recipe(s) is ready to go, it is merged into `main`. This will trigg
 Sometimes, some of the CI tools' builds fail due to no error within your recipe. If that happens, you can trigger a rebuild by re-creating the last commit and force pushing it to your branch:
 
 ```bash
-# edit your last commit, giving it a new time stamp and hash
+# edit your last commit, giving it a new timestamp and hash
 # (you can just leave the message as it is)
 git commit --amend
 # push to github, overwriting your branch
@@ -137,7 +137,7 @@ If your PR is passing all checks, but has not been acted on by the staged recipe
 maintainers, you can ping @conda-forge/staged-recipes to request action. You do
 not need to wait any specific amount of time once the recipe is ready to go.
 
-Due to GitHub limitations first time contributors to conda-forge are unable
+Due to GitHub limitations, first time contributors to conda-forge are unable
 to ping these teams. You can [ping the team](https://conda-forge.org/docs/maintainer/infrastructure.html#conda-forge-admin-please-ping-team)
 using a special command in a comment on the PR to get the attention of the `staged-recipes` team.
 
@@ -145,7 +145,7 @@ If your recipe still does not receive any attention after a few days, you may
 attempt to re-ping @conda-forge/staged-recipes. You may also attempt to bring
 the PR up in our Gitter chat room at https://gitter.im/conda-forge/conda-forge.github.io.
 
-All apologies in advance if your recipe PR does not recieve prompt attention.
+All apologies in advance if your recipe PR does not receive prompt attention.
 This is a high volume repository and issues can easily be missed. We are always
 looking for more staged-recipe reviewers. If you are interested in volunteering,
 please contact a member of @conda-forge/core. We'd love to have the help!
