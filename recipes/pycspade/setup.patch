@@ -1,0 +1,120 @@
+From 459ee55e2c3be75fe1311ab0149f98469c94ce33 Mon Sep 17 00:00:00 2001
+From: leej3 <johnleenimh@gmail.com>
+Date: Wed, 19 Oct 2022 07:00:36 -0400
+Subject: [PATCH] tidy setup.py
+
+Use conda compiler settings for build config.
+Always use cython.
+---
+ setup.py | 81 +++++++-------------------------------------------------
+ 1 file changed, 10 insertions(+), 71 deletions(-)
+
+diff --git a/setup.py b/setup.py
+index c7cf7fd..469e7b9 100644
+--- a/setup.py
++++ b/setup.py
+@@ -3,25 +3,8 @@ from codecs import open
+ import sys
+ import os
+ 
+-# is_windows = sys.platform.startswith('win')
+-
+-def is_platform_mac():
+-    return sys.platform == 'darwin'
+-
+-def is_platform_windows():
+-    return sys.platform == 'win32' or sys.platform == 'cygwin'
+-
+-try:
+-    from Cython.Distutils import build_ext
+-except ImportError:
+-    use_cython = False
+-else:
+-    use_cython = True
+-
+-if use_cython:
+-    sourcefiles = ['pycspade/cspade.pyx']
+-else:
+-    sourcefiles = ['pycspade/cspade.cpp']
++from Cython.Distutils import build_ext
++sourcefiles = ['pycspade/cspade.pyx']
+ 
+ extra_files = ['csrc/{}'.format(x) for x in [
+     'makebin.cc',
+@@ -45,56 +28,13 @@ extra_files = ['csrc/{}'.format(x) for x in [
+     'ClassInfo.cc'
+ ]]
+ 
+-
+-# Fix compatibility when compiling on Mac Mojave.
+-# Explanation: https://github.com/pandas-dev/pandas/issues/23424#issuecomment-446393981
+-# Code credit: https://github.com/pandas-dev/pandas/pull/24274/commits/256faf2011a12424e684a42c147e1ba7ac32c6fb
+-if is_platform_mac():
+-    import _osx_support
+-    import distutils.sysconfig
+-    if not 'MACOSX_DEPLOYMENT_TARGET' in os.environ:
+-        current_system = list(map(int, _osx_support._get_system_version().split('.')))
+-        python_osx_target_str = distutils.sysconfig.get_config_var('MACOSX_DEPLOYMENT_TARGET')
+-        python_osx_target = list(map(int, python_osx_target_str.split('.')))
+-        if python_osx_target < [10, 9] and current_system >= [10, 9]:
+-            os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.9'
+-
+-    os.environ['CC'] = 'clang'
+-    os.environ['CXX'] = 'clang'
+-
+-if is_platform_windows():
+-    extra_compiler_args = []
+-else:
+-    extra_compiler_args = [
+-        '-std=c++11',
+-        '-Wno-sign-compare',
+-        '-Wno-incompatible-pointer-types',
+-        '-Wno-unused-variable',
+-        '-Wno-absolute-value',
+-        '-Wno-visibility',
+-        '-Wno-#warnings',
+-    ]
+-
+-if is_platform_mac():
+-    ext_modules = [
+-        Extension('pycspade.cspade',
+-                  sourcefiles + extra_files,
+-                  include_dirs=['csrc/'],
+-                  language='c++',
+-                  extra_compile_args=extra_compiler_args,
+-                  extra_link_args=["-O2", "-march=native", '-stdlib=libc++'],
+-                  ),
+-    ]
+-else:
+-    ext_modules = [
+-        Extension('pycspade.cspade',
+-                  sourcefiles + extra_files,
+-                  include_dirs=['csrc/'],
+-                  language='c++',
+-                  extra_compile_args=extra_compiler_args,
+-                  ),
+-    ]
+-
++ext_modules = [
++    Extension('pycspade.cspade',
++              sourcefiles + extra_files,
++              include_dirs=['csrc/'],
++              language='c++',
++              ),
++]
+ with open('README.md', 'r') as fh:
+     long_description = fh.read()
+ 
+@@ -113,8 +53,7 @@ setup_args = dict(
+     install_requires=['Cython'],
+ )
+ 
+-if use_cython:
+-    setup_args['cmdclass'] = {'build_ext': build_ext}
++setup_args['cmdclass'] = {'build_ext': build_ext}
+ 
+ setup(
+     **setup_args
+-- 
+2.30.2
+
