@@ -14,11 +14,9 @@ fi
 
 if [[ "$target_platform" == osx* ]]; then
     CMAKE_FLAGS+=" -DPython_ROOT_DIR=${PREFIX}"
-    CMAKE_FLAGS+=" -DCMAKE_OSX_SYSROOT=${CONDA_BUILD_SYSROOT}"
-    CMAKE_FLAGS+=" -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}"
 fi
 
 # Build and install
 BUILD_PATH=build/hoomd-dlext
-cmake -S . -B $BUILD_PATH $CMAKE_FLAGS -Wno-dev
+cmake ${CMAKE_ARGS} -S . -B $BUILD_PATH $CMAKE_FLAGS -Wno-dev
 cmake --build $BUILD_PATH --target install
