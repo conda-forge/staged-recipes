@@ -19,7 +19,7 @@ ln -s Pogo-${PKG_VERSION}.jar ${PREFIX}/share/java/Pogo.jar
 export POGO_PREFERENCES=${PREFIX}/share/pogo/preferences
 mkdir -p ${POGO_PREFERENCES}
 install -m 0644 ${RECIPE_DIR}/preferences/* ${POGO_PREFERENCES}/
-echo "org.tango.pogo.makefile_home: ${POGO_PREFERENCES}" >> ${POGO_PREFERENCES}/Pogo.site_properties
+sed -i "s?^org.tango.pogo.makefile_home:.*?org.tango.pogo.makefile_home: ${POGO_PREFERENCES}?g"  ${POGO_PREFERENCES}/Pogo.site_properties
 
 # Create pogo script
 cat << EOF > $PREFIX/bin/pogo
