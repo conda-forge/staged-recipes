@@ -18,5 +18,5 @@ cmake .. -GNinja -DCMAKE_BUILD_TYPE:STRING=Release ^
 
 if errorlevel 1 exit /b 1
 
-ninja install -j8
+ninja install
 if errorlevel 1 exit /b 1
