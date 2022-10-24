@@ -2,6 +2,10 @@
 
 set -o errexit -o pipefail
 
+# Copied from BioConda recipe for perl-moose. Fixes error caused by wrong
+# linker flags that need to be passed to LD via GCC, and not directly.
+export LD="$CC"
+
 if [[ -f Build.PL ]]; then
     perl Build.PL
     perl ./Build
