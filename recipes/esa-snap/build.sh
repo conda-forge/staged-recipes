@@ -1,48 +1,65 @@
-#!/bin/bash
+#/usr/bin/bash
+#
+#
+#
 
-target=$PREFIX/opt/snap
-mkdir -p $target/.snap
-mkdir -p $PREFIX/opt/snap-src
-SNAP_HOME="$PREFIX/opt/snap"
-SNAP_USER="${SNAP_HOME}/.snap"
+# Set Fonts directory
+export JAVA_FONTS=$PREFIX/fonts
 
-# create dir for needed folders
-mkdir -p $SNAP_HOME
-mkdir -p $SNAP_USER/snap-python/snappy
-mkdir -p ${SNAP_HOME}/../snap-src
-mkdir -p $PREFIX/bin
+# create source dir and move install script to common name
+mkdir -p $PREFIX/snap-src
+SNAP_PKG=$PREFIX/snap-src/esa-snap_all_unix.sh
+mv $SRC_DIR/esa-snap_all_unix_*.sh $SNAP_PKG
 
-cp -r $SRC_DIR/* $PREFIX/opt/snap-src
+# install snap
+chmod 755 $SNAP_PKG
+$SNAP_PKG -q -J-DJAVA_FONTS=$PREFIX/fonts -dir $PREFIX/snap &>> $PREFIX/messages.txt
 
+# remove snap
+rm -fr $SNAP_PKG
 
+# setup snap home/paths
+SNAP_HOME="$PREFIX/snap/.snap"
 
-echo "Build JPY"  &>> $PREFIX/.messages.txt
-# python3 -m pip install --upgrade pip wheel
-echo "cd to JPY"  &>> $PREFIX/.messages.txt
-ls -l ${SNAP_HOME}/../snap-src/jpy &>> $PREFIX/.messages.txt
-cd ${SNAP_HOME}/../snap-src/jpy
-python setup.py bdist_wheel
+echo "SNAP_HOME is $SNAP_HOME" &>> $PREFIX/messages.txt
+echo "updating snap.userdir in  $PREFIX/snap/etc/snap.properties " &>> $PREFIX/messages.txt
+sed -i "s!#snap.userdir=!snap.userdir=$SNAP_HOME!g" $PREFIX/snap/etc/snap.properties 
 
-cd ${PREFIX}
+echo "updating default_userdir in $PREFIX/snap/etc/snap.conf " &>> $PREFIX/messages.txt
+sed -i "s!\${HOME}!$PREFIX/snap/!g" $PREFIX/snap/etc/snap.conf &>> $PREFIX/messages.txt
 
-# retrieving jpy wheel to copy in ${SNAP_USER}/snap-python/snappy directory
-jpy_file=$(find ${SNAP_HOME}/../snap-src/jpy -name "jpy-*.whl")
-if [ -z "$jpy_file" ]
-then
-	echo "Jpy has not been installed correctly" &>> $PREFIX/.messages.txt
-	exit 1
-fi
+echo "updating snap modules" &>> $PREFIX/messages.txt
+# $PREFIX/snap/bin/snap --nosplash --nogui --modules --update-all 2>&1 | while read -r line; do
+#     echo "$line"
+#     [ "$line" = "updates=0" ] && sleep 2 && pkill -TERM -f "snap/jre/bin/java"
+# done
+$PREFIX/snap/bin/snap -J-DJAVA_FONTS=$PREFIX/fonts --nosplash --nogui --modules --update-all
 
-jpy_filename=$(basename $jpy_file)
+echo "update concluded" &>> $PREFIX/messages.txt
 
+echo "Give read/write permissions for snap home folder"  &>> $PREFIX/messages.txt
+chmod -R 777 $SNAP_HOME &>> $PREFIX/messages.txt
 
-cp ${jpy_file} ${SNAP_HOME}/../snap-src/
+echo "setting python_version variable" &>> $PREFIX/messages.txt
+python_version=$( $PREFIX/bin/python -c 'import sys; print("{}.{}".format(sys.version_info[0], sys.version_info[1]))' )
+echo "python_version is $python_version " &>> $PREFIX/messages.txt
 
+echo "setting max jvm mem to 40gb " &>> $PREFIX/messages.txt
+echo -e "-Xmx40G" >> $SNAP_HOME/bin/gpt.vmoptions
 
-echo "list files in ls -l ${SNAP_HOME}/../snap-src/jpy" &>> $PREFIX/.messages.txt
-ls -l ${SNAP_HOME}/../snap-src/jpy&>> $PREFIX/.messages.txt
+mkdir -p $SNAP_HOME/system/var/log
+cat $PREFIX/messages.txt >> $SNAP_HOME/system/var/log/messages.log
 
+# adding snap binaries to PATH
+ACTIVATE_DIR=$PREFIX/etc/conda/activate.d
+DEACTIVATE_DIR=$PREFIX/etc/conda/deactivate.d
 
-echo "list files in ls -l ${SNAP_HOME}/../snap-src/" &>> $PREFIX/.messages.txt
-ls -l ${SNAP_HOME}/../snap-src/&>> $PREFIX/.messages.txt
-# pip install ${jpy_file}
+mkdir -p $ACTIVATE_DIR
+mkdir -p $DEACTIVATE_DIR
+
+echo "#!/bin/bash 
+export PATH=$PREFIX/snap/bin:\$PATH" >> $ACTIVATE_DIR/env_vars.sh
+
+echo "#!/bin/bash
+PATH=\$(echo \$PATH | sed -e 's@$PREFIX/snap/bin:@@g')
+export PATH=\$PATH"  >>  $DEACTIVATE_DIR/env_vars.sh
