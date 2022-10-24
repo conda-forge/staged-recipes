@@ -4,7 +4,7 @@
 #
 
 # Set Fonts directory
-export JAVA_FONTS=$PREFIX/fonts
+# export JAVA_FONTS=$PREFIX/fonts
 
 # create source dir and move install script to common name
 mkdir -p $PREFIX/snap-src
@@ -29,11 +29,11 @@ echo "updating default_userdir in $PREFIX/snap/etc/snap.conf " &>> $PREFIX/messa
 sed -i "s!\${HOME}!$PREFIX/snap/!g" $PREFIX/snap/etc/snap.conf &>> $PREFIX/messages.txt
 
 echo "updating snap modules" &>> $PREFIX/messages.txt
-# $PREFIX/snap/bin/snap --nosplash --nogui --modules --update-all 2>&1 | while read -r line; do
-#     echo "$line"
-#     [ "$line" = "updates=0" ] && sleep 2 && pkill -TERM -f "snap/jre/bin/java"
-# done
-$PREFIX/snap/bin/snap -J-DJAVA_FONTS=$PREFIX/fonts --nosplash --nogui --modules --update-all
+$PREFIX/snap/bin/snap --nosplash --nogui --modules --update-all 2>&1 | while read -r line; do
+    echo "$line"
+    [ "$line" = "updates=0" ] && sleep 2 && pkill -TERM -f "snap/jre/bin/java"
+done
+# $PREFIX/snap/bin/snap -J-DJAVA_FONTS=$PREFIX/fonts --nosplash --nogui --modules --update-all
 
 echo "update concluded" &>> $PREFIX/messages.txt
 
