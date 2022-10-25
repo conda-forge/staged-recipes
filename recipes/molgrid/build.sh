@@ -28,7 +28,11 @@ cmake ${CMAKE_ARGS} .. \
   -DOPENBABEL3_INCLUDE_DIR=$PREFIX/include/openbabel3/ \
   -DOPENBABEL3_LIBRARIES=$PREFIX/lib/libopenbabel.so \
   -DPYTHON_NUMPY_INCLUDE_DIR=$NUMPY_INCLUDE_DIR \
-  -DBUILD_STATIC=0
+  -DBUILD_STATIC=0 \
+  -DBUILD_SHARED=1
 
 make -j $CPU_COUNT
 make install
+
+# NOTE(hadim): Install the python module from here since the CMake installation fails here.
+python python/setup.py install
