@@ -1,6 +1,6 @@
 #! /bin/sh
 
-set -eux
+set -eu
 
 source_file="$( dirname -- "$( readlink -e "${0}" )" )/../Library/symlink-exe.c"
 
