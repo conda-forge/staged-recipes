@@ -9,17 +9,14 @@ err_exit() {
   exit 1
 }
 
+[ $# -ge 2 ] ||
+  err_exit "Usage: $( basename "${0}" ) TARGET... DIRECTORY"
+
 for out_path do true ; done
-[ -n "${out_path-}" ] ||
-  err_exit 'Last argument must be output directory, e.g., "%PREFIX%\Scripts"'
-if ! [ -e "${out_path}" ] ; then
-  mkdir -p "${out_path}" ||
-    err_exit "Could not create output directory \"${out_path}\""
-fi
-[ -d "${out_path}" ] ||
+[ -d "${out_path-}" ] ||
   err_exit 'Last argument must be output directory, e.g., "%PREFIX%\Scripts"'
 
-paths="$(
+relpath_targets="$(
   for arg do
     if ! [ "${arg}" = "${out_path}" ] ; then
       printf '%s|%s\n' \
@@ -34,7 +31,7 @@ paths="$(
 
 IFS='
 '
-set -- ${paths}
+set -- ${relpath_targets}
 prev_basename=
 prev_rel_path=
 for arg do
