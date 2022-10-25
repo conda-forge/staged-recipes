@@ -19,8 +19,6 @@ else
   export USE_CUDA=0
 fi
 
-export BUILD_CONTAINED_PYTHON=1
-
 mkdir -p build/
 cd build/
 
@@ -29,7 +27,8 @@ cmake ${CMAKE_ARGS} .. \
   -DCMAKE_INSTALL_PREFIX=$PREFIX \
   -DOPENBABEL3_INCLUDE_DIR=$PREFIX/include/openbabel3/ \
   -DOPENBABEL3_LIBRARIES=$PREFIX/lib/libopenbabel.so \
-  -DPYTHON_NUMPY_INCLUDE_DIR=$NUMPY_INCLUDE_DIR
+  -DPYTHON_NUMPY_INCLUDE_DIR=$NUMPY_INCLUDE_DIR \
+  -DBUILD_STATIC=0
 
 make -j $CPU_COUNT
 make install
