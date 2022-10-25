@@ -1,6 +1,9 @@
 #!/bin/bash
 set -ex
 
+# hack for now
+pip install https://github.com/KieranWynn/pyquaternion/archive/refs/tags/v0.9.9.tar.gz
+
 if [[ ${cuda_compiler_version} != "None" ]]; then
   export USE_CUDA=1
   export NCCL_ROOT_DIR=$PREFIX
@@ -19,7 +22,10 @@ cd build/
 
 cmake ${CMAKE_ARGS} .. \
   -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_INSTALL_PREFIX=$PREFIX
+  -DCMAKE_INSTALL_PREFIX=$PREFIX \
+  -DOPENBABEL3_INCLUDE_DIR=$PREFIX/include/openbabel3/openbabel/ \
+  -DOPENBABEL3_LIBRARIES=$PREFIX/lib/libopenbabel.so \
+  -DPYTHON_NUMPY_INCLUDE_DIR=$PREFIX/include/numpy
 
 make -j $CPU_COUNT
 make install
