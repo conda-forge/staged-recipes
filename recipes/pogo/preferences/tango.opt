@@ -1,0 +1,212 @@
+# vim: set filetype=make:
+
+#------------------------------------------------------------------------------
+#-- gcc version
+#------------------------------------------------------------------------------
+GCC_MAJOR_VERSION_GT4 := $(shell expr `c++ -dumpversion | cut -f1 -d.` \> 4)
+GCC_MAJOR_VERSION_LT6 := $(shell expr `c++ -dumpversion | cut -f1 -d.` \< 6)
+GCC_MAJOR_VERSION_EQ4 := $(shell expr `c++ -dumpversion | cut -f1 -d.` \== 4)
+GCC_MAJOR_VERSION_EQ6 := $(shell expr `c++ -dumpversion | cut -f1 -d.` \== 6)
+GCC_MINOR_VERSION_GTEQ3 := $(shell expr `c++ -dumpversion | cut -f2 -d.` \>= 3)
+GCC_MINOR_VERSION_LT1 := $(shell expr `c++ -dumpversion | cut -f2 -d.` \< 1)
+
+ifeq ($(GCC_MAJOR_VERSION_LT6),1)
+    CXX11 = -std=c++0x
+else
+    ifeq ($(GCC_MAJOR_VERSION_EQ6),1)
+        ifeq ($(GCC_MINOR_VERSION_LT1),1)
+            CXX11 = -std=c++0x
+        endif
+    endif
+endif
+
+#------------------------------------------------------------------------------
+#-- TANGO_HOME
+#------------------------------------------------------------------------------
+ifndef TANGO_HOME
+	TANGO_HOME = $(CONDA_PREFIX)
+endif
+
+#------------------------------------------------------------------------------
+#-- OMNI_HOME
+#------------------------------------------------------------------------------
+ifndef OMNI_HOME
+	OMNI_HOME = $(CONDA_PREFIX)
+endif
+
+#------------------------------------------------------------------------------
+#-- ZMQ_HOME
+#------------------------------------------------------------------------------
+ifndef ZMQ_HOME
+	ZMQ_HOME = $(CONDA_PREFIX)
+endif
+
+#------------------------------------------------------------------------------
+#--  CXX
+#------------------------------------------------------------------------------
+ifndef CXX
+	CXX = gcc
+endif
+
+#------------------------------------------------------------------------------
+#--  CC
+#------------------------------------------------------------------------------
+ifndef CC
+	CC = gcc
+endif
+
+#------------------------------------------------------------------------------
+#-- AR
+#------------------------------------------------------------------------------
+ifndef AR
+	AR = ar rv
+endif
+
+#------------------------------------------------------------------------------
+#-- OUTPUT_TYPE (BACKWARD COMPATIBILITY)
+#------------------------------------------------------------------------------
+ifdef OUTPUT_TYPE
+	PROJECT_TYPE = $(OUTPUT_TYPE)
+endif
+
+#------------------------------------------------------------------------------
+#-- LDFLAGS_USER (BACKWARD COMPATIBILITY)
+#------------------------------------------------------------------------------
+ifdef LFLAGS_USR
+	LDFLAGS_USER = $(LFLAGS_USR)
+endif
+
+#------------------------------------------------------------------------------
+#-- PROJECT_TYPE (BACKWARD COMPATIBILITY)
+#------------------------------------------------------------------------------
+ifeq ($(PROJECT_TYPE),DYNAMIC_LIB)
+	PROJECT_TYPE = $(SHARED_LIB)
+endif
+
+#------------------------------------------------------------------------------
+#-- PACKAGE_NAME (BACKWARD COMPATIBILITY)
+#------------------------------------------------------------------------------
+ifdef PACKAGE_NAME
+	PROJECT_NAME = $(PACKAGE_NAME)
+endif
+
+#------------------------------------------------------------------------------
+#-- TANGO_REQUIRED
+#------------------------------------------------------------------------------
+ifndef TANGO_REQUIRED
+ifeq ($(PROJECT_TYPE),DEVICE)
+	TANGO_REQUIRED = TRUE
+else
+	TANGO_REQUIRED = FALSE
+endif
+endif
+
+#------------------------------------------------------------------------------
+#-- INCLUDE_DIRS 
+#------------------------------------------------------------------------------
+INCLUDE_DIRS  = $(INC_DIR_USER)
+INCLUDE_DIRS +=	-I../include -I.
+
+ifeq ($(TANGO_REQUIRED),TRUE)
+	INCLUDE_DIRS +=	-I$(TANGO_HOME)/include/tango -I$(OMNI_HOME)/include -I$(ZMQ_HOME)/include
+endif
+
+
+#------------------------------------------------------------------------------
+#-- OBJDIR
+#------------------------------------------------------------------------------
+ifndef OBJDIR
+	OBJDIR = ./obj
+endif
+
+#------------------------------------------------------------------------------
+#-- OUTPUT_DIR
+#------------------------------------------------------------------------------
+ifndef OUTPUT_DIR
+ifeq ($(PROJECT_TYPE),DEVICE)
+	OUTPUT_DIR= $(HOME)/DeviceServers
+else
+ifeq ($(PROJECT_TYPE),STATIC_LIB)
+	OUTPUT_DIR= lib
+else
+ifeq ($(PROJECT_TYPE),SHARED_LIB)
+	OUTPUT_DIR= lib
+else
+	OUTPUT_DIR= bin
+endif
+endif
+endif
+endif
+
+#------------------------------------------------------------------------------
+#-- RELEASE_TYPE
+#------------------------------------------------------------------------------
+ifndef RELEASE_TYPE
+	RELEASE_TYPE = OPTIMIZED
+endif
+
+#------------------------------------------------------------------------------
+#-- CXXFLAGS
+#------------------------------------------------------------------------------
+CXXFLAGS =
+
+ifeq ($(RELEASE_TYPE),DEBUG)
+	CXXFLAGS +=	-g -D_DEBUG
+else
+	CXXFLAGS +=	-O2
+endif
+
+ifeq ($(PROJECT_TYPE),SHARED_LIB)
+	CXXFLAGS +=	-fPIC
+endif
+
+ifdef CXXFLAGS_USR
+	CXXFLAGS_USER = $(CXXFLAGS_USR)
+endif
+
+CXXFLAGS += -D_REENTRANT -W $(INCLUDE_DIRS) $(CXXFLAGS_USER) $(CXX11) -Dlinux
+
+#------------------------------------------------------------------------------
+#-- CFLAGS
+#------------------------------------------------------------------------------
+CFLAGS =
+
+ifeq ($(RELEASE_TYPE),DEBUG)
+	CFLAGS +=	-g -D_DEBUG
+else
+	CFLAGS +=	-O2
+endif
+
+ifeq ($(PROJECT_TYPE),SHARED_LIB)
+	CFLAGS +=	-fPIC
+endif
+
+ifdef CFLAGS_USR
+	CFLAGS_USER = $(CFLAGS_USR)
+endif
+
+CFLAGS +=	-D_REENTRANT -W -pipe $(INCLUDE_DIRS) $(CFLAGS_USER)
+
+#------------------------------------------------------------------------------
+#-- LDFLAGS
+#------------------------------------------------------------------------------
+LDFLAGS =
+
+ifeq ($(PROJECT_TYPE),SHARED_LIB)
+	LDFLAGS +=	-shared -O -Wl,-soname,lib$(PROJECT_NAME).so
+endif
+
+ifdef LDFLAGS_USR
+	LDFLAGS_USER = $(LDFLAGS_USR)
+endif
+
+LDFLAGS +=	$(LDFLAGS_USER) $(LIB_DIR_USER)
+
+ifeq ($(TANGO_REQUIRED),TRUE)
+    OMNI_LIB = $(shell pkg-config --libs-only-L omniORB4)
+    ZMQ_LIB = $(shell pkg-config --libs-only-L libzmq)
+    TANGO_LIB = $(shell pkg-config --libs tango)
+    LDFLAGS += $(OMNI_LIB) $(ZMQ_LIB) $(TANGO_LIB)
+endif
+
+LDFLAGS += -ldl -lpthread -lstdc++

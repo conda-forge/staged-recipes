@@ -1,0 +1,193 @@
+# vim: set filetype=make:
+
+INSTALL_DIR=$(TANGO_HOME)/bin
+
+# create all directories
+directories := $(shell mkdir -p $(OUTPUT_DIR); for FILE in $(SVC_OBJS); do mkdir -p `dirname $$FILE`; done; for FILE in $(LIB_OBJS); do mkdir -p `dirname $$FILE`; done)
+
+#------------------------------------------------------------------------------
+#--  rule: ./*.cpp 
+#------------------------------------------------------------------------------
+$(OBJDIR)/%.o: %.cpp $(SVC_INCL)
+	@echo "Compiling $< ..."
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+	
+#------------------------------------------------------------------------------
+#--  rule: ./*.cpp 
+#------------------------------------------------------------------------------
+$(OBJDIR)/%.so.o: %.cpp $(SVC_INCL)
+	@echo "Compiling $< ..."
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+		
+#------------------------------------------------------------------------------
+#--  rule: ./*.cpp 
+#------------------------------------------------------------------------------
+$(OBJDIR)/%.a.o: %.cpp $(SVC_INCL)
+	@echo "Compiling $< ..."
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+	
+#------------------------------------------------------------------------------
+#--  rule: $(CPPDIRUSER)/*.cpp 
+#------------------------------------------------------------------------------
+$(OBJDIR)/%.o: $(CPPDIRUSER)/%.cpp $(SVC_INCL)
+	@echo "Compiling $< ..."
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+	
+#------------------------------------------------------------------------------
+#--  rule: ./*.cxx 
+#------------------------------------------------------------------------------
+$(OBJDIR)/%.o: %.cxx
+	@echo "Compiling $< ..."
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+	
+#------------------------------------------------------------------------------ 
+#--  rule: $(CPPDIRUSER)/*.cxx 
+#------------------------------------------------------------------------------
+$(OBJDIR)/%.o: $(CPPDIRUSER)/%.cxx
+	@echo "Compiling $< ..."
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+#------------------------------------------------------------------------------
+#--  rule: ./*.cc 
+#------------------------------------------------------------------------------
+$(OBJDIR)/%.o: %.cc
+	@echo "Compiling $< ..."
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+	
+#------------------------------------------------------------------------------ 
+#--  rule: $(CPPDIRUSER)/*.cc 
+#------------------------------------------------------------------------------
+$(OBJDIR)/%.o: $(CPPDIRUSER)/%.cxx
+	@echo "Compiling $< ..."
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+		
+#------------------------------------------------------------------------------
+#--  rule: ./*.c
+#------------------------------------------------------------------------------
+$(OBJDIR)/%.o: %.c $(SVC_INCL)
+	@echo "Compiling $< ..."
+	$(CC) $(CFLAGS) -c $< -o $@
+	
+#------------------------------------------------------------------------------ 
+#--  rule: $(CPPDIRUSER)/*.c
+#------------------------------------------------------------------------------
+$(OBJDIR)/%.o: $(CPPDIRUSER)/%.c
+	@echo "Compiling $< ..."
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+
+
+#------------------------------------------------------------------------------
+#-- all:
+#------------------------------------------------------------------------------
+
+ifeq ($(PROJECT_TYPE),DEVICE)
+all: $(SPECIFIC_ALL_TARGET) $(OUTPUT_DIR)/$(PROJECT_NAME)
+endif
+ifeq ($(PROJECT_TYPE),SIMPLE_EXE)
+all: $(SPECIFIC_ALL_TARGET) $(OUTPUT_DIR)/$(PROJECT_NAME)
+endif
+ifeq ($(PROJECT_TYPE),STATIC_LIB)
+all: $(SPECIFIC_ALL_TARGET) $(OUTPUT_DIR)/lib$(PROJECT_NAME).a
+endif
+ifeq ($(PROJECT_TYPE),SHARED_LIB)
+all: $(SPECIFIC_ALL_TARGET) $(OUTPUT_DIR)/lib$(PROJECT_NAME).so
+endif
+
+#------------------------------------------------------------------------------
+#-- $(PROJECT_NAME) for DEVICE:
+#------------------------------------------------------------------------------
+ifeq ($(PROJECT_TYPE),DEVICE)
+$(OUTPUT_DIR)/$(PROJECT_NAME): $(SVC_OBJS)
+		@echo "Linking TANGO device server $(OUTPUT_DIR)/$(PROJECT_NAME) ..."
+		$(CXX) $(SVC_OBJS) $(LDFLAGS) -o $(OUTPUT_DIR)/$(PROJECT_NAME)
+		$(POST_PROCESSING)
+endif
+
+#------------------------------------------------------------------------------
+#-- $(PROJECT_NAME) for SIMPLE_EXE:
+#------------------------------------------------------------------------------
+ifeq ($(PROJECT_TYPE),SIMPLE_EXE)
+$(OUTPUT_DIR)/$(PROJECT_NAME): $(SVC_OBJS)
+		@echo "Linking executable $(OUTPUT_DIR)/$(PROJECT_NAME) ..."
+		$(CXX) $(SVC_OBJS) $(LDFLAGS) -o $(OUTPUT_DIR)/$(PROJECT_NAME)
+		$(POST_PROCESSING)
+endif
+
+#------------------------------------------------------------------------------
+#-- $(PROJECT_NAME) for STATIC_LIB:
+#------------------------------------------------------------------------------
+ifeq ($(PROJECT_TYPE),STATIC_LIB)
+$(OUTPUT_DIR)/lib$(PROJECT_NAME).a: $(LIB_OBJS)
+		@echo "Creating static library "$(OUTPUT_DIR)/lib$(PROJECT_NAME).a
+ifdef EXTERNAL_LIBS
+		mkdir -p $(OBJ_DIR)/external_libs
+		cd $(OBJ_DIR)/external_libs && \
+		for EXTERNAL_LIB in $(EXTERNAL_LIBS); do ar x $$EXTERNAL_LIB; done && \
+		cd -
+		ar rcs $(OUTPUT_DIR)/lib$(PROJECT_NAME).a $(LIB_OBJS) $(OBJ_DIR)/external_libs/*.o
+		rm -f $(OBJ_DIR)/external_libs/*
+else
+		ar rcs $(OUTPUT_DIR)/lib$(PROJECT_NAME).a $(LIB_OBJS)
+endif
+endif
+
+#------------------------------------------------------------------------------
+#-- $(PROJECT_NAME) for SHARED_LIB:
+#------------------------------------------------------------------------------
+ifeq ($(PROJECT_TYPE),SHARED_LIB)
+$(OUTPUT_DIR)/lib$(PROJECT_NAME).so: $(LIB_OBJS)
+		@echo "Linking shared library "$(OUTPUT_DIR)/lib$(PROJECT_NAME).so
+		$(CXX) $(LIB_OBJS) $(LDFLAGS) -o $(OUTPUT_DIR)/lib$(PROJECT_NAME).so
+		@echo "Link successfull"
+endif
+
+#------------------------------------------------------------------------------
+#-- clean:
+#------------------------------------------------------------------------------
+clean: $(SPECIFIC_CLEAN_TARGET)
+	@echo "Cleaning "$(PROJECT_NAME)
+ifdef OBJDIR
+	rm -f $(OBJDIR)/*.o
+	rmdir $(OBJDIR) 2> /dev/null || true
+endif
+ifeq ($(PROJECT_TYPE),SIMPLE_EXE)
+	rm -f $(OUTPUT_DIR)/$(PROJECT_NAME)
+endif
+ifeq ($(PROJECT_TYPE),DEVICE)
+	rm -f $(OUTPUT_DIR)/$(PROJECT_NAME) $(OUTPUT_DIR)/core
+endif
+ifeq ($(PROJECT_TYPE),STATIC_LIB)
+	rm -f $(OUTPUT_DIR)/lib$(PROJECT_NAME).a
+endif
+ifeq ($(PROJECT_TYPE),SHARED_LIB)
+	rm -f $(OUTPUT_DIR)/lib$(PROJECT_NAME).so
+endif
+	rmdir $(OUTPUT_DIR) 2> /dev/null || true
+
+#------------------------------------------------------------------------------
+#-- install:
+#------------------------------------------------------------------------------
+install:
+	@echo "Installing $(OUTPUT_DIR)/$(PROJECT_NAME)  to  $(INSTALL_DIR)"
+ifeq ($(PROJECT_TYPE),DEVICE)
+	mv $(OUTPUT_DIR)/$(PROJECT_NAME) $(INSTALL_DIR)
+	ls -l $(INSTALL_DIR)/$(PROJECT_NAME)
+endif
+
+
+#------------------------------------------------------
+#	Tag the CVS/SVN module corresponding to this class
+#------------------------------------------------------
+svn_tag:
+	svn copy ../trunk ../tags/$(RELEASE)       
+	svn commit ../tags/$(RELEASE) \
+	-m "Tagging the $(RELEASE) of the $(PACKAGE_NAME) project."
+
+cvs_tag:
+	@cvstag "$(PACKAGE_NAME)-$(RELEASE)"
+	@make   $(PACKAGE_NAME)
+	@make show_cvs_tag
+
+show_cvs_tag:
+	@cvstag -d
