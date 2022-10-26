@@ -1,6 +1,10 @@
 
 set -o errexit -o pipefail
 
+# Copied from Bioconda recipe. Ensure tests use the environment Perl.
+sed -i.bak '1 s|^.*$|#!/usr/bin/env perl|g' t/*.t
+sed -i.bak 's|perl -w|/usr/bin/env perl|' t/make_executable.t
+
 if [[ -f Build.PL ]]; then
     perl Build.PL
     perl ./Build
