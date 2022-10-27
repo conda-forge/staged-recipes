@@ -17,8 +17,6 @@ if [[ $PKG_NAME == "libthermo" ]]; then
 elif [[ $PKG_NAME == "pythermo" ]]; then
     cmake .. ${CMAKE_ARGS}              \
         -GNinja                         \
-        -DCMAKE_PREFIX_PATH=$PREFIX     \
-        -DCMAKE_INSTALL_PREFIX=$PREFIX  \
         -DCMAKE_BUILD_TYPE="Release"    \
         -DPython_EXECUTABLE=$PYTHON     \
         -DLIBTHERMO_USE_XTENSOR=ON      \
