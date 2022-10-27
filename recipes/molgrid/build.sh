@@ -1,9 +1,6 @@
 #!/bin/bash
 set -ex
 
-# hack for now: https://github.com/conda-forge/pyquaternion-feedstock/pull/1
-pip install https://github.com/KieranWynn/pyquaternion/archive/refs/tags/v0.9.9.tar.gz
-
 NUMPY_INCLUDE_DIR=$(python -c "import numpy; print(numpy.get_include())")
 
 if [[ ${cuda_compiler_version} != "None" ]]; then
