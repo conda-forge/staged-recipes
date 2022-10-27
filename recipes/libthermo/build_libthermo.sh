@@ -10,8 +10,6 @@ fi
 if [[ $PKG_NAME == "libthermo" ]]; then
     cmake .. ${CMAKE_ARGS}              \
         -GNinja                         \
-        -DCMAKE_INSTALL_PREFIX=$PREFIX  \
-        -DCMAKE_PREFIX_PATH=$PREFIX     \
         -DCMAKE_BUILD_TYPE="Release"    \
         -DLIBTHERMO_USE_XTENSOR=ON      \
         -DXTENSOR_USE_XSIMD=ON          \
