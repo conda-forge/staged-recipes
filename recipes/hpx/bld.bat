@@ -1,7 +1,8 @@
-md build
+mkdir build
 cd build
+if %errorlevel% neq 0 exit /b %errorlevel%
 
-cmake %SRC_DIR% -G"Ninja" ^
+cmake %SRC_DIR% ^
     -D CMAKE_BUILD_TYPE="Release" ^
     -D CMAKE_INSTALL_PREFIX:PATH="%PREFIX%" ^
     -D CMAKE_INSTALL_LIBDIR=lib ^
@@ -14,7 +15,7 @@ cmake %SRC_DIR% -G"Ninja" ^
     -D HWLOC_LIBRARY="%LIBRARY_LIB%/hwloc.lib"
 if %errorlevel% neq 0 exit /b %errorlevel%
 
-cmake --build . --config Release --target all_build --parallel %CPU_COUNT%
+cmake --build . --config Release --parallel %CPU_COUNT%
 if %errorlevel% neq 0 exit /b %errorlevel%
 
 cmake --install .
