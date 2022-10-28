@@ -2,9 +2,11 @@ set -ex
 
 export PBR_VERSION=$PKG_VERSION
 
+cd $SRC_DIR/jpy
 # Use PEP 517 to generate the wheel
-python setup.py sdist bdist_wheel
+$PYTHON setup.py --maven bdist_wheel
 cd dist/
+ls -l 
 
 # Install wheel manually
 # $PYTHON -m pip install *.whl
