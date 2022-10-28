@@ -5,11 +5,12 @@ if errorlevel 1 exit 1
 
 cd build-cpp
 cmake .. ^
-      -GNinja ^
-      -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 ^
-      -DMOLD_MOSTLY_STATIC=ON ^
-      -DCMAKE_PREFIX_PATH=%CONDA_PREFIX% ^
-      -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
+      -G "Visual Studio 16 2019" ^
+      -T clangcl ^
+      -DCMAKE_PREFIX_PATH=%PREFIX% ^
+      -DCMAKE_INSTALL_PREFIX=%PREFIX% ^
+      -DMOLD_USE_SYSTEM_TBB=ON ^
+      -DMOLD_USE_SYSTEM_MIMALLOC=ON ^
       -DCMAKE_BUILD_TYPE=Release 
 
 cmake --build . --config Release --target install

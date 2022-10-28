@@ -6,11 +6,14 @@ pushd build-cpp
 
 cmake ${CMAKE_ARGS} .. \
     -GNinja \
-    -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 \
-    -DMOLD_MOSTLY_STATIC=ON \
     -DCMAKE_PREFIX_PATH=$PREFIX \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
-    -DCMAKE_BUILD_TYPE=Release 
+    -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET} \
+    -DCMAKE_OSX_SYSROOT=${CONDA_BUILD_SYSROOT} \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DMOLD_USE_SYSTEM_TBB=ON \
+    -DMOLD_USE_SYSTEM_MIMALLOC=ON \
+    -DCMAKE_SKIP_INSTALL_RULES=OFF
 cmake --build . -j $(nproc)
-sudo cmake --install . --prefix $PREFIX
+cmake --install . --verbose --prefix $PREFIX
 popd
