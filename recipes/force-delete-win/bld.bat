@@ -3,6 +3,8 @@ mkdir tmpbuild_%PY_VER%
 set TEMP=%CD%\tmpbuild_%PY_VER%
 REM Print Rust version
 rustc --version
+REM Bundle licenses
+cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
 REM Use PEP517 to install the package
 maturin build --release -i %PYTHON%
 REM Install wheel
