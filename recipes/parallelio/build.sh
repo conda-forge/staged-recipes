@@ -6,6 +6,8 @@ export NETCDF_FORTRAN_PATH=$(dirname $(dirname $(which nf-config)))
 mkdir build
 cd build
 FC=mpifort CC=mpicc cmake \
+    ${CMAKE_ARGS} \
+    -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DBUILD_SHARED_LIBS:BOOL=ON \
     -DPIO_USE_MALLOC:BOOL=ON \
