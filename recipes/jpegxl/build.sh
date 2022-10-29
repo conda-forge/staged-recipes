@@ -27,7 +27,6 @@ cmake \
     -DJPEGXL_ENABLE_SKCMS=OFF      \
     ..
 
-cmake --build . --parallel ${CPU_COUNT}
-cmake --install .
 
-
+make VERBOSE=1 V=1 -j${CPU_COUNT}
+make install
