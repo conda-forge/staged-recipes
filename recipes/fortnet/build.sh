@@ -9,6 +9,7 @@ fi
 
 cmake_options=(
    ${CMAKE_ARGS}
+   "-DCMAKE_BUILD_TYPE=Release"
    "-DLAPACK_LIBRARY='lapack;blas'"
    "-DWITH_SOCKETS=ON"
    "-DWITH_MPI=${MPI}"
