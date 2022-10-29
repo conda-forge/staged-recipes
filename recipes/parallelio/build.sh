@@ -1,12 +1,14 @@
 #!/bin/bash
 
+# Remove some files that may cause static linking?
+rm -rfv $PREFIX/lib/objects*
+
 export NETCDF_C_PATH=$(dirname $(dirname $(which nc-config)))
 export NETCDF_FORTRAN_PATH=$(dirname $(dirname $(which nf-config)))
 
 mkdir build
 cd build
 FC=mpifort CC=mpicc cmake \
-    ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DBUILD_SHARED_LIBS:BOOL=ON \
