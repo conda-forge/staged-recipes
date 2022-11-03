@@ -20,7 +20,8 @@ function inspect_clones_dir(clones_dir)
             # Parse Project.toml for package info
             project_dict = TOML.parsefile(project_toml)
             uuid = Base.UUID(project_dict[\"uuid\"])
-            if !haskey(dependencies, uuid)
+            version = project_dict[\"version\"]
+            if !haskey(dependencies, uuid) || dependencies[uuid].version != VersionNumber(version)
                 # Move git to .git
                 local_git = joinpath(pkgsrc, \".git\")
                 local_git_temp = joinpath(pkgsrc, \"git\")
@@ -31,7 +32,6 @@ function inspect_clones_dir(clones_dir)
                 # Add the clone
                 if isdir(local_git)
                     name = project_dict[\"name\"]
-                    version = project_dict[\"version\"]
                     git_rev = \"v\"*version
                     # add from local, packaged git repo
                     spec = PackageSpec(
