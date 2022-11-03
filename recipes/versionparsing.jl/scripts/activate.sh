@@ -2,7 +2,7 @@
 
 # build_base.sh will insert lines defining name, uuid, version, and git_url
 
-pkgsrc="${CONDA_PREFIX}/share/julia/clones/$name.jl"
+pkgsrc="${CONDA_PREFIX}/share/julia/conda_clones/$name.jl"
 
 julia -e"
 using Pkg, UUIDs

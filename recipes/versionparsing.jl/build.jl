@@ -30,7 +30,7 @@ push!(DEPOT_PATH, BUILD_DEPOT)
 #Pkg.add(JULIA_PKG_NAME)
 
 const uuid = UUID(JULIA_PKG_UUID)
-const path = joinpath(JULIA_DEPOT, "clones", "$JULIA_PKG_NAME.jl")
+const path = joinpath(JULIA_DEPOT, "conda_clones", "$JULIA_PKG_NAME.jl")
 if isdir(joinpath(path, ".git"))
     # Add the local git repository that conda build cloned
     spec = PackageSpec(

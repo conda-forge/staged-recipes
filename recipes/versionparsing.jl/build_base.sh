@@ -1,24 +1,24 @@
 #!/bin/sh
 
 # Copy the git cloned repository into the PREFIX
-mkdir -p "${PREFIX}/share/julia/clones/"
-cp -r "${SRC_DIR}/${JULIA_PKG_NAME}.jl" "${PREFIX}/share/julia/clones/"
+mkdir -p "${PREFIX}/share/julia/conda_clones/"
+cp -r "${SRC_DIR}/${JULIA_PKG_NAME}.jl" "${PREFIX}/share/julia/conda_clones/"
 
 JULIA_BUILD_DEPOT="${PREFIX}/share/julia_build_depot"
 export JULIA_DEPOT_PATH="${JULIA_BUILD_DEPOT}"
 
 
-# Add the package from the clone, copy packages, artifacts, and clones into temp repository
+# Add the package from the clone, copy packages, artifacts, and conda_clones into temp repository
 julia "${RECIPE_DIR}/build.jl"
 
-if [[ -d "${PREFIX}/share/julia/clones/${JULIA_PKG_NAME}.jl/.git" ]]
+if [[ -d "${PREFIX}/share/julia/conda_clones/${JULIA_PKG_NAME}.jl/.git" ]]
 then
     # Do not pack hooks
-    rm -rf "${PREFIX}/share/julia/clones/${JULIA_PKG_NAME}.jl/.git/hooks"
+    rm -rf "${PREFIX}/share/julia/conda_clones/${JULIA_PKG_NAME}.jl/.git/hooks"
     # Move .git directory so that it gets packaged
-    mv "${PREFIX}/share/julia/clones/${JULIA_PKG_NAME}.jl/.git" "${PREFIX}/share/julia/clones/${JULIA_PKG_NAME}.jl/git" 
+    mv "${PREFIX}/share/julia/conda_clones/${JULIA_PKG_NAME}.jl/.git" "${PREFIX}/share/julia/conda_clones/${JULIA_PKG_NAME}.jl/git" 
 else
-    echo "${PREFIX}/share/julia/clones/${JULIA_PKG_NAME}.jl is not a git repository"
+    echo "${PREFIX}/share/julia/conda_clones/${JULIA_PKG_NAME}.jl is not a git repository"
 fi
 
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
