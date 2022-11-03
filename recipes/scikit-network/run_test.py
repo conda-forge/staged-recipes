@@ -7,9 +7,9 @@ failed = []
 
 for test_dir in TEST_DIRS:
     if subprocess.call(["pytest", "-vv"], cwd=str(test_dir)):
-        failed.push(test_dir.name)
+        failed += [test_dir.name]
 
 if failed:
-    print("Failed tests in:", [failed])
+    print("Failed tests in:", sorted(failed))
 
 sys.exit(len(failed))
