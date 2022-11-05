@@ -1,0 +1,64 @@
+From 9da73963dabe2021f097a62f366cf90fdf58cedb Mon Sep 17 00:00:00 2001
+From: Alex Ford <alex.ford@abcellera.com>
+Date: Fri, 4 Nov 2022 18:23:18 -0700
+Subject: [PATCH] Build with CXX env vars
+
+---
+ setup.py | 18 ++++++++++++++----
+ 1 file changed, 14 insertions(+), 4 deletions(-)
+
+diff --git a/setup.py b/setup.py
+index 34b1663..fe0e003 100644
+--- a/setup.py
++++ b/setup.py
+@@ -1,6 +1,7 @@
+ import setuptools
+ from setuptools.command.build_ext import build_ext
+ import sys
++import os
+ from pathlib import Path
+ 
+ def get_version():
+@@ -35,11 +36,14 @@ def cxx_version(v):
+     return [f"-std={v}" if sys.platform != "win32" else f"/std:{v}"]
+ 
+ def platform_compile_args():
++    flags = os.environ.get("CXXFLAGS", "").split()
++
+     if sys.platform == 'darwin':
+-        return "-arch x86_64 -arch arm64 -arch arm64e".split()
++        flags.extend("-arch x86_64 -arch arm64 -arch arm64e".split())
+     if sys.platform == 'win32':
+-        return ['/MT']  # avoids creating Visual Studio dependencies
+-    return []
++        flags.extend(['/MT'])  # avoids creating Visual Studio dependencies
++
++    return flags
+ 
+ def platform_link_args():
+     if sys.platform != 'win32':
+@@ -64,6 +68,12 @@ class CppExtension(build_ext):
+             self.compiler.compiler_so[0] = "g++"
+             self.compiler.compiler_cxx[0] = "g++"
+             self.compiler.linker_so[0] = "g++"
++
++        if "CXX" in os.environ:
++            self.compiler.compiler_so[0] = os.environ["CXX"]
++            self.compiler.compiler_cxx[0] = os.environ["CXX"]
++            self.compiler.linker_so[0] = os.environ["CXX"]
++
+         build_ext.build_extensions(self)
+ 
+ tracker = setuptools.extension.Extension(
+@@ -72,7 +82,7 @@ tracker = setuptools.extension.Extension(
+             extra_compile_args=cxx_version('c++17') + platform_compile_args() + limited_api_args(),
+             extra_link_args=platform_link_args(),
+             py_limited_api=bool(limited_api_args()),
+-            language='C++'
++            language='c++'
+ )
+ 
+ 
+-- 
+2.35.3
+
