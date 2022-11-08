@@ -2,6 +2,10 @@
 
 set -exo pipefail
 
+if [ `uname` = "Darwin" ]; then
+    MACOS="true"
+fi
+
 # this needs to be updated when the target python version of graalpy changes
 PY_VERSION=3.8
 
@@ -12,9 +16,9 @@ export MX_PRIMARY_SUITE_PATH=$SRC_DIR/graal/vm
 
 # mx ninja build templates hardcode ar, gcc, g++; symlink these to the conda
 # compilers
-ln -s $AR $MX_DIR/ar
-ln -s $CC $MX_DIR/gcc
-ln -s $CXX $MX_DIR/g++
+ln -sf $AR $MX_DIR/ar
+ln -sf $CC $MX_DIR/gcc
+ln -sf $CXX $MX_DIR/g++
 
 # sulong toolchain wrappers are not recognized and cmake is making trouble
 # getting them to compile anything. Make sure to use the sysroot flag, and
@@ -24,14 +28,16 @@ export CXXFLAGS="$CXXFLAGS --sysroot $CONDA_BUILD_SYSROOT"
 export LDFLAGS="$LDFLAGS --sysroot $CONDA_BUILD_SYSROOT"
 export CPATH="$BUILD_PREFIX/include"
 export LIBRARY_PATH="$BUILD_PREFIX/lib"
-for filename in $CONDA_BUILD_SYSROOT/../lib/libgcc_s.so*; do
-    ln -s $filename $CONDA_BUILD_SYSROOT/lib/
-done
-ln -s $CONDA_BUILD_SYSROOT/../../lib/gcc/x86_64-conda-linux-gnu/*/crtbegin.o $CONDA_BUILD_SYSROOT/lib/
-ln -s $CONDA_BUILD_SYSROOT/../../lib/gcc/x86_64-conda-linux-gnu/*/crtbeginS.o $CONDA_BUILD_SYSROOT/lib/
-ln -s $CONDA_BUILD_SYSROOT/../../lib/gcc/x86_64-conda-linux-gnu/*/crtend.o $CONDA_BUILD_SYSROOT/lib/
-ln -s $CONDA_BUILD_SYSROOT/../../lib/gcc/x86_64-conda-linux-gnu/*/crtendS.o $CONDA_BUILD_SYSROOT/lib/
-ln -s $CONDA_BUILD_SYSROOT/../../lib/gcc/x86_64-conda-linux-gnu/*/libgcc.a $CONDA_BUILD_SYSROOT/lib/
+if [ -z "${MACOS}" ]; then
+    for filename in $CONDA_BUILD_SYSROOT/../lib/libgcc_s.so*; do
+        ln -s $filename $CONDA_BUILD_SYSROOT/lib/
+    done
+    ln -s $CONDA_BUILD_SYSROOT/../../lib/gcc/x86_64-conda-linux-gnu/*/crtbegin.o $CONDA_BUILD_SYSROOT/lib/
+    ln -s $CONDA_BUILD_SYSROOT/../../lib/gcc/x86_64-conda-linux-gnu/*/crtbeginS.o $CONDA_BUILD_SYSROOT/lib/
+    ln -s $CONDA_BUILD_SYSROOT/../../lib/gcc/x86_64-conda-linux-gnu/*/crtend.o $CONDA_BUILD_SYSROOT/lib/
+    ln -s $CONDA_BUILD_SYSROOT/../../lib/gcc/x86_64-conda-linux-gnu/*/crtendS.o $CONDA_BUILD_SYSROOT/lib/
+    ln -s $CONDA_BUILD_SYSROOT/../../lib/gcc/x86_64-conda-linux-gnu/*/libgcc.a $CONDA_BUILD_SYSROOT/lib/
+fi
 
 # git init an empty repo inside graal, to force mx to pick graal download as
 # siblings dir
@@ -65,17 +71,18 @@ if [ -n "${GRAALPY_STANDALONE_BUILD}" ]; then
     STANDALONE=`mx standalone-home python`
     cp -r $STANDALONE/* $PREFIX
 
-    
-    # sulong ensures that the llvm toolchain uses libc++abi.so in the toolchain
-    # directory by dynamically making sure it's loaded in its toolchain wrappers,
-    # but the conda build cannot know this and complains
-    LIBCXX_RPATH=`patchelf --print-rpath $PREFIX/lib/llvm-toolchain/lib/*/libc++.so.1.0`
-    if [ -n "$LIBCXX_RPATH" ]; then
-        LIBCXX_RPATH="$LIBCXX_RPATH:\$ORIGIN"
-    else
-        LIBCXX_RPATH="\$ORIGIN"
+    if [ -z "${MACOS}" ]; then
+        # sulong ensures that the llvm toolchain uses libc++abi.so in the toolchain
+        # directory by dynamically making sure it's loaded in its toolchain wrappers,
+        # but the conda build cannot know this and complains
+        LIBCXX_RPATH=`patchelf --print-rpath $PREFIX/lib/llvm-toolchain/lib/*/libc++.so.1.0`
+        if [ -n "$LIBCXX_RPATH" ]; then
+            LIBCXX_RPATH="$LIBCXX_RPATH:\$ORIGIN"
+        else
+            LIBCXX_RPATH="\$ORIGIN"
+        fi
+        patchelf --set-rpath "$LIBCXX_RPATH" $PREFIX/lib/llvm-toolchain/lib/*/libc++.so.1.0
     fi
-    patchelf --set-rpath "$LIBCXX_RPATH" $PREFIX/lib/llvm-toolchain/lib/*/libc++.so.1.0
 
     # match cpython include folder structure
     ln -sf $PREFIX/include $PREFIX/include/python${PY_VERSION}
@@ -98,31 +105,35 @@ else
     # sulong ensures that the llvm toolchain uses libc++abi.so in the toolchain
     # directory by dynamically making sure it's loaded in its toolchain wrappers,
     # but the conda build cannot know this and complains
-    LIBCXX_RPATH=`patchelf --print-rpath $GRAALVM_PREFIX/lib/llvm/lib/*/libc++.so.1.0`
-    if [ -n "$LIBCXX_RPATH" ]; then
-        LIBCXX_RPATH="$LIBCXX_RPATH:\$ORIGIN"
-    else
-        LIBCXX_RPATH="\$ORIGIN"
+    if [ -z "${MACOS}" ]; then
+        LIBCXX_RPATH=`patchelf --print-rpath $GRAALVM_PREFIX/lib/llvm/lib/*/libc++.so.1.0`
+        if [ -n "$LIBCXX_RPATH" ]; then
+            LIBCXX_RPATH="$LIBCXX_RPATH:\$ORIGIN"
+        else
+            LIBCXX_RPATH="\$ORIGIN"
+        fi
+        patchelf --set-rpath "$LIBCXX_RPATH" $GRAALVM_PREFIX/lib/llvm/lib/*/libc++.so.1.0
     fi
-    patchelf --set-rpath "$LIBCXX_RPATH" $GRAALVM_PREFIX/lib/llvm/lib/*/libc++.so.1.0
-
-    # delete graalvm libraries not required for graalpy
-    rm $GRAALVM_PREFIX/lib/libsplashscreen.so
-    rm $GRAALVM_PREFIX/lib/libawt_xawt.so
-    rm $GRAALVM_PREFIX/lib/libjawt.so
-    rm $GRAALVM_PREFIX/lib/libfontmanager.so
-    rm $GRAALVM_PREFIX/lib/libjsound.so
 
     # relativize rpath for jvm libs
-    for i in $GRAALVM_PREFIX/lib/*.so; do
-        SO_RPATH=`patchelf --print-rpath $i`
-        if [ -n "$SO_RPATH" ]; then
-            SO_RPATH="$SO_RPATH:\$ORIGIN/server"
-        else
-            SO_RPATH="\$ORIGIN/server"
-        fi
-        patchelf --set-rpath "$SO_RPATH" $i
-    done
+    if [ -z "${MACOS}" ]; then
+        # delete graalvm libraries not required for graalpy
+        rm $GRAALVM_PREFIX/lib/libsplashscreen.so
+        rm $GRAALVM_PREFIX/lib/libawt_xawt.so
+        rm $GRAALVM_PREFIX/lib/libjawt.so
+        rm $GRAALVM_PREFIX/lib/libfontmanager.so
+        rm $GRAALVM_PREFIX/lib/libjsound.so
+
+        for i in $GRAALVM_PREFIX/lib/*.so; do
+            SO_RPATH=`patchelf --print-rpath $i`
+            if [ -n "$SO_RPATH" ]; then
+                SO_RPATH="$SO_RPATH:\$ORIGIN/server"
+            else
+                SO_RPATH="\$ORIGIN/server"
+            fi
+            patchelf --set-rpath "$SO_RPATH" $i
+        done
+    fi
 
     # match cpython include folder structure
     mkdir -p $PREFIX/include/
