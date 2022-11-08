@@ -2,7 +2,7 @@
 
 set -euxo pipefail
 
-if [[ "${target_plarform}" == osx-* ]]; then
+if [[ "${target_platform}" == osx-* ]]; then
 	./configure-mac_os_x.sh --default --install-dir $PREFIX
 else
 	./configure-linux.sh --default --install-dir $PREFIX
