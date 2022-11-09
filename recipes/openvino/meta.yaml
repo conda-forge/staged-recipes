@@ -6,16 +6,38 @@ package:
   version: {{ version }}
 
 source:
-  - path: ../../../{{ name }}
+  # - path: ../../../{{ name }}
+  #   folder: openvino_sources
+  - url: https://github.com/ilya-lavrenov/openvino/archive/fd8d8a78b5328b0b02fa0cc67bf41e1bbf2f4d16.tar.gz
+    sha256: 761c1df0ed406da1426ce2ffa2c5319fd7bdb99764c43a5d8303ebe83aafd23c
     folder: openvino_sources
-  # - url: https://github.com/openvinotoolkit/{{ name }}/archive/refs/tags/{{ version }}.tar.gz
-  #   fn: {{ version }}.tar.gz
-  #   sha256: 5522f3113924325499f15cd8a3fe47a42dfa127a6b76c1921b51cf3c3f2a6aa6
-  # - git_url: https://github.com/openvinotoolkit/{{ name }}.git
-  #   git_rev: {{ version }}
-  #   git_depth: 1
-  # - git_url: https://github.com/openvinotoolkit/{{ name }}_contrib.git
-  #   folder: openvino_sources/src/plugins
+  - url: https://github.com/openvinotoolkit/openvino_contrib/archive/1ca3a1ebd01ad76231042b68f6260976cebd662d.tar.gz
+    sha256: 49ed81e415c25fdb04e80a82b31441dae2b5d9067a70662f79b885c70f3e2581
+    folder: openvino_contrib
+  - url: https://github.com/ARM-software/ComputeLibrary/archive/refs/tags/v22.08.tar.gz
+    sha256: ac2ce7b5636e99f175b084362f83fe24d72e6ceb0bd62ee5866772f7355d024d
+    folder: openvino_contrib/modules/arm_plugin/thirdparty/ComputeLibrary
+  - url: https://github.com/onnx/onnx/archive/refs/tags/v1.12.0.tar.gz
+    sha256: 052ad3d5dad358a33606e0fc89483f8150bb0655c99b12a43aa58b5b7f0cc507
+    folder: openvino_sources/thirdparty/onnx/onnx
+  - url: https://github.com/herumi/xbyak/archive/refs/tags/v6.63.tar.gz
+    sha256: 16c60f0682502624115c4dc9fec66782ae68ef32e469946f50cd169179ea92bb
+    folder: openvino_sources/thirdparty/xbyak
+  - url: https://github.com/intel/ittapi/archive/refs/tags/v3.23.0.tar.gz
+    sha256: 9af1231808c602c2f7a66924c8798b1741d3aa4b15f3874d82ca7a89b5dbb1b1
+    folder: openvino_sources/thirdparty/ittapi/ittapi
+  - url: https://github.com/opencv/ade/archive/refs/tags/v0.1.1f.tar.gz
+    sha256: c316680efbb5dd3ac4e10bb8cea345cf26a6a25ebc22418f8f0b8ca931a550e9
+    folder: openvino_sources/thirdparty/ade
+  - url: https://github.com/openvinotoolkit/oneDNN/archive/6df930dab5ab0a7dfaea6100acd03b479e2fa0a8.tar.gz
+    sha256: 8667b6497205a7fa50a378fd5eeb175584ce4ade88ba5f36e7f4de3831576e43
+    folder: openvino_sources/src/plugins/intel_cpu/thirdparty/onednn
+  - url: https://github.com/oneapi-src/oneDNN/archive/b5faa77a4a651f1e44fa77348eded54ea3ec3eef.tar.gz
+    sha256: cc2faf62420b95f6c81835078910e32ee1cb12738531f4af02d06fcaa2a6a12d
+    folder: openvino_sources/src/plugins/intel_gpu/thirdparty/onednn
+  # - url: https://github.com/protocolbuffers/protobuf/releases/download/v21.7/protobuf-cpp-3.21.7.tar.gz # ????????
+  #   sha256: 70de993af0b4f2ddacce59e62ba6d7b7e48faf48beb1b0d5f1ac0e1fb0a68423
+  #   folder: openvino_sources/thirdparty/protobuf/protobuf
 
 build:
   number: 0
@@ -30,22 +52,13 @@ requirements:
     - ccache
     - ninja # [win]
     - make  # [not win]
-    - pkg-config # to find zlib and libusb
-    # python
     - python >=3.7
-    - cython >=0.29
+    # - libprotobuf-static
     - sysroot_linux-64 =2.17 # [linux and x86_64]
   host:
     # core
     - tbb-devel >=2021.5
     - pugixml # static version is provided
-    # myriad
-    - libusb >=1.0.24
-    # samples
-    - zlib
-    - nlohmann_json
-    - opencv
-    - gflags
   # TODO: fix to enable openvino meta-package
   # run:
   #   - libopenvino
@@ -67,8 +80,6 @@ outputs:
       run:
         - tbb >=2021.5 # TBB does not provide 'run_exports', otherwise we can put it into 'host'
     test:
-      source_files:
-        - openvino_sources/bin/intel64/Release/ieUnitTests
       commands:
         {% set openvino_libs = [] %}
         {{ openvino_libs.append("") or "" }}
@@ -80,9 +91,6 @@ outputs:
         - test -f $PREFIX/lib/libopenvino{{ openvino_lib }}${SHLIB_EXT}.{{ version }}       # [unix]
         - test -f $PREFIX/lib/openvino{{ openvino_lib }}${SHLIB_EXT}                        # [win]
         {% endfor %}
-        - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PREFIX/lib                               # [unix]
-        - export PATH=$PATH:$PREFIX/lib                                                     # [win]
-        - openvino_sources/bin/intel64/Release/ieUnitTests --gtest_filter=-*ExtensionTests*
 
   - name: libopenvino-plugins
     version: {{ version }}
@@ -93,19 +101,15 @@ outputs:
       run_exports:
         - {{ pin_subpackage('libopenvino-plugins', exact=True) }}
     requirements:
-      host:
-        - libusb >=1.0.24
       run:
         - {{ pin_subpackage('libopenvino', exact=True) }}
         - ocl-icd-system # [linux and x86_64]
-        - tbb >=2021.5 # TBB does not provide 'run_exports'
+        - tbb >=2021.5 # TBB does not provide 'run_exports', otherwise we can put it into 'host'
     test:
       commands:
         {% set openvino_plugin_libs = [] %}
         {{ openvino_plugin_libs.append("intel_cpu") or "" }}
         {{ openvino_plugin_libs.append("intel_gpu") or "" }}
-        {{ openvino_plugin_libs.append("intel_gna") or "" }}
-        {{ openvino_plugin_libs.append("intel_myriad") or "" }}
         {{ openvino_plugin_libs.append("auto") or "" }}
         {{ openvino_plugin_libs.append("auto_batch") or "" }}
         {{ openvino_plugin_libs.append("hetero") or "" }}
@@ -119,10 +123,6 @@ outputs:
     script: install_dev.sh
     about:
       summary: OpenVINO Runtime Development files
-    requirements:
-      run:
-        - {{ pin_subpackage('libopenvino-plugins', exact=True) }}
-        - tbb-devel >=2021.5 # TODO: we don't want to have a dependency on TBB cmake !!!!
     test:
       requires:
         - {{ compiler('cxx') }}
@@ -130,6 +130,7 @@ outputs:
         - ninja  # [win]
         - make   # [not win]
         - cmake >=3.13
+        - pkg-config # to find zlib
         - zlib
         - nlohmann_json
         - opencv
