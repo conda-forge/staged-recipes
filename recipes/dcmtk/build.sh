@@ -6,7 +6,6 @@ cd build
 # NOTE: as of 3.6.7,
 # - sndfile is used by dcmwave, which is not in the public repository
 # - openjpeg is unused
-#
 cmake \
     -G Ninja \
     -D CMAKE_BUILD_TYPE:STRING=Release \
