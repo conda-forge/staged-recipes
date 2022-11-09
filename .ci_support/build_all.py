@@ -32,8 +32,6 @@ def get_config_name(arch):
 
 def build_all(recipes_dir, arch):
     folders = list(filter(lambda d: os.path.isdir(os.path.join(recipes_dir, d)), os.listdir(recipes_dir)))
-    old_comp_folders = []
-    new_comp_folders = []
     if not folders:
         print("Found no recipes to build")
         return
@@ -123,7 +121,6 @@ def build_all(recipes_dir, arch):
 def get_config(arch, channel_urls):
     exclusive_config_files = [os.path.join(conda_build.conda_interface.root_dir,
                                            'conda_build_config.yaml')]
-    platform = get_host_platform()
     script_dir = os.path.dirname(os.path.realpath(__file__))
     # since variant builds override recipe/conda_build_config.yaml, see
     # https://github.com/conda/conda-build/blob/3.21.8/conda_build/variants.py#L175-L181
