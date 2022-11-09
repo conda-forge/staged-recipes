@@ -22,9 +22,6 @@ pkgs_dirs:
 
 show_channel_urls: true
 
-remote_read_timeout_secs: 60.0
-ssl_verify: false
-
 CONDARC
 
 # Copy the host recipes folder so we don't ever muck with it
