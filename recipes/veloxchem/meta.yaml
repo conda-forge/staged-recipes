@@ -1,0 +1,108 @@
+{% set name = "veloxchem" %}
+{% set version = "1.0-rc3" %}
+{% set sha256 = "ed22aeb72d832f0daccffa393a1a349dab65fc85cefbb6a069933d3b51ad7ffd" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://gitlab.com/veloxchem/veloxchem/-/archive/v{{ version }}/veloxchem-v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  binary_relocation: true
+  entry_points:
+    - vlx=veloxchem.main:main
+  ignore_run_exports:
+    - python
+  run_exports:
+    - {{ pin_subpackage('veloxchem', max_pin='x.x') }}
+
+requirements:
+  build:
+    - cmake >=3.18
+    - {{ compiler('cxx') }}
+    - libgomp      # [linux]
+    - llvm-openmp  # [osx or win]
+    - ninja
+    - pkg-config   # [unix]
+    - gtest
+    - gmock
+    - pybind11 >=2.6,<3.0
+  host:
+    - python
+    - pybind11-abi
+    - {{ mpi }}
+    - mpi4py >=3.0
+    - libblas
+    - libcblas
+    - liblapack
+    - liblapacke
+    - numpy >=1.15
+    - xtb    # [unix]
+    - gtest  # [osx]
+    - gmock  # [osx]
+  run:
+    - psutil >=5.6
+    - mdanalysis >=1.0
+    - geometric
+    - cppe  # [unix]
+    - h5py >=2.8
+    - python
+    - {{ pin_compatible('mpi4py') }}
+    - {{ pin_compatible('numpy') }}
+
+test:
+  requires:
+    - pytest
+    - libopenblas=*=*openmp*  # [linux]
+  imports:
+    - veloxchem
+  commands:
+    # Verify existence and execution
+    - test -d $SP_DIR/veloxchem  # [unix]
+    - ls -l $SP_DIR/veloxchem    # [unix]
+    - test -f $PREFIX/bin/vlx    # [unix]
+    - $PREFIX/bin/vlx --version  # [unix]
+    - $PREFIX/bin/vlx --help     # [unix]
+    - if not exist %SP_DIR%\\veloxchem exit 1      # [win]
+    - dir %SP_DIR%\\veloxchem                      # [win]
+    - if not exist %SCRIPTS%\\vlx.exe exit 1       # [win]
+    - call %SCRIPTS%\\vlx.exe --version            # [win]
+    - call %SCRIPTS%\\vlx.exe --help               # [win]
+    # Inspect linkage
+    - export PYLIB_EXT=`$PYTHON -c 'from numpy import distutils; print(distutils.misc_util.get_shared_lib_extension(is_python_ext=True))'`  # [unix]
+    - ldd -v $SP_DIR/veloxchem/veloxchemlib$PYLIB_EXT    # [linux]
+    - otool -L $SP_DIR/veloxchem/veloxchemlib$PYLIB_EXT  # [osx]
+    # run integration tests
+    - export OMPI_ALLOW_RUN_AS_ROOT=1                        # [mpi == 'openmpi']
+    - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1                # [mpi == 'openmpi']
+    - export OMP_NUM_THREADS=$CPU_COUNT                      # [unix]
+    - mpiexec -n 1 $PYTHON -m pytest --capture=no --log-cli-level=INFO --pyargs veloxchem   # [unix]
+    - export MPI_NUM_PROCS=2                                 # [unix]
+    - export OMP_NUM_THREADS=$(($CPU_COUNT/$MPI_NUM_PROCS))  # [unix]
+    - mpiexec -n $MPI_NUM_PROCS $PYTHON -m pytest --capture=no --log-cli-level=INFO --pyargs veloxchem -m solvers  # [unix]
+    - set OMP_NUM_THREADS=%CPU_COUNT%                        # [win]
+    - mpiexec -n 1 %PYTHON% -m pytest --capture=no --log-cli-level=INFO --pyargs veloxchem  # [win]
+    - set MPI_NUM_PROCS=2                                    # [win]
+    - set /A OMP_NUM_THREADS="%CPU_COUNT%/%MPI_NUM_PROCS%"   # [win]
+    - mpiexec -n %MPI_NUM_PROCS% %PYTHON% -m pytest --capture=no --log-cli-level=INFO --pyargs veloxchem -m solvers  # [win]
+
+about:
+  home: https://veloxchem.org
+  dev_url: https://gitlab.com/veloxchem/veloxchem
+  doc_url: https://veloxchem.org/manual
+  doc_source_url: https://gitlab.com/veloxchem/veloxchem/-/blob/master/docs/index.rst
+  license: LGPL-3.0-or-later
+  license_url: https://opensource.org/licenses/LGPL-3.0
+  license_file:
+    - COPYING
+    - COPYING.LESSER
+  license_family: LGPL
+  summary: A Python-based, open source quantum chemistry program package
+
+extra:
+  recipe-maintainers:
+    - robertodr
