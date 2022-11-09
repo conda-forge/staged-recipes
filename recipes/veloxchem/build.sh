@@ -23,6 +23,11 @@ cmake \
 # build!
 cmake --build build --parallel "${CPU_COUNT}" -- -v -d stats
 
+# unset so we can run tests
+if [ "$(uname)" = "Linux" ]; then
+  export OMPI_MCA_plm_rsh_agent=""
+fi
+
 # test!
 # we only run unit tests here, integration tests are run later on
 cd build
