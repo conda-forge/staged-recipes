@@ -18,10 +18,10 @@ cmake ${CMAKE_ARGS}                                                          \
     -DENABLE_INTEL_MYRIAD=OFF                                                \
     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache                                     \
     -DCMAKE_C_COMPILER_LAUNCHER=ccache                                       \
-    -DENABLE_COMPILE_TOOL=OFF                                                \
-    -DENABLE_SYSTEM_PROTOBUF=ON                                              \
     -DENABLE_SYSTEM_TBB=ON                                                   \
-    -DENABLE_SYSTEM_PUGIXML=OFF                                              \
+    -DENABLE_SYSTEM_PUGIXML=ON                                               \
+    -DENABLE_SYSTEM_PROTOBUF=OFF                                             \
+    -DENABLE_COMPILE_TOOL=OFF                                                \
     -DENABLE_CPPLINT=OFF                                                     \
     -DENABLE_CLANG_FORMAT=OFF                                                \
     -DENABLE_NCC_STYLE=OFF                                                   \
