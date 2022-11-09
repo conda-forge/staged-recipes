@@ -21,7 +21,7 @@ cmake ${CMAKE_ARGS}                                                          \
     -DENABLE_COMPILE_TOOL=OFF                                                \
     -DENABLE_SYSTEM_PROTOBUF=ON                                              \
     -DENABLE_SYSTEM_TBB=ON                                                   \
-    -DENABLE_SYSTEM_PUGIXML=ON                                               \
+    -DENABLE_SYSTEM_PUGIXML=OFF                                              \
     -DENABLE_CPPLINT=OFF                                                     \
     -DENABLE_CLANG_FORMAT=OFF                                                \
     -DENABLE_NCC_STYLE=OFF                                                   \
