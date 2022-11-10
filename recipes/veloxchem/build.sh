@@ -10,7 +10,7 @@ CXXFLAGS="${CXXFLAGS//-mssse3}"
 export XTBHOME="$CONDA_PREFIX"
 
 # configure!
-cmake \
+cmake "${CMAKE_ARGS}" \
     -S"${SRC_DIR}" \
     -Bbuild \
     -GNinja \
