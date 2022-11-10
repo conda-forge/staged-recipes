@@ -36,15 +36,6 @@ source:
   - url: https://github.com/protocolbuffers/protobuf/releases/download/v21.7/protobuf-cpp-3.21.7.tar.gz
     sha256: 70de993af0b4f2ddacce59e62ba6d7b7e48faf48beb1b0d5f1ac0e1fb0a68423
     folder: openvino_sources/thirdparty/protobuf/protobuf
-  - url: https://github.com/KhronosGroup/OpenCL-Headers/archive/refs/tags/v2021.04.29.tar.gz  # [x86_64 and not osx]
-    sha256: c20a933332ec232f7fc0ad7eb9f219f3be9c9fc3203f99e9fa8bc7ed701775f2  # [x86_64 and not osx]
-    folder: openvino_sources/thirdparty/ocl/cl_headers  # [x86_64 and not osx]
-  - url: https://github.com/KhronosGroup/OpenCL-CLHPP/archive/refs/tags/v2.0.14.tar.gz  # [x86_64 and not osx]
-    sha256: e2e6c076f91255904a6be2e1e08539a75ab492fe1d20e28677e30e9d31b47883  # [x86_64 and not osx]
-    folder: openvino_sources/thirdparty/ocl/clhpp_headers  # [x86_64 and not osx]
-  - url: https://github.com/KhronosGroup/OpenCL-ICD-Loader/archive/refs/tags/v2021.04.29.tar.gz  # [x86_64 and not osx]
-    sha256: c2eb8a15b3d6d0795d609f55a4cea92eaa34571f6a21428d5593673b568ac6fd  # [x86_64 and not osx]
-    folder: openvino_sources/thirdparty/ocl/icd_loader  # [x86_64 and not osx]
   - url: https://github.com/nlohmann/json/archive/refs/tags/v3.11.2.tar.gz
     sha256: d69f9deb6a75e2580465c6c4c5111b89c4dc2fa94e3a85fcd2ffcd9a143d9273
     folder: openvino_sources/thirdparty/json/nlohmann_json
@@ -54,6 +45,15 @@ source:
   - url: https://github.com/opencv/ade/archive/refs/tags/v0.1.1f.tar.gz
     sha256: c316680efbb5dd3ac4e10bb8cea345cf26a6a25ebc22418f8f0b8ca931a550e9
     folder: openvino_sources/thirdparty/ade
+  - url: https://github.com/KhronosGroup/OpenCL-Headers/archive/refs/tags/v2021.04.29.tar.gz  # [x86_64 and not osx]
+    sha256: 477e2b26125d99a9b2f20c68262f27ca3f3ca7899593a8af2b7fe077bdce18d1  # [x86_64 and not osx]
+    folder: openvino_sources/thirdparty/ocl/cl_headers  # [x86_64 and not osx]
+  - url: https://github.com/KhronosGroup/OpenCL-CLHPP/archive/refs/tags/v2.0.14.tar.gz  # [x86_64 and not osx]
+    sha256: c8821a7638e57a2c4052631c941af720b581edda634db6ab0b59924c958d69b6  # [x86_64 and not osx]
+    folder: openvino_sources/thirdparty/ocl/clhpp_headers  # [x86_64 and not osx]
+  - url: https://github.com/KhronosGroup/OpenCL-ICD-Loader/archive/refs/tags/v2021.04.29.tar.gz  # [x86_64 and not osx]
+    sha256: c2eb8a15b3d6d0795d609f55a4cea92eaa34571f6a21428d5593673b568ac6fd  # [x86_64 and not osx]
+    folder: openvino_sources/thirdparty/ocl/icd_loader  # [x86_64 and not osx]
 
 build:
   number: 0
@@ -132,8 +132,9 @@ outputs:
     test:
       commands:
         {% set openvino_plugin_libs = [] %}
-        {{ openvino_plugin_libs.append("intel_cpu") or "" }}
-        {{ openvino_plugin_libs.append("intel_gpu") or "" }}
+        {{ openvino_plugin_libs.append("intel_cpu") or "" }}  # [x86_64]
+        {{ openvino_plugin_libs.append("arm_cpu") or "" }}  # [aarch64 or arm64]
+        {{ openvino_plugin_libs.append("intel_gpu") or "" }}  # [x86_64 and not osx]
         {{ openvino_plugin_libs.append("auto") or "" }}
         {{ openvino_plugin_libs.append("auto_batch") or "" }}
         {{ openvino_plugin_libs.append("hetero") or "" }}
@@ -171,6 +172,18 @@ outputs:
         - snippets/
       commands:
         - export MACOSX_DEPLOYMENT_TARGET={{ MACOSX_DEPLOYMENT_TARGET }}  # [osx]
+
+        # check libraries
+        {% set openvino_libs = [] %}
+        {{ openvino_libs.append("") or "" }}
+        {{ openvino_libs.append("_c") or "" }}
+        {{ openvino_libs.append("_ir_frontend") or "" }}
+        {{ openvino_libs.append("_paddle_frontend") or "" }}
+        {{ openvino_libs.append("_onnx_frontend") or "" }}
+        {% for openvino_lib in openvino_libs %}
+        - test -f $PREFIX/lib/libopenvino{{ openvino_lib }}${SHLIB_EXT}  # [unix]
+        - test -f $PREFIX/lib/openvino{{ openvino_lib }}${SHLIB_EXT}  # [win]
+        {% endfor %}
 
         # C++ samples
         - mkdir -p openvino_sources/samples/cpp/thirdparty
