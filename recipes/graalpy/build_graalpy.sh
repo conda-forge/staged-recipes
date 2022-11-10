@@ -96,11 +96,13 @@ else
     cp -r $GRAALVM $PREFIX/lib/jvm/
     GRAALVM_PREFIX=$PREFIX/lib/jvm/${GRAALVM##*/}
 
-    # symlink python launchers
+    # symlink binaries
     mkdir -p $PREFIX/bin/
-    ln -sf $GRAALVM_PREFIX/bin/graalpy $PREFIX/bin/
-    ln -sf $GRAALVM_PREFIX/bin/python $PREFIX/bin/
-    ln -sf $GRAALVM_PREFIX/bin/python3 $PREFIX/bin/
+    for i in $GRAALVM_PREFIX/bin/*; do
+        if [ -x "$i" ]; then
+            ln -sf "$i" $PREFIX/bin/
+        fi
+    done
 
     # sulong ensures that the llvm toolchain uses libc++abi.so in the toolchain
     # directory by dynamically making sure it's loaded in its toolchain wrappers,
