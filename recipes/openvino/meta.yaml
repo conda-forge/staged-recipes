@@ -1,5 +1,6 @@
 {% set name = "openvino" %}
 {% set version = "2022.3.0" %}
+{% set commit_number = "1111" %}
 
 package:
   name: {{ name|lower }}
@@ -40,14 +41,14 @@ source:
   - url: https://github.com/protocolbuffers/protobuf/releases/download/v21.7/protobuf-cpp-3.21.7.tar.gz
     sha256: 70de993af0b4f2ddacce59e62ba6d7b7e48faf48beb1b0d5f1ac0e1fb0a68423
     folder: openvino_sources/thirdparty/protobuf/protobuf
-  - url: https://github.com/KhronosGroup/OpenCL-Headers/archive/refs/tags/v2022.09.30.tar.gz  # [x86_64 and not osx]
-    sha256: 0ae857ecb28af95a420c800b21ed2d0f437503e104f841ab8db249df5f4fbe5c
+  - url: https://github.com/KhronosGroup/OpenCL-Headers/archive/refs/tags/v2021.04.29.tar.gz  # [x86_64 and not osx]
+    sha256: c20a933332ec232f7fc0ad7eb9f219f3be9c9fc3203f99e9fa8bc7ed701775f2
     folder: openvino_sources/thirdparty/ocl/cl_headers
-  - url: https://github.com/KhronosGroup/OpenCL-CLHPP/archive/refs/tags/v2022.09.30.tar.gz  # [x86_64 and not osx]
-    sha256: 999dec3ebf451f0f1087e5e1b9a5af91434b4d0c496d47e912863ac85ad1e6b2
+  - url: https://github.com/KhronosGroup/OpenCL-CLHPP/archive/refs/tags/v2.0.14.tar.gz  # [x86_64 and not osx]
+    sha256: e2e6c076f91255904a6be2e1e08539a75ab492fe1d20e28677e30e9d31b47883
     folder: openvino_sources/thirdparty/ocl/clhpp_headers
-  - url: https://github.com/KhronosGroup/OpenCL-ICD-Loader/archive/refs/tags/v2022.09.30.tar.gz  # [x86_64 and not osx]
-    sha256: e9522fb736627dd4feae2a9c467a864e7d25bb715f808de8a04eea5a7d394b74
+  - url: https://github.com/KhronosGroup/OpenCL-ICD-Loader/archive/refs/tags/v2021.04.29.tar.gz  # [x86_64 and not osx]
+    sha256: c2eb8a15b3d6d0795d609f55a4cea92eaa34571f6a21428d5593673b568ac6fd
     folder: openvino_sources/thirdparty/ocl/icd_loader
   - url: https://github.com/nlohmann/json/archive/refs/tags/v3.11.2.tar.gz
     sha256: d69f9deb6a75e2580465c6c4c5111b89c4dc2fa94e3a85fcd2ffcd9a143d9273
@@ -58,6 +59,8 @@ source:
 
 build:
   number: 0
+  script_env:
+    - CI_BUILD_NUMBER={{ commit_number }}
 
 requirements:
   build:
@@ -67,8 +70,7 @@ requirements:
     - git
     - cmake >=3.13
     - ccache
-    - ninja  # [win]
-    - make  # [not win]
+    - ninja
     - python >=3.7
     - nlohmann_json
     - json_schema_validator
@@ -80,6 +82,7 @@ requirements:
     - tbb-devel >=2021.5
     - pugixml # static version is provided
   # TODO: fix to enable openvino meta-package
+  # see https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#implicit-metapackages
   # run:
   #   - libopenvino
   #   - libopenvino-plugins
@@ -88,10 +91,12 @@ requirements:
 outputs:
   - name: libopenvino
     version: {{ version }}
-    script: install.sh
+    script: install/install.sh
     about:
       summary: OpenVINO Core Runtime library
     build:
+      run:
+        - cmake >=3.13
       run_exports:
         - {{ pin_subpackage('libopenvino', exact=True) }}
     requirements:
@@ -115,10 +120,12 @@ outputs:
 
   - name: libopenvino-plugins
     version: {{ version }}
-    script: install_plugins.sh
+    script: install/install_plugins.sh
     about:
       summary: OpenVINO Inference Plugins
     build:
+      run:
+        - cmake >=3.13
       run_exports:
         - {{ pin_subpackage('libopenvino-plugins', exact=True) }}
     requirements:
@@ -141,15 +148,17 @@ outputs:
 
   - name: libopenvino-dev
     version: {{ version }}
-    script: install_dev.sh
+    script: install/install_dev.sh
     about:
       summary: OpenVINO Runtime Development files
+    build:
+      run:
+        - cmake >=3.13
     test:
       requires:
         - {{ compiler('cxx') }}
         - {{ compiler('c') }}
-        - ninja  # [win]
-        - make  # [not win]
+        - ninja
         - cmake >=3.13
         - pkg-config # to find zlib
         - zlib
@@ -159,12 +168,31 @@ outputs:
       source_files:
         - openvino_sources/samples
         - openvino_sources/thirdparty/cnpy
+      files:
+        - snippets/
       commands:
+        - export MACOSX_DEPLOYMENT_TARGET={{ MACOSX_DEPLOYMENT_TARGET }}  # [osx]
+
+        # C++ samples
         - mkdir -p openvino_sources/samples/cpp/thirdparty
         - cp -R openvino_sources/thirdparty/cnpy openvino_sources/samples/cpp/thirdparty/cnpy
         - cmake -S openvino_sources/samples/cpp -B samples_cpp_build
         - cmake --build samples_cpp_build --parallel $CPU_COUNT
         - samples_cpp_build/intel64/hello_query_device
+
+        # C samples
+        - cmake -S openvino_sources/samples/c -B samples_c_build
+        - cmake --build samples_c_build --parallel $CPU_COUNT
+
+        # check that devices are found using OpenVINO C API
+        - OPENVINO_FLAGS=`pkg-config --cflags openvino`  # [unix]
+        - $CC $RECIPE_DIR/snippets/openvino_available_devices.c ${OPENVINO_FLAGS} -o $RECIPE_DIR/openvino_devices_test  # [unix]
+        - if [[ $($RECIPE_DIR/openvino_devices_test) != "passed" ]]; then exit 1 ; fi  # [unix]
+
+        # check that frontends are found using OpenVINO C++ API
+        - cmake -G "Ninja" $RECIPE_DIR/snippets
+        - cmake --build $RECIPE_DIR/snippets --config Release --verbose
+        - if [[ $($RECIPE_DIR/snippets/openvino_frontends_test) != 3 ]]; then exit 1 ; fi
 
 about:
   home: https://github.com/openvinotoolkit/openvino

@@ -36,4 +36,4 @@ cmake ${CMAKE_ARGS}                                                          \
     -S openvino_sources                                                      \
     -B openvino-build
 
-cmake --build openvino-build --config Release --parallel $CPU_COUNT -- -k
+cmake --build openvino-build --config Release --parallel $CPU_COUNT --verbose
