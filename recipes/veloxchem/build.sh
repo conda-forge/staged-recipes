@@ -7,6 +7,8 @@ CXXFLAGS="${CXXFLAGS//-mtune=haswell}"
 CXXFLAGS="${CXXFLAGS//-march=core2}"
 CXXFLAGS="${CXXFLAGS//-mssse3}"
 
+export XTBHOME="$CONDA_PREFIX"
+
 # configure!
 cmake \
     -S"${SRC_DIR}" \
