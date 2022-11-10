@@ -1,10 +1,8 @@
 #!/bin/sh
 
-clones_dir="${CONDA_PREFIX}/share/julia/conda_clones"
-
 julia -e"
 using Pkg, UUIDs, TOML
-clones_dir=\"${clones_dir}\"
+clones_dir=\"${CONDA_PREFIX}/share/julia/conda_clones\"
 if !isdir(clones_dir)
     exit(0)
 end
