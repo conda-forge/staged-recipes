@@ -137,6 +137,11 @@ else
         done
     fi
 
+    # delete linux bits from sulong's llvm toolchain
+    if [ -n "${MACOS}" ]; then
+        rm -rf $GRAALVM_PREFIX/lib/llvm/lib/clang/*/lib/linux/
+    fi
+
     # match cpython include folder structure
     mkdir -p $PREFIX/include/
     ln -sf $GRAALVM_PREFIX/languages/python/include $PREFIX/include/python${PY_VERSION}
