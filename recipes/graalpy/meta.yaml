@@ -11,6 +11,7 @@
 {% set build_num = "0" %}
 
 {% set python_maj_min = ".".join(gp_python_version.split(".")[:2]) %}
+{% set graalpy_maj_min = ".".join(version.split(".")[:2]) %}
 {% set graalpy_abi = "".join(version.split(".")[:2]) %}
 
 package:
@@ -91,6 +92,24 @@ outputs:
         - graalpy -m venv testvenv
         - testvenv/bin/graalpy -c "import _struct; print(_struct.pack('I', 15663050))"
 
+  - name: python_abi
+    version: {{ python_maj_min }}
+    build:
+      number: {{ build_num }}
+      string: {{ build_num }}_graalpy{{ graalpy_abi }}
+      track_features:
+        - graalpy
+    requirements:
+      run:
+        - graalpy {{ graalpy_maj_min }}.*
+      run_constrained:
+        - pypy <0a0
+        - python {{ python_maj_min }}.* *_{{ graalpy_abi }}_graalpy
+    test:
+      commands:
+        - graalpy --version
+        - python --version
+
   - name: python
     version: {{ gp_python_version }}
     build:
@@ -126,11 +145,14 @@ outputs:
       track_features:
         - graalpy
       skip: true  # [graalpy_distribution == "standalone"]
+      run_exports:
+        weak:
+          - {{ pin_subpackage('graalpy') }}
     requirements:
       host:
-        - {{ pin_subpackage('graalpy', exact=True) }}
+        - {{ pin_subpackage('graalpy') }}
       run:
-        - {{ pin_subpackage('graalpy', exact=True) }}
+        - {{ pin_subpackage('graalpy') }}
     test:
       commands:
         - java --version
