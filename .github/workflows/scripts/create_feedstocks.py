@@ -348,7 +348,7 @@ if __name__ == '__main__':
                 subprocess.check_call(
                     ['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
-                exit_code = 0
+                exit_code = 1
                 traceback.print_exception(*sys.exc_info())
                 continue
 
@@ -392,7 +392,7 @@ if __name__ == '__main__':
                 subprocess.check_call(
                     ['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
-                exit_code = 0
+                exit_code = 1
                 traceback.print_exception(*sys.exc_info())
                 continue
 
