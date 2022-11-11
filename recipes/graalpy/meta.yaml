@@ -60,9 +60,8 @@ outputs:
       run_exports:
         weak:
           - graalpy >={{ version }}
-          - python_abi {{ python_maj_min }} *_graalpy{{ graalpy_abi }}
         noarch:
-          - {{ pin_subpackage("python", max_pin="x.x", min_pin="x.x") }}    
+          - {{ pin_subpackage("python", max_pin="x.x", min_pin="x.x") }}
     requirements:
       build:
         - {{ compiler('c') }}
@@ -83,7 +82,8 @@ outputs:
         - curl
       run_constrained:
         - __osx >={{ MACOS_DEPLOYMENT_TARGET|default("10.10") }}  # [osx]
-        - python {{ gp_python_version }} {{ build_num }}_{{ graalpy_abi }}_graalpy
+        - {{ pin_subpackage("python", exact=True) }}
+        - {{ pin_subpackage("python_abi", exact=True) }}
     test:
       commands:
         - python3 --help
@@ -101,10 +101,10 @@ outputs:
         - graalpy
     requirements:
       run:
-        - graalpy {{ graalpy_maj_min }}.*
+        - {{ pin_subpackage("graalpy", max_pin="x.x.x", min_pin="x.x.x") }}
       run_constrained:
         - pypy <0a0
-        - python {{ python_maj_min }}.* *_{{ graalpy_abi }}_graalpy
+        - {{ pin_subpackage("python", exact=True) }}
     test:
       commands:
         - graalpy --version
@@ -119,23 +119,33 @@ outputs:
         - graalpy
       run_exports:
         weak:
-          - graalpy >={{ version }}
-          - python_abi {{ python_maj_min }} *_graalpy{{ graalpy_abi }}
+          - {{ pin_subpackage("graalpy", max_pin="x.x", min_pin="x.x") }}
         noarch:
           - {{ pin_subpackage("python", max_pin="x.x", min_pin="x.x") }}
       skip: true  # [win or osx]
     requirements:
       host:
-        - graalpy {{ version }}
+        - {{ pin_subpackage("graalpy", max_pin="x.x.x", min_pin="x.x.x") }}
       run:
-        - graalpy {{ version }}
+        - {{ pin_subpackage("graalpy", max_pin="x.x.x", min_pin="x.x.x") }}
       run_constrained:
-        - python_abi {{ python_maj_min }} *_graalpy{{ graalpy_abi }}
+        - {{ pin_subpackage("python_abi", exact=True) }}
     test:
       commands:
         - python --version
         - test $(python -c "import sys; print('.'.join(str(i) for i in sys.version_info[:3]))") == "{{ gp_python_version }}"  # [unix]
         - test $(python -c "import sys; print(sys.implementation.name)") == "graalpy"  # [unix]
+
+  - name: graalpy-graalvm
+    version: {{ version }}
+    build:
+      number: {{ build_num }}
+      skip: true  # [graalpy_distribution == "standalone"]
+    requirements:
+      host:
+        - {{ pin_subpackage('graalpy', exact=True) }}
+      run:
+        - {{ pin_subpackage('graalpy', exact=True) }}
 
   - name: openjdk
     version: {{ version }}
@@ -143,16 +153,16 @@ outputs:
       number: {{ build_num }}
       string: {{ build_num }}_graalvm{{ graalpy_abi }}
       track_features:
-        - graalpy
+        - graalpy-graalvm
       skip: true  # [graalpy_distribution == "standalone"]
       run_exports:
         weak:
-          - {{ pin_subpackage('graalpy') }}
+          - graalpy-graalvm >={{ graalpy_maj_min }}
     requirements:
       host:
-        - {{ pin_subpackage('graalpy', exact=True) }}
+        - {{ pin_subpackage("graalpy-graalvm", exact=True) }}
       run:
-        - {{ pin_subpackage('graalpy', exact=True) }}
+        - {{ pin_subpackage("graalpy-graalvm", exact=True) }}
     test:
       commands:
         - java --version
