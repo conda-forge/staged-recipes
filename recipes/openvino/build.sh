@@ -34,6 +34,10 @@ cmake ${CMAKE_ARGS}                                                          \
     -DBUILD_java_api=OFF                                                     \
     -DCPACK_GENERATOR=CONDA-FORGE                                            \
     -DENABLE_WHEEL=OFF                                                       \
+    -DCMAKE_SKIP_RPATH=ON                                                    \
+    -DCMAKE_PREFIX_PATH=${PREFIX}                                            \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX}                                         \
+    -DCMAKE_INSTALL_LIBDIR="lib"                                             \
     -G Ninja                                                                 \
     -S "$SRC_DIR/openvino_sources"                                           \
     -B "$SRC_DIR/openvino-build"
