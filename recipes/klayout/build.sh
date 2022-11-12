@@ -4,4 +4,4 @@ echo "bin-release Contents"
 echo "--------------------"
 ls bin-release
 echo "--------------------"
-cp bin-release/klayout "${PREFIX}/bin"
+cp bin-release/klayout "${PREFIX}/bin" -pylib ""
