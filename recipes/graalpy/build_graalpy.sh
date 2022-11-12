@@ -59,7 +59,11 @@ fi
 export DISABLE_INSTALLABLES=False
 
 # set correct jdk paths
-export JAVA_HOME=`echo $SRC_DIR/labsjdk`
+if [ -z "${MACOS}" ]; then
+    export JAVA_HOME=$SRC_DIR/labsjdk
+else
+    export JAVA_HOME=$SRC_DIR/labsjdk/Contents/Home
+fi
 
 # run the build
 mx graalvm-show
