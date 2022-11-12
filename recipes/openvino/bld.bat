@@ -4,6 +4,7 @@ setlocal enabledelayedexpansion
 mkdir -p openvino-build
 
 cmake ${CMAKE_ARGS}                                                          ^
+    -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%"                                ^
     -DCMAKE_BUILD_TYPE=Release                                               ^
     -DOPENVINO_EXTRA_MODULES="%SRC_DIR%/openvino_contrib/modules/arm_plugin" ^
     -DENABLE_INTEL_GNA=OFF                                                   ^
