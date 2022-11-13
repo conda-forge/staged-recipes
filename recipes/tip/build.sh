@@ -10,4 +10,4 @@ cmake ${CMAKE_ARGS} .. -GNinja \
     -DCONDA_PREFIX=$CONDA_PREFIX \
     -DUSER_VERSION="v${PKG_VERSION}"
 
-ninja install
+ninja install -j8
