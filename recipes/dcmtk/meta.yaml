@@ -1,0 +1,69 @@
+{% set name = "DCMTK" %}
+{% set version = "3.6.7" %}
+{% set libraries = [
+  "ofstd", "oflog", "dcmdata", "i2d", "dcmimgle", "dcmimage", "ijg8", "ijg12",
+  "ijg16", "dcmjpeg", "dcmtkcharls", "dcmjpls", "dcmnet", "dcmtls", "dcmsr",
+  "cmr", "dcmdsig", "dcmwlm", "dcmqrdb", "dcmpstat", "dcmrt", "dcmiod",
+  "dcmfg", "dcmseg", "dcmtract", "dcmpmap", "dcmect" ]
+%}
+{% set SO_MAJOR = "17" %}
+
+package:
+  name: {{ name | lower }}
+  version: {{ version }}
+
+source:
+  url: https://dicom.offis.de/download/dcmtk/dcmtk{{ version | replace('.','') }}/dcmtk-{{ version }}.tar.gz
+  sha256: 7c58298e3e8d60232ee6fc8408cfadd14463cc11a3c4ca4c59af5988c7e9710a
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_subpackage(name|lower, max_pin='x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ compiler('c') }}
+    - cmake
+    - ninja
+  host:
+    - libpng
+    - libtiff
+    - libxml2
+    - openssl
+    - zlib
+
+test:
+  commands:
+    - dcmdump --help
+    - test -f $PREFIX/include/dcmtk/ofstd/ofstd.h  # [unix]
+    - if not exist %PREFIX%\\include\\dcmtk\\ofstd\\ofstd.h exit 1  # [win]
+    {% for library in libraries %}
+    - test -f $PREFIX/lib/lib{{ library }}.so.{{ SO_MAJOR }}  # [linux]
+    - test -f $PREFIX/lib/lib{{ library }}.{{ SO_MAJOR }}.dylib  # [mac]
+    - if not exist %PREFIX%\\bin\\{{ library }}.dll exit 1  # [win]
+    - if not exist %PREFIX%\\lib\\{{ library }}.lib exit 1  # [win]
+    {% endfor %}
+    - test -f $PREFIX/lib/pkgconfig/dcmtk.pc  # [unix]
+    - if not exist %PREFIX%\\lib\\pkgconfig\\dcmtk.pc exit 1  # [win]
+    - test -f $PREFIX/lib/cmake/dcmtk/DCMTKConfig.cmake  # [unix]
+    - if not exist %PREFIX%\\cmake\\DCMTKConfig.cmake exit 1  # [win]
+
+about:
+  home: http://dicom.offis.de
+  summary: OFFIS DICOM toolkit
+  description: |
+    DCMTK is a collection of libraries and applications implementing large 
+    parts the DICOM standard. It includes software for examining, constructing 
+    and converting DICOM image files, handling offline media, sending and 
+    receiving images over a network connection, as well as demonstrative image 
+    storage and worklist servers. DCMTK is is written in a mixture of ANSI C 
+    and C++. 
+  license: BSD-3-Clause
+  license_file: COPYRIGHT
+  dev_url: "https://git.dcmtk.org/"
+
+extra:
+  recipe-maintainers:
+    - lamyj
