@@ -1,5 +1,6 @@
 {% set name = "openvino" %}
 {% set version = "2022.3.0" %}
+# TODO: decide about verrsion
 {% set commit_number = "1111" %}
 
 package:
@@ -62,6 +63,7 @@ build:
   script_env:
     - CI_BUILD_NUMBER={{ commit_number }}
   missing_dso_whitelist:
+    # TODO: it does not work
     - libtbb.12.dylib
     - lib/libc++.1.dylib
     - $RPATH/libtbb.12.dylib
@@ -83,18 +85,19 @@ requirements:
     - ninja
     - python >=3.7
     - scons  # [aarch64 or arm64]
-    # - libprotobuf-static
-    - sysroot_linux-64 =2.17  # [linux and x86_64]
   host:
     # core
-    - tbb-devel >=2021.5
-    - pugixml # static version is provided
+    - tbb-devel =2021.5
+    - pugixml # note: only static version is provided
+    - sysroot_linux-64 =2.17  # [linux and x86_64]
+    # - libprotobuf-static
+
   # TODO: fix to enable openvino meta-package
   # see https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#implicit-metapackages
   # run:
-  #   - libopenvino
-  #   - libopenvino-plugins
-  #   - libopenvino-dev
+  #   - {{ pin_subpackage('libopenvino', exact=True) }}
+  #   - {{ pin_subpackage('libopenvino-plugins', exact=True) }}
+  #   - {{ pin_subpackage('libopenvino-dev', exact=True) }}
 
 outputs:
   - name: libopenvino
@@ -109,9 +112,8 @@ outputs:
       build:
         - cmake >=3.13
       host:
-        - libhwloc >=2.5 # starting from this version hwloc supports Apple Silicon
-      run:
-        - tbb >=2021.5 # TBB does not provide 'run_exports', otherwise we can put it into 'host'
+        - libhwloc >=2.5 # starting from this version hwloc supports hybrid cores
+        - tbb-devel =2021.5 # starting from this version TBB uses hwloc in conda
     test:
       commands:
         {% set openvino_libs = [] %}
@@ -133,14 +135,15 @@ outputs:
       summary: OpenVINO Inference Plugins
     build:
       run_exports:
-        - {{ pin_subpackage('libopenvino-plugins', exact=True) }}
+        - {{ pin_subpackage('libopenvino-plugins', max_pin='x.x.x') }}
     requirements:
       build:
         - cmake >=3.13
+      host:
+        - tbb-devel =2021.5
       run:
         - {{ pin_subpackage('libopenvino', exact=True) }}
         - ocl-icd-system  # [linux and x86_64]
-        - tbb >=2021.5 # TBB does not provide 'run_exports', otherwise we can put it into 'host'
     test:
       commands:
         {% set openvino_plugin_libs = [] %}
@@ -160,12 +163,15 @@ outputs:
     script: install/install_dev.sh
     about:
       summary: OpenVINO Runtime Development files
+    build:
+      run_exports:
+        - {{ pin_subpackage('libopenvino', max_pin='x.x.x') }}
     requirements:
       build:
         - cmake >=3.13
       run:
-        - {{ pin_subpackage('libopenvino', exact=True) }}
-        - {{ pin_subpackage('libopenvino-plugins', exact=True) }}
+        - {{ pin_subpackage('libopenvino', max_pin='x.x.x') }}
+        - {{ pin_subpackage('libopenvino-plugins', max_pin='x.x.x') }}
     test:
       requires:
         - {{ compiler('cxx') }}
@@ -177,7 +183,7 @@ outputs:
         - nlohmann_json
         - opencv
         - gflags
-        - tbb-devel >=2021.5 # TODO: fix pkg-config files
+        - tbb-devel =2021.5 # TODO: fix pkg-config files
         - pugixml # TODO: fix pkg-config files
       source_files:
         - openvino_sources/samples
