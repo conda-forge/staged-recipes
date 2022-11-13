@@ -14,7 +14,7 @@ cmake ${CMAKE_ARGS}                                                          ^
     -DCMAKE_C_COMPILER_LAUNCHER=ccache                                       ^
     -DENABLE_SYSTEM_TBB=ON                                                   ^
     -DENABLE_SYSTEM_PUGIXML=ON                                               ^
-    -DENABLE_SYSTEM_PROTOBUF=OFF                                             ^
+    -DENABLE_SYSTEM_PROTOBUF=ON                                              ^
     -DENABLE_COMPILE_TOOL=OFF                                                ^
     -DENABLE_PYTHON=OFF                                                      ^
     -DENABLE_CPPLINT=OFF                                                     ^
