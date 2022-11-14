@@ -3,16 +3,15 @@ setlocal enabledelayedexpansion
 
 mkdir -p openvino-build
 
-cmake ${CMAKE_ARGS}                                                          ^
+cmake                                                                        ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%"                                ^
     -DCMAKE_BUILD_TYPE=Release                                               ^
-    -DOPENVINO_EXTRA_MODULES="%SRC_DIR%/openvino_contrib/modules/arm_plugin" ^
     -DENABLE_INTEL_GNA=OFF                                                   ^
-    -DENABLE_TBBBIND_2_5=OFF                                                 ^
     -DENABLE_INTEL_GPU=OFF                                                   ^
     -DENABLE_INTEL_MYRIAD_COMMON=OFF                                         ^
     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache                                     ^
     -DCMAKE_C_COMPILER_LAUNCHER=ccache                                       ^
+    -DENABLE_TBBBIND_2_5=OFF                                                 ^
     -DENABLE_SYSTEM_TBB=ON                                                   ^
     -DENABLE_SYSTEM_PUGIXML=ON                                               ^
     -DENABLE_SYSTEM_PROTOBUF=ON                                              ^
@@ -26,7 +25,6 @@ cmake ${CMAKE_ARGS}                                                          ^
     -DENABLE_SAMPLES=OFF                                                     ^
     -DENABLE_DATA=OFF                                                        ^
     -DCPACK_GENERATOR=CONDA-FORGE                                            ^
-    -DENABLE_WHEEL=OFF                                                       ^
     -G Ninja                                                                 ^
     -S "%SRC_DIR%/openvino_sources"                                          ^
     -B "%SRC_DIR%/openvino-build"

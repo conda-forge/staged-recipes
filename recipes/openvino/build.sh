@@ -34,7 +34,6 @@ cmake ${CMAKE_ARGS}                                                          \
     -DBUILD_nvidia_plugin=OFF                                                \
     -DBUILD_java_api=OFF                                                     \
     -DCPACK_GENERATOR=CONDA-FORGE                                            \
-    -DENABLE_WHEEL=OFF                                                       \
     -DCMAKE_SKIP_RPATH=ON                                                    \
     -DCMAKE_PREFIX_PATH=${PREFIX}                                            \
     -DCMAKE_INSTALL_PREFIX=${PREFIX}                                         \
