@@ -8,8 +8,6 @@ package:
   version: {{ version }}
 
 source:
-  # - path: ../../../{{ name }}
-  #   folder: openvino_sources
   - url: https://github.com/ilya-lavrenov/openvino/archive/50e0d77aacfb26d56059808e2abb1419e43f8656.tar.gz
     sha256: a872a28a0d5fb63742e56b636d34a22916184461c0f4cd7659d76dd26b932ca0
     folder: openvino_sources
@@ -36,9 +34,6 @@ source:
   - url: https://github.com/oneapi-src/oneDNN/archive/b5faa77a4a651f1e44fa77348eded54ea3ec3eef.tar.gz  # [win64 or linux64]
     sha256: cc2faf62420b95f6c81835078910e32ee1cb12738531f4af02d06fcaa2a6a12d  # [win64 or linux64]
     folder: openvino_sources/src/plugins/intel_gpu/thirdparty/onednn_gpu  # [win64 or linux64]
-  # - url: https://github.com/protocolbuffers/protobuf/releases/download/v21.7/protobuf-cpp-3.21.7.tar.gz
-  #   sha256: 70de993af0b4f2ddacce59e62ba6d7b7e48faf48beb1b0d5f1ac0e1fb0a68423
-  #   folder: openvino_sources/thirdparty/protobuf/protobuf
   - url: https://github.com/nlohmann/json/archive/refs/tags/v3.11.2.tar.gz
     sha256: d69f9deb6a75e2580465c6c4c5111b89c4dc2fa94e3a85fcd2ffcd9a143d9273
     folder: openvino_sources/thirdparty/json/nlohmann_json
@@ -62,6 +57,14 @@ build:
   number: 0
   script_env:
     - CI_BUILD_NUMBER={{ commit_number }}
+  run_exports:
+    - {{ pin_subpackage('libopenvino', max_pin='x.x.x') }}
+    - {{ pin_subpackage('libopenvino-plugins', max_pin='x.x.x') }}
+  ignore_run_exports_from:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - pugixml # static package mistakenly adds run_exports
+    - tbb-devel # libopenvino and libopenvino already depend on tbb
 
 requirements:
   build:
@@ -79,13 +82,64 @@ requirements:
     - tbb-devel =2021.5
     - pugixml # note: only static version is provided
     - libprotobuf-static
+  run:
+    - {{ pin_subpackage('libopenvino', max_pin='x.x.x') }}
+    - {{ pin_subpackage('libopenvino-plugins', max_pin='x.x.x') }}
 
-  # TODO: fix to enable openvino meta-package
-  # see https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#implicit-metapackages
-  # run:
-  #   - {{ pin_subpackage('libopenvino', exact=True) }}
-  #   - {{ pin_subpackage('libopenvino-plugins', exact=True) }}
-  #   - {{ pin_subpackage('libopenvino-dev', exact=True) }}
+test:
+  requires:
+    - {{ compiler('cxx') }}
+    - {{ compiler('c') }}
+    - ninja
+    - cmake >=3.13
+    - pkg-config # to find zlib
+    - zlib
+    - nlohmann_json
+    - opencv
+    - gflags
+    - tbb-devel =2021.5 # TODO: fix pkg-config files
+    - pugixml # TODO: fix pkg-config files
+  source_files:
+    - openvino_sources/samples
+    - openvino_sources/thirdparty/cnpy
+  files:
+    - snippets/
+  commands:
+    - export MACOSX_DEPLOYMENT_TARGET={{ MACOSX_DEPLOYMENT_TARGET }}  # [osx]
+    - export CMAKE_GENERATOR=Ninja
+
+    # check libraries
+    {% set openvino_libs = [] %}
+    {{ openvino_libs.append("") or "" }}
+    {{ openvino_libs.append("_c") or "" }}
+    {{ openvino_libs.append("_paddle_frontend") or "" }}
+    {{ openvino_libs.append("_onnx_frontend") or "" }}
+    {% for openvino_lib in openvino_libs %}
+    - test -f $PREFIX/lib/libopenvino{{ openvino_lib }}${SHLIB_EXT}  # [unix]
+    {% endfor %}
+
+    # C++ samples
+    - mkdir -p openvino_sources/samples/cpp/thirdparty
+    - cp -R openvino_sources/thirdparty/cnpy openvino_sources/samples/cpp/thirdparty/cnpy
+    - cmake -S openvino_sources/samples/cpp -B samples_cpp_build -DBIN_FOLDER=bin
+    - cmake --build samples_cpp_build --parallel $CPU_COUNT
+    - ./samples_cpp_build/bin/hello_query_device  # [unix]
+
+    # C samples
+    - cp openvino_sources/samples/cpp/CMakeLists.txt openvino_sources/samples/c/CMakeLists.txt
+    - cmake -S openvino_sources/samples/c -B samples_c_build -DBIN_FOLDER=bin
+    - cmake --build samples_c_build --parallel $CPU_COUNT
+
+    # check that devices are found using OpenVINO C API
+    # TODO: fix for OSX and Linux64: currently, the application cannot be run because of RPATH
+    # - $CC snippets/openvino_available_devices.c $(pkg-config --cflags --libs openvino) -o openvino_devices_test  # [linux]
+    # - if [[ $(./openvino_devices_test) != "passed" ]]; then exit 1 ; fi  # [linux]
+
+    # check that frontends are found using OpenVINO C++ API
+    - cmake -S snippets -B snippets_build
+    - cmake --build snippets_build --config Release --verbose
+    - if [[ $(./snippets_build/openvino_frontends_test) != 3 ]]; then exit 1 ; fi  # [unix]
+
 
 outputs:
   - name: libopenvino
@@ -93,6 +147,12 @@ outputs:
     script: install/install.sh
     about:
       summary: OpenVINO Core Runtime library
+      license_file:
+        - LICENSE
+        - third-party-programs.txt
+        - onednn_third-party-programs.txt
+        - runtime-third-party-programs.txt
+        - tbb_third-party-programs.txt
     build:
       run_exports:
         - {{ pin_subpackage('libopenvino', max_pin='x.x.x') }}
@@ -123,6 +183,12 @@ outputs:
     script: install/install_plugins.sh
     about:
       summary: OpenVINO Inference Plugins
+      license_file:
+        - LICENSE
+        - third-party-programs.txt
+        - onednn_third-party-programs.txt
+        - runtime-third-party-programs.txt
+        - tbb_third-party-programs.txt
     build:
       run_exports:
         - {{ pin_subpackage('libopenvino-plugins', max_pin='x.x.x') }}
@@ -136,7 +202,7 @@ outputs:
         - {{ pin_subpackage('libopenvino', exact=True) }}
       run:
         - {{ pin_subpackage('libopenvino', exact=True) }}
-        - ocl-icd-system  # [linux and x86_64]
+        - ocl-icd-system  # [linux64]
     test:
       commands:
         {% set openvino_plugin_libs = [] %}
@@ -151,73 +217,8 @@ outputs:
         - if not exist %PREFIX%\\Library\\bin\\openvino-{{ version }}\\openvino_{{ openvino_plugin_lib }}.dll exit 1  # [win]
         {% endfor %}
 
-  - name: libopenvino-dev
-    version: {{ version }}
+  - name: openvino
     script: install/install_dev.sh
-    about:
-      summary: OpenVINO Runtime Development files
-    build:
-      run_exports:
-        - {{ pin_subpackage('libopenvino', max_pin='x.x.x') }}
-    requirements:
-      build:
-        - cmake >=3.13
-      run:
-        - {{ pin_subpackage('libopenvino', max_pin='x.x.x') }}
-        - {{ pin_subpackage('libopenvino-plugins', max_pin='x.x.x') }}
-    test:
-      requires:
-        - {{ compiler('cxx') }}
-        - {{ compiler('c') }}
-        - ninja
-        - cmake >=3.13
-        - pkg-config # to find zlib
-        - zlib
-        - nlohmann_json
-        - opencv
-        - gflags
-        - tbb-devel =2021.5 # TODO: fix pkg-config files
-        - pugixml # TODO: fix pkg-config files
-      source_files:
-        - openvino_sources/samples
-        - openvino_sources/thirdparty/cnpy
-      files:
-        - snippets/
-      commands:
-        - export MACOSX_DEPLOYMENT_TARGET={{ MACOSX_DEPLOYMENT_TARGET }}  # [osx]
-        - export CMAKE_GENERATOR=Ninja
-
-        # check libraries
-        {% set openvino_libs = [] %}
-        {{ openvino_libs.append("") or "" }}
-        {{ openvino_libs.append("_c") or "" }}
-        {{ openvino_libs.append("_paddle_frontend") or "" }}
-        {{ openvino_libs.append("_onnx_frontend") or "" }}
-        {% for openvino_lib in openvino_libs %}
-        - test -f $PREFIX/lib/libopenvino{{ openvino_lib }}${SHLIB_EXT}  # [unix]
-        {% endfor %}
-
-        # C++ samples
-        - mkdir -p openvino_sources/samples/cpp/thirdparty
-        - cp -R openvino_sources/thirdparty/cnpy openvino_sources/samples/cpp/thirdparty/cnpy
-        - cmake -S openvino_sources/samples/cpp -B samples_cpp_build -DBIN_FOLDER=bin
-        - cmake --build samples_cpp_build --parallel $CPU_COUNT
-        - ./samples_cpp_build/bin/hello_query_device  # [unix]
-
-        # C samples
-        - cp openvino_sources/samples/cpp/CMakeLists.txt openvino_sources/samples/c/CMakeLists.txt
-        - cmake -S openvino_sources/samples/c -B samples_c_build -DBIN_FOLDER=bin
-        - cmake --build samples_c_build --parallel $CPU_COUNT
-
-        # check that devices are found using OpenVINO C API
-        # TODO: fix for OSX as well: currently, the application cannot be run because of RPATH on macOS
-        # - $CC snippets/openvino_available_devices.c $(pkg-config --cflags --libs openvino) -o openvino_devices_test  # [linux]
-        # - if [[ $(./openvino_devices_test) != "passed" ]]; then exit 1 ; fi  # [linux]
-
-        # check that frontends are found using OpenVINO C++ API
-        - cmake -S snippets -B snippets_build
-        - cmake --build snippets_build --config Release --verbose
-        - if [[ $(./snippets_build/openvino_frontends_test) != 3 ]]; then exit 1 ; fi  # [unix]
 
 about:
   home: https://github.com/openvinotoolkit/openvino
@@ -233,10 +234,10 @@ about:
   license_family: Apache
   license_file:
     - LICENSE
-    - licensing/third-party-programs.txt
-    - licensing/onednn_third-party-programs.txt
-    - licensing/runtime-third-party-programs.txt
-    - licensing/tbb_third-party-programs.txt
+    - third-party-programs.txt
+    - onednn_third-party-programs.txt
+    - runtime-third-party-programs.txt
+    - tbb_third-party-programs.txt
   doc_url: https://docs.openvino.ai/latest/index.html
   dev_url: https://github.com/openvinotoolkit/openvino
 

@@ -44,3 +44,9 @@ cmake ${CMAKE_ARGS}                                                          \
     -B "$SRC_DIR/openvino-build"
 
 cmake --build "$SRC_DIR/openvino-build" --config Release --parallel $CPU_COUNT --verbose
+
+cp "$SRC_DIR/openvino_sources/LICENSE" LICENSE
+cp "$SRC_DIR/openvino_sources/licensing/third-party-programs.txt" third-party-programs.txt
+cp "$SRC_DIR/openvino_sources/licensing/onednn_third-party-programs.txt" onednn_third-party-programs.txt
+cp "$SRC_DIR/openvino_sources/licensing/runtime-third-party-programs.txt" runtime-third-party-programs.txt
+cp "$SRC_DIR/openvino_sources/licensing/tbb_third-party-programs.txt" tbb_third-party-programs.txt
