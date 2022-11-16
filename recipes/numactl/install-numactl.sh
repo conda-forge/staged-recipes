@@ -1,3 +1,0 @@
-set -eu
-
-make install
