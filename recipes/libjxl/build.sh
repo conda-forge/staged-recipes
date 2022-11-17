@@ -26,4 +26,4 @@ cmake ${CMAKE_ARGS} \
     -DJPEGXL_FORCE_SYSTEM_BROTLI=ON \
     -DJPEGXL_FORCE_SYSTEM_HWY=ON \
     ..
-cmake --build . -j$(nprocs)
+cmake --build . -j${CPU_COUNT}
