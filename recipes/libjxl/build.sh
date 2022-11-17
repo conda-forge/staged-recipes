@@ -13,6 +13,10 @@ CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 mkdir build
 cd build
 
+if [[ "${target_platform}" == osx-* ]]; then
+    cmake -E environment
+    CMAKE_PREFIX_PATH=${PREFIX}
+
 cmake ${CMAKE_ARGS} \
     -DCMAKE_FIND_ROOT_PATH="${PREFIX}" \
     -DCMAKE_BUILD_TYPE=Release \
