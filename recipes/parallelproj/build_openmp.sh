@@ -5,12 +5,6 @@ mkdir build
 cd build
 
 cmake -G Ninja \
-    -DALSO \
-    -DPLEASE \
-    -DUSE \
-    -DLINEBREAKS \
-    -DFOR \
-    -DREADABILITY \
     ${CMAKE_ARGS} \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DCMAKE_BUILD_TYPE=Release \
