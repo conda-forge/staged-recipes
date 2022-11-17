@@ -29,8 +29,5 @@ cmake ^
       ..
 if errorlevel 1 exit 1
 
-nmake
-if errorlevel 1 exit 1
-
-nmake install
+cmake --build . -j%CPU_COUNT% --target install
 if errorlevel 1 exit 1
