@@ -6,6 +6,9 @@ if [[ "${target_platform}" == linux-* ]]; then
 fi
 # https://github.com/google/highway/pull/524#issuecomment-1025676250
 CXXFLAGS="-D__STDC_FORMAT_MACROS ${CXXFLAGS}"
+# Sized deallocation requires MacOS SDK 10.12+
+# https://conda-forge.org/docs/maintainer/knowledge_base.html#newer-c-features-with-old-sdk
+CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 
 mkdir build
 cd build
