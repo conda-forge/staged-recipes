@@ -29,4 +29,4 @@ cmake ${CMAKE_ARGS} \
     -DJPEGXL_FORCE_SYSTEM_BROTLI=ON \
     -DJPEGXL_FORCE_SYSTEM_HWY=ON \
     ..
-cmake --build . -j${CPU_COUNT}
+cmake --build . -j${CPU_COUNT} --target install
