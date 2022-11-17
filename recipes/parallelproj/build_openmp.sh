@@ -4,7 +4,7 @@ set -ex
 mkdir build
 cd build
 
-cmake -G Ninja \ 
+cmake -G Ninja \
     -DALSO \
     -DPLEASE \
     -DUSE \
