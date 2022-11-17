@@ -28,5 +28,9 @@ cmake ${CMAKE_ARGS} \
     -DJPEGXL_STATIC=OFF \
     -DJPEGXL_FORCE_SYSTEM_BROTLI=ON \
     -DJPEGXL_FORCE_SYSTEM_HWY=ON \
+    -DJPEG_INCLUDE_DIR="${PREFIX}/include" \
+    -DPNG_INCLUDE_DIRS="${PREFIX}/include" \
+    -DZLIB_INCLUDE_DIRS="${PREFIX}/include" \
+    -DGIF_INCLUDE_DIR="${PREFIX}/include" \
     ..
 cmake --build . -j${CPU_COUNT} --target install
