@@ -14,6 +14,7 @@ mkdir build
 cd build
 
 cmake ${CMAKE_ARGS} \
+    -DCMAKE_FIND_ROOT_PATH="${PREFIX}" \
     -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_TESTING=OFF \
     -DBUILD_SHARED_LIBS=ON \
