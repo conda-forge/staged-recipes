@@ -3,7 +3,9 @@ setlocal EnableDelayedExpansion
 mkdir build
 cd build
 
-cmake -G "NMake Makefiles" ^
+cmake ^
+      -G "NMake Makefiles" ^
+      -T "ClangCl" ^
       -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
       -DCMAKE_PREFIX_PATH:PATH="%LIBRARY_PREFIX%" ^
       -DCMAKE_BUILD_TYPE:STRING=Release ^
