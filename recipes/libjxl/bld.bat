@@ -4,10 +4,14 @@ mkdir build
 cd build
 
 cmake ^
+      %CMAKE_ARGS% ^
       -G "NMake Makefiles" ^
-      -T "ClangCl" ^
       -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
       -DCMAKE_PREFIX_PATH:PATH="%LIBRARY_PREFIX%" ^
+      -DCMAKE_C_COMPILER=clang-cl           ^
+      -DCMAKE_CXX_COMPILER=clang-cl         ^
+      -DCMAKE_LINKER=lld-link               ^
+      -DCMAKE_NM=llvm-nm                    ^
       -DCMAKE_BUILD_TYPE:STRING=Release ^
       -DBUILD_TESTING:BOOL=OFF ^
       -DBUILD_SHARED_LIBS:BOOL=ON ^
