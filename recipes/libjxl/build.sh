@@ -15,6 +15,7 @@ cd build
 
 cmake ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INCLUDE_PATH="${PREFIX}/include" \
     -DBUILD_TESTING=OFF \
     -DBUILD_SHARED_LIBS=ON \
     -DJPEGXL_ENABLE_TOOLS=ON \
@@ -28,9 +29,5 @@ cmake ${CMAKE_ARGS} \
     -DJPEGXL_STATIC=OFF \
     -DJPEGXL_FORCE_SYSTEM_BROTLI=ON \
     -DJPEGXL_FORCE_SYSTEM_HWY=ON \
-    -DJPEG_INCLUDE_DIR="${PREFIX}/include" \
-    -DPNG_INCLUDE_DIRS="${PREFIX}/include" \
-    -DZLIB_INCLUDE_DIRS="${PREFIX}/include" \
-    -DGIF_INCLUDE_DIR="${PREFIX}/include" \
     ..
 cmake --build . -j${CPU_COUNT} --target install
