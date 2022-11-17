@@ -15,7 +15,8 @@ cd build
 
 if [[ "${target_platform}" == osx-* ]]; then
     cmake -E environment
-    CMAKE_PREFIX_PATH=${PREFIX}
+    CMAKE_PREFIX_PATH="${PREFIX}"
+fi
 
 cmake ${CMAKE_ARGS} \
     -DCMAKE_FIND_ROOT_PATH="${PREFIX}" \
