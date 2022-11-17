@@ -1,5 +1,6 @@
 set -ex
 
+# librt is required before glibc 2.17
 if [[ "${target_platform}" == linux-* ]]; then
     LDFLAGS="-lrt ${LDFLAGS}"
 fi
@@ -11,9 +12,9 @@ cd build
 
 cmake ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_PREFIX_PATH="${PREFIX}" \
     -DBUILD_TESTING=OFF \
     -DBUILD_SHARED_LIBS=ON \
+    -DJPEGXL_ENABLE_TOOLS=ON \
     -DJPEGXL_ENABLE_DOXYGEN=OFF \
     -DJPEGXL_ENABLE_MANPAGES=OFF \
     -DJPEGXL_ENABLE_BENCHMARK=OFF \
