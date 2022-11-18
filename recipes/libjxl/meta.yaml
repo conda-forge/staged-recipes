@@ -19,10 +19,6 @@ source:
 
 build:
   number: 0
-  run_exports:
-    - libjxl
-  script_env:
-    - JPEGXL_VERSION=v{{ version }}
 
 requirements:
   build:
@@ -31,24 +27,76 @@ requirements:
     - clang  # [win]
     - lld  # [win]
     - pkg-config
-    - cmake >=3.12
+    - cmake >=3.15
     - make
   host:
-    - brotli
-    - libhwy
-    # - lcms2
-    - giflib
-    # Cannot be replaced with `jpeg`
-    # since jpeg_mem_* api is different
-    - libjpeg-turbo
-    - openexr
-    - libpng
-    - zlib  # by libpng
+    # This section is not recognized by `conda-build`
+    # so deps have to be written in `outputs`
 
-test:
-  commands:
-    - cjxl --version
-    - djxl --version
+outputs:
+  - name: libjxl
+    build:
+      run_exports:
+        - {{ pin_subpackage('libjxl', min_pin='x.x', max_pin='x.x') }}
+      ignore_run_exports:
+        - libpng
+        - giflib
+        - openexr
+        - libzlib
+        - libbrotlicommon
+        - libjpeg-turbo
+    requirements:
+      build:
+        - {{ compiler('c') }}  # [not win]
+        - {{ compiler('cxx') }}  # [not win]
+        - clang  # [win]
+        - lld  # [win]
+        - pkg-config
+        - cmake >=3.15
+        - make
+      host:
+        - brotli
+        - libhwy
+        # - lcms2
+        - giflib
+        # Cannot be replaced with `jpeg`
+        # since jpeg_mem_* api is different
+        - libjpeg-turbo
+        - openexr
+        - libpng
+        - zlib  # by libpng
+    script: install.sh  # [not win]
+    script: install.bat  # [win]
+    test:
+      command:
+        - test -f $PREFIX/lib/libjxl.a  # [not win]
+  - name: libjxl-tools
+    requirements:
+      build:
+        - {{ compiler('c') }}  # [not win]
+        - {{ compiler('cxx') }}  # [not win]
+        - clang  # [win]
+        - lld  # [win]
+        - pkg-config
+        - cmake >=3.15
+        - make
+      host:
+        - brotli
+        - libhwy
+        - giflib
+        - libjpeg-turbo
+        - openexr
+        - libpng
+        - zlib
+        - {{ pin_subpackage('libjxl', exact=True) }}
+      run:
+        - {{ pin_subpackage('libjxl', min_pin='x.x', max_pin='x.x') }}
+    script: install.sh  # [not win]
+    script: install.bat  # [win]
+    test:
+      commands:
+        - cjxl --version
+        - djxl --version
 
 about:
   home: https://jpeg.org/jpegxl/

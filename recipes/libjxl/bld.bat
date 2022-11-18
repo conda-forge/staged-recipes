@@ -5,7 +5,7 @@ cd build
 
 cmake %CMAKE_ARGS% ^
       -G "NMake Makefiles" ^
-      -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
+      -DCMAKE_FIND_ROOT_PATH="%LIBRARY_PREFIX%" ^
       -DCMAKE_PREFIX_PATH:PATH="%LIBRARY_PREFIX%" ^
       -DCMAKE_C_COMPILER:STRING=clang-cl ^
       -DCMAKE_CXX_COMPILER:STRING=clang-cl ^
@@ -24,8 +24,9 @@ cmake %CMAKE_ARGS% ^
       -DJPEGXL_STATIC:BOOL=OFF ^
       -DJPEGXL_FORCE_SYSTEM_BROTLI:BOOL=ON ^
       -DJPEGXL_FORCE_SYSTEM_HWY:BOOL=ON ^
+      -DJPEGXL_VERSION:STRING="v%PKG_VERSION%" ^
       ..
 if errorlevel 1 exit 1
 
-cmake --build . -j%CPU_COUNT% --target install
+cmake --build . -j%CPU_COUNT%
 if errorlevel 1 exit 1

@@ -32,5 +32,6 @@ cmake ${CMAKE_ARGS} \
     -DJPEGXL_STATIC:BOOL=OFF \
     -DJPEGXL_FORCE_SYSTEM_BROTLI:BOOL=ON \
     -DJPEGXL_FORCE_SYSTEM_HWY:BOOL=ON \
+    -DJPEGXL_VERSION:STRING="v${PKG_VERSION}" \
     ..
-cmake --build . -j${CPU_COUNT} --target install
+cmake --build . -j${CPU_COUNT}
