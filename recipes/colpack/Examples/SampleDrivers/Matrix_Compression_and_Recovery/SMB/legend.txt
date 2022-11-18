@@ -1,0 +1,107 @@
+#define repnum 10
+    //repnum: repetition number: the number of times that a function will be re-executed
+      //used for accurate measurement of feval and ceval
+
+  int i, j, k, l, sum, n, m, nnz, direct = 1, found;
+    //tag_c:  #define tag_c 4	/* tape identification                       */
+    //m: init_dim(&n,&m); 	/* number of dependent variables             */
+    //n: init_dim(&n,&m);  	/* number of independent variables           */
+    //nnz: number of non-zeros in the matrix
+  double f;
+    //f: returned value of a function?
+  double *x, *c;
+    // x: vector input for function evaluation
+      //x: x =   (double*)  malloc(n*sizeof(double));  init_startpoint(x,n); /* independant variable values  */
+    // c: concentrations vector
+  adouble fad, *xad, *cad;
+    //fad: f active double
+    //xad: x active double array
+    //cad: c (concentrations) active double array
+  //double** Zpp;
+  //double** Zppf;
+  double** J;
+    //J: Jacobian matrix
+  double* s;	//!!!actually not used
+  int p_H_dir, p_H_indir;	//!!!actually not used
+  int tape_stats[11];	// For reading of tape statistics
+  int num;
+  FILE *fp_JP;	// File pointer for Jacobian Pattern
+
+  double **Seed_J, **Seed_J_C, **Seed_H;
+    //Seed_J: Seed of Jacobian
+    //Seed_J_C: Seed of Jacobian (using ColPack?)
+  double **Jc, **Jc_C, **H;
+    //Jc_C: compressed Jacobian (using ColPack?)
+    //Jc: compressed Jacobian
+  int p_J, p_J_C, p_H;
+    //p_J: essentially the number of colors needed to color the Jacobian
+    //p_J_C: essentially the number of colors needed to color the Jacobian (using ColPack)
+
+  // FLAGS
+  int recover = 1; //True: execute the recovery section
+  int jac_vec = 1; //True: compute Jacobian-matrix product?
+  int compute_full = 1; //True: compute the full Jacobian
+  int output_sparsity_pattern_J = 0; //True: write the sparsity_pattern of Jacobian into file
+  int output_sparsity_pattern_H = 1; //!!!actually not used. True: ?write the sparsity_pattern of Hessian into file
+  int use_direct_method = 1;	//!!!actually not used. True: ?use direct method of recovery
+  int output_direct = 0;	//!!!actually not used
+  int use_indirect_method = 1;	//!!!actually not used
+  int output_indirect = 0;	//!!!actually not used
+
+  double t_f_1, t_f_2, div_f=0, div_c=0, div_JP=0, div_JP2=0, div_Seed=0, div_Seed_C=0, div_Jc=0, div_Jc_C=0, div_rec=0, div_rec_C=0, div_J=0;
+    // t_f_1: starting time of the function
+    // t_f_2: ending time of the function
+    // div_...: time difference / execution time
+    // div_f: time to compute feval(x,n);
+    // div_c: time to compute ceval(x,c,n); used for calculating the ratio
+    // div_Jc: time to compute compressed Jacobian
+    // div_Jc_C: time to compute compressed Jacobian (using ColPack?)
+    // div_JP: The time needed for Jacobian pattern
+    // div_JP2: !!!actuall not currently used. The time needed for Jacobian pattern (for the alternative jac_pat_2)
+    // div_Seed: time for generate_seed_jac(m, n, JP, &Seed_J, &p_J,0);
+    // div_Seed_C: time to color and generate seed (using ColPack)
+    // div_rec: The time needed for Recovery (ADOL-C)
+    // div_rec_C: The time needed for Recovery (ADOL-C+COLPACK)
+    // div_J: time needed for full Jacobian
+  double test;	//not used at all
+  unsigned int *rind;
+    //rind: row indices
+  unsigned int *cind;
+    //cind: column indices
+  double *values;
+    //values: values
+  unsigned int *rind_C;
+    //rind_C: row indices (using ColPack?)
+  unsigned int *cind_C;
+    //cind_C: column indices (using ColPack?)
+  double *values_C;
+    //values_C: values vector (using ColPack)
+  unsigned int *colors;
+    // colors: colors vector (without using ColPack)
+  vector<int> colors_C;
+    // colors_C: colors vector (using ColPack?)
+
+  //string s_InputFile = "test_mat.mtx";
+  string s_InputFile = "jac_pat.mtx";
+
+  unsigned int  *rb=NULL;          /* dependent variables          */
+  unsigned int  *cb=NULL;          /* independent variables        */
+
+  unsigned int  **JP=NULL;         /* compressed block row storage */
+    //JP: Jacobian Pattern
+  JP = (unsigned int **) malloc(m*sizeof(unsigned int*));
+
+  unsigned int  **JP2=NULL;         /* compressed block row storage */
+    //JP2: also Jacobian Pattern
+  JP2 = (unsigned int **) malloc(m*sizeof(unsigned int*));
+
+  int ctrl[2];
+  ctrl[0] = 0; ctrl[1] = 0;
+    //ctrl[2]: for jac_pat(tag_c, m, n, x, JP, ctrl); //control options
+
+  double tg_C,ts_C;
+    //tg_C: time to read the input file and generate Graph (using ColPack)
+    //ts_C: time to color and generate the seed matrix using ColPack
+  BipartiteGraphPartialColoringInterface * gGraph = new BipartiteGraphPartialColoringInterface();
+
+
