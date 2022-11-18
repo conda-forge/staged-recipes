@@ -10,7 +10,6 @@ cmake %CMAKE_ARGS% ^
       -DCMAKE_C_COMPILER:STRING=clang-cl ^
       -DCMAKE_CXX_COMPILER:STRING=clang-cl ^
       -DCMAKE_LINKER:STRING=lld-link ^
-      -DCMAKE_NM:STRING=llvm-nm ^
       -DCMAKE_BUILD_TYPE:STRING=Release ^
       -DBUILD_TESTING:BOOL=OFF ^
       -DBUILD_SHARED_LIBS:BOOL=ON ^

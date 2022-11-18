@@ -6,8 +6,7 @@ then
     LDFLAGS="-lrt ${LDFLAGS}"
     # https://github.com/google/highway/pull/524#issuecomment-1025676250
     CXXFLAGS="-D__STDC_FORMAT_MACROS ${CXXFLAGS}"
-fi
-if [[ "${target_platform}" == osx-* ]]
+elif [[ "${target_platform}" == osx-* ]]
 then
     # Sized deallocation requires MacOS SDK 10.12+
     # https://conda-forge.org/docs/maintainer/knowledge_base.html#newer-c-features-with-old-sdk
@@ -18,7 +17,6 @@ mkdir build
 cd build
 
 cmake ${CMAKE_ARGS} \
-    -DCMAKE_BUILD_TYPE:STRING=Release \
     -DCMAKE_FIND_FRAMEWORK:STRING=NEVER \
     -DCMAKE_FIND_APPBUNDLE:STRING=NEVER \
     -DBUILD_TESTING:BOOL=OFF \
