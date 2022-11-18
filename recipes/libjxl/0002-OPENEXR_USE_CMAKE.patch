@@ -1,0 +1,43 @@
+--- lib/jxl_extras.cmake
++++ lib/jxl_extras.cmake
+@@ -168,7 +168,21 @@
+ endif ()
+ 
+ if (JPEGXL_ENABLE_OPENEXR)
+-pkg_check_modules(OpenEXR IMPORTED_TARGET OpenEXR)
++find_package(Imath CONFIG)
++find_package(OpenEXR CONFIG)
++if(TARGET OpenEXR::OpenEXR AND TARGET Imath::Imath)
++  get_target_property(OpenEXR_INCLUDE_DIRS OpenEXR::OpenEXRConfig INTERFACE_INCLUDE_DIRECTORIES)
++  get_target_property(Imath_INCLUDE_DIRS Imath::ImathConfig INTERFACE_INCLUDE_DIRECTORIES)
++  list(APPEND OpenEXR_INCLUDE_DIRS ${Imath_INCLUDE_DIRS})
++
++  set(OpenEXR_LIBRARIES OpenEXR::OpenEXR)
++
++  if(NOT OpenEXR_FIND_QUIETLY)
++    message(STATUS "Found CONFIG for OpenEXR 3 (OPENEXR_VERSION=${OpenEXR_VERSION})")
++  endif()
++  set(OpenEXR_FOUND true)
++endif()
++
+ if (OpenEXR_FOUND)
+   target_sources(jxl_extras_codec-obj PRIVATE
+     extras/dec/exr.cc
+@@ -178,7 +192,7 @@
+   )
+   list(APPEND JXL_EXTRAS_CODEC_PUBLIC_DEFINITIONS -DJPEGXL_ENABLE_EXR=1)
+   target_include_directories(jxl_extras_codec-obj PRIVATE "${OpenEXR_INCLUDE_DIRS}")
+-  list(APPEND JXL_EXTRAS_CODEC_INTERNAL_LIBRARIES PkgConfig::OpenEXR)
++  list(APPEND JXL_EXTRAS_CODEC_INTERNAL_LIBRARIES ${OpenEXR_LIBRARIES})
+   target_sources(jxl_extras-static PRIVATE
+     extras/dec/exr.cc
+     extras/dec/exr.h
+@@ -186,7 +200,7 @@
+     extras/enc/exr.h
+   )
+   target_compile_definitions(jxl_extras-static PUBLIC -DJPEGXL_ENABLE_EXR=1)
+-  target_link_libraries(jxl_extras-static PRIVATE PkgConfig::OpenEXR)
++  target_link_libraries(jxl_extras-static PRIVATE ${OpenEXR_LIBRARIES})
+   if(JPEGXL_DEP_LICENSE_DIR)
+     configure_file("${JPEGXL_DEP_LICENSE_DIR}/libopenexr-dev/copyright"
+                    ${PROJECT_BINARY_DIR}/LICENSE.libopenexr COPYONLY)
