@@ -3,15 +3,14 @@ setlocal EnableDelayedExpansion
 mkdir build
 cd build
 
-cmake ^
-      %CMAKE_ARGS% ^
+cmake %CMAKE_ARGS% ^
       -G "NMake Makefiles" ^
       -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" ^
       -DCMAKE_PREFIX_PATH:PATH="%LIBRARY_PREFIX%" ^
-      -DCMAKE_C_COMPILER=clang-cl           ^
-      -DCMAKE_CXX_COMPILER=clang-cl         ^
-      -DCMAKE_LINKER=lld-link               ^
-      -DCMAKE_NM=llvm-nm                    ^
+      -DCMAKE_C_COMPILER:STRING=clang-cl ^
+      -DCMAKE_CXX_COMPILER:STRING=clang-cl ^
+      -DCMAKE_LINKER:STRING=lld-link ^
+      -DCMAKE_NM:STRING=llvm-nm ^
       -DCMAKE_BUILD_TYPE:STRING=Release ^
       -DBUILD_TESTING:BOOL=OFF ^
       -DBUILD_SHARED_LIBS:BOOL=ON ^
