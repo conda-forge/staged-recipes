@@ -1,14 +1,18 @@
 set -ex
 
-# librt is required before glibc 2.17
-if [[ "${target_platform}" == linux-* ]]; then
+if [[ "${target_platform}" == linux-* ]]
+then
+    # librt is required before glibc 2.17
     LDFLAGS="-lrt ${LDFLAGS}"
+    # https://github.com/google/highway/pull/524#issuecomment-1025676250
+    CXXFLAGS="-D__STDC_FORMAT_MACROS ${CXXFLAGS}"
 fi
-# https://github.com/google/highway/pull/524#issuecomment-1025676250
-CXXFLAGS="-D__STDC_FORMAT_MACROS ${CXXFLAGS}"
-# Sized deallocation requires MacOS SDK 10.12+
-# https://conda-forge.org/docs/maintainer/knowledge_base.html#newer-c-features-with-old-sdk
-CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+if [[ "${target_platform}" == osx-* ]]
+then
+    # Sized deallocation requires MacOS SDK 10.12+
+    # https://conda-forge.org/docs/maintainer/knowledge_base.html#newer-c-features-with-old-sdk
+    CXXFLAGS="-D_LIBCPP_DISABLE_AVAILABILITY ${CXXFLAGS}"
+fi
 
 mkdir build
 cd build
