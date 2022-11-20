@@ -4,3 +4,5 @@ set -ex
 ./configure --prefix="$PREFIX" --enable-shared
 make -j${CPU_COUNT}
 make install
+
+rm "$PREFIX"/lib/libzimg.a
