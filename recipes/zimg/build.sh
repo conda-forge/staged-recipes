@@ -6,5 +6,4 @@ set -ex
 make -j${CPU_COUNT}
 make install
 
-# only when not on windows
-[[ "$target_platform" != "win-64" ]] && rm "$PREFIX"/lib/libzimg.a
+[[ "$target_platform" != "win-64" ]] || rm "$PREFIX"/lib/libzimg.a
