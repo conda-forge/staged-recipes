@@ -8,7 +8,7 @@ fi
 # Don't use pre-built gyp packages
 export npm_config_build_from_source=true
 
-cp -r shared python/interpret-core/symbolic/shared
+#cp -r shared python/interpret-core/symbolic/shared
 
 npm install --package-lock-only --ignore-scripts && npx force-resolutions
 
