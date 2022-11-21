@@ -1,4 +1,4 @@
-#include "ColPackHeaders.h"
+#include "ColPack/ColPackHeaders.h"
 #include <cstring>
 #include <unordered_set>
 using namespace ColPack;

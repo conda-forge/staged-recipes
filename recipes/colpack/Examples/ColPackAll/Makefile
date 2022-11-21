@@ -17,7 +17,7 @@ EXE = ColPack
 
 
 # compiler
-COMPILER = g++      # gnu
+COMPILER = $(CXX)      # gnu
 OMP_FLAG = -fopenmp 
 
 #COMPILER = icc      # intel(R)
