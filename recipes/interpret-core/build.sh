@@ -12,7 +12,7 @@ export npm_config_build_from_source=true
 
 npm install --package-lock-only --ignore-scripts && npx force-resolutions
 
-cd python/interpret-core && {{ PYTHON }} setup.py build && {{ PYTHON }} setup.py install
+cd python/interpret-core && python setup.py build && python setup.py install
 
 rm $PREFIX/bin/node
 ln -s $BUILD_PREFIX/bin/node $PREFIX/bin/node
