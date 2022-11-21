@@ -56,7 +56,14 @@ build:
     - CI_BUILD_NUMBER={{ commit_number }}
   run_exports:
     - {{ pin_subpackage('libopenvino', max_pin='x.x.x') }}
-    - {{ pin_subpackage('libopenvino-plugins', max_pin='x.x.x') }}
+    - {{ pin_subpackage('libopenvino-intel-cpu-plugin', max_pin='x.x.x') }}
+    - {{ pin_subpackage('libopenvino-auto-plugin', max_pin='x.x.x') }}
+    - {{ pin_subpackage('libopenvino-hetero-plugin', max_pin='x.x.x') }}
+    - {{ pin_subpackage('libopenvino-auto-batch-plugin', max_pin='x.x.x') }}
+    - {{ pin_subpackage('libopenvino-ir-frontend', max_pin='x.x.x') }}
+    - {{ pin_subpackage('libopenvino-onnx-frontend', max_pin='x.x.x') }}
+    - {{ pin_subpackage('libopenvino-paddle-frontend', max_pin='x.x.x') }}
+    - {{ pin_subpackage('libopenvino-tensorflow-frontend', max_pin='x.x.x') }}
   ignore_run_exports_from:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
@@ -103,7 +110,7 @@ test:
     - export MACOSX_DEPLOYMENT_TARGET={{ MACOSX_DEPLOYMENT_TARGET }}  # [osx]
     - export CMAKE_GENERATOR=Ninja  # [unix]
 
-    # check libraries
+    # check symlinks on Unix systems
     {% set openvino_libs = [] %}  # [unix]
     {{ openvino_libs.append("") or "" }}  # [unix]
     {{ openvino_libs.append("_c") or "" }}  # [unix]
@@ -114,17 +121,29 @@ test:
     - test -f $PREFIX/lib/libopenvino{{ openvino_lib }}${SHLIB_EXT}  # [unix]
     {% endfor %}  # [unix]
 
-    # C++ samples
+    # C++ samples on Unix
     - mkdir -p openvino_sources/samples/cpp/thirdparty  # [unix]
     - cp -R openvino_sources/thirdparty/cnpy openvino_sources/samples/cpp/thirdparty/cnpy  # [unix]
     - cmake -S openvino_sources/samples/cpp -B samples_cpp_build -DBIN_FOLDER=bin  # [unix]
     - cmake --build samples_cpp_build --config Release --verbose  # [unix]
     - ./samples_cpp_build/bin/hello_query_device  # [unix]
 
-    # C samples
+    # C samples on Unix
     - cp openvino_sources/samples/cpp/CMakeLists.txt openvino_sources/samples/c/CMakeLists.txt  # [unix]
     - cmake -S openvino_sources/samples/c -B samples_c_build -DBIN_FOLDER=bin  # [unix]
     - cmake --build samples_c_build --config Release --verbose  # [unix]
+    
+    # C++ samples on Windows
+    - mkdir -p openvino_sources\\samples\\cpp\\thirdparty  # [win]
+    - cp -R openvino_sources\\thirdparty\\cnpy openvino_sources\\samples\\cpp\\thirdparty\\cnpy  # [win]
+    - cmake -S openvino_sources\\samples\\cpp -B samples_cpp_build -DBIN_FOLDER=bin  # [win]
+    - cmake --build samples_cpp_build --config Release --verbose  # [win]
+    - .\\samples_cpp_build\\bin\\hello_query_device  # [win]
+
+    # C samples on Windows
+    - cp openvino_sources\\samples\\cpp\\CMakeLists.txt openvino_sources\\samples\\c\\CMakeLists.txt  # [win]
+    - cmake -S openvino_sources\\samples\\c -B samples_c_build -DBIN_FOLDER=bin  # [win]
+    - cmake --build samples_c_build --config Release --verbose  # [win]
 
     # check that devices are found using OpenVINO C API
     # TODO: fix for OSX and Linux64: currently, the application cannot be run because of RPATH
@@ -140,7 +159,9 @@ test:
 outputs:
   - name: libopenvino
     version: {{ version }}
-    script: install/install.sh
+    script:
+      - cmake --install "$SRC_DIR/openvino-build" --component core_dev
+      - cmake --install "$SRC_DIR/openvino-build" --component core_c_dev
     about:
       summary: OpenVINO Core Runtime library
       license_file:
@@ -165,21 +186,173 @@ outputs:
         {% set openvino_libs = [] %}
         {{ openvino_libs.append("") or "" }}
         {{ openvino_libs.append("_c") or "" }}
-        {{ openvino_libs.append("_ir_frontend") or "" }}
-        {{ openvino_libs.append("_paddle_frontend") or "" }}
-        {{ openvino_libs.append("_onnx_frontend") or "" }}
-        {{ openvino_libs.append("_tensorflow_frontend") or "" }}
         {% for openvino_lib in openvino_libs %}
         - test -f $PREFIX/lib/libopenvino{{ openvino_lib }}${SHLIB_EXT}.{{ version }}  # [linux]
         - test -f $PREFIX/lib/libopenvino{{ openvino_lib }}.{{ version }}${SHLIB_EXT}  # [osx]
         - if not exist %PREFIX%\\Library\\bin\\openvino{{ openvino_lib }}.dll exit 1  # [win]
         {% endfor %}
 
-  - name: libopenvino-plugins
+  - name: libopenvino-ir-frontend
     version: {{ version }}
-    script: install/install_plugins.sh
+    script: cmake --install "$SRC_DIR/openvino-build" --component ir
     about:
-      summary: OpenVINO Inference Plugins
+      summary: OpenVINO IR Frontend
+      license_file:
+        - LICENSE
+        - third-party-programs.txt
+        - onednn_third-party-programs.txt
+        - runtime-third-party-programs.txt
+        - tbb_third-party-programs.txt
+    build:
+      run_exports:
+        - {{ pin_subpackage('libopenvino', max_pin='x.x.x') }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ compiler('c') }}
+        - cmake >=3.13
+    test:
+      commands:
+        - test -f $PREFIX/lib/libopenvino_ir_frontend${SHLIB_EXT}.{{ version }}  # [linux]
+        - test -f $PREFIX/lib/libopenvino_ir_frontend.{{ version }}${SHLIB_EXT}  # [osx]
+        - if not exist %PREFIX%\\Library\\bin\\openvino_ir_frontend.dll exit 1  # [win]
+
+  - name: libopenvino-onnx-frontend
+    version: {{ version }}
+    script: cmake --install "$SRC_DIR/openvino-build" --component onnx
+    about:
+      summary: OpenVINO ONNX Frontend
+      license_file:
+        - LICENSE
+        - third-party-programs.txt
+        - onednn_third-party-programs.txt
+        - runtime-third-party-programs.txt
+        - tbb_third-party-programs.txt
+    build:
+      run_exports:
+        - {{ pin_subpackage('libopenvino', max_pin='x.x.x') }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ compiler('c') }}
+        - cmake >=3.13
+    test:
+      commands:
+        - test -f $PREFIX/lib/libopenvino_onnx_frontend${SHLIB_EXT}.{{ version }}  # [linux]
+        - test -f $PREFIX/lib/libopenvino_onnx_frontend.{{ version }}${SHLIB_EXT}  # [osx]
+        - if not exist %PREFIX%\\Library\\bin\\openvino_onnx_frontend.dll exit 1  # [win]
+
+  - name: libopenvino-paddle-frontend
+    version: {{ version }}
+    script: cmake --install "$SRC_DIR/openvino-build" --component paddle
+    about:
+      summary: OpenVINO Paddle Frontend
+      license_file:
+        - LICENSE
+        - third-party-programs.txt
+        - onednn_third-party-programs.txt
+        - runtime-third-party-programs.txt
+        - tbb_third-party-programs.txt
+    build:
+      run_exports:
+        - {{ pin_subpackage('libopenvino', max_pin='x.x.x') }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ compiler('c') }}
+        - cmake >=3.13
+    test:
+      commands:
+        - test -f $PREFIX/lib/libopenvino_paddle_frontend${SHLIB_EXT}.{{ version }}  # [linux]
+        - test -f $PREFIX/lib/libopenvino_paddle_frontend.{{ version }}${SHLIB_EXT}  # [osx]
+        - if not exist %PREFIX%\\Library\\bin\\openvino_paddle_frontend.dll exit 1  # [win]
+
+  - name: libopenvino-tensorflow-frontend
+    version: {{ version }}
+    script: cmake --install "$SRC_DIR/openvino-build" --component tensorflow
+    about:
+      summary: OpenVINO TensorFlow Frontend
+      license_file:
+        - LICENSE
+        - third-party-programs.txt
+        - onednn_third-party-programs.txt
+        - runtime-third-party-programs.txt
+        - tbb_third-party-programs.txt
+    build:
+      run_exports:
+        - {{ pin_subpackage('libopenvino', max_pin='x.x.x') }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ compiler('c') }}
+        - cmake >=3.13
+    test:
+      commands:
+        - test -f $PREFIX/lib/libopenvino_tensorflow_frontend${SHLIB_EXT}.{{ version }}  # [linux]
+        - test -f $PREFIX/lib/libopenvino_tensorflow_frontend.{{ version }}${SHLIB_EXT}  # [osx]
+        - if not exist %PREFIX%\\Library\\bin\\openvino_tensorflow_frontend.dll exit 1  # [win]
+
+  - name: libopenvino-intel-cpu-plugin  # [x86_64]
+    version: {{ version }}
+    script: cmake --install "$SRC_DIR/openvino-build" --component cpu
+    about:
+      summary: OpenVINO Intel® CPU plugin
+      license_file:
+        - LICENSE
+        - third-party-programs.txt
+        - onednn_third-party-programs.txt
+        - runtime-third-party-programs.txt
+        - tbb_third-party-programs.txt
+    build:
+      run_exports:
+        - {{ pin_subpackage('libopenvino-intel-cpu-plugin', max_pin='x.x.x') }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ compiler('c') }}
+        - cmake >=3.13
+      host:
+        - tbb-devel =2021.5
+        - {{ pin_subpackage('libopenvino', exact=True) }}
+      run:
+        - {{ pin_subpackage('libopenvino', exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/lib/openvino-{{ version }}/libopenvino_intel_cpu_plugin.so  # [unix]
+        - if not exist %PREFIX%\\Library\\bin\\openvino-{{ version }}\\openvino_intel_cpu_plugin.dll exit 1  # [win]
+
+  - name: libopenvino-arm-cpu-plugin  # [aarch64 or arm64]
+    version: {{ version }}
+    script: cmake --install "$SRC_DIR/openvino-build" --component cpu
+    about:
+      summary: OpenVINO ARM® CPU plugin
+      license_file:
+        - LICENSE
+        - third-party-programs.txt
+        - onednn_third-party-programs.txt
+        - runtime-third-party-programs.txt
+        - tbb_third-party-programs.txt
+    build:
+      run_exports:
+        - {{ pin_subpackage('libopenvino-arm-cpu-plugin', max_pin='x.x.x') }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ compiler('c') }}
+        - cmake >=3.13
+      host:
+        - {{ pin_subpackage('libopenvino', exact=True) }}
+      run:
+        - {{ pin_subpackage('libopenvino', exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/lib/openvino-{{ version }}/libopenvino_arm_cpu_plugin.so
+
+  - name: libopenvino-intel-gpu-plugin  # skip
+    version: {{ version }}
+    script: cmake --install "$SRC_DIR/openvino-build" --component gpu
+    about:
+      summary: OpenVINO Intel® GPU plugin
       license_file:
         - LICENSE
         - third-party-programs.txt
@@ -202,17 +375,93 @@ outputs:
         - ocl-icd-system  # [linux64]
     test:
       commands:
-        {% set openvino_plugin_libs = [] %}
-        {{ openvino_plugin_libs.append("intel_cpu") or "" }}  # [x86_64]
-        {{ openvino_plugin_libs.append("arm_cpu") or "" }}  # [aarch64 or arm64]
-        # {{ openvino_plugin_libs.append("intel_gpu") or "" }}  # [win or linux64]
-        {{ openvino_plugin_libs.append("auto") or "" }}
-        {{ openvino_plugin_libs.append("auto_batch") or "" }}
-        {{ openvino_plugin_libs.append("hetero") or "" }}
-        {% for openvino_plugin_lib in openvino_plugin_libs %}
-        - test -f $PREFIX/lib/openvino-{{ version }}/libopenvino_{{ openvino_plugin_lib }}_plugin.so  # [unix]
-        - if not exist %PREFIX%\\Library\\bin\\openvino-{{ version }}\\openvino_{{ openvino_plugin_lib }}_plugin.dll exit 1  # [win]
-        {% endfor %}
+        - test -f $PREFIX/lib/openvino-{{ version }}/libopenvino_intel_gpu_plugin.so  # [unix]
+        - if not exist %PREFIX%\\Library\\bin\\openvino-{{ version }}\\openvino_intel_gpu_plugin.dll exit 1  # [win]
+
+  - name: libopenvino-auto-plugin
+    version: {{ version }}
+    script: cmake --install "$SRC_DIR/openvino-build" --component multi
+    about:
+      summary: OpenVINO Auto plugin
+      license_file:
+        - LICENSE
+        - third-party-programs.txt
+        - onednn_third-party-programs.txt
+        - runtime-third-party-programs.txt
+        - tbb_third-party-programs.txt
+    build:
+      run_exports:
+        - {{ pin_subpackage('libopenvino-auto-plugin', max_pin='x.x.x') }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ compiler('c') }}
+        - cmake >=3.13
+      host:
+        - tbb-devel =2021.5
+        - {{ pin_subpackage('libopenvino', exact=True) }}
+      run:
+        - {{ pin_subpackage('libopenvino', exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/lib/openvino-{{ version }}/libopenvino_auto_plugin.so  # [unix]
+        - if not exist %PREFIX%\\Library\\bin\\openvino-{{ version }}\\openvino_auto_plugin.dll exit 1  # [win]
+
+  - name: libopenvino-auto-batch-plugin
+    version: {{ version }}
+    script: cmake --install "$SRC_DIR/openvino-build" --component batch
+    about:
+      summary: OpenVINO Auto Batch plugin
+      license_file:
+        - LICENSE
+        - third-party-programs.txt
+        - onednn_third-party-programs.txt
+        - runtime-third-party-programs.txt
+        - tbb_third-party-programs.txt
+    build:
+      run_exports:
+        - {{ pin_subpackage('libopenvino-auto-batch-plugin', max_pin='x.x.x') }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ compiler('c') }}
+        - cmake >=3.13
+      host:
+        - {{ pin_subpackage('libopenvino', exact=True) }}
+      run:
+        - {{ pin_subpackage('libopenvino', exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/lib/openvino-{{ version }}/libopenvino_auto_batch_plugin.so  # [unix]
+        - if not exist %PREFIX%\\Library\\bin\\openvino-{{ version }}\\openvino_auto_batch_plugin.dll exit 1  # [win]
+
+  - name: libopenvino-hetero-plugin
+    version: {{ version }}
+    script: cmake --install "$SRC_DIR/openvino-build" --component hetero
+    about:
+      summary: OpenVINO Hetero plugin
+      license_file:
+        - LICENSE
+        - third-party-programs.txt
+        - onednn_third-party-programs.txt
+        - runtime-third-party-programs.txt
+        - tbb_third-party-programs.txt
+    build:
+      run_exports:
+        - {{ pin_subpackage('libopenvino-hetero-plugin', max_pin='x.x.x') }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ compiler('c') }}
+        - cmake >=3.13
+      host:
+        - {{ pin_subpackage('libopenvino', exact=True) }}
+      run:
+        - {{ pin_subpackage('libopenvino', exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/lib/openvino-{{ version }}/libopenvino_hetero_plugin.so  # [unix]
+        - if not exist %PREFIX%\\Library\\bin\\openvino-{{ version }}\\openvino_hetero_plugin.dll exit 1  # [win]
 
   - name: openvino
     script: install/install_dev.sh
