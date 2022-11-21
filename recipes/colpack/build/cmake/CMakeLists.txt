@@ -28,7 +28,7 @@ set(COLPACK_ROOT_DIR "../..")   # modify as needed
 # -------------
 option(ENABLE_EXAMPLES
     "Build the examples in SampleDrivers/Matrix_Compression_and_Recovery." OFF)
-    option(ENABLE_OPENMP "Enable OpenMP." ON)
+    option(ENABLE_OPENMP "Enable OpenMP." OFF)
 set (CMAKE_CXX_STANDARD 11)
 
 # Configuring variables, etc.
@@ -89,18 +89,22 @@ file(GLOB HEADERS
     ${COLPACK_ROOT_DIR}/src/BipartiteGraphBicoloring/*.h
     ${COLPACK_ROOT_DIR}/src/BipartiteGraphPartialColoring/*.h
     ${COLPACK_ROOT_DIR}/src/GeneralGraphColoring/*.h
-    ${COLPACK_ROOT_DIR}/src/Recovery/*.h
-    ${COLPACK_ROOT_DIR}/src/SMPGC/*.h)
-    #${COLPACK_ROOT_DIR}/src/PartialD2SMPGC/*.h)
+    ${COLPACK_ROOT_DIR}/src/Recovery/*.h)
 file(GLOB SOURCES
     ${COLPACK_ROOT_DIR}/src/Utilities/*.cpp
     ${COLPACK_ROOT_DIR}/src/BipartiteGraphBicoloring/*.cpp
     ${COLPACK_ROOT_DIR}/src/BipartiteGraphPartialColoring/*.cpp
     ${COLPACK_ROOT_DIR}/src/GeneralGraphColoring/*.cpp
-    ${COLPACK_ROOT_DIR}/src/Recovery/*.cpp
-    ${COLPACK_ROOT_DIR}/src/SMPGC/*.cpp)
-    #${COLPACK_ROOT_DIR}/src/PartialD2SMPGC/*.cpp)
+    ${COLPACK_ROOT_DIR}/src/Recovery/*.cpp)
 
+if(ENABLE_OPENMP)
+    file(GLOB SOURCES 
+    ${COLPACK_ROOT_DIR}/src/SMPGC/*.cpp
+    ${COLPACK_ROOT_DIR}/src/PartialD2SMPGC/*.cpp)
+    file(GLOB HEADERS   
+    ${COLPACK_ROOT_DIR}/src/SMPGC/*.h
+    ${COLPACK_ROOT_DIR}/src/PartialD2SMPGC/*.h)
+endif()
 
 # Use these include directories when building the ColPack library.
 set(COLPACK_SOURCE_INCLUDE_DIRS
