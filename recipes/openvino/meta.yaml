@@ -7,9 +7,11 @@ package:
   version: {{ version }}
 
 source:
-  - url: https://github.com/openvinotoolkit/openvino/archive/af7adf2d4666f93d721073f33d7715a7af6d8e34.tar.gz
-    sha256: 7f6cb9db836fbfe5bff3e935d27c88579cc6ae556beeebd5dfb35970ae3bc5d1
+  - url: https://github.com/openvinotoolkit/openvino/archive/738d7bb09fedd17398e0ff70a591c27bc1e14e67.tar.gz
+    sha256: 62931e83ed2942c719e169ce0e8c0285a38b54288de924297f20d807e9207cad
     folder: openvino_sources
+    patches:
+    - patches/0001-enable-samples.patch
   - url: https://github.com/openvinotoolkit/openvino_contrib/archive/4d60b4ce3d8eb26d87673241efb89ff4347b8427.tar.gz  # [aarch64 or arm64]
     sha256: 227e3c071315a2b4e615b8eea5ef390c6fab50a20e927dcf0542414bfecbcf90  # [aarch64 or arm64]
     folder: openvino_contrib  # [aarch64 or arm64]
@@ -31,12 +33,6 @@ source:
   - url: https://github.com/oneapi-src/oneDNN/archive/b5faa77a4a651f1e44fa77348eded54ea3ec3eef.tar.gz  # [win64 or linux64]
     sha256: cc2faf62420b95f6c81835078910e32ee1cb12738531f4af02d06fcaa2a6a12d  # [win64 or linux64]
     folder: openvino_sources/src/plugins/intel_gpu/thirdparty/onednn_gpu  # [win64 or linux64]
-  - url: https://github.com/nlohmann/json/archive/refs/tags/v3.11.2.tar.gz
-    sha256: d69f9deb6a75e2580465c6c4c5111b89c4dc2fa94e3a85fcd2ffcd9a143d9273
-    folder: openvino_sources/thirdparty/json/nlohmann_json
-  - url: https://github.com/pboettch/json-schema-validator/archive/refs/tags/2.1.0.tar.gz
-    sha256: 83f61d8112f485e0d3f1e72d51610ba3924b179926a8376aef3c038770faf202
-    folder: openvino_sources/thirdparty/json/nlohmann_json_schema_validator
   - url: https://github.com/opencv/ade/archive/refs/tags/v0.1.1f.tar.gz
     sha256: c316680efbb5dd3ac4e10bb8cea345cf26a6a25ebc22418f8f0b8ca931a550e9
     folder: openvino_sources/thirdparty/ade
@@ -56,7 +52,9 @@ build:
     - CI_BUILD_NUMBER={{ commit_number }}
   run_exports:
     - {{ pin_subpackage('libopenvino', max_pin='x.x.x') }}
-    - {{ pin_subpackage('libopenvino-intel-cpu-plugin', max_pin='x.x.x') }}
+    - {{ pin_subpackage('libopenvino-intel-cpu-plugin', max_pin='x.x.x') }}  # [x86_64]
+    - {{ pin_subpackage('libopenvino-arm-cpu-plugin', max_pin='x.x.x') }}  # [aarch64 or arm64]
+    - {{ pin_subpackage('libopenvino-intel-gpu-plugin', max_pin='x.x.x') }}  # skip
     - {{ pin_subpackage('libopenvino-auto-plugin', max_pin='x.x.x') }}
     - {{ pin_subpackage('libopenvino-hetero-plugin', max_pin='x.x.x') }}
     - {{ pin_subpackage('libopenvino-auto-batch-plugin', max_pin='x.x.x') }}
@@ -168,9 +166,7 @@ test:
 outputs:
   - name: libopenvino
     version: {{ version }}
-    script:
-      - cmake --install "$SRC_DIR/openvino-build" --component core_dev
-      - cmake --install "$SRC_DIR/openvino-build" --component core_c_dev
+    script: install.sh
     about:
       summary: OpenVINO Core Runtime library
       license_file:
@@ -203,7 +199,7 @@ outputs:
 
   - name: libopenvino-ir-frontend
     version: {{ version }}
-    script: cmake --install "$SRC_DIR/openvino-build" --component ir
+    script: install_ir.sh
     about:
       summary: OpenVINO IR Frontend
       license_file:
@@ -228,7 +224,7 @@ outputs:
 
   - name: libopenvino-onnx-frontend
     version: {{ version }}
-    script: cmake --install "$SRC_DIR/openvino-build" --component onnx
+    script: install_onnx.sh
     about:
       summary: OpenVINO ONNX Frontend
       license_file:
@@ -253,7 +249,7 @@ outputs:
 
   - name: libopenvino-paddle-frontend
     version: {{ version }}
-    script: cmake --install "$SRC_DIR/openvino-build" --component paddle
+    script: install_paddle.sh
     about:
       summary: OpenVINO Paddle Frontend
       license_file:
@@ -278,7 +274,7 @@ outputs:
 
   - name: libopenvino-tensorflow-frontend
     version: {{ version }}
-    script: cmake --install "$SRC_DIR/openvino-build" --component tensorflow
+    script: install_tensorflow.sh
     about:
       summary: OpenVINO TensorFlow Frontend
       license_file:
@@ -301,9 +297,9 @@ outputs:
         - test -f $PREFIX/lib/libopenvino_tensorflow_frontend.{{ version }}${SHLIB_EXT}  # [osx]
         - if not exist %PREFIX%\\Library\\bin\\openvino_tensorflow_frontend.dll exit 1  # [win]
 
-  - name: libopenvino-intel-cpu-plugin  # [x86_64]
+  - name: libopenvino-intel-cpu-plugin
     version: {{ version }}
-    script: cmake --install "$SRC_DIR/openvino-build" --component cpu
+    script: install_cpu.sh
     about:
       summary: OpenVINO Intel® CPU plugin
       license_file:
@@ -313,6 +309,7 @@ outputs:
         - runtime-third-party-programs.txt
         - tbb_third-party-programs.txt
     build:
+      skip: True  # [not x86_64]
       run_exports:
         - {{ pin_subpackage('libopenvino-intel-cpu-plugin', max_pin='x.x.x') }}
     requirements:
@@ -330,9 +327,9 @@ outputs:
         - test -f $PREFIX/lib/openvino-{{ version }}/libopenvino_intel_cpu_plugin.so  # [unix]
         - if not exist %PREFIX%\\Library\\bin\\openvino-{{ version }}\\openvino_intel_cpu_plugin.dll exit 1  # [win]
 
-  - name: libopenvino-arm-cpu-plugin  # [aarch64 or arm64]
+  - name: libopenvino-arm-cpu-plugin
     version: {{ version }}
-    script: cmake --install "$SRC_DIR/openvino-build" --component cpu
+    script: install_cpu.sh
     about:
       summary: OpenVINO ARM® CPU plugin
       license_file:
@@ -342,6 +339,7 @@ outputs:
         - runtime-third-party-programs.txt
         - tbb_third-party-programs.txt
     build:
+      skip: True  # [not aarch64 and not arm64]
       run_exports:
         - {{ pin_subpackage('libopenvino-arm-cpu-plugin', max_pin='x.x.x') }}
     requirements:
@@ -357,9 +355,9 @@ outputs:
       commands:
         - test -f $PREFIX/lib/openvino-{{ version }}/libopenvino_arm_cpu_plugin.so
 
-  - name: libopenvino-intel-gpu-plugin  # skip
+  - name: libopenvino-intel-gpu-plugin
     version: {{ version }}
-    script: cmake --install "$SRC_DIR/openvino-build" --component gpu
+    script: install_gpu.sh
     about:
       summary: OpenVINO Intel® GPU plugin
       license_file:
@@ -369,8 +367,9 @@ outputs:
         - runtime-third-party-programs.txt
         - tbb_third-party-programs.txt
     build:
+      skip: True  # enable later
       run_exports:
-        - {{ pin_subpackage('libopenvino-plugins', max_pin='x.x.x') }}
+        - {{ pin_subpackage('libopenvino-intel-gpu-plugin', max_pin='x.x.x') }}
     requirements:
       build:
         - {{ compiler('cxx') }}
@@ -389,7 +388,7 @@ outputs:
 
   - name: libopenvino-auto-plugin
     version: {{ version }}
-    script: cmake --install "$SRC_DIR/openvino-build" --component multi
+    script: install_auto.sh
     about:
       summary: OpenVINO Auto plugin
       license_file:
@@ -418,7 +417,7 @@ outputs:
 
   - name: libopenvino-auto-batch-plugin
     version: {{ version }}
-    script: cmake --install "$SRC_DIR/openvino-build" --component batch
+    script: install_batch.sh
     about:
       summary: OpenVINO Auto Batch plugin
       license_file:
@@ -446,7 +445,7 @@ outputs:
 
   - name: libopenvino-hetero-plugin
     version: {{ version }}
-    script: cmake --install "$SRC_DIR/openvino-build" --component hetero
+    script: install_hetero.sh
     about:
       summary: OpenVINO Hetero plugin
       license_file:
@@ -473,7 +472,7 @@ outputs:
         - if not exist %PREFIX%\\Library\\bin\\openvino-{{ version }}\\openvino_hetero_plugin.dll exit 1  # [win]
 
   - name: openvino
-    script: install/install_dev.sh
+    script: install_dev.sh
 
 about:
   home: https://github.com/openvinotoolkit/openvino
