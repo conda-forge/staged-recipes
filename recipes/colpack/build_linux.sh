@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LDFLAGS=$LDFLAGS -Wl,--no-as-needed
+LDFLAGS=$LDFLAGS\ -Wl,--no-as-needed
 mkdir build/cmake/work
 cd build/cmake/work
 cmake -DCMAKE_INSTALL_PREFIX=$PREFIX ..
