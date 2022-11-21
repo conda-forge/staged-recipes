@@ -12,7 +12,6 @@ if [[ ${cuda_compiler_version:-None} != "None" ]]; then
       -DCMAKE_INSTALL_LIBDIR=lib \
       -DCMAKE_CUDA_ARCHITECTURES=all \
       -DSKIP_DOCS=TRUE \
-      -DSKIP_OPENMP_LIB=TRUE \
       ${SRC_DIR}
 else
   cmake -G Ninja \
