@@ -10,8 +10,10 @@ export npm_config_build_from_source=true
 
 npm install --package-lock-only --ignore-scripts && npx force-resolutions
 
-rm $PREFIX/bin/node
-ln -s $BUILD_PREFIX/bin/node $PREFIX/bin/node
+cd python/interpret-core && python setup.py build && python setup.py install
+
+#rm $PREFIX/bin/node
+#ln -s $BUILD_PREFIX/bin/node $PREFIX/bin/node
 
 yarn pack
 yarn licenses generate-disclaimer --prod > ThirdPartyLicenses.txt
@@ -21,4 +23,3 @@ npm install -g ${PKG_NAME}-v${PKG_VERSION}.tgz
 
 cp -r shared python/interpret-core/symbolic/shared
 
-cd python/interpret-core && python setup.py build && python setup.py install
