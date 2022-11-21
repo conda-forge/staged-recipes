@@ -15,7 +15,7 @@ cd python/interpret-core && python setup.py build && python setup.py install
 #rm $PREFIX/bin/node
 #ln -s $BUILD_PREFIX/bin/node $PREFIX/bin/node
 
-yarn pack
+yarn pack --filename /python/interpret-core/js/package.json
 yarn licenses generate-disclaimer --prod > ThirdPartyLicenses.txt
 NPM_CONFIG_USERCONFIG=/tmp/nonexistentrc
 
