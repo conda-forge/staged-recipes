@@ -1,0 +1,80 @@
+From 145e415a262f9270ab5db8767b610207a386e509 Mon Sep 17 00:00:00 2001
+From: Alex Ford <alex.ford@abcellera.com>
+Date: Fri, 4 Nov 2022 18:23:18 -0700
+Subject: [PATCH] use env build flags
+
+Fix target extension language to "c++", which causes distutils.sysconfig
+to detect the environment's CXX variable and set compiler.
+
+distutils doesn't check the CXXFLAGS env var, which is used in conda
+build. Use those flags if provided, otherwise fallback to default flags.
+
+Specifically, this allows an arch-specific osx build.
+---
+ setup.py | 22 +++++++++++++---------
+ 1 file changed, 13 insertions(+), 9 deletions(-)
+
+diff --git a/setup.py b/setup.py
+index 34b1663..ebb7564 100644
+--- a/setup.py
++++ b/setup.py
+@@ -1,6 +1,7 @@
+ import setuptools
+ from setuptools.command.build_ext import build_ext
+ import sys
++import os
+ from pathlib import Path
+ 
+ def get_version():
+@@ -35,6 +36,11 @@ def cxx_version(v):
+     return [f"-std={v}" if sys.platform != "win32" else f"/std:{v}"]
+ 
+ def platform_compile_args():
++    # If flags are specified as a global env var use then,
++    # this happens during conda build.
++    if flags := os.environ.get("CXXFLAGS", "").split():
++        return flags
++
+     if sys.platform == 'darwin':
+         return "-arch x86_64 -arch arm64 -arch arm64e".split()
+     if sys.platform == 'win32':
+@@ -58,13 +64,12 @@ def limited_api_args():
+ #    return ['-DPy_LIMITED_API=0x030a0000']
+     return []
+ 
+-class CppExtension(build_ext):
+-    def build_extensions(self):
+-        if sys.platform == "linux":
+-            self.compiler.compiler_so[0] = "g++"
+-            self.compiler.compiler_cxx[0] = "g++"
+-            self.compiler.linker_so[0] = "g++"
+-        build_ext.build_extensions(self)
++if sys.platform == "linux" and "CXX" not in os.environ:
++    # distutils.sysconfig, called by standard build_ext,
++    # reads CXX to set c++ compiler
++    # override configuration env here, rather than implemented a custom
++    # build_ext subclass
++    os.environ["CXX"] = "g++"
+ 
+ tracker = setuptools.extension.Extension(
+             'slipcover.tracker',
+@@ -72,7 +77,7 @@ tracker = setuptools.extension.Extension(
+             extra_compile_args=cxx_version('c++17') + platform_compile_args() + limited_api_args(),
+             extra_link_args=platform_link_args(),
+             py_limited_api=bool(limited_api_args()),
+-            language='C++'
++            language='c++'
+ )
+ 
+ 
+@@ -93,7 +98,6 @@ setuptools.setup(
+     install_requires=[
+         "tabulate"
+     ],
+-    cmdclass={"build_ext": CppExtension},
+     classifiers=[
+         "Programming Language :: Python :: 3.8",
+         "Programming Language :: Python :: 3.9",
+-- 
+2.35.3
+
