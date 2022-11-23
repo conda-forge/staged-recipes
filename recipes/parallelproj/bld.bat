@@ -13,8 +13,7 @@ cmake -G Ninja ^
     -DSKIP_DOCS=TRUE ^
     -DSKIP_CUDA_LIB=TRUE ^
     %SRC_DIR%
-
-if errorlevel 1 exit 1
+if %ERRORLEVEL% neq 0 exit 1
 
 cmake --build . --target install --verbose 
-if errorlevel 1 exit 1
+if %ERRORLEVEL% neq 0 exit 1
