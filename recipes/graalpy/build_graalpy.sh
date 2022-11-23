@@ -146,8 +146,10 @@ else
     fi
 
     # match cpython include folder structure
-    mkdir -p $PREFIX/include/
-    ln -sf $GRAALVM_PREFIX/languages/python/include $PREFIX/include/python${PY_VERSION}
+    mkdir -p $PREFIX/include/python${PY_VERSION}/
+    mv $GRAALVM_PREFIX/languages/python/include/* $PREFIX/include/python${PY_VERSION}/
+    rmdir $GRAALVM_PREFIX/languages/python/include
+    ln -sf $PREFIX/include/python${PY_VERSION} $GRAALVM_PREFIX/languages/python/include
 
     # license is packaged by the build process
     cat $GRAALVM_PREFIX/*LICENSE*.txt $GRAALVM_PREFIX/3rd_party_license*.txt > $SRC_DIR/LICENSE_GRAALPY.txt
