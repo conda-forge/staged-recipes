@@ -1,0 +1,111 @@
+{% set version = "2.8.10" %}
+
+package:
+  name: pytensor-suite  # https://github.com/conda/conda-build/issues/3933
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/a/pytensor/pytensor-{{ version }}.tar.gz
+  sha256: 1cc26ebf6a5a8678b37bcb6ae497334bca3e3f7e27cb7815b0c9af0c0deb83f3
+  patches:
+
+build:
+  number: 0
+
+outputs:
+  - name: pytensor-base
+    build:
+      script:
+        - python -m pip install . --no-deps -vv
+      entry_points:
+        - pytensor-cache = bin.pytensor_cache:main
+    requirements:
+      build:
+        - python                                 # [build_platform != target_platform]
+        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+      host:
+        - pip
+        - python
+      run:
+        - python
+
+        # Ref: <https://github.com/pymc-devs/pytensor/blob/rel-{{ version }}/setup.py>
+        - numpy>=1.17.0
+        - scipy>=0.14
+        - filelock
+        - etuples
+        - logical-unification
+        - miniKanren
+        - cons
+        - typing_extensions
+        - setuptools >=48.0.0
+    test:
+      imports:
+        - pytensor
+      commands:
+        - pytensor-cache help
+        - pip check
+        - python check-for-warnings.py allowed-warnings-base.txt
+      requires:
+        - pip
+      files:
+        - check-for-warnings.py
+        - allowed-warnings-base.txt
+  - name: pytensor
+    build:
+      script:
+        - echo "Nothing to build here, just add dependencies."
+    requirements:
+      host:
+        - python
+      run:
+        - python
+        - {{ pin_subpackage('pytensor-base', exact=True) }}
+        - {{ compiler('c') }}  # [not win]
+        - cxx-compiler  # [not win]
+        - {{ compiler('m2w64_c') }}  # [win]
+        - {{ compiler('m2w64_cxx') }}  # [win]
+
+        - m2w64-toolchain  # [win]
+        # The libpython conda-forge package seems to be a wrapper package
+        # which configures m2w64-toolchain for Python.
+        # <https://github.com/conda-forge/libpython-feedstock/blob/main/recipe/bld.bat>
+        - libpython >=2.2  # [win]
+
+        # Use openblas on Apple M1. For everything else, use mkl-service.
+        - openblas  # [arm64]
+        - mkl-service  # [not arm64]
+        # For some reason we also need the "blas" package. Otherwise we get reports
+        # of "cblas.h: No such file or directory" at import time.
+        # Ref: <https://github.com/conda-forge/pytensor-feedstock/issues/80>
+        - blas
+    test:
+      imports:
+        - pytensor
+        - pytensor.configdefaults
+      commands:
+        - pytensor-cache help
+        - pip check
+        - python check-for-warnings.py allowed-warnings-main.txt
+      requires:
+        - pip
+      files:
+        - check-for-warnings.py
+        - allowed-warnings-main.txt
+
+about:
+  home: https://github.com/pymc-devs/pytensor
+  license: BSD-3-Clause
+  summary: An optimizing compiler for evaluating mathematical expressions.
+  license_file: LICENSE.txt
+  dev_url: https://github.com/pymc-devs/pytensor/
+  doc_url: https://pytensor.readthedocs.io/en/latest/
+
+extra:
+  recipe-maintainers:
+    - aseyboldt
+    - fonnesbeck
+    - maresb
+    - michaelosthege
+    - ricardoV94
+    - twiecki
