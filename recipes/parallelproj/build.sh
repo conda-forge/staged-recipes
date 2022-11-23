@@ -5,23 +5,18 @@ mkdir build
 cd build
 
 if [[ ${cuda_compiler_version:-None} != "None" ]]; then
-  cmake -G Ninja \
-      ${CMAKE_ARGS} \
-      -DCMAKE_INSTALL_PREFIX=${PREFIX} \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_LIBDIR=lib \
-      -DCMAKE_CUDA_ARCHITECTURES=all \
-      -DSKIP_DOCS=TRUE \
-      ${SRC_DIR}
+  EXTRA_CMAKE_ARGS="-DCMAKE_CUDA_ARCHITECTURES=all"
 else
-  cmake -G Ninja \
-      ${CMAKE_ARGS} \
-      -DCMAKE_INSTALL_PREFIX=${PREFIX} \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_LIBDIR=lib \
-      -DSKIP_DOCS=TRUE \
-      -DSKIP_CUDA_LIB=TRUE \
-      ${SRC_DIR}
+  EXTRA_CMAKE_ARGS="-DSKIP_CUDA_LIB=TRUE"
 fi
+
+cmake -G Ninja \
+    ${CMAKE_ARGS} \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_LIBDIR=lib \
+    -DSKIP_DOCS=TRUE \
+    ${EXTRA_CMAKE_ARGS} \
+    ${SRC_DIR}
 
 cmake --build . --target install --verbose 
