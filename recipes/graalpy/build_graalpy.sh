@@ -153,5 +153,19 @@ else
     cat $GRAALVM_PREFIX/*LICENSE*.txt $GRAALVM_PREFIX/3rd_party_license*.txt > $SRC_DIR/LICENSE_GRAALPY.txt
 fi
 
-# create the site-packages folder to match cpython
-mkdir -p $PREFIX/lib/python${PY_VERSION}/site-packages
+# ensure site-package folder matches cpython, even if graalpy expects the folder somewhere else
+graalpy_expected_site_packages=`$PREFIX/bin/graalpy -c 'import site; print(site.getsitepackages()[0])'`
+cpython_expected_site_packages=$PREFIX/lib/python${PY_VERSION}/site-packages
+if [ -e "${graalpy_expected_site_packages}" ]; then
+    graalpy_expected_site_packages=$(cd ${graalpy_expected_site_packages}; pwd)
+fi
+if [ -e "${cpython_expected_site_packages}" ]; then
+    cpython_expected_site_packages=$(cd ${cpython_expected_site_packages}; pwd)
+fi
+mkdir -p ${cpython_expected_site_packages}
+if [ "${graalpy_expected_site_packages}" != "${cpython_expected_site_packages}" ]; then
+    # create a link from where graalpy expects site-packages to the system site-packages
+    rm -rf ${graalpy_expected_site_packages}
+    mkdir -p $(dirname ${graalpy_expected_site_packages})
+    ln -sf ${cpython_expected_site_packages} ${graalpy_expected_site_packages}
+fi
