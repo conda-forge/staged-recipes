@@ -155,6 +155,11 @@ else
     cat $GRAALVM_PREFIX/*LICENSE*.txt $GRAALVM_PREFIX/3rd_party_license*.txt > $SRC_DIR/LICENSE_GRAALPY.txt
 fi
 
+# ensure python{PY_VERSION} launcher exists, even though graalpy only ships "python" and "python3"
+if [ ! -e "${PREFIX}/bin/python${PY_VERSION}" ]; then
+    ln -s "${PREFIX}/bin/graalpy" "${PREFIX}/bin/python${PY_VERSION}"
+fi
+
 # ensure site-package folder matches cpython, even if graalpy expects the folder somewhere else
 graalpy_expected_site_packages=`$PREFIX/bin/graalpy -c 'import site; print(site.getsitepackages()[0])'`
 cpython_expected_site_packages=$PREFIX/lib/python${PY_VERSION}/site-packages
