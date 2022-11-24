@@ -1,4 +1,3 @@
-#!/bin/bash
 
 set -o errexit -o pipefail
 
@@ -16,3 +15,5 @@ else
     echo 'Unable to find Build.PL or Makefile.PL. You need to modify build.sh.'
     exit 1
 fi
+
+
