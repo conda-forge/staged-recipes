@@ -1,15 +1,7 @@
 REM Create temp folder
 mkdir tmpbuild_%PY_VER%
 set TEMP=%CD%\tmpbuild_%PY_VER%
-REM Print Rust version
-rustc --version
-REM Install cargo-bundle-licenses
-set CARGO_HOME=%BUILD_PREFIX%\cargo
-mkdir %CARGO_HOME%
-icacls %CARGO_HOME% /grant Users:F
-cargo install cargo-bundle-licenses
 REM Bundle all downstream library licenses
-set PATH=%PATH%;%CARGO_HOME%\bin
 cargo-bundle-licenses ^
     --format yaml ^
     --output %SRC_DIR%\THIRDPARTY.yml ^
