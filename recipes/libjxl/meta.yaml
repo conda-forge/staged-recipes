@@ -1,0 +1,135 @@
+{% set version = "0.7.0" %}
+
+package:
+  name: libjxl-split
+  version: {{ version }}
+
+source:
+  - url: https://github.com/libjxl/libjxl/archive/v{{ version }}.tar.gz
+    sha256: 3114bba1fabb36f6f4adc2632717209aa6f84077bc4e93b420e0d63fa0455c5e
+    patches:
+      # Fix https://github.com/libjxl/libjxl/pull/582
+      - 0001-CHECK_EXCLUDE_LIBS.patch
+  # No tags, versions, or stable ABIs are exposed in the
+  # [skcms repo](https://skia.googlesource.com/skcms/)
+  # so I don't think it fits well in conda's versioning system.
+  - git_url: https://skia.googlesource.com/skcms
+    git_rev: 64374756e03700d649f897dbd98c95e78c30c7da
+    folder: third_party/skcms
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}  # [not win]
+    - {{ compiler('cxx') }}  # [not win]
+    - clang  # [win]
+    - lld  # [win]
+    - pkg-config
+    - cmake >=3.10
+    - make
+  host:
+    - brotli
+    - libhwy
+    # - lcms2
+    - giflib
+    # Cannot be replaced with `jpeg`
+    # since jpeg_mem_* api is different
+    - libjpeg-turbo
+    - openexr
+    - libpng
+    - zlib  # by libpng
+
+outputs:
+  - name: libjxl
+    build:
+      run_exports:
+        - {{ pin_subpackage('libjxl', min_pin='x.x', max_pin='x.x') }}
+      ignore_run_exports:
+        - libbrotlicommon
+    requirements:
+      build:
+        - {{ compiler('c') }}  # [not win]
+        - {{ compiler('cxx') }}  # [not win]
+        - clang  # [win]
+        - lld  # [win]
+        - pkg-config
+        - cmake >=3.15
+        - make
+      host:
+        - brotli
+        - libhwy
+    script: install.sh  # [not win]
+    script: install.bat  # [win]
+    test:
+      commands:
+        - test -f "$PREFIX"/include/jxl/encode.h  # [not win]
+        - test -f "$PREFIX"/lib/libjxl"$SHLIB_EXT"  # [not win]
+        - test ! -f "$PREFIX"/bin/cjxl  # [not win]
+        - if not exist %LIBRARY_INC%\\jxl\\encode.h exit 1  # [win]
+        - if not exist %LIBRARY_BIN%\\jxl.dll exit 1  # [win]
+        - if exist %LIBRARY_BIN%\\cjxl.exe exit 1  # [win]
+
+        # CFEP-18: Static libs shouldn't be part of the main package
+        - test ! -f "$PREFIX"/lib/libjxl.a  # [not win]
+        - if exist %LIBRARY_LIB%\\jxl-static.lib exit 1  # [win]
+  - name: libjxl-tools
+    build:
+      ignore_run_exports:
+        - libbrotlicommon
+        - libbrotlidec
+    requirements:
+      build:
+        - {{ compiler('c') }}  # [not win]
+        - {{ compiler('cxx') }}  # [not win]
+        - clang  # [win]
+        - lld  # [win]
+        - pkg-config
+        - cmake >=3.15
+        - make
+      host:
+        - brotli
+        - libhwy
+        - giflib
+        - libjpeg-turbo
+        - openexr
+        - libpng
+        - {{ pin_subpackage('libjxl', exact=True) }}
+      run:
+        - {{ pin_subpackage('libjxl', exact=True) }}
+    script: install.sh  # [not win]
+    script: install.bat  # [win]
+    test:
+      commands:
+        - cjxl --version
+        - djxl --version
+        - jxlinfo --help
+
+        # Encode & decode tests
+        - printf "P6 1 1 63 000" > test.ppm  # [not win]
+        - echo | set /p dummy="P6 1 1 63 000" > test.ppm  # [win]
+        - cjxl test.ppm test.jxl
+        - djxl test.jxl test.ppm
+        - cjpeg_hdr test.ppm test.jpg
+        - jxlinfo test.jxl
+
+about:
+  home: https://jpeg.org/jpegxl/
+  summary: 'JPEG XL image format reference implementation'
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file:
+    - LICENSE
+    - third_party/skcms/LICENSE
+  dev_url: https://github.com/libjxl/libjxl
+  description: |
+    This repository contains a reference implementation of JPEG XL (encoder and decoder),
+    called libjxl. This software library is used by many applications that support JPEG XL.
+
+    `libjxl` provides the core library.
+    For `cjxl`, `djxl`, and other tools, use `libjxl-tools`.
+
+extra:
+  recipe-maintainers:
+    - sshockwave
