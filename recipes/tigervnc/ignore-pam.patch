@@ -1,0 +1,129 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index bba60851..39a3883f 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -275,19 +275,6 @@ if(ENABLE_GNUTLS)
+   endif()
+ endif()
+ 
+-# Check for PAM library
+-if(UNIX AND NOT APPLE)
+-  check_include_files(security/pam_appl.h HAVE_PAM_H)
+-  set(CMAKE_REQUIRED_LIBRARIES -lpam)
+-  check_function_exists(pam_start HAVE_PAM_START)
+-  set(CMAKE_REQUIRED_LIBRARIES)
+-  if(HAVE_PAM_H AND HAVE_PAM_START)
+-    set(PAM_LIBS pam)
+-  else()
+-    message(FATAL_ERROR "Could not find PAM development files")
+-  endif()
+-endif()
+-
+ # Generate config.h and make sure the source finds it
+ configure_file(config.h.in config.h)
+ add_definitions(-DHAVE_CONFIG_H)
+diff --git a/common/rfb/pam.c b/common/rfb/pam.c
+index f9e5ce74..d882188e 100644
+--- a/common/rfb/pam.c
++++ b/common/rfb/pam.c
+@@ -23,8 +23,8 @@
+ #endif
+ 
+ #include <stdlib.h>
++#include <stdio.h>
+ #include <string.h>
+-#include <security/pam_appl.h>
+ 
+ #include <rfb/pam.h>
+ 
+@@ -34,62 +34,9 @@ typedef struct
+   const char *password;
+ } AuthData;
+ 
+-#if defined(__sun)
+-static int pam_callback(int count, struct pam_message **in,
+-                        struct pam_response **out, void *ptr)
+-#else
+-static int pam_callback(int count, const struct pam_message **in,
+-                        struct pam_response **out, void *ptr)
+-#endif
+-{
+-  int i;
+-  AuthData *auth = (AuthData *) ptr;
+-  struct pam_response *resp =
+-    (struct pam_response *) malloc (sizeof (struct pam_response) * count);
+-
+-  if (!resp && count)
+-    return PAM_CONV_ERR;
+-
+-  for (i = 0; i < count; i++) {
+-    resp[i].resp_retcode = PAM_SUCCESS;
+-    switch (in[i]->msg_style) {
+-    case PAM_TEXT_INFO:
+-    case PAM_ERROR_MSG:
+-      resp[i].resp = 0;
+-      break;
+-    case PAM_PROMPT_ECHO_ON:	/* Send Username */
+-      resp[i].resp = strdup(auth->username);
+-      break;
+-    case PAM_PROMPT_ECHO_OFF:	/* Send Password */
+-      resp[i].resp = strdup(auth->password);
+-      break;
+-    default:
+-      free(resp);
+-      return PAM_CONV_ERR;
+-    }
+-  }
+-
+-  *out = resp;
+-  return PAM_SUCCESS;
+-}
+-
+-
+ int do_pam_auth(const char *service, const char *username, const char *password)
+ {
+-  int ret;
+-  AuthData auth = { username, password };
+-  struct pam_conv conv = {
+-    pam_callback,
+-    &auth
+-  };
+-  pam_handle_t *h = 0;
+-  ret = pam_start(service, username, &conv, &h);
+-  if (ret == PAM_SUCCESS)
+-    ret = pam_authenticate(h, 0);
+-  if (ret == PAM_SUCCESS)
+-    ret = pam_acct_mgmt(h, 0);
+-  pam_end(h, ret);
+-
+-  return ret == PAM_SUCCESS ? 1 : 0;
++  // return ret == PAM_SUCCESS ? 1 : 0;
++  fprintf(stderr, "ERROR: PAM authentication not supported!\n");
++  return 0;
+ }
+-
+diff --git a/unix/vncserver/CMakeLists.txt b/unix/vncserver/CMakeLists.txt
+index f65ccc7d..9cc6e5d2 100644
+--- a/unix/vncserver/CMakeLists.txt
++++ b/unix/vncserver/CMakeLists.txt
+@@ -1,14 +1,6 @@
+-add_executable(vncsession vncsession.c)
+-target_link_libraries(vncsession ${PAM_LIBS})
+-
+ configure_file(vncserver@.service.in vncserver@.service @ONLY)
+-configure_file(vncsession-start.in vncsession-start @ONLY)
+ configure_file(vncserver.in vncserver @ONLY)
+-configure_file(vncsession.man.in vncsession.man @ONLY)
+ 
+-install(TARGETS vncsession DESTINATION ${CMAKE_INSTALL_FULL_SBINDIR})
+-install(FILES tigervnc.pam DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/pam.d RENAME tigervnc)
+-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/vncsession.man DESTINATION ${CMAKE_INSTALL_FULL_MANDIR}/man8 RENAME vncsession.8)
+ install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/vncserver DESTINATION ${CMAKE_INSTALL_FULL_LIBEXECDIR})
+ install(FILES vncserver.man DESTINATION ${CMAKE_INSTALL_FULL_MANDIR}/man8 RENAME vncserver.8)
+ install(FILES vncserver-config-defaults vncserver-config-mandatory DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/tigervnc)
+@@ -19,5 +11,4 @@ install(FILES HOWTO.md DESTINATION ${CMAKE_INSTALL_FULL_DOCDIR})
+ 
+ if(INSTALL_SYSTEMD_UNITS)
+   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/vncserver@.service DESTINATION ${CMAKE_INSTALL_FULL_UNITDIR})
+-  install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/vncsession-start DESTINATION ${CMAKE_INSTALL_FULL_LIBEXECDIR})
+ endif()
