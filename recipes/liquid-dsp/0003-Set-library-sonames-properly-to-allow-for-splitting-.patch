@@ -1,0 +1,125 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ryan Volz <ryan.volz@gmail.com>
+Date: Fri, 2 Dec 2022 18:48:22 -0500
+Subject: [PATCH] Set library sonames properly to allow for splitting package.
+
+---
+ configure.ac | 17 +++++++++++++++++
+ makefile.in  | 18 ++++++++++++------
+ 2 files changed, 29 insertions(+), 6 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index d5e0c7bb..338ffea4 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -258,6 +258,9 @@ MLIBS_VECTOR="src/vector/src/vectorf_add.port.o   \
+               src/vector/src/vectorcf_mul.port.o  \
+               src/vector/src/vectorcf_trig.port.o"
+ 
++
++SOVERSION=$(echo $PACKAGE_VERSION | cut -f1 -d.)
++
+ case $target_os in
+ darwin*)
+     AN_MAKEVAR([LIBTOOL], [AC_PROG_LIBTOOL])
+@@ -265,16 +268,29 @@ darwin*)
+     AC_DEFUN([AC_PROG_LIBTOOL], [AC_CHECK_TOOL(LIBTOOL, libtool, :)])
+     AC_PROG_LIBTOOL
+ 
++    SONAME=libliquid.$SOVERSION.dylib
+     AR_LIB=ar	    # archive extension
+     SH_LIB=dylib    # shared library extension
+     REBIND=""
+     ;;
++mingw*)
++    AN_MAKEVAR([AR], [AC_PROG_AR])
++    AN_PROGRAM([ar], [AC_PROG_AR])
++    AC_DEFUN([AC_PROG_AR], [AC_CHECK_TOOL(AR, ar, :)])
++    AC_PROG_AR
++
++    SONAME=liquid-$SOVERSION.dll
++    AR_LIB=a	    # archive extension
++    SH_LIB=dll	    # shared library extension
++    REBIND=ldconfig
++    ;;
+ *)
+     AN_MAKEVAR([AR], [AC_PROG_AR])
+     AN_PROGRAM([ar], [AC_PROG_AR])
+     AC_DEFUN([AC_PROG_AR], [AC_CHECK_TOOL(AR, ar, :)])
+     AC_PROG_AR
+ 
++    SONAME=libliquid.so.$SOVERSION
+     AR_LIB=a	    # archive extension
+     SH_LIB=so	    # shared library extension
+     REBIND=ldconfig
+@@ -288,6 +304,7 @@ AC_SUBST(LIBS)                      # shared libraries (-lc, -lm, etc.)
+ AC_SUBST(MLIBS_DOTPROD)             # 
+ AC_SUBST(MLIBS_VECTOR)              #
+ 
++AC_SUBST(SONAME)
+ AC_SUBST(AR_LIB)                    # archive library
+ AC_SUBST(SH_LIB)                    # output shared library target
+ AC_SUBST(REBIND)                    # rebinding tool (e.g. ldconfig)
+diff --git a/makefile.in b/makefile.in
+index 09416d87..542087e9 100644
+--- a/makefile.in
++++ b/makefile.in
+@@ -44,6 +44,7 @@
+ # autoconf initialization macros
+ NAME		:= @PACKAGE_NAME@
+ VERSION		:= @PACKAGE_VERSION@
++SONAME		:= @SONAME@
+ BUGREPORT	:= @PACKAGE_BUGREPORT@
+ AR_LIB		:= @AR_LIB@
+ SH_LIB		:= @SH_LIB@
+@@ -1244,7 +1245,7 @@ benchmark_sources :=						\
+ 
+ # Shared library targets
+ ARCHIVE_LIB	= libliquid.${AR_LIB}
+-SHARED_LIB	= libliquid.${SH_LIB}
++SHARED_LIB	= ${SONAME}
+ 
+ #
+ # darwin
+@@ -1253,7 +1254,7 @@ libliquid.ar : $(objects)
+ 	${LIBTOOL} -static -o $@ $^
+ 
+ # gcc -dynamiclib -install_name libliquid.dylib -o libliquid.dylib libmodem.a libutility.a 
+-libliquid.dylib : $(objects)
++libliquid%.dylib : $(objects)
+ 	$(CC) -dynamiclib ${COVERAGE_FLAGS} -install_name $@ -o $@ $^ $(LDFLAGS) $(LIBS)
+ 
+ #
+@@ -1263,9 +1264,15 @@ libliquid.a : $(objects)
+ 	${AR} r $@ $^
+ 	${RANLIB} $@
+ 
+-libliquid.so : libliquid.a
++libliquid.so% : libliquid.a
+ 	$(CC) $(CFLAGS) $(LDFLAGS) -shared -Xlinker -soname=$@ -o $@ -Wl,-whole-archive $^ -Wl,-no-whole-archive $(LIBS)
+ 
++#
++# mingw
++#
++liquid%.dll: libliquid.a
++	$(CC) $(CFLAGS) $(LDFLAGS) -shared -Xlinker -soname=$@ -o $@ -Wl,-whole-archive $^ -Wl,-no-whole-archive -Wl,--output-def,liquid.def -Wl,--out-implib,$@.a $(LIBS)
++
+ # static archive and library objects
+ all: ${ARCHIVE_LIB} ${SHARED_LIB}
+ 
+@@ -1288,10 +1295,9 @@ install: all
+ 	mkdir -p $(DESTDIR)$(prefix)/include/liquid
+ 	mkdir -p $(DESTDIR)$(libdir)
+ 	install -m 644 -p libliquid.${AR_LIB} $(DESTDIR)$(libdir)/libliquid.${AR_LIB}.${VERSION}
+-	install -m 644 -p libliquid.${SH_LIB} $(DESTDIR)$(libdir)/libliquid.${SH_LIB}.${VERSION}
++	install -m 644 -p ${SHARED_LIB} $(DESTDIR)$(libdir)/${SHARED_LIB}
+ 	install -m 644 -p include/liquid.h $(DESTDIR)$(prefix)/include/liquid/liquid.h
+-	ln -sf libliquid.${SH_LIB}.${VERSION} $(DESTDIR)$(libdir)/libliquid.${SH_LIB}
+-	ln -sf libliquid.${SH_LIB}.${VERSION} $(DESTDIR)$(libdir)/libliquid.${SH_LIB}.1
++	ln -sf ${SHARED_LIB} $(DESTDIR)$(libdir)/libliquid.${SH_LIB}
+ 	@echo ""
+ 	@echo "---------------------------------------------------------"
+ 	@echo "  liquid-dsp was successfully installed.     "
+-- 
+2.38.1
+

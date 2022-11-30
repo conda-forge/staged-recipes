@@ -1,0 +1,102 @@
+{% set version = "1.5.0" %}
+{% set version_major = version.split('.', 1)[0] %}
+{% set posix = 'm2-' if win else '' %}
+{% set library = "Library/" if win else "" %}
+
+package:
+  name: liquid-dsp-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/jgaeddert/liquid-dsp/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 93003edb6e74090b41009b1fae6f273a3e711dc4c8c56a0cca3e89167b765953
+  patches:
+    - 0001-Remove-headers-check.patch  # [win]
+    - 0002-Remove-fPIC-from-forced-CFLAGS-errors-on-Windows-wit.patch  # [win]
+    - 0003-Set-library-sonames-properly-to-allow-for-splitting-.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    # need default C compiler on Windows too (MSVC) for generating import lib
+    - {{ compiler('c') }}
+    - {{ compiler('m2w64_c') }}  # [win]
+    - {{ posix }}autoconf
+    - {{ posix }}automake  # [unix]
+    - {{ posix }}automake-wrapper  # [win]
+    - make  # [unix]
+    - posix  # [win]
+  host:
+    - fftw
+    - libcorrect
+
+outputs:
+  - name: libliquid{{ version_major }}
+    requirements:
+      build:
+        - {{ compiler('c') }}  # [unix]
+        - {{ compiler('m2w64_c') }}  # [win]
+      host:
+        - fftw
+        - libcorrect
+    files:
+      - lib/libliquid.so.{{ version_major }}  # [linux]
+      - lib/libliquid.{{ version_major }}.dylib  # [osx]
+      - Library/bin/liquid-{{ version_major }}.dll  # [win]
+    test:
+      commands:
+        - test -f $PREFIX/lib/libliquid${SHLIB_EXT}.{{ version_major }}  # [linux]
+        - test -f $PREFIX/lib/libliquid.{{ version_major }}${SHLIB_EXT}  # [osx]
+        - if not exist %LIBRARY_BIN%/liquid-{{ version_major }}.dll exit 1  # [win]
+
+  - name: liquid-dsp
+    build:
+      run_exports:
+        - {{ pin_subpackage('libliquid' + version_major, max_pin=False) }}
+    requirements:
+      build:
+        - {{ compiler('c') }}  # [unix]
+        - {{ compiler('m2w64_c') }}  # [win]
+      host:
+        - fftw
+        - libcorrect
+        - {{ pin_subpackage('libliquid' + version_major, exact=True) }}
+      run:
+        - {{ pin_subpackage('libliquid' + version_major, exact=True) }}
+    files:
+      - {{ library }}include/liquid/liquid.h
+      - lib/libliquid.so  # [linux]
+      - lib/libliquid.dylib  # [osx]
+      - Library/lib/liquid.lib  # [win]
+    test:
+      commands:
+        - test -f $PREFIX/include/liquid/liquid.h  # [unix]
+        - test -f $PREFIX/lib/libliquid${SHLIB_EXT}  # [unix]
+        - if not exist %LIBRARY_PREFIX%/include/liquid/liquid.h exit 1  # [win]
+        - if not exist %LIBRARY_LIB%/liquid.lib exit 1  # [win]
+
+
+about:
+  home: https://liquidsdr.org/
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: 'Digital signal processing library for software-defined radios'
+  description: >
+    liquid-dsp is a free and open-source digital signal processing (DSP)
+    library designed specifically for software-defined radios on embedded
+    platforms. The aim is to provide a lightweight DSP library that does not
+    rely on a myriad of external dependencies or proprietary and otherwise
+    cumbersome frameworks. All signal processing elements are designed to be
+    flexible, scalable, and dynamic, including filters, filter design,
+    oscillators, modems, synchronizers, complex mathematical operations, and
+    much more.
+  doc_url: https://liquidsdr.org/doc
+  dev_url: https://github.com/jgaeddert/liquid-dsp
+
+extra:
+  feedstock-name: liquid-dsp
+  recipe-maintainers:
+    - ryanvolz
