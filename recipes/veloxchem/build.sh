@@ -26,5 +26,4 @@ cmake "${CMAKE_ARGS}" \
 cmake --build build --parallel "${CPU_COUNT}" -- -v -d stats
 
 # install!
-cd ..
 cmake --build build --target install
