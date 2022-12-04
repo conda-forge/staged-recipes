@@ -7,6 +7,6 @@ set -x
 echo "prefix=${PREFIX}"
 echo "recipe_dir=${RECIPE_DIR}"
 echo "$(ls)"
-cp "${RECIPE_DIR}/requirements.txt $PREFIX/"
+cp "${RECIPE_DIR}/requirements.txt ${PREFIX}/requirements.txt"
 echo "$(ls)"  
 $PYTHON setup.py install --single-version-externally-managed --record=record.txt
