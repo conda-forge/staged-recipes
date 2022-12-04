@@ -20,4 +20,3 @@ cmake -G Ninja \
     ${SRC_DIR}
 
 cmake --build . --target install --verbose 
-ctest -VV

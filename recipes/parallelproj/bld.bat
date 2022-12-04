@@ -16,5 +16,4 @@ cmake -G Ninja ^
 if %ERRORLEVEL% neq 0 exit 1
 
 cmake --build . --target install --verbose 
-ctest -VV
 if %ERRORLEVEL% neq 0 exit 1
