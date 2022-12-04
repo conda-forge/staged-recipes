@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x -e
 
 python --version
 touch ${PREFIX}/bin/testfile
@@ -10,6 +11,6 @@ echo "recipe_dir=${RECIPE_DIR}"
 #/home/conda/staged-recipes-copy/recipes/kedro-datasets
 echo "$(pwd)"
 echo "$(ls)"
-cp /home/conda/staged-recipes-copy/recipes/kedro-datasets/requirements.txt ${PREFIX}/requirements.txt
+cp /home/conda/staged-recipes-copy/recipes/kedro-datasets/requirements.txt .
 echo "$(ls)"  
 $PYTHON setup.py install --single-version-externally-managed --record=record.txt
