@@ -4,12 +4,15 @@ set -ex
 mkdir build
 cd build
 
-export CMAKE_CXX_COMPILER_AR=llvm-ar
-
 cmake -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_CPP_LIB=ON \
     -DBUILD_PYTHON_LIB=ON \
+    -DBUILD_SHARED_LIBS=ON \
+    -DPython_EXECUTABLE=$PYTHON \
+    -DPython3_EXECUTABLE=$PYTHON \
+    -DCMAKE_CXX_COMPILER_RANLIB=$RANLIB \
+    -DCMAKE_C_COMPILER_RANLIB=$RANLIB \
     -DSDL_SUPPORT=ON \
     ..
 
@@ -22,4 +25,4 @@ cd ..
 export CIBUILDWHEEL=1
 export GITHUB_REF=$PKG_VERSION
 
-python -m pip install . -vv
+$PYTHON -m pip install . -vv
