@@ -6,7 +6,7 @@ import sys
 if __name__ == '__main__':
     subprocess.check_call(['initdb', '-D', 'test_db'], env=os.environ)
     subprocess.check_call(['pg_ctl', '-D', 'test_db', '-l', 'test.log', '-o', "-F -p 5434", 'start'], env=os.environ)
-    subprocess.check_call(['createuser','--port=5434', '-s', 'postgres', f'--username={os.getlogin()}', '-w'], env=os.environ)
+    subprocess.check_call(['createuser', f'--username={os.getlogin()}', '-w','--port=5434', '-s', 'postgres'], env=os.environ)
     if sys.platform == 'win32':
         prefix = os.environ.get('LIBRARY_PREFIX')
         pg_regress = "pg_regress"
