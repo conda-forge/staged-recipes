@@ -1,26 +1,13 @@
 #!/bin/bash
 set -ex
 
-if [[ "${CONDA_BUILD_CROSS_COMPILATION}" != "1" ]]; then
-export CFLAGS="-march=native"
-fi
+make
+make install
 
-export CMAKE_BUILD_TYPE=Release
-export BUILD_SHARED_LIBS=ON
-export CMAKE_BUILD_WITH_INSTALL_RPATH=ON
+initdb -D test_db
+pg_ctl -D test_db -l test.log start
 
-mkdir build
-pushd build
+make installcheck
 
-cmake -GNinja ${CMAKE_ARGS} \
-    -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-    -DCMAKE_PREFIX_PATH="${PREFIX}" \
-    ..
-
-cmake --build . --verbose --config Release -- -v -j ${CPU_COUNT}
-cmake --install . --verbose --config Release
-
-popd
-
-python $RECIPE_DIR/test_pgvector.py
+pg_ctl -D test_db stop
 
