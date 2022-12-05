@@ -1,35 +1,108 @@
-From 6d5752396e18ae3ff405773085df7f96a7e812db Mon Sep 17 00:00:00 2001
+From 7f10dd7377fb5ce911880c12eefe7d7e1f792517 Mon Sep 17 00:00:00 2001
 From: Michael McAuliffe <michael.e.mcauliffe@gmail.com>
 Date: Thu, 1 Dec 2022 17:12:23 -0800
 Subject: [PATCH] Add CMake build
 
 ---
- CMakeLists.txt         | 21 ++++++++++++++++++
- src/CMakeLists.txt     | 39 ++++++++++++++++++++++++++++++++++
- src/ivfbuild.c         |  2 +-
- src/ivfflat.c          |  1 +
- src/ivfflat.h          | 48 +++++++++++++++++++++---------------------
- src/ivfkmeans.c        |  2 +-
- src/vector.c           | 25 ++++++++++++++++++++++
- src/vector.h           |  2 +-
- test/expected/copy.out |  4 ++--
- test/sql/copy.sql      |  4 ++--
- 10 files changed, 117 insertions(+), 31 deletions(-)
+ CMakeLists.txt         | 147 +++++++++++++++++++++++++++++++++++++++++
+ src/CMakeLists.txt     |  31 +++++++++
+ src/ivfbuild.c         |   2 +-
+ src/ivfflat.c          |   1 +
+ src/ivfflat.h          |  48 +++++++-------
+ src/ivfkmeans.c        |   2 +-
+ src/vector.c           |  25 +++++++
+ src/vector.h           |   2 +-
+ test/expected/copy.out |   4 +-
+ test/sql/copy.sql      |   4 +-
+ 10 files changed, 235 insertions(+), 31 deletions(-)
  create mode 100644 CMakeLists.txt
  create mode 100644 src/CMakeLists.txt
 
 diff --git CMakeLists.txt CMakeLists.txt
 new file mode 100644
-index 0000000..d05bb02
+index 0000000..2896f77
 --- /dev/null
 +++ CMakeLists.txt
-@@ -0,0 +1,21 @@
+@@ -0,0 +1,147 @@
 +
 +cmake_minimum_required(VERSION 3.20)
-+project(pgvector)
++set(PROJECT_NAME vector)
++set(PROEJCT_VERSION "0.3.2")
++project(${PROJECT_NAME} VERSION ${PROEJCT_VERSION} LANGUAGES C)
 +
 +include(GNUInstallDirs)
 +set(CMAKE_MACOSX_RPATH 1)
++
++
++# Search paths for Postgres binaries
++if (WIN32)
++    find_path(PG_PATH
++            bin/postgres
++            HINTS
++            "C:/PostgreSQL"
++            "C:/Program Files/PostgreSQL"
++            PATH_SUFFIXES
++            bin
++            10/bin
++            96/bin
++            pg96/bin
++            DOC
++            "The path to a PostgreSQL installation")
++endif (WIN32)
++
++if (UNIX)
++    find_path(PG_PATH
++            bin/postgres
++            HINTS
++            $ENV{HOME}
++            /opt/local/pgsql
++            /usr/local/pgsql
++            /usr/lib/postgresql
++            PATH_SUFFIXES
++            bin
++            10/bin
++            9.6/bin
++            96/bin
++            pg96/bin
++            DOC
++            "The path to a PostgreSQL installation")
++endif (UNIX)
++
++find_program(PG_CONFIG pg_config
++        HINTS
++        ${PG_PATH}
++        PATH_SUFFIXES
++        bin
++        DOC
++        "The path to the pg_config of the PostgreSQL version to compile against"
++        REQUIRED)
++
++if (NOT PG_CONFIG)
++    message(FATAL_ERROR "Unable to find 'pg_config'")
++endif ()
++
++
++# Check PostgreSQL version
++execute_process(
++        COMMAND ${PG_CONFIG} --version
++        OUTPUT_VARIABLE PG_VERSION_STRING
++        OUTPUT_STRIP_TRAILING_WHITESPACE)
++
++if (NOT ${PG_VERSION_STRING} MATCHES "^PostgreSQL[ ]+([0-9]+)\\.([0-9]+)(\\.([0-9]+))*$")
++    message(FATAL_ERROR "Could not parse PostgreSQL version ${PG_VERSION}")
++endif ()
++
++set(PG_VERSION_MAJOR ${CMAKE_MATCH_1})
++set(PG_VERSION_MINOR ${CMAKE_MATCH_2})
++set(PG_VERSION_PATCH ${CMAKE_MATCH_4})
++
++if (NOT ${PG_VERSION_PATCH} OR ${PG_VERSION_PATCH} EQUAL "")
++    set(PG_VERSION "${PG_VERSION_MAJOR}.${PG_VERSION_MINOR}")
++else ()
++    set(PG_VERSION "${PG_VERSION_MAJOR}.${PG_VERSION_MINOR}.${PG_VERSION_PATCH}")
++endif ()
++
++message(STATUS "Compiling against PostgreSQL version ${PG_VERSION}")
 +
 +set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 +find_package(PostgreSQL  REQUIRED)
@@ -42,15 +115,69 @@ index 0000000..d05bb02
 +    add_compile_options(-ftree-vectorize -fassociative-math -fno-signed-zeros -fno-trapping-math)
 +endif (MSVC)
 +
++# Get PostgreSQL configuration from pg_config
++execute_process(
++        COMMAND ${PG_CONFIG} --includedir
++        OUTPUT_VARIABLE PG_INCLUDEDIR
++        OUTPUT_STRIP_TRAILING_WHITESPACE)
++execute_process(
++        COMMAND ${PG_CONFIG} --includedir-server
++        OUTPUT_VARIABLE PG_INCLUDEDIR_SERVER
++        OUTPUT_STRIP_TRAILING_WHITESPACE)
++execute_process(
++        COMMAND ${PG_CONFIG} --libdir
++        OUTPUT_VARIABLE PG_LIBDIR
++        OUTPUT_STRIP_TRAILING_WHITESPACE)
++execute_process(
++        COMMAND ${PG_CONFIG} --pkglibdir
++        OUTPUT_VARIABLE PG_PKGLIBDIR
++        OUTPUT_STRIP_TRAILING_WHITESPACE)
++execute_process(
++        COMMAND ${PG_CONFIG} --sharedir
++        OUTPUT_VARIABLE PG_SHAREDIR
++        OUTPUT_STRIP_TRAILING_WHITESPACE)
++execute_process(
++        COMMAND ${PG_CONFIG} --bindir
++        OUTPUT_VARIABLE PG_BINDIR
++        OUTPUT_STRIP_TRAILING_WHITESPACE)
++execute_process(
++        COMMAND ${PG_CONFIG} --cppflags
++        OUTPUT_VARIABLE PG_CPPFLAGS
++        OUTPUT_STRIP_TRAILING_WHITESPACE)
++execute_process(
++        COMMAND ${PG_CONFIG} --cflags
++        OUTPUT_VARIABLE PG_CFLAGS
++        OUTPUT_STRIP_TRAILING_WHITESPACE)
++execute_process(
++        COMMAND ${PG_CONFIG} --ldflags
++        OUTPUT_VARIABLE PG_LDFLAGS
++        OUTPUT_STRIP_TRAILING_WHITESPACE)
++execute_process(
++        COMMAND ${PG_CONFIG} --libs
++        OUTPUT_VARIABLE PG_LIBS
++        OUTPUT_STRIP_TRAILING_WHITESPACE)
 +
 +
 +add_subdirectory(src)
++
++set(EXT_CONTROL_FILE ${PROJECT_NAME}.control)
++configure_file(${EXT_CONTROL_FILE} ${EXT_CONTROL_FILE})
++install(
++        FILES ${CMAKE_CURRENT_BINARY_DIR}/${EXT_CONTROL_FILE}
++        DESTINATION "${PG_SHAREDIR}/extension")
++INSTALL(
++    FILES ${CMAKE_SOURCE_DIR}/sql/${PROJECT_NAME}.sql 
++    DESTINATION ${CMAKE_PREFIX_PATH}/share/extension
++    RENAME ${PROJECT_NAME}--${PROEJCT_VERSION}.sql)
++
++INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/sql/ DESTINATION ${CMAKE_PREFIX_PATH}/share/extension)
+\ No newline at end of file
 diff --git src/CMakeLists.txt src/CMakeLists.txt
 new file mode 100644
-index 0000000..5897d64
+index 0000000..ab06814
 --- /dev/null
 +++ src/CMakeLists.txt
-@@ -0,0 +1,39 @@
+@@ -0,0 +1,31 @@
 +
 +
 +add_library(vector
@@ -64,16 +191,17 @@ index 0000000..5897d64
 +  ivfvacuum.c 
 +  vector.c
 +)
-+SET_TARGET_PROPERTIES(vector PROPERTIES PREFIX "")
 +target_include_directories(vector PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 +                           $<INSTALL_INTERFACE:include>)
 +target_include_directories(vector PRIVATE ${PostgreSQL_INCLUDE_DIRS})
 +if (MSVC)
 +target_include_directories(vector PRIVATE ${CMAKE_PREFIX_PATH}/include/server/port/win32)
 +target_include_directories(vector PRIVATE ${CMAKE_PREFIX_PATH}/include/server/port/win32_msvc)
-+endif(MSVC)
 +
 +target_link_libraries(vector postgres)
++endif(MSVC)
++
++set_target_properties(vector PROPERTIES PREFIX "")
 +
 +install(TARGETS vector
 +LIBRARY DESTINATION lib
@@ -81,16 +209,6 @@ index 0000000..5897d64
 +RUNTIME DESTINATION bin
 +  )
 +
-+
-+INSTALL(DIRECTORY ${CMAKE_SOURCE_DIR}/sql/ DESTINATION ${CMAKE_PREFIX_PATH}/share/extension)
-+INSTALL(
-+  FILES ${CMAKE_SOURCE_DIR}/vector.control 
-+  DESTINATION ${CMAKE_PREFIX_PATH}/share/extension)
-+  INSTALL(
-+    FILES ${CMAKE_SOURCE_DIR}/sql/vector.sql 
-+    DESTINATION ${CMAKE_PREFIX_PATH}/share/extension
-+    RENAME vector--0.3.2.sql)
-\ No newline at end of file
 diff --git src/ivfbuild.c src/ivfbuild.c
 index cd37aad..0ab4b24 100644
 --- src/ivfbuild.c
