@@ -8,8 +8,8 @@ cmake -G Ninja ^
     -DBUILD_CPP_LIB=ON ^
     -DBUILD_PYTHON_LIB=ON ^
     -DBUILD_SHARED_LIBS=ON ^
-    -DPython_EXECUTABLE=%PYTHON% \
-    -DPython3_EXECUTABLE=%PYTHON% \
+    -DPython_EXECUTABLE=%PYTHON% ^
+    -DPython3_EXECUTABLE=%PYTHON% ^
     -DSDL_SUPPORT=ON ^
     ..
 if %ERRORLEVEL% neq 0 exit 1
