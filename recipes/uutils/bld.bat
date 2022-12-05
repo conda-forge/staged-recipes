@@ -6,6 +6,3 @@ if errorlevel 1 exit 1
 
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
 if errorlevel 1 exit 1
-
-dir %LIBRARY_BIN%
-if errorlevel 1 exit 1
