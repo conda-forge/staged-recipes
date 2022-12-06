@@ -22,4 +22,8 @@ if %ERRORLEVEL% neq 0 exit 1
 
 popd
 
-python %RECIPE_DIR%\test_pgvector.py
+initdb -D test_db
+pg_ctl -D test_db -l test.log -o "-F -p 5434" start
+createuser --username=%USERNAME% -w --port=5434 -s postgres
+pg_regress --port=5434 --inputdir=test --bindir=%LIBRARY_PREFIX%\bin btree cast copy functions input ivfflat_cosine ivfflat_ip ivfflat_l2 ivfflat_options ivfflat_unlogged
+pg_ctl -D test_db stop
