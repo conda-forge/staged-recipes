@@ -13,7 +13,6 @@ cmake -G Ninja ^
     -DSDL_SUPPORT=ON ^
     -DZLIB_LIBRARY=%LIBRARY_LIB%\zlib.lib ^
     -DZLIB_INCLUDE_DIR=%LIBRARY_INC% ^
-    -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
     ..
 if %ERRORLEVEL% neq 0 exit 1
 
