@@ -11,6 +11,8 @@ cmake -G Ninja ^
     -DPython_EXECUTABLE=%PYTHON% ^
     -DPython3_EXECUTABLE=%PYTHON% ^
     -DSDL_SUPPORT=ON ^
+    -DZLIB_LIBRARY=%LIBRARY_LIB%\zlib.lib ^
+    -DZLIB_INCLUDE_DIR=%LIBRARY_INC% ^
     ..
 if %ERRORLEVEL% neq 0 exit 1
 
