@@ -4,7 +4,7 @@ set -ex
 mkdir build
 cd build
 
-cmake -G Ninja \
+cmake ${CMAKE_ARGS} -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_CPP_LIB=ON \
     -DBUILD_PYTHON_LIB=ON \
