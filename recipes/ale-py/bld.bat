@@ -7,7 +7,7 @@ cmake -G Ninja ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DBUILD_CPP_LIB=ON ^
     -DBUILD_PYTHON_LIB=ON ^
-    -DBUILD_SHARED_LIBS=ON ^
+    -DBUILD_SHARED_LIBS=OFF ^
     -DPython_EXECUTABLE=%PYTHON% ^
     -DPython3_EXECUTABLE=%PYTHON% ^
     -DSDL_SUPPORT=ON ^
