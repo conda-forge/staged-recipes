@@ -4,7 +4,7 @@ set -ex
 mkdir build
 cd build
 
-cmake -G Ninja \
+cmake ${CMAKE_ARGS} -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_LIBDIR=lib \
     -DBUILD_SHARED_LIBS=ON \
