@@ -5,7 +5,7 @@ cd build
 
 cmake -G Ninja ^
     -DCMAKE_BUILD_TYPE=Release ^
-    -DBUILD_CPP_LIB=ON ^
+    -DBUILD_CPP_LIB=OFF ^
     -DBUILD_PYTHON_LIB=ON ^
     -DBUILD_SHARED_LIBS=ON ^
     -DPython_EXECUTABLE=%PYTHON% ^
