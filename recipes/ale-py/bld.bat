@@ -23,10 +23,10 @@ cmake --install . --prefix $PREFIX
 if %ERRORLEVEL% neq 0 exit 1
 
 cd ..
-\
+
 :: see https://github.com/mgbellemare/Arcade-Learning-Environment/blob/v0.7.5/setup.py#L109-L150
 set CIBUILDWHEEL=1
 set "GITHUB_REF=%PKG_VERSION%"
 
-python -m pip install . -vv
+%PYTHON% -m pip install .
 if %ERRORLEVEL% neq 0 exit 1
