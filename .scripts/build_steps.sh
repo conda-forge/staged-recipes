@@ -12,6 +12,7 @@ cat >~/.condarc <<CONDARC
 
 channels:
  - conda-forge
+ - mark.harfouche
 
 conda-build:
   root-dir: /home/conda/staged-recipes/build_artifacts
