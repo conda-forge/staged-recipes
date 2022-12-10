@@ -1,0 +1,52 @@
+{% set name = "parallelproj" %}
+{% set version = "1.2.9" %}
+{% set build_number = "0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/gschramm/parallelproj/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 148f174d3abdc573fe47e5aebf74878f123aeaf81cf32efe417d1a731c75df31
+
+build:
+  run_exports:
+    - {{ pin_subpackage( name|lower, max_pin='x.x') }}
+  number: {{ build_number }}
+  ignore_run_exports:
+    - cudatoolkit
+  string: "cpuh{{ PKG_HASH }}_{{ build_number }}"   # [cuda_compiler_version == "None"]
+  string: "cuda{{ cuda_compiler_version|string }}h{{ PKG_HASH }}_{{ build_number }}"  # [cuda_compiler_version != "None"]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}  # [cuda_compiler_version != "None"]
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+    - cmake >=3.23
+    - ninja
+  host:
+    - libgomp      # [linux]
+    - llvm-openmp  # [osx]
+test:
+  commands:
+    - test -f $PREFIX/lib/libparallelproj_c$SHLIB_EXT  # [unix]
+    - test -f $PREFIX/include/parallelproj_c.h  # [unix]
+    - test -f $PREFIX/lib/cmake/parallelproj/parallelprojConfig.cmake  # [unix]
+    - test -f $PREFIX/lib/libparallelproj_cuda$SHLIB_EXT  # [linux and cuda_compiler_version != "None"]
+    - test -f $PREFIX/include/parallelproj_c.h  # [linux and cuda_compiler_version != "None"]
+    - if not exist %LIBRARY_LIB%\parallelproj_c.lib exit 1  # [win]
+    - if not exist %LIBRARY_BIN%\parallelproj_c.dll exit 1  # [win]
+    - if not exist %LIBRARY_INC%\parallelproj_c.h exit 1  # [win]
+    - if not exist %LIBRARY_LIB%\cmake\parallelproj\parallelprojConfig.cmake exit 1  # [win]
+
+about:
+  home: https://github.com/gschramm/parallelproj
+  license:  MIT
+  license_file: LICENSE
+  summary: 'parallelized TOF PET projectors'
+
+extra:
+  recipe-maintainers:
+    - gschramm
