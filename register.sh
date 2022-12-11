@@ -12,8 +12,8 @@ channels:
   -
     - qtforge
 build_platform:
-  linux_aarch64: linux_aarch64
-  linux_ppc64le: linux_ppc64le
+  linux_aarch64: linux_64
+  linux_ppc64le: linux_64
   osx_arm64: osx_64
 conda_build:
   pkg_format: '2'
