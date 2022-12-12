@@ -1,0 +1,85 @@
+{% set version = "2.1.3.dev8" %}
+
+package:
+  name: pygame
+  version: {{ version }}
+
+source:
+  url: https://github.com/pygame/pygame/archive/refs/tags/{{ version }}.tar.gz
+  sha256: 1d8a55b5a769eb9521b9d346688d4a060dca3e4497300efc78fb4021bc370199
+  patches:
+    # make sure we use dependencies from conda-forge (instead of
+    # downloading/building them), and that the bespoke config finds them
+    - patches/0001-use-DLLs-from-conda-forge.patch
+    - patches/0002-fix-PREFIX-handling-on-OSX.patch
+    - patches/0003-try-to-fix-whacky-search-patterns-for-windows.patch
+    # apparently, the env var WIN32_DO_NOT_INCLUDE_DEPS available
+    # in setup.py switches off some other relevant processing too...
+    - patches/0004-do-not-copy-DLLs.patch
+    - patches/0005-avoid-downloading-stuff-despite-auto_download-False.patch
+    # add skips to test that need a display, which we don't have in CI
+    - patches/0006-add-some-more-display-tags-to-tests-modules.patch
+    - patches/0007-mark-docs-test-broken.patch
+    - patches/0008-fix-strict-prototype.patch
+    - patches/0009-skip-some-specific-warnings-on-linux-osx.patch
+
+build:
+  number: 0
+  script:
+    # despite the name "_unix", this only works for linux, c.f.
+    # https://github.com/pygame/pygame/blob/main/buildconfig/config_unix.py
+    - export LOCALBASE="$PREFIX"  # [linux]
+    - {{ PYTHON }} -m pip install . -vv
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - pkg-config
+  host:
+    - python
+    - cython
+    - setuptools
+    - pip
+    - fontconfig
+    - freetype
+    - jpeg
+    - libpng
+    - zlib
+    - portmidi
+    - sdl2
+    - sdl2_image
+    - sdl2_mixer
+    - sdl2_ttf
+  run:
+    - python
+
+test:
+  requires:
+    - pip
+    - numpy *
+  imports:
+    - pygame
+  commands:
+    - pip check
+    - set SDL_VIDEODRIVER=dummy  # [win]
+    - set SDL_AUDIODRIVER=disk   # [win]
+    - export SDL_VIDEODRIVER=dummy  # [unix]
+    - export SDL_AUDIODRIVER=disk   # [unix]
+    - python -m pygame.tests -v --exclude display,broken,opengl,music,timing
+
+about:
+  home: https://www.pygame.org
+  license: LGPL-2.1-only
+  license_file: docs/LGPL.txt
+  summary: Python Game Development
+  description: |
+    pygame (the library) is a Free and Open Source python programming language
+    library for making multimedia applications like games built on top of the
+    excellent SDL library. C, Python, Native, OpenGL. 
+  dev_url: https://github.com/pygame/pygame
+
+extra:
+  recipe-maintainers:
+    - h-vetinari
+    - kcemenike
+    - Tobias-Fischer
