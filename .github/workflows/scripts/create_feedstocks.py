@@ -324,7 +324,7 @@ if __name__ == '__main__':
             if name.lower() in REPO_SKIP_LIST:
                 continue
             print("\n\nregistering CI services for %s..." % name)
-            if num >= 10:
+            if num >= 2:
                 exit_code = 0
                 break
             # Try to register each feedstock with CI.
