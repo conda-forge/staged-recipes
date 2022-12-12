@@ -1,0 +1,1 @@
+../qt-tools/build.sh
