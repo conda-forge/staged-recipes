@@ -25,3 +25,5 @@ $PYTHON -m pip install . -vv --no-deps
 pushd build
 bazel clean
 popd
+
+bazel shutdown
