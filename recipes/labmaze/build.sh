@@ -19,7 +19,7 @@ if [[ "${target_platform}" == "osx-arm64" ]]; then
   echo "build --cpu=${TARGET_CPU}" >> .bazelrc
 fi
 
-$PYTHON -m pip install . -vv
+$PYTHON -m pip install . -vv --no-deps
 
 # Clean up to speedup postprocessing
 pushd build
