@@ -1,4 +1,4 @@
-%PYTHON% -m pip install --no-deps . -vv
+%PYTHON% -m pip install . -vv --no-deps
 if errorlevel 1 exit 1
 
 cd build
