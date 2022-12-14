@@ -15,6 +15,9 @@ case "$target_platform" in
   linux-aarch64)
     target=linux_arm64
     ;;
+  osx-64)
+    target=darwin_amd64
+    ;;
   osx-arm64)
     target=darwin_arm64
     ;;
@@ -28,3 +31,6 @@ make pkg/$target/nomad
 # TODO
 rm $PREFIX/bin/*
 cp pkg/$target/nomad $PREFIX/bin
+
+go-licenses save . --save_path=./license-files
+test -d license-files/github.com
