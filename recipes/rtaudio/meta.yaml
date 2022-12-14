@@ -1,0 +1,121 @@
+{% set version = "5.2.0" %}
+{% set libversion = "6" %}
+{% set library = "Library/" if win else "" %}
+
+package:
+  name: rtaudio-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/thestk/rtaudio/archive/{{ version }}.tar.gz
+  sha256: a8d9c738addffd485c3f0bab14cbba72600267e3113f274398c67829bbb49332
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - meson
+    - ninja
+    - pkg-config
+  host:
+    - alsa-lib  # [linux]
+    - jack  # [linux]
+    - pulseaudio  # [linux]
+
+outputs:
+  - name: librtaudio{{ libversion }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+      host:
+        - alsa-lib  # [linux]
+        - jack  # [linux]
+        - pulseaudio  # [linux]
+    files:
+      - lib/librtaudio.so.{{ libversion }}*  # [linux]
+      - lib/librtaudio.{{ libversion }}*.dylib  # [osx]
+      - Library/bin/rtaudio-{{ libversion }}*.dll  # [win]
+    test:
+      commands:
+        # verify that libraries get installed
+        - test -f $PREFIX/lib/librtaudio.so.{{ libversion }}  # [linux]
+        - test -f $PREFIX/lib/librtaudio.{{ libversion }}.dylib  # [osx]
+        - if not exist %PREFIX%\\Library\\bin\\rtaudio-{{ libversion }}.dll exit 1  # [win]
+
+  - name: rtaudio
+    build:
+      run_exports:
+        - {{ pin_subpackage('librtaudio' + libversion, max_pin=False) }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+      host:
+        - alsa-lib  # [linux]
+        - jack  # [linux]
+        - {{ pin_subpackage('librtaudio' + libversion, exact=True) }}
+        - pulseaudio  # [linux]
+      run:
+        - {{ pin_subpackage('librtaudio' + libversion, exact=True) }}
+    files:
+      - {{ library }}include/rtaudio
+      - lib/librtaudio.so  # [linux]
+      - lib/librtaudio.dylib  # [osx]
+      - Library/lib/rtaudio.lib  # [win]
+      - {{ library }}lib/pkgconfig/rtaudio.pc
+    test:
+      commands:
+        # verify that headers get installed
+        - test -f $PREFIX/include/rtaudio/RtAudio.h  # [not win]
+        - test -f $PREFIX/include/rtaudio/rtaudio_c.h  # [not win]
+        - if not exist %PREFIX%\\Library\\include\\rtaudio\\RtAudio.h exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\include\\rtaudio\\rtaudio_c.h exit 1  # [win]
+
+        # verify that import libraries get installed
+        - test -f $PREFIX/lib/librtaudio${SHLIB_EXT}  # [not win]
+        - if not exist %PREFIX%\\Library\\lib\\rtaudio.lib exit 1  # [win]
+
+        # verify that pkgconfig files get installed
+        - test -f $PREFIX/lib/pkgconfig/rtaudio.pc  # [unix]
+        - if not exist %PREFIX%\\Library\\lib\\pkgconfig\\rtaudio.pc exit 1  # [win]
+
+about:
+  home: https://www.music.mcgill.ca/~gary/rtaudio/
+  license: MIT
+  license_file: LICENSE
+  summary: 'Cross-platform C++ API for realtime audio input/output'
+  description: >
+    RtAudio is a set of C++ classes that provides a common API (Application
+    Programming Interface) for realtime audio input/output across Linux (native
+    ALSA, JACK, PulseAudio and OSS), Macintosh OS X and Windows (DirectSound,
+    ASIO and WASAPI) operating systems. RtAudio significantly simplifies the
+    process of interacting with computer audio hardware. It was designed with
+    the following objectives:
+
+        - object-oriented C++ design
+        - simple, common API across all supported platforms
+        - only one source and one header file for easy inclusion in programming
+            projects
+        - allow simultaneous multi-api support
+        - support dynamic connection of devices
+        - provide extensive audio device parameter control
+        - allow audio device capability probing
+        - automatic internal conversion for data format, channel number
+            compensation, (de)interleaving, and byte-swapping
+
+    RtAudio incorporates the concept of audio streams, which represent audio
+    output (playback) and/or input (recording). Available audio devices and
+    their capabilities can be enumerated and then specified when opening a
+    stream. Where applicable, multiple API support can be compiled and a
+    particular API specified when creating an RtAudio instance.
+  doc_url: https://www.music.mcgill.ca/~gary/rtaudio/index.html
+  dev_url: https://github.com/thestk/rtaudio
+
+extra:
+  feedstock-name: rtaudio
+  recipe-maintainers:
+    - ryanvolz
