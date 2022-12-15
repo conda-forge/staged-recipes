@@ -31,13 +31,15 @@ make pkg/$target/nomad
 # TODO
 rm $PREFIX/bin/*
 cp pkg/$target/nomad $PREFIX/bin
-rm -rf pkg
-du -hs *
 
-rm -rf ui
+# TODO this created 40G of licenses?!
+#rm -rf pkg
+#du -hs *
+
+#rm -rf ui
 # Ignore warning about go-spin (MIT licensed)
-go-licenses save . --save_path=./license-files || true
-test -d license-files/github.com
-ls -l 
-ls -l license-files
-du -hs *
+#go-licenses save . --save_path=./license-files || true
+#test -d license-files/github.com
+#ls -l 
+#ls -l license-files
+#du -hs *
