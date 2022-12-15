@@ -32,5 +32,6 @@ make pkg/$target/nomad
 rm $PREFIX/bin/*
 cp pkg/$target/nomad $PREFIX/bin
 
-go-licenses save . --save_path=./license-files
+# Ignore warning about go-spin (MIT licensed)
+go-licenses save . --save_path=./license-files || true
 test -d license-files/github.com
