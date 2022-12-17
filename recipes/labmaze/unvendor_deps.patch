@@ -1,18 +1,18 @@
-From 993f414f03a9f5cc7dd718c39aa5ea315b89aa64 Mon Sep 17 00:00:00 2001
+From 5dc6f9a56c8697dfe623018c6118f5534d4d9ab1 Mon Sep 17 00:00:00 2001
 From: Silvio Traversaro <silvio.traversaro@iit.it>
 Date: Tue, 13 Dec 2022 17:10:32 +0100
 Subject: [PATCH] unvendor_patch
 
 ---
- MANIFEST.in                   |  9 ------
- WORKSPACE                     | 17 +++++------
+ MANIFEST.in                   |  9 -------
+ WORKSPACE                     | 17 +++++-------
  bazel/python_headers.BUILD    |  4 ++-
- bazel/python_headers.BUILD.in | 26 +++++++++++++++++
- bazel/system_absl.BUILD       | 22 ++++++++++++++
- bazel/system_pybind11.BUILD   | 23 +++++++++++++++
+ bazel/python_headers.BUILD.in | 26 ++++++++++++++++++
+ bazel/system_absl.BUILD       | 22 +++++++++++++++
+ bazel/system_pybind11.BUILD   | 23 ++++++++++++++++
  labmaze/cc/BUILD              |  4 +--
- setup.py                      | 54 ++++++++++++++++++++++++++++++++---
- 8 files changed, 133 insertions(+), 26 deletions(-)
+ setup.py                      | 51 ++++++++++++++++++++++++++++++++---
+ 8 files changed, 130 insertions(+), 26 deletions(-)
  delete mode 100644 MANIFEST.in
  create mode 100644 bazel/python_headers.BUILD.in
  create mode 100644 bazel/system_absl.BUILD
@@ -201,7 +201,7 @@ index 7b42d57..98dfb1b 100644
  )
  
 diff --git a/setup.py b/setup.py
-index 62053ea..d47b9ce 100644
+index 62053ea..51f026b 100644
 --- a/setup.py
 +++ b/setup.py
 @@ -40,6 +40,12 @@
@@ -217,20 +217,16 @@ index 62053ea..d47b9ce 100644
  IS_WINDOWS = sys.platform.startswith('win')
  
  
-@@ -67,11 +73,51 @@ def bazel_build(self, ext):
-     with open('WORKSPACE', 'r') as f:
+@@ -68,10 +74,47 @@ def bazel_build(self, ext):
        workspace_contents = f.read()
  
-+      #print(f"0 workspace_contents: {workspace_contents}")
-+
-+
      with open('WORKSPACE', 'w') as f:
 -      f.write(WORKSPACE_PYTHON_HEADERS_PATTERN.sub(
 -          distutils.sysconfig.get_python_inc().replace(os.path.sep,
 -                                                       posixpath.sep),
 -          workspace_contents))
 +      workspace_contents = WORKSPACE_PYTHON_HEADERS_PATTERN.sub(
-+          os.environ['PREFIX'],
++          os.environ['PREFIX'].replace(os.path.sep, posixpath.sep),
 +          workspace_contents)
 +
 +      if IS_WINDOWS:
@@ -254,7 +250,7 @@ index 62053ea..d47b9ce 100644
 +    with open('bazel/python_headers.BUILD', 'w') as f:
 +
 +      python_build_contents = python_build_contents.replace(
-+          "@INCLUDE_DIRECTORIES_PLACEHOLDER@", 
++          "@INCLUDE_DIRECTORIES_PLACEHOLDER@",
 +          os.path.relpath(distutils.sysconfig.get_python_inc(), os.environ['PREFIX']))
 +
 +      # The only platform that needs an explicit link to Python libraries is macOS
@@ -264,7 +260,7 @@ index 62053ea..d47b9ce 100644
 +          link_library_line = ""
 +
 +      python_build_contents = python_build_contents.replace(
-+          "@LINK_LIBRARY_LINE_PLACEHOLDER@", 
++          "@LINK_LIBRARY_LINE_PLACEHOLDER@",
 +          link_library_line)
 +
 +      f.write(python_build_contents)
