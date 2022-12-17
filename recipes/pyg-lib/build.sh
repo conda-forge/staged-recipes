@@ -11,6 +11,7 @@ fi
 export USE_MKL_BLAS=1
 export Torch_DIR=$(python -c 'import torch; print(torch.utils.cmake_prefix_path)')
 
+export FORCE_NINJA=1
 export EXTERNAL_PHMAP_INCLUDE_DIR="${BUILD_PREFIX}/include/"
 export EXTERNAL_CUTLASS_INCLUDE_DIR="${BUILD_PREFIX}/include/"
 
