@@ -1,20 +1,40 @@
-From 63bb67fd9ed5991bc1478241925d3d7e463d674d Mon Sep 17 00:00:00 2001
+From 993f414f03a9f5cc7dd718c39aa5ea315b89aa64 Mon Sep 17 00:00:00 2001
 From: Silvio Traversaro <silvio.traversaro@iit.it>
 Date: Tue, 13 Dec 2022 17:10:32 +0100
 Subject: [PATCH] unvendor_patch
 
 ---
- WORKSPACE                   | 17 +++++++----------
- bazel/system_absl.BUILD     | 22 ++++++++++++++++++++++
- bazel/system_pybind11.BUILD | 23 +++++++++++++++++++++++
- labmaze/cc/BUILD            |  4 ++--
- setup.py                    | 28 ++++++++++++++++++++++++++--
- 5 files changed, 80 insertions(+), 14 deletions(-)
+ MANIFEST.in                   |  9 ------
+ WORKSPACE                     | 17 +++++------
+ bazel/python_headers.BUILD    |  4 ++-
+ bazel/python_headers.BUILD.in | 26 +++++++++++++++++
+ bazel/system_absl.BUILD       | 22 ++++++++++++++
+ bazel/system_pybind11.BUILD   | 23 +++++++++++++++
+ labmaze/cc/BUILD              |  4 +--
+ setup.py                      | 54 ++++++++++++++++++++++++++++++++---
+ 8 files changed, 133 insertions(+), 26 deletions(-)
+ delete mode 100644 MANIFEST.in
+ create mode 100644 bazel/python_headers.BUILD.in
  create mode 100644 bazel/system_absl.BUILD
  create mode 100644 bazel/system_pybind11.BUILD
 
+diff --git a/MANIFEST.in b/MANIFEST.in
+deleted file mode 100644
+index c29e970..0000000
+--- a/MANIFEST.in
++++ /dev/null
+@@ -1,9 +0,0 @@
+-include AUTHORS
+-include LICENSE
+-include WORKSPACE
+-include CONTRIBUTING.md
+-include README.md
+-recursive-include . *BUILD
+-recursive-include . *.bzl
+-recursive-include . *.h
+-recursive-include . *.cc
 diff --git a/WORKSPACE b/WORKSPACE
-index b997d5d..7afdbc0 100644
+index b997d5d..3abc88f 100644
 --- a/WORKSPACE
 +++ b/WORKSPACE
 @@ -24,11 +24,10 @@ http_archive(
@@ -50,10 +70,57 @@ index b997d5d..7afdbc0 100644
  new_local_repository(
      name = "python_headers",
 -    path = "/usr/include/python3.7",  # May be overwritten by setup.py.
-+    path = "/home/traversaro/mambaforge/envs/labmazedev/include/python3.11",  # May be overwritten by setup.py.
++    path = "/home/traversaro/mambaforge/envs/labmazedev",  # May be overwritten by setup.py.
      build_file = "@//bazel:python_headers.BUILD"
  )
  
+diff --git a/bazel/python_headers.BUILD b/bazel/python_headers.BUILD
+index c5047f1..d97d652 100644
+--- a/bazel/python_headers.BUILD
++++ b/bazel/python_headers.BUILD
+@@ -18,7 +18,9 @@
+ 
+ cc_library(
+     name = "python_headers",
+-    hdrs = glob(["**/*.h"]),
++    hdrs = glob(["include/python3.11/**/*.h"]),
++    strip_include_prefix = "include/python3.11",
++    
+     includes = ["."],
+     visibility = ["//visibility:public"],
+ )
+diff --git a/bazel/python_headers.BUILD.in b/bazel/python_headers.BUILD.in
+new file mode 100644
+index 0000000..08775a8
+--- /dev/null
++++ b/bazel/python_headers.BUILD.in
+@@ -0,0 +1,26 @@
++# Copyright 2019 DeepMind Technologies Limited.
++#
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#    http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++# ============================================================================
++#
++# Description:
++#   Build rule for Python headers.
++
++cc_library(
++    name = "python_headers",
++    hdrs = glob(["@INCLUDE_DIRECTORIES_PLACEHOLDER@/**/*.h"]),
++    strip_include_prefix = "@INCLUDE_DIRECTORIES_PLACEHOLDER@",
++    @LINK_LIBRARY_LINE_PLACEHOLDER@
++    includes = ["."],
++    visibility = ["//visibility:public"],
++)
 diff --git a/bazel/system_absl.BUILD b/bazel/system_absl.BUILD
 new file mode 100644
 index 0000000..a51eac3
@@ -134,10 +201,10 @@ index 7b42d57..98dfb1b 100644
  )
  
 diff --git a/setup.py b/setup.py
-index 62053ea..3f96cf6 100644
+index 62053ea..d47b9ce 100644
 --- a/setup.py
 +++ b/setup.py
-@@ -40,6 +40,12 @@ REQUIRED_PACKAGES = [
+@@ -40,6 +40,12 @@
  WORKSPACE_PYTHON_HEADERS_PATTERN = re.compile(
      r'(?<=path = ").*(?=",  # May be overwritten by setup\.py\.)')
  
@@ -150,7 +217,7 @@ index 62053ea..3f96cf6 100644
  IS_WINDOWS = sys.platform.startswith('win')
  
  
-@@ -67,11 +73,29 @@ class BuildBazelExtension(build_ext.build_ext):
+@@ -67,11 +73,51 @@ def bazel_build(self, ext):
      with open('WORKSPACE', 'r') as f:
        workspace_contents = f.read()
  
@@ -159,10 +226,11 @@ index 62053ea..3f96cf6 100644
 +
      with open('WORKSPACE', 'w') as f:
 -      f.write(WORKSPACE_PYTHON_HEADERS_PATTERN.sub(
-+      workspace_contents = WORKSPACE_PYTHON_HEADERS_PATTERN.sub(
-           distutils.sysconfig.get_python_inc().replace(os.path.sep,
-                                                        posixpath.sep),
+-          distutils.sysconfig.get_python_inc().replace(os.path.sep,
+-                                                       posixpath.sep),
 -          workspace_contents))
++      workspace_contents = WORKSPACE_PYTHON_HEADERS_PATTERN.sub(
++          os.environ['PREFIX'],
 +          workspace_contents)
 +
 +      if IS_WINDOWS:
@@ -179,9 +247,30 @@ index 62053ea..3f96cf6 100644
 +          include_dir, workspace_contents)
 +
 +      f.write(workspace_contents)
++
++    with open('bazel/python_headers.BUILD.in') as f:
++      python_build_contents = f.read()
++
++    with open('bazel/python_headers.BUILD', 'w') as f:
++
++      python_build_contents = python_build_contents.replace(
++          "@INCLUDE_DIRECTORIES_PLACEHOLDER@", 
++          os.path.relpath(distutils.sysconfig.get_python_inc(), os.environ['PREFIX']))
++
++      # The only platform that needs an explicit link to Python libraries is macOS
++      if sys.platform.startswith('darwin'):
++          link_library_line = "srcs = [\"lib/libpython3.dylib\"],"
++      else:
++          link_library_line = ""
++
++      python_build_contents = python_build_contents.replace(
++          "@LINK_LIBRARY_LINE_PLACEHOLDER@", 
++          link_library_line)
++
++      f.write(python_build_contents)
++
++
  
      if not os.path.exists(self.build_temp):
        os.makedirs(self.build_temp)
--- 
-2.34.1
 
