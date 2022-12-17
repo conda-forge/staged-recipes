@@ -19,6 +19,12 @@ if [[ "${target_platform}" == "osx-arm64" ]]; then
   echo "build --cpu=${TARGET_CPU}" >> .bazelrc
 fi
 
+if [[ "${target_platform}" == osx-* ]]; then
+  echo "build --linkopt=-Wl,-undefined,dynamic_lookup" >> .bazelrc
+fi
+
+cat .bazelrc
+
 $PYTHON -m pip install . -vv --no-deps
 
 # Clean up to speedup postprocessing
