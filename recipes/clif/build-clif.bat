@@ -3,11 +3,10 @@
 mkdir build
 cd build
 
-cmake -G "Ninja" ^
+cmake -G "Ninja" .. ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
-    -DBUILD_SHARED_LIBS=ON ^
-    ..
+    -DBUILD_SHARED_LIBS=ON
 if %ERRORLEVEL% neq 0 exit 1
 
 cmake --build .
