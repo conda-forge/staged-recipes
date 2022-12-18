@@ -1,6 +1,9 @@
 #!/bin/bash
 set -ex
 
+# delete bazel file that interferes
+rm BUILD
+
 mkdir build
 cd build
 
