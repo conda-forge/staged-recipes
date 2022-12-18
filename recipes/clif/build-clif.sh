@@ -4,7 +4,8 @@ set -ex
 mkdir build
 cd build
 
-cmake ${CMAKE_ARGS} \
+cmake -G Ninja \
+    ${CMAKE_ARGS} \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     -DBUILD_SHARED_LIBS=ON \
     ..
