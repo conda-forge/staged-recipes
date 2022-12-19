@@ -5,11 +5,10 @@ set -ex
 mkdir build
 cd build
 
-cmake_config_args=(
-    -DCMAKE_BUILD_TYPE=Release
-    -DCMAKE_INSTALL_PREFIX=$PREFIX
-)
-
-cmake ${CMAKE_ARGS} -G "Ninja" .. "${cmake_config_args[@]}"
+cmake -G "Ninja" \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_PREFIX=$PREFIX \
+  ${CMAKE_ARGS} \
+  ..
 cmake --build . --config Release -- -j${CPU_COUNT}
 cmake --build . --config Release --target install
