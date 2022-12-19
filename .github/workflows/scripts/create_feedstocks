@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+set -e
+set -x
+
+# Ensure we are on the latest commit
+# of the branch where we are converting
+# recipes from. Currently this is `main`.
+export CF_CURRENT_BRANCH="${GITHUB_REF/refs\/heads\//}"
+git checkout "${CF_CURRENT_BRANCH}"
+
+# 2 core available on Travis CI Linux workers: https://docs.travis-ci.com/user/ci-environment/#Virtualization-environments
+# CPU_COUNT is passed through conda build: https://github.com/conda/conda-build/pull/1149
+export CPU_COUNT=2
+
+export PYTHONUNBUFFERED=1
+
+# Install Mambaforge.
+echo ""
+echo "Installing a fresh version of Mambaforge."
+curl -L https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh > ~/Mambaforge.sh
+bash ~/Mambaforge.sh -b -p ~/Mambaforge
+touch ~/Mambaforge/conda-meta/pinned
+(
+    source ~/Mambaforge/bin/activate base
+
+    # Configure conda.
+    echo ""
+    echo "Configuring conda."
+    conda config --set show_channel_urls true
+    conda config --set auto_update_conda false
+    conda config --set add_pip_as_python_dependency false
+
+    unset conda
+    mamba update -n base --yes --quiet conda mamba
+)
+source ~/Mambaforge/bin/activate root
+
+mamba install --yes --quiet \
+  conda-forge-ci-setup=3.* \
+  "conda-smithy>=3.7.1,<4.0.0a0" \
+  conda-forge-pinning \
+  "conda-build>=3.16" \
+  "gitpython>=3.0.8" \
+  requests \
+  ruamel.yaml \
+  "gitpython<3.1.20"
+
+conda info
+mamba info
+conda config --get
+git config --global init.defaultBranch main
+
+python .github/workflows/scripts/create_feedstocks.py
