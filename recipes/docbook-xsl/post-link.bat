@@ -1,5 +1,7 @@
 @echo off
 
+:: See post-link.sh.
+
 if not exist "%PREFIX%\etc\xml\catalog" (
     md "%PREFIX%\etc\xml"
     xmlcatalog --noout --create "%PREFIX%\etc\xml\catalog"
