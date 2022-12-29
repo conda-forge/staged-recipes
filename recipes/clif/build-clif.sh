@@ -10,6 +10,7 @@ cd build
 cmake -G Ninja \
     ${CMAKE_ARGS} \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+    -DCMAKE_LIBRARY_PATH="${PREFIX}/lib" \
     -DBUILD_SHARED_LIBS=ON \
     ..
 
