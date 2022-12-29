@@ -2,8 +2,11 @@ set -ex
 
 DEST_DIR="${PREFIX}"
 
-make all
-make install-lib install-unrar
+make lib
+make install-lib
+
+make unrar
+make install-unrar
 
 # Include header files
 mkdir -p "${DEST_DIR}/include/unrar"
