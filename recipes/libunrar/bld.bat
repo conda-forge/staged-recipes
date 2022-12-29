@@ -7,6 +7,9 @@ msbuild UnRARDll.vcxproj /p:configuration=release
 if errorlevel 1 exit 1
 copy build\unrardll64\release\UnRAR.dll %LIBRARY_BIN%
 if errorlevel 1 exit 1
+dir build\unrardll64\release
+dir %LIBRARY_PREFIX%
+dir %LIBRARY_LIB%
 copy build\unrardll64\release\UnRAR.lib %LIBRARY_LIB%
 if errorlevel 1 exit 1
 
