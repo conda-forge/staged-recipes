@@ -18,7 +18,6 @@ make unrar
 mkdir -p "${PREFIX}/bin"
 DESTDIR="${PREFIX}" make install-unrar
 
-# Include header files
 mkdir -p "${PREFIX}/include/unrar"
 cp *.hpp "${PREFIX}/include/unrar"
 
