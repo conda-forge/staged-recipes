@@ -5,6 +5,7 @@ then
   export CXXFLAGS="${CXXFLAGS} -O2 -Wno-logical-op-parentheses -Wno-switch -Wno-dangling-else"
   export LIBFLAGS="${LIBFLAGS} -fPIC"
   export DEFINES="${DEFINES} -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -DRAR_SMP"
+  export LDFLAGS="${LDFLAGS} -pthread"
 else
   export CXXFLAGS="${CXXFLAGS} -O2"
   export DEFINES="${DEFINES} -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE"
