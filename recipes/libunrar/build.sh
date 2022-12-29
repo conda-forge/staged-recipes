@@ -1,6 +1,6 @@
 set -ex
 
-DEST_DIR="${PREFIX}"
+DESTDIR="${PREFIX}"
 
 make lib
 make install-lib
@@ -9,8 +9,8 @@ make unrar
 make install-unrar
 
 # Include header files
-mkdir -p "${DEST_DIR}/include/unrar"
-cp *.hpp "${DEST_DIR}/include/unrar"
+mkdir -p "${PREFIX}/include/unrar"
+cp *.hpp "${PREFIX}/include/unrar"
 
 # CFEP-18
-rm "${DEST_DIR}/lib/libunrar.a"
+rm "${PREFIX}/lib/libunrar.a"
