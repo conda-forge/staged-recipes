@@ -17,6 +17,9 @@ cmake -G Ninja \
 cmake --build .
 cmake --install .
 
+# debug
+ls -R ./clif
+
 # shift some generated artefacts where python build expects them, see
 # https://github.com/google/clif/blob/v0.4.1/INSTALL.sh#L86-L90
 cp ./clif/protos/ast_pb2.py ${SRC_DIR}/clif/protos/
