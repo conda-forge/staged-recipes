@@ -4,7 +4,9 @@ make lib
 DESTDIR="${PREFIX}" make install-lib
 
 make unrar
+mkdir -p "${PREFIX}/bin"
 DESTDIR="${PREFIX}" make install-unrar
+ls -l "${PREFIX}/bin"
 
 # Include header files
 mkdir -p "${PREFIX}/include/unrar"
