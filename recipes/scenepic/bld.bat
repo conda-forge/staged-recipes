@@ -5,7 +5,7 @@ mkdir build
 cd build
 
 :: Configure using the CMakeFiles
-cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" -DCMAKE_BUILD_TYPE=Release -DCPP_TARGETS=cpp ..
+cmake -G "NMake Makefiles" -DCMAKE_INSTALL_PREFIX:PATH="%LIBRARY_PREFIX%" -DCMAKE_BUILD_TYPE=Release -DCPP_TARGETS=cpp -DSCENEPIC_BUILD_TESTS=ON ..
 if errorlevel 1 exit 1
 
 :: Build!
