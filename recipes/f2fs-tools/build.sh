@@ -1,6 +1,6 @@
 set -ex
 
-if [[ "$target_platform" == "linux-*" ]]
+if [[ "$target_platform" == linux-* ]]
 then
   # librt is required before glibc 2.17
   LDFLAGS="-lrt ${LDFLAGS}"
