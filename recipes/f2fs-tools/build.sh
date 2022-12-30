@@ -8,7 +8,7 @@ then
   # https://github.com/torvalds/linux/blob/master/include/uapi/linux/falloc.h
   CFLAGS="-DFALLOC_FL_KEEP_SIZE=0x01 ${CFLAGS}"
   # https://github.com/torvalds/linux/blob/master/include/uapi/linux/fs.h
-  CFLAGS="-DBLKSECDISCARD='_IO(0x12,125)' ${CFLAGS}"
+  CFLAGS="-DBLKSECDISCARD=_IO\\(0x12,125\\) ${CFLAGS}"
 fi
 
 ./autogen.sh
