@@ -19,3 +19,10 @@ then
 fi
 make -j${CPU_COUNT}
 make install
+
+if [[ "$target_platform" != "win-64" ]]
+then
+  # CFEP-18: Remove static libraries
+  rm "${PREFIX}"/lib/libf2fs_format.a
+  rm "${PREFIX}"/lib/libf2fs.a
+fi
