@@ -14,7 +14,11 @@ channels:
  - conda-forge
 
 conda-build:
- root-dir: /home/conda/staged-recipes/build_artifacts
+  root-dir: /home/conda/staged-recipes/build_artifacts
+
+pkgs_dirs:
+  - /home/conda/staged-recipes/build_artifacts/pkg_cache
+  - /opt/conda/pkgs
 
 show_channel_urls: true
 
