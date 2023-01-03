@@ -24,6 +24,8 @@ target_link_libraries(uSockets PRIVATE OpenSSL::SSL OpenSSL::Crypto PkgConfig::U
 # See https://github.com/uNetworking/uSockets/blob/v0.8.5/Makefile#L32
 # and https://github.com/uNetworking/uSockets/blob/v0.8.5/Makefile#L15
 target_compile_definitions(uSockets PRIVATE -DLIBUS_USE_LIBUV -DLIBUS_USE_OPENSSL)
+target_compile_features(uSockets PRIVATE cxx_std_17)
+set_property(TARGET uSockets PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 # Install
 install(FILES src/libusockets.h DESTINATION include)
@@ -43,8 +45,11 @@ if(BUILD_TESTING)
   add_test(NAME hammer_test_unix
            COMMAND hammer_test_unix)
 
-  add_executable(http_load_test ${CMAKE_CURRENT_SOURCE_DIR}/examples/http_load_test.c)
-  target_link_libraries(http_load_test uSockets)
-  add_test(NAME http_load_test
-           COMMAND http_load_test)
+  # http_load_test uses the = {} syntax currently not supported by VS2019
+  if(NOT MSVC)
+    add_executable(http_load_test ${CMAKE_CURRENT_SOURCE_DIR}/examples/http_load_test.c)
+    target_link_libraries(http_load_test uSockets)
+    add_test(NAME http_load_test
+             COMMAND http_load_test)
+  endif()
 endif()
