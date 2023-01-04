@@ -7,7 +7,7 @@ else
   export FORCE_CUDA=0
 fi
 
-export USE_MKL_BLAS=1
+# export USE_MKL_BLAS=1  # only used for >0.1.0
 export Torch_DIR=$(python -c 'import torch; print(torch.utils.cmake_prefix_path)')
 
 export FORCE_NINJA=1
