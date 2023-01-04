@@ -1,18 +1,27 @@
 diff --git a/setup.py b/setup.py
-index a6ba6e3..7fadf92 100644
+index a6ba6e3..5cced9b 100644
 --- a/setup.py
 +++ b/setup.py
-@@ -40,9 +40,6 @@ third_party_install_dir = os.environ.get('AIM_DEP_DIR', '/usr/local')
+@@ -37,12 +37,15 @@ else:
+     aimrocks_extra_link_args += ["-Wl,-rpath,$ORIGIN"]
+ 
+ third_party_install_dir = os.environ.get('AIM_DEP_DIR', '/usr/local')
++
++# By default aimrocks is only linked to rocksdb.
  third_party_deps = ['rocksdb']
  
- third_party_lib_dir = os.path.join(third_party_install_dir, 'lib')
+-third_party_lib_dir = os.path.join(third_party_install_dir, 'lib')
 -third_party_libs = glob(os.path.join(third_party_lib_dir, 'librocksdb.*'))
--
++# `AIMROCKS_LINK_LIBS` can be used to link against additional libraries.
++if os.environ.get("AIMROCKS_LINK_LIBS") is not None:
++    third_party_deps += os.environ.get("AIMROCKS_LINK_LIBS", "").split(",")
+ 
 -third_party_headers = [os.path.join(third_party_install_dir, 'include/rocksdb')]
++third_party_lib_dir = os.path.join(third_party_install_dir, 'lib')
  
  # We define a local include directory to store all the required public headers.
  # The third party headers are copied into this directory to enable binding with
-@@ -54,17 +51,25 @@ local_lib_dir = os.path.abspath(
+@@ -54,17 +57,25 @@ local_lib_dir = os.path.abspath(
      os.path.join(os.path.dirname(__file__), 'src/aimrocks')
  )
  
@@ -20,20 +29,20 @@ index a6ba6e3..7fadf92 100644
 -for source in third_party_libs:
 -    print('copying third party lib', source, local_lib_dir)
 -    copy_file(source, local_lib_dir)
-+if os.environ.get("EMBED_ROCKSDB", "1") == "1":
-+
-+    third_party_libs = glob(os.path.join(third_party_lib_dir, 'librocksdb.*'))
++if os.environ.get("AIMROCKS_EMBED_ROCKSDB", "1") == "1":
  
 -for source in third_party_headers:
 -    basename = os.path.basename(source)
 -    destination = os.path.join(local_include_dir, basename)
 -    copy_tree(source, destination,
 -              preserve_symlinks=False, update=True)
++    third_party_libs = glob(os.path.join(third_party_lib_dir, 'librocksdb.*'))
+ 
 +    print('third party libs detected:', third_party_libs)
 +    for source in third_party_libs:
 +        print('copying third party lib', source, local_lib_dir)
 +        copy_file(source, local_lib_dir)
- 
++
 +    third_party_headers = [os.path.join(third_party_install_dir, 'include/rocksdb')]
 +    for source in third_party_headers:
 +        basename = os.path.basename(source)
@@ -47,14 +56,15 @@ index a6ba6e3..7fadf92 100644
  
  exts = [
      Extension(
-@@ -73,13 +78,12 @@ exts = [
+@@ -73,13 +84,12 @@ exts = [
          extra_compile_args=aimrocks_extra_compile_args,
          extra_link_args=aimrocks_extra_link_args,
          language='c++',
 -        include_dirs=[local_include_dir],
 +        include_dirs=include_dirs,
          library_dirs=[third_party_lib_dir],
-         libraries=['rocksdb'],
+-        libraries=['rocksdb'],
++        libraries=third_party_deps,
      )
  ]
  
