@@ -3,7 +3,6 @@ set -ex
 
 if [[ ${cuda_compiler_version} != "None" ]]; then
   export FORCE_CUDA=1
-  export CUDA_ARCH_LIST=75
 else
   export FORCE_CUDA=0
 fi

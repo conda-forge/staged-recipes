@@ -7,7 +7,6 @@ if "%cuda_compiler_version%" == "None" (
     set FORCE_CUDA=0
 ) else (
     set FORCE_CUDA=1
-    set CUDA_ARCH_LIST=75
 )
 
 if "%build_with_cuda%" == "" goto cuda_flags_end
