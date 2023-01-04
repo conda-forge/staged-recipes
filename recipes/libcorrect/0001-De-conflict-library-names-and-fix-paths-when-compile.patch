@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ryan Volz <ryan.volz@gmail.com>
+Date: Wed, 30 Nov 2022 14:59:31 -0500
+Subject: [PATCH] De-conflict library names and fix paths when compiled with
+ MSVC.
+
+---
+ CMakeLists.txt | 24 ++++++++++++++++++------
+ 1 file changed, 18 insertions(+), 6 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 2e8e07e..4df1d75 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -73,8 +73,12 @@ else()
+   set(correct_obj_files $<TARGET_OBJECTS:correct-reed-solomon> $<TARGET_OBJECTS:correct-convolutional>)
+ endif()
+ add_library(correct SHARED ${correct_obj_files})
+-add_library(correct_static ${correct_obj_files})
+-set_target_properties(correct_static PROPERTIES OUTPUT_NAME "correct")
++add_library(correct_static STATIC ${correct_obj_files})
++if(MSVC)
++  set_target_properties(correct_static PROPERTIES OUTPUT_NAME "correct_static")
++else(MSVC)
++  set_target_properties(correct_static PROPERTIES OUTPUT_NAME "correct")
++endif(MSVC)
+ if(HAVE_SSE)
+   target_compile_definitions(correct PUBLIC HAVE_SSE=1)
+   target_compile_definitions(correct_static PUBLIC HAVE_SSE=1)
+@@ -86,17 +90,25 @@ add_subdirectory(tools)
+ # add_subdirectory(benchmarks)
+ 
+ install(TARGETS correct correct_static
+-        DESTINATION lib)
++        RUNTIME DESTINATION bin
++        LIBRARY DESTINATION lib
++        ARCHIVE DESTINATION lib)
+ install(FILES ${INSTALL_HEADERS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include")
+ 
+-add_library(fec_shim_static EXCLUDE_FROM_ALL src/fec_shim.c ${correct_obj_files})
+-set_target_properties(fec_shim_static PROPERTIES OUTPUT_NAME "fec")
++add_library(fec_shim_static STATIC EXCLUDE_FROM_ALL src/fec_shim.c ${correct_obj_files})
++if(MSVC)
++  set_target_properties(fec_shim_static PROPERTIES OUTPUT_NAME "fec_static")
++else(MSVC)
++  set_target_properties(fec_shim_static PROPERTIES OUTPUT_NAME "fec")
++endif(MSVC)
+ add_library(fec_shim_shared SHARED EXCLUDE_FROM_ALL src/fec_shim.c ${correct_obj_files})
+ set_target_properties(fec_shim_shared PROPERTIES OUTPUT_NAME "fec")
+ add_custom_target(fec-shim-h COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/include/fec_shim.h ${PROJECT_BINARY_DIR}/include/fec.h)
+ add_custom_target(shim DEPENDS fec_shim_static fec_shim_shared fec-shim-h)
+ 
+ install(TARGETS fec_shim_static fec_shim_shared
+-        DESTINATION lib
++        RUNTIME DESTINATION bin
++        LIBRARY DESTINATION lib
++        ARCHIVE DESTINATION lib
+         OPTIONAL)
+ install(FILES ${PROJECT_BINARY_DIR}/include/fec.h DESTINATION "${CMAKE_INSTALL_PREFIX}/include" OPTIONAL)
+-- 
+2.34.1
+
