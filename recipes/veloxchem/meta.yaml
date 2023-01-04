@@ -1,0 +1,100 @@
+{% set name = "veloxchem" %}
+{% set version = "1.0" %}
+{% set pre = "rc3" %}
+{% set sha256 = "ed22aeb72d832f0daccffa393a1a349dab65fc85cefbb6a069933d3b51ad7ffd" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://gitlab.com/veloxchem/veloxchem/-/archive/v{{ version }}-{{ pre }}/veloxchem-v{{ version }}-{{ pre }}.tar.gz
+  sha256: {{ sha256 }}
+  patches:
+    - patches/geometric-as-posix.patch
+
+build:
+  number: 0
+  script_env:
+    - OMPI_MCA_plm_rsh_agent=  # [mpi == 'openmpi' and linux]
+  binary_relocation: true
+  entry_points:
+    - vlx=veloxchem.main:main
+
+requirements:
+  build:
+    - cmake >=3.18
+    - {{ compiler('cxx') }}
+    - libgomp  # [linux]
+    - llvm-openmp  # [osx or win]
+    - ninja
+    - pkg-config  # [unix]
+  host:
+    - pybind11 >=2.6,<3.0
+    - python
+    - pybind11-abi
+    - {{ mpi }}
+    - mpi4py >=3.0
+    - libcblas
+    - liblapacke
+    - numpy >=1.15
+    - xtb  # [unix]
+  run:
+    - psutil >=5.6
+    - mdanalysis >=1.0
+    - geometric
+    - cppe  # [unix]
+    - h5py >=2.8
+    - python
+    - {{ pin_compatible('mpi4py') }}
+    - {{ pin_compatible('numpy') }}
+  run_constrained:
+    - libopenblas * openmp*  # [unix]
+
+test:
+  requires:
+    - pytest
+    - libopenblas  # [unix]   
+    - mkl  # [win]
+    - pip
+  imports:
+    - veloxchem
+  commands:
+    - pip check
+    # verify we can execute the CLI
+    - vlx --version
+    - vlx --help
+    # Inspect linkage
+    - export PYLIB_EXT=`$PYTHON -c 'from numpy import distutils; print(distutils.misc_util.get_shared_lib_extension(is_python_ext=True))'`  # [unix]
+    - ldd -v $SP_DIR/veloxchem/veloxchemlib$PYLIB_EXT  # [linux]
+    - otool -L $SP_DIR/veloxchem/veloxchemlib$PYLIB_EXT  # [osx]
+    # run integration tests
+    - export OMPI_ALLOW_RUN_AS_ROOT=1  # [mpi == 'openmpi']
+    - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1  # [mpi == 'openmpi']
+    - export OMP_NUM_THREADS=$CPU_COUNT  # [unix]
+    - mpiexec -n 1 $PYTHON -m pytest --capture=no --log-cli-level=INFO --pyargs veloxchem -m solvers  # [unix]
+    - export MPI_NUM_PROCS=2  # [unix]
+    - export OMP_NUM_THREADS=$(($CPU_COUNT/$MPI_NUM_PROCS))  # [unix]
+    - mpiexec -n $MPI_NUM_PROCS $PYTHON -m pytest --capture=no --log-cli-level=INFO --pyargs veloxchem -m solvers  # [unix]
+    - set OMP_NUM_THREADS=%CPU_COUNT%  # [win]
+    - mpiexec -n 1 %PYTHON% -m pytest --capture=no --log-cli-level=INFO --pyargs veloxchem -m solvers  # [win]
+    - set MPI_NUM_PROCS=2  # [win]
+    - set /A OMP_NUM_THREADS="%CPU_COUNT%/%MPI_NUM_PROCS%"  # [win]
+    - mpiexec -n %MPI_NUM_PROCS% %PYTHON% -m pytest --capture=no --log-cli-level=INFO --pyargs veloxchem -m solvers  # [win]
+
+about:
+  home: https://veloxchem.org
+  dev_url: https://gitlab.com/veloxchem/veloxchem
+  doc_url: https://veloxchem.org/docs/intro.html
+  doc_source_url: https://gitlab.com/veloxchem/veloxchem/-/blob/master/docs/index.rst
+  license: LGPL-3.0-or-later
+  license_url: https://opensource.org/licenses/LGPL-3.0
+  license_file:
+    - COPYING
+    - COPYING.LESSER
+  license_family: LGPL
+  summary: A Python-based, open source quantum chemistry program package
+
+extra:
+  recipe-maintainers:
+    - robertodr
