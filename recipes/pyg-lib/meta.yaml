@@ -1,0 +1,81 @@
+{% set name = "pyg-lib" %}
+{% set version = "0.1.0" %}
+{% set torch_proc_type = "cuda" if cuda_compiler_version != "None" else "cpu" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/pyg-team/pyg-lib/archive/refs/tags/{{ version }}.tar.gz
+  sha256: 71a19a23eb302e5023b635c7c3357d63585fcdde145b53d030f2838780bbb061
+
+  # Will be merged upstream: https://github.com/pyg-team/pyg-lib/issues/163
+  patches:
+    - cmake_compat.patch
+
+build:
+  number: 0
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version == "None"]
+  skip: true  # [win or cuda_compiler_version == '10.2']
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}                 # [cuda_compiler_version not in (undefined, 'None')]
+    - sysroot_linux-64 ==2.17                # [linux64]
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - pytorch                                # [build_platform != target_platform]
+    - pytorch =*={{ torch_proc_type }}*      # [build_platform != target_platform]
+    - cmake
+    - ninja
+    - llvm-openmp  # [osx]
+    - libgomp      # [linux]
+    - parallel-hashmap
+    - cutlass                              # [cuda_compiler_version not in (undefined, 'None')]
+  host:
+    - python
+    - pip
+    - pytorch
+    - pytorch =*={{ torch_proc_type }}*
+  run:
+    - python
+    - parallel-hashmap
+    - triton                               # [linux and cuda_compiler_version not in (undefined, 'None')]
+    - cutlass                              # [cuda_compiler_version not in (undefined, 'None')]
+  run_constrained:
+    # 2022/02/05 hmaarrfk
+    # While conda packaging seems to allow us to specify
+    # constraints on the same package in different lines
+    # the resulting package doesn't have the ability to
+    # be specified in multiples lines
+    # This makes it tricky to use run_exports
+    # we add the GPU constraint in the run_constrained
+    # to allow us to have "two" constraints on the
+    # running package
+    - pytorch =*={{ torch_proc_type }}*
+
+test:
+  imports:
+    - pyg_lib
+  requires:
+    - pytest
+  source_files:
+    - test/
+  commands:
+    - pytest
+
+about:
+  home: https://github.com/pyg-team/pyg-lib
+  summary: Low-Level Graph Neural Network Operators for PyG
+  license: MIT
+  license_file: LICENSE
+  dev_url: https://github.com/pyg-team/pyg-lib
+
+extra:
+  recipe-maintainers:
+    - hadim
+    - rusty1s
