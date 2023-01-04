@@ -7,7 +7,6 @@ cd build
 
 cmake ${CMAKE_ARGS} -GNinja .. \
       -DCMAKE_BUILD_TYPE=Release \
-      -DBUILD_SHARED_LIBS:BOOL=ON \
       -DBUILD_TESTING:BOOL=ON
 
 cmake --build . --config Release
