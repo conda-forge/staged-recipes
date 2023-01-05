@@ -2,7 +2,7 @@
 
 set -ex
 
-echo $CC >> compilers/default
+echo "$CC $CFLAGS" >> compilers/default
 
 ./configure --prefix=$PREFIX
 
