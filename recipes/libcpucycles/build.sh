@@ -9,3 +9,5 @@ echo "$CC $CFLAGS" >> compilers/default
 make
 
 make install
+
+rm $PREFIX/lib/*.a
