@@ -1,0 +1,84 @@
+# Note: there are many handy hints in comments in this example -- remove them when you've finalized your recipe
+# If your package is python based, we recommend using Grayskull to generate it instead:
+# https://github.com/conda-incubator/grayskull
+
+# Jinja variables help maintain the recipe as you'll update the version only here.
+# Using the name variable with the URL in line 14 is convenient
+# when copying and pasting from another recipe, but not really needed.
+{% set user = "craabreu" %}
+{% set name = "openmm-nonbonded-slicing" %}
+{% set version = "0.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/{{ user }}/{{ name }}/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 796e504837d27e747ded1f55a3bd01f8bef4c72036dd497c473d1579220521b2
+  patches:
+  - cmakelists.patch
+
+build:
+  number: 0
+  skip: true  # [win or (linux and cuda_compiler_version in (undefined, 'None'))]
+  missing_dso_whitelist:
+    - "*/libcuda.*"    # [linux64 or ppc64le]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [linux and cuda_compiler_version != 'None']
+    - {{ cdt('mesa-libgl-devel') }}  # [linux]
+    - cmake
+    - make
+    - conda-build
+
+  host:
+    - python
+    - pip
+    - openmm >=7.7
+    - swig <4.1
+    - ocl-icd  # [linux]
+    - khronos-opencl-icd-loader  # [osx]
+  run:
+    - python
+    - {{ pin_compatible('openmm', min_pin='x.x', max_pin='x.x') }}
+    - ocl-icd  # [linux]
+    - ocl-icd-system  # [linux]
+    - khronos-opencl-icd-loader  # [osx]
+    - ocl_icd_wrapper_apple      # [osx]
+
+test:
+  imports:
+    - nonbondedslicing
+  commands: |
+    cd ${PREFIX}/share/{{ name }}/tests
+    set +e
+    for f in Test*; do
+      if [[ $f == *Cuda* || $f == *OpenCL* ]]; then
+        continue
+      fi
+      ./${f}
+      ((exitcode+=$?))
+    done
+    exit $exitcode
+
+about:
+  home: https://github.com/{{ user }}/{{ name }}
+  summary: 'An OpenMM plugin for slicing nonbonded interactions'
+  description: |
+    This plugin contains the SlicedNonbondedForce class, a variant of
+    OpenMM's NonbondedForce. By partitioning all particles among disjoint
+    subsets, the total potential energy becomes a linear combination of
+    contributions from pairs of subsets.
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE.md
+  doc_url: https://{{ name }}.readthedocs.io/en/stable
+  dev_url: https://github.com/{{ user }}/{{ name }}
+
+extra:
+  recipe-maintainers:
+    - craabreu
