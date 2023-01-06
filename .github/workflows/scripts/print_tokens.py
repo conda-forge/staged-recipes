@@ -13,4 +13,4 @@ for token in [
     except Exception:
         loging = "NOT FOUND"
 
-    print("%s: %s" % (token, loging))
+    print("%s: %s" % (token, login))
