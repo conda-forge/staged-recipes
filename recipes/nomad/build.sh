@@ -4,10 +4,10 @@ set -euxo pipefail
 
 make deps
 
-# TODO make prerelease
+# XXX We should run "make prerelease" here instead but that fails for some reason
 make ember-dist static-assets
 
-# TODO: cross osx-arm64
+# XXX cross osx-arm64 not tested.
 case "$target_platform" in
   linux-64)
     target=linux_amd64
@@ -28,18 +28,10 @@ case "$target_platform" in
 esac
 make pkg/$target/nomad
 
-# TODO
+# XXX Workaround for "make" above installing lots of things into $PREFIX/bin.
 rm $PREFIX/bin/*
 cp pkg/$target/nomad $PREFIX/bin
 
-# TODO this created 40G of licenses?!
-#rm -rf pkg
-#du -hs *
-
-#rm -rf ui
+# XXX Running go-licenses doesn't currently work; fails after creating 40 GB (!) worth of license files.
 # Ignore warning about go-spin (MIT licensed)
-#go-licenses save . --save_path=./license-files || true
-#test -d license-files/github.com
-#ls -l 
-#ls -l license-files
-#du -hs *
+# go-licenses save . --save_path=./license-files || true
