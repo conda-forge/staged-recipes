@@ -519,7 +519,7 @@ if __name__ == '__main__':
         print_rate_limiting_info(gh, 'GH_TOKEN')
     # if gh_drone:
     #     print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
-    if gh_travis:
-        print_rate_limiting_info(gh_travis, 'GH_TRAVIS_TOKEN')
+    # if gh_travis:
+    #     print_rate_limiting_info(gh_travis, 'GH_TRAVIS_TOKEN')
 
     sys.exit(exit_code)
