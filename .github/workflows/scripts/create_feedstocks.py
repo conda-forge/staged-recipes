@@ -198,8 +198,9 @@ if __name__ == '__main__':
     # gh_drone = Github(os.environ['GH_DRONE_TOKEN'])
     # gh_drone_remaining = print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
-    gh_travis = Github(os.environ['GH_TRAVIS_TOKEN'])
-
+    # gh_travis = Github(os.environ['GH_TRAVIS_TOKEN'])
+    gh_travis = None
+    
     gh = None
     if 'GH_TOKEN' in os.environ:
         write_token('github', os.environ['GH_TOKEN'])
