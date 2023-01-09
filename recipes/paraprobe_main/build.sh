@@ -23,6 +23,9 @@ cd paraprobe-utils
 
 cp ../thirdparty/mandatory/hdf5cxxwrapper/src/cxx/* src/cxx/
 cp ../../../voro++/src/* src/cxx/
+#add cgal
+
+
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
 make
 ls
