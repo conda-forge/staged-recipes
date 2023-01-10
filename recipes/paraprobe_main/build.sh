@@ -37,7 +37,7 @@ cp paraprobe-utils/CMakeFiles/paraprobe-utils.dir/src/cxx/* compiled_code/
 
 cd paraprobe-surfacer
 #export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
-
+export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
 cmake -D Boost_NO_BOOST_CMAKE=ON \
 	  -D CMAKE_BUILD_TYPE=Release \
 	  -D CMAKE_CXX_COMPILER=mpicxx \
