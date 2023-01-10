@@ -5,6 +5,7 @@ sed 's/\(enable_wrapper_rpath=\)"yes"/\1"no"/' $mpifort.orig >$mpifort
 chmod +x $mpifort
 
 echo ${SP_DIR}
+export Boost_ROOT=$PREFIX
 
 #test python building
 mkdir ${SP_DIR}/paraprobe_autoreporter
