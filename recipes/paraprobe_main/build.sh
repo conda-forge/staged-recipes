@@ -38,11 +38,11 @@ mkdir compiled_code
 #cp paraprobe-utils/CMakeFiles/paraprobe-utils.dir${SRC_DIR}/paraprobe-toolbox/code/paraprobe-utils/src/cxx/* compiled_code/
 cp paraprobe-utils/CMakeFiles/paraprobe-utils.dir/src/cxx/* compiled_code/
 
-cd paraprobe-surfacer
-cmake -DBoost_NO_BOOST_CMAKE=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
-make
-cp paraprobe_surfacer ${PREFIX}/bin/
-cd ..
+#cd paraprobe-surfacer
+#cmake -DBoost_NO_BOOST_CMAKE=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
+#make
+#cp paraprobe_surfacer ${PREFIX}/bin/
+#cd ..
 
 cd paraprobe-ranger
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
@@ -50,35 +50,35 @@ make
 cp paraprobe_ranger ${PREFIX}/bin/
 cd ..
 
-cd paraprobe-distancer
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
-make
-cp paraprobe_distancer ${PREFIX}/bin/
-cd ..
+#cd paraprobe-distancer
+#cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
+#make
+#cp paraprobe_distancer ${PREFIX}/bin/
+#cd ..
 
-cd paraprobe-tessellator
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
-make
-cp paraprobe_tessellator ${PREFIX}/bin/
-cd ..
+#cd paraprobe-tessellator
+#cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
+#make
+#cp paraprobe_tessellator ${PREFIX}/bin/
+#cd ..
 
-cd paraprobe-spatstat
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
-make
-cp paraprobe_spatstat ${PREFIX}/bin/
-cd ..
+#cd paraprobe-spatstat
+#cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
+#make
+#cp paraprobe_spatstat ${PREFIX}/bin/
+#cd ..
 
-cd paraprobe-nanochem
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
-make
-cp paraprobe_nanochem ${PREFIX}/bin/
-cd ..
+#cd paraprobe-nanochem
+#cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
+#make
+#cp paraprobe_nanochem ${PREFIX}/bin/
+#cd ..
 
-cd paraprobe-intersector
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
-make
-cp paraprobe_intersector ${PREFIX}/bin/
-cd ..
+#cd paraprobe-intersector
+#cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
+#make
+#cp paraprobe_intersector ${PREFIX}/bin/
+#cd ..
 
 
 
