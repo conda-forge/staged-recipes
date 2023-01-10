@@ -6,9 +6,6 @@ chmod +x $mpifort
 
 echo ${SP_DIR}
 
-export EXTERNAL_CGAL_INCLUDE_DIR="${BUILD_PREFIX}/include/"
-echo ${EXTERNAL_CGAL_INCLUDE_DIR}
-
 #test python building
 mkdir ${SP_DIR}/paraprobe_autoreporter
 cp -rf paraprobe-toolbox/code/paraprobe-autoreporter/src/python/* ${SP_DIR}/paraprobe_autoreporter
@@ -38,12 +35,20 @@ mkdir compiled_code
 #cp paraprobe-utils/CMakeFiles/paraprobe-utils.dir${SRC_DIR}/paraprobe-toolbox/code/paraprobe-utils/src/cxx/* compiled_code/
 cp paraprobe-utils/CMakeFiles/paraprobe-utils.dir/src/cxx/* compiled_code/
 
-#cd paraprobe-surfacer
+cd paraprobe-surfacer
 #export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
-#cmake -DBoost_NO_BOOST_CMAKE=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
-#make
-#cp paraprobe_surfacer ${PREFIX}/bin/
-#cd ..
+
+cmake -D Boost_NO_BOOST_CMAKE=ON \
+	  -D CMAKE_BUILD_TYPE=Release \
+	  -D CMAKE_CXX_COMPILER=mpicxx \
+      -D CGAL_INCLUDE_DIR=${PREFIX}/include \
+      -D CGAL_LIB_PATH=${PREFIX}/lib \
+      -D BOOST_INCLUDE_DIR=${PREFIX}/include \
+      -D BOOST_LIB_PATH=${PREFIX}/lib \
+	  -D CONDA_PREFIX=${PREFIX} .
+make
+cp paraprobe_surfacer ${PREFIX}/bin/
+cd ..
 
 cd paraprobe-spatstat
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
