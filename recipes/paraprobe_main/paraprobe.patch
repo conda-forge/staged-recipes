@@ -136,6 +136,326 @@ index 0000000..e69de29
 diff --git a/code/paraprobe-autoreporter/src/python/wizard/thirdparty/mandatory/xdmf/__init__.py b/code/paraprobe-autoreporter/src/python/wizard/thirdparty/mandatory/xdmf/__init__.py
 new file mode 100644
 index 0000000..e69de29
+diff --git a/code/paraprobe-distancer/CMakeLists.txt b/code/paraprobe-distancer/CMakeLists.txt
+index 7348ab5..2bd3697 100755
+--- a/code/paraprobe-distancer/CMakeLists.txt
++++ b/code/paraprobe-distancer/CMakeLists.txt
+@@ -10,17 +10,7 @@ message([STATUS] "Projectname is ${MYPROJECTNAME}")
+ project(${MYPROJECTNAME} LANGUAGES CXX)
+ set(CMAKE_BUILD_DIR "build")
+ 
+-
+-#pull general information about external libraries and paths related to paraprobe
+-include("../PARAPROBE.Dependencies.cmake")
+-message([STATUS] "MYPROJECTPATH: ${MYPROJECTPATH}")
+-message([STATUS] "MYUTILSPATH: ${MYUTILSPATH}")
+-message([STATUS] "MYHDF5PATH: ${MYHDFPATH}")
+-message([STATUS] "MYVOROXXPATH: ${MYVOROXXPATH}")
+-
+-#compose a tool-specific path
+-set(MYTOOLPATH "${MYPROJECTPATH}/code/paraprobe-distancer/")
+-message([STATUS] "MYTOOLPATH: ${MYTOOLPATH}")
++message([STATUS] "CONDA_PATH: ${CONDA_PREFIX}")
+ 
+ set(EMPLOY_GNUCOMPILER ON)
+ message([STATUS] "MYCCC_COMPILER: __${CMAKE_C_COMPILER}__")
+@@ -45,50 +35,24 @@ endif()
+ ################################################################################################################################
+ #HDF5 local installation for advanced I/O, collecting metadata and bundle analysis results together
+ include_directories("${MYHDFPATH}/include")
+-link_directories("${MYHDFPATH}/lib")
+-set(MYHDFLINKFLAGS "-L${MYHDFPATH}/lib/ ${MYHDFPATH}/lib/libhdf5_hl.a ${MYHDFPATH}/lib/libhdf5.a ${MYHDFPATH}/lib/libz.a ${MYHDFPATH}/lib/libszaec.a ${MYHDFPATH}/lib/libaec.a -ldl")
++set(MYHDFLINKFLAGS "-L${CONDA_PREFIX}/lib/ ${CONDA_PREFIX}/lib/libhdf5_hl.so ${CONDA_PREFIX}/lib/libhdf5.so ${CONDA_PREFIX}/lib/libz.a ${CONDA_PREFIX}/lib/libsz.a ${CONDA_PREFIX}/lib/libaec.a -ldl")
+ 
+-set(Boost_INCLUDE_DIR "${MYBOOSTPATH}")
+-#include_directories("${MYCGALPATH}")
+-set(CGAL_DIR "${MYCGALPATH}")
+-include_directories("${MYEIGENPATH}")
+-include_directories("${MYVOROXXPATH}/src")
+-
+-#GMP and MPFR is included and found alongside the CGAL library
+-#connect with ExternalLibraries.cmake via MYCGALHOME and MYEIGENHOME
+ find_package(CGAL QUIET)
+-if( CGAL_FOUND )
+-	include( ${CGAL_USE_FILE} )
+-	if (EMPLOY_MYEIGEN)
+-		find_package(Eigen3 3.1.0 REQUIRED) #(3.1.0 or greater)
+-		include(CGAL_Eigen3_support)
+-		if(NOT TARGET CGAL::Eigen3_support)
+-			message(STATUS "This project requires the Eigen library, and will not be compiled.")
+-			return()
+-		endif()
+-	endif()
+-endif()
+-
+-#connect with ExternalLibraries.cmake via MYBOOSTHOME
+-#include_directories(${Boost_INCLUDE_DIR})
+-link_directories(${Boost_LIBRARY_DIR})
++find_package(Eigen)
+ find_package(Boost)
++link_directories(${Boost_LIBRARY_DIR})
+ 
+-#automatically assign project name and compiler flags
+-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MYOPTLEVEL}")
+-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MYOPTLEVEL}")
+-message([STATUS] "We utilize optimization level ${MYOPTLEVEL}")
+ 
+ #setting up compiler-specifics
+ if(EMPLOY_GNUCOMPILER)
+-	set(MYVERBOSE "-fopt-info")
++	#set(MYVERBOSE "-fopt-info")
+ 	add_definitions("${MYOPTLEVEL} ${MYVERBOSE}")
+ 	set(MYOMP "-fopenmp -lpthread")
+ 	add_definitions(${MYOMP})
+ 	add_definitions("-std=c++1z")
+-	add_definitions("-Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat 
+-		-Wuninitialized -Wmaybe-uninitialized -Wmain -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point 
+-		-Wtrigraphs -Wunused-function -Wunused-but-set-variable -Wunused-variable") #-Wnarrowing
++	#add_definitions("-Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat 
++	#	-Wuninitialized -Wmaybe-uninitialized -Wmain -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point 
++	#	-Wtrigraphs -Wunused-function -Wunused-but-set-variable -Wunused-variable") #-Wnarrowing
+ endif()
+ 
+ #parallelization - MPI process-level
+@@ -100,38 +64,40 @@ if(EMPLOY_PARALLELISM_MPI)
+ endif()
+ 
+ #specific paths of dependencies for this tool
+-set(MYTOOLSRCPATH "${MYTOOLPATH}/src/cxx")
++set(MYTOOLSRCPATH "src/cxx")
++set(MYEXTPATH "../code/thirdparty/mandatory/hdf5cxxwrapper/src/cxx")
++set(MYVOROSRCPATH "../../../voro++/src")
++set(COMPILEPATH "../compiled_code")
+ 
+ #list firstly the precompiled shared aka utils, secondly the tool-specific components, lastly the tool-specific main
+ add_executable(${MYPROJECTNAME}
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/hdf5cxxwrapper/src/cxx/hdf5_wrapper_cxx_sequ_core.cpp.o
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/hdf5cxxwrapper/src/cxx/hdf5_wrapper_cxx_structs.cpp.o
+-	${MYUTILSPATH}/CONFIG_Shared.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_CiteMe.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Verbose.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Profiling.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Math.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_PrimsContinuum.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_PrimsDiscrete.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Geometry.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_UserStructs.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_UserStructsSorting.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_MPIStructs.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_PeriodicTable.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Crystallography.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_OriMath.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Histogram2D.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_TwoPointStats3D.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_ROIs.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_AABBTree.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_KDTree.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_VolumeBinning.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_IonCloudMemory.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_HDF5BaseHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_XDMFBaseHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_TriangleSoupHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_ToolsBaseHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_ConfigBaseHDF5.cpp.o
++	${COMPILEPATH}/hdf5_wrapper_cxx_sequ_core.cpp.o
++	${COMPILEPATH}/hdf5_wrapper_cxx_structs.cpp.o
++	${COMPILEPATH}/CONFIG_Shared.cpp.o
++	${COMPILEPATH}/PARAPROBE_CiteMe.cpp.o
++	${COMPILEPATH}/PARAPROBE_Verbose.cpp.o
++	${COMPILEPATH}/PARAPROBE_Profiling.cpp.o
++	${COMPILEPATH}/PARAPROBE_Math.cpp.o
++	${COMPILEPATH}/PARAPROBE_PrimsContinuum.cpp.o
++	${COMPILEPATH}/PARAPROBE_PrimsDiscrete.cpp.o
++	${COMPILEPATH}/PARAPROBE_Geometry.cpp.o
++	${COMPILEPATH}/PARAPROBE_UserStructs.cpp.o
++	${COMPILEPATH}/PARAPROBE_UserStructsSorting.cpp.o
++	${COMPILEPATH}/PARAPROBE_MPIStructs.cpp.o
++	${COMPILEPATH}/PARAPROBE_PeriodicTable.cpp.o
++	${COMPILEPATH}/PARAPROBE_Crystallography.cpp.o
++	${COMPILEPATH}/PARAPROBE_OriMath.cpp.o
++	${COMPILEPATH}/PARAPROBE_Histogram2D.cpp.o
++	${COMPILEPATH}/PARAPROBE_TwoPointStats3D.cpp.o
++	${COMPILEPATH}/PARAPROBE_ROIs.cpp.o
++	${COMPILEPATH}/PARAPROBE_AABBTree.cpp.o
++	${COMPILEPATH}/PARAPROBE_KDTree.cpp.o
++	${COMPILEPATH}/PARAPROBE_VolumeBinning.cpp.o
++	${COMPILEPATH}/PARAPROBE_IonCloudMemory.cpp.o
++	${COMPILEPATH}/PARAPROBE_XDMFBaseHdl.cpp.o
++	${COMPILEPATH}/PARAPROBE_TriangleSoupHdl.cpp.o
++	${COMPILEPATH}/PARAPROBE_ToolsBaseHdl.cpp.o
++	${COMPILEPATH}/PARAPROBE_ConfigBaseHDF5.cpp.o
+ 
+ 	${MYTOOLSRCPATH}/CONFIG_Distancer.cpp
+ 	${MYTOOLSRCPATH}/PARAPROBE_DistancerStructs.cpp
+diff --git a/code/paraprobe-nanochem/CMakeLists.txt b/code/paraprobe-nanochem/CMakeLists.txt
+index ffd3e41..9dc37c3 100644
+--- a/code/paraprobe-nanochem/CMakeLists.txt
++++ b/code/paraprobe-nanochem/CMakeLists.txt
+@@ -10,19 +10,7 @@ message([STATUS] "Projectname is ${MYPROJECTNAME}")
+ project(${MYPROJECTNAME} LANGUAGES CXX)
+ set(CMAKE_BUILD_DIR "build")
+ 
+-
+-include("../PARAPROBE.Dependencies.cmake")
+-message([STATUS] "MYPROJECTPATH: ${MYPROJECTPATH}")
+-message([STATUS] "MYUTILSPATH: ${MYUTILSPATH}")
+-message([STATUS] "MYHDF5PATH: ${MYHDFPATH}")
+-message([STATUS] "MYBOOSTPATH: ${MYBOOSTPATH}")
+-message([STATUS] "MYCGALPATH: ${MYCGALPATH}")
+-message([STATUS] "MYEIGENPATH: ${MYEIGENPATH}")
+-message([STATUS] "MYVOROXXPATH: ${MYVOROXXPATH}")
+-
+-#compose a tool-specific path
+-set(MYTOOLPATH "${MYPROJECTPATH}/code/paraprobe-nanochem/")
+-message([STATUS] "MYTOOLPATH: ${MYTOOLPATH}")
++message([STATUS] "CONDA_PATH: ${CONDA_PREFIX}")
+ 
+ 
+ #identify which compiler to use
+@@ -49,42 +37,15 @@ endif()
+ ##here advanced users might want/need to make modifications if they use non default places for thirdparty libraries#############
+ ################################################################################################################################
+ #HDF5 local installation for advanced I/O, collecting metadata and bundle analysis results together
+-include_directories("${MYHDFPATH}/include")
+-link_directories("${MYHDFPATH}/lib")
+-set(MYHDFLINKFLAGS "-L${MYHDFPATH}/lib/ ${MYHDFPATH}/lib/libhdf5_hl.a ${MYHDFPATH}/lib/libhdf5.a ${MYHDFPATH}/lib/libz.a ${MYHDFPATH}/lib/libszaec.a ${MYHDFPATH}/lib/libaec.a -ldl")
+-
+-set(Boost_INCLUDE_DIR "${MYBOOSTPATH}")
+-#include_directories("${MYCGALPATH}")
+-set(CGAL_DIR "${MYCGALPATH}")
+-set(EIGEN3_INCLUDE_DIR "${MYEIGENPATH}")
+-include_directories("${MYEIGENPATH}")
+-include_directories("${MYVOROXXPATH}/src")
+-
+-
+-#if(EMPLOY_MYEIGEN)
+-#	#use eigen if available
+-#	find_package(EIGEN3)
+-#	if ( EIGEN3_FOUND )
+-#		add_definitions(-DCGAL_EIGEN3_ENABLED)
+-#		message([STATUS] "Eigen3 found and enabled !")
+-#	endif()
+-#endif()
++include_directories("${CONDA_PREFIX}/include/voro++")
+ 
+-find_package(CGAL QUIET)
+-if( CGAL_FOUND )
+-	include( ${CGAL_USE_FILE} )
+-	find_package(Eigen3 3.1.0 REQUIRED) #(3.1.0 or greater)
+-	include(CGAL_Eigen3_support)
+-	if(NOT TARGET CGAL::Eigen3_support)
+-		message(STATUS "This project requires the Eigen library, and will not be compiled.")
+-		return()
+-	endif()
+-else()
+-	message([FATAL_ERROR] "CGAL is required, employ it!")	
+-endif()
++set(MYHDFLINKFLAGS "-L${CONDA_PREFIX}/lib/ ${CONDA_PREFIX}/lib/libhdf5_hl.so ${CONDA_PREFIX}/lib/libhdf5.so ${CONDA_PREFIX}/lib/libz.a ${CONDA_PREFIX}/lib/libsz.a ${CONDA_PREFIX}/lib/libaec.a -ldl")
+ 
+-link_directories(${Boost_LIBRARY_DIR})
++
++find_package(CGAL QUIET)
++find_package(Eigen)
+ find_package(Boost)
++link_directories(${Boost_LIBRARY_DIR})
+ 
+ # include_directories("${MYTETGENPATH}")
+ # link_directories("${MYTETGENPATH}")
+@@ -93,15 +54,15 @@ find_package(Boost)
+ 
+ #setting up compiler-specifics
+ if(EMPLOY_GNUCOMPILER)
+-	set(MYVERBOSE "-fopt-info")
++	#set(MYVERBOSE "-fopt-info")
+ 	add_definitions("${MYOPTLEVEL} ${MYVERBOSE}")
+ 	set(MYOMP "-fopenmp -lpthread")
+ 	add_definitions(${MYOMP})
+ 	#add_definitions("-std=c++11")
+ 	add_definitions("-std=c++14")
+-	add_definitions("-Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat 
+-		-Wuninitialized -Wmaybe-uninitialized -Wmain -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point 
+-		-Wtrigraphs -Wunused-function -Wunused-but-set-variable -Wunused-variable") #-Wnarrowing
++	#add_definitions("-Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat 
++	#	-Wuninitialized -Wmaybe-uninitialized -Wmain -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point 
++	#	-Wtrigraphs -Wunused-function -Wunused-but-set-variable -Wunused-variable") #-Wnarrowing
+ endif()
+ 
+ #parallelization - MPI process-level
+@@ -113,40 +74,43 @@ endif()
+ 
+ 
+ #specific paths of dependencies for this tool
+-set(MYTOOLSRCPATH "${MYTOOLPATH}/src/cxx")
++set(MYTOOLSRCPATH "src/cxx")
++set(MYEXTPATH "../code/thirdparty/mandatory/hdf5cxxwrapper/src/cxx")
++set(MYVOROSRCPATH "../../../voro++/src")
++set(COMPILEPATH "../compiled_code")
+ 
+ #list firstly the precompiled shared aka utils, secondly the tool-specific components, lastly the tool-specific main
+ add_executable(${MYPROJECTNAME}
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/hdf5cxxwrapper/src/cxx/hdf5_wrapper_cxx_sequ_core.cpp.o
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/hdf5cxxwrapper/src/cxx/hdf5_wrapper_cxx_structs.cpp.o
+-	${MYUTILSPATH}/CONFIG_Shared.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_CoordinateSystem.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_CiteMe.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Verbose.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Profiling.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Math.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_PrimsContinuum.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_PrimsDiscrete.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Geometry.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_UserStructs.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_UserStructsSorting.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_MPIStructs.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_PeriodicTable.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Crystallography.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_OriMath.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_CGALInterface.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Histogram2D.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_TwoPointStats3D.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_ROIs.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_AABBTree.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_KDTree.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_VolumeBinning.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_IonCloudMemory.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_HDF5BaseHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_XDMFBaseHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_TriangleSoupHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_ToolsBaseHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_ConfigBaseHDF5.cpp.o
++	${COMPILEPATH}/hdf5_wrapper_cxx_sequ_core.cpp.o
++	${COMPILEPATH}/hdf5_wrapper_cxx_structs.cpp.o
++	${COMPILEPATH}/CONFIG_Shared.cpp.o
++	${COMPILEPATH}/PARAPROBE_CoordinateSystem.cpp.o
++	${COMPILEPATH}/PARAPROBE_CiteMe.cpp.o
++	${COMPILEPATH}/PARAPROBE_Verbose.cpp.o
++	${COMPILEPATH}/PARAPROBE_Profiling.cpp.o
++	${COMPILEPATH}/PARAPROBE_Math.cpp.o
++	${COMPILEPATH}/PARAPROBE_PrimsContinuum.cpp.o
++	${COMPILEPATH}/PARAPROBE_PrimsDiscrete.cpp.o
++	${COMPILEPATH}/PARAPROBE_Geometry.cpp.o
++	${COMPILEPATH}/PARAPROBE_UserStructs.cpp.o
++	${COMPILEPATH}/PARAPROBE_UserStructsSorting.cpp.o
++	${COMPILEPATH}/PARAPROBE_MPIStructs.cpp.o
++	${COMPILEPATH}/PARAPROBE_PeriodicTable.cpp.o
++	${COMPILEPATH}/PARAPROBE_Crystallography.cpp.o
++	${COMPILEPATH}/PARAPROBE_OriMath.cpp.o
++	${COMPILEPATH}/PARAPROBE_CGALInterface.cpp.o
++	${COMPILEPATH}/PARAPROBE_Histogram2D.cpp.o
++	${COMPILEPATH}/PARAPROBE_TwoPointStats3D.cpp.o
++	${COMPILEPATH}/PARAPROBE_ROIs.cpp.o
++	${COMPILEPATH}/PARAPROBE_AABBTree.cpp.o
++	${COMPILEPATH}/PARAPROBE_KDTree.cpp.o
++	${COMPILEPATH}/PARAPROBE_VolumeBinning.cpp.o
++	${COMPILEPATH}/PARAPROBE_IonCloudMemory.cpp.o
++	${COMPILEPATH}/PARAPROBE_HDF5BaseHdl.cpp.o
++	${COMPILEPATH}/PARAPROBE_XDMFBaseHdl.cpp.o
++	${COMPILEPATH}/PARAPROBE_TriangleSoupHdl.cpp.o
++	${COMPILEPATH}/PARAPROBE_ToolsBaseHdl.cpp.o
++	${COMPILEPATH}/PARAPROBE_ConfigBaseHDF5.cpp.o
+ 
+ 	#${MYTOOLSRCPATH}/CONFIG_NanochemHDF5.cpp
+ 	${MYTOOLSRCPATH}/CONFIG_Nanochem.cpp
 diff --git a/code/paraprobe-parmsetup/src/python/__init__.py b/code/paraprobe-parmsetup/src/python/__init__.py
 new file mode 100644
 index 0000000..e69de29
@@ -622,6 +942,506 @@ index 49154a5..4c79c2f 100755
  
  	${MYTOOLSRCPATH}/CONFIG_Ranger.cpp
  	${MYTOOLSRCPATH}/PARAPROBE_RangerStructs.cpp
+diff --git a/code/paraprobe-spatstat/CMakeLists.txt b/code/paraprobe-spatstat/CMakeLists.txt
+index 03f4ac7..2c56a70 100644
+--- a/code/paraprobe-spatstat/CMakeLists.txt
++++ b/code/paraprobe-spatstat/CMakeLists.txt
+@@ -11,18 +11,7 @@ message([STATUS] "Projectname is ${MYPROJECTNAME}")
+ project(${MYPROJECTNAME} LANGUAGES CXX)
+ set(CMAKE_BUILD_DIR "build")
+ 
+-
+-#pull general information about external libraries and paths related to paraprobe
+-include("../PARAPROBE.Dependencies.cmake")
+-message([STATUS] "MYPROJECTPATH: ${MYPROJECTPATH}")
+-message([STATUS] "MYUTILSPATH: ${MYUTILSPATH}")
+-message([STATUS] "MYHDF5PATH: ${MYHDFPATH}")
+-message([STATUS] "MYVOROXXPATH: ${MYVOROXXPATH}")
+-
+-#compose a tool-specific path
+-set(MYTOOLPATH "${MYPROJECTPATH}/code/paraprobe-spatstat/")
+-message([STATUS] "MYTOOLPATH: ${MYTOOLPATH}")
+-
++message([STATUS] "CONDA_PATH: ${CONDA_PREFIX}")
+ 
+ set(EMPLOY_GNUCOMPILER ON)
+ message([STATUS] "MYCCC_COMPILER: __${CMAKE_C_COMPILER}__")
+@@ -45,46 +34,25 @@ endif()
+ ##here advanced users might want/need to make modifications if they use non default places for thirdparty libraries#############
+ ################################################################################################################################
+ #HDF5 local installation for advanced I/O, collecting metadata and bundle analysis results together
+-include_directories("${MYHDFPATH}/include")
+-link_directories("${MYHDFPATH}/lib")
+-set(MYHDFLINKFLAGS "-L${MYHDFPATH}/lib/ ${MYHDFPATH}/lib/libhdf5_hl.a ${MYHDFPATH}/lib/libhdf5.a ${MYHDFPATH}/lib/libz.a ${MYHDFPATH}/lib/libszaec.a ${MYHDFPATH}/lib/libaec.a -ldl")
+-
+-set(Boost_INCLUDE_DIR "${MYBOOSTPATH}")
+-#include_directories("${MYCGALPATH}")
+-set(CGAL_DIR "${MYCGALPATH}")
+-include_directories("${MYEIGENPATH}")
+-include_directories("${MYVOROXXPATH}/src")
+-
+-#GMP and MPFR is included and found alongside the CGAL library
+-#connect with ExternalLibraries.cmake via MYCGALHOME and MYEIGENHOME
+-find_package(CGAL QUIET)
+-if( CGAL_FOUND )
+-	include( ${CGAL_USE_FILE} )
+-	if (EMPLOY_MYEIGEN)
+-		find_package(Eigen3 3.1.0 REQUIRED) #(3.1.0 or greater)
+-		include(CGAL_Eigen3_support)
+-		if(NOT TARGET CGAL::Eigen3_support)
+-			message(STATUS "This project requires the Eigen library, and will not be compiled.")
+-			return()
+-		endif()
+-	endif()
+-endif()
++include_directories("${CONDA_PREFIX}/include/voro++")
+ 
+-#connect with ExternalLibraries.cmake via MYBOOSTHOME
+-#include_directories(${Boost_INCLUDE_DIR})
+-link_directories(${Boost_LIBRARY_DIR})
++set(MYHDFLINKFLAGS "-L${CONDA_PREFIX}/lib/ ${CONDA_PREFIX}/lib/libhdf5_hl.so ${CONDA_PREFIX}/lib/libhdf5.so ${CONDA_PREFIX}/lib/libz.a ${CONDA_PREFIX}/lib/libsz.a ${CONDA_PREFIX}/lib/libaec.a -ldl")
++
++find_package(CGAL QUIET)
++find_package(Eigen)
+ find_package(Boost)
++link_directories(${Boost_LIBRARY_DIR})
+ 
+ #setting up compiler-specifics
+ if(EMPLOY_GNUCOMPILER)
+-	set(MYVERBOSE "-fopt-info")
++	#set(MYVERBOSE "-fopt-info")
+ 	add_definitions("${MYOPTLEVEL} ${MYVERBOSE}")
+ 	set(MYOMP "-fopenmp -lpthread")
+ 	add_definitions(${MYOMP})
+ 	add_definitions("-std=c++1z")
+-	add_definitions("-Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat 
+-		-Wuninitialized -Wmaybe-uninitialized -Wmain -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point 
+-		-Wtrigraphs -Wunused-function -Wunused-but-set-variable -Wunused-variable") #-Wnarrowing
++	#add_definitions("-Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat 
++	#	-Wuninitialized -Wmaybe-uninitialized -Wmain -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point 
++	#	-Wtrigraphs -Wunused-function -Wunused-but-set-variable -Wunused-variable") #-Wnarrowing
+ endif()
+ 
+ #parallelization - MPI process-level
+@@ -96,38 +64,41 @@ if(EMPLOY_PARALLELISM_MPI)
+ endif()
+ 
+ #specific paths of dependencies for this tool
+-set(MYTOOLSRCPATH "${MYTOOLPATH}/src/cxx")
++set(MYTOOLSRCPATH "src/cxx")
++set(MYEXTPATH "../code/thirdparty/mandatory/hdf5cxxwrapper/src/cxx")
++set(MYVOROSRCPATH "../../../voro++/src")
++set(COMPILEPATH "../compiled_code")
+ 
+ #list firstly the precompiled shared aka utils, secondly the tool-specific components, lastly the tool-specific main
+ add_executable(${MYPROJECTNAME}
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/hdf5cxxwrapper/src/cxx/hdf5_wrapper_cxx_sequ_core.cpp.o
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/hdf5cxxwrapper/src/cxx/hdf5_wrapper_cxx_structs.cpp.o
+-	${MYUTILSPATH}/CONFIG_Shared.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_CiteMe.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Verbose.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Profiling.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Math.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_PrimsContinuum.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_PrimsDiscrete.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Geometry.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_UserStructs.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_UserStructsSorting.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_MPIStructs.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_PeriodicTable.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Crystallography.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_OriMath.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Histogram2D.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_TwoPointStats3D.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_ROIs.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_AABBTree.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_KDTree.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_VolumeBinning.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_IonCloudMemory.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_HDF5BaseHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_XDMFBaseHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_TriangleSoupHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_ToolsBaseHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_ConfigBaseHDF5.cpp.o
++	${COMPILEPATH}/hdf5_wrapper_cxx_sequ_core.cpp.o
++	${COMPILEPATH}/hdf5_wrapper_cxx_structs.cpp.o
++	${COMPILEPATH}/CONFIG_Shared.cpp.o
++	${COMPILEPATH}/PARAPROBE_CiteMe.cpp.o
++	${COMPILEPATH}/PARAPROBE_Verbose.cpp.o
++	${COMPILEPATH}/PARAPROBE_Profiling.cpp.o
++	${COMPILEPATH}/PARAPROBE_Math.cpp.o
++	${COMPILEPATH}/PARAPROBE_PrimsContinuum.cpp.o
++	${COMPILEPATH}/PARAPROBE_PrimsDiscrete.cpp.o
++	${COMPILEPATH}/PARAPROBE_Geometry.cpp.o
++	${COMPILEPATH}/PARAPROBE_UserStructs.cpp.o
++	${COMPILEPATH}/PARAPROBE_UserStructsSorting.cpp.o
++	${COMPILEPATH}/PARAPROBE_MPIStructs.cpp.o
++	${COMPILEPATH}/PARAPROBE_PeriodicTable.cpp.o
++	${COMPILEPATH}/PARAPROBE_Crystallography.cpp.o
++	${COMPILEPATH}/PARAPROBE_OriMath.cpp.o
++	${COMPILEPATH}/PARAPROBE_Histogram2D.cpp.o
++	${COMPILEPATH}/PARAPROBE_TwoPointStats3D.cpp.o
++	${COMPILEPATH}/PARAPROBE_ROIs.cpp.o
++	${COMPILEPATH}/PARAPROBE_AABBTree.cpp.o
++	${COMPILEPATH}/PARAPROBE_KDTree.cpp.o
++	${COMPILEPATH}/PARAPROBE_VolumeBinning.cpp.o
++	${COMPILEPATH}/PARAPROBE_IonCloudMemory.cpp.o
++	${COMPILEPATH}/PARAPROBE_HDF5BaseHdl.cpp.o
++	${COMPILEPATH}/PARAPROBE_XDMFBaseHdl.cpp.o
++	${COMPILEPATH}/PARAPROBE_TriangleSoupHdl.cpp.o
++	${COMPILEPATH}/PARAPROBE_ToolsBaseHdl.cpp.o
++	${COMPILEPATH}/PARAPROBE_ConfigBaseHDF5.cpp.o
+ 
+ 	${MYTOOLSRCPATH}/PARAPROBE_SpatstatIonHandling.cpp
+ 	${MYTOOLSRCPATH}/CONFIG_Spatstat.cpp
+diff --git a/code/paraprobe-surfacer/CMakeLists.txt b/code/paraprobe-surfacer/CMakeLists.txt
+index 5122000..a93d3b0 100755
+--- a/code/paraprobe-surfacer/CMakeLists.txt
++++ b/code/paraprobe-surfacer/CMakeLists.txt
+@@ -11,19 +11,7 @@ project(${MYPROJECTNAME} LANGUAGES CXX)
+ set(CMAKE_BUILD_DIR "build")
+ 
+ 
+-#pull general information about external libraries and paths related to paraprobe
+-include("../PARAPROBE.Dependencies.cmake")
+-message([STATUS] "MYPROJECTPATH: ${MYPROJECTPATH}")
+-message([STATUS] "MYUTILSPATH: ${MYUTILSPATH}")
+-message([STATUS] "MYHDF5PATH: ${MYHDFPATH}")
+-message([STATUS] "MYBOOSTPATH: ${MYBOOSTPATH}")
+-message([STATUS] "MYCGALPATH: ${MYCGALPATH}")
+-message([STATUS] "MYEIGENPATH: ${MYEIGENPATH}")
+-message([STATUS] "MYVOROXXPATH: ${MYVOROXXPATH}")
+-
+-#compose a tool-specific path
+-set(MYTOOLPATH "${MYPROJECTPATH}/code/paraprobe-surfacer/")
+-message([STATUS] "MYTOOLPATH: ${MYTOOLPATH}")
++message([STATUS] "CONDA_PATH: ${CONDA_PREFIX}")
+ 
+ set(EMPLOY_GNUCOMPILER ON)
+ message([STATUS] "MYCCC_COMPILER: __${CMAKE_C_COMPILER}__")
+@@ -47,48 +35,28 @@ endif()
+ ##here advanced users might want/need to make modifications if they use non default places for thirdparty libraries#############
+ ################################################################################################################################
+ #HDF5 local installation for advanced I/O, collecting metadata and bundle analysis results together
+-include_directories("${MYHDFPATH}/include")
+-link_directories("${MYHDFPATH}/lib")
+-set(MYHDFLINKFLAGS "-L${MYHDFPATH}/lib/ ${MYHDFPATH}/lib/libhdf5_hl.a ${MYHDFPATH}/lib/libhdf5.a ${MYHDFPATH}/lib/libz.a ${MYHDFPATH}/lib/libszaec.a ${MYHDFPATH}/lib/libaec.a -ldl")
+-
+-set(Boost_INCLUDE_DIR "${MYBOOSTPATH}")
+-#include_directories("${MYCGALPATH}")
+-set(CGAL_DIR "${MYCGALPATH}")
+-include_directories("${MYEIGENPATH}")
+-include_directories("${MYVOROXXPATH}/src")
+-
+-#GMP and MPFR is included and found alongside the CGAL library
+-#connect with ExternalLibraries.cmake via MYCGALHOME and MYEIGENHOME
+-find_package(CGAL QUIET)
+-if( CGAL_FOUND )
+-	include( ${CGAL_USE_FILE} )
+-	if (EMPLOY_MYEIGEN)
+-		find_package(Eigen3 3.1.0 REQUIRED) #(3.1.0 or greater)
+-		include(CGAL_Eigen3_support)
+-		if(NOT TARGET CGAL::Eigen3_support)
+-			message(STATUS "This project requires the Eigen library, and will not be compiled.")
+-			return()
+-		endif()
+-	endif()
+-endif()
++include_directories("${CONDA_PREFIX}/include/voro++")
+ 
+-#connect with ExternalLibraries.cmake via MYBOOSTHOME
+-#include_directories(${Boost_INCLUDE_DIR})
+-link_directories(${Boost_LIBRARY_DIR})
++set(MYHDFLINKFLAGS "-L${CONDA_PREFIX}/lib/ ${CONDA_PREFIX}/lib/libhdf5_hl.so ${CONDA_PREFIX}/lib/libhdf5.so ${CONDA_PREFIX}/lib/libz.a ${CONDA_PREFIX}/lib/libsz.a ${CONDA_PREFIX}/lib/libaec.a -ldl")
++
++
++find_package(CGAL QUIET)
++find_package(Eigen)
+ find_package(Boost)
++link_directories(${Boost_LIBRARY_DIR})
+ 
+ #automatically assign project name and compiler flags
+ 
+ #setting up compiler-specifics
+ if(EMPLOY_GNUCOMPILER)
+-	set(MYVERBOSE "-fopt-info")
++	#set(MYVERBOSE "-fopt-info")
+ 	add_definitions("${MYOPTLEVEL} ${MYVERBOSE}")
+ 	set(MYOMP "-fopenmp -lpthread")
+ 	add_definitions(${MYOMP})
+ 	add_definitions("-std=c++14")
+-	add_definitions("-Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat 
+-		-Wuninitialized -Wmaybe-uninitialized -Wmain -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point 
+-		-Wtrigraphs -Wunused-function -Wunused-but-set-variable -Wunused-variable") #-Wnarrowing
++	#add_definitions("-Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat 
++	#	-Wuninitialized -Wmaybe-uninitialized -Wmain -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point 
++	#	-Wtrigraphs -Wunused-function -Wunused-but-set-variable -Wunused-variable") #-Wnarrowing
+ endif()
+ 
+ #parallelization - MPI process-level
+@@ -100,39 +68,42 @@ if(EMPLOY_PARALLELISM_MPI)
+ endif()
+ 
+ #specific paths of dependencies for this tool
+-set(MYTOOLSRCPATH "${MYTOOLPATH}/src/cxx")
++set(MYTOOLSRCPATH "src/cxx")
++set(MYEXTPATH "../code/thirdparty/mandatory/hdf5cxxwrapper/src/cxx")
++set(MYVOROSRCPATH "../../../voro++/src")
++set(COMPILEPATH "../compiled_code")
+ 
+ #list firstly the precompiled shared aka utils, secondly the tool-specific components, lastly the tool-specific main
+ add_executable(${MYPROJECTNAME}
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/hdf5cxxwrapper/src/cxx/hdf5_wrapper_cxx_sequ_core.cpp.o
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/hdf5cxxwrapper/src/cxx/hdf5_wrapper_cxx_structs.cpp.o
+-	${MYUTILSPATH}/CONFIG_Shared.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_CiteMe.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Verbose.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Profiling.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Math.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_PrimsContinuum.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_PrimsDiscrete.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Geometry.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_UserStructs.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_UserStructsSorting.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_MPIStructs.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_PeriodicTable.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Crystallography.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_OriMath.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_CGALInterface.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Histogram2D.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_TwoPointStats3D.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_ROIs.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_AABBTree.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_KDTree.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_VolumeBinning.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_IonCloudMemory.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_HDF5BaseHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_XDMFBaseHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_TriangleSoupHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_ToolsBaseHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_ConfigBaseHDF5.cpp.o
++	${COMPILEPATH}/hdf5_wrapper_cxx_sequ_core.cpp.o
++	${COMPILEPATH}/hdf5_wrapper_cxx_structs.cpp.o
++	${COMPILEPATH}/CONFIG_Shared.cpp.o
++	${COMPILEPATH}/PARAPROBE_CiteMe.cpp.o
++	${COMPILEPATH}/PARAPROBE_Verbose.cpp.o
++	${COMPILEPATH}/PARAPROBE_Profiling.cpp.o
++	${COMPILEPATH}/PARAPROBE_Math.cpp.o
++	${COMPILEPATH}/PARAPROBE_PrimsContinuum.cpp.o
++	${COMPILEPATH}/PARAPROBE_PrimsDiscrete.cpp.o
++	${COMPILEPATH}/PARAPROBE_Geometry.cpp.o
++	${COMPILEPATH}/PARAPROBE_UserStructs.cpp.o
++	${COMPILEPATH}/PARAPROBE_UserStructsSorting.cpp.o
++	${COMPILEPATH}/PARAPROBE_MPIStructs.cpp.o
++	${COMPILEPATH}/PARAPROBE_PeriodicTable.cpp.o
++	${COMPILEPATH}/PARAPROBE_Crystallography.cpp.o
++	${COMPILEPATH}/PARAPROBE_OriMath.cpp.o
++	${COMPILEPATH}/PARAPROBE_CGALInterface.cpp.o
++	${COMPILEPATH}/PARAPROBE_Histogram2D.cpp.o
++	${COMPILEPATH}/PARAPROBE_TwoPointStats3D.cpp.o
++	${COMPILEPATH}/PARAPROBE_ROIs.cpp.o
++	${COMPILEPATH}/PARAPROBE_AABBTree.cpp.o
++	${COMPILEPATH}/PARAPROBE_KDTree.cpp.o
++	${COMPILEPATH}/PARAPROBE_VolumeBinning.cpp.o
++	${COMPILEPATH}/PARAPROBE_IonCloudMemory.cpp.o
++	${COMPILEPATH}/PARAPROBE_HDF5BaseHdl.cpp.o
++	${COMPILEPATH}/PARAPROBE_XDMFBaseHdl.cpp.o
++	${COMPILEPATH}/PARAPROBE_TriangleSoupHdl.cpp.o
++	${COMPILEPATH}/PARAPROBE_ToolsBaseHdl.cpp.o
++	${COMPILEPATH}/PARAPROBE_ConfigBaseHDF5.cpp.o
+ 
+ 	${MYTOOLSRCPATH}/CONFIG_Surfacer.cpp
+ 	${MYTOOLSRCPATH}/PARAPROBE_SurfacerStructs.cpp
+diff --git a/code/paraprobe-tessellator/CMakeLists.txt b/code/paraprobe-tessellator/CMakeLists.txt
+index 78a0cbd..9c77eb1 100755
+--- a/code/paraprobe-tessellator/CMakeLists.txt
++++ b/code/paraprobe-tessellator/CMakeLists.txt
+@@ -11,16 +11,8 @@ project(${MYPROJECTNAME} LANGUAGES CXX)
+ set(CMAKE_BUILD_DIR "build")
+ 
+ 
+-#pull general information about external libraries and paths related to paraprobe
+-include("../PARAPROBE.Dependencies.cmake")
+-message([STATUS] "MYPROJECTPATH: ${MYPROJECTPATH}")
+-message([STATUS] "MYUTILSPATH: ${MYUTILSPATH}")
+-message([STATUS] "MYHDF5PATH: ${MYHDFPATH}")
+-message([STATUS] "MYVOROXXPATH: ${MYVOROXXPATH}")
++message([STATUS] "CONDA_PATH: ${CONDA_PREFIX}")
+ 
+-#compose a tool-specific path
+-set(MYTOOLPATH "${MYPROJECTPATH}/code/paraprobe-tessellator/")
+-message([STATUS] "MYTOOLPATH: ${MYTOOLPATH}")
+ 
+ set(EMPLOY_GNUCOMPILER ON)
+ message([STATUS] "MYCCC_COMPILER: __${CMAKE_C_COMPILER}__")
+@@ -44,51 +36,27 @@ endif()
+ ##here advanced users might want/need to make modifications if they use non default places for thirdparty libraries#############
+ ################################################################################################################################
+ #HDF5 local installation for advanced I/O, collecting metadata and bundle analysis results together
+-include_directories("${MYHDFPATH}/include")
+-link_directories("${MYHDFPATH}/lib")
+-set(MYHDFLINKFLAGS "-L${MYHDFPATH}/lib/ ${MYHDFPATH}/lib/libhdf5_hl.a ${MYHDFPATH}/lib/libhdf5.a ${MYHDFPATH}/lib/libz.a ${MYHDFPATH}/lib/libszaec.a ${MYHDFPATH}/lib/libaec.a -ldl")
+-
+-set(Boost_INCLUDE_DIR "${MYBOOSTPATH}")
+-#include_directories("${MYCGALPATH}")
+-set(CGAL_DIR "${MYCGALPATH}")
+-include_directories("${MYEIGENPATH}")
+-include_directories("${MYVOROXXPATH}/src")
+-
+-#GMP and MPFR is included and found alongside the CGAL library
+-#connect with ExternalLibraries.cmake via MYCGALHOME and MYEIGENHOME
+-find_package(CGAL QUIET)
+-if( CGAL_FOUND )
+-	include( ${CGAL_USE_FILE} )
+-	if (EMPLOY_MYEIGEN)
+-		find_package(Eigen3 3.1.0 REQUIRED) #(3.1.0 or greater)
+-		include(CGAL_Eigen3_support)
+-		if(NOT TARGET CGAL::Eigen3_support)
+-			message(STATUS "This project requires the Eigen library, and will not be compiled.")
+-			return()
+-		endif()
+-	endif()
+-endif()
++include_directories("${CONDA_PREFIX}/include/voro++")
+ 
+-#connect with ExternalLibraries.cmake via MYBOOSTHOME
+-#include_directories(${Boost_INCLUDE_DIR})
+-link_directories(${Boost_LIBRARY_DIR})
++set(MYHDFLINKFLAGS "-L${CONDA_PREFIX}/lib/ ${CONDA_PREFIX}/lib/libhdf5_hl.so ${CONDA_PREFIX}/lib/libhdf5.so ${CONDA_PREFIX}/lib/libz.a ${CONDA_PREFIX}/lib/libsz.a ${CONDA_PREFIX}/lib/libaec.a -ldl")
++
++find_package(CGAL QUIET)
++find_package(Eigen)
+ find_package(Boost)
++link_directories(${Boost_LIBRARY_DIR})
++
+ 
+-#automatically assign project name and compiler flags
+-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MYOPTLEVEL}")
+-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MYOPTLEVEL}")
+-message([STATUS] "We utilize optimization level ${MYOPTLEVEL}")
+ 
+ #setting up compiler-specifics
+ if(EMPLOY_GNUCOMPILER)
+-	set(MYVERBOSE "-fopt-info")
++	#set(MYVERBOSE "-fopt-info")
+ 	add_definitions("${MYOPTLEVEL} ${MYVERBOSE}")
+ 	set(MYOMP "-fopenmp -lpthread")
+ 	add_definitions(${MYOMP})
+ 	add_definitions("-std=c++1z")
+-	add_definitions("-Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat 
+-		-Wuninitialized -Wmaybe-uninitialized -Wmain -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point 
+-		-Wtrigraphs -Wunused-function -Wunused-but-set-variable -Wunused-variable") #-Wnarrowing
++	#add_definitions("-Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat 
++	#	-Wuninitialized -Wmaybe-uninitialized -Wmain -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point 
++	#	-Wtrigraphs -Wunused-function -Wunused-but-set-variable -Wunused-variable") #-Wnarrowing
+ endif()
+ 
+ #parallelization - MPI process-level
+@@ -100,52 +68,55 @@ if(EMPLOY_PARALLELISM_MPI)
+ endif()
+ 
+ #specific paths of dependencies for this tool
+-set(MYTOOLSRCPATH "${MYTOOLPATH}/src/cxx")
++set(MYTOOLSRCPATH "src/cxx")
++set(MYEXTPATH "../code/thirdparty/mandatory/hdf5cxxwrapper/src/cxx")
++set(MYVOROSRCPATH "../../../voro++/src")
++set(COMPILEPATH "../compiled_code")
+ 
+ #list firstly the precompiled shared aka utils, secondly the tool-specific components, lastly the tool-specific main
+ add_executable(${MYPROJECTNAME}
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/hdf5cxxwrapper/src/cxx/hdf5_wrapper_cxx_sequ_core.cpp.o
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/hdf5cxxwrapper/src/cxx/hdf5_wrapper_cxx_structs.cpp.o
+-	${MYUTILSPATH}/CONFIG_Shared.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_CiteMe.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Verbose.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Profiling.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Math.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_PrimsContinuum.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_PrimsDiscrete.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Geometry.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_UserStructs.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_UserStructsSorting.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_MPIStructs.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_PeriodicTable.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Crystallography.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_OriMath.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_Histogram2D.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_TwoPointStats3D.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_ROIs.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_AABBTree.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_KDTree.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_VolumeBinning.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_IonCloudMemory.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_HDF5BaseHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_XDMFBaseHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_TriangleSoupHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_ToolsBaseHdl.cpp.o
+-	${MYUTILSPATH}/PARAPROBE_ConfigBaseHDF5.cpp.o
+-
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/voroxx/voro++-0.4.6/src/c_loops.cc.o
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/voroxx/voro++-0.4.6/src/cell.cc.o
+-#	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/voroxx/voro++-0.4.6/src/cmd_line.cc
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/voroxx/voro++-0.4.6/src/common.cc.o
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/voroxx/voro++-0.4.6/src/container.cc.o
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/voroxx/voro++-0.4.6/src/container_prd.cc.o
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/voroxx/voro++-0.4.6/src/pre_container.cc.o
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/voroxx/voro++-0.4.6/src/unitcell.cc.o
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/voroxx/voro++-0.4.6/src/v_base.cc.o
+-#	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/voroxx/voro++-0.4.6/src/v_base_wl.cc
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/voroxx/voro++-0.4.6/src/v_compute.cc.o
+-#	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/voroxx/voro++-0.4.6/src/voro++.cc
+-	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/voroxx/voro++-0.4.6/src/wall.cc.o
++	${COMPILEPATH}/hdf5_wrapper_cxx_sequ_core.cpp.o
++	${COMPILEPATH}/hdf5_wrapper_cxx_structs.cpp.o
++	${COMPILEPATH}/CONFIG_Shared.cpp.o
++	${COMPILEPATH}/PARAPROBE_CiteMe.cpp.o
++	${COMPILEPATH}/PARAPROBE_Verbose.cpp.o
++	${COMPILEPATH}/PARAPROBE_Profiling.cpp.o
++	${COMPILEPATH}/PARAPROBE_Math.cpp.o
++	${COMPILEPATH}/PARAPROBE_PrimsContinuum.cpp.o
++	${COMPILEPATH}/PARAPROBE_PrimsDiscrete.cpp.o
++	${COMPILEPATH}/PARAPROBE_Geometry.cpp.o
++	${COMPILEPATH}/PARAPROBE_UserStructs.cpp.o
++	${COMPILEPATH}/PARAPROBE_UserStructsSorting.cpp.o
++	${COMPILEPATH}/PARAPROBE_MPIStructs.cpp.o
++	${COMPILEPATH}/PARAPROBE_PeriodicTable.cpp.o
++	${COMPILEPATH}/PARAPROBE_Crystallography.cpp.o
++	${COMPILEPATH}/PARAPROBE_OriMath.cpp.o
++	${COMPILEPATH}/PARAPROBE_Histogram2D.cpp.o
++	${COMPILEPATH}/PARAPROBE_TwoPointStats3D.cpp.o
++	${COMPILEPATH}/PARAPROBE_ROIs.cpp.o
++	${COMPILEPATH}/PARAPROBE_AABBTree.cpp.o
++	${COMPILEPATH}/PARAPROBE_KDTree.cpp.o
++	${COMPILEPATH}/PARAPROBE_VolumeBinning.cpp.o
++	${COMPILEPATH}/PARAPROBE_IonCloudMemory.cpp.o
++	${COMPILEPATH}/PARAPROBE_HDF5BaseHdl.cpp.o
++	${COMPILEPATH}/PARAPROBE_XDMFBaseHdl.cpp.o
++	${COMPILEPATH}/PARAPROBE_TriangleSoupHdl.cpp.o
++	${COMPILEPATH}/PARAPROBE_ToolsBaseHdl.cpp.o
++	${COMPILEPATH}/PARAPROBE_ConfigBaseHDF5.cpp.o
++
++	${MYVOROSRCPATH}/c_loops.cc.o
++	${MYVOROSRCPATH}/cell.cc.o
++#	${MYVOROSRCPATH}/cmd_line.cc
++	${MYVOROSRCPATH}/common.cc.o
++	${MYVOROSRCPATH}/container.cc.o
++	${MYVOROSRCPATH}/container_prd.cc.o
++	${MYVOROSRCPATH}/pre_container.cc.o
++	${MYVOROSRCPATH}/unitcell.cc.o
++	${MYVOROSRCPATH}/v_base.cc.o
++#	${MYVOROSRCPATH}/v_base_wl.cc
++	${MYVOROSRCPATH}/v_compute.cc.o
++#	${MYVOROSRCPATH}/voro++.cc
++	${MYVOROSRCPATH}/wall.cc.o
+ 
+ 	${MYTOOLSRCPATH}/CONFIG_Tessellator.cpp
+ 	${MYTOOLSRCPATH}/PARAPROBE_TessellatorStructs.cpp
+@@ -168,3 +139,5 @@ endif()
+ if(MPI_LINK_FLAGS)
+ 	set_target_properties(${MYPROJECTNAME} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
+ endif()
++S}")
++endif()
 diff --git a/code/paraprobe-transcoder/src/python/paraprobe_transcoder.py b/code/paraprobe-transcoder/src/python/paraprobe_transcoder.py
 index eee7bc2..00471b9 100644
 --- a/code/paraprobe-transcoder/src/python/paraprobe_transcoder.py
