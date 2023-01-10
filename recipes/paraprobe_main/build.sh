@@ -6,6 +6,9 @@ chmod +x $mpifort
 
 echo ${SP_DIR}
 
+export EXTERNAL_CGAL_INCLUDE_DIR="${BUILD_PREFIX}/include/"
+echo ${EXTERNAL_CGAL_INCLUDE_DIR}
+
 #test python building
 mkdir ${SP_DIR}/paraprobe_autoreporter
 cp -rf paraprobe-toolbox/code/paraprobe-autoreporter/src/python/* ${SP_DIR}/paraprobe_autoreporter
