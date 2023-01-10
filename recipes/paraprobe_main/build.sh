@@ -35,16 +35,16 @@ mkdir compiled_code
 #cp paraprobe-utils/CMakeFiles/paraprobe-utils.dir${SRC_DIR}/paraprobe-toolbox/code/paraprobe-utils/src/cxx/* compiled_code/
 cp paraprobe-utils/CMakeFiles/paraprobe-utils.dir/src/cxx/* compiled_code/
 
-cd paraprobe-ranger
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
-make
-cp paraprobe_ranger ${PREFIX}/bin/
-cd ..
-
 cd paraprobe-surfacer
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
 make
 cp paraprobe_surfacer ${PREFIX}/bin/
+cd ..
+
+cd paraprobe-ranger
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
+make
+cp paraprobe_ranger ${PREFIX}/bin/
 cd ..
 
 cd paraprobe-distancer
