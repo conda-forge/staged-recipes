@@ -39,10 +39,17 @@ mkdir compiled_code
 cp paraprobe-utils/CMakeFiles/paraprobe-utils.dir/src/cxx/* compiled_code/
 
 #cd paraprobe-surfacer
+#export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
 #cmake -DBoost_NO_BOOST_CMAKE=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
 #make
 #cp paraprobe_surfacer ${PREFIX}/bin/
 #cd ..
+
+cd paraprobe-spatstat
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
+make
+cp paraprobe_spatstat ${PREFIX}/bin/
+cd ..
 
 cd paraprobe-ranger
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
@@ -62,11 +69,7 @@ cd ..
 #cp paraprobe_tessellator ${PREFIX}/bin/
 #cd ..
 
-#cd paraprobe-spatstat
-#cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
-#make
-#cp paraprobe_spatstat ${PREFIX}/bin/
-#cd ..
+
 
 #cd paraprobe-nanochem
 #cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
