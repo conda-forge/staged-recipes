@@ -63,18 +63,35 @@ make
 cp paraprobe_ranger ${PREFIX}/bin/
 cd ..
 
-#cd paraprobe-distancer
-#cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
-#make
-#cp paraprobe_distancer ${PREFIX}/bin/
-#cd ..
+cd paraprobe-distancer
+#export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+cmake -D Boost_NO_BOOST_CMAKE=ON \
+	  -D CMAKE_BUILD_TYPE=Release \
+	  -D CMAKE_CXX_COMPILER=mpicxx \
+      -D CGAL_INCLUDE_DIR=${PREFIX}/include \
+      -D CGAL_LIB_PATH=${PREFIX}/lib \
+      -D BOOST_INCLUDE_DIR=${PREFIX}/include \
+      -D BOOST_LIB_PATH=${PREFIX}/lib \
+	  -D CONDA_PREFIX=${PREFIX} .
+make
+cp paraprobe_distancer ${PREFIX}/bin/
+cd ..
 
-#cd paraprobe-tessellator
-#cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
-#make
-#cp paraprobe_tessellator ${PREFIX}/bin/
-#cd ..
-
+cd paraprobe-tessellator
+#export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+cmake -D Boost_NO_BOOST_CMAKE=ON \
+	  -D CMAKE_BUILD_TYPE=Release \
+	  -D CMAKE_CXX_COMPILER=mpicxx \
+      -D CGAL_INCLUDE_DIR=${PREFIX}/include \
+      -D CGAL_LIB_PATH=${PREFIX}/lib \
+      -D BOOST_INCLUDE_DIR=${PREFIX}/include \
+      -D BOOST_LIB_PATH=${PREFIX}/lib \
+	  -D CONDA_PREFIX=${PREFIX} .
+make
+cp paraprobe_tessellator ${PREFIX}/bin/
+cd ..
 
 
 #cd paraprobe-nanochem
