@@ -28,4 +28,4 @@ fi
 # Disable sparse_attn since it requires an exact version of triton==1.0.0
 export DS_BUILD_SPARSE_ATTN=0
 
-python -m pip install .
+python -m pip install . -vv
