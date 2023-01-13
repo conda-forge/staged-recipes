@@ -6,25 +6,25 @@ package:
   version: {{ version }}
 
 source:
-  - url: https://github.com/{{ name }}/{{ name }}/archive/{{ version }}.tar.gz
-    sha256: ceb7cca204550d65b890cd0082c66f4bc69193daf9da64616d8147a46b76cc55
+  - url: https://github.com/colmap/{{ name }}/archive/v{{ version }}.tar.gz
+    sha256: e3322e692470535c8d59b758ef073e6cfaf8a8262494393cdc8ba27f309c3d94
     patches:
       - use-conda-pybind11.patch
 
 build:
   number: 0
   script: {{ PYTHON }} -m pip install . -vv
-  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
-  string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version == "None"]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version not in (undefined, "None")]
+  string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version in (undefined, "None")]
   # weigh down cpu implementation and give cuda preference
   track_features:
-    - pycolmap-cpu  # [cuda_compiler_version == "None"]
+    - pycolmap-cpu  # [cuda_compiler_version in (undefined, "None")]
 
 requirements:
   build:
     - {{ compiler('cxx') }}
     - {{ compiler('c') }}
-    - {{ compiler('cuda') }}                 # [not osx and cuda_compiler_version != "None"]
+    - {{ compiler('cuda') }}                 # [cuda_compiler_version not in (undefined, "None")]
     - cmake
     - make                                   # [unix]
     - python                                 # [build_platform != target_platform]
@@ -34,10 +34,12 @@ requirements:
     - python
     - pybind11
     - boost-cpp
+    - colmap
+    - cgal-cpp
   run:
     - python
     - boost-cpp
-    - __cuda >={{ cuda_compiler_version }}  # [not osx and cuda_compiler_version != "None"]
+    - __cuda >={{ cuda_compiler_version }}  # [cuda_compiler_version not in (undefined, "None")]
 
 test:
   imports:
