@@ -1,0 +1,189 @@
+# the graalpy version implies the below versions, so update these together
+{% set version = "22.3.0" %}
+{% set gp_python_version = "3.8.5" %}
+{% set mx_version = "6.9.7" %}
+{% set java_version = "17.0.5+8" %}
+{% set jvmci_version = "22.3-b08" %}
+
+{% if graalpy_distribution is not defined %}
+{% set graalpy_distribution = "standalone" %}
+{% endif %}
+
+# Keep increasing the build_num until we get a new graalpy version. Do not reset
+{% set build_num = "0" %}
+
+{% set python_maj_min = ".".join(gp_python_version.split(".")[:2]) %}
+{% set graalpy_maj_min = ".".join(version.split(".")[:2]) %}
+{% set graalpy_abi = "native" %}
+
+package:
+  name: graalpy
+  version: {{ version }}
+
+source:
+  - url: https://github.com/graalvm/labs-openjdk-{{ java_version.split(".")[0] }}/releases/download/jvmci-{{ jvmci_version }}/labsjdk-ce-{{ java_version }}-jvmci-{{ jvmci_version }}-linux-aarch64.tar.gz  # [build_platform == "linux-aarch64"]
+    sha256: 0e27931347df0863e863ef2030fc7fc5a712e0ddce721d2e23592ff5c3bfda76  # [build_platform == "linux-aarch64"]
+  - url: https://github.com/graalvm/labs-openjdk-{{ java_version.split(".")[0] }}/releases/download/jvmci-{{ jvmci_version }}/labsjdk-ce-{{ java_version }}-jvmci-{{ jvmci_version }}-linux-amd64.tar.gz  # [build_platform == "linux-64"]
+    sha256: 2e6d80438056b87921dd7725e829a2a91d9dd44a2decf52276739311b78de7bb  # [build_platform == "linux-64"]
+  - url: https://github.com/graalvm/labs-openjdk-{{ java_version.split(".")[0] }}/releases/download/jvmci-{{ jvmci_version }}/labsjdk-ce-{{ java_version }}-jvmci-{{ jvmci_version }}-darwin-amd64.tar.gz  # [osx and x86_64]
+    sha256: 99ee23bbcddd3348d2cf3d4ea5e0e32f1fbf24291b33f1dba561a3110e1aad83  # [osx and x86_64]
+  - url: https://github.com/graalvm/labs-openjdk-{{ java_version.split(".")[0] }}/releases/download/jvmci-{{ jvmci_version }}/labsjdk-ce-{{ java_version }}-jvmci-{{ jvmci_version }}-darwin-aarch64.tar.gz  # [osx and arm64]
+    sha256: 32df7c956d7fde693b9ac97a90fe0145a73f596d879e360a1fe1953748c8ecde  # [osx and arm64]
+  - url: https://github.com/graalvm/labs-openjdk-{{ java_version.split(".")[0] }}/releases/download/jvmci-{{ jvmci_version }}/labsjdk-ce-{{ java_version }}-jvmci-{{ jvmci_version }}-windows-amd64.tar.gz  # [win64]
+    sha256: 3ddfbca8f0803e5acbf5b03e5bff3db1ce8c7cbeb1a44dbd8cbffae7c69e7820  # [win64]
+    folder: labsjdk
+  - url: https://github.com/graalvm/mx/archive/refs/tags/{{ mx_version }}.zip
+    sha256: 6719145418c9846fb75686190359c69018ac5e61af113aba35e8542fdf09e09c
+    folder: mx
+    patches:
+      - patches/mx-keep-rpath-origin-variable.patch
+      - patches/mx-pypy-support.patch
+  - url: https://github.com/oracle/graal/archive/refs/tags/vm-ce-{{ version }}.zip
+    sha256: 9b714747fbff0b9f477a102a22e6558f697322d8fa89b1ac9956938d3afb3b87
+    folder: graal
+    patches:
+      - patches/sulong-disable-tests.patch
+      - patches/sulong-relative-rpath.patch
+  - url: https://github.com/oracle/graalpython/archive/refs/tags/vm-ce-{{ version }}.zip
+    sha256: 72ad9a6e8d8283425768c2838d9f360a42eb1dc6096d0efe44464f4fd5c0982c
+    folder: graalpython
+    patches:
+      - patches/graalpy-honour-sysroot.patch
+      - patches/graalpy-reduce-image-build-xmx.patch
+      - patches/graalpy-fix-lzma.patch  # [osx]
+      - patches/graalpy-graalvm-version-tag.patch
+
+build:
+  number: {{ build_num }}
+  skip: true  # [win or osx]
+
+outputs:
+  - name: graalpy
+    version: {{ version }}
+    script: build_graalpy.sh
+    build:
+      skip_compile_pyc:
+        - "*.py"
+      number: {{ build_num }}
+      string: {{ build_num }}_{{ graalpy_distribution }}_{{ graalpy_abi }}
+      track_features:  # [graalpy_distribution == "graalvm"]
+        - openjdk  # [graalpy_distribution == "graalvm"]
+      script_env:  # [graalpy_distribution == "standalone"]
+        - GRAALPY_STANDALONE_BUILD=true  # [graalpy_distribution == "standalone"]
+      run_exports:
+        weak:
+          - graalpy >={{ version }}
+        noarch:
+          - {{ pin_subpackage("python", max_pin="x.x", min_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - pypy3.9 >=7.3.9
+        - make
+        - patch
+        - zlib
+        - git
+        - curl
+        - cmake
+        - patchelf  # [linux]
+      host:
+        - zlib
+      run:
+        - libzlib
+        - patch
+        - curl
+        - __osx >={{ MACOS_DEPLOYMENT_TARGET|default("10.10") }}  # [osx]
+        - python_abi {{ python_maj_min }}.* *_graalpy{{ graalpy_maj_min.replace('.', '') }}_{{ python_maj_min.replace('.', '') }}_{{ graalpy_abi }}
+      run_constrained:
+        - python {{ gp_python_version }} {{ build_num }}_{{ graalpy_abi }}{{ graalpy_maj_min.replace('.', '') }}_graalpy
+    test:
+      commands:
+        - python3 --help
+        - python3 -c "import platform; print(platform._sys_version())"
+        - graalpy -m venv --help
+        - graalpy -m venv testvenv
+        - testvenv/bin/graalpy -c "import _struct; print(_struct.pack('I', 15663050))"
+
+  - name: python
+    version: {{ gp_python_version }}
+    build:
+      number: {{ build_num }}
+      string: {{ build_num }}_{{ graalpy_abi }}{{ graalpy_maj_min.replace('.', '') }}_graalpy
+      track_features:
+        - graalpy
+      run_exports:
+        weak:
+          - {{ pin_subpackage("graalpy", max_pin="x.x", min_pin="x.x") }}
+          - python_abi {{ python_maj_min }}.* *_graalpy{{ graalpy_maj_min.replace('.', '') }}_{{ python_maj_min.replace('.', '') }}_{{ graalpy_abi }}
+        noarch:
+          - {{ pin_subpackage("python", max_pin="x.x", min_pin="x.x") }}
+    requirements:
+      host:
+        - {{ pin_subpackage("graalpy", max_pin="x.x.x", min_pin="x.x.x") }}
+      run:
+        - {{ pin_subpackage("graalpy", max_pin="x.x.x", min_pin="x.x.x") }}
+        - python_abi {{ python_maj_min }}.* *_graalpy{{ graalpy_maj_min.replace('.', '') }}_{{ python_maj_min.replace('.', '') }}_{{ graalpy_abi }}
+    test:
+      requires:
+        - setuptools
+        - pip
+      imports:
+        # check that noarch packages work
+        - setuptools
+      commands:
+        - python --version
+        - pip -h
+        - test $(python -c "import sys; print('.'.join(str(i) for i in sys.version_info[:3]))") == "{{ gp_python_version }}"  # [unix]
+        - test $(python -c "import sys; print(sys.implementation.name)") == "graalpy"  # [unix]
+
+  - name: graalpy-graalvm
+    version: {{ version }}
+    build:
+      number: {{ build_num }}
+      skip: true  # [graalpy_distribution == "standalone"]
+    requirements:
+      host:
+        - {{ pin_subpackage('graalpy', exact=True) }}
+      run:
+        - {{ pin_subpackage('graalpy', exact=True) }}
+    test:
+      commands:
+        - java --version
+
+  - name: openjdk
+    version: {{ java_version.replace("+", ".") }}
+    build:
+      number: {{ build_num }}
+      string: {{ build_num }}_graalvm{{ jvmci_version.replace(".", "").replace("-", "") }}
+      track_features:
+        - graalpy-graalvm
+      skip: true  # [graalpy_distribution == "standalone"]
+      run_exports:
+        weak:
+          - graalpy-graalvm >={{ graalpy_maj_min }}
+    requirements:
+      host:
+        - {{ pin_subpackage("graalpy-graalvm", exact=True) }}
+      run:
+        - {{ pin_subpackage("graalpy-graalvm", exact=True) }}
+    test:
+      commands:
+        - java --version
+        - javac --version
+
+about:
+    home: http://graalvm.org/python
+    license: UPL-1.0
+    license_file: LICENSE_GRAALPY.txt
+    summary: >
+        GraalPy is a high-performance Python implementation on GraalVM. See
+        https://conda-forge.org/blog/posts/2020-03-10-pypy for more information
+        about using it in conda, replacing PyPy/pypy/pp with GraalPy/graalpy/gp
+        in commands.
+
+extra:
+  recipe-maintainers:
+    - timfel
+    - msimacek
+    - isuruf
