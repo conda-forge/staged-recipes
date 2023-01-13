@@ -1,0 +1,59 @@
+{% set name = "pycolmap" %}
+{% set version = "0.3.0" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/{{ name }}/{{ name }}/archive/{{ version }}.tar.gz
+    sha256: ceb7cca204550d65b890cd0082c66f4bc69193daf9da64616d8147a46b76cc55
+    patches:
+      - use-conda-pybind11.patch
+
+build:
+  number: 0
+  script: {{ PYTHON }} -m pip install . -vv
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version == "None"]
+  # weigh down cpu implementation and give cuda preference
+  track_features:
+    - pycolmap-cpu  # [cuda_compiler_version == "None"]
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ compiler('c') }}
+    - {{ compiler('cuda') }}                 # [not osx and cuda_compiler_version != "None"]
+    - cmake
+    - make                                   # [unix]
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - pybind11                               # [build_platform != target_platform]
+  host:
+    - python
+    - pybind11
+    - boost-cpp
+  run:
+    - python
+    - boost-cpp
+    - __cuda >={{ cuda_compiler_version }}  # [not osx and cuda_compiler_version != "None"]
+
+test:
+  imports:
+     - pycolmap
+   commands:
+     - pip check
+   requires:
+     - pip
+
+about:
+  home: https://colmap.github.io/
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+  summary: pycolmap exposes to Python most COLMAP reconstruction objects, such as Cameras and Points3D, as well as estimators for absolute and relative poses.
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer
