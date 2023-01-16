@@ -813,7 +813,7 @@ index b8d0eb9..7106d10 100644
      ivec.append(hash_isotope(proton, neutron))
  del tmp
 diff --git a/code/paraprobe-ranger/CMakeLists.txt b/code/paraprobe-ranger/CMakeLists.txt
-index 49154a5..dc53a9d 100755
+index 49154a5..f2f2e7e 100755
 --- a/code/paraprobe-ranger/CMakeLists.txt
 +++ b/code/paraprobe-ranger/CMakeLists.txt
 @@ -1,26 +1,12 @@
@@ -844,7 +844,7 @@ index 49154a5..dc53a9d 100755
  
  set(EMPLOY_GNUCOMPILER ON)
  message([STATUS] "MYCCC_COMPILER: __${CMAKE_C_COMPILER}__")
-@@ -39,52 +25,26 @@ if(EMPLOY_GNUCOMPILER)
+@@ -39,95 +25,86 @@ if(EMPLOY_GNUCOMPILER)
  endif()
  
  
@@ -857,18 +857,16 @@ index 49154a5..dc53a9d 100755
 -link_directories("${MYHDFPATH}/lib")
 -set(MYHDFLINKFLAGS "-L${MYHDFPATH}/lib/ ${MYHDFPATH}/lib/libhdf5_hl.a ${MYHDFPATH}/lib/libhdf5.a ${MYHDFPATH}/lib/libz.a ${MYHDFPATH}/lib/libszaec.a ${MYHDFPATH}/lib/libaec.a -ldl")
 -
-+include_directories("${CONDA_PREFIX}/include/voro++")
- 
+-
 -set(Boost_INCLUDE_DIR "${MYBOOSTPATH}")
 -#include_directories("${MYCGALPATH}")
 -set(CGAL_DIR "${MYCGALPATH}")
 -include_directories("${MYEIGENPATH}")
 -include_directories("${MYVOROXXPATH}/src")
-+set(MYHDFLINKFLAGS "-L${CONDA_PREFIX}/lib/ ${CONDA_PREFIX}/lib/libhdf5_hl.so ${CONDA_PREFIX}/lib/libhdf5.so ${CONDA_PREFIX}/lib/libz.a ${CONDA_PREFIX}/lib/libsz.a ${CONDA_PREFIX}/lib/libaec.a -ldl")
- 
+-
 -#GMP and MPFR is included and found alongside the CGAL library
 -#connect with ExternalLibraries.cmake via MYCGALHOME and MYEIGENHOME
- find_package(CGAL QUIET)
+-find_package(CGAL QUIET)
 -if( CGAL_FOUND )
 -	include( ${CGAL_USE_FILE} )
 -	if (EMPLOY_MYEIGEN)
@@ -880,14 +878,32 @@ index 49154a5..dc53a9d 100755
 -		endif()
 -	endif()
 -endif()
--
++include_directories("${CONDA_PREFIX}/include/voro++")
++
++#set(MYHDFLINKFLAGS "-L${CONDA_PREFIX}/lib/ ${CONDA_PREFIX}/lib/libhdf5_hl.so ${CONDA_PREFIX}/lib/libhdf5.so ${CONDA_PREFIX}/lib/libz.a ${CONDA_PREFIX}/lib/libsz.a ${CONDA_PREFIX}/lib/libaec.a -ldl")
++
++#find_package(CGAL QUIET)
++#find_package(Eigen)
++#find_package(Boost)
++#link_directories(${Boost_LIBRARY_DIR})
++
++find_package(HDF5 REQUIRED)
++include_directories(${HDF5_INCLUDE_DIRS})
+ 
 -#connect with ExternalLibraries.cmake via MYBOOSTHOME
 -#include_directories(${Boost_INCLUDE_DIR})
 -link_directories(${Boost_LIBRARY_DIR})
-+find_package(Eigen)
- find_package(Boost)
-+link_directories(${Boost_LIBRARY_DIR})
+-find_package(Boost)
++find_package(Boost REQUIRED)
++include_directories(${Boost_INCLUDE_DIRS})
 +
++find_package(CGAL REQUIRED)
++include                     (${CGAL_USE_FILE})
++include_directories         (${CGAL_INCLUDE_DIRS})
++
++find_package(Eigen3 3.3 REQUIRED)
++#include_directories         (${EIGEN3_INCLUDE_DIRS})
++include_directories("${CONDA_PREFIX}/include/eigen3")
  
  #setting up compiler-specifics
  if(EMPLOY_GNUCOMPILER)
@@ -906,8 +922,16 @@ index 49154a5..dc53a9d 100755
  endif()
  
  #parallelization - MPI process-level
-@@ -96,38 +56,42 @@ if(EMPLOY_PARALLELISM_MPI)
- endif()
+ #query location of MPI library
+ message([STATUS] "MPI_INCLUDE_PATH ${MPI_INCLUDE_PATH}")
+-if(EMPLOY_PARALLELISM_MPI)
+-	find_package(MPI REQUIRED)
+-	include_directories(${MPI_INCLUDE_PATH})
+-endif()
++#if(EMPLOY_PARALLELISM_MPI)
++find_package(MPI REQUIRED)
++include_directories(${MPI_INCLUDE_PATH})
++#endif()
  
  #specific paths of dependencies for this tool
 -set(MYTOOLSRCPATH "${MYTOOLPATH}/src/cxx")
@@ -978,6 +1002,16 @@ index 49154a5..dc53a9d 100755
  
  	${MYTOOLSRCPATH}/CONFIG_Ranger.cpp
  	${MYTOOLSRCPATH}/PARAPROBE_RangerStructs.cpp
+@@ -139,7 +116,8 @@ add_executable(${MYPROJECTNAME}
+ )
+ 
+ #linking process, the target link libraries command is specific for each tool of the toolbox
+-target_link_libraries(${MYPROJECTNAME} ${MYOMP} ${MPI_LIBRARIES} ${MYHDFLINKFLAGS})
++#target_link_libraries(${MYPROJECTNAME} ${MYOMP} ${MPI_LIBRARIES} ${MYHDFLINKFLAGS})
++target_link_libraries(${MYPROJECTNAME} ${MYOMP} ${MPI_LIBRARIES} HDF5::HDF5)
+ 
+ #MPI compilation settings
+ if(MPI_COMPILE_FLAGS)
 diff --git a/code/paraprobe-spatstat/CMakeLists.txt b/code/paraprobe-spatstat/CMakeLists.txt
 index 03f4ac7..2c56a70 100644
 --- a/code/paraprobe-spatstat/CMakeLists.txt
