@@ -1,10 +1,7 @@
 {% set name = "torchtext" %}
 {% set version = "0.14.1" %}
-{% set number = 0 %}
-
-{% if cuda_compiler_version != "None" %}
-{% set number = number + 200 %}
-{% endif %}
+# see github.com/conda-forge/conda-forge.github.io/issues/1059 for naming discussion
+{% set torch_proc_type = "cuda" if cuda_compiler_version != "None" else "cpu" %}
 
 package:
   name: {{ name|lower }}
@@ -13,104 +10,55 @@ package:
 source:
   url: https://github.com/pytorch/text/archive/refs/tags/v{{ version }}.tar.gz
   sha256: fd1ef3da7d9c20408c740f7dc7d02ad52a6048b46368355a1a7326d3bc4f2e63
-  # patches:
-  #   - patches/fix_dispatch_apply_auto.patch
-  #   - patches/osx-map_anonymous.patch
-  #   # 2022/07 hmaarrfk
-  #   # We've patch out the bug in GCC that makes it incompatible
-  #   # https://github.com/conda-forge/ctng-compilers-feedstock/blob/7ea10c2526445beb9faff23efcc6bc40fc0079b5/recipe/meta.yaml#L23=
-  #   - patches/remove_gcc_maximum_requirements.patch 
 
 build:
-  number: {{ number }}
-  skip: true  # [win]
-  skip: true  # [cuda_compiler_version == "10.2"]
-  skip: true  # [cuda_compiler_version == "11.0"]
-  skip: true  # [cuda_compiler_version == "11.1"]
+  number: 0
+  # as of pytorch 1.13, conda-forge only builds for CUDA 11.2+, see
+  # https://github.com/conda-forge/conda-forge-pinning-feedstock/issues/3491
+  skip: true  # [win or cuda_compiler_version in ("None", "10.2", "11.0", "11.1")]
+  string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version == "None"]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  script:
+    - export FORCE_CUDA="1"    # [linux64 and cuda_compiler_version != 'None']
+    - export CC="$GCC"         # [linux64 and cuda_compiler_version != 'None']
+    - export NVCC_FLAGS="--compiler-bindir=${CC}"    # [linux64 and cuda_compiler_version != 'None']
+    - {{ PYTHON }} -m pip install . -vv
 
-outputs:
-  - name: torchtext
-    build:
-      string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
-      string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                                # [cuda_compiler_version == "None"]
-      detect_binary_files_with_prefix: false
-      # run_exports:
-      #   - {{ pin_subpackage('pytorch', max_pin='x.x') }}
-    script: build_torchtext.sh  # [not win]
-    script: bld_torchtext.bat   # [win]
-    requirements:
-      build:
-        - python                                 # [build_platform != target_platform]
-        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
-        - numpy                                  # [build_platform != target_platform]
-        - cffi                                   # [build_platform != target_platform]
-        - sysroot_linux-64  2.17  # [linux64]
-        - {{ compiler('c') }}
-        - {{ compiler('cxx') }}
-        - {{ compiler('cuda') }}    # [cuda_compiler_version != "None"]
-        # Dec 2020: it seems that git is broken on windows, so we use m2-git
-        - patch     # [not win]
-        - m2-patch  # [win]
-        - git       # [not win]
-        - m2-git    # [win]
-        - libgomp   # [linux]
-        - llvm-openmp    # [osx]
-        # 2022/04/12 hmaarrfk
-        # Issues with recent version of CMake
-        # https://github.com/pytorch/pytorch/issues/74985
-        # Should be fixed in other versions
-        # https://gitlab.kitware.com/cmake/cmake/-/issues/23368
-        - cmake  # != 3.23.0
-        - ninja
-        # Keep libprotobuf here so that a compatibile version
-        # of protobuf is installed between build and host
-        - libprotobuf
-        - protobuf
-        - make      # [linux]
-      host:
-        # GPU requirements
-        - cudnn                           # [cuda_compiler_version != "None"]
-        - nccl                            # [cuda_compiler_version != "None"]
-        - magma                           # [cuda_compiler_version != "None"]
-        # other requirements
-        - python
-        - numpy
-        - pip
-        - setuptools
-        - pyyaml
-        - requests
-        - future
-        - six
-        - cffi
-        - mkl-devel {{ mkl }}   # [x86]
-        - libcblas * *_mkl      # [x86]
-        - libcblas              # [not x86]
-        - liblapack             # [not x86]
-        - openblas              # [not x86]
-        - libprotobuf
-        - sleef
-        - typing
-        - libuv
-        - pkg-config  # [unix]
-        - typing_extensions
-        - pytorch
-      run:
-        - python 
-        - blas
-        - flit-core
-        - mkl
-        - pytorch
-        - typing_extensions
-        # - intel-openmp
-        # - pytorch-mutex
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+  host:
+    - python
+    - pytorch
+    - pytorch =*={{ torch_proc_type }}*
+    - setuptools
+    - pytest-runner
+    - pip
+  run:
+    - python
+    - blas
+    - flit-core
+    - mkl
+    - pytorch
+    - typing_extensions
+    # - intel-openmp
+    # - pytorch-mutex
+  run_constrained:
+    # additional run constraint to the one from the (version-only) run_export;
+    # constraining the CPU builds to CPU pytorch isn't 100% necessary, but cleaner
+    - pytorch =*={{ torch_proc_type }}*
 
-    test:
-      imports:
-        - torchtext
-      requires:
-        - pip
-      commands:
-        - pip check
+test:
+  imports:
+    - torchtext
+  requires:
+    - pip
+  commands:
+    - pip check
 
 about:
   home: https://pypi.org/project/torchtext
