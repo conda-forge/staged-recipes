@@ -33,6 +33,7 @@ cd ..
 
 mkdir compiled_code
 cp paraprobe-utils/CMakeFiles/paraprobe-utils.dir/src/cxx/* compiled_code/
+cp paraprobe-utils/src/cxx/*.h ${PREFIX}/include/
 
 #cd paraprobe-surfacer
 #export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
