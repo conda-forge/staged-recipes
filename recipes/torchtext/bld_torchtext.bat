@@ -1,5 +1,7 @@
 @echo On
 
+git submodule update --init --recursive
+
 set TH_BINARY_BUILD=1
 set PYTORCH_BUILD_VERSION=%PKG_VERSION%
 set PYTORCH_BUILD_NUMBER=%PKG_BUILDNUM%

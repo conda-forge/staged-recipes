@@ -1,5 +1,7 @@
 #!/bin/bash
 
+git submodule update --init --recursive
+
 set -ex
 
 # clean up an existing cmake build directory
