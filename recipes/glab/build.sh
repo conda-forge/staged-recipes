@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-set -eux
+# breaks windows, probably just move to another file
+# set -eux
 
 module="gitlab.com/gitlab-org/cli"
 
