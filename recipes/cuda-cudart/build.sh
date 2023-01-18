@@ -2,6 +2,7 @@
 
 # Install to conda style directories
 [[ -d lib64 ]] && mv lib64 lib
+[[ -d pkg-config ]] && mv pkg-config ${PREFIX}/lib/pkgconfig
 
 [[ ${target_platform} == "linux-64" ]] && targetsDir="targets/x86_64-linux"
 [[ ${target_platform} == "linux-ppc64le" ]] && targetsDir="targets/ppc64le-linux"
