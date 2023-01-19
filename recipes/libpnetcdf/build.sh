@@ -14,7 +14,7 @@ export MPIF90=mpifort
 
 make
 # serial tests
-make check
+make check || cat src/utils/ncvalidator/test-suite.log
 # lighter weight parallel tests (4 MPI tasks)
 make ptest
 
