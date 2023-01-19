@@ -2,6 +2,7 @@
 
 # breaks windows, probably just move to another file
 # set -eux
+set -ex
 
 module="gitlab.com/gitlab-org/cli"
 
