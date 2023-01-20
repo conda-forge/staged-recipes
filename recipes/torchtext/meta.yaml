@@ -1,0 +1,89 @@
+{% set version = "0.13.1" %}
+{% set spacy_model = "en_core_web_sm" %}
+
+package:
+  name: torchtext
+  version: {{ version }}
+
+source:
+  url: https://github.com/pytorch/text/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 1f7de1fd8c6303ea13ef2aed48a6df67df5f92d1c4a6918253be7decd93753be
+  patches:
+    # don't build pytorch/text/tree/main/third_party; pull in from conda-forge
+    - patches/0001-do-not-build-third_party-libs.patch
+    # make sure we install from $PREFIX and into $SP_DIR/torchtext
+    - patches/0002-fix-some-CMake-arguments-for-our-infrastructure.patch
+    # remove spurious run requirements from installation requirements
+    - patches/0003-remove-unnecessary-installation-requirements.patch
+    - patches/0004-load-library-from-correct-place.patch
+    - patches/0005-must-use-C-17-to-match-abseil.patch
+
+build:
+  number: 0
+  # no pytorch on windows in conda-forge, see
+  # https://github.com/conda-forge/pytorch-cpu-feedstock/issues/32
+  skip: true  # [win]
+  script: {{ PYTHON }} -m pip install . --no-deps -vv
+  rpaths:
+    - lib/
+    - {{ SP_DIR }}/torch/lib
+    - {{ SP_DIR }}/torchtext/lib
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - sysroot_linux-64 2.17  # [linux64]
+    - cmake
+    - ninja
+    - pkg-config
+  host:
+    - python
+    - pip
+    - numpy
+    - pytorch
+    # from pytorch/text/tree/main/third_party
+    - double-conversion
+    - libsentencepiece
+    - libutf8proc
+    - re2
+  run:
+    - python
+    - nltk
+    - requests
+    - revtok ==0.0.3.1
+    - sacremoses
+    - spacy
+    - tqdm
+
+test:
+  requires:
+    - pip
+    - pytest
+    - expecttest
+    - parameterized
+    - spacy-model-{{ spacy_model }}
+    - torchdata
+  source_files:
+    - test/
+  imports:
+    - torchtext
+    - torchtext.datasets
+    - torchtext.data
+    - torchtext.nn
+    - torchtext.vocab
+  commands:
+    - pip check
+    # then run test suite
+    - pytest test/ -v
+
+about:
+  home: https://pytorch.org/text
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: Data loaders and abstractions for text and NLP
+  dev_url: https://github.com/pytorch/text
+
+extra:
+  recipe-maintainers:
+    - h-vetinari
+    - giswqs
