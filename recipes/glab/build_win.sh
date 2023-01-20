@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eux
 
-module='github.com/ipfs/kubo'
+module="gitlab.com/gitlab-org/cli"
 
 export GOPATH="$( pwd )"
 export GOROOT="${BUILD_PREFIX}/go"
