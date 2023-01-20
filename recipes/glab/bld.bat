@@ -1,6 +1,6 @@
 @echo on
 
-copy "%RECIPE_DIR%\build.sh" .
+copy "%RECIPE_DIR%\build_win.sh" .
 if %errorlevel% neq 0 exit /b %errorlevel%
 
 set PREFIX=%PREFIX:\=/%
@@ -9,9 +9,7 @@ set MSYSTEM=MINGW%ARCH%
 set MSYS2_PATH_TYPE=inherit
 set CHERE_INVOKING=1
 
-set "LDFLAGS=-s -w"
-
-bash -lc "./build.sh"
+bash -lc "./build_win.sh"
 if %errorlevel% neq 0 exit /b %errorlevel%
 
 exit /b 0

@@ -1,21 +1,14 @@
 #!/usr/bin/env bash
-
 set -eux
 
-module="gitlab.com/gitlab-org/cli"
+module='github.com/ipfs/kubo'
 
 export GOPATH="$( pwd )"
 export GOROOT="${BUILD_PREFIX}/go"
 
 export GOFLAGS="-buildmode=pie -trimpath -ldflags=-linkmode=external"
-export GO_EXTLINK_ENABLED=1
-export GO_LFFLAGS=${LDFLAGS}
 
 export CGO_ENABLED=1
-export CGO_CFLAGS="${CFLAGS}"
-export CGO_CPPFLAGS="${CPPFLAGS}"
-export CGO_CXXFLAGS="${CXXFLAGS}"
-export CGO_LDFLAGS="${LDFLAGS}"
 
 export GLAB_VERSION="${PKG_VERSION}"
 
@@ -23,7 +16,7 @@ pushd "src/${module}"
     make install
     make build
     mkdir -p "${PREFIX}/bin"
-    cp "bin/${PKG_NAME}" "${PREFIX}/bin"
+    cp "bin/${PKG_NAME}" "${PREFIX}/bin/${PKG_NAME}.exe"
     go-licenses save ./cmd/glab --save_path "${SRC_DIR}/license-files"
 popd
 
