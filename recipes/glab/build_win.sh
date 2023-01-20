@@ -49,6 +49,7 @@ pushd "src/${module}"
         --ignore=crypto/tls \
         --ignore=crypto/x509 \
         --ignore=database/sql/driver \
+        --ignore=embed \
         --ignore=encoding \
         --ignore=encoding/base64 \
         --ignore=encoding/binary \
@@ -130,6 +131,7 @@ pushd "src/${module}"
         --ignore=vendor/golang.org/x/net/idna \
         --ignore=vendor/golang.org/x/sys/cpu \
         --ignore=vendor/golang.org/x/text/secure/bidirule \
+        --ignore=vendor/golang.org/x/text/transform \
         --ignore=vendor/golang.org/x/text/unicode/bidi \
         --ignore=vendor/golang.org/x/text/unicode/norm
 
