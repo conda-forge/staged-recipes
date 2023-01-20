@@ -20,13 +20,26 @@ pushd "src/${module}"
 
     # the --ignores are all stdlib, found for some reason
     go-licenses save ./cmd/glab --save_path "${SRC_DIR}/license-files" \--ignore=archive/zip \
+        --ignore=archive/zip \
         --ignore=bufio \
         --ignore=bytes \
         --ignore=compress/flate \
+        --ignore=compress/gzip \
+        --ignore=container/list \
         --ignore=context \
+        --ignore=crypto \
+        --ignore=crypto/aes \
+        --ignore=crypto/cipher \
+        --ignore=crypto/des \
         --ignore=crypto/dsa \
+        --ignore=crypto/ecdsa \
+        --ignore=crypto/ed25519 \
+        --ignore=crypto/elliptic \
+        --ignore=crypto/hmac \
         --ignore=crypto/internal/randutil \
+        --ignore=crypto/internal/subtle \
         --ignore=crypto/md5 \
+        --ignore=crypto/rand \
         --ignore=crypto/rc4 \
         --ignore=crypto/rsa \
         --ignore=crypto/sha1 \
@@ -50,9 +63,28 @@ pushd "src/${module}"
         --ignore=html \
         --ignore=html/template \
         --ignore=image/color \
+        --ignore=internal/abi \
+        --ignore=internal/bytealg \
+        --ignore=internal/cpu \
         --ignore=internal/fmtsort \
+        --ignore=internal/goarch \
         --ignore=internal/godebug \
+        --ignore=internal/goexperiment \
+        --ignore=internal/goos \
+        --ignore=internal/intern \
+        --ignore=internal/itoa \
+        --ignore=internal/nettrace \
+        --ignore=internal/oserror \
+        --ignore=internal/poll \
         --ignore=internal/race \
+        --ignore=internal/reflectlite \
+        --ignore=internal/singleflight \
+        --ignore=internal/syscall/execenv \
+        --ignore=internal/syscall/windows \
+        --ignore=internal/syscall/windows/registry \
+        --ignore=internal/syscall/windows/sysdll \
+        --ignore=internal/testlog \
+        --ignore=internal/unsafeheader \
         --ignore=io \
         --ignore=io/ioutil \
         --ignore=log \
@@ -83,15 +115,23 @@ pushd "src/${module}"
         --ignore=unicode \
         --ignore=unicode/utf16 \
         --ignore=unicode/utf8 \
+        --ignore=vendor/golang.org/x/crypto/chacha20 \
         --ignore=vendor/golang.org/x/crypto/chacha20poly1305 \
         --ignore=vendor/golang.org/x/crypto/cryptobyte \
         --ignore=vendor/golang.org/x/crypto/cryptobyte/asn1 \
         --ignore=vendor/golang.org/x/crypto/curve25519 \
         --ignore=vendor/golang.org/x/crypto/hkdf \
+        --ignore=vendor/golang.org/x/crypto/internal/poly1305 \
+        --ignore=vendor/golang.org/x/crypto/internal/subtle \
+        --ignore=vendor/golang.org/x/net/dns/dnsmessage \
         --ignore=vendor/golang.org/x/net/http/httpguts \
         --ignore=vendor/golang.org/x/net/http/httpproxy \
         --ignore=vendor/golang.org/x/net/http2/hpack \
-        --ignore=vendor/golang.org/x/net/idna
+        --ignore=vendor/golang.org/x/net/idna \
+        --ignore=vendor/golang.org/x/sys/cpu \
+        --ignore=vendor/golang.org/x/text/secure/bidirule \
+        --ignore=vendor/golang.org/x/text/unicode/bidi \
+        --ignore=vendor/golang.org/x/text/unicode/norm
 
 popd
 
