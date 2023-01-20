@@ -15,9 +15,9 @@ mkdir -p "${PREFIX}/bin"
 
 pushd "src/${module}"
     make install
+    go-licenses save ./cmd/glab --save_path "${SRC_DIR}/license-files"
     make build
     cp "bin/glab" "${PREFIX}/bin/glab.exe"
-    go-licenses save ./cmd/glab --save_path "${SRC_DIR}/license-files"
 popd
 
 mkdir -p "${PREFIX}/share/bash-completion/completions"
