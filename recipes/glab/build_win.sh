@@ -15,9 +15,62 @@ mkdir -p "${PREFIX}/bin"
 
 pushd "src/${module}"
     make install
-    go-licenses save ./cmd/glab --save_path "${SRC_DIR}/license-files"
     make build
     cp "bin/glab" "${PREFIX}/bin/glab.exe"
+
+    # the --ignores are all stdlib, found for some reason
+    go-licenses save ./cmd/glab --save_path "${SRC_DIR}/license-files" \
+        --ignore=archive/zip \
+        --ignore=bufio \
+        --ignore=bytes \
+        --ignore=context \
+        --ignore=crypto/rsa \
+        --ignore=crypto/tls \
+        --ignore=crypto/x509 \
+        --ignore=database/sql/driver \
+        --ignore=encoding \
+        --ignore=encoding/base64 \
+        --ignore=encoding/binary \
+        --ignore=encoding/csv \
+        --ignore=encoding/hex \
+        --ignore=encoding/json \
+        --ignore=encoding/pem \
+        --ignore=errors \
+        --ignore=flag \
+        --ignore=fmt \
+        --ignore=html \
+        --ignore=html/template \
+        --ignore=image/color \
+        --ignore=io \
+        --ignore=io/ioutil \
+        --ignore=log \
+        --ignore=math \
+        --ignore=math/big \
+        --ignore=math/rand \
+        --ignore=mime \
+        --ignore=mime/multipart \
+        --ignore=net \
+        --ignore=net/http \
+        --ignore=net/url \
+        --ignore=os \
+        --ignore=os/exec \
+        --ignore=path \
+        --ignore=path/filepath \
+        --ignore=reflect \
+        --ignore=regexp \
+        --ignore=runtime \
+        --ignore=runtime/debug \
+        --ignore=sort \
+        --ignore=strconv \
+        --ignore=strings \
+        --ignore=sync \
+        --ignore=sync/atomic \
+        --ignore=syscall \
+        --ignore=text/template \
+        --ignore=time \
+        --ignore=unicode \
+        --ignore=unicode/utf16 \
+        --ignore=unicode/utf8
 popd
 
 mkdir -p "${PREFIX}/share/bash-completion/completions"
