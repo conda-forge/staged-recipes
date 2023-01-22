@@ -2,5 +2,5 @@
 cd ${SRC_DIR}/src
 source ../source.apache
 export FC=${GFORTRAN}
-make
+make FC=${GFORTRAN}
 make PREFIX=${PREFIX} install
