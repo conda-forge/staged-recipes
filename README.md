@@ -7,7 +7,7 @@ This repo is a holding area for recipes destined for a conda-forge feedstock rep
 
 ## Feedstock conversion status
 
-[![Build Status](https://github.com/conda-forge/staged-recipes/workflows/Create%20feedstocks/badge.svg)](https://github.com/conda-forge/staged-recipes/actions?query=workflow%3A%22Create+feedstocks%22)
+[![create_feedstocks](https://github.com/conda-forge/admin-requests/actions/workflows/create_feedstocks.yml/badge.svg)](https://github.com/conda-forge/admin-requests/actions/workflows/create_feedstocks.yml)
 
 Failures with the above job are often caused by API rate limits from the various services used by conda-forge.
 This can result in empty feedstock repositories and will resolve itself automatically.
