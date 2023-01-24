@@ -6,25 +6,45 @@ package:
   version: {{ version }}
 
 source:
-  url: https://github.com/lanl/waves/releases/download/{{ version }}/waves-{{ version }}-py_0.tar.bz2
-  sha256: 87bb947ce042c4e60f266cdfc02830e3c3dcce76e044c43bee2e63ab265fae3e
+  url: https://github.com/lanl/waves/archive/refs/tags/{{ version }}.tar.gz
+  sha256: a4f81f6a9670be20d4aca07074d0f2e5a88a606134785fecfcda64c59e5d6df0
 
 build:
   noarch: python
-  number: 0
+  script_env:
+    - SETUPTOOLS_SCM_PRETEND_VERSION={{ version }}
   script:
-    - echo "waves-{{ version }}-py_0.tar.bz2"
+    - scons man html-github
     - manpath1="$PREFIX/share/man/man1"
     - manpath2="$PREFIX/man/man1"
-    - mkdir -p $manpath1 $manpath2 $PREFIX/bin $SP_DIR
-    - cp -r man $PREFIX/man
-    - cp -r share $PREFIX/share
-    - cp -r python-scripts/* $PREFIX/bin
-    - cp -r site-packages/* $SP_DIR
+    - mkdir -p $manpath1 $manpath2
+    - cp build/docs/man/waves.1 $manpath1
+    - cp build/docs/man/waves.1 $manpath2 || true
+    - {{ PYTHON }} setup.py install
+    - docspath="$SP_DIR/$PKG_NAME/docs"
+    - mkdir -p $docspath
+    - cp -RL build/docs/html-github/* $docspath
+    - quickstart_path="$SP_DIR/$PKG_NAME/quickstart"
+    - mkdir -p ${quickstart_path}
+    - cp -RL quickstart/* ${quickstart_path}
+  ignore_run_exports:
+    - python_abi
 
 requirements:
   build:
+    - python {{ python }}
+    - git
+    - scons >=4
+    - setuptools >=45
+    - setuptools_scm[toml] >=6.2
+    - sphinx >=5.1
+    - sphinx-argparse
+    - sphinx_rtd_theme >=1
+    - sphinxcontrib-bibtex
   host:
+    - python
+    - setuptools >=45
+    - setuptools_scm[toml] >=6.2
   run:
     - python >=3.8
     - h5netcdf
@@ -52,7 +72,7 @@ test:
 about:
   home: https://github.com/lanl/waves
   license: BSD-3-Clause
-  license_file: info/licenses/LICENSE.txt
+  license_file: LICENSE.txt
   summary: 'Parameteric study computational engineering workflow tool'
   description: |
     WAVES (LANL code C23004) is a computational engineering workflow tool that integrates parametric studies with
