@@ -34,6 +34,16 @@ mkdir compiled_code
 cp paraprobe-utils/CMakeFiles/paraprobe-utils.dir/src/cxx/* compiled_code/
 cp paraprobe-utils/src/cxx/*.h ${PREFIX}/include/
 
+cd paraprobe-intersector
+export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+cmake -D Boost_NO_BOOST_CMAKE=ON \
+	  -D CMAKE_BUILD_TYPE=Release \
+	  -D CMAKE_CXX_COMPILER=mpicxx \
+	  -D CONDA_PREFIX=${PREFIX} .
+make
+cp paraprobe_intersector ${PREFIX}/bin/
+cd ..
+
 cd paraprobe-nanochem
 export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
 cmake -D Boost_NO_BOOST_CMAKE=ON \
@@ -53,17 +63,6 @@ cmake -D Boost_NO_BOOST_CMAKE=ON \
 make
 cp paraprobe_tessellator ${PREFIX}/bin/
 cd ..
-
-cd paraprobe-intersector
-export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
-cmake -D Boost_NO_BOOST_CMAKE=ON \
-	  -D CMAKE_BUILD_TYPE=Release \
-	  -D CMAKE_CXX_COMPILER=mpicxx \
-	  -D CONDA_PREFIX=${PREFIX} .
-make
-cp paraprobe_intersector ${PREFIX}/bin/
-cd ..
-
 
 cd paraprobe-surfacer
 export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
