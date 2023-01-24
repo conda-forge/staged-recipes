@@ -137,11 +137,17 @@ diff --git a/code/paraprobe-autoreporter/src/python/wizard/thirdparty/mandatory/
 new file mode 100644
 index 0000000..e69de29
 diff --git a/code/paraprobe-distancer/CMakeLists.txt b/code/paraprobe-distancer/CMakeLists.txt
-index 7348ab5..b2fad77 100755
+index 7348ab5..b794851 100755
 --- a/code/paraprobe-distancer/CMakeLists.txt
 +++ b/code/paraprobe-distancer/CMakeLists.txt
-@@ -7,20 +7,10 @@ cmake_minimum_required(VERSION 3.18.4)
- #please name your project accordingly
+@@ -1,36 +1,17 @@
+ cmake_minimum_required(VERSION 3.18.4)
+ 
+-################################################################################################################################
+-##DEVELOPER SECTION#############################################################################################################
+-##in this section software developers need to make changes when debugging#######################################################
+-################################################################################################################################
+-#please name your project accordingly
  set(MYPROJECTNAME "paraprobe_distancer")
  message([STATUS] "Projectname is ${MYPROJECTNAME}")
 -project(${MYPROJECTNAME} LANGUAGES CXX)
@@ -159,14 +165,33 @@ index 7348ab5..b2fad77 100755
 -#compose a tool-specific path
 -set(MYTOOLPATH "${MYPROJECTPATH}/code/paraprobe-distancer/")
 -message([STATUS] "MYTOOLPATH: ${MYTOOLPATH}")
-+message([STATUS] "CONDA_PATH: ${CONDA_PREFIX}")
- 
+-
  set(EMPLOY_GNUCOMPILER ON)
++message([STATUS] "CONDA_PATH: ${CONDA_PREFIX}")
  message([STATUS] "MYCCC_COMPILER: __${CMAKE_C_COMPILER}__")
-@@ -44,94 +34,80 @@ endif()
- ##here advanced users might want/need to make modifications if they use non default places for thirdparty libraries#############
- ################################################################################################################################
- #HDF5 local installation for advanced I/O, collecting metadata and bundle analysis results together
+ message([STATUS] "MYCXX_COMPILER: __${CMAKE_CXX_COMPILER}__")
+ 
+-#define which parallelization layers are used
+ set(EMPLOY_PARALLELISM_CUDA OFF)
+ 
+-#choose optimization level
+-##-O0 nothing, debug purposes, -O1 moderate optimization, -O2 -O3 for production level up to aggressive architecture specific non-portable optimization
+ if(EMPLOY_GNUCOMPILER)
+ 	set(MYOPTLEVEL "-O2")
+ 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MYOPTLEVEL}")
+@@ -38,100 +19,69 @@ if(EMPLOY_GNUCOMPILER)
+ 	message([STATUS] "We utilize optimization level ${MYOPTLEVEL}")
+ endif()
+ 
++find_package(HDF5 REQUIRED)
++include_directories(${HDF5_INCLUDE_DIRS})
++set(MYHDFLINKFLAGS "-L${CONDA_PREFIX}/lib/ ${CONDA_PREFIX}/lib/libhdf5_hl.so ${CONDA_PREFIX}/lib/libhdf5.so ${CONDA_PREFIX}/lib/libz.so ${CONDA_PREFIX}/lib/libsz.so ${CONDA_PREFIX}/lib/libaec.so -ldl")
+ 
+-################################################################################################################################
+-##END OF INTERACTION FOR NON PRO USERS##########################################################################################
+-##here advanced users might want/need to make modifications if they use non default places for thirdparty libraries#############
+-################################################################################################################################
+-#HDF5 local installation for advanced I/O, collecting metadata and bundle analysis results together
 -include_directories("${MYHDFPATH}/include")
 -link_directories("${MYHDFPATH}/lib")
 -set(MYHDFLINKFLAGS "-L${MYHDFPATH}/lib/ ${MYHDFPATH}/lib/libhdf5_hl.a ${MYHDFPATH}/lib/libhdf5.a ${MYHDFPATH}/lib/libz.a ${MYHDFPATH}/lib/libszaec.a ${MYHDFPATH}/lib/libaec.a -ldl")
@@ -191,31 +216,27 @@ index 7348ab5..b2fad77 100755
 -		endif()
 -	endif()
 -endif()
-+#set(MYHDFLINKFLAGS "-L${CONDA_PREFIX}/lib/ ${CONDA_PREFIX}/lib/libhdf5_hl.so ${CONDA_PREFIX}/lib/libhdf5.so ${CONDA_PREFIX}/lib/libz.a ${CONDA_PREFIX}/lib/libsz.a ${CONDA_PREFIX}/lib/libaec.a -ldl")
-+
-+find_package(HDF5 REQUIRED)
-+include_directories(${HDF5_INCLUDE_DIRS})
-+set(MYHDFLINKFLAGS "-L${CONDA_PREFIX}/lib/ ${CONDA_PREFIX}/lib/libhdf5_hl.so ${CONDA_PREFIX}/lib/libhdf5.so ${CONDA_PREFIX}/lib/libz.so ${CONDA_PREFIX}/lib/libsz.so ${CONDA_PREFIX}/lib/libaec.so -ldl")
++find_package(Boost REQUIRED)
++include_directories(${Boost_INCLUDE_DIRS})
  
 -#connect with ExternalLibraries.cmake via MYBOOSTHOME
 -#include_directories(${Boost_INCLUDE_DIR})
 -link_directories(${Boost_LIBRARY_DIR})
 -find_package(Boost)
-+find_package(Boost REQUIRED)
-+include_directories(${Boost_INCLUDE_DIRS})
-+
 +find_package(CGAL REQUIRED)
 +include                     (${CGAL_USE_FILE})
 +include_directories         (${CGAL_INCLUDE_DIRS})
-+
-+find_package(Eigen3 3.3 REQUIRED)
-+#include_directories         (${EIGEN3_INCLUDE_DIRS})
-+include_directories("${CONDA_PREFIX}/include/eigen3")
  
 -#automatically assign project name and compiler flags
 -set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MYOPTLEVEL}")
 -set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MYOPTLEVEL}")
 -message([STATUS] "We utilize optimization level ${MYOPTLEVEL}")
++find_package(Eigen3 3.3 REQUIRED)
++#include_directories         (${EIGEN3_INCLUDE_DIRS})
++include_directories("${CONDA_PREFIX}/include/eigen3")
++
++find_package(MPI REQUIRED)
++include_directories(${MPI_INCLUDE_PATH})
  
  #setting up compiler-specifics
  if(EMPLOY_GNUCOMPILER)
@@ -228,23 +249,15 @@ index 7348ab5..b2fad77 100755
 -	add_definitions("-Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat 
 -		-Wuninitialized -Wmaybe-uninitialized -Wmain -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point 
 -		-Wtrigraphs -Wunused-function -Wunused-but-set-variable -Wunused-variable") #-Wnarrowing
-+	#add_definitions("-Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat 
-+	#	-Wuninitialized -Wmaybe-uninitialized -Wmain -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point 
-+	#	-Wtrigraphs -Wunused-function -Wunused-but-set-variable -Wunused-variable") #-Wnarrowing
- endif()
- 
- #parallelization - MPI process-level
- #query location of MPI library
+-endif()
+-
+-#parallelization - MPI process-level
+-#query location of MPI library
 -message([STATUS] "MPI_INCLUDE_PATH ${MPI_INCLUDE_PATH}")
 -if(EMPLOY_PARALLELISM_MPI)
 -	find_package(MPI REQUIRED)
 -	include_directories(${MPI_INCLUDE_PATH})
--endif()
-+#message([STATUS] "MPI_INCLUDE_PATH ${MPI_INCLUDE_PATH}")
-+#if(EMPLOY_PARALLELISM_MPI)
-+find_package(MPI REQUIRED)
-+include_directories(${MPI_INCLUDE_PATH})
-+#endif()
+ endif()
  
  #specific paths of dependencies for this tool
 -set(MYTOOLSRCPATH "${MYTOOLPATH}/src/cxx")
@@ -806,10 +819,10 @@ index b8d0eb9..7106d10 100644
      ivec.append(hash_isotope(proton, neutron))
  del tmp
 diff --git a/code/paraprobe-ranger/CMakeLists.txt b/code/paraprobe-ranger/CMakeLists.txt
-index 49154a5..762e85d 100755
+index 49154a5..48d1790 100755
 --- a/code/paraprobe-ranger/CMakeLists.txt
 +++ b/code/paraprobe-ranger/CMakeLists.txt
-@@ -1,26 +1,12 @@
+@@ -1,36 +1,17 @@
  cmake_minimum_required(VERSION 3.18.4)
  
 -################################################################################################################################
@@ -823,7 +836,7 @@ index 49154a5..762e85d 100755
 +project(${MYPROJECTNAME} LANGUAGES C CXX)
  set(CMAKE_BUILD_DIR "build")
  
- 
+-
 -#pull general information about external libraries and paths related to paraprobe
 -include("../PARAPROBE.Dependencies.cmake")
 -message([STATUS] "MYPROJECTPATH: ${MYPROJECTPATH}")
@@ -834,11 +847,21 @@ index 49154a5..762e85d 100755
 -#compose a tool-specific path
 -set(MYTOOLPATH "${MYPROJECTPATH}/code/paraprobe-ranger/")
 -message([STATUS] "MYTOOLPATH: ${MYTOOLPATH}")
-+message([STATUS] "CONDA_PATH: ${CONDA_PREFIX}")
- 
+-
  set(EMPLOY_GNUCOMPILER ON)
++message([STATUS] "CONDA_PATH: ${CONDA_PREFIX}")
  message([STATUS] "MYCCC_COMPILER: __${CMAKE_C_COMPILER}__")
-@@ -39,95 +25,87 @@ if(EMPLOY_GNUCOMPILER)
+ message([STATUS] "MYCXX_COMPILER: __${CMAKE_CXX_COMPILER}__")
+ 
+-#define which parallelization layers are used
+ set(EMPLOY_PARALLELISM_CUDA OFF)
+ 
+-#choose optimization level
+-##-O0 nothing, debug purposes, -O1 moderate optimization, -O2 -O3 for production level up to aggressive architecture specific non-portable optimization
+ if(EMPLOY_GNUCOMPILER)
+ 	set(MYOPTLEVEL "-O2")
+ 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MYOPTLEVEL}")
+@@ -39,95 +20,70 @@ if(EMPLOY_GNUCOMPILER)
  endif()
  
  
@@ -874,13 +897,6 @@ index 49154a5..762e85d 100755
 -endif()
 +include_directories("${CONDA_PREFIX}/include/voro++")
 +
-+#set(MYHDFLINKFLAGS "-L${CONDA_PREFIX}/lib/ ${CONDA_PREFIX}/lib/libhdf5_hl.so ${CONDA_PREFIX}/lib/libhdf5.so ${CONDA_PREFIX}/lib/libz.a ${CONDA_PREFIX}/lib/libsz.a ${CONDA_PREFIX}/lib/libaec.a -ldl")
-+
-+#find_package(CGAL QUIET)
-+#find_package(Eigen)
-+#find_package(Boost)
-+#link_directories(${Boost_LIBRARY_DIR})
-+
 +find_package(HDF5 REQUIRED)
 +include_directories(${HDF5_INCLUDE_DIRS})
 +set(MYHDFLINKFLAGS "-L${CONDA_PREFIX}/lib/ ${CONDA_PREFIX}/lib/libhdf5_hl.so ${CONDA_PREFIX}/lib/libhdf5.so ${CONDA_PREFIX}/lib/libz.so ${CONDA_PREFIX}/lib/libsz.so ${CONDA_PREFIX}/lib/libaec.so -ldl")
@@ -899,6 +915,9 @@ index 49154a5..762e85d 100755
 +find_package(Eigen3 3.3 REQUIRED)
 +#include_directories         (${EIGEN3_INCLUDE_DIRS})
 +include_directories("${CONDA_PREFIX}/include/eigen3")
++
++find_package(MPI REQUIRED)
++include_directories(${MPI_INCLUDE_PATH})
  
  #setting up compiler-specifics
  if(EMPLOY_GNUCOMPILER)
@@ -911,23 +930,15 @@ index 49154a5..762e85d 100755
 -	add_definitions("-Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat 
 -		-Wuninitialized -Wmaybe-uninitialized -Wmain -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point 
 -		-Wtrigraphs -Wunused-function -Wunused-but-set-variable -Wunused-variable") #-Wnarrowing
-+	#add_definitions("-Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat 
-+	#	-Wuninitialized -Wmaybe-uninitialized -Wmain -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point 
-+	#	-Wtrigraphs -Wunused-function -Wunused-but-set-variable -Wunused-variable") #-Wnarrowing
- endif()
- 
- #parallelization - MPI process-level
- #query location of MPI library
+-endif()
+-
+-#parallelization - MPI process-level
+-#query location of MPI library
 -message([STATUS] "MPI_INCLUDE_PATH ${MPI_INCLUDE_PATH}")
 -if(EMPLOY_PARALLELISM_MPI)
 -	find_package(MPI REQUIRED)
 -	include_directories(${MPI_INCLUDE_PATH})
--endif()
-+#message([STATUS] "MPI_INCLUDE_PATH ${MPI_INCLUDE_PATH}")
-+#if(EMPLOY_PARALLELISM_MPI)
-+find_package(MPI REQUIRED)
-+include_directories(${MPI_INCLUDE_PATH})
-+#endif()
+ endif()
  
  #specific paths of dependencies for this tool
 -set(MYTOOLSRCPATH "${MYTOOLPATH}/src/cxx")
@@ -935,9 +946,8 @@ index 49154a5..762e85d 100755
 +set(MYEXTPATH "../code/thirdparty/mandatory/hdf5cxxwrapper/src/cxx")
 +set(MYVOROSRCPATH "../../../voro++/src")
 +set(COMPILEPATH "../compiled_code")
-+
  
- #list firstly the precompiled shared aka utils, secondly the tool-specific components, lastly the tool-specific main
+-#list firstly the precompiled shared aka utils, secondly the tool-specific components, lastly the tool-specific main
  add_executable(${MYPROJECTNAME}
 -	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/hdf5cxxwrapper/src/cxx/hdf5_wrapper_cxx_sequ_core.cpp.o
 -	${MYUTILSPATH}/../../${MYPROJECTPATH}code/thirdparty/mandatory/hdf5cxxwrapper/src/cxx/hdf5_wrapper_cxx_structs.cpp.o
@@ -998,19 +1008,29 @@ index 49154a5..762e85d 100755
  
  	${MYTOOLSRCPATH}/CONFIG_Ranger.cpp
  	${MYTOOLSRCPATH}/PARAPROBE_RangerStructs.cpp
-@@ -140,6 +118,7 @@ add_executable(${MYPROJECTNAME}
+@@ -138,7 +94,6 @@ add_executable(${MYPROJECTNAME}
+ 	${MYTOOLSRCPATH}/PARAPROBE_Ranger.cpp
+ )
  
- #linking process, the target link libraries command is specific for each tool of the toolbox
+-#linking process, the target link libraries command is specific for each tool of the toolbox
  target_link_libraries(${MYPROJECTNAME} ${MYOMP} ${MPI_LIBRARIES} ${MYHDFLINKFLAGS})
-+#target_link_libraries(${MYPROJECTNAME} ${MYOMP} ${MPI_LIBRARIES} HDF5::HDF5)
  
  #MPI compilation settings
- if(MPI_COMPILE_FLAGS)
 diff --git a/code/paraprobe-spatstat/CMakeLists.txt b/code/paraprobe-spatstat/CMakeLists.txt
-index 03f4ac7..2c56a70 100644
+index 03f4ac7..741f032 100644
 --- a/code/paraprobe-spatstat/CMakeLists.txt
 +++ b/code/paraprobe-spatstat/CMakeLists.txt
-@@ -11,18 +11,7 @@ message([STATUS] "Projectname is ${MYPROJECTNAME}")
+@@ -1,38 +1,17 @@
+ cmake_minimum_required(VERSION 3.18.4)
+ 
+-################################################################################################################################
+-##DEVELOPER SECTION#############################################################################################################
+-##in this section software developers need to make changes when debugging#######################################################
+-################################################################################################################################
+-
+-#please name your project accordingly
+ set(MYPROJECTNAME "paraprobe_spatstat")
+ message([STATUS] "Projectname is ${MYPROJECTNAME}")
  project(${MYPROJECTNAME} LANGUAGES CXX)
  set(CMAKE_BUILD_DIR "build")
  
@@ -1026,14 +1046,29 @@ index 03f4ac7..2c56a70 100644
 -set(MYTOOLPATH "${MYPROJECTPATH}/code/paraprobe-spatstat/")
 -message([STATUS] "MYTOOLPATH: ${MYTOOLPATH}")
 -
-+message([STATUS] "CONDA_PATH: ${CONDA_PREFIX}")
- 
+-
  set(EMPLOY_GNUCOMPILER ON)
++message([STATUS] "CONDA_PATH: ${CONDA_PREFIX}")
  message([STATUS] "MYCCC_COMPILER: __${CMAKE_C_COMPILER}__")
-@@ -45,46 +34,25 @@ endif()
- ##here advanced users might want/need to make modifications if they use non default places for thirdparty libraries#############
- ################################################################################################################################
- #HDF5 local installation for advanced I/O, collecting metadata and bundle analysis results together
+ message([STATUS] "MYCXX_COMPILER: __${CMAKE_CXX_COMPILER}__")
+ 
+-#define which parallelization layers are used
+ set(EMPLOY_PARALLELISM_CUDA OFF)
+ 
+-#choose optimization level
+-##-O0 nothing, debug purposes, -O1 moderate optimization, -O2 -O3 for production level up to aggressive architecture specific non-portable optimization
+ if(EMPLOY_GNUCOMPILER)
+ 	set(MYOPTLEVEL "-O2")
+ 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MYOPTLEVEL}")
+@@ -40,94 +19,71 @@ if(EMPLOY_GNUCOMPILER)
+ 	message([STATUS] "We utilize optimization level ${MYOPTLEVEL}")
+ endif()
+ 
+-################################################################################################################################
+-##END OF INTERACTION FOR NON PRO USERS##########################################################################################
+-##here advanced users might want/need to make modifications if they use non default places for thirdparty libraries#############
+-################################################################################################################################
+-#HDF5 local installation for advanced I/O, collecting metadata and bundle analysis results together
 -include_directories("${MYHDFPATH}/include")
 -link_directories("${MYHDFPATH}/lib")
 -set(MYHDFLINKFLAGS "-L${MYHDFPATH}/lib/ ${MYHDFPATH}/lib/libhdf5_hl.a ${MYHDFPATH}/lib/libhdf5.a ${MYHDFPATH}/lib/libz.a ${MYHDFPATH}/lib/libszaec.a ${MYHDFPATH}/lib/libaec.a -ldl")
@@ -1063,17 +1098,29 @@ index 03f4ac7..2c56a70 100644
 -#connect with ExternalLibraries.cmake via MYBOOSTHOME
 -#include_directories(${Boost_INCLUDE_DIR})
 -link_directories(${Boost_LIBRARY_DIR})
-+set(MYHDFLINKFLAGS "-L${CONDA_PREFIX}/lib/ ${CONDA_PREFIX}/lib/libhdf5_hl.so ${CONDA_PREFIX}/lib/libhdf5.so ${CONDA_PREFIX}/lib/libz.a ${CONDA_PREFIX}/lib/libsz.a ${CONDA_PREFIX}/lib/libaec.a -ldl")
+-find_package(Boost)
++find_package(HDF5 REQUIRED)
++include_directories(${HDF5_INCLUDE_DIRS})
++set(MYHDFLINKFLAGS "-L${CONDA_PREFIX}/lib/ ${CONDA_PREFIX}/lib/libhdf5_hl.so ${CONDA_PREFIX}/lib/libhdf5.so ${CONDA_PREFIX}/lib/libz.so ${CONDA_PREFIX}/lib/libsz.so ${CONDA_PREFIX}/lib/libaec.so -ldl")
 +
-+find_package(CGAL QUIET)
-+find_package(Eigen)
- find_package(Boost)
-+link_directories(${Boost_LIBRARY_DIR})
++find_package(Boost REQUIRED)
++include_directories(${Boost_INCLUDE_DIRS})
++
++find_package(CGAL REQUIRED)
++include                     (${CGAL_USE_FILE})
++include_directories         (${CGAL_INCLUDE_DIRS})
++
++find_package(Eigen3 3.3 REQUIRED)
++#include_directories         (${EIGEN3_INCLUDE_DIRS})
++include_directories("${CONDA_PREFIX}/include/eigen3")
++
++find_package(MPI REQUIRED)
++include_directories(${MPI_INCLUDE_PATH})
  
  #setting up compiler-specifics
  if(EMPLOY_GNUCOMPILER)
 -	set(MYVERBOSE "-fopt-info")
-+	#set(MYVERBOSE "-fopt-info")
++	set(MYVERBOSE "-fopt-info-all=opt.all")
  	add_definitions("${MYOPTLEVEL} ${MYVERBOSE}")
  	set(MYOMP "-fopenmp -lpthread")
  	add_definitions(${MYOMP})
@@ -1081,13 +1128,14 @@ index 03f4ac7..2c56a70 100644
 -	add_definitions("-Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat 
 -		-Wuninitialized -Wmaybe-uninitialized -Wmain -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point 
 -		-Wtrigraphs -Wunused-function -Wunused-but-set-variable -Wunused-variable") #-Wnarrowing
-+	#add_definitions("-Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat 
-+	#	-Wuninitialized -Wmaybe-uninitialized -Wmain -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point 
-+	#	-Wtrigraphs -Wunused-function -Wunused-but-set-variable -Wunused-variable") #-Wnarrowing
- endif()
- 
- #parallelization - MPI process-level
-@@ -96,38 +64,41 @@ if(EMPLOY_PARALLELISM_MPI)
+-endif()
+-
+-#parallelization - MPI process-level
+-#query location of MPI library
+-message([STATUS] "MPI_INCLUDE_PATH ${MPI_INCLUDE_PATH}")
+-if(EMPLOY_PARALLELISM_MPI)
+-	find_package(MPI REQUIRED)
+-	include_directories(${MPI_INCLUDE_PATH})
  endif()
  
  #specific paths of dependencies for this tool
@@ -1159,10 +1207,20 @@ index 03f4ac7..2c56a70 100644
  	${MYTOOLSRCPATH}/PARAPROBE_SpatstatIonHandling.cpp
  	${MYTOOLSRCPATH}/CONFIG_Spatstat.cpp
 diff --git a/code/paraprobe-surfacer/CMakeLists.txt b/code/paraprobe-surfacer/CMakeLists.txt
-index 5122000..59f0f82 100755
+index 5122000..4ef6eb9 100755
 --- a/code/paraprobe-surfacer/CMakeLists.txt
 +++ b/code/paraprobe-surfacer/CMakeLists.txt
-@@ -11,19 +11,7 @@ project(${MYPROJECTNAME} LANGUAGES CXX)
+@@ -1,39 +1,18 @@
+ cmake_minimum_required(VERSION 3.18.4)
+ 
+-################################################################################################################################
+-##DEVELOPER SECTION#############################################################################################################
+-##in this section software developers need to make changes when debugging#######################################################
+-################################################################################################################################
+-#please name your project accordingly
+ set(MYPROJECTNAME "paraprobe_surfacer")
+ message([STATUS] "Projectname is ${MYPROJECTNAME}")
+ project(${MYPROJECTNAME} LANGUAGES CXX)
  set(CMAKE_BUILD_DIR "build")
  
  
@@ -1179,14 +1237,31 @@ index 5122000..59f0f82 100755
 -#compose a tool-specific path
 -set(MYTOOLPATH "${MYPROJECTPATH}/code/paraprobe-surfacer/")
 -message([STATUS] "MYTOOLPATH: ${MYTOOLPATH}")
-+message([STATUS] "CONDA_PATH: ${CONDA_PREFIX}")
- 
+-
  set(EMPLOY_GNUCOMPILER ON)
++message([STATUS] "CONDA_PATH: ${CONDA_PREFIX}")
  message([STATUS] "MYCCC_COMPILER: __${CMAKE_C_COMPILER}__")
-@@ -47,48 +35,34 @@ endif()
- ##here advanced users might want/need to make modifications if they use non default places for thirdparty libraries#############
- ################################################################################################################################
- #HDF5 local installation for advanced I/O, collecting metadata and bundle analysis results together
+ message([STATUS] "MYCXX_COMPILER: __${CMAKE_CXX_COMPILER}__")
+ 
+-#define which parallelization layers are used
+ set(EMPLOY_PARALLELISM_CUDA OFF)
+ 
+-#choose optimization level
+-##-O0 nothing, debug purposes, -O1 moderate optimization, -O2 -O3 for production level up to aggressive architecture specific non-portable optimization
+ if(EMPLOY_GNUCOMPILER)
+ 	set(MYOPTLEVEL "-O2")
+ 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MYOPTLEVEL}")
+@@ -41,98 +20,72 @@ if(EMPLOY_GNUCOMPILER)
+ 	message([STATUS] "We utilize optimization level ${MYOPTLEVEL}")
+ endif()
+ 
++include_directories("${CONDA_PREFIX}/include/voro++")
+ 
+-################################################################################################################################
+-##END OF INTERACTION FOR NON PRO USERS##########################################################################################
+-##here advanced users might want/need to make modifications if they use non default places for thirdparty libraries#############
+-################################################################################################################################
+-#HDF5 local installation for advanced I/O, collecting metadata and bundle analysis results together
 -include_directories("${MYHDFPATH}/include")
 -link_directories("${MYHDFPATH}/lib")
 -set(MYHDFLINKFLAGS "-L${MYHDFPATH}/lib/ ${MYHDFPATH}/lib/libhdf5_hl.a ${MYHDFPATH}/lib/libhdf5.a ${MYHDFPATH}/lib/libz.a ${MYHDFPATH}/lib/libszaec.a ${MYHDFPATH}/lib/libaec.a -ldl")
@@ -1211,9 +1286,9 @@ index 5122000..59f0f82 100755
 -		endif()
 -	endif()
 -endif()
-+include_directories("${CONDA_PREFIX}/include/voro++")
-+
-+set(MYHDFLINKFLAGS "-L${CONDA_PREFIX}/lib/ ${CONDA_PREFIX}/lib/libhdf5_hl.so ${CONDA_PREFIX}/lib/libhdf5.so ${CONDA_PREFIX}/lib/libz.a ${CONDA_PREFIX}/lib/libsz.a ${CONDA_PREFIX}/lib/libaec.a -ldl")
++find_package(HDF5 REQUIRED)
++include_directories(${HDF5_INCLUDE_DIRS})
++set(MYHDFLINKFLAGS "-L${CONDA_PREFIX}/lib/ ${CONDA_PREFIX}/lib/libhdf5_hl.so ${CONDA_PREFIX}/lib/libhdf5.so ${CONDA_PREFIX}/lib/libz.so ${CONDA_PREFIX}/lib/libsz.so ${CONDA_PREFIX}/lib/libaec.so -ldl")
 +
 +find_package(Boost REQUIRED)
 +include_directories(${Boost_INCLUDE_DIRS})
@@ -1231,7 +1306,8 @@ index 5122000..59f0f82 100755
 +#include_directories         (${EIGEN3_INCLUDE_DIRS})
 +include_directories("${CONDA_PREFIX}/include/eigen3")
 +
-+#link_directories(${Boost_LIBRARY_DIR})
++find_package(MPI REQUIRED)
++include_directories(${MPI_INCLUDE_PATH})
  
  #setting up compiler-specifics
  if(EMPLOY_GNUCOMPILER)
@@ -1240,18 +1316,19 @@ index 5122000..59f0f82 100755
  	add_definitions("${MYOPTLEVEL} ${MYVERBOSE}")
  	set(MYOMP "-fopenmp -lpthread")
  	add_definitions(${MYOMP})
- 	add_definitions("-std=c++14")
+-	add_definitions("-std=c++14")
 -	add_definitions("-Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat 
 -		-Wuninitialized -Wmaybe-uninitialized -Wmain -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point 
 -		-Wtrigraphs -Wunused-function -Wunused-but-set-variable -Wunused-variable") #-Wnarrowing
-+	message([STATUS] "We use C++14")
-+	#add_definitions("-Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat 
-+	#	-Wuninitialized -Wmaybe-uninitialized -Wmain -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point 
-+	#	-Wtrigraphs -Wunused-function -Wunused-but-set-variable -Wunused-variable") #-Wnarrowing
- endif()
- 
- #parallelization - MPI process-level
-@@ -100,39 +74,42 @@ if(EMPLOY_PARALLELISM_MPI)
+-endif()
+-
+-#parallelization - MPI process-level
+-#query location of MPI library
+-message([STATUS] "MPI_INCLUDE_PATH ${MPI_INCLUDE_PATH}")
+-if(EMPLOY_PARALLELISM_MPI)
+-	find_package(MPI REQUIRED)
+-	include_directories(${MPI_INCLUDE_PATH})
++	add_definitions("-std=c++1z")
  endif()
  
  #specific paths of dependencies for this tool
@@ -1324,15 +1401,14 @@ index 5122000..59f0f82 100755
  
  	${MYTOOLSRCPATH}/CONFIG_Surfacer.cpp
  	${MYTOOLSRCPATH}/PARAPROBE_SurfacerStructs.cpp
-@@ -148,6 +125,8 @@ add_executable(${MYPROJECTNAME}
- 
+@@ -149,6 +102,7 @@ add_executable(${MYPROJECTNAME}
  #linking process, the target link libraries command is specific for each tool of the toolbox
  target_link_libraries(${MYPROJECTNAME} ${MYOMP} ${MPI_LIBRARIES} ${MYHDFLINKFLAGS} ${Boost_LIBRARIES} ) #-lm
-+#target_link_libraries(${MYPROJECTNAME} ${MYOMP} ${MPI_LIBRARIES} ${MYHDFLINKFLAGS}) #-lm
-+
  
++
  #MPI compilation settings
  if(MPI_COMPILE_FLAGS)
+ 	set_target_properties(${MYPROJECTNAME} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
 diff --git a/code/paraprobe-tessellator/CMakeLists.txt b/code/paraprobe-tessellator/CMakeLists.txt
 index 78a0cbd..24f469a 100755
 --- a/code/paraprobe-tessellator/CMakeLists.txt
@@ -1575,25 +1651,25 @@ diff --git a/code/paraprobe-transcoder/src/python/thirdparty/mandatory/xdmf/__in
 new file mode 100644
 index 0000000..e69de29
 diff --git a/code/paraprobe-utils/CMakeLists.txt b/code/paraprobe-utils/CMakeLists.txt
-index 5cae136..fe155b4 100755
+index 5cae136..ea28392 100755
 --- a/code/paraprobe-utils/CMakeLists.txt
 +++ b/code/paraprobe-utils/CMakeLists.txt
-@@ -1,25 +1,14 @@
+@@ -1,36 +1,17 @@
  cmake_minimum_required(VERSION 3.18.4)
  
 -################################################################################################################################
 -##DEVELOPER SECTION#############################################################################################################
 -##in this section software developers need to make changes when debugging#######################################################
 -################################################################################################################################ 
- 
- #please name your project accordingly
+-
+-#please name your project accordingly
  set(MYPROJECTNAME "paraprobe_utils")
  message([STATUS] "Projectname is ${MYPROJECTNAME}")
 -project(${MYPROJECTNAME} LANGUAGES CXX)
 +project(${MYPROJECTNAME} LANGUAGES C CXX)
  set(CMAKE_BUILD_DIR "build")
  
- #pull general information about external libraries and paths related to paraprobe
+-#pull general information about external libraries and paths related to paraprobe
 -include("../PARAPROBE.Dependencies.cmake")
 -message([STATUS] "MYPROJECTPATH: ${MYPROJECTPATH}")
 -message([STATUS] "MYUTILSPATH: ${MYUTILSPATH}")
@@ -1602,11 +1678,22 @@ index 5cae136..fe155b4 100755
 -message([STATUS] "MYCGALPATH: ${MYCGALPATH}")
 -message([STATUS] "MYEIGENPATH: ${MYEIGENPATH}")
 -message([STATUS] "MYVOROXXPATH: ${MYVOROXXPATH}")
-+message([STATUS] "CONDA_PATH: ${CONDA_PREFIX}")
- 
- 
+-
+-
  set(EMPLOY_GNUCOMPILER ON)
-@@ -38,75 +27,51 @@ if(EMPLOY_GNUCOMPILER)
++message([STATUS] "CONDA_PATH: ${CONDA_PREFIX}")
+ message([STATUS] "MYCCC_COMPILER: __${CMAKE_C_COMPILER}__")
+ message([STATUS] "MYCXX_COMPILER: __${CMAKE_CXX_COMPILER}__")
+ 
+-#define which parallelization layers are used
+ set(EMPLOY_PARALLELISM_CUDA OFF)
+ 
+-#choose optimization level
+-##-O0 nothing, debug purposes, -O1 moderate optimization, -O2 -O3 for production level up to aggressive architecture specific non-portable optimization
+ if(EMPLOY_GNUCOMPILER)
+ 	set(MYOPTLEVEL "-O2")
+ 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MYOPTLEVEL}")
+@@ -38,75 +19,40 @@ if(EMPLOY_GNUCOMPILER)
  	message([STATUS] "We utilize optimization level ${MYOPTLEVEL}")													
  endif()
  
@@ -1625,12 +1712,12 @@ index 5cae136..fe155b4 100755
 -set(EIGEN3_INCLUDE_DIR "${MYEIGENPATH}")
 -include_directories("${MYEIGENPATH}")
 -include_directories("${MYVOROXXPATH}/src")
++find_package(HDF5 REQUIRED)
++include_directories(${HDF5_INCLUDE_DIRS})
 +set(MYHDFLINKFLAGS "-L${CONDA_PREFIX}/lib/ ${CONDA_PREFIX}/lib/libhdf5_hl.so ${CONDA_PREFIX}/lib/libhdf5.so ${CONDA_PREFIX}/lib/libz.so ${CONDA_PREFIX}/lib/libsz.so ${CONDA_PREFIX}/lib/libaec.so -ldl")
-+
-+#include_directories("${CONDA_PREFIX}/include")
  
- #GMP and MPFR is included and found alongside the CGAL library
- #connect with ExternalLibraries.cmake via MYCGALHOME
+-#GMP and MPFR is included and found alongside the CGAL library
+-#connect with ExternalLibraries.cmake via MYCGALHOME
 -find_package(CGAL QUIET)
 -if( CGAL_FOUND )
 -	include( ${CGAL_USE_FILE} )
@@ -1643,9 +1730,7 @@ index 5cae136..fe155b4 100755
 -else()
 -	message([FATAL_ERROR] "CGAL is required, employ it!")															
 -endif()
-+find_package(HDF5 REQUIRED)
-+include_directories(${HDF5_INCLUDE_DIRS})
- 
+-
 -#connect with ExternalLibraries.cmake via MYBOOSTHOME
 -#include_directories(${Boost_INCLUDE_DIR})
 -#include_directories(${MYBOOSTPATH})
@@ -1664,6 +1749,8 @@ index 5cae136..fe155b4 100755
 +include_directories("${CONDA_PREFIX}/include/eigen3")
  
 -#automatically assign project name and compiler flags
++find_package(MPI REQUIRED)
++include_directories(${MPI_INCLUDE_PATH})
  
  #setting up compiler-specifics
  if(EMPLOY_GNUCOMPILER)
@@ -1676,20 +1763,15 @@ index 5cae136..fe155b4 100755
 -	add_definitions("-Wall -Warray-bounds -Wchar-subscripts -Wcomment -Wenum-compare -Wformat 
 -		-Wuninitialized -Wmaybe-uninitialized -Wmain -Wnonnull -Wparentheses -Wreorder -Wreturn-type -Wsign-compare -Wsequence-point 
 -		-Wtrigraphs -Wunused-function -Wunused-but-set-variable -Wunused-variable") #-Wnarrowing
- endif()
- 
- #parallelization - MPI process-level
- #query location of MPI library
+-endif()
+-
+-#parallelization - MPI process-level
+-#query location of MPI library
 -message([STATUS] "MPI_INCLUDE_PATH ${MPI_INCLUDE_PATH}")
 -if(EMPLOY_PARALLELISM_MPI)
 -	find_package(MPI REQUIRED)
 -	include_directories(${MPI_INCLUDE_PATH})
--endif()
-+#message([STATUS] "MPI_INCLUDE_PATH ${MPI_INCLUDE_PATH}")
-+#if(EMPLOY_PARALLELISM_MPI)
-+find_package(MPI REQUIRED)
-+include_directories(${MPI_INCLUDE_PATH})
-+#endif()
+ endif()
  
  #specific paths of dependencies for this tool
 -set(MYTOOLSRCPATH "${MYPROJECTPATH}/code/paraprobe-utils/src/cxx")

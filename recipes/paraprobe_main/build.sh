@@ -35,32 +35,35 @@ mkdir compiled_code
 cp paraprobe-utils/CMakeFiles/paraprobe-utils.dir/src/cxx/* compiled_code/
 cp paraprobe-utils/src/cxx/*.h ${PREFIX}/include/
 
-#cd paraprobe-surfacer
-#export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
-#cmake -D Boost_NO_BOOST_CMAKE=ON \
-#	  -D CMAKE_BUILD_TYPE=Release \
-#	  -D CMAKE_CXX_COMPILER=mpicxx \
-#     -D CGAL_INCLUDE_DIR=${PREFIX}/include \
-#      -D CGAL_LIB_PATH=${PREFIX}/lib \
-#      -D BOOST_INCLUDE_DIR=${PREFIX}/include \
-#      -D BOOST_LIB_PATH=${PREFIX}/lib \
-#	  -D CONDA_PREFIX=${PREFIX} .
+cd paraprobe-surfacer
+export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+cmake -D Boost_NO_BOOST_CMAKE=ON \
+	  -D CMAKE_BUILD_TYPE=Release \
+	  -D CMAKE_CXX_COMPILER=mpicxx \
+	  -D CONDA_PREFIX=${PREFIX} .
+make
+cp paraprobe_surfacer ${PREFIX}/bin/
+cd ..
 
-#make
-#cp paraprobe_surfacer ${PREFIX}/bin/
-#cd ..
+cd paraprobe-spatstat
+export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+cmake -D Boost_NO_BOOST_CMAKE=ON \
+	  -D CMAKE_BUILD_TYPE=Release \
+	  -D CMAKE_CXX_COMPILER=mpicxx \
+	  -D CONDA_PREFIX=${PREFIX} .
+make
+cp paraprobe_spatstat ${PREFIX}/bin/
+cd ..
 
-#cd paraprobe-spatstat
-#cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
-#make
-#cp paraprobe_spatstat ${PREFIX}/bin/
-#cd ..
-
-#cd paraprobe-ranger
-#cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
-#make
-#cp paraprobe_ranger ${PREFIX}/bin/
-#cd ..
+cd paraprobe-ranger
+export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+cmake -D Boost_NO_BOOST_CMAKE=ON \
+	  -D CMAKE_BUILD_TYPE=Release \
+	  -D CMAKE_CXX_COMPILER=mpicxx \
+	  -D CONDA_PREFIX=${PREFIX} .
+make
+cp paraprobe_ranger ${PREFIX}/bin/
+cd ..
 
 cd paraprobe-distancer
 export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
@@ -74,31 +77,32 @@ cd ..
 
 #cd paraprobe-tessellator
 #export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
-#export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
 #cmake -D Boost_NO_BOOST_CMAKE=ON \
 #	  -D CMAKE_BUILD_TYPE=Release \
 #	  -D CMAKE_CXX_COMPILER=mpicxx \
-#      -D CGAL_INCLUDE_DIR=${PREFIX}/include \
-#      -D CGAL_LIB_PATH=${PREFIX}/lib \
-#      -D BOOST_INCLUDE_DIR=${PREFIX}/include \
-#      -D BOOST_LIB_PATH=${PREFIX}/lib \
 #	  -D CONDA_PREFIX=${PREFIX} .
 #make
 #cp paraprobe_tessellator ${PREFIX}/bin/
 #cd ..
 
-
 #cd paraprobe-nanochem
-#cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
+#export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+#cmake -D Boost_NO_BOOST_CMAKE=ON \
+#	  -D CMAKE_BUILD_TYPE=Release \
+#	  -D CMAKE_CXX_COMPILER=mpicxx \
+#	  -D CONDA_PREFIX=${PREFIX} .
 #make
 #cp paraprobe_nanochem ${PREFIX}/bin/
 #cd ..
 
 #cd paraprobe-intersector
-#cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
+#export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+#cmake -D Boost_NO_BOOST_CMAKE=ON \
+#	  -D CMAKE_BUILD_TYPE=Release \
+#	  -D CMAKE_CXX_COMPILER=mpicxx \
+#	  -D CONDA_PREFIX=${PREFIX} .
 #make
 #cp paraprobe_intersector ${PREFIX}/bin/
 #cd ..
-
 
 
