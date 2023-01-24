@@ -15,6 +15,7 @@ target_include_directories(uWebSockets INTERFACE
 )
 
 target_link_libraries(uWebSockets INTERFACE uSockets::uSockets ZLIB::ZLIB)
+target_compile_features(uWebSockets INTERFACE cxx_std_17)
 
 # Install
 file(GLOB UWS_HDRS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h)
