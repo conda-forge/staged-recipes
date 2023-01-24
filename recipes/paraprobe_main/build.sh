@@ -13,6 +13,7 @@ cp -rf paraprobe-toolbox/code/paraprobe-autoreporter/src/python/* ${SP_DIR}/para
 
 mkdir ${SP_DIR}/paraprobe_parmsetup
 cp -rf paraprobe-toolbox/code/paraprobe-parmsetup/src/python/* ${SP_DIR}/paraprobe_parmsetup
+cp -rf paraprobe-toolbox/code/paraprobe-parmsetup/src/python/tools/utils* ${SP_DIR}/paraprobe_parmsetup/
 	
 mkdir ${SP_DIR}/paraprobe_transcoder
 cp -rf paraprobe-toolbox/code/paraprobe-transcoder/src/python/* ${SP_DIR}/paraprobe_transcoder
