@@ -20,12 +20,10 @@ cp -rf paraprobe-toolbox/code/paraprobe-transcoder/src/python/* ${SP_DIR}/parapr
 
 cd paraprobe-toolbox
 cd code
-cd paraprobe-utils
 
+cd paraprobe-utils
 cp ../thirdparty/mandatory/hdf5cxxwrapper/src/cxx/* src/cxx/
 cp ../../../voro++/src/* src/cxx/
-
-
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
 make
 ls
@@ -75,34 +73,34 @@ make
 cp paraprobe_distancer ${PREFIX}/bin/
 cd ..
 
-#cd paraprobe-tessellator
-#export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
-#cmake -D Boost_NO_BOOST_CMAKE=ON \
-#	  -D CMAKE_BUILD_TYPE=Release \
-#	  -D CMAKE_CXX_COMPILER=mpicxx \
-#	  -D CONDA_PREFIX=${PREFIX} .
-#make
-#cp paraprobe_tessellator ${PREFIX}/bin/
-#cd ..
+cd paraprobe-tessellator
+export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+cmake -D Boost_NO_BOOST_CMAKE=ON \
+	  -D CMAKE_BUILD_TYPE=Release \
+	  -D CMAKE_CXX_COMPILER=mpicxx \
+	  -D CONDA_PREFIX=${PREFIX} .
+make
+cp paraprobe_tessellator ${PREFIX}/bin/
+cd ..
 
-#cd paraprobe-nanochem
-#export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
-#cmake -D Boost_NO_BOOST_CMAKE=ON \
-#	  -D CMAKE_BUILD_TYPE=Release \
-#	  -D CMAKE_CXX_COMPILER=mpicxx \
-#	  -D CONDA_PREFIX=${PREFIX} .
-#make
-#cp paraprobe_nanochem ${PREFIX}/bin/
-#cd ..
+cd paraprobe-nanochem
+export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+cmake -D Boost_NO_BOOST_CMAKE=ON \
+	  -D CMAKE_BUILD_TYPE=Release \
+	  -D CMAKE_CXX_COMPILER=mpicxx \
+	  -D CONDA_PREFIX=${PREFIX} .
+make
+cp paraprobe_nanochem ${PREFIX}/bin/
+cd ..
 
-#cd paraprobe-intersector
-#export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
-#cmake -D Boost_NO_BOOST_CMAKE=ON \
-#	  -D CMAKE_BUILD_TYPE=Release \
-#	  -D CMAKE_CXX_COMPILER=mpicxx \
-#	  -D CONDA_PREFIX=${PREFIX} .
-#make
-#cp paraprobe_intersector ${PREFIX}/bin/
-#cd ..
+cd paraprobe-intersector
+export CXXFLAGS="$CXXFLAGS -DBOOST_ERROR_CODE_HEADER_ONLY"
+cmake -D Boost_NO_BOOST_CMAKE=ON \
+	  -D CMAKE_BUILD_TYPE=Release \
+	  -D CMAKE_CXX_COMPILER=mpicxx \
+	  -D CONDA_PREFIX=${PREFIX} .
+make
+cp paraprobe_intersector ${PREFIX}/bin/
+cd ..
 
 
