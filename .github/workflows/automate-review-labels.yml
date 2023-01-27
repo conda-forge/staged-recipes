@@ -3,12 +3,17 @@
   on:
     issue_comment:
       types: [created]
-    pull_request_review:
-      types: [submitted]
-    pull_request_review_comment:
-      types: [created]
+    issues:
+      types: [unlabeled]
+    pull_request_target:
+      types: [unlabeled]
+
+  permissions:
+    issues: write # for adding label to an issue
+    pull-requests: write # for adding label to a pr
 
   jobs:
+
     add-review-team-label:
       name: 'When pinged, label a PR with review team'
       if: >
@@ -17,7 +22,8 @@
         && !contains(github.event.issue.labels.*.name, 'review-requested')
       runs-on: ubuntu-latest
       steps:
-        - name: add-labels
+        - name: check-teams
+          id: check_teams
           uses: actions/github-script@v6
           with:
             script: |
@@ -35,68 +41,34 @@
                 '@conda-forge/help-r',
                 '@conda-forge/help-ruby'
               ];
+              let found_label = false;
               for (const team of teams) {
                   let text = context.payload.comment.body;
                   const regex = new RegExp(team + '[^\-]|' + team + '$');
                   let result = regex.test(text);
                   if (result) {
-                      label = team.replace("@conda-forge/help-", "");
-                      label_no_staged = label.replace("@conda-forge/", "");
+                      const slug = team.replace("@conda-forge/", "");
+                      const label = slug.replace("help-", "");
+                      found_label = true;
                       github.rest.issues.addLabels({
                           issue_number: context.issue.number,
                           owner: context.repo.owner,
                           repo: context.repo.repo,
-                          labels: [label_no_staged, 'review-requested']
-                      })
-                      github.rest.issues.removeLabel({
-                          issue_number: context.issue.number,
-                          owner: context.repo.owner,
-                          repo: context.repo.repo,
-                          name: ['Awaiting author contribution']
+                          labels: [label, 'review-requested']
                       });
-                      // TODO: Maybe use GitHub API to request review / assign team
+                      // NOTE: GitHub Actions default token lacks permission to
+                      // assign teams for review; external bot required for
+                      // that feature.
+                      //
+                      https://github.com/conda-forge/staged-recipes/issues/18023#issuecomment-1080451231
+                      console.log(`Somebody mentioned ${slug}.`);
                   }
               }
-
-    remove-review-requested-label:
-      name: 'When reviewed, remove review-requested label'
-      if: >
-        (
-          github.event.issue
-          && github.event.issue.pull_request
-          && (github.event.sender.login != github.event.issue.user.login)
-          && contains(github.event.issue.labels.*.name, 'review-requested')
-        ) || (
-          github.event.pull_request
-          && (github.event.sender.login != github.event.pull_request.user.login)
-          && contains(github.event.pull_request.labels.*.name, 'review-requested')
-        )
-      runs-on: ubuntu-latest
-      steps:
-        - name: check-membership
-          uses: actions/github-script@v6
-          with:
-            github-token: ${{ secrets.GH_TOKEN }}
-            script: |
-              // This step is separate from the labeling step because it uses a token
-              // with different permissions. If it is combined with the following step,
-              // then the labeling actions are marked as being completed by whomever
-              // created the token.
-              const membership_response = github.rest.teams.getMembershipForUserInOrg({
-                  org: 'conda-forge',
-                  team_slug: 'staged-recipes',
-                  username: '${{ github.event.sender.login }}'
-              });
-              membership_response.then(function(result) {
-                 console.log(result);
-                 if (result.data.state == 'active'){
-                   return;
-                 } else {
-                   throw new Error('Reviewer not active member of conda-forge/staged-recipes');
-                 }
-              });
-        - name: swap-labels
-          if: ${{ success() }}
+              return found_label;
+        - name: remove-labels
+          if: >
+            (steps.check_teams.outputs.result == 'true')
+            && contains(github.event.issue.labels.*.name, 'Awaiting author contribution')
           uses: actions/github-script@v6
           with:
             script: |
@@ -104,11 +76,45 @@
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  name: ['review-requested']
-              });
+                  name: ['Awaiting author contribution']
+              })
+
+    check-remove-review-requested-label:
+      name: 'Check that review-requested label was removed by a team member'
+      if: >
+        github.event.action == 'unlabeled'
+        && github.event.label.name == 'review-requested'
+      runs-on: ubuntu-latest
+      steps:
+        - name: check-team-membership
+          id: check_team_review
+          uses: actions/github-script@v6
+          with:
+            script: |
+              console.log(`Label was removed by ${context.payload.sender.login}`);
+              return true;
+        - name: add-labels
+          if: >
+            (steps.check_team_review.outputs.result == 'true')
+          uses: actions/github-script@v6
+          with:
+            script: |
               github.rest.issues.addLabels({
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   labels: ['Awaiting author contribution']
               });
+        - name: readd-review-label
+          if: >
+            (steps.check_team_review.outputs.result == 'false')
+          uses: actions/github-script@v6
+          with:
+            script: |
+              github.rest.issues.addLabels({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  labels: ['review-requested']
+              });
+              console.log('Non-members of staged recipes cannot remove this label.')
