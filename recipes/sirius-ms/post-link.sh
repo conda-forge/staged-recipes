@@ -7,7 +7,7 @@ if [ "$(uname)" == "Darwin" ]; then
     mkdir $outdir/Contents/native
     mkdir $outdir/Contents/runtime
     tar -xf $outdir/Contents/native.tgz -C $outdir/Contents/native
-    tar -xf $outdir/Contents/runtime.tgz -C $outdir/Contents/runtime
+#    tar -xf $outdir/Contents/runtime.tgz -C $outdir/Contents/runtime
     rm $outdir/Contents/native.tgz
     rm $outdir/Contents/runtime.tgz
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
