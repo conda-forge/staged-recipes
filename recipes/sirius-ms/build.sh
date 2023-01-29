@@ -10,8 +10,8 @@ if [[ ${target_platform} =~ linux.* ]] ; then
     # remove bundled runtime
     rm -r $outdir/lib/runtime
     # protecting libs from being modified by conda-build
-    tar czf $outdir/lib.tgz -C $outdir/lib .
-    rm -r $outdir/lib
+#    tar czf $outdir/lib.tgz -C $outdir/lib .
+#    rm -r $outdir/lib
 
     ln -s $outdir/bin/sirius $PREFIX/bin
     ln -s $outdir/bin/sirius-gui $PREFIX/bin
@@ -25,9 +25,9 @@ elif [[ ${target_platform} =~ osx.* ]] ; then
 
      # protecting libs from being modified by conda-build
 #     tar czf $outdir/Contents/runtime.tgz -C $outdir/Contents/runtime .
-     tar czf $outdir/Contents/native.tgz -C $outdir/Contents/native .
+#     tar czf $outdir/Contents/native.tgz -C $outdir/Contents/native .
      rm -r $outdir/Contents/runtime
-     rm -r $outdir/Contents/native
+#     rm -r $outdir/Contents/native
 
      ln -s $outdir/Contents/MacOS/sirius $PREFIX/bin
      ln -s $outdir/Contents/MacOS/sirius-gui $PREFIX/bin
