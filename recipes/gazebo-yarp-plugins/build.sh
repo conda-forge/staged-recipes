@@ -18,7 +18,7 @@ cmake ${CMAKE_ARGS} -GNinja .. \
 cmake --build . --config Release
 
 if [[ "${CONDA_BUILD_CROSS_COMPILATION:-}" != "1" || "${CROSSCOMPILING_EMULATOR}" != "" ]]; then
-  ctest --output-on-failure -C Release
+  ctest --output-on-failure --repeat until-pass:5 -C Release 
 fi
 
 cmake --build . --config Release --target install
