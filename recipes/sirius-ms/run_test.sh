@@ -4,10 +4,12 @@ echo "#### Simple Sirius version test"
 sirius --version
 
 if [[ ${target_platform} =~ linux.* ]] ; then
-  echo "#### List Cbc libs"
-  /sbin/ldconfig -v -N | grep Cbc
-  echo "#### List bzip libs"
-  /sbin/ldconfig -v -N | grep bzip
+  echo "#### List ALL libs"
+  /sbin/ldconfig -v -N
+#  echo "#### List Cbc libs"
+#  /sbin/ldconfig -v -N | grep Cbc
+#  echo "#### List bzip libs"
+#  /sbin/ldconfig -v -N | grep bzip
 fi
 
 echo "#### Download test data"
