@@ -1,5 +1,11 @@
 #!/usr/bin/env sh
 
+echo "############# check libs #############"
+if [[ ${target_platform} =~ linux.* ]] ; then
+    ldconfig -p | grep Cbc
+    ldconfig -p | grep bzip2
+fi
+
 sirius --version
 
 wget https://bio.informatik.uni-jena.de/wp/wp-content/uploads/2021/10/Kaempferol.ms
