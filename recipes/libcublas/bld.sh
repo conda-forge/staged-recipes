@@ -1,5 +1,10 @@
 #!/bin/bash
 
+echo "Where are we?"
+pwd
+echo "What is here?"
+ls
+
 # Install to conda style directories
 [[ -d lib64 ]] && mv lib64 lib
 
