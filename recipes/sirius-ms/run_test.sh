@@ -2,8 +2,11 @@
 
 echo "#### ENV infos"
 echo "PREFIX = $PREFIX"
+echo "PREFIX = ${PREFIX}"
 echo "CONDA_PREFIX = $CONDA_PREFIX"
+echo "CONDA_PREFIX = ${CONDA_PREFIX}"
 echo "LD_RUN_PATH = $LD_RUN_PATH"
+echo "LD_RUN_PATH = ${LD_RUN_PATH}"
 
 echo "#### Simple Sirius version test"
 sirius --version
