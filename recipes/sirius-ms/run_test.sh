@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
 echo "#### TEST ENV infos"
 echo "PREFIX = $PREFIX"
@@ -10,7 +10,9 @@ echo "CONDA_PREFIX = $(printenv CONDA_PREFIX)"
 echo "LD_RUN_PATH = $LD_RUN_PATH"
 echo "LD_RUN_PATH = ${LD_RUN_PATH}"
 echo "LD_RUN_PATH = $(printenv LD_RUN_PATH)"
-
+echo "JAVA_HOME = $JAVA_HOME"
+echo "JAVA_HOME = ${JAVA_HOME}"
+echo "JAVA_HOME = $(printenv JAVA_HOME)"
 
 echo "#### Simple Sirius version test"
 sirius --version
