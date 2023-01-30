@@ -22,3 +22,6 @@ for i in `ls`; do
 		cp -r $i ${PREFIX}
 	fi
 done
+
+echo '' >> "${PREFIX}/bin/nvcc.profile"
+echo "NVCC_PREPEND_FLAGS += -ccbin "\""${CXX}"\""" >> "${PREFIX}/bin/nvcc.profile"
