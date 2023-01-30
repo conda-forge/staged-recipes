@@ -4,14 +4,20 @@ echo "#### TEST ENV infos"
 echo "PREFIX = $PREFIX"
 echo "PREFIX = ${PREFIX}"
 echo "PREFIX = $(printenv PREFIX)"
+echo $(eval echo \"$PREFIX\")
+eval "$PREFIX"
 ls $PREFIX
 echo "CONDA_PREFIX = $CONDA_PREFIX"
 echo "CONDA_PREFIX = ${CONDA_PREFIX}"
 echo "CONDA_PREFIX = $(printenv CONDA_PREFIX)"
+echo $(eval echo \"$CONDA_PREFIX\")
+eval echo $CONDA_PREFIX
 ls $CONDA_PREFIX
 echo "LD_RUN_PATH = $LD_RUN_PATH"
 echo "LD_RUN_PATH = ${LD_RUN_PATH}"
 echo "LD_RUN_PATH = $(printenv LD_RUN_PATH)"
+echo $(eval echo \"$LD_RUN_PATH\")
+eval "$LD_RUN_PATH"
 ls $LD_RUN_PATH
 
 echo "#### Simple Sirius version test"
