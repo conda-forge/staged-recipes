@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 
-echo "#### ENV infos"
+echo "#### TEST ENV infos"
 echo "PREFIX = $PREFIX"
 echo "PREFIX = ${PREFIX}"
+echo "PREFIX = $(printenv PREFIX)"
 echo "CONDA_PREFIX = $CONDA_PREFIX"
 echo "CONDA_PREFIX = ${CONDA_PREFIX}"
+echo "CONDA_PREFIX = $(printenv CONDA_PREFIX)"
 echo "LD_RUN_PATH = $LD_RUN_PATH"
 echo "LD_RUN_PATH = ${LD_RUN_PATH}"
+echo "LD_RUN_PATH = $(printenv LD_RUN_PATH)"
+
 
 echo "#### Simple Sirius version test"
 sirius --version
