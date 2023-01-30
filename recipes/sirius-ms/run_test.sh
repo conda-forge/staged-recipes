@@ -4,15 +4,15 @@ echo "#### TEST ENV infos"
 echo "PREFIX = $PREFIX"
 echo "PREFIX = ${PREFIX}"
 echo "PREFIX = $(printenv PREFIX)"
+ls $PREFIX
 echo "CONDA_PREFIX = $CONDA_PREFIX"
 echo "CONDA_PREFIX = ${CONDA_PREFIX}"
 echo "CONDA_PREFIX = $(printenv CONDA_PREFIX)"
+ls $CONDA_PREFIX
 echo "LD_RUN_PATH = $LD_RUN_PATH"
 echo "LD_RUN_PATH = ${LD_RUN_PATH}"
 echo "LD_RUN_PATH = $(printenv LD_RUN_PATH)"
-echo "JAVA_HOME = $JAVA_HOME"
-echo "JAVA_HOME = ${JAVA_HOME}"
-echo "JAVA_HOME = $(printenv JAVA_HOME)"
+ls $LD_RUN_PATH
 
 echo "#### Simple Sirius version test"
 sirius --version
