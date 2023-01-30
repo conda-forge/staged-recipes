@@ -1,33 +1,40 @@
 {% set name = "libcublas" %}
-{% set version = "11.11.3.6" %}
+{% set version = "12.0.1.189" %}
 {% set platform = "linux-x86_64" %}  # [linux64]
 {% set platform = "linux-ppc64le" %}  # [ppc64le]
 {% set platform = "linux-sbsa" %}  # [aarch64]
 {% set platform = "windows-x86_64" %}  # [win]
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  url: https://developer.download.nvidia.com/compute/cuda/redist/{{ name }}/{{ platform }}/{{ name }}-{{ platform }}-{{ version }}-archive.tar.xz
-  sha256: 045e6455c9f8789b1c7ced19957c7904d23c221f4d1d75bb574a2c856aebae98  # [linux64]
-  sha256: 27b07d1fa375404ed0f7ce37573de1c8a5ff8c313b9f388ee7b4ff41d4a8409f  # [ppc64le]
-  sha256: 38fe90cbbc7da3dbdcd8c29e0fcd60f69baf580d9b3f71a4ee102e3c7fc30b3d  # [aarch64]
-  sha256: 67b0934a6359e4ee26fff823c356021589d392c4fd49ca12624f570edc08e2b9  # [win]
+  url: https://developer.download.nvidia.com/compute/cuda/redist/{{ name }}/{{ platform }}/{{ name }}-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: 38272cc9184b4a57a6250fc2cd914ffc827f9f8cd5a3e1356bc3c31f843caf8f  # [linux64]
+  sha256: 2d46e735f8e76e2eb7df1b4f41d56aa8d5d2683f99988bac82d6ae33fb6d344b  # [ppc64le]
+  sha256: 96b68f6821684f39f338862639ce74a74c75830bf44dcd17ef372a1cb8c2304d  # [aarch64]
+  sha256: 88f29bec81880844da2eee13f1cdc51e1ccd8b4c60af6df633577810b30f80d0  # [win]
 
 build:
   number: 0
   skip: true  # [osx]
-  missing_dso_whitelist:
-    - /lib64/ld-linux-x86-64.so.2
-    - /lib64/libc.so.6
-    - /lib64/libdl.so.2
-    - /lib64/libgcc_s.so.1
-    - /lib64/libm.so.6
-    - /lib64/libpthread.so.0
-    - /lib64/librt.so.1
-    - /usr/lib64/libstdc++.so.6
+  run_exports:
+    strong:
+      - __glibc >=2.17
+
+requirements:
+  build:
+    - {{ compiler("c") }}
+    - {{ compiler("cxx") }}
+  host:
+    - sysroot_{{ target_platform }} 2.17   # [linux]
+    - __glibc >=2.17                       # [linux]
+  run:
+    - sysroot_{{ target_platform }} 2.17   # [linux]
+    - __glibc >=2.17                       # [linux]
 
 test:
   commands:
@@ -37,24 +44,34 @@ test:
 outputs:
   - name: libcublas
     files:
-      - lib/lib*blas*.so.*
+      - lib/lib*blas*.so.*            # [linux]
+      - targets/*/lib/lib*blas*.so.*  # [linux]
+      - Library\bin                   # [win]
 
   - name: libcublas-dev
     requirements:
       run:
         - libcublas >={{ version }}
     files:
-      - lib/libcublas*.so
-      - lib/stubs/lib*blas*
-      - include/*blas*
-      - src/fortran*
+      - lib/lib*blas*.so            # [linux]
+      - targets/*/lib/lib*blas*.so  # [linux]
+      - lib/stubs                   # [linux]
+      - include                     # [linux]
+      - targets/*/include/*         # [linux]
+      - lib/pkgconfig               # [linux]
+      - src
+      - Library\include             # [win]
+      - Library\lib                 # [win]
 
   - name: libcublas-static
+    build:
+      skip: True  # [not linux]
     requirements:
       run:
         - libcublas-dev >={{ version }}
     files:
       - lib/lib*blas*_static.a
+      - targets/*/lib/lib*blas*.so.*
 
 about:
   home: https://developer.nvidia.com/cublas
@@ -71,4 +88,3 @@ about:
 extra:
   recipe-maintainers:
     - adibbley
-    - betatim
