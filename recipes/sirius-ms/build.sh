@@ -1,5 +1,8 @@
 outdir=$PREFIX/share/$PKG_NAME-$PKG_VERSION-$PKG_BUILDNUM
 
+echo "$PREFIX"
+echo "$CONDA_PREFIX"
+echo "$LD_RUN_PATH"
 
 if [[ ${target_platform} =~ linux.* ]] ; then
     mkdir -p $outdir
