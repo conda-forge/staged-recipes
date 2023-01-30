@@ -1,0 +1,86 @@
+{% set name = "cufft" %}
+{% set version = "11.0.0.21" %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-ppc64le" %}  # [ppc64le]
+{% set platform = "linux-sbsa" %}  # [aarch64]
+{% set platform = "windows-x86_64" %}  # [win]
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuda/redist/libcufft/{{ platform }}/libcufft-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: 4650f79fcf377af410afedb56445f1332e8f213ec3c94d660f9a91328c3ecb4a  # [linux64]
+  sha256: e711671995e9d92d16015a4cd3751ec30710a49fa22f2b88a4a42905c248d861  # [ppc64le]
+  sha256: 91aa1ba5e68ca65778222c9a427a9214c4550d2f45e978e51779a207bafc17a3  # [aarch64]
+  sha256: a33f577d48ef432d5cfa8d0ebfa789cc5261af5dd84fd9c608235edc3f769e43  # [win]
+
+
+build:
+  number: 0
+  skip: true  # [osx]
+  missing_dso_whitelist:
+    - /lib64/libdl.so.2
+    - /lib64/libm.so.6
+    - /lib64/libpthread.so.0
+    - /lib64/librt.so.1
+    - /lib64/libgcc_s.so.1
+    - /lib64/libc.so.6
+    - /lib64/ld-linux-x86-64.so.2
+
+
+outputs:
+  - name: libcufft
+    test:
+      commands:
+        - test -f $PREFIX/lib/libcufft.so.{{ version }}  # [linux]
+        - if not exists %LIBRARY_BIN%\cufft64*.dll exit 1  # [win]
+    files:
+      - lib/libcufft*.so.*  # [linux]
+      - bin\cufft*.dll
+
+  - name: libcufft-dev
+    test:
+      commands:
+        - test -f $PREFIX/include/cufft.h  # [linux]
+        - if not exists %LIBRARY_LIB%\cufft.lib exit 1  # [win]
+    requirements:
+      run:
+        - libcufft >={{ version }}
+    files:
+      - lib/stubs/libcufft*.so  # [linux]
+      - libcufft*.so*  # [linux]
+      - include/cufft*  # [linux]
+      - include\cufft*  # [win]
+      - include\cudalibxt*  # [win]
+
+  - name: libcufft-static
+    test:
+      commands:
+        - test -f $PREFIX/lib/libcufft_static.a  # [linux]
+    requirements:
+      run:
+        - libcufft-dev >={{ version }}
+    files:
+      - lib/libcufft*_static.a  # [linux]
+      - lib/libcufft_static_nocallback.a  # [linux]
+
+
+about:
+  home: https://developer.nvidia.com/cuda-toolkit
+  license_file: LICENSE
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  summary: 'cuFFT native runtime libraries'
+  description: |
+    The CUDA Fast Fourier Transform library
+  doc_url: https://docs.nvidia.com/cuda/cufft/index.html
+
+extra:
+  recipe-maintainers:
+    - adibbley
+    - jakirkham
+    - seberg
