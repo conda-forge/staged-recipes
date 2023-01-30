@@ -7,11 +7,12 @@ if [[ ${target_platform} =~ linux.* ]] ; then
 
     cp -a ./* $outdir/
     chmod +x $outdir/bin/sirius
-    # remove bundled runtime
+
+    # remove potentially bundled java runtime
     rm -r $outdir/lib/runtime
-    # protecting libs from being modified by conda-build
-#    tar czf $outdir/lib.tgz -C $outdir/lib .
+    # remove jar with bundled ilp solver
     rm $outdir/lib/app/cbc-java-linux-x86-64-*.jar
+
     ls -lah $outdir/lib/app/
 
     ln -s $outdir/bin/sirius $PREFIX/bin
@@ -24,13 +25,12 @@ elif [[ ${target_platform} =~ osx.* ]] ; then
      cp -a Contents/. $outdir/Contents
      chmod +x $outdir/Contents/MacOS/sirius
 
-     # protecting libs from being modified by conda-build
-#     tar czf $outdir/Contents/runtime.tgz -C $outdir/Contents/runtime .
-#     tar czf $outdir/Contents/native.tgz -C $outdir/Contents/native .
+     # remove potentially bundled java runtime
      rm -r $outdir/Contents/runtime
+     # remove jar with bundled ilp solver
      rm $outdir/Contents/app/cbc-java-mac-x86-64-*.jar
+
      ls -lah $outdir/Contents/app/
-#     rm -r $outdir/Contents/native
 
      ln -s $outdir/Contents/MacOS/sirius $PREFIX/bin
      ln -s $outdir/Contents/MacOS/sirius-gui $PREFIX/bin
