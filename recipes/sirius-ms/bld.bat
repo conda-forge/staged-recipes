@@ -20,7 +20,11 @@ dir "%PREFIX%\bin"
 
 ECHO "LINK EXE FILES TO BIN"
 mklink "%outdir%\sirius.exe" "%PREFIX%\bin\sirius"
+if errorlevel 1 exit 1
+
 mklink "%outdir%\sirius-gui.exe" "%PREFIX%\bin\sirius-gui"
+if errorlevel 1 exit 1
+
 
 ECHO "SHOW BIN DIR 2"
 dir "%PREFIX%\bin"
