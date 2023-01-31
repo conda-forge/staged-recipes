@@ -1,0 +1,89 @@
+{% set name = "libcurand" %}
+{% set version = "12.0.1.189" %}
+{% set platform = "linux-x86_64" %} # [linux64]
+{% set platform = "linux-ppc64le" %} # [ppc64le]
+{% set platform = "linux-sbsa" %} # [aarch64]
+{% set platform = "windows-x86_64" %} # [win]
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuda/redist/{{ name }}/{{ platform }}/{{ name }}-{{ platform }}-{{ version }}-archive.tar.xz
+  sha256: 9d30be251c1a0463b52203f6514dac5062844c606d13e234d1386e80c83db279 # [linux64]
+  sha256: 7349ddfc41ceb2f80cd13bc0e26447f05eaf540ae55110cf8b8774ed2860228b # [ppc64le]
+  sha256: 3df3571103b056ab354e616f1c0737b1b2a25a7875b98b1b9bf32dee94449699 # [aarch64]
+  sha256: aaccf56d68a63378edc05109c233ed47e185237c8d334f9df136923440a9a6b7 # [win]
+
+build:
+  # uncomment the following line if the package is pure python and the recipe is exactly the same for all platforms.
+  # it is okay if the dependencies are not built for all platforms/versions, although selectors are still not allowed.
+  # see https://conda-forge.org/docs/maintainer/knowledge_base.html#noarch-python for more details.
+  # noarch: python
+  # if the installation is complex, or different between unix and windows, use separate bld.bat and build.sh files instead of this key.
+  # by default, the package will be built for the python versions supported by conda-forge and for all major oss.
+  # add the line "skip: true  # [py<35]" (for example) to limit to python 3.5 and newer, or "skip: true  # [not win]" to limit to windows.
+  # more info about selectors can be found in the conda-build docs: 
+  # https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#preprocessing-selectors
+  #script: {{ python }} -m pip install . -vv
+  number: 0
+  skip: true  # [osx]
+  missing_dso_whitelist:
+    - /lib64/librt.so.1
+    - /lib64/libpthread.so.0
+    - /lib64/libdl.so.2
+    - /lib64/libm.so.6
+    - /lib64/libgcc_s.so.1
+    - /lib64/libc.so.6
+    - /lib64/ld-linux-x86-64.so.2
+
+requirements:
+  build:
+    - {{ compiler("c") }}
+    - {{ compiler("cxx") }}
+  host:
+    - sysroot_{{ target_platform }} 2.17   # [linux]
+    - __glibc >=2.17                       # [linux]
+  run:
+    - sysroot_{{ target_platform }} 2.17   # [linux]
+    - __glibc >=2.17                       # [linux]
+
+test:
+  commands:
+    - test -f $PREFIX/lib/libcurand.so  # [unix]
+    - if not exist %LIBRARY_LIB%\\curand.lib exit 1  # [win]
+
+outputs:
+  - name: libcurand
+    files:
+      - lib/libcurand.so.*
+
+  - name: libcurand-dev
+    requirements:
+      run:
+        - libcurand >={{ version }}
+    files:
+      - lib/libcurand.so
+      - lib/stubs/libcurand.so*
+      - include/curand*
+
+  - name: libcurand-static
+    requirements:
+      run:
+        - libcurand-dev >={{ version }}
+    files:
+      - lib/libcurand_static.a
+
+about:
+  home: https://developer.nvidia.com/cuda-toolkit
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  description: |
+    CURAND native runtime libraries
+  doc_url: https://docs.nvidia.com/cuda/index.html
+
+extra:
+  recipe-maintainers:
+    - adibbley
