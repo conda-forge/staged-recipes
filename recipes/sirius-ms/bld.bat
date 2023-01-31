@@ -6,7 +6,7 @@ xcopy /e /k /h /i /q "%cd%" "%outdir%"
 if errorlevel 1 exit 1
 
 ECHO "SHOW INSTALLED FILES"
-dir %outdir%
+dir "%outdir%"
 
 ECHO "REMOVE BUNDLED RUNTIME"
 rmdir /s /q "%outdir%\runtime"
