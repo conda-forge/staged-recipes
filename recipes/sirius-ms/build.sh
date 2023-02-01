@@ -1,6 +1,7 @@
 packageName=$PKG_NAME-$PKG_VERSION-$PKG_BUILDNUM
 outdir=$PREFIX/share/$packageName
 siriusDistName="sirius"
+
 echo "### ENV INFO"
 echo "PREFIX=$PREFIX"
 echo "CONDA_PREFIX=$CONDA_PREFIX"
@@ -24,14 +25,14 @@ mkdir -p "${outdir:?}"
 mkdir -p "${PREFIX:?}/bin"
 
 echo "Copy jars"
-cp -rp ./build/install/$siriusDistName/* "${outdir:?}/"
+cp -rp ./sirius_dist/sirius_gui_multi_os/build/install/$siriusDistName/* "${outdir:?}/"
 rm -rp "${outdir:?}/bin"
 
 echo "Show jar dir"
 ls -lah "$outdir/lib"
 
 echo "Copy starters"
-cp -rp ./build/install/$siriusDistName/bin/* "${PREFIX:?}/bin/"
+cp -rp ./sirius_dist/sirius_gui_multi_os/build/install/$siriusDistName/bin/* "${PREFIX:?}/bin/"
 
 echo "Show bin dir"
 ls -lah "$PREFIX/bin"
