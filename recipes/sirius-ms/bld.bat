@@ -1,30 +1,46 @@
-SET outdir=%PREFIX%/share/$PKG_NAME-$PKG_VERSION-$PKG_BUILDNUM
+SET packageName=%PKG_NAME%-%PKG_VERSION%-%PKG_BUILDNUM%
+SET outdir=%PREFIX%/share/$packageName
+SET siriusDistName="sirius"
 
+ECHO "### ENV INFO"
+ECHO "PREFIX=%PREFIX%"
+ECHO "CONDA_PREFIX=%CONDA_PREFIX%"
+ECHO "LD_RUN_PATH=%LD_RUN_PATH%"
+ECHO "packageName=%packageName%"
+ECHO "outdir=%outdir%"
+ECHO "siriusDistName=%siriusDistName%"
+ECHO "### ENV INFO END"
+
+ECHO "### Show Build dir"
+dir .\
+
+ECHO "### Run gradle build"
+.\gradlew :sirius_dist:sirius_gui_multi_os:installDist^
+    -P "build.sirius.location.lib"=%%CONDA_PREFIX%%\share\%packageName%\lib"^
+    -P "build.sirius.native.remove.win=true"^
+    -P "build.sirius.native.remove.linux=true"^
+    -P "build.sirius.native.remove.mac=true"^
+    -P "build.sirius.starter.remove.win=true"^
+
+ECHO "### Create package dirs"
 if not exist "%outdir%" mkdir "%outdir%"
+if not exist "%PREFIX%\bin" mkdir "%PREFIX%\bin"
 
-xcopy /e /k /h /i /q "%cd%" "%outdir%"
+ECHO "### Copy jars"
+xcopy /e /k /h /i /q .\sirius_dist\sirius_gui_multi_os\build\install\%siriusDistName%\* "%outdir%\"
+if errorlevel 1 exit 1
+rmdir /s /q "%outdir%\bin"
 if errorlevel 1 exit 1
 
-ECHO "SHOW BUILD FILES 1"
-dir "%outdir%"
+ECHO "### Show jar dir"
+dir "%outdir%/lib"
 
-ECHO "REMOVE BUNDLED RUNTIME"
-rmdir /s /q "%outdir%\runtime"
-if errorlevel 1 exit 1
+ECHO "### Copy jars"
+xcopy /e /k /h /i /q ./sirius_dist/sirius_gui_multi_os/build/install/%siriusDistName%/bin/* "%PREFIX%\bin\"
 
-ECHO "SHOW BUILD FILES 2"
-dir "%outdir%"
-
-ECHO "SHOW BIN DIR 1"
+ECHO "### Show bin dir"
 dir "%PREFIX%\bin"
 
-ECHO "LINK EXE FILES TO BIN"
-mklink "%outdir%\sirius.exe" "%PREFIX%\bin\sirius"
-if errorlevel 1 exit 1
-
-mklink "%outdir%\sirius-gui.exe" "%PREFIX%\bin\sirius-gui"
-if errorlevel 1 exit 1
-
-
-ECHO "SHOW BIN DIR 2"
-dir "%PREFIX%\bin"
+echo "### Show start script"
+dir "$PREFIX/bin/sirius.sh"
+type "$PREFIX/bin/sirius.sh"
