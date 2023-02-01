@@ -7,6 +7,9 @@
 [[ ${target_platform} == "linux-ppc64le" ]] && targetsDir="targets/ppc64le-linux"
 [[ ${target_platform} == "linux-aarch64" ]] && targetsDir="targets/sbsa-linux"
 
+# cuSOLVER ships a copy of METIS, but this is not OK from the conda-forge perspective
+rm lib/libmetis_static.a
+
 for i in `ls`; do
 	[[ $i == "build_env_setup.sh" ]] && continue
 	[[ $i == "conda_build.sh" ]] && continue
