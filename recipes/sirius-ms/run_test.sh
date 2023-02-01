@@ -1,15 +1,29 @@
 #!/bin/sh
 
-echo "### Simple Sirius version test"
-sirius --version
+echo "### TEST ENV INFO"
+echo "PREFIX=$PREFIX"
+echo "CONDA_PREFIX=$CONDA_PREFIX"
+echo "LD_RUN_PATH=$LD_RUN_PATH"
+echo "JAVA_HOME = %JAVA_HOME%"
+echo "JDK_HOME = %JDK_HOME%"
+echo "### TEST ENV INFO END"
 
-echo "### Download test data"
+ECHO "### [JAVA] Try run java"
+java -version
+
+echo "### [JAVA] Try run %JAVA_HOME%"
+%JAVA_HOME%/bin/java -version
+
+echo "### [SIRIUS] Simple Sirius version test"
+sirius.sh --version
+
+echo "### [SIRIUS] Download test data"
 wget https://bio.informatik.uni-jena.de/wp/wp-content/uploads/2021/10/Kaempferol.ms
 
-echo "### Run SIRIUS ILP solver Test"
-sirius -i Kaempferol.ms -o test-out sirius
+echo "### [SIRIUS] Run SIRIUS ILP solver Test"
+sirius.sh -i Kaempferol.ms -o test-out sirius
 
-echo "### Check SIRIUS ILP solver Test results"
+echo "### [SIRIUS] Check SIRIUS ILP solver Test results"
 if [ ! -f "test-out/1_Kaempferol_Kaempferol/trees" ]; then
   echo Framgentation tree test failed!
   exit 1

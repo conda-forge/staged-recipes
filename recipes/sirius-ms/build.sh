@@ -2,14 +2,14 @@ packageName=$PKG_NAME-$PKG_VERSION-$PKG_BUILDNUM
 outdir=$PREFIX/share/$packageName
 siriusDistName="sirius"
 
-echo "### ENV INFO"
+echo "### BUILD ENV INFO"
 echo "PREFIX=$PREFIX"
 echo "CONDA_PREFIX=$CONDA_PREFIX"
 echo "LD_RUN_PATH=$LD_RUN_PATH"
 echo "packageName=$packageName"
 echo "outdir=$outdir"
 echo "siriusDistName=$siriusDistName"
-echo "### ENV INFO END"
+echo "### BUILD ENV INFO END"
 
 echo "### Show Build dir"
 ls -lah ./
