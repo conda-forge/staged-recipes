@@ -17,10 +17,9 @@ dir .\
 ECHO "### Run gradle build"
 .\gradlew :sirius_dist:sirius_gui_multi_os:installDist^
     -P "build.sirius.location.lib"=%%CONDA_PREFIX%%\share\%packageName%\lib"^
-    -P "build.sirius.native.remove.win=true"^
     -P "build.sirius.native.remove.linux=true"^
     -P "build.sirius.native.remove.mac=true"^
-    -P "build.sirius.starter.remove.win=true"^
+    -P "build.sirius.starter.remove.ix=true"^
 
 ECHO "### Create package dirs"
 if not exist "%outdir%" mkdir "%outdir%"
@@ -42,5 +41,5 @@ ECHO "### Show bin dir"
 dir "%PREFIX%\bin"
 
 echo "### Show start script"
-dir "$PREFIX/bin/sirius.sh"
-type "$PREFIX/bin/sirius.sh"
+dir "$PREFIX/bin/sirius.bat"
+type "$PREFIX/bin/sirius.bat"
