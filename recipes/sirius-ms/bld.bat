@@ -19,7 +19,7 @@ ECHO "### Run gradle build"
     -P "build.sirius.location.lib=%%CONDA_PREFIX%%\share\%packageName%\lib"^
     -P "build.sirius.native.remove.linux=true"^
     -P "build.sirius.native.remove.mac=true"^
-    -P "build.sirius.starter.remove.ix=true"^
+    -P "build.sirius.starter.remove.ix=true"
 
 ECHO "### Create package dirs"
 if not exist "%outdir%" mkdir "%outdir%"
