@@ -14,11 +14,11 @@ powershell Invoke-WebRequest -OutFile Kaempferol.ms -Uri https://bio.informatik.
 if errorlevel 1 exit 1
 
 ECHO "### [EXE] RUN SIMPLE VERSION TEST"
-sirius --version
+sirius.exe --version
 if errorlevel 1 exit 1
 
 ECHO "### [EXE] RUN ILP SOLVER TEST"
-sirius -i %cd%\Kaempferol.ms -o %cd%\test-out-exe sirius
+sirius.exe -i %cd%\Kaempferol.ms -o %cd%\test-out-exe sirius
 if errorlevel 1 exit 1
 
 ECHO "### [EXE] CHECK ILP SOLVER TEST"
