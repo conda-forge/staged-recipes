@@ -35,7 +35,7 @@ ECHO "### Show jar dir"
 dir "%outdir%/lib"
 
 ECHO "### Show bin dir source"
-./sirius_dist/sirius_gui_multi_os/build/install/%siriusDistName%/bin/"
+dir "./sirius_dist/sirius_gui_multi_os/build/install/%siriusDistName%/bin/"
 
 ECHO "### Copy starters"
 xcopy /e /k /h /i /q ./sirius_dist/sirius_gui_multi_os/build/install/%siriusDistName%/bin/* "%PREFIX%\bin\"
