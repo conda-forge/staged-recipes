@@ -1,5 +1,5 @@
 SET packageName=%PKG_NAME%-%PKG_VERSION%-%PKG_BUILDNUM%
-SET outdir=%PREFIX%/share/$packageName
+SET outdir=%PREFIX%/share/%packageName%
 SET siriusDistName="sirius"
 
 ECHO "### ENV INFO"
@@ -34,12 +34,15 @@ if errorlevel 1 exit 1
 ECHO "### Show jar dir"
 dir "%outdir%/lib"
 
-ECHO "### Copy jars"
+ECHO "### Show bin dir source"
+./sirius_dist/sirius_gui_multi_os/build/install/%siriusDistName%/bin/"
+
+ECHO "### Copy starters"
 xcopy /e /k /h /i /q ./sirius_dist/sirius_gui_multi_os/build/install/%siriusDistName%/bin/* "%PREFIX%\bin\"
 
-ECHO "### Show bin dir"
+ECHO "### Show bin dir target"
 dir "%PREFIX%\bin"
 
 echo "### Show start script"
-dir "$PREFIX/bin/sirius.bat"
-type "$PREFIX/bin/sirius.bat"
+dir "%PREFIX%/bin/sirius.bat"
+type "%PREFIX%/bin/sirius.bat"
