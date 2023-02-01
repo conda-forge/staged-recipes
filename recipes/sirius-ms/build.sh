@@ -6,13 +6,15 @@ echo "### ENV INFO"
 echo "PREFIX=$PREFIX"
 echo "CONDA_PREFIX=$CONDA_PREFIX"
 echo "LD_RUN_PATH=$LD_RUN_PATH"
-echo "packageName=packageName"
+echo "packageName=$packageName"
 echo "outdir=$outdir"
 echo "siriusDistName=$siriusDistName"
 echo "### ENV INFO END"
 
+echo "### Show Build dir"
+ls -lah ./
 
-echo "Run gradle build"
+echo "### Run gradle build"
 ./gradlew :sirius_dist:sirius_gui_multi_os:distZip \
     -P "sirius.build.libDir=\$CONDA_PREFIX/share/$PKG_NAME-$PKG_VERSION-$PKG_BUILDNUM/lib" \
     -P "build.sirius.native.remove.win=true" \
@@ -20,24 +22,24 @@ echo "Run gradle build"
     -P "build.sirius.native.remove.mac=true" \
     -P "build.sirius.starter.remove.win=true"
 
-echo "Create package dirs"
+echo "### Create package dirs"
 mkdir -p "${outdir:?}"
 mkdir -p "${PREFIX:?}/bin"
 
-echo "Copy jars"
+echo "### Copy jars"
 cp -rp ./sirius_dist/sirius_gui_multi_os/build/install/$siriusDistName/* "${outdir:?}/"
 rm -rp "${outdir:?}/bin"
 
-echo "Show jar dir"
+echo "### Show jar dir"
 ls -lah "$outdir/lib"
 
-echo "Copy starters"
+echo "### Copy starters"
 cp -rp ./sirius_dist/sirius_gui_multi_os/build/install/$siriusDistName/bin/* "${PREFIX:?}/bin/"
 
-echo "Show bin dir"
+echo "### Show bin dir"
 ls -lah "$PREFIX/bin"
 
-echo "Show start script"
+echo "### Show start script"
 ls -lah "$PREFIX/bin/sirius.sh"
 cat "$PREFIX/bin/sirius.sh"
 
