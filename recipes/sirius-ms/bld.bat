@@ -53,7 +53,3 @@ if errorlevel 1 exit 1
 ECHO "### Show bin dir target"
 dir "%PREFIX%\bin"
 if errorlevel 1 exit 1
-
-ECHO "### Show start script"
-dir "%PREFIX%\bin\sirius.bat"
-type "%PREFIX%\bin\sirius.bat"
