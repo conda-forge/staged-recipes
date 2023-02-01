@@ -1,3 +1,5 @@
+setlocal EnableDelayedExpansion
+
 ECHO "### Start TESTING"
 ECHO "### [JAVA] Infos about JDK locations"
 ECHO "JAVA_HOME = %JAVA_HOME%"
