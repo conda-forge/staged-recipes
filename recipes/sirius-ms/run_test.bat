@@ -22,7 +22,7 @@ sirius.exe -i %cd%\Kaempferol.ms -o %cd%\test-out-exe sirius
 if errorlevel 1 exit 1
 
 ECHO "### [EXE] CHECK ILP SOLVER TEST"
-If not exist "test-out-exe\1_Kaempferol_Kaempferol\trees" (
+If not exist "%cd%\test-out-exe\1_Kaempferol_Kaempferol\trees" (
     echo Framgentation tree test [EXE] failed!
     exit 1
 )
