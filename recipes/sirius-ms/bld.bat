@@ -16,19 +16,14 @@ dir "%cd%"
 
 ECHO "### Run gradle build"
 .\gradlew :sirius_dist:sirius_gui_multi_os:installDist -P "build.sirius.location.lib=%%CONDA_PREFIX%%\share\%packageName%\lib" -P "build.sirius.native.remove.linux=true" -P "build.sirius.native.remove.mac=true" -P "build.sirius.starter.remove.ix=true"
-if errorlevel 1 exit 1
 
 ECHO "### Create package dirs"
 if not exist "%outdir%" mkdir "%outdir%"
-if errorlevel 1 exit 1
 if not exist "%PREFIX%\bin" mkdir "%PREFIX%\bin"
-if errorlevel 1 exit 1
 
 ECHO "### Copy jars"
-xcopy /e /k /h /i /q %cd%\sirius_dist\sirius_gui_multi_os\build\install\%siriusDistName%\* "%outdir%\"
-if errorlevel 1 exit 1
+xcopy /e /s /t /k /h /i /q /y "%cd%\sirius_dist\sirius_gui_multi_os\build\install\%siriusDistName%\*" "%outdir%\"
 rmdir /s /q "%outdir%\bin"
-if errorlevel 1 exit 1
 
 ECHO "### Show jar dir"
 dir "%outdir%\lib"
@@ -37,8 +32,7 @@ ECHO "### Show bin dir source"
 dir "%cd%\sirius_dist\sirius_gui_multi_os\build\install\%siriusDistName%\bin\"
 
 ECHO "### Copy starters"
-xcopy /e /k /h /i /q %cd%\sirius_dist\sirius_gui_multi_os\build\install\%siriusDistName%\bin\* "%PREFIX%\bin\"
-if errorlevel 1 exit 1
+xcopy /e /s /t /k /h /i /q /y "%cd%\sirius_dist\sirius_gui_multi_os\build\install\%siriusDistName%\bin\*" "%PREFIX%\bin\"
 
 ECHO "### Show bin dir target"
 dir "%PREFIX%\bin"
