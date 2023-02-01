@@ -16,7 +16,7 @@ ls -lah ./
 
 echo "### Run gradle build"
 ./gradlew :sirius_dist:sirius_gui_multi_os:installDist \
-    -P "sirius.build.libDir=\$CONDA_PREFIX/share/$PKG_NAME-$PKG_VERSION-$PKG_BUILDNUM/lib" \
+    -P "build.sirius.location.lib=\$CONDA_PREFIX/share/$PKG_NAME-$PKG_VERSION-$PKG_BUILDNUM/lib" \
     -P "build.sirius.native.remove.win=true" \
     -P "build.sirius.native.remove.linux=true" \
     -P "build.sirius.native.remove.mac=true" \
