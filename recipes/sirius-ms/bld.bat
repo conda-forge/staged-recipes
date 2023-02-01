@@ -14,31 +14,31 @@ ECHO "siriusDistName=%siriusDistName%"
 ECHO "### ENV INFO END"
 
 ECHO "### Show Build dir"
-dir "%cd%"
+dir .\
 
 ECHO "### Run gradle build"
-.\gradlew.bat :sirius_dist:sirius_gui_multi_os:installDist -P "build.sirius.location.lib=%%CONDA_PREFIX%%\share\%packageName%\lib" -P "build.sirius.native.remove.linux=true" -P "build.sirius.native.remove.mac=true" -P "build.sirius.starter.remove.ix=true"
+.\gradlew.bat :sirius_dist:sirius_gui_multi_os:installDist --nodaemon -P "build.sirius.location.lib=%%CONDA_PREFIX%%\share\%packageName%\lib" -P "build.sirius.native.remove.linux=true" -P "build.sirius.native.remove.mac=true" -P "build.sirius.starter.remove.ix=true"
 
 ECHO "### Create package dirs"
-if not exist "%outdir%" mkdir "%outdir%"
-if not exist "%PREFIX%\bin" mkdir "%PREFIX%\bin"
+if not exist "%outdir%\" mkdir %outdir\%
+if not exist "%PREFIX%\bin\" mkdir %PREFIX%\bin\
 
 ECHO "### Copy jars"
-xcopy /e /s /t /k /h /i /q /y "%cd%\sirius_dist\sirius_gui_multi_os\build\install\%siriusDistName%\*" "%outdir%\"
+xcopy .\sirius_dist\sirius_gui_multi_os\build\install\%siriusDistName%\* %outdir%\ /s /i /y
 rmdir /s /q "%outdir%\bin"
 
 ECHO "### Show jar dir"
-dir "%outdir%\lib"
+dir %outdir%\lib
 
 ECHO "### Show bin dir source"
-dir "%cd%\sirius_dist\sirius_gui_multi_os\build\install\%siriusDistName%\bin\"
+dir .\sirius_dist\sirius_gui_multi_os\build\install\%siriusDistName%\bin\
 
 ECHO "### Copy starters"
-xcopy /e /s /t /k /h /i /q /y "%cd%\sirius_dist\sirius_gui_multi_os\build\install\%siriusDistName%\bin\*" "%PREFIX%\bin\"
+xcopy .\sirius_dist\sirius_gui_multi_os\build\install\%siriusDistName%\bin\* %PREFIX%\bin\ /s /i /y
 
 ECHO "### Show bin dir target"
-dir "%PREFIX%\bin"
+dir %PREFIX%\bin
 
 ECHO "### Show start script"
-dir "%PREFIX%\bin\sirius.bat"
-type "%PREFIX%\bin\sirius.bat"
+dir %PREFIX%\bin\sirius.bat
+type %PREFIX%\bin\sirius.bat
