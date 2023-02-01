@@ -17,11 +17,8 @@ echo "### [JAVA] Try run $JAVA_HOME"
 echo "### [SIRIUS] Simple Sirius version test"
 sirius.sh --version
 
-echo "### [SIRIUS] Download test data"
-wget https://bio.informatik.uni-jena.de/wp/wp-content/uploads/2021/10/Kaempferol.ms
-
 echo "### [SIRIUS] Run SIRIUS ILP solver Test"
-sirius.sh -i Kaempferol.ms -o test-out sirius
+sirius.sh -i $RECIPE_DIR/Kaempferol.ms -o test-out sirius
 
 echo "### [SIRIUS] Check SIRIUS ILP solver Test results"
 if [ ! -f "test-out/1_Kaempferol_Kaempferol/trees" ]; then

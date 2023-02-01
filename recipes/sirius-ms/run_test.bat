@@ -11,16 +11,12 @@ java -version
 ECHO "### [JAVA] Try run %JAVA_HOME%"
 %JAVA_HOME%/bin/java.exe -version
 
-ECHO "### [DATA] DOWNLOAD TEST DATA"
-powershell Invoke-WebRequest -OutFile Kaempferol.ms -Uri https://bio.informatik.uni-jena.de/wp/wp-content/uploads/2021/10/Kaempferol.ms
-if errorlevel 1 exit 1
-
 ECHO "### [EXE] RUN SIMPLE VERSION TEST"
 sirius.exe --version
 if errorlevel 1 exit 1
 
 ECHO "### [EXE] RUN ILP SOLVER TEST"
-sirius.exe -i %cd%\Kaempferol.ms -o %cd%\test-out-exe sirius
+sirius.exe -i %RECIPE_DIR%\Kaempferol.ms -o %cd%\test-out-exe sirius
 if errorlevel 1 exit 1
 
 ECHO "### [EXE] CHECK ILP SOLVER TEST"
