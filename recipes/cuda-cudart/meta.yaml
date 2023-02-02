@@ -55,40 +55,74 @@ outputs:
       run:
         - cuda-cudart >={{ version }}
         - cuda-cudart-static >={{ version }}
+        - cuda-cudart-dev_{{ target_platform }} =={{ version }}  # [linux]
     test:
       commands:
         - test -d $PREFIX/lib/pkgconfig                  # [linux]
         - if not exist %LIBRARY_LIB%\cudart.lib exit 1   # [win]
     files:
       - lib/*.so                                # [linux]
-      - targets/*/lib/*.so                      # [linux]
       - include                                 # [linux]
-      - targets/*/include/*                     # [linux]
-      - targets/*/include/cooperative_groups/*  # [linux]
       - lib/pkgconfig                           # [linux]
       - Library\include                         # [win]
       - Library\lib\cudadevrt.lib               # [win]
       - Library\lib\cuda.lib                    # [win]
       - Library\lib\cudart.lib                  # [win]
 
-  - name: cuda-cudart-static
+  - name: cuda-cudart-dev_{{ target_platform }}
+    build:
+      skip: True                        # [not linux]
+    requirements:
+      run:
+        - cuda-cudart-dev_{{ target_platform }} >={{ version }}
     test:
       commands:
-        - test -f $PREFIX/lib/libcudart_static.a             # [linux]
-        - if not exist %LIBRARY_LIB%\cudart_static.lib exit 1   # [win]
+        - test -L $PREFIX/targets/*/lib/libcudart.so
+    files:
+      - targets/*/lib/*.so
+      - targets/*/include/*
+      - targets/*/include/cooperative_groups/*
+
+  - name: cuda-cudart-static
+    requirements:
+      run:
+        - cuda-cudart-static_{{ target_platform }} =={{ version }}  # [linux]
+    test:
+      commands:
+        - test -L $PREFIX/lib/libcudart_static.a               # [linux]
+        - if not exist %LIBRARY_LIB%\cudart_static.lib exit 1  # [win]
     files:
       - lib/*.a                        # [linux]
-      - targets/*/lib/*.a              # [linux]
       - Library\lib\cudart_static.lib  # [win]
+
+  - name: cuda-cudart-static_{{ target_platform }}
+    build:
+      skip: True                        # [not linux]
+    requirements:
+      run:
+        - cuda-driver-dev_{{ target_platform }} =={{ version }}  # [linux]
+    test:
+      commands:
+        - test -f $PREFIX/targets/*/lib/libcudart_static.a             # [linux]
+    files:
+      - targets/*/lib/*.a              # [linux]
 
   - name: cuda-driver-dev
     build:
       skip: True                        # [not linux]
     test:
       commands:
-        - test -f $PREFIX/lib/stubs/libcuda.so
+        - test -L $PREFIX/lib/stubs
     files:
       - lib/stubs/libcuda.so
+
+  - name: cuda-driver-dev_{{ target_platform }}
+    build:
+      skip: True                        # [not linux]
+    test:
+      commands:
+        - test -f $PREFIX/targets/*/lib/stubs/libcuda.so
+    files:
       - targets/*/lib/stubs/libcuda.so
 
 about:
