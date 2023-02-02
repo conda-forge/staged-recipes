@@ -22,7 +22,7 @@ call gradlew.bat :sirius_dist:sirius_gui_multi_os:installDist^
     -P "build.sirius.native.remove.linux=true"^
     -P "build.sirius.native.remove.mac=true"^
     -P "build.sirius.starter.remove.ix=true"^
-    -P "build.sirius.starter.jdk.win=%JAVA_HOME%"
+    -P "build.sirius.starter.jdk.win=../Library/lib/jvm"
 if errorlevel 1 exit 1
 
 ECHO "### Create package dirs"
