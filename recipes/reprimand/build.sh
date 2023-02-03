@@ -2,7 +2,7 @@
 
 set -e
 
-export BOOST_ROOT=$BUILD_PREFIX
+export BOOST_ROOT=$PREFIX
 export MBUILD_DIR=build
 
 mkdir -p $MBUILD_DIR
