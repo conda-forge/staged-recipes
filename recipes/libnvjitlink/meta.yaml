@@ -1,0 +1,81 @@
+{% set name = "libnvjitlink" %}
+{% set version = "12.0.76" %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-ppc64le" %}  # [ppc64le]
+{% set platform = "linux-sbsa" %}  # [aarch64]
+{% set platform = "windows-x86_64" %}  # [win]
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuda/redist/{{ name }}/{{ platform }}/{{ name }}-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: 92a70db1ee90f1816a40d4d2019e0a59c43eebb9f3eb1208abedcc00a13e48be  # [linux64]
+  sha256: dd317e1d052b4231ab95d1b472105640f617f7d250aacc5bc1c952aab93d7483  # [ppc64le]
+  sha256: 9f18090f6587e95be0ee424f07358eeb0e15c5ab3f8636870f68dd84a92ed2e6  # [aarch64]
+  sha256: cae74b6790174b283d892bb20e1ff91bff13c8a2a8486de4f417e09675469372  # [win]
+
+build:
+  number: 0
+  skip: true  # [osx]
+
+requirements:
+  build:
+    - {{ compiler("c") }}
+    - {{ compiler("cxx") }}
+
+outputs:
+  - name: libnvjitlink
+    test:
+      commands:
+        - test -f $PREFIX/targets/*/lib/linvjitlink.so.{{ version }}  # [linux]
+        - if not exist %LIBRARY_BIN%\nvJitLink*.dll exit 1            # [win]
+    files:
+      - lib/libnvJitLink.so.*            # [linux]
+      - targets/*/lib/libnvJitLink.so.*  # [linux]
+      - Library\bin                      # [win]
+
+  - name: libnvjitlink-dev
+    test:
+      commands:
+        - test -f $PREFIX/include/nvJitLink.h              # [linux]
+        - if not exist %LIBRARY_LIB%\nvJitLink.lib exit 1  # [win]
+    requirements:
+      run:
+        - libnvjitlink >={{ version }}
+        - libnvjitlink-static >={{ version }}
+    files:
+      - lib/libnvJitLink*.so            # [linux]
+      - targets/*/lib/libnvJitLink*.so  # [linux]
+      - include/nvJitLink.h             # [linux]
+      - targets/*/include/nvJitLink.h   # [linux]
+      - res/nvJitLink_linux.def
+      - Library\include                 # [win]
+      - Library\lib\nvJitLink.lib       # [win]
+
+  - name: libnvjitlink-static
+    test:
+      commands:
+        - test -f $PREFIX/lib/libnvJitLink_static.a               # [linux]
+        - if not exist %LIBRARY_LIB%\nvJitLink_static.lib exit 1  # [win]
+    files:
+      - lib/libnvJitLink*_static.a            # [linux]
+      - targets/*/lib/libnvJitLink*_static.a  # [linux]
+      - Library\lib\nvJitLink_static.lib      # [win]
+
+about:
+  home: https://developer.nvidia.com/cuda-toolkit
+  license_file: LICENSE
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  summary: NVJIT link native runtime libraries
+  description: |
+    NVJIT link native runtime libraries
+  doc_url: https://docs.nvidia.com/cuda/index.html
+
+extra:
+  recipe-maintainers:
+    - adibbley
