@@ -1,0 +1,44 @@
+From a43d733a668d9cba02eeb79a49cbdaed17e3749a Mon Sep 17 00:00:00 2001
+From: Isuru Fernando <isuruf@gmail.com>
+Date: Tue, 6 Apr 2021 13:36:08 +0200
+Subject: [PATCH] Support cross compiling standalone MLIR
+
+---
+ mlir/CMakeLists.txt | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/mlir/CMakeLists.txt b/mlir/CMakeLists.txt
+index 088aec88f..9ba5afcbf 100644
+--- a/mlir/CMakeLists.txt
++++ b/mlir/CMakeLists.txt
+@@ -30,6 +30,7 @@ if(MLIR_STANDALONE_BUILD)
+   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY
+     "${CMAKE_CURRENT_BINARY_DIR}/lib${LLVM_LIBDIR_SUFFIX}")
+   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin")
++  set(MLIR_BUILT_STANDALONE 1)
+ endif()
+ 
+ set(MLIR_TOOLS_INSTALL_DIR "${CMAKE_INSTALL_BINDIR}" CACHE PATH
+@@ -155,6 +156,18 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
+ include_directories( "include")
+ include_directories( ${MLIR_INCLUDE_DIR})
+ 
++if(CMAKE_CROSSCOMPILING AND MLIR_BUILT_STANDALONE)
++  set(LLVM_USE_HOST_TOOLS ON)
++  include(CrossCompile)
++  if (NOT NATIVE_LLVM_DIR)
++    message(FATAL_ERROR
++      "Crosscompiling standalone requires the variables NATIVE_LLVM_DIR
++      for building the native mlir-tblgen used during the build process.")
++  endif()
++  llvm_create_cross_target(mlir NATIVE "" Release
++    -DLLVM_DIR=${NATIVE_LLVM_DIR})
++endif()
++
+ # Adding tools/mlir-tblgen here as calling add_tablegen sets some variables like
+ # MLIR_TABLEGEN_EXE in PARENT_SCOPE which gets lost if that folder is included
+ # from another directory like tools
+-- 
+2.38.0
+
+
