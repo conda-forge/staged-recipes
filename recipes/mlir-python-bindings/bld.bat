@@ -17,7 +17,7 @@ if %ERRORLEVEL% neq 0 exit 1
 ninja -j%CPU_COUNT%
 if %ERRORLEVEL% neq 0 exit 1
 
-ninja DCMAKE_INSTALL_PREFIX
+ninja install
 if not exist "%SP_DIR%" mkdir "%SP_DIR%"
 move "%PREFIX%"\Library\python_packages\mlir_core\mlir "%SP_DIR%"
 
