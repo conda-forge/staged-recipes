@@ -2,17 +2,35 @@
 
 set -ex
 
-# generate configuration scripts
 ./autogen.sh
 
-# configure
-./configure --prefix=$PREFIX
+args=(
+  --prefix="$PREFIX"
+  --disable-doc
+  --disable-debug
+  --disable-prelude # conda-forge does not have libprelude yet
+  --enable-isadir="$PREFIX/lib/security"
+  --disable-econf # conda-forge does not have libeconf yet?
+  --enable-openssl
+  --disable-regenerate-docu
+)
 
-# compile
+./configure "${args[@]}"
+
 make
 
-# check that this worked
+test ! -f "$PREFIX/etc/pam.d/other"
+
+cat <<EOF > "$PREFIX/etc/pam.d/other" 
+#%PAM-1.0
+auth	 required	pam_deny.so
+account	 required	pam_deny.so
+password required	pam_deny.so
+session	 required	pam_deny.so
+EOF
+
 make check
 
-# install
+rm -f "$PREFIX/etc/pam.d/other"
+
 make install
