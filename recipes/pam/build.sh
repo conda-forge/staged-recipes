@@ -1,5 +1,4 @@
 #!/bin/bash
-
 set -ex
 
 ./autogen.sh
@@ -8,16 +7,16 @@ args=(
   --prefix="$PREFIX"
   --disable-doc
   --disable-debug
-  --disable-prelude # conda-forge does not have libprelude yet
+  --disable-prelude
   --enable-isadir="$PREFIX/lib/security"
-  --disable-econf # conda-forge does not have libeconf yet?
-  --enable-openssl
+  --disable-econf
+  --disable-openssl # check for pam_timestamp with openssl is broken
   --disable-regenerate-docu
 )
 
 ./configure "${args[@]}"
 
-make
+make -j${CPU_COUNT}
 
 mkdir -p "$PREFIX/etc/pam.d"
 test ! -e "$PREFIX/etc/pam.d/other"
