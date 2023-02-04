@@ -1,0 +1,4 @@
+#!/bin/bash
+
+export NVCC_PREPEND_FLAGS_BACKUP="${NVCC_PREPEND_FLAGS}"
+export NVCC_PREPEND_FLAGS="${NVCC_PREPEND_FLAGS} -ccbin ${CXX}"
