@@ -7,7 +7,7 @@ This repo is a holding area for recipes destined for a conda-forge feedstock rep
 
 ## Feedstock conversion status
 
-[![Build Status](https://github.com/conda-forge/staged-recipes/workflows/Create%20feedstocks/badge.svg)](https://github.com/conda-forge/staged-recipes/actions?query=workflow%3A%22Create+feedstocks%22)
+[![create_feedstocks](https://github.com/conda-forge/admin-requests/actions/workflows/create_feedstocks.yml/badge.svg)](https://github.com/conda-forge/admin-requests/actions/workflows/create_feedstocks.yml)
 
 Failures with the above job are often caused by API rate limits from the various services used by conda-forge.
 This can result in empty feedstock repositories and will resolve itself automatically.
@@ -65,8 +65,9 @@ build:
 
 A full description of selectors is [in the conda docs](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#preprocessing-selectors).
 
-Additionally, when pushing commits for a recipe that excludes Windows, put `[skip appveyor]` in the commit message to prevent CI tests
-on Windows from even starting.
+If the package can otherwise be `noarch` you can also skip it by using [virtual packages](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-virtual.html). 
+
+_Note_: As the package will always be built on linux, it needs to be at least available on there.
 
 
 ### 4. **What does the `build: 0` entry mean?**
