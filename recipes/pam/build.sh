@@ -19,7 +19,8 @@ args=(
 
 make
 
-test ! -f "$PREFIX/etc/pam.d/other"
+mkdir -p "$PREFIX/etc/pam.d"
+test ! -e "$PREFIX/etc/pam.d/other"
 
 cat <<EOF > "$PREFIX/etc/pam.d/other" 
 #%PAM-1.0
