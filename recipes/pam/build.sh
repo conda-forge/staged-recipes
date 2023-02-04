@@ -32,6 +32,6 @@ EOF
 
 make check
 
-rm -f "$PREFIX/etc/pam.d/other"
+rm "$PREFIX/etc/pam.d/other"
 
 make install
