@@ -4,6 +4,8 @@ set -ex
 
 args=(
   --prefix="$PREFIX"
+  --enable-shared
+  --disable-static
 
   # Language bindings should be built in a separate recipe.
   # Enabling them here will cause repeated builds of the same libraries.
