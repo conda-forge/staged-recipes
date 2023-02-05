@@ -15,7 +15,6 @@ args=(
   --enable-gssapi-krb5=no
   --with-apparmor=yes
   # --with-libwrap
-  --with-io_uring
 )
 
 ./configure "${args[@]}"
