@@ -1,7 +1,5 @@
 set -ex
 
-./autogen.sh
-
 args=(
   --prefix="$PREFIX"
   --enable-shared
