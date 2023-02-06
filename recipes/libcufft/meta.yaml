@@ -1,4 +1,4 @@
-{% set name = "libcufft" %}
+{% set name = "libcufft-split" %}
 {% set version = "11.0.0.21" %}
 {% set platform = "linux-x86_64" %}  # [linux64]
 {% set platform = "linux-ppc64le" %}  # [ppc64le]
@@ -24,67 +24,93 @@ build:
   skip: true  # [osx]
 
 
-requirements:                              # [linux]
-  host:                                    # [linux]
-    - sysroot_{{ target_platform }} 2.17   # [linux]
-    - __glibc >=2.17                       # [linux]
-  run:                                     # [linux]
-    - sysroot_{{ target_platform }} 2.17   # [linux]
-    - __glibc >=2.17                       # [linux]
-
-
 outputs:
   - name: libcufft
     requirements:
       build:
         - {{ compiler("c") }}
         - {{ compiler("cxx") }}
-    test:
-      commands:
-        - test -f $PREFIX/lib/libcufft.so.{{ version }}                              # [linux]
-        - if not exist %LIBRARY_BIN%\cufft64_{{ version.split(".")[0] }}.dll exit 1  # [win]
+      host:                                    # [linux]
+        - sysroot_{{ target_platform }} 2.17   # [linux]
+        - __glibc >=2.17                       # [linux]
+      run:                                     # [linux]
+        - sysroot_{{ target_platform }} 2.17   # [linux]
+        - __glibc >=2.17                       # [linux]
     files:
       - lib/libcufft*.so.*    # [linux]
       - targets/*/lib/*.so.*  # [linux]
       - Library\bin           # [win]
-
-  - name: libcufft-dev
     test:
       commands:
-        - test -f $PREFIX/include/cufft.h              # [linux]
-        - if not exist %LIBRARY_LIB%\cufft.lib exit 1  # [win]
-    requirements:
-      run:
-        - libcufft >={{ version }}
-      run_constrained:                     # [linux]
-        - libcufft-static >={{ version }}  # [linux]
+        - test -f $PREFIX/lib/libcufft.so.{{ version }}                              # [linux]
+        - if not exist %LIBRARY_BIN%\cufft64_{{ version.split(".")[0] }}.dll exit 1  # [win]
+
+  - name: libcufft-dev
     files:
       - lib/*.so             # [linux]
-      - targets/*/lib/*.so   # [linux]
       - lib/stubs            # [linux]
       - include              # [linux]
+      - lib/pkgconfig        # [linux]
+      # Windows is only one target; everything is in `...-dev_target`
+    run_exports:
+      weak:
+        - {{ pin_subpackage("libcufft", max_pin='x') }}
+    requirements:
+      run:
+        - cuda-cufft-dev_{{ target_platform }} =={{ version }}
+        # TODO: Do we need cudart?  But at this point it would fail CI.
+      run_contrained:
+        # Ensure static package is compatible (if installed explicitly)
+        - libcufft-static_{{ target_platform }} >={{ version }}  # [linux]
+    test:
+      commands:
+        - test -f $PREFIX/lib/cufft.so       # [linux]
+        - test -f $PREFIX/include/cufft.h    # [linux]
+        - if not exist %LIBRARY_LIB%\cufft.lib exit 1  # [win]
+
+  - name: libcufft-dev_{{ target_platform }}
+    build:
+      noarch: generic
+    files:
+      - targets/*/lib/*.so   # [linux]
+      - targets/*/lib/stubs  # [linux]
       - targets/*/include/*  # [linux]
       - lib/pkgconfig        # [linux]
       - Library\include      # [win]
       - Library\lib          # [win]
+    requirements:
+      run_constrained:
+        - cuda-cudart-static_{{ target_platform }} >={{ version }}  # [linux]
+    test:
+      commands:
+        - test -f $PREFIX/targets/*/lib/cufft.so       # [linux]
+        - test -f $PREFIX/targets/*/include/cufft.h    # [linux]
+        - if not exist %LIBRARY_LIB%\cufft.lib exit 1  # [win]
 
   - name: libcufft-static
-    build:         # [not linux]
+    # cuFFT does not ship `*_static.lib` on windows so only relevant on linux
+    build:
        skip: True  # [not linux]
+    files:
+      - lib/libcufft*_static.a
+      - lib/libcufft_static_nocallback.a
+    requirements:
+      run:
+        - libcufft-static_{{ target_platform }} =={{ version }}
     test:
       commands:
         - test -f $PREFIX/lib/libcufft_static.a
-    requirements:
-      build:
-        - {{ compiler("c") }}
-        - {{ compiler("cxx") }}
-      run:
-        - libcufft-dev >={{ version }}
+
+  - name: libcufft-static_{{ target_platform }}
+    build:
+        skip: True  # [not linux]
+        noarch: generic
     files:
       - targets/*/lib/libcufft*_static.a
       - targets/*/lib/libcufft_static_nocallback.a
-      - lib/libcufft*_static.a
-      - lib/libcufft_static_nocallback.a
+    test:
+      commands:
+        - test -f $PREFIX/targets/*/lib/libcufft_static.a
 
 
 about:
@@ -94,8 +120,9 @@ about:
   license_url: https://docs.nvidia.com/cuda/eula/index.html
   summary: 'cuFFT native runtime libraries'
   description: |
-    The CUDA Fast Fourier Transform library
+    cuFFT, the CUDA Fast Fourier Transform library.
   doc_url: https://docs.nvidia.com/cuda/cufft/index.html
+
 
 extra:
   recipe-maintainers:
