@@ -9,9 +9,11 @@ cmake \
   -DCMAKE_INSTALL_PREFIX=${PREFIX} \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_RPATH=${PREFIX}/lib \
-  -DBUILD_STATIC=OFF \
-  -DBUILD_EXAMPLES=OFF \
-  -DADS_VERSION=${PKG_VERSION} \
+  -DKDDockWidgets_QT6=false \
+  -DKDDockWidgets_STATIC=false \
+  -DKDDockWidgets_EXAMPLES=false \
+  -DKDDockWidgets_PYTHON_BINDINGS=true \
+  -DCMAKE_BUILD_TYPE=Release \
   ..
 make install -j${CPU_COUNT}
 
