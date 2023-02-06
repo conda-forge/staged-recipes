@@ -19,7 +19,7 @@ if %ERRORLEVEL% neq 0 exit 1
 
 ninja install
 if not exist "%SP_DIR%" mkdir "%SP_DIR%"
-move "%PREFIX%"\Library\python_packages\mlir_core\mlir "%SP_DIR%"
+move "%PREFIX%"\Library\python_packages\mlir_core\mlir "%SP_DIR%"\
 
 if exist "%PREFIX%"\Library\python_packages rmdir /s /q "%PREFIX%"\Library\python_packages
-if exist "%PREFIX%"\Library\src rmdir /s /q "%PREFIX%"\src
+if exist "%PREFIX%"\Library\src rmdir /s /q "%PREFIX%"\Library\src

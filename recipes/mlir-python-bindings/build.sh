@@ -25,7 +25,7 @@ cmake \
   -DLLVM_BUILD_TOOLS=ON \
   -DLLVM_BUILD_UTILS=ON \
   -DMLIR_ENABLE_BINDINGS_PYTHON=ON \
-  -DPython3_EXECUTABLE=`which python` \
+  -DPython3_EXECUTABLE="$PYTHON" \
   -GNinja \
   ../mlir
 
@@ -36,6 +36,6 @@ cd $PREFIX
 rm -rf libexec share bin include lib
 
 mkdir -p $SP_DIR
-mv $PREFIX/python_packages/mlir_core/mlir $SP_DIR
+mv $PREFIX/python_packages/mlir_core/mlir $SP_DIR/
 
 rm -rf $PREFIX/src $PREFIX/python_packages
