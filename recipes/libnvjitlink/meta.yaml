@@ -6,6 +6,7 @@
 {% set platform = "windows-x86_64" %}  # [win]
 {% set extension = "tar.xz" %}  # [not win]
 {% set extension = "zip" %}  # [win]
+{% set major_ver = version.split(".")[0] %}  # also tracks the CUDA Toolkit major version
 
 package:
   name: {{ name|lower }}
@@ -31,6 +32,7 @@ outputs:
   - name: libnvjitlink
     test:
       commands:
+        - test -f $PREFIX/lib/linvjitlink.so.{{ major_ver }}  # [linux]
         - test -f $PREFIX/targets/*/lib/linvjitlink.so.{{ version }}  # [linux]
         - if not exist %LIBRARY_BIN%\nvJitLink*.dll exit 1            # [win]
     files:
@@ -39,10 +41,14 @@ outputs:
       - Library\bin                      # [win]
 
   - name: libnvjitlink-dev
+    run_exports:
+      - {{ pin_compatible("libnvjitlink", max_pin="x") }} 
     test:
       commands:
-        - test -f $PREFIX/include/nvJitLink.h              # [linux]
-        - if not exist %LIBRARY_LIB%\nvJitLink.lib exit 1  # [win]
+        - test -f $PREFIX/include/nvJitLink.h               # [linux]
+        - test -f $PREFIX/lib/linvjitlink.so                # [linux]
+        - test -f $PREFIX/lib/linvjitlink.so.{{ version }}  # [linux]
+        - if not exist %LIBRARY_LIB%\nvJitLink.lib exit 1   # [win]
     requirements:
       run:
         - libnvjitlink >={{ version }}
