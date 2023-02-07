@@ -1,0 +1,87 @@
+{% set name = "flite-tts" %}
+{% set version = "2.3.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/festvox/flite/archive/6c9f20dc915b17f5619340069889db0aa007fcdc.tar.gz
+  sha256: 5d23a2c6248568708aff4996015baed49f02ccc2ec4de17de3b9e13b95491ce6
+
+build:
+  skip: True  # [win]
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - make
+
+outputs:
+  - name: libflite
+    script: install.sh  # [not win]
+    build:
+      run_exports:
+        - {{ pin_subpackage('libflite', max_pin='x.x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - make
+    test:
+      commands:
+        - test -f $PREFIX/lib/libflite.so.2.3  # [not win]
+        - test -f $PREFIX/lib/libflite_usenglish.so.2.3  # [not win]
+  - name: flite-dev
+    script: install_devel.sh  # [not win]
+    build:
+      run_exports:
+        - {{ pin_subpackage('flite-dev', max_pin='x.x') }}
+    requirements:
+      host:
+        - {{ pin_subpackage("libflite", exact=True) }}
+      run:
+        - {{ pin_subpackage("libflite", exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/include/flite/flite.h  # [not win]
+        - test -f $PREFIX/lib/libflite.so  # [linux]
+        - test -f $PREFIX/lib/libflite_usenglish.so  # [linux]
+  - name: flite
+    script: install_bin.sh  # [not win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - make
+      host:
+        - {{ pin_subpackage("libflite", exact=True) }}
+      run:
+        - {{ pin_subpackage("libflite", exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/bin/flite  # [not win]
+        - test -f $PREFIX/bin/flite_time  # [not win]
+        - test -f $PREFIX/bin/t2p  # [not win]
+        - flite -t test -o /dev/stdout  # [not win]
+        - sh -c "flite -t test -o /dev/stdout | grep -vi error"  # [not win]
+
+about:
+  home: http://cmuflite.org
+  summary: 'A small fast portable speech synthesis system '
+  description: |
+    Flite is an open source small fast run-time text to speech engine. It is
+    the latest addition to the suite of free software synthesis tools
+    including University of Edinburgh's Festival Speech Synthesis System and
+    Carnegie Mellon University's FestVox project, tools, scripts and
+    documentation for building synthetic voices. However, flite itself does
+    not require either of these systems to compile and run.
+  license: BSD-4-Clause
+  license_family: BSD
+  license_file: COPYING
+  doc_url: http://cmuflite.org
+  dev_url: https://github.com/festvox/flite
+
+extra:
+  recipe-maintainers:
+    - peci1
+
