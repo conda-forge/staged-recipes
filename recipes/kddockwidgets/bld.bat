@@ -5,7 +5,6 @@ cmake -LAH -G"NMake Makefiles"                               ^
     -DPython3_EXECUTABLE="%PYTHON%"                          ^
     -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%"                   ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%"                ^
-    -DCMAKE_BUILD_TYPE=Release                               ^
     -DKDDockWidgets_QT6=false                                ^
     -DKDDockWidgets_STATIC=false                             ^
     -DKDDockWidgets_EXAMPLES=false                           ^
