@@ -33,7 +33,7 @@ ninja
 ninja install
 
 cd $PREFIX
-rm -rf libexec share bin include lib
+# rm -rf libexec share bin include lib
 
 mkdir -p $SP_DIR
 mv $PREFIX/python_packages/mlir_core/mlir $SP_DIR/
