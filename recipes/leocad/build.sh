@@ -16,6 +16,7 @@ if [[ ${HOST} =~ .*linux.* ]]; then
 fi
 
 qmake \
+  DISABLE_UPDATE_CHECK=1 \
   LDRAW_LIBRARY_PATH=${PREFIX}/share/ldraw \
   CONFIG+=release \
   INSTALL_PREFIX=$PREFIX \
