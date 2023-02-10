@@ -32,8 +32,6 @@ def get_config_name(arch):
 
 def build_all(recipes_dir, arch):
     folders = list(filter(lambda d: os.path.isdir(os.path.join(recipes_dir, d)), os.listdir(recipes_dir)))
-    old_comp_folders = []
-    new_comp_folders = []
     if not folders:
         print("Found no recipes to build")
         return
@@ -100,13 +98,13 @@ def build_all(recipes_dir, arch):
         deployment_version = '.'.join([str(x) for x in deployment_version])
         print("Overriding MACOSX_DEPLOYMENT_TARGET to be ", deployment_version)
         variant_text += '\nMACOSX_DEPLOYMENT_TARGET:\n'
-        variant_text += f'- {deployment_version}\n'
+        variant_text += f'- "{deployment_version}"\n'
 
     if sdk_version != (0, 0):
         sdk_version = '.'.join([str(x) for x in sdk_version])
         print("Overriding MACOSX_SDK_VERSION to be ", sdk_version)
         variant_text += '\nMACOSX_SDK_VERSION:\n'
-        variant_text += f'- {sdk_version}\n'
+        variant_text += f'- "{sdk_version}"\n'
 
     with open(variant_config_file, 'w') as f:
         f.write(variant_text)
@@ -123,7 +121,6 @@ def build_all(recipes_dir, arch):
 def get_config(arch, channel_urls):
     exclusive_config_files = [os.path.join(conda_build.conda_interface.root_dir,
                                            'conda_build_config.yaml')]
-    platform = get_host_platform()
     script_dir = os.path.dirname(os.path.realpath(__file__))
     # since variant builds override recipe/conda_build_config.yaml, see
     # https://github.com/conda/conda-build/blob/3.21.8/conda_build/variants.py#L175-L181
@@ -186,7 +183,7 @@ def check_recipes_in_correct_dir(root_dir, correct_dir):
         if path.parts[0] == 'build_artifacts':
             # ignore pkg_cache in build_artifacts
             continue
-        if path.parts[0] != correct_dir:
+        if path.parts[0] != correct_dir and path.parts[0] != "broken-recipes":
             raise RuntimeError(f"recipe {path.parts} in wrong directory")
         if len(path.parts) != 3:
             raise RuntimeError(f"recipe {path.parts} in wrong directory")
