@@ -1,19 +1,17 @@
-#!/bin/sh
-
-# if some command fails, abort immediately
-set -ex
+#!/usr/bin/env bash
+set -eux
 
 mkdir -vp ${PREFIX}/bin
-mkdir -vp ${PREFIX}/share/${PKG_NAME}
 
+cp ${RECIPE_DIR}/lein ./
+chmod +x lein
+./lein self-install
+./lein uberjar
 
 # copy to library
 JAR=ditaa-0.11.0-standalone.jar
-mv -v ./$JAR ${PREFIX}/share/${PKG_NAME}/
+cp ./target/$JAR "${PREFIX}/lib/ditaa.jar"
 
-# create executable
-echo "
-#!/bin/sh
-java -ea -jar ${PREFIX}/share/${PKG_NAME}/$JAR \"\$@\"
-" > ${PREFIX}/bin/ditaa
-chmod +x ${PREFIX}/bin/ditaa
+echo '#!/bin/bash' > $PREFIX/bin/ditaa
+echo 'java -ea -jar ${PREFIX}/lib/ditaa.jar "$@"' >> $PREFIX/bin/ditaa
+chmod +x "${PREFIX}/bin/ditaa"
