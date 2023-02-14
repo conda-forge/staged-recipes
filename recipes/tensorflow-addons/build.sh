@@ -41,6 +41,18 @@ python ./configure.py
 sed -i'' -e "s:TF_HEADER_DIR=.*:TF_HEADER_DIR=\"$PREFIX/include\":" \
     -e "s:TF_SHARED_LIBRARY_DIR=.*:TF_SHARED_LIBRARY_DIR=\"$PREFIX/lib\":" \
     .bazelrc
+if [[ ${cuda_compiler_version} != "None" ]]; then
+cat <<EOF >> .bazelrc
+# This syntax exposes the variable from the .envrc environment.
+# https://bazel.build/designs/2016/06/21/environment.html#new-flag---action_env
+build --action_env TF_HEADER_DIR
+build --action_env TF_SHARED_LIBRARY_DIR
+build --action_env TF_SHARED_LIBRARY_NAME
+build --action_env TF_CXX11_ABI_FLAG
+build --action_env TF_CUDA_COMPUTE_CAPABILITIES
+EOF
+fi
+
 # show result (& sleep to allow log to catch up)
 cat .bazelrc
 sleep 2
