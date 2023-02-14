@@ -1,0 +1,77 @@
+{% set name = "qiskit-aer" %}
+{% set version = "0.11.2" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/Qiskit/{{ name }}/archive/refs/tags/{{ version }}.tar.gz
+  sha256: d18aefd09971bfe2018dc78623ddf8a25bc0660f4fb0987a82c8e2a677bffc4e
+  patches:
+    # This patch is used to prevent scikit-build from trying to pip install cmake.
+    # It can be dropped when a version including
+    # https://github.com/Qiskit/qiskit-aer/pull/1693 is released, likely
+    # version 0.12.0.
+    - 0001-Drop-setup_requires.patch
+
+build:
+  script: {{ PYTHON }} -m pip install . -vv
+  # Skip Windows build until qiskit-terra has a Windows build
+  # Skip macOS build until https://github.com/Qiskit/qiskit-aer/issues/1689 is addressed
+  skip: True  # [win or osx]
+  number: 0
+  script_env:
+    - DISABLE_DEPENDENCY_INSTALL=ON
+    - DISABLE_CONAN=ON
+    - SKBUILD_CONFIGURE_OPTIONS="-GNinja"
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - cmake !=3.17,>=3.8
+    - libgomp      # [linux]
+    - llvm-openmp  # [osx]
+    - ninja
+  host:
+    - libblas
+    - liblapack
+    - muparserx =4.0.8
+    - nlohmann_json =3.1.2
+    - numpy
+    - pip
+    - python
+    - pybind11
+    - scikit-build >=0.11.0
+    - setuptools >=40.1.0
+    - spdlog =1.5.0
+  run:
+    - {{ pin_compatible('numpy') }}
+    - python
+    - qiskit-terra >=0.21.0
+    - scipy >=1.0
+
+test:
+  source_files:
+    - .stestr.conf
+    - test/*
+  imports:
+    - qiskit_aer
+  commands:
+    - pip check
+    - stestr run
+  requires:
+    - ddt
+    - pip
+    - stestr
+
+about:
+  home: https://github.com/Qiskit/qiskit-aer
+  summary: Qiskit Aer - High performance simulators for Qiskit
+  license: Apache-2.0
+  license_file: LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - leofang
+    - wshanks
