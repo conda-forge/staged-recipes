@@ -24,7 +24,6 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
   -Dpybind11_DIR="${PREFIX}/share/cmake/pybind11" \
   -DLAPACK_LIBRARIES="${PREFIX}/lib/libmkl_rt${SHLIB_EXT}"
 
-cd build
 cmake --build build --target install -j${CPU_COUNT}
 
 # pytest in conda testing stage
