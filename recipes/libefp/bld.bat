@@ -24,7 +24,7 @@ cmake ${CMAKE_ARGS} -G"Ninja" ^
       -DFRAGLIB_UNDERSCORE_L=OFF ^
       -DFRAGLIB_DEEP=OFF ^
       -DINSTALL_DEVEL_HEADERS=ON ^
-      -DLAPACK_LIBRARIES="%PREFIX%/lib/libmkl_rt%SHLIB_EXT%"
+      -DLAPACK_LIBRARIES="%PREFIX%/Library/lib/mkl_rt.lib"
 
 if errorlevel 1 exit 1
 
