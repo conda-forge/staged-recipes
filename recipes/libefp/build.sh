@@ -21,7 +21,7 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
   -DFRAGLIB_UNDERSCORE_L=OFF \
   -DFRAGLIB_DEEP=OFF \
   -DINSTALL_DEVEL_HEADERS=ON \
-  -Dpybind11_DIR="${PREFIX}/share/cmake/pybind11" \
+  -DCMAKE_PREFIX_PATH="${PREFIX}" \
   -DLAPACK_LIBRARIES="${PREFIX}/lib/libmkl_rt${SHLIB_EXT}"
 
 cmake --build build --target install -j${CPU_COUNT}
