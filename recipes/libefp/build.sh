@@ -1,4 +1,6 @@
 
+echo ${CMAKE_ARGS}
+
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
   -S${SRC_DIR} \
   -Bbuild \
