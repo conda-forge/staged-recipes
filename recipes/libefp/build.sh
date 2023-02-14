@@ -1,5 +1,4 @@
 
-# configure
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
   -S${SRC_DIR} \
   -Bbuild \
@@ -25,13 +24,7 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
   -Dpybind11_DIR="${PREFIX}/share/cmake/pybind11" \
   -DLAPACK_LIBRARIES="${PREFIX}/lib/libmkl_rt${SHLIB_EXT}"
 
-
-# build
 cd build
-make -j${CPU_COUNT}
+cmake --build build --target install -j${CPU_COUNT}
 
-# install
-make install
-
-# test
 # pytest in conda testing stage
