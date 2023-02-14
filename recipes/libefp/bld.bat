@@ -23,10 +23,8 @@ cmake ${CMAKE_ARGS} -G"Ninja" ^
       -DBUILD_TESTING=OFF ^
       -DFRAGLIB_UNDERSCORE_L=OFF ^
       -DFRAGLIB_DEEP=OFF ^
-      -DINSTALL_DEVEL_HEADERS=ON
-
-::    -Dpybind11_DIR=
-::    -DLAPACK_LIBRARIES=${LAPACK_INTERJECT}
+      -DINSTALL_DEVEL_HEADERS=ON ^
+      -DLAPACK_LIBRARIES="%PREFIX%/lib/libmkl_rt%SHLIB_EXT%"
 
 if errorlevel 1 exit 1
 
