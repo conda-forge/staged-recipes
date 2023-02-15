@@ -1,12 +1,16 @@
-if "%PKG_NAME%" == "adbc-driver-manager-cpp" (
+if "%PKG_NAME%" == "libadbc-driver-flightsql" (
+    set PKG_ROOT=c\driver\flightsql
+    goto BUILD
+)
+if "%PKG_NAME%" == "libadbc-driver-manager" (
     set PKG_ROOT=c\driver_manager
     goto BUILD
 )
-if "%PKG_NAME%" == "adbc-driver-postgresql-cpp" (
+if "%PKG_NAME%" == "libadbc-driver-postgresql" (
     set PKG_ROOT=c\driver\postgresql
     goto BUILD
 )
-if "%PKG_NAME%" == "adbc-driver-sqlite-cpp" (
+if "%PKG_NAME%" == "libadbc-driver-sqlite" (
     set PKG_ROOT=c\driver\sqlite
     goto BUILD
 )

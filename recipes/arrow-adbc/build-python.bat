@@ -1,3 +1,7 @@
+if "%PKG_NAME%" == "adbc-driver-flightsql" (
+    pushd "%SRC_DIR%"\python\adbc_driver_flightsql
+    goto BUILD
+)
 if "%PKG_NAME%" == "adbc-driver-manager" (
     pushd "%SRC_DIR%"\python\adbc_driver_manager
     goto BUILD

@@ -1,4 +1,4 @@
-{% set version = "0.1.0" %}
+{% set version = "0.2.0" %}
 
 package:
   name: arrow-adbc-split
@@ -6,16 +6,13 @@ package:
 
 source:
   url: https://dist.apache.org/repos/dist/release/arrow/apache-arrow-adbc-{{ version }}/apache-arrow-adbc-{{ version }}.tar.gz
-  sha256: a50f3dac985883042152938bdd69c843708fd50508e0f15ba3a179619c11f7b9
-  patches:
-    # Backport https://github.com/apache/arrow-adbc/issues/304, drop in 0.2.0
-    - patches/0001-fix-c-driver-postgresql-define-ntohll-etc-for-macOS.patch
+  sha256: ca2e59b0dae3a778d5a39d9dfe9e509055334453ae54f64229ccf6dd9a37ca1d
 
 build:
   number: 0
 
 outputs:
-  - name: adbc-driver-manager-cpp
+  - name: libadbc-driver-manager
     script: build-cpp.sh                                                         # [not win]
     script: build-cpp.bat                                                        # [win]
     requirements:
@@ -25,6 +22,9 @@ outputs:
         - ninja
       host:
       run:
+    build:
+      run_exports:
+        - {{ pin_subpackage("libadbc-driver-manager", max_pin="x.x") }}
     test:
       commands:
         - test -f $PREFIX/include/adbc.h                                         # [unix]
@@ -42,7 +42,35 @@ outputs:
         - if not exist %LIBRARY_LIB%\cmake\AdbcDriverManager exit 1              # [win]
         - if not exist %LIBRARY_LIB%\pkgconfig\adbc-driver-manager.pc exit 1     # [win]
 
-  - name: adbc-driver-postgresql-cpp
+  - name: libadbc-driver-flightsql
+    script: build-cpp.sh                                                         # [not win]
+    script: build-cpp.bat                                                        # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - _go_select *=cgo
+        - cmake
+        - go-cgo >=1.18
+        - ninja
+        - pkg-config
+    build:
+      run_exports:
+        - {{ pin_subpackage("libadbc-driver-flightsql", max_pin="x.x") }}
+    test:
+      commands:
+        - test ! -f $PREFIX/include/adbc.h                                       # [unix]
+        - test -f $PREFIX/lib/pkgconfig/adbc-driver-flightsql.pc                 # [unix]
+        - test ! -f $PREFIX/lib/libadbc_driver_flightsql.a                       # [unix]
+        - test -f $PREFIX/lib/libadbc_driver_flightsql.so                        # [linux]
+        - test -f $PREFIX/lib/libadbc_driver_flightsql.dylib                     # [osx]
+
+        - if exist %LIBRARY_INC%\adbc.h exit 1                                   # [win]
+        - if not exist %LIBRARY_BIN%\adbc_driver_flightsql.dll exit 1            # [win]
+        - if not exist %LIBRARY_LIB%\adbc_driver_flightsql.lib exit 1            # [win]
+        - if not exist %LIBRARY_LIB%\pkgconfig\adbc-driver-flightsql.pc exit 1   # [win]
+
+  - name: libadbc-driver-postgresql
     script: build-cpp.sh                                                         # [not win]
     script: build-cpp.bat                                                        # [win]
     requirements:
@@ -56,6 +84,9 @@ outputs:
         - libpq
       run:
         - libpq
+    build:
+      run_exports:
+        - {{ pin_subpackage("libadbc-driver-postgresql", max_pin="x.x") }}
     test:
       commands:
         - test ! -f $PREFIX/include/adbc.h                                       # [unix]
@@ -71,7 +102,7 @@ outputs:
         - if not exist %LIBRARY_LIB%\cmake\AdbcDriverPostgreSQL exit 1           # [win]
         - if not exist %LIBRARY_LIB%\pkgconfig\adbc-driver-postgresql.pc exit 1  # [win]
 
-  - name: adbc-driver-sqlite-cpp
+  - name: libadbc-driver-sqlite
     script: build-cpp.sh                                                         # [not win]
     script: build-cpp.bat                                                        # [win]
     requirements:
@@ -85,6 +116,12 @@ outputs:
         - libsqlite
       run:
         - libsqlite
+    build:
+      run_exports:
+        - {{ pin_subpackage("libadbc-driver-sqlite", max_pin="x.x") }}
+      ignore_run_exports_from:
+        # apache/arrow-adbc#92: cmake config shouldn't initialize C++ unless needed
+        - {{ compiler('cxx') }}
     test:
       commands:
         - test ! -f $PREFIX/include/adbc.h                                       # [unix]
@@ -109,7 +146,7 @@ outputs:
         - cross-python_{{ target_platform }}                                     # [build_platform != target_platform]
         - cython
         - pip
-        - poetry
+        - python >=3.9
         - setuptools
       host:
         - cython
@@ -117,7 +154,7 @@ outputs:
         - python >=3.9
         - setuptools
       run:
-        - python
+        - python >=3.9
       run_constrained:
         - pyarrow >=8.0.0
     test:
@@ -125,28 +162,48 @@ outputs:
         - adbc_driver_manager
         - adbc_driver_manager._lib
 
-  - name: adbc-driver-postgresql
+  - name: adbc-driver-flightsql
+    build:
+      noarch: python
     script: build-python.sh                                                      # [not win]
     script: build-python.bat                                                     # [win]
     requirements:
       build:
-        # We don't use these, but Conda needs them to know that this is a binary package.
-        - {{ compiler('c') }}
-        - {{ compiler('cxx') }}
-        - cross-python_{{ target_platform }}                                     # [build_platform != target_platform]
         - pip
         - setuptools
-        - python
       host:
-        - {{ pin_subpackage('adbc-driver-postgresql-cpp', exact=True) }}
+        - {{ pin_subpackage('libadbc-driver-flightsql', exact=True) }}
         - pip
         - python >=3.9
         - setuptools
       run:
         - {{ pin_subpackage('adbc-driver-manager') }}
-        - {{ pin_subpackage('adbc-driver-postgresql-cpp', exact=True) }}
-        - libpq
-        - python
+        - {{ pin_subpackage('libadbc-driver-flightsql', exact=True) }}
+        - python >=3.9
+      run_constrained:
+        - pyarrow >=8.0.0
+    test:
+      imports:
+        - adbc_driver_flightsql
+
+  - name: adbc-driver-postgresql
+    build:
+      noarch: python
+    script: build-python.sh                                                      # [not win]
+    script: build-python.bat                                                     # [win]
+    requirements:
+      build:
+        - pip
+        - setuptools
+      host:
+        - {{ pin_subpackage('libadbc-driver-postgresql', exact=True) }}
+        - pip
+        - python >=3.9
+        - setuptools
+      run:
+        - {{ pin_subpackage('adbc-driver-manager') }}
+        - {{ pin_subpackage('libadbc-driver-postgresql', exact=True) }}
+        - python >=3.9
       run_constrained:
         - pyarrow >=8.0.0
     test:
@@ -154,27 +211,23 @@ outputs:
         - adbc_driver_postgresql
 
   - name: adbc-driver-sqlite
+    build:
+      noarch: python
     script: build-python.sh                                                      # [not win]
     script: build-python.bat                                                     # [win]
     requirements:
       build:
-        # We don't use these, but Conda needs them to know that this is a binary package.
-        - {{ compiler('c') }}
-        - {{ compiler('cxx') }}
-        - cross-python_{{ target_platform }}                                     # [build_platform != target_platform]
         - pip
         - setuptools
-        - python
       host:
-        - {{ pin_subpackage('adbc-driver-sqlite-cpp', exact=True) }}
+        - {{ pin_subpackage('libadbc-driver-sqlite', exact=True) }}
         - pip
         - python >=3.9
         - setuptools
       run:
         - {{ pin_subpackage('adbc-driver-manager') }}
-        - {{ pin_subpackage('adbc-driver-sqlite-cpp', exact=True) }}
-        - libsqlite
-        - python
+        - {{ pin_subpackage('libadbc-driver-sqlite', exact=True) }}
+        - python >=3.9
       run_constrained:
         - pyarrow >=8.0.0
     test:
