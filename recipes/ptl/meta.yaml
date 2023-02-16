@@ -1,10 +1,8 @@
-{% set name = "PTL" %}
 {% set version = "2.3.3" %}
 {% set so_major = "2" %}
 
-
 package:
-  name: {{ name|lower }}
+  name: libptl-split
   version: {{ version }}
 
 source:
@@ -13,34 +11,75 @@ source:
 
 build:
   number: 0
-  run_exports:
-    - {{ pin_subpackage( name|lower, max_pin='x.x.x') }}
 
 requirements:
   build:
     - {{ compiler('cxx') }}
     - ninja
     - cmake
+  host:
+    - tbb-devel
 
-test:
-  commands:
-    - test -f $PREFIX/lib/libptl$SHLIB_EXT             # [unix]
-    - test ! -f $PREFIX/lib/libptl.a                   # [unix]
-    - test -f $PREFIX/lib/libptl.so.{{ so_major }}     # [linux]
-    - test -f $PREFIX/lib/libptl.{{ so_major }}.dylib  # [osx]
-    - test -f $PREFIX/include/PTL/PTL.hh               # [unix]
-    - test -f $PREFIX/lib/cmake/PTL/PTLConfig.cmake    # [unix]
-    - test -f $PREFIX/lib/pkgconfig/ptl.pc             # [unix]
+outputs:
+  - name: {{ 'libptl' ~ so_major }}
+    script: install-libs.sh
+    build:
+      run_exports:
+        - {{ pin_subpackage( 'libptl' ~ so_major) }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - tbb-devel
+    test:
+      commands:
+        - test -f $PREFIX/lib/libptl$SHLIB_EXT             # [unix]
+        - test ! -f $PREFIX/lib/libptl.a                   # [unix]
+        - test -f $PREFIX/lib/libptl.so.{{ so_major }}     # [linux]
+        - test -f $PREFIX/lib/libptl.{{ so_major }}.dylib  # [osx]
+        - test ! -f $PREFIX/include/PTL/PTL.hh               # [unix]
+        - test ! -f $PREFIX/lib/cmake/PTL/PTLConfig.cmake    # [unix]
+        - test ! -f $PREFIX/lib/pkgconfig/ptl.pc             # [unix]
 
-    - if not exist %LIBRARY_LIB%\\ptl.lib exit 1  # [win]
-    - if not exist %LIBRARY_BIN%\\ptl.dll exit 1  # [win]
-    - if not exist %LIBRARY_INC%\\PTL\\PTL.hh exit 1  # [win]
-    - if not exist %LIBRARY_LIB%\\cmake\\plt\\PTLConfig.cmake exit 1  # [win]
+        - if not exist %LIBRARY_LIB%\\ptl.lib exit 1  # [win]
+        - if not exist %LIBRARY_BIN%\\ptl.dll exit 1  # [win]
+        - if exist %LIBRARY_INC%\\PTL\\PTL.hh exit 1  # [win]
+        - if exist %LIBRARY_LIB%\\cmake\\plt\\PTLConfig.cmake exit 1  # [win]
+
+  - name: libptl
+    script: install-dev.sh
+    build:
+      run_exports:
+        - {{ pin_subpackage( 'libptl' ~ so_major) }}
+    requirements:
+      build:
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage( 'libptl' ~ so_major, exact=True) }}
+      run:
+        - {{ pin_subpackage( 'libptl' ~ so_major, exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/lib/libptl$SHLIB_EXT             # [unix]
+        - test ! -f $PREFIX/lib/libptl.a                   # [unix]
+        - test -f $PREFIX/lib/libptl.so.{{ so_major }}     # [linux]
+        - test -f $PREFIX/lib/libptl.{{ so_major }}.dylib  # [osx]
+        - test -f $PREFIX/include/PTL/PTL.hh               # [unix]
+        - test -f $PREFIX/lib/cmake/PTL/PTLConfig.cmake    # [unix]
+        - test -f $PREFIX/lib/pkgconfig/ptl.pc             # [unix]
+
+        - if not exist %LIBRARY_LIB%\\ptl.lib exit 1  # [win]
+        - if not exist %LIBRARY_BIN%\\ptl.dll exit 1  # [win]
+        - if not exist %LIBRARY_INC%\\PTL\\PTL.hh exit 1  # [win]
+        - if not exist %LIBRARY_LIB%\\cmake\\plt\\PTLConfig.cmake exit 1  # [win]
 
 about:
   home: https://github.com/jrmadsen/PTL
   summary: 'Simple, fast, extensible JSON encoder/decoder for Python'
-  description: |
+  description: >
     Parallel Tasking Library (PTL) - Lightweight C++11 mutilthreading tasking
     system featuring thread-pool, task-groups, and lock-free task queue
   license: MIT
@@ -49,6 +88,7 @@ about:
   dev_url: https://github.com/jrmadsen/PTL
 
 extra:
+  feedstock-name: ptl
   recipe-maintainers:
     - carterbox
     - conda-forge/tomopy
