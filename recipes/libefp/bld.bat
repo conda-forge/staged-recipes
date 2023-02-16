@@ -11,8 +11,8 @@ cmake -G"Ninja" ^
       -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
       -DPYLIBEFP_CMAKECONFIG_INSTALL_DIR="Library\share\cmake\pylibefp" ^
       -DLIBEFP_CMAKECONFIG_INSTALL_DIR="Library\share\cmake\libefp" ^
-      -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CFLAGS%" ^
-      -DCMAKE_CXX_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CXXFLAGS%" ^
+      -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996 %CFLAGS%" ^
+      -DCMAKE_CXX_FLAGS="/wd4018 /wd4101 /wd4996 %CXXFLAGS%" ^
       -DPYMOD_INSTALL_LIBDIR="\..\..\Lib\site-packages" ^
       -DPYTHON_EXECUTABLE="%PYTHON%" ^
       -DPython_EXECUTABLE="%PYTHON%" ^
