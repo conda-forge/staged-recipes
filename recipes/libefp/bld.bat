@@ -11,8 +11,8 @@ cmake -G"Ninja" ^
       -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
       -DPYLIBEFP_CMAKECONFIG_INSTALL_DIR="Library\share\cmake\pylibefp" ^
       -DLIBEFP_CMAKECONFIG_INSTALL_DIR="Library\share\cmake\libefp" ^
-      -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc" ^
-      -DCMAKE_CXX_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc" ^
+      -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CFLAGS%" ^
+      -DCMAKE_CXX_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CXXFLAGS%" ^
       -DPYMOD_INSTALL_LIBDIR="\..\..\Lib\site-packages" ^
       -DPYTHON_EXECUTABLE="%PYTHON%" ^
       -DPython_EXECUTABLE="%PYTHON%" ^
@@ -39,6 +39,6 @@ if errorlevel 1 exit 1
 
 :: tests outside build phase
 
-:: Relocate python scripts to expected location:
+:: Relocate python scripts to expected location (if positioning through PYMOD_INSTALL_LIBDIR="/")
 ::xcopy /f /i /s /y "%PREFIX%\Library\lib\pylibefp" "%SP_DIR%\pylibefp"
 ::if errorlevel 1 exit 1
