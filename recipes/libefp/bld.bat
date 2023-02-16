@@ -1,14 +1,19 @@
 
-cmake %CMAKE_ARGS% -G"Ninja" ^
+cmake -G"Ninja" ^
       -S%SRC_DIR% ^
       -Bbuild ^
       -DCMAKE_BUILD_TYPE=Release ^
-      -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
+      -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
+      -DCMAKE_INSTALL_LIBDIR="Library\lib" ^
+      -DCMAKE_INSTALL_INCLUDEDIR="Library\include" ^
+      -DCMAKE_INSTALL_BINDIR="Library\bin" ^
+      -DCMAKE_INSTALL_DATADIR="Library" ^
       -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
-      -DCMAKE_C_FLAGS="/wd4101 /wd4996 %CFLAGS%" ^
-      -DCMAKE_CXX_FLAGS="/wd4101 /wd4996 %CXXFLAGS%" ^
-      -DPYMOD_INSTALL_LIBDIR="/" ^
+      -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc" ^
+      -DCMAKE_CXX_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc" ^
+      -DPYMOD_INSTALL_LIBDIR="..\..\Lib\site-packages" ^
       -DPYTHON_EXECUTABLE="%PYTHON%" ^
+      -DPython_EXECUTABLE="%PYTHON%" ^
       -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
       -DBUILD_SHARED_LIBS=ON ^
       -DENABLE_OPENMP=OFF ^
@@ -21,7 +26,6 @@ cmake %CMAKE_ARGS% -G"Ninja" ^
       -DFRAGLIB_DEEP=OFF ^
       -DINSTALL_DEVEL_HEADERS=ON ^
       -DLAPACK_LIBRARIES="%PREFIX%/Library/lib/mkl_rt.lib"
-
 if errorlevel 1 exit 1
 
 cd build
