@@ -26,8 +26,9 @@ cmake -G"Ninja" ^
       -DBUILD_TESTING=OFF ^
       -DFRAGLIB_UNDERSCORE_L=OFF ^
       -DFRAGLIB_DEEP=OFF ^
-      -DINSTALL_DEVEL_HEADERS=ON ^
-      -DLAPACK_LIBRARIES="%PREFIX%/Library/lib/mkl_rt.lib"
+      -DINSTALL_DEVEL_HEADERS=ON
+
+      ::-DLAPACK_LIBRARIES="%PREFIX%/Library/lib/mkl_rt.lib"
 if errorlevel 1 exit 1
 
 cd build
