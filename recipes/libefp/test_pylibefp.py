@@ -17,19 +17,26 @@ def blank_ene():
 
 
 def system_1():
+    print("sys pre")
     sys = pylibefp.core.efp()
+    print("sys post")
 
     frags = ['h2o', 'nh3']
     sys.add_potential(frags)
+    print("sys potential")
     sys.add_fragment(frags)
+    print("sys fragment")
     sys.set_frag_coordinates(0, 'xyzabc', [0.0 * a2b, 0.0 * a2b, 0.0 * a2b, 1.0, 2.0, 3.0])  # yapf: disable
     sys.set_frag_coordinates(1, 'xyzabc', [5.0 * a2b, 0.0 * a2b, 0.0 * a2b, 5.0, 2.0, 8.0])  # yapf: disable
+    print("sys frag coords")
 
     sys.prepare()
     return sys
 
 if __name__ == "__main__":
+    print("starting")
     asdf = system_1()
+    print("got system")
     asdf.set_opts({
         'elec': True,
         'elec_damp': 'screen',
@@ -38,7 +45,9 @@ if __name__ == "__main__":
         'disp': True,
         'disp_damp': 'tt'
     })
+    print("set options")
     asdf.compute()
+    print("computed")
     ene = asdf.get_energy()
     pprint.pprint(ene)
     print('<<< get_opts():  ', asdf.get_opts(), '>>>')
