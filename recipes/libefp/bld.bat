@@ -1,6 +1,4 @@
 
-ECHO %CMAKE_ARGS%
-
 cmake %CMAKE_ARGS% -G"Ninja" ^
       -S%SRC_DIR% ^
       -Bbuild ^
