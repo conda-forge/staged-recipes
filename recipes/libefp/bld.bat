@@ -7,11 +7,11 @@ cmake -G"Ninja" ^
       -DCMAKE_INSTALL_LIBDIR="Library\lib" ^
       -DCMAKE_INSTALL_INCLUDEDIR="Library\include" ^
       -DCMAKE_INSTALL_BINDIR="Library\bin" ^
-      -DCMAKE_INSTALL_DATADIR="Library" ^
+      -DCMAKE_INSTALL_DATADIR="Library\share" ^
       -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
       -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc" ^
       -DCMAKE_CXX_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc" ^
-      -DPYMOD_INSTALL_LIBDIR="..\..\Lib\site-packages" ^
+      -DPYMOD_INSTALL_LIBDIR="\..\..\Lib\site-packages" ^
       -DPYTHON_EXECUTABLE="%PYTHON%" ^
       -DPython_EXECUTABLE="%PYTHON%" ^
       -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
@@ -38,5 +38,5 @@ if errorlevel 1 exit 1
 :: tests outside build phase
 
 :: Relocate python scripts to expected location:
-xcopy /f /i /s /y "%PREFIX%\Library\lib\pylibefp" "%SP_DIR%\pylibefp"
-if errorlevel 1 exit 1
+::xcopy /f /i /s /y "%PREFIX%\Library\lib\pylibefp" "%SP_DIR%\pylibefp"
+::if errorlevel 1 exit 1
