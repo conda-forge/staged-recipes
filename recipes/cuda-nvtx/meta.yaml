@@ -1,0 +1,89 @@
+{% set name = "cuda-nvtx" %}
+{% set version = "12.0.76" %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-ppc64le" %}  # [ppc64le]
+{% set platform = "linux-sbsa" %}  # [aarch64]
+{% set platform = "windows-x86_64" %}  # [win]
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvtx/{{ platform }}/cuda_nvtx-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: 1d2cbcb05a2e8a04b51a866b6997cb73ed90e61ffa183669d3f9ff7a0c7fd654  # [linux64]
+  sha256: 2a8aef88030147cd0a394d6fe1ceb2d26aa9694aa751e10d58e39623f27cf7e2  # [ppc64le]
+  sha256: 2cb31f10cf0e58d296611bac2bb6e2f9ccb498753bb148b487defbd95e11f3e8  # [aarch64]
+  sha256: e16c1214fb7ae1bb60a9224e07b70aa5fd03310226140672ab3b409ddf4ae2a7  # [win]
+
+build:
+  number: 0
+  skip: true  # [osx]
+  run_exports:                # [linux]
+    strong:                   # [linux]
+      - __glibc >=2.17        # [linux]
+
+requirements:
+  build:
+    - {{ compiler("c") }}
+    - {{ compiler("cxx") }}
+  host:
+    - sysroot_{{ target_platform }} 2.17   # [linux]
+    - __glibc >=2.17                       # [linux]
+  run:
+    - sysroot_{{ target_platform }} 2.17   # [linux]
+    - __glibc >=2.17                       # [linux]
+
+outputs:
+  - name: cuda-nvtx
+    test:
+      commands:
+        - test -f $PREFIX/lib/libnvToolsExt.so.1.0.0  # [linux]
+    files:
+      - lib/*.so.*            # [linux]
+      - targets/*/lib/*.so.*  # [linux]
+
+  - name: cuda-nvtx-dev
+    run_exports:
+      - {{ pin_subpackage("cuda-nvtx", max_pin='x') }}
+    requirements:
+      run:
+        - cuda-nvtx >={{ version }}
+        - cuda-nvtx-dev_{{ target_platform }} =={{ version }}
+    test:
+      commands:
+        - test -d $PREFIX/lib/pkgconfig  # [linux]
+    files:
+      - lib/*.so         # [linux]
+      - include          # [linux]
+      - lib/pkgconfig    # [linux]
+
+  - name: cuda-nvtx-dev_{{ target_platform }}
+    run_exports:
+      - {{ pin_subpackage("cuda-nvtx", max_pin='x') }}
+    test:
+      commands:
+        - test -d $PREFIX/targets  # [linux]
+    files:
+      - targets/*/lib/*.so         # [linux]
+      - targets/*/include          # [linux]
+      - targets/*/lib/pkgconfig    # [linux]
+      - Library/include  # [win]
+
+about:
+  home: https://developer.nvidia.com/cuda-toolkit
+  license_file: LICENSE
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  summary: A C-based API for annotating events, code ranges, and resources
+  description: |
+    A C-based API for annotating events, code ranges, and resources in your
+    applications. Applications which integrate NVTX can use the Visual Profiler
+    to capture and visualize these events and ranges.
+  doc_url: https://docs.nvidia.com/cuda/index.html
+
+extra:
+  recipe-maintainers:
+    - adibbley
