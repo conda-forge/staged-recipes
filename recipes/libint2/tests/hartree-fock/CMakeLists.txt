@@ -3,8 +3,6 @@ project(hf++)
 
 if (MSVC)
       set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH} $ENV{LIBRARY_PREFIX}")
-      set(CMAKE_C_COMPILER "clang-cl")
-      set(CMAKE_CXX_COMPILER "clang-cl")
 else()
       set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH} $ENV{PREFIX}")
 endif()
