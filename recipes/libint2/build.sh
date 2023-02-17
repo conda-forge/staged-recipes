@@ -20,7 +20,7 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
 
 cmake --build build --target install -j${CPU_COUNT}
 
-# use `--target check install` above to run ctest tests within build phase
+# use `--target check install` above to run ctest tests within build phase. adds about 10m.
 
 # generation of the source tarball included the following settings (plus ints classes, AM, deriv)
 #  -D LIBINT2_SHGAUSS_ORDERING=standard \
