@@ -29,12 +29,11 @@ cmake --build . ^
       -- -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
-:::: tests outside build phase
+:: use `--target check install` above to run ctest tests within build phase
 
-
-:: note that src generated with following settings:
+:: generation of the source tarball included the following settings (plus ints classes, AM, deriv)
 ::  -D LIBINT2_SHGAUSS_ORDERING=standard \
 ::  -D LIBINT2_CARTGAUSS_ORDERING=standard \
 ::  -D LIBINT2_SHELL_SET=standard \
-::
-::        -D CMAKE_VERBOSE_MAKEFILE=ON
+::  -D ERI3_PURE_SH=OFF \
+::  -D ERI2_PURE_SH=OFF \

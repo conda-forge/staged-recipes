@@ -20,11 +20,12 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
 
 cmake --build build --target check install -j${CPU_COUNT}
 
-## pytest in conda testing stage
+# use `--target check install` above to run ctest tests within build phase
 
-# note that src generated with following settings:
+# generation of the source tarball included the following settings (plus ints classes, AM, deriv)
 #  -D LIBINT2_SHGAUSS_ORDERING=standard \
 #  -D LIBINT2_CARTGAUSS_ORDERING=standard \
 #  -D LIBINT2_SHELL_SET=standard \
+#  -D ERI3_PURE_SH=OFF \
+#  -D ERI2_PURE_SH=OFF \
 
-#        -D CMAKE_VERBOSE_MAKEFILE=ON
