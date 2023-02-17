@@ -1,0 +1,71 @@
+{% set name = "libint2" %}
+{% set version = "2.7.2" %}
+{% set sha256 = "8eec23ee3148cd91dd817c5dc908e1e40e14d318d704d047ac5572dce860484e" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  # url: https://github.com/loriab/libint/releases/download/v0.1/libint-2.7.2-post1-5-4-3-6-5-4_mm4f12ob2_1.tgz
+  url: https://github.com/loriab/libint/releases/download/v0.1/libint-2.7.2-post1-2-2-3-2_1.tgz
+  sha256: {{ sha256 }}
+  # note: above is generated tarball of library source code. generator projects:
+  # * upstream project is: https://github.com/evaleev/libint
+  # * target source is:    https://github.com/evaleev/libint/pull/259
+
+build:
+  number: 0
+  binary_relocation: true
+  run_exports:
+      - {{ pin_subpackage('libint2', max_pin='x') }}
+  skip: true  # [not linux]
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+  host:
+    # want NO boost so that include/libint2/boost/ installs
+    - boost
+    - eigen
+
+test:
+  commands:
+    - ls -l $PREFIX/lib                                            # [unix]
+    - ls -l $PREFIX/lib/cmake/libint2                              # [unix]
+    - dir %PREFIX%\\Library                                        # [win]
+    - dir %PREFIX%\\Library\\include                               # [win]
+    # Verify library
+    - test -L $PREFIX/lib/libint2$SHLIB_EXT                        # [unix]
+    - test ! -f $PREFIX/lib/libint2.a                              # [unix]
+    - if not exist %PREFIX%\\Library\\lib\\int2.lib exit 1         # [win]
+    - if exist %PREFIX%\\Library\\bin\\int2.dll exit 1             # [win]
+    # Verify accessories
+    - test -f $PREFIX/include/libint2.h                            # [unix]
+    - test -f $PREFIX/include/libint2/engine.h                     # [unix]
+    - test ! -f $PREFIX/include/libint2/boost/preprocessor.hpp     # [unix]
+    - test -f $PREFIX/share/libint/{{ version }}/basis/sto-6g.g94  # [unix]
+    - test -f $PREFIX/lib/cmake/libint2/libint2-config.cmake       # [unix]
+    - test -f $PREFIX/lib/pkgconfig/libint2.pc                     # [unix]
+    - if not exist %PREFIX%\\Library\\include\\libint2\\engine.h exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\lib\\cmake\\libint2\\libint2-config.cmake exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\share\\libint\\{{ version }}\\basis\\sto-6g.g94 exit 1  # [win]
+    # Inspect linkage
+    - ldd -v $PREFIX/lib/libint2$SHLIB_EXT                         # [linux and build_platform == target_platform]
+    - otool -L $PREFIX/lib/libint2$SHLIB_EXT                       # [osx]
+
+about:
+  home: https://github.com/evaleev/libint
+  dev_url: https://github.com/evaleev/libint
+  doc_url: http://evaleev.github.io/libint/
+  license: LGPL-3.0+
+  license_url: https://opensource.org/licenses/LGPL-3.0+
+  license_file: LICENSE
+  license_family: LGPL
+  summary: "E. Valeev and J. Fermann's two-body Gaussian molecular integrals"
+extra:
+  recipe-maintainers:
+    - loriab
+
