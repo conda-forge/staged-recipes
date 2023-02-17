@@ -25,12 +25,11 @@ cmake %CMAKE_ARGS% ^
       -D CMAKE_PREFIX_PATH="%LIBRARY_PREFIX%"
 if errorlevel 1 exit 1
 
+:: use `--target check install` above to run ctest tests within build phase. adds about 10m.
+
 cd build
 cmake --build . ^
       --config Release ^
       --target install ^
       -- -j %CPU_COUNT%
 if errorlevel 1 exit 1
-
-:: use `--target check install` above to run ctest tests within build phase. adds about 10m.
-
