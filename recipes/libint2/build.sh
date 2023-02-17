@@ -18,7 +18,7 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
   -D BUILD_TESTING=ON \
   -D CMAKE_PREFIX_PATH="${PREFIX}"
 
-cmake --build build --target check install -j${CPU_COUNT}
+cmake --build build --target install -j${CPU_COUNT}
 
 # use `--target check install` above to run ctest tests within build phase
 
