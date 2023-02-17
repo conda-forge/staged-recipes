@@ -9,11 +9,15 @@ cmake %SRC_DIR% -G "NMake Makefiles" ^
                 -DS2GEOGRAPHY_S2_SOURCE=CONDA ^
                 -DBUILD_SHARED_LIBS=ON ^
                 -DS2GEOGRAPHY_BUILD_EXAMPLES=OFF ^
-                -DS2GEOGRAPHY_BUILD_TESTS=OFF ^
+                -DS2GEOGRAPHY_BUILD_TESTS=ON ^
+                -DS2GEOGRAPHY_CODE_COVERAGE=OFF ^
                 -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE
 if errorlevel 1 exit 1
 
 nmake
+if errorlevel 1 exit 1
+
+cmake --build . -- test
 if errorlevel 1 exit 1
 
 nmake install
