@@ -1,0 +1,93 @@
+{% set version = "5.15.8" %}
+package:
+  name: qt-wayland
+  version: {{ version }}
+
+source:
+  url: https://download.qt.io/official_releases/qt/{{ version.rpartition('.')[0] }}/{{ version }}/submodules/qtwayland-everywhere-opensource-src-{{ version }}.tar.xz
+  sha256: fa0e7bd40f5da2d30fbdb51a436c5776950d6bd070b61a8d62d85cb537934529
+
+build:
+  skip: true   # [not linux]
+  number: 0
+  detect_binary_files_with_prefix: true
+  run_exports:
+    - {{ pin_subpackage('qt-wayland', max_pin='x.x') }}
+
+requirements:
+  build:
+    - perl
+    - make
+    - {{ compiler('cxx') }}
+    - {{ compiler('c') }}
+    - qt-main                            # [build_platform != target_platform]
+    - sysroot_linux-64 2.17              # [linux]
+    - {{ cdt('mesa-libgl-devel') }}      # [linux]
+    - {{ cdt('mesa-libegl') }}           # [linux]
+    - {{ cdt('mesa-libegl-devel') }}     # [linux]
+    - {{ cdt('mesa-dri-drivers') }}      # [linux]
+    - {{ cdt('libdrm-devel') }}          # [linux]
+    - {{ cdt('libglvnd-glx') }}          # [linux]
+    - {{ cdt('libglvnd-egl') }}          # [linux]
+  host:
+    - qt-main  {{ version }}
+    - wayland
+    - fontconfig
+    - freetype
+    - zlib
+    - glib
+    # The following X11 dependencies are only needed to build
+    # the features
+    #   XComposite EGL ......................... yes
+    #   XComposite GLX ......................... yes
+    # But these are being removed in qt 6, so it doesn't seem
+    # worthwhile to build them for conda-forge in 2023
+    # https://codereview.qt-project.org/c/qt/qtwayland/+/380604
+    #
+    # But.... they seem to get pulled in accidentally from qt-main
+    # since qt-main is currently built with full X11 support
+    # So for now, it doesn't really hurt to include them
+    - libxkbcommon
+    - xorg-libx11
+    - xorg-libxext
+    - xorg-libxrandr
+    - xorg-libxcomposite
+  run:
+    # Needs a run export?
+    - xorg-libxcomposite
+
+test:
+  commands:
+    {% set qt_libs = ["WaylandClient", "WaylandCompositor"] %}
+    {% for each_qt_lib in qt_libs %}
+    - test -d $PREFIX/include/qt/Qt{{ each_qt_lib }}  # [unix]
+    - test -f $PREFIX/lib/libQt5{{ each_qt_lib }}${SHLIB_EXT}  # [unix]
+    {% endfor %}
+
+about:
+  home: http://qt-project.org
+  license: LGPL-3.0-only
+  license_file:
+    -  LICENSE.FDL
+    -  LICENSE.GPL2
+    -  LICENSE.GPL3
+    -  LICENSE.GPL3-EXCEPT
+    -  LICENSE.LGPL3
+  summary: QtWayland module
+  description: |
+    The QtWayland module consists of two parts.
+
+    Wayland platform plugin --
+        Enables Qt applications to be run as Wayland clients.
+
+    QtWaylandCompositor API --
+        Enables the creation of Wayland compositors using Qt and QtQuick.
+  doc_url: https://wiki.qt.io/QtWayland
+  dev_url: https://github.com/qt/qtwayland/tree/5.15
+
+extra:
+  feedstock-name: qt-wayland
+  recipe-maintainers:
+    - hmaarrfk
+    # qt-main added to help in case of any critical fixes or routine upgrades
+    - conda-forge/qt-main
