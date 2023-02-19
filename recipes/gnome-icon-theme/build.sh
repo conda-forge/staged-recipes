@@ -6,6 +6,9 @@ set -ex
 cp $BUILD_PREFIX/share/gnuconfig/config.* .
 
 aclocal
-autoreconf -vfi
+libtoolize
+autoconf
+autoreconf -i
+automake
 INTLTOOL_PERL=$PREFIX/bin/perl ./configure --prefix=$PREFIX
 make install
