@@ -1,0 +1,65 @@
+From 2d37a9d3700578154275661a51ccf1b895f05260 Mon Sep 17 00:00:00 2001
+From: Eskil Abrahamsen Blomfeldt <eskil.abrahamsen-blomfeldt@qt.io>
+Date: Tue, 9 Nov 2021 13:23:41 +0100
+Subject: [PATCH 43/58] Fix missing update when toggling client-side
+ decorations
+
+When CSD is toggled while a window is showing, it would change the
+size and recreate the buffers, but since the widget area remained
+the same size, we would not trigger a redraw. The result was that
+when you got any update to the window, it would redraw the widgets
+that had changed, and the rest would be transparent.
+
+Since this is a fairly specialized case, we fix it the simple way,
+by just issuing an extra update when it happens.
+
+This also required an update to the surface test, since there is
+an additional buffer commit in the beginning of the sequence now.
+
+Pick-to: 5.15 6.2 6.3
+Fixes: QTBUG-95032
+Change-Id: Ic4bdb9c66a2ea76546926dd622f2d2dac5dce10c
+Reviewed-by: Qt CI Bot <qt_ci_bot@qt-project.org>
+Reviewed-by: Liang Qi <liang.qi@qt.io>
+(cherry picked from commit af7b60ade5c4be81cbc58eb18307c017d5594071)
+---
+ src/client/qwaylandwindow.cpp             | 7 +++++++
+ tests/auto/client/surface/tst_surface.cpp | 4 ++++
+ 2 files changed, 11 insertions(+)
+
+diff --git a/src/client/qwaylandwindow.cpp b/src/client/qwaylandwindow.cpp
+index c6477ec4..cb610510 100644
+--- a/src/client/qwaylandwindow.cpp
++++ b/src/client/qwaylandwindow.cpp
+@@ -867,6 +867,13 @@ bool QWaylandWindow::createDecoration()
+             subsurf->set_position(pos.x() + m.left(), pos.y() + m.top());
+         }
+         sendExposeEvent(QRect(QPoint(), geometry().size()));
++
++        // This is a special case where the buffer is recreated, but since
++        // the content rect remains the same, the widgets remain the same
++        // size and are not redrawn, leaving the new buffer empty. As a simple
++        // work-around, we trigger a full extra update whenever the client-side
++        // window decorations are toggled while the window is showing.
++        window()->requestUpdate();
+     }
+ 
+     return mWindowDecoration;
+diff --git a/tests/auto/client/surface/tst_surface.cpp b/tests/auto/client/surface/tst_surface.cpp
+index 95e4e609..60c672ce 100644
+--- a/tests/auto/client/surface/tst_surface.cpp
++++ b/tests/auto/client/surface/tst_surface.cpp
+@@ -129,6 +129,10 @@ void tst_surface::waitForFrameCallbackGl()
+     // Make sure we follow frame callbacks for some frames
+     for (int i = 0; i < 5; ++i) {
+         xdgPingAndWaitForPong(); // Make sure things have happened on the client
++        if (!qEnvironmentVariableIntValue("QT_WAYLAND_DISABLE_WINDOWDECORATION") && i == 0) {
++            QCOMPARE(bufferSpy.count(), 1);
++            bufferSpy.removeFirst();
++        }
+         exec([&] {
+             QVERIFY(bufferSpy.empty()); // Make sure no extra buffers have arrived
+             QVERIFY(!xdgToplevel()->surface()->m_waitingFrameCallbacks.empty());
+-- 
+2.39.1
+

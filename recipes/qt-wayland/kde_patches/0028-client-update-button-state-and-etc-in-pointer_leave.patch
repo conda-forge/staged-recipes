@@ -1,0 +1,50 @@
+From a947fd6ffe37524e81936c84f264da9c50b009a8 Mon Sep 17 00:00:00 2001
+From: Liang Qi <liang.qi@qt.io>
+Date: Wed, 9 Mar 2022 10:47:42 +0100
+Subject: [PATCH 28/58] client: update button state and etc in pointer_leave()
+
+The cleanup work needs to be done even the surface is null, for
+example, a window was closed in mouse press handler, then will not
+get a mouse release.
+
+Fixes: QTBUG-100942
+Pick-to: 5.15 6.2 6.3
+Change-Id: I637a6744909ddbe62bdeba6b21494e5a6ae7fa9f
+Reviewed-by: Tang Haixiang <tanghaixiang@uniontech.com>
+Reviewed-by: David Edmundson <davidedmundson@kde.org>
+(cherry picked from commit 409d1080f25b653b3ff3f57c9776c5c390912206)
+---
+ src/client/qwaylandinputdevice.cpp | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/src/client/qwaylandinputdevice.cpp b/src/client/qwaylandinputdevice.cpp
+index aaec7eb8..c3cc4eca 100644
+--- a/src/client/qwaylandinputdevice.cpp
++++ b/src/client/qwaylandinputdevice.cpp
+@@ -685,6 +685,11 @@ public:
+ 
+ void QWaylandInputDevice::Pointer::pointer_leave(uint32_t time, struct wl_surface *surface)
+ {
++    invalidateFocus();
++    mButtons = Qt::NoButton;
++
++    mParent->mTime = time;
++
+     // The event may arrive after destroying the window, indicated by
+     // a null surface.
+     if (!surface)
+@@ -696,11 +701,6 @@ void QWaylandInputDevice::Pointer::pointer_leave(uint32_t time, struct wl_surfac
+ 
+     if (!QWaylandWindow::mouseGrab())
+         setFrameEvent(new LeaveEvent(window, mSurfacePos, mGlobalPos));
+-
+-    invalidateFocus();
+-    mButtons = Qt::NoButton;
+-
+-    mParent->mTime = time;
+ }
+ 
+ class MotionEvent : public QWaylandPointerEvent
+-- 
+2.39.1
+

@@ -1,0 +1,43 @@
+From a20047ef5387673471af835cd3fba7e23585bc75 Mon Sep 17 00:00:00 2001
+From: Eskil Abrahamsen Blomfeldt <eskil.abrahamsen-blomfeldt@qt.io>
+Date: Mon, 8 Aug 2022 12:14:01 +0200
+Subject: [PATCH 44/58] Avoid calling requestUpdate from wrong thread
+
+In certain circumstances, we can get to createDecoration()
+from the render thread (from QWaylandGLContext::makeCurrent)
+
+Calling requestUpdate() from this secondary thread would
+cause an assert, so we queue the call on the appropriate
+thread instead.
+
+This amends af7b60ade5c4be81cbc58eb18307c017d5594071.
+
+Pick-to: 5.15 6.2 6.3 6.3.2 6.4
+Fixes: QTBUG-105308
+Change-Id: I4805265f39e24eb1464897532be2025bc3c27728
+Reviewed-by: Inho Lee <inho.lee@qt.io>
+(cherry picked from commit a0c0b5b42335808c2222cbf72c1758e955731ed9)
+---
+ src/client/qwaylandwindow.cpp | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/src/client/qwaylandwindow.cpp b/src/client/qwaylandwindow.cpp
+index cb610510..771c96cc 100644
+--- a/src/client/qwaylandwindow.cpp
++++ b/src/client/qwaylandwindow.cpp
+@@ -873,7 +873,11 @@ bool QWaylandWindow::createDecoration()
+         // size and are not redrawn, leaving the new buffer empty. As a simple
+         // work-around, we trigger a full extra update whenever the client-side
+         // window decorations are toggled while the window is showing.
+-        window()->requestUpdate();
++        // Note: createDecoration() is sometimes called from the render thread
++        // of Qt Quick. This is essentially wrong and could potentially cause problems,
++        // but until the underlying issue has been fixed, we have to use invokeMethod()
++        // here to avoid asserts.
++        QMetaObject::invokeMethod(window(), &QWindow::requestUpdate);
+     }
+ 
+     return mWindowDecoration;
+-- 
+2.39.1
+

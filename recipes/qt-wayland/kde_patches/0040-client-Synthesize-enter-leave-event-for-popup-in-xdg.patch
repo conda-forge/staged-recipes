@@ -1,0 +1,72 @@
+From 4939cb0b313727474e340cf31a8037ede91517d3 Mon Sep 17 00:00:00 2001
+From: Liang Qi <liang.qi@qt.io>
+Date: Fri, 11 Mar 2022 09:17:25 +0100
+Subject: [PATCH 40/58] client: Synthesize enter/leave event for popup in
+ xdg-shell
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Fixes: QTBUG-100148
+Pick-to: 6.3 6.2 5.15
+Change-Id: I45e3156d7942cff9968674c0b253d15be7235921
+Reviewed-by: Tang Haixiang <tanghaixiang@uniontech.com>
+Reviewed-by: Qt CI Bot <qt_ci_bot@qt-project.org>
+Reviewed-by: Tor Arne Vestbø <tor.arne.vestbo@qt.io>
+(cherry picked from commit 73d35d3117722cef8e94f0d2036c56ad0a5ddae9)
+
+* asturmlechner 2022-09-08: Resolve conflict with dev branch commits
+    b6a3a938abd4a7fdb7ea96a38485b53f394fba17 and
+    f8e3257e9b1e22d52e9c221c62b8d9b6dd1151a3
+---
+ .../xdg-shell/qwaylandxdgshell.cpp            | 27 +++++++++++++++++++
+ 1 file changed, 27 insertions(+)
+
+diff --git a/src/plugins/shellintegration/xdg-shell/qwaylandxdgshell.cpp b/src/plugins/shellintegration/xdg-shell/qwaylandxdgshell.cpp
+index 25c0e8c3..fa6d5808 100644
+--- a/src/plugins/shellintegration/xdg-shell/qwaylandxdgshell.cpp
++++ b/src/plugins/shellintegration/xdg-shell/qwaylandxdgshell.cpp
+@@ -221,6 +221,16 @@ QWaylandXdgSurface::Popup::~Popup()
+         auto *shell = m_xdgSurface->m_shell;
+         Q_ASSERT(shell->m_topmostGrabbingPopup == this);
+         shell->m_topmostGrabbingPopup = m_parentXdgSurface ? m_parentXdgSurface->m_popup : nullptr;
++        m_grabbing = false;
++
++        // Synthesize Qt enter/leave events for popup
++        QWindow *leave = nullptr;
++        if (m_xdgSurface && m_xdgSurface->window())
++            leave = m_xdgSurface->window()->window();
++        QWindowSystemInterface::handleLeaveEvent(leave);
++
++        if (QWindow *enter = QGuiApplication::topLevelAt(QCursor::pos()))
++            QWindowSystemInterface::handleEnterEvent(enter, enter->mapFromGlobal(QCursor::pos()), QCursor::pos());
+     }
+ }
+ 
+@@ -438,6 +448,23 @@ void QWaylandXdgSurface::setGrabPopup(QWaylandWindow *parent, QWaylandInputDevic
+     }
+     setPopup(parent);
+     m_popup->grab(device, serial);
++
++    // Synthesize Qt enter/leave events for popup
++    if (!parent)
++        return;
++    QWindow *current = QGuiApplication::topLevelAt(QCursor::pos());
++    QWindow *leave = parent->window();
++    if (current != leave)
++        return;
++
++    QWindowSystemInterface::handleLeaveEvent(leave);
++
++    QWindow *enter = nullptr;
++    if (m_popup && m_popup->m_xdgSurface && m_popup->m_xdgSurface->window())
++        enter = m_popup->m_xdgSurface->window()->window();
++
++    if (enter)
++        QWindowSystemInterface::handleEnterEvent(enter, enter->mapFromGlobal(QCursor::pos()), QCursor::pos());
+ }
+ 
+ void QWaylandXdgSurface::xdg_surface_configure(uint32_t serial)
+-- 
+2.39.1
+

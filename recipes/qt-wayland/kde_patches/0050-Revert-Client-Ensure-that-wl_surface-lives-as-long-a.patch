@@ -1,0 +1,103 @@
+From 7f04725f5121bc0b05ad2289a1fef362aaa48b2f Mon Sep 17 00:00:00 2001
+From: David Edmundson <kde@davidedmundson.co.uk>
+Date: Mon, 14 Nov 2022 10:43:25 +0000
+Subject: [PATCH 50/58] Revert "Client: Ensure that wl_surface lives as long as
+ qtquick render thread needs it"
+
+This reverts commit 81a7702a87f386a60a0ac8c902e203daae044d81
+---
+ src/client/qwaylandwindow.cpp                       | 13 +------------
+ src/client/qwaylandwindow_p.h                       |  3 ---
+ .../client/wayland-egl/qwaylandglcontext.cpp        |  6 +-----
+ 3 files changed, 2 insertions(+), 20 deletions(-)
+
+diff --git a/src/client/qwaylandwindow.cpp b/src/client/qwaylandwindow.cpp
+index 01cbbf39..d4083121 100644
+--- a/src/client/qwaylandwindow.cpp
++++ b/src/client/qwaylandwindow.cpp
+@@ -76,7 +76,6 @@ QWaylandWindow *QWaylandWindow::mMouseGrab = nullptr;
+ QWaylandWindow::QWaylandWindow(QWindow *window, QWaylandDisplay *display)
+     : QPlatformWindow(window)
+     , mDisplay(display)
+-    , mSurfaceLock(QReadWriteLock::Recursive)
+     , mResizeAfterSwap(qEnvironmentVariableIsSet("QT_WAYLAND_RESIZE_AFTER_SWAP"))
+ {
+     {
+@@ -238,16 +237,6 @@ bool QWaylandWindow::shouldCreateSubSurface() const
+     return QPlatformWindow::parent() != nullptr;
+ }
+ 
+-void QWaylandWindow::beginFrame()
+-{
+-    mSurfaceLock.lockForRead();
+-}
+-
+-void QWaylandWindow::endFrame()
+-{
+-    mSurfaceLock.unlock();
+-}
+-
+ void QWaylandWindow::reset()
+ {
+     closeChildPopups();
+@@ -256,10 +245,10 @@ void QWaylandWindow::reset()
+     delete mSubSurfaceWindow;
+     mSubSurfaceWindow = nullptr;
+ 
++    invalidateSurface();
+     if (mSurface) {
+         emit wlSurfaceDestroyed();
+         QWriteLocker lock(&mSurfaceLock);
+-        invalidateSurface();
+         mSurface.reset();
+     }
+ 
+diff --git a/src/client/qwaylandwindow_p.h b/src/client/qwaylandwindow_p.h
+index a8ee2696..487a91a6 100644
+--- a/src/client/qwaylandwindow_p.h
++++ b/src/client/qwaylandwindow_p.h
+@@ -210,9 +210,6 @@ public:
+     void handleUpdate();
+     void deliverUpdateRequest() override;
+ 
+-    void beginFrame();
+-    void endFrame();
+-
+     void addChildPopup(QWaylandWindow* child);
+     void removeChildPopup(QWaylandWindow* child);
+     void closeChildPopups();
+diff --git a/src/hardwareintegration/client/wayland-egl/qwaylandglcontext.cpp b/src/hardwareintegration/client/wayland-egl/qwaylandglcontext.cpp
+index 5d6fb2bf..c1f45fa6 100644
+--- a/src/hardwareintegration/client/wayland-egl/qwaylandglcontext.cpp
++++ b/src/hardwareintegration/client/wayland-egl/qwaylandglcontext.cpp
+@@ -432,10 +432,8 @@ bool QWaylandGLContext::makeCurrent(QPlatformSurface *surface)
+         return true;
+     }
+ 
+-    if (window->isExposed()) {
+-        window->beginFrame();
++    if (window->isExposed())
+         window->setCanResize(false);
+-    }
+     if (m_decorationsContext != EGL_NO_CONTEXT && !window->decoration())
+         window->createDecoration();
+ 
+@@ -451,7 +449,6 @@ bool QWaylandGLContext::makeCurrent(QPlatformSurface *surface)
+     if (!eglMakeCurrent(m_eglDisplay, eglSurface, eglSurface, m_context)) {
+         qWarning("QWaylandGLContext::makeCurrent: eglError: %x, this: %p \n", eglGetError(), this);
+         window->setCanResize(true);
+-        window->endFrame();
+         return false;
+     }
+ 
+@@ -505,7 +502,6 @@ void QWaylandGLContext::swapBuffers(QPlatformSurface *surface)
+     eglSwapBuffers(m_eglDisplay, eglSurface);
+ 
+     window->setCanResize(true);
+-    window->endFrame();
+ }
+ 
+ GLuint QWaylandGLContext::defaultFramebufferObject(QPlatformSurface *surface) const
+-- 
+2.39.1
+
