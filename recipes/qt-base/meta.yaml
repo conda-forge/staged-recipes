@@ -28,11 +28,12 @@ source:
     folder: opengl32sw                                                                                            # [win64]
 
 build:
-  number: 4
-  skip: true
+  number: 7
   detect_binary_files_with_prefix: true
   run_exports:
     - {{ pin_subpackage('qt-base', max_pin='x.x') }}
+  ignore_run_exports_from:
+    - clangdev
   missing_dso_whitelist:  # [osx]
     - /usr/lib/libbsm.0.dylib  # [osx]
     - /usr/lib/libcups.2.dylib  # [osx]
@@ -47,7 +48,6 @@ requirements:
     - {{ compiler('cxx') }}
     - sysroot_linux-64 2.17              # [linux]
     - {{ cdt('mesa-libgl-devel') }}      # [linux]
-    - {{ cdt('mesa-libegl') }}           # [linux]
     - {{ cdt('mesa-libegl-devel') }}     # [linux]
     - {{ cdt('mesa-dri-drivers') }}      # [linux]
     - {{ cdt('libdrm-devel') }}          # [linux]
@@ -78,8 +78,8 @@ requirements:
     # Although these should be host-only dependencies, they are needed when
     # cross-compiling arm64 binaries on x86_64 since llvm-config (host/arm64)
     # cannot be executed on x86_64 to locate libclang successfully
-    - llvmdev                           # [arm64]
-    - clangdev                          # [arm64]
+    - llvmdev                              # [arm64]
+    - clangdev {{ cxx_compiler_version }}  # [arm64]
   host:
     # For pkg-config gl, fontconfig + freetype
     - pthread-stubs                      # [linux]
@@ -104,7 +104,11 @@ requirements:
     # Only libclang is needed, but needs the full package for detection.
     - llvmdev
     - clangdev
-    - libclang
+    # Ensure that build and host have the same clang version on osx
+    # otherwise qt6 may be out of sync compared to the pinned compiler
+    # version
+    - libclang {{ cxx_compiler_version }}  # [osx]
+    - libclang                             # [not osx]
     - libcups                            # [linux]
     - zstd
     - krb5                               # [linux]
@@ -131,7 +135,6 @@ requirements:
     # that may exhibit as segfault due to missing libraries
     # in some lighter weight linux installations
     # https://github.com/conda-forge/qt-main-feedstock/issues/32
-    - xcb-util                           # [linux]
     - xcb-util-wm                        # [linux]
     - xcb-util-keysyms                   # [linux]
     - xcb-util-image                     # [linux]
@@ -140,11 +143,9 @@ requirements:
     - xorg-libx11                        # [linux]
     # https://github.com/conda-forge/xorg-libxext-feedstock/pull/12
     - xorg-libxext                       # [linux]
-    - xorg-libxdamage                    # [linux]
     # no run_export
     - xorg-libsm                         # [linux]
     - xorg-libice                        # [linux]
-    - xorg-libxxf86vm                    # [linux]
     - xorg-xf86vidmodeproto              # [linux]
     - {{ pin_compatible("libclang") }}
   run_constrained:
@@ -155,13 +156,17 @@ requirements:
 test:
   requires:
     - {{ compiler('cxx') }}
-    - {{ cdt('mesa-libgl') }}            # [linux]
-    - {{ cdt('mesa-libegl') }}           # [linux]
+    - sysroot_linux-64 2.17              # [linux]
+    - {{ cdt('mesa-libgl-devel') }}      # [linux]
+    - {{ cdt('mesa-libegl-devel') }}     # [linux]
     - {{ cdt('mesa-dri-drivers') }}      # [linux]
     - {{ cdt('libdrm-devel') }}          # [linux]
     - {{ cdt('libglvnd-glx') }}          # [linux]
     - {{ cdt('libglvnd-egl') }}          # [linux]
     - make                               # [unix]
+    - xcb-util                           # [linux]
+    - xorg-libxdamage                    # [linux]
+    - xorg-libxxf86vm                    # [linux]
   files:
     - test/hello.pro
     - test/main-qtwebengine.cpp
