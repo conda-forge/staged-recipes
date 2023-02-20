@@ -11,8 +11,8 @@ export PYTHONUNBUFFERED=1
 cat >~/.condarc <<CONDARC
 
 channels:
+ - qtforge
  - conda-forge
- - mark.harfouche
 
 conda-build:
   root-dir: /home/conda/staged-recipes/build_artifacts
