@@ -12,13 +12,17 @@ make \
   LDFLAGS="$LDFLAGS $LIBS" \
   all
 
-mkdir -p "$PREFIX/bin"
+airss_bin="${PREFIX}/libexec/airss"
+mkdir -p "${airss_bin}"
 
 cp -v \
   src/pp3/src/pp3 \
   src/cabal/src/cabal \
   src/buildcell/src/buildcell \
   src/cryan/src/cryan \
-  external/symmol/symmol \
   bin/* \
-  "$PREFIX/bin"
+  "${airss_bin}"
+
+mkdir -p "${PREFIX}/bin"
+sed "s;@PREFIX@;${PREFIX};g" "${RECIPE_DIR}/scripts/airss.sh" > "${PREFIX}/bin/airss"
+chmod +x "${PREFIX}/bin/airss"
