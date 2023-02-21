@@ -1,3 +1,8 @@
+@ECHO ON
+
+:: Test for presence of sql plugin
+if not exist %LIBRARY_PREFIX%\plugins\sqldrivers\qsqlite.dll exit 1
+
 pushd test
 if exist .qmake.stash del /a .qmake.stash
 qmake hello.pro
