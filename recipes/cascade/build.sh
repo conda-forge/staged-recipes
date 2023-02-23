@@ -6,8 +6,8 @@ cd build
 cmake -G "Ninja" \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DCMAKE_PREFIX_PATH=$PREFIX \
-    -DCMAKE_BUILD_TYPE=Debug \
-    -DCASCADE_BUILD_TESTS=yes \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCASCADE_BUILD_TESTS=no \
     -DBoost_NO_BOOST_CMAKE=ON \
     -DCASCADE_BUILD_PYTHON_BINDINGS=yes \
     ..
