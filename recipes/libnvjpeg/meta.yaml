@@ -1,0 +1,80 @@
+{% set name = "libnvjpeg" %}
+{% set version = "12.0.0.28" %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-ppc64le" %}  # [ppc64le]
+{% set platform = "linux-sbsa" %}  # [aarch64]
+{% set platform = "windows-x86_64" %}  # [win]
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuda/redist/{{ name }}/{{ platform }}/{{ name }}-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: ad3380591a4d5b97ab57d10e9bf05e23dee6429ff91ea939423a3b35ee0e35de  # [linux64]
+  sha256: f7136bb691d794c680d77376b306bedb80eeebf687bfa4dc74355fdae5adcebb  # [ppc64le]
+  sha256: 31fd6ee0dccc72f0d583e25b849543551eb4bc49d3285628bf3b17929e09bac1  # [aarch64]
+  sha256: b7cb56ab2c69e055a4b1ea41653df917153a568ab23fb0d8121e0739011989a8  # [win]
+
+build:
+  number: 0
+  skip: true  # [osx]
+
+outputs:
+  - name: libnvjpeg
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+    test:
+      commands:
+        - test -f $PREFIX/targets/*/lib/libnvjpeg.so.{{ version }}  # [linux]
+        - if not exist %LIBRARY_LIB%\nvjpeg.lib exit 1              # [win]
+    files:
+      - lib/libnvjpeg.so.*            # [linux]
+      - targets/*/lib/libnvjpeg.so.*  # [linux]
+      - Library\bin\nvjpeg*.dll       # [win]
+
+  - name: libnvjpeg-dev
+    requirements:
+      run:
+        - libnvjpeg >={{ version }}
+    test:
+      commands:
+        - test -d $PREFIX/lib/pkgconfig  # [linux]
+    files:
+      - lib/libnvjpeg.so                   # [linux]
+      - lib/stubs/libnvjpeg.so*            # [linux]
+      - lib/pkgconfig                      # [linux]
+      - include/nvjpeg*                    # [linux]
+      - targets/*/lib/libnvjpeg.so         # [linux]
+      - targets/*/lib/stubs/libnvjpeg.so*  # [linux]
+      - targets/*/include/nvjpeg*          # [linux]
+      - Library\include                    # [win]
+      - Library\lib\nvjpeg.lib             # [win]
+
+  - name: libnvjpeg-static
+    build:
+      skip: True  # [not linux]
+    test:
+      commands:
+        - test -f $PREFIX/lib/libnvjpeg_static.a  # [linux]
+    files:
+      - lib/libnvjpeg_static.a            # [linux]
+      - targets/*/lib/libnvjpeg_static.a  # [linux]
+
+about:
+  home: https://developer.nvidia.com/cuda-toolkit
+  license_file: LICENSE
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  summary: NVJPEG native runtime libraries
+  description: |
+    NVJPEG native runtime libraries
+  doc_url: https://docs.nvidia.com/cuda/index.html
+
+extra:
+  recipe-maintainers:
+    - adibbley
