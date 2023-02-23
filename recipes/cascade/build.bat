@@ -6,5 +6,7 @@ cmake -G "Visual Studio 16 2019" -A x64 ^
     -DCASCADE_BUILD_TESTS=yes ^
     -DBoost_NO_BOOST_CMAKE=ON ^
     -DCASCADE_BUILD_PYTHON_BINDINGS=yes ^
+    ..
 
-cmake --build . -j4 --config RelWithDebInfo --target install
+cmake --build . --config RelWithDebInfo --target install
+
