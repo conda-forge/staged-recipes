@@ -18,4 +18,4 @@ cmake -G "$CMAKE_GENERATOR" \
 # Compile pyGPlates.
 #
 # Note that '--config' is only used by multi-configuration tools (eg, Visual Studio).
-cmake --build . --config $BUILD_TYPE --target install-into-python
+cmake --build . --parallel $CPU_COUNT --config $BUILD_TYPE --target install-into-python
