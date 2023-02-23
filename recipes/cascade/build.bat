@@ -8,4 +8,3 @@ cmake -G "Visual Studio 16 2019" -A x64 ^
     -DCASCADE_BUILD_PYTHON_BINDINGS=yes ^
 
 cmake --build . -j4 --config RelWithDebInfo --target install
-
