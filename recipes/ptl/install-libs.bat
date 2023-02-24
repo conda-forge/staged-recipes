@@ -4,6 +4,6 @@ if errorlevel 1 exit /b 1
 cmake --install .
 if errorlevel 1 exit /b 1
 
-deltree /Y %PREFIX%\\include
-deltree /Y %PREFIX%\\lib\\cmake
-deltree /Y %PREFIX%\\lib\\pkgconfig
+deltree /Y %LIBRARY_INC%
+deltree /Y %LIBRARY_LIB%\\cmake
+deltree /Y %LIBRARY_LIB%\\pkgconfig
