@@ -24,6 +24,8 @@ show_channel_urls: true
 
 CONDARC
 
+git config --global --add safe.directory /home/conda/staged-recipes
+
 # Copy the host recipes folder so we don't ever muck with it
 cp -r /home/conda/staged-recipes ~/staged-recipes-copy
 
