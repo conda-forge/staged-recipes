@@ -2,5 +2,5 @@
 cd ${SRC_DIR}/src
 source ../source.apache
 
-make FC=${GFORTRAN} CC=${CC_FOR_BUILD}
-make FC=${GFORTRAN} CC=${CC_FOR_BUILD} PREFIX=${PREFIX} install-all
+make FC=${GFORTRAN} CC=${CC_FOR_BUILD} CFLAGS=${CFLAGS} FFLAGS=${FFLAGS}
+make FC=${GFORTRAN} CC=${CC_FOR_BUILD} PREFIX=${PREFIX} install-all CFLAGS=${CFLAGS} FFLAGS=${FFLAGS}
