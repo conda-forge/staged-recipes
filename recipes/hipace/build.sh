@@ -28,6 +28,7 @@ cmake \
     -DHiPACE_COMPUTE=NOACC               \
     -DHiPACE_IPO=${HiPACE_IPO}           \
     -DHiPACE_amrex_branch=23.02          \
+    -DHiPACE_openpmd_internal=OFF        \
     -DHiPACE_MPI=OFF
 
 # build

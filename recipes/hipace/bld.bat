@@ -17,7 +17,8 @@ cmake ^
     -DCMAKE_NM=llvm-nm                    ^
     -DCMAKE_VERBOSE_MAKEFILE=ON           ^
     -DHiPACE_amrex_branch=23.02          ^
-    -DHiPACE_COMPUTE=NOACC ^
+    -DHiPACE_openpmd_internal=OFF  ^
+    -DHiPACE_COMPUTE=NOACC  ^
     -DHiPACE_MPI=OFF
 if errorlevel 1 exit 1
 
