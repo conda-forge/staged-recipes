@@ -1,0 +1,91 @@
+{% set name = "hipace" %}
+{% set version = "23.02" %}
+{% set build = 0 %}
+{% set sha256 = "f4f5958f0600dd59cc1bb02218d5b7d1e6e0da34461c504e4d0367c98d5d6113" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/Hi-PACE/hipace/archive/v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: {{ build }}
+  run_exports:
+    # releases are not (yet) compatible
+    - hipace {{ version }}
+
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - ccache        # [unix]
+    - clang         # [win]
+    - cmake >=3.20.0
+    - lld           # [win]
+    # TODO: add libxml2 dep in lld-feedstock
+    - libxml2       # [win]
+    - make          # [unix]
+    - ninja         # [win]
+    - libgomp       # [linux]
+    - llvm-openmp   # [osx or win]
+  host:
+    - pkgconfig
+    # ctest
+    - matplotlib-base  # [build_platform == target_platform]
+    - numpy            # [build_platform == target_platform]
+    - pandas           # [build_platform == target_platform]
+    - pytest           # [build_platform == target_platform]
+    - python           # [build_platform == target_platform]
+    - scipy            # [build_platform == target_platform]
+  run:
+    - matplotlib-base
+    - numpy
+    - pandas
+    - python
+    - scipy
+
+test:
+  requires:
+    - python
+  source_files:
+    - examples/beam_in_vacuum/inputs_SI
+  files:
+    - test.sh   # [unix]
+    - test.bat  # [win]
+  imports:
+    - hipace
+  commands:
+    - test -f ${PREFIX}/bin/hipace.NOMPI.NOACC.DP  # [unix]
+
+    - if not exist %LIBRARY_PREFIX%\bin\hipace.NOMPI.NOACC.DP.exe exit 1  # [win]
+    # smoke tests: execute
+    - ./test.sh      # [unix and build_platform == target_platform]
+    - call test.bat  # [win]
+
+about:
+  home: https://hipace.readthedocs.io
+  license: BSD-3-Clause-LBNL
+  license_family: BSD
+  license_file: license.txt
+  summary: Highly efficient Plasma Accelerator Emulation, quasistatic particle-in-cell code
+
+  description: |
+    HiPACE++ is an open-source portable GPU-capable quasistatic
+    particle-in-cell code for wakefield acceleration written in C++. It is a
+    full re-writing of the legacy code HiPACE, the Highly efficient Plasma
+    ACcelerator Emulator.
+
+  doc_url: https://hipace.readthedocs.io
+  dev_url: https://github.com/Hi-PACE/hipace
+
+extra:
+  recipe-maintainers:
+    - AlexanderSinn
+    - ax3l
+    - MaxThevenet
+    - SeverinDiederichs
