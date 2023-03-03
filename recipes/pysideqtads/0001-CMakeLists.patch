@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 1fb5475..e236fc9 100644
+index 1fb5475..1b782c7 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -12,7 +12,7 @@ endif()
@@ -11,13 +11,13 @@ index 1fb5475..e236fc9 100644
  if(NOT Python3_Interpreter_FOUND)
      message(FATAL_ERROR "Python3 not found")
  endif()
-@@ -23,14 +23,14 @@ set(OpenGL_GL_PREFERENCE "LEGACY")
+@@ -23,15 +23,15 @@ set(OpenGL_GL_PREFERENCE "LEGACY")
  
  # Find the required Qt packages
  find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
 +find_package(Shiboken6 6.0.0 REQUIRED)
 +find_package(PySide6 6.0.0 REQUIRED)
-+find_package(qtadvanceddocking)
++find_package(qt6advanceddocking)
  
  # Set CPP standard to C++11 minimum.
  set(CMAKE_CXX_STANDARD 11)
@@ -26,9 +26,11 @@ index 1fb5475..e236fc9 100644
 -set(qtads_subdir "Qt-Advanced-Docking-System")
 -set(qtads_dir ${CMAKE_CURRENT_SOURCE_DIR}/${qtads_subdir})
 -add_subdirectory(${qtads_subdir} EXCLUDE_FROM_ALL)
- set(project_library "qtadvanceddocking")
+-set(project_library "qtadvanceddocking")
++set(project_library "qt6advanceddocking")
  
  # The name of the generated bindings module (as imported in Python).
+ set(bindings_library "PySide6QtAds")
 @@ -54,20 +54,14 @@ set(generated_sources
      ${CMAKE_CURRENT_BINARY_DIR}/${bindings_library}/ads_cdockcomponentsfactory_wrapper.cpp
      ${CMAKE_CURRENT_BINARY_DIR}/${bindings_library}/ads_cdockcontainerwidget_wrapper.cpp
@@ -94,9 +96,9 @@ index 1fb5475..e236fc9 100644
 +get_property(shiboken_shared_libraries TARGET Shiboken6::libshiboken PROPERTY IMPORTED_IMPLIB_RELEASE)
 +get_property(pyside_include_dir TARGET PySide6::pyside6 PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
 +get_property(pyside_shared_libraries TARGET PySide6::pyside6 PROPERTY IMPORTED_IMPLIB_RELEASE)
-+get_property(ads_include_dir TARGET ads::qtadvanceddocking PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
-+get_property(ads_link_libraries TARGET ads::qtadvanceddocking PROPERTY INTERFACE_LINK_LIBRARIES)
-+get_property(ads_shared_libraries TARGET ads::qtadvanceddocking PROPERTY IMPORTED_IMPLIB_RELEASE)
++get_property(ads_include_dir TARGET ads::qt6advanceddocking PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
++get_property(ads_link_libraries TARGET ads::qt6advanceddocking PROPERTY INTERFACE_LINK_LIBRARIES)
++get_property(ads_shared_libraries TARGET ads::qt6advanceddocking PROPERTY IMPORTED_IMPLIB_RELEASE)
 +
 +find_program(shiboken_path "shiboken6${CMAKE_EXECUTABLE_SUFFIX}")
  if(NOT EXISTS ${shiboken_path})
@@ -150,7 +152,7 @@ index 1fb5475..e236fc9 100644
  target_link_libraries(${bindings_library} PRIVATE ${shiboken_shared_libraries})
 +target_link_libraries(${bindings_library} PRIVATE ${ads_link_libraries})
 +target_link_libraries(${bindings_library} PRIVATE ${ads_shared_libraries})
-+target_link_libraries(${bindings_library} PUBLIC ads::qtadvanceddocking)
++target_link_libraries(${bindings_library} PUBLIC ads::qt6advanceddocking)
 +
 +if (UNIX)
 +    target_link_libraries(${bindings_library} PUBLIC PySide6::pyside6)
@@ -161,7 +163,7 @@ index 1fb5475..e236fc9 100644
  target_compile_definitions(${bindings_library} PRIVATE "-DPy_LIMITED_API=0x03070000")
  
  # Adjust the name of generated module.
-@@ -248,10 +222,23 @@ if(APPLE)
+@@ -248,10 +222,21 @@ if(APPLE)
  endif(APPLE)
  
  if (WIN32)
@@ -179,15 +181,13 @@ index 1fb5475..e236fc9 100644
 +add_custom_target("${bindings_library}_pyi" ALL
 +                  COMMAND ${CMAKE_COMMAND} -E env ${ld_prefix}
 +                  "${Python3_EXECUTABLE}"
-+                  "${CMAKE_CURRENT_SOURCE_DIR}/support/generate_pyi.py" ${generate_pyi_options})
++                  "${CMAKE_CURRENT_SOURCE_DIR}/support/generate_pyi.py" ${generate_pyi_options}
++                  BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/${bindings_library}.pyi")
 +add_dependencies("${bindings_library}_pyi" ${bindings_library})
-+
-+file(GLOB hinting_stub_files
-+    "${CMAKE_CURRENT_BINARY_DIR}/*.pyi")
  
  # ================================= Dubious deployment section ================================
  
-@@ -260,16 +247,11 @@ install(TARGETS ${bindings_library}
+@@ -260,16 +245,11 @@ install(TARGETS ${bindings_library}
          RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}
          )
  
