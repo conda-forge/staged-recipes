@@ -9,7 +9,6 @@ set CXX=cl.exe
 cmake -G "Ninja" ^
     -DCMAKE_BUILD_TYPE="Release" ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
-    -DCMAKE_MODULE_PATH=..\cmake\Modules ^
     -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
     %SRC_DIR%/bolt
 if %ERRORLEVEL% neq 0 exit 1
