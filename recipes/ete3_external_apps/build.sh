@@ -1,7 +1,10 @@
 #!/bin/bash
 
 # Needed to find argtable, dont know why it is not automatic...
+cd conda_build/argtable2
+./build.sh
 export CFLAGS="-I$PREFIX/include"
+cd ../..
 
 # Install tools
 $PYTHON compile_all.py
