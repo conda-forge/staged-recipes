@@ -14,3 +14,4 @@ cmake \
   -DADS_VERSION=${PKG_VERSION} \
   ..
 make install -j${CPU_COUNT} 
+rm -r ${PREFIX}/lib/license
