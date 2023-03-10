@@ -7,7 +7,7 @@ make solib FC=${FC} FFLAGS="${FFLAGS} -fimplicit-none -O3 -funroll-loops" LDFLAG
 # make test FC=${FC} FFLAGS="${FFLAGS} -fimplicit-none -O3 -funroll-loops -fallow-argument-mismatch" PREFIX=${PREFIX}
 # make test FFLAGS="${FFLAGS} -fimplicit-none -O3 -funroll-loops -l$PREFIX/lib/libblas -l$PREFIX/lib/liblapack"
 
-make test FC=${FC} FFLAGS="${FFLAGS} -fimplicit-none -O3 -funroll-loops -l${PREFIX}/lib/libblas -l$PREFIX/lib/liblapack" LDFLAGS="${LDFLAGS}" PREFIX=${PREFIX}
+make test
 
 make install
 
