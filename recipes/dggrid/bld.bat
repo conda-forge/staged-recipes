@@ -3,6 +3,7 @@ cd build_cpp
 
 cmake %SRC_DIR% -G "NMake Makefiles" ^
                 -DCMAKE_PREFIX_PATH="%PREFIX%" ^
+                -DWITH_EXT_SHAPELIB=ON ^
                 -DCMAKE_BUILD_TYPE=Release
 if errorlevel 1 exit 1
 
