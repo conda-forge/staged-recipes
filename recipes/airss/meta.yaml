@@ -1,0 +1,73 @@
+{% set name = "airss" %}
+{% set version = "0.9.3" %}
+
+package:
+  name: {{ name|lower }}-pkg
+  version: {{ version }}
+
+source:
+  - url: https://www.mtg.msm.cam.ac.uk/files/airss-{{ version }}.tgz 
+    sha256: b54c61b2988b3e6ee6d01e8b73fc60d76f36ad47eeb459d1a0358e486195cc13
+    patches:
+      - patches/makefile.patch
+      - patches/no-symmol.patch
+  - url: https://github.com/spglib/spglib/archive/refs/tags/v1.16.5.zip
+    sha256: fa8f6eb0dc7bb0410f517038e3a165ce74549d19c41a8bdbb34864c7141304a1
+    folder: external/spglib/spglib-1.16.5
+
+build:
+  number: 0
+  skip: true  # [not linux]
+
+outputs:
+  - name: {{ name }}
+    script: build_airss.sh
+    build:
+      ignore_run_exports:
+        - libblas
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('fortran') }}
+        - make
+        - patch
+      host:
+        - spglib 1.16.*
+        - libblas  # needed for proper pinning
+        - liblapack
+      run:
+        - perl
+        - {{ pin_compatible('spglib', max_pin='x.x') }}
+    test:
+      commands:
+        - airss
+        - airss version
+        - test ! -f ${PREFIX}/bin/symmol
+        - test -d ${PREFIX}/libexec/airss
+        - test ! -f ${PREFIX}/libexec/airss/symmol
+
+  - name: {{ name }}-with-default-names
+    script: build_default.sh
+    requirements:
+      run:
+        - {{ pin_subpackage(name, exact=True) }}
+    test:
+      commands:
+        - for bin in $(cat ${RECIPE_DIR}/airss-bin.txt); do test -x ${PREFIX}/bin/$bin; done
+
+about:
+  home: https://www.mtg.msm.cam.ac.uk/Codes/AIRSS
+  doc_url: https://airss-docs.github.io/
+  summary: >-
+    Ab initio Random Structure Searching (AIRSS) is a very simple,
+    yet powerful and highly parallel, approach to structure prediction.
+  license: GPL-2.0-only
+  license_family: GPL
+  license_file:
+    - LICENCE
+    - external/spglib/spglib-1.16.5/COPYING
+
+extra:
+  recipe-maintainers:
+    - awvwgk
+  feedstock-name: {{ name }}
