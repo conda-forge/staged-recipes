@@ -3,7 +3,7 @@ mkdir build
 cd build
 
 # Make shared libs
-cmake -G %CMAKE_GENERATOR% ^
+cmake -G"Ninja" ^
       %CMAKE_ARGS% ^
       -DCMAKE_BUILD_TYPE=Release ^
       -DCMAKE_PREFIX_PATH=%PREFIX% ^
