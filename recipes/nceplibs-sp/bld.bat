@@ -15,5 +15,12 @@ cmake -G %CMAKE_GENERATOR% ^
       -DBUILD_4=ON ^
       -DBUILD_8=ON ^
       %SRC_DIR%
-nmake
-nmake install
+if errorlevel 1 exit 1
+
+REM Build step
+cmake --build . --config Release
+if errorlevel 1 exit 1
+
+REM Install step
+cmake --build . --config Release --target install
+if errorlevel 1 exit 1
