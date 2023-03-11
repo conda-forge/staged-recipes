@@ -2,7 +2,7 @@
 mkdir build
 cd build
 
-# Make shared libs
+REM Make shared libs
 cmake -G"Ninja" ^
       %CMAKE_ARGS% ^
       -DCMAKE_BUILD_TYPE=Release ^
