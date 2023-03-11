@@ -15,5 +15,5 @@ cmake -G %CMAKE_GENERATOR% ^
       -DBUILD_4=ON ^
       -DBUILD_8=ON ^
       %SRC_DIR%
-make
-make install
+nmake
+nmake install
