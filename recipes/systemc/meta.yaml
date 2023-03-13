@@ -1,0 +1,117 @@
+{% set name = "systemc" %}
+{% set version = "2.3.4" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/accellera-official/systemc/archive/refs/tags/{{ version }}.tar.gz
+  sha256: bfb309485a8ad35a08ee78827d1647a451ec5455767b25136e74522a6f41e0ea
+  patches:
+    - patches/0001-examples-sysc-2.3-simple_async-needs-PTHREADS.patch  # https://github.com/accellera-official/systemc/pull/44
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - make      # [not win]
+    - autoconf  # [not win]
+    - automake  # [not win]
+    - libtool   # [not win]
+    - cmake  # [win]
+
+
+# split package into:
+# libsystemc dynamic-library
+# systemc-dev package depends on libsystemc and adds header and unversioned .so symlink
+# systemc-static just the static library
+# systemc-doc  documentation including the installed examples
+
+outputs:                                                         # [not win]
+    - name: libsystemc                                           # [not win]
+      requirements:                                              # [not win]
+          build:                                                 # [not win]
+              - {{ compiler('cxx') }}                            # [not win]
+      files:                                                     # [not win]
+          - lib/libsystemc-*                                     # [not win]
+      test:                                                      # [not win]
+        commands:                                                # [not win]
+          - test -f "$PREFIX"/lib/libsystemc-{{ version }}"$SHLIB_EXT"  # [not win]
+    - name: libsystemc-static                                    # [not win]
+      files:                                                     # [not win]
+          - lib/libsystemc.a                                     # [not win]
+    - name: systemc-doc                                          # [not win]
+      files:                                                     # [not win]
+          - share/doc/systemc/                                   # [not win]
+    - name: systemc-dev                                          # [not win]
+      requirements:                                              # [not win]
+          build:                                                 # [not win]
+              - {{ compiler('cxx') }}                            # [not win]
+          run:                                                   # [not win]
+              - {{ pin_subpackage('libsystemc', exact=True) }}   # [not win]
+      files:                                                     # [not win]
+          - lib/libsystemc.so                                    # [not win]
+          - lib/pkgconfig/systemc.pc                             # [not win]
+          - lib/pkgconfig/tlm.pc                                 # [not win]
+          - include/sysc                                         # [not win]
+          - include/systemc*                                     # [not win]
+          - include/tlm*                                         # [not win]
+          - include/tlm_core                                     # [not win]
+          - include/tlm_utils                                    # [not win]
+          - etc/conda/*activate.d/*activate-systemc.sh           # [not win]
+      test:                                                      # [not win]
+        requires:                                                # [not win]
+          - {{ compiler('cxx') }}                                # [not win]
+          - {{ pin_subpackage('systemc-doc', exact=True) }}      # [not win]
+          - make                                                 # [not win]
+        commands:                                                # [not win]
+          - test "$SYSTEMC_HOME" == "$PREFIX"                    # [not win]
+          - cp -r "$PREFIX"/share/doc/systemc/examples .         # [not win]
+          # patch Makefile.rules because we want to use the installed libsystemc  
+          # AND we want to use the dynamic lib which the linker should be able to find
+          - "sed -i 's|$(EXE): $(OBJS) $(SYSTEMC_LIB_DIR)/libsystemc.a|$(EXE): $(OBJS)|' examples/build-unix/Makefile.rules"  # [not win]
+          - make -C examples/build-unix -j $CPU_COUNT run        # [not win]
+          - make -C examples/build-unix -j $CPU_COUNT check      # [not win]
+    - name: systemc                                              # [not win]
+      requirements:                                              # [not win]
+          run:                                                   # [not win]
+              - {{ pin_subpackage('systemc-dev', exact=True) }}  # [not win]
+              - {{ pin_subpackage('systemc-doc', exact=True) }}  # [not win]
+
+# TODO Add tests for windows
+#test:                         # [win]
+#  requires:                   # [win]
+#    - {{ compiler('cxx') }}   # [win]
+#  commands:                   # [win]
+#    - cd examples/build-msvc  # [win]
+#    - nmake /nologo CONFIG=Release PLATFORM=x64 VCBUILD=vcbuild check  # [win64]
+#    - nmake /nologo CONFIG=Release PLATFORM=Win32 VCBUILD=vcbuild check  # [win32]
+
+about:
+  home: https://systemc.org/
+  summary: 'The language for System-level design, modeling and verification'
+  description: |
+    SystemC(TM) addresses the need for a system design and verification language that spans hardware
+    and software. It is a language built in standard C++ by extending the language with the use of
+    class libraries. The language is particularly suited to model system's partitioning, to evaluate
+    and verify the assignment of blocks to either hardware or software implementations, and to
+    architect and measure the interactions between and among functional blocks. Leading companies in
+    the intellectual property (IP), electronic design automation (EDA), semiconductor, electronic
+    systems, and embedded software industries currently use SystemC for architectural exploration,
+    to deliver high-performance hardware blocks at various levels of abstraction and to develop
+    virtual platforms for hardware/software co-design. SystemC has been standardized by the Open
+    SystemC Initiative (OSCI) and Accellera Systems Initiative and ratified as IEEE Std. 1666(TM)-2011.
+  license: Apache-2.0
+  license_family: Apache
+  license_file:
+    - LICENSE
+    - NOTICE
+  doc_url: https://ieeexplore.ieee.org/document/6134619
+  dev_url: https://github.com/accellera-official/systemc
+
+extra:
+  recipe-maintainers:
+    - timsnyder
