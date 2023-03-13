@@ -103,6 +103,12 @@ def _set_default_branch(feedstock_dir, default_branch):
     ):
         cfg["upload_on_branch"] = default_branch
 
+    if "conda_build" not in cfg:
+        cfg["conda_build"] = {}
+
+    if "error_overlinking" not in cfg["conda_build"]:
+        cfg["conda_build"]["error_overlinking"] = True
+
     with open(os.path.join(feedstock_dir, "conda-forge.yml"), "w") as fp:
         yaml.dump(cfg, fp)
 
@@ -198,8 +204,9 @@ if __name__ == '__main__':
     # gh_drone = Github(os.environ['GH_DRONE_TOKEN'])
     # gh_drone_remaining = print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
-    gh_travis = Github(os.environ['GH_TRAVIS_TOKEN'])
-
+    # gh_travis = Github(os.environ['GH_TRAVIS_TOKEN'])
+    gh_travis = None
+    
     gh = None
     if 'GH_TOKEN' in os.environ:
         write_token('github', os.environ['GH_TOKEN'])
@@ -324,7 +331,7 @@ if __name__ == '__main__':
             if name.lower() in REPO_SKIP_LIST:
                 continue
             print("\n\nregistering CI services for %s..." % name)
-            if num >= 2:
+            if num >= 10:
                 exit_code = 0
                 break
             # Try to register each feedstock with CI.
@@ -518,7 +525,7 @@ if __name__ == '__main__':
         print_rate_limiting_info(gh, 'GH_TOKEN')
     # if gh_drone:
     #     print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
-    if gh_travis:
-        print_rate_limiting_info(gh_travis, 'GH_TRAVIS_TOKEN')
+    # if gh_travis:
+    #     print_rate_limiting_info(gh_travis, 'GH_TRAVIS_TOKEN')
 
     sys.exit(exit_code)
