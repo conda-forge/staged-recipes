@@ -17,6 +17,7 @@ cmake -G "${CMAKE_GENERATOR}" \
       -DBUILD_d=ON \
       -DBUILD_4=ON \
       -DBUILD_8=ON \
+      -DOPENMP=ON \
       "${SRC_DIR}"
 make
 make install
