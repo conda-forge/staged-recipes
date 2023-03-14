@@ -13,7 +13,7 @@ cd build
 ../configure \
     --prefix="$PREFIX" \
     --with-unix-layout \
-    --with-pthreads \
+    --enable-pthreads \
     --with-arch-suffix='' # conda doesn't do multilib, everything in a prefix is for one target arch
 
 make -j $CPU_COUNT
