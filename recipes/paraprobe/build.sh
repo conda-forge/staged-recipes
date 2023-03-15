@@ -16,14 +16,16 @@ cp -rf paraprobe-toolbox/code/paraprobe-parmsetup/src/python/* ${SP_DIR}/parapro
 mkdir ${SP_DIR}/paraprobe_transcoder
 cp -rf paraprobe-toolbox/code/paraprobe-transcoder/src/python/* ${SP_DIR}/paraprobe_transcoder
 
+
+
+cd paraprobe-toolbox
+cd code
+
 #unzip voro++ and prepare
 cp thirdparty/mandatory/voroxx/voro++-0.4.6.tar.xz .
 tar xvf voro++-0.4.6.tar.xz
 
-cd paraprobe-toolbox
-cd code
 cd paraprobe-utils
-
 cp ../thirdparty/mandatory/hdf5cxxwrapper/src/cxx/* src/cxx/
 cp ../voro++/src/* src/cxx/
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
