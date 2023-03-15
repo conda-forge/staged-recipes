@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 # run through configure of autotools build for now because cmake build doesn't install pkg-config files
 # and we can generate those by running configure but using cmake for consistent build between
 # platforms
@@ -24,12 +24,9 @@ mkdir build
 cd build
 
 
-# without -DCMAKE_CXX_STANDARD=17, cmake will default to gnu-98
 cmake $CMAKE_ARGS \
   -DBUILD_SHARED_LIBS=ON \
   -DCMAKE_BUILD_TYPE=Release \
-  -DBUILD_SOURCE_DOCUMENTATION=ON \
-  -DCMAKE_CXX_STANDARD=17 \
   ..
 
 
