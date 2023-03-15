@@ -41,7 +41,6 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
     -DENABLE_TIMER=OFF \
     -DENABLE_LOGGER=OFF \
     -DBUILD_STANDALONE=OFF \
-    -DENABLE_FORTRAN_API=OFF \
     -DENABLE_CXX11_SUPPORT=ON
 
 cmake --build build --target install -j${CPU_COUNT}
@@ -63,6 +62,7 @@ rm ${PREFIX}/lib/libpcm.a
 #if [ "$(uname)" == "Linux" ]; then
 #    ctest -E "(from-file|green_spherical_diffuse)" -j${CPU_COUNT}
 #fi
+cd build
 ctest -j${CPU_COUNT}
 
 # Notes
