@@ -44,4 +44,4 @@ make
 cp paraprobe_ranger ${PREFIX}/bin/
 cd ..
 
-
+mv $mpifort.orig $mpifort
