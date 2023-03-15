@@ -17,24 +17,23 @@ cmake %CMAKE_ARGS% ^
       -D CMAKE_INSTALL_DATADIR="share" ^
       -D PYMOD_INSTALL_LIBDIR="\..\..\Lib\site-packages" ^
       -D PYTHON_EXECUTABLE="%PYTHON%" ^
-      -D Python_EXECUTABLE="%PYTHON%" ^
       -D CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
-      -D ENABLE_XHOST=OFF ^
       -D BUILD_TESTING=OFF ^
       -D CMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
       -D ENABLE_OPENMP=OFF ^
       -D ENABLE_GENERIC=OFF ^
-      -D ENABLE_DOCS=OFF ^
       -D ENABLE_TESTS=ON ^
       -D ENABLE_TIMER=OFF ^
       -D ENABLE_LOGGER=OFF ^
       -D BUILD_STANDALONE=ON ^
       -D ENABLE_CXX11_SUPPORT=ON
+
 if errorlevel 1 exit 1
 
 ::      -D BUILD_SHARED_LIBS=ON ^
 
 cd build
+
 cmake --build . ^
       --config Release ^
       --target install ^

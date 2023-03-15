@@ -2,23 +2,6 @@
 
 set -ex
 
-#
-## If building with ENABLE_PYTHON=ON, relocate python scripts to expected location:
-## (Avoiding setup.py which runs cmake again, separately)
-##mkdir -p ${SP_DIR}
-##mv ${PREFIX}/lib/pylibxc ${SP_DIR}/
-#
-#if [[ -z "${cuda_compiler_version+x}" || "${cuda_compiler_version}" == "None" ]]; then
-#if [[ "${CONDA_BUILD_CROSS_COMPILATION:-}" != "1" || "${CROSSCOMPILING_EMULATOR}" != "" ]]; then
-#    ctest --repeat until-pass:5
-#fi
-#fi
-########
-
-    #if [ "$(uname)" == "Darwin" ]; then
-    # for FortranCInterface
-    #CMAKE_Fortran_FLAGS="${KEEPFFLAGS} -L${CONDA_BUILD_SYSROOT}/usr/lib/system/ ${OPTS}"
-
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
     -S${SRC_DIR} \
     -Bbuild \
@@ -34,6 +17,7 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
     -DCMAKE_INSTALL_LIBDIR=lib \
     -DPYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
     -DPYTHON_INTERPRETER=${PYTHON} \
+    -DSHARED_LIBRARY_ONLY=ON \
     -DENABLE_OPENMP=OFF \
     -DENABLE_GENERIC=OFF \
     -DENABLE_DOCS=OFF \
@@ -45,25 +29,10 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
 
 cmake --build build --target install -j${CPU_COUNT}
 
-rm ${PREFIX}/share/cmake/PCMSolver/PCMSolverTargets-static-release.cmake
-rm ${PREFIX}/share/cmake/PCMSolver/PCMSolverTargets-static.cmake
-rm ${PREFIX}/lib/libpcm.a
 
-## test
-## green_spherical_diffuse hitting an Intel 2018+Eigen bug
-## but they can be run if static lib is built
-## from-file fails b/c of my naming temp file hacks of v1.2.1.1
 cd build
-if [ "$(uname)" == "Darwin" ]; then
-#    install_name_tool -add_rpath ${PREFIX}/lib/ lib/libpcm.1.dylib
-#    install_name_tool -add_rpath ${PREFIX}/lib/ bin/unit_tests
-#    install_name_tool -add_rpath ${PREFIX}/lib/ bin/Fortran_host
-    ctest -E "from-file" -j${CPU_COUNT}
-fi
-if [ "$(uname)" == "Linux" ]; then
-    ctest -E "from-file" --rerun-failed --output-on-failure -j${CPU_COUNT}
-    # ctest -E "(from-file|green_spherical_diffuse)" -j${CPU_COUNT}
-fi
+# from-file fails b/c of my naming temp file hacks of v1.2.1.1
+ctest -E "from-file" --rerun-failed --output-on-failure -j${CPU_COUNT}
 
 # Notes
 # -----
