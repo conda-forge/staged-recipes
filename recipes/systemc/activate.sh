@@ -89,7 +89,10 @@ fi
 
 
 _do_activation \
-  @NATURE@ "SYSTEMC_HOME,${CONDA_PREFIX}"
+  @NATURE@ \
+  "SYSTEMC_HOME,${CONDA_PREFIX}" \
+  "SYSTEMC_INCLUDE,${CONDA_PREFIX}/include" \
+  "SYSTEMC_LIBDIR,${CONDA_PREFIX}/lib" \
 
 if [ $? -ne 0 ]; then
   echo "ERROR: $(_get_sourced_filename) failed, see above for details"
