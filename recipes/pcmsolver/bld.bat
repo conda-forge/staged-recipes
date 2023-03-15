@@ -30,11 +30,7 @@ cmake %CMAKE_ARGS% ^
 
 if errorlevel 1 exit 1
 
-::      -D BUILD_SHARED_LIBS=ON ^
-
-cd build
-
-cmake --build . ^
+cmake --build build ^
       --config Release ^
       --target install ^
       -- -j %CPU_COUNT%

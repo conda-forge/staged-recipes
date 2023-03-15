@@ -17,10 +17,8 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
     -DCMAKE_INSTALL_LIBDIR=lib \
     -DPYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
     -DPYTHON_INTERPRETER=${PYTHON} \
-    -DSHARED_LIBRARY_ONLY=ON \
     -DENABLE_OPENMP=OFF \
     -DENABLE_GENERIC=OFF \
-    -DENABLE_DOCS=OFF \
     -DENABLE_TESTS=ON \
     -DENABLE_TIMER=OFF \
     -DENABLE_LOGGER=OFF \
@@ -29,6 +27,9 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
 
 cmake --build build --target install -j${CPU_COUNT}
 
+rm ${PREFIX}/share/cmake/PCMSolver/PCMSolverTargets-static-release.cmake
+rm ${PREFIX}/share/cmake/PCMSolver/PCMSolverTargets-static.cmake
+rm ${PREFIX}/lib/libpcm.a
 
 cd build
 # from-file fails b/c of my naming temp file hacks of v1.2.1.1
