@@ -11,6 +11,7 @@ cmake %CMAKE_ARGS% ^
       -D CMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CFLAGS%" ^
       -D CMAKE_CXX_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CXXFLAGS%" ^
       -D CMAKE_Fortran_FLAGS="%FFLAGS%" ^
+      -D Eigen3_ROOT=%PREFIX% ^
       -D CMAKE_INSTALL_LIBDIR="lib" ^
       -D CMAKE_INSTALL_INCLUDEDIR="include" ^
       -D CMAKE_INSTALL_BINDIR="bin" ^
