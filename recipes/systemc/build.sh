@@ -13,7 +13,6 @@ cd build
 ../configure \
     --prefix="$PREFIX" \
     --with-unix-layout \
-    --enable-pthreads \
     --with-arch-suffix='' # conda doesn't do multilib, everything in a prefix is for one target arch
 
 mkdir -p "$PREFIX"/lib/pkgconfig/
@@ -29,7 +28,6 @@ cd build
 cmake $CMAKE_ARGS \
   -DBUILD_SHARED_LIBS=ON \
   -DCMAKE_BUILD_TYPE=Release \
-  -DENABLE_PTHREADS=ON \
   -DBUILD_SOURCE_DOCUMENTATION=ON \
   -DCMAKE_CXX_STANDARD=17 \
   ..
