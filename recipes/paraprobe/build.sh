@@ -27,7 +27,7 @@ tar xvf voro++-0.4.6.tar.xz
 
 cd paraprobe-utils
 cp ../thirdparty/mandatory/hdf5cxxwrapper/src/cxx/* src/cxx/
-cp ../voro++/src/* src/cxx/
+cp ../voro++-0.4.6/src/* src/cxx/
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
 make
 ls
