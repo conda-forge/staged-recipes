@@ -53,17 +53,17 @@ rm ${PREFIX}/lib/libpcm.a
 ## green_spherical_diffuse hitting an Intel 2018+Eigen bug
 ## but they can be run if static lib is built
 ## from-file fails b/c of my naming temp file hacks of v1.2.1.1
-#if [ "$(uname)" == "Darwin" ]; then
+cd build
+if [ "$(uname)" == "Darwin" ]; then
 #    install_name_tool -add_rpath ${PREFIX}/lib/ lib/libpcm.1.dylib
 #    install_name_tool -add_rpath ${PREFIX}/lib/ bin/unit_tests
 #    install_name_tool -add_rpath ${PREFIX}/lib/ bin/Fortran_host
-#    ctest -E "from-file" -j${CPU_COUNT}
-#fi
-#if [ "$(uname)" == "Linux" ]; then
-#    ctest -E "(from-file|green_spherical_diffuse)" -j${CPU_COUNT}
-#fi
-cd build
-ctest -j${CPU_COUNT}
+    ctest -E "from-file" -j${CPU_COUNT}
+fi
+if [ "$(uname)" == "Linux" ]; then
+    ctest -E "from-file" --rerun-failed --output-on-failure -j${CPU_COUNT}
+    # ctest -E "(from-file|green_spherical_diffuse)" -j${CPU_COUNT}
+fi
 
 # Notes
 # -----
