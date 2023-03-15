@@ -40,7 +40,7 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
     -DENABLE_TESTS=ON \
     -DENABLE_TIMER=OFF \
     -DENABLE_LOGGER=OFF \
-    -DBUILD_STANDALONE=OFF \
+    -DBUILD_STANDALONE=ON \
     -DENABLE_CXX11_SUPPORT=ON
 
 cmake --build build --target install -j${CPU_COUNT}

@@ -8,7 +8,6 @@ cmake %CMAKE_ARGS% ^
       -D CMAKE_BUILD_TYPE=Release ^
       -D CMAKE_C_COMPILER=clang-cl ^
       -D CMAKE_CXX_COMPILER=clang-cl ^
-      -D CMAKE_Fortran_COMPILER="%FC%" ^
       -D CMAKE_Fortran_FLAGS="%FFLAGS%" ^
       -D CMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CFLAGS%" ^
       -D CMAKE_CXX_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CXXFLAGS%" ^
@@ -29,7 +28,7 @@ cmake %CMAKE_ARGS% ^
       -D ENABLE_TESTS=ON ^
       -D ENABLE_TIMER=OFF ^
       -D ENABLE_LOGGER=OFF ^
-      -D BUILD_STANDALONE=OFF ^
+      -D BUILD_STANDALONE=ON ^
       -D ENABLE_CXX11_SUPPORT=ON
 if errorlevel 1 exit 1
 
