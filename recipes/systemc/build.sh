@@ -1,9 +1,9 @@
 #!/bin/bash
 
 set -e
-# use autotools build for now because cmake build doesn't install pkg-config files
-# but I suspect that the older build flow will install cmake files correctly
-# https://github.com/accellera-official/systemc/blob/39740075f47fedbce242808d357fcfb6d3d33957/cmake/INSTALL_USING_CMAKE#L421-L422
+# run through configure of autotools build for now because cmake build doesn't install pkg-config files
+# and we can generate those by running configure but using cmake for consistent build between
+# platforms
 # Just running configure with 2.3.4, it complains about not finding Makefile.in so
 # rerun autotools to generate the automake outputs
 autoreconf --install --force
@@ -16,7 +16,26 @@ cd build
     --enable-pthreads \
     --with-arch-suffix='' # conda doesn't do multilib, everything in a prefix is for one target arch
 
-make -j $CPU_COUNT
+mkdir -p "$PREFIX"/lib/pkgconfig/
+cp -v  src/*.pc "$PREFIX"/lib/pkgconfig/
+
+cd ..
+rm -rf build
+mkdir build
+cd build
+
+
+# without -DCMAKE_CXX_STANDARD=17, cmake will default to gnu-98
+cmake $CMAKE_ARGS \
+  -DBUILD_SHARED_LIBS=ON \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DENABLE_PTHREADS=ON \
+  -DBUILD_SOURCE_DOCUMENTATION=ON \
+  -DCMAKE_CXX_STANDARD=17 \
+  ..
+
+
+make -j $CPU_COUNT VERBOSE=1
 
 # We run all of these tests with the installed package. So, typically we don't run them here
 # However, it might be useful to know they pass in the build when debugging a failure. In that case
@@ -25,9 +44,16 @@ make -j $CPU_COUNT
 
 make install
 
+# The cmake build doesn't install the examples into the docdir but we
+# want to put them in a separate package and run them for testing the package
+# without needing to have them in the package metadata. So, install them
+cp -r "$SRC_DIR"/examples "$PREFIX"/share/doc/systemc/
+
 # create activate & deactivate scripts that manage SYSTEMC_HOME
 mkdir -p "${PREFIX}"/etc/conda/{de,}activate.d
 
 sed 's/\@NATURE\@/activate/' "${RECIPE_DIR}"/activate.sh > "${PREFIX}"/etc/conda/activate.d/activate-${PKG_NAME}.sh
 sed 's/\@NATURE\@/deactivate/' "${RECIPE_DIR}"/activate.sh > "${PREFIX}"/etc/conda/deactivate.d/deactivate-${PKG_NAME}.sh
+
+ls -l $PREFIX/lib/libsystemc*
 
