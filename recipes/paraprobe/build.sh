@@ -24,10 +24,11 @@ cd code
 #unzip voro++ and prepare
 cp thirdparty/mandatory/voroxx/voro++-0.4.6.tar.xz .
 tar xvf voro++-0.4.6.tar.xz
+mv voro++-0.4.6 voro++
 
 cd paraprobe-utils
 cp ../thirdparty/mandatory/hdf5cxxwrapper/src/cxx/* src/cxx/
-cp ../voro++-0.4.6/src/* src/cxx/
+cp ../voro++/src/* src/cxx/
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=mpicxx -DCONDA_PREFIX=${PREFIX} .
 make
 ls
