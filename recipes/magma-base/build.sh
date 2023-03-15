@@ -4,8 +4,8 @@ set -exv
 make generate --jobs ${CPU_COUNT}
 
 # Duplicate lists because of https://bitbucket.org/icl/magma/pull-requests/32
-export CUDA_ARCH_LIST="sm_35,sm_50,sm_61,sm_75,sm_80,sm_86"
-export CUDAARCHS="35;50;60;61;70;75;80;86"
+export CUDA_ARCH_LIST="sm_35,sm_50,sm_60,sm_70,sm_80"
+export CUDAARCHS="35-virtual;50-virtual;60-virtual;70-virtual;80-virtual"
 
 # Remove CXX standard flags added by conda-forge. std=c++11 is required to
 # compile some .cu files
@@ -22,12 +22,12 @@ cmake $SRC_DIR \
   -DGPU_TARGET=$CUDA_ARCH_LIST \
   -DMAGMA_ENABLE_CUDA:BOOL=ON \
   -DUSE_FORTRAN:BOOL=OFF \
-  -DCMAKE_CUDA_SEPARABLE_COMPILATION:BOOL=ON \
-  -DCMAKE_INTERPROCEDURAL_OPTIMIZATION:BOOL=OFF \
+  -DCMAKE_CUDA_SEPARABLE_COMPILATION:BOOL=OFF \
   ${CMAKE_ARGS}
 
 # Explicitly name build targets to avoid building tests
 cmake --build . \
+    --config Release \
     --parallel ${CPU_COUNT} \
     --target magma \
     --verbose
