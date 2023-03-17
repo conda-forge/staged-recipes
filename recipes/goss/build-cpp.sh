@@ -10,6 +10,7 @@ cmake \
   -DCMAKE_BUILD_TYPE=Release \
   -B build-dir \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+  -DCMAKE_CXX_COMPILER=$(basename $CXX) \
   -DBLA_VENDOR="Generic" \
   -S .
 cmake --build build-dir
