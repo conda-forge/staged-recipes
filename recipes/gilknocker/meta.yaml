@@ -10,19 +10,31 @@ source:
   sha256: 6fa39689e3ddfc9c5a4bbb8684a7a3d0706e40c207d26679edc634c0c4a721d5
 
 build:
-  noarch: python
-  script: |
-    {{ PYTHON }} -m pip download gilknocker=={{ version }} --only-binary=:all:
-    {{ PYTHON }} -m pip install gilknocker --no-index --no-deps --find-links wheels
   number: 0
+  script:
+    {% if build_platform != target_platform %}
+    - export PYO3_CROSS_INCLUDE_DIR=$PREFIX/include
+    - export PYO3_CROSS_LIB_DIR=$PREFIX/lib/python$PY_VER
+    - export PYO3_CROSS_PYTHON_VERSION=$PY_VER
+    {% endif %}
+    - {{ PYTHON }} -m pip install . -vv
 
 requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - maturin                                # [build_platform != target_platform]
+    - toml                                   # [build_platform != target_platform]
+    - {{ compiler('rust') }}
+    - {{ compiler('c') }}                    # [unix]
+    - {{ compiler('m2w64_c') }}              # [win]
   host:
-    - python >=3.7
-    - maturin >=0.14,<0.15
+    - python
     - pip
+    - maturin >=0.14,<0.15
+    - toml
   run:
-    - python >=3.7
+    - python
 
 test:
   imports:
