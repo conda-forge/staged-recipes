@@ -9,4 +9,4 @@ cargo install --locked --root "$PREFIX" --path .
 "$STRIP" "$PREFIX/bin/delta"
 
 # remove extra build file
-rm -f "${PREFIX}/.crates.toml
+rm -f "${PREFIX}/.crates.toml"
