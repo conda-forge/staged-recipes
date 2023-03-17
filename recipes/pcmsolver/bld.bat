@@ -13,7 +13,6 @@ cmake %CMAKE_ARGS% ^
       -D CMAKE_C_FLAGS="%CFLAGS%" ^
       -D CMAKE_CXX_FLAGS="%CXXFLAGS%" ^
       -D CMAKE_Fortran_FLAGS="%FFLAGS%" ^
-      -D Eigen3_ROOT=%PREFIX% ^
       -D CMAKE_INSTALL_LIBDIR="lib" ^
       -D CMAKE_INSTALL_INCLUDEDIR="include" ^
       -D CMAKE_INSTALL_BINDIR="bin" ^
@@ -21,7 +20,6 @@ cmake %CMAKE_ARGS% ^
       -D PYMOD_INSTALL_LIBDIR="/../../Lib/site-packages" ^
       -D PYTHON_EXECUTABLE="%PYTHON%" ^
       -D CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
-      -D STATIC_LIBRARY_ONLY=ON ^
       -D BUILD_TESTING=OFF ^
       -D CMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
       -D ENABLE_OPENMP=OFF ^
@@ -41,5 +39,5 @@ cmake --build build ^
 if errorlevel 1 exit 1
 
 cd build
-ctest -E "from-file" --rerun-failed --output-on-failure
+ctest --rerun-failed --output-on-failure
 if errorlevel 1 exit 1
