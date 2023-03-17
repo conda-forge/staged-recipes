@@ -10,8 +10,8 @@ cmake %CMAKE_ARGS% ^
       -B build ^
       -D CMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
       -D CMAKE_BUILD_TYPE=Release ^
-      -D CMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CFLAGS%" ^
-      -D CMAKE_CXX_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CXXFLAGS%" ^
+      -D CMAKE_C_FLAGS="%CFLAGS%" ^
+      -D CMAKE_CXX_FLAGS="%CXXFLAGS%" ^
       -D CMAKE_Fortran_FLAGS="%FFLAGS%" ^
       -D Eigen3_ROOT=%PREFIX% ^
       -D CMAKE_INSTALL_LIBDIR="lib" ^
