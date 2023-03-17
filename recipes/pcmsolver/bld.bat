@@ -40,5 +40,6 @@ cmake --build build ^
       -- -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
-ctest --output-on-failure
+cd build
+ctest -E "from-file" --rerun-failed --output-on-failure
 if errorlevel 1 exit 1
