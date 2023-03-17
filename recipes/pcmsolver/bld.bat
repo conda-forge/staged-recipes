@@ -18,7 +18,7 @@ cmake %CMAKE_ARGS% ^
       -D CMAKE_INSTALL_INCLUDEDIR="include" ^
       -D CMAKE_INSTALL_BINDIR="bin" ^
       -D CMAKE_INSTALL_DATADIR="share" ^
-      -D PYMOD_INSTALL_LIBDIR="\..\..\Lib\site-packages" ^
+      -D PYMOD_INSTALL_LIBDIR="/../../Lib/site-packages" ^
       -D PYTHON_EXECUTABLE="%PYTHON%" ^
       -D CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
       -D STATIC_LIBRARY_ONLY=ON ^
