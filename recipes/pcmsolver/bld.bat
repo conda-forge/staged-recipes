@@ -1,13 +1,15 @@
 @ECHO ON
 
+set "CC=gcc.exe"
+set "CXX=g++.exe"
+set "FC=gfortran.exe"
+
 cmake %CMAKE_ARGS% ^
-      -G "Ninja" ^
+      -G "MinGW Makefiles" ^
       -S %SRC_DIR% ^
       -B build ^
       -D CMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
       -D CMAKE_BUILD_TYPE=Release ^
-      -D CMAKE_C_COMPILER=clang-cl ^
-      -D CMAKE_CXX_COMPILER=clang-cl ^
       -D CMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CFLAGS%" ^
       -D CMAKE_CXX_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CXXFLAGS%" ^
       -D CMAKE_Fortran_FLAGS="%FFLAGS%" ^
