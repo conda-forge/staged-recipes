@@ -1,7 +1,3 @@
-#!/bin/bash
-# Copyright 2023 Keegan Dent.
-# SPDX-License-Identifier: GPL-3.0-only
-
 mkdir build && cd build
 
 # Configure step
