@@ -27,6 +27,9 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
 
 cmake --build build --target install -j${CPU_COUNT}
 
+# Building both static & shared (instead of SHARED_LIBRARY_ONLY) since the tests
+#   only build with static lib. Don't want to distribute static, though, so
+#   removing all the static lib stuff immediately after install.
 rm ${PREFIX}/share/cmake/PCMSolver/PCMSolverTargets-static-release.cmake
 rm ${PREFIX}/share/cmake/PCMSolver/PCMSolverTargets-static.cmake
 rm ${PREFIX}/lib/libpcm.a
@@ -34,14 +37,4 @@ rm ${PREFIX}/lib/libpcm.a
 cd build
 # from-file fails b/c of my naming temp file hacks of v1.2.1.1
 ctest -E "from-file" --rerun-failed --output-on-failure -j${CPU_COUNT}
-
-
-# Notes
-# -----
-
-# * [Apr 2018] Removing -DSHARED_LIBRARY_ONLY=ON so that can build
-#   and run tests. We don't want to distribute static libs in a conda
-#   pkg though, and unless user sets static/shared component, can't trust
-#   `find_package(PCMSolver)` to return shared. So removing all the static
-#   lib stuff immediately after install.
 

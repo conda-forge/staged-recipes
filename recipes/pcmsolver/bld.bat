@@ -38,6 +38,11 @@ cmake --build build ^
       -- -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
+del %LIBRARY_PREFIX%\\share\\cmake\\PCMSolver\\PCMSolverTargets-static-release.cmake
+del %LIBRARY_PREFIX%\\share\\cmake\\PCMSolver\\PCMSolverTargets-static.cmake
+del %LIBRARY_PREFIX%\\lib\\libpcm.a
+
 cd build
 ctest -E "from-file" --rerun-failed --output-on-failure
 if errorlevel 1 exit 1
+
