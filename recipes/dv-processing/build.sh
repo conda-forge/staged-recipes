@@ -13,4 +13,5 @@ cmake ${CMAKE_ARGS} .. \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
 
 # Build step
-ninja install
+cmake --build . --config Release
+cmake --build . --config Release --target install
