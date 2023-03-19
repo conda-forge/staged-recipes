@@ -1,14 +1,17 @@
 set -e
-sed -i 's/"-w -O3"/"\$ENV{CFLAGS} -w -O3"/g' CMakeLists.txt
-#echo CFLAGS=$CFLAGS
-echo 'message(STATUS "CMAKE_C_FLAGS=${CMAKE_C_FLAGS}")' >> CMakeLists.txt
-#echo 'message(STATUS "CFLAGS=${CFLAGS}")' >> CMakeLists.txt
-#echo 'message(STATUS "ENV{CFLAGS}=$ENV{CFLAGS}")' >> CMakeLists.txt
-#echo 'message(STATUS "CMAKE_C_FLAGS_RELEASE=${CMAKE_C_FLAGS_RELEASE}")' >> CMakeLists.txt
-#cat CMakeLists.txt
-mkdir -p build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_SKIP_BUILD_RPATH=TRUE
-#make VERBOSE=1
-cmake --build . --verbose --config Release
-cmake --install . --verbose
+
+sed -i 's/DESTINATION "$ENV{HOME}/DESTINATION "${CMAKE_INSTALL_PREFIX}/' CMakeLists.txt
+sed -i 's/$ENV{HOME}\/include/$ENV{BUILD_PREFIX}\/include/' CMakeLists.txt
+sed -i 's/HINTS "$ENV{HOME}\/lib"/HINTS "$ENV{PREFIX}\/lib"/' CMakeLists.txt
+sed -i 's/"-w -O3"/"\$ENV{CFLAGS} -w -O3"/' CMakeLists.txt
+#sed -i 's/set_target_properties( mshdist PROPERTIES INSTALL_RPATH/#/' CMakeLists.txt
+#sed -i 's/set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)/#/' CMakeLists.txt
+
+cat -n CMakeLists.txt
+
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${PREFIX} -S . -B build
+cmake --build ./build --verbose --config Release
+cmake --install ./build --verbose
+
+ldd $PREFIX/lib/libMshdist.so
+ldd $PREFIX/bin/mshdist
