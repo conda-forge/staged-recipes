@@ -1,12 +1,5 @@
 echo ${CMAKE_ARGS}
 
-#if [ "$(uname)" == "Linux" ]; then
-#    conda install psi4/label/testing::libint2=2.7.2=h2fe1556_0 -c conda-forge
-#fi
-#if [ "$(uname)" == "Darwin" ]; then
-#    conda install psi4/label/testing::libint2=2.7.2=h1800126_0 -c conda-forge
-#fi
-
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
   -S${SRC_DIR} \
   -Bbuild \
@@ -15,8 +8,10 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_C_COMPILER=${CC} \
   -DCMAKE_CXX_COMPILER=${CXX} \
+  -DCMAKE_Fortran_COMPILER=${FC} \
   -DCMAKE_C_FLAGS="${CFLAGS}" \
   -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
+  -DCMAKE_Fortran_FLAGS="${FFLAGS}" \
   -DCMAKE_INSTALL_LIBDIR=lib \
   -DPYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
   -DPython_EXECUTABLE=${PYTHON} \
@@ -27,6 +22,7 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
   -DCMAKE_INSIST_FIND_PACKAGE_Libxc=ON \
   -DCMAKE_INSIST_FIND_PACKAGE_qcelemental=ON \
   -DCMAKE_INSIST_FIND_PACKAGE_qcengine=ON \
+  -DENABLE_dkh=ON \
   -DENABLE_OPENMP=ON \
   -DENABLE_XHOST=OFF \
   -DENABLE_GENERIC=OFF \
@@ -34,13 +30,10 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
   -DCMAKE_PREFIX_PATH="${PREFIX}"
 
 # addons when ready for c-f
-#  -DCMAKE_Fortran_COMPILER=${FC} \
-#  -DCMAKE_Fortran_FLAGS="${FFLAGS}" \
 #  -DENABLE_ambit=ON \
 #  -DCMAKE_INSIST_FIND_PACKAGE_ambit=ON \
 #  -DENABLE_CheMPS2=ON \
 #  -DCMAKE_INSIST_FIND_PACKAGE_CheMPS2=ON \
-#  -DENABLE_dkh=ON \
 #  -DCMAKE_INSIST_FIND_PACKAGE_dkh=ON \
 #  -DENABLE_ecpint=ON \
 #  -DCMAKE_INSIST_FIND_PACKAGE_ecpint=ON \
