@@ -1,11 +1,11 @@
 echo ${CMAKE_ARGS}
 
-if [ "$(uname)" == "Linux" ]; then
-    conda install psi4/label/testing::libint2=2.7.2=h2fe1556_0 -c conda-forge
-fi
-if [ "$(uname)" == "Darwin" ]; then
-    conda install psi4/label/testing::libint2=2.7.2=h1800126_0 -c conda-forge
-fi
+#if [ "$(uname)" == "Linux" ]; then
+#    conda install psi4/label/testing::libint2=2.7.2=h2fe1556_0 -c conda-forge
+#fi
+#if [ "$(uname)" == "Darwin" ]; then
+#    conda install psi4/label/testing::libint2=2.7.2=h1800126_0 -c conda-forge
+#fi
 
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
   -S${SRC_DIR} \
