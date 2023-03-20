@@ -1,10 +1,9 @@
 {% set name = "psi4" %}
-{% set version "1.7.100" %}
+{% set version = "1.7.100" %}
 {% set sha256 = "705f5467a165fbbe2ed3e9e1c554a8c786a677d271ded74f31f94948f1f906f0" %}
 
 package:
   name: {{ name|lower }}
-  #version: {{ data.get('version') }}
   version: {{ version }}
 
 source:
@@ -22,6 +21,7 @@ requirements:
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
+    #- {{ compiler('fortran') }}
     - cmake
     - ninja
     - llvm-openmp                            # [osx]
@@ -54,6 +54,35 @@ requirements:
     - {{ pin_compatible('qcengine', upper_bound='0.27') }}
       # someday, qcengine and qcelemental should be `max_pin='x'` again
 
+#outputs:
+#    requirements:
+#      host:
+#        - libblas
+#        - liblapack
+#    requirements:
+#      requirements:
+#          run_constrained:
+#              - pymdi >={{ pymdi }}
+#          host:
+#              # qc
+#              - ambit {{ ambit }}
+#              - chemps2 {{ chemps2 }}
+#              - dkh {{ dkh }}                    # nofortran
+#              - libecpint {{ libecpint }}
+#              - gdma {{ gdma }}                  # nofortran
+#              - pcmsolver {{ pcmsolver }} {{ pcmsolver_bld }}  # nofortran
+#              - simint {{ simint }}
+#              - dftd3 {{ dftd3 }}
+#              - gcp {{ gcp }}
+#          run:
+#              - intel-openmp                   # [linux]
+#              - numpy >={{ numpy }},<1.26.0
+#              - pytest                                         # drive psi4 --test
+#              # qc
+#              - {{ pin_compatible('dftd3', max_pin='x.x') }}
+#              - {{ pin_compatible('gcp', max_pin='x.x') }}
+#              - pcmsolver {{ pcmsolver }} {{ pcmsolver_bld }}  # temporary so right intel_sse4_strlen
+
 test:
   imports:
     - psi4
@@ -71,9 +100,10 @@ test:
     - test -f $SP_DIR/psi4/core*.so                       # [unix]
     - test -f $PREFIX/bin/psi4                            # [unix]
     - $PREFIX/bin/psi4 --version                          # [unix]
+      #-- Installing: D:/a/1/b/install/lib/core.lib
     - if not exist %SP_DIR%\\psi4\\core*.pyd exit 1       # [win]
     - if not exist %PREFIX%\\bin\\psi4.bat exit 1         # [win]
-    - %PREFIX%\\bin\\psi4 --version                       # [win]
+    - "%PREFIX%\\bin\\psi4 --version"                     # [win]
     # Verify accessories
     - test -f $PREFIX/include/psi4/psi4-dec.h             # [unix]
     - test -f $PREFIX/share/cmake/psi4/psi4Config.cmake   # [unix]
@@ -112,3 +142,79 @@ about:
 extra:
   recipe-maintainers:
     - loriab
+
+#######
+
+#outputs:
+#    - name: psi4
+#      build:
+#          requires_features:
+#              blas: {{ blas_impl }}
+#          run_exports:
+#              - {{ pin_subpackage('psi4', max_pin='x.x') }}
+#          ignore_run_exports:
+#              - numpy
+#      files:
+#          - bin/psi4
+#          - include/psi4
+#          - lib/python{{ PY_VER }}/site-packages/psi4
+#          - share/cmake/psi4
+#          - share/cmake/Target*/*
+#          - share/psi4
+#          # efpfrag
+#      test:
+#          commands:
+#              # Actually test
+#              - PASSFAIL="--passfail"           # [linux]
+#              - PASSFAIL=""                     # [osx]  # Mac threading occasionally bizarre
+#              - python $PREFIX/share/psi4/scripts/test_threading.py --passfail --ldd  # [py3k]
+#              - python $PREFIX/share/psi4/scripts/test_threading.py ${PASSFAIL} --psiapi -n6  # [py3k]
+#              - python $PREFIX/share/psi4/scripts/test_threading.py ${PASSFAIL} --psithon -n6  # [py3k and not osx]
+
+
+#    files:
+#      - include/efp.h                   # [unix]
+#      - include/libefp/*                # [unix]
+#      - lib/libefp{{ SHLIB_EXT }}*      # [linux]
+#      - lib/libefp.*dylib               # [osx]
+#      - share/cmake/libefp/*            # [unix]
+#      - share/libefp/*                  # [unix]
+#      - share/libefp/fraglib/*          # [unix]
+#      - Library/include/efp.h           # [win]
+#      - Library/include/libefp/*        # [win]
+#      - Library/bin/efp*                # [win]
+#      - Library/lib/efp*                # [win]
+#      - Library/share/cmake/libefp      # [win]
+#      - Library/share/libefp/*          # [win]
+#      - Library/share/libefp/fraglib/*  # [win]
+#
+#    files:
+#      - lib/python{{ PY_VER }}/site-packages/pylibefp  # [unix]
+#      - Lib/site-packages/pylibefp                     # [win]
+#        # if later install cmake config files for Py module, these are the correct filters
+#        # - share/cmake/pylibefp/*                         # [unix]
+#        # - Library/share/cmake/pylibefp/*                 # [win]
+
+## NOTES
+## -----
+##
+## * weird mkl 2019-2021 pinning:
+##      build:
+##          ignore_run_exports:
+##              # allow pin_compatible below to trump native mkl run_exports to permit 2019/2020 compatibility
+##              - mkl                            # [linux]
+##      requirements:
+##          host:
+##              - mkl-devel {{ mkl }}            # [blas_impl == 'mkl']
+##          run:
+##              - {{ pin_compatible('mkl', upper_bound='2021.0') }}  # [linux]
+#
+## * to conda build package from local source rather than github, substitute like below
+##   package/version: 0.1.6
+##   source/path: ../../../hrw-conda
+##   build/number: 1
+##   build/string: abc
+
+## * to test on maintenance branch
+##   package/version: v1.3.1rc1  # explicit version for trial builds on maintenance branch (where versioner undefines un-tagged version)
+##   source/git_tag: 1.3.x
