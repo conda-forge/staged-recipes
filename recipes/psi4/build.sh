@@ -58,7 +58,9 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
 #  -DOpenMP_CXX_FLAG="-fopenmp=libiomp5" \
 #  -DCMAKE_OSX_DEPLOYMENT_TARGET=''
 
-cmake --build build --target install -j${CPU_COUNT}
+cmake --build build --target install
+
+#-j${CPU_COUNT}
 
 # pytest in conda testing stage
 
