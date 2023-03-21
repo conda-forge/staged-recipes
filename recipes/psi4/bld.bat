@@ -5,14 +5,14 @@ cmake %CMAKE_ARGS% ^
   -S%SRC_DIR% ^
   -Bbuild ^
   -DCMAKE_BUILD_TYPE=Release ^
-  -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
+  -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
   -DCMAKE_C_COMPILER=clang-cl ^
   -DCMAKE_CXX_COMPILER=clang-cl ^
-  -DCMAKE_INSTALL_LIBDIR="Library\lib" ^
-  -DCMAKE_INSTALL_INCLUDEDIR="Library\include" ^
-  -DCMAKE_INSTALL_BINDIR="Library\bin" ^
-  -DCMAKE_INSTALL_DATADIR="Library\share" ^
-  -DPYMOD_INSTALL_LIBDIR="\..\..\Lib\site-packages" ^
+  -DCMAKE_INSTALL_LIBDIR="lib" ^
+  -DCMAKE_INSTALL_INCLUDEDIR="include" ^
+  -DCMAKE_INSTALL_BINDIR="bin" ^
+  -DCMAKE_INSTALL_DATADIR="share" ^
+  -DPYMOD_INSTALL_LIBDIR="/../../Lib/site-packages" ^
   -DPython_EXECUTABLE="%PYTHON%" ^
   -DLAPACK_LIBRARIES="%PREFIX%\\Library\\lib\\mkl_rt.lib" ^
   -DBUILD_SHARED_LIBS=OFF ^

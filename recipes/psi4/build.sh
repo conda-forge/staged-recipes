@@ -2,9 +2,9 @@ if [ "$(uname)" == "Darwin" ]; then
     ARCH_ARGS=""
 fi
 if [ "$(uname)" == "Linux" ]; then
-    ARCH_ARGS="-Dpsi4_CXX_STANDARD_Libint2=14"
-    #ARCH_ARGS=""
-    #CXXFLAGS=""
+    #ARCH_ARGS="-Dpsi4_CXX_STANDARD_Libint2=14"
+    ARCH_ARGS=""
+    CXXFLAGS=""
 fi
 
 echo ${CMAKE_ARGS}
@@ -13,7 +13,6 @@ echo ${ARCH_ARGS}
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
   -S${SRC_DIR} \
   -Bbuild \
-  -GNinja \
   -DCMAKE_INSTALL_PREFIX=${PREFIX} \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_C_COMPILER=${CC} \
