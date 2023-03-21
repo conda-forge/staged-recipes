@@ -1,3 +1,5 @@
+dir %LIBRARY_PREFIX%
+
 cmake %CMAKE_ARGS% ^
   -G"Ninja" ^
   -S%SRC_DIR% ^
@@ -14,7 +16,6 @@ cmake %CMAKE_ARGS% ^
   -DPython_EXECUTABLE="%PYTHON%" ^
   -DBUILD_SHARED_LIBS=OFF ^
   -DENABLE_OPENMP=ON ^
-  -DLAPACK_LIBRARIES="%PREFIX%/Library/lib/mkl_rt.lib" ^
   -DCMAKE_INSIST_FIND_PACKAGE_gau2grid=ON ^
   -DMAX_AM_ERI=5 ^
   -DCMAKE_INSIST_FIND_PACKAGE_Libint2=ON ^
