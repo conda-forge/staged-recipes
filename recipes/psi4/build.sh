@@ -4,11 +4,12 @@ fi
 if [ "$(uname)" == "Linux" ]; then
     #ARCH_ARGS="-Dpsi4_CXX_STANDARD_Libint2=14"
     ARCH_ARGS=""
-    CXXFLAGS=""
+    #CXXFLAGS=""
 fi
 
 echo ${CMAKE_ARGS}
 echo ${ARCH_ARGS}
+echo ${CXXFLAGS}
 
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
   -S${SRC_DIR} \
