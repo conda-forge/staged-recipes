@@ -1,6 +1,14 @@
-echo ${CMAKE_ARGS}
+if [ "$(uname)" == "Darwin" ]; then
+    ARCH_ARGS=""
+fi
+if [ "$(uname)" == "Linux" ]; then
+    ARCH_ARGS="-Dpsi4_CXX_STANDARD_Libint2=14"
+fi
 
-${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
+echo ${CMAKE_ARGS}
+echo ${ARCH_ARGS}
+
+${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
   -S${SRC_DIR} \
   -Bbuild \
   -GNinja \
