@@ -1,4 +1,4 @@
-dir %LIBRARY_PREFIX%
+dir "%LIBRARY_PREFIX%\\lib"
 
 cmake %CMAKE_ARGS% ^
   -G"Ninja" ^
@@ -14,6 +14,7 @@ cmake %CMAKE_ARGS% ^
   -DCMAKE_INSTALL_DATADIR="Library\share" ^
   -DPYMOD_INSTALL_LIBDIR="\..\..\Lib\site-packages" ^
   -DPython_EXECUTABLE="%PYTHON%" ^
+  -DLAPACK_LIBRARIES="%PREFIX%\\Library\\lib\\mkl_rt.lib" ^
   -DBUILD_SHARED_LIBS=OFF ^
   -DENABLE_OPENMP=ON ^
   -DCMAKE_INSIST_FIND_PACKAGE_gau2grid=ON ^
