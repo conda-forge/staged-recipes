@@ -4,7 +4,7 @@ fi
 if [ "$(uname)" == "Linux" ]; then
     ARCH_ARGS="-Dpsi4_CXX_STANDARD_Libint2=14"
     #ARCH_ARGS=""
-    CXXFLAGS=""
+    #CXXFLAGS=""
 fi
 
 echo ${CMAKE_ARGS}
@@ -20,7 +20,7 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
   -DCMAKE_CXX_COMPILER=${CXX} \
   -DCMAKE_Fortran_COMPILER=${FC} \
   -DCMAKE_C_FLAGS="${CFLAGS}" \
-  -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
+  -DCMAKE_CXX_FLAGS="${CXXFLAGS} -O0" \
   -DCMAKE_Fortran_FLAGS="${FFLAGS}" \
   -DCMAKE_INSTALL_LIBDIR=lib \
   -DPYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
