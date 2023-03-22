@@ -5,13 +5,13 @@ cmake %CMAKE_ARGS% ^
   -S%SRC_DIR% ^
   -Bbuild ^
   -DCMAKE_BUILD_TYPE=Release ^
-  -DCMAKE_INSTALL_PREFIX="install" ^
+  -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
   -DCMAKE_C_COMPILER=clang-cl ^
   -DCMAKE_CXX_COMPILER=clang-cl ^
-  -DCMAKE_INSTALL_LIBDIR="lib" ^
-  -DCMAKE_INSTALL_INCLUDEDIR="include" ^
-  -DCMAKE_INSTALL_BINDIR="bin" ^
-  -DCMAKE_INSTALL_DATADIR="share" ^
+  -DCMAKE_INSTALL_LIBDIR="Library\lib" ^
+  -DCMAKE_INSTALL_INCLUDEDIR="Library\include" ^
+  -DCMAKE_INSTALL_BINDIR="Library\bin" ^
+  -DCMAKE_INSTALL_DATADIR="Library\share" ^
   -DPython_EXECUTABLE="%PYTHON%" ^
   -DLAPACK_LIBRARIES="%PREFIX%\\Library\\lib\\mkl_rt.lib" ^
   -DBUILD_SHARED_LIBS=OFF ^
@@ -37,26 +37,16 @@ if errorlevel 1 exit 1
 ::      -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CFLAGS%"
 ::      -DCMAKE_CXX_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CXXFLAGS%"
 
-cd build
-cmake --build . ^
+::cd build
+
+cmake --build build ^
       --config Release ^
       --target install ^
       -- -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
-cd ..
-set INSTALL_DIR=install
-
-md {{ PREFIX }}\Scripts
-copy /y {{ INSTALL_DIR }}\bin\psi4 {{ PREFIX }}\Scripts
-echo __pycache__ > exclude.txt
-xcopy /f /i /s /exclude:exclude.txt {{ INSTALL_DIR }}\lib\psi4 {{ SP_DIR }}\psi4
-xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\basis       {{ PREFIX }}\Lib\share\psi4\basis
-xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\plugin      {{ PREFIX }}\Lib\share\psi4\plugin
-xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\quadratures {{ PREFIX }}\Lib\share\psi4\quadratures
-xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\databases   {{ PREFIX }}\Lib\share\psi4\databases
-xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\fsapt       {{ PREFIX }}\Lib\share\psi4\fsapt
-xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\grids       {{ PREFIX }}\Lib\share\psi4\grids
+:: Relocate python scripts to expected location (if positioning through PYMOD_INSTALL_LIBDIR="/")
+xcopy /f /i /s /y "%PREFIX%\Library\lib\psi4" "%SP_DIR%\psi4"
 if errorlevel 1 exit 1
 
 :: tests outside build phase
@@ -66,14 +56,17 @@ if errorlevel 1 exit 1
 ::  -DPYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
 ::  -DLAPACK_LIBRARIES="${PREFIX}/lib/libmkl_rt${SHLIB_EXT}" \
 
-::    - md {{ PREFIX }}\Scripts
-::    - copy /y {{ INSTALL_DIR }}\bin\psi4 {{ PREFIX }}\Scripts
-::    - echo __pycache__ > exclude.txt
-::    - xcopy /f /i /s /exclude:exclude.txt {{ INSTALL_DIR }}\lib\psi4 {{ SP_DIR }}\psi4
-::    - xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\basis       {{ PREFIX }}\Lib\share\psi4\basis
-::    - xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\plugin      {{ PREFIX }}\Lib\share\psi4\plugin
-::    - xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\quadratures {{ PREFIX }}\Lib\share\psi4\quadratures
-::    - xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\databases   {{ PREFIX }}\Lib\share\psi4\databases
-::    - xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\fsapt       {{ PREFIX }}\Lib\share\psi4\fsapt
-::    - xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\grids       {{ PREFIX }}\Lib\share\psi4\grids
+
+::  -G"Ninja" 
+::  -S%SRC_DIR% 
+::  -Bbuild 
+::  -DCMAKE_BUILD_TYPE=Release 
+::  -DCMAKE_INSTALL_PREFIX="%PREFIX%" 
+::  -DCMAKE_C_COMPILER=clang-cl 
+::  -DCMAKE_CXX_COMPILER=clang-cl 
+::  -DCMAKE_INSTALL_LIBDIR="Library\lib" 
+::  -DCMAKE_INSTALL_INCLUDEDIR="Library\include" 
+::  -DCMAKE_INSTALL_BINDIR="Library\bin" 
+::  -DCMAKE_INSTALL_DATADIR="Library\share" 
+::  -DPYMOD_INSTALL_LIBDIR="\..\..\Lib\site-packages" 
 
