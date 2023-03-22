@@ -2,9 +2,7 @@ if [ "$(uname)" == "Darwin" ]; then
     ARCH_ARGS=""
 fi
 if [ "$(uname)" == "Linux" ]; then
-    #ARCH_ARGS="-Dpsi4_CXX_STANDARD_Libint2=14"
     ARCH_ARGS=""
-    #CXXFLAGS=""
 fi
 
 echo ${CMAKE_ARGS}
@@ -19,7 +17,7 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
   -DCMAKE_C_COMPILER=${CC} \
   -DCMAKE_CXX_COMPILER=${CXX} \
   -DCMAKE_C_FLAGS="${CFLAGS}" \
-  -DCMAKE_CXX_FLAGS="${CXXFLAGS} -O0" \
+  -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
   -DCMAKE_INSTALL_LIBDIR=lib \
   -DPYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
   -DPython_EXECUTABLE=${PYTHON} \
@@ -59,9 +57,7 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
 #  -DOpenMP_CXX_FLAG="-fopenmp=libiomp5" \
 #  -DCMAKE_OSX_DEPLOYMENT_TARGET=''
 
-cmake --build build --target install
-
-#-j${CPU_COUNT}
+cmake --build build --target install -j${CPU_COUNT}
 
 # pytest in conda testing stage
 
