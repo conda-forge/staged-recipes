@@ -80,7 +80,8 @@ if errorlevel 1 exit 1
 xcopy /f /i /s /y "%PREFIX%\Library\lib\psi4" "%SP_DIR%\psi4"
 if errorlevel 1 exit 1
 
-objdump.exe -p %PREFIX%\Lib\site-packages\psi4\core.*.pyd | findstr /i "dll"
+:: only available with m2w64-binutils package - deferred to tests
+:: objdump.exe -p %PREFIX%\Lib\site-packages\psi4\core.*.pyd | findstr /i "dll"
 
 ::cd ..
 ::set INSTALL_DIR=install

@@ -3,14 +3,14 @@ if [ "$(uname)" == "Darwin" ]; then
 fi
 if [ "$(uname)" == "Linux" ]; then
     ARCH_ARGS=""
-fi
 
-which git
-git rev-parse --is-inside-work-tree
-git rev-parse --is-inside-git-dir
-git rev-parse --is-bare-repository
-git rev-parse --show-prefix
-git rev-parse --show-toplevel
+    which git
+    git rev-parse --is-inside-work-tree
+    git rev-parse --is-inside-git-dir
+    git rev-parse --is-bare-repository
+    git rev-parse --show-prefix
+    git rev-parse --show-toplevel
+fi
 
 echo ${CMAKE_ARGS}
 echo ${ARCH_ARGS}
