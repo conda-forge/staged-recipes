@@ -3,6 +3,7 @@
 set -ex
 
 which git
+git rev-parse --is-inside-work-tree
 
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
     -S${SRC_DIR} \
