@@ -32,5 +32,3 @@ if errorlevel 1 exit 1
 
 :: no independent tests
 
-objdump.exe -p %PREFIX%\\Library\\bin\\libdkh.dll | findstr /i "dll"
-

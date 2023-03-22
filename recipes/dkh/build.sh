@@ -2,13 +2,6 @@
 
 set -ex
 
-which git
-git rev-parse --is-inside-work-tree
-git rev-parse --is-inside-git-dir
-git rev-parse --is-bare-repository
-git rev-parse --show-prefix
-git rev-parse --show-toplevel
-
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
     -S${SRC_DIR} \
     -Bbuild \
