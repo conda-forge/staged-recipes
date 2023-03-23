@@ -1,5 +1,5 @@
-dir "%LIBRARY_PREFIX%\\lib"
-dir "external_src\\conda"
+::dir "%LIBRARY_PREFIX%\\lib"
+::dir "external_src\\conda"
 
 cmake %CMAKE_ARGS% ^
   -G"Ninja" ^
@@ -15,7 +15,7 @@ cmake %CMAKE_ARGS% ^
   -DCMAKE_INSTALL_DATADIR="Library\share" ^
   -DPython_EXECUTABLE="%PYTHON%" ^
   -DLAPACK_LIBRARIES="%PREFIX%\\Library\\lib\\mkl_rt.lib" ^
-  -DOpenMP_LIBRARY_DIRS="%SRC_DIR\\external_src\\iomp5md\\conda\\win\\2019.1" ^
+  -DOpenMP_LIBRARY_DIRS="%SRC_DIR\\external_src\\conda\\win\\2019.1" ^
   -DBUILD_SHARED_LIBS=OFF ^
   -DENABLE_OPENMP=ON ^
   -DCMAKE_INSIST_FIND_PACKAGE_gau2grid=ON ^
@@ -37,26 +37,26 @@ if errorlevel 1 exit 1
 ::2023-03-21T18:48:00.7500384Z -- Installing: C:/bld/psi4_1679421472503/_h_env/Lib/site-packages/psi4/core.cp39-win_amd64.pyd
 
 :: -- Detecting MathOpenMP -- ?OpenMP=ON, ?MKL= MKL, LANG=CXX, C/CXX/Fortran=Clang/Clang/
-:: -- Could NOT find OpenMP_CXX (missing: OpenMP_CXX_FLAGS OpenMP_CXX_LIB_NAMES) 
-:: -- Could NOT find OpenMP (missing: OpenMP_CXX_FOUND CXX) 
+:: -- Could NOT find OpenMP_CXX (missing: OpenMP_CXX_FLAGS OpenMP_CXX_LIB_NAMES)
+:: -- Could NOT find OpenMP (missing: OpenMP_CXX_FOUND CXX)
 :: -- CMake FindOpenMP failed! Trying a custom OpenMP configuration...
 :: -- Performing Test USE_CLANG_CL_CXX
 :: -- Performing Test USE_CLANG_CL_CXX - Success
 :: -- OpenMP::OpenMP_CXX target constructed (D:/a/psi4/psi4/iomp5md/conda/win/2019.1/libiomp5md.lib)
-:: -- Found TargetOpenMP: 1  found components: CXX 
-:: -- Found MathOpenMP: 1  
+:: -- Found TargetOpenMP: 1  found components: CXX
+:: -- Found MathOpenMP: 1
 :: -- Using LAPACK MKL: C:/Miniconda/envs/baseenv/Library/lib/mkl_rt.lib;...
 :: -- Disabled HDF5
 
 :: 2023-03-21T16:10:31.3191616Z -- Detecting MathOpenMP -- ?OpenMP=ON, ?MKL= MKL, LANG=CXX, C/CXX/Fortran=Clang/Clang/
-:: 2023-03-21T16:10:31.3192661Z -- Could NOT find OpenMP_CXX (missing: OpenMP_CXX_FLAGS OpenMP_CXX_LIB_NAMES) 
-:: 2023-03-21T16:10:31.3194029Z -- Could NOT find OpenMP (missing: OpenMP_CXX_FOUND CXX) 
+:: 2023-03-21T16:10:31.3192661Z -- Could NOT find OpenMP_CXX (missing: OpenMP_CXX_FLAGS OpenMP_CXX_LIB_NAMES)
+:: 2023-03-21T16:10:31.3194029Z -- Could NOT find OpenMP (missing: OpenMP_CXX_FOUND CXX)
 :: 2023-03-21T16:10:31.3195044Z -- CMake FindOpenMP failed! Trying a custom OpenMP configuration...
 :: 2023-03-21T16:10:31.3195878Z -- Performing Test USE_CLANG_CL_CXX
 :: 2023-03-21T16:10:31.3196756Z -- Performing Test USE_CLANG_CL_CXX - Success
 :: 2023-03-21T16:10:31.3198368Z -- OpenMP::OpenMP_CXX target constructed (C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Tools/Llvm/x64/lib/libiomp5md.lib)
-:: 2023-03-21T16:10:31.3199396Z -- Found TargetOpenMP: 1  found components: CXX 
-:: 2023-03-21T16:10:31.3200125Z -- Found MathOpenMP: 1  
+:: 2023-03-21T16:10:31.3199396Z -- Found TargetOpenMP: 1  found components: CXX
+:: 2023-03-21T16:10:31.3200125Z -- Found MathOpenMP: 1
 :: 2023-03-21T16:10:31.3200634Z -- Using LAPACK MKL: %PREFIX%\\Library\\lib\\mkl_rt.lib;...
 :: 2023-03-21T16:10:31.3201065Z -- Disabled HDF5
 
