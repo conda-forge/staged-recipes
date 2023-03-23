@@ -1,4 +1,5 @@
 dir "%LIBRARY_PREFIX%\\lib"
+dir
 
 cmake %CMAKE_ARGS% ^
   -G"Ninja" ^
