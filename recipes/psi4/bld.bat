@@ -1,5 +1,5 @@
 dir "%LIBRARY_PREFIX%\\lib"
-dir external_src
+dir "external_src\\conda"
 
 cmake %CMAKE_ARGS% ^
   -G"Ninja" ^
@@ -79,7 +79,7 @@ cmake --build build ^
       -- -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
-:: Relocate python scripts to expected location (if positioning through PYMOD_INSTALL_LIBDIR="/")
+:: Relocate python module to expected location (if positioning through PYMOD_INSTALL_LIBDIR="/")
 copy /y "%PREFIX%\Library\bin\psi4" "%PREFIX%\Scripts"
 if errorlevel 1 exit 1
 xcopy /f /i /s /y "%PREFIX%\Library\lib\psi4" "%SP_DIR%\psi4"
@@ -88,7 +88,12 @@ del /S /Q "%PREFIX%\Library\lib\psi4"
 if errorlevel 1 exit 1
 
 :: only available with m2w64-binutils package - deferred to tests
-:: objdump.exe -p %PREFIX%\Lib\site-packages\psi4\core.*.pyd | findstr /i "dll"
+objdump.exe -p %PREFIX%\Lib\site-packages\psi4\core.*.pyd | findstr /i "dll"
+
+:: tests outside build phase
+
+:: #2023-03-22T19:13:22.2662192Z -- Installing: C:/bld/psi4_1679509717843/_h_env/Library/bin/psi4
+:: #2023-03-22T19:13:22.2689516Z -- Installing: C:/bld/psi4_1679509717843/_h_env/Library/bin/psi4.bat
 
 ::cd ..
 ::set INSTALL_DIR=install
@@ -105,7 +110,6 @@ if errorlevel 1 exit 1
 ::xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\grids       {{ PREFIX }}\Lib\share\psi4\grids
 ::if errorlevel 1 exit 1
 
-:: tests outside build phase
 
 ::  -DCMAKE_C_FLAGS="${CFLAGS}" \
 ::  -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
