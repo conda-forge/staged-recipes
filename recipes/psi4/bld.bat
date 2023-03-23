@@ -1,5 +1,6 @@
 ::dir "%LIBRARY_PREFIX%\\lib"
-::dir "external_src\\conda"
+dir "external_src\\conda"
+dir "%SRC_DIR%\\external_src\\conda"
 
 cmake %CMAKE_ARGS% ^
   -G"Ninja" ^
@@ -15,7 +16,7 @@ cmake %CMAKE_ARGS% ^
   -DCMAKE_INSTALL_DATADIR="Library\share" ^
   -DPython_EXECUTABLE="%PYTHON%" ^
   -DLAPACK_LIBRARIES="%PREFIX%\\Library\\lib\\mkl_rt.lib" ^
-  -DOpenMP_LIBRARY_DIRS="%SRC_DIR\\external_src\\conda\\win\\2019.1" ^
+  -DOpenMP_LIBRARY_DIRS="%SRC_DIR%\\external_src\\conda\\win\\2019.1" ^
   -DBUILD_SHARED_LIBS=OFF ^
   -DENABLE_OPENMP=ON ^
   -DCMAKE_INSIST_FIND_PACKAGE_gau2grid=ON ^
