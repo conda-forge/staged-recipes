@@ -32,10 +32,10 @@ requirements:
     - cmake
     - make                                   # [linux]
     - ninja
-    - llvm-openmp
+    - llvm-openmp                            # [not win]
     #- llvm-openmp                            # [osx or win]
     #- libgomp                                # [linux]
-    #- intel-openmp                           # [win]
+    - intel-openmp                           # [win]
   host:
     - eigen
     - boost-cpp
@@ -57,7 +57,8 @@ requirements:
     # qc opt'l
     #- dkh
   run:
-    - llvm-openmp
+    - intel-openmp                           # [win]
+    - llvm-openmp                            # [not win]
     - libblas * *mkl                         # [not win]
     - mkl                                    # [not win]
     - mkl 2021.4                             # [win]
@@ -120,18 +121,20 @@ test:
     - ls -l $PREFIX/lib                                                  # [unix]
     - ls -l $PREFIX/share/cmake/psi4                                     # [unix]
     - ls -l $SP_DIR/psi4                                                 # [unix]
-    - dir %PREFIX%                                                       # [win]
-    - dir %PREFIX%\\Library                                              # [win]
+    - dir %PREFIX%\\Scripts                                              # [win]
     - dir %PREFIX%\\Library\\bin                                         # [win]
     - dir %PREFIX%\\Library\\lib                                         # [win]
-    #- dir %PREFIX%\\Library\\share\\cmake\\psi4                          # [win]
+    - dir %PREFIX%\\Library\\share\\cmake\\psi4                          # [win]
     - dir %PREFIX%\\Library\\include                                     # [win]
     - dir %SP_DIR%\\psi4                                                 # [win]
+    # Inspect linkage
+    - ldd -v $SP_DIR/psi4/core*.so                                       # [linux]
+    - otool -L $SP_DIR/psi4/core*.so                                     # [osx]
+    - objdump.exe -p %SP_DIR\\psi4\\core.*.pyd | findstr /i "dll"        # [win]
     # Verify existence and execution
     - test -f $SP_DIR/psi4/core*.so                                      # [unix]
     - test -f $PREFIX/bin/psi4                                           # [unix]
     - $PREFIX/bin/psi4 --version                                         # [unix]
-      #-- Installing: D:/a/1/b/install/lib/core.lib
     - if not exist %SP_DIR%\\psi4\\core*.pyd exit 1                      # [win]
     #- if not exist %PREFIX%\\bin\\psi4.bat exit 1         # [win]
     #- "%PREFIX%\\bin\\psi4 --version"                     # [win]
@@ -144,13 +147,9 @@ test:
     - if not exist %PREFIX%\\Library\\share\\cmake\\psi4\\psi4Config.cmake exit 1  # [win]
     #- if not exist %PREFIX%\\Library\\share\\cmake\\TargetLAPACK\\TargetLAPACKConfig.cmake exit 1  # [win]
     - if not exist %PREFIX%\\Library\\share\\psi4\\basis\\cc-pvdz.gbs exit 1  # [win]
-    # Inspect linkage
-    - ldd -v $SP_DIR/psi4/core*.so                                       # [linux]
-    - otool -L $SP_DIR/psi4/core*.so                                     # [osx]
-    - objdump.exe -p %PREFIX%\\Lib\\site-packages\\psi4\\core.*.pyd | findstr /i "dll"  # [win]
     # Actually test
-    - MKL_CBWR=AVX pytest -rws -v --durations=20 --color yes -n auto $SP_DIR/psi4 -m "quick"  # [unix]
-    - pytest -rws -v --durations=20 --color yes -n auto %SP_DIR%\\psi4 -m "quick"  # [win]
+    - MKL_CBWR=AVX pytest -rws -v --durations=20 --color yes -n auto $SP_DIR/psi4 -m "smoke"  # [unix]
+    - pytest -rws -v --durations=20 --color yes -n auto %SP_DIR%\\psi4 -m "smoke"  # [win]
 
 about:
   home: http://psicode.org
