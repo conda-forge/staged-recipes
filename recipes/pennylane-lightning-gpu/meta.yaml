@@ -7,19 +7,17 @@ package:
   version: {{ version }}
 
 source:
-  # - url: https://github.com/PennyLaneAI/{{ name }}/archive/refs/tags/v{{ version }}.tar.gz
-  #   sha256: e4cb8c496bddbb6c6cd27a6e1462cd3625952996222185dd0d7ec82e3cafea9b
-  - git_url: https://github.com/PennyLaneAI/pennylane-lightning-gpu.git
-    git_branch: bugfix/CUSPARSE_MV_ALG_DEFAULT
+  url: https://github.com/PennyLaneAI/{{ name }}/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: e4cb8c496bddbb6c6cd27a6e1462cd3625952996222185dd0d7ec82e3cafea9b
+  patches:
+    - 0001-setup.patch
 
 build:
   number: 0
   skip: true  # [(not linux) or (cuda_compiler_version !=  "11.2")]
   script: {{ PYTHON }} -m pip install . --no-deps -vv
-  # script: export LD_LIBRARY_PATH={{ PREFIX }}/lib && {{ PYTHON }} -m pip install . --no-deps -vv #https://github.com/introlab/rtabmap_ros/issues/131
   missing_dso_whitelist:
     - '*/libcuda.*'  # [linux]
-    - '*/libcustatevec.*'  # [linux]
 
 requirements:
   build:
@@ -29,16 +27,13 @@ requirements:
     - cmake
     - ninja
   host:
-    - {{ pin_compatible('cudatoolkit', max_pin='x', lower_bound='11.2') }} # cudatoolkit >=11.2,<12.0.0
-    - cuquantum
+    - {{ pin_compatible('custatevec', max_pin='x') }}
     - libgomp      # [linux]
-    - llvm-openmp  # [osx]
     - pip
     - pybind11
     - python
   run:
-    - {{ pin_compatible('cudatoolkit', max_pin='x', lower_bound='11.2') }} # cudatoolkit >=11.2,<12.0.0
-    - cuquantum
+    - {{ pin_compatible('custatevec', max_pin='x') }}
     - pennylane
     - pip
     - python
@@ -51,7 +46,7 @@ test:
     - pl-device-test --device lightning.gpu --shots 10000 --skip-ops # INSUFFICIENT SUPPORT DETECTED FOR GPU DEVICE 
     - pip check
   requires:
-    - setuptools <=64.0.2 # version requirement from cvxpy
+    - setuptools # requirement from cvxpy
     - flaky
     - pip
     - pytest
@@ -66,5 +61,6 @@ about:
 
 extra:
   recipe-maintainers:
+    - leofang
     - vincentmr
   feedstock-name: {{ name }}
