@@ -37,19 +37,43 @@ requirements:
   run:
     - sysroot_{{ target_platform }} 2.17   # [linux]
     - __glibc >=2.17                       # [linux]
-  run_constrained:
-    - gcc_impl_{{ target_platform }} >=6,<13        # [linux]
+    - cuda-cudart-dev
+    - cuda-nvcc_{{ target_platform }} =={{ version }}
+run_constrained:
+  - gcc_impl_{{ target_platform }} >=6,<13        # [linux]
 
 test:
   requires:
     - {{ compiler("c") }}
     - {{ compiler("cxx") }}
-    - cuda-cudart-dev
   files:
     - test.cu
   commands:
     - nvcc --version
     - nvcc --verbose test.cu
+
+outputs:
+  - name: cuda-nvcc
+    files:
+      - bin      # [linux]
+      - include  # [linux]
+      - lib      # [linux]
+      - nvvm
+
+  - name: cuda-nvcc_{{ target_platform }}
+    build:
+      noarch: generic
+    files:
+      - targets          # [linux]
+      - Library\lib      # [win]
+      - Library\include  # [win]
+      - Library\bin      # [win]
+    test:
+      commands:
+        - test -f $PREFIX/targets/*/lib/libnvptxcompiler_static.a     # [linux]
+        - test -f $PREFIX/targets/*/include/nvPTXCompiler.h           # [linux]
+        - if not exist %LIBRARY_LIB%\nvptxcompiler_static.lib exit 1  # [win]
+        - if not exist %LIBRARY_INC%\nvPTXCompiler.h exit 1           # [win]
 
 about:
   home: https://developer.nvidia.com/cuda-toolkit
