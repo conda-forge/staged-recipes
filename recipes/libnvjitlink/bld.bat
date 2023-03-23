@@ -3,4 +3,4 @@ if not exist %PREFIX% mkdir %PREFIX%
 move lib\x64\* %LIBRARY_LIB%
 move include\* %LIBRARY_INC%
 move bin\* %LIBRARY_BIN%
-move def %PREFIX%
+move res\*.def %PREFIX%
