@@ -17,8 +17,6 @@ cmake ${CMAKE_ARGS}                                                          \
     -DENABLE_INTEL_GNA=OFF                                                   \
     -DENABLE_INTEL_GPU=OFF                                                   \
     -DENABLE_INTEL_MYRIAD_COMMON=OFF                                         \
-    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache                                     \
-    -DCMAKE_C_COMPILER_LAUNCHER=ccache                                       \
     -DENABLE_SYSTEM_TBB=ON                                                   \
     -DENABLE_SYSTEM_PUGIXML=ON                                               \
     -DENABLE_SYSTEM_PROTOBUF=ON                                              \
