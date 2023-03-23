@@ -1,5 +1,5 @@
 dir "%LIBRARY_PREFIX%\\lib"
-dir
+dir external_src
 
 cmake %CMAKE_ARGS% ^
   -G"Ninja" ^
@@ -15,6 +15,7 @@ cmake %CMAKE_ARGS% ^
   -DCMAKE_INSTALL_DATADIR="Library\share" ^
   -DPython_EXECUTABLE="%PYTHON%" ^
   -DLAPACK_LIBRARIES="%PREFIX%\\Library\\lib\\mkl_rt.lib" ^
+  -DOpenMP_LIBRARY_DIRS="%SRC_DIR\\external_src\\iomp5md\\conda\\win\\2019.1" ^
   -DBUILD_SHARED_LIBS=OFF ^
   -DENABLE_OPENMP=ON ^
   -DCMAKE_INSIST_FIND_PACKAGE_gau2grid=ON ^
@@ -31,6 +32,7 @@ if errorlevel 1 exit 1
 
 
 ::  -DPYMOD_INSTALL_LIBDIR="/../../Lib/site-packages"
+::  -DOpenMP_LIBRARY_DIRS="D:\a\psi4\psi4\iomp5md\conda\win\2019.1"
 
 ::2023-03-21T18:48:00.7500384Z -- Installing: C:/bld/psi4_1679421472503/_h_env/Lib/site-packages/psi4/core.cp39-win_amd64.pyd
 
