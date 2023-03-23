@@ -77,7 +77,11 @@ cmake --build build ^
 if errorlevel 1 exit 1
 
 :: Relocate python scripts to expected location (if positioning through PYMOD_INSTALL_LIBDIR="/")
+copy /y "%PREFIX%\Library\bin\psi4" "%PREFIX%\Scripts"
+if errorlevel 1 exit 1
 xcopy /f /i /s /y "%PREFIX%\Library\lib\psi4" "%SP_DIR%\psi4"
+if errorlevel 1 exit 1
+del /S /Q "%PREFIX%\Library\lib\psi4"
 if errorlevel 1 exit 1
 
 :: only available with m2w64-binutils package - deferred to tests
