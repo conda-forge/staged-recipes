@@ -3,20 +3,11 @@ if [ "$(uname)" == "Darwin" ]; then
 fi
 if [ "$(uname)" == "Linux" ]; then
     ARCH_ARGS=""
-
-    which git
     git rev-parse --is-inside-work-tree
-    git rev-parse --is-inside-git-dir
-    git rev-parse --is-bare-repository
-    git rev-parse --show-prefix
     git rev-parse --show-toplevel
 fi
 
-echo ${CMAKE_ARGS}
-echo ${ARCH_ARGS}
-echo ${CXXFLAGS}
-
-# note: bizarrely, Linux (but not Mac) using `-G Ninja` hangs on [205/1223] at
+# Note: bizarrely, Linux (but not Mac) using `-G Ninja` hangs on [205/1223] at
 #   c-f/staged-recipes Azure CI --- thus the fallback to GNU Make.
 
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
@@ -46,7 +37,7 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
   -DENABLE_XHOST=OFF \
   -DENABLE_GENERIC=OFF \
   -DLAPACK_LIBRARIES="${PREFIX}/lib/libmkl_rt${SHLIB_EXT}" \
-  -DCMAKE_VERBOSE_MAKEFILE=ON \
+  -DCMAKE_VERBOSE_MAKEFILE=OFF \
   -DCMAKE_PREFIX_PATH="${PREFIX}"
 
 # addons when ready for c-f
@@ -70,6 +61,8 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
 #  -DCMAKE_OSX_DEPLOYMENT_TARGET=''
 
 cmake --build build --target install -j${CPU_COUNT}
+
+cat ${PREFIX}/share/cmake/psi4/*
 
 # pytest in conda testing stage
 

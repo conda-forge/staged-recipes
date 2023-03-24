@@ -24,6 +24,7 @@ cmake %CMAKE_ARGS% ^
   -DCMAKE_INSIST_FIND_PACKAGE_qcelemental=ON ^
   -DCMAKE_INSIST_FIND_PACKAGE_qcengine=ON ^
   -DENABLE_XHOST=OFF ^
+  -DCMAKE_VERBOSE_MAKEFILE=OFF ^
   -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%"
 
 if errorlevel 1 exit 1
@@ -60,7 +61,6 @@ if errorlevel 1 exit 1
 
 ::2023-03-21T06:48:10.6659195Z ninja: error: 'C:/bld/psi4_1679380787794/_h_env/Library/lib/mkl_rt.lib', needed by 'src/core.cp39-win_amd64.pyd', missing and no known rule to make it
 
-::                -DCMAKE_VERBOSE_MAKEFILE=OFF
 ::                -DCMAKE_CXX_FLAGS="/arch:AVX"
 ::                -DPython_NumPy_INCLUDE_DIR="C:/tools/miniconda3/lib/site-packages/numpy/core/include"
 ::                -DEigen3_ROOT="C:/tools/miniconda3/Library"
@@ -68,8 +68,6 @@ if errorlevel 1 exit 1
 ::                -DMultiprecision_ROOT="C:/tools/miniconda3/Library"
 ::      -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CFLAGS%"
 ::      -DCMAKE_CXX_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CXXFLAGS%"
-
-::cd build
 
 cmake --build build ^
       --config Release ^
@@ -85,7 +83,7 @@ if errorlevel 1 exit 1
 del /S /Q "%PREFIX%\Library\lib\psi4"
 if errorlevel 1 exit 1
 
-:: only available with m2w64-binutils package - deferred to tests
+:: only available with m2w64-binutils package - add dep in meta.yaml or defer to test stage
 objdump.exe -p %PREFIX%\Lib\site-packages\psi4\core.*.pyd | findstr /i "dll"
 objdump.exe -p %PREFIX%\Library\bin\mkl_rt.*.dll | findstr /i "dll"
 
