@@ -1,9 +1,9 @@
 set -e
 
-sed -i 's/DESTINATION "$ENV{HOME}/DESTINATION "${CMAKE_INSTALL_PREFIX}/' CMakeLists.txt
-sed -i 's/$ENV{HOME}\/include/$ENV{BUILD_PREFIX}\/include/' CMakeLists.txt
-sed -i 's/HINTS "$ENV{HOME}\/lib"/HINTS "$ENV{PREFIX}\/lib"/' CMakeLists.txt
-sed -i 's/"-w -O3"/"\$ENV{CFLAGS} -w -O3"/' CMakeLists.txt
+sed -i'.bkp' -e 's/DESTINATION "$ENV{HOME}/DESTINATION "${CMAKE_INSTALL_PREFIX}/' CMakeLists.txt
+sed -i'.bkp' -e 's/$ENV{HOME}\/include/$ENV{BUILD_PREFIX}\/include/' CMakeLists.txt
+sed -i'.bkp' -e 's/HINTS "$ENV{HOME}\/lib"/HINTS "$ENV{PREFIX}\/lib"/' CMakeLists.txt
+sed -i'.bkp' -e 's/"-w -O3"/"\$ENV{CFLAGS} -w -O3"/' CMakeLists.txt
 
 cat -n CMakeLists.txt
 

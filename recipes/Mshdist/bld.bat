@@ -1,5 +1,9 @@
-mkdir -p build
-cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -G"NMake Makefiles JOM" -DCMAKE_INSTALL_PREFIX=${PREFIX}
-nmake
+cmake -G"NMake Makefiles JOM" ^
+      -D CMAKE_BUILD_TYPE=Release ^
+      -D "CMAKE_INSTALL_PREFIX=%PREFIX%" ^
+      -S . -B build
 
+if errorlevel 1 exit 1
+cmake --build .\build --config Release --verbose
+if errorlevel 1 exit 1
+cmake --install .\build --verbose

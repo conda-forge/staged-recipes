@@ -1,4 +1,8 @@
-mkdir build
+cmake -G"NMake Makefiles JOM" ^
+      -D CMAKE_BUILD_TYPE=Release ^
+      -D "CMAKE_INSTALL_PREFIX=%PREFIX%" ^
+      -D USE_VTK=OFF ^
+      -S . -B build
+
 cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -G"NMake Makefiles JOM" -DCMAKE_INSTALL_PREFIX=${PREFIX}  -DUSE_VTK=OFF
 devenv mmg.sln /build
