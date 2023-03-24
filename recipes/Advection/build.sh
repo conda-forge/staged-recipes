@@ -3,7 +3,7 @@ set -e
 sed -i'.bkp' -e 's/set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)/#/' CMakeLists.txt
 sed -i'.bkp' -e 's/DESTINATION "$ENV{HOME}/DESTINATION "${CMAKE_INSTALL_PREFIX}/' CMakeLists.txt
 sed -i'.bkp' -e 's/$ENV{HOME}/$ENV{BUILD_PREFIX}/' CMakeLists.txt
-set -i'.bkp' -e 's/set_target_properties( mshdist PROPERTIES INSTALL_RPATH "/usr/local/lib")/#/' CMakeLists.txt
+sed -i'.bkp' -e 's/set_target_properties( mshdist PROPERTIES INSTALL_RPATH/#/' CMakeLists.txt
 
 cat -n CMakeLists.txt
 
