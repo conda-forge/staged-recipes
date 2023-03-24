@@ -16,10 +16,12 @@ echo ${CMAKE_ARGS}
 echo ${ARCH_ARGS}
 echo ${CXXFLAGS}
 
+# note: bizarrely, Linux (but not Mac) using `-G Ninja` hangs on [205/1223] at
+#   c-f/staged-recipes Azure CI --- thus the fallback to GNU Make.
+
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
   -S${SRC_DIR} \
   -Bbuild \
-  -GNinja \
   -DCMAKE_INSTALL_PREFIX=${PREFIX} \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_C_COMPILER=${CC} \
@@ -46,8 +48,6 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
   -DLAPACK_LIBRARIES="${PREFIX}/lib/libmkl_rt${SHLIB_EXT}" \
   -DCMAKE_VERBOSE_MAKEFILE=ON \
   -DCMAKE_PREFIX_PATH="${PREFIX}"
-
-#  -GNinja \
 
 # addons when ready for c-f
 #  -DENABLE_ambit=ON \
