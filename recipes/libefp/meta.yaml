@@ -1,0 +1,165 @@
+{% set name = "libefp" %}
+{% set libefp_version = "1.5.0" %}
+{% set version = "0.6.2" %}
+{% set sha256 = "7463d064caebb6f734ff3b1e266c799d0487012e70da009a66bf8905985cc5ee" %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/loriab/pylibefp/archive/v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+  # note: above accesses (with checksum) a patch of the upstream project libefp
+  # * upstream project is: https://github.com/libefp2/libefp/archive/15cd7ce.tar.gz  # v1.5.0 + 10 (docs and a cmake lapack patch)
+  # * patched project is:  https://github.com/loriab/libefp/archive/14f8594.tar.gz  # v1.5.0 + 13 (above plus some cmake patches for windows)
+
+build:
+  number: 0
+  binary_relocation: true
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+  host:
+    - python
+    - pybind11
+    - pybind11-abi
+    - qcelemental
+    - libblas
+    - liblapack
+
+outputs:
+  - name: libefp
+    version: {{ libefp_version }}
+    build:
+      run_exports:
+        - {{ pin_subpackage('libefp', max_pin='x.x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - cmake
+        - ninja
+      host:
+        - libblas
+        - liblapack
+    files:
+      - include/efp.h                   # [unix]
+      - include/libefp/*                # [unix]
+      - lib/libefp{{ SHLIB_EXT }}*      # [linux]
+      - lib/libefp.*dylib               # [osx]
+      - share/cmake/libefp/*            # [unix]
+      - share/libefp/*                  # [unix]
+      - share/libefp/fraglib/*          # [unix]
+      - Library/include/efp.h           # [win]
+      - Library/include/libefp/*        # [win]
+      - Library/bin/efp*                # [win]
+      - Library/lib/efp*                # [win]
+      - Library/share/cmake/libefp      # [win]
+      - Library/share/libefp/*          # [win]
+      - Library/share/libefp/fraglib/*  # [win]
+    test:
+      commands:
+        - ls -l $PREFIX/lib                                       # [unix]
+        - ls -l $PREFIX/share/cmake/libefp                        # [unix]
+        - dir %PREFIX%\\Library                                   # [win]
+        - dir %PREFIX%\\Library\\include                          # [win]
+        # Verify library
+        - test -f $PREFIX/lib/libefp$SHLIB_EXT                    # [unix]
+        - test ! -f $PREFIX/lib/libefp.a                          # [unix]
+        - if not exist %PREFIX%\\Library\\lib\\efp.lib exit 1     # [win]
+        - if not exist %PREFIX%\\Library\\bin\\efp.dll exit 1     # [win]
+        # Verify accessories
+        - test -f $PREFIX/include/libefp/efp.h                    # [unix]
+        - test -f $PREFIX/share/cmake/libefp/libefpConfig.cmake   # [unix]
+        - test -f $PREFIX/share/libefp/fraglib/h2.efp             # [unix]
+        - if not exist %PREFIX%\\Library\\include\\libefp\\efp.h exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\share\\cmake\\libefp\\libefpConfig.cmake exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\share\\libefp\\fraglib\\h2.efp exit 1  # [win]
+        # Inspect linkage
+        - ldd -v $PREFIX/lib/libefp$SHLIB_EXT                     # [linux and build_platform == target_platform]
+        - otool -L $PREFIX/lib/libefp$SHLIB_EXT                   # [osx]
+
+  - name: pylibefp
+    version: {{ version }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage('libefp', exact=True) }}
+        - python
+        - pybind11
+        - pybind11-abi
+        - qcelemental
+      run:
+        - {{ pin_subpackage('libefp', exact=True) }}
+        - python
+        - {{ pin_compatible('qcelemental', max_pin='x') }}
+    files:
+      - lib/python{{ PY_VER }}/site-packages/pylibefp  # [unix]
+      - Lib/site-packages/pylibefp                     # [win]
+        # if later install cmake config files for Py module, these are the correct filters
+        # - share/cmake/pylibefp/*                         # [unix]
+        # - Library/share/cmake/pylibefp/*                 # [win]
+    test:
+      requires:
+        - numpy
+        - pytest
+      files:
+        - test_pylibefp.py
+      imports:
+        - pylibefp
+      commands:
+        - ls -l $SP_DIR/pylibefp                                  # [unix]
+        - dir %SP_DIR%\\pylibefp                                  # [win]
+        # Verify module
+        - test -f $SP_DIR/pylibefp/core*.so                       # [unix]
+        - if not exist %SP_DIR%\\pylibefp\\core*.pyd exit 1       # [win]
+        # Inspect linkage
+        - ldd -v $SP_DIR/pylibefp/core*.so                        # [linux]
+        - otool -L $SP_DIR/pylibefp/core*.so                      # [osx]
+        # Actually test
+        - python test_pylibefp.py
+        - python -c "import pylibefp; assert pylibefp.test(extras=['--color', 'yes']) == 0"
+          # equivalent to above: pytest -v -rws --color yes $SP_DIR/pylibefp  # [unix]
+          # equivalent to above: pytest -v -rws --color yes %SP_DIR%\\pylibefp  # [win]
+    about:
+      home: https://github.com/loriab/pylibefp
+      dev_url: https://github.com/loriab/pylibefp/blob/master/README.md
+      doc_source_url: https://github.com/loriab/pylibefp/blob/master/doc/source/introduction.rst
+      license: BSD-3-Clause
+      license_url: https://opensource.org/licenses/BSD-3-Clause
+      license_file: LICENSE
+      license_family: BSD
+      summary: "L. A. Burns's Python bindings to libefp"
+
+about:
+  home: https://github.com/libefp2/libefp
+  dev_url: https://github.com/libefp2/libefp/blob/master/README.md
+  doc_url: https://libefp2.github.io/doxygen_html/index.html
+  license: BSD-2-Clause
+  license_url: https://opensource.org/licenses/BSD-2-Clause
+  license_file: LICENSE_libefp
+  license_family: BSD
+  summary: "I. Kaliman and L. Slipchenko's parallel implementation of the Effective Fragment Potential (EFP) method"
+  description: |
+    The Effective Fragment Potential (EFP) method allows one to describe large molecular systems by
+    replacing chemically inert part of a system by a set of Effective Fragments while performing
+    regular ab initio calculation on the chemically active part. The LIBEFP library is a full
+    implementation of the EFP method. It allows users to easily incorporate EFP support into their
+    favourite quantum chemistry package. LIBEFP is interfaced to Q-Chem and Psi4 for QM/EFP calculations.
+
+extra:
+  feedstock-name: libefp
+  recipe-maintainers:
+    - loriab
+    - slipchenko
+
+# Note:
+# * if fraglib locations ever changed in conda recipe, make sure to append to substitution paths in pylibefp/wrapper.py::add_potential()
