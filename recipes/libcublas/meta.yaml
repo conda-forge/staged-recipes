@@ -31,25 +31,44 @@ requirements:
 
 outputs:
   - name: libcublas
+    files:
+      - lib/lib*blas*.so.*            # [linux]
+      - Library\bin\cublas*.dll       # [win]
+      - Library\bin\nvblas*.dll       # [win]
     requirements:
       host:
          - cuda-version {{ cuda_version }}
       run:
          - {{ pin_compatible("cuda-version", max_pin="x.x") }}
-    files:
-      - lib/lib*blas*.so.*            # [linux]
-      - targets/*/lib/lib*blas*.so.*  # [linux]
-      - Library\bin\cublas*.dll                   # [win]
-      - Library\bin\nvblas*.dll                   # [win]
     test:
       commands:
-        - test -f $PREFIX/lib/libcublas.so.*  # [unix]
-        - if not exist %LIBRARY_LIB%\\cublas.lib exit 1  # [win]
+        - test -f $PREFIX/lib/libcublas.so.{{ version }}                # [linux]
+        - test -L $PREFIX/lib/libcublas.so.{{ version.split(".")[0] }}  # [linux]
+        - if not exist %LIBRARY_BIN%\cublas64_{{ version.split(".")[0] }}.dll exit 1    # [win]
+        - if not exist %LIBRARY_BIN%\cublasLt64_{{ version.split(".")[0] }}.dll exit 1  # [win]
+        - if not exist %LIBRARY_BIN%\nvblas64_{{ version.split(".")[0] }}.dll exit 1    # [win]
+    about:
+      home: https://developer.nvidia.com/cublas
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: An implementation of BLAS (Basic Linear Algebra Subprograms) on top of the NVIDIA CUDA runtime.
+      description: |
+        The cuBLAS Library provides a GPU-accelerated implementation of the basic linear algebra subroutines (BLAS).
+      doc_url: https://docs.nvidia.com/cuda/cublas/
 
   - name: libcublas-dev
     build:
       run_exports:
         - {{ pin_subpackage("libcublas", max_pin="x") }}
+    files:
+      - include                     # [linux]
+      - lib/lib*blas*.so            # [linux]
+      - lib/pkgconfig               # [linux]
+      - lib/stubs                   # [linux]
+      - Library\include             # [win]
+      - Library\lib                 # [win]
+      - src
     requirements:
       host:
         - cuda-version {{ cuda_version }}
@@ -57,44 +76,57 @@ outputs:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
         - libcublas >={{ version }}
       run_constrained:
-        - libcublas-static >={{ version }}
-    files:
-      - lib/lib*blas*.so            # [linux]
-      - targets/*/lib/lib*blas*.so  # [linux]
-      - lib/stubs                   # [linux]
-      - include                     # [linux]
-      - targets/*/include/*         # [linux]
-      - lib/pkgconfig               # [linux]
-      - src
-      - Library\include             # [win]
-      - Library\lib                 # [win]
+        - libcublas-static >={{ version }}  # [linux]
     test:
       commands:
-        - test -L $PREFIX/lib/libcublas.so  # [unix]
-        - test -f $PREFIX/include/cublas.h  # [unix]
-        - if not exist %LIBRARY_LIB%\\cublas.lib exit 1  # [win]
-        - if not exist %LIBRARY_INC%\\cublas.h exit 1  # [win]
+        - test -f $PREFIX/include/cublas.h    # [linux]
+        - test -f $PREFIX/include/cublasLt.h  # [linux]
+        - test -f $PREFIX/include/nvblas.h    # [linux]
+        - test -L $PREFIX/lib/libcublas.so    # [linux]
+        - test -L $PREFIX/lib/libcublasLt.so  # [linux]
+        - test -L $PREFIX/lib/libnvblas.so    # [linux]
+        - if not exist %LIBRARY_INC%\cublas.h exit 1      # [win]
+        - if not exist %LIBRARY_INC%\cublasLt.h exit 1    # [win]
+        - if not exist %LIBRARY_INC%\nvblas.h exit 1      # [win]
+        - if not exist %LIBRARY_LIB%\cublas.lib exit 1    # [win]
+        - if not exist %LIBRARY_LIB%\cublasLt.lib exit 1  # [win]
+        - if not exist %LIBRARY_LIB%\nvblas.lib exit 1    # [win]
+    about:
+      home: https://developer.nvidia.com/cublas
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: An implementation of BLAS (Basic Linear Algebra Subprograms) on top of the NVIDIA CUDA runtime.
+      description: |
+        The cuBLAS Library provides a GPU-accelerated implementation of the basic linear algebra subroutines (BLAS).
+      doc_url: https://docs.nvidia.com/cuda/cublas/
 
   - name: libcublas-static
     build:
       skip: True  # [not linux]
+    files:
+      - lib/lib*blas*_static.a
     requirements:
       host:
         - cuda-version {{ cuda_version }}
       run:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
-    files:
-      - lib/lib*blas*_static.a
-      - targets/*/lib/lib*blas*_static.a
     test:
       commands:
-        - test -f $PREFIX/lib/libcublas_static.a  # [unix]
-        - if not exist %LIBRARY_LIB%\\cublas.lib exit 1  # [win]
+        - test -f $PREFIX/lib/libcublas_static.a
+        - test -f $PREFIX/lib/libcublasLt_static.a
+    about:
+      home: https://developer.nvidia.com/cublas
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: An implementation of BLAS (Basic Linear Algebra Subprograms) on top of the NVIDIA CUDA runtime.
+      description: |
+        The cuBLAS Library provides a GPU-accelerated implementation of the basic linear algebra subroutines (BLAS).
+      doc_url: https://docs.nvidia.com/cuda/cublas/
 
 about:
   home: https://developer.nvidia.com/cublas
-  # Uses `LicenseRef-*` per this discussion:
-  # https://github.com/conda-forge/staged-recipes/pull/12882#discussion_r504086944
   license: LicenseRef-NVIDIA-End-User-License-Agreement
   license_file: LICENSE
   license_url: https://docs.nvidia.com/cuda/eula/index.html
