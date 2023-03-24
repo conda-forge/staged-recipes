@@ -1,0 +1,84 @@
+{% set name = "libgazebo-yarp-plugins" %}
+{% set version = "4.6.0" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/robotology/gazebo-yarp-plugins/archive/refs/tags/v{{ version }}.tar.gz
+    sha256: 26e4f26ca5799f445bef9ad5ef307da4b180bebe593a1c925246598eb61b8521
+
+build:
+  number: 0
+  skip: true  # [osx]
+  run_exports:
+    - {{ pin_subpackage(name, max_pin='x') }}
+  # See https://github.com/conda-forge/staged-recipes/pull/21891#issuecomment-1446115361
+  missing_dso_whitelist:  # [win]
+    - '*/CameraPlugin.dll'  # [win]
+    - '*/DepthCameraPlugin.dll'  # [win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - pkg-config
+    - ninja
+    - multisheller
+  host:
+    - yarp-cxx
+    - gazebo
+    - libsdformat
+    - libignition-math6
+    - libprotobuf
+    - tbb-devel
+    - libopencv
+    - ogre
+  run:
+    - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx and x86_64]
+
+test:
+  commands:
+    - test -f ${PREFIX}/include/GazeboYarpPlugins/common.h  # [not win]
+    - if not exist %LIBRARY_INC%\\GazeboYarpPlugins\\common.h exit 1  # [win]
+    - test -f ${PREFIX}/lib/cmake/GazeboYARPPlugins/GazeboYARPPluginsConfig.cmake  # [not win]
+    # - if not exist %PREFIX%\\Library\CMake\\GazeboYARPPluginsConfig.cmake exit 1  # [win]
+    {% set gyp_libs = [
+            "inertial",
+            "basestate",
+            "lasersensor",
+            "forcetorque",
+            "configurationoverride",
+            "linkattacher",
+            "worldinterface",
+            "externalwrench",
+            "depthCamera",
+            "camera",
+            "videotexture",
+            "imu",
+            "robotinterface",
+            "clock",
+            "multicamera",
+            "controlboard",
+            "showmodelcom",
+            "modelposepublisher",
+            "contactloadcellarray"
+    ] %}
+    {% for gyp_lib in gyp_libs %}
+    - test -f ${PREFIX}/lib/libgazebo_yarp_{{ gyp_lib }}${SHLIB_EXT}  # [unix]
+    # - echo "Testing existance of %LIBRARY_BIN%\\gazebo_yarp_{{ gyp_lib }}.dll"  # [win]
+    - if not exist %LIBRARY_BIN%\\gazebo_yarp_{{ gyp_lib }}.dll exit 1  # [win]
+    {% endfor %}
+
+about:
+  home: https://github.com/robotology/gazebo-yarp-plugins
+  license: LGPL-3.0-only
+  license_file: LGPL3.TXT 
+  summary: 'Plugins to interface Gazebo with YARP. '
+
+extra:
+  feedstock-name: gazebo-yarp-plugins
+  recipe-maintainers:
+    - traversaro
