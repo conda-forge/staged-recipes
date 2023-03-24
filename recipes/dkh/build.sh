@@ -1,6 +1,3 @@
-#!/usr/bin/env bash
-
-set -ex
 
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
     -S${SRC_DIR} \
