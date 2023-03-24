@@ -1,0 +1,89 @@
+{% set name = "pygoss" %}
+{% set version = "0.4.2" %}
+
+package:
+  name: "{{ name|lower }}-meta"
+  version: "{{ version }}"
+
+source:
+  url: "https://pypi.io/packages/source/p/pygoss/pygoss-{{ version }}.tar.gz"
+  sha256: 128fac03baf2ffd85728b89c49f8f2e68f5bade86a591550c471290e861c001a
+
+build:
+  number: 1
+  skip: true  # [win]
+  skip:  # [py<37]
+
+outputs:
+  - name: libgoss
+    script: build-cpp.sh
+    build:
+      run_exports:
+        - {{ pin_subpackage("libgoss", max_pin="x.x.x") }}
+
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - cmake
+        - make
+        - ninja
+        - pkg-config
+      host:
+        - libgomp    # [linux]
+        - llvm-openmp     # [osx]
+    test:
+      commands:
+        - test -f $PREFIX/lib/libgoss${SHLIB_EXT}
+        - test -f $PREFIX/include/goss/goss.h
+        - test -f $PREFIX/lib/cmake/goss/GossConfig.cmake
+
+
+  - name: pygoss
+    script: build-py.sh
+
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - cmake
+        - make
+        - pkg-config
+        - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+        - python  # [build_platform != target_platform]
+        - pybind11  # [build_platform != target_platform]
+
+      host:
+        - {{ pin_subpackage("libgoss", exact=True) }}
+        - pip
+        - python
+        - pybind11
+      run:
+        - {{ pin_subpackage("libgoss", exact=True) }}
+        - python
+        - numpy
+        - modelparameters
+        - gotran
+        - rich-click
+        - pydantic
+        - cppyy
+
+    test:
+      imports:
+        - goss
+      requires:
+        - pip
+      commands:
+        - pip check
+        - goss --help
+
+about:
+  home: https://github.com/ComputationalPhysiology/goss
+  summary: goss is python wrapper around a C++ library for solving ordinary differential equations with a variety of different schemes
+  license: LGPL-3.0-or-later
+  license_family: LGPL
+  license_file: LICENSE
+  doc_url: https://computationalphysiology.github.io/goss
+  dev_url: https://github.com/ComputationalPhysiology/goss
+
+extra:
+  recipe-maintainers:
+    - finsberg
