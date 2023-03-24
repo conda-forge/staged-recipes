@@ -19,6 +19,7 @@ echo ${CXXFLAGS}
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
   -S${SRC_DIR} \
   -Bbuild \
+  -GNinja \
   -DCMAKE_INSTALL_PREFIX=${PREFIX} \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_C_COMPILER=${CC} \

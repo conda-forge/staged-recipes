@@ -1,6 +1,3 @@
-::dir "%LIBRARY_PREFIX%\\lib"
-dir "external_src\\conda"
-dir "%SRC_DIR%\\external_src\\conda"
 
 cmake %CMAKE_ARGS% ^
   -G"Ninja" ^
@@ -90,15 +87,13 @@ if errorlevel 1 exit 1
 
 :: only available with m2w64-binutils package - deferred to tests
 objdump.exe -p %PREFIX%\Lib\site-packages\psi4\core.*.pyd | findstr /i "dll"
+objdump.exe -p %PREFIX%\Library\bin\mkl_rt.*.dll | findstr /i "dll"
 
 :: tests outside build phase
 
 :: #2023-03-22T19:13:22.2662192Z -- Installing: C:/bld/psi4_1679509717843/_h_env/Library/bin/psi4
 :: #2023-03-22T19:13:22.2689516Z -- Installing: C:/bld/psi4_1679509717843/_h_env/Library/bin/psi4.bat
 
-::cd ..
-::set INSTALL_DIR=install
-::
 ::md {{ PREFIX }}\Scripts
 ::copy /y {{ INSTALL_DIR }}\bin\psi4 {{ PREFIX }}\Scripts
 ::echo __pycache__ > exclude.txt
