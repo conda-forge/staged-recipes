@@ -32,7 +32,8 @@ build:
 outputs:
   - name: libcusparse
     files:
-      - lib/libcusparse.so.*
+      - lib/libcusparse.so.*  # [linux]
+      - bin\cusparse*.dll     # [win]
     requirements:
       host:
         - cuda-version {{ cuda_version }}
@@ -40,9 +41,9 @@ outputs:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
         - libnvjitlink
     test:
-       commands:
-         - test -f $PREFIX/lib/libcusparse.so  # [unix]
-         - if not exist %LIBRARY_LIB%\\cusparse.lib exit 1  # [win]
+      commands:
+        - test -f $PREFIX/lib/libcusparse.so.*              # [linux]
+        - if not exist %LIBRARY_BIN%\\cusparse*.dll exit 1  # [win]
     about:
       home: https://developer.nvidia.com/cusparse
       license_file: LICENSE
@@ -54,21 +55,26 @@ outputs:
       doc_url: https://docs.nvidia.com/cuda/cusparse/index.html
 
   - name: libcusparse-dev
+    files:
+      - lib/libcusparse.so         # [linux]
+      - lib/stubs/libcusparse.so   # [linux]
+      - lib/x64/cusparse.lib       # [win]
+      - include/cusparse*
+      - src/cusparse_fortran*
     requirements:
       host:
         - cuda-version {{ cuda_version }}
       run:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
         - libcusparse >={{ version }}
-    files:
-      - lib/libcusparse.so*
-      - lib/stubs/libcusparse.so*
-      - include/cusparse*
-      - src/cusparse_fortran*
+      run_constrained:
+        - libcusparse-static >={{ version }}  # [linux]
     test:
       commands:
-        - test -f $PREFIX/include/cusparse.h  # [linux]
-        - if not exist %LIBRARY_INC%\\cusparse.h exit 1  # [win]
+        - test -f $PREFIX/include/cusparse.h              # [linux]
+        - test -f $PREFIX/lib/libcusparse.so              # [linux]
+        - if not exist %LIBRARY_INC%\cusparse.h exit 1    # [win]
+        - if not exist %LIBRARY_LIB%\cusparse.lib exit 1  # [win]
     about:
       home: https://developer.nvidia.com/cusparse
       license_file: LICENSE
@@ -80,18 +86,18 @@ outputs:
       doc_url: https://docs.nvidia.com/cuda/cusparse/index.html
 
   - name: libcusparse-static
+    build:
+      - skip: true  # [win]
+    files:
+      - lib/libcusparse_static.a
     requirements:
       host:
         - cuda-version {{ cuda_version }}
       run:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
-        - libcusparse-dev >={{ version }}
-    files:
-      - lib/libcusparse_static.a
     test:
       commands:
-        - test -f $PREFIX/lib/libcusparse_static.a  # [linux]
-        - if not exist %LIBRARY_LIB%\\cusparse_static.lib  # [win]
+        - test -f $PREFIX/lib/libcusparse_static.a
     about:
       home: https://developer.nvidia.com/cusparse
       license_file: LICENSE
