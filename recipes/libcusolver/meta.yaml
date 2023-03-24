@@ -32,6 +32,9 @@ requirements:
 
 outputs:
   - name: libcusolver
+    files:
+      - lib/libcusolver*.so.*  # [linux]
+      - bin\cusolver*.dll      # [win]
     requirements:
       host:
         - cuda-version {{ cuda_version }}
@@ -39,16 +42,14 @@ outputs:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
         - libcublas
         - libnvjitlink
-    files:
-      - lib/libcusolver*.so.*            # [linux]
-      - targets/*/lib/libcusolver*.so.*  # [linux]
-      - Library\bin                      # [win]
     test:
-       commands:
-         - test -f $PREFIX/lib/libcusolver.so  # [unix]
-         - test -f $PREFIX/lib/libcusolverMg.so  # [unix]
-         - if not exist %LIBRARY_LIB%\\cusolver.lib exit 1  # [win]
-         - if not exist %LIBRARY_LIB%\\cusolverMg.lib exit 1  # [win]
+      commands:
+        - test -f $PREFIX/lib/libcusolver.so.{{ version }}                  # [linux]
+        - test -f $PREFIX/lib/libcusolver.so.{{ version.split(".")[0] }}    # [linux]
+        - test -f $PREFIX/lib/libcusolverMg.so.{{ version }}                # [linux]
+        - test -f $PREFIX/lib/libcusolverMg.so.{{ version.split(".")[0] }}  # [linux]
+        - if not exist %LIBRARY_LIB%\\cusolver*.dll exit 1                  # [win]
+        - if not exist %LIBRARY_LIB%\\cusolverMg*.dll exit 1                # [win]
     about:
       home: https://developer.nvidia.com/cusolver
       license_file: LICENSE
@@ -60,35 +61,37 @@ outputs:
       doc_url: https://docs.nvidia.com/cuda/cusolver/index.html
 
   - name: libcusolver-dev
+    files:
+      - lib/libcusolver*.so               # [linux]
+      - lib/stubs/libcusolver*            # [linux]
+      - lib/x64/cusolver*.lib             # [win]
+      - include/cusolver*
     requirements:
       host:
         - cuda-version {{ cuda_version }}
       run:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
         - libcusolver >={{ version }}
-    files:
-      - lib/libcusolver*.so               # [linux]
-      - targets/*/lib/libcusolver*.so     # [linux]
-      - lib/stubs/libcusolver*            # [linux]
-      - targets/*/lib/stubs/libcusolver*  # [linux]
-      - include/cusolver*                 # [linux]
-      - targets/*/include/cusolver*       # [linux]
-      - Library\include                   # [win]
-      - Library\lib                       # [win]
+      run_constrained:
+        - libcublas-static >={{ version }}  # [linux]
     test:
       commands:
-        - test -f $PREFIX/include/cusolverDn.h  # [linux]
-        - test -f $PREFIX/include/cusolverMg.h  # [linux]
-        - test -f $PREFIX/include/cusolverRf.h  # [linux]
-        - test -f $PREFIX/include/cusolverSp.h  # [linux]
-        - test -f $PREFIX/include/cusolverSp_LOWLEVEL_PREVIEW.h  # [linux]
-        - test -f $PREFIX/include/cusolver_common.h  # [linux]
-        - if not exist %LIBRARY_INC%\\cusolverDn.h exit 1  # [win]
-        - if not exist %LIBRARY_INC%\\cusolverMg.h exit 1  # [win]
-        - if not exist %LIBRARY_INC%\\cusolverRf.h exit 1  # [win]
-        - if not exist %LIBRARY_INC%\\cusolverSp.h exit 1  # [win]
+        - test -f $PREFIX/include/cusolverDn.h                              # [linux]
+        - test -f $PREFIX/include/cusolverMg.h                              # [linux]
+        - test -f $PREFIX/include/cusolverRf.h                              # [linux]
+        - test -f $PREFIX/include/cusolverSp.h                              # [linux]
+        - test -f $PREFIX/include/cusolverSp_LOWLEVEL_PREVIEW.h             # [linux]
+        - test -f $PREFIX/include/cusolver_common.h                         # [linux]
+        - test -f $PREFIX/lib/libcusolver.so                                # [linux]
+        - test -f $PREFIX/lib/libcusolverMg.so                              # [linux]
+        - if not exist %LIBRARY_INC%\\cusolverDn.h exit 1                   # [win]
+        - if not exist %LIBRARY_INC%\\cusolverMg.h exit 1                   # [win]
+        - if not exist %LIBRARY_INC%\\cusolverRf.h exit 1                   # [win]
+        - if not exist %LIBRARY_INC%\\cusolverSp.h exit 1                   # [win]
         - if not exist %LIBRARY_INC%\\cusolverSp_LOWLEVEL_PREVIEW.h exit 1  # [win]
-        - if not exist %LIBRARY_INC%\\cusolver_common.h exit 1  # [win]
+        - if not exist %LIBRARY_INC%\\cusolver_common.h exit 1              # [win]
+        - if not exist %LIBRARY_LIB%\\cusolver*.lib exit 1                  # [win]
+        - if not exist %LIBRARY_LIB%\\cusolverMg*.lib exit 1                # [win]
     about:
       home: https://developer.nvidia.com/cusolver
       license_file: LICENSE
@@ -101,21 +104,18 @@ outputs:
 
   - name: libcusolver-static
     build:
-      skip: True  # [not linux]
+      - skip: true  # [win]
+    files:
+      - lib/libcusolver*_static.a
     requirements:
       host:
         - cuda-version {{ cuda_version }}
       run:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
-        - libcusolver-dev >={{ version }}
-    files:
-      - lib/libcusolver*_static.a
     test:
       commands:
-        - test -f $PREFIX/lib/libcusolver_static.a  # [linux]
-        - test -f $PREFIX/lib/libcusolver_lapack_static.a  # [linux]
-        - if not exist %LIBRARY_LIB%\\cusolver_static.lib  # [win]
-        - if not exist %LIBRARY_LIB%\\cusolver_lapack_static.lib  # [win]
+        - test -f $PREFIX/lib/libcusolver_static.a
+        - test -f $PREFIX/lib/libcusolver_lapack_static.a
     about:
       home: https://developer.nvidia.com/cusolver
       license_file: LICENSE
