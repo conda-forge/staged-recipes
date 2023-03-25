@@ -67,6 +67,36 @@ cat ${PREFIX}/share/cmake/psi4/*
 # pytest in conda testing stage
 
 #############
+
+# * check psi4 consumption works
+# * check psi4 --version matches {{ version }}
+
+# all of share/cmake/psi4
+#   -rw-rw-r-- 2 conda conda 2809 Mar 22 17:55 custom_cxxstandard.cmake
+#   -rw-rw-r-- 2 conda conda 2019 Mar 22 17:55 custom_static_library.cmake
+#   -rw-rw-r-- 1 conda conda 6430 Mar 22 18:56 psi4Config.cmake
+#   -rw-rw-r-- 2 conda conda 1855 Mar 22 18:25 psi4ConfigVersion.cmake
+#   -rw-rw-r-- 2 conda conda 8123 Mar 22 17:55 psi4OptionsTools.cmake
+#   -rw-rw-r-- 1 conda conda 3886 Mar 22 18:56 psi4PluginCache.cmake
+#   -rw-rw-r-- 2 conda conda 3943 Mar 22 18:25 psi4Targets.cmake
+#   -rw-rw-r-- 2 conda conda  943 Mar 22 18:25 psi4Targets-release.cmake
+#   -rw-rw-r-- 2 conda conda 1477 Mar 22 17:55 xhost.cmake
+
+#2023-03-22T19:13:21.2700436Z -- Installing: C:/bld/psi4_1679509717843/work/build/stage/share/cmake/psi4/custom_cxxstandard.cmake
+#2023-03-22T19:13:21.2701475Z -- Installing: C:/bld/psi4_1679509717843/work/build/stage/share/cmake/psi4/xhost.cmake
+#2023-03-22T19:13:21.2702151Z -- Installing: C:/bld/psi4_1679509717843/work/build/stage/share/cmake/psi4/psi4Config.cmake
+#2023-03-22T19:13:21.2703160Z -- Installing: C:/bld/psi4_1679509717843/work/build/stage/share-- Install configuration: "Release"
+#2023-03-22T19:13:21.2704063Z -- Installing: C:/bld/psi4_1679509717843/_h_env/share/cmake/TargetLAPACK/TargetLAPACKConfig.cmake
+#2023-03-22T19:13:21.2705137Z -- Installing: C:/bld/psi4_1679509717843/_h_env/share/cmake/TargetLAPACK/FindTargetOpenMP.cmake
+#2023-03-22T19:13:21.2706065Z -- Installing: C:/bld/psi4_1679509717843/_h_env/share/cmake/TargetLAPACK/FindMathOpenMP.cmake
+#2023-03-22T19:13:21.2706976Z -- Installing: C:/bld/psi4_1679509717843/_h_env/share/cmake/TargetLAPACK/TargetLAPACKTargets.cmake
+#2023-03-22T19:13:22.2662192Z -- Installing: C:/bld/psi4_1679509717843/_h_env/Library/bin/psi4
+#2023-03-22T19:13:22.2689516Z -- Installing: C:/bld/psi4_1679509717843/_h_env/Library/bin/psi4.bat
+#2023-03-22T19:13:22.2706392Z -- Installing: C:/bld/psi4_1679509717843/_h_env/Library/include/psi4
+#2023-03-22T19:13:22.2756664Z -- Installing: C:/bld/psi4_1679509717843/_h_env/Library/include/psi4/lib3index
+#2023-03-22T19:13:22.2764534Z -- Installing: C:/bld/psi4_1679509717843/_h_env/Library/include/psi4/lib3index/3index.h
+#2023-03-22T19:13:22.2766093Z -- Installing: C:/bld/psi4_1679509717843/_h_env/Library/include/psi4/lib3index/cholesky.
+
 #if [ "$(uname)" == "Darwin" ]; then
 #
 #    ## Intel compilers
