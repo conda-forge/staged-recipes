@@ -13,6 +13,7 @@ cmake %CMAKE_ARGS% ^
   -D CMAKE_INSTALL_INCLUDEDIR="Library\include" ^
   -D CMAKE_INSTALL_BINDIR="Library\bin" ^
   -D CMAKE_INSTALL_DATADIR="Library\share" ^
+  -D PYMOD_INSTALL_LIBDIR="/../../Lib/site-packages" ^
   -D Python_EXECUTABLE="%PYTHON%" ^
   -D LAPACK_LIBRARIES="%PREFIX%\\Library\\lib\\mkl_rt.lib" ^
   -D OpenMP_LIBRARY_DIRS="%SRC_DIR%\\external_src\\conda\\win\\2019.1" ^
@@ -37,13 +38,13 @@ cmake --build build ^
       -- -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
-:: Relocate python module to expected location (if positioning through PYMOD_INSTALL_LIBDIR="/")
 copy /y "%PREFIX%\Library\bin\psi4" "%PREFIX%\Scripts"
 if errorlevel 1 exit 1
-xcopy /f /i /s /y "%PREFIX%\Library\lib\psi4" "%SP_DIR%\psi4"
-if errorlevel 1 exit 1
-del /S /Q "%PREFIX%\Library\lib\psi4"
-if errorlevel 1 exit 1
+:: Relocate python module to expected location (if positioning through PYMOD_INSTALL_LIBDIR="/")
+:: xcopy /f /i /s /y "%PREFIX%\Library\lib\psi4" "%SP_DIR%\psi4"
+:: if errorlevel 1 exit 1
+:: del /S /Q "%PREFIX%\Library\lib\psi4"
+:: if errorlevel 1 exit 1
 
 :: only available with m2w64-binutils package - add dep in meta.yaml or defer to test stage
 objdump.exe -p %PREFIX%\Lib\site-packages\psi4\core.*.pyd | findstr /i "dll"
