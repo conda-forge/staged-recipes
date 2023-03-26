@@ -32,7 +32,7 @@ cmake %CMAKE_ARGS% ^
 
 if errorlevel 1 exit 1
 
-%PYTHON% "build/psi4-core-prefix/src/psi4-core-build/__init__.py"
+%PYTHON% build\\psi4-core-prefix\\src\\psi4-core-build\\__init__.py
 
 cmake --build build ^
       --config Release ^
