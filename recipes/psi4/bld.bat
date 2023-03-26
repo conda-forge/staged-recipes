@@ -11,9 +11,12 @@ cmake %CMAKE_ARGS% ^
   -D CMAKE_CXX_FLAGS="%CXXFLAGS%" ^
   -D CMAKE_INSTALL_LIBDIR="Library\lib" ^
   -D CMAKE_INSTALL_INCLUDEDIR="Library\include" ^
-  -D CMAKE_INSTALL_BINDIR="Library\bin" ^
+  -D CMAKE_INSTALL_BINDIR="Scripts" ^
   -D CMAKE_INSTALL_DATADIR="Library\share" ^
   -D PYMOD_INSTALL_LIBDIR="/../../Lib/site-packages" ^
+  -D psi4_INSTALL_CMAKEDIR="Library\share\cmake\psi4" ^
+  -D TargetLAPACK_INSTALL_CMAKEDIR="Library\share\cmake\TargetLAPACK" ^
+  -D TargetHDF5_INSTALL_CMAKEDIR="Library\share\cmake\TargetHDF5" ^
   -D Python_EXECUTABLE="%PYTHON%" ^
   -D LAPACK_LIBRARIES="%PREFIX%\\Library\\lib\\mkl_rt.lib" ^
   -D OpenMP_LIBRARY_DIRS="%SRC_DIR%\\external_src\\conda\\win\\2019.1" ^
@@ -32,16 +35,15 @@ cmake %CMAKE_ARGS% ^
 
 if errorlevel 1 exit 1
 
-%PYTHON% build\\psi4-core-prefix\\src\\psi4-core-build\\__init__.py
-
 cmake --build build ^
       --config Release ^
       --target install ^
       -- -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
-copy /y "%PREFIX%\Library\bin\psi4" "%PREFIX%\Scripts"
-if errorlevel 1 exit 1
+::copy /y "%PREFIX%\Library\bin\psi4" "%PREFIX%\Scripts"
+::if errorlevel 1 exit 1
+
 :: Relocate python module to expected location (if positioning through PYMOD_INSTALL_LIBDIR="/")
 :: xcopy /f /i /s /y "%PREFIX%\Library\lib\psi4" "%SP_DIR%\psi4"
 :: if errorlevel 1 exit 1
