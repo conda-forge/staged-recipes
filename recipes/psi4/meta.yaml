@@ -1,6 +1,6 @@
 {% set name = "psi4" %}
 {% set version = "1.7.100" %}
-{% set sha256 = "c91bc2f633fcd083fb71595a83ce895af51e20d699938789fdbdf8a51fdeb254" %}
+{% set sha256 = "c4bc072c74f01202e61d5594d3b6237bc74d609cae20436474dee45776b16c97" %}
 
 package:
   name: {{ name|lower }}
@@ -37,23 +37,14 @@ requirements:
     - cmake
     - make                                   # [not win]
     - ninja                                  # [win]
-    #- llvm-openmp
-    - llvm-openmp                            # [linux]  # <51, 52
-    - llvm-openmp                            # [osx]
-    #- llvm-openmp                            # [osx or win]
-    #- libgomp                                # [linux]  # 51
-    #- intel-openmp                           # [win]
+    - llvm-openmp                            # [not win]
   host:
     - eigen
     - boost-cpp
     - mkl-devel                              # [not win]
+    - mkl-devel {{ mkl }}                    # [win]
     - mkl                                    # [not win]
-    #- mkl-devel 2021.4                       # [win]  # 46
-    #- mkl 2021.4                             # [win]  # 46
-    #- mkl-devel                              # [win]  # 47, 48, 49, 50, 51, 52, 53
-    #- mkl                                    # [win]  # 47, 48, 49, 50, 51, 52, 53
-    - mkl-devel {{ mkl }}                             # [win]  # 54
-    - mkl {{ mkl }}                                   # [win]  # 54
+    - mkl {{ mkl }}                          # [win]
     - pybind11
     - pybind11-abi
     - python
@@ -67,19 +58,11 @@ requirements:
     # qc opt'l
     - dkh                                    # [not win]
   run:
-    - intel-openmp                           # [win]
     - llvm-openmp                            # [not win]
-    - libblas * *mkl                         # [not win]
-    #- blas * *mkl                         # [win]  # 50, 51, 52, 53
-    - libblas * *mkl                         # [win]  # 54
-    #- libblas 3.9* 16_win64_mkl             # [win]  # 53
-    #- libblas 3.9* *win64_mkl             # [win]  # 52
-    #- libblas * *mkl                         # [win]  # 49
-    #- blas * *mkl                         # [not win]  # 48 (48 added libefp (note selector inverse from intention))
+    - intel-openmp                           # [win]
+    - libblas * *mkl
     - mkl                                    # [not win]
-    #- mkl 2021.4                             # [win]  # 46
-    #- mkl                                    # [win]  # 47, 48, 49, 50, 51, 52, 53
-    - mkl {{ mkl }}                          # [win]  # 54
+    - mkl {{ mkl }}                          # [win]
     - msgpack-python
     - networkx
     - numpy
@@ -94,8 +77,7 @@ requirements:
   run_constrained:
     - pylibefp =={{ pylibefp }}             # [not win]  # 50
 
-# 49: fails to solve run env wanting libblas==3.8.0=10_mkl"
-# 53: platform win-64: {MatchSpec("libblas==3.9.0=16_win64_mkl"), MatchSpec("mkl==2022.1.0=h6a75c08_874")}
+# for review: the mkl story
 
 
 #outputs:
@@ -135,14 +117,14 @@ test:
     - pytest-xdist
     - m2w64-binutils                                                     # [win]  # provides objdump.exe
     # qc runtime opt'l
-    #- pylibefp                                                           # [not win]  # 51
-    - pylibefp                                                                         # 52
+    - pylibefp
+    #- dftd3-python
+    - geometric
   commands:
     - ls -l $PREFIX/lib                                                  # [unix]
     - ls -l $PREFIX/share/cmake/psi4                                     # [unix]
     - ls -l $SP_DIR/psi4                                                 # [unix]
     - dir %PREFIX%\\Library\\lib                                         # [win]
-    - pytest -rws -v --durations=20 --color yes -n auto %SP_DIR%\\psi4 -m "smoke and not d2ints"  # [win]
     - dir %PREFIX%\\Library\\share\\cmake\\psi4                          # [win]
     - dir %SP_DIR%\\psi4                                                 # [win]
     # Verify module
@@ -151,12 +133,12 @@ test:
     # Verify executable
     - test -f $PREFIX/bin/psi4                                           # [unix]
     - $PREFIX/bin/psi4 --version                                         # [unix]
-    #- if not exist %PREFIX%\\Library\\bin\\psi4 exit 1                   # [win]
-    #- if not exist %PREFIX%\\Library\\bin\\psi4.bat exit 1               # [win]
+    - $PREFIX/bin/psi4 --psiapi                                          # [unix]
     - if exist %PREFIX%\\Scripts\\psi4 exit 1                            # [win]
-    - if not exist %PREFIX%\\Scripts\\psi4-script.py exit 1              # [win]  # copy of bin/psi4
+    - if not exist %PREFIX%\\Scripts\\psi4-script.py exit 1              # [win]  # aka bin/psi4
     - if not exist %PREFIX%\\Scripts\\psi4.exe exit 1                    # [win]
     - "%PREFIX%\\Scripts\\psi4.exe --version"                            # [win]
+    - "%PREFIX%\\Scripts\\psi4.exe --psiapi"                             # [win]
     # Verify accessories
     - test -f $PREFIX/include/psi4/psi4-dec.h                            # [unix]
     - test -f $PREFIX/share/cmake/psi4/psi4Config.cmake                  # [unix]
@@ -173,6 +155,7 @@ test:
     # Actually test
     - python -c "from psi4 import core; core.set_num_threads(42); assert core.get_num_threads() == 42"
     - MKL_CBWR=AVX pytest -rws -v --durations=20 --color yes -n auto $SP_DIR/psi4 -m "smoke"  # [unix]
+    - pytest -rws -v --durations=20 --color yes -n auto %SP_DIR%\\psi4 -m "smoke and not d2ints"  # [win]
 
 about:
   home: http://psicode.org
@@ -208,13 +191,6 @@ extra:
 #              - {{ pin_subpackage('psi4', max_pin='x.x') }}
 #          ignore_run_exports:
 #              - numpy
-#      files:
-#          - bin/psi4
-#          - include/psi4
-#          - lib/python{{ PY_VER }}/site-packages/psi4
-#          - share/cmake/psi4
-#          - share/cmake/Target*/*
-#          - share/psi4
 #      test:
 #          commands:
 #              # Actually test
