@@ -41,10 +41,9 @@ cmake --build build ^
       -- -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
+:: Relocate python module to expected location (if positioning through PYMOD_INSTALL_LIBDIR="/" and CMAKE_INSTALL_BINDIR="Library\bin")
 ::copy /y "%PREFIX%\Library\bin\psi4" "%PREFIX%\Scripts"
 ::if errorlevel 1 exit 1
-
-:: Relocate python module to expected location (if positioning through PYMOD_INSTALL_LIBDIR="/")
 :: xcopy /f /i /s /y "%PREFIX%\Library\lib\psi4" "%SP_DIR%\psi4"
 :: if errorlevel 1 exit 1
 :: del /S /Q "%PREFIX%\Library\lib\psi4"
@@ -68,9 +67,6 @@ objdump.exe -p %PREFIX%\Library\bin\mkl_rt.*.dll | findstr /i "dll"
 ::xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\fsapt       {{ PREFIX }}\Lib\share\psi4\fsapt
 ::xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\grids       {{ PREFIX }}\Lib\share\psi4\grids
 ::if errorlevel 1 exit 1
-
-::  -DPYMOD_INSTALL_LIBDIR="\..\..\Lib\site-packages"
-::  -DPYMOD_INSTALL_LIBDIR="/../../Lib/site-packages"
 
 ::                -DCMAKE_CXX_FLAGS="/arch:AVX"
 ::                -DPython_NumPy_INCLUDE_DIR="C:/tools/miniconda3/lib/site-packages/numpy/core/include"
