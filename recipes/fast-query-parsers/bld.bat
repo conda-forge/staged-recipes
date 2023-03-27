@@ -7,9 +7,7 @@ set TEMP="%SRC_DIR%\tmpbuild_%PY_VER%"
 
 mkdir "%TEMP%"
 
-rustc --version
-
-maturin build --release --strip -i "%PYTHON%" ^
+%PYTHON% -m pip install . -vv --no-build-isolation ^
     || exit 1
 
 :: dump licenses
