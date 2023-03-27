@@ -1,5 +1,5 @@
 {% set name = "psi4" %}
-{% set version = "1.7.100" %}
+{% set version = "1.8a1.dev30" %}
 {% set sha256 = "a4d9e34c93eb427c3b6ba45221f71bd3f1d6d3c227188df37ade408800dd46ce" %}
 
 package:
@@ -17,23 +17,30 @@ source:
 build:
   number: 0
   binary_relocation: true
-  #skip: true                                 # [osx]
-  skip: true                                 # [py != 39]
   ignore_run_exports:
     - libint
 
-# for review: the libint story
+# bkgd for review: the libint story
 # * this recipe is using a libint dev package for reasons at https://github.com/conda-forge/libint-feedstock/issues/15
 # * libint_dev pkg has a run_exports `x`, which is true for the package in general
-# * but for the time being, it's prudent to pin req/run to exact, hence the ignore_run_exports above
+# * but for the time being in case of unfinalized API, it's prudent to pin req/run to exact, hence the ignore_run_exports above
+
+# bkgd for review: the fortran story
+# * psi4 has no fortran code and no fortran required dependencies (besides blas/lapack)
+# * it does have optional functionality-expanding fortran dependencies like dkh (recipe alongside) that are packaged separately
+# * this recipe omits the fortran compiler since C++ compiler can do the linking and because on windows,
+#   the msvc+gfortran combination hits https://gitlab.kitware.com/cmake/cmake/-/issues/17810
+
+# bkgd for review: the general blas story
+# * psi4 is heavily performance-dependent on the blas/lapack implementation
+# * we've been packaging on conda with mkl for the past 7y
+# * while the build system allows any blas impl, we emit "untested" warnings for non-MKL, and last openblas test 5y ago had threading oversubscriptions
+# * so while we're open to multiple impl in future and have been specifying generic "libblas" in deps like dkh, we'd like to support only mkl in psi4 for now
 
 requirements:
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    #- {{ compiler('fortran') }}              # [not win]
-    #- {{ compiler('m2w64_fortran') }}        # [win]
-    #- m2w64-binutils                         # [win]  # provides objdump.exe
     - cmake
     - make                                   # [not win]
     - ninja                                  # [win]
@@ -55,7 +62,7 @@ requirements:
     - optking
     - qcelemental
     - qcengine
-    # qc opt'l
+    # qc opt'l, build-time
     - dkh
   run:
     - llvm-openmp                            # [not win]
@@ -71,44 +78,21 @@ requirements:
     # qc
     - libint {{ libint }}
     - {{ pin_compatible('optking', upper_bound='0.5') }}
-    - {{ pin_compatible('qcelemental', upper_bound='0.26') }}
-    - {{ pin_compatible('qcengine', upper_bound='0.27') }}
-      # someday, qcengine and qcelemental should be `max_pin='x'` again
+    - {{ pin_compatible('qcelemental', upper_bound='0.5') }}
+    - {{ pin_compatible('qcengine', upper_bound='0.5') }}
   run_constrained:
+    - pytest >=7.0.1
+    # qc opt'l, run-time
     - pylibefp =={{ pylibefp }}
     - dftd4-python >={{ dftd4 }}
     - geometric >={{ geometric }}
     - pymdi >={{ pymdi }}
 
-# for review: the mkl story
-
-
-#outputs:
-#    requirements:
-#          host:
-#              # qc
-#              - ambit {{ ambit }}
-#              - chemps2 {{ chemps2 }}
-#              - libecpint {{ libecpint }}
-#              - gdma {{ gdma }}                  # nofortran
-#              - pcmsolver {{ pcmsolver }} {{ pcmsolver_bld }}  # nofortran
-#              - simint {{ simint }}
-#              - dftd3 {{ dftd3 }}
-#              - gcp {{ gcp }}
-#          run:
-#              - intel-openmp                   # [linux]
-#              - numpy >={{ numpy }},<1.26.0
-#              - pytest                                         # drive psi4 --test
-#              # qc
-#              - {{ pin_compatible('dftd3', max_pin='x.x') }}
-#              - {{ pin_compatible('gcp', max_pin='x.x') }}
-#              - pcmsolver {{ pcmsolver }} {{ pcmsolver_bld }}  # temporary so right intel_sse4_strlen
-
 test:
   imports:
     - psi4
   requires:
-    - pytest >=7.0.1
+    - pytest
     - pytest-xdist
     - m2w64-binutils                                                     # [win]   # provides objdump.exe
     # qc runtime opt'l
@@ -185,9 +169,6 @@ extra:
 
 #######
 
-#outputs:
-#    - name: psi4
-#      test:
 #          commands:
 #              # Actually test
 #              - PASSFAIL="--passfail"           # [linux]
@@ -195,3 +176,12 @@ extra:
 #              - python $PREFIX/share/psi4/scripts/test_threading.py --passfail --ldd  # [py3k]
 #              - python $PREFIX/share/psi4/scripts/test_threading.py ${PASSFAIL} --psiapi -n6  # [py3k]
 #              - python $PREFIX/share/psi4/scripts/test_threading.py ${PASSFAIL} --psithon -n6  # [py3k and not osx]
+
+# Notes
+# -----
+
+# * The following optional runtime deps were included in req/run of the psi4::psi4 package but are omitted in conda-forge::psi4
+#   * pytest
+#   * dftd3
+#   * gcp
+#   * dftd4 (installer only)

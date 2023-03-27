@@ -20,10 +20,7 @@ cmake %CMAKE_ARGS% ^
       -D CMAKE_GNUtoMS=ON ^
       -D ENABLE_OPENMP=OFF ^
       -D ENABLE_XHOST=OFF
-
 if errorlevel 1 exit 1
-
-::      -D ENABLE_OPENMP=ON ?
 
 cmake --build build ^
       --config Release ^
@@ -32,4 +29,3 @@ cmake --build build ^
 if errorlevel 1 exit 1
 
 :: no independent tests
-

@@ -1,5 +1,7 @@
 if [ "$(uname)" == "Darwin" ]; then
     ARCH_ARGS=""
+
+    # c-f-provided CMAKE_ARGS handles CMAKE_OSX_DEPLOYMENT_TARGET, CMAKE_OSX_SYSROOT
 fi
 if [ "$(uname)" == "Linux" ]; then
     ARCH_ARGS=""
@@ -9,8 +11,6 @@ if [ "$(uname)" == "Linux" ]; then
     git rev-parse --is-inside-work-tree
     git rev-parse --show-toplevel
 fi
-
-echo ${CMAKE_ARGS}
 
 # Note: bizarrely, Linux (but not Mac) using `-G Ninja` hangs on [205/1223] at
 #   c-f/staged-recipes Azure CI --- thus the fallback to GNU Make.
@@ -47,24 +47,19 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
   -D CMAKE_PREFIX_PATH="${PREFIX}"
 
 # addons when ready for c-f
-#  -DENABLE_ambit=ON \
-#  -DCMAKE_INSIST_FIND_PACKAGE_ambit=ON \
-#  -DENABLE_CheMPS2=ON \
-#  -DCMAKE_INSIST_FIND_PACKAGE_CheMPS2=ON \
-#  -DENABLE_ecpint=ON \
-#  -DCMAKE_INSIST_FIND_PACKAGE_ecpint=ON \
-#  -DENABLE_gdma=ON \
-#  -DCMAKE_INSIST_FIND_PACKAGE_gdma=ON \
-#  -DENABLE_PCMSolver=ON \
-#  -DCMAKE_INSIST_FIND_PACKAGE_PCMSolver=ON \
-#  -DENABLE_simint=ON \
-#  -DSIMINT_VECTOR=sse \
-#  -DCMAKE_INSIST_FIND_PACKAGE_simint=ON \
-
-# mac?
-#  -DOpenMP_C_FLAG="-fopenmp=libiomp5" \
-#  -DOpenMP_CXX_FLAG="-fopenmp=libiomp5" \
-#  -DCMAKE_OSX_DEPLOYMENT_TARGET=''
+#  -D ENABLE_ambit=ON \
+#  -D CMAKE_INSIST_FIND_PACKAGE_ambit=ON \
+#  -D ENABLE_CheMPS2=ON \
+#  -D CMAKE_INSIST_FIND_PACKAGE_CheMPS2=ON \
+#  -D ENABLE_ecpint=ON \
+#  -D CMAKE_INSIST_FIND_PACKAGE_ecpint=ON \
+#  -D ENABLE_gdma=ON \
+#  -D CMAKE_INSIST_FIND_PACKAGE_gdma=ON \
+#  -D ENABLE_PCMSolver=ON \
+#  -D CMAKE_INSIST_FIND_PACKAGE_PCMSolver=ON \
+#  -D ENABLE_simint=ON \
+#  -D SIMINT_VECTOR=sse \
+#  -D CMAKE_INSIST_FIND_PACKAGE_simint=ON \
 
 cmake --build build --target install -j${CPU_COUNT}
 
@@ -114,33 +109,6 @@ cmake --build build --target install -j${CPU_COUNT}
 # NOTES
 # -----
 
-# * old full ctests
-#    # test
-#    # * full PREFIX is too long for shebang (in bin/psi4 tests), so use env python just for tests
-#    # * this doesn't work for DDD, so comment psi4_reserve, inclusive
-#    mv stage/bin/psi4 stage/bin/psi4_reserve
-#    echo "#! /usr/bin/env python" > stage/bin/psi4
-#    cat stage/bin/psi4_reserve >> stage/bin/psi4
-#    chmod u+x stage/bin/psi4
-#    stage/bin/psi4 ../tests/tu1-h2o-energy/input.dat
-#    MKL_CBWR=AVX ctest -j${CPU_COUNT}  --test-timeout 3600 #-L quick
-#    mv -f stage/bin/psi4_reserve stage/bin/psi4
-
-# * old dashboard upload
-#   MKL_CBWR=AVX ctest -M Nightly -T Test -T Submit -j${CPU_COUNT} #-L quick
-#        -DBUILDNAME="LAB-RHEL7-gcc7.3-intel18.0.3-mkl-py${CONDA_PY}-release-conda" \
-#        -DSITE="gatech-conda" \
-#        -DBUILDNAME="LAB-OSX-clang4.0.1-omp-mkl-py${CONDA_PY}-release-conda" \
-#        -DSITE=gatech-mac-conda \
-# * source /theoryfs2/common/software/intel2019/bin/compilervars.sh intel64
-
-# * seems to slow down tests  #export PSI_SCRATCH=/scratch/psilocaluser/
-
-# RIP c-side EFP
-#        -DENABLE_libefp=ON \
-#        -DCMAKE_INSIST_FIND_PACKAGE_libefp=ON \
-#        -DCMAKE_INSIST_FIND_PACKAGE_pylibefp=ON \
-
     #sed -i "s|/opt/anaconda1anaconda2anaconda3|${PREFIX}|g" ${PREFIX}/share/psi4/python/pcm_placeholder.py
     #LD_LIBRARY_PATH=${PREFIX}/lib:$LD_LIBRARY_PATH \
     #     PYTHONPATH=${PREFIX}/bin:${PREFIX}/lib${PYMOD_INSTALL_LIBDIR}:$PYTHONPATH \
@@ -153,4 +121,3 @@ cmake --build build --target install -j${CPU_COUNT}
     #DYLD_LIBRARY_PATH=${PREFIX}/lib:$DYLD_LIBRARY_PATH \
     #       PYTHONPATH=${PREFIX}/bin:${PREFIX}/lib/python2.7/site-packages:$PYTHONPATH \
     #             PATH=${PREFIX}/bin:$PATH \
-

@@ -1,34 +1,20 @@
 
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
-    -S${SRC_DIR} \
-    -Bbuild \
-    -G"Ninja" \
-    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_C_COMPILER=${CC} \
-    -DCMAKE_C_FLAGS="${CFLAGS}" \
-    -DCMAKE_Fortran_COMPILER=${FC} \
-    -DCMAKE_Fortran_FLAGS="${FFLAGS}" \
-    -DCMAKE_INSTALL_LIBDIR=lib \
-    -DBUILD_SHARED_LIBS=ON \
-    -DLAPACK_LIBRARIES="${PREFIX}/lib/libblas${SHLIB_EXT}" \
-    -DENABLE_OPENMP=OFF \
-    -DENABLE_XHOST=OFF
+    -S ${SRC_DIR} \
+    -B build \
+    -G "Ninja" \
+    -D CMAKE_INSTALL_PREFIX=${PREFIX} \
+    -D CMAKE_BUILD_TYPE=Release \
+    -D CMAKE_C_COMPILER=${CC} \
+    -D CMAKE_C_FLAGS="${CFLAGS}" \
+    -D CMAKE_Fortran_COMPILER=${FC} \
+    -D CMAKE_Fortran_FLAGS="${FFLAGS}" \
+    -D CMAKE_INSTALL_LIBDIR=lib \
+    -D BUILD_SHARED_LIBS=ON \
+    -D LAPACK_LIBRARIES="${PREFIX}/lib/libblas${SHLIB_EXT}" \
+    -D ENABLE_OPENMP=OFF \
+    -D ENABLE_XHOST=OFF
 
 cmake --build build --target install -j${CPU_COUNT}
 
 # no independent tests
-
-
-#if [ "$(uname)" == "Darwin" ]; then
-#
-#    # for FortranCInterface
-#    CMAKE_Fortran_FLAGS="${FFLAGS} -L${CONDA_BUILD_SYSROOT}/usr/lib/system/ ${OPTS}"
-#
-#        -DENABLE_OPENMP=ON \
-#        -DOpenMP_C_FLAG="-fopenmp=libiomp5" \
-#fi
-#if [ "$(uname)" == "Linux" ]; then
-#
-#        -DENABLE_OPENMP=ON \
-#fi

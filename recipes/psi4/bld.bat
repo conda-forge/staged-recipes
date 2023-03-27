@@ -55,22 +55,4 @@ if errorlevel 1 exit 1
 :: objdump.exe -p %PREFIX%\Lib\site-packages\psi4\core.*.pyd | findstr /i "dll"
 :: objdump.exe -p %PREFIX%\Library\bin\mkl_rt.*.dll | findstr /i "dll"
 
-:: tests outside build phase
-
-
-::md {{ PREFIX }}\Scripts
-::copy /y {{ INSTALL_DIR }}\bin\psi4 {{ PREFIX }}\Scripts
-::echo __pycache__ > exclude.txt
-::xcopy /f /i /s /exclude:exclude.txt {{ INSTALL_DIR }}\lib\psi4 {{ SP_DIR }}\psi4
-::xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\basis       {{ PREFIX }}\Lib\share\psi4\basis
-::xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\plugin      {{ PREFIX }}\Lib\share\psi4\plugin
-::xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\quadratures {{ PREFIX }}\Lib\share\psi4\quadratures
-::xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\databases   {{ PREFIX }}\Lib\share\psi4\databases
-::xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\fsapt       {{ PREFIX }}\Lib\share\psi4\fsapt
-::xcopy /f /i /s {{ INSTALL_DIR }}\share\psi4\grids       {{ PREFIX }}\Lib\share\psi4\grids
-::if errorlevel 1 exit 1
-
-::                -DCMAKE_CXX_FLAGS="/arch:AVX"
-::      -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CFLAGS%"
-::      -DCMAKE_CXX_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CXXFLAGS%"
-
+:: pytest in conda testing stage
