@@ -3,42 +3,48 @@ if [ "$(uname)" == "Darwin" ]; then
 fi
 if [ "$(uname)" == "Linux" ]; then
     ARCH_ARGS=""
+
+    # c-f/staged-recipes on Linux is inside a non-psi4 git repo, messing up psi4's version computation.
+    #   The "staged-recipes" skip pattern now in psi4 may need readjusting for feedstock. Diagnostics below.
     git rev-parse --is-inside-work-tree
     git rev-parse --show-toplevel
 fi
+
+echo ${CMAKE_ARGS}
 
 # Note: bizarrely, Linux (but not Mac) using `-G Ninja` hangs on [205/1223] at
 #   c-f/staged-recipes Azure CI --- thus the fallback to GNU Make.
 
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
-  -S${SRC_DIR} \
-  -Bbuild \
-  -DCMAKE_INSTALL_PREFIX=${PREFIX} \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_C_COMPILER=${CC} \
-  -DCMAKE_CXX_COMPILER=${CXX} \
-  -DCMAKE_C_FLAGS="${CFLAGS}" \
-  -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
-  -DCMAKE_Fortran_COMPILER=${FC} \
-  -DCMAKE_Fortran_FLAGS="${FFLAGS}" \
-  -DCMAKE_INSTALL_LIBDIR=lib \
-  -DPYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
-  -DPython_EXECUTABLE=${PYTHON} \
-  -DCMAKE_INSIST_FIND_PACKAGE_gau2grid=ON \
-  -DMAX_AM_ERI=5 \
-  -DCMAKE_INSIST_FIND_PACKAGE_Libint2=ON \
-  -DCMAKE_INSIST_FIND_PACKAGE_pybind11=ON \
-  -DCMAKE_INSIST_FIND_PACKAGE_Libxc=ON \
-  -DCMAKE_INSIST_FIND_PACKAGE_qcelemental=ON \
-  -DCMAKE_INSIST_FIND_PACKAGE_qcengine=ON \
-  -DENABLE_dkh=ON \
-  -DCMAKE_INSIST_FIND_PACKAGE_dkh=ON \
-  -DENABLE_OPENMP=ON \
-  -DENABLE_XHOST=OFF \
-  -DENABLE_GENERIC=OFF \
-  -DLAPACK_LIBRARIES="${PREFIX}/lib/libmkl_rt${SHLIB_EXT}" \
-  -DCMAKE_VERBOSE_MAKEFILE=OFF \
-  -DCMAKE_PREFIX_PATH="${PREFIX}"
+  -S ${SRC_DIR} \
+  -B build \
+  -D CMAKE_INSTALL_PREFIX=${PREFIX} \
+  -D CMAKE_BUILD_TYPE=Release \
+  -D CMAKE_C_COMPILER=${CC} \
+  -D CMAKE_CXX_COMPILER=${CXX} \
+  -D CMAKE_C_FLAGS="${CFLAGS}" \
+  -D CMAKE_CXX_FLAGS="${CXXFLAGS}" \
+  -D CMAKE_Fortran_COMPILER=${FC} \
+  -D CMAKE_Fortran_FLAGS="${FFLAGS}" \
+  -D CMAKE_INSTALL_LIBDIR=lib \
+  -D PYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
+  -D Python_EXECUTABLE=${PYTHON} \
+  -D CMAKE_INSIST_FIND_PACKAGE_gau2grid=ON \
+  -D MAX_AM_ERI=5 \
+  -D CMAKE_INSIST_FIND_PACKAGE_Libint2=ON \
+  -D CMAKE_INSIST_FIND_PACKAGE_pybind11=ON \
+  -D CMAKE_INSIST_FIND_PACKAGE_Libxc=ON \
+  -D CMAKE_INSIST_FIND_PACKAGE_qcelemental=ON \
+  -D CMAKE_INSIST_FIND_PACKAGE_qcengine=ON \
+  -D psi4_SKIP_ENABLE_Fortran=ON ^
+  -D ENABLE_dkh=ON \
+  -D CMAKE_INSIST_FIND_PACKAGE_dkh=ON \
+  -D ENABLE_OPENMP=ON \
+  -D ENABLE_XHOST=OFF \
+  -D ENABLE_GENERIC=OFF \
+  -D LAPACK_LIBRARIES="${PREFIX}/lib/libmkl_rt${SHLIB_EXT}" \
+  -D CMAKE_VERBOSE_MAKEFILE=OFF \
+  -D CMAKE_PREFIX_PATH="${PREFIX}"
 
 # addons when ready for c-f
 #  -DENABLE_ambit=ON \
@@ -62,8 +68,6 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
 
 cmake --build build --target install -j${CPU_COUNT}
 
-cat ${PREFIX}/share/cmake/psi4/*
-
 # pytest in conda testing stage
 
 #############
@@ -71,31 +75,6 @@ cat ${PREFIX}/share/cmake/psi4/*
 # * check psi4 consumption works
 # * check psi4 --version matches {{ version }}
 
-# all of share/cmake/psi4
-#   -rw-rw-r-- 2 conda conda 2809 Mar 22 17:55 custom_cxxstandard.cmake
-#   -rw-rw-r-- 2 conda conda 2019 Mar 22 17:55 custom_static_library.cmake
-#   -rw-rw-r-- 1 conda conda 6430 Mar 22 18:56 psi4Config.cmake
-#   -rw-rw-r-- 2 conda conda 1855 Mar 22 18:25 psi4ConfigVersion.cmake
-#   -rw-rw-r-- 2 conda conda 8123 Mar 22 17:55 psi4OptionsTools.cmake
-#   -rw-rw-r-- 1 conda conda 3886 Mar 22 18:56 psi4PluginCache.cmake
-#   -rw-rw-r-- 2 conda conda 3943 Mar 22 18:25 psi4Targets.cmake
-#   -rw-rw-r-- 2 conda conda  943 Mar 22 18:25 psi4Targets-release.cmake
-#   -rw-rw-r-- 2 conda conda 1477 Mar 22 17:55 xhost.cmake
-
-#2023-03-22T19:13:21.2700436Z -- Installing: C:/bld/psi4_1679509717843/work/build/stage/share/cmake/psi4/custom_cxxstandard.cmake
-#2023-03-22T19:13:21.2701475Z -- Installing: C:/bld/psi4_1679509717843/work/build/stage/share/cmake/psi4/xhost.cmake
-#2023-03-22T19:13:21.2702151Z -- Installing: C:/bld/psi4_1679509717843/work/build/stage/share/cmake/psi4/psi4Config.cmake
-#2023-03-22T19:13:21.2703160Z -- Installing: C:/bld/psi4_1679509717843/work/build/stage/share-- Install configuration: "Release"
-#2023-03-22T19:13:21.2704063Z -- Installing: C:/bld/psi4_1679509717843/_h_env/share/cmake/TargetLAPACK/TargetLAPACKConfig.cmake
-#2023-03-22T19:13:21.2705137Z -- Installing: C:/bld/psi4_1679509717843/_h_env/share/cmake/TargetLAPACK/FindTargetOpenMP.cmake
-#2023-03-22T19:13:21.2706065Z -- Installing: C:/bld/psi4_1679509717843/_h_env/share/cmake/TargetLAPACK/FindMathOpenMP.cmake
-#2023-03-22T19:13:21.2706976Z -- Installing: C:/bld/psi4_1679509717843/_h_env/share/cmake/TargetLAPACK/TargetLAPACKTargets.cmake
-#2023-03-22T19:13:22.2662192Z -- Installing: C:/bld/psi4_1679509717843/_h_env/Library/bin/psi4
-#2023-03-22T19:13:22.2689516Z -- Installing: C:/bld/psi4_1679509717843/_h_env/Library/bin/psi4.bat
-#2023-03-22T19:13:22.2706392Z -- Installing: C:/bld/psi4_1679509717843/_h_env/Library/include/psi4
-#2023-03-22T19:13:22.2756664Z -- Installing: C:/bld/psi4_1679509717843/_h_env/Library/include/psi4/lib3index
-#2023-03-22T19:13:22.2764534Z -- Installing: C:/bld/psi4_1679509717843/_h_env/Library/include/psi4/lib3index/3index.h
-#2023-03-22T19:13:22.2766093Z -- Installing: C:/bld/psi4_1679509717843/_h_env/Library/include/psi4/lib3index/cholesky.
 
 #if [ "$(uname)" == "Darwin" ]; then
 #
@@ -103,8 +82,7 @@ cat ${PREFIX}/share/cmake/psi4/*
 #    ## * link against conda Clang for icpc
 #    #ALLOPTS="-clang-name=${CLANG} -msse4.1 -axCORE-AVX2"
 #    #ALLOPTSCXX="-clang-name=${CLANG} -clangxx-name=${CLANGXX} -stdlib=libc++ -I${PREFIX}/include/c++/v1 -msse4.1 -axCORE-AVX2 -mmacosx-version-min=10.9"
-#    #    -DBUILDNAME="LAB-OSX-clang4.0.1-intel18.0.2-mkl-py${CONDA_PY}-release-conda" \
-#
+
 ## for omp detection
 ##rm -rf objdir-clang/ && cmake -H. -Bobjdir-clang -DCMAKE_CXX_COMPILER=${CLANGXX} -DCMAKE_C_COMPILER=${CLANG} -DOpenMP_CXX_FLAG="-fopenmp=libiomp5" -DPYTHON_EXECUTABLE=/Users/github/toolchainconda/envs/tools/bin/python -DLAPACK_LIBRARIES="/Users/github/toolchainconda/envs/tools/lib/libmkl_rt.dylib;/Users/github/toolchainconda/envs/tools/lib/libiomp5.dylib" -DLAPACK_INCLUDE_DIRS=/Users/github/toolchainconda/envs/tools//include/
 ##need llvm-openmp and intel-openmp

@@ -35,7 +35,6 @@ cmake %CMAKE_ARGS% ^
   -D ENABLE_XHOST=OFF ^
   -D CMAKE_VERBOSE_MAKEFILE=OFF ^
   -D CMAKE_PREFIX_PATH="%LIBRARY_PREFIX%"
-
 if errorlevel 1 exit 1
 
 cmake --build build ^
@@ -53,8 +52,8 @@ if errorlevel 1 exit 1
 :: if errorlevel 1 exit 1
 
 :: only available with m2w64-binutils package - add dep in meta.yaml or defer to test stage
-objdump.exe -p %PREFIX%\Lib\site-packages\psi4\core.*.pyd | findstr /i "dll"
-objdump.exe -p %PREFIX%\Library\bin\mkl_rt.*.dll | findstr /i "dll"
+:: objdump.exe -p %PREFIX%\Lib\site-packages\psi4\core.*.pyd | findstr /i "dll"
+:: objdump.exe -p %PREFIX%\Library\bin\mkl_rt.*.dll | findstr /i "dll"
 
 :: tests outside build phase
 
@@ -72,10 +71,6 @@ objdump.exe -p %PREFIX%\Library\bin\mkl_rt.*.dll | findstr /i "dll"
 ::if errorlevel 1 exit 1
 
 ::                -DCMAKE_CXX_FLAGS="/arch:AVX"
-::                -DPython_NumPy_INCLUDE_DIR="C:/tools/miniconda3/lib/site-packages/numpy/core/include"
-::                -DEigen3_ROOT="C:/tools/miniconda3/Library"
-::                -DBOOST_ROOT="C:/tools/miniconda3/Library"
-::                -DMultiprecision_ROOT="C:/tools/miniconda3/Library"
 ::      -DCMAKE_C_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CFLAGS%"
 ::      -DCMAKE_CXX_FLAGS="/wd4018 /wd4101 /wd4996 /EHsc %CXXFLAGS%"
 
