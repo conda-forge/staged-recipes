@@ -14,7 +14,7 @@ rustc --version
 
 mkdir -p "${CARGO_HOME}"
 
-maturin build --release --strip --manylinux off -i "${PYTHON}"
+"${PYTHON}" -m maturin build --release --strip --manylinux=off -i "${PYTHON}"
 
 "${PYTHON}" -m pip install fast-query-parsers -vv --no-deps --no-index --find-links "${SRC_DIR}/target/wheels"
 

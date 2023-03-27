@@ -7,7 +7,7 @@ set TEMP="%SRC_DIR%\tmpbuild_%PY_VER%"
 
 mkdir "%TEMP%"
 
-%PYTHON% -m pip install . -vv --no-build-isolation ^
+"%PYTHON%" -m maturin pep517 build-wheel --compatibility=off --strip --release -i "%PYTHON%"
     || exit 1
 
 :: dump licenses
