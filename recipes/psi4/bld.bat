@@ -9,8 +9,6 @@ cmake %CMAKE_ARGS% ^
   -D CMAKE_C_FLAGS="%CFLAGS%" ^
   -D CMAKE_CXX_COMPILER=clang-cl ^
   -D CMAKE_CXX_FLAGS="%CXXFLAGS%" ^
-  -D CMAKE_Fortran_COMPILER=gfortran.exe ^
-  -D CMAKE_Fortran_FLAGS="%FFLAGS%" ^
   -D CMAKE_INSTALL_LIBDIR="Library\lib" ^
   -D CMAKE_INSTALL_INCLUDEDIR="Library\include" ^
   -D CMAKE_INSTALL_BINDIR="Scripts" ^
@@ -31,6 +29,7 @@ cmake %CMAKE_ARGS% ^
   -D CMAKE_INSIST_FIND_PACKAGE_Libxc=ON ^
   -D CMAKE_INSIST_FIND_PACKAGE_qcelemental=ON ^
   -D CMAKE_INSIST_FIND_PACKAGE_qcengine=ON ^
+  -D psi4_SKIP_ENABLE_Fortran=ON ^
   -D ENABLE_dkh=ON ^
   -D CMAKE_INSIST_FIND_PACKAGE_dkh=ON ^
   -D ENABLE_XHOST=OFF ^
