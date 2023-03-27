@@ -1,6 +1,6 @@
 {% set name = "psi4" %}
 {% set version = "1.7.100" %}
-{% set sha256 = "c4bc072c74f01202e61d5594d3b6237bc74d609cae20436474dee45776b16c97" %}
+{% set sha256 = "ae764c4e6d6c38a4734b52ea1048a3ed64a9f741add1a38bf8a2b2e4d6c765c5" %}
 
 package:
   name: {{ name|lower }}
@@ -33,6 +33,7 @@ requirements:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
     - {{ compiler('fortran') }}              # [not win]
+    - {{ compiler('m2w64_fortran') }}        # [win]
     - m2w64-binutils                         # [win]  # provides objdump.exe
     - cmake
     - make                                   # [not win]
@@ -57,6 +58,7 @@ requirements:
     - qcengine
     # qc opt'l
     - dkh                                    # [not win]
+    - dkh                                    # [win]
   run:
     - llvm-openmp                            # [not win]
     - intel-openmp                           # [win]
@@ -75,20 +77,15 @@ requirements:
     - {{ pin_compatible('qcengine', upper_bound='0.27') }}
       # someday, qcengine and qcelemental should be `max_pin='x'` again
   run_constrained:
-    - pylibefp =={{ pylibefp }}             # [not win]  # 50
+    - pylibefp =={{ pylibefp }}
+    - geometric >={{ geometric }}
+    - pymdi >={{ pymdi }}
 
 # for review: the mkl story
 
 
 #outputs:
 #    requirements:
-#      host:
-#        - libblas
-#        - liblapack
-#    requirements:
-#      requirements:
-#          run_constrained:
-#              - pymdi >={{ pymdi }}
 #          host:
 #              # qc
 #              - ambit {{ ambit }}
@@ -118,7 +115,9 @@ test:
     - m2w64-binutils                                                     # [win]  # provides objdump.exe
     # qc runtime opt'l
     - pylibefp
-    #- dftd3-python
+    - dftd3-python                                                       # [unix]
+    - dftd4-python                                                       # [unix]
+    - gcp-correction                                                     # [unix]
     - geometric
   commands:
     - ls -l $PREFIX/lib                                                  # [unix]
@@ -133,12 +132,13 @@ test:
     # Verify executable
     - test -f $PREFIX/bin/psi4                                           # [unix]
     - $PREFIX/bin/psi4 --version                                         # [unix]
-    - $PREFIX/bin/psi4 --psiapi                                          # [unix]
+    - $PREFIX/bin/psi4 --module                                          # [unix]
     - if exist %PREFIX%\\Scripts\\psi4 exit 1                            # [win]
     - if not exist %PREFIX%\\Scripts\\psi4-script.py exit 1              # [win]  # aka bin/psi4
     - if not exist %PREFIX%\\Scripts\\psi4.exe exit 1                    # [win]
     - "%PREFIX%\\Scripts\\psi4.exe --version"                            # [win]
-    - "%PREFIX%\\Scripts\\psi4.exe --psiapi"                             # [win]
+    - "%PREFIX%\\Scripts\\psi4.exe --module"                             # [win]
+    - python -c "import psi4;print(psi4.executable)"
     # Verify accessories
     - test -f $PREFIX/include/psi4/psi4-dec.h                            # [unix]
     - test -f $PREFIX/share/cmake/psi4/psi4Config.cmake                  # [unix]
@@ -184,13 +184,6 @@ extra:
 
 #outputs:
 #    - name: psi4
-#      build:
-#          requires_features:
-#              blas: {{ blas_impl }}
-#          run_exports:
-#              - {{ pin_subpackage('psi4', max_pin='x.x') }}
-#          ignore_run_exports:
-#              - numpy
 #      test:
 #          commands:
 #              # Actually test
@@ -199,19 +192,3 @@ extra:
 #              - python $PREFIX/share/psi4/scripts/test_threading.py --passfail --ldd  # [py3k]
 #              - python $PREFIX/share/psi4/scripts/test_threading.py ${PASSFAIL} --psiapi -n6  # [py3k]
 #              - python $PREFIX/share/psi4/scripts/test_threading.py ${PASSFAIL} --psithon -n6  # [py3k and not osx]
-
-
-## NOTES
-## -----
-##
-## * weird mkl 2019-2021 pinning:
-##      build:
-##          ignore_run_exports:
-##              # allow pin_compatible below to trump native mkl run_exports to permit 2019/2020 compatibility
-##              - mkl                            # [linux]
-##      requirements:
-##          host:
-##              - mkl-devel {{ mkl }}            # [blas_impl == 'mkl']
-##          run:
-##              - {{ pin_compatible('mkl', upper_bound='2021.0') }}  # [linux]
-#
