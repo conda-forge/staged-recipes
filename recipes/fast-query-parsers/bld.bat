@@ -7,7 +7,7 @@ set TEMP="%SRC_DIR%\tmpbuild_%PY_VER%"
 
 mkdir "%TEMP%"
 
-"%PYTHON%" -m maturin build --release --strip -i "%PYTHON%" ^
+call "%PYTHON%" -m maturin build --release --strip -i "%PYTHON%" ^
     || exit 1
 
 :: dump licenses
