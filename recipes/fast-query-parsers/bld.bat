@@ -7,7 +7,7 @@ set TEMP="%SRC_DIR%\tmpbuild_%PY_VER%"
 
 mkdir "%TEMP%"
 
-"%PYTHON%" -m maturin pep517 build-wheel --compatibility=off --strip --release -i "%PYTHON%"
+"%PYTHON%" -m maturin pep517 build-wheel --compatibility=off --strip -i "%PYTHON%" ^
     || exit 1
 
 :: dump licenses
