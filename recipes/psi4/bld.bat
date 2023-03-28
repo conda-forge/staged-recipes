@@ -43,11 +43,8 @@ cmake --build build ^
       -- -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
-echo Intel
-lib /list %SRC_DIR%\external_src\conda\win\2019.1\libiomp5md.lib
-echo LLVM
-lib /list "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Tools/Llvm/x64/lib/libiomp5md.lib"
-echo end
+:: pytest in conda testing stage
+
 
 :: Relocate python module to expected location (if positioning through PYMOD_INSTALL_LIBDIR="/" and CMAKE_INSTALL_BINDIR="Library\bin")
 ::copy /y "%PREFIX%\Library\bin\psi4" "%PREFIX%\Scripts"
@@ -57,8 +54,13 @@ echo end
 :: del /S /Q "%PREFIX%\Library\lib\psi4"
 :: if errorlevel 1 exit 1
 
-:: only available with m2w64-binutils package - add dep in meta.yaml or defer to test stage
+:: Probe linking - only available with m2w64-binutils package - add dep in meta.yaml or defer to test stage
 :: objdump.exe -p %PREFIX%\Lib\site-packages\psi4\core.*.pyd | findstr /i "dll"
 :: objdump.exe -p %PREFIX%\Library\bin\mkl_rt.*.dll | findstr /i "dll"
 
-:: pytest in conda testing stage
+:: Probe import libraries
+:: echo Intel
+:: lib /list %SRC_DIR%\external_src\conda\win\2019.1\libiomp5md.lib
+:: echo LLVM
+:: lib /list "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Tools/Llvm/x64/lib/libiomp5md.lib"
+:: echo end
