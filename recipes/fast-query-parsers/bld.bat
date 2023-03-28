@@ -4,10 +4,10 @@ set PYTHONIOENCODING="UTF-8"
 set PYTHONUTF8=1
 set RUST_BACKTRACE=1
 set TEMP="%SRC_DIR%\tmpbuild_%PY_VER%"
+set PYO3_PYTHON=%PYTHON%
 
 mkdir "%TEMP%"
 
-:: call "%PYTHON%" -m maturin build --release --strip -i "%PYTHON%" ^
 %PYTHON% -m pip install -vv . --no-deps --no-build-isolation ^
     || exit 1
 
