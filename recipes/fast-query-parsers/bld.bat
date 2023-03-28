@@ -7,13 +7,14 @@ set TEMP="%SRC_DIR%\tmpbuild_%PY_VER%"
 
 mkdir "%TEMP%"
 
-call "%PYTHON%" -m maturin build --release --strip -i "%PYTHON%" ^
-    || exit 1
-
 :: dump licenses
 cargo-bundle-licenses ^
     --format yaml ^
     --output "%SRC_DIR%\THIRDPARTY.yml" ^
+    || exit 1
+
+:: call "%PYTHON%" -m maturin build --release --strip -i "%PYTHON%" ^
+maturin build -v --jobs 1 --release --strip --interpreter=%PYTHON% ^
     || exit 1
 
 chcp 65001
