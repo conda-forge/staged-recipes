@@ -43,6 +43,12 @@ cmake --build build ^
       -- -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
+echo Intel
+lib /list %SRC_DIR%\external_src\conda\win\2019.1\libiomp5md.lib
+echo LLVM
+lib /list "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Tools/Llvm/x64/lib/libiomp5md.lib"
+echo end
+
 :: Relocate python module to expected location (if positioning through PYMOD_INSTALL_LIBDIR="/" and CMAKE_INSTALL_BINDIR="Library\bin")
 ::copy /y "%PREFIX%\Library\bin\psi4" "%PREFIX%\Scripts"
 ::if errorlevel 1 exit 1

@@ -17,13 +17,18 @@ source:
 build:
   number: 0
   binary_relocation: true
+  # TODO: undo following CI-conserving skip before final merge. reviewers: "iter 70" commit showed all py versions are in working order.
+  skip: true                                 # [py != 39]
+  run_exports:
+    # only relevant for the rare "psi4 plugin" case, not the usual "psi4 python module"
+    - {{ pin_subpackage('psi4', max_pin='x.x') }}
   ignore_run_exports:
     - libint
 
 # bkgd for review: the libint story
 # * this recipe is using a libint dev package for reasons at https://github.com/conda-forge/libint-feedstock/issues/15
 # * libint_dev pkg has a run_exports `x`, which is true for the package in general
-# * but for the time being in case of unfinalized API, it's prudent to pin req/run to exact, hence the ignore_run_exports above
+# * but since API is not finalized, it's prudent for now to pin req/run to exact, hence the ignore_run_exports above
 
 # bkgd for review: the fortran story
 # * psi4 has no fortran code and no fortran required dependencies (besides blas/lapack)
@@ -32,10 +37,29 @@ build:
 #   the msvc+gfortran combination hits https://gitlab.kitware.com/cmake/cmake/-/issues/17810
 
 # bkgd for review: the general blas story
-# * psi4 is heavily performance-dependent on the blas/lapack implementation
+# * psi4's performance is heavily dependent on the blas/lapack implementation
 # * we've been packaging on conda with mkl for the past 7y
-# * while the build system allows any blas impl, we emit "untested" warnings for non-MKL, and last openblas test 5y ago had threading oversubscriptions
+# * while the build system allows any blas impl, we emit "untested" warnings for non-MKL, and the last test of openblas 5y ago had threading oversubscriptions
 # * so while we're open to multiple impl in future and have been specifying generic "libblas" in deps like dkh, we'd like to support only mkl in psi4 for now
+
+# bkgd for review: the windows blas story
+# * the latest blas+win+mkl package (libblas-3.9.0-16_win64_mkl) depends on mkl=2022.1.0, even though mkl=2022.2 and 2023.0 are available.
+# * so the `{{ mkl }}  # [win]` below pins to 2022.1.0 so that libblas=*=*mkl can work correctly to set the blas implementation.
+# * without the `{{ mkl }}` pin, various attempts would either install mkl + openblas + libblas=*=*openblas or try to fall back to libblas==3.8.0=10_mkl
+# * current conda-forge-pinning is mkl=mkl-devel=2022, so hopefully this recipe is still consistent with the c-f stack.
+
+# bkgd for review: the windows openmp story
+# * the windows mkl package depends on intel-openmp (provides libiomp5md.dll).
+# * llvm-openmp is another contender on windows (provides libomp.dll=libiomp5md.dll and assoc. import libs libomp.lib=libiomp5md.lib).
+# * intel-openmp libiomp5md.dll is twice the size of the llvm-openmp file of the same name, and there's reports of non-interchangeability:
+#   * https://github.com/conda-forge/conda-forge.github.io/issues/1597#issuecomment-1029224521
+#   * https://github.com/conda-forge/intel_repack-feedstock/issues/1#issuecomment-579975070
+# * so we'd like to keep depending on intel-openmp, but since the package only provides the runtime dll,
+#   not the buildtime import lib, we stash a copy of the latter in a repo (see 2nd source/url above)
+#   for compiling psi4. It is used at buildtime and never packaged.
+# * for threading on windows, we're certainly willing for the psi4 recipe to do whatever works well with the c-f stack.
+#   However, at the moment this aspect of the stack seems a little fractured, so the recipe is defaulting to the
+#   mkl + intel-openmp + borrowed libiomp5md.lib procedure that has worked compatibly with c-f for the last couple years.
 
 requirements:
   build:
@@ -78,10 +102,8 @@ requirements:
     # qc
     - libint {{ libint }}
     - {{ pin_compatible('optking', upper_bound='0.5') }}
-    - qcelemental
-    - qcengine
-    #- {{ pin_compatible('qcelemental', upper_bound='0.5') }}
-    #- {{ pin_compatible('qcengine', upper_bound='0.5') }}
+    - {{ pin_compatible('qcelemental', upper_bound='0.50') }}
+    - {{ pin_compatible('qcengine', upper_bound='0.50') }}
   run_constrained:
     - pytest >=7.0.1
     # qc opt'l, run-time
@@ -169,20 +191,11 @@ extra:
   recipe-maintainers:
     - loriab
 
-#######
-
-#          commands:
-#              # Actually test
-#              - PASSFAIL="--passfail"           # [linux]
-#              - PASSFAIL=""                     # [osx]  # Mac threading occasionally bizarre
-#              - python $PREFIX/share/psi4/scripts/test_threading.py --passfail --ldd  # [py3k]
-#              - python $PREFIX/share/psi4/scripts/test_threading.py ${PASSFAIL} --psiapi -n6  # [py3k]
-#              - python $PREFIX/share/psi4/scripts/test_threading.py ${PASSFAIL} --psithon -n6  # [py3k and not osx]
 
 # Notes
 # -----
 
-# * The following optional runtime deps were included in req/run of the psi4::psi4 package but are omitted in conda-forge::psi4
+# * The following optional runtime deps were in req/run of the psi4::psi4 package but are omitted from conda-forge::psi4
 #   * pytest
 #   * dftd3
 #   * gcp
