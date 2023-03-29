@@ -3,6 +3,15 @@
 set -e
 set -x
 
+# Despite specifying QMAKE_CXX in expert mode, qmake still requires
+# "g++" during the bootstrapping process to obtain gcc paths.
+# Therefore, we create a temporary link named "g++"
+mkdir temp_bin
+cd temp_bin
+ln -s $GXX g++
+cd ..
+export PATH=$(pwd)/temp_bin:$PATH
+
 # Identify OS
 UNAME_OUT="$(uname -s)"
 if [ "${UNAME_OUT}" = "Linux" ]; then
