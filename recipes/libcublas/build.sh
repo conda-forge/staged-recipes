@@ -22,12 +22,12 @@ for i in `ls`; do
         if [[ $i == "lib" ]]; then
             for j in "$i"/*.so*; do
                 # Shared libraries are symlinked in $PREFIX/lib
-                ln -s ../${targetsDir}/$j ${PREFIX}/$j
+                ln -s ${PREFIX}/${targetsDir}/$j ${PREFIX}/$j
             done
         fi
     else
         # Put all other files in targetsDir
         mkdir -p ${PREFIX}/${targetsDir}/${PKG_NAME}
-        cp -rv $i ${PREFIX}/${targetsDir}/${PKG_NAME}/$i
+        cp -rv $i ${PREFIX}/${targetsDir}/${PKG_NAME}
     fi
 done
