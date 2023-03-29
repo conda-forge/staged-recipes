@@ -37,7 +37,9 @@ elif [[ $OS == "Mac" ]]; then
     sdk_prf="mkspecs/features/mac/sdk.prf"
 
     # Replace sysroot and deployment target in default_post.prf
-    grep -q -- '-isysroot $$sysroot_path $$version_min_flag' ${default_post_prf} && flag="-isysroot $$sysroot_path $$version_min_flag" || flag="-isysroot $$QMAKE_MAC_SDK_PATH $$version_min_flag"
+    grep -q -- '-isysroot $$sysroot_path $$version_min_flag' ${default_post_prf} && \
+        flag="-isysroot $$sysroot_path $$version_min_flag" || \
+        flag="-isysroot $$QMAKE_MAC_SDK_PATH $$version_min_flag"
     sed "s|${flag}|-isysroot '$CONDA_BUILD_SYSROOT' -mmacosx-version-min='$MACOSX_DEPLOYMENT_TARGET'|g" ${default_post_prf} > ${default_post_prf}.bkp
     mv ${default_post_prf}.bkp ${default_post_prf}
 
