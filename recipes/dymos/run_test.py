@@ -21,7 +21,8 @@ test_files_to_delete = [
 
 tests = [
     ["testflo", "--numprocs", "1", "dymos", "-v", "--pre_announce"],
-    ["testflo", "--numprocs", "1", "joss/test", "-v", "--pre_announce"],
+    # pypi package does not include the folder containing the `joss` paper
+    # ["testflo", "--numprocs", "1", "joss/test", "-v", "--pre_announce"],
 ]
 
 for test in tests:
