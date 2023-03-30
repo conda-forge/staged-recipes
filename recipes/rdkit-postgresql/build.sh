@@ -24,7 +24,6 @@ cmake \
     -D RDK_USE_FLEXBISON=OFF \
     -D RDK_TEST_MULTITHREADED=ON \
     -D CMAKE_BUILD_TYPE=Release \
-    -D CXX_STANDARD=14 \
     ..
 
 make -j$CPU_COUNT
