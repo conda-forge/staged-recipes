@@ -19,18 +19,18 @@ Dymos leverages implicit and explicit simulation techniques to simulate generic
 dynamic systems of arbitary complexity.
 
 
-Current build status
-====================
+<!-- Current build status
+==================== -->
 
 
-<table><tr><td>All platforms:</td>
+<!-- <table><tr><td>All platforms:</td>
     <td>
       <a href="https://dev.azure.com/conda-forge/feedstock-builds/_build/latest?definitionId=7766&branchName=main">
         <img src="https://dev.azure.com/conda-forge/feedstock-builds/_apis/build/status/dymos-feedstock?branchName=main">
       </a>
     </td>
   </tr>
-</table>
+</table> -->
 
 Current release info
 ====================
