@@ -5,16 +5,6 @@ from os.path import join, dirname
 
 import dymos
 
-# don't test the code_review stuff
-TESTFLO = """[testflo]
-numprocs = 2
-skip_dirs =
-  code_review
-
-"""
-
-with open(".testflo", "w") as fp:
-    fp.write(TESTFLO)
 
 test_files_to_delete = [
     # can't test these, yet, because of playwright
@@ -29,6 +19,14 @@ test_files_to_delete = [
     for tf2d in test_files_to_delete
 ]
 
-sys.exit(subprocess.call([
-    "testflo", "--config", ".testflo", "--numprocs", "1", "dymos", "-v", "--pre_announce"
-]))
+tests = [
+    ["testflo", "--numprocs", "1", "dymos", "-v", "--pre_announce"],
+    ["testflo", "--numprocs", "1", "joss/test", "-v", "--pre_announce"],
+]
+
+for test in tests:
+    rc = subprocess.call(test)
+    if rc:
+        sys.exit(rc)
+
+sys.exit(0)
