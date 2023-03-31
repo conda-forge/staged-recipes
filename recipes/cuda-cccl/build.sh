@@ -9,5 +9,5 @@
 
 mkdir -p ${PREFIX}/${targetsDir}
 
-cp -r lib ${PREFIX}/${targetsDir}
-cp -r include ${PREFIX}/${targetsDir}
+cp -rv lib ${PREFIX}/${targetsDir}
+cp -rv include ${PREFIX}/${targetsDir}
