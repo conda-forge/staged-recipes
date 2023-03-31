@@ -7,7 +7,8 @@
 
 library("chromote")
 
+message("Path to browser executable: ", find_chrome())
 b <- ChromoteSession$new()
-b$view()
-b$Browser$getVersion()
-b$parent$close()
+message("Version info:")
+str(b$Browser$getVersion())
+exit <- b$close()
