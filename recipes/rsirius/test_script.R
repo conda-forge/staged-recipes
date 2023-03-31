@@ -4,7 +4,7 @@ wrapper <- sdk$start()
 Sys.sleep(20)
 pspace <- wrapper$project_spaces_api$GetProjectSpaces()[[1]]$name
 recipe_dir <- toString(Sys.getenv('RECIPE_DIR'))
-data <- file.path(recipe_dir,"Kaempferol.ms")
+data <- gsub("\\\\", "/", file.path(recipe_dir,"Kaempferol.ms"))
 wrapper$compounds_api$ImportCompounds(pspace, c(data))
 config <- wrapper$computations_api$GetDefaultJobConfig()
 Sys.sleep(5)
