@@ -10,5 +10,3 @@ move thrust\thrust %LIBRARY_INC%
 move cub\cub %LIBRARY_INC%
 move libcudacxx\include\cuda %LIBRARY_INC%
 move libcudacxx\include\nv %LIBRARY_INC%
-
-move libcudacxx\LICENSE.TXT LICENSE

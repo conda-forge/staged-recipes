@@ -11,5 +11,3 @@ cp -r thrust/thrust ${PREFIX}/include
 cp -r cub/cub ${PREFIX}/include
 cp -r libcudacxx/include/cuda ${PREFIX}/include
 cp -r libcudacxx/include/nv ${PREFIX}/include
-
-cp -r libcudacxx/LICENSE.TXT LICENSE
