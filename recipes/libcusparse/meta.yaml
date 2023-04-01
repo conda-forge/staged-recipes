@@ -1,49 +1,59 @@
 {% set name = "libcusparse" %}
-{% set version = "11.7.5.86" %}
+{% set version = "12.0.0.76" %}
 {% set cuda_version = "12.0" %}
 {% set platform = "linux-x86_64" %}    # [linux64]
 {% set platform = "linux-ppc64le" %}   # [ppc64le]
 {% set platform = "linux-sbsa" %}      # [aarch64]
 {% set platform = "windows-x86_64" %}  # [win]
+{% set target_name = "x86_64-linux" %}  # [linux64]
+{% set target_name = "ppc64le-linux" %}  # [ppc64le]
+{% set target_name = "sbsa-linux" %}  # [aarch64]
+{% set target_name = "x64" %}  # [win]
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  url: https://developer.download.nvidia.com/compute/cuda/redist/{{ name }}/{{ platform }}/{{ name }}-{{ platform }}-{{ version }}-archive.tar.xz
-  sha256: 9250fe539d4bd6a378581dc0b528e8cfc418b57f28545bf39d70cae762075df7  # [linux64]
-  sha256: 1072e26dc118cbf9d6f061eddbff45f2da2eef6c87c2b8a64fd1586af91a2735  # [ppc64le]
-  sha256: 191ae1f26b15955b743f6c4978c8562b973b16671a9f684368d501919f906ce5  # [aarch64]
-  sha256: b51a46f4f6bb9476ffe433a1dedad2c94a546c8a92e70dfed63207b64ff57e50  # [win]
+  url: https://developer.download.nvidia.com/compute/cuda/redist/{{ name }}/{{ platform }}/{{ name }}-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: 66bd1962f4905b6fc49446d5b2570bcd6171a96833b93f44ad4fc5650f47a496  # [linux64]
+  sha256: 36b5f682ebe21089d1bbc8250eabd18c9c9a8bf498b5f878ea4944fda16d8203  # [ppc64le]
+  sha256: ee3a2ff7becc449aeda6b2cec11ad7f0606cef4b54eb6511d5f0c1166c79cc80  # [aarch64]
+  sha256: a475bc85cfc204aff825e3e5d97d7c1993d3f2cfec22a87e76b8d596fc496a02  # [win]
 
 build:
   number: 0
   skip: true  # [osx]
-  missing_dso_whitelist:
-    - /lib64/libpthread.so.0
-    - /lib64/librt.so.1
-    - /lib64/libdl.so.2
-    - /lib64/libm.so.6
-    - /lib64/libgcc_s.so.1
-    - /lib64/libc.so.6
-    - /lib64/ld-linux-x86-64.so.2
 
 outputs:
   - name: libcusparse
     files:
-      - lib/libcusparse.so.*  # [linux]
-      - bin\cusparse*.dll     # [win]
+      - lib/libcusparse.so.*                             # [linux]
+      - targets/{{ target_name }}/lib/libcusparse*.so.*  # [linux]
+      - Library\bin\cusparse*.dll                        # [win]
     requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+        - sysroot_{{ target_platform }} 2.17    # [linux]
       host:
         - cuda-version {{ cuda_version }}
+        - libnvjitlink
       run:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
-        - libnvjitlink
+        - {{ pin_compatible("libnvjitlink", max_pin="x.x") }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
     test:
       commands:
-        - test -f $PREFIX/lib/libcusparse.so.*              # [linux]
-        - if not exist %LIBRARY_BIN%\\cusparse*.dll exit 1  # [win]
+        - test -L $PREFIX/lib/libcusparse.so.{{ version }}                                  # [linux]
+        - test -L $PREFIX/lib/libcusparse.so.{{ version.split(".")[0] }}                    # [linux]
+        - test -L $PREFIX/{{ target_name }}/lib/libcusparse.so.{{ version }}                # [linux]
+        - test -f $PREFIX/{{ target_name }}/lib/libcusparse.so.{{ version.split(".")[0] }}  # [linux]
+        - if not exist %LIBRARY_BIN%\\cusparse*.dll exit 1                                  # [win]
     about:
       home: https://developer.nvidia.com/cusparse
       license_file: LICENSE
@@ -55,26 +65,44 @@ outputs:
       doc_url: https://docs.nvidia.com/cuda/cusparse/index.html
 
   - name: libcusparse-dev
+    build:
+      run_exports:
+        - {{ pin_subpackage("libcusparse", max_pin="x") }}
     files:
       - lib/libcusparse.so         # [linux]
-      - lib/stubs/libcusparse.so   # [linux]
-      - lib/x64/cusparse.lib       # [win]
-      - include/cusparse*
-      - src/cusparse_fortran*
+      - lib/pkgconfig                                 # [linux]
+      - targets/{{ target_name }}/include             # [linux]
+      - targets/{{ target_name }}/lib/libcusparse.so  # [linux]
+      - targets/{{ target_name }}/lib/stubs           # [linux]
+      # Not shipping Fortran bindings (in src) on Windows for now
+      - targets/{{ target_name }}/libcusparse/src     # [linux]
+      - Library\include                             # [win]
+      - Library\lib                                 # [win]
     requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+        - sysroot_{{ target_platform }} 2.17    # [linux]
       host:
         - cuda-version {{ cuda_version }}
       run:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
-        - libcusparse >={{ version }}
+        - {{ pin_subpackage("libcusparse", exact=True) }}
       run_constrained:
         - libcusparse-static >={{ version }}  # [linux]
     test:
       commands:
-        - test -f $PREFIX/include/cusparse.h              # [linux]
-        - test -f $PREFIX/lib/libcusparse.so              # [linux]
-        - if not exist %LIBRARY_INC%\cusparse.h exit 1    # [win]
-        - if not exist %LIBRARY_LIB%\cusparse.lib exit 1  # [win]
+        - test -L $PREFIX/lib/libcusparse.so                                                   # [linux]
+        - test -f $PREFIX/lib/pkgconfig/cusparse*.pc                                           # [linux]
+        - test -f $PREFIX/targets/{{ target_name }}/include/cusparse.h                         # [linux]
+        - test -L $PREFIX/targets/{{ target_name }}/lib/libcusparse.so                         # [linux]
+        - test -f $PREFIX/targets/{{ target_name }}/lib/stubs/libcusparse.so                   # [linux]
+        - test -f $PREFIX/targets/{{ target_name }}/libcusparse/src/cusparse_fortran.c         # [linux]
+        - test -f $PREFIX/targets/{{ target_name }}/libcusparse/src/cusparse_fortran.h         # [linux]
+        - test -f $PREFIX/targets/{{ target_name }}/libcusparse/src/cusparse_fortran_common.h  # [linux]
+        - if not exist %LIBRARY_INC%\cusparse.h exit 1                                         # [win]
+        - if not exist %LIBRARY_LIB%\cusparse.lib exit 1                                       # [win]
     about:
       home: https://developer.nvidia.com/cusparse
       license_file: LICENSE
@@ -89,15 +117,20 @@ outputs:
     build:
       - skip: true  # [win]
     files:
-      - lib/libcusparse_static.a
+      - targets/{{ target_name }}/lib/libcusparse_static.a
     requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+        - sysroot_{{ target_platform }} 2.17    # [linux]
       host:
         - cuda-version {{ cuda_version }}
       run:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
     test:
       commands:
-        - test -f $PREFIX/lib/libcusparse_static.a
+        - test -f $PREFIX/targets/{{ target_name }}/lib/libcusparse_static.a
     about:
       home: https://developer.nvidia.com/cusparse
       license_file: LICENSE
