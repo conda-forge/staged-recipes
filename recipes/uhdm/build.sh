@@ -3,6 +3,6 @@
 set -e
 set -x
 
-cmake -DCMAKE_BUILD_TYPE=Release -DUHDM_USE_HOST_CAPNP=ON -DUHDM_USE_HOST_GTEST=on -B build .
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DUHDM_USE_HOST_GTEST=ON -DUHDM_USE_HOST_CAPNP=ON .
 cmake --build build --config Release
 cmake --install build --config Release
