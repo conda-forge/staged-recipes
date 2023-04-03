@@ -1,0 +1,65 @@
+{% set name = "pennylane-lightning-gpu" %}
+{% set version = "0.29.0" %}
+
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/PennyLaneAI/{{ name }}/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: e4cb8c496bddbb6c6cd27a6e1462cd3625952996222185dd0d7ec82e3cafea9b
+  patches:
+    - 0001-setup.patch
+
+build:
+  number: 0
+  skip: true  # [(not linux) or (cuda_compiler_version !=  "11.2")]
+  script: {{ PYTHON }} -m pip install . --no-deps -vv
+  missing_dso_whitelist:
+    - '*/libcuda.*'  # [linux]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - cmake
+    - ninja
+  host:
+    - {{ pin_compatible('custatevec', max_pin='x') }}
+    - libgomp      # [linux]
+    - pip
+    - pybind11
+    - python
+  run:
+    - {{ pin_compatible('custatevec', max_pin='x') }}
+    - pennylane
+    - python
+test:
+  imports:
+    - pennylane_lightning_gpu
+  commands:
+    - python -c "import pennylane as qml; qml.about()"
+    - pl-device-test --device lightning.gpu --shots None --skip-ops  # INSUFFICIENT SUPPORT DETECTED FOR GPU DEVICE 
+    - pl-device-test --device lightning.gpu --shots 10000 --skip-ops # INSUFFICIENT SUPPORT DETECTED FOR GPU DEVICE 
+    - pip check
+  requires:
+    - setuptools # requirement from cvxpy
+    - flaky
+    - pip
+    - pytest
+    - pytest-mock
+about:
+  home: https://docs.pennylane.ai/projects/lightning-gpu/en/latest/
+  summary: The PennyLane-Lightning-GPU plugin extends the Pennylane-Lightning state-vector simulator written in C++, and offloads to the NVIDIA cuQuantum SDK for GPU accelerated circuit simulation.
+  license: Apache-2.0
+  # MIT is pennylane/grouping/graph_colouring.py
+  license_file: LICENSE
+  doc_url: https://docs.pennylane.ai/projects/lightning-gpu/en/latest/devices.html
+
+extra:
+  recipe-maintainers:
+    - leofang
+    - vincentmr
+  feedstock-name: {{ name }}

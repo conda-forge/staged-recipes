@@ -1,0 +1,94 @@
+diff --git a/pennylane_lightning_gpu/src/algorithms/ObservablesGPU.hpp b/pennylane_lightning_gpu/src/algorithms/ObservablesGPU.hpp
+index 7fc1810..5cf1aee 100644
+--- a/pennylane_lightning_gpu/src/algorithms/ObservablesGPU.hpp
++++ b/pennylane_lightning_gpu/src/algorithms/ObservablesGPU.hpp
+@@ -562,7 +562,7 @@ class SparseHamiltonianGPU final : public ObservableGPU<T> {
+             /* cusparseDnVecDescr_t */ sv_prime_descriptor,
+             /* cudaDataType */ data_type,
+             /* cusparseSpMVAlg_t */
+-            CUSPARSE_MV_ALG_DEFAULT,
++            CUSPARSE_SPMV_ALG_DEFAULT,
+             /* void* */ reinterpret_cast<void *>(dBuffer.getData())));
+ 
+         // destroy matrix/vector descriptors
+diff --git a/pennylane_lightning_gpu/src/simulator/StateVectorCudaManaged.hpp b/pennylane_lightning_gpu/src/simulator/StateVectorCudaManaged.hpp
+index ddcd86c..30ba1a5 100644
+--- a/pennylane_lightning_gpu/src/simulator/StateVectorCudaManaged.hpp
++++ b/pennylane_lightning_gpu/src/simulator/StateVectorCudaManaged.hpp
+@@ -245,7 +245,7 @@ class StateVectorCudaManaged
+         }
+     }
+     /**
+-     * @brief STL-fiendly variant of `applyOperation(
++     * @brief STL-friendly variant of `applyOperation(
+         const std::string &opName, const std::vector<size_t> &wires,
+         bool adjoint = false, const std::vector<Precision> &params = {0.0},
+         [[maybe_unused]] const std::vector<CFP_t> &gate_matrix = {})`
+@@ -1377,7 +1377,7 @@ class StateVectorCudaManaged
+ 
+     /**
+      * @brief Apply a given host or device-stored array representing the gate
+-     * `matrix` to the statevector at qubit indices given by `tgts` and
++     * `matrix` to the state vector at qubit indices given by `tgts` and
+      * control-lines given by `ctrls`. The adjoint can be taken by setting
+      * `use_adjoint` to true.
+      *
+@@ -1462,7 +1462,7 @@ class StateVectorCudaManaged
+     }
+ 
+     /**
+-     * @brief Apply a given host-matrix `matrix` to the statevector at qubit
++     * @brief Apply a given host-matrix `matrix` to the state vector at qubit
+      * indices given by `tgts` and control-lines given by `ctrls`. The adjoint
+      * can be taken by setting `use_adjoint` to true.
+      *
+diff --git a/requirements.txt b/requirements.txt
+index 797476a..0e4f8c5 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -3,7 +3,6 @@ cmake
+ cuquantum>=22.3.0
+ flaky
+ pennylane>=0.28
+-pennylane-lightning>=0.28
+ pybind11
+ pytest
+ pytest-cov
+diff --git a/setup.py b/setup.py
+index f45789c..54b9b32 100644
+--- a/setup.py
++++ b/setup.py
+@@ -21,7 +21,6 @@ from pathlib import Path
+ from setuptools import setup, find_packages
+ 
+ if not os.getenv("READTHEDOCS"):
+-
+     from setuptools import Extension
+     from setuptools.command.build_ext import build_ext
+ 
+@@ -71,13 +70,13 @@ if not os.getenv("READTHEDOCS"):
+                 f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
+                 "-GNinja",
+                 f"-DCMAKE_MAKE_PROGRAM={ninja_path}",
+-                f"-DENABLE_OPENMP=OFF",
++                "-DENABLE_OPENMP=OFF",
+                 *(self.cmake_defines),
+             ]
+ 
+             build_args = []
+ 
+-            if not platform.system() == "Linux":
++            if platform.system() != "Linux":
+                 raise RuntimeError(f"Unsupported '{platform.system()}' platform")
+ 
+             if not Path(self.build_temp).exists():
+@@ -93,9 +92,6 @@ with open("pennylane_lightning_gpu/_version.py") as f:
+     version = f.readlines()[-1].split()[-1].strip("\"'")
+ 
+ requirements = [
+-    "ninja",
+-    "wheel",
+-    "cmake",
+     "pennylane-lightning>=0.28",
+     "pennylane>=0.28",
+ ]
