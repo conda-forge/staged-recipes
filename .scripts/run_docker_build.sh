@@ -51,6 +51,7 @@ docker run ${DOCKER_RUN_ARGS} \
            -e AZURE=${AZURE} \
            -e CONFIG \
            -e CI \
+           -e CPU_COUNT \
            -e DEFAULT_LINUX_VERSION \
            "${DOCKER_IMAGE}" \
            bash \
