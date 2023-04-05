@@ -2,7 +2,7 @@
 
 # Install to conda style directories
 [[ -d lib64 ]] && mv lib64 lib
-mkdir -p ${PREFIX}/lib
+mkdir -p ${PREFIX}/lib/stubs
 [[ -d pkg-config ]] && mv pkg-config ${PREFIX}/lib/pkgconfig
 [[ -d "$PREFIX/lib/pkgconfig" ]] && sed -E -i "s|cudaroot=.+|cudaroot=$PREFIX|g" $PREFIX/lib/pkgconfig/cuda*.pc
 
@@ -20,9 +20,9 @@ for i in `ls`; do
         mkdir -p ${PREFIX}/$i
         cp -rv $i ${PREFIX}/${targetsDir}
         if [[ $i == "lib" ]]; then
-            for j in "$i"/*.{a,so}*; do
+            for j in "$i"/{*.a,*.so,stubs/*.so}*; do
                 # Shared and static libraries are symlinked in $PREFIX/lib
-                ln -s ../${targetsDir}/$j ${PREFIX}/$j
+                ln -sv ${PREFIX}/${targetsDir}/$j ${PREFIX}/$j
             done
         fi
     else
