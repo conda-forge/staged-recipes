@@ -3,12 +3,18 @@
 {% set commit = "e7bed17" %}
 {% set sha256 = "b45a0edb4593f36c605e968ecc76b6a092a7b79400cdd3d6e2cf75ebe669db00" %}
 
+# versioning: want conda package and `psi4 --version` to match
+# * proper tagged releases compute their versions consistent with recipe w/o interventions.
+#   so comment out the "echo ... metadata.py" cmds in build.sh and bld.bat. ("commit" var here also disposable.)
+# * to package _any_ commit, set it to "commit" jinja, set "version" jinja to a fake prerelease tag, and let the "echo ... metadata.py" machinery work.
+#   note that the non-c-f recipe didn't need this machinery b/c it used source/git_url and load_setup_py_data.
+
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  - url: https://github.com/psi4/psi4/archive/e7bed17.tar.gz
+  - url: https://github.com/{{ name }}/{{ name }}/archive/{{ commit }}.tar.gz
     # url: https://github.com/{{ name }}/{{ name }}/archive/v{{ version }}.tar.gz
     sha256: {{ sha256 }}
   - url: https://github.com/psi4/iomp5md/archive/31b4ccb.tar.gz               # [win]
@@ -20,10 +26,8 @@ build:
   script_env:
     - PSI4_PRETEND_VERSIONLONG={{ version }}+{{ commit }}
   binary_relocation: true
-  # TODO: undo following CI-conserving skip before final merge. reviewers: "iter 70" commit showed all py versions are in working order.
-  skip: true                                 # [py != 39]
   run_exports:
-    # only relevant for the rare "psi4 plugin" case, not the usual "psi4 python module"
+    # only relevant for the rare "psi4 plugin" case (links to psi4/core.*so), not the usual "psi4 module" case (import psi4)
     - {{ pin_subpackage('psi4', max_pin='x.x') }}
   ignore_run_exports:
     - libint
@@ -42,7 +46,7 @@ build:
 # bkgd for review: the general blas story
 # * psi4's performance is heavily dependent on the blas/lapack implementation
 # * we've been packaging on conda with mkl for the past 7y
-# * while the build system allows any blas impl, we emit "untested" warnings for non-MKL, and the last test of openblas 5y ago had threading oversubscriptions
+# * while the psi4 build system allows any blas impl, we emit "untested" warnings for non-MKL, and the last test of openblas 5y ago had threading oversubscriptions
 # * so while we're open to multiple impl in future and have been specifying generic "libblas" in deps like dkh, we'd like to support only mkl in psi4 for now
 
 # bkgd for review: the windows blas story
@@ -90,7 +94,7 @@ requirements:
     - qcelemental
     - qcengine
     # qc opt'l, build-time
-    - dkh  # [not win]
+    - dkh
   run:
     - llvm-openmp                            # [not win]
     - intel-openmp                           # [win]
