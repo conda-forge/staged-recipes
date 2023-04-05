@@ -8,19 +8,23 @@
 [[ ${target_platform} == "linux-aarch64" ]] && targetsDir="targets/sbsa-linux"
 
 for i in `ls`; do
-	[[ $i == "build_env_setup.sh" ]] && continue
-	[[ $i == "conda_build.sh" ]] && continue
-	[[ $i == "metadata_conda_debug.yaml" ]] && continue
-	if [[ $i == "lib" ]] || [[ $i == "include" ]]; then
-		mkdir -p ${PREFIX}/${targetsDir}
-		mkdir -p ${PREFIX}/$i
-		cp -r $i ${PREFIX}/${targetsDir}
-		for j in `ls $i`; do
-			ln -s ../${targetsDir}/$i/$j ${PREFIX}/$i/$j
-		done
-	else
-		cp -r $i ${PREFIX}
-	fi
+    [[ $i == "build_env_setup.sh" ]] && continue
+    [[ $i == "conda_build.sh" ]] && continue
+    [[ $i == "metadata_conda_debug.yaml" ]] && continue
+    if [[ $i == "lib" ]] || [[ $i == "include" ]]; then
+        # Headers and libraries are installed to targetsDir
+        mkdir -p ${PREFIX}/${targetsDir}
+        mkdir -p ${PREFIX}/$i
+        cp -rv $i ${PREFIX}/${targetsDir}
+        if [[ $i == "lib" ]]; then
+            for j in "$i"/*.a*; do
+                # Shared and static libraries are symlinked in $PREFIX/lib
+                ln -sv ../${targetsDir}/$j ${PREFIX}/$j
+            done
+        fi
+    else
+        cp -r $i ${PREFIX}
+    fi
 done
 
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
