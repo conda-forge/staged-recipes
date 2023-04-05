@@ -3,6 +3,8 @@
 {% set cuda_version = "12.0" %}
 {% set platform = "linux-x86_64" %}  # [linux64]
 {% set platform = "linux-sbsa" %}  # [aarch64]
+{% set target_name = "x86_64-linux" %}  # [linux64]
+{% set target_name = "sbsa-linux" %}  # [aarch64]
 {% set extension = "tar.xz" %}  # [not win]
 
 package:
@@ -27,29 +29,45 @@ outputs:
         - "*/libcuda.so.*"                     # [linux]
       run_exports:
         - {{ pin_subpackage("libcufile", max_pin="x") }}
+    files:
+      - lib/libcufile*.so.*
+      - etc/cufile.json
+      - man
     requirements:
       build:
         - {{ compiler("c") }}
         - {{ compiler("cxx") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
         - sysroot_{{ target_platform }} 2.17   # [linux]
       host:
         - cuda-version {{ cuda_version }}
       run:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
-    files:
-      - lib/libcufile*.so.*
-      - etc/cufile.json
-      - man
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
     test:
       commands:
         - test -f $PREFIX/lib/libcufile.so.*
         - test -f $PREFIX/lib/libcufile_rdma.so.*
         - test -f $PREFIX/etc/cufile.json
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: |
+        Library for GPU Direct Storage with CUDA
+      doc_url: https://docs.nvidia.com/gpudirect-storage/api-reference-guide/index.html
 
   - name: libcufile-dev
     build:
       run_exports:
         - {{ pin_subpackage("libcufile", max_pin="x") }}
+    files:
+      - lib/libcufile*.so
+      - targets/*/lib/libcufile*.so
+      - include/cufile*
+      - targets/*/include/cufile*
     requirements:
       host:
         - cuda-version {{ cuda_version }}
@@ -58,18 +76,24 @@ outputs:
         - libcufile >={{ version }}
       run_constrained:
         - libcufile-static >={{ version }}
-    files:
-      - lib/libcufile*.so
-      - targets/*/lib/libcufile*.so
-      - include/cufile*
-      - targets/*/include/cufile*
     test:
       commands:
         - test -f $PREFIX/lib/libcufile.so
         - test -f $PREFIX/lib/libcufile_rdma.so
         - test -f $PREFIX/include/cufile*
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: |
+        Library for GPU Direct Storage with CUDA
+      doc_url: https://docs.nvidia.com/gpudirect-storage/api-reference-guide/index.html
 
   - name: libcufile-static
+    files:
+      - lib/libcufile*_static.a
+      - targets/*/lib/libcufile*_static.a  
     requirements:
       host:
         - cuda-version {{ cuda_version }}
@@ -77,19 +101,28 @@ outputs:
       run:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
         - {{ pin_subpackage("libcufile", max_pin="x") }}
-    files:
-      - lib/libcufile*_static.a
-      - targets/*/lib/libcufile*_static.a
     test:
       commands:
         - test -f $PREFIX/lib/libcufile_static.a
         - test -f $PREFIX/lib/libcufile_rdma_static.a
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: |
+        Library for GPU Direct Storage with CUDA
+      doc_url: https://docs.nvidia.com/gpudirect-storage/api-reference-guide/index.html
 
   - name: gds-tools
+    files:
+      - gds/samples
+      - gds/tools  
     requirements:
       build:
         - {{ compiler("c") }}
         - {{ compiler("cxx") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
         - sysroot_{{ target_platform }} 2.17   # [linux]
       host:
         - cuda-version {{ cuda_version }}
@@ -98,22 +131,20 @@ outputs:
       run:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
         - {{ pin_subpackage("libcufile", max_pin="x") }}
-    files:
-      - gds/samples
-      - gds/tools
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
     test:
       commands:
         - test -d $PREFIX/gds/samples
         - test -d $PREFIX/gds/tools
-
-about:
-  home: https://developer.nvidia.com/cuda-toolkit
-  license: LicenseRef-NVIDIA-End-User-License-Agreement
-  license_file: LICENSE
-  license_url: https://docs.nvidia.com/cuda/eula/index.html
-  summary: |
-    Library for GPU Direct Storage with CUDA
-  doc_url: https://docs.nvidia.com/gpudirect-storage/api-reference-guide/index.html
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: |
+        Library for GPU Direct Storage with CUDA
+      doc_url: https://docs.nvidia.com/gpudirect-storage/api-reference-guide/index.html
 
 extra:
   recipe-maintainers:
