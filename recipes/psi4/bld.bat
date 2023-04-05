@@ -1,10 +1,10 @@
 
 echo %PSI4_PRETEND_VERSIONLONG%
 echo Before
-type psi4/metadata.py
-echo __version_long = '%PSI4_PRETEND_VERSIONLONG%' > psi4/metadata.py
+TYPE %SRC_DIR%\psi4\metadata.py
+echo __version_long = '%PSI4_PRETEND_VERSIONLONG%' > psi4\metadata.py
 echo After
-type psi4/metadata.py
+TYPE psi4\metadata.py
 
 ECHO:%CMAKE_ARGS%
 
@@ -39,7 +39,7 @@ cmake %CMAKE_ARGS% ^
   -D CMAKE_INSIST_FIND_PACKAGE_qcelemental=ON ^
   -D CMAKE_INSIST_FIND_PACKAGE_qcengine=ON ^
   -D psi4_SKIP_ENABLE_Fortran=ON ^
-  -D ENABLE_dkh=ON ^
+  -D ENABLE_dkh=OFF ^
   -D CMAKE_INSIST_FIND_PACKAGE_dkh=ON ^
   -D ENABLE_XHOST=OFF ^
   -D CMAKE_VERBOSE_MAKEFILE=OFF ^
