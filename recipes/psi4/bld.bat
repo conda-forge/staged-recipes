@@ -1,4 +1,13 @@
 
+echo %PSI4_PRETEND_VERSIONLONG%
+echo Before
+type psi4/metadata.py
+echo __version_long = '%PSI4_PRETEND_VERSIONLONG%' > psi4/metadata.py
+echo After
+type psi4/metadata.py
+
+ECHO:%CMAKE_ARGS%
+
 cmake %CMAKE_ARGS% ^
   -G "Ninja" ^
   -S %SRC_DIR% ^

@@ -12,6 +12,8 @@ if [ "$(uname)" == "Linux" ]; then
     git rev-parse --show-toplevel
 fi
 
+echo '__version_long = '"'$PSI4_PRETEND_VERSIONLONG'" > psi4/metadata.py
+
 # Note: bizarrely, Linux (but not Mac) using `-G Ninja` hangs on [205/1223] at
 #   c-f/staged-recipes Azure CI --- thus the fallback to GNU Make.
 

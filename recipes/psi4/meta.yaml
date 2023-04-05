@@ -1,13 +1,14 @@
 {% set name = "psi4" %}
-{% set version = "1.8a1.dev30" %}
-{% set sha256 = "48b031060896fdaef4711cbd9540189175adab04a95776d80134aaebc1a44fa7" %}
+{% set version = "1.8a1" %}
+{% set commit = "e7bed17" %}
+{% set sha256 = "b45a0edb4593f36c605e968ecc76b6a092a7b79400cdd3d6e2cf75ebe669db00" %}
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  - url: https://github.com/psi4/psi4/archive/3fb3e4e.tar.gz
+  - url: https://github.com/psi4/psi4/archive/e7bed17.tar.gz
     # url: https://github.com/{{ name }}/{{ name }}/archive/v{{ version }}.tar.gz
     sha256: {{ sha256 }}
   - url: https://github.com/psi4/iomp5md/archive/31b4ccb.tar.gz               # [win]
@@ -16,6 +17,8 @@ source:
 
 build:
   number: 0
+  script_env:
+    - PSI4_PRETEND_VERSIONLONG={{ version }}+{{ commit }}
   binary_relocation: true
   # TODO: undo following CI-conserving skip before final merge. reviewers: "iter 70" commit showed all py versions are in working order.
   skip: true                                 # [py != 39]
@@ -164,6 +167,7 @@ test:
     - otool -L $SP_DIR/psi4/core*.so                                     # [osx]
     - objdump.exe -p %SP_DIR%\\psi4\\core.*.pyd | findstr /i "dll"       # [win]
     # Actually test
+    - python -c "import psi4;assert psi4.__version__ == '{{ version }}', f'{psi4.__version__=} differs from recipe=\'{{ version }}\''"
     - python -c "from psi4 import core; core.set_num_threads(42); assert core.get_num_threads() == 42"
     - MKL_CBWR=AVX pytest -rws -v --durations=20 --color yes -n auto $SP_DIR/psi4 -m "smoke"  # [unix]
     - pytest -rws -v --durations=20 --color yes -n auto %SP_DIR%\\psi4 -m "smoke and not d2ints"  # [win]
@@ -191,6 +195,7 @@ extra:
   recipe-maintainers:
     - loriab
     - jturney
+    - fevangelista
 
 
 # Notes
