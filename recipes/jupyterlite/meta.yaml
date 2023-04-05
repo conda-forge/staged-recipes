@@ -1,46 +1,144 @@
-{% set name = "jupyterlite" %}
 {% set version = "0.1.0" %}
+{% set jupyterlab_version = ">=3.5.3,<3.6.0" %}
 
 package:
-  name: {{ name|lower }}
+  name: jupyterlite-split
   version: {{ version }}
 
 source:
-  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/jupyterlite-{{ version }}.tar.gz
-  sha256: 6e9949bc51247368bea8a0136256694255ace315e6e057020d29b36fe92c3c38
+  - folder: jupyterlite-core
+    url: https://pypi.io/packages/source/j/jupyterlite-core/jupyterlite_core-{{ version }}.tar.gz
+    sha256: fea7ffe880f6efb16cd39855dd459ec3cf87b238de076dae518033926af1150a
+  - folder: jupyterlite
+    url: https://pypi.io/packages/source/j/jupyterlite/jupyterlite-{{ version }}.tar.gz
+    sha256: 6e9949bc51247368bea8a0136256694255ace315e6e057020d29b36fe92c3c38
+  - folder: jupyterlite-javascript-kernel
+    url: https://pypi.io/packages/source/j/jupyterlite-javascript-kernel/jupyterlite_javascript_kernel-{{ version }}.tar.gz
+    sha256: 297116be6642c2f72b0b0bf3d6505efcd792b322139174d0107ae7ec4daa64f4
 
 build:
-  noarch: python
-  script: {{ PYTHON }} -m pip install . -vv
   number: 0
+  noarch: python
 
 requirements:
   host:
     - python >=3.8
-    - hatchling >=1.6.3,<2
-    - pip
   run:
     - python >=3.8
-    - jupyterlite-core
-    - jupyterlite-pyodide-kernel >=0.0.6
-    - jupyterlite-javascript-kernel
 
-test:
-  imports:
-    - jupyterlite
-  commands:
-    - pip check
-  requires:
-    - pip
+outputs:
+  - name: jupyterlite-core
+    build:
+      noarch: python
+      script:
+        - cd jupyterlite-core && {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        - cd {{ RECIPE_DIR }} && {{ PYTHON }} extract-third-party-licenses.py
+      entry_points:
+        - jupyter-lite = jupyterlite_core.app:main
+    requirements:
+      host:
+        - hatchling >=1.6.3,<2
+        - pip
+        - python >=3.8
+      run:
+        - doit >=0.34,<1
+        - importlib-metadata >=3.6
+        - jupyter_core >=4.7
+        - python >=3.8
+      test:
+        imports:
+          - jupyterlite_core
+        commands:
+          - pip check
+          - jupyter-lite --help
+        requires:
+          - pip
+    about:
+      home: https://github.com/jupyterlite/jupyterlite
+      summary: Tools for building JupyterLite sites
+      doc_url: https://jupyterlite.readthedocs.io
+      license: BSD-3-Clause
+      license_file:
+        - jupyterlite-core/LICENSE
+        - jupyterlite-core/third-party-licenses.json
+
+  - name: jupyterlite
+    build:
+      noarch: python
+      script: cd jupyterlite && {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      number: 0
+    requirements:
+      host:
+        - hatchling >=1.6.3,<2
+        - pip
+        - python >=3.8
+      run:
+        - {{ pin_subpackage("jupyterlite-core", max_pin="x.x.x") }}
+        - {{ pin_subpackage("jupyterlite-javascript-kernel", max_pin="x.x.x") }}
+        - jupyterlite-pyodide-kernel >=0.0.6
+        - python >=3.8
+    test:
+      imports:
+        - jupyterlite
+      commands:
+        - pip check
+      requires:
+        - pip
+    about:
+      home: https://github.com/jupyterlite/jupyterlite
+      summary: JupyterLite metapackage
+      dev_url: https://github.com/jupyterlite/jupyterlite
+      license: BSD-3-Clause
+      # TODO: use as-packaged license https://github.com/jupyterlite/jupyterlite/pull/1039
+      license_file: jupyterlite-core/LICENSE
+
+  - name: jupyterlite-javascript-kernel
+    build:
+      noarch: python
+      script: cd jupyterlite-javascript-kernel && {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      number: 0
+    requirements:
+      host:
+        - hatchling >=1.6.3,<2
+        - jupyterlab {{ jupyterlab_version }}
+        - pip
+        - python >=3.8
+      run:
+        - python >=3.8
+        - {{ pin_subpackage("jupyterlite-core", max_pin="x.x.x") }}
+    test:
+      imports:
+        - jupyterlite_javascript_kernel
+      requires:
+        - jupyterlab {{ jupyterlab_version }}
+        - m2-grep  # [win]
+        - pip
+      commands:
+        - pip check
+        - jupyter labextension list
+        - jupyter labextension list 1>labextensions 2>&1
+        - grep -iE "@jupyterlite/javascript-kernel-extension.*v{{ version.replace('.', '\.') }}.*OK" labextensions
+        - jupyter lite build
+        - grep -iE "@jupyterlite/javascript-kernel-extension.*v{{ version.replace('.', '\.') }}.*OK" _output/jupyter-lite.json
+    about:
+      home: https://github.com/jupyterlite/jupyterlite
+      summary: JavaScript kernel for JupyterLite running in a Web Worker
+      dev_url: https://github.com/jupyterlite/jupyterlite
+      license: BSD-3-Clause
+      license_file:
+        - jupyterlite-javascript-kernel/LICENSE
+        - jupyterlite-javascript-kernel/jupyterlite_javascript_kernel/labextension/static/third-party-licenses.json
 
 about:
   home: https://github.com/jupyterlite/jupyterlite
-  summary: JupyterLite metapackage
+  summary: Tools for building JupyterLite sites
+  doc_url: https://jupyterlite.readthedocs.io
   dev_url: https://github.com/jupyterlite/jupyterlite
   license: BSD-3-Clause
   license_file: LICENSE
 
 extra:
+  feedstock-name: jupyterlite
   recipe-maintainers:
     - bollwyvl
     - jtpio

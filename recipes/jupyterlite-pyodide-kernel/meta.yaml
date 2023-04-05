@@ -1,45 +1,57 @@
-{% set name = "jupyterlite-pyodide-kernel" %}
 {% set version = "0.0.6" %}
+{% set jupyterlab_version = ">=3.5.3,<3.6" %}
 
 package:
-  name: {{ name|lower }}
+  name: jupyterlite-pyodide-kernel
   version: {{ version }}
 
 source:
-  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/jupyterlite_pyodide_kernel-{{ version }}.tar.gz
+  url: https://pypi.io/packages/source/j/jupyterlite-pyodide-kernel/jupyterlite_pyodide_kernel-{{ version }}.tar.gz
   sha256: 2f9c61104ad61f1c4fa10af4ff36bf3c5682db353bf07c56548e0aa03bf7a0fa
 
 build:
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
   entry_points:
     - jupyter-piplite = jupyterlite_pyodide_kernel.app:main
-  noarch: python
-  script: {{ PYTHON }} -m pip install . -vv
-  number: 0
 
 requirements:
   host:
-    - python >=3.8
     - hatchling >=1.4.0
-    - jupyterlab >=3.5.3,<3.6
+    - jupyterlab {{ jupyterlab_version }}
     - pip
-  run:
     - python >=3.8
+  run:
     - jupyterlite-core >=0.1.0,<0.2.0
     - pkginfo
+    - python >=3.8
 
 test:
+  imports:
+    - jupyterlite_pyodide_kernel
   commands:
     - pip check
     - jupyter-piplite --help
+    - jupyter labextension list
+    - jupyter labextension list 1>labextensions 2>&1
+    - grep -iE "@jupyterlite/pyodide-kernel-extension.*v{{ version.replace('.', '\.') }}.*OK" labextensions
+    - jupyter lite build
+    - grep -iE "@jupyterlite/pyodide-kernel-extension.*v{{ version.replace('.', '\.') }}.*OK" _output/jupyter-lite.json
+
   requires:
+    - jupyterlab {{ jupyterlab_version }}
+    - m2-grep  # [win]
     - pip
 
 about:
   home: https://github.com/jupyterlite/pyodide-kernel
   summary: Python kernel for JupyterLite powered by Pyodide
-  dev_url: https://github.com/jupyterlite/pyodide-kernel
+  doc_url: https://jupyterlite-pyodide-kernel.rtfd.io
   license: BSD-3-Clause
-  license_file: LICENSE
+  license_file:
+    - LICENSE
+    - jupyterlite_pyodide_kernel/labextension/static/third-party-licenses.json
 
 extra:
   recipe-maintainers:
