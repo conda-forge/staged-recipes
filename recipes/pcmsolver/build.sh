@@ -3,27 +3,27 @@
 set -ex
 
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
-    -S${SRC_DIR} \
-    -Bbuild \
-    -G"Ninja" \
-    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_C_COMPILER=${CC} \
-    -DCMAKE_C_FLAGS="${CFLAGS}" \
-    -DCMAKE_CXX_COMPILER=${CXX} \
-    -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
-    -DCMAKE_Fortran_COMPILER=${FC} \
-    -DCMAKE_Fortran_FLAGS="${FFLAGS}" \
-    -DCMAKE_INSTALL_LIBDIR=lib \
-    -DPYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
-    -DPYTHON_INTERPRETER=${PYTHON} \
-    -DENABLE_OPENMP=OFF \
-    -DENABLE_GENERIC=OFF \
-    -DENABLE_TESTS=ON \
-    -DENABLE_TIMER=OFF \
-    -DENABLE_LOGGER=OFF \
-    -DBUILD_STANDALONE=ON \
-    -DENABLE_CXX11_SUPPORT=ON
+  -S ${SRC_DIR} \
+  -B build \
+  -G "Ninja" \
+  -D CMAKE_INSTALL_PREFIX=${PREFIX} \
+  -D CMAKE_BUILD_TYPE=Release \
+  -D CMAKE_C_COMPILER=${CC} \
+  -D CMAKE_C_FLAGS="${CFLAGS}" \
+  -D CMAKE_CXX_COMPILER=${CXX} \
+  -D CMAKE_CXX_FLAGS="${CXXFLAGS}" \
+  -D CMAKE_Fortran_COMPILER=${FC} \
+  -D CMAKE_Fortran_FLAGS="${FFLAGS}" \
+  -D CMAKE_INSTALL_LIBDIR=lib \
+  -D PYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
+  -D PYTHON_INTERPRETER=${PYTHON} \
+  -D ENABLE_OPENMP=OFF \
+  -D ENABLE_GENERIC=OFF \
+  -D ENABLE_TESTS=ON \
+  -D ENABLE_TIMER=OFF \
+  -D ENABLE_LOGGER=OFF \
+  -D BUILD_STANDALONE=ON \
+  -D ENABLE_CXX11_SUPPORT=ON
 
 cmake --build build --target install -j${CPU_COUNT}
 

@@ -20,6 +20,7 @@ cmake %CMAKE_ARGS% ^
       -D PYMOD_INSTALL_LIBDIR="/../../Lib/site-packages" ^
       -D PYTHON_EXECUTABLE="%PYTHON%" ^
       -D CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
+      -D CMAKE_GNUtoMS=ON ^
       -D BUILD_TESTING=OFF ^
       -D CMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
       -D ENABLE_OPENMP=OFF ^
@@ -29,7 +30,6 @@ cmake %CMAKE_ARGS% ^
       -D ENABLE_LOGGER=OFF ^
       -D BUILD_STANDALONE=ON ^
       -D ENABLE_CXX11_SUPPORT=ON
-
 if errorlevel 1 exit 1
 
 cmake --build build ^
