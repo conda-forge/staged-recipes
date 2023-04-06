@@ -5,6 +5,10 @@
 {% set platform = "linux-ppc64le" %}  # [ppc64le]
 {% set platform = "linux-sbsa" %}  # [aarch64]
 {% set platform = "windows-x86_64" %}  # [win]
+{% set target_name = "x86_64-linux" %}  # [linux64]
+{% set target_name = "ppc64le-linux" %}  # [ppc64le]
+{% set target_name = "sbsa-linux" %}  # [aarch64]
+{% set target_name = "x64" %}  # [win]
 {% set extension = "tar.xz" %}  # [not win]
 {% set extension = "zip" %}  # [win]
 
@@ -22,69 +26,83 @@ source:
 build:
   number: 0
   skip: true  # [osx]
-  run_exports:                # [linux]
-    strong:                   # [linux]
-      - __glibc >=2.17        # [linux]
-
-requirements:
-  build:
-    - {{ compiler("c") }}
-    - {{ compiler("cxx") }}
-  host:
-    - sysroot_{{ target_platform }} 2.17   # [linux]
-    - __glibc >=2.17                       # [linux]
-  run:
-    - sysroot_{{ target_platform }} 2.17   # [linux]
-    - __glibc >=2.17                       # [linux]
 
 outputs:
   - name: cuda-nvtx
+    files:
+      - lib/*.so.*                            # [linux]
+      - targets/{{ target_name }}/lib/*.so.*  # [linux]
     requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
       host:
         - cuda-version {{ cuda_version }}
       run:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
     test:
       commands:
-        - test -f $PREFIX/lib/libnvToolsExt.so.1.0.0  # [linux]
-    files:
-      - lib/*.so.*            # [linux]
-      - targets/*/lib/*.so.*  # [linux]
+        - test -L $PREFIX/lib/libnvToolsExt.so.1.0.0                            # [linux]
+        - test -L $PREFIX/lib/libnvToolsExt.so.1                                # [linux]
+        - test -f $PREFIX/targets/{{ target_name }}/lib/libnvToolsExt.so.1.0.0  # [linux]
+        - test -f $PREFIX/targets/{{ target_name }}/lib/libnvToolsExt.so.1      # [linux]
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license_file: LICENSE
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: A C-based API for annotating events, code ranges, and resources
+      description: |
+        A C-based API for annotating events, code ranges, and resources in your
+        applications. Applications which integrate NVTX can use the Visual Profiler
+        to capture and visualize these events and ranges.
+      doc_url: https://docs.nvidia.com/cuda/index.html
 
   - name: cuda-nvtx-dev
-    run_exports:
-      - {{ pin_subpackage("cuda-nvtx", max_pin='x') }}
+    build:
+      run_exports:
+        - {{ pin_subpackage("cuda-nvtx", max_pin='x') }}
+    files:
+      - lib/*.so                                         # [linux]
+      - include/nvToolsExt*.h                            # [linux]
+      - include/nvtx3                                    # [linux]
+      - lib/pkgconfig                                    # [linux]
+      - targets/{{ target_name }}/lib/*.so               # [linux]
+      - targets/{{ target_name }}/include/nvToolsExt*.h  # [linux]
+      - targets/{{ target_name }}/include/nvtx3          # [linux]
+      - Library/include                                  # [win]
     requirements:
+      build:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
       host:
         - cuda-version {{ cuda_version }}
       run:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
-        - cuda-nvtx >={{ version }}
-        - cuda-nvtx-dev_{{ target_platform }} =={{ version }}
+        - {{ pin_subpackage("cuda-nvtx", exact=True) }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
     test:
       commands:
-        - test -d $PREFIX/lib/pkgconfig  # [linux]
-    files:
-      - lib/*.so         # [linux]
-      - include          # [linux]
-      - lib/pkgconfig    # [linux]
-
-  - name: cuda-nvtx-dev_{{ target_platform }}
-    run_exports:
-      - {{ pin_subpackage("cuda-nvtx", max_pin='x') }}
-    requirements:
-      host:
-        - cuda-version {{ cuda_version }}
-      run:
-        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
-    test:
-      commands:
-        - test -d $PREFIX/targets  # [linux]
-    files:
-      - targets/*/lib/*.so         # [linux]
-      - targets/*/include          # [linux]
-      - targets/*/lib/pkgconfig    # [linux]
-      - Library/include  # [win]
+        - test -L $PREFIX/lib/libnvToolsExt.so                                      # [linux]
+        - test -f $PREFIX/lib/pkgconfig/nvToolsExt*.pc                              # [linux]
+        - test -f $PREFIX/targets/{{ target_name }}/include/nvToolsExtCuda.h        # [linux]
+        - test -f $PREFIX/targets/{{ target_name }}/include/nvtx3/nvToolsExtCuda.h  # [linux]
+        - test -L $PREFIX/targets/{{ target_name }}/lib/libnvToolsExt.so            # [linux]
+        - if not exist %LIBRARY_INC%\nvtx3\nvToolsExt.h exit 1                      # [win]
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license_file: LICENSE
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: A C-based API for annotating events, code ranges, and resources
+      description: |
+        A C-based API for annotating events, code ranges, and resources in your
+        applications. Applications which integrate NVTX can use the Visual Profiler
+        to capture and visualize these events and ranges.
+      doc_url: https://docs.nvidia.com/cuda/index.html
 
 about:
   home: https://developer.nvidia.com/cuda-toolkit
