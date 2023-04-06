@@ -1,3 +1,3 @@
 if not exist %PREFIX% mkdir %PREFIX%
 
-move include\* %LIBRARY_INC%
+move include\nvtx3 %LIBRARY_INC%
