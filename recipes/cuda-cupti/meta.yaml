@@ -5,6 +5,10 @@
 {% set platform = "linux-ppc64le" %}  # [ppc64le]
 {% set platform = "linux-sbsa" %}  # [aarch64]
 {% set platform = "windows-x86_64" %}  # [win]
+{% set target_name = "x86_64-linux" %}  # [linux64]
+{% set target_name = "ppc64le-linux" %}  # [ppc64le]
+{% set target_name = "sbsa-linux" %}  # [aarch64]
+{% set target_name = "x64" %}  # [win]
 {% set extension = "tar.xz" %}  # [not win]
 {% set extension = "zip" %}  # [win]
 
@@ -23,67 +27,133 @@ build:
   number: 0
   skip: true  # [osx]
 
-requirements:
-  build:
-    - {{ compiler("c") }}
-    - {{ compiler("cxx") }}
-
 outputs:
   - name: cuda-cupti
-    test:
-      commands:
-        - test -f $PREFIX/lib/libcupti.so.*                # [linux]
-        - if not exist %LIBRARY_BIN%\cupti64_*.dll exit 1  # [win]
-    requirements:
-      host:
-        - cuda-version {{ cuda_version }}
-      run:
-        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
     files:
-      - lib/*.so.*            # [linux]
-      - targets/*/lib/*.so.*  # [linux]
-      - Library\lib\*.dll     # [win]
-
-  - name: cuda-cupti-dev
-    test:
-      commands:
-        - test -f $PREFIX/lib/libnvperf_host.so        # [linux]
-        - test -f $PREFIX/lib/libnvperf_target.so        # [linux]
-        - if not exist %LIBRARY_LIB%\cupti.lib exit 1  # [win]
+      - lib/*.so.*                            # [linux]
+      - targets/{{ target_name }}/lib/*.so.*  # [linux]
+      - Library\lib\*.dll                     # [win]
     requirements:
       build:
         - {{ compiler("c") }}
         - {{ compiler("cxx") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
       host:
         - cuda-version {{ cuda_version }}
       run:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
-        - cuda-cupti >={{ version }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -L $PREFIX/lib/libcupti.so.{{ version }}                                          # [linux]
+        - test -L $PREFIX/lib/libcupti.so.{{ version.split(".")[0] }}                            # [linux]
+        - test -L $PREFIX/targets/{{ target_name }}/lib/libcupti.so.{{ version }}                # [linux]
+        - test -f $PREFIX/targets/{{ target_name }}/lib/libcupti.so.{{ version.split(".")[0] }}  # [linux]
+        - if not exist %LIBRARY_BIN%\cupti64_{{ version.split(".")[0] }}.dll exit 1              # [win]
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license_file: LICENSE
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: Provides libraries to enable third party tools using GPU profiling APIs.
+      description: |
+        Provides libraries to enable third party tools using GPU profiling APIs.
+      doc_url: https://docs.nvidia.com/cuda/index.html
+
+  - name: cuda-cupti-dev
     files:
-      - lib/*.so                  # [linux]
-      - targets/*/lib/*.so        # [linux]
-      - include                   # [linux]
-      - targets/*/include         # [linux]
-      - samples
-      - doc
-      - Library\include           # [win]
-      - Library\lib\*.lib         # [win]
+      - lib/*.so                                  # [linux]
+      - targets/{{ target_name }}/lib/*.so        # [linux]
+      - targets/{{ target_name }}/include         # [linux]
+      - Library\include                           # [win]
+      - Library\lib\*.lib                         # [win]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+      host:
+        - cuda-version {{ cuda_version }}
+      run:
+        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+        - {{ pin_subpackage("cuda-cupti", exact=True) }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -L $PREFIX/lib/libcupti.so                                    # [linux]
+        - test -L $PREFIX/lib/libnvperf_host.so                              # [linux]
+        - test -L $PREFIX/lib/libnvperf_target.so                            # [linux]
+        - test -f $PREFIX/targets/{{ target_name }}/include/cupti.h          # [linux]
+        - test -L $PREFIX/targets/{{ target_name }}/lib/libcupti.so          # [linux]
+        - test -f $PREFIX/targets/{{ target_name }}/lib/libnvperf_host.so    # [linux]
+        - test -f $PREFIX/targets/{{ target_name }}/lib/libnvperf_target.so  # [linux]
+        - if not exist %LIBRARY_LIB%\cupti.lib exit 1                        # [win]
+        - if not exist %LIBRARY_INC%\cupti.h exit 1                          # [win]
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license_file: LICENSE
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: Provides libraries to enable third party tools using GPU profiling APIs.
+      description: |
+        Provides libraries to enable third party tools using GPU profiling APIs.
+      doc_url: https://docs.nvidia.com/cuda/index.html
 
   - name: cuda-cupti-static
     build:
       skip: True                        # [not linux]
-    test:
-      commands:
-        - test -L $PREFIX/lib/libcupti_static.a  # [linux]
+    files:
+      - targets/{{ target_name }}/lib/*static.a
     requirements:
+      build:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
       host:
         - cuda-version {{ cuda_version }}
       run:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
-        - cuda-cupti >={{ version }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -f $PREFIX/targets/{{ target_name }}/lib/libcupti_static.a  # [linux]
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license_file: LICENSE
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: Provides libraries to enable third party tools using GPU profiling APIs.
+      description: |
+        Provides libraries to enable third party tools using GPU profiling APIs.
+      doc_url: https://docs.nvidia.com/cuda/index.html
+
+  - name: cuda-cupti-doc
     files:
-      - lib/*static.a
-      - targets/*/lib/*static.a
+      - targets/{{ target_name }}/{{ name }}/samples
+      - targets/{{ target_name }}/{{ name }}/doc
+    requirements:
+      build:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+      host:
+        - cuda-version {{ cuda_version }}
+      run:
+        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -d $PREFIX/targets/{{ target_name }}/{{ name }}/samples  # [linux]
+        - test -d $PREFIX/targets/{{ target_name }}/{{ name }}/doc      # [linux]
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license_file: LICENSE
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: Provides libraries to enable third party tools using GPU profiling APIs.
+      description: |
+        Provides libraries to enable third party tools using GPU profiling APIs.
+      doc_url: https://docs.nvidia.com/cuda/index.html
 
 about:
   home: https://developer.nvidia.com/cuda-toolkit
