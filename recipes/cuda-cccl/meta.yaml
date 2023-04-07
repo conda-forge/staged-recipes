@@ -1,0 +1,107 @@
+{% set name = "cuda-cccl" %}
+{% set version = "12.0.90" %}
+{% set impl_version = "2.0.1" %}
+{% set cuda_version = "12.0" %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-ppc64le" %}  # [ppc64le]
+{% set platform = "linux-sbsa" %}  # [aarch64]
+{% set platform = "windows-x86_64" %}  # [win]
+{% set target_name = "x86_64-linux" %}  # [linux64]
+{% set target_name = "ppc64le-linux" %}  # [ppc64le]
+{% set target_name = "sbsa-linux" %}  # [aarch64]
+{% set target_name = "x64" %}  # [win]
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
+
+# CUDA C++ Core Libraries (CCCL) includes thrust, cub, and libcudacxx. These are header-only libraries.
+# The cuda-cccl-impl package ships CCCL headers in the environment's include directory for use in downstream recipes that require CCCL. It follows CCCL upstream versioning. Use this package to say, "I want a specific version of CCCL headers when building my package (which may be newer than the versions shipped in the latest CUDA Toolkit)."
+# The cuda-cccl_{{ target_platform }} package (e.g. cuda-cccl_linux-64) ships CCCL headers in 'targets/.../include' that can be used by nvcc, the CUDA compiler. It follows CUDA Toolkit versioning. This package should only be a dependency of the cuda-cudart / cuda-nvcc packages that require CCCL to function. It is target-specific to allow for cross-compilation, as a dependency of cuda-nvcc.
+# The cuda-cccl package is a metapackage that depends on cuda-cccl-impl and cuda-cccl_{{ target_platform }} to ensure that versions are consistent. Use this package to say, "I want to build with the thrust headers that shipped with CUDA Toolkit X.Y" by adding dependencies on `cuda-cccl` and `cuda-version X.Y`.
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuda/redist/cuda_cccl/{{ platform }}/cuda_cccl-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: 37f6e03b6f95579d8e2e96b9ba15eeb1224dcd18b21ad50c3ac249e408152a24  # [linux64]
+  sha256: c6de67acd6a65b24db0383f6330b842ed19b6c27a27a37f828e9f3e96cc96f72  # [ppc64le]
+  sha256: f2a19927c558a9c872fa87eda4c0dc0446e5c4c744df4f846d01f4d4e08c8cd7  # [aarch64]
+  sha256: dd422d4cc8462d112411659a56cc78cb6010d704f83db3e48c55a3f66eed5ec2  # [win]
+
+build:
+  number: 0
+  skip: true  # [osx]
+
+outputs:
+  - name: cuda-cccl
+    requirements:
+      build:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+      host:
+        - cuda-version {{ cuda_version }}
+      run:
+        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+        - cuda-cccl_{{ target_platform }} =={{ version }}
+        - cuda-cccl-impl =={{ impl_version }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -d $PREFIX/targets/{{ target_name }}/lib      # [linux]
+        - test -d $PREFIX/lib/cmake  # [linux]
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license_file: LICENSE
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: 'CUDA C++ Core Libraries'
+      description: |
+        CUDA C++ Core Libraries
+      doc_url: https://docs.nvidia.com/cuda/index.html
+
+  - name: cuda-cccl_{{ target_platform }}
+    build:
+      noarch: generic
+    files:
+      - targets  # [linux]
+      - Library\lib\x64\cmake                      # [win]
+      - Library\include\targets\{{ target_name }}  # [win]
+    requirements:
+      build:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+      host:
+        - cuda-version {{ cuda_version }}
+      run:
+        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -d $PREFIX/targets/{{ target_name }}/lib      # [linux]
+        - test -d $PREFIX/targets/{{ target_name }}/include  # [linux]
+        - if not exist %LIBRARY_LIB%\{{ target_name }}\cmake exit 1    # [win]
+        - if not exist %LIBRARY_INC%\targets\{{ target_name }} exit 1  # [win]
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license_file: LICENSE
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: 'CUDA C++ Core Libraries'
+      description: |
+        CUDA C++ Core Libraries
+      doc_url: https://docs.nvidia.com/cuda/index.html
+
+about:
+  home: https://developer.nvidia.com/cuda-toolkit
+  license_file: LICENSE
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  summary: 'CUDA C++ Core Libraries'
+  description: |
+    CUDA C++ Core Libraries
+  doc_url: https://docs.nvidia.com/cuda/index.html
+
+extra:
+  recipe-maintainers:
+    - adibbley
