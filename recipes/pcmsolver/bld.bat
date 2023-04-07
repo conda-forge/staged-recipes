@@ -38,6 +38,9 @@ cmake --build build ^
       -- -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
+:: Building both static & shared (instead of SHARED_LIBRARY_ONLY) since the tests
+::   only build with static lib. Don't want to distribute static, though, so
+::   removing all the static lib stuff immediately after install.
 del %LIBRARY_PREFIX%\\share\\cmake\\PCMSolver\\PCMSolverTargets-static-release.cmake
 del %LIBRARY_PREFIX%\\share\\cmake\\PCMSolver\\PCMSolverTargets-static.cmake
 del %LIBRARY_PREFIX%\\lib\\libpcm.a
