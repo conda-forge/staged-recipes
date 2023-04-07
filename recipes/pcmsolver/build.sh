@@ -16,7 +16,7 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} \
   -D CMAKE_Fortran_FLAGS="${FFLAGS}" \
   -D CMAKE_INSTALL_LIBDIR=lib \
   -D PYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
-  -D PYTHON_INTERPRETER=${PYTHON} \
+  -D Python_EXECUTABLE=${PYTHON} \
   -D ENABLE_OPENMP=OFF \
   -D ENABLE_GENERIC=OFF \
   -D ENABLE_TESTS=ON \
@@ -35,6 +35,5 @@ rm ${PREFIX}/share/cmake/PCMSolver/PCMSolverTargets-static.cmake
 rm ${PREFIX}/lib/libpcm.a
 
 cd build
-# from-file fails b/c of my naming temp file hacks of v1.2.1.1
-ctest -E "from-file" --rerun-failed --output-on-failure -j${CPU_COUNT}
+ctest --rerun-failed --output-on-failure -j${CPU_COUNT}
 
