@@ -1,0 +1,172 @@
+{% set name = "ambit" %}
+{% set version = "0.6" %}
+{% set sha256 = "412682a412eea68f6998af941ca15e59aabe4e2d52411b4a0dae7b288a125934" %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  #url: https://github.com/jturney/{{ name }}/archive/v{{ version }}.tar.gz
+  url: https://github.com/loriab/ambit/archive/cmake2023.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  binary_relocation: true
+  skip: true  # [py != 39]
+  run_exports:
+    - {{ pin_subpackage('ambit', max_pin='x.x') }}
+  ignore_run_exports:
+    # not using hdf5's fortran interface
+    - libgfortran-ng
+    - libgfortran5
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - llvm-openmp  # [osx]
+    - libgomp      # [linux]
+  host:
+    - hdf5
+    - libblas
+    - liblapack
+    - python
+    - pybind11
+    - pybind11-abi
+    - numpy
+
+outputs:
+  - name: ambit
+    build:
+      run_exports:
+        - {{ pin_subpackage('ambit', max_pin='x.x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+        - llvm-openmp                                                          # [osx]
+        - libgomp                                                              # [linux]
+      host:
+        - hdf5
+        - libblas
+        - liblapack
+    files:
+      - include/ambit/*                                                        # [unix]
+      - lib/libambit{{ SHLIB_EXT }}                                            # [unix]
+      - share/cmake/ambit/*                                                    # [unix]
+      - Library/include/ambit/*                                                # [win]
+      - Library/bin/ambit*                                                     # [win]
+      - Library/lib/ambit*                                                     # [win]
+      - Library/share/cmake/ambit                                              # [win]
+    test:
+      requires:
+        - m2w64-binutils                                                       # [win]   # provides objdump.exe
+      commands:
+        - ls -l $PREFIX/lib                                                    # [unix]
+        - ls -l $PREFIX/share/cmake/ambit                                      # [unix]
+        - dir %PREFIX%\\Library\\lib                                           # [win]
+        - dir %PREFIX%\\Library\\share\\cmake\\ambit                           # [win]
+        # Verify library
+        - test -f $PREFIX/lib/libambit$SHLIB_EXT                               # [unix]
+        - test ! -f $PREFIX/lib/libambit.a                                     # [unix]
+        - if not exist %PREFIX%\\Library\\lib\\ambit.lib exit 1                # [win]
+        - if not exist %PREFIX%\\Library\\bin\\ambit.dll exit 1                # [win]
+        # Verify accessories
+        - test -f $PREFIX/include/ambit/tensor.h                               # [unix]
+        - test -f $PREFIX/share/cmake/ambit/ambitConfig.cmake                  # [unix]
+        - if not exist %PREFIX%\\Library\\include\\ambit\\tensor.h exit 1      # [win]
+        - if not exist %PREFIX%\\Library\\share\\cmake\\ambit\\ambitConfig.cmake exit 1  # [win]
+        # Inspect linkage
+        - ldd -v $PREFIX/lib/libambit$SHLIB_EXT                                # [linux]
+        - otool -L $PREFIX/lib/libambit$SHLIB_EXT                              # [osx]
+        - objdump.exe -p %PREFIX%\\Library\\bin\\ambit.dll | findstr /i "dll"  # [win]
+
+  - name: pyambit
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage('ambit', exact=True) }}
+        - python
+        - pybind11
+        - pybind11-abi
+        - numpy
+      run:
+        - {{ pin_subpackage('ambit', exact=True) }}
+        - python
+    files:
+      - lib/python{{ PY_VER }}/site-packages/ambit                             # [unix]
+      - Lib/site-packages/ambit                                                # [win]
+        # if later install cmake config files for Py module, these are the correct filters
+        # - share/cmake/pyambit/*          # [unix]
+        # - Library/share/cmake/pyambit/*  # [win]
+    test:
+      requires:
+        - pytest
+        - m2w64-binutils                                                       # [win]   # provides objdump.exe
+      imports:
+        - ambit
+      commands:
+        - ls -l $SP_DIR/ambit                                                  # [unix]
+        - dir %SP_DIR%\\ambit                                                  # [win]
+        # Verify module
+        - test -f $SP_DIR/ambit/pyambit*.so                                    # [unix]
+        - if not exist %SP_DIR%\\ambit\\pyambit*.pyd exit 1                    # [win]
+        # Inspect linkage
+        - ldd -v $SP_DIR/ambit/pyambit*.so                                     # [linux]
+        - otool -L $SP_DIR/ambit/pyambit*.so                                   # [osx]
+        - objdump.exe -p %SP_DIR%\\ambit\\pyambit.*.pyd | findstr /i "dll"     # [win]
+        # Actually test
+        - pytest -v -rws --color yes $SP_DIR/ambit                             # [unix]
+        - pytest -v -rws --color yes %SP_DIR%\\ambit                           # [win]
+
+about:
+  home: https://github.com/jturney/ambit
+  dev_url: https://github.com/jturney/ambit
+  license: LGPL-3.0-only
+  license_url: https://opensource.org/license/lgpl-3-0/
+  license_file:
+    - COPYING
+    - COPYING.LESSER
+  license_family: LGPL
+  summary: "J. Turney's C++ library for the implementation of tensor product calculations"
+
+extra:
+  feedstock-name: ambit
+  recipe-maintainers:
+    - loriab
+    - jturney
+    - fevangelista
+
+########
+#requirements:
+#  build:
+#    - llvm-openmp                            # [osx]
+#    #- pip                                           # [linux]
+#  host:
+#    - zlib
+#    - llvm-openmp                            # [osx]
+#    - numpy
+#  run:
+#    - llvm-openmp                            # [osx]
+#    - numpy
+##    - llvm-openmp                            # [not win]
+##    - intel-openmp                           # [win]
+#
+############
+#
+##requirements:
+##    run:
+##        - intel-openmp                                  # [linux]
+##        - {{ pin_compatible('python', max_pin='x.x') }}
+##        - numpy
+##
