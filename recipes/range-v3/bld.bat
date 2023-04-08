@@ -1,8 +1,7 @@
 mkdir build
 cd build
 
-cmake ^
-    -G "Visual Studio 16 2019" -A x64 ^
+cmake -G "Visual Studio 16 2019" -A x64 ^
     -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
     -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
     -DBUILD_TESTING=YES ^
