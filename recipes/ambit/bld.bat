@@ -38,3 +38,4 @@ cd build
 ctest --rerun-failed --output-on-failure
 if errorlevel 1 exit 1
 
+dir %SP_DIR%\\ambit
