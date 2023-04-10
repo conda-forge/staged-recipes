@@ -1,0 +1,110 @@
+From d7886c5fc522364c0edf882a00d9c4c034f64646 Mon Sep 17 00:00:00 2001
+From: Tim Paine <3105306+timkpaine@users.noreply.github.com>
+Date: Fri, 7 Apr 2023 18:59:14 -0400
+Subject: [PATCH] add manifest, uplift setup.py to pass twine checks
+
+---
+ .github/workflows/ci.yml | 17 ++++++++++++-----
+ MANIFEST.in              |  9 +++++++++
+ setup.py                 | 27 ++++++++++++++++++++++++++-
+ 3 files changed, 47 insertions(+), 6 deletions(-)
+ create mode 100644 MANIFEST.in
+
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 635ce7f..736be85 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -16,13 +16,20 @@ jobs:
+       # Install Tools
+       - name: Install Tools
+         run: |
+-          sudo apt-get install wget build-essential python3 ninja-build
++          sudo apt-get install wget build-essential ninja-build
+           sudo apt-get install libevent-dev libjson-c-dev flex bison
+           sudo apt-get install libfl-dev libfl2 zlib1g-dev
+-          pip3 install setuptools
+-          pip3 install requests
+-          pip3 install pexpect
+-          pip3 install meson
++
++      - name: Set up Python ${{ matrix.python-version }}
++        uses: actions/setup-python@v4
++        with:
++          python-version: "3.9"
++          cache: "pip"
++          cache-dependency-path: "setup.py"
++
++      - name: Install Python dependencies
++        run: |
++          python3 -m pip install setuptools requests pexpect meson
+ 
+       # Install (n)Migen / LiteX / Cores
+       - name: Install LiteX
+diff --git a/MANIFEST.in b/MANIFEST.in
+new file mode 100644
+index 0000000..0129fc5
+--- /dev/null
++++ b/MANIFEST.in
+@@ -0,0 +1,9 @@
++graft litedram
++
++include CONTRIBUTORS
++include LICENSE
++
++graft doc
++
++prune examples
++prune test
+diff --git a/setup.py b/setup.py
+index 4897798..d523d23 100755
+--- a/setup.py
++++ b/setup.py
+@@ -4,19 +4,44 @@ from setuptools import setup
+ from setuptools import find_packages
+ 
+ 
++with open("README.md", "r") as fp:
++    long_description = fp.read()
++
++
+ setup(
+     name="litedram",
+     description="Small footprint and configurable DRAM core",
++    long_description=long_description,
++    long_description_content_type="text/markdown",
+     author="Florent Kermarrec",
++    version="2022.12",
+     author_email="florent@enjoy-digital.fr",
+     url="http://enjoy-digital.fr",
+     download_url="https://github.com/enjoy-digital/litedram",
+     test_suite="test",
+     license="BSD",
+     python_requires="~=3.6",
+-    install_requires=["pyyaml"],
++    install_requires=["pyyaml", "litex"],
++    extras_require={
++        "develop": [
++          "meson"
++          "pexpect"
++          "setuptools"
++          "requests"
++        ]
++    },
+     packages=find_packages(exclude=("test*", "sim*", "doc*", "examples*")),
+     include_package_data=True,
++    keywords="HDL ASIC FPGA hardware design",
++    classifiers=[
++        "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
++        "Environment :: Console",
++        "Development Status :: 3 - Alpha",
++        "Intended Audience :: Developers",
++        "License :: OSI Approved :: BSD License",
++        "Operating System :: OS Independent",
++        "Programming Language :: Python",
++    ],
+     entry_points={
+         "console_scripts": [
+             "litedram_gen=litedram.gen:main",
+-- 
+2.40.0
+
