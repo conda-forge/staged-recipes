@@ -19,6 +19,7 @@ cmake %CMAKE_ARGS% ^
   -D LAPACK_LIBRARIES="%PREFIX%\\Library\\lib\\lapack.lib;%PREFIX%\\Library\\lib\\blas.lib" ^
   -D SHARED_ONLY=ON ^
   -D ENABLE_OPENMP=OFF ^
+  -D CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
   -D ENABLE_XHOST=OFF ^
   -D ENABLE_GENERIC=OFF ^
   -D ENABLE_TESTS=ON ^
