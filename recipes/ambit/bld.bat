@@ -11,7 +11,7 @@ cmake %CMAKE_ARGS% ^
   -D CMAKE_CXX_FLAGS="/EHsc %CXXFLAGS%" ^
   -D CMAKE_INSTALL_LIBDIR="Library\lib" ^
   -D CMAKE_INSTALL_INCLUDEDIR="Library\include" ^
-  -D CMAKE_INSTALL_BINDIR="Scripts" ^
+  -D CMAKE_INSTALL_BINDIR="Library\bin" ^
   -D CMAKE_INSTALL_DATADIR="Library\share" ^
   -D PYMOD_INSTALL_LIBDIR="/../../Lib/site-packages" ^
   -D ambit_INSTALL_CMAKEDIR="Library\share\cmake\ambit" ^
