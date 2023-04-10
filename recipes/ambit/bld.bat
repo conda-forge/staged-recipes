@@ -17,7 +17,7 @@ cmake %CMAKE_ARGS% ^
   -D ambit_INSTALL_CMAKEDIR="Library\share\cmake\ambit" ^
   -D Python_EXECUTABLE="%PYTHON%" ^
   -D LAPACK_LIBRARIES="%PREFIX%\\Library\\lib\\lapack.lib;%PREFIX%\\Library\\lib\\blas.lib" ^
-  -D SHARED_ONLY=ON ^
+  -D STATIC_ONLY=ON ^
   -D ENABLE_OPENMP=OFF ^
   -D CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
   -D ENABLE_XHOST=OFF ^
@@ -35,7 +35,6 @@ cmake --build build ^
 if errorlevel 1 exit 1
 
 cd build
-:: missing BlockedTensor::expert_mode_
-ctest -E ^blocks --rerun-failed --output-on-failure
+ctest --rerun-failed --output-on-failure
 if errorlevel 1 exit 1
 
