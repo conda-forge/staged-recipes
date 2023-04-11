@@ -2,6 +2,9 @@
 
 # Install to conda style directories
 [[ -d lib64 ]] && mv lib64 lib
+mkdir -p ${PREFIX}/lib
+[[ -d pkg-config ]] && mv pkg-config ${PREFIX}/lib/pkgconfig
+[[ -d "$PREFIX/lib/pkgconfig" ]] && sed -E -i "s|cudaroot=.+|cudaroot=$PREFIX|g" $PREFIX/lib/pkgconfig/curand*.pc
 
 [[ ${target_platform} == "linux-64" ]] && targetsDir="targets/x86_64-linux"
 [[ ${target_platform} == "linux-ppc64le" ]] && targetsDir="targets/ppc64le-linux"
@@ -15,10 +18,15 @@ for i in `ls`; do
 		mkdir -p ${PREFIX}/${targetsDir}
 		mkdir -p ${PREFIX}/$i
 		cp -rv $i ${PREFIX}/${targetsDir}
-		for j in `ls $i`; do
-			ln -s ../${targetsDir}/$i/$j ${PREFIX}/$i/$j
-		done
+        if [[ $i == "lib" ]]; then
+            for j in "$i"/*.so*; do
+                # Shared libraries are symlinked in $PREFIX/lib
+                ln -s ${PREFIX}/${targetsDir}/$j ${PREFIX}/$j
+            done
+        fi
 	else
-		cp -rv $i ${PREFIX}
+        # Put all other files in targetsDir
+        mkdir -p ${PREFIX}/${targetsDir}/${PKG_NAME}
+        cp -rv $i ${PREFIX}/${targetsDir}/${PKG_NAME}
 	fi
 done
