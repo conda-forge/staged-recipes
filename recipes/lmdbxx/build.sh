@@ -1,2 +1,2 @@
 #!bin/bash
-make install
+cp lmdb++.h $PREFIX/include
