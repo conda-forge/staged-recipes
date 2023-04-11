@@ -1,0 +1,155 @@
+diff --git a/src/broker/state_machine.c b/src/broker/state_machine.c
+index 57e727fea..b02a3b144 100644
+--- a/src/broker/state_machine.c
++++ b/src/broker/state_machine.c
+@@ -11,6 +11,8 @@
+ #if HAVE_CONFIG_H
+ #include "config.h"
+ #endif
++#include <signal.h>
++
+ #include <flux/core.h>
+ 
+ #include "src/common/libczmqcontainers/czmq_containers.h"
+diff --git a/src/cmd/builtin/proxy.c b/src/cmd/builtin/proxy.c
+index feff795b9..655df262a 100644
+--- a/src/cmd/builtin/proxy.c
++++ b/src/cmd/builtin/proxy.c
+@@ -18,6 +18,7 @@
+ #include <sys/socket.h>
+ #include <sys/un.h>
+ #include <stdio.h>
++#include <signal.h>
+ #include <assert.h>
+ #include <stdlib.h>
+ #include <string.h>
+diff --git a/src/common/libsubprocess/server.c b/src/common/libsubprocess/server.c
+index 2c164646c..275aa3443 100644
+--- a/src/common/libsubprocess/server.c
++++ b/src/common/libsubprocess/server.c
+@@ -13,6 +13,7 @@
+ #endif
+ 
+ #include <unistd.h> // defines environ
++#include <signal.h>
+ #include <errno.h>
+ #include <flux/core.h>
+ 
+diff --git a/src/common/libterminus/pty.c b/src/common/libterminus/pty.c
+index a1dbf6788..a3c6f4c7b 100644
+--- a/src/common/libterminus/pty.c
++++ b/src/common/libterminus/pty.c
+@@ -208,8 +208,10 @@ int flux_pty_kill (struct flux_pty *pty, int sig)
+         pty->wait_for_client = false;
+         pty->wait_on_close = false;
+     }
++#if defined(TIOCSIG)
+     if (ioctl (pty->leader, TIOCSIG, sig) >= 0)
+         return 0;
++#endif
+     llog_debug (pty, "ioctl (TIOCSIG): %s", strerror (errno));
+     if (ioctl (pty->leader, TIOCGPGRP, &pgrp) >= 0
+         && pgrp > 0
+diff --git a/src/common/libutil/fileref.c b/src/common/libutil/fileref.c
+index 69213b0f0..22a4d3359 100644
+--- a/src/common/libutil/fileref.c
++++ b/src/common/libutil/fileref.c
+@@ -57,8 +57,10 @@ static int blobvec_append (json_t *blobvec,
+ 
+ static bool file_has_no_data (int fd)
+ {
++#if defined(SEEK_DATA)
+     if (lseek (fd, 0, SEEK_DATA) == (off_t)-1 && errno == ENXIO)
+         return true;
++#endif
+     return false;
+ }
+ 
+@@ -83,19 +85,25 @@ static json_t *blobvec_create (int fd,
+         goto error;
+     }
+     while (offset < size) {
++#if defined(SEEK_DATA)
+         // N.B. fails with ENXIO if there is no more data
+         if ((offset = lseek (fd, offset, SEEK_DATA)) == (off_t)-1) {
+             if (errno == ENXIO)
+                 break;
+             goto error;
+         }
++#endif
+         if (offset < size) {
+             off_t notdata;
+             int blobsize;
+ 
++#if defined(SEEK_HOLE)
+             // N.B. returns size if there are no more holes
+             if ((notdata = lseek (fd, offset, SEEK_HOLE)) == (off_t)-1)
+                 goto error;
++#else
++	    notdata = size;
++#endif
+             blobsize = notdata - offset;
+             if (blobsize > chunksize)
+                 blobsize = chunksize;
+diff --git a/src/common/libutil/test/fileref.c b/src/common/libutil/test/fileref.c
+index 61cb0bdfe..6fbd84d9b 100644
+--- a/src/common/libutil/test/fileref.c
++++ b/src/common/libutil/test/fileref.c
+@@ -87,9 +87,11 @@ void rmfile (const char *name)
+  */
+ bool test_sparse (void)
+ {
++    bool result = false;
++
++#if defined(SEEK_DATA)
+     int fd;
+     struct stat sb;
+-    bool result = false;
+ 
+     fd = open (mkpath ("testhole"), O_WRONLY | O_CREAT | O_TRUNC, 0600);
+     if (fd < 0)
+@@ -104,6 +106,7 @@ bool test_sparse (void)
+         result = true;
+     close (fd);
+     rmfile ("testhole");
++#endif
+     return result;
+ }
+ 
+@@ -709,7 +712,8 @@ int main (int argc, char *argv[])
+     test_dir ();
+     test_link ();
+     test_small ();
+-    test_empty ();
++    if (have_sparse)
++        test_empty ();
+     test_expfail ();
+     test_pretty_print ();
+ 
+diff --git a/src/modules/job-exec/job-exec.c b/src/modules/job-exec/job-exec.c
+index d29aba68a..c6b76fb92 100644
+--- a/src/modules/job-exec/job-exec.c
++++ b/src/modules/job-exec/job-exec.c
+@@ -89,6 +89,7 @@
+ #endif
+ #include <assert.h>
+ #include <unistd.h>
++#include <signal.h>
+ #include <flux/core.h>
+ 
+ #include "src/common/libczmqcontainers/czmq_containers.h"
+diff --git a/src/shell/rlimit.c b/src/shell/rlimit.c
+index 25a19d936..f83904525 100644
+--- a/src/shell/rlimit.c
++++ b/src/shell/rlimit.c
+@@ -60,8 +60,10 @@ static int rlimit_name_to_string (const char *name)
+         return RLIMIT_NICE;
+     if (streq (name, "rtprio"))
+         return RLIMIT_RTPRIO;
++#ifdef RLIMIT_RTTTIME
+     if (streq (name, "rttime"))
+         return RLIMIT_RTTIME;
++#endif
+     if (streq (name, "sigpending"))
+         return RLIMIT_SIGPENDING;
+     return -1;
