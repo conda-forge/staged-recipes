@@ -3,11 +3,16 @@ import numpy as np
 
 import ambit
 
+print("before")
 ambit.initialize()
+print("initialized")
 
 def build_and_fill2(name, dims):
+    print(f"fill {dims=}")
     T = ambit.Tensor.build(ambit.TensorType.CoreTensor, name, dims)
+    print(T)
     N = [[0 for x in range(dims[1])] for x in range(dims[0])]
+    print(N)
 
     data = np.asarray(T)
     for r in range(dims[0]):
@@ -17,6 +22,8 @@ def build_and_fill2(name, dims):
             data[r, c] = value
             N[r][c] = value
 
+    print(T)
+    print(N)
     return [T, N]
 
 
@@ -39,6 +46,6 @@ print(np.array(aC))
 print(np.array(nC))
 
 assert np.allclose(aC, nC, atol=1.e-12)
-
+print("asserted")
 ambit.finalize()
-
+print("finalized")
