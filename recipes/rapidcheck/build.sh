@@ -4,6 +4,5 @@ mkdir build
   cmake \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
     ..
-  make -j${{ env.NUM_CPUS }}
+  make
   make install
-  
