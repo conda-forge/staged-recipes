@@ -103,6 +103,12 @@ def _set_default_branch(feedstock_dir, default_branch):
     ):
         cfg["upload_on_branch"] = default_branch
 
+    if "conda_build" not in cfg:
+        cfg["conda_build"] = {}
+
+    if "error_overlinking" not in cfg["conda_build"]:
+        cfg["conda_build"]["error_overlinking"] = True
+
     with open(os.path.join(feedstock_dir, "conda-forge.yml"), "w") as fp:
         yaml.dump(cfg, fp)
 
