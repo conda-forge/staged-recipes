@@ -14,16 +14,16 @@ def build_and_fill2(name, dims):
     N = [[0 for x in range(dims[1])] for x in range(dims[0])]
     print(N)
 
-    data = np.asarray(T)
-    print(data)
-    for r in range(dims[0]):
-        for c in range(dims[1]):
-            value = random.random()
-            print(r, c, value)
+    #data = np.asarray(T)
+    #print(data)
+    #for r in range(dims[0]):
+    #    for c in range(dims[1]):
+    #        value = random.random()
+    #        print(r, c, value)
 
-            data[r, c] = value
-            N[r][c] = value
-            print("   ", data[r, c], N[r][c])
+    #        data[r, c] = value
+    #        N[r][c] = value
+    #        print("   ", data[r, c], N[r][c])
 
     print(T)
     print(N)
