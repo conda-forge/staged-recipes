@@ -154,83 +154,70 @@ index 25a19d936..f83904525 100644
          return RLIMIT_SIGPENDING;
      return -1;
 diff --git a/src/cmd/flux-exec.c b/src/cmd/flux-exec.c
-index eeeb2c581..79747091d 100644
+index eeeb2c581..404f86b87 100644
 --- a/src/cmd/flux-exec.c
 +++ b/src/cmd/flux-exec.c
-@@ -190,9 +190,12 @@ void output_cb (flux_subprocess_t *p, const char *stream)
-         log_err_exit ("flux_subprocess_getline");
- 
+@@ -192,7 +192,8 @@ void output_cb (flux_subprocess_t *p, const char *stream)
      if (lenp) {
-+        int rc;
          if (optparse_getopt (opts, "label-io", NULL) > 0)
              fprintf (fstream, "%d: ", flux_subprocess_rank (p));
 -        fwrite (ptr, lenp, 1, fstream);
-+        rc = fwrite (ptr, lenp, 1, fstream);
-+        if (rc < 0)
++        if (fwrite (ptr, lenp, 1, fstream) != lenp)
 +            log_err ("fwrite");
      }
  }
  
 diff --git a/src/cmd/flux-job.c b/src/cmd/flux-job.c
-index 979c7fbf7..2eb7c7a8b 100644
+index 979c7fbf7..ea8ed86da 100644
 --- a/src/cmd/flux-job.c
 +++ b/src/cmd/flux-job.c
-@@ -1672,9 +1672,12 @@ static void handle_output_data (struct attach_ctx *ctx, json_t *context)
-     else
-         fp = stderr;
+@@ -1674,7 +1674,8 @@ static void handle_output_data (struct attach_ctx *ctx, json_t *context)
      if (len > 0) {
-+        int rc;
          if (optparse_hasopt (ctx->p, "label-io"))
              fprintf (fp, "%s: ", rank);
 -        fwrite (data, len, 1, fp);
-+        rc = fwrite (data, len, 1, fp);
-+        if (rc < 0)
++        if (fwrite (data, len, 1, fp) != len)
 +            log_err ("fwrite");
          fflush (fp);
      }
      free (data);
-@@ -2205,7 +2208,9 @@ void handle_exec_log_msg (struct attach_ctx *ctx, double ts, json_t *context)
+@@ -2205,7 +2206,8 @@ void handle_exec_log_msg (struct attach_ctx *ctx, double ts, json_t *context)
                   rank,
                   stream);
      }
 -    fwrite (data, len, 1, stderr);
-+    int rc = fwrite (data, len, 1, stderr);
-+    if (rc < 0)
++    if (fwrite (data, len, 1, stderr) != len)
 +        log_err ("fwrite");
  }
  
  static struct idset *all_taskids (const struct taskmap *map)
 diff --git a/src/common/libsubprocess/subprocess.c b/src/common/libsubprocess/subprocess.c
-index da068b3d3..72cb6cca6 100644
+index da068b3d3..a63765b8e 100644
 --- a/src/common/libsubprocess/subprocess.c
 +++ b/src/common/libsubprocess/subprocess.c
-@@ -262,8 +262,11 @@ void flux_standard_output (flux_subprocess_t *p, const char *stream)
+@@ -262,8 +262,10 @@ void flux_standard_output (flux_subprocess_t *p, const char *stream)
          }
      }
  
 -    if (lenp)
 -        fwrite (ptr, lenp, 1, fstream);
 +    if (lenp) {
-+        int rc = fwrite (ptr, lenp, 1, fstream);
-+        if (rc < 0)
++        if (fwrite (ptr, lenp, 1, fstream) != lenp)
 +            log_err ("fwrite");
 +    }
  }
  
  /*
 diff --git a/src/shell/output.c b/src/shell/output.c
-index 8ebf07365..6e3422605 100644
+index 8ebf07365..e9eb3b964 100644
 --- a/src/shell/output.c
 +++ b/src/shell/output.c
-@@ -173,8 +173,11 @@ static int shell_output_term (struct shell_output *out)
-                 f = stderr;
+@@ -174,7 +174,8 @@ static int shell_output_term (struct shell_output *out)
              }
              if ((output_type == FLUX_OUTPUT_TYPE_TERM) && len > 0) {
-+                int rc;
                  fprintf (f, "%s: ", rank);
 -                fwrite (data, len, 1, f);
-+                rc = fwrite (data, len, 1, f);
-+                if (rc < 0)
++                if (fwrite (data, len, 1, f) != len)
 +                    return -1;
              }
              free (data);
