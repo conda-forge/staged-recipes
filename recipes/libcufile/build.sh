@@ -4,7 +4,7 @@
 [[ -d lib64 ]] && mv lib64 lib
 mkdir -p ${PREFIX}/lib
 mkdir -p ${PREFIX}/gds
-mv -v etc ${PREFIX}/etc
+rm -rv etc
 mv -v man ${PREFIX}/man
 mv -v samples ${PREFIX}/gds/samples
 mv -v tools ${PREFIX}/gds/tools
