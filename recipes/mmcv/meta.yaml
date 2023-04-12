@@ -1,0 +1,65 @@
+{% set name = "mmcv" %}
+{% set version = "2.0.0" %}
+{% set number = 0 %}
+# see https://github.com/conda-forge/conda-forge.github.io/issues/1059 for naming discussion
+{% set torch_proc_type = "cuda" if cuda_compiler_version != "None" else "cpu" %}
+{% if cuda_compiler_version != "None" %}
+{% set number = number + 200 %}
+{% endif %}
+
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/mmcv-{{ version }}.tar.gz
+  sha256: 2a26c0b1148979954da9c98f88b1ca038ef823031f5975ff4f8951e75474638c
+
+build:
+  noarch: python
+  number: {{ number }}
+  script: {{ PYTHON }} -m pip install . -vv
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                      # [cuda_compiler_version == "None"]
+
+requirements:
+  build:
+    - ninja
+    - psutil
+    - pytorch ={{ pytorch }}={{ torch_proc_type }}*  # [build_platform != target_platform]
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    # this adds matching cuda requirement to run deps using __cuda package
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+  host:
+    - numpy
+    - pip
+    - python >=3.7
+  run:
+    - __cuda  # [cuda_compiler_version != "None"]
+    - mmengine
+    - {{ pin_compatible('numpy') }}
+    - python >=3.7
+
+test:
+  imports:
+    - mmcv
+  commands:
+    - pip check
+    - python -c "import mmcv; print(mmcv.__version__)"
+  requires:
+    - pip
+
+about:
+  home: https://github.com/open-mmlab/mmcv
+  summary: OpenMMLab Computer Vision Foundation
+  license: Apache-2.0 AND NVIDIA License
+  license_file:
+    - LICENSE
+    - LICENSES.md
+  doc_url: https://mmcv.readthedocs.io
+
+extra:
+  recipe-maintainers:
+    - weiji14
