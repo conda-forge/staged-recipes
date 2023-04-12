@@ -20,18 +20,29 @@ source:
 
 build:
   number: 0
-  skip: true  # [not linux]
+  skip: true  # [not (linux64 or aarch64)]
+
+test:
+  commands:
+    - test -f $PREFIX/etc/cufile.json
+    - test -L $PREFIX/lib/libcufile.so.{{ version.split(".")[0] }}
+    - test -L $PREFIX/lib/libcufile_rdma.so.{{ version.split(".")[0] }}
+    - test -L $PREFIX/lib/libcufile.so.{{ version }}
+    - test -L $PREFIX/lib/libcufile_rdma.so.{{ version }}
+    - test -L $PREFIX/targets/{{ target_name }}/lib/libcufile.so.{{ version.split(".")[0] }}
+    - test -L $PREFIX/targets/{{ target_name }}/lib/libcufile_rdma.so.{{ version.split(".")[0] }}
+    - test -f $PREFIX/targets/{{ target_name }}/lib/libcufile.so.{{ version }}
+    - test -f $PREFIX/targets/{{ target_name }}/lib/libcufile_rdma.so.{{ version }}
 
 outputs:
   - name: libcufile
     build:
       missing_dso_whitelist:
-        - "*/libcuda.so.*"                     # [linux]
-      run_exports:
-        - {{ pin_subpackage("libcufile", max_pin="x") }}
+        - "*/libcuda.so.*"  # [linux]
     files:
-      - lib/libcufile*.so.*
       - etc/cufile.json
+      - lib/libcufile*.so.*
+      - targets/{{ target_name }}/lib/libcufile*.so.*
     requirements:
       build:
         - {{ compiler("c") }}
@@ -44,18 +55,15 @@ outputs:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
       run_constrained:
         - arm-variant * {{ arm_variant_type }}  # [aarch64]
-    test:
-      commands:
-        - test -f $PREFIX/lib/libcufile.so.*
-        - test -f $PREFIX/lib/libcufile_rdma.so.*
-        - test -f $PREFIX/etc/cufile.json
+    # Tests are defined at the top level, due to package/output name conflicts.
     about:
       home: https://developer.nvidia.com/cuda-toolkit
       license: LicenseRef-NVIDIA-End-User-License-Agreement
       license_file: LICENSE
       license_url: https://docs.nvidia.com/cuda/eula/index.html
-      summary: |
-        Library for GPU Direct Storage with CUDA
+      summary: Library for NVIDIA GPUDirect Storage
+      description: |
+        The cuFile library provides a direct data path between GPU memory and storage.
       doc_url: https://docs.nvidia.com/gpudirect-storage/api-reference-guide/index.html
 
   - name: libcufile-dev
@@ -63,42 +71,58 @@ outputs:
       run_exports:
         - {{ pin_subpackage("libcufile", max_pin="x") }}
     files:
-      - include/cufile*
       - lib/libcufile*.so
+      - lib/pkgconfig
+      - targets/{{ target_name }}/include
       - targets/{{ target_name }}/lib/libcufile*.so
-      - targets/{{ target_name }}/include/cufile*
       - man/man3
     requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+        - sysroot_{{ target_platform }} 2.17    # [linux]
       host:
         - cuda-version {{ cuda_version }}
       run:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
         - {{ pin_subpackage("libcufile", exact=True) }}
       run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
         - libcufile-static >={{ version }}
     test:
       commands:
         - test -L $PREFIX/lib/libcufile.so
+        - test -L $PREFIX/lib/libcufile_rdma.so
         - test -f $PREFIX/targets/{{ target_name }}/include/cufile.h
         - test -L $PREFIX/targets/{{ target_name }}/lib/libcufile.so
+        - test -L $PREFIX/targets/{{ target_name }}/lib/libcufile_rdma.so
         - test -d $PREFIX/man/man3
     about:
       home: https://developer.nvidia.com/cuda-toolkit
       license: LicenseRef-NVIDIA-End-User-License-Agreement
       license_file: LICENSE
       license_url: https://docs.nvidia.com/cuda/eula/index.html
-      summary: |
-        Library for GPU Direct Storage with CUDA
+      summary: Library for NVIDIA GPUDirect Storage
+      description: |
+        The cuFile library provides a direct data path between GPU memory and storage.
       doc_url: https://docs.nvidia.com/gpudirect-storage/api-reference-guide/index.html
 
   - name: libcufile-static
     files:
-      - targets/{{ target_name }}/lib/libcufile*_static.a  
+      - targets/{{ target_name }}/lib/libcufile*_static.a
     requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+        - sysroot_{{ target_platform }} 2.17    # [linux]
       host:
         - cuda-version {{ cuda_version }}
       run:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
     test:
       commands:
         - test -f $PREFIX/targets/{{ target_name }}/lib/libcufile_static.a
@@ -108,14 +132,15 @@ outputs:
       license: LicenseRef-NVIDIA-End-User-License-Agreement
       license_file: LICENSE
       license_url: https://docs.nvidia.com/cuda/eula/index.html
-      summary: |
-        Library for GPU Direct Storage with CUDA
+      summary: Library for NVIDIA GPUDirect Storage
+      description: |
+        The cuFile library provides a direct data path between GPU memory and storage.
       doc_url: https://docs.nvidia.com/gpudirect-storage/api-reference-guide/index.html
 
   - name: gds-tools
     files:
       - gds/samples
-      - gds/tools  
+      - gds/tools
     requirements:
       build:
         - {{ compiler("c") }}
@@ -125,7 +150,7 @@ outputs:
       host:
         - cuda-version {{ cuda_version }}
         - libcufile-dev {{ version }}
-        - libnuma                              # [linux]
+        - libnuma  # [linux]
       run:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
         - {{ pin_subpackage("libcufile", max_pin="x") }}
@@ -140,8 +165,9 @@ outputs:
       license: LicenseRef-NVIDIA-End-User-License-Agreement
       license_file: LICENSE
       license_url: https://docs.nvidia.com/cuda/eula/index.html
-      summary: |
-        Library for GPU Direct Storage with CUDA
+      summary: Library for NVIDIA GPUDirect Storage
+      description: |
+        The cuFile library provides a direct data path between GPU memory and storage.
       doc_url: https://docs.nvidia.com/gpudirect-storage/api-reference-guide/index.html
 
 about:
@@ -149,8 +175,9 @@ about:
   license: LicenseRef-NVIDIA-End-User-License-Agreement
   license_file: LICENSE
   license_url: https://docs.nvidia.com/cuda/eula/index.html
-  summary: |
-    Library for GPU Direct Storage with CUDA
+  summary: Library for NVIDIA GPUDirect Storage
+  description: |
+    The cuFile library provides a direct data path between GPU memory and storage.
   doc_url: https://docs.nvidia.com/gpudirect-storage/api-reference-guide/index.html
 
 extra:
