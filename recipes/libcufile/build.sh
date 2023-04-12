@@ -4,8 +4,10 @@
 [[ -d lib64 ]] && mv lib64 lib
 mkdir -p ${PREFIX}/lib
 mkdir -p ${PREFIX}/gds
-mv samples ${PREFIX}/gds/samples
-mv tools ${PREFIX}/gds/tools
+rm -rv etc
+mv -v man ${PREFIX}/man
+mv -v samples ${PREFIX}/gds/samples
+mv -v tools ${PREFIX}/gds/tools
 [[ -d pkg-config ]] && mv pkg-config ${PREFIX}/lib/pkgconfig
 [[ -d "$PREFIX/lib/pkgconfig" ]] && sed -E -i "s|cudaroot=.+|cudaroot=$PREFIX|g" $PREFIX/lib/pkgconfig/cufile*.pc
 
