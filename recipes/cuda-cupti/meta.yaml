@@ -1,5 +1,6 @@
 {% set name = "cuda-cupti" %}
 {% set version = "12.0.90" %}
+{% set lib_version = "2022.4.0" %}
 {% set cuda_version = "12.0" %}
 {% set platform = "linux-x86_64" %}  # [linux64]
 {% set platform = "linux-ppc64le" %}  # [ppc64le]
@@ -27,6 +28,14 @@ build:
   number: 0
   skip: true  # [osx]
 
+test:
+  commands:
+    - test -L $PREFIX/lib/libcupti.so.{{ version.split(".")[0] }}                            # [linux]
+    - test -L $PREFIX/lib/libcupti.so.{{ lib_version }}                                      # [linux]
+    - test -L $PREFIX/targets/{{ target_name }}/lib/libcupti.so.{{ version.split(".")[0] }}  # [linux]
+    - test -f $PREFIX/targets/{{ target_name }}/lib/libcupti.so.{{ lib_version }}            # [linux]
+    - if not exist %LIBRARY_BIN%\cupti64_{{ version.split(".")[0] }}.dll exit 1              # [win]
+
 outputs:
   - name: cuda-cupti
     files:
@@ -44,13 +53,7 @@ outputs:
         - {{ pin_compatible("cuda-version", max_pin="x.x") }}
       run_constrained:
         - arm-variant * {{ arm_variant_type }}  # [aarch64]
-    test:
-      commands:
-        - test -L $PREFIX/lib/libcupti.so.{{ version }}                                          # [linux]
-        - test -L $PREFIX/lib/libcupti.so.{{ version.split(".")[0] }}                            # [linux]
-        - test -L $PREFIX/targets/{{ target_name }}/lib/libcupti.so.{{ version }}                # [linux]
-        - test -f $PREFIX/targets/{{ target_name }}/lib/libcupti.so.{{ version.split(".")[0] }}  # [linux]
-        - if not exist %LIBRARY_BIN%\cupti64_{{ version.split(".")[0] }}.dll exit 1              # [win]
+    # Tests are defined at the top level, due to package/output name conflicts.
     about:
       home: https://developer.nvidia.com/cuda-toolkit
       license_file: LICENSE
