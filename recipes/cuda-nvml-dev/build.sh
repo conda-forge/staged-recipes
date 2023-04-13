@@ -21,8 +21,8 @@ for i in `ls`; do
         cp -rv $i ${PREFIX}/${targetsDir}
         # Nothing to be symlinked in $PREFIX/lib
     else
-        # Put all other files in targetsDir
-        mkdir -p ${PREFIX}/${targetsDir}/${PKG_NAME}
-        cp -rv $i ${PREFIX}/${targetsDir}/${PKG_NAME}
+        # Skip all other files (only samples here)
+        # mkdir -p ${PREFIX}/${targetsDir}/${PKG_NAME}
+        # cp -rv $i ${PREFIX}/${targetsDir}/${PKG_NAME}
     fi
 done
