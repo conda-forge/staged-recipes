@@ -11,7 +11,7 @@ for i in `ls`; do
     [[ $i == "build_env_setup.sh" ]] && continue
     [[ $i == "conda_build.sh" ]] && continue
     [[ $i == "metadata_conda_debug.yaml" ]] && continue
-    if [[ $i == "lib" ]] || [[ $i == "include" ]]; then
+    if [[ $i == "include" ]]; then
         # Headers and libraries are installed to targetsDir
         mkdir -p ${PREFIX}/${targetsDir}
         mkdir -p ${PREFIX}/$i
