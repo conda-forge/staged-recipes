@@ -7,7 +7,7 @@ This repo is a holding area for recipes destined for a conda-forge feedstock rep
 
 ## Feedstock conversion status
 
-[![Build Status](https://github.com/conda-forge/staged-recipes/workflows/Create%20feedstocks/badge.svg)](https://github.com/conda-forge/staged-recipes/actions?query=workflow%3A%22Create+feedstocks%22)
+[![create_feedstocks](https://github.com/conda-forge/admin-requests/actions/workflows/create_feedstocks.yml/badge.svg)](https://github.com/conda-forge/admin-requests/actions/workflows/create_feedstocks.yml)
 
 Failures with the above job are often caused by API rate limits from the various services used by conda-forge.
 This can result in empty feedstock repositories and will resolve itself automatically.
@@ -65,8 +65,9 @@ build:
 
 A full description of selectors is [in the conda docs](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#preprocessing-selectors).
 
-Additionally, when pushing commits for a recipe that excludes Windows, put `[skip appveyor]` in the commit message to prevent CI tests
-on Windows from even starting.
+If the package can otherwise be `noarch` you can also skip it by using [virtual packages](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-virtual.html). 
+
+_Note_: As the package will always be built on linux, it needs to be at least available on there.
 
 
 ### 4. **What does the `build: 0` entry mean?**
@@ -132,19 +133,41 @@ git push -f
 
 ### 12. My pull request passes all checks, but hasn't received any attention. How do I call attention to my PR?  What is the customary amount of time to wait?
 
-If your PR is passing all checks, but has not been acted on by the staged recipes
-maintainers, you can ping @conda-forge/staged-recipes to request action. You do
-not need to wait any specific amount of time once the recipe is ready to go.
+<!--
+Keep this message in sync with the PR template.
 
-Due to GitHub limitations first time contributors to conda-forge are unable
-to ping these teams. You can [ping the team](https://conda-forge.org/docs/maintainer/infrastructure.html#conda-forge-admin-please-ping-team)
-using a special command in a comment on the PR to get the attention of the `staged-recipes` team.
+https://raw.githubusercontent.com/conda-forge/staged-recipes/main/.github/pull_request_template.md
+-->
 
-If your recipe still does not receive any attention after a few days, you may
-attempt to re-ping @conda-forge/staged-recipes. You may also attempt to bring
-the PR up in our Gitter chat room at https://gitter.im/conda-forge/conda-forge.github.io.
+There are language-specific teams for reviewing recipes.
+
+| Language        | Name of review team           |
+| --------------- | ----------------------------- |
+| python          | `@conda-forge/help-python`    |
+| python/c hybrid | `@conda-forge/help-python-c`  |
+| r               | `@conda-forge/help-r`         |
+| java            | `@conda-forge/help-java`      |
+| nodejs          | `@conda-forge/help-nodejs`    |
+| c/c++           | `@conda-forge/help-c-cpp`     |
+| perl            | `@conda-forge/help-perl`      |
+| Julia           | `@conda-forge/help-julia`     |
+| ruby            | `@conda-forge/help-ruby`      |
+| other           | `@conda-forge/staged-recipes` |
+
+Once the PR is ready for review, please mention one of the teams above in a
+new comment. i.e. `@conda-forge/help-some-language, ready for review!`
+Then, a bot will label the PR as 'review-requested'.
+
+Due to GitHub limitations, first time contributors to conda-forge are unable
+to ping conda-forge teams directly, but you can [ask a bot to ping the team][1]
+using a special command in a comment on the PR to get the attention of the
+`staged-recipes` team. You can also consider asking on our [Gitter channel][2]
+if your recipe isn't reviewed promptly.
+
+[1]: https://conda-forge.org/docs/maintainer/infrastructure.html#conda-forge-admin-please-ping-team
+[2]: https://gitter.im/conda-forge/conda-forge.github.io
 
 All apologies in advance if your recipe PR does not recieve prompt attention.
-This is a high volume repository and issues can easily be missed. We are always
+This is a high volume repository and the reviewers are volunteers. Review times vary depending on the number of reviewers on a given language team and may be days or weeks. We are always
 looking for more staged-recipe reviewers. If you are interested in volunteering,
 please contact a member of @conda-forge/core. We'd love to have the help!
