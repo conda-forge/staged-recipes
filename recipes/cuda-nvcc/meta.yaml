@@ -23,97 +23,40 @@ source:
   sha256: 85c8c643ea2cfa398e1b5ffcd597f5bb3b738526c9e3fb8e39dd909c55345f36  # [aarch64]
   sha256: f67406f44263f0e4a110a8cf0200bff1d3d0e32917db8a7c9e417a87eb7ca372  # [win]
   patches:
-    nvcc.profile.patch  # [win]
+    - nvcc.profile.patch  # [win]
 
 build:
   number: 0
-  skip: true  # [osx]
+  skip: true  # [osx or win]
+
+requirements:
+  build:
+    - {{ compiler("c") }}
+    - {{ compiler("cxx") }}
+    - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    - sysroot_{{ target_platform }} 2.17    # [linux]
+  host:
+    - cuda-version {{ cuda_version }}
+  run:
+    - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+    - cuda-cudart-dev
+  run_constrained:
+    - gcc_impl_{{ target_platform }} >=6,<13  # [linux]
+    - arm-variant * {{ arm_variant_type }}  # [aarch64]
 
 test:
+  requires:
+    - {{ compiler("c") }}
+    - {{ compiler("cxx") }}
   files:
     - test.cu
   commands:
+    - test -f $PREFIX/targets/{{ target_name }}/lib/libnvptxcompiler_static.a  # [linux]
+    - test -f $PREFIX/targets/{{ target_name }}/include/nvPTXCompiler.h        # [linux]
+    - if not exist %LIBRARY_LIB%\nvptxcompiler_static.lib exit 1  # [win]
+    - if not exist %LIBRARY_INC%\nvPTXCompiler.h exit 1           # [win]
     - nvcc --version
     - nvcc --verbose test.cu
-
-outputs:
-  - name: cuda-nvcc
-    build:
-      run_exports:
-        strong:
-          - __glibc >=2.17        # [linux]
-    files:
-      - bin      # [linux]
-      - include  # [linux]
-      - lib      # [linux]
-      - nvvm     # [linux]
-      - Library\nvvm  # [win]
-    requirements:
-      build:
-        - {{ compiler("c") }}
-        - {{ compiler("cxx") }}
-        - arm-variant * {{ arm_variant_type }}  # [aarch64]
-        - sysroot_{{ target_platform }} 2.17    # [linux]
-      host:
-        - sysroot_{{ target_platform }} 2.17   # [linux]
-        - __glibc >=2.17                       # [linux]
-        - cuda-version {{ cuda_version }}
-      run:
-        - sysroot_{{ target_platform }} 2.17   # [linux]
-        - __glibc >=2.17                       # [linux]
-        - cuda-cudart-dev
-        - cuda-nvcc_{{ target_platform }} =={{ version }}
-        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
-      run_constrained:
-        - gcc_impl_{{ target_platform }} >=6,<13  # [linux]
-        - arm-variant * {{ arm_variant_type }}    # [aarch64]
-    # Tests are defined at the top level, due to package/output name conflicts.
-    about:
-      home: https://developer.nvidia.com/cuda-toolkit
-      license_file: LICENSE
-      license: LicenseRef-NVIDIA-End-User-License-Agreement
-      license_url: https://docs.nvidia.com/cuda/eula/index.html
-      summary: Compiler for CUDA applications.
-      description: |
-        Compiler for CUDA applications.
-      doc_url: https://docs.nvidia.com/cuda/index.html
-
-  - name: cuda-nvcc_{{ target_platform }}
-    build:
-      noarch: generic
-    files:
-      - targets          # [linux]
-      - Library\lib      # [win]
-      - Library\include  # [win]
-      - Library\bin      # [win]
-    requirements:
-      build:
-        - {{ compiler("c") }}
-        - {{ compiler("cxx") }}
-        - arm-variant * {{ arm_variant_type }}  # [aarch64]
-        - sysroot_{{ target_platform }} 2.17    # [linux]
-      host:
-        - cuda-version {{ cuda_version }}
-      run:
-        - cuda-cudart-dev_{{ target_platform }}
-        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
-      run_constrained:
-        - arm-variant * {{ arm_variant_type }}    # [aarch64]
-    test:
-      commands:
-        - test -f $PREFIX/targets/{{ target_name }}/lib/libnvptxcompiler_static.a     # [linux]
-        - test -f $PREFIX/targets/{{ target_name }}/include/nvPTXCompiler.h           # [linux]
-        - if not exist %LIBRARY_LIB%\nvptxcompiler_static.lib exit 1  # [win]
-        - if not exist %LIBRARY_INC%\nvPTXCompiler.h exit 1           # [win]
-    about:
-      home: https://developer.nvidia.com/cuda-toolkit
-      license_file: LICENSE
-      license: LicenseRef-NVIDIA-End-User-License-Agreement
-      license_url: https://docs.nvidia.com/cuda/eula/index.html
-      summary: Compiler for CUDA applications.
-      description: |
-        Compiler for CUDA applications.
-      doc_url: https://docs.nvidia.com/cuda/index.html
 
 about:
   home: https://developer.nvidia.com/cuda-toolkit
