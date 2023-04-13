@@ -1,0 +1,1 @@
+pip install -vv --no-deps https://files.pythonhosted.org/packages/1c/98/6675f6c89fb80a07ef60dd9bd89ca8d279e1e8084d1a66a546927fd239f3/PyGEL3D-0.3.2-py3-none-any.whl
