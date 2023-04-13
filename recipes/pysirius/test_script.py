@@ -7,6 +7,7 @@ sdk = SiriusSDK.start()
 time.sleep(10)
 pspace = sdk.get_ProjectSpacesApi().get_project_spaces()[0].name
 path = os.getenv('RECIPE_DIR') + "/Kaempferol.ms"
+path = os.path.abspath(path)
 sdk.get_CompoundsApi().import_compounds([path], pspace)
 time.sleep(2)
 config = sdk.get_ComputationsApi().get_default_job_config()
