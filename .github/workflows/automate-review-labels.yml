@@ -3,10 +3,14 @@
   on:
     issue_comment:
       types: [created]
-    pull_request_review:
-      types: [submitted]
-    pull_request_review_comment:
-      types: [created]
+    issues:
+      types: [unlabeled]
+    pull_request_target:
+      types: [unlabeled]
+
+  permissions:
+    issues: write # for adding label to an issue
+    pull-requests: write # for adding label to a pr
 
   jobs:
 
@@ -75,34 +79,20 @@
                   name: ['Awaiting author contribution']
               })
 
-    remove-review-requested-label:
-      name: 'When reviewed, remove review-requested label'
+    check-remove-review-requested-label:
+      name: 'Check that review-requested label was removed by a team member'
       if: >
-        github.event.pull_request
-        && (github.event.sender.login != github.event.pull_request.user.login)
-        && contains(github.event.pull_request.labels.*.name, 'review-requested')
+        github.event.action == 'unlabeled'
+        && github.event.label.name == 'review-requested'
       runs-on: ubuntu-latest
       steps:
-        - name: check-team-review
+        - name: check-team-membership
           id: check_team_review
           uses: actions/github-script@v6
           with:
             script: |
-              const requestedReviewersPromise = github.rest.pulls.listRequestedReviewers({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: context.issue.number,
-              });
-              return requestedReviewersPromise.then( responses => {
-                  const team_review_requests = responses.data.teams;
-                  const user_review_requests = responses.data.users;
-                  if (team_review_requests.length == 0 && user_review_requests.length == 0){
-                    console.log("No more requested reviews.");
-                    return true;
-                  }
-                  console.log("Reviews still pending.");
-                  return false;
-              });
+              console.log(`Label was removed by ${context.payload.sender.login}`);
+              return true;
         - name: add-labels
           if: >
             (steps.check_team_review.outputs.result == 'true')
@@ -115,16 +105,16 @@
                   repo: context.repo.repo,
                   labels: ['Awaiting author contribution']
               });
-        - name: remove-labels
+        - name: readd-review-label
           if: >
-            (steps.check_team_review.outputs.result == 'true')
-            && contains(github.event.pull_request.labels.*.name, 'review-requested')
+            (steps.check_team_review.outputs.result == 'false')
           uses: actions/github-script@v6
           with:
             script: |
-              github.rest.issues.removeLabel({
+              github.rest.issues.addLabels({
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  name: ['review-requested']
+                  labels: ['review-requested']
               });
+              console.log('Non-members of staged recipes cannot remove this label.')

@@ -31,7 +31,7 @@ from ruamel.yaml import YAML
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
 DEBUG = False
 
-REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch", "systems"]
+REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch", "systems", "ctx"]
 
 recipe_directory_name = 'recipes'
 
@@ -102,6 +102,12 @@ def _set_default_branch(feedstock_dir, default_branch):
         and cfg["upload_on_branch"] in ["master", "main"]
     ):
         cfg["upload_on_branch"] = default_branch
+
+    if "conda_build" not in cfg:
+        cfg["conda_build"] = {}
+
+    if "error_overlinking" not in cfg["conda_build"]:
+        cfg["conda_build"]["error_overlinking"] = True
 
     with open(os.path.join(feedstock_dir, "conda-forge.yml"), "w") as fp:
         yaml.dump(cfg, fp)
@@ -195,11 +201,12 @@ if __name__ == '__main__':
     if 'STAGING_BINSTAR_TOKEN' in os.environ:
         write_token('anaconda', os.environ['STAGING_BINSTAR_TOKEN'])
 
-    gh_drone = Github(os.environ['GH_DRONE_TOKEN'])
-    gh_drone_remaining = print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+    # gh_drone = Github(os.environ['GH_DRONE_TOKEN'])
+    # gh_drone_remaining = print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
-    gh_travis = Github(os.environ['GH_TRAVIS_TOKEN'])
-
+    # gh_travis = Github(os.environ['GH_TRAVIS_TOKEN'])
+    gh_travis = None
+    
     gh = None
     if 'GH_TOKEN' in os.environ:
         write_token('github', os.environ['GH_TOKEN'])
@@ -225,6 +232,9 @@ if __name__ == '__main__':
         for recipe_dir, name in list_recipes():
             if name.lower() in REPO_SKIP_LIST:
                 continue
+            if name.lower() == "ctx":
+                sys.exit(1)
+
             feedstock_dir = os.path.join(feedstocks_dir, name + '-feedstock')
             print('Making feedstock for {}'.format(name))
             try:
@@ -250,7 +260,7 @@ if __name__ == '__main__':
                 ],
                 cwd=feedstock_dir
             )
-            print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+            # print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
             # Sometimes we already have the feedstock created. We need to
             # deal with that case.
@@ -279,7 +289,7 @@ if __name__ == '__main__':
 
             feedstock_dirs.append([feedstock_dir, name, recipe_dir, default_branch])
 
-            print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+            # print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
             # set the default branch in the conda-forge.yml
             _set_default_branch(feedstock_dir, default_branch)
@@ -292,16 +302,24 @@ if __name__ == '__main__':
                 # + ['--extra-admin-users', gh_travis.get_user().login]
                 # end of hack
             )
-            print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+            # print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
-        from conda_smithy.ci_register import drone_sync
-        print("Running drone sync (can take ~100s)", flush=True)
-        print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
-        drone_sync()
-        for _drone_i in range(10):
-            print("syncing drone - %d seconds left" % (10*(10 - _drone_i)), flush=True)
-            time.sleep(10)  # actually wait
-        print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+            if gh:
+                # Get our final rate limit info.
+                print_rate_limiting_info(gh, 'GH_TOKEN')
+
+        # drone doesn't run our jobs any more so no reason to do this
+        # from conda_smithy.ci_register import drone_sync
+        # print("Running drone sync (can take ~100s)", flush=True)
+        # print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+        # drone_sync()
+        # for _drone_i in range(10):
+        #     print(
+        #         "syncing drone - %d seconds left" % (10*(10 - _drone_i)),
+        #         flush=True,
+        #     )
+        #     time.sleep(10)  # actually wait
+        # print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
         # Break the previous loop to allow the TravisCI registering
         # to take place only once per function call.
@@ -331,6 +349,7 @@ if __name__ == '__main__':
             try:
                 subprocess.check_call(
                     ['conda', 'smithy', 'register-ci', '--without-appveyor',
+                     '--without-circle', '--without-drone',
                      '--without-webservice', '--feedstock_directory',
                      feedstock_dir] + owner_info)
                 subprocess.check_call(
@@ -354,6 +373,7 @@ if __name__ == '__main__':
                          '--feedstock_directory', feedstock_dir] + owner_info)
                     subprocess.check_call(
                         ['conda', 'smithy', 'register-feedstock-token',
+                         '--without-circle', '--without-drone',
                          '--feedstock_directory', feedstock_dir] + owner_info)
 
                 # add staging token env var to all CI probiders except appveyor
@@ -362,7 +382,7 @@ if __name__ == '__main__':
                 subprocess.check_call(
                     ['conda', 'smithy', 'rotate-binstar-token',
                      '--without-appveyor', '--without-azure',
-                     "--without-github-actions",
+                     "--without-github-actions", '--without-circle', '--without-drone',
                      '--token_name', 'STAGING_BINSTAR_TOKEN'],
                     cwd=feedstock_dir)
 
@@ -429,6 +449,10 @@ if __name__ == '__main__':
                 # from conda_smithy.ci_register import travis_cleanup
                 # travis_cleanup("conda-forge", name + "-feedstock")
                 # end of hack
+
+            if gh:
+                # Get our final rate limit info.
+                print_rate_limiting_info(gh, 'GH_TOKEN')
 
     # Update status based on the remote.
     subprocess.check_call(['git', 'stash', '--keep-index', '--include-untracked'])
@@ -499,9 +523,9 @@ if __name__ == '__main__':
     if gh:
         # Get our final rate limit info.
         print_rate_limiting_info(gh, 'GH_TOKEN')
-    if gh_drone:
-        print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
-    if gh_travis:
-        print_rate_limiting_info(gh_travis, 'GH_TRAVIS_TOKEN')
+    # if gh_drone:
+    #     print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+    # if gh_travis:
+    #     print_rate_limiting_info(gh_travis, 'GH_TRAVIS_TOKEN')
 
     sys.exit(exit_code)
