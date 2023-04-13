@@ -154,87 +154,88 @@ index 25a19d936..f83904525 100644
          return RLIMIT_SIGPENDING;
      return -1;
 diff --git a/src/cmd/flux-exec.c b/src/cmd/flux-exec.c
-index eeeb2c581..404f86b87 100644
+index eeeb2c581..79747091d 100644
 --- a/src/cmd/flux-exec.c
 +++ b/src/cmd/flux-exec.c
-@@ -192,7 +192,8 @@ void output_cb (flux_subprocess_t *p, const char *stream)
+@@ -190,9 +190,12 @@ void output_cb (flux_subprocess_t *p, const char *stream)
+         log_err_exit ("flux_subprocess_getline");
+ 
      if (lenp) {
++        int rc;
          if (optparse_getopt (opts, "label-io", NULL) > 0)
              fprintf (fstream, "%d: ", flux_subprocess_rank (p));
 -        fwrite (ptr, lenp, 1, fstream);
-+        if (fwrite (ptr, lenp, 1, fstream) != lenp)
++        rc = fwrite (ptr, lenp, 1, fstream);
++        if (rc < 0)
 +            log_err ("fwrite");
      }
  }
  
 diff --git a/src/cmd/flux-job.c b/src/cmd/flux-job.c
-index 979c7fbf7..ea8ed86da 100644
+index 979c7fbf7..2eb7c7a8b 100644
 --- a/src/cmd/flux-job.c
 +++ b/src/cmd/flux-job.c
-@@ -1674,7 +1674,8 @@ static void handle_output_data (struct attach_ctx *ctx, json_t *context)
+@@ -1672,9 +1672,12 @@ static void handle_output_data (struct attach_ctx *ctx, json_t *context)
+     else
+         fp = stderr;
      if (len > 0) {
++        int rc;
          if (optparse_hasopt (ctx->p, "label-io"))
              fprintf (fp, "%s: ", rank);
 -        fwrite (data, len, 1, fp);
-+        if (fwrite (data, len, 1, fp) != len)
++        rc = fwrite (data, len, 1, fp);
++        if (rc < 0)
 +            log_err ("fwrite");
          fflush (fp);
      }
      free (data);
-@@ -2205,7 +2206,8 @@ void handle_exec_log_msg (struct attach_ctx *ctx, double ts, json_t *context)
+@@ -2205,7 +2208,9 @@ void handle_exec_log_msg (struct attach_ctx *ctx, double ts, json_t *context)
                   rank,
                   stream);
      }
 -    fwrite (data, len, 1, stderr);
-+    if (fwrite (data, len, 1, stderr) != len)
++    int rc = fwrite (data, len, 1, stderr);
++    if (rc < 0)
 +        log_err ("fwrite");
  }
  
  static struct idset *all_taskids (const struct taskmap *map)
 diff --git a/src/common/libsubprocess/subprocess.c b/src/common/libsubprocess/subprocess.c
-index da068b3d3..a63765b8e 100644
+index da068b3d3..72cb6cca6 100644
 --- a/src/common/libsubprocess/subprocess.c
 +++ b/src/common/libsubprocess/subprocess.c
-@@ -262,8 +262,10 @@ void flux_standard_output (flux_subprocess_t *p, const char *stream)
+@@ -262,8 +262,11 @@ void flux_standard_output (flux_subprocess_t *p, const char *stream)
          }
      }
  
 -    if (lenp)
 -        fwrite (ptr, lenp, 1, fstream);
 +    if (lenp) {
-+        if (fwrite (ptr, lenp, 1, fstream) != lenp)
++        int rc = fwrite (ptr, lenp, 1, fstream);
++        if (rc < 0)
 +            log_err ("fwrite");
 +    }
  }
  
  /*
 diff --git a/src/shell/output.c b/src/shell/output.c
-index 8ebf07365..e9eb3b964 100644
+index 8ebf07365..6e3422605 100644
 --- a/src/shell/output.c
 +++ b/src/shell/output.c
-@@ -174,7 +174,8 @@ static int shell_output_term (struct shell_output *out)
+@@ -173,8 +173,11 @@ static int shell_output_term (struct shell_output *out)
+                 f = stderr;
              }
              if ((output_type == FLUX_OUTPUT_TYPE_TERM) && len > 0) {
++                int rc;
                  fprintf (f, "%s: ", rank);
 -                fwrite (data, len, 1, f);
-+                if (fwrite (data, len, 1, f) != len)
++                rc = fwrite (data, len, 1, f);
++                if (rc < 0)
 +                    return -1;
              }
              free (data);
          }
-diff --git a/src/common/libeventlog/Makefile.in b/src/common/libeventlog/Makefile.in
-index 8ebf07365..6e3422605 100644
---- a/src/common/libeventlog/Makefile.in
-+++ b/src/common/libeventlog/Makefile.in
-@@ -691,7 +691,7 @@
- 	$(top_builddir)/src/common/libtap/libtap.la \
- 	$(top_builddir)/src/common/libeventlog/libeventlog.la \
- 	$(top_builddir)/src/common/libutil/libutil.la \
--	$(JANSSON_LIBS)
-+	$(JANSSON_LIBS) -lrt
- 
- all: all-am
- diff --git a/t/rexec/rexec_count_stdout.c b/t/rexec/rexec_count_stdout.c
+diff --git a/t/rexec/rexec_count_stdout.c b/t/rexec/rexec_count_stdout.c
 index 8cb9ff932..f5e1985f8 100644
 --- a/t/rexec/rexec_count_stdout.c
 +++ b/t/rexec/rexec_count_stdout.c
@@ -262,16 +263,28 @@ index b4a17c3ea..55fd57ffd 100644
 -    if (lenp)
 -        fwrite (ptr, lenp, 1, fstream);
 +    if (lenp) {
-+        if (fwrite (ptr, lenp, 1, fstream) != lenp)
-+            log_err ("fwrite");
++        int rc = fwrite (ptr, lenp, 1, fstream);
++        (void) (rc);
 +    }
      else
          fprintf (fstream, "EOF\n");
  }
-diff --git a/src/shell/Makefile.in b/src/shell/Makefile.in
-index b4a17c3ea..55fd57ffd 100644
---- a/src/shell/Makefile.in
-+++ b/src/shell/Makefile.in
+
+diff -Nur flux-core-0.49.0/src/common/libeventlog/Makefile.in flux-core-0.49.0.new/src/common/libeventlog/Makefile.in
+--- flux-core-0.49.0/src/common/libeventlog/Makefile.in	2023-04-05 16:24:09.982692163 +0000
++++ flux-core-0.49.0.new/src/common/libeventlog/Makefile.in	2023-04-12 03:49:02.262611471 +0000
+@@ -691,7 +691,7 @@
+ 	$(top_builddir)/src/common/libtap/libtap.la \
+ 	$(top_builddir)/src/common/libeventlog/libeventlog.la \
+ 	$(top_builddir)/src/common/libutil/libutil.la \
+-	$(JANSSON_LIBS)
++	$(JANSSON_LIBS) -lrt
+ 
+ all: all-am
+ 
+diff -Nur flux-core-0.49.0/src/shell/Makefile.in flux-core-0.49.0.new/src/shell/Makefile.in
+--- flux-core-0.49.0/src/shell/Makefile.in	2023-04-05 16:24:12.798689648 +0000
++++ flux-core-0.49.0.new/src/shell/Makefile.in	2023-04-12 02:50:11.579942667 +0000
 @@ -872,13 +872,14 @@
  	$(top_builddir)/src/bindings/lua/libfluxlua.la \
  	$(top_builddir)/src/common/libflux-core.la \
@@ -288,3 +301,45 @@ index b4a17c3ea..55fd57ffd 100644
  	$(LUA_LIB) \
  	$(HWLOC_LIBS) \
  	$(JANSSON_LIBS) \
+--- a/t/t0001-basic.t	2023-04-05 16:22:48.910745814 +0000
++++ b/t/t0001-basic.t	2023-04-13 13:45:26.201487673 +0000
+@@ -613,7 +613,8 @@
+ 	grep "^test two commands" help2.out &&
+ 	grep "a test two" help2.out
+ '
+-test_expect_success 'flux-help command can display manpages for subcommands' '
++command -v man >/dev/null && test_set_prereq HAVE_MAN
++test_expect_success HAVE_MAN 'flux-help command can display manpages for subcommands' '
+ 	PWD=$(pwd) &&
+ 	mkdir -p man/man1 &&
+ 	cat <<-EOF > man/man1/flux-foo.1 &&
+@@ -623,7 +624,7 @@
+ 	EOF
+ 	MANPATH=${PWD}/man FLUX_IGNORE_NO_DOCS=y flux help foo | grep "^FOO(1)"
+ '
+-test_expect_success 'flux-help command can display manpages for api calls' '
++test_expect_success HAVE_MAN 'flux-help command can display manpages for api calls' '
+ 	PWD=$(pwd) &&
+ 	mkdir -p man/man3 &&
+ 	cat <<-EOF > man/man3/flux_foo.3 &&
+@@ -638,7 +639,7 @@
+ 	man notacommand >/dev/null 2>&1
+ 	echo $?
+ }
+-test_expect_success 'flux-help returns nonzero exit code from man(1)' '
++test_expect_success HAVE_MAN 'flux-help returns nonzero exit code from man(1)' '
+ 	test_expect_code $(missing_man_code) \
+ 		eval FLUX_IGNORE_NO_DOCS=y flux help notacommand
+ '
+diff --git a/t/sharness.d/01-setup.sh b/t/sharness.d/01-setup.sh
+index 84b02f97f..fd9387ed5 100644
+--- a/t/sharness.d/01-setup.sh
++++ b/t/sharness.d/01-setup.sh
+@@ -57,6 +57,7 @@ else # normal case, use ${top_builddir}/src/cmd/flux
+     #
+     export LD_LIBRARY_PATH="${FLUX_BUILD_DIR}/src/common/.libs:$LD_LIBRARY_PATH"
+ fi
++PATH=$(flux python -c 'import os,sys; print(os.path.dirname(sys.executable))'):$PATH
+ export PATH
+ 
+ if ! test -x ${fluxbin}; then
