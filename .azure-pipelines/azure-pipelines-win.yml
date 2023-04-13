@@ -8,15 +8,27 @@ jobs:
     matrix:
       win:
         CONFIG: win64
-        CF_MAX_PY_VER: 37
   timeoutInMinutes: 360
   steps:
-    - task: CondaEnvironment@1
+    - task: PythonScript@0
+      displayName: 'Download Miniforge'
       inputs:
-        packageSpecs: 'python=3.9 conda-build>=3.18 conda>4.7.12 conda-forge::conda-forge-ci-setup=3 networkx=2.4 conda-forge-pinning boa' # Optional
-        installOptions: "-c conda-forge"
-        updateConda: true
-      displayName: Install conda-build and activate environment
+        scriptSource: inline
+        script: |
+          import urllib.request
+          url = 'https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Windows-x86_64.exe'
+          path = r"$(Build.ArtifactStagingDirectory)/Miniforge.exe"
+          urllib.request.urlretrieve(url, path)
+    - script: |
+        start /wait "" %BUILD_ARTIFACTSTAGINGDIRECTORY%\Miniforge.exe /InstallationType=JustMe /RegisterPython=0 /S /D=C:\Miniforge
+      displayName: Install Miniforge
+    - powershell: Write-Host "##vso[task.prependpath]C:\Miniforge\Scripts"
+      displayName: Add conda to PATH
+
+    - script: |
+        call activate base
+        mamba.exe install 'python=3.9' 'conda-build>=3.18' 'conda>4.7.12' 'conda-forge-ci-setup=3' 'networkx=2.4' conda-forge-pinning boa  -c conda-forge --strict-channel-priority --yes
+      displayName: Install conda-build
 
     - script: set PYTHONUNBUFFERED=1
       displayName: Set PYTHONUNBUFFERED
