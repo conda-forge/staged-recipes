@@ -8,7 +8,7 @@ cmake %CMAKE_ARGS% ^
   -D CMAKE_C_COMPILER=clang-cl ^
   -D CMAKE_C_FLAGS="/EHsc %CFLAGS%" ^
   -D CMAKE_CXX_COMPILER=clang-cl ^
-  -D CMAKE_CXX_FLAGS="/EHsc %CXXFLAGS%" ^
+  -D CMAKE_CXX_FLAGS="/EHsc -Xclang -fopenmp %CXXFLAGS%" ^
   -D CMAKE_INSTALL_LIBDIR="Library\lib" ^
   -D CMAKE_INSTALL_INCLUDEDIR="Library\include" ^
   -D CMAKE_INSTALL_BINDIR="Library\bin" ^
@@ -16,7 +16,7 @@ cmake %CMAKE_ARGS% ^
   -D PYMOD_INSTALL_LIBDIR="/../../Lib/site-packages" ^
   -D ambit_INSTALL_CMAKEDIR="Library\share\cmake\ambit" ^
   -D Python_EXECUTABLE="%PYTHON%" ^
-  -D LAPACK_LIBRARIES="%PREFIX%\\Library\\lib\\lapack.lib;%PREFIX%\\Library\\lib\\blas.lib" ^
+  -D LAPACK_LIBRARIES="%PREFIX%\\Library\\lib\\lapack.lib;%PREFIX%\\Library\\lib\\blas.lib;%SRC_DIR%\\external_src\\conda\\win\\2019.1\\libiomp5md.lib" ^
   -D OpenMP_LIBRARY_DIRS="%SRC_DIR%\\external_src\\conda\\win\\2019.1" ^
   -D OpenMP_CXX_LIBRARY_DIR="%SRC_DIR%\\external_src\\conda\\win\\2019.1" ^
   -D STATIC_ONLY=ON ^
