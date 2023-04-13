@@ -29,11 +29,17 @@ mamba install -n base --yes --quiet "conda>4.7.12" conda-forge-ci-setup=3.* cond
 
 echo -e "\n\nSetting up the condarc and mangling the compiler."
 setup_conda_rc ./ ./recipes ./.ci_support/${CONFIG}.yaml
-mangle_compiler ./ ./recipes .ci_support/${CONFIG}.yaml
+if [[ "${CI:-}" != "" ]]; then
+  mangle_compiler ./ ./recipe .ci_support/${CONFIG}.yaml
+fi
 
-echo -e "\n\nMangling homebrew in the CI to avoid conflicts."
-/usr/bin/sudo mangle_homebrew
-/usr/bin/sudo -k
+if [[ "${CI:-}" != "" ]]; then
+  echo -e "\n\nMangling homebrew in the CI to avoid conflicts."
+  /usr/bin/sudo mangle_homebrew
+  /usr/bin/sudo -k
+else
+  echo -e "\n\nNot mangling homebrew as we are not running in CI"
+fi
 
 echo -e "\n\nRunning the build setup script."
 source run_conda_forge_build_setup
