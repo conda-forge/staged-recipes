@@ -15,9 +15,5 @@ for i in `ls`; do
         # Headers are installed to targetsDir (header only)
         mkdir -p ${PREFIX}/${targetsDir}
         cp -rv $i ${PREFIX}/${targetsDir}
-    else
-        # Put all other files in targetsDir
-        mkdir -p ${PREFIX}/${targetsDir}/${PKG_NAME}
-        cp -rv $i ${PREFIX}/${targetsDir}/${PKG_NAME}
     fi
 done
