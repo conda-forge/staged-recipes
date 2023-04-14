@@ -4,7 +4,6 @@ library('Rsirius')
 
 sdk <- SiriusSDK$new()
 wrapper <- sdk$start()
-Sys.sleep(20)
 
 wait_for_job <- function(pid, job) {
   while (!(wrapper$computations_api$GetJob(pid, job$id)$progress$state == "DONE")) {
