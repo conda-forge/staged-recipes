@@ -30,6 +30,10 @@ cmake %CMAKE_ARGS% ^
   -D CMAKE_PREFIX_PATH="%LIBRARY_PREFIX%"
 if errorlevel 1 exit 1
 
+::  -D STATIC_ONLY=ON
+::  -D ENABLE_OPENMP=OFF
+::  -D ENABLE_TESTS=ON
+
 cmake --build build ^
       --config Release ^
       --target install ^
