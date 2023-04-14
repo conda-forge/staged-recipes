@@ -20,7 +20,7 @@ for i in `ls`; do
         mkdir -p ${PREFIX}/$i
         cp -rv $i ${PREFIX}/${targetsDir}
         # Nothing to be symlinked in $PREFIX/lib
-    else
+    # else
         # Skip all other files (only samples here)
         # mkdir -p ${PREFIX}/${targetsDir}/${PKG_NAME}
         # cp -rv $i ${PREFIX}/${targetsDir}/${PKG_NAME}
