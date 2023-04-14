@@ -12,11 +12,9 @@ for i in `ls`; do
     [[ $i == "conda_build.sh" ]] && continue
     [[ $i == "metadata_conda_debug.yaml" ]] && continue
     if [[ $i == "include" ]]; then
-        # Headers and libraries are installed to targetsDir
+        # Headers are installed to targetsDir (header only)
         mkdir -p ${PREFIX}/${targetsDir}
-        mkdir -p ${PREFIX}/$i
         cp -rv $i ${PREFIX}/${targetsDir}
-        # Header only component
     else
         # Put all other files in targetsDir
         mkdir -p ${PREFIX}/${targetsDir}/${PKG_NAME}
