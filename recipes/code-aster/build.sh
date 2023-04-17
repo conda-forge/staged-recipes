@@ -10,7 +10,7 @@ mkdir -p $PREFIX/metis-aster
 make config \
      prefix=$PREFIX/metis-aster
 
-make
+make -j 1
 make install
 
 cd ..
