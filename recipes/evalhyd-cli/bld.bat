@@ -1,4 +1,4 @@
-cmake -G "NMake Makefiles" -B build/ -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% -D CMAKE_CXX_STANDARD=17 -D CMAKE_INSTALL_LIBDIR=lib -D CMAKE_BUILD_TYPE=Release
+cmake -G "NMake Makefiles" -B build/ -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% -D CMAKE_INSTALL_LIBDIR=lib -D CMAKE_BUILD_TYPE=Release
 if errorlevel 1 exit 1
 
 cmake --build build/ --parallel %CPU_COUNT%

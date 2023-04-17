@@ -3,7 +3,7 @@
 cmake ${CMAKE_ARGS}                     \
       -B build/                         \
       -D CMAKE_INSTALL_PREFIX="$PREFIX" \
-      -D CMAKE_CXX_STANDARD=17          \
+      -D _LIBCPP_DISABLE_AVAILABILITY   \
       -D CMAKE_INSTALL_LIBDIR=lib       \
       -D CMAKE_BUILD_TYPE=Release
 
