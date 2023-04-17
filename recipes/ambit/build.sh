@@ -8,10 +8,6 @@ fi
 if [ "$(uname)" == "Linux" ]; then
     ARCH_ARGS=""
 
-#    # c-f/staged-recipes on Linux is inside a non-psi4 git repo, messing up psi4's version computation.
-#    #   The "staged-recipes" skip pattern now in psi4 may need readjusting for feedstock. Diagnostics below.
-#    git rev-parse --is-inside-work-tree
-#    git rev-parse --show-toplevel
 fi
 
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
