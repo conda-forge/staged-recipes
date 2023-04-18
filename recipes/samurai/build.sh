@@ -1,4 +1,4 @@
 #!/bin/bash
 
-cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX $SRC_DIR -DCMAKE_INSTALL_LIBDIR=lib
-make install
+cmake ${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=$PREFIX $SRC_DIR -DCMAKE_INSTALL_LIBDIR=lib  -B build
+cmake --buyild build -t install
