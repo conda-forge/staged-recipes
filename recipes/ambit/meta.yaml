@@ -17,38 +17,20 @@ source:
 build:
   number: 0
   binary_relocation: true
-  skip: true  # [py != 39]
+#  skip: true  # [py != 39]
 #  skip: true  # [osx]
-  run_exports:
-    - {{ pin_subpackage('ambit', max_pin='x.x') }}
-  ignore_run_exports:
-    # not using hdf5's fortran interface
-    - libgfortran-ng
-    - libgfortran5
-
-requirements:
-  build:
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
-    - cmake
-    - ninja
-    - llvm-openmp  # [osx]
-    - libgomp      # [linux]
-  host:
-    - hdf5
-    - libblas
-    - liblapack
-    - python
-    - pybind11
-    - pybind11-abi
-    - numpy
-    - intel-openmp                           # [win]
 
 outputs:
   - name: ambit
+    script: build-cxx.sh                                                       # [unix]
+    script: bld-cxx.bat                                                        # [win]
     build:
       run_exports:
         - {{ pin_subpackage('ambit', max_pin='x.x') }}
+      ignore_run_exports:
+        # not using hdf5's fortran interface
+        - libgfortran-ng
+        - libgfortran5
     requirements:
       build:
         - {{ compiler('c') }}
@@ -61,17 +43,17 @@ outputs:
         - hdf5
         - libblas
         - liblapack
-        - intel-openmp                           # [win]
+        - intel-openmp                                                         # [win]
       run:
-        - intel-openmp                           # [win]
-    files:
-      - include/ambit/*                                                        # [unix]
-      - lib/libambit{{ SHLIB_EXT }}                                            # [unix]
-      - share/cmake/ambit/*                                                    # [unix]
-      - Library/include/ambit/*                                                # [win]
-      - Library/bin/ambit*                                                     # [win]   # empty since static lib
-      - Library/lib/ambit*                                                     # [win]
-      - Library/share/cmake/ambit                                              # [win]
+        - intel-openmp                                                         # [win]
+    #files:
+    #  - include/ambit/*                                                        # [unix]
+    #  - lib/libambit{{ SHLIB_EXT }}                                            # [unix]
+    #  - share/cmake/ambit/*                                                    # [unix]
+    #  - Library/include/ambit/*                                                # [win]
+    #  - Library/bin/ambit*                                                     # [win]   # empty since static lib
+    #  - Library/lib/ambit*                                                     # [win]
+    #  - Library/share/cmake/ambit                                              # [win]
     test:
       requires:
         - m2w64-binutils                                                       # [win]   # provides objdump.exe
@@ -84,18 +66,22 @@ outputs:
         - test -f $PREFIX/lib/libambit$SHLIB_EXT                               # [unix]
         - test ! -f $PREFIX/lib/libambit.a                                     # [unix]
         - if not exist %PREFIX%\\Library\\lib\\ambit.lib exit 1                # [win]
-        - if not exist %PREFIX%\\Library\\bin\\ambit.dll exit 1                    # [win]
+        - if exist %PREFIX%\\Library\\bin\\ambit.dll exit 1                    # [win]
         # Verify accessories
         - test -f $PREFIX/include/ambit/tensor.h                               # [unix]
         - test -f $PREFIX/share/cmake/ambit/ambitConfig.cmake                  # [unix]
+        - test -f $PREFIX/share/cmake/ambit/ambitTargets-shared.cmake          # [unix]
         - if not exist %PREFIX%\\Library\\include\\ambit\\tensor.h exit 1      # [win]
         - if not exist %PREFIX%\\Library\\share\\cmake\\ambit\\ambitConfig.cmake exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\share\\cmake\\ambit\\ambitTargets-static.cmake exit 1  # [win]
         # Inspect linkage
         - ldd -v $PREFIX/lib/libambit$SHLIB_EXT                                # [linux]
         - otool -L $PREFIX/lib/libambit$SHLIB_EXT                              # [osx]
-        - objdump.exe -p %PREFIX%\\Library\\bin\\ambit.dll | findstr /i "dll"  # [win]
+        - objdump.exe -p %PREFIX%\\Library\\lib\\ambit.lib | findstr /i "dll"  # [win]
 
   - name: pyambit
+    script: build-py.sh                                                        # [unix]
+    script: bld-py.bat                                                         # [win]
     #build:
     #  skip: true                                                               # [win]
     requirements:
@@ -110,16 +96,16 @@ outputs:
         - pybind11
         - pybind11-abi
         - numpy
-        - intel-openmp                           # [win]
+        - intel-openmp                                                         # [win]
       run:
         - {{ pin_subpackage('ambit', exact=True) }}
         - python
         - libblas                                                              # [win]
         - liblapack                                                            # [win]
-        - intel-openmp                           # [win]
-    files:
-      - lib/python{{ PY_VER }}/site-packages/ambit                             # [unix]
-      - Lib/site-packages/ambit                                                # [win]
+        - intel-openmp                                                         # [win]
+    #files:
+    #  - lib/python{{ PY_VER }}/site-packages/ambit                             # [unix]
+    #  - Lib/site-packages/ambit                                                # [win]
     test:
       requires:
         - pytest
@@ -135,6 +121,11 @@ outputs:
         # Verify module
         - test -f $SP_DIR/ambit/pyambit*.so                                    # [unix]
         - if not exist %SP_DIR%\\ambit\\pyambit*.pyd exit 1                    # [win]
+        # Verify accessories
+        - test -f $PREFIX/share/cmake/ambit/ambitConfig.cmake                  # [unix]
+        - test -f $PREFIX/share/cmake/ambit/ambitTargets-Python.cmake          # [unix]
+        - if not exist %PREFIX%\\Library\\share\\cmake\\ambit\\ambitConfig.cmake exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\share\\cmake\\ambit\\ambitTargets-Python.cmake exit 1  # [win]
         # Inspect linkage
         - ldd -v $SP_DIR/ambit/pyambit*.so                                     # [linux]
         - otool -L $SP_DIR/ambit/pyambit*.so                                   # [osx]

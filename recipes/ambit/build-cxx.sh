@@ -1,7 +1,5 @@
 if [ "$(uname)" == "Darwin" ]; then
     ARCH_ARGS=""
-#        -D OpenMP_C_FLAG="-fopenmp=libiomp5" \
-#        -D OpenMP_CXX_FLAG="-fopenmp=libiomp5" \
 
     # c-f-provided CMAKE_ARGS handles CMAKE_OSX_DEPLOYMENT_TARGET, CMAKE_OSX_SYSROOT
 fi
@@ -21,9 +19,8 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
   -D CMAKE_CXX_COMPILER=${CXX} \
   -D CMAKE_CXX_FLAGS="${CXXFLAGS}" \
   -D CMAKE_INSTALL_LIBDIR=lib \
-  -D PYMOD_INSTALL_LIBDIR="/python${PY_VER}/site-packages" \
-  -D Python_EXECUTABLE=${PYTHON} \
   -D SHARED_ONLY=ON \
+  -D ambit_ENABLE_PYTHON=OFF \
   -D ENABLE_OPENMP=ON \
   -D ENABLE_XHOST=OFF \
   -D ENABLE_GENERIC=OFF \
