@@ -15,7 +15,6 @@ cmake %CMAKE_ARGS% ^
   -D CMAKE_INSTALL_DATADIR="Library\share" ^
   -D PYMOD_INSTALL_LIBDIR="/../../Lib/site-packages" ^
   -D ambit_INSTALL_CMAKEDIR="Library\share\cmake\ambit" ^
-  -D ambit_ENABLE_PYTHON=ON ^
   -D Python_EXECUTABLE="%PYTHON%" ^
   -D LAPACK_LIBRARIES="%PREFIX%\\Library\\lib\\lapack.lib;%PREFIX%\\Library\\lib\\blas.lib;%SRC_DIR%\\external_src\\conda\\win\\2019.1\\libiomp5md.lib" ^
   -D OpenMP_LIBRARY_DIRS="%SRC_DIR%\\external_src\\conda\\win\\2019.1" ^
