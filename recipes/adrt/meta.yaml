@@ -1,0 +1,69 @@
+{% set name = "adrt" %}
+{% set version = "1.0.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: b9c9e4ae20f0febc056f58a4e395f81184a2ce4a97e1c38e4b564c10aa6f020d
+
+build:
+  number: 0
+  script:
+    - export CFLAGS="$CFLAGS -O3 -flto -fopenmp -fvisibility=hidden -fvisibility-inlines-hidden -fno-math-errno"  # [unix]
+    - export CPPFLAGS="$CPPFLAGS -O3 -DNDEBUG"  # [unix]
+    - {{ PYTHON }} -m pip install . -vv
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - llvm-openmp  # [osx]
+    - libgomp  # [linux]
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+    - python  # [build_platform != target_platform]
+    - numpy  # [build_platform != target_platform]
+  host:
+    - python
+    - pip
+    - setuptools >=62.6.0
+    - numpy
+  run:
+    - python
+    - {{ pin_compatible('numpy') }}
+
+test:
+  imports:
+    - adrt
+  requires:
+    - pip
+    - pytest
+    - more-itertools
+    - scipy
+  source_files:
+    - tests
+  commands:
+    - pip check
+    - pytest tests
+    - python -c "import adrt; assert adrt.core.threading_enabled()"  # [unix]
+
+about:
+  home: https://github.com/karlotness/adrt
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file:
+    - LICENSE.txt
+    - LICENSE_windows.txt  # [win]
+  summary: Fast approximate discrete Radon transform for NumPy arrays
+  description: |
+    This library provides an implementation of an approximate discrete
+    Radon transform (ADRT) and its inverse, as a Python module
+    operating on NumPy arrays.
+  doc_url: https://adrt.readthedocs.io/
+  dev_url: https://github.com/karlotness/adrt
+
+extra:
+  recipe-maintainers:
+    - karlotness
+    - dsrim
