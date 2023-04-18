@@ -1,0 +1,7 @@
+#!/bin/bash
+
+if [[ ! -z "${NVCC_PREPEND_FLAGS_BACKUP+x}" ]]
+then
+  export NVCC_PREPEND_FLAGS="${NVCC_PREPEND_FLAGS_BACKUP}"
+  unset NVCC_PREPEND_FLAGS_BACKUP
+fi

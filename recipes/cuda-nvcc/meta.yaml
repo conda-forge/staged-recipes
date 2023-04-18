@@ -1,0 +1,73 @@
+{% set name = "cuda-nvcc" %}
+{% set version = "12.0.76" %}
+{% set cuda_version = "12.0" %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-ppc64le" %}  # [ppc64le]
+{% set platform = "linux-sbsa" %}  # [aarch64]
+{% set platform = "windows-x86_64" %}  # [win]
+{% set target_name = "x86_64-linux" %}  # [linux64]
+{% set target_name = "ppc64le-linux" %}  # [ppc64le]
+{% set target_name = "sbsa-linux" %}  # [aarch64]
+{% set target_name = "x64" %}  # [win]
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvcc/{{ platform }}/cuda_nvcc-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: 160ca9f8828f53daa4b2066c5361aacb45fa2575885f70c223cda1d11df53d6f  # [linux64]
+  sha256: dc5bd7eac57b32a9645c0c23c6a1ba8a9533e846eeec31414e1aa4230afee2f8  # [ppc64le]
+  sha256: 85c8c643ea2cfa398e1b5ffcd597f5bb3b738526c9e3fb8e39dd909c55345f36  # [aarch64]
+  sha256: f67406f44263f0e4a110a8cf0200bff1d3d0e32917db8a7c9e417a87eb7ca372  # [win]
+  patches:
+    - nvcc.profile.patch  # [win]
+
+build:
+  number: 0
+  skip: true  # [osx or win]
+
+requirements:
+  build:
+    - {{ compiler("c") }}
+    - {{ compiler("cxx") }}
+    - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    - sysroot_{{ target_platform }} 2.17    # [linux]
+  host:
+    - cuda-version {{ cuda_version }}
+  run:
+    - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+    - cuda-cudart-dev
+  run_constrained:
+    - gcc_impl_{{ target_platform }} >=6,<13  # [linux]
+    - arm-variant * {{ arm_variant_type }}  # [aarch64]
+
+test:
+  requires:
+    - {{ compiler("c") }}
+    - {{ compiler("cxx") }}
+  files:
+    - test.cu
+  commands:
+    - test -f $PREFIX/targets/{{ target_name }}/lib/libnvptxcompiler_static.a  # [linux]
+    - test -f $PREFIX/targets/{{ target_name }}/include/nvPTXCompiler.h        # [linux]
+    - if not exist %LIBRARY_LIB%\nvptxcompiler_static.lib exit 1  # [win]
+    - if not exist %LIBRARY_INC%\nvPTXCompiler.h exit 1           # [win]
+    - nvcc --version
+    - nvcc --verbose test.cu
+
+about:
+  home: https://developer.nvidia.com/cuda-toolkit
+  license_file: LICENSE
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  summary: Compiler for CUDA applications.
+  description: |
+    Compiler for CUDA applications.
+  doc_url: https://docs.nvidia.com/cuda/index.html
+
+extra:
+  recipe-maintainers:
+    - adibbley
