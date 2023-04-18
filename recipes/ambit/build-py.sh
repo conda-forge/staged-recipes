@@ -10,7 +10,7 @@ fi
 
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
   -S ${SRC_DIR}/pyambit \
-  -B build \
+  -B build_py \
   -G Ninja \
   -D CMAKE_INSTALL_PREFIX=${PREFIX} \
   -D CMAKE_BUILD_TYPE=Release \
@@ -25,6 +25,6 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
   -D CMAKE_VERBOSE_MAKEFILE=OFF \
   -D CMAKE_PREFIX_PATH="${PREFIX}"
 
-cmake --build build --target install -j${CPU_COUNT}
+cmake --build build_py --target install -j${CPU_COUNT}
 
 # pytest in conda testing stage

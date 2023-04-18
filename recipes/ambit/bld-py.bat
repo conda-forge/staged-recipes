@@ -2,7 +2,7 @@
 cmake %CMAKE_ARGS% ^
   -G "Ninja" ^
   -S "%SRC_DIR%\\pyambit" ^
-  -B build ^
+  -B build_py ^
   -D CMAKE_BUILD_TYPE=Release ^
   -D CMAKE_INSTALL_PREFIX="%PREFIX%" ^
   -D CMAKE_C_COMPILER=clang-cl ^
@@ -21,7 +21,7 @@ cmake %CMAKE_ARGS% ^
   -D CMAKE_PREFIX_PATH="%LIBRARY_PREFIX%"
 if errorlevel 1 exit 1
 
-cmake --build build ^
+cmake --build build_py ^
       --config Release ^
       --target install ^
       -- -j %CPU_COUNT%
