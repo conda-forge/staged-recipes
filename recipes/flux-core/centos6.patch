@@ -1,0 +1,345 @@
+diff --git a/src/broker/state_machine.c b/src/broker/state_machine.c
+index 57e727fea..b02a3b144 100644
+--- a/src/broker/state_machine.c
++++ b/src/broker/state_machine.c
+@@ -11,6 +11,8 @@
+ #if HAVE_CONFIG_H
+ #include "config.h"
+ #endif
++#include <signal.h>
++
+ #include <flux/core.h>
+ 
+ #include "src/common/libczmqcontainers/czmq_containers.h"
+diff --git a/src/cmd/builtin/proxy.c b/src/cmd/builtin/proxy.c
+index feff795b9..655df262a 100644
+--- a/src/cmd/builtin/proxy.c
++++ b/src/cmd/builtin/proxy.c
+@@ -18,6 +18,7 @@
+ #include <sys/socket.h>
+ #include <sys/un.h>
+ #include <stdio.h>
++#include <signal.h>
+ #include <assert.h>
+ #include <stdlib.h>
+ #include <string.h>
+diff --git a/src/common/libsubprocess/server.c b/src/common/libsubprocess/server.c
+index 2c164646c..275aa3443 100644
+--- a/src/common/libsubprocess/server.c
++++ b/src/common/libsubprocess/server.c
+@@ -13,6 +13,7 @@
+ #endif
+ 
+ #include <unistd.h> // defines environ
++#include <signal.h>
+ #include <errno.h>
+ #include <flux/core.h>
+ 
+diff --git a/src/common/libterminus/pty.c b/src/common/libterminus/pty.c
+index a1dbf6788..a3c6f4c7b 100644
+--- a/src/common/libterminus/pty.c
++++ b/src/common/libterminus/pty.c
+@@ -208,8 +208,10 @@ int flux_pty_kill (struct flux_pty *pty, int sig)
+         pty->wait_for_client = false;
+         pty->wait_on_close = false;
+     }
++#if defined(TIOCSIG)
+     if (ioctl (pty->leader, TIOCSIG, sig) >= 0)
+         return 0;
++#endif
+     llog_debug (pty, "ioctl (TIOCSIG): %s", strerror (errno));
+     if (ioctl (pty->leader, TIOCGPGRP, &pgrp) >= 0
+         && pgrp > 0
+diff --git a/src/common/libutil/fileref.c b/src/common/libutil/fileref.c
+index 69213b0f0..22a4d3359 100644
+--- a/src/common/libutil/fileref.c
++++ b/src/common/libutil/fileref.c
+@@ -57,8 +57,10 @@ static int blobvec_append (json_t *blobvec,
+ 
+ static bool file_has_no_data (int fd)
+ {
++#if defined(SEEK_DATA)
+     if (lseek (fd, 0, SEEK_DATA) == (off_t)-1 && errno == ENXIO)
+         return true;
++#endif
+     return false;
+ }
+ 
+@@ -83,19 +85,25 @@ static json_t *blobvec_create (int fd,
+         goto error;
+     }
+     while (offset < size) {
++#if defined(SEEK_DATA)
+         // N.B. fails with ENXIO if there is no more data
+         if ((offset = lseek (fd, offset, SEEK_DATA)) == (off_t)-1) {
+             if (errno == ENXIO)
+                 break;
+             goto error;
+         }
++#endif
+         if (offset < size) {
+             off_t notdata;
+             int blobsize;
+ 
++#if defined(SEEK_HOLE)
+             // N.B. returns size if there are no more holes
+             if ((notdata = lseek (fd, offset, SEEK_HOLE)) == (off_t)-1)
+                 goto error;
++#else
++	    notdata = size;
++#endif
+             blobsize = notdata - offset;
+             if (blobsize > chunksize)
+                 blobsize = chunksize;
+diff --git a/src/common/libutil/test/fileref.c b/src/common/libutil/test/fileref.c
+index 61cb0bdfe..6fbd84d9b 100644
+--- a/src/common/libutil/test/fileref.c
++++ b/src/common/libutil/test/fileref.c
+@@ -87,9 +87,11 @@ void rmfile (const char *name)
+  */
+ bool test_sparse (void)
+ {
++    bool result = false;
++
++#if defined(SEEK_DATA)
+     int fd;
+     struct stat sb;
+-    bool result = false;
+ 
+     fd = open (mkpath ("testhole"), O_WRONLY | O_CREAT | O_TRUNC, 0600);
+     if (fd < 0)
+@@ -104,6 +106,7 @@ bool test_sparse (void)
+         result = true;
+     close (fd);
+     rmfile ("testhole");
++#endif
+     return result;
+ }
+ 
+@@ -709,7 +712,8 @@ int main (int argc, char *argv[])
+     test_dir ();
+     test_link ();
+     test_small ();
+-    test_empty ();
++    if (have_sparse)
++        test_empty ();
+     test_expfail ();
+     test_pretty_print ();
+ 
+diff --git a/src/modules/job-exec/job-exec.c b/src/modules/job-exec/job-exec.c
+index d29aba68a..c6b76fb92 100644
+--- a/src/modules/job-exec/job-exec.c
++++ b/src/modules/job-exec/job-exec.c
+@@ -89,6 +89,7 @@
+ #endif
+ #include <assert.h>
+ #include <unistd.h>
++#include <signal.h>
+ #include <flux/core.h>
+ 
+ #include "src/common/libczmqcontainers/czmq_containers.h"
+diff --git a/src/shell/rlimit.c b/src/shell/rlimit.c
+index 25a19d936..f83904525 100644
+--- a/src/shell/rlimit.c
++++ b/src/shell/rlimit.c
+@@ -60,8 +60,10 @@ static int rlimit_name_to_string (const char *name)
+         return RLIMIT_NICE;
+     if (streq (name, "rtprio"))
+         return RLIMIT_RTPRIO;
++#ifdef RLIMIT_RTTTIME
+     if (streq (name, "rttime"))
+         return RLIMIT_RTTIME;
++#endif
+     if (streq (name, "sigpending"))
+         return RLIMIT_SIGPENDING;
+     return -1;
+diff --git a/src/cmd/flux-exec.c b/src/cmd/flux-exec.c
+index eeeb2c581..79747091d 100644
+--- a/src/cmd/flux-exec.c
++++ b/src/cmd/flux-exec.c
+@@ -190,9 +190,12 @@ void output_cb (flux_subprocess_t *p, const char *stream)
+         log_err_exit ("flux_subprocess_getline");
+ 
+     if (lenp) {
++        int rc;
+         if (optparse_getopt (opts, "label-io", NULL) > 0)
+             fprintf (fstream, "%d: ", flux_subprocess_rank (p));
+-        fwrite (ptr, lenp, 1, fstream);
++        rc = fwrite (ptr, lenp, 1, fstream);
++        (void) rc;
++
+     }
+ }
+ 
+diff --git a/src/cmd/flux-job.c b/src/cmd/flux-job.c
+index 979c7fbf7..2eb7c7a8b 100644
+--- a/src/cmd/flux-job.c
++++ b/src/cmd/flux-job.c
+@@ -1672,9 +1672,12 @@ static void handle_output_data (struct attach_ctx *ctx, json_t *context)
+     else
+         fp = stderr;
+     if (len > 0) {
++        int rc;
+         if (optparse_hasopt (ctx->p, "label-io"))
+             fprintf (fp, "%s: ", rank);
+-        fwrite (data, len, 1, fp);
++        rc = fwrite (data, len, 1, fp);
++        (void) rc;
++
+         fflush (fp);
+     }
+     free (data);
+@@ -2205,7 +2208,9 @@ void handle_exec_log_msg (struct attach_ctx *ctx, double ts, json_t *context)
+                  rank,
+                  stream);
+     }
+-    fwrite (data, len, 1, stderr);
++    int rc = fwrite (data, len, 1, stderr);
++    (void) rc;
++    
+ }
+ 
+ static struct idset *all_taskids (const struct taskmap *map)
+diff --git a/src/common/libsubprocess/subprocess.c b/src/common/libsubprocess/subprocess.c
+index da068b3d3..72cb6cca6 100644
+--- a/src/common/libsubprocess/subprocess.c
++++ b/src/common/libsubprocess/subprocess.c
+@@ -262,8 +262,11 @@ void flux_standard_output (flux_subprocess_t *p, const char *stream)
+         }
+     }
+ 
+-    if (lenp)
+-        fwrite (ptr, lenp, 1, fstream);
++    if (lenp) {
++        int rc = fwrite (ptr, lenp, 1, fstream);
++        (void) rc;
++
++    }
+ }
+ 
+ /*
+diff --git a/src/shell/output.c b/src/shell/output.c
+index 8ebf07365..6e3422605 100644
+--- a/src/shell/output.c
++++ b/src/shell/output.c
+@@ -173,8 +173,11 @@ static int shell_output_term (struct shell_output *out)
+                 f = stderr;
+             }
+             if ((output_type == FLUX_OUTPUT_TYPE_TERM) && len > 0) {
++                int rc;
+                 fprintf (f, "%s: ", rank);
+-                fwrite (data, len, 1, f);
++                rc = fwrite (data, len, 1, f);
++                (void) rc;
++
+             }
+             free (data);
+         }
+diff --git a/t/rexec/rexec_count_stdout.c b/t/rexec/rexec_count_stdout.c
+index 8cb9ff932..f5e1985f8 100644
+--- a/t/rexec/rexec_count_stdout.c
++++ b/t/rexec/rexec_count_stdout.c
+@@ -69,8 +69,10 @@ void output_cb (flux_subprocess_t *p, const char *stream)
+         }
+     }
+ 
+-    if (lenp)
+-        fwrite (ptr, lenp, 1, fstream);
++    if (lenp) {
++        int rc = fwrite (ptr, lenp, 1, fstream);
++        (void) rc;
++    }
+ 
+     if (!strcasecmp (stream, "stdout"))
+         stdout_count++;
+diff --git a/t/rexec/rexec_getline.c b/t/rexec/rexec_getline.c
+index b4a17c3ea..55fd57ffd 100644
+--- a/t/rexec/rexec_getline.c
++++ b/t/rexec/rexec_getline.c
+@@ -76,8 +76,10 @@ void output_cb (flux_subprocess_t *p, const char *stream)
+ 
+     if (!(ptr = flux_subprocess_getline (p, stream, &lenp)))
+         log_err_exit ("flux_subprocess_getline");
+-    if (lenp)
+-        fwrite (ptr, lenp, 1, fstream);
++    if (lenp) {
++        int rc = fwrite (ptr, lenp, 1, fstream);
++        (void) (rc);
++    }
+     else
+         fprintf (fstream, "EOF\n");
+ }
+
+diff -Nur flux-core-0.49.0/src/common/libeventlog/Makefile.in flux-core-0.49.0.new/src/common/libeventlog/Makefile.in
+--- flux-core-0.49.0/src/common/libeventlog/Makefile.in	2023-04-05 16:24:09.982692163 +0000
++++ flux-core-0.49.0.new/src/common/libeventlog/Makefile.in	2023-04-12 03:49:02.262611471 +0000
+@@ -691,7 +691,7 @@
+ 	$(top_builddir)/src/common/libtap/libtap.la \
+ 	$(top_builddir)/src/common/libeventlog/libeventlog.la \
+ 	$(top_builddir)/src/common/libutil/libutil.la \
+-	$(JANSSON_LIBS)
++	$(JANSSON_LIBS) -lrt
+ 
+ all: all-am
+ 
+diff -Nur flux-core-0.49.0/src/shell/Makefile.in flux-core-0.49.0.new/src/shell/Makefile.in
+--- flux-core-0.49.0/src/shell/Makefile.in	2023-04-05 16:24:12.798689648 +0000
++++ flux-core-0.49.0.new/src/shell/Makefile.in	2023-04-12 02:50:11.579942667 +0000
+@@ -872,13 +872,14 @@
+ 	$(top_builddir)/src/bindings/lua/libfluxlua.la \
+ 	$(top_builddir)/src/common/libflux-core.la \
+ 	$(top_builddir)/src/common/libflux-taskmap.la \
++	$(top_builddir)/src/common/libflux-idset.la \
+ 	$(top_builddir)/src/common/libpmi/libpmi_server.la \
+ 	$(top_builddir)/src/common/libpmi/libpmi_common.la \
+ 	$(top_builddir)/src/common/libczmqcontainers/libczmqcontainers.la \
+-	$(top_builddir)/src/common/libflux-internal.la \
+ 	$(top_builddir)/src/common/libflux-optparse.la \
+ 	$(top_builddir)/src/common/libterminus/libterminus.la \
+ 	$(top_builddir)/src/common/libutil/libutil.la \
++	$(top_builddir)/src/common/libflux-internal.la \
+ 	$(LUA_LIB) \
+ 	$(HWLOC_LIBS) \
+ 	$(JANSSON_LIBS) \
+--- a/t/t0001-basic.t	2023-04-05 16:22:48.910745814 +0000
++++ b/t/t0001-basic.t	2023-04-13 13:45:26.201487673 +0000
+@@ -613,7 +613,8 @@
+ 	grep "^test two commands" help2.out &&
+ 	grep "a test two" help2.out
+ '
+-test_expect_success 'flux-help command can display manpages for subcommands' '
++command -v man >/dev/null && test_set_prereq HAVE_MAN
++test_expect_success HAVE_MAN 'flux-help command can display manpages for subcommands' '
+ 	PWD=$(pwd) &&
+ 	mkdir -p man/man1 &&
+ 	cat <<-EOF > man/man1/flux-foo.1 &&
+@@ -623,7 +624,7 @@
+ 	EOF
+ 	MANPATH=${PWD}/man FLUX_IGNORE_NO_DOCS=y flux help foo | grep "^FOO(1)"
+ '
+-test_expect_success 'flux-help command can display manpages for api calls' '
++test_expect_success HAVE_MAN 'flux-help command can display manpages for api calls' '
+ 	PWD=$(pwd) &&
+ 	mkdir -p man/man3 &&
+ 	cat <<-EOF > man/man3/flux_foo.3 &&
+@@ -638,7 +639,7 @@
+ 	man notacommand >/dev/null 2>&1
+ 	echo $?
+ }
+-test_expect_success 'flux-help returns nonzero exit code from man(1)' '
++test_expect_success HAVE_MAN 'flux-help returns nonzero exit code from man(1)' '
+ 	test_expect_code $(missing_man_code) \
+ 		eval FLUX_IGNORE_NO_DOCS=y flux help notacommand
+ '
+diff --git a/t/sharness.d/01-setup.sh b/t/sharness.d/01-setup.sh
+index 84b02f97f..fd9387ed5 100644
+--- a/t/sharness.d/01-setup.sh
++++ b/t/sharness.d/01-setup.sh
+@@ -57,6 +57,7 @@ else # normal case, use ${top_builddir}/src/cmd/flux
+     #
+     export LD_LIBRARY_PATH="${FLUX_BUILD_DIR}/src/common/.libs:$LD_LIBRARY_PATH"
+ fi
++PATH=$(flux python -c 'import os,sys; print(os.path.dirname(sys.executable))'):$PATH
+ export PATH
+ 
+ if ! test -x ${fluxbin}; then
