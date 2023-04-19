@@ -8,7 +8,6 @@ make
 if [ "${mpi}" == "openmpi" ]; then
   export OMPI_MCA_btl=self,tcp
 fi
-export FLUX_TEST_MPI=f
 make check
 
 # Install 
