@@ -32,10 +32,11 @@ if errorlevel 1 exit 1
 REM pytest in conda testing stage
 
 
-REM pyambit builds and imports and starts just fine, but it fails at anything complicated. output from test_ambit.py below
+REM pyambit builds and imports and starts just fine, but it fails at anything complicated, hence the build/skip. output from test_ambit.py below
 
 REM before
 REM initialized
 REM fill dims=[9, 7]
 REM <ambit.pyambit.Tensor object at 0x0000016EA1F1AEB0>
 REM [[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0]]
+

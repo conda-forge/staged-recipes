@@ -38,3 +38,4 @@ ctest --rerun-failed --output-on-failure
 if errorlevel 1 exit 1
 
 REM missing symbols when linking tests if SHARED_ONLY=ON
+
