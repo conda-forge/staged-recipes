@@ -2,12 +2,6 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-cmake -S . -B build \
-    -DVERSION_MAJOR=2 \
-    -DVERSION_MINOR=1 \
-    -DBUILD_SHARED_LIBS=ON \
-    ${CMAKE_ARGS}
-cmake --build build
-cmake --install build
-
+make LIBTOOL=${BUILD_PREFIX}/bin/libtool
 make test LIBTOOL=${BUILD_PREFIX}/bin/libtool
+make install LIBTOOL=${BUILD_PREFIX}/bin/libtool PREFIX=${PREFIX}
