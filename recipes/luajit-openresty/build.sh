@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -o xtrace -o nounset -o pipefail -o errexit
+
 make amalg PREFIX=${PREFIX} XCFLAGS=-DLUAJIT_ENABLE_GC64 CC=${CC}
 make install PREFIX=${PREFIX} XCFLAGS=-DLUAJIT_ENABLE_GC64 CC=${CC}
 
