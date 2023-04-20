@@ -13,7 +13,10 @@ mkdir build -p
 cd build
 #echo "boost include dir : "
 #ls $PREFIX/include/boost 
-cmake .. -DPYTHON_INCLUDE_DIRS=${PREFIX}/include \
+#echo "boost python.hpp : "
+find $PREFIX -name "python.hpp"
+# -DPYTHON_INCLUDE_DIRS=${PREFIX}/include \
+cmake .. -Wno-dev \
          -DCMAKE_BUILD_TYPE=Release \
          -Dlocal-castem-header=ON \
          -Denable-fortran=ON \
@@ -21,7 +24,7 @@ cmake .. -DPYTHON_INCLUDE_DIRS=${PREFIX}/include \
          -Denable-cyrano=ON \
          -DPython_ADDITIONAL_VERSIONS=${CONDA_PY} \
          -Denable-python=ON \
-         -Denable-python-bindings=ON \
+         -Denable-python-bindings=OFF \
          -Denable-broken-boost-python-module-visibility-handling=ON \
          -DCMAKE_INSTALL_PREFIX=$PREFIX
 make -j 1 # docker gets killed with higher parallelism
