@@ -10,3 +10,4 @@ ln -sf ${PREFIX}/lib/libluajit-5.1${SHLIB_EXT} ${PREFIX}/lib/libluajit${SHLIB_EX
 # Remove empty directories
 rm -rf ${PREFIX}/lib/lua
 rm -rf ${PREFIX}/share/lua
+rm -f ${PREFIX}/lib/libluajit-5.1.a
