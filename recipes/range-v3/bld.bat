@@ -15,6 +15,6 @@ cmake ^
 
 cmake --build . --config Release
 
-ctest --output-on-failure -j${CPU_COUNT} -V -C Release
+ctest --output-on-failure -j%CPU_COUNT% -V -C Release
 
 cmake --build . --config Release --target install
