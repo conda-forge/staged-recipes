@@ -131,11 +131,9 @@ def get_config(arch, channel_urls):
     if os.path.exists(exclusive_config_file):
         exclusive_config_files.append(exclusive_config_file)
 
-    error_overlinking = (get_host_platform() != "win")
-
     config = conda_build.api.Config(
         arch=arch, exclusive_config_files=exclusive_config_files,
-        channel_urls=channel_urls, error_overlinking=error_overlinking,
+        channel_urls=channel_urls, error_overlinking=True,
     )
     return config
 
