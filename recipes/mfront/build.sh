@@ -11,9 +11,6 @@ export CXXFLAGS="${CXXFLAGS} -I${PREFIX}/include"
 export LIBPATH="$PREFIX/lib $LIBPATH"
 mkdir build -p
 cd build
-#echo "boost include dir : "
-#ls $PREFIX/include/boost 
-#echo "boost python.hpp : "
 find $PREFIX -name "python.hpp"
 # -DPYTHON_INCLUDE_DIRS=${PREFIX}/include \
 cmake .. -Wno-dev \
@@ -23,9 +20,9 @@ cmake .. -Wno-dev \
          -Denable-aster=ON \
          -Denable-cyrano=ON \
          -DPython_ADDITIONAL_VERSIONS=${CONDA_PY} \
+         -DPYTHON_INCLUDE_DIRS=${PREFIX}/include \
          -Denable-python=ON \
          -Denable-python-bindings=OFF \
-         -Denable-broken-boost-python-module-visibility-handling=ON \
          -DCMAKE_INSTALL_PREFIX=$PREFIX
 make -j 1 # docker gets killed with higher parallelism
 #make check -j # tentative fix for docker killed
