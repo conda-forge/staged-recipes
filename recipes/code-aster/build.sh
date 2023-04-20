@@ -26,7 +26,7 @@ patch -p1 < $RECIPE_DIR/contrib/mumps-aster-diff.patch
 export LIBPATH="$PREFIX/metis-aster/lib $PREFIX/mumps-aster/lib $PREFIX/lib $LIBPATH"
 export INCLUDES="$PREFIX/metis-aster/include $PREFIX/include $INCLUDES"
 cp -f $RECIPE_DIR/contrib/waf-2.0.24 ./waf # To solve the StopIteration issue see https://www.code-aster.org/forum2/viewtopic.php?id=24617
-python3 waf configure install --prefix=${PREFIX}/mumps-aster --enable-metis --embed-metis --enable-scotch
+python3 waf configure install --prefix=${PREFIX}/mumps-aster --enable-metis --embed-metis --enable-scotch -j 1
 
 cd ..
 
@@ -45,8 +45,7 @@ ls $PREFIX/mumps-aster/include
 export LIBPATH="$PREFIX/metis-aster/lib $PREFIX/mumps-aster/lib $PREFIX/lib $LIBPATH"
 export INCLUDES="$PREFIX/metis-aster/include $PREFIX/mumps-aster/include $PREFIX/mumps-aster/include_seq $PREFIX/include $INCLUDES"
 ./waf --prefix=$PREFIX --without-hg --enable-metis --embed-metis --enable-mumps --embed-mumps --install-tests --disable-mfront --disable-petsc configure
-#./waf build -j $CPU_COUNT # tentative fix for f951: Fatal Error: Can't rename module file see https://github.com/LLNL/conduit/issues/6 https://github.com/Unidata/netcdf-fortran/issues/64
-./waf build -j 1
+./waf build -j $CPU_COUNT
 ./waf install
 
 find $PREFIX -name "profile.sh" -exec sed -i 's/PYTHONHOME=/#PYTHONHOME=/g' {} \;
