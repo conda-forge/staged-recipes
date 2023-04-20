@@ -17,8 +17,6 @@ cmake %CMAKE_ARGS% ^
   -D ambit_INSTALL_CMAKEDIR="Library\share\cmake\ambit" ^
   -D Python_EXECUTABLE="%PYTHON%" ^
   -D LAPACK_LIBRARIES="%PREFIX%\\Library\\lib\\lapack.lib;%PREFIX%\\Library\\lib\\blas.lib;%SRC_DIR%\\external_src\\conda\\win\\2019.1\\libiomp5md.lib" ^
-  -D OpenMP_LIBRARY_DIRS="%SRC_DIR%\\external_src\\conda\\win\\2019.1" ^
-  -D OpenMP_CXX_LIBRARY_DIR="%SRC_DIR%\\external_src\\conda\\win\\2019.1" ^
   -D ENABLE_OPENMP=ON ^
   -D CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
   -D CMAKE_VERBOSE_MAKEFILE=OFF ^
@@ -31,6 +29,13 @@ cmake --build build_py%PY_VER% ^
       -- -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
-dir %SP_DIR%\\ambit
-
 REM pytest in conda testing stage
+
+
+REM pyambit builds and imports and starts just fine, but it fails at anything complicated. output from test_ambit.py below
+
+REM before
+REM initialized
+REM fill dims=[9, 7]
+REM <ambit.pyambit.Tensor object at 0x0000016EA1F1AEB0>
+REM [[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0]]

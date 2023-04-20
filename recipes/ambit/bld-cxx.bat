@@ -16,14 +16,12 @@ cmake %CMAKE_ARGS% ^
   -D ambit_INSTALL_CMAKEDIR="Library\share\cmake\ambit" ^
   -D ambit_ENABLE_PYTHON=OFF ^
   -D LAPACK_LIBRARIES="%PREFIX%\\Library\\lib\\lapack.lib;%PREFIX%\\Library\\lib\\blas.lib;%SRC_DIR%\\external_src\\conda\\win\\2019.1\\libiomp5md.lib" ^
-  -D OpenMP_LIBRARY_DIRS="%SRC_DIR%\\external_src\\conda\\win\\2019.1" ^
-  -D OpenMP_CXX_LIBRARY_DIR="%SRC_DIR%\\external_src\\conda\\win\\2019.1" ^
-  -D SHARED_ONLY=ON ^
+  -D STATIC_ONLY=ON ^
   -D ENABLE_OPENMP=ON ^
   -D CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON ^
   -D ENABLE_XHOST=OFF ^
   -D ENABLE_GENERIC=OFF ^
-  -D ENABLE_TESTS=OFF ^
+  -D ENABLE_TESTS=ON ^
   -D WITH_MPI=OFF ^
   -D CMAKE_VERBOSE_MAKEFILE=OFF ^
   -D CMAKE_PREFIX_PATH="%LIBRARY_PREFIX%"
@@ -35,6 +33,8 @@ cmake --build build ^
       -- -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
-::cd build
-::ctest --rerun-failed --output-on-failure
-::if errorlevel 1 exit 1
+cd build
+ctest --rerun-failed --output-on-failure
+if errorlevel 1 exit 1
+
+REM missing symbols when linking tests if SHARED_ONLY=ON
