@@ -1,7 +1,7 @@
-#include <igraph.h>
-#include <GraphHelper.h>
-#include <CPMVertexPartition.h>
-#include <Optimiser.h>
+#include <igraph/igraph.h>
+#include <libleidenalg/GraphHelper.h>
+#include <libleidenalg/CPMVertexPartition.h>
+#include <libleidenalg/Optimiser.h>
 
 int main()
 {
