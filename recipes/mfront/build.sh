@@ -21,8 +21,10 @@ cmake .. -Wno-dev \
          -Denable-cyrano=ON \
          -DPython_ADDITIONAL_VERSIONS=${CONDA_PY} \
          -DPYTHON_INCLUDE_DIRS=${PREFIX}/include \
+         -DCOMPILER_CXXFLAGS="-I${PREFIX}/include" \
          -Denable-python=ON \
-         -Denable-python-bindings=OFF \
+         -Denable-python-bindings=ON \
+         -Denable-portable-build=ON \
          -DCMAKE_INSTALL_PREFIX=$PREFIX
 make -j 1 # docker gets killed with higher parallelism
 #make check -j # tentative fix for docker killed
