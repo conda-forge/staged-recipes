@@ -21,8 +21,6 @@ echo "**************** M U M P S  B U I L D  S T A R T S  H E R E **************
 
 cd mumps-aster
 
-patch -p1 < $RECIPE_DIR/contrib/mumps-aster-diff.patch
-
 export LIBPATH="$PREFIX/metis-aster/lib $PREFIX/mumps-aster/lib $PREFIX/lib $LIBPATH"
 export INCLUDES="$PREFIX/metis-aster/include $PREFIX/include $INCLUDES"
 cp -f $RECIPE_DIR/contrib/waf-2.0.24 ./waf # To solve the StopIteration issue see https://www.code-aster.org/forum2/viewtopic.php?id=24617
