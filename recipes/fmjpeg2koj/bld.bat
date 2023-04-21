@@ -1,7 +1,6 @@
 mkdir build
 cd build
 
-REM See notes in build.sh
 cmake ^
     -G Ninja ^
     -D CMAKE_BUILD_TYPE:STRING=Release ^
