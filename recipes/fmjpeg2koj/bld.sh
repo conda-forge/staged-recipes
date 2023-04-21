@@ -3,9 +3,6 @@
 mkdir build
 cd build
 
-cmake \
-    -D CMAKE_BUILD_TYPE:STRING=Release \
-    -D CMAKE_INSTALL_PREFIX="${PREFIX}" \
-    ..
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${PREFIX} -DCMAKE_INSTALL_PREFIX=${PREFIX} -DFMJPEG2K=${PREFIX} ..
 
 cmake --build . --target install --parallel
