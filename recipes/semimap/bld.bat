@@ -1,4 +1,10 @@
-if not exist %LIBRARY_PREFIX%\include\semimap mkdir %LIBRARY_PREFIX%\include\semimap
+set SEMIMAP_INCLUDE=%LIBRARY_PREFIX%\include\semimap
+set SEMIMAP_TEST=%LIBRARY_PREFIX%\test
 
-@REM Copy the header-only library file to LIBRARY_PREFIX
-xcopy /Y semimap.h %LIBRARY_PREFIX%\include\semimap
+if not exist %SEMI_INCLUDE% mkdir %SEMI_INCLUDE%
+if not exist %SEMI_TEST% mkdir %SEMI_TEST%
+
+@REM Copy the header-only library file to the include directory
+xcopy /Y semimap.h %SEMIMAP_INCLUDE%
+
+xcopy /Y test.cpp %SEMIMAP_TEST%

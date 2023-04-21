@@ -1,5 +1,11 @@
 #!/bin/bash
+SEMIMAP_INCLUDE=$PREFIX/include/semimap
+SEMIMAP_TEST=$PREFIX/test
 
-mkdir -p $PREFIX/include/semimap
+mkdir -p $SEMIMAP_INCLUDE
+mkdir -p $SEMIMAP_TEST
 
-cp semimap.h $PREFIX/include/semimap
+# Copy the header-only library file to the include directory
+cp semimap.h $SEMIMAP_INCLUDE
+
+cp test.cpp $SEMIMAP_TEST
