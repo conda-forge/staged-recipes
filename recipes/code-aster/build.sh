@@ -1,6 +1,18 @@
 #!/bin/bash
 set -e
 
+echo "**************** H O M A R D  B U I L D  S T A R T S  H E R E ****************"
+
+cd homard
+
+python setup_homard.py --prefix=$PREFIX/bin -en -v
+
+find $PREFIX -iname "homard*"
+
+cd ..
+
+echo "**************** H O M A R D  B U I L D  E N D S  H E R E ****************"
+
 echo "**************** M E T I S  B U I L D  S T A R T S  H E R E ****************"
 
 cd metis-aster
@@ -58,5 +70,6 @@ echo "**************** C L E A N U P  S T A R T S  H E R E ****************"
 
 rm -Rf $PREFIX/metis-aster
 rm -Rf $PREFIX/mumps-aster
+rm -Rf $PREFIX/homard
 
 echo "**************** C L E A N U P  E N D S  H E R E ****************"
