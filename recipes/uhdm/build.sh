@@ -21,6 +21,3 @@ cmake -B build \
 
 cmake --build build --config Release
 cmake --install build --config Release
-
-# patch the files
-patchelf --remove-rpath $PREFIX/bin/uhdm*
