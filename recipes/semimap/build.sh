@@ -1,11 +1,4 @@
 #!/bin/bash
-SEMIMAP_INCLUDE=$PREFIX/include/semimap
-SEMIMAP_TEST=$PREFIX/test
 
-mkdir -p $SEMIMAP_INCLUDE
-mkdir -p $SEMIMAP_TEST
-
-# Copy the header-only library file to the include directory
-cp semimap.h $SEMIMAP_INCLUDE
-
-cp test.cpp $SEMIMAP_TEST
+cmake ${CMAKE_ARGS} -DBUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=$PREFIX $SRC_DIR -DCMAKE_INSTALL_LIBDIR=lib
+make install
