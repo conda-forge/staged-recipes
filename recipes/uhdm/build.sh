@@ -18,8 +18,9 @@ cmake -B build \
     -DPython3_EXECUTABLE="$PYTHON" \
     -DCMAKE_FIND_FRAMEWORK=NEVER \
     -DCMAKE_FIND_APPBUNDLE=NEVER
+
 cmake --build build --config Release
 cmake --install build --config Release
 
 # patch the files
-patchelf --remove-rpath <path-to-elf>
+patchelf --remove-rpath $PREFIX/bin/uhdm*
