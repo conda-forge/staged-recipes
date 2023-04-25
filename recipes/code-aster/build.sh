@@ -54,7 +54,7 @@ ls $PREFIX/mumps-aster/include
 
 export LIBPATH="$PREFIX/metis-aster/lib $PREFIX/mumps-aster/lib $PREFIX/lib $LIBPATH"
 export INCLUDES="$PREFIX/metis-aster/include $PREFIX/mumps-aster/include $PREFIX/mumps-aster/include_seq $PREFIX/include $INCLUDES"
-./waf --prefix=$PREFIX --without-hg --enable-metis --embed-metis --enable-mumps --embed-mumps --install-tests --disable-mfront --disable-petsc configure
+./waf --prefix=$PREFIX --without-hg --enable-metis --embed-metis --enable-mumps --embed-mumps --install-tests --enable-mfront --disable-petsc configure
 ./waf build -j $CPU_COUNT
 ./waf install
 
