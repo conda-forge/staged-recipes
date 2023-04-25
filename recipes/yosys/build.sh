@@ -5,7 +5,7 @@ set -x
 
 if [[ "${target_platform}" == "linux-64" ]]; then
     make CONFIG=gcc
-else; then
+else
     make CONFIG=clang
 fi
 
