@@ -1,0 +1,85 @@
+{% set name = "dgl" %}
+{% set version = "0.8.2" %}
+{% set torch_proc_type = "cuda" if cuda_compiler_version != "None" else "cpu" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  git_url: https://github.com/dmlc/dgl
+  git_rev: {{ version }}
+  patches:
+    - conda-build.patch
+
+build:
+  skip: true  # [(not linux) or (cuda_compiler_version in (undefined, 'None'))]
+  number: 0
+  rpaths:
+    - lib/
+  missing_dso_whitelist:
+    - '*/libcuda.*'  # [linux64]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version not in (undefined, 'None')]
+    - sysroot_linux-64  2.17  # [linux64]    
+    - cmake
+    - llvm-openmp  # [osx]
+    - libgomp      # [linux]
+    - dlpack ==0.3
+    - dmlc ==0.5
+    - gklib ==5.1.1
+    - metis ==5.1.0
+    - nanoflann
+    - parallel-hashmap
+    - thrust >=1.16.0
+    - xbyak ==5.992
+    - git 
+
+
+  host:
+    - python
+    - setuptools
+    - cython
+
+  run:
+    - python
+    - numpy
+    - scipy
+    - networkx
+    - requests
+    - tqdm
+    - pytorch * *{{ torch_proc_type }}*
+    - psutil
+    - tensorflow
+
+
+test:
+  imports:
+    - dgl
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/dmlc/dgl
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: A deep graph library
+  description: |
+    DGL is an easy-to-use, high performance and scalable Python package for deep
+     learning on graphs. DGL is framework agnostic, meaning if a deep graph
+     model is a component of an end-to-end application, the rest of the logics
+     can be implemented in any major frameworks, such as PyTorch, Apache MXNet
+     or TensorFlow.
+  doc_url: https://docs.dgl.ai/en/latest/
+
+extra:
+  recipe-maintainers:
+    - mikemhenry
+    - hmacdope
