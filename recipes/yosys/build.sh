@@ -4,7 +4,7 @@ set -e
 set -x
 
 if [[ "${target_platform}" == "linux-64" ]]; then
-    alias gcc=`$CC`
+    alias gcc=$CC
     make CONFIG=gcc
 else
     make CONFIG=clang
