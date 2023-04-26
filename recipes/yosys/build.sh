@@ -15,4 +15,8 @@ else
     make CONFIG=clang -j $(sysctl -n hw.physicalcpu)
 fi
 
+# run tests here since they're not portable
+make test
+
+# install
 make install
