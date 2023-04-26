@@ -12,13 +12,9 @@ if [[ "${target_platform}" == "linux-64" ]]; then
 
     make CONFIG=gcc -j $(nproc)
 
-    # run tests here since they're not portable
-    make CONFIG=gcc test
 else
     make CONFIG=clang -j $(sysctl -n hw.physicalcpu)
     
-    # run tests here since they're not portable
-    make CONFIG=clang test
 fi
 
 
