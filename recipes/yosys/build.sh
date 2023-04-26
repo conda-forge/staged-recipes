@@ -10,9 +10,9 @@ if [[ "${target_platform}" == "linux-64" ]]; then
     # TODO this doesnt work
     # alias gcc=$CC
 
-    make CONFIG=gcc
+    make CONFIG=gcc -j $(nproc)
 else
-    make CONFIG=clang
+    make CONFIG=clang -j $(sysctl -n hw.physicalcpu)
 fi
 
 make install
