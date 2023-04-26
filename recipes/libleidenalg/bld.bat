@@ -9,7 +9,6 @@ cmake %CMAKE_ARGS% -GNinja ^
       -DCMAKE_BUILD_TYPE=Release ^
       -DCMAKE_POSITION_INDEPENDENT_CODE=ON ^
       -DBUILD_SHARED_LIBS=ON ^
-      -Digraph_LIBRARY=igraph ^
       ..
 if errorlevel 1 exit 1
 
