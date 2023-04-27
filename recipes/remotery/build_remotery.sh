@@ -18,14 +18,14 @@ if [[ $PKG_NAME == "remotery" ]]; then
     cmake .. ${CMAKE_ARGS}              \
         -DCMAKE_INSTALL_PREFIX=$PREFIX  \
         -DCMAKE_PREFIX_PATH=$PREFIX     \
-        -DREMOTERY_BUILD_SHARED=ON      \
-        -DREMOTERY_BUILD_STATIC=OFF
+        -DREMOTERY_BUILD_SHARED_LIBS=ON      \
+        -DREMOTERY_BUILD_STATIC_LIBS=OFF
 elif [[ $PKG_NAME == "remotery-static" ]]; then
     cmake .. ${CMAKE_ARGS}              \
         -DCMAKE_INSTALL_PREFIX=$PREFIX  \
         -DCMAKE_PREFIX_PATH=$PREFIX     \
-        -DREMOTERY_BUILD_SHARED=OFF     \
-        -DREMOTERY_BUILD_STATIC=ON
+        -DREMOTERY_BUILD_SHARED_LIBS=OFF     \
+        -DREMOTERY_BUILD_STATIC_LIBS=ON
 fi
 
 make

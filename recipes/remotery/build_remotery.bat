@@ -16,8 +16,8 @@ if /I "%PKG_NAME%" == "remotery" (
         -GNinja ^
         -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
         -DCMAKE_PREFIX_PATH=%PREFIX% ^
-        -DREMOTERY_BUILD_SHARED=ON ^
-        -DREMOTERY_BUILD_STATIC=OFF
+        -DREMOTERY_BUILD_SHARED_LIBS=ON ^
+        -DREMOTERY_BUILD_STATIC_LIBS=OFF
 )
 if /I "%PKG_NAME%" == "remotery-static" (
     cmake .. ^
@@ -25,8 +25,8 @@ if /I "%PKG_NAME%" == "remotery-static" (
         -GNinja ^
         -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
         -DCMAKE_PREFIX_PATH=%PREFIX% ^
-        -DREMOTERY_BUILD_SHARED=OFF ^
-        -DREMOTERY_BUILD_STATIC=ON
+        -DREMOTERY_BUILD_SHARED_LIBS=OFF ^
+        -DREMOTERY_BUILD_STATIC_LIBS=ON
 )
 
 if errorlevel 1 exit 1
