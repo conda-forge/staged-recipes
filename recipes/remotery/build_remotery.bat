@@ -13,6 +13,7 @@ cd build
 if /I "%PKG_NAME%" == "remotery" (
     cmake .. ^
         %CMAKE_ARGS% ^
+        -GNinja ^
         -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
         -DCMAKE_PREFIX_PATH=%PREFIX% ^
         -DREMOTERY_BUILD_SHARED=ON ^
@@ -21,6 +22,7 @@ if /I "%PKG_NAME%" == "remotery" (
 if /I "%PKG_NAME%" == "remotery-static" (
     cmake .. ^
         %CMAKE_ARGS% ^
+        -GNinja ^
         -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
         -DCMAKE_PREFIX_PATH=%PREFIX% ^
         -DREMOTERY_BUILD_SHARED=OFF ^
