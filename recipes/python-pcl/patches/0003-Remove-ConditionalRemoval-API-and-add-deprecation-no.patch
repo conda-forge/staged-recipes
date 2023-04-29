@@ -1,0 +1,141 @@
+From: Jochen Sprickerhof <git@jochen.sprickerhof.de>
+Date: Sun, 9 Dec 2018 18:38:40 +0100
+Subject: Remove ConditionalRemoval API and add deprecation notice
+
+---
+ examples/official/Filtering/remove_outliers.py |  3 ++-
+ pcl/pcl_filters_180.pxd                        |  4 ----
+ pcl/pxi/Filters/ConditionalRemoval_180.pxi     | 12 +++++++++++-
+ pcl/pxi/PointCloud_PointXYZ_180.pxi            | 13 +++++++++++++
+ pcl/pxi/PointCloud_SensorPoint.pxi             | 12 ++++++++++++
+ tests/test_filters.py                          |  3 ++-
+ 6 files changed, 40 insertions(+), 7 deletions(-)
+
+diff --git a/examples/official/Filtering/remove_outliers.py b/examples/official/Filtering/remove_outliers.py
+index b586737..fd1da1a 100644
+--- a/examples/official/Filtering/remove_outliers.py
++++ b/examples/official/Filtering/remove_outliers.py
+@@ -86,7 +86,8 @@ elif args.Removal == 'Condition':
+     range_cond.add_Comparison2('z', pcl.CythonCompareOp_Type.LT, 0.8)
+ 
+     # build the filter
+-    condrem = cloud.make_ConditionalRemoval(range_cond)
++    condrem = cloud.make_ConditionalRemoval()
++    condrem.set_Condition(range_cond)
+     condrem.set_KeepOrganized(True)
+     # apply filter
+     cloud_filtered = condrem.filter ()
+diff --git a/pcl/pcl_filters_180.pxd b/pcl/pcl_filters_180.pxd
+index c272819..cb6f075 100644
+--- a/pcl/pcl_filters_180.pxd
++++ b/pcl/pcl_filters_180.pxd
+@@ -616,10 +616,6 @@ cdef extern from "pcl/filters/conditional_removal.h" namespace "pcl":
+         ConditionalRemoval(int)
+         # ConditionalRemoval (ConditionBasePtr condition, bool extract_removed_indices = false)
+         # python invalid default param ?
+-        ConditionalRemoval (ConditionBasePtr_t condition, bool extract_removed_indices = false)
+-        ConditionalRemoval (ConditionBase_PointXYZI_Ptr_t condition, bool extract_removed_indices = false)
+-        ConditionalRemoval (ConditionBase_PointXYZRGB_Ptr_t condition, bool extract_removed_indices = false)
+-        ConditionalRemoval (ConditionBase_PointXYZRGBA_Ptr_t condition, bool extract_removed_indices = false)
+         # [with PointT = pcl::PointXYZ, pcl::ConditionalRemoval<PointT>::ConditionBasePtr = boost::shared_ptr<pcl::ConditionBase<pcl::PointXYZ> >]
+         # is deprecated (declared at /usr/include/pcl-1.7/pcl/filters/conditional_removal.h:632): ConditionalRemoval(ConditionBasePtr condition, bool extract_removed_indices = false) is deprecated, 
+         # please use the setCondition (ConditionBasePtr condition) function instead. [-Wdeprecated-declarations]
+diff --git a/pcl/pxi/Filters/ConditionalRemoval_180.pxi b/pcl/pxi/Filters/ConditionalRemoval_180.pxi
+index 88a5e6d..5e25b37 100644
+--- a/pcl/pxi/Filters/ConditionalRemoval_180.pxi
++++ b/pcl/pxi/Filters/ConditionalRemoval_180.pxi
+@@ -19,7 +19,14 @@ cdef class ConditionalRemoval:
+     def __cinit__(self, ConditionAnd cond):
+         # self.me = new pclfil.ConditionalRemoval_t(<pclfil.ConditionBase_t*>cond.me)
+         # direct - NG
+-        self.me = new pclfil.ConditionalRemoval_t(<pclfil.ConditionBasePtr_t>cond.me)
++        from warnings import warn
++        warn("constructor with condition is deprecated, use setCondition()",
++                DeprecationWarning)
++        self.me = new pclfil.ConditionalRemoval_t()
++        self.me.setCondition(<pclfil.ConditionBasePtr_t>cond.me)
++
++    def __cinit__(self):
++        self.me = new pclfil.ConditionalRemoval_t()
+ 
+     # def __dealloc__(self):
+     #    # MemoryAccessError
+@@ -29,6 +36,9 @@ cdef class ConditionalRemoval:
+     def set_KeepOrganized(self, flag):
+         self.me.setKeepOrganized(flag)
+ 
++    def set_Condition(self, ConditionAnd cond):
++        self.me.setCondition(<pclfil.ConditionBasePtr_t>cond.me)
++
+     def filter(self):
+         """
+         Apply the filter according to the previously set parameters and return
+diff --git a/pcl/pxi/PointCloud_PointXYZ_180.pxi b/pcl/pxi/PointCloud_PointXYZ_180.pxi
+index 7956c5c..f386e9c 100644
+--- a/pcl/pxi/PointCloud_PointXYZ_180.pxi
++++ b/pcl/pxi/PointCloud_PointXYZ_180.pxi
+@@ -468,10 +468,23 @@ cdef class PointCloud:
+         cdef pclfil.ConditionAnd_t *cCondAnd = <pclfil.ConditionAnd_t *>condAnd.me
+         return condAnd
+ 
++    def make_ConditionalRemoval(self):
++        """
++        Return a pcl.ConditionalRemoval object with this object set as the input-cloud
++        """
++        condRemoval = ConditionalRemoval()
++        cdef pclfil.ConditionalRemoval_t *cCondRemoval = <pclfil.ConditionalRemoval_t *>condRemoval.me
++        cCondRemoval.setInputCloud(<cpp.shared_ptr[cpp.PointCloud[cpp.PointXYZ]]> self.thisptr_shared)
++        return condRemoval
++
+     def make_ConditionalRemoval(self, ConditionAnd range_conf):
+         """
+         Return a pcl.ConditionalRemoval object with this object set as the input-cloud
+         """
++        from warnings import warn
++        warn("constructor with condition is deprecated, use setCondition()",
++                DeprecationWarning)
++
+         condRemoval = ConditionalRemoval(range_conf)
+         cdef pclfil.ConditionalRemoval_t *cCondRemoval = <pclfil.ConditionalRemoval_t *>condRemoval.me
+         cCondRemoval.setInputCloud(<cpp.shared_ptr[cpp.PointCloud[cpp.PointXYZ]]> self.thisptr_shared)
+diff --git a/pcl/pxi/PointCloud_SensorPoint.pxi b/pcl/pxi/PointCloud_SensorPoint.pxi
+index e26fca6..b8a5d79 100644
+--- a/pcl/pxi/PointCloud_SensorPoint.pxi
++++ b/pcl/pxi/PointCloud_SensorPoint.pxi
+@@ -466,10 +466,22 @@ cdef class PointCloud2:
+         cdef pclfil.ConditionAnd_t *cCondAnd = <pclfil.ConditionAnd_t *>condAnd.me
+         return condAnd
+ 
++    def make_ConditionalRemoval(self):
++        """
++        Return a pcl.ConditionalRemoval object with this object set as the input-cloud
++        """
++        condRemoval = ConditionalRemoval()
++        cdef pclfil.ConditionalRemoval_t *cCondRemoval = <pclfil.ConditionalRemoval_t *>condRemoval.me
++        cCondRemoval.setInputCloud(<cpp.shared_ptr[cpp.PointCloud2[cpp.PointXYZ]]> self.thisptr_shared)
++        return condRemoval
++
+     def make_ConditionalRemoval(self, ConditionAnd range_conf):
+         """
+         Return a pcl.ConditionalRemoval object with this object set as the input-cloud
+         """
++        warn("constructor with condition is deprecated, use setCondition()",
++                DeprecationWarning)
++
+         condRemoval = ConditionalRemoval(range_conf)
+         cdef pclfil.ConditionalRemoval_t *cCondRemoval = <pclfil.ConditionalRemoval_t *>condRemoval.me
+         cCondRemoval.setInputCloud(<cpp.shared_ptr[cpp.PointCloud2[cpp.PointXYZ]]> self.thisptr_shared)
+diff --git a/tests/test_filters.py b/tests/test_filters.py
+index 3c0c605..db40671 100644
+--- a/tests/test_filters.py
++++ b/tests/test_filters.py
+@@ -62,7 +62,8 @@ class TestConditionalRemoval(unittest.TestCase):
+         # self.p = pcl.load("tests" + os.path.sep + "flydracyl.pcd")
+         # self.p = pcl.PointCloud(_data)
+         self.p = pcl.PointCloud(_data2)
+-        self.fil = self.p.make_ConditionalRemoval(pcl.ConditionAnd())
++        self.fil = self.p.make_ConditionalRemoval()
++        self.fil.set_Condition(pcl.ConditionAnd())
+ 
+     # result
+     # nan nan nan

@@ -1,0 +1,47 @@
+diff --git a/setup.py b/setup.py
+index 2f16215..e298b29 100644
+--- a/setup.py
++++ b/setup.py
+@@ -11,6 +11,7 @@ import numpy
+ import sys
+ import platform
+ import os
++import sysconfig
+ import time
+ 
+ sys.path.append('./pcl')
+@@ -24,6 +25,14 @@ install_requires = [
+     'Cython>=0.25.2',
+ ]
+ 
++class NoSuffixBuilder(build_ext):
++    def get_ext_filename(self, ext_name):
++        filename = super().get_ext_filename(ext_name)
++        suffix = sysconfig.get_config_var('EXT_SUFFIX')
++        ext = os.path.splitext(filename)[1]
++        return filename.replace(suffix, "") + ext
++
++
+ def pkgconfig(flag):
+     # Equivalent in Python 2.7 (but not 2.6):
+     # subprocess.check_output(['pkg-config', flag] + pcl_libs).split()
+@@ -541,8 +550,12 @@ else:
+     # ext_args['include_dirs'].append('/usr/include/vtk')
+     # ext_args['include_dirs'].append('/usr/local/include/vtk')
+     # pcl 1.7(Ubuntu)
++    ext_args['include_dirs'].append(os.environ['PREFIX'] + '/include/vtk-9.2')
++    ext_args['include_dirs'].append(os.environ['PREFIX'] + '/include/eigen3')
++    ext_args['include_dirs'].append(os.environ['PREFIX'] + '/include/boost')
+     ext_args['include_dirs'].append('/usr/include/vtk-9.2')
+     ext_args['library_dirs'].append('/usr/lib')
++    ext_args['library_dirs'].append(os.environ['PREFIX'] + '/lib')
+     # ext_args['libraries'].append('libvtk*.so')
+     # pcl 1.8.1(MacOSX)
+     ext_args['include_dirs'].append('/usr/local/include/vtk-8.0')
+@@ -643,5 +656,5 @@ setup(name='python-pcl',
+       ],
+       tests_require=['mock', 'nose'],
+       ext_modules=module,
+-      cmdclass={'build_ext': build_ext},
++      cmdclass={'build_ext': NoSuffixBuilder},
+ )

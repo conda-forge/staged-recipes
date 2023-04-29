@@ -1,0 +1,107 @@
+From: Jochen Sprickerhof <git@jochen.sprickerhof.de>
+Date: Sun, 9 Dec 2018 19:01:14 +0100
+Subject: Enable visualization module
+
+https://build.opensuse.org/package/view_file/science/python-pcl/visualization18.patch
+---
+ pcl/pcl_visualization_defs.pxd             | 12 ++++++------
+ pcl/pxi/Visualization/PCLVisualizering.pxi | 12 ++++++------
+ setup.py                                   |  6 +++---
+ 3 files changed, 15 insertions(+), 15 deletions(-)
+
+diff --git a/pcl/pcl_visualization_defs.pxd b/pcl/pcl_visualization_defs.pxd
+index 81fe113..8b55e97 100644
+--- a/pcl/pcl_visualization_defs.pxd
++++ b/pcl/pcl_visualization_defs.pxd
+@@ -752,8 +752,8 @@ cdef extern from "pcl/visualization/pcl_visualizer.h" namespace "pcl::visualizat
+         # param[in] scale the scale of the axes (default: 1)
+         # param[in] viewport the view port where the 3D axes should be added (default: all)
+         # 
+-        # void addCoordinateSystem (double scale = 1.0, int viewport = 0);
+-        void addCoordinateSystem (double scale, int viewport)
++        # void addCoordinateSystem (double scale = 1.0, const string &id = "reference", int viewport = 0);
++        void addCoordinateSystem (double scale, const string &id, int viewport)
+         
+         # brief Adds 3D axes describing a coordinate system to screen at x, y, z
+         # param[in] scale the scale of the axes (default: 1)
+@@ -762,8 +762,8 @@ cdef extern from "pcl/visualization/pcl_visualizer.h" namespace "pcl::visualizat
+         # param[in] z the Z position of the axes
+         # param[in] viewport the view port where the 3D axes should be added (default: all)
+         # 
+-        # void addCoordinateSystem (double scale, float x, float y, float z, int viewport = 0);
+-        void addCoordinateSystem (double scale, float x, float y, float z, int viewport)
++        # void addCoordinateSystem (double scale, float x, float y, float z, const string &id = "reference", int viewport = 0);
++        void addCoordinateSystem (double scale, float x, float y, float z, const string &id, int viewport)
+         
+         # brief Adds 3D axes describing a coordinate system to screen at x, y, z, Roll,Pitch,Yaw
+         # param[in] scale the scale of the axes (default: 1)
+@@ -797,8 +797,8 @@ cdef extern from "pcl/visualization/pcl_visualizer.h" namespace "pcl::visualizat
+         
+         # brief Removes a previously added 3D axes (coordinate system)
+         # param[in] viewport view port where the 3D axes should be removed from (default: all)
+-        # bool removeCoordinateSystem (int viewport = 0);
+-        bool removeCoordinateSystem (int viewport)
++        # bool removeCoordinateSystem (const string &id = "reference", int viewport = 0);
++        bool removeCoordinateSystem(const string &id, int viewport)
+         
+         # brief Removes a Point Cloud from screen, based on a given ID.
+         # param[in] id the point cloud object id (i.e., given on \a addPointCloud)
+diff --git a/pcl/pxi/Visualization/PCLVisualizering.pxi b/pcl/pxi/Visualization/PCLVisualizering.pxi
+index a9cc89a..48238db 100644
+--- a/pcl/pxi/Visualization/PCLVisualizering.pxi
++++ b/pcl/pxi/Visualization/PCLVisualizering.pxi
+@@ -38,17 +38,17 @@ cdef class PCLVisualizering:
+     def SpinOnce(self, int millis_to_wait = 1, bool force_redraw = False):
+         self.thisptr().spinOnce (millis_to_wait, force_redraw)
+ 
+-    def AddCoordinateSystem(self, double scale = 1.0, int viewpoint = 0):
+-        self.thisptr().addCoordinateSystem(scale, viewpoint)
++    def AddCoordinateSystem(self, double scale = 1.0, const string &id = "reference", int viewpoint = 0):
++        self.thisptr().addCoordinateSystem(scale, id, viewpoint)
+ 
+-    def AddCoordinateSystem(self, double scale, float x, float y, float z, int viewpoint = 0):
+-        self.thisptr().addCoordinateSystem(scale, x, y, z, viewpoint)
++    def AddCoordinateSystem(self, double scale, float x, float y, float z, const string &id = "reference", int viewpoint = 0):
++        self.thisptr().addCoordinateSystem(scale, x, y, z, id, viewpoint)
+ 
+     # void addCoordinateSystem (double scale, const eigen3.Affine3f& t, int viewport)
+ 
+     # return bool
+-    def removeCoordinateSystem (self, int viewport):
+-        return self.thisptr().removeCoordinateSystem (viewport)
++    def removeCoordinateSystem (self, const string &id = "reference",int viewport = 0):
++        return self.thisptr().removeCoordinateSystem (id, viewport)
+ 
+     # return bool
+     def RemovePointCloud(self, string id, int viewport):
+diff --git a/setup.py b/setup.py
+index 8796770..0493ccc 100644
+--- a/setup.py
++++ b/setup.py
+@@ -4,7 +4,7 @@ from collections import defaultdict
+ from Cython.Distutils import build_ext
+ from distutils.core import setup
+ from distutils.extension import Extension
+-# from Cython.Build import cythonize    # MacOS NG
++from Cython.Build import cythonize
+ from setuptools import setup, find_packages, Extension
+ 
+ import subprocess
+@@ -546,7 +546,7 @@ else:
+     # ext_args['include_dirs'].append('/usr/include/vtk')
+     # ext_args['include_dirs'].append('/usr/local/include/vtk')
+     # pcl 1.7(Ubuntu)
+-    ext_args['include_dirs'].append('/usr/include/vtk-5.8')
++    ext_args['include_dirs'].append('/usr/include/vtk-7.1')
+     ext_args['library_dirs'].append('/usr/lib')
+     # ext_args['libraries'].append('libvtk*.so')
+     # pcl 1.8.1(MacOSX)
+@@ -609,7 +609,7 @@ else:
+                   ]
+     elif pcl_version == '-1.8':
+         module = [Extension("pcl._pcl", ["pcl/_pcl_180.pyx", "pcl/minipcl.cpp", "pcl/ProjectInliers.cpp"], language="c++", **ext_args),
+-                  # Extension("pcl.pcl_visualization", ["pcl/pcl_visualization.pyx"], language="c++", **ext_args),
++                   Extension("pcl.pcl_visualization", ["pcl/pcl_visualization.pyx"], language="c++", extra_compile_args=['-std=c++11','-fno-strict-aliasing'], **ext_args),
+                   # Extension("pcl.pcl_grabber", ["pcl/pcl_grabber.pyx", "pcl/grabber_callback.cpp"], language="c++", **ext_args),
+                   # debug
+                   # gdb_debug=True,
