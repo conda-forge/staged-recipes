@@ -14,7 +14,6 @@ cmake ${CMAKE_ARGS} .. \
       -DBUILD_MODULE_visp_gui=ON \
       -DBUILD_MODULE_visp_imgproc=ON \
       -DBUILD_MODULE_visp_io=ON \
-      -DBUILD_MODULE_visp_java_binding_generator=OFF \
       -DBUILD_MODULE_visp_klt=ON \
       -DBUILD_MODULE_visp_mbt=ON \
       -DBUILD_MODULE_visp_me=ON \
@@ -27,7 +26,7 @@ cmake ${CMAKE_ARGS} .. \
       -DBUILD_MODULE_visp_vs=ON \
       -DUSE_OPENMP=ON \
       -DUSE_PTHREAD=ON \
-      -DWITH_LAPACK=ON \
+      -DWITH_LAPACK=OFF \
       -DBUILD_TESTS=ON
 
 # build
