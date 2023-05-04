@@ -1,4 +1,4 @@
-#!bin/bash
+#!/bin/bash
 mkdir build
   cd build
   cmake \
