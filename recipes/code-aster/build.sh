@@ -49,7 +49,7 @@ cp -Rf $RECIPE_DIR/contrib/scripts/* $PREFIX/bin
 export TFELHOME=$PREFIX
 export LIBPATH="$PREFIX/metis-aster/lib $PREFIX/mumps-aster/lib $PREFIX/lib $LIBPATH"
 export INCLUDES="$PREFIX/metis-aster/include $PREFIX/mumps-aster/include $PREFIX/mumps-aster/include_seq $PREFIX/include $INCLUDES"
-./waf --prefix=$PREFIX --libdir=$PREFIX/lib --without-hg --enable-metis --embed-metis --enable-mumps --embed-mumps --install-tests --enable-mfront --disable-petsc configure
+./waf --prefix=$PREFIX --libdir=$PREFIX/lib --pythondir=$PREFIX/lib/aster --without-hg --enable-metis --embed-metis --enable-mumps --embed-mumps --install-tests --enable-mfront --disable-petsc configure
 ./waf build -j $CPU_COUNT
 ./waf install
 
