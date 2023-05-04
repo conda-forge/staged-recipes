@@ -7,7 +7,7 @@ echo "**************** M F R O N T  B U I L D  S T A R T S  H E R E ************
 
 #export LDFLAGS="--sysroot ${CONDA_BUILD_SYSROOT} -L$PREFIX/lib -L${CONDA_BUILD_SYSROOT}/lib64 -lm -lpthread -L${CONDA_BUILD_SYSROOT}/usr/lib64 -lrt -ldl -L${PREFIX}/lib -lz -lgomp"
 export LDFLAGS="-L$PREFIX/lib -lm -lpthread -lrt -ldl -lz -lgomp"
-export CXXFLAGS="${CXXFLAGS} -I${PREFIX}/include"
+#export CXXFLAGS="${CXXFLAGS} -I${PREFIX}/include -w"
 export LIBPATH="$PREFIX/lib $LIBPATH"
 cmake    -Wno-dev \
          -DCMAKE_BUILD_TYPE=Release \
@@ -17,7 +17,7 @@ cmake    -Wno-dev \
          -Denable-cyrano=ON \
          -DPython_ADDITIONAL_VERSIONS=${CONDA_PY} \
          -DPYTHON_INCLUDE_DIRS=${PREFIX}/include \
-         -DCOMPILER_CXXFLAGS="-I${PREFIX}/include" \
+         -DCOMPILER_CXXFLAGS="-I${PREFIX}/include -w" \
          -Denable-python=ON \
          -Denable-python-bindings=ON \
          -Denable-portable-build=ON \
