@@ -1,4 +1,5 @@
 #!/bin/bash
+set -ex
 
 cmake ${CMAKE_ARGS}                                                           \
       -B build/                                                               \

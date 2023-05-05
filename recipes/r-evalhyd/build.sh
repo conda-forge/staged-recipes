@@ -1,4 +1,5 @@
 #!/bin/bash
+set -ex
 
 # make temporary directory
 mkdir -p ${PREFIX}/tmp
