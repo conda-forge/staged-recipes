@@ -6,7 +6,8 @@ cmake ${CMAKE_ARGS}                     \
       -D EVALHYD_BUILD_TEST=OFF         \
       -D CMAKE_INSTALL_PREFIX="$PREFIX" \
       -D CMAKE_INSTALL_LIBDIR=lib       \
-      -D CMAKE_BUILD_TYPE=Release
+      -D CMAKE_BUILD_TYPE=Release       \
+      -D BUILD_SHARED_LIBS=ON
 
 cmake --build build/ --parallel ${CPU_COUNT}
 
