@@ -1,5 +1,3 @@
-if not exist %PREFIX%/tmp mkdir %PREFIX%/tmp
-
 bash %RECIPE_DIR%/build_win.sh
 if %ERRORLEVEL% neq 0 exit 1
 
