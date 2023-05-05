@@ -1,4 +1,4 @@
-cmake -G "NMake Makefiles" ^
+cmake -G "Ninja" ^
       -B build/ ^
       -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
       -D CMAKE_INSTALL_LIBDIR=lib ^

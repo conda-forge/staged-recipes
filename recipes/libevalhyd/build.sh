@@ -2,6 +2,7 @@
 set -ex
 
 cmake ${CMAKE_ARGS}                     \
+      -G "Ninja"                        \
       -B build/                         \
       -D EVALHYD_BUILD_TEST=OFF         \
       -D CMAKE_INSTALL_PREFIX="$PREFIX" \

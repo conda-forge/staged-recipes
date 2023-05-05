@@ -2,6 +2,7 @@
 set -ex
 
 cmake ${CMAKE_ARGS}                                                           \
+      -G "Ninja"                                                              \
       -B build/                                                               \
       -D CMAKE_INSTALL_PREFIX="${PREFIX}"                                     \
       -D CMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"  \
