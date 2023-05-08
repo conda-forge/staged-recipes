@@ -1,17 +1,28 @@
-From 80b71d11d7c1220b8dd84616e59281371b0cf4bc Mon Sep 17 00:00:00 2001
+From d3e5a0aeff3e112397ce3641f4d1a63dc9474622 Mon Sep 17 00:00:00 2001
 From: giulero <gl.giuseppelerario@gmail.com>
 Date: Mon, 8 May 2023 13:57:13 +0200
-Subject: [PATCH 1/4] Set float type
+Subject: [PATCH] Fix float problems
 
 ---
- src/adam/pytorch/torch_like.py | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ src/adam/pytorch/torch_like.py     | 11 +++++++----
+ tests/test_Jax_computations.py     |  3 +++
+ tests/test_pytorch_computations.py |  2 ++
+ 3 files changed, 12 insertions(+), 4 deletions(-)
 
 diff --git a/src/adam/pytorch/torch_like.py b/src/adam/pytorch/torch_like.py
-index ca47515..debdb28 100644
+index ca47515..f9e8fe9 100644
 --- a/src/adam/pytorch/torch_like.py
 +++ b/src/adam/pytorch/torch_like.py
-@@ -50,16 +50,16 @@ def T(self) -> "TorchLike":
+@@ -45,21 +45,24 @@ class TorchLike(ArrayLike):
+         Returns:
+             TorchLike: transpose of array
+         """
+-        return TorchLike(self.array.T)
++        if len(self.array.shape) != 1:
++            return TorchLike(self.array.mT)
++        x = self.array
++        return TorchLike(x.permute(*torch.arange(x.ndim - 1, -1, -1)))
+ 
      def __matmul__(self, other: Union["TorchLike", ntp.ArrayLike]) -> "TorchLike":
          """Overrides @ operator"""
          if type(self) is type(other):
@@ -19,7 +30,7 @@ index ca47515..debdb28 100644
 +            return TorchLike(self.array @ other.array.float())
          else:
 -            return TorchLike(self.array @ torch.FloatTensor(other))
-+            return TorchLike(self.array @ other.float())
++            return TorchLike(self.array @ torch.tensor(other).float())
  
      def __rmatmul__(self, other: Union["TorchLike", ntp.ArrayLike]) -> "TorchLike":
          """Overrides @ operator"""
@@ -27,26 +38,15 @@ index ca47515..debdb28 100644
              return TorchLike(other.array @ self.array)
          else:
 -            return TorchLike(torch.FloatTensor(other) @ self.array)
-+            return TorchLike(other.float() @ self.array)
++            return TorchLike(torch.tensor(other).float() @ self.array)
  
      def __mul__(self, other: Union["TorchLike", ntp.ArrayLike]) -> "TorchLike":
          """Overrides * operator"""
-
-From 0afb257a9695888055654563bf7d111135c41516 Mon Sep 17 00:00:00 2001
-From: giulero <gl.giuseppelerario@gmail.com>
-Date: Mon, 8 May 2023 13:57:31 +0200
-Subject: [PATCH 2/4] Set default to float
-
----
- tests/test_Jax_computations.py     | 3 +++
- tests/test_pytorch_computations.py | 2 ++
- 2 files changed, 5 insertions(+)
-
 diff --git a/tests/test_Jax_computations.py b/tests/test_Jax_computations.py
 index 2bb81e0..41b4615 100644
 --- a/tests/test_Jax_computations.py
 +++ b/tests/test_Jax_computations.py
-@@ -9,10 +9,13 @@
+@@ -9,10 +9,13 @@ import idyntree.swig as idyntree
  import jax.numpy as jnp
  import numpy as np
  import pytest
@@ -64,7 +64,7 @@ diff --git a/tests/test_pytorch_computations.py b/tests/test_pytorch_computation
 index f400a62..6bead78 100644
 --- a/tests/test_pytorch_computations.py
 +++ b/tests/test_pytorch_computations.py
-@@ -13,6 +13,8 @@
+@@ -13,6 +13,8 @@ import torch
  from adam.geometry import utils
  from adam.pytorch import KinDynComputations
  
@@ -73,60 +73,6 @@ index f400a62..6bead78 100644
  model_path = gym_ignition_models.get_model_file("iCubGazeboV2_5")
  
  joints_name_list = [
+-- 
+2.33.0.windows.2
 
-From 66d29ab0bf96cbb1676e6b8b78237e1c29f995eb Mon Sep 17 00:00:00 2001
-From: giulero <gl.giuseppelerario@gmail.com>
-Date: Mon, 8 May 2023 14:05:00 +0200
-Subject: [PATCH 3/4] Fix list.float() to tensor(list).float()
-
----
- src/adam/pytorch/torch_like.py | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
-
-diff --git a/src/adam/pytorch/torch_like.py b/src/adam/pytorch/torch_like.py
-index debdb28..5f241ec 100644
---- a/src/adam/pytorch/torch_like.py
-+++ b/src/adam/pytorch/torch_like.py
-@@ -52,14 +52,14 @@ def __matmul__(self, other: Union["TorchLike", ntp.ArrayLike]) -> "TorchLike":
-         if type(self) is type(other):
-             return TorchLike(self.array @ other.array.float())
-         else:
--            return TorchLike(self.array @ other.float())
-+            return TorchLike(self.array @ torch.tensor(other).float())
- 
-     def __rmatmul__(self, other: Union["TorchLike", ntp.ArrayLike]) -> "TorchLike":
-         """Overrides @ operator"""
-         if type(self) is type(other):
-             return TorchLike(other.array @ self.array)
-         else:
--            return TorchLike(other.float() @ self.array)
-+            return TorchLike(torch.tensor(other).float() @ self.array)
- 
-     def __mul__(self, other: Union["TorchLike", ntp.ArrayLike]) -> "TorchLike":
-         """Overrides * operator"""
-
-From 1e85fde976ad696cef73a4d055be86f4ecedc4ff Mon Sep 17 00:00:00 2001
-From: giulero <gl.giuseppelerario@gmail.com>
-Date: Mon, 8 May 2023 14:22:17 +0200
-Subject: [PATCH 4/4] Fix torch transpose warning
-
----
- src/adam/pytorch/torch_like.py | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
-
-diff --git a/src/adam/pytorch/torch_like.py b/src/adam/pytorch/torch_like.py
-index 5f241ec..f9e8fe9 100644
---- a/src/adam/pytorch/torch_like.py
-+++ b/src/adam/pytorch/torch_like.py
-@@ -45,7 +45,10 @@ def T(self) -> "TorchLike":
-         Returns:
-             TorchLike: transpose of array
-         """
--        return TorchLike(self.array.T)
-+        if len(self.array.shape) != 1:
-+            return TorchLike(self.array.mT)
-+        x = self.array
-+        return TorchLike(x.permute(*torch.arange(x.ndim - 1, -1, -1)))
- 
-     def __matmul__(self, other: Union["TorchLike", ntp.ArrayLike]) -> "TorchLike":
-         """Overrides @ operator"""
