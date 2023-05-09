@@ -1,3 +1,6 @@
+call build0.bat
+if errorlevel 1 exit 1
+
 cmake ^
     -G "NMake Makefiles" ^
     -DCMAKE_BUILD_TYPE=Release ^
