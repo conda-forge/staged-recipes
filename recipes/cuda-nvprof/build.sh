@@ -27,8 +27,8 @@ for i in `ls`; do
             done
         fi
     else
-        # Put all other files in targetsDir
-        mkdir -p ${PREFIX}/${targetsDir}/${PKG_NAME}
-        cp -rv $i ${PREFIX}/${targetsDir}/${PKG_NAME}
+        # Leaving bin in PREFIX
+        mkdir -p ${PREFIX}
+        cp -rv $i ${PREFIX}
     fi
 done
