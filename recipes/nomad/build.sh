@@ -32,6 +32,14 @@ make pkg/$target/nomad
 rm $PREFIX/bin/*
 cp pkg/$target/nomad $PREFIX/bin
 
-# XXX Running go-licenses doesn't currently work; fails after creating 40 GB (!) worth of license files.
-# Ignore warning about go-spin (MIT licensed)
-# go-licenses save . --save_path=./license-files || true
+# Nomad is a bit tricky with its licenses.
+# If we are not careful, it will end in a loop.
+# The ignored licenses are added manually in the recipe definition.
+chmod -R u+rw gopath
+rm -rf gopath
+export GOPATH=$(dirname $(pwd))
+go-licenses save . --save_path=./license-files \
+	--ignore github.com/hashicorp/nomad/api \
+	--ignore github.com/hashicorp/cronexpr \
+	--ignore github.com/tj/go-spin \
+	--ignore github.com/hashicorp/nomad
