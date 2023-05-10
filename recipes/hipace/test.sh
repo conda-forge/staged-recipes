@@ -3,12 +3,7 @@
 set -eu -x -o pipefail
 
 export OMP_NUM_THREADS=2
-export TEST_DIR=examples/beam_in_vacuum
+export TEST_DIR=tests
 
 # executable
-impactx.NOMPI.NOACC.DP ${TEST_DIR}/inputs_SI
-
-# ctest
-if [[ "$CONDA_BUILD_CROSS_COMPILATION" != "1" ]]; then
-    ctest --test-dir build --output-on-failure
-fi
+${TEST_DIR}/beam_in_vacuum.SI.Serial.sh hipace.NOMPI.NOACC.DP .

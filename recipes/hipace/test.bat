@@ -1,12 +1,8 @@
 @echo on
 
 set "OMP_NUM_THREADS=2"
-set "TEST_DIR=example\beam_in_vacuum"
+set "TEST_DIR=tests"
 
 :: executable
-impactx.NOMPI.NOACC.DP.exe %TEST_DIR%\inputs_SI
-if errorlevel 1 exit 1
-
-:: ctest
-ctest --test-dir build --build-config RelWithDebInfo --output-on-failure
+bash %TEST_DIR%\beam_in_vacuum.SI.Serial.sh hipace.NOMPI.NOACC.DP.exe .
 if errorlevel 1 exit 1

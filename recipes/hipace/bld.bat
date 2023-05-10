@@ -1,7 +1,7 @@
 @echo on
 
 :: simple install prep
-::   copy all impactx*.exe and impactx*.dll files
+::   copy all hipace*.exe and hipace*.dll files
 if not exist %LIBRARY_PREFIX%\bin md %LIBRARY_PREFIX%\bin
 if errorlevel 1 exit 1
 
