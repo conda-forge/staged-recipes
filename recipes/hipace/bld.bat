@@ -16,7 +16,7 @@ cmake ^
     -DCMAKE_LINKER=lld-link               ^
     -DCMAKE_NM=llvm-nm                    ^
     -DCMAKE_VERBOSE_MAKEFILE=ON           ^
-    -DHiPACE_amrex_branch=23.02          ^
+    -DHiPACE_amrex_branch=23.03          ^
     -DHiPACE_openpmd_internal=OFF  ^
     -DHiPACE_COMPUTE=NOACC  ^
     -DHiPACE_MPI=OFF
