@@ -34,10 +34,7 @@ cmake \
 # build
 cmake --build build --parallel ${CPU_COUNT}
 
-# test
-if [[ "$CONDA_BUILD_CROSS_COMPILATION" != "1" ]]; then
-    ctest --test-dir build --output-on-failure
-fi
+# test -> deferred to test.sh
 
 # install
 cmake --build build --target install

@@ -26,9 +26,7 @@ if errorlevel 1 exit 1
 cmake --build build --config RelWithDebInfo --parallel 2
 if errorlevel 1 exit 1
 
-:: test
-ctest --test-dir build --build-config RelWithDebInfo --output-on-failure
-if errorlevel 1 exit 1
+:: test -> deferred to test.bat
 
 :: install
 cmake --build build --config RelWithDebInfo --target install

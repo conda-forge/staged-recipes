@@ -7,3 +7,6 @@ set "TEST_DIR=example\beam_in_vacuum"
 impactx.NOMPI.NOACC.DP.exe %TEST_DIR%\inputs_SI
 if errorlevel 1 exit 1
 
+:: ctest
+ctest --test-dir build --build-config RelWithDebInfo --output-on-failure
+if errorlevel 1 exit 1
