@@ -1,0 +1,74 @@
+{% set version = "0.1.0.0" %}
+
+{% set posix = 'm2-' if win else '' %}
+{% set native = 'm2w64-' if win else '' %}
+
+package:
+  name: r-evalhyd
+  version: {{ version }}
+
+source:
+  url: https://gitlab.irstea.fr/HYCAR-Hydro/evalhyd/evalhyd-r/-/archive/v{{ version }}/evalhyd-r-v{{ version }}.tar.gz
+  sha256: dc4eda2655182bf9c7189e969f398aca053c46128997c8fd2fe730691e1eaa65
+
+build:
+  number: 0
+  merge_build_host: True          # [win]
+  script_env:
+    - EVALHYD_R_VENDOR_XTL=FALSE
+    - EVALHYD_R_VENDOR_XTENSOR=FALSE
+    - EVALHYD_R_VENDOR_XTENSOR_R=FALSE
+    - EVALHYD_R_VENDOR_EVALHYD_CPP=FALSE
+  rpaths:
+    - lib/R/lib/
+    - lib/
+  missing_dso_whitelist:
+    # ignore missing DLL message because it is in a non-standard directory and
+    # not in PATH (see e.g. https://github.com/conda/conda-build/pull/4786)
+    - '*/R.dll'                   # [win]
+
+requirements:
+  build:
+    - cross-r-base {{ r_base }}   # [build_platform != target_platform]
+    - {{ compiler('cxx') }}       # [unix]
+    - {{ compiler('r_clang') }}   # [win]
+    - {{ posix }}filesystem       # [win]
+    - {{ posix }}make
+    - {{ posix }}sed              # [win]
+    - {{ posix }}coreutils        # [win]
+    - {{ posix }}zip              # [win]
+  host:
+    - r-base
+    - r-matrix >=1.1_0
+    - r-rcpp >=0.11.0
+    - xtl >=0.7.5
+    - xtensor >=0.24.6
+    - xtensor-r >=0.14.2
+    - libevalhyd ==0.1.0
+  run:
+    - r-base
+    - {{ pin_compatible('xtensor-r', max_pin='x.x') }}
+    - r-rcpp >=0.11.0
+
+test:
+  commands:
+    - "$R -e \"library('evalhyd')\""                                                                                          # [unix]
+    - "$R -q -e \"library('evalhyd');stopifnot(all.equal(evalhyd::evald(c(1,2,3),c(1,2,3),c('NSE'))[[1]][1,1,1], 1))\""       # [unix]
+    - "\"%R%\" -e \"library('evalhyd')\""                                                                                     # [win]
+    - "\"%R%\" -q -e \"library('evalhyd');stopifnot(all.equal(evalhyd::evald(c(1,2,3),c(1,2,3),c('NSE'))[[1]][1,1,1], 1))\""  # [win]
+
+about:
+  home: https://hydrogr.github.io/evalhyd
+  license: GPL-3.0-or-later
+  license_family: GPL
+  license_file: LICENCE.rst
+  summary: R bindings for evalhyd, a C++ library to evaluate streamflow predictions
+  description: |
+    An R package to evaluate deterministic and probabilistic 
+    streamflow predictions
+  doc_url: https://hydrogr.github.io/evalhyd/r
+  dev_url: https://gitlab.irstea.fr/HYCAR-Hydro/evalhyd/evalhyd-r
+
+extra:
+  recipe-maintainers:
+    - ThibHlln
