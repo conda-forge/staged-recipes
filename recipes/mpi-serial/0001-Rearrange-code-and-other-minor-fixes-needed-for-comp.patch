@@ -1,0 +1,828 @@
+From cd643047c7cfd8dd33a3fc177dd1daa573f08bb8 Mon Sep 17 00:00:00 2001
+From: Bill Sacks <sacks@ucar.edu>
+Date: Thu, 24 Mar 2022 20:43:12 -0600
+Subject: [PATCH] Rearrange code and other minor fixes needed for compilation
+ with clang
+
+I got a number of compilation errors when building mpi-serial with Apple
+clang version 13.1.6, using -std=gnu99 (which is what we use for
+building CESM). This commit fixes those compilation errors.
+
+Most of the changes here are just rearranging code so that functions are
+declared before they are referenced. However, there are two additional
+changes:
+- removed ierr from FGet_address
+- declared Type_extent in type.h (needed because this function is
+  referenced in some other files)
+---
+ info.c |  16 +-
+ mpi.c  |  30 ++--
+ pack.c |  28 ++--
+ type.c | 485 +++++++++++++++++++++++++++++----------------------------
+ type.h |   1 +
+ 5 files changed, 281 insertions(+), 279 deletions(-)
+
+diff --git a/info.c b/info.c
+index 32593cb..24cef0e 100644
+--- a/info.c
++++ b/info.c
+@@ -38,16 +38,16 @@ int MPI_Info_set(MPI_Info info, char *key, char *value)
+ 
+ /***/
+ 
+-FC_FUNC( mpi_info_free , MPI_INFO_FREE ) (int *info, int *ierror)
++
++int MPI_Info_free(MPI_Info *info)
+ {
+-  *ierror=MPI_Info_free(info);
++    /* For now, we aren't storing anything, so don't bother with a real handle */
++    *info=0;
++    return(MPI_SUCCESS);
+ }
+ 
+-
+-
+-int MPI_Info_free(MPI_Info *info)
++FC_FUNC( mpi_info_free , MPI_INFO_FREE ) (int *info, int *ierror)
+ {
+-  /* For now, we aren't storing anything, so don't bother with a real handle */
+-  *info=0;
+-  return(MPI_SUCCESS);
++  *ierror=MPI_Info_free(info);
+ }
++
+diff --git a/mpi.c b/mpi.c
+index 6ef3167..3ecc1ea 100644
+--- a/mpi.c
++++ b/mpi.c
+@@ -302,6 +302,17 @@ int MPI_Initialized(int *flag)
+ 
+ /**********/
+ 
++int MPI_Get_library_version(char *version, int *resultlen)
++{
++
++    strncpy(version,mpi_version_string,MPI_MAX_LIBRARY_VERSION_STRING);
++    // Make sure it is null terminated
++    version[MPI_MAX_LIBRARY_VERSION_STRING-1]='\0';
++    *resultlen=strlen(version);
++
++    return(MPI_SUCCESS);
++}
++
+ 
+ void FC_FUNC( mpi_get_library_version, MPI_GET_LIBRARY_VERSION) (char *version, int *resultlen, int *ierror)
+ {
+@@ -318,15 +329,12 @@ void FC_FUNC( mpi_get_library_version, MPI_GET_LIBRARY_VERSION) (char *version,
+ 
+ 
+ 
+-int MPI_Get_library_version(char *version, int *resultlen)
++int MPI_Get_Version(int *mpi_vers, int *mpi_subvers)
+ {
++    *mpi_vers = 1;
++    *mpi_subvers = 0;
+ 
+-  strncpy(version,mpi_version_string,MPI_MAX_LIBRARY_VERSION_STRING);
+-  // Make sure it is null terminated
+-  version[MPI_MAX_LIBRARY_VERSION_STRING-1]='\0';
+-  *resultlen=strlen(version);
+-
+-  return(MPI_SUCCESS);
++    return (MPI_SUCCESS);
+ }
+ 
+ /**********/
+@@ -337,14 +345,6 @@ void FC_FUNC( mpi_get_version, MPI_GET_VERSION )(int *mpi_vers, int *mpi_subvers
+   *ierror=MPI_SUCCESS;
+ }
+ 
+-int MPI_Get_Version(int *mpi_vers, int *mpi_subvers)
+-{
+-  *mpi_vers = 1;
+-  *mpi_subvers = 0;
+-
+-  return (MPI_SUCCESS);
+-}
+-
+ /**********/
+ 
+ 
+diff --git a/pack.c b/pack.c
+index 83ff879..a9fd14b 100644
+--- a/pack.c
++++ b/pack.c
+@@ -57,6 +57,20 @@ int Pack(void *inbuf, int incount, Datatype type,
+   }
+ }
+ 
++int Pack_size(int incount, Datatype datatype,
++              Comm * comm, MPI_Aint * size)
++{
++    int i;
++    *size = 0;
++    //sum up all sizes
++    for(i = 0; i < datatype->count; i++)
++    {
++        *size += Simpletype_length(datatype->pairs[i].type);
++    }
++    *size *= incount;
++    printf("Size = %d\n", *size);
++}
++
+ FC_FUNC( mpi_pack_size, MPI_PACK_SIZE )(int * incount, int * datatype,
+                                           int * comm, long * size, int *ierr)
+ {
+@@ -76,20 +90,6 @@ int MPI_Pack_size(int incount, MPI_Datatype datatype,
+ }
+ 
+ 
+-int Pack_size(int incount, Datatype datatype,
+-                   Comm * comm, MPI_Aint * size)
+-{
+-  int i;
+-  *size = 0;
+-  //sum up all sizes
+-  for(i = 0; i < datatype->count; i++)
+-  {
+-    *size += Simpletype_length(datatype->pairs[i].type);
+-  }
+-  *size *= incount;
+-  printf("Size = %d\n", *size);
+-}
+-
+ 
+ /*
+  *
+diff --git a/type.c b/type.c
+index 8dd93f2..ba236ed 100644
+--- a/type.c
++++ b/type.c
+@@ -183,41 +183,76 @@ long calc_ub(Datatype type)
+ }
+ 
+ 
+-/*******************************************************/
+-/* MPI_Type_struct is the most general type constructor that
+- * does the common work other constructors.
+- * All other type constructors call this function.
++/* MPI_Type_extent: return ub-lb, plus padding
+  */
++int Type_extent(Datatype datatype, MPI_Aint * extent)
++{
+ 
+-FC_FUNC( mpi_type_struct, MPI_TYPE_STRUCT )
+-         (int * count,       int * blocklens, long * displacements,
+-          int *oldtypes_ptr, int *newtype,    int *ierror)
++  if (!(datatype->o_lb || datatype->o_ub))
++  {
++    int epsilon = calc_padding(datatype);
++    //current epsilon value is based off of largest datatype size
++    int mod = (datatype->ub - datatype->lb) % epsilon;
++    if (mod == 0)
++      epsilon = 0;
++    else
++      epsilon = epsilon - mod;
++    *extent = (datatype->ub - datatype->lb) + epsilon;
++  }
++  else
++  {
++    *extent = datatype->ub - datatype->lb;
++  }
++
++  return MPI_SUCCESS;
++}
++
++FC_FUNC( mpi_type_extent, MPI_TYPE_EXTENT)(int * type, long * extent, int * ierr)
+ {
+-  *ierror=MPI_Type_struct(*count, blocklens, displacements,
+-                                    oldtypes_ptr, newtype);
++    *ierr = MPI_Type_extent(*type, extent);
+ }
+ 
+-/* Public function, wrapper for Type_struct that translates handle to
+- * pointer (see NOTES at top of file)
+- */
+-int MPI_Type_struct(int count, int * blocklens, MPI_Aint * displacements,
+-                    MPI_Datatype *oldtypes,     MPI_Datatype *newtype)
++int MPI_Type_extent(MPI_Datatype type, MPI_Aint * extent)
+ {
+-  int i;
+-  Datatype oldtypes_ptr[count];
+-  Datatype * newtype_ptr;
++    Datatype type_ptr = *(Datatype*) mpi_handle_to_datatype(type);
+ 
+-  for (i = 0; i < count; i++)
+-  {
+-    oldtypes_ptr[i] = *(Datatype*) mpi_handle_to_datatype(oldtypes[i]);
+-  }
++    return Type_extent(type_ptr, extent);
++}
+ 
+-  mpi_alloc_handle(newtype, (void**) &newtype_ptr);
++/* True_extent returns an extent based only on
++ * calculated upper and lower bound, regardless of any
++ * override using MPI_LB or MPI_UB
++ */
++int Type_get_true_extent(Datatype type, MPI_Aint * extent)
++{
++  long epsilon = calc_padding(type);
++  long ub = calc_ub(type);
++  long lb = calc_lb(type);
++  //current epsilon value is based off of largest datatype size
++  long mod = (ub - lb) % epsilon;
++  if (mod == 0)
++    epsilon = 0;
++  else
++    epsilon = epsilon - mod;
++  *extent = (ub - lb) + epsilon;
+ 
+-  return Type_struct(count, blocklens, displacements,
+-                          oldtypes_ptr, newtype_ptr);
++  return MPI_SUCCESS;
+ }
+ 
++/* copy_type: Creates a deep copy of source typepair into dest
++ */
++int Copy_type(typepair *source, typepair *dest)
++{
++    dest->type = source->type;
++    dest->disp = source->disp;
++}
++
++/*******************************************************/
++/* MPI_Type_struct is the most general type constructor that
++ * does the common work other constructors.
++ * All other type constructors call this function.
++ */
++
+ int Type_struct(int count, int * blocklens, MPI_Aint * displacements,
+                 Datatype *oldtypes_ptr,     Datatype *newtype)
+ {
+@@ -351,86 +386,100 @@ int Type_struct(int count, int * blocklens, MPI_Aint * displacements,
+   return MPI_SUCCESS;
+ }
+ 
+-/*******************************************************/
+-/*  MPI_Type_contiguous.  Create count copies of a type.
+- *  this creates arrays of the singleton arguments and use them to call
+- *  MPI_Type_struct()
+- */
+-
+-FC_FUNC( mpi_type_contiguous, MPI_TYPE_CONTIGUOUS )
+-         (int *count, int *oldtype, int * newtype, int * ierr)
++FC_FUNC( mpi_type_struct, MPI_TYPE_STRUCT )
++         (int * count,       int * blocklens, long * displacements,
++          int *oldtypes_ptr, int *newtype,    int *ierror)
+ {
+-  *ierr = MPI_Type_contiguous(*count, *oldtype, newtype);
++  *ierror=MPI_Type_struct(*count, blocklens, displacements,
++                                    oldtypes_ptr, newtype);
+ }
+ 
+-int MPI_Type_contiguous(int count, MPI_Datatype old, MPI_Datatype * new)
++/* Public function, wrapper for Type_struct that translates handle to
++ * pointer (see NOTES at top of file)
++ */
++int MPI_Type_struct(int count, int * blocklens, MPI_Aint * displacements,
++                    MPI_Datatype *oldtypes,     MPI_Datatype *newtype)
+ {
+-  int ret;
+-  Datatype old_ptr = *(Datatype*) mpi_handle_to_datatype(old);
+-  Datatype * new_ptr;
++    int i;
++    Datatype oldtypes_ptr[count];
++    Datatype * newtype_ptr;
+ 
+-  mpi_alloc_handle(new, (void**) &new_ptr);
++    for (i = 0; i < count; i++)
++    {
++        oldtypes_ptr[i] = *(Datatype*) mpi_handle_to_datatype(oldtypes[i]);
++    }
+ 
+-  return Type_contiguous(count, old_ptr, new_ptr);
++    mpi_alloc_handle(newtype, (void**) &newtype_ptr);
++
++    return Type_struct(count, blocklens, displacements,
++                       oldtypes_ptr, newtype_ptr);
+ }
+ 
++/*******************************************************/
++/*  MPI_Type_contiguous.  Create count copies of a type.
++ *  this creates arrays of the singleton arguments and use them to call
++ *  MPI_Type_struct()
++ */
++
+ int Type_contiguous(int count, Datatype oldtype, Datatype *newtype)
+ {
+-  int i;
+-  int blocklengths[count];
+-  Datatype oldtypes[count];
+-  MPI_Aint offsets[count];
+-  MPI_Aint extent;
++    int i;
++    int blocklengths[count];
++    Datatype oldtypes[count];
++    MPI_Aint offsets[count];
++    MPI_Aint extent;
+ 
+-  //each copy is strided by the extent of the datatype.
+-  // Calculate that here.
+-  Type_extent(oldtype, &extent);
+-  for (i = 0; i < count; i++)
+-  {
+-    blocklengths[i] = 1;
+-    offsets[i] = extent * i;
+-    oldtypes[i] = oldtype;
+-  }
+-  return Type_struct(count, blocklengths, offsets, oldtypes, newtype);
++    //each copy is strided by the extent of the datatype.
++    // Calculate that here.
++    Type_extent(oldtype, &extent);
++    for (i = 0; i < count; i++)
++    {
++        blocklengths[i] = 1;
++        offsets[i] = extent * i;
++        oldtypes[i] = oldtype;
++    }
++    return Type_struct(count, blocklengths, offsets, oldtypes, newtype);
+ }
+ 
+-/*************************/
+-/* Type_vector
+- */
+-
+-FC_FUNC( mpi_type_vector, MPI_TYPE_VECTOR )
+-         (int * count, int * blocklen, int * stride,
+-          int * oldtype, int * newtype, int * ierr)
++FC_FUNC( mpi_type_contiguous, MPI_TYPE_CONTIGUOUS )
++(int *count, int *oldtype, int * newtype, int * ierr)
+ {
+-  *ierr = MPI_Type_vector(*count, *blocklen, *stride, *oldtype, newtype);
++    *ierr = MPI_Type_contiguous(*count, *oldtype, newtype);
+ }
+ 
+-int MPI_Type_vector(int count, int blocklen, int stride,
+-                    MPI_Datatype oldtype, MPI_Datatype * newtype)
++int MPI_Type_contiguous(int count, MPI_Datatype old, MPI_Datatype * new)
+ {
+-  Datatype old_ptr = *(Datatype*) mpi_handle_to_datatype(oldtype);
++  int ret;
++  Datatype old_ptr = *(Datatype*) mpi_handle_to_datatype(old);
+   Datatype * new_ptr;
+ 
+-  mpi_alloc_handle(newtype, (void**) &new_ptr);
++  mpi_alloc_handle(new, (void**) &new_ptr);
+ 
+-  return Type_vector(count, blocklen, stride, old_ptr, new_ptr);
++  return Type_contiguous(count, old_ptr, new_ptr);
+ }
+ 
++/*******************************************************/
+ 
+-int Type_vector(int count, int blocklen, int stride,
+-                Datatype oldtype, Datatype *newtype)
++int Type_hvector(int count, int blocklen, MPI_Aint stride,
++                 Datatype oldtype, Datatype *newtype)
+ {
+-  MPI_Aint extent;
+-  MPI_Aint bstride;
++    int i;
++    int blocklengths[count];
++    Datatype oldtypes[count];
++    MPI_Aint offsets[count];
++    MPI_Aint extent;
+ 
+-  Type_extent(oldtype, &extent);
+-  bstride = stride * extent;
++    Type_extent(oldtype, &extent);
++    for (i = 0; i < count; i++)
++    {
++        blocklengths[i] = blocklen;
++        offsets[i] = stride * i;
++        oldtypes[i] = oldtype;
++    }
+ 
+-  return Type_hvector(count, blocklen, bstride, oldtype, newtype);
++    return Type_struct(count, blocklengths, offsets, oldtypes, newtype);
+ }
+ 
+-/*******************************************************/
+-
+ FC_FUNC( mpi_type_hvector, MPI_TYPE_HVECTOR )
+          (int * count,   long * blocklen, long * stride,
+           int * oldtype, int * newtype,   int * ierr)
+@@ -466,129 +515,144 @@ int MPI_Type_create_hvector(int count, int blocklen, MPI_Aint stride,
+ }
+ 
+ 
+-int Type_hvector(int count, int blocklen, MPI_Aint stride,
+-                      Datatype oldtype, Datatype *newtype)
++/*************************/
++/* Type_vector
++ */
++
++int Type_vector(int count, int blocklen, int stride,
++                Datatype oldtype, Datatype *newtype)
+ {
+-  int i;
+-  int blocklengths[count];
+-  Datatype oldtypes[count];
+-  MPI_Aint offsets[count];
+-  MPI_Aint extent;
++    MPI_Aint extent;
++    MPI_Aint bstride;
+ 
+-  Type_extent(oldtype, &extent);
+-  for (i = 0; i < count; i++)
+-  {
+-    blocklengths[i] = blocklen;
+-    offsets[i] = stride * i;
+-    oldtypes[i] = oldtype;
+-  }
++    Type_extent(oldtype, &extent);
++    bstride = stride * extent;
+ 
+-  return Type_struct(count, blocklengths, offsets, oldtypes, newtype);
++    return Type_hvector(count, blocklen, bstride, oldtype, newtype);
+ }
+ 
+-/*******************************************************/
+-
+-FC_FUNC( mpi_type_indexed, MPI_TYPE_INDEXED )
+-         (int * count,   int * blocklens, int * displacements,
+-          int * oldtype, int * newtype,   int * ierr)
++FC_FUNC( mpi_type_vector, MPI_TYPE_VECTOR )
++         (int * count, int * blocklen, int * stride,
++          int * oldtype, int * newtype, int * ierr)
+ {
+-  *ierr = MPI_Type_indexed(*count, blocklens, displacements, *oldtype, newtype);
++  *ierr = MPI_Type_vector(*count, *blocklen, *stride, *oldtype, newtype);
+ }
+ 
+-
+-int MPI_Type_indexed(int count, int *blocklens, int *displacements,
+-                     MPI_Datatype oldtype, MPI_Datatype * newtype)
++int MPI_Type_vector(int count, int blocklen, int stride,
++                    MPI_Datatype oldtype, MPI_Datatype * newtype)
+ {
+   Datatype old_ptr = *(Datatype*) mpi_handle_to_datatype(oldtype);
+   Datatype * new_ptr;
+ 
+   mpi_alloc_handle(newtype, (void**) &new_ptr);
+-  return Type_indexed(count, blocklens, displacements, old_ptr, new_ptr);
++
++  return Type_vector(count, blocklen, stride, old_ptr, new_ptr);
+ }
+ 
+-int Type_indexed(int count, int *blocklens, int *displacements,
+-                 Datatype oldtype, Datatype *newtype)
++
++/*******************************************************/
++
++int Type_hindexed(int count, int *blocklens, MPI_Aint *displacements,
++                  Datatype oldtype, Datatype *newtype)
+ {
+-  int i;
+-  MPI_Aint extent;
+-  MPI_Aint bdisps[count];
++    int i;
++    Datatype oldtypes[count];
+ 
+-  for (i = 0; i < count; i++)
+-  {
+-    Type_extent(oldtype, &extent);
+-    bdisps[i] = displacements[i] * extent;
+-  }
++    for (i = 0; i < count; i++)
++    {
++        oldtypes[i] = oldtype;
++    }
+ 
+-  return Type_hindexed(count, blocklens, bdisps, oldtype, newtype);
++    return Type_struct(count, blocklens, displacements, oldtypes, newtype);
+ }
+ 
+-/*******************************************************/
+-
+-FC_FUNC( mpi_type_create_indexed_block, MPI_TYPE_CREATE_INDEXED_BLOCK )
+-         (int * count,   int * blocklen, int * displacements,
+-          int * oldtype, int * newtype,  int * ierr)
++FC_FUNC( mpi_type_hindexed, MPI_TYPE_HINDEXED )
++         (int * count,   int * blocklens, MPI_Aint * displacements,
++          int * oldtype, int * newtype,   int * ierr)
+ {
+-  *ierr = MPI_Type_create_indexed_block(*count, *blocklen, displacements,
+-					*oldtype, newtype);
++  *ierr = MPI_Type_hindexed(*count, blocklens, displacements,
++                            *oldtype, newtype);
+ }
+ 
+-int MPI_Type_create_indexed_block(int count, int blocklen, int *displacements,
+-				  MPI_Datatype oldtype, MPI_Datatype * newtype)
++int MPI_Type_hindexed(int count, int *blocklens, MPI_Aint * disps,
++                      MPI_Datatype oldtype, MPI_Datatype * newtype)
+ {
+-  int ret;
+   Datatype old_ptr = *(Datatype*) mpi_handle_to_datatype(oldtype);
+   Datatype * new_ptr;
+ 
+   mpi_alloc_handle(newtype, (void**) &new_ptr);
+-  return Type_create_indexed_block(count, blocklen, displacements, old_ptr, new_ptr);
++  return Type_hindexed(count, blocklens, disps, old_ptr, new_ptr);
+ }
+ 
+-int Type_create_indexed_block(int count, int blocklen, int *displacements,
+-			      Datatype oldtype, Datatype *newtype)
++
++/*******************************************************/
++
++int Type_indexed(int count, int *blocklens, int *displacements,
++                 Datatype oldtype, Datatype *newtype)
+ {
+-  int i;
+-  int blocklens[count];
++    int i;
++    MPI_Aint extent;
++    MPI_Aint bdisps[count];
+ 
+-  for (i = 0; i < count; i++)
+-    blocklens[i] = blocklen;
++    for (i = 0; i < count; i++)
++    {
++        Type_extent(oldtype, &extent);
++        bdisps[i] = displacements[i] * extent;
++    }
+ 
+-  return Type_indexed(count, blocklens, displacements, oldtype, newtype);
++    return Type_hindexed(count, blocklens, bdisps, oldtype, newtype);
+ }
+ 
+-/*******************************************************/
+-
+-FC_FUNC( mpi_type_hindexed, MPI_TYPE_HINDEXED )
+-         (int * count,   int * blocklens, MPI_Aint * displacements,
++FC_FUNC( mpi_type_indexed, MPI_TYPE_INDEXED )
++         (int * count,   int * blocklens, int * displacements,
+           int * oldtype, int * newtype,   int * ierr)
+ {
+-  *ierr = MPI_Type_hindexed(*count, blocklens, displacements,
+-                            *oldtype, newtype);
++  *ierr = MPI_Type_indexed(*count, blocklens, displacements, *oldtype, newtype);
+ }
+ 
+-int MPI_Type_hindexed(int count, int *blocklens, MPI_Aint * disps,
+-                      MPI_Datatype oldtype, MPI_Datatype * newtype)
++
++int MPI_Type_indexed(int count, int *blocklens, int *displacements,
++                     MPI_Datatype oldtype, MPI_Datatype * newtype)
+ {
+   Datatype old_ptr = *(Datatype*) mpi_handle_to_datatype(oldtype);
+   Datatype * new_ptr;
+ 
+   mpi_alloc_handle(newtype, (void**) &new_ptr);
+-  return Type_hindexed(count, blocklens, disps, old_ptr, new_ptr);
++  return Type_indexed(count, blocklens, displacements, old_ptr, new_ptr);
+ }
+ 
+-int Type_hindexed(int count, int *blocklens, MPI_Aint *displacements,
+-                  Datatype oldtype, Datatype *newtype)
++/*******************************************************/
++
++int Type_create_indexed_block(int count, int blocklen, int *displacements,
++			      Datatype oldtype, Datatype *newtype)
+ {
+-  int i;
+-  Datatype oldtypes[count];
++    int i;
++    int blocklens[count];
+ 
+-  for (i = 0; i < count; i++)
+-  {
+-    oldtypes[i] = oldtype;
+-  }
++    for (i = 0; i < count; i++)
++        blocklens[i] = blocklen;
+ 
+-  return Type_struct(count, blocklens, displacements, oldtypes, newtype);
++    return Type_indexed(count, blocklens, displacements, oldtype, newtype);
+ }
+ 
++FC_FUNC( mpi_type_create_indexed_block, MPI_TYPE_CREATE_INDEXED_BLOCK )
++         (int * count,   int * blocklen, int * displacements,
++          int * oldtype, int * newtype,  int * ierr)
++{
++  *ierr = MPI_Type_create_indexed_block(*count, *blocklen, displacements,
++					*oldtype, newtype);
++}
++
++int MPI_Type_create_indexed_block(int count, int blocklen, int *displacements,
++				  MPI_Datatype oldtype, MPI_Datatype * newtype)
++{
++  int ret;
++  Datatype old_ptr = *(Datatype*) mpi_handle_to_datatype(oldtype);
++  Datatype * new_ptr;
++
++  mpi_alloc_handle(newtype, (void**) &new_ptr);
++  return Type_create_indexed_block(count, blocklen, displacements, old_ptr, new_ptr);
++}
+ 
+ /*******************************************************/
+ 
+@@ -610,17 +674,20 @@ int Type_dup(Datatype oldtype, Datatype *newtype)
+   }
+ }
+ 
+-/* copy_type: Creates a deep copy of source typepair into dest
++/* MPI_Type_size:  Returns the sum of the lengths of each simple
++ * type that makes up the data type argument
+  */
+-int Copy_type(typepair *source, typepair *dest)
++int Type_size(Datatype type, int * size)
+ {
+-  dest->type = source->type;
+-  dest->disp = source->disp;
++    int i;
++    *size = 0;
++    for (i=0; i < type->count; i++)
++        *size += Simpletype_length(type->pairs[i].type);
++
++
++    return MPI_SUCCESS;
+ }
+ 
+-/* MPI_Type_size:  Returns the sum of the lengths of each simple
+- * type that makes up the data type argument
+- */
+ FC_FUNC( mpi_type_size, MPI_TYPE_SIZE )(int * type, int * size, int * ierr)
+ {
+   *ierr=MPI_Type_size(*type, size);
+@@ -632,19 +699,14 @@ int MPI_Type_size(MPI_Datatype type, int * size)
+   return Type_size(type_ptr, size);
+ }
+ 
+-int Type_size(Datatype type, int * size)
+-{
+-  int i;
+-  *size = 0;
+-  for (i=0; i < type->count; i++)
+-    *size += Simpletype_length(type->pairs[i].type);
+-
+-
+-  return MPI_SUCCESS;
+-}
+ /* MPI_Type_lb: Returns the lower bound (which may be overridden
+  * or calculated)
+  */
++int Type_lb(Datatype type, MPI_Aint * lb)
++{
++    *lb = type->lb;
++}
++
+ FC_FUNC( mpi_type_lb, MPI_TYPE_LB )(int * type, long * lb, int * ierr)
+ {
+   *ierr = MPI_Type_lb(*type, lb);
+@@ -657,14 +719,14 @@ int MPI_Type_lb(MPI_Datatype type, MPI_Aint * lb)
+   return Type_lb(type_ptr, lb);
+ }
+ 
+-int Type_lb(Datatype type, MPI_Aint * lb)
+-{
+-  *lb = type->lb;
+-}
+-
+ /* MPI_Type_ub: Return upper bound (which may be overridden
+  * or calculated
+  */
++int Type_ub(Datatype type, MPI_Aint * ub)
++{
++    *ub = type->ub;
++}
++
+ FC_FUNC( mpi_type_ub, MPI_TYPE_UB )(int * type, long * ub, int * ierr)
+ {
+   *ierr = MPI_Type_ub(*type, ub);
+@@ -677,97 +739,36 @@ int MPI_Type_ub(MPI_Datatype type, MPI_Aint * ub)
+   return Type_ub(type_ptr, ub);
+ }
+ 
+-int Type_ub(Datatype type, MPI_Aint * ub)
+-{
+-  *ub = type->ub;
+-}
+-
+ /* MPI_Get_address
+  * MPI_Address
+  * Return address of an object
+  */
+-FC_FUNC( mpi_get_address, MPI_ADDRESS )(void * loc, long * address, int * ierr)
++int FGet_address(void * loc, long * address)
+ {
+-  *ierr = FGet_address(loc, address);
++    *address = (long) loc;
++    return MPI_SUCCESS;
+ }
+ 
+-FC_FUNC( mpi_address, MPI_ADDRESS )(void * loc, long * address, int * ierr)
++FC_FUNC( mpi_get_address, MPI_ADDRESS )(void * loc, long * address, int * ierr)
+ {
+-  *address = (long) loc;
+   *ierr = FGet_address(loc, address);
+ }
+ 
+-int FGet_address(void * loc, long * address, int * ierr)
+-{
+-  *address = (long) loc;
+-  return MPI_SUCCESS;
+-}
+-
+-int MPI_Address(void * loc, MPI_Aint * address)
+-{
+-  return MPI_Get_address(loc, address);
+-}
+-
+ int MPI_Get_address(void * loc, MPI_Aint * address)
+ {
+-  *address = (MPI_Aint) loc;
+-  return MPI_SUCCESS;
++    *address = (MPI_Aint) loc;
++    return MPI_SUCCESS;
+ }
+ 
+-/* MPI_Type_extent: return ub-lb, plus padding
+- */
+-FC_FUNC( mpi_type_extent, MPI_TYPE_EXTENT)(int * type, long * extent, int * ierr)
+-{
+-  *ierr = MPI_Type_extent(*type, extent);
+-}
+-
+-int MPI_Type_extent(MPI_Datatype type, MPI_Aint * extent)
+-{
+-  Datatype type_ptr = *(Datatype*) mpi_handle_to_datatype(type);
+-
+-  return Type_extent(type_ptr, extent);
+-}
+-
+-int Type_extent(Datatype datatype, MPI_Aint * extent)
++FC_FUNC( mpi_address, MPI_ADDRESS )(void * loc, long * address, int * ierr)
+ {
+-
+-  if (!(datatype->o_lb || datatype->o_ub))
+-  {
+-    int epsilon = calc_padding(datatype);
+-    //current epsilon value is based off of largest datatype size
+-    int mod = (datatype->ub - datatype->lb) % epsilon;
+-    if (mod == 0)
+-      epsilon = 0;
+-    else
+-      epsilon = epsilon - mod;
+-    *extent = (datatype->ub - datatype->lb) + epsilon;
+-  }
+-  else
+-  {
+-    *extent = datatype->ub - datatype->lb;
+-  }
+-
+-  return MPI_SUCCESS;
++  *address = (long) loc;
++  *ierr = FGet_address(loc, address);
+ }
+ 
+-/* True_extent returns an extent based only on
+- * calculated upper and lower bound, regardless of any
+- * override using MPI_LB or MPI_UB
+- */
+-int Type_get_true_extent(Datatype type, MPI_Aint * extent)
++int MPI_Address(void * loc, MPI_Aint * address)
+ {
+-  long epsilon = calc_padding(type);
+-  long ub = calc_ub(type);
+-  long lb = calc_lb(type);
+-  //current epsilon value is based off of largest datatype size
+-  long mod = (ub - lb) % epsilon;
+-  if (mod == 0)
+-    epsilon = 0;
+-  else
+-    epsilon = epsilon - mod;
+-  *extent = (ub - lb) + epsilon;
+-
+-  return MPI_SUCCESS;
++  return MPI_Get_address(loc, address);
+ }
+ 
+ /***********************/
+diff --git a/type.h b/type.h
+index cd92b78..f495289 100644
+--- a/type.h
++++ b/type.h
+@@ -81,6 +81,7 @@ typedef Typestruct* Datatype;
+ 
+ //internal type functions
+ int Simpletype_length(Simpletype s);
++int Type_extent(Datatype datatype, MPI_Aint * extent);
+ 
+ //testing only
+ int print_typemap(MPI_Datatype in);
+-- 
+2.39.1
+
