@@ -2,6 +2,7 @@
 
 set -euxo pipefail
 
+export GO111MODULE=on
 make deps
 
 # XXX We should run "make prerelease" here instead but that fails for some reason
