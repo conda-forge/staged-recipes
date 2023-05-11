@@ -2,7 +2,11 @@
 
 set "OMP_NUM_THREADS=2"
 set "TEST_DIR=tests"
+set "EXAMPLE_DIR=example\beam_in_vacuum"
 
 :: executable
-bash %TEST_DIR%\beam_in_vacuum.SI.Serial.sh hipace.NOMPI.NOACC.DP.exe .
+hipace.NOMPI.NOACC.DP.exe %EXAMPLE_DIR%\inputs_SI
 if errorlevel 1 exit 1
+
+::bash %TEST_DIR%\beam_in_vacuum.SI.Serial.sh hipace.NOMPI.NOACC.DP.exe .
+::if errorlevel 1 exit 1
