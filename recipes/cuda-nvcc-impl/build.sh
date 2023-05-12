@@ -17,11 +17,8 @@ for i in `ls`; do
         mkdir -p ${PREFIX}/$i
         if [[ $i == "bin" ]]; then
             mkdir -p ${PREFIX}/${targetsDir}/bin
-            mv -v $i/nvcc ${PREFIX}/${targetsDir}/bin
             cp -rv $i ${PREFIX}
-            # Use a custom nvcc.profile to handle the fact that nvcc is a symlink.
-            cp ${RECIPE_DIR}/nvcc.profile.for_prefix_bin ${PREFIX}/bin/nvcc.profile
-            ln -sv ${PREFIX}/${targetsDir}/bin/nvcc ${PREFIX}/bin/nvcc
+            ln -sv ${PREFIX}/bin/nvcc ${PREFIX}/${targetsDir}/bin/nvcc
         elif [[ $i == "lib" ]]; then
             cp -rv $i ${PREFIX}/${targetsDir}
             for j in "$i"/*.a*; do
