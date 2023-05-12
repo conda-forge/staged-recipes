@@ -2,6 +2,8 @@
 
 set -ex
 
+export CXXFLAGS="${CXXFLAGS} -D__STDC_FORMAT_MACROS -D_LIBCPP_DISABLE_AVAILABILITY"
+
 ./build0.sh
 mkdir build
 cd build
