@@ -5,10 +5,10 @@ set -euxo pipefail
 export GO111MODULE=on
 make deps
 
-# XXX We should run "make prerelease" here instead but that fails for some reason
+# We could run "make prerelease" here instead but this fails as some files were
+# already created during the creation of source tarball.
 make ember-dist static-assets
 
-# XXX cross osx-arm64 not tested.
 case "$target_platform" in
   linux-64)
     target=linux_amd64
