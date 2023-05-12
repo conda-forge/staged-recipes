@@ -131,11 +131,9 @@ def get_config(arch, channel_urls):
     if os.path.exists(exclusive_config_file):
         exclusive_config_files.append(exclusive_config_file)
 
-    error_overlinking = (get_host_platform() != "win")
-
     config = conda_build.api.Config(
         arch=arch, exclusive_config_files=exclusive_config_files,
-        channel_urls=channel_urls, error_overlinking=error_overlinking,
+        channel_urls=channel_urls, error_overlinking=True,
     )
     return config
 
@@ -183,7 +181,7 @@ def check_recipes_in_correct_dir(root_dir, correct_dir):
         if path.parts[0] == 'build_artifacts':
             # ignore pkg_cache in build_artifacts
             continue
-        if path.parts[0] != correct_dir:
+        if path.parts[0] != correct_dir and path.parts[0] != "broken-recipes":
             raise RuntimeError(f"recipe {path.parts} in wrong directory")
         if len(path.parts) != 3:
             raise RuntimeError(f"recipe {path.parts} in wrong directory")
