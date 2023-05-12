@@ -22,6 +22,10 @@ def setup_environment(ns):
         os.environ["MINIFORGE_HOME"] = os.path.join(
             os.path.dirname(__file__), "miniforge3"
         )
+    if "OSX_SDK_DIR" not in os.environ:
+        os.environ["OSX_SDK_DIR"] = os.path.join(
+            os.path.dirname(__file__), "SDKs"
+        )
 
 
 def run_docker_build(ns):
@@ -61,12 +65,11 @@ def verify_config(ns):
         raise ValueError(
             f"only Linux/macOS configs currently supported, got {ns.config}"
         )
-    elif ns.config.startswith("osx"):
+    elif ns.config.startswith("osx") and platform.system() == "Darwin":
         if "OSX_SDK_DIR" not in os.environ:
             raise RuntimeError(
-                "Need OSX_SDK_DIR env variable set. Run 'export OSX_SDK_DIR=SDKs' "
-                "to download the SDK automatically to 'SDKs/MacOSX<ver>.sdk'. "
-                "Setting this variable implies agreement to the licensing terms of the SDK by Apple."
+                "Need OSX_SDK_DIR env variable set. Run 'export OSX_SDK_DIR=/opt'"
+                "to download the SDK automatically to '/opt/MacOSX<ver>.sdk'"
             )
 
 
@@ -86,19 +89,12 @@ def main(args=None):
     verify_config(ns)
     setup_environment(ns)
 
-    try:
-        if ns.config.startswith("linux") or (
-            ns.config.startswith("osx") and platform.system() == "Linux"
-        ):
-            run_docker_build(ns)
-        elif ns.config.startswith("osx"):
-            run_osx_build(ns)
-    finally:
-        recipe_license_file = os.path.join(
-            "recipe", "recipe-scripts-license.txt"
-        )
-        if os.path.exists(recipe_license_file):
-            os.remove(recipe_license_file)
+    if ns.config.startswith("linux") or (
+        ns.config.startswith("osx") and platform.system() == "Linux"
+    ):
+        run_docker_build(ns)
+    elif ns.config.startswith("osx"):
+        run_osx_build(ns)
 
 
 if __name__ == "__main__":
