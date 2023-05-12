@@ -34,8 +34,8 @@ fi
 
 # kaldi is a weird case, see https://github.com/pytorch/audio/issues/1269
 export BUILD_KALDI=0
-# needs patch to use conda-forge build
-export BUILD_SOX=1
+# conflicting patches between torchaudio & upstream sox
+export BUILD_SOX=0
 # doesn't contain vendored sources
 export BUILD_RNNT=1
 
