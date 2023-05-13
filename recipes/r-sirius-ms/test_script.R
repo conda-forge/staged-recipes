@@ -12,7 +12,7 @@ wait_for_job <- function(pid, job) {
 }
 
 pspace <- wrapper$project_spaces_api$GetProjectSpaces()[[1]]$name
-data <- file.path(Sys.getenv('RECIPE_DIR'),"Kaempferol.ms")
+data <- file.path(Sys.getenv('SRC_DIR'),"Kaempferol.ms")
 wrapper$compounds_api$ImportCompounds(pspace, c(data))
 config <- wrapper$computations_api$GetDefaultJobConfig()
 compoundId <- "1_Kaempferol_Kaempferol"
