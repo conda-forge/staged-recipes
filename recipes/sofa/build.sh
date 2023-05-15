@@ -12,7 +12,7 @@ echo 'sofa_add_subdirectory(plugin plugin.Cosserat CosseratPlugin)' >> ${SOFA_PL
 echo 'sofa_add_subdirectory(plugin BeamAdapter BeamAdapter)' >> ${SOFA_PLUGINS_DIR}/CMakeLists.txt
 echo 'sofa_add_subdirectory(plugin STLIB STLIB)' >> ${SOFA_PLUGINS_DIR}/CMakeLists.txt
 echo 'sofa_add_subdirectory(plugin ModelOrderReduction ModelOrderReduction)' >> ${SOFA_PLUGINS_DIR}/CMakeLists.txt
-# echo 'sofa_add_subdirectory(plugin SofaPython3 SofaPython3)' >> ${SOFA_PLUGINS_DIR}/CMakeLists.txt
+echo 'sofa_add_subdirectory(plugin SofaPython3 SofaPython3)' >> ${SOFA_PLUGINS_DIR}/CMakeLists.txt
 
 cmake ${CMAKE_ARGS} .. \
    -DSOFA_EXTERNAL_DIRECTORIES=${SRC_DIR}/plugins \
@@ -21,7 +21,9 @@ cmake ${CMAKE_ARGS} .. \
    -DPLUGIN_BEAMADAPTER=ON \
    -DPLUGIN_STLIB=ON \
    -DPLUGIN_MODELORDERREDUCTION=ON \
-#    -DPLUGIN_SOFAPYTHON3=ON \
+   -DPLUGIN_SOFAPYTHON3=ON \
+   -DPYTHON_EXECUTABLE=$CONDA_PREFIX/bin/python \
+   -DPython_FIND_STRATEGY=LOCATION \
 
 # build
 cmake --build . --parallel ${CPU_COUNT} --verbose
