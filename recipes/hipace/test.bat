@@ -2,7 +2,7 @@
 
 set "OMP_NUM_THREADS=2"
 set "TEST_DIR=tests"
-set "EXAMPLE_DIR=example\beam_in_vacuum"
+set "EXAMPLE_DIR=examples\beam_in_vacuum"
 
 :: executable
 hipace.NOMPI.NOACC.DP.exe %EXAMPLE_DIR%\inputs_SI

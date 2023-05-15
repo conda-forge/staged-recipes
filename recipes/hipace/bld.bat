@@ -29,5 +29,17 @@ if errorlevel 1 exit 1
 :: test -> deferred to test.bat
 
 :: install
-cmake --build build --config RelWithDebInfo --target install
-if errorlevel 1 exit 1
+::cmake --build build --config RelWithDebInfo --target install
+::if errorlevel 1 exit 1
+for /r "build\bin" %%f in (*.exe) do (
+    echo %%~nf
+    dir
+    copy build\bin\%%~nf.exe %LIBRARY_PREFIX%\bin\
+    if errorlevel 1 exit 1
+)
+for /r "build\lib" %%f in (*.dll) do (
+    echo %%~nf
+    dir
+    copy build\lib\%%~nf.dll %LIBRARY_PREFIX%\lib\
+    if errorlevel 1 exit 1
+)
