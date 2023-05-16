@@ -4,6 +4,8 @@ set -ex
 
 export CXXFLAGS="${CXXFLAGS} -D__STDC_FORMAT_MACROS -D_LIBCPP_DISABLE_AVAILABILITY"
 
+echo $PKG_VERSION > version
+
 ./build0.sh
 mkdir build
 cd build

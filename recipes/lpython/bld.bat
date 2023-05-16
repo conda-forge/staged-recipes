@@ -1,3 +1,5 @@
+echo %PKG_VERSION% > version
+
 call build0.bat
 if errorlevel 1 exit 1
 
