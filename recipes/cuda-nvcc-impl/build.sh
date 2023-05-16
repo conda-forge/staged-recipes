@@ -28,10 +28,6 @@ for i in `ls`; do
             ln -sv ${PREFIX}/${targetsDir}/lib ${PREFIX}/${targetsDir}/lib64
         elif [[ $i == "include" ]]; then
             cp -rv $i ${PREFIX}/${targetsDir}
-            for j in "$i"/*; do
-                # Headers are symlinked in $PREFIX/include
-                ln -sv ${PREFIX}/${targetsDir}/$j ${PREFIX}/$j
-            done
         elif [[ $i == "nvvm" ]]; then
             cp -rv $i ${PREFIX}
             ln -sv ${PREFIX}/nvvm ${PREFIX}/${targetsDir}/nvvm
