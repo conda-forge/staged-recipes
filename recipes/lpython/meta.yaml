@@ -1,0 +1,68 @@
+{% set name = "lpython" %}
+{% set version = "0.13.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/lcompilers/lpython/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 690290b497315db3401ac626d0b5fdb8a2091fff538a57f664640fa16c2f1e73
+  patches:
+    - macos_clock.patch
+    - win_tests.patch
+    - msvc_static.patch
+    - version.patch
+
+build:
+  number: 0
+  skip: true  # [py<36]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - make   # [unix]
+    - bison =3.4        # [not win]
+    - m2-bison =3.0.4   # [win]
+    - xonsh =0.13.4     # [win]
+    - ninja             # [win]
+
+  host:
+    - re2c =2.2
+    - xeus =2.4.1
+    - llvmdev =11.1.0
+    - xtl
+    - nlohmann_json
+    - cppzmq
+    - zlib
+  run:
+    # xeus breaks abi compatibility in patch versions even though
+    # run_exports say otherwise in https://github.com/conda-forge/xeus-feedstock/blob/0896038be810da2944ebcb612e22886815ea691e/recipe/meta.yaml#L18
+    - {{ pin_compatible("xeus", max_pin="x.x.x") }}  # [win]
+    - zstd =1.5.2  # [x86_64]
+
+test:
+  requires:
+    - jupyter
+  commands:
+    - test -f ${PREFIX}/bin/lpython  # [unix]
+    - if not exist %LIBRARY_PREFIX%\bin\lpython.exe exit 1  # [win]
+    - lpython --help
+    - lpython --version
+    - jupyter kernelspec list --json
+      # This fails if the `fortran` spec is not installed
+    - jupyter kernelspec remove -f fortran
+
+about:
+  home: https://lpython.org
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: Modern interactive LLVM-based Python compiler
+  dev_url: https://github.com/lcompilers/lpython.git
+
+extra:
+  recipe-maintainers:
+    - certik
