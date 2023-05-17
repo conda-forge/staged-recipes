@@ -6,9 +6,9 @@ mkdir build
 cd build
 
 cmake ${CMAKE_ARGS} .. \
-   -DSOFA_BUILD_TESTS=OFF \
-   # TODO: Check if necessary to build with metis for stlib plugin ?
-   # -DSOFA_BUILD_METIS=ON \ 
+   -DPYTHON_EXECUTABLE=$CONDA_PREFIX/bin/python \
+   -DPython_FIND_STRATEGY=LOCATION \
+   -DSP3_BUILD_TEST=OFF
 
 # build
 cmake --build . --parallel ${CPU_COUNT} --verbose

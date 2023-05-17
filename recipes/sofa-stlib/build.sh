@@ -6,9 +6,7 @@ mkdir build
 cd build
 
 cmake ${CMAKE_ARGS} .. \
-   -DSOFA_BUILD_TESTS=OFF \
-   # TODO: Check if necessary to build with metis for stlib plugin ?
-   # -DSOFA_BUILD_METIS=ON \ 
+  -DPLUGIN_SOFAPYTHON=ON
 
 # build
 cmake --build . --parallel ${CPU_COUNT} --verbose
