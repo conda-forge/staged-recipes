@@ -1,2 +1,2 @@
-set PKG_CONFIG_PATH=$BUILD_PREFIX/lib/pkgconfig
+set PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
 sip-install --verbose
