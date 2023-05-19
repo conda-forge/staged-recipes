@@ -1,0 +1,189 @@
+From 2d6d5481b86dcfe980a213c774b95a18851f0b69 Mon Sep 17 00:00:00 2001
+From: Peter Andreas Entschev <peter@entschev.com>
+Date: Tue, 25 Apr 2023 08:15:33 -0700
+Subject: [PATCH] Remove assertions on longer than `sockaddr_un.sun_path`
+ buffers
+
+This change is required to allow for conda relocatable packages (see
+https://docs.conda.io/projects/conda-build/en/latest/resources/make-relocatable.html).
+For this reason, the longest environment path in rdma-core is limited to
+90 characters:
+
+```
+sizeof(sockaddr_un.sun_path) - sizeof("/ibacm-unix.sock") - 1;
+```
+
+A custom implementation of `strlen` (here called `get_len`) is required
+to prevent compiler optimizations that will cause all evaluation to
+occur at compile-time, when we need them specifically to happen at
+runtime.
+
+If the environment's path is longer than 90 characters a comprehensive
+error message is printed and the program aborts.
+---
+ ibacm/src/acm.c     |  5 ++---
+ ibacm/src/libacm.c  |  5 ++---
+ librdmacm/acm.c     |  5 ++---
+ util/CMakeLists.txt |  2 ++
+ util/conda_forge.c  | 41 +++++++++++++++++++++++++++++++++++++++++
+ util/conda_forge.h  | 11 +++++++++++
+ 6 files changed, 60 insertions(+), 9 deletions(-)
+ create mode 100644 util/conda_forge.c
+ create mode 100644 util/conda_forge.h
+
+diff --git a/ibacm/src/acm.c b/ibacm/src/acm.c
+index ab081a07..b18d6479 100644
+--- a/ibacm/src/acm.c
++++ b/ibacm/src/acm.c
+@@ -65,6 +65,7 @@
+ #include <systemd/sd-daemon.h>
+ #include <ccan/list.h>
+ #include <util/util.h>
++#include <util/conda_forge.h>
+ #include "acm_mad.h"
+ #include "acm_util.h"
+ 
+@@ -625,9 +626,7 @@ static int acm_listen(void)
+ 
+ 	if (server_mode == IBACM_SERVER_MODE_UNIX) {
+ 		addr.any.sa_family = AF_UNIX;
+-		BUILD_ASSERT(sizeof(IBACM_IBACME_SERVER_PATH) <=
+-			     sizeof(addr.unx.sun_path));
+-		strcpy(addr.unx.sun_path, IBACM_IBACME_SERVER_PATH);
++		validate_and_copy_path(addr.unx.sun_path, IBACM_IBACME_SERVER_PATH);
+ 
+ 		listen_socket = socket(AF_UNIX, SOCK_STREAM, 0);
+ 		if (listen_socket < 0) {
+diff --git a/ibacm/src/libacm.c b/ibacm/src/libacm.c
+index d09be363..aaeaecb1 100644
+--- a/ibacm/src/libacm.c
++++ b/ibacm/src/libacm.c
+@@ -33,6 +33,7 @@
+ #include <osd.h>
+ #include "libacm.h"
+ #include <infiniband/acm.h>
++#include <util/conda_forge.h>
+ #include <stdio.h>
+ #include <errno.h>
+ #include <netdb.h>
+@@ -102,9 +103,7 @@ static int ib_acm_connect_unix(char *dest)
+ 			return errno;
+ 		}
+ 	} else {
+-		BUILD_ASSERT(sizeof(IBACM_IBACME_SERVER_PATH) <=
+-			     sizeof(addr.sun_path));
+-		strcpy(addr.sun_path, IBACM_IBACME_SERVER_PATH);
++		validate_and_copy_path(addr.sun_path, IBACM_IBACME_SERVER_PATH);
+ 	}
+ 
+ 	sock = socket(AF_UNIX, SOCK_STREAM, 0);
+diff --git a/librdmacm/acm.c b/librdmacm/acm.c
+index 807ff557..97d612aa 100644
+--- a/librdmacm/acm.c
++++ b/librdmacm/acm.c
+@@ -45,6 +45,7 @@
+ #include <rdma/rdma_cma.h>
+ #include <infiniband/ib.h>
+ #include <infiniband/sa.h>
++#include <util/conda_forge.h>
+ 
+ static pthread_mutex_t acm_lock = PTHREAD_MUTEX_INITIALIZER;
+ static int sock = -1;
+@@ -102,9 +103,7 @@ void ucma_ib_init(void)
+ 
+ 		memset(&addr, 0, sizeof(addr));
+ 		addr.any.sa_family = AF_UNIX;
+-		BUILD_ASSERT(sizeof(IBACM_SERVER_PATH) <=
+-			     sizeof(addr.unx.sun_path));
+-		strcpy(addr.unx.sun_path, IBACM_SERVER_PATH);
++		validate_and_copy_path(addr.unx.sun_path, IBACM_SERVER_PATH);
+ 		ret = connect(sock, &addr.any, sizeof(addr.unx));
+ 		if (ret) {
+ 			close(sock);
+diff --git a/util/CMakeLists.txt b/util/CMakeLists.txt
+index e8646bf2..f3944b88 100644
+--- a/util/CMakeLists.txt
++++ b/util/CMakeLists.txt
+@@ -1,6 +1,7 @@
+ publish_internal_headers(util
+   cl_qmap.h
+   compiler.h
++  conda_forge.h
+   node_name_map.h
+   rdma_nl.h
+   symver.h
+@@ -9,6 +10,7 @@ publish_internal_headers(util
+ 
+ set(C_FILES
+   cl_map.c
++  conda_forge.c
+   node_name_map.c
+   open_cdev.c
+   rdma_nl.c
+diff --git a/util/conda_forge.c b/util/conda_forge.c
+new file mode 100644
+index 00000000..e8d25a55
+--- /dev/null
++++ b/util/conda_forge.c
+@@ -0,0 +1,41 @@
++// SPDX-License-Identifier: GPL-2.0 OR Linux-OpenIB
++// Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
++
++#include <stdlib.h>
++#include <stdio.h>
++#include <sys/un.h>
++#include <util/conda_forge.h>
++
++#pragma GCC push_options
++#pragma GCC optimize ("O0")
++
++__attribute__((noinline)) static size_t get_len(const char *a)
++{
++	size_t count = 0;
++	char ai;
++		while (1) {
++			ai = a[count++];
++			if (ai == '\0')
++				return count;
++		}
++}
++
++__attribute__((noinline)) static void validate_path_length(const char* a)
++{
++	struct sockaddr_un unx;
++	if (get_len(a) > sizeof(unx.sun_path)) {
++		fprintf(
++			stderr,
++			"path for conda-forge's environment with rdma-core cannot be longer than 90 characters\n"
++		);
++		abort();
++	}
++}
++
++void validate_and_copy_path(char* dst, const char* src) {
++	validate_path_length(src);
++	strncpy(dst, src, sizeof(dst) - 1);
++	dst[sizeof(dst) - 1] = '\0';
++}
++
++#pragma GCC pop_options
+diff --git a/util/conda_forge.h b/util/conda_forge.h
+new file mode 100644
+index 00000000..7cefc004
+--- /dev/null
++++ b/util/conda_forge.h
+@@ -0,0 +1,11 @@
++// SPDX-License-Identifier: GPL-2.0 OR Linux-OpenIB
++// Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
++
++#ifndef UTIL_CONDA_FORGE_H
++#define UTIL_CONDA_FORGE_H
++
++#include <stddef.h>
++
++__attribute__((noinline)) void validate_and_copy_path(char* dst, const char* src);
++
++#endif
+-- 
+2.25.1
+
