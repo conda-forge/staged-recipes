@@ -1,2 +1,2 @@
-set PKG_CONFIG_PATH=$CONDA_PREFIX_1/lib/pkgconfig
+set PKG_CONFIG_PATH=$BUILD_PREFIX/lib/pkgconfig
 sip-install --verbose
