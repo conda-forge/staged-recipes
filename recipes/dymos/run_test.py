@@ -5,6 +5,8 @@ from os.path import join, dirname
 
 import dymos
 
+os.environ["MPLBACKEND"] = "Agg"
+
 
 test_files_to_delete = [
     # can't test these, yet, because of playwright
