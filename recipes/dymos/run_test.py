@@ -5,8 +5,11 @@ from os.path import join, dirname
 
 import dymos
 
-os.environ["MPLBACKEND"] = "Agg"
-
+os.environ.update({
+    "MPLBACKEND": "Agg",
+    "OPENMDAO_USE_MPI": "1",
+    "OMPI_MCA_rmaps_base_oversubscribe": "1",
+})
 
 test_files_to_delete = [
     # can't test these, yet, because of playwright
