@@ -7,7 +7,7 @@ import dymos
 
 os.environ.update({
     "MPLBACKEND": "Agg",
-    "OPENMDAO_USE_MPI": "1",
+    "OPENMDAO_USE_MPI": "0",
     "OMPI_MCA_rmaps_base_oversubscribe": "1",
 })
 
