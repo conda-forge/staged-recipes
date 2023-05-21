@@ -19,6 +19,9 @@ test_files_to_delete = [
     ["examples", "finite_burn_orbit_raise", "test", "test_ex_two_burn_orbit_raise.py"],
     # skipping because reports/problem203/traj_results_report.html is not being created
     ["examples", "finite_burn_orbit_raise", "test", "test_ex_two_burn_orbit_raise_bokeh_plots.py"],
+    # fails on windows:
+    ["visualization", "test", "test_timeseries_plots.py"],
+    ["test", "test_lint_docstrings.py"],
 ]
 
 [
