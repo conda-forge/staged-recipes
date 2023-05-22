@@ -1,7 +1,7 @@
 @echo on
 
 :: simple install prep
-::   copy all hipace*.exe and hipace*.dll files
+::   copy all hipace*.exe files
 if not exist %LIBRARY_PREFIX%\bin md %LIBRARY_PREFIX%\bin
 if errorlevel 1 exit 1
 
@@ -36,11 +36,5 @@ for /r "build\bin" %%f in (*.exe) do (
     echo %%~nf
     dir
     copy build\bin\%%~nf.exe %LIBRARY_PREFIX%\bin\
-    if errorlevel 1 exit 1
-)
-for /r "build\lib" %%f in (*.dll) do (
-    echo %%~nf
-    dir
-    copy build\lib\%%~nf.dll %LIBRARY_PREFIX%\lib\
     if errorlevel 1 exit 1
 )
