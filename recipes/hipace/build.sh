@@ -19,16 +19,16 @@ fi
 
 # configure
 cmake \
-    -S ${SRC_DIR} -B build                \
-    ${CMAKE_ARGS}                         \
-    -DCMAKE_BUILD_TYPE=RelWithDebInfo     \
-    -DCMAKE_VERBOSE_MAKEFILE=ON           \
-    -DCMAKE_INSTALL_LIBDIR=lib            \
-    -DCMAKE_INSTALL_PREFIX=${PREFIX}      \
-    -DHiPACE_COMPUTE=NOACC               \
-    -DHiPACE_IPO=${HiPACE_IPO}           \
-    -DHiPACE_amrex_branch=23.03          \
-    -DHiPACE_openpmd_internal=OFF        \
+    -S ${SRC_DIR} -B build            \
+    ${CMAKE_ARGS}                     \
+    -DCMAKE_BUILD_TYPE=Release        \
+    -DCMAKE_VERBOSE_MAKEFILE=ON       \
+    -DCMAKE_INSTALL_LIBDIR=lib        \
+    -DCMAKE_INSTALL_PREFIX=${PREFIX}  \
+    -DHiPACE_COMPUTE=NOACC            \
+    -DHiPACE_IPO=${HiPACE_IPO}        \
+    -DHiPACE_amrex_branch=23.03       \
+    -DHiPACE_openpmd_internal=OFF     \
     -DHiPACE_MPI=OFF
 
 # build
