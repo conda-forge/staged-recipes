@@ -21,6 +21,7 @@ fi
 cmake \
     -S ${SRC_DIR} -B build            \
     ${CMAKE_ARGS}                     \
+    -DAMReX_INSTALL=OFF               \
     -DCMAKE_BUILD_TYPE=Release        \
     -DCMAKE_VERBOSE_MAKEFILE=ON       \
     -DCMAKE_INSTALL_LIBDIR=lib        \

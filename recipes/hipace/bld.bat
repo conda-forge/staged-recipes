@@ -10,6 +10,7 @@ cmake ^
     -S %SRC_DIR% -B build          ^
     %CMAKE_ARGS%                   ^
     -G "Ninja"                     ^
+    -DAMReX_INSTALL=OFF            ^
     -DCMAKE_BUILD_TYPE=Release     ^
     -DCMAKE_C_COMPILER=clang-cl    ^
     -DCMAKE_CXX_COMPILER=clang-cl  ^
