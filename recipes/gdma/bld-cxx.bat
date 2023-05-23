@@ -8,8 +8,8 @@ cmake %CMAKE_ARGS% ^
   -B build ^
   -D CMAKE_BUILD_TYPE=Release ^
   -D CMAKE_INSTALL_PREFIX="%PREFIX%" ^
-  -D CMAKE_C_FLAGS="/EHsc %CFLAGS%" ^
-  -D CMAKE_Fortran_FLAGS="/EHsc %FFLAGS%" ^
+  -D CMAKE_C_FLAGS="%CFLAGS%" ^
+  -D CMAKE_Fortran_FLAGS="%FFLAGS%" ^
   -D CMAKE_INSTALL_LIBDIR="Library\lib" ^
   -D CMAKE_INSTALL_INCLUDEDIR="Library\include" ^
   -D CMAKE_INSTALL_BINDIR="Library\bin" ^
