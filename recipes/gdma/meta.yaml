@@ -1,0 +1,147 @@
+{% set name = "gdma" %}
+{% set version = "2.3.3" %}
+{% set sha256 = "7179646025d3f1c95d960d7b2443aa31f1769a2b726f9914e2b7bdb6190b82c3" %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+#  - url: https://github.com/jturney/{{ name }}/archive/v{{ version }}.tar.gz
+#    patches:
+#      -  0001-lapack-private-to-avoid-overlinking.patch
+  url: https://github.com/psi4/gdma/archive/libgdma.tar.gz
+  sha256: {{ sha256 }}
+#  - url: https://github.com/psi4/iomp5md/archive/31b4ccb.tar.gz               # [win]
+#    sha256: d9c6ad3976183f54b676335885d8557d67ca7b25ac4115b91b4cc42281d95f7c  # [win]
+#    folder: external_src                                                      # [win]
+
+build:
+  number: 0
+  binary_relocation: true
+
+outputs:
+  - name: gdma
+    script: build-cxx.sh                                                       # [unix]
+    script: bld-cxx.bat                                                        # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage('gdma', max_pin='x.x') }}
+#      ignore_run_exports:
+#        # not using hdf5's fortran interface
+#        - libgfortran-ng
+#        - libgfortran5
+    requirements:
+      build:
+        - {{ compiler('c') }}                                                  # [unix]
+        - {{ compiler('fortran') }}                                            # [unix]
+        - {{ compiler('m2w64_c') }}                                            # [win]
+        - {{ compiler('m2w64_fortran') }}                                      # [win]
+        - cmake
+        - ninja
+#        - llvm-openmp                                                          # [osx]
+#        - libgomp                                                              # [linux]
+#      host:
+#        - hdf5
+#        - libblas
+#        - liblapack
+#        - intel-openmp                                                         # [win]
+#      run:
+#        - intel-openmp                                                         # [win]
+    test:
+      requires:
+        - m2w64-binutils                                                       # [win]   # provides objdump.exe
+      commands:
+        - ls -l $PREFIX/lib                                                    # [unix]
+        - ls -l $PREFIX/share/cmake/gdma                                       # [unix]
+        - dir %PREFIX%\\Library\\lib                                           # [win]
+        - dir %PREFIX%\\Library\\share\\cmake\\gdma                            # [win]
+        # Verify library
+        - test -f $PREFIX/lib/libgdma$SHLIB_EXT                                # [unix]
+        - test ! -f $PREFIX/lib/libgdma.a                                      # [unix]
+        - if not exist %PREFIX%\\Library\\lib\\libgdma.dll.a exit 1            # [win]   # gnu import lib
+        - if not exist %PREFIX%\\Library\\lib\\libgdma.lib exit 1              # [win]   # ms import lib
+        - if not exist %PREFIX%\\Library\\bin\\libgdma.dll exit 1              # [win]   # gnu/ms dyn lib
+        - if exist %PREFIX%\\Library\\lib\\libgdma.a exit 1                    # [win]   # gnu static lib absent
+        # Verify accessories
+        - test -f $PREFIX/bin/gdma                                             # [unix]
+        - test -f $PREFIX/include/GDMA/GDMA_MANGLE.h                           # [unix]
+        - test -f $PREFIX/share/cmake/gdma/gdmaConfig.cmake                    # [unix]
+        - test -f $PREFIX/share/cmake/gdma/gdmaTargets-lib.cmake               # [unix]
+        - if not exist %PREFIX%\\Library\\bin\\gdma*                           # [win]
+        - if not exist %PREFIX%\\Library\\include\\GDMA\\GDMA_MANGLE.h exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\share\\cmake\\gdma\\gdmaConfig.cmake exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\share\\cmake\\gdma\\gdmaTargets-lib.cmake exit 1  # [win]
+        # Inspect linkage
+        - ldd -v $PREFIX/lib/libgdma$SHLIB_EXT                                 # [linux]
+        - otool -L $PREFIX/lib/libgdma$SHLIB_EXT                               # [osx]
+        - objdump.exe -p %PREFIX%\\Library\\lib\\libgdma.dll | findstr /i "dll"  # [win]
+
+  - name: pygdma
+    script: build-py.sh                                                        # [unix]
+    script: bld-py.bat                                                         # [win]
+    build:
+#      skip: true                                                               # [win]
+      skip: true                                                               # [py != 310]
+    requirements:
+      build:
+        - {{ compiler('cxx') }}                                                # [unix]
+        - {{ compiler('m2w64_c') }}                                            # [win]
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage('gdma', exact=True) }}
+        - python
+        - pybind11
+        - pybind11-abi
+#        - intel-openmp                                                         # [win]
+      run:
+        - {{ pin_subpackage('gdma', exact=True) }}
+        - python
+#        - intel-openmp                                                         # [win]
+    test:
+      requires:
+        - pip                                                                            # provides `pip check`
+#        - pytest
+#        - numpy
+        - m2w64-binutils                                                       # [win]   # provides objdump.exe
+#      files:
+#        - test_ambit.py
+      imports:
+        - gdma
+      commands:
+#        - ls -l $SP_DIR/ambit                                                  # [unix]
+#        - dir %SP_DIR%\\ambit                                                  # [win]
+        # Verify module
+        - test -f $SP_DIR/gdma*.so                                              # [unix]
+        - if not exist %SP_DIR%\\gdma*.pyd exit 1                               # [win]
+        # Verify accessories
+        - test -f $PREFIX/share/cmake/gdma/gdmaConfig.cmake                    # [unix]
+        - test -f $PREFIX/share/cmake/gdma/gdmaTargets-Python.cmake            # [unix]
+        - if not exist %PREFIX%\\Library\\share\\cmake\\gdma\\gdmaConfig.cmake exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\share\\cmake\\gdma\\gdmaTargets-Python.cmake exit 1  # [win]
+        # Inspect linkage
+        - ldd -v $SP_DIR/gdma*.so                                              # [linux]
+        - otool -L $SP_DIR/gdma*.so                                            # [osx]
+        - objdump.exe -p %SP_DIR%\\gdma.*.pyd | findstr /i "dll"               # [win]
+        # Actually test
+        - pip check
+#        - python test_ambit.py
+#        - pytest -v -rws --color yes $SP_DIR/ambit                             # [unix]
+#        - pytest -v -rws --color yes %SP_DIR%\\ambit                           # [win]
+
+about:
+  home: https://gitlab.com/anthonyjs/gdma
+  dev_url: https://gitlab.com/anthonyjs/gdma
+  doc_url: https://gitlab.com/anthonyjs/gdma/-/blob/master/doc/manual.pdf
+  doc_source_url: https://gitlab.com/anthonyjs/gdma/-/tree/master/doc
+  license: GPL-3.0-only
+  license_url: https://opensource.org/license/gpl-3-0/
+  license_file: LICENSE
+  license_family: GPL
+  summary: "A. J. Stone's Distributed Multipole Analysis for Gaussian wavefunctions"
+
+extra:
+  feedstock-name: gdma 
+  recipe-maintainers:
+    - loriab
