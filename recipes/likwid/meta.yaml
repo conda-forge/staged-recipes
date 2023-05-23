@@ -1,0 +1,56 @@
+{% set version = "5.2.2" %}
+package:
+  name: likwid
+  version: {{ version }}
+
+source:
+  url: https://github.com/RRZE-HPC/likwid/archive/refs/tags/v5.2.2.tar.gz
+  sha256: 7dda6af722e04a6c40536fc9f89766ce10f595a8569b29e80563767a6a8f940e
+
+build:
+  number: 0
+  skip: true  # [win or osx]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - make
+    - wget  # [not win]
+  host:
+    - cudatoolkit-dev  # [cuda_compiler_version != "None"]
+
+test:
+  commands:
+    - test -f $PREFIX/include/likwid.h                              # [not win]
+    - test -f $PREFIX/lib/liblikwid.so                              # [not win]
+    - test -f $PREFIX/bin/likwid-perfctr                            # [not win]
+
+outputs:
+  - name: likwid
+    build:
+      string: cuda{{ cuda_compiler_version | replace('.', '') }}    # [cuda_compiler_version != "None"]
+      string: cpu                                                   # [cuda_compiler_version == "None"]
+      track_features:
+        - likwid-cpu                                                # [cuda_compiler_version == "None"]
+
+  {% set likwid_cpu_gpu = "likwid-cpu" %}   # [cuda_compiler_version == "None" or cuda_compiler_version is undefined]
+  {% set likwid_cpu_gpu = "likwid-gpu" %}   # [cuda_compiler_version != "None"]
+  - name: {{ likwid_cpu_gpu }}
+    build:
+      string: cuda{{ cuda_compiler_version | replace('.', '') }}  # [cuda_compiler_version != "None"]
+      string: cpu                                                 # [cuda_compiler_version == "None"]
+    requirements:
+      run:
+        - {{ pin_subpackage("likwid", exact=True) }}
+
+about:
+  home: https://github.com/RRZE-HPC/likwid
+  license: GPL-3.0-only
+  license_file: COPYING
+  summary: Performance monitoring and benchmarking suite
+
+extra:
+  feedstock-name: likwid
+  recipe-maintainers:
+    - lukastruemper
