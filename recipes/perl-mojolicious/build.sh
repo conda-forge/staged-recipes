@@ -11,9 +11,9 @@ if [[ -f Build.PL ]]; then
 elif [[ -f Makefile.PL ]]; then
     # Make sure this goes in site
     perl Makefile.PL # INSTALLDIRS=site
-    make
-    make test
-    make install
+    cmake
+    cmake test
+    cmake install
     mkdir -p $PREFIX/lib/site_perl/
     cp -r $BUILD_PREFIX/lib/site_perl/* $PREFIX/lib/site_perl/
 else
