@@ -1,11 +1,10 @@
 import sys
 import subprocess
 import platform
-import os
 from pathlib import Path
 
-SRC_DIR = Path(os.environ["SRC_DIR"])
-TESTS = SRC_DIR / "tests"
+HERE = Path(__file__).parent
+TESTS = HERE / "tests"
 
 # pytest arg inputs... etcd is available on conda-forge, so  _could_ be tested, but...
 SKIPS = ["etcd", "consul"]
