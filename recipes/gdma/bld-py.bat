@@ -1,4 +1,4 @@
-set "CXX=g++.exe"
+REM set "CXX=g++.exe"
 
 cmake %CMAKE_ARGS% ^
   -G "Ninja" ^
@@ -6,7 +6,8 @@ cmake %CMAKE_ARGS% ^
   -B "build_py%PY_VER%" ^
   -D CMAKE_BUILD_TYPE=Release ^
   -D CMAKE_INSTALL_PREFIX="%PREFIX%" ^
-  -D CMAKE_CXX_FLAGS="%CXXFLAGS%" ^
+  -D CMAKE_CXX_COMPILER=clang-cl ^
+  -D CMAKE_CXX_FLAGS="/EHsc %CXXFLAGS%" ^
   -D CMAKE_INSTALL_LIBDIR="Library\lib" ^
   -D CMAKE_INSTALL_INCLUDEDIR="Library\include" ^
   -D CMAKE_INSTALL_BINDIR="Library\bin" ^
@@ -24,15 +25,4 @@ cmake --build build_py%PY_VER% ^
       --target install ^
       -- -j %CPU_COUNT%
 if errorlevel 1 exit 1
-
-::REM pytest in conda testing stage
-::
-::
-::REM pyambit builds and imports and starts just fine, but it fails at anything complicated, hence the build/skip. output from test_ambit.py below
-::
-::REM before
-::REM initialized
-::REM fill dims=[9, 7]
-::REM <ambit.pyambit.Tensor object at 0x0000016EA1F1AEB0>
-::REM [[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0]]
 
