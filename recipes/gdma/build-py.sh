@@ -24,4 +24,3 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
 
 cmake --build build_py${PY_VER} --target install -j${CPU_COUNT}
 
-## pytest in conda testing stage

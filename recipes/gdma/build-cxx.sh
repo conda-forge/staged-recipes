@@ -27,6 +27,3 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
 
 cmake --build build --target install -j${CPU_COUNT}
 
-#cd build
-#ctest --rerun-failed --output-on-failure -j${CPU_COUNT}
-

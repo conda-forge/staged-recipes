@@ -1,4 +1,3 @@
-REM set "CXX=g++.exe"
 
 cmake %CMAKE_ARGS% ^
   -G "Ninja" ^
