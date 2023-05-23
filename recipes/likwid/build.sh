@@ -1,3 +1,4 @@
+# Detect whether gcc or clang
 if [[ $CC == *"clang"* ]]; then
     export COMPILER="CLANG"
 else
