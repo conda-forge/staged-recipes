@@ -2,4 +2,4 @@
 
 mkdir ${PREFIX}/bin
 
-copy ${SRC_DIR}/utilities/* ${PREFIX}/bin
+cp ${SRC_DIR}/utilities/* ${PREFIX}/bin
