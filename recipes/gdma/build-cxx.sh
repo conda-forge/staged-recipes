@@ -8,9 +8,6 @@ if [ "$(uname)" == "Linux" ]; then
 
 fi
 
-ls -l
-cat CMakeLists.txt
-
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
   -S ${SRC_DIR} \
   -B build \
