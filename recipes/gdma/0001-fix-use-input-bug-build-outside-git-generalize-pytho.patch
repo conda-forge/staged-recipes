@@ -1,0 +1,103 @@
+From 8a2891230b4da94fcd1faf4d6d94fd40e7d35c3a Mon Sep 17 00:00:00 2001
+From: "Lori A. Burns" <lori.burns@gmail.com>
+Date: Wed, 24 May 2023 03:24:18 -0400
+Subject: [PATCH 1/5] fix use input bug, build outside git, generalize python
+ scripts
+
+---
+ examples/diff.py                    |  2 +-
+ examples/formamide_psi4/HCONH2.psi4 |  2 +-
+ examples/gdma_tests.py              |  4 ++--
+ src/dma.f90                         |  2 +-
+ src/version.py                      | 12 ++++++++----
+ 5 files changed, 13 insertions(+), 9 deletions(-)
+
+diff --git a/examples/diff.py b/examples/diff.py
+index 111696a..1f3d0f5 100755
+--- a/examples/diff.py
++++ b/examples/diff.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/python3
++#!/usr/bin/env python
+ #  -*-  coding:  utf-8  -*-
+ 
+ """Check test output against check files.
+diff --git a/examples/formamide_psi4/HCONH2.psi4 b/examples/formamide_psi4/HCONH2.psi4
+index ea1d5ea..0caa5cc 100755
+--- a/examples/formamide_psi4/HCONH2.psi4
++++ b/examples/formamide_psi4/HCONH2.psi4
+@@ -1,4 +1,4 @@
+-#!/usr/bin/python3
++#!/usr/bin/env python
+ #  -*-  coding:  utf-8  -*-
+ 
+ import os, sys
+diff --git a/examples/gdma_tests.py b/examples/gdma_tests.py
+index cac5c85..def32d2 100755
+--- a/examples/gdma_tests.py
++++ b/examples/gdma_tests.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/python3
++#!/usr/bin/env python
+ #  -*-  coding:  utf-8  -*-
+ 
+ """Run the gdma tests.
+@@ -47,7 +47,7 @@ for test in tests:
+     for f in ["out", "punch"]:
+         if os.path.exists(f): os.remove(f)
+     with open("data") as D, open("out","w") as OUT:
+-        rc = subprocess.call([program], stdin=D, stdout=OUT, stderr=subprocess.STDOUT)
++        rc = subprocess.call([args.p], stdin=D, stdout=OUT, stderr=subprocess.STDOUT)
+     if rc != 0:
+         print(f"GDMA failed with return code {rc:1d}")
+     else:
+diff --git a/src/dma.f90 b/src/dma.f90
+index 41a2bf8..e55f55c 100644
+--- a/src/dma.f90
++++ b/src/dma.f90
+@@ -329,7 +329,7 @@ CONTAINS
+ !-----------------------------------------------------------------   DMA
+ 
+ SUBROUTINE dma_main(w,kp)
+-USE common_routines
++USE input
+ IMPLICIT NONE
+ !-----------------------------------------------------
+ !     Copyright A J Stone University of Cambridge 1983
+diff --git a/src/version.py b/src/version.py
+index a57c046..2a7fb92 100755
+--- a/src/version.py
++++ b/src/version.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/python3
++#!/usr/bin/env python
+ #  -*-  coding:  utf-8  -*-
+ 
+ """Construct the version.f90 file that contains version details.
+@@ -23,6 +23,7 @@ description="""Construct the version.f90 file that contains version details.
+ parser.add_argument("vfile", help="VERSION file path")
+ parser.add_argument("v90", help="version.f90 file path")
+ parser.add_argument("compiler", help="Compiler")
++parser.add_argument("--commit", help="commit to avoid git", default="use_git")
+ 
+ args = parser.parse_args()
+ 
+@@ -33,9 +34,12 @@ with open(args.vfile) as IN:
+   patchlevel = re.sub("PATCHLEVEL +:= +", "", line)
+ 
+ now = datetime.today().strftime('%d %B %Y at %H:%M:%S')
+-log = subprocess.check_output("git log -n 1 --oneline", shell=True,
+-                              universal_newlines=True)
+-commit = log.split()[0]
++if args.commit == "use_git":
++    log = subprocess.check_output("git log -n 1 --oneline", shell=True,
++                                  universal_newlines=True)
++    commit = log.split()[0]
++else:
++    commit = args.commit
+ 
+ with open(args.v90,"w") as OUT:
+   OUT.write(f"""MODULE version
+-- 
+2.40.1
+

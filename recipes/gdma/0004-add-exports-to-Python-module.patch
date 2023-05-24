@@ -1,0 +1,156 @@
+From e62b98f4cdfd5f5f9c711e5e85c123d1a1e2149a Mon Sep 17 00:00:00 2001
+From: "Lori A. Burns" <lori.burns@gmail.com>
+Date: Wed, 24 May 2023 03:51:49 -0400
+Subject: [PATCH 4/5] add exports to Python module
+
+---
+ pygdma/CMakeLists.txt       | 110 ++++++++++++++++++++++++++++++++++++
+ pygdma/bindings.cc.cmake.in |  19 +++++++
+ 2 files changed, 129 insertions(+)
+ create mode 100644 pygdma/CMakeLists.txt
+ create mode 100644 pygdma/bindings.cc.cmake.in
+
+diff --git a/pygdma/CMakeLists.txt b/pygdma/CMakeLists.txt
+new file mode 100644
+index 0000000..157c71d
+--- /dev/null
++++ b/pygdma/CMakeLists.txt
+@@ -0,0 +1,110 @@
++if (CMAKE_HOST_WIN32)
++    cmake_minimum_required(VERSION 3.21)
++else()
++    cmake_minimum_required(VERSION 3.16)
++endif()
++cmake_policy(SET CMP0079 NEW)
++project(
++  pygdma
++  VERSION 2.3.3  # SYNC WITH `project(gdma VERSION <>)` in <top_level>/CMakeLists.txt
++  LANGUAGES CXX
++  )
++set(pygdma_AUTHORS      "Anthony J. Stone")
++set(pygdma_DESCRIPTION  "Gaussian Distributed Multipole Analysis")
++set(pygdma_URL          "https://www-stone.ch.cam.ac.uk/pub/gdma/")
++set(pygdma_LICENSE      "GNU General Public License, version 3")
++
++list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../cmake)
++
++################################### Options ####################################
++include(psi4OptionsTools)
++option_with_default(CMAKE_BUILD_TYPE "Build type (Release or Debug)" Release)
++option_with_default(PYMOD_INSTALL_LIBDIR "Location within CMAKE_INSTALL_LIBDIR to which python modules are installed" /)
++option_with_default(gdma_INSTALL_CMAKEDIR "Directory to which gdma CMake config files installed." share/cmake/gdma)
++
++################################# Main Project #################################
++include(autocmake_safeguards)
++include(GNUInstallDirs)
++set(CMAKECONFIG_INSTALL_DIR "${gdma_INSTALL_CMAKEDIR}")
++
++set(Python_ADDITIONAL_VERSIONS 3.11 3.10 3.9 3.8 3.7)  # adjust with CMake minimum FindPythonInterp
++find_package(Python 3.7 COMPONENTS Interpreter Development REQUIRED)
++message(STATUS "Found Python ${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}: ${Python_EXECUTABLE} (found version ${Python_VERSION})")
++
++if (NOT TARGET pybind11::pybind11)
++    find_package(pybind11 CONFIG REQUIRED)
++endif()
++
++if (APPLE)
++    set(base "@loader_path")
++else()
++    set(base "$ORIGIN")
++endif()
++file(RELATIVE_PATH relDir ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}${PYMOD_INSTALL_LIBDIR}
++                          ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
++set(CMAKE_INSTALL_RPATH ${base} ${base}/${relDir})
++
++message(STATUS "pygdma rpath: ${CMAKE_INSTALL_RPATH}")
++
++configure_file(bindings.cc.cmake.in bindings.cc @ONLY)  # bake in version string
++pybind11_add_module(pygdma MODULE bindings.cc)
++target_compile_features(pygdma PRIVATE "cxx_std_17")
++add_library(gdma::pygdma ALIAS pygdma)
++
++if(NOT TARGET gdma::gdma)
++    find_package(gdma CONFIG REQUIRED)
++endif()
++target_link_libraries(pygdma PRIVATE gdma::gdma)
++
++if(MSVC)
++    target_compile_definitions(pygdma PUBLIC _USE_MATH_DEFINES)
++    target_compile_options(pygdma PUBLIC "/EHsc")
++    set_target_properties(
++      pygdma
++      PROPERTIES
++        WINDOWS_EXPORT_ALL_SYMBOLS ON
++      )
++endif()
++
++set(export_properties
++  "gdma_VERSION"
++  "gdma_PYMOD"
++  )
++
++set_target_properties(
++  pygdma
++  PROPERTIES
++    OUTPUT_NAME gdma
++    EXPORT_NAME pygdma
++    INSTALL_RPATH "${CMAKE_INSTALL_RPATH}"
++    # below two are covered by pb11. Use pybind11_add_module(... NO_EXTRAS) to experiment here.
++    # CXX_VISIBILITY_PRESET "hidden"
++    # VISIBILITY_INLINES_HIDDEN 1
++    gdma_VERSION ${pygdma_VERSION}
++    gdma_PYMOD "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}${PYMOD_INSTALL_LIBDIR}"
++    EXPORT_PROPERTIES "${export_properties}"
++  )
++
++# It's not clear whether Python bindings should get a Config.cmake file and/or a separate project().
++#   See https://github.com/jturney/ambit/blob/master/pyambit/CMakeLists.txt#L88 for discussion, esp. for packagers.
++
++install(
++  TARGETS
++    pygdma
++  EXPORT
++    python_interface
++  LIBRARY DESTINATION
++    ${CMAKE_INSTALL_LIBDIR}${PYMOD_INSTALL_LIBDIR}
++  )
++
++install(
++  EXPORT
++    python_interface
++  FILE
++    "gdmaTargets-Python.cmake"
++  NAMESPACE
++    "gdma::"
++  DESTINATION
++    ${CMAKECONFIG_INSTALL_DIR}
++  )
++
+diff --git a/pygdma/bindings.cc.cmake.in b/pygdma/bindings.cc.cmake.in
+new file mode 100644
+index 0000000..e72ce53
+--- /dev/null
++++ b/pygdma/bindings.cc.cmake.in
+@@ -0,0 +1,19 @@
++#include <pybind11/pybind11.h>
++
++extern "C" void run_gdma(const char* outfilename, const char* datfilename);
++extern "C" int get_nsites();
++extern "C" int get_order(int site);
++extern "C" double get_dma_value(int site, int addr);
++extern "C" double get_tot_value(int addr);
++
++PYBIND11_MODULE(gdma, m) {
++    
++    m.def("run_gdma", &run_gdma,
++          "Execute the GDMA analysis with input directives from the file named in the second argument (FCHK file specified therein) and direct output to the file named in the first argument.");
++    m.def("get_nsites", &get_nsites, "Return count of sites at which multipoles are placed in DMA analysis.");
++    m.def("get_order", &get_order, "Return multipole order for site in first argument (1-indexed).");
++    m.def("get_dma_value", &get_dma_value, "Return the spherical harmonic DMA for the site in the first argument for component in the second argument (both 1-indexed).");
++    m.def("get_tot_value", &get_tot_value, "Return the total multipoles translated to the origin for component in first argument (1-indexed).");
++    m.attr("__version__") = "@pygdma_VERSION@";
++}
++
+-- 
+2.40.1
+
