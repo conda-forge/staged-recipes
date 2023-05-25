@@ -6,7 +6,10 @@ mkdir build
 cd build
 
 cmake ${CMAKE_ARGS} .. \
-   -DSOFA_BUILD_TESTS=OFF \
+  -DSOFA_BUILD_TESTS=OFF \
+  -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+  -DSOFA_ENABLE_LEGACY_HEADERS=OFF \
+
    # TODO: Check if necessary to build with metis for stlib plugin ?
    # -DSOFA_BUILD_METIS=ON \ 
 
