@@ -4,7 +4,6 @@ import platform
 from pathlib import Path
 
 HERE = Path(__file__).parent
-TESTS = HERE / "tests"
 
 # pytest arg inputs... etcd is available on conda-forge, so  _could_ be tested, but...
 SKIPS = ["etcd", "consul"]
@@ -31,4 +30,4 @@ PYTEST_ARGS = [
 
 if __name__ == "__main__":
     print("\t".join(PYTEST_ARGS))
-    sys.exit(subprocess.call(PYTEST_ARGS, cwd=str(TESTS)))
+    sys.exit(subprocess.call(PYTEST_ARGS))
