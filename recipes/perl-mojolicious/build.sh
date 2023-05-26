@@ -14,8 +14,6 @@ elif [[ -f Makefile.PL ]]; then
     make
     make test
     make install
-    mkdir -p $PREFIX/lib/site_perl/
-    cp -r $BUILD_PREFIX/lib/site_perl/* $PREFIX/lib/site_perl/
 else
     echo 'Unable to find Build.PL or Makefile.PL. You need to modify build.sh.'
     exit 1
