@@ -17,6 +17,7 @@ cmake -LAH -G "NMake Makefiles" ^
   -D CMAKE_BUILD_TYPE=%BUILD_TYPE% ^
   -D CMAKE_C_COMPILER:PATH=%MINGWBIN%/gcc.exe ^
   -D CMAKE_Fortran_COMPILER:PATH=%MINGWBIN%/gfortran.exe ^
+  -D CMAKE_CXX_COMPILER:PATH=%MINGWBIN%/gxx.exe ^
   -D CMAKE_GNUtoMS:BOOL=ON ^
   -D GRIB=ON ^
   -D NCDF=ON ^
