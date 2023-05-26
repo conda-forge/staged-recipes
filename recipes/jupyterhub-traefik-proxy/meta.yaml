@@ -1,0 +1,151 @@
+{% set version = "1.0.1" %}
+
+package:
+  name: jupyterhub-traefik-proxy-split
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/j/jupyterhub-traefik-proxy/jupyterhub-traefik-proxy-{{ version }}.tar.gz
+  sha256: 19f242763eb0ee4861537ed956cafe78db49c3bf653e7726717adce39599e2f5
+  patches:
+    - 000-ipv4-localhost.diff
+
+build:
+  noarch: python
+  number: 0
+
+requirements:
+  host:
+    - python >=3.6
+  run:
+    - python >=3.6
+
+outputs:
+  - name: jupyterhub-traefik-proxy
+    build:
+      noarch: python
+      script:
+        - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    requirements:
+      host:
+        - pip
+        - python >=3.6
+      run:
+        - aiohttp
+        - escapism
+        - jupyterhub >=0.9
+        - passlib
+        - python >=3.6
+        - toml
+        - traefik >=2,<3
+    test:
+      imports:
+        - jupyterhub_traefik_proxy
+        - jupyterhub_traefik_proxy.fileprovider
+      commands:
+        - pip check
+      requires:
+        - pip
+
+  - name: jupyterhub-traefik-proxy-with-consul
+    build:
+      noarch: python
+    requirements:
+      host:
+        - pip
+        - python >=3.6
+      run:
+        - {{ pin_subpackage("jupyterhub-traefik-proxy", max_pin="x.x.x") }}
+        - python >=3.6
+        - python-consul2
+    test:
+      imports:
+        - jupyterhub_traefik_proxy
+        - jupyterhub_traefik_proxy.consul
+      commands:
+        - pip check
+      requires:
+        - pip
+
+  - name: jupyterhub-traefik-proxy-with-etcd
+    build:
+      noarch: python
+    requirements:
+      host:
+        - pip
+        - python >=3.6
+      run:
+        - {{ pin_subpackage("jupyterhub-traefik-proxy", max_pin="x.x.x") }}
+        - etcdpy
+        - python >=3.6
+    test:
+      imports:
+        - jupyterhub_traefik_proxy
+        - jupyterhub_traefik_proxy.etcd
+      commands:
+        - pip check
+      requires:
+        - pip
+
+  - name: jupyterhub-traefik-proxy-with-yaml
+    build:
+      noarch: python
+    requirements:
+      host:
+        - pip
+        - python >=3.6
+      run:
+        - {{ pin_subpackage("jupyterhub-traefik-proxy", max_pin="x.x.x") }}
+        - python >=3.6
+        - ruamel.yaml
+    test:
+      imports:
+        - jupyterhub_traefik_proxy
+      commands:
+        - pip check
+      requires:
+        - pip
+
+  - name: jupyterhub-traefik-proxy-with-all
+    build:
+      noarch: python
+    requirements:
+      host:
+        - pip
+        - python >=3.6
+      run:
+        - {{ pin_subpackage("jupyterhub-traefik-proxy-with-consul", max_pin="x.x.x") }}
+        - {{ pin_subpackage("jupyterhub-traefik-proxy-with-etcd", max_pin="x.x.x") }}
+        - {{ pin_subpackage("jupyterhub-traefik-proxy-with-yaml", max_pin="x.x.x") }}
+        - {{ pin_subpackage("jupyterhub-traefik-proxy", max_pin="x.x.x") }}
+        - python >=3.6
+    test:
+      files:
+        - run_test_all.py
+      source_files:
+        - tests
+      imports:
+        - jupyterhub_traefik_proxy
+      commands:
+        - pip check
+        - python run_test_all.py
+      requires:
+        - notebook >=4.0,<7.0
+        - pip
+        - pytest
+        - pytest-asyncio
+        - pytest-cov
+        - websockets
+        - urllib3 <2
+
+about:
+  home: https://jupyterhub-traefik-proxy.readthedocs.io
+  summary: JupyterHub proxy implementation with traefik
+  dev_url: https://github.com/jupyterhub/traefik-proxy
+  license: BSD-3-Clause
+  license_file: LICENSE
+
+extra:
+  feedstock-name: jupyterhub-traefik-proxy
+  recipe-maintainers:
+    - bollwyvl
