@@ -1,11 +1,21 @@
 #! /usr/bin/env bash
+export BUILD_TYPE=Release
 mkdir build && cd build
 
-cmake .. \
-  -DCMAKE_INSTALL_PREFIX=$PREFIX \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DGRIB=ON \
-  -DNCDF=ON \
-  -DOPENGL=OFF
+if [[ "$target_platform" == osx-* ]]; then
+  export FFLAGS="-isysroot $CONDA_BUILD_SYSROOT $FFLAGS"
+fi
 
-cmake --build . --target install --config Release
+cmake \
+  ${CMAKE_ARGS} \
+  -D CMAKE_INSTALL_PREFIX=$PREFIX \
+  -D CMAKE_BUILD_TYPE=${BUILD_TYPE} \
+  -D GRIB=ON \
+  -D NCDF=ON \
+  -D OPENGL=OFF \
+  $SRC_DIR
+
+
+#cmake --build . --target install --config Release
+make 
+make install
