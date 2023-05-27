@@ -6,22 +6,27 @@ set "MINGWBIN=%LIBRARY_PREFIX%/mingw-w64/bin"
 
 set BUILD_TYPE=Release
 
-:: set "LDFLAGS=%LDFLAGS% -lnetcdff"
+set "LDFLAGS=-L%LIBRARY_PREFIX%/lib -Wl,-rpath,%LIBRARY_PREFIX%/lib -lnetcdff"
+set "CFLAGS=-fPIC -I%LIBRARY_PREFIX%/include"
 
 mkdir build 
 cd build
 
-cmake -LAH -G "Unix Makefiles" ^
+cmake -LAH -G "MinGW Makefiles" ^
   %CMAKE_ARGS% ^
+  -D CMAKE_C_COMPILER:PATH=%MINGWBIN%/gcc.exe ^
+  -D CMAKE_Fortran_COMPILER:PATH=%MINGWBIN%/gfortran.exe ^
+  -D CMAKE_GNUtoMS:BOOL=ON ^
   -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
+  -D CMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
   -D CMAKE_BUILD_TYPE=%BUILD_TYPE% ^
   -D GRIB=OFF ^
-  -D NCDF=OFF ^
+  -D NCDF=ON ^
   -D OPENGL=OFF ^
   %SRC_DIR%
 if errorlevel 1 exit 1
 
-:: cmake --build . --target install --config %BUILD_TYPE%
-make
-make install
+cmake --build . --target install --config %BUILD_TYPE%
+::make
+::make install
 if errorlevel 1 exit 1
