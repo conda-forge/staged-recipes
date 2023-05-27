@@ -4,11 +4,11 @@ mkdir build && cd build
 
 export ENABLE_GRIB=ON
 
-export LDFLAGS="$LDFLAGS -lnetcdff"
+export LDFLAGS="$LDFLAGS -lnetcdff -leccodes_f90"
 
 if [[ "$target_platform" == osx-* ]]; then
   export FFLAGS="-isysroot $CONDA_BUILD_SYSROOT $FFLAGS"
-  export ENABLE_GRIB=OFF
+  export ENABLE_GRIB=ON
 fi
 
 cmake \
