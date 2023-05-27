@@ -6,6 +6,8 @@ set "MINGWBIN=%LIBRARY_PREFIX%/mingw-w64/bin"
 
 set BUILD_TYPE=Release
 
+set "LDFLAGS=-lnetcdff"
+
 mkdir build 
 cd build
 
@@ -19,7 +21,7 @@ cmake -LAH -G "Unix Makefiles" ^
   %SRC_DIR%
 if errorlevel 1 exit 1
 
-rem cmake --build . --target install --config %BUILD_TYPE%
+:: cmake --build . --target install --config %BUILD_TYPE%
 make
 make install
 if errorlevel 1 exit 1

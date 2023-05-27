@@ -4,6 +4,8 @@ mkdir build && cd build
 
 export ENABLE_GRIB=ON
 
+export LDFLAGS="$LDFLAGS -lnetcdff"
+
 if [[ "$target_platform" == osx-* ]]; then
   export FFLAGS="-isysroot $CONDA_BUILD_SYSROOT $FFLAGS"
   export ENABLE_GRIB=OFF
