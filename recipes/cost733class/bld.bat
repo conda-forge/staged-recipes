@@ -6,7 +6,7 @@ set "MINGWBIN=%LIBRARY_PREFIX%/mingw-w64/bin"
 
 set BUILD_TYPE=Release
 
-set "LDFLAGS=-lnetcdff"
+set "LDFLAGS=%LDFLAGS% -lnetcdff"
 
 mkdir build 
 cd build
