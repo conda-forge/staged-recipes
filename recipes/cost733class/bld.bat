@@ -2,7 +2,11 @@
 set "cwd=%cd%"
 
 set "LIBRARY_PREFIX=%LIBRARY_PREFIX:\=/%"
-set "MINGWBIN=%LIBRARY_PREFIX%/mingw-w64/bin"
+::set "MINGWBIN=%LIBRARY_PREFIX%/mingw-w64/bin"
+
+::  -D CMAKE_C_COMPILER:PATH=%MINGWBIN%/gcc.exe ^
+::  -D CMAKE_Fortran_COMPILER:PATH=%MINGWBIN%/gfortran.exe ^
+::  -D CMAKE_GNUtoMS:BOOL=ON ^
 
 set BUILD_TYPE=Release
 
@@ -14,9 +18,6 @@ cd build
 
 cmake -LAH -G "MinGW Makefiles" ^
   %CMAKE_ARGS% ^
-  -D CMAKE_C_COMPILER:PATH=%MINGWBIN%/gcc.exe ^
-  -D CMAKE_Fortran_COMPILER:PATH=%MINGWBIN%/gfortran.exe ^
-  -D CMAKE_GNUtoMS:BOOL=ON ^
   -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
   -D CMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
   -D CMAKE_BUILD_TYPE=%BUILD_TYPE% ^
