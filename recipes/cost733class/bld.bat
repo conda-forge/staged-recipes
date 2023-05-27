@@ -13,7 +13,7 @@ cmake -LAH -G "Unix Makefiles" ^
   %CMAKE_ARGS% ^
   -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
   -D CMAKE_BUILD_TYPE=%BUILD_TYPE% ^
-  -D GRIB=ON ^
+  -D GRIB=OFF ^
   -D NCDF=ON ^
   -D OPENGL=OFF ^
   %SRC_DIR%
