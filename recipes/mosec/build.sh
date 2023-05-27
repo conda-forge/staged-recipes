@@ -3,9 +3,9 @@
 set -euo pipefail
 
 cargo build --release
-mkdir -p mosec/bin
-cp target/$CARGO_BUILD_TARGET/release/mosec mosec/bin
-pip install .
+$PYTHON -m pip install .
+mkdir -p $SP_DIR/$PKG_NAME/bin
+cp target/$CARGO_BUILD_TARGET/release/mosec $SP_DIR/$PKG_NAME/bin
 
 # generate the license file
 cargo install cargo-license
