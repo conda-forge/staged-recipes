@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 097a1839..a50032cc 100644
+index 097a1839..4357d6c5 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -36,8 +36,52 @@ dgl_option(USE_S3 "Build with S3 support" OFF)
@@ -95,7 +95,7 @@ index 097a1839..a50032cc 100644
    if(NOT APPLE)
      set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--warn-common ${CMAKE_SHARED_LINKER_FLAGS}")
    endif(NOT APPLE)
-@@ -206,65 +253,202 @@ endif(USE_CUDA)
+@@ -206,65 +253,224 @@ endif(USE_CUDA)
  
  set_property(TARGET dgl PROPERTY CXX_STANDARD 14)
  
@@ -149,25 +149,6 @@ index 097a1839..a50032cc 100644
 +    message(FATAL_ERROR "Conda environment not detected")
 +  endif()
 +endif()
-+
-+# dlpack is just an include
-+if (USE_EXTERNAL_DLPACK)
-+  if (EXTERNAL_DLPACK_PATH)
-+    message()
-+    message(STATUS "EXTERNAL_DLPACK_PATH set to ${EXTERNAL_DLPACK_PATH}")
-+    include_directories(SYSTEM ${EXTERNAL_DLPACK_PATH})
-+  else()
-+    message(STATUS "EXTERNAL_DLPACK_PATH not set falling back to find_package")
-+    find_package(DLPACK REQUIRED)
-+    if (DLPACK_FOUND)
-+      target_include_directories(dgl PRIVATE ${DLPACK_INCLUDE_DIRS})
-+    else()
-+      message(FATAL_ERROR "dlpack not found")
-+    endif()
-+  endif()
-+else()
-+  target_include_directories(dgl PRIVATE "third_party/dlpack/include")
-+endif()
  
 -# Compile LIBXSMM
 -if((NOT MSVC) AND USE_LIBXSMM)
@@ -183,6 +164,23 @@ index 097a1839..a50032cc 100644
 -  add_dependencies(dgl libxsmm)
 -  list(APPEND DGL_LINKER_LIBS -L${CMAKE_SOURCE_DIR}/third_party/libxsmm/lib/ xsmm)
 -endif((NOT MSVC) AND USE_LIBXSMM)
++# dlpack is just an include
++if (USE_EXTERNAL_DLPACK)
++  if (EXTERNAL_DLPACK_PATH)
++    message(STATUS "EXTERNAL_DLPACK_PATH set to ${EXTERNAL_DLPACK_PATH}")
++    include_directories(SYSTEM ${EXTERNAL_DLPACK_PATH})
++  else()
++    message(STATUS "EXTERNAL_DLPACK_PATH not set falling back to find_package")
++    find_package(DLPACK REQUIRED)
++    if (DLPACK_FOUND)
++      target_include_directories(dgl PRIVATE ${DLPACK_INCLUDE_DIRS})
++    else()
++      message(FATAL_ERROR "dlpack not found")
++    endif()
++  endif()
++else()
++  target_include_directories(dgl PRIVATE "third_party/dlpack/include")
++endif()
  
 -if(NOT MSVC)
 -  # Only build tensorpipe on linux
@@ -192,17 +190,24 @@ index 097a1839..a50032cc 100644
 -  list(APPEND DGL_LINKER_LIBS tensorpipe)
 -  target_include_directories(dgl PRIVATE third_party/tensorpipe)
 -endif(NOT MSVC)
++
 +# dmlc-core
 +if (USE_EXTERNAL_DMLC)
 +  if (USE_HDFS)
 +    message(FATAL_ERROR "external lib DMLC does not support HDFS")
 +  endif()
-+  find_package(DMLC REQUIRED)
-+  if(DMLC_FOUND)
-+    target_include_directories(dgl PRIVATE ${DMLC_INCLUDE_DIR})
-+    target_link_libraries(dgl ${DMLC_LIBRARY})
++  if (EXTERNAL_DMLC_PATH)
++    message(STATUS "EXTERNAL_DMLC_PATH set to ${EXTERNAL_DMLC_PATH}")
++    include_directories(SYSTEM ${EXTERNAL_DMLC_PATH})
 +  else()
-+    message(FATAL_ERROR "dmlc not found")
++    message(STATUS "EXTERNAL_DMLC_PATH not set falling back to find_package")
++    find_package(DMLC REQUIRED)
++    if(DMLC_FOUND)
++      target_include_directories(dgl PRIVATE ${DMLC_INCLUDE_DIR})
++      target_link_libraries(dgl ${DMLC_LIBRARY})
++    else()
++      message(FATAL_ERROR "dmlc not found")
++    endif()
 +  endif()
 +else()
 +  target_include_directories(dgl PRIVATE "third_party/dmlc-core/include")
@@ -252,11 +257,17 @@ index 097a1839..a50032cc 100644
 +
 +# phmap
 +if (USE_EXTERNAL_PHMAP)
-+  find_package(PHMAP REQUIRED)
-+  if (PHMAP_FOUND)
-+    target_include_directories(dgl SYSTEM PUBLIC ${PHMAP_INCLUDE_DIR})
++  if(EXTERNAL_PHMAP_PATH)
++    message(STATUS "EXTERNAL_PHMAP_PATH set to ${EXTERNAL_PHMAP_PATH}")
++    include_directories(SYSTEM ${EXTERNAL_PHMAP_PATH})
 +  else()
-+    message(FATAL_ERROR "phmap not found")
++    message(STATUS "EXTERNAL_PHMAP_PATH not set falling back to find_package")
++    find_package(PHMAP REQUIRED)
++    if (PHMAP_FOUND)
++      target_include_directories(dgl SYSTEM PUBLIC ${PHMAP_INCLUDE_DIR})
++    else()
++      message(FATAL_ERROR "phmap not found")
++    endif()
 +  endif()
 +else()
 +  target_include_directories(dgl PRIVATE "third_party/phmap/")
@@ -265,11 +276,17 @@ index 097a1839..a50032cc 100644
 +
 +# xbyak 
 +if (USE_EXTERNAL_XBYAK)
-+  find_package(XBYAK REQUIRED)
-+  if (XBYAK_FOUND)
-+    target_include_directories(dgl SYSTEM PUBLIC ${XBYAK_INCLUDE_DIR})
++  if (EXTERNAL_XBYAK_PATH)
++    message(STATUS "EXTERNAL_XBYAK_PATH set to ${EXTERNAL_XBYAK_PATH}")
++    include_directories(SYSTEM ${EXTERNAL_XBYAK_PATH})
 +  else()
-+    message(FATAL_ERROR "xbyak not found")
++    message(STATUS "EXTERNAL_XBYAK_PATH not set falling back to find_package")
++    find_package(XBYAK REQUIRED)
++    if (XBYAK_FOUND)
++      target_include_directories(dgl SYSTEM PUBLIC ${XBYAK_INCLUDE_DIR})
++    else()
++      message(FATAL_ERROR "xbyak not found")
++    endif()
 +  endif()
 +else()
 +  target_include_directories(dgl PRIVATE "third_party/xbyak/")
@@ -277,11 +294,17 @@ index 097a1839..a50032cc 100644
 +
 +# nanoflann
 +if (USE_EXTERNAL_NANOFLANN)
-+  find_package(NANOFLANN REQUIRED)
-+  if (NANOFLANN_FOUND)
-+    target_include_directories(dgl SYSTEM PUBLIC ${NANOFLANN_INCLUDE_DIR})
++  if(EXTERNAL_NANOFLANN_PATH)
++    message(STATUS "EXTERNAL_NANOFLANN_PATH set to ${EXTERNAL_NANOFLANN_PATH}")
++    include_directories(SYSTEM ${EXTERNAL_NANOFLANN_PATH})
 +  else()
-+    message(FATAL_ERROR "nanoflann not found")
++    message(STATUS "EXTERNAL_NANOFLANN_PATH not set falling back to find_package")
++    find_package(NANOFLANN REQUIRED)
++    if (NANOFLANN_FOUND)
++      target_include_directories(dgl SYSTEM PUBLIC ${NANOFLANN_INCLUDE_DIR})
++    else()
++      message(FATAL_ERROR "nanoflann not found")
++    endif()
 +  endif()
 +else()
 +  target_include_directories(dgl PRIVATE "third_party/nanoflann/include")
@@ -291,7 +314,6 @@ index 097a1839..a50032cc 100644
 +
 +
 +if (USE_LIBXSMM)
-+
 +  target_include_directories(dgl PRIVATE "third_party/libxsmm/include")
 +  # Compile LIBXSMM
 +  if(MSVC)
@@ -343,7 +365,7 @@ index 097a1839..a50032cc 100644
    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUSE_TVM")
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_TVM")
    target_include_directories(dgl PRIVATE "featgraph/include")
-@@ -292,6 +476,9 @@ endif(MSVC)
+@@ -292,6 +498,9 @@ endif(MSVC)
  # of the wrong version when I build everything in the same CMake process.  As
  # a result, I (BarclayII) am launching an individual CMake build for every PyTorch version.
  if(BUILD_TORCH)
@@ -353,7 +375,7 @@ index 097a1839..a50032cc 100644
    file(TO_NATIVE_PATH ${CMAKE_CURRENT_BINARY_DIR} BINDIR)
    file(TO_NATIVE_PATH ${CMAKE_COMMAND} CMAKE_CMD)
    if(MSVC)
-@@ -320,11 +507,16 @@ if(BUILD_TORCH)
+@@ -320,11 +529,16 @@ if(BUILD_TORCH)
    add_dependencies(dgl tensoradapter_pytorch)
  endif(BUILD_TORCH)
  
