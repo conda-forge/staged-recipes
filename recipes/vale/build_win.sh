@@ -117,6 +117,7 @@ pushd "src/${module}"
         --ignore=vendor/golang.org/x/net/idna \
         --ignore=vendor/golang.org/x/sys/cpu \
         --ignore=vendor/golang.org/x/text/secure/bidirule \
+        --ignore=vendor/golang.org/x/text/transform \
         --ignore=vendor/golang.org/x/text/unicode/bidi \
         --ignore=vendor/golang.org/x/text/unicode/norm \
         || exit 1
