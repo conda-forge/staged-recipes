@@ -20,6 +20,7 @@ pushd "src/${module}"
     # the --ignores are all stdlib, found for some reason
     go-licenses save "./cmd/${PKG_NAME}" \
         --save_path "${SRC_DIR}/license-files" \
+        --ignore=github.com/xi2/xz \
         || exit 1
 popd
 
