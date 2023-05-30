@@ -124,4 +124,9 @@ pushd "src/${module}"
 popd
 
 # Make GOPATH directories writeable so conda-build can clean everything up.
-find "$( go env GOPATH )" -type d -exec chmod +w {} \;
+#
+#   TODO: this fails currently... maybe could be batched?
+#
+#   find: The environment is too large for exec().
+#
+# find "$( go env GOPATH )" -type d -exec chmod +w {} \;
