@@ -30,6 +30,16 @@ pushd "src/${module}"
         --ignore=hash/crc32 \
         --ignore=hash/crc64 \
         --ignore=html \
+        --ignore=internal/bytealg \
+        --ignore=internal/coverage/rtcov \
+        --ignore=internal/cpu \
+        --ignore=internal/goarch \
+        --ignore=internal/goexperiment \
+        --ignore=internal/goos \
+        --ignore=internal/race \
+        --ignore=internal/syscall/windows \
+        --ignore=internal/syscall/windows/registry \
+        --ignore=internal/sysinfo \
         --ignore=io/fs \
         --ignore=log \
         --ignore=os/signal \
