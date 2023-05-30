@@ -1,0 +1,102 @@
+{% set org = "tdegeus" %}
+{% set name = "GooseEPM" %}
+{% set version = "0.2.0" %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/{{ org }}/{{ name }}/archive/v{{ version }}.tar.gz
+  sha256: d6191851d44ac1ae309a97ff56d3d3db6d2e5708e666999344dce717d929699f
+
+build:
+  number: 0
+
+outputs:
+
+  - name: {{ name|lower }}
+
+    script: install.sh  # [unix]
+    script: install.bat  # [win]
+
+    build:
+      script_env: SETUPTOOLS_SCM_PRETEND_VERSION={{ version }}
+
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - cmake
+        - make  # [unix]
+      host:
+        - prrng >=1.8.0
+        - xtensor >=0.24.4
+      run:
+        - prrng >=1.8.0
+        - xtensor >=0.24.4
+
+    test:
+      commands:
+        - test -d ${PREFIX}/include/{{ name }}  # [unix]
+        - test -f ${PREFIX}/include/{{ name }}/System.h  # [unix]
+        - test -f ${PREFIX}/lib/cmake/{{ name }}/{{ name }}Config.cmake  # [unix]
+        - if exist %LIBRARY_PREFIX%\include\{{ name }}\System.h (exit 0) else (exit 1)  # [win]
+        - if exist %LIBRARY_PREFIX%\lib\cmake\{{ name }}Config.cmake (exit 0) else (exit 1)  # [win]
+
+  - name: python-{{ name|lower }}
+
+    script: install_python.sh  # [unix]
+    script: install_python.bat  # [win]
+
+    build:
+      script_env: SETUPTOOLS_SCM_PRETEND_VERSION={{ version }}
+      skip: true  # [python_impl == 'pypy']
+
+    requirements:
+      build:
+        - python                              # [build_platform != target_platform]
+        - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+        - numpy *                             # [build_platform != target_platform]
+        - setuptools_scm                      # [build_platform != target_platform]
+        - {{ compiler('cxx') }}
+        - cmake
+        - make  # [unix]
+        - ninja
+      host:
+        - numpy *
+        - pip
+        - prrng >=1.8.0
+        - pybind11
+        - pybind11-abi
+        - python
+        - scikit-build
+        - setuptools_scm
+        - xtensor >=0.24.4
+        - xtensor-python
+      run:
+        - numpy *
+        - python
+        - scipy
+
+    test:
+      imports:
+        - {{ name }}
+      commands:
+        - pip check
+        - python -c "import {{ name }}; assert {{ name }}.version() == '{{ version }}'"
+      requires:
+        - pip
+
+about:
+  home: https://github.com/{{ org }}/{{ name }}
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: Elasto-plastic model.
+  description: Elasto-plastic model.
+  doc_url: https://{{ org }}.github.io/{{ name }}
+  dev_url: https://github.com/{{ org }}/{{ name }}
+
+extra:
+  recipe-maintainers:
+    - tdegeus
