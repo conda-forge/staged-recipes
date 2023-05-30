@@ -17,10 +17,26 @@ pushd "src/${module}"
         -o "${PREFIX}/bin/${PKG_NAME}.exe" \
         "./cmd/${PKG_NAME}" \
         || exit 1
-    # the --ignores are all stdlib, found for some reason
+    # except the first, all --ignores are stdlib, found for some reason
     go-licenses save "./cmd/${PKG_NAME}" \
         --save_path "${SRC_DIR}/license-files" \
         --ignore=github.com/xi2/xz \
+        --ignore=archive/tar \
+        --ignore=compress/flate \
+        --ignore=embed \
+        --ignore=encoding \
+        --ignore=encoding/csv \
+        --ignore=flag \
+        --ignore=hash/crc32 \
+        --ignore=hash/crc64 \
+        --ignore=html \
+        --ignore=io/fs \
+        --ignore=log \
+        --ignore=os/signal \
+        --ignore=os/user \
+        --ignore=runtime \
+        --ignore=runtime/debug \
+        --ignore=testing \
         || exit 1
 popd
 
