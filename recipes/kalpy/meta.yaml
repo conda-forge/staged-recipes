@@ -2,7 +2,7 @@
 {% set version = "0.0.1" %}
 
 package:
-  name: {{ name|lower }}
+  name: kalpy-split
   version: {{ version }}
 
 source:
@@ -13,39 +13,57 @@ build:
   script: {{ PYTHON }} -m pip install . -vv
   number: 0
   script_env:
-   - KALDI_ROOT={{environ.get('LIBRARY_PREFIX')}}  # win
-   - KALDI_ROOT={{environ.get('PREFIX')}}  # not win
+   - CMAKE_MAKE_PROGRAM=Ninja
+   - KALDI_ROOT={{ environ.get('LIBRARY_PREFIX') }}  # win
+   - KALDI_ROOT={{ environ.get('PREFIX') }}  # not win
 
 requirements:
   build:
     - {{ compiler('cxx') }}
-  host:
-    - python
-    - pip
-    - cmake
-    - ninja
-    - kaldi
-    - pybind11
-    - pynini
-    - openfst
-    - setuptools_scm
-    - numpy
-  run:
-    - python
-    - kaldi
-    - librosa
-    - numpy
-    - pynini
-    - openfst
 
-test:
-  imports:
-    - _kalpy
-    - kalpy
-  requires:
-    - pip
-  commands:
-    - pip check
+outputs:
+  - name: kalpy
+    build:
+      string: cuda{{ cuda_compiler_version | replace('.', '') }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+      string: cpu_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                                # [cuda_compiler_version == "None"]
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ compiler('fortran') }}  # [not win]
+        - {{ compiler('cuda') }}     # [cuda_compiler_version != "None"]
+        - cmake
+        - ninja
+        - m2-patch  # [win]
+        - libtool   # [not win]
+        - automake  # [not win]
+      host:
+        - python
+        - pip
+        - cmake
+        - ninja
+        - kaldi
+        - pybind11
+        - pynini
+        - openfst
+        - setuptools_scm
+        - numpy
+      run:
+        - python
+        - kaldi
+        - librosa
+        - numpy
+        - pynini
+        - openfst
+      run_exports:
+        - {{ pin_subpackage('kalpy', max_pin='x.x.x') }}
+    test:
+      imports:
+        - _kalpy
+        - kalpy
+      requires:
+        - pip
+      commands:
+        - pip check
 
 about:
   home: https://github.com/mmcauliffe/kalpy
