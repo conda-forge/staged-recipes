@@ -38,7 +38,6 @@ configure_args=(
     --enable-shared
     --with-cxx-binding
     --with-lua-binding
-    --with-perl-binding
     --with-python-binding
     --with-tcl-binding
     --with-tcl="$PREFIX/lib"
@@ -58,11 +57,12 @@ if [[ "$target_platform" == win-* ]]; then
         am_cv_python_pythondir="$SP_DIR"
         PYTHON_EXTRA_LIBS=" "
         PYTHON_EXTRA_LDFLAGS=" "
-        --with-perl-inc="$PREFIX/lib/CORE"
+        #--with-perl-inc="$PREFIX/lib/CORE"
     )
 else
     core_perl_dir="$(perldir="$PREFIX/lib/perl*/*/core_perl"; echo $perldir)"
     configure_args+=(
+        --with-perl-binding
         --with-perl-inc="$core_perl_dir/CORE"
     )
 fi
@@ -100,22 +100,24 @@ else
     # lua bindings need to link with lua library on Windows
     sed -i "s/\(Hamliblua_la_LIBADD = \)\(.*\)/\1\2 \$(LUA_LIB)/g" bindings/Makefile
     # tell Perl's MakeMaker to use nmake since GNU make is not supported
-    sed -i "/MAKEFILE=\"Hamlib-pl.mk\".*/aMAKE=\"nmake\" \\\\" bindings/Makefile
-    sed -i "s/\$(MAKE).*\(-f Hamlib-pl.mk\)/env -u MAKE -u MAKEFLAGS nmake \1/g" bindings/Makefile
+    #sed -i "/MAKEFILE=\"Hamlib-pl.mk\".*/aMAKE=\"nmake\" \\\\" bindings/Makefile
+    #sed -i "s/\$(MAKE).*\(-f Hamlib-pl.mk\)/env -u MAKE -u MAKEFLAGS nmake \1/g" bindings/Makefile
     # debug ld for perl binding
-    sed -i "/MAKEFILE=\"Hamlib-pl.mk\".*/aLDDLFLAGS=\"-mdll \\\\\$\$(LDFLAGS) -Wl,--verbose -Wl,--no-gc-sections\" \\\\" bindings/Makefile
+    #sed -i "/MAKEFILE=\"Hamlib-pl.mk\".*/aLDDLFLAGS=\"-mdll \\\\\$\$(LDFLAGS) -Wl,--verbose -Wl,--no-gc-sections\" \\\\" bindings/Makefile
 fi
 
 make V=1
 
-pushd bindings
-# fix to link perl bindings with host libs
-sed -i "s|-L$BUILD_PREFIX|-L$PREFIX|g" Hamlib-pl.mk
-sed -i "s|-Wl,-rpath,$BUILD_PREFIX|-Wl,-rpath,$PREFIX|g" Hamlib-pl.mk
-sed -i "s|-Wl,-rpath-link,$BUILD_PREFIX|-Wl,-rpath-link,$PREFIX|g" Hamlib-pl.mk
-# rebuild the perl bindings with these changes
-make all-perl
-popd
+if [[ "$target_platform" != win-* ]]; then
+    pushd bindings
+    # fix to link perl bindings with host libs
+    sed -i "s|-L$BUILD_PREFIX|-L$PREFIX|g" Hamlib-pl.mk
+    sed -i "s|-Wl,-rpath,$BUILD_PREFIX|-Wl,-rpath,$PREFIX|g" Hamlib-pl.mk
+    sed -i "s|-Wl,-rpath-link,$BUILD_PREFIX|-Wl,-rpath-link,$PREFIX|g" Hamlib-pl.mk
+    # rebuild the perl bindings with these changes
+    make all-perl
+    popd
+fi
 
 make install
 
