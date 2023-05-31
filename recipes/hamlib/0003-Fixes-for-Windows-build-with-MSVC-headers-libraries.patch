@@ -1,0 +1,1006 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ryan Volz <ryan.volz@gmail.com>
+Date: Sat, 24 Dec 2022 16:36:23 -0500
+Subject: [PATCH] Fixes for Windows build with MSVC headers/libraries.
+
+---
+ lib/getaddrinfo.c                     | 2 ++
+ lib/getopt.h                          | 2 ++
+ lib/usleep.c                          | 4 ++++
+ macros/gr_pwin32.m4                   | 5 +++++
+ rigs/adat/adat.c                      | 2 ++
+ rigs/drake/drake.c                    | 2 ++
+ rigs/dummy/dummy.c                    | 2 ++
+ rigs/dummy/netrigctl.c                | 2 ++
+ rigs/dummy/rot_dummy.c                | 2 ++
+ rigs/elad/elad.c                      | 2 ++
+ rigs/flexradio/dttsp.c                | 2 ++
+ rigs/gomspace/gs100.c                 | 4 +---
+ rigs/icom/icom.c                      | 2 ++
+ rigs/kenwood/kenwood.c                | 2 ++
+ rigs/kenwood/tmd710.c                 | 4 +---
+ rigs/lowe/lowe.c                      | 2 ++
+ rigs/prm80/prm80.h                    | 2 ++
+ rigs/tentec/paragon.c                 | 2 ++
+ rigs/tentec/tt550.c                   | 2 ++
+ rigs/tuner/videodev.h                 | 2 ++
+ rigs/tuner/videodev2.h                | 2 ++
+ rigs/uniden/uniden.c                  | 2 ++
+ rigs/winradio/g313-posix.c            | 2 ++
+ rigs/yaesu/ft980.c                    | 2 ++
+ rigs/yaesu/yaesu.c                    | 2 ++
+ rotators/grbltrk/grbltrk.c            | 6 +++---
+ rotators/meade/meade.c                | 2 ++
+ rotators/satel/satel.c                | 2 ++
+ rotators/ts7400/include/readADC.c     | 2 ++
+ rotators/ts7400/include/test7400ADC.c | 2 ++
+ rotators/ts7400/ts7400.c              | 2 ++
+ security/AESStringCrypt.c             | 2 ++
+ security/sctest.c                     | 2 ++
+ security/security.c                   | 2 ++
+ simulators/simelecraft.c              | 2 ++
+ simulators/simicom.c                  | 4 ++++
+ simulators/simicom9700.c              | 8 ++++++++
+ simulators/simkenwood.c               | 2 ++
+ simulators/simyaesu.c                 | 2 ++
+ src/amplifier.c                       | 2 ++
+ src/cm108.c                           | 2 ++
+ src/gpio.c                            | 2 ++
+ src/iofunc.c                          | 4 ++++
+ src/microham.c                        | 4 ++++
+ src/misc.c                            | 2 ++
+ src/network.c                         | 2 ++
+ src/parallel.c                        | 2 ++
+ src/rig.c                             | 2 ++
+ src/rotator.c                         | 2 ++
+ src/serial.c                          | 2 ++
+ src/settings.c                        | 2 ++
+ src/sleep.c                           | 2 ++
+ tests/ampctl_parse.c                  | 2 ++
+ tests/ampctld.c                       | 2 ++
+ tests/rig_bench.c                     | 4 ++++
+ tests/rigctl_parse.c                  | 2 ++
+ tests/rigctld.c                       | 2 ++
+ tests/rigtestlibusb.c                 | 2 ++
+ tests/rotctl_parse.c                  | 2 ++
+ tests/rotctld.c                       | 2 ++
+ tests/testrig.c                       | 2 ++
+ tests/testrigopen.c                   | 4 ++++
+ tests/testtrn.c                       | 2 ++
+ 63 files changed, 146 insertions(+), 9 deletions(-)
+
+diff --git a/lib/getaddrinfo.c b/lib/getaddrinfo.c
+index 723ced00..f38c9acd 100644
+--- a/lib/getaddrinfo.c
++++ b/lib/getaddrinfo.c
+@@ -26,7 +26,9 @@
+ 
+ #include <stdlib.h>
+ #include <stdio.h>   /* Standard input/output definitions */
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>  /* UNIX standard function definitions */
++#endif
+ #include <fcntl.h>   /* File control definitions */
+ #include <errno.h>   /* Error number definitions */
+ #include <sys/types.h>
+diff --git a/lib/getopt.h b/lib/getopt.h
+index a678d6d5..643301e9 100644
+--- a/lib/getopt.h
++++ b/lib/getopt.h
+@@ -19,6 +19,8 @@
+ #ifndef _GETOPT_H
+ #define _GETOPT_H 1
+ 
++#include "hamlib/config.h"
++
+ #ifdef	__cplusplus
+ extern "C" {
+ #endif
+diff --git a/lib/usleep.c b/lib/usleep.c
+index 70ad2d3f..01cdcc32 100644
+--- a/lib/usleep.c
++++ b/lib/usleep.c
+@@ -20,8 +20,12 @@ This file is part of the GNU C Library.
+ 
+ #ifndef HAVE_USLEEP
+ 
++#ifdef HAVE_SYS_TYPES_H
+ #include <sys/types.h>
++#endif
++#ifdef HAVE_SYS_TIME_H
+ #include <sys/time.h>
++#endif
+ 
+ #ifdef HAVE_SYS_SELECT_H
+ # include <sys/select.h>
+diff --git a/macros/gr_pwin32.m4 b/macros/gr_pwin32.m4
+index df37e12a..8fefb739 100644
+--- a/macros/gr_pwin32.m4
++++ b/macros/gr_pwin32.m4
+@@ -91,6 +91,11 @@ int usleep(unsigned long usec);	/* SUSv2 */
+ #ifndef HAVE_GETTIMEOFDAY
+ #ifdef HAVE_SYS_TIME_H
+ #include <sys/time.h>
++#else
++#include <time.h>
++#ifdef HAVE_WINDOWS_H
++#include <windows.h>
++#endif
+ #endif
+ #ifndef HAVE_STRUCT_TIMEZONE
+ struct timezone {
+diff --git a/rigs/adat/adat.c b/rigs/adat/adat.c
+index 89adee3b..854e8b79 100644
+--- a/rigs/adat/adat.c
++++ b/rigs/adat/adat.c
+@@ -30,7 +30,9 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <ctype.h>
+ 
+ // ---------------------------------------------------------------------------
+diff --git a/rigs/drake/drake.c b/rigs/drake/drake.c
+index e1f10203..e86d53e4 100644
+--- a/rigs/drake/drake.c
++++ b/rigs/drake/drake.c
+@@ -24,7 +24,9 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>  /* String function definitions */
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>  /* UNIX standard function definitions */
++#endif
+ 
+ #include "hamlib/rig.h"
+ #include "serial.h"
+diff --git a/rigs/dummy/dummy.c b/rigs/dummy/dummy.c
+index f85b040e..0bedecb1 100644
+--- a/rigs/dummy/dummy.c
++++ b/rigs/dummy/dummy.c
+@@ -28,7 +28,9 @@
+ // cppcheck-suppress *
+ #include <string.h>  /* String function definitions */
+ // cppcheck-suppress *
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>  /* UNIX standard function definitions */
++#endif
+ // cppcheck-suppress *
+ #include <time.h>
+ 
+diff --git a/rigs/dummy/netrigctl.c b/rigs/dummy/netrigctl.c
+index 3aba3def..f881b472 100644
+--- a/rigs/dummy/netrigctl.c
++++ b/rigs/dummy/netrigctl.c
+@@ -24,7 +24,9 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>  /* String function definitions */
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>  /* UNIX standard function definitions */
++#endif
+ #include <errno.h>
+ 
+ #include "hamlib/rig.h"
+diff --git a/rigs/dummy/rot_dummy.c b/rigs/dummy/rot_dummy.c
+index 514d7c19..bf8419b5 100644
+--- a/rigs/dummy/rot_dummy.c
++++ b/rigs/dummy/rot_dummy.c
+@@ -24,7 +24,9 @@
+ #include <stdlib.h>
+ #include <string.h>  /* String function definitions */
+ #include <math.h>
++#ifdef HAVE_SYS_TIME_H
+ #include <sys/time.h>
++#endif
+ 
+ #include "hamlib/rotator.h"
+ #include "dummy_common.h"
+diff --git a/rigs/elad/elad.c b/rigs/elad/elad.c
+index 5c6fa515..328f5ecd 100644
+--- a/rigs/elad/elad.c
++++ b/rigs/elad/elad.c
+@@ -26,7 +26,9 @@
+ #include <stdlib.h>
+ #include <stdio.h>
+ #include <string.h>  /* String function definitions */
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>  /* UNIX standard function definitions */
++#endif
+ #include <math.h>
+ #include <ctype.h>
+ 
+diff --git a/rigs/flexradio/dttsp.c b/rigs/flexradio/dttsp.c
+index a780fd10..b475251a 100644
+--- a/rigs/flexradio/dttsp.c
++++ b/rigs/flexradio/dttsp.c
+@@ -27,7 +27,9 @@
+ #include <stdlib.h>
+ #include <stdio.h>   /* Standard input/output definitions */
+ #include <string.h>  /* String function definitions */
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>  /* UNIX standard function definitions */
++#endif
+ #include <fcntl.h>   /* File control definitions */
+ #include <errno.h>   /* Error number definitions */
+ #include <math.h>
+diff --git a/rigs/gomspace/gs100.c b/rigs/gomspace/gs100.c
+index bb8f0cf1..a3c30d72 100644
+--- a/rigs/gomspace/gs100.c
++++ b/rigs/gomspace/gs100.c
+@@ -22,9 +22,7 @@
+ 
+ /* Includes ------------------------------------------------------------------*/
+ 
+-#ifdef HAVE_CONFIG_H
+-#include "config.h"
+-#endif
++#include <hamlib/config.h>
+ 
+ #include <stdio.h>
+ #include <stdlib.h>
+diff --git a/rigs/icom/icom.c b/rigs/icom/icom.c
+index e17d1e98..c908df91 100644
+--- a/rigs/icom/icom.c
++++ b/rigs/icom/icom.c
+@@ -27,7 +27,9 @@
+ // cppcheck-suppress *
+ #include <string.h>     /* String function definitions */
+ // cppcheck-suppress *
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>     /* UNIX standard function definitions */
++#endif
+ // cppcheck-suppress *
+ #include <math.h>
+ 
+diff --git a/rigs/kenwood/kenwood.c b/rigs/kenwood/kenwood.c
+index 055bb3e1..55bd113a 100644
+--- a/rigs/kenwood/kenwood.c
++++ b/rigs/kenwood/kenwood.c
+@@ -25,7 +25,9 @@
+ #include <stdlib.h>
+ #include <stdio.h>
+ #include <string.h>  /* String function definitions */
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>  /* UNIX standard function definitions */
++#endif
+ #include <ctype.h>
+ 
+ #include "hamlib/rig.h"
+diff --git a/rigs/kenwood/tmd710.c b/rigs/kenwood/tmd710.c
+index bc2c4998..a0dcdbeb 100644
+--- a/rigs/kenwood/tmd710.c
++++ b/rigs/kenwood/tmd710.c
+@@ -34,9 +34,7 @@
+  *
+  */
+ 
+-#ifdef HAVE_CONFIG_H
+-#include "config.h"
+-#endif
++#include <hamlib/config.h>
+ 
+ #include <stdlib.h>
+ #include <math.h>
+diff --git a/rigs/lowe/lowe.c b/rigs/lowe/lowe.c
+index 9e111e6d..e6ae975f 100644
+--- a/rigs/lowe/lowe.c
++++ b/rigs/lowe/lowe.c
+@@ -23,7 +23,9 @@
+ 
+ #include <stdio.h>
+ #include <string.h>  /* String function definitions */
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>  /* UNIX standard function definitions */
++#endif
+ 
+ #include "hamlib/rig.h"
+ #include "serial.h"
+diff --git a/rigs/prm80/prm80.h b/rigs/prm80/prm80.h
+index ac7a957b..d5a58563 100644
+--- a/rigs/prm80/prm80.h
++++ b/rigs/prm80/prm80.h
+@@ -22,7 +22,9 @@
+ #ifndef _PRM80_H
+ #define _PRM80_H 1
+ 
++#ifdef HAVE_SYS_TIME_H
+ #include <sys/time.h>
++#endif
+ #include <hamlib/rig.h>
+ #include "misc.h"
+ 
+diff --git a/rigs/tentec/paragon.c b/rigs/tentec/paragon.c
+index 74085f49..0cfa1969 100644
+--- a/rigs/tentec/paragon.c
++++ b/rigs/tentec/paragon.c
+@@ -24,7 +24,9 @@
+ #include <stdio.h>
+ #include <string.h>
+ #include <stdlib.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ 
+ #include "hamlib/rig.h"
+ #include "tentec.h"
+diff --git a/rigs/tentec/tt550.c b/rigs/tentec/tt550.c
+index 6c1cc4c7..9b1b9868 100644
+--- a/rigs/tentec/tt550.c
++++ b/rigs/tentec/tt550.c
+@@ -25,7 +25,9 @@
+ #include <stdlib.h>
+ #include <stdio.h>      /* Standard input/output definitions */
+ #include <string.h>     /* String function definitions */
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>     /* UNIX standard function definitions */
++#endif
+ #include <fcntl.h>      /* File control definitions */
+ #include <errno.h>      /* Error number definitions */
+ 
+diff --git a/rigs/tuner/videodev.h b/rigs/tuner/videodev.h
+index cf6b90cf..fdccfb22 100644
+--- a/rigs/tuner/videodev.h
++++ b/rigs/tuner/videodev.h
+@@ -6,7 +6,9 @@
+ #ifndef FM_VIDEODEV_H
+ #define FM_VIDEODEV_H 1
+ 
++#ifdef HAVE_SYS_IOCTL_H
+ #include <sys/ioctl.h>
++#endif
+ #include <stdint.h>
+ 
+ #define VID_TYPE_CAPTURE	1	/* Can capture */
+diff --git a/rigs/tuner/videodev2.h b/rigs/tuner/videodev2.h
+index d9a9c290..3b604dfd 100644
+--- a/rigs/tuner/videodev2.h
++++ b/rigs/tuner/videodev2.h
+@@ -56,7 +56,9 @@
+ #ifndef __LINUX_VIDEODEV2_H
+ #define __LINUX_VIDEODEV2_H
+ 
++#ifdef HAVE_SYS_TIME_H
+ #include <sys/time.h>
++#endif
+ 
+ #include <linux/ioctl.h>
+ #include <linux/types.h>
+diff --git a/rigs/uniden/uniden.c b/rigs/uniden/uniden.c
+index b030e593..b3b7c2d8 100644
+--- a/rigs/uniden/uniden.c
++++ b/rigs/uniden/uniden.c
+@@ -23,7 +23,9 @@
+ 
+ #include <stdio.h>
+ #include <string.h>  /* String function definitions */
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>  /* UNIX standard function definitions */
++#endif
+ 
+ #include "hamlib/rig.h"
+ #include "serial.h"
+diff --git a/rigs/winradio/g313-posix.c b/rigs/winradio/g313-posix.c
+index 6903011b..447476fa 100644
+--- a/rigs/winradio/g313-posix.c
++++ b/rigs/winradio/g313-posix.c
+@@ -21,7 +21,9 @@
+ #include <fcntl.h>
+ #include <stdlib.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ 
+diff --git a/rigs/yaesu/ft980.c b/rigs/yaesu/ft980.c
+index 84a79482..926c3c5c 100644
+--- a/rigs/yaesu/ft980.c
++++ b/rigs/yaesu/ft980.c
+@@ -88,7 +88,9 @@
+ 
+ #include <stdlib.h>
+ #include <string.h>  /* String function definitions */
++#ifdef HAVE_SYS_TIME_H
+ #include <sys/time.h> /* for timeofday call */
++#endif
+ 
+ #include "hamlib/rig.h"
+ #include "serial.h"
+diff --git a/rigs/yaesu/yaesu.c b/rigs/yaesu/yaesu.c
+index 88b7df74..a396bc8c 100644
+--- a/rigs/yaesu/yaesu.c
++++ b/rigs/yaesu/yaesu.c
+@@ -25,7 +25,9 @@
+ 
+ #include <hamlib/config.h>
+ 
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>  /* UNIX standard function definitions */
++#endif
+ 
+ #include "hamlib/rig.h"
+ #include "serial.h"
+diff --git a/rotators/grbltrk/grbltrk.c b/rotators/grbltrk/grbltrk.c
+index 0a598d6a..6c5d5598 100644
+--- a/rotators/grbltrk/grbltrk.c
++++ b/rotators/grbltrk/grbltrk.c
+@@ -19,13 +19,13 @@
+  *
+  */
+ 
+-#ifdef HAVE_CONFIG_H
+-#include "config.h"
+-#endif
++#include <hamlib/config.h>
+ 
+ #include <stdlib.h>
+ #include <string.h>  /* String function definitions */
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>  /* UNIX standard function definitions */
++#endif
+ 
+ #ifdef HAVE_SYS_IOCTL_H
+ #include <sys/ioctl.h>
+diff --git a/rotators/meade/meade.c b/rotators/meade/meade.c
+index 3a31632f..2c841684 100644
+--- a/rotators/meade/meade.c
++++ b/rotators/meade/meade.c
+@@ -24,7 +24,9 @@
+ #include <stdlib.h>
+ #include <string.h>  /* String function definitions */
+ #include <math.h>
++#ifdef HAVE_SYS_TIME_H
+ #include <sys/time.h>
++#endif
+ 
+ #include <hamlib/rotator.h>
+ #include <num_stdio.h>
+diff --git a/rotators/satel/satel.c b/rotators/satel/satel.c
+index 1159bd6d..3dd634e7 100644
+--- a/rotators/satel/satel.c
++++ b/rotators/satel/satel.c
+@@ -20,7 +20,9 @@
+  */
+ 
+ #include "hamlib/rig.h"
++#ifdef HAVE_STRINGS_H
+ #include <strings.h>
++#endif
+ #include <hamlib/config.h>
+ 
+ #include <stdlib.h>
+diff --git a/rotators/ts7400/include/readADC.c b/rotators/ts7400/include/readADC.c
+index 932a603c..290863ae 100644
+--- a/rotators/ts7400/include/readADC.c
++++ b/rotators/ts7400/include/readADC.c
+@@ -1,5 +1,7 @@
+ 
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <sys/types.h>
+ #include <sys/mman.h>
+ #include <stdio.h>
+diff --git a/rotators/ts7400/include/test7400ADC.c b/rotators/ts7400/include/test7400ADC.c
+index 4e7bc4f4..85b70e54 100644
+--- a/rotators/ts7400/include/test7400ADC.c
++++ b/rotators/ts7400/include/test7400ADC.c
+@@ -1,4 +1,6 @@
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <sys/types.h>
+ #include <sys/mman.h>
+ #include <stdio.h>
+diff --git a/rotators/ts7400/ts7400.c b/rotators/ts7400/ts7400.c
+index f32a8dd4..0657a934 100644
+--- a/rotators/ts7400/ts7400.c
++++ b/rotators/ts7400/ts7400.c
+@@ -23,7 +23,9 @@
+ 
+ #include <stdlib.h>
+ #include <math.h>
++#ifdef HAVE_SYS_TIME_H
+ #include <sys/time.h>
++#endif
+ 
+ #include <hamlib/rotator.h>
+ #include "serial.h"
+diff --git a/security/AESStringCrypt.c b/security/AESStringCrypt.c
+index eacc750b..158b23ff 100644
+--- a/security/AESStringCrypt.c
++++ b/security/AESStringCrypt.c
+@@ -35,7 +35,9 @@
+ #include <windows.h>
+ #include <wincrypt.h>
+ #else
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <stdlib.h>
+ #include <time.h>
+ #endif
+diff --git a/security/sctest.c b/security/sctest.c
+index ec37dda6..57f796e0 100644
+--- a/security/sctest.c
++++ b/security/sctest.c
+@@ -21,8 +21,10 @@
+ #include <windows.h>
+ //#include <Wincrypt.h>
+ #else
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
+ #endif
++#endif
+ 
+ #include "AESStringCrypt.h"
+ #include "password.h"
+diff --git a/security/security.c b/security/security.c
+index bc45f322..dece5d44 100644
+--- a/security/security.c
++++ b/security/security.c
+@@ -21,8 +21,10 @@
+ #include <windows.h>
+ //#include <Wincrypt.h>
+ #else
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
+ #endif
++#endif
+ 
+ #include "AESStringCrypt.h"
+ #include "password.h"
+diff --git a/simulators/simelecraft.c b/simulators/simelecraft.c
+index 0be6800e..f7f5dfae 100644
+--- a/simulators/simelecraft.c
++++ b/simulators/simelecraft.c
+@@ -5,7 +5,9 @@
+ #include <stdlib.h>
+ #include <fcntl.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <hamlib/rig.h>
+ 
+ #define BUFSIZE 256
+diff --git a/simulators/simicom.c b/simulators/simicom.c
+index 3fabffbf..07d9d72d 100644
+--- a/simulators/simicom.c
++++ b/simulators/simicom.c
+@@ -8,9 +8,13 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <fcntl.h>
++#ifdef HAVE_SYS_TIME_H
+ #include <sys/time.h>
++#endif
+ #include <hamlib/rig.h>
+ #include "../src/misc.h"
+ 
+diff --git a/simulators/simicom9700.c b/simulators/simicom9700.c
+index 25f8996b..1d702a7b 100644
+--- a/simulators/simicom9700.c
++++ b/simulators/simicom9700.c
+@@ -8,13 +8,21 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <fcntl.h>
++#ifdef HAVE_SYS_TIME_H
+ #include <sys/time.h>
++#endif
+ #include <hamlib/rig.h>
+ #include "../src/misc.h"
++#ifdef HAVE_TERMIOS_H
+ #include <termios.h>
++#endif
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ 
+ 
+ #define BUFSIZE 256
+diff --git a/simulators/simkenwood.c b/simulators/simkenwood.c
+index d602865d..a47fa877 100644
+--- a/simulators/simkenwood.c
++++ b/simulators/simkenwood.c
+@@ -5,7 +5,9 @@
+ #include <stdlib.h>
+ #include <fcntl.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <hamlib/rig.h>
+ 
+ #define BUFSIZE 256
+diff --git a/simulators/simyaesu.c b/simulators/simyaesu.c
+index fe0bf30d..e9567e75 100644
+--- a/simulators/simyaesu.c
++++ b/simulators/simyaesu.c
+@@ -5,7 +5,9 @@
+ #include <stdlib.h>
+ #include <fcntl.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <hamlib/rig.h>
+ 
+ #define BUFSIZE 256
+diff --git a/src/amplifier.c b/src/amplifier.c
+index fc06cc02..9d3996a2 100644
+--- a/src/amplifier.c
++++ b/src/amplifier.c
+@@ -52,7 +52,9 @@
+ 
+ #include <stdlib.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <stdio.h>
+ #include <fcntl.h>
+ 
+diff --git a/src/cm108.c b/src/cm108.c
+index 086d3805..46e8500e 100644
+--- a/src/cm108.c
++++ b/src/cm108.c
+@@ -35,7 +35,9 @@
+ #include <hamlib/config.h>
+ 
+ #include <string.h>  /* String function definitions */
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>  /* UNIX standard function definitions */
++#endif
+ #include <fcntl.h>   /* File control definitions */
+ #include <errno.h>   /* Error number definitions */
+ #include <sys/types.h>
+diff --git a/src/gpio.c b/src/gpio.c
+index 298b8a2d..28775b81 100644
+--- a/src/gpio.c
++++ b/src/gpio.c
+@@ -21,7 +21,9 @@
+ 
+ #include <string.h>
+ #include <errno.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ #include <fcntl.h>
+diff --git a/src/iofunc.c b/src/iofunc.c
+index 086e66b3..65e00ca9 100644
+--- a/src/iofunc.c
++++ b/src/iofunc.c
+@@ -35,10 +35,14 @@
+ 
+ #include <stdio.h>   /* Standard input/output definitions */
+ #include <string.h>  /* String function definitions */
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>  /* UNIX standard function definitions */
++#endif
+ #include <fcntl.h>   /* File control definitions */
+ #include <errno.h>   /* Error number definitions */
++#ifdef HAVE_SYS_TIME_H
+ #include <sys/time.h>
++#endif
+ #include <sys/types.h>
+ 
+ #include <hamlib/rig.h>
+diff --git a/src/microham.c b/src/microham.c
+index 96a37d7b..119b1924 100644
+--- a/src/microham.c
++++ b/src/microham.c
+@@ -29,7 +29,9 @@
+ 
+ #include <hamlib/config.h>
+ 
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <stdio.h>
+ #include <string.h>
+ #include <fcntl.h>
+@@ -282,7 +284,9 @@ static struct uhtypes
+ // file has a name from which we can tell this is a microHam device
+ // This is the case for MacOS and LINUX (for LINUX: use udev)
+ //
++#ifdef HAVE_TERMIOS_H
+ #include <termios.h>
++#endif
+ #include <sys/stat.h>
+ #include <glob.h>
+ static void finddevices()
+diff --git a/src/misc.c b/src/misc.c
+index 008b1754..0c7a391e 100644
+--- a/src/misc.c
++++ b/src/misc.c
+@@ -77,7 +77,9 @@
+ #define CLOCK_MONOTONIC 6
+ typedef int clockid_t;
+ 
++#ifdef HAVE_SYS_TIME_H
+ #include <sys/time.h>
++#endif
+ #include <mach/mach_time.h>
+ 
+ static int clock_gettime(clockid_t clock_id, struct timespec *tp)
+diff --git a/src/network.c b/src/network.c
+index ecd963bc..d72b50c2 100644
+--- a/src/network.c
++++ b/src/network.c
+@@ -37,7 +37,9 @@
+ #include <stdlib.h>
+ #include <stdio.h>   /* Standard input/output definitions */
+ #include <string.h>  /* String function definitions */
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>  /* UNIX standard function definitions */
++#endif
+ #include <fcntl.h>   /* File control definitions */
+ #include <errno.h>   /* Error number definitions */
+ #include <sys/types.h>
+diff --git a/src/parallel.c b/src/parallel.c
+index 9bac493c..48795a32 100644
+--- a/src/parallel.c
++++ b/src/parallel.c
+@@ -31,7 +31,9 @@
+ #include <hamlib/config.h>
+ 
+ #include <string.h>  /* String function definitions */
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>  /* UNIX standard function definitions */
++#endif
+ #include <fcntl.h>   /* File control definitions */
+ #include <errno.h>   /* Error number definitions */
+ #include <sys/types.h>
+diff --git a/src/rig.c b/src/rig.c
+index 7c8b326f..52b99926 100644
+--- a/src/rig.c
++++ b/src/rig.c
+@@ -54,7 +54,9 @@
+ 
+ #include <stdlib.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <stdio.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
+diff --git a/src/rotator.c b/src/rotator.c
+index 93abc0fd..85bd613b 100644
+--- a/src/rotator.c
++++ b/src/rotator.c
+@@ -50,7 +50,9 @@
+ 
+ #include <stdlib.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <stdio.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
+diff --git a/src/serial.c b/src/serial.c
+index 378117ee..984ef2c0 100644
+--- a/src/serial.c
++++ b/src/serial.c
+@@ -37,7 +37,9 @@
+ #include <stdlib.h>
+ #include <stdio.h>   /* Standard input/output definitions */
+ #include <string.h>  /* String function definitions */
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>  /* UNIX standard function definitions */
++#endif
+ #include <fcntl.h>   /* File control definitions */
+ #include <errno.h>   /* Error number definitions */
+ #include <sys/types.h>
+diff --git a/src/settings.c b/src/settings.c
+index 73d1fc98..886418be 100644
+--- a/src/settings.c
++++ b/src/settings.c
+@@ -949,7 +949,9 @@ int HAMLIB_API rig_setting2idx(setting_t s)
+     return 0;
+ }
+ 
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>  /* UNIX standard function definitions */
++#endif
+ 
+ #if 0
+ #include <hamlib/config.h>
+diff --git a/src/sleep.c b/src/sleep.c
+index 42282904..a6dee6ad 100644
+--- a/src/sleep.c
++++ b/src/sleep.c
+@@ -35,7 +35,9 @@
+  * \note parameters are same as man page for each
+  *
+  */
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <errno.h>
+ #include <pthread.h>
+ #include "config.h"
+diff --git a/tests/ampctl_parse.c b/tests/ampctl_parse.c
+index 838b6272..956f9c0a 100644
+--- a/tests/ampctl_parse.c
++++ b/tests/ampctl_parse.c
+@@ -30,7 +30,9 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <ctype.h>
+ #include <errno.h>
+ 
+diff --git a/tests/ampctld.c b/tests/ampctld.c
+index 8718aa68..f8d961e7 100644
+--- a/tests/ampctld.c
++++ b/tests/ampctld.c
+@@ -27,7 +27,9 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <ctype.h>
+ 
+ #include <getopt.h>
+diff --git a/tests/rig_bench.c b/tests/rig_bench.c
+index 5ef8ae96..08b282f7 100644
+--- a/tests/rig_bench.c
++++ b/tests/rig_bench.c
+@@ -4,10 +4,14 @@
+ 
+ #include <stdio.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <stdlib.h>
+ #include <hamlib/rig.h>
++#ifdef HAVE_SYS_TIME_H
+ #include <sys/time.h>
++#endif
+ #include "misc.h"
+ 
+ #define LOOP_COUNT 100
+diff --git a/tests/rigctl_parse.c b/tests/rigctl_parse.c
+index 6cb82915..b442f51e 100644
+--- a/tests/rigctl_parse.c
++++ b/tests/rigctl_parse.c
+@@ -30,7 +30,9 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <ctype.h>
+ #include <errno.h>
+ 
+diff --git a/tests/rigctld.c b/tests/rigctld.c
+index 470534c3..373623a5 100644
+--- a/tests/rigctld.c
++++ b/tests/rigctld.c
+@@ -33,7 +33,9 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <ctype.h>
+ #include <errno.h>
+ #include <signal.h>
+diff --git a/tests/rigtestlibusb.c b/tests/rigtestlibusb.c
+index d6eaeed8..2918b3c5 100644
+--- a/tests/rigtestlibusb.c
++++ b/tests/rigtestlibusb.c
+@@ -317,7 +317,9 @@ static void print_device(libusb_device *dev, libusb_device_handle *handle)
+ 
+ #include <errno.h>
+ #include <fcntl.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ 
+ static int test_wrapped_device(const char *device_name)
+ {
+diff --git a/tests/rotctl_parse.c b/tests/rotctl_parse.c
+index 3c5c80db..5b937f24 100644
+--- a/tests/rotctl_parse.c
++++ b/tests/rotctl_parse.c
+@@ -31,7 +31,9 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <ctype.h>
+ #include <errno.h>
+ 
+diff --git a/tests/rotctld.c b/tests/rotctld.c
+index 915ec7f0..6630e507 100644
+--- a/tests/rotctld.c
++++ b/tests/rotctld.c
+@@ -27,7 +27,9 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <ctype.h>
+ 
+ #include <getopt.h>
+diff --git a/tests/testrig.c b/tests/testrig.c
+index 5b6820bb..691a2a89 100644
+--- a/tests/testrig.c
++++ b/tests/testrig.c
+@@ -4,7 +4,9 @@
+ 
+ #include <stdio.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <stdlib.h>
+ 
+ #include <hamlib/rig.h>
+diff --git a/tests/testrigopen.c b/tests/testrigopen.c
+index a8d141b1..042d5aba 100644
+--- a/tests/testrigopen.c
++++ b/tests/testrigopen.c
+@@ -4,9 +4,13 @@
+ 
+ #include <stdio.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <stdlib.h>
++#ifdef HAVE_SYS_TIME_H
+ #include <sys/time.h>
++#endif
+ 
+ #include <hamlib/rig.h>
+ 
+diff --git a/tests/testtrn.c b/tests/testtrn.c
+index 7215a886..b9ba42c5 100644
+--- a/tests/testtrn.c
++++ b/tests/testtrn.c
+@@ -4,7 +4,9 @@
+ 
+ #include <stdio.h>
+ #include <string.h>
++#ifdef HAVE_UNISTD_H
+ #include <unistd.h>
++#endif
+ #include <stdlib.h>
+ 
+ #include <hamlib/rig.h>
+-- 
+2.34.1
+
