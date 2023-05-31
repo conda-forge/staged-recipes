@@ -14,62 +14,46 @@ build:
   number: 0
   script_env:
    - CMAKE_MAKE_PROGRAM=Ninja
-   - KALDI_ROOT={{ environ.get('LIBRARY_PREFIX') }}  # [win]
-   - KALDI_ROOT={{ environ.get('PREFIX') }}  # [not win]
-  # Bug in for cuda 11.1 with c++17 on linux: https://forums.developer.nvidia.com/t/nvc-20-9-fails-to-compile-code-instantiating-any-std-tuple-with-gcc-10-2-on-c-17/160987
-  skip: true  # [cuda_compiler_version == "10.2" or (linux and cuda_compiler_version == "11.1")]
+   - KALDI_ROOT={{ environ.get('LIBRARY_PREFIX') }}  # win
+   - KALDI_ROOT={{ environ.get('PREFIX') }}  # not win
 
 requirements:
   build:
     - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - m2-patch  # [win]
+    - libtool   # [not win]
+    - automake  # [not win]
   host:
     - python >=3.8
+    - pip
+    - cmake
+    - ninja
+    - kaldi
+    - pybind11
+    - pynini
+    - openfst
+    - setuptools_scm
+    - numpy
+  run:
+    - python >=3.8
+    - kaldi
+    - librosa
+    - numpy
+    - pynini
+    - openfst
+  run_exports:
+    - {{ pin_subpackage('kalpy', max_pin='x.x.x') }}
 
-outputs:
-  - name: kalpy
-    build:
-      string: cuda{{ cuda_compiler_version | replace('.', '') }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
-      string: cpu_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                                # [cuda_compiler_version == "None"]
-    requirements:
-      build:
-        - {{ compiler('cxx') }}
-        - {{ compiler('fortran') }}  # [not win]
-        - {{ compiler('cuda') }}     # [cuda_compiler_version != "None"]
-        - cmake
-        - ninja
-        - m2-patch  # [win]
-        - libtool   # [not win]
-        - automake  # [not win]
-      host:
-        - python >=3.8
-        - pip
-        - cmake
-        - ninja
-        - kaldi
-        - pybind11
-        - pynini
-        - openfst
-        - setuptools
-        - setuptools_scm
-        - numpy
-      run:
-        - python >=3.8
-        - kaldi
-        - librosa
-        - numpy
-        - pynini
-        - openfst
-        - numpy
-      run_exports:
-        - {{ pin_subpackage('kalpy', max_pin='x.x.x') }}
-    test:
-      imports:
-        - _kalpy
-        - kalpy
-      requires:
-        - pip
-      commands:
-        - pip check
+test:
+  imports:
+    - _kalpy
+    - kalpy
+  requires:
+    - pip
+  commands:
+    - pip check
 
 about:
   home: https://github.com/mmcauliffe/kalpy
