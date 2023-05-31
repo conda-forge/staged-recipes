@@ -1,6 +1,7 @@
 {% set version = "4.5.5" %}
 {% set soversion = "4" %}
 {% set build = "0" %}
+{% set posix = 'm2-' if win else '' %}
 {% set library = "Library/" if win else "" %}
 
 package:
@@ -12,33 +13,36 @@ source:
   sha256: 601c89f32ed225e9527ade3d64d0d05d23202c05ae21ffa77e59d70ee4597fcd
   patches:
     - 0001-Install-perl-bindings-to-vendor-location.patch
-    - 0002-Add-include-guards-to-hamlib-config.h.patch
-    - 0003-Fixes-for-Windows-build-with-MSVC-headers-libraries.patch
-    - 0004-Fix-tcl-binding-output-name-on-macOS-end-in-.dylib.patch
+    - 0002-Fix-tcl-binding-output-name-on-macOS-end-in-.dylib.patch
+    - 0003-rig.h-Define-hamlib_port-using-HAVE_WINDOWS_H-to-mat.patch
+    - 0004-Add-include-guards-to-hamlib-config.h.patch
+    - 0005-Fix-binding-compilation-on-Windows.patch
 
 build:
   number: {{ build }}
 
 requirements:
   build:
+    # need default compiler on Windows too (MSVC) for generating import lib
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - autoconf  # [unix]
-    - automake  # [unix]
-    - autotools_clang_conda  # [win]
+    - {{ compiler('m2w64_c') }}  # [win]
+    - {{ compiler('m2w64_cxx') }}  # [win]
+    - {{ posix }}autoconf
+    - {{ posix }}automake  # [unix]
+    - {{ posix }}automake-wrapper  # [win]
     - gnuconfig
-    - libtool  # [unix]
+    - {{ posix }}libtool
     - make  # [unix]
     - pkg-config
-    - sed  # [unix]
-    - m2-sed  # [win]
+    - posix  # [win]
+    - {{ posix }}sed
     - swig
   host:
     - libusb
     - libxml2
     - lua
     - perl
-    - pthreads-win32  # [win]
     - python
     - readline  # [unix]
     - tk
@@ -50,24 +54,27 @@ outputs:
       build:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
+        - {{ compiler('m2w64_c') }}  # [win]
+        - {{ compiler('m2w64_cxx') }}  # [win]
       host:
         - libusb
-        - pthreads-win32  # [win]
+      run:
+        - m2w64-libwinpthread-git  # [win]
     files:
       - lib/libhamlib.so.{{ soversion }}*  # [linux]
       - lib/libhamlib++.so.{{ soversion }}*  # [linux]
       - lib/libhamlib.{{ soversion }}*.dylib  # [osx]
       - lib/libhamlib++.{{ soversion }}*.dylib  # [osx]
-      - Library/bin/hamlib-{{ soversion }}*.dll  # [win]
-      - Library/bin/hamlib++-{{ soversion }}*.dll  # [win]
+      - Library/bin/libhamlib-{{ soversion }}*.dll  # [win]
+      - Library/bin/libhamlib++-{{ soversion }}*.dll  # [win]
     test:
       commands:
         - test -f $PREFIX/lib/libhamlib${SHLIB_EXT}.{{ soversion }}  # [linux]
         - test -f $PREFIX/lib/libhamlib++${SHLIB_EXT}.{{ soversion }}  # [linux]
         - test -f $PREFIX/lib/libhamlib.{{ soversion }}${SHLIB_EXT}  # [osx]
         - test -f $PREFIX/lib/libhamlib++.{{ soversion }}${SHLIB_EXT}  # [osx]
-        - if not exist %LIBRARY_BIN%/hamlib-{{ soversion }}.dll exit 1  # [win]
-        - if not exist %LIBRARY_BIN%/hamlib++-{{ soversion }}.dll exit 1  # [win]
+        - if not exist %LIBRARY_BIN%/libhamlib-{{ soversion }}.dll exit 1  # [win]
+        - if not exist %LIBRARY_BIN%/libhamlib++-{{ soversion }}.dll exit 1  # [win]
 
   - name: hamlib
     build:
@@ -79,10 +86,10 @@ outputs:
       host:
         - {{ pin_subpackage('libhamlib' + soversion, exact=True) }}
         - libxml2
-        - pthreads-win32  # [win]
         - readline  # [unix]
       run:
         - {{ pin_subpackage('libhamlib' + soversion, exact=True) }}
+        - m2w64-libwinpthread-git  # [win]
     files:
       - {{ library }}bin/ampctl*
       - {{ library }}bin/rigctl*
@@ -97,6 +104,8 @@ outputs:
       - lib/libhamlib++.dylib  # [osx]
       - Library/lib/hamlib.lib  # [win]
       - Library/lib/hamlib++.lib  # [win]
+      - Library/lib/libhamlib.dll.a  # [win]
+      - Library/lib/libhamlib++.dll.a  # [win]
       - {{ library }}lib/pkgconfig/hamlib.pc
     test:
       commands:
@@ -106,6 +115,8 @@ outputs:
         - if not exist %LIBRARY_PREFIX%/include/hamlib/config.h exit 1  # [win]
         - if not exist %LIBRARY_LIB%/hamlib.lib exit 1  # [win]
         - if not exist %LIBRARY_LIB%/hamlib++.lib exit 1  # [win]
+        - if not exist %LIBRARY_LIB%/libhamlib.dll.a exit 1  # [win]
+        - if not exist %LIBRARY_LIB%/libhamlib++.dll.a exit 1  # [win]
 
         - ampctl --help
         - ampctld --help
@@ -200,6 +211,8 @@ outputs:
   - name: hamlib-all
     build:
       noarch: generic
+      run_exports:
+        - {{ pin_subpackage('libhamlib' + soversion, max_pin=False) }}
     requirements:
       run:
         - hamlib {{ version }}
