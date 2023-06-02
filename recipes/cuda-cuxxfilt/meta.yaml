@@ -1,0 +1,63 @@
+{% set name = "cuda-cuxxfilt" %}
+{% set version = "12.0.76" %}
+{% set cuda_version = "12.0" %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-ppc64le" %}  # [ppc64le]
+{% set platform = "linux-sbsa" %}  # [aarch64]
+{% set platform = "windows-x86_64" %}  # [win]
+{% set target_name = "x86_64-linux" %}  # [linux64]
+{% set target_name = "ppc64le-linux" %}  # [ppc64le]
+{% set target_name = "sbsa-linux" %}  # [aarch64]
+{% set target_name = "x64" %}  # [win]
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuda/redist/cuda_cuxxfilt/{{ platform }}/cuda_cuxxfilt-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: 363502e0743a21f487bac7ebd63ef8dba6cf11a2b16cd82149e0cecc83c24c34  # [linux64]
+  sha256: bfd38cadc3066cf28366722e15bd85c298cd7f4ebe4c7852a4149ba2a6b84d2d  # [ppc64le]
+  sha256: 2f992cc3dabce111cb93caabb599caa868797fee6b37ff53676fadce36701e6f  # [aarch64]
+  sha256: 0d6276d4a49e7e394b7f8ee150bb6d538297334c7d6b3d1266fa29311ba933f4  # [win]
+
+build:
+  number: 0
+  skip: true  # [osx]
+
+requirements:
+  build:
+    - {{ compiler("c") }}
+    - {{ compiler("cxx") }}
+  host:
+    - cuda-version {{ cuda_version }}
+  run:
+    - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+
+test:
+  commands:
+    - test -f $PREFIX/bin/cu++filt                                   # [linux]
+    - test -f $PREFIX/targets/{{ target_name }}/include/nv_decode.h  # [linux]
+    - test -f $PREFIX/targets/{{ target_name }}/lib/libcufilt.a      # [linux]
+    - if not exist %LIBRARY_BIN%\\cu++filt.exe exit 1                # [win]
+    - if not exist %LIBRARY_INC%\\nv_decode.h exit 1                 # [win]
+    - if not exist %LIBRARY_LIB%\\cufilt.lib exit 1                  # [win]
+
+about:
+  home: https://developer.nvidia.com/cuda-toolkit
+  license_file: LICENSE
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  summary: cu++filt decodes low-level identifiers that have been mangled by CUDA C++
+  description: |
+    cu++filt decodes (demangles) low-level identifiers that have been mangled by
+    CUDA C++ into user readable names. For every input alphanumeric word, the
+    output of cu++filt is either the demangled name if the name decodes to a CUDA
+    C++ name, or the original name itself.
+  doc_url: https://docs.nvidia.com/cuda/index.html
+
+extra:
+  recipe-maintainers:
+    - adibbley
