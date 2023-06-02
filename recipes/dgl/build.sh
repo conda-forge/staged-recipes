@@ -16,6 +16,7 @@ mkdir build
 cd build
 
 cmake -DUSE_CUDA=ON \
+  -DUSE_CONDA_INCLUDES=ON \
   -DEXTERNAL_DLPACK_PATH=$PREFIX/include \
   -DEXTERNAL_DMLC_PATH=$PREFIX/include \
   -DEXTERNAL_PHMAP_PATH=$PREFIX/include \
