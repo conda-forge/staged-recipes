@@ -1,0 +1,75 @@
+{% set name = "cuda-nvprof" %}
+{% set version = "12.0.90" %}
+{% set cuda_version = "12.0" %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-ppc64le" %}  # [ppc64le]
+{% set platform = "windows-x86_64" %}  # [win]
+{% set target_name = "x86_64-linux" %}  # [linux64]
+{% set target_name = "ppc64le-linux" %}  # [ppc64le]
+{% set target_name = "sbsa-linux" %}  # [aarch64]
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuda/redist/cuda_nvprof/{{ platform }}/cuda_nvprof-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: e3313459ff03f17836fc43e53fa7bc1d3ba4079e6089c48ac9d91009c762f196  # [linux64]
+  sha256: b1067e82bbf4ce592fd94c8b654d91a72e5b70c2ec407348ce7f7cf462acd6a4  # [ppc64le]
+  sha256: d509046b6670105bc11a6a31e412a07c7ceb2f76f5248d1d5699be1544dc6221  # [win]
+
+build:
+  number: 0
+  skip: true  # [osx or aarch64]
+  missing_dso_whitelist:
+    # This is a driver file, might be able to use cuda-compat to remove this
+    - '*/libcuda.so.1'  # [linux]
+    - '*/nvcuda.dll'    # [win]
+
+requirements:
+  build:
+    - {{ compiler("c") }}
+    - {{ compiler("cxx") }}
+  host:
+    - cuda-version {{ cuda_version }}
+    - cuda-cupti
+  run:
+    - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+    - cuda-cupti
+
+test:
+  commands:
+    - test -f $PREFIX/bin/nvprof                                                                                            # [linux]
+    - test -f $PREFIX/lib/pkgconfig/cuinj64*.pc                                                                             # [linux]
+    - test -f $PREFIX/lib/pkgconfig/accinj64*.pc                                                                            # [linux]
+    - test -L $PREFIX/lib/libaccinj64.so                                                                                    # [linux]
+    - test -L $PREFIX/lib/libaccinj64.so.{{ version.split(".")[0] }}.{{ version.split(".")[1] }}                            # [linux]
+    - test -L $PREFIX/lib/libaccinj64.so.{{ version }}                                                                      # [linux]
+    - test -L $PREFIX/lib/libcuinj64.so                                                                                     # [linux]
+    - test -L $PREFIX/lib/libcuinj64.so.{{ version.split(".")[0] }}.{{ version.split(".")[1] }}                             # [linux]
+    - test -L $PREFIX/lib/libcuinj64.so.{{ version }}                                                                       # [linux]
+    - test -L $PREFIX/targets/{{ target_name }}/lib/libaccinj64.so                                                          # [linux]
+    - test -L $PREFIX/targets/{{ target_name }}/lib/libaccinj64.so.{{ version.split(".")[0] }}.{{ version.split(".")[1] }}  # [linux]
+    - test -f $PREFIX/targets/{{ target_name }}/lib/libaccinj64.so.{{ version }}                                            # [linux]
+    - test -L $PREFIX/targets/{{ target_name }}/lib/libcuinj64.so                                                           # [linux]
+    - test -L $PREFIX/targets/{{ target_name }}/lib/libcuinj64.so.{{ version.split(".")[0] }}.{{ version.split(".")[1] }}   # [linux]
+    - test -f $PREFIX/targets/{{ target_name }}/lib/libcuinj64.so.{{ version }}                                             # [linux]
+    - if not exist %LIBRARY_BIN%\nvprof.exe exit 1     # [win]
+    - if not exist %LIBRARY_BIN%\cuinj64_*.dll exit 1  # [win]
+
+about:
+  home: https://developer.nvidia.com/cuda-toolkit
+  license_file: LICENSE
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  summary: Tool for collecting and viewing CUDA application profiling data
+  description: |
+    Tool for collecting and viewing CUDA application profiling data from
+    the command-line.
+  doc_url: https://docs.nvidia.com/cuda/index.html
+
+extra:
+  recipe-maintainers:
+    - adibbley
