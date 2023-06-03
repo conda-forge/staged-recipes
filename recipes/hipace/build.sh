@@ -11,12 +11,6 @@ if [[ ${target_platform} =~ osx.* ]]; then
     export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 fi
 
-# IPO/LTO does only work with certain toolchains
-HiPACE_IPO=ON
-if [[ ${target_platform} =~ osx.* ]]; then
-    HiPACE_IPO=OFF
-fi
-
 # configure
 cmake \
     -S ${SRC_DIR} -B build            \
@@ -27,7 +21,6 @@ cmake \
     -DCMAKE_INSTALL_LIBDIR=lib        \
     -DCMAKE_INSTALL_PREFIX=${PREFIX}  \
     -DHiPACE_COMPUTE=NOACC            \
-    -DHiPACE_IPO=${HiPACE_IPO}        \
     -DHiPACE_amrex_branch=23.03       \
     -DHiPACE_openpmd_internal=OFF     \
     -DHiPACE_MPI=OFF
