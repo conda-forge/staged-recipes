@@ -11,7 +11,7 @@ if [[ -f Build.PL ]]; then
 elif [[ -f Makefile.PL ]]; then
     # Make sure this goes in site
     perl Makefile.PL INSTALLDIRS=site
-    make
+    cmake
     make test
     make install
 else
