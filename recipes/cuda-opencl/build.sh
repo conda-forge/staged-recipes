@@ -20,12 +20,6 @@ for i in `ls`; do
         mkdir -p ${PREFIX}/$i
         cp -rv $i ${PREFIX}/${targetsDir}
         # Don't symlink libs in $PREFIX/lib to avoid clobbering
-        #if [[ $i == "lib" ]]; then
-        #    for j in "$i"/*.so*; do
-        #        # Shared libraries are symlinked in $PREFIX/lib
-        #        ln -s ${PREFIX}/${targetsDir}/$j ${PREFIX}/$j
-        #    done
-        #fi
     else
         # Put all other files in targetsDir
         mkdir -p ${PREFIX}/${targetsDir}/${PKG_NAME}
