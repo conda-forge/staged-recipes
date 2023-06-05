@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 96adfd2b..ecc85b5f 100644
+index 96adfd2b..e3387e0a 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -37,6 +37,27 @@ dgl_option(BUILD_TORCH "Build the PyTorch plugin" OFF)
@@ -30,7 +30,7 @@ index 96adfd2b..ecc85b5f 100644
  # Set debug compile option for gdb, only happens when -DCMAKE_BUILD_TYPE=DEBUG
  if (NOT MSVC)
    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG -O0 -g3 -ggdb")
-@@ -172,52 +193,127 @@ set_property(TARGET dgl PROPERTY CXX_STANDARD 14)
+@@ -172,52 +193,144 @@ set_property(TARGET dgl PROPERTY CXX_STANDARD 14)
  
  # include directories
  target_include_directories(dgl PRIVATE "include")
@@ -50,10 +50,10 @@ index 96adfd2b..ecc85b5f 100644
 +
 +# check for conda includes
 +if("$ENV{CONDA_BUILD}" STREQUAL "1")
-+  set(in_conda_build True)
++  set(in_conda_build TRUE)
 +  message(STATUS "Conda build environment detected")
 +elseif(DEFINED ENV{CONDA_PREFIX})
-+  set(in_conda_prefix True)
++  set(in_conda_prefix TRUE)
 +  message(STATUS "Conda environment detected: $ENV{CONDA_PREFIX}")
  endif()
 -add_subdirectory("third_party/dmlc-core")
@@ -80,8 +80,14 @@ index 96adfd2b..ecc85b5f 100644
 +    message(FATAL_ERROR "Conda environment not detected")
 +  endif()
 +endif()
-+
+ 
+-# Compile LIBXSMM
+-if((NOT MSVC) AND USE_LIBXSMM)
+-  set(LIBXSMM_COMPILER "${CMAKE_C_COMPILER}")
+-  if (APPLE)
+-    set(LIBXSMM_COMPILER "${CMAKE_C_COMPILER} -isysroot ${CMAKE_OSX_SYSROOT}")
 +if(EXTERNAL_DLPACK_PATH)
++  message(STATUS "looking for dlpack headers in ${EXTERNAL_DLPACK_PATH}")
 +  include_directories(SYSTEM ${EXTERNAL_DLPACK_PATH})
 +else(EXTERNAL_DLPACK_PATH)
 +  target_include_directories(dgl PRIVATE "third_party/dlpack/include")
@@ -91,14 +97,21 @@ index 96adfd2b..ecc85b5f 100644
 +  if (USE_HDFS)
 +    message(FATAL_ERROR "Cannot use HDFS and external dmlc-core at the same time")
 +  endif()
++  message(STATUS "looking for dmlc headers in ${EXTERNAL_DMLC_PATH}")
 +  include_directories(SYSTEM ${EXTERNAL_DMLC_PATH})
-+  # find_library(DMLC
-+  #   NAMES dmlc
-+  #   PATHS ${EXTERNAL_DMLC_LIB_PATH}
-+  # )
-+  # if(NOT DMLC)
-+  #     message(FATAL_ERROR "Failed to find DMLC library")
-+  # endif()
++  
++  if (NOT EXTERNAL_DMLC_LIB_PATH)
++    message(FATAL_ERROR "EXTERNAL_DMLC_LIB_PATH must be set if EXTERNAL_DMLC_PATH is set")
++  endif()
++  message(STATUS "looking for dmlc library in ${EXTERNAL_DMLC_LIB_PATH}")
++  find_library(DMLC
++    NAMES dmlc
++    PATHS ${EXTERNAL_DMLC_LIB_PATH}
++  )
++  if(NOT DMLC)
++      message(FATAL_ERROR "Failed to find DMLC library")
++  endif()
++  list(APPEND DGL_LINKER_LIBS DMLC)
 +
 +else(EXTERNAL_DMLC_PATH)
 +  target_include_directories(dgl PRIVATE "third_party/dmlc-core/include")
@@ -122,12 +135,7 @@ index 96adfd2b..ecc85b5f 100644
 +
 +# this is always vendored 
 +target_include_directories(dgl PRIVATE "tensoradapter/include")
- 
--# Compile LIBXSMM
--if((NOT MSVC) AND USE_LIBXSMM)
--  set(LIBXSMM_COMPILER "${CMAKE_C_COMPILER}")
--  if (APPLE)
--    set(LIBXSMM_COMPILER "${CMAKE_C_COMPILER} -isysroot ${CMAKE_OSX_SYSROOT}")
++
 +if(EXTERNAL_NANOFLANN_PATH)
 +  include_directories(SYSTEM ${EXTERNAL_NANOFLANN_PATH})
 +else(EXTERNAL_NANOFLANN_PATH)
@@ -136,6 +144,15 @@ index 96adfd2b..ecc85b5f 100644
 +
 +if (EXTERNAL_LIBXSMM_PATH)
 +  include_directories(SYSTEM ${EXTERNAL_LIBXSMM_PATH})
++  find_library(XSMM
++    NAMES xsmm
++    PATHS ${EXTERNAL_LIBXSMM_LIB_PATH}
++  )
++  if(NOT XSMM)
++      message(FATAL_ERROR "Failed to find XSMM library")
++  endif()
++  list(APPEND DGL_LINKER_LIBS XSMM)
++
 +else(EXTERNAL_LIBXSMM_PATH)
 +  target_include_directories(dgl PRIVATE "third_party/libxsmm/include")
 +  # Compile LIBXSMM
