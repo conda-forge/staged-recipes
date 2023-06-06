@@ -5,8 +5,8 @@ set -ex
 mkdir build
 cd build
 
-cmake ${CMAKE_ARGS} .. \
-  -DCOSSERATPLUGIN_BUILD_TESTS=OFF
+cmake ${CMAKE_ARGS} -B . -S .. \
+  -DMODELORDERREDUCTION_BUILD_TESTS=OFF
 
 # build
 cmake --build . --parallel ${CPU_COUNT} --verbose
