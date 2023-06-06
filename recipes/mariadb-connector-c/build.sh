@@ -6,6 +6,8 @@ mkdir build
 
 cd build
 
-cmake ../mariadb-connector-c-3.3.5 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local
+cmake ${CMAKE_ARGS} \
+    -DCMAKE_INSTALL_PREFIX:STRING=${PREFIX} \
+    ${SRC_DIR}
 
-make
+cmake --build . --config RelWithDebInfo --parallel ${CPU_COUNT} --target install
