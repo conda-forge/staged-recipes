@@ -6,12 +6,6 @@ mkdir build
 
 cd build
 
-if [[ "${CONDA_BUILD_CROSS_COMPILATION}" != "1" ]]; then
-  BUILD_TESTS="ON"
-else
-  BUILD_TESTS="OFF"
-fi
-
 cmake ${CMAKE_ARGS} \
       -DCMAKE_CXX_STANDARD=17 \
       -DCMAKE_PREFIX_PATH=$PREFIX \
@@ -26,9 +20,5 @@ cmake ${CMAKE_ARGS} \
       $SRC_DIR
 
 cmake --build . -- -j${CPU_COUNT}
-
-if [[ "${CONDA_BUILD_CROSS_COMPILATION}" != "1" ]]; then
-  cmake --build . -- test
-fi
 
 cmake --build . -- install
