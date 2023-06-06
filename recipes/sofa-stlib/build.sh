@@ -5,7 +5,7 @@ set -ex
 mkdir build
 cd build
 
-cmake ${CMAKE_ARGS} .. \
+cmake ${CMAKE_ARGS} -B . -S .. \
   -DPLUGIN_SOFAPYTHON=ON
 
 # build
