@@ -1,9 +1,13 @@
 #!/bin/bash
 
-# Get an updated config.sub and config.guess
-cp $BUILD_PREFIX/share/gnuconfig/config.* .
+mkdir build
 
-# Skip ``make check`` when cross-compiling
-if [[ "${CONDA_BUILD_CROSS_COMPILATION}" != "1" ]]; then
-  make check
-fi
+cd build
+
+cmake ../mariadb-connector-c-3.3.5 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local
+
+cmake --build ../build --config Release
+
+make -j{CPU_COUNT}
+
+make install
