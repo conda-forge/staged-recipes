@@ -2,6 +2,8 @@
 
 set -ex
 
+export OGRE_DIR="${PREFIX}/lib/OGRE/cmake"
+
 mkdir build
 cd build
 

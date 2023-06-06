@@ -6,6 +6,7 @@ cd build
 set "CC=clang-cl.exe"
 set "CXX=clang-cl.exe"
 set "CL=/MP"
+set "OGRE_DIR=%PREFIX%\Library\cmake"
 
 ::Configure
 cmake ^
