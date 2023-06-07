@@ -20,6 +20,8 @@ ls $PREFIX/lib
 ls $BUILD_PREFIX/include
 ls $BUILD_PREFIX/lib
 
+cmake -E environment
+ 
 cmake -DUSE_CUDA=ON \
   -DUSE_CONDA_INCLUDES=ON \
   -DEXTERNAL_DLPACK_PATH=${BUILD_PREFIX}/include \
