@@ -7,7 +7,7 @@ CUDA_CMAKE_OPTIONS="-DCMAKE_CUDA_COMPILER=${CUDA_HOME}/bin/nvcc -DCMAKE_CUDA_HOS
 
 # Remove -std=c++17 from CXXFLAGS for compatibility with nvcc
 export CXXFLAGS="$(echo $CXXFLAGS | sed -e 's/ -std=[^ ]*//')"
-
+export CFLAGS="$(echo $CFLAGS | sed -e 's/ -mtune=[^ ]*//')"
 CMAKE_FLAGS="${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_BUILD_TYPE=Release -DPython_EXECUTABLE=${PYTHON}"
 
 echo $CONDA_PREFIX
