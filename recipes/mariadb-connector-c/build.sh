@@ -1,20 +1,19 @@
-#!/bin/bash
-
-set -e
+#!/usr/bin/env bash
+set -e -x
 
 mkdir build
-
 cd build
 
 cmake ${CMAKE_ARGS} \
-      -DCMAKE_CXX_STANDARD=17 \
-      -DCMAKE_PREFIX_PATH=$PREFIX \
-      -DCMAKE_INSTALL_PREFIX=$PREFIX \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DS2GEOGRAPHY_BUILD_TESTS=$BUILD_TESTS \
-      -DS2GEOGRAPHY_CODE_COVERAGE=OFF \
-      $SRC_DIR
+    -DENABLE_FORMAT=OFF \
+    -DBUILD_SHARED_LIBS=ON \
+    -DCMAKE_INSTALL_PREFIX=$PREFIX \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=ON \
+    -DWITH_MYSQLCOMPAT=1 \
+    -DINSTALL_LIBDIR=lib \
+    ..
 
-cmake --build . -- -j${CPU_COUNT}
+make -k -j${CPU_COUNT}
 
-cmake --build . -- install
+make install
