@@ -17,13 +17,13 @@ cmake ^
 if errorlevel 1 exit 1
 
 :: Build.
-cmake --build . --parallel "%CPU_COUNT%" --verbose
+cmake --build . --parallel "%CPU_COUNT%"
 if errorlevel 1 exit 1
 
 :: test
-ctest --parallel "%CPU_COUNT%" --verbose
+ctest --parallel "%CPU_COUNT%"
 if errorlevel 1 exit 1
 
 :: Install.
-cmake --build . --parallel "%CPU_COUNT%" --verbose --target install
+cmake --build . --parallel "%CPU_COUNT%" --target install
 if errorlevel 1 exit 1

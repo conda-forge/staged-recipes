@@ -32,10 +32,10 @@ cmake ${CMAKE_ARGS} .. \
       -DBUILD_TESTS=ON
 
 # build
-cmake --build . --parallel ${CPU_COUNT} --verbose
+cmake --build . --parallel ${CPU_COUNT}
 
 # install 
-cmake --build . --parallel ${CPU_COUNT} --verbose --target install
+cmake --build . --parallel ${CPU_COUNT} --target install
 
 # test
-ctest --parallel ${CPU_COUNT} --verbose
+ctest --parallel ${CPU_COUNT}
