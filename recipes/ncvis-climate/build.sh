@@ -34,5 +34,3 @@ cp ${RECIPE_DIR}/scripts/activate.csh ${ACTIVATE_DIR}/ncvis-climate-activate.csh
 cp ${RECIPE_DIR}/scripts/deactivate.csh ${DEACTIVATE_DIR}/ncvis-climate-deactivate.csh
 cp ${RECIPE_DIR}/scripts/activate.fish ${ACTIVATE_DIR}/ncvis-climate-activate.fish
 cp ${RECIPE_DIR}/scripts/deactivate.fish ${DEACTIVATE_DIR}/ncvis-climate-deactivate.fish
-cp ${RECIPE_DIR}/scripts/activate.bat ${ACTIVATE_DIR}/ncvis-climate-activate.bat
-cp ${RECIPE_DIR}/scripts/deactivate.bat ${DEACTIVATE_DIR}/ncvis-climate-deactivate.bat
