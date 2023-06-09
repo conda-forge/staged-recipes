@@ -2,7 +2,11 @@
 
 set -ex
 
-export OGRE_DIR="${PREFIX}/lib/OGRE/cmake"
+if [[ "$target_platform" == linux* ]]; then
+    export OGRE_DIR="${PREFIX}/lib/OGRE/cmake"
+elif [[ "$target_platform" == osx* ]]; then
+    export OGRE_DIR="${PREFIX}/cmake"
+fi
 
 mkdir build
 cd build
