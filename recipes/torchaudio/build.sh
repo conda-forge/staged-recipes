@@ -42,6 +42,5 @@ export BUILD_RNNT=1
 export CMAKE_C_COMPILER="$CC"
 export CMAKE_CXX_COMPILER="$CXX"
 export CMAKE_GENERATOR="Ninja"
-export CMAKE_INSTALL_PREFIX="$PREFIX"
 
 python -m pip install . -vv
