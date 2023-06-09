@@ -22,15 +22,3 @@ cd src && $CXX -std=c++11 -fpermissive -Wl,-rpath,${RPATH} -o ${PREFIX}/bin/ncvi
 # copy the resoruces folder to $PREFIX/share
 cd .. && mkdir ${PREFIX}/share/ncvis
 cp -r resources ${PREFIX}/share/ncvis/
-
-ACTIVATE_DIR=${PREFIX}/etc/conda/activate.d
-DEACTIVATE_DIR=${PREFIX}/etc/conda/deactivate.d
-mkdir -p ${ACTIVATE_DIR}
-mkdir -p ${DEACTIVATE_DIR}
-
-cp ${RECIPE_DIR}/scripts/activate.sh ${ACTIVATE_DIR}/ncvis-climate-activate.sh
-cp ${RECIPE_DIR}/scripts/deactivate.sh ${DEACTIVATE_DIR}/ncvis-climate-deactivate.sh
-cp ${RECIPE_DIR}/scripts/activate.csh ${ACTIVATE_DIR}/ncvis-climate-activate.csh
-cp ${RECIPE_DIR}/scripts/deactivate.csh ${DEACTIVATE_DIR}/ncvis-climate-deactivate.csh
-cp ${RECIPE_DIR}/scripts/activate.fish ${ACTIVATE_DIR}/ncvis-climate-activate.fish
-cp ${RECIPE_DIR}/scripts/deactivate.fish ${DEACTIVATE_DIR}/ncvis-climate-deactivate.fish
