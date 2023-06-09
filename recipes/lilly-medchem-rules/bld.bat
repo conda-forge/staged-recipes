@@ -1,6 +1,6 @@
 @echo off
 
-make
+nmake
 
 mkdir "-p" "%PREFIX%/bin/"
 
