@@ -27,5 +27,5 @@ for i in `ls`; do
     fi
 done
 
-mkdir -p ${PREFIX}/etc/OpenCL/venders/
-echo ${PREFIX}/${targetsDir}/lib/libOpenCL.so > ${PREFIX}/etc/OpenCL/venders/cuda.icd
+mkdir -p "${PREFIX}/etc/OpenCL/vendors"
+echo "${PREFIX}/${targetsDir}/lib/libOpenCL.so" > "${PREFIX}/etc/OpenCL/vendors/cuda.icd"
