@@ -8,4 +8,4 @@ if ( $?NCVIS_RESOURCE_DIR ) then
 endif
 
 
-setenv NCVIS_RESOURCE_DIR "${CONDA_PREFIX}/share/ncvis"
+setenv NCVIS_RESOURCE_DIR "${CONDA_PREFIX}/share/ncvis/resources"

@@ -8,4 +8,4 @@ if [ -n "$NCVIS_RESOURCE_DIR" ]; then
 fi
 
 
-export NCVIS_RESOURCE_DIR=${CONDA_PREFIX}/share/ncvis
+export NCVIS_RESOURCE_DIR=${CONDA_PREFIX}/share/ncvis/resources
