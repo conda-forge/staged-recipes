@@ -26,3 +26,6 @@ for i in `ls`; do
         cp -rv $i ${PREFIX}/${targetsDir}/${PKG_NAME}
     fi
 done
+
+mkdir -p ${PREFIX}/etc/OpenCL/venders/
+echo ${PREFIX}/${targetsDir}/lib/libOpenCL.so > ${PREFIX}/etc/OpenCL/venders/cuda.icd
