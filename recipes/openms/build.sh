@@ -46,6 +46,6 @@ cmake .. \
   -DBUILD_EXAMPLES=OFF
 
 # limit concurrent build jobs due to memory usage on CI
-make -j4 OpenMS TOPP UTILS
+make -j${CPU_COUNT} OpenMS TOPP UTILS
 # The subpackages will do the installing of the parts
 #make install
