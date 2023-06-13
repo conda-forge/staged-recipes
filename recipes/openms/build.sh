@@ -2,13 +2,8 @@
 
 # useless default include directory that is silently added by the compiler packages "to help"...
 # it is not even added with -isystem https://github.com/AnacondaRecipes/aggregate/blob/master/clang/activate-clang%2B%2B.sh#L87
-USELESS="-I${PREFIX}/include"
-export CXXFLAGS=${CXXFLAGS//${USELESS}/}
-
-# Not sure if those are needed 
-export LIBRARY_PATH=${PREFIX}/lib
-export LD_LIBRARY_PATH=${PREFIX}/lib
-#export DYLD_LIBRARY_PATH=${PREFIX}/lib
+#USELESS="-I${PREFIX}/include"
+#export CXXFLAGS=${CXXFLAGS//${USELESS}/}
 
 mkdir build
 cd build
@@ -32,7 +27,6 @@ cmake .. \
   -DCMAKE_OSX_SYSROOT=${CONDA_BUILD_SYSROOT} \
   -DCMAKE_MACOSX_RPATH=ON \
   -DCMAKE_PREFIX_PATH=${PREFIX} \
-  -DCMAKE_INSTALL_PREFIX=${PREFIX} \
   -DCMAKE_INSTALL_RPATH=${RPATH} \
   -DCMAKE_INSTALL_NAME_DIR="@rpath" \
   -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
@@ -43,7 +37,8 @@ cmake .. \
   -DBOOST_USE_STATIC=OFF \
   -DBoost_NO_BOOST_CMAKE=ON \
   -DBoost_ARCHITECTURE="-x64" \
-  -DBUILD_EXAMPLES=OFF
+  -DBUILD_EXAMPLES=OFF \
+  ${CMAKE_ARGS}
 
 # limit concurrent build jobs due to memory usage on CI
 make -j${CPU_COUNT} OpenMS TOPP UTILS
