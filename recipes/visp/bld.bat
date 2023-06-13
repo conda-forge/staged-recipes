@@ -6,14 +6,19 @@ cd build
 set "CC=clang-cl.exe"
 set "CXX=clang-cl.exe"
 set "CL=/MP"
-set "OGRE_DIR=%PREFIX%\Library\cmake"
 
 ::Configure
 cmake ^
     %SRC_DIR% ^
     -G Ninja ^
+    -DOGRE_DIR="%LIBRARY_PREFIX%\cmake" ^
     -DCMAKE_BUILD_TYPE:STRING=Release ^
+    -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
+    -DVISP_LIB_INSTALL_PATH:PATH="lib" ^
+    -DVISP_BIN_INSTALL_PATH:PATH="bin" ^
+    -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
     -DBUILD_TESTS=ON
+
 if errorlevel 1 exit 1
 
 :: Build.
