@@ -1,0 +1,110 @@
+{% set version = "2.6.1" %}
+{% set cuda_major = (cuda_compiler_version|default("12.0.0")).split(".")[0] %}
+{% set platform = "x86_64" %}  # [linux64]
+{% set platform = "SBSA" %}  # [aarch64]
+{% set platform = "windows" %}  # [win]
+{% set extension = "tgz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
+
+package:
+  name: nvcomp
+  version: {{ version }}
+
+source:
+  - url: https://developer.download.nvidia.com/compute/nvcomp/{{ version }}/local_installers/nvcomp_{{ version }}_{{ platform }}_{{ cuda_major }}.x.{{ extension }}
+    sha256: 62046476076d1b455fb13fb78b38d3496bacafbfdbb0494fb3392240a04466ea  # [linux64 and cuda_major == "11"]
+    sha256: a0792b666caaf593a9dd4130979578fd3a78230f4407645c295700ef8e7aaaf2  # [linux64 and cuda_major == "12"]
+    sha256: a019f2c8a300991d94d718a3524377d978efadaa62349858741f17ef859a9e55  # [aarch64 and cuda_major == "11"]
+    sha256: fc668519a8344e9d05335bad4bc5d23a504cdc7579aea41f12d6aa0f3079e709  # [aarch64 and cuda_major == "12"]
+    sha256: 4f0105a51ac6ea947154e252c8b220baf3345803f55644b5aad84e22ae4f8986  # [win and cuda_major == "11"]
+    sha256: e362e1fbf6b101ad71aa5314f21d00a4353b90efbe5cdedc5fcfb0f3b68cd791  # [win and cuda_major == "12"]
+  # Include cudart license because it is statically linked.
+  - url: https://developer.download.nvidia.com/compute/cuda/redist/cuda_cudart/LICENSE.txt
+    fn: cudart_LICENSE
+    sha256: 5db25d4fd138013b563f9a3d1d87f7de7df1dac014fd4cccdfbb3435a5cff761
+
+build:
+  number: 0
+  # TODO: Enable aarch64 builds
+  # TODO: Enable Windows with CUDA 12 when it is supported
+  skip: True  # [win32 or osx or aarch64 or ppc64le or cuda_compiler_version not in ("11.2", "12.0") or (win and cuda_major == "12")]
+  script:
+    - mkdir -pv $PREFIX/include              # [linux]
+    - mv -v include/* $PREFIX/include        # [linux]
+    - mkdir -pv $PREFIX/lib                  # [linux]
+    - mv -v lib/* $PREFIX/lib/               # [linux]
+    - mkdir %LIBRARY_INC%                                   # [win]
+    - copy %SRC_DIR%\\include\\* %LIBRARY_INC%\\            # [win]
+    - mkdir %LIBRARY_LIB%                                   # [win]
+    - copy %SRC_DIR%\\lib\\nvcomp*.lib %LIBRARY_LIB%\\      # [win]
+    - mkdir %LIBRARY_BIN%                                   # [win]
+    - copy %SRC_DIR%\\lib\\nvcomp*.dll %LIBRARY_BIN%\\      # [win]
+  ignore_run_exports_from:
+    - {{ compiler('cuda') }}
+  run_exports:
+    - {{ pin_subpackage("nvcomp") }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    - sysroot_{{ target_platform }} 2.17  # [linux]
+  host:
+    - cuda-version {{ cuda_major }}
+  run:
+    - {{ pin_compatible("cuda-version", min_pin="x", max_pin="x") }}
+  run_constrained:
+    - arm-variant * {{ arm_variant_type }}  # [aarch64]
+
+test:
+  requires:
+    - {{ compiler('c') }}  # [linux]
+  files:
+    - test_load_elf.c      # [linux]
+  commands:
+    - test -f $PREFIX/include/nvcomp.h                                 # [linux]
+    - test -f $PREFIX/include/nvcomp.hpp                               # [linux]
+    - test -f $PREFIX/lib/libnvcomp.so                                 # [linux]
+    - test -f $PREFIX/lib/libnvcomp_bitcomp.so                         # [linux]
+    - test -f $PREFIX/lib/libnvcomp_gdeflate.so                        # [linux]
+    - test -f $PREFIX/lib/libnvcomp_gdeflate_cpu.so                    # [linux]
+    - ${GCC} test_load_elf.c -std=c99 -Werror -ldl -o test_load_elf    # [linux]
+    - for f in $PREFIX/lib/libnvcomp*.so; do ./test_load_elf $f; done  # [linux]
+    - if not exist %LIBRARY_INC%/nvcomp.h exit 1                       # [win]
+    - if not exist %LIBRARY_INC%/nvcomp.hpp exit 1                     # [win]
+    - if not exist %LIBRARY_LIB%/nvcomp.lib exit 1                     # [win]
+    - if not exist %LIBRARY_LIB%/nvcomp_bitcomp.lib exit 1             # [win]
+    - if not exist %LIBRARY_LIB%/nvcomp_gdeflate.lib exit 1            # [win]
+    - if not exist %LIBRARY_BIN%/nvcomp.dll exit 1                     # [win]
+    - if not exist %LIBRARY_BIN%/nvcomp_bitcomp.dll exit 1             # [win]
+    - if not exist %LIBRARY_BIN%/nvcomp_gdeflate.dll exit 1            # [win]
+
+about:
+  home: https://developer.nvidia.com/nvcomp
+  license:
+    LicenseRef-nvCOMP-Software-License-Agreement AND LicenseRef-NVIDIA-End-User-License-Agreement
+  license_file:
+    - LICENSE
+    - cudart_LICENSE
+  license_url: https://developer.download.nvidia.com/compute/nvcomp/2.3/LICENSE.txt
+  summary: "High Speed Data Compression Using NVIDIA GPUs"
+  description: |
+    The nvCOMP library provides fast lossless data compression and
+    decompression using a GPU. It features generic compression interfaces to
+    enable developers to use high-performance GPU compressors in their
+    applications.
+
+    License Agreements:- The packages are governed by the standard NVIDIA
+    Software License Agreement (EULA). By downloading and using the packages,
+    you accept the terms and conditions of the NVIDIA nvCOMP EULA -
+    https://developer.download.nvidia.com/compute/nvcomp/2.3/LICENSE.txt
+  doc_url: https://github.com/NVIDIA/nvcomp/blob/main/README.md
+  dev_url: https://developer.nvidia.com/nvcomp
+
+extra:
+  recipe-maintainers:
+    - adibbley
+    - bdice
+    - jakirkham
