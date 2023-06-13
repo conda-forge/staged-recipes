@@ -1,0 +1,107 @@
+{% set name = "cuda-opencl" %}
+{% set version = "12.0.76" %}
+{% set lib_version = "1.0.0" %}
+{% set cuda_version = "12.0" %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "windows-x86_64" %}  # [win]
+{% set target_name = "x86_64-linux" %}  # [linux64]
+{% set target_name = "x64" %}  # [win]
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuda/redist/cuda_opencl/{{ platform }}/cuda_opencl-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: 285b646a231d1101d7ffb7b37ca081f2c170114102ebfd0439fe189dbdc07b37  # [linux64]
+  sha256: 9a8688abf527dd1105e2f366e5aa84f901975a3ba94d977088764c45586370d3  # [win]
+
+build:
+  number: 0
+  skip: true  # [osx or aarch64 or ppc64le]
+
+test:
+  commands:
+    - test -f $PREFIX/targets/{{ target_name }}/lib/libOpenCL.so.{{ lib_version }}                                                # [linux]
+    - test -L $PREFIX/targets/{{ target_name }}/lib/libOpenCL.so.{{ lib_version.split(".")[0] }}                                  # [linux]
+    - test -L $PREFIX/targets/{{ target_name }}/lib/libOpenCL.so.{{ lib_version.split(".")[0] }}.{{ lib_version.split(".")[1] }}  # [linux]
+    - test -f $PREFIX/etc/OpenCL/vendors/cuda.icd                                                                                 # [linux]
+    - if not exist %LIBRARY_PREFIX%\etc\OpenCL\vendors\cuda.icd exit 1                                                            # [win]
+
+outputs:
+  - name: cuda-opencl
+    files:
+      - targets/{{ target_name }}/lib/libOpenCL.so.*  # [linux]
+      - etc/OpenCL/vendors/cuda.icd                   # [linux]
+      - Library\etc\OpenCL\vendors\cuda.icd           # [win]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+      host:
+        - cuda-version {{ cuda_version }}
+        - ocl-icd                    # [linux]
+        - khronos-opencl-icd-loader  # [win]
+      run:
+        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+        - ocl-icd                    # [linux]
+        - khronos-opencl-icd-loader  # [win]
+    # Tests are defined at the top level, due to package/output name conflicts.
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license_file: LICENSE
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: CUDA OpenCL native Libraries
+      description: |
+        CUDA OpenCL native Libraries
+      doc_url: https://docs.nvidia.com/cuda/index.html
+
+  - name: cuda-opencl-dev
+    build:
+      run_exports:
+        - {{ pin_subpackage("cuda-opencl", max_pin="x") }}
+    files:
+      - lib/pkgconfig                               # [linux]
+      - targets/{{ target_name }}/include           # [linux]
+      - targets/{{ target_name }}/lib/libOpenCL.so  # [linux]
+      - Library\include                             # [win]
+      - Library\lib                                 # [win]
+    requirements:
+      host:
+        - cuda-version {{ cuda_version }}
+      run:
+        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+        - {{ pin_subpackage("cuda-opencl", exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/lib/pkgconfig/opencl-*.pc                   # [linux]
+        - test -f $PREFIX/targets/{{ target_name }}/include/CL/cl.h   # [linux]
+        - test -L $PREFIX/targets/{{ target_name }}/lib/libOpenCL.so  # [linux]
+        - if not exist %LIBRARY_INC%\CL\cl.h exit 1                     # [win]
+        - if not exist %LIBRARY_LIB%\OpenCL.lib exit 1                  # [win]
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license_file: LICENSE
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: CUDA OpenCL native Libraries
+      description: |
+        CUDA OpenCL native Libraries
+      doc_url: https://docs.nvidia.com/cuda/index.html
+
+about:
+  home: https://developer.nvidia.com/cuda-toolkit
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_file: LICENSE
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  summary: CUDA OpenCL native Libraries
+  description: |
+    CUDA OpenCL native Libraries
+  doc_url: https://docs.nvidia.com/cuda/index.html
+
+extra:
+  recipe-maintainers:
+    - adibbley
