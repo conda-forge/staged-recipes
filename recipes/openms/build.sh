@@ -1,5 +1,9 @@
 #!/bin/sh
 
+export LIBRARY_PATH=${PREFIX}/lib
+export LD_LIBRARY_PATH=${PREFIX}/lib
+export DYLD_LIBRARY_PATH=${PREFIX}/lib
+
 # useless default include directory that is silently added by the compiler packages "to help"...
 # it is not even added with -isystem https://github.com/AnacondaRecipes/aggregate/blob/master/clang/activate-clang%2B%2B.sh#L87
 #USELESS="-I${PREFIX}/include"
@@ -15,9 +19,6 @@ else
   export ORIGIN
   RPATH='$${ORIGIN}/../lib'
 fi
-
-# not sure if needed. CMake should take care of that.
-LDFLAGS='-Wl,-rpath,${RPATH}'
 
 cmake .. \
   -DOPENMS_GIT_SHORT_REFSPEC="release/${PKG_VERSION}" \
