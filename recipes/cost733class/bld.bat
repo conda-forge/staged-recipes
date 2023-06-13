@@ -28,6 +28,4 @@ cmake -LAH -G "MinGW Makefiles" ^
 if errorlevel 1 exit 1
 
 cmake --build . --target install --config %BUILD_TYPE%
-::make
-::make install
 if errorlevel 1 exit 1

@@ -22,5 +22,3 @@ cmake \
 
 
 cmake --build . --target install --config Release
-#make 
-#make install
