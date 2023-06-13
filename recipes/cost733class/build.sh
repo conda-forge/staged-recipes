@@ -21,6 +21,6 @@ cmake \
   $SRC_DIR
 
 
-#cmake --build . --target install --config Release
-make 
-make install
+cmake --build . --target install --config Release
+#make 
+#make install
