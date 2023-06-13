@@ -1,8 +1,12 @@
 #!/bin/sh
 
+# Otherwise libraries won't be found during linking on Linux
 export LIBRARY_PATH=${PREFIX}/lib
 export LD_LIBRARY_PATH=${PREFIX}/lib
-export DYLD_LIBRARY_PATH=${PREFIX}/lib
+
+# Otherwise Error: dyld: Symbol not found: _iconv Referenced from: /usr/lib/libarchive.2.dylib
+# Expected in: /Users/runner/mambaforge/conda-bld/openms-meta_1686666744655/_h_env_placehold_/lib/libiconv.2.dylib
+#export DYLD_LIBRARY_PATH=${PREFIX}/lib
 
 # useless default include directory that is silently added by the compiler packages "to help"...
 # it is not even added with -isystem https://github.com/AnacondaRecipes/aggregate/blob/master/clang/activate-clang%2B%2B.sh#L87
