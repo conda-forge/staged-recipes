@@ -9,7 +9,6 @@ export MPIF90=mpifort
 
 ./configure --prefix=${PREFIX} \
     --with-mpi=${PREFIX} \
-    --with-netcdf4=${PREFIX} \
     --enable-shared=yes \
     --enable-static=no
 
