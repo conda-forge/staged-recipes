@@ -6,6 +6,8 @@ mkdir build
 cd build
 
 cmake ${CMAKE_ARGS} -B . -S .. \
+  -DPYTHON_EXECUTABLE=$CONDA_PREFIX/bin/python \
+  -DPython_FIND_STRATEGY=LOCATION \
   -DCOSSERATPLUGIN_BUILD_TESTS=OFF
 
 # build
