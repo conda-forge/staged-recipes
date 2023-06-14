@@ -31,8 +31,9 @@ requirements:
       - autoconf
       - automake
       - libtool
-    host:
       - llvm-openmp  # [osx]
+      - libgomp      # [linux]
+    host:
       - zlib
       - xerces-c
       - boost-cpp
@@ -59,8 +60,9 @@ outputs:
         build:
           - cmake
           - {{ compiler('cxx') }}
-        host:
           - llvm-openmp  # [osx]
+          - libgomp      # [linux]
+        host:
           - zlib
           - xerces-c
           - boost-cpp
@@ -71,7 +73,7 @@ outputs:
           - libsvm
           - coinmp
         run:
-          - _openmp_mutex  # [linux_64]
+          - {{ pin_compatible('libgomp', max_pin='x.x') }}  # [linux]
           - {{ pin_compatible('llvm-openmp', max_pin='x.x') }}  # [osx]
           - {{ pin_compatible('zlib', max_pin='x.x') }}
           - {{ pin_compatible('xerces-c', max_pin='x.x') }}
@@ -85,6 +87,13 @@ outputs:
     build:
       run_exports:
           - libopenms {{ version }}
+        # The following are libraries in our public interface that need
+        # to be linked when linking to libopenms  
+          - {{ pin_compatible('libgomp', max_pin='x.x') }}  # [linux]
+          - {{ pin_compatible('llvm-openmp', max_pin='x.x') }}  # [osx]
+          - {{ pin_compatible('qt-main', max_pin='x.x') }}
+          - {{ pin_compatible('libsvm', max_pin='x.x') }}
+          - {{ pin_compatible('xerces-c', max_pin='x.x') }}
 
   - name: openms
     version: {{ version }}
@@ -95,14 +104,14 @@ outputs:
       build:
         - cmake
         - {{ compiler('cxx') }}
+        - llvm-openmp  # [osx]
+        - libgomp      # [linux]
       host:
         - {{ pin_subpackage('libopenms', exact=True) }}
       # conda apparently does not support run_exports in subpackages yet, otherwise having libopenms in host would be enough.
       # see https://github.com/conda/conda-build/issues/3478
       # so specify everything again, such that EXACTLY the same versions are used!
       # I could not get the "resolved_packages" jinja function to gather dependencies from other subpackages.
-        - _openmp_mutex  # [linux_64]
-        - llvm-openmp  # [osx]
         - zlib
         - libtool
         - xerces-c
@@ -115,6 +124,7 @@ outputs:
         - coinmp
       run:
         - {{ pin_subpackage('libopenms', exact=True) }}
+        - {{ pin_compatible('libgomp', max_pin='x.x') }}  # [linux]
         - {{ pin_compatible('llvm-openmp', max_pin='x.x') }}  # [osx]
         - {{ pin_compatible('zlib', max_pin='x.x') }}
         - {{ pin_compatible('xerces-c', max_pin='x.x') }}
