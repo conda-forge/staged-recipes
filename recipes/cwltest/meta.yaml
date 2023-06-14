@@ -1,0 +1,61 @@
+{% set name = "cwltest" %}
+{% set version = "2.3.20230527113600" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: 6ca261e6a0fdc813ade20cf0b8ca340c9283a1aff1c4523deb78504290ac16ee
+
+build:
+  number: 0
+  skip: true  # [win]
+  entry_points:
+    - cwltest=cwltest.main:main
+  script: {{ PYTHON }} -m pip install . -vv
+
+requirements:
+  host:
+    - pip
+    - python
+  run:
+    - python
+    - schema-salad >=5.0.20200220195218,<9
+    - junit-xml >=1.8
+    - pytest >=7,<8
+    - defusedxml
+    - typing_extensions
+
+test:
+  imports:
+    - cwltest
+    - cwltest.tests
+  commands:
+    - cwltest --help
+    - mkdir -p bin
+    - ln -s $(command -v cwltool) bin/cwl-runner
+    - chmod a+x bin/cwl-runner
+    - PATH=$PATH:$PWD/bin CWLTOOL_OPTIONS=--no-container python -m pytest --pyargs cwltest -p pytester -o pytester_example_dir=tests/test-data -k 'not test_plugin'
+  requires:
+    - cwltool
+    - pytest
+  source_files:
+    - tests/test-data
+
+about:
+  home: https://github.com/common-workflow-language/cwltest
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Common workflow language testing framework
+  dev_url: https://github.com/common-workflow-language/cwltest
+  doc_url: http://cwltest.readthedocs.org/
+  description: |
+    This is a testing tool for checking the output of Tools and Workflows described
+    with the Common Workflow Language.  Among other uses, it is used to run the CWL
+    conformance tests.
+
+extra:
+  recipe-maintainers:
+    - mr-c
