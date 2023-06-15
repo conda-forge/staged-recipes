@@ -8,5 +8,5 @@ cmake ${CMAKE_ARGS} .. \
       -DCMAKE_INSTALL_LIBDIR=lib \
       -DPYTHON_EXECUTABLE=$PYTHON
 
-cmake --build . --config Release -- -j$CPU_COUNT
+cmake --build . --config Release -- -j2
 cmake --build . --config Release --target install
