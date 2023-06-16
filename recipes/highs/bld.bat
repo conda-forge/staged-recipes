@@ -1,7 +1,11 @@
-#!/bin/bash
-
 mkdir build
 chdir build
 
-cmake ${CMAKE_ARGS} -DBUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=$PREFIX $SRC_DIR -DCMAKE_INSTALL_LIBDIR=lib
-make install
+cmake -G "NMake Makefiles" -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% %SRC_DIR%
+if errorlevel 1 exit 1
+
+nmake
+if errorlevel 1 exit 1
+
+nmake install
+if errorlevel 1 exit 1
