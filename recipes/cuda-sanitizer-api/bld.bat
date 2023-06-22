@@ -10,6 +10,6 @@ move compute-sanitizer %LIBRARY_PREFIX%
 cd %SCRIPTS%
 for /r "%LIBRARY_PREFIX%\compute-sanitizer" %%f in (*.exe) do (
     echo @echo off > %%~nf.bat
-    echo %%~dp0.\compute-sanitizer\%%~nf.exe %%* >> %%~nf.bat
+    echo %%~dp0..\Library\compute-sanitizer\%%~nf.exe %%* >> %%~nf.bat
     if errorlevel 1 exit 1
 )
