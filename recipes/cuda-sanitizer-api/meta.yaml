@@ -1,0 +1,62 @@
+{% set name = "cuda-sanitizer-api" %}
+{% set version = "12.0.90" %}
+{% set cuda_version = "12.0" %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-ppc64le" %}  # [ppc64le]
+{% set platform = "linux-sbsa" %}  # [aarch64]
+{% set platform = "windows-x86_64" %}  # [win]
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuda/redist/cuda_sanitizer_api/{{ platform }}/cuda_sanitizer_api-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: 80e23d82bf4a0bb79c564104121467bd0d15f0142e1dc4fff36bb491bc4b3d4f  # [linux64]
+  sha256: 50d66cab58c7b8aa8473b36844669ee2ea7fc85ad92d49473b30214de22c2d25  # [ppc64le]
+  sha256: c872f56fa4a0ce50f8acf5f154d73d0c7a3290e9fa7ffa0b368fbdae3d1435b9  # [aarch64]
+  sha256: cdb48694de35aed5576aaf81f2443d12791a346d7a186e2c37e7606e252ef4e4  # [win]
+
+build:
+  number: 0
+  skip: true  # [osx]
+  missing_dso_whitelist:
+    - '$RPATH/libInterceptorInjectionTarget.so'  # [linux]
+    - '$RPATH/InterceptorInjectionTarget.dll'    # [win]
+
+requirements:
+  build:
+    - {{ compiler("c") }}
+    - {{ compiler("cxx") }}
+    - arm-variant * {{ arm_variant_type }}  # [aarch64]
+  host:
+    - cuda-version {{ cuda_version }}
+  run:
+    - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+  run_constrained:
+    - arm-variant * {{ arm_variant_type }}  # [aarch64]
+
+test:
+  commands:
+    - test -f $PREFIX/bin/compute-sanitizer                                         # [linux]
+    - test -f $PREFIX/compute-sanitizer/compute-sanitizer                           # [linux]
+    - if not exist %LIBRARY_PREFIX%\compute-sanitizer\compute-sanitizer.exe exit 1  # [win]
+    - if not exist %PREFIX%\Scripts\compute-sanitizer.bat exit 1                           # [win]
+    - compute-sanitizer --version
+
+about:
+  home: https://docs.nvidia.com/compute-sanitizer/SanitizerApiGuide/index.html
+  license_file: LICENSE
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  summary: Provides a set of APIs to enable third party tools to write GPU sanitizing tools
+  description: |
+    Provides a set of APIs to enable third-party tools to write GPU sanitizing
+    tools, such as memory and race checkers.
+  doc_url: https://docs.nvidia.com/compute-sanitizer/SanitizerApiGuide/index.html
+
+extra:
+  recipe-maintainers:
+    - adibbley
