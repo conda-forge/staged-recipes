@@ -12,6 +12,12 @@ if [[ "${target_platform}" == osx-* ]]; then
     export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 fi
 
+# Workaround for https://github.com/conda-forge/gazebo-feedstock/pull/150
+# Remove when boost is updated to 1.80.0
+if [[ "${target_platform}" == "osx-64" ]]; then
+  export CXXFLAGS="-DBOOST_ASIO_DISABLE_STD_ALIGNED_ALLOC ${CXXFLAGS}"
+fi
+
 cmake $CMAKE_ARGS \
     -DPROTOBUF_USE_DLLS=ON \
     -DBUILD_STATIC_LIB=OFF \
