@@ -14,6 +14,6 @@ move nsight-compute %LIBRARY_PREFIX%
 cd %SCRIPTS%
 for /r "%LIBRARY_PREFIX%\nsight-compute" %%f in (*.exe) do (
     echo @echo off > %%~nf.bat
-    echo %%~dp0.\nsight-compute\%%~nf.exe %%* >> %%~nf.bat
+    echo %%~dp0..\Library\nsight-compute\%%~nf.exe %%* >> %%~nf.bat
     if errorlevel 1 exit 1
 )
