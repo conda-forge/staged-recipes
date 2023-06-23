@@ -1,10 +1,11 @@
 #!/bin/sh
 
+cd ..
 rm -rf build
 mkdir build
 cd build
 
-cmake ${CMAKE_ARGS} -GNinja .. \
+cmake ${CMAKE_ARGS} -GNinja $SRC_DIR \
       -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_TESTING:BOOL=ON
 
