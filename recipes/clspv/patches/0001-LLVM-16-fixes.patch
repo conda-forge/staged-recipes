@@ -1,0 +1,84 @@
+From 7ba9361aa7f22c703c5e5136507c48c254597c8b Mon Sep 17 00:00:00 2001
+From: Isuru Fernando <isuruf@gmail.com>
+Date: Sun, 25 Jun 2023 12:16:54 -0500
+Subject: [PATCH 1/2] LLVM 16 fixes
+
+---
+ include/clspv/Compiler.h    | 1 +
+ lib/Compiler.cpp            | 4 ++--
+ lib/SPIRVProducerPass.cpp   | 2 +-
+ lib/UndoInstCombinePass.cpp | 4 ++--
+ 4 files changed, 6 insertions(+), 5 deletions(-)
+
+diff --git a/include/clspv/Compiler.h b/include/clspv/Compiler.h
+index ef1d26cb..fc1019ed 100644
+--- a/include/clspv/Compiler.h
++++ b/include/clspv/Compiler.h
+@@ -17,6 +17,7 @@
+ 
+ #include <string>
+ #include <vector>
++#include <cstdint>
+ 
+ namespace clspv {
+ // DEPRECATED: This function will be replaced by an expanded API.
+diff --git a/lib/Compiler.cpp b/lib/Compiler.cpp
+index 363e3b5a..7143981e 100755
+--- a/lib/Compiler.cpp
++++ b/lib/Compiler.cpp
+@@ -352,7 +352,7 @@ int SetCompilerInstanceOptions(
+   instance.getCodeGenOpts().OptimizationLevel = 0;
+ 
+   if (clspv::Option::DebugInfo()) {
+-    instance.getCodeGenOpts().setDebugInfo(llvm::codegenoptions::FullDebugInfo);
++    instance.getCodeGenOpts().setDebugInfo(clang::codegenoptions::FullDebugInfo);
+   }
+ 
+   // Select the correct SPIR triple
+@@ -452,7 +452,7 @@ int RunPassPipeline(llvm::Module &M, llvm::raw_svector_ostream *binaryStream) {
+   llvm::PassInstrumentationCallbacks PIC;
+   llvm::StandardInstrumentations si(M.getContext(), false /*DebugLogging*/);
+   clspv::RegisterClspvPasses(&PIC);
+-  si.registerCallbacks(PIC, &mam);
++  si.registerCallbacks(PIC, &fam);
+   llvm::PassBuilder pb(nullptr, llvm::PipelineTuningOptions(), std::nullopt,
+                        &PIC);
+   pb.registerModuleAnalyses(mam);
+diff --git a/lib/SPIRVProducerPass.cpp b/lib/SPIRVProducerPass.cpp
+index 82420578..72be00db 100644
+--- a/lib/SPIRVProducerPass.cpp
++++ b/lib/SPIRVProducerPass.cpp
+@@ -5144,7 +5144,7 @@ void SPIRVProducerPassImpl::GenerateInstruction(Instruction &I) {
+       SmallVector<int, 4> mask;
+       shuffle->getShuffleMask(mask);
+       for (auto i : mask) {
+-        if (i == PoisonMaskElem) {
++        if (i == UndefMaskElem) {
+           if (clspv::Option::HackUndef())
+             // Use 0 instead of undef.
+             Ops << 0;
+diff --git a/lib/UndoInstCombinePass.cpp b/lib/UndoInstCombinePass.cpp
+index 877bb01f..4e416115 100644
+--- a/lib/UndoInstCombinePass.cpp
++++ b/lib/UndoInstCombinePass.cpp
+@@ -216,7 +216,7 @@ bool clspv::UndoInstCombinePass::UndoWideVectorShuffleCast(Instruction *inst) {
+   for (auto i : mask) {
+     // Instcombine should not have generated odd indices, so don't handle them
+     // for now.
+-    if ((i != PoisonMaskElem) && (i & 0x1))
++    if ((i != UndefMaskElem) && (i & 0x1))
+       return false;
+   }
+ 
+@@ -232,7 +232,7 @@ bool clspv::UndoInstCombinePass::UndoWideVectorShuffleCast(Instruction *inst) {
+   // TODO could replace with a shuffle and vectorized trunc
+   int i = 0;
+   for (auto idx : mask) {
+-    if (idx == PoisonMaskElem)
++    if (idx == UndefMaskElem)
+       continue;
+ 
+     uint64_t new_idx = idx / ratio;
+-- 
+2.37.3
+
