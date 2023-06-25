@@ -1,0 +1,54 @@
+{% set version = "12.2.0" %}
+
+package:
+  name: glslang
+  version: {{ version }}
+
+source:
+  url: https://github.com/KhronosGroup/glslang/archive/{{ version }}.tar.gz
+  sha256: 870d17030fda7308c1521fb2e01a9e93cbe4b130bc8274e90d00e127432ab6f6
+  patches:
+    # https://github.com/KhronosGroup/glslang/pull/3243
+    - 3243.patch
+
+build:
+  number: 0
+  # hmaarrfk -- I do not have time to build out windows right now
+  skip: true  # [win]
+  run_exports:
+    # They seem to use so names with the major version, so lets stick with that
+    - {{ pin_subpackage('glslang', 'x') }}
+  ignore_run_exports_from:
+    - python
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja                    # [win]
+    - make                     # [unix]
+    - sysroot_linux-64 2.17    # [linux]
+  host:
+    - spirv-tools
+
+test:
+  commands:
+    - glslangValidator --version
+    - test -f ${PREFIX}/lib/libglslang${SHLIB_EXT}                # [unix]
+    - test -f ${PREFIX}/lib/libSPIRV${SHLIB_EXT}                  # [unix]
+    - test -f ${PREFIX}/lib/libHLSL${SHLIB_EXT}                   # [unix]
+    - if not exist %PREFIX%\\Library\\bin\\libglslang.dll exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\bin\\libSPIRV.dll   exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\bin\\libHLSL.dll    exit 1  # [win]
+
+about:
+  home: https://github.com/KhronosGroup/glslang
+  summary: Glslang Components and Status
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
