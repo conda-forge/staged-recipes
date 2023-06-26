@@ -1,0 +1,59 @@
+{% set version = "12.2.0" %}
+
+package:
+  name: glslang
+  version: {{ version }}
+
+source:
+  url: https://github.com/KhronosGroup/glslang/archive/{{ version }}.tar.gz
+  sha256: 870d17030fda7308c1521fb2e01a9e93cbe4b130bc8274e90d00e127432ab6f6
+  patches:
+    # https://github.com/KhronosGroup/glslang/pull/3243
+    - 3243.patch
+
+build:
+  number: 0
+  run_exports:
+    # They seem to use so names with the major version, so lets stick with that
+    - {{ pin_subpackage('glslang', 'x') }}
+  ignore_run_exports_from:
+    - python
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja                    # [win]
+    - make                     # [unix]
+    - sysroot_linux-64 2.17    # [linux]
+    # Needed as a build tool
+    - python *
+  host:
+    - spirv-tools
+
+test:
+  commands:
+    - glslangValidator --version
+    - test -f ${PREFIX}/lib/libglslang${SHLIB_EXT}             # [unix]
+    - test -f ${PREFIX}/lib/libSPIRV${SHLIB_EXT}               # [unix]
+    - test -f ${PREFIX}/lib/libHLSL${SHLIB_EXT}                # [unix]
+    # hmaarrfk: 2023/06
+    # I'm not successful at building shared libraries on windows
+    - if not exist %PREFIX%\\Library\\lib\\glslang.lib exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\lib\\SPIRV.lib   exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\lib\\HLSL.lib    exit 1  # [win]
+    # - if not exist %PREFIX%\\Library\\bin\\glslang.dll exit 1  # [win]
+    # - if not exist %PREFIX%\\Library\\bin\\SPIRV.dll   exit 1  # [win]
+    # - if not exist %PREFIX%\\Library\\bin\\HLSL.dll    exit 1  # [win]
+
+about:
+  home: https://github.com/KhronosGroup/glslang
+  summary: Glslang Components and Status
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
