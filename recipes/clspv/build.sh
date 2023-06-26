@@ -3,6 +3,7 @@ mkdir build
 cd build
 
 cmake -GNinja \
+  ${CMAKE_ARGS} \
   -DEXTERNAL_LLVM=1 \
   -DCLSPV_LLVM_SOURCE_DIR=../llvm/llvm \
   -DCLSPV_CLANG_SOURCE_DIR=../llvm/clang \
