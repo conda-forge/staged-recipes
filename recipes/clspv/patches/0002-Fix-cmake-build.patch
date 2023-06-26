@@ -1,0 +1,97 @@
+From 8f129bb4e23562b98865deda5a72930eb50e775a Mon Sep 17 00:00:00 2001
+From: Isuru Fernando <isuruf@gmail.com>
+Date: Sun, 25 Jun 2023 12:17:40 -0500
+Subject: [PATCH 2/2] Fix cmake build
+
+---
+ CMakeLists.txt                  |  6 +++---
+ lib/CMakeLists.txt              | 27 ++-------------------------
+ tools/reflection/CMakeLists.txt |  2 +-
+ 3 files changed, 6 insertions(+), 29 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 04832186..6e052184 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -85,13 +85,13 @@ if (NOT TARGET spirv-dis AND CLSPV_BUILD_SPIRV_DIS)
+   set(SPIRV-Headers_SOURCE_DIR ${SPIRV_HEADERS_SOURCE_DIR})
+ 
+   # Bring in the SPIR-V Tools repository
+-  add_subdirectory(${SPIRV_TOOLS_SOURCE_DIR}
+-      ${CMAKE_CURRENT_BINARY_DIR}/third_party/SPIRV-Tools EXCLUDE_FROM_ALL)
++  # add_subdirectory(${SPIRV_TOOLS_SOURCE_DIR}
++  #    ${CMAKE_CURRENT_BINARY_DIR}/third_party/SPIRV-Tools EXCLUDE_FROM_ALL)
+ endif()
+ 
+ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+ 
+-set(SPIRV_TOOLS_BINARY_DIR "$<TARGET_FILE_DIR:spirv-dis>")
++# set(SPIRV_TOOLS_BINARY_DIR "$<TARGET_FILE_DIR:spirv-dis>")
+ 
+ option(ENABLE_CLSPV_OPT "Enable the clspv-opt driver." ON)
+ 
+diff --git a/lib/CMakeLists.txt b/lib/CMakeLists.txt
+index dbce8ea8..54ed31ea 100644
+--- a/lib/CMakeLists.txt
++++ b/lib/CMakeLists.txt
+@@ -110,27 +110,10 @@ foreach(clspv_lib clspv_core clspv_passes)
+ endforeach(clspv_lib)
+ 
+ # Dependencies of clspv_lib
+-set(CLSPV_LLVM_COMPONENTS
+-  LLVMAggressiveInstCombine
+-  LLVMAnalysis
+-  LLVMCodeGen
+-  LLVMCore
+-  LLVMInstCombine
+-  LLVMInstrumentation
+-  LLVMObjCARCOpts
+-  LLVMPasses
+-  LLVMScalarOpts
+-  LLVMSupport
+-  LLVMTransformUtils
+-  LLVMVectorize
+-  LLVMipo
+-)
++set(CLSPV_LLVM_COMPONENTS LLVM)
+ 
+ if(${EXTERNAL_LLVM} EQUAL 1)
+   include(${CLSPV_LLVM_BINARY_DIR}/lib/cmake/llvm/LLVMConfig.cmake)
+-
+-  llvm_map_components_to_libnames(CLSPV_LLVM_LINKS ${CLSPV_LLVM_COMPONENTS})
+-
+   include(${CLSPV_LLVM_BINARY_DIR}/lib/cmake/clang/ClangConfig.cmake)
+ endif()
+ 
+@@ -142,14 +125,8 @@ target_link_libraries(clspv_passes PRIVATE ${CLSPV_LLVM_COMPONENTS})
+ add_dependencies(clspv_core clspv_baked_opencl_header clspv_builtin_library clspv64_builtin_library)
+ target_link_libraries(clspv_core PUBLIC clspv_passes)
+ target_link_libraries(clspv_core PRIVATE
+-  LLVMIRReader
+-  LLVMLinker
++  clang-cpp
+   ${CLSPV_LLVM_COMPONENTS}
+-  clangAST
+-  clangBasic
+-  clangCodeGen
+-  clangFrontend
+-  clangSerialization
+ )
+ 
+ if (MSVC)
+diff --git a/tools/reflection/CMakeLists.txt b/tools/reflection/CMakeLists.txt
+index 06e6043c..3258db0c 100644
+--- a/tools/reflection/CMakeLists.txt
++++ b/tools/reflection/CMakeLists.txt
+@@ -25,7 +25,7 @@ target_include_directories(clspv-reflection PRIVATE
+   ${SPIRV_HEADERS_INCLUDE_DIRS}
+   ${SPIRV_TOOLS_SOURCE_DIR}/include)
+ 
+-target_link_libraries(clspv-reflection PRIVATE clspv_core SPIRV-Tools-static)
++target_link_libraries(clspv-reflection PRIVATE clspv_core SPIRV-Tools)
+ 
+ set_target_properties(clspv-reflection PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CLSPV_BINARY_DIR}/bin)
+ 
+-- 
+2.37.3
+
