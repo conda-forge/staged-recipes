@@ -1,28 +1,18 @@
-if [ "$(uname)" == "Darwin" ]; then
+#!/bin/bash
 
-  # configure
-  ${BUILD_PREFIX}/bin/cmake \
-    ${CMARKE_ARGS} \
-    -H${SRC_DIR} \
-    -Bbuild \
-    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DENABLE_XHOST=OFF
+set -e
 
+if [[ $target_platform =~ .*osx.* ]]; then
+  CMAKE_ARGS="${CMAKE_ARGS} -DENABLE_XHOST=OFF"
 fi
 
-if [ "$(uname)" == "Linux" ]; then
+mkdir -p build/
+cd build/
 
-  # configure
-  ${BUILD_PREFIX}/bin/cmake \
-    ${CMARKE_ARGS} \
-    -H${SRC_DIR} \
-    -Bbuild \
-    -DCMAKE_INSTALL_PREFIX=${PREFIX} \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_CXX_FLAGS="${ALLOPTS}"
-#needed?        -DENABLE_XHOST=OFF
-fi
+cmake .. \
+  ${CMARKE_ARGS} \
+  -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+  -DCMAKE_BUILD_TYPE=Release
 
 # build
 cd build
