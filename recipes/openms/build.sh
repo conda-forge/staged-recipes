@@ -8,21 +8,8 @@ export LD_LIBRARY_PATH=${PREFIX}/lib
 # Expected in: /Users/runner/mambaforge/conda-bld/openms-meta_1686666744655/_h_env_placehold_/lib/libiconv.2.dylib
 #export DYLD_LIBRARY_PATH=${PREFIX}/lib
 
-# useless default include directory that is silently added by the compiler packages "to help"...
-# it is not even added with -isystem https://github.com/AnacondaRecipes/aggregate/blob/master/clang/activate-clang%2B%2B.sh#L87
-#USELESS="-I${PREFIX}/include"
-#export CXXFLAGS=${CXXFLAGS//${USELESS}/}
-
 mkdir build
 cd build
-
-if [[ $(uname -s) == Darwin ]]; then
-  RPATH='@loader_path/../lib'
-else
-  ORIGIN='$ORIGIN'
-  export ORIGIN
-  RPATH='$${ORIGIN}/../lib'
-fi
 
 cmake .. \
   -DOPENMS_GIT_SHORT_REFSPEC="release/${PKG_VERSION}" \
