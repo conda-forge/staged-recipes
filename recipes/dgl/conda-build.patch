@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 96adfd2b..c7289568 100644
+index 96adfd2b..9639ffed 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -37,6 +37,26 @@ dgl_option(BUILD_TORCH "Build the PyTorch plugin" OFF)
@@ -180,6 +180,51 @@ index 96adfd2b..c7289568 100644
  
  if(NOT MSVC)
    # Only build tensorpipe on linux
+@@ -375,6 +454,7 @@ if(BUILD_SPARSE)
+       CMAKE_COMMAND=${CMAKE_CMD}
+       CUDA_TOOLKIT_ROOT_DIR=${CUDA_TOOLKIT_ROOT_DIR}
+       USE_CUDA=${USE_CUDA}
++      EXTERNAL_DMLC_LIB_PATH=${EXTERNAL_DMLC_LIB_PATH}
+       BINDIR=${CMAKE_CURRENT_BINARY_DIR}
+       INCLUDEDIR="${DGL_INCLUDE_DIRS}"
+       CFLAGS=${CMAKE_C_FLAGS}
+diff --git a/dgl_sparse/CMakeLists.txt b/dgl_sparse/CMakeLists.txt
+index d541c2f8..73e97896 100644
+--- a/dgl_sparse/CMakeLists.txt
++++ b/dgl_sparse/CMakeLists.txt
+@@ -58,5 +58,18 @@ if(DEFINED MKL_LIBRARIES)
+   target_link_directories(${LIB_DGL_SPARSE_NAME} PRIVATE ${MKL_ROOT}/lib/${MKL_ARCH})
+ endif()
+ 
+-target_link_libraries(${LIB_DGL_SPARSE_NAME} dmlc dgl)
++if (EXTERNAL_DMLC_LIB_PATH)
++   # external dmlc requires OpenMP link
++   include(FindOpenMP)
++   if(OPENMP_FOUND)
++        set(CMAKE_C_FLAGS "${OpenMP_C_FLAGS} ${CMAKE_C_FLAGS}")
++        set(CMAKE_CXX_FLAGS "${OpenMP_CXX_FLAGS} ${CMAKE_CXX_FLAGS}")
++   endif(OPENMP_FOUND)	
++   message(STATUS "looking for dmlc library in ${EXTERNAL_DMLC_LIB_PATH}")
++   find_package(dmlc REQUIRED HINTS ${EXTERNAL_DMLC_LIB_PATH})
++   target_link_libraries(${LIB_DGL_SPARSE_NAME} dmlc::dmlc dgl)
++else (EXTERNAL_DMLC_LIB_PATH)
++   target_link_libraries(${LIB_DGL_SPARSE_NAME} dmlc dgl)
++endif()
++
+ set(GOOGLE_TEST 0) # Turn off dmlc-core test
+diff --git a/dgl_sparse/build.sh b/dgl_sparse/build.sh
+index 2f86a235..f8b46703 100644
+--- a/dgl_sparse/build.sh
++++ b/dgl_sparse/build.sh
+@@ -12,7 +12,7 @@ else
+ 	CPSOURCE=*.so
+ fi
+ 
+-CMAKE_FLAGS="-DCUDA_TOOLKIT_ROOT_DIR=$CUDA_TOOLKIT_ROOT_DIR -DTORCH_CUDA_ARCH_LIST=$TORCH_CUDA_ARCH_LIST -DUSE_CUDA=$USE_CUDA"
++CMAKE_FLAGS="-DCUDA_TOOLKIT_ROOT_DIR=$CUDA_TOOLKIT_ROOT_DIR -DTORCH_CUDA_ARCH_LIST=$TORCH_CUDA_ARCH_LIST -DUSE_CUDA=$USE_CUDA -DEXTERNAL_DMLC_LIB_PATH=$EXTERNAL_DMLC_LIB_PATH"
+ # CMake passes in the list of directories separated by spaces.  Here we replace them with semicolons.
+ CMAKE_FLAGS="$CMAKE_FLAGS -DDGL_INCLUDE_DIRS=${INCLUDEDIR// /;} -DDGL_BUILD_DIR=$BINDIR"
+ echo $CMAKE_FLAGS
 diff --git a/src/array/cpu/spmm_blocking_libxsmm.h b/src/array/cpu/spmm_blocking_libxsmm.h
 index 5d1ea5d6..6051ce9b 100644
 --- a/src/array/cpu/spmm_blocking_libxsmm.h
