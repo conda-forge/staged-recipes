@@ -1,12 +1,6 @@
 #!/bin/sh
 
-# Otherwise libraries won't be found during linking on Linux
-export LIBRARY_PATH=${PREFIX}/lib
-export LD_LIBRARY_PATH=${PREFIX}/lib
-
-# Otherwise Error: dyld: Symbol not found: _iconv Referenced from: /usr/lib/libarchive.2.dylib
-# Expected in: /Users/runner/mambaforge/conda-bld/openms-meta_1686666744655/_h_env_placehold_/lib/libiconv.2.dylib
-#export DYLD_LIBRARY_PATH=${PREFIX}/lib
+set -ex
 
 mkdir build
 cd build
