@@ -15,13 +15,6 @@ echo $CONDA_PREFIX
 mkdir build
 cd build
 
-ls $PREFIX/include
-ls $PREFIX/lib
-ls $BUILD_PREFIX/include
-ls $BUILD_PREFIX/lib
-
-cmake -E environment
- 
 cmake -DUSE_CUDA=ON \
   -DUSE_CONDA_INCLUDES=ON \
   -DEXTERNAL_DLPACK_PATH=${BUILD_PREFIX}/include \
@@ -29,6 +22,8 @@ cmake -DUSE_CUDA=ON \
   -DEXTERNAL_DMLC_LIB_PATH=${BUILD_PREFIX}/lib \
   -DEXTERNAL_PHMAP_PATH=${BUILD_PREFIX}/include \
   -DEXTERNAL_NANOFLANN_PATH=${BUILD_PREFIX}/include \
+  -DEXTERNAL_METIS_PATH=${BUILD_PREFIX}/include \
+  -DEXTERNAL_METIS_LIB_PATH=${BUILD_PREFIX}/lib \
   -DUSE_LIBXSMM=ON \
   -DUSE_OPENMP=ON \
   -DCUDA_ARCH_NAME=All \
