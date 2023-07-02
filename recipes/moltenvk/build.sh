@@ -7,7 +7,6 @@
 make macos \
     MVK_HIDE_VULKAN_SYMBOLS=1
 
-make install
 ls -l Package/Latest/MoltenVK/MoltenVK.xcframework
 
 # Try to install the framework???
