@@ -1,5 +1,5 @@
 #!/bin/sh
-
+set -ex
 # This fetch is likely wrong, we should be doing this in the recipe
 ./fetchDependencies --macos
 
@@ -13,4 +13,5 @@ ls -l Package/Latest/MoltenVK/MoltenVK.xcframework
 ls -lah ${PREFIX}
 mkdir -p ${PREFIX}/Frameworks
 ls -lah ${PREFIX}/Frameworks
-cp -a Package/Latest/MoltenVK/MoltenVK.xcframework ${PREFIX}/Frameworks/
+cp -a Package/Latest/MoltenVK/MoltenVK.xcframework ${PREFIX}/Frameworks/MoltenVK.xcframework
+ls -lah ${PREFIX}/Frameworks
