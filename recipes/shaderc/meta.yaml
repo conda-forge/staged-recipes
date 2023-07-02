@@ -1,0 +1,56 @@
+{% set version = "2023.4" %}
+
+package:
+  name: shaderc
+  version: {{ version }}
+
+source:
+  url: https://github.com/google/shaderc/archive/v{{ version }}.tar.gz
+  sha256: 671c5750638ff5e42e0e0e5325b758a1ab85e6fd0fe934d369a8631c4292f12f
+  patches:
+    - patches/0001-Update-build-version-generation.patch
+    - patches/0002-Update-the-location-of-SPRV-headers.patch
+    - patches/0003-Update-thirdparty-dependency-resolution.patch
+    - patches/0004-Remove-OSDependent-and-add-rt-for-linux.patch
+    - patches/0005-only-install-shared-libraries.patch
+
+build:
+  number: 0
+  run_exports:
+    # This is kinda annoying, the SO version is not related to the version
+    - {{ pin_subpackage('shaderc', max_pin='x.x') }}
+  # hmaarrfk - 2023/07
+  # Windows seems to have trouble linking to certain libraries
+  # need to revisit this later
+  skip: true  # [win]
+
+requirements:
+  build:
+    # If your project compiles code (such as a C extension) then add the required compilers as separate entries here.
+    # Compilers are named 'c', 'cxx' and 'fortran'.
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - make                                   # [unix]
+    - sysroot_linux-64 2.17                  # [linux]
+  host:
+    - spirv-tools
+    - spirv-headers
+    - glslang
+
+test:
+  commands:
+    - test -f ${PREFIX}/lib/libshaderc${SHLIB_EXT}                # [unix]
+    - if not exist %PREFIX%\\Library\\bin\\libshaderc.dll exit 1  # [win]
+    - glslc --help
+
+about:
+  home: https://github.com/google/shaderc
+  summary: A collection of tools, libraries and tests for shader compilation
+  license: Apache-2.0
+  license_family: Apache
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk

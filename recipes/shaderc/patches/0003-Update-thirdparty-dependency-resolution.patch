@@ -1,0 +1,62 @@
+From 96967657075d0a9b972e0bebce4fe8fd7b374297 Mon Sep 17 00:00:00 2001
+From: Mark Harfouche <mark.harfouche@gmail.com>
+Date: Sun, 25 Jun 2023 13:25:42 -0400
+Subject: [PATCH 3/5] Update thirdparty dependency resolution
+
+---
+ third_party/CMakeLists.txt | 39 ++------------------------------------
+ 1 file changed, 2 insertions(+), 37 deletions(-)
+
+diff --git a/third_party/CMakeLists.txt b/third_party/CMakeLists.txt
+index 7bd9617..1d8b80e 100644
+--- a/third_party/CMakeLists.txt
++++ b/third_party/CMakeLists.txt
+@@ -41,43 +41,8 @@ if (IS_DIRECTORY ${SHADERC_SPIRV_HEADERS_DIR})
+   add_subdirectory(${SHADERC_SPIRV_HEADERS_DIR} spirv-headers)
+ endif()
+ 
+-if (NOT TARGET SPIRV-Tools)
+-  # Check SPIRV-Tools before glslang so that it is linked into glslang.
+-  # we control optimizations via glslang API calls directly.
+-  if (IS_DIRECTORY ${SHADERC_SPIRV_TOOLS_DIR})
+-    if ("${SHADERC_SKIP_TESTS}")
+-      # Also skip building tests in SPIRV-Tools.
+-      set(SPIRV_SKIP_TESTS ON CACHE BOOL "Skip building SPIRV-Tools tests")
+-    elseif(NOT "${SPIRV_SKIP_TESTS}")
+-      # SPIRV-Tools requires effcee and re2 to build tests.
+-      # re2 tests take a long time and do not add much value, since re2 is a
+-      # dependency of a dependency, so not running them.
+-      set(RE2_BUILD_TESTING OFF CACHE STRING "Run RE2 Tests")
+-      add_subdirectory(${SHADERC_RE2_DIR} re2)
+-      add_subdirectory(${SHADERC_EFFCEE_DIR} effcee)
+-    endif()
+-    add_subdirectory(${SHADERC_SPIRV_TOOLS_DIR} spirv-tools)
+-  endif()
+-  if (NOT TARGET SPIRV-Tools)
+-    message(FATAL_ERROR "SPIRV-Tools was not found - required for compilation")
+-  endif()
+-endif()
+-
+-if (NOT TARGET glslang)
+-  if (IS_DIRECTORY ${SHADERC_GLSLANG_DIR})
+-    add_subdirectory(${SHADERC_GLSLANG_DIR} glslang)
+-  endif()
+-  if (NOT TARGET glslang)
+-    message(FATAL_ERROR "glslang was not found - required for compilation")
+-  endif()
+-  if(WIN32)
+-      # This is unfortunate but glslang forces our
+-      # platform toolset to be v110, which we may not even have
+-      # installed, undo anything glslang has done to it.
+-      set(CMAKE_GENERATOR_TOOLSET "${OLD_PLATFORM_TOOLSET}" CACHE STRING
+-        "Platform Toolset" FORCE)
+-  endif()
+-endif()
++find_package(SPIRV-Tools REQUIRED)
++find_package(glslang REQUIRED)
+ 
+ if (SHADERC_ENABLE_WGSL_OUTPUT)
+   # Use Google Tint for WGSL output.
+-- 
+2.39.2
+
