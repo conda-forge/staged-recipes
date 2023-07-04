@@ -1,0 +1,78 @@
+{% set version = "0.7.4" %}
+# see github.com/conda-forge/conda-forge.github.io/issues/1059 for naming discussion
+{% set torch_proc_type = "cpu" if cuda_compiler_version in ("None", None) else "cuda" %}
+
+package:
+  name: pytorch3d
+  version: {{ version }}
+
+source:
+  url: https://github.com/facebookresearch/pytorch3d/archive/v{{ version }}.tar.gz
+  sha256: b153b1a14807267b22e3f8efbdad153cb08b51e9015a43105bb4cec8ea15359e
+
+build:
+  number: 0
+  script: {{ PYTHON }} -m pip install . -vv
+
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}                 # [cuda_compiler_version != "None"]
+    - sysroot_linux-64 ==2.17                # [linux64]
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - numpy                                  # [build_platform != target_platform]
+    - pytorch                                # [build_platform != target_platform]
+    - pytorch =*={{ torch_proc_type }}*      # [build_platform != target_platform]
+  host:
+    - python
+    - pip
+    - setuptools
+    - cudnn                                  # [cuda_compiler_version != "None"]
+    - numpy
+    - pytorch
+    - pytorch =*={{ torch_proc_type }}*
+  run:
+    - python
+    - {{ pin_compatible('cudnn') }}          # [cuda_compiler_version != "None"]
+    - {{ pin_compatible('numpy') }}
+    - torchvision
+    - fvcore
+    - iopath
+  run_constrained:
+    # 2022/02/05 hmaarrfk
+    # While conda packaging seems to allow us to specify
+    # constraints on the same package in different lines
+    # the resulting package doesn't have the ability to
+    # be specified in multiples lines
+    # This makes it tricky to use run_exports
+    # we add the GPU constraint in the run_constrained
+    # to allow us to have "two" constraints on the
+    # running package
+    - pytorch =*={{ torch_proc_type }}*
+
+test:
+  imports:
+    - pytorch3d
+  source_files:
+    - tests
+    - docs
+  requires:
+    - imageio
+    - hydra-core
+    - accelerate
+  commands:
+    python -m unittest discover -v -s tests -t .
+
+
+about:
+  home: https://github.com/facebookresearch/pytorch3d
+  license: BSD
+  license_file: LICENSE
+  summary: '3d Geometry for pytorch'
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer
