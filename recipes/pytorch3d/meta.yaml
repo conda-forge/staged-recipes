@@ -13,9 +13,19 @@ source:
 build:
   number: 0
   script:
-    - export FORCE_CUDA="1"  # [not osx and cuda_compiler_version != 'None']
+    - export CC="$GCC"         # [linux64 and cuda_compiler_version != 'None']
+    - export NVCC_FLAGS="--compiler-bindir=${CC}"    # [linux64 and cuda_compiler_version != 'None']
+    # needs to be set or builds fails because _get_cuda_arch_flags from
+    # https://github.com/pytorch/pytorch/blob/v2.0.0/torch/utils/cpp_extension.py#L1710
+    # will try to determine the arches based on the non-existent-in-CI CUDA drivers
+    - export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"  # [linux64 and cuda_compiler_version != 'None']
+    - export FORCE_CUDA="1"  # [linux64 and cuda_compiler_version != 'None']
     - {{ PYTHON }} -m pip install . -vv
-  skip: true  # [win]
+  # as of pytorch 1.13, conda-forge only builds for CUDA 11.2+, see
+  # https://github.com/conda-forge/conda-forge-pinning-feedstock/issues/3491
+  skip: true  # [win or cuda_compiler_version in ("None", "10.2", "11.0", "11.1")]
+  string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version == "None"]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
   missing_dso_whitelist:
     # conda-forge::pytorch provides these libs
     - $RPATH/libtorch_cpu.so
@@ -42,7 +52,7 @@ requirements:
     - numpy
     - pytorch
     - pytorch =*={{ torch_proc_type }}*
-    - cub
+    - cub                                    # [cuda_compiler_version != "None"]
   run:
     - python
     - {{ pin_compatible('cudnn') }}          # [cuda_compiler_version != "None"]
@@ -73,7 +83,8 @@ test:
     - hydra-core
     - accelerate
   commands:
-    python -m unittest discover -v -s tests -t .
+    # There are lots of tests that run on GPU only
+    - python -m unittest discover -v -s tests -t .  # [cuda_compiler_version != "None"]
 
 
 about:
