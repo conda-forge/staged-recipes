@@ -1,0 +1,17 @@
+#!/bin/sh
+
+export CPPFLAGS="-DH5_USE_110_API ${CPPFLAGS}"
+
+cmake ${CMAKE_ARGS} -LAH -G "Ninja" \
+  -DCMAKE_PREFIX_PATH=${PREFIX} \
+  -DCMAKE_FIND_FRAMEWORK=NEVER \
+  -DCMAKE_INSTALL_PREFIX=${PREFIX} \
+  -DCMAKE_INSTALL_RPATH="${PREFIX}/lib" \
+  -DPYTHON_EXECUTABLE=${PREFIX}/bin/python \
+  -DPYTHON_INCLUDE_DIR=${PREFIX}/include/python${PY_VER} \
+  -DPYTHON_LIBRARY=${PREFIX}/lib/libpython${PY_VER}${SHLIB_EXT} \
+  -DMEDFILE_BUILD_TESTS=OFF \
+  -DMEDFILE_INSTALL_DOC=OFF \
+  -DMEDFILE_BUILD_PYTHON=ON \
+  -B build .
+cmake --build build --target install
