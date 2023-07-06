@@ -3,10 +3,8 @@ echo "ls"
 ls
 
 if [ -d photochem-${PKG_VERSION}_withdata ]; then
-  echo "mv photochem-${PKG_VERSION}_withdata/* .."
-  mv photochem-${PKG_VERSION}_withdata/* ..
-  echo "rmdir photochem-${PKG_VERSION}_withdata"
-  rmdir photochem-${PKG_VERSION}_withdata
+  echo "mv photochem-${PKG_VERSION}_withdata/* ."
+  mv photochem-${PKG_VERSION}_withdata/* .
 fi
 
 echo "ls"
