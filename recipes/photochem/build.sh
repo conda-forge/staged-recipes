@@ -1,7 +1,16 @@
 echo "BUILD STARTS HERE"
 echo "ls"
 ls
-echo "pwd"
-pwd
+
+if [ -d photochem-${PKG_VERSION}_withdata ]; then
+  echo "mv photochem-${PKG_VERSION}_withdata/* .."
+  mv photochem-${PKG_VERSION}_withdata/* ..
+  echo "rmdir photochem-${PKG_VERSION}_withdata"
+  rmdir photochem-${PKG_VERSION}_withdata
+fi
+
+echo "ls"
+ls
+
 echo "$PYTHON -m pip install . -vv"
 $PYTHON -m pip install . -vv
