@@ -1,0 +1,80 @@
+{% set name = "ara" %}
+{% set version = "1.6.1" %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/ara-{{ version }}.tar.gz
+  sha256: 90812ee38308b87db357d34f9fd9dd422c87edb3cdc0248a83f65b1bf0691b6d
+
+build:
+  noarch: python
+  number: 0
+
+outputs:
+  - name: {{ name }}
+    build:
+      script: ${PYTHON} -m pip install . -vv
+    entry_points:
+      - ara = ara.cli:main
+      - ara-manage = ara.server.__main__:main
+    requirements:
+      host:
+        - python >=3.6
+        - pbr
+        - pip
+      run:
+        - python >=3.6
+        - pbr !=2.1.0,>=2.0.0
+        - cliff
+        - requests >=2.14.2
+    test:
+      imports:
+        - ara
+      commands:
+        - pip check
+        - ara --version
+      requires:
+        - pip
+
+  - name: {{ name }}-server
+    requirements:
+      run:
+        - {{ pin_subpackage('ara', exact=True) }}
+        - django >=3.2,<3.3
+        - djangorestframework >=3.9.1
+        - django-cors-headers
+        - django-filter
+        - django-health-check
+        - dynaconf >=3.0.0,!=3.1.3,<4.0.0
+        - tzlocal >=4.0
+        - whitenoise
+    test:
+      imports:
+        - ara.server.__main__
+      commands:
+        - ara-manage --version
+
+  - name: {{ name }}-postgresql
+    requirements:
+      run:
+        - {{ pin_subpackage('ara', exact=True) }}
+        - psycopg2
+
+  - name: {{ name }}-mysql
+    requirements:
+      run:
+        - {{ pin_subpackage('ara', exact=True) }}
+        - mysqlclient
+
+about:
+  home: https://github.com/ansible-community/ara
+  summary: ARA Records Ansible
+  license: GPL-3.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - pavelzw
