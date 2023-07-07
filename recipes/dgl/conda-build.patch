@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 96adfd2b..3bc12ba7 100644
+index 96adfd2b..c532449a 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -37,6 +37,29 @@ dgl_option(BUILD_TORCH "Build the PyTorch plugin" OFF)
@@ -154,8 +154,8 @@ index 96adfd2b..3bc12ba7 100644
 +    message(FATAL_ERROR "Failed to find METIS library")
 +  else()
 +    message(STATUS "Found METIS library")
-+    target_include_directories(dgl SYSTEM PUBLIC ${METIS_INCLUDE_DIRS})
-+    list(APPEND DGL_LINKER_LIBS ${METIS_LIBRARY})
++    target_include_directories(dgl SYSTEM PUBLIC ${METIS_INCLUDE_DIR})
++    list(APPEND DGL_LINKER_LIBS ${METIS_LIBRARIES})
    endif()
 -  if(REBUILD_LIBXSMM)
 -    add_custom_target(libxsmm COMMAND make realclean COMMAND make -j ECFLAGS="-Wno-error=deprecated-declarations" BLAS=0 CC=${LIBXSMM_COMPILER}
@@ -194,142 +194,38 @@ index 96adfd2b..3bc12ba7 100644
        CFLAGS=${CMAKE_C_FLAGS}
 diff --git a/cmake/modules/FindMETIS.cmake b/cmake/modules/FindMETIS.cmake
 new file mode 100644
-index 00000000..3b6f230a
+index 00000000..67182a58
 --- /dev/null
 +++ b/cmake/modules/FindMETIS.cmake
-@@ -0,0 +1,131 @@
-+# - Try to find METIS
-+# Once done this will define
+@@ -0,0 +1,28 @@
++# Find the METIS includes and library
 +#
-+#  METIS_FOUND        - system has METIS
-+#  METIS_INCLUDE_DIRS - include directories for METIS
-+#  METIS_LIBRARIES    - libraries for METIS
-+#
-+# Variables used by this module. They can change the default behaviour and
-+# need to be set before calling find_package:
-+#
-+#  METIS_DIR          - Prefix directory of the METIS installation
-+#  METIS_INCLUDE_DIR  - Include directory of the METIS installation
-+#                       (set only if different from ${METIS_DIR}/include)
-+#  METIS_LIB_DIR      - Library directory of the METIS installation
-+#                       (set only if different from ${METIS_DIR}/lib)
-+#  METIS_TEST_RUNS    - Skip tests building and running a test
-+#                       executable linked against METIS libraries
-+#  METIS_LIB_SUFFIX   - Also search for non-standard library names with the
-+#                       given suffix appended
-+#
-+# NOTE: This file was modified from a ParMETIS detection script 
++# This module defines
++#  METIS_INCLUDE_DIR        -    where to find metis.h
++#  METIS_LIBRARIES          -    libraries to link against to use METIS.
++#  METIS_FOUND              -    METIS library was found
 +
-+#=============================================================================
-+# Copyright (C) 2015 Jack Poulson. All rights reserved.
-+#
-+# Copyright (C) 2010-2012 Garth N. Wells, Anders Logg, Johannes Ring
-+# and Florian Rathgeber. All rights reserved.
-+#
-+# Redistribution and use in source and binary forms, with or without
-+# modification, are permitted provided that the following conditions
-+# are met:
-+#
-+# 1. Redistributions of source code must retain the above copyright
-+#    notice, this list of conditions and the following disclaimer.
-+# 2. Redistributions in binary form must reproduce the above copyright
-+#    notice, this list of conditions and the following disclaimer in
-+#    the documentation and/or other materials provided with the
-+#    distribution.
-+#
-+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-+# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-+# POSSIBILITY OF SUCH DAMAGE.
-+#=============================================================================
++INCLUDE(FindPackageHandleStandardArgs)
 +
-+if(NOT METIS_INCLUDE_DIR)
-+  find_path(METIS_INCLUDE_DIR metis.h
-+    HINTS ${METIS_INCLUDE_DIR} ENV METIS_INCLUDE_DIR ${METIS_DIR} ENV METIS_DIR
-+    PATH_SUFFIXES include
-+    DOC "Directory where the METIS header files are located"
-+  )
-+endif()
-+
-+if(METIS_LIBRARIES)
-+  set(METIS_LIBRARY ${METIS_LIBRARIES})
-+endif()
-+if(NOT METIS_LIBRARY)
-+  find_library(METIS_LIBRARY
-+    NAMES metis metis${METIS_LIB_SUFFIX}
-+    HINTS ${METIS_LIB_DIR} ENV METIS_LIB_DIR ${METIS_DIR} ENV METIS_DIR
-+    PATH_SUFFIXES lib
-+    DOC "Directory where the METIS library is located"
-+  )
-+endif()
++FIND_PATH(METIS_INCLUDE_DIR
++    NAMES
++    "metis.h"
++    PATHS
++    ${EXTERNAL_METIS_PATH}
++    )
 +
 +
++FIND_LIBRARY(METIS_LIBRARIES
++    NAMES
++    libmetis metis
++    PATHS
++    ${EXTERNAL_METIS_LIB_PATH}
++    )
 +
-+# Get METIS version
-+if(NOT METIS_VERSION_STRING AND METIS_INCLUDE_DIR AND EXISTS "${METIS_INCLUDE_DIR}/metis.h")
-+  set(version_pattern "^#define[\t ]+METIS_(MAJOR|MINOR)_VERSION[\t ]+([0-9\\.]+)$")
-+  file(STRINGS "${METIS_INCLUDE_DIR}/metis.h" metis_version REGEX ${version_pattern})
 +
-+  foreach(match ${metis_version})
-+    if(METIS_VERSION_STRING)
-+      set(METIS_VERSION_STRING "${METIS_VERSION_STRING}.")
-+    endif()
-+    string(REGEX REPLACE ${version_pattern} "${METIS_VERSION_STRING}\\2" METIS_VERSION_STRING ${match})
-+    set(METIS_VERSION_${CMAKE_MATCH_1} ${CMAKE_MATCH_2})
-+  endforeach()
-+  unset(metis_version)
-+  unset(version_pattern)
-+endif()
++FIND_PACKAGE_HANDLE_STANDARD_ARGS(METIS DEFAULT_MSG METIS_INCLUDE_DIR METIS_LIBRARIES)
++MARK_AS_ADVANCED(METIS_LIBRARIES METIS_INCLUDE_DIR)
 +
-+# Try compiling and running test program
-+if(METIS_INCLUDE_DIR AND METIS_LIBRARY)
-+
-+  # Set flags for building test program
-+  set(CMAKE_REQUIRED_INCLUDES ${METIS_INCLUDE_DIR})
-+  set(CMAKE_REQUIRED_LIBRARIES ${METIS_LIBRARY})
-+
-+  # Build and run test program
-+  include(CheckCSourceRuns)
-+  check_c_source_runs("
-+#define METIS_EXPORT
-+#include \"metis.h\"
-+int main( int argc, char* argv[] )
-+{
-+  // FIXME: Find a simple but sensible test for METIS
-+  return 0;
-+}
-+" METIS_TEST_RUNS)
-+
-+  unset(CMAKE_REQUIRED_INCLUDES)
-+  unset(CMAKE_REQUIRED_LIBRARIES)
-+endif()
-+
-+# Standard package handling
-+include(FindPackageHandleStandardArgs)
-+if(CMAKE_VERSION VERSION_GREATER 2.8.2)
-+  find_package_handle_standard_args(METIS
-+    REQUIRED_VARS METIS_LIBRARY METIS_INCLUDE_DIR METIS_TEST_RUNS
-+    VERSION_VAR METIS_VERSION_STRING)
-+else()
-+  find_package_handle_standard_args(METIS
-+    REQUIRED_VARS METIS_LIBRARY METIS_INCLUDE_DIR METIS_TEST_RUNS)
-+endif()
-+
-+if(METIS_FOUND)
-+  set(METIS_LIBRARIES ${METIS_LIBRARY})
-+  set(METIS_INCLUDE_DIRS ${METIS_INCLUDE_DIR})
-+endif()
-+
-+mark_as_advanced(METIS_INCLUDE_DIR METIS_LIBRARY)
-\ No newline at end of file
 diff --git a/dgl_sparse/CMakeLists.txt b/dgl_sparse/CMakeLists.txt
 index d541c2f8..73e97896 100644
 --- a/dgl_sparse/CMakeLists.txt
