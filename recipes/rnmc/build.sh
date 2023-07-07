@@ -1,3 +1,5 @@
+#!/bin/bash
+
 mkdir -p build
 
 flags="-fno-rtti -fno-exceptions -std=c++17 -Wall -Wextra -g $(gsl-config --cflags) $(gsl-config --libs) -lsqlite3 -lpthread"
@@ -8,3 +10,6 @@ echo "building GMC"
 $CXX $flags ./GMC/GMC.cpp -o ./build/GMC
 echo "building NPMC"
 $CXX $flags ./NPMC/NPMC.cpp -o ./build/NPMC
+
+cp ./build/GMC $PREFIX/bin/GMC
+cp ./build/NPMC $PREFIX/bin/NPMC
