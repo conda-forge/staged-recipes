@@ -14,6 +14,14 @@ fi
 
 cd sdk/storage/azure-storage-files-datalake
 
+# For some reason CMAKE_BUILD_TYPE=Release isn't included in CMAKE_ARGS by
+# ctng-compiler-activation-feedstock, even though it is for vc-feedstock and
+# clang-compiler-activation-feedstock
+if [[ "${target_platform}" == linux-* ]]
+then
+  CMAKE_ARGS="${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release"
+fi
+
 # https://github.com/Azure/azure-sdk-for-cpp/blob/main/CONTRIBUTING.md#building-the-project
 mkdir build
 cd build

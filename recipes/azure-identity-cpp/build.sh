@@ -12,6 +12,14 @@ then
   CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 fi
 
+# For some reason CMAKE_BUILD_TYPE=Release isn't included in CMAKE_ARGS by
+# ctng-compiler-activation-feedstock, even though it is for vc-feedstock and
+# clang-compiler-activation-feedstock
+if [[ "${target_platform}" == linux-* ]]
+then
+  CMAKE_ARGS="${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release"
+fi
+
 cd sdk/identity/azure-identity
 
 # https://github.com/Azure/azure-sdk-for-cpp/blob/main/CONTRIBUTING.md#building-the-project
