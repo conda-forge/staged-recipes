@@ -1,12 +1,11 @@
 #!/bin/bash
 
-export MKLROOT=${PREFIX}
-export CMAKE_PREFIX_PATH=${PREFIX}
-
-cmake ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -Bbuild -H.
+cmake ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -Bbuild -H. -DBUILD_TESTS=ON
 pushd build
-make
+VERBOSE=1 make
+make lagrange-test
 popd
+./bin/lagrange-test
 
 mkdir -p $PREFIX/bin
 
