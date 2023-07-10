@@ -25,7 +25,8 @@ fi
 # https://github.com/Azure/azure-sdk-for-cpp/blob/main/CONTRIBUTING.md#building-the-project
 mkdir build
 cd build
-cmake $CMAKE_ARGS \
+cmake -G Ninja \
+    $CMAKE_ARGS \
   -D BUILD_SHARED_LIBS=ON \
   -D BUILD_TRANSPORT_CURL=ON \
   ..
