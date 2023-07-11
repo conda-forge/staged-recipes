@@ -1,0 +1,99 @@
+{% set name = "nsight-compute" %}
+{% set version = "2022.4.0.15" %}
+{% set version_split = version.split(".")[0]+"."+version.split(".")[1]+"."+version.split(".")[2] %}
+{% set cuda_version = "12.0" %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-ppc64le" %}  # [ppc64le]
+{% set platform = "linux-sbsa" %}  # [aarch64]
+{% set platform = "windows-x86_64" %}  # [win]
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuda/redist/nsight_compute/{{ platform }}/nsight_compute-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: f084e05eb4d2ba32aceb25e1dcfe03f2a50127630973722b65219cf9e986a139  # [linux64]
+  sha256: 20e58ce79681bc8fd39394cfb8f8316c177fe4175af3ae95c025996f45904732  # [ppc64le]
+  sha256: 7d0b3d4d01ce36657fa739496c7b0a9c627f5fa42021c1696ddd15e119bb05a4  # [aarch64]
+  sha256: 958da9986841c49cb5a2885d1e14e4c673ba94e4b404ef9389d083b7a0095d84  # [win]
+
+build:
+  number: 0
+  skip: true  # [osx]
+  missing_dso_whitelist:
+  - '*'
+
+requirements:
+  build:
+    - {{ compiler("c") }}
+    - {{ compiler("cxx") }}
+    - sysroot_{{ target_platform }} 2.17  # [linux]
+    - arm-variant * {{ arm_variant_type }}  # [aarch64]
+  host:
+    - cuda-version {{ cuda_version }}
+    - alsa-lib             # [linux]
+    - dbus                 # [linux]
+    - expat
+    - fontconfig
+    - freetype
+    - krb5
+    - libglib
+    - libxcb
+    - libxkbcommon         # [linux]
+    - libxkbfile           # [linux]
+    - libzlib
+    - nspr                 # [linux]
+    - nss                  # [linux]
+    - wayland              # [linux]
+    - xcb-util-image       # [linux]
+    - xcb-util-keysyms     # [linux]
+    - xcb-util-keysyms     # [linux]
+    - xcb-util-renderutil  # [linux]
+    - xcb-util-wm          # [linux]
+    - xorg-libice          # [linux]
+    - xorg-libsm           # [linux]
+    - xorg-libx11          # [linux]
+    - xorg-libxcomposite   # [linux]
+    - xorg-libxdamage      # [linux]
+    - xorg-libxext         # [linux]
+    - xorg-libxfixes       # [linux]
+    - xorg-libxrandr       # [linux]
+    - xorg-libxrender      # [linux]
+    - xorg-libxtst         # [linux]
+  run:
+    - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+    - {{ pin_compatible("xorg-libxcomposite", max_pin="x.x") }}  # [linux]
+    - {{ pin_compatible("xorg-libxdamage", max_pin="x.x") }}     # [linux]
+    - {{ pin_compatible("xorg-libxfixes", max_pin="x.x") }}      # [linux]
+    - {{ pin_compatible("xorg-libxrandr", max_pin="x.x") }}      # [linux]
+    - {{ pin_compatible("xorg-libxtst", max_pin="x.x") }}        # [linux]
+    - {{ pin_compatible("libxkbfile", max_pin="x.x") }}          # [linux]
+  run_constrained:
+    - arm-variant * {{ arm_variant_type }}  # [aarch64]
+
+test:
+  commands:
+    - test -f $PREFIX/bin/ncu                      # [linux]
+    - if not exist %LIBRARY_PREFIX%\nsight-compute exit 1  # [win]
+    - if exist %LIBRARY_PREFIX%\nsight-compute\{{ version_split }}\lib exit 1  # [win]
+    - if not exist %PREFIX%\Scripts\ncu.bat exit 1  # [win]
+    - ncu --version
+
+about:
+  home: https://developer.nvidia.com/nsight-compute
+  license_file: LICENSE
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  summary: NVIDIA Nsight Compute is an interactive kernel profiler for CUDA applications
+  description: |
+    NVIDIA Nsight Compute is an interactive kernel profiler for CUDA
+    applications. It provides detailed performance metrics and API
+    debugging via a user interface and command line tool.
+  doc_url: https://docs.nvidia.com/nsight-compute/NsightCompute/index.html
+
+extra:
+  recipe-maintainers:
+    - adibbley
