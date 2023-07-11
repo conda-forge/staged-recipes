@@ -11,12 +11,5 @@ cmake ${CMAKE_ARGS} \
     ..
 
 make -k -j${CPU_COUNT}
-
-cd mysql-test/
-./mysql-test-run.pl --suite=main --ps-protocol --parallel=auto --skip-test=session_tracker_last_gtid
-
-cd ../unittest/libmariadb
-ctest -V
-
-cd ..
+ctest --rerun-faild --output-on-failure
 make install

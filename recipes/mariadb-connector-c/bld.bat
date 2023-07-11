@@ -11,9 +11,7 @@ cmake %CMAKE_ARGS% ^
       -DINSTALL_DOCDIR="%cd%/junk" ^
       ..
 if errorlevel 1 exit 1
-
-cd mysql-test\
-.\mysql-test-run.pl --suite=main --ps-protocol --parallel=auto --skip-test=session_tracker_last_gtid
+ctest --rerun-faild --output-on-failure
 
 ninja
 if errorlevel 1 exit 1
