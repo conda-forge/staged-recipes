@@ -3,9 +3,9 @@
 set -ex
 
 if [[ "$target_platform" == linux* ]]; then
-    export OGRE_DIR="${PREFIX}/lib/OGRE/cmake"
+    OGRE_DIR="${PREFIX}/lib/OGRE/cmake"
 elif [[ "$target_platform" == osx* ]]; then
-    export OGRE_DIR="${PREFIX}/cmake"
+    OGRE_DIR="${PREFIX}/cmake"
 fi
 
 
@@ -35,6 +35,7 @@ mkdir build
 cd build
 
 cmake ${CMAKE_ARGS} .. \
+      -DOGRE_DIR=${OGRE_DIR} \
       -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_TESTS=ON
 
