@@ -1,0 +1,57 @@
+{% set name = "pyobjc-framework-webkit" %}
+{% set version = "9.2" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/pyobjc-framework-WebKit/pyobjc-framework-WebKit-{{ version }}.tar.gz
+  sha256: 86761cba8c18c3d2ecbd3ca7ab8b92c8b2eae8514741ec63527b536b671ab296
+
+build:
+  script:
+    # force pyobjc to use conda-forge's chosen SDK
+    - export CFLAGS="${CFLAGS} -isysroot ${SDKROOT:-$CONDA_BUILD_SYSROOT}"
+    # force ignoring invalid compiler flag (-Wl,-export-dynamic)
+    - export CFLAGS="${CFLAGS} -Wno-unused-command-line-argument"  # [py == 37 or py == 38]
+    - {{ PYTHON }} -m pip install --no-deps . -vv
+  skip: true  # [not osx or py2k or python_impl == 'pypy' or (arm64 and py < 39)]
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+  host:
+    - python
+    - pip
+    - setuptools
+    - libffi
+  run:
+    - python
+    - pyobjc-core {{ version }}
+    - pyobjc-framework-cocoa {{ version }}
+    - libffi
+
+test:
+  imports:
+    - WebKit
+    - JavaScriptCore
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/ronaldoussoren/pyobjc
+  dev_url: https://github.com/ronaldoussoren/pyobjc/tree/master/pyobjc-framework-Webkit
+  doc_url: https://pyobjc.readthedocs.io/en/latest/
+  summary: Wrappers for the framework Webkit on macOS
+  license: MIT
+  license_file: License.txt
+
+extra:
+  recipe-maintainers:
+    - traversaro
