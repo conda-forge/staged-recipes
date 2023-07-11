@@ -14,18 +14,11 @@ fi
 
 cd sdk/storage/azure-storage-common
 
-# For some reason CMAKE_BUILD_TYPE=Release isn't included in CMAKE_ARGS by
-# ctng-compiler-activation-feedstock, even though it is for vc-feedstock and
-# clang-compiler-activation-feedstock
-if [[ "${target_platform}" == linux-* ]]
-then
-  CMAKE_ARGS="${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release"
-fi
-
 # https://github.com/Azure/azure-sdk-for-cpp/blob/main/CONTRIBUTING.md#building-the-project
 mkdir build
 cd build
 cmake $CMAKE_ARGS \
+  -D CMAKE_BUILD_TYPE=Release \
   -G Ninja \
   -D BUILD_SHARED_LIBS=ON \
   -D BUILD_TRANSPORT_CURL=ON \
