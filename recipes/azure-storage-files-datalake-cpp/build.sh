@@ -26,6 +26,7 @@ fi
 mkdir build
 cd build
 cmake $CMAKE_ARGS \
+  -G Ninja \
   -D BUILD_SHARED_LIBS=ON \
   -D BUILD_TRANSPORT_CURL=ON \
   ..

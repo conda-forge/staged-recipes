@@ -7,7 +7,7 @@ cd sdk\storage\azure-storage-queues
 mkdir build
 cd build
 cmake %CMAKE_ARGS% ^
-  -G "Ninja" ^
+  -G Ninja ^
   -D BUILD_SHARED_LIBS=ON ^
   -D BUILD_TRANSPORT_WINHTTP=ON ^
   ..
