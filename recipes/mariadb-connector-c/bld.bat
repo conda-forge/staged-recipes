@@ -12,6 +12,9 @@ cmake %CMAKE_ARGS% ^
       ..
 if errorlevel 1 exit 1
 
+cd mysql-test\
+.\mysql-test-run.pl --suite=main --ps-protocol --parallel=auto --skip-test=session_tracker_last_gtid
+
 ninja
 if errorlevel 1 exit 1
 
