@@ -2,6 +2,7 @@
 
 set -ex
 
+# Hints OGRE to find its CMake module file
 if [[ "$target_platform" == linux* ]]; then
     OGRE_DIR="${PREFIX}/lib/OGRE/cmake"
 elif [[ "$target_platform" == osx* ]]; then
