@@ -1,0 +1,65 @@
+{% set name = "bytewax" %}
+{% set version = "0.16.2" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/bytewax/bytewax/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 993fe70f3a206adc52aae1099c00e14a92ec55387dda4b0cda2b6f6fbf0ed35b
+  patches:
+    # this patch disable the vendored ssl/gssapi vendored libraries
+    # falling back to use the conda installed ones
+    - ssl.patch
+
+build:
+  skip: True  # [win]
+  script: {{ PYTHON }} -m pip install . -vv
+  number: 0
+
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - {{ compiler('cxx') }}
+    - {{ compiler('rust') }}
+  host:
+    - python
+    - pip
+    - pkg-config
+    - make
+    - cmake
+    - maturin
+    - libzlib
+    - openssl
+    - cyrus-sasl
+    - perl  # [ win ]
+    - protobuf
+    - librdkafka
+  run:
+    - python
+    - protobuf
+    - libzlib
+    - librdkafka
+    - python-confluent-kafka
+
+test:
+  source_files:
+    - conftest.py
+    - pytests
+    - examples
+  requires:
+    - pytest
+  commands:
+    - pytest -vvs ./pytests
+
+about:
+  home: https://bytewax.io
+  summary: Python Stateful Stream Processing Framework
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - cav71
