@@ -38,6 +38,7 @@ cmake -G "Ninja" ^
     -DENABLE_ZMQ=ON ^
     -DGFLAGS_ROOT="%LIBRARY_PREFIX%" ^
     -DGLOG_ROOT="%LIBRARY_PREFIX%" ^
+    -DGNSSSDR_INSTALL_DIR_DEF=%%CONDA_PREFIX%%/Library ^
     ..
 if errorlevel 1 exit 1
 

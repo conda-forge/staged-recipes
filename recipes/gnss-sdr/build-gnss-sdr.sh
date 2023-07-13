@@ -35,6 +35,7 @@ cmake_config_args=(
     -DENABLE_ZMQ=ON
     -DGFLAGS_ROOT=$PREFIX
     -DGLOG_ROOT=$PREFIX
+    -DGNSSSDR_INSTALL_DIR_DEF=\$CONDA_PREFIX
 )
 
 cmake ${CMAKE_ARGS} -G "Ninja" .. "${cmake_config_args[@]}"
