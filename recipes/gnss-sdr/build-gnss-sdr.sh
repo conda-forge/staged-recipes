@@ -42,6 +42,12 @@ cmake_config_args=(
     -DGNSSSDR_INSTALL_DIR_DEF=\$CONDA_PREFIX
 )
 
+if [[ $target_platform == osx* ]] ; then
+    cmake_config_args+=(
+        -DBLAS_ROOT=$PREFIX/lib
+    )
+fi
+
 cmake ${CMAKE_ARGS} -G "Ninja" .. "${cmake_config_args[@]}"
 cmake --build . --config Release -- -j${CPU_COUNT}
 cmake --build . --config Release --target install
