@@ -2,6 +2,10 @@
 
 set -ex
 
+if [[ $target_platform == osx* ]] ; then
+    CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+fi
+
 cd src/algorithms/libs/volk_gnsssdr_module/volk_gnsssdr
 mkdir forgebuild
 cd forgebuild

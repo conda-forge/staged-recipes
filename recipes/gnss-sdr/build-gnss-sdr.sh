@@ -2,6 +2,10 @@
 
 set -ex
 
+if [[ $target_platform == osx* ]] ; then
+    CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+fi
+
 mkdir forgebuild
 cd forgebuild
 
