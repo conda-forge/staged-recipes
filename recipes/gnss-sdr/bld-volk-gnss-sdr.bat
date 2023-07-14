@@ -36,4 +36,4 @@ cmake --build . --config Release --target install
 if errorlevel 1 exit 1
 
 :: don't include volk_gnsssdr_modtool, we're skipping the modtool python lib
-cmake -E rm "LIBRARY_BIN%\volk_gnsssdr_modtool.py"
+cmake -E rm "%LIBRARY_BIN%\volk_gnsssdr_modtool.py"
