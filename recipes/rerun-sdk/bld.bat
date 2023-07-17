@@ -2,7 +2,7 @@
 
 set "PYO3_PYTHON=%PYTHON%"
 
-maturin build --release --interpreter=%PYTHON%  -m rerun_py\Cargo.toml
+maturin build --release --interpreter=%PYTHON%  -m rerun_py\Cargo.toml  --no-default-features --features pypi
 
 FOR %%G IN (%SRC_DIR%\target\wheels\*.whl) DO (
     %PYTHON% -m pip install --ignore-installed --no-deps -vv %%G
