@@ -41,6 +41,9 @@ cmake -G "Ninja" ^
     -DGLOG_LIBRARIES="%LIBRARY_LIB%\glog.lib" ^
     -DGLOG_ROOT="%LIBRARY_PREFIX%" ^
     -DGNSSSDR_INSTALL_DIR_DEF=%%CONDA_PREFIX%%/Library ^
+    -DLIBAD9361_LIBRARIES="%LIBRARY_LIB%\libad9361.lib" ^
+    -DLIBIIO_LIBRARIES="%LIBRARY_LIB%\libiio.lib" ^
+    -DZEROMQ_LIBRARIES="%LIBRARY_LIB%\libzmq.lib" ^
     ..
 if errorlevel 1 exit 1
 
