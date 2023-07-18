@@ -1,0 +1,114 @@
+{% set version = "0.7.4" %}
+# see github.com/conda-forge/conda-forge.github.io/issues/1059 for naming discussion
+{% set torch_proc_type = "cpu" if cuda_compiler_version in ("None", None) else "cuda" %}
+
+package:
+  name: pytorch3d
+  version: {{ version }}
+
+source:
+  url: https://github.com/facebookresearch/pytorch3d/archive/v{{ version }}.tar.gz
+  sha256: b153b1a14807267b22e3f8efbdad153cb08b51e9015a43105bb4cec8ea15359e
+
+build:
+  number: 0
+  script:
+    - export CC="$GCC"         # [linux64 and cuda_compiler_version != 'None']
+    - export NVCC_FLAGS="--compiler-bindir=${CC}"    # [linux64 and cuda_compiler_version != 'None']
+    # needs to be set or builds fails because _get_cuda_arch_flags from
+    # https://github.com/pytorch/pytorch/blob/v2.0.0/torch/utils/cpp_extension.py#L1710
+    # will try to determine the arches based on the non-existent-in-CI CUDA drivers
+    - export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"  # [linux64 and cuda_compiler_version != 'None']
+    - export FORCE_CUDA="1"  # [linux64 and cuda_compiler_version != 'None']
+    - {{ PYTHON }} -m pip install . -vv
+  # as of pytorch 1.13, conda-forge only builds for CUDA 11.2+, see
+  # https://github.com/conda-forge/conda-forge-pinning-feedstock/issues/3491
+  skip: true  # [win or cuda_compiler_version in ("10.2", "11.0", "11.1")]
+  string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version == "None"]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  missing_dso_whitelist:
+    # pytorch builds put the libs in the wrong place, but hard to unbundle, see
+    # https://github.com/conda-forge/staged-recipes/pull/17082#issuecomment-1189149813
+    - '*/libc10{{ SHLIB_EXT }}'
+    - '*/libc10_cuda{{ SHLIB_EXT }}'
+    - '*/libtorch{{ SHLIB_EXT }}'
+    - '*/libtorch_cpu{{ SHLIB_EXT }}'
+    - '*/libtorch_cuda{{ SHLIB_EXT }}'
+    - '*/libtorch_python{{ SHLIB_EXT }}'
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}                 # [cuda_compiler_version != "None"]
+    - sysroot_linux-64 2.17                # [linux64]
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - numpy                                  # [build_platform != target_platform]
+    - pytorch                                # [build_platform != target_platform]
+    - pytorch =*={{ torch_proc_type }}*      # [build_platform != target_platform]
+  host:
+    - python
+    - pip
+    - setuptools
+    - cudnn                                  # [cuda_compiler_version != "None"]
+    - numpy
+    - pytorch
+    - pytorch =*={{ torch_proc_type }}*
+    - cub                                    # [cuda_compiler_version != "None"]
+  run:
+    - python
+    - {{ pin_compatible('cudnn') }}          # [cuda_compiler_version != "None"]
+    - {{ pin_compatible('numpy') }}
+    - torchvision
+    - fvcore
+    - iopath
+  run_constrained:
+    # 2022/02/05 hmaarrfk
+    # While conda packaging seems to allow us to specify
+    # constraints on the same package in different lines
+    # the resulting package doesn't have the ability to
+    # be specified in multiples lines
+    # This makes it tricky to use run_exports
+    # we add the GPU constraint in the run_constrained
+    # to allow us to have "two" constraints on the
+    # running package
+    - pytorch =*={{ torch_proc_type }}*
+
+test:
+  imports:
+    - pytorch3d
+  # 20230707 TF: There are lots of tests that need a physical GPU; disabled on CI
+  # Locally, uncomment below to run tests
+  # source_files:
+  #   - tests
+  #   - docs
+  requires:
+    - pip
+  #   - imageio
+  #   - hydra-core
+  #   - accelerate
+  #   - matplotlib-base
+  #   - pandas
+  #   - plotly
+  #   - lpips
+  #   - sqlalchemy
+  #   - pillow
+  #   - jupyter
+  #   - pycuda  # [cuda_compiler_version != "None"]
+  #   - pyopengl
+  #   - visdom
+  commands:
+    - pip check
+  #   - python -m unittest discover -v -s tests -t .  # [cuda_compiler_version != "None"]
+
+
+about:
+  home: https://github.com/facebookresearch/pytorch3d
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: '3d Geometry for pytorch'
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer
