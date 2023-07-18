@@ -5,13 +5,13 @@ cd build
 
 ::Configure
 cmake ^
-    %SRC_DIR% ^
+    %CMAKE_ARGS% ^
+    -B . ^
+    -S %SRC_DIR% ^
     -G Ninja ^
     -DCMAKE_BUILD_TYPE:STRING=Release ^
-    -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
-    -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
-    -DSOFA_ENABLE_LEGACY_HEADERS=OFF ^
-    -DSOFA_BUILD_TESTS=OFF
+    -DSOFA_ENABLE_LEGACY_HEADERS:BOOL=OFF ^
+    -DSOFA_BUILD_TESTS:BOOL=OFF
 if errorlevel 1 exit 1
 
 :: Build.
