@@ -13,6 +13,7 @@ cmake %CMAKE_ARGS% ^
       -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
       -DINSTALL_DOCREADMEDIR_STANDALONE="%cd%/junk" ^
       -DINSTALL_DOCDIR="%cd%/junk" ^
+      -WITH_JEMALLOC="NO" ^
       ..
 
 if errorlevel 1 exit 1
