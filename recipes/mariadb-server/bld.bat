@@ -1,4 +1,8 @@
-mkdir builds && cd builds
+xcopy /E mariadb-connector-c server-mariadb\libmariadb\
+
+cd server-mariadb
+mkdir builds
+cd builds
 
 :: Set INSTALL_DOCREADMEDIR to a junk path to avoid installing the README into PREFIX
 cmake %CMAKE_ARGS% ^

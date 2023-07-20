@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -e -x
 
+cp -r mariadb-connector-c/. server-mariadb/libmariadb
+
+cd server-mariadb
 mkdir builds
 cd builds
 
