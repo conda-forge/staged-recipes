@@ -10,6 +10,7 @@ cmake %CMAKE_ARGS% ^
       -DINSTALL_DOCREADMEDIR_STANDALONE="%cd%/junk" ^
       -DINSTALL_DOCDIR="%cd%/junk" ^
       ..
+
 if errorlevel 1 exit 1
 ctest --rerun-faild --output-on-failure
 
