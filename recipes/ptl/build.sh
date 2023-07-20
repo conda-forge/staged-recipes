@@ -17,3 +17,5 @@ cmake $SRC_DIR \
     ${CMAKE_ARGS}
 
 cmake --build .
+
+cmake --install .
