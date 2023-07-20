@@ -1,0 +1,72 @@
+{% set data = load_file_data("pyproject.toml") %}
+{% set name = "nvjitlink" %}
+{% set version = "0.1.0.dev1" %}
+
+package:
+  name: nvjitlink
+  version: "0.1.0.dev1"
+
+source:
+  path: https://github.com/rapidsai/nvjitlink/archive/refs/tags/0.1.0.tar.gz
+  sha256: cb3d502cd183ed173c2202d2d8ea12d918beb57aa671693cbd5489a7b01b33ac
+
+build:
+  noarch: python
+  script:
+    # This is a workaround for library search path issues with the current
+    # cuda-nvcc package. They should be fixed by
+    # https://github.com/conda-forge/cuda-nvcc-feedstock/pull/24, at which
+    # point we can remove this.
+    - export CMAKE_PREFIX_PATH=${PREFIX}/targets/x86_64-linux/lib:$CMAKE_PREFIX_PATH
+    - {{ PYTHON }} -m pip install . -vv
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - cmake >=3.26.4
+    - sysroot_{{ target_platform }} 2.17
+    - cuda-version
+  host:
+    - libnvjitlink-dev
+    - libnvjitlink-static
+    - cuda-version
+    - python
+    - pip
+    - scikit-build-core
+  run:
+    - python
+    - numba >=0.57
+    - {{ pin_compatible('cuda-version', max_pin='x', min_pin='x') }}
+
+test:
+  imports:
+    - nvjitlink
+  source_files:
+    - nvjitlink/tests/test_nvjitlink_api.py
+    - nvjitlink/tests/test_nvjitlink.py
+    # Extra files for testing edge cases of libnvjitlink
+    # see test_nvjitlink_api.py for details
+    - nvjitlink/tests/test_device_functions.cubin
+    - nvjitlink/tests/test_device_functions.fatbin
+    - nvjitlink/tests/undefined_extern.cubin
+  requires:
+    - pytest
+  commands: 
+    - pytest -v
+
+about:
+  home: https://rapids.ai/
+  dev_url: https://github.com/rapidsai/nvjitlink
+  doc_url: https://github.com/rapidsai/nvjitlink/blob/main/README.md
+  license: Apache-2.0
+  license_family: Apache
+  license_file: LICENSE
+  license_url: https://github.com/rapidsai/nvjitlink/blob/main/LICENSE
+  summary: nvJitLink Python binding
+
+extra:
+  recipe-maintainers:
+    - brandon-b-miller
