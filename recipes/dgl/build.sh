@@ -31,7 +31,7 @@ cmake -DUSE_CUDA=ON \
   ${CUDA_CMAKE_OPTIONS} \
   ${SRC_DIR}
 
-make -j$CPU_COUNT
+make -j$CPU_COUNT VERBOSE=1
 cd ../python
 ${PYTHON} setup.py install --single-version-externally-managed --record=record.txt
 
