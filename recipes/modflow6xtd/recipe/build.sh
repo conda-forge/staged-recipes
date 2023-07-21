@@ -16,6 +16,9 @@ fi
 if [[ "${MESON_ARGS}" != *"-Ddebug=false"* ]]; then
     MESON_ARGS="${MESON_ARGS} -Ddebug=false"
 fi
+if [[ "${MESON_ARGS}" != *"-Dparallel=true"* ]]; then
+    MESON_ARGS="${MESON_ARGS} -Dparallel=true"
+fi
 
 BUILD_DIR="${SRC_DIR}/builddir"
 
