@@ -1,5 +1,12 @@
 {% set name = "cpptraj" %}
 {% set version = "6.4.4" %}
+{% set build = 0 %}
+
+{% set mpi = mpi or 'nompi' %}
+
+{% if mpi == 'nompi' %}
+{% set build = build + 100 %}
+{% endif %}
 
 package:
   name: {{ name|lower }}
@@ -10,7 +17,17 @@ source:
   sha256: 2911744076151b84e0a86b28877edef6ad8ab8c3d4df228e82a36dd6c5746eac
 
 build:
-  number: 0
+  number: {{ build }}
+  {% if mpi != 'nompi' %}
+  {% set mpi_prefix = "mpi_" + mpi %}
+  {% else %}
+  {% set mpi_prefix = "nompi" %}
+  {% endif %}
+  string: "{{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}"
+  {% if mpi != 'nompi' %}
+  run_exports:
+    - {{ name }} * {{ mpi_prefix }}_*
+  {% endif %}
   skip: true  # [win]
 
 requirements:
@@ -27,8 +44,13 @@ requirements:
     - bzip2
     - zlib
     - arpack
-    - libnetcdf
+    - {{ mpi }}  # [mpi != 'nompi']
     - netcdf-fortran
+    - netcdf-fortran * {{ mpi_prefix }}_*
+    - libnetcdf
+    - libnetcdf * {{ mpi_prefix }}_*
+    - libpnetcdf  # [mpi != 'nompi']
+    - libpnetcdf * {{ mpi_prefix }}_*  # [mpi != 'nompi']
     - fftw
     - libblas
     - liblapack
@@ -36,8 +58,13 @@ requirements:
     - llvm-openmp  # [osx]
     - libgomp      # [linux and not aarch64]
   run:
-    - libnetcdf
+    - {{ mpi }}  # [mpi != 'nompi']
     - netcdf-fortran
+    - netcdf-fortran * {{ mpi_prefix }}_*
+    - libnetcdf
+    - libnetcdf * {{ mpi_prefix }}_*
+    - libpnetcdf  # [mpi != 'nompi']
+    - libpnetcdf * {{ mpi_prefix }}_*  # [mpi != 'nompi']
     - fftw
     - libblas
     - liblapack
