@@ -4,8 +4,20 @@
 
 {% set mpi = mpi or 'nompi' %}
 
-{% if mpi == 'nompi' %}
-{% set build = build + 100 %}
+# Set MPI related variables
+{% if mpi == "nompi" %}
+  {% set mpi_build_prefix = "nompi" %}
+  {% set build = build + 100 %}
+{% else %}
+  {% set mpi_build_prefix = "mpi_" + mpi|string %}
+{% endif %}
+
+# Set CUDA related variables
+{% if cuda_compiler_version == "None" %}
+  {% set cuda_build_prefix = "" %}
+  {% set build = build + 1000 %}
+{% else %}
+  {% set cuda_build_prefix = "_cuda" + cuda_compiler_version|string %}
 {% endif %}
 
 package:
@@ -18,16 +30,10 @@ source:
 
 build:
   number: {{ build }}
-  {% if mpi != 'nompi' %}
-  {% set mpi_prefix = "mpi_" + mpi %}
-  {% else %}
-  {% set mpi_prefix = "nompi" %}
-  {% endif %}
-  string: {{ mpi_prefix }}_cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
-  string: {{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}  # [cuda_compiler_version == "None"]
+  string: {{ mpi_build_prefix }}{{ cuda_build_prefix }}h{{ PKG_HASH }}_{{ build }}
   {% if mpi != 'nompi' %}
   run_exports:
-    - {{ name }} * {{ mpi_prefix }}_*
+    - {{ name }} * {{ mpi_build_prefix }}_*
   {% endif %}
   skip: true  # [win]
 
