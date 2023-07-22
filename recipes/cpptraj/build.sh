@@ -17,5 +17,5 @@ fi
 
 cmake ${CMAKE_ARGS} -DCOMPILER=MANUAL -DOPENMP="TRUE" -DCUDA=${BUILD_CUDA} -DMPI=${BUILD_MPI} ${SRC_DIR}
 
-make
+make -j${CPU_COUNT}
 make install
