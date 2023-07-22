@@ -10,6 +10,10 @@ export CXXFLAGS="$(echo $CXXFLAGS | sed -e 's/ -std=[^ ]*//')"
 export CFLAGS="$(echo $CFLAGS | sed -e 's/ -mtune=[^ ]*//')"
 CMAKE_FLAGS="${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_BUILD_TYPE=Release -DPython_EXECUTABLE=${PYTHON}"
 
+# Trim down arches 
+export CUDA_ARCH_LIST="sm_75,sm_80"
+export CUDAARCHS="75-real;80"
+
 echo $CONDA_PREFIX
 
 mkdir build
