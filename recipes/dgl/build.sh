@@ -31,7 +31,7 @@ cmake -DUSE_CUDA=ON \
   ${CUDA_CMAKE_OPTIONS} \
   ${SRC_DIR}
 
-make -j2
+make -j1 VERBOSE=1
 cd ../python
 ${PYTHON} setup.py install --single-version-externally-managed --record=record.txt
 
