@@ -10,10 +10,6 @@ export CXXFLAGS="$(echo $CXXFLAGS | sed -e 's/ -std=[^ ]*//')"
 export CFLAGS="$(echo $CFLAGS | sed -e 's/ -mtune=[^ ]*//')"
 CMAKE_FLAGS="${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_BUILD_TYPE=Release -DPython_EXECUTABLE=${PYTHON}"
 
-# Trim down arches 
-export CUDA_ARCH_LIST="sm_75,sm_80"
-export CUDAARCHS="75-real;80"
-
 echo $CONDA_PREFIX
 
 mkdir build
@@ -30,7 +26,8 @@ cmake -DUSE_CUDA=ON \
   -DEXTERNAL_METIS_LIB_PATH=${BUILD_PREFIX}/lib \
   -DUSE_LIBXSMM=ON \
   -DUSE_OPENMP=ON \
-  -DCUDA_ARCH_NAME=All \
+  -DCUDA_ARCH_NAME=75 \
+  -DGPU_TARGET=$CUDA_ARCH_LIST \
   ${CMAKE_FLAGS} \
   ${CUDA_CMAKE_OPTIONS} \
   ${SRC_DIR}
