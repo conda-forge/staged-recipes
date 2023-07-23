@@ -1,3 +1,6 @@
+# Move to conda-specific src directory location
+cd $SRC_DIR/src
+
 # Build Eternafold
 make
 
