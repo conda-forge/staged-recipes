@@ -2,6 +2,7 @@
 cd $SRC_DIR/src
 
 # DEBUGGING LINUX BUILD PIPELINE
+pwd
 ls .
 
 # Build Eternafold
