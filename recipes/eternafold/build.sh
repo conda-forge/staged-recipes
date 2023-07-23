@@ -1,6 +1,9 @@
 # Move to conda-specific src directory location
 cd $SRC_DIR/src
 
+# DEBUGGING LINUX BUILD PIPELINE
+ls .
+
 # Build Eternafold
 make
 
