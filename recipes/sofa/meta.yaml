@@ -9,6 +9,13 @@ source:
   - url: https://github.com/sofa-framework/sofa/archive/refs/tags/v{{ version }}.tar.gz 
     sha256: 1a4b01d39d4f228e0a033fe41f09207d14d39c7a8e75b05a634be2821c0f4591
     patches:
+      # As conda-build uses the CMAKE_FIND_ROOT_PATH variable (at least on Linux builds), 
+      # each of its directory entry will be prepended to PATHS or HINTS locations for each call 
+      # to CMake find_package() or find_library() functions. However, for the embedded libraries 
+      # Difflib, JSon and STB in Sofa, paths / hints are given in absolute path (see JSON_ROOT for example)
+      # This patch disable the behavior of considering the CMAKE_FIND_ROOT_PATH variables for these 
+      # libraries and instead just rely on the absolute path given.
+      # This patch is planned to be part of release v23.12.
     - patches/0001-Config-Fix-cross-compilation-by-turning-off-cmake_fi.patch
 
 build:
@@ -21,8 +28,7 @@ requirements:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
     - cmake
-    - clang  # [win]
-    - make  # [not win]
+    - make  # [unix]
     - ninja  # [win]
     - {{ cdt('mesa-libgl-devel') }}  # [linux]
     - {{ cdt('mesa-dri-drivers') }}  # [linux]
@@ -33,23 +39,24 @@ requirements:
 
   host:
     - xorg-libxfixes  # [linux]
+    - libglu  # [linux]
     - eigen
     - boost-cpp
     - zlib
     - glew
     - qt-main
-    - libglu  # [linux]
     - libjpeg-turbo
     - libpng
 
   run:
     - libglu  # [linux]
+    - ucrt  # [win]
 
 test:
   commands:
     - test -f $PREFIX/lib/libSofa.Core${SHLIB_EXT}  # [not win]
-    - if not exist %LIBRARY_PREFIX%\lib\libSofa.Core.lib exit 1  # [win]
-    - if not exist %LIBRARY_PREFIX%\bin\libSofa.Core.dll exit 1  # [win]
+    - if not exist %LIBRARY_PREFIX%\lib\Sofa.Core.lib exit 1  # [win]
+    - if not exist %LIBRARY_PREFIX%\bin\Sofa.Core.dll exit 1  # [win]
     
 about:
   home: https://www.sofa-framework.org/
