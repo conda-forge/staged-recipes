@@ -1,5 +1,7 @@
 @echo on
 
+setlocal EnableDelayedExpansion
+
 mkdir build
 cd build
 
@@ -35,3 +37,9 @@ cmake --build build ^
       --target install ^
       -- -j %CPU_COUNT%
 if errorlevel 1 exit 1
+
+for %%F in (activate deactivate) DO (
+    if not exist %PREFIX%\etc\conda\%%F.d mkdir %PREFIX%\etc\conda\%%F.d
+    copy %RECIPE_DIR%\%%F.bat %PREFIX%\etc\conda\%%F.d\%PKG_NAME%_%%F.bat
+    copy %RECIPE_DIR%\%%F.sh %PREFIX%\etc\conda\%%F.d\%PKG_NAME%_%%F.sh
+)
