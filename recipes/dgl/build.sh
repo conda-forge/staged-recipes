@@ -15,7 +15,7 @@ echo $CONDA_PREFIX
 mkdir build
 cd build
 
-cmake -DUSE_CUDA=ON \
+cmake -DUSE_CUDA=OFF \
   -DUSE_CONDA_INCLUDES=ON \
   -DEXTERNAL_DLPACK_PATH=${BUILD_PREFIX}/include \
   -DEXTERNAL_DMLC_PATH=${BUILD_PREFIX}/include \
