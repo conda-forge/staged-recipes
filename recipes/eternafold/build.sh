@@ -6,7 +6,7 @@ pwd
 ls .
 
 # Build Eternafold
-make
+make CXX=$CXX
 
 # Move built binaries to environment-specific location
 mkdir -p $PREFIX/bin/eternafold-bin
