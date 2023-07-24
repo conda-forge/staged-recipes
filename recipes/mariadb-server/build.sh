@@ -15,7 +15,7 @@ cmake ${CMAKE_ARGS} \
     -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=ON \
     -DBUILD_CONFIG=mysql_release \
     -DTOKUDB_OK=0 \
-    -PLUGIN_AUTH_PAM=NO
+    PLUGIN_AUTH_PAM=NO
 
 
 make -k -j${CPU_COUNT}
