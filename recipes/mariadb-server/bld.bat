@@ -7,8 +7,8 @@ cd server-mariadb
 git clean -xffd
 git submodule foreach --recursive git clean -xffd
 
-mkdir builds
-cd builds
+mkdir build
+cd build
 
 :: Set INSTALL_DOCREADMEDIR to a junk path to avoid installing the README into PREFIX
 cmake %CMAKE_ARGS% ^
@@ -20,7 +20,9 @@ cmake %CMAKE_ARGS% ^
       -DINSTALL_DOCREADMEDIR_STANDALONE="%cd%/junk" ^
       -DINSTALL_DOCDIR="%cd%/junk" ^
       -WITH_JEMALLOC="NO" ^
-      ..
+      -S server-mariadb ^
+      -B build
+
 
 if errorlevel 1 exit 1
 ctest --rerun-faild --output-on-failure
