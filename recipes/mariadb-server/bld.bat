@@ -1,5 +1,7 @@
 xcopy /E mariadb-connector-c server-mariadb\libmariadb\
 
+git clone https://github.com/codership/wsrep-lib.git -C "server-mariadb\wsrep-lib\"
+
 cd server-mariadb
 mkdir builds
 cd builds
