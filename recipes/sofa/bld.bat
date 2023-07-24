@@ -30,6 +30,11 @@ mkdir "%SRC_DIR%\licenses"
 cmake --build . --parallel "%CPU_COUNT%" --target install
 if errorlevel 1 exit 1
 
+:: Fix incorrectly installed SceneChecking.dll file on Windows build (required for runSofa.exe)
+copy "%LIBRARY_PREFIX%\plugins\SceneChecking\bin\SceneChecking.dll" "%LIBRARY_BIN%"
+:: Fix incorrectly installed CImgPlugin.dll file on Windows build (required for SofaMatrix.dll)
+copy "%LIBRARY_PREFIX%\plugins\CImgPlugin\bin\CImgPlugin.dll" "%LIBRARY_BIN%"
+
 :: Test
 ctest --parallel "%CPU_COUNT%"
 if errorlevel 1 exit 1
