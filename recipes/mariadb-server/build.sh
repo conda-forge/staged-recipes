@@ -13,6 +13,8 @@ git submodule foreach --recursive git clean -xffd
 mkdir build
 cd build
 
+pwd
+
 cmake ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
@@ -20,8 +22,8 @@ cmake ${CMAKE_ARGS} \
     -DBUILD_CONFIG=mysql_release \
     -DTOKUDB_OK=0 \
     -DPLUGIN_AUTH_PAM=NO \
-    -S server-mariadb \
-    -B build
+    -S server-mariadb/ \
+    -B build/
 
 make -k -j${CPU_COUNT}
 ctest --rerun-faild --output-on-failure
