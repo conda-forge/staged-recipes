@@ -10,6 +10,9 @@ cd server-mariadb
 git clean -xffd
 git submodule foreach --recursive git clean -xffd
 
+pwd
+ls
+
 mkdir build
 cd build
 
@@ -22,8 +25,8 @@ cmake ${CMAKE_ARGS} \
     -DBUILD_CONFIG=mysql_release \
     -DTOKUDB_OK=0 \
     -DPLUGIN_AUTH_PAM=NO \
-    -S server-mariadb/ \
-    -B build/
+    -S $SRC_DIR/server-mariadb/ \
+    -B $SRC_DIR/server-mariadb/build/
 
 make -k -j${CPU_COUNT}
 ctest --rerun-faild --output-on-failure
