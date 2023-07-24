@@ -14,7 +14,7 @@ cmake ${CMAKE_ARGS} \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=ON \
     -DBUILD_CONFIG=mysql_release \
-    -WITH_JEMALLOC=NO
+    -DTOKUDB_OK=0
 
 
 make -k -j${CPU_COUNT}
