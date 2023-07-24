@@ -3,6 +3,10 @@ xcopy /E mariadb-connector-c server-mariadb\libmariadb\
 git clone https://github.com/codership/wsrep-lib.git "server-mariadb\wsrep-lib\"
 
 cd server-mariadb
+
+git clean -xffd
+git submodule foreach --recursive git clean -xffd
+
 mkdir builds
 cd builds
 

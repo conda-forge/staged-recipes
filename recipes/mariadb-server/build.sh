@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 set -e -x
 
-cp -r mariadb-connector-c/. server-mariadb/libmariadb
+# cp -r mariadb-connector-c/. server-mariadb/libmariadb
 
-git clone https://github.com/codership/wsrep-lib.git server-mariadb/wsrep-lib
+# git clone https://github.com/codership/wsrep-lib.git server-mariadb/wsrep-lib
 
 cd server-mariadb
 
 git clean -xffd
 git submodule foreach --recursive git clean -xffd
 
-mkdir builds
-cd builds
+mkdir build
+cd build
 
 cmake ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=Release \
