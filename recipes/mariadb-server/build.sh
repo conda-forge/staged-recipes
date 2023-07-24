@@ -20,7 +20,8 @@ cmake ${CMAKE_ARGS} \
     -DBUILD_CONFIG=mysql_release \
     -DTOKUDB_OK=0 \
     -DPLUGIN_AUTH_PAM=NO \
-    -B ..
+    -S .. \
+    -B .
 
 make -k -j${CPU_COUNT}
 ctest --rerun-faild --output-on-failure
