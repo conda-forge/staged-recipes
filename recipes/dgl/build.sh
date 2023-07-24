@@ -3,7 +3,9 @@ set -euxo pipefail
 
 rm -rf build || true
 
+if [ ${cuda_compiler_version} != "None" ]; then
 CUDA_CMAKE_OPTIONS="-DCMAKE_CUDA_COMPILER=${CUDA_HOME}/bin/nvcc -DCMAKE_CUDA_HOST_COMPILER=${CXX}"
+fi
 
 # Remove -std=c++17 from CXXFLAGS for compatibility with nvcc
 export CXXFLAGS="$(echo $CXXFLAGS | sed -e 's/ -std=[^ ]*//')"
