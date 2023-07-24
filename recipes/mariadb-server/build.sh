@@ -10,13 +10,10 @@ cd server-mariadb
 git clean -xffd
 git submodule foreach --recursive git clean -xffd
 
-pwd
-ls
+dir 
 
 mkdir build
 cd build
-
-pwd
 
 cmake ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=Release \
