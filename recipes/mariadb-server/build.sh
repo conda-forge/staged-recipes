@@ -7,7 +7,7 @@ git clone https://github.com/codership/wsrep-lib.git server-mariadb/wsrep-lib
 git clone https://github.com/mariadb-corporation/mariadb-connector-c.git server-mariadb/libmariadb
 
 
-cd server-mariadb
+# cd server-mariadb
 
 git clean -xffd
 git submodule foreach --recursive git clean -xffd
