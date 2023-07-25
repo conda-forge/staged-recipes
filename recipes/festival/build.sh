@@ -28,6 +28,9 @@ for i in $(find src/ -type f); do
       -e 's,\"\.\./\(base_class/.*\)\",\<speech_tools/\1\>,g' $i;
 done
 
+# Use shared libs
+echo "GCC_MAKE_SHARED_LIB = gcc -shared -o XXX" >> config/systems/default.mak
+
 make  # cannot build in parallel, the build system does not support it
 
 make install  # only copies files inside the build directory
