@@ -5,8 +5,10 @@ rm -rf build || true
 
 if [ ${cuda_compiler_version} != "None" ]; then
 CUDA_CMAKE_OPTIONS="-DCMAKE_CUDA_COMPILER=${CUDA_HOME}/bin/nvcc -DCMAKE_CUDA_HOST_COMPILER=${CXX}"
+USE_CUDA=ON
 else
 CUDA_CMAKE_OPTIONS=""
+USE_CUDA=OFF
 fi
 
 # Remove -std=c++17 from CXXFLAGS for compatibility with nvcc
@@ -19,7 +21,7 @@ echo $CONDA_PREFIX
 mkdir build
 cd build
 
-cmake -DUSE_CUDA=OFF \
+cmake -DUSE_CUDA=${USE_CUDA} \
   -DUSE_CONDA_INCLUDES=ON \
   -DEXTERNAL_DLPACK_PATH=${BUILD_PREFIX}/include \
   -DEXTERNAL_DMLC_PATH=${BUILD_PREFIX}/include \
