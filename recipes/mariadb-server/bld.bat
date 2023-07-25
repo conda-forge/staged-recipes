@@ -1,6 +1,7 @@
-xcopy /E mariadb-connector-c server-mariadb\libmariadb\
+@REM xcopy /E mariadb-connector-c server-mariadb\libmariadb\
 
 git clone https://github.com/codership/wsrep-lib.git "server-mariadb\wsrep-lib\"
+git clone https://github.com/mariadb-corporation/mariadb-connector-c.git "server-mariadb/libmariadb"
 
 cd server-mariadb
 
@@ -20,8 +21,7 @@ cmake %CMAKE_ARGS% ^
       -DINSTALL_DOCREADMEDIR_STANDALONE="%cd%/junk" ^
       -DINSTALL_DOCDIR="%cd%/junk" ^
       -WITH_JEMALLOC="NO" ^
-      -S server-mariadb ^
-      -B build
+      ..
 
 
 if errorlevel 1 exit 1
