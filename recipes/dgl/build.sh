@@ -30,12 +30,12 @@ cmake -DUSE_CUDA=OFF \
   -DEXTERNAL_METIS_LIB_PATH=${BUILD_PREFIX}/lib \
   -DUSE_LIBXSMM=ON \
   -DUSE_OPENMP=ON \
-  -DCUDA_ARCH_NAME=Turing \
+  -DCUDA_ARCH_NAME=All \
   ${CMAKE_FLAGS} \
   ${CUDA_CMAKE_OPTIONS} \
   ${SRC_DIR}
 
-make -j1 VERBOSE=1
+make -j1
 cd ../python
 ${PYTHON} setup.py install --single-version-externally-managed --record=record.txt
 
