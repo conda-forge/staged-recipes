@@ -3,6 +3,13 @@ set -euxo pipefail
 mkdir -p build
 cd build
 
+export BUILD_OPENMP="TRUE"
+
+if [[ "$target_platform" == osx* ]]; then
+  # needed to support pytraj which needs cpptraj without OMP
+  export BUILD_OPENMP="FALSE"
+fi
+
 export BUILD_MPI="FALSE"
 
 if [[ "$mpi" != "nompi" ]]; then
@@ -15,7 +22,7 @@ if [[ ${cuda_compiler_version} != "None" ]]; then
   export BUILD_CUDA="TRUE"
 fi
 
-cmake ${CMAKE_ARGS} -DCOMPILER=MANUAL -DOPENMP="TRUE" -DCUDA=${BUILD_CUDA} -DMPI=${BUILD_MPI} ${SRC_DIR}
+cmake ${CMAKE_ARGS} -DCOMPILER=MANUAL -DOPENMP=${BUILD_OPENMP} -DCUDA=${BUILD_CUDA} -DMPI=${BUILD_MPI} ${SRC_DIR}
 
 make -j${CPU_COUNT}
 make install
