@@ -21,7 +21,7 @@ cmake \
     -DCMAKE_INSTALL_LIBDIR=lib        \
     -DCMAKE_INSTALL_PREFIX=${PREFIX}  \
     -DHiPACE_COMPUTE=NOACC            \
-    -DHiPACE_amrex_branch=23.05       \
+    -DHiPACE_amrex_branch=23.07       \
     -DHiPACE_openpmd_internal=OFF     \
     -DHiPACE_MPI=OFF
 
