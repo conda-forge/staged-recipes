@@ -6,7 +6,8 @@ git clone https://github.com/mariadb-corporation/mariadb-connector-c.git "server
 :: cd server-mariadb
 
 :: git clean -xffd
-git submodule foreach --recursive git clean -xffd
+:: git submodule foreach --recursive git clean -xffd
+git submodule update --init --recursive
 
 mkdir builds
 cd builds
