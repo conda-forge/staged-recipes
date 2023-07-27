@@ -3,7 +3,7 @@
 git clone https://github.com/codership/wsrep-lib.git "server-mariadb\wsrep-lib\"
 git clone https://github.com/mariadb-corporation/mariadb-connector-c.git "server-mariadb\libmariadb\"
 
-cd server-mariadb
+:: cd server-mariadb
 
 :: git clean -xffd
 :: git submodule foreach --recursive git clean -xffd
@@ -22,7 +22,9 @@ cmake %CMAKE_ARGS% ^
       -DINSTALL_DOCDIR="%cd%/junk" ^
       -WITH_JEMALLOC="NO" ^
       -DPLUGIN_AUTH_PAM=NO ^
-      ..\cmake
+      -DBUILD_SHARED_LIBS=ON ^
+      -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
+      ..
 
 
 if errorlevel 1 exit 1
