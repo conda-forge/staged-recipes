@@ -1,0 +1,82 @@
+{% set name = "hipace" %}
+{% set version = "23.07" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/Hi-PACE/hipace/archive/v{{ version }}.tar.gz
+  sha256: 2b1f61c91d2543d7ee360eba3630c864107e29f7bcfd0221451beea88f414f21
+
+build:
+  # Prevent conda-build from deciding to build for each python version when hipace doesn't depend on python
+  skip: True  # [py != 310]
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - ccache        # [unix]
+    - clang         # [win]
+    - cmake
+    - lld           # [win]
+    # TODO: add libxml2 dep in lld-feedstock
+    - libxml2       # [win]
+    - make          # [unix]
+    - ninja         # [win]
+    # TODO: later compile for -DHiPACE_COMPUTE=OMP
+    # - libgomp       # [linux]
+    # - llvm-openmp   # [osx or win]
+    - pkgconfig
+  host:
+    - fftw =*=nompi_*
+    - openpmd-api =*=nompi_*
+
+test:
+  requires:
+    - bash  # [not win]
+    - python
+    - numpy
+    - openpmd-api =*=nompi_*
+    - openpmd-viewer
+    - pandas
+    - pytest
+    - python
+    - scipy
+  source_files:
+    - examples/
+    - tests/
+  files:
+    - test.sh   # [unix]
+    - test.bat  # [win]
+  commands:
+    - test -f ${PREFIX}/bin/hipace.NOMPI.NOACC.DP.LF  # [unix]
+    - if not exist %LIBRARY_PREFIX%\bin\hipace.NOMPI.NOACC.DP.LF.exe exit 1  # [win]
+    # smoke tests: execute
+    - ./test.sh      # [unix and build_platform == target_platform]
+    - call test.bat  # [win]
+
+about:
+  home: https://hipace.readthedocs.io
+  license: BSD-3-Clause-LBNL
+  license_family: BSD
+  license_file: license.txt
+  summary: Highly efficient Plasma Accelerator Emulation, quasistatic particle-in-cell code
+
+  description: |
+    HiPACE++ is an open-source portable GPU-capable quasistatic
+    particle-in-cell code for wakefield acceleration written in C++. It is a
+    full re-writing of the legacy code HiPACE, the Highly efficient Plasma
+    ACcelerator Emulator.
+
+  doc_url: https://hipace.readthedocs.io
+  dev_url: https://github.com/Hi-PACE/hipace
+
+extra:
+  recipe-maintainers:
+    - AlexanderSinn
+    - ax3l
+    - MaxThevenet
+    - SeverinDiederichs
