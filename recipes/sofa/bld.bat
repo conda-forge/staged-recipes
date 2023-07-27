@@ -3,7 +3,7 @@ setlocal EnableDelayedExpansion
 mkdir build
 cd build
 
-::Configure
+:: Configure
 cmake ^
     %CMAKE_ARGS% ^
     -B . ^
@@ -11,7 +11,7 @@ cmake ^
     -G Ninja ^
     -DCMAKE_BUILD_TYPE:STRING=Release ^
     -DSOFA_ENABLE_LEGACY_HEADERS:BOOL=OFF ^
-    -DSOFA_BUILD_TESTS:BOOL=OFF
+    -DSOFA_BUILD_TESTS:BOOL=ON
 if errorlevel 1 exit 1
 
 :: Build.
@@ -30,10 +30,12 @@ mkdir "%SRC_DIR%\licenses"
 cmake --build . --parallel "%CPU_COUNT%" --target install
 if errorlevel 1 exit 1
 
-:: Fix incorrectly installed SceneChecking.dll file on Windows build (required for runSofa.exe)
-copy "%LIBRARY_PREFIX%\plugins\SceneChecking\bin\SceneChecking.dll" "%LIBRARY_BIN%"
-:: Fix incorrectly installed CImgPlugin.dll file on Windows build (required for SofaMatrix.dll)
-copy "%LIBRARY_PREFIX%\plugins\CImgPlugin\bin\CImgPlugin.dll" "%LIBRARY_BIN%"
+:: For Windows build, as we don't have rpath like in Unix systems to store
+:: paths to internal Sofa plugins dynamic libraries and as each plugin is stored
+:: into a separated folder, we have to copy all plugins libaries into the main 
+:: Sofa binary folder. This should change in Sofa in future releases and will enable
+:: to avoid this.
+for /D %%f in ("%LIBRARY_PREFIX%\plugins\*") do copy "%%f\bin\*.dll" "%LIBRARY_BIN%"
 
 :: Test
 ctest --parallel "%CPU_COUNT%"
