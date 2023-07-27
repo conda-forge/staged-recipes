@@ -22,7 +22,7 @@ cmake %CMAKE_ARGS% ^
       -DINSTALL_DOCDIR="%cd%/junk" ^
       -WITH_JEMALLOC="NO" ^
       -DPLUGIN_AUTH_PAM=NO ^
-      server-mariadb
+      ..\.
 
 
 if errorlevel 1 exit 1

@@ -22,7 +22,7 @@ cmake ${CMAKE_ARGS} \
     -DBUILD_CONFIG=mysql_release \
     -DTOKUDB_OK=0 \
     -DPLUGIN_AUTH_PAM=NO \
-    server-mariadb
+    ../.
 
 make -k -j${CPU_COUNT}
 ctest --rerun-faild --output-on-failure
