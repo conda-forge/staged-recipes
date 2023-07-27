@@ -9,13 +9,20 @@ git clone https://github.com/mariadb-corporation/mariadb-connector-c.git libmari
 
 # cd server-mariadb
 
-# cd libmariadb
+cd libmariadb
 git clean -xffd
 git submodule foreach --recursive git clean -xffd
 git submodule update --init --recursive
+cd ..
 
-mkdir builds
-cd builds
+cd wsrep-lib
+git clean -xffd
+git submodule foreach --recursive git clean -xffd
+git submodule update --init --recursive
+cd ..
+
+# mkdir builds
+# cd builds
 
 cmake ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=Release \
@@ -26,7 +33,7 @@ cmake ${CMAKE_ARGS} \
     -DPLUGIN_AUTH_PAM=NO \
     -DBUILD_SHARED_LIBS=ON \
     -DCMAKE_PREFIX_PATH=lib \
-    ..
+    -B builds
 
 make -k -j${CPU_COUNT}
 ctest --rerun-faild --output-on-failure
