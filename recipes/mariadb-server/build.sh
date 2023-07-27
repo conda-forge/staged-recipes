@@ -12,8 +12,8 @@ git clone https://github.com/mariadb-corporation/mariadb-connector-c.git server-
 # git clean -xffd
 git submodule foreach --recursive git clean -xffd
 
-mkdir build
-cd build
+mkdir builds
+cd builds
 
 cmake ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=Release \
