@@ -2,5 +2,4 @@
 
 set -exuo pipefail
 
-cd cmd/caddy
-go build
+go run "$CD/xcaddy/cmd/xcaddy/main.go" build v2.6.4 --output "$PREFIX/bin/caddy"
