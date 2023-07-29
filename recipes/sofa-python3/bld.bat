@@ -5,11 +5,11 @@ cd build
 
 ::Configure
 cmake ^
-    %SRC_DIR% ^
+    %CMAKE_ARGS% ^
+    -B . ^
+    -S %SRC_DIR% ^
     -G Ninja ^
     -DCMAKE_BUILD_TYPE:STRING=Release ^
-    -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
-    -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
     -DPYTHON_EXECUTABLE=$CONDA_PREFIX/bin/python ^
     -DPython_FIND_STRATEGY=LOCATION ^
     -DSP3_BUILD_TEST=OFF
