@@ -3,12 +3,14 @@
 copy %PREFIX%\\Library\\include\\webgpu.h ffi\\webgpu.h
 
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-if %ERRORLEVEL% neq 0 (type CMakeError.log && exit 1)
+if %ERRORLEVEL% neq 0 exit 1
 
 cargo build --release --all-features
-if %ERRORLEVEL% neq 0 (type CMakeError.log && exit 1)
+if %ERRORLEVEL% neq 0 exit 1
 
 copy ffi\\wgpu.h %PREFIX%\\Library\\include\\wgpu.h
-if %ERRORLEVEL% neq 0 (type CMakeError.log && exit 1)
+if %ERRORLEVEL% neq 0 exit 1
 
-dir target\
+dir target\\release
+copy target\\release\\wgpu.dll %PREFIX%\\Library\\bin\\wgpu.dll
+copy target\\release\\wgpu.lib %PREFIX%\\Library\\lib\\wgpu.lib
