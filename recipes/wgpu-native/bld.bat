@@ -12,5 +12,5 @@ copy ffi\\wgpu.h %PREFIX%\\Library\\include\\wgpu.h
 if %ERRORLEVEL% neq 0 exit 1
 
 dir target\\release
-copy target\\release\\wgpu.dll %PREFIX%\\Library\\bin\\wgpu.dll
-copy target\\release\\wgpu.lib %PREFIX%\\Library\\lib\\wgpu.lib
+copy target\\release\\wgpu_native.dll %PREFIX%\\Library\\bin\\wgpu_native.dll
+copy target\\release\\wgpu_native.lib %PREFIX%\\Library\\lib\\wgpu_native.lib
