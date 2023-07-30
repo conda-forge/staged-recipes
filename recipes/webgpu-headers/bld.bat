@@ -1,3 +1,4 @@
+set CARGO_PKG_VERSION=%PKG_VERSION%
 mkdir %PREFIX%\\Library
 if %ERRORLEVEL% neq 0 (type CMakeError.log && exit 1)
 
