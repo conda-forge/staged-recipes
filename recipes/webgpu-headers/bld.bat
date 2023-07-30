@@ -1,4 +1,4 @@
-set CARGO_PKG_VERSION=%PKG_VERSION%
+setx CARGO_PKG_VERSION %PKG_VERSION%
 mkdir %PREFIX%\\Library
 if %ERRORLEVEL% neq 0 exit 1
 
