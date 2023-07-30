@@ -1,6 +1,7 @@
-cargo build --release --all-features
-
+set -ex
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+cargo build --release --all-features
 
 rm target/CACHEDIR.TAG
 rm -rf target/release
