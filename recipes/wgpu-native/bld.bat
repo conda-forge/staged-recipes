@@ -11,6 +11,7 @@ if %ERRORLEVEL% neq 0 exit 1
 copy ffi\\wgpu.h %PREFIX%\\Library\\include\\wgpu.h
 if %ERRORLEVEL% neq 0 exit 1
 
-dir target\\release
 copy target\\release\\wgpu_native.dll %PREFIX%\\Library\\bin\\wgpu_native.dll
+if %ERRORLEVEL% neq 0 exit 1
 copy target\\release\\wgpu_native.lib %PREFIX%\\Library\\lib\\wgpu_native.lib
+if %ERRORLEVEL% neq 0 exit 1
