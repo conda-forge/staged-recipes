@@ -15,7 +15,24 @@ fi
 export CXXFLAGS="$(echo $CXXFLAGS | sed -e 's/ -std=[^ ]*//')"
 export CFLAGS="$(echo $CFLAGS | sed -e 's/ -mtune=[^ ]*//')"
 CMAKE_FLAGS="${CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_BUILD_TYPE=Release -DPython_EXECUTABLE=${PYTHON}"
-
+if [[ ${cuda_compiler_version} != "None" ]]; then
+    if [[ ${cuda_compiler_version} == 9.0* ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;7.0+PTX"
+    elif [[ ${cuda_compiler_version} == 9.2* ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0+PTX"
+    elif [[ ${cuda_compiler_version} == 10.* ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5+PTX"
+    elif [[ ${cuda_compiler_version} == 11.0* ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0+PTX"
+    elif [[ ${cuda_compiler_version} == 11.1 ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
+    elif [[ ${cuda_compiler_version} == 11.2 ]]; then
+        export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
+    else
+        echo "unsupported cuda version. edit build.sh"
+        exit 1
+    fi
+fi
 echo $CONDA_PREFIX
 
 mkdir build
