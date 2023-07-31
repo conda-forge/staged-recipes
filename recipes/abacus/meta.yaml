@@ -1,0 +1,69 @@
+{% set name = "abacus" %}
+{% set version = "3.2.4" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/deepmodeling/abacus-develop/archive/v{{ version }}.tar.gz
+  sha256: 65a84a4a02a085c42f86d54b487bf3f1501a45f940370a8a7527c881145f78d6
+
+build:
+  script: |
+    export CMAKE_PREFIX_PATH=`python -c "import torch;print(torch.__path__[0])"`/share/cmake:$CMAKE_PREFIX_PATH
+    cmake -B conda_build ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release -DENABLE_DEEPKS=1 -DENABLE_LIBXC=1
+    cmake --build conda_build -j`nproc`
+    cmake --install conda_build
+  number: 0
+  skip: true  # [not linux]
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - make
+    - cmake
+    - llvm-openmp  # [osx]
+    - libgomp      # [linux]
+
+  host:
+    - {{ mpi }}
+    - openblas
+    - elpa * mpi_{{ mpi }}_*
+    - fftw * mpi_{{ mpi }}_*
+    - cereal
+    - pytorch
+    - libxc-c
+
+  run:
+    - {{ mpi }}
+    - scalapack
+    - libopenblas
+    - openblas
+
+test:
+  commands:
+    - export OMPI_MCA_plm=isolated OMPI_MCA_btl_vader_single_copy_mechanism=none OMPI_MCA_rmaps_base_oversubscribe=yes  # [mpi == "openmpi"]
+    - abacus
+    - mpirun -n 2 abacus  # [mpi == "mpich"]
+
+about:
+  home: http://abacus.ustc.edu.cn/
+  doc_url: https://abacus.deepmodeling.com/
+  dev_url: https://github.com/deepmodeling/abacus-develop
+  license: LGPL-3.0-only AND MIT
+  license_family: LGPL
+  license_file:
+    - LICENSE
+    - libnpy.LICENSE
+  summary: An electronic structure package based on plane wave and numerical atomic basis sets.
+  description: >
+    ABACUS (Atomic-orbital Based Ab-initio Computation at UStc) is an open-source package based on density functional theory (DFT).
+    The package utilizes both plane wave and numerical atomic basis sets with the usage of norm-conserving pseudopotentials
+    to describe the interactions between nuclear ions and valence electrons. ABACUS supports LDA, GGA, meta-GGA, and hybrid functionals.
+    Apart from single-point calculations, the package allows geometry optimizations and ab-initio molecular dynamics with various ensembles.
+
+extra:
+  recipe-maintainers:
+    - njzjz
+    - caic99
