@@ -1,4 +1,4 @@
-CALL mvn package -Dshade
+CALL mvn -B -Dshade package
 
 MOVE target\watset.jar %LIBRARY_LIB%\ || EXIT 1
 
