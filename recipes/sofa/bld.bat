@@ -18,14 +18,6 @@ if errorlevel 1 exit 1
 cmake --build . --parallel "%CPU_COUNT%"
 if errorlevel 1 exit 1
 
-:: We have to create empty directories that are usually created by hand
-:: when installing the SOFA "Windows Dependency Package", in which case 
-:: they would contain some dependencies that are here installed as conda packages
-:: See https://www.sofa-framework.org/community/doc/getting-started/build/windows/
-:: Without these dummy directories, the install would fail
-mkdir "%SRC_DIR%\include"
-mkdir "%SRC_DIR%\licenses"
-
 :: Install.
 cmake --build . --parallel "%CPU_COUNT%" --target install
 if errorlevel 1 exit 1
