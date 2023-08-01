@@ -1,8 +1,10 @@
-#!/bin/sh -x
+#!/bin/sh
+
+set -x
 
 mkdir -p "$PREFIX/bin"
 
-mvn package -Dshade
+mvn -B -Dshade package
 
 mv -fv "target/watset.jar" "$PREFIX/lib/watset.jar"
 
