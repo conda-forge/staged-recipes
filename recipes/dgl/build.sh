@@ -4,11 +4,11 @@ set -euxo pipefail
 rm -rf build || true
 
 if [ ${cuda_compiler_version} != "None" ]; then
-CUDA_CMAKE_OPTIONS="-DCMAKE_CUDA_COMPILER=${CUDA_HOME}/bin/nvcc -DCMAKE_CUDA_HOST_COMPILER=${CXX}"
-USE_CUDA=ON
+  CUDA_CMAKE_OPTIONS="-DCMAKE_CUDA_COMPILER=${CUDA_HOME}/bin/nvcc -DCMAKE_CUDA_HOST_COMPILER=${CXX} -DCUDA_ARCH_NAME=All "
+  USE_CUDA=ON
 else
-CUDA_CMAKE_OPTIONS=""
-USE_CUDA=OFF
+  CUDA_CMAKE_OPTIONS=""
+  USE_CUDA=OFF
 fi
 
 # Remove -std=c++17 from CXXFLAGS for compatibility with nvcc
@@ -49,7 +49,6 @@ cmake -DUSE_CUDA=${USE_CUDA} \
   -DEXTERNAL_METIS_LIB_PATH=${BUILD_PREFIX}/lib \
   -DUSE_LIBXSMM=ON \
   -DUSE_OPENMP=ON \
-  -DCUDA_ARCH_NAME=All \
   ${CMAKE_FLAGS} \
   ${CUDA_CMAKE_OPTIONS} \
   ${SRC_DIR}
