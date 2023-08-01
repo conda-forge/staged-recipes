@@ -1,0 +1,59 @@
+{% set name = "nanobench-static" %}
+{% set version = "4.3.11" %}
+# For dispatching between Unix and Windows
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/martinus/nanobench/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 53a5a913fa695c23546661bf2cd22b299e10a3e994d9ed97daf89b5cada0da70
+  patches:
+    - 0001-Fix-install-locations.patch
+
+build:
+  number: 0
+  script:
+    - cmake -E make_directory "${PREFIX}/include"  # [unix]
+    - cmake -E make_directory "%PREFIX%/include"   # [win]
+    - cmake -B build/ ${CMAKE_ARGS}                # [unix]
+    - cmake -B build/ %CMAKE_ARGS%                 # [win]
+    - cmake --build build/ --parallel
+    - cmake --install build/
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - cmake
+    - make
+
+test:
+  requires:
+    - {{ compiler('cxx') }}
+    - cmake
+    - make
+  files:
+    - test.cpp
+    - CMakeLists.txt
+  commands:
+    - cmake -B build/
+    - cmake --build build/
+    - cmake --build build/ --target test
+    - test -f "${PREFIX}/lib/libnanobench.a"                                 # [unix]
+    - if exist %PREFIX%\\Library\\lib\\nanobench.lib (exit 0) else (exit 1)  # [win]
+
+about:
+  home: https://nanobench.ankerl.com/
+  summary: Simple, fast, accurate single-header microbenchmarking functionality for C++11/14/17/20 
+  description: |
+    ankerl::nanobench is a platform independent microbenchmarking library for C++11/14/17/20.
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  doc_url: https://nanobench.ankerl.com/
+  dev_url: https://github.com/martinus/nanobench
+
+extra:
+  recipe-maintainers:
+    - AntoinePrv
