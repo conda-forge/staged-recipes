@@ -1,0 +1,11 @@
+#!/bin/bash
+
+cmake ${CMAKE_ARGS} \
+    -DXPLUGIN_BUILD_TESTS=OFF \
+    -DXPLUGIN_BUILD_DOCS=OFF \
+    -DXPLUGIN_BUILD_EXAMPLES=OFF \
+    -DCMAKE_INSTALL_PREFIX=$PREFIX \
+    -DCMAKE_INSTALL_LIBDIR=lib \
+    $SRC_DIR
+
+make install
