@@ -5,11 +5,11 @@ cd build
 
 ::Configure
 cmake ^
-    %SRC_DIR% ^
+    %CMAKE_ARGS% ^
+    -B . ^
+    -S %SRC_DIR% ^
     -G Ninja ^
     -DCMAKE_BUILD_TYPE:STRING=Release ^
-    -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
-    -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
     -DBEAMADAPTER_BUILD_TESTS=OFF
 if errorlevel 1 exit 1
 
