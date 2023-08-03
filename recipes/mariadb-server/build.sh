@@ -58,7 +58,7 @@ cmake ${CMAKE_ARGS} \
 make -k -j${CPU_COUNT}
 
 # Test
-cmake --build . --target test
+ctest --rerun-failed --output-on-failure
 
 # Build
 cmake --build . --verbose

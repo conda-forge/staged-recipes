@@ -57,7 +57,7 @@ cmake %CMAKE_ARGS% ^
       ..
 
 if errorlevel 1 exit 1
-cmake --build . --target test
+ctest --rerun-failed --output-on-failure
 
 if errorlevel 1 exit 1
 cmake --build . --verbose
