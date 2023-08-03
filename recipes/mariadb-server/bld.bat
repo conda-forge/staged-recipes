@@ -28,6 +28,12 @@ cd storage\rocksdb\rocksdb
 git submodule update --init --recursive
 cd ..\..\..
 
+:: Git clone libmarias3
+git clone https://github.com/mariadb-corporation/libmarias3.git storage\maria\libmarias3
+cd storage\maria\libmarias3
+git submodule update --init --recursive
+cd ..\..\..
+
 
 :: Make build directory and build
 mkdir building
