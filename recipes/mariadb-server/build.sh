@@ -19,7 +19,7 @@ cd ..
 git clone https://github.com/wolfSSL/wolfssl.git server/extra/wolfssl
 cd server/extra/wolfssl
 git submodule update --init --recursive
-cd ../..
+cd ../../..
 
 # Make build directory
 mkdir building
