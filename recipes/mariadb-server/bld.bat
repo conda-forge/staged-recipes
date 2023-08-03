@@ -25,6 +25,7 @@ cmake %CMAKE_ARGS% ^
       -DINSTALL_DOCDIR="%cd%/junk" ^
       -DWITH_SAFEMALLOC=OFF ^
       -DBUILD_CONFIG=mysql_release ^
+      -DPLUGIN_AUTH_PAM=DYNAMIC ^
       ..
 
 if errorlevel 1 exit 1
