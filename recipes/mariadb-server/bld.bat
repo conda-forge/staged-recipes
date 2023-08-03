@@ -5,7 +5,7 @@ xcopy connector server\libmariadb /S
 cd server
 
 :: Git clone wsrep library
-git clone https://github.com/codership/wsrep-lib.git server\wsrep-lib
+git clone https://github.com/codership/wsrep-lib.git wsrep-lib
 cd wsrep-lib
 git submodule update --init --recursive
 cd ..

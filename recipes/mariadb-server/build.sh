@@ -4,13 +4,11 @@ set -e -x
 # Copy mariadb-connector-c to server
 cp -R connector/. server/libmariadb
 
-# Git clone wsrep library
-git clone https://github.com/codership/wsrep-lib.git server/wsrep-lib
-
 # Now move to server folder
 cd server
 
-# Get submodules of wsrep
+# Git clone wsrep library
+git clone https://github.com/codership/wsrep-lib.git wsrep-lib
 cd wsrep-lib
 git submodule update --init --recursive
 cd ..
