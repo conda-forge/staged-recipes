@@ -19,7 +19,7 @@ cd ..
 git clone https://github.com/wolfSSL/wolfssl.git extra/wolfssl
 cd extra/wolfssl
 git submodule update --init --recursive
-cd ../../..
+cd ../..
 
 # Git clone columnstore
 git clone https://github.com/mariadb-corporation/mariadb-columnstore-engine.git storage/columnstore/columnstore
