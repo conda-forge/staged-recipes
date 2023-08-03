@@ -14,10 +14,10 @@ git submodule update --init --recursive
 cd ..
 
 # Git clone wolfssl
-git clone https://github.com/wolfSSL/wolfssl.git extra/wolfssl
-cd extra/wolfssl
+git clone https://github.com/wolfSSL/wolfssl.git extra/wolfssl/wolfssl
+cd extra/wolfssl/wolfssl
 git submodule update --init --recursive
-cd ../..
+cd ../../..
 
 # Git clone columnstore
 git clone https://github.com/mariadb-corporation/mariadb-columnstore-engine.git storage/columnstore/columnstore
