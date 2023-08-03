@@ -1,8 +1,10 @@
 :: Copy contents of connector to server
-xcopy .\connector\ .\server\libmariadb\ /E
+xcopy ".\connector\mariadb-connector-c-%version_connector%" .\server\libmariadb /S
 
 :: Move to server directory
 cd server
+
+git submodule update --init --recursive
 
 :: Make build directory and build
 mkdir build
