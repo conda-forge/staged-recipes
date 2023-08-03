@@ -41,17 +41,19 @@ cd building
 
 :: Set INSTALL_DOCREADMEDIR to a junk path to avoid installing the README into PREFIX
 cmake %CMAKE_ARGS% ^
-      -GNinja ^
+      -G "NMake Makefiles" ^
       -DCMAKE_BUILD_TYPE="Release" ^
       -DCMAKE_C_FLAGS="-I%LIBRARY_INC%" ^
       -DCMAKE_CXX_FLAGS="-I%LIBRARY_INC%" ^
       -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
+      -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
       -DINSTALL_DOCREADMEDIR_STANDALONE="%cd%/junk" ^
       -DINSTALL_DOCDIR="%cd%/junk" ^
       -DWITH_SAFEMALLOC=ON ^
       -DBUILD_CONFIG=mysql_release ^
       -DPLUGIN_AUTH_PAM=NO ^
       -DPLUGIN_OQGRAPH=NO ^
+      -DPLUGIN_ROCKSDB=NO ^
       ..
 
 if errorlevel 1 exit 1
