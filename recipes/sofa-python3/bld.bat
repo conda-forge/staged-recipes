@@ -3,6 +3,8 @@ setlocal EnableDelayedExpansion
 mkdir build
 cd build
 
+set PYTHON_LIBRARY=%PREFIX%\libs\python%PY_VER:~0,1%%PY_VER:~2,1%.lib
+
 ::Configure
 cmake ^
     %CMAKE_ARGS% ^
@@ -10,8 +12,9 @@ cmake ^
     -S %SRC_DIR% ^
     -G Ninja ^
     -DCMAKE_BUILD_TYPE:STRING=Release ^
-    -DPYTHON_EXECUTABLE="%PREFIX%\python" ^
-    -DPython_FIND_STRATEGY=LOCATION ^
+    -DPYTHON_INCLUDE_DIR="%PREFIX%\include" ^
+    -DPYTHON_EXECUTABLE="%PYTHON%" ^
+    -DPYTHON_LIBRARY="%PYTHON_LIBRARY%" ^
     -DSP3_BUILD_TEST=OFF
 if errorlevel 1 exit 1
 
@@ -39,3 +42,8 @@ echo "========================="
 echo "List LIBRARY_BIN dir which is:"
 echo %LIBRARY_BIN%
 dir %LIBRARY_BIN%
+
+echo "========================="
+echo "Python vars"
+echo %PYTHON%
+echo %PYTHON_LIBRARY%
