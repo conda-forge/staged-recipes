@@ -43,7 +43,7 @@ cd building
 
 # Build
 cmake ${CMAKE_ARGS} \
-    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_BUILD_TYPE=mysql_release \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DCMAKE_PREFIX_PATH=${PREFIX} \
     -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=ON \
