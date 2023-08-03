@@ -8,7 +8,7 @@ cp -R connector/. server/libmariadb
 git clone https://github.com/codership/wsrep-lib.git server/wsrep-lib
 
 # Now move to server folder
-cd ./server/
+cd server
 
 # Get submodules of wsrep
 cd wsrep-lib
@@ -16,22 +16,22 @@ git submodule update --init --recursive
 cd ..
 
 # Git clone wolfssl
-git clone https://github.com/wolfSSL/wolfssl.git server/extra/wolfssl
-cd server/extra/wolfssl
+git clone https://github.com/wolfSSL/wolfssl.git extra/wolfssl
+cd extra/wolfssl
 git submodule update --init --recursive
 cd ../../..
 
 # Git clone columnstore
-git clone https://github.com/mariadb-corporation/mariadb-columnstore-engine.git server/storage/columnstore/columnstore
-cd server/storage/columnstore/columnstore
+git clone https://github.com/mariadb-corporation/mariadb-columnstore-engine.git storage/columnstore/columnstore
+cd storage/columnstore/columnstore
 git submodule update --init --recursive
-cd ../../../..
+cd ../../..
 
 # Git clone rocksdb
-git clone https://github.com/facebook/rocksdb.git server/storage/rocksdb/rocksdb
-cd server/storage/rocksdb/rocksdb
+git clone https://github.com/facebook/rocksdb.git storage/rocksdb/rocksdb
+cd storage/rocksdb/rocksdb
 git submodule update --init --recursive
-cd ../../../..
+cd ../../..
 
 # Make build directory
 mkdir building

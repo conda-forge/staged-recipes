@@ -17,16 +17,16 @@ git submodule update --init --recursive
 cd ..\..\..
 
 :: Git clone columnstore
-git clone https://github.com/mariadb-corporation/mariadb-columnstore-engine.git server\storage\columnstore\columnstore
-cd server\storage\columnstore\columnstore
+git clone https://github.com/mariadb-corporation/mariadb-columnstore-engine.git storage\columnstore\columnstore
+cd storage\columnstore\columnstore
 git submodule update --init --recursive
-cd ..\..\..\..
+cd ..\..\..
 
 :: Git clone rocksdb
-git clone https://github.com/facebook/rocksdb.git server\storage\rocksdb\rocksdb
-cd server\storage\rocksdb\rocksdb
+git clone https://github.com/facebook/rocksdb.git storage\rocksdb\rocksdb
+cd storage\rocksdb\rocksdb
 git submodule update --init --recursive
-cd ..\..\..\..
+cd ..\..\..
 
 
 :: Make build directory and build
