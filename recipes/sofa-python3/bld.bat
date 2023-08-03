@@ -3,7 +3,17 @@ setlocal EnableDelayedExpansion
 mkdir build
 cd build
 
-set PYTHON_LIBRARY=%PREFIX%\libs\python%PY_VER:~0,1%%PY_VER:~2,1%.lib
+set PYTHON_VERSION="%PY_VER%"
+set PY_VER_NO_DOT=%PY_VER:.=%
+set PYTHON_LIBRARY="%PREFIX%\libs\python%PY_VER_NO_DOT%.lib"
+
+echo "========================="
+echo "Python vars before"
+echo %PY_VER%
+echo %PYTHON_VERSION%
+echo %PY_VER_NO_DOT%
+echo %PYTHON%
+echo %PYTHON_LIBRARY%
 
 ::Configure
 cmake --debug-find ^
@@ -42,8 +52,10 @@ echo "========================="
 echo "List LIBRARY_BIN dir which is:"
 echo %LIBRARY_BIN%
 dir %LIBRARY_BIN%
-
 echo "========================="
-echo "Python vars"
+echo "Python vars after"
+echo %PY_VER%
+echo %PYTHON_VERSION%
+echo %PY_VER_NO_DOT%
 echo %PYTHON%
 echo %PYTHON_LIBRARY%
