@@ -16,8 +16,8 @@ git submodule update --init --recursive
 cd ..
 
 # Make build directory
-mkdir build
-cd build
+mkdir building
+cd building
 
 # Build
 cmake ${CMAKE_ARGS} \

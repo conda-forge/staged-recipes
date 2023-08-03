@@ -11,8 +11,8 @@ git submodule update --init --recursive
 cd ..
 
 :: Make build directory and build
-mkdir build
-cd build
+mkdir building
+cd building
 
 :: Set INSTALL_DOCREADMEDIR to a junk path to avoid installing the README into PREFIX
 cmake %CMAKE_ARGS% ^
