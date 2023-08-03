@@ -16,6 +16,13 @@ cd server\extra\wolfssl
 git submodule update --init --recursive
 cd ..\..\..
 
+:: Git clone columnstore
+git clone https://github.com/mariadb-corporation/mariadb-columnstore-engine.git server\storage\columnstore\columnstore
+cd server\storage\columnstore\columnstore
+git submodule update --init --recursive
+cd ..\..\..\..
+
+
 :: Make build directory and build
 mkdir building
 cd building
