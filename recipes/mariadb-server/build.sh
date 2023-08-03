@@ -35,7 +35,7 @@ cmake ${CMAKE_ARGS} \
     -DBUILD_CONFIG=mysql_release \
     -DPLUGIN_AUTH_PAM=NO \
     -DPLUGIN_OQGRAPH=NO \
-    /server
+    ..
 
 make -k -j${CPU_COUNT}
 
