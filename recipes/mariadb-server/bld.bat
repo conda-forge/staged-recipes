@@ -19,7 +19,7 @@ cmake %CMAKE_ARGS% ^
       -DINSTALL_DOCDIR="%cd%/junk" ^
       -DWITH_SAFEMALLOC=OFF ^
       -DBUILD_CONFIG=mysql_release ^
-      ..\server
+      ..
 
 if errorlevel 1 exit 1
 cmake --build . --target test

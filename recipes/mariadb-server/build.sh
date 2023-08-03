@@ -19,7 +19,7 @@ cmake ${CMAKE_ARGS} \
     -DCMAKE_EXE_LINKER_FLAGS='-ltcmalloc' \
     -DWITH_SAFEMALLOC=OFF \
     -DBUILD_CONFIG=mysql_release \
-    ../server
+    ..
 
 make -k -j${CPU_COUNT}
 
