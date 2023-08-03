@@ -22,6 +22,12 @@ cd server\storage\columnstore\columnstore
 git submodule update --init --recursive
 cd ..\..\..\..
 
+:: Git clone rocksdb
+git clone https://github.com/facebook/rocksdb.git server\storage\rocksdb\rocksdb
+cd server\storage\rocksdb\rocksdb
+git submodule update --init --recursive
+cd ..\..\..\..
+
 
 :: Make build directory and build
 mkdir building
