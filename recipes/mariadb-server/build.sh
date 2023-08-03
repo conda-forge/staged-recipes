@@ -16,7 +16,7 @@ git submodule update --init --recursive
 cd ..
 
 # Git clone wolfssl
-git https://github.com/wolfSSL/wolfssl.git server/extra/wolfssl
+git clone https://github.com/wolfSSL/wolfssl.git server/extra/wolfssl
 cd server/extra/wolfssl
 git submodule update --init --recursive
 cd ../..
