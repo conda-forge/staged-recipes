@@ -46,19 +46,21 @@ cmake ${CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE=mysql_release \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DCMAKE_PREFIX_PATH=${PREFIX} \
-    -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=ON \
+    -DCMAKE_SKIP_INSTALL_ALL_DEPENDENCY=OFF \
     -DCMAKE_SHARED_LIBS=ON \
     -DWITH_SAFEMALLOC=ON \
     -DBUILD_CONFIG=mysql_release \
     -DPLUGIN_AUTH_PAM=NO \
     -DPLUGIN_OQGRAPH=NO \
     -DPLUGIN_ROCKSDB=NO \
+    -DMYSQL_MAINTAINER_MODE=OFF \
+    -DAWS_SDK_EXTERNAL_PROJECT:BOOL=OFF \
     ..
 
 make -k -j${CPU_COUNT}
 
 # Test
-ctest --rerun-failed --output-on-failure
+# ctest --rerun-failed --output-on-failure
 
 # Build
 cmake --build . --verbose

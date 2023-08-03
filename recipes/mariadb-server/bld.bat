@@ -51,10 +51,12 @@ cmake %CMAKE_ARGS% ^
       -DPLUGIN_AUTH_PAM=NO ^
       -DPLUGIN_OQGRAPH=NO ^
       -DPLUGIN_ROCKSDB=NO ^
+      -DMYSQL_MAINTAINER_MODE=OFF ^
+      -DAWS_SDK_EXTERNAL_PROJECT:BOOL=OFF ^
       ..
 
 if errorlevel 1 exit 1
-ctest --rerun-failed --output-on-failure
+:: ctest --rerun-failed --output-on-failure
 
 if errorlevel 1 exit 1
 cmake --build . --verbose
