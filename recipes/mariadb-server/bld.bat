@@ -1,13 +1,14 @@
 :: Copy contents of connector to server
 xcopy connector server\libmariadb /S
 
-:: Git clone wsrep library
-git clone https://github.com/codership/wsrep-lib.git server\wsrep-lib
-
 :: Move to server directory
 cd server
 
+:: Git clone wsrep library
+git clone https://github.com/codership/wsrep-lib.git server\wsrep-lib
+cd wsrep-lib
 git submodule update --init --recursive
+cd ..
 
 :: Make build directory and build
 mkdir build

@@ -10,7 +10,10 @@ git clone https://github.com/codership/wsrep-lib.git server/wsrep-lib
 # Now move to server folder
 cd ./server/
 
+# Get submodules of wsrep
+cd wsrep-lib
 git submodule update --init --recursive
+cd ..
 
 # Make build directory
 mkdir build
