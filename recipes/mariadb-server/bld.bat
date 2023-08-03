@@ -53,6 +53,7 @@ cmake %CMAKE_ARGS% ^
       -DPLUGIN_ROCKSDB=NO ^
       -DMYSQL_MAINTAINER_MODE=OFF ^
       -DAWS_SDK_EXTERNAL_PROJECT:BOOL=OFF ^
+      --config relwithdebinfo ^
       ..
 
 if errorlevel 1 exit 1
