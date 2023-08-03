@@ -54,8 +54,7 @@ cmake ${CMAKE_ARGS} \
     -DPLUGIN_OQGRAPH=NO \
     -DPLUGIN_ROCKSDB=NO \
     -DMYSQL_MAINTAINER_MODE=OFF \
-    -DAWS_SDK_EXTERNAL_PROJECT:BOOL=OFF \
-    --config relwithdebinfo ^
+    -DAWS_SDK_EXTERNAL_PROJECT=OFF \
     ..
 
 make -k -j${CPU_COUNT}
