@@ -1,0 +1,67 @@
+{% set version = "1.4.9" %}
+{% set build_num = 0 %}
+
+package:
+  name: umamba
+  version: {{ version }}
+
+source:
+  - url: https://github.com/mamba-org/mamba/archive/refs/tags/micromamba-{{ version }}.tar.gz
+    sha256: cfa63d261488ac82adf4ed8efe18d39bcccaa40a5fda7b485b110abdb814b36b
+    folder: mamba
+
+build:
+  number: {{ build_num }}
+  string: {{ build_num }}
+  ignore_run_exports_from:
+    - spdlog
+    - python                      # [win]
+
+requirements:
+  build:
+    - {{ compiler('c') }} # TODO check if we really need this?
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - python          # [win]
+
+  host:
+    - cli11
+    - cpp-expected
+    - nlohmann_json
+    - spdlog
+    - fmt
+    - yaml-cpp
+    - libcurl
+    - libarchive
+    - libsolv >=0.7.19
+    - openssl
+    - zstd
+    - bzip2
+    - reproc
+    - reproc-cpp
+    - winreg                       # [win]
+
+test:
+  commands:
+    - test -f $PREFIX/bin/micromamba                                          # [unix]
+    - micromamba --help
+    - export TMPDIR="${TMPDIR:-/tmp}"                                         # [unix and not (ppc64le or aarch64)]
+    - if [ ! -d "${TMPDIR}" ]; then mkdir -p "${TMPDIR}"; fi                  # [unix and not (ppc64le or aarch64)]
+    - stat $TMPDIR                                                            # [unix and not (ppc64le or aarch64)]
+    - export MAMBA_ROOT_PREFIX=$TMPDIR/mamba                                  # [unix and not (ppc64le or aarch64)]
+    - micromamba create -p $TMPDIR/testenv --override-channels -c conda-forge --yes python=3.9    # [unix and not (ppc64le or aarch64)]
+    - $TMPDIR/testenv/bin/python --version                                    # [unix and not (ppc64le or aarch64)]
+    - $TMPDIR/testenv/bin/python -c 'import ssl'                              # [unix and not (ppc64le or aarch64)]
+
+about:
+  home: https://github.com/mamba-org/mamba
+  license_file: mamba/LICENSE
+  license: BSD-3-Clause
+  license_family: BSD
+  summary: Micromamba is a tiny version of mamba, the fast conda package installer.
+  dev_url: https://github.com/mamba-org/mamba
+
+extra:
+  recipe-maintainers:
+    - Hind-M
