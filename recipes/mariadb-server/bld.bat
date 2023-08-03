@@ -33,7 +33,7 @@ cmake %CMAKE_ARGS% ^
       -DBUILD_CONFIG=mysql_release ^
       -DPLUGIN_AUTH_PAM=NO ^
       -DPLUGIN_OQGRAPH=NO ^
-      ..
+      server
 
 if errorlevel 1 exit 1
 cmake --build . --target test
