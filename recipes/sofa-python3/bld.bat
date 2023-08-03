@@ -10,7 +10,7 @@ cmake ^
     -S %SRC_DIR% ^
     -G Ninja ^
     -DCMAKE_BUILD_TYPE:STRING=Release ^
-    -DPYTHON_EXECUTABLE=$CONDA_PREFIX/bin/python ^
+    -DPYTHON_EXECUTABLE="%PREFIX%\python" ^
     -DPython_FIND_STRATEGY=LOCATION ^
     -DSP3_BUILD_TEST=OFF
 if errorlevel 1 exit 1
