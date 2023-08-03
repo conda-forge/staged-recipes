@@ -27,7 +27,8 @@ cmake ${CMAKE_ARGS} \
     -DCMAKE_EXE_LINKER_FLAGS="-ltcmalloc" \
     -DWITH_SAFEMALLOC=OFF \
     -DBUILD_CONFIG=mysql_release \
-    -DPLUGIN_AUTH_PAM=DYNAMIC \
+    -DPLUGIN_AUTH_PAM=NO \
+    -DPLUGIN_OQGRAPH=NO \
     ..
 
 make -k -j${CPU_COUNT}
