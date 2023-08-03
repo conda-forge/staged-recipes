@@ -57,10 +57,10 @@ cmake ${CMAKE_ARGS} \
     -DAWS_SDK_EXTERNAL_PROJECT=OFF \
     ..
 
-make -k -j${CPU_COUNT}
+make -k -i -j${CPU_COUNT}
 
 # Test
-# ctest --rerun-failed --output-on-failure
+ctest --rerun-failed --output-on-failure
 
 # Build
 cmake --build . --verbose
