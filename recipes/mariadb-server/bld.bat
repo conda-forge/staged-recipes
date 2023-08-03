@@ -12,7 +12,7 @@ cd ..
 
 :: Git clone wolfssl
 git clone https://github.com/wolfSSL/wolfssl.git extra\wolfssl\wolfssl
-cd extra\wolfssl
+cd extra\wolfssl\wolfssl
 git submodule update --init --recursive
 cd ..\..\..
 
