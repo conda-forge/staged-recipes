@@ -2,7 +2,7 @@
 set -e -x
 
 # Copy mariadb-connector-c to server
-cp -R ./connector/mariadb-connector-c-${version_connector} ./server/libmariadb/
+cp -R connector/. server/libmariadb
 
 # Now move to server folder
 cd ./server/
