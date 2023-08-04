@@ -6,6 +6,22 @@ jobs:
   timeoutInMinutes: 360
   steps:
   - script: |
+      sudo mkdir -p /opt/empty_dir
+      for d in \
+          /opt/ghc \
+          /opt/hostedtoolcache \
+          /usr/lib/jvm \
+          /usr/local/.ghcup \
+          /usr/local/android \
+          /usr/local/powershell \
+          /usr/share/dotnet \
+          /usr/share/swift \
+          ; do
+          sudo rsync --stats -a --delete /opt/empty_dir/ $d || true
+      done
+    displayName: Manage disk space
+
+  - script: |
       # sudo pip install --upgrade pip
       sudo pip install setuptools shyaml
     displayName: Install dependencies
@@ -18,7 +34,7 @@ jobs:
 
       export CI=azure
       export CONFIG=linux64
-      export IMAGE_NAME=quay.io/condaforge/linux-anvil-comp7
+      export DOCKER_IMAGE=quay.io/condaforge/linux-anvil-cos7-x86_64
       export AZURE=True
       .scripts/run_docker_build.sh
 
@@ -31,15 +47,29 @@ jobs:
   - publish: build_artifacts/noarch/
     artifact: conda_pkgs_noarch
 
-- job: linux_64_cuda_102
+- job: linux_64_cuda_112
   dependsOn: linux_64
   condition: and(not(eq(variables['Build.SourceBranch'], 'refs/heads/main')), eq(dependencies.linux_64.outputs['linux_64_build.NEED_CUDA'], '1'))
   pool:
     vmImage: ubuntu-latest
   timeoutInMinutes: 360
-  variables:
-    NEED_CENTOS7: $[ dependencies.linux_64.outputs['linux_64_build.NEED_CENTOS7'] ]
   steps:
+  - script: |
+      sudo mkdir -p /opt/empty_dir
+      for d in \
+          /opt/ghc \
+          /opt/hostedtoolcache \
+          /usr/lib/jvm \
+          /usr/local/.ghcup \
+          /usr/local/android \
+          /usr/local/powershell \
+          /usr/share/dotnet \
+          /usr/share/swift \
+          ; do
+          sudo rsync --stats -a --delete /opt/empty_dir/ $d || true
+      done
+    displayName: Manage disk space
+
   - script: |
       # sudo pip install --upgrade pip
       sudo pip install setuptools shyaml
@@ -52,46 +82,11 @@ jobs:
       mkdir -p build_artifacts/linux-64/
 
       export CI=azure
-      export CONFIG=linux64
-      if [[ "$(NEED_CENTOS7)" == "1" ]]; then
-        export IMAGE_NAME=quay.io/condaforge/linux-anvil-cos7-cuda:10.2
-        export DEFAULT_LINUX_VERSION=cos7
-      else
-        export IMAGE_NAME=quay.io/condaforge/linux-anvil-cuda:10.2
-      fi
-      export AZURE=True
-      export CF_CUDA_VERSION="10.2"
-      .scripts/run_docker_build.sh
-
-    displayName: Run docker build for CUDA 10.2
-  - publish: build_artifacts/linux-64/
-    artifact: conda_pkgs_linux_64_cuda102
-
-- job: linux_64_centos7
-  dependsOn: linux_64
-  condition: and(not(eq(variables['Build.SourceBranch'], 'refs/heads/main')), eq(dependencies.linux_64.outputs['linux_64_build.NEED_CENTOS7'], '1'))
-  pool:
-    vmImage: ubuntu-latest
-  timeoutInMinutes: 360
-  steps:
-  - script: |
-      # sudo pip install --upgrade pip
-      sudo pip install setuptools shyaml
-    displayName: Install dependencies
-
-  - script: |
-      set -e
-
-      # make sure there is a package directory so that artifact publishing works
-      mkdir -p build_artifacts/linux-64/
-
-      export CI=azure
-      export CONFIG=linux64
-      export IMAGE_NAME=quay.io/condaforge/linux-anvil-cos7-x86_64
-      export DEFAULT_LINUX_VERSION=cos7
+      export CONFIG=linux64_cuda112
+      export DOCKER_IMAGE=quay.io/condaforge/linux-anvil-cuda:11.2
       export AZURE=True
       .scripts/run_docker_build.sh
 
-    displayName: Run docker build for centos 7
+    displayName: Run docker build for CUDA 11.2
   - publish: build_artifacts/linux-64/
-    artifact: conda_pkgs_linux_64_centos7
+    artifact: conda_pkgs_linux_64_cuda112
