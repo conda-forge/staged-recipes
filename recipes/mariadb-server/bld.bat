@@ -41,7 +41,7 @@ cd building
 
 :: Set INSTALL_DOCREADMEDIR to a junk path to avoid installing the README into PREFIX
 cmake %CMAKE_ARGS% ^
-      -G "NMake Makefiles" ^
+      -GNinja ^
       -DCMAKE_BUILD_TYPE="mysql_release" ^
       -DCMAKE_C_FLAGS="-I%LIBRARY_INC%" ^
       -DCMAKE_CXX_FLAGS="-I%LIBRARY_INC%" ^
@@ -56,10 +56,8 @@ cmake %CMAKE_ARGS% ^
       ..
 
 if errorlevel 1 exit 1
-make -k -i -j${CPU_COUNT}
-
-if errorlevel 1 exit 1
 ctest --rerun-failed --output-on-failure
+ninja
 
 if errorlevel 1 exit 1
-cmake --build . --verbose
+ninja install

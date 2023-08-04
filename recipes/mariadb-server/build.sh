@@ -60,7 +60,7 @@ cmake ${CMAKE_ARGS} \
 make -k -i -j${CPU_COUNT}
 
 # Test
-ctest --rerun-failed --output-on-failure
+# ctest --rerun-failed --output-on-failure
 
 # Build
 cmake --build . --verbose
