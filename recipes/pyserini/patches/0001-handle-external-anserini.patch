@@ -1,16 +1,30 @@
-From 3d204fb5ee8882067f2690dcf309cb3df37e4bc1 Mon Sep 17 00:00:00 2001
+From 6915e2fba85454f04aafd1617d6fa7ad43164434 Mon Sep 17 00:00:00 2001
 From: "H. Vetinari" <h.vetinari@gmx.com>
 Date: Fri, 4 Aug 2023 23:10:19 +1100
 Subject: [PATCH] handle external anserini
 
 ---
- pyserini/setup.py                      | 4 ++--
+ pyserini/pyclass.py                    | 2 +-
+ pyserini/setup.py                      | 6 ++++--
  scripts/ltr_msmarco/train_ltr_model.py | 4 ++--
  setup.py                               | 3 ---
- 3 files changed, 4 insertions(+), 7 deletions(-)
+ 4 files changed, 7 insertions(+), 8 deletions(-)
 
+diff --git a/pyserini/pyclass.py b/pyserini/pyclass.py
+index 599f3cf..eb48798 100644
+--- a/pyserini/pyclass.py
++++ b/pyserini/pyclass.py
+@@ -22,7 +22,7 @@ from .setup import configure_classpath, os
+ 
+ # If the environment variable isn't defined, look in the current directory.
+ configure_classpath(os.environ['ANSERINI_CLASSPATH'] if 'ANSERINI_CLASSPATH' in os.environ else
+-                    os.path.join(os.path.split(__file__)[0], 'resources/jars/'))
++                    os.path.join(os.environ["CONDA_PREFIX"], "share/anserini"))
+ 
+ from jnius import autoclass, cast
+ 
 diff --git a/pyserini/setup.py b/pyserini/setup.py
-index 1cc1560..0cadb89 100644
+index 1cc1560..a0124bb 100644
 --- a/pyserini/setup.py
 +++ b/pyserini/setup.py
 @@ -24,7 +24,7 @@ import os
@@ -18,21 +32,23 @@ index 1cc1560..0cadb89 100644
  
  
 -def configure_classpath(anserini_root="."):
-+def configure_classpath(anserini_root=os.environ["CONDA_PREFIX"] + "/share/anserini"):
++def configure_classpath(anserini_root=None):
      """
      Parameters
      ----------
-@@ -32,7 +32,7 @@ def configure_classpath(anserini_root="."):
+@@ -32,7 +32,9 @@ def configure_classpath(anserini_root="."):
          (Optional) path to root anserini directory.
  
      """
 -    paths = glob.glob(os.path.join(anserini_root, 'anserini-*-fatjar.jar'))
++    if anserini_root is None:
++        anserini_root = os.path.join(os.environ["CONDA_PREFIX"], "share/anserini")
 +    paths = glob.glob(os.path.join(anserini_root, 'anserini-*.jar'))
      if not paths:
          raise Exception('No matching jar file found in {}'.format(os.path.abspath(anserini_root)))
  
 diff --git a/scripts/ltr_msmarco/train_ltr_model.py b/scripts/ltr_msmarco/train_ltr_model.py
-index 2df43b1..1361d13 100644
+index 2df43b1..aa0c168 100644
 --- a/scripts/ltr_msmarco/train_ltr_model.py
 +++ b/scripts/ltr_msmarco/train_ltr_model.py
 @@ -245,7 +245,7 @@ def hash_df(df):
@@ -49,7 +65,7 @@ index 2df43b1..1361d13 100644
  
  if __name__ == '__main__':
 -    os.environ["ANSERINI_CLASSPATH"] = "pyserini/resources/jars"
-+    os.environ["ANSERINI_CLASSPATH"] = os.environ["CONDA_PREFIX"] + "/share/anserini"
++    os.environ["ANSERINI_CLASSPATH"] = os.path.join(os.environ["CONDA_PREFIX"], "share/anserini")
      parser = argparse.ArgumentParser(description='Learning to rank training')
      parser.add_argument('--index', required=True)
      parser.add_argument('--neg-sample', default=10)
