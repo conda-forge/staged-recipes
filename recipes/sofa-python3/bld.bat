@@ -25,6 +25,7 @@ cmake --debug-find ^
     -DPYTHON_INCLUDE_DIR="%PREFIX%\include" ^
     -DPYTHON_EXECUTABLE="%PYTHON%" ^
     -DPYTHON_LIBRARY="%PYTHON_LIBRARY%" ^
+    -DPYBIND11_FINDPYTHON=ON ^
     -DSP3_BUILD_TEST=OFF
 if errorlevel 1 exit 1
 
