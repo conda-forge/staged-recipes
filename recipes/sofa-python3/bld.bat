@@ -3,7 +3,7 @@ setlocal EnableDelayedExpansion
 mkdir build
 cd build
 
-set PYTHON_VERSION="%PY_VER%"
+set PYTHON_VERSION=%PY_VER%
 set PY_VER_NO_DOT=%PY_VER:.=%
 set PYTHON_LIBRARY="%PREFIX%\libs\python%PY_VER_NO_DOT%.lib"
 
