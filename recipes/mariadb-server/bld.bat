@@ -61,8 +61,8 @@ cmake %CMAKE_ARGS% ^
       ..
 
 if errorlevel 1 exit 1
-:: ctest --rerun-failed --output-on-failure
-perl mysql-test\mysql-test-run.pl --suite=main --parallel=auto
+ctest --rerun-failed --output-on-failure
+:: perl mysql-test\mysql-test-run.pl --suite=main --parallel=auto
 
 if errorlevel 1 exit 1
 ninja
