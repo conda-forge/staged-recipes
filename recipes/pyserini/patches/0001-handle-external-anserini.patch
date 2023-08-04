@@ -1,0 +1,69 @@
+From 3d204fb5ee8882067f2690dcf309cb3df37e4bc1 Mon Sep 17 00:00:00 2001
+From: "H. Vetinari" <h.vetinari@gmx.com>
+Date: Fri, 4 Aug 2023 23:10:19 +1100
+Subject: [PATCH] handle external anserini
+
+---
+ pyserini/setup.py                      | 4 ++--
+ scripts/ltr_msmarco/train_ltr_model.py | 4 ++--
+ setup.py                               | 3 ---
+ 3 files changed, 4 insertions(+), 7 deletions(-)
+
+diff --git a/pyserini/setup.py b/pyserini/setup.py
+index 1cc1560..0cadb89 100644
+--- a/pyserini/setup.py
++++ b/pyserini/setup.py
+@@ -24,7 +24,7 @@ import os
+ import jnius_config
+ 
+ 
+-def configure_classpath(anserini_root="."):
++def configure_classpath(anserini_root=os.environ["CONDA_PREFIX"] + "/share/anserini"):
+     """
+     Parameters
+     ----------
+@@ -32,7 +32,7 @@ def configure_classpath(anserini_root="."):
+         (Optional) path to root anserini directory.
+ 
+     """
+-    paths = glob.glob(os.path.join(anserini_root, 'anserini-*-fatjar.jar'))
++    paths = glob.glob(os.path.join(anserini_root, 'anserini-*.jar'))
+     if not paths:
+         raise Exception('No matching jar file found in {}'.format(os.path.abspath(anserini_root)))
+ 
+diff --git a/scripts/ltr_msmarco/train_ltr_model.py b/scripts/ltr_msmarco/train_ltr_model.py
+index 2df43b1..1361d13 100644
+--- a/scripts/ltr_msmarco/train_ltr_model.py
++++ b/scripts/ltr_msmarco/train_ltr_model.py
+@@ -245,7 +245,7 @@ def hash_df(df):
+ 
+ 
+ def hash_anserini_jar():
+-    find = glob.glob(os.environ['ANSERINI_CLASSPATH'] + "/*fatjar.jar")
++    find = glob.glob(os.environ['ANSERINI_CLASSPATH'] + "/*.jar")
+     assert len(find) == 1
+     md5Hash = hashlib.md5(open(find[0], 'rb').read())
+     return md5Hash.hexdigest()
+@@ -477,7 +477,7 @@ def save_exp(dirname,
+ 
+ 
+ if __name__ == '__main__':
+-    os.environ["ANSERINI_CLASSPATH"] = "pyserini/resources/jars"
++    os.environ["ANSERINI_CLASSPATH"] = os.environ["CONDA_PREFIX"] + "/share/anserini"
+     parser = argparse.ArgumentParser(description='Learning to rank training')
+     parser.add_argument('--index', required=True)
+     parser.add_argument('--neg-sample', default=10)
+diff --git a/setup.py b/setup.py
+index f00f75a..d9fa2d5 100644
+--- a/setup.py
++++ b/setup.py
+@@ -22,9 +22,6 @@ setuptools.setup(
+     url="https://github.com/castorini/pyserini",
+     install_requires=requirements,
+     packages=pyserini_packages,
+-    package_data={"pyserini": [
+-        "resources/jars/anserini-*-fatjar.jar",
+-    ]},
+     include_package_data=True,
+     classifiers=[
+         "Programming Language :: Python :: 3",
