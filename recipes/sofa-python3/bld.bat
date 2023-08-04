@@ -5,7 +5,7 @@ cd build
 
 set PYTHON_VERSION=%PY_VER%
 set PY_VER_NO_DOT=%PY_VER:.=%
-set PYTHON_LIBRARY="%PREFIX%\libs\python%PY_VER_NO_DOT%.lib"
+set PYTHON_LIBRARY="%CONDA_PREFIX%\libs\python%PY_VER_NO_DOT%.lib"
 
 echo "========================="
 echo "Python vars before"
@@ -22,8 +22,8 @@ cmake --debug-find ^
     -S %SRC_DIR% ^
     -G Ninja ^
     -DCMAKE_BUILD_TYPE:STRING=Release ^
-    -DPYTHON_INCLUDE_DIR="%PREFIX%\include" ^
-    -DPYTHON_EXECUTABLE="%PYTHON%" ^
+    -DPYTHON_INCLUDE_DIR="%CONDA_PREFIX%\include" ^
+    -DPYTHON_EXECUTABLE="%CONDA_PREFIX%\python.exe" ^
     -DPYTHON_LIBRARY="%PYTHON_LIBRARY%" ^
     -DPYBIND11_FINDPYTHON=ON ^
     -DSP3_BUILD_TEST=OFF
@@ -41,6 +41,10 @@ if errorlevel 1 exit 1
 ctest --parallel "%CPU_COUNT%"
 if errorlevel 1 exit 1
 
+echo "========================="
+echo "List CONDA_PREFIX dir which is:"
+echo %CONDA_PREFIX%
+dir %CONDA_PREFIX%
 echo "========================="
 echo "List PREFIX dir which is:"
 echo %PREFIX%
