@@ -38,5 +38,8 @@ export CMAKE_CXX_COMPILER="$CXX"
 export CMAKE_GENERATOR="Ninja"
 # help internally called CMake find our pytorch
 export Torch_DIR=$SP_DIR/torch/share/cmake/Torch
+export bzip2_DIR=$PREFIX/lib
+export zlib_DIR=$PREFIX/lib
+
 
 python -m pip install . -vv
