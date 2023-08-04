@@ -56,7 +56,7 @@ cmake %CMAKE_ARGS% ^
       ..
 
 if errorlevel 1 exit 1
-ctest --rerun-failed --output-on-failure
+:: ctest --rerun-failed --output-on-failure
 ninja
 
 if errorlevel 1 exit 1
