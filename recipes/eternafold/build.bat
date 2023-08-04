@@ -1,3 +1,10 @@
+# DEBUG
+echo "Debug commands"
+echo %SRC_DIR%
+echo %PREFIX%
+echo %CXX%
+which make
+
 # Move to conda-specific src directory location
 cd %SRC_DIR%\src
 
