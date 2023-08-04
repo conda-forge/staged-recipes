@@ -8,30 +8,35 @@ cd server
 git clone https://github.com/codership/wsrep-lib.git wsrep-lib
 cd wsrep-lib
 git submodule update --init --recursive
+git checkout e238c0d240
 cd ..
 
 :: Git clone wolfssl
 git clone https://github.com/wolfSSL/wolfssl.git extra\wolfssl\wolfssl
 cd extra\wolfssl\wolfssl
 git submodule update --init --recursive
+git checkout 4fbd4fd
 cd ..\..\..
 
 :: Git clone columnstore
 git clone https://github.com/mariadb-corporation/mariadb-columnstore-engine.git storage\columnstore\columnstore
 cd storage\columnstore\columnstore
 git submodule update --init --recursive
+git checkout 5278865
 cd ..\..\..
 
 :: Git clone rocksdb
 git clone https://github.com/facebook/rocksdb.git storage\rocksdb\rocksdb
 cd storage\rocksdb\rocksdb
 git submodule update --init --recursive
+git checkout bba5e7b
 cd ..\..\..
 
 :: Git clone libmarias3
 git clone https://github.com/mariadb-corporation/libmarias3.git storage\maria\libmarias3
 cd storage\maria\libmarias3
 git submodule update --init --recursive
+git checkout 3846890
 cd ..\..\..
 
 
@@ -57,6 +62,9 @@ cmake %CMAKE_ARGS% ^
 
 if errorlevel 1 exit 1
 :: ctest --rerun-failed --output-on-failure
+perl mysql-test\mysql-test-run.pl --suite=main --parallel=auto
+
+if errorlevel 1 exit 1
 ninja
 
 if errorlevel 1 exit 1
