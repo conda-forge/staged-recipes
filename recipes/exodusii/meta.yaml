@@ -1,36 +1,58 @@
-{% set version = "2022-08-01" %}
+{% set version = "2022.08.01" %}
 {% set build = 0 %}
+
+# recipe-lint fails if mpi is undefined
+{% set mpi = mpi or 'nompi' %}
+{% if mpi == "nompi" %}
+# prioritize nompi via build number
+{% set build = build + 100 %}
+{% endif %}
 
 package:
   name: exodusii
-  version: {{ version|replace('-', '') }}
+  version: {{ version }}
 
 source:
-  url: https://github.com/sandialabs/seacas/archive/v{{ version }}.tar.gz
+  url: https://github.com/sandialabs/seacas/archive/v{{ version|replace('.', '-') }}.tar.gz
   sha256: 35ef3658755c0440dd169a081aee83949950157a463533d9082a26c71eaa0b8c
 
 build:
   number: {{ build }}
   skip: true  # [win]
+  {% if mpi != "nompi" %}
+  {% set mpi_prefix = "mpi_" + mpi %}
+  {% else %}
+  {% set mpi_prefix = "nompi" %}
+  {% endif %}
+  string: {{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}
+
+  {% if mpi != 'nompi' %}
+  {% set build_pin = mpi_prefix + '_*' %}
+  {% else %}
+  {% set build_pin = '' %}
+  {% endif %}
 
 requirements:
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
     - {{ compiler('fortran') }}
+    - {{ mpi }}  # [mpi != 'nompi']
     - cmake
     - make
   host:
-    - mpich
-    - netcdf4
-    - libpnetcdf
+    - {{ mpi }}  # [mpi != 'nompi']
+    - libnetcdf * {{ mpi_prefix }}_*
+    - libpnetcdf *  # [mpi != 'nompi']
     - hdf5
+    - hdf5 * {{ mpi_prefix }}_*
     - fmt
   run:
-    - mpich
-    - libnetcdf
-    - libpnetcdf
+    - {{ mpi }}  # [mpi != 'nompi']
+    - libnetcdf * {{ mpi_prefix }}_*
+    - libpnetcdf *  # [mpi != 'nompi']
     - hdf5
+    - hdf5 * {{ mpi_prefix }}_*
     - fmt
 
 test:
