@@ -11,10 +11,12 @@ fi
 mkdir build
 cd build
 
-cmake ${CMAKE_ARGS} -B . -S .. \
-  -DSOFA_BUILD_TESTS=OFF \
-  -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-  -DSOFA_ENABLE_LEGACY_HEADERS=OFF \
+cmake ${CMAKE_ARGS} \
+   -B . \
+   -S .. \
+  -DCMAKE_BUILD_TYPE:STRING=Release \
+  -DSOFA_ENABLE_LEGACY_HEADERS:BOOL=OFF \
+  -DSOFA_BUILD_TESTS:BOOL=OFF
 
 # build
 cmake --build . --parallel ${CPU_COUNT} --verbose

@@ -11,9 +11,11 @@ fi
 mkdir build
 cd build
 
-cmake ${CMAKE_ARGS} -B . -S .. \
+cmake ${CMAKE_ARGS} \
+    -B . \
+    -S .. \
    -DPython_EXECUTABLE=$CONDA_PREFIX/bin/python \
-   -DSP3_BUILD_TEST=OFF
+   -DSP3_BUILD_TEST:BOOL=OFF
 
 # build
 cmake --build . --parallel ${CPU_COUNT} --verbose

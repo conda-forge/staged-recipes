@@ -9,8 +9,8 @@ cmake %CMAKE_ARGS% ^
     -S %SRC_DIR% ^
     -G Ninja ^
     -DCMAKE_BUILD_TYPE:STRING=Release ^
-    -DPython_EXECUTABLE="%CONDA_PREFIX%\python.exe" ^
-    -DSP3_BUILD_TEST=OFF
+    -DPython_EXECUTABLE:PATH="%CONDA_PREFIX%\python.exe" ^
+    -DSP3_BUILD_TEST:BOOL=OFF
 if errorlevel 1 exit 1
 
 :: Build.
