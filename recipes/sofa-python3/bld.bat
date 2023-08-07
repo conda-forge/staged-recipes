@@ -5,12 +5,12 @@ cd build
 
 ::Configure
 cmake %CMAKE_ARGS% ^
-    -B . ^
-    -S %SRC_DIR% ^
-    -G Ninja ^
-    -DCMAKE_BUILD_TYPE:STRING=Release ^
-    -DPython_EXECUTABLE:PATH="%CONDA_PREFIX%\python.exe" ^
-    -DSP3_BUILD_TEST:BOOL=OFF
+  -B . ^
+  -S %SRC_DIR% ^
+  -G Ninja ^
+  -DCMAKE_BUILD_TYPE:STRING=Release ^
+  -DPython_EXECUTABLE:PATH="%PREFIX%\python.exe" ^
+  -DSP3_BUILD_TEST:BOOL=OFF
 if errorlevel 1 exit 1
 
 :: Build.
