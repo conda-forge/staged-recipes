@@ -12,16 +12,17 @@ mkdir build
 cd build
 
 cmake ${CMAKE_ARGS} \
-    -B . \
-    -S .. \
-   -DPython_EXECUTABLE=$CONDA_PREFIX/bin/python \
-   -DSP3_BUILD_TEST:BOOL=OFF
+  -B . \
+  -S .. \
+  -DCMAKE_BUILD_TYPE:STRING=Release \
+  -DPython_EXECUTABLE=$PREFIX/bin/python \
+  -DSP3_BUILD_TEST:BOOL=OFF
 
 # build
-cmake --build . --parallel ${CPU_COUNT} --verbose
+cmake --build . --parallel ${CPU_COUNT}
 
 # install 
-cmake --build . --parallel ${CPU_COUNT} --verbose --target install
+cmake --build . --parallel ${CPU_COUNT} --target install
 
 # test
-ctest --parallel ${CPU_COUNT} --verbose
+ctest --parallel ${CPU_COUNT}
