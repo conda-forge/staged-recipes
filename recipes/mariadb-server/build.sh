@@ -64,9 +64,13 @@ cmake ${CMAKE_ARGS} \
 
 make -k -i -j${CPU_COUNT}
 
+# Build directory
+../scripts/mariadb-install-db --src-dir=.
+
+
 # Test
 # ctest --rerun-failed --output-on-failure
 # cmake --build . --target --target test
 
 # Build
-make install
+# make install

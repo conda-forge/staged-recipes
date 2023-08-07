@@ -60,12 +60,13 @@ cmake %CMAKE_ARGS% ^
       -DAWS_SDK_EXTERNAL_PROJECT:BOOL=OFF ^
       ..
 
-:: if errorlevel 1 exit 1
-:: ctest --rerun-failed --output-on-failure
-:: perl mysql-test\mysql-test-run.pl --suite=main --parallel=auto
+cmake --build . --config RelWithDebInfo
 
 if errorlevel 1 exit 1
-ninja
+perl .\mysql-test\mysql-test-run.pl --suite=main --parallel=auto
+
+::if errorlevel 1 exit 1
+::ninja
 
 if errorlevel 1 exit 1
 ninja install
