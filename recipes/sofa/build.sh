@@ -12,17 +12,17 @@ mkdir build
 cd build
 
 cmake ${CMAKE_ARGS} \
-   -B . \
-   -S .. \
+  -B . \
+  -S .. \
   -DCMAKE_BUILD_TYPE:STRING=Release \
   -DSOFA_ENABLE_LEGACY_HEADERS:BOOL=OFF \
   -DSOFA_BUILD_TESTS:BOOL=OFF
 
 # build
-cmake --build . --parallel ${CPU_COUNT} --verbose
+cmake --build . --parallel ${CPU_COUNT}
 
 # install 
-cmake --build . --parallel ${CPU_COUNT} --verbose --target install
+cmake --build . --parallel ${CPU_COUNT} --target install
 
 # test
-ctest --parallel ${CPU_COUNT} --verbose
+ctest --parallel ${CPU_COUNT}

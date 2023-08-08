@@ -4,14 +4,13 @@ mkdir build
 cd build
 
 :: Configure
-cmake ^
-    %CMAKE_ARGS% ^
-    -B . ^
-    -S %SRC_DIR% ^
-    -G Ninja ^
-    -DCMAKE_BUILD_TYPE:STRING=Release ^
-    -DSOFA_ENABLE_LEGACY_HEADERS:BOOL=OFF ^
-    -DSOFA_BUILD_TESTS:BOOL=ON
+cmake %CMAKE_ARGS% ^
+  -B . ^
+  -S %SRC_DIR% ^
+  -G Ninja ^
+  -DCMAKE_BUILD_TYPE:STRING=Release ^
+  -DSOFA_ENABLE_LEGACY_HEADERS:BOOL=OFF ^
+  -DSOFA_BUILD_TESTS:BOOL=ON
 if errorlevel 1 exit 1
 
 :: Build.
