@@ -21,7 +21,7 @@ cmake ${CMAKE_ARGS} \
 # build
 cmake --build . --parallel ${CPU_COUNT}
 
-# install 
+# install
 cmake --build . --parallel ${CPU_COUNT} --target install
 
 # test
