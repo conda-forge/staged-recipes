@@ -1,0 +1,132 @@
+{% set name = "dgl" %}
+{% set version = "1.1.0" %}
+{% set torch_proc_type = "cuda" if cuda_compiler_version != "None" else "cpu" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/dmlc/dgl/archive/{{ version }}.tar.gz
+    sha256: 71c8ba7777ffdca37638bc796524d42c51006fad385967fa140235b60aac0252
+    patches:
+      - conda-build.patch
+
+  - url: https://github.com/pytorch/tensorpipe/archive/6042f1a4cbce8eef997f11ed0012de137b317361.tar.gz
+    sha256: 50bd7ab968e5da9e42f92b429f530eaaadc4becc1b2756c905094711a0036a3b
+    folder: third_party/tensorpipe
+
+  - url: https://github.com/libuv/libuv/archive/1dff88e5161cba5c59276d2070d2e304e4dcb242.tar.gz
+    sha256: c66c8a024bb31c6134347a0d5630f6275c0bfe94d4144504d45099412fd7a054
+    folder: third_party/tensorpipe/third_party/libuv
+
+  - url: https://github.com/google/libnop/archive/910b55815be16109f04f4180e9adee14fb4ce281.tar.gz
+    sha256: ec3604671f8ea11aed9588825f9098057ebfef7a8908e97459835150eea9f63a
+    folder: third_party/tensorpipe/third_party/libnop
+
+  - url: https://github.com/imneme/pcg-cpp/archive/428802d1a5634f96bcd0705fab379ff0113bcf13.tar.gz
+    sha256: 79f23706ed0cbc1bb57ea35d50d0abed66898b8f7b0bcf2aaecdfd234863b060
+    folder: third_party/pcg
+
+  - url: https://github.com/libxsmm/libxsmm/archive/fa687556130b6298430f1c0555a14cf79ab6101c.tar.gz
+    sha256: 71ce4d9c8fc8157c7635cddc74510219e0b78ed97c12d4fbc18e38aa1e96f88a
+    folder: third_party/libxsmm
+
+  - url: https://github.com/NVIDIA/thrust/archive/1.17.0.tar.gz
+    sha256: b02aca5d2325e9128ed9d46785b8e72366f758b873b95001f905f22afcf31bbf
+    folder: third_party/thrust
+
+  - url: https://github.com/NVIDIA/cub/archive/1.17.0.tar.gz
+    sha256: 16fd4860ae3196bc3eb08bf5754fa2a9697951ddae36dc9721e6614388893618
+    folder: third_party/thrust/dependencies/cub
+
+build:
+  skip: true  # [not linux]
+  number: 0
+  rpaths:
+    - lib/
+      # PyTorch libs are in site-packages intead of with other shared objects
+    - {{ SP_DIR }}/torch/lib/
+  missing_dso_whitelist:
+    - '*/libcuda.*'  # [linux64]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  ignore_run_exports:
+    - gklib
+
+requirements:
+  build:
+    - cmake
+    - git 
+    - libgomp      # [linux]
+    - llvm-openmp  # [osx]
+    - make
+    - sysroot_{{ target_platform }} 2.17  # [linux]
+    - {{ compiler('c') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version not in (undefined, 'None')]
+    - {{ compiler('cxx') }}
+  host:
+    - cython <3
+    - dlpack ==0.7
+    - dmlc ==0.5
+    - gklib ==5.1.1
+    - libblas
+    - libcblas
+    - liblapack
+    - liblapacke
+    - metis ==5.1.1
+    - nanoflann
+    - parallel-hashmap
+    - python
+    - pytorch  # duplicate dep to pick up conda-forge pinnings
+    - pytorch =*=*{{ torch_proc_type }}*
+    - setuptools
+  run:
+    # Currently tests fail with other BLASes
+    # Pin to a known working BLAS.
+    - liblapack =*=*mkl
+    - networkx
+    - numpy
+    - psutil
+    - python
+    - pytorch =*=*{{ torch_proc_type }}*
+    - requests
+    - scipy
+    - tensorflow
+    - tqdm
+
+
+test:
+  requires:
+    - pip
+  imports:
+    - dgl
+  commands:
+    - pip check
+
+about:
+  home: https://github.com/dmlc/dgl
+  license: Apache-2.0
+  license_file: 
+    - LICENSE
+    - third_party/tensorpipe/LICENSE.txt
+    - third_party/tensorpipe/third_party/libuv/LICENSE
+    - third_party/tensorpipe/third_party/libuv/LICENSE
+    - third_party/tensorpipe/third_party/libnop/LICENSE
+    - third_party/pcg/LICENSE-APACHE.txt
+    - third_party/pcg/LICENSE-MIT.txt
+    - third_party/libxsmm/LICENSE.md
+    - third_party/thrust/LICENSE
+    - third_party/thrust/dependencies/cub/LICENSE.TXT 
+  summary: A deep graph library
+  description: |
+    DGL is an easy-to-use, high performance and scalable Python package for deep
+     learning on graphs. DGL is framework agnostic, meaning if a deep graph
+     model is a component of an end-to-end application, the rest of the logics
+     can be implemented in any major frameworks, such as PyTorch, Apache MXNet
+     or TensorFlow.
+  doc_url: https://docs.dgl.ai/en/latest/
+
+extra:
+  recipe-maintainers:
+    - mikemhenry
+    - hmacdope

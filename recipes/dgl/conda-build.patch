@@ -1,0 +1,291 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 96adfd2b..c532449a 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -37,6 +37,29 @@ dgl_option(BUILD_TORCH "Build the PyTorch plugin" OFF)
+ dgl_option(BUILD_SPARSE "Build DGL sparse library" ON)
+ dgl_option(TORCH_PYTHON_INTERPS "Python interpreter used to build tensoradapter and DGL sparse library" python3)
+ 
++
++dgl_option(EXTERNAL_DLPACK_PATH "Path to external dlpack" OFF)
++dgl_option(EXTERNAL_DMLC_PATH "Path to external dmlc-core" OFF)
++dgl_option(EXTERNAL_DMLC_LIB_PATH "Path to external dmlc-core library" OFF)
++dgl_option(EXTERNAL_PHMAP_PATH "Path to external parallel-hashmap" OFF)
++dgl_option(EXTERNAL_NANOFLANN_PATH "Path to use external nanoflann" OFF)
++dgl_option(EXTERNAL_METIS_PATH "Path to external metis" OFF)
++dgl_option(EXTERNAL_METIS_LIB_PATH "Path to external metis library" OFF)
++dgl_option(EXTERNAL_GKLIB_PATH "Path to external gklib" OFF)
++
++if (EXTERNAL_DLPACK_PATH OR EXTERNAL_DMLC_PATH OR EXTERNAL_NANOFLANN_PATH OR EXTERNAL_NANOFLANN_PATH OR EXTERNAL_METIS_PATH OR EXTERNAL_GKLIB_PATH)
++  message(STATUS "Using at least one external library")
++  set(USE_EXTERNAL_LIBS ON)
++  
++  if (BUILD_CPP_TEST)
++    message(FATAL_ERROR "Cannot build cpp unittests with external libraries")
++  endif(BUILD_CPP_TEST)
++
++endif()
++
++
++set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
++
+ # Set debug compile option for gdb, only happens when -DCMAKE_BUILD_TYPE=DEBUG
+ if (NOT MSVC)
+   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG -O0 -g3 -ggdb")
+@@ -172,52 +195,111 @@ set_property(TARGET dgl PROPERTY CXX_STANDARD 14)
+ 
+ # include directories
+ target_include_directories(dgl PRIVATE "include")
+-target_include_directories(dgl PRIVATE "third_party/dlpack/include")
+-target_include_directories(dgl PRIVATE "third_party/dmlc-core/include")
+-target_include_directories(dgl PRIVATE "third_party/phmap/")
+-target_include_directories(dgl PRIVATE "third_party/xbyak/")
+-target_include_directories(dgl PRIVATE "third_party/METIS/include/")
++
++
++# check for conda includes
++if("$ENV{CONDA_BUILD}" STREQUAL "1")
++  set(in_conda_build TRUE)
++  message(STATUS "Conda build environment detected")
++elseif(DEFINED ENV{CONDA_PREFIX})
++  set(in_conda_prefix TRUE)
++  message(STATUS "Conda environment detected: $ENV{CONDA_PREFIX}")
++endif()
++
++if (USE_CONDA_INCLUDES)
++  if(in_conda_build)
++    message(STATUS "Using Conda build environment includes: $ENV{PREFIX}")
++    target_include_directories(dgl PRIVATE "$ENV{PREFIX}/include" "$ENV{BUILD_PREFIX}/include")
++  elseif(in_conda_prefix)
++    message(STATUS "Using Conda environment includes: $ENV{CONDA_PREFIX}")
++    target_include_directories(dgl PRIVATE "$ENV{CONDA_PREFIX}/include")
++  else()
++    message(FATAL_ERROR "Conda environment not detected")
++  endif()
++endif()
++
++if(EXTERNAL_DLPACK_PATH)
++  message(STATUS "looking for dlpack headers in ${EXTERNAL_DLPACK_PATH}")
++  include_directories(SYSTEM ${EXTERNAL_DLPACK_PATH})
++else(EXTERNAL_DLPACK_PATH)
++  target_include_directories(dgl PRIVATE "third_party/dlpack/include")
++endif(EXTERNAL_DLPACK_PATH)
++
++if(EXTERNAL_DMLC_PATH)
++  if (USE_HDFS)
++    message(FATAL_ERROR "Cannot use HDFS and external dmlc-core at the same time")
++  endif()
++  message(STATUS "looking for dmlc headers in ${EXTERNAL_DMLC_PATH}")
++  include_directories(SYSTEM ${EXTERNAL_DMLC_PATH})
++  
++  if (NOT EXTERNAL_DMLC_LIB_PATH)
++    message(FATAL_ERROR "EXTERNAL_DMLC_LIB_PATH must be set if EXTERNAL_DMLC_PATH is set")
++  endif()
++  message(STATUS "looking for dmlc library in ${EXTERNAL_DMLC_LIB_PATH}")
++  find_package(dmlc
++    REQUIRED
++    HINTS ${EXTERNAL_DMLC_LIB_PATH}
++  )
++  if(NOT dmlc_FOUND)
++      message(FATAL_ERROR "Failed to find DMLC library")
++  endif()
++  list(APPEND DGL_LINKER_LIBS dmlc::dmlc)
++
++else(EXTERNAL_DMLC_PATH)
++  target_include_directories(dgl PRIVATE "third_party/dmlc-core/include")
++  # For serialization
++  if (USE_HDFS)
++    option(DMLC_HDFS_SHARED "dgl has to build with dynamic hdfs library" ON)
++  endif()
++  add_subdirectory("third_party/dmlc-core")
++  list(APPEND DGL_LINKER_LIBS dmlc)
++  set(GOOGLE_TEST 0) # Turn off dmlc-core test
++endif(EXTERNAL_DMLC_PATH)
++
++if(EXTERNAL_PHMAP_PATH)
++  include_directories(SYSTEM ${EXTERNAL_PHMAP_PATH})
++else(EXTERNAL_PHMAP_PATH)
++  target_include_directories(dgl PRIVATE "third_party/phmap")
++endif(EXTERNAL_PHMAP_PATH)
++
++# this was removed as an explicit dependency in 1.1
++# target_include_directories(dgl PRIVATE "third_party/xbyak/")
++
++# these header only libs are always vendored 
+ target_include_directories(dgl PRIVATE "tensoradapter/include")
+-target_include_directories(dgl PRIVATE "third_party/nanoflann/include")
+-target_include_directories(dgl PRIVATE "third_party/libxsmm/include")
+ target_include_directories(dgl PRIVATE "third_party/pcg/include")
+ 
+-# For serialization
+-if (USE_HDFS)
+-  option(DMLC_HDFS_SHARED "dgl has to build with dynamic hdfs library" ON)
+-endif()
+-add_subdirectory("third_party/dmlc-core")
+-list(APPEND DGL_LINKER_LIBS dmlc)
+-set(GOOGLE_TEST 0) # Turn off dmlc-core test
++if(EXTERNAL_NANOFLANN_PATH)
++  include_directories(SYSTEM ${EXTERNAL_NANOFLANN_PATH})
++else(EXTERNAL_NANOFLANN_PATH)
++  target_include_directories(dgl PRIVATE "third_party/nanoflann/include")
++endif(EXTERNAL_NANOFLANN_PATH)
+ 
+-# Compile METIS
+-if(NOT MSVC)
+-  set(GKLIB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/third_party/METIS/GKlib")
+-  include(${GKLIB_PATH}/GKlibSystem.cmake)
+-  include_directories(${GKLIB_PATH})
+-  include_directories("third_party/METIS/include/")
+-  add_subdirectory("third_party/METIS/libmetis/")
+-  list(APPEND DGL_LINKER_LIBS metis)
+-endif(NOT MSVC)
++if (USE_LIBXSMM)
++  target_include_directories(dgl PRIVATE "third_party/libxsmm/include")
++endif()
+ 
+-# Compile LIBXSMM
+-if((NOT MSVC) AND USE_LIBXSMM)
+-  set(LIBXSMM_COMPILER "${CMAKE_C_COMPILER}")
+-  if (APPLE)
+-    set(LIBXSMM_COMPILER "${CMAKE_C_COMPILER} -isysroot ${CMAKE_OSX_SYSROOT}")
++if (EXTERNAL_METIS_PATH)
++  find_package(METIS REQUIRED)
++  if (NOT METIS_FOUND)
++    message(FATAL_ERROR "Failed to find METIS library")
++  else()
++    message(STATUS "Found METIS library")
++    target_include_directories(dgl SYSTEM PUBLIC ${METIS_INCLUDE_DIR})
++    list(APPEND DGL_LINKER_LIBS ${METIS_LIBRARIES})
+   endif()
+-  if(REBUILD_LIBXSMM)
+-    add_custom_target(libxsmm COMMAND make realclean COMMAND make -j ECFLAGS="-Wno-error=deprecated-declarations" BLAS=0 CC=${LIBXSMM_COMPILER}
+-                      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/third_party/libxsmm
+-                      )
+-  else(REBUILD_LIBXSMM)
+-    add_custom_target(libxsmm COMMAND make -j ECFLAGS="-Wno-error=deprecated-declarations" BLAS=0 CC=${LIBXSMM_COMPILER}
+-                      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/third_party/libxsmm
+-                      )
+-  endif(REBUILD_LIBXSMM)
+-  add_dependencies(dgl libxsmm)
+-  list(APPEND DGL_LINKER_LIBS -L${CMAKE_SOURCE_DIR}/third_party/libxsmm/lib/ xsmm)
+-endif((NOT MSVC) AND USE_LIBXSMM)
++else(EXTERNAL_METIS_PATH)
++  target_include_directories(dgl PRIVATE "third_party/METIS/include")
++  # Compile METIS
++  if(NOT MSVC)
++    set(GKLIB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/third_party/METIS/GKlib")
++    include(${GKLIB_PATH}/GKlibSystem.cmake)
++    include_directories(${GKLIB_PATH})
++    include_directories("third_party/METIS/include/")
++    add_subdirectory("third_party/METIS/libmetis/")
++    list(APPEND DGL_LINKER_LIBS metis)
++    endif(NOT MSVC)
++endif(EXTERNAL_METIS_PATH)
+ 
+ if(NOT MSVC)
+   # Only build tensorpipe on linux
+@@ -375,6 +457,7 @@ if(BUILD_SPARSE)
+       CMAKE_COMMAND=${CMAKE_CMD}
+       CUDA_TOOLKIT_ROOT_DIR=${CUDA_TOOLKIT_ROOT_DIR}
+       USE_CUDA=${USE_CUDA}
++      EXTERNAL_DMLC_LIB_PATH=${EXTERNAL_DMLC_LIB_PATH}
+       BINDIR=${CMAKE_CURRENT_BINARY_DIR}
+       INCLUDEDIR="${DGL_INCLUDE_DIRS}"
+       CFLAGS=${CMAKE_C_FLAGS}
+diff --git a/cmake/modules/FindMETIS.cmake b/cmake/modules/FindMETIS.cmake
+new file mode 100644
+index 00000000..67182a58
+--- /dev/null
++++ b/cmake/modules/FindMETIS.cmake
+@@ -0,0 +1,28 @@
++# Find the METIS includes and library
++#
++# This module defines
++#  METIS_INCLUDE_DIR        -    where to find metis.h
++#  METIS_LIBRARIES          -    libraries to link against to use METIS.
++#  METIS_FOUND              -    METIS library was found
++
++INCLUDE(FindPackageHandleStandardArgs)
++
++FIND_PATH(METIS_INCLUDE_DIR
++    NAMES
++    "metis.h"
++    PATHS
++    ${EXTERNAL_METIS_PATH}
++    )
++
++
++FIND_LIBRARY(METIS_LIBRARIES
++    NAMES
++    libmetis metis
++    PATHS
++    ${EXTERNAL_METIS_LIB_PATH}
++    )
++
++
++FIND_PACKAGE_HANDLE_STANDARD_ARGS(METIS DEFAULT_MSG METIS_INCLUDE_DIR METIS_LIBRARIES)
++MARK_AS_ADVANCED(METIS_LIBRARIES METIS_INCLUDE_DIR)
++
+diff --git a/dgl_sparse/CMakeLists.txt b/dgl_sparse/CMakeLists.txt
+index d541c2f8..73e97896 100644
+--- a/dgl_sparse/CMakeLists.txt
++++ b/dgl_sparse/CMakeLists.txt
+@@ -58,5 +58,18 @@ if(DEFINED MKL_LIBRARIES)
+   target_link_directories(${LIB_DGL_SPARSE_NAME} PRIVATE ${MKL_ROOT}/lib/${MKL_ARCH})
+ endif()
+ 
+-target_link_libraries(${LIB_DGL_SPARSE_NAME} dmlc dgl)
++if (EXTERNAL_DMLC_LIB_PATH)
++   # external dmlc requires OpenMP link
++   include(FindOpenMP)
++   if(OPENMP_FOUND)
++        set(CMAKE_C_FLAGS "${OpenMP_C_FLAGS} ${CMAKE_C_FLAGS}")
++        set(CMAKE_CXX_FLAGS "${OpenMP_CXX_FLAGS} ${CMAKE_CXX_FLAGS}")
++   endif(OPENMP_FOUND)	
++   message(STATUS "looking for dmlc library in ${EXTERNAL_DMLC_LIB_PATH}")
++   find_package(dmlc REQUIRED HINTS ${EXTERNAL_DMLC_LIB_PATH})
++   target_link_libraries(${LIB_DGL_SPARSE_NAME} dmlc::dmlc dgl)
++else (EXTERNAL_DMLC_LIB_PATH)
++   target_link_libraries(${LIB_DGL_SPARSE_NAME} dmlc dgl)
++endif()
++
+ set(GOOGLE_TEST 0) # Turn off dmlc-core test
+diff --git a/dgl_sparse/build.sh b/dgl_sparse/build.sh
+index 2f86a235..f8b46703 100644
+--- a/dgl_sparse/build.sh
++++ b/dgl_sparse/build.sh
+@@ -12,7 +12,7 @@ else
+ 	CPSOURCE=*.so
+ fi
+ 
+-CMAKE_FLAGS="-DCUDA_TOOLKIT_ROOT_DIR=$CUDA_TOOLKIT_ROOT_DIR -DTORCH_CUDA_ARCH_LIST=$TORCH_CUDA_ARCH_LIST -DUSE_CUDA=$USE_CUDA"
++CMAKE_FLAGS="-DCUDA_TOOLKIT_ROOT_DIR=$CUDA_TOOLKIT_ROOT_DIR -DTORCH_CUDA_ARCH_LIST=$TORCH_CUDA_ARCH_LIST -DUSE_CUDA=$USE_CUDA -DEXTERNAL_DMLC_LIB_PATH=$EXTERNAL_DMLC_LIB_PATH"
+ # CMake passes in the list of directories separated by spaces.  Here we replace them with semicolons.
+ CMAKE_FLAGS="$CMAKE_FLAGS -DDGL_INCLUDE_DIRS=${INCLUDEDIR// /;} -DDGL_BUILD_DIR=$BINDIR"
+ echo $CMAKE_FLAGS
+diff --git a/src/array/cpu/spmm_blocking_libxsmm.h b/src/array/cpu/spmm_blocking_libxsmm.h
+index 5d1ea5d6..6051ce9b 100644
+--- a/src/array/cpu/spmm_blocking_libxsmm.h
++++ b/src/array/cpu/spmm_blocking_libxsmm.h
+@@ -18,7 +18,7 @@
+ 
+ #if !defined(_WIN32)
+ #ifdef USE_LIBXSMM
+-#include <libxsmm.h>
++#include <libxsmm_source.h>
+ #include <unistd.h>
+ #ifdef DEBUG
+ #include <x86intrin.h>
+diff --git a/src/runtime/config.cc b/src/runtime/config.cc
+index ca956cd6..70d0d6d5 100644
+--- a/src/runtime/config.cc
++++ b/src/runtime/config.cc
+@@ -7,7 +7,7 @@
+ #include <dgl/runtime/config.h>
+ #include <dgl/runtime/registry.h>
+ #if !defined(_WIN32) && defined(USE_LIBXSMM)
+-#include <libxsmm_cpuid.h>
++#include <libxsmm_source.h>
+ #endif
+ 
+ using namespace dgl::runtime;
