@@ -1,8 +1,12 @@
 #!/bin/sh
 
-set -x
+set -eux
 
 mkdir -p "$PREFIX/bin"
+
+mvn -B license:aggregate-third-party-report
+
+mv -fv "target/site/aggregate-third-party-report.html" .
 
 mvn -B -Dshade package
 
