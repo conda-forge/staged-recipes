@@ -5,7 +5,7 @@ set -euo pipefail
 wget https://ftp.gnu.org/gnu/autoconf/autoconf-latest.tar.gz
 wget https://ftp.gnu.org/gnu/autoconf/autoconf-latest.tar.gz.sig
 wget https://ftp.gnu.org/gnu/gnu-keyring.gpg
-gpg --verify --keyring ./gnu-keyring.gpg autoconf-latest.tar.gz
+gpg --verify --keyring ./gnu-keyring.gpg autoconf-latest.tar.gz.sig autoconf-latest.tar.gz
 
 tar zxf autoconf-latest.tar.gz
 (cd autoconf-2.71; ./configure; make)
