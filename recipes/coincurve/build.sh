@@ -4,8 +4,8 @@ set -euo pipefail
 # Trying to resolve the autoreconf issue
 wget https://ftp.gnu.org/gnu/autoconf/autoconf-latest.tar.gz
 wget https://ftp.gnu.org/gnu/autoconf/autoconf-latest.tar.gz.sig
-wget https://ftp.gnu.org/gnu/autoconf/m4.tar.gz
-wget https://ftp.gnu.org/gnu/autoconf/m4.tar.gz.sig
+wget https://ftp.gnu.org/gnu/m4/m4.tar.gz
+wget https://ftp.gnu.org/gnu/m4/m4.tar.gz.sig
 wget https://ftp.gnu.org/gnu/gnu-keyring.gpg
 gpg --verify --keyring ./gnu-keyring.gpg autoconf-latest.tar.gz.sig autoconf-latest.tar.gz
 
