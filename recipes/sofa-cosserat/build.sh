@@ -16,6 +16,7 @@ cmake ${CMAKE_ARGS} \
   -S .. \
   -DCMAKE_BUILD_TYPE:STRING=Release \
   -DPython_EXECUTABLE:PATH=${PREFIX}/bin/python \
+  -DSP3_PYTHON_PACKAGES_DIRECTORY:PATH=python${PY_VER}/site-packages \
   -DCOSSERATPLUGIN_BUILD_TESTS:BOOL=OFF
 
 # build

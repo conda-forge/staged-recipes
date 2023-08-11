@@ -9,6 +9,16 @@ package:
 source:
   - url: https://github.com/SofaDefrost/Cosserat/archive/refs/tags/release-v{{ major_minor }}.tar.gz
     sha256: 1a97458f7f98897c3ce28465fa75cafb18a68fe1f6bd7207431e8462c0581c79
+    patches:
+    # Python 3 packages are forced to be installed into a python3/site-package
+    # path, which is not automatically parsed by the site module.
+    # This patch enables to install in a more common python<X.Y>/site-package directory,
+    # where X.Y is the Python version, making them automatically available by the interpreter.
+    - patches/0001-Allow-re-use-of-already-defined-SP3_PYTHON_PACKAGES_.patch
+    # Python 2.7 support in SOFA is officially deprecated since v20.12 release
+    # and this conda package requires at least Python 3.8. This patch
+    # prevents from polluting the environment with deprecated Python 2 packages.
+    - patches/0002-Remove-Python2.7-support-as-deprecated-in-SOFA.patch
 
 build:
   number: 0
@@ -40,7 +50,15 @@ requirements:
 
 test:
   commands:
-    - test -f $PREFIX/lib/libCosserat${SHLIB_EXT}  # [not win]
+    - test -f $PREFIX/include/Cosserat/config.h                                            # [unix]
+    - test -f $PREFIX/lib/cmake/Cosserat/CosseratConfig.cmake                              # [unix]
+    - test -f $PREFIX/lib/cmake/Cosserat/CosseratConfigVersion.cmake                       # [unix]
+    - test -f $PREFIX/lib/libCosserat${SHLIB_EXT}                                          # [unix]
+    - if not exist %LIBRARY_PREFIX%\include\Cosserat\config.h exit 1                       # [win]
+    - if not exist %LIBRARY_PREFIX%\lib\cmake\Cosserat\CosseratConfig.cmake exit 1         # [win]
+    - if not exist %LIBRARY_PREFIX%\lib\cmake\Cosserat\CosseratConfigVersion.cmake exit 1  # [win]
+    - if not exist %LIBRARY_PREFIX%\lib\Cosserat.lib exit 1                                # [win]
+    - if not exist %LIBRARY_PREFIX%\bin\Cosserat.dll exit 1                                # [win]
 
 about:
   home: https://www.sofa-framework.org/applications/marketplace/cosserat-beam-model/
