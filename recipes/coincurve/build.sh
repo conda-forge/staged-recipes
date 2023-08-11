@@ -6,7 +6,7 @@ wget https://ftp.gnu.org/gnu/m4/m4-latest.tar.gz
 wget https://ftp.gnu.org/gnu/m4/m4-latest.tar.gz.sig
 wget https://ftp.gnu.org/gnu/autoconf/autoconf-latest.tar.gz
 wget https://ftp.gnu.org/gnu/autoconf/autoconf-latest.tar.gz.sig
-wget https://ftp.gnu.org/gnu/automake/automake-latest.tar.gz
+wget https://ftp.gnu.org/gnu/automake/automake-1.16.5.tar.gz
 wget https://ftp.gnu.org/gnu/automake/automake-1.16.5.tar.xz.sig
 
 wget https://ftp.gnu.org/gnu/gnu-keyring.gpg
