@@ -16,14 +16,14 @@ gpg --verify --keyring ./gnu-keyring.gpg automake-1.16.5.tar.gz.sig automake-1.1
 
 tar zxf m4-latest.tar.gz
 tar zxf autoconf-latest.tar.gz
-tar zxf automake-1.16.5.tar.xz
+tar zxf automake-1.16.5.tar.gz
 
 mkdir -p gnu-tools/bin
 export PATH=$PWD/gnu-tools/bin:$PATH
 
 (cd $(tar ztf m4-latest.tar.gz | head -n 1 | sed 's@/.*@@'); ./configure --disable-dependency-tracking --prefix=$PWD/../gnu-tools; make; make install)
 (cd $(tar ztf autoconf-latest.tar.gz | head -n 1 | sed 's@/.*@@'); ./configure --prefix=$PWD/../gnu-tools; make; make install)
-(cd $(tar ztf automake-1.16.5.tar.xz | head -n 1 | sed 's@/.*@@'); ./configure --prefix=$PWD/../gnu-tools; make; make install)
+(cd $(tar ztf automake-1.16.5.tar.gz | head -n 1 | sed 's@/.*@@'); ./configure --prefix=$PWD/../gnu-tools; make; make install)
 
 python setup.py install
 
