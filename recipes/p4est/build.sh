@@ -1,2 +1,2 @@
-./configure CFLAGS="-O0 -g -Wall -Wextra" --enable-debug
+./configure CFLAGS="-O2 -Wall -Wno-unused-parameter"
 make install
