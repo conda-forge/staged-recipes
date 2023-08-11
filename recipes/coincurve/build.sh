@@ -14,8 +14,11 @@ gpg --verify --keyring ./gnu-keyring.gpg m4-latest.tar.gz.sig m4-latest.tar.gz
 tar zxf autoconf-latest.tar.gz
 tar zxf m4-latest.tar.gz
 
-(cd $(tar ztf m4-latest.tar.gz | head -n 1 | sed 's@/.*@@'); ./configure --disable-dependency-tracking; make; make install; export PATH=$PWD:$PATH)
-(cd $(tar ztf autoconf-latest.tar.gz | head -n 1 | sed 's@/.*@@'); ./configure; make; make install; export PATH=$PWD:$PATH)
+mkdir -p gnu-tools
+export PATH=$PWD/gnu-tools:$PATH
+
+(cd $(tar ztf m4-latest.tar.gz | head -n 1 | sed 's@/.*@@'); ./configure --disable-dependency-tracking --prefix=$PWD/../gnu-tools; make; make install)
+(cd $(tar ztf autoconf-latest.tar.gz | head -n 1 | sed 's@/.*@@'); ./configure --prefix=$PWD/../gnu-tools; make; make install)
 
 python setup.py bdist_egg
 python setup.py egg_info
