@@ -4,10 +4,6 @@ mkdir build
 cd build
 
 ::Configure
-:: SofaPython3 installs python package in non-standard directory suffix,
-:: using Library/lib/python3/site-packages instead of lib/site-packages,
-:: which would imply to redefine the PYTHONPATH environment variable at activation.
-:: This is changed using the SP3_PYTHON_PACKAGES_DIRECTORY cmake variable.
 cmake %CMAKE_ARGS% ^
   -B . ^
   -S %SRC_DIR% ^
