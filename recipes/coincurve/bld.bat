@@ -9,7 +9,8 @@ set NL=^^^%NLM%%NLM%^%NLM%%NLM%
 
 setlocal enableDelayedExpansion
 
-%PYTHON% setup.py install
+# %PYTHON% setup.py install
+%PYTHON% -m build
 
 endlocal
 endlocal
