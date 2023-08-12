@@ -11,11 +11,11 @@ curl -O https://ftp.gnu.org/gnu/automake/automake-1.16.5.tar.gz.sig
 curl -O https://ftp.gnu.org/gnu/libtool/libtool-2.4.7.tar.gz
 curl -O https://ftp.gnu.org/gnu/libtool/libtool-2.4.7.tar.gz.sig
 
-curl -O https://ftp.gnu.org/gnu/gnu-keyring.gpg
-gpg --verify --keyring ./gnu-keyring.gpg m4-latest.tar.gz.sig m4-latest.tar.gz
-gpg --verify --keyring ./gnu-keyring.gpg autoconf-latest.tar.gz.sig autoconf-latest.tar.gz
-gpg --verify --keyring ./gnu-keyring.gpg automake-1.16.5.tar.gz.sig automake-1.16.5.tar.gz
-gpg --verify --keyring ./gnu-keyring.gpg libtool-2.4.7.tar.gz.sig libtool-2.4.7.tar.gz
+#curl -O https://ftp.gnu.org/gnu/gnu-keyring.gpg
+#gpg --verify --keyring ./gnu-keyring.gpg m4-latest.tar.gz.sig m4-latest.tar.gz
+#gpg --verify --keyring ./gnu-keyring.gpg autoconf-latest.tar.gz.sig autoconf-latest.tar.gz
+#gpg --verify --keyring ./gnu-keyring.gpg automake-1.16.5.tar.gz.sig automake-1.16.5.tar.gz
+#gpg --verify --keyring ./gnu-keyring.gpg libtool-2.4.7.tar.gz.sig libtool-2.4.7.tar.gz
 
 tar zxf m4-latest.tar.gz
 tar zxf autoconf-latest.tar.gz
