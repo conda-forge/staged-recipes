@@ -1,0 +1,64 @@
+Subject: [PATCH] (fix) Absolute path in SOURCES.txt
+---
+Index: setup.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/setup.py b/setup.py
+--- a/setup.py	(revision 3b76f51dd985df76383395c488071d70b2a88e7c)
++++ b/setup.py	(date 1691863203675)
+@@ -78,14 +78,14 @@
+ class egg_info(_egg_info):
+     def run(self):
+         # Ensure library has been downloaded (sdist might have been skipped)
+-        download_library(self)
++        #download_library(self)
+ 
+         _egg_info.run(self)
+ 
+ 
+ class sdist(_sdist):
+     def run(self):
+-        download_library(self)
++        # download_library(self)
+         _sdist.run(self)
+ 
+ 
+@@ -116,8 +116,18 @@
+         download_library(self)
+ 
+         return [
+-            absolute(os.path.join(root, filename))
+-            for root, _, filenames in os.walk(absolute('libsecp256k1'))
++            (os.path.join(root, filename))
++            for root, _, filenames in os.walk(('libsecp256k1'))
++            for filename in filenames
++        ]
++
++    def get_relative_source_files(self):
++        # Ensure library has been downloaded (sdist might have been skipped)
++        download_library(self)
++
++        return [
++            os.path.join(root, filename)
++            for root, _, filenames in os.walk('libsecp256k1')
+             for filename in filenames
+         ]
+ 
+@@ -145,7 +155,7 @@
+ 
+         if not os.path.exists(absolute('libsecp256k1')):
+             # library needs to be downloaded
+-            self.get_source_files()
++            self.get_relative_source_files()
+ 
+         if not os.path.exists(absolute('libsecp256k1/configure')):
+             # configure script hasn't been generated yet
+@@ -193,7 +203,6 @@
+         if 'COINCURVE_CROSS_HOST' in os.environ:
+             cmd.append('--host={}'.format(os.environ['COINCURVE_CROSS_HOST']))
+ 
+-        subprocess.check_call([MAKE, 'uninstall'], cwd=build_temp)
+         log.debug('Running configure: {}'.format(' '.join(cmd)))
+         subprocess.check_call(cmd, cwd=build_temp)

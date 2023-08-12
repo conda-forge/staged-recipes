@@ -8,7 +8,10 @@ set NL=^^^%NLM%%NLM%^%NLM%%NLM%
 
 setlocal enableDelayedExpansion
 
-%${%PYTHON% setup.py install
+# Clean-up SOURCES.txt
+patch -u setup.py resolve_abs_path_SOURCES.txt.patch
+
+%PYTHON% setup.py install
 
 endlocal
 endlocal
