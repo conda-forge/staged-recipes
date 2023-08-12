@@ -16,7 +16,7 @@ cmake ${CMAKE_ARGS} \
   -S .. \
   -DCMAKE_BUILD_TYPE:STRING=Release \
   -DSOFA_ENABLE_LEGACY_HEADERS:BOOL=OFF \
-  -DSOFA_BUILD_TESTS:BOOL=OFF
+  -DSOFA_BUILD_TESTS:BOOL=ON
 
 # build
 cmake --build . --parallel ${CPU_COUNT}

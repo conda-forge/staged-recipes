@@ -15,7 +15,7 @@ cmake ${CMAKE_ARGS} \
   -B. \
   -S .. \
   -DCMAKE_BUILD_TYPE:STRING=Release \
-  -DBEAMADAPTER_BUILD_TESTS:BOOL=OFF
+  -DBEAMADAPTER_BUILD_TESTS:BOOL=ON
 
 # build
 cmake --build . --parallel ${CPU_COUNT}

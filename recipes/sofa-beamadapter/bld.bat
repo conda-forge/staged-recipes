@@ -9,7 +9,7 @@ cmake %CMAKE_ARGS% ^
   -S %SRC_DIR% ^
   -G Ninja ^
   -DCMAKE_BUILD_TYPE:STRING=Release ^
-  -DBEAMADAPTER_BUILD_TESTS:BOOL=OFF
+  -DBEAMADAPTER_BUILD_TESTS:BOOL=ON
 if errorlevel 1 exit 1
 
 :: Build.

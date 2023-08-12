@@ -20,7 +20,7 @@ cmake ${CMAKE_ARGS} \
   -DCMAKE_INSTALL_RPATH:PATH=${PREFIX}/lib \
   -DPython_EXECUTABLE:PATH=${PREFIX}/bin/python \
   -DSP3_PYTHON_PACKAGES_DIRECTORY:PATH=python${PY_VER}/site-packages \
-  -DSP3_BUILD_TEST:BOOL=OFF
+  -DSP3_BUILD_TEST:BOOL=ON
 
 # build
 cmake --build . --parallel ${CPU_COUNT}

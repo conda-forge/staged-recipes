@@ -11,7 +11,7 @@ cmake %CMAKE_ARGS% ^
   -DCMAKE_BUILD_TYPE:STRING=Release ^
   -DPython_EXECUTABLE:PATH="%PREFIX%\python.exe" ^
   -DSP3_PYTHON_PACKAGES_DIRECTORY:PATH="..\..\lib\site-packages" ^
-  -DSP3_BUILD_TEST:BOOL=OFF
+  -DSP3_BUILD_TEST:BOOL=ON
 if errorlevel 1 exit 1
 
 :: Build.

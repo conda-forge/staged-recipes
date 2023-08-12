@@ -10,7 +10,7 @@ cmake %CMAKE_ARGS% ^
   -G Ninja ^
   -DCMAKE_BUILD_TYPE:STRING=Release ^
   -DPython_EXECUTABLE:PATH="%PREFIX%\python.exe" ^
-  -DSOFTROBOTS_BUILD_TESTS:BOOL=OFF
+  -DSOFTROBOTS_BUILD_TESTS:BOOL=ON
 if errorlevel 1 exit 1
 
 :: Build.
