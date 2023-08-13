@@ -1,2 +1,2 @@
-# %PYTHON% setup.py install
-%PYTHON% -m build
+@echo off
+py -m build install
