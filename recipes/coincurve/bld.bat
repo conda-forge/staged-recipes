@@ -1,6 +1,6 @@
 @echo off
 setlocal enableextensions enabledelayedexpansion
-%PYTHON% -m pip install build
+conda install -c conda-forge python-build
 %PYTHON% -m build .
 if errorlevel 1 exit 1
 

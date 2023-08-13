@@ -31,6 +31,6 @@ export PATH=$PWD/gnu-tools/bin:$PATH
 (cd $(tar ztf libtool-2.4.7.tar.gz | head -n 1 | sed 's@/.*@@'); ./configure --prefix=$PWD/../gnu-tools; make; make install)
 
 # This does not seem to work: python3 -m build --sdist .
-${PYTHON} -m pip install build
+conda install -c conda-forge python-build
 ${PYTHON} -m build .
 
