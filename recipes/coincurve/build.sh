@@ -1,5 +1,4 @@
 #!/bin/bash
-set -euo pipefail
 
 # Trying to resolve the autoreconf issue
 curl -O https://ftp.gnu.org/gnu/m4/m4-latest.tar.gz
