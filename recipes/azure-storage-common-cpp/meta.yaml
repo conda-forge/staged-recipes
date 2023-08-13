@@ -1,0 +1,75 @@
+{% set version = "12.3.2" %}
+{% set sha256 = "23248eebb855e6a08595bca40c1b972f1ad61965846c83907adc8da1eff31159" %}
+
+package:
+  name: azure-storage-common-cpp
+  version: {{ version }}
+
+source:
+  url: https://github.com/Azure/azure-sdk-for-cpp/archive/refs/tags/azure-storage-common_{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_subpackage("azure-storage-common-cpp", max_pin="x") }}
+
+# https://github.com/Azure/azure-sdk-for-cpp/blob/main/sdk/storage/azure-storage-common/vcpkg/vcpkg.json
+requirements:
+  build:
+    - {{ compiler("cxx") }}
+    - cmake
+    - ninja
+  host:
+    # requires azure-core-cpp >=1.9.0
+    - azure-core-cpp
+    - libxml2  # [not win]
+    - openssl  # [not win]
+
+test:
+  requires:
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+  files:
+    - CMakeLists.txt
+  commands:
+    # shared libs
+    - test -f ${PREFIX}/lib/libazure-storage-common${SHLIB_EXT}   # [unix]
+    - if not exist %LIBRARY_BIN%\azure-storage-common.dll exit 1  # [win]
+    - if not exist %LIBRARY_LIB%\azure-storage-common.lib exit 1  # [win]
+
+    # headers
+    - test -f ${PREFIX}/include/azure/storage/common/access_conditions.hpp          # [unix]
+    - if not exist %LIBRARY_INC%\azure\storage\common\access_conditions.hpp exit 1  # [win]
+
+    # CMake metadata
+    - test -f ${PREFIX}/share/azure-storage-common-cpp/azure-storage-common-cppTargets.cmake                     # [unix]
+    - if not exist %LIBRARY_PREFIX%\share\azure-storage-common-cpp\azure-storage-common-cppTargets.cmake exit 1  # [win]
+
+    # CMake find_package()
+    - cmake $CMAKE_ARGS -G Ninja -S $RECIPE_DIR -B test-find-package    # [unix]
+    - cmake %CMAKE_ARGS% -G Ninja -S %RECIPE_DIR% -B test-find-package  # [win]
+
+about:
+  home: https://github.com/Azure/azure-sdk-for-cpp/
+  summary: Azure Storage Common Client Library for C++
+  description: >-
+    Azure Storage is a Microsoft-managed service providing cloud storage that is
+    highly available, secure, durable, scalable, and redundant. Azure Storage
+    includes Azure Blobs (objects), Azure Data Lake Storage Gen2, Azure Files,
+    and Azure Queues. The Azure Storage Common library provides infrastructure
+    shared by the other Azure Storage client libraries.
+  license: MIT
+  license_family: MIT
+  license_file:
+    - LICENSE.txt
+    - sdk/storage/azure-storage-common/NOTICE.txt
+  doc_url: https://azure.github.io/azure-sdk-for-cpp/
+  dev_url: https://github.com/Azure/azure-sdk-for-cpp/tree/main/sdk/storage/azure-storage-common/
+
+extra:
+  recipe-maintainers:
+    - jdblischak
+    - jjerphan
+    - Shelnutt2

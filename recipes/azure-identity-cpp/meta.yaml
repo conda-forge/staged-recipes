@@ -1,0 +1,73 @@
+{% set version = "1.5.1" %}
+{% set sha256 = "651a660592540c267420b7e1c8dc98428a17396e45f7f6c92a864ab9a4fa028a" %}
+
+package:
+  name: azure-identity-cpp
+  version: {{ version }}
+
+source:
+  url: https://github.com/Azure/azure-sdk-for-cpp/archive/refs/tags/azure-identity_{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_subpackage("azure-identity-cpp", max_pin="x") }}
+
+# https://github.com/Azure/azure-sdk-for-cpp/blob/main/sdk/identity/azure-identity/vcpkg/vcpkg.json
+requirements:
+  build:
+    - {{ compiler("cxx") }}
+    - cmake
+    - ninja
+  host:
+    # requires azure-core-cpp >=1.9.0
+    - azure-core-cpp
+    - openssl
+
+test:
+  requires:
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+  files:
+    - CMakeLists.txt
+  commands:
+    # shared libs
+    - test -f ${PREFIX}/lib/libazure-identity${SHLIB_EXT}   # [unix]
+    - if not exist %LIBRARY_BIN%\azure-identity.dll exit 1  # [win]
+    - if not exist %LIBRARY_LIB%\azure-identity.lib exit 1  # [win]
+
+    # headers
+    - test -f ${PREFIX}/include/azure/identity.hpp    # [unix]
+    - if not exist %LIBRARY_INC%\azure\identity.hpp exit 1  # [win]
+
+    # CMake metadata
+    - test -f ${PREFIX}/share/azure-identity-cpp/azure-identity-cppTargets.cmake                     # [unix]
+    - if not exist %LIBRARY_PREFIX%\share\azure-identity-cpp\azure-identity-cppTargets.cmake exit 1  # [win]
+
+    # CMake find_package()
+    - cmake $CMAKE_ARGS -G Ninja -S $RECIPE_DIR -B test-find-package    # [unix]
+    - cmake %CMAKE_ARGS% -G Ninja -S %RECIPE_DIR% -B test-find-package  # [win]
+
+about:
+  home: https://github.com/Azure/azure-sdk-for-cpp/
+  summary: Azure Identity client library for C++
+  description: >-
+    The Azure Identity library provides Azure Active Directory token
+    authentication support across the Azure SDK. It provides a set of
+    `TokenCredential` implementations which can be used to construct Azure SDK
+    clients which support AAD token authentication.
+  license: MIT
+  license_family: MIT
+  license_file:
+    - LICENSE.txt
+    - sdk/identity/azure-identity/NOTICE.txt
+  doc_url: https://azure.github.io/azure-sdk-for-cpp/
+  dev_url: https://github.com/Azure/azure-sdk-for-cpp/tree/main/sdk/identity/azure-identity/
+
+extra:
+  recipe-maintainers:
+    - jdblischak
+    - jjerphan
+    - Shelnutt2

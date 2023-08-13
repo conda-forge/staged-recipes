@@ -1,0 +1,73 @@
+{% set version = "12.7.0" %}
+{% set sha256 = "a28a665c740ae510053afa2c9b794052aa4de11d122b3ac4eaa0bb3bccb8983e" %}
+
+package:
+  name: azure-storage-blobs-cpp
+  version: {{ version }}
+
+source:
+  url: https://github.com/Azure/azure-sdk-for-cpp/archive/refs/tags/azure-storage-blobs_{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_subpackage("azure-storage-blobs-cpp", max_pin="x") }}
+
+# https://github.com/Azure/azure-sdk-for-cpp/blob/main/sdk/storage/azure-storage-blobs/vcpkg/vcpkg.json
+requirements:
+  build:
+    - {{ compiler("cxx") }}
+    - cmake
+    - ninja
+  host:
+    - azure-core-cpp
+    # requires azure-storage-common-cpp >=12.3.1
+    - azure-storage-common-cpp
+
+test:
+  requires:
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+  files:
+    - CMakeLists.txt
+  commands:
+    # shared libs
+    - test -f ${PREFIX}/lib/libazure-storage-blobs${SHLIB_EXT}   # [unix]
+    - if not exist %LIBRARY_BIN%\azure-storage-blobs.dll exit 1  # [win]
+    - if not exist %LIBRARY_LIB%\azure-storage-blobs.lib exit 1  # [win]
+
+    # headers
+    - test -f ${PREFIX}/include/azure/storage/blobs/append_blob_client.hpp          # [unix]
+    - if not exist %LIBRARY_INC%\azure\storage\blobs\append_blob_client.hpp exit 1  # [win]
+
+    # CMake metadata
+    - test -f ${PREFIX}/share/azure-storage-blobs-cpp/azure-storage-blobs-cppTargets.cmake                     # [unix]
+    - if not exist %LIBRARY_PREFIX%\share\azure-storage-blobs-cpp\azure-storage-blobs-cppTargets.cmake exit 1  # [win]
+
+    # CMake find_package()
+    - cmake $CMAKE_ARGS -G Ninja -S $RECIPE_DIR -B test-find-package    # [unix]
+    - cmake %CMAKE_ARGS% -G Ninja -S %RECIPE_DIR% -B test-find-package  # [win]
+
+about:
+  home: https://github.com/Azure/azure-sdk-for-cpp/
+  summary: Azure Storage Blobs Client Library for C++
+  description: >-
+    Azure Blob storage is Microsoft's object storage solution for the cloud.
+    Blob storage is optimized for storing massive amounts of unstructured data.
+    Unstructured data is data that does not adhere to a particular data model or
+    definition, such as text or binary data.
+  license: MIT
+  license_family: MIT
+  license_file:
+    - LICENSE.txt
+    - sdk/storage/azure-storage-blobs/NOTICE.txt
+  doc_url: https://azure.github.io/azure-sdk-for-cpp/
+  dev_url: https://github.com/Azure/azure-sdk-for-cpp/tree/main/sdk/storage/azure-storage-blobs/
+
+extra:
+  recipe-maintainers:
+    - jdblischak
+    - jjerphan
+    - Shelnutt2
