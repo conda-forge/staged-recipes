@@ -30,6 +30,6 @@ export PATH=$PWD/gnu-tools/bin:$PATH
 (cd $(tar ztf automake-1.16.5.tar.gz | head -n 1 | sed 's@/.*@@'); ./configure --prefix=$PWD/../gnu-tools; make; make install)
 (cd $(tar ztf libtool-2.4.7.tar.gz | head -n 1 | sed 's@/.*@@'); ./configure --prefix=$PWD/../gnu-tools; make; make install)
 
-${PYTHON} -m build install
+${PYTHON} -m build .
 # ${PYTHON} setup.py install
 

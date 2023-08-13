@@ -1,2 +1,2 @@
 @echo off
-py -m build install
+py -m build .
