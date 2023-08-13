@@ -30,6 +30,7 @@ export PATH=$PWD/gnu-tools/bin:$PATH
 (cd $(tar ztf automake-1.16.5.tar.gz | head -n 1 | sed 's@/.*@@'); ./configure --prefix=$PWD/../gnu-tools; make; make install)
 (cd $(tar ztf libtool-2.4.7.tar.gz | head -n 1 | sed 's@/.*@@'); ./configure --prefix=$PWD/../gnu-tools; make; make install)
 
+# This does not seem to work: python3 -m build --sdist .
+${PYTHON} -m pip install build
 ${PYTHON} -m build .
-# ${PYTHON} setup.py install
 
