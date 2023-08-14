@@ -10,13 +10,18 @@ set COINCURVE_UPSTREAM_REF=ddf2b2910eb19032f8dd657c66735115ae24bfba
 
 rem Download secp256k1
 curl -sLO "https://github.com/bitcoin-core/secp256k1/archive/%COINCURVE_UPSTREAM_REF%.tar.gz"
+if errorlevel 1 exit 1
 tar zxf %COINCURVE_UPSTREAM_REF%.tar.gz
+if errorlevel 1 exit 1
 mv "secp256k1-%COINCURVE_UPSTREAM_REF%" secp256k1
 
 cd secp256k1
 autogen
+if errorlevel 1 exit 1
 configure  --enable-module-recovery --enable-experimental --enable-module-ecdh --enable-module-extrakeys --enable-module-schnorrsig --enable-benchmark=no --enable-tests=no --enable-openssl-tests=no --enable-exhaustive-tests=no --enable-static --disable-dependency-tracking --with-pic
+if errorlevel 1 exit 1
 make
+if errorlevel 1 exit 1
 
 %PYTHON% -m pip install --use-pep517 . -vvv .
 if errorlevel 1 exit 1
