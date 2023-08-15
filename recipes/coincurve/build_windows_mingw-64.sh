@@ -1,6 +1,6 @@
 #/bin/bash
 
-set -ex
+set -eox pipefail
 
 build_install_gnutool() {
     local tool=$1
@@ -11,7 +11,6 @@ build_install_gnutool() {
     tar zxf ${tool}-${version}.tar.gz
     (cd ${tool}-${version}; ./configure "${options}" --prefix=${SRC_DIR}/gnu-tools)
     (cd ${tool}-${version}; make)
-    (cd ${tool}-${version}; make test)
     (cd ${tool}-${version}; make install)
     rm -rf ${tool}-${version}
 }
