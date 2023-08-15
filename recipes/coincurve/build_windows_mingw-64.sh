@@ -28,7 +28,7 @@ mkdir -p ${SRC_DIR}/gnu-tools/bin
 export PATH=${SRC_DIR}/gnu-tools/bin:${SRC_DIR}/gnu-tools/share:$PATH
 
 build_install_gnutool "m4" "1.4.19" "--disable-dependency-tracking"
-# In m4?: build_install_gnutool "autoconf" "2.71"
+build_install_gnutool "autoconf" "2.71"
 build_install_gnutool "automake" "1.16.5"
 build_install_gnutool "libtool" "2.4.7"
 

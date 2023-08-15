@@ -17,10 +17,10 @@ build_install_gnutool() {
 mkdir -p ${SRC_DIR}/gnu-tools/bin
 export PATH=${SRC_DIR}/gnu-tools/bin:${SRC_DIR}/gnu-tools/share:$PATH
 
-build_install_gnutool "m4" "1.4.19" "--disable-dependency-tracking"
-# In m4?: build_install_gnutool "autoconf" "latest"
-build_install_gnutool "automake" "1.16.5"
-build_install_gnutool "libtool" "2.4.7"
+#build_install_gnutool "m4" "1.4.19" "--disable-dependency-tracking"
+#build_install_gnutool "autoconf" "2.71"
+#build_install_gnutool "automake" "1.16.5"
+#build_install_gnutool "libtool" "2.4.7"
 
 #curl -O https://ftp.gnu.org/gnu/m4/m4-latest.tar.gz
 #curl -O https://ftp.gnu.org/gnu/m4/m4-latest.tar.gz.sig
