@@ -2,6 +2,17 @@
 
 set -ex
 
+build_install_gnutool() {
+    local tool=$1
+    local version=$2
+    local options=$3 || ''
+
+    curl -sLO https://ftp.gnu.org/gnu/${tool}/${tool}-${version}.tar.gz
+    tar zxf ${tool}-${version}.tar.gz
+    (cd $(tar ztf ${tool}-${version}.tar.gz | head -n 1 | sed 's@/.*@@'); ./configure ${options} --prefix=$PWD/../gnu-tools; make; make install)
+    (rm -rf $(tar ztf ${tool}-${version}.tar.gz | head -n 1 | sed 's@/.*@@'))
+}
+
 build_dll() {
     ./autogen.sh
     ./configure --enable-module-recovery --enable-experimental --enable-module-ecdh --enable-module-extrakeys --enable-module-schnorrsig --enable-benchmark=no --enable-tests=no --enable-openssl-tests=no --enable-exhaustive-tests=no --enable-static --disable-dependency-tracking --with-pic
@@ -9,6 +20,15 @@ build_dll() {
 }
 
 mkdir -p /tmp
+
+# Trying to resolve the autoreconf issue
+mkdir -p gnu-tools/bin
+export PATH=$PWD/gnu-tools/bin:$PATH
+
+build_install_gnutool "m4" "latest" "--disable-dependency-tracking"
+build_install_gnutool "autoconf" "latest"
+build_install_gnutool "automake" "1.16.5"
+build_install_gnutool "libtool" "2.4.7"
 
 # This may not be necessary to prevent corruption of SOURCES.txt with full-path
 rm -rf coincurve.egg-info libsecp256k1
