@@ -8,6 +8,8 @@ build_dll() {
     make
 }
 
+mkdir -p /tmp
+
 # This may not be necessary to prevent corruption of SOURCES.txt with full-path
 rm -rf coincurve.egg-info libsecp256k1
 
