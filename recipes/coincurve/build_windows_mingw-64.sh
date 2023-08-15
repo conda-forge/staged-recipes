@@ -16,7 +16,9 @@ build_install_gnutool() {
 }
 
 build_dll() {
-    ./autogen.sh
+    # Prevent calling 'sh', which seems to drop-off the BASH framework on windows
+    sed 's@#!/bin/bash@@' ./autogen.sh
+    bash -lc ./autogen.sh
     ./configure --enable-module-recovery --enable-experimental --enable-module-ecdh --enable-module-extrakeys --enable-module-schnorrsig --enable-benchmark=no --enable-tests=no --enable-openssl-tests=no --enable-exhaustive-tests=no --enable-static --disable-dependency-tracking --with-pic
     make
 }
@@ -24,13 +26,13 @@ build_dll() {
 mkdir -p /tmp
 
 # Trying to resolve the autoreconf issue
-mkdir -p ${SRC_DIR}/gnu-tools/bin
-export PATH=${SRC_DIR}/gnu-tools/bin:${SRC_DIR}/gnu-tools/share:$PATH
+#mkdir -p ${SRC_DIR}/gnu-tools/bin
+#export PATH=${SRC_DIR}/gnu-tools/bin:${SRC_DIR}/gnu-tools/share:$PATH
 
-build_install_gnutool "m4" "1.4.19" "--disable-dependency-tracking"
-build_install_gnutool "autoconf" "2.71"
-build_install_gnutool "automake" "1.16.5"
-build_install_gnutool "libtool" "2.4.7"
+#build_install_gnutool "m4" "1.4.19" "--disable-dependency-tracking"
+#build_install_gnutool "autoconf" "2.71"
+#build_install_gnutool "automake" "1.16.5"
+#build_install_gnutool "libtool" "2.4.7"
 
 # This may not be necessary to prevent corruption of SOURCES.txt with full-path
 rm -rf coincurve.egg-info libsecp256k1
