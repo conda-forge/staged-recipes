@@ -17,8 +17,8 @@ build_install_gnutool() {
 
 build_dll() {
     # Prevent calling 'sh', which seems to drop-off the BASH framework on windows
-    sed 's@#!/bin/bash@@' ./autogen.sh
-    bash -lc ./autogen.sh
+    sed -i 's@#!/bin/sh@@' ./autogen.sh
+    bash ./autogen.sh
     ./configure --enable-module-recovery --enable-experimental --enable-module-ecdh --enable-module-extrakeys --enable-module-schnorrsig --enable-benchmark=no --enable-tests=no --enable-openssl-tests=no --enable-exhaustive-tests=no --enable-static --disable-dependency-tracking --with-pic
     make
 }
