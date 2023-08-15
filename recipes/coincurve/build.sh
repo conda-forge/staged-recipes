@@ -5,18 +5,21 @@ build_install_gnutool() {
     local version=$2
     local options=$3 || ''
 
-    curl -sLO https://ftp.gnu.org/gnu/${tool}/${tool}-${version}.tar.gz
+    curl -O https://ftp.gnu.org/gnu/${tool}/${tool}-${version}.tar.gz
     tar zxf ${tool}-${version}.tar.gz
-    (cd $(tar ztf ${tool}-${version}.tar.gz | head -n 1 | sed 's@/.*@@'); ./configure ${options} --prefix=$PWD/../gnu-tools; make; make install)
-    (rm -rf $(tar ztf ${tool}-${version}.tar.gz | head -n 1 | sed 's@/.*@@'))
+    (cd ${tool}-${version}; ./configure "${options}" --prefix=${SRC_DIR}/gnu-tools)
+    (cd ${tool}-${version}; make)
+    (cd ${tool}-${version}; make test)
+    (cd ${tool}-${version}; make install)
+    rm -rf ${tool}-${version}
 }
 
 # Trying to resolve the autoreconf issue
-mkdir -p gnu-tools/bin
-export PATH=$PWD/gnu-tools/bin:$PATH
+mkdir -p ${SRC_DIR}/gnu-tools/bin
+export PATH=${SRC_DIR}/gnu-tools/bin:${SRC_DIR}/gnu-tools/share:$PATH
 
-build_install_gnutool "m4" "latest" "--disable-dependency-tracking"
-build_install_gnutool "autoconf" "latest"
+build_install_gnutool "m4" "1.4.19" "--disable-dependency-tracking"
+# In m4?: build_install_gnutool "autoconf" "latest"
 build_install_gnutool "automake" "1.16.5"
 build_install_gnutool "libtool" "2.4.7"
 
