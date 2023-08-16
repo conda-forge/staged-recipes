@@ -1,5 +1,5 @@
 
-copy "%RECIPE_DIR%\build_windows_mingw-64.sh" .
+copy "%RECIPE_DIR%\build_windows.sh" .
 set PREFIX=%PREFIX:\=/%
 set SRC_DIR=%SRC_DIR:\=/%
 set MSYSTEM=MINGW%ARCH%
@@ -8,5 +8,5 @@ set CHERE_INVOKING=1
 set BUILD_PLATFORM=win-64
 
 
-bash -lc "./build_windows_mingw-64.sh"
+bash -lc "./build_windows.sh"
 if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
