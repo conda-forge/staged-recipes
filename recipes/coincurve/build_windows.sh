@@ -8,6 +8,7 @@ build_dll() {
     bash ./autogen.sh
     ./configure --enable-module-recovery --enable-experimental --enable-module-ecdh --enable-module-extrakeys --enable-module-schnorrsig --enable-benchmark=no --enable-tests=no --enable-openssl-tests=no --enable-exhaustive-tests=no --enable-static --disable-dependency-tracking --with-pic
     make
+    make check
 }
 
 mkdir -p /tmp

@@ -11,5 +11,5 @@ set BUILD_PLATFORM=win-64
 bash -lc "./build_windows.sh"
 if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 
-%PYTHON% -m pip install --use-pep517 . -vvv .
+%PYTHON% setup.py bdist_wheel
 if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
