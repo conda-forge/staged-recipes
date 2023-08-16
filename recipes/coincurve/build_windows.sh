@@ -23,13 +23,12 @@ build_dll() {
 
 mkdir -p /tmp
 
-rm -rf ${SRC_DIR}/{coincurve.egg-info, libsecp256k1}
+rm -rf ./{coincurve.egg-info, libsecp256k1}
 
-mv ${SRC_DIR}/coincurve/_windows_libsecp256k1.py ${SRC_DIR}/coincurve/_libsecp256k1.py
+mv ./coincurve/_windows_libsecp256k1.py ./coincurve/_libsecp256k1.py
+curl -sLO "https://github.com/bitcoin-core/secp256k1/archive/$COINCURVE_UPSTREAM_REF.tar.gz")
+tar xzf "$COINCURVE_UPSTREAM_REF.tar.gz"
+mv "secp256k1-$COINCURVE_UPSTREAM_REF" secp256k1
 
-(cd ${SRC_DIR}; curl -sLO "https://github.com/bitcoin-core/secp256k1/archive/$COINCURVE_UPSTREAM_REF.tar.gz")
-(cd ${SRC_DIR}; tar xzf "$COINCURVE_UPSTREAM_REF.tar.gz")
-(cd ${SRC_DIR}; mv "secp256k1-$COINCURVE_UPSTREAM_REF" secp256k1)
-
-(cd ${SRC_DIR}/secp256k1; build_dll; cp .libs/secp256k1-0.dll ${SRC_DIR}/coincurve/libsecp256k1.dll)
+(cd secp256k1; build_dll; cp .libs/secp256k1-0.dll ../coincurve/libsecp256k1.dll)
 
