@@ -2,7 +2,8 @@
 cd %SRC_DIR%\src
 
 :: Build Eternafold
-make CXX=%CXX% W=/W1
+make CXX=%CXX% CXXFLAGS=-std=c++11 -O3 -mfpmath=sse -msse -msse2 -msse3 -DEVIDENCE_SR -DEVIDENCE_PARS \
+-DNDEBUG -pipe -Wundef -Winline --param large-function-growth=100000 -Wall
 
 :: Move built binaries to environment-specific location
 mkdir -p %PREFIX%\bin\eternafold-bin
