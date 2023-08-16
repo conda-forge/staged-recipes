@@ -1,19 +1,12 @@
-# DEBUG
-echo "Debug commands"
-echo %SRC_DIR%
-echo %PREFIX%
-echo %CXX%
-which make
-
-# Move to conda-specific src directory location
+:: Move to conda-specific src directory location
 cd %SRC_DIR%\src
 
-# Build Eternafold
-make CXX=%CXX%
+:: Build Eternafold
+make CXX=%CXX% W=/W1
 
-# Move built binaries to environment-specific location
+:: Move built binaries to environment-specific location
 mkdir -p %PREFIX%\bin\eternafold-bin
 cp contrafold api_test score_prediction %PREFIX%\bin\eternafold-bin
 
-# Symlink binary as eternafold and place in PATH-available location
+:: Symlink binary as eternafold and place in PATH-available location
 ln -s %PREFIX%\bin\eternafold-bin\contrafold %PREFIX%\bin\eternafold
