@@ -15,6 +15,8 @@ cp -r $SRC_DIR/doc/ $PREFIX/doc/sparc/
 echo "Finish compiling sparc!"
 
 # Copy activate and deactivate scripts
+mkdir -p $PREFIX/etc/conda/activate.d/
+mkdir -p $PREFIX/etc/conda/deactivate.d/
 cp $RECIPE_DIR/activate.sh $PREFIX/etc/conda/activate.d/activate-sparc.sh
 cp $RECIPE_DIR/deactivate.sh $PREFIX/etc/conda/deactivate.d/deactivate-sparc.sh
 echo "Finish setting up activate / deactivate scripts"
