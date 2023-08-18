@@ -1,36 +1,63 @@
 diff --git a/setup.py b/setup.py
---- a/setup.py	(revision a3c2fdb643d684090ed33b79de4703b3d49924f8)
-+++ b/setup.py	(revision 16e2c5d0745348e7b13646a1feaf2e95ed843edd)
-@@ -149,9 +149,29 @@
+--- a/setup.py	(revision 16e2c5d0745348e7b13646a1feaf2e95ed843edd)
++++ b/setup.py	(revision 3614b51286a7bbd20214894fdb7433fdd952cbd8)
+@@ -147,28 +147,27 @@
+             # library needs to be downloaded
+             self.get_source_files()
  
-         if not os.path.exists(absolute('libsecp256k1/configure')):
-             # configure script hasn't been generated yet
--            autogen = absolute('libsecp256k1/autogen.sh')
--            os.chmod(absolute(autogen), 0o755)
--            subprocess.check_call([autogen], cwd=absolute('libsecp256k1'))
-+            bash, autoreconf = None, "autoreconf -if --warnings=all"
-+            for path in ["LIBRARY_BIN", "PREFIX", "BUILD_PREFIX", "SP_DIR"]:
-+                if os.environ.get(path, None) is None:
-+                    continue
-+
-+                if bash is not None:
-+                    break
-+
-+                for root, _, filenames in os.walk(os.environ.get(path)):
-+                    for filename in filenames:
-+                        if filename in ["bash", "bash.exe"]:
-+                            bash = os.path.join(root, filename)
-+                            break
-+
-+            if bash is None:
-+                bash = "bash"
-+
-+            subprocess.check_call([bash, '-c', autoreconf],
-+                                  cwd=absolute('libsecp256k1'),
-+                                  shell=False)
-+            #autogen = absolute('libsecp256k1/autogen.sh')
-+            #os.chmod(absolute(autogen), 0o755)
-+            #subprocess.check_call([autogen], cwd=absolute('libsecp256k1'))
+-        if not os.path.exists(absolute('libsecp256k1/configure')):
+-            # configure script hasn't been generated yet
+-            bash = None
+-            for path in ["LIBRARY_BIN", "PREFIX", "BUILD_PREFIX", "SP_DIR"]:
+-                if os.environ.get(path, None) is None:
+-                    continue
++        bash, autoreconf = None, "autoreconf -if --warnings=all"
++        for path in ["LIBRARY_BIN", "PREFIX", "BUILD_PREFIX", "SP_DIR"]:
++            if os.environ.get(path, None) is None:
++                continue
  
-         for filename in [
-             'libsecp256k1/configure',
+-                if bash is not None:
+-                    break
++            if bash is not None:
++                break
+ 
+-                for root, _, filenames in os.walk(os.environ.get(path)):
+-                    for filename in filenames:
+-                        if filename in ["bash", "bash.exe"]:
+-                            bash = os.path.join(root, filename)
+-                            break
++            for root, _, filenames in os.walk(os.environ.get(path)):
++                for filename in filenames:
++                    if filename in ["bash", "bash.exe"]:
++                        bash = os.path.join(root, filename)
++                        break
+ 
+-            if bash is None:
+-                bash = "bash"
++        if bash is None:
++            bash = "bash"
+ 
+-            subprocess.check_call([f"{bash} -c 'autoreconf -if --warnings=all'"],
+-                                  cwd=absolute('libsecp256k1'),
+-                                  shell=True)
++        if not os.path.exists(absolute('libsecp256k1/configure')):
++            # configure script hasn't been generated yet
++            subprocess.check_call([bash, '-c', autoreconf], cwd=absolute('libsecp256k1'))
++
+             #autogen = absolute('libsecp256k1/autogen.sh')
+             #os.chmod(absolute(autogen), 0o755)
+             #subprocess.check_call([autogen], cwd=absolute('libsecp256k1'))
+@@ -211,10 +210,10 @@
+             '--enable-exhaustive-tests=no',
+         ]
+         if 'COINCURVE_CROSS_HOST' in os.environ:
+-            cmd.append('--host={}'.format(os.environ['COINCURVE_CROSS_HOST']))
++            cmd.append(f"--host={os.environ['COINCURVE_CROSS_HOST']}")
+ 
+-        log.debug('Running configure: {}'.format(' '.join(cmd)))
+-        subprocess.check_call(cmd, cwd=build_temp)
++        log.debug(f"Running configure: {' '.join(cmd)}")
++        subprocess.check_call([bash, '-c', " ".join(cmd)], cwd=build_temp)
+ 
+         subprocess.check_call([MAKE], cwd=build_temp)
+         subprocess.check_call([MAKE, 'install'], cwd=build_temp)
