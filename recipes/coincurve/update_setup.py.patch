@@ -272,10 +272,10 @@ index c121d33..667925a 100644
 
      distclass=Distribution,
 diff --git a/setup_support.py b/setup_support.py
-index fcd1d9d..38a19cf 100644
+index fcd1d9d..ccfa82d 100644
 --- a/setup_support.py
 +++ b/setup_support.py
-@@ -36,6 +36,26 @@ def absolute(*paths):
+@@ -36,6 +36,29 @@ def absolute(*paths):
      op = os.path
      return op.realpath(op.abspath(op.join(op.dirname(__file__), *paths)))
 
@@ -291,10 +291,13 @@ index fcd1d9d..38a19cf 100644
 +            break
 +
 +        for root, _, filenames in os.walk(os.environ.get(path)):
++            if 'bin' not in root.split(os.sep):
++                continue
++
 +            for filename in filenames:
 +                # Strip .exe suffix on Windows
 +                executable = executable.replace(".exe", "")
-+                if filename in [executable, f"{executable}.exe"]:
++                if filename in (executable, f"{executable}.exe"):
 +                    exec_path = os.path.join(root, filename)
 +                    break
 +    return exec_path
@@ -302,18 +305,17 @@ index fcd1d9d..38a19cf 100644
 
  def build_flags(library, type_, path):
      """Return separated build flags from pkg-config output"""
-@@ -47,16 +67,16 @@ def build_flags(library, type_, path):
+@@ -47,16 +70,15 @@ def build_flags(library, type_, path):
          pkg_config_path.append(os.environ['LIB_DIR'])
          pkg_config_path.append(os.path.join(os.environ['LIB_DIR'], 'pkgconfig'))
 
 -    options = ['--static', {'I': '--cflags-only-I', 'L': '--libs-only-L', 'l': '--libs-only-l'}[type_]]
-+    bash = find_conda_executable("bash") or "bash"
++    pkgconfig = find_conda_executable("pkg-config") or "pkg-config"
 +
 +    options = {'I': '--cflags-only-I', 'L': '--libs-only-L', 'l': '--libs-only-l'}
 +    env = dict(os.environ, PKG_CONFIG_PATH=':'.join(pkg_config_path))
 +
-+    cmd = ['pkg-config', '--static', options[type_], library]
-+    flags = subprocess.check_output([bash, '-c', ' '.join(cmd)], env=env)  # noqa S603
++    flags = subprocess.check_output([pkgconfig, '--static', options[type_], library], env=env)  # noqa S603
 +    flags = list(flags.decode('UTF-8').split())
 
 -    return [
