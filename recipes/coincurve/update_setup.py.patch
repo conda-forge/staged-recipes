@@ -1,5 +1,5 @@
 diff --git a/setup.py b/setup.py
-index c121d33..3b0a45a 100644
+index c121d33..57468e0 100644
 --- a/setup.py
 +++ b/setup.py
 @@ -1,6 +1,7 @@
@@ -194,7 +194,7 @@ index c121d33..3b0a45a 100644
              '--disable-shared',
              '--enable-static',
              '--disable-dependency-tracking',
-@@ -182,29 +193,30 @@ class build_clib(_build_clib):
+@@ -182,29 +193,33 @@ class build_clib(_build_clib):
              '--enable-module-recovery',
              '--enable-module-schnorrsig',
              '--prefix',
@@ -210,22 +210,25 @@ index c121d33..3b0a45a 100644
          if 'COINCURVE_CROSS_HOST' in os.environ:
 -            cmd.append('--host={}'.format(os.environ['COINCURVE_CROSS_HOST']))
 +            cmd.append(f"--host={os.environ['COINCURVE_CROSS_HOST']}")
-
--        log.debug('Running configure: {}'.format(' '.join(cmd)))
--        subprocess.check_call(cmd, cwd=build_temp)
++
 +        log.debug(f"Running configure: {' '.join(cmd)}")
 +        # Prepend the current directory to PATH so that the correct version of configure is used
 +        os.environ['PATH'] = built_lib_dir + os.pathsep + os.environ['PATH']
 +        subprocess.check_call([bash, '-c', ' '.join(cmd)], cwd=built_lib_dir)
 
--        subprocess.check_call([MAKE], cwd=build_temp)
--        subprocess.check_call([MAKE, 'install'], cwd=build_temp)
+-        log.debug('Running configure: {}'.format(' '.join(cmd)))
+-        subprocess.check_call(cmd, cwd=build_temp)
 +        subprocess.check_call([MAKE], cwd=built_lib_dir)
 +        subprocess.check_call([MAKE, 'install'], cwd=built_lib_dir)
 
+-        subprocess.check_call([MAKE], cwd=build_temp)
+-        subprocess.check_call([MAKE, 'install'], cwd=build_temp)
++        pkgconfig = find_conda_executable("pkg-config") or "pkg-config"
++        pkgconfig.replace('\\', '/')
++        self.announce(f'Updating pkgconfig: {pkgconfig}', level=log.INFO)
+
 -        self.build_flags['include_dirs'].extend(build_flags('libsecp256k1', 'I', build_temp))
 -        self.build_flags['library_dirs'].extend(build_flags('libsecp256k1', 'L', build_temp))
-+        self.announce('Updating pkgconfig', level=log.INFO)
 +        self.build_flags['include_dirs'].extend(build_flags(LIB_NAME, 'I', os.path.join(installed_lib_dir, "lib", "pkgconfig")))
 +        self.build_flags['library_dirs'].extend(build_flags(LIB_NAME, 'L', os.path.join(installed_lib_dir, "lib", "pkgconfig")))
          if not has_system_lib():
@@ -236,7 +239,7 @@ index c121d33..3b0a45a 100644
 
 
  class build_ext(_build_ext):
-@@ -227,7 +239,7 @@ class develop(_develop):
+@@ -227,7 +242,7 @@ class develop(_develop):
          if not has_system_lib():
              raise DistutilsError(
                  "This library is not usable in 'develop' mode when using the "
@@ -245,7 +248,7 @@ index c121d33..3b0a45a 100644
              )
          _develop.run(self)
 
-@@ -240,7 +252,7 @@ if BUILDING_FOR_WINDOWS:
+@@ -240,7 +255,7 @@ if BUILDING_FOR_WINDOWS:
          def is_pure(self):
              return False
 
@@ -254,7 +257,7 @@ index c121d33..3b0a45a 100644
      setup_kwargs = dict()
  else:
 
-@@ -267,7 +279,7 @@ setup(
+@@ -267,7 +282,7 @@ setup(
      name='coincurve',
      version='18.0.0',
 
@@ -263,7 +266,7 @@ index c121d33..3b0a45a 100644
      long_description=open('README.md', 'r').read(),
      long_description_content_type='text/markdown',
      author_email='Ofek Lev <oss@ofek.dev>',
-@@ -276,7 +288,7 @@ setup(
+@@ -276,7 +291,7 @@ setup(
      python_requires='>=3.7',
      install_requires=['asn1crypto', 'cffi>=1.3.0'],
 
@@ -273,7 +276,7 @@ index c121d33..3b0a45a 100644
 
      distclass=Distribution,
 diff --git a/setup_support.py b/setup_support.py
-index fcd1d9d..74a379b 100644
+index fcd1d9d..6a2327b 100644
 --- a/setup_support.py
 +++ b/setup_support.py
 @@ -36,6 +36,26 @@ def absolute(*paths):
@@ -303,19 +306,28 @@ index fcd1d9d..74a379b 100644
 
  def build_flags(library, type_, path):
      """Return separated build flags from pkg-config output"""
-@@ -48,11 +68,13 @@ def build_flags(library, type_, path):
+@@ -47,16 +67,15 @@ def build_flags(library, type_, path):
+         pkg_config_path.append(os.environ['LIB_DIR'])
          pkg_config_path.append(os.path.join(os.environ['LIB_DIR'], 'pkgconfig'))
 
-     options = ['--static', {'I': '--cflags-only-I', 'L': '--libs-only-L', 'l': '--libs-only-l'}[type_]]
+-    options = ['--static', {'I': '--cflags-only-I', 'L': '--libs-only-L', 'l': '--libs-only-l'}[type_]]
 +    pkgconfig = find_conda_executable("pkg-config") or "pkg-config"
++    pkgconfig.replace('\\', '/')
++
++    options = {'I': '--cflags-only-I', 'L': '--libs-only-L', 'l': '--libs-only-l'}
++    env = dict(os.environ, PKG_CONFIG_PATH=':'.join(pkg_config_path))
++    flags = subprocess.check_output([pkgconfig, '--static', options[type_], library], env=env)  # noqa S603
++    flags = list(flags.decode('UTF-8').split())
 
-     return [
+-    return [
 -        flag.strip('-{}'.format(type_))
-+        flag.strip(f'-{type_}')
-         for flag in subprocess.check_output(
+-        for flag in subprocess.check_output(
 -            ['pkg-config'] + options + [library], env=dict(os.environ, PKG_CONFIG_PATH=':'.join(pkg_config_path))
-+            [pkgconfig] + options + [library],
-+            env=dict(os.environ, PKG_CONFIG_PATH=':'.join(pkg_config_path)),
-         )
-         .decode('UTF-8')
-         .split()
+-        )
+-        .decode('UTF-8')
+-        .split()
+-    ]
++    return [flag.strip(f'-{type_}') for flag in flags]
+
+
+ def _find_lib():
