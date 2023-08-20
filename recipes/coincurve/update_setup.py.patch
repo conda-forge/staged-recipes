@@ -1,5 +1,5 @@
 diff --git a/setup.py b/setup.py
-index c121d33..eb7725c 100644
+index c121d33..fcbe206 100644
 --- a/setup.py
 +++ b/setup.py
 @@ -1,6 +1,7 @@
@@ -105,7 +105,7 @@ index c121d33..eb7725c 100644
          _sdist.run(self)
 
 
-@@ -116,55 +127,57 @@ class build_clib(_build_clib):
+@@ -116,55 +127,55 @@ class build_clib(_build_clib):
          download_library(self)
 
          return [
@@ -157,11 +157,9 @@ index c121d33..eb7725c 100644
 -            autogen = absolute('libsecp256k1/autogen.sh')
 -            os.chmod(absolute(autogen), 0o755)
 -            subprocess.check_call([autogen], cwd=absolute('libsecp256k1'))
-+        # autoreconf = "autoreconf -if --warnings=all"
++        autoreconf = "autoreconf -if --warnings=all"
 +        bash = find_conda_executable('bash') or find_conda_executable('sh') or 'bash'
-+        autoreconf = find_conda_executable('autoreconf') or find_conda_executable('sh') or 'autoreconf'
-+        # subprocess.check_call([bash, '-c', autoreconf], cwd=built_lib_dir)
-+        subprocess.check_call([autoreconf, '-if', "--warnings=all"], cwd=built_lib_dir)
++        subprocess.check_call([bash, '-c', autoreconf], cwd=built_lib_dir)
 
          for filename in [
 -            'libsecp256k1/configure',
@@ -187,7 +185,7 @@ index c121d33..eb7725c 100644
              except OSError as e:
                  # some of these files might not exist depending on autoconf version
                  if e.errno != errno.ENOENT:
-@@ -173,7 +186,7 @@ class build_clib(_build_clib):
+@@ -173,7 +184,7 @@ class build_clib(_build_clib):
                      raise
 
          cmd = [
@@ -196,7 +194,7 @@ index c121d33..eb7725c 100644
              '--disable-shared',
              '--enable-static',
              '--disable-dependency-tracking',
-@@ -182,29 +195,29 @@ class build_clib(_build_clib):
+@@ -182,29 +193,29 @@ class build_clib(_build_clib):
              '--enable-module-recovery',
              '--enable-module-schnorrsig',
              '--prefix',
@@ -216,7 +214,7 @@ index c121d33..eb7725c 100644
 -        log.debug('Running configure: {}'.format(' '.join(cmd)))
 -        subprocess.check_call(cmd, cwd=build_temp)
 +        log.debug(f"Running configure: {' '.join(cmd)}")
-+        # Prepend the current directory to PATH so that the correct version of configure is used
++        # Prepend the working directory to the PATH
 +        os.environ['PATH'] = built_lib_dir + os.pathsep + os.environ['PATH']
 +        subprocess.check_call([bash, '-c', ' '.join(cmd)], cwd=built_lib_dir)
 
@@ -237,7 +235,7 @@ index c121d33..eb7725c 100644
 
 
  class build_ext(_build_ext):
-@@ -227,7 +240,7 @@ class develop(_develop):
+@@ -227,7 +238,7 @@ class develop(_develop):
          if not has_system_lib():
              raise DistutilsError(
                  "This library is not usable in 'develop' mode when using the "
@@ -246,7 +244,7 @@ index c121d33..eb7725c 100644
              )
          _develop.run(self)
 
-@@ -240,7 +253,7 @@ if BUILDING_FOR_WINDOWS:
+@@ -240,7 +251,7 @@ if BUILDING_FOR_WINDOWS:
          def is_pure(self):
              return False
 
@@ -255,7 +253,7 @@ index c121d33..eb7725c 100644
      setup_kwargs = dict()
  else:
 
-@@ -267,7 +280,7 @@ setup(
+@@ -267,7 +278,7 @@ setup(
      name='coincurve',
      version='18.0.0',
 
@@ -264,7 +262,7 @@ index c121d33..eb7725c 100644
      long_description=open('README.md', 'r').read(),
      long_description_content_type='text/markdown',
      author_email='Ofek Lev <oss@ofek.dev>',
-@@ -276,7 +289,7 @@ setup(
+@@ -276,7 +287,7 @@ setup(
      python_requires='>=3.7',
      install_requires=['asn1crypto', 'cffi>=1.3.0'],
 
@@ -274,9 +272,18 @@ index c121d33..eb7725c 100644
 
      distclass=Distribution,
 diff --git a/setup_support.py b/setup_support.py
-index fcd1d9d..ccfa82d 100644
+index fcd1d9d..23583d5 100644
 --- a/setup_support.py
 +++ b/setup_support.py
+@@ -2,7 +2,7 @@ import glob
+ import os
+ import shutil
+ import subprocess
+-from contextlib import contextmanager
++from contextlib import contextmanager, suppress
+ from tempfile import mkdtemp
+
+
 @@ -36,6 +36,29 @@ def absolute(*paths):
      op = os.path
      return op.realpath(op.abspath(op.join(op.dirname(__file__), *paths)))
@@ -332,3 +339,42 @@ index fcd1d9d..ccfa82d 100644
 
 
  def _find_lib():
+@@ -68,24 +90,15 @@ def _find_lib():
+     ffi = FFI()
+     try:
+         ffi.dlopen('secp256k1')
+-        if os.path.exists('/usr/include/secp256k1_ecdh.h'):
+-            return True
+-        else:
+-            # The system library lacks the ecdh module
+-            return False
++        return bool(os.path.exists('/usr/include/secp256k1_ecdh.h'))
+     except OSError:
+         if 'LIB_DIR' in os.environ:
+             for path in glob.glob(os.path.join(os.environ['LIB_DIR'], '*secp256k1*')):
+-                try:
++                with suppress(OSError):
+                     FFI().dlopen(path)
+                     return True
+-                except OSError:
+-                    pass
+         # We couldn't locate libsecp256k1 so we'll use the bundled one
+         return False
+-    else:
+-        # If we got this far then the system library should be good enough
+-        return True
+
+
+ _has_system_lib = None
+@@ -100,7 +113,7 @@ def has_system_lib():
+
+ def detect_dll():
+     here = os.path.dirname(os.path.abspath(__file__))
+-    for fn in os.listdir(os.path.join(here, 'coincurve')):
+-        if fn.endswith('.dll'):
+-            return True
+-    return False
++    return any(
++        fn.endswith('.dll')
++        for fn in os.listdir(os.path.join(here, 'coincurve'))
++    )
