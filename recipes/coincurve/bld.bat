@@ -1,3 +1,5 @@
+rm -r coincurve.egg-info/SOURCES.txt
+rm -r libsecp256k1
 
-bash "%RECIPE_DIR%\build_windows_mingw-64.sh
-if errorlevel 1 exit 1
+rem %PYTHON% -m pip install --use-pep517 . -vvv .
+%PYTHON% setup.py install
