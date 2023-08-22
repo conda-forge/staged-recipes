@@ -9,7 +9,5 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 	export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 fi
 
-echo "The path is: "
-echo $PREFIX
 
 CMAKE_ARGS="-DCMAKE_PREFIX_PATH=$PREFIX -DCMAKE_INSTALL_PREFIX=$PREFIX" python -m pip install .
