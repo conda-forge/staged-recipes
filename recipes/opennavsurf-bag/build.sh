@@ -18,10 +18,12 @@ cmake -G Ninja \
 # Build it
 cmake --build build -j ${CPU_COUNT} --config Release
 
+echo "DEBUG::Python location: $(which python)"
+
 # Install it
 cmake --install build
 python ./build/api/swig/python/setup.py install
 
 # Test it
 BAG_SAMPLES_PATH=./examples/sample-data ./build/tests/bag_tests
-pytest --cov=bagPy --cov-branch --cov-report=xml --junitxml=python-test-results.xml python/test_*.py
+BAG_SAMPLES_PATH=./examples/sample-data python -m pytest python/test_*.py
