@@ -1,5 +1,5 @@
-mkdir build
-cd build
+mkdir build-lib
+cd build-lib
 
 cmake -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% -Dfilepattern_SHARED_LIB=ON ..
 

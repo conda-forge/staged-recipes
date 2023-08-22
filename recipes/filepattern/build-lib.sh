@@ -2,8 +2,8 @@
 
 set -eux # Abort on error.
 
-mkdir build
-cd build
+mkdir build-lib
+cd build-lib
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
 	export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
