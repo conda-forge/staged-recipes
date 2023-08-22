@@ -1,0 +1,49 @@
+{% set name = "awscli-completion" %}
+{% set version = "2.13.10" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+# v2 is not on PyPI https://github.com/aws/aws-cli/issues/6785
+source:
+  url: https://github.com/aws/aws-cli/archive/{{ version }}.tar.gz
+  sha256: 523646f7b86b4beef74c0f0e9a2a178ea1d40a21b7da0e6852db17d76044b07c
+
+build:
+  number: 0
+  skip: true  # [win]
+  script: mkdir -p $PREFIX/share/bash-completions/completions && echo complete -C aws_completer aws >$PREFIX/share/bash-completions/completions/aws  # [unix]
+
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - awscli {{ version }}                   # [build_platform != target_platform]
+  host:
+    - python
+    - awscli {{ version }}
+  run:
+    - python
+    - awscli {{ version }}
+
+test:
+  commands:
+    # Check autocomplete index exists:
+    - python -c "import awscli, os; assert os.stat(os.path.join(os.path.dirname(awscli.__file__), 'data', 'ac.index')).st_size > 1e6"
+    - COMP_LINE="aws ec2 describe-inst" aws_completer     # [unix]
+
+about:
+  home: https://aws.amazon.com/cli/
+  license_file: LICENSE.txt
+  license: Apache-2.0
+  summary: Universal Command Line Environment for AWS.
+  dev_url: https://github.com/aws/aws-cli
+  doc_url: https://aws.amazon.com/cli/
+
+extra:
+  # Keep the name in line with the awscli2-feedstock
+  feedstock-name: awscli2-completion
+  recipe-maintainers:
+    - tkelman
+    - xhochy
