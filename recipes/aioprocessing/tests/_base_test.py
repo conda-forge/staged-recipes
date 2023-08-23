@@ -8,6 +8,7 @@ import aioprocessing.mp as multiprocessing
 class BaseTest(unittest.TestCase):
     def setUp(self):
         self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
 
     def tearDown(self):
         self.loop.close()
@@ -27,6 +28,7 @@ class _GenMixin:
 
     def test_loop(self):
         loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         val = getattr(self.inst, self.meth)(*self.args, loop=loop)
         self._after()
         if inspect.isawaitable(val):
