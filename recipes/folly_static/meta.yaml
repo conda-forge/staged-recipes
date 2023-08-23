@@ -1,0 +1,85 @@
+{% set version = "2023.08.14.00" %}
+{% set jemalloc_enabled = folly_build_ext is not undefined and folly_build_ext == "jemalloc" %}
+{% set build_ext = "_jemalloc" if jemalloc_enabled else ""  %}
+
+package:
+  name: folly
+  version: {{ version }}
+
+source:
+  url: https://github.com/facebook/folly/archive/v{{ version }}.tar.gz
+  sha256: 63b0abc6860e91651484937fbb6e90a05dbf48b30133b56846e5e6b9d13c396c
+  patches:
+    - 0001-Use-CMAKE_SYSTEM_PROCESSOR-instead-of-CMAKE_LIBRARY_.patch
+
+build:
+  number: 0
+  string: h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}{{ build_ext }}
+  ignore_run_exports:
+    - jemalloc        # [(not osx) and (folly_build_ext is not undefined and folly_build_ext == "jemalloc")]
+    - jemalloc-local  # [osx and (folly_build_ext is not undefined and folly_build_ext == "jemalloc")]
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+  host:
+    - boost-cpp
+    - double-conversion
+    - fmt {{ fmt }}
+    - gflags
+    - glog
+    - jemalloc        # [(not osx) and (folly_build_ext is not undefined and folly_build_ext == "jemalloc")]
+    - jemalloc-local  # [osx and (folly_build_ext is not undefined and folly_build_ext == "jemalloc")]
+    - libaio  # [linux]
+    - libevent
+    - libsodium
+    - snappy
+    - bzip2
+    - lz4-c
+    - openssl
+    - xz
+    - zlib
+    - zstd
+  run:
+    - boost-cpp
+    - jemalloc        # [(not osx) and (folly_build_ext is not undefined and folly_build_ext == "jemalloc")]
+    - jemalloc-local  # [osx and (folly_build_ext is not undefined and folly_build_ext == "jemalloc")]
+    - snappy
+
+test:
+  requires:
+    - {{ compiler('cxx') }}
+  commands:
+    - if not exist %LIBRARY_LIB%\folly.lib (exit 1)                                       # [win]
+    - if not exist %LIBRARY_LIB%\folly_test_util.lib (exit 1)                             # [win]
+    - if not exist %LIBRARY_INC%\folly\folly-config.h (exit 1)                            # [win]
+    - if not exist %LIBRARY_LIB%\cmake\folly\folly-config.cmake (exit 1)                  # [win]
+    - if not exist %LIBRARY_LIB%\cmake\folly\folly-targets.cmake (exit 1)                 # [win]
+    - if not exist %LIBRARY_LIB%\cmake\folly\folly-targets-relwithdebinfo.cmake (exit 1)  # [win]
+
+    - test -f ${PREFIX}/lib/libfolly.a                                        # [unix]
+    - test -f ${PREFIX}/include/folly/folly-config.h                          # [unix]
+    - $CXX $CXXFLAGS $LDFLAGS $RECIPE_DIR/arena_test.c -lfolly -o arena_test  # [unix]
+    - test -f ./arena_test                                                    # [unix]
+    - ./arena_test                                                            # [unix]
+
+about:
+  home: https://github.com/facebook/folly
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Facebook Open-source Library
+  description: |
+    Folly (acronymed loosely after Facebook Open Source Library) is a
+    library of C++14 components designed with practicality and
+    efficiency in mind. Folly contains a variety of core library
+    components used extensively at Facebook. In particular, it's often
+    a dependency of Facebook's other open source C++ efforts and place
+    where those projects can share code.
+  doc_url: https://github.com/facebook/folly/tree/master/folly/docs
+  dev_url: https://github.com/facebook/folly
+
+extra:
+  recipe-maintainers:
+    - DerThorsten
