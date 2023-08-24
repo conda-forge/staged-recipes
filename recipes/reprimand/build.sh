@@ -9,5 +9,5 @@ mkdir -p $MBUILD_DIR
 meson setup --prefix=$PREFIX --libdir=lib -Dbuild_tests=true $MBUILD_DIR
 cd $MBUILD_DIR
 ninja 
-ninja test
+meson test Con2Prim EOS INTERP TOVSOL
 ninja install
