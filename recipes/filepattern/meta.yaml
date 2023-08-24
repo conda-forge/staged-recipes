@@ -1,0 +1,97 @@
+{% set name = "filepattern" %}
+{% set version = "2.0.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }} 
+
+source:
+  url: https://github.com/PolusAI/filepattern/archive/v{{ version }}.tar.gz
+  sha256: df30c7a6f45a103ab1bcb6947cad5b329af4929080beffc6a590cc6419095834
+
+build:
+  skip: true  # [py2k]
+  number: 0
+
+requirements:
+  build:
+    - cmake
+    - make  # [not win]
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - git
+
+outputs:
+  - name: filepattern
+    script: build.sh  # [unix]
+    script: bld.bat  # [win]
+    version: {{ version }}
+    requirements:
+      build:
+        - cmake
+        - make  # [not win]
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - git
+      host:
+        - python
+        - setuptools
+        - pip
+        - pybind11
+      run:
+        - python
+        - pydantic
+
+    test:
+      imports:
+        - filepattern
+      commands:
+        - pip check
+      requires:
+        - pip
+        - pytest
+
+  - name: libfilepattern
+    script: build-lib.sh  # [unix]
+    script: bld-lib.bat  # [win]
+    version: {{ version }}
+    build:
+      run_exports:
+        - {{ pin_subpackage("libfilepattern", max_pin="x.x") }}
+    requirements:
+      build:
+        - cmake
+        - make  # [not win]
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - git
+    test:
+      commands:
+        - test -f $PREFIX/include/filepattern.h  # [unix]
+        - if not exist %LIBRARY_INC%\\filepattern.h exit 1  # [win]
+        - test -f $PREFIX/lib/libfilepattern.so.2  # [linux]
+        - test -f $PREFIX/lib/libfilepattern.2.dylib  # [mac]
+        - if not exist %LIBRARY_BIN%\\filepattern.dll exit 1  # [win]
+        - test -f $PREFIX/lib/cmake/filepattern/filepatternConfig.cmake  # [unix]
+        - if not exist %LIBRARY_LIB%\\cmake\\filepattern\\filepatternConfig.cmake exit 1  # [win]
+
+about:
+  home: https://github.com/PolusAI/filepattern
+  summary: C++ library to store and filter files with systematic naming conventions using simplified regular expression-like patterns
+  description: |
+    The filepattern utility is used to store files that follow a pattern, where the pattern is analogous 
+    to a simplified regular expression. The need for filepattern arises in situations where large amounts 
+    of data with a systematic naming convention needs to be filtered by patterns in the naming. 
+    For example, one may have a directory containing segmented images where the name contains information 
+    such as the channel, the column value, and the row value. filepattern provides the ability to extract 
+    all images containing such a naming pattern, filter by the row or column value, or group files by one
+    or more of the aforementioned variables.
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  doc_url: https://filepattern.readthedocs.io/en/latest/
+  dev_url: https://github.com/PolusAI/filepattern
+
+extra:
+  recipe-maintainers:
+    - JesseMckinzie
