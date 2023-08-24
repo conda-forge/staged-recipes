@@ -24,7 +24,7 @@ if [ ! -d "${SDKROOT}" ]; then
     else
         url="https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX${MACOSX_SDK_VERSION}.sdk.tar.xz"
     fi
-    curl --quiet -L --output "MacOSX${MACOSX_SDK_VERSION}.sdk.tar.xz" "${url}"
+    curl -s -L --output "MacOSX${MACOSX_SDK_VERSION}.sdk.tar.xz" "${url}"
     mkdir -p `dirname "$SDKROOT"`
     tar -xf "MacOSX${MACOSX_SDK_VERSION}.sdk.tar.xz" -C `dirname "$SDKROOT"`
 fi
