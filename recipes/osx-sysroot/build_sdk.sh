@@ -1,6 +1,8 @@
 #!/bin/bash
 
 find "${RECIPE_DIR}" -name "activate-sdk.sh" -exec cp {} . \;
+find "${RECIPE_DIR}" -name "deactivate-sdk.sh" -exec cp {} . \;
+
 find . -name "activate-sdk.sh" -exec sed -i.bak "s|@MACOSX_SDK_VERSION@|${MACOSX_DEPLOYMENT_TARGET}|g" "{}" \;
 find . -name "activate-sdk.sh.bak" -exec rm "{}" \;
 
