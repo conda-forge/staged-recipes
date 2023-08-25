@@ -21,6 +21,7 @@ fi
 if [ ! -d "${SDKROOT}" ]; then
     if [ "${MACOSX_SDK_VERSION}" = "1" ]; then
         system_sdk=`xcrun --show-sdk-path`
+        mkdir -p `dirname "${SDKROOT}"`
         ln -s "${system_sdk}" "${SDKROOT}"
     else
         if [ "${MACOSX_SDK_VERSION}" = "12.3" ]; then
