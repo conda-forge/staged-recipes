@@ -20,6 +20,7 @@ fi
 
 if [ ! -d "${SDKROOT}" ]; then
     if [ "${MACOSX_SDK_VERSION}" = "1" ]; then
+        unset SDKROOT
         export SDKROOT=`xcrun --show-sdk-path`
     else
         if [ "${MACOSX_SDK_VERSION}" = "12.3" ]; then
