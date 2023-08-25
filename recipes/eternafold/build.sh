@@ -22,7 +22,3 @@ do
     mkdir -p "${PREFIX}/etc/conda/${CHANGE}.d"
     cp "${RECIPE_DIR}/${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.sh"
 done
-
-# Set environment variable pointing to binary
-conda env config vars set ETERNAFOLD_PATH=$PREFIX/bin/eternafold
-conda env config vars set ETERNAFOLD_PARAMETERS=$PREFIX/lib/eternafold-lib/parameters/EternaFoldParams.v1
