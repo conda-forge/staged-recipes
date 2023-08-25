@@ -9,7 +9,8 @@ mkdir -p $PREFIX/bin/eternafold-bin
 cp contrafold api_test score_prediction $PREFIX/bin/eternafold-bin
 
 # Move relevant repo files to lib folder
-cp -r $SRC_DIR $PREFIX/lib/eternafold-lib
+mkdir -p $PREFIX/lib/eternafold-lib
+cp -r $SRC_DIR/* $PREFIX/lib/eternafold-lib
 
 # Symlink binary as eternafold and place in PATH-available location
 ln -s $PREFIX/bin/eternafold-bin/contrafold $PREFIX/bin/eternafold
@@ -17,3 +18,7 @@ ln -s $PREFIX/bin/eternafold-bin/contrafold $PREFIX/bin/eternafold
 # Set environment variable pointing to binary
 conda env config vars set ETERNAFOLD_PATH=$PREFIX/bin/eternafold
 conda env config vars set ETERNAFOLD_PARAMETERS=$PREFIX/lib/eternafold-lib/parameters/EternaFoldParams.v1
+
+# conda env config vars applies on environment activation, so also set env variables for this shell session
+export ETERNAFOLD_PATH=$PREFIX/bin/eternafold
+export ETERNAFOLD_PARAMETERS=$PREFIX/lib/eternafold-lib/parameters/EternaFoldParams.v1
