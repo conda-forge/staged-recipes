@@ -19,14 +19,19 @@ else
 fi
 
 if [ ! -d "${SDKROOT}" ]; then
-    if [ "${MACOSX_SDK_VERSION}" = "12.3" ]; then
-        url="https://github.com/alexey-lysiuk/macos-sdk/releases/download/${MACOSX_SDK_VERSION}/MacOSX${MACOSX_SDK_VERSION}.tar.xz"
+    if [ "${MACOSX_SDK_VERSION}" = "1" ]; then
+        system_sdk=`xcrun --show-sdk-path`
+        ln -s "${system_sdk}" "${SDKROOT}"
     else
-        url="https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX${MACOSX_SDK_VERSION}.sdk.tar.xz"
+        if [ "${MACOSX_SDK_VERSION}" = "12.3" ]; then
+            url="https://github.com/alexey-lysiuk/macos-sdk/releases/download/${MACOSX_SDK_VERSION}/MacOSX${MACOSX_SDK_VERSION}.tar.xz"
+        else
+            url="https://github.com/phracker/MacOSX-SDKs/releases/download/11.3/MacOSX${MACOSX_SDK_VERSION}.sdk.tar.xz"
+        fi
+        curl -s -L --output "MacOSX${MACOSX_SDK_VERSION}.sdk.tar.xz" "${url}"
+        mkdir -p `dirname "${SDKROOT}"`
+        tar -xf "MacOSX${MACOSX_SDK_VERSION}.sdk.tar.xz" -C `dirname "${SDKROOT}"`
     fi
-    curl -s -L --output "MacOSX${MACOSX_SDK_VERSION}.sdk.tar.xz" "${url}"
-    mkdir -p `dirname "$SDKROOT"`
-    tar -xf "MacOSX${MACOSX_SDK_VERSION}.sdk.tar.xz" -C `dirname "$SDKROOT"`
 fi
 
 if [ -z "${CMAKE_ARGS}" ]; then
