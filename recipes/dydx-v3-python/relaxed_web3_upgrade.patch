@@ -1,0 +1,230 @@
+diff --git a/dydx3/dydx_client.py b/dydx3/dydx_client.py
+index a598dd8..1479dd3 100644
+--- a/dydx3/dydx_client.py
++++ b/dydx3/dydx_client.py
+@@ -59,7 +59,7 @@ class Client(object):
+                 )
+             self.web3 = web3 or Web3(web3_provider)
+             self.eth_signer = SignWithWeb3(self.web3)
+-            self.default_address = self.web3.eth.defaultAccount or None
++            self.default_address = self.web3.eth.default_account or None
+             self.network_id = self.web3.net.version
+ 
+         if eth_private_key is not None or web3_account is not None:
+diff --git a/dydx3/eth_signing/eth_prive_action.py b/dydx3/eth_signing/eth_prive_action.py
+index 65a0718..efd5178 100644
+--- a/dydx3/eth_signing/eth_prive_action.py
++++ b/dydx3/eth_signing/eth_prive_action.py
+@@ -67,5 +67,5 @@ class SignEthPrivateAction(SignOffChainAction):
+                 util.hash_string(timestamp),
+             ],
+         ]
+-        struct_hash = Web3.solidityKeccak(*data)
++        struct_hash = Web3.solidity_keccak(*data)
+         return self.get_eip712_hash(struct_hash)
+diff --git a/dydx3/eth_signing/onboarding_action.py b/dydx3/eth_signing/onboarding_action.py
+index 5cbaad3..e09750d 100644
+--- a/dydx3/eth_signing/onboarding_action.py
++++ b/dydx3/eth_signing/onboarding_action.py
+@@ -82,5 +82,5 @@ class SignOnboardingAction(SignOffChainAction):
+             data[0].append('bytes32')
+             data[1].append(util.hash_string(ONLY_SIGN_ON_DOMAIN_MAINNET))
+ 
+-        struct_hash = Web3.solidityKeccak(*data)
++        struct_hash = Web3.solidity_keccak(*data)
+         return self.get_eip712_hash(struct_hash)
+diff --git a/dydx3/eth_signing/sign_off_chain_action.py b/dydx3/eth_signing/sign_off_chain_action.py
+index ade0955..d09357d 100644
+--- a/dydx3/eth_signing/sign_off_chain_action.py
++++ b/dydx3/eth_signing/sign_off_chain_action.py
+@@ -85,7 +85,7 @@ class SignOffChainAction(object):
+         }
+ 
+     def get_eip712_hash(self, struct_hash):
+-        return Web3.solidityKeccak(
++        return Web3.solidity_keccak(
+             [
+                 'bytes2',
+                 'bytes32',
+@@ -99,7 +99,7 @@ class SignOffChainAction(object):
+         )
+ 
+     def get_domain_hash(self):
+-        return Web3.solidityKeccak(
++        return Web3.solidity_keccak(
+             [
+                 'bytes32',
+                 'bytes32',
+diff --git a/dydx3/eth_signing/signers.py b/dydx3/eth_signing/signers.py
+index 2e08ab8..71570c4 100644
+--- a/dydx3/eth_signing/signers.py
++++ b/dydx3/eth_signing/signers.py
+@@ -43,12 +43,12 @@ class SignWithWeb3(Signer):
+         message_hash,  # Ignored.
+         opt_signer_address,
+     ):
+-        signer_address = opt_signer_address or self.web3.eth.defaultAccount
++        signer_address = opt_signer_address or self.web3.eth.default_account
+         if not signer_address:
+             raise ValueError(
+-                'Must set ethereum_address or web3.eth.defaultAccount',
++                'Must set ethereum_address or web3.eth.default_account',
+             )
+-        raw_signature = self.web3.eth.signTypedData(
++        raw_signature = self.web3.eth.sign_typed_data(
+             signer_address,
+             eip712_message,
+         )
+diff --git a/dydx3/eth_signing/util.py b/dydx3/eth_signing/util.py
+index 2ea4418..e855b71 100644
+--- a/dydx3/eth_signing/util.py
++++ b/dydx3/eth_signing/util.py
+@@ -28,12 +28,12 @@ def ec_recover_typed_signature(
+     if sig_type == constants.SIGNATURE_TYPE_NO_PREPEND:
+         prepended_hash = hashVal
+     elif sig_type == constants.SIGNATURE_TYPE_DECIMAL:
+-        prepended_hash = Web3.solidityKeccak(
++        prepended_hash = Web3.solidity_keccak(
+             ['string', 'bytes32'],
+             [PREPEND_DEC, hashVal],
+         )
+     elif sig_type == constants.SIGNATURE_TYPE_HEXADECIMAL:
+-        prepended_hash = Web3.solidityKeccak(
++        prepended_hash = Web3.solidity_keccak(
+             ['string', 'bytes32'],
+             [PREPEND_HEX, hashVal],
+         )
+@@ -45,7 +45,7 @@ def ec_recover_typed_signature(
+ 
+     signature = typed_signature[:-2]
+ 
+-    address = w3.eth.account.recoverHash(prepended_hash, signature=signature)
++    address = w3.eth.account._recover_hash(prepended_hash, signature=signature)
+     return address
+ 
+ 
+@@ -104,4 +104,4 @@ def addresses_are_equal(
+ 
+ 
+ def hash_string(input):
+-    return Web3.solidityKeccak(['string'], [input])
++    return Web3.solidity_keccak(['string'], [input])
+diff --git a/dydx3/modules/onboarding.py b/dydx3/modules/onboarding.py
+index 5ef9ce1..475bd95 100644
+--- a/dydx3/modules/onboarding.py
++++ b/dydx3/modules/onboarding.py
+@@ -135,7 +135,7 @@ class Onboarding(object):
+             action=OFF_CHAIN_KEY_DERIVATION_ACTION,
+         )
+         signature_int = int(signature, 16)
+-        hashed_signature = Web3.solidityKeccak(['uint256'], [signature_int])
++        hashed_signature = Web3.solidity_keccak(['uint256'], [signature_int])
+         private_key_int = int(hashed_signature.hex(), 16) >> 5
+         private_key_hex = hex(private_key_int)
+         public_x, public_y = private_key_to_public_key_pair_hex(
+@@ -163,11 +163,11 @@ class Onboarding(object):
+         )
+         r_hex = signature[2:66]
+         r_int = int(r_hex, 16)
+-        hashed_r_bytes = bytes(Web3.solidityKeccak(['uint256'], [r_int]))
++        hashed_r_bytes = bytes(Web3.solidity_keccak(['uint256'], [r_int]))
+         secret_bytes = hashed_r_bytes[:30]
+         s_hex = signature[66:130]
+         s_int = int(s_hex, 16)
+-        hashed_s_bytes = bytes(Web3.solidityKeccak(['uint256'], [s_int]))
++        hashed_s_bytes = bytes(Web3.solidity_keccak(['uint256'], [s_int]))
+         key_bytes = hashed_s_bytes[:16]
+         passphrase_bytes = hashed_s_bytes[16:31]
+ 
+diff --git a/dydx3/starkex/helpers.py b/dydx3/starkex/helpers.py
+index 2febd5e..789f2e6 100644
+--- a/dydx3/starkex/helpers.py
++++ b/dydx3/starkex/helpers.py
+@@ -121,7 +121,7 @@ def get_transfer_erc20_fact(
+                 token_decimals,
+             )
+         )
+-    hex_bytes = Web3.solidityKeccak(
++    hex_bytes = Web3.solidity_keccak(
+         [
+             'address',
+             'uint256',
+diff --git a/integration_tests/test_auth_levels.py b/integration_tests/test_auth_levels.py
+index dcf80f9..173b047 100644
+--- a/integration_tests/test_auth_levels.py
++++ b/integration_tests/test_auth_levels.py
+@@ -16,6 +16,7 @@ from tests.constants import DEFAULT_NETWORK_ID
+ from tests.constants import SEVEN_DAYS_S
+ 
+ HOST = os.environ.get('V3_API_HOST', DEFAULT_HOST)
++HOST = 'https://localhost:8545'
+ NETWORK_ID = int(os.environ.get('NETWORK_ID', DEFAULT_NETWORK_ID))
+ 
+ 
+@@ -221,7 +222,7 @@ class TestAuthLevels():
+ 
+         # Connect to local Ethereum node.
+         web3 = Web3()
+-        web3.eth.defaultAccount = web3.eth.accounts[1]
++        web3.eth.default_account = web3.eth.accounts[1]
+ 
+         # Create client WITHOUT any private keys.
+         client = Client(
+diff --git a/requirements.txt b/requirements.txt
+index bc0c951..eb46f8d 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -1,11 +1,11 @@
+ aiohttp>=3.8.1
+-cytoolz==0.12.1
+-dateparser==1.0.0
++cytoolz>=0.12.1
++dateparser>=1.0.0
+ ecdsa>=0.16.0
+ eth_keys
+-eth-account>=0.4.0,<0.6.0
+-mpmath==1.0.0
+-requests>=2.22.0,<3.0.0
+-six==1.14
+-sympy==1.6
+-web3>=5.0.0,<6.0.0
++eth-account>=0.4.0
++mpmath>=1.0.0
++requests>=2.22.0
++six>=1.14
++sympy>=1.6
++web3>=5.0.0
+diff --git a/setup.py b/setup.py
+index a648d5b..63e50ad 100644
+--- a/setup.py
++++ b/setup.py
+@@ -4,20 +4,21 @@ LONG_DESCRIPTION = open('README.md', 'r').read()
+ 
+ REQUIREMENTS = [
+     'aiohttp>=3.8.1',
+-    'cytoolz==0.12.1',
+-    'dateparser==1.0.0',
++    'cytoolz>=0.12.1',
++    'dateparser>=1.0.0',
+     'ecdsa>=0.16.0',
+     'eth_keys',
+-    'eth-account>=0.4.0,<0.6.0',
+-    'mpmath==1.0.0',
+-    'requests>=2.22.0,<3.0.0',
+-    'sympy==1.6',
+-    'web3>=5.0.0,<6.0.0',
++    'eth-account>=0.4.0',
++    'mpmath>=1.0.0',
++    'requests>=2.22.0',
++    'six>=1.14',
++    'sympy>=1.6',
++    'web3>=5.0.0',
+ ]
+ 
+ setup(
+     name='dydx-v3-python',
+-    version='2.0.1',
++    version='2.0.1a',
+     packages=find_packages(),
+     package_data={
+         'dydx3': [
