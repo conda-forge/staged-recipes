@@ -185,7 +185,7 @@ class TestScaleTypeEncoding(unittest.TestCase):
         self.assertIn('twitter', extrinsic_data['call']['call_args'][0]['value'])
 
     def test_valid_type_registry_presets(self):
-        preset_path = os.path.join(os.path.dirname(__file__), '..', 'scalecodec', 'type_registry')
+        preset_path = os.path.join(os.path.dirname(__file__), '..', 'type_registry')
 
         for filename in os.listdir(preset_path):
 
