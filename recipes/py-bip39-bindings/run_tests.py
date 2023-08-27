@@ -1,3 +1,5 @@
+# -*- coding: cp1250 -*-
+#
 # Python BIP39 Bindings
 #
 # Copyright 2018-2020 Stichting Polkascan (Polkascan Foundation).
