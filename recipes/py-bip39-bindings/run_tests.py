@@ -1,4 +1,4 @@
-# -*- coding: cp1250 -*-
+# -*- coding: utf-8 -*-
 #
 # Python BIP39 Bindings
 #
@@ -43,11 +43,11 @@ class MyTestCase(unittest.TestCase):
         self.assertTrue(bip39.bip39_validate(self.mnemonic))
 
     def test_validate_mnemonic_zh_hans(self):
-        self.assertTrue(bip39.bip39_validate('观 敲 荣 硬 责 雪 专 宴 醇 飞 图 菌', 'zh-hans'))
+        self.assertTrue(bip39.bip39_validate('č§‚ ć•˛ čŤŁ çˇ¬ č´Ł é›Ş ä¸“ ĺ®´ é†‡ éŁž ĺ›ľ čŹŚ', 'zh-hans'))
 
     def test_validate_mnemonic_fr(self):
         self.assertTrue(bip39.bip39_validate(
-            'moufle veinard tronc magasin merle amour toboggan admettre biotype décembre régalien billard', 'fr'
+            'moufle veinard tronc magasin merle amour toboggan admettre biotype deĚ�cembre reĚ�galien billard', 'fr'
         ))
 
     def test_invalidate_mnemonic(self):
@@ -58,7 +58,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_mini_seed_zh_hans(self):
 
-        mini_secret = bip39.bip39_to_mini_secret('观 敲 荣 硬 责 雪 专 宴 醇 飞 图 菌', '', 'zh-hans')
+        mini_secret = bip39.bip39_to_mini_secret('č§‚ ć•˛ čŤŁ çˇ¬ č´Ł é›Ş ä¸“ ĺ®´ é†‡ éŁž ĺ›ľ čŹŚ', '', 'zh-hans')
         self.assertEqual(
             [60, 215, 169, 79, 32, 218, 203, 59, 53, 155, 18, 234, 160, 215, 97, 30, 176, 243, 224, 103, 240, 114, 170,
              26, 4, 63, 250, 164, 88, 148, 41, 68], mini_secret)
@@ -70,7 +70,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(self.seed, bip39.bip39_to_seed(self.mnemonic, ''))
 
     def test_seed_zh_hans(self):
-        mnemonic = '旅 滨 昂 园 扎 点 郎 能 指 死 爬 根'
+        mnemonic = 'ć—… ć»¨ ć�‚ ĺ›­ ć‰Ž ç‚ą é�Ž č�˝ ćŚ‡ ć­» ç�¬ ć ą'
         seed = bip39.bip39_to_seed(mnemonic, '', 'zh-hans')
 
         self.assertEqual(
@@ -79,7 +79,7 @@ class MyTestCase(unittest.TestCase):
         )
 
     def test_seed_fr(self):
-        mnemonic = 'moufle veinard tronc magasin merle amour toboggan admettre biotype décembre régalien billard'
+        mnemonic = 'moufle veinard tronc magasin merle amour toboggan admettre biotype deĚ�cembre reĚ�galien billard'
         seed = bip39.bip39_to_seed(mnemonic, '', 'fr')
 
         self.assertEqual(
