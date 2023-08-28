@@ -7,42 +7,11 @@ package:
 
 build:
   number: 0
+  {% if cross_target_platform == "osx-arm64" and _MACOSX_DEPLOYMENT_TARGET_[0:2]|int < 11 %}
+  skip: True
+  {% endif %}
 
 outputs:
-  - name: macosx-sdk
-    version: {{ _MACOSX_SDK_VERSION_ }}
-    script: build_sdk.sh
-    build:
-      noarch: generic
-      # weigh down newer sdks
-      # the default osx-64 package has 0 features
-      # alternatives for osx-64 have 1 feature
-      # default for osx-arm64 has 2 features
-      # alternatives for osx-arm64 have 3 features
-      # the system SDK has 4 features
-      track_features:                                       # [is_default_sdk == "no" or is_arm64 == "yes"]
-        - macosx-sdk_default_{{ _MACOSX_SDK_VERSION_ }}     # [is_default_sdk == "no"]
-        - macosx-sdk_arm1_{{ _MACOSX_SDK_VERSION_ }}        # [is_arm64 == "yes"]
-        - macosx-sdk_arm2_{{ _MACOSX_SDK_VERSION_ }}        # [is_arm64 == "yes"]
-        - macosx-sdk_system_{{ _MACOSX_SDK_VERSION_ }}      # [is_system_sdk == "yes"]
-    requirements:
-      run:       # [is_system_sdk == "yes"]
-        - __osx  # [is_system_sdk == "yes"]
-      run_constrained:
-        # we cannot build for the future!
-        - sysroot_osx-64 <={{ _MACOSX_SDK_VERSION_ }}
-        - sysroot_osx-arm64 <={{ _MACOSX_SDK_VERSION_ }}
-    test:
-      commands:
-        - "[[ ${MACOSX_SDK_VERSION} == '{{ _MACOSX_SDK_VERSION_ }}' ]]"
-        - test -d "${SDKROOT}"
-    about:
-      home: https://github.com/conda-forge/osx-sysroot-feedstock
-      summary: package to download MacOSX SDKs
-      license: BSD-3-Clause
-      license_family: BSD
-      license_file: LICENSE
-
   - name: macosx_deployment_target_{{ cross_target_platform }}
     version: {{ _MACOSX_DEPLOYMENT_TARGET_ }}
     script: build_mdt.sh
@@ -51,24 +20,13 @@ outputs:
       run_exports:
         strong:
           - __osx >={{ _MACOSX_DEPLOYMENT_TARGET_ }}
-    requirements:
-      run:
-        # we can use newer SDKs to build for older systems
-        - macosx-sdk >={{ _MACOSX_DEPLOYMENT_TARGET_ }}|==1
     test:
       commands:
         - "[[ ${MACOSX_DEPLOYMENT_TARGET} == '{{ _MACOSX_DEPLOYMENT_TARGET_ }}' ]]"
-        - test -d "${SDKROOT}"
-    about:
-      home: https://github.com/conda-forge/osx-sysroot-feedstock
-      summary: metapackage to set the MACOSX_DEPLOYMENT_TARGET
-      license: BSD-3-Clause
-      license_family: BSD
-      license_file: LICENSE
 
 about:
   home: https://github.com/conda-forge/osx-sysroot-feedstock
-  summary: packages to download MacOSX SDKs and set MACOSX_DEPLOYMENT_TARGET
+  summary: metapackage to set the MACOSX_DEPLOYMENT_TARGET
   license: BSD-3-Clause
   license_family: BSD
   license_file: LICENSE
