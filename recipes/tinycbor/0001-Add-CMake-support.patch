@@ -1,14 +1,14 @@
-From 4d3f8c934bb3f6f5a9aa36e1155422aa01094ae4 Mon Sep 17 00:00:00 2001
+From 646e60b6b470e921dbf6154d39b3e6aa90f64ffa Mon Sep 17 00:00:00 2001
 From: Samuel Debionne <samuel.debionne@esrf.fr>
 Date: Wed, 23 Aug 2023 16:13:36 +0200
 Subject: [PATCH 1/2] Add CMake support
 
 ---
- CMakeLists.txt                | 84 +++++++++++++++++++++++++++++++++++
- cmake/PackageConfig.cmake     | 35 +++++++++++++++
- cmake/project-config.cmake.in | 16 +++++++
+ CMakeLists.txt                | 91 +++++++++++++++++++++++++++++++++++
+ cmake/PackageConfig.cmake     | 35 ++++++++++++++
+ cmake/project-config.cmake.in | 16 ++++++
  tests/CMakeLists.txt          |  3 ++
- 4 files changed, 138 insertions(+)
+ 4 files changed, 145 insertions(+)
  create mode 100644 CMakeLists.txt
  create mode 100644 cmake/PackageConfig.cmake
  create mode 100644 cmake/project-config.cmake.in
@@ -16,10 +16,10 @@ Subject: [PATCH 1/2] Add CMake support
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
 new file mode 100644
-index 0000000..36e2714
+index 0000000..a0e0369
 --- /dev/null
 +++ CMakeLists.txt
-@@ -0,0 +1,84 @@
+@@ -0,0 +1,91 @@
 +# /****************************************************************************
 +# **
 +# ** Copyright (C) 2015 Intel Corporation
@@ -74,10 +74,17 @@ index 0000000..36e2714
 +# Check for open_memstream and store the result in HAVE_OPEN_MEMSTREAM
 +include (CheckSymbolExists)
 +check_symbol_exists(open_memstream stdio.h HAVE_OPEN_MEMSTREAM)
++check_symbol_exists(funopen stdio.h HAVE_OPEN_FUNOPEN)
++check_symbol_exists(fopencookie stdio.h HAVE_OPEN_FOPENCOOKIE)
 +
-+if(NOT WIN32 AND NOT HAVE_OPEN_MEMSTREAM)
++if(NOT HAVE_OPEN_MEMSTREAM)
++  if (HAVE_OPEN_FUNOPEN AND HAVE_OPEN_FOPENCOOKIE)
 +    message(STATUS "Using open_memstream implementation")
-+    target_sources(tinycbor PUBLIC src/open_memstream.c)
++    target_sources(tinycbor PRIVATE src/open_memstream.c)
++  else()
++    target_compile_definitions(tinycbor PRIVATE WITHOUT_OPEN_MEMSTREAM)
++    message(WARNING "funopen and fopencookie unavailable, open_memstream can not be implemented and conversion to JSON will not work properly!")
++  endif()
 +endif()
 +
 +target_include_directories(tinycbor
