@@ -1,0 +1,1 @@
+%PYTHON% -m pip install . -vvv --upgrade pip setuptools wheel
