@@ -19,11 +19,23 @@ else
     export CPPFLAGS="${CPPFLAGS} -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}"
 fi
 
+if [ -z "${MACOSX_SDK_VERSION}" ] && [ $(uname) == "Darwin" ]; then
+    MACOSX_SDK_VERSION=$(xcrun --sdk macosx --show-sdk-version)
+fi
+
 if [ ! -z "$MACOSX_SDK_VERSION" ]; then
-    sdk_parts=${MACOSX_SDK_VERSION//./' '}
-    sdk_parts=($sdk_parts)
-    mdt_parts=${MACOSX_DEPLOYMENT_TARGET//./' '}
-    mdt_parts=($mdt_parts)
+    sdk_parts=(${MACOSX_SDK_VERSION//'.'/' '})
+    mdt_parts=(${MACOSX_DEPLOYMENT_TARGET//'.'/' '})
+
+    num_sdk_parts=${#sdk_parts[@]}
+    num_mdt_parts=${#mdt_parts[@]}
+
+    for ((i=$num_sdk_parts; i<3; i++)); do
+        sdk_parts[i]=0
+    done
+    for ((i=$num_mdt_parts; i<3; i++)); do
+        mdt_parts[i]=0
+    done
 
     error_out=0
     if [ ${sdk_parts[0]} -lt ${mdt_parts[0]} ]; then
@@ -40,8 +52,8 @@ if [ ! -z "$MACOSX_SDK_VERSION" ]; then
 
     if [ $error_out -eq 1 ]; then
         echo "ERROR: MACOSX_DEPLOYMENT_TARGET (${MACOSX_DEPLOYMENT_TARGET}) \
-    must be less than or equal to MacOS SDK version (${MACOSX_SDK_VERSION}). Set MACOSX_SDK_VERSION in the \
-    conda_build_config.yaml file to a version greater than or equal to the MACOSX_DEPLOYMENT_TARGET."
+    must be less than or equal to the MacOS SDK version (${MACOSX_SDK_VERSION}). Set MACOSX_SDK_VERSION in the \
+    conda_build_config.yaml file of your recipe to a version greater than or equal to the MACOSX_DEPLOYMENT_TARGET."
         exit 1
     fi
 fi
