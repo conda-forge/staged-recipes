@@ -1,2 +1,2 @@
 
-maturin -i python --release --out dist --no-sdist
+%PYTHON% -m pip install --no-deps --ignore-installed . -vvv
