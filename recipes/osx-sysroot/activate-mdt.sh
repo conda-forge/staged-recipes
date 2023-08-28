@@ -24,12 +24,13 @@ if [ -z "${MACOSX_SDK_VERSION}" ] && [ $(uname) == "Darwin" ]; then
 fi
 
 if [ ! -z "$MACOSX_SDK_VERSION" ]; then
+    # read version into array (default syntax uses space separation, so just replace the dots)
     sdk_parts=(${MACOSX_SDK_VERSION//'.'/' '})
     mdt_parts=(${MACOSX_DEPLOYMENT_TARGET//'.'/' '})
 
+    # pad out to three elements with zeros
     num_sdk_parts=${#sdk_parts[@]}
     num_mdt_parts=${#mdt_parts[@]}
-
     for ((i=$num_sdk_parts; i<3; i++)); do
         sdk_parts[i]=0
     done
@@ -37,6 +38,7 @@ if [ ! -z "$MACOSX_SDK_VERSION" ]; then
         mdt_parts[i]=0
     done
 
+    # compare element by element
     error_out=0
     if [ ${sdk_parts[0]} -lt ${mdt_parts[0]} ]; then
         error_out=1
