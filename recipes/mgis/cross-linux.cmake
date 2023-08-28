@@ -18,6 +18,3 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 # god-awful hack because it seems to not run correct tests to determine this:
 set(__CHAR_UNSIGNED___EXITCODE 1)
-
-# tentative to disable cmake for overlinking error in conda (binary repackaging)
-set(CMAKE_SKIP_RPATH ON)
