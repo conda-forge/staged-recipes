@@ -39,7 +39,9 @@ if [ ! -z "$MACOSX_SDK_VERSION" ]; then
     fi
 
     if [ $error_out -eq 1 ]; then
-        echo "ERROR: MACOSX_SDK_VERSION (${MACOSX_SDK_VERSION}) must be greater than or equal to MACOSX_DEPLOYMENT_TARGET (${MACOSX_DEPLOYMENT_TARGET})"
+        echo "ERROR: MACOSX_DEPLOYMENT_TARGET (${MACOSX_DEPLOYMENT_TARGET}) \
+    must be less than or equal to MACOSX_SDK_VERSION (${MACOSX_SDK_VERSION}). Set the MACOSX_SDK_VERSION in the \
+    conda_build_config.yaml file to a version greater than or equal to the MACOSX_DEPLOYMENT_TARGET."
         exit 1
     fi
 fi
