@@ -10,7 +10,7 @@ cp contrafold api_test score_prediction $PREFIX/bin/eternafold-bin
 
 # Move relevant repo files to lib folder
 mkdir -p $PREFIX/lib/eternafold-lib
-cp -r $SRC_DIR/* $PREFIX/lib/eternafold-lib
+cp -R $SRC_DIR/* $PREFIX/lib/eternafold-lib
 
 # Symlink binary as eternafold and place in PATH-available location
 ln -s $PREFIX/bin/eternafold-bin/contrafold $PREFIX/bin/eternafold
@@ -22,3 +22,7 @@ do
     mkdir -p "${PREFIX}/etc/conda/${CHANGE}.d"
     cp "${RECIPE_DIR}/${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.sh"
 done
+
+#Debugging
+ls $RECIPE_DIR
+ls "${PREFIX}/etc/conda/${CHANGE}.d"
