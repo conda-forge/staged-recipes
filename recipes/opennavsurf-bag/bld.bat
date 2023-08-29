@@ -44,4 +44,4 @@ if errorlevel 1 exit /b 1
 REM Test it (only do Python tests for now due to linkage errors with
 REM   catch2 under MSVC)
 set BAG_SAMPLES_PATH=examples\sample-data
-%PYTHON% -m pytest python\test_*.py
+%PYTHON% -m pytest "%SRC_DIR%"\python
