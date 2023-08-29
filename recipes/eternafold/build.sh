@@ -25,4 +25,4 @@ done
 
 #Debugging
 ls $RECIPE_DIR
-ls "${PREFIX}/etc/conda/${CHANGE}.d"
+ls "${PREFIX}/etc/conda/activate.d"
