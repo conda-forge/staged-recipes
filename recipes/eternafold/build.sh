@@ -1,3 +1,6 @@
+echo "START BUILD"
+pwd
+
 # Move to conda-specific src directory location
 cd $SRC_DIR/src
 
@@ -6,10 +9,14 @@ make CXX=$CXX
 
 # Move built binaries to environment-specific location
 mkdir -p -v $PREFIX/bin/eternafold-bin
-cp contrafold api_test score_prediction $PREFIX/bin/eternafold-bin
+# cp contrafold api_test score_prediction $PREFIX/bin/eternafold-bin
 
 # Move relevant repo files to lib folder
+echo "COPYING FILES"
+cd $PREFIX
+ls
 mkdir -p -v $PREFIX/lib/eternafold-lib
+touch $PREFIX/lib/eternafold-lib/hello.txt
 cp -R $SRC_DIR/* $PREFIX/lib/eternafold-lib
 
 # Symlink binary as eternafold and place in PATH-available location
@@ -21,9 +28,6 @@ for CHANGE in "activate" "deactivate"
 do
     mkdir -p -v "${PREFIX}/etc/conda/${CHANGE}.d"
     cp "${RECIPE_DIR}/${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.sh"
+      echo "${RECIPE_DIR}/${CHANGE}.sh"
+      echo "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.sh"
 done
-
-#Debugging
-echo $PREFIX
-ls $RECIPE_DIR
-cat "${PREFIX}/etc/conda/activate.d/${PKG_NAME}_activate.sh"
