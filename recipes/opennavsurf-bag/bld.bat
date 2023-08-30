@@ -26,19 +26,22 @@ cmake -G Ninja ^
     -DBUILD_SHARED_LIBS=ON ^
 	-DBAG_CI:BOOL=ON ^
 	-DBAG_BUILD_TESTS:BOOL=OFF ^
-	-DBAG_BUILD_PYTHON:BOOL=ON ^
-	-DPython_EXECUTABLE="%PYTHON%"
+	-DBAG_BUILD_PYTHON:BOOL=OFF ^
 	
 if errorlevel 1 exit /b 1
 
-REM Build it
+REM Build C++
 cmake --build build -j %CPU_COUNT% --verbose --config Release
+if errorlevel 1 exit /b 1
+
+REM Build Python wheel
+%PYTHON% -m pip wheel -w .\wheel .\build\api\swig\python
 if errorlevel 1 exit /b 1
 
 REM Install it
 cmake --install build --verbose
 if errorlevel 1 exit /b 1
-%PYTHON% .\build\api\swig\python\setup.py install
+%PYTHON% -m pip install .\wheel\bagPy-*.whl
 if errorlevel 1 exit /b 1
 
 REM Test it (only do Python tests for now due to linkage errors with
