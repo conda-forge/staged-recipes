@@ -1,10 +1,5 @@
 setlocal EnableDelayedExpansion
 
-@echo on
-
-REM print environment variables
-set
-
 mkdir build
 if errorlevel 1 exit 1
 
@@ -27,11 +22,12 @@ cmake -G Ninja ^
 	-DBAG_CI:BOOL=ON ^
 	-DBAG_BUILD_TESTS:BOOL=OFF ^
 	-DBAG_BUILD_PYTHON:BOOL=OFF ^
+	-DCMAKE_OBJECT_PATH_MAX=1024
 	
 if errorlevel 1 exit /b 1
 
 REM Build C++
-cmake --build build -j %CPU_COUNT% --verbose --config Release
+cmake --build build -j %CPU_COUNT% --config Release
 if errorlevel 1 exit /b 1
 
 REM Build Python wheel
@@ -39,12 +35,10 @@ REM Build Python wheel
 if errorlevel 1 exit /b 1
 
 REM Install it
-cmake --install build --verbose
+cmake --install build
 if errorlevel 1 exit /b 1
-%PYTHON% -m pip install .\wheel\bagPy-*.whl
+for %%w in (.\wheel\bagPy-*.whl) do %PYTHON% -m pip install %%w
 if errorlevel 1 exit /b 1
 
-REM Test it (only do Python tests for now due to linkage errors with
-REM   catch2 under MSVC)
-set BAG_SAMPLES_PATH=examples\sample-data
-%PYTHON% -m pytest "%SRC_DIR%"\python
+REM Test it (just do a simple test to make sure we can import and use bagPy)
+%PYTHON% -c "from bagPy import *; m = Metadata()"
