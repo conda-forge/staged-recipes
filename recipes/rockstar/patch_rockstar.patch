@@ -1,0 +1,302 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+new file mode 100644
+index 0000000..2edf4ef
+--- /dev/null
++++ b/CMakeLists.txt
+@@ -0,0 +1,92 @@
++CMAKE_MINIMUM_REQUIRED(VERSION 3.12)
++project(
++  ROCKSTAR
++  LANGUAGES C
++)
++
++# Include the directory itself as a path to include directories
++set(CMAKE_INCLUDE_CURRENT_DIR ON)
++
++include_directories(/usr/include/tirpc)
++
++
++if (NOT CMAKE_BUILD_TYPE)
++  set (CMAKE_BUILD_TYPE Release)
++endif()
++
++# Set C standard
++set(CMAKE_C_STANDARD 99)
++
++# Detect hdf5
++find_package(HDF5 REQUIRED COMPONENTS C)
++if (HDF5_FOUND)
++  add_compile_definitions(H5_USE_16_API ENABLE_HDF5)
++  link_libraries(HDF5::HDF5)
++endif()
++
++
++# add_compile_definitions(H5_USE_16_API ENABLE_HDF5)
++add_compile_definitions(_LARGEFILE_SOURCE _LARGEFILE64_SOURCE _FILE_OFFSET_BITS=64 _DEFAULT_SOURCE _POSIX_SOURCE _POSIX_C_SOURCE=200809L _DARWIN_C_SOURCE)
++add_compile_options(-fPIC -fno-math-errno -Wall -m64 -Og)
++add_link_options(-fPIC)
++
++# Create executable
++include_directories("${PROJECT_SOURCE_DIR}")
++include_directories("${PROJECT_SOURCE_DIR}/io")
++include_directories("${PROJECT_SOURCE_DIR}/inet")
++
++project(ROCKSTAR C)
++
++set(SOURCES
++  main.c
++  rockstar.c
++  check_syscalls.c
++  fof.c
++  groupies.c
++  subhalo_metric.c
++  potential.c
++  nfw.c
++  jacobi.c
++  fun_times.c
++  interleaving.c
++  universe_time.c
++  hubble.c
++  integrate.c
++  distance.c
++  config_vars.c
++  config.c
++  bounds.c
++  inthash.c
++  client.c
++  server.c
++  merger.c
++  io/read_config.c
++  inet/socket.c
++  inet/rsocket.c
++  inet/address.c
++  io/meta_io.c
++  io/io_internal.c
++  io/io_ascii.c
++  io/stringparse.c
++  io/io_gadget.c
++  io/io_generic.c
++  io/io_art.c
++  io/io_nchilada.c
++  io/io_tipsy.c
++  io/io_bgc2.c
++  io/io_util.c
++  io/io_arepo.c
++  io/io_hdf5.c
++  io/io_enzo.c
++)
++
++# Generate "rockstar-galaxies" executable
++add_executable(rockstar-galaxies ${SOURCES})
++target_link_libraries(rockstar-galaxies tirpc m)
++
++# Generate "librockstar-galaxies.so" shared library
++add_library(lib SHARED ${SOURCES})
++target_link_libraries(lib tirpc m)
++set_target_properties(lib PROPERTIES OUTPUT_NAME "rockstar-galaxies")
++
++install(TARGETS rockstar-galaxies lib)
+
+diff --git a/fast3tree.c b/fast3tree.c
+index 2a94943..f4c6e67 100644
+--- a/fast3tree.c
++++ b/fast3tree.c
+@@ -127,7 +127,7 @@ static inline void fast3tree_find_sphere(struct fast3tree *t,
+
+ #undef fast3tree_find_sphere_skip
+ #define fast3tree_find_sphere_skip _F3TN(FAST3TREE_PREFIX,fast3tree_find_sphere_skip)
+-inline void fast3tree_find_sphere_skip(struct fast3tree *t,
++extern inline void fast3tree_find_sphere_skip(struct fast3tree *t,
+ 		  struct fast3tree_results *res, FAST3TREE_TYPE *tp, float r);
+
+ #undef fast3tree_find_sphere_periodic
+@@ -442,7 +442,7 @@ static inline void fast3tree_find_sphere(struct fast3tree *t, struct fast3tree_r
+   _fast3tree_find_sphere(t->root, res, c, r);
+ }
+
+-inline void fast3tree_find_sphere_skip(struct fast3tree *t, struct fast3tree_results *res, FAST3TREE_TYPE *tp, float r) {
++extern inline void fast3tree_find_sphere_skip(struct fast3tree *t, struct fast3tree_results *res, FAST3TREE_TYPE *tp, float r) {
+   res->num_points = 0;
+   _fast3tree_find_sphere_skip(t->root, res, tp->pos, r, tp);
+ }
+diff --git a/fun_times.h b/fun_times.h
+index 0dd1355..10397cd 100644
+--- a/fun_times.h
++++ b/fun_times.h
+@@ -15,7 +15,7 @@ struct prev_bounds {
+   float bounds[6];
+ };
+
+-struct prev_bounds *p_bounds;
++extern struct prev_bounds *p_bounds;
+ extern int64_t prev_snap;
+
+ #define MAX_CORE_PARTICLES 10000
+diff --git a/groupies.c b/groupies.c
+index 34f9fd7..1856d26 100644
+--- a/groupies.c
++++ b/groupies.c
+@@ -923,7 +923,7 @@ int64_t rad_partition(float *rad, int64_t left, int64_t right, int64_t pivot_ind
+ #undef SWAP
+ }
+
+-inline float random_unit(void) {
++extern inline float random_unit(void) {
+   return(((float)(rand()%(RAND_MAX))/(float)(RAND_MAX)));
+ }
+
+diff --git a/interleaving.h b/interleaving.h
+index 1d3894b..1537887 100644
+--- a/interleaving.h
++++ b/interleaving.h
+@@ -18,7 +18,7 @@ struct bgroup {
+
+ extern int64_t num_new_bp;
+ extern struct bgroup *bg;
+-struct bgroup *final_bg;
++extern struct bgroup *final_bg;
+ extern int64_t num_bg_sets;
+ extern int64_t *bg_set_sizes;
+ extern int64_t *bg_set_indices;
+diff --git a/inthash.c b/inthash.c
+index aeda489..64234b8 100644
+--- a/inthash.c
++++ b/inthash.c
+@@ -40,7 +40,7 @@ int64_t *ih_keylist(struct inthash *ih) {
+ }
+
+
+-inline uint64_t _ih_hash_function(struct inthash *ih, uint64_t key) {
++extern inline uint64_t _ih_hash_function(struct inthash *ih, uint64_t key) {
+   return ((key*ih->hashnum)>>(64 - ih->hashwidth));
+ }
+
+@@ -81,7 +81,7 @@ void ih_prealloc(struct inthash *ih, int64_t size) {
+   _ih_add_more_buckets(ih, numbits-ih->hashwidth);
+ }
+
+-inline struct intbucket *_ih_getval(struct inthash *ih, int64_t key) {
++extern inline struct intbucket *_ih_getval(struct inthash *ih, int64_t key) {
+   struct intbucket *ib = ih->buckets + _ih_hash_function(ih, key);
+   int64_t key2 = key;
+   while (ib->key!=IH_INVALID) {
+@@ -92,7 +92,7 @@ inline struct intbucket *_ih_getval(struct inthash *ih, int64_t key) {
+   return ib;
+ }
+
+-inline struct intbucket *_ih_getval_deleted(struct inthash *ih, int64_t key) {
++extern inline struct intbucket *_ih_getval_deleted(struct inthash *ih, int64_t key) {
+   struct intbucket *ib = ih->buckets + _ih_hash_function(ih, key);
+   struct intbucket *ib_del = NULL;
+   int64_t key2 = key;
+diff --git a/io/bgc2.h b/io/bgc2.h
+index 3387d77..99ac6c2 100644
+--- a/io/bgc2.h
++++ b/io/bgc2.h
+@@ -116,7 +116,7 @@ typedef struct {
+
+ /* Get the size of the GROUP DATA (gdata) structure based on FORMAT number */
+ #ifdef BGC2_SIZE
+-inline size_t
++extern inline size_t
+ bgc_sizeof_gdata( const int64_t gdata_format )
+ {
+     switch ( gdata_format ) {
+@@ -149,7 +149,7 @@ enum pdata_format {
+ };
+
+ #ifdef BGC2_SIZE
+-inline int
++extern inline int
+ bgc_format_includes_be( int64_t format_id )
+ {
+     /* this MUST be kept in sync with the above enum defining the formats */
+@@ -215,7 +215,7 @@ typedef struct {
+
+ /* Get the size of the PARTICLE DATA (pdata) structure based on FORMAT number */
+ #ifdef BGC2_SIZE
+-inline size_t
++extern inline size_t
+ bgc_sizeof_pdata( const int64_t pdata_format )
+ {
+     switch ( pdata_format ) {
+diff --git a/io/io_bgc2.c b/io/io_bgc2.c
+index 2b5b97a..d338f08 100644
+--- a/io/io_bgc2.c
++++ b/io/io_bgc2.c
+@@ -95,7 +95,7 @@ struct fast3tree *ep_tree, *ep_tree2=NULL;
+ struct fast3tree_results *ep_res;
+ float ep_old_minmax[6];
+
+-inline void insertion_sort_extended_particles(int64_t min, int64_t max,
++extern inline void insertion_sort_extended_particles(int64_t min, int64_t max,
+                 struct extended_particle **particles, float *radii) {
+   int64_t i, pos;
+   float r;
+
+diff --git a/io/io_internal.c b/io/io_internal.c
+index adf6a94..89bccf3 100644
+--- a/io/io_internal.c
++++ b/io/io_internal.c
+@@ -72,12 +72,12 @@ void load_particles_internal(char *filename, struct particle **part, int64_t *nu
+ }
+
+
+-inline void _clear_buffer(FILE *output) {
++extern inline void _clear_buffer(FILE *output) {
+   check_fwrite(output_buffer, buffered, 1, output);
+   buffered = 0;
+ }
+
+-inline void _append_to_buffer(void *src, int64_t size, FILE *output) {
++extern inline void _append_to_buffer(void *src, int64_t size, FILE *output) {
+   if (buffered + size > OUTPUT_BUFFER_SIZE) _clear_buffer(output);
+   if (size > OUTPUT_BUFFER_SIZE) { check_fwrite(src, size, 1, output); return; }
+   memcpy(((char *)output_buffer)+buffered, src, size);
+diff --git a/io/io_util.c b/io/io_util.c
+index 4e1a249..d94ae5f 100644
+--- a/io/io_util.c
++++ b/io/io_util.c
+@@ -33,7 +33,8 @@ size_t fread_swap(void *ptr, size_t size, size_t nitems, FILE *stream) {
+   int8_t *e = ptr;
+   n = check_fread(ptr, size, nitems, stream);
+   if (!(size % 4))
+-    for (i=0; i<(n*size); i+=4) swap_endian_4byte(e+i);  return n;
++    for (i=0; i<(n*size); i+=4) swap_endian_4byte(e+i);
++  return n;
+ }
+
+ size_t fread_swap8(void *ptr, size_t size, size_t nitems, FILE *stream) {
+diff --git a/nfw.c b/nfw.c
+index b53301f..08de831 100644
+--- a/nfw.c
++++ b/nfw.c
+@@ -11,7 +11,7 @@
+ #define MIN_PART_PER_BIN 15
+ #define MIN_SCALE_PART (100)
+
+-inline double c_to_f(double c) {
++extern inline double c_to_f(double c) {
+   double cp1 = 1.0+c;
+   return (c*cp1 / (log1p(c)*cp1 - c));
+ }
+diff --git a/potential.c b/potential.c
+index 89d05e2..31005ee 100644
+--- a/potential.c
++++ b/potential.c
+@@ -13,13 +13,13 @@
+ #define POTENTIAL_HALT_AFTER_BOUND 0
+ #endif /* !def POTENTIAL_HALT_AFTER_BOUND */
+
+-inline double _distance2(float *p1, float *p2) {
++extern inline double _distance2(float *p1, float *p2) {
+   double dx, r2=0;
+   for (int64_t k=0; k<3; k++) { dx=p1[k]-p2[k]; r2+=dx*dx; }
+   return (r2);
+ }
+
+-inline double inv_distance(float *p1, float *p2) {
++extern inline double inv_distance(float *p1, float *p2) {
+   double r = sqrt(_distance2(p1,p2));
+   if (r < FORCE_RES) r = FORCE_RES;
+   return (1.0/r);
