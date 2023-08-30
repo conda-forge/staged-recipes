@@ -9,14 +9,11 @@ make CXX=$CXX
 
 # Move built binaries to environment-specific location
 mkdir -p -v $PREFIX/bin/eternafold-bin
-# cp contrafold api_test score_prediction $PREFIX/bin/eternafold-bin
+cp contrafold api_test score_prediction $PREFIX/bin/eternafold-bin
 
 # Move relevant repo files to lib folder
-echo "COPYING FILES"
 cd $PREFIX
-ls
 mkdir -p -v $PREFIX/lib/eternafold-lib
-touch $PREFIX/lib/eternafold-lib/hello.txt
 cp -R $SRC_DIR/* $PREFIX/lib/eternafold-lib
 
 # Symlink binary as eternafold and place in PATH-available location
