@@ -1,9 +1,22 @@
 #!/bin/bash
 
-make build
+# setup
+echo "Setup Environment Variables"
+export CGO_ENABLED=0
+export MINIO_RELEASE=RELEASE
+export GOPATH=$(go env GOPATH)
+LDFLAGS=$(go run buildscripts/gen-ldflags.go "${GIT_TIME}")
 
+# build
+echo "Build MinIO Server"
+mkdir -p ${PREFIX}/bin
+go build -tags kqueue -trimpath --ldflags "${LDFLAGS}" -o "${PREFIX}/bin/minio"
+
+# collect licenses
 # see manual_licenses for licenses that are not automatically detected
-go-licenses save "." --save_path "${SRC_DIR}/library_licenses/" \
+echo "Collect Licenses"
+go-licenses save . \
+    --save_path="${SRC_DIR}/library_licenses/" \
     --ignore github.com/cespare/xxhash/v2 \
     --ignore github.com/dchest/siphash \
     --ignore github.com/golang/snappy \
@@ -41,6 +54,7 @@ go-licenses save "." --save_path "${SRC_DIR}/library_licenses/" \
     --ignore github.com/zeebo/xxh3 \
     --ignore golang.org/x/crypto/argon2 \
     --ignore golang.org/x/crypto/blake2b \
+    --ignore golang.org/x/crypto/chacha20 \
     --ignore golang.org/x/crypto/chacha20poly1305 \
     --ignore golang.org/x/crypto/internal/poly1305 \
     --ignore golang.org/x/crypto/salsa20/salsa \
@@ -48,7 +62,3 @@ go-licenses save "." --save_path "${SRC_DIR}/library_licenses/" \
     --ignore golang.org/x/net/internal/socket \
     --ignore golang.org/x/sys/cpu \
     --ignore golang.org/x/sys/unix
-
-# move minio into bin
-mkdir -p ${PREFIX}/bin
-mv ./minio ${PREFIX}/bin/minio

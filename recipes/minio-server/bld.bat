@@ -1,7 +1,21 @@
-make build
+:: setup
+echo Setup Environment Variables
+set CGO_ENABLED=0
+set MINIO_RELEASE=RELEASE
+for /f %%i in ('go env GOPATH') do set GOPATH=%%i
+for /f %%i in ('go run buildscripts\gen-ldflags.go "%GIT_TIME%"') do set LDFLAGS=%%i
+if %errorlevel% neq 0 exit /b %errorlevel%
 
+:: build
+echo Build MinIO Server
+go build -tags kqueue -trimpath --ldflags "%LDFLAGS%" -o "%PREFIX%\minio.exe"
+if %errorlevel% neq 0 exit /b %errorlevel%
+
+:: collect licenses
 :: see manual_licenses for licenses that are not automatically detected
-go-licenses save "." --save_path "%SRC_DIR%\library_licenses\" ^
+echo Collect Licenses
+go-licenses save . ^
+    --save_path=%SRC_DIR%\library_licenses\ ^
     --ignore github.com/cespare/xxhash/v2 ^
     --ignore github.com/dchest/siphash ^
     --ignore github.com/golang/snappy ^
@@ -39,6 +53,7 @@ go-licenses save "." --save_path "%SRC_DIR%\library_licenses\" ^
     --ignore github.com/zeebo/xxh3 ^
     --ignore golang.org/x/crypto/argon2 ^
     --ignore golang.org/x/crypto/blake2b ^
+    --ignore golang.org/x/crypto/chacha20 ^
     --ignore golang.org/x/crypto/chacha20poly1305 ^
     --ignore golang.org/x/crypto/internal/poly1305 ^
     --ignore golang.org/x/crypto/salsa20/salsa ^
@@ -46,6 +61,4 @@ go-licenses save "." --save_path "%SRC_DIR%\library_licenses\" ^
     --ignore golang.org/x/net/internal/socket ^
     --ignore golang.org/x/sys/cpu ^
     --ignore golang.org/x/sys/unix
-
-:: on Windows move minio into $PREFIX
-move .\minio %PREFIX%\minio.exe
+if %errorlevel% neq 0 exit /b %errorlevel%
