@@ -1,6 +1,3 @@
-echo "START BUILD"
-pwd
-
 # Move to conda-specific src directory location
 cd $SRC_DIR/src
 
@@ -25,6 +22,4 @@ for CHANGE in "activate" "deactivate"
 do
     mkdir -p -v "${PREFIX}/etc/conda/${CHANGE}.d"
     cp "${RECIPE_DIR}/${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.sh"
-      echo "${RECIPE_DIR}/${CHANGE}.sh"
-      echo "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.sh"
 done
