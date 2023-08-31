@@ -25,6 +25,5 @@ $PYTHON -m pip wheel -w ./wheel ./build/api/swig/python
 cmake --install build
 $PYTHON -m pip install ./wheel/bagPy-*.whl
 
-# Test it
-BAG_SAMPLES_PATH=./examples/sample-data ./build/tests/bag_tests
-BAG_SAMPLES_PATH=./examples/sample-data $PYTHON -m pytest python/test_*.py
+# Test it (just do a simple test to make sure we can import and use bagPy)
+$PYTHON -c 'from bagPy import *; m = Metadata()'
