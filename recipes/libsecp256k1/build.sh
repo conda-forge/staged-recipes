@@ -7,10 +7,10 @@ mkdir -p ${BUILD_DIR}
 cd ${BUILD_DIR}
 
 # Create build files
-cmake .. -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_BUILD_TYPE=Release ${CMAKE_ARGS} ${CMAKE_OPTIONS}
+cmake .. -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_INSTALL_PREFIX=$LIBRARY_PREFIX% ${CMAKE_ARGS} ${SECP256K1_OPTIONS}
 
 # Build
-cmake --build . --config Release --target install ${CMAKE_BUILD_OPTIONS}
+cmake --build . --target install ${CMAKE_BUILD_OPTIONS}
 
-# Install
-# cmake --install . --config Release --prefix $PREFIX
+# Test
+make check
