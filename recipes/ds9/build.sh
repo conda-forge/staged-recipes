@@ -2,12 +2,11 @@
 
 set -e
 
-# https://github.com/SAOImageDS9/SAOImageDS9/issues/134
-sed -i 's/tclsh/$(TCLSH_PROG)/' ds9/make.include
-
 if [[ $(uname -s) == "Linux" ]]; then
+  sed -i 's/tclsh/$(TCLSH_PROG)/' ds9/make.include     # https://github.com/SAOImageDS9/SAOImageDS9/issues/134
   ./unix/configure
 else
+  sed -i '' 's/tclsh/$(TCLSH_PROG)/' ds9/make.include
   ./macos/configure
 fi
 
