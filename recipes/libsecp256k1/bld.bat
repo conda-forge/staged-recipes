@@ -16,10 +16,6 @@ cmake %CMAKE_ARGS% ^
     -D CMAKE_BUILD_TYPE=Release ^
     -D CMAKE_PREFIX_PATH="%PREFIX%" ^
     -D CMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
-    -D PYTHON_EXECUTABLE=%PYTHON% ^
-    -D COMPILER=AUTO ^
-    -D OPENMP=FALSE ^
-    -D CUDA=%BUILD_CUDA% ^
     -D SECP256K1_ENABLE_MODULE_ECDH=ON ^
     -D SECP256K1_ENABLE_MODULE_RECOVERY=OFF ^
     -D SECP256K1_ENABLE_MODULE_EXTRAKEYS=ON ^
@@ -31,9 +27,9 @@ cmake %CMAKE_ARGS% ^
 cmake  --build .
 if errorlevel 1 exit 1
 
-cmake --build . --target install
+cmake --build . --target check
 if errorlevel 1 exit 1
 
-make check
+cmake --build . --target install
 if errorlevel 1 exit 1
 
