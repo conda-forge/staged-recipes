@@ -9,7 +9,7 @@ if errorlevel 1 exit 1
 cd "%BUILD_DIR%"
 if errorlevel 1 exit 1
 
-cmake .. -DCMAKE_PREFIX_PATH="%PREFIX%" -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" -DCMAKE_BUILD_TYPE=Release
+cmake .. "%CMAKE_ARGS%" -DCMAKE_PREFIX_PATH="%PREFIX%" -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" -DCMAKE_BUILD_TYPE=Release
 if errorlevel 1 exit 1
 
 cmake --build . --config Release --target install
