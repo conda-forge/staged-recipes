@@ -1,0 +1,122 @@
+{% set name = "libsecp256k1" %}
+{% set version = "0.3.2" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/bitcoin-core/secp256k1/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: ef2e1061951b8cf94a7597b4e60fd7810613e327e25305e8d73dfdff67d12190
+
+build:
+  number: 0
+  missing_dso_whitelist:
+    - /lib64/libc.so.6
+
+outputs:
+  - name: libsecp256k1
+    requirements:
+      build:
+        - make
+        - cmake
+        - {{ compiler('c') }}
+
+    build:
+      run_exports:
+        - {{ pin_subpackage("libsecp256k1", exact=True) }}
+      script_env:
+        - SECP256K1_ENABLE_MODULE_ECDH=ON
+        - SECP256K1_ENABLE_MODULE_RECOVERY=OFF
+        - SECP256K1_ENABLE_MODULE_EXTRAKEYS=ON
+        - SECP256K1_ENABLE_MODULE_SCHNORRSIG=ON
+        - SECP256K1_EXPERIMENTAL=OFF
+        - SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS=OFF
+        - SECP256K1_INSTALL=ON
+
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libsecp256k1${SHLIB_EXT}  # [unix]
+        - if not exist %LIBRARY_BIN%\\libsecp256k1-2.dll exit 1  # [win]
+        - test -f ${PREFIX}/include/secp256k1.h  # [unix]
+        - test -f ${PREFIX}/include/secp256k1_preallocated.h  # [unix]
+        - test -f ${PREFIX}/include/secp256k1_ecdh.h  # [unix]
+        - test -f ${PREFIX}/include/secp256k1_recovery.h  # [unix]
+        - test -f ${PREFIX}/include/secp256k1_extrakeys.h  # [unix]
+        - test -f ${PREFIX}/include/secp256k1_schnorrsig.h  # [unix]
+        - if not exist %LIBRARY_INC%\\secp256k1.h exit 1  # [win]
+        - if not exist %LIBRARY_INC%\\secp256k1_preallocated.h exit 1  # [win]
+        - if not exist %LIBRARY_INC%\\secp256k1_ecdh.h exit 1  # [win]
+        - if not exist %LIBRARY_INC%\\secp256k1_recovery.h exit 1  # [win]
+        - if not exist %LIBRARY_INC%\\secp256k1_extrakeys.h  exit 1  # [win]
+        - if not exist %LIBRARY_INC%\\secp256k1_schnorrsig.h exit 1  # [win]
+        - test -f ${PREFIX}/lib/cmake/libsecp256k1/libsecp256k1-config.cmake  # [unix]
+        - if not exist %LIBRARY_LIB%\\cmake\\filepattern\\libsecp256k1-config.cmake exit 1  # [win]
+
+#  - name: libsecp256k1-with-extrakeys
+#    build:
+#      run_exports:
+#        - {{ pin_subpackage("libsecp256k1-with-extrakeys", max_pin="x.x") }}
+#      script_env:
+#        SECP256K1_OPTIONS="-DSECP256K1_ENABLE_MODULE_ECDH=OFF \
+#                           -DSECP256K1_ENABLE_MODULE_RECOVERY=OFF \
+#                           -DSECP256K1_ENABLE_MODULE_EXTRAKEYS=ON \
+#                           -DSECP256K1_ENABLE_MODULE_SCHNORRSIG=OFF"
+#
+#  - name: libsecp256k1-with-schnorr
+#    build:
+#      run_exports:
+#        - {{ pin_subpackage("libsecp256k1-with-schnorr", max_pin="x.x") }}
+#      script_env:
+#        SECP256K1_OPTIONS="-DSECP256K1_ENABLE_MODULE_ECDH=OFF \
+#                           -DSECP256K1_ENABLE_MODULE_RECOVERY=OFF \
+#                           -DSECP256K1_ENABLE_MODULE_EXTRAKEYS=OFF \
+#                           -DSECP256K1_ENABLE_MODULE_SCHNORRSIG=ON"
+#
+#  - name: libsecp256k1-with-ecdh
+#    build:
+#      run_exports:
+#        - {{ pin_subpackage("libsecp256k1-with-ecdh", max_pin="x.x") }}
+#      script_env:
+#        SECP256K1_OPTIONS="-DSECP256K1_ENABLE_MODULE_ECDH=ON \
+#                           -DSECP256K1_ENABLE_MODULE_RECOVERY=OFF \
+#                           -DSECP256K1_ENABLE_MODULE_EXTRAKEYS=OFF \
+#                           -DSECP256K1_ENABLE_MODULE_SCHNORRSIG=OFF"
+#
+#  - name: libsecp256k1-with-ecdh-recovery
+#    build:
+#      run_exports:
+#        - {{ pin_subpackage("libsecp256k1-with-ecdh-recovery", max_pin="x.x") }}
+#      script_env:
+#        SECP256K1_OPTIONS="-DSECP256K1_ENABLE_MODULE_ECDH=ON \
+#                           -DSECP256K1_ENABLE_MODULE_RECOVERY=ON \
+#                           -DSECP256K1_ENABLE_MODULE_EXTRAKEYS=OFF \
+#                           -DSECP256K1_ENABLE_MODULE_SCHNORRSIG=OFF"
+#
+#  - name: libsecp256k1-with-all
+#    build:
+#      run_exports:
+#        - {{ pin_subpackage("libsecp256k1-with-all", max_pin="x.x") }}
+#      script_env:
+#        SECP256K1_OPTIONS="-DSECP256K1_ENABLE_MODULE_ECDH=ON \
+#                           -DSECP256K1_ENABLE_MODULE_RECOVERY=ON \
+#                           -DSECP256K1_ENABLE_MODULE_EXTRAKEYS=ON \
+#                           -DSECP256K1_ENABLE_MODULE_EXPERIMENTAL=ON \
+#                           -DSECP256K1_ENABLE_MODULE_SCHNORRSIG=ON"
+
+about:
+  home: https://github.com/bitcoin-core/secp256k1
+  summary: 'Optimized C library for ECDSA signatures and secret/public key operations on curve secp256k1.'
+  description: |
+    This library is intended to be the highest quality publicly available 
+    library for cryptography on the secp256k1 curve. However, the primary 
+    focus of its development has been for usage in the Bitcoin system and 
+    usage unlike Bitcoin's may be less well tested, verified, or suffer 
+    from a less well thought out interface. Correct usage requires some 
+    care and consideration that the library is fit for your application's purpose.
+  license: MIT
+  license_file: LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - https://github.com/MementoRC
