@@ -11,7 +11,7 @@ cmake ../ -G "Ninja" ^
 
 if errorlevel 1 exit 1
 
-cmake --build . --target INSTALL --config Release --parallel %NUMBER_OF_PRECESSOR%
+cmake --build . --target install --config Release --parallel %NUMBER_OF_PRECESSOR%
 if errorlevel 1 exit 1
 
 popd
