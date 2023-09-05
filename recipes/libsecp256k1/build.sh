@@ -17,8 +17,6 @@ cmake ${CMAKE_ARGS} \
     -D SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS=OFF \
     -D SECP256K1_INSTALL=ON
 
-make -j${CPU_COUNT}
-make check
-make install
-mkdir -p ${PREFIX}/lib/pkgconfig
-cp ${PREFIX}/lib/pkgconfig/* ${PREFIX}/lib/pkgconfig
+cmake --build . --config Release --parallel ${CPU_COUNT}
+cmake --build . --target check
+cmake --build . --target install
