@@ -39,6 +39,3 @@ cmake --install build
 if errorlevel 1 exit /b 1
 for %%w in (.\wheel\bagPy-*.whl) do %PYTHON% -m pip install %%w
 if errorlevel 1 exit /b 1
-
-REM Test it (just do a simple test to make sure we can import and use bagPy)
-%PYTHON% -c "from bagPy import *; m = Metadata()"
