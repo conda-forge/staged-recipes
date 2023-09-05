@@ -12,7 +12,7 @@ void test_unity(){
 
     TEST_ASSERT_EQUAL(a,i);
 }
-void main () {
+int main () {
     UNITY_BEGIN();
 
     RUN_TEST(test_unity);
