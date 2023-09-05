@@ -353,7 +353,7 @@ if __name__ == '__main__':
                      '--without-webservice', '--feedstock_directory',
                      feedstock_dir] + owner_info)
                 subprocess.check_call(
-                    ['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
+                    ['conda', 'smithy', 'rerender', '--no-check-uptodate'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
                 exit_code = 0
                 traceback.print_exception(*sys.exc_info())
@@ -397,7 +397,7 @@ if __name__ == '__main__':
                     cwd=feedstock_dir
                 )
                 subprocess.check_call(
-                    ['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
+                    ['conda', 'smithy', 'rerender', '--no-check-uptodate'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
                 exit_code = 0
                 traceback.print_exception(*sys.exc_info())
