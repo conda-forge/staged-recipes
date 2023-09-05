@@ -1,0 +1,146 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 3107eb3..7556629 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -11,11 +11,14 @@ project(libsecp256k1
+   # The package (a.k.a. release) version is based on semantic versioning 2.0.0 of
+   # the API. All changes in experimental modules are treated as
+   # backwards-compatible and therefore at most increase the minor version.
+-  VERSION 0.3.3
++  VERSION 0.3.2
+   DESCRIPTION "Optimized C library for ECDSA signatures and secret/public key operations on curve secp256k1."
+   HOMEPAGE_URL "https://github.com/bitcoin-core/secp256k1"
+   LANGUAGES C
+ )
++set(COMMENT_TITLE "SECP256K1 - C library for ECDSA")
++set(COMMENT_COPYRIGHT "Copyright (c) 2013 Pieter Wuille")
++set(COMMENT_LICENCE "MIT")
+ 
+ if(CMAKE_VERSION VERSION_LESS 3.21)
+   get_directory_property(parent_directory PARENT_DIRECTORY)
+@@ -35,7 +38,7 @@ endif()
+ # All changes in experimental modules are treated as if they don't affect the
+ # interface and therefore only increase the revision.
+ set(${PROJECT_NAME}_LIB_VERSION_CURRENT 2)
+-set(${PROJECT_NAME}_LIB_VERSION_REVISION 3)
++set(${PROJECT_NAME}_LIB_VERSION_REVISION 2)
+ set(${PROJECT_NAME}_LIB_VERSION_AGE 0)
+ 
+ set(CMAKE_C_STANDARD 90)
+@@ -71,11 +74,6 @@ if(SECP256K1_ENABLE_MODULE_EXTRAKEYS)
+   add_compile_definitions(ENABLE_MODULE_EXTRAKEYS=1)
+ endif()
+ 
+-option(SECP256K1_ENABLE_MODULE_ELLSWIFT "Enable ElligatorSwift module." ON)
+-if(SECP256K1_ENABLE_MODULE_ELLSWIFT)
+-  add_compile_definitions(ENABLE_MODULE_ELLSWIFT=1)
+-endif()
+-
+ option(SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS "Enable external default callback functions." OFF)
+ if(SECP256K1_USE_EXTERNAL_DEFAULT_CALLBACKS)
+   add_compile_definitions(USE_EXTERNAL_DEFAULT_CALLBACKS=1)
+@@ -217,12 +215,8 @@ endif()
+ include(TryAppendCFlags)
+ if(MSVC)
+   # Keep the following commands ordered lexicographically.
+-  try_append_c_flags(/W3) # Production quality warning level.
++  try_append_c_flags(/W2) # Moderate warning level.
+   try_append_c_flags(/wd4146) # Disable warning C4146 "unary minus operator applied to unsigned type, result still unsigned".
+-  try_append_c_flags(/wd4244) # Disable warning C4244 "'conversion' conversion from 'type1' to 'type2', possible loss of data".
+-  try_append_c_flags(/wd4267) # Disable warning C4267 "'var' : conversion from 'size_t' to 'type', possible loss of data".
+-  # Eliminate deprecation warnings for the older, less secure functions.
+-  add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+ else()
+   # Keep the following commands ordered lexicographically.
+   try_append_c_flags(-pedantic)
+@@ -275,7 +269,6 @@ message("  ECDH ................................ ${SECP256K1_ENABLE_MODULE_ECDH}
+ message("  ECDSA pubkey recovery ............... ${SECP256K1_ENABLE_MODULE_RECOVERY}")
+ message("  extrakeys ........................... ${SECP256K1_ENABLE_MODULE_EXTRAKEYS}")
+ message("  schnorrsig .......................... ${SECP256K1_ENABLE_MODULE_SCHNORRSIG}")
+-message("  ElligatorSwift ...................... ${SECP256K1_ENABLE_MODULE_ELLSWIFT}")
+ message("Parameters:")
+ message("  ecmult window size .................. ${SECP256K1_ECMULT_WINDOW_SIZE}")
+ message("  ecmult gen precision bits ........... ${SECP256K1_ECMULT_GEN_PREC_BITS}")
+@@ -309,6 +302,7 @@ string(REPLACE ";" " " definitions "${definitions}")
+ message("Preprocessor defined macros ........... ${definitions}")
+ message("C compiler ............................ ${CMAKE_C_COMPILER}")
+ message("CFLAGS ................................ ${CMAKE_C_FLAGS}")
++set(CONCAT SECP256K1_CFLAGS "${CMAKE_C_FLAGS}")
+ get_directory_property(compile_options COMPILE_OPTIONS)
+ string(REPLACE ";" " " compile_options "${compile_options}")
+ message("Compile options ....................... " ${compile_options})
+@@ -317,18 +311,23 @@ if(NOT is_multi_config)
+   message(" - CMAKE_BUILD_TYPE ................... ${CMAKE_BUILD_TYPE}")
+   string(TOUPPER "${CMAKE_BUILD_TYPE}" build_type)
+   message(" - CFLAGS ............................. ${CMAKE_C_FLAGS_${build_type}}")
++  string(APPEND SECP256K1_CFLAGS " ${CMAKE_C_FLAGS_${build_type}}")
+   message(" - LDFLAGS for executables ............ ${CMAKE_EXE_LINKER_FLAGS_${build_type}}")
+   message(" - LDFLAGS for shared libraries ....... ${CMAKE_SHARED_LINKER_FLAGS_${build_type}}")
++  set(SECP256K1_LDFLAGS ${CMAKE_SHARED_LINKER_FLAGS_${build_type}})
+ else()
+   message("Supported configurations .............. ${CMAKE_CONFIGURATION_TYPES}")
+   message("RelWithDebInfo configuration:")
+   message(" - CFLAGS ............................. ${CMAKE_C_FLAGS_RELWITHDEBINFO}")
++  string(APPEND SECP256K1_CFLAGS " ${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+   message(" - LDFLAGS for executables ............ ${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO}")
+   message(" - LDFLAGS for shared libraries ....... ${CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO}")
+   message("Debug configuration:")
+   message(" - CFLAGS ............................. ${CMAKE_C_FLAGS_DEBUG}")
++  string(APPEND SECP256K1_CFLAGS " ${CMAKE_C_FLAGS_DEBUG}")
+   message(" - LDFLAGS for executables ............ ${CMAKE_EXE_LINKER_FLAGS_DEBUG}")
+   message(" - LDFLAGS for shared libraries ....... ${CMAKE_SHARED_LINKER_FLAGS_DEBUG}")
++  string(CONCAT SECP256K1_LDFLAGS ${CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO} -lsecp256k1)
+ endif()
+ message("\n")
+ if(SECP256K1_EXPERIMENTAL)
+@@ -339,3 +338,28 @@ if(SECP256K1_EXPERIMENTAL)
+     "  ******\n"
+   )
+ endif()
++
++set(COMMENT_TITLE "${COMMENT_TITLE}")
++set(COMMENT_COPYRIGHT "${COMMENT_COPYRIGHT}")
++set(COMMENT_LICENCE "${COMMENT_LICENCE}")
++
++set(PACKAGE_PREFIX "@prefix@")
++set(PACKAGE_NAME "${PROJECT_NAME}")
++set(PACKAGE_DESCRIPTION "${PROJECT_DESCRIPTION}")
++set(PACKAGE_URL "${PROJECT_HOMEPAGE_URL}")
++set(PACKAGE_VERSION "${PROJECT_VERSION}")
++set(PACKAGE_CFLAGS "${SECP256K1_CFLAGS}")
++set(PACKAGE_LDFLAGS "${SECP256K1_LDFLAGS}")
++
++if (NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
++    set(data_SHADOW "${PROJECT_NAME}.pc")
++    foreach(item IN LISTS data_SHADOW)
++        add_custom_command(
++            OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${item}.cmake.in"
++            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/${item}.cmake.in" "${CMAKE_CURRENT_BINARY_DIR}/${item}.cmake.in"
++            DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${item}.cmake.in"
++        )
++        configure_file("${item}.cmake.in" "${item}" @ONLY)
++    endforeach()
++endif()
++install(FILES "${PROJECT_NAME}.pc" ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc DESTINATION lib/pkgconfig)
+diff --git a/libsecp256k1.cmake.pc.in b/libsecp256k1.cmake.pc.in
+new file mode 100644
+index 0000000..bd3feac
+--- /dev/null
++++ b/libsecp256k1.cmake.pc.in
+@@ -0,0 +1,16 @@
++#   @COMMENT_TITLE@
++#   @COMMENT_COPYRIGHT@
++#   @COMMENT_LICENCE@
++
++prefix=@PACKAGE_PREFIX@
++exec_prefix=${prefix}
++libdir=${exec_prefix}/lib
++includedir=${prefix}/include
++
++Name: @PACKAGE_NAME@
++Description: @PACKAGE_DESCRIPTION@
++URL: @PACKAGE_URL@
++Version: @PACKAGE_VERSION@
++Cflags: -I${includedir} @PACKAGE_CFLAGS@
++Libs: -L${libdir} -lsecp256k1
++

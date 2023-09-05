@@ -20,3 +20,5 @@ cmake ${CMAKE_ARGS} \
 make -j${CPU_COUNT}
 make check
 make install
+mkdir -p ${PREFIX}/lib/pkgconfig
+cp ${PREFIX}/lib/pkgconfig/* ${PREFIX}/lib/pkgconfig
