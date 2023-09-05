@@ -14,6 +14,8 @@ go build -tags kqueue -trimpath --ldflags "${LDFLAGS}" -o "${PREFIX}/bin/minio"
 
 # collect licenses
 # see manual_licenses for licenses that are not automatically detected
+# undetected licenses are flagged by `go-licenses` and need to be explicitly ignored
+# otherwise the command fails
 echo "Collect Licenses"
 go-licenses save . \
     --save_path="${SRC_DIR}/library_licenses/" \
