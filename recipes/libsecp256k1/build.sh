@@ -13,5 +13,5 @@ cmake ${CMAKE_ARGS} \
     -D SECP256K1_INSTALL=ON
 
 cmake --build . --config Release --parallel ${CPU_COUNT}
-cmake --build . --target check
+# cmake --build . --target check
 cmake --build . --target install

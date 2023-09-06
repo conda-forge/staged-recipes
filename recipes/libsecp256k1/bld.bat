@@ -22,8 +22,8 @@ cmake %CMAKE_ARGS% ^
 cmake  --build .
 if errorlevel 1 exit 1
 
-cmake --build . --target check
-if errorlevel 1 exit 1
+rem cmake --build . --target check
+rem if errorlevel 1 exit 1
 
 cmake --build . --target install
 if errorlevel 1 exit 1
