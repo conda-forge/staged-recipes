@@ -1,39 +1,48 @@
 diff --git a/setup.py b/setup.py
---- a/setup.py	(revision a3c2fdb643d684090ed33b79de4703b3d49924f8)
-+++ b/setup.py	(date 1693838572861)
-@@ -1,21 +1,14 @@
- import errno
- import os
+index c121d33..07f612b 100644
+--- a/setup.py
++++ b/setup.py
+@@ -1,105 +1,20 @@
+-import errno
+-import os
  import os.path
 -import platform
 -import shutil
 -import subprocess
 -import tarfile
-+import sys
- from distutils import log
- from distutils.command.build_clib import build_clib as _build_clib
- from distutils.command.build_ext import build_ext as _build_ext
- from distutils.errors import DistutilsError
+-from distutils import log
+-from distutils.command.build_clib import build_clib as _build_clib
+-from distutils.command.build_ext import build_ext as _build_ext
+-from distutils.errors import DistutilsError
 -from io import BytesIO
--import sys
-
- from setuptools import Distribution as _Distribution, setup, find_packages, __version__ as setuptools_version
- from setuptools.command.develop import develop as _develop
+ import sys
+ 
+-from setuptools import Distribution as _Distribution, setup, find_packages, __version__ as setuptools_version
+-from setuptools.command.develop import develop as _develop
 -from setuptools.command.egg_info import egg_info as _egg_info
 -from setuptools.command.sdist import sdist as _sdist
-
- try:
-     from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
-@@ -25,21 +18,11 @@
-
-
+-
+-try:
+-    from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
+-except ImportError:
+-    _bdist_wheel = None
+-    pass
+-
++from setuptools import Distribution as _Distribution, setup, find_packages
++from setuptools.command.build_clib import build_clib as _build_clib
+ 
  sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 -from setup_support import absolute, build_flags, detect_dll, has_system_lib  # noqa: E402
-+from setup_support import build_flags, detect_dll, has_system_lib  # noqa: E402
-
-
+ 
++def detect_dll():
++    here = os.path.dirname(os.path.abspath(__file__))
++    for fn in os.listdir(os.path.join(here, 'coincurve')):
++        if fn.endswith('.dll'):
++            return True
++    return False
+ 
  BUILDING_FOR_WINDOWS = detect_dll()
-
+ 
 -MAKE = 'gmake' if platform.system() in ['FreeBSD', 'OpenBSD'] else 'make'
 -
 -# IMPORTANT: keep in sync with .github/workflows/build.yml
@@ -44,13 +53,13 @@ diff --git a/setup.py b/setup.py
 -LIB_TARBALL_URL = f'https://github.com/bitcoin-core/secp256k1/archive/{UPSTREAM_REF}.tar.gz'
 -
 -
- # We require setuptools >= 3.3
- if [int(i) for i in setuptools_version.split('.', 2)[:2]] < [3, 3]:
-     raise SystemExit(
-@@ -47,60 +30,6 @@
-         'package. Please upgrade to a newer version (>= 3.3).'.format(setuptools_version)
-     )
-
+-# We require setuptools >= 3.3
+-if [int(i) for i in setuptools_version.split('.', 2)[:2]] < [3, 3]:
+-    raise SystemExit(
+-        'Your setuptools version ({}) is too old to correctly install this '
+-        'package. Please upgrade to a newer version (>= 3.3).'.format(setuptools_version)
+-    )
+-
 -
 -def download_library(command):
 -    if command.dry_run:
@@ -104,15 +113,13 @@ diff --git a/setup.py b/setup.py
 -else:
 -    bdist_wheel = None
 -
--
+ 
  class build_clib(_build_clib):
      def initialize_options(self):
-         _build_clib.initialize_options(self)
-@@ -111,16 +40,6 @@
-         if self.build_flags is None:
+@@ -112,124 +27,13 @@ class build_clib(_build_clib):
              self.build_flags = {'include_dirs': [], 'library_dirs': [], 'define': []}
-
--    def get_source_files(self):
+ 
+     def get_source_files(self):
 -        # Ensure library has been downloaded (sdist might have been skipped)
 -        download_library(self)
 -
@@ -121,14 +128,31 @@ diff --git a/setup.py b/setup.py
 -            for root, _, filenames in os.walk(absolute('libsecp256k1'))
 -            for filename in filenames
 -        ]
--
++        return []
+ 
      def build_libraries(self, libraries):
-         raise Exception('build_libraries')
-
-@@ -143,68 +62,10 @@
-             if e.errno != errno.EEXIST:
-                 raise
-
+-        raise Exception('build_libraries')
++        raise NotImplementedError('build_libraries')
+ 
+     def check_library_list(self, libraries):
+-        raise Exception('check_library_list')
+-
+-    def get_library_names(self):
+-        return build_flags('libsecp256k1', 'l', os.path.abspath(self.build_temp))
+-
+-    def run(self):
+-        if has_system_lib():
+-            log.info('Using system library')
+-            return
+-
+-        build_temp = os.path.abspath(self.build_temp)
+-
+-        try:
+-            os.makedirs(build_temp)
+-        except OSError as e:
+-            if e.errno != errno.EEXIST:
+-                raise
+-
 -        if not os.path.exists(absolute('libsecp256k1')):
 -            # library needs to be downloaded
 -            self.get_source_files()
@@ -185,34 +209,114 @@ diff --git a/setup.py b/setup.py
 -        subprocess.check_call([MAKE], cwd=build_temp)
 -        subprocess.check_call([MAKE, 'install'], cwd=build_temp)
 -
-         self.build_flags['include_dirs'].extend(build_flags('libsecp256k1', 'I', build_temp))
-         self.build_flags['library_dirs'].extend(build_flags('libsecp256k1', 'L', build_temp))
-         if not has_system_lib():
-             self.build_flags['define'].append(('CFFI_ENABLE_RECOVERY', None))
+-        self.build_flags['include_dirs'].extend(build_flags('libsecp256k1', 'I', build_temp))
+-        self.build_flags['library_dirs'].extend(build_flags('libsecp256k1', 'L', build_temp))
+-        if not has_system_lib():
+-            self.build_flags['define'].append(('CFFI_ENABLE_RECOVERY', None))
 -        else:
 -            pass
-
-
- class build_ext(_build_ext):
-@@ -256,9 +117,6 @@
+-
+-
+-class build_ext(_build_ext):
+-    def run(self):
+-        if self.distribution.has_c_libraries():
+-            _build_clib = self.get_finalized_command('build_clib')
+-            self.include_dirs.append(os.path.join(_build_clib.build_clib, 'include'))
+-            self.include_dirs.extend(_build_clib.build_flags['include_dirs'])
+-
+-            self.library_dirs.insert(0, os.path.join(_build_clib.build_clib, 'lib'))
+-            self.library_dirs.extend(_build_clib.build_flags['library_dirs'])
+-
+-            self.define = _build_clib.build_flags['define']
+-
+-        return _build_ext.run(self)
+-
+-
+-class develop(_develop):
+-    def run(self):
+-        if not has_system_lib():
+-            raise DistutilsError(
+-                "This library is not usable in 'develop' mode when using the "
+-                'bundled libsecp256k1. See README for details.'
+-            )
+-        _develop.run(self)
++        raise NotImplementedError('check_library_list')
+ 
+ 
+ package_data = {'coincurve': ['py.typed']}
+@@ -246,72 +50,26 @@ else:
+ 
+     class Distribution(_Distribution):
+         def has_c_libraries(self):
+-            return not has_system_lib()
++            return True
+ 
+     setup_kwargs = dict(
+-        setup_requires=['cffi>=1.3.0', 'requests'],
++        setup_requires=['cffi>=1.3.0'],
+         ext_package='coincurve',
+         cffi_modules=['_cffi_build/build.py:ffi'],
+         cmdclass={
              'build_clib': build_clib,
-             'build_ext': build_ext,
-             'develop': develop,
+-            'build_ext': build_ext,
+-            'develop': develop,
 -            'egg_info': egg_info,
 -            'sdist': sdist,
 -            'bdist_wheel': bdist_wheel,
          },
      )
-
-@@ -274,9 +132,9 @@
-     license='MIT OR Apache-2.0',
-
-     python_requires='>=3.7',
+ 
+-
+ setup(
+-    name='coincurve',
+-    version='18.0.0',
+-
+-    description='Cross-platform Python CFFI bindings for libsecp256k1',
+     long_description=open('README.md', 'r').read(),
+     long_description_content_type='text/markdown',
+-    author_email='Ofek Lev <oss@ofek.dev>',
+-    license='MIT OR Apache-2.0',
+-
+-    python_requires='>=3.7',
 -    install_requires=['asn1crypto', 'cffi>=1.3.0'],
-+    install_requires=['asn1crypto', 'libsecp256k1>=0.3.2', 'cffi>=1.3.0'],
-
+ 
 -    packages=find_packages(exclude=('_cffi_build', '_cffi_build.*', 'libsecp256k1', 'tests')),
 +    packages=find_packages(exclude=('_cffi_build', '_cffi_build.*', 'tests')),
      package_data=package_data,
-
+ 
      distclass=Distribution,
+     zip_safe=False,
+ 
+-    project_urls={
+-        'Documentation': 'https://ofek.dev/coincurve/',
+-        'Issues': 'https://github.com/ofek/coincurve/issues',
+-        'Source': 'https://github.com/ofek/coincurve',
+-    },
+-    keywords=[
+-        'secp256k1',
+-        'crypto',
+-        'elliptic curves',
+-        'bitcoin',
+-        'ethereum',
+-        'cryptocurrency',
+-    ],
+-    classifiers=[
+-        'Development Status :: 5 - Production/Stable',
+-        'Intended Audience :: Developers',
+-        'License :: OSI Approved :: MIT License',
+-        'License :: OSI Approved :: Apache Software License',
+-        'Natural Language :: English',
+-        'Operating System :: OS Independent',
+-        'Programming Language :: Python :: 3',
+-        'Programming Language :: Python :: 3.7',
+-        'Programming Language :: Python :: 3.8',
+-        'Programming Language :: Python :: 3.9',
+-        'Programming Language :: Python :: 3.10',
+-        'Programming Language :: Python :: 3.11',
+-        'Programming Language :: Python :: Implementation :: CPython',
+-        'Programming Language :: Python :: Implementation :: PyPy',
+-        'Topic :: Software Development :: Libraries',
+-        'Topic :: Security :: Cryptography',
+-    ],
+     **setup_kwargs
+ )
