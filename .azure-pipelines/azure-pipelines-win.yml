@@ -26,49 +26,11 @@ jobs:
       displayName: Add conda to PATH
 
     - script: |
-        call activate base
-        conda.exe config --set always_yes yes
-        conda.exe config --set channel_priority strict
-        conda.exe config --set solver libmamba
-        conda.exe install --file .\.ci_support\requirements.txt
-      displayName: Install conda-build
-
-    - script: set PYTHONUNBUFFERED=1
-      displayName: Set PYTHONUNBUFFERED
-
-    # Configure the VM
-    - script: |
-        call activate base
-        setup_conda_rc .\ ".\recipes" .\.ci_support\%CONFIG%.yaml
-      displayName: conda-forge CI setup
-
-    # Configure the VM.
-    - script: |
-        set "CI=azure"
-        call activate base
-        run_conda_forge_build_setup
-      displayName: conda-forge build setup
-
-    # Find the recipes from main in this PR and remove them.
-    - script: |
-        git fetch --force origin main:main
-        cd recipes
-        for /f "tokens=*" %%a in ('git ls-tree --name-only main -- .') do rmdir /s /q %%a && echo Removing recipe: %%a
-        cd ..
-
-    - script: |
-        REM make sure there is a package directory so that artifact publishing works
-        setlocal enableextensions
-        if not exist C:\\bld\\win-64\\ mkdir C:\\bld\\win-64\\
-      displayName: Make artifact dir
-
-    # Special cased version setting some more things!
-    - script: |
-        call activate base
-        git fetch --force origin main:main
-        python .ci_support\build_all.py --arch 64
-
-      displayName: Build recipe
+        call .scripts\run_win_build.bat
+      displayName: Build recipes
+      env:
+        CI: azure
+        CONDA_BLD_PATH: C:\bld
 
     - publish: C:\\bld\\win-64\\
       artifact: conda_pkgs_win
