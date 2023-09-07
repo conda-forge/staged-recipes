@@ -13,6 +13,10 @@ setlocal enableextensions enabledelayedexpansion
 
 call :start_group "Configuring conda"
 
+if "%CONDA_BLD_PATH%" == "" (
+    set "CONDA_BLD_PATH=C:\bld"
+)
+
 :: Activate the base conda environment
 call activate base
 
@@ -26,14 +30,6 @@ if errorlevel 1 exit 1
 echo Installing dependencies
 conda.exe install --file .\.ci_support\requirements.txt
 if errorlevel 1 exit 1
-
-{%- if local_ci_setup %}
-echo Overriding conda-forge-ci-setup with local version
-conda.exe uninstall --quiet --yes --force {{ " ".join(remote_ci_setup) }}"
-if errorlevel 1 exit 1
-pip install --no-deps ".\{{ recipe_dir }}\."
-if errorlevel 1 exit 1
-{%- endif %}
 
 :: Set basic configuration
 echo Setting up configuration
@@ -53,7 +49,7 @@ for /f "tokens=*" %%a in ('git ls-tree --name-only main -- .') do rmdir /s /q %%
 cd ..
 
 :: make sure there is a package directory so that artifact publishing works
-if not exist %CONDA_BLD_PATH%\win-64\ mkdir %CONDA_BLD_PATH%\win-64\
+if not exist "%CONDA_BLD_PATH%\win-64\" mkdir "%CONDA_BLD_PATH%\win-64\"
 
 echo Index %CONDA_BLD_PATH%
 conda.exe index "%CONDA_BLD_PATH%"
