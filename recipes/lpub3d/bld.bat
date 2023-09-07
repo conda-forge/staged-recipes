@@ -9,7 +9,7 @@ REM successfully run the LPub3D AutoBuild.bat which will build and stage
 REM the LPub3D distribution build contents (exe, doc and resources ) for release.
 REM --
 REM  Trevor SANDY <trevor.sandy@gmail.com>
-REM  Last Update: September 05, 2023
+REM  Last Update: September 07, 2023
 REM  Copyright (C) 2023 by Trevor SANDY
 REM --
 REM This script is distributed in the hope that it will be useful,
@@ -137,7 +137,6 @@ POPD
 PUSHD %LP3D_CONDA_WORKSPACE%
 ECHO.
 ECHO - Build command: %LP3D_BUILD_COMMAND%
-CALL :PATCH_PARSE_DATE_FORMAT
 ECHO.
 ECHO - Running %LP3D_CONDA_JOB%...
 CALL %LP3D_BUILD_COMMAND%
@@ -149,29 +148,6 @@ ECHO.
 ECHO - %LP3D_CONDA_JOB% finished.
 ENDLOCAL
 EXIT /b 0
-
-:PATCH_PARSE_DATE_FORMAT
-SET LP3D_FILE="gitversion.pri"
-SET /a LP3D_LINE_TO_REPLACE=160
-SET "LP3D_REPLACEMENT=if (conda_ci) {"
-(FOR /f "tokens=1*delims=:" %%a IN ('findstr /n "^" "%LP3D_FILE%"') DO (
-  SET "LP3D_LINE=%%b"
-  SETLOCAL ENABLEDELAYEDEXPANSION
-  IF %%a EQU %LP3D_LINE_TO_REPLACE% (
-    SET "LP3D_LINE=%LP3D_REPLACEMENT%"
-  )
-  ECHO(!LP3D_LINE!
-  ENDLOCAL
-))>"%LP3D_FILE%.new"
-MOVE /Y %LP3D_FILE%.new %LP3D_FILE% | findstr /i /v /r /c:"moved\>"
-ECHO.
-IF ERRORLEVEL 0 (
-  ECHO - Patched parse date format.
-) ELSE (
-  ECHO - Failed to patch parse date format.
-  GOTO :ERROR_END
-)
-EXIT /b
 
 :GEN_MENU_SHORTCUT_JSON
 IF NOT EXIST "%PREFIX%\Menu" (
