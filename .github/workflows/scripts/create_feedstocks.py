@@ -31,7 +31,7 @@ from ruamel.yaml import YAML
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
 DEBUG = False
 
-REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch", "systems"]
+REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch", "systems", "ctx"]
 
 recipe_directory_name = 'recipes'
 
@@ -102,6 +102,12 @@ def _set_default_branch(feedstock_dir, default_branch):
         and cfg["upload_on_branch"] in ["master", "main"]
     ):
         cfg["upload_on_branch"] = default_branch
+
+    if "conda_build" not in cfg:
+        cfg["conda_build"] = {}
+
+    if "error_overlinking" not in cfg["conda_build"]:
+        cfg["conda_build"]["error_overlinking"] = True
 
     with open(os.path.join(feedstock_dir, "conda-forge.yml"), "w") as fp:
         yaml.dump(cfg, fp)
@@ -198,8 +204,9 @@ if __name__ == '__main__':
     # gh_drone = Github(os.environ['GH_DRONE_TOKEN'])
     # gh_drone_remaining = print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
-    gh_travis = Github(os.environ['GH_TRAVIS_TOKEN'])
-
+    # gh_travis = Github(os.environ['GH_TRAVIS_TOKEN'])
+    gh_travis = None
+    
     gh = None
     if 'GH_TOKEN' in os.environ:
         write_token('github', os.environ['GH_TOKEN'])
@@ -225,6 +232,9 @@ if __name__ == '__main__':
         for recipe_dir, name in list_recipes():
             if name.lower() in REPO_SKIP_LIST:
                 continue
+            if name.lower() == "ctx":
+                sys.exit(1)
+
             feedstock_dir = os.path.join(feedstocks_dir, name + '-feedstock')
             print('Making feedstock for {}'.format(name))
             try:
@@ -343,7 +353,7 @@ if __name__ == '__main__':
                      '--without-webservice', '--feedstock_directory',
                      feedstock_dir] + owner_info)
                 subprocess.check_call(
-                    ['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
+                    ['conda', 'smithy', 'rerender', '--no-check-uptodate'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
                 exit_code = 0
                 traceback.print_exception(*sys.exc_info())
@@ -387,7 +397,7 @@ if __name__ == '__main__':
                     cwd=feedstock_dir
                 )
                 subprocess.check_call(
-                    ['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
+                    ['conda', 'smithy', 'rerender', '--no-check-uptodate'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
                 exit_code = 0
                 traceback.print_exception(*sys.exc_info())
@@ -515,7 +525,7 @@ if __name__ == '__main__':
         print_rate_limiting_info(gh, 'GH_TOKEN')
     # if gh_drone:
     #     print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
-    if gh_travis:
-        print_rate_limiting_info(gh_travis, 'GH_TRAVIS_TOKEN')
+    # if gh_travis:
+    #     print_rate_limiting_info(gh_travis, 'GH_TRAVIS_TOKEN')
 
     sys.exit(exit_code)
