@@ -37,7 +37,7 @@ conda install --quiet --file .ci_support/requirements.txt
 echo -e "\n\nSetting up the condarc and mangling the compiler."
 setup_conda_rc ./ ./recipes ./.ci_support/${CONFIG}.yaml
 if [[ "${CI:-}" != "" ]]; then
-  mangle_compiler ./ ./recipe .ci_support/${CONFIG}.yaml
+  mangle_compiler ./ ./recipes .ci_support/${CONFIG}.yaml
 fi
 
 if [[ "${CI:-}" != "" ]]; then
