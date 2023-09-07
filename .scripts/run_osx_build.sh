@@ -20,6 +20,7 @@ if [[ ${CI} == "travis" ]]; then
 fi
 
 cat >~/.condarc <<CONDARC
+always_yes: true
 show_channel_urls: true
 solver: libmamba
 CONDARC
@@ -28,14 +29,7 @@ source ${HOME}/Mambaforge/etc/profile.d/conda.sh
 conda activate base
 
 echo -e "\n\nInstalling conda-forge-ci-setup=3, conda-build."
-conda install --yes --quiet \
-  "conda>=23.7.3" \
-  "conda-libmamba-solver>=23.7.0" \
-  "conda-build>=3.16" \
-  "conda-forge-ci-setup=3.*" \
-  "conda-forge-pinning" \
-  "networkx=2.4"
-
+conda install --quiet --file .ci_support/requirements.txt
 
 echo -e "\n\nSetting up the condarc and mangling the compiler."
 setup_conda_rc ./ ./recipes ./.ci_support/${CONFIG}.yaml

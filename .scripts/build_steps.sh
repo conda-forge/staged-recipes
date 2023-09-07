@@ -9,6 +9,7 @@ set -xeuo pipefail
 export PYTHONUNBUFFERED=1
 
 cat >~/.condarc <<CONDARC
+always_yes: true
 
 channels:
  - conda-forge
@@ -46,13 +47,7 @@ popd > /dev/null
 # Make sure build_artifacts is a valid channel
 conda index /home/conda/staged-recipes/build_artifacts
 
-conda install --yes --quiet \
-  "conda>=23.7.3" \
-  "conda-libmamba-solver>=23.7.0" \
-  "conda-build>=3.16" \
-  "conda-forge-ci-setup=3.*" \
-  "conda-forge-pinning" \
-  "networkx=2.4"
+conda install --quiet --file /home/conda/staged-recipes/.ci_support/requirements.txt
 
 export FEEDSTOCK_ROOT="${FEEDSTOCK_ROOT:-/home/conda/staged-recipes}"
 export CI_SUPPORT="/home/conda/staged-recipes-copy/.ci_support"
