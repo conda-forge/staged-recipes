@@ -22,6 +22,7 @@ pkgs_dirs:
 
 show_channel_urls: true
 
+solver: libmamba
 CONDARC
 
 # Copy the host recipes folder so we don't ever muck with it
@@ -45,7 +46,14 @@ popd > /dev/null
 # Make sure build_artifacts is a valid channel
 conda index /home/conda/staged-recipes/build_artifacts
 
-mamba install --yes --quiet "conda>4.7.12" conda-forge-ci-setup=3.* conda-forge-pinning networkx=2.4 "conda-build>=3.16" "boa"
+conda install --yes --quiet \
+  "conda>=23.7.3" \
+  "conda-libmamba-solver>=23.7.0" \
+  "conda-build>=3.16" \
+  "conda-forge-ci-setup=3.*" \
+  "conda-forge-pinning" \
+  "networkx=2.4"
+
 export FEEDSTOCK_ROOT="${FEEDSTOCK_ROOT:-/home/conda/staged-recipes}"
 export CI_SUPPORT="/home/conda/staged-recipes-copy/.ci_support"
 setup_conda_rc "${FEEDSTOCK_ROOT}" "/home/conda/staged-recipes-copy/recipes" "${CI_SUPPORT}/${CONFIG}.yaml"

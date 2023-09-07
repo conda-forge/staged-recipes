@@ -2,16 +2,16 @@
 
 set -x
 
-echo -e "\n\nInstalling a fresh version of Mambaforge."
+echo -e "\n\nInstalling a fresh version of Miniforge."
 if [[ ${CI} == "travis" ]]; then
-  echo -en 'travis_fold:start:install_mambaforge\\r'
+  echo -en 'travis_fold:start:install_miniforge\\r'
 fi
-MAMBAFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download"
-MAMBAFORGE_FILE="Mambaforge-MacOSX-x86_64.sh"
-curl -L -O "${MAMBAFORGE_URL}/${MAMBAFORGE_FILE}"
-bash $MAMBAFORGE_FILE -b
+MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download"
+MINIFORGE_FILE="Miniforge-MacOSX-x86_64.sh"
+curl -L -O "${MINIFORGE_URL}/${MINIFORGE_FILE}"
+bash $MiniFORGE_FILE -b
 if [[ ${CI} == "travis" ]]; then
-  echo -en 'travis_fold:end:install_mambaforge\\r'
+  echo -en 'travis_fold:end:install_miniforge\\r'
 fi
 
 echo -e "\n\nConfiguring conda."
@@ -19,12 +19,22 @@ if [[ ${CI} == "travis" ]]; then
   echo -en 'travis_fold:start:configure_conda\\r'
 fi
 
+cat >~/.condarc <<CONDARC
+show_channel_urls: true
+solver: libmamba
+CONDARC
+
 source ${HOME}/Mambaforge/etc/profile.d/conda.sh
 conda activate base
 
-echo -e "\n\nInstalling conda-forge-ci-setup=3, conda-build and boa."
-mamba install -n base --yes --quiet "conda>4.7.12" conda-forge-ci-setup=3.* conda-forge-pinning networkx=2.4 "conda-build>=3.16" "boa"
-
+echo -e "\n\nInstalling conda-forge-ci-setup=3, conda-build."
+conda install --yes --quiet \
+  "conda>=23.7.3" \
+  "conda-libmamba-solver>=23.7.0" \
+  "conda-build>=3.16" \
+  "conda-forge-ci-setup=3.*" \
+  "conda-forge-pinning" \
+  "networkx=2.4"
 
 
 echo -e "\n\nSetting up the condarc and mangling the compiler."
