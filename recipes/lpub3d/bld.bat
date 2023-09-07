@@ -9,7 +9,7 @@ REM successfully run the LPub3D AutoBuild.bat which will build and stage
 REM the LPub3D distribution build contents (exe, doc and resources ) for release.
 REM --
 REM  Trevor SANDY <trevor.sandy@gmail.com>
-REM  Last Update: September 04, 2023
+REM  Last Update: September 05, 2023
 REM  Copyright (C) 2023 by Trevor SANDY
 REM --
 REM This script is distributed in the hope that it will be useful,
@@ -19,7 +19,7 @@ REM MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 SET "BUILD_ARCH=x86_64"
 SET "BUILD_OPT=default"
 
-SET "LP3D_APP=lpub3d-ci"
+SET "LP3D_APP=lpub3d"
 SET "LP3D_3RD_PARTY=third_party"
 SET "LP3D_7ZIP_WIN64=7z.exe"
 SET "LP3D_BUILDPKG_PATH=builds\windows\release"
