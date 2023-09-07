@@ -57,8 +57,7 @@ if errorlevel 1 exit 1
 
 call :end_group
 
-
-echo Building recipes
+echo Building all recipes
 python .ci_support\build_all.py --arch 64
 if errorlevel 1 exit 1
 

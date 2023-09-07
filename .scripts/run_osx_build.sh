@@ -68,4 +68,5 @@ echo ""
 ( endgroup "Configuring conda" ) 2> /dev/null
 
 # We just want to build all of the recipes.
+echo "Building all recipes"
 python .ci_support/build_all.py

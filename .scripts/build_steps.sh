@@ -70,6 +70,7 @@ conda index ${FEEDSTOCK_ROOT}/build_artifacts
 
 ( endgroup "Configuring conda" ) 2> /dev/null
 
+echo "Building all recipes"
 python ${CI_SUPPORT}/build_all.py
 
 ( startgroup "Final checks" ) 2> /dev/null
