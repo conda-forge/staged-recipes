@@ -195,7 +195,7 @@ def read_mambabuild(recipes_dir):
         if os.path.exists(cf):
             with open(cf, "r") as f:
                 cfy = yaml.safe_load(f.read())
-            use_it = use_it and cfy.get("build_with_mambabuild", True)
+            use_it = use_it and cfy.get("conda_build_tool", "conda-build") == "mambabuild"
     return use_it
 
 
