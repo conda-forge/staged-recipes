@@ -7,7 +7,7 @@ if [[ ${CI} == "travis" ]]; then
   echo -en 'travis_fold:start:install_miniforge\\r'
 fi
 MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download"
-MINIFORGE_FILE="Miniforge-MacOSX-x86_64.sh"
+MINIFORGE_FILE="Miniforge3-MacOSX-x86_64.sh"
 curl -L -O "${MINIFORGE_URL}/${MINIFORGE_FILE}"
 bash $MiniFORGE_FILE -b
 if [[ ${CI} == "travis" ]]; then
