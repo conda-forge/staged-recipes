@@ -5,7 +5,9 @@ echo "Setup Environment Variables"
 export CGO_ENABLED=0
 export MINIO_RELEASE=RELEASE
 export GOPATH=$(go env GOPATH)
+export GIT_COMMIT=$(curl --silent https://api.github.com/repos/minio/minio/commits/${GIT_TAG} | jq --raw-output .sha)
 LDFLAGS=$(go run buildscripts/gen-ldflags.go "${GIT_TIME}")
+echo "LDFLAGS: ${LDFLAGS}"
 
 # build
 echo "Build MinIO Server"

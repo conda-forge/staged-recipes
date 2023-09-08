@@ -2,9 +2,13 @@
 echo Setup Environment Variables
 set CGO_ENABLED=0
 set MINIO_RELEASE=RELEASE
-for /f %%i in ('go env GOPATH') do set GOPATH=%%i
-for /f %%i in ('go run buildscripts\gen-ldflags.go "%GIT_TIME%"') do set LDFLAGS=%%i
+for /f "delims=" %%i in ('go env GOPATH') do set GOPATH=%%i
 if %errorlevel% neq 0 exit /b %errorlevel%
+for /f "delims=" %%i in ('curl --silent https://api.github.com/repos/minio/minio/commits/%GIT_TAG% ^| jq --raw-output .sha') do set GIT_COMMIT=%%i
+if %errorlevel% neq 0 exit /b %errorlevel%
+for /f "delims=" %%i in ('go run buildscripts\gen-ldflags.go "%GIT_TIME%"') do set LDFLAGS=%%i
+if %errorlevel% neq 0 exit /b %errorlevel%
+echo LDFLAGS: %LDFLAGS%
 
 :: build
 echo Build MinIO Server
