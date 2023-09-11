@@ -12,5 +12,5 @@ cmake $CMAKE_ARGS \
   -DCMAKE_CXX_FLAGS="-Wno-deprecated-declarations" \
   ..
 
-make -j$CPU_COUNT
-make install
+make -j$CPU_COUNT VERBOSE=1
+make install VERBOSE=1
