@@ -188,15 +188,23 @@ def check_recipes_in_correct_dir(root_dir, correct_dir):
 
 
 def read_mambabuild(recipes_dir):
+    """
+    Only use mambabuild if all the recipes require so via 
+    'conda_build_tool: mambabuild' in 'recipes/<recipe>/conda-forge.yml'
+    """
     folders = os.listdir(recipes_dir)
-    use_it = True
+    conda_build_tools = []
     for folder in folders:
+        if folder == "example":
+            continue
         cf = os.path.join(recipes_dir, folder, "conda-forge.yml")
         if os.path.exists(cf):
             with open(cf, "r") as f:
                 cfy = yaml.safe_load(f.read())
-            use_it = use_it and cfy.get("build_with_mambabuild", True)
-    return use_it
+            conda_build_tools.append(cfy.get("conda_build_tool", "conda-build"))
+        else:
+            conda_build_tools.append("conda-build")
+    return all([tool == "mambabuild" for tool in conda_build_tools])
 
 
 def use_mambabuild():

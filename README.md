@@ -171,3 +171,12 @@ All apologies in advance if your recipe PR does not recieve prompt attention.
 This is a high volume repository and the reviewers are volunteers. Review times vary depending on the number of reviewers on a given language team and may be days or weeks. We are always
 looking for more staged-recipe reviewers. If you are interested in volunteering,
 please contact a member of @conda-forge/core. We'd love to have the help!
+
+
+### 13. Is there a changelog for this repository?
+
+There's no changelog file, but the following `git` command gives a good overview of the recent changes in the repository:
+
+```bash
+$ git log --merges -- ':!recipes' 
+```
