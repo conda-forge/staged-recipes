@@ -1,53 +1,140 @@
 {% set name = "libsecp256k1" %}
+{% set headers_base = "secp256k1" %}
 {% set version = "0.4.0" %}
 {% set sha256 = "d7c956606e7f52b7703fd2967cb31d2e21ec90c0b440ff1cc7c7d764a4092b98" %}
 
 package:
-  name: {{ name|lower }}
+  name: {{ name }}-split
   version: {{ version }}
 
 source:
   url: https://github.com/bitcoin-core/secp256k1/archive/refs/tags/v{{ version }}.tar.gz
   sha256: {{ sha256 }}
   patches:
-    - fix_generate_pkgconfig_file.patch  # [unix]
-    - add_cmake_pc.in.patch  # [unix]
+    - 0001_update_pc.in.patch
+    - 0002_update_src_cmake_for_staticlib.patch
+    - 0003_update_cmake_for_staticlib.patch
+    - 0004_create_pkgconfig_function.patch
 
 build:
   number: 0
-  missing_dso_whitelist:
-    - /lib64/libc.so.6
-  script_env:
-    - SECP256K1_ENABLE_MODULE_RECOVERY=ON
 
 outputs:
-  - name: libsecp256k1
-    requirements:
-      build:
-        - make
-        - cmake
-        - {{ compiler('c') }}
-
+  - name: {{ name }}
+    script: build-lib.sh  # [unix]
+    script: bld-lib.bat  # [win]
     build:
       run_exports:
-        - {{ pin_subpackage("libsecp256k1", exact=True) }}
-
+        - {{ pin_subpackage(name, max_pin="x.x") }}
+    requirements:
+      build:
+        - cmake >=3.26
+        - {{ compiler('c') }}
+      run:
+        - {{ pin_subpackage(name + "-headers", exact=True) }}
     test:
       requires:
-        - pkg-config  # [unix]
+        - pkg-config
       commands:
-        - test -f ${PREFIX}/lib/libsecp256k1${SHLIB_EXT}  # [unix]
-        - if not exist %LIBRARY_BIN%\\libsecp256k1-2.dll exit 1  # [win]
+        # shared libraries
+        - test -f ${PREFIX}/lib/{{ name }}${SHLIB_EXT}  # [unix]
+        - if not exist %LIBRARY_BIN%\\{{ name }}.dll exit 1  # [win]
 
-        # Install will install more headers optionally (based on library features enabled)
-        - test -f ${PREFIX}/include/secp256k1.h  # [unix]
-        - if not exist %LIBRARY_INC%\\secp256k1.h exit 1  # [win]
+        # absence of static libraries
+        - test ! -f ${PREFIX}/lib/{{ name }}.a  # [unix]
+        - test ! -f ${PREFIX}/lib/{{ name }}-static.a  # [unix]
+        - if exist %LIBRARY_LIB%\{{ name }}-static.lib exit 1  # [win]
 
-        - test -f ${PREFIX}/lib/pkgconfig/libsecp256k1.pc  # [unix]
-        - pkg-config --cflags --libs libsecp256k1          # [unix]
+        # pkg-config files for shared libraries
+        - test -f ${PREFIX}/lib/pkgconfig/{{ name }}.pc  # [unix]
+        - if not exist %LIBRARY_LIB%\pkgconfig\{{ name }}.pc exit 1  # [win]
+        - pkg-config --cflags --libs {{ name }}
 
-        - if not exist %LIBRARY_LIB%\\cmake\\filepattern\\libsecp256k1-config.cmake exit 1  # [win]
-        - test -f ${PREFIX}/lib/cmake/libsecp256k1/libsecp256k1-config.cmake  # [unix]
+        # No pkg-config files for static libraries
+        - test ! -f ${PREFIX}/lib/pkgconfig/{{ name }}-static.pc  # [unix]
+        - if exist %LIBRARY_LIB%\pkgconfig\{{ name }}-static.pc exit 1  # [win]
+
+        # cmake files for shared libraries
+        - if not exist %LIBRARY_LIB%\\cmake\\{{ name }}\\{{ name }}-config.cmake exit 1  # [win]
+        - test -f ${PREFIX}/lib/cmake/{{ name }}/{{ name }}-config.cmake  # [unix]
+
+        # No cmake files for static libraries
+        - if exist %LIBRARY_LIB%\\cmake\\{{ name }}\\{{ name }}-static-config.cmake exit 1  # [win]
+        - test ! -f ${PREFIX}/lib/cmake/{{ name }}/{{ name }}-static-config.cmake  # [unix]
+        - if exist %LIBRARY_LIB%\\cmake\\{{ name }}-static\\{{ name }}-static-config.cmake exit 1  # [win]
+        - test ! -f ${PREFIX}/lib/cmake/{{ name }}-static/{{ name }}-static-config.cmake  # [unix]
+      # downstreams:
+      #   - coincurve-dynamic
+
+  - name: {{ name }}-headers
+    script: build-lib.sh  # [unix]
+    script: bld-lib.bat  # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage(name + "-headers", exact=True) }}
+    requirements:
+      build:
+        - cmake >=3.26
+    test:
+      commands:
+        # No shared libraries
+        - test ! -f ${PREFIX}/lib/{{ name }}${SHLIB_EXT}  # [unix]
+        - if exist %LIBRARY_BIN%\\{{ name }}.dll exit 1  # [win]
+
+        # No static libraries
+        - test ! -f ${PREFIX}/lib/{{ name }}.a  # [unix]
+        - test ! -f ${PREFIX}/lib/{{ name }}-static.a  # [unix]
+        - if exist %LIBRARY_LIB%\{{ name }}-static.lib exit 1  # [win]
+
+        # Headers
+        - test -f ${PREFIX}/include/{{ headers_base }}.h  # [unix]
+        - if not exist %LIBRARY_INC%\\{{ headers_base }}.h exit 1  # [win]
+
+  - name: {{ name }}-static
+    script: build-lib.sh  # [unix]
+    script: bld-lib.bat  # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage(name + "-static", max_pin="x.x") }}
+    requirements:
+      build:
+        - cmake >=3.26
+        - {{ compiler('c') }}
+      run:
+        - {{ pin_subpackage(name + "-headers", exact=True) }}
+    test:
+      requires:
+        - pkg-config
+      commands:
+        # No shared libraries
+        - test ! -f ${PREFIX}/lib/{{ name }}${SHLIB_EXT}  # [unix]
+        - if exist %LIBRARY_BIN%\\{{ name }}.dll exit 1  # [win]
+
+        # Static libraries (with -static suffix)
+        - test ! -f ${PREFIX}/lib/{{ name }}.a  # [unix]
+        - test -f ${PREFIX}/lib/{{ name }}-static.a  # [unix]
+        - if not exist %LIBRARY_LIB%\{{ name }}-static.lib exit 1  # [win]
+
+        # pkg-config files for shared libraries
+        - test -f ${PREFIX}/lib/pkgconfig/{{ name }}-static.pc  # [unix]
+        - if not exist %LIBRARY_LIB%\pkgconfig\{{ name }}-static.pc exit 1  # [win]
+        - pkg-config --cflags --libs {{ name }}-static
+
+        # No pkg-config files for shared libraries
+        - test ! -f ${PREFIX}/lib/pkgconfig/{{ name }}.pc  # [unix]
+        - if exist -f ${PREFIX}/lib/pkgconfig/{{ name }}.pc exit 1  # [win]
+
+        # No cmake files for shared libraries
+        - test ! -f ${PREFIX}/lib/cmake/{{ name }}/{{ name }}-config.cmake  # [unix]
+        - if exist %LIBRARY_LIB%\\cmake\\{{ name }}\\{{ name }}-config.cmake exit 1  # [win]
+        - test ! -f ${PREFIX}/lib/cmake/{{ name }}-static/{{ name }}-config.cmake  # [unix]
+        - if exist %LIBRARY_LIB%\\cmake\\{{ name }}-static\\{{ name }}-config.cmake exit 1  # [win]
+
+        # cmake files for static libraries
+        - if not exist %LIBRARY_LIB%\\cmake\\{{ name }}-static\\{{ name }}-static-config.cmake exit 1  # [win]
+        - test -f ${PREFIX}/lib/cmake/{{ name }}-static/{{ name }}-static-config.cmake  # [unix]
+      # downstreams:
+      #   - coincurve
 
 about:
   home: https://github.com/bitcoin-core/secp256k1
