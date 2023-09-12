@@ -1,0 +1,81 @@
+diff --git a/_cffi_build/build.py b/_cffi_build/build.py
+index f942d5d..4e9a57b 100644
+--- a/_cffi_build/build.py
++++ b/_cffi_build/build.py
+@@ -1,34 +1,63 @@
++import argparse
++import logging
+ import os
+ from collections import namedtuple
++from typing import List, Any
+ 
+ from cffi import FFI
+ 
++logging.basicConfig(level=logging.INFO)
++
++
+ here = os.path.dirname(os.path.abspath(__file__))
+ 
+ Source = namedtuple('Source', ('h', 'include'))
+ 
+ 
+-def _mk_ffi(sources, name='_libsecp256k1', **kwargs):
++def gather_sources_from_directory(directory: str) -> List[Source]:
++    """
++    Gather source files from a given directory.
++
++    :param directory: The directory where source files are located.
++    :return: A list of Source namedtuples.
++    """
++    sources = []
++    for filename in os.listdir(directory):
++        if filename.endswith('.h'):
++            include_line = f'#include <{filename}>'
++            sources.append(Source(filename, include_line))
++    return sorted(sources)
++
++
++def mk_ffi(sources: List[Source], name: str = '_libsecp256k1', **kwargs: Any) -> FFI:
++    """
++    Create an FFI object.
++
++    :param sources: A list of Source namedtuples.
++    :param name: The name of the FFI object.
++    :param kwargs: Additional keyword arguments.
++    :return: An FFI object.
++    """
+     _ffi = FFI()
+     code = []
+-
+     for source in sources:
+-        with open(os.path.join(here, source.h), 'rt') as h:
++        with open(os.path.join(here, source.h)) as h:
++            logging.info(f"   Including {source.h}...")
+             _ffi.cdef(h.read())
+         code.append(source.include)
+ 
+     code.append('#define PY_USE_BUNDLED')
+-    _ffi.set_source(name, '\n'.join(code), **kwargs)
++    _ffi.set_source(name, '\n'.join(code))
+ 
+     return _ffi
+ 
+ 
+-modules = [
+-    Source('secp256k1.h', '#include <secp256k1.h>'),
+-    Source('secp256k1_ecdh.h', '#include <secp256k1_ecdh.h>'),
+-    Source('secp256k1_extrakeys.h', '#include <secp256k1_extrakeys.h>'),
+-    Source('secp256k1_recovery.h', '#include <secp256k1_recovery.h>'),
+-    Source('secp256k1_schnorrsig.h', '#include <secp256k1_schnorrsig.h>'),
+-]
+-
+-ffi = _mk_ffi(modules, libraries=['secp256k1'])
++if __name__ == "__main__":
++    logging.info("Starting CFFI build process...")
++    parser = argparse.ArgumentParser(description="Generate C code using CFFI.")
++    parser.add_argument("c_file", help="Generated C code filename.")
++    args = parser.parse_args()
++
++    modules = gather_sources_from_directory(here)
++    ffi = mk_ffi(modules)
++    ffi.emit_c_code(args.c_file)
