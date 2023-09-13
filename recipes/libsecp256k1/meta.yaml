@@ -1,5 +1,12 @@
 {% set name = "libsecp256k1" %}
-{% set headers_base = "secp256k1" %}
+{% set headers = [
+      "secp256k1.h",
+      "secp256k1_preallocated.h",
+      "secp256k1_ecdh.h",
+      "secp256k1_recovery.h",
+      "secp256k1_extrakeys.h",
+      "secp256k1_schnorrsig.h",
+      "secp256k1_ellswift.h"] %}
 {% set version = "0.4.0" %}
 {% set sha256 = "d7c956606e7f52b7703fd2967cb31d2e21ec90c0b440ff1cc7c7d764a4092b98" %}
 
@@ -36,7 +43,13 @@ outputs:
       requires:
         - pkg-config
       commands:
-        # shared libraries
+        # Headers - Not part of the subpackage, but they must be installed
+        {% for header in headers %}
+        - test -f ${PREFIX}/include/{{ header }}  # [unix]
+        - if not exist %LIBRARY_INC%\\{{ header }} exit 1  # [win]
+        {% endfor %}
+
+        # Shared libraries
         - test -f ${PREFIX}/lib/{{ name }}${SHLIB_EXT}  # [unix]
         - if not exist %LIBRARY_LIB%\\{{ name }}.lib exit 1  # [win]
         - if not exist %LIBRARY_BIN%\\{{ name }}-2.dll exit 1  # [win]
@@ -90,8 +103,10 @@ outputs:
         - if exist %LIBRARY_LIB%\\{{ name }}-static.lib exit 1  # [win]
 
         # Headers
-        - test -f ${PREFIX}/include/{{ headers_base }}.h  # [unix]
-        - if not exist %LIBRARY_INC%\\{{ headers_base }}.h exit 1  # [win]
+        {% for header in headers %}
+        - test -f ${PREFIX}/include/{{ header }}  # [unix]
+        - if not exist %LIBRARY_INC%\\{{ header }} exit 1  # [win]
+        {% endfor %}
 
   - name: {{ name }}-static
     script: build-lib.sh  # [unix]
@@ -109,6 +124,12 @@ outputs:
       requires:
         - pkg-config
       commands:
+        # Headers - Not part of the subpackage, but they must be installed
+        {% for header in headers %}
+        - test -f ${PREFIX}/include/{{ header }}  # [unix]
+        - if not exist %LIBRARY_INC%\\{{ header }} exit 1  # [win]
+        {% endfor %}
+
         # No shared libraries
         - test ! -f ${PREFIX}/lib/{{ name }}${SHLIB_EXT}  # [unix]
         - if exist %LIBRARY_LIB%\\{{ name }}.lib exit 1  # [win]
