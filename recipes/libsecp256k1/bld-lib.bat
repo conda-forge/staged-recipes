@@ -9,7 +9,6 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
     set "SECP256K1_BUILD_SHARED_LIBS=ON"
     set "SECP256K1_INSTALL_HEADERS=OFF"
     set "SECP256K1_INSTALL=ON"
-    set "CC=gcc"
     mkdir build
     cd build
   ) else (

@@ -6,7 +6,6 @@ if [[ "${PKG_NAME: -8}" == "-headers" ]]; then
   export SECP256K1_BUILD_SHARED_LIBS="OFF"
   export SECP256K1_INSTALL_HEADERS="ON"
   export SECP256K1_INSTALL="OFF"
-  export CC="gcc"
 elif [[ "${PKG_NAME: -7}" == "-static" ]]; then
   BUILD_DIR="build-static"
   export SECP256K1_BUILD_SHARED_LIBS="OFF"
