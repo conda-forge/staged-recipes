@@ -1,6 +1,13 @@
 {% set name = "libsecp256k1" %}
-{% set headers_base = "secp256k1" %}
 {% set version = "0.4.0" %}
+{% set headers = [
+      "secp256k1.h",
+      "secp256k1_preallocated.h",
+      "secp256k1_ecdh.h",
+      "secp256k1_recovery.h",
+      "secp256k1_extrakeys.h",
+      "secp256k1_schnorrsig.h",
+      "secp256k1_ellswift.h"] %}
 {% set sha256 = "d7c956606e7f52b7703fd2967cb31d2e21ec90c0b440ff1cc7c7d764a4092b98" %}
 
 package:
@@ -17,13 +24,19 @@ source:
     - 0004_create_pkgconfig_function.patch
 
 build:
+  noarch: generic
   number: 100
 
 requirements:
   build:
     - cmake >=3.26
 test:
+  requires:
+    - pip
+    - python
   commands:
+    - pip check
+
     # No shared libraries
     - test ! -f ${PREFIX}/lib/{{ name }}.so  # [unix]
     - test ! -f ${PREFIX}/lib/{{ name }}.dylib  # [unix]
@@ -36,8 +49,10 @@ test:
     - if exist %LIBRARY_LIB%\\{{ name }}-static.lib exit 1  # [win]
 
     # Headers
-    - test -f ${PREFIX}/include/{{ headers_base }}.h  # [unix]
-    - if not exist %LIBRARY_INC%\\{{ headers_base }}.h exit 1  # [win]
+    {% for header in headers %}
+    - test -f ${PREFIX}/include/{{ header }}  # [unix]
+    - if not exist %LIBRARY_INC%\\{{ header }} exit 1  # [win]
+    {% endfor %}
 
 about:
   home: https://github.com/bitcoin-core/secp256k1
