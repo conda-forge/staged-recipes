@@ -1,0 +1,93 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index b305751..a4c0aa6 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -26,6 +26,9 @@ if(WIN32)
+   target_compile_definitions(secp256k1 INTERFACE $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:SECP256K1_STATIC>)
+ endif()
+ 
++string(REPLACE lib "" PROJECT_LIBNAME ${PROJECT_NAME})
++set_target_properties(secp256k1 PROPERTIES OUTPUT_NAME "${PROJECT_LIBNAME}")
++
+ # Object libs don't know if they're being built for a shared or static lib.
+ # Grab the PIC property from secp256k1 which knows.
+ get_target_property(use_pic secp256k1 POSITION_INDEPENDENT_CODE)
+@@ -116,28 +119,6 @@ if(SECP256K1_INSTALL)
+     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+   )
+-  set(${PROJECT_NAME}_headers
+-    "${PROJECT_SOURCE_DIR}/include/secp256k1.h"
+-    "${PROJECT_SOURCE_DIR}/include/secp256k1_preallocated.h"
+-  )
+-  if(SECP256K1_ENABLE_MODULE_ECDH)
+-    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_ecdh.h")
+-  endif()
+-  if(SECP256K1_ENABLE_MODULE_RECOVERY)
+-    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_recovery.h")
+-  endif()
+-  if(SECP256K1_ENABLE_MODULE_EXTRAKEYS)
+-    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_extrakeys.h")
+-  endif()
+-  if(SECP256K1_ENABLE_MODULE_SCHNORRSIG)
+-    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_schnorrsig.h")
+-  endif()
+-  if(SECP256K1_ENABLE_MODULE_ELLSWIFT)
+-    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_ellswift.h")
+-  endif()
+-  install(FILES ${${PROJECT_NAME}_headers}
+-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+-  )
+ 
+   install(EXPORT ${PROJECT_NAME}-targets
+     FILE ${PROJECT_NAME}-targets.cmake
+@@ -161,5 +142,48 @@ if(SECP256K1_INSTALL)
+       ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake
+       ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake
+     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+-)
++  )
++
++  include(GeneratePkgConfigFile)
++  generate_pkg_config_file(${PROJECT_SOURCE_DIR}/libsecp256k1.pc.in)
++  install(
++    FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc
++    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
++  )
++endif()
++
++if(SECP256K1_INSTALL_HEADERS)
++  set(${PROJECT_NAME}_headers
++    "${PROJECT_SOURCE_DIR}/include/secp256k1.h"
++    "${PROJECT_SOURCE_DIR}/include/secp256k1_preallocated.h"
++  )
++  if(SECP256K1_ENABLE_MODULE_ECDH)
++    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_ecdh.h")
++  endif()
++  if(SECP256K1_ENABLE_MODULE_RECOVERY)
++    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_recovery.h")
++  endif()
++  if(SECP256K1_ENABLE_MODULE_EXTRAKEYS)
++    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_extrakeys.h")
++  endif()
++  if(SECP256K1_ENABLE_MODULE_SCHNORRSIG)
++    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_schnorrsig.h")
++  endif()
++  if(SECP256K1_ENABLE_MODULE_ELLSWIFT)
++    list(APPEND ${PROJECT_NAME}_headers "${PROJECT_SOURCE_DIR}/include/secp256k1_ellswift.h")
++  endif()
++
++  add_library(secp256k1_headers INTERFACE)
++  target_sources(secp256k1_headers PRIVATE ${${PROJECT_NAME}_headers})
++  target_include_directories(secp256k1_headers INTERFACE
++    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
++    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
++  )
++  install(TARGETS secp256k1_headers
++    EXPORT ${PROJECT_NAME}-targets
++    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
++  )
++  install(FILES ${${PROJECT_NAME}_headers}
++    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
++  )
+ endif()

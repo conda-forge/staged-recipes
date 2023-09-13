@@ -1,0 +1,57 @@
+{% set name = "libsecp256k1" %}
+{% set headers_base = "secp256k1" %}
+{% set version = "0.4.0" %}
+{% set sha256 = "d7c956606e7f52b7703fd2967cb31d2e21ec90c0b440ff1cc7c7d764a4092b98" %}
+
+package:
+  name: {{ name }}-headers
+  version: {{ version }}
+
+source:
+  url: https://github.com/bitcoin-core/secp256k1/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+  patches:
+    - 0001_update_pc.in.patch
+    - 0002_update_src_cmake_for_staticlib.patch
+    - 0003_update_cmake_for_staticlib.patch
+    - 0004_create_pkgconfig_function.patch
+
+build:
+  number: 100
+
+requirements:
+  build:
+    - cmake >=3.26
+test:
+  commands:
+    # No shared libraries
+    - test ! -f ${PREFIX}/lib/{{ name }}.so  # [unix]
+    - test ! -f ${PREFIX}/lib/{{ name }}.dylib  # [unix]
+    - if exist %LIBRARY_LIB%\\{{ name }}.lib exit 1  # [win]
+    - if exist %LIBRARY_BIN%\\{{ name }}-2.dll exit 1  # [win]
+
+    # No static libraries
+    - test ! -f ${PREFIX}/lib/{{ name }}.a  # [unix]
+    - test ! -f ${PREFIX}/lib/{{ name }}-static.a  # [unix]
+    - if exist %LIBRARY_LIB%\\{{ name }}-static.lib exit 1  # [win]
+
+    # Headers
+    - test -f ${PREFIX}/include/{{ headers_base }}.h  # [unix]
+    - if not exist %LIBRARY_INC%\\{{ headers_base }}.h exit 1  # [win]
+
+about:
+  home: https://github.com/bitcoin-core/secp256k1
+  summary: 'Optimized C library for ECDSA signatures and secret/public key operations on curve secp256k1.'
+  description: |
+    This library is intended to be the highest quality publicly available 
+    library for cryptography on the secp256k1 curve. However, the primary 
+    focus of its development has been for usage in the Bitcoin system and 
+    usage unlike Bitcoin's may be less well tested, verified, or suffer 
+    from a less well thought out interface. Correct usage requires some 
+    care and consideration that the library is fit for your application's purpose.
+  license: MIT
+  license_file: LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - https://github.com/MementoRC
