@@ -3,7 +3,7 @@
 {% set sha256 = "d7c956606e7f52b7703fd2967cb31d2e21ec90c0b440ff1cc7c7d764a4092b98" %}
 
 package:
-  name: {{ name }}-static
+  name: {{ name }}
   version: {{ version }}
 
 source:
@@ -25,6 +25,7 @@ requirements:
     - cmake >=3.26
   run:
     - {{ pin_compatible(name + "-headers") }}
+
 test:
   requires:
     - pip
@@ -32,19 +33,20 @@ test:
   commands:
     - pip check
 
-    # Static libraries (with -static suffix)
-    - test ! -f ${PREFIX}/lib/{{ name }}.a  # [unix]
-    - test -f ${PREFIX}/lib/{{ name }}-static.a  # [unix]
-    - if not exist %LIBRARY_LIB%\\{{ name }}-static.lib exit 1  # [win]
+    # Shared libraries
+    - test -f ${PREFIX}/lib/{{ name }}${SHLIB_EXT}  # [unix]
+    - if not exist %LIBRARY_LIB%\\{{ name }}.lib exit 1  # [win]
+    - if not exist %LIBRARY_BIN%\\{{ name }}-2.dll exit 1  # [win]
 
-    # pkg-config files for shared libraries
-    - test -f ${PREFIX}/lib/pkgconfig/{{ name }}-static.pc  # [unix]
-    - if not exist %LIBRARY_LIB%\\pkgconfig\\{{ name }}-static.pc exit 1  # [win]
-    - pkg-config --cflags --libs {{ name }}-static
+    # No pkg-config files for shared libraries
+    - test -f ${PREFIX}/lib/pkgconfig/{{ name }}.pc  # [unix]
+    - if not exist -f ${PREFIX}/lib/pkgconfig/{{ name }}.pc exit 1  # [win]
 
-    # cmake files for static libraries
-    - if not exist %LIBRARY_LIB%\\cmake\\{{ name }}-static\\{{ name }}-static-config.cmake exit 1  # [win]
-    - test -f ${PREFIX}/lib/cmake/{{ name }}-static/{{ name }}-static-config.cmake  # [unix]
+    # Cmake files for shared libraries
+    - test -f ${PREFIX}/lib/cmake/{{ name }}/{{ name }}-config.cmake  # [unix]
+    - if not exist %LIBRARY_LIB%\\cmake\\{{ name }}\\{{ name }}-config.cmake exit 1  # [win]
+    - test -f ${PREFIX}/lib/cmake/{{ name }}-static/{{ name }}-config.cmake  # [unix]
+    - if not exist %LIBRARY_LIB%\\cmake\\{{ name }}-static\\{{ name }}-config.cmake exit 1  # [win]
 
 about:
   home: https://github.com/bitcoin-core/secp256k1
