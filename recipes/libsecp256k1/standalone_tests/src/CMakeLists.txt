@@ -53,6 +53,3 @@ set(CTEST_TEST_TARGET_ALIAS check)
 include(CTest)
 enable_testing()
 
-option(SECP256K1_BUILD_TESTS "Build tests." ON)
-option(SECP256K1_BUILD_EXHAUSTIVE_TESTS "Build exhaustive tests." ON)
-
