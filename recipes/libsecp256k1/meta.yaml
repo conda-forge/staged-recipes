@@ -9,7 +9,7 @@
       "secp256k1_ellswift.h"] %}
 {% set version = "0.4.0" %}
 {% set sha256 = "d7c956606e7f52b7703fd2967cb31d2e21ec90c0b440ff1cc7c7d764a4092b98" %}
-
+  
 package:
   name: {{ name }}-split
   version: {{ version }}
@@ -39,12 +39,17 @@ outputs:
         - make
         - cmake >=3.26
       host:
+        - m2-tar  # [win]
         - {{ compiler('c') }}
       run:
         - {{ pin_subpackage(name + "-headers", exact=True) }}
     test:
       requires:
+        - {{ compiler('c') }}
+        - make
         - pkg-config
+      files:
+        - standalone_tests
       commands:
         # Headers - Not part of the subpackage, but they must be installed
         {% for header in headers %}
@@ -80,6 +85,14 @@ outputs:
         - test ! -f ${PREFIX}/lib/cmake/{{ name }}/{{ name }}-static-config.cmake  # [unix]
         - if exist %LIBRARY_LIB%\\cmake\\{{ name }}-static\\{{ name }}-static-config.cmake exit 1  # [win]
         - test ! -f ${PREFIX}/lib/cmake/{{ name }}-static/{{ name }}-static-config.cmake  # [unix]
+
+        # CMake test
+        - cd standalone_tests/src  # [unix]
+        - cd standalone_tests\\src  # [win]
+        - cmake $CMAKE_ARGS .   # [unix]
+        - cmake %CMAKE_ARGS% .  # [win]
+        - cmake --build .
+        - cmake --build . --target test
       # downstreams:
       #   - coincurve-dynamic
 
@@ -125,12 +138,17 @@ outputs:
         - make
         - cmake >=3.26
       host:
+        - m2-tar  # [win]
         - {{ compiler('c') }}
       run:
         - {{ pin_subpackage(name + "-headers", exact=True) }}
     test:
       requires:
+        - {{ compiler('c') }}
+        - cmake >=3.26
         - pkg-config
+      files:
+        - standalone_tests
       commands:
         # Headers - Not part of the subpackage, but they must be installed
         {% for header in headers %}
@@ -166,8 +184,16 @@ outputs:
         # cmake files for static libraries
         - if not exist %LIBRARY_LIB%\\cmake\\{{ name }}-static\\{{ name }}-static-config.cmake exit 1  # [win]
         - test -f ${PREFIX}/lib/cmake/{{ name }}-static/{{ name }}-static-config.cmake  # [unix]
-      # downstreams:
-      #   - coincurve
+
+        # CMake test
+        - cd standalone_tests/src  # [unix]
+        - cd standalone_tests\\src  # [win]
+        - cmake $CMAKE_ARGS .   # [unix]
+        - cmake %CMAKE_ARGS% .  # [win]
+        - cmake --build .
+        - cmake --build . --target test
+      downstreams:
+        - coincurve
 
 about:
   home: https://github.com/bitcoin-core/secp256k1

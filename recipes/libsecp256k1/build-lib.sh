@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -ex
 
+# Prepare post-install tests
+if [[ "${PKG_NAME: -8}" != "-headers" ]]; then
+  cp ${SRC_DIR}/src/tests.c ${RECIPE_DIR}/standalone_tests/src
+  cp ${SRC_DIR}/src/tests_exhaustive.c ${RECIPE_DIR}/standalone_tests/src
+  cp ${SRC_DIR}/src/secp256k1.c ${RECIPE_DIR}/standalone_tests/src
+  (cd ${SRC_DIR}; tar cf - contrib | (cd ${RECIPE_DIR}/standalone_tests/; tar xf -))
+  (cd ${SRC_DIR}/src; tar cf - *.h modules/*/*.h wycheproof/*.h | (cd ${RECIPE_DIR}/standalone_tests/src; tar xf -))
+fi
+
+# Build
 if [[ "${PKG_NAME: -8}" == "-headers" ]]; then
   BUILD_DIR="build-headers"
   export SECP256K1_BUILD_SHARED_LIBS="OFF"
@@ -18,8 +28,6 @@ else
   export SECP256K1_INSTALL="ON"
 fi
 
-LOCAL_INSTALL_PREFIX="${PREFIX}"
-
 mkdir -p ${BUILD_DIR}
 cd ${BUILD_DIR}
 
@@ -28,11 +36,14 @@ cmake ${CMAKE_ARGS} \
     -B . \
     -D CMAKE_BUILD_TYPE=Release \
     -D CMAKE_PREFIX_PATH=${PREFIX} \
-    -D CMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PREFIX} \
+    -D CMAKE_INSTALL_PREFIX=${PREFIX} \
     -D SECP256K1_ENABLE_MODULE_RECOVERY=ON \
     -D BUILD_SHARED_LIBS=${SECP256K1_BUILD_SHARED_LIBS} \
     -D SECP256K1_INSTALL_HEADERS=${SECP256K1_INSTALL_HEADERS} \
-    -D SECP256K1_INSTALL=${SECP256K1_INSTALL}
+    -D SECP256K1_INSTALL=${SECP256K1_INSTALL} \
+    -D SECP256K1_BUILD_BENCHMARKS=OFF \
+    -D SECP256K1_BUILD_TESTS=OFF \
+    -D SECP256K1_BUILD_EXHAUSTIVE_TESTS=ON
 
 if [[ "${PKG_NAME: -8}" == "-headers" ]]; then
   echo "Installing headers only" >&2
@@ -48,6 +59,7 @@ else
   echo "   SECP256K1_INSTALL_HEADERS=${SECP256K1_INSTALL_HEADERS}" >&2
   echo "   SECP256K1_INSTALL=${SECP256K1_INSTALL}" >&2
   cmake --build . --parallel ${CPU_COUNT}
-  # cmake --build . --target check
+  cmake --build . --target check
   cmake --install .
 fi
+cd ..
