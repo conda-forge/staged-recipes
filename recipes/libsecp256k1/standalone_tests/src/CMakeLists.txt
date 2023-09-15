@@ -11,8 +11,10 @@ project(dummy_standalone_tests LANGUAGES C)
 
 if(NOT BUILD_SHARED_LIBS)
   set(MY_PROJECT_NAME libsecp256k1-static)
+  set(MY_LIB secp256k1-static)
 else ()
   set(MY_PROJECT_NAME libsecp256k1)
+  set(MY_LIB secp256k1)
 endif()
 
 find_package(${MY_PROJECT_NAME} CONFIG REQUIRED)
@@ -31,17 +33,17 @@ endif()
 
 if (${MY_PROJECT_NAME}_FOUND)
   add_executable(stda_noverify_tests tests.c)
-  target_link_libraries(stda_noverify_tests ${MY_PROJECT_NAME}::secp256k1)
+  target_link_libraries(stda_noverify_tests -l${MY_LIB})
   add_test(NAME stda_noverify_tests COMMAND stda_noverify_tests)
 
   add_executable(stda_tests tests.c)
   target_compile_definitions(stda_tests PRIVATE VERIFY)
-  target_link_libraries(stda_tests PRIVATE ${MY_PROJECT_NAME}::secp256k1)
+  target_link_libraries(stda_tests PRIVATE  -l${MY_LIB})
   add_test(NAME stda_tests COMMAND stda_tests)
 
   # Note: do not include secp256k1_precomputed in exhaustive_tests (it uses runtime-generated tables).
   add_executable(stda_exhaustive_tests tests_exhaustive.c)
-  target_link_libraries(stda_exhaustive_tests ${MY_PROJECT_NAME}::secp256k1)
+  target_link_libraries(stda_exhaustive_tests  -l${MY_LIB})
   target_compile_definitions(stda_exhaustive_tests PRIVATE $<$<NOT:$<CONFIG:Coverage>>:VERIFY>)
   add_test(NAME stda_exhaustive_tests COMMAND stda_exhaustive_tests)
 endif()
