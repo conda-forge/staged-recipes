@@ -1,8 +1,8 @@
 diff --git a/setup.py b/setup.py
-index c121d33..26df317 100644
+index c121d33..1b41074 100644
 --- a/setup.py
 +++ b/setup.py
-@@ -1,317 +1,42 @@
+@@ -1,317 +1,48 @@
 -import errno
 +import logging
  import os
@@ -47,10 +47,7 @@ index c121d33..26df317 100644
 -BUILDING_FOR_WINDOWS = detect_dll()
  
 -MAKE = 'gmake' if platform.system() in ['FreeBSD', 'OpenBSD'] else 'make'
-+bind_library_name = "libsecp256k1-static" if os.name == "nt" or sys.platform == "win32" or sys.platform == "cygwin" else "secp256k1-static"
-+package_name = "coincurve"
-+libname = f"{package_name}._libsecp256k1"
- 
+-
 -# IMPORTANT: keep in sync with .github/workflows/build.yml
 -#
 -# Version of libsecp256k1 to download if none exists in the `libsecp256k1` directory
@@ -114,9 +111,16 @@ index c121d33..26df317 100644
 -        def run(self):
 -            download_library(self)
 -            _bdist_wheel.run(self)
--
--
--else:
++package_name = "coincurve"
++libname = f"{package_name}._libsecp256k1"
+ 
++package_data = {package_name: ["py.typed"]}
+ 
++if os.name == "nt" or sys.platform == "win32" or sys.platform == "cygwin":
++    bind_library_name = "libsecp256k1-static"
++    extra_compile_args = ["/MT"]
++    package_data[package_name].append(f"{libname}.dll")
+ else:
 -    bdist_wheel = None
 -
 -
@@ -280,10 +284,10 @@ index c121d33..26df317 100644
 -            'bdist_wheel': bdist_wheel,
 -        },
 -    )
-+package_data = {package_name: ["py.typed"]}
- 
-+if os.name == "nt" or sys.platform == "win32" or sys.platform == "cygwin":
-+    package_data[package_name].append(f"{libname}.dll")
+-
++    bind_library_name = "secp256k1-static"
++    extra_compile_args = ["-Wno-unused-function"]
++    package_data[package_name].append(f"{libname}.so")
  
  setup(
 -    name='coincurve',
@@ -337,9 +341,10 @@ index c121d33..26df317 100644
 +    ext_modules=[
 +        Extension(
 +            name=libname,
-+            sources=[os.path.join(package_name, f"_libsecp256k1.c")],
++            sources=[os.path.join(package_name, "_libsecp256k1.c")],
 +            libraries=[f"{bind_library_name}"],
-+            # py_limited_api=True,
++            extra_compile_args=extra_compile_args,
++            py_limited_api=True,
 +        )
      ],
 -    **setup_kwargs
