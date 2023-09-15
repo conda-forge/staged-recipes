@@ -1,8 +1,7 @@
 diff --git a/_cffi_build/build.py b/_cffi_build/build.py
-index f942d5d..2b71d4f 100644
 --- a/_cffi_build/build.py
 +++ b/_cffi_build/build.py
-@@ -1,34 +1,70 @@
+@@ -1,34 +1,74 @@
 +import argparse
 +import logging
  import os
@@ -20,8 +19,6 @@ index f942d5d..2b71d4f 100644
  
  
 -def _mk_ffi(sources, name='_libsecp256k1', **kwargs):
--    _ffi = FFI()
--    code = []
 +def gather_sources_from_directory(directory: str) -> List[Source]:
 +    """
 +    Gather source files from a given directory.
@@ -35,7 +32,7 @@ index f942d5d..2b71d4f 100644
 +            include_line = f'#include <{filename}>'
 +            sources.append(Source(filename, include_line))
 +    return sorted(sources)
- 
++
 +not_a_dll = """
 +# if defined(_MSC_VER)
 +# define CFFI_DLLEXPORT extern __declspec(dllexport)
@@ -44,7 +41,9 @@ index f942d5d..2b71d4f 100644
 +# endif
 +"""
 +
-+def mk_ffi(sources: List[Source], name: str = '_libsecp256k1', **kwargs: Any) -> FFI:
++def mk_ffi(sources: List[Source],
++           static_lib: bool = False,
++           name: str = '_libsecp256k1') -> FFI:
 +    """
 +    Create an FFI object.
 +
@@ -53,10 +52,13 @@ index f942d5d..2b71d4f 100644
 +    :param kwargs: Additional keyword arguments.
 +    :return: An FFI object.
 +    """
-+    _ffi = FFI()
-+    code = [not_a_dll]
+     _ffi = FFI()
+-    code = []
+-
++    code = [not_a_dll] if static_lib else []
      for source in sources:
-         with open(os.path.join(here, source.h)) as h:
+-        with open(os.path.join(here, source.h), 'rt') as h:
++        with open(os.path.join(here, source.h)) as h:
 +            logging.info(f"   Including {source.h}...")
              _ffi.cdef(h.read())
          code.append(source.include)
@@ -75,13 +77,16 @@ index f942d5d..2b71d4f 100644
 -    Source('secp256k1_recovery.h', '#include <secp256k1_recovery.h>'),
 -    Source('secp256k1_schnorrsig.h', '#include <secp256k1_schnorrsig.h>'),
 -]
+-
+-ffi = _mk_ffi(modules, libraries=['secp256k1'])
 +if __name__ == "__main__":
 +    logging.info("Starting CFFI build process...")
 +    parser = argparse.ArgumentParser(description="Generate C code using CFFI.")
 +    parser.add_argument("c_file", help="Generated C code filename.")
++    parser.add_argument("static_lib", help="Generate static lib in Windows.",
++                        default=False)
 +    args = parser.parse_args()
- 
--ffi = _mk_ffi(modules, libraries=['secp256k1'])
++
 +    modules = gather_sources_from_directory(here)
-+    ffi = mk_ffi(modules)
++    ffi = mk_ffi(modules, args.static_lib)
 +    ffi.emit_c_code(args.c_file)
