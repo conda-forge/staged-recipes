@@ -6,6 +6,8 @@ source .scripts/logging_utils.sh
 
 ( startgroup "Configure Docker" ) 2> /dev/null
 
+set -xeo pipefail
+
 REPO_ROOT=$(cd "$(dirname "$0")/.."; pwd;)
 ARTIFACTS="$REPO_ROOT/build_artifacts"
 THISDIR="$( cd "$( dirname "$0" )" >/dev/null && pwd )"
