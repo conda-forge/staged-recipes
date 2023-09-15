@@ -5,6 +5,7 @@ pushd build
 make
 make lagrange-test
 popd
+
 ./bin/lagrange-test
 
 mkdir -p $PREFIX/bin
