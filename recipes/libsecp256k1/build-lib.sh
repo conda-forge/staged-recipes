@@ -42,8 +42,8 @@ cmake ${CMAKE_ARGS} \
     -D SECP256K1_INSTALL_HEADERS=${SECP256K1_INSTALL_HEADERS} \
     -D SECP256K1_INSTALL=${SECP256K1_INSTALL} \
     -D SECP256K1_BUILD_BENCHMARKS=OFF \
-    -D SECP256K1_BUILD_TESTS=OFF \
-    -D SECP256K1_BUILD_EXHAUSTIVE_TESTS=ON
+    -D SECP256K1_BUILD_TESTS=ON \
+    -D SECP256K1_BUILD_EXHAUSTIVE_TESTS=OFF
 
 if [[ "${PKG_NAME: -8}" == "-headers" ]]; then
   echo "Installing headers only" >&2
@@ -59,7 +59,7 @@ else
   echo "   SECP256K1_INSTALL_HEADERS=${SECP256K1_INSTALL_HEADERS}" >&2
   echo "   SECP256K1_INSTALL=${SECP256K1_INSTALL}" >&2
   cmake --build . --parallel ${CPU_COUNT}
-  cmake --build . --target check
+  cmake --build . --target tests
   cmake --install .
 fi
 cd ..

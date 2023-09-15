@@ -9,17 +9,6 @@ endif()
 
 project(dummy_standalone_tests LANGUAGES C)
 
-if(NOT BUILD_SHARED_LIBS)
-  set(MY_PROJECT_NAME libsecp256k1-static)
-  set(MY_LIB secp256k1-static)
-else ()
-  set(MY_PROJECT_NAME libsecp256k1)
-  set(MY_LIB secp256k1)
-endif()
-
-find_package(${MY_PROJECT_NAME} CONFIG REQUIRED)
-message(STATUS "Found ${MY_PROJECT_NAME}: ${${MY_PROJECT_NAME}_VERSION}")
-
 if(CMAKE_VERSION VERSION_LESS 3.21)
   get_directory_property(parent_directory PARENT_DIRECTORY)
   if(parent_directory)
@@ -32,21 +21,21 @@ if(CMAKE_VERSION VERSION_LESS 3.21)
   unset(parent_directory)
 endif()
 
-if (${MY_PROJECT_NAME}_FOUND)
-  add_executable(stda_noverify_tests tests.c)
-  target_link_libraries(stda_noverify_tests PRIVATE ${MY_PROJECT_NAME}::${MY_LIB})
-  add_test(NAME stda_noverify_tests COMMAND stda_noverify_tests)
+# Note: do not include secp256k1_precomputed in exhaustive_tests (it uses runtime-generated tables).
+add_executable(stda_exhaustive_tests tests_exhaustive.c)
+target_compile_definitions(stda_exhaustive_tests PRIVATE $<$<NOT:$<CONFIG:Coverage>>:VERIFY>)
+add_test(NAME stda_exhaustive_tests COMMAND stda_exhaustive_tests)
 
-  add_executable(stda_tests tests.c)
-  target_compile_definitions(stda_tests PRIVATE VERIFY)
-  target_link_libraries(stda_tests ${MY_PROJECT_NAME}::${MY_LIB})
-  add_test(NAME stda_tests COMMAND stda_tests)
+if(NOT BUILD_SHARED_LIBS)
+  find_package(libsecp256k1-static REQUIRED)
+  message(STATUS "Found Static SECP256K1: ${libsecp256k1-static_VERSION}")
 
-  # Note: do not include secp256k1_precomputed in exhaustive_tests (it uses runtime-generated tables).
-  add_executable(stda_exhaustive_tests tests_exhaustive.c)
-  target_link_libraries(stda_exhaustive_tests ${MY_LIB})
-  target_compile_definitions(stda_exhaustive_tests PRIVATE $<$<NOT:$<CONFIG:Coverage>>:VERIFY>)
-  add_test(NAME stda_exhaustive_tests COMMAND stda_exhaustive_tests)
+  target_link_libraries(stda_exhaustive_tests secp256k1-static)
+else ()
+  find_package(libsecp256k1 REQUIRED)
+  message(STATUS "Found Shared SECP256K1: ${libsecp256k1_VERSION}")
+
+  target_link_libraries(stda_exhaustive_tests secp256k1)
 endif()
 
 # Ask CTest to create a "check" target (e.g., make check) as alias for the "test" target.

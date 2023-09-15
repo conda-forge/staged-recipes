@@ -56,14 +56,14 @@ cmake %CMAKE_ARGS% ^
     -D SECP256K1_INSTALL_HEADERS=%SECP256K1_INSTALL_HEADERS% ^
     -D SECP256K1_INSTALL=%SECP256K1_INSTALL%
     -D SECP256K1_BUILD_BENCHMARKS=OFF ^
-    -D SECP256K1_BUILD_TESTS=OFF ^
-    -D SECP256K1_BUILD_EXHAUSTIVE_TESTS=ON
+    -D SECP256K1_BUILD_TESTS=ON ^
+    -D SECP256K1_BUILD_EXHAUSTIVE_TESTS=OFF
 if %ERRORLEVEL% neq 0 exit 1
 
 if "!HEADERS_NAME!"=="%PKG_NAME%" (
     cmake --build .
     if %ERRORLEVEL% neq 0 exit 1
-    cmake --build . --target tests_exhaustive
+    cmake --build . --target tests
     if %ERRORLEVEL% neq 0 exit 1
     cmake --build . --target install
     if %ERRORLEVEL% neq 0 exit 1
