@@ -9,15 +9,22 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
   copy "%SRC_DIR%\src\tests.c" "%RECIPE_DIR%\standalone_tests\src"
   cp "%SRC_DIR%\src\tests_exhaustive.c" "%RECIPE_DIR%\standalone_tests\src"
   cp "%SRC_DIR%\src\secp256k1.c" "%RECIPE_DIR%\standalone_tests\src"
-  cd "%SRC_DIR%" && (
-      tar cf - contrib\lax_der_parsing.c contrib\lax_der_privatekey_parsing.c
-  ) | (
-      cd "%RECIPE_DIR%\standalone_tests" && tar xf -
+
+  (
+    cd "%SRC_DIR%" && (
+        tar cf - contrib\lax_der_parsing.c contrib\lax_der_privatekey_parsing.c
+    ) | (
+        cd "%RECIPE_DIR%\standalone_tests" && tar xf -
+    )
   )
-  cd "%SRC_DIR%\src" && (
-      tar cf - *.h modules\*\*.h wycheproof\*.h
-  ) | (
-      cd "%RECIPE_DIR%\standalone_tests\src" && tar xf -
+  if %ERRORLEVEL% neq 0 exit 1
+
+  (
+    cd "%SRC_DIR%\src" && (
+        tar cf - *.h modules\*\*.h wycheproof\*.h
+    ) | (
+        cd "%RECIPE_DIR%\standalone_tests\src" && tar xf -
+    )
   )
   if %ERRORLEVEL% neq 0 exit 1
 )
