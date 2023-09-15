@@ -12,9 +12,18 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
 
   (
     cd "%SRC_DIR%" && (
-        tar cf - contrib\lax_der_parsing.c contrib\lax_der_privatekey_parsing.c
+        tar cf - contrib
     ) | (
         cd "%RECIPE_DIR%\standalone_tests" && tar xf -
+    )
+  )
+  if %ERRORLEVEL% neq 0 exit 1
+
+  (
+    cd "%SRC_DIR%" && (
+        tar cf - cmake\TryAppendCflags.cmake
+    ) | (
+        cd "%RECIPE_DIR%\standalone_tests\src" && tar xf -
     )
   )
   if %ERRORLEVEL% neq 0 exit 1
