@@ -40,6 +40,7 @@ else()
   string(REGEX REPLACE "-O3[ \t\r\n]*" "-O2" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
 endif()
 
+include(TryAppendCFlags)
 if(MSVC)
   # Keep the following commands ordered lexicographically.
   try_append_c_flags(/W3) # Production quality warning level.
