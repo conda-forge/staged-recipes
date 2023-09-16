@@ -20,15 +20,6 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
   if %ERRORLEVEL% neq 0 exit 1
 
   (
-    cd "%SRC_DIR%" && (
-        tar cf - cmake
-    ) | (
-        cd "%RECIPE_DIR%\standalone_tests\src" && tar xf -
-    )
-  )
-  if %ERRORLEVEL% neq 0 exit 1
-
-  (
     cd "%SRC_DIR%\src" && (
         tar cf - *.h modules\*\*.h wycheproof\*.h
     ) | (

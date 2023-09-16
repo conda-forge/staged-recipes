@@ -7,7 +7,6 @@ if [[ "${PKG_NAME: -8}" != "-headers" ]]; then
   cp ${SRC_DIR}/src/tests_exhaustive.c ${RECIPE_DIR}/standalone_tests/src
   cp ${SRC_DIR}/src/secp256k1.c ${RECIPE_DIR}/standalone_tests/src
   (cd ${SRC_DIR}; tar cf - contrib | (cd ${RECIPE_DIR}/standalone_tests; tar xf -))
-  (cd ${SRC_DIR}; tar cf - cmake | (cd ${RECIPE_DIR}/standalone_tests/src; tar xf -))
   (cd ${SRC_DIR}/src; tar cf - *.h modules/*/*.h wycheproof/*.h | (cd ${RECIPE_DIR}/standalone_tests/src; tar xf -))
 fi
 
