@@ -21,6 +21,11 @@ if(CMAKE_VERSION VERSION_LESS 3.21)
   unset(parent_directory)
 endif()
 
+set(CMAKE_C_STANDARD 90)
+set(CMAKE_C_EXTENSIONS OFF)
+
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
 # Redefine configuration flags.
 # We leave assertions on, because they are only used in the examples, and we want them always on there.
 if(MSVC)
@@ -34,8 +39,6 @@ else()
   # Prefer -O2 optimization level. (-O3 is CMake's default for Release for many compilers.)
   string(REGEX REPLACE "-O3[ \t\r\n]*" "-O2" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
 endif()
-
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 if(MSVC)
   # Keep the following commands ordered lexicographically.

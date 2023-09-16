@@ -21,7 +21,7 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
 
   (
     cd "%SRC_DIR%" && (
-        tar cf - cmake\TryAppendCflags.cmake
+        tar cf - cmake
     ) | (
         cd "%RECIPE_DIR%\standalone_tests\src" && tar xf -
     )
