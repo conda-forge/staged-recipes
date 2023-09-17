@@ -1,8 +1,8 @@
 diff --git a/setup.py b/setup.py
-index c121d33..30fb7e7 100644
+index c121d33..b5308ba 100644
 --- a/setup.py
 +++ b/setup.py
-@@ -1,317 +1,73 @@
+@@ -1,317 +1,69 @@
 -import errno
 +import logging
  import os
@@ -158,35 +158,35 @@ index c121d33..30fb7e7 100644
 -        if has_system_lib():
 -            log.info('Using system library')
 -            return
--
--        build_temp = os.path.abspath(self.build_temp)
 +    logging.info(f"   '-> setup.py: Building with static libraries: {secp256k1_shared_libs}")
 +    bind_library_name += "-static"
 +    secp_pkg += "-static"
 +    static_lib = True
+ 
+-        build_temp = os.path.abspath(self.build_temp)
++logging.info("\n\n")
++logging.info(f"   {os.environ}\n{pkgconfig.parse(secp_pkg, static_lib)}")
++logging.info("\n\n")
  
 -        try:
 -            os.makedirs(build_temp)
 -        except OSError as e:
 -            if e.errno != errno.EEXIST:
 -                raise
-+# logging.info("\n\n")
-+# logging.info(f"   {os.environ}\n{pkgconfig.parse(secp_pkg, static_lib)}")
-+# logging.info("\n\n")
++package_name = "coincurve"
++libname = f"{package_name}._libsecp256k1"
  
 -        if not os.path.exists(absolute('libsecp256k1')):
 -            # library needs to be downloaded
 -            self.get_source_files()
-+package_name = "coincurve"
-+libname = f"{package_name}._libsecp256k1"
++package_data = {package_name: ["py.typed"]}
  
 -        if not os.path.exists(absolute('libsecp256k1/configure')):
 -            # configure script hasn't been generated yet
 -            autogen = absolute('libsecp256k1/autogen.sh')
 -            os.chmod(absolute(autogen), 0o755)
 -            subprocess.check_call([autogen], cwd=absolute('libsecp256k1'))
-+package_data = {package_name: ["py.typed"]}
- 
+-
 -        for filename in [
 -            'libsecp256k1/configure',
 -            'libsecp256k1/build-aux/compile',
@@ -310,6 +310,10 @@ index c121d33..30fb7e7 100644
 +            py_limited_api=True,
 +        )
 +pkgconfig.configure_extension(extension, secp_pkg, static=static_lib)
++
++logging.info("\n\n")
++logging.info(f"   {extension.__dict__}")
++logging.info("\n\n")
  
  setup(
 -    name='coincurve',
@@ -325,7 +329,9 @@ index c121d33..30fb7e7 100644
 -    install_requires=['asn1crypto', 'cffi>=1.3.0'],
 -
 -    packages=find_packages(exclude=('_cffi_build', '_cffi_build.*', 'libsecp256k1', 'tests')),
--    package_data=package_data,
++    ext_modules=[extension],
++    cmdclass={"build_ext": BuildCFFI},
+     package_data=package_data,
 -
 -    distclass=Distribution,
 -    zip_safe=False,
@@ -360,16 +366,6 @@ index c121d33..30fb7e7 100644
 -        'Programming Language :: Python :: Implementation :: PyPy',
 -        'Topic :: Software Development :: Libraries',
 -        'Topic :: Security :: Cryptography',
-+    ext_modules=[
-+        Extension(
-+            name=libname,
-+            sources=[os.path.join(package_name, "_libsecp256k1.c")],
-+            libraries=[f"{bind_library_name}"],
-+            extra_compile_args=extra_compile_args,
-+            py_limited_api=True,
-+        )
-     ],
+-    ],
 -    **setup_kwargs
-+    cmdclass={"build_ext": BuildCFFI},
-+    package_data=package_data,
  )
