@@ -10,41 +10,36 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
   cp "%SRC_DIR%\src\\tests_exhaustive.c" "%RECIPE_DIR%\\standalone_tests\\src"
   cp "%SRC_DIR%\\src\\secp256k1.c" "%RECIPE_DIR%\\standalone_tests\\src"
 
-  (
-    cd "%SRC_DIR%" && (
-        tar cf - contrib
-    ) | (
-        cd "%RECIPE_DIR%\\standalone_tests" && tar xf -
-    )
+  cd "%SRC_DIR%"
+  for /f "delims=" %%f in ('dir /b /s /a-d contrib\\* include\\*') do (
+      set "FILE=%%f"
+      set "FILE=!FILE:%SRC_DIR%=!"
+      set "FILE=!FILE:\=\\!"
+      mkdir "%RECIPE_DIR%\\standalone_tests\\!FILE:~0,-2!"
+      cp "%%f" "%RECIPE_DIR%\\standalone_tests\\!FILE!"
   )
   if %ERRORLEVEL% neq 0 exit 1
 
-  (
-    cd "%SRC_DIR%" && (
-        tar cf - include
-    ) | (
-        cd "%RECIPE_DIR%\\standalone_tests" && tar xf -
-    )
+  for /f "delims=" %%f in ('dir /b /s /a-d cmake\\*') do (
+      set "FILE=%%f"
+      set "FILE=!FILE:%SRC_DIR%=!"
+      set "FILE=!FILE:\=\\!"
+      mkdir "%RECIPE_DIR%\\standalone_tests\\src\\!FILE:~0,-2!"
+      cp "%%f" "%RECIPE_DIR%\\standalone_tests\\src\\!FILE!"
   )
   if %ERRORLEVEL% neq 0 exit 1
 
-  (
-    cd "%SRC_DIR%" && (
-        tar cf - cmake
-    ) | (
-        cd "%RECIPE_DIR%\\standalone_tests\\src" && tar xf -
-    )
+  cd src
+  for /f "delims=" %%f in ('dir /b /s /a-d *.h modules\\*\\*.h wycheproof\\*.h') do (
+      set "FILE=%%f"
+      set "FILE=!FILE:%SRC_DIR%=!"
+      set "FILE=!FILE:\=\\!"
+      mkdir "%RECIPE_DIR%\\standalone_tests\\src\\!FILE:~0,-2!"
+      cp "%%f" "%RECIPE_DIR%\\standalone_tests\\src\\!FILE!"
   )
   if %ERRORLEVEL% neq 0 exit 1
 
-  (
-    cd "%SRC_DIR%\\src" && (
-        tar cf - *.h modules\\*\\*.h wycheproof\\*.h
-    ) | (
-        cd "%RECIPE_DIR%\\standalone_tests\\src" && tar xf -
-    )
-  )
-  if %ERRORLEVEL% neq 0 exit 1
+  cd "%RECIPE_DIR%"
 )
 
 :: Build
