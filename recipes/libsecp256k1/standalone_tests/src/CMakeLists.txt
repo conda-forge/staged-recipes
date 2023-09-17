@@ -79,9 +79,13 @@ if(NOT BUILD_SHARED_LIBS)
   target_link_libraries(stda_exhaustive_tests secp256k1-static)
 else ()
   find_package(libsecp256k1 REQUIRED)
-  message(STATUS "Found Shared SECP256K1: ${libsecp256k1_VERSION}")
-
-  target_link_libraries(stda_exhaustive_tests secp256k1)
+  if(libsecp256k1_FOUND)
+    message(STATUS "Found Shared SECP256K1: ${libsecp256k1_VERSION}")
+    message(STATUS "                      : ${libsecp256k1_LIBRARIES}")
+    target_link_libraries(stda_exhaustive_tests ${libsecp256k1_LIBRARIES})
+  else()
+    message(FATAL_ERROR "libsecp256k1 not found")
+  endif()
 endif()
 
 # Ask CTest to create a "check" target (e.g., make check) as alias for the "test" target.
