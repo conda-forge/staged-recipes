@@ -73,19 +73,16 @@ target_compile_definitions(stda_exhaustive_tests PRIVATE $<$<NOT:$<CONFIG:Covera
 add_test(NAME stda_exhaustive_tests COMMAND stda_exhaustive_tests)
 
 if(NOT BUILD_SHARED_LIBS)
-  find_package(libsecp256k1-static REQUIRED)
-  message(STATUS "Found Static SECP256K1: ${libsecp256k1-static_VERSION}")
-
-  target_link_libraries(stda_exhaustive_tests secp256k1-static)
+  find_package(secp256k1_library NAMES libsecp256k1-static REQUIRED)
 else ()
   find_package(secp256k1_library NAMES libsecp256k1 REQUIRED)
-  if(secp256k1_library_FOUND)
-    message(STATUS "Found Shared SECP256K1: ${secp256k1_library_VERSION}")
-    message(STATUS "                      : ${secp256k1_library_LIBRARIES}")
-    target_link_libraries(stda_exhaustive_tests ${secp256k1_library})
-  else()
-    message(FATAL_ERROR "libsecp256k1 not found")
-  endif()
+endif()
+
+if(secp256k1_library_FOUND)
+  message(STATUS "Found Shared SECP256K1: ${secp256k1_library_VERSION}")
+  target_link_libraries(stda_exhaustive_tests ${secp256k1_library})
+else()
+  message(FATAL_ERROR "libsecp256k1 not found")
 endif()
 
 # Ask CTest to create a "check" target (e.g., make check) as alias for the "test" target.
