@@ -9,6 +9,7 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
   cp "%SRC_DIR%\\src\\tests.c" "%RECIPE_DIR%\\standalone_tests\\src"
   cp "%SRC_DIR%\src\\tests_exhaustive.c" "%RECIPE_DIR%\\standalone_tests\\src"
   cp "%SRC_DIR%\\src\\secp256k1.c" "%RECIPE_DIR%\\standalone_tests\\src"
+  cp "%SRC_DIR%\\src\\*.h" "%RECIPE_DIR%\\standalone_tests\\src"
 
   cd "%SRC_DIR%"
   for /f "delims=" %%f in ('dir /b /s /a-d contrib\\* include\\*') do (
@@ -30,7 +31,7 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
   if %ERRORLEVEL% neq 0 exit 1
 
   cd src
-  for /f "delims=" %%f in ('dir /b /s /a-d *.h modules\\*\\*.h wycheproof\\*.h') do (
+  for /f "delims=" %%f in ('dir /b /s /a-d modules\\*\\*.h wycheproof\\*.h') do (
       set "FILE=%%f"
       set "FILE=!FILE:%SRC_DIR%=!"
       set "FILE=!FILE:\=\\!"
