@@ -1,8 +1,8 @@
 diff --git a/setup.py b/setup.py
-index c121d33..d6d3503 100644
+index c121d33..dddfd8e 100644
 --- a/setup.py
 +++ b/setup.py
-@@ -1,317 +1,59 @@
+@@ -1,317 +1,70 @@
 -import errno
 +import logging
  import os
@@ -119,6 +119,7 @@ index c121d33..d6d3503 100644
 +if secp256k1_shared_libs == "1":
 +    logging.info(f"   '-> setup.py: Building with shared libraries: {secp256k1_shared_libs}")
 +    bind_library_name = "secp256k1"
++    static_lib = False
  else:
 -    bdist_wheel = None
 -
@@ -160,6 +161,7 @@ index c121d33..d6d3503 100644
 -        build_temp = os.path.abspath(self.build_temp)
 +    logging.info(f"   '-> setup.py: Building with static libraries: {secp256k1_shared_libs}")
 +    bind_library_name = "secp256k1-static"
++    static_lib = True
  
 -        try:
 -            os.makedirs(build_temp)
@@ -167,7 +169,7 @@ index c121d33..d6d3503 100644
 -            if e.errno != errno.EEXIST:
 -                raise
 +logging.info("\n\n")
-+logging.info(f"   '{os.environ}\n{pkgconfig.ldflags(bind_library_name)}\n{pkgconfig.libs(bind_library_name)}")
++logging.info(f"   '{os.environ}\n{pkgconfig.parse(bind_library_name, static_lib)}")
 +logging.info("\n\n")
  
 -        if not os.path.exists(absolute('libsecp256k1')):
@@ -297,6 +299,15 @@ index c121d33..d6d3503 100644
 -
 +    extra_compile_args = []
 +    package_data[package_name].append(f"{libname}.so")
++
++extension = Extension(
++            name=libname,
++            sources=[os.path.join(package_name, "_libsecp256k1.c")],
++            libraries=[f"{bind_library_name}"],
++            extra_compile_args=extra_compile_args,
++            py_limited_api=True,
++        )
++pkgconfig.configure_extension(extension, bind_library_name, static=static_lib)
  
  setup(
 -    name='coincurve',
