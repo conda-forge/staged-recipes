@@ -24,12 +24,7 @@ endif()
 set(CMAKE_C_STANDARD 90)
 set(CMAKE_C_EXTENSIONS OFF)
 
-message(STATUS "CMake version: ${CMAKE_VERSION}")
-message(STATUS "CMake Project source: ${PROJECT_SOURCE_DIR}")
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-message(STATUS "CMake Module path: ${CMAKE_MODULE_PATH}")
-file(READ ${PROJECT_SOURCE_DIR}/cmake/TryAppendCFlags.cmake CONTENT)
-message(STATUS "CMake TryAppendCFlags.cmake: ${CONTENT}")
 
 # Redefine configuration flags.
 # We leave assertions on, because they are only used in the examples, and we want them always on there.
