@@ -7,9 +7,9 @@ set STATIC_NAME=!PKG_NAME:-static=!
 :: Prepare post-install tests
 if "!HEADERS_NAME!"=="%PKG_NAME%" (
   if "!STATIC_NAME!"=="%PKG_NAME%" (
-    set "TEST_DIR=shared_standalone_tests"
+    set "TEST_DIR=%RECIPE_DIR%\\shared_standalone_tests"
   ) else (
-    set "TEST_DIR=static_standalone_tests"
+    set "TEST_DIR=%RECIPE_DIR%\\static_standalone_tests"
   )
   cp "%SRC_DIR%\\src\\tests.c" "%TEST_DIR%\\src"
   cp "%SRC_DIR%\src\\tests_exhaustive.c" "%TEST_DIR%\\src"

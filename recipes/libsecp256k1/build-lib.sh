@@ -4,9 +4,9 @@ set -ex
 # Prepare post-install tests
 if [[ "${PKG_NAME: -8}" != "-headers" ]]; then
   if [[ "${PKG_NAME: -7}" == "-static" ]]; then
-    TEST_DIR="static_standalone_tests"
+    TEST_DIR="${RECIPE_DIR}/static_standalone_tests"
   else
-    TEST_DIR="shared_standalone_tests"
+    TEST_DIR="${RECIPE_DIR}/shared_standalone_tests"
   fi
   cp ${SRC_DIR}/src/tests.c ${TEST_DIR}/src
   cp ${SRC_DIR}/src/tests_exhaustive.c ${TEST_DIR}/src
