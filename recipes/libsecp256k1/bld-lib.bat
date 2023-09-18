@@ -17,8 +17,7 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
 
   for /f "delims=" %%f in ('dir /b /s /a-d %SRC_DIR%\contrib\* %SRC_DIR%\include\*') do (
       set "FILE=%%f"
-      set "FILE=!FILE:%SRC_DIR%=!"
-      set "FILE=!FILE:\=\!"
+      set "FILE=!FILE:%SRC_DIR%\=!"
       mkdir "%TEST_DIR%\!FILE:~0,-2!"
       cp "%%f" "%TEST_DIR%\!FILE!"
   )
@@ -26,8 +25,7 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
 
   for /f "delims=" %%f in ('dir /b /s /a-d %SRC_DIR%\cmake\*') do (
       set "FILE=%%f"
-      set "FILE=!FILE:%SRC_DIR%=!"
-      set "FILE=!FILE:\=\!"
+      set "FILE=!FILE:%SRC_DIR%\=!"
       mkdir "%TEST_DIR%\src\!FILE:~0,-2!"
       cp "%%f" "%TEST_DIR%\src\!FILE!"
   )
@@ -35,8 +33,7 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
 
   for /f "delims=" %%f in ('dir /b /s /a-d %SRC_DIR%\src\*.h %SRC_DIR%\src\modules\*\*.h %SRC_DIR%\src\wycheproof\*.h') do (
       set "FILE=%%f"
-      set "FILE=!FILE:%SRC_DIR%=!"
-      set "FILE=!FILE:\=\!"
+      set "FILE=!FILE:%SRC_DIR%\=!"
       mkdir "%TEST_DIR%\src\!FILE:~0,-2!"
       cp "%%f" "%TEST_DIR%\src\!FILE!"
   )
