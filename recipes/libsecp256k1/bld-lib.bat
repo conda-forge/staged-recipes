@@ -7,9 +7,9 @@ set STATIC_NAME=!PKG_NAME:-static=!
 :: Prepare post-install tests
 if "!HEADERS_NAME!"=="%PKG_NAME%" (
   if "!STATIC_NAME!"=="%PKG_NAME%" (
-    set "TEST_DIR=%RECIPE_DIR%\shared_standalone_tests"
+    set "TEST_DIR=shared_standalone_tests"
   ) else (
-    set "TEST_DIR=%RECIPE_DIR%\static_standalone_tests"
+    set "TEST_DIR=static_standalone_tests"
   )
 
   echo RECIPE_DIR is %RECIPE_DIR%
@@ -19,16 +19,16 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
   cp "%SRC_DIR%\src\tests_exhaustive.c" "%TEST_DIR%\src"
   cp "%SRC_DIR%\src\secp256k1.c" "%TEST_DIR%\src"
 
-  call :CopyFiles "%SRC_DIR%" "%TEST_DIR%" "%SRC_DIR%\src\*.h"
-  call :CopyFiles "%SRC_DIR%" "%TEST_DIR%" "%SRC_DIR%\src\modules\*\*.h"
-  call :CopyFiles "%SRC_DIR%" "%TEST_DIR%" "%SRC_DIR%\src\wycheproof\*.h"
-  call :CopyFiles "%SRC_DIR%" "%TEST_DIR%" "%SRC_DIR%\contrib\*.h"
-  call :CopyFiles "%SRC_DIR%" "%TEST_DIR%" "%SRC_DIR%\include\*.h"
-  call :CopyFiles "%SRC_DIR%" "%TEST_DIR%\src" "%SRC_DIR%\cmake\*"
+  call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\%TEST_DIR%" "%SRC_DIR%\src\*.h"
+  call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\%TEST_DIR%" "%SRC_DIR%\src\modules\*\*.h"
+  call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\%TEST_DIR%" "%SRC_DIR%\src\wycheproof\*.h"
+  call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\%TEST_DIR%" "%SRC_DIR%\contrib\*.h"
+  call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\%TEST_DIR%" "%SRC_DIR%\include\*.h"
+  call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\%TEST_DIR%\src" "%SRC_DIR%\cmake\*"
 )
 
-dir %TEST_DIR%
-dir %TEST_DIR%\src
+dir %RECIPE_DIR%\%TEST_DIR%
+dir %RECIPE_DIR%\%TEST_DIR%\src
 
 :: Build
 if "!HEADERS_NAME!"=="%PKG_NAME%" (
