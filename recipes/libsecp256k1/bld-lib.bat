@@ -1,31 +1,6 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-:CopyFiles
-  set "SRC_DIR=%~1"
-  set "TEST_DIR=%~2"
-  set "SRC_DIR_FILES=%~3"
-
-  for /f "delims=" %%f in (%SRC_DIR_FILES%) do (
-    set "FULL_PATH=%%~f"
-    set "FILE=%%~nxf"
-    set "FILE_PATH=!FULL_PATH:%SRC_DIR%\=!"
-    set "DIR=!FILE_PATH:%%~nxf=!"
-
-    echo Full path: "%%~f" "!FILE_PATH!" "!DIR!" "!FILE!"
-
-    if not exist "%TEST_DIR%\!DIR!" (
-        mkdir "%TEST_DIR%\!DIR!"
-    ) else (
-        echo Directory already exists: "%TEST_DIR%\!DIR!"
-        exit 1
-    )
-
-    copy "%%~f" "%TEST_DIR%\!FILE_PATH!"
-    if %ERRORLEVEL% neq 0 exit 1
-  )
-goto :eof
-
 set HEADERS_NAME=!PKG_NAME:-headers=!
 set STATIC_NAME=!PKG_NAME:-static=!
 
@@ -105,3 +80,29 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
 
 cd ..
 rmdir /s /q %BUILD_DIR%
+
+:CopyFiles
+  set "SRC_DIR=%~1"
+  set "TEST_DIR=%~2"
+  set "SRC_DIR_FILES=%~3"
+
+  for /f "delims=" %%f in (%SRC_DIR_FILES%) do (
+    set "FULL_PATH=%%~f"
+    set "FILE=%%~nxf"
+    set "FILE_PATH=!FULL_PATH:%SRC_DIR%\=!"
+    set "DIR=!FILE_PATH:%%~nxf=!"
+
+    echo Full path: "%%~f" "!FILE_PATH!" "!DIR!" "!FILE!"
+
+    if not exist "%TEST_DIR%\!DIR!" (
+        mkdir "%TEST_DIR%\!DIR!"
+    ) else (
+        echo Directory already exists: "%TEST_DIR%\!DIR!"
+        exit 1
+    )
+
+    copy "%%~f" "%TEST_DIR%\!FILE_PATH!"
+    if %ERRORLEVEL% neq 0 exit 1
+  )
+exit /B 0
+
