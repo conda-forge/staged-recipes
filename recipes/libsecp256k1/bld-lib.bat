@@ -7,10 +7,14 @@ set STATIC_NAME=!PKG_NAME:-static=!
 :: Prepare post-install tests
 if "!HEADERS_NAME!"=="%PKG_NAME%" (
   if "!STATIC_NAME!"=="%PKG_NAME%" (
-    set TEST_DIR=%RECIPE_DIR%\shared_standalone_tests
+    set "TEST_DIR=%RECIPE_DIR%\shared_standalone_tests"
   ) else (
-    set TEST_DIR=%RECIPE_DIR%\static_standalone_tests
+    set "TEST_DIR=%RECIPE_DIR%\static_standalone_tests"
   )
+
+  echo RECIPE_DIR is %RECIPE_DIR%
+  echo TEST_DIR is %TEST_DIR%
+
   cp "%SRC_DIR%\src\tests.c" "%TEST_DIR%\src"
   cp "%SRC_DIR%\src\tests_exhaustive.c" "%TEST_DIR%\src"
   cp "%SRC_DIR%\src\secp256k1.c" "%TEST_DIR%\src"
@@ -86,6 +90,8 @@ rmdir /s /q %BUILD_DIR%
   set "SRC_DIR=%~1"
   set "TEST_DIR=%~2"
   set "SRC_DIR_FILES=%~3"
+
+  echo Inside CopyFiles: SRC_DIR is %SRC_DIR%, TEST_DIR is %TEST_DIR%
 
   for %%f in (%SRC_DIR_FILES%) do (
     set "FULL_PATH=%%~f"
