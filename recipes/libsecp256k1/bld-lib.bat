@@ -86,7 +86,7 @@ rmdir /s /q %BUILD_DIR%
   set "TEST_DIR=%~2"
   set "SRC_DIR_FILES=%~3"
 
-  for /f "delims=" %%f in (%SRC_DIR_FILES%) do (
+  for %%f in (%SRC_DIR_FILES%) do (
     set "FULL_PATH=%%~f"
     set "FILE=%%~nxf"
     set "FILE_PATH=!FULL_PATH:%SRC_DIR%\=!"
