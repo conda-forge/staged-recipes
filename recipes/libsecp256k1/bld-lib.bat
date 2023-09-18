@@ -92,17 +92,18 @@ rmdir /s /q %BUILD_DIR%
     set "FILE_PATH=!FULL_PATH:%SRC_DIR%\=!"
     set "DIR=!FILE_PATH:%%~nxf=!"
 
+    rem Remove trailing backslash if exists
+    if "!DIR:~-1!"=="\" set "DIR=!DIR:~0,-1!"
+
     echo Full path: "%%~f" "!FILE_PATH!" "!DIR!" "!FILE!"
 
     if not exist "%TEST_DIR%\!DIR!" (
         mkdir "%TEST_DIR%\!DIR!"
-    ) else (
-        echo Directory already exists: "%TEST_DIR%\!DIR!"
-        exit 1
     )
 
     copy "%%~f" "%TEST_DIR%\!FILE_PATH!"
-    if %ERRORLEVEL% neq 0 exit 1
+    if %ERRORLEVEL% neq 0 exit /b 1
   )
-exit /B 0
+exit /b 0
+
 
