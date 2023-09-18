@@ -1,6 +1,31 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+:CopyFiles
+  set "SRC_DIR=%~1"
+  set "TEST_DIR=%~2"
+  set "SRC_DIR_FILES=%~3"
+
+  for /f "delims=" %%f in (%SRC_DIR_FILES%) do (
+    set "FULL_PATH=%%~f"
+    set "FILE=%%~nxf"
+    set "FILE_PATH=!FULL_PATH:%SRC_DIR%\=!"
+    set "DIR=!FILE_PATH:%%~nxf=!"
+
+    echo Full path: "%%~f" "!FILE_PATH!" "!DIR!" "!FILE!"
+
+    if not exist "%TEST_DIR%\!DIR!" (
+        mkdir "%TEST_DIR%\!DIR!"
+    ) else (
+        echo Directory already exists: "%TEST_DIR%\!DIR!"
+        exit 1
+    )
+
+    copy "%%~f" "%TEST_DIR%\!FILE_PATH!"
+    if %ERRORLEVEL% neq 0 exit 1
+  )
+goto :eof
+
 set HEADERS_NAME=!PKG_NAME:-headers=!
 set STATIC_NAME=!PKG_NAME:-static=!
 
@@ -15,41 +40,12 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
   cp "%SRC_DIR%\src\tests_exhaustive.c" "%TEST_DIR%\src"
   cp "%SRC_DIR%\src\secp256k1.c" "%TEST_DIR%\src"
 
-  for /f "delims=" %%f in ('dir /b /s /a-d %SRC_DIR%\contrib\* %SRC_DIR%\include\*') do (
-      set "FILE=%%f"
-      set "FILE=!FILE:%SRC_DIR%\=!"
-
-      echo Full path: "%%f"
-      echo After SRC_DIR removal: "!FILE!"
-
-      for %%d in (%%~dpf) do set "DIR_NAME=%%~nd"
-      echo Directory Name: "!DIR_NAME!"
-
-      if not exist "%TEST_DIR%\!DIR_NAME!" (
-          mkdir "%TEST_DIR%\!DIR_NAME!"
-      ) else (
-          echo Directory already exists: "%TEST_DIR%\!DIR_NAME!"
-          exit 1
-      )
-      cp "%%f" "%TEST_DIR%\!DIR_NAME!"
-  )
-  if %ERRORLEVEL% neq 0 exit 1
-
-  for /f "delims=" %%f in ('dir /b /s /a-d %SRC_DIR%\cmake\*') do (
-      set "FILE=%%f"
-      set "FILE=!FILE:%SRC_DIR%\=!"
-      mkdir "%TEST_DIR%\src\!FILE:~0,-2!"
-      cp "%%f" "%TEST_DIR%\src\!FILE!"
-  )
-  if %ERRORLEVEL% neq 0 exit 1
-
-  for /f "delims=" %%f in ('dir /b /s /a-d %SRC_DIR%\src\*.h %SRC_DIR%\src\modules\*\*.h %SRC_DIR%\src\wycheproof\*.h') do (
-      set "FILE=%%f"
-      set "FILE=!FILE:%SRC_DIR%\=!"
-      mkdir "%TEST_DIR%\src\!FILE:~0,-2!"
-      cp "%%f" "%TEST_DIR%\src\!FILE!"
-  )
-  if %ERRORLEVEL% neq 0 exit 1
+  call :CopyFiles "%SRC_DIR%" "%TEST_DIR%" "%SRC_DIR%\src\*.h"
+  call :CopyFiles "%SRC_DIR%" "%TEST_DIR%" "%SRC_DIR%\src\modules\*\*.h"
+  call :CopyFiles "%SRC_DIR%" "%TEST_DIR%" "%SRC_DIR%\src\wycheproof\*.h"
+  call :CopyFiles "%SRC_DIR%" "%TEST_DIR%" "%SRC_DIR%\contrib\*.h"
+  call :CopyFiles "%SRC_DIR%" "%TEST_DIR%" "%SRC_DIR%\include\*.h"
+  call :CopyFiles "%SRC_DIR%" "%TEST_DIR%\src" "%SRC_DIR%\cmake\*"
 )
 
 dir %TEST_DIR%
