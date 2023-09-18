@@ -7,38 +7,38 @@ set STATIC_NAME=!PKG_NAME:-static=!
 :: Prepare post-install tests
 if "!HEADERS_NAME!"=="%PKG_NAME%" (
   if "!STATIC_NAME!"=="%PKG_NAME%" (
-    set "TEST_DIR=%RECIPE_DIR%\\shared_standalone_tests"
+    set TEST_DIR=%RECIPE_DIR%\shared_standalone_tests
   ) else (
-    set "TEST_DIR=%RECIPE_DIR%\\static_standalone_tests"
+    set TEST_DIR=%RECIPE_DIR%\static_standalone_tests
   )
-  cp "%SRC_DIR%\\src\\tests.c" "%TEST_DIR%\\src"
-  cp "%SRC_DIR%\src\\tests_exhaustive.c" "%TEST_DIR%\\src"
-  cp "%SRC_DIR%\\src\\secp256k1.c" "%TEST_DIR%\\src"
+  cp "%SRC_DIR%\src\tests.c" "%TEST_DIR%\src"
+  cp "%SRC_DIR%\src\tests_exhaustive.c" "%TEST_DIR%\src"
+  cp "%SRC_DIR%\src\secp256k1.c" "%TEST_DIR%\src"
 
-  for /f "delims=" %%f in ('dir /b /s /a-d %SRC_DIR%\\contrib\\* %SRC_DIR%\\include\\*') do (
+  for /f "delims=" %%f in ('dir /b /s /a-d %SRC_DIR%\contrib\* %SRC_DIR%\include\*') do (
       set "FILE=%%f"
       set "FILE=!FILE:%SRC_DIR%=!"
-      set "FILE=!FILE:\=\\!"
-      mkdir "%TEST_DIR%\\!FILE:~0,-2!"
-      cp "%%f" "%TEST_DIR%\\!FILE!"
-  )
-  if %ERRORLEVEL% neq 0 exit 1
-
-  for /f "delims=" %%f in ('dir /b /s /a-d %SRC_DIR%\\cmake\\*') do (
-      set "FILE=%%f"
-      set "FILE=!FILE:%SRC_DIR%=!"
-      set "FILE=!FILE:\=\\!"
-      mkdir "%TEST_DIR%\\src\\!FILE:~0,-2!"
-      cp "%%f" "%TEST_DIR%\\src\\!FILE!"
+      set "FILE=!FILE:\=\!"
+      mkdir "%TEST_DIR%\!FILE:~0,-2!"
+      cp "%%f" "%TEST_DIR%\!FILE!"
   )
   if %ERRORLEVEL% neq 0 exit 1
 
-  for /f "delims=" %%f in ('dir /b /s /a-d %SRC_DIR%\\src\\*.h %SRC_DIR%\\src\\modules\\*\\*.h %SRC_DIR%\\src\\wycheproof\\*.h') do (
+  for /f "delims=" %%f in ('dir /b /s /a-d %SRC_DIR%\cmake\*') do (
       set "FILE=%%f"
       set "FILE=!FILE:%SRC_DIR%=!"
-      set "FILE=!FILE:\=\\!"
-      mkdir "%TEST_DIR%\\src\\!FILE:~0,-2!"
-      cp "%%f" "%TEST_DIR%\\src\\!FILE!"
+      set "FILE=!FILE:\=\!"
+      mkdir "%TEST_DIR%\src\!FILE:~0,-2!"
+      cp "%%f" "%TEST_DIR%\src\!FILE!"
+  )
+  if %ERRORLEVEL% neq 0 exit 1
+
+  for /f "delims=" %%f in ('dir /b /s /a-d %SRC_DIR%\src\*.h %SRC_DIR%\src\modules\*\*.h %SRC_DIR%\src\wycheproof\*.h') do (
+      set "FILE=%%f"
+      set "FILE=!FILE:%SRC_DIR%=!"
+      set "FILE=!FILE:\=\!"
+      mkdir "%TEST_DIR%\src\!FILE:~0,-2!"
+      cp "%%f" "%TEST_DIR%\src\!FILE!"
   )
   if %ERRORLEVEL% neq 0 exit 1
 )
