@@ -43,6 +43,8 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
   if %ERRORLEVEL% neq 0 exit 1
 )
 
+dir %TEST_DIR%
+
 :: Build
 if "!HEADERS_NAME!"=="%PKG_NAME%" (
   if "!STATIC_NAME!"=="%PKG_NAME%" (
