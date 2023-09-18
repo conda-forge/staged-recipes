@@ -24,6 +24,7 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
 )
 
 dir %TEST_DIR%
+dir %TEST_DIR%\src
 
 :: Build
 if "!HEADERS_NAME!"=="%PKG_NAME%" (
@@ -95,13 +96,15 @@ rmdir /s /q %BUILD_DIR%
     rem Remove trailing backslash if exists
     if "!DIR:~-1!"=="\" set "DIR=!DIR:~0,-1!"
 
-    echo Full path: "%%~f" "!FILE_PATH!" "!DIR!" "!FILE!"
+    echo DEBUG: "%%~f" "!FILE_PATH!" "!DIR!" "!FILE!" "%TEST_DIR%\!DIR!"
 
     if not exist "%TEST_DIR%\!DIR!" (
-        mkdir "%TEST_DIR%\!DIR!"
+      echo Creating: "%TEST_DIR%\!DIR!"
+      mkdir "%TEST_DIR%\!DIR!"
     )
 
-    copy "%%~f" "%TEST_DIR%\!FILE_PATH!"
+    echo DEBUG: cp "%%~f" "%TEST_DIR%\!FILE_PATH!"
+    cp "%%~f" "%TEST_DIR%\!FILE_PATH!"
     if %ERRORLEVEL% neq 0 exit /b 1
   )
 exit /b 0
