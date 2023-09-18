@@ -1,8 +1,8 @@
 diff --git a/setup.py b/setup.py
-index c121d33..a5c0446 100644
+index c121d33..c093b8b 100644
 --- a/setup.py
 +++ b/setup.py
-@@ -1,317 +1,72 @@
+@@ -1,317 +1,65 @@
 -import errno
 +import logging
  import os
@@ -113,14 +113,14 @@ index c121d33..a5c0446 100644
 -        def run(self):
 -            download_library(self)
 -            _bdist_wheel.run(self)
--
-+secp256k1_shared_libs = os.environ.get("SECP256K1_SHARED_LIBS")
-+bind_library_name = "secp256k1"
-+secp_pkg = f"lib{bind_library_name}"
++# --- Coincurve package definitions ---
++package_name = "coincurve"
++libname = f"{package_name}._libsecp256k1"
  
-+if secp256k1_shared_libs == "1":
-+    logging.info(f"   '-> setup.py: Building with shared libraries: {secp256k1_shared_libs}")
-+    static_lib = False
++package_data = {package_name: ["py.typed"]}
+ 
++if os.name == "nt" or sys.platform == "win32" or sys.platform == "cygwin":
++    package_data[package_name].append(f"{libname}.dll")
  else:
 -    bdist_wheel = None
 -
@@ -158,35 +158,42 @@ index c121d33..a5c0446 100644
 -        if has_system_lib():
 -            log.info('Using system library')
 -            return
-+    logging.info(f"   '-> setup.py: Building with static libraries: {secp256k1_shared_libs}")
-+    bind_library_name += "-static"
-+    secp_pkg += "-static"
-+    static_lib = True
++    package_data[package_name].append(f"{libname}.so")
  
 -        build_temp = os.path.abspath(self.build_temp)
-+logging.info("\n\n")
-+logging.info(f"   {os.environ}\n{pkgconfig.parse(secp_pkg, static_lib)}")
-+logging.info("\n\n")
++# --- SECP256K1 package definitions ---
++secp256k1_shared_libs = os.environ.get("SECP256K1_SHARED_LIBS")
++secp256k1_package = "libsecp256k1"
++static_lib = False
  
 -        try:
 -            os.makedirs(build_temp)
 -        except OSError as e:
 -            if e.errno != errno.EEXIST:
 -                raise
-+package_name = "coincurve"
-+libname = f"{package_name}._libsecp256k1"
++if secp256k1_shared_libs == "0":
++    logging.info(f"   '-> setup.py: Building with static libraries: {secp256k1_shared_libs}")
++    secp256k1_package += "-static"
++    static_lib = True
  
 -        if not os.path.exists(absolute('libsecp256k1')):
 -            # library needs to be downloaded
 -            self.get_source_files()
-+package_data = {package_name: ["py.typed"]}
++logging.info("\n\n")
++logging.info(f"   {os.environ}\n{pkgconfig.parse(secp256k1_package, static_lib=static_lib)}")
  
 -        if not os.path.exists(absolute('libsecp256k1/configure')):
 -            # configure script hasn't been generated yet
 -            autogen = absolute('libsecp256k1/autogen.sh')
 -            os.chmod(absolute(autogen), 0o755)
 -            subprocess.check_call([autogen], cwd=absolute('libsecp256k1'))
--
++extension = Extension(
++            name=libname,
++            sources=[os.path.join(package_name, "_libsecp256k1.c")],
++            py_limited_api=True,
++        )
++pkgconfig.configure_extension(extension, secp256k1_package, static=static_lib)
+ 
 -        for filename in [
 -            'libsecp256k1/configure',
 -            'libsecp256k1/build-aux/compile',
@@ -276,9 +283,7 @@ index c121d33..a5c0446 100644
 -
 -    package_data['coincurve'].append('libsecp256k1.dll')
 -    setup_kwargs = dict()
-+if os.name == "nt" or sys.platform == "win32" or sys.platform == "cygwin":
-+    package_data[package_name].append(f"{libname}.dll")
- else:
+-else:
 -
 -    class Distribution(_Distribution):
 -        def has_c_libraries(self):
@@ -297,24 +302,10 @@ index c121d33..a5c0446 100644
 -            'bdist_wheel': bdist_wheel,
 -        },
 -    )
--
-+    package_data[package_name].append(f"{libname}.so")
-+
-+extension = Extension(
-+            name=libname,
-+            sources=[os.path.join(package_name, "_libsecp256k1.c")],
-+            libraries=[f"{bind_library_name}"],
-+            py_limited_api=True,
-+        )
-+pkgconfig.configure_extension(extension, secp_pkg, static=static_lib)
-+
-+for i, v in enumerate(extension.__dict__["extra_link_args"]):
-+    extension.__dict__["extra_link_args"][i] = v.replace("libpath", "LIBPATH")
-+    if os.name == "nt" or sys.platform == "win32":
-+        # Apparently, the linker on Windows interprets -lxxx as xxx.lib, not libxxx.lib
-+        extension.__dict__["extra_link_args"][i] = v.replace("-l", "-llib")
-+
-+logging.info("\n\n")
++if os.name == "nt" or sys.platform == "win32":
++    # Apparently, the linker on Windows interprets -lxxx as xxx.lib, not libxxx.lib
++    extension.__dict__["libraries"] = f"lib{extension.__dict__['libraries'][0]}"
+ 
 +logging.info(f"   {extension.__dict__}")
 +logging.info("\n\n")
  
