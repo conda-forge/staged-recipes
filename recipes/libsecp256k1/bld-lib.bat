@@ -6,36 +6,41 @@ set STATIC_NAME=!PKG_NAME:-static=!
 
 :: Prepare post-install tests
 if "!HEADERS_NAME!"=="%PKG_NAME%" (
-  cp "%SRC_DIR%\\src\\tests.c" "%RECIPE_DIR%\\standalone_tests\\src"
-  cp "%SRC_DIR%\src\\tests_exhaustive.c" "%RECIPE_DIR%\\standalone_tests\\src"
-  cp "%SRC_DIR%\\src\\secp256k1.c" "%RECIPE_DIR%\\standalone_tests\\src"
+  if "!STATIC_NAME!"=="%PKG_NAME%" (
+    set "TEST_DIR=shared_standalone_tests"
+  ) else (
+    set "TEST_DIR=static_standalone_tests"
+  )
+  cp "%SRC_DIR%\src\tests.c" "%TEST_DIR%\src"
+  cp "%SRC_DIR%\src\tests_exhaustive.c" "%TEST_DIR%\src"
+  cp "%SRC_DIR%\src\secp256k1.c" "%TEST_DIR%\src"
 
   cd "%SRC_DIR%"
-  for /f "delims=" %%f in ('dir /b /s /a-d contrib\\* include\\* src\\*.h') do (
+  for /f "delims=" %%f in ('dir /b /s /a-d contrib\* include\* src\*.h') do (
       set "FILE=%%f"
       set "FILE=!FILE:%SRC_DIR%=!"
-      set "FILE=!FILE:\=\\!"
-      mkdir "%RECIPE_DIR%\\standalone_tests\\!FILE:~0,-2!"
-      cp "%%f" "%RECIPE_DIR%\\standalone_tests\\!FILE!"
+      set "FILE=!FILE:\=\!"
+      mkdir "%TEST_DIR%\!FILE:~0,-2!"
+      cp "%%f" "%TEST_DIR%\!FILE!"
   )
   if %ERRORLEVEL% neq 0 exit 1
 
-  for /f "delims=" %%f in ('dir /b /s /a-d cmake\\*') do (
+  for /f "delims=" %%f in ('dir /b /s /a-d cmake\*') do (
       set "FILE=%%f"
       set "FILE=!FILE:%SRC_DIR%=!"
-      set "FILE=!FILE:\=\\!"
-      mkdir "%RECIPE_DIR%\\standalone_tests\\src\\!FILE:~0,-2!"
-      cp "%%f" "%RECIPE_DIR%\\standalone_tests\\src\\!FILE!"
+      set "FILE=!FILE:\=\!"
+      mkdir "%TEST_DIR%\src\!FILE:~0,-2!"
+      cp "%%f" "%TEST_DIR%\src\!FILE!"
   )
   if %ERRORLEVEL% neq 0 exit 1
 
   cd src
-  for /f "delims=" %%f in ('dir /b /s /a-d modules\\*\\*.h wycheproof\\*.h') do (
+  for /f "delims=" %%f in ('dir /b /s /a-d modules\*\*.h wycheproof\*.h') do (
       set "FILE=%%f"
       set "FILE=!FILE:%SRC_DIR%=!"
-      set "FILE=!FILE:\=\\!"
-      mkdir "%RECIPE_DIR%\\standalone_tests\\src\\!FILE:~0,-2!"
-      cp "%%f" "%RECIPE_DIR%\\standalone_tests\\src\\!FILE!"
+      set "FILE=!FILE:\=\!"
+      mkdir "%TEST_DIR%\src\!FILE:~0,-2!"
+      cp "%%f" "%TEST_DIR%\src\!FILE!"
   )
   if %ERRORLEVEL% neq 0 exit 1
 
