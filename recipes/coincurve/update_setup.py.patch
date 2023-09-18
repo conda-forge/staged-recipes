@@ -1,5 +1,5 @@
 diff --git a/setup.py b/setup.py
-index c121d33..ee4218e 100644
+index c121d33..a5c0446 100644
 --- a/setup.py
 +++ b/setup.py
 @@ -1,317 +1,72 @@
@@ -150,37 +150,37 @@ index c121d33..ee4218e 100644
 -
 -    def check_library_list(self, libraries):
 -        raise Exception('check_library_list')
+-
+-    def get_library_names(self):
+-        return build_flags('libsecp256k1', 'l', os.path.abspath(self.build_temp))
+-
+-    def run(self):
+-        if has_system_lib():
+-            log.info('Using system library')
+-            return
 +    logging.info(f"   '-> setup.py: Building with static libraries: {secp256k1_shared_libs}")
 +    bind_library_name += "-static"
 +    secp_pkg += "-static"
 +    static_lib = True
  
--    def get_library_names(self):
--        return build_flags('libsecp256k1', 'l', os.path.abspath(self.build_temp))
+-        build_temp = os.path.abspath(self.build_temp)
 +logging.info("\n\n")
 +logging.info(f"   {os.environ}\n{pkgconfig.parse(secp_pkg, static_lib)}")
 +logging.info("\n\n")
- 
--    def run(self):
--        if has_system_lib():
--            log.info('Using system library')
--            return
-+package_name = "coincurve"
-+libname = f"{package_name}._libsecp256k1"
- 
--        build_temp = os.path.abspath(self.build_temp)
-+package_data = {package_name: ["py.typed"]}
  
 -        try:
 -            os.makedirs(build_temp)
 -        except OSError as e:
 -            if e.errno != errno.EEXIST:
 -                raise
--
++package_name = "coincurve"
++libname = f"{package_name}._libsecp256k1"
+ 
 -        if not os.path.exists(absolute('libsecp256k1')):
 -            # library needs to be downloaded
 -            self.get_source_files()
--
++package_data = {package_name: ["py.typed"]}
+ 
 -        if not os.path.exists(absolute('libsecp256k1/configure')):
 -            # configure script hasn't been generated yet
 -            autogen = absolute('libsecp256k1/autogen.sh')
@@ -277,24 +277,13 @@ index c121d33..ee4218e 100644
 -    package_data['coincurve'].append('libsecp256k1.dll')
 -    setup_kwargs = dict()
 +if os.name == "nt" or sys.platform == "win32" or sys.platform == "cygwin":
-+    extra_compile_args = []
 +    package_data[package_name].append(f"{libname}.dll")
  else:
-+    extra_compile_args = []
-+    package_data[package_name].append(f"{libname}.so")
- 
+-
 -    class Distribution(_Distribution):
 -        def has_c_libraries(self):
 -            return not has_system_lib()
-+extension = Extension(
-+            name=libname,
-+            sources=[os.path.join(package_name, "_libsecp256k1.c")],
-+            libraries=[f"{bind_library_name}"],
-+            extra_compile_args=extra_compile_args,
-+            py_limited_api=True,
-+        )
-+pkgconfig.configure_extension(extension, secp_pkg, static=static_lib)
- 
+-
 -    setup_kwargs = dict(
 -        setup_requires=['cffi>=1.3.0', 'requests'],
 -        ext_package='coincurve',
@@ -308,9 +297,23 @@ index c121d33..ee4218e 100644
 -            'bdist_wheel': bdist_wheel,
 -        },
 -    )
+-
++    package_data[package_name].append(f"{libname}.so")
++
++extension = Extension(
++            name=libname,
++            sources=[os.path.join(package_name, "_libsecp256k1.c")],
++            libraries=[f"{bind_library_name}"],
++            py_limited_api=True,
++        )
++pkgconfig.configure_extension(extension, secp_pkg, static=static_lib)
++
 +for i, v in enumerate(extension.__dict__["extra_link_args"]):
 +    extension.__dict__["extra_link_args"][i] = v.replace("libpath", "LIBPATH")
- 
++    if os.name == "nt" or sys.platform == "win32":
++        # Apparently, the linker on Windows interprets -lxxx as xxx.lib, not libxxx.lib
++        extension.__dict__["extra_link_args"][i] = v.replace("-l", "-llib")
++
 +logging.info("\n\n")
 +logging.info(f"   {extension.__dict__}")
 +logging.info("\n\n")
