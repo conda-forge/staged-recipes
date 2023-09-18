@@ -18,8 +18,20 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
   for /f "delims=" %%f in ('dir /b /s /a-d %SRC_DIR%\contrib\* %SRC_DIR%\include\*') do (
       set "FILE=%%f"
       set "FILE=!FILE:%SRC_DIR%\=!"
-      mkdir "%TEST_DIR%\!FILE:~0,-2!"
-      cp "%%f" "%TEST_DIR%\!FILE!"
+
+      echo Full path: "%%f"
+      echo After SRC_DIR removal: "!FILE!"
+
+      for %%d in (%%~dpf) do set "DIR_NAME=%%~nd"
+      echo Directory Name: "!DIR_NAME!"
+
+      if not exist "%TEST_DIR%\!DIR_NAME!" (
+          mkdir "%TEST_DIR%\!DIR_NAME!"
+      ) else (
+          echo Directory already exists: "%TEST_DIR%\!DIR_NAME!"
+          exit 1
+      )
+      cp "%%f" "%TEST_DIR%\!DIR_NAME!"
   )
   if %ERRORLEVEL% neq 0 exit 1
 
