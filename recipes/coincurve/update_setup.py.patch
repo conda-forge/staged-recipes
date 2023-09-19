@@ -1,8 +1,8 @@
 diff --git a/setup.py b/setup.py
-index c121d33..e7c85d3 100644
+index c121d33..a541725 100644
 --- a/setup.py
 +++ b/setup.py
-@@ -1,317 +1,75 @@
+@@ -1,317 +1,79 @@
 -import errno
 +import logging
  import os
@@ -54,16 +54,12 @@ index c121d33..e7c85d3 100644
 +        super().build_extensions()
  
 -MAKE = 'gmake' if platform.system() in ['FreeBSD', 'OpenBSD'] else 'make'
-+# --- Coincurve package definitions ---
-+package_name = "coincurve"
-+libname = f"{package_name}._libsecp256k1"
- 
+-
 -# IMPORTANT: keep in sync with .github/workflows/build.yml
 -#
 -# Version of libsecp256k1 to download if none exists in the `libsecp256k1` directory
 -UPSTREAM_REF = os.getenv('COINCURVE_UPSTREAM_REF') or 'ddf2b2910eb19032f8dd657c66735115ae24bfba'
-+package_data = {package_name: ["py.typed"]}
- 
+-
 -LIB_TARBALL_URL = f'https://github.com/bitcoin-core/secp256k1/archive/{UPSTREAM_REF}.tar.gz'
 -
 -
@@ -122,9 +118,15 @@ index c121d33..e7c85d3 100644
 -        def run(self):
 -            download_library(self)
 -            _bdist_wheel.run(self)
--
--
--else:
++# --- Coincurve package definitions ---
++package_name = "coincurve"
++libname = f"{package_name}._libsecp256k1"
+ 
++package_data = {package_name: ["py.typed"]}
+ 
++if os.name == "nt" or sys.platform == "win32" or sys.platform == "cygwin":
++    package_data[package_name].append(f"{libname}.dll")
+ else:
 -    bdist_wheel = None
 -
 -
@@ -266,12 +268,6 @@ index c121d33..e7c85d3 100644
 -    class Distribution(_Distribution):
 -        def is_pure(self):
 -            return False
--
--    package_data['coincurve'].append('libsecp256k1.dll')
--    setup_kwargs = dict()
-+if os.name == "nt" or sys.platform == "win32" or sys.platform == "cygwin":
-+    package_data[package_name].append(f"{libname}.dll")
- else:
 +    package_data[package_name].append(f"{libname}.so")
 +
 +# --- SECP256K1 package definitions ---
@@ -290,11 +286,22 @@ index c121d33..e7c85d3 100644
 +    py_limited_api=True,
 +)
  
+-    package_data['coincurve'].append('libsecp256k1.dll')
+-    setup_kwargs = dict()
+-else:
++pkgconfig.configure_extension(extension, secp256k1_package, static=static_lib)
++package_info = pkgconfig.parse(secp256k1_package, static=static_lib)
+ 
 -    class Distribution(_Distribution):
 -        def has_c_libraries(self):
 -            return not has_system_lib()
-+pkgconfig.configure_extension(extension, secp256k1_package, static=static_lib)
-+package_info = pkgconfig.parse(secp256k1_package, static=static_lib)
++if os.name == "nt" or sys.platform == "win32":
++    # Apparently, the linker on Windows interprets -lxxx as xxx.lib, not libxxx.lib
++    for i, v in enumerate(extension.__dict__.get("extra_link_args")):
++        if v.endswith(".lib"):
++            extension.__dict__["extra_link_args"][i] = f"lib{v}"
++    for i, v in enumerate(package_info.get("libraries")):
++        package_info["libraries"][i] = f"lib{v}"
  
 -    setup_kwargs = dict(
 -        setup_requires=['cffi>=1.3.0', 'requests'],
@@ -309,13 +316,9 @@ index c121d33..e7c85d3 100644
 -            'bdist_wheel': bdist_wheel,
 -        },
 -    )
-+if os.name == "nt" or sys.platform == "win32":
-+    # Apparently, the linker on Windows interprets -lxxx as xxx.lib, not libxxx.lib
-+    for i, v in enumerate(extension.__dict__.get("extra_link_args")):
-+        if v.endswith(".lib"):
-+            extension.__dict__["extra_link_args"][i] = f"lib{v}"
-+    for i, v in enumerate(package_info.get("libraries")):
-+        package_info["libraries"][i] = f"lib{v}"
++    if static_lib:
++        # Add the compiler static flag to help build the CFFI extension for static lib on windows
++        extension.extra_compile_args.append("/MT")
  
 +# Add the libraries info to help build the CFFI extension for static lib on windows
 +extension.libraries = package_info["libraries"]
