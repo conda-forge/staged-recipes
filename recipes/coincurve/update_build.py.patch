@@ -1,7 +1,7 @@
 diff --git a/_cffi_build/build.py b/_cffi_build/build.py
 --- a/_cffi_build/build.py
 +++ b/_cffi_build/build.py
-@@ -1,34 +1,85 @@
+@@ -1,34 +1,94 @@
 +import argparse
 +import logging
  import os
@@ -33,9 +33,17 @@ diff --git a/_cffi_build/build.py b/_cffi_build/build.py
 +    return sorted(sources)
 +
 +
-+not_a_dll = """
++static_lib = """
 +#if defined(_MSC_VER)
 +# define CFFI_DLLEXPORT extern __declspec(dllexport)
++#else
++# define CFFI_DLLEXPORT extern
++#endif
++"""
++
++shared_lib = """
++#if defined(_MSC_VER)
++# define CFFI_DLLEXPORT extern __declspec(dllimport)
 +#else
 +# define CFFI_DLLEXPORT extern
 +#endif
@@ -57,7 +65,7 @@ diff --git a/_cffi_build/build.py b/_cffi_build/build.py
 +    """
      _ffi = FFI()
 -    code = []
-+    code = [not_a_dll] if static_lib == "1" else []
++    code = [static_lib] if static_lib == "1" else [shared_lib]
  
      for source in sources:
 -        with open(os.path.join(here, source.h), 'rt') as h:
@@ -65,6 +73,7 @@ diff --git a/_cffi_build/build.py b/_cffi_build/build.py
 +        with open(os.path.join(here, source.h)) as h:
 +            logging.info(f"   Including {source.h}...")
 +            c_header = h.read()
++            c_header = c_header.replace('CFFI_DLLEXPORT', 'extern')
 +            _ffi.cdef(c_header)
 +
          code.append(source.include)
@@ -100,4 +109,4 @@ diff --git a/_cffi_build/build.py b/_cffi_build/build.py
 +    logging.info(f"   Generated C code: {args.c_file}")
 +    lib = ffi.dlopen(args.libraries[0])
 +    logging.info(f"   Loaded library: {lib}")
-+    ffi.compile(verbose=True)
++    # ffi.compile(verbose=True)
