@@ -15,9 +15,9 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
   echo RECIPE_DIR is %RECIPE_DIR%
   echo TEST_DIR is %TEST_DIR% or %TEST_DIR%" or !TEST_DIR! or "!TEST_DIR!"
 
-  cp "%SRC_DIR%\src\tests.c" "!TEST_DIR!\src"
-  cp "%SRC_DIR%\src\tests_exhaustive.c" "!TEST_DIR!\src"
-  cp "%SRC_DIR%\src\secp256k1.c" "!TEST_DIR!\src"
+  cp "%SRC_DIR%\src\tests.c" "%RECIPE_DIR%\!TEST_DIR!\src"
+  cp "%SRC_DIR%\src\tests_exhaustive.c" "%RECIPE_DIR%\!TEST_DIR!\src"
+  cp "%SRC_DIR%\src\secp256k1.c" "%RECIPE_DIR%\!TEST_DIR!\src"
 
   call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\!TEST_DIR!" "%SRC_DIR%\src\*.h"
   call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\!TEST_DIR!" "%SRC_DIR%\src\modules\*\*.h"
@@ -90,6 +90,8 @@ rmdir /s /q %BUILD_DIR%
   set "SRC_DIR=%~1"
   set "TEST_DIR=%~2"
   set "SRC_DIR_FILES=%~3"
+
+  echo DEBUG %SRC_DIR% to %TEST_DIR% for %SRC_DIR_FILES%
 
   for %%f in (%SRC_DIR_FILES%) do (
     set "FULL_PATH=%%~f"
