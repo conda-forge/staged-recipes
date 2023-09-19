@@ -13,7 +13,7 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
   )
 
   echo RECIPE_DIR is %RECIPE_DIR%
-  echo TEST_DIR is >!TEST_DIR!< or >!TEST_DIR!<
+  echo TEST_DIR is %TEST_DIR% or %TEST_DIR%" or !TEST_DIR! or "!TEST_DIR!"
 
   cp "%SRC_DIR%\src\tests.c" "!TEST_DIR!\src"
   cp "%SRC_DIR%\src\tests_exhaustive.c" "!TEST_DIR!\src"
