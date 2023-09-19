@@ -13,22 +13,22 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
   )
 
   echo RECIPE_DIR is %RECIPE_DIR%
-  echo TEST_DIR is %TEST_DIR%
+  echo TEST_DIR is >!TEST_DIR!< or >!TEST_DIR!<
 
-  cp "%SRC_DIR%\src\tests.c" "%TEST_DIR%\src"
-  cp "%SRC_DIR%\src\tests_exhaustive.c" "%TEST_DIR%\src"
-  cp "%SRC_DIR%\src\secp256k1.c" "%TEST_DIR%\src"
+  cp "%SRC_DIR%\src\tests.c" "!TEST_DIR!\src"
+  cp "%SRC_DIR%\src\tests_exhaustive.c" "!TEST_DIR!\src"
+  cp "%SRC_DIR%\src\secp256k1.c" "!TEST_DIR!\src"
 
-  call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\%TEST_DIR%" "%SRC_DIR%\src\*.h"
-  call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\%TEST_DIR%" "%SRC_DIR%\src\modules\*\*.h"
-  call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\%TEST_DIR%" "%SRC_DIR%\src\wycheproof\*.h"
-  call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\%TEST_DIR%" "%SRC_DIR%\contrib\*.h"
-  call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\%TEST_DIR%" "%SRC_DIR%\include\*.h"
-  call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\%TEST_DIR%\src" "%SRC_DIR%\cmake\*"
+  call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\!TEST_DIR!" "%SRC_DIR%\src\*.h"
+  call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\!TEST_DIR!" "%SRC_DIR%\src\modules\*\*.h"
+  call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\!TEST_DIR!" "%SRC_DIR%\src\wycheproof\*.h"
+  call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\!TEST_DIR!" "%SRC_DIR%\contrib\*.h"
+  call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\!TEST_DIR!" "%SRC_DIR%\include\*.h"
+  call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\!TEST_DIR!\src" "%SRC_DIR%\cmake\*"
 )
 
-dir %RECIPE_DIR%\%TEST_DIR%
-dir %RECIPE_DIR%\%TEST_DIR%\src
+dir %RECIPE_DIR%\!TEST_DIR!
+dir %RECIPE_DIR%\!TEST_DIR!\src
 
 :: Build
 if "!HEADERS_NAME!"=="%PKG_NAME%" (
@@ -91,8 +91,6 @@ rmdir /s /q %BUILD_DIR%
   set "TEST_DIR=%~2"
   set "SRC_DIR_FILES=%~3"
 
-  echo Inside CopyFiles: SRC_DIR is %SRC_DIR%, TEST_DIR is %TEST_DIR%
-
   for %%f in (%SRC_DIR_FILES%) do (
     set "FULL_PATH=%%~f"
     set "FILE=%%~nxf"
@@ -102,14 +100,11 @@ rmdir /s /q %BUILD_DIR%
     rem Remove trailing backslash if exists
     if "!DIR:~-1!"=="\" set "DIR=!DIR:~0,-1!"
 
-    echo DEBUG: "%%~f" "!FILE_PATH!" "!DIR!" "!FILE!" "%TEST_DIR%\!DIR!"
-
     if not exist "%TEST_DIR%\!DIR!" (
       echo Creating: "%TEST_DIR%\!DIR!"
       mkdir "%TEST_DIR%\!DIR!"
     )
 
-    echo DEBUG: cp "%%~f" "%TEST_DIR%\!FILE_PATH!"
     cp "%%~f" "%TEST_DIR%\!FILE_PATH!"
     if %ERRORLEVEL% neq 0 exit /b 1
   )
