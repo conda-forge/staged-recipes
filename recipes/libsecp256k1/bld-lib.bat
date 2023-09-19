@@ -12,8 +12,8 @@ if "!HEADERS_NAME!"=="%PKG_NAME%" (
     set "TEST_DIR=static_standalone_tests"
   )
 
-  echo RECIPE_DIR is %RECIPE_DIR%
-  echo TEST_DIR is %TEST_DIR% or %TEST_DIR%" or !TEST_DIR! or "!TEST_DIR!"
+  echo RECIPE_DIR is %RECIPE_DIR% or !RECIPE_DIR!
+  echo TEST_DIR is %TEST_DIR% or "%TEST_DIR%" or !TEST_DIR! or "!TEST_DIR!"
 
   cp "%SRC_DIR%\src\tests.c" "%RECIPE_DIR%\!TEST_DIR!\src"
   cp "%SRC_DIR%\src\tests_exhaustive.c" "%RECIPE_DIR%\!TEST_DIR!\src"
@@ -87,27 +87,27 @@ cd ..
 rmdir /s /q %BUILD_DIR%
 
 :CopyFiles
-  set "SRC_DIR=%~1"
-  set "TEST_DIR=%~2"
-  set "SRC_DIR_FILES=%~3"
+  set "LOCAL_SRC_DIR=%~1"
+  set "LOCAL_TEST_DIR=%~2"
+  set "LOCAL_SRC_DIR_FILES=%~3"
 
-  echo DEBUG %SRC_DIR% to %TEST_DIR% for %SRC_DIR_FILES%
+  echo DEBUG %LOCAL_SRC_DIR% to %LOCAL_TEST_DIR% for %LOCAL_SRC_DIR_FILES%
 
-  for %%f in (%SRC_DIR_FILES%) do (
+  for %%f in (%LOCAL_SRC_DIR_FILES%) do (
     set "FULL_PATH=%%~f"
     set "FILE=%%~nxf"
-    set "FILE_PATH=!FULL_PATH:%SRC_DIR%\=!"
+    set "FILE_PATH=!FULL_PATH:%LOCAL_SRC_DIR%\=!"
     set "DIR=!FILE_PATH:%%~nxf=!"
 
     rem Remove trailing backslash if exists
     if "!DIR:~-1!"=="\" set "DIR=!DIR:~0,-1!"
 
-    if not exist "%TEST_DIR%\!DIR!" (
-      echo Creating: "%TEST_DIR%\!DIR!"
-      mkdir "%TEST_DIR%\!DIR!"
+    if not exist "%LOCAL_TEST_DIR%\!DIR!" (
+      echo Creating: "%LOCAL_TEST_DIR%\!DIR!"
+      mkdir "%LOCAL_TEST_DIR%\!DIR!"
     )
 
-    cp "%%~f" "%TEST_DIR%\!FILE_PATH!"
+    cp "%%~f" "%LOCAL_TEST_DIR%\!FILE_PATH!"
     if %ERRORLEVEL% neq 0 exit /b 1
   )
 exit /b 0
