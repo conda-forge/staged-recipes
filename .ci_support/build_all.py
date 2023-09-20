@@ -204,7 +204,9 @@ def read_mambabuild(recipes_dir):
             conda_build_tools.append(cfy.get("conda_build_tool", "conda-build"))
         else:
             conda_build_tools.append("conda-build")
-    return all([tool == "mambabuild" for tool in conda_build_tools])
+    if conda_build_tools:
+        return all([tool == "mambabuild" for tool in conda_build_tools])
+    return False
 
 
 def use_mambabuild():
