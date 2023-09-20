@@ -1,0 +1,124 @@
+{% set version = "3.4.0" %}
+{% set sha_value = "f38fef97962b74668fe9b67db2a89108bf38d174f71296c80638cfc051bf95c8" %}
+#NB get sha256 with: curl -sL <URL> | openssl sha256
+
+package:
+  name: mcstas
+  version: {{ version }}
+
+source:
+  url: https://github.com/McStasMcXtrace/McCode/archive/mcstas-{{ version }}.tar.gz
+  sha256: {{ sha_value }}
+#  path: ../../
+  folder: src
+
+build:
+  number: 0
+  noarch: generic
+  skip: true  # [win]
+  skip: true  # [py<39]
+
+requirements:
+  run:
+    - mcstas-core
+    - mcstas-data
+    - mcstas-mcgui
+    - mcstas-vis
+#todo:    - msmpi    # [win]
+    - openmpi  # [unix]
+    - ncrystal # [unix]
+    - mcpl     # [unix]
+    # As per https://conda-forge.org/docs/maintainer/knowledge_base.html#noarch-builds
+    # we are noarch, but our dependency list is not. So we do need a different
+    # "mcstas" package for windows and unix platforms:
+    - __unix  # [unix]
+    - __win   # [win]
+
+outputs:
+  - name: mcstas-core
+    script: install-files-core.py
+    requirements:
+      build:
+        #Note: nmake on windows does not need to be specifically included.
+        - python
+        - cmake
+        - make  # [not win]
+        - {{ compiler('c') }}
+      run:
+        - python
+        - {{ compiler('c') }}
+        - bash # for mcrun, and maybe others
+        - pyaml # for mcrun
+        - ply # for traces from mcrun
+    test:
+      files:
+        - test_pkg.py
+      source_files:
+        - src/mcstas-comps/examples/BNL_H8.instr
+        - src/mcstas-comps/examples/Union_manual_example.instr
+      commands:
+        - python3 test_pkg.py core
+
+  - name: mcstas-data
+    noarch: generic
+    script: install-files-data.py
+    test:
+      files:
+        - test_pkg.py
+      commands:
+        - python3 test_pkg.py data
+
+  - name: mcstas-mcgui
+    noarch: generic
+    requirements:
+      run:
+        - mcstas-core
+        - pyqt
+        - qscintilla2
+
+  - name: mcstas-vis
+    noarch: generic
+    requirements:
+      run:
+        - mcstas-core
+        - matplotlib
+        - numpy
+        - tornado
+        - scipy
+        - pillow
+        - pyqtgraph
+        - pyqt
+
+##  - name: mcstas-everything
+##    noarch: generic
+##    requirements:
+##      run:
+##        - mcstas
+##        - gsl
+##        - nomkl
+##        - nexusformat
+##        - nexpy
+##        - hdf5
+##        # - cadquery
+
+test:
+  files:
+    - test_pkg.py
+  commands:
+    - python3 test_pkg.py mcstas
+about:
+  home: https://mcstas.org/
+  summary: McStas is a general tool for simulating neutron scattering instruments and experiments.
+  description: |
+    McStas is a general tool for simulating neutron scattering instruments and
+    experiments.
+  license: GPL3
+  license_family: GPL3
+  license_file: src/COPYING
+  doc_url: https://mcstas.org/
+  dev_url: https://github.com/McStasMcXtrace/McCode
+
+extra:
+  recipe-maintainers:
+    - willend
+    - tkittel
