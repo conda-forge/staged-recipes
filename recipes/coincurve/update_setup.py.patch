@@ -1,8 +1,8 @@
 diff --git a/setup.py b/setup.py
-index c121d33..513527e 100644
+index c121d33..9fb59a4 100644
 --- a/setup.py
 +++ b/setup.py
-@@ -1,317 +1,81 @@
+@@ -1,317 +1,60 @@
 -import errno
 +import logging
  import os
@@ -41,26 +41,31 @@ index c121d33..513527e 100644
 +    def build_extensions(self):
 +        build_script = os.path.join("_cffi_build", "build.py")
 +        c_file = self.extensions[0].sources[0]
-+        # CFFI will not help with static/shared in windows, we can remove this
-+        libs = []
-+        for p, l in zip(
-+                self.extensions[0].library_dirs, self.extensions[0].libraries
-+        ):
-+            libs.extend(('-l', f"{l}"))
- 
-+        logging.info(f"   Building {libs} with {build_script}...")
-+        subprocess.run(["python", build_script, c_file, "1" if static_lib else "0", *libs])
- 
--BUILDING_FOR_WINDOWS = detect_dll()
++        subprocess.run(["python", build_script, c_file, "1" if static_lib else "0"])
 +        super().build_extensions()
  
++# --- Coincurve package definitions ---
++package_name = "coincurve"
++libname = f"{package_name}._libsecp256k1"
+ 
+-BUILDING_FOR_WINDOWS = detect_dll()
++package_data = {package_name: ["py.typed"]}
+ 
 -MAKE = 'gmake' if platform.system() in ['FreeBSD', 'OpenBSD'] else 'make'
--
++# --- SECP256K1 package definitions ---
++secp256k1_shared_libs = os.environ.get("SECP256K1_SHARED_LIBS")
++secp256k1_package = "libsecp256k1"
++static_lib = False
+ 
 -# IMPORTANT: keep in sync with .github/workflows/build.yml
 -#
 -# Version of libsecp256k1 to download if none exists in the `libsecp256k1` directory
 -UPSTREAM_REF = os.getenv('COINCURVE_UPSTREAM_REF') or 'ddf2b2910eb19032f8dd657c66735115ae24bfba'
--
++if secp256k1_shared_libs == "0":
++    logging.info(f"   '-> setup.py: Building with static libraries: {secp256k1_shared_libs}")
++    secp256k1_package += "-static"
++    static_lib = True
+ 
 -LIB_TARBALL_URL = f'https://github.com/bitcoin-core/secp256k1/archive/{UPSTREAM_REF}.tar.gz'
 -
 -
@@ -119,15 +124,9 @@ index c121d33..513527e 100644
 -        def run(self):
 -            download_library(self)
 -            _bdist_wheel.run(self)
-+# --- Coincurve package definitions ---
-+package_name = "coincurve"
-+libname = f"{package_name}._libsecp256k1"
- 
-+package_data = {package_name: ["py.typed"]}
- 
-+if os.name == "nt" or sys.platform == "win32" or sys.platform == "cygwin":
-+    package_data[package_name].append(f"{libname}.dll")
- else:
+-
+-
+-else:
 -    bdist_wheel = None
 -
 -
@@ -269,41 +268,21 @@ index c121d33..513527e 100644
 -    class Distribution(_Distribution):
 -        def is_pure(self):
 -            return False
-+    package_data[package_name].append(f"{libname}.so")
-+
-+# --- SECP256K1 package definitions ---
-+secp256k1_shared_libs = os.environ.get("SECP256K1_SHARED_LIBS")
-+secp256k1_package = "libsecp256k1"
-+static_lib = False
-+
-+if secp256k1_shared_libs == "0":
-+    logging.info(f"   '-> setup.py: Building with static libraries: {secp256k1_shared_libs}")
-+    secp256k1_package += "-static"
-+    static_lib = True
-+
+-
+-    package_data['coincurve'].append('libsecp256k1.dll')
+-    setup_kwargs = dict()
+-else:
 +extension = Extension(
 +    name=libname,
 +    sources=[os.path.join(package_name, "_libsecp256k1.c")],
 +    py_limited_api=True,
 +)
  
--    package_data['coincurve'].append('libsecp256k1.dll')
--    setup_kwargs = dict()
--else:
-+pkgconfig.configure_extension(extension, secp256k1_package, static=static_lib)
-+package_info = pkgconfig.parse(secp256k1_package, static=static_lib)
- 
 -    class Distribution(_Distribution):
 -        def has_c_libraries(self):
 -            return not has_system_lib()
-+if os.name == "nt" or sys.platform == "win32":
-+    # Apparently, the linker on Windows interprets -lxxx as xxx.lib, not libxxx.lib
-+    for i, v in enumerate(extension.__dict__.get("extra_link_args")):
-+        if v.endswith(".lib"):
-+            extension.__dict__["extra_link_args"][i] = f"lib{v}"
-+    # CFFI will not help with static/shared in windows, we can remove this
-+    for i, v in enumerate(package_info.get("libraries")):
-+        package_info["libraries"][i] = f"lib{v}"
++pkgconfig.configure_extension(extension, secp256k1_package, static=static_lib)
++package_info = pkgconfig.parse(secp256k1_package, static=static_lib)
  
 -    setup_kwargs = dict(
 -        setup_requires=['cffi>=1.3.0', 'requests'],
@@ -318,13 +297,15 @@ index c121d33..513527e 100644
 -            'bdist_wheel': bdist_wheel,
 -        },
 -    )
-+    if static_lib:
-+        # Add the compiler static flag to help build the CFFI extension for static lib on windows
-+        extension.extra_compile_args.append("/MT")
++if os.name == "nt" or sys.platform == "win32":
++    # Apparently, the linker on Windows interprets -lxxx as xxx.lib, not libxxx.lib
++    for i, v in enumerate(extension.__dict__.get("extra_link_args")):
++        if v.endswith(".lib"):
++            extension.__dict__["extra_link_args"][i] = f"lib{v}"
  
-+# Add the libraries info to help build the CFFI extension for static lib on windows
-+extension.libraries = package_info["libraries"]
-+extension.library_dirs = package_info["library_dirs"]
++    # if static_lib:
++    #     # Add the compiler static flag to help build the CFFI extension for static lib on windows
++    #     extension.extra_compile_args.append("/MT")
  
  setup(
 -    name='coincurve',
