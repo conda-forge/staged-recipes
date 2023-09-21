@@ -87,6 +87,10 @@ def build_all(recipes_dir, arch):
                 channel_urls = new_channel_urls
             elif channel_urls != new_channel_urls:
                 raise ValueError(f'Detected different channel_sources in the recipes: {channel_urls} vs. {new_channel_urls}. Consider submitting them in separate PRs')
+            for channel_url in channel_urls:
+                print('CHANNEL_URL: ' + str(channel_url))
+
+    print("CHANNEL_URLS: " + str(channel_urls))
 
     if channel_urls is None:
         channel_urls = ['local', 'conda-forge']
@@ -113,8 +117,6 @@ def build_all(recipes_dir, arch):
         subprocess.run("run_conda_forge_build_setup", shell=True, check=True)
 
     if 'conda-forge' not in channel_urls:
-        for channel_url in channel_urls:
-            print('CHANNEL_URL: ' + str(channel_url))
         raise ValueError('conda-forge needs to be part of channel_sources')
     print("Building {} with {}".format(','.join(folders), ','.join(channel_urls)))
     build_folders(recipes_dir, folders, arch, channel_urls)
