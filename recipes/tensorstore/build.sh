@@ -13,6 +13,7 @@ else
 fi
 
 system_libs="com_google_boringssl"
+system_libs+=",com_google_protobuf"
 system_libs+=",org_sourceware_bzip2"
 system_libs+=",org_blosc_cblosc"
 system_libs+=",se_curl"
