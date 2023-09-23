@@ -16,6 +16,11 @@ cmake -B build_shared \
 cmake --build build_shared --config Release
 cmake --install build_shared --config Release
 
+# run tests
+pushd build_shared
+make test
+popd
+
 # prune assets with no control to not build
 rm -rf $PREFIX/lib/libgtest*
 rm -rf $PREFIX/lib/libgmock*
