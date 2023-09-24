@@ -11,5 +11,7 @@ if "!SHARED_NAME!"=="%PKG_NAME%" (
   set "SECP256K1_SHARED_LIBS=1"
 )
 
+%PYTHON% compose_cffi_files.py
+
 %PYTHON% -m pip install --use-pep517 . -vvv
 :: %PYTHON% setup.py install
