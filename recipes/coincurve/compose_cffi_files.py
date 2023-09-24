@@ -72,7 +72,7 @@ for header_path in header_paths:
                     lines = f.readlines()
 
                 output_filename = os.path.join(cffi_dir, 'tmp_includes', os.path.basename(header_file))
-                with (open(output_filename, 'w') as f_out):
+                with open(output_filename, 'w') as f_out:
                     subprocess.Popen(
                         [
                         "cpp",
@@ -113,7 +113,7 @@ for header_path in header_paths:
                 ).communicate(input='\n'.join(lines).encode("utf-8"))
 
                 output_filename = os.path.join(cffi_dir, os.path.basename(header_file))
-                with (open(output_filename, 'w') as f_out):
+                with open(output_filename, 'w') as f_out:
                     f_out.write(post_process(stdout[0].decode("utf-8")))
 
     # for header_file in headers_files:

@@ -12,6 +12,7 @@ if "!SHARED_NAME!"=="%PKG_NAME%" (
 )
 
 %PYTHON% %RECIPE_DIR%\compose_cffi_files.py
+if %ERRORLEVEL% neq 0 exit 1
 
 %PYTHON% -m pip install --use-pep517 . -vvv
-:: %PYTHON% setup.py install
+if %ERRORLEVEL% neq 0 exit 1
