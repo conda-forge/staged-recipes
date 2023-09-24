@@ -9,6 +9,6 @@ else
   export SECP256K1_SHARED_LIBS="0"
 fi
 
-${PYTHON} compose_cffi_files.py
+${PYTHON} ${RECIPE_DIR}/compose_cffi_files.py
 
 ${PYTHON} -m pip install --use-pep517 . -vvv
