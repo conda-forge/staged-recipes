@@ -44,6 +44,9 @@ def post_process(text):
         "_WARN_UNUSED_RESULT",
         "_ARG_NONNULL",
         "_EXTRAPARAMS",
+        "#define _",
+        "#define offsetof",
+        "#define NULL",
     ]])]
     filtered_lines = [f"{line} ..." if line.startswith("#define") else line for line in filtered_lines]
     filtered_lines = [line for line in filtered_lines if line not in defines_set]
@@ -116,11 +119,8 @@ for header_path in header_paths:
                 with open(output_filename, 'w') as f_out:
                     f_out.write(post_process(stdout[0].decode("utf-8")))
 
-    # for header_file in headers_files:
-        #     if os.path.isfile(header_file):
-        #         os.remove(os.path.join(cffi_dir, 'tmp_includes', os.path.basename(header_file)))
     else:
         print(f"Warning: {header_path} not found.")
 
-shutil.rmtree(os.path.join(cffi_dir, 'tmp_includes'))
+# shutil.rmtree(os.path.join(cffi_dir, 'tmp_includes'))
 print("Done.")
