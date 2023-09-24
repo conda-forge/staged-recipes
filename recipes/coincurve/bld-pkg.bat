@@ -1,8 +1,9 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-rm -rf coincurve.egg-info/SOURCES.txt
+rm -rf coincurve.egg-info
 rm -rf libsecp256k1
+rm -rf _cffi_build\*.h
 
 set SHARED_NAME=!PKG_NAME:-shared=!
 if "!SHARED_NAME!"=="%PKG_NAME%" (
