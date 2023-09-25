@@ -12,6 +12,8 @@ else
   export SECP256K1_SHARED_LIBS="0"
 fi
 
-${PYTHON} ${RECIPE_DIR}/compose_cffi_files.py
+if [[ "OSTYPE" == "linux"* ]]; then
+  ${PYTHON} ${RECIPE_DIR}/compose_cffi_files.py
+fi
 
 ${PYTHON} -m pip install --use-pep517 . -vvv

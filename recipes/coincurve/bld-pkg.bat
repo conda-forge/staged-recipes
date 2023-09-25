@@ -12,8 +12,8 @@ if "!SHARED_NAME!"=="%PKG_NAME%" (
   set "SECP256K1_SHARED_LIBS=1"
 )
 
-%PYTHON% %RECIPE_DIR%\compose_cffi_files.py
-if %ERRORLEVEL% neq 0 exit 1
+:: %PYTHON% %RECIPE_DIR%\compose_cffi_files.py
+:: if %ERRORLEVEL% neq 0 exit 1
 
 %PYTHON% -m pip install --use-pep517 . -vvv
 if %ERRORLEVEL% neq 0 exit 1

@@ -1,12 +1,12 @@
 diff -Nu a/_cffi_build/build.py b/_cffi_build/build.py
 --- a/_cffi_build/build.py	2022-11-19 14:10:25.000000000 -0600
-+++ b/_cffi_build/build.py	2023-09-22 17:45:00.568312461 -0500
++++ b/_cffi_build/build.py	2023-09-25 10:19:04.102511107 -0500
 @@ -1,34 +1,84 @@
 +import argparse
 +import logging
  import os
  from collections import namedtuple
-+from typing import List, Any
++from typing import Any, List
  
  from cffi import FFI
  
@@ -48,7 +48,7 @@ diff -Nu a/_cffi_build/build.py b/_cffi_build/build.py
 +
 +
 +def mk_ffi(sources: List[Source],
-+           static_lib: str = "0",
++           static_lib: str = '0',
 +           name: str = '_libsecp256k1') -> FFI:
 +    """
 +    Create an FFI object.
@@ -61,13 +61,13 @@ diff -Nu a/_cffi_build/build.py b/_cffi_build/build.py
 +    """
      _ffi = FFI()
 -    code = []
-+    code = [define_static_lib] if static_lib == "1" else [define_shared_lib]
++    code = [define_static_lib] if static_lib == '1' else [define_shared_lib]
  
      for source in sources:
 -        with open(os.path.join(here, source.h), 'rt') as h:
 -            _ffi.cdef(h.read())
 +        with open(os.path.join(here, source.h)) as h:
-+            logging.info(f"   Including {source.h}...")
++            logging.info(f'   Including {source.h}...')
 +            c_header = h.read().replace('SECP256K1_API', '')
 +            _ffi.cdef(c_header)
 +
@@ -89,20 +89,20 @@ diff -Nu a/_cffi_build/build.py b/_cffi_build/build.py
 -]
 -
 -ffi = _mk_ffi(modules, libraries=['secp256k1'])
-+if __name__ == "__main__":
-+    logging.info("Starting CFFI build process...")
-+    parser = argparse.ArgumentParser(description="Generate C code using CFFI.")
-+    parser.add_argument("c_file", help="Generated C code filename.")
-+    parser.add_argument("static_lib", help="Generate static lib in Windows.", default=False)
++if __name__ == '__main__':
++    logging.info('Starting CFFI build process...')
++    parser = argparse.ArgumentParser(description='Generate C code using CFFI.')
++    parser.add_argument('c_file', help='Generated C code filename.')
++    parser.add_argument('static_lib', help='Generate static lib in Windows.', default=False)
 +    args = parser.parse_args()
 +
 +    modules = gather_sources_from_directory(here)
 +    ffi = mk_ffi(modules, args.static_lib)
 +    ffi.emit_c_code(args.c_file)
-+    logging.info(f"   Generated C code: {args.c_file}")
++    logging.info(f'   Generated C code: {args.c_file}')
 diff -Nu a/_cffi_build/secp256k1_ecdh.h b/_cffi_build/secp256k1_ecdh.h
 --- a/_cffi_build/secp256k1_ecdh.h	2022-11-19 14:10:25.000000000 -0600
-+++ b/_cffi_build/secp256k1_ecdh.h	2023-09-24 10:54:50.861540015 -0500
++++ b/_cffi_build/secp256k1_ecdh.h	2023-09-24 18:31:25.597872341 -0500
 @@ -1,8 +1,16 @@
 -int secp256k1_ecdh(
 -  const secp256k1_context* ctx,
@@ -128,7 +128,7 @@ diff -Nu a/_cffi_build/secp256k1_ecdh.h b/_cffi_build/secp256k1_ecdh.h
 +) ;
 diff -Nu a/_cffi_build/secp256k1_ellswift.h b/_cffi_build/secp256k1_ellswift.h
 --- a/_cffi_build/secp256k1_ellswift.h	1969-12-31 18:00:00.000000000 -0600
-+++ b/_cffi_build/secp256k1_ellswift.h	2023-09-24 10:54:50.841539850 -0500
++++ b/_cffi_build/secp256k1_ellswift.h	2023-09-24 18:31:25.581872217 -0500
 @@ -0,0 +1,36 @@
 +typedef int (*secp256k1_ellswift_xdh_hash_function)(
 +    unsigned char *output,
@@ -168,7 +168,7 @@ diff -Nu a/_cffi_build/secp256k1_ellswift.h b/_cffi_build/secp256k1_ellswift.h
 +) ;
 diff -Nu a/_cffi_build/secp256k1_extrakeys.h b/_cffi_build/secp256k1_extrakeys.h
 --- a/_cffi_build/secp256k1_extrakeys.h	2022-11-19 14:10:25.000000000 -0600
-+++ b/_cffi_build/secp256k1_extrakeys.h	2023-09-24 10:54:50.853539949 -0500
++++ b/_cffi_build/secp256k1_extrakeys.h	2023-09-24 18:31:25.589872279 -0500
 @@ -1,78 +1,66 @@
  typedef struct {
      unsigned char data[64];
@@ -287,7 +287,7 @@ diff -Nu a/_cffi_build/secp256k1_extrakeys.h b/_cffi_build/secp256k1_extrakeys.h
 +) ;
 diff -Nu a/_cffi_build/secp256k1.h b/_cffi_build/secp256k1.h
 --- a/_cffi_build/secp256k1.h	2022-11-19 14:10:25.000000000 -0600
-+++ b/_cffi_build/secp256k1.h	2023-09-24 10:54:50.821539686 -0500
++++ b/_cffi_build/secp256k1.h	2023-09-25 10:41:27.325753417 -0500
 @@ -1,13 +1,11 @@
  typedef struct secp256k1_context_struct secp256k1_context;
 -
@@ -303,7 +303,7 @@ diff -Nu a/_cffi_build/secp256k1.h b/_cffi_build/secp256k1.h
  typedef int (*secp256k1_nonce_function)(
      unsigned char *nonce32,
      const unsigned char *msg32,
-@@ -16,155 +14,183 @@
+@@ -16,155 +14,165 @@
      void *data,
      unsigned int attempt
  );
@@ -324,14 +324,12 @@ diff -Nu a/_cffi_build/secp256k1.h b/_cffi_build/secp256k1.h
 +#define SECP256K1_CONTEXT_DECLASSIFY ...
  #define SECP256K1_EC_COMPRESSED ...
  #define SECP256K1_EC_UNCOMPRESSED ...
--
--secp256k1_context* secp256k1_context_create(
 +#define SECP256K1_TAG_PUBKEY_EVEN ...
 +#define SECP256K1_TAG_PUBKEY_ODD ...
 +#define SECP256K1_TAG_PUBKEY_UNCOMPRESSED ...
 +extern const secp256k1_context *secp256k1_context_static;
-+extern const secp256k1_context *secp256k1_context_no_precomp
-+;
+ 
+-secp256k1_context* secp256k1_context_create(
 +extern void secp256k1_selftest(void);
 +extern secp256k1_context *secp256k1_context_create(
      unsigned int flags
@@ -512,11 +510,6 @@ diff -Nu a/_cffi_build/secp256k1.h b/_cffi_build/secp256k1.h
 +    const secp256k1_context *ctx,
 +    unsigned char *seckey
 +) ;
-+extern int secp256k1_ec_privkey_negate(
-+    const secp256k1_context *ctx,
-+    unsigned char *seckey
-+)
-+  ;
 +extern int secp256k1_ec_pubkey_negate(
 +    const secp256k1_context *ctx,
 +    secp256k1_pubkey *pubkey
@@ -531,12 +524,6 @@ diff -Nu a/_cffi_build/secp256k1.h b/_cffi_build/secp256k1.h
 -    const secp256k1_context* ctx,
 +    const unsigned char *tweak32
 +) ;
-+extern int secp256k1_ec_privkey_tweak_add(
-+    const secp256k1_context *ctx,
-+    unsigned char *seckey,
-+    const unsigned char *tweak32
-+)
-+  ;
 +extern int secp256k1_ec_pubkey_tweak_add(
 +    const secp256k1_context *ctx,
      secp256k1_pubkey *pubkey,
@@ -557,12 +544,6 @@ diff -Nu a/_cffi_build/secp256k1.h b/_cffi_build/secp256k1.h
 -    const secp256k1_context* ctx,
 +    const unsigned char *tweak32
 +) ;
-+extern int secp256k1_ec_privkey_tweak_mul(
-+    const secp256k1_context *ctx,
-+    unsigned char *seckey,
-+    const unsigned char *tweak32
-+)
-+  ;
 +extern int secp256k1_ec_pubkey_tweak_mul(
 +    const secp256k1_context *ctx,
      secp256k1_pubkey *pubkey,
@@ -599,7 +580,7 @@ diff -Nu a/_cffi_build/secp256k1.h b/_cffi_build/secp256k1.h
 +) ;
 diff -Nu a/_cffi_build/secp256k1_preallocated.h b/_cffi_build/secp256k1_preallocated.h
 --- a/_cffi_build/secp256k1_preallocated.h	1969-12-31 18:00:00.000000000 -0600
-+++ b/_cffi_build/secp256k1_preallocated.h	2023-09-24 10:54:50.849539917 -0500
++++ b/_cffi_build/secp256k1_preallocated.h	2023-09-24 18:31:25.585872248 -0500
 @@ -0,0 +1,17 @@
 +extern size_t secp256k1_context_preallocated_size(
 +    unsigned int flags
@@ -620,7 +601,7 @@ diff -Nu a/_cffi_build/secp256k1_preallocated.h b/_cffi_build/secp256k1_prealloc
 +) ;
 diff -Nu a/_cffi_build/secp256k1_recovery.h b/_cffi_build/secp256k1_recovery.h
 --- a/_cffi_build/secp256k1_recovery.h	2022-11-19 14:10:25.000000000 -0600
-+++ b/_cffi_build/secp256k1_recovery.h	2023-09-24 10:54:50.829539752 -0500
++++ b/_cffi_build/secp256k1_recovery.h	2023-09-24 18:31:25.569872124 -0500
 @@ -1,39 +1,34 @@
  typedef struct {
      unsigned char data[65];
@@ -684,8 +665,8 @@ diff -Nu a/_cffi_build/secp256k1_recovery.h b/_cffi_build/secp256k1_recovery.h
 +) ;
 diff -Nu a/_cffi_build/secp256k1_schnorrsig.h b/_cffi_build/secp256k1_schnorrsig.h
 --- a/_cffi_build/secp256k1_schnorrsig.h	2022-11-19 14:10:25.000000000 -0600
-+++ b/_cffi_build/secp256k1_schnorrsig.h	2023-09-24 10:54:50.837539817 -0500
-@@ -8,44 +8,39 @@
++++ b/_cffi_build/secp256k1_schnorrsig.h	2023-09-25 10:42:36.690584464 -0500
+@@ -8,44 +8,31 @@
      size_t algolen,
      void *data
  );
@@ -711,19 +692,15 @@ diff -Nu a/_cffi_build/secp256k1_schnorrsig.h b/_cffi_build/secp256k1_schnorrsig
 -
 -int secp256k1_schnorrsig_sign32(
 -    const secp256k1_context* ctx,
-+) ;
-+extern int secp256k1_schnorrsig_sign(
-+    const secp256k1_context *ctx,
-     unsigned char *sig64,
-     const unsigned char *msg32,
-     const secp256k1_keypair *keypair,
-     const unsigned char *aux_rand32
+-    unsigned char *sig64,
+-    const unsigned char *msg32,
+-    const secp256k1_keypair *keypair,
+-    const unsigned char *aux_rand32
 -);
 -
 -int secp256k1_schnorrsig_sign_custom(
 -    const secp256k1_context* ctx,
-+)
-+  ;
++) ;
 +extern int secp256k1_schnorrsig_sign_custom(
 +    const secp256k1_context *ctx,
      unsigned char *sig64,

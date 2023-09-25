@@ -1,7 +1,10 @@
 import glob
+import logging
 import os
 import shutil
 import subprocess
+
+logging.basicConfig(level=logging.ERROR)
 
 
 def concatenate_multiline_definitions(lines):
@@ -55,7 +58,7 @@ def post_process(text):
 
 # Create the _cffi_build directory
 src_dir = os.environ.get("SRC_DIR")
-cffi_dir = os.path.abspath(os.path.join(src_dir, "_cffi_build") if src_dir else "_cffi_build")
+cffi_dir = os.path.abspath(os.path.join(src_dir, "_cffi_build_tmp") if src_dir else "_cffi_build_tmp")
 
 os.makedirs(cffi_dir, exist_ok=True)
 os.makedirs(os.path.join(cffi_dir, 'tmp_includes'), exist_ok=True)
@@ -68,8 +71,8 @@ defines_set = set()
 # Loop through each header path
 for header_path in header_paths:
     if os.path.isdir(header_path):
-        headers_files = [f"{header_path}/secp256k1.h"] + glob.glob(f"{header_path}/secp256k1_*.h")
-        for header_file in headers_files:
+        header_files = [f"{header_path}/secp256k1.h"] + glob.glob(f"{header_path}/secp256k1_*.h")
+        for header_file in list(header_files):
             if os.path.isfile(header_file):
                 with open(header_file, 'r') as f:
                     lines = f.readlines()
@@ -92,8 +95,11 @@ for header_path in header_paths:
                         cwd=os.path.join(cffi_dir, 'tmp_includes'),
                     ).communicate(input='\n'.join(lines).encode("utf-8"))
                 create_empty_headers(cffi_dir, lines)
+            else:
+                header_files.remove(header_file)
 
-        for header_file in headers_files:
+
+        for header_file in header_files:
             if os.path.isfile(header_file):
                 with open(header_file, 'r') as f:
                     lines = f.readlines()
@@ -119,8 +125,20 @@ for header_path in header_paths:
                 with open(output_filename, 'w') as f_out:
                     f_out.write(post_process(stdout[0].decode("utf-8")))
 
+        for header_file in header_files:
+            diff_out = subprocess.run(["diff",
+                                       "-u",
+                                       os.path.join(f"_cffi_build", os.path.basename(header_file)),
+                                       os.path.join(cffi_dir, os.path.basename(header_file))],
+                                       stdout=subprocess.PIPE)
+            if diff_out.returncode != 0:
+                logging.error(f"ERROR: {header_path} differs from packaged header.")
+                logging.error(f"{diff_out.stdout.decode('utf-8')}")
+                exit(1)
     else:
         print(f"Warning: {header_path} not found.")
 
-# shutil.rmtree(os.path.join(cffi_dir, 'tmp_includes'))
+shutil.rmtree(os.path.join(cffi_dir, 'tmp_includes'))
+shutil.rmtree(cffi_dir)
+
 print("Done.")
