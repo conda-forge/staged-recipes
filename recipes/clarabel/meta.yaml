@@ -1,0 +1,74 @@
+# Note: there are many handy hints in comments in this example -- remove them when you've finalized your recipe
+# If your package is python based, we recommend using Grayskull to generate it instead:
+# https://github.com/conda-incubator/grayskull
+
+# Jinja variables help maintain the recipe as you'll update the version only here.
+# Using the name variable with the URL in line 16 is convenient
+# when copying and pasting from another recipe, but not really needed.
+{% set name = "clarabel" %}
+{% set version = "v0.6.0.post0" %}
+{% set checksum = "650b0122b689f5243a4438602435ff649b4c47d234fe714e89dcaa730047e2c9" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/oxfordcontrol/Clarabel.rs/archive/refs/tags/{{ version }}.tar.gz
+  sha256: {{ checksum }}
+
+build:
+  number: 0
+  skip: true  # [py<37]
+  script: 
+      - {{ PYTHON }} -m pip install . --no-deps --ignore-installed -vv
+      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - {{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - maturin
+    - numpy
+    - scipy
+    - python
+  run:
+    - python
+
+test:
+  files:
+    - example_qp.py
+    - example_sdp.py
+  imports:
+    - clarabel
+  commands:
+    - pip check
+    - python example_qp.py                    # basic example 
+    - python example_sdp.py                   # example requiring BLAS
+  requires:
+    - numpy
+    - scipy
+    - python
+
+about:
+  home: https://oxfordcontrol.github.io/ClarabelDocs/
+  license: Apache-2.0
+  license_family: Apache
+  license_file: 
+     - LICENSE.md
+     - THIRDPARTY.yml
+  summary: 'Python interface for Clarabel: Interior Point Conic Optimization Solver'
+  description: |
+    Clarabel is an interior point numerical solver for convex optimization problems implemented
+    in Rust.  It solves linear programs (LPs), quadratic programs (QPs), second-order cone programs 
+    (SOCPs) and semidefinite programs (SDPs). It also solves problems with exponential, power
+    cone and generalized power cone constraints.
+  doc_url: https://oxfordcontrol.github.io/ClarabelDocs/
+  dev_url: https://github.com/oxfordcontrol/Clarabel.rs
+
+extra:
+  recipe-maintainers:
+    - goulart-paul
