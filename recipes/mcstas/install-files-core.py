@@ -28,6 +28,15 @@ def launch( cmd ):
         fatal_error('Command failed!')
 
 cmake_cmd = shutil.which('cmake')
+if not cmake_cmd and 'CONDA_PREFIX' in os.environ:
+    #Try hard to find cmake installed in the current conda environment (this
+    #should not really be needed or help, but grasping at straws):
+    cmake_cmd = pathlib.Path(os.environ['CONDA_PREFIX']) / 'bin' / 'cmake'
+    if cmake_cmd.exists():
+        cmake_cmd = str(cmake_cmd)
+    else:
+        cmake_cmd = None
+
 if not cmake_cmd:
     fatal_error('could not find cmake command')
 
