@@ -3,47 +3,23 @@
 #NB get sha256 with: curl -sL <URL> | openssl sha256
 
 package:
-  name: mcstas
+  name: mcstas-suite
   version: {{ version }}
 
 source:
   url: https://github.com/McStasMcXtrace/McCode/archive/mcstas-{{ version }}.tar.gz
   sha256: {{ sha_value }}
-#  path: ../../
   folder: src
 
 build:
   number: 0
-  #noarch: generic
-
-requirements:
-  run:
-    - mcstas-core
-    - mcstas-data
-    - mcstas-mcgui
-    - mcstas-vis
-    - msmpi  # [win]
-    - openmpi  # [unix]
-    - ncrystal  # [unix]
-    - mcpl  # [unix]
-    # As per https://conda-forge.org/docs/maintainer/knowledge_base.html#noarch-builds
-    # we are noarch, but our dependency list is not. So we do need a different
-    # "mcstas" package for windows and unix platforms:
-    - __unix  # [unix]
-    - __win  # [win]
-
-test:
-  files:
-    - test_pkg.py
-  commands:
-    - python3 test_pkg.py mcstas
 
 outputs:
   - name: mcstas-core
     script: install-files-core.py
     requirements:
       build:
-        #Note: nmake on windows does not need to be specifically included.
+        #  Note: nmake on windows does not need to be specifically included.
         - python
         - cmake
         - make  # [not win]
@@ -64,7 +40,6 @@ outputs:
         - python3 test_pkg.py core
 
   - name: mcstas-data
-#    noarch: generic
     script: install-files-data.py
     test:
       files:
@@ -73,7 +48,6 @@ outputs:
         - python3 test_pkg.py data
 
   - name: mcstas-mcgui
-#    noarch: generic
     requirements:
       run:
         - mcstas-core
@@ -81,13 +55,12 @@ outputs:
         - qscintilla2
 
   - name: mcstas-vis
-#    noarch: generic
     requirements:
       run:
         - mcstas-core
-        #Note: conda-forge linter wants matplotlib-base and not matplotlib. It
-        #actually makes no difference (as per Sep. 2023) since we anyway install
-        #tornado+pyqt.
+        #  Note: conda-forge linter wants matplotlib-base and not matplotlib. It
+        #  actually makes no difference (as per Sep. 2023) since we anyway install
+        #  tornado+pyqt.
         - matplotlib-base
         - numpy
         - tornado >=5
@@ -96,17 +69,31 @@ outputs:
         - pyqtgraph
         - pyqt >=5.10
 
-##  - name: mcstas-everything
-##    noarch: generic
-##    requirements:
-##      run:
-##        - mcstas
-##        - gsl
-##        - nomkl
-##        - nexusformat
-##        - nexpy
-##        - hdf5
-##        # - cadquery
+  - name: mcstas
+    requirements:
+      run:
+        - {{ pin_subpackage('mcstas-core', max_pin="x.x.x") }}
+        - {{ pin_subpackage('mcstas-data', max_pin="x.x.x") }}
+        - {{ pin_subpackage('mcstas-mcgui', max_pin="x.x.x") }}
+        - {{ pin_subpackage('mcstas-vis', max_pin="x.x.x") }}
+        - msmpi  # [win]
+        - openmpi  # [unix]
+        - ncrystal  # [unix]
+        - mcpl  # [unix]
+        # As per https://conda-forge.org/docs/maintainer/knowledge_base.html#noarch-builds
+        # we are noarch, but our dependency list is not. So we do need a different
+        # "mcstas" package for windows and unix platforms:
+        - __unix  # [unix]
+        - __win  # [win]
+
+    test:
+      files:
+        - test_pkg.py
+      source_files:
+        - src/mcstas-comps/examples/BNL_H8.instr
+        - src/mcstas-comps/examples/Union_manual_example.instr
+      commands:
+        - python3 test_pkg.py mcstas
 
 about:
   home: https://mcstas.org/
