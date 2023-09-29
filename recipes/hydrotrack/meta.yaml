@@ -8,15 +8,27 @@ package:
 source:
   url: "https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz"
   sha256: b6bcd2fde7aa4c917818de128f31a9dc8d11521fc151039031f037c63559133f
-
+  
 build:
-  skip: True  # [py<36]
-  script: {{ PYTHON }} -m pip install . -vv
   number: 0
+  skip: true  # [py<38]
+  script:
+    # build the C files in parallel. This helps beat the
+    # time limit consistently on drone.io
+    - {{ PYTHON }} setup.py build_ext -j{{ CPU_COUNT }}
+    - {{ PYTHON }} -m pip install . -vv
 
 requirements:
   build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - cython >=0.29.33,<3                    # [build_platform != target_platform]
+    - numpy                                  # [build_platform != target_platform]
+    - scipy                                  # [build_platform != target_platform]
     - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - llvm-openmp  # [osx]
+    - libgomp  # [linux]
   host:
     - python >=3.9
     - cross-python_{{ target_platform }}  # [build_platform != target_platform]
