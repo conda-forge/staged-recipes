@@ -6,11 +6,12 @@ fi
 if [ "$(uname)" == "Linux" ]; then
     ARCH_ARGS=""
 
-    if [[ "$blas_impl" == "mkl" ]]; then
-        ARCH_ARGS="-DMKL_LINK=sdl -DMKL_INTERFACE=lp64 ${ARCH_ARGS}"
-    elif [[ "$blas_impl" == "openblas" ]]; then
-        ARCH_ARGS="-DBLA_VENDOR=OpenBLAS -DBLA_SIZEOF_INTEGER=4 ${ARCH_ARGS}"
-    fi
+fi
+
+if [[ "$blas_impl" == "mkl" ]]; then
+    ARCH_ARGS="-DMKL_LINK=sdl -DMKL_INTERFACE=lp64 ${ARCH_ARGS}"
+elif [[ "$blas_impl" == "openblas" ]]; then
+    ARCH_ARGS="-DBLA_VENDOR=OpenBLAS -DBLA_SIZEOF_INTEGER=4 ${ARCH_ARGS}"
 fi
 
 ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
