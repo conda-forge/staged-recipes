@@ -42,6 +42,7 @@ if not cmake_cmd:
 
 cmake_flags = [ f'-DCMAKE_INSTALL_PREFIX={prefix}',
                 '-S',src,
+                '-DMCVERSION=%s'%os.environ['PKG_VERSION'],
                 '-DBUILD_SHARED_LIBS=ON',
                 '-DCMAKE_INSTALL_LIBDIR=lib',
                 '-DCMAKE_BUILD_TYPE=Release',
@@ -67,7 +68,7 @@ if env_python:
     cmake_flags += [ f'-DPython3_EXECUTABLE={env_python}' ]
 
 build = ( pathlib.Path('.') / 'build' ).absolute().resolve()
-build.mkdir()
+build.mkdir(exist_ok = True)#FIXME: Trying exist_ok = True although it should not exist already...
 os.chdir(build)
 
 launch( [ cmake_cmd ] + cmake_flags )
