@@ -1,5 +1,6 @@
 if [ "$(uname)" == "Darwin" ]; then
     ARCH_ARGS=""
+    CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 
     # c-f-provided CMAKE_ARGS handles CMAKE_OSX_DEPLOYMENT_TARGET, CMAKE_OSX_SYSROOT
 fi
