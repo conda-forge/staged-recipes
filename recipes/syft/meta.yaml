@@ -1,33 +1,31 @@
-{% set goname = "github.com/anchore/syft" %}
+{% set goname = "syft" %}
 {% set version = "0.92.0" %}
 
-{% set name = goname.split('/')[-1] %}
-{% set pkg_src = ('src/'+goname).replace("/",os.sep) %}
 
 package:
   name: {{ name|lower }}
   version: {{ version|replace("-", "_") }}
 
 source:
-  - folder: {{ pkg_src }}
-    url: https://{{ goname }}/archive/v{{ version }}.tar.gz
+  - folder: src
+    url: https://github.com/anchore/syft/archive/v{{ version }}.tar.gz
     sha256: 15073d2a349ab2ebcba7e4f446016fdb6f9422b94bd59bcb8dd7839fab2e4807
 
 build:
   number: 0
   script:
-    - pushd {{ pkg_src }}
-    - go build -ldflags "-X main.revision=conda-forge" -v -o $PREFIX/bin/syft  # [not win]
-    - go build -ldflags "-X main.revision=conda-forge" -v -o %LIBRARY_BIN%\syft.exe  # [win]
+    - pushd src
+    - go build -ldflags -v -o $PREFIX/bin/syft  # [not win]
+    - go build -ldflags -v -o %LIBRARY_BIN%\syft.exe  # [win]
     - bash -c "mkdir -p ${PREFIX}/share/syft/shell; cp -v shell/* ${PREFIX}/share/syft/shell/"
     - bash -c "mkdir -p ${PREFIX}/share/syft/plugin; cp -v plugin/* ${PREFIX}/share/syft/plugin/"
-    - go-licenses save . --save_path ../../../../library_licenses
+    - go-licenses save . --save_path ../library_licenses
     # Clear out cache to avoid file not removable warnings
     - chmod -R u+w $(go env GOPATH) && rm -r $(go env GOPATH)  # [unix]
 
 requirements:
   build:
-    - {{ compiler('go') }}
+    - {{ compiler('go_nocgo') }}
     - go-licenses
 
 test:
@@ -35,11 +33,11 @@ test:
     - syft --version
 
 about:
-  home: https://{{ goname }}
+  home: https://github.com/anchore/syft
   license: Apache-2.0
   license_family: Apache
   license_file:
-    - {{ pkg_src }}/LICENSE
+    - src/LICENSE
     - library_licenses/
   summary: CLI tool and library for generating a Software Bill of Materials from container images and filesystems
 
