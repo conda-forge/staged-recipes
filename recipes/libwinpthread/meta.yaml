@@ -1,0 +1,89 @@
+{% set version = '9.0.0.6454.b4445ee52-1' %}
+
+package:
+  name: winpthreads-split
+  version: {{ version.replace("-", ".") }}
+
+source:
+  - url:
+      - https://repo.msys2.org/mingw/ucrt64/mingw-w64-ucrt-x86_64-libwinpthread-git-{{ version }}-any.pkg.tar.zst
+      # archive since the package link above expires when new versions appear.
+      - https://github.com/conda-forge/msys2-recipes/releases/download/20230914-ucrt64/mingw-w64-ucrt-x86_64-libwinpthread-git-{{ version }}-any.pkg.tar.zst
+    sha256: 905db9ba4cf395e1d130903864cbf70240945b77e9d6af1cc00d343914d70fb7
+    folder: binary-libwinpthread
+
+  - url:
+      - https://repo.msys2.org/mingw/ucrt64/mingw-w64-ucrt-x86_64-winpthreads-git-{{ version }}-any.pkg.tar.zst
+      # archive since the package link above expires when new versions appear.
+      - https://github.com/conda-forge/msys2-recipes/releases/download/20230914-ucrt64/mingw-w64-ucrt-x86_64-winpthreads-git-{{ version }}-any.pkg.tar.zst
+    sha256: 356be3d9aab2fa5877ca1b748abd503a69ba2d5d0d404ca7be5719b5517a7cd1
+    folder: binary-winpthreads
+
+  - url:
+      # archive them for license compliance
+      - https://repo.msys2.org/mingw/sources/mingw-w64-winpthreads-git-{{ version }}.src.tar.gz
+      - https://github.com/conda-forge/msys2-recipes/releases/download/20230914-ucrt64/mingw-w64-winpthreads-git-{{ version }}.src.tar.gz
+    sha256: 5f4f55de73c7fddd84865a289d34fc55e0506bb19c96af0ec2a1fb0833e68534
+    folder: src-winpthread
+
+build:
+  number: 0
+  skip: True  # [not win]
+
+outputs:  
+  - name: libwinpthread
+    script: install_libwinpthread.bat
+    files:
+      - Library/bin/libwinpthread-1.dll
+    requirements:
+      run:
+      run_constrained:
+        - msys2-conda-epoch <0.0a0
+        - pthreads-win32 <0.0a0
+    test:
+      commands:
+        - if not exist %LIBRARY_BIN%\libwinpthread-1.dll exit 1
+    about:
+      home: https://mingw-w64.sourceforge.io/
+      license: MIT
+      license_file: binary-libwinpthread/ucrt64/share/licenses/libwinpthread/
+      summary: DLLs for MinGW-w64 winpthreads library
+
+  - name: winpthreads
+    script: install_winpthreads.bat
+    files:
+      - Library/lib
+      - Library/include
+    requirements:
+      build:
+        - {{ compiler('c') }}
+      host:
+        - {{ pin_subpackage("libwinpthread", exact=True) }}
+      run:
+        - {{ pin_subpackage("libwinpthread", exact=True) }}
+      run_constrained:
+        - msys2-conda-epoch <0.0a0
+        - pthreads-win32 <0.0a0
+    test:
+      commands:
+        - if not exist %LIBRARY_INC%\pthread.h exit 1
+        - if not exist %LIBRARY_INC%\sched.h exit 1
+        - if not exist %LIBRARY_LIB%\libpthread.dll.a exit 1
+        - if not exist %LIBRARY_LIB%\pthread.lib exit 1
+    about:
+      home: https://mingw-w64.sourceforge.io/
+      license: MIT
+      license_file: binary-libwinpthread/ucrt64/share/licenses/libwinpthread/
+      summary: Development files for MinGW-w64 winpthreads library
+
+about:
+  home: https://mingw-w64.sourceforge.io/
+  license: MIT
+  license_file: binary-libwinpthread/ucrt64/share/licenses/libwinpthread/
+  summary: |
+    Repackaged winpthreads library
+
+extra:
+  feedstock-name: winpthreads
+  recipe-maintainers:
+    - isuruf
