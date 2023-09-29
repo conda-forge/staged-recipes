@@ -1,0 +1,139 @@
+{% set name = "Einsums" %}
+{% set version = "0.1" %}
+{% set sha256 = "123f8e5a3bc7b4f0fa551cd48fb6cb73903a4a1e71b691af4168ec1eb47dce7b" %}
+{% set build_number = 0 %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  #url: https://github.com/{{ name }}/{{ name }}/archive/v{{ version }}.tar.gz
+  url: https://github.com/loriab/einsums/archive/thirdpty.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: {{ build_number }}
+  string: {{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+  skip: true                                                               # [win]
+  binary_relocation: true
+  run_exports:
+    - {{ pin_subpackage('einsums', max_pin='x.x') }}
+  ignore_run_exports:
+    - elfutils                                                             # [linux]
+    - libzlib
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - libgomp                                                              # [linux]
+    - llvm-openmp                                                          # [osx]
+  host:
+    - catch2
+    - elfutils                                                             # [linux]
+    - fmt 10.1
+    - hdf5
+    - range-v3 0.12
+    - zlib
+    #- mkl-devel {{ mkl }}                                                  # [blas_impl == "mkl"]
+    - blas-devel * *_{{ blas_impl }}
+    - libblas * *_{{ blas_impl }}
+    - fftw                                                                 # [blas_impl == "openblas"]
+    - openblas * openmp_*                                                  # [blas_impl == "openblas"]
+    - libgomp                                                              # [linux]
+    - llvm-openmp                                                          # [osx]
+  run:
+    - libblas * *_{{ blas_impl }}
+    #- {{ blas_impl }}
+    - llvm-openmp                                                          # [osx]
+
+#####
+
+# pytorch-cpu-feedstock
+#      host:
+#        - mkl-devel {{ mkl }}   # [blas_impl == "mkl"]
+#        - libcblas * *_mkl      # [blas_impl == "mkl"]
+#        - libcblas              # [blas_impl != "mkl"]
+#        - liblapack             # [blas_impl != "mkl"]
+#        - libgomp   # [linux]
+#        - llvm-openmp    # [osx]
+#      run:
+#        - llvm-openmp    # [osx]
+#        - nomkl                 # [blas_impl != "mkl"]
+#   cbc
+#     - mkl
+#     - generic
+
+# toast
+#  host:
+#    - fftw  # [blas_impl == 'openblas']
+#    - openblas * openmp_*  # [blas_impl == 'openblas']
+#    - mkl-devel  # [blas_impl == 'mkl']
+#    - liblapack
+#  run:
+#    - {{ pin_compatible("fftw") }}  # [blas_impl == 'openblas']
+#    - openblas * openmp_*  # [blas_impl == 'openblas']
+#    - {{ pin_compatible("mkl") }}  # [blas_impl == 'mkl']
+#    - {{ pin_compatible("liblapack") }}
+#   cbc
+#     - mkl
+#     - openblas
+
+# knowledgebase
+#requirements:
+#  host:
+#    - {{ blas_impl }}
+#  run:
+#    - libblas * *{{ blas_impl }}
+#    - {{ blas_impl }}
+
+# psi4
+#  host:
+#    - libblas * *mkl                         # [x86_64]
+#    - mkl-devel                              # [x86_64]
+#    - mkl                                    # [x86_64]
+#    - libblas * *netlib                      # [not x86_64]
+#    - liblapack * *netlib                    # [not x86_64]
+#  run:
+#    - libblas * *mkl                         # [x86_64]
+#    - mkl                                    # [x86_64]
+#    - libblas                                # [not x86_64]
+#    - liblapack                              # [not x86_64]
+
+test:
+#  requires:
+#    - m2w64-binutils                                                       # [win]   # provides objdump.exe
+  commands:
+    # Verify library
+    - test -f $PREFIX/lib/libeinsums$SHLIB_EXT                             # [unix]
+    - test ! -f $PREFIX/lib/libeinsums.a                                   # [unix]
+    # Verify accessories
+    - test -f $PREFIX/include/einsums/Tensor.hpp                           # [unix]
+    - test -f $PREFIX/include/einsums/h5cpp/H5Pall.hpp                     # [unix]
+    - test -f $PREFIX/share/cmake/Einsums/EinsumsConfig.cmake              # [unix]
+    - test -f $PREFIX/share/cmake/Einsums/EinsumsTargets-CXX.cmake         # [unix]
+    # Inspect linkage
+    - ldd -v $PREFIX/lib/libeinsums$SHLIB_EXT                              # [linux]
+    - otool -L $PREFIX/lib/libeinsums$SHLIB_EXT                            # [osx]
+
+about:
+  home: https://github.com/Einsums/Einsums
+  dev_url: https://github.com/Einsums/Einsums
+  license: MIT AND BSD-3-Clause
+  license_url: https://opensource.org/license/mit/
+  license_file:
+    - LICENSE
+    - THIRD-PARTY-LICENSES
+  license_family: MIT
+  summary: "J. Turney's C++ library providing compile-time contraction pattern analysis to determine optimal tensor operations"
+
+extra:
+  feedstock-name: einsums
+  recipe-maintainers:
+    - loriab
+    - jturney
+
+## NOTES
