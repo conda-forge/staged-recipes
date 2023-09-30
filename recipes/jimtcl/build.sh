@@ -2,12 +2,12 @@
 
 set -e
 
-./configure --prefix=$PREFIX
-make
+./configure --prefix=$PREFIX "$@"
+${MAKE:-make}
 if [[ "$CONDA_BUILD_CROSS_COMPILATION" != "1" && "${CROSSCOMPILING_EMULATOR}" == "" ]]; then
-    make check
+    ${MAKE:-make} check
 fi
 
 if [[ "$JIM_CONDA_INSTALL" != no ]]; then
-    make install
+    ${MAKE:-make} install
 fi
