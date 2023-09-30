@@ -11,9 +11,9 @@ cargo-bundle-licenses \
 os_type=$(echo $OSTYPE | cut -c 1-6)
 if [[ "$os_type" == "darwin" ]]; then
   export RUST_BACKTRACE=full
-  cargo install --root "$PREFIX" --path . --no-default-features --locked --target x86_64-apple-darwin --features feature_capable,apply,generate,luau,foreach,fetch,geocode
+  cargo install --root "$PREFIX" --path . --no-default-features --locked --target x86_64-apple-darwin --features feature_capable,apply,generate,foreach,fetch,geocode
 else
-  cargo install --root "$PREFIX" --path . --locked --features feature_capable,apply,generate,luau,foreach,fetch,geocode
+  cargo install --root "$PREFIX" --path . --locked --features feature_capable,apply,generate,foreach,fetch,geocode
 fi
 
 # remove extra build file
