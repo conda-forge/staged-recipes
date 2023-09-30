@@ -2,7 +2,7 @@
 
 set -e
 
-./configure --prefix=$PREFIX "$@"
+./configure --prefix=$PREFIX "$@" --shared
 ${MAKE:-make}
 if [[ "$CONDA_BUILD_CROSS_COMPILATION" != "1" && "${CROSSCOMPILING_EMULATOR}" == "" ]]; then
     ${MAKE:-make} check
