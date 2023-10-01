@@ -2,7 +2,7 @@
 
 set -e
 
-./configure --prefix=$PREFIX "$@" --shared
+./configure --prefix=$PREFIX "$@"
 ${MAKE:-make}
 
 if [[ "$JIM_CONDA_INSTALL" != no ]]; then
