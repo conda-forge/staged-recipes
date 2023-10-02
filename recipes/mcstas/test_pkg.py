@@ -77,7 +77,7 @@ def run_instrument_file( instrumentfile, parameters = '' ):
             assert p.is_dir()
             for fff in ( p / 'bin').glob('*'):
                 if 'clang' in str(fff.name).lower()  or 'cc' in str(fff.name).lower():
-                    print("TESTOSX FOUND IN BIN:",f)
+                    print("TESTOSX FOUND IN BIN:",fff)
         shutil.copy(f,str(AbsPath('.')))
         launch( f'mcstas {f.name}' )
         pars = '' if not parameters else ' %s'%parameters
