@@ -18,7 +18,12 @@ def fatal_error(*args,**kwargs):
 n_added = 0
 for forig in src.glob('**/*'):
     f = forig.absolute().resolve()
-    if not f.is_relative_to(src):
+    if hasattr(f,'is_relative_to'):
+        is_rel_to_src = f.is_relative_to(src)
+    else:
+        #Fix for python 3.8 where is_relative_to is not available:
+        is_rel_to_src = str(f.absolute().resolve()).startswith(str(src.absolute().resolve()))
+    if not is_rel_to_src:
         fatal_error('Data-file is symlink: ',forig)
     subpath = f.relative_to(src)
     if any( str(subpath).startswith(c) for c in '._' ):
