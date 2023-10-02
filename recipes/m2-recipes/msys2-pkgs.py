@@ -1,3 +1,9 @@
+# Copyright 2023 Isuru Fernando
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Yes, this script is horrible but since it works I do not intend to
+# spend any time 'improving' it.
+
 from bs4 import BeautifulSoup
 import requests
 import subprocess
