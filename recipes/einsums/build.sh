@@ -1,7 +1,6 @@
 if [ "$(uname)" == "Darwin" ]; then
     # avoid "error: use of undeclared identifier 'aligned_alloc'; did you mean 'omp_aligned_alloc'?"
     ARCH_ARGS="-DEINSUMS_H5CPP_USE_OMP_ALIGNED_ALLOC=ON"
-    CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 
     # c-f-provided CMAKE_ARGS handles CMAKE_OSX_DEPLOYMENT_TARGET, CMAKE_OSX_SYSROOT
 fi
@@ -10,6 +9,7 @@ if [ "$(uname)" == "Linux" ]; then
 
 fi
 
+# ensure lp64 interface for now
 if [[ "$blas_impl" == "mkl" ]]; then
     ARCH_ARGS="-DMKL_LINK=sdl -DMKL_INTERFACE=lp64 ${ARCH_ARGS}"
 elif [[ "$blas_impl" == "openblas" ]]; then
@@ -36,14 +36,6 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
   -D CMAKE_REQUIRE_FIND_PACKAGE_range-v3=ON \
   -D CMAKE_REQUIRE_FIND_PACKAGE_netlib=ON \
   -D CMAKE_PREFIX_PATH="${PREFIX}"
-
-
-
-#  -D ENABLE_XHOST=OFF
-#  -D LAPACK_LIBRARIES="${PREFIX}/lib/liblapack${SHLIB_EXT};${PREFIX}/lib/libblas${SHLIB_EXT}"
-#  -D CMAKE_VERBOSE_MAKEFILE=OFF
-#  -D EINSUMS_INSTALL_CMAKEDIR=myshare/cmake/Einsums
-#  -D CMAKE_DISABLE_FIND_PACKAGE_MKL=ON
 
 cmake --build build --target install
 
