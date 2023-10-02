@@ -1,6 +1,8 @@
 if [ "$(uname)" == "Darwin" ]; then
     # avoid "error: use of undeclared identifier 'aligned_alloc'; did you mean 'omp_aligned_alloc'?"
     ARCH_ARGS="-DEINSUMS_H5CPP_USE_OMP_ALIGNED_ALLOC=ON"
+    # avoid "error: 'bad_variant_access' is unavailable: introduced in macOS 10.13"
+    CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 
     # c-f-provided CMAKE_ARGS handles CMAKE_OSX_DEPLOYMENT_TARGET, CMAKE_OSX_SYSROOT
 fi
