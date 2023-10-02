@@ -75,8 +75,8 @@ def run_instrument_file( instrumentfile, parameters = '' ):
         if conda_prefix is not None:
             p = pathlib.Path(conda_prefix)
             assert p.is_dir()
-            for f in ( p / 'bin').glob('*'):
-                if 'clang' in str(f.name).lower()  or 'cc' in str(f.name).lower():
+            for fff in ( p / 'bin').glob('*'):
+                if 'clang' in str(fff.name).lower()  or 'cc' in str(fff.name).lower():
                     print("TESTOSX FOUND IN BIN:",f)
         shutil.copy(f,str(AbsPath('.')))
         launch( f'mcstas {f.name}' )
