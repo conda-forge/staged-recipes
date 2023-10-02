@@ -70,6 +70,14 @@ def run_instrument_file( instrumentfile, parameters = '' ):
     if not f.exists():
         raise SystemExit(f'File not found: {instrumentfile} (resolved: {f})')
     with work_in_tmpdir():
+        conda_prefix = os.environ.get('CONDA_PREFIX')
+        print("TESTOSX CONDA_PREFIX=%s"%conda_prefix)
+        if conda_prefix is not None:
+            p = pathlib.Path(conda_prefix)
+            assert p.is_dir()
+            for f in ( p / 'bin').glob('*'):
+                if 'clang' in str(f.name).lower()  or 'cc' in str(f.name).lower():
+                    print("TESTOSX FOUND IN BIN:",f)
         shutil.copy(f,str(AbsPath('.')))
         launch( f'mcstas {f.name}' )
         pars = '' if not parameters else ' %s'%parameters
