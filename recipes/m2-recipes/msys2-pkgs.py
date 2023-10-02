@@ -285,7 +285,7 @@ for pkg, (depends, spdx, desc, url, src_url) in seen.items():
     print(f"{pkg} {pkg_latest_ver[pkg]} {' '.join(depends)}")
     info = pkg_latest_ver[pkg]
     text = output_template
-    depends += ["conda-epoch 20230914"]
+    depends += [f"conda-epoch {date}"]
     info = {
         "name": pkg.lower(),
         "version": ".".join(info.split("-")[:2]).replace("~", "!"),
