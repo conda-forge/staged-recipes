@@ -149,6 +149,8 @@ def get_depends(pkg):
     elif pkg == "libiconv":
         # break a cycle
         depends.remove("libintl")
+    elif pkg == "gcc-libs":
+        depends.append("msys2-runtime")
     license_text = get_info(pkginfo, "license")[0]
     spdx = license_text[5:] if license_text.startswith("spdx:") else license_text
     desc = get_info(pkginfo, "pkgdesc")[0]
