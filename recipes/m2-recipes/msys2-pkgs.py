@@ -255,6 +255,7 @@ meta += """
 build:
   number: 0
   noarch: generic
+  error_overlinking: false
 
 outputs:"""
 
