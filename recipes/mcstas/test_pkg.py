@@ -185,5 +185,7 @@ if __name__=='__main__':
         tests_for_pkg_core()
     elif name=='data':
         tests_for_pkg_data()
+    elif name in ('vis','mcgui'):
+        print(f'No actual tests for {name} subpackage.')
     else:
         raise SystemExit('Please provide a single valid package name (got: %s)'%sys.argv[1:])
