@@ -43,6 +43,7 @@ if not cmake_cmd:
 cmake_flags = [ f'-DCMAKE_INSTALL_PREFIX={prefix}',
                 '-S',src,
                 '-DMCVERSION=%s'%os.environ['PKG_VERSION'],
+                '-DMCCODE_BUILD_CONDA_PKG=ON',
                 '-DBUILD_SHARED_LIBS=ON',
                 '-DCMAKE_INSTALL_LIBDIR=lib',
                 '-DCMAKE_BUILD_TYPE=Release',
