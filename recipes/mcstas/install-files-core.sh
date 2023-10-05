@@ -1,2 +1,3 @@
 #!/usr/bin/env bash
-"${PYTHON}" "${RECIPE_DIR}"/install-files-core.py
+#TK: FIXME: fall back to python here, not sure if it is proper!
+"${PYTHON:-python}" "${RECIPE_DIR}"/install-files-core.py
