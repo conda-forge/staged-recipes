@@ -74,7 +74,7 @@ rmdir /s /q %BUILD_DIR%
       mkdir "%LOCAL_TEST_DIR%\!DIR!"
     )
 
-    cp "%%~f" "%LOCAL_TEST_DIR%\!FILE_PATH!"
+    copy "%%~f" "%LOCAL_TEST_DIR%\!FILE_PATH!"
     if %ERRORLEVEL% neq 0 exit /b 1
   )
 exit /b 0
