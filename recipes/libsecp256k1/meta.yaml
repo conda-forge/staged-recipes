@@ -12,7 +12,7 @@
 {% set sha256 = "3ffdeed78c7bebfe6cbd87bbe99d36982e92a6893d1e8b4dd4fdbf35a8811320" %}
   
 package:
-  name: libsecp256k1
+  name: {{ name }}
   version: {{ version }}
 
 source:
@@ -20,211 +20,71 @@ source:
   sha256: {{ sha256 }}
   patches:
     - 0001_update_pc.in.patch
-    - 0002_update_src_cmake_for_staticlib.patch
-    - 0003_update_cmake_for_staticlib.patch
-    - 0004_create_pkgconfig_function.patch
+    - 0002_update_src_cmake_for_pc.in.patch
+    - 0003_create_pkgconfig_function.patch
 
 build:
   number: 0
+  missing_dso_whitelist:
+    - "*/libc.so.6"
+    - "*/VCRUNTIME*.dll"  # [win]
+    - "*/ucrtbased.dll"  # [win]
+    - "*/KERNEL32.dll"  # [win]
+  ignore_run_exports:
+    - vc40_runtime
+    - ucrt
 
-outputs:
-  - name: libsecp256k1
-    script: build-lib.sh  # [unix]
-    script: bld-lib.bat  # [win]
-    build:
-      missing_dso_whitelist:
-        - "*/libc.so.6"
-        - "*/VCRUNTIME*.dll"  # [win]
-        - "*/ucrtbased.dll"  # [win]
-        - "*/KERNEL32.dll"  # [win]
-      ignore_run_exports:
-        - vc40_runtime
-        - ucrt
-      run_exports:
-        - {{ pin_subpackage(name, max_pin="x.x") }}
-    requirements:
-      build:
-        - {{ compiler('c') }}
-        - make
-        - cmake >=3.26
-      host:
-        - m2-tar  # [win]
-        - {{ compiler('c') }}
-      run:
-        - {{ pin_subpackage(name + "-headers", exact=True) }}
-    test:
-      requires:
-        - {{ compiler('c') }}
-        - make
-        - cmake >=3.26
-        - pkg-config
-      files:
-        - shared_standalone_tests/
-      commands:
-        # Headers - Not part of the subpackage, but they must be installed
-        {% for header in headers %}
-        - test -f ${PREFIX}/include/{{ header }}  # [unix]
-        - if not exist %LIBRARY_INC%\\{{ header }} exit 1  # [win]
-        {% endfor %}
+requirements:
+  host:
+    - {{ compiler('c') }}
+    - cmake >=3.26
+    - make
 
-        # Shared libraries
-        - test -f ${PREFIX}/lib/{{ name }}${SHLIB_EXT}  # [unix]
-        - if not exist %LIBRARY_LIB%\\{{ name }}.lib exit 1  # [win]
-        - if not exist %LIBRARY_BIN%\\{{ name }}-2.dll exit 1  # [win]
+test:
+  requires:
+    - {{ compiler('c') }}
+    - make
+    - cmake >=3.26
+    - pkg-config
+  files:
+    - shared_standalone_tests/
+  commands:
+    # Headers
+    {% for header in headers %}
+    - test -f ${PREFIX}/include/{{ header }}  # [unix]
+    - if not exist %LIBRARY_INC%\\{{ header }} exit 1  # [win]
+    {% endfor %}
 
-        # absence of static libraries
-        - test ! -f ${PREFIX}/lib/{{ name }}.a  # [unix]
-        - test ! -f ${PREFIX}/lib/{{ name }}-static.a  # [unix]
-        - if exist %LIBRARY_LIB%\\{{ name }}-static.lib exit 1  # [win]
+    # Shared libraries
+    - test -f ${PREFIX}/lib/{{ name }}${SHLIB_EXT}  # [unix]
+    - if not exist %LIBRARY_LIB%\\{{ name }}.lib exit 1  # [win]
+    - if not exist %LIBRARY_BIN%\\{{ name }}-2.dll exit 1  # [win]
 
-        # pkg-config files for shared libraries
-        - test -f ${PREFIX}/lib/pkgconfig/{{ name }}.pc  # [unix]
-        - if not exist %LIBRARY_LIB%\\pkgconfig\\{{ name }}.pc exit 1  # [win]
-        - pkg-config --cflags --libs {{ name }}
+    # pkg-config files for shared libraries
+    - test -f ${PREFIX}/lib/pkgconfig/{{ name }}.pc  # [unix]
+    - if not exist %LIBRARY_LIB%\\pkgconfig\\{{ name }}.pc exit 1  # [win]
+    - pkg-config --cflags --libs {{ name }}
 
-        # No pkg-config files for static libraries
-        - test ! -f ${PREFIX}/lib/pkgconfig/{{ name }}-static.pc  # [unix]
-        - if exist %LIBRARY_LIB%\\pkgconfig\\{{ name }}-static.pc exit 1  # [win]
+    # cmake files for shared libraries
+    - if not exist %LIBRARY_LIB%\\cmake\\{{ name }}\\{{ name }}-config.cmake exit 1  # [win]
+    - test -f ${PREFIX}/lib/cmake/{{ name }}/{{ name }}-config.cmake  # [unix]
 
-        # cmake files for shared libraries
-        - if not exist %LIBRARY_LIB%\\cmake\\{{ name }}\\{{ name }}-config.cmake exit 1  # [win]
-        - test -f ${PREFIX}/lib/cmake/{{ name }}/{{ name }}-config.cmake  # [unix]
+    # CMake test
+    - cd shared_standalone_tests/src  # [unix]
+    - cd shared_standalone_tests\\src && dir  # [win]
 
-        # No cmake files for static libraries
-        - if exist %LIBRARY_LIB%\\cmake\\{{ name }}\\{{ name }}-static-config.cmake exit 1  # [win]
-        - test ! -f ${PREFIX}/lib/cmake/{{ name }}/{{ name }}-static-config.cmake  # [unix]
-        - if exist %LIBRARY_LIB%\\cmake\\{{ name }}-static\\{{ name }}-static-config.cmake exit 1  # [win]
-        - test ! -f ${PREFIX}/lib/cmake/{{ name }}-static/{{ name }}-static-config.cmake  # [unix]
+    - cmake -DCMAKE_VERBOSE_MAKEFILE=ON -DBUILD_SHARED_LIBS=ON ${CMAKE_ARGS} .   # [unix]
+    - cmake -DCMAKE_VERBOSE_MAKEFILE=ON -DBUILD_SHARED_LIBS=ON %CMAKE_ARGS% .  # [win]
+    - cmake --build .
+    - cmake --build . --target check
+    - cmake --build . --target clean
 
-        # CMake test
-        - cd shared_standalone_tests/src  # [unix]
-        - cd shared_standalone_tests\\src && dir  # [win]
-
-        - cmake -DCMAKE_VERBOSE_MAKEFILE=ON -DBUILD_SHARED_LIBS=ON ${CMAKE_ARGS} .   # [unix]
-        - cmake -DCMAKE_VERBOSE_MAKEFILE=ON -DBUILD_SHARED_LIBS=ON %CMAKE_ARGS% .  # [win]
-        - cmake --build .
-        - cmake --build . --target check
-        - cmake --build . --target clean
-
-        - cd ../..  # [unix]
-        - cd ..\\..  # [win]
-        - rm -rf shared_standalone_tests  # [unix]
-        - rmdir /s /q shared_standalone_tests  # [win]
-      # downstreams:
-      #   - coincurve-dynamic
-
-  - name: libsecp256k1-headers
-    script: build-lib.sh  # [unix]
-    script: bld-lib.bat  # [win]
-    build:
-      run_exports:
-        - {{ pin_subpackage(name + "-headers", exact=True) }}
-    requirements:
-      build:
-        - {{ compiler('c') }}
-        - make
-        - cmake >=3.26
-    test:
-      commands:
-        # No shared libraries
-        - test ! -f ${PREFIX}/lib/{{ name }}.so  # [unix]
-        - test ! -f ${PREFIX}/lib/{{ name }}.dylib  # [unix]
-        - if exist %LIBRARY_LIB%\\{{ name }}.lib exit 1  # [win]
-        - if exist %LIBRARY_BIN%\\{{ name }}-2.dll exit 1  # [win]
-
-        # No static libraries
-        - test ! -f ${PREFIX}/lib/{{ name }}.a  # [unix]
-        - test ! -f ${PREFIX}/lib/{{ name }}-static.a  # [unix]
-        - if exist %LIBRARY_LIB%\\{{ name }}-static.lib exit 1  # [win]
-
-        # Headers
-        {% for header in headers %}
-        - test -f ${PREFIX}/include/{{ header }}  # [unix]
-        - if not exist %LIBRARY_INC%\\{{ header }} exit 1  # [win]
-        {% endfor %}
-
-  - name: libsecp256k1-static
-    script: build-lib.sh  # [unix]
-    script: bld-lib.bat  # [win]
-    build:
-      missing_dso_whitelist:
-        - "*/libc.so.6"
-        - "*/VCRUNTIME*.dll"  # [win]
-        - "*/ucrtbased.dll"  # [win]
-        - "*/KERNEL32.dll"  # [win]
-      ignore_run_exports:
-        - vc40_runtime
-        - ucrt
-      run_exports:
-        - {{ pin_subpackage(name + "-static", max_pin="x.x") }}
-    requirements:
-      build:
-        - {{ compiler('c') }}
-        - make
-        - cmake >=3.26
-      host:
-        - m2-tar  # [win]
-        - {{ compiler('c') }}
-      run:
-        - {{ pin_subpackage(name + "-headers", exact=True) }}
-    test:
-      requires:
-        - {{ compiler('c') }}
-        - make
-        - cmake >=3.26
-        - pkg-config
-      files:
-        - static_standalone_tests/
-      commands:
-        # Headers - Not part of the subpackage, but they must be installed
-        {% for header in headers %}
-        - test -f ${PREFIX}/include/{{ header }}  # [unix]
-        - if not exist %LIBRARY_INC%\\{{ header }} exit 1  # [win]
-        {% endfor %}
-
-        # No shared libraries
-        - test ! -f ${PREFIX}/lib/{{ name }}${SHLIB_EXT}  # [unix]
-        - if exist %LIBRARY_LIB%\\{{ name }}.lib exit 1  # [win]
-        - if exist %LIBRARY_BIN%\\{{ name }}-2.dll exit 1  # [win]
-
-        # Static libraries (with -static suffix)
-        - test ! -f ${PREFIX}/lib/{{ name }}.a  # [unix]
-        - test -f ${PREFIX}/lib/{{ name }}-static.a  # [unix]
-        - if not exist %LIBRARY_LIB%\\{{ name }}-static.lib exit 1  # [win]
-
-        # pkg-config files for shared libraries
-        - test -f ${PREFIX}/lib/pkgconfig/{{ name }}-static.pc  # [unix]
-        - if not exist %LIBRARY_LIB%\\pkgconfig\\{{ name }}-static.pc exit 1  # [win]
-        - pkg-config --cflags --libs {{ name }}-static
-
-        # No pkg-config files for shared libraries
-        - test ! -f ${PREFIX}/lib/pkgconfig/{{ name }}.pc  # [unix]
-        - if exist -f ${PREFIX}/lib/pkgconfig/{{ name }}.pc exit 1  # [win]
-
-        # No cmake files for shared libraries
-        - test ! -f ${PREFIX}/lib/cmake/{{ name }}/{{ name }}-config.cmake  # [unix]
-        - if exist %LIBRARY_LIB%\\cmake\\{{ name }}\\{{ name }}-config.cmake exit 1  # [win]
-        - test ! -f ${PREFIX}/lib/cmake/{{ name }}-static/{{ name }}-config.cmake  # [unix]
-        - if exist %LIBRARY_LIB%\\cmake\\{{ name }}-static\\{{ name }}-config.cmake exit 1  # [win]
-
-        # cmake files for static libraries
-        - if not exist %LIBRARY_LIB%\\cmake\\{{ name }}-static\\{{ name }}-static-config.cmake exit 1  # [win]
-        - test -f ${PREFIX}/lib/cmake/{{ name }}-static/{{ name }}-static-config.cmake  # [unix]
-
-        # CMake test
-        - cd static_standalone_tests/src  # [unix]
-        - cd static_standalone_tests\\src  # [win]
-
-        - cmake $CMAKE_ARGS .   # [unix]
-        - cmake %CMAKE_ARGS% .  # [win]
-        - cmake --build .
-        - cmake --build . --target check
-        - cmake --build . --target clean
-
-        - cd ../..  # [unix]
-        - cd ..\\..  # [win]
-        - rm -rf static_standalone_tests  # [unix]
-        - rmdir /s /q static_standalone_tests  # [win]
+    - cd ../..  # [unix]
+    - cd ..\\..  # [win]
+    - rm -rf shared_standalone_tests  # [unix]
+    - rmdir /s /q shared_standalone_tests  # [win]
+  downstreams:
+    - coincurve
 
 about:
   home: https://github.com/bitcoin-core/secp256k1
