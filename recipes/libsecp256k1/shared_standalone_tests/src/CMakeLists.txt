@@ -24,8 +24,6 @@ endif()
 set(CMAKE_C_STANDARD 90)
 set(CMAKE_C_EXTENSIONS OFF)
 
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-
 # Redefine configuration flags.
 # We leave assertions on, because they are only used in the examples, and we want them always on there.
 if(MSVC)
@@ -72,13 +70,8 @@ add_executable(stda_exhaustive_tests tests_exhaustive.c)
 target_compile_definitions(stda_exhaustive_tests PRIVATE $<$<NOT:$<CONFIG:Coverage>>:VERIFY>)
 add_test(NAME stda_exhaustive_tests COMMAND stda_exhaustive_tests)
 
-if(NOT BUILD_SHARED_LIBS)
-  find_package(secp256k1_library NAMES libsecp256k1-static REQUIRED)
-  set(LIB_TYPE "static")
-else ()
-  find_package(secp256k1_library NAMES libsecp256k1 REQUIRED)
-  set(LIB_TYPE "shared")
-endif()
+find_package(secp256k1_library NAMES libsecp256k1 REQUIRED)
+set(LIB_TYPE "shared")
 
 if(secp256k1_library_FOUND)
   message(STATUS "Found ${LIB_TYPE} SECP256K1 Lib: ${secp256k1_library_VERSION}")
