@@ -3,6 +3,7 @@ cd build
 if errorlevel 1 exit /b 1
 
 :: Only libuv is supported on Windows
+set libuv_ROOT=%PREFIX%\Library
 
 cmake -GNinja %CMAKE_ARGS%^
     -DBUILD_BENCHMARK=OFF^
