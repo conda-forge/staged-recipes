@@ -4,12 +4,15 @@ setlocal EnableDelayedExpansion
 :: Prepare post-install tests
 set "TEST_DIR=shared_standalone_tests"
 
-echo RECIPE_DIR is %RECIPE_DIR% or !RECIPE_DIR!
-echo TEST_DIR is %TEST_DIR% or "%TEST_DIR%" or !TEST_DIR! or "!TEST_DIR!"
+echo DEBUG RECIPE_DIR is %RECIPE_DIR% or !RECIPE_DIR!
+echo DEBUG TEST_DIR is %TEST_DIR% or "%TEST_DIR%" or !TEST_DIR! or "!TEST_DIR!"
+echo DEBUG SRC_DIR is %SRC_DIR% or "%SRC_DIR%" or !SRC_DIR! or "!SRC_DIR!"
 
-cp "%SRC_DIR%\src\tests.c" "%RECIPE_DIR%\!TEST_DIR!\src"
-cp "%SRC_DIR%\src\tests_exhaustive.c" "%RECIPE_DIR%\!TEST_DIR!\src"
-cp "%SRC_DIR%\src\secp256k1.c" "%RECIPE_DIR%\!TEST_DIR!\src"
+dir "%RECIPE_DIR%\!TEST_DIR!"
+
+copy "%SRC_DIR%\src\tests.c" "%RECIPE_DIR%\!TEST_DIR!\src"
+copy "%SRC_DIR%\src\tests_exhaustive.c" "%RECIPE_DIR%\!TEST_DIR!\src"
+copy "%SRC_DIR%\src\secp256k1.c" "%RECIPE_DIR%\!TEST_DIR!\src"
 
 call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\!TEST_DIR!" "%SRC_DIR%\src\*.h"
 call :CopyFiles "%SRC_DIR%" "%RECIPE_DIR%\!TEST_DIR!" "%SRC_DIR%\src\modules\*\*.h"
