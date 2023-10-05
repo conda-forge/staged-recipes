@@ -1,0 +1,126 @@
+# To generate the version number
+{%- if false %}
+git clone git@github.com:facebookincubator/gloo.git
+cd gloo
+git pull
+echo 0.5.0.$(date  +%Y%m%d -d "$(git show -s --format=%ci HEAD)").$(git rev-list HEAD --count).$(git rev-parse --short HEAD)
+# Get the git sha
+git rev-parse HEAD
+wget --quiet https://github.com/facebookincubator/gloo/archive/$(git rev-parse HEAD).tar.gz
+openssl sha256 $(git rev-parse HEAD).tar.gz
+{%- endif %}
+
+{% set gitrev = "cf1e1abc95d0b961222ee82b6935f76250fbcf16" %}
+{% set version = "0.5.0.20230719.418.cf1e1ab" %}
+{% set build = 0 %}
+
+# Set CUDA related variables
+{% if cuda_compiler_version is not defined or cuda_compiler_version == "None" %}
+  {% set cuda_build_prefix = "" %}
+  {% set cuda_build_post = build %}
+{% else %}
+  {% set cuda_build_prefix = "cuda" + cuda_compiler_version|string %}
+  {% set cuda_build_post = build + 100 %}
+{% endif %}
+{% set cuda_major = environ.get("cuda_compiler_version", "11.2").split(".")[0]|int %}
+
+package:
+  name: gloo-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/facebookincubator/gloo/archive/{{ gitrev }}.tar.gz
+  sha256: 5a6905e6833006cc289cb6f647832bf6e1559fe355c67200ddccd2c9f5aceb9d
+
+build:
+  # You can probably build this for windows
+  # skip: true  # [win]
+  number: {{ build }}
+  script_env:
+    - USE_TCP_OPENSSL=ON  # [linux]
+    - "GLOO_CUDA_CMAKE_ARGS=-DUSE_CUDA=ON -DGLOO_USE_CUDA_TOOLKIT=ON -DUSE_NCCL=ON"  # [cuda_compiler_version != "None"]
+    - CUDAARCHS=all  # [cuda_compiler_version != "None"]
+  run_exports:
+    # 0 guarantees because they believe in not creating real releases...
+    # https://github.com/facebookincubator/gloo/issues/84
+    - {{ pin_subpackage('libgloo', max_pin='x.x.x.x.x') }}={{ cuda_build_prefix }}*
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+    - cmake
+    - ninja
+    - openssl  1  # [linux]
+    - pkg-config  # [unix]
+  host:
+    - libhiredis
+    # - libuv
+    # uses epoll, only linux
+    - openssl  1  # [linux]
+    - nccl  # [cuda_compiler_version != "None"]
+
+outputs:
+
+  - name: libgloo
+    build:
+      string: {{ cuda_build_prefix }}h{{ PKG_HASH }}_{{ cuda_build_post }}
+      run_exports:
+      - {{ pin_subpackage('libgloo', max_pin='x.x.x.x.x') }}={{ cuda_build_prefix }}*
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+      host:
+        - libhiredis
+        # uses epoll, only linux
+        - openssl  1  # [linux]
+        - nccl  # [cuda_compiler_version != "None"]
+    files:
+      - lib/libgloo*  # [unix]
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libgloo${SHLIB_EXT}            # [unix]
+        - test -f ${PREFIX}/lib/libgloo_cuda${SHLIB_EXT}       # [unix and cuda_compiler_version != "None"]
+
+  - name: gloo
+    build:
+      string: {{ cuda_build_prefix }}h{{ PKG_HASH }}_{{ cuda_build_post }}
+      run_exports:
+        - {{ pin_subpackage('libgloo', max_pin='x.x.x.x.x') }}={{ cuda_build_prefix }}*
+    requirements:
+      run:
+        - {{ pin_subpackage('libgloo', exact=True) }}
+    files:
+      - share/cmake/Gloo  # [unix]
+      - include/gloo      # [unix]
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libgloo${SHLIB_EXT}            # [unix]
+        - test -f ${PREFIX}/lib/libgloo_cuda${SHLIB_EXT}       # [unix and cuda_compiler_version != "None"]
+        - test -f ${PREFIX}/share/cmake/Gloo/GlooConfig.cmake  # [unix]
+        - test -d ${PREFIX}/include/gloo                       # [unix]
+        - test -f ${PREFIX}/include/gloo/config.h              # [unix]
+        - test -f ${PREFIX}/include/gloo/transport/tcp/tls/openssl.h   # [linux]
+        # - test -f ${PREFIX}/include/gloo/transport/uv/libuv.h  # [unix]
+        - test -f ${PREFIX}/include/gloo/cuda.h                # [unix and cuda_compiler_version != "None"]
+        - test -f ${PREFIX}/include/gloo/nccl/nccl.h           # [unix and cuda_compiler_version != "None"]
+
+about:
+  home: https://github.com/facebookincubator/gloo
+  summary: A collective communications library
+  description: |
+    It comes with a number of collective algorithms useful for machine learning
+    applications. These include a barrier, broadcast, and allreduce.
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+
+extra:
+  feedstock-name: gloo
+  recipe-maintainers:
+    - hmaarrfk
+    - carterbox
+    - conda-forge/pytorch-cpu
