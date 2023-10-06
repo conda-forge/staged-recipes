@@ -100,7 +100,7 @@ def common_tests_for_core_and_mcstas_pkgs( take_instr_file_from_src ):
 
     instrprefix = 'src/mcstas-comps' if take_instr_file_from_src else 'share/mcstas/resources'
     run_instrument_file( f'{instrprefix}/examples/BNL_H8.instr', 'lambda=2.36 -s1000 -n1e5')
-    #FIXME: FAILS RUNTIME: run_instrument_file( f'{instrprefix}/examples/Union_manual_example.instr', '-s1000 -n1e5')
+    run_instrument_file( f'{instrprefix}/examples/Union_manual_example.instr', '-s1000 -n1e5')
 
 _sample_data_files = ['share/mcstas/resources/data/Be.laz']
 
@@ -161,7 +161,7 @@ def tests_for_pkg_mcstas():
     run_instrument_file( 'share/mcstas/resources/examples/NCrystal_example.instr','sample_cfg=Al_sg225.ncmat -s1000 -n1e5' )
 
     #NCrystal test with data from mcstas-data package:
-    #  FIXME: skipped for now since  .laz/.lau/.nxs support no longer enabled by default in NCrystal (requires custom plugin):
+    #  Note: skipped since  .laz/.lau/.nxs support no longer enabled by default in NCrystal (requires custom plugin):
     #  run_instrument_file( 'share/mcstas/resources/examples/NCrystal_example.instr','sample_cfg=%s -s1000 -n1e5'%shlex.quote(f_Be_laz) )
 
     #NCrystal+Union test:
