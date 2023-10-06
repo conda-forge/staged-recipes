@@ -68,8 +68,8 @@ env_python = os.environ.get('PYTHON')
 if env_python:
     cmake_flags += [ f'-DPython3_EXECUTABLE={env_python}' ]
 
-build = ( pathlib.Path('.') / 'build' ).absolute().resolve()
-build.mkdir(exist_ok = True)#FIXME: Trying exist_ok = True although it should not exist already...
+build = ( pathlib.Path('.') / 'builddir_mcstas_core' ).absolute().resolve()
+build.mkdir()
 os.chdir(build)
 
 launch( [ cmake_cmd ] + cmake_flags )
