@@ -68,8 +68,13 @@ env_python = os.environ.get('PYTHON')
 if env_python:
     cmake_flags += [ f'-DPython3_EXECUTABLE={env_python}' ]
 
-build = ( pathlib.Path('.') / 'builddir_mcstas_core' ).absolute().resolve()
-build.mkdir()
+#Make buildir. I am not sure why it can sometimes exist already, so we do it like this:
+for i in range(9999):
+    build = ( pathlib.Path('.') / f'builddir_mcstas_core{i}' ).absolute().resolve()
+    if not build.exists():
+        build.mkdir()
+        break
+assert build.is_dir()
 os.chdir(build)
 
 launch( [ cmake_cmd ] + cmake_flags )
