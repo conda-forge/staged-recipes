@@ -1,2 +1,1 @@
 @set SOFA_ROOT=
-@set SOFAPYTHON3_ROOT=

@@ -1,3 +1,2 @@
 @echo off
 set SOFA_ROOT=%CONDA_PREFIX%\Library
-set SOFAPYTHON3_ROOT=%CONDA_PREFIX%\Library
