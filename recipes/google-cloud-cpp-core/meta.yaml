@@ -1,0 +1,354 @@
+{% set version = "2.17.0" %}
+
+{%- macro test_subpackage(feature) %}
+commands:
+  - test -f $PREFIX/lib/libgoogle_cloud_cpp_{{ feature }}.{{ version }}.dylib  # [osx]
+  - test -f $PREFIX/lib/libgoogle_cloud_cpp_{{ feature }}.so.{{ version }}  # [linux]
+  - test ! -f $PREFIX/lib/pkgconfig/google_cloud_cpp_{{ feature }}.pc  # [not win]
+  - test ! -f $PREFIX/include/google/cloud/version.h  # [not win]
+  - test ! -f $PREFIX/lib/cmake/google_cloud_cpp_{{ feature }}/google_cloud_cpp_{{ feature }}-config.cmake  # [not win]
+  - if exist %LIBRARY_PREFIX%\\lib\\cmake\\google_cloud_cpp_{{ feature }}\\google_cloud_cpp_{{ feature }}-config.cmake exit 1  # [win]
+{%- endmacro %}
+
+{%- macro test_devel_subpackage(feature) %}
+commands:
+  - ./run_test_feature.sh   # [not win]
+  - ./run_test_feature.bat  # [win]
+requires:
+  - {{ compiler('cxx') }}
+  - cmake
+  - ninja
+files:
+  - run_test_feature.sh
+  - run_test_feature.bat
+source_files:
+  - google/cloud/{{ feature }}/quickstart/*.cc
+  - google/cloud/{{ feature }}/quickstart/CMakeLists.txt
+{%- endmacro %}
+
+{%- macro standard_subpackage(feature) %}
+script: build-libgoogle-cloud.sh  # [not win]
+script: build-libgoogle-cloud.bat # [win]
+build:
+  run_exports:
+    # patch versions guaranteed to be ABI-compatible, see
+    # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+    - {{ pin_subpackage("libgoogle-cloud-common", max_pin="x.x") }}
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+  host:
+    - {{ pin_subpackage("libgoogle-cloud-common", exact=True) }}
+  run:
+    - {{ pin_subpackage("libgoogle-cloud-common", exact=True) }}
+    - libabseil
+    - libprotobuf
+    - libgrpc
+test:
+  {{ test_subpackage(feature)|indent(2) }}
+{%- endmacro %}
+
+{%- macro standard_devel_subpackage(feature) %}
+script: build-libgoogle-cloud.sh   # [not win]
+script: build-libgoogle-cloud.bat  # [win]
+build:
+  run_exports:
+    # patch versions guaranteed to be ABI-compatible, see
+    # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+    - {{ pin_subpackage("libgoogle-cloud-common-devel", max_pin="x.x") }}
+    - {{ pin_subpackage("libgoogle-cloud-" + feature, max_pin="x.x") }}
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+  host:
+    - {{ pin_subpackage("libgoogle-cloud-common-devel", exact=True) }}
+  run:
+    - {{ pin_subpackage("libgoogle-cloud-common-devel", exact=True) }}
+    - {{ pin_subpackage("libgoogle-cloud-" + feature, exact=True) }}
+test:
+  {{ test_devel_subpackage(feature)|indent(2) }}
+{% endmacro %}
+
+{%- macro child_subpackage(feature, parent) %}
+script: build-libgoogle-cloud.sh  # [not win]
+script: build-libgoogle-cloud.bat # [win]
+build:
+  run_exports:
+    # patch versions guaranteed to be ABI-compatible, see
+    # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+    - {{ pin_subpackage("libgoogle-cloud-" + parent, max_pin="x.x") }}
+    - {{ pin_subpackage("libgoogle-cloud-common", max_pin="x.x") }}
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+  host:
+    - {{ pin_subpackage("libgoogle-cloud-" + parent, exact=True) }}
+    - {{ pin_subpackage("libgoogle-cloud-common", exact=True) }}
+  run:
+    - {{ pin_subpackage("libgoogle-cloud-" + parent, exact=True) }}
+    - {{ pin_subpackage("libgoogle-cloud-common", exact=True) }}
+    - libabseil
+    - libprotobuf
+    - libgrpc
+test:
+  {{ test_subpackage(feature)|indent(2) }}
+{%- endmacro %}
+
+{%- macro child_devel_subpackage(feature, parent) %}
+script: build-libgoogle-cloud.sh   # [not win]
+script: build-libgoogle-cloud.bat  # [win]
+build:
+  run_exports:
+    - {{ pin_subpackage("libgoogle-cloud-" + feature, max_pin="x.x") }}
+    # patch versions guaranteed to be ABI-compatible, see
+    # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+    - {{ pin_subpackage("libgoogle-cloud-" + parent + "-devel", max_pin="x.x") }}
+    - {{ pin_subpackage("libgoogle-cloud-common-devel", max_pin="x.x") }}
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+  host:
+    - {{ pin_subpackage("libgoogle-cloud-" + parent + "-devel", exact=True) }}
+    - {{ pin_subpackage("libgoogle-cloud-common-devel", exact=True) }}
+  run:
+    - {{ pin_subpackage("libgoogle-cloud-" + feature, exact=True) }}
+    - {{ pin_subpackage("libgoogle-cloud-" + parent + "-devel", exact=True) }}
+    - {{ pin_subpackage("libgoogle-cloud-common-devel", exact=True) }}
+test:
+  {{ test_devel_subpackage(feature)|indent(2) }}
+{%- endmacro %}
+
+package:
+  name: google-cloud-cpp-core
+  version: {{ version }}
+
+source:
+  url: https://github.com/googleapis/google-cloud-cpp/archive/v{{ version }}.tar.gz
+  sha256: 8cb87ec2947e691a7f8631877e78453bcfda51b3d3cd4940794a376741888d37
+  patches:
+    # This is an upstream fix to allow sharding google/cloud/oauth2
+    - patches/0001-fix-oauth2-only-enable-via-GOOGLE_CLOUD_CPP_ENABLE-1.patch
+    # This is an upstream fix to break the (unused) dependency because `storage`
+    # and ZLIB::ZLIB
+    - patches/0002-fix-storage-remove-unused-dependencies-12890.patch
+
+build:
+  number: 0
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - libgrpc
+    - libprotobuf
+  host:
+    - libabseil
+    - libcrc32c
+    - libcurl
+    - libgrpc
+    - libprotobuf
+    - openssl
+    - nlohmann_json
+    - zlib
+
+outputs:
+  - name: libgoogle-cloud-common
+    script: build-libgoogle-cloud.sh  # [unix]
+    script: build-libgoogle-cloud.bat  # [win]
+    build:
+      run_exports:
+        # patch versions guaranteed to be ABI-compatible, see
+        # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+        - {{ pin_subpackage("libgoogle-cloud-common", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+        - libgrpc
+        - libprotobuf
+      host:
+        - libabseil
+        - libcurl
+        - libgrpc
+        - libprotobuf
+        - openssl
+        - nlohmann_json
+      run_constrained:
+        - libgoogle-cloud {{ version }} *_{{ PKG_BUILDNUM }}
+    test:
+      {{ test_subpackage("common")|indent(6) }}
+
+  - name: libgoogle-cloud-common-devel
+    script: build-libgoogle-cloud.sh  # [not win]
+    script: build-libgoogle-cloud.bat # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage("libgoogle-cloud-common", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+        - libcurl
+        - libgrpc
+        - libprotobuf
+        - openssl
+        - nlohmann_json
+        # cannot load package without zlib because it's specified
+        # as required; if possible, this should be removed upstream
+        - zlib
+      host:
+        - {{ pin_subpackage("libgoogle-cloud-common", exact=True) }}
+        - libabseil
+        - libcurl
+        - libgrpc
+        - libprotobuf
+        - openssl
+        - nlohmann_json
+      run:
+        - {{ pin_subpackage("libgoogle-cloud-common", exact=True) }}
+        - libabseil
+        - libcurl
+        - libgrpc
+        - libprotobuf
+        - openssl
+        - nlohmann_json
+        # cannot load package without zlib because it's specified
+        # as required; if possible, this should be removed upstream
+        - zlib
+      host:
+        - {{ pin_subpackage("libgoogle-cloud-common", exact=True) }}
+        - openssl
+    test:
+      commands:
+        - ./run_test_common.sh   # [not win]
+        - ./run_test_common.bat  # [win]
+      requires:
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      files:
+        - run_test_common.sh
+        - run_test_common.bat
+        - tests/CMakeLists.txt
+        - tests/quickstart.cc
+
+  - name: libgoogle-cloud-oauth2
+    {{ standard_subpackage("oauth2")|indent(4) }}
+  - name: libgoogle-cloud-oauth2-devel
+    {{ standard_devel_subpackage("oauth2")|indent(4) }}
+  - name: libgoogle-cloud-bigtable
+    {{ standard_subpackage("bigtable")|indent(4) }}
+  - name: libgoogle-cloud-bigtable-devel
+    {{ standard_devel_subpackage("bigtable")|indent(4) }}
+  - name: libgoogle-cloud-pubsub
+    {{ standard_subpackage("pubsub")|indent(4) }}
+  - name: libgoogle-cloud-pubsub-devel
+    {{ standard_devel_subpackage("pubsub")|indent(4) }}
+  - name: libgoogle-cloud-iam
+    {{ child_subpackage("iam", "pubsub")|indent(4) }}
+  - name: libgoogle-cloud-iam-devel
+    {{ child_devel_subpackage("iam", "pubsub")|indent(4) }}
+  - name: libgoogle-cloud-policytroubleshooter
+    {{ child_subpackage("policytroubleshooter", "pubsub")|indent(4) }}
+  - name: libgoogle-cloud-policytroubleshooter-devel
+    {{ child_devel_subpackage("policytroubleshooter", "pubsub")|indent(4) }}
+  - name: libgoogle-cloud-spanner
+    {{ standard_subpackage("spanner")|indent(4) }}
+  - name: libgoogle-cloud-spanner-devel
+    {{ standard_devel_subpackage("spanner")|indent(4) }}
+
+  - name: libgoogle-cloud-storage
+    script: build-libgoogle-cloud.sh  # [not win]
+    script: build-libgoogle-cloud.bat # [win]
+    build:
+      run_exports:
+        # patch versions guaranteed to be ABI-compatible, see
+        # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+        - {{ pin_subpackage("libgoogle-cloud-common", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage("libgoogle-cloud-common", exact=True) }}
+        - libcrc32c
+        # This can be removed on the first release (likely v2.18.0) of
+        # google-cloud-cpp containing:
+        #   https://github.com/googleapis/google-cloud-cpp/pull/12890
+        - zlib
+      run:
+        - {{ pin_subpackage("libgoogle-cloud-common", exact=True) }}
+        - libabseil
+        - libcrc32c
+        - libcurl
+        - openssl
+    test:
+      {{ test_subpackage("storage")|indent(6) }}
+
+  - name: libgoogle-cloud-storage-devel
+    script: build-libgoogle-cloud.sh   # [not win]
+    script: build-libgoogle-cloud.bat  # [win]
+    build:
+      run_exports:
+        # patch versions guaranteed to be ABI-compatible, see
+        # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+        - {{ pin_subpackage("libgoogle-cloud-common-devel", max_pin="x.x") }}
+        - {{ pin_subpackage("libgoogle-cloud-storage", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage("libgoogle-cloud-common-devel", exact=True) }}
+        - libabseil
+        - libcrc32c
+        - libcurl
+        - openssl
+        - nlohmann_json
+      run:
+        - {{ pin_subpackage("libgoogle-cloud-common-devel", exact=True) }}
+        - {{ pin_subpackage("libgoogle-cloud-storage", exact=True) }}
+        - libabseil
+        - libcrc32c
+        - libcurl
+        - openssl
+        - nlohmann_json
+    test:
+      {{ test_devel_subpackage("storage")|indent(6) }}
+
+about:
+  home: https://github.com/googleapis/google-cloud-cpp
+  license: Apache-2.0
+  license_family: Apache
+  license_file: LICENSE
+  summary: Google Cloud Client Library for C++
+
+extra:
+  feedstock-name: google-cloud-cpp-core
+  recipe-maintainers:
+    - coryan
+    - davidbrochart
+    - dbolduc
+    - h-vetinari
+    - xhochy
