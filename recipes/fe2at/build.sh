@@ -5,3 +5,4 @@ mkdir -p ${PREFIX}/bin
 cp FE2ATmap ${PREFIX}/bin/FE2ATmap
 cd ..
 cp util/extractDisp.py ${PREFIX}/bin/extractDisp.py
+cd ../example_bending
