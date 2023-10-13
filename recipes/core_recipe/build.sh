@@ -1,8 +1,6 @@
 #!/bin/bash
-mkdir build
-cd build
 export ISISROOT=$PWD
-cmake -GNinja -DJP2KFLAG=ON -Dpybindings=OFF -DKAKADU_INCLUDE_DIR=/isisData/kakadu -DbuildTests=OFF -DCMAKE_BUILD_TYPE=Release -DISIS_BUILD_SWIG=ON -DCMAKE_INSTALL_PREFIX=$PREFIX ../isis/src/core
-ninja install
-cd ${SRC_DIR}/build/swig/python
-python setup.py install
+mkdir build && cd build
+cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DISIS_BUILD_SWIG=ON -DBUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=$PREFIX -DPython3_EXECUTABLE="$PYTHON" ../isis/src/core
+cmake --build . --config RELEASE
+cmake --install . --config RELEASE
