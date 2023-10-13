@@ -1,5 +1,5 @@
 #!/bin/bash
-cd source
+cd V3.0/source
 ${FC} FE2ATmap_V3.0.f90 -o FE2ATmap
 cp FE2ATmap ${PREFIX}/bin/FE2ATmap
 cd ..
