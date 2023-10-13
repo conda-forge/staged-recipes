@@ -1,43 +1,40 @@
 #!/usr/bin/env bash
 
-set -x
+# -*- mode: jinja-shell -*-
 
 source .scripts/logging_utils.sh
 
-( startgroup "Ensuring Miniforge" ) 2> /dev/null
+set -xe
+
+MINIFORGE_HOME=${MINIFORGE_HOME:-${HOME}/miniforge3}
+
+( startgroup "Installing a fresh version of Miniforge" ) 2> /dev/null
 
 MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download"
-MINIFORGE_FILE="Miniforge3-MacOSX-x86_64.sh"
-MINIFORGE_ROOT="${MINIFORGE_ROOT:-${HOME}/Miniforge3}"
+MINIFORGE_FILE="Mambaforge-MacOSX-$(uname -m).sh"
+curl -L -O "${MINIFORGE_URL}/${MINIFORGE_FILE}"
+rm -rf ${MINIFORGE_HOME}
+bash $MINIFORGE_FILE -b -p ${MINIFORGE_HOME}
 
-if [[ -d "${MINIFORGE_ROOT}" ]]; then
-  echo "Miniforge already installed at ${MINIFORGE_ROOT}."
-else
-  echo "Installing Miniforge"
-  curl -L -O "${MINIFORGE_URL}/${MINIFORGE_FILE}"
-  bash $MINIFORGE_FILE -bp "${MINIFORGE_ROOT}"
-fi
-
-( endgroup "Ensuring Miniforge" ) 2> /dev/null
+( endgroup "Installing a fresh version of Miniforge" ) 2> /dev/null
 
 ( startgroup "Configuring conda" ) 2> /dev/null
 
-cat >~/.condarc <<CONDARC
-always_yes: true
-show_channel_urls: true
-solver: libmamba
-CONDARC
-
-source "${MINIFORGE_ROOT}/etc/profile.d/conda.sh"
+source ${MINIFORGE_HOME}/etc/profile.d/conda.sh
 conda activate base
 
-echo -e "\n\nInstalling conda-forge-ci-setup=3, conda-build."
-conda install --quiet --file .ci_support/requirements.txt
+mamba install --update-specs --quiet --yes --channel conda-forge --strict-channel-priority \
+    pip mamba conda-build boa conda-forge-ci-setup=3
+mamba update --update-specs --yes --quiet --channel conda-forge --strict-channel-priority \
+    pip mamba conda-build boa conda-forge-ci-setup=3
+
+
 
 echo -e "\n\nSetting up the condarc and mangling the compiler."
-setup_conda_rc ./ ./recipes ./.ci_support/${CONFIG}.yaml
+setup_conda_rc ./ ./recipe ./.ci_support/${CONFIG}.yaml
+
 if [[ "${CI:-}" != "" ]]; then
-  mangle_compiler ./ ./recipes .ci_support/${CONFIG}.yaml
+  mangle_compiler ./ ./recipe .ci_support/${CONFIG}.yaml
 fi
 
 if [[ "${CI:-}" != "" ]]; then
@@ -51,22 +48,42 @@ fi
 echo -e "\n\nRunning the build setup script."
 source run_conda_forge_build_setup
 
-set -e
 
-# make sure there is a package directory so that artifact publishing works
-mkdir -p "${MINIFORGE_ROOT}/conda-bld/osx-64/"
-
-# Find the recipes from main in this PR and remove them.
-echo ""
-echo "Finding recipes merged in main and removing them from the build."
-pushd ./recipes > /dev/null
-git fetch --force origin main:main
-git ls-tree --name-only main -- . | xargs -I {} sh -c "rm -rf {} && echo Removing recipe: {}"
-popd > /dev/null
-echo ""
 
 ( endgroup "Configuring conda" ) 2> /dev/null
 
-# We just want to build all of the recipes.
-echo "Building all recipes"
-python .ci_support/build_all.py
+echo -e "\n\nMaking the build clobber file"
+make_build_number ./ ./recipe ./.ci_support/${CONFIG}.yaml
+
+if [[ -f LICENSE.txt ]]; then
+  cp LICENSE.txt "recipe/recipe-scripts-license.txt"
+fi
+
+if [[ "${BUILD_WITH_CONDA_DEBUG:-0}" == 1 ]]; then
+    if [[ "x${BUILD_OUTPUT_ID:-}" != "x" ]]; then
+        EXTRA_CB_OPTIONS="${EXTRA_CB_OPTIONS:-} --output-id ${BUILD_OUTPUT_ID}"
+    fi
+    conda debug ./recipe -m ./.ci_support/${CONFIG}.yaml \
+        ${EXTRA_CB_OPTIONS:-} \
+        --clobber-file ./.ci_support/clobber_${CONFIG}.yaml
+
+    # Drop into an interactive shell
+    /bin/bash
+else
+
+    if [[ "${HOST_PLATFORM}" != "${BUILD_PLATFORM}" ]]; then
+        EXTRA_CB_OPTIONS="${EXTRA_CB_OPTIONS:-} --no-test"
+    fi
+
+    conda mambabuild ./recipe -m ./.ci_support/${CONFIG}.yaml \
+        --suppress-variables ${EXTRA_CB_OPTIONS:-} \
+        --clobber-file ./.ci_support/clobber_${CONFIG}.yaml
+
+    ( startgroup "Uploading packages" ) 2> /dev/null
+
+    if [[ "${UPLOAD_PACKAGES}" != "False" ]] && [[ "${IS_PR_BUILD}" == "False" ]]; then
+      upload_package  ./ ./recipe ./.ci_support/${CONFIG}.yaml
+    fi
+
+    ( endgroup "Uploading packages" ) 2> /dev/null
+fi

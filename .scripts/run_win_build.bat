@@ -6,60 +6,82 @@
 :: Note: we assume a Miniforge installation is available
 
 :: INPUTS (required environment variables)
-:: CONDA_BLD_PATH: path for the conda-build workspace
-:: CI: azure, or unset
+:: CONFIG: name of the .ci_support/*.yaml file for this job
+:: CI: azure, github_actions, or unset
+:: UPLOAD_PACKAGES: true or false
+:: UPLOAD_ON_BRANCH: true or false
 
 setlocal enableextensions enabledelayedexpansion
 
 call :start_group "Configuring conda"
 
-if "%CONDA_BLD_PATH%" == "" (
-    set "CONDA_BLD_PATH=C:\bld"
-)
-
 :: Activate the base conda environment
 call activate base
 
-conda.exe config --set always_yes yes
-if errorlevel 1 exit 1
-conda.exe config --set channel_priority strict
-if errorlevel 1 exit 1
-conda.exe config --set solver libmamba
-if errorlevel 1 exit 1
-
+:: Provision the necessary dependencies to build the recipe later
 echo Installing dependencies
-conda.exe install --file .\.ci_support\requirements.txt
-if errorlevel 1 exit 1
+mamba.exe install "python=3.10" pip mamba conda-build boa conda-forge-ci-setup=3 -c conda-forge --strict-channel-priority --yes
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 :: Set basic configuration
 echo Setting up configuration
-setup_conda_rc .\ ".\recipes" .\.ci_support\%CONFIG%.yaml
-if errorlevel 1 exit 1
+setup_conda_rc .\ ".\recipe" .\.ci_support\%CONFIG%.yaml
+if !errorlevel! neq 0 exit /b !errorlevel!
+echo Running build setup
+CALL run_conda_forge_build_setup
 
-echo Run conda_forge_build_setup
-call run_conda_forge_build_setup
-if errorlevel 1 exit 1
 
-echo Force fetch origin/main
-git fetch --force origin main:main
-if errorlevel 1 exit 1
-echo Removing recipes also present in main
-cd recipes
-for /f "tokens=*" %%a in ('git ls-tree --name-only main -- .') do rmdir /s /q %%a && echo Removing recipe: %%a
-cd ..
+if !errorlevel! neq 0 exit /b !errorlevel!
 
-:: make sure there is a package directory so that artifact publishing works
-if not exist "%CONDA_BLD_PATH%\win-64\" mkdir "%CONDA_BLD_PATH%\win-64\"
-
-echo Index %CONDA_BLD_PATH%
-conda.exe index "%CONDA_BLD_PATH%"
-if errorlevel 1 exit 1
+if EXIST LICENSE.txt (
+    echo Copying feedstock license
+    copy LICENSE.txt "recipe\\recipe-scripts-license.txt"
+)
+if NOT [%HOST_PLATFORM%] == [%BUILD_PLATFORM%] (
+    set "EXTRA_CB_OPTIONS=%EXTRA_CB_OPTIONS% --no-test"
+)
 
 call :end_group
 
-echo Building all recipes
-python .ci_support\build_all.py --arch 64
-if errorlevel 1 exit 1
+:: Build the recipe
+echo Building recipe
+conda.exe mambabuild "recipe" -m .ci_support\%CONFIG%.yaml --suppress-variables %EXTRA_CB_OPTIONS%
+if !errorlevel! neq 0 exit /b !errorlevel!
+
+:: Prepare some environment variables for the upload step
+if /i "%CI%" == "github_actions" (
+    set "FEEDSTOCK_NAME=%GITHUB_REPOSITORY:*/=%"
+    set "GIT_BRANCH=%GITHUB_REF:refs/heads/=%"
+    if /i "%GITHUB_EVENT_NAME%" == "pull_request" (
+        set "IS_PR_BUILD=True"
+    ) else (
+        set "IS_PR_BUILD=False"
+    )
+    set "TEMP=%RUNNER_TEMP%"
+)
+if /i "%CI%" == "azure" (
+    set "FEEDSTOCK_NAME=%BUILD_REPOSITORY_NAME:*/=%"
+    set "GIT_BRANCH=%BUILD_SOURCEBRANCHNAME%"
+    if /i "%BUILD_REASON%" == "PullRequest" (
+        set "IS_PR_BUILD=True"
+    ) else (
+        set "IS_PR_BUILD=False"
+    )
+    set "TEMP=%UPLOAD_TEMP%"
+)
+
+:: Validate
+
+if /i "%UPLOAD_PACKAGES%" == "true" (
+    if /i "%IS_PR_BUILD%" == "false" (
+        call :start_group "Uploading packages"
+        if not exist "%TEMP%\" md "%TEMP%"
+        set "TMP=%TEMP%"
+        upload_package  .\ ".\recipe" .ci_support\%CONFIG%.yaml
+        if !errorlevel! neq 0 exit /b !errorlevel!
+        call :end_group
+    )
+)
 
 exit
 

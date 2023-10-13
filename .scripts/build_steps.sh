@@ -5,74 +5,80 @@
 # changes to this script, consider a proposal to conda-smithy so that other feedstocks can also
 # benefit from the improvement.
 
+# -*- mode: jinja-shell -*-
+
 set -xeuo pipefail
+export FEEDSTOCK_ROOT="${FEEDSTOCK_ROOT:-/home/conda/feedstock_root}"
+source ${FEEDSTOCK_ROOT}/.scripts/logging_utils.sh
 
-export FEEDSTOCK_ROOT="${FEEDSTOCK_ROOT:-/home/conda/staged-recipes}"
-source "${FEEDSTOCK_ROOT}/.scripts/logging_utils.sh"
 
-# This closes the matching `startgroup` on `run_docker_build.sh`
 ( endgroup "Start Docker" ) 2> /dev/null
 
 ( startgroup "Configuring conda" ) 2> /dev/null
 
 export PYTHONUNBUFFERED=1
-export CI_SUPPORT="/home/conda/staged-recipes-copy/.ci_support"
+export RECIPE_ROOT="${RECIPE_ROOT:-/home/conda/recipe_root}"
+export CI_SUPPORT="${FEEDSTOCK_ROOT}/.ci_support"
+export CONFIG_FILE="${CI_SUPPORT}/${CONFIG}.yaml"
 
 cat >~/.condarc <<CONDARC
-always_yes: true
-
-channels:
- - conda-forge
 
 conda-build:
   root-dir: ${FEEDSTOCK_ROOT}/build_artifacts
-
 pkgs_dirs:
   - ${FEEDSTOCK_ROOT}/build_artifacts/pkg_cache
   - /opt/conda/pkgs
 
-show_channel_urls: true
-
-solver: libmamba
 CONDARC
 
-# Copy the host recipes folder so we don't ever muck with it
-cp -r ${FEEDSTOCK_ROOT} ~/staged-recipes-copy
+mamba install --update-specs --yes --quiet --channel conda-forge --strict-channel-priority \
+    pip mamba conda-build boa conda-forge-ci-setup=3
+mamba update --update-specs --yes --quiet --channel conda-forge --strict-channel-priority \
+    pip mamba conda-build boa conda-forge-ci-setup=3
 
-# Remove any macOS system files
-find ~/staged-recipes-copy/recipes -maxdepth 1 -name ".DS_Store" -delete
+# set up the condarc
+setup_conda_rc "${FEEDSTOCK_ROOT}" "${RECIPE_ROOT}" "${CONFIG_FILE}"
 
-# Find the recipes from main in this PR and remove them.
-echo "Pending recipes."
-ls -la ~/staged-recipes-copy/recipes
-echo "Finding recipes merged in main and removing them from the build."
-pushd "${FEEDSTOCK_ROOT}/recipes" > /dev/null
-if [ "${AZURE}" == "True" ]; then
-    git fetch --force origin main:main
-fi
-git ls-tree --name-only main -- . | xargs -I {} sh -c "rm -rf ~/staged-recipes-copy/recipes/{} && echo Removing recipe: {}"
-popd > /dev/null
-
-
-
-conda install --quiet --file ${FEEDSTOCK_ROOT}/.ci_support/requirements.txt
-
-setup_conda_rc "${FEEDSTOCK_ROOT}" "/home/conda/staged-recipes-copy/recipes" "${CI_SUPPORT}/${CONFIG}.yaml"
 source run_conda_forge_build_setup
 
-# yum installs anything from a "yum_requirements.txt" file that isn't a blank line or comment.
-find ~/staged-recipes-copy/recipes -mindepth 2 -maxdepth 2 -type f -name "yum_requirements.txt" \
-    | xargs -n1 cat | { grep -v -e "^#" -e "^$" || test $? == 1; } | \
-    xargs -r /usr/bin/sudo -n yum install -y
+# make the build number clobber
+make_build_number "${FEEDSTOCK_ROOT}" "${RECIPE_ROOT}" "${CONFIG_FILE}"
 
-# Make sure build_artifacts is a valid channel
-conda index ${FEEDSTOCK_ROOT}/build_artifacts
+if [[ "${HOST_PLATFORM}" != "${BUILD_PLATFORM}" ]] && [[ "${HOST_PLATFORM}" != linux-* ]] && [[ "${BUILD_WITH_CONDA_DEBUG:-0}" != 1 ]]; then
+    EXTRA_CB_OPTIONS="${EXTRA_CB_OPTIONS:-} --no-test"
+fi
+
 
 ( endgroup "Configuring conda" ) 2> /dev/null
 
-echo "Building all recipes"
-python ${CI_SUPPORT}/build_all.py
+if [[ -f "${FEEDSTOCK_ROOT}/LICENSE.txt" ]]; then
+  cp "${FEEDSTOCK_ROOT}/LICENSE.txt" "${RECIPE_ROOT}/recipe-scripts-license.txt"
+fi
+
+if [[ "${BUILD_WITH_CONDA_DEBUG:-0}" == 1 ]]; then
+    if [[ "x${BUILD_OUTPUT_ID:-}" != "x" ]]; then
+        EXTRA_CB_OPTIONS="${EXTRA_CB_OPTIONS:-} --output-id ${BUILD_OUTPUT_ID}"
+    fi
+    conda debug "${RECIPE_ROOT}" -m "${CI_SUPPORT}/${CONFIG}.yaml" \
+        ${EXTRA_CB_OPTIONS:-} \
+        --clobber-file "${CI_SUPPORT}/clobber_${CONFIG}.yaml"
+
+    # Drop into an interactive shell
+    /bin/bash
+else
+    conda mambabuild "${RECIPE_ROOT}" -m "${CI_SUPPORT}/${CONFIG}.yaml" \
+        --suppress-variables ${EXTRA_CB_OPTIONS:-} \
+        --clobber-file "${CI_SUPPORT}/clobber_${CONFIG}.yaml"
+
+    ( startgroup "Uploading packages" ) 2> /dev/null
+
+    if [[ "${UPLOAD_PACKAGES}" != "False" ]] && [[ "${IS_PR_BUILD}" == "False" ]]; then
+        upload_package  "${FEEDSTOCK_ROOT}" "${RECIPE_ROOT}" "${CONFIG_FILE}"
+    fi
+
+    ( endgroup "Uploading packages" ) 2> /dev/null
+fi
 
 ( startgroup "Final checks" ) 2> /dev/null
 
-touch "${FEEDSTOCK_ROOT}/build_artifacts/conda-forge-build-done"
+touch "${FEEDSTOCK_ROOT}/build_artifacts/conda-forge-build-done-${CONFIG}"

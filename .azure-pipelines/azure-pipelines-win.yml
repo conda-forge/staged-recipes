@@ -1,36 +1,56 @@
+# This file was generated automatically from conda-smithy. To update this configuration,
+# update the conda-forge.yml and/or the recipe/meta.yaml.
+# -*- mode: yaml -*-
+
 jobs:
-- job: win_64
-  condition: not(eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+- job: win
   pool:
     vmImage: windows-2022
   strategy:
-    maxParallel: 4
     matrix:
-      win:
-        CONFIG: win64
+      win_64_python3.10.____cpython:
+        CONFIG: win_64_python3.10.____cpython
+        UPLOAD_PACKAGES: 'True'
+      win_64_python3.11.____cpython:
+        CONFIG: win_64_python3.11.____cpython
+        UPLOAD_PACKAGES: 'True'
+      win_64_python3.8.____cpython:
+        CONFIG: win_64_python3.8.____cpython
+        UPLOAD_PACKAGES: 'True'
+      win_64_python3.9.____cpython:
+        CONFIG: win_64_python3.9.____cpython
+        UPLOAD_PACKAGES: 'True'
   timeoutInMinutes: 360
+  variables:
+    CONDA_BLD_PATH: D:\\bld\\
+    UPLOAD_TEMP: D:\\tmp
+
   steps:
+
     - task: PythonScript@0
       displayName: 'Download Miniforge'
       inputs:
         scriptSource: inline
         script: |
           import urllib.request
-          url = 'https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe'
+          url = 'https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Windows-x86_64.exe'
           path = r"$(Build.ArtifactStagingDirectory)/Miniforge.exe"
           urllib.request.urlretrieve(url, path)
+
     - script: |
         start /wait "" %BUILD_ARTIFACTSTAGINGDIRECTORY%\Miniforge.exe /InstallationType=JustMe /RegisterPython=0 /S /D=C:\Miniforge
       displayName: Install Miniforge
+
     - powershell: Write-Host "##vso[task.prependpath]C:\Miniforge\Scripts"
       displayName: Add conda to PATH
 
     - script: |
-        call .scripts\run_win_build.bat
-      displayName: Build recipes
+        call ".scripts\run_win_build.bat"
+      displayName: Run Windows build
       env:
+        PYTHONUNBUFFERED: 1
+        CONFIG: $(CONFIG)
         CI: azure
-        CONDA_BLD_PATH: C:\bld
-
-    - publish: C:\\bld\\win-64\\
-      artifact: conda_pkgs_win
+        UPLOAD_PACKAGES: $(UPLOAD_PACKAGES)
+        UPLOAD_TEMP: $(UPLOAD_TEMP)
+        BINSTAR_TOKEN: $(BINSTAR_TOKEN)
