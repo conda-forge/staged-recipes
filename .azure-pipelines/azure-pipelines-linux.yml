@@ -1,92 +1,50 @@
+# This file was generated automatically from conda-smithy. To update this configuration,
+# update the conda-forge.yml and/or the recipe/meta.yaml.
+# -*- mode: yaml -*-
+
 jobs:
-- job: linux_64
-  condition: not(eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+- job: linux
   pool:
     vmImage: ubuntu-latest
+  strategy:
+    matrix:
+      linux_64_python3.10.____cpython:
+        CONFIG: linux_64_python3.10.____cpython
+        UPLOAD_PACKAGES: 'True'
+        DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
+      linux_64_python3.11.____cpython:
+        CONFIG: linux_64_python3.11.____cpython
+        UPLOAD_PACKAGES: 'True'
+        DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
+      linux_64_python3.8.____cpython:
+        CONFIG: linux_64_python3.8.____cpython
+        UPLOAD_PACKAGES: 'True'
+        DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
+      linux_64_python3.9.____cpython:
+        CONFIG: linux_64_python3.9.____cpython
+        UPLOAD_PACKAGES: 'True'
+        DOCKER_IMAGE: quay.io/condaforge/linux-anvil-cos7-x86_64
   timeoutInMinutes: 360
+
   steps:
+  # configure qemu binfmt-misc running.  This allows us to run docker containers
+  # embedded qemu-static
   - script: |
-      sudo mkdir -p /opt/empty_dir
-      for d in \
-          /opt/ghc \
-          /opt/hostedtoolcache \
-          /usr/lib/jvm \
-          /usr/local/.ghcup \
-          /usr/local/android \
-          /usr/local/powershell \
-          /usr/share/dotnet \
-          /usr/share/swift \
-          ; do
-          sudo rsync --stats -a --delete /opt/empty_dir/ $d || true
-      done
-    displayName: Manage disk space
+      docker run --rm --privileged multiarch/qemu-user-static:register --reset --credential yes
+      ls /proc/sys/fs/binfmt_misc/
+    condition: not(startsWith(variables['CONFIG'], 'linux_64'))
+    displayName: Configure binfmt_misc
 
   - script: |
-      # sudo pip install --upgrade pip
-      sudo pip install setuptools shyaml
-    displayName: Install dependencies
-
-  - script: |
-      set -e
-
-      # make sure there is a package directory so that artifact publishing works
-      mkdir -p build_artifacts/{noarch,linux-64}/
-
-      export CI=azure
-      export CONFIG=linux64
-      export DOCKER_IMAGE=quay.io/condaforge/linux-anvil-cos7-x86_64
-      export AZURE=True
-      .scripts/run_docker_build.sh
-
+        export CI=azure
+        export GIT_BRANCH=$BUILD_SOURCEBRANCHNAME
+        export FEEDSTOCK_NAME=$(basename ${BUILD_REPOSITORY_NAME})
+        if [[ "${BUILD_REASON:-}" == "PullRequest" ]]; then
+          export IS_PR_BUILD="True"
+        else
+          export IS_PR_BUILD="False"
+        fi
+        .scripts/run_docker_build.sh
     displayName: Run docker build
-    name: linux_64_build
-
-  - publish: build_artifacts/linux-64/
-    artifact: conda_pkgs_linux
-
-  - publish: build_artifacts/noarch/
-    artifact: conda_pkgs_noarch
-
-- job: linux_64_cuda_112
-  dependsOn: linux_64
-  condition: and(not(eq(variables['Build.SourceBranch'], 'refs/heads/main')), eq(dependencies.linux_64.outputs['linux_64_build.NEED_CUDA'], '1'))
-  pool:
-    vmImage: ubuntu-latest
-  timeoutInMinutes: 360
-  steps:
-  - script: |
-      sudo mkdir -p /opt/empty_dir
-      for d in \
-          /opt/ghc \
-          /opt/hostedtoolcache \
-          /usr/lib/jvm \
-          /usr/local/.ghcup \
-          /usr/local/android \
-          /usr/local/powershell \
-          /usr/share/dotnet \
-          /usr/share/swift \
-          ; do
-          sudo rsync --stats -a --delete /opt/empty_dir/ $d || true
-      done
-    displayName: Manage disk space
-
-  - script: |
-      # sudo pip install --upgrade pip
-      sudo pip install setuptools shyaml
-    displayName: Install dependencies
-
-  - script: |
-      set -e
-
-      # make sure there is a package directory so that artifact publishing works
-      mkdir -p build_artifacts/linux-64/
-
-      export CI=azure
-      export CONFIG=linux64_cuda112
-      export DOCKER_IMAGE=quay.io/condaforge/linux-anvil-cuda:11.2
-      export AZURE=True
-      .scripts/run_docker_build.sh
-
-    displayName: Run docker build for CUDA 11.2
-  - publish: build_artifacts/linux-64/
-    artifact: conda_pkgs_linux_64_cuda112
+    env:
+      BINSTAR_TOKEN: $(BINSTAR_TOKEN)
