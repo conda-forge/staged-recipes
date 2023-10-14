@@ -1,4 +1,5 @@
 #!/bin/bash
 cd v1.3
 make
-cp nanosculpt ${PREFIX}/bin/nanosculpt
+mkdir -p ${PREFIX}/bin
+cp nanoSCULPT ${PREFIX}/bin/nanoSCULPT
