@@ -1,5 +1,5 @@
 mkdir build
-cd build
+pushd build
 
 cmake -S ..                                ^
     -GNinja                                ^
@@ -11,3 +11,5 @@ if errorlevel 1 exit 1
 
 cmake --build . --target install --parallel %CPU_COUNT%
 if errorlevel 1 exit 1
+
+popd

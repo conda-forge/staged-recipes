@@ -1,7 +1,7 @@
 #!/bin/bash
 
 mkdir build
-cd build
+pushd build
 
 cmake ${CMAKE_ARGS} ..             \
     -GNinja                        \
@@ -10,3 +10,5 @@ cmake ${CMAKE_ARGS} ..             \
     -DCMAKE_INSTALL_PREFIX=$PREFIX
 
 cmake --build . --target install --parallel ${CPU_COUNT}
+
+popd
