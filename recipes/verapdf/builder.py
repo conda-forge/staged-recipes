@@ -7,7 +7,13 @@ WIN = platform.system() == "Windows"
 SRC_DIR = Path(os.environ["SRC_DIR"])
 
 PKG_VERSION = os.environ["PKG_VERSION"]
-MVN_OPTS = ["mvn", "--batch-mode"]
+MVN_EXE = Path(
+    shutil.which("mvn")
+    or shutil.which("mvn.exe")
+    or shutil.which("mvn.bat")
+    or shutil.which("mvn.cmd")
+)
+MVN_OPTS = [str(MVN_EXE), "--batch-mode"]
 UTF8 = dict(encoding="utf-8")
 PREFIX = Path(os.environ["PREFIX"])
 DEST = PREFIX / "share/verapdf"
