@@ -1,4 +1,5 @@
 import os, sys, subprocess, zipfile, tempfile, shutil, textwrap, stat
+from pprint import pprint
 from pathlib import Path
 import platform
 
@@ -48,7 +49,7 @@ def install():
         print("   -->", td, flush=True)
         with zipfile.ZipFile(str(zip_path)) as zf:
             zf.extractall(td)
-        print(sorted(tdp.rglob("*")))
+        pprint(sorted(tdp.rglob("*")))
         inst_dir = tdp / f"verapdf-greenfield-{PKG_VERSION}"
         tmp_auto_install = inst_dir / "auto-install.xml"
         print("... updating", tmp_auto_install, flush=True)
@@ -88,6 +89,7 @@ def clean():
     for path in [DEST / "Uninstaller"]:
         print("... cleaning", path, flush=True)
         shutil.rmtree(path)
+    pprint(sorted(DEST.rglob("*")))
 
 
 def main() -> int:
