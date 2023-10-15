@@ -75,14 +75,18 @@ def deploy():
         if WIN:
             script_src = DEST / f"{exe_name}.bat"
             script_dest = Path("SCRIPTS") / f"{exe_name}.bat"
-            script_dest.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(script_src, script_dest)
         else:
             script_src = PREFIX / "bin" / exe_name
             script_dest = DEST / exe_name
-            script_src.symlink_to(script_dest)
+
+        script_dest.mkdir(parents=True, exist_ok=True)
         print("... linking", script_src)
         print("   -->", script_dest)
+
+        if WIN:
+            shutil.copy2(script_src, script_dest)
+        else:
+            script_dest.symlink_to(script_src)
 
 
 def clean():
