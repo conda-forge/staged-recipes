@@ -3,11 +3,17 @@ from pprint import pprint
 from pathlib import Path
 import platform
 
+UTF8 = dict(encoding="utf-8")
+EXE_NAMES = ["verapdf", "verapdf-gui"]
+
 WIN = platform.system() == "Windows"
+INSTALL_SCRIPT = "verapdf-install.bat" if WIN else "verapdf-install"
 
 SRC_DIR = Path(os.environ["SRC_DIR"])
-
 PKG_VERSION = os.environ["PKG_VERSION"]
+PREFIX = Path(os.environ["PREFIX"])
+DEST = PREFIX / "share/verapdf"
+
 MVN_EXE = Path(
     shutil.which("mvn")
     or shutil.which("mvn.exe")
@@ -15,11 +21,6 @@ MVN_EXE = Path(
     or shutil.which("mvn.cmd")
 )
 MVN_OPTS = [str(MVN_EXE), "--batch-mode"]
-UTF8 = dict(encoding="utf-8")
-PREFIX = Path(os.environ["PREFIX"])
-DEST = PREFIX / "share/verapdf"
-INSTALL_SCRIPT = "verapdf-install.bat" if WIN else "verapdf-install"
-EXE_NAMES = ["verapdf", "verapdf-gui"]
 
 
 def mvn(args):
@@ -74,7 +75,7 @@ def deploy():
     for exe_name in EXE_NAMES:
         if WIN:
             script_src = DEST / f"{exe_name}.bat"
-            script_dest = Path("SCRIPTS") / f"{exe_name}.bat"
+            script_dest = PREFIX / "Scripts" / script_src.name
         else:
             script_src = DEST / exe_name
             script_dest = PREFIX / "bin" / exe_name
