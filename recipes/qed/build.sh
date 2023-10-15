@@ -14,8 +14,6 @@ prefix_shr=${prefix}/share/qed
 mkdir -p ${prefix_shr}
 
 # populate the shared area with a copy of the LICENSE
-cp ${src}/LICENSE.txt ${prefix_shr}/LICENSE
-# and the README
-cp ${src}/README.md ${prefix_shr}
+cp ${src}/LICENSE ${prefix_shr}
 
 # end of file
