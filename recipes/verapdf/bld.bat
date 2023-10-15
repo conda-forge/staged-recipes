@@ -3,7 +3,7 @@ set MAVEN_OPTS="-Xmx1G"
 cd %SRC_DIR%
 
 cmd.exe /c mvn --batch-mode versions:set -DnewVersion=%PKG_VERSION% || echo ""
-cmd.exe /c mvn --batch-mode --projects=runtime/Java,tool clean || echo ""
+cmd.exe /c mvn --batch-mode clean || echo ""
 cmd.exe /c mvn --batch-mode -DskipTests clean install || echo ""
 
 md tmp
