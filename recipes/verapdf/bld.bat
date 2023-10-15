@@ -1,3 +1,4 @@
+@echo on
 set MAVEN_OPTS="-Xmx1G"
 
 cd %SRC_DIR%
@@ -14,7 +15,7 @@ unzip "..\installer\target/verapdf-greenfield-%PKG_VERSION%-installer.zip"
 cd ".\verapdf-greenfield-%PKG_VERSION%"
 
 copy "%SRC_DIR%\auto-install-tmp.xml" auto-install.xml
-sed -iE "s;/tmp/verapdf;%LIBRARY_LIB%\verapdf;" auto-install.xml
+sed -iE "s;/tmp/verapdf;%LIBRARY_LIB%\\verapdf;" auto-install.xml
 cmd.exe /c verapdf-install.bat auto-install.xml
 
 echo cmd.exe /c %LIBRARY_LIB%\\verapdf\\verapdf.bat %%* > %LIBRARY_BIN%\verapdf.cmd
