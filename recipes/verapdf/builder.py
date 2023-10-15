@@ -94,7 +94,7 @@ def clean():
     for path in [DEST / "Uninstaller"]:
         print("... cleaning", path, flush=True)
         shutil.rmtree(path)
-    pprint(sorted(DEST.rglob("*"), key=len))
+    pprint(sorted(DEST.rglob("*"), key=lambda x: len(str(x))))
 
 
 def main() -> int:
