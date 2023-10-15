@@ -76,8 +76,8 @@ def deploy():
             script_src = DEST / f"{exe_name}.bat"
             script_dest = Path("SCRIPTS") / f"{exe_name}.bat"
         else:
-            script_src = PREFIX / "bin" / exe_name
-            script_dest = DEST / exe_name
+            script_src = DEST / exe_name
+            script_dest = PREFIX / "bin" / exe_name
 
         script_dest.mkdir(parents=True, exist_ok=True)
         print("... linking", script_src)
@@ -93,7 +93,7 @@ def clean():
     for path in [DEST / "Uninstaller"]:
         print("... cleaning", path, flush=True)
         shutil.rmtree(path)
-    pprint(sorted(DEST.rglob("*")))
+    pprint(sorted(DEST.rglob("*"), key=len))
 
 
 def main() -> int:
