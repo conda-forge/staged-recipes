@@ -96,7 +96,7 @@ def deploy():
 BAT_TEMPLATE = """@ECHO OFF
 CALL "{}" %*
 IF %ERRORLEVEL% NEQ 0 EXIT /B %ERRORLEVEL%
-""".format
+"""
 
 def make_bat_wrapper(script_src: Path, script_dest: Path):
     script_dest.write_text(BAT_TEMPLATE.format(str(script_src.resolve)), **UTF8)
