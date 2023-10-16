@@ -14,10 +14,12 @@ PYTEST_ARGS = [sys.executable, "-m", "pytest", "-vv", "--color=yes", __file__]
 
 import pytest
 
+def _find_cmd(cmd):
+    return shutil.which(f"{cmd}{SCRIPT_EXT}")
 
 def _verapdf(*args: str):
     proc = subprocess.Popen(
-        ["verapdf", *args],
+        [_find_cmd("verapdf"), *args],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         encoding="utf-8",
@@ -28,8 +30,7 @@ def _verapdf(*args: str):
 
 @pytest.mark.parametrize("cmd", ["verapdf", "verapdf-gui"])
 def test_cmd_exists(cmd: str):
-    found = shutil.which(f"{cmd}{SCRIPT_EXT}")
-    assert Path(found).exists()
+    assert Path(_find_cmd(cmd)).exists()
 
 
 def test_cmd_help():
