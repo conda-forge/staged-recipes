@@ -25,6 +25,11 @@ MVN_EXE = Path(
 )
 MVN_OPTS = [str(MVN_EXE), "--batch-mode"]
 
+WIN_TEMPLATE = """
+@echo off
+call "{script_src}" %*
+"""
+
 
 def mvn(args):
     final_args = list(map(str, [*MVN_OPTS, *args]))
@@ -95,12 +100,9 @@ def deploy():
 
 
 def make_bat_wrapper(script_src: Path, script_dest: Path):
-    lines = [
-        "@ECHO OFF",
-        f"""CALL "{script_src.resolve()}" %*""",
-    ]
-
-    script_dest.write_bytes(rb"\r\n".join([line.encode("utf-8") for line in lines]))
+    script_dest.write_text(
+        WIN_TEMPLATE.format(script_src=str(script_src.resolve()))
+    )
 
 
 def clean():
