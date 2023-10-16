@@ -88,7 +88,7 @@ def deploy():
         if WIN:
             shutil.copy2(script_src, script_dest)
         else:
-            script_src.symlink_to(script_dest)
+            script_dest.symlink_to(script_src)
 
 
 def clean():
