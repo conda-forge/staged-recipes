@@ -15,8 +15,7 @@ RG_PATH = Path(r"C:\Miniforge\Library\bin\rg.exe")
 SRC_DIR = Path(os.environ["SRC_DIR"])
 PKG_VERSION = os.environ["PKG_VERSION"]
 PREFIX = Path(os.environ["PREFIX"])
-# use shorter prefix on windows
-DEST = PREFIX / ("vpdf" if WIN else "share/verapdf")
+DEST = PREFIX / ("Library/verapdf" if WIN else "share/verapdf")
 
 MVN_EXE = Path(
     shutil.which("mvn")
@@ -90,16 +89,22 @@ def deploy():
         print("   -->", script_dest)
 
         if WIN:
-            shutil.copy2(script_src, script_dest)
+            make_bat_wrapper(script_src, script_dest)
         else:
             script_dest.symlink_to(script_src)
 
+BAT_TEMPLATE = """@ECHO OFF
+CALL "{}" %*
+IF %ERRORLEVEL% NEQ 0 EXIT /B %ERRORLEVEL%
+""".format
+
+def make_bat_wrapper(script_src: Path, script_dest: Path):
+    script_dest.write_text(BAT_TEMPLATE.format(str(script_src.resolve)), **UTF8)
 
 def clean():
     for path in [DEST / "Uninstaller"]:
         print("... cleaning", path, flush=True)
         shutil.rmtree(path)
-    pprint(sorted(DEST.rglob("*"), key=lambda x: len(str(x))))
 
     if CI and WIN and RG_PATH.exists():
         print("... removing ripgrep for https://github.com/conda/conda-build/issues/4357")
