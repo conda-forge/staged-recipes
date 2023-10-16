@@ -1,0 +1,141 @@
+{% set version = "2.0.0" %}
+
+package:
+  name: muscat-split
+  version: {{ version }}
+
+
+source:
+  url: https://gitlab.com/drti/muscat/-/archive/{{ version }}/muscat-{{ version }}.tar.bz2
+  sha256: c6bc2559bd0a85204a729d0a268eb96d8a9a87ece9303ce568785472dec4b273
+
+build:
+  number: 0
+
+outputs:
+  - name: muscat-core
+    version: {{ version }}
+    script: build_core.sh  # [not win]
+    script: bld_core.bat  # [win]
+    build:
+      entry_points:
+        - "MeshFileConvert = Muscat.IO.MeshFileConverter:Main"
+      skip_compile_pyc:
+        "MuscatParaViewPlugin.py"
+
+    requirements:
+      build:
+        - python
+        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+        - {{ compiler('cxx') }}
+        - cython
+      host:
+        - python
+        - numpy
+        - cython
+        - sympy
+        - eigency
+        - mkl
+        - mkl-include
+        - setuptools-scm
+        - eigen
+        - libboost-headers
+        - llvm-openmp  # [osx]
+        - libgomp      # [linux]
+        - pip
+      run:
+        - python
+        - {{ pin_compatible('numpy') }}
+        - scipy >=1.9
+        - sympy
+        - eigency
+        - mkl
+        - networkx >=3.0
+        - scikit-sparse
+    test:
+      imports:
+        - Muscat
+      commands:
+        - python -u -m Muscat.Helpers.Check -k Which  # [osx] 
+        - python -u -m Muscat.Helpers.Check  # [not osx] 
+
+  - name: "muscat-extensions"
+    version: {{ version }}
+    requirements:
+      host:
+        - python
+        - numpy
+        - vtk
+        - psutil
+        - scikit-sparse
+        - h5py
+        - meshio
+        - pyvista
+        - networkx >=3.0
+      run:
+        - python
+        - {{ pin_compatible('numpy') }}
+        - vtk
+        - psutil
+        - scikit-sparse
+        - h5py
+        - meshio
+        - pyvista
+        - networkx >=3.0
+    test:
+      imports:
+        - psutil
+        - sksparse.cholmod
+        - h5py
+        - meshio
+        - networkx
+
+  - name: "muscat"
+    version: {{ version }}
+    requirements:
+      run:
+        - {{ pin_subpackage('muscat-core', max_pin='x.x') }}
+        - {{ pin_subpackage('muscat-extensions', max_pin='x.x') }}
+    test:
+      imports:
+        - Muscat
+      commands:
+        - python -u -m Muscat.Helpers.Check -k Which  # [osx] 
+        - python -u -m Muscat.Helpers.Check  # [not osx]
+
+  - name: "muscat-devenv"
+    version: {{ version }}
+    requirements:
+      - {{ compiler('cxx') }}
+      - python {{ python }}
+      - numpy
+      - sympy
+      - cython
+      - eigency
+      - mkl
+      - mkl-include
+      - setuptools-scm
+      - eigen
+      - scipy >=1.9
+      - eigency
+      - scikit-sparse
+      - h5py
+      - pycgns
+      - networkx >=3.0
+      - libboost-headers
+      - pytest
+      - vtk
+    test:
+      imports:
+        - numpy
+
+about:
+  home: https://gitlab.com/drti/muscat
+  license: BSD-3-Clause
+  license_file: LICENSE.txt
+  license_family: BSD
+  summary: Tools for finite element computations
+
+extra:
+  recipe-maintainers:
+    - fbordeu
