@@ -93,16 +93,19 @@ def deploy():
         else:
             script_dest.symlink_to(script_src)
 
+
 BAT_TEMPLATE = """@ECHO OFF
-CALL {real_script} %* || EXIT 1
+CALL "{real_script}" %* || EXIT 1
 """
+
 
 def make_bat_wrapper(script_src: Path, script_dest: Path):
     script_dest.write_text(
         BAT_TEMPLATE.format(real_script=str(script_src.resolve)),
         newline=r"\r\n",
-        **UTF8
+        **UTF8,
     )
+
 
 def clean():
     for path in [DEST / "Uninstaller"]:
@@ -110,7 +113,9 @@ def clean():
         shutil.rmtree(path)
 
     if CI and WIN and RG_PATH.exists():
-        print("... removing ripgrep for https://github.com/conda/conda-build/issues/4357")
+        print(
+            "... removing ripgrep for https://github.com/conda/conda-build/issues/4357"
+        )
         RG_PATH.unlink()
 
 
