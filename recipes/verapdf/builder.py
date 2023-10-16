@@ -12,7 +12,8 @@ INSTALL_SCRIPT = "verapdf-install.bat" if WIN else "verapdf-install"
 SRC_DIR = Path(os.environ["SRC_DIR"])
 PKG_VERSION = os.environ["PKG_VERSION"]
 PREFIX = Path(os.environ["PREFIX"])
-DEST = PREFIX / "share/verapdf"
+# use shorter prefix on windows
+DEST = PREFIX / ("vpdf" if WIN else "share/verapdf")
 
 MVN_EXE = Path(
     shutil.which("mvn")
@@ -87,7 +88,7 @@ def deploy():
         if WIN:
             shutil.copy2(script_src, script_dest)
         else:
-            script_dest.symlink_to(script_src)
+            script_src.symlink_to(script_dest)
 
 
 def clean():
