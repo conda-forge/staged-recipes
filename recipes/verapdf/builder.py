@@ -6,9 +6,11 @@ import platform
 UTF8 = dict(encoding="utf-8")
 EXE_NAMES = ["verapdf", "verapdf-gui"]
 
+CI = os.environ.get("CI")
+
 WIN = platform.system() == "Windows"
 INSTALL_SCRIPT = "verapdf-install.bat" if WIN else "verapdf-install"
-RG_PATH = Path(r"C:\Miniconda\Library\bin\rg.exe")
+RG_PATH = Path(r"C:\Miniforge\Library\bin\rg.exe")
 
 SRC_DIR = Path(os.environ["SRC_DIR"])
 PKG_VERSION = os.environ["PKG_VERSION"]
@@ -99,8 +101,8 @@ def clean():
         shutil.rmtree(path)
     pprint(sorted(DEST.rglob("*"), key=lambda x: len(str(x))))
 
-    if WIN and RG_PATH.exists():
-        print("removing ripgrep for https://github.com/conda/conda-build/issues/4357")
+    if CI and WIN and RG_PATH.exists():
+        print("... removing ripgrep for https://github.com/conda/conda-build/issues/4357")
         RG_PATH.unlink()
 
 
