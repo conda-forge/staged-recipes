@@ -94,12 +94,15 @@ def deploy():
             script_dest.symlink_to(script_src)
 
 BAT_TEMPLATE = """@ECHO OFF
-CALL "{}" %*
-IF %ERRORLEVEL% NEQ 0 EXIT /B %ERRORLEVEL%
+CALL {real_script} %* || EXIT 1
 """
 
 def make_bat_wrapper(script_src: Path, script_dest: Path):
-    script_dest.write_text(BAT_TEMPLATE.format(str(script_src.resolve)), **UTF8)
+    script_dest.write_text(
+        BAT_TEMPLATE.format(real_script=str(script_src.resolve)),
+        newline=r"\r\n",
+        **UTF8
+    )
 
 def clean():
     for path in [DEST / "Uninstaller"]:
