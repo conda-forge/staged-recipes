@@ -17,7 +17,7 @@ import pytest
 
 def _verapdf(*args: str):
     proc = subprocess.Popen(
-        ["verapdf", "--version"],
+        ["verapdf", *args],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         encoding="utf-8",
