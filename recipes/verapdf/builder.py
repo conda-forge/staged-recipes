@@ -8,6 +8,7 @@ EXE_NAMES = ["verapdf", "verapdf-gui"]
 
 WIN = platform.system() == "Windows"
 INSTALL_SCRIPT = "verapdf-install.bat" if WIN else "verapdf-install"
+RG_PATH = Path(r"C:\Miniconda\Library\bin\rg.exe")
 
 SRC_DIR = Path(os.environ["SRC_DIR"])
 PKG_VERSION = os.environ["PKG_VERSION"]
@@ -79,9 +80,10 @@ def deploy():
             script_dest = PREFIX / "Scripts" / script_src.name
         else:
             script_src = DEST / exe_name
-            script_dest = PREFIX / "bin" / exe_name
+            script_dest = PREFIX / "bin" / script_src.name
 
-        script_dest.mkdir(parents=True, exist_ok=True)
+        script_dest.parent.mkdir(parents=True, exist_ok=True)
+
         print("... linking", script_src)
         print("   -->", script_dest)
 
@@ -96,6 +98,10 @@ def clean():
         print("... cleaning", path, flush=True)
         shutil.rmtree(path)
     pprint(sorted(DEST.rglob("*"), key=lambda x: len(str(x))))
+
+    if WIN and RG_PATH.exists():
+        print("removing ripgrep for https://github.com/conda/conda-build/issues/4357")
+        RG_PATH.unlink()
 
 
 def main() -> int:
