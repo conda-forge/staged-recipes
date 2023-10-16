@@ -94,17 +94,13 @@ def deploy():
             script_dest.symlink_to(script_src)
 
 
-BAT_TEMPLATE = """@ECHO OFF
-CALL "{real_script}" %* || EXIT 1
-"""
-
-
 def make_bat_wrapper(script_src: Path, script_dest: Path):
-    script_dest.write_text(
-        BAT_TEMPLATE.format(real_script=str(script_src.resolve)),
-        newline=r"\r\n",
-        **UTF8,
-    )
+    lines = [
+        "@ECHO OFF",
+        f"""CALL "{script_src.resolve()}" %* || EXIT 1""",
+    ]
+
+    script_dest.write_bytes(rb"\r\n".join([line.encode("utf-8") for line in lines]))
 
 
 def clean():
