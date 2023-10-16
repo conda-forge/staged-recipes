@@ -97,7 +97,7 @@ def deploy():
 def make_bat_wrapper(script_src: Path, script_dest: Path):
     lines = [
         "@ECHO OFF",
-        f"""CALL "{script_src.resolve()}" %* || EXIT 1""",
+        f"""CALL "{script_src.resolve()}" %*""",
     ]
 
     script_dest.write_bytes(rb"\r\n".join([line.encode("utf-8") for line in lines]))
