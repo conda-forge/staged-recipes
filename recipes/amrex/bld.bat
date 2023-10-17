@@ -48,6 +48,10 @@ if errorlevel 1 exit 1
 cmake --build build --config Release --target install
 if errorlevel 1 exit 1
 
+:: clean "symlink"
+del "%LIBRARY_PREFIX%\lib\amrex.dll"
+del "%LIBRARY_PREFIX%\bin\amrex.dll"
+
 :: test
 set "OMP_NUM_THREADS=2"
 ctest --test-dir build --build-config Release --output-on-failure
