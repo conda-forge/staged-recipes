@@ -4,4 +4,4 @@ set -ex
 
 #export CYLP_USE_CYTHON=1
 
-python -m pip install . -vvv
+python setup.py build_ext -vvv
