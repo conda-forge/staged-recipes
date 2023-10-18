@@ -1,0 +1,81 @@
+From a1accf5a6ea7468f7e223c0305cdb13c70a34fc2 Mon Sep 17 00:00:00 2001
+From: Axel Huebl <axel.huebl@plasma.ninja>
+Date: Wed, 18 Oct 2023 09:58:37 -0700
+Subject: [PATCH] Install Move Tools to `shared/amrex`
+
+Packaging AMReX for Conda, we realized that we break with
+common conventions on Unix systems by installing a top-level
+`Tools/` directory.
+
+This moves its content in both the build directory and the
+install destination to `share/amrex/` and
+`<CMakePkgRoot>/AMReXCMakeModules/`, respectively.
+---
+ Tools/CMake/AMReXInstallHelpers.cmake | 31 ++++++++++++++++++---------
+ 1 file changed, 21 insertions(+), 10 deletions(-)
+
+diff --git a/Tools/CMake/AMReXInstallHelpers.cmake b/Tools/CMake/AMReXInstallHelpers.cmake
+index 0720efb4cf9..a01cd63301d 100644
+--- a/Tools/CMake/AMReXInstallHelpers.cmake
++++ b/Tools/CMake/AMReXInstallHelpers.cmake
+@@ -26,7 +26,7 @@ function (install_amrex_targets)
+    else()
+        set(CMAKE_FILES_DIR   lib/cmake/AMReX)
+    endif()
+-   set(MODULE_PATH       Tools/CMake)       # Relative path to top level installation/build-tree
++   set(MODULE_PATH       ${CMAKE_FILES_DIR}/AMReXCMakeModules)       # Relative path to top level installation/build-tree
+ 
+    # Write Config file -- this is designed to work for both install and build trees
+    configure_package_config_file(${AMREX_CMAKE_MODULES_PATH}/AMReXConfig.cmake.in
+@@ -60,7 +60,7 @@ function (install_amrex_targets)
+ 
+        install( EXPORT AMReXTargets
+           NAMESPACE AMReX::
+-          DESTINATION lib/cmake/AMReX )
++          DESTINATION ${CMAKE_FILES_DIR} )
+ 
+        #
+        # alias: last element will be legacy target
+@@ -88,11 +88,17 @@ function (install_amrex_targets)
+        # Install Tools directory
+        install(
+           DIRECTORY
+-          ${PROJECT_SOURCE_DIR}/Tools/CMake
+-          ${PROJECT_SOURCE_DIR}/Tools/C_scripts
+-          ${PROJECT_SOURCE_DIR}/Tools/typechecker
++            ${PROJECT_SOURCE_DIR}/Tools/C_scripts
++            ${PROJECT_SOURCE_DIR}/Tools/typechecker
++          DESTINATION
++            share/amrex
++          USE_SOURCE_PERMISSIONS
++          )
++       install(
++          DIRECTORY
++            ${PROJECT_SOURCE_DIR}/Tools/CMake/
+           DESTINATION
+-          Tools
++            ${MODULE_PATH}
+           USE_SOURCE_PERMISSIONS
+           )
+    endif()
+@@ -106,11 +112,16 @@ function (install_amrex_targets)
+    # Copy Tools directory to build tree
+    file(
+       COPY
+-      ${PROJECT_SOURCE_DIR}/Tools/CMake
+-      ${PROJECT_SOURCE_DIR}/Tools/C_scripts
+-      ${PROJECT_SOURCE_DIR}/Tools/typechecker
++        ${PROJECT_SOURCE_DIR}/Tools/C_scripts
++        ${PROJECT_SOURCE_DIR}/Tools/typechecker
++      DESTINATION
++        ${PROJECT_BINARY_DIR}/share/amrex
++      )
++   file(
++      COPY
++        ${PROJECT_SOURCE_DIR}/Tools/CMake/
+       DESTINATION
+-      ${PROJECT_BINARY_DIR}/Tools
++        ${PROJECT_BINARY_DIR}/${MODULE_PATH}
+       )
+ 
+ 
