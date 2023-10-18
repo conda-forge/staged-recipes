@@ -20,6 +20,9 @@ for arch_name, arch in archs.items():
         *(name_mapping.get(parent.name, 0) for parent in (arch.ancestors or ()))
     )
 
+x86_64_levels = {arch: level for arch, level in sorted(
+    x86_64_levels.items(), key=lambda kv: kv[1])}
+
 print("microarchitecture:")
 for arch in x86_64_levels.keys():
     print(f"- {arch}")
