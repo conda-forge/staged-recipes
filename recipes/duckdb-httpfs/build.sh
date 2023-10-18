@@ -1,5 +1,4 @@
 PKG_OS=`echo "$build_platform" | sed "s/-64/_amd64/"` # [os]-64 (conda) -> [os]_amd64 (duckdb)
-PKG_OS=`echo "$PKG_OS" | sed "s/win/windows/"`        # win -> windows
 
 # download
 echo "Downloading version ${PKG_VERSION} for ${PKG_OS} to ${PREFIX}"
