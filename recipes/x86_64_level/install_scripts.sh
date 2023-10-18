@@ -1,0 +1,10 @@
+mkdir -p "${PREFIX}"/etc/conda/{de,}activate.d/
+
+if [[ "$level" == "1" ]]; then
+  flag="-march=x86-64"
+else
+  flag="-march=x86-64-v{{ level }}"
+fi
+
+echo 'export CXXFLAGS="${CXXFLAGS} '$flag'"' >> "${PREFIX}"/etc/conda/activate.d/~activate-x86-64-level.sh
+chmod +x "${PREFIX}"/etc/conda/activate.d/~activate-x86-64-level.sh
