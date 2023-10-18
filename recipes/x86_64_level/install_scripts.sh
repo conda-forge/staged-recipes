@@ -7,4 +7,6 @@ else
 fi
 
 echo 'export CXXFLAGS="${CXXFLAGS} '$flag'"' >> "${PREFIX}"/etc/conda/activate.d/~activate-x86-64-level.sh
+echo 'export CFLAGS="${CFLAGS} '$flag'"' >> "${PREFIX}"/etc/conda/activate.d/~activate-x86-64-level.sh
+echo 'export CPPFLAGS="${CPPFLAGS} '$flag'"' >> "${PREFIX}"/etc/conda/activate.d/~activate-x86-64-level.sh
 chmod +x "${PREFIX}"/etc/conda/activate.d/~activate-x86-64-level.sh
