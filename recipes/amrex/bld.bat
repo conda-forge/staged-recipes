@@ -22,7 +22,7 @@ cmake ^
     -DAMReX_MPI_THREAD_MULTIPLE=OFF ^
     -DAMReX_OMP=ON                  ^
     -DAMReX_PARTICLES=ON            ^
-    -DAMReX_PLOTFILE_TOOLS=ON       ^
+    -DAMReX_PLOTFILE_TOOLS=OFF      ^
     -DAMReX_PROBINIT=OFF            ^
     -DAMReX_PIC=ON                  ^
     -DAMReX_SPACEDIM="1;2;3"        ^
@@ -41,7 +41,7 @@ cmake ^
 if errorlevel 1 exit 1
 
 :: build
-cmake --build build --config Release --parallel 2
+cmake --build build --config Release --parallel %CPU_COUNT%
 if errorlevel 1 exit 1
 
 :: install
