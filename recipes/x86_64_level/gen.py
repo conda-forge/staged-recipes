@@ -14,11 +14,11 @@ name_mapping = {
 for arch_name, arch in archs.items():
     if arch.family.name != "x86_64":
         continue
-    if arch.parents:
-        level = max(name_mapping.get(parent.name, 0) for parent in arch.ancestors)
-    else:
-        level = 1
-    x86_64_levels[arch_name] = level
+    x86_64_levels[arch_name] = max(
+        1,
+        name_mapping.get(arch_name, 0),
+        *(name_mapping.get(parent.name, 0) for parent in (arch.ancestors or ()))
+    )
 
 print("microarchitecture:")
 for arch in x86_64_levels.keys():
