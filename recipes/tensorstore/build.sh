@@ -22,7 +22,8 @@ system_libs+=",org_lz4"
 system_libs+=",org_tukaani_xz"
 system_libs+=",net_zlib"
 system_libs+=",com_github_pybind_pybind11"
-system_libs+=",com_github_nlohmann_json"
+# TODO: figure out why there's a compile error with the unvedored version
+#system_libs+=",com_github_nlohmann_json"
 system_libs+=",org_aomedia_avif"
 # system_libs+=",com_google_absl"
 export TENSORSTORE_SYSTEM_LIBS="$system_libs"
@@ -36,6 +37,14 @@ build_options+=" --local_cpu_resources=${CPU_COUNT}"
 build_options+=" --subcommands"  # comment out for debugging
 export TENSORSTORE_BAZEL_BUILD_OPTIONS="$build_options"
 
+# TODO: figure out why we need both TENSORSTORE_BAZEL_BUILD_OPTIONS and a bazelrc
+cat > .bazelrc <<EOF
+build --crosstool_top=//custom_toolchain:toolchain
+build --logging=6
+build --verbose_failures
+build --local_cpu_resources=${CPU_COUNT}
+EOF
+
 # replace bundled baselisk with a simpler forwarder to our own bazel in build prefix
 export BAZEL_EXE="${BUILD_PREFIX}/bin/bazel"
 export TENSORSTORE_BAZELISK="${RECIPE_DIR}/bazelisk_shim.py"
@@ -48,6 +57,7 @@ cp bazel-work/external/com_google_absl/LICENSE "${SRC_DIR}/licenses/com_google_a
 cp bazel-work/external/com_google_re2/LICENSE "${SRC_DIR}/licenses/com_google_re2.txt"
 cp bazel-work/external/com_google_riegeli/LICENSE "${SRC_DIR}/licenses/com_google_riegeli.txt"
 cp bazel-work/external/net_sourceforge_half/LICENSE.txt "${SRC_DIR}/licenses/net_sourceforge_half.txt"
+cp bazel-work/external/com_github_nlohmann_json/LICENSE.MIT "${SRC_DIR}/licenses/com_github_nlohmann_json.txt"
 
 # Clean up a bit to speed-up prefix post-processing
 bazel clean || true
