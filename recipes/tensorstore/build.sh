@@ -52,12 +52,11 @@ ${PYTHON} -m pip install . -vv
 
 # Save vendored licenses
 mkdir -p licenses
+ls bazel-work/external/
 cp bazel-work/external/com_google_absl/LICENSE "${SRC_DIR}/licenses/com_google_absl.txt"
 cp bazel-work/external/com_google_re2/LICENSE "${SRC_DIR}/licenses/com_google_re2.txt"
 cp bazel-work/external/com_google_riegeli/LICENSE "${SRC_DIR}/licenses/com_google_riegeli.txt"
 cp bazel-work/external/net_sourceforge_half/LICENSE.txt "${SRC_DIR}/licenses/net_sourceforge_half.txt"
-cp bazel-work/external/com_github_nlohmann_json/LICENSE.MIT "${SRC_DIR}/licenses/com_github_nlohmann_json.txt"
-ls bazel-work/external/
 
 # Clean up a bit to speed-up prefix post-processing
 bazel clean || true
