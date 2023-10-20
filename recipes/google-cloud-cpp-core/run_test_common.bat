@@ -5,7 +5,7 @@ setlocal EnableDelayedExpansion
 set LIBRARY_PREFIX="%LIBRARY_PREFIX:\=/%"
 
 cmake -GNinja ^
-    -S test -B .build/quickstart ^
+    -S tests -B .build/quickstart ^
     -DCMAKE_CXX_STANDARD=17 ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
