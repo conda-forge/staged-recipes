@@ -11,9 +11,9 @@ set SRC_DIR="%SRC_DIR:\=/%"
 @REM and the devel packages using
 @REM     cmake --install build_common --component google_cloud_cpp_development
 
-if [%PKG_NAME%] == [libgoogle-cloud] (
+if [%PKG_NAME%] == [libgoogle-cloud-common] (
   @REM TODO: fix when DLL support comens along
-) else if [%PKG_NAME%] == [libgoogle-cloud-devel] (
+) else if [%PKG_NAME%] == [libgoogle-cloud-common-devel] (
   @rem cmake --install build_common --component google_cloud_cpp_development
   cmake --install .build/common
   if %ERRORLEVEL% neq 0 exit 1
