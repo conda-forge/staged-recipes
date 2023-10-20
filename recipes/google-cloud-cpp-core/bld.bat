@@ -49,7 +49,7 @@ FOR %%G IN (oauth2 bigtable storage spanner) DO (
         -DGOOGLE_CLOUD_CPP_ENABLE_WERROR=OFF
     if %ERRORLEVEL% neq 0 exit 1
 
-    cmake --build .build/%G% --config Release
+    cmake --build .build/%%G --config Release
     if %ERRORLEVEL% neq 0 exit 1
 )
 
