@@ -15,27 +15,27 @@ if [%PKG_NAME%] == [libgoogle-cloud] (
   @REM TODO: fix when DLL support comens along
 ) else if [%PKG_NAME%] == [libgoogle-cloud-devel] (
   @rem cmake --install build_common --component google_cloud_cpp_development
-  cmake --install build_common
+  cmake --install .build/common
   if %ERRORLEVEL% neq 0 exit 1
 ) else if [%PKG_NAME%] == [libgoogle-cloud-bigtable] (
   @REM TODO: fix when DLL support comens along
 ) else if [%PKG_NAME%] == [libgoogle-cloud-bigtable-devel] (
-  cmake --install build_bigtable
+  cmake --install .build/bigtable
   if %ERRORLEVEL% neq 0 exit 1
 ) else if [%PKG_NAME%] == [libgoogle-cloud-spanner] (
   @REM TODO: fix when DLL support comens along
 ) else if [%PKG_NAME%] == [libgoogle-cloud-spanner-devel] (
-  cmake --install build_spanner
+  cmake --install .build/spanner
   if %ERRORLEVEL% neq 0 exit 1
 ) else if [%PKG_NAME%] == [libgoogle-cloud-storage] (
   @REM TODO: fix when DLL support comens along
 ) else if [%PKG_NAME%] == [libgoogle-cloud-storage-devel] (
-  cmake --install build_storage
+  cmake --install .build/storage
   if %ERRORLEVEL% neq 0 exit 1
 ) else if [%PKG_NAME%] == [libgoogle-cloud-pubsub] (
   @REM TODO: fix when DLL support comens along
 ) else if [%PKG_NAME%] == [libgoogle-cloud-pubsub-devel] (
-  cmake --install build_pubsub
+  cmake --install .build/pubsub
   if %ERRORLEVEL% neq 0 exit 1
 ) else if [%PKG_NAME%] == [libgoogle-cloud-iam] (
   @REM Nothing to do, installed by pubsub
@@ -45,4 +45,4 @@ if [%PKG_NAME%] == [libgoogle-cloud] (
   @REM Nothing to do, installed by pubsub
 ) else if [%PKG_NAME%] == [libgoogle-cloud-policytroubleshooter-devel] (
   @REM Nothing to do, installed by pubsub
-) 
+)

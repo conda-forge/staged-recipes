@@ -9,7 +9,7 @@ set SRC_DIR="%SRC_DIR:\=/%"
 @REM Compile the common libraries. These are shared by other feedstocks
 @REM and by the subpackages in this feedstock.
 cmake -G "Ninja" ^
-    -S . -B build_common ^
+    -S . -B .build/common ^
     -DGOOGLE_CLOUD_CPP_ENABLE=__common__ ^
     -DBUILD_TESTING=OFF ^
     -DBUILD_SHARED_LIBS=OFF ^
@@ -22,10 +22,10 @@ cmake -G "Ninja" ^
     -DGOOGLE_CLOUD_CPP_ENABLE_WERROR=OFF
 if %ERRORLEVEL% neq 0 exit 1
 
-cmake --build build_common --config Release
+cmake --build .build/common --config Release
 if %ERRORLEVEL% neq 0 exit 1
 
-cmake --install build_common --prefix stage
+cmake --install .build/common --prefix stage
 if %ERRORLEVEL% neq 0 exit 1
 
 set STAGE="%cd:\=/%"
@@ -34,8 +34,8 @@ set STAGE="%cd:\=/%"
 @REM We want to compile them in the core feedstock.
 FOR %%G IN (oauth2,bigtable,storage,spanner) DO (
     cmake -G "Ninja" ^
-        -S . -B build_%G ^
-        -DGOOGLE_CLOUD_CPP_ENABLE=%G ^
+        -S . -B .build/%G% ^
+        -DGOOGLE_CLOUD_CPP_ENABLE=%G% ^
         -DGOOGLE_CLOUD_CPP_USE_INSTALLED_COMMON=ON ^
         -DCMAKE_PREFIX_PATH="%STAGE%/stage" ^
         -DBUILD_TESTING=OFF ^
@@ -49,13 +49,13 @@ FOR %%G IN (oauth2,bigtable,storage,spanner) DO (
         -DGOOGLE_CLOUD_CPP_ENABLE_WERROR=OFF
     if %ERRORLEVEL% neq 0 exit 1
 
-    cmake --build build_%G% --config Release
+    cmake --build .build/%G% --config Release
     if %ERRORLEVEL% neq 0 exit 1
 )
 
 @REM `pubsub` must to be compiled with `iam` and policytroubleshooter wiht `iam`
 cmake -G "Ninja" ^
-    -S . -B build_pubsub ^
+    -S . -B .build/pubsub ^
     -DGOOGLE_CLOUD_CPP_ENABLE=pubsub,iam,policytroubleshooter ^
     -DGOOGLE_CLOUD_CPP_USE_INSTALLED_COMMON=ON ^
     -DCMAKE_PREFIX_PATH="%STAGE%/stage" ^
@@ -70,5 +70,5 @@ cmake -G "Ninja" ^
     -DGOOGLE_CLOUD_CPP_ENABLE_WERROR=OFF
 if %ERRORLEVEL% neq 0 exit 1
 
-cmake --build build_pubsub --config Release
+cmake --build .build/pubsub --config Release
 if %ERRORLEVEL% neq 0 exit 1
