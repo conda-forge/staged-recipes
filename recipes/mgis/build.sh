@@ -26,7 +26,7 @@ cmake .. \
     -DPYTHON_INCLUDE_DIRS:PATH="${PREFIX}/include" \
     -DUSE_EXTERNAL_COMPILER_FLAGS=ON \
     ${CMAKE_PLATFORM_FLAGS[@]} \
-    -DCMAKE_INSTALL_PREFIX:PATH="${PREFIX}"
+    ${CMAKE_ARGS}
 
 make
 make install
