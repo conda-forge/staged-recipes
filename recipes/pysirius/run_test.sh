@@ -26,3 +26,6 @@ if [ ! -f "test_fragtree.txt" ]; then
   echo Fragmentation tree test failed!
   exit 1
 fi
+
+echo "Success!"
+exit 0

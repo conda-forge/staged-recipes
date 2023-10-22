@@ -25,3 +25,6 @@ If not exist "%cd%\test_fragtree.txt" (
     echo Fragmentation tree test [EXE] failed!
     exit 1
 )
+
+echo Success!
+exit 0
