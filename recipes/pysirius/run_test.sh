@@ -1,5 +1,6 @@
 #!/bin/sh
 
+set -euxo pipefail
 echo "### TEST ENV INFO"
 echo "PREFIX=$PREFIX"
 echo "CONDA_PREFIX=$CONDA_PREFIX"
@@ -22,6 +23,6 @@ $PYTHON "$RECIPE_DIR/test_script.py"
 
 echo "### [SIRIUS] Check SIRIUS test script results"
 if [ ! -f "test_fragtree.txt" ]; then
-  echo Framgentation tree test failed!
+  echo Fragmentation tree test failed!
   exit 1
 fi
