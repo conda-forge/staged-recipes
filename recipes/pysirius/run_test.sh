@@ -1,5 +1,6 @@
 #!/bin/sh
 
+set -ex pipefail
 echo "### TEST ENV INFO"
 echo "PREFIX=$PREFIX"
 echo "CONDA_PREFIX=$CONDA_PREFIX"
