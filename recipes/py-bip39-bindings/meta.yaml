@@ -1,5 +1,7 @@
 {% set name = "py-bip39-bindings" %}
-{% set pypi_name = "py_bip39_bindings" %}
+# {% set commit = "4f56ca4db43848bd406cb7351d1374b669cf967e" %}
+# {% set sha256 = "256bd09284abd98f263fb4515968aa911c90f02dcbb6b7b9b97362bc2eeae318" %}
+{% set sha256 = "5c1c2e23ecc552eaee5062fe46dc251de8a36b5c78edb503e0690becb2549bdb" %}
 {% set version = "0.1.11" %}
 
 package:
@@ -7,27 +9,40 @@ package:
   version: {{ version }}
 
 source:
-  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ pypi_name }}-{{ version }}.tar.gz
-  sha256: ebc128ccf3a0750d758557e094802f0975c3760a939f8a8b76392d7dbe6b52a1
+  # url: https://github.com/polkascan/{{ name }}/archive/{{ commit }}.tar.gz
+  url: https://github.com/polkascan/{{ name }}/releases/tag/v{{ version }}
+  sha256: {{ sha256 }}
   patches:
     - fix_cargo.toml.patch
     - fix_pyproject.toml.patch
+    - fix_lib.rs.patch
 
 build:
+  script:
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - {{ PYTHON }} -m pip install . --use-pep517 -vvv
   number: 0
   missing_dso_whitelist:
-    - '*/ADVAPI32.dll'
-    - '*/KERNEL32.dll'
-    - '*/ntdll.dll'
+    - "*/librt.so*"  # [linux]
+    - "*/libpthread.so*"  # [linux]
+    - "*/libm.so*"  # [linux]
+    - "*/libdl.so*"  # [linux]
+    - "*/libc.so*"  # [linux]
+    - "*/ld-linux-x86-64.so*"  # [linux]
+    - '*\ADVAPI32.dll'  # [win]
+    - '*\KERNEL32.dll'  # [win]
+    - '*\ntdll.dll'  # [win]
+    - '*\bcrypt.dll'  # [win]
+  ignore_run_exports:
+    - python
 
 requirements:
-  build:
+  host:
     - {{ compiler('c') }}
     - {{ compiler('rust') }}
     - cargo-bundle-licenses
-    - maturin
-  host:
-    - maturin
+    - maturin >=1
+    # - maturin >=0.10,<0.11
     - python
     - pip
     - setuptools-rust
@@ -37,14 +52,14 @@ requirements:
 test:
   imports:
     - bip39
-  files:
-    - test
+  source_files:
+    - tests.py
   requires:
     - pip
     - pytest
   commands:
-    - pip check
-    - pytest -v test/tests.py
+    # - pip check
+    - pytest -v tests.py
 
 about:
   home: https://github.com/polkascan/py-bip39-bindings
@@ -56,4 +71,4 @@ about:
 
 extra:
   recipe-maintainers:
-    - https://github.com/MementoRC
+    - MementoRC
