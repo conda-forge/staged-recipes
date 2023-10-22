@@ -28,5 +28,5 @@ cmake .. \
     ${CMAKE_PLATFORM_FLAGS[@]} \
     ${CMAKE_ARGS}
 
-make
+make -j$CPU_COUNT 
 make install
