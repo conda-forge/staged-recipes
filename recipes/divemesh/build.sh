@@ -1,6 +1,6 @@
 #!/bin/sh
 
-make -j "${CPU_COUNT}"
+make -j "${CPU_COUNT}" CXX="${CXX}" LDFLAGS="${LDFLAGS}" CXXFLAGS="${CXXFLAGS}"
 
 mkdir -p "${PREFIX}/bin"
 cp bin/DiveMESH "${PREFIX}/bin/divemesh"
