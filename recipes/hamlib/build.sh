@@ -70,6 +70,11 @@ fi
 if [[ "$target_platform" == osx-* ]]; then
     # temporary fix until https://github.com/conda-forge/perl-feedstock/pull/63
     sed -i "/^lddlflags/ s|,||g" $core_perl_dir/Config_heavy.pl
+    build_core_perl_dir="$(perldir="$BUILD_PREFIX/lib/perl*/*/core_perl"; echo $perldir)"
+    if [[ -d "$build_core_perl_dir" ]]; then
+        sed -i "/^lddlflags/ s|,||g" $build_core_perl_dir/Config_heavy.pl
+    fi
+
 fi
 
 # update configure script following patching
