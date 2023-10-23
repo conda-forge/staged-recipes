@@ -1,6 +1,6 @@
 #!/bin/sh
 
-make -j "${CPU_COUNT}" CXX="${CXX}"
+make -j "${CPU_COUNT}" CXX="mpicxx"
 
 mkdir -p "${PREFIX}/bin"
 cp bin/REEF3D "${PREFIX}/bin/reef3d"
