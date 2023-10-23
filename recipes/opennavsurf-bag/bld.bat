@@ -3,12 +3,6 @@ setlocal EnableDelayedExpansion
 mkdir build
 if errorlevel 1 exit 1
 
-if  %vc% LEQ 9 set MSVC_VER=1500
-if  %vc% GTR 9 set MSVC_VER=1900
-
-if  %vc% LEQ 9 set MSVC_TS_VER=90
-if  %vc% GTR 9 set MSVC_TS_VER=140
-
 REM Configure CMake build
 cmake -G Ninja ^
 	-DCMAKE_BUILD_TYPE=Release ^
@@ -16,8 +10,6 @@ cmake -G Ninja ^
 	-DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
 	-DCMAKE_INSTALL_LIBDIR=lib ^
-    -DMSVC_VERSION="%MSVC_VER%" ^
-    -DMSVC_TOOLSET_VERSION="%MSVC_TS_VER%" ^
     -DBUILD_SHARED_LIBS=ON ^
 	-DBAG_CI:BOOL=ON ^
 	-DBAG_BUILD_TESTS:BOOL=OFF ^

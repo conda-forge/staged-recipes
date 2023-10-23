@@ -5,12 +5,9 @@ set -ex # Abort on error.
 mkdir build
 
 # Configure CMake build
-cmake -G Ninja \
+cmake ${CMAKE_ARGS} -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -B build -S . \
-  -DCMAKE_PREFIX_PATH=$PREFIX \
-  -DCMAKE_INSTALL_PREFIX=$PREFIX \
-  -DCMAKE_INSTALL_LIBDIR=lib \
   -DBUILD_SHARED_LIBS:BOOL=ON \
   -DBAG_BUILD_TESTS:BOOL=OFF \
   -DBAG_BUILD_PYTHON:BOOL=OFF
