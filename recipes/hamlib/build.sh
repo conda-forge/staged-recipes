@@ -68,15 +68,8 @@ else
 fi
 
 if [[ "$target_platform" == osx-* ]]; then
-    # strip build-time OSX sysroot from perl config
-    # (because it ends up overriding the correct CONDA_BUILD_SYSROOT)
-    sed -i "s/--sysroot.*\.sdk//g" $core_perl_dir/Config_heavy.pl
-    sed -i "s/^sysroot=.*/sysroot=''/g" $core_perl_dir/Config_heavy.pl
-    build_core_perl_dir="$(perldir="$BUILD_PREFIX/lib/perl*/*/core_perl"; echo $perldir)"
-    if [[ -d "$build_core_perl_dir" ]]; then
-        sed -i "s/--sysroot.*\.sdk//g" $build_core_perl_dir/Config_heavy.pl
-        sed -i "s/^sysroot=.*/sysroot=''/g" $build_core_perl_dir/Config_heavy.pl
-    fi
+    # temporary fix until https://github.com/conda-forge/perl-feedstock/pull/63
+    sed -i "/^lddlflags/ s|,||g" $core_perl_dir/Config_heavy.pl
 fi
 
 # update configure script following patching
