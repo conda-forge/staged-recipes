@@ -1,7 +1,7 @@
 mkdir build
 pushd build
-cmake -DCMAKE_BUILD_EXECUTABLE=1 ..
-make -j
+cmake ${CMAKE_ARGS} -DCMAKE_BUILD_EXECUTABLE=1 ..
+make -j${CPU_COUNT}
 popd
 
 install -d $PREFIX/bin
