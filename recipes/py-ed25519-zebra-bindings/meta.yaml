@@ -1,55 +1,52 @@
 {% set name = "py-ed25519-zebra-bindings" %}
-{% set pypi_name = "py_ed25519_zebra_bindings" %}
 {% set version = "1.0.1" %}
+{% set sha256 = "1da932dfd48ac2c842aa7215b0f729dfb7f2694619ccd42cf9d101c10bb92135" %}
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ pypi_name }}-{{ version }}.tar.gz
-  sha256: 0062f189e1c8672ba94676cedb346fae4c33a0cabaf12e75a1aedcf9db47403b
+  url: https://github.com/polkascan/{{ name }}/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
   patches:
     - fix_cargo.toml.patch
     - fix_pyproject.toml.patch
+    - fix_lib.rs.patch
 
 build:
+  ignore_prefix_files: True
+  script:
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - {{ PYTHON }} -m pip install . --use-pep517 -vvv
+  number: 0
   missing_dso_whitelist:
     - '*/ADVAPI32.dll'
     - '*/KERNEL32.dll'
     - '*/ntdll.dll'
     - '*/bcrypt.dll'
-  script:
-    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-    - {{ PYTHON }} -m pip install . -vv
-  number: 0
+  ignore_run_exports:
+    - python
 
 requirements:
-  build:
+  host:
     - {{ compiler('c') }}
     - {{ compiler('rust') }}
     - cargo-bundle-licenses
-    - maturin
-    - setuptools-rust
-  host:
-    - maturin
+    - maturin >=1.2.3
     - python
-    - pip
+    - setuptools-rust
   run:
     - python
 
 test:
-  imports:
-    - ed25519_zebra
-  files:
-    - test
+  source_files:
+    - tests.py
   requires:
     - py-bip39-bindings >=0.1.9,<1.0
-    - pip
     - pytest
   commands:
-    - pip check
-    - pytest -v test/tests.py
+    - pytest -v tests.py
 
 about:
   home: https://github.com/polkascan/py-ed25519-zebra-bindings
@@ -62,4 +59,4 @@ about:
 
 extra:
   recipe-maintainers:
-    - https://github.com/MementoRC
+    - MementoRC
