@@ -1,6 +1,12 @@
 #!/bin/bash
+set -e
 
 echo "PREFIX variable: ${PREFIX}"
+
+echo "ls -la ${PREFIX}/lib"
+ls -la ${PREFIX}/lib
+echo "ls -la ${PREFIX}/include"
+ls -la ${PREFIX}/include
 
 sed -i "s,/usr/local,${PREFIX},g" ./meos/CMakeLists.txt
 
@@ -17,10 +23,12 @@ cmake ${CMAKE_ARGS} \
       -D PROJ_INCLUDE_DIRS=${PREFIX}/include \
       -D PROJ_LIBRARIES=${PREFIX}/lib/libproj.so \
       -D GEOS_INCLUDE_DIR=${PREFIX}/include \
-      -D GEOS_LIBRARY=${PREFIX}/lib/libgeos.so \
+      -D GEOS_LIBRARY=${PREFIX}/lib/libgeos_c.so \
       -D JSON-C_INCLUDE_DIRS=${PREFIX}/include/json-c \
       -D JSON-C_LIBRARIES=${PREFIX}/lib/libjson-c.so \
       ${SRC_DIR}
 
 make -j
 make install
+
+objdump -p ${PREFIX}/lib/libmeos.so
