@@ -1,0 +1,79 @@
+{% set name = "torchmd-net" %}
+{% set version = "0.8.1" %}
+# see github.com/conda-forge/conda-forge.github.io/issues/1059 for naming discussion
+{% set torch_proc_type = "cuda" if cuda_compiler_version != "None" else "cpu" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/torchmd/torchmd-net/archive/{{ version }}.tar.gz
+  sha256: 5b8a3c2daddf197890c6f5832f4b69c98b828ca800e4bab4ede05927161b1e38
+
+build:
+  entry_points:
+    - torchmd-train = torchmdnet.scripts.train:main
+  number: 0
+# Mainly due to NNPOps only having a linux package
+  skip: true  # [not linux]
+  rpaths:
+    - lib/
+    - {{ SP_DIR }}/torch/lib
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version not in (undefined, 'None')]
+  host:
+    - python
+    - pip
+    - pytorch
+    - pytorch =*={{ torch_proc_type }}*
+  run:
+    - python
+    - h5py
+    - matplotlib-base
+    - nnpops
+    - pytorch_geometric
+    - pytorch_scatter
+    - pytorch_sparse
+    - lightning
+    - pydantic <2
+    - torchmetrics
+    - tqdm
+  run_constrained:
+    # additional run constraint to the one from the (version-only) run_export;
+    # constraining the CPU builds to CPU pytorch isn't 100% necessary, but cleaner
+    - pytorch =*={{ torch_proc_type }}*
+
+test:
+  imports:
+    - torchmdnet
+  commands:
+    - pip check
+    - torchmd-train --help
+    - pytest -v -x -s tests
+  requires:
+    - pip
+    - pytest
+  source_files:
+    - tests
+    - examples 
+
+about:
+  home: https://github.com/torchmd/torchmd-net
+  license: MIT
+  license_family: MIT
+  license_file: README.md
+  summary: 'State of the art Pytorch Neural Network Potentials (NNPs)'
+  description: |
+    TorchMD-NET provides state-of-the-art neural networks potentials (NNPs) and a mechanism to train them. It offers efficient and fast implementations of several NNPs and it is integrated in GPU-accelerated molecular dynamics code like ACEMD, OpenMM and TorchMD. TorchMD-NET exposes its NNPs as PyTorch modules.
+  doc_url: https://github.com/torchmd/torchmd-net
+  dev_url: https://github.com/torchmd/torchmd-net
+
+extra:
+  recipe-maintainers:
+    - RaulPPelaez
+    - raimis
+    - giadefa
