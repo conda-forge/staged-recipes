@@ -1,55 +1,52 @@
 {% set name = "py-sr25519-bindings" %}
-{% set pypi_name = "py_sr25519_bindings" %}
 {% set version = "0.2.0" %}
+{% set sha256 = "71ec66e5635e30d39a9c3093dc2ea9a685f551dcf53f02eb6d2ebf0121400a98" %}
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ pypi_name }}-{{ version }}.tar.gz
-  sha256: 0c2fe92b7cdcebf6c5611a90054f8ba6ea90b68b8832896d2dc565537bc40b0c
+  url: https://github.com/polkascan/{{ name }}/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
   patches:
     - fix_cargo.toml.patch
     - fix_pyproject.toml.patch
+    - fix_lib.rs.patch
 
 build:
+  ignore_prefix_files: True
+  script:
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - {{ PYTHON }} -m pip install . --use-pep517 -vvv
+  number: 0
   missing_dso_whitelist:
     - '*/ADVAPI32.dll'
     - '*/KERNEL32.dll'
     - '*/ntdll.dll'
     - '*/bcrypt.dll'
-  script:
-    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-    - {{ PYTHON }} -m pip install . -vv
-  number: 0
+  ignore_run_exports:
+    - python
 
 requirements:
-  build:
+  host:
     - {{ compiler('c') }}
     - {{ compiler('rust') }}
     - cargo-bundle-licenses
-    - maturin
-    - setuptools-rust
-  host:
-    - maturin
+    - maturin >=1.2.3
     - python
-    - pip
+    - setuptools-rust
   run:
     - python
 
 test:
-  imports:
-    - sr25519
-  files:
-    - test
+  source_files:
+    - tests.py
   requires:
     - py-bip39-bindings >=0.1.9,<1.0
-    - pip
     - pytest
   commands:
-    - pip check
-    - pytest -v test/tests.py
+    - pytest -v tests.py
 
 about:
   home: https://github.com/polkascan/py-sr25519-bindings
@@ -62,4 +59,4 @@ about:
 
 extra:
   recipe-maintainers:
-    - https://github.com/MementoRC
+    - MementoRC
