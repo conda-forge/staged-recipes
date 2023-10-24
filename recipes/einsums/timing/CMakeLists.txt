@@ -11,4 +11,3 @@ if(APPLE)
       )
 endif()
 target_link_libraries(timings Einsums::einsums)
-
