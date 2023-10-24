@@ -81,7 +81,7 @@ When the package version changes you should reset the build number to `0`.
 
 ### 5. **Do I have to import all of my unit tests into the recipe's `test` field?**
 
-No, you do not. The main purpose of the test section to test whether this conda package was built and installed correctly not whether the upstream package contains bugs.
+No, you do not. The main purpose of the test section is to test whether this conda package was built and installed correctly (not whether the upstream package contains bugs).
 
 ### 6. **Do all of my package's dependencies have to be in conda(-forge) already?**
 
