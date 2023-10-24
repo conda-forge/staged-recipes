@@ -1,0 +1,88 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ryan Volz <ryan.volz@gmail.com>
+Date: Tue, 24 Oct 2023 12:08:01 -0400
+Subject: [PATCH] Use GNU Radio Python binding macros.
+
+---
+ CMakeLists.txt                 | 10 ----------
+ python/bindings/CMakeLists.txt | 35 ++--------------------------------
+ 2 files changed, 2 insertions(+), 43 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 38a0d3d..567aefb 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -145,16 +145,6 @@ endif(APPLE)
+ ########################################################################
+ find_package(Doxygen)
+ 
+-########################################################################
+-# PyBind11 Related
+-########################################################################
+-
+-find_package(pybind11 REQUIRED)
+-execute_process(
+-    COMMAND "${PYTHON_EXECUTABLE}" -c
+-    "try:\n import numpy\n import os\n inc_path = numpy.get_include()\n if os.path.exists(os.path.join(inc_path, 'numpy', 'arrayobject.h')):\n  print(inc_path, end='')\nexcept:\n pass"
+-    OUTPUT_VARIABLE PYTHON_NUMPY_INCLUDE_DIR)
+-
+ ########################################################################
+ # Setup doxygen option
+ ########################################################################
+diff --git a/python/bindings/CMakeLists.txt b/python/bindings/CMakeLists.txt
+index 519b04d..15ec3cb 100644
+--- a/python/bindings/CMakeLists.txt
++++ b/python/bindings/CMakeLists.txt
+@@ -14,39 +14,8 @@ GR_PYTHON_CHECK_MODULE_RAW(
+     PYGCCXML_FOUND
+     )
+ 
+-# Official module is broken, makes too many assumptions that are not true
+-#include(GrPybind)
+-
+-include(GrPython)
+-
+-macro(GR_PYBIND_MAKE name updir filter files)
+-
+-configure_file(${CMAKE_SOURCE_DIR}/docs/doxygen/pydoc_macros.h ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+-
+-pybind11_add_module(${name}_python ${files})
+-
+-SET(MODULE_NAME ${name})
+-if (${name} STREQUAL gr)
+-    SET(MODULE_NAME "runtime")
+-endif()
+-
+-target_include_directories(${name}_python PUBLIC
+-    ${CMAKE_CURRENT_BINARY_DIR}
+-    ${PYTHON_NUMPY_INCLUDE_DIR}
+-    ${CMAKE_CURRENT_SOURCE_DIR}/${updir}/lib
+-    ${CMAKE_CURRENT_SOURCE_DIR}/${updir}/include
+-    ${PYBIND11_INCLUDE_DIR}
+-)
+-target_link_libraries(${name}_python PUBLIC ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} gnuradio-${MODULE_NAME})
+-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
+-   CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+-    target_compile_options(${name}_python PRIVATE -Wno-unused-variable) # disable warnings for docstring templates
+-endif(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
+-      CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+-
+-endmacro(GR_PYBIND_MAKE)
+-
+ 
++include(GrPybind)
+ 
+ ########################################################################
+ # Python Bindings
+@@ -57,7 +26,7 @@ list(APPEND iqbalance_python_files
+     optimize_c_python.cc
+     python_bindings.cc)
+ 
+-GR_PYBIND_MAKE(iqbalance 
++GR_PYBIND_MAKE_OOT(iqbalance
+    ../..
+    gr::iqbalance
+    "${iqbalance_python_files}")
+-- 
+2.40.0
+
