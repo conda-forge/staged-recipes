@@ -95,15 +95,15 @@ This should be the default install line for most Python packages. This is prefer
 
 ### 8. **Do I need `bld.bat` and/or `build.sh`?**
 
-In many cases, no. Python packages almost never need it. If the build can be done with one line you can put it in the `script` line of the `build` section.
+In many cases, no. Python packages rarely need it. If the build can be done with one line you can put it in the `script` line of the `build` section.
 
 ### 9. What does being a conda-forge feedstock maintainer entail?
 
-The maintainers "job" is to:
+The maintainer's "job" is to:
 
 - keep the feedstock updated by merging eventual maintenance PRs from conda-forge's bots;
 - keep the package updated by bumping the version whenever there is a new release;
-- answer eventual question about the package on the feedstock issue tracker.
+- answer eventual questions about the package on the feedstock issue tracker.
 
 ### 10. Why are there recipes already in the `recipes` directory? Should I do something about it?
 
@@ -158,7 +158,7 @@ Once the PR is ready for review, please mention one of the teams above in a
 new comment. i.e. `@conda-forge/help-some-language, ready for review!`
 Then, a bot will label the PR as 'review-requested'.
 
-Due to GitHub limitations, first time contributors to conda-forge are unable
+Due to GitHub limitations, first-time contributors to conda-forge are unable
 to ping conda-forge teams directly, but you can [ask a bot to ping the team][1]
 using a special command in a comment on the PR to get the attention of the
 `staged-recipes` team. You can also consider asking on our [Gitter channel][2]
@@ -167,7 +167,7 @@ if your recipe isn't reviewed promptly.
 [1]: https://conda-forge.org/docs/maintainer/infrastructure.html#conda-forge-admin-please-ping-team
 [2]: https://gitter.im/conda-forge/conda-forge.github.io
 
-All apologies in advance if your recipe PR does not recieve prompt attention.
+All apologies in advance if your recipe PR does not receive prompt attention.
 This is a high volume repository and the reviewers are volunteers. Review times vary depending on the number of reviewers on a given language team and may be days or weeks. We are always
 looking for more staged-recipe reviewers. If you are interested in volunteering,
 please contact a member of @conda-forge/core. We'd love to have the help!
