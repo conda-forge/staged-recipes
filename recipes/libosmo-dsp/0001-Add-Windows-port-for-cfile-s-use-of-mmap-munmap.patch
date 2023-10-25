@@ -1,0 +1,90 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ryan Volz <ryan.volz@gmail.com>
+Date: Wed, 25 Oct 2023 12:20:37 -0400
+Subject: [PATCH] Add Windows port for cfile's use of mmap/munmap
+
+---
+ configure.ac |  3 ++-
+ src/cfile.c  | 33 ++++++++++++++++++++++++++++++++-
+ 2 files changed, 34 insertions(+), 2 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 964ef03..87164ad 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -26,8 +26,9 @@ dnl checks for libraries
+ PKG_CHECK_MODULES(FFTW3F, fftw3f >= 3.2.0)
+ 
+ dnl checks for header files
+-AC_CHECK_HEADERS([complex.h fcntl.h math.h stdio.h stdlib.h string.h unistd.h sys/mman.h sys/types.h sys/stat.h],,
++AC_CHECK_HEADERS([complex.h fcntl.h math.h stdio.h stdlib.h string.h unistd.h sys/types.h sys/stat.h],,
+ 	AC_MSG_ERROR([Missing required header files.]))
++AC_CHECK_HEADERS([sys/mman.h])
+ 
+ # The following test is taken from WebKit's webkit.m4
+ saved_CFLAGS="$CFLAGS"
+diff --git a/src/cfile.c b/src/cfile.c
+index 4fa927f..ae4ad8d 100644
+--- a/src/cfile.c
++++ b/src/cfile.c
+@@ -30,17 +30,31 @@
+  *  \brief Osmocom .cfile helpers implementation
+  */
+ 
++#include "config.h"
++
+ #include <complex.h>
+ #include <fcntl.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <unistd.h>
+-#include <sys/mman.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ 
+ #include <osmocom/dsp/cfile.h>
+ 
++#if defined(HAVE_SYS_MMAN_H)
++#include <sys/mman.h>
++#elif defined(_WIN32)
++
++#include <handleapi.h>
++#include <io.h>
++#include <memoryapi.h>
++#include <windows.h>
++
++#define munmap(addr, length) UnmapViewOfFile((LPCVOID)(addr))
++
++#endif
++
+ 
+ /*! \brief .cfile loader: mmap() the data into memory (read-only)
+  *  \param[in] filename Filename of the .cfile to map
+@@ -74,7 +88,24 @@ cfile_load(const char *filename)
+ 	cf->_blen = st.st_size;
+ 	cf->len = cf->_blen / sizeof(float complex);
+ 
++	#if defined(HAVE_SYS_MMAN_H)
+ 	cf->data = mmap(NULL, cf->_blen, PROT_READ, MAP_SHARED, fd, 0);
++	#elif defined(_WIN32)
++	HANDLE mh = CreateFileMapping((HANDLE) _get_osfhandle(fd),
++								  NULL, PAGE_READONLY,
++								 #ifdef _WIN64
++								  (sizeof(size_t) > 4) ? cf->_blen >> 32 : 0,
++								 #else
++								  0,
++								 #endif
++								  cf->_blen & 0xffffffff, NULL);
++	if (NULL == mh) {
++		perror("CreateFileMapping");
++		goto err;
++	}
++	cf->data = MapViewOfFileEx(mh, FILE_MAP_READ, 0, 0, cf->_blen, NULL);
++	CloseHandle(mh);
++	#endif
+ 	if (!cf->data) {
+ 		perror("mmap");
+ 		goto err;
+-- 
+2.40.0
+
