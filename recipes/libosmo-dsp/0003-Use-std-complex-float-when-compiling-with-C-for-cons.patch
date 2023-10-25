@@ -1,0 +1,166 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ryan Volz <ryan.volz@gmail.com>
+Date: Wed, 25 Oct 2023 16:02:43 -0400
+Subject: [PATCH] Use std::complex<float> when compiling with C++ (for
+ consumers).
+
+std::complex<float> has identical memory layout to `float complex` so
+compatibility is the same. This allows for MSVC, which doesn't support
+`float complex` in C, to use the headers when compiling C++.
+---
+ include/osmocom/dsp/cfile.h      |  4 ++--
+ include/osmocom/dsp/cxvec.h      | 18 ++++++++++++++----
+ include/osmocom/dsp/cxvec_math.h |  9 ++++-----
+ include/osmocom/dsp/iqbal.h      |  8 +++-----
+ 4 files changed, 23 insertions(+), 16 deletions(-)
+
+diff --git a/include/osmocom/dsp/cfile.h b/include/osmocom/dsp/cfile.h
+index be9392e..7685ded 100644
+--- a/include/osmocom/dsp/cfile.h
++++ b/include/osmocom/dsp/cfile.h
+@@ -33,11 +33,11 @@
+  *  \brief Osmocom .cfile helpers header
+  */
+ 
+-#include <complex.h>
++#include <osmocom/dsp/cxvec.h>
+ 
+ /*! \brief Structure representing a currently mapped .cfile */
+ struct cfile {
+-	float complex *data;	/*!< \brief Data array (read only !) */
++	float_complex *data;	/*!< \brief Data array (read only !) */
+ 	unsigned int len;	/*!< \brief Length (in samples) of the data */
+ 	size_t _blen;		/*!< \brief Length (in bytes) of the data */
+ };
+diff --git a/include/osmocom/dsp/cxvec.h b/include/osmocom/dsp/cxvec.h
+index 063e30c..da334fa 100644
+--- a/include/osmocom/dsp/cxvec.h
++++ b/include/osmocom/dsp/cxvec.h
+@@ -33,7 +33,17 @@
+  *  \brief Osmocom Complex vectors header
+  */
+ 
++#ifdef __cplusplus
++
++#include <complex>
++typedef std::complex<float> float_complex;
++
++#else /* __cplusplus */
++
+ #include <complex.h>
++typedef float complex float_complex;
++
++#endif /* __cplusplus */
+ 
+ #define CXVEC_FLG_REAL_ONLY	(1<<0)	/*!< \brief Real values only */
+ 
+@@ -42,16 +52,16 @@ struct osmo_cxvec {
+ 	int len;		/*!< \brief Valid length */
+ 	int max_len;		/*!< \brief Maximum length in data field */
+ 	int flags;		/*!< \brief Flags, see CXVEC_FLG_xxx */
+-	float complex *data;	/*!< \brief Data field */
+-	float complex _data[0];	/*!< \brief Optional inline data array */
++	float_complex *data;	/*!< \brief Data field */
++	float_complex _data[0];	/*!< \brief Optional inline data array */
+ };
+ 
+ void
+ osmo_cxvec_init_from_data(struct osmo_cxvec *cv,
+-                          float complex *data, int len);
++                          float_complex *data, int len);
+ 
+ struct osmo_cxvec *
+-osmo_cxvec_alloc_from_data(float complex *data, int len);
++osmo_cxvec_alloc_from_data(float_complex *data, int len);
+ 
+ struct osmo_cxvec *
+ osmo_cxvec_alloc(int max_len);
+diff --git a/include/osmocom/dsp/cxvec_math.h b/include/osmocom/dsp/cxvec_math.h
+index 77e9ab7..a748616 100644
+--- a/include/osmocom/dsp/cxvec_math.h
++++ b/include/osmocom/dsp/cxvec_math.h
+@@ -34,7 +34,6 @@
+  *  \brief Osmocom Complex vectors math header
+  */
+ 
+-#include <complex.h>
+ #include <math.h>
+ 
+ #include <osmocom/dsp/cxvec.h>
+@@ -62,7 +61,7 @@ osmo_sinc(float x)
+  *  \returns \f$|c|^2\f$
+  */
+ static inline float
+-osmo_normsqf(float complex c)
++osmo_normsqf(float_complex c)
+ {
+ 	return crealf(c) * crealf(c) + cimagf(c) * cimagf(c);
+ }
+@@ -71,7 +70,7 @@ osmo_normsqf(float complex c)
+ 	/* Complex vector math */
+ 
+ struct osmo_cxvec *
+-osmo_cxvec_scale(const struct osmo_cxvec *in, float complex scale,
++osmo_cxvec_scale(const struct osmo_cxvec *in, float_complex scale,
+                  struct osmo_cxvec *out);
+ 
+ struct osmo_cxvec *
+@@ -100,7 +99,7 @@ struct osmo_cxvec *
+ osmo_cxvec_correlate(const struct osmo_cxvec *f, const struct osmo_cxvec *g,
+                      int g_corr_step, struct osmo_cxvec *out);
+ 
+-float complex
++float_complex
+ osmo_cxvec_interpolate_point(const struct osmo_cxvec *cv, float pos);
+ 
+ int
+@@ -119,7 +118,7 @@ enum osmo_cxvec_peak_alg {
+ float
+ osmo_cxvec_peak_energy_find(const struct osmo_cxvec *cv, int win_size,
+                             enum osmo_cxvec_peak_alg alg,
+-                            float complex *peak_val_p);
++                            float_complex *peak_val_p);
+ 
+ struct osmo_cxvec *
+ osmo_cxvec_sig_normalize(const struct osmo_cxvec *sig,
+diff --git a/include/osmocom/dsp/iqbal.h b/include/osmocom/dsp/iqbal.h
+index c7f7e60..16bdfe0 100644
+--- a/include/osmocom/dsp/iqbal.h
++++ b/include/osmocom/dsp/iqbal.h
+@@ -33,14 +33,12 @@
+  *  \brief Osmocom IQ balance utils header
+  */
+ 
+-#include <complex.h>
+-
+ #include <osmocom/dsp/cxvec.h>
+ 
+ 
+ /* IQ balance correction and estimation */
+ 
+-void osmo_iqbal_fix(float complex *out, float complex *in, unsigned int len,
++void osmo_iqbal_fix(float_complex *out, float_complex *in, unsigned int len,
+                     float mag, float phase);
+ 
+ struct osmo_cxvec *
+@@ -48,7 +46,7 @@ osmo_iqbal_cxvec_fix(const struct osmo_cxvec *in, float mag, float phase,
+                      struct osmo_cxvec *out);
+ 
+ float
+-osmo_iqbal_estimate(const float complex *data,
++osmo_iqbal_estimate(const float_complex *data,
+                     int fft_size, int fft_count);
+ 
+ float
+@@ -56,7 +54,7 @@ osmo_iqbal_cxvec_estimate(const struct osmo_cxvec *sig,
+                           int fft_size, int fft_count);
+ 
+ 
+-/* IQ balance optimization */ 
++/* IQ balance optimization */
+ 
+ /*! \brief Processing options for the IQ balance optimization algorithm */
+ struct osmo_iqbal_opts {
+-- 
+2.40.0
+
