@@ -16,12 +16,12 @@ bash -lce "./build.sh"
 if errorlevel 1 exit 1
 
 :: Generate MSVC-compatible import library
-FOR /F %%i in ("%LIBRARY_PREFIX%/bin/libosmodsp*.dll") DO (
+FOR /F %%i in ("%LIBRARY_BIN%\libosmodsp*.dll") DO (
   dumpbin /exports "%%i" > exports.txt
   echo LIBRARY %%~nxi > osmodsp.def
   echo EXPORTS >> osmodsp.def
   FOR /F "usebackq tokens=4" %%A in (`findstr /R /C:" cfile.*" /C:" osmo.*" exports.txt`) DO echo %%A >> osmodsp.def
   lib /def:osmodsp.def /out:osmodsp.lib /machine:x64
-  copy osmodsp.lib "%LIBRARY_PREFIX%/lib/osmodsp.lib"
+  copy osmodsp.lib "%LIBRARY_LIB%\osmodsp.lib"
 )
 if errorlevel 1 exit 1
