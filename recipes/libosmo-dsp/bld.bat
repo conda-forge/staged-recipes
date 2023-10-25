@@ -21,7 +21,7 @@ FOR /F %%i in ("%LIBRARY_PREFIX%/bin/libosmodsp*.dll") DO (
   echo LIBRARY %%~nxi > %%~ni.def
   echo EXPORTS >> %%~ni.def
   FOR /F "skip=19 tokens=4" %%A in (exports.txt) DO echo %%A >> %%~ni.def
-  lib /def:%%~ni.def /name:%%~nxi /out:osmodsp.lib /machine:x64
+  lib /def:%%~ni.def /out:osmodsp.lib /machine:x64
   copy osmodsp.lib "%LIBRARY_PREFIX%/lib/osmodsp.lib"
 )
 if errorlevel 1 exit 1
