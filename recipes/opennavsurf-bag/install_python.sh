@@ -3,7 +3,7 @@
 set -ex # Abort on error.
 
 # Build Python wheel
-WHEEL_DIR="./wheel-$(python -V | awk '{print $2;}')"
+WHEEL_DIR="./wheel-$($PYTHON -V | awk '{print $2;}')"
 $PYTHON -m pip wheel -w $WHEEL_DIR ./build/api/swig/python
 
 # Install it
