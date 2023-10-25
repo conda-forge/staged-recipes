@@ -1,13 +1,6 @@
 #!/bin/bash
 set -e
 
-echo "PREFIX variable: ${PREFIX}"
-
-echo "ls -la ${PREFIX}/lib"
-ls -la ${PREFIX}/lib
-echo "ls -la ${PREFIX}/include"
-ls -la ${PREFIX}/include
-
 sed -i "s,/usr/local,${PREFIX},g" ./meos/CMakeLists.txt
 
 mkdir -p build && cd build
@@ -30,5 +23,3 @@ cmake ${CMAKE_ARGS} \
 
 make -j
 make install
-
-objdump -p ${PREFIX}/lib/libmeos.so
