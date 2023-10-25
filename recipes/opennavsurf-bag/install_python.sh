@@ -3,7 +3,8 @@
 set -ex # Abort on error.
 
 # Build Python wheel
-$PYTHON -m pip wheel -w ./wheel ./build/api/swig/python
+WHEEL_DIR="./wheel-$(python -V | awk '{print $2;}')"
+$PYTHON -m pip wheel -w $WHEEL_DIR ./build/api/swig/python
 
 # Install it
-$PYTHON -m pip install ./wheel/bagPy-*.whl
+$PYTHON -m pip install "$WHEEL_DIR/bagPy-*.whl"
