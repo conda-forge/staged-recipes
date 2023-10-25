@@ -18,10 +18,10 @@ if errorlevel 1 exit 1
 :: Generate MSVC-compatible import library
 FOR /F %%i in ("%LIBRARY_PREFIX%/bin/libosmodsp*.dll") DO (
   dumpbin /exports "%%i" > exports.txt
-  echo LIBRARY %%~nxi > %%~ni.def
-  echo EXPORTS >> %%~ni.def
-  FOR /F "skip=19 tokens=4" %%A in (exports.txt) DO echo %%A >> %%~ni.def
-  lib /def:%%~ni.def /out:osmodsp.lib /machine:x64
+  echo LIBRARY %%~nxi > osmodsp.def
+  echo EXPORTS >> osmodsp.def
+  FOR /F "usebackq tokens=4" %%A in (`findstr /R /C:" cfile.*" /C:" osmo.*" exports.txt`) DO echo %%A >> osmodsp.def
+  lib /def:osmodsp.def /out:osmodsp.lib /machine:x64
   copy osmodsp.lib "%LIBRARY_PREFIX%/lib/osmodsp.lib"
 )
 if errorlevel 1 exit 1
