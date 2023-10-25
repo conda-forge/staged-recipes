@@ -14,10 +14,3 @@ cmake ${CMAKE_ARGS} -G Ninja \
 
 # Build C++
 cmake --build build -j ${CPU_COUNT} --config Release
-
-# Build Python wheel
-$PYTHON -m pip wheel -w ./wheel ./build/api/swig/python
-
-# Install it
-cmake --install build
-$PYTHON -m pip install ./wheel/bagPy-*.whl
