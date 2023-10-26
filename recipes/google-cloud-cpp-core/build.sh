@@ -28,16 +28,6 @@ cmake --build build_common
 cmake --install build_common --prefix stage
 echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ'): DONE - Building __common__ features"
 
-### This loop would go in the google-cloud-cpp-core-feedstock
-### Other feedstocks may have similar loops, for example:
-### feedstock name        | list
-### google-cloud-cpp-core | __common__ bigtable oauth2
-###                       | (iam pubsub policytroubleshooter) spanner storage
-### google-cloud-cpp-ai   | aiplatform automl dialogflow_es dialogflow_cx dlp
-###                       | (contentwarehouse documentai) speech texttospeech
-###                       | timeseriesinsights translate videointelligence 
-###                       | vision
-### google-cloud-cpp      | __ga_features__,-{all the other items} 
 for feature in oauth2 bigtable spanner storage; do
   echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ'): Building ${feature}"
   cmake ${CMAKE_ARGS} \
