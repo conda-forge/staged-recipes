@@ -11,7 +11,7 @@ fi
 
 echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ'): Building __common__ features..."
 cmake ${CMAKE_ARGS} \
-    -GNinja -S . -B build_common \
+    -GNinja -S . -B .build/common \
     -DGOOGLE_CLOUD_CPP_ENABLE=__common__ \
     -DBUILD_TESTING=OFF \
     -DBUILD_SHARED_LIBS=ON \
@@ -24,17 +24,17 @@ cmake ${CMAKE_ARGS} \
     -DGOOGLE_CLOUD_CPP_GRPC_PLUGIN_EXECUTABLE=$BUILD_PREFIX/bin/grpc_cpp_plugin \
     -DGOOGLE_CLOUD_CPP_ENABLE_WERROR=OFF
 
-cmake --build build_common
-cmake --install build_common --prefix stage
+cmake --build .build/common
+cmake --install .build/common --prefix .build/stage
 echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ'): DONE - Building __common__ features"
 
 for feature in oauth2 bigtable spanner storage; do
   echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ'): Building ${feature}"
   cmake ${CMAKE_ARGS} \
-      -GNinja -S . -B build_${feature} \
+      -GNinja -S . -B .build/${feature} \
       -DGOOGLE_CLOUD_CPP_ENABLE=${feature} \
       -DGOOGLE_CLOUD_CPP_USE_INSTALLED_COMMON=ON \
-      -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH};${PWD}/stage" \
+      -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH};${PWD}/.build/stage" \
       -DBUILD_TESTING=OFF \
       -DBUILD_SHARED_LIBS=ON \
       -DOPENSSL_ROOT_DIR=$PREFIX \
@@ -45,16 +45,16 @@ for feature in oauth2 bigtable spanner storage; do
       -DProtobuf_PROTOC_EXECUTABLE=$BUILD_PREFIX/bin/protoc \
       -DGOOGLE_CLOUD_CPP_GRPC_PLUGIN_EXECUTABLE=$BUILD_PREFIX/bin/grpc_cpp_plugin \
       -DGOOGLE_CLOUD_CPP_ENABLE_WERROR=OFF
-  cmake --build build_${feature}
+  cmake --build .build/${feature}
   echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ'): DONE - Building ${feature}"
 done
 
 echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ'): Building pubsub"
 cmake ${CMAKE_ARGS} \
-    -GNinja -S . -B build_pubsub \
+    -GNinja -S . -B .build/pubsub \
     -DGOOGLE_CLOUD_CPP_ENABLE=pubsub,iam,policytroubleshooter \
     -DGOOGLE_CLOUD_CPP_USE_INSTALLED_COMMON=ON \
-    -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH};${PWD}/stage" \
+    -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH};${PWD}/.build/stage" \
     -DBUILD_TESTING=OFF \
     -DBUILD_SHARED_LIBS=ON \
     -DOPENSSL_ROOT_DIR=$PREFIX \
@@ -65,5 +65,5 @@ cmake ${CMAKE_ARGS} \
     -DProtobuf_PROTOC_EXECUTABLE=$BUILD_PREFIX/bin/protoc \
     -DGOOGLE_CLOUD_CPP_GRPC_PLUGIN_EXECUTABLE=$BUILD_PREFIX/bin/grpc_cpp_plugin \
     -DGOOGLE_CLOUD_CPP_ENABLE_WERROR=OFF
-cmake --build build_pubsub
+cmake --build .build/pubsub
 echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ'): DONE - Building pubsub"
