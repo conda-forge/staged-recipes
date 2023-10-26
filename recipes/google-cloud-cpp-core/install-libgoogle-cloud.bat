@@ -7,14 +7,14 @@ set BUILD_PREFIX="%BUILD_PREFIX:\=/%"
 set SRC_DIR="%SRC_DIR:\=/%"
 
 @REM Once DLLs are working, we should install the non-devel packages using
-@REM     cmake --install build_common --component google_cloud_cpp_runtime
+@REM     cmake --install .build/%FEATURE% --component google_cloud_cpp_runtime
 @REM and the devel packages using
-@REM     cmake --install build_common --component google_cloud_cpp_development
+@REM     cmake --install .build/%FEATURE% --component google_cloud_cpp_development
 
 if [%PKG_NAME%] == [libgoogle-cloud] (
   @REM TODO: fix when DLL support comes along
 ) else if [%PKG_NAME%] == [libgoogle-cloud-devel] (
-  @rem cmake --install build_common --component google_cloud_cpp_development
+  @rem cmake --install .build/common --component google_cloud_cpp_development
   cmake --install .build/common
   if %ERRORLEVEL% neq 0 exit 1
 ) else if [%PKG_NAME%] == [libgoogle-cloud-bigtable] (
