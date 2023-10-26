@@ -1,3 +1,5 @@
+<div id="top"></div>
+
 ## About
 
 This repo is a holding area for recipes destined for a conda-forge feedstock repo. To find out more about conda-forge, see https://github.com/conda-forge/conda-smithy.
@@ -180,3 +182,5 @@ There's no changelog file, but the following `git` command gives a good overview
 ```bash
 $ git log --merges -- ':!recipes' 
 ```
+
+<p align="right">(<a href="#top">🔼 Back to top</a>)</p>
