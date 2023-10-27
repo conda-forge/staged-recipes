@@ -1,0 +1,259 @@
+{% set version = "4.5.5" %}
+{% set soversion = "4" %}
+{% set build = "0" %}
+{% set posix = 'm2-' if win else '' %}
+{% set library = "Library/" if win else "" %}
+
+package:
+  name: hamlib-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/Hamlib/Hamlib/releases/download/{{ version }}/hamlib-{{ version }}.tar.gz
+  sha256: 601c89f32ed225e9527ade3d64d0d05d23202c05ae21ffa77e59d70ee4597fcd
+  patches:
+    - 0001-Install-perl-bindings-to-vendor-location.patch
+    - 0002-Fix-tcl-binding-output-name-on-macOS-end-in-.dylib.patch
+    - 0003-rig.h-Define-hamlib_port-using-HAVE_WINDOWS_H-to-mat.patch
+    - 0004-Add-include-guards-to-hamlib-config.h.patch
+    - 0005-Fix-binding-compilation-on-Windows.patch
+
+build:
+  number: {{ build }}
+
+requirements:
+  build:
+    # need default compiler on Windows too (MSVC) for generating import lib
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('m2w64_c') }}  # [win]
+    - {{ compiler('m2w64_cxx') }}  # [win]
+    - {{ posix }}autoconf
+    - {{ posix }}automake  # [unix]
+    - {{ posix }}automake-wrapper  # [win]
+    - gnuconfig
+    - {{ posix }}libtool
+    - make  # [unix]
+    - pkg-config
+    - posix  # [win]
+    - {{ posix }}sed
+    - swig
+  host:
+    - libusb
+    - libxml2
+    - lua
+    - perl  # [not win]
+    - python
+    - readline  # [unix]
+    - tk
+    - zlib  # [linux]
+
+outputs:
+  - name: libhamlib{{ soversion }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('m2w64_c') }}  # [win]
+        - {{ compiler('m2w64_cxx') }}  # [win]
+      host:
+        - libusb
+      run:
+        - m2w64-libwinpthread-git  # [win]
+    files:
+      - lib/libhamlib.so.{{ soversion }}*  # [linux]
+      - lib/libhamlib++.so.{{ soversion }}*  # [linux]
+      - lib/libhamlib.{{ soversion }}*.dylib  # [osx]
+      - lib/libhamlib++.{{ soversion }}*.dylib  # [osx]
+      - Library/bin/libhamlib-{{ soversion }}*.dll  # [win]
+      - Library/bin/libhamlib++-{{ soversion }}*.dll  # [win]
+    test:
+      commands:
+        - test -f $PREFIX/lib/libhamlib${SHLIB_EXT}.{{ soversion }}  # [linux]
+        - test -f $PREFIX/lib/libhamlib++${SHLIB_EXT}.{{ soversion }}  # [linux]
+        - test -f $PREFIX/lib/libhamlib.{{ soversion }}${SHLIB_EXT}  # [osx]
+        - test -f $PREFIX/lib/libhamlib++.{{ soversion }}${SHLIB_EXT}  # [osx]
+        - if not exist %LIBRARY_BIN%/libhamlib-{{ soversion }}.dll exit 1  # [win]
+        - if not exist %LIBRARY_BIN%/libhamlib++-{{ soversion }}.dll exit 1  # [win]
+
+  - name: hamlib
+    build:
+      run_exports:
+        - {{ pin_subpackage('libhamlib' + soversion, max_pin=False) }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+      host:
+        - {{ pin_subpackage('libhamlib' + soversion, exact=True) }}
+        - libxml2
+        - readline  # [unix]
+      run:
+        - {{ pin_subpackage('libhamlib' + soversion, exact=True) }}
+        - m2w64-libwinpthread-git  # [win]
+    files:
+      - {{ library }}bin/ampctl*
+      - {{ library }}bin/rigctl*
+      - {{ library }}bin/rigmem*
+      - {{ library }}bin/rigsmtr*
+      - {{ library }}bin/rigswr*
+      - {{ library }}bin/rotctl*
+      - {{ library }}include/hamlib
+      - lib/libhamlib.so  # [linux]
+      - lib/libhamlib++.so  # [linux]
+      - lib/libhamlib.dylib  # [osx]
+      - lib/libhamlib++.dylib  # [osx]
+      - Library/lib/hamlib.lib  # [win]
+      - Library/lib/hamlib++.lib  # [win]
+      - Library/lib/libhamlib.dll.a  # [win]
+      - Library/lib/libhamlib++.dll.a  # [win]
+      - {{ library }}lib/pkgconfig/hamlib.pc
+    test:
+      commands:
+        - test -f $PREFIX/include/hamlib/config.h  # [unix]
+        - test -f $PREFIX/lib/libhamlib${SHLIB_EXT}  # [unix]
+        - test -f $PREFIX/lib/libhamlib++${SHLIB_EXT}  # [unix]
+        - if not exist %LIBRARY_PREFIX%/include/hamlib/config.h exit 1  # [win]
+        - if not exist %LIBRARY_LIB%/hamlib.lib exit 1  # [win]
+        - if not exist %LIBRARY_LIB%/hamlib++.lib exit 1  # [win]
+        - if not exist %LIBRARY_LIB%/libhamlib.dll.a exit 1  # [win]
+        - if not exist %LIBRARY_LIB%/libhamlib++.dll.a exit 1  # [win]
+
+        - ampctl --help
+        - ampctld --help
+        - rigctl --help
+        - rigctlcom --help
+        - rigctld --help
+        - rigmem --help
+        - rigsmtr --help
+        - rigswr --help
+        - rotctl --help
+        - rotctld --help
+
+  - name: hamlib-lua
+    build:
+      run_exports:
+        - {{ pin_subpackage('libhamlib' + soversion, max_pin=False) }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+      host:
+        - {{ pin_subpackage('libhamlib' + soversion, exact=True) }}
+        - lua
+      run:
+        - {{ pin_subpackage('libhamlib' + soversion, exact=True) }}
+    files:
+      - {{ library }}lib/lua/*/Hamliblua*
+    test:
+      commands:
+        - lua -e "require('Hamliblua')"
+
+  - name: hamlib-perl
+    build:
+      skip: true  # [win]
+      run_exports:
+        - {{ pin_subpackage('libhamlib' + soversion, max_pin=False) }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+      host:
+        - {{ pin_subpackage('libhamlib' + soversion, exact=True) }}
+        - perl
+      run:
+        - {{ pin_subpackage('libhamlib' + soversion, exact=True) }}
+        - perl
+    files:
+      - {{ library }}lib/perl*/**/Hamlib.*
+    test:
+      commands:
+        - perl -e "use Hamlib"
+
+  - name: hamlib-python
+    build:
+      run_exports:
+        - {{ pin_subpackage('libhamlib' + soversion, max_pin=False) }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+      host:
+        - {{ pin_subpackage('libhamlib' + soversion, exact=True) }}
+        - python
+      run:
+        - {{ pin_subpackage('libhamlib' + soversion, exact=True) }}
+        - python
+    files:
+      - lib/python{{ PY_VER }}/site-packages/*Hamlib*  # [unix]
+      - Lib/site-packages/*Hamlib*  # [win]
+    test:
+      imports:
+        - Hamlib
+
+  - name: hamlib-tcl
+    build:
+      run_exports:
+        - {{ pin_subpackage('libhamlib' + soversion, max_pin=False) }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+      host:
+        - {{ pin_subpackage('libhamlib' + soversion, exact=True) }}
+        - tk
+        - zlib  # [linux]
+      run:
+        - {{ pin_subpackage('libhamlib' + soversion, exact=True) }}
+    files:
+      - {{ library }}lib/tcl*/Hamlib/*
+    test:
+      commands:
+        # load package without catch first to see any error strings
+        - echo "package require hamlib" | tclsh
+        # now catch any errors so that test will fail when there are errors
+        - echo "exit [catch {package require hamlib}]" | tclsh
+
+  - name: hamlib-all
+    build:
+      noarch: generic
+      string: "unix_{{ build }}"  # [unix]
+      string: "win_{{ build }}"  # [win]
+      run_exports:
+        - {{ pin_subpackage('libhamlib' + soversion, max_pin=False) }}
+    requirements:
+      run:
+        - __unix  # [unix]
+        - __win  # [win]
+        - hamlib {{ version }}
+        - hamlib-lua {{ version }}
+        - hamlib-perl {{ version }}  # [unix]
+        - hamlib-python {{ version }}
+        - hamlib-tcl {{ version }}
+    test:
+      imports:
+        - Hamlib
+
+about:
+  home: http://www.hamlib.org/
+  license: LGPL-2.1-or-later AND GPL-2.0-or-later
+  license_family: GPL
+  license_file:
+    - COPYING
+    - COPYING.LIB
+  summary: 'Ham radio control library for rigs, rotators, tuners, and amplifiers'
+  description: >
+    The Ham Radio Control Library (Hamlib, for short) is a project to provide
+    programs with a consistent Application Programming Interface (API) for
+    controlling the myriad of radios and rotators available to amateur radio
+    and communications users. Many Amateur Radio Transceivers come with serial
+    interfaces that allows software to control the radio. This project will
+    endeavour to provide shared libraries that greatly simplify the application
+    programmer's interaction with radio equipment and other controllable
+    devices such as rotators, switches, etc.
+
+    The Hamlib Wiki Supported Radios page,
+    https://github.com/Hamlib/Hamlib/wiki/Supported-Radios, contains a
+    snapshot of the supported radios at the time of the last Hamlib release.
+  doc_url: https://github.com/Hamlib/Hamlib/wiki/Documentation
+  dev_url: https://github.com/Hamlib/Hamlib
+
+extra:
+  feedstock-name: hamlib
+  recipe-maintainers:
+    - ryanvolz
