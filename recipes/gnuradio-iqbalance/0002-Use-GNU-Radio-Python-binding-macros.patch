@@ -1,0 +1,238 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ryan Volz <ryan.volz@gmail.com>
+Date: Tue, 24 Oct 2023 12:08:01 -0400
+Subject: [PATCH] Use GNU Radio Python binding macros.
+
+---
+ CMakeLists.txt                   | 10 ----
+ python/bindings/CMakeLists.txt   | 35 +-------------
+ python/bindings/bind_oot_file.py | 54 +++++++++++++++++++++
+ python/bindings/header_utils.py  | 80 ++++++++++++++++++++++++++++++++
+ 4 files changed, 136 insertions(+), 43 deletions(-)
+ create mode 100644 python/bindings/bind_oot_file.py
+ create mode 100644 python/bindings/header_utils.py
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 38a0d3d..567aefb 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -145,16 +145,6 @@ endif(APPLE)
+ ########################################################################
+ find_package(Doxygen)
+ 
+-########################################################################
+-# PyBind11 Related
+-########################################################################
+-
+-find_package(pybind11 REQUIRED)
+-execute_process(
+-    COMMAND "${PYTHON_EXECUTABLE}" -c
+-    "try:\n import numpy\n import os\n inc_path = numpy.get_include()\n if os.path.exists(os.path.join(inc_path, 'numpy', 'arrayobject.h')):\n  print(inc_path, end='')\nexcept:\n pass"
+-    OUTPUT_VARIABLE PYTHON_NUMPY_INCLUDE_DIR)
+-
+ ########################################################################
+ # Setup doxygen option
+ ########################################################################
+diff --git a/python/bindings/CMakeLists.txt b/python/bindings/CMakeLists.txt
+index 519b04d..15ec3cb 100644
+--- a/python/bindings/CMakeLists.txt
++++ b/python/bindings/CMakeLists.txt
+@@ -14,39 +14,8 @@ GR_PYTHON_CHECK_MODULE_RAW(
+     PYGCCXML_FOUND
+     )
+ 
+-# Official module is broken, makes too many assumptions that are not true
+-#include(GrPybind)
+-
+-include(GrPython)
+-
+-macro(GR_PYBIND_MAKE name updir filter files)
+-
+-configure_file(${CMAKE_SOURCE_DIR}/docs/doxygen/pydoc_macros.h ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+-
+-pybind11_add_module(${name}_python ${files})
+-
+-SET(MODULE_NAME ${name})
+-if (${name} STREQUAL gr)
+-    SET(MODULE_NAME "runtime")
+-endif()
+-
+-target_include_directories(${name}_python PUBLIC
+-    ${CMAKE_CURRENT_BINARY_DIR}
+-    ${PYTHON_NUMPY_INCLUDE_DIR}
+-    ${CMAKE_CURRENT_SOURCE_DIR}/${updir}/lib
+-    ${CMAKE_CURRENT_SOURCE_DIR}/${updir}/include
+-    ${PYBIND11_INCLUDE_DIR}
+-)
+-target_link_libraries(${name}_python PUBLIC ${Boost_LIBRARIES} ${PYTHON_LIBRARIES} gnuradio-${MODULE_NAME})
+-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
+-   CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+-    target_compile_options(${name}_python PRIVATE -Wno-unused-variable) # disable warnings for docstring templates
+-endif(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
+-      CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+-
+-endmacro(GR_PYBIND_MAKE)
+-
+ 
++include(GrPybind)
+ 
+ ########################################################################
+ # Python Bindings
+@@ -57,7 +26,7 @@ list(APPEND iqbalance_python_files
+     optimize_c_python.cc
+     python_bindings.cc)
+ 
+-GR_PYBIND_MAKE(iqbalance 
++GR_PYBIND_MAKE_OOT(iqbalance
+    ../..
+    gr::iqbalance
+    "${iqbalance_python_files}")
+diff --git a/python/bindings/bind_oot_file.py b/python/bindings/bind_oot_file.py
+new file mode 100644
+index 0000000..543c699
+--- /dev/null
++++ b/python/bindings/bind_oot_file.py
+@@ -0,0 +1,54 @@
++import warnings
++import argparse
++from gnuradio.bindtool import BindingGenerator
++import sys
++import tempfile
++
++parser = argparse.ArgumentParser(description='Bind a GR Out of Tree Block')
++parser.add_argument('--module', type=str,
++                    help='Name of gr module containing file to bind (e.g. fft digital analog)')
++
++parser.add_argument('--output_dir', default=tempfile.gettempdir(),
++                    help='Output directory of generated bindings')
++parser.add_argument('--prefix', help='Prefix of Installed GNU Radio')
++
++parser.add_argument(
++    '--filename', help="File to be parsed")
++
++parser.add_argument(
++    '--defines', help='Set additional defines for precompiler', default=(), nargs='*')
++parser.add_argument(
++    '--include', help='Additional Include Dirs, separated', default=(), nargs='*')
++
++parser.add_argument(
++    '--status', help='Location of output file for general status (used during cmake)', default=None
++)
++parser.add_argument(
++    '--flag_automatic', default='0'
++)
++parser.add_argument(
++    '--flag_pygccxml', default='0'
++)
++
++args = parser.parse_args()
++
++prefix = args.prefix
++output_dir = args.output_dir
++defines = tuple(','.join(args.defines).split(','))
++includes = ','.join(args.include)
++name = args.module
++
++namespace = ['gr', name]
++prefix_include_root = name
++
++
++with warnings.catch_warnings():
++    warnings.filterwarnings("ignore", category=DeprecationWarning)
++
++    bg = BindingGenerator(prefix, namespace,
++                          prefix_include_root, output_dir, define_symbols=defines, addl_includes=includes,
++                          catch_exceptions=False, write_json_output=False, status_output=args.status,
++                          flag_automatic=True if args.flag_automatic.lower() in [
++                              '1', 'true'] else False,
++                          flag_pygccxml=True if args.flag_pygccxml.lower() in ['1', 'true'] else False)
++    bg.gen_file_binding(args.filename)
+diff --git a/python/bindings/header_utils.py b/python/bindings/header_utils.py
+new file mode 100644
+index 0000000..7c26fe0
+--- /dev/null
++++ b/python/bindings/header_utils.py
+@@ -0,0 +1,80 @@
++# Utilities for reading values in header files
++
++from argparse import ArgumentParser
++import re
++
++
++class PybindHeaderParser:
++    def __init__(self, pathname):
++        with open(pathname, 'r') as f:
++            self.file_txt = f.read()
++
++    def get_flag_automatic(self):
++        # p = re.compile(r'BINDTOOL_GEN_AUTOMATIC\(([^\s])\)')
++        # m = p.search(self.file_txt)
++        m = re.search(r'BINDTOOL_GEN_AUTOMATIC\(([^\s])\)', self.file_txt)
++        if (m and m.group(1) == '1'):
++            return True
++        else:
++            return False
++
++    def get_flag_pygccxml(self):
++        # p = re.compile(r'BINDTOOL_USE_PYGCCXML\(([^\s])\)')
++        # m = p.search(self.file_txt)
++        m = re.search(r'BINDTOOL_USE_PYGCCXML\(([^\s])\)', self.file_txt)
++        if (m and m.group(1) == '1'):
++            return True
++        else:
++            return False
++
++    def get_header_filename(self):
++        # p = re.compile(r'BINDTOOL_HEADER_FILE\(([^\s]*)\)')
++        # m = p.search(self.file_txt)
++        m = re.search(r'BINDTOOL_HEADER_FILE\(([^\s]*)\)', self.file_txt)
++        if (m):
++            return m.group(1)
++        else:
++            return None
++
++    def get_header_file_hash(self):
++        # p = re.compile(r'BINDTOOL_HEADER_FILE_HASH\(([^\s]*)\)')
++        # m = p.search(self.file_txt)
++        m = re.search(r'BINDTOOL_HEADER_FILE_HASH\(([^\s]*)\)', self.file_txt)
++        if (m):
++            return m.group(1)
++        else:
++            return None
++
++    def get_flags(self):
++        return f'{self.get_flag_automatic()};{self.get_flag_pygccxml()};{self.get_header_filename()};{self.get_header_file_hash()};'
++
++
++def argParse():
++    """Parses commandline args."""
++    desc = 'Reads the parameters from the comment block in the pybind files'
++    parser = ArgumentParser(description=desc)
++
++    parser.add_argument("function", help="Operation to perform on comment block of pybind file", choices=[
++                        "flag_auto", "flag_pygccxml", "header_filename", "header_file_hash", "all"])
++    parser.add_argument(
++        "pathname", help="Pathname of pybind c++ file to read, e.g. blockname_python.cc")
++
++    return parser.parse_args()
++
++
++if __name__ == "__main__":
++    # Parse command line options and set up doxyxml.
++    args = argParse()
++
++    pbhp = PybindHeaderParser(args.pathname)
++
++    if args.function == "flag_auto":
++        print(pbhp.get_flag_automatic())
++    elif args.function == "flag_pygccxml":
++        print(pbhp.get_flag_pygccxml())
++    elif args.function == "header_filename":
++        print(pbhp.get_header_filename())
++    elif args.function == "header_file_hash":
++        print(pbhp.get_header_file_hash())
++    elif args.function == "all":
++        print(pbhp.get_flags())
+-- 
+2.40.0
+

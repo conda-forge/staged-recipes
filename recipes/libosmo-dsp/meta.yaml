@@ -1,0 +1,105 @@
+{% set version = "0.4.0" %}
+{% set soversion = "0" %}
+{% set posix = 'm2-' if win else '' %}
+{% set library = "Library/" if win else "" %}
+
+package:
+  name: libosmo-dsp-split
+  version: {{ version }}
+
+source:
+  url: https://gitea.osmocom.org/sdr/libosmo-dsp/archive/{{ version }}.tar.gz
+  sha256: e118d6ab7fd0efcbc8d2b5d8f531a1e28c0ec94a40e82ff7a3c28e7dc5263d6a
+  patches:
+    - 0001-Add-Windows-port-for-cfile-s-use-of-mmap-munmap.patch
+    - 0002-Let-Windows-build-create-a-shared-library-by-passing.patch
+    - 0003-Use-std-complex-float-when-compiling-with-C-for-cons.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    # need default C compiler on Windows too (MSVC) for generating import lib
+    - {{ compiler('c') }}
+    - {{ compiler('m2w64_c') }}  # [win]
+    - {{ posix }}autoconf
+    - {{ posix }}automake  # [unix]
+    - {{ posix }}automake-wrapper  # [win]
+    - {{ posix }}libtool
+    - make  # [unix]
+    - m2w64-pkg-config  # [win]
+    - pkg-config  # [unix]
+    - posix  # [win]
+  host:
+    - fftw
+
+outputs:
+  - name: libosmodsp{{ soversion }}
+    requirements:
+      build:
+        - {{ compiler('c') }}  # [unix]
+        # DSO analysis shows that m2w64-gcc-libs* are not needed at runtime
+        # so we don't need {{ compiler('m2w64_c') }} as a build dep
+      host:
+        - fftw
+    files:
+      - lib/libosmodsp.so.{{ soversion }}*  # [linux]
+      - lib/libosmodsp.{{ soversion }}*.dylib  # [osx]
+      - Library/bin/libosmodsp-{{ soversion }}.dll  # [win]
+    test:
+      commands:
+        - test -f $PREFIX/lib/libosmodsp${SHLIB_EXT}.{{ soversion }}  # [linux]
+        - test -f $PREFIX/lib/libosmodsp.{{ soversion }}${SHLIB_EXT}  # [osx]
+        - if not exist %LIBRARY_BIN%/libosmodsp-{{ soversion }}.dll exit 1  # [win]
+
+  - name: libosmo-dsp
+    build:
+      run_exports:
+        - {{ pin_subpackage('libosmodsp' + soversion, max_pin=False) }}
+    requirements:
+      host:
+        - fftw
+        - {{ pin_subpackage('libosmodsp' + soversion, exact=True) }}
+      run:
+        - {{ pin_subpackage('libosmodsp' + soversion, exact=True) }}
+    files:
+      - {{ library }}include/osmocom/dsp
+      - {{ library }}lib/pkgconfig/libosmodsp.pc
+      - lib/libosmodsp.so  # [linux]
+      - lib/libosmodsp.dylib  # [osx]
+      - Library/lib/libosmodsp.dll.a  # [win]
+      - Library/lib/osmodsp.lib  # [win]
+    test:
+      commands:
+        - test -f $PREFIX/include/osmocom/dsp/cfile.h  # [unix]
+        - test -f $PREFIX/include/osmocom/dsp/cxvec.h  # [unix]
+        - test -f $PREFIX/include/osmocom/dsp/cxvec_math.h  # [unix]
+        - test -f $PREFIX/include/osmocom/dsp/iqbal.h  # [unix]
+        - test -f $PREFIX/lib/libosmodsp${SHLIB_EXT}  # [unix]
+        - test -f $PREFIX/lib/pkgconfig/libosmodsp.pc  # [unix]
+        - if not exist %LIBRARY_PREFIX%/include/osmocom/dsp/cfile.h exit 1  # [win]
+        - if not exist %LIBRARY_PREFIX%/include/osmocom/dsp/cxvec.h exit 1  # [win]
+        - if not exist %LIBRARY_PREFIX%/include/osmocom/dsp/cxvec_math.h exit 1  # [win]
+        - if not exist %LIBRARY_PREFIX%/include/osmocom/dsp/iqbal.h exit 1  # [win]
+        - if not exist %LIBRARY_LIB%/libosmodsp.dll.a exit 1  # [win]
+        - if not exist %LIBRARY_LIB%/osmodsp.lib exit 1  # [win]
+        - if not exist %LIBRARY_LIB%/pkgconfig/libosmodsp.pc exit 1  # [win]
+
+
+about:
+  home: https://osmocom.org/projects/libosmo-dsp
+  license: GPL-2.0-or-later
+  license_file: COPYING
+  summary: Osmocom DSP utility functions
+  description: >
+    This is a C-language library for common DSP (Digital Signal Processing)
+    primities for SDR (Software Defined Radio). They are part of the Osmocom
+    Open Source Mobile Communications project.
+  doc_url: https://ftp.osmocom.org/api/latest/libosmodsp/html/
+  dev_url: https://gitea.osmocom.org/sdr/libosmo-dsp
+
+extra:
+  feedstock-name: libosmo-dsp
+  recipe-maintainers:
+    - ryanvolz
