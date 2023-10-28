@@ -1,0 +1,107 @@
+{% set name = "Einsums" %}
+{% set version = "0.2" %}
+{% set sha256 = "6f0e209add31b38d58a557e14afce7b23d5dd684a70aaf15554469f19ce77d29" %}
+{% set build_number = 0 %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/{{ name }}/{{ name }}/archive/v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: {{ build_number }}
+  string: {{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+  skip: true                                                               # [win]
+  binary_relocation: true
+  run_exports:
+    - {{ pin_subpackage('einsums', max_pin='x.x') }}
+  ignore_run_exports:
+    - elfutils                                                             # [linux]
+    - libzlib
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - llvm-openmp                                                          # [osx]
+    - libgomp                                                              # [linux]
+  host:
+    - catch2
+    - elfutils                                                             # [linux]
+    - fmt 10.1
+    - hdf5
+    - range-v3 0.12
+    - zlib
+    - llvm-openmp                                                          # [blas_impl == "mkl" and linux]
+    - mkl-devel {{ mkl }}                                                  # [blas_impl == "mkl"]
+    - blas-devel * *_{{ blas_impl }}                                       # [blas_impl == "openblas"]
+    - fftw                                                                 # [blas_impl == "openblas"]
+    - openblas * openmp_*                                                  # [blas_impl == "openblas"]
+  run:
+    - llvm-openmp                                                          # [blas_impl == "mkl" and linux]
+    - libopenblas * openmp_*                                               # [blas_impl == "openblas"]
+
+test:
+  requires:
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - range-v3 0.12
+    - zlib
+    - mkl-devel                                                            # [blas_impl == "mkl"]
+    - blas-devel * *_openblas                                              # [blas_impl == "openblas"]
+  files:
+    - timing/CMakeLists.txt
+  source_files:
+    - timing/main.cpp
+  commands:
+    # Verify library
+    - test -f $PREFIX/lib/libeinsums$SHLIB_EXT                             # [unix]
+    - test ! -f $PREFIX/lib/libeinsums.a                                   # [unix]
+    # Verify accessories
+    - test -f $PREFIX/include/einsums/Tensor.hpp                           # [unix]
+    - test -f $PREFIX/include/einsums/h5cpp/H5Pall.hpp                     # [unix]
+    - test -f $PREFIX/share/cmake/Einsums/EinsumsConfig.cmake              # [unix]
+    - test -f $PREFIX/share/cmake/Einsums/EinsumsTargets-CXX.cmake         # [unix]
+    # Inspect linkage
+    - ldd -v $PREFIX/lib/libeinsums$SHLIB_EXT                              # [linux]
+    - otool -L $PREFIX/lib/libeinsums$SHLIB_EXT                            # [osx]
+    # Actually test
+    - cd timing
+    - cmake -S. -Bbuild -GNinja -DCMAKE_PREFIX_PATH="${PREFIX}" --log-level verbose  # [unix]
+    - cmake --build build
+    - ./build/timings                                                      # [unix]
+
+about:
+  home: https://github.com/Einsums/Einsums
+  dev_url: https://github.com/Einsums/Einsums
+  license: MIT AND BSD-3-Clause
+  license_url: https://opensource.org/license/mit/
+  license_file:
+    - LICENSE
+    - THIRD-PARTY-LICENSES
+  license_family: MIT
+  summary: "J. Turney's C++ library providing compile-time contraction pattern analysis to determine optimal tensor operations"
+
+extra:
+  feedstock-name: einsums
+  recipe-maintainers:
+    - loriab
+    - jturney
+
+## NOTES
+# * BLAS/LAPACK
+#   * Einsums actually requires the whole quartet: blas, cblas, lapack, lapacke.
+#     But since both MKL and OpenBLAS distribute all four together, only blas is listed.
+#   * Einsums _does_ compile different code for MKL vs. other distributions, hence the
+#     `blas_impl` in cbc.yaml. MKL and OpenBLAS are known to work. netlib would
+#     probably work. Accelerate definitely _doesn't_ work. And blis hasn't been tested.
+#     Building only MKL and OpenBLAS variants seemed to cover most uses most safely.
+# * hptt
+#   * hptt cmake is setting some native tuning flags that might need to be defeted.
+#     https://github.com/Einsums/hptt/blob/master/CMakeLists.txt#L43-L46
