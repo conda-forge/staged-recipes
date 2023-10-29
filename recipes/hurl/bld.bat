@@ -1,11 +1,5 @@
-:: Install libxml dependencies
-:: Rust crate libxml favors LIBXML2 over vcpkg if LIBXML2 is not empty.
-set LIBXML2=
-set VCPKG_ROOT=C:\vcpkg
-set VCPKGRS_DYNAMIC=1
-
-:: We don't need libxml2 lzma and zlib features.
-vcpkg install libxml2[core,iconv] --triplet x64-windows
+:: libxml Rust crate uses LIBXML2 env var to build.
+set LIBXML2=%BUILD_PREFIX%\Library\lib\libxml2.lib
 
 :: Check licenses
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
@@ -15,8 +9,8 @@ cargo install --locked --root "%LIBRARY_PREFIX%" --path packages/hurl || goto :e
 cargo install --locked --root "%LIBRARY_PREFIX%" --path packages/hurlfmt || goto :error
 
 :: Remove extra build files
-del /F /Q "%LIBRARY_PREFIX%\.crates.toml"
-del /F /Q "%LIBRARY_PREFIX%\.crates2.json"
+del /F /Q %LIBRARY_PREFIX%\.crates.toml
+del /F /Q %LIBRARY_PREFIX%\.crates2.json
 
 goto :EOF
 
