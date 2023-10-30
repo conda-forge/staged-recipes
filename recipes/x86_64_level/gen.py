@@ -18,7 +18,6 @@ name_mapping = {
 
 for arch_name, arch in archs.items():
     if arch.family.name not in ("x86_64", "ppc64le"):
-        print(arch_name, arch.family.name)
         continue
     levels[(arch_name, arch.family.name)] = max(
         1,
