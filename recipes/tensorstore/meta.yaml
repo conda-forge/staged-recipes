@@ -1,0 +1,84 @@
+{% set name = "tensorstore" %}
+{% set version = "0.1.44" %}
+# Bazel version is specified upstream, file .bazelversion
+{% set bazel_version = "6.1.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/tensorstore-{{ version }}.tar.gz
+  sha256: 4c95d23c8cfd60ab9e3b109728f49e3b41fa699de33fd54495c0976573cfec27
+  patches:
+    # MacOS needs an extra linker flag so pybind11 finds the python symbols in _tensorstore.so :shrug:
+    - patches/pybind11-linkopts.patch  # [osx]
+
+build:
+  skip: true  # [py<37 or win or osx]
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    # Keep bazel listed twice here to help the migrators track dependencies
+    - bazel
+    - bazel {{ bazel_version }}
+    - bazel-toolchain
+  host:
+    - pip
+    - python
+    - wheel
+    - setuptools-scm
+    - numpy
+    # we use openssl instead of boringssl
+    - openssl
+    - bzip2
+    - blosc
+    - libcurl
+    - libjpeg-turbo
+    - libpng
+    - lz4
+    - xz
+    - zlib
+    - libprotobuf
+    # unvendored
+    - pybind11
+    - pybind11-abi
+    # Use the one from https://github.com/google/tensorstore/blob/master/third_party/com_github_nlohmann_json/workspace.bzl
+    - nlohmann_json 3.10.5
+    - libavif
+    # needs to be built with bazel
+    # https://github.com/abseil/abseil-cpp/blob/ee0ebda/FAQ.md#what-is-abi-and-why-dont-you-recommend-using-a-pre-compiled-version-of-abseil
+    # - abseil-cpp
+  run:
+    - {{ pin_compatible('numpy') }}
+    - python
+    - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx and x86_64]
+
+test:
+  imports:
+    - tensorstore
+  commands:
+    - pip list
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/google/tensorstore
+  summary: Read and write large, multi-dimensional arrays
+  license: Apache-2.0 AND MIT AND BSD-3-Clause AND BSD-2-Clause
+  license_file:
+    - LICENSE
+    - licenses/com_google_absl.txt
+    - licenses/com_google_re2.txt
+    - licenses/com_google_riegeli.txt
+    - licenses/net_sourceforge_half.txt
+
+extra:
+  recipe-maintainers:
+    - goanpeca
+    - jaimergp
+    - traversaro
