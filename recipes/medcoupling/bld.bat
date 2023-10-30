@@ -35,7 +35,3 @@ if errorlevel 1 exit 1
 ninja
 if errorlevel 1 exit 1
 ninja install
-
-:: Generate pyi stubs for binary module
-%PYTHON% %RECIPE_DIR%/stubs/custom_stubs_gen.py
-echo "Stubs generation completed"
