@@ -1,4 +1,5 @@
 set JIM_CONDA_INSTALL=no
+set CC=gcc
 
 bash build.sh
 if errorlevel 1 exit 1
