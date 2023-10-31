@@ -1,0 +1,94 @@
+{% set name = "cpptraj" %}
+{% set version = "6.4.4" %}
+{% set build = 0 %}
+
+{% set mpi = mpi or 'nompi' %}
+
+# Set MPI related variables
+{% if mpi == "nompi" %}
+  {% set mpi_build_prefix = "nompi" %}
+  {% set build = build + 100 %}
+{% else %}
+  {% set mpi_build_prefix = "mpi_" + mpi|string %}
+{% endif %}
+
+# Set CUDA related variables
+{% if cuda_compiler_version == "None" %}
+  {% set cuda_build_prefix = "_" %}
+  {% set build = build + 1000 %}
+{% else %}
+  {% set cuda_build_prefix = "_cuda" + cuda_compiler_version|string %}
+{% endif %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/Amber-MD/cpptraj/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 2911744076151b84e0a86b28877edef6ad8ab8c3d4df228e82a36dd6c5746eac
+
+build:
+  number: {{ build }}
+  string: {{ mpi_build_prefix }}{{ cuda_build_prefix }}h{{ PKG_HASH }}_{{ build }}
+  {% if mpi != 'nompi' %}
+  run_exports:
+    - {{ name }} * {{ mpi_build_prefix }}_*
+  {% endif %}
+
+requirements:
+  build:
+    - {{ compiler('fortran') }}
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}                 # [cuda_compiler_version not in (undefined, 'None')]
+    - cmake
+    - make                                   # [not win]
+    - ninja                                  # [win]
+    - libgomp                                # [linux and not aarch64]
+  host:
+    - bzip2
+    - zlib
+    - arpack
+    - {{ mpi }}                              # [mpi != 'nompi']
+    - netcdf-fortran
+    - netcdf-fortran * {{ mpi_build_prefix }}_*
+    - libnetcdf
+    - libnetcdf * {{ mpi_build_prefix }}_*
+    - libpnetcdf                             # [mpi != 'nompi']
+    - libpnetcdf * {{ mpi_build_prefix }}_*  # [mpi != 'nompi']
+    - fftw
+    - libblas
+    - liblapack
+    - readline                               # [not win]
+    - libgomp                                # [linux and not aarch64]
+  run:
+    - {{ mpi }}                              # [mpi != 'nompi']
+    - netcdf-fortran
+    - netcdf-fortran * {{ mpi_build_prefix }}_*
+    - libnetcdf
+    - libnetcdf * {{ mpi_build_prefix }}_*
+    - libpnetcdf                             # [mpi != 'nompi']
+    - libpnetcdf * {{ mpi_build_prefix }}_*  # [mpi != 'nompi']
+    - fftw
+    - libblas
+    - liblapack
+    - readline                               # [not win]
+    - libgomp                                # [linux and not aarch64]
+
+test:
+  commands:
+    - cpptraj -h
+
+about:
+  home: https://github.com/Amber-MD/cpptraj
+  summary: 'Biomolecular simulation trajectory/data analysis'
+  description: |
+    Fast, parallelized molecular dynamics trajectory data analysis.
+  license: GPL-3.0-or-later
+  license_family: GPL
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - simonboothroyd
