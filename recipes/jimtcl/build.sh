@@ -11,7 +11,7 @@ if [[ "$JIM_CONDA_INSTALL" != no ]]; then
 fi
 
 # we aren't shipping Jim in library-supporting mode right now
-rm $PREFIX/libjim.a
+rm $PREFIX/lib/libjim.a
 rm $PREFIX/include/jim*.h
 
 if [[ "$CONDA_BUILD_CROSS_COMPILATION" != "1" && "${CROSSCOMPILING_EMULATOR}" == "" ]]; then
