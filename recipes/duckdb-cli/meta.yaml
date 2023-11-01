@@ -16,18 +16,11 @@ build:
   script:
     - |
       # echo "duckdb_extension_load(httpfs)" > extension/extension_config_local.cmake
-      echo "pwd"
-      pwd
-      echo "src"
-      echo $SRC_DIR
-      echo "recipe"
-      echo $RECIPE_DIR
-      echo "prefix"
-      echo $PREFIX_DIR
-      echo "conda"
-      echo $CONDA_PREFIX
       make extension_configuration
       DUCKDB_EXTENSIONS='{{ extensions }}' VCPKG_TOOLCHAIN_PATH="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" make
+      cp build/release/duckdb $PREFIX/bin
+      cp -R build/release/extension $PREFIX/
+  
 requirements:
   host:
     - cmake
@@ -35,53 +28,49 @@ requirements:
     - vcpkg
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-  # run:
-  #   - cmake
-  #   - make
-  #   - vcpkg
-  #   - {{ compiler('c') }}
-  #   - {{ compiler('cxx') }}
-
-test:
-  commands:
-    - duckdb
-    # module tests
-    - ls duckdb-httpfs 
-    - ls duckdb-json
-    - ls duckdb-parquet
+  run:
+    - libssh2
 
 outputs:
+
   - name: {{ name | lower }}
     version: {{ version }}
     files:
-      - build/release/
-  # TODO: regex index error
-  # {% for extension in extensions.split(';') %}
-  # - name: {{ extension }}-duckdb
-  #   version: {{ version }}
-  #   files:
-  #     build/release/extension/{{ extension }}/*
-  # {% endfor %}
+      - bin/duckdb
+    requirements:
+      run:
+        - libssh2
+    test:
+      commands:
+        - which duckdb
+
   - name: duckdb-httpfs
     version: {{ version }}
     files:
-      - build/release/extension/httpfs/
+      - extension/httpfs/httpfs.duckdb_extension
+    test:
+      commands:
+        - ls extension/httpfs/httpfs.duckdb_extension
     about:
       summary: HTTPFS extension for DuckDB
-  # - name: icu
-  #   version: {{ version }}
-  #   files:
-  #     - build/release/extension/icu/*
+
   - name: duckdb-json
     version: {{ version }}
     files:
-      - build/release/extension/json/
+      - extension/json/json.duckdb_extension
+    test:
+      commands:
+        - ls extension/json/json.duckdb_extension
     about:
       summary: JSON  extension for DuckDB
+
   - name: duckdb-parquet
     version: {{ version }}
     files:
-      - build/release/extension/parquet/
+      - extension/parquet/parquet.duckdb_extension
+    test:
+      commands:
+        - ls extension/parquet/parquet.duckdb_extension
     about:
       summary: Parquet extension for DuckDB
 
