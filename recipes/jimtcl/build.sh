@@ -8,11 +8,11 @@ $MAKE
 
 if [[ "$JIM_CONDA_INSTALL" != no ]]; then
     $MAKE install
-fi
 
-# we aren't shipping Jim in library-supporting mode right now
-rm $PREFIX/lib/libjim.a
-rm $PREFIX/include/jim*.h
+    # we aren't shipping Jim as a library right now, due to shlib problems
+    rm $PREFIX/lib/libjim.a
+    rm $PREFIX/include/jim*.h
+fi
 
 if [[ "$CONDA_BUILD_CROSS_COMPILATION" != "1" && "${CROSSCOMPILING_EMULATOR}" == "" ]]; then
     $MAKE check
