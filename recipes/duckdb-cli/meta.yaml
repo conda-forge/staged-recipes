@@ -1,0 +1,100 @@
+{% set name = "duckdb-cli" %}
+{% set version = "0.9.1" %}
+{% set extensions = "httpfs;json;parquet" %}
+
+package:
+  name: {{ name | lower }}
+  version: {{ version }}
+
+source: 
+  url: https://github.com/duckdb/duckdb/archive/v{{ version }}.tar.gz
+  sha256: 37a43188d9354ce3ca101b2b118d867f5f76d04c3b83c09d86fd7508351a631b
+
+build:
+  number: 0
+  # skip: true  # [not linux]
+  script:
+    - |
+      # echo "duckdb_extension_load(httpfs)" > extension/extension_config_local.cmake
+
+      echo "pwd"
+      pwd
+      echo "src"
+      echo $SRC_DIR
+      echo "recipe"
+      echo $RECIPE_DIR
+      echo "prefix"
+      echo $PREFIX_DIR
+      echo "conda"
+      echo $CONDA_PREFIX
+      make extension_configuration
+      DUCKDB_EXTENSIONS='{{ extensions }}' VCPKG_TOOLCHAIN_PATH="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" make
+
+requirements:
+  host:
+    - cmake
+    - make
+    - vcpkg
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+  # run:
+  #   - cmake
+  #   - make
+  #   - vcpkg
+  #   - {{ compiler('c') }}
+  #   - {{ compiler('cxx') }}
+
+test:
+  commands:
+    - duckdb
+    # module tests
+    - ls duckdb-httpfs 
+    - ls duckdb-json
+    - ls duckdb-parquet
+
+outputs:
+  - name: {{ name | lower }}
+    version: {{ version }}
+    files:
+      - build/release/
+  # TODO: regex index error
+  # {% for extension in extensions.split(';') %}
+  # - name: {{ extension }}-duckdb
+  #   version: {{ version }}
+  #   files:
+  #     build/release/extension/{{ extension }}/*
+  # {% endfor %}
+  - name: duckdb-httpfs
+    version: {{ version }}
+    files:
+      - build/release/extension/httpfs/
+    about:
+      summary: HTTPFS extension for DuckDB
+  # - name: icu
+  #   version: {{ version }}
+  #   files:
+  #     - build/release/extension/icu/*
+  - name: duckdb-json
+    version: {{ version }}
+    files:
+      - build/release/extension/json/
+    about:
+      summary: JSON  extension for DuckDB
+  - name: duckdb-parquet
+    version: {{ version }}
+    files:
+      - build/release/extension/parquet/
+    about:
+      summary: Parquet extension for DuckDB
+
+about:
+  home: https://github.com/duckdb/duckdb/
+  summary: |
+    DuckDB is a high-performance analytical database system. It is designed to be fast, reliable, portable, and easy to use. DuckDB provides a rich SQL dialect, with support far beyond basic SQL. DuckDB supports arbitrary and nested correlated subqueries, window functions, collations, complex types (arrays, structs), and more. For more information on using DuckDB, please refer to the DuckDB documentation.
+  doc_url: https://duckdb.org/
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - mediocretech
