@@ -5,7 +5,7 @@ set -ex
 mkdir build
 cd build
 
-cmake \
+cmake -G "Unix Makefiles" \
     ${CMAKE_ARGS} \
     -DCMAKE_INSTALL_PREFIX=${PREFIX} \
     -DMCVERSION=${PKG_VERSION} \
@@ -22,7 +22,7 @@ cmake \
     -DENABLE_CIF2HKL=OFF \
     -DENABLE_NEUTRONICS=OFF \
     -DPython3_EXECUTABLE="${PYTHON}" \
-    ..
+    "${SRC_DIR}"
 
 
 cmake --build . --config Release
