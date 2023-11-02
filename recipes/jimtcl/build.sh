@@ -14,6 +14,6 @@ if [[ "$JIM_CONDA_INSTALL" != no ]]; then
     rm $PREFIX/include/jim*.h
 fi
 
-if [[ "$CONDA_BUILD_CROSS_COMPILATION" != "1" && "${CROSSCOMPILING_EMULATOR}" == "" ]]; then
+if [[ "$JIM_CONDA_CHECK" != no && "$CONDA_BUILD_CROSS_COMPILATION" != "1" && "${CROSSCOMPILING_EMULATOR}" == "" ]]; then
     $MAKE check
 fi
