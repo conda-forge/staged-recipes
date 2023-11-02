@@ -1,6 +1,7 @@
 set JIM_CONDA_INSTALL=no
 set CC=gcc
 
+bash -c "mkdir /tmp"
 bash build.sh
 if errorlevel 1 exit 1
 mkdir %PREFIX%\Scripts
