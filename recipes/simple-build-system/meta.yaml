@@ -3,7 +3,7 @@
 #NB get sha256 with: curl -sL <URL> | openssl sha256
 
 package:
-  name: simple-build-system
+  name: simple-build-system-suite
   version: {{ version }}
 
 source:
@@ -11,32 +11,48 @@ source:
   sha256: {{ sha_value }}
 
 build:
-  noarch: python
   number: 0
-  script: python -m pip install --no-deps --ignore-installed .
-#  skip: True  # [win]
 
-requirements:
-  host:
-    - python
-    - pip
-  run:
-    - python
-    - tomli  # only needed temporarily (ships with py3.11+)
-    - pybind11 >=2.10.4
-    - cmake >=3.24.2
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
-    - numpy
-    - bash  # [unix]
+outputs:
+  - name: simple-build-system-core
+    script: python -m pip install --no-deps --ignore-installed .
+    build:
+      noarch: python
+    requirements:
+      host:
+        - python >=3.8
+        - pip
+      run:
+        - python >=3.8
+    test:
+      imports:
+        _simple_build_system._cli
+      commands:
+        - simplebuild --help
+        - sb --help
+        - unwrapped_simplebuild --help
 
-test:
-  imports:
-    _simple_build_system._cli
-  commands:
-    - simplebuild --help
-    - sb --help
-    - unwrapped_simplebuild --help
+  - name: simple-build-system
+    build:
+      skip: True  # [win]
+    requirements:
+      run:
+        - simple-build-system-core
+        - tomli  # [py<311]
+        - pybind11 >=2.10.4
+        - cmake >=3.24.2
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - numpy
+        - bash  # [unix]
+    test:
+      imports:
+        _simple_build_system._cli
+      commands:
+        - simplebuild --help
+        - sb --help
+        - unwrapped_simplebuild --help
+
 about:
   home: https://github.com/mctools/simplebuild
   summary: A very simple to use build system for scientific projects with C++/Python.
