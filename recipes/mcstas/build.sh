@@ -19,7 +19,7 @@ cmake -G "Unix Makefiles" \
     -DENABLE_CIF2HKL=OFF \
     -DENABLE_NEUTRONICS=OFF \
     -DPython3_EXECUTABLE="${PYTHON}" \
-    "${SRC_DIR}"
+    "${SRC_DIR}/src"
 
 
 cmake --build . --config Release
