@@ -12,6 +12,9 @@ name=maratyszcza/peachpy
 name=pytorch/qnnpack
 name=pytorch/fbgemm
 name=google/xnnpack
+name=pytorch/kineto
+name=google/libnop
+name=pytorch/tensorpipe
 
 rm -rf source > /dev/null
 git clone --quiet git@github.com:${name}.git source > /dev/null
