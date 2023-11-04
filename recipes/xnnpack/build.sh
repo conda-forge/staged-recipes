@@ -7,5 +7,5 @@ cmake ${CMAKE_ARGS} \
     -DXNNPACK_LIBRARY_TYPE=shared \
     -DXNNPACK_USE_SYSTEM_LIBS=ON \
     ..
-make -j${CPU_COUNT} VERBOSE=1 V=1
+make -j${CPU_COUNT}
 make install
