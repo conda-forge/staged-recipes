@@ -23,6 +23,7 @@ always_yes: true
 
 channels:
  - conda-forge
+ - mark.harfouche
 
 conda-build:
   root-dir: ${FEEDSTOCK_ROOT}/build_artifacts
