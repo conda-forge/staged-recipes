@@ -8,13 +8,13 @@ name=maratyszcza/fxdiv
 name=maratyszcza/fp16
 name=maratyszcza/psimd
 name=pytorch/cpuinfo
-name=maratyszcza/peachpy
 name=pytorch/qnnpack
 name=pytorch/fbgemm
 name=google/xnnpack
 name=pytorch/kineto
 name=google/libnop
 name=pytorch/tensorpipe
+name=maratyszcza/peachpy
 
 rm -rf source > /dev/null
 git clone --quiet git@github.com:${name}.git source > /dev/null
