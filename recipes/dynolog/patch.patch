@@ -1,0 +1,165 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index ae1db53..89f48e7 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -57,26 +57,20 @@ set(BUILD_SAMPLES OFF CACHE BOOL "")
+ set(BUILD_TEST OFF CACHE BOOL "")
+ set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
+ 
+-set(BUILD_TESTING OFF CACHE BOOL "")
+-set(WITH_GFLAGS OFF CACHE BOOL "")
+-add_subdirectory(third_party/glog)
+-target_link_libraries(dynolog_lib PUBLIC glog::glog)
+-
+-set(GFLAGS_BUILD_TESTING OFF CACHE BOOL "")
+-add_subdirectory(third_party/gflags)
+-target_link_libraries(dynolog_lib PUBLIC gflags::gflags)
+-
+-# https://github.com/nlohmann/json#cmake
+-set(JSON_BuildTests OFF CACHE INTERNAL "")
+-add_subdirectory(third_party/json)
+-target_link_libraries(dynolog_lib PUBLIC nlohmann_json::nlohmann_json)
+-
+-add_subdirectory(third_party/pfs)
+-target_include_directories(dynolog_lib PUBLIC third_party/pfs/include)
++find_package(glog REQUIRED)
++target_link_libraries(dynolog_lib PUBLIC glog)
++
++find_package(gflags REQUIRED)
++target_link_libraries(dynolog_lib PUBLIC gflags)
++
++find_package(nlohmann_json REQUIRED)
++target_link_libraries(dynolog_lib PUBLIC nlohmann_json)
++
++find_package(pfs REQUIRED)
+ target_link_libraries(dynolog_lib PUBLIC pfs)
+ 
+-add_subdirectory(third_party/fmt)
+-target_link_libraries(dynolog_lib PUBLIC fmt::fmt)
++find_package(fmt REQUIRED)
++target_link_libraries(dynolog_lib PUBLIC fmt)
+ 
+ if(USE_ODS_GRAPH_API)
+   add_subdirectory(third_party/cpr)
+diff --git a/dynolog/src/rpc/CMakeLists.txt b/dynolog/src/rpc/CMakeLists.txt
+index b530939..9caba0b 100644
+--- a/dynolog/src/rpc/CMakeLists.txt
++++ b/dynolog/src/rpc/CMakeLists.txt
+@@ -1,4 +1,8 @@
+ # Copyright (c) Meta Platforms, Inc. and affiliates.
++find_package(gflags REQUIRED)
++find_package(glog REQUIRED)
++find_package(nlohmann_json REQUIRED)
++find_package(fmt REQUIRED)
+ 
+ add_library(dynolog_rpc_lib STATIC
+     SimpleJsonServer.cpp SimpleJsonServer.h
+@@ -12,7 +16,7 @@ target_include_directories(dynolog_rpc_lib
+     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..
+ )
+ target_link_libraries(dynolog_rpc_lib PRIVATE dynolog_lib)
+-target_link_libraries(dynolog_rpc_lib PUBLIC gflags::gflags)
+-target_link_libraries(dynolog_rpc_lib PUBLIC glog::glog)
+-target_link_libraries(dynolog_rpc_lib PUBLIC nlohmann_json::nlohmann_json)
+-target_link_libraries(dynolog_rpc_lib PUBLIC fmt::fmt)
++target_link_libraries(dynolog_rpc_lib PUBLIC gflags)
++target_link_libraries(dynolog_rpc_lib PUBLIC glog)
++target_link_libraries(dynolog_rpc_lib PUBLIC nlohmann_json)
++target_link_libraries(dynolog_rpc_lib PUBLIC fmt)
+diff --git a/hbt/src/common/CMakeLists.txt b/hbt/src/common/CMakeLists.txt
+index 31b2799..2e3cc52 100644
+--- a/hbt/src/common/CMakeLists.txt
++++ b/hbt/src/common/CMakeLists.txt
+@@ -7,7 +7,7 @@ set_target_properties(Defs PROPERTIES LINKER_LANGUAGE CXX)
+ 
+ add_library(System System.h System.cpp)
+ target_include_directories(System PUBLIC ${PROJECT_SOURCE_DIR})
+-target_link_libraries(System PUBLIC fmt::fmt)
++target_link_libraries(System PUBLIC fmt)
+ target_link_libraries(System PUBLIC pfs)
+ target_link_libraries(System PUBLIC Defs)
+ target_link_libraries(System PUBLIC CpuArch)
+diff --git a/hbt/src/common/System.cpp b/hbt/src/common/System.cpp
+index 9a58bb9..c49031f 100644
+--- a/hbt/src/common/System.cpp
++++ b/hbt/src/common/System.cpp
+@@ -19,6 +19,66 @@
+ #include <system_error>
+ #include <thread>
+ 
++namespace fmt {
++
++template <>
++struct formatter<facebook::hbt::perf_event::CpuFamily> : formatter<std::string_view> {
++  // parse is inherited from formatter<std::string_view>.
++  template <typename FormatContext>
++  auto format(facebook::hbt::perf_event::CpuFamily c, FormatContext& ctx) -> decltype(ctx.out()) {
++    std::string_view name = "UNKNOWN";
++    switch (c) {
++      case facebook::hbt::perf_event::CpuFamily::AMD:    name = "AMD"; break;
++      case facebook::hbt::perf_event::CpuFamily::INTEL:  name = "INTEL"; break;
++      case facebook::hbt::perf_event::CpuFamily::ARM:    name = "ARM"; break;
++      case facebook::hbt::perf_event::CpuFamily::UNKNOWN: break; // already initialized to "UNKNOWN"
++    }
++    return fmt::formatter<std::string_view>::format(name, ctx);
++  }
++};
++
++
++template <>
++struct formatter<facebook::hbt::perf_event::CpuArch> : formatter<std::string_view> {
++  // Use parse method inherited from formatter<std::string_view>
++
++  template <typename FormatContext>
++  auto format(const facebook::hbt::perf_event::CpuArch& c, FormatContext& ctx) -> decltype(ctx.out()) {
++    std::string_view name = "UNKNOWN"; // Default for unrecognized values
++    switch (c) {
++      case facebook::hbt::perf_event::CpuArch::NEOVERSE_N1: name = "NEOVERSE_N1"; break;
++      case facebook::hbt::perf_event::CpuArch::NEOVERSE_N2: name = "NEOVERSE_N2"; break;
++      case facebook::hbt::perf_event::CpuArch::NEOVERSE_V2: name = "NEOVERSE_V2"; break;
++      case facebook::hbt::perf_event::CpuArch::AMPERE_ONE:  name = "AMPERE_ONE"; break;
++      case facebook::hbt::perf_event::CpuArch::MILAN:       name = "MILAN"; break;
++      case facebook::hbt::perf_event::CpuArch::GENOA:       name = "GENOA"; break;
++      case facebook::hbt::perf_event::CpuArch::BERGAMO:     name = "BERGAMO"; break;
++      case facebook::hbt::perf_event::CpuArch::BDW:         name = "BDW"; break;
++      case facebook::hbt::perf_event::CpuArch::BDW_DE:      name = "BDW_DE"; break;
++      case facebook::hbt::perf_event::CpuArch::BDX:         name = "BDX"; break;
++      case facebook::hbt::perf_event::CpuArch::CLX:         name = "CLX"; break;
++      case facebook::hbt::perf_event::CpuArch::GLM:         name = "GLM"; break;
++      case facebook::hbt::perf_event::CpuArch::HSX:         name = "HSX"; break;
++      case facebook::hbt::perf_event::CpuArch::ICL:         name = "ICL"; break;
++      case facebook::hbt::perf_event::CpuArch::IVB:         name = "IVB"; break;
++      case facebook::hbt::perf_event::CpuArch::KNL:         name = "KNL"; break;
++      case facebook::hbt::perf_event::CpuArch::KNM:         name = "KNM"; break;
++      case facebook::hbt::perf_event::CpuArch::NHM_EX:      name = "NHM_EX"; break;
++      case facebook::hbt::perf_event::CpuArch::SKL:         name = "SKL"; break;
++      case facebook::hbt::perf_event::CpuArch::SKX:         name = "SKX"; break;
++      case facebook::hbt::perf_event::CpuArch::SNB:         name = "SNB"; break;
++      case facebook::hbt::perf_event::CpuArch::SNR:         name = "SNR"; break;
++      case facebook::hbt::perf_event::CpuArch::SPR:         name = "SPR"; break;
++      case facebook::hbt::perf_event::CpuArch::SRF:         name = "SRF"; break;
++      case facebook::hbt::perf_event::CpuArch::UNKNOWN:     name = "UNKNOWN"; break;
++      // Note: The default case is not needed as all enum values are covered
++    }
++    return fmt::formatter<std::string_view>::format(name, ctx);
++  }
++};
++
++}
++
+ namespace facebook::hbt {
+ 
+ constexpr const char* kArmMidrFile =
+diff --git a/hbt/src/common/System.h b/hbt/src/common/System.h
+index a5c58ab..127b1cb 100644
+--- a/hbt/src/common/System.h
++++ b/hbt/src/common/System.h
+@@ -51,7 +51,7 @@ struct FdWrapper {
+     close_on_destruction = true;
+   }
+ 
+-  __u64 getInode() {
++  uint64_t getInode() {
+     struct stat s = {};
+     int err = ::fstat(fd, &s);
+     HBT_THROW_SYSTEM_IF(0 != err, errno)
