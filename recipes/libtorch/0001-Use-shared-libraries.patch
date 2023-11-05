@@ -1,22 +1,24 @@
-From 64adae632a5a0250e7f32cd3ea9ec2df6cc01152 Mon Sep 17 00:00:00 2001
+From b8dc7cfca99cd335d93c7c47673a210c1c9d4da1 Mon Sep 17 00:00:00 2001
 From: Mark Harfouche <mark.harfouche@gmail.com>
 Date: Sun, 5 Nov 2023 12:43:07 -0500
-Subject: [PATCH] Use shared libraries
+Subject: [PATCH] Use shared libraries from conda-forge
 
 ---
  CMakeLists.txt                                |   2 +-
  .../quantized/cpu/qnnpack/CMakeLists.txt      |  16 +-
  caffe2/CMakeLists.txt                         |  14 --
  cmake/Dependencies.cmake                      | 163 ++----------------
- torch/csrc/autograd/profiler_kineto.cpp       |   2 +-
+ torch/csrc/autograd/profiler_kineto.cpp       |   4 +-
+ .../serialization/mobile_bytecode_generated.h |   7 -
  torch/csrc/profiler/collection.cpp            |   2 +-
  .../csrc/profiler/kineto_client_interface.cpp |   2 +-
  torch/csrc/profiler/kineto_shim.cpp           |   2 +-
+ torch/csrc/profiler/kineto_shim.h             |   2 +-
  torch/csrc/profiler/util.cpp                  |   2 +-
- 9 files changed, 21 insertions(+), 184 deletions(-)
+ 11 files changed, 23 insertions(+), 193 deletions(-)
 
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 3a48eaf4e29..f77e6973861 100644
+index 3a48eaf4e29..fc63193981a 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -1054,7 +1054,7 @@ if(USE_MIMALLOC)
@@ -24,7 +26,7 @@ index 3a48eaf4e29..f77e6973861 100644
  
  # ---[ Main build
 -add_subdirectory(c10)
-+find_library(c10 REQUIRED)
++find_library(c10 NAME c10 REQUIRED)
  add_subdirectory(caffe2)
  
  # --[ Documentation
@@ -342,18 +344,38 @@ index c3abce52e4c..57a557505eb 100644
    string(APPEND CMAKE_CXX_FLAGS " -DUSE_KINETO")
    if(LIBKINETO_NOCUPTI)
 diff --git a/torch/csrc/autograd/profiler_kineto.cpp b/torch/csrc/autograd/profiler_kineto.cpp
-index e59abc859f7..becc3162e29 100644
+index e59abc859f7..97f9cb6238f 100644
 --- a/torch/csrc/autograd/profiler_kineto.cpp
 +++ b/torch/csrc/autograd/profiler_kineto.cpp
-@@ -30,7 +30,7 @@
+@@ -30,8 +30,8 @@
  #include <utility>
  
  #ifdef USE_KINETO
 -#include <libkineto.h>
+-#include <time_since_epoch.h>
 +#include <kineto/libkineto.h>
- #include <time_since_epoch.h>
++#include <kineto/time_since_epoch.h>
  
  #ifndef _MSC_VER
+ // TODO: TO be removed, once this properly works from libkineto
+diff --git a/torch/csrc/jit/serialization/mobile_bytecode_generated.h b/torch/csrc/jit/serialization/mobile_bytecode_generated.h
+index cffe8bc7a63..1b7e3a89ebd 100644
+--- a/torch/csrc/jit/serialization/mobile_bytecode_generated.h
++++ b/torch/csrc/jit/serialization/mobile_bytecode_generated.h
+@@ -6,13 +6,6 @@
+ 
+ #include "flatbuffers/flatbuffers.h"
+ 
+-// Ensure the included flatbuffers.h is the same version as when this file was
+-// generated, otherwise it may not be compatible.
+-static_assert(FLATBUFFERS_VERSION_MAJOR == 23 &&
+-              FLATBUFFERS_VERSION_MINOR == 3 &&
+-              FLATBUFFERS_VERSION_REVISION == 3,
+-             "Non-compatible flatbuffers version included");
+-
+ namespace torch {
+ namespace jit {
+ namespace mobile {
 diff --git a/torch/csrc/profiler/collection.cpp b/torch/csrc/profiler/collection.cpp
 index c13e2c494e4..d01d149d698 100644
 --- a/torch/csrc/profiler/collection.cpp
@@ -391,6 +413,19 @@ index 59e721eec41..1ebe4dc2db3 100644
  #endif
  
  #include <c10/util/Exception.h>
+diff --git a/torch/csrc/profiler/kineto_shim.h b/torch/csrc/profiler/kineto_shim.h
+index 2a410719a1f..ddd743bc966 100644
+--- a/torch/csrc/profiler/kineto_shim.h
++++ b/torch/csrc/profiler/kineto_shim.h
+@@ -12,7 +12,7 @@
+ #undef USE_KINETO
+ #endif
+ 
+-#include <ActivityType.h>
++#include <kineto/ActivityType.h>
+ 
+ #include <torch/csrc/Export.h>
+ #include <torch/csrc/profiler/api.h>
 diff --git a/torch/csrc/profiler/util.cpp b/torch/csrc/profiler/util.cpp
 index 180555f9d0f..186f9256338 100644
 --- a/torch/csrc/profiler/util.cpp
