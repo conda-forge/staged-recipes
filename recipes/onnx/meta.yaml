@@ -1,0 +1,105 @@
+{% set version = "1.15.0" %}
+
+package:
+  name: onnx-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/onnx/onnx/archive/v{{ version }}.tar.gz
+  sha256: c757132e018dd0dd171499ef74fca88b74c5430a20781ec53da19eb7f937ef68
+  patches:
+    - undo_definitions_of_cxx_standard.patch
+    - cinttypes_cpp2py_export.patch
+    - 0001-Link-to-abseil_dll.patch  # [win and (libprotobuf != "3.21")]
+
+build:
+  number: 0
+
+outputs:
+  - name: libonnx
+    script: build_libonnx.sh  # [unix]
+    script: bld_libonnx.bat   # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage('libonnx', max_pin='x.x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - libprotobuf 4.24.4
+        - cmake
+        - make  # [unix]
+      host:
+        - libprotobuf 4.24.4
+    test:
+      commands:
+        - test -f "$PREFIX/lib/libonnx${SHLIB_EXT}"  # [unix]
+        - test -f "$PREFIX/lib/cmake/ONNX/ONNXConfig.cmake"  # [unix]
+
+  - name: onnx
+    script: build_onnx.sh  # [unix]
+    script: bld_onnx.bat   # [win]
+    build:
+      entry_points:
+        - check-model = onnx.bin.checker:check_model
+        - check-node = onnx.bin.checker:check_node
+        - backend-test-tools = onnx.backend.test.cmd_tools:main
+    requirements:
+      build:
+        - python                                 # [build_platform != target_platform]
+        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+        - numpy                                  # [build_platform != target_platform]
+        - pybind11                               # [build_platform != target_platform]
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - libprotobuf 4.24.4
+        - cmake
+        - make  # [unix]
+      host:
+        - python
+        - setuptools
+        - pip
+        - protobuf
+        - pytest-runner
+        - ninja
+        - pybind11
+        - numpy
+        - {{ pin_subpackage('libonnx', exact=True) }}
+        - libprotobuf 4.24.4
+      run:
+        - python
+        - protobuf
+        - {{ pin_subpackage('libonnx', exact=True) }}
+        - {{ pin_compatible('numpy') }}
+        - typing-extensions >=3.6.2.1
+    test:
+      requires:
+        - pip
+      imports:
+        - onnx
+      commands:
+        - pip check
+        - check-model --help
+        - check-node --help
+        - backend-test-tools --help
+
+about:
+  home: https://github.com/onnx/onnx/
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Open Neural Network Exchange library
+  description: |
+    Open Neural Network Exchange (ONNX) is the first step toward an open
+    ecosystem that empowers AI developers to choose the right tools as their
+    project evolves. ONNX provides an open source format for AI models. It
+    defines an extensible computation graph model, as well as definitions of
+    built-in operators and standard data types. Initially we focus on the
+    capabilities needed for inferencing (evaluation).
+
+extra:
+  recipe-maintainers:
+    - ezyang
+    - marcelotrevisani
+    - xhochy
+    - janjagusch
+    - cbourjau

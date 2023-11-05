@@ -1,0 +1,55 @@
+{% set version = "0.0.0.20231013.420.2cbcef2" %}
+{% set gitrev = "2cbcef29a6aff241896a86c719195f1757bfd1b8" %}
+{% set sha256 = "dce7e46004c2a1375220712208835c702bf46d297d97601d46b50201c91bb8da" %}
+
+package:
+  name: gloo
+  version: {{ version }}
+
+source:
+  url: https://github.com/facebookincubator/gloo/archive/{{ gitrev }}.tar.gz
+  sha256: {{ sha256 }}
+  patches:
+    # https://github.com/facebookincubator/gloo/issues/358
+    - openssl_3.patch
+
+build:
+  # You can probably build this for windows
+  skip: true  # [win]
+  number: 0
+  run_exports:
+    # 0 guarantees because they beleive in not creating real releases...
+    # https://github.com/facebookincubator/gloo/issues/84
+    - {{ pin_subpackage('gloo', max_pin='x.x.x.x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - make        # [unix]
+    - pkg-config  # [unix]
+  host:
+    - openssl   # [linux]
+    - libuv
+
+test:
+  commands:
+    - test -f ${PREFIX}/lib/libgloo${SHLIB_EXT}    # [unix]
+    - test -d ${PREFIX}/include/gloo
+    - test -f ${PREFIX}/include/gloo/config.h
+    - test -f ${PREFIX}/include/gloo/transport/tcp/tls/openssl.h   # [linux]
+
+about:
+  home: https://github.com/facebookincubator/gloo
+  summary: A collective communications library
+  description: |
+    It comes with a number of collective algorithms useful for machine learning
+    applications. These include a barrier, broadcast, and allreduce.
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk

@@ -1,0 +1,97 @@
+--- a/CMakeLists.txt	2023-11-04 15:26:44.775236301 -0400
++++ b/CMakeLists.txt	2023-11-04 15:29:26.339279041 -0400
+@@ -235,70 +235,20 @@
+ message(WARNING "CMAKE_CXX_FLAGS_RELEASE is ${CMAKE_CXX_FLAGS_RELEASE}")
+ message(WARNING "==========")
+ 
+-if(NOT TARGET asmjit)
+-  #Download asmjit from github if ASMJIT_SRC_DIR is not specified.
+-  if(NOT DEFINED ASMJIT_SRC_DIR)
+-    set(ASMJIT_SRC_DIR "${FBGEMM_SOURCE_DIR}/third_party/asmjit"
+-      CACHE STRING "asmjit source directory from submodules")
+-  endif()
+-
+-  #build asmjit
+-  #For MSVC shared build, asmjit needs to be shared also.
+-  if (MSVC AND (FBGEMM_LIBRARY_TYPE STREQUAL "shared"))
+-    set(ASMJIT_STATIC OFF)
+-  else()
+-    set(ASMJIT_STATIC ON)
+-  endif()
+-
+-  add_subdirectory("${ASMJIT_SRC_DIR}" "${FBGEMM_BINARY_DIR}/asmjit")
+-  set_property(TARGET asmjit PROPERTY POSITION_INDEPENDENT_CODE ON)
+-  # add a flag required for mac build
+-  if(NOT MSVC)
+-    target_compile_options(asmjit PRIVATE "-Wno-sign-conversion")
+-  endif()
+-
+-  if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 13.0.0)
+-    # See https://github.com/pytorch/pytorch/issues/74352, https://github.com/pytorch/FBGEMM/issues/1173
+-    target_compile_options_if_supported(asmjit -Wno-deprecated-copy)
+-    target_compile_options_if_supported(asmjit -Wno-unused-but-set-variable)
+-  endif()
+-endif()
+-
+-if(NOT TARGET cpuinfo)
+-  #Download cpuinfo from github if CPUINFO_SOURCE_DIR is not specified.
+-  if(NOT DEFINED CPUINFO_SOURCE_DIR)
+-    set(CPUINFO_SOURCE_DIR "${FBGEMM_SOURCE_DIR}/third_party/cpuinfo"
+-      CACHE STRING "cpuinfo source directory from submodules")
+-  endif()
+-
+-  #build cpuinfo
+-  set(CPUINFO_BUILD_UNIT_TESTS OFF CACHE BOOL "Do not build cpuinfo unit tests")
+-  set(CPUINFO_BUILD_MOCK_TESTS OFF CACHE BOOL "Do not build cpuinfo mock tests")
+-  set(CPUINFO_BUILD_BENCHMARKS OFF CACHE BOOL "Do not build cpuinfo benchmarks")
+-  set(CPUINFO_LIBRARY_TYPE static CACHE STRING "Set lib type to static")
+-  #Select static runtime, needed for static build for MSVC
+-  set(CPUINFO_RUNTIME_TYPE static CACHE STRING "Set runtime to static")
+-  add_subdirectory("${CPUINFO_SOURCE_DIR}" "${FBGEMM_BINARY_DIR}/cpuinfo")
+-  set_property(TARGET cpuinfo PROPERTY POSITION_INDEPENDENT_CODE ON)
+-endif()
++FIND_PACKAGE(asmjit REQUIRED)
++FIND_PACKAGE(cpuinfo REQUIRED)
+ 
+ target_include_directories(fbgemm_generic BEFORE
+       PUBLIC $<BUILD_INTERFACE:${FBGEMM_SOURCE_DIR}>
+-      PUBLIC $<BUILD_INTERFACE:${FBGEMM_SOURCE_DIR}/include>
+-      PRIVATE "${ASMJIT_SRC_DIR}/src"
+-      PRIVATE "${CPUINFO_SOURCE_DIR}/include")
++      PUBLIC $<BUILD_INTERFACE:${FBGEMM_SOURCE_DIR}/include>)
+ 
+ target_include_directories(fbgemm_avx2 BEFORE
+       PUBLIC $<BUILD_INTERFACE:${FBGEMM_SOURCE_DIR}>
+-      PUBLIC $<BUILD_INTERFACE:${FBGEMM_SOURCE_DIR}/include>
+-      PRIVATE "${ASMJIT_SRC_DIR}/src"
+-      PRIVATE "${CPUINFO_SOURCE_DIR}/include")
++      PUBLIC $<BUILD_INTERFACE:${FBGEMM_SOURCE_DIR}/include>)
+ 
+ target_include_directories(fbgemm_avx512 BEFORE
+       PUBLIC $<BUILD_INTERFACE:${FBGEMM_SOURCE_DIR}>
+-      PUBLIC $<BUILD_INTERFACE:${FBGEMM_SOURCE_DIR}/include>
+-      PRIVATE "${ASMJIT_SRC_DIR}/src"
+-      PRIVATE "${CPUINFO_SOURCE_DIR}/include")
++      PUBLIC $<BUILD_INTERFACE:${FBGEMM_SOURCE_DIR}/include>)
+ 
+ if(FBGEMM_LIBRARY_TYPE STREQUAL "default")
+   add_library(fbgemm
+@@ -337,15 +287,11 @@
+     PUBLIC $<BUILD_INTERFACE:${FBGEMM_SOURCE_DIR}>
+     PUBLIC $<BUILD_INTERFACE:${FBGEMM_SOURCE_DIR}/include>)
+ 
+-target_link_libraries(fbgemm
+-  $<BUILD_INTERFACE:asmjit>
+-  $<BUILD_INTERFACE:cpuinfo>)
+-add_dependencies(fbgemm
+-  asmjit
+-  cpuinfo)
++target_link_libraries(fbgemm PRIVATE asmjit)
++target_link_libraries(fbgemm PRIVATE cpuinfo)
+ 
+ if(OpenMP_FOUND)
+-  target_link_libraries(fbgemm OpenMP::OpenMP_CXX)
++  target_link_libraries(fbgemm PRIVATE OpenMP::OpenMP_CXX)
+ endif()
+ 
+ install(
