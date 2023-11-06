@@ -1,0 +1,98 @@
+diff --git a/clang/lib/Interpreter/Interpreter.cpp b/clang/lib/Interpreter/Interpreter.cpp
+index 7968c62cbd3e..e8bd99ff0b3d 100644
+--- a/clang/lib/Interpreter/Interpreter.cpp
++++ b/clang/lib/Interpreter/Interpreter.cpp
+@@ -42,6 +42,19 @@
+ #include "llvm/Support/ErrorHandling.h"
+ #include "llvm/Support/raw_ostream.h"
+ #include "llvm/TargetParser/Host.h"
++
++#ifdef __CYGWIN__
++#include <cygwin/version.h>
++#include <sys/cygwin.h>
++#define _WIN32 1
++#endif
++
++#ifdef _WIN32
++#include <windows.h>
++#else
++#include <dlfcn.h>
++#endif
++
+ using namespace clang;
+ 
+ // FIXME: Figure out how to unify with namespace init_convenience from
+@@ -131,15 +144,68 @@ CreateCI(const llvm::opt::ArgStringList &Argv) {
+ 
+ } // anonymous namespace
+ 
++// Used to help getBinaryPath find the path to the binary if it is part of a
++// dlopened library.
++extern "C" void clangPathFinderDLAddr() {}
++// Returns the path to the shared object or executable if statically linked.
++static const std::string getBinaryPath() {
++
++  SmallString<128> BinPath;
++
++  // Find the location where this library lives if (libclangInterpreter.dylib).
++#ifdef _WIN32
++  MEMORY_BASIC_INFORMATION mbi;
++  char path[MAX_PATH];
++  VirtualQuery((void *)(uintptr_t)clangPathFinderDLAddr, &mbi, sizeof(mbi));
++  GetModuleFileNameA((HINSTANCE)mbi.AllocationBase, path, MAX_PATH);
++
++#ifdef __CYGWIN__
++  char w32path[MAX_PATH];
++  strcpy(w32path, path);
++#if CYGWIN_VERSION_API_MAJOR > 0 || CYGWIN_VERSION_API_MINOR >= 181
++  cygwin_conv_path(CCP_WIN_A_TO_POSIX, w32path, path, MAX_PATH);
++#else
++  cygwin_conv_to_full_posix_path(w32path, path);
++#endif
++#endif
++
++  BinPath += path;
++#else
++  Dl_info info;
++  std::string Path;
++  // This silly cast below avoids a C++ warning.
++  if (dladdr((void *)(uintptr_t)clangPathFinderDLAddr, &info) != 0) {
++    // We now have the CIndex directory, locate clang relative to it.
++    BinPath += info.dli_fname;
++  } else if (!(Path = llvm::sys::fs::getMainExecutable(nullptr, nullptr))
++                  .empty()) {
++    // If we can't get the path using dladdr, try to get the main executable
++    // path. This may be needed when we're statically linking
++    // libclangInterpreter with musl libc, for example.
++    BinPath += Path;
++  } else {
++    // It's rather unlikely we end up here. But it could happen, so report an
++    // error instead of crashing.
++    llvm::report_fatal_error("could not locate Clang resource path");
++  }
++
++#endif
++
++  return BinPath.str().str();
++}
++
+ llvm::Expected<std::unique_ptr<CompilerInstance>>
+ IncrementalCompilerBuilder::create(std::vector<const char *> &ClangArgv) {
+ 
+-  // If we don't know ClangArgv0 or the address of main() at this point, try
+-  // to guess it anyway (it's possible on some platforms).
+-  std::string MainExecutableName =
+-      llvm::sys::fs::getMainExecutable(nullptr, nullptr);
++  // Find the path to the library or executable we are called from. This path
++  // helps clang discover its resource directory and standard include paths.
++  // If we are part of a shared object we want to give preference to the shared
++  // object as it will have more standard installation location increasing
++  // clang's chances to get the toolchain paths right rather than relying on a
++  // user-created executable that can live anywhere.
++  std::string BinPath = getBinaryPath();
+ 
+-  ClangArgv.insert(ClangArgv.begin(), MainExecutableName.c_str());
++  ClangArgv.insert(ClangArgv.begin(), BinPath.c_str());
+ 
+   // Prepending -c to force the driver to do something if no action was
+   // specified. By prepending we allow users to override the default
