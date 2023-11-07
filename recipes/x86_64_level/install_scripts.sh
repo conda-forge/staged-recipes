@@ -10,7 +10,8 @@ elif [[ "${family}" == "ppc64le" ]]; then
   flag="-mcpu=${level}"
 fi
 
-echo 'export CXXFLAGS="${CXXFLAGS} '$flag'"' >> "${PREFIX}"/etc/conda/activate.d/~activate-x86-64-level.sh
-echo 'export CFLAGS="${CFLAGS} '$flag'"' >> "${PREFIX}"/etc/conda/activate.d/~activate-x86-64-level.sh
-echo 'export CPPFLAGS="${CPPFLAGS} '$flag'"' >> "${PREFIX}"/etc/conda/activate.d/~activate-x86-64-level.sh
-chmod +x "${PREFIX}"/etc/conda/activate.d/~activate-x86-64-level.sh
+cat << EOF > "${PREFIX}/etc/conda/activate.d/~activate-${family}-level.sh"
+export CXXFLAGS="\${CXXFLAGS} ${flag}"
+export CFLAGS="\${CFLAGS} ${flag}"
+export CPPFLAGS="\${CPPFLAGS} ${flag}"
+EOF
