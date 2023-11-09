@@ -4,4 +4,4 @@
 if [ $(uname) == Linux ]; then
   export LDSHARED="$CC -shared -pthread"
 fi
-${PYTHON} setup.py build_ext -DUSE_SYSTEM_BLOSC2:BOOL=YES
+${PYTHON} setup.py install --single-version-externally-managed --record=record.txt -DUSE_SYSTEM_BLOSC2:BOOL=YES
