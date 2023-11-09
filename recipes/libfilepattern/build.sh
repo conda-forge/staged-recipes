@@ -5,7 +5,7 @@ set -eux # Abort on error.
 mkdir build
 cd build
 
-if [[ "$OSTYPE" == "darwin"* ]]; then
+if [[ "$target_platform" == osx-* ]]; then
 	export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 fi
 
