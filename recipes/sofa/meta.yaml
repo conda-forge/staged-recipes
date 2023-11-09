@@ -2,7 +2,7 @@
 {% set version = "23.06.00" %}
 
 package:
-  name: {{ name|lower }}
+  name: {{ name|lower }}-split
   version: {{ version }}
 
 source:
@@ -24,13 +24,19 @@ source:
       # in the cmake files as long Sofa is built on Windows. A solution must be investigated with the 
       # dev team to have the capability to at least disable it.
     - patches/0002-Remove-WinDepPack.patch
-
+      # See PR: https://github.com/sofa-framework/sofa/pull/4272
+      # Included in v23.12.
+    - patches/0003-all-Fix-headeronly-extlibs-licenses-4272.patch
+      # See PR: https://github.com/sofa-framework/sofa/pull/4240
+      # Should be included in v23.12.
+    - patches/0004-externalize-tinyxml.patch
+      # See PR: https://github.com/sofa-framework/sofa/pull/4290
+      # Should be included in v23.12.
+    - patches/0005-cmake-module-qglviewer.patch
 build:
   number: 0
   # v23.06 not released on MacOS yet due to broken CI
   skip: true  # [osx]
-  run_exports:
-    - {{ pin_subpackage(name, max_pin='x.x') }}
 
 requirements:
   build:
@@ -58,23 +64,70 @@ requirements:
     - libjpeg-turbo
     - libpng
     - ffmpeg
+    - tinyxml2
 
   run:
     - libglu  # [linux]
     - eigen
     - boost-cpp
 
-test:
-  commands:
-    - test -f $PREFIX/include/Sofa.Core/sofa/core/init.h                                     # [unix]
-    - test -f $PREFIX/lib/cmake/Sofa.Core/Sofa.CoreConfig.cmake                              # [unix]
-    - test -f $PREFIX/lib/cmake/Sofa.Core/Sofa.CoreConfigVersion.cmake                       # [unix]
-    - test -f $PREFIX/lib/libSofa.Core${SHLIB_EXT}                                           # [unix]
-    - if not exist %LIBRARY_PREFIX%\include\Sofa.Core\sofa\core\init.h exit 1                # [win]
-    - if not exist %LIBRARY_PREFIX%\lib\cmake\Sofa.Core\Sofa.CoreConfig.cmake exit 1         # [win]
-    - if not exist %LIBRARY_PREFIX%\lib\cmake\Sofa.Core\Sofa.CoreConfigVersion.cmake exit 1  # [win]
-    - if not exist %LIBRARY_PREFIX%\lib\Sofa.Core.lib exit 1                                 # [win]
-    - if not exist %LIBRARY_PREFIX%\bin\Sofa.Core.dll exit 1                                 # [win]
+outputs:
+  - name: libsofa
+    build:
+      run_exports:
+        - {{ pin_subpackage("libsofa", max_pin='x.x') }}
+    files:
+    - lib/*.dll    # [win]
+    - lib/*.lib    # [win]
+    - lib/*.dylib  # [osx]
+    - lib/*.so.*    # [linux]
+    # XXX embedded static libs: currently being removed
+    - lib/*.a*     # [linux]
+    - plugins/*/lib/*.so.*  # [linux]
+    # XXX embedded static libs: currently being removed
+    - plugins/*/lib/*.a*   # [linux]
+
+    test:
+      commands:
+        - test -f $PREFIX/lib/libSofa.Core${SHLIB_EXT}.{{ version }}  # [unix]
+        - if not exist %LIBRARY_PREFIX%\lib\Sofa.Core.lib exit 1      # [win]
+        - if not exist %LIBRARY_PREFIX%\bin\Sofa.Core.dll exit 1      # [win]
+
+  - name: libsofa-dev
+    build:
+      run_exports:
+        # Run exports should require only the library binaries,
+        # not headers or cmake configuration files
+        - {{ pin_subpackage("libsofa") }}
+    requirements:
+      run:
+        - {{ pin_subpackage('libsofa', exact=True) }}
+    files:
+    - include
+    - lib/cmake
+    - lib/*.so    # [linux]
+    - plugins/*/lib/cmake
+    - plugins/*/lib/*.so  # [linux]
+
+    test:
+      commands:
+        - test -f $PREFIX/include/Sofa.Core/sofa/core/init.h                                     # [unix]
+        - test -f $PREFIX/lib/cmake/Sofa.Core/Sofa.CoreConfig.cmake                              # [unix]
+        - test -f $PREFIX/lib/cmake/Sofa.Core/Sofa.CoreConfigVersion.cmake                       # [unix]
+        - if not exist %LIBRARY_PREFIX%\include\Sofa.Core\sofa\core\init.h exit 1                # [win]
+        - if not exist %LIBRARY_PREFIX%\lib\cmake\Sofa.Core\Sofa.CoreConfig.cmake exit 1         # [win]
+        - if not exist %LIBRARY_PREFIX%\lib\cmake\Sofa.Core\Sofa.CoreConfigVersion.cmake exit 1  # [win]
+
+  - name: sofa
+    build:
+      run_exports:
+        - {{ pin_subpackage("sofa", max_pin='x.x') }}
+    requirements:
+      run:
+        - {{ pin_subpackage('libsofa-dev', exact=True) }}
+    files:
+    - share/sofa
+    - bin/runSofa*
     
 about:
   home: https://www.sofa-framework.org/
@@ -86,7 +139,7 @@ about:
     - extlibs/difflib/LICENSE.MIT
     - extlibs/json/LICENSE.MIT
     - extlibs/stb/LICENSE.MIT
-    - applications/plugins/CImgPlugin/Licence_CeCILL_V2-en.txt
+    - applications/plugins/CImgPlugin/extlibs/CImg/Licence_CeCILL_V2-en.txt
 
   doc_url: https://www.sofa-framework.org/community/doc/
   dev_url: https://github.com/sofa-framework/sofa
