@@ -2,7 +2,7 @@ mkdir build
 cd build
 
 
-cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_CXX_FLAGS_RELEASE="/MT /O2 /D NDEBUG" -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ../src/filepattern/cpp/
+cmake %CMAKE_ARGS% -DBUILD_SHARED_LIBS=ON -DCMAKE_CXX_FLAGS_RELEASE="/MT /O2 /D NDEBUG" ../src/filepattern/cpp/
 
 if errorlevel 1 exit 1
 
