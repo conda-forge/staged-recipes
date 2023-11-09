@@ -11,4 +11,4 @@ fi
 
 cmake $CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -Dfilepattern_SHARED_LIB=ON  ../src/filepattern/cpp/
 
-cmake --build . --target install --parallel
+cmake --build . --target install --parallel -j${CPU_COUNT}
