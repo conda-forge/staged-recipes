@@ -9,6 +9,6 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 	export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 fi
 
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${PREFIX} -DCMAKE_INSTALL_PREFIX=${PREFIX} -Dfilepattern_SHARED_LIB=ON  ../src/filepattern/cpp/
+cmake $CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -Dfilepattern_SHARED_LIB=ON  ../src/filepattern/cpp/
 
 cmake --build . --target install --parallel
