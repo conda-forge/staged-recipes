@@ -23,3 +23,5 @@ assert a_bytesobj == a_bytesobj2
 dest = blosc2.compress(b"", 1)
 assert b"" == blosc2.decompress(dest)
 assert type(blosc2.decompress(blosc2.compress(b"1" * 7, 1), as_bytearray=True)) is bytearray
+
+print('Test passed!')
