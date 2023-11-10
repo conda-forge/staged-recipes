@@ -1,0 +1,91 @@
+{% set name = "horovod" %}
+{% set version = "0.28.1" %}
+{% set proc_type = "cuda" if cuda_compiler_version != "None" else "cpu" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: 92a43f5a94c43907a56805bad15f19700c62ffc83b7ca483f9e104e229f67ef0
+
+build:
+  number: 0
+  script_env:
+    - HOROVOD_GPU_OPERATIONS=NCCL  # [cuda_compiler_version != 'None']
+    - HOROVOD_NCCL_LINK=SHARED  # [cuda_compiler_version != 'None']
+    - HOROVOD_WITH_TENSORFLOW=1
+    - HOROVOD_WITH_PYTORCH=1
+    # mxnet is not available on conda-forge
+    # https://github.com/conda-forge/staged-recipes/issues/4447
+    - HOROVOD_WITHOUT_MXNET=1
+    - HOROVOD_WITH_MPI=1
+    - HOROVOD_WITH_GLOO=1
+  script:
+    - "{{ PYTHON }} -m pip install . -vv"  # [unix]
+  skip: true  # [win]
+  string: {{ proc_type }}_mpi_{{ mpi }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != 'None']
+    - cmake >=3.13
+    - make  # [unix]
+    - python  # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+
+  host:
+    - python
+    - pip
+    - wheel
+    - setuptools
+    - nccl  # [cuda_compiler_version != 'None']
+    - {{ mpi }}
+    - mpi4py
+    - tensorflow
+    - tensorflow * {{ proc_type }}*
+    - pytorch
+    - pytorch * {{ proc_type }}*
+
+  run:
+    - python
+    - pyyaml
+    - cloudpickle
+    - pyyaml
+    - packaging 
+    - psutil
+    - nccl  # [cuda_compiler_version != 'None']
+    - {{ mpi }}
+    - mpi4py
+
+  run_constrained:
+    - {{ pin_compatible('tensorflow', max_pin='x.x')) }} {{ proc_type }}*
+    - {{ pin_compatible('pytorch', max_pin='x.x')) }} {{ proc_type }}*
+
+test:
+  requires:
+    - pip
+    - tensorflow
+    - pytorch 
+  imports:
+    - horovod
+    - horovod.tensorflow
+    - horovod.torch
+  commands:
+    - pip check
+    - horovodrun -h
+
+about:
+  home: https://horovod.ai/
+  license: Apache-2.0
+  license_family: Apache
+  license_file: LICENSE
+  summary: 'Distributed training framework for TensorFlow, Keras, PyTorch, and Apache MXNet.'
+  doc_url: https://horovod.readthedocs.io/
+  dev_url: https://github.com/horovod/horovod
+
+extra:
+  recipe-maintainers:
+    - njzjz
