@@ -4,7 +4,7 @@ set -ex
 
 # See https://github.com/horovod/horovod/issues/3956
 flatc -c -o horovod/common/wire horovod/common/wire/message.fbs
-flatc -c -o horovod/tensorflow horovod/tensorflow/custom_call_config.fbs
+flatc -c -I . -o horovod/tensorflow horovod/tensorflow/custom_call_config.fbs
 
 if [[ ${cuda_compiler_version} != "None" ]]; then
     export HOROVOD_GPU_OPERATIONS=NCCL
