@@ -382,7 +382,7 @@ if __name__ == '__main__':
                 subprocess.check_call(
                     ['conda', 'smithy', 'rotate-binstar-token',
                      '--without-appveyor', '--without-azure',
-                     "--without-github-actions", '--without-circle', '--without-drone',
+                     '--without-circle', '--without-drone',
                      '--token_name', 'STAGING_BINSTAR_TOKEN'],
                     cwd=feedstock_dir)
 
