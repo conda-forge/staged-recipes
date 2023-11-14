@@ -15,8 +15,17 @@ which cmake > /dev/null
 test -n "${PKG_VERSION}"
 test -n "${PYTHON}"
 
-mkdir build_mcstas_core
-cd build_mcstas_core
+
+for i in ${seq 1 100000); do
+    #Find a unique build dir:
+    BLDDIR="$PWD/build_mcstas_core_${i}"
+    if [ -d "${BLDDIR}" ]; then
+        break
+    fi
+done
+
+mkdir "${BLDDIR}"
+cd "${BLDDIR}"
 
 cmake \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
