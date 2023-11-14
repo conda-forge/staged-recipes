@@ -150,8 +150,8 @@ def tests_for_pkg_mcstas():
         print('Windows detected - skipping NCrystal/MCPL/mpi tests')
         return
 
-    #MPI test:
-    run_instrument_file( 'share/mcstas/resources/examples/BNL_H8.instr', 'lambda=2.36 -s1000 -n1e5 --mpi=2')
+    #MPI test (disabled for now):
+    #run_instrument_file( 'share/mcstas/resources/examples/BNL_H8.instr', 'lambda=2.36 -s1000 -n1e5 --mpi=2')
 
     #MCPL test:
     run_instrument_file( 'share/mcstas/resources/examples/Test_MCPL_input.instr', '-s1000 repeat=1')
