@@ -21,7 +21,7 @@ cd build_mcstas_core
 cmake \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     -S ${SRCDIR} \
-    -G Unix Makefiles \
+    -G "Unix Makefiles" \
     -DMCVERSION="${PKG_VERSION}" \
     -DMCCODE_BUILD_CONDA_PKG=ON \
     -DBUILD_SHARED_LIBS=ON \
