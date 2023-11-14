@@ -3,7 +3,7 @@
 #Make sure we fail hard in case of trouble:
 set -e
 set -u
-set +x
+set -x
 
 SRCDIR="$PWD/src"
 SRCDATADIR="${SRCDIR}/mcstas-comps/data"
