@@ -44,7 +44,7 @@ cmake --build . --target install --config Release
 test -f "${PREFIX}/bin/mcstas"
 test -f "${PREFIX}/bin/mcrun"
 test -f "${PREFIX}/share/mcstas/tools/Python/mccodelib/__init__.py"
-test -f "${PREFIX}/share/mcstas/resources/data"
+test -d "${PREFIX}/share/mcstas/resources/data"
 
 #Data files will be provided in mcstas-data package instead:
 rm -rf "${PREFIX}/share/mcstas/resources/data"
