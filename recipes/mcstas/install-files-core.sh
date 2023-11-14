@@ -27,13 +27,19 @@ done
 mkdir "${BLDDIR}"
 cd "${BLDDIR}"
 
-cmake \
+CMAKE_CMD=$(which cmake||echo "")
+
+#Not sure why "which cmake" does not always work!:
+if [ "x${CMAKE_CMD}" == "x" -a -f "${CONDA_PREFIX}/bin/cmake" ]; then
+    CMAKE_CMD="${CONDA_PREFIX}/bin/cmake"
+fi
+
+"${CMAKE_CMD}" \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     -S ${SRCDIR} \
     -G "Unix Makefiles" \
     -DMCVERSION="${PKG_VERSION}" \
     -DMCCODE_BUILD_CONDA_PKG=ON \
-    -DBUILD_SHARED_LIBS=ON \
     -DCMAKE_INSTALL_LIBDIR=lib \
     -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_MCSTAS=ON \
@@ -44,11 +50,12 @@ cmake \
     -DENSURE_NCRYSTAL=OFF \
     -DENABLE_CIF2HKL=OFF \
     -DENABLE_NEUTRONICS=OFF \
-    -DPython_EXECUTABLE="${PYTHON}" \
-    -DPython3_EXECUTABLE="${PYTHON}"
+    -DBUILD_SHARED_LIBS=ON \
+    ${CMAKE_ARGS}
 
-cmake --build . --config Release
-cmake --build . --target install --config Release
+"${CMAKE_CMD}" --build . --config Release
+
+"${CMAKE_CMD}" --build . --target install --config Release
 
 test -f "${PREFIX}/bin/mcstas"
 test -f "${PREFIX}/bin/mcrun"
