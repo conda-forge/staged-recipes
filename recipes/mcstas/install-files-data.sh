@@ -13,7 +13,6 @@ test -d "${PREFIX}"
 test -d ${SRCDIR}
 test -f ${SRCDIR}/CMakeLists.txt
 test -d ${SRCDATADIR}
-which cmake > /dev/null
 test -n "${PKG_VERSION}"
 test -n "${PYTHON}"
 

@@ -11,7 +11,6 @@ SRCDIR="$PWD/src"
 test -d "${PREFIX}"
 test -d ${SRCDIR}
 test -f ${SRCDIR}/CMakeLists.txt
-which cmake > /dev/null
 test -n "${PKG_VERSION}"
 test -n "${PYTHON}"
 
@@ -27,14 +26,8 @@ done
 mkdir "${BLDDIR}"
 cd "${BLDDIR}"
 
-CMAKE_CMD=$(which cmake||echo "")
 
-#Not sure why "which cmake" does not always work!:
-if [ "x${CMAKE_CMD}" == "x" -a -f "${CONDA_PREFIX}/bin/cmake" ]; then
-    CMAKE_CMD="${CONDA_PREFIX}/bin/cmake"
-fi
-
-"${CMAKE_CMD}" \
+cmake \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     -S ${SRCDIR} \
     -G "Unix Makefiles" \
@@ -53,9 +46,9 @@ fi
     -DBUILD_SHARED_LIBS=ON \
     ${CMAKE_ARGS}
 
-"${CMAKE_CMD}" --build . --config Release
+cmake --build . --config Release
 
-"${CMAKE_CMD}" --build . --target install --config Release
+cmake --build . --target install --config Release
 
 test -f "${PREFIX}/bin/mcstas"
 test -f "${PREFIX}/bin/mcrun"
