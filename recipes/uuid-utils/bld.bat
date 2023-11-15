@@ -7,7 +7,7 @@ cargo-bundle-licenses ^
     --output %SRC_DIR%\THIRDPARTY.yml ^
     || goto :error
 REM Use PEP517 to install the package
-"set RUSTFLAGS=--cfg uuid_unstable"
+set "RUSTFLAGS=--cfg uuid_unstable"
 maturin build --release -i %PYTHON%
 REM Install wheel
 cd target/wheels
