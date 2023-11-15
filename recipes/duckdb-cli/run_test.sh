@@ -1,4 +1,4 @@
-for extension in httpfs parquet
+for extension in httpfs
 do
 	duckdb -unsigned -s "INSTALL '$PREFIX/extension/$extension/$extension.duckdb_extension';"
 	duckdb -unsigned -s "LOAD '$PREFIX/extension/$extension/$extension.duckdb_extension';"
