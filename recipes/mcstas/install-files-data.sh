@@ -41,7 +41,7 @@ function do_copy_file() {
     if [ -h "${forig}" ]; then
         return 1
     fi
-    check_no_forbidden_chars || return 1
+    check_no_forbidden_chars "${bn}" || return 1
     mkdir -p "${destdir}"
     #Transfer file via cat, to discard any weird permission bits:
     cat "${forig}" > "${destdir}/${bn}"
