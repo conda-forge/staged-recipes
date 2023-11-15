@@ -21,18 +21,39 @@ mkdir -p "${DESTDATADIR}"
 
 NADDED=0
 
-for forig in "${SRCDATADIR}"/* ; do
-    #ensure no directories or symlinks:
-    test -f "${forig}"
-    if [ -h "${forig}" ]; then false; fi
+function do_copy_file() {
+    forig="$1"
+    destdir="$2"
     bn=$(basename "${forig}")
-    if [[ "${bn}" == *@( |~|\#)* ]]; then false; fi
-    cp "${forig}" "${DESTDATADIR}/${bn}"
-    chmod -x "${DESTDATADIR}/${bn}"
-    chmod -w "${DESTDATADIR}/${bn}"
-    chmod +r "${DESTDATADIR}/${bn}"
+    test -f "${forig}"
+    if [ -h "${forig}" ]; then
+        return 1
+    fi
+    if [[ "${bn}" == *@( |~|\#)* ]]; then
+        return 1
+    fi
+    mkdir -p "${destdir}"
+    #Transfer file via cat, to discard any weird permission bits:
+    cat "${forig}" > "${destdir}/${bn}"
     ((++NADDED))
+}
+
+for f1 in "${SRCDATADIR}"/* ; do
+    #Support a single layer of sub-directories only:
+    if [ -d  "${f1}" ]; then
+        subdirname=$(basename "${f1}")
+        for f2 in "${f1}"/* ; do
+            if [ -d "${f2}" ]; then
+                echo "Too many nested subdirs in src data dir!!"
+                false
+            fi
+            do_copy_file "${f2}" "${DESTDATADIR}/${subdirname}"
+        fi
+    else
+        do_copy_file "${f1}" "${DESTDATADIR}"
+    fi
 done
+
 if [ $NADDED -eq 0 ]; then
     echo 'Did not add ANY data files in mcstas-data package!'
     false
