@@ -21,6 +21,18 @@ mkdir -p "${DESTDATADIR}"
 
 NADDED=0
 
+function check_no_forbidden_chars() {
+    #Check for forbidden chars in hopefully sufficiently
+    #portable way (tested with zsh and bash4).
+    case "$1" in
+        .*) return 1;;
+        *" "*) return 1;;
+        *"~"*) return 1;;
+        *\#*) return 1;;
+        *) return 0;;
+    esac
+}
+
 function do_copy_file() {
     forig="$1"
     destdir="$2"
@@ -29,9 +41,7 @@ function do_copy_file() {
     if [ -h "${forig}" ]; then
         return 1
     fi
-    if [[ "${bn}" == *@( |~|\#)* ]]; then
-        return 1
-    fi
+    check_no_forbidden_chars || return 1
     mkdir -p "${destdir}"
     #Transfer file via cat, to discard any weird permission bits:
     cat "${forig}" > "${destdir}/${bn}"
