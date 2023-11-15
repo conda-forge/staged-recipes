@@ -20,7 +20,7 @@ mkdir -p "${DESTDATADIR}"
 
 NADDED=0
 
-for forig in "${SRCDIR}/*"; do
+for forig in "${SRCDATADIR}/*"; do
     #ensure no directories or symlinks:
     test -f "${forig}"
     if [ -h "${forig}" ]; then false; fi
