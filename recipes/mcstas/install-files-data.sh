@@ -48,7 +48,7 @@ for f1 in "${SRCDATADIR}"/* ; do
                 false
             fi
             do_copy_file "${f2}" "${DESTDATADIR}/${subdirname}"
-        fi
+        done
     else
         do_copy_file "${f1}" "${DESTDATADIR}"
     fi
