@@ -10,9 +10,10 @@ SRCDATADIR="${SRCDIR}/mcstas-comps/data"
 DESTDATADIR="${PREFIX}/share/mcstas/resources/data"
 #A few (silent) sanity checks that variables are set and meaningful:
 test -d "${PREFIX}"
-test -d ${SRCDIR}
-test -f ${SRCDIR}/CMakeLists.txt
-test -d ${SRCDATADIR}
+test -d "${SRCDIR}"
+test -f "${SRCDIR}/CMakeLists.txt"
+test -d "${SRCDATADIR}"
+test -f "${SRCDATADIR}/Al.laz"
 test -n "${PKG_VERSION}"
 test -n "${PYTHON}"
 
@@ -20,7 +21,7 @@ mkdir -p "${DESTDATADIR}"
 
 NADDED=0
 
-for forig in "${SRCDATADIR}/*"; do
+for forig in "${SRCDATADIR}"/* ; do
     #ensure no directories or symlinks:
     test -f "${forig}"
     if [ -h "${forig}" ]; then false; fi
