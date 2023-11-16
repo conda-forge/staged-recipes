@@ -13,7 +13,7 @@ cmake \
     -G "Unix Makefiles" \
     ${CMAKE_ARGS}
 
-make -j${CPU_COUNT:-1}
-make test
-make install
+cmake --build . --config Release
+cmake --build . --target test --config Release
+cmake --build . --target install --config Release
 

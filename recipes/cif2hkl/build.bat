@@ -9,7 +9,8 @@ cmake ^
     -G “NMake Makefiles" ^
     %CMAKE_ARGS%
 
-nmake
-nmake test
-nmake install
+cmake --build . --config Release
 
+cmake --build . --target test --config Release
+
+cmake --build . --target install --config Release
