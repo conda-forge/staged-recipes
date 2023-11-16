@@ -15,7 +15,6 @@ test -f "${SRCDIR}/CMakeLists.txt"
 test -d "${SRCDATADIR}"
 test -f "${SRCDATADIR}/Al.laz"
 test -n "${PKG_VERSION}"
-test -n "${PYTHON}"
 
 mkdir -p "${DESTDATADIR}"
 

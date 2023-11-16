@@ -12,8 +12,6 @@ test -d "${PREFIX}"
 test -d ${SRCDIR}
 test -f ${SRCDIR}/CMakeLists.txt
 test -n "${PKG_VERSION}"
-test -n "${PYTHON}"
-
 
 for i in $(seq 1 100000); do
     #Find a unique build dir:
