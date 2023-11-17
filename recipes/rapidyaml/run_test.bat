@@ -4,4 +4,4 @@ mkdir build
 cd build
 cmake -GNinja .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$PREFIX
 ninja
-./app
+app.exe
