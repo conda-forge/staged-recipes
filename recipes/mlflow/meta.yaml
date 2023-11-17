@@ -1,0 +1,172 @@
+{% set name = "mlflow" %}
+{% set version = "2.8.1" %}
+{% if mlflow_variant == "skinny" %}
+{% set mlflow_suffix = "-skinny" %}
+{% set mlflow_other = "" %}
+{% else %}
+{% set mlflow_suffix = "" %}
+{% set mlflow_other = "-skinny" %}
+{% endif %}
+
+package:
+  name: mlflow-split
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: e4e5bdd2d9efb0b386ecbce2df7e43f04c46a32080208414dc53b5fd71559678
+
+build:
+  number: 0
+
+outputs:
+  - name: mlflow{{ mlflow_suffix }}
+    script: build-mlflow.sh  # [unix]
+    script: build-mlflow.bat  # [win]
+    version: {{ version }}
+    build:
+      entry_points:
+        - mlflow=mlflow.cli:cli
+    requirements:
+      build:
+        - python                                 # [build_platform != target_platform]
+        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+      host:
+        - pip
+        - python
+        - setuptools
+        - openssl
+      run:
+        - alembic <2,!=1.10  # [mlflow_variant != "skinny"]
+        - click >=7.0,<9
+        - cloudpickle <3
+        - databricks-cli >=0.8.7,<1
+        - docker-py >=4.0.0,<7  # [mlflow_variant != "skinny"]
+        - entrypoints <1
+        - flask <4  # [mlflow_variant != "skinny"]
+        - gitpython >=2.1.0,<4
+        - gunicorn <22  # [not win and mlflow_variant != "skinny"]
+        - numpy <2  # [mlflow_variant != "skinny"]
+        - pandas <3  # [mlflow_variant != "skinny"]
+        - prometheus_flask_exporter <1  # [mlflow_variant != "skinny"]
+        - packaging <24
+        - protobuf >=3.12.0,<5
+        - python
+        - pytz <2024
+        - pyyaml >=5.1,<7
+        - querystring_parser <2  # [mlflow_variant != "skinny"]
+        - requests >=2.17.3,<3
+        - scipy <2  # [mlflow_variant != "skinny"]
+        - sqlalchemy >=1.4.0,<3  # [mlflow_variant != "skinny"]
+        - sqlparse >=0.4.0,<1
+        - waitress <3  # [win and mlflow_variant != "skinny"]
+        - importlib-metadata <7,>=3.7.0,!=4.7.0
+        - openssl
+        - scikit-learn <2  # [mlflow_variant != "skinny"]
+        - pyarrow <15,>=4.0.0  # [mlflow_variant != "skinny"]
+        - markdown <4,>=3.3  # [mlflow_variant != "skinny"]
+        - jinja2 <4,>=3.0  # [win and mlflow_variant != "skinny"]
+        - jinja2 <4,>=2.11  # [not win and mlflow_variant != "skinny"]
+        - matplotlib-base <4  # [mlflow_variant != "skinny"]
+        - psutil <6  # [mlflow_variant != "skinny"]
+      run_constrained:
+        - mlflow{{ mlflow_other }} <0a0
+        # mlflow[gateway] requirements as it is auto-imported if all dependencies are met
+        # See https://github.com/mlflow/mlflow/blob/045ab98cb4c08e71f0d740a0d5a033d6c69dcf8c/mlflow/__init__.py#L244-L249
+        - pydantic >=1.0,<3
+        - fastapi <1
+        - uvicorn-standard <1
+        - watchfiles <1
+        - psutil <6
+        - aiohttp <4
+        - boto3 >=1.28.56,<2
+    test:
+      imports:
+        - mlflow
+        - mlflow.entities
+        - mlflow.models  # [mlflow_variant != "skinny"]
+        - mlflow.projects
+        - mlflow.protos
+        - mlflow.pyfunc  # [mlflow_variant != "skinny"]
+        - mlflow.pytorch  # [mlflow_variant != "skinny"]
+        - mlflow.rfunc
+        - mlflow.sagemaker  # [mlflow_variant != "skinny"]
+        - mlflow.server  # [mlflow_variant != "skinny"]
+        - mlflow.server.prometheus_exporter  # [mlflow_variant != "skinny"]
+        - mlflow.store
+        - mlflow.tracking
+        - mlflow.utils
+      commands:
+        - mlflow --help
+        - mlflow recipes --help  # [mlflow_variant != "skinny"]
+        - pip check
+        - set  # [win]
+      requires:
+        - pip
+
+  - name: mlflow-ui-dbg{{ mlflow_suffix }}
+    build:
+      skip: true  # [mlflow_variant == "skinny"]
+    version: {{ version }}
+    requirements:
+      build:
+        - python                                 # [build_platform != target_platform]
+        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+      host:
+        - python
+        - pip
+        # Prevent solver errors with pandas
+        - setuptools
+        - openssl
+        - {{ pin_subpackage('mlflow' + mlflow_suffix, exact=True) }}
+      run:
+        - python
+        - {{ pin_subpackage('mlflow' + mlflow_suffix, exact=True) }}
+    script: build-mlflow.bat  # [win]
+    script: build-mlflow.sh  # [unix]
+    test:
+      commands:
+        - exit 0
+
+  - name: mlflow{{ mlflow_suffix }}-gateway
+    build:
+      skip: true  # [mlflow_variant == "skinny"]
+    version: {{ version }}
+    requirements:
+      build:
+        - python                                 # [build_platform != target_platform]
+        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+      host:
+        - python
+        - pip
+        # Prevent solver errors with pandas
+        - setuptools
+        - openssl
+        - {{ pin_subpackage('mlflow' + mlflow_suffix, exact=True) }}
+      run:
+        - python
+        - {{ pin_subpackage('mlflow' + mlflow_suffix, exact=True) }}
+        - pydantic >=1.0,<3
+        - fastapi <1
+        - uvicorn-standard <1
+        - watchfiles <1
+        - psutil <6
+        - aiohttp <4
+        - boto3 >=1.28.56,<2
+    test:
+      imports:
+        - mlflow.gateway
+
+about:
+  home: https://mlflow.org/
+  license: Apache-2.0
+  license_family: APACHE
+  license_file: LICENSE
+  summary: MLflow is an open source platform for the machine learning lifecycle.
+  doc_url: https://mlflow.org
+  dev_url: https://github.com/mlflow/mlflow
+
+extra:
+  feedstock-name: mlflow
+  recipe-maintainers:
+    - rxm7706
