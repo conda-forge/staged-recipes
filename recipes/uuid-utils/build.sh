@@ -11,7 +11,6 @@ cargo-bundle-licenses \
 
 export RUSTFLAGS="--cfg uuid_unstable"
 maturin build --release -i $PYTHON
-ls -la
 
 cd target/wheels
 
