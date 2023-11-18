@@ -1,20 +1,71 @@
 {% set name = "opentelemac" %}
-{% set version = "v8p4r0" %}
+{% set version = "v8p4r1" %}
 {% set build = 0 %}
-{% set mpi = "openmpi" %}
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  - url: https://gitlab.pam-retd.fr/otm/telemac-mascaret/-/archive/{{ version }}/telemac-mascaret-{{ version }}.tar.gz
+  # - url: https://gitlab.pam-retd.fr/otm/telemac-mascaret/-/archive/{{ version }}/telemac-mascaret-{{ version }}.tar.gz
+  - url: https://github.com/nicogodet/otm-sources/releases/download/{{ version }}/telemac-mascaret-{{ version }}.tar.gz
     folder: opentelemac
-    sha256: cfa2c05e41b28ba8aaea19b4b483e6d848bb08f823c8526c0824953a1cb4d564
+    # sha256: b48a0ee5cb43a68bc7255357544810ea67ea918a5ffd7fd61eeed41be4cf7b71
+    sha256: 4dc0fdf59c7befff277b51ef8bec1eaac9b4b12db071b8914739ea2156532ee5
+    patches:
+      - patches/f2py.patch  # [py>=39]
+
+build:
+  number: {{ build }}
+  skip: true  # [not linux]
+  script_env:
+    - TELEMAC_VERSION={{ version }}
+  missing_dso_whitelist:
+    - '*/libc.so.6'
+    - '*/libpthread.so.0'
+    - '*/libm.so.6'
+  ignore_run_exports:
+    - libstdcxx-ng
+    - numpy
+  rpaths:
+    - opentelemac/builds/gnu.dynamic/lib
+
+requirements:
+  build:
+    - cross-python_{{ target_platform }}    # [build_platform != target_platform]
+    - python                                # [build_platform != target_platform]
+    - numpy                                 # [build_platform != target_platform]
+  host:
+    - {{ compiler('fortran') }}
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - openmpi
+    - openmpi-mpifort
+    - python
+    - metis
+    - numpy
+  run:
+    - {{ compiler('fortran') }}
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - openmpi
+    - openmpi-mpifort
+    - python
+    - numpy
+    - metis
+    - matplotlib-base
+    - scipy
+    - mpi4py
+    - jupyter
+    - ipympl
+
+test:
+  commands:
+    - config.py
 
 about:
   home: http://www.opentelemac.org/
-  license: GPLv3
+  license: GPL-3.0-or-later
   license_file: opentelemac/LICENSE.txt
   summary: openTelemac
   description: |
