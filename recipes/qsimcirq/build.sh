@@ -1,4 +1,4 @@
-set -ex
+set -x
 
 # Below is to make sure that the pybind11 include folders are correct.
 # For an unknown reason, I cannot get the correct CXX_INCLUDES to be passed from
