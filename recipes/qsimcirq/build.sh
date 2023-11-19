@@ -41,8 +41,11 @@ if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" 
     sed -i "s|find_package(PythonLibs 3.7 REQUIRED)|find_package(Python3 3.7 REQUIRED COMPONENTS Interpreter Development)|" pybind_interface/cuda/CMakeLists.txt
     sed -i "s|find_package(PythonLibs 3.7 REQUIRED)|find_package(Python3 3.7 REQUIRED COMPONENTS Interpreter Development)|" pybind_interface/custatevec/CMakeLists.txt
     sed -i "s|find_package(PythonLibs 3.7 REQUIRED)|find_package(Python3 3.7 REQUIRED COMPONENTS Interpreter Development)|" pybind_interface/decide/CMakeLists.txt
+
     # qsim build assumes that pybind11 is downloaded using cmake
     sed -i 's|${pybind11_SOURCE_DIR}/include|${pybind11_INCLUDE_DIRS}|' pybind_interface/cuda/CMakeLists.txt
+
+    # Fix for cmake policy: CMP0104
     sed -i '/set_target_properties(qsim_cuda PROPERTIES/a\
         CUDA_ARCHITECTURES "all"' pybind_interface/cuda/CMakeLists.txt
     sed -i '/set_target_properties(qsim_decide PROPERTIES/a\
