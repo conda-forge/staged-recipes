@@ -26,6 +26,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     } > CMakeLists.txt.tmp
     mv CMakeLists.txt.tmp CMakeLists.txt
     sed -i "" "s|CXX=g++|CXX=${CXX}|" Makefile
+    sed -i "" "s|CXXFLAGS = -O3 -fopenmp|CXXFLAGS = -O3 -fopenmp -I${OPENMP_INCLUDE_DIR}|" Makefile
     sed -i "" "s|/usr/local/opt/llvm/bin/clang++|${CXX_FOR_BUILD}|" setup.py
     sed -i "" "s|/usr/local/opt/llvm/bin/clang|${C_FOR_BUILD}|" setup.py
 else
