@@ -28,7 +28,6 @@ cmake -G "Ninja" .. ^
     -D HDF5_ROOT_DIR="%LIBRARY_PREFIX%" ^
     -D SWIG_ROOT_DIR="%LIBRARY_PREFIX%" ^
     -D MEDFILE_ROOT_DIR="%LIBRARY_PREFIX%" ^
-    -D CMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
     %CMAKE_ARGS%
 
 if errorlevel 1 exit 1
