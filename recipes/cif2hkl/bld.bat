@@ -16,3 +16,6 @@ cmake --build . --config Release  || exit /b
 cmake --build . --target test --config Release  || exit /b
 
 cmake --build . --target install --config Release  || exit /b
+
+cd "%PREFIX%"  || exit /b
+tree /F  || exit /b
