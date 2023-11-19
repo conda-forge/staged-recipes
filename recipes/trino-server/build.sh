@@ -7,7 +7,8 @@ sed -E -i'' -e 's@.+<module>docs</module>@@g' pom.xml
 
 # Build and install to ./core/...
 if [[ "$build_platform" =~ linux ]]; then
-  parallel="-T$CPU_COUNT"
+  # OOM?
+  # parallel="-T$CPU_COUNT"
 else
   # https://issues.apache.org/jira/browse/MNG-7868
   parallel=""
