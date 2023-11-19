@@ -39,7 +39,6 @@ fi
 if [[ ! -z "${cuda_compiler_version+x}" && "${cuda_compiler_version}" != "None" ]]; then
     # Fix for cmake (>=3.27) policy: CMP0148
     sed -i "s|find_package(PythonLibs 3.7 REQUIRED)|find_package(Python3 3.7 REQUIRED COMPONENTS Interpreter Development)|" pybind_interface/cuda/CMakeLists.txt
-    sed -i "s|find_package(PythonLibs 3.7 REQUIRED)|find_package(Python3 3.7 REQUIRED COMPONENTS Interpreter Development)|" pybind_interface/cuda/CMakeLists.txt
     sed -i "s|find_package(PythonLibs 3.7 REQUIRED)|find_package(Python3 3.7 REQUIRED COMPONENTS Interpreter Development)|" pybind_interface/custatevec/CMakeLists.txt
     sed -i "s|find_package(PythonLibs 3.7 REQUIRED)|find_package(Python3 3.7 REQUIRED COMPONENTS Interpreter Development)|" pybind_interface/decide/CMakeLists.txt
     # qsim build assumes that pybind11 is downloaded using cmake
