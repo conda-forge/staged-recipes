@@ -6,7 +6,7 @@ set FCFLAGS=-fdefault-integer-8 %FCFLAGS%
 set FFLAGS=-fdefault-integer-8 %FFLAGS%
 set CMAKE_CXX_FLAGS=-fvisibility=hidden %CMAKE_CXX_FLAGS%
 
-cmake -G "Ninja" %SRC_DIR% ^
+cmake -G "Ninja" .. ^
     -Wno-dev ^
     -D CMAKE_BUILD_TYPE=%BUILD_TYPE% ^
     -D PYTHON_ROOT_DIR="%PREFIX%" ^
