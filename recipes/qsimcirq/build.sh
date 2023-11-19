@@ -23,7 +23,8 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
         echo "include_directories(\${OpenMP_INCLUDE_DIR})"
         echo "find_package(OpenMP REQUIRED)"
         cat CMakeLists.txt
-    } > CMakeLists.txt
+    } > CMakeLists.txt.tmp
+    mv CMakeLists.txt.tmp CMakeLists.txt
     sed -i "" "s|CXX=g++|CXX=${CXX}|" Makefile
     sed -i "" "s|/usr/local/opt/llvm/bin/clang++|${CXX_FOR_BUILD}|" setup.py
     sed -i "" "s|/usr/local/opt/llvm/bin/clang|${C_FOR_BUILD}|" setup.py
