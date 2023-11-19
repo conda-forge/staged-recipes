@@ -21,7 +21,6 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
         echo "set(CMAKE_CXX_STANDARD 11)"
         echo "set(OpenMP_INCLUDE_DIR \"${OPENMP_INCLUDE_DIR}\")"
         echo "include_directories(\${OpenMP_INCLUDE_DIR})"
-        echo "find_package(OpenMP REQUIRED)"
         cat CMakeLists.txt
     } > CMakeLists.txt.tmp
     mv CMakeLists.txt.tmp CMakeLists.txt
