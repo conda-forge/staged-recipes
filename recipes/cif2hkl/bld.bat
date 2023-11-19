@@ -7,7 +7,6 @@ cmake ^
     -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
     ..\src ^
     -DCMAKE_INSTALL_LIBDIR=lib ^
-    -DCMAKE_BUILD_TYPE=Release ^
     -G "NMake Makefiles" ^
     %CMAKE_ARGS%  || exit /b 1
 
