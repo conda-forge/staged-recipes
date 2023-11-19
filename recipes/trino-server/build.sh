@@ -3,7 +3,7 @@
 set -euxo pipefail
 
 # Don't build docs (requires Docker).
-sed -i'' -e 's@<module>docs</module>@@g' pom.xml
+sed -E -i'' -e 's@.+<module>docs</module>@@g' pom.xml
 
 # Build and install to ./core/...
 if [[ "$build_platform" =~ linux ]]; then
