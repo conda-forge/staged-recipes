@@ -1,4 +1,5 @@
 #!/bin/bash
+set -ex
 mkdir -p build
 cd build
 
@@ -15,6 +16,7 @@ cmake .. \
     -Wno-dev \
     -DCONFIGURATION_ROOT_DIR="${SRC_DIR}/deps/config" \
     -DSALOME_CMAKE_DEBUG=ON \
+    -DMED_INT_IS_LONG=ON \
     -DSALOME_USE_MPI=${on_mpi} \
     -DMEDCOUPLING_BUILD_TESTS=OFF \
     -DMEDCOUPLING_BUILD_DOC=OFF \
