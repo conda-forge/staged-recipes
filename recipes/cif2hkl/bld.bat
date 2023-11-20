@@ -7,7 +7,7 @@ cmake ^
     -DCMAKE_INSTALL_PREFIX="%PREFIX%" ^
     ..\src ^
     -DCMAKE_INSTALL_LIBDIR=lib ^
-    -G "NMake Makefiles" ^
+    -G "Ninja" ^
     %CMAKE_ARGS%  || exit /b 1
 
 cmake --build . --config Release  || exit /b 1
