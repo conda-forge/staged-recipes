@@ -14,6 +14,7 @@ cmake -G "Ninja" .. ^
     -D CONFIGURATION_ROOT_DIR="%SRC_DIR%/deps/config" ^
     -D SALOME_CMAKE_DEBUG=ON ^
     -D SALOME_USE_MPI=OFF ^
+    -D MED_INT_IS_LONG=ON ^
     -D MEDCOUPLING_BUILD_TESTS=OFF ^
     -D MEDCOUPLING_BUILD_DOC=OFF ^
     -D MEDCOUPLING_USE_64BIT_IDS=ON ^
@@ -34,3 +35,4 @@ if errorlevel 1 exit 1
 ninja
 if errorlevel 1 exit 1
 ninja install
+if errorlevel 1 exit 1
