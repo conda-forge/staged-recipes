@@ -16,7 +16,7 @@ mv pybind_interface/GetPybind11.cmake.tmp pybind_interface/GetPybind11.cmake
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # MacOS specific commands
-    OPENMP_INCLUDE_DIR=$(echo ${BUILD_PREFIX}/lib/clang/*/include)
+    OPENMP_INCLUDE_DIR=$(dirname $(find ${BUILD_PREFIX}/lib/clang -name omp.h -type f))
     {
         echo "set(CMAKE_CXX_STANDARD 11)"
         echo "set(OpenMP_INCLUDE_DIR \"${OPENMP_INCLUDE_DIR}\")"
