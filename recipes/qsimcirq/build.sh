@@ -26,7 +26,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     } > CMakeLists.txt.tmp
     mv CMakeLists.txt.tmp CMakeLists.txt
     # Needs a language specified for `find_package(OpenMP REQUIRED)`
-    sed -i "" "s|project(qsim)|project(qsim LANGUAGES CXX)|" CMakeLists.txt
+    sed -i "" "s|project(qsim)|project(qsim LANGUAGES C CXX)|" CMakeLists.txt
     sed -i "" "s|CXX=g++|CXX=${CXX}|" Makefile
     sed -i "" "s|CXXFLAGS = -O3 -fopenmp|CXXFLAGS = -O3 -fopenmp -I${OPENMP_INCLUDE_DIR}|" Makefile
     sed -i "" "s|/usr/local/opt/llvm/bin/clang++|${CXX_FOR_BUILD}|" setup.py
