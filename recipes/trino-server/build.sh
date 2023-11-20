@@ -21,7 +21,7 @@ MAVEN_OPTS=-Xmx4096m ./mvnw clean install --no-transfer-progress -DskipTests -Dm
 
 # Copy from ./core/... to $PREFIX/opt/trino-server/ and create a launcher wrapper.
 # Trino's 'bin/launcher' will be available under the 'trino-server' executable.
-cp -r core/trino-server/target/trino-server-??? $PREFIX/opt/trino-server
+cp -r core/trino-server/target/trino-server-*-hardlinks $PREFIX/opt/trino-server
 executable=$PREFIX/bin/trino-server
 echo > $executable 'exec "'$PREFIX'/opt/trino-server/bin/launcher" "$@"'
 chmod +x $executable
