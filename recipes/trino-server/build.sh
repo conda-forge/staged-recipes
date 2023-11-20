@@ -9,7 +9,7 @@ sed -E -i'' -e 's@.+<module>docs</module>@@g' pom.xml
 if [[ "$build_platform" =~ linux ]]; then
   # OOM?
   # parallel="-T$CPU_COUNT"
-  ;
+  :;
 else
   # https://issues.apache.org/jira/browse/MNG-7868
   parallel=""
