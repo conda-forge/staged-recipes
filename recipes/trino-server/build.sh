@@ -13,7 +13,8 @@ sed -E -i'' -e 's@.+<module>docs</module>@@g' pom.xml
 #   parallel=""
 # fi
 parallel="" # OOM?
-./mvnw clean install --no-transfer-progress -DskipTests -Dmaven.repo.local=$SRC_DIR/m2 $parallel
+# Checkstyle causes OOM (?)
+./mvnw clean install --no-transfer-progress -DskipTests -Dair.check.skip-checkstyle=true -Dmaven.repo.local=$SRC_DIR/m2 $parallel
 
 # Collect third-party licenses.
 # Trino ships its own third-party license file at "core/.../trino-server-*/NOTICE"
