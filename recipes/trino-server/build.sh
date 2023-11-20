@@ -12,8 +12,7 @@ else
   # https://issues.apache.org/jira/browse/MNG-7868
   parallel=""
 fi
-# Checkstyle causes OOM.
-./mvnw clean install --no-transfer-progress -DskipTests -Dair.check.skip-checkstyle=true -Dmaven.repo.local=$SRC_DIR/m2 $parallel
+MAVEN_OPTS=-Xmx4096m ./mvnw clean install --no-transfer-progress -DskipTests -Dmaven.repo.local=$SRC_DIR/m2 $parallel
 
 # Collect third-party licenses.
 # Trino ships its own third-party license file at "core/.../trino-server-*/NOTICE"
