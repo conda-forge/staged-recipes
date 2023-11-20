@@ -6,14 +6,13 @@ set -euxo pipefail
 sed -E -i'' -e 's@.+<module>docs</module>@@g' pom.xml
 
 # Build and install to ./core/...
-if [[ "$build_platform" =~ linux ]]; then
-  # OOM?
-  # parallel="-T$CPU_COUNT"
-  :;
-else
-  # https://issues.apache.org/jira/browse/MNG-7868
-  parallel=""
-fi
+# if [[ "$build_platform" =~ linux ]]; then
+#   parallel="-T$CPU_COUNT"
+# else
+#   # https://issues.apache.org/jira/browse/MNG-7868
+#   parallel=""
+# fi
+parallel="" # OOM?
 ./mvnw clean install --no-transfer-progress -DskipTests -Dmaven.repo.local=$SRC_DIR/m2 $parallel
 
 # Collect third-party licenses.
