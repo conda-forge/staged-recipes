@@ -16,4 +16,5 @@ MESON_ARGS_REDUCED="$(echo $MESON_ARGS | sed 's/--buildtype release //g')"
 $PYTHON -m pip install . -vv --no-deps --no-build-isolation \
     -Cbuilddir=builddir \
     -Csetup-args=${MESON_ARGS_REDUCED// / -Csetup-args=} \
+    -Ccompile-args=$BUILD_PREFIX/include \
     || (cat builddir/meson-logs/meson-log.txt && exit 1)
