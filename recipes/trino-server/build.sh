@@ -7,7 +7,7 @@ sed -E -i'' -e 's@.+<module>docs</module>@@g' pom.xml
 
 # Parallelize the build on Linux.
 # Disabled on non-Linux because of https://issues.apache.org/jira/browse/MNG-7868.
-if [[ "$build_platform" =~ linux ]]; then
+if [[ "$build_platform" == linux-* ]]; then
   parallel="-T$CPU_COUNT"
 else
   parallel=""
