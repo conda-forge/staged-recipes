@@ -10,10 +10,9 @@ cp -r deps/cmake .
 cp -r deps/debugbreak ./src/c4/ext
 
 # Configure the build of the library
-cd c4core
 mkdir build
 cd build
-cmake -GNinja .. ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release
+cmake -GNinja .. ${CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=ON
 
 # Build and install the library in $PREFIX
 ninja install
