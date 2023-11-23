@@ -4,7 +4,11 @@
 @REM git clone https://github.com/biojppm/cmake.git --depth 1
 @REM rmdir /s /q src\c4\ext\debugbreak\ && git clone https://github.com/biojppm/debugbreak.git --depth 1 src\c4\ext\debugbreak
 
+xcopy /E /I deps\cmake c4core\cmake
+xcopy /E /I deps\debugbreak c4core\src\c4\ext\debugbreak
+
 @REM Configure the build of the library
+cd c4core
 mkdir build
 cd build
 cmake -GNinja .. %CMAKE_ARGS% -DCMAKE_BUILD_TYPE=Release
