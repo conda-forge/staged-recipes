@@ -15,7 +15,7 @@ from __future__ import print_function
 from conda_build.metadata import MetaData
 from conda_smithy.utils import get_feedstock_name_from_meta
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from github import Github, GithubException
 import os.path
 import shutil
@@ -139,7 +139,7 @@ def print_rate_limiting_info(gh, user):
 
     # Compute time until GitHub API Rate Limit reset
     gh_api_reset_time = gh.get_rate_limit().core.reset
-    gh_api_reset_time -= datetime.utcnow()
+    gh_api_reset_time -= datetime.now(timezone.utc)
 
     print("")
     print("GitHub API Rate Limit Info:")
@@ -161,7 +161,7 @@ def sleep_until_reset(gh):
     if gh_api_remaining == 0:
         # Compute time until GitHub API Rate Limit reset
         gh_api_reset_time = gh.get_rate_limit().core.reset
-        gh_api_reset_time -= datetime.utcnow()
+        gh_api_reset_time -= datetime.now(timezone.utc)
 
         mins_to_sleep = int(gh_api_reset_time.total_seconds() / 60)
         mins_to_sleep += 2
