@@ -1,11 +1,7 @@
 #!/bin/bash
 
-# Fetch auxiliary GitHub projects only needed to build c4core (they are not
-# shipped with the library!) Note c4core relies on git submodules, but since we
-# have downloaded a tarball, we need to fetch these repos manually.
-# git clone https://github.com/biojppm/cmake.git --depth 1
-# rm -rf src/c4/ext/debugbreak/ && git clone https://github.com/biojppm/debugbreak.git --depth 1 src/c4/ext/debugbreak
-
+# Copy the downloaded dependencies in meta.yaml to the dirs expected by c4core
+# NOTE: These dependencies are not vendored by c4core! They are small and specific to c4core.
 cp -r deps/cmake .
 cp -r deps/debugbreak ./src/c4/ext
 
