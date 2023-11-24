@@ -12,5 +12,5 @@ cmake $CMAKE_ARGS \
   -DCMAKE_CXX_FLAGS="-Wno-deprecated-declarations -DBOOST_NO_CXX98_FUNCTION_BASE" \
   ..
 
-make -j$CPU_COUNT
+make -j$CPU_COUNT VERBOSE=1
 make install
