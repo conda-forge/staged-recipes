@@ -2,7 +2,7 @@ set -x
 
 export CMAKE_GENERATOR=Ninja
 export CMAKE_ARGS="${CMAKE_ARGS} -DBMF_LOCAL_DEPENDENCIES=OFF -DBMF_ENABLE_CUDA=${BMF_BUILD_ENABLE_CUDA}"
-$PYTHON -m pip install -v .
+"$PYTHON" -m pip install -v .
 
 cd $PREFIX/lib/python${PY_VER}/site-packages/bmf
 
