@@ -1,7 +1,7 @@
 @echo on
 setlocal EnableDelayedExpansion
 
-@REM CMake does not like paths with \ characters
+:: CMake does not like paths with \ characters
 set LIBRARY_PREFIX="%LIBRARY_PREFIX:\=/%"
 
 cmake -GNinja ^

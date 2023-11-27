@@ -10,12 +10,16 @@ case "${PKG_NAME}" in
     cmake --install .build/common --component google_cloud_cpp_runtime
     ;;
   libgoogle-cloud-iam-devel)
+    # Do nothing, this is installed by `libgoogle-cloud-pubsub-devel`.
     ;;
   libgoogle-cloud-iam)
+    # Do nothing, this is installed by `libgoogle-cloud-pubsub`.
     ;;
   libgoogle-cloud-policytroubleshooter-devel)
+    # Do nothing, this is installed by `libgoogle-cloud-pubsub-devel`.
     ;;
   libgoogle-cloud-policytroubleshooter)
+    # Do nothing, this is installed by `libgoogle-cloud-pubsub`.
     ;;
   libgoogle-cloud-*-devel)
     feature=${PKG_NAME/#libgoogle-cloud-/}

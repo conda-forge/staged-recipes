@@ -1,13 +1,13 @@
 @echo on
 setlocal EnableDelayedExpansion
 
-@REM CMake does not like paths with \ characters
+:: CMake does not like paths with \ characters
 set LIBRARY_PREFIX="%LIBRARY_PREFIX:\=/%"
 set BUILD_PREFIX="%BUILD_PREFIX:\=/%"
 set SRC_DIR="%SRC_DIR:\=/%"
 
-@REM Compile the common libraries. These are shared by other feedstocks
-@REM and by the subpackages in this feedstock.
+:: Compile the common libraries. These are shared by other feedstocks
+:: and by the subpackages in this feedstock.
 cmake -G "Ninja" ^
     -S . -B .build/common ^
     -DGOOGLE_CLOUD_CPP_ENABLE=__common__ ^
@@ -30,8 +30,8 @@ if %ERRORLEVEL% neq 0 exit 1
 
 set STAGE="%cd:\=/%"
 
-@REM These subpackages are the most commonly used features of google-cloud-cpp.
-@REM We want to compile them in the core feedstock.
+:: These subpackages are the most commonly used features of google-cloud-cpp.
+:: We want to compile them in the core feedstock.
 FOR %%G IN (oauth2 bigtable storage spanner) DO (
     cmake -G "Ninja" ^
         -S . -B .build/%%G ^
@@ -53,7 +53,7 @@ FOR %%G IN (oauth2 bigtable storage spanner) DO (
     if %ERRORLEVEL% neq 0 exit 1
 )
 
-@REM `pubsub` must to be compiled with `iam` and policytroubleshooter wiht `iam`
+:: `pubsub` must to be compiled with `iam` and policytroubleshooter with `iam`
 cmake -G "Ninja" ^
     -S . -B .build/pubsub ^
     -DGOOGLE_CLOUD_CPP_ENABLE=pubsub,iam,policytroubleshooter ^
