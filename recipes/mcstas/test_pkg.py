@@ -120,15 +120,26 @@ def tests_for_pkg_data():
     datadir = sharedir / 'resources' / 'data'
     ndata = 0
     for f in ( sharedir ).glob('**/*'):
+
         if f.is_dir() and ( f in datadir.parents or f == datadir ):
             continue#ignore <prefix>/share/mcstas[/resources[/data]]
-        if datadir in f.parents:
-            ndata += 1
-        else:
-            raise SystemExit(f'Forbidden file installed by mcstas-data pkg: {f}')
+
+        if datadir not in f.parents:
+            raise SystemExit(f'mcstas-data error: Forbidden file installed: {f}')
+        ndata += 1
+
+        if not f.absolute().resolve().is_relative_to(datadir):
+            raise SystemExit(f'mcstas-data error: installed data-file is symlink: {f}')
+
+        if any( f.name.startswith(c) for c in '._' ):
+            raise SystemExit(f'mcstas-data error: installed data-file with forbidden initial char: {f}')
+
+        subpathstr = str(f.relative_to(datadir))
+        if any( ( c in subpathstr ) for c in '$^: \t\n\r~'):
+            raise SystemExit('mcstas-data error: Forbidden character in name: %s'%subpathstr)
+
     if ndata < 20 or ndata > 2000:
         raise SystemExit(f'Unexpected number ({ndata}) of data files installed')
-
 
 def tests_for_pkg_core():
     if ( conda_prefix_dir / 'share' / 'mcstas' / 'resources' / 'data' ).exists():
