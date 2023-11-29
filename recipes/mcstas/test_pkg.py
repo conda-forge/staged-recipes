@@ -132,7 +132,8 @@ def tests_for_pkg_data():
             raise SystemExit(f'mcstas-data error: installed data-file is symlink: {f}')
 
         if any( f.name.startswith(c) for c in '._' ):
-            raise SystemExit(f'mcstas-data error: installed data-file with forbidden initial char: {f}')
+            if f.name != '.mcstas-data-version-conda.txt':
+                raise SystemExit(f'mcstas-data error: installed data-file with forbidden initial char: {f}')
 
         subpathstr = str(f.relative_to(datadir))
         if any( ( c in subpathstr ) for c in '$^: \t\n\r~'):
