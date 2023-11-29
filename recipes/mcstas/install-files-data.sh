@@ -18,8 +18,8 @@ test -n "${PKG_VERSION}"
 
 #Now simply copy over all the data files:
 mkdir -p "${DESTDATADIR}"
-cp -r "${SRCDATADIR/"* "${DESTDATADIR}"/
+cp -r "${SRCDATADIR}"/* "${DESTDATADIR}"/
 
 #Ensure consistent permissions on all installed files:
-find ${DESTDATADIR} -type d -exec chmod 755 {} \;
-find ${DESTDATADIR} -type f -exec chmod 644 {} \;
+find "${DESTDATADIR}" -type d -exec chmod 755 {} \;
+find "${DESTDATADIR}" -type f -exec chmod 644 {} \;
