@@ -2,5 +2,5 @@
 
 export BOOST_ROOT=$PREFIX
 meson setup --buildtype=release build_preproc -Dcpp_link_args='-pthread'
-meson compile -C build_preproc
+meson compile -v -C build_preproc
 cp build_preproc/src/dynare-preprocessor $PREFIX/bin/dynare-preprocessor
