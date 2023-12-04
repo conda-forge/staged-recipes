@@ -1,5 +1,5 @@
 {% set name = "llama-cpp-python" %}
-{% set version = "0.2.19" %}
+{% set version = "0.2.20" %}
 
 package:
   name: {{ name|lower }}
@@ -7,22 +7,34 @@ package:
 
 source:
   url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/llama_cpp_python-{{ version }}.tar.gz
-  sha256: 5c3be3f98108b7fc747f5c7260344af13621cd626d628cd5a6c0f6eec53a873a
+  sha256: a0ada1cb800ba4da60ea6ac4f7264b687a35412374e5af2c92e5b22852cdbafb
+  patches:
+    # https://github.com/abetlen/llama-cpp-python/issues/898, but for Linux + CUDA
+    - remove-cuda-architectures-for-llava.patch  # [cuda_compiler_version != "None"]
 
 build:
-  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip: True  # [win]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }} # [cuda_compiler_version != "None"]
+  script:
+    - export CMAKE_ARGS=-DLLAMA_CUBLAS=on                         # [cuda_compiler_version != "None"]
+    - export CMAKE_ARGS="-DLLAMA_ACCELERATE=on -DLLAMA_METAL=on"  # [osx]
+    - {{ PYTHON }} -m pip install . -vv
   number: 0
 
 requirements:
-  host:
+  build:
     - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda')}}  # [cuda_compiler_version != "None"]
     - cmake
-    - make  # [not win]
-    - ninja  # [win]
-    - python 
+    - make   # [not win]
+  host:
+    - python
     - scikit-build-core >=0.5.1
     - pip
+    - cudatoolkit {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
   run:
+    - cudatoolkit {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
     - python
     - typing-extensions >=4.5.0
     - numpy >=1.20.0
@@ -54,3 +66,4 @@ about:
 extra:
   recipe-maintainers:
     - YYYasin19
+    - sodre
