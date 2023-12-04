@@ -13,20 +13,15 @@ source:
 
 build:
   skip: True  # [win]
-  skip: True  # [osx and blas_impl != "openblas"]
-  skip: True  # [linux and blas_impl != "openblas"]
+  skip: True  # [linux and cuda_compiler_version == "None"]
   number: 0
   string: cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
-  string: cpu_accelerate_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}       # [osx]
-  string: cpu_{{ blas_impl }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [linux and cuda_compiler_version == "None"]
+  string: cpu_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}       # [osx]
 
   script:
     - CMAKE_LLAMA_ARGS="-DLLAMA_NATIVE=on"
     - CMAKE_LLAMA_ARGS="${CMAKE_LLAMA_ARGS} -DLLAMA_CUBLAS=on"                                 # [cuda_compiler_version != "None"]
     - CMAKE_LLAMA_ARGS="${CMAKE_LLAMA_ARGS} -DLLAMA_ACCELERATE=on -DLLAMA_METAL=on"            # [osx]
-    - CMAKE_LLAMA_ARGS="${CMAKE_LLAMA_ARGS} -DLLAMA_BLAS=on -DLLAMA_BLAS_VENDOR=FLAME"         # [linux and cuda_compiler_version == "None" and blas_impl == "blis"]
-    - CMAKE_LLAMA_ARGS="${CMAKE_LLAMA_ARGS} -DLLAMA_BLAS=on -DLLAMA_BLAS_VENDOR=OpenBLAS"      # [linux and cuda_compiler_version == "None" and blas_impl == "openblas"]
-    - CMAKE_LLAMA_ARGS="${CMAKE_LLAMA_ARGS} -DLLAMA_BLAS=on -DLLAMA_BLAS_VENDOR=Intel10_64lp"  # [linux and cuda_compiler_version == "None" and blas_impl == "mkl"]
     - cmake -S . -B build -G Ninja -DCMAKE_PREFIX_PATH={{ PREFIX }} ${CMAKE_LLAMA_ARGS}
     - cmake --build build --config Release
     - cmake --install build --prefix={{ PREFIX }}
@@ -40,12 +35,9 @@ requirements:
     - git
     - ninja
     - macosx_deployment_target_osx-64 {{ MACOSX_DEPLOYMENT_TARGET }}  # [osx and x86_64]
-  host:
-    - {{ blas_impl }}  # [linux and cuda_compiler_version == "None"]
   run:
     # llama.cpp *really* depends on the version it compiled against
     - cudatoolkit {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
-    - {{ blas_impl }}  # [linux and cuda_compiler_version == "None"]
     - macosx_deployment_target_osx-64 >={{ MACOSX_DEPLOYMENT_TARGET }}  # [osx and x86_64]
 
 test:
