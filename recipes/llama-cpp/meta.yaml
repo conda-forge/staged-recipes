@@ -1,0 +1,58 @@
+{% set name = "llama.cpp" %}
+{% set version = "1601" %}
+
+package:
+  name: {{ name|lower }}
+  version: 0.0.{{ version }}
+
+source:
+  url: https://github.com/ggerganov/llama.cpp/archive/refs/tags/b{{ version }}.tar.gz
+  sha256: 829f7c3696fb9da15faf0b70e7d33a174d3de5111ac797511ca0974eb42cf572
+  patches:
+    - osx-64-pick-discrete.patch  # [osx and x86_64]
+
+build:
+  skip: True  # [win]
+  skip: True  # [osx]
+  skip: True  # [linux and cuda_compiler_version == "None"]
+  number: 0
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  string: cpu_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                                 # [cuda_compiler_version == "None"]
+
+  script:
+    - CMAKE_LLAMA_ARGS="-DLLAMA_NATIVE=on"
+    - CMAKE_LLAMA_ARGS="${CMAKE_LLAMA_ARGS} -DLLAMA_CUBLAS=on"                                 # [cuda_compiler_version != "None"]
+    - CMAKE_LLAMA_ARGS="${CMAKE_LLAMA_ARGS} -DLLAMA_ACCELERATE=on -DLLAMA_METAL=on"            # [osx]
+    - cmake -S . -B build -G Ninja -DCMAKE_PREFIX_PATH={{ PREFIX }} ${CMAKE_LLAMA_ARGS}
+    - cmake --build build --config Release
+    - cmake --install build --prefix={{ PREFIX }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+    - cmake
+    - git
+    - ninja
+    - macosx_deployment_target_osx-64 {{ MACOSX_DEPLOYMENT_TARGET }}  # [osx and x86_64]
+  run:
+    # llama.cpp *really* depends on the version it compiled against
+    - cudatoolkit {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+    - macosx_deployment_target_osx-64 >={{ MACOSX_DEPLOYMENT_TARGET }}  # [osx and x86_64]
+
+test:
+  commands:
+    - main --help
+    - server --help
+
+about:
+  home: https://github.com/ggerganov/llama.cpp
+  summary: Port of Facebook's LLaMA model in C/C++
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - sodre

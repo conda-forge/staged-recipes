@@ -1,0 +1,72 @@
+{% set name = "llama-cpp-python" %}
+{% set version = "0.2.20" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/llama_cpp_python-{{ version }}.tar.gz
+  sha256: a0ada1cb800ba4da60ea6ac4f7264b687a35412374e5af2c92e5b22852cdbafb
+  patches:
+    # https://github.com/abetlen/llama-cpp-python/commit/e3941d9c674dbd9891dc3ceda390daeb21f05fd1
+    - e3941d9.patch 
+
+build:
+  skip: True  # [win]
+  skip: True  # [osx]
+  skip: True  # [linux and cuda_compiler_version == "None"]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  string: cpu_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                                 # [cuda_compiler_version == "None"]
+  script:
+    - export CMAKE_ARGS="-DLLAVA_BUILD=OFF"
+    - export CMAKE_ARGS="${CMAKE_ARGS} -DLLAMA_CUBLAS=ON"                        # [cuda_compiler_version != "None"]
+    - export CMAKE_ARGS="${CMAKE_ARGS} -DDLLAMA_ACCELERATE=ON -DLLAMA_METAL=ON"  # [osx]
+    - {{ PYTHON }} -m pip install . -vv
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+    - cmake
+    - make   # [not win]
+  host:
+    - python
+    - scikit-build-core >=0.5.1
+    - pip
+  run:
+    - cudatoolkit {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+    - python
+    - typing-extensions >=4.5.0
+    - numpy >=1.20.0
+    - diskcache >=5.6.1
+    # server dependencies
+    - uvicorn >=0.22.0
+    - fastapi >=0.100.0
+    - pydantic-settings >=2.0.1
+    - sse-starlette >=1.6.1
+    - starlette-context >=0.3.6,<0.4
+
+test:
+  imports:
+    - llama_cpp  # [not osx]
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/abetlen/llama-cpp-python
+  summary: Python bindings for the llama.cpp library
+  license: MIT
+  license_file:
+    - LICENSE.md
+    - vendor/llama.cpp/LICENSE
+    - vendor/llama.cpp/gguf-py/LICENSE
+
+extra:
+  recipe-maintainers:
+    - YYYasin19
+    - sodre
