@@ -56,7 +56,6 @@ fi
 
 docker pull "${DOCKER_IMAGE}"
 docker run ${DOCKER_RUN_ARGS} \
-           -it \
            -v "${REPO_ROOT}:/home/conda/staged-recipes" \
            -e HOST_USER_ID=${HOST_USER_ID} \
            -e AZURE=${AZURE} \
@@ -65,8 +64,8 @@ docker run ${DOCKER_RUN_ARGS} \
            -e CPU_COUNT \
            -e DEFAULT_LINUX_VERSION \
            "${DOCKER_IMAGE}" \
-           bash #\
-           #"/home/conda/staged-recipes/${PROVIDER_DIR}/build_steps.sh"
+           bash \
+           "/home/conda/staged-recipes/${PROVIDER_DIR}/build_steps.sh"
 
 # verify that the end of the script was reached
 test -f "$DONE_CANARY"
