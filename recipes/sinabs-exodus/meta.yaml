@@ -1,0 +1,61 @@
+{% set name = "sinabs-exodus" %}
+{% set version = "1.1.2" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/sinabs-exodus-{{ version }}.tar.gz
+  sha256: f76282d2f80037cb17bf25633e839b689535ef210f78922791163bcd2b0bbe8e
+  patches:
+    - fix-hardcoded-compiler.patch
+
+build:
+  number: 0
+  skip: true  # [win or osx or cuda_compiler_version == "None"]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  missing_dso_whitelist:
+    # pytorch builds put the libs in the wrong place, but hard to unbundle, see
+    # https://github.com/conda-forge/staged-recipes/pull/17082#issuecomment-1189149813
+    - '*/libc10{{ SHLIB_EXT }}'
+    - '*/libc10_cuda{{ SHLIB_EXT }}'
+    - '*/libtorch{{ SHLIB_EXT }}'
+    - '*/libtorch_cpu{{ SHLIB_EXT }}'
+    - '*/libtorch_cuda{{ SHLIB_EXT }}'
+    - '*/libtorch_python{{ SHLIB_EXT }}'
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+  host:
+    - versioneer
+    - python
+    - pytorch
+    - pip
+  run:
+    - python
+    - pytorch
+    - sinabs
+    - __cuda
+
+test:
+  imports:
+    - sinabs.exodus
+    - sinabs.exodus.layers
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  summary: Efficient training and inference on GPU for sinabs spiking neural network simulator.
+  license: AGPL-3.0-or-later
+  license_file: LICENSE
+  home: https://github.com/synsense/sinabs-exodus
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer
