@@ -22,4 +22,4 @@ go build \
 
 # generate the license pack
 go get ./...
-go-licenses save ./cmd --save_path license-files
+go-licenses save ./cmd --save_path license-files --ignore modernc.org\/mathutil
