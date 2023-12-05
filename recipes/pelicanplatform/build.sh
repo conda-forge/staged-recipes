@@ -20,8 +20,6 @@ go build \
   -o "${PREFIX}/bin/pelican" \
   ./cmd
 
-# generate the license pack (which fails because of an unknown license)
+# generate the license pack
 go get ./...
-go-licenses save ./... --save_path license-files || true
-# sanity check that we got _something_
-test -d license-files/github.com
+go-licenses save ./cmd --save_path license-files

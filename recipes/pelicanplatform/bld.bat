@@ -33,9 +33,7 @@ go build ^
   .\cmd
 if errorlevel 1 exit 1
 
-rem -- generate the license pack (which fails because of an unknown license)
+rem -- generate the license pack
 go get ./...
-go-licenses save ./... --save_path license-files || true
+go-licenses save .\cmd --save_path license-files
 if errorlevel 1 exit 1
-rem sanity check that we got _something_
-if not exist .\license-files\github.com\ exit 1
