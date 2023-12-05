@@ -1,0 +1,96 @@
+{% set name = "gnuradio-funcube" %}
+{% set version = "3.10.0.rc3" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/dl1ksv/gr-funcube/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 0e93f799acdc7dae0627ecb3eaea607565f8a71bfe615b80ef6ca057298593aa
+
+build:
+  number: 0
+  skip: true  # [not linux]
+  run_exports:
+    - {{ pin_subpackage('gnuradio-funcube', max_pin='x.x') }}
+  ignore_run_exports_from:
+    # need libusb according to CMake, but not needed in output
+    - libusb
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - pkg-config
+    # cross-compilation requirements
+    - python                              # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+    - numpy                               # [build_platform != target_platform]
+    - pybind11                            # [build_platform != target_platform]
+
+  host:
+    - fmt
+    - gmp  # [linux]
+    - gnuradio-core
+    - libboost-headers
+    - libhidapi
+    - libusb
+    - pip  # [win]
+    - pybind11
+    - python
+    - numpy
+    - six
+    - spdlog
+
+  run:
+    - numpy
+    - python
+
+test:
+  commands:
+    # verify that (some) headers get installed
+    - test -f $PREFIX/include/funcube/api.h  # [not win]
+    - if not exist %PREFIX%\\Library\\include\\funcube\\api.h exit 1  # [win]
+
+    # verify that libraries get installed
+    - test -f $PREFIX/lib/lib{{ name }}${SHLIB_EXT}  # [not win]
+    - if not exist %PREFIX%\\Library\\bin\\{{ name }}.dll exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\lib\\{{ name }}.lib exit 1  # [win]
+
+    # verify that GRC blocks get installed
+    {% set blocks = ["fcd", "fcd_control", "fcdpp", "fcdpp_control"] %}
+
+    {% for block in blocks %}
+    - test -f $PREFIX/share/gnuradio/grc/blocks/funcube_{{ block }}.block.yml  # [not win]
+    - if not exist %PREFIX%\\Library\\share\\gnuradio\\grc\\blocks\\funcube_{{ block }}.block.yml exit 1  # [win]
+    {% endfor %}
+
+    # verify udev rules get installed
+    - test -f $PREFIX/lib/udev/rules.d/50-funcube.rules  # [linux]
+
+  imports:
+    - funcube
+
+about:
+  home: https://github.com/dl1ksv/gr-funcube
+  license: GPL-3.0-or-later
+  license_family: GPL
+  license_file: COPYING
+  summary: GNU Radio module for the Funcube and the Funcube Pro Plus dongles
+  description: >
+    This is an out-of-tree module for GNU Radio to implement a FUNcube Dongle and a FUNcube Dongle Pro+ source. On linux it autodetects the correct soundcard from /proc/asound/cards.
+
+    For Linux users of `gnuradio-funcube`, you will likely want to link the provided udev rule into your system installation in order for the hardware to have the correct permissions:
+
+        sudo ln -s $CONDA_PREFIX/lib/udev/rules.d/50-funcube.rules /etc/udev/rules.d/
+        sudo udevadm control --reload
+        sudo udevadm trigger
+
+    You may have to restart for this change to take effect.
+
+extra:
+  recipe-maintainers:
+    - ryanvolz
