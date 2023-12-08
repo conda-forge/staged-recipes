@@ -2,6 +2,7 @@
 
 set -euo pipefail
 
-export OPENSSL_ROOT_DIR=$PREFIX
-
-make install
+make config prefix=$PREFIX -j $CPU_COUNT
+make all prefix=$PREFIX -j $CPU_COUNT
+mkdir -p $PREFIX/bin
+make install prefix=$PREFIX -j $CPU_COUNT
