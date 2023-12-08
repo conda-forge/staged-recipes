@@ -1,0 +1,54 @@
+diff --git a/build_lib.py b/build_lib.py
+--- a/build_lib.py
++++ b/build_lib.py
+@@ -101,6 +101,8 @@ if os.name == "nt":
+         if not warp.config.host_compiler:
+             print("Warp build error: Could not find MSVC compiler")
+             sys.exit(1)
++else:
++    warp.config.host_compiler = find_host_compiler()
+ 
+ 
+ # return platform specific shared library name
+diff --git a/warp/build_dll.py b/warp/build_dll.py
+--- a/warp/build_dll.py
++++ b/warp/build_dll.py
+@@ -101,7 +101,7 @@ def find_host_compiler():
+     else:
+         # try and find g++
+         try:
+-            return run_cmd("which g++").decode()
++            return run_cmd("echo $CXX").decode().strip() if run_cmd("echo $CXX") != b"\xA0" else run_cmd("which g++").decode().strip() 
+         except:
+             return ""
+ 
+@@ -308,7 +308,7 @@ def build_dll_for_arch(dll_path, cpp_paths, cu_path, libs, mode, arch, verify_fp
+                 cpp_out = cpp_path + ".o"
+                 ld_inputs.append(quote(cpp_out))
+ 
+-                build_cmd = f'g++ {cpp_flags} -c "{cpp_path}" -o "{cpp_out}"'
++                build_cmd = f'{warp.config.host_compiler} {cpp_flags} -c "{cpp_path}" -o "{cpp_out}"'
+                 run_cmd(build_cmd)
+ 
+         if cu_path:
+@@ -337,7 +337,7 @@ def build_dll_for_arch(dll_path, cpp_paths, cu_path, libs, mode, arch, verify_fp
+ 
+         with ScopedTimer("link", active=warp.config.verbose):
+             origin = "@loader_path" if (sys.platform == "darwin") else "$ORIGIN"
+-            link_cmd = f"g++ {target} -shared -Wl,-rpath,'{origin}' {opt_no_undefined} {opt_exclude_libs} -o '{dll_path}' {' '.join(ld_inputs + libs)}"
++            link_cmd = f"{warp.config.host_compiler} {target} -shared -Wl,-rpath,'{origin}' {opt_no_undefined} {opt_exclude_libs} -o '{dll_path}' {' '.join(ld_inputs + libs)}"
+             run_cmd(link_cmd)
+ 
+             # Strip symbols to reduce the binary size
+diff --git a/warp/native/cutlass/tools/library/scripts/pycutlass/src/pycutlass/compiler.py b/warp/native/cutlass/tools/library/scripts/pycutlass/src/pycutlass/compiler.py
+--- a/warp/native/cutlass/tools/library/scripts/pycutlass/src/pycutlass/compiler.py
++++ b/warp/native/cutlass/tools/library/scripts/pycutlass/src/pycutlass/compiler.py
+@@ -305,7 +305,7 @@ class ArtifactManager:
+ 
+         # compile the host code
+         options = compilation_options.get()
+-        cmd = "echo '%s'|g++ -x c++ -fpermissive -w -fPIC" % source_buffer_host
++        cmd = "echo '%s'|$CXX -x c++ -fpermissive -w -fPIC" % source_buffer_host
+         for opt in options:
+             opt = opt.decode("utf-8")
+             if opt not in ['-default-device', '-std=c++11', '-Xcicc', '-Xllc'] and '-arch=sm_' not in opt:
