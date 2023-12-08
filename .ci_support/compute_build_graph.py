@@ -253,15 +253,14 @@ def match_peer_job(target_matchspec, other_m, this_m=None):
     match_dict = {'name': other_m.name(),
                 'version': other_m.version(),
                 'build': _fix_any(other_m.build_id(), other_m.config), }
-    if conda_interface.conda_43:
-        match_dict = conda_interface.Dist(name=match_dict['name'],
-                                            dist_name='-'.join((match_dict['name'],
-                                                                match_dict['version'],
-                                                                match_dict['build'])),
-                                            version=match_dict['version'],
-                                            build_string=match_dict['build'],
-                                            build_number=int(other_m.build_number() or 0),
-                                            channel=None)
+    match_dict = conda_interface.Dist(name=match_dict['name'],
+                                        dist_name='-'.join((match_dict['name'],
+                                                            match_dict['version'],
+                                                            match_dict['build'])),
+                                        version=match_dict['version'],
+                                        build_string=match_dict['build'],
+                                        build_number=int(other_m.build_number() or 0),
+                                        channel=None)
     matchspec_matches = target_matchspec.match(match_dict)
 
     variant_matches = True
