@@ -30,7 +30,7 @@ fi
 # Build in subdirectory and install.
 mkdir -p build
 cd build
-cmake ${CMAKE_FLAGS} ${SRC_DIR}
+cmake ${CMAKE_ARGS} ${CMAKE_FLAGS} ${SRC_DIR}
 make -j$CPU_COUNT install
 make -j$CPU_COUNT PythonInstall
 
