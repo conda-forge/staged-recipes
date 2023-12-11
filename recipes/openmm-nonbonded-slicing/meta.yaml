@@ -1,5 +1,11 @@
 {% set version = "0.2.1" %}
 
+{% if cuda_compiler_version in (None, "None", True, False) %}
+{% set cuda_major = 0 %}
+{% else %}
+{% set cuda_major = environ.get("cuda_compiler_version", "11.8").split(".")[0] | int %}
+{% endif %}
+
 package:
   name: openmm-nonbonded-slicing
   version: {{ version }}
@@ -22,9 +28,13 @@ requirements:
     - {{ compiler('cxx') }}
     - {{ compiler('cuda') }}  # [linux and cuda_compiler_version != 'None']
     - {{ cdt('mesa-libgl-devel') }}  # [linux]
+    {% if cuda_major >= 12 %}
+    - cuda-driver-dev
+    - cuda-nvrtc-dev
+    - libcufft-dev
+    {% endif %}
     - cmake
     - make
-
   host:
     - python >=3.8
     - pip
@@ -32,6 +42,16 @@ requirements:
     - swig <4.1
     - ocl-icd  # [linux]
     - khronos-opencl-icd-loader  # [osx]
+    {% if cuda_major >= 12 %}
+    - cuda-driver-dev
+    - cuda-cudart-dev
+    - cuda-nvrtc-dev
+    - cuda-nvtx-dev
+    - cuda-nvml-dev
+    - libcublas-dev
+    - libcufft-dev
+    - libcurand-dev
+    {% endif %}
   run:
     - {{ pin_compatible('python', lower_bound='3.8') }}
     - {{ pin_compatible('openmm', lower_bound='7.7') }}  # [linux]
