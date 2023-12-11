@@ -4,7 +4,7 @@ set -euxo pipefail
 
 rm -rf build || true
 
-CMAKE_FLAGS="-DOPENMM_DIR=${PREFIX}"
+CMAKE_FLAGS="-DOPENMM_DIR=${PREFIX} -DOPENMM_VERSION=$(python -c 'import openmm; print(openmm.__version__)')"
 if [[ "$target_platform" == osx* ]]; then
     CMAKE_FLAGS+=" -DCMAKE_OSX_SYSROOT=${CONDA_BUILD_SYSROOT}"
     CMAKE_FLAGS+=" -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET}"
