@@ -18,11 +18,9 @@ make -j$CPU_COUNT install
 make -j$CPU_COUNT PythonInstall
 
 # Include test executables too
-mkdir -p ${PREFIX}/share/openmm-nonbonded-slicing/tests
+mkdir -p ${PREFIX}/share/${PKG_NAME}/tests
 if [[ "$target_platform" == osx* ]]; then
-    find . -name "Test*" -perm +0111 -type f \
-        -exec python $RECIPE_DIR/patch_osx_tests.py "{}" \; \
-        -exec cp "{}" $PREFIX/share/openmm-nonbonded-slicing/tests/ \;
+    find . -name 'Test*' -perm +0111 -type f -exec cp {} ${PREFIX}/share/${PKG_NAME}/tests/ \;
 else
-    find . -name "Test*" -executable -type f -exec cp "{}" $PREFIX/share/openmm-nonbonded-slicing/tests/ \;
+    find . -name 'Test*' -executable -type f -exec cp {} ${PREFIX}/share/${PKG_NAME}/tests/ \;
 fi

@@ -13,20 +13,25 @@ package:
 source:
   url: https://github.com/craabreu/openmm-nonbonded-slicing/archive/v{{ version }}.tar.gz
   sha256: a43a8eec2693201b4ec8361d99cd67cbdba10f519e7d48b258347c04d1504958
-  patches:
-  - cmakelists.patch
-
 build:
   number: 0
-  skip: true  # [win or (linux and cuda_compiler_version in (undefined, 'None', '10.2'))]
-  missing_dso_whitelist:
-    - "*/libcuda.*"    # [linux64 or ppc64le]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version == "None"]
+  skip: true  # [win]
+  skip: true  # [aarch64 and cuda_compiler_version not in (undefined, 'None')]
+  rpaths:
+    - lib/
 
 requirements:
   build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - numpy >=1.19                           # [build_platform != target_platform]
+    - swig <4.1                              # [build_platform != target_platform]
+    - openmm >=8.0.0                         # [build_platform != target_platform]
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - {{ compiler('cuda') }}  # [linux and cuda_compiler_version != 'None']
+    - {{ compiler('cuda') }}  # [cuda_compiler_version not in (undefined, 'None')]
     - {{ cdt('mesa-libgl-devel') }}  # [linux]
     {% if cuda_major >= 12 %}
     - cuda-driver-dev
@@ -36,10 +41,10 @@ requirements:
     - cmake
     - make
   host:
-    - python >=3.8
+    - python
     - pip
-    - openmm >=7.7
     - swig <4.1
+    - openmm >=8.0.0
     - ocl-icd  # [linux]
     - khronos-opencl-icd-loader  # [osx]
     {% if cuda_major >= 12 %}
@@ -53,9 +58,8 @@ requirements:
     - libcurand-dev
     {% endif %}
   run:
-    - {{ pin_compatible('python', lower_bound='3.8') }}
-    - {{ pin_compatible('openmm', lower_bound='7.7') }}  # [linux]
-    - {{ pin_compatible('openmm', lower_bound='8.0') }}  # [osx]
+    - python
+    - {{ pin_compatible('openmm', max_pin='x.x') }}
     - ocl-icd  # [linux]
     - ocl-icd-system  # [linux]
     - khronos-opencl-icd-loader  # [osx]
@@ -65,15 +69,26 @@ test:
   imports:
     - nonbondedslicing
   commands: |
-    cd ${PREFIX}/share/openmm-nonbonded-slicing/tests
+    cd ${CONDA_PREFIX}/share/openmm-nonbonded-slicing/tests
+    ls -al
     set +e
+    summary=""
+    exitcode=0
     for f in Test*; do
       if [[ $f == *Cuda* || $f == *OpenCL* ]]; then
         continue
       fi
+      echo "Running $f..."
       ./${f}
-      ((exitcode+=$?))
+      thisexitcode=$?
+      summary+="\n${f}: "
+      if [[ $thisexitcode == 0 ]]; then summary+="OK"; else summary+="FAILED"; fi
+      ((exitcode+=$thisexitcode))
     done
+    echo "-------"
+    echo "Summary"
+    echo "-------"
+    echo -e "${summary}"
     exit $exitcode
 
 about:
