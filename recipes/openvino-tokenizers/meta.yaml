@@ -1,0 +1,116 @@
+{% set name = "openvino-tokenizers" %}
+{% set version = "2023.2.0" %}
+
+{% set install_args = "-vv --config-settings=wheel.cmake=False" %}
+
+# Libraries on Windows are expected to be installed into LIBRARY_PREFIX.
+# See https://docs.conda.io/projects/conda-build/en/latest/user-guide/environment-variables.html.
+# On non-Windows CMAKE_ARGS already contains CMAKE_INSTALL_PREFIX.
+{% if win %}
+    {% set cmake_args = "%CMAKE_ARGS% -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%" %}
+{% else %}
+    {% set cmake_args = "$CMAKE_ARGS" %}
+{% endif %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/openvinotoolkit/openvino_contrib/archive/251be0a162b9887f14fcc05e3b6cd13bfa66277a.tar.gz
+  sha256: 49725d49ddcc45135a224cba6249f1b904f0321bf34c7e32be02f8d5f231e88d
+
+build:
+  number: 0
+
+outputs:
+  - name: libopenvino-tokenizers
+    version: {{ version }}
+    about:
+      summary: OpenVINO Tokenizers C++ library
+      license_file:
+        - LICENSE
+        - third-party-programs.txt
+    build:
+      script:
+        - cmake {{ cmake_args }} -DCMAKE_SKIP_INSTALL_RPATH=ON -DCMAKE_BUILD_TYPE=Release -DCUSTOM_OPERATIONS=tokenizer -S modules/custom_operations -B build
+        - cmake --build build --parallel --config Release --target user_ov_extensions
+        - cmake --install build --config Release --component tokenizers
+      ignore_run_exports_from:
+        - libopenvino-dev ={{ version }}
+      run_exports:
+        - {{ pin_subpackage('libopenvino-tokenizers', max_pin='x.x.x') }}
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ compiler('c') }}
+        - sysroot_linux-64 =2.17  # [linux64]
+        - make  # [not win]
+        - cmake >=3.15
+      host:
+        - libopenvino-dev ={{ version }}
+      run:
+        - libopenvino ={{ version }}
+    test:
+      requires:
+        - {{ compiler('cxx') }}
+        - cmake >=3.15
+        - libopenvino-dev ={{ version }}
+        - ninja
+      files:
+        - samples/
+      commands:
+        - test -f $PREFIX/lib/libuser_ov_extensions${SHLIB_EXT}  # [unix]
+        - if not exist %LIBRARY_BIN%\\user_ov_extensions%SHLIB_EXT% exit 1  # [win]
+
+        - cmake -S samples -B build -DCMAKE_BUILD_TYPE=Release -G Ninja
+        - cmake --build build --parallel
+        - ./build/hello_tokenizers  # [unix]
+        - .\\build\\hello_tokenizers  # [win]
+
+  - name: openvino-tokenizers
+    version: {{ version }}
+    about:
+      summary: OpenVINO Tokenizers Python converters
+      license_file:
+        - LICENSE
+        - third-party-programs.txt
+    build:
+      script: "$PYTHON -m pip install modules/custom_operations {{ install_args }}"  # [unix]
+      script: "%PYTHON% -m pip install modules\\custom_operations {{ install_args }}"  # [win]
+    requirements:
+      host:
+        - pip
+        - python
+        - scikit-build-core
+        - libopenvino-python  # dummy dependency, because pyproject.toml contains 'openvino' dependency
+      run:
+        - {{ pin_subpackage('libopenvino-tokenizers', exact=True) }}
+        - libopenvino-python ={{ version }}
+    test:
+      imports:
+        - openvino_tokenizers
+      requires:
+        - pip
+      commands:
+        - pip check
+
+about:
+  home: https://github.com/openvinotoolkit/openvino_contrib/blob/master/modules/custom_operations/user_ie_extensions
+  summary: 'OpenVINO Tokenizers'
+  description: |
+    OpenVINO tokenizers.
+  license: Apache-2.0
+  license_family: Apache
+  license_file:
+    - LICENSE
+    - third-party-programs.txt
+  doc_url: https://github.com/openvinotoolkit/openvino_contrib/blob/master/modules/custom_operations/user_ie_extensions/tokenizer/python/README.md
+  dev_url: https://github.com/openvinotoolkit/openvino_contrib/blob/master/modules/custom_operations/user_ie_extensions
+
+extra:
+  feedstock-name: openvino-tokenizers
+  recipe-maintainers:
+    - ilya-lavrenov
+    - mryzhov
+    - apaniukov
