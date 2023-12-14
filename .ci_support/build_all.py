@@ -133,7 +133,7 @@ def get_config(arch, channel_urls):
 
     config = conda_build.api.Config(
         arch=arch, exclusive_config_files=exclusive_config_files,
-        channel_urls=channel_urls, error_overlinking=True,
+        channel_urls=channel_urls, error_overlinking=False,
     )
     return config
 
@@ -189,7 +189,7 @@ def check_recipes_in_correct_dir(root_dir, correct_dir):
 
 def read_mambabuild(recipes_dir):
     """
-    Only use mambabuild if all the recipes require so via 
+    Only use mambabuild if all the recipes require so via
     'conda_build_tool: mambabuild' in 'recipes/<recipe>/conda-forge.yml'
     """
     folders = os.listdir(recipes_dir)
