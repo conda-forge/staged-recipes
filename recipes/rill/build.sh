@@ -1,3 +1,6 @@
+#!/bin/bash
+set -exuo pipefail
+
 pushd cli
 go-licenses save . --save_path ../library_licenses --ignore modernc.org/mathutil --ignore go.uber.org/zap/exp/zapslog
 popd
