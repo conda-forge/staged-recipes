@@ -8,6 +8,8 @@ cd $PREFIX/lib/python${PY_VER}/site-packages/bmf
 
 # Move tools into environment binary dir
 rm -r cmd
+rm bin/test_hmp
+rm bin/hmp_perf_main
 mv -v bin/* $PREFIX/bin/
 rm -r bin
 

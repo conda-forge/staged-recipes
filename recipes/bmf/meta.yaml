@@ -1,7 +1,7 @@
 {% set name = "bmf" %}
 {% set cuda_major = (cuda_compiler_version|default("0.0")).split(".")[0] %}
 {% set version = "0.0.9" %}
-{% set commit = "c43ea881f62a7d5759156597cd6cc37dd67a2ba6" %}
+{% set commit = "e3c9730ee0de2fe43191c0efacce097c914e1af4" %}
 {% set build = 0 %}
 
 package:
@@ -11,7 +11,7 @@ package:
 source:
   # url: https://github.com/BabitMF/bmf/archive/refs/tags/v{{ version }}.tar.gz
   url: https://github.com/BabitMF/bmf/archive/{{ commit }}.tar.gz
-  sha256: 20e567ff2b6268a4bc181a4cbb911c5c970bacf7f81b9730818bc56824a1f72e
+  sha256: 23e5689e0e0f1344b14ea80177d2937889ae63410faf9cc8b45cc811d88e725e
   patches:
     # we don't need the python command wrapper
     - patches/dont_install_commands.patch
@@ -23,12 +23,11 @@ source:
 build:
   number: {{ build }}
   skip: true  # [win]
-  string: "py{{ CONDA_PY }}_cpu_{{ build }}"                              # [cuda_compiler_version == "None"]
-  string: "py{{ CONDA_PY }}_cuda{{ cuda_compiler_version }}_{{ build }}"  # [cuda_compiler_version != "None"]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                                 # [cuda_compiler_version == "None"]
   ignore_run_exports:
     - glog
     - gtest
-    - numpy
   missing_dso_whitelist:
     - "*/nvcuda.dll"    # [win]
     - "*/_hmp.*"        # [win]
@@ -49,8 +48,6 @@ requirements:
     - patch     # [unix]
     - m2-patch  # [win]
     - patchelf  # [linux]
-    - cross-python_{{ target_platform }}    # [build_platform != target_platform]
-    - python                                # [build_platform != target_platform]
   host:
     - cuda-version  {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
     {% if cuda_major == "12" %}
@@ -79,8 +76,7 @@ requirements:
     - ucrt      # [win]
     - python
     - ncurses   # [unix]
-    - numpy  >=1.19.5
-    - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx and x86_64]
+    - __osx  >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx and x86_64]
 
 test:
   requires:

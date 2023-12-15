@@ -13,6 +13,7 @@ cd %PREFIX%\Lib\site-packages\bmf
 : Move tools into environment binary dir
 RMDIR /S /Q cmd
 DEL /Q bin\test_hmp.exe
+DEL /Q bin\hmp_perf_main.exe
 COPY bin\* %LIBRARY_BIN%
 RMDIR /S /Q bin
 
