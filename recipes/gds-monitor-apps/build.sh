@@ -7,7 +7,7 @@ cd _build
 
 # set C++ standard to c++14
 #   - igwn-cmake sets c++11, which is too old for root
-if [ "$(uname)" = "Darwin" ]; then
+if [[ "$target_platform" == osx-* ]]; then
   # ldas-tools-al doesn't work with c++17 on macOS
   export CXXFLAGS="${CXXFLAGS} -std=c++14"
 else
