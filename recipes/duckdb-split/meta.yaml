@@ -1,0 +1,89 @@
+{% set name = "duckdb" %}
+{% set version = "0.9.2" %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/duckdb/duckdb/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: afff7bd925a98dc2af4039b8ab2159b0705cbf5e0ee05d97f7bb8dce5f880dc2
+  patches:
+    - 0001-Dynamically-link-the-cli.patch
+
+build:
+  number: 0
+  skip: true  # [win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+
+outputs:
+  - name: libduckdb
+    script: install-lib.sh
+    build:
+      run_exports:
+        - {{ pin_subpackage("libduckdb", max_pin="x.x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+    test:
+      commands:
+        - test -f $PREFIX/lib/libduckdb${SHLIB_EXT}
+  - name: libduckdb-devel
+    script: install-headers.sh
+    build:
+      run_exports:
+        - {{ pin_subpackage("libduckdb", max_pin="x.x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage("libduckdb", exact=True) }}
+      run:
+        - {{ pin_subpackage("libduckdb", exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/include/duckdb.h
+  - name: duckdb-cli
+    script: install-cli.sh
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage("libduckdb", exact=True) }}
+      run:
+        - {{ pin_subpackage("libduckdb", exact=True) }}
+    test:
+      commands:
+        - duckdb -version
+
+about:
+  home: https://www.duckdb.org/
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: An Embeddable Analytical Database
+  description: |
+    DuckDB is an embedded database designed to execute analytical SQL queries
+    fast while embedded in another process. It is designed to be easy to
+    install and easy to use.
+  doc_url: https://duckdb.org/docs/index.html
+  dev_url: https://github.com/duckdb/duckdb
+
+extra:
+  recipe-maintainers:
+    - xhochy
