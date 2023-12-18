@@ -1,0 +1,74 @@
+---
+# conda build recipe file for cytotable
+# see the following documentation for more details:
+# https://docs.conda.io/projects/conda-build/en/stable/resources/define-metadata.html
+
+# sets pyproject and poetry read capabilities for gathering metadata
+# see the following for more details:
+# https://docs.conda.io/projects/conda-build/en/stable/resources/define-metadata.html#loading-data-from-other-files
+{% set pyproject = load_file_data('../pyproject.toml', from_recipe_dir=true) %}
+{% set poetry = pyproject.get('tool', {}).get('poetry') %}
+
+# specifies package name and version to release
+package:
+  # note: package name for conda must be lowercase
+  name: {{ poetry.get('name').lower() }}
+  version: {{ poetry.get('version') }}
+
+# specifies the location for conda build source
+source:
+  git_url: https://github.com/cytomining/cytotable.git
+  # note: we use an explicit "v" in the version tag from git
+  git_rev: "v{{ poetry.get('version') }}"
+
+# specifies build architecture and call for installation
+build:
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+
+# specifies the build and runtime requirements
+requirements:
+  # requirements for build
+  build:
+    - "python >=3.8,<3.13"
+    - "pip"
+    - "poetry"
+  # requirements specific to target platform
+  host:
+    - "python >=3.8,<3.13"
+    - "pip"
+    - "poetry"
+  # requirements for running the package
+  run:
+    - "python >=3.8,<3.13"
+    - "pyarrow >=13.0.0,<14.0.0"
+    - "cloudpathlib >=0.15.0,<0.16.0"
+    - "python-duckdb >=0.8.0,<0.9.0"
+    - "parsl >=2023.9.18"
+
+# specifies testing environment tests
+test:
+  imports:
+    - cytotable
+  commands:
+    - pip check
+  requires:
+    - pip
+
+# specifies various project metadata
+about:
+  home: {{ poetry.get('repository') }}
+  summary: {{ poetry.get('description') }}
+  license: {{ poetry.get('license') }}
+  license_file: LICENSE
+  doc_url: {{ poetry.get('documentation') }}
+
+extra:
+  # specifies conda recipe maintainers
+  recipe-maintainers:
+    - d33bs
+    - axiomcura
+    - falquaddoomi
+    - vincerubinetti
+    - gwaybio
