@@ -1,143 +1,5 @@
 {% set version = "2.17.0" %}
 
-{%- macro test_subpackage(feature) %}
-commands:
-  # presence of shared library (unix)
-  - test -f $PREFIX/lib/libgoogle_cloud_cpp_{{ feature }}.{{ version }}.dylib  # [osx]
-  - test -f $PREFIX/lib/libgoogle_cloud_cpp_{{ feature }}.so.{{ version }}  # [linux]
-  # absence of static library (windows). It belongs only in devel package.
-  - if exist %LIBRARY_LIB%\google_cloud_cpp_{{ feature }}.lib exit 1     # [win]
-
-  # absence of headers (they belong in devel package)
-  - test ! -f $PREFIX/include/google/cloud/version.h  # [not win]
-  - if exist %LIBRARY_INC%\google\cloud\version.h exit 1  # [win]
-
-  # absence of metadata for CMake & pkgconfig (belongs in devel package)
-  - test ! -f $PREFIX/lib/pkgconfig/google_cloud_cpp_{{ feature }}.pc  # [not win]
-  - test ! -f $PREFIX/lib/cmake/google_cloud_cpp_{{ feature }}/google_cloud_cpp_{{ feature }}-config.cmake  # [not win]
-  - if exist %LIBRARY_LIB%\cmake\google_cloud_cpp_{{ feature }}\google_cloud_cpp_{{ feature }}-config.cmake exit 1  # [win]
-{%- endmacro %}
-
-{%- macro standard_subpackage(feature) %}
-script: install-libgoogle-cloud.sh   # [not win]
-script: install-libgoogle-cloud.bat  # [win]
-build:
-  run_exports:
-    # patch versions guaranteed to be ABI-compatible, see
-    # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
-    - {{ pin_subpackage("libgoogle-cloud-" ~ feature, max_pin="x.x") }}
-requirements:
-  build:
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
-    - cmake
-    - ninja
-  host:
-    - {{ pin_subpackage("libgoogle-cloud", exact=True) }}
-  run:
-    - {{ pin_subpackage("libgoogle-cloud", exact=True) }}
-    - libabseil
-    - libprotobuf
-    - libgrpc
-    - libcxx  # [osx]
-test:
-  {{ test_subpackage(feature)|indent(2) }}
-{%- endmacro %}
-
-{%- macro test_devel_subpackage(feature) %}
-commands:
-  - ./run_test_feature.sh   # [not win]
-  - ./run_test_feature.bat  # [win]
-requires:
-  - {{ compiler('cxx') }}
-  - cmake
-  - ninja
-files:
-  - run_test_feature.sh
-  - run_test_feature.bat
-source_files:
-  - google/cloud/{{ feature }}/quickstart/*.cc
-  - google/cloud/{{ feature }}/quickstart/CMakeLists.txt
-{%- endmacro %}
-
-{%- macro standard_devel_subpackage(feature) %}
-script: install-libgoogle-cloud.sh   # [not win]
-script: install-libgoogle-cloud.bat  # [win]
-build:
-  run_exports:
-    # patch versions guaranteed to be ABI-compatible, see
-    # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
-    - {{ pin_subpackage("libgoogle-cloud-" ~ feature, max_pin="x.x") }}
-requirements:
-  build:
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
-    - cmake
-    - ninja
-  host:
-    - {{ pin_subpackage("libgoogle-cloud-devel", exact=True) }}
-  run:
-    - {{ pin_subpackage("libgoogle-cloud-devel", exact=True) }}
-    - {{ pin_subpackage("libgoogle-cloud-" ~ feature, exact=True) }}
-    - libcxx  # [osx]
-test:
-  {{ test_devel_subpackage(feature)|indent(2) }}
-{% endmacro %}
-
-{%- macro child_subpackage(feature, parent) %}
-script: install-libgoogle-cloud.sh   # [not win]
-script: install-libgoogle-cloud.bat  # [win]
-build:
-  run_exports:
-    # patch versions guaranteed to be ABI-compatible, see
-    # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
-    - {{ pin_subpackage("libgoogle-cloud-" ~ feature, max_pin="x.x") }}
-requirements:
-  build:
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
-    - cmake
-    - ninja
-  host:
-    - {{ pin_subpackage("libgoogle-cloud-" ~ parent, exact=True) }}
-    - {{ pin_subpackage("libgoogle-cloud", exact=True) }}
-  run:
-    - {{ pin_subpackage("libgoogle-cloud-" ~ parent, exact=True) }}
-    - {{ pin_subpackage("libgoogle-cloud", exact=True) }}
-    - libabseil
-    - libprotobuf
-    - libgrpc
-    - libcxx  # [osx]
-test:
-  {{ test_subpackage(feature)|indent(2) }}
-{%- endmacro %}
-
-{%- macro child_devel_subpackage(feature, parent) %}
-script: install-libgoogle-cloud.sh   # [not win]
-script: install-libgoogle-cloud.bat  # [win]
-build:
-  run_exports:
-    # patch versions guaranteed to be ABI-compatible, see
-    # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
-    - {{ pin_subpackage("libgoogle-cloud-" ~ feature, max_pin="x.x") }}
-requirements:
-  build:
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
-    - cmake
-    - ninja
-  host:
-    - {{ pin_subpackage("libgoogle-cloud-" ~ parent ~ "-devel", exact=True) }}
-    - {{ pin_subpackage("libgoogle-cloud-devel", exact=True) }}
-  run:
-    - {{ pin_subpackage("libgoogle-cloud-" ~ parent ~ "-devel", exact=True) }}
-    - {{ pin_subpackage("libgoogle-cloud-devel", exact=True) }}
-    - {{ pin_subpackage("libgoogle-cloud-" ~ feature, exact=True) }}
-    - libcxx  # [osx]
-test:
-  {{ test_devel_subpackage(feature)|indent(2) }}
-{%- endmacro %}
-
 package:
   name: google-cloud-cpp-core
   version: {{ version }}
@@ -279,32 +141,456 @@ outputs:
         - tests/quickstart.cc
 
   - name: libgoogle-cloud-oauth2
-    {{ standard_subpackage("oauth2")|indent(4) }}
+    script: install-libgoogle-cloud.sh   # [not win]
+    script: install-libgoogle-cloud.bat  # [win]
+    build:
+      run_exports:
+        # patch versions guaranteed to be ABI-compatible, see
+        # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+        - {{ pin_subpackage("libgoogle-cloud-oauth2", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage("libgoogle-cloud", exact=True) }}
+      run:
+        - {{ pin_subpackage("libgoogle-cloud", exact=True) }}
+        - libabseil
+        - libprotobuf
+        - libgrpc
+        - libcxx  # [osx]
+    test:
+      commands:
+        # presence of shared library (unix)
+        - test -f $PREFIX/lib/libgoogle_cloud_cpp_oauth2.{{ version }}.dylib  # [osx]
+        - test -f $PREFIX/lib/libgoogle_cloud_cpp_oauth2.so.{{ version }}  # [linux]
+        # absence of static library (windows). It belongs only in devel package.
+        - if exist %LIBRARY_LIB%\google_cloud_cpp_oauth2.lib exit 1     # [win]
+      
+        # absence of headers (they belong in devel package)
+        - test ! -f $PREFIX/include/google/cloud/version.h  # [not win]
+        - if exist %LIBRARY_INC%\google\cloud\version.h exit 1  # [win]
+      
+        # absence of metadata for CMake & pkgconfig (belongs in devel package)
+        - test ! -f $PREFIX/lib/pkgconfig/google_cloud_cpp_oauth2.pc  # [not win]
+        - test ! -f $PREFIX/lib/cmake/google_cloud_cpp_oauth2/google_cloud_cpp_oauth2-config.cmake  # [not win]
+        - if exist %LIBRARY_LIB%\cmake\google_cloud_cpp_oauth2\google_cloud_cpp_oauth2-config.cmake exit 1  # [win]
+
   - name: libgoogle-cloud-bigtable
-    {{ standard_subpackage("bigtable")|indent(4) }}
+    script: install-libgoogle-cloud.sh   # [not win]
+    script: install-libgoogle-cloud.bat  # [win]
+    build:
+      run_exports:
+        # patch versions guaranteed to be ABI-compatible, see
+        # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+        - {{ pin_subpackage("libgoogle-cloud-bigtable", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage("libgoogle-cloud", exact=True) }}
+      run:
+        - {{ pin_subpackage("libgoogle-cloud", exact=True) }}
+        - libabseil
+        - libprotobuf
+        - libgrpc
+        - libcxx  # [osx]
+    test:
+      commands:
+        # presence of shared library (unix)
+        - test -f $PREFIX/lib/libgoogle_cloud_cpp_bigtable.{{ version }}.dylib  # [osx]
+        - test -f $PREFIX/lib/libgoogle_cloud_cpp_bigtable.so.{{ version }}  # [linux]
+        # absence of static library (windows). It belongs only in devel package.
+        - if exist %LIBRARY_LIB%\google_cloud_cpp_bigtable.lib exit 1     # [win]
+      
+        # absence of headers (they belong in devel package)
+        - test ! -f $PREFIX/include/google/cloud/version.h  # [not win]
+        - if exist %LIBRARY_INC%\google\cloud\version.h exit 1  # [win]
+      
+        # absence of metadata for CMake & pkgconfig (belongs in devel package)
+        - test ! -f $PREFIX/lib/pkgconfig/google_cloud_cpp_bigtable.pc  # [not win]
+        - test ! -f $PREFIX/lib/cmake/google_cloud_cpp_bigtable/google_cloud_cpp_bigtable-config.cmake  # [not win]
+        - if exist %LIBRARY_LIB%\cmake\google_cloud_cpp_bigtable\google_cloud_cpp_bigtable-config.cmake exit 1  # [win]
+
   - name: libgoogle-cloud-pubsub
-    {{ standard_subpackage("pubsub")|indent(4) }}
+    script: install-libgoogle-cloud.sh   # [not win]
+    script: install-libgoogle-cloud.bat  # [win]
+    build:
+      run_exports:
+        # patch versions guaranteed to be ABI-compatible, see
+        # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+        - {{ pin_subpackage("libgoogle-cloud-pubsub", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage("libgoogle-cloud", exact=True) }}
+      run:
+        - {{ pin_subpackage("libgoogle-cloud", exact=True) }}
+        - libabseil
+        - libprotobuf
+        - libgrpc
+        - libcxx  # [osx]
+    test:
+      commands:
+        # presence of shared library (unix)
+        - test -f $PREFIX/lib/libgoogle_cloud_cpp_pubsub.{{ version }}.dylib  # [osx]
+        - test -f $PREFIX/lib/libgoogle_cloud_cpp_pubsub.so.{{ version }}  # [linux]
+        # absence of static library (windows). It belongs only in devel package.
+        - if exist %LIBRARY_LIB%\google_cloud_cpp_pubsub.lib exit 1     # [win]
+      
+        # absence of headers (they belong in devel package)
+        - test ! -f $PREFIX/include/google/cloud/version.h  # [not win]
+        - if exist %LIBRARY_INC%\google\cloud\version.h exit 1  # [win]
+      
+        # absence of metadata for CMake & pkgconfig (belongs in devel package)
+        - test ! -f $PREFIX/lib/pkgconfig/google_cloud_cpp_pubsub.pc  # [not win]
+        - test ! -f $PREFIX/lib/cmake/google_cloud_cpp_pubsub/google_cloud_cpp_pubsub-config.cmake  # [not win]
+        - if exist %LIBRARY_LIB%\cmake\google_cloud_cpp_pubsub\google_cloud_cpp_pubsub-config.cmake exit 1  # [win]
+
   - name: libgoogle-cloud-spanner
-    {{ standard_subpackage("spanner")|indent(4) }}
+    script: install-libgoogle-cloud.sh   # [not win]
+    script: install-libgoogle-cloud.bat  # [win]
+    build:
+      run_exports:
+        # patch versions guaranteed to be ABI-compatible, see
+        # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+        - {{ pin_subpackage("libgoogle-cloud-spanner", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage("libgoogle-cloud", exact=True) }}
+      run:
+        - {{ pin_subpackage("libgoogle-cloud", exact=True) }}
+        - libabseil
+        - libprotobuf
+        - libgrpc
+        - libcxx  # [osx]
+    test:
+      commands:
+        # presence of shared library (unix)
+        - test -f $PREFIX/lib/libgoogle_cloud_cpp_spanner.{{ version }}.dylib  # [osx]
+        - test -f $PREFIX/lib/libgoogle_cloud_cpp_spanner.so.{{ version }}  # [linux]
+        # absence of static library (windows). It belongs only in devel package.
+        - if exist %LIBRARY_LIB%\google_cloud_cpp_spanner.lib exit 1     # [win]
+      
+        # absence of headers (they belong in devel package)
+        - test ! -f $PREFIX/include/google/cloud/version.h  # [not win]
+        - if exist %LIBRARY_INC%\google\cloud\version.h exit 1  # [win]
+      
+        # absence of metadata for CMake & pkgconfig (belongs in devel package)
+        - test ! -f $PREFIX/lib/pkgconfig/google_cloud_cpp_spanner.pc  # [not win]
+        - test ! -f $PREFIX/lib/cmake/google_cloud_cpp_spanner/google_cloud_cpp_spanner-config.cmake  # [not win]
+        - if exist %LIBRARY_LIB%\cmake\google_cloud_cpp_spanner\google_cloud_cpp_spanner-config.cmake exit 1  # [win]
 
   - name: libgoogle-cloud-oauth2-devel
-    {{ standard_devel_subpackage("oauth2")|indent(4) }}
+    script: install-libgoogle-cloud.sh   # [not win]
+    script: install-libgoogle-cloud.bat  # [win]
+    build:
+      run_exports:
+        # patch versions guaranteed to be ABI-compatible, see
+        # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+        - {{ pin_subpackage("libgoogle-cloud-oauth2", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage("libgoogle-cloud-devel", exact=True) }}
+      run:
+        - {{ pin_subpackage("libgoogle-cloud-devel", exact=True) }}
+        - {{ pin_subpackage("libgoogle-cloud-oauth2", exact=True) }}
+        - libcxx  # [osx]
+    test:
+      commands:
+        - ./run_test_feature.sh   # [not win]
+        - ./run_test_feature.bat  # [win]
+      requires:
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      files:
+        - run_test_feature.sh
+        - run_test_feature.bat
+      source_files:
+        - google/cloud/oauth2/quickstart/*.cc
+        - google/cloud/oauth2/quickstart/CMakeLists.txt
+
   - name: libgoogle-cloud-bigtable-devel
-    {{ standard_devel_subpackage("bigtable")|indent(4) }}
+    script: install-libgoogle-cloud.sh   # [not win]
+    script: install-libgoogle-cloud.bat  # [win]
+    build:
+      run_exports:
+        # patch versions guaranteed to be ABI-compatible, see
+        # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+        - {{ pin_subpackage("libgoogle-cloud-bigtable", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage("libgoogle-cloud-devel", exact=True) }}
+      run:
+        - {{ pin_subpackage("libgoogle-cloud-devel", exact=True) }}
+        - {{ pin_subpackage("libgoogle-cloud-bigtable", exact=True) }}
+        - libcxx  # [osx]
+    test:
+      commands:
+        - ./run_test_feature.sh   # [not win]
+        - ./run_test_feature.bat  # [win]
+      requires:
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      files:
+        - run_test_feature.sh
+        - run_test_feature.bat
+      source_files:
+        - google/cloud/bigtable/quickstart/*.cc
+        - google/cloud/bigtable/quickstart/CMakeLists.txt
+
   - name: libgoogle-cloud-pubsub-devel
-    {{ standard_devel_subpackage("pubsub")|indent(4) }}
+    script: install-libgoogle-cloud.sh   # [not win]
+    script: install-libgoogle-cloud.bat  # [win]
+    build:
+      run_exports:
+        # patch versions guaranteed to be ABI-compatible, see
+        # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+        - {{ pin_subpackage("libgoogle-cloud-pubsub", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage("libgoogle-cloud-devel", exact=True) }}
+      run:
+        - {{ pin_subpackage("libgoogle-cloud-devel", exact=True) }}
+        - {{ pin_subpackage("libgoogle-cloud-pubsub", exact=True) }}
+        - libcxx  # [osx]
+    test:
+      commands:
+        - ./run_test_feature.sh   # [not win]
+        - ./run_test_feature.bat  # [win]
+      requires:
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      files:
+        - run_test_feature.sh
+        - run_test_feature.bat
+      source_files:
+        - google/cloud/pubsub/quickstart/*.cc
+        - google/cloud/pubsub/quickstart/CMakeLists.txt
+
   - name: libgoogle-cloud-spanner-devel
-    {{ standard_devel_subpackage("spanner")|indent(4) }}
+    script: install-libgoogle-cloud.sh   # [not win]
+    script: install-libgoogle-cloud.bat  # [win]
+    build:
+      run_exports:
+        # patch versions guaranteed to be ABI-compatible, see
+        # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+        - {{ pin_subpackage("libgoogle-cloud-spanner", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage("libgoogle-cloud-devel", exact=True) }}
+      run:
+        - {{ pin_subpackage("libgoogle-cloud-devel", exact=True) }}
+        - {{ pin_subpackage("libgoogle-cloud-spanner", exact=True) }}
+        - libcxx  # [osx]
+    test:
+      commands:
+        - ./run_test_feature.sh   # [not win]
+        - ./run_test_feature.bat  # [win]
+      requires:
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      files:
+        - run_test_feature.sh
+        - run_test_feature.bat
+      source_files:
+        - google/cloud/spanner/quickstart/*.cc
+        - google/cloud/spanner/quickstart/CMakeLists.txt
 
   - name: libgoogle-cloud-iam
-    {{ child_subpackage("iam", "pubsub")|indent(4) }}
+    script: install-libgoogle-cloud.sh   # [not win]
+    script: install-libgoogle-cloud.bat  # [win]
+    build:
+      run_exports:
+        # patch versions guaranteed to be ABI-compatible, see
+        # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+        - {{ pin_subpackage("libgoogle-cloud-iam", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage("libgoogle-cloud-pubsub", exact=True) }}
+        - {{ pin_subpackage("libgoogle-cloud", exact=True) }}
+      run:
+        - {{ pin_subpackage("libgoogle-cloud-pubsub", exact=True) }}
+        - {{ pin_subpackage("libgoogle-cloud", exact=True) }}
+        - libabseil
+        - libprotobuf
+        - libgrpc
+        - libcxx  # [osx]
+    test:
+      commands:
+        # presence of shared library (unix)
+        - test -f $PREFIX/lib/libgoogle_cloud_cpp_iam.{{ version }}.dylib  # [osx]
+        - test -f $PREFIX/lib/libgoogle_cloud_cpp_iam.so.{{ version }}  # [linux]
+        # absence of static library (windows). It belongs only in devel package.
+        - if exist %LIBRARY_LIB%\google_cloud_cpp_iam.lib exit 1     # [win]
+
+        # absence of headers (they belong in devel package)
+        - test ! -f $PREFIX/include/google/cloud/version.h  # [not win]
+        - if exist %LIBRARY_INC%\google\cloud\version.h exit 1  # [win]
+
+        # absence of metadata for CMake & pkgconfig (belongs in devel package)
+        - test ! -f $PREFIX/lib/pkgconfig/google_cloud_cpp_iam.pc  # [not win]
+        - test ! -f $PREFIX/lib/cmake/google_cloud_cpp_iam/google_cloud_cpp_iam-config.cmake  # [not win]
+        - if exist %LIBRARY_LIB%\cmake\google_cloud_cpp_iam\google_cloud_cpp_iam-config.cmake exit 1  # [win]
+
   - name: libgoogle-cloud-policytroubleshooter
-    {{ child_subpackage("policytroubleshooter", "pubsub")|indent(4) }}
+    script: install-libgoogle-cloud.sh   # [not win]
+    script: install-libgoogle-cloud.bat  # [win]
+    build:
+      run_exports:
+        # patch versions guaranteed to be ABI-compatible, see
+        # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+        - {{ pin_subpackage("libgoogle-cloud-policytroubleshooter", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage("libgoogle-cloud-pubsub", exact=True) }}
+        - {{ pin_subpackage("libgoogle-cloud", exact=True) }}
+      run:
+        - {{ pin_subpackage("libgoogle-cloud-pubsub", exact=True) }}
+        - {{ pin_subpackage("libgoogle-cloud", exact=True) }}
+        - libabseil
+        - libprotobuf
+        - libgrpc
+        - libcxx  # [osx]
+    test:
+      commands:
+        # presence of shared library (unix)
+        - test -f $PREFIX/lib/libgoogle_cloud_cpp_policytroubleshooter.{{ version }}.dylib  # [osx]
+        - test -f $PREFIX/lib/libgoogle_cloud_cpp_policytroubleshooter.so.{{ version }}  # [linux]
+        # absence of static library (windows). It belongs only in devel package.
+        - if exist %LIBRARY_LIB%\google_cloud_cpp_policytroubleshooter.lib exit 1     # [win]
+
+        # absence of headers (they belong in devel package)
+        - test ! -f $PREFIX/include/google/cloud/version.h  # [not win]
+        - if exist %LIBRARY_INC%\google\cloud\version.h exit 1  # [win]
+
+        # absence of metadata for CMake & pkgconfig (belongs in devel package)
+        - test ! -f $PREFIX/lib/pkgconfig/google_cloud_cpp_policytroubleshooter.pc  # [not win]
+        - test ! -f $PREFIX/lib/cmake/google_cloud_cpp_policytroubleshooter/google_cloud_cpp_policytroubleshooter-config.cmake  # [not win]
+        - if exist %LIBRARY_LIB%\cmake\google_cloud_cpp_policytroubleshooter\google_cloud_cpp_policytroubleshooter-config.cmake exit 1  # [win]
 
   - name: libgoogle-cloud-iam-devel
-    {{ child_devel_subpackage("iam", "pubsub")|indent(4) }}
+    script: install-libgoogle-cloud.sh   # [not win]
+    script: install-libgoogle-cloud.bat  # [win]
+    build:
+      run_exports:
+        # patch versions guaranteed to be ABI-compatible, see
+        # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+        - {{ pin_subpackage("libgoogle-cloud-iam", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage("libgoogle-cloud-pubsub-devel", exact=True) }}
+        - {{ pin_subpackage("libgoogle-cloud-devel", exact=True) }}
+      run:
+        - {{ pin_subpackage("libgoogle-cloud-pubsub-devel", exact=True) }}
+        - {{ pin_subpackage("libgoogle-cloud-devel", exact=True) }}
+        - {{ pin_subpackage("libgoogle-cloud-iam", exact=True) }}
+        - libcxx  # [osx]
+    test:
+      commands:
+        - ./run_test_feature.sh   # [not win]
+        - ./run_test_feature.bat  # [win]
+      requires:
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      files:
+        - run_test_feature.sh
+        - run_test_feature.bat
+      source_files:
+        - google/cloud/iam/quickstart/*.cc
+        - google/cloud/iam/quickstart/CMakeLists.txt
+
   - name: libgoogle-cloud-policytroubleshooter-devel
-    {{ child_devel_subpackage("policytroubleshooter", "pubsub")|indent(4) }}
+    script: install-libgoogle-cloud.sh   # [not win]
+    script: install-libgoogle-cloud.bat  # [win]
+    build:
+      run_exports:
+        # patch versions guaranteed to be ABI-compatible, see
+        # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+        - {{ pin_subpackage("libgoogle-cloud-policytroubleshooter", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - {{ pin_subpackage("libgoogle-cloud-pubsub-devel", exact=True) }}
+        - {{ pin_subpackage("libgoogle-cloud-devel", exact=True) }}
+      run:
+        - {{ pin_subpackage("libgoogle-cloud-pubsub-devel", exact=True) }}
+        - {{ pin_subpackage("libgoogle-cloud-devel", exact=True) }}
+        - {{ pin_subpackage("libgoogle-cloud-policytroubleshooter", exact=True) }}
+        - libcxx  # [osx]
+    test:
+      commands:
+        - ./run_test_feature.sh   # [not win]
+        - ./run_test_feature.bat  # [win]
+      requires:
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      files:
+        - run_test_feature.sh
+        - run_test_feature.bat
+      source_files:
+        - google/cloud/policytroubleshooter/quickstart/*.cc
+        - google/cloud/policytroubleshooter/quickstart/CMakeLists.txt
 
   - name: libgoogle-cloud-storage
     # This cannot use the standard subpackages because it has different direct
@@ -337,7 +623,21 @@ outputs:
         - openssl
         - libcxx  # [osx]
     test:
-      {{ test_subpackage("storage")|indent(6) }}
+      commands:
+        # presence of shared library (unix)
+        - test -f $PREFIX/lib/libgoogle_cloud_cpp_storage.{{ version }}.dylib  # [osx]
+        - test -f $PREFIX/lib/libgoogle_cloud_cpp_storage.so.{{ version }}  # [linux]
+        # absence of static library (windows). It belongs only in devel package.
+        - if exist %LIBRARY_LIB%\google_cloud_cpp_storage.lib exit 1     # [win]
+
+        # absence of headers (they belong in devel package)
+        - test ! -f $PREFIX/include/google/cloud/version.h  # [not win]
+        - if exist %LIBRARY_INC%\google\cloud\version.h exit 1  # [win]
+
+        # absence of metadata for CMake & pkgconfig (belongs in devel package)
+        - test ! -f $PREFIX/lib/pkgconfig/google_cloud_cpp_storage.pc  # [not win]
+        - test ! -f $PREFIX/lib/cmake/google_cloud_cpp_storage/google_cloud_cpp_storage-config.cmake  # [not win]
+        - if exist %LIBRARY_LIB%\cmake\google_cloud_cpp_storage\google_cloud_cpp_storage-config.cmake exit 1  # [win]
 
   - name: libgoogle-cloud-storage-devel
     # This cannot use the standard subpackages because it has different direct
@@ -372,7 +672,19 @@ outputs:
         - nlohmann_json
         - libcxx  # [osx]
     test:
-      {{ test_devel_subpackage("storage")|indent(6) }}
+      commands:
+        - ./run_test_feature.sh   # [not win]
+        - ./run_test_feature.bat  # [win]
+      requires:
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      files:
+        - run_test_feature.sh
+        - run_test_feature.bat
+      source_files:
+        - google/cloud/storage/quickstart/*.cc
+        - google/cloud/storage/quickstart/CMakeLists.txt
 
 about:
   home: https://github.com/googleapis/google-cloud-cpp
