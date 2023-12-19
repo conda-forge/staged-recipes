@@ -2,6 +2,8 @@
 
 set -eu -x -o pipefail
 
+export OMP_NUM_THREADS=2
+
 # Example
 $PYTHON examples/track_plasma_fluid.py
 
