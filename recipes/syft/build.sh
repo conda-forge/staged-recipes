@@ -3,7 +3,7 @@ set -exuo pipefail
 
 pushd src/syft
 
-go-licenses save . --save_path ../library_licenses --ignore github.com/xi2/xz
+go-licenses save . --save_path ../../library_licenses --ignore github.com/xi2/xz
 
 go build -v -o $PREFIX/bin/syft
 
