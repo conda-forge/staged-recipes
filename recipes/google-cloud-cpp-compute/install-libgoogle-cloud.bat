@@ -11,10 +11,10 @@ set SRC_DIR="%SRC_DIR:\=/%"
 :: and the devel packages using
 ::     cmake --install .b --component google_cloud_cpp_development
 
-if [%PKG_NAME:-devel=%] != [%PKG_NAME%] (
+if not [%PKG_NAME:-devel=%] == [%PKG_NAME%] (
   cmake --install .b
   if %ERRORLEVEL% neq 0 exit 1
-) else if [%PKG_NAME:libgoogle-cloud-%] != [%PKG_NAME%] (
+) else if not [%PKG_NAME:libgoogle-cloud-=%] == [%PKG_NAME%] (
   @REM TODO: fix when DLL support comes along
 ) else (
   @ECHO Unknown package name %PKG_NAME%
