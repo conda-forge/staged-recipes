@@ -7,7 +7,7 @@ set BUILD_PREFIX="%BUILD_PREFIX:\=/%"
 set SRC_DIR="%SRC_DIR:\=/%"
 
 cmake -G "Ninja" ^
-    -S . -B .build/compute ^
+    -S . -B .b ^
     -DGOOGLE_CLOUD_CPP_ENABLE=compute ^
     -DGOOGLE_CLOUD_CPP_USE_INSTALLED_COMMON=ON ^
     -DBUILD_TESTING=OFF ^
@@ -21,5 +21,5 @@ cmake -G "Ninja" ^
     -DGOOGLE_CLOUD_CPP_ENABLE_WERROR=OFF
 if %ERRORLEVEL% neq 0 exit 1
 
-cmake --build .build/%G --config Release
+cmake --build .b --config Release
 if %ERRORLEVEL% neq 0 exit 1

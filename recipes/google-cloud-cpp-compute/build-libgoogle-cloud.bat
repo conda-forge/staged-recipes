@@ -7,14 +7,12 @@ set BUILD_PREFIX="%BUILD_PREFIX:\=/%"
 set SRC_DIR="%SRC_DIR:\=/%"
 
 :: Once DLLs are working, we should install the non-devel packages using
-::     cmake --install build_common --component google_cloud_cpp_runtime
+::     cmake --install .b --component google_cloud_cpp_runtime
 :: and the devel packages using
-::     cmake --install build_common --component google_cloud_cpp_development
-
-set FEATURE=%PKG_NAME:libgoogle-cloud-=%
+::     cmake --install .b --component google_cloud_cpp_development
 
 if [%PKG_NAME:-devel=%] != [%PKG_NAME%] (
-  cmake --install .build/%FEATURE%
+  cmake --install .b
   if %ERRORLEVEL% neq 0 exit 1
 ) else if [%PKG_NAME:libgoogle-cloud-%] != [%PKG_NAME%] (
   @REM TODO: fix when DLL support comes along
