@@ -1,9 +1,9 @@
 #!/bin/bash
 set -exuo pipefail
 
-pushd src/syft
+pushd src/cmd/syft
 
-go-licenses save . --save_path ../../library_licenses --ignore github.com/xi2/xz
+go-licenses save . --save_path ../../../library_licenses --ignore modernc.org/mathutil --ignore github.com/xi2/xz
 
 go build -v -o $PREFIX/bin/syft
 
