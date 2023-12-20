@@ -3,7 +3,11 @@ set -exuo pipefail
 
 pushd src/cmd/syft
 
-go-licenses save . --save_path ../../../library_licenses --ignore modernc.org/mathutil --ignore github.com/xi2/xz
+go-licenses save . \
+    --save_path "${SRC_DIR}"/library_licenses \
+    --ignore modernc.org/mathutil \
+    --ignore github.com/xi2/xz
+
 go build \
     -v \
     -o $PREFIX/bin/syft \
