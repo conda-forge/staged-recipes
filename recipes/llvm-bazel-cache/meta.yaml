@@ -1,0 +1,59 @@
+{% set version = "18.0.0.jax0420_b3e353" %}
+{% set major_ver = version.split(".")[0] %}
+{% set git_commit = "243588df15ed136b52ca62315c1e18b045cdf915" %}
+{% if git_commit != "" %}
+  {% set archive_file = git_commit %}
+{% else %}
+  {% set archive_file = "refs/tags/llvmorg-" + version.replace(".rc", "-rc") %}
+{% endif %}
+
+package:
+  name: llvm-bazel-cache
+  version: {{ version }}
+
+source:
+  url: https://github.com/llvm/llvm-project/archive/{{ archive_file }}.tar.gz
+  sha256: 031ecbdc75c4cc6cfd6c50841b74c8ec45a425b8d89859565c09495c2857776f
+  patches:
+    # Taken from https://github.com/openxla/xla/tree/fa9331a7e557b4ec1381f84cbbf7401a8f41ac66/third_party/llvm
+    - patches/build.patch
+    - patches/mathextras.patch
+    - patches/toolchains.patch
+    - patches/zstd.patch
+
+build:
+  number: 0
+  skip: true  # [win]
+  # conda-build breaks on this. There is no need to relocate anything, so skip it.
+  binary_relocation: false
+
+requirements:
+  build:
+    - python *
+    - astor
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - bazel
+    - bazel-toolchain
+    - rsync
+
+test:
+  commands:
+    - test -f "${PREFIX}/lib/libLLVMTFSupport.a"
+    - test -f "${PREFIX}/share/llvm_for_tf/llvm/BUILD.bazel"
+    - test -f "${PREFIX}/share/llvm_for_tf/llvm/include/llvm/Pass.h"
+    - test -f "${PREFIX}/lib/libMLIRTFSupport.a"
+    - test -f "${PREFIX}/share/llvm_for_tf/mlir/BUILD.bazel"
+    - test -f "${PREFIX}/share/llvm_for_tf/mlir/include/mlir/InitAllPasses.h"
+
+about:
+  home: http://llvm.org/
+  dev_url: https://github.com/llvm-mirror/llvm
+  license: Apache-2.0 WITH LLVM-exception
+  license_file: llvm/LICENSE.TXT
+  license_family: Apache
+  summary: Development headers and libraries for LLVM, pre-built for use with tensorflow
+
+extra:
+  recipe-maintainers:
+    - conda-forge/tensorflow
