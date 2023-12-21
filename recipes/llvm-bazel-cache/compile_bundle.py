@@ -20,7 +20,7 @@ def new_kwarg(name, code):
     return ast.keyword(arg="linkopts", value=ast.parse(code).body[0].value)
 
 
-def rewrite_cc_library(node):
+def rewrite_cc_library(sym, node):
     # Determine the name of the library
     name = linkopts = None
     for kw in node.value.keywords:
@@ -51,7 +51,7 @@ def rewrite_binaries(code, symbol):
         # Find all function calls
         if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
             if node.value.func.id == "cc_library":
-                rewrite_cc_library(node)
+                rewrite_cc_library(sym, node)
             elif node.value.func.id == "cc_binary":
                 # TODO: Implement this; until then, they get compiled upstream.
                 pass
