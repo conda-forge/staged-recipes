@@ -6,7 +6,19 @@ set LIBRARY_PREFIX="%LIBRARY_PREFIX:\=/%"
 set BUILD_PREFIX="%BUILD_PREFIX:\=/%"
 set SRC_DIR="%SRC_DIR:\=/%"
 
-FOR %%G IN aiplatform automl discoveryengine dialogflow_es dialogflow_cx dlp speech texttospeech timeseriesinsights translate videointelligence vision DO (
+FOR %%G IN (
+  aiplatform
+  automl
+  discoveryengine
+  dialogflow_es
+  dialogflow_cx
+  dlp
+  speech
+  texttospeech
+  timeseriesinsights
+  translate
+  videointelligence
+  vision) DO (
     cmake -G "Ninja" ^
         -S . -B .build/%%G ^
         -DGOOGLE_CLOUD_CPP_ENABLE=%%G ^
