@@ -5,6 +5,7 @@ set -exuo pipefail
 export CXXFLAGS="${CXXFLAGS} -std=c++17"
 
 if [[ "${target_platform}" == osx-* ]]; then
+  export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
   export LDFLAGS="${LDFLAGS} -lz -framework CoreFoundation -Xlinker -undefined -Xlinker dynamic_lookup"
 else
   export LDFLAGS="${LDFLAGS} -lrt"
