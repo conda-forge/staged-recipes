@@ -14,7 +14,7 @@ set SRC_DIR="%SRC_DIR:\=/%"
 if [%PKG_NAME%] == [libgoogle-cloud-compute-devel] (
   cmake --install .b
   if %ERRORLEVEL% neq 0 exit 1
-) else if not [%PKG_NAME%] == [libgoogle-cloud-compute] (
+) else if [%PKG_NAME%] == [libgoogle-cloud-compute] (
   @REM TODO: fix when DLL support comes along
 ) else (
   @ECHO Unknown package name %PKG_NAME%
