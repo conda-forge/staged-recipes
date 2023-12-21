@@ -4,8 +4,8 @@ setlocal EnableDelayedExpansion
 :: CMake does not like paths with \ characters
 set LIBRARY_PREFIX="%LIBRARY_PREFIX:\=/%"
 
-set FEATURE="%PKG_NAME:libgoogle-cloud-=%"
-set FEATURE="%FEATURE:-devel=%"
+set FEATURE=%PKG_NAME:libgoogle-cloud-=%
+set FEATURE=%FEATURE:-devel=%
 
 cmake -GNinja ^
     -S "google/cloud/%FEATURE%/quickstart" -B .build ^
