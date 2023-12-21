@@ -11,7 +11,7 @@ set SRC_DIR="%SRC_DIR:\=/%"
 :: and the devel packages using
 ::     cmake --install .b --component google_cloud_cpp_development
 
-if not [%PKG_NAME%] == [libgoogle-cloud-compute-devel] (
+if [%PKG_NAME%] == [libgoogle-cloud-compute-devel] (
   cmake --install .b
   if %ERRORLEVEL% neq 0 exit 1
 ) else if not [%PKG_NAME%] == [libgoogle-cloud-compute] (
