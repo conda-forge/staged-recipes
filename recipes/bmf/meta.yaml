@@ -1,0 +1,121 @@
+{% set name = "bmf" %}
+{% set cuda_major = (cuda_compiler_version|default("0.0")).split(".")[0] %}
+{% set version = "0.0.9" %}
+{% set commit = "e3c9730ee0de2fe43191c0efacce097c914e1af4" %}
+{% set build = 0 %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/BabitMF/bmf/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 3dcc8f20eddda90228989aabf612394d6fc5632edbd9b886c58eccd41640a087
+  patches:
+    # we don't need the python command wrapper
+    - patches/dont_install_commands.patch
+    # make standard requirement optional to build with CUDA 11
+    - patches/Make_CMake_standard_requirement_optional.patch
+    # Windows library are under binary dir
+    - patches/search_library_in_binary_dir.patch  # [win]
+
+build:
+  number: {{ build }}
+  skip: true  # [win]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}                                                 # [cuda_compiler_version == "None"]
+  ignore_run_exports:
+    - glog
+    - gtest
+  missing_dso_whitelist:
+    - "*/nvcuda.dll"    # [win]
+    - "*/_hmp.*"        # [win]
+    - "*/libcuda.so.1"  # [linux]
+  script_env:
+    - BMF_BUILD_ENABLE_CUDA=OFF  # [cuda_compiler_version == "None"]
+    - BMF_BUILD_ENABLE_CUDA=ON   # [cuda_compiler_version != "None"]
+    - GIT_SHA="{{ commit }}"
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}   # [cuda_compiler_version != "None"]
+    - cmake
+    - ninja
+    - pkg-config
+    - patch     # [unix]
+    - m2-patch  # [win]
+    - patchelf  # [linux]
+  host:
+    - cuda-version  {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+    {% if cuda_major == "12" %}
+    - cuda-cudart-dev                            # [cuda_compiler_version != "None"]
+    - cuda-compat                                # [linux and cuda_compiler_version != "None"]
+    {% else %}
+    - cudatoolkit                                # [cuda_compiler_version != "None"]
+    {% endif %}
+    - ffmpeg  =4.4
+    - nlohmann_json
+    - glog
+    - gtest
+    - fmt  =7
+    - benchmark
+    - spdlog  =1.8
+    - backward-cpp
+    - pybind11
+    - dlpack
+    - numpy
+    - pip
+    - python
+    - ncurses               # [unix]
+    - dlfcn-win32  >=1.4.1  # [win]
+  run:
+    - elfutils  # [linux]
+    - ucrt      # [win]
+    - python
+    - ncurses   # [unix]
+    - __osx  >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx and x86_64]
+
+test:
+  requires:
+    - pip
+    # To provide the CUDA driver library
+    - cuda-compat  # [linux and cuda_major == "12"]
+  imports:
+    - bmf
+  files:
+    - api_test.py
+    - test_graph.json
+  commands:
+    - pip check
+    - module_manager list
+    - module_manager dump c_ffmpeg_decoder
+    - module_manager dump pass_through
+    - ffmpeg -f lavfi -i testsrc=duration=1:size=1280x720:rate=30 testsrc.mp4
+    - '"$PYTHON" api_test.py'   # [not win]
+    - '"%PYTHON%" api_test.py'  # [win]
+    - run_bmf_graph test_graph.json
+
+about:
+  home: https://babitmf.github.io
+  license: Apache-2.0
+  license_family: Apache
+  license_file: LICENSE
+  summary: |
+    Cross-platform, multi-language, customizable video processing framework
+    with strong GPU acceleration
+  description: |
+    BMF (Babit Multimedia Framework) is a cross-platform, multi-language,
+    customizable multimedia processing framework developed by ByteDance.
+    With over 4 years of testing and improvements, BMF has been tailored to
+    adeptly tackle challenges in our real-world production environments.
+    It is currently widely used in ByteDance's video streaming,
+    live transcoding, cloud editing and mobile pre/post processing scenarios.
+    More than 2 billion videos are processed by the framework every day.
+  doc_url: https://babitmf.github.io/docs/bmf/
+  dev_url: https://github.com/BabitMF/bmf
+
+extra:
+  recipe-maintainers:
+    - tongyuantongyu
