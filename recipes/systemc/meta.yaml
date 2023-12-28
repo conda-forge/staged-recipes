@@ -2,9 +2,14 @@
 {% set version = "2.3.4" %}
 {% set major_minor = ".".join(version.split(".")[0:2]) %}
 
+{% if HOST_PLATFORM in ["win-64", "win-32"] %}
+  {% set Library = "Library/" %}
+{% else %}
+  {% set Library = "" %}
+{% endif %}
 
 package:
-  name: {{ name|lower }}
+  name: {{ systemc-split }}
   version: {{ version }}
 
 source:
@@ -27,46 +32,98 @@ requirements:
     - libtool   # [not win]
     - cmake
 
-# NOTE windows cmake build doesn't include the examples in it's install
-test:                         # [win]
-  source_files:               # [win]
-    - examples                # [win]
-  requires:                   # [win]
-    - {{ compiler('cxx') }}   # [win]
-  commands:                   # [win]
-    - cd examples/build-msvc  # [win]
-    - nmake /nologo CONFIG=Release PLATFORM=x64 VCBUILD=vcbuild check  # [win64]
-    - nmake /nologo CONFIG=Release PLATFORM=Win32 VCBUILD=vcbuild check  # [win32]
 
-# split unix packages into:
-# libsystemc dynamic-library
-# systemc-dev package depends on libsystemc and adds header and unversioned .so symlink
-# systemc-static just the static library
-# systemc-doc  documentation including the installed examples
+# split package into:
+# libsystemc dynamic-library (UNIX only)
+# systemc-dev package depends on libsystemc and adds header and unversioned .so symlinks
+#             on unix.  Contains headers and systemc.lib static library on Windows
+# systemc-static just the static library (skipping for now)
+# systemc-doc  documentation including the installed examples on Unix
+#              upstream build scripts don't install the examples on Windows so
+#              those get included in systemc-dev for testing there via source_files
 
-outputs:                                                         # [not win]
-    - name: libsystemc                                           # [not win]
-      requirements:                                              # [not win]
-          build:                                                 # [not win]
-              - {{ compiler('cxx') }}                            # [not win]
-      files:                                                     # [not win]
+outputs:
+{% if HOST_PLATFORM not in ["win-64", "win-32"] %}
+    - name: libsystemc
+      build:
+          run_exports:
+              - {{ pin_subpackage('libsystemc', exact=True) }}
+      requirements:
+          build:
+              - {{ compiler('cxx') }}
+      files:
           - lib/libsystemc.so.?.?.?                              # [linux]
           - lib/libsystemc.?.?.?.dylib                           # [osx]
-      test:                                                      # [not win]
-        commands:                                                # [not win]
+      test:
+        commands:
           - test -f "$PREFIX"/lib/libsystemc"$SHLIB_EXT".{{ version }}  # [linux]
           - test -f "$PREFIX"/lib/libsystemc.{{ version }}"$SHLIB_EXT"  # [osx]
+      about:
+        home: https://systemc.org/
+        summary: 'The language for System-level design, modeling and verification'
+        description: |
+          Runtime dynamically-linked library only.
+
+          SystemC(TM) addresses the need for a system design and verification language that spans hardware
+          and software. It is a language built in standard C++ by extending the language with the use of
+          class libraries. The language is particularly suited to model system's partitioning, to evaluate
+          and verify the assignment of blocks to either hardware or software implementations, and to
+          architect and measure the interactions between and among functional blocks. Leading companies in
+          the intellectual property (IP), electronic design automation (EDA), semiconductor, electronic
+          systems, and embedded software industries currently use SystemC for architectural exploration,
+          to deliver high-performance hardware blocks at various levels of abstraction and to develop
+          virtual platforms for hardware/software co-design. SystemC has been standardized by the Open
+          SystemC Initiative (OSCI) and Accellera Systems Initiative and ratified as IEEE Std. 1666(TM)-2011.
+        license: Apache-2.0
+        license_family: Apache
+        license_file:
+          - LICENSE
+          - NOTICE
+          - src/sysc/packages/boost/LICENSE_1_0.txt
+          - src/sysc/packages/qt/copyright.h
+        doc_url: https://ieeexplore.ieee.org/document/6134619
+        dev_url: https://github.com/accellera-official/systemc
+{% endif %}
+
     # cmake build doesn't include the static lib if you ask for dynamic
     #- name: libsystemc-static                                    # [not win]
     #  files:                                                     # [not win]
     #      - lib/libsystemc.a                                     # [not win]
-    - name: systemc-doc                                          # [not win]
-      files:                                                     # [not win]
-          - share/doc/systemc/                                   # [not win]
-    - name: systemc-dev                                          # [not win]
-      requirements:                                              # [not win]
-          build:                                                 # [not win]
-              - {{ compiler('cxx') }}                            # [not win]
+    - name: systemc-doc
+      files:
+          - {{ Library }}share/doc/systemc/
+      about:
+        home: https://systemc.org/
+        summary: 'The language for System-level design, modeling and verification'
+        description: |
+          Documentation installed by upstream build into $PREFIX. Not much on Windows.
+
+          SystemC(TM) addresses the need for a system design and verification language that spans hardware
+          and software. It is a language built in standard C++ by extending the language with the use of
+          class libraries. The language is particularly suited to model system's partitioning, to evaluate
+          and verify the assignment of blocks to either hardware or software implementations, and to
+          architect and measure the interactions between and among functional blocks. Leading companies in
+          the intellectual property (IP), electronic design automation (EDA), semiconductor, electronic
+          systems, and embedded software industries currently use SystemC for architectural exploration,
+          to deliver high-performance hardware blocks at various levels of abstraction and to develop
+          virtual platforms for hardware/software co-design. SystemC has been standardized by the Open
+          SystemC Initiative (OSCI) and Accellera Systems Initiative and ratified as IEEE Std. 1666(TM)-2011.
+        license: Apache-2.0
+        license_family: Apache
+        license_file:
+          - LICENSE
+          - NOTICE
+          - src/sysc/packages/boost/LICENSE_1_0.txt
+          - src/sysc/packages/qt/copyright.h
+        doc_url: https://ieeexplore.ieee.org/document/6134619
+        dev_url: https://github.com/accellera-official/systemc
+    - name: systemc-dev
+      build:                                                     # [not win]
+          run_exports:                                           # [not win]
+              - {{ pin_subpackage('libsystemc', exact=True) }}   # [not win]
+      requirements:
+          build:
+              - {{ compiler('cxx') }}
           run:                                                   # [not win]
               - {{ pin_subpackage('libsystemc', exact=True) }}   # [not win]
       files:                                                     # [not win]
@@ -74,24 +131,34 @@ outputs:                                                         # [not win]
           - lib/libsystemc.so.?.?                                # [linux]
           - lib/libsystemc.dylib                                 # [osx]
           - lib/libsystemc.?.?.dylib                             # [osx]
+          - Library/lib/systemc.lib                              # [win]
           - lib/pkgconfig/systemc.pc                             # [not win]
           - lib/pkgconfig/tlm.pc                                 # [not win]
-          - lib/cmake/SystemCLanguage/                           # [not win]
-          - lib/cmake/SystemCTLM/                                # [not win]
-          - include/sysc                                         # [not win]
-          - include/systemc*                                     # [not win]
-          - include/tlm*                                         # [not win]
-          - include/tlm_core                                     # [not win]
-          - include/tlm_utils                                    # [not win]
+          - {{ Library }}lib/cmake/SystemCLanguage/
+          - {{ Library }}lib/cmake/SystemCTLM/
+          - {{ Library }}lib/cmake/SystemCLanguage/
+          - {{ Library }}lib/cmake/SystemCTLM/
+          - {{ Library }}include/sysc
+          - {{ Library }}include/systemc*
+          - {{ Library }}include/tlm*
+          - {{ Library }}include/tlm_core
+          - {{ Library }}include/tlm_utils
           - etc/conda/*activate.d/*activate-systemc.sh           # [not win]
-      test:                                                      # [not win]
-        requires:                                                # [not win]
-          - {{ compiler('cxx') }}                                # [not win]
+      test:
+        # Windows cmake build doesn't install the examples, so we copy them into
+        # test collateral of systemc-dev on Windows
+        source_files:               # [win]
+          - examples                # [win]
+        requires:
+          - {{ compiler('cxx') }}
           - {{ pin_subpackage('systemc-doc', exact=True) }}      # [not win]
           - make                                                 # [not win]
           - sed                                                  # [not win]
           - pkg-config                                           # [not win]
-        commands:                                                # [not win]
+        commands:
+          - cd examples/build-msvc                                             # [win]
+          - nmake /nologo CONFIG=Release PLATFORM=x64 VCBUILD=vcbuild check    # [win64]
+          - nmake /nologo CONFIG=Release PLATFORM=Win32 VCBUILD=vcbuild check  # [win32]
           - test "$SYSTEMC_HOME" == "$PREFIX"                    # [not win]
           - ls -l "$PREFIX"/lib                                  # [not win]
           - test -f "$PREFIX"/lib/libsystemc"$SHLIB_EXT"         # [not win]
@@ -110,11 +177,65 @@ outputs:                                                         # [not win]
           # osx ld64 doesn't support '-rpath=' must be '-rpath,'
           - make -C examples/build-unix -j $CPU_COUNT run LDFLAG_RPATH=-Wl,-rpath, FLAGS_WERROR="-Werror -Wno-error=invalid-utf8"    # [osx]
           - make -C examples/build-unix -j $CPU_COUNT check LDFLAG_RPATH=-Wl,-rpath, FLAGS_WERROR="-Werror -Wno-error=invalid-utf8"  # [osx]
-    - name: systemc                                              # [not win]
-      requirements:                                              # [not win]
-          run:                                                   # [not win]
-              - {{ pin_subpackage('systemc-dev', exact=True) }}  # [not win]
-              - {{ pin_subpackage('systemc-doc', exact=True) }}  # [not win]
+      about:
+        home: https://systemc.org/
+        summary: 'The language for System-level design, modeling and verification'
+        description: |
+          Everything needed for development using System-C. Headers, unversioned dyn-lib symlinks (unix)
+          the static systemc.lib (windows).
+
+          SystemC(TM) addresses the need for a system design and verification language that spans hardware
+          and software. It is a language built in standard C++ by extending the language with the use of
+          class libraries. The language is particularly suited to model system's partitioning, to evaluate
+          and verify the assignment of blocks to either hardware or software implementations, and to
+          architect and measure the interactions between and among functional blocks. Leading companies in
+          the intellectual property (IP), electronic design automation (EDA), semiconductor, electronic
+          systems, and embedded software industries currently use SystemC for architectural exploration,
+          to deliver high-performance hardware blocks at various levels of abstraction and to develop
+          virtual platforms for hardware/software co-design. SystemC has been standardized by the Open
+          SystemC Initiative (OSCI) and Accellera Systems Initiative and ratified as IEEE Std. 1666(TM)-2011.
+        license: Apache-2.0
+        license_family: Apache
+        license_file:
+          - LICENSE
+          - NOTICE
+          - src/sysc/packages/boost/LICENSE_1_0.txt
+          - src/sysc/packages/qt/copyright.h
+        doc_url: https://ieeexplore.ieee.org/document/6134619
+        dev_url: https://github.com/accellera-official/systemc
+    - name: systemc
+      build:                                                     # [not win]
+          run_exports:                                           # [not win]
+              - {{ pin_subpackage('libsystemc', exact=True) }}   # [not win]
+      requirements:
+          run:
+              - {{ pin_subpackage('systemc-dev', exact=True) }}
+              - {{ pin_subpackage('systemc-doc', exact=True) }}
+      about:
+        home: https://systemc.org/
+        summary: 'The language for System-level design, modeling and verification'
+        description: |
+          Metapackage containing everything for development and runtime.
+
+          SystemC(TM) addresses the need for a system design and verification language that spans hardware
+          and software. It is a language built in standard C++ by extending the language with the use of
+          class libraries. The language is particularly suited to model system's partitioning, to evaluate
+          and verify the assignment of blocks to either hardware or software implementations, and to
+          architect and measure the interactions between and among functional blocks. Leading companies in
+          the intellectual property (IP), electronic design automation (EDA), semiconductor, electronic
+          systems, and embedded software industries currently use SystemC for architectural exploration,
+          to deliver high-performance hardware blocks at various levels of abstraction and to develop
+          virtual platforms for hardware/software co-design. SystemC has been standardized by the Open
+          SystemC Initiative (OSCI) and Accellera Systems Initiative and ratified as IEEE Std. 1666(TM)-2011.
+        license: Apache-2.0
+        license_family: Apache
+        license_file:
+          - LICENSE
+          - NOTICE
+          - src/sysc/packages/boost/LICENSE_1_0.txt
+          - src/sysc/packages/qt/copyright.h
+        doc_url: https://ieeexplore.ieee.org/document/6134619
+        dev_url: https://github.com/accellera-official/systemc
 
 
 about:
@@ -145,3 +266,4 @@ extra:
   recipe-maintainers:
     - timkpaine
     - timsnyder
+  feedstock-name: systemc
