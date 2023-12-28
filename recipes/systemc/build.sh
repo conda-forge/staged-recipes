@@ -49,6 +49,7 @@ mkdir -p "${PREFIX}"/etc/conda/{de,}activate.d
 
 sed 's/\@NATURE\@/activate/' "${RECIPE_DIR}"/activate.sh > "${PREFIX}"/etc/conda/activate.d/activate-${PKG_NAME}.sh
 sed 's/\@NATURE\@/deactivate/' "${RECIPE_DIR}"/activate.sh > "${PREFIX}"/etc/conda/deactivate.d/deactivate-${PKG_NAME}.sh
+ls -lr $PREFIX/etc/conda/{de,}activate.d
 
 ls -l $PREFIX/lib/libsystemc*
 
