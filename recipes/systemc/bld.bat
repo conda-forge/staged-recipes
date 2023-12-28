@@ -20,3 +20,8 @@ if errorlevel 1 exit 1
 
 nmake install
 if errorlevel 1 exit 1
+
+REM manually install the examples as in unix so that they can be split into
+REM systemc-doc package
+xcopy %SRC_DIR%\examples %LIBRARY_PREFIX%\share\doc\systemc\ /E /H
+if errorlevel 1 exit 1
