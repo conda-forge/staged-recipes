@@ -1,3 +1,4 @@
+echo on
 setlocal EnableDelayedExpansion
 
 mkdir build
