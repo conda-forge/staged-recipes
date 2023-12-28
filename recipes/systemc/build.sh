@@ -47,8 +47,8 @@ cp -r "$SRC_DIR"/examples "$PREFIX"/share/doc/systemc/
 # create activate & deactivate scripts that manage SYSTEMC_HOME
 mkdir -p "${PREFIX}"/etc/conda/{de,}activate.d
 
-sed 's/\@NATURE\@/activate/' "${RECIPE_DIR}"/activate.sh > "${PREFIX}"/etc/conda/activate.d/activate-${PKG_NAME}.sh
-sed 's/\@NATURE\@/deactivate/' "${RECIPE_DIR}"/activate.sh > "${PREFIX}"/etc/conda/deactivate.d/deactivate-${PKG_NAME}.sh
+sed 's/\@NATURE\@/activate/' "${RECIPE_DIR}"/activate.sh > "${PREFIX}"/etc/conda/activate.d/activate-systemc-dev.sh
+sed 's/\@NATURE\@/deactivate/' "${RECIPE_DIR}"/activate.sh > "${PREFIX}"/etc/conda/deactivate.d/deactivate-systemc-dev.sh
 ls -lr $PREFIX/etc/conda/{de,}activate.d
 
 ls -l $PREFIX/lib/libsystemc*
