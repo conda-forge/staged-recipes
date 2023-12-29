@@ -11,6 +11,9 @@ else
   on_mpi="ON"
 fi
 
+# remove the share cmake files
+find ${PREFIX}/share/cmake -type d -name "medfile-*" -exec rm -rf {} +
+
 cmake .. \
     -DCMAKE_BUILD_TYPE="Release" \
     -DPYTHON_ROOT_DIR="${PREFIX}" \
