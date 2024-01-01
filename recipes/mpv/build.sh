@@ -3,11 +3,14 @@
 export LC_ALL=C
 export NINJA=$(which ninja)
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH}"
+PKG_CONFIG="${BUILD_PREFIX}/bin/pkg-config"
 
 meson setup build \
     -Dhtml-build=enabled \
     -Dlibmpv=true \
+    -Diconv=enabled \
     -Dlibarchive=enabled \
+    -Dzimg=disabled \
     --sysconfdir=${PREFIX}/etc \
     --datadir=${PREFIX}/share \
     --prefix=${PREFIX} \
