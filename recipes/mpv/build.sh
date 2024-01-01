@@ -5,10 +5,13 @@ export NINJA=$(which ninja)
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH}"
 PKG_CONFIG="${BUILD_PREFIX}/bin/pkg-config"
 
+if [[ "${target_platform}" == osx-* ]]; then
+  sed -i '' '/Requires.private: iconv/d' ${PREFIX}/lib/pkgconfig/libarchive.pc
+fi
+
 meson setup build \
     -Dhtml-build=enabled \
     -Dlibmpv=true \
-    -Diconv=enabled \
     -Dlibarchive=enabled \
     -Dzimg=disabled \
     --sysconfdir=${PREFIX}/etc \
