@@ -6,6 +6,8 @@ export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH}"
 PKG_CONFIG="${BUILD_PREFIX}/bin/pkg-config"
 
 if [[ "${target_platform}" == osx-* ]]; then
+  # iconv.pc is not shipped, see https://github.com/Homebrew/homebrew-core/issues/117869
+  # and https://github.com/conda-forge/libiconv-feedstock/issues/36
   sed -i '' '/Requires.private: iconv/d' ${PREFIX}/lib/pkgconfig/libarchive.pc
 fi
 
