@@ -4,9 +4,9 @@
     issue_comment:
       types: [created]
     issues:
-      types: [unlabeled]
+      types: [unlabeled, labeled]
     pull_request_target:
-      types: [unlabeled]
+      types: [unlabeled, labeled]
 
   permissions:
     issues: write # for adding label to an issue
@@ -79,23 +79,14 @@
                   name: ['Awaiting author contribution']
               })
 
-    check-remove-review-requested-label:
-      name: 'Check that review-requested label was removed by a team member'
+    add-await-when-review-removed:
+      name: 'Add awaiting-author when review-requested removed'
       if: >
         github.event.action == 'unlabeled'
         && github.event.label.name == 'review-requested'
       runs-on: ubuntu-latest
       steps:
-        - name: check-team-membership
-          id: check_team_review
-          uses: actions/github-script@v6
-          with:
-            script: |
-              console.log(`Label was removed by ${context.payload.sender.login}`);
-              return true;
         - name: add-labels
-          if: >
-            (steps.check_team_review.outputs.result == 'true')
           uses: actions/github-script@v6
           with:
             script: |
@@ -105,16 +96,21 @@
                   repo: context.repo.repo,
                   labels: ['Awaiting author contribution']
               });
-        - name: readd-review-label
-          if: >
-            (steps.check_team_review.outputs.result == 'false')
+
+    remove-review-when-await-added:
+      name: 'Removed review-requested when awaiting-author added'
+      if: >
+        github.event.action == 'labeled'
+        && github.event.label.name == 'Awaiting author contribution'
+      runs-on: ubuntu-latest
+      steps:
+        - name: remove-labels
           uses: actions/github-script@v6
           with:
             script: |
-              github.rest.issues.addLabels({
+              github.rest.issues.removeLabel({
                   issue_number: context.issue.number,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  labels: ['review-requested']
-              });
-              console.log('Non-members of staged recipes cannot remove this label.')
+                  name: ['review-requested']
+              })
