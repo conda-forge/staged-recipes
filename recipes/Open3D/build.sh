@@ -47,7 +47,9 @@ cmake ${SRC_DIR} ${CMAKE_ARGS} \
     -DUSE_SYSTEM_VTK=ON \
     -DUSE_SYSTEM_ZEROMQ=ON \
     -DWITH_IPPICV=OFF \
-    -DWITH_FAISS=OFF
+    -DWITH_FAISS=OFF \
+    -DPython3_EXECUTABLE=$PYTHON
 
 cmake --build . --config Release -- -j$CPU_COUNT
 cmake --build . --config Release --target install
+cmake --build . --config Release --target install-pip-package
