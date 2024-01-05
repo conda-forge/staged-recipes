@@ -133,7 +133,7 @@ def get_config(arch, channel_urls):
 
     config = conda_build.api.Config(
         arch=arch, exclusive_config_files=exclusive_config_files,
-        channel_urls=channel_urls, error_overlinking=False,
+        channel_urls=channel_urls, error_overlinking=True,
     )
     return config
 
