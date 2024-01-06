@@ -1,13 +1,14 @@
 #!/bin/bash
 
 echo "Building ..."
-echo $PREFIX
-echo $SRC_DIR
+echo "$PREFIX"
+echo "$SRC_DIR"
 
 ls -la
 ls -la karilang-kernel
 ls -la karilang-kernel/src
 ls -la karilang-kernel/src/KariLang
+ls -la karilang-kernel/src/KariLang/src
 pwd
 
 
