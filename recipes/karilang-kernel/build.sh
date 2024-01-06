@@ -5,6 +5,9 @@ echo $PREFIX
 echo $SRC_DIR
 
 ls -la
+ls -la karilang-kernel
+ls -la karilang-kernel/src
+ls -la karilang-kernel/src/KariLang
 pwd
 
 
