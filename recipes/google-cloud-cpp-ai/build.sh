@@ -22,10 +22,6 @@ feature_list=(
   dialogflow_cx
   dlp
   speech
-  timeseriesinsights
-  translate
-  videointelligence
-  vision
 )
 for feature in "${feature_list[@]}"; do
   echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ'): Building ${feature}"

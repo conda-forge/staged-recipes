@@ -13,11 +13,7 @@ FOR %%G IN (
   dialogflow_es
   dialogflow_cx
   dlp
-  speech
-  timeseriesinsights
-  translate
-  videointelligence
-  vision) DO (
+  speech) DO (
     cmake -G "Ninja" ^
         -S . -B .build/%%G ^
         -DGOOGLE_CLOUD_CPP_ENABLE=%%G ^
