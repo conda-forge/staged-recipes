@@ -1,5 +1,9 @@
 #!/bin/bash
 
+echo "Building ..."
+echo $PREFIX
+echo $SRC_DIR
+
 cmake -DCMAKE_BUILD_TYPE=Release     \
       -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_PREFIX_PATH=$PREFIX    \
