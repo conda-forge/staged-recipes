@@ -14,7 +14,6 @@ FOR %%G IN (
   dialogflow_cx
   dlp
   speech
-  texttospeech
   timeseriesinsights
   translate
   videointelligence

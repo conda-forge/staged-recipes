@@ -22,7 +22,6 @@ feature_list=(
   dialogflow_cx
   dlp
   speech
-  texttospeech
   timeseriesinsights
   translate
   videointelligence
