@@ -1,10 +1,19 @@
+# This script parses all Bazel definitions for LLVM and MLIR and replaces
+# the definitions for cc_libraries with their (static) output so that when
+# they are used in another build will not be rebuilt.
+#
+# The (pre-)built libraries are copied into $PREFIX/lib so that the linker
+# picks them up in a downstream build.
+
 from pathlib import Path
 import ast
 import astor
 import os
+import logging
 import shutil
 
 
+logger = logging.getLogger(__name__)
 BAZEL_DIR = Path("utils") / "bazel"
 BAZEL_OUT = BAZEL_DIR / "bazel-bin" / "external" / "llvm-project"
 LIB_TARGET_DIR = Path(os.environ["PREFIX"]) / "lib"
@@ -43,6 +52,7 @@ def rewrite_cc_library(symbol, node):
             extend_linkopts(linkopts, libname)
         # Move the compiled library into the target folder
         shutil.copyfile(expected_lib, LIB_TARGET_DIR / f"lib{libname}.a")
+        logger.info("Copying %s to %s/lib%s.a", expected_lib, LIB_TARGET_DIR, libname)
 
 
 def rewrite_binaries(code, symbol):
@@ -58,6 +68,7 @@ def rewrite_binaries(code, symbol):
     return astor.to_source(tree)
 
 
+logging.basicConfig(encoding='utf-8', level=logging.INFO)
 llvm_build = (BAZEL_DIR / "llvm-project-overlay" / "llvm" / "BUILD.bazel").read_text()
 mlir_build = (BAZEL_DIR / "llvm-project-overlay" / "mlir" / "BUILD.bazel").read_text()
 bzl = rewrite_binaries(llvm_build, "LLVM")
