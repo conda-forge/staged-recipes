@@ -8,7 +8,7 @@ import shutil
 BAZEL_DIR = Path("utils") / "bazel"
 BAZEL_OUT = BAZEL_DIR / "bazel-bin" / "external" / "llvm-project"
 LIB_TARGET_DIR = Path(os.environ["PREFIX"]) / "lib"
-OTHER_TARGET_DIR = Path(os.environ["PREFIX"]) / "share" / "llvm_for_tf"
+OTHER_TARGET_DIR = Path(os.environ["PREFIX"]) / "share" / "llvm-bazel-cache"
 
 
 def extend_linkopts(kw, name):
