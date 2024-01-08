@@ -21,7 +21,7 @@ cmake -B build \
     -DCMAKE_INSTALL_RPATH=$PREFIX/lib \
     -DPYTHON_EXECUTABLE="$PYTHON" \
     -DPython3_EXECUTABLE="$PYTHON" \
-    -DANTLR_JAR_LOCATION="$PREFIX/lib/antlr-4.13.1-complete.jar" \
+    -DANTLR_JAR_LOCATION="$PREFIX/lib/antlr4-4.13.1-complete.jar" \
     -DCMAKE_FIND_FRAMEWORK=NEVER \
     -DCMAKE_FIND_APPBUNDLE=NEVER
 
