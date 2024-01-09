@@ -1,4 +1,5 @@
 set -eux
+pip check
 sb --help
 python3 -c 'import _simple_build_system._cli'
 unwrapped_simplebuild --help
