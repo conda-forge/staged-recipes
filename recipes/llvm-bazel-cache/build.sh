@@ -13,7 +13,7 @@ fi
 
 pushd utils/bazel
 # Omit building the unit tests
-rm -rf llvm-project-overlay/llvm/unittests/ llvm-project-overlay/mlir/unittests/
+rm -rf llvm-project-overlay/llvm/unittests/ llvm-project-overlay/mlir/unittests/ llvm-project-overlay/mlir/test/
 source gen-bazel-toolchain
 bazel build \
     --repo_env=BAZEL_LLVM_ZLIB_STRATEGY=system \
