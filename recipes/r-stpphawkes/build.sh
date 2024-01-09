@@ -4,7 +4,7 @@ if [[ $target_platform =~ linux.* ]] || [[ $target_platform == win-32 ]] || [[ $
     export LD_LIBRARY_PATH=${BUILD_PREFIX}/x86_64-conda-linux-gnu/sysroot/usr/lib64:${BUILD_PREFIX}/lib
   fi
   export DISABLE_AUTOBREW=1
-  $R CMD INSTALL --build .
+  $R CMD INSTALL --build . ${R_ARGS}
 else
   mkdir -p $PREFIX/lib/R/library/stpphawkes
   mv * $PREFIX/lib/R/library/stpphawkes
