@@ -13,7 +13,7 @@ fi
 
 pushd utils/bazel
 # Omit building the unit tests
-rm -rf llvm-project-overlay/llvm/unittests/ llvm-project-overlay/mlir/unittests/
+rm -rf llvm-project-overlay/llvm/unittests/ llvm-project-overlay/mlir/unittests/ llvm-project-overlay/mlir/examples
 source gen-bazel-toolchain
 bazel build \
     --repo_env=BAZEL_LLVM_ZLIB_STRATEGY=system \
@@ -21,7 +21,10 @@ bazel build \
     --@llvm-project//llvm:pfm=disable \
     --crosstool_top=//bazel_toolchain:toolchain \
     --cpu ${TARGET_CPU} \
-    @llvm-project//llvm/... @llvm-project//mlir/...
+    -- \
+    @llvm-project//llvm/... @llvm-project//mlir/... \
+    -@llvm-project//llvm:yaml2obj -@llvm-project//llvm:obj2yaml -@llvm-project//llvm:llvm-pdbutil -@llvm-project//llvm:llvm-rc \
+    -@llvm-project//mlir:mlir-pdll -@llvm-project//mlir/python/...
 popd
 
 mkdir -p ${PREFIX}/share/llvm-bazel-cache
