@@ -1,15 +1,13 @@
-@echo on
+:: build
+cargo install --locked --root "%PREFIX%" --path . || exit 1
 
-copy "%RECIPE_DIR%\build_win.sh" .
-if %errorlevel% neq 0 exit /b %errorlevel%
+:: move to scripts
+md "%SCRIPTS%" || echo "%SCRIPTS% already exists"
+move "%PREFIX%\bin\vale-ls.exe" "%SCRIPTS%"
 
-set PREFIX=%PREFIX:\=/%
-set SRC_DIR=%SRC_DIR:\=/%
-set MSYSTEM=MINGW%ARCH%
-set MSYS2_PATH_TYPE=inherit
-set CHERE_INVOKING=1
+:: dump licenses
+cargo-bundle-licenses --format yaml --output "%SRC_DIR%\THIRDPARTY.yml"
 
-bash -lc "./build_win.sh"
-if %errorlevel% neq 0 exit /b %errorlevel%
-
-exit /b 0
+:: remove extra build files
+del /F /Q "%PREFIX%\.crates2.json"
+del /F /Q "%PREFIX%\.crates.toml"
