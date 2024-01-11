@@ -1,0 +1,82 @@
+# this file is generated from meta.j2.yml with _update_recipe.py
+{% set version = "<< version >>" %}
+
+package:
+  name: vale-packages-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/errata-ai/packages/releases/download/v{{ version }}.tar.gz
+  sha256: << sha256_sum >>
+
+build:
+  noarch: python
+  number: << build_number >>
+
+requirements:
+  host:
+    - python >=3.10
+    - jinja2
+
+outputs:
+  - name: vale-packages
+    build:
+      noarch: generic
+    requirements:<% for name, output in outputs.items() %>
+      - {{ pin_subpackage("vale-package-<< name | lower | replace("_", "-") >>", exact=True) }}
+      <%- endfor %>
+    test:
+      source_files:
+        - library.json
+      files:
+        - test_all.py
+      requires:
+        - pytest
+      commands:
+        - pytest -vv --color=yes
+  <% for name, output in outputs.items() %>
+  - name: vale-package-<< name | lower | replace("_", "-") >>
+    build:
+      noarch: generic
+      script:
+        - mkdir -p "{{ PREFIX }}/share/vale/styles"  # [unix]
+        - cp -r "{{ SRC_DIR }}/<< name >>" "{{ PREFIX }}/share/vale/styles/"  # [unix]
+        - md "{{ PREFIX }}\share\vale\styles"  # [win]
+        - copy "{{ SRC_DIR }}\<< name >>" "{{ PREFIX }}\share\vale\styles\"  # [win]
+    requirements:
+      run:
+        <% if "meta" in output -%>
+        - vale << output.meta.vale_version >><% else -%>
+        - vale  # no version available from meta.json<% endif %>
+    test:
+      files:
+        - test_vale_styles.py
+      requires:
+        - pytest
+      commands:
+        - ls "${CONDA_PREFIX}/share/vale/styles/<< name >>"  # [unix]
+        - dir "%CONDA_PREFIX%\share\vale\styles\<< name >>"  # [win]
+    about:
+      home: << output.homepage >>
+      license: MIT
+      license_family: MIT
+      license_file: LICENSE
+      summary: |-
+        << output.description >>
+      dev_url: https://github.com/errata-ai/packages
+  <%- endfor %>
+
+about:
+  home: https://vale.sh/hub
+  license: MIT
+  license_family: MIT
+  license_file:
+    - LICENSE
+  summary: A collection of pre-packaged, Vale-compatible style guides and configurations.
+  description: This repository contains a library of all officially supported styles for Vale.
+  dev_url: https://github.com/errata-ai/packages
+
+extra:
+  feedstock-name: vale-packages
+  recipe-maintainers:
+    - bollwyvl
