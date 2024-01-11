@@ -189,7 +189,7 @@ def check_recipes_in_correct_dir(root_dir, correct_dir):
 
 def read_mambabuild(recipes_dir):
     """
-    Only use mambabuild if all the recipes require so via 
+    Only use mambabuild if all the recipes require so via
     'conda_build_tool: mambabuild' in 'recipes/<recipe>/conda-forge.yml'
     """
     folders = os.listdir(recipes_dir)
