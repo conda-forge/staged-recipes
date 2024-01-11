@@ -6,55 +6,57 @@ package:
   version: {{ version }}
 
 source:
-  url: https://github.com/errata-ai/packages/releases/download/v{{ version }}.tar.gz
+  url: https://github.com/errata-ai/packages/archive/refs/tags/v{{ version }}.tar.gz
   sha256: << sha256_sum >>
 
 build:
-  noarch: python
+  noarch: generic
   number: << build_number >>
-
-requirements:
-  host:
-    - python >=3.10
-    - jinja2
 
 outputs:
   - name: vale-packages
     build:
       noarch: generic
-    requirements:<% for name, output in outputs.items() %>
-      - {{ pin_subpackage("vale-package-<< name | lower | replace("_", "-") >>", exact=True) }}
-      <%- endfor %>
+      script:
+        - python {{ RECIPE_DIR }}/_update_recipe.py --check
+      ignore_run_exports:
+        - python
+        - python_abi
+    requirements:
+      build:
+        - python >=3.10
+        - jinja2
+      run:
+        <% for name, output in outputs.items() %>
+        - {{ pin_subpackage("vale-package-<< name | lower | replace("_", "-") >>", exact=True) }}
+        <%- endfor %>
     test:
       source_files:
         - library.json
       files:
-        - test_all.py
+        - test_packages.py
       requires:
         - pytest
+        - pytest-html
       commands:
-        - pytest -vv --color=yes
+        - python test_packages.py
   <% for name, output in outputs.items() %>
   - name: vale-package-<< name | lower | replace("_", "-") >>
     build:
       noarch: generic
       script:
         - mkdir -p "{{ PREFIX }}/share/vale/styles"  # [unix]
-        - cp -r "{{ SRC_DIR }}/<< name >>" "{{ PREFIX }}/share/vale/styles/"  # [unix]
+        - cp -r "{{ SRC_DIR }}/pkg/<< name >>/<< name >>" "{{ PREFIX }}/share/vale/styles/<< name >>"  # [unix]
         - md "{{ PREFIX }}\share\vale\styles"  # [win]
-        - copy "{{ SRC_DIR }}\<< name >>" "{{ PREFIX }}\share\vale\styles\"  # [win]
+        - copy "{{ SRC_DIR }}\pkg\<< name >>\<< name >>" "{{ PREFIX }}\share\vale\styles\<< name >>"  # [win]
     requirements:
       run:
         <% if "meta" in output -%>
         - vale << output.meta.vale_version >><% else -%>
         - vale  # no version available from meta.json<% endif %>
     test:
-      files:
-        - test_vale_styles.py
-      requires:
-        - pytest
       commands:
-        - ls "${CONDA_PREFIX}/share/vale/styles/<< name >>"  # [unix]
+        - ls -lathr "${CONDA_PREFIX}/share/vale/styles/<< name >>"  # [unix]
         - dir "%CONDA_PREFIX%\share\vale\styles\<< name >>"  # [win]
     about:
       home: << output.homepage >>
@@ -64,7 +66,7 @@ outputs:
       summary: |-
         << output.description >>
       dev_url: https://github.com/errata-ai/packages
-  <%- endfor %>
+  <% endfor %>
 
 about:
   home: https://vale.sh/hub
