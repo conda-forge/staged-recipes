@@ -1,0 +1,83 @@
+{% set name = "CppInterOp" %}
+{% set build_number = 0 %}
+{% set version = "1.1.0" %}
+{% set revision_tag = "v"+version %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/compiler-research/CppInterOp/archive/refs/tags/{{ revision_tag }}.tar.gz
+    sha256: 29377ba4fecd82395efd2fefcaa911fe72396d78293607852bd0e9b9ab65d1dc
+    folder: cppinterop
+    patches:
+      - patches/cppinterop/cppinterop-1.1.0-0001-cppinterop-Add-missing-dependencies.patch
+  - path: patches
+    folder: add_patches
+
+build:
+  skip: true  # [win]
+  number: {{ build_number }}
+  string: clang{{ (clangdev or "None").split(".")[0] }}_repl_h{{ PKG_HASH }}_{{ build_number }}
+
+requirements:
+  build:
+    - cmake
+    #- clang  # [osx]
+    - make  # [unix]
+    - ninja  # [win]
+    - {{ compiler('cxx') }}
+    - wget
+    - llvm {{ clangdev }}
+    - llvmdev {{ clangdev }}
+    - clangdev {{ clangdev }}
+    - git-lfs
+    - libcxx {{ cxx_compiler_version }}  # [osx]
+    - libstdcxx-ng {{ cxx_compiler_version }}  # [linux]
+  host:
+    - llvm {{ clangdev }}
+    - llvmdev {{ clangdev }}
+    - clangdev {{ clangdev }}
+    - backtrace  # [unix and x86]
+    - libxml2
+    - zlib
+    - zstd
+    - libcxx {{ cxx_compiler_version }}  # [osx]
+    - libstdcxx-ng {{ cxx_compiler_version }}  # [linux]
+  run_constrained:
+    - llvm {{ clangdev }}
+    - llvmdev {{ clangdev }}
+    - clangdev {{ clangdev }}
+  run:
+    - libcxx {{ cxx_compiler_version }}  # [osx]
+    - libstdcxx-ng >={{ cxx_compiler_version }}  # [linux]
+
+test:
+  commands:
+    - test -f $PREFIX/lib/libclangCppInterOp${SHLIB_EXT}  # [unix]
+    - if not exist %LIBRARY_BIN%\\libclangCppInterOp.dll exit 1  # [win]
+
+about:
+  home: https://github.com/compiler-research/CppInterOp
+  license: Apache-2.0 WITH LLVM-exception
+  license_family: Apache
+  license_file: cppinterop/LICENSE.txt
+  summary: |
+    The CppInterOp library provides a minimalist approach for other languages
+    to interoperate with C++ entities.
+  description: |
+    CppInterOp exposes API from Clang and LLVM in a backward compatibe way.
+    The API support downstream tools that utilize interactive C++ by using
+    the compiler as a service. That is, embed Clang and LLVM as a libraries
+    in their codebases. The API are designed to be minimalistic and aid
+    non-trivial tasks such as language interoperability on the fly. In such
+    scenarios CppInterOp can be used to provide the necessary introspection
+    information to the other side helping the language cross talk.
+  doc_url: https://cppinterop.readthedocs.io/en/{{ version }}
+  dev_url: https://cppinterop.readthedocs.io/en/{{ version }}/DevelopersDocumentation.html
+
+extra:
+  recipe-maintainers:
+    - alexander-penev
+    - vgvassilev
