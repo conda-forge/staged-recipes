@@ -15,11 +15,10 @@ LIBRARY_JSON = SRC_DIR / "library.json"
 VALE_PATH = Path(sys.prefix) / "share/vale/styles"
 VALE_INI = ".vale.ini"
 PYTEST_ARGS = [
-    "-vv",
+    "-svv",
     "--color=yes",
     "--tb=long",
-    "--html=pytest.html",
-    "--self-contained-html",
+    __file__,
 ]
 
 PACKAGE_FIXES_ISSUE = ["Hugo"]
@@ -156,4 +155,4 @@ def _run_vale_json(*args: str):
 
 
 if __name__ == "__main__":
-    sys.exit(main([*PYTEST_ARGS, __file__]))
+    sys.exit(main(PYTEST_ARGS))
