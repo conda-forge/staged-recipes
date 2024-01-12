@@ -76,6 +76,39 @@ MD_WITH_AN_ISSUE["Hugo"] = """
 """
 
 
+def test_vale_path():
+    rc, stdout, stderr = _run_vale_json("ls-dirs")
+    assert str(VALE_PATH) in stdout
+
+
+def test_style_finds_or_fixes_issue(a_markdown_file_with_issue: Path):
+    ini = a_markdown_file_with_issue.parent / VALE_INI
+    name = ini.parent.name
+    should_fix = name in PACKAGE_FIXES_ISSUE
+
+    rc, stdout, stderr = _run_vale_json(a_markdown_file_with_issue.name)
+    issues = json.loads(stdout)
+
+    assert not stderr, f"{name} didn't expect any stderr"
+
+    if should_fix:
+        assert not issues
+    else:
+        assert issues
+
+    ini.write_text(DEFAULT_INI, **UTF8)
+
+    rc2, stdout2, stderr2 = _run_vale_json(a_markdown_file_with_issue.name)
+    issues2 = json.loads(stdout2)
+
+    assert not stderr2, f"didn't expect any stderr without {name}"
+
+    if should_fix:
+        assert issues2
+    else:
+        assert not issues2
+
+
 @fixture(params=LIBRARY)
 def a_vale_package(request) -> str:
     return request.param
@@ -108,34 +141,6 @@ def a_markdown_file_with_issue(a_vale_ini: Path) -> Path:
     readme = project / "README.md"
     readme.write_text(MD_WITH_AN_ISSUE.get(name, DEFAULT_MD_WITH_AN_ISSUE), **UTF8)
     return readme
-
-
-def test_style_finds_or_fixes_issue(a_markdown_file_with_issue: Path):
-    ini = a_markdown_file_with_issue.parent / VALE_INI
-    name = ini.parent.name
-    should_fix = name in PACKAGE_FIXES_ISSUE
-
-    rc, stdout, stderr = _run_vale_json(a_markdown_file_with_issue.name)
-    issues = json.loads(stdout)
-
-    assert not stderr, f"{name} didn't expect any stderr"
-
-    if should_fix:
-        assert not issues
-    else:
-        assert issues
-
-    ini.write_text(DEFAULT_INI, **UTF8)
-
-    rc2, stdout2, stderr2 = _run_vale_json(a_markdown_file_with_issue.name)
-    issues2 = json.loads(stdout2)
-
-    assert not stderr2, f"didn't expect any stderr without {name}"
-
-    if should_fix:
-        assert issues2
-    else:
-        assert not issues2
 
 
 def _run_vale_json(*args: str):
