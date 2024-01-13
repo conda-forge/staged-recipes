@@ -17,7 +17,6 @@ VALE_INI = ".vale.ini"
 PYTEST_ARGS = [
     "-svv",
     "--color=yes",
-    "--tb=long",
     __file__,
 ]
 
@@ -77,7 +76,13 @@ MD_WITH_AN_ISSUE["Hugo"] = """
 
 def test_vale_path():
     rc, stdout, stderr = _run_vale_json("ls-dirs")
-    assert str(VALE_PATH) in stdout
+    assert str(VALE_PATH) in stdout, f"`{VALE_PATH}` was not found"
+
+
+def test_style_in_vale_path(a_markdown_file_with_issue: Path):
+    ini = a_markdown_file_with_issue.parent / VALE_INI
+    name = ini.parent.name
+    assert (VALE_PATH / name).is_dir(), f"`{name}` is not in {VALE_PATH}"
 
 
 def test_style_finds_or_fixes_issue(a_markdown_file_with_issue: Path):
@@ -86,9 +91,10 @@ def test_style_finds_or_fixes_issue(a_markdown_file_with_issue: Path):
     should_fix = name in PACKAGE_FIXES_ISSUE
 
     rc, stdout, stderr = _run_vale_json(a_markdown_file_with_issue.name)
-    issues = json.loads(stdout)
 
-    assert not stderr, f"{name} didn't expect any stderr"
+    assert not stderr, f"`{name}` didn't expect any stderr"
+
+    issues = json.loads(stdout)
 
     if should_fix:
         assert not issues
@@ -100,7 +106,7 @@ def test_style_finds_or_fixes_issue(a_markdown_file_with_issue: Path):
     rc2, stdout2, stderr2 = _run_vale_json(a_markdown_file_with_issue.name)
     issues2 = json.loads(stdout2)
 
-    assert not stderr2, f"didn't expect any stderr without {name}"
+    assert not stderr2, f"didn't expect any stderr without `{name}`"
 
     if should_fix:
         assert issues2
@@ -144,6 +150,7 @@ def a_markdown_file_with_issue(a_vale_ini: Path) -> Path:
 
 def _run_vale_json(*args: str):
     args = ["vale", "--output=JSON", *args]
+    print(">>>", *args)
     proc = Popen(args, stdout=PIPE, stderr=PIPE, **UTF8)
     stdout, stderr = proc.communicate()
     print("... rc", proc.returncode)
