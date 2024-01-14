@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.16)
+project(apriltag_test LANGUAGES C)
+find_package(apriltag 3.2 REQUIRED)
+add_executable(test test.c)
+target_link_libraries(test apriltag::apriltag)
