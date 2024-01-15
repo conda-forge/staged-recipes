@@ -6,6 +6,11 @@ from subprocess import Popen, PIPE
 from textwrap import indent
 from typing import Generator
 
+os.environ.update(
+    PYTHONIOENCODING="utf-8",
+    PYTHONLEGACYWINDOWSFSENCODING="utf-8",
+)
+
 from pytest import fixture, main
 
 UTF8 = dict(encoding="utf-8")
