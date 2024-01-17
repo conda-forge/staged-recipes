@@ -1,0 +1,69 @@
+{% set version = '1.0.7' %}
+{% set posix = 'm2-' if win else '' %}
+{% set native = 'm2w64-' if win else '' %}
+
+package:
+  name: r-quickjsr
+  version: {{ version|replace("-", "_") }}
+
+source:
+  url:
+    - {{ cran_mirror }}/src/contrib/QuickJSR_{{ version }}.tar.gz
+    - {{ cran_mirror }}/src/contrib/Archive/QuickJSR/QuickJSR_{{ version }}.tar.gz
+  sha256: 3161c243fed64ea215084b44141bea9ee416fa1ef3910aeb78abe55f3d3e9893
+
+build:
+  merge_build_host: True  # [win]
+  number: 0
+  rpaths:
+    - lib/R/lib/
+    - lib/
+  missing_dso_whitelist:
+    - '*/R.dll'
+
+requirements:
+  build:
+    - {{ compiler('c') }}          # [not win]
+    - {{ compiler('m2w64_c') }}    # [win]
+    - {{ compiler('cxx') }}        # [not win]
+    - {{ compiler('m2w64_cxx') }}  # [win]
+    - {{ posix }}filesystem        # [win]
+    - {{ posix }}make
+    - {{ posix }}sed               # [win]
+    - {{ posix }}coreutils         # [win]
+    - {{ posix }}zip               # [win]
+    - cross-r-base {{ r_base }}    # [build_platform != target_platform]
+  host:
+    - r-base
+    - r-r6
+    - r-rcpp
+    - r-jsonlite
+  run:
+    - r-base
+    - {{ native }}gcc-libs           # [win]
+    - {{ native }}libwinpthread-git  # [win]
+    - r-r6
+    - r-rcpp
+    - r-jsonlite
+
+test:
+  commands:
+    - $R -e "library('QuickJSR')"           # [not win]
+    - "\"%R%\" -e \"library('QuickJSR')\""  # [win]
+
+about:
+  home: https://github.com/andrjohns/QuickJSR
+  doc_url: https://bellard.org/quickjs/
+  license: MIT
+  summary: An 'R' interface to the 'QuickJS' portable 'JavaScript' engine. The engine is bundled
+    entirely within the package, requiring no external system dependencies beyond a
+    'C' compiler.
+  license_family: MIT
+  license_file:
+    - {{ environ["PREFIX"] }}/lib/R/share/licenses/MIT
+    - LICENSE
+    - LICENSE-quickjs
+
+extra:
+  recipe-maintainers:
+    - conda-forge/r
