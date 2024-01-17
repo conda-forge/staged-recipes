@@ -1,10 +1,7 @@
 @echo off
 
 set PKG=github.com/cyverse/gocommands
-
-FOR /F "tokens=* USEBACKQ" %%F IN (`jq -r .version package_info.json`) DO (
-  SET VERSION=v%%F
-)
+set VERSION=v%PKG_VERSION%
 
 FOR /F "tokens=* USEBACKQ" %%F IN (`git rev-parse HEAD`) DO (
   SET GIT_COMMIT=%%F

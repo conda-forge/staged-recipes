@@ -1,5 +1,5 @@
 PKG=github.com/cyverse/gocommands
-VERSION=v$(jq -r .version package_info.json)
+VERSION=v${PKG_VERSION}
 GIT_COMMIT=$(git rev-parse HEAD)
 BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 LDFLAGS="-X '${PKG}/commons.clientVersion=${VERSION}' -X '${PKG}/commons.gitCommit=${GIT_COMMIT}' -X '${PKG}/commons.buildDate=${BUILD_DATE}'"
