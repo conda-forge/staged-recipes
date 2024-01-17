@@ -24,5 +24,5 @@ if not exist "%PREFIX%\bin" (
 )
 
 echo "building gocommands"
-go build -ldflags=%LDFLAGS% -o gocmd .\cmd\*.go
+go build -ldflags=%LDFLAGS% -o gocmd .\cmd\gocmd.go
 copy gocmd.exe %PREFIX%\bin\gocmd.exe

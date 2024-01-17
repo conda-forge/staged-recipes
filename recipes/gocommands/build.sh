@@ -10,5 +10,5 @@ CGO_ENABLED=0
 
 mkdir -p ${PREFIX}/bin
 echo "building gocommands"
-go build "-ldflags=${LDFLAGS}" -o gocmd ./cmd/*.go
+go build "-ldflags=${LDFLAGS}" -o gocmd ./cmd/gocmd.go
 cp gocmd ${PREFIX}/bin/gocmd
