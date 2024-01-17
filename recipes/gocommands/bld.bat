@@ -4,11 +4,11 @@ set PKG=github.com/cyverse/gocommands
 set VERSION=v%PKG_VERSION%
 
 FOR /F "tokens=* USEBACKQ" %%F IN (`git rev-parse HEAD`) DO (
-  SET GIT_COMMIT=%%F
+  SET COMMIT=%%F
 )
 
 SET BUILD_DATE=%date%-%time%
-set LDFLAGS="-X '%PKG%/commons.clientVersion=%VERSION%' -X '%PKG%/commons.gitCommit=%GIT_COMMIT%' -X '%PKG%/commons.buildDate=%BUILD_DATE%'"
+set LDFLAGS="-X '%PKG%/commons.clientVersion=%VERSION%' -X '%PKG%/commons.gitCommit=%COMMIT%' -X '%PKG%/commons.buildDate=%BUILD_DATE%'"
 set GO111MODULE=on
 set GOPROXY=direct
 
