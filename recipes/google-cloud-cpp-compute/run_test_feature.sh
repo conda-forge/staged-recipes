@@ -8,12 +8,14 @@ if [[ "${target_platform}" == osx-* ]]; then
   CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 fi
 
+# Remove any libgoogle-cloud- prefix and any -devel suffix from PKG_NAME to 
+# find the feature name.
 feature=${PKG_NAME/#libgoogle-cloud-/}
 feature=${feature/%-devel/}
 
 cmake -GNinja \
-    -S "google/cloud/${feature}/quickstart" -B .build \
+    -S "google/cloud/${feature}/quickstart" -B build \
     -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_PREFIX_PATH="$PREFIX" \
     -DCMAKE_MODULE_PATH="$PREFIX/lib/cmake"
-cmake --build .build
+cmake --build build
