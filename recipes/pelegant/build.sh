@@ -49,9 +49,9 @@ MAKE_MPI_ARGS=(
   "MPICH_CXX=$CXX"
 )
 
-PYTHON_PREFIX=$(python -c "import sys; print(sys.prefix)")
-PYTHON_EXEC_PREFIX=$(python -c "import sys; print(sys.exec_prefix)")
-PYTHON_VERSION=$(python -c "import sys; print(sys.version[:4])")
+PYTHON_PREFIX=$($PYTHON -c "import sys; print(sys.prefix)")
+PYTHON_EXEC_PREFIX=$($PYTHON -c "import sys; print(sys.exec_prefix)")
+PYTHON_VERSION=$($PYTHON -c "import sys; print(sys.version[:4])")
 
 echo "* Make args:          ${MAKE_ALL_ARGS[*]}"
 echo "* Make GSL args:      ${MAKE_GSL_ARGS[*]}"
@@ -216,6 +216,12 @@ echo "* Build succeeded"
 echo "* Making binaries writeable so patchelf/install_name_tool will work"
 chmod +w "${SRC_DIR}/oag/apps/bin/${EPICS_HOST_ARCH}/"*
 chmod +w "${SRC_DIR}/epics/extensions/bin/${EPICS_HOST_ARCH}/"*
+
+SITE_PACKAGES_DIR=$($PYTHON -c "import site; print(site.getsitepackages()[0])")
+
+echo "* Installing sdds library to $SITE_PACKAGES_DIR"
+cp "${SRC_DIR}/epics/extensions/src/SDDS/python/sdds.py" "$SITE_PACKAGES_DIR"
+cp "${SRC_DIR}/epics/extensions/lib/${EPICS_HOST_ARCH}/sddsdata."* "$SITE_PACKAGES_DIR/sddsdata.so"
 
 echo "* Installing binaries to $PREFIX"
 cp "${SRC_DIR}/oag/apps/bin/${EPICS_HOST_ARCH}/"* "${PREFIX}/bin"
