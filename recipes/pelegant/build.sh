@@ -104,27 +104,6 @@ USR_CXXFLAGS_Darwin += -Wno-error=register
 EOF
 fi
 
-if [[ $(uname -s) == 'Darwin' && $(uname -m) == 'arm64' ]]; then
-  echo "* Patching libpng config.h for ARM support"
-  # Ensure ARM support is configured or the build will fail
-  if grep 'undef PNG_ARM_NEON' epics/extensions/src/SDDS/png/config.h; then
-    patch --forward -p1 < "${RECIPE_DIR}/png_config.h.patch"
-  fi
-  echo "* Patching mpicc and mpicxx for recent macOS Xcode compatibility"
-  # See https://github.com/orgs/Homebrew/discussions/4797
-  # This is also a reason why we want our own conda build env...
-  echo "* Before patch:"
-  grep -e "final_ldflags=" "$(readlink -f "$(which mpicc)")" "$(readlink -f "$(which mpicxx)")"
-  sed -i '' \
-    's/final_ldflags="\(.*\)\s*-Wl,-commons,use_dylibs\(.*\)"/final_ldflags="\1 \2"/' \
-    "$(readlink -f "$(which mpicc)")" \
-    "$(readlink -f "$(which mpicxx)")"
-  echo "* After patch:"
-  grep -e "final_ldflags=" "$(readlink -f "$(which mpicc)")" "$(readlink -f "$(which mpicxx)")"
-else
-  echo "* ARM not detected; skipping libpng patch"
-fi
-
 # APS may have this patched locally; these were changed long before 1.12.1
 # which they reportedly use:
 SDDS_UTILS="${SRC_DIR}/epics/extensions/src/SDDS/utils"
