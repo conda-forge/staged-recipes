@@ -1,17 +1,13 @@
 {% set name = "auto_gptq" %}
-{% set version = "0.5.1" %}
-
-{% set proc_type = "gpu" if cuda_compiler_version != "None" else "cpu" %}
+{% set version = "0.6.0" %}
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  # url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/auto_gptq-{{ version }}.tar.gz
-  # sha256: a4897a59f8901f3c497c8d0a0422db40a79b23dbaf840fdb5de2fcf4482c8a54
   url:  https://github.com/PanQiWei/AutoGPTQ/archive/v{{ version }}.tar.gz
-  sha256: 8a020bf61823261535229630445a5bbc53caaba03e491ee4f11ee38d59202203
+  sha256: 580de955332cb06fca287ee137ea6aa15f56ce402485f01d6161b0a976b83cc5  # 0.6.0
 
 build:
   # noarch: python
@@ -22,8 +18,9 @@ build:
     - TORCH_CUDA_ARCH_LIST=5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0+PTX  # [(cuda_compiler_version or "").startswith("12")]
   script:
     |
-      sed -i '/g\+\+/d' ./setup.py  # remove CC and CXX env vars
-      {{ PYTHON }} -m pip install . -vv
+      cat setup.py | sed 's/os.environ\["CC"\] = "g++"//' | sed 's/os.environ\["CXX"\] = "g++"//' > tmpsetup.py
+      mv tmpsetup.py setup.py
+      {{ PYTHON }} -m pip install . -vv --no-cache-dir auto-gptq=={{ version }}
   number: 0
   skip: True  # [cuda_compiler_version == "None"]
   skip: True  # [osx or win]
