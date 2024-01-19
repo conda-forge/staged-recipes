@@ -5,8 +5,9 @@ set -e
 mkdir -p build2
 cd build2
 
-cmake -DCMAKE_PREFIX_PATH:PATH=$PREFIX \
+cmake -DCMAKE_PREFIX_PATH:PATH=$PREFIX -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX} \
   -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_INSTALL_LIBDIR=lib -DBUILD_SHARED_LIBS:BOOL=ON \
+  ${CMAKE_ARGS} \
   ..
 
 cmake --build . --config Release -- -j$CPU_COUNT
