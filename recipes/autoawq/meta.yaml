@@ -12,48 +12,32 @@ source:
 
 build:
   # noarch: python
-  script: |
-    echo "****\n****\n**** BUILD ****\n****\n****"
-    echo $GXX
-    echo "*** which GXX ***"
-    which $GXX
-    $GXX --version
-
-    echo "setting g++"
-    alias g++="$GXX"
-    which g++
-    g++ --version
-
-    echo "pip install"
-    {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  script_env:
+    - DISABLE_QIGEN=1 # coming soon
+    - TORCH_CUDA_ARCH_LIST=3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX      # [cuda_compiler_version == "11.2"]
+    - TORCH_CUDA_ARCH_LIST=3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9+PTX  # [cuda_compiler_version == "11.8"]
+    - TORCH_CUDA_ARCH_LIST=5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0+PTX  # [(cuda_compiler_version or "").startswith("12")]
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   number: 0
-  # skip: True  # [cuda_compiler_version == "None"]
+  skip: True  # [cuda_compiler_version == "None"]
 
 requirements:
   build:
-    - python >=3.8
-    - pip
-    # - {{ compiler('cuda') }}
-    - pytorch #=*=cuda*
-    # - cuda-nvcc ==11
-    # - torchvision
-    # - python_abi <=3.11
+    - cmake
+    - make
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
-    - make
-    - cmake
-  # host:
-  #   - python >=3.8
-  #   - pip
-  #   - pytorch =*=cuda*
-  #   # - torchvision+cuda
-  #   - {{ compiler('c') }}
-  #   - {{ compiler('cxx') }}
-  #   - make
-  #   - cmake
+    - {{ compiler('cuda') }}
+   host:
+    - python >=3.8
+    - packaging
+    - setuptools >=49.4.0
+    - pytorch >=2.1.0
+    - wheel
+    - pip
   run:
-    - pytorch #=*=cuda*
-    # - torchvision+cuda
+    - pytorch
+    - torchvision
     - transformers >=4.35.0
     - tokenizers >=0.12.1
     - accelerate
@@ -65,10 +49,6 @@ requirements:
     - protobuf
     - torchvision
     - tabulate
-    - {{ compiler('c') }}
-    - {{ compiler('cxx') }}
-    - make
-    - cmake
 test:
   imports:
     - autoawq
