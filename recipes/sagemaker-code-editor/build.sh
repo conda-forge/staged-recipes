@@ -7,7 +7,7 @@ set -exuo pipefail
 
 export NODE_OPTIONS=--openssl-legacy-provider
 
-# ripgrep tries to download binary from github, copying the ripgrep executable to the cache location so that it doesn't do that
+# ripgrep tries to download binary from github, copying the ripgrep executable to the cache location so that it doesn't do that 
 mkdir /tmp/vscode-ripgrep-cache-1.15.5
 mkdir /tmp/vscode-ripgrep-cache-1.15.6
 cp "${PREFIX}/bin/rg" /tmp/vscode-ripgrep-cache-1.15.5/
