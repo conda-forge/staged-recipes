@@ -1,8 +1,3 @@
-Echo "Building ..."
-Echo %LIBRARY_PREFIX%
-Echo %PREFIX%
-Echo %SRC_DIR%
-
 cd karilang-kernel
 
 cmake -G "NMake Makefiles" ^
