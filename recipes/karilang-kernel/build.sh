@@ -1,7 +1,5 @@
 #!/bin/bash
 
-echo "Building ..."
-
 cd karilang-kernel
 
 cmake -DCMAKE_BUILD_TYPE=Release     \
