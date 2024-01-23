@@ -11,7 +11,8 @@ REM Use PEP517 to install the package
 maturin build ^
     --release ^
     --strip ^
-    --manylinux off
+    --manylinux off ^
+    --interpreter=%PYTHON%
 REM Install wheel
 cd target/wheels
 REM set UTF-8 mode by default
