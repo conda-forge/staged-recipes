@@ -132,7 +132,9 @@ EXTRA_TEST_COMMANDS = {
 #: some extras may become temporarily broken: add them here to skip
 SKIP_EXTRAS = [
     # re-built manually
-    "full"
+    "full",
+    # several levels of missing deps
+    "piccolo",
 ]
 
 
