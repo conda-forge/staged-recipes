@@ -15,22 +15,7 @@ cp "${PREFIX}/bin/rg" /tmp/vscode-ripgrep-cache-1.15.6/
 
 pushd sagemaker-code-editor
 pushd src
-
-# Install build tools for build_platform
-(
-  export CFLAGS="-isystem ${BUILD_PREFIX}/include -O2"
-  export CXXFLAGS="-isystem ${BUILD_PREFIX}/include -O2"
-  export CPPFLAGS="-isystem ${BUILD_PREFIX}/include -O2"
-  echo "Exported variables..."
-  echo $CFLAGS
-  echo $CXXFLAGS
-  echo $CPPFLAGS
-
-  # Install node-gyp globally as a fix for NodeJS 18.18.2 https://github.com/microsoft/vscode/issues/194665
-  npm i -g node-gyp
-
-  yarn install
-)
+yarn install
 
 ARCH_ALIAS=linux-x64
 yarn gulp vscode-reh-web-${ARCH_ALIAS}-min
