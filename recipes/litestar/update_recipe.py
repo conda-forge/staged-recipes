@@ -89,10 +89,10 @@ KNOWN_SKIP = [
 
 #: handle conda-forge/PyPI/hyphen/underscore insensitivity
 TRANFORM_DEP = {
+    "prometheus-client": "prometheus_client",
     "pydantic-factories": "pydantic_factories",
     "redis": "redis-py",
     "typing-extensions": "typing_extensions",
-    "uvicorn[standard]": "uvicorn-standard",
 }
 
 #: handle lack of conda support for [extras]
