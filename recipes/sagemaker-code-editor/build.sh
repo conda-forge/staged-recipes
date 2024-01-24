@@ -15,6 +15,9 @@ cp "${PREFIX}/bin/rg" /tmp/vscode-ripgrep-cache-1.15.6/
 
 pushd sagemaker-code-editor
 pushd src
+
+# Install node-gyp globally as a fix for NodeJS 18.18.2 https://github.com/microsoft/vscode/issues/194665
+npm i -g node-gyp
 yarn install
 
 ARCH_ALIAS=linux-x64
