@@ -9,10 +9,6 @@ set "CC=clang-cl.exe"
 set "CXX=clang-cl.exe"
 set "CL=/MP"
 
-:: Compiling with pinocchio on windows requires NOMINMAX
-set "CFLAGS=%CFLAGS% -DNOMINMAX"
-set "CXXFLAGS=%CXXFLAGS% -DNOMINMAX"
-
 :: Configure
 cmake ^
     -G Ninja ^
