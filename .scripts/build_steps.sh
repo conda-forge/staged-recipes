@@ -6,7 +6,7 @@
 # benefit from the improvement.
 
 set -xeuo pipefail
-git config --global safe.directory '*'
+
 export FEEDSTOCK_ROOT="${FEEDSTOCK_ROOT:-/home/conda/staged-recipes}"
 source "${FEEDSTOCK_ROOT}/.scripts/logging_utils.sh"
 
