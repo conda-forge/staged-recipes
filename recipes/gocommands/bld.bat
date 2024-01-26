@@ -34,4 +34,4 @@ echo "{{ .LicenseText }}" >> ./thirdparty_license_template
 echo "```" >> ./thirdparty_license_template
 echo "{{ end }}" >> ./thirdparty_license_template
 
-go-licenses report .\cmd --template .\thirdparty_license_template > THIRDPARTY_LICENSE.txt
+go-licenses report .\cmd --template .\thirdparty_license_template > THIRDPARTY_LICENSES

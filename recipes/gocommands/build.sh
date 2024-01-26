@@ -26,4 +26,4 @@ cat <<EOF >thirdparty_license_template
 {{ end }}
 EOF
 
-go-licenses report ./cmd --template ./thirdparty_license_template > THIRDPARTY_LICENSE.txt
+go-licenses report ./cmd --template ./thirdparty_license_template > THIRDPARTY_LICENSES
