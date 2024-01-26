@@ -12,4 +12,18 @@ echo "building gocommands"
 go build -v "-ldflags=${LDFLAGS}" -o gocmd ./cmd/gocmd.go
 cp gocmd ${PREFIX}/bin/gocmd
 
-go-licenses report ./cmd --template ${PREFIX}/thirdparty_license_template > THIRDPARTY_LICENSE.txt
+cat <<EOF >thirdparty_license_template
+{{ range . }}
+## {{ .Name }}
+
+* Name: {{ .Name }}
+* Version: {{ .Version }}
+* License: [{{ .LicenseName }}]({{ .LicenseURL }})
+
+```
+{{ .LicenseText }}
+```
+{{ end }}
+EOF
+
+go-licenses report ./cmd --template ./thirdparty_license_template > THIRDPARTY_LICENSE.txt
