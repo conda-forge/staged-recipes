@@ -5,6 +5,10 @@ set -x
 
 export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 
+# Locate the ANTLR jar file
+antlr_jar=$(ls $PREFIX/lib/antlr-*complete.jar)
+
+
 cmake -B build \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_CXX_STANDARD=17 \
@@ -23,7 +27,7 @@ cmake -B build \
     -DCMAKE_INSTALL_RPATH=$PREFIX/lib \
     -DPYTHON_EXECUTABLE="$PYTHON" \
     -DPython3_EXECUTABLE="$PYTHON" \
-    -DANTLR_JAR_LOCATION="$PREFIX/lib/antlr4-4.13.1-complete.jar" \
+    -DANTLR_JAR_LOCATION="$antlr_jar" \
     -DCMAKE_FIND_FRAMEWORK=NEVER \
     -DCMAKE_FIND_APPBUNDLE=NEVER
 
