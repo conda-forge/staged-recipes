@@ -23,4 +23,4 @@ echo "building gocommands"
 go build -v -ldflags=%LDFLAGS% -o gocmd .\cmd\gocmd.go
 copy gocmd.exe %PREFIX%\bin\gocmd.exe
 
-go-licenses report ./cmd --template thirdparty_license_template > THIRDPARTY_LICENSE.txt
+go-licenses report .\cmd --template %PREFIX%\thirdparty_license_template > THIRDPARTY_LICENSE.txt
