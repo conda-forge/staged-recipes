@@ -138,6 +138,7 @@ SKIP_EXTRAS = [
     # several levels of missing deps
     "piccolo",
     "pydantic",
+    "sqlalchemy",
 ]
 
 
