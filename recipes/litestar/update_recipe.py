@@ -121,7 +121,7 @@ EXTRA_TEST_IMPORTS = {
     "picologging": "litestar.logging.picologging",
     "prometheus": "litestar.contrib.prometheus",
     "pydantic": "litestar.contrib.pydantic",
-    "redis": "litestar.cache.redis_cache_backend",
+    "redis": "litestar.stores.redis",
     "sqlalchemy": "litestar.plugins.sqlalchemy",
     "structlog": "litestar.middleware.logging",
 }
@@ -194,7 +194,9 @@ def update_recipe(check=False):
     }
 
     extra_outputs = {
-        extra: sorted(sum([EXTRA_EXTRA_DEPS.get(dep.split(" ")[0], []) for dep in deps], deps))
+        extra: sorted(
+            sum([EXTRA_EXTRA_DEPS.get(dep.split(" ")[0], []) for dep in deps], deps)
+        )
         for extra, deps in extra_outputs.items()
     }
 
