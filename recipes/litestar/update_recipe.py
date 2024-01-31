@@ -135,6 +135,7 @@ SKIP_EXTRAS = [
     "full",
     # several levels of missing deps
     "piccolo",
+    "pydantic",
 ]
 
 
