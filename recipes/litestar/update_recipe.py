@@ -98,12 +98,14 @@ TRANFORM_DEP = {
 #: handle lack of conda support for [extras]
 TRANSFORM_EXTRA_DEP = {
     ("uvicorn", ("standard",)): "uvicorn-standard",
-    # https://github.com/redis/redis-py/blob/v4.5.3/setup.py#L57
-    ("redis-py", ("hiredis",)): "hi-redis",
+    ("redis-py", ("hiredis",)): "redis-py",
 }
 
 #: handle transient extras incurred, keyed by post-transform names
-EXTRA_EXTRA_DEPS = {}
+EXTRA_EXTRA_DEPS = {
+    # https://github.com/redis/redis-py/blob/v4.5.3/setup.py#L57
+    "redis-py": ["hiredis >=1.0.0"],
+}
 
 #: a meaningful import that isn't caught
 EXTRA_TEST_IMPORTS = {
@@ -147,7 +149,8 @@ def reqtify(raw):
     name = TRANFORM_DEP.get(name, name).lower()
     if req.extras:
         name = TRANSFORM_EXTRA_DEP[(name, tuple(sorted(req.extras)))]
-    return f"{name} {dep}".strip()
+
+    return [f"{name} {dep}".strip()]
 
 
 def preflight_recipe():
@@ -181,17 +184,17 @@ def update_recipe(check=False):
     preflight_recipe()
     pyproject = get_pyproject_data()
     deps = pyproject["project"]["dependencies"]
-    core_deps = sorted([reqtify(d_spec) for d_spec in deps])
+    core_deps = sorted(sum([reqtify(d_spec) for d_spec in deps], []))
 
     extras = pyproject["project"]["optional-dependencies"]
     extra_outputs = {
-        extra: sorted([reqtify(d_spec) for d_spec in extra_deps])
+        extra: sorted(sum([reqtify(d_spec) for d_spec in extra_deps], []))
         for extra, extra_deps in extras.items()
         if extra not in SKIP_EXTRAS
     }
 
     extra_outputs = {
-        extra: sorted(sum([EXTRA_EXTRA_DEPS.get(dep, []) for dep in deps], deps))
+        extra: sorted(sum([EXTRA_EXTRA_DEPS.get(dep.split(" ")[0], []) for dep in deps], deps))
         for extra, deps in extra_outputs.items()
     }
 
