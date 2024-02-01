@@ -63,8 +63,8 @@ outputs:
     build:
       noarch: python
       script:
-        - {{ PYTHON }} {{ RECIPE_DIR }}/test_recipe.py --check
-        - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+        - $PYTHON {{ RECIPE_DIR }}/test_recipe.py --check
+        - $PYTHON -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
       entry_points:
         - litestar = litestar.__main__:run_cli
     requirements:
@@ -97,12 +97,9 @@ outputs:
 <% for extra, extra_deps in extra_outputs.items() %>
   - name: litestar-with-<< extra >>
     build:
-      noarch: python
+      noarch: generic
     requirements:
-      host:
-        - python << min_python >>
       run:
-        - python << min_python >>
         - {{ pin_subpackage("litestar", exact=True) }}<% for dep in extra_deps %>
         - << dep >>
         <%- endfor %>
@@ -129,12 +126,9 @@ outputs:
 <% endfor %>
   - name: litestar-with-full
     build:
-      noarch: python
+      noarch: generic
     requirements:
-      host:
-        - python << min_python >>
       run:
-        - python << min_python >>
         - {{ pin_subpackage("litestar", exact=True) }}
         <%- for extra, extra_deps in extra_outputs.items() %>
         - {{ pin_subpackage("litestar-with-<< extra >>", exact=True) }}
