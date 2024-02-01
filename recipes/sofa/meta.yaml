@@ -20,6 +20,8 @@ source:
     # as conda packages split the sofa-core part from GUI related components. SOFA CMakeFiles
     # needs to be patched to allow isolated compilation.
     - patches/0007-Allow-components-to-be-compiled-out-of-SOFA.patch
+    # https://github.com/sofa-framework/sofa/pull/4459
+    - patches/0008-Do-not-build-Sofa.Testing-if-SOFA_BUILD_TESTS-is-OFF.patch
 
 build:
   number: 0
@@ -27,7 +29,6 @@ build:
 
 requirements:
   build:
-    - {{ compiler('c') }}
     - {{ compiler('cxx') }}
     - cmake
     - make                           # [unix]
@@ -38,10 +39,14 @@ requirements:
     - eigen
     - libboost-devel
     - cxxopts
+    - metis
   run:
     - eigen
     - libboost-devel
-    
+    - zlib
+    - tinyxml2
+    - metis
+
 outputs:
   - name: libsofa-core
     script: install-core.bat  # [win]
@@ -53,6 +58,11 @@ outputs:
       build:
        # for strong run-exports ?
         - {{ compiler('cxx') }}
+      host:
+        - zlib
+        - tinyxml2
+        - metis
+        - libboost-devel
 
     test:
       commands:
@@ -70,7 +80,7 @@ outputs:
     requirements:
       host:
         - {{ pin_subpackage("libsofa-core", exact=True) }}
-        - tinyxml2
+
       run:
         - {{ pin_subpackage("libsofa-core", exact=True) }}
 
@@ -105,17 +115,20 @@ outputs:
         - eigen
         - libglu  # [linux]
       run:
+        - {{ pin_subpackage("libsofa-core", exact=True) }}
         - libglu  # [linux]
 
-    # test:
-    #   commands:
-    #     - test -f $PREFIX/include/Sofa.Core/sofa/core/init.h                                     # [unix]
-    #     - test -f $PREFIX/lib/cmake/Sofa.Core/Sofa.CoreConfig.cmake                              # [unix]
-    #     - test -f $PREFIX/lib/cmake/Sofa.Core/Sofa.CoreConfigVersion.cmake                       # [unix]
-    #     - if not exist %LIBRARY_PREFIX%\include\Sofa.Core\sofa\core\init.h exit 1                # [win]
-    #     - if not exist %LIBRARY_PREFIX%\lib\cmake\Sofa.Core\Sofa.CoreConfig.cmake exit 1         # [win]
-    #     - if not exist %LIBRARY_PREFIX%\lib\cmake\Sofa.Core\Sofa.CoreConfigVersion.cmake exit 1  # [win]
-    #     - if not exist %LIBRARY_PREFIX%\lib\Sofa.Core.lib exit 1      # [win]
+    test:
+      commands:
+        - test -f $PREFIX/include/Sofa.GL/sofa/gl/initSofa.GL.h                              # [unix]
+        - test -f $PREFIX/lib/cmake/Sofa.GL/Sofa.GLConfig.cmake                              # [unix]
+        - test -f $PREFIX/lib/cmake/Sofa.GL/Sofa.GLConfigVersion.cmake                       # [unix]
+        - test -f $PREFIX/lib/libSofa.GL${SHLIB_EXT}.{{ version }}                           # [unix]
+        - if not exist %LIBRARY_PREFIX%\include\Sofa.GL\sofa\gl\initSofa.GL.h exit 1         # [win]
+        - if not exist %LIBRARY_PREFIX%\lib\cmake\Sofa.GL\Sofa.GLConfig.cmake exit 1         # [win]
+        - if not exist %LIBRARY_PREFIX%\lib\cmake\Sofa.GL\Sofa.GLConfigVersion.cmake exit 1  # [win]
+        - if not exist %LIBRARY_PREFIX%\bin\Sofa.GL.dll exit 1                               # [win]
+        - if not exist %LIBRARY_PREFIX%\lib\Sofa.GL.lib exit 1                               # [win]
 
   - name: sofa-gui-qt
     script: build-sofa-gui-qt.sh     # [unix]
@@ -140,6 +153,24 @@ outputs:
         - libqglviewer
         - eigen
         - cxxopts
+      run:
+        - {{ pin_subpackage('libsofa-core', exact=True) }}
+        - {{ pin_subpackage('sofa-gl', exact=True) }}
+        - glew
+        - libglu  # [linux]
+
+    test:
+      commands:
+        - test -f $PREFIX/include/Sofa.GUI.Qt/sofa/gui/qt/init.h                                     # [unix]
+        - test -f $PREFIX/lib/cmake/Sofa.GUI.Qt/Sofa.GUI.QtConfig.cmake                              # [unix]
+        - test -f $PREFIX/lib/cmake/Sofa.GUI.Qt/Sofa.GUI.QtConfigVersion.cmake                       # [unix]
+        - test -f $PREFIX/lib/libSofa.GUI.Qt${SHLIB_EXT}.{{ version }}                               # [unix]
+        - if not exist %LIBRARY_PREFIX%\include\Sofa.GUI.Qt\sofa\gui\qt\init.h exit 1                # [win]
+        - if not exist %LIBRARY_PREFIX%\lib\cmake\Sofa.GUI.Qt\Sofa.GUI.QtConfig.cmake exit 1         # [win]
+        - if not exist %LIBRARY_PREFIX%\lib\cmake\Sofa.GUI.Qt\Sofa.GUI.QtConfigVersion.cmake exit 1  # [win]
+        - if not exist %LIBRARY_PREFIX%\bin\Sofa.GUI.Qt.dll exit 1                                   # [win]
+        - if not exist %LIBRARY_PREFIX%\lib\Sofa.GUI.Qt.lib exit 1                                   # [win]
+
 about:
   home: https://www.sofa-framework.org/
   summary: Real-time multi-physics simulation with an emphasis on medical simulation and robotics.
