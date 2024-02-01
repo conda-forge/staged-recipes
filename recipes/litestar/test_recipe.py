@@ -97,13 +97,9 @@ outputs:
 <% for extra, extra_deps in extra_outputs.items() %>
   - name: litestar-with-<< extra >>
     build:
-      noarch: python
+      noarch: generic
     requirements:
-      host:
-        - pip
-        - python << min_python >>
       run:
-        - python << min_python >>
         - {{ pin_subpackage("litestar", exact=True) }}<% for dep in extra_deps %>
         - << dep >>
         <%- endfor %>
