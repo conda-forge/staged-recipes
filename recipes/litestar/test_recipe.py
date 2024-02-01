@@ -64,7 +64,7 @@ outputs:
       noarch: python
       script:
         - {{ PYTHON }} {{ RECIPE_DIR }}/test_recipe.py --check
-        - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
       entry_points:
         - litestar = litestar.__main__:run_cli
     requirements:
