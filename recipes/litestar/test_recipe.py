@@ -2,11 +2,11 @@
 
 Invoke this locally from the root of the feedstock, assuming `tomli`, `jinja2`, and `packaging`:
 
-    python recipe/update_recipe.py
-    git commit -m "updated recipe with update script"
+    python recipe/test_recipe.py --update
+    git commit -m "updated recipe with test_recipe.py"
     conda smithy rerender
 
-The optional `--check` parameter will fail if new `[extra]`s are added, or
+If not updating, parameter will fail if new `[extra]`s are added, or
 dependencies change.
 
 This tries to work with the conda-forge autotick bot by reading updates from
@@ -20,7 +20,7 @@ If running locally against a non-bot-requested version, you'll probably need
 to update those fields in `meta.yaml`.
 
 If some underlying project data changed e.g. the `path_to-the_tarball`, update
-`meta.j2.yaml` and re-run.
+`TEMPLATE` below and re-run.
 """
 import os
 import re
@@ -34,6 +34,141 @@ import difflib
 import jinja2
 import tomli
 from packaging.requirements import Requirement
+
+TEMPLATE = """
+{% set version = "<< version >>" %}
+
+package:
+  name: litestar-split
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/l/litestar/litestar-{{ version }}.tar.gz
+  # the SHA256 gets updated by the bot
+  sha256: << sha256_sum >>
+
+build:
+  # the build number gets reset by the bot
+  number: << build_number >>
+  noarch: python
+
+requirements:
+  host:
+    - python << min_python >>
+  run:
+    - python << min_python >>
+
+outputs:
+  - name: litestar
+    build:
+      noarch: python
+      script:
+        - {{ PYTHON }} {{ RECIPE_DIR }}/test_recipe.py --check
+        - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+      entry_points:
+        - litestar = litestar.__main__:run_cli
+    requirements:
+      host:
+        - pip
+        - hatchling
+        - python << min_python >>
+        # for `test_recipe.py` preflight
+        - jinja2
+        - packaging
+        - tomli
+      run:
+        - python << min_python >><% for dep in core_deps %>
+        - << dep >>
+        <%- endfor %>
+    test:
+      imports:
+        - litestar
+      commands:
+        - pip check
+      requires:
+        - pip
+    about:
+      home: https://litestar.dev
+      dev_url: https://github.com/litestar-org/litestar
+      doc_url: https://docs.litestar.dev
+      summary: Light-weight and flexible ASGI API Framework
+      license: MIT
+      license_file: LICENSE
+<% for extra, extra_deps in extra_outputs.items() %>
+  - name: litestar-with-<< extra >>
+    build:
+      noarch: python
+    requirements:
+      host:
+        - pip
+        - python << min_python >>
+      run:
+        - python << min_python >>
+        - {{ pin_subpackage("litestar", exact=True) }}<% for dep in extra_deps %>
+        - << dep >>
+        <%- endfor %>
+    test:
+      imports:
+        - litestar<% if extra in extra_test_imports %>
+        - << extra_test_imports[extra] >>
+        <%- else %>
+        # TODO: import test for << extra >>
+        <%- endif %>
+      commands:
+        - pip check<% if extra in extra_test_commands %>
+        - << extra_test_commands[extra] >>
+        <%- endif %>
+      requires:
+        - pip
+    about:
+      home: https://litestar.dev
+      dev_url: https://github.com/litestar-org/litestar
+      doc_url: https://docs.litestar.dev
+      summary: Light-weight and flexible ASGI API Framework (with << extra >>)
+      license: MIT
+      license_file: LICENSE
+<% endfor %>
+  - name: litestar-with-full
+    build:
+      noarch: python
+    requirements:
+      host:
+        - python << min_python >>
+      run:
+        - python << min_python >>
+        - {{ pin_subpackage("litestar", exact=True) }}
+        <%- for extra, extra_deps in extra_outputs.items() %>
+        - {{ pin_subpackage("litestar-with-<< extra >>", exact=True) }}
+        <%- endfor %>
+    test:
+      requires:
+        - pip
+      imports:
+        - litestar
+      commands:
+        - pip check
+    about:
+      home: https://litestar.dev
+      dev_url: https://github.com/litestar-org/litestar
+      doc_url: https://docs.litestar.dev
+      summary: Light-weight and flexible ASGI API Framework (with all extras)
+      license: MIT
+      license_file: LICENSE
+
+about:
+  home: https://litestar.dev
+  dev_url: https://github.com/litestar-org/litestar
+  doc_url: https://docs.litestar.dev
+  summary: Light-weight and flexible ASGI API Framework
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  feedstock-name: litestar
+  recipe-maintainers:
+    - bollwyvl
+    - thewchan
+"""
 
 DELIMIT = dict(
     # use alternate template delimiters to avoid conflicts
@@ -53,7 +188,6 @@ SRC_DIR = Path(os.environ["SRC_DIR"]) if "SRC_DIR" in os.environ else None
 if "RECIPE_DIR" in os.environ:
     WORK_DIR = Path(os.environ["RECIPE_DIR"])
 
-TMPL = [*WORK_DIR.glob("*.j2.*")]
 META = WORK_DIR / "meta.yaml"
 CURRENT_META_TEXT = META.read_text(encoding="utf-8")
 MIN_PYTHON = ">=3.8"
@@ -180,8 +314,9 @@ def get_pyproject_data():
             return tomli.load(tf.extractfile(PYPROJECT_TOML))
 
 
-def update_recipe(check=False):
-    """update or check a recipe based on the `pyproject.toml` data"""
+def verify_recipe(update=False):
+    """check or update a recipe based on the `pyproject.toml` data"""
+    check = not update
     preflight_recipe()
     pyproject = get_pyproject_data()
     deps = pyproject["project"]["dependencies"]
@@ -212,35 +347,31 @@ def update_recipe(check=False):
         min_python=MIN_PYTHON,
     )
 
-    for tmpl_path in TMPL:
-        dest_path = tmpl_path.parent / tmpl_path.name.replace(".j2", "")
-        old_text = dest_path.read_text(encoding="utf-8")
-        template = jinja2.Template(
-            tmpl_path.read_text(encoding="utf-8").strip(), **DELIMIT
-        )
-        new_text = template.render(**context).strip() + "\n"
+    old_text = META.read_text(encoding="utf-8")
+    template = jinja2.Template(TEMPLATE, **DELIMIT)
+    new_text = template.render(**context).strip() + "\n"
 
-        if check:
-            if new_text.strip() != old_text.strip():
-                print(f"{dest_path} is not up-to-date:")
-                print(
-                    "\n".join(
-                        difflib.unified_diff(
-                            old_text.splitlines(),
-                            new_text.splitlines(),
-                            dest_path.name,
-                            f"{dest_path.name} (updated)",
-                        )
+    if check:
+        if new_text.strip() != old_text.strip():
+            print(f"{META} is not up-to-date:")
+            print(
+                "\n".join(
+                    difflib.unified_diff(
+                        old_text.splitlines(),
+                        new_text.splitlines(),
+                        META.name,
+                        f"{META.name} (updated)",
                     )
                 )
-                print("either apply the above patch, or run locally:")
-                print("\n\tpython recipe/update_recipe.py\n")
-                return 1
-        else:
-            dest_path.write_text(new_text, encoding="utf-8")
+            )
+            print("either apply the above patch, or run locally:")
+            print("\n\tpython recipe/test_recipe.py --update\n")
+            return 1
+    else:
+        META.write_text(new_text, encoding="utf-8")
 
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(update_recipe(check="--check" in sys.argv))
+    sys.exit(verify_recipe(update="--update" in sys.argv))
