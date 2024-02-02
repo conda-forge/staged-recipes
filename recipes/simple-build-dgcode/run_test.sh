@@ -7,7 +7,7 @@ mkdir testsbproj
 cd testsbproj
 sb --init dgcode COMPACT
 dgcode_newsimproject TriCorder
-sb --tests
+sb --tests --testexcerpts=10000
 sbenv sb_core_extdeps --require NCrystal Geant4
 
 
