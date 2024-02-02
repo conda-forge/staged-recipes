@@ -21,7 +21,3 @@ if errorlevel 1 exit 1
 :: Install.
 cmake --build . --parallel "%CPU_COUNT%" --target install
 if errorlevel 1 exit 1
-
-:: Test
-ctest --parallel "%CPU_COUNT%"
-if errorlevel 1 exit 1

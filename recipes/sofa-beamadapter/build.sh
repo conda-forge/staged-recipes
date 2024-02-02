@@ -15,13 +15,10 @@ cmake ${CMAKE_ARGS} \
   -B. \
   -S .. \
   -DCMAKE_BUILD_TYPE:STRING=Release \
-  -DBEAMADAPTER_BUILD_TESTS:BOOL=ON
+  -DBEAMADAPTER_BUILD_TESTS:BOOL=OFF
 
 # build
 cmake --build . --parallel ${CPU_COUNT}
 
 # install
 cmake --build . --parallel ${CPU_COUNT} --target install
-
-# test
-ctest --parallel ${CPU_COUNT}

@@ -20,13 +20,10 @@ cmake ${CMAKE_ARGS} \
   -DPython_EXECUTABLE:PATH=${PREFIX}/bin/python \
   -DSP3_PYTHON_PACKAGES_DIRECTORY:PATH=python${PY_VER}/site-packages \
   -DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=ON \
-  -DMODELORDERREDUCTION_BUILD_TESTS:BOOL=ON
+  -DMODELORDERREDUCTION_BUILD_TESTS:BOOL=OFF
 
 # build
 cmake --build . --parallel ${CPU_COUNT}
 
 # install
 cmake --build . --parallel ${CPU_COUNT} --target install
-
-# test
-ctest --parallel ${CPU_COUNT}

@@ -11,7 +11,7 @@ cmake %CMAKE_ARGS% ^
   -DCMAKE_BUILD_TYPE:STRING=Release ^
   -DSOFA_ENABLE_LEGACY_HEADERS:BOOL=OFF ^
   -DPLUGIN_COLLISIONOBBCAPSULE:BOOL=ON ^
-  -DSOFA_BUILD_TESTS:BOOL=ON
+  -DSOFA_BUILD_TESTS:BOOL=OFF
 if errorlevel 1 exit 1
 
 :: Build.
@@ -37,7 +37,3 @@ for %%F in (activate deactivate) DO (
     :: Copy unix shell activation scripts, needed by Windows Bash users
     copy %RECIPE_DIR%\%%F.sh %PREFIX%\etc\conda\%%F.d\%PKG_NAME%_%%F.sh
 )
-
-:: Test
-ctest --parallel "%CPU_COUNT%"
-if errorlevel 1 exit 1

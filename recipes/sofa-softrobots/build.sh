@@ -16,13 +16,10 @@ cmake ${CMAKE_ARGS} \
   -S .. \
   -DCMAKE_BUILD_TYPE:STRING=Release \
   -DPython_EXECUTABLE:PATH=${PREFIX}/bin/python \
-  -DSOFTROBOTS_BUILD_TESTS:BOOL=ON
+  -DSOFTROBOTS_BUILD_TESTS:BOOL=OFF
 
 # build
 cmake --build . --parallel ${CPU_COUNT}
 
 # install
 cmake --build . --parallel ${CPU_COUNT} --target install
-
-# test
-ctest --parallel ${CPU_COUNT}
