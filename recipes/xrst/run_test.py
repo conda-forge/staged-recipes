@@ -21,7 +21,7 @@ url  = f'{home}/archive/{version}.tar.gz'
 response = urllib.request.urlopen(url)
 url_data = response.read()
 #
-# file_name
+# file_name, xrst-{version}.tar.gz
 file_name = f'xrst-{version}.tar.gz'
 file_obj  = open(file_name, 'wb')
 file_obj.write( url_data )
@@ -34,7 +34,7 @@ tar_obj.close()
 os.chdir( f'xrst-{version}' )
 #
 # file_data
-# is the contents of test_rst.py in the source
+# is the contents of xrst-version/pytest/test_rst.py in the source
 file_name = 'pytest/test_rst.py'
 file_obj  = open(file_name, 'r')
 file_data = file_obj.read()
@@ -50,9 +50,32 @@ assert m_obj != None
 replace   = f"'{prefix}/bin/xrst', '--suppress_spell_warnings', "
 file_data = pattern.sub(replace, file_data)
 #
-# pytest/test_rst.py
-# new version of test_rst.py that is used by pytest to test xrst.
+# xrst-version/pytest/test_rst.py
+# version used by pytest to test xrst.
 file_name = 'pytest/test_rst.py'
+file_obj  = open(file_name, 'w')
+file_obj.write(file_data)
+file_obj.close()
+#
+# file_data
+# is the contents of xrst-version/xrst.toml
+file_name = 'xrst.toml'
+file_obj  = open(file_name, 'r')
+file_data = file_obj.read()
+file_obj.close()
+#
+# file_data
+# Change pyenchant to pyspellchecker; see
+# https://github.com/conda-forge/pyenchant-feedstock/issues/1
+pattern   = re.compile( 'pyenchant' )
+m_obj     = pattern.search(file_data)
+assert m_obj != None
+replace   = 'pyspellchecker'
+file_data = pattern.sub(replace, file_data)
+#
+# xrst-version/xrst.toml
+# version used druing pytest of xrst.
+file_name = 'xrst.toml'
 file_obj  = open(file_name, 'w')
 file_obj.write(file_data)
 file_obj.close()
