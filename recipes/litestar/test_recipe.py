@@ -38,6 +38,9 @@ from packaging.requirements import Requirement
 TEMPLATE = """
 {% set version = "<< version >>" %}
 
+# handle undefined PYTHON in `noarch: generic` outputs
+{% if PYTHON is not defined %}{% set PYTHON = "$PYTHON" %}{% endif %}
+
 package:
   name: litestar-split
   version: {{ version }}
@@ -63,8 +66,8 @@ outputs:
     build:
       noarch: python
       script:
-        - $PYTHON {{ RECIPE_DIR }}/test_recipe.py --check
-        - $PYTHON -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+        - {{ PYTHON }} {{ RECIPE_DIR }}/test_recipe.py --check
+        - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
       entry_points:
         - litestar = litestar.__main__:run_cli
     requirements:
