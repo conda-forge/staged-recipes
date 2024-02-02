@@ -2,8 +2,6 @@
 
 set -ex
 
-install -t "${PREFIX}/bin" \
-        gtest-parallel \
-        gtest_parallel.py \
-        gtest_parallel_mocks.py \
-        gtest_parallel_tests.py
+mkdir -p "${PREFIX}/bin"
+cp gtest-parallel "${PREFIX}/bin"
+cp gtest_parallel.py "${PREFIX}/bin"
