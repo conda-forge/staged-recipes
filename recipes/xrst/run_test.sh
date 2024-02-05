@@ -18,12 +18,12 @@ tar -xzf xrst-$version.tar.gz
 cd xrst-$version
 #
 # xrst-$version/pytest/test_rst.py
-sed -i pytest/test_rst.py \
-   -e  "s|'python3' *,.*|'$prefix/bin/xrst', '--suppress_spell_warnings', |"
+sed -i \
+   -e  "s|'python3' *,.*|'$prefix/bin/xrst', '--suppress_spell_warnings', |" \
+   pytest/test_rst.py
 #
 # xrst-$version/xrst.toml
-sed -i xrst.toml \
-   -e 's|pyenchant|pyspellchecker|'
+sed -i -e 's|pyenchant|pyspellchecker|' xrst.toml
 #
 # pytest
 pytest -s pytest
