@@ -1,0 +1,227 @@
+From a32727dc0b238b21b3ffcaf5e7639ee79488b8cf Mon Sep 17 00:00:00 2001
+From: Olivier Roussel <olivier.roussel@inria.fr>
+Date: Mon, 22 Jan 2024 18:02:28 +0100
+Subject: [PATCH 1/3] Link dynamically with embedded metis to comply
+ conda-forge rules
+
+---
+ .../LinearSolver/Direct/extlibs/metis-5.1.0/CMakeLists.txt      | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Sofa/Component/LinearSolver/Direct/extlibs/metis-5.1.0/CMakeLists.txt b/Sofa/Component/LinearSolver/Direct/extlibs/metis-5.1.0/CMakeLists.txt
+index 0b3bf6e9b9..9f2ea1f39f 100644
+--- a/Sofa/Component/LinearSolver/Direct/extlibs/metis-5.1.0/CMakeLists.txt
++++ b/Sofa/Component/LinearSolver/Direct/extlibs/metis-5.1.0/CMakeLists.txt
+@@ -12,7 +12,7 @@ if("x${CMAKE_CXX_COMPILER_ID}" STREQUAL "xGNU" OR "x${CMAKE_CXX_COMPILER_ID}" ST
+     add_compile_options(-fPIC)
+ endif()
+ 
+-add_library(${PROJECT_NAME} STATIC ${metis_sources} ${GKlib_sources})
++add_library(${PROJECT_NAME} SHARED ${metis_sources} ${GKlib_sources})
+ target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/GKlib>")
+ target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libmetis>")
+ 
+-- 
+2.34.1
+
+
+From 804bd076afd0ede1806a332aca83df416f5e5314 Mon Sep 17 00:00:00 2001
+From: Frederick Roy <froy@lnrobo.com>
+Date: Tue, 23 Jan 2024 14:30:41 +0900
+Subject: [PATCH 2/3] export all symbols (for MSVC)
+
+---
+ .../LinearSolver/Direct/extlibs/metis-5.1.0/CMakeLists.txt     | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/Sofa/Component/LinearSolver/Direct/extlibs/metis-5.1.0/CMakeLists.txt b/Sofa/Component/LinearSolver/Direct/extlibs/metis-5.1.0/CMakeLists.txt
+index 9f2ea1f39f..2a30aff60d 100644
+--- a/Sofa/Component/LinearSolver/Direct/extlibs/metis-5.1.0/CMakeLists.txt
++++ b/Sofa/Component/LinearSolver/Direct/extlibs/metis-5.1.0/CMakeLists.txt
+@@ -30,6 +30,9 @@ endif()
+ if(WIN32)
+     # remove warnings about deprecation (CRT,etc)
+     target_compile_options(${PROJECT_NAME} PRIVATE "/wd4996")
++
++    # Automatically export all symbols (and create .lib)
++    set_target_properties(${PROJECT_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+ endif()
+ 
+ sofa_create_package_with_targets(
+-- 
+2.34.1
+
+
+From 58275b5220a787c307755805c32f9d52a4a34acc Mon Sep 17 00:00:00 2001
+From: Olivier Roussel <olivier.roussel@inria.fr>
+Date: Mon, 29 Jan 2024 18:10:57 +0100
+Subject: [PATCH 3/3] Use external 5.1.0 metis or fallback to embedded code
+ linked dynamically
+
+---
+ .../LinearSolver/Direct/CMakeLists.txt        |   7 +-
+ .../Direct/extlibs/metis-5.1.0/CMakeLists.txt |   2 +
+ .../Config/cmake/Modules/FindMetis.cmake      | 108 ++++++++++++++++++
+ 3 files changed, 114 insertions(+), 3 deletions(-)
+ create mode 100644 Sofa/framework/Config/cmake/Modules/FindMetis.cmake
+
+diff --git a/Sofa/Component/LinearSolver/Direct/CMakeLists.txt b/Sofa/Component/LinearSolver/Direct/CMakeLists.txt
+index 51fa093de0..00b9462339 100644
+--- a/Sofa/Component/LinearSolver/Direct/CMakeLists.txt
++++ b/Sofa/Component/LinearSolver/Direct/CMakeLists.txt
+@@ -55,12 +55,13 @@ set(SOURCE_FILES
+     ${SOFACOMPONENTLINEARSOLVERDIRECT_SOURCE_DIR}/TypedMatrixLinearSystem[BTDMatrix].cpp
+ )
+ 
+-sofa_find_package(metis QUIET) # Unix users can have an installed version of metis
+-if(NOT metis_FOUND)
++find_package(Metis 5.1.0 EXACT QUIET)
++if(NOT Metis_FOUND)
+     message(STATUS "${PROJECT_NAME}: using built-in metis library")
+     option(METIS-GKLIB_GKRAND "enable GKRAND support" ON) #GKRAND support allows the portability of random number generation across different architectures
+     add_subdirectory(extlibs/metis-5.1.0)
+ endif()
++
+ sofa_set_01(SOFA_COMPONENT_LINEARSOLVER_DIRECT_HAVE_METIS VALUE TRUE)
+ 
+ # make sure you have threads for AsyncSparseLDLSolver
+@@ -71,7 +72,7 @@ sofa_find_package(Sofa.Component.LinearSolver.Iterative REQUIRED) # Only for Mat
+ 
+ add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES} ${WRAPPER_FILES})
+ target_link_libraries(${PROJECT_NAME} PUBLIC Sofa.Simulation.Core Sofa.Component.LinearSolver.Iterative)
+-target_link_libraries(${PROJECT_NAME} PUBLIC metis)
++target_link_libraries(${PROJECT_NAME} PUBLIC metis::metis)
+ target_link_libraries(${PROJECT_NAME} PUBLIC Threads::Threads)
+ 
+ sofa_create_package_with_targets(
+diff --git a/Sofa/Component/LinearSolver/Direct/extlibs/metis-5.1.0/CMakeLists.txt b/Sofa/Component/LinearSolver/Direct/extlibs/metis-5.1.0/CMakeLists.txt
+index 2a30aff60d..92e96cc650 100644
+--- a/Sofa/Component/LinearSolver/Direct/extlibs/metis-5.1.0/CMakeLists.txt
++++ b/Sofa/Component/LinearSolver/Direct/extlibs/metis-5.1.0/CMakeLists.txt
+@@ -13,6 +13,8 @@ if("x${CMAKE_CXX_COMPILER_ID}" STREQUAL "xGNU" OR "x${CMAKE_CXX_COMPILER_ID}" ST
+ endif()
+ 
+ add_library(${PROJECT_NAME} SHARED ${metis_sources} ${GKlib_sources})
++# add an alias to fully qualified name to unify interface with other cmake config files
++add_library(metis::metis ALIAS metis)
+ target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/GKlib>")
+ target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libmetis>")
+ 
+diff --git a/Sofa/framework/Config/cmake/Modules/FindMetis.cmake b/Sofa/framework/Config/cmake/Modules/FindMetis.cmake
+new file mode 100644
+index 0000000000..f6e8cb290f
+--- /dev/null
++++ b/Sofa/framework/Config/cmake/Modules/FindMetis.cmake
+@@ -0,0 +1,108 @@
++# Find the metis headers and libraries
++# Behavior is to first look for config files, such as the one installed by some package
++# managers who provides their own cmake files.
++# Most of them and official sources does not provide cmake finders, so if no config files
++# were found, this tries to find the library by looking at headers / lib file.
++#
++# Defines:
++#   Metis_FOUND : True if metis is found
++#   Metis_FOUND : True if metis is found
++#
++# Provides both targets metis and metis::metis.
++#   Target metis::metis is just an alias to metis.
++# We chose to create an alias to provide a unified interface usable whatever the package manager
++# was used to provide the library, as some package managers (such vcpkg) defines only short name
++# for the target, whereas others (such as conan) defines a fully qualified name.
++
++find_package(metis NO_MODULE QUIET)
++
++if(NOT Metis_FIND_VERSION)
++  if(NOT Metis_FIND_VERSION_MAJOR)
++    set(Metis_FIND_VERSION_MAJOR 0)
++  endif(NOT Metis_FIND_VERSION_MAJOR)
++  if(NOT Metis_FIND_VERSION_MINOR)
++    set(Metis_FIND_VERSION_MINOR 0)
++  endif(NOT Metis_FIND_VERSION_MINOR)
++  if(NOT Metis_FIND_VERSION_PATCH)
++    set(Metis_FIND_VERSION_PATCH 0)
++  endif(NOT Metis_FIND_VERSION_PATCH)
++  set(Metis_FIND_VERSION "${Metis_FIND_VERSION_MAJOR}.${Metis_FIND_VERSION_MINOR}.${Metis_FIND_VERSION_PATCH}")
++endif()
++
++macro(_metis_check_version)
++  if(EXISTS "${Metis_INCLUDE_DIR}/metis.h")
++    file(READ "${Metis_INCLUDE_DIR}/metis.h" _metis_version_header)
++  endif()
++
++  string(REGEX MATCH "define[ \t]+METIS_VER_MAJOR[ \t]+([0-9]+)" _metis_major_version_match "${_metis_version_header}")
++  set(Metis_VERSION_MAJOR "${CMAKE_MATCH_1}")
++  string(REGEX MATCH "define[ \t]+METIS_VER_MINOR[ \t]+([0-9]+)" _metis_minor_version_match "${_metis_version_header}")
++  set(Metis_VERSION_MINOR "${CMAKE_MATCH_1}")
++  string(REGEX MATCH "define[ \t]+METIS_VER_SUBMINOR[ \t]+([0-9]+)" _metis_patch_version_match "${_metis_version_header}")
++  set(Metis_VERSION_PATCH "${CMAKE_MATCH_1}")
++
++  set(Metis_VERSION ${Metis_VERSION_MAJOR}.${Metis_VERSION_MINOR}.${Metis_VERSION_PATCH})
++  set(Metis_VERSION_OK TRUE)
++  if(${Metis_VERSION} VERSION_LESS ${Metis_FIND_VERSION})
++    set(Metis_VERSION_OK FALSE)
++    message(SEND_ERROR "Metis version ${Metis_VERSION} found in ${Metis_INCLUDE_DIR}, "
++                       "but at least version ${Metis_FIND_VERSION} is required")
++  endif()
++  if(${Metis_FIND_VERSION_EXACT} AND NOT ${Metis_VERSION} VERSION_EQUAL ${Metis_FIND_VERSION})
++    set(Metis_VERSION_OK FALSE)
++    message(SEND_ERROR "Metis version ${Metis_VERSION} found in ${Metis_INCLUDE_DIR}, "
++                       "but exact version ${Metis_FIND_VERSION} is required")
++  endif()
++  # message(STATUS "Metis version found: ${Metis_VERSION} in ${Metis_INCLUDE_DIR}, ${Metis_FIND_VERSION} was required ")
++endmacro()
++
++if(TARGET metis)
++  set(Metis_FOUND TRUE) # only metis_FOUND has been set
++  if(Metis_INCLUDE_DIR AND NOT DEFINED Metis_VERSION)
++    _metis_check_version()
++  endif()
++  set(Metis_FOUND ${Metis_VERSION_OK})
++  add_library(metis::metis ALIAS metis)
++else()
++
++  if(NOT Metis_INCLUDE_DIR)
++    find_path(Metis_INCLUDE_DIR
++      NAMES metis.h
++      PATH_SUFFIXES include
++    )
++  endif()
++
++  if(NOT Metis_LIBRARY)
++    find_library(Metis_LIBRARY
++      NAMES metis
++      PATH_SUFFIXES lib
++    )
++  endif()
++
++  if(Metis_INCLUDE_DIR AND Metis_LIBRARY)
++    _metis_check_version()
++    set(Metis_FOUND ${Metis_VERSION_OK})
++  endif()
++
++  if(Metis_FOUND)
++    set(Metis_LIBRARIES ${Metis_LIBRARY})
++    set(Metis_INCLUDE_DIRS ${Metis_INCLUDE_DIR})
++
++    if(NOT Metis_FIND_QUIETLY)
++      message(STATUS "Found Metis: ${Metis_LIBRARIES} (version ${Metis_VERSION} from ${Metis_INCLUDE_DIR}/metis.h)")
++    endif()
++
++    if(NOT TARGET metis)
++      add_library(metis INTERFACE IMPORTED)
++      set_property(TARGET metis PROPERTY INTERFACE_LINK_LIBRARIES "${Metis_LIBRARIES}")
++      set_property(TARGET metis PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${Metis_INCLUDE_DIR}")
++    endif()
++    add_library(metis::metis ALIAS metis)
++  else()
++  endif()
++  mark_as_advanced(Metis_INCLUDE_DIR Metis_LIBRARY)
++endif()
++
++if(NOT Metis_FOUND AND Metis_FIND_REQUIRED)
++  message(FATAL_ERROR "Cannot find metis")
++endif()
+\ No newline at end of file
+-- 
+2.34.1
+
