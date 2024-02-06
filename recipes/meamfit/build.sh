@@ -5,10 +5,10 @@ fc = mpifort
 ld = mpifort
 f90_module_flag = -J 
 [opt]
-fflags = $(FFLAGS)
+fflags = ${FFLAGS}
 
 [dbg]
-fflags = $(FFLAGS)
+fflags = ${FFLAGS}
 EOF
 ./tools/mkconfig conda_forge_config
 make
