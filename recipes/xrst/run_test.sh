@@ -14,10 +14,13 @@ url="$home/archive/$version.tar.gz"
 curl -LJO $url
 #
 # xrst-$version
+# We get a copy of the original source becasue it has an automated test.
 tar -xzf xrst-$version.tar.gz
 cd xrst-$version
 #
 # xrst-$version/pytest/test_rst.py
+# Use prefix here ensures we are running the installed version and not
+# the version in this source.
 sed -i \
    -e  "s|'python3' *,.*|'$prefix/bin/xrst', '--suppress_spell_warnings', |" \
    pytest/test_rst.py
