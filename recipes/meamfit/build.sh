@@ -15,4 +15,4 @@ cp make.inc make.inc.64
 
 make
 mkdir -p ${PREFIX}/bin
-cp MEAMfit.x ${PREFIX}/bin
+cp bin/MEAMfit.x ${PREFIX}/bin
