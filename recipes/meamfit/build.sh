@@ -11,6 +11,8 @@ fflags = ${FFLAGS} -ffree-line-length-0
 fflags = ${FFLAGS} -ffree-line-length-0
 EOF
 ./tools/mkconfig conda_forge_config
-echo "Folder content:"
 cp make.inc make.inc.64
+
 make
+mkdir -p ${PREFIX}/bin
+cp MEAMfit.x ${PREFIX}/bin
