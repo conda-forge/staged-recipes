@@ -1,0 +1,234 @@
+diff --git a/.bumpversion.cfg b/.bumpversion.cfg
+index d63f26bb..d6e63b9d 100644
+--- a/.bumpversion.cfg
++++ b/.bumpversion.cfg
+@@ -1,5 +1,5 @@
+ [bumpversion]
+-current_version = 3.17.0
++current_version = 3.18.dev
+ commit = True
+ tag = False
+ parse = (?P<major>\d+)\.(?P<minor>\d+)\.(?P<release>[a-z]+)?(?P<patch>\d+)?
+diff --git a/newsfragments/769.misc b/newsfragments/769.misc
+new file mode 100644
+index 00000000..74280db2
+--- /dev/null
++++ b/newsfragments/769.misc
+@@ -0,0 +1 @@
++``xia2.ssx``: Update tests following changes to datastructures
+diff --git a/newsfragments/770.bugfix b/newsfragments/770.bugfix
+new file mode 100644
+index 00000000..e0fb2a0b
+--- /dev/null
++++ b/newsfragments/770.bugfix
+@@ -0,0 +1 @@
++``xia2.multiplex``: Avoid space group analysis if given reference file
+diff --git a/newsfragments/772.misc b/newsfragments/772.misc
+new file mode 100644
+index 00000000..a4a4dcf8
+--- /dev/null
++++ b/newsfragments/772.misc
+@@ -0,0 +1 @@
++Update test_multiplex.py test fixture
+diff --git a/newsfragments/773.misc b/newsfragments/773.misc
+new file mode 100644
+index 00000000..2f02c178
+--- /dev/null
++++ b/newsfragments/773.misc
+@@ -0,0 +1 @@
++Make xia2.multiplex test more stable
+diff --git a/setup.py b/setup.py
+index 8a554dfa..baf09191 100644
+--- a/setup.py
++++ b/setup.py
+@@ -9,7 +9,7 @@ import setuptools
+ 
+ # Version number, or fallback version number for non-releases.
+ # This should be updated by bump2version, not manually.
+-__version_tag__ = "3.17.0"
++__version_tag__ = "3.18.dev"
+ 
+ console_scripts = [
+     "dev.xia2.check_mosaic=xia2.cli.check_mosaic:run",
+diff --git a/src/xia2/Modules/MultiCrystal/ScaleAndMerge.py b/src/xia2/Modules/MultiCrystal/ScaleAndMerge.py
+index d75827c1..e2560ff7 100644
+--- a/src/xia2/Modules/MultiCrystal/ScaleAndMerge.py
++++ b/src/xia2/Modules/MultiCrystal/ScaleAndMerge.py
+@@ -378,10 +378,10 @@ class MultiCrystalScale:
+         self._experiments_filename = self._scaled._experiments_filename
+         self._reflections_filename = self._scaled._reflections_filename
+ 
+-        self.decide_space_group()
+-
+         if self._params.reference is not None:
+             self.reindex()
++        else:
++            self.decide_space_group()
+ 
+         d_spacings = self._scaled.data_manager._reflections["d"]
+         self._params.r_free_flags.d_min = flex.min(d_spacings.select(d_spacings > 0))
+@@ -915,6 +915,7 @@ class MultiCrystalScale:
+         reindex.set_experiments_filename(self._experiments_filename)
+         reindex.set_indexed_filename(self._reflections_filename)
+         reindex.set_reference_file(self._params.reference)
++        reindex.set_space_group(self._params.symmetry.space_group)
+ 
+         reindex.run()
+ 
+diff --git a/src/xia2/cli/cluster_analysis.py b/src/xia2/cli/cluster_analysis.py
+index 4e7a6bb2..489c0e4f 100644
+--- a/src/xia2/cli/cluster_analysis.py
++++ b/src/xia2/cli/cluster_analysis.py
+@@ -247,7 +247,9 @@ def run(args=sys.argv[1:]):
+             logger.info("----------------")
+             logger.info("Output given as DIALS .expt/.refl files:")
+             logger.info("To merge rotation data: use dials.merge")
+-            logger.info("To merge still data: use xia2.ssx_reduce with the option steps=merge")
++            logger.info(
++                "To merge still data: use xia2.ssx_reduce with the option steps=merge"
++            )
+             logger.info("----------------")
+ 
+         id_list = []
+@@ -283,6 +285,7 @@ def run(args=sys.argv[1:]):
+         with open("xia2.cluster_analysis.html", "wb") as f:
+             f.write(html.encode("utf-8", "xmlcharrefreplace"))
+ 
++
+ def output_cluster(new_folder, cluster, original_data_manager, cluster_identifiers):
+     data_manager = copy.deepcopy(original_data_manager)
+     if not os.path.exists(new_folder):
+diff --git a/tests/regression/test_multiplex.py b/tests/regression/test_multiplex.py
+index d41f340e..3242754d 100644
+--- a/tests/regression/test_multiplex.py
++++ b/tests/regression/test_multiplex.py
+@@ -34,19 +34,14 @@ expected_data_files = [
+ 
+ 
+ @pytest.fixture()
+-def proteinase_k(regression_test, dials_data, tmp_path):
++def proteinase_k(dials_data):
+     data_dir = dials_data("multi_crystal_proteinase_k", pathlib=True)
+     expts = sorted(os.fspath(f) for f in data_dir.glob("experiments*.json"))
+     refls = sorted(os.fspath(f) for f in data_dir.glob("reflections*.pickle"))
+-    cwd = pathlib.Path.cwd()
+-    os.chdir(tmp_path)
+     yield expts, refls
+-    os.chdir(cwd)
+-    for f in tmp_path.glob("**/*.refl"):
+-        f.unlink()
+ 
+ 
+-def test_proteinase_k(mocker, proteinase_k):
++def test_proteinase_k(mocker, proteinase_k, run_in_tmp_path):
+     expts, refls = proteinase_k
+     mocker.spy(Report, "pychef_plots")
+     run_multiplex(expts + refls + ["exclude_images=0:1:10"])
+@@ -104,7 +99,7 @@ def test_proteinase_k(mocker, proteinase_k):
+     ]
+ 
+ 
+-def test_proteinase_k_anomalous(proteinase_k):
++def test_proteinase_k_anomalous(proteinase_k, run_in_tmp_path):
+     expts, refls = proteinase_k
+     run_multiplex(expts + refls + ["anomalous=True"])
+     with open("xia2.multiplex.json") as fh:
+@@ -121,7 +116,7 @@ def test_proteinase_k_anomalous(proteinase_k):
+     "d_min",
+     [None, 2.0],
+ )
+-def test_proteinase_k_filter_deltacchalf(d_min, proteinase_k):
++def test_proteinase_k_filter_deltacchalf(d_min, proteinase_k, run_in_tmp_path):
+     expts, refls = proteinase_k
+     command_line_args = (
+         expts
+@@ -182,7 +177,9 @@ def test_proteinase_k_filter_deltacchalf(d_min, proteinase_k):
+     "laue_group,space_group,threshold",
+     [("P422", None, None), (None, "P422", 3.5), (None, "P43212", None)],
+ )
+-def test_proteinase_k_dose(laue_group, space_group, threshold, proteinase_k):
++def test_proteinase_k_dose(
++    laue_group, space_group, threshold, proteinase_k, run_in_tmp_path
++):
+     expts, refls = proteinase_k
+     command_line_args = (
+         [
+@@ -230,20 +227,20 @@ def test_proteinase_k_dose(laue_group, space_group, threshold, proteinase_k):
+ @pytest.mark.parametrize(
+     "parameters",
+     (
+-        ["min_completeness=0.6", "cluster_method=cos_angle"],
+-        ["min_completeness=0.6", "cluster_method=correlation"],
++        ["min_completeness=0.5", "cluster_method=cos_angle"],
++        ["min_completeness=0.5", "cluster_method=correlation"],
+     ),
+ )
+-def test_proteinase_k_min_completeness(parameters, proteinase_k):
++def test_proteinase_k_min_completeness(parameters, proteinase_k, run_in_tmp_path):
+     expts, refls = proteinase_k
+-    command_line_args = parameters + expts + refls
++    command_line_args = parameters + expts[:-1] + refls[:-1]
+     run_multiplex(command_line_args)
+ 
+     for f in expected_data_files:
+         assert pathlib.Path(f).is_file(), "expected file %s missing" % f
+ 
+     multiplex_expts = load.experiment_list("scaled.expt", check_format=False)
+-    assert len(multiplex_expts) == 8
++    assert len(multiplex_expts) == 7
+     clusters = list(pathlib.Path().glob("cluster_[0-9]*"))
+     assert len(clusters)
+     for cluster in clusters:
+@@ -251,14 +248,16 @@ def test_proteinase_k_min_completeness(parameters, proteinase_k):
+         assert (cluster / "scaled_unmerged.mtz").is_file()
+ 
+ 
+-def test_proteinase_k_single_dataset_raises_error(proteinase_k):
++def test_proteinase_k_single_dataset_raises_error(proteinase_k, run_in_tmp_path):
+     expts, refls = proteinase_k
+     with pytest.raises(SystemExit) as e:
+         run_multiplex([expts[0], refls[1]])
+     assert str(e.value) == "xia2.multiplex requires a minimum of two experiments"
+ 
+ 
+-def test_proteinase_k_laue_group_space_group_raises_error(proteinase_k):
++def test_proteinase_k_laue_group_space_group_raises_error(
++    proteinase_k, run_in_tmp_path
++):
+     expts, refls = proteinase_k
+     command_line_args = (
+         ["symmetry.laue_group=P422", "symmetry.space_group=P41212"] + expts + refls
+diff --git a/tests/regression/test_ssx.py b/tests/regression/test_ssx.py
+index aecdfbd9..1365fb92 100644
+--- a/tests/regression/test_ssx.py
++++ b/tests/regression/test_ssx.py
+@@ -259,10 +259,11 @@ def test_slice_cbfs(dials_data, tmp_path, refined_expt):
+     check_output(tmp_path, find_spots=True, index=True, integrate=False)
+ 
+     indexed = load.experiment_list(tmp_path / "batch_1" / "indexed.expt")
+-    images = [
+-        iset.get_image_identifier(0).split("_")[-1].rstrip(".cbf")
+-        for iset in indexed.imagesets()
+-    ]
++    images = []
++    iset = indexed.imagesets()[0]
++    for i, expt in enumerate(indexed):
++        images.append(iset.get_image_identifier(i).split("_")[-1].rstrip(".cbf"))
++
+     assert images == ["17002", "17003", "17004"]
+     # Also check the correct images were reported in the indexing report.
+     images = []
+@@ -750,8 +751,9 @@ def test_on_sacla_data_slice(dials_data, tmp_path):
+     )
+     assert len(imported) == 2
+     assert len(imported.imagesets()) == 1
+-    import json
+ 
+-    with open(tmp_path / "batch_1" / "indexed.expt", "r") as f:
+-        indexed = json.load(f)
+-    assert indexed["imageset"][0]["single_file_indices"] == [2]  # i.e. the third image
++    indexed = load.experiment_list(
++        tmp_path / "batch_1" / "indexed.expt", check_format=False
++    )
++
++    assert indexed[0].scan.get_image_range() == (3, 3)  # i.e. the third image
