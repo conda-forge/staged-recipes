@@ -11,4 +11,7 @@ fflags = ${FFLAGS}
 fflags = ${FFLAGS}
 EOF
 ./tools/mkconfig conda_forge_config
+echo "Folder content:"
+ls
+cp make.inc make.inc.64
 make
