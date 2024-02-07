@@ -7,17 +7,18 @@ set -exuo pipefail
 
 export NODE_OPTIONS=--openssl-legacy-provider
 
-# ripgrep tries to download binary from github, copying the ripgrep executable to the cache location so that it doesn't do that 
-mkdir /tmp/vscode-ripgrep-cache-1.15.5
-mkdir /tmp/vscode-ripgrep-cache-1.15.6
-cp "${PREFIX}/bin/rg" /tmp/vscode-ripgrep-cache-1.15.5/
-cp "${PREFIX}/bin/rg" /tmp/vscode-ripgrep-cache-1.15.6/
-
 pushd sagemaker-code-editor
 pushd src
 
 # Install node-gyp globally as a fix for NodeJS 18.18.2 https://github.com/microsoft/vscode/issues/194665
 npm i -g node-gyp
+
+# fetch the version of ripgrep, removes a ^ if present
+VSCODE_RIPGREP_VERSION=$(jq -r '.dependencies."@vscode/ripgrep" | sub("^\\^"; "")' package.json)
+# ripgrep tries to download binary from github, copying the ripgrep executable to the cache location so that it doesn't do that 
+mkdir /tmp/vscode-ripgrep-cache-${VSCODE_RIPGREP_VERSION}
+cp "${PREFIX}/bin/rg" /tmp/vscode-ripgrep-cache-${VSCODE_RIPGREP_VERSION}/
+
 yarn install
 
 ARCH_ALIAS=linux-x64
