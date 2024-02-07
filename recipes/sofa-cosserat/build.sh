@@ -17,7 +17,7 @@ cmake ${CMAKE_ARGS} \
   -DCMAKE_BUILD_TYPE:STRING=Release \
   -DPython_EXECUTABLE:PATH=${PREFIX}/bin/python \
   -DSP3_PYTHON_PACKAGES_DIRECTORY:PATH=python${PY_VER}/site-packages \
-  -DCOSSERATPLUGIN_BUILD_TESTS:BOOL=OFF
+  -DCOSSERAT_BUILD_TESTS:BOOL=OFF
 
 # build
 cmake --build . --parallel ${CPU_COUNT}
