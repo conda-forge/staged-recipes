@@ -5,12 +5,10 @@ IF exist Build.PL (
     Build
     IF errorlevel 1 exit 1
     Build test
-    :: Make sure this goes in site
-    Build install --installdirs site
+    Build install --installdirs vendor
     IF errorlevel 1 exit 1
 ) ELSE IF exist Makefile.PL (
-    :: Make sure this goes in site
-    perl Makefile.PL INSTALLDIRS=site
+    perl Makefile.PL INSTALLDIRS=vendor
     IF errorlevel 1 exit 1
     make
     IF errorlevel 1 exit 1
