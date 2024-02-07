@@ -5,8 +5,6 @@ set -exuo pipefail
 # This code includes code from https://github.com/conda-forge/openvscode-server-feedstock
 # which is licensed under the BSD-3-Clause License.
 
-export NODE_OPTIONS=--openssl-legacy-provider
-
 pushd sagemaker-code-editor
 pushd src
 
