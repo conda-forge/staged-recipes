@@ -1,8 +1,8 @@
-perl Makefile.PL INSTALLDIRS=vendor NO_PERLLOCAL=1 NO_PACKLIST=1
+perl Makefile.PL INSTALLDIRS=vendor NO_PERLLOCAL=1 NO_PACKLIST=1 MAKE=jom
 IF %ERRORLEVEL% NEQ 0 exit /B 1
-make
+jom
 IF %ERRORLEVEL% NEQ 0 exit /B 1
-make test
+jom test
 :: IF %ERRORLEVEL% NEQ 0 exit /B 1
-make install VERBINST=1
+jom install VERBINST=1
 IF %ERRORLEVEL% NEQ 0 exit /B 1
