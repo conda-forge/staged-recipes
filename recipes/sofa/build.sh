@@ -54,30 +54,6 @@ cmake --build . --parallel ${CPU_COUNT}
 # install
 cmake --build . --parallel ${CPU_COUNT} --target install
 
-# ----------
-# build SOFA.GUI.Common component (part of sofa-core),
-# which was not built with main SOFA source
-
-rm -rf ../build_gui_common
-
-mkdir ../build_gui_common
-cd ../build_gui_common
-
-cmake ${CMAKE_ARGS} \
-  -B . \
-  -S ../Sofa/GUI/Common \
-  -DCMAKE_PREFIX_PATH:PATH=${SRC_DIR}/build/temp_prefix/ \
-  -DCMAKE_INSTALL_PREFIX:PATH=${SRC_DIR}/build/temp_prefix/ \
-  -DCMAKE_BUILD_TYPE:STRING=Release \
-  -DSOFA_ALLOW_FETCH_DEPENDENCIES:BOOL=OFF \
-  -DSOFA_BUILD_TESTS=OFF
-
-# build
-cmake --build . --parallel ${CPU_COUNT}
-
-# install
-cmake --build . --parallel ${CPU_COUNT} --target install
-
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
 # This will allow them to be run on environment activation.
 for CHANGE in "activate" "deactivate"
