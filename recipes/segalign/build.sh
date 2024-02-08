@@ -23,7 +23,7 @@ if [ "${cuda_compiler_version}" != "None" ]; then
     fi
 
     LATEST_ARCH="${ARCHES[-1]}"
-    unset ARCHES[-1]t
+    unset "ARCHES[${#ARCHES[@]}-1]"
 
     for arch in "${ARCHES[@]}"; do
         CMAKE_CUDA_ARCHS="${CMAKE_CUDA_ARCHS+${CMAKE_CUDA_ARCHS};}${arch}-real"
