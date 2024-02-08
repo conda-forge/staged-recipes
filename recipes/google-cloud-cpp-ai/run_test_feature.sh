@@ -8,6 +8,9 @@ if [[ "${target_platform}" == osx-* ]]; then
   CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 fi
 
+# Remove any libgoogle-cloud- prefix and any -devel suffix from PKG_NAME to 
+# find the feature name.
+#     https://www.gnu.org/software/bash/manual/html_node/Shell-Parameter-Expansion.html
 feature=${PKG_NAME/#libgoogle-cloud-/}
 feature=${feature/%-devel/}
 
