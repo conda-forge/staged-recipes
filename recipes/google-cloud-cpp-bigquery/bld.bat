@@ -5,7 +5,7 @@ setlocal EnableDelayedExpansion
 set LIBRARY_PREFIX=%LIBRARY_PREFIX:\=/%
 
 cmake -G "Ninja" ^
-    -S . -B .b ^
+    -S . -B build ^
     -DGOOGLE_CLOUD_CPP_ENABLE=bigquery ^
     -DGOOGLE_CLOUD_CPP_USE_INSTALLED_COMMON=ON ^
     -DBUILD_TESTING=OFF ^
@@ -19,5 +19,5 @@ cmake -G "Ninja" ^
     -DGOOGLE_CLOUD_CPP_ENABLE_WERROR=OFF
 if %ERRORLEVEL% neq 0 exit 1
 
-cmake --build .b --config Release
+cmake --build build --config Release
 if %ERRORLEVEL% neq 0 exit 1

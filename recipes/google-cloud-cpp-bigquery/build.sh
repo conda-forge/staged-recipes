@@ -10,7 +10,7 @@ if [[ "${target_platform}" == osx-* ]]; then
 fi
 
 cmake ${CMAKE_ARGS} \
-    -GNinja -S . -B .build/bigquery \
+    -GNinja -S . -B build \
     -DGOOGLE_CLOUD_CPP_ENABLE=bigquery \
     -DGOOGLE_CLOUD_CPP_USE_INSTALLED_COMMON=ON \
     -DBUILD_TESTING=OFF \
@@ -23,4 +23,4 @@ cmake ${CMAKE_ARGS} \
     -DProtobuf_PROTOC_EXECUTABLE=$BUILD_PREFIX/bin/protoc \
     -DGOOGLE_CLOUD_CPP_GRPC_PLUGIN_EXECUTABLE=$BUILD_PREFIX/bin/grpc_cpp_plugin \
     -DGOOGLE_CLOUD_CPP_ENABLE_WERROR=OFF
-cmake --build .build/bigquery
+cmake --build build

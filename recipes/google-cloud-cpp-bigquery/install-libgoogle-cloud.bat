@@ -12,7 +12,7 @@ set SRC_DIR="%SRC_DIR:\=/%"
 ::     cmake --install .b --component google_cloud_cpp_development
 
 if [%PKG_NAME%] == [libgoogle-cloud-bigquery-devel] (
-  cmake --install .b
+  cmake --install build
   if %ERRORLEVEL% neq 0 exit 1
 ) else if [%PKG_NAME%] == [libgoogle-cloud-bigquery] (
   @REM TODO: fix when DLL support comes along
