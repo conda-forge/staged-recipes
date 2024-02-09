@@ -1,23 +1,29 @@
-From 25b64430ab3367c448c160bdec57cc3ec794164e Mon Sep 17 00:00:00 2001
+From 8986627abbe3c109279cb94675111278ce0b635b Mon Sep 17 00:00:00 2001
 From: brendanf <brendan.furneaux@gmail.com>
 Date: Fri, 9 Feb 2024 09:26:09 +0200
 Subject: [PATCH 2/2] no static libs in windows
 
 ---
- configure.ucrt    | 20 --------------------
- src/Makevars.ucrt |  4 ++--
- src/Makevars.win  | 17 ++---------------
- 3 files changed, 4 insertions(+), 37 deletions(-)
+ configure.ucrt    | 22 +++++-----------------
+ configure.win     | 10 ++++++++++
+ src/Makevars.ucrt |  2 --
+ src/Makevars.win  | 15 ---------------
+ 4 files changed, 15 insertions(+), 34 deletions(-)
+ create mode 100644 configure.win
+ delete mode 100644 src/Makevars.ucrt
+ delete mode 100644 src/Makevars.win
 
 diff --git a/configure.ucrt b/configure.ucrt
-index d9eb51d0..b59f78e9 100755
+index d9eb51d0..7cc0ec82 100755
 --- a/configure.ucrt
 +++ b/configure.ucrt
-@@ -1,22 +1,2 @@
+@@ -1,22 +1,10 @@
 -# Library versions
 -LIB_VER="f338f50"
 -TLS_VER="edb8fec"
--
++INCLUDE_PATH="${PREFIX}/Library/include"
++echo "include path: $INCLUDE_PATH"
+ 
 -tar -xf src/mbedtls-$TLS_VER.tar.xz
 -cd mbedtls-$TLS_VER
 -echo "Compiling 'libmbedtls' from source ..."
@@ -25,7 +31,9 @@ index d9eb51d0..b59f78e9 100755
 -cmake --build . --target install
 -cd ..
 -rm -rf mbedtls-$TLS_VER
--
++PKG_CFLAGS="-I${INCLUDE_PATH}"
++PKG_LIBS="-lnng -lmbedtls -lmbedx509 -lmbedcrypto -lbcrypt -lws2_32"
+ 
 -tar -xf src/nng-$LIB_VER.tar.xz
 -cd nng-$LIB_VER
 -echo "Compiling 'libnng' from source ..."
@@ -33,23 +41,40 @@ index d9eb51d0..b59f78e9 100755
 -cmake --build . --target install
 -cd ..
 -rm -rf nng-$LIB_VER
--
++sed -e "s|@cflags@|$PKG_CFLAGS|" -e "s|@libs@|$PKG_LIBS|" src/Makevars.in >src/Makevars.ucrt
+ 
  # Success
  exit 0
+diff --git a/configure.win b/configure.win
+new file mode 100644
+index 00000000..9f128f34
+--- /dev/null
++++ b/configure.win
+@@ -0,0 +1,10 @@
++INCLUDE_PATH="${PREFIX}/Library/include"
++echo "include path: $INCLUDE_PATH"
++
++PKG_CFLAGS="-I${INCLUDE_PATH}"
++PKG_LIBS="-lnng -lmbedtls -lmbedx509 -lmbedcrypto -lbcrypt -lws2_32"
++
++sed -e "s|@cflags@|$PKG_CFLAGS|" -e "s|@libs@|$PKG_LIBS|" src/Makevars.in >src/Makevars.win
++
++# Success
++exit 0
 diff --git a/src/Makevars.ucrt b/src/Makevars.ucrt
-index 11b714f8..cf44f638 100644
+deleted file mode 100644
+index 11b714f8..00000000
 --- a/src/Makevars.ucrt
-+++ b/src/Makevars.ucrt
-@@ -1,2 +1,2 @@
++++ /dev/null
+@@ -1,2 +0,0 @@
 -PKG_CFLAGS=-I../install/include -DNNG_STATIC_LIB $(C_VISIBILITY)
 -PKG_LIBS=-L../install/lib -lnng -lmbedtls -lmbedx509 -lmbedcrypto -lbcrypt -lws2_32
-+PKG_CFLAGS=-I$(PREFIX)/Library/include $(C_VISIBILITY)
-+PKG_LIBS=-lnng -lmbedtls -lmbedx509 -lmbedcrypto -lbcrypt -lws2_32
 diff --git a/src/Makevars.win b/src/Makevars.win
-index 29130285..cf44f638 100644
+deleted file mode 100644
+index 29130285..00000000
 --- a/src/Makevars.win
-+++ b/src/Makevars.win
-@@ -1,15 +1,2 @@
++++ /dev/null
+@@ -1,15 +0,0 @@
 -ifeq "$(WIN)" "64"
 -    ARC="x64"
 -else
@@ -65,8 +90,6 @@ index 29130285..cf44f638 100644
 -	curl -sL https://github.com/shikokuchuo/rwinlib/archive/refs/tags/v1.7.0_3.5.1.zip -o nng.zip
 -	unzip -q nng.zip
 -	rm -f nng.zip
-+PKG_CFLAGS=-I$(PREFIX)/Library/include $(C_VISIBILITY)
-+PKG_LIBS=-lnng -lmbedtls -lmbedx509 -lmbedcrypto -lbcrypt -lws2_32
 -- 
 2.31.1
 
