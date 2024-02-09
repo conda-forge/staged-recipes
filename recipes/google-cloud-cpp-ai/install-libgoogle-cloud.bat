@@ -15,7 +15,7 @@ set FEATURE=%PKG_NAME:libgoogle-cloud-=%
 set FEATURE=%FEATURE:-devel=%
 
 if not [%PKG_NAME:-devel=%] == [%PKG_NAME%] (
-  cmake --install .build/%FEATURE%
+  cmake --install build/%FEATURE%
   if %ERRORLEVEL% neq 0 exit 1
 ) else if not [%PKG_NAME:libgoogle-cloud-=%] == [%PKG_NAME%] (
   @REM TODO: fix when DLL support comes along

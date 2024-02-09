@@ -26,7 +26,7 @@ feature_list=(
 for feature in "${feature_list[@]}"; do
   echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ'): Building ${feature}"
   cmake ${CMAKE_ARGS} \
-      -GNinja -S . -B .build/${feature} \
+      -GNinja -S . -B build/${feature} \
       -DGOOGLE_CLOUD_CPP_ENABLE=${feature} \
       -DGOOGLE_CLOUD_CPP_USE_INSTALLED_COMMON=ON \
       -DBUILD_TESTING=OFF \
@@ -39,6 +39,6 @@ for feature in "${feature_list[@]}"; do
       -DProtobuf_PROTOC_EXECUTABLE=$BUILD_PREFIX/bin/protoc \
       -DGOOGLE_CLOUD_CPP_GRPC_PLUGIN_EXECUTABLE=$BUILD_PREFIX/bin/grpc_cpp_plugin \
       -DGOOGLE_CLOUD_CPP_ENABLE_WERROR=OFF
-  cmake --build .build/${feature}
+  cmake --build build/${feature}
   echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ'): DONE - Building ${feature}"
 done

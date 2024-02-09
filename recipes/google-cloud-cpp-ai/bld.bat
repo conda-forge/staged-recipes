@@ -15,7 +15,7 @@ FOR %%G IN (
   dlp
   speech) DO (
     cmake -G "Ninja" ^
-        -S . -B .build/%%G ^
+        -S . -B build/%%G ^
         -DGOOGLE_CLOUD_CPP_ENABLE=%%G ^
         -DGOOGLE_CLOUD_CPP_USE_INSTALLED_COMMON=ON ^
         -DBUILD_TESTING=OFF ^
@@ -29,6 +29,6 @@ FOR %%G IN (
         -DGOOGLE_CLOUD_CPP_ENABLE_WERROR=OFF
     if %ERRORLEVEL% neq 0 exit 1
 
-    cmake --build .build/%%G --config Release
+    cmake --build build/%%G --config Release
     if %ERRORLEVEL% neq 0 exit 1
 )
