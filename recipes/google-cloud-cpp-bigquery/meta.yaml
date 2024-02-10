@@ -1,0 +1,114 @@
+{% set version = "2.17.0" %}
+
+package:
+  name: google-cloud-cpp-bigquery
+  version: {{ version }}
+
+source:
+  url: https://github.com/googleapis/google-cloud-cpp/archive/v{{ version }}.tar.gz
+  sha256: 8cb87ec2947e691a7f8631877e78453bcfda51b3d3cd4940794a376741888d37
+  patches:
+    # This is an upstream fix to allow sharding google/cloud/oauth2
+    - patches/0001-Backport-12911-from-upstream.patch
+
+build:
+  number: 0
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - libgrpc
+    - libprotobuf
+    - zlib # Needed by gRPC
+  host:
+    - libgoogle-cloud-devel =={{ version }}
+    - libabseil
+    - libcurl
+    - libgrpc
+    - libprotobuf
+    - openssl
+    - nlohmann_json
+    - zlib # Needed by gRPC
+
+outputs:
+  - name: libgoogle-cloud-bigquery
+    script: install-libgoogle-cloud.sh   # [unix]
+    script: install-libgoogle-cloud.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - libgoogle-cloud-devel =={{ version }}
+        - libabseil
+        - libprotobuf
+        - libgrpc
+    test:
+      commands:
+        # presence of shared library (unix)
+        - test -f $PREFIX/lib/libgoogle_cloud_cpp_bigquery.{{ version }}.dylib  # [osx]
+        - test -f $PREFIX/lib/libgoogle_cloud_cpp_bigquery.so.{{ version }}  # [linux]
+
+        # absence of static library (windows). It belongs only in devel package.
+        - if exist %LIBRARY_LIB%\google_cloud_cpp_bigquery.lib exit 1  # [win]
+
+        # absence of headers (they belong in devel package)
+        - test ! -f $PREFIX/include/google/cloud/bigquery/storage/v1/bigquery_read_client.h  # [unix]
+        - if exist %LIBRARY_INC%\google\cloud\bigquery\storage\v1\bigquery_read_client.h exit 1  # [win]
+
+        # absence of metadata for CMake & pkgconfig (belongs in devel package)
+        - test ! -f $PREFIX/lib/pkgconfig/google_cloud_cpp_bigquery.pc  # [unix]
+        - test ! -f $PREFIX/lib/cmake/google_cloud_cpp_common/google_cloud_cpp_bigquery-config.cmake  # [unix]
+        - if exist %LIBRARY_LIB%\cmake\google_cloud_cpp_common\google_cloud_cpp_bigquery-config.cmake exit 1  # [win]
+
+  - name: libgoogle-cloud-bigquery-devel
+    script: install-libgoogle-cloud.sh   # [unix]
+    script: install-libgoogle-cloud.bat  # [win]
+    build:
+      run_exports:
+        # patch versions guaranteed to be ABI-compatible, see
+        # https://github.com/googleapis/google-cloud-cpp/blob/main/doc/adr/2023-05-03-patch-releases-are-ABI-compatible.md
+        - {{ pin_subpackage("libgoogle-cloud-bigquery", max_pin="x.x") }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+      host:
+        - libgoogle-cloud-devel =={{ version }}
+      run:
+        - {{ pin_subpackage("libgoogle-cloud-bigquery", exact=True) }}
+    test:
+      commands:
+        # build an example
+        - ./run_test_feature.sh   # [unix]
+        - ./run_test_feature.bat  # [win]
+      requires:
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+        - libgoogle-cloud-devel =={{ version }}
+      files:
+        - run_test_feature.sh
+        - run_test_feature.bat
+      source_files:
+        - google/cloud/bigquery/quickstart/*.cc
+        - google/cloud/bigquery/quickstart/CMakeLists.txt
+
+about:
+  home: https://github.com/googleapis/google-cloud-cpp
+  license: Apache-2.0
+  license_family: Apache
+  license_file: LICENSE
+  summary: Google Cloud Client Library for C++
+
+extra:
+  feedstock-name: google-cloud-cpp-bigquery
+  recipe-maintainers:
+    - coryan
+    - conda-forge/google-cloud-cpp
