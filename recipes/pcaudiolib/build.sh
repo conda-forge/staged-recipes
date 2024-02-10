@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ./autogen.sh
-./configure --prefix=$PREFIX
-make prefix=$PREFIX
-make install LIBDIR=$PREFIX prefix=$PREFIX
+# custom LD for windows needed
+LD=$LD ./configure --prefix=$(realpath $PREFIX)
+make prefix=$(realpath $PREFIX)
+make install prefix=$(realpath $PREFIX)
