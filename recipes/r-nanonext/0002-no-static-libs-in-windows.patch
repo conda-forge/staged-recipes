@@ -1,28 +1,30 @@
-From 7293cd223305adf8eaca4de78b773ce1f6de08e3 Mon Sep 17 00:00:00 2001
+From b7e470cc8cd43b96163c14f9767f5b22ccaa19c0 Mon Sep 17 00:00:00 2001
 From: brendanf <brendan.furneaux@gmail.com>
 Date: Fri, 9 Feb 2024 09:26:09 +0200
 Subject: [PATCH 2/2] no static libs in windows
 
 ---
- configure.ucrt    | 27 ++++++++++-----------------
- configure.win     | 12 ++++++++++++
+ configure.ucrt    | 29 ++++++++++++-----------------
+ configure.win     | 17 +++++++++++++++++
  src/Makevars.ucrt |  2 --
  src/Makevars.win  | 15 ---------------
- 4 files changed, 22 insertions(+), 34 deletions(-)
+ 4 files changed, 29 insertions(+), 34 deletions(-)
  create mode 100644 configure.win
  delete mode 100644 src/Makevars.ucrt
  delete mode 100644 src/Makevars.win
 
 diff --git a/configure.ucrt b/configure.ucrt
-index d9eb51d0..d3a35e82 100755
+index d9eb51d0..13d0415b 100755
 --- a/configure.ucrt
 +++ b/configure.ucrt
-@@ -1,22 +1,15 @@
+@@ -1,22 +1,17 @@
 -# Library versions
 -LIB_VER="f338f50"
 -TLS_VER="edb8fec"
 +INCLUDE_PATH="${PREFIX}/Library/include"
-+echo "running configure.ucrt"
++SCRIPT=$(basename $1)
++echo "running ${SCRIPT}"
++MAKEVARS="src/Makevars${SCRIPT#configure}"
 +echo "include path: ${INCLUDE_PATH}"
 +ls -R ${INCLUDE_PATH}
  
@@ -33,7 +35,7 @@ index d9eb51d0..d3a35e82 100755
 -cmake --build . --target install
 -cd ..
 -rm -rf mbedtls-$TLS_VER
-+PKG_CFLAGS="-I\"${INCLUDE_PATH}\""
++PKG_CFLAGS=$(echo "-I\"${INCLUDE_PATH}\"" | tr '\' '/')
 +PKG_LIBS="-lnng -lmbedtls -lmbedx509 -lmbedcrypto -lbcrypt -lws2_32"
  
 -tar -xf src/nng-$LIB_VER.tar.xz
@@ -44,27 +46,32 @@ index d9eb51d0..d3a35e82 100755
 -cd ..
 -rm -rf nng-$LIB_VER
 +echo "PKG_CFLAGS=${PKG_CFLAGS}"
-+sed -e "s|@cflags@|$PKG_CFLAGS|" -e "s|@libs@|$PKG_LIBS|" src/Makevars.in >src/Makevars.ucrt
-+echo "src/Makevars.ucrt:"
-+cat src/Makevars.ucrt
++sed -e "s|@cflags@|$PKG_CFLAGS|" -e "s|@libs@|$PKG_LIBS|" src/Makevars.in >$MAKEVARS
++echo "${MAKEVARS}:"
++cat ${MAKEVARS}
  
  # Success
  exit 0
 diff --git a/configure.win b/configure.win
 new file mode 100644
-index 00000000..683a9f08
+index 00000000..13d0415b
 --- /dev/null
 +++ b/configure.win
-@@ -0,0 +1,12 @@
+@@ -0,0 +1,17 @@
 +INCLUDE_PATH="${PREFIX}/Library/include"
++SCRIPT=$(basename $1)
++echo "running ${SCRIPT}"
++MAKEVARS="src/Makevars${SCRIPT#configure}"
 +echo "include path: ${INCLUDE_PATH}"
 +ls -R ${INCLUDE_PATH}
 +
-+PKG_CFLAGS="-I\"${INCLUDE_PATH}\""
++PKG_CFLAGS=$(echo "-I\"${INCLUDE_PATH}\"" | tr '\' '/')
 +PKG_LIBS="-lnng -lmbedtls -lmbedx509 -lmbedcrypto -lbcrypt -lws2_32"
 +
-+sed -e "s|@cflags@|$PKG_CFLAGS|" -e "s|@libs@|$PKG_LIBS|" src/Makevars.in >src/Makevars.win
-+cat src/Makevars.win
++echo "PKG_CFLAGS=${PKG_CFLAGS}"
++sed -e "s|@cflags@|$PKG_CFLAGS|" -e "s|@libs@|$PKG_LIBS|" src/Makevars.in >$MAKEVARS
++echo "${MAKEVARS}:"
++cat ${MAKEVARS}
 +
 +# Success
 +exit 0
