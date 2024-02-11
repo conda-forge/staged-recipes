@@ -1,6 +1,6 @@
 #!/bin/bash
 mkdir build && cd build
-../configure
+../configure --with-libnssckbi=${PREFIX}/lib
 
 # Build and install the Firefox version
 make firefox-build
