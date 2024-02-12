@@ -1,32 +1,27 @@
-From bd3ba0afd59b18f5c838934fc53c55e9609e882a Mon Sep 17 00:00:00 2001
+From 5a31de2f0c0c7b00b4581aa9615fbd94d3731481 Mon Sep 17 00:00:00 2001
 From: brendanf <brendan.furneaux@gmail.com>
 Date: Fri, 9 Feb 2024 09:26:09 +0200
 Subject: [PATCH 2/2] no static libs in windows
 
 ---
- configure.ucrt    | 38 +++++++++++++++++++++-----------------
- configure.win     | 26 ++++++++++++++++++++++++++
+ configure.ucrt    | 23 ++++++-----------------
  src/Makevars.ucrt |  2 --
  src/Makevars.win  | 15 ---------------
- 4 files changed, 47 insertions(+), 34 deletions(-)
- create mode 100644 configure.win
+ 3 files changed, 6 insertions(+), 34 deletions(-)
  delete mode 100644 src/Makevars.ucrt
  delete mode 100644 src/Makevars.win
 
 diff --git a/configure.ucrt b/configure.ucrt
-index d9eb51d0..97e0bc18 100755
+index d9eb51d0..f8a24ccf 100755
 --- a/configure.ucrt
 +++ b/configure.ucrt
-@@ -1,22 +1,26 @@
+@@ -1,22 +1,11 @@
 -# Library versions
 -LIB_VER="f338f50"
 -TLS_VER="edb8fec"
-+INCLUDE_PATH="${PREFIX}/Library/include"
-+LIB_PATH="${PREFIX}/Library/lib"
-+echo "running $*"
-+MAKEVARS="src/Makevars.win"
-+echo "shell INCLUDE: ${INCLUDE}"
-+echo "shell LIB: ${LIB}"
++MAKEVARS="src/Makevars.ucrt"
++INCLUDE_TR=$(echo "${INCLUDE}" | tr '\\' '/')
++LIB_TR=$(echo "${LIB}" | tr '\\' '/')
  
 -tar -xf src/mbedtls-$TLS_VER.tar.xz
 -cd mbedtls-$TLS_VER
@@ -35,8 +30,8 @@ index d9eb51d0..97e0bc18 100755
 -cmake --build . --target install
 -cd ..
 -rm -rf mbedtls-$TLS_VER
-+INCLUDE_TR=$(echo "${INCLUDE}" | tr '\\' '/')
-+LIB_TR=$(echo "${LIB}" | tr '\\' '/')
++PKG_CFLAGS=${INCLUDE_TR}
++PKG_LIBS="${LIB_TR} -lnng -lmbedtls -lmbedx509 -lmbedcrypto -lbcrypt -lws2_32"
  
 -tar -xf src/nng-$LIB_VER.tar.xz
 -cd nng-$LIB_VER
@@ -45,54 +40,10 @@ index d9eb51d0..97e0bc18 100755
 -cmake --build . --target install
 -cd ..
 -rm -rf nng-$LIB_VER
-+echo "INCLUDE_TR: ${INCLUDE_TR}"
-+echo "LIB_TR: ${LIB_TR}"
-+
-+echo "include path: ${INCLUDE_PATH}"
-+echo "library path: ${LIB_PATH}"
-+
-+PKG_CFLAGS=$(echo "-I\"${INCLUDE_PATH}\"" | tr '\' '/')
-+PKG_LIBS=$(echo "-L\"${LIB_PATH}\"" | tr '\' '/')" -lnng -lmbedtls -lmbedx509 -lmbedcrypto -lbcrypt -lws2_32"
-+
-+echo "PKG_CFLAGS=${PKG_CFLAGS}"
 +sed -e "s|@cflags@|$PKG_CFLAGS|" -e "s|@libs@|$PKG_LIBS|" src/Makevars.in >$MAKEVARS
-+echo "${MAKEVARS}:"
-+cat ${MAKEVARS}
  
  # Success
  exit 0
-diff --git a/configure.win b/configure.win
-new file mode 100644
-index 00000000..97e0bc18
---- /dev/null
-+++ b/configure.win
-@@ -0,0 +1,26 @@
-+INCLUDE_PATH="${PREFIX}/Library/include"
-+LIB_PATH="${PREFIX}/Library/lib"
-+echo "running $*"
-+MAKEVARS="src/Makevars.win"
-+echo "shell INCLUDE: ${INCLUDE}"
-+echo "shell LIB: ${LIB}"
-+
-+INCLUDE_TR=$(echo "${INCLUDE}" | tr '\\' '/')
-+LIB_TR=$(echo "${LIB}" | tr '\\' '/')
-+
-+echo "INCLUDE_TR: ${INCLUDE_TR}"
-+echo "LIB_TR: ${LIB_TR}"
-+
-+echo "include path: ${INCLUDE_PATH}"
-+echo "library path: ${LIB_PATH}"
-+
-+PKG_CFLAGS=$(echo "-I\"${INCLUDE_PATH}\"" | tr '\' '/')
-+PKG_LIBS=$(echo "-L\"${LIB_PATH}\"" | tr '\' '/')" -lnng -lmbedtls -lmbedx509 -lmbedcrypto -lbcrypt -lws2_32"
-+
-+echo "PKG_CFLAGS=${PKG_CFLAGS}"
-+sed -e "s|@cflags@|$PKG_CFLAGS|" -e "s|@libs@|$PKG_LIBS|" src/Makevars.in >$MAKEVARS
-+echo "${MAKEVARS}:"
-+cat ${MAKEVARS}
-+
-+# Success
-+exit 0
 diff --git a/src/Makevars.ucrt b/src/Makevars.ucrt
 deleted file mode 100644
 index 11b714f8..00000000
