@@ -1,8 +1,7 @@
-{% set name = "bayesopt" %}
 {% set version = "0.9" %}
 
 package:
-  name: {{ name|lower }}
+  name: bayesopt
   version: {{ version }}
 
 source:
@@ -30,7 +29,42 @@ requirements:
 
 test:
   commands:
-    - pip check
+    - test -f ${PREFIX}/lib/libbayesopt${SHLIB_EXT}          # [unix]
+    - test -f ${PREFIX}/include/bayesopt/bayesopt.h          # [unix]
+    - if not exist %LIBRARY_BIN%\bayesopt.dll exit 1         # [win]
+    - if not exist %LIBRARY_INC%\bayesopt\bayesopt.h exit 1  # [win]
+
+outputs:
+  - name: bayesopt
+    build:
+      run_exports:
+        - {{ pin_subpackage("bayesopt", max_pin="x.x") }}
+
+  - name: py-bayesopt
+    script: build-py.sh   # [unix]
+    script: build-py.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - cmake
+        - make   # [unix]
+        - ninja  # [win]
+      host:
+        - libboost-headers
+        - nlopt
+        - numpy
+        - cython <3
+        - python
+        - pip
+        - {{ pin_subpackage("bayesopt", exact=True) }}
+      run:
+        - python
+        - {{ pin_subpackage("bayesopt", exact=True) }}
+    test:
+      imports:
+        - bayesopt
+      commands:
+        - pip check
 
 about:
   home: https://github.com/rmcantin/bayesopt
