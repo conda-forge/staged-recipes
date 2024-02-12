@@ -6,6 +6,7 @@ set "CXXFLAGS=%CXXFLAGS% -DBOOST_TIMER_ENABLE_DEPRECATED=1"
 mkdir build
 cd build
 cmake %CMAKE_ARGS% ^
+  -G Ninja ^
   -DBAYESOPT_PYTHON_INTERFACE=ON ^
   -DBAYESOPT_BUILD_TESTS=ON ^
   -DBAYESOPT_BUILD_SHARED=ON ^
@@ -16,10 +17,10 @@ cmake %CMAKE_ARGS% ^
 ninja -j%CPU_COUNT%
 ninja install
 
-bin/parsetest.exe
-bin/gridtest.exe
-bin/randtest.exe
-bin/test_fileparser.exe
-bin/test_initial_samples.exe
-bin/test_save.exe
-bin/test_restore.exe
+bin\parsetest.exe
+bin\gridtest.exe
+bin\randtest.exe
+bin\test_fileparser.exe
+bin\test_initial_samples.exe
+bin\test_save.exe
+bin\test_restore.exe
