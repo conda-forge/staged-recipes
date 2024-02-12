@@ -1,0 +1,60 @@
+{% set name = "uammd" %}
+{% set version = "2.5.2" %}
+
+{% if cuda_compiler_version in (None, "None", True, False) %}
+{% set cuda_major = 0 %}
+{% else %}
+{% set cuda_major = environ.get("cuda_compiler_version", "11.8").split(".")[0] | int %}
+{% endif %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/RaulPPelaez/{{ name }}/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 2ce7000e010f04a787a0a8df9f024e7fe8a15d148beba2c3e25ffb0df71200d6
+
+build:
+  number: 0
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  skip: true  # [not linux or cuda_major == 0]
+  script: mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX .. && make install
+requirements:
+  host:
+    - python < 3.12
+    - cuda-version
+    {% if cuda_major >= 12 %}
+    - cuda-driver-dev
+    - cuda-libraries-dev
+    - cuda-nvcc
+    {% else %}
+    - cudatoolkit-dev
+    {% endif %}    
+    - cmake
+    - make
+    - pybind11
+    - gxx
+    - mkl-devel
+    
+test:
+  commands: |
+    cd ${CONDA_PREFIX}/share/{{ name }}/tests
+    mkdir build && cd build && cmake .. && make -j3
+  
+about:
+  home: https://github.com/RaulPPelaez/UAMMD
+  license: GPL3
+  license_family: GPL3
+  license_file: README.md
+  summary: A CUDA project for Molecular Dynamics, Brownian Dynamics, Hydrodynamics... intended to simulate a very generic system constructing a simulation with modules.
+  description: |
+    A CUDA/C++14+ header-only fast generic multiscale CUDA Molecular Dynamics framework made with moduarity, expandability and generality in mind. UAMMD is intended to be hackable and copy pastable.
+    This package install the development tools and headers required to write and compile UAMMD code.
+    
+  doc_url: https://uammd.readthedocs.io
+  dev_url: https://github.com/RaulPPelaez/UAMMD
+
+extra:
+  recipe-maintainers:
+    - RaulPPelaez
