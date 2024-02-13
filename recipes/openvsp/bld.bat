@@ -1,22 +1,41 @@
-REM Specifying the XEUS_PYTHONHOME_RELPATH to the general prefix.
-
+md buildlibs
+cd buildlibs
 cmake -G "NMake Makefiles" ^
   -D CMAKE_BUILD_TYPE=Release ^
-  -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
-  -D PYTHON_EXECUTABLE=%PYTHON% ^
-  -D XEUS_PYTHONHOME_RELPATH=..\\ ^
-  %SRC_DIR%
+  -D VSP_USE_SYSTEM_LIBXML2=true ^
+  -D VSP_USE_SYSTEM_FLTK=false ^
+  -D VSP_USE_SYSTEM_GLM=true ^
+  -D VSP_USE_SYSTEM_GLEW=true ^
+  -D VSP_USE_SYSTEM_CMINPACK=true ^
+  -D VSP_USE_SYSTEM_EXPRPARSE=true ^
+  -D VSP_USE_SYSTEM_PINOCCHIO=true ^
+  -D VSP_USE_SYSTEM_LIBIGES=false ^
+  -D VSP_USE_SYSTEM_EIGEN=true ^
+  -D VSP_USE_SYSTEM_CODEELI=false ^
+  -D VSP_USE_SYSTEM_CPPTEST=false ^
+  %SRC_DIR%/Libraries
 if errorlevel 1 exit 1
 
 nmake
 if errorlevel 1 exit 1
 
-nmake install
+cd ..
+md build
+cd build
+cmake -G "NMake Makefiles" ^
+  -D CMAKE_BUILD_TYPE=Release ^
+  -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
+  -D VSP_ENABLE_MATLAB_API=OFF ^
+  -D VSP_USE_SYSTEM_EIGEN=ON ^
+  -D VSP_USE_SYSTEM_FLTK=OFF ^
+  -D VSP_USE_SYSTEM_PINOCCHIO=ON ^
+  -D VSP_USE_SYSTEM_EXPRPARSE=ON ^
+  -D VSP_USE_SYSTEM_GLEW=ON ^
+  -D VSP_USE_SYSTEM_LIBXML2=ON ^
+  %SRC_DIR%/src/
+
+nmake package
 if errorlevel 1 exit 1
 
-REM Copying kernelspec to the general prefix for Jupyter to pick it up.
-
-md %PREFIX%\share\jupyter\kernels\xpython
-xcopy %LIBRARY_PREFIX%\share\jupyter\kernels\xpython %PREFIX%\share\jupyter\kernels\xpython /F /Y
-md %PREFIX%\share\jupyter\kernels\xpython-raw
-xcopy %LIBRARY_PREFIX%\share\jupyter\kernels\xpython-raw %PREFIX%\share\jupyter\kernels\xpython-raw /F /Y
+nmake install
+if errorlevel 1 exit 1
