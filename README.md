@@ -37,7 +37,7 @@ Generating recipe: `grayskull pypi PACKAGE_NAME_HERE`
 Look at one of [these examples](https://github.com/conda-forge/staged-recipes/tree/main/recipes)
 in this repository and modify it as necessary.
 
-Your final recipe should have no comments and follow the order in the example.
+Follow the order of the sections in the example recipe. If you make a copy of example recipe, please remove the example's explainer comments from your recipe. Add your own comments to the recipe and build scripts to explain unusual build behavior or recipe options.
 
 *If there are details you are not sure about please open a pull request. The conda-forge team will be happy to answer your questions.*
 
@@ -81,7 +81,7 @@ When the package version changes you should reset the build number to `0`.
 
 ### 5. **Do I have to import all of my unit tests into the recipe's `test` field?**
 
-No, you do not.
+No, you do not. The main purpose of the test section is to test whether this conda package was built and installed correctly (not whether the upstream package contains bugs).
 
 ### 6. **Do all of my package's dependencies have to be in conda(-forge) already?**
 
@@ -101,9 +101,9 @@ In many cases, no. Python packages almost never need it. If the build can be don
 
 The maintainers "job" is to:
 
-- keep the feedstock updated by merging eventual maintenance PRs from conda-forge's bots;
+- keep the feedstock updated by merging maintenance PRs from conda-forge's bots;
 - keep the package updated by bumping the version whenever there is a new release;
-- answer eventual question about the package on the feedstock issue tracker.
+- answer questions about the package on the feedstock issue tracker.
 
 ### 10. Why are there recipes already in the `recipes` directory? Should I do something about it?
 
@@ -139,7 +139,10 @@ Keep this message in sync with the PR template.
 https://raw.githubusercontent.com/conda-forge/staged-recipes/main/.github/pull_request_template.md
 -->
 
-There are language-specific teams for reviewing recipes.
+Thank you very much for putting in this recipe PR!
+
+This repository is very active, so if you need help with a PR, please let the
+right people know. There are language-specific teams for reviewing recipes.
 
 | Language        | Name of review team           |
 | --------------- | ----------------------------- |
@@ -167,7 +170,16 @@ if your recipe isn't reviewed promptly.
 [1]: https://conda-forge.org/docs/maintainer/infrastructure.html#conda-forge-admin-please-ping-team
 [2]: https://gitter.im/conda-forge/conda-forge.github.io
 
-All apologies in advance if your recipe PR does not recieve prompt attention.
+All apologies in advance if your recipe PR does not receive prompt attention.
 This is a high volume repository and the reviewers are volunteers. Review times vary depending on the number of reviewers on a given language team and may be days or weeks. We are always
 looking for more staged-recipe reviewers. If you are interested in volunteering,
-please contact a member of @conda-forge/core. We'd love to have the help!
+please contact a member of @conda-forge/core. We'd love to have your help!
+
+
+### 13. Is there a changelog for this repository?
+
+There's no changelog file, but the following `git` command gives a good overview of the recent changes in the repository:
+
+```bash
+$ git log --merges -- ':!recipes' 
+```
