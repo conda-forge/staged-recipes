@@ -1,0 +1,85 @@
+{% set version = "0.9" %}
+
+package:
+  name: bayesopt
+  version: {{ version }}
+
+source:
+  url: https://github.com/rmcantin/bayesopt/archive/v{{ version }}.tar.gz
+  sha256: f4e60cfac380eccd2d1adc805b752b5bd22a1d8a27dc6aeb630c403adc04f28c
+
+build:
+  number: 0
+  skip: True  # [not linux]
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - cmake
+    - make   # [unix]
+    - ninja  # [win]
+  host:
+    - libboost-headers
+    - nlopt
+    - numpy
+    - cython <3
+    - python
+    - pip
+  run:
+    - python
+
+test:
+  commands:
+    - test -f ${PREFIX}/lib/libbayesopt${SHLIB_EXT}          # [unix]
+    - test -f ${PREFIX}/include/bayesopt/bayesopt.h          # [unix]
+    - if not exist %LIBRARY_BIN%\bayesopt.dll exit 1         # [win]
+    - if not exist %LIBRARY_INC%\bayesopt\bayesopt.h exit 1  # [win]
+
+outputs:
+  - name: bayesopt
+    build:
+      run_exports:
+        - {{ pin_subpackage("bayesopt", max_pin="x.x") }}
+
+  - name: py-bayesopt
+    script: build-py.sh   # [unix]
+    script: build-py.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - cmake
+        - make   # [unix]
+        - ninja  # [win]
+      host:
+        - libboost-headers
+        - nlopt
+        - numpy
+        - cython <3
+        - python
+        - pip
+        - {{ pin_subpackage("bayesopt", exact=True) }}
+      run:
+        - python
+        - {{ pin_subpackage("bayesopt", exact=True) }}
+    test:
+      imports:
+        - bayesopt
+      requires:
+        - pip
+      commands:
+        - pip check
+
+about:
+  home: https://github.com/rmcantin/bayesopt
+  summary: 'A toolbox for bayesian optimization, experimental design and stochastic bandits.'
+  description: |
+    BayesOpt is an efficient implementation of the Bayesian optimization
+    methodology for nonlinear optimization, experimental design and
+    hyperparameter tunning.
+  license: AGPL-3.0-only
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - isuruf
+    - timkpaine
