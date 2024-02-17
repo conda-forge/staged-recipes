@@ -1,45 +1,44 @@
-From 2c1df4b74fbdf5e7ad2f58485d9459ac8f65eccf Mon Sep 17 00:00:00 2001
-From: Lindsey Gray <lindsey.gray@gmail.com>
-Date: Tue, 7 Mar 2023 09:49:14 -0600
-Subject: [PATCH] apply patch
+From 706a79018b950f12b54dc6b90dd0070e5354baf9 Mon Sep 17 00:00:00 2001
+From: Matthew Feickert <matthew.feickert@cern.ch>
+Date: Fri, 16 Feb 2024 15:32:46 -0600
+Subject: [PATCH] Generate new patch
 
 ---
- setup.py | 10 ++++++----
- 1 file changed, 6 insertions(+), 4 deletions(-)
+ setup.py | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
 
 diff --git a/setup.py b/setup.py
-index c2e1dc2..461e890 100644
+index 72cb832..8dbbb0c 100644
 --- a/setup.py
 +++ b/setup.py
 @@ -53,6 +53,7 @@ class FastJetBuild(setuptools.command.build_ext.build_ext):
          if not OUTPUT.exists():
              zip_filename = DIR / pathlib.Path(CGAL_ZIP).parts[-1]
  
-+            '''
++            """
              with urllib.request.urlopen(CGAL_ZIP) as http_obj:
                  with open(zip_filename, "wb") as file_obj:
                      shutil.copyfileobj(http_obj, file_obj)
-@@ -60,7 +61,9 @@ class FastJetBuild(setuptools.command.build_ext.build_ext):
+@@ -60,6 +61,8 @@ class FastJetBuild(setuptools.command.build_ext.build_ext):
              with zipfile.ZipFile(zip_filename) as zip_obj:
                  cgal_dir = DIR / zip_obj.namelist()[0]
                  zip_obj.extractall(DIR)
--
-+            '''
++            """
 +            cgal_dir="${PREFIX}/include"
-+            
+ 
              # Patch for FastJet core version 3.4.0
              # To be removed when https://gitlab.com/fastjet/fastjet/-/merge_requests/1 is merged upstream
-             subprocess.run(
-@@ -78,7 +81,7 @@ class FastJetBuild(setuptools.command.build_ext.build_ext):
+@@ -78,7 +81,8 @@ class FastJetBuild(setuptools.command.build_ext.build_ext):
              env = os.environ.copy()
              env["PYTHON"] = sys.executable
              env["PYTHON_INCLUDE"] = f'-I{sysconfig.get_path("include")}'
 -            env["CXXFLAGS"] = "-O3 -Bstatic -lgmp -Bdynamic -std=c++17"
++            env["CXX"] = env.get("CXX", "g++")
 +            env["CXXFLAGS"] = env.get("CXXFLAGS", "") + " -O3 -Bstatic -lgmp -Bdynamic"
              env["ORIGIN"] = "$ORIGIN"  # if evaluated, it will still be '$ORIGIN'
  
              args = [
-@@ -87,10 +90,9 @@ class FastJetBuild(setuptools.command.build_ext.build_ext):
+@@ -88,10 +92,9 @@ class FastJetBuild(setuptools.command.build_ext.build_ext):
                  "--enable-allcxxplugins",
                  "--enable-cgal-header-only",
                  "--enable-cgal",
@@ -51,6 +50,14 @@ index c2e1dc2..461e890 100644
              ]
  
              try:
+@@ -121,6 +124,7 @@ class FastJetBuild(setuptools.command.build_ext.build_ext):
+                 [
+                     "./configure",
+                     f"--fastjet-config={FASTJET}/fastjet-config",
++                    f'CXX={env["CXX"]}',
+                     "CXXFLAGS=-O3 -Bstatic -Bdynamic -std=c++17",
+                 ],
+                 cwd=FASTJET_CONTRIB,
 -- 
-2.37.1 (Apple Git-137.1)
+2.34.1
 
