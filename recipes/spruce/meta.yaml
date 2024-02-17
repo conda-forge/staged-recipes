@@ -1,0 +1,49 @@
+{% set name = "spruce" %}
+{% set version = "1.31.0" %}
+
+{% set goname = "github.com/geofffranks/" + name.lower() %}
+{% set pkg_src = ('src/'+goname).replace("/",os.sep) %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - folder: {{ pkg_src }}
+    url: https://{{ goname }}/archive/v{{ version }}.tar.gz
+    sha256: 39278f423c979688b14817fe48fc80fb7bd828fd864ded50edede302342aab60
+
+build:
+  number: 0
+  script:
+    - GOBIN=$(go env GOBIN)  # [not win]
+    - FOR /F "delims=" %%i IN ('go env GOBIN') DO set "GOBIN=%%i"  # [win]
+    - pushd {{ pkg_src }}
+    - go build -v -o $GOBIN/{{ name }}  -ldflags "-X main.Version={{ version }}" ./cmd/spruce  # [unix]
+    - go build -v -o %GOBIN%\{{ name }}.exe -ldflags "-X main.Version={{ version }}" .\cmd\spruce  # [win]
+    - go-licenses save ./cmd/spruce --save_path=./license-files  # [unix]
+    - go-licenses save .\cmd\spruce --save_path=.\license-files  # [win]
+
+requirements:
+  build:
+    - {{ compiler('go-nocgo') }}
+    - go-licenses
+
+test:
+  commands:
+    - spruce --version
+
+about:
+  home: https://{{ goname }}
+  license: MIT
+  license_family: MIT
+  license_file:
+    - src/{{ goname }}/LICENSE
+    - src/{{ goname }}/license-files/
+  summary: spruce is a general purpose YAML & JSON merging tool.
+  doc_url: https://{{ goname }}/tree/{{ version }}/doc
+  dev_url: https://{{ goname }}
+
+extra:
+  recipe-maintainers:
+    - asford
