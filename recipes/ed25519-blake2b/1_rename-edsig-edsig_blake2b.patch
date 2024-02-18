@@ -1,0 +1,188 @@
+--- bin/edsig      2024-02-16 16:57:39.437391589 -0600
++++ /dev/null   2024-02-14 09:00:44.382731014 -0600
+@@ -1,91 +0,0 @@
+-#! /usr/bin/python
+-from __future__ import print_function
+-
+-import os, sys
+-import ed25519
+-from hashlib import sha256
+-
+-def help():
+-    print("""\
+-Usage: (ed25519 version %s)
+-
+- edsig generate [STEM]
+-   creates keypair, writes to 'STEM.signing.key' and 'STEM.verifying.key'
+-   default is to 'signing.key' and 'verifying.key'
+-
+- edsig sign (signing.key|keyfile) message.file
+-   prints signature to stdout
+-   If message.file is "-", reads from stdin.
+-
+- edsig verify (verifying.key|keyfile) message.file (signature|sigfile)
+-   prints 'good signature!' or raises exception
+-   If message.file is "-", reads from stdin.
+-
+-Key-providing arguments can either be the key itself, or point to a file
+-containing the key.
+-""" % ed25519.__version__)
+-
+-def remove_prefix(prefix, s):
+-    if not s.startswith(prefix):
+-        raise ValueError("no prefix found")
+-    return s[len(prefix):]
+-
+-def data_from_arg(arg, prefix, keylen, readable):
+-    if (readable
+-        and arg.startswith(prefix)
+-        and len(remove_prefix(prefix, arg))==keylen):
+-        return arg
+-    if os.path.isfile(arg):
+-        return open(arg,"rb").read()
+-    raise ValueError("unable to get data from '%s'" % arg)
+-
+-def message_rep(msg_arg):
+-    if msg_arg == "-":
+-        f = sys.stdin
+-    else:
+-        f = open(msg_arg, "rb")
+-    h = sha256()
+-    while True:
+-        data = f.read(16*1024)
+-        if not data:
+-            break
+-        if not isinstance(data, bytes):
+-            data = data.encode(sys.stdin.encoding)
+-        h.update(data)
+-    return h.digest()
+-
+-if len(sys.argv) < 2:
+-    help()
+-elif sys.argv[1] == "generate":
+-    sk,vk = ed25519.create_keypair()
+-    if len(sys.argv) > 2:
+-        sk_outfile = sys.argv[2]+".signing.key"
+-        vk_outfile = sys.argv[2]+".verifying.key"
+-    else:
+-        sk_outfile = "signing.key"
+-        vk_outfile = "verifying.key"
+-    sk_s = sk.to_seed(prefix="sign0-")
+-    vk_s = vk.to_ascii("verf0-", "base32").encode('ascii')
+-    open(sk_outfile,"wb").write(sk_s)
+-    open(vk_outfile,"wb").write(vk_s+b"\n")
+-    print("wrote private signing key to", sk_outfile)
+-    print("write public verifying key to", vk_outfile)
+-elif sys.argv[1] == "sign":
+-    sk_arg = sys.argv[2]
+-    msg_arg = sys.argv[3]
+-    sk = ed25519.SigningKey(data_from_arg(sk_arg, "sign0-", 52, False),
+-                            prefix="sign0-")
+-    sig = sk.sign(message_rep(msg_arg), prefix="sig0-", encoding="base32")
+-    print(sig)
+-elif sys.argv[1] == "verify":
+-    vk_arg = sys.argv[2]
+-    msg_arg = sys.argv[3]
+-    sig_arg = sys.argv[4]
+-    vk = ed25519.VerifyingKey(data_from_arg(vk_arg, "verf0-", 52, True),
+-                              prefix="verf0-", encoding="base32")
+-    sig = data_from_arg(sig_arg, "sig0-", 103, True)
+-    vk.verify(sig, message_rep(msg_arg),
+-              prefix="sig0-", encoding="base32") # could raise BadSignature
+-    print("good signature!")
+-else:
+-    help()
+--- /dev/null   2024-02-14 09:00:44.382731014 -0600
++++ bin/edsig_blake2b      2024-02-16 16:57:39.437391589 -0600
+@@ -0,0 +1,91 @@
++#! /usr/bin/python
++from __future__ import print_function
++
++import os, sys
++import ed25519_blake2b
++from hashlib import sha256
++
++def help():
++    print("""\
++Usage: (ed25519_blake2b version %s)
++
++ edsig_blake2b generate [STEM]
++   creates keypair, writes to 'STEM.signing.key' and 'STEM.verifying.key'
++   default is to 'signing.key' and 'verifying.key'
++
++ edsig_blake2b sign (signing.key|keyfile) message.file
++   prints signature to stdout
++   If message.file is "-", reads from stdin.
++
++ edsig_blake2b verify (verifying.key|keyfile) message.file (signature|sigfile)
++   prints 'good signature!' or raises exception
++   If message.file is "-", reads from stdin.
++
++Key-providing arguments can either be the key itself, or point to a file
++containing the key.
++""" % ed25519_blake2b.__version__)
++
++def remove_prefix(prefix, s):
++    if not s.startswith(prefix):
++        raise ValueError("no prefix found")
++    return s[len(prefix):]
++
++def data_from_arg(arg, prefix, keylen, readable):
++    if (readable
++        and arg.startswith(prefix)
++        and len(remove_prefix(prefix, arg))==keylen):
++        return arg
++    if os.path.isfile(arg):
++        return open(arg,"rb").read()
++    raise ValueError("unable to get data from '%s'" % arg)
++
++def message_rep(msg_arg):
++    if msg_arg == "-":
++        f = sys.stdin
++    else:
++        f = open(msg_arg, "rb")
++    h = sha256()
++    while True:
++        data = f.read(16*1024)
++        if not data:
++            break
++        if not isinstance(data, bytes):
++            data = data.encode(sys.stdin.encoding)
++        h.update(data)
++    return h.digest()
++
++if len(sys.argv) < 2:
++    help()
++elif sys.argv[1] == "generate":
++    sk,vk = ed25519_blake2b.create_keypair()
++    if len(sys.argv) > 2:
++        sk_outfile = sys.argv[2]+".signing.key"
++        vk_outfile = sys.argv[2]+".verifying.key"
++    else:
++        sk_outfile = "signing.key"
++        vk_outfile = "verifying.key"
++    sk_s = sk.to_seed(prefix="sign0-")
++    vk_s = vk.to_ascii("verf0-", "base32").encode('ascii')
++    open(sk_outfile,"wb").write(sk_s)
++    open(vk_outfile,"wb").write(vk_s+b"\n")
++    print("wrote private signing key to", sk_outfile)
++    print("write public verifying key to", vk_outfile)
++elif sys.argv[1] == "sign":
++    sk_arg = sys.argv[2]
++    msg_arg = sys.argv[3]
++    sk = ed25519_blake2b.SigningKey(data_from_arg(sk_arg, "sign0-", 52, False),
++                            prefix="sign0-")
++    sig = sk.sign(message_rep(msg_arg), prefix="sig0-", encoding="base32")
++    print(sig)
++elif sys.argv[1] == "verify":
++    vk_arg = sys.argv[2]
++    msg_arg = sys.argv[3]
++    sig_arg = sys.argv[4]
++    vk = ed25519_blake2b.VerifyingKey(data_from_arg(vk_arg, "verf0-", 52, True),
++                              prefix="verf0-", encoding="base32")
++    sig = data_from_arg(sig_arg, "sig0-", 103, True)
++    vk.verify(sig, message_rep(msg_arg),
++              prefix="sig0-", encoding="base32") # could raise BadSignature
++    print("good signature!")
++else:
++    help()
