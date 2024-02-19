@@ -2,7 +2,6 @@
 
 set -ex
 
-export CGO_ENABLED=1
 export GO111MODULE=on
 
 cd $SRC_DIR
