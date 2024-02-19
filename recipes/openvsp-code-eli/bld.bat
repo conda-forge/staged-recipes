@@ -1,6 +1,6 @@
 cmake -G "NMake Makefiles" ^
   -D CMAKE_BUILD_TYPE=Release ^
-  -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
+  %CMAKE_ARGS% ^
   %SRC_DIR%
 if errorlevel 1 exit 1
 
