@@ -1,0 +1,50 @@
+From b4114a675229ec5c7d261c5193f0701368bc2c64 Mon Sep 17 00:00:00 2001
+From: martinRenou <martin.renou@gmail.com>
+Date: Wed, 14 Feb 2024 11:47:21 +0100
+Subject: [PATCH 1/1] OSX gettime
+
+---
+ delabella.cpp | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/delabella.cpp b/delabella.cpp
+index c9a3668..65bbe37 100644
+--- a/delabella.cpp
++++ b/delabella.cpp
+@@ -26,6 +26,11 @@ Copyright (C) 2018-2022 GUMIX - Marcin Sokalski
+ #include <string.h>
+ #include <time.h>
+ 
++#ifdef __MACH__
++#include <mach/clock.h>
++#include <mach/mach.h>
++#endif
++
+ #include "delabella.h"
+ #include "predicates.h"
+ 
+@@ -53,10 +58,21 @@ static uint64_t uSec()
+ 	// so n%d*m fits as well,
+ 	return n / d * m + n % d * m / d;
+ #else
++
++#ifdef __MACH__
++	clock_serv_t cclock;
++	mach_timespec_t mts;
++	host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
++	clock_get_time(cclock, &mts);
++	mach_port_deallocate(mach_task_self(), cclock);
++	return (uint64_t)mts.tv_sec * 1000000 + mts.tv_nsec / 1000;
++#else
+ 	timespec ts;
+ 	clock_gettime(CLOCK_MONOTONIC, &ts);
+ 	return (uint64_t)ts.tv_sec * 1000000 + ts.tv_nsec / 1000;
+ #endif
++
++#endif
+ }
+ 
+ template <typename T, typename I>
+-- 
+2.43.0
+
