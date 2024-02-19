@@ -9,7 +9,7 @@ set -xeuo pipefail
 
 export FEEDSTOCK_ROOT="${FEEDSTOCK_ROOT:-/home/conda/staged-recipes}"
 source "${FEEDSTOCK_ROOT}/.scripts/logging_utils.sh"
-
+git config --global --add safe.directory /home/conda/staged-recipes
 # This closes the matching `startgroup` on `run_docker_build.sh`
 ( endgroup "Start Docker" ) 2> /dev/null
 
