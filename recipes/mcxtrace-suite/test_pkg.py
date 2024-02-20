@@ -122,7 +122,7 @@ def common_tests_for_core_and_mcxtrace_pkgs( take_instr_file_from_src ):
         ] )
 
 
-    instrprefix = 'src/mcxtrace-comps/examples' if take_instr_file_from_src else 'share/mcxtrace/resources'
+    instrprefix = 'src/mcxtrace-comps/examples' if take_instr_file_from_src else 'share/mcxtrace/resources/examples'
     run_instrument_file( f'{instrprefix}/ESRF/ESRF_BM29/ESRF_BM29.instr', 'Lambda=1 -s1000 -n1e5')
     
 _sample_data_files = ['share/mcxtrace/resources/data/Si.laz']
