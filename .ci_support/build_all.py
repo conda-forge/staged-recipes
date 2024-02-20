@@ -1,6 +1,7 @@
 import conda_build.conda_interface
 import networkx as nx
 import conda_build.api
+import conda_index.api
 from compute_build_graph import construct_graph
 import argparse
 import os
@@ -142,7 +143,7 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
 
     index_path = os.path.join(sys.exec_prefix, 'conda-bld')
     os.makedirs(index_path, exist_ok=True)
-    conda_build.api.update_index(index_path)
+    conda_index.api.update_index(index_path)
     index = conda_build.conda_interface.get_index(channel_urls=channel_urls)
     conda_resolve = conda_build.conda_interface.Resolve(index)
 
@@ -189,7 +190,7 @@ def check_recipes_in_correct_dir(root_dir, correct_dir):
 
 def read_mambabuild(recipes_dir):
     """
-    Only use mambabuild if all the recipes require so via 
+    Only use mambabuild if all the recipes require so via
     'conda_build_tool: mambabuild' in 'recipes/<recipe>/conda-forge.yml'
     """
     folders = os.listdir(recipes_dir)
@@ -204,7 +205,9 @@ def read_mambabuild(recipes_dir):
             conda_build_tools.append(cfy.get("conda_build_tool", "conda-build"))
         else:
             conda_build_tools.append("conda-build")
-    return all([tool == "mambabuild" for tool in conda_build_tools])
+    if conda_build_tools:
+        return all([tool == "mambabuild" for tool in conda_build_tools])
+    return False
 
 
 def use_mambabuild():
