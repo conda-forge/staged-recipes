@@ -1,5 +1,6 @@
 cmake -LAH -G "Ninja" ^
     -DINPUT_open62541=system ^
+    -DFEATURE_system_open62541:BOOL=ON ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
