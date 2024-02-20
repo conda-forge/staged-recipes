@@ -7,6 +7,7 @@ fi
 
 cmake -LAH -G "Ninja" ${CMAKE_ARGS} \
   -DINPUT_open62541=system \
+  -DFEATURE_system_open62541:BOOL=ON \
   -DCMAKE_PREFIX_PATH=${PREFIX} \
   -DCMAKE_FIND_FRAMEWORK=LAST \
   -DCMAKE_INSTALL_RPATH:STRING=${PREFIX}/lib \
