@@ -1,6 +1,4 @@
 echo ON
-
-cargo build --release
-cargo install --path git-cliff --bins --root %PREFIX%
+cargo install --path git-cliff --bins --root %PREFIX% --locked
 del %PREFIX%\.crates2.json
 del %PREFIX%\.crates.toml
