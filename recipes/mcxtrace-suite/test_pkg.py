@@ -95,7 +95,7 @@ def common_tests_for_core_and_mcxtrace_pkgs( take_instr_file_from_src ):
             'bin/mxrun.bat',
             'bin/mxgui.bat',
             'share/mcxtrace/tools/Python/mccodelib/__init__.py',
-            'share/mcxtrace/resources/examples/SAXSLAB/SAXS_saxlab/SAXS_saxlab.instr',
+            'share/mcxtrace/resources/examples/ESRF/ESRF_BM29/ESRF_BM29.instr',
         ] )
 
         ensure_basic_commands_run( [
@@ -111,7 +111,7 @@ def common_tests_for_core_and_mcxtrace_pkgs( take_instr_file_from_src ):
             'bin/mxrun',
             'bin/mxgui',
             'share/mcxtrace/tools/Python/mccodelib/__init__.py',
-            'share/mcxtrace/resources/examples/SAXSLAB/SAXS_saxlab/SAXS_saxlab.instr',
+            'share/mcxtrace/resources/examples/ESRF/ESRF_BM29/ESRF_BM29.instr',
         ] )
         ensure_basic_commands_run( [
             'mcxtrace --help',
@@ -123,7 +123,7 @@ def common_tests_for_core_and_mcxtrace_pkgs( take_instr_file_from_src ):
 
 
     instrprefix = 'src/mcxtrace-comps/examples' if take_instr_file_from_src else 'share/mcxtrace/resources'
-    run_instrument_file( f'{instrprefix}/SAXSLAB/SAXS_saxlab/SAXS_saxlab.instr', 'Energy=8.05 -s1000 -n1e5')
+    run_instrument_file( f'{instrprefix}/ESRF/ESRF_BM29/ESRF_BM29.instr', 'Energy=8.05 -s1000 -n1e5')
     
 _sample_data_files = ['share/mcxtrace/resources/data/Si.laz']
 
@@ -186,7 +186,7 @@ def tests_for_pkg_mcxtrace():
         return
 
     #MPI test (disabled for now):
-    #run_instrument_file( 'share/mcxtrace/resources/examples/SAXSLAB/SAXS_saxlab/SAXS_saxlab.instr', 'Energy=8.05 -s1000 -n1e5 --mpi=2')
+    #run_instrument_file( 'share/mcxtrace/resources/examples/ESRF/ESRF_BM29/ESRF_BM29.instr', 'Energy=8.05 -s1000 -n1e5 --mpi=2')
 
     #MCPL test:
     #run_instrument_file( 'share/mcxtrace/resources/examples/Tests_MCPL_etc/Test_MCPL_input/Test_MCPL_input.instr', '-s1000 repeat=1')
