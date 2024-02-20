@@ -17,7 +17,8 @@ mkdir build
 cd build
 TORCH_CMAKE_PREFIX=`python -c 'import torch;print(torch.utils.cmake_prefix_path)'`
 CUSTOM_CMAKE_ARGS="-DCMAKE_PREFIX_PATH="+${TORCH_CMAKE_PREFIX}
-cmake ${CMAKE_ARGS} ${CUSTOM_CMAKE_ARGS} ..
+echo ${CUSTOM_CMAKE_ARGS} ${CMAKE_ARGS}
+cmake ${CUSTOM_CMAKE_ARGS} ${CMAKE_ARGS}  ..
 make 
 cd ${PROJECT_ROOT}
 
