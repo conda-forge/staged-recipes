@@ -13,7 +13,7 @@ test -d "${PREFIX}"
 test -d "${SRCDIR}"
 test -f "${SRCDIR}/CMakeLists.txt"
 test -d "${SRCDATADIR}"
-test -f "${SRCDATADIR}/Al.laz"
+test -f "${SRCDATADIR}/Si.laz"
 test -n "${PKG_VERSION}"
 
 #Now simply copy over all the data files:
