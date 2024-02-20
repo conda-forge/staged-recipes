@@ -2,6 +2,7 @@ PROJECT_ROOT=$(pwd)
 DOTNET_RELEASE_DIR=Release/linux-x64/publish
 
 # build NativeAcceleration
+echo building NativeAcceleration
 cd NativeAcceleration
 mkdir build
 cd build
@@ -10,18 +11,20 @@ make
 cd ${PROJECT_ROOT}
 
 # build LibTorchSharp
+echo building LibTorchSharp
 cd LibTorchSharp
 mkdir build
 cd build
-#cmake -DCMAKE_PREFIX_PATH=`python -c 'import torch;print(torch.utils.cmake_prefix_path)'` ..
-cmake ${CMAKE_ARGS} ..
+TORCH_CMAKE_PREFIX=`python -c 'import torch;print(torch.utils.cmake_prefix_path)'`
+CUSTOM_CMAKE_ARGS="-DCMAKE_PREFIX_PATH="+${TORCH_CMAKE_PREFIX}
+cmake ${CMAKE_ARGS} ${CUSTOM_CMAKE_ARGS} ..
 make 
 cd ${PROJECT_ROOT}
 
 # copy built shared libraries into release folder
-mkdir -p ${DOTNET_RELEASE_DIR}
-cp NativeAcceleration/build/lib/libNativeAcceleration.so ${PREFIX}/lib
-cp LibTorchSharp/build/LibTorchSharp/libLibTorchSharp.so ${PREFIX}/lib
+echo copying shared libraries into ${PREFIX}/lib
+cp NativeAcceleration/build/lib/libNativeAcceleration.so ${PREFIX}/lib/
+cp LibTorchSharp/build/LibTorchSharp/libLibTorchSharp.so ${PREFIX}/lib/
 
 # build dotnet projects
 #dotnet publish -nowarn:CS0219,CS0162,CS0168,CS0649,CS0067,CS0414,CS0661,CS0659,CS0169,CS0618,CS1998,CS0660,MSB3270,SYSLIB0011,SYSLIB0021 --configuration Release --framework net6.0 --runtime linux-x64 --self-contained true WarpLib/WarpLib.csproj
