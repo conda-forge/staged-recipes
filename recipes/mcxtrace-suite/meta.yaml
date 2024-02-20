@@ -1,0 +1,125 @@
+{% set version = "3.4.9" %}
+{% set sha_value = "b13e5c0ee5ff2945920c6b401d57121962cec92dcb6ac9bc70d6d499d8f6c256" %}
+#NB get sha256 with: curl -sL <URL> | openssl sha256
+
+package:
+  name: mcxtrace-suite
+  version: {{ version }}
+
+source:
+  url: https://github.com/McStasMcXtrace/McCode/archive/mcxtrace-{{ version }}.tar.gz
+  sha256: {{ sha_value }}
+  folder: src
+
+build:
+  number: 0
+
+outputs:
+
+  - name: mcxtrace-core
+    script: install-files-core.sh  # [not win]
+    script: install-files-core.bat  # [win]
+    requirements:
+      build:
+        - cmake
+        - make  # [not win]
+        - {{ compiler('c') }}
+        - flex  # [not win]
+        - bison  # [not win]
+        - winflexbison  # [win]
+        - mslex  # [win]
+      host:
+        - dirent  # [win]
+      run:
+        - python
+        - {{ compiler('c') }}
+        - bash  # [unix]
+        - pyaml # for mxrun
+        - ply # for traces from mxrun
+        - mslex  # [win]
+    test:
+      files:
+        - test_pkg.py
+      commands:
+        - python test_pkg.py core
+      source_files:
+        - src/mcxtrace-comps/examples/SAXSLAB/SAXS_saxlab/SAXS_saxlab.instr
+        - src/mcxtrace-comps/examples/AstroX_ESA/NuSTAR_1shell_con/NuSTAR_1shell_con.instr
+
+  - name: mcxtrace-data
+    build:
+      noarch: generic
+    script: install-files-data.sh  # [not win]
+    script: install-files-data.bat  # [win]
+    test:
+      files:
+        - test_pkg.py
+      requires:
+        - python
+      commands:
+        - python test_pkg.py data
+
+  - name: mcxtrace-mxgui
+    requirements:
+      run:
+        - mcxtrace-core
+        - pyqt
+        - qscintilla2
+    test:
+      files:
+        - test_pkg.py
+      commands:
+        - python test_pkg.py mxgui
+
+  - name: mcxtrace-vis
+    requirements:
+      run:
+        - mcxtrace-core
+        #  Note: conda-forge linter wants matplotlib-base and not matplotlib. It
+        #  actually makes no difference (as per October 2023) since we anyway
+        #  install tornado+pyqt.
+        - matplotlib-base
+        - numpy
+        - tornado >=5
+        - scipy
+        - pillow
+        - pyqtgraph
+        - pyqt >=5.10
+    test:
+      files:
+        - test_pkg.py
+      commands:
+        - python test_pkg.py vis
+
+  - name: mcxtrace
+    test:
+      files:
+        - test_pkg.py
+      requires:
+      commands:
+        - python test_pkg.py mcxtrace
+    requirements:
+      run:
+        - {{ pin_subpackage('mcxtrace-core', max_pin="x.x.x") }}
+        - {{ pin_subpackage('mcxtrace-data', max_pin="x.x.x") }}
+        - {{ pin_subpackage('mcxtrace-mxgui', max_pin="x.x.x") }}
+        - {{ pin_subpackage('mcxtrace-vis', max_pin="x.x.x") }}
+        - ncrystal  # [unix]
+        - mcpl  # [unix]
+
+about:
+  home: https://mcxtrace.org/
+  summary: McXtrace is a general tool for simulating x-ray scattering instruments and experiments.
+  description: |
+    McXtrace is a general tool for simulating x-ray scattering instruments and
+    experiments.
+  license: GPL-3.0-only
+  license_family: GPL3
+  license_file: src/COPYING
+  doc_url: https://mcxtrace.org/
+  dev_url: https://github.com/McStasMcXtrace/McCode
+
+extra:
+  recipe-maintainers:
+    - willend
+    - tkittel
