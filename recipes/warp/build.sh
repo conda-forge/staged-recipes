@@ -59,19 +59,9 @@ cp ${DOTNET_PUBLISH_DIR}/Snippets ${PREFIX}/bin/
 echo "listing contents of ${DOTNET_DLL_DIR}"
 ls ${DOTNET_DLL_DIR}
 echo "---"
-cp ${DOTNET_DLL_DIR}/Noise2Map.dll ${PREFIX}/lib/
-cp ${DOTNET_DLL_DIR}/Noise2Mic.dll ${PREFIX}/lib/
-cp ${DOTNET_DLL_DIR}/Noise2Tomo.dll ${PREFIX}/lib/
-cp ${DOTNET_DLL_DIR}/Noise2Half.dll ${PREFIX}/lib/
-cp ${DOTNET_DLL_DIR}/Noise2Class.dll ${PREFIX}/lib/
-cp ${DOTNET_DLL_DIR}/EstimateWeights.dll ${PREFIX}/lib/
-cp ${DOTNET_DLL_DIR}/Frankenmap.dll ${PREFIX}/lib/
-cp ${DOTNET_DLL_DIR}/MrcConverter.dll ${PREFIX}/lib/
-cp ${DOTNET_DLL_DIR}/WarpWorker.dll ${PREFIX}/lib/
-cp ${DOTNET_DLL_DIR}/WarpTools.dll ${PREFIX}/lib/
-cp ${DOTNET_DLL_DIR}/MTools.dll ${PREFIX}/lib/
-cp ${DOTNET_DLL_DIR}/MCore.dll ${PREFIX}/lib/
-cp ${DOTNET_DLL_DIR}/Snippets.dll ${PREFIX}/lib/
+for file in **.dll; do
+    echo ${file}
+    cp $file ${PREFIX}/lib/
 
 
 
