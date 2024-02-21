@@ -12,6 +12,8 @@ cd ${PROJECT_ROOT}
 
 # build LibTorchSharp
 echo building LibTorchSharp
+TORCH_CMAKE_PREFIX_PATH=`python -c 'import torch;print(torch.utils.cmake_prefix_path)'`
+CUSTOM_CMAKE_ARGS="-DCMAKE_PREFIX_PATH=${TORCH_CMAKE_PREFIX_PATH}"
 cd LibTorchSharp
 mkdir build
 cd build
