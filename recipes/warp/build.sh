@@ -56,9 +56,7 @@ cp ${DOTNET_PUBLISH_DIR}/MCore ${PREFIX}/bin/
 cp ${DOTNET_PUBLISH_DIR}/Snippets ${PREFIX}/bin/
 
 # copy dlls into the lib directory in the conda environment
-echo "listing contents of ${DOTNET_DLL_DIR}"
-ls ${DOTNET_DLL_DIR}
-echo "---"
+echo "copying dotnet generated dlls into ${PREFIX}/lib"
 for file in **.dll; do
     echo ${file}
     cp $file ${PREFIX}/lib/
