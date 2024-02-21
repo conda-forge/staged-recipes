@@ -1,14 +1,14 @@
-From e922a42ec7c5f753b35057eb948054e8218d0a0a Mon Sep 17 00:00:00 2001
+From 4c876fdb5bd63ed53bb7407ba52043baf8735657 Mon Sep 17 00:00:00 2001
 From: Matthew Feickert <matthew.feickert@cern.ch>
 Date: Fri, 16 Feb 2024 15:32:46 -0600
-Subject: [PATCH] Generate new patch
+Subject: [PATCH] Patch setup.py
 
 ---
- setup.py | 17 ++++-------------
- 1 file changed, 4 insertions(+), 13 deletions(-)
+ setup.py | 30 +++++++++---------------------
+ 1 file changed, 9 insertions(+), 21 deletions(-)
 
 diff --git a/setup.py b/setup.py
-index 72cb832..739babf 100644
+index 72cb832..1ff496c 100644
 --- a/setup.py
 +++ b/setup.py
 @@ -51,16 +51,6 @@ def get_version() -> str:
@@ -28,16 +28,17 @@ index 72cb832..739babf 100644
              # Patch for FastJet core version 3.4.0
              # To be removed when https://gitlab.com/fastjet/fastjet/-/merge_requests/1 is merged upstream
              subprocess.run(
-@@ -78,7 +68,7 @@ class FastJetBuild(setuptools.command.build_ext.build_ext):
+@@ -78,7 +68,8 @@ class FastJetBuild(setuptools.command.build_ext.build_ext):
              env = os.environ.copy()
              env["PYTHON"] = sys.executable
              env["PYTHON_INCLUDE"] = f'-I{sysconfig.get_path("include")}'
 -            env["CXXFLAGS"] = "-O3 -Bstatic -lgmp -Bdynamic -std=c++17"
-+            env["CXXFLAGS"] = env.get("CXXFLAGS", "") + " -O3 -Bstatic -lgmp -Bdynamic"
++            env["CXXFLAGS"] = env.get("CXXFLAGS", "") + " -O3 -Bstatic -Bdynamic -std=c++17"
++            env["LDFLAGS"] = env.get("LDFLAGS", "") + " -Wl,-rpath,$ORIGIN/_fastjet_core/lib"
              env["ORIGIN"] = "$ORIGIN"  # if evaluated, it will still be '$ORIGIN'
  
              args = [
-@@ -88,10 +78,9 @@ class FastJetBuild(setuptools.command.build_ext.build_ext):
+@@ -88,10 +79,9 @@ class FastJetBuild(setuptools.command.build_ext.build_ext):
                  "--enable-allcxxplugins",
                  "--enable-cgal-header-only",
                  "--enable-cgal",
@@ -45,26 +46,39 @@ index 72cb832..739babf 100644
                  "--enable-swig",
                  "--enable-pyext",
 -                "LDFLAGS=-Wl,-rpath,$$ORIGIN/_fastjet_core/lib:$$ORIGIN",
-+                f"LDFLAGS={os.environ.get('LDFLAGS', '')} -Wl,-rpath=$ORIGIN/_fastjet_core/lib:$ORIGIN",
++                f'LDFLAGS={env["LDFLAGS"]}',
              ]
  
              try:
-@@ -106,6 +95,7 @@ class FastJetBuild(setuptools.command.build_ext.build_ext):
+@@ -106,22 +96,20 @@ class FastJetBuild(setuptools.command.build_ext.build_ext):
                  raise
  
              env = os.environ.copy()
 +            env["CXX"] = env.get("CXX", "g++")
++            env["CXXFLAGS"] = env.get("CXXFLAGS", "") + " -O3 -Bstatic -Bdynamic -std=c++17"
++            env["LDFLAGS"] = env.get("LDFLAGS", "") + " -Wl,-rpath,$ORIGIN/_fastjet_core/lib"
              env["ORIGIN"] = "$ORIGIN"  # if evaluated, it will still be '$ORIGIN'
              subprocess.run(["make", "-j"], cwd=FASTJET, env=env, check=True)
              subprocess.run(["make", "install"], cwd=FASTJET, env=env, check=True)
-@@ -121,6 +111,7 @@ class FastJetBuild(setuptools.command.build_ext.build_ext):
+ 
+-            subprocess.run(
+-                ["patch", "./Makefile.in", DIR / "patch_makefilein.txt"],
+-                cwd=FASTJET_CONTRIB,
+-                env=env,
+-                check=True,
+-            )
+-
+             subprocess.run(
                  [
                      "./configure",
                      f"--fastjet-config={FASTJET}/fastjet-config",
+-                    "CXXFLAGS=-O3 -Bstatic -Bdynamic -std=c++17",
 +                    f'CXX={env["CXX"]}',
-                     "CXXFLAGS=-O3 -Bstatic -Bdynamic -std=c++17",
++                    f'CXXFLAGS={env["CXXFLAGS"]}',
++                    f'LDFLAGS={env["LDFLAGS"]}',
                  ],
                  cwd=FASTJET_CONTRIB,
+                 env=env,
 -- 
 2.34.1
 
