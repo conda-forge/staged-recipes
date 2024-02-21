@@ -13,8 +13,9 @@ rm -rf build
 mkdir build
 cd build
 
-# ----------
-# build SOFA
+# We install to a temp directory to avoid duplicate compilation for libsofa-core and 
+# libsofa-core-devel. This is inspired from:
+# https://github.com/conda-forge/boost-feedstock/blob/main/recipe/meta.yaml
 mkdir temp_prefix
 
 cmake ${CMAKE_ARGS} \
