@@ -56,6 +56,9 @@ cp ${DOTNET_PUBLISH_DIR}/MCore ${PREFIX}/bin/
 cp ${DOTNET_PUBLISH_DIR}/Snippets ${PREFIX}/bin/
 
 # copy dlls into the lib directory in the conda environment
+echo "listing contents of ${DOTNET_DLL_DIR}"
+ls ${DOTNET_DLL_DIR}
+echo "---"
 cp ${DOTNET_DLL_DIR}/Noise2Map.dll ${PREFIX}/lib/
 cp ${DOTNET_DLL_DIR}/Noise2Mic.dll ${PREFIX}/lib/
 cp ${DOTNET_DLL_DIR}/Noise2Tomo.dll ${PREFIX}/lib/
