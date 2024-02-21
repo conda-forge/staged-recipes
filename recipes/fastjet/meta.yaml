@@ -16,15 +16,13 @@ source:
 build:
   number: 0
   skip: true  # [not linux]
-  script: {{ PYTHON }} -m pip install . -vv
-  missing_dso_whitelist:
-  # https://docs.conda.io/projects/conda-build/en/stable/resources/define-metadata.html#whitelisting-shared-libraries
-  # All are under lib/python3.*/site-packages/fastjet/_fastjet_core/lib
-    - $RPATH/libfastjet.so.0
-    - $RPATH/libfastjettools.so.0
-    - $RPATH/libsiscone.so.0
-    - $RPATH/libsiscone_spherical.so.0
-    - $RPATH/libfastjetplugins.so.0
+  script:
+    # Use 'python -m build' to build a wheel first to avoid having the overlinking
+    # check fail by looking in the wrong CPython build_artifacts directory.
+    # It is unclear if this is something that conda-forge should know how to avoid
+    # or if this could be fixed by improvements in the fastjet build system.
+    - {{ PYTHON }} -m build --no-isolation .
+    - {{ PYTHON }} -m pip install --verbose --verbose ./dist/fastjet-*.whl
 
 requirements:
   build:
@@ -37,11 +35,13 @@ requirements:
     - patch
     - swig
   host:
+    - build  # see comment in build script section
     - cgal-cpp  # headers and CGALv5
     - gmp  # shared library
     - pip
     - pybind11
     - python
+    - setuptools_scm  # required for 'python -m build'
   run:
     - awkward >=2
     - numpy >=1.13.3
