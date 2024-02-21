@@ -10,7 +10,7 @@ elif [[ "$PKG_NAME" == "libsofa-core-devel" ]]; then
     # headers
     cp -R temp_prefix/include/. $PREFIX/include
     # CMake metadata
-    cp -R temp_prefix/lib/cmake/. $PREFIX/lib/cmake
+    cp -R temp_prefix/lib/cmake/Sofa* $PREFIX/lib/cmake
 else
   echo "Invalid package to install"
   exit 1
