@@ -12,7 +12,7 @@ if [%PKG_NAME%] == [libsofa-core] (
     REM headers
     robocopy temp_prefix\include %LIBRARY_INC% /E >nul
     mkdir %LIBRARY_LIB%\cmake
-    move temp_prefix\lib\cmake\Sofa* %LIBRARY_LIB%\cmake
+    xcopy /e /y temp_prefix\lib\cmake\Sofa* %LIBRARY_LIB%\cmake
 ) else (
     echo "Invalid package to install"
     exit 1
