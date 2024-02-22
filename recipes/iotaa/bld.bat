@@ -1,4 +1,4 @@
 @echo on
-rmdir recipe /s
+rmdir /s recipe
 cd src
 %PYTHON% -m pip install . -vv
