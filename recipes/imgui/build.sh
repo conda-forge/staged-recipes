@@ -17,8 +17,7 @@ cmake ${SRC_DIR} ${CMAKE_ARGS} \
     -DIMGUI_BUILD_METAL_BINDING=$OSX_BINDINGS \
     -DIMGUI_BUILD_OPENGL2_BINDING=ON \
     -DIMGUI_BUILD_OSX_BINDING=$OSX_BINDINGS \
-    -DIMGUI_BUILD_SDL2_BINDING=ON \
-    -DIMGUI_FREETYPE=ON
+    -DIMGUI_BUILD_SDL2_BINDING=ON
 
 cmake --build . --config Release -- -j$CPU_COUNT
 cmake --build . --config Release --target install
