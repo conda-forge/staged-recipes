@@ -87,6 +87,7 @@ if(IMGUI_BUILD_OSX_BINDING)
     target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/backends/imgui_impl_osx.mm)
     target_link_libraries(${PROJECT_NAME} "-framework Cocoa")
     target_link_libraries(${PROJECT_NAME} "-framework IOKit")
+    target_link_libraries(${PROJECT_NAME} "-framework CoreFoundation")
 endif()
 
 if(IMGUI_BUILD_SDL2_BINDING)
