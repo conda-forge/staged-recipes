@@ -8,7 +8,7 @@ cargo install ^
     --profile release ^
     --root "%PREFIX%" || exit 1
 
-move "%PREFIX%\bin\uv.exe" "%SCRIPTS%" || exit 1
+move "%PREFIX%\bin\uv.exe" "%PREFIX%\Scripts\uv.exe" || exit 1
 
 cargo-bundle-licenses ^
     --format yaml ^
