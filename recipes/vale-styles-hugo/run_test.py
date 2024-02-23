@@ -14,24 +14,13 @@ os.environ.update(
 from pytest import fixture, main
 
 UTF8 = dict(encoding="utf-8")
-SRC_DIR = Path(os.environ["SRC_DIR"])
+VALE_NAME = "Hugo"
 
-LIBRARY_JSON = SRC_DIR / "library.json"
 VALE_PATH = Path(sys.prefix) / "share/vale/styles"
 VALE_INI = ".vale.ini"
-PYTEST_ARGS = [
-    "-svv",
-    "--color=yes",
-    __file__,
-]
+PYTEST_ARGS = ["-svv", "--color=yes", __file__]
 
 PACKAGE_FIXES_ISSUE = ["Hugo"]
-
-LIBRARY = sorted(
-    pkg["name"]
-    for pkg in json.loads(LIBRARY_JSON.read_text(**UTF8))
-    if (VALE_PATH / pkg["name"]).exists() and pkg["name"]
-)
 
 DEFAULT_INI = """
 MinAlertLevel = suggestion
@@ -119,14 +108,9 @@ def test_style_finds_or_fixes_issue(a_markdown_file_with_issue: Path):
         assert not issues2
 
 
-@fixture(params=LIBRARY)
-def a_vale_package(request) -> str:
-    return request.param
-
-
 @fixture
-def in_a_project(a_vale_package: str, tmp_path: Path) -> Generator[Path, None, None]:
-    project = tmp_path / a_vale_package
+def in_a_project(tmp_path: Path) -> Generator[Path, None, None]:
+    project = tmp_path / VALE_NAME
     project.mkdir()
     old_cwd = Path.cwd()
     os.chdir(str(project))
