@@ -78,6 +78,9 @@ endif()
 
 if(IMGUI_BUILD_OPENGL2_BINDING)
     target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/backends/imgui_impl_opengl2.cpp)
+    if(APPLE)
+        target_link_libraries(${PROJECT_NAME} PUBLIC "-framework OpenGL")
+    endif()
 endif()
 
 if(IMGUI_BUILD_OPENGL3_BINDING)
