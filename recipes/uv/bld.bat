@@ -19,3 +19,6 @@ cargo-bundle-licenses ^
     --format yaml ^
     --output "%SRC_DIR%\THIRDPARTY.yml" ^
     || exit 3
+
+del "%$PREFIX%\.crates2.json"
+del "%$PREFIX%\.crates.toml"
