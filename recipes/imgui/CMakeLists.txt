@@ -234,9 +234,9 @@ if(NOT IMGUI_SKIP_HEADERS)
 endif()
 
 include(CMakePackageConfigHelpers)
-configure_package_config_file(imgui-config.cmake.in imgui-config.cmake INSTALL_DESTINATION share/imgui)
+configure_package_config_file(imgui-config.cmake.in imgui-config.cmake INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/imgui-config.cmake DESTINATION share/imgui)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/imgui-config.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
 install(
     EXPORT ${PROJECT_NAME}_target
