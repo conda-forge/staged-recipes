@@ -88,6 +88,7 @@ if(IMGUI_BUILD_OSX_BINDING)
     target_link_libraries(${PROJECT_NAME} PUBLIC "-framework Cocoa")
     target_link_libraries(${PROJECT_NAME} PUBLIC "-framework IOKit")
     target_link_libraries(${PROJECT_NAME} PUBLIC "-framework CoreFoundation")
+    target_link_libraries(${PROJECT_NAME} PUBLIC "-framework GameController")
 endif()
 
 if(IMGUI_BUILD_SDL2_BINDING)
