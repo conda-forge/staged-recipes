@@ -9,10 +9,10 @@ cargo install ^
     --root "%PREFIX%" ^
     || exit 1
 
-md "%PREFIX%\Scripts" ^
-    || echo "`%PREFIX%\Scripts` already exists"
+md "%LIBRARY_PREFIX%\bin" ^
+    || echo "`%LIBRARY_PREFIX%\bin` already exists"
 
-move "%PREFIX%\bin\uv.exe" "%PREFIX%\Scripts\uv.exe" ^
+move "%PREFIX%\bin\uv.exe" "%LIBRARY_PREFIX%\bin\uv.exe" ^
     || exit 2
 
 cargo-bundle-licenses ^
