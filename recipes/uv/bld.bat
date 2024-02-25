@@ -6,7 +6,7 @@ cargo install ^
     --locked ^
     --path . ^
     --profile release ^
-    --root "%PREFIX%" ^
+    --root "%LIBRARY_PREFIX%" ^
     || exit 1
 
 md "%LIBRARY_PREFIX%\bin" ^
