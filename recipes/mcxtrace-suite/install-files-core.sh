@@ -13,14 +13,7 @@ test -d ${SRCDIR}
 test -f ${SRCDIR}/CMakeLists.txt
 test -n "${PKG_VERSION}"
 
-for i in $(seq 1 100000); do
-    #Find a unique build dir:
-    BLDDIR="$PWD/build_mcxtrace_core_${i}"
-    if [ ! -d "${BLDDIR}" ]; then
-        break
-    fi
-done
-
+BLDDIR="${PWD}/build_mcxtrace_core"
 mkdir "${BLDDIR}"
 cd "${BLDDIR}"
 
