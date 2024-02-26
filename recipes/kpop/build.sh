@@ -6,11 +6,7 @@ else
 fi
 
 mkdir -p $PREFIX/bin
-cp $SRC_DIR/bin/KPop* $PREFIX/bin
-cp $SRC_DIR/bin/FASTools $PREFIX/bin
-cp $SRC_DIR/bin/Parallel $PREFIX/bin
+cp $SRC_DIR/KPop* $PREFIX/bin
 
-chmod +x $PREFIX/bin/
-chmod +x $PREFIX/bin/KPop*
-chmod +x $PREFIX/bin/FASTools
-chmod +x $PREFIX/bin/Parallel
+chmod +x $PREFIX/bin
+chmod +x $PREFIX/bin/KPop*  
