@@ -1,2 +1,0 @@
-export MCXTRACE=""
-unset MCXTRACE
