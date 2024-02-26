@@ -1,0 +1,128 @@
+{% set version = "3.4.9" %}
+
+package:
+  name: mcxtrace-suite
+  version: {{ version }}
+
+source:
+  url: https://github.com/McStasMcXtrace/McCode/archive/mcxtrace-{{ version }}.tar.gz
+  sha256: ccab20cca6e842d5b643ae30c0cd3330c3af31375b205f251cfafc086fd8000b
+  folder: src
+
+build:
+  number: 0
+
+outputs:
+
+  - name: mcxtrace-core
+    script: install-files-core.sh
+    build:
+      skip: true  # [win]
+    requirements:
+      build:
+        - cmake
+        - make
+        - {{ compiler('c') }}
+        - flex
+        - bison
+      run:
+        - python
+        - {{ compiler('c') }}
+        - bash
+        # for mxrun
+        - pyaml
+        # for traces from mxrun
+        - ply
+    test:
+      files:
+        - test_pkg.py
+      commands:
+        - python test_pkg.py core
+      source_files:
+        - src/mcxtrace-comps/examples/ESRF/ESRF_BM29/ESRF_BM29.instr
+        - src/mcxtrace-comps/examples/AstroX_ESA/NuSTAR_1shell_con/NuSTAR_1shell_con.instr
+
+  - name: mcxtrace-data
+    build:
+      noarch: generic
+    script: install-files-data.sh  # [unix]
+    script: install-files-data.bat  # [win]
+    test:
+      files:
+        - test_pkg.py
+      requires:
+        - python
+      commands:
+        - python test_pkg.py data
+
+  - name: mcxtrace-mxgui
+    build:
+      skip: true  # [win]
+    requirements:
+      run:
+        - mcxtrace-core
+        - pyqt
+        - qscintilla2
+    test:
+      files:
+        - test_pkg.py
+      commands:
+        - python test_pkg.py mxgui
+
+  - name: mcxtrace-vis
+    build:
+      skip: true  # [win]
+    requirements:
+      run:
+        - mcxtrace-core
+        #  Note: conda-forge linter wants matplotlib-base and not matplotlib. It
+        #  actually makes no difference (as per October 2023) since we anyway
+        #  install tornado+pyqt.
+        - matplotlib-base
+        - numpy
+        - tornado >=5
+        - scipy
+        - pillow
+        - pyqtgraph
+        - pyqt >=5.10
+    test:
+      files:
+        - test_pkg.py
+      commands:
+        - python test_pkg.py vis
+
+  - name: mcxtrace
+    build:
+      skip: true  # [win]
+    test:
+      files:
+        - test_pkg.py
+      requires:
+      commands:
+        - python test_pkg.py mcxtrace
+    requirements:
+      run:
+        - {{ pin_subpackage('mcxtrace-core', max_pin="x.x.x") }}
+        - {{ pin_subpackage('mcxtrace-data', max_pin="x.x.x") }}
+        - {{ pin_subpackage('mcxtrace-mxgui', max_pin="x.x.x") }}
+        - {{ pin_subpackage('mcxtrace-vis', max_pin="x.x.x") }}
+        - ncrystal  # [unix]
+        - mcpl  # [unix]
+
+about:
+  home: https://mcxtrace.org/
+  summary: McXtrace is a general tool for simulating x-ray scattering instruments and experiments.
+  description: |
+    McXtrace is a general tool for simulating x-ray scattering instruments and
+    experiments.
+  license: GPL-3.0-only
+  license_family: GPL3
+  license_file: src/COPYING
+  doc_url: https://mcxtrace.org/
+  dev_url: https://github.com/McStasMcXtrace/McCode
+
+extra:
+  recipe-maintainers:
+    - willend
+    - tkittel
+    - ebknudsen
