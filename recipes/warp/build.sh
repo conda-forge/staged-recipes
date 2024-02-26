@@ -21,7 +21,6 @@ make
 cd ${PROJECT_ROOT}
 
 # build dotnet projects
-
 DOTNET_DLL_DIR=Release
 DOTNET_PUBLISH_DIR=Release/linux-x64/publish
 
