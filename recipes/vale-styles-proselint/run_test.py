@@ -2,7 +2,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, call
 from textwrap import indent
 from typing import Generator
 
@@ -11,7 +11,7 @@ os.environ.update(
     PYTHONLEGACYWINDOWSFSENCODING="utf-8",
 )
 
-from pytest import fixture, main
+from pytest import fixture
 
 UTF8 = dict(encoding="utf-8")
 VALE_NAME = "proselint"
@@ -124,7 +124,7 @@ def a_vale_ini(in_a_project: Path) -> Path:
     ini = in_a_project / VALE_INI
     ini.write_text(INI_TEMPLATE.format(name=name), **UTF8)
     print(name, "config")
-    print(indent(ini.read_text(), "\t"))
+    print(indent(ini.read_text(**UTF8), "\t"))
     return ini
 
 
@@ -151,4 +151,4 @@ def _run_vale_json(*args: str):
 
 
 if __name__ == "__main__":
-    sys.exit(main(PYTEST_ARGS))
+    sys.exit(call([sys.executable, *PYTEST_ARGS, __file__]))
