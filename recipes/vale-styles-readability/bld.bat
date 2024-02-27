@@ -1,3 +1,3 @@
 @echo on
-robocopy /S "Readability" "%PREFIX%\share\vale\styles\Readability"
-dir /S "%PREFIX%\share\vale\styles"
+robocopy /S "Readability" "%PREFIX%\share\vale\styles\Readability" || echo "ok"
+dir /S "%PREFIX%\share\vale\styles\Readability"

@@ -3,4 +3,4 @@ set -eux
 export STYLES="${PREFIX}/share/vale/styles"
 mkdir -p "${STYLES}"
 cp -r "alex/"  "${STYLES}/alex"
-find "${STYLES}"
+find "${STYLES}/alex"

@@ -1,3 +1,3 @@
 @echo on
-robocopy /S "Hugo" "%PREFIX%\share\vale\styles\Hugo"
-dir /S "%PREFIX%\share\vale\styles"
+robocopy /S "Hugo" "%PREFIX%\share\vale\styles\Hugo" || echo "ok"
+dir /S "%PREFIX%\share\vale\styles\Hugo"
