@@ -151,4 +151,4 @@ def _run_vale_json(*args: str):
 
 
 if __name__ == "__main__":
-    sys.exit(call([sys.executable, *PYTEST_ARGS, __file__]))
+    sys.exit(call([sys.executable, "-m", "pytest", *PYTEST_ARGS, __file__], **UTF8))
