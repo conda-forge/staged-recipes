@@ -1,0 +1,77 @@
+{% set name = "arcjetCV" %}
+{% set version = "0.0.1" %}
+{% set torch_proc_type = "cuda" if cuda_compiler_version != "None" else "cpu" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/magnus-haw/arcjetCV/archive/refs/tags/{{ version }}.tar.gz
+  sha256: 5e0bd0ad65705bac27a509aa002461caac9db2da68cd2300904c8db850d58d70
+
+build:
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv
+  number: 0
+  rpaths:
+    - lib/
+    - {{ SP_DIR }}/torch/lib
+  missing_dso_whitelist:
+    - '*/libcuda.*'  # [linux64 or ppc64le]
+  skip: true  # [win]
+  skip: true  # [cuda_compiler_version in ("10.2", "11.0", "11.1")]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+  host:
+    - cudnn                           # [cuda_compiler_version != "None"]
+    - pytorch
+    - pytorch =*={{ torch_proc_type }}*
+    - python
+    - numpy
+    - pip
+    - setuptools
+    - pyside6
+  run:
+    - {{ pin_compatible('cudnn') }}  # [cuda_compiler_version != "None"]
+    - {{ pin_compatible('numpy') }}
+    - python
+    - opencv
+    - matplotlib-base
+    - pandas
+    - pyarrow
+    - scikit-learn
+    - segmentation-models-pytorch
+    - pytorch
+    - torchvision
+    - pytorch-cuda=12.1
+  run_constrained:
+    # additional run constraint to the one from the (version-only) run_export;
+    # constraining the CPU builds to CPU pytorch isn't 100% necessary, but cleaner
+    - pytorch =*={{ torch_proc_type }}*
+
+test:
+  imports:
+    - arcjetCV
+  requires:
+    - pip
+  commands:
+    - pip check
+
+about:
+  home: https://github.com/magnus-haw/arcjetCV/
+  summary: 'App to process arcjet videos and segment the edge of the shock and of the sample.'
+  description: |
+    App to process arcjet videos and segment the edge of the shock and of the sample.
+
+  license: NASA-1.3
+  license_file: LICENSE.txt
+  doc_url: https://arcjetcv.readthedocs.io/
+  dev_url: https://github.com/magnus-haw/arcjetCV/
+
+extra:
+  recipe-maintainers:
+    - fsemerar
