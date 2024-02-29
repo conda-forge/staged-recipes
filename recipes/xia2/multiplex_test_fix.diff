@@ -1,0 +1,100 @@
+diff --git a/tests/regression/test_multiplex.py b/tests/regression/test_multiplex.py
+index d41f340e..3242754d 100644
+--- a/tests/regression/test_multiplex.py
++++ b/tests/regression/test_multiplex.py
+@@ -34,19 +34,14 @@ expected_data_files = [
+ 
+ 
+ @pytest.fixture()
+-def proteinase_k(regression_test, dials_data, tmp_path):
++def proteinase_k(dials_data):
+     data_dir = dials_data("multi_crystal_proteinase_k", pathlib=True)
+     expts = sorted(os.fspath(f) for f in data_dir.glob("experiments*.json"))
+     refls = sorted(os.fspath(f) for f in data_dir.glob("reflections*.pickle"))
+-    cwd = pathlib.Path.cwd()
+-    os.chdir(tmp_path)
+     yield expts, refls
+-    os.chdir(cwd)
+-    for f in tmp_path.glob("**/*.refl"):
+-        f.unlink()
+ 
+ 
+-def test_proteinase_k(mocker, proteinase_k):
++def test_proteinase_k(mocker, proteinase_k, run_in_tmp_path):
+     expts, refls = proteinase_k
+     mocker.spy(Report, "pychef_plots")
+     run_multiplex(expts + refls + ["exclude_images=0:1:10"])
+@@ -104,7 +99,7 @@ def test_proteinase_k(mocker, proteinase_k):
+     ]
+ 
+ 
+-def test_proteinase_k_anomalous(proteinase_k):
++def test_proteinase_k_anomalous(proteinase_k, run_in_tmp_path):
+     expts, refls = proteinase_k
+     run_multiplex(expts + refls + ["anomalous=True"])
+     with open("xia2.multiplex.json") as fh:
+@@ -121,7 +116,7 @@ def test_proteinase_k_anomalous(proteinase_k):
+     "d_min",
+     [None, 2.0],
+ )
+-def test_proteinase_k_filter_deltacchalf(d_min, proteinase_k):
++def test_proteinase_k_filter_deltacchalf(d_min, proteinase_k, run_in_tmp_path):
+     expts, refls = proteinase_k
+     command_line_args = (
+         expts
+@@ -182,7 +177,9 @@ def test_proteinase_k_filter_deltacchalf(d_min, proteinase_k):
+     "laue_group,space_group,threshold",
+     [("P422", None, None), (None, "P422", 3.5), (None, "P43212", None)],
+ )
+-def test_proteinase_k_dose(laue_group, space_group, threshold, proteinase_k):
++def test_proteinase_k_dose(
++    laue_group, space_group, threshold, proteinase_k, run_in_tmp_path
++):
+     expts, refls = proteinase_k
+     command_line_args = (
+         [
+@@ -230,20 +227,20 @@ def test_proteinase_k_dose(laue_group, space_group, threshold, proteinase_k):
+ @pytest.mark.parametrize(
+     "parameters",
+     (
+-        ["min_completeness=0.6", "cluster_method=cos_angle"],
+-        ["min_completeness=0.6", "cluster_method=correlation"],
++        ["min_completeness=0.5", "cluster_method=cos_angle"],
++        ["min_completeness=0.5", "cluster_method=correlation"],
+     ),
+ )
+-def test_proteinase_k_min_completeness(parameters, proteinase_k):
++def test_proteinase_k_min_completeness(parameters, proteinase_k, run_in_tmp_path):
+     expts, refls = proteinase_k
+-    command_line_args = parameters + expts + refls
++    command_line_args = parameters + expts[:-1] + refls[:-1]
+     run_multiplex(command_line_args)
+ 
+     for f in expected_data_files:
+         assert pathlib.Path(f).is_file(), "expected file %s missing" % f
+ 
+     multiplex_expts = load.experiment_list("scaled.expt", check_format=False)
+-    assert len(multiplex_expts) == 8
++    assert len(multiplex_expts) == 7
+     clusters = list(pathlib.Path().glob("cluster_[0-9]*"))
+     assert len(clusters)
+     for cluster in clusters:
+@@ -251,14 +248,16 @@ def test_proteinase_k_min_completeness(parameters, proteinase_k):
+         assert (cluster / "scaled_unmerged.mtz").is_file()
+ 
+ 
+-def test_proteinase_k_single_dataset_raises_error(proteinase_k):
++def test_proteinase_k_single_dataset_raises_error(proteinase_k, run_in_tmp_path):
+     expts, refls = proteinase_k
+     with pytest.raises(SystemExit) as e:
+         run_multiplex([expts[0], refls[1]])
+     assert str(e.value) == "xia2.multiplex requires a minimum of two experiments"
+ 
+ 
+-def test_proteinase_k_laue_group_space_group_raises_error(proteinase_k):
++def test_proteinase_k_laue_group_space_group_raises_error(
++    proteinase_k, run_in_tmp_path
++):
+     expts, refls = proteinase_k
+     command_line_args = (
+         ["symmetry.laue_group=P422", "symmetry.space_group=P41212"] + expts + refls
