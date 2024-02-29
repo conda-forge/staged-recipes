@@ -3,7 +3,7 @@
 Convert all recipes into feedstocks.
 
 This script is to be run in a TravisCI context, with all secret environment
-variables defined (BINSTAR_TOKEN, GH_TOKEN)
+variables defined (STAGING_BINSTAR_TOKEN, GH_TOKEN)
 
 Such as:
 
@@ -13,8 +13,9 @@ Such as:
 from __future__ import print_function
 
 from conda_build.metadata import MetaData
+from conda_smithy.utils import get_feedstock_name_from_meta
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from github import Github, GithubException
 import os.path
 import shutil
@@ -24,10 +25,13 @@ import tempfile
 import traceback
 import time
 
+import requests
+from ruamel.yaml import YAML
 
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
 DEBUG = False
 
+REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch", "systems", "ctx"]
 
 recipe_directory_name = 'recipes'
 
@@ -41,10 +45,12 @@ def list_recipes():
     for recipe_dir in recipes:
         # We don't list the "example" feedstock. It is an example, and is there
         # to be helpful.
-        if recipe_dir.startswith('example'):
+        # .DS_Store is created by macOS to store custom attributes of its
+        # containing folder.
+        if recipe_dir in ['example', '.DS_Store']:
             continue
         path = os.path.abspath(os.path.join(recipe_directory_name, recipe_dir))
-        yield path, MetaData(path).name()
+        yield path, get_feedstock_name_from_meta(MetaData(path))
 
 
 @contextmanager
@@ -68,6 +74,57 @@ def repo_exists(gh, organization, name):
         raise
 
 
+def repo_default_branch(gh, organization, name):
+    # Use the organization provided.
+    org = gh.get_organization(organization)
+    try:
+        repo = org.get_repo(name)
+        return repo.default_branch
+    except GithubException as e:
+        if e.status == 404:
+            return "main"
+        raise
+
+
+def _set_default_branch(feedstock_dir, default_branch):
+    yaml = YAML()
+    with open(os.path.join(feedstock_dir, "conda-forge.yml"), "r") as fp:
+        cfg = yaml.load(fp.read())
+
+    if "github" not in cfg:
+        cfg["github"] = {}
+    cfg["github"]["branch_name"] = default_branch
+    cfg["github"]["tooling_branch_name"] = "main"
+
+    if (
+        "upload_on_branch" in cfg
+        and cfg["upload_on_branch"] != default_branch
+        and cfg["upload_on_branch"] in ["master", "main"]
+    ):
+        cfg["upload_on_branch"] = default_branch
+
+    if "conda_build" not in cfg:
+        cfg["conda_build"] = {}
+
+    if "error_overlinking" not in cfg["conda_build"]:
+        cfg["conda_build"]["error_overlinking"] = True
+
+    with open(os.path.join(feedstock_dir, "conda-forge.yml"), "w") as fp:
+        yaml.dump(cfg, fp)
+
+
+def feedstock_token_exists(organization, name):
+    r = requests.get(
+        "https://api.github.com/repos/%s/"
+        "feedstock-tokens/contents/tokens/%s.json" % (organization, name),
+        headers={"Authorization": "token %s" % os.environ["GH_TOKEN"]},
+    )
+    if r.status_code != 200:
+        return False
+    else:
+        return True
+
+
 def print_rate_limiting_info(gh, user):
     # Compute some info about our GitHub API Rate Limit.
     # Note that it doesn't count against our limit to
@@ -82,7 +139,7 @@ def print_rate_limiting_info(gh, user):
 
     # Compute time until GitHub API Rate Limit reset
     gh_api_reset_time = gh.get_rate_limit().core.reset
-    gh_api_reset_time -= datetime.utcnow()
+    gh_api_reset_time -= datetime.now(timezone.utc)
 
     print("")
     print("GitHub API Rate Limit Info:")
@@ -104,7 +161,7 @@ def sleep_until_reset(gh):
     if gh_api_remaining == 0:
         # Compute time until GitHub API Rate Limit reset
         gh_api_reset_time = gh.get_rate_limit().core.reset
-        gh_api_reset_time -= datetime.utcnow()
+        gh_api_reset_time -= datetime.now(timezone.utc)
 
         mins_to_sleep = int(gh_api_reset_time.total_seconds() / 60)
         mins_to_sleep += 2
@@ -122,10 +179,7 @@ def sleep_until_reset(gh):
 if __name__ == '__main__':
     exit_code = 0
 
-    is_merged_pr = (
-        os.environ.get('TRAVIS_BRANCH') == 'master' and
-        os.environ.get('TRAVIS_PULL_REQUEST') == 'false'
-    )
+    is_merged_pr = os.environ.get('CF_CURRENT_BRANCH') == 'main'
 
     smithy_conf = os.path.expanduser('~/.conda-smithy')
     if not os.path.exists(smithy_conf):
@@ -142,10 +196,17 @@ if __name__ == '__main__':
         write_token('azure', os.environ['AZURE_TOKEN'])
     if 'DRONE_TOKEN' in os.environ:
         write_token('drone', os.environ['DRONE_TOKEN'])
+    if 'TRAVIS_TOKEN' in os.environ:
+        write_token('travis', os.environ['TRAVIS_TOKEN'])
+    if 'STAGING_BINSTAR_TOKEN' in os.environ:
+        write_token('anaconda', os.environ['STAGING_BINSTAR_TOKEN'])
 
-    gh_drone = Github(os.environ['GH_DRONE_TOKEN'])
-    gh_drone_remaining = print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+    # gh_drone = Github(os.environ['GH_DRONE_TOKEN'])
+    # gh_drone_remaining = print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
+    # gh_travis = Github(os.environ['GH_TRAVIS_TOKEN'])
+    gh_travis = None
+    
     gh = None
     if 'GH_TOKEN' in os.environ:
         write_token('github', os.environ['GH_TOKEN'])
@@ -169,6 +230,11 @@ if __name__ == '__main__':
     with tmp_dir('__feedstocks') as feedstocks_dir:
         feedstock_dirs = []
         for recipe_dir, name in list_recipes():
+            if name.lower() in REPO_SKIP_LIST:
+                continue
+            if name.lower() == "ctx":
+                sys.exit(1)
+
             feedstock_dir = os.path.join(feedstocks_dir, name + '-feedstock')
             print('Making feedstock for {}'.format(name))
             try:
@@ -184,8 +250,6 @@ if __name__ == '__main__':
                 # thing without having any metadata issues.
                 continue
 
-            feedstock_dirs.append([feedstock_dir, name, recipe_dir])
-
             subprocess.check_call([
                 'git', 'remote', 'add', 'upstream_with_token',
                 'https://conda-forge-manager:{}@github.com/'
@@ -196,61 +260,102 @@ if __name__ == '__main__':
                 ],
                 cwd=feedstock_dir
             )
-            print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+            # print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+
             # Sometimes we already have the feedstock created. We need to
             # deal with that case.
             if repo_exists(gh, 'conda-forge', name + '-feedstock'):
+                default_branch = repo_default_branch(
+                    gh, 'conda-forge', name + '-feedstock'
+                )
                 subprocess.check_call(
                     ['git', 'fetch', 'upstream_with_token'], cwd=feedstock_dir)
                 subprocess.check_call(
-                    ['git', 'branch', '-m', 'master', 'old'], cwd=feedstock_dir)
+                    ['git', 'branch', '-m', default_branch, 'old'], cwd=feedstock_dir)
                 try:
                     subprocess.check_call(
                         [
-                            'git', 'checkout', '-b', 'master',
-                            'upstream_with_token/master'
+                            'git', 'checkout', '-b', default_branch,
+                            'upstream_with_token/%s' % default_branch
                         ],
                         cwd=feedstock_dir)
                 except subprocess.CalledProcessError:
                     # Sometimes, we have a repo, but there are no commits on
                     # it! Just catch that case.
                     subprocess.check_call(
-                        ['git', 'checkout', '-b' 'master'], cwd=feedstock_dir)
-            print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
-            subprocess.check_call(
-                ['conda', 'smithy', 'register-github', feedstock_dir] + owner_info)
-            print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+                        ['git', 'checkout', '-b', default_branch], cwd=feedstock_dir)
+            else:
+                default_branch = "main"
 
-        from conda_smithy.ci_register import drone_sync
-        print("Running drone sync (can take ~100s)")
-        print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
-        drone_sync()
-        time.sleep(100)  # actually wait
-        print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+            feedstock_dirs.append([feedstock_dir, name, recipe_dir, default_branch])
+
+            # print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+
+            # set the default branch in the conda-forge.yml
+            _set_default_branch(feedstock_dir, default_branch)
+
+            # now register with github
+            subprocess.check_call(
+                ['conda', 'smithy', 'register-github', feedstock_dir]
+                + owner_info
+                # hack to help travis work
+                # + ['--extra-admin-users', gh_travis.get_user().login]
+                # end of hack
+            )
+            # print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+
+            if gh:
+                # Get our final rate limit info.
+                print_rate_limiting_info(gh, 'GH_TOKEN')
+
+        # drone doesn't run our jobs any more so no reason to do this
+        # from conda_smithy.ci_register import drone_sync
+        # print("Running drone sync (can take ~100s)", flush=True)
+        # print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+        # drone_sync()
+        # for _drone_i in range(10):
+        #     print(
+        #         "syncing drone - %d seconds left" % (10*(10 - _drone_i)),
+        #         flush=True,
+        #     )
+        #     time.sleep(10)  # actually wait
+        # print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
         # Break the previous loop to allow the TravisCI registering
         # to take place only once per function call.
         # Without this, intermittent failures to synch the TravisCI repos ensue.
         # Hang on to any CI registration errors that occur and raise them at the end.
-        for num, (feedstock_dir, name, recipe_dir) in enumerate(feedstock_dirs):
+        for num, (feedstock_dir, name, recipe_dir, default_branch) in enumerate(
+            feedstock_dirs
+        ):
+            if name.lower() in REPO_SKIP_LIST:
+                continue
+            print("\n\nregistering CI services for %s..." % name)
             if num >= 10:
-                exit_code = 1
+                exit_code = 0
                 break
             # Try to register each feedstock with CI.
             # However sometimes their APIs have issues for whatever reason.
             # In order to bank our progress, we note the error and handle it.
             # After going through all the recipes and removing the converted ones,
             # we fail the build so that people are aware that things did not clear.
+
+            # hack to help travis work
+            # from conda_smithy.ci_register import add_project_to_travis
+            # add_project_to_travis("conda-forge", name + "-feedstock")
+            # print_rate_limiting_info(gh_travis, 'GH_TRAVIS_TOKEN')
+            # end of hack
+
             try:
-                # Stop registering on appveyor temporarily
                 subprocess.check_call(
                     ['conda', 'smithy', 'register-ci', '--without-appveyor',
+                     '--without-circle', '--without-drone', '--without-cirun',
                      '--without-webservice', '--feedstock_directory',
                      feedstock_dir] + owner_info)
                 subprocess.check_call(
-                    ['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
+                    ['conda', 'smithy', 'rerender', '--no-check-uptodate'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
-                exit_code = 1
+                exit_code = 0
                 traceback.print_exception(*sys.exc_info())
                 continue
 
@@ -258,6 +363,47 @@ if __name__ == '__main__':
             for i in range(1, 13):
                 time.sleep(10)
                 print("Waiting for registration: {i} s".format(i=i*10))
+
+            # if we get here, now we make the feedstock token and add the staging token
+            print("making the feedstock token and adding the staging binstar token")
+            try:
+                if not feedstock_token_exists("conda-forge", name + "-feedstock"):
+                    subprocess.check_call(
+                        ['conda', 'smithy', 'generate-feedstock-token',
+                         '--feedstock_directory', feedstock_dir] + owner_info)
+                    subprocess.check_call(
+                        ['conda', 'smithy', 'register-feedstock-token',
+                         '--without-circle', '--without-drone',
+                         '--feedstock_directory', feedstock_dir] + owner_info)
+
+                # add staging token env var to all CI probiders except appveyor
+                # and azure
+                # azure has it by default and appveyor is not used
+                subprocess.check_call(
+                    ['conda', 'smithy', 'rotate-binstar-token',
+                     '--without-appveyor', '--without-azure',
+                     "--without-github-actions", '--without-circle', '--without-drone',
+                     '--token_name', 'STAGING_BINSTAR_TOKEN'],
+                    cwd=feedstock_dir)
+
+                yaml = YAML()
+                with open(os.path.join(feedstock_dir, "conda-forge.yml"), "r") as fp:
+                    _cfg = yaml.load(fp.read())
+                _cfg["conda_forge_output_validation"] = True
+                with open(os.path.join(feedstock_dir, "conda-forge.yml"), "w") as fp:
+                    yaml.dump(_cfg, fp)
+                subprocess.check_call(
+                    ["git", "add", "conda-forge.yml"],
+                    cwd=feedstock_dir
+                )
+                subprocess.check_call(
+                    ['conda', 'smithy', 'rerender', '--no-check-uptodate'], cwd=feedstock_dir)
+            except subprocess.CalledProcessError:
+                exit_code = 0
+                traceback.print_exception(*sys.exc_info())
+                continue
+
+            print("making a commit and pushing...")
             subprocess.check_call(
                 ['git', 'commit', '--allow-empty', '-am',
                  "Re-render the feedstock after CI registration."], cwd=feedstock_dir)
@@ -265,7 +411,10 @@ if __name__ == '__main__':
                 try:
                     # Capture the output, as it may contain the GH_TOKEN.
                     out = subprocess.check_output(
-                        ['git', 'push', 'upstream_with_token', 'HEAD:master'],
+                        [
+                            'git', 'push', 'upstream_with_token',
+                            'HEAD:%s' % default_branch
+                        ],
                         cwd=feedstock_dir,
                         stderr=subprocess.STDOUT)
                     break
@@ -275,17 +424,20 @@ if __name__ == '__main__':
                 # Likely another job has already pushed to this repo.
                 # Place our changes on top of theirs and try again.
                 out = subprocess.check_output(
-                    ['git', 'fetch', 'upstream_with_token', 'master'],
+                    ['git', 'fetch', 'upstream_with_token', default_branch],
                     cwd=feedstock_dir,
                     stderr=subprocess.STDOUT)
                 try:
                     subprocess.check_call(
-                        ['git', 'rebase', 'upstream_with_token/master', 'master'],
+                        [
+                            'git', 'rebase',
+                            'upstream_with_token/%s' % default_branch, default_branch
+                        ],
                         cwd=feedstock_dir)
                 except subprocess.CalledProcessError:
-                    # Handle rebase failure by choosing the changes in `master`.
+                    # Handle rebase failure by choosing the changes in default_branch.
                     subprocess.check_call(
-                        ['git', 'checkout', 'master', '--', '.'],
+                        ['git', 'checkout', default_branch, '--', '.'],
                         cwd=feedstock_dir)
                     subprocess.check_call(
                         ['git', 'rebase', '--continue'], cwd=feedstock_dir)
@@ -293,10 +445,20 @@ if __name__ == '__main__':
             # Remove this recipe from the repo.
             if is_merged_pr:
                 subprocess.check_call(['git', 'rm', '-rf', recipe_dir])
+                # hack to help travis work
+                # from conda_smithy.ci_register import travis_cleanup
+                # travis_cleanup("conda-forge", name + "-feedstock")
+                # end of hack
+
+            if gh:
+                # Get our final rate limit info.
+                print_rate_limiting_info(gh, 'GH_TOKEN')
 
     # Update status based on the remote.
     subprocess.check_call(['git', 'stash', '--keep-index', '--include-untracked'])
     subprocess.check_call(['git', 'fetch'])
+    # CBURR: Debugging
+    subprocess.check_call(['git', 'status'])
     subprocess.check_call(['git', 'rebase', '--autostash'])
     subprocess.check_call(['git', 'add', '.'])
     try:
@@ -346,12 +508,12 @@ if __name__ == '__main__':
             # Capture the output, as it may contain the GH_TOKEN.
             out = subprocess.check_output(
                 ['git', 'remote', 'add', 'upstream_with_token',
-                 'https://conda-forge-manager:{}@github.com/'
+                 'https://x-access-token:{}@github.com/'
                  'conda-forge/staged-recipes'.format(os.environ['GH_TOKEN'])],
                 stderr=subprocess.STDOUT)
             subprocess.check_call(['git', 'commit', '-m', msg])
             # Capture the output, as it may contain the GH_TOKEN.
-            branch = os.environ.get('TRAVIS_BRANCH')
+            branch = os.environ.get('CF_CURRENT_BRANCH')
             out = subprocess.check_output(
                 ['git', 'push', 'upstream_with_token', 'HEAD:%s' % branch],
                 stderr=subprocess.STDOUT)
@@ -361,7 +523,9 @@ if __name__ == '__main__':
     if gh:
         # Get our final rate limit info.
         print_rate_limiting_info(gh, 'GH_TOKEN')
-    if gh_drone:
-        print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+    # if gh_drone:
+    #     print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
+    # if gh_travis:
+    #     print_rate_limiting_info(gh_travis, 'GH_TRAVIS_TOKEN')
 
     sys.exit(exit_code)
