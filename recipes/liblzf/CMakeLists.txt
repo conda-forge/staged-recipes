@@ -86,7 +86,6 @@ configure_package_config_file(${PROJECT_NAME}-config.cmake.in ${PROJECT_NAME}-co
 configure_file(${PROJECT_NAME}.pc.in ${PROJECT_NAME}.pc @ONLY)
 write_basic_package_version_file(${PROJECT_NAME}-config-version.cmake COMPATIBILITY SameMajorVersion)
 install(FILES lzf.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
-install(FILES lzf_c.c lzf_d.c lzfP.h DESTINATION src/${PROJECT_NAME})
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc
 	DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )
