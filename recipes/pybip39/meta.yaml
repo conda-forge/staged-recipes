@@ -1,0 +1,64 @@
+{% set name = "pybip39" %}
+{% set version = "0.1.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/kevinheavey/pybip39/archive/refs/tags/{{ version }}.tar.gz
+  sha256: 79738cab062711634e8a34e3a37c4b50cdb8ba0704f6f99aa4c5e29cd409afce
+  patches:
+    # Upstream uses git version pyo3=0.15.1 that defaults to 0.15.2 and fails
+    # to build. This patch updates the version to pyo3=0.16.6.
+    - update-Cargo.toml-pyo3-version.patch
+
+build:
+  script:
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - {{ PYTHON }} -m pip install . -vv
+  script_env:
+    - PYO3_PYTHON={{ PYTHON }}
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('rust') }}
+    - cargo-bundle-licenses
+  host:
+    - maturin >=0.14,<0.15
+    - python
+    - pip
+  run:
+    - python
+    - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx and x86_64]
+
+test:
+  imports:
+    - pybip39
+  requires:
+    - pip
+    - pytest
+  source_files:
+    - tests
+  commands:
+    - pip check
+    - pytest
+
+about:
+  home: https://github.com/kevinheavey/pybip39
+  summary: 'pybip39 is a fast Python library for BIP39 Bitcoin HD wallet mnemonic phrases'
+  description: |
+    pybip39 is a fast Python library for BIP39 Bitcoin HD wallet mnemonic phrases. It supports multiple
+    languages and allows for seed phrases of 12 to 24 words. pybip39 calls the Rust library tiny-bip39
+    under the hood, thus benefitting from Rust's speed and safety.
+  license: MIT
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  doc_url: https://kevinheavey.github.io/pybip39/
+
+extra:
+  recipe-maintainers:
+    - MementoRC
