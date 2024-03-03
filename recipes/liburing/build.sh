@@ -1,4 +1,3 @@
-./configure --cc="$GCC" --cxx="$GXX" --prefix="$PREFIX"
+./configure --cc="$GCC" --cxx="$GXX" --prefix="$PREFIX" --disable-static
 make -C src
 make install
-rm "$PREFIX"/lib/*.a
