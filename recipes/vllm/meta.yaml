@@ -1,0 +1,88 @@
+{% set name = "vllm" %}
+{% set version = "0.3.3" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/vllm-{{ version }}.tar.gz
+  sha256: 24b70159bbcfd441bfa9d3e226ba8f5db74837c5325fea4a2104cf46c5d8246e
+
+build:
+  # noarch: python
+
+  rpaths:
+    - lib/
+  script_env:
+    - TORCH_CUDA_ARCH_LIST=3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX      # [cuda_compiler_version == "11.2"]
+    - TORCH_CUDA_ARCH_LIST=3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9+PTX  # [cuda_compiler_version == "11.8"]
+    - TORCH_CUDA_ARCH_LIST=5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0+PTX  # [(cuda_compiler_version or "").startswith("12")]
+
+  number: 0
+  skip: True  # [cuda_compiler_version == "None"]
+  skip: True  # [osx or win]
+  missing_dso_whitelist:
+    - '*/libtorch_python.so'
+    
+requirements:
+  build:
+    - cmake
+    - make
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+  host:
+    - python
+    - ninja
+    - packaging
+    - setuptools >=49.4.0
+    - pytorch >=2.1.0
+    - wheel
+    - pip
+    - libxcrypt
+  run:
+    - python
+    - ninja
+    - psutil
+    - ray-core >=2.9.0
+    - pandas
+    - pyarrow
+    - sentencepiece
+    - numpy
+    - einops
+    - pytorch ~=2.1.0
+    - transformers >=4.34.0
+    - xformers
+    - fastapi
+    - uvicorn
+    - pydantic
+    - aioprometheus
+    - prometheus_client
+    - libtorch
+    - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+    - cuda-cupti-dev    # [(cuda_compiler_version or "").startswith("12")]
+    - cuda-cudart-dev   # [(cuda_compiler_version or "").startswith("12")]
+    - cuda-nvml-dev     # [(cuda_compiler_version or "").startswith("12")]
+    - cuda-nvtx-dev     # [(cuda_compiler_version or "").startswith("12")]
+    - libstdcxx-ng
+    - libgcc-ng
+
+test:
+  imports:
+    - vllm
+  # commands:
+  #  - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/vllm-project/vllm
+  summary: A high-throughput and memory-efficient inference and serving engine for LLMs
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - mediocretech
+    - iamthebot 
