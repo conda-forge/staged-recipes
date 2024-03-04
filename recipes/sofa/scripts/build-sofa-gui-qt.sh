@@ -8,18 +8,16 @@ if [[ $target_platform == osx* ]] ; then
     CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 fi
 
-rm -rf build-sofa-gl
+rm -rf build-sofa-gui-qt
 
-mkdir build-sofa-gl
-cd build-sofa-gl
+mkdir build-sofa-gui-qt
+cd build-sofa-gui-qt
 
 cmake ${CMAKE_ARGS} \
   -B . \
-  -S ../Sofa/GL \
+  -S ../Sofa/GUI/Qt \
+  -DCMAKE_INSTALL_RPATH:PATH=${PREFIX}/lib \
   -DCMAKE_BUILD_TYPE:STRING=Release \
-  -DSOFA_ENABLE_LEGACY_HEADERS:BOOL=OFF \
-  -DSOFA_FLOATING_POINT_TYPE=double \
-  -DSOFA_BUILD_TESTS:BOOL=OFF \
   -DSOFA_ALLOW_FETCH_DEPENDENCIES:BOOL=OFF
 
 # build
