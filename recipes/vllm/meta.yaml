@@ -1,5 +1,5 @@
 {% set name = "vllm" %}
-{% set version = "0.2.4" %}
+{% set version = "0.3.3" %}
 
 package:
   name: {{ name|lower }}
@@ -7,25 +7,25 @@ package:
 
 source:
   url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/vllm-{{ version }}.tar.gz
-  sha256: 1b32df7f00ebdd2a828032d1579a1b7865f853ca0149dbee60c2a40c040b21f3
+  sha256: 24b70159bbcfd441bfa9d3e226ba8f5db74837c5325fea4a2104cf46c5d8246e
 
 build:
   # noarch: python
+
+  rpaths:
+    - lib/
 
   script_env:
     - TORCH_CUDA_ARCH_LIST=3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX      # [cuda_compiler_version == "11.2"]
     - TORCH_CUDA_ARCH_LIST=3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9+PTX  # [cuda_compiler_version == "11.8"]
     - TORCH_CUDA_ARCH_LIST=5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0+PTX  # [(cuda_compiler_version or "").startswith("12")]
-    - MAX_JOBS=1
-    
-  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
   number: 0
   skip: True  # [cuda_compiler_version == "None"]
   skip: True  # [osx or win]
   missing_dso_whitelist:
     - '*/libtorch_python.so'
-    
+
 requirements:
   build:
     - cmake
@@ -46,28 +46,32 @@ requirements:
     - python
     - ninja
     - psutil
-    - ray-core >=2.5.1
+    - ray-core >=2.9.0
     - pandas
     - pyarrow
     - sentencepiece
     - numpy
     - einops
-    - pytorch >=2.1.0
+    - pytorch ~=2.1.0
     - transformers >=4.34.0
     - xformers
     - fastapi
     - uvicorn
-    - pydantic ==1.10.13
+    - pydantic
     - aioprometheus
+    - prometheus_client
     - libtorch
-    - cudatoolkit >=11.8.0,<12.2.0
+    - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+    - cuda-cupti-dev    # [(cuda_compiler_version or "").startswith("12")]
+    - cuda-cudart-dev   # [(cuda_compiler_version or "").startswith("12")]
+    - cuda-nvml-dev     # [(cuda_compiler_version or "").startswith("12")]
+    - cuda-nvtx-dev     # [(cuda_compiler_version or "").startswith("12")]
     - libstdcxx-ng
     - libgcc-ng
 
 test:
   imports:
     - vllm
-  # NOTE: need ninja-python for the pip check to pass
   # commands:
   #  - pip check
   requires:
@@ -82,4 +86,4 @@ about:
 extra:
   recipe-maintainers:
     - mediocretech
-    - iamthebot 
+    - iamthebot
