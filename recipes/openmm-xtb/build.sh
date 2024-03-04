@@ -2,9 +2,6 @@
 
 set -euxo pipefail
 
-CMAKE_FLAGS="${CMAKE_ARGS} -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON"
-
-
 rm -rf build || true
 
 
