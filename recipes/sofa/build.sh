@@ -45,6 +45,14 @@ cmake --build . --parallel ${CPU_COUNT}
 # install
 cmake --build . --parallel ${CPU_COUNT} --target install
 
+# For macOS, we have to provide this additionnal script as an hotfix
+# for users who would like to load SofaPython3 plugin in runSofa
+# application.
+# See scripts/hotfix-sofa-run-macos.sh for more details.
+if [[ $target_platform == osx* ]] ; then
+    cp "${RECIPE_DIR}/scripts/hotfix-sofa-run-macos.sh" "${PREFIX}/bin/runSofa_with_python"
+end
+
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
 # This will allow them to be run on environment activation.
 for CHANGE in "activate" "deactivate"
