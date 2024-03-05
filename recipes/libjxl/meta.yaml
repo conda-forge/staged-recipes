@@ -1,0 +1,82 @@
+{% set version = "0.10.1" %}
+
+package:
+  name: libjxl
+  version: {{ version }}
+
+source:
+  url: https://github.com/libjxl/libjxl/archive/v{{ version }}.tar.gz
+  sha256: 91b9a83a230d608b5d35d2ab5068bd0ec7028797575e3013211be5928028c8cd
+  patches:
+    - link_privately.patch
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_subpackage('libjxl', max_pin='x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - pkg-config            # [unix]
+    - make                  # [unix]
+    - ninja                 # [win]
+  host:
+    - brotli
+    - libhwy
+    - lcms2
+    # is skcms necessary???
+    # It seems that these libraries are necessary for the intenral tools
+    # which don't compile well for platforms other than linux
+    # Since this library is primarily intented to be used by others,
+    # we have simply decided not to include them
+    # - gflags
+    # - openexr
+    # - imath
+    # - libjpeg-turbo
+    # - ilmbase
+    # - giflib
+    # - libpng
+    # - libwebp-base
+  run:
+    - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx and x86_64]
+
+test:
+  commands:
+    - test -d ${PREFIX}/include/jxl                  # [unix]
+    - test -f ${PREFIX}/include/jxl/encode.h         # [unix]
+    - test -f ${PREFIX}/include/jxl/decode.h         # [unix]
+    - test -f ${PREFIX}/lib/libjxl_cms${SHLIB_EXT}   # [unix]
+    - test -f ${PREFIX}/lib/libjxl${SHLIB_EXT}       # [unix]
+
+    - if not exist %PREFIX%\\Library\\bin\\jxl_cms.dll exit 1        # [win]
+    - if not exist %PREFIX%\\Library\\lib\\jxl_cms.lib exit 1        # [win]
+    - if not exist %PREFIX%\\Library\\bin\\jxl.dll exit 1            # [win]
+    - if not exist %PREFIX%\\Library\\lib\\jxl.lib exit 1            # [win]
+    - if not exist %PREFIX%\\Library\\include\\jxl\\encode.h exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\include\\jxl\\decode.h exit 1  # [win]
+
+    # We stopped shipping tools since they just seemed to depend on
+    # jxl_extras_codec
+    # which seemed to be an internal only library
+    # https://github.com/libjxl/libjxl/tree/main/lib/extras#readme
+    # and the build system didn't seem to be fully built out for this
+    # on all platforms
+    #
+    # - djxl -h
+    # - cjxl -h
+    # - jxlinfo -h
+
+about:
+  home: https://jpeg.org/jpegxl/
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: JPEG XL reference implementation
+  dev_url: https://github.com/libjxl/libjxl
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
