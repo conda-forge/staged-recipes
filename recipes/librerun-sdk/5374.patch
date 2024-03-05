@@ -1,0 +1,77 @@
+From 6a7d0a22477b86f12671f98026d9ac3b54a67234 Mon Sep 17 00:00:00 2001
+From: Silvio Traversaro <silvio@traversaro.it>
+Date: Sat, 2 Mar 2024 15:44:28 +0100
+Subject: [PATCH] Add RERUN_INSTALL_RERUN_C CMake option to disable
+ installation of rerun_c library
+
+---
+ rerun_cpp/CMakeLists.txt  | 21 +++++++++++++++------
+ rerun_cpp/Config.cmake.in | 22 ++++++++++++----------
+ 2 files changed, 27 insertions(+), 16 deletions(-)
+
+diff --git a/rerun_cpp/CMakeLists.txt b/rerun_cpp/CMakeLists.txt
+index 1d40a2a1068..df79896c8f9 100644
+--- a/rerun_cpp/CMakeLists.txt
++++ b/rerun_cpp/CMakeLists.txt
+@@ -123,13 +123,22 @@ install(TARGETS rerun_sdk
+     INCLUDES DESTINATION include
+ )
+ 
+-# Add all headers to the install.
+-install(DIRECTORY "${RERUN_CPP_SOURCE_DIR}/" TYPE INCLUDE FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
++# Add all C++ headers to the install.
++install(DIRECTORY "${RERUN_CPP_SOURCE_DIR}/" TYPE INCLUDE FILES_MATCHING PATTERN "*.hpp")
++
++option(RERUN_INSTALL_RERUN_C "Install rerun_c file." ON)
++# if rerun_sdk is a static library it is compulsory to install rerun_c
++get_target_property(rerun_sdk_TYPE rerun_sdk TYPE)
++if(rerun_sdk_TYPE STREQUAL "STATIC_LIBRARY")
++    message(FATAL_ERROR "It is not possible to disable RERUN_INSTALL_RERUN_C option if rerun_sdk is compiled as static library.")
++endif()
+ 
+-# Add rerun_c to the lib folder.
+-# CMake doesn't allow installing imported targets which is why we need to add this as a file.
+-get_target_property(RERUN_C_LIB_LOCATION rerun_c IMPORTED_LOCATION)
+-install(FILES ${RERUN_C_LIB_LOCATION} DESTINATION lib)
++if(RERUN_INSTALL_RERUN_C)
++    # CMake doesn't allow installing imported targets which is why we need to add this as a file.
++    get_target_property(RERUN_C_LIB_LOCATION rerun_c IMPORTED_LOCATION)
++    install(DIRECTORY "${RERUN_CPP_SOURCE_DIR}/" TYPE INCLUDE FILES_MATCHING PATTERN "*.h")
++    install(FILES ${RERUN_C_LIB_LOCATION} DESTINATION lib)
++endif()
+ 
+ # Similarly, we bundle the arrow library that was used during the build.
+ # For the moment we only support this when building with the downloaded, static libarrow.
+diff --git a/rerun_cpp/Config.cmake.in b/rerun_cpp/Config.cmake.in
+index 9edf8a7f457..1bb1310c7ba 100644
+--- a/rerun_cpp/Config.cmake.in
++++ b/rerun_cpp/Config.cmake.in
+@@ -4,16 +4,18 @@ include("${CMAKE_CURRENT_LIST_DIR}/rerun_sdkTargets.cmake")
+ 
+ set(RERUN_LIB_DIR "${CMAKE_CURRENT_LIST_DIR}/../..")
+ 
+-# Setup `rerun_c` (imported libraries can't be exported!)
+-add_library(rerun_c STATIC IMPORTED GLOBAL)
+-get_filename_component(RERUN_C_LIB_NAME "@RERUN_C_LIB_LOCATION@" NAME)
+-set_target_properties(rerun_c PROPERTIES IMPORTED_LOCATION "${RERUN_LIB_DIR}/${RERUN_C_LIB_NAME}")
+-if(APPLE)
+-    target_link_libraries(rerun_c INTERFACE "-framework CoreFoundation" "-framework IOKit")
+-elseif(UNIX) # if(LINUX) # CMake 3.25
+-    target_link_libraries(rerun_c INTERFACE "-lm -ldl -pthread")
+-elseif(WIN32)
+-    target_link_libraries(rerun_c INTERFACE ws2_32.dll Bcrypt.dll Userenv.dll ntdll.dll)
++if(@RERUN_INSTALL_RERUN_C@)
++    # Setup `rerun_c` (imported libraries can't be exported!)
++    add_library(rerun_c STATIC IMPORTED GLOBAL)
++    get_filename_component(RERUN_C_LIB_NAME "@RERUN_C_LIB_LOCATION@" NAME)
++    set_target_properties(rerun_c PROPERTIES IMPORTED_LOCATION "${RERUN_LIB_DIR}/${RERUN_C_LIB_NAME}")
++    if(APPLE)
++        target_link_libraries(rerun_c INTERFACE "-framework CoreFoundation" "-framework IOKit")
++    elseif(UNIX) # if(LINUX) # CMake 3.25
++        target_link_libraries(rerun_c INTERFACE "-lm -ldl -pthread")
++    elseif(WIN32)
++        target_link_libraries(rerun_c INTERFACE ws2_32.dll Bcrypt.dll Userenv.dll ntdll.dll)
++    endif()
+ endif()
+ 
+ # Setup `rerun_arrow_target` (imported libraries can't be exported and package dependencies need to be re-declared)
