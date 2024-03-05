@@ -1,0 +1,161 @@
+{% set name = "libnvfatbin" %}
+{% set version = "12.4.99" %}
+{% set cuda_version = "12.4" %}
+{% set platform = "linux-x86_64" %}    # [linux64]
+{% set platform = "linux-ppc64le" %}   # [ppc64le]
+{% set platform = "linux-sbsa" %}      # [aarch64]
+{% set platform = "windows-x86_64" %}  # [win]
+{% set target_name = "x86_64-linux" %}  # [linux64]
+{% set target_name = "ppc64le-linux" %}  # [ppc64le]
+{% set target_name = "sbsa-linux" %}  # [aarch64]
+{% set target_name = "x64" %}  # [win]
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cuda/redist/{{ name }}/{{ platform }}/{{ name }}-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: 8e47ec31312dd08c139468040ff136832bc1d3206364dc68b3df0989c403d2ec  # [linux64]
+  sha256: b18404c664412eae2ff95fd40deea890078e33495ecbf95c1fbc6d1c7a7b1c76  # [ppc64le]
+  sha256: f1285a717183635da1d9ce140b96080b7feb13a1a9b0c6e1d05a7bd8c7260ed1  # [aarch64]
+  sha256: 6460741837aec3ff1a10597475fe0420e80cf6c0f1b041686acc94ec84d723d4  # [win]
+
+build:
+  number: 0
+  binary_relocation: false
+  skip: true  # [osx]
+
+test:
+  requires:
+    - patchelf  # [linux]
+  files:
+    - test-rpath.sh
+  commands:
+    - test -L $PREFIX/lib/libnvfatbin.so.{{ version }}                                          # [linux]
+    - test -L $PREFIX/lib/libnvfatbin.so.{{ version.split(".")[0] }}                            # [linux]
+    - test -L $PREFIX/targets/{{ target_name }}/lib/libnvfatbin.so.{{ version.split(".")[0] }}  # [linux]
+    - test -f $PREFIX/targets/{{ target_name }}/lib/libnvfatbin.so.{{ version }}                # [linux]
+    - bash test-rpath.sh                                                                        # [linux]
+    - if not exist %LIBRARY_BIN%\nvfatbin*.dll exit 1                                           # [win]
+
+outputs:
+  - name: libnvfatbin
+    files:
+      - lib/libnvfatbin.so.*                             # [linux]
+      - targets/{{ target_name }}/lib/libnvfatbin*.so.*  # [linux]
+      - Library\bin\nvfatbin*.dll                        # [win]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+        - sysroot_{{ target_platform }} 2.17    # [linux]
+        - patchelf <0.18.0                      # [linux]
+      host:
+        - cuda-version {{ cuda_version }}
+      run:
+        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    # Tests are defined at the top level, due to package/output name conflicts.
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license_file: LICENSE
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: NVIDIA compiler library for fatbin interaction
+      description: |
+        NVIDIA compiler library for fatbin interaction
+      doc_url: https://docs.nvidia.com/cuda/index.html
+
+  - name: libnvfatbin-dev
+    build:
+      run_exports:
+        - {{ pin_subpackage("libnvfatbin", max_pin="x") }}
+    files:
+      - lib/libnvfatbin.so         # [linux]
+      - lib/pkgconfig                                 # [linux]
+      - targets/{{ target_name }}/include             # [linux]
+      - targets/{{ target_name }}/lib/libnvfatbin.so  # [linux]
+      - targets/{{ target_name }}/lib/stubs           # [linux]
+      - Library\include                               # [win]
+      - Library\lib                                   # [win]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+        - sysroot_{{ target_platform }} 2.17    # [linux]
+      host:
+        - cuda-version {{ cuda_version }}
+      run:
+        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+        - {{ pin_subpackage("libnvfatbin", exact=True) }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+        - liblibnvfatbin-static >={{ version }}
+    test:
+      commands:
+        - test -L $PREFIX/lib/libnvfatbin.so                                  # [linux]
+        - test -f $PREFIX/lib/pkgconfig/nvfatbin*.pc                          # [linux]
+        - test -f $PREFIX/targets/{{ target_name }}/include/nvFatbin.h        # [linux]
+        - test -L $PREFIX/targets/{{ target_name }}/lib/libnvfatbin.so        # [linux]
+        - test -f $PREFIX/targets/{{ target_name }}/lib/stubs/libnvfatbin.so  # [linux]
+        - if not exist %LIBRARY_INC%\nvFatbin.h exit 1                        # [win]
+        - if not exist %LIBRARY_LIB%\nvfatbin.lib exit 1                      # [win]
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license_file: LICENSE
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: NVIDIA compiler library for fatbin interaction
+      description: |
+        NVIDIA compiler library for fatbin interaction
+      doc_url: https://docs.nvidia.com/cuda/index.html
+
+  - name: libnvfatbin-static
+    files:
+      - targets/{{ target_name }}/lib/libnvfatbin_static.a  # [linux]
+      - Library\lib\nvfatbin_static.lib                     # [win]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+        - sysroot_{{ target_platform }} 2.17    # [linux]
+      host:
+        - cuda-version {{ cuda_version }}
+      run:
+        - {{ pin_compatible("cuda-version", max_pin="x.x") }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -f $PREFIX/targets/{{ target_name }}/lib/libnvfatbin_static.a  # [linux]
+        - if not exist %LIBRARY_LIB%\nvfatbin_static.lib exit 1               # [win]
+    about:
+      home: https://developer.nvidia.com/cuda-toolkit
+      license_file: LICENSE
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_url: https://docs.nvidia.com/cuda/eula/index.html
+      summary: NVIDIA compiler library for fatbin interaction
+      description: |
+        NVIDIA compiler library for fatbin interaction
+      doc_url: https://docs.nvidia.com/cuda/index.html
+
+about:
+  home: https://developer.nvidia.com/cuda-toolkit
+  license_file: LICENSE
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  summary: NVIDIA compiler library for fatbin interaction
+  description: |
+    NVIDIA compiler library for fatbin interaction
+  doc_url: https://docs.nvidia.com/cuda/index.html
+
+extra:
+  recipe-maintainers:
+    - conda-forge/cuda
