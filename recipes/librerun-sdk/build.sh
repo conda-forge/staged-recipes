@@ -2,6 +2,11 @@
 
 set -ex
 
+if [[ "${target_platform}" == osx-* ]]; then
+    # See https://conda-forge.org/docs/maintainer/knowledge_base.html#newer-c-features-with-old-sdk
+    CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+fi
+
 # https://github.com/rust-lang/cargo/issues/10583#issuecomment-1129997984
 export CARGO_NET_GIT_FETCH_WITH_CLI=true
 export IS_IN_RERUN_WORKSPACE=no
