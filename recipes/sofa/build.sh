@@ -51,7 +51,7 @@ cmake --build . --parallel ${CPU_COUNT} --target install
 # See scripts/hotfix-sofa-run-macos.sh for more details.
 if [[ $target_platform == osx* ]] ; then
     cp "${RECIPE_DIR}/scripts/hotfix-sofa-run-macos.sh" "${PREFIX}/bin/runSofa_with_python"
-end
+fi
 
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
 # This will allow them to be run on environment activation.
