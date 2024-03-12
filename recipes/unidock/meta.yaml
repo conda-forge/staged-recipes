@@ -1,0 +1,60 @@
+{% set name = "unidock" %}
+{% set version = "1.1.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/dptech-corp/Uni-Dock/archive/refs/tags/{{ version }}.tar.gz
+  sha256: d8147e596079632221ef3c692cb1f1e6fc6e9a1e9303d2bcd44afe1508557af0
+
+build:
+  skip: true  # [not linux]
+  skip: true  # [cuda_compiler_version == "None"]
+  skip: true  # [cuda_compiler_version == "11.2"]
+  script: |
+    cd unidock
+    mkdir conda_build && cd conda_build
+    cmake ${CMAKE_ARGS} ${SRC_DIR}/unidock
+    make unidock -j$CPU_COUNT
+    make install
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+  number: 0
+
+requirements:
+  build:
+    - sysroot_{{ target_platform }} 2.17
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - cmake
+    - make
+    - libgomp
+  host:
+    - libboost-devel
+    - libcurand-dev  # [(cuda_compiler_version or "").startswith("12")]
+
+test:
+  commands:
+    # Dry run to verify dynamic libs are present.
+    - unidock --version
+
+about:
+  home: https://github.com/dptech-corp/Uni-Dock
+  doc_url: https://github.com/dptech-corp/Uni-Dock
+  dev_url: https://github.com/dptech-corp/Uni-Dock
+  license: LGPL-3.0-only
+  license_family: LGPL
+  license_file: unidock/LICENSE
+  summary: A GPU-accelerated molecular docking program
+  description: >
+    Uni-Dock is a GPU-accelerated molecular docking program developed by DP Technology.
+    It supports various scoring functions including vina, vinardo, and ad4.
+    Uni-Dock achieves more than 1000-fold speed-up on V100 GPU with high-accuracy,
+    compared with the AutoDock Vina running in single CPU core.
+    The paper has been accepted by JCTC (doi: 10.1021/acs.jctc.2c01145).
+
+extra:
+  recipe-maintainers:
+    - caic99
