@@ -15,6 +15,14 @@ if [[ "$PKG_NAME" == "libsofa-core" ]]; then
     done
     cd ../..
 
+    # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
+    # This will allow them to be run on environment activation.
+    for CHANGE in "activate" "deactivate"
+    do
+        mkdir -p "${PREFIX}/etc/conda/${CHANGE}.d"
+        cp "${RECIPE_DIR}/${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.sh"
+    done
+
 elif [[ "$PKG_NAME" == "libsofa-core-devel" ]]; then
     # headers
     cp -R temp_prefix/include/. $PREFIX/include
