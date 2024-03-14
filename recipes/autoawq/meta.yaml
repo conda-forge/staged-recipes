@@ -1,0 +1,85 @@
+{% set name = "autoawq" %}
+{% set version = "0.1.6" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/casper-hansen/{{ name }}/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 6b471d83222c3a090ea68f02a15d365afa25f0b5978a92e8265da075d5a6c6ad # 0.1.6
+  # sha256: 39e6642c01eca1a15806479d77c91228f9b4ff95827e62baac7019d0cd9bd938  # 0.1.8
+
+build:
+  # noarch: python
+  rpaths:
+    - lib/
+  script_env:
+    - DISABLE_QIGEN=1 # coming soon
+    - TORCH_CUDA_ARCH_LIST=3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX      # [cuda_compiler_version == "11.2"]
+    - TORCH_CUDA_ARCH_LIST=3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9+PTX  # [cuda_compiler_version == "11.8"]
+    - TORCH_CUDA_ARCH_LIST=5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0+PTX  # [(cuda_compiler_version or "").startswith("12")]
+    - CPATH=${BUILD_PREFIX}/include
+  script: |
+    cat setup.py | sed 's/os.environ\["CC"\] = "g++"//' | sed 's/os.environ\["CXX"\] = "g++"//' > tmpsetup.py
+    mv tmpsetup.py setup.py
+    {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+  skip: True  # [cuda_compiler_version == "None"]
+  skip: True  # [cuda_compiler_version == "11.2"]
+  skip: True  # [osx or win]
+  missing_dso_whitelist:
+    - '*/libtorch_python.so'
+
+requirements:
+  
+  build:
+    - cmake
+    - make
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+
+  host:
+    - python
+    - packaging
+    - setuptools >=49.4.0
+    - pytorch >=2.1.0
+    - wheel
+    - pip
+    - libxcrypt
+  run:
+    - python
+    - pytorch
+    - torchvision
+    - transformers >=4.35.0
+    - tokenizers >=0.12.1
+    - accelerate
+    - sentencepiece
+    - lm_eval
+    - texttable
+    - toml
+    - attributedict
+    - protobuf
+    - torchvision
+    - tabulate
+    - cudatoolkit
+    - libtorch
+
+test:
+  imports:
+    - awq
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/casper-hansen/AutoAWQ
+  summary: AutoAWQ is an easy-to-use package for 4-bit quantized models.
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - mediocretech
