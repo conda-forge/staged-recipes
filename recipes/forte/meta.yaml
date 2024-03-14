@@ -31,15 +31,17 @@ requirements:
     - pybind11
     - pybind11-abi
     - python
-    # qc req'd
+    # qc
     - psi4
     - ambit
     - pyambit
   run:
     - llvm-openmp                            # [unix]
+    - intel-openmp                           # [win]
     - python
+    # qc
     - {{ pin_compatible('psi4', min_pin='x.x.x', max_pin='x.x.x') }}
-    - {{ pin_compatible('pyambit', min_pin='x.x.x', max_pin='x.x.x') }}
+    - {{ pin_compatible('pyambit', min_pin='x.x.x', max_pin='x.x.x') }}            # needed at runtime b/c "imported" by pb11
   run_constrained:
     - pytest >=7.0.1,<8
 
@@ -57,16 +59,17 @@ test:
     - test -f $SP_DIR/forte/_forte*.so                                   # [unix]
     - test -f $SP_DIR/forte/pymodule.py                                  # [unix]
     - if not exist %SP_DIR%\\forte\\_forte*.pyd exit 1                   # [win]
-    - if not exist %SP_DIR%\\forte\\_forte\\driver.py exit 1             # [win]
+    - if not exist %SP_DIR%\\forte\\pymodule.py exit 1                   # [win]
     - python -c "import forte;print(forte.__file__, forte.__version__)"
     # Inspect linkage
-    - ldd $SP_DIR/forte/_forte*.so                                    # [linux]
+    - ldd $SP_DIR/forte/_forte*.so                                       # [linux]
     - otool -L $SP_DIR/forte/_forte*.so                                  # [osx]
     - objdump.exe -p %SP_DIR%\\forte\\_forte.*.pyd | findstr /i "dll"    # [win]
     # Actually test
     - pip check
     - python test_forte.py
-    - pytest -v -rws --color yes $SP_DIR --pyargs forte                  # [unix]
+    - pytest -v -rws --color yes $SP_DIR/forte                           # [unix]
+    - pytest -v -rws --color yes %SP_DIR%\\forte                         # [win]
 
 about:
   home: https://github.com/evangelistalab/forte
