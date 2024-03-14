@@ -8,10 +8,12 @@ cd build
 ::set FFLAGS=-fdefault-integer-8 %FFLAGS%
 :: set CMAKE_CXX_FLAGS=-fvisibility=hidden %CMAKE_CXX_FLAGS%
 
+
 cmake -G "Ninja" .. ^
     -Wno-dev ^
     -D CMAKE_BUILD_TYPE="Release" ^
     -D PYTHON_ROOT_DIR="%PREFIX%" ^
+    -D CMAKE_CXX_FLAGS="/bigobj" ^
     -D PYTHON_EXECUTABLE:FILEPATH="%PYTHON%" ^
     -D CONFIGURATION_ROOT_DIR="%SRC_DIR%/deps/config" ^
     -D SALOME_CMAKE_DEBUG=ON ^
