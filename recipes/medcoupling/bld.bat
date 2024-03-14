@@ -1,15 +1,7 @@
 @echo off
 
-mkdir build
-cd build
 
-:: -fdefault-integer-8 is not supported on msvc. Should consider moving to clang/msys2
-::set FCFLAGS=-fdefault-integer-8 %FCFLAGS%
-::set FFLAGS=-fdefault-integer-8 %FFLAGS%
-:: set CMAKE_CXX_FLAGS=-fvisibility=hidden %CMAKE_CXX_FLAGS%
-
-
-cmake -G "Ninja" .. ^
+cmake -B build -G "Ninja" . ^
     -Wno-dev ^
     -D CMAKE_BUILD_TYPE="Release" ^
     -D PYTHON_ROOT_DIR="%PREFIX%" ^
@@ -35,9 +27,7 @@ cmake -G "Ninja" .. ^
     %CMAKE_ARGS%
 
 if errorlevel 1 exit 1
-ninja
-if errorlevel 1 exit 1
-ninja install
+cmake --build build --target install
 if errorlevel 1 exit 1
 
 :: Move dll files from %PREFIX%/Library/Lib to %PREFIX%/Library/Bin

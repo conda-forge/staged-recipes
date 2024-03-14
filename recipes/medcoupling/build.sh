@@ -2,16 +2,13 @@
 
 set -ex
 
-mkdir -p build
-cd build
-
 if [[ "$mpi" == "nompi" ]]; then
   on_mpi="OFF"
 else
   on_mpi="ON"
 fi
 
-cmake .. \
+cmake  -B build . \
     -DCMAKE_BUILD_TYPE="Release" \
     -DPYTHON_ROOT_DIR="${PREFIX}" \
     -DPYTHON_EXECUTABLE:FILEPATH="$PYTHON" \
@@ -33,5 +30,5 @@ cmake .. \
     -DMPI_C_COMPILER:PATH="$(which mpicc)" \
     ${CMAKE_ARGS}
 
-make -j$CPU_COUNT
-make install
+cd build
+make install -j$CPU_COUNT
