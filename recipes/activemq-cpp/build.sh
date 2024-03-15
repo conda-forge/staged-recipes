@@ -1,6 +1,7 @@
 #!/bin/bash
 
 cd activemq-cpp
+
 ./autogen.sh
 chmod +x configure
 
