@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
 
-bash scripts/install_packages_locally.sh
+export DISABLE_AUTOBREW=1
+
+${R} CMD INSTALL --build . ${R_ARGS}
