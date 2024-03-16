@@ -1,0 +1,71 @@
+{% set name = "librerun-sdk" %}
+{% set version = "0.14.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/rerun-io/rerun/archive/refs/tags/{{ version }}.tar.gz
+  sha256: 7b893328bb21a143f04bb9ec0dd5154915a9bc0e9b4d86ca8f780a0fa970b82b
+  patches:
+    - 5374.patch
+    - 5375.patch
+    - fixrerun_c_location.patch
+
+build:
+  number: 0
+  # Windows does not support shared libraries, let's disable it for now
+  skip: true  # [win]
+  run_exports:
+    - {{ pin_subpackage(name, max_pin='x.x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - pkg-config
+    - ninja
+    - cargo-bundle-licenses
+    - {{ compiler('rust') }}
+  host:
+    - libarrow
+  run:
+    - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx and x86_64]
+  # Ensure that the users always instal the same version if it
+  # installs both librerun-sdk (C++) and rerun-sdk (Python)
+  run_constrained:
+    - rerun-sdk {{ version }}
+    
+test:
+  commands:
+    - test -f ${PREFIX}/include/rerun.hpp  # [unix]
+    - test -f ${PREFIX}/lib/librerun_sdk${SHLIB_EXT}  # [unix]
+    - if not exist %LIBRARY_PREFIX%\\include\\rerun.hh exit 1  # [win]
+    - if not exist %LIBRARY_PREFIX%\\lib\\rerun_sdk.lib exit 1  # [win]
+    - if not exist %LIBRARY_PREFIX%\\bin\\rerun_sdk.dll exit 1  # [win]
+    - cmake-package-check rerun_sdk
+  requires:
+    - cmake-package-check
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+
+about:
+  home: https://www.rerun.io/
+  summary: Rerun is an SDK for logging computer vision and robotics data paired with a visualizer for exploring that data over time.
+  description: |
+    The `librerun-sdk` package provides the C++ API for Rerun, while `rerun-sdk` provides the Python API.
+  license: MIT OR Apache-2.0
+  license_file:
+    - THIRDPARTY.yml
+    - LICENSE-MIT
+    - LICENSE-APACHE
+
+  doc_url: https://www.rerun.io/docs
+  dev_url: https://github.com/rerun-io/rerun
+
+extra:
+  recipe-maintainers:
+    - traversaro
+    - jleibs
