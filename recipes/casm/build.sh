@@ -1,6 +1,7 @@
 #!/bin/bash
+aclocal
 autoconf
-automake
+automake --add-missing
 ./configure
 make
 make check 
