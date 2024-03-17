@@ -1,5 +1,5 @@
 #!/bin/bash
-autoconf
+./bootstrap.sh
 ./configure
 make
 make check 
