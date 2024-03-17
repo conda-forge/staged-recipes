@@ -1,6 +1,6 @@
 #!/bin/bash
 ./bootstrap.sh
-./configure
+./configure --prefix=$PREFIX --with-boost-libdir=${PREFIX}/lib
 make
 make check 
 make install 
