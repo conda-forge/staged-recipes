@@ -1,0 +1,260 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index d1495cd..8b5f28e 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -6,6 +6,10 @@ set(CMAKE_CXX_STANDARD 20)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+ 
++if (APPLE)
++  add_definitions(-D_LIBCPP_DISABLE_AVAILABILITY)  
++endif()
++set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-c++11-narrowing")
+ # Build with python lib
+ option(USE_PYTHON "Buid Python lib" OFF)
+ # CUDA support
+@@ -14,20 +18,14 @@ option(USE_CUDA "Build CUDA tensor export, if the library is found" ON)
+ # iNiVation camera support (And other?)
+ find_package(libcaer CONFIG QUIET)
+ option(USE_CAMERA "Build with camera drivers?" ${libcaer_FOUND})
++find_package( OpenCV REQUIRED )  # libcaer does not properly link to OpenCV
++include_directories( ${OpenCV_INCLUDE_DIRS} )
+ 
+ # Compile flags
+ set(default_build_type Release)
+ add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
+ 
+ # Includes
+-include_directories("include/")
+-include_directories("/opt/homebrew/opt/lz4/include") # Compression
+-link_directories("/opt/homebrew/opt/lz4/lib")
+-include_directories("/opt/local/include")
+-link_directories("/opt/local/lib")
+-include_directories("/opt/homebrew/opt/sdl2/include/") # Video rendering?
+-link_directories("/opt/homebrew/opt/sdl2/lib")
+-include(include/CPM.cmake)
+ 
+ # Add tests
+ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+diff --git a/src/cpp/CMakeLists.txt b/src/cpp/CMakeLists.txt
+index a4380a5..0d5daba 100644
+--- a/src/cpp/CMakeLists.txt
++++ b/src/cpp/CMakeLists.txt
+@@ -1,16 +1,19 @@
+ message("@ src/cpp/CMakeLists.txt")
+ include(FetchContent)
+ 
++find_package(CLI11 2.0 REQUIRED)
++
++
+ # AER processing
+-add_library(aer STATIC aer.hpp generator.hpp)
++add_library(aer SHARED aer.hpp generator.hpp)
+ target_include_directories(aer INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+ set_target_properties(aer PROPERTIES LINKER_LANGUAGE CXX)
+ # set coroutine flags for clang appropriately
+ # thanks to https://stackoverflow.com/questions/64703866/is-clang-11s-invocation-of-coroutine-headers-via-fcoroutines-flag
+ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+-  target_compile_options(aer PUBLIC "-fcoroutines-ts")
++  # target_compile_options(aer PUBLIC "-fcoroutines-ts")
+   add_compile_definitions(USE_CLANG)
+-  message(STATUS "detected clang, set -ts flag")
++  message(STATUS "detected clang")
+ else()
+   target_compile_options(aer PUBLIC "-fcoroutines")
+ endif()
+@@ -34,8 +37,8 @@ else()
+   message(STATUS "SDL2 not found, cannot compile viewer")
+ endif()
+ add_executable(aestream aestream.cpp ${aestream_sources})
+-target_include_directories(aestream PRIVATE ${AESTREAM_LIBDIR} ${CMAKE_INSTALL_LIBDIR})
+-target_link_libraries(aestream PRIVATE aer aestream_file aestream_input aestream_output ${aestream_link_libraries})
++target_include_directories(aestream PRIVATE ${CMAKE_INSTALL_LIBDIR})
++target_link_libraries(aestream PRIVATE aer aestream_file aestream_input aestream_output ${aestream_link_libraries} CLI11::CLI11)
+ if (USE_PYTHON)
+   # Thanks to https://github.com/scikit-build/scikit-build-sample-projects/
+   set_target_properties(aestream PROPERTIES INSTALL_RPATH ${AESTREAM_RUNPATH})
+diff --git a/src/cpp/aestream.cpp b/src/cpp/aestream.cpp
+index d3ce6ee..5bb1de0 100644
+--- a/src/cpp/aestream.cpp
++++ b/src/cpp/aestream.cpp
+@@ -4,7 +4,7 @@
+ #include <string>
+ #include <sys/types.h>
+ 
+-#include "CLI11.hpp"
++#include <CLI/CLI.hpp>
+ 
+ // AER imports
+ #include "aer.hpp"
+diff --git a/src/cpp/file/CMakeLists.txt b/src/cpp/file/CMakeLists.txt
+index c361b4d..dcdd0ae 100644
+--- a/src/cpp/file/CMakeLists.txt
++++ b/src/cpp/file/CMakeLists.txt
+@@ -4,22 +4,8 @@ set(input_libraries aer)
+ set(input_include_directories "")
+ 
+ # Include flatbuffers and generate headers
+-find_package(flatbuffers CONFIG NAMES flatbuffers Flatbuffers FlatBuffers QUIET)
++find_package(flatbuffers CONFIG NAMES flatbuffers Flatbuffers FlatBuffers REQUIRED)
+ set(FLATBUFFERS_BUILD_TESTS OFF)
+-if (flatbuffers_FOUND AND FLATBUFFERS_SOURCE_DIR) # Add flatbuffers from source dir (set in flake.nix)
+-  add_subdirectory(${FLATBUFFERS_SOURCE_DIR} 
+-                  ${CMAKE_CURRENT_BINARY_DIR}/flatbuffers-build
+-                  EXCLUDE_FROM_ALL)
+-else()
+-  message(STATUS "flatbuffers not found, fetching from source")
+-  include(FetchContent)
+-  FetchContent_Declare(
+-    flatbuffers
+-    GIT_REPOSITORY https://github.com/google/flatbuffers.git
+-    GIT_TAG v23.1.21
+-  )
+-  FetchContent_MakeAvailable(flatbuffers)
+-endif()
+ 
+ set(input_libraries ${input_libraries} flatbuffers)
+ FILE(GLOB SCHEMA_FILES "${CMAKE_CURRENT_SOURCE_DIR}/flatbuffers/*.fbs")
+@@ -45,7 +31,8 @@ else()
+ endif()
+ 
+ # Create the file library
+-add_library(aestream_file STATIC ${input_sources})
++add_library(aestream_file SHARED ${input_sources})
++set_target_properties(aestream_file PROPERTIES LINKER_LANGUAGE CXX)
+ target_link_libraries(aestream_file PUBLIC fb_headers ${input_libraries})
+ target_compile_definitions(aestream_file PUBLIC ${input_definitions})
+-target_include_directories(aestream_file PUBLIC ${input_include_directories})
+\ No newline at end of file
++target_include_directories(aestream_file PUBLIC ${input_include_directories})
+diff --git a/src/cpp/file/aedat4.hpp b/src/cpp/file/aedat4.hpp
+index 72d122b..61a6c3d 100644
+--- a/src/cpp/file/aedat4.hpp
++++ b/src/cpp/file/aedat4.hpp
+@@ -18,6 +18,8 @@
+ 
+ #include <flatbuffers/flatbuffers.h>
+ 
++#include <boost/property_tree/detail/xml_parser_read_rapidxml.hpp>
++
+ #include "utils.hpp"
+ #include <aer.hpp>
+ 
+@@ -28,7 +30,6 @@
+ #include "generator.hpp"
+ #include "imus_generated.h"
+ #include "ioheader_generated.h"
+-#include "rapidxml.hpp"
+ #include "trigger_generated.h"
+ 
+ struct AEDAT4 : FileBase {
+@@ -231,9 +232,9 @@ private:
+   const flatbuffers::Vector<const Event *> *event_vector = nullptr;
+ 
+   std::map<std::string, std::string>
+-  collect_attributes(rapidxml::xml_node<> *node) {
++  collect_attributes(boost::property_tree::detail::rapidxml::xml_node<> *node) {
+     std::map<std::string, std::string> attributes;
+-    for (const rapidxml::xml_attribute<> *a = node->first_attribute(); a;
++    for (const boost::property_tree::detail::rapidxml::xml_attribute<> *a = node->first_attribute(); a;
+          a = a->next_attribute()) {
+       auto name = std::string(a->name(), a->name_size());
+       auto value = std::string(a->value(), a->value_size());
+diff --git a/src/cpp/generator.hpp b/src/cpp/generator.hpp
+index c1b2afc..30c0a75 100644
+--- a/src/cpp/generator.hpp
++++ b/src/cpp/generator.hpp
+@@ -1,12 +1,7 @@
+ #pragma once
+ 
+-#if USE_CLANG
+-#include <experimental/coroutine>
+-namespace coroutinestd = std::experimental;
+-#else
+ #include <coroutine>
+ namespace coroutinestd = std;
+-#endif
+ #include <iostream>
+ #include <optional>
+ 
+diff --git a/src/cpp/input/CMakeLists.txt b/src/cpp/input/CMakeLists.txt
+index 40b0984..a296150 100644
+--- a/src/cpp/input/CMakeLists.txt
++++ b/src/cpp/input/CMakeLists.txt
+@@ -43,7 +43,7 @@ else()
+ endif()
+ 
+ # Create the input library
+-add_library(aestream_input STATIC ${input_sources})
++add_library(aestream_input SHARED ${input_sources})
+ target_link_libraries(aestream_input ${input_libraries})
+ target_compile_definitions(aestream_input PUBLIC ${input_definitions})
+ target_include_directories(aestream_input PUBLIC ${input_include_directories})
+diff --git a/src/cpp/output/CMakeLists.txt b/src/cpp/output/CMakeLists.txt
+index 652f106..57f5777 100644
+--- a/src/cpp/output/CMakeLists.txt
++++ b/src/cpp/output/CMakeLists.txt
+@@ -3,7 +3,7 @@ set(output_sources dvs_to_udp.hpp dvs_to_udp.cpp dvs_to_file.hpp dvs_to_file.cpp
+ set(output_libraries aer aestream_file)
+ 
+ # Create the output library
+-add_library(aestream_output STATIC ${output_sources})
++add_library(aestream_output SHARED ${output_sources})
+ target_compile_definitions(aestream_output PUBLIC ${output_definitions})
+ target_compile_features(aestream_output PUBLIC cxx_std_20)
+ target_include_directories(aestream_output PRIVATE "${TORCH_INCLUDE_DIRS}" ${CMAKE_INSTALL_LIBDIR})
+diff --git a/src/python/CMakeLists.txt b/src/python/CMakeLists.txt
+index d4c7093..9c2c042 100644
+--- a/src/python/CMakeLists.txt
++++ b/src/python/CMakeLists.txt
+@@ -56,7 +56,7 @@ find_package(nanobind CONFIG REQUIRED)
+ # Add nanobind module
+ nanobind_add_module(
+   aestream_ext 
+-  NB_STATIC STABLE_ABI LTO 
++  NB_STATIC STABLE_ABI 
+   NOMINSIZE # Remove minimization to prevent -Os flags to propagate to nvcc
+ 
+   "${module_source_files}" # Include e. g. camera vendors 
+@@ -72,7 +72,7 @@ nanobind_add_module(
+   tensor_iterator.hpp
+   tensor_iterator.cpp
+ )
+-install(TARGETS aer aestream_file aestream_input aestream_output RUNTIME_DEPENDENCIES DESTINATION aestream)
++# install(TARGETS aer aestream_file aestream_input aestream_output DESTINATION aestream)
+ 
+ # Setup install paths
+ if (USE_CUDA)
+@@ -89,8 +89,8 @@ else()
+   )
+ endif()
+ target_compile_definitions(aestream_ext PRIVATE ${module_compile_definitions})
+-target_include_directories(aestream_ext PRIVATE "${CMAKE_INSTALL_LIBDIR}" "${CUDA_INCLUDE_DIRS}" "${CudaToolkitLibDir}" "${Python_SITEDIR}")
++target_include_directories(aestream_ext PRIVATE "${CUDA_INCLUDE_DIRS}" "${CudaToolkitLibDir}" "${Python_SITEDIR}")
+ target_link_libraries(aestream_ext PRIVATE ${module_link_libraries} aer aestream_file aestream_input aestream_output)
+ 
+ message("Installing aestream_ext to aestream")
+-install(TARGETS aestream_ext LIBRARY DESTINATION aestream)
++install(TARGETS aestream_ext LIBRARY DESTINATION ${Python_SITELIB}/aestream)
+diff --git a/src/python/usb.cpp b/src/python/usb.cpp
+index f6145e7..75dd898 100644
+--- a/src/python/usb.cpp
++++ b/src/python/usb.cpp
+@@ -48,7 +48,7 @@ public:
+       throw std::invalid_argument("Inivation camera drivers not available.");
+ #endif
+     } else if (camera == Camera::Prophesee) {
+-#ifdef WITH_CAER
++#ifdef WITH_METAVISION
+       generator = prophesee_event_generator(is_streaming, std::nullopt);
+ #else
+       throw std::invalid_argument("Inivation camera drivers not available.");
+@@ -74,7 +74,7 @@ public:
+   }
+ #endif
+ // Prophesee via Metavision
+-#ifdef WITH_CAER
++#ifdef WITH_METAVISION
+   USBInput(py_size_t shape, const std::string device, const std::string serial)
+       : buffer(shape, device, EVENT_BUFFER_SIZE) {
+         std::cout << serial << std::endl;
