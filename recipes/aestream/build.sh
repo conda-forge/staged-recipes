@@ -1,6 +1,8 @@
 mkdir build
 cd build
 
+echo "Use nanobind_DIR=$SP_DIR/nanobind/cmake"
+
 cmake ${CMAKE_ARGS} .. \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_PREFIX_PATH=$PREFIX \
