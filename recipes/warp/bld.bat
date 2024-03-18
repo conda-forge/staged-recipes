@@ -1,6 +1,9 @@
 @echo off
 setlocal
 
+REM there is no PyTorch>=2 available on conda-forge, forceinstall from pytorch channel
+conda install pytorch::pytorch --channel pytorch~=2.1
+
 rem Set PROJECT_ROOT to the current directory
 set "PROJECT_ROOT=%CD%"
 
