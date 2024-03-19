@@ -219,6 +219,7 @@ def _get_or_render_metadata(meta_file_or_recipe_dir, worker, finalize, config=No
 def add_recipe_to_graph(recipe_dir, graph, run, worker, conda_resolve,
                         recipes_dir=None, config=None, finalize=False):
     try:
+        print(recipe_dir, worker, config, finalize, flush=True)
         rendered = _get_or_render_metadata(recipe_dir, worker, config=config, finalize=finalize)
     except (IOError, SystemExit) as e:
         log.exception('invalid recipe dir: %s', recipe_dir)
