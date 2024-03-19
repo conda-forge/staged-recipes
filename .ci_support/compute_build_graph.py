@@ -39,7 +39,7 @@ import subprocess
 import functools
 from functools import lru_cache
 
-import frozendict
+from frozendict import frozendict
 import networkx as nx
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
