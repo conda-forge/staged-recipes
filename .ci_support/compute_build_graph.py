@@ -36,8 +36,10 @@ import os
 import pkg_resources
 import re
 import subprocess
+import functools
 from functools import lru_cache
 
+from frozendict import frozendict
 import networkx as nx
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
@@ -50,6 +52,20 @@ from conda_build.utils import HashableDict
 log = logging.getLogger(__file__)
 CONDA_BUILD_CACHE = os.environ.get("CONDA_BUILD_CACHE")
 hash_length = api.Config().hash_length
+
+
+# https://stackoverflow.com/questions/6358481/using-functools-lru-cache-with-dictionary-arguments
+def freezeargs(func):
+    """Convert a mutable dictionary into immutable.
+    Useful to be compatible with cache
+    """
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        args = (frozendict(arg) if isinstance(arg, dict) else arg for arg in args)
+        kwargs = {k: frozendict(v) if isinstance(v, dict) else v for k, v in kwargs.items()}
+        return func(*args, **kwargs)
+    return wrapped
 
 
 def package_key(metadata, worker_label, run='build'):
@@ -202,6 +218,7 @@ def get_run_test_deps(meta):
 _rendered_recipes = {}
 
 
+@freezeargs
 @lru_cache(maxsize=None)
 def _get_or_render_metadata(meta_file_or_recipe_dir, worker, finalize, config=None):
     global _rendered_recipes
@@ -219,6 +236,7 @@ def _get_or_render_metadata(meta_file_or_recipe_dir, worker, finalize, config=No
 def add_recipe_to_graph(recipe_dir, graph, run, worker, conda_resolve,
                         recipes_dir=None, config=None, finalize=False):
     try:
+        print(recipe_dir, worker, config, finalize, flush=True)
         rendered = _get_or_render_metadata(recipe_dir, worker, config=config, finalize=finalize)
     except (IOError, SystemExit) as e:
         log.exception('invalid recipe dir: %s', recipe_dir)
