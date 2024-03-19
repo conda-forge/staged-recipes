@@ -122,7 +122,7 @@ def build_all(recipes_dir, arch):
 
 
 def get_config(arch, channel_urls):
-    exclusive_config_files = [os.path.join(conda.base.context.root_prefix,
+    exclusive_config_files = [os.path.join(conda.base.context.context.root_prefix,
                                            'conda_build_config.yaml')]
     script_dir = os.path.dirname(os.path.realpath(__file__))
     # since variant builds override recipe/conda_build_config.yaml, see
