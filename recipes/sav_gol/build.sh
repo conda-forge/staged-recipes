@@ -9,4 +9,3 @@ mkdir -p $SRC_DIR/bin
 
 cp source_c/sav_gol $PREFIX/bin/sav_gol
 chmod +x $PREFIX/bin/sav_gol
-
