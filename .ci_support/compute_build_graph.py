@@ -36,9 +36,14 @@ import os
 import pkg_resources
 import re
 import subprocess
+import functools
+from functools import lru_cache
 
+from frozendict import frozendict
 import networkx as nx
-from conda_build import api, conda_interface
+from conda.models.match_spec import MatchSpec
+from conda.models.records import PackageRecord
+from conda_build import api
 from conda_build.metadata import find_recipe, MetaData
 
 from conda_build.utils import HashableDict
@@ -47,6 +52,20 @@ from conda_build.utils import HashableDict
 log = logging.getLogger(__file__)
 CONDA_BUILD_CACHE = os.environ.get("CONDA_BUILD_CACHE")
 hash_length = api.Config().hash_length
+
+
+# https://stackoverflow.com/questions/6358481/using-functools-lru-cache-with-dictionary-arguments
+def freezeargs(func):
+    """Convert a mutable dictionary into immutable.
+    Useful to be compatible with cache
+    """
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        args = (frozendict(arg) if isinstance(arg, dict) else arg for arg in args)
+        kwargs = {k: frozendict(v) if isinstance(v, dict) else v for k, v in kwargs.items()}
+        return func(*args, **kwargs)
+    return wrapped
 
 
 def package_key(metadata, worker_label, run='build'):
@@ -199,7 +218,8 @@ def get_run_test_deps(meta):
 _rendered_recipes = {}
 
 
-@conda_interface.memoized
+@freezeargs
+@lru_cache(maxsize=None)
 def _get_or_render_metadata(meta_file_or_recipe_dir, worker, finalize, config=None):
     global _rendered_recipes
     platform = worker['platform']
@@ -216,6 +236,7 @@ def _get_or_render_metadata(meta_file_or_recipe_dir, worker, finalize, config=No
 def add_recipe_to_graph(recipe_dir, graph, run, worker, conda_resolve,
                         recipes_dir=None, config=None, finalize=False):
     try:
+        print(recipe_dir, worker, config, finalize, flush=True)
         rendered = _get_or_render_metadata(recipe_dir, worker, config=config, finalize=finalize)
     except (IOError, SystemExit) as e:
         log.exception('invalid recipe dir: %s', recipe_dir)
@@ -253,15 +274,14 @@ def match_peer_job(target_matchspec, other_m, this_m=None):
     match_dict = {'name': other_m.name(),
                 'version': other_m.version(),
                 'build': _fix_any(other_m.build_id(), other_m.config), }
-    match_dict = conda_interface.Dist(name=match_dict['name'],
-                                        dist_name='-'.join((match_dict['name'],
-                                                            match_dict['version'],
-                                                            match_dict['build'])),
-                                        version=match_dict['version'],
-                                        build_string=match_dict['build'],
-                                        build_number=int(other_m.build_number() or 0),
-                                        channel=None)
-    matchspec_matches = target_matchspec.match(match_dict)
+    match_record = PackageRecord(
+        name=match_dict['name'],
+        version=match_dict['version'],
+        build=match_dict['build'],
+        build_number=int(other_m.build_number() or 0),
+        channel=None,
+    )
+    matchspec_matches = target_matchspec.match(match_record)
 
     variant_matches = True
     if this_m:
@@ -294,13 +314,13 @@ def add_intradependencies(graph):
         log.info("   test: {}".format(test_requires))
 
         deps = set(m.ms_depends('build') + m.ms_depends('host') + m.ms_depends('run') +
-                   [conda_interface.MatchSpec(dep) for dep in test_requires or []])
+                   [MatchSpec(dep) for dep in test_requires or []])
 
         for dep in deps:
             name_matches = (n for n in graph.nodes() if graph.nodes[n]['meta'].name() == dep.name)
             for matching_node in name_matches:
                 # are any of these build dependencies also nodes in our graph?
-                if (match_peer_job(conda_interface.MatchSpec(dep),
+                if (match_peer_job(MatchSpec(dep),
                                    graph.nodes[matching_node]['meta'],
                                    m) and
                          (node, matching_node) not in graph.edges()):
@@ -409,11 +429,14 @@ def _fix_any(value, config):
     return value
 
 
-@conda_interface.memoized
+@lru_cache(maxsize=None)
 def _installable(name, version, build_string, config, conda_resolve):
     """Can Conda install the package we need?"""
-    ms = conda_interface.MatchSpec(" ".join([name, _fix_any(version, config),
-                                             _fix_any(build_string, config)]))
+    ms = MatchSpec(
+        " ".join(
+            [name, _fix_any(version, config), _fix_any(build_string, config)]
+        )
+    )
     installable = conda_resolve.find_matches(ms)
     if not installable:
             log.warn("Dependency {name}, version {ver} is not installable from your "
@@ -435,7 +458,7 @@ def _buildable(name, version, recipes_dir, worker, config, finalize):
                                                                  path), worker, finalize=finalize)]
 
     # this is our target match
-    ms = conda_interface.MatchSpec(" ".join([name, _fix_any(version, config)]))
+    ms = MatchSpec(" ".join([name, _fix_any(version, config)]))
     available = False
     for m in metadata_tuples:
         available = match_peer_job(ms, m)
