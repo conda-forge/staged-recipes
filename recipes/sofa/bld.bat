@@ -49,8 +49,6 @@ if errorlevel 1 exit 1
 :: Sofa binary folder. This should change in Sofa in future releases and will enable
 :: to avoid this.
 :: for /D %%f in ("%LIBRARY_PREFIX%\plugins\*") do copy "%%f\bin\*.dll" "%LIBRARY_BIN%"
-echo %LIBRARY_PREFIX%
-echo %LIBRARY_BIN%
 for /D %%f in ("%LIBRARY_PREFIX%\plugins\*") do echo "%%f"
 for /D %%f in ("%LIBRARY_PREFIX%\plugins\*") do copy "%%f\bin\*.dll" "%LIBRARY_BIN%"
 
