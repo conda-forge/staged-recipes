@@ -1,0 +1,80 @@
+{% set version = "0.0.11" %}
+{% set torch_proc_type = "cuda" ~ cuda_compiler_version | replace('.', '') if cuda_compiler_version != "None" else "cpu" %}
+
+package:
+  name: exllamav2
+  version: {{ version }}
+
+source:
+  url: https://github.com/turboderp/exllamav2/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: db885d84fd9fb9da29d1c49c35af5856724f1ea73246f6bd9660b568ea83431e
+
+build:
+  # noarch: python
+  script: TORCH_CUDA_ARCH_LIST="7.5" {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+  skip: true  # [win]
+  skip: true  # [cuda_compiler_version == "None"]
+  skip: true  # [py < 38]
+  skip: true  # [py > 311]
+  rpaths:
+    - lib/
+    # PyTorch libs are in site-packages intead of with other shared objects
+    - {{ SP_DIR }}/torch/lib/
+  missing_dso_whitelist:
+    - "*/libc10.so"
+    - "*/libtorch_cpu.so"
+    - "*/libtorch_python.so"
+    - "*/libcudart.so.11.0"
+    - "*/libc10_cuda.so"
+    - "*/libtorch_cuda.so"
+    - "*/libstdc++.so.6"
+    - "*/libm.so.6"
+    - "*/libgcc_s.so.1"
+    - "*/libc.so.6"
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+  host:
+    - python
+    - pip
+    - pytorch
+    - ninja
+  run:
+    - python
+    - pandas
+    - ninja
+    - fastparquet
+    - pytorch >=2.1.0
+    - safetensors >=0.3.2
+    - sentencepiece >=0.1.97
+    - pygments
+    - websockets
+    - regex
+    - pytorch ~=2.1.0
+    - libtorch
+    - libcusparse
+    - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+    - cuda-cupti-dev    # [(cuda_compiler_version or "").startswith("12")]
+    - cuda-cudart-dev   # [(cuda_compiler_version or "").startswith("12")]
+    - cuda-nvml-dev     # [(cuda_compiler_version or "").startswith("12")]
+    - cuda-nvtx-dev     # [(cuda_compiler_version or "").startswith("12")]
+
+test:
+  imports:
+    - exllamav2
+  requires:
+    - pip
+
+about:
+  home: https://github.com/turboderp/exllamav2
+  license: MIT
+  license_file: LICENSE
+  summary: ExLlamaV2 is an inference library for running local LLMs on modern consumer GPUs.
+
+extra:
+  recipe-maintainers:
+    - mediocretech
