@@ -9,7 +9,7 @@ echo "Using Python ${PYTHON_VERSION}"
 FIXED_SP_DIR=$(echo $SP_DIR | sed -E "s/python[0-9]+\.[0-9]+/python$PYTHON_VERSION/")
 echo "Fixed nanobind_DIR=$FIXED_SP_DIR/nanobind/cmake"
 
-export CXXFLAGS="${CXXFLAGS} -D__STDC_FORMAT_MACROS"
+export CXXFLAGS="${CXXFLAGS} -D__STDC_FORMAT_MACROS -D_LIBCPP_DISABLE_AVAILABILITY"
 
 cmake ${CMAKE_ARGS} .. \
       -DCMAKE_BUILD_TYPE=Release \
