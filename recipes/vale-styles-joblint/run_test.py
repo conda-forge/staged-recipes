@@ -17,10 +17,9 @@ UTF8 = dict(encoding="utf-8")
 VALE_NAME = "Joblint"
 
 VALE_PATH = Path(sys.prefix) / "share/vale/styles"
+VALE_CONF_PATH = VALE_PATH / ".vale-config"
 VALE_INI = ".vale.ini"
 PYTEST_ARGS = ["-svv", "--color=yes", __file__]
-
-PACKAGE_FIXES_ISSUE = ["Hugo"]
 
 DEFAULT_INI = """
 MinAlertLevel = suggestion
@@ -63,11 +62,6 @@ MD_WITH_AN_ISSUE["proselint"] = """
 taking off momentarily
 """
 
-MD_WITH_AN_ISSUE["Hugo"] = """
-{{<  myshortcode `This is some <b>HTML</b>, ... >}}
-"""
-
-
 def test_vale_path():
     rc, stdout, stderr = _run_vale_json("ls-dirs")
     assert str(VALE_PATH) in stdout, f"`{VALE_PATH}` was not found"
@@ -76,13 +70,13 @@ def test_vale_path():
 def test_style_in_vale_path(a_markdown_file_with_issue: Path):
     ini = a_markdown_file_with_issue.parent / VALE_INI
     name = ini.parent.name
-    assert (VALE_PATH / name).is_dir(), f"`{name}` is not in {VALE_PATH}"
+    style_dir = VALE_PATH / name
+    assert style_dir.is_dir(), f"`{name}` is not in {VALE_PATH}"
 
 
 def test_style_finds_or_fixes_issue(a_markdown_file_with_issue: Path):
     ini = a_markdown_file_with_issue.parent / VALE_INI
     name = ini.parent.name
-    should_fix = name in PACKAGE_FIXES_ISSUE
 
     rc, stdout, stderr = _run_vale_json(a_markdown_file_with_issue.name)
 
@@ -90,10 +84,7 @@ def test_style_finds_or_fixes_issue(a_markdown_file_with_issue: Path):
 
     issues = json.loads(stdout)
 
-    if should_fix:
-        assert not issues
-    else:
-        assert issues
+    assert issues
 
     ini.write_text(DEFAULT_INI, **UTF8)
 
@@ -102,10 +93,7 @@ def test_style_finds_or_fixes_issue(a_markdown_file_with_issue: Path):
 
     assert not stderr2, f"didn't expect any stderr without `{name}`"
 
-    if should_fix:
-        assert issues2
-    else:
-        assert not issues2
+    assert not issues2
 
 
 @fixture
