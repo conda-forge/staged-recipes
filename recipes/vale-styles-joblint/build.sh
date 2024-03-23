@@ -2,8 +2,7 @@
 export VALE_STYLES_PATH=${PREFIX}/share/vale/styles
 mkdir -p "${VALE_STYLES_PATH}"
 
-echo "Packages = ./Joblint" >> .vale.ini
-echo "StylesPath = ${VALE_STYLES_PATH}" >> .vale.ini
+cp "${RECIPE_DIR}/.vale.ini" .vale.ini
 
 vale sync
 vale ls-config
