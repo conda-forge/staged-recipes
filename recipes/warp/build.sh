@@ -56,7 +56,7 @@ cp ${DOTNET_PUBLISH_DIR}/Snippets ${PREFIX}/bin/
 
 # copy dlls into the lib directory in the conda environment
 echo "copying dotnet generated dlls into ${PREFIX}/lib"
-for file in $(find /path/to/directory -type f -name "*.dll"); do
+for file in $(find Release -type f -name "*.dll"); do
     cp -v ${file} ${PREFIX}/lib/
 done
 
