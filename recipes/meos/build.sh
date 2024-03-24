@@ -2,6 +2,7 @@
 set -e
 
 sed -i "s,/usr/local,${PREFIX},g" ./meos/CMakeLists.txt
+sed -i "s,/opt/homebrew,${PREFIX},g" ./meos/CMakeLists.txt
 
 mkdir -p build && cd build
 
