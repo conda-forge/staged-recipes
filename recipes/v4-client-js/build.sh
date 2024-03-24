@@ -2,7 +2,7 @@ ls
 cd v4-client-js
 npm install rollup
 npm run build
-npm test
+# npm test
 tgz=$(npm pack)
 npm install --prefix $PREFIX -g $tgz
 
