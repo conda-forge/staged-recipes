@@ -1,11 +1,8 @@
 #!/bin/bash
 set -e
 
-if [[ "$target_platform" == linux* ]]; then
-    sed -i "s,/usr/local,${PREFIX},g" ./meos/CMakeLists.txt
-elif [[ "$target_platform" == osx* ]]; then
-    sed -i "" "s,/opt/homebrew,${PREFIX},g" ./meos/CMakeLists.txt
-fi
+sed -i "s,/usr/local,${PREFIX},g" ./meos/CMakeLists.txt
+sed -i "" "s,/opt/homebrew,${PREFIX},g" ./meos/CMakeLists.txt
 
 mkdir -p build && cd build
 
