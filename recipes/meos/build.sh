@@ -7,7 +7,7 @@ if [[ "$target_platform" == linux* ]]; then
 elif [[ "$target_platform" == osx* ]]; then
     sed -i "" "s,/usr/local,${PREFIX},g" ./meos/CMakeLists.txt
     sed -i "" "s,/opt/homebrew,${PREFIX},g" ./meos/CMakeLists.txt
-    sed -i "" "s,#define HAVE_STRCHRNUL 1,#define HAVE_STRCHRNUL 0,g" ./meos/postgres/pg_config.h
+    sed -i "" "s,#define HAVE_STRCHRNUL 1,//#define HAVE_STRCHRNUL 1,g" ./meos/postgres/pg_config.h
 fi
 
 mkdir -p build && cd build
