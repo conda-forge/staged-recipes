@@ -18,8 +18,11 @@ LOCALES = ["au", "ca", "gb", "us", "za"]
 VALE_INI_TEMPLATE = """
 MinAlertLevel = suggestion
 Packages = {name}-{locale}
+
 [*]
 BasedOnStyles = {name}-{locale}
+
+Vale.Spelling = NO
 """
 
 
