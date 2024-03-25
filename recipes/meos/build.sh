@@ -7,8 +7,6 @@ elif [[ "$target_platform" == osx* ]]; then
     sed -i "" "s,/opt/homebrew,${PREFIX},g" ./meos/CMakeLists.txt
 fi
 
-git apply ./fix_pointer_conversion_errors.patch
-
 mkdir -p build && cd build
 
 if [[ "$target_platform" == linux* ]]; then
