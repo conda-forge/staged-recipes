@@ -6,7 +6,7 @@ from textwrap import indent
 
 from pytest import fixture, main
 
-PKG = os.environ["PKG_NAME"].replace("vale-package-", "")
+PKG = os.environ["PKG_NAME"].replace("vale-spelling-", "")
 PYTEST_ARGS = ["-s", "-vv", "--color=yes", __file__]
 
 STYLES = Path(os.environ["PREFIX"]) / "share/vale/styles"

@@ -2,13 +2,16 @@ import os
 import sys
 from pathlib import Path
 
-PREFIX = Path(os.environ["PREFIX"])
 VERSION = Path(os.environ["PKG_VERSION"])
 SRC = Path(os.environ["SRC_DIR"])
-ALL_SRC = sorted(SRC.glob("*"))
-OUT = Path(os.environ["PREFIX"]) / "share/vale/styles"
+PREFIX = Path(os.environ["PREFIX"])
 
-PKG = os.environ["PKG_NAME"].replace("vale-package-", "")
+ALL_SRC = sorted(SRC.glob("*"))
+
+OUT = PREFIX / "share/vale/styles"
+DICPATH =  PREFIX / "share/hunspell_dictionaries/"
+
+PKG = os.environ["PKG_NAME"].replace("vale-spelling-", "")
 L10N = PKG.split("-")[-1].upper()
 PATH = next(p for p in ALL_SRC if p.name.startswith(f"en_{L10N}") if p.is_dir())
 
@@ -31,18 +34,26 @@ message: "Did you really mean '%s'?"
 custom: true
 action:
   name: suggest
-dicpath: {prefix}/share/hunspell_dictionaries
+dicpath: {dicpath}
 dictionaries:
   - {locale}
 """
 
+TEMPLATES = {
+    META_PATH: META_JSON_TEMPLATE,
+    RULE_PATH: RULE_YML_TEMPLATE,
+}
+
 
 def write_config():
     dic = next(PATH.glob("*.dic")).stem
-    ctx = {"locale": dic, "version":VERSION, "prefix": PREFIX}
+    ctx = {"locale": dic, "version": VERSION, "dicpath": DICPATH}
     RULE_PATH.parent.mkdir(exist_ok=True, parents=True)
-    RULE_PATH.write_text(RULE_YML_TEMPLATE.format(ctx), encoding="utf-8")
-    META_PATH.write_text(META_JSON_TEMPLATE.format(ctx), encoding="utf-8")
+    for path, template in TEMPLATES.items():
+        print("\n-----------", path, "-----------")
+        text = template.format(**ctx)
+        print(text)
+        path.write_text(text, encoding="utf-8")
     return 0
 
 
