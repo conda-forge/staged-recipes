@@ -1,0 +1,53 @@
+Subject: [PATCH] Fix pointer conversion errors
+---
+Index: meos/postgres/utils/formatting.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/meos/postgres/utils/formatting.c b/meos/postgres/utils/formatting.c
+--- a/meos/postgres/utils/formatting.c	(revision e00c69f36a2948c4ad500dd98dfafc17fe46a8d2)
++++ b/meos/postgres/utils/formatting.c	(date 1711382110602)
+@@ -3288,6 +3288,7 @@
+  */
+ /**
+  * @brief Input a timestamp from date text.
++ * @return On error return @p DT_NOEND
+  */
+ TimestampTz
+ pg_to_timestamp(text *date_txt, text *fmt)
+@@ -3310,7 +3311,7 @@
+     if (dterr)
+     {
+       DateTimeParseError(dterr, text2cstring(date_txt), "timestamptz");
+-      return NULL;
++      return DT_NOEND;
+     }
+   }
+   else
+@@ -3319,7 +3320,7 @@
+   if (tm2timestamp(&tm, fsec, &tz, &result) != 0)
+   {
+     meos_error(ERROR, MEOS_ERR_VALUE_OUT_OF_RANGE, "timestamp out of range");
+-    return NULL;
++    return DT_NOEND;
+   }
+ 
+   /* Use the specified fractional precision, if any. */
+Index: meos/postgres/utils/datetime.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/meos/postgres/utils/datetime.c b/meos/postgres/utils/datetime.c
+--- a/meos/postgres/utils/datetime.c	(revision e00c69f36a2948c4ad500dd98dfafc17fe46a8d2)
++++ b/meos/postgres/utils/datetime.c	(date 1711382608122)
+@@ -4400,7 +4400,7 @@
+      */
+     if (dtza->tz == NULL)
+     {
+-      meos_error(ERROR, "time zone \"%s\" not recognized", dtza->zone);
++      meos_error(ERROR, MEOS_ERR_INVALID_ARG_VALUE, "time zone \"%s\" not recognized", dtza->zone);
+       return NULL;
+     }
+   }
