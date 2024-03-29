@@ -13,4 +13,5 @@ cmake ${CMAKE_ARGS}\
 
 make
 make mytest
-make package
+
+make install
