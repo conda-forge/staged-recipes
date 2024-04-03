@@ -44,6 +44,23 @@
 #define EXIT_WAIVED 2
 #endif
 
+#ifndef checkCudaErrors
+#define checkCudaErrors(err) __checkCudaErrors(err, __FILE__, __LINE__)
+
+// These are the inline versions for all of the SDK helper functions
+inline void __checkCudaErrors(CUresult err, const char *file, const int line) {
+  if (CUDA_SUCCESS != err) {
+    const char *errorStr = NULL;
+    cuGetErrorString(err, &errorStr);
+    fprintf(stderr,
+            "checkCudaErrors() Driver API error = %04d \"%s\" from file <%s>, "
+            "line %i.\n",
+            err, errorStr, file, line);
+    exit(EXIT_FAILURE);
+  }
+}
+#endif
+
 // Note, it is required that your SDK sample to include the proper header
 // files, please refer the CUDA examples for examples of the needed CUDA
 // headers, which may change depending on which CUDA functions are used.
