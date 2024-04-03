@@ -2,7 +2,7 @@
 
 set -exuo pipefail
 
-mkdir gopath
+mkdir -p gopath/bin
 export GOPATH=$(pwd)/gopath
 
 make brew
