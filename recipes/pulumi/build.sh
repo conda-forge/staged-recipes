@@ -2,5 +2,6 @@
 
 set -exuo pipefail
 
-make
+
+make brew
 make install
