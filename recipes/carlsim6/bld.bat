@@ -8,7 +8,7 @@ if NOT "%cuda_compiler_version%"=="None" (
     set EXTRA_CMAKE_ARGS="-DCARLSIM_NO_CUDA=ON"
 )
 
-set CL=/WIN64=1 %CL%
+set CL=/DWIN64=1 %CL%
 
 cmake ^
     -G "Ninja" ^
