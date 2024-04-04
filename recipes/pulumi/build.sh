@@ -6,4 +6,5 @@ mkdir -p gopath/bin
 export GOPATH=$(pwd)/gopath
 
 make brew
-make install
+
+rm -rf ${GOPATH}
