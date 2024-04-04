@@ -5,4 +5,6 @@ set -exuo pipefail
 mkdir -p gopath/bin
 export GOPATH=$(pwd)/gopath
 
-make BREW_VERSION=${PKG_VERSION} brew
+export PULUMI_VERSION=${PKG_VERSION}
+
+make brew
