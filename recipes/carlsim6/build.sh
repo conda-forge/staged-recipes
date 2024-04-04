@@ -20,6 +20,7 @@ fi
 cp $RECIPE_DIR/cuda-samples/* $SRC_DIR/carlsim/kernel/inc/
 
 cmake ${CMAKE_ARGS} .. \
+      -DCARLSIM_SAMPLES=OFF \
       -DCMAKE_BUILD_TYPE=Release \
       ${EXTRA_CMAKE_ARGS} \
       -DCMAKE_PREFIX_PATH=$PREFIX \
