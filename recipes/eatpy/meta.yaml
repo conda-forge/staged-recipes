@@ -1,0 +1,82 @@
+{% set version = "0.9.8" %}
+
+package:
+  name: eatpy
+  version: {{ version }}
+
+source:
+  #git_url: https://github.com/BoldingBruggeman/eat.git
+  #git_rev: seamless
+  url: https://github.com/BoldingBruggeman/eat/releases/download/v{{ version }}/code-seamless.tar.gz
+  sha256: 5098964cbac63f2563995629bddb0f73d16d27f81b1a2d4a57f0654d27ae1ea4   # generate with `openssl sha256 <file name>`
+  patches:
+  - ersem.patch     # work around gfortran 5.x bug (Windows toolchain)
+  - datetime.patch  # work around lack of ucrtbase in old MinGW and need to link in c++ stdlib (Windows toolchain)
+
+build:
+  entry_points:
+    - eat-gotm-gen = eatpy.models.gotm_generate_ensemble:main
+  number: 0
+
+requirements:
+  build:
+    - cmake
+    - make                       # [not win]
+    - {{ compiler('c') }}        # [not win] NB on windows this would activate Visual Studio and make that the default C/C++ compiler
+    - {{ compiler('fortran') }}  # [not win]
+    - m2w64-gcc-fortran     # [win]
+    - m2w64-make     # [win]
+  host:
+    - python {{ python }}
+    - cython
+    - pip
+    - setuptools
+    #- numpy>=1.17               # only needed if "cimport numpy" is done in a pyx file
+    #- blas-devel                 # [not win] on Windows this resolves to MKL, which is not usable by mingw-w64
+    #- openblas                   ## [win]
+    - libpython                  # [win]
+    - libblas
+    - liblapack
+    - netcdf-fortran
+    - {{ mpi }}
+    - mpi4py                     # because eatpy/_eat_filter_pdaf.pyx does "cimport mpi4py.xxx"
+  run:
+    - python
+    - {{ pin_compatible('numpy') }}
+    - mpi4py
+    - netCDF4
+    - pyyaml                      # for eatpy-gotm-gen
+    - {{ mpi }}
+    #- {{ pin_compatible('blas') }}         # [not win]
+    #- libopenblas  # [win]
+    #- libblas * *openblas
+    - openblas
+    - m2w64-gcc-libs  # [win]
+    - m2w64-gcc-libs-core  # [win]
+    - m2w64-gcc-libgfortran  # [win]
+
+test:
+  requires:
+    - openssh  # [mpi == 'openmpi']
+  imports:
+    - eatpy
+  commands:
+    - eat-gotm-gen -h
+    - eat-gotm -h
+
+about:
+  home: https://github.com/BoldingBruggeman/eat
+  summary: Ensemble and Assimilation Tool
+  description: |
+    EAT is a 1D testbed for physical-biogeochemical data assimilation
+    in marine and freshwater systems
+  license: GPL-2.0-only
+  license_family: GPL
+  license_file: LICENSE
+  doc_url: https://github.com/BoldingBruggeman/eat/wiki
+  dev_url: https://github.com/BoldingBruggeman/eat
+
+extra:
+  recipe-maintainers:
+    - jornbr
+    - bolding
