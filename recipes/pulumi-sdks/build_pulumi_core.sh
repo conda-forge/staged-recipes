@@ -6,5 +6,9 @@ mkdir -p gopath/bin
 export GOPATH=$(pwd)/gopath
 
 export PULUMI_VERSION=${PKG_VERSION}
+export PULUMI_ROOT=${PREFIX}
 
-make brew
+make build
+make install
+
+chmod -R u+w ${GOPATH}
