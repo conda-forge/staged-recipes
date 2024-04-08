@@ -16,11 +16,17 @@ build:
     ## Ensure inclusion of requirements.txt
     {% set reqfile = "requirements.txt" %}
     {% set reqsource = name ~ ".egg-info/requires.txt" %}
+    {% set pyproject_toml = "pyprpoject.toml" %}
     # IF {{ reqfile }} is NOT PRESENT, COPY {{ reqfile }} from {{ reqsource }}
     - echo -e "\n>>> ENSURE INCLUSION OF '{{ reqfile }}' <<<\n\n"
     - if [ ! -f {{ reqfile }} ] && [ -f {{ reqsource }} ]; then cp {{ reqsource }} {{ reqfile }}; fi  # [not win]
-    #- copy {{ name }}.egg-info\requires.txt {{ reqfile }}  # [win]
-    - copy {{ reqsource | replace('/', '\\') }} {{ reqfile }}  # [win]
+    # IF {{ reqfile }} is NOT PRESENT, CREATE {{ reqfile }} from {{ pyproject_toml }}
+    - if [ ! -f {{ reqfile }} ] && [ -f {{ pyproject_toml }} ]; then \
+      {{ PYTHON }} -c '\
+      import tomllib; \
+      conf = tomllib.loads(open("pyproject.toml", "r").read()); \
+      print("\n".join(conf.get("project", {}).get("dependencies", []))) \
+      ' > {{ reqfile }}  # [not win]
     ## Run final installation script 
     - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
 
