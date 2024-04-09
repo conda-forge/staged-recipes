@@ -13,4 +13,4 @@ make -C sdk/python install
 
 chmod -R u+w ${GOPATH}
 
-go-licenses save . --save-path=../license-file --ignore github.com/pulumi/pulumi
+go-licenses save . --save_path=../license-file --ignore github.com/pulumi/pulumi
