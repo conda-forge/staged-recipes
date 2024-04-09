@@ -10,8 +10,9 @@ pushd build
 #    -DGPU_TARGETS="$GPU_LIST" \
 
 cmake ${CMAKE_ARGS}\
-    -DCMAKE_MODULE_PATH=$PREFIX/lib/cmake/hip \
-    -DHIP_CLANG_PATH=$PREFIX/bin \
+    -DCMAKE_MODULE_PATH:PATH=$PREFIX/lib/cmake/hip \
+    -DHIP_CLANG_PATH:PATH=$PREFIX/bin \
+    -DSQLITE_USE_SYSTEM_PACKAGE:BOOL=ON \
      ..
 
 make
