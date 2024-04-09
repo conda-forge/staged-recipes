@@ -1,0 +1,93 @@
+{% set cxx_name = "libgz-sim-yarp-plugins" %}
+{% set plugin_name = "gz-sim-yarp-plugins" %}
+{% set name = "gz-sim-yarp-plugins-split" %}
+{% set version = "0.1.1" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/robotology/gz-sim-yarp-plugins/archive/refs/tags/v{{ version }}.tar.gz
+    sha256: 203931dc039170ae388146004356daf1619a2af21fd56c2edb684ec4d39db89b
+
+build:
+  number: 0
+
+outputs:
+  - name: {{ cxx_name }}
+    script: build_cxx.sh  # [unix]
+    script: bld_cxx.bat  # [win]
+    build:
+      ignore_run_exports_from:
+        - gtest
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ cdt('mesa-libgl-devel') }}  # [linux]
+        - {{ cdt('mesa-dri-drivers') }}  # [linux]
+        - {{ cdt('libselinux') }}  # [linux]
+        - {{ cdt('libxdamage') }}  # [linux]
+        - {{ cdt('libxxf86vm') }}  # [linux]
+        - {{ cdt('libxext') }}     # [linux]
+        - cmake
+        - pkg-config
+        - ninja
+        - multisheller
+      host:
+        - xorg-libxfixes  # [linux]
+        - libyarp
+        - libgz-sim8
+        - libgz-common5
+        - libgz-transport13
+        - libgz-msgs10
+        - libsdformat14
+        - libprotobuf
+        - libgz-math7
+        - libgz-plugin2
+        - gtest
+      run:
+        - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx and x86_64]
+
+    test:
+      commands:
+        {% set gyp_libs = [
+                "commons",
+                "handler",
+                "basestate-system",
+                "camera-system",
+                "clock-system",
+                "controlboard-system",
+                "forcetorque-system",
+                "imu-system",
+                "laser-system",
+                "robotinterface-system"
+        ] %}
+        {% for gyp_lib in gyp_libs %}
+        - test -f ${PREFIX}/lib/libgz-sim-yarp-{{ gyp_lib }}${SHLIB_EXT}  # [unix]
+        - if not exist %LIBRARY_BIN%\\gz-sim-yarp-{{ gyp_lib }}.dll exit 1  # [win]
+        {% endfor %}
+
+  - name: {{ plugin_name }}
+    requirements:
+      run:
+        - {{ pin_subpackage(cxx_name, exact=True) }}
+    test:
+      commands:
+        {% for gyp_lib in gyp_libs %}
+        - test -f ${PREFIX}/lib/libgz-sim-yarp-{{ gyp_lib }}${SHLIB_EXT}  # [unix]
+        - if not exist %LIBRARY_BIN%\\gz-sim-yarp-{{ gyp_lib }}.dll exit 1  # [win]
+        {% endfor %}
+
+about:
+  home: https://github.com/robotology/gz-sim-yarp-plugins
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: 'YARP plugins for Modern Gazebo (gz-sim).'
+
+extra:
+  feedstock-name: gz-sim-yarp-plugins
+  recipe-maintainers:
+    - xela-95
+    - traversaro
