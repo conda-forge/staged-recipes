@@ -12,3 +12,5 @@ make -C sdk/go build
 make -C sdk/go install
 
 chmod -R u+w ${GOPATH}
+
+go-licenses save . --save-path=../license-file --ignore github.com/pulumi/pulumi
