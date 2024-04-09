@@ -11,6 +11,7 @@ pushd build
 
 cmake ${CMAKE_ARGS}\
     -DCMAKE_MODULE_PATH=$PREFIX/lib/cmake/hip \
+    -DHIP_CLANG_PATH=$PREFIX/bin \
      ..
 
 make
