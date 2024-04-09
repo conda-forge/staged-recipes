@@ -13,4 +13,9 @@ make -C sdk/nodejs install
 
 chmod -R u+w ${GOPATH}
 
-go-licenses save . --save_path=../license-file --ignore github.com/pulumi/pulumi
+pushd sdk/nodejs
+
+go-licenses save . --save_path=../../license-files \
+  --ignore github.com/pulumi/pulumi
+
+popd

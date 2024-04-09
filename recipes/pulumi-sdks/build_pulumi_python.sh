@@ -13,4 +13,19 @@ make -C sdk/python install
 
 chmod -R u+w ${GOPATH}
 
-go-licenses save . --save_path=../license-file --ignore github.com/pulumi/pulumi
+rm -rf license-files
+
+pushd sdk/python/cmd/pulumi-language-python
+
+go-licenses save . --save_path=../../../../license-files \
+  --ignore github.com/pulumi/pulumi \
+  --ignore github.com/mattn/go-localereader  
+
+popd
+pushd license-files
+
+# The license file was added after the release was tagged, but the readme clearly states the license.
+mkdir -p github.com/mattn/go-localereader
+curl -o github.com/mattn/go-localereader/LICENSE https://raw.githubusercontent.com/mattn/go-localereader/master/LICENSE
+
+popd
