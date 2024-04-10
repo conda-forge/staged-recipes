@@ -27,6 +27,7 @@ cmake -LAH -G "Ninja" \
   -DFEATURE_gssapi=OFF \
   -DFEATURE_enable_new_dtags=OFF \
   -DFEATURE_gstreamer_gl=OFF \
+  -DFEATURE_avfoundation=OFF \
   -DFEATURE_quick3d_assimp=OFF \
   -B build ${CMAKE_ARGS} .
 cmake --build build --target install
