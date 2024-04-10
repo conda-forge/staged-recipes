@@ -10,8 +10,6 @@ cmake -LAH -G "Ninja" ^
     -DFEATURE_vulkan=ON ^
     -DINPUT_opengl=%OPENGLVER% ^
     -DQT_DEFAULT_MEDIA_BACKEND=ffmpeg ^
-    -DFEATURE_wmf=OFF ^
-    -DFEATURE_wmsdk=OFF ^
     -B build .
 if errorlevel 1 exit 1
 

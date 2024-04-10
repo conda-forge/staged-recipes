@@ -1,7 +1,5 @@
 #!/bin/sh
 
-export QT_MEDIA_BACKEND=ffmpeg
-
 CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 
 if test "$CONDA_BUILD_CROSS_COMPILATION" = "1"
@@ -16,18 +14,18 @@ if [[ $(uname) == "Linux" ]]; then
   CMAKE_ARGS="${CMAKE_ARGS} -DFEATURE_vulkan=ON"
 fi
 
-cmake -LAH -G "Ninja" \
+cmake -LAH -G "Ninja" ${CMAKE_ARGS} \
   -DCMAKE_PREFIX_PATH=${PREFIX} \
-  -DCMAKE_FIND_FRAMEWORK=NEVER \
-  -DCMAKE_FIND_APPBUNDLE=NEVER \
+  -DCMAKE_FIND_FRAMEWORK=LAST \
   -DCMAKE_INSTALL_RPATH:STRING=${PREFIX}/lib \
   -DCMAKE_UNITY_BUILD=ON -DCMAKE_UNITY_BUILD_BATCH_SIZE=32 \
   -DCMAKE_MESSAGE_LOG_LEVEL=STATUS \
   -DFEATURE_linux_v4l=OFF \
   -DFEATURE_gssapi=OFF \
   -DFEATURE_enable_new_dtags=OFF \
+  -DFEATURE_framework=OFF \
   -DFEATURE_gstreamer_gl=OFF \
-  -DFEATURE_avfoundation=OFF \
   -DFEATURE_quick3d_assimp=OFF \
+  -DQT_DEFAULT_MEDIA_BACKEND=ffmpeg \
   -B build ${CMAKE_ARGS} .
 cmake --build build --target install
