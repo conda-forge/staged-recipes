@@ -5,6 +5,10 @@ cmake -LAH -G "Ninja" ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
     -DCMAKE_UNITY_BUILD=ON -DCMAKE_UNITY_BUILD_BATCH_SIZE=32 ^
     -DCMAKE_MESSAGE_LOG_LEVEL=STATUS ^
+    -DFEATURE_gstreamer=OFF ^
+    -DFEATURE_quick3d_assimp=OFF ^
+    -DFEATURE_vulkan=ON ^
+    -DINPUT_opengl=%OPENGLVER% ^
     -DQT_DEFAULT_MEDIA_BACKEND=ffmpeg ^
     -B build .
 if errorlevel 1 exit 1
