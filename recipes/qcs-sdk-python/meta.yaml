@@ -2,7 +2,7 @@
 {% set version = "0.17.4" %}
 
 package:
-  name: {{ name|lower }}
+  name: qcs-sdk-python_and_grpc-web
   version: {{ version }}
 
 source:
@@ -11,17 +11,13 @@ source:
 
 build:
   ignore_prefix_files: True
-  #script:
-  #  - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-  #  - cp $RECIPE_DIR/pyproject.toml pyproject.toml
-  #  - {{ PYTHON }} -m pip install . -vv
   number: 0
 
 requirements:
   build:
     - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
     - {{ compiler('rust') }}
-    - cargo-bundle-licenses
     - toml
   host:
     - maturin >=1.0.0,<2.0.0
@@ -32,11 +28,43 @@ requirements:
     - python
     - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx and x86_64]
 
-test:
-  requires:
-    # - cargo
-  commands:
-    # - cargo make
+outputs:
+  - name: qcs-sdk-python
+    script: install.sh  # [unix]
+    script: install.bat  # [win]
+    script_env:
+      - ARTIFACT="qcs-sdk-python"
+    requirements:
+      build:
+        - cargo-bundle-licenses
+        - pip
+    test:
+      imports:
+        - qcs_sdk_python
+      requires:
+        - makers
+      commands:
+        - makers
+
+  - name: qcs_sdk_python
+    build:
+      noarch: python
+    requirements:
+      run:
+        - {{ pin_subpackage("qcs-sdk-python", exact=True) }}
+    test:
+      imports:
+        - qcs_sdk_python
+
+#  - name: qcs-sdk-python-grpc-web
+#
+#  - name: qcs-sdk-python-grpc-web
+#    script:
+#      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+#      - ${PYTHON} -m pip install qcs-sdk-python-grpc-web --find-links . --force-reinstall
+#    files:
+#      - dist/qcs_sdk_python-grpc-web-{{ version }}-cp{{ py }}-cp{{ py }}-{{ platform }}.whl
+
 
 about:
   home: https://github.com/rigetti/qcs-sdk-rust
