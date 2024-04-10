@@ -15,6 +15,5 @@ cmake -LAH -G "Ninja" \
   -DCMAKE_INSTALL_RPATH:STRING=${PREFIX}/lib \
   -DCMAKE_UNITY_BUILD=ON -DCMAKE_UNITY_BUILD_BATCH_SIZE=32 \
   -DCMAKE_MESSAGE_LOG_LEVEL=STATUS \
-  -DQT_HOST_PATH=${PREFIX} \
   -B build ${CMAKE_ARGS} .
 cmake --build build --target install
