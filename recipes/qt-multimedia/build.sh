@@ -8,8 +8,7 @@ then
 fi
 
 if [[ $(uname) == "Linux" ]]; then
-  CMAKE_ARGS="${CMAKE_ARGS} -DFEATURE_egl=ON -DFEATURE_eglfs=ON -DFEATURE_xcb=ON -DFEATURE_xcb_xlib=ON -DFEATURE_xkbcommon=ON"
-  CMAKE_ARGS="${CMAKE_ARGS} -DFEATURE_vulkan=ON"
+  CMAKE_ARGS="${CMAKE_ARGS} -DFEATURE_vulkan=ON -DFEATURE_alsa=ON"
 fi
 
 cmake -LAH -G "Ninja" ${CMAKE_ARGS} \
