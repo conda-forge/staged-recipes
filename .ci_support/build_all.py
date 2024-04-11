@@ -69,11 +69,16 @@ def build_all(recipes_dir, arch):
                 text = ''.join(f.readlines())
             if platform == 'osx' and (
                     'MACOSX_DEPLOYMENT_TARGET' in text or
-                    'MACOSX_SDK_VERSION' in text):
+                    'MACOSX_SDK_VERSION' in text or
+                    'c_stdlib_version' in text):
                 config = load(text, Loader=BaseLoader)
 
                 if 'MACOSX_DEPLOYMENT_TARGET' in config:
                     for version in config['MACOSX_DEPLOYMENT_TARGET']:
+                        version = tuple([int(x) for x in version.split('.')])
+                        deployment_version = max(deployment_version, version)
+                if 'c_stdlib_version' in config:
+                    for version in config['c_stdlib_version']:
                         version = tuple([int(x) for x in version.split('.')])
                         deployment_version = max(deployment_version, version)
                 if 'MACOSX_SDK_VERSION' in config:
