@@ -69,12 +69,14 @@ def build_all(recipes_dir, arch):
                 if 'c_stdlib_version' in config:
                     for version in config['c_stdlib_version']:
                         version = tuple([int(x) for x in version.split('.')])
+                        print(f"Found c_stdlib_version for linux: {version=}")
                         found_centos7 |= version == (2, 17)
 
     if found_cuda:
         print('##vso[task.setvariable variable=NEED_CUDA;isOutput=true]1')
     if found_centos7:
         os.environ["DEFAULT_LINUX_VERSION"] = "cos7"
+        print("Overriding DEFAULT_LINUX_VERSION to be cos7")
 
     deployment_version = (0, 0)
     sdk_version = (0, 0)
@@ -102,6 +104,7 @@ def build_all(recipes_dir, arch):
                 if 'c_stdlib_version' in config:
                     for version in config['c_stdlib_version']:
                         version = tuple([int(x) for x in version.split('.')])
+                        print(f"Found c_stdlib_version for osx: {version=}")
                         deployment_version = max(deployment_version, version)
                 if 'MACOSX_SDK_VERSION' in config:
                     for version in config['MACOSX_SDK_VERSION']:
