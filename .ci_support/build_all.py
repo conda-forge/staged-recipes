@@ -6,6 +6,7 @@ import conda_index.api
 import networkx as nx
 from compute_build_graph import construct_graph
 import argparse
+import re
 import os
 from collections import OrderedDict
 import sys
@@ -57,7 +58,12 @@ def build_all(recipes_dir, arch):
         cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
         if os.path.exists(cbc):
             with open(cbc, "r") as f:
-                text = ''.join(f.readlines())
+                lines = f.readlines()
+            pat = re.compile(r"^([^\#]*?)\s+\#\s\[.*(not\s(linux|unix)|(?<!not\s)(osx|win)).*\]\s*$")
+            # remove lines with selectors that don't apply to linux, i.e. if they contain
+            # "not linux", "not unix", "osx" or "win"; this also removes trailing newlines
+            lines = [pat.sub("", x) for x in lines]
+            text = "\n".join(lines)
             if platform == 'linux' and ('c_stdlib_version' in text):
                 config = load(text, Loader=BaseLoader)
                 if 'c_stdlib_version' in config:
@@ -77,7 +83,12 @@ def build_all(recipes_dir, arch):
         cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
         if os.path.exists(cbc):
             with open(cbc, "r") as f:
-                text = ''.join(f.readlines())
+                lines = f.readlines()
+            pat = re.compile(r"^([^\#]*?)\s+\#\s\[.*(not\s(osx|unix)|(?<!not\s)(linux|win)).*\]\s*$")
+            # remove lines with selectors that don't apply to osx, i.e. if they contain
+            # "not osx", "not unix", "linux" or "win"; this also removes trailing newlines
+            lines = [pat.sub("", x) for x in lines]
+            text = "\n".join(lines)
             if platform == 'osx' and (
                     'MACOSX_DEPLOYMENT_TARGET' in text or
                     'MACOSX_SDK_VERSION' in text or
