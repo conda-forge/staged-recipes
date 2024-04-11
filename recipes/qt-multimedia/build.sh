@@ -5,8 +5,6 @@ CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 if test "$CONDA_BUILD_CROSS_COMPILATION" = "1"
 then
   CMAKE_ARGS="${CMAKE_ARGS} -DQT_HOST_PATH=${BUILD_PREFIX}"
-else
-  CMAKE_ARGS="${CMAKE_ARGS} -DQT_HOST_PATH=${PREFIX}"
 fi
 
 if [[ $(uname) == "Linux" ]]; then
@@ -18,14 +16,8 @@ cmake -LAH -G "Ninja" ${CMAKE_ARGS} \
   -DCMAKE_PREFIX_PATH=${PREFIX} \
   -DCMAKE_FIND_FRAMEWORK=LAST \
   -DCMAKE_INSTALL_RPATH:STRING=${PREFIX}/lib \
-  -DCMAKE_UNITY_BUILD=ON -DCMAKE_UNITY_BUILD_BATCH_SIZE=32 \
   -DCMAKE_MESSAGE_LOG_LEVEL=STATUS \
   -DFEATURE_linux_v4l=OFF \
-  -DFEATURE_gssapi=OFF \
-  -DFEATURE_enable_new_dtags=OFF \
-  -DFEATURE_framework=OFF \
-  -DFEATURE_gstreamer_gl=OFF \
-  -DFEATURE_quick3d_assimp=OFF \
   -DQT_DEFAULT_MEDIA_BACKEND=ffmpeg \
-  -B build ${CMAKE_ARGS} .
+  -B build .
 cmake --build build --target install
