@@ -54,6 +54,17 @@ def build_all(recipes_dir, arch):
                     found_cuda = True
                 if 'sysroot_linux-64' in text:
                     found_centos7 = True
+        cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
+        if os.path.exists(cbc):
+            with open(cbc, "r") as f:
+                text = ''.join(f.readlines())
+            if platform == 'linux' and ('c_stdlib_version' in text):
+                config = load(text, Loader=BaseLoader)
+                if 'c_stdlib_version' in config:
+                    for version in config['c_stdlib_version']:
+                        version = tuple([int(x) for x in version.split('.')])
+                        found_centos7 |= version == (2, 17)
+
     if found_cuda:
         print('##vso[task.setvariable variable=NEED_CUDA;isOutput=true]1')
     if found_centos7:
