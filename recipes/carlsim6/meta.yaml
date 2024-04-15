@@ -1,0 +1,78 @@
+{% set processor = "cpu" %}
+{% set name = "carlsim6" %}
+{% set version = "6.1" %}
+{% set build = 0 %}
+
+{% set processor = "cpu" if cuda_compiler_version == "None" else "gpu" %}  # [not osx]
+{% set processor = "cpu" %}  # [osx]
+
+# Prioritize gpu build if cudatoolkit can be installed (through __cuda virtual package)
+{% set build = build + 100 if processor == "gpu" else build %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/UCI-CARL/{{ name }}/archive/v{{ version }}.tar.gz
+    sha256: 89f37da9685d0dea0c89937885e151f31b09076eec9abe987e7530194aed3cb9
+    patches:
+      - fix-build.patch
+      - fix-clang.patch
+
+build:
+  number: {{ build }}
+  string: {{ processor }}h{{ PKG_HASH }}_{{ build }}
+  run_exports:
+    - {{ pin_subpackage('carlsim6', max_pin='x.x') }}
+  ignore_run_exports_from:
+    - gtest
+  # Upstream still uses the deprecated texture functionality
+  # and is not yet ready for CUDA 12.
+  skip: true  # [cuda_compiler_version == "12.0"]
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ compiler('c') }}
+    - {{ compiler('cuda') }}         # [(cuda_compiler or "None") != "None"]
+    - cmake
+    - make                           # [unix]
+    - pkg-config
+    - ninja
+    - sysroot_linux-64 2.17          # [linux64]
+    - python                         # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+  host:
+    - python
+    - swig
+    - gtest
+    - libcurand-dev                  # [cuda_compiler_version == "12.0"]
+    - cuda-cudart-dev                # [cuda_compiler_version == "12.0"]
+  run:
+    - python
+    - __cuda >={{ cuda_compiler_version }}  # [(cuda_compiler or "None") != "None"]
+
+test:
+  commands:
+    - test -f $PREFIX/lib/libcarlsim${SHLIB_EXT}  # [unix]
+    - test -f $PREFIX/lib/cmake/carlsim/carlsim-config.cmake  # [unix]
+    - test -f $PREFIX/include/carlsim.h  # [unix]
+    - test -f $PREFIX/include/cuda_version_control.h  # [unix and (cuda_compiler or "None") != "None"]
+    - if exist %PREFIX%\\Library\\lib\\cmake\\carlsim\\carlsim-config.cmake (exit 0) else (exit 1)  # [win]
+    - if exist %PREFIX%\\Library\\include\\cuda_version_control.h (exit 0) else (exit 1)  # [win and (cuda_compiler or "None") != "None"]
+    - if exist %PREFIX%\\Library\\include\\carlsim.h (exit 0) else (exit 1)  # [win]
+    - if exist %PREFIX%\\Library\\lib\\carlsim.lib (exit 0) else (exit 1)  # [win]
+    - if exist %PREFIX%\\Library\\bin\\carlsim.dll (exit 0) else (exit 1)  # [win]
+
+about:
+  home: https://github.com/UCI-CARL/CARLsim6
+  license: MIT
+  license_file:
+    - LICENSE
+    - LICENSE_CUDA_SAMPLES
+  summary: CARLsim is an efficient, easy-to-use, GPU-accelerated library for simulating large-scale spiking neural network (SNN) models with a high degree of biological detail.
+
+extra:
+  recipe-maintainers:
+    - Tobias-Fischer
