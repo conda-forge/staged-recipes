@@ -152,9 +152,9 @@ make -C "${SRC_DIR}/epics/extensions/src/SDDS/python" \
   PYTHON3=1 \
   PYTHON_PREFIX="$PYTHON_PREFIX" \
   PYTHON_EXEC_PREFIX="$PYTHON_EXEC_PREFIX" \
-  PYTHON_VERSION="$PYTHON_VERSION"
-
-echo "* Building Pelegant"
+  PYTHON_VERSION="$PYTHON_VERSION" \
+  LIB_LIBS="SDDS1 rpnlib mdblib mdbmth lzma" \
+  USR_SYS_LIBS="python${PYTHON_VERSION}"
 
 echo "* Adding extension bin directory to PATH for nlpp"
 export PATH="${SRC_DIR}/epics/extensions/bin/${EPICS_HOST_ARCH}:$PATH"
@@ -168,9 +168,15 @@ USR_LDFLAGS+= -lgomp
 EOF
 fi
 
+echo "* Building parallel elegant first"
 make -C "${ELEGANT_ROOT}" \
   Pelegant \
   "${MAKE_MPI_ARGS[@]}" \
+  "${MAKE_GSL_ARGS[@]}"
+
+echo "* Building regular elegant second"
+make -C "${ELEGANT_ROOT}" \
+  MPI=0 NOMPI=1 \
   "${MAKE_GSL_ARGS[@]}"
 
 for build_path in \
