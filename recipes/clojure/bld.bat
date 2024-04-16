@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-for /R clojure-tools %%G in (*) do (
-    move /Y "%%G" "%PREFIX%"
-)
+powershell New-Item -ItemType Directory -Path "%PREFIX%\WindowsPowerShell\Modules\ClojureTools" -Force
+powershell Move-Item -Path clojure-tools\ClojureTools -Destination %PKG_VERSION%.%PKG_BUILD% -Force
+powershell Move-Item -Path %PKG_VERSION%.%PKG_BUILD% -Destination "%PREFIX%\WindowsPowerShell\Modules\ClojureTools" -Force
