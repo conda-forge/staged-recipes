@@ -6,3 +6,7 @@ powershell New-Item -ItemType Directory -Path "%PREFIX%\WindowsPowerShell\Module
 powershell Move-Item -Path %SRC_DIR%\clojure-tools -Destination %PKG_VERSION%.%PKG_BUILD% -Force
 
 powershell Move-Item -Path %PKG_VERSION%.%PKG_BUILD% -Destination "%PREFIX%\WindowsPowerShell\Modules\ClojureTools" -Force
+
+powershell Register-PSRepository -Name ClojureTools -SourceLocation "%PREFIX%\WindowsPowerShell\Modules\ClojureTools" -InstallationPolicy Trusted
+
+$env:PSModulePath =  "%PREFIX%\WindowsPowerShell\Modules\ClojureTools" + $env:PSModulePath
