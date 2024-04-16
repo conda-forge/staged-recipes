@@ -1,6 +1,8 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+dir %SRC_DIR%
+
 powershell New-Item -ItemType Directory -Path "%PREFIX%\WindowsPowerShell\Modules\ClojureTools" -Force
 
 powershell Move-Item -Path %SRC_DIR%\clojure-tools\ClojureTools -Destination %PKG_VERSION%.%PKG_BUILD% -Force
