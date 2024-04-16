@@ -1,0 +1,118 @@
+{% set version = "1.2.3" %}
+
+# handle undefined PYTHON in `noarch: generic` outputs
+{% if PYTHON is not defined %}{% set PYTHON = "$PYTHON" %}{% endif %}
+
+package:
+  name: granian
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/g/granian/granian-{{ version }}.tar.gz
+  sha256: bbc30c7874cd707ac88e8a4a2282f784a0bdd2ccaa71a3783f1ae1a75fdf19b1
+
+build:
+  skip: true  # [py<38]
+  number: 0
+
+outputs:
+  - name: granian
+    build:
+      script:
+        - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+        - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+      entry_points:
+        - granian = granian:cli.cli
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("rust") }}
+        - cargo-bundle-licenses
+      host:
+        - python >=3.8
+        - maturin >=1.1.0,<1.5.0
+        - pip
+      run:
+        - python >=3.8
+        - typer >=0.4.2,<0.12.0
+        - uvloop >=0.18.0,<0.19.dev0  # [not win]
+    test:
+      imports:
+        - granian
+      commands:
+        - pip check
+        - granian --help
+      requires:
+        - pip
+
+  - name: granian-with-pname
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage("granian", max_pin="x.x.x") }}
+        - setproctitle >=1.3.3,<1.4
+    test:
+      imports:
+        - granian
+      commands:
+        - pip check
+        - granian --help
+      requires:
+        - pip
+
+  - name: granian-with-reload
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage("granian", max_pin="x.x.x") }}
+        - watchfiles >=0.21,<0.22
+    test:
+      imports:
+        - granian
+      commands:
+        - pip check
+        - granian --help
+      requires:
+        - pip
+
+  - name: granian-with-all
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage("granian", max_pin="x.x.x") }}
+        - {{ pin_subpackage("granian-with-pname", max_pin="x.x.x") }}
+        - {{ pin_subpackage("granian-with-reload", max_pin="x.x.x") }}
+    test:
+      source_files:
+        - tests
+      imports:
+        - granian
+      commands:
+        - pip check
+        - granian --help
+        - coverage run --source=granian --branch -m pytest -vv --tb=long --color=yes
+        - coverage report --show-missing --skip-covered --fail-under=20
+      requires:
+        - coverage
+        - httpx >=0.25.0,<0.26
+        - pip
+        - pytest >=7.4.2,<7.5
+        - pytest-asyncio >=0.21.1,<0.22
+        - websockets >=11.0,<12.0
+
+about:
+  home: https://github.com/emmett-framework/granian
+  summary: A Rust HTTP server for Python applications
+  dev_url: https://github.com/emmett-framework/granian
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+
+extra:
+  feedstock-name: granian
+  recipe-maintainers:
+    - bollwyvl
