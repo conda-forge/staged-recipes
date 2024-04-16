@@ -2,6 +2,8 @@
 setlocal EnableDelayedExpansion
 
 dir %SRC_DIR%
+dir %SRC_DIR%\clojure-tools
+dir %SRC_DIR%\clojure-tools\ClojureTools
 
 powershell New-Item -ItemType Directory -Path "%PREFIX%\WindowsPowerShell\Modules\ClojureTools" -Force
 
