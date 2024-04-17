@@ -21,7 +21,7 @@ set DEACTIVATE_DIR=%PREFIX%\etc\conda\deactivate.d
 mkdir %ACTIVATE_DIR%
 mkdir %DEACTIVATE_DIR%
 
-copy %RECIPE_DIR%\scripts\activate.ps1 %ACTIVATE_DIR%\clojure-activate.at
+copy %RECIPE_DIR%\scripts\activate.ps1 %ACTIVATE_DIR%\clojure-activate.bat
 if errorlevel 1 exit 1
 
 copy %RECIPE_DIR%\scripts\activate.ps1 %ACTIVATE_DIR%\clojure-activate.ps1
