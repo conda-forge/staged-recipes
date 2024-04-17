@@ -1,3 +1,3 @@
 @echo off
-powershell Register-PSRepository -Name ClojureTools -SourceLocation "%CONDA_PREFIX%\WindowsPowerShell\Modules\ClojureTools" -InstallationPolicy Trusted
+@set "PSModulePath"="%CONDA_PREFIX%\WindowsPowerShell\Modules\ClojureTools;%PSModulePath%"
 powershell -Command "clj $args" %*
