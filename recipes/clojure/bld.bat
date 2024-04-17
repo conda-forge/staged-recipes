@@ -15,14 +15,14 @@ if errorlevel 1 exit 1
 copy %RECIPE_DIR%\scripts\clj.bat %PREFIX%\Scripts\clj.bat
 if errorlevel 1 exit 1
 
-::   :: ensure that ClojureTools module is registered
-::   set ACTIVATE_DIR=%PREFIX%\etc\conda\activate.d
-::   set DEACTIVATE_DIR=%PREFIX%\etc\conda\deactivate.d
-::   mkdir %ACTIVATE_DIR%
-::   mkdir %DEACTIVATE_DIR%
-::
-::   copy %RECIPE_DIR%\scripts\activate.bat %ACTIVATE_DIR%\clojure-activate.bat
-::   if errorlevel 1 exit 1
+:: ensure that ClojureTools module is registered
+set ACTIVATE_DIR=%PREFIX%\etc\conda\activate.d
+set DEACTIVATE_DIR=%PREFIX%\etc\conda\deactivate.d
+mkdir %ACTIVATE_DIR%
+mkdir %DEACTIVATE_DIR%
+
+copy %RECIPE_DIR%\scripts\activate.bat %ACTIVATE_DIR%\clojure-activate.bat
+if errorlevel 1 exit 1
 ::
 ::   :: copy %RECIPE_DIR%\scripts\activate.ps1 %ACTIVATE_DIR%\clojure-activate.ps1
 ::   :: if errorlevel 1 exit 1
