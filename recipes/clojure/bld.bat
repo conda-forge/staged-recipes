@@ -7,13 +7,13 @@ powershell Move-Item -Path %SRC_DIR%\clojure-tools -Destination %PKG_VERSION%.%P
 
 powershell Move-Item -Path %PKG_VERSION%.%PKG_BUILD% -Destination "%PREFIX%\WindowsPowerShell\Modules\ClojureTools" -Force
 
-mkdir %PREFIX%\Scripts
-
-copy %RECIPE_DIR%\scripts\clojure.bat %PREFIX%\Scripts\clojure.bat
-if errorlevel 1 exit 1
-
-copy %RECIPE_DIR%\scripts\clj.bat %PREFIX%\Scripts\clj.bat
-if errorlevel 1 exit 1
+::   mkdir %PREFIX%\Scripts
+::
+::   copy %RECIPE_DIR%\scripts\clojure.bat %PREFIX%\Scripts\clojure.bat
+::   if errorlevel 1 exit 1
+::
+::   copy %RECIPE_DIR%\scripts\clj.bat %PREFIX%\Scripts\clj.bat
+::   if errorlevel 1 exit 1
 
 ::   :: ensure that ClojureTools module is registered
 ::   set ACTIVATE_DIR=%PREFIX%\etc\conda\activate.d
