@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cmake ${CMAKE_ARGS} -DBUILD_TESTS=OFF \
+cmake ${CMAKE_ARGS} \
       -DCMAKE_INSTALL_PREFIX=$PREFIX \
       -DCMAKE_INSTALL_LIBDIR=lib \
       -DUSE_SYSTEM_TZ_DB=ON \
