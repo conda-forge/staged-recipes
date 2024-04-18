@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -o xtrace -o nounset -o pipefail
+set -o xtrace -o nounset -o pipefail -o errexit
 
 cd cmd/atlas
 
@@ -11,4 +11,4 @@ go-licenses save . \
     --ignore ariga.io/atlas \
     --ignore github.com/libsql/sqlite-antlr4-parser
 
-go build -v --ldflags '-s -w' -o $PREFIX/bin/atlas
+go build -v --ldflags '-s -w' -o $PREFIX/bin/atlas 2>&1
