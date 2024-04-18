@@ -1,2 +1,2 @@
 @echo off
-powershell -Command "ClojureTools\clojure $args" %*
+powershell -Command "Import-Module ClojureTools; ClojureTools\clojure $args" %*
