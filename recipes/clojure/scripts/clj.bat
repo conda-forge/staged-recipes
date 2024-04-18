@@ -2,4 +2,5 @@
 set args=%*
 
 @echo off
-PowerShell.exe -Command "Import-Module ClojureTools; ClojureTools\clj $args"
+powershell -Command Import-Module ClojureTools
+powershell -Command "& ClojureTools\clj '%*'"
