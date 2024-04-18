@@ -1,4 +1,2 @@
-@if defined _CLOJURE_PSMODULEPATH_BACKUP (
-     @set "PSModulePath=%_CLOJURE_PSMODULEPATH_BACKUP%"
-     @set "_CLOJURE_PSMODULEPATH_BACKUP="
-)
+@echo off
+powershell -ExecutionPolicy Bypass -File "%~dp0\clojure-deactivate.ps1"

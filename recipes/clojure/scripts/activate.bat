@@ -1,4 +1,4 @@
-@if defined PSModulePath (
-     @set "_CLOJURE_PSMODULEPATH_BACKUP=%PSModulePath%"
-)
-@set "PATH=%PREFIX%\Scripts;%PATH%"
+@set "PATH=%CONDA_PREFIX%\Scripts;%PATH%"
+
+@echo off
+powershell -ExecutionPolicy Bypass -File "%~dp0\clojure-activate.ps1"
