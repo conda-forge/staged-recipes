@@ -31,7 +31,7 @@ CONDARC
 source "${MINIFORGE_ROOT}/etc/profile.d/conda.sh"
 conda activate base
 
-echo -e "\n\nInstalling conda-forge-ci-setup=3, conda-build."
+echo -e "\n\nInstalling conda-forge-ci-setup, conda-build."
 conda install --quiet --file .ci_support/requirements.txt
 
 echo -e "\n\nSetting up the condarc and mangling the compiler."
