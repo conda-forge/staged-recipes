@@ -11,4 +11,4 @@ go-licenses save . \
     --ignore ariga.io/atlas \
     --ignore github.com/libsql/sqlite-antlr4-parser
 
-go build -v -o $PREFIX/bin/atlas
+go build -v -x -o $PREFIX/bin/atlas
