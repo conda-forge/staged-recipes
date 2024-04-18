@@ -1,8 +1,5 @@
 @echo on
 
-set "GOPATH=%SRC_DIR%\go"
-mkdir "%GOPATH%"
-
 cd cmd/atlas
 
 go-licenses save . \
