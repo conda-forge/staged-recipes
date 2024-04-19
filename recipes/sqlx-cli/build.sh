@@ -3,6 +3,7 @@
 set -o xtrace -o nounset -o pipefail -o errexit
 
 export RUST_BACKTRACE=1
+export OPENSSL_DIR=$PREFIX
 
 # build
 cargo install --locked \
