@@ -28,6 +28,6 @@ echo copied :PREFIX:\Scripts\lein.bat
 set ACTIVATE_DIR=%PREFIX%\etc\conda\activate.d
 mkdir %ACTIVATE_DIR%
 
-copy %RECIPE_DIR%\scripts\activate.bat %ACTIVATE_DIR%\clojure-activate.bat > nul
+copy %RECIPE_DIR%\scripts\activate.bat %ACTIVATE_DIR%\lein-activate.bat > nul
 if errorlevel 1 exit 1
 echo copied :ACTIVATE_DIR:\lein-activate.bat
