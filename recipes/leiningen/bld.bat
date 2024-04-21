@@ -19,15 +19,18 @@ for /f "delims=" %%i in (%lein_file%) do (
 move /Y "%temp_file%" "%lein_file%"
 if errorlevel 1 exit 1
 
-mkdir %PREFIX%\Scripts
+mkdir %PREFIX%\lib\leiningen\libexec
+copy %RECIPE_DIR%\leiningen-standalone-%PKG_VERSION%-standalone.jar %PREFIX%\lib\leiningen\libexec\leiningen-%PKG_VERSION%-standalone.jar > nul
+if errorlevel 1 exit 1
+echo copied :PREFIX:\lib\leiningen\libexec\leiningen-%PKG_VERSION%-standalone.jar
 
+mkdir %PREFIX%\Scripts
 copy %RECIPE_DIR%\scripts\lein.bat %PREFIX%\Scripts\lein.bat > nul
 if errorlevel 1 exit 1
 echo copied :PREFIX:\Scripts\lein.bat
 
 set ACTIVATE_DIR=%PREFIX%\etc\conda\activate.d
 mkdir %ACTIVATE_DIR%
-
 copy %RECIPE_DIR%\scripts\activate.bat %ACTIVATE_DIR%\lein-activate.bat > nul
 if errorlevel 1 exit 1
 echo copied :ACTIVATE_DIR:\lein-activate.bat
