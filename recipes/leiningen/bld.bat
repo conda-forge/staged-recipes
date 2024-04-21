@@ -20,7 +20,7 @@ move /Y "%temp_file%" "%lein_file%"
 if errorlevel 1 exit 1
 
 mkdir %PREFIX%\lib\leiningen\libexec
-copy %RECIPE_DIR%\leiningen-standalone-%PKG_VERSION%-standalone.jar %PREFIX%\lib\leiningen\libexec\leiningen-%PKG_VERSION%-standalone.jar > nul
+copy %RECIPE_DIR%\leiningen-%PKG_VERSION%-standalone.jar %PREFIX%\lib\leiningen\libexec\leiningen-%PKG_VERSION%-standalone.jar > nul
 if errorlevel 1 exit 1
 echo copied :PREFIX:\lib\leiningen\libexec\leiningen-%PKG_VERSION%-standalone.jar
 
