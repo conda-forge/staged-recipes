@@ -2,9 +2,6 @@
 
 set -ex
 
-# windows shell doesn't start here
-cd $SRC_DIR
-
 # Build
 maturin build --release --manifest-path crates/python/Cargo.toml --out $SRC_DIR/dist
 

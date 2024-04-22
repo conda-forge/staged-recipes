@@ -3,4 +3,4 @@
 set -ex
 
 # Install
-${PYTHON} -m pip install qcs-sdk-python --find-links dist --force-reinstall
+${PYTHON} -m pip install dist/qcs_sdk_python-${PKG_VERSION}*.whl --no-deps --force-reinstall -vv
