@@ -1,86 +1,36 @@
 jobs:
 - job: win_64
+  condition: not(eq(variables['Build.SourceBranch'], 'refs/heads/main'))
   pool:
-    vmImage: vs2017-win2016
+    vmImage: windows-2022
   strategy:
     maxParallel: 4
     matrix:
       win:
-        CONFIG: azure-win-64
-        CF_MAX_PY_VER: 37
-  timeoutInMinutes: 240
+        CONFIG: win64
+  timeoutInMinutes: 360
   steps:
-    # TODO: Fast finish on azure pipelines?
-    - script: |
-        echo "Fast Finish"
-
-    - script: |
-        choco install vcpython27 -fdv -y --debug
-      displayName: Install vcpython27.msi (if needed)
-
-    - powershell: |
-        Set-PSDebug -Trace 1
-
-        $batchcontent = @"
-        ECHO ON
-        SET vcpython=C:\Program Files (x86)\Common Files\Microsoft\Visual C++ for Python\9.0
-
-        DIR "%vcpython%"
-
-        CALL "%vcpython%\vcvarsall.bat" %*
-        "@
-
-        $batchDir = "C:\Program Files (x86)\Common Files\Microsoft\Visual C++ for Python\9.0\VC"
-        $batchPath = "$batchDir" + "\vcvarsall.bat"
-        New-Item -Path $batchPath -ItemType "file" -Force
-
-        Set-Content -Value $batchcontent -Path $batchPath
-
-        Get-ChildItem -Path $batchDir
-
-        Get-ChildItem -Path ($batchDir + '\..')
-
-      displayName: Patch vs2008 (if needed)
-
-    - task: CondaEnvironment@1
+    - task: PythonScript@0
+      displayName: 'Download Miniforge'
       inputs:
-        packageSpecs: 'python=3.6 conda-build conda conda-forge::conda-forge-ci-setup=2 networkx  conda-forge-pinning' # Optional
-        installOptions: "-c conda-forge"
-        updateConda: false
-      displayName: Install conda-build and activate environment
-
-    - script: set PYTHONUNBUFFERED=1
-
-    # Add our channels.
-    - script: conda.exe config --set show_channel_urls true
-      displayName: configure conda channels
-    - script: conda.exe config --remove channels defaults
-      displayName: configure conda channels
-    - script: conda.exe config --add channels defaults
-      displayName: configure conda channels
-    
-    - script: conda.exe config --add channels conda-forge
-      displayName: configure conda channels
-    
-
-    # Configure the VM.
-    - script: call run_conda_forge_build_setup
-      displayName: conda-forge build setup
-        
-    # Find the recipes from master in this PR and remove them.
+        scriptSource: inline
+        script: |
+          import urllib.request
+          url = 'https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe'
+          path = r"$(Build.ArtifactStagingDirectory)/Miniforge.exe"
+          urllib.request.urlretrieve(url, path)
     - script: |
-        git fetch --force origin master:master
-        cd recipes
-        for /f "tokens=*" %%a in ('git ls-tree --name-only master -- .') do rmdir /s /q %%a && echo Removing recipe: %%a
-        cd ..
+        start /wait "" %BUILD_ARTIFACTSTAGINGDIRECTORY%\Miniforge.exe /InstallationType=JustMe /RegisterPython=0 /S /D=C:\Miniforge
+      displayName: Install Miniforge
+    - powershell: Write-Host "##vso[task.prependpath]C:\Miniforge\Scripts"
+      displayName: Add conda to PATH
 
-    # Special cased version setting some more things!
     - script: |
-        git fetch --force origin master:master
-        python .ci_support\build_all.py recipes --arch 64
-      displayName: Build recipe (maybe vs2008)
-      env: {
-        VS90COMNTOOLS: "C:\\Program Files (x86)\\Common Files\\Microsoft\\Visual C++ for Python\\9.0\\VC\\bin",
-      }
+        call .scripts\run_win_build.bat
+      displayName: Build recipes
+      env:
+        CI: azure
+        CONDA_BLD_PATH: C:\bld
 
-    
+    - publish: C:\\bld\\win-64\\
+      artifact: conda_pkgs_win
