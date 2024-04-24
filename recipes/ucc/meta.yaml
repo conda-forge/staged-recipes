@@ -1,5 +1,3 @@
-{% set cuda_version = "12" %}
-
 package:
   name: ucc
   version: v1.2.0
@@ -8,10 +6,10 @@ source:
   url: https://github.com/openucx/ucc/archive/refs/tags/v1.2.0.tar.gz
   sha256: c1552797600835c0cf401b82dc89c4d27d5717f4fb805d41daca8e19f65e509d
   patches:
-    - 0001-EC-CUDA-fix-build-with-12.2-and-older-arch-847.patch
+    - 0001-EC-CUDA-fix-build-with-12.2-and-older-arch-847.patch  # [(cuda_compiler_version or "None").startswith("12")]
 
 build:
-  skip: True  # [(not linux) or (cuda_compiler_version != 'None')]
+  skip: True  # [not linux]
   number: 0
   missing_dso_whitelist:
     - '*libcuda.so*'
@@ -21,18 +19,22 @@ build:
 requirements:
   build:
     - {{ compiler('cxx') }}
-    - cuda-nvcc >={{ cuda_version }}
+    - {{ compiler('cuda') }}
     - automake
     - libtool
     - make
 
   host:
     - ucx
-    - cuda-cudart-dev
+    - cuda-cudart-dev ={{ cuda_compiler_version }}  # [(cuda_compiler_version or "None").startswith("12")]
 
   run:
     - ucx
-    - cuda-version >={{ cuda_version }}
+
+  run_constrained:
+    - cuda-version >=11.2,<12  # [(cuda_compiler_version or "None").startswith("11")]
+    - cuda-version >=12,<13    # [(cuda_compiler_version or "None").startswith("12")]
+
 
 test:
   commands:
