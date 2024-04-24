@@ -10,44 +10,65 @@ source:
   sha256: fb7714d8533c4227a7db40992c1fce947628c011541b0647e9245cce6c055f6a
 
 build:
-  ignore_prefix_files: True
   number: 0
-
 requirements:
   build:
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
     - {{ compiler('rust') }}
-    - cargo-bundle-licenses
-  host:
     - maturin >=1.0.0,<2.0.0
+    - cargo-bundle-licenses
+    - python
+    - toml
+  host:
     - python
     - pip
-    - setuptools-rust
-    - toml
   run:
     - python
     - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx and x86_64]
 
 outputs:
   - name: qcs-sdk-python
-    files:
-      - dist/qcs_sdk_python-{{ version }}-cp{{ py }}-cp{{ py }}-{{ build_platform }}.whl
     script: install.sh  # [unix]
     script: install.bat  # [win]
-    script_env:
-      - ARTIFACT="qcs-sdk-python"
     requirements:
-      build:
+     build:
+      - {{ compiler('c') }}
+      - {{ compiler('cxx') }}
+     host:
         - pip
+        - python
     test:
       imports:
-        - qcs_sdk_python
+        - qcs_sdk.qcs_sdk
       requires:
-        - makers
+        - cargo-make
+        - pip
       commands:
+        - pip check
         - makers
 
+  - name: qcs-sdk-python-grpc-web
+    script: install_grpc.sh  # [unix]
+    script: install_grpc.bat  # [win]
+    requirements:
+     build:
+      - {{ compiler('c') }}
+      - {{ compiler('cxx') }}
+     host:
+        - pip
+        - python
+    test:
+      imports:
+        - qcs_sdk.qcs_sdk
+      requires:
+        - cargo-make
+        - pip
+      commands:
+        - pip check
+        - makers
+
+  # - Naming conversion
   - name: qcs_sdk_python
     build:
       noarch: python
@@ -58,14 +79,15 @@ outputs:
       imports:
         - qcs_sdk_python
 
-#  - name: qcs-sdk-python-grpc-web
-#
-#  - name: qcs-sdk-python-grpc-web
-#    script:
-#      - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
-#      - ${PYTHON} -m pip install qcs-sdk-python-grpc-web --find-links . --force-reinstall
-#    files:
-#      - dist/qcs_sdk_python-grpc-web-{{ version }}-cp{{ py }}-cp{{ py }}-{{ platform }}.whl
+  - name: qcs_sdk_python_grpc_web
+    build:
+      noarch: python
+    requirements:
+      run:
+        - {{ pin_subpackage("qcs-sdk-python-grpc-web", exact=True) }}
+    test:
+      imports:
+        - qcs_sdk.qcs_sdk
 
 
 about:
