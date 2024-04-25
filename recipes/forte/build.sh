@@ -21,7 +21,7 @@ ${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
   -D ENABLE_CheMPS2=OFF \
   -D ENABLE_ForteTests=OFF \
   -D CMAKE_VERBOSE_MAKEFILE=OFF \
-  -D CMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
+  -D CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON \
   -D CMAKE_PREFIX_PATH="${PREFIX}"
 
 # NOTE: CMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF is for reducing link time (quarters build time) for testing. remove line for production builds.
