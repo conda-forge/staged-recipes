@@ -2,6 +2,9 @@
 
 set -ex -o pipefail
 
+# Remove static libraries from the prefix to prevent static linking
+rm $PREFIX/lib/*.a
+
 mkdir oag
 mkdir epics
 
@@ -33,7 +36,7 @@ echo "* EPICS_HOST_ARCH=${EPICS_HOST_ARCH}"
 
 MAKE_ALL_ARGS=(
   "HDF_LIB_LOCATION=$PREFIX/lib"
-  "PNG=0"
+  "PNG=1"
   "EPICS_HOST_ARCH=$EPICS_HOST_ARCH"
   "SVN_VERSION=$PKG_VERSION"
 )
@@ -117,7 +120,7 @@ sed -i -e 's/^epicsShareFuncFDLIBM //g' "${SRC_DIR}/epics/extensions/src/SDDS/in
 
 # Sorry, we're not going to build the motif driver.
 echo -e "all:\ninstall:\nclean:\n" > "${SRC_DIR}/epics/extensions/src/SDDS/SDDSaps/sddsplots/motifDriver/Makefile"
-  
+
 echo "* Setting up EPICS build system"
 make -C "${SRC_DIR}/epics/base"
 
