@@ -1,0 +1,84 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index fc51b0e..1b91c68 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -350,7 +350,9 @@ endif()
+ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
+   target_compile_definitions(${target_name} PUBLIC CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
+   if(CPPTRACE_USE_EXTERNAL_LIBDWARF)
+-    find_package(libdwarf REQUIRED)
++         #find_package(libdwarf REQUIRED)
++         find_package(PkgConfig)
++         pkg_check_modules(libdwarf REQUIRED libdwarf)
+   else()
+     include(FetchContent)
+     # First, dependencies: Zstd and zlib (currently relying on system zlib)
+@@ -424,25 +426,25 @@ if(CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF)
+       # libdwarf::dwarf-shared, libdwarf::dwarf, then libdwarf
+       # libdwarf v0.8.0 installs with the target libdwarf::dwarf somehow, despite creating libdwarf::dwarf-static or
+       # libdwarf::dwarf-shared under fetchcontent
+-      if(TARGET libdwarf::dwarf-static)
+-        set(LIBDWARF_LIBRARIES libdwarf::dwarf-static)
+-      elseif(TARGET libdwarf::dwarf-shared)
+-        set(LIBDWARF_LIBRARIES libdwarf::dwarf-shared)
+-      elseif(TARGET libdwarf::dwarf)
+-        set(LIBDWARF_LIBRARIES libdwarf::dwarf)
+-      elseif(TARGET libdwarf)
+-        set(LIBDWARF_LIBRARIES libdwarf)
+-      else()
+-        message(FATAL_ERROR "Couldn't find libdwarf target name to link against")
+-      endif()
+-      target_link_libraries(${target_name} PRIVATE ${LIBDWARF_LIBRARIES})
++      #if(TARGET libdwarf::dwarf-static)
++      #  set(LIBDWARF_LIBRARIES libdwarf::dwarf-static)
++      #elseif(TARGET libdwarf::dwarf-shared)
++      #  set(LIBDWARF_LIBRARIES libdwarf::dwarf-shared)
++      #elseif(TARGET libdwarf::dwarf)
++      #  set(LIBDWARF_LIBRARIES libdwarf::dwarf)
++      #elseif(TARGET libdwarf)
++      #  set(LIBDWARF_LIBRARIES libdwarf)
++      #else()
++      #  message(FATAL_ERROR "Couldn't find libdwarf target name to link against")
++      #endif()
++      target_link_libraries(${target_name} PRIVATE ${libdwarf_LIBRARIES})
+     endif()
+     # There seems to be no consistency at all about where libdwarf decides to place its headers........ Figure out if
+     # it's libdwarf/libdwarf.h and libdwarf/dwarf.h or just libdwarf.h and dwarf.h
+     include(CheckIncludeFileCXX)
+     # libdwarf's cmake doesn't properly set variables to indicate where its libraries live
+-    get_target_property(LIBDWARF_INTERFACE_INCLUDE_DIRECTORIES ${LIBDWARF_LIBRARIES} INTERFACE_INCLUDE_DIRECTORIES)
+-    set(CMAKE_REQUIRED_INCLUDES ${LIBDWARF_INTERFACE_INCLUDE_DIRECTORIES})
++    #get_target_property(LIBDWARF_INTERFACE_INCLUDE_DIRECTORIES ${LIBDWARF_LIBRARIES} INTERFACE_INCLUDE_DIRECTORIES)
++    set(CMAKE_REQUIRED_INCLUDES ${libdwarf_INCLUDE_DIRS})
+     CHECK_INCLUDE_FILE_CXX("libdwarf/libdwarf.h" LIBDWARF_IS_NESTED)
+     CHECK_INCLUDE_FILE_CXX("libdwarf.h" LIBDWARF_IS_NOT_NESTED)
+     # check_include_file("libdwarf/libdwarf.h" LIBDWARF_IS_NESTED)
+diff --git a/src/utils/dwarf.hpp b/src/utils/dwarf.hpp
+index 98bf587..507c87b 100644
+--- a/src/utils/dwarf.hpp
++++ b/src/utils/dwarf.hpp
+@@ -14,7 +14,7 @@
+  #include <libdwarf/dwarf.h>
+ #else
+  #include <libdwarf.h>
+- #include <dwarf.h>
++ #include <libdwarf-0/dwarf.h>
+ #endif
+
+ namespace cpptrace {
+diff --git a/cmake/in/cpptrace-config-cmake.in b/cmake/in/cpptrace-config-cmake.in
+index 412a9d0..c8c478d 100644
+--- a/cmake/in/cpptrace-config-cmake.in
++++ b/cmake/in/cpptrace-config-cmake.in
+@@ -4,8 +4,8 @@
+ # Dependencies
+ if(@CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF@)
+   include(CMakeFindDependencyMacro)
+-  find_dependency(zstd REQUIRED)
+-  find_dependency(libdwarf REQUIRED)
++  #find_dependency(zstd REQUIRED)
++  #find_dependency(libdwarf REQUIRED)
+ endif()
+
+ # We cannot modify an existing IMPORT target
+
