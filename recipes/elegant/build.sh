@@ -174,7 +174,7 @@ make -C "${SRC_DIR}/epics/extensions/src/SDDS/python" \
   PYTHON_EXEC_PREFIX="$PREFIX" \
   PYTHON_VERSION="$PY_VER" \
   LIB_LIBS="SDDS1 rpnlib mdblib mdbmth" \
-  USR_SYS_LIBS="python${PYTHON_VERSION}"
+  USR_SYS_LIBS="python${PYTHON_VERSION} lzma"
 
 echo "* Adding extension bin directory to PATH for nlpp"
 export PATH="${SRC_DIR}/epics/extensions/bin/${EPICS_HOST_ARCH}:$PATH"
