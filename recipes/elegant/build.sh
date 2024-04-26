@@ -27,6 +27,22 @@ fi
 echo "* Work root:    $SRC_DIR"
 echo "* Conda prefix: $PREFIX"
 
+echo "* Removing vendored libraries"
+rm -rfv "${SRC_DIR}/epics/extensions/src/SDDS/png"
+rm -rfv "${SRC_DIR}/epics/extensions/src/SDDS/gd"
+rm -rfv "${SRC_DIR}/epics/extensions/src/SDDS/lzma"
+rm -rfv "${SRC_DIR}/epics/extensions/src/SDDS/tiff"
+rm -rfv "${SRC_DIR}/epics/extensions/src/SDDS/zlib"
+
+echo "* Patching Makefiles to not use vendored libraries"
+# The build system will try to use these regardless of our settings:
+sed -i -e '/^DIRS += zlib lzma$/d' "${SRC_DIR}/epics/extensions/src/SDDS/Makefile"
+sed -i -e '/^DIRS += png$/d' "${SRC_DIR}/epics/extensions/src/SDDS/Makefile"
+sed -i -e '/^DIRS += gd$/d' "${SRC_DIR}/epics/extensions/src/SDDS/Makefile"
+sed -i -e '/^DIRS += tiff$/d' "${SRC_DIR}/epics/extensions/src/SDDS/Makefile"
+# This will also force it to use the vendored zlib:
+sed -i -e '/^mdblib_DEPEND_DIRS = zlib$/d' "${SRC_DIR}/epics/extensions/src/SDDS/Makefile"
+
 echo "* Patching EPICS_BASE path for oag"
 # shellcheck disable=SC2016
 sed -i -e 's@^#\s*EPICS_BASE.*@EPICS_BASE=$(TOP)/../../epics/base@' "${SRC_DIR}/oag/apps/configure/RELEASE"
@@ -36,9 +52,13 @@ echo "* EPICS_HOST_ARCH=${EPICS_HOST_ARCH}"
 
 MAKE_ALL_ARGS=(
   "HDF_LIB_LOCATION=$PREFIX/lib"
-  "PNG=1"
   "EPICS_HOST_ARCH=$EPICS_HOST_ARCH"
   "SVN_VERSION=$PKG_VERSION"
+  "zlib_DIR=$PREFIX/lib"
+  "lzma_DIR=$PREFIX/lib"
+  "png_DIR=$PREFIX/lib"
+  "gd_DIR=$PREFIX/lib"
+  "tiff_DIR=$PREFIX/lib"
 )
 MAKE_GSL_ARGS=(
   "GSL=1"
@@ -52,15 +72,11 @@ MAKE_MPI_ARGS=(
   "MPICH_CXX=$CXX"
 )
 
-PYTHON_PREFIX=$($PYTHON -c "import sys; print(sys.prefix)")
-PYTHON_EXEC_PREFIX=$($PYTHON -c "import sys; print(sys.exec_prefix)")
-PYTHON_VERSION=$($PYTHON -c "import sys; print(sys.version[:4])")
+PYTHON_VERSION="$PY_VER"
 
 echo "* Make args:          ${MAKE_ALL_ARGS[*]}"
 echo "* Make GSL args:      ${MAKE_GSL_ARGS[*]}"
 echo "* Make MPI args:      ${MAKE_MPI_ARGS[*]}"
-echo "* Python prefix:      $PYTHON_PREFIX"
-echo "* Python exec prefix: $PYTHON_EXEC_PREFIX"
 echo "* Python version:     $PYTHON_VERSION"
 
 echo "* Setting compilers for epics-base"
@@ -137,7 +153,7 @@ echo "* Building SDDSlib with MPI"
 make -C "${SRC_DIR}/epics/extensions/src/SDDS/SDDSlib" "${MAKE_MPI_ARGS[@]}" "${MAKE_ALL_ARGS[@]}"
 
 echo "* Building SDDS tools"
-make -C "${SRC_DIR}/oag/apps/src/utils/tools" "${MAKE_MPI_ARGS[@]}"
+make -C "${SRC_DIR}/oag/apps/src/utils/tools" "${MAKE_ALL_ARGS[@]}" "${MAKE_MPI_ARGS[@]}"
 
 # We may not *need* to build these individually. However these are the bare
 # minimum necessary for Pelegant. So let's go with it for now.
@@ -151,12 +167,13 @@ done
 
 echo "* Building SDDS python"
 make -C "${SRC_DIR}/epics/extensions/src/SDDS/python" \
+  "${MAKE_ALL_ARGS[@]}" \
   "${MAKE_MPI_ARGS[@]}" \
   PYTHON3=1 \
-  PYTHON_PREFIX="$PYTHON_PREFIX" \
-  PYTHON_EXEC_PREFIX="$PYTHON_EXEC_PREFIX" \
-  PYTHON_VERSION="$PYTHON_VERSION" \
-  LIB_LIBS="SDDS1 rpnlib mdblib mdbmth lzma" \
+  PYTHON_PREFIX="$PREFIX" \
+  PYTHON_EXEC_PREFIX="$PREFIX" \
+  PYTHON_VERSION="$PY_VER" \
+  LIB_LIBS="SDDS1 rpnlib mdblib mdbmth" \
   USR_SYS_LIBS="python${PYTHON_VERSION}"
 
 echo "* Adding extension bin directory to PATH for nlpp"
@@ -174,12 +191,14 @@ fi
 echo "* Building parallel elegant first"
 make -C "${ELEGANT_ROOT}" \
   Pelegant \
+  "${MAKE_ALL_ARGS[@]}" \
   "${MAKE_MPI_ARGS[@]}" \
   "${MAKE_GSL_ARGS[@]}"
 
 echo "* Building regular elegant second"
 make -C "${ELEGANT_ROOT}" \
   MPI=0 NOMPI=1 \
+  "${MAKE_ALL_ARGS[@]}" \
   "${MAKE_GSL_ARGS[@]}"
 
 for build_path in \
@@ -205,7 +224,7 @@ chmod +w "${SRC_DIR}/oag/apps/bin/${EPICS_HOST_ARCH}/"*
 chmod +w "${SRC_DIR}/epics/extensions/bin/${EPICS_HOST_ARCH}/"*
 chmod +w "${SRC_DIR}/epics/extensions/lib/${EPICS_HOST_ARCH}/"*
 
-SITE_PACKAGES_DIR=$($PYTHON -c "import site; print(site.getsitepackages()[0])")
+SITE_PACKAGES_DIR="$PREFIX/lib/python${PY_VER}/site-packages"
 
 echo "* Installing sdds library to $SITE_PACKAGES_DIR"
 cp "${SRC_DIR}/epics/extensions/src/SDDS/python/sdds.py" "$SITE_PACKAGES_DIR"
