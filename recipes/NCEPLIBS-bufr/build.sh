@@ -11,4 +11,7 @@ cmake \
     -DENABLE_PYTHON=ON \
     "${SRC_DIR}"
 
+make -j"${CPU_COUNT}"
 make install
+
+ctest -VV --output-on-failure 
