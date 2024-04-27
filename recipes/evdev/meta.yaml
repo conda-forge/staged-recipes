@@ -1,0 +1,53 @@
+{% set name = "evdev" %}
+{% set version = "1.7.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/evdev-{{ version }}.tar.gz
+  sha256: 95bd2a1e0c6ce2cd7a2ecc6e6cd9736ff794b3ad5cb54d81d8cbc2e414d0b870
+
+build:
+  skip: true  # [not linux]
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  script_env:
+    - "C_INCLUDE_PATH=${BUILD_PREFIX}/x86_64-conda-linux-gnu/sysroot/usr/include"       # [linux64]
+    - "C_INCLUDE_PATH=${BUILD_PREFIX}/aarch64-conda-linux-gnu/sysroot/usr/include"      # [aarch64]
+    - "C_INCLUDE_PATH=${BUILD_PREFIX}/powerpc64le-conda-linux-gnu/sysroot/usr/include"  # [ppc64le]
+    - "C_INCLUDE_PATH=${BUILD_PREFIX}/s390x-conda-linux-gnu/sysroot/usr/include"        # [s390x]
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    # Package requres UI_GET_SYSNAME ioctl in uapi/linux/uinput.h, only available in kernel headers v3.15 and above, thus sysroot 2.28 is needed
+    - {{ stdlib('c') }}
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+  host:
+    - python
+    - setuptools >=61.0
+    - pip
+  run:
+    - python
+
+test:
+  imports:
+    - evdev
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/gvalkov/python-evdev
+  summary: Bindings to the Linux input handling subsystem
+  doc_url: https://pythonhosted.org/evdev/
+  license: BSD-3-Clause
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - ehfd
