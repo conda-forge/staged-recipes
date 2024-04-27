@@ -29,6 +29,9 @@ find $uprefix/. -name '*.la' -delete
 
 # On Windows we need to regenerate the configure scripts.
 if [ -n "$CYGWIN_PREFIX" ] ; then
+    am_version=1.15 # keep sync'ed with meta.yaml
+    export ACLOCAL=aclocal-$am_version
+    export AUTOMAKE=automake-$am_version
     autoreconf_args=(
         --force
         --install
@@ -42,11 +45,11 @@ if [ -n "$CYGWIN_PREFIX" ] ; then
     platlibs=$(cd $(dirname $(gcc --print-prog-name=ld))/../lib && pwd -W)
     export LDFLAGS="$LDFLAGS -L$platlibs"
 else
-    # for other platforms we just need to reconf to get the correct achitecture
-    echo libtoolize
-    libtoolize
-    echo autoconf
-    autoconf
+    autoreconf_args=(
+        --force
+        --install
+    )
+    autoreconf "${autoreconf_args[@]}"
 
     export CONFIG_FLAGS="--build=${BUILD}"
 fi
@@ -54,9 +57,6 @@ fi
 export PKG_CONFIG_LIBDIR=$uprefix/lib/pkgconfig:$uprefix/share/pkgconfig
 configure_args=(
     $CONFIG_FLAGS
-    --disable-debug
-    --disable-dependency-tracking
-    --disable-selective-werror
     --prefix=$mprefix
     --libdir=$mprefix/lib
 )
