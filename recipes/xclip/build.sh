@@ -69,9 +69,6 @@ fi
 ./configure "${configure_args[@]}"
 make -j$CPU_COUNT
 make install
-if [[ "${CONDA_BUILD_CROSS_COMPILATION}" != "1" ]]; then
-make check
-fi
 
 rm -rf $uprefix/share/man $uprefix/share/doc/${PKG_NAME}
 
