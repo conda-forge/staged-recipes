@@ -58,15 +58,22 @@ else
     export CONFIG_FLAGS="--build=${BUILD}"
 fi
 
-
 export PKG_CONFIG_LIBDIR=$uprefix/lib/pkgconfig:$uprefix/share/pkgconfig
 configure_args=(
     $CONFIG_FLAGS
     --prefix=$mprefix
+    --sysconfdir=$mprefix/etc \
+    --localstatedir=$mprefixvar \
+    --libdir=$mprefix/lib
+    --disable-debug
     --disable-static
     --disable-dependency-tracking
     --disable-selective-werror
     --disable-silent-rules
+    --enable-unix-transport \
+    --enable-tcp-transport \
+    --enable-ipv6 \
+    --enable-local-transport \
 )
 
 if [[ "${CONDA_BUILD_CROSS_COMPILATION}" == "1" ]] ; then
@@ -81,7 +88,7 @@ if [[ "${CONDA_BUILD_CROSS_COMPILATION}" != "1" ]]; then
 make check
 fi
 
-rm -rf $uprefix/share/man
+rm -rf $uprefix/share/man $uprefix/share/doc/${PKG_NAME#xorg-}
 
 # Remove any new Libtool files we may have installed. It is intended that
 # conda-build will eventually do this automatically.
