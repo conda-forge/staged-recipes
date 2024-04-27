@@ -61,19 +61,19 @@ fi
 export PKG_CONFIG_LIBDIR=$uprefix/lib/pkgconfig:$uprefix/share/pkgconfig
 configure_args=(
     $CONFIG_FLAGS
-    --prefix=$mprefix
-    --sysconfdir=$mprefix/etc \
-    --localstatedir=$mprefixvar \
-    --libdir=$mprefix/lib
     --disable-debug
     --disable-static
     --disable-dependency-tracking
     --disable-selective-werror
     --disable-silent-rules
-    --enable-unix-transport \
-    --enable-tcp-transport \
-    --enable-ipv6 \
-    --enable-local-transport \
+    --enable-unix-transport
+    --enable-tcp-transport
+    --enable-ipv6
+    --enable-local-transport
+    --prefix=$mprefix
+    --sysconfdir=$mprefix/etc
+    --localstatedir=$mprefix/var
+    --libdir=$mprefix/lib
 )
 
 if [[ "${CONDA_BUILD_CROSS_COMPILATION}" == "1" ]] ; then
