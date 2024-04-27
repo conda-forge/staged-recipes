@@ -61,8 +61,6 @@ fi
 export PKG_CONFIG_LIBDIR=$uprefix/lib/pkgconfig:$uprefix/share/pkgconfig
 configure_args=(
     $CONFIG_FLAGS
-    --disable-debug
-    --disable-static
     --disable-dependency-tracking
     --disable-selective-werror
     --disable-silent-rules
