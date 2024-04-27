@@ -1,11 +1,10 @@
-if [ "$(uname)" == "Darwin" ]; then
+if [[ "${target_platform}" == osx-* ]]; then
     CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 
     # c-f-provided CMAKE_ARGS handles CMAKE_OSX_DEPLOYMENT_TARGET, CMAKE_OSX_SYSROOT
 fi
-ARCH_ARGS=""
 
-${BUILD_PREFIX}/bin/cmake ${CMAKE_ARGS} ${ARCH_ARGS} \
+cmake ${CMAKE_ARGS} \
   -S ${SRC_DIR} \
   -B build \
   -G Ninja \
