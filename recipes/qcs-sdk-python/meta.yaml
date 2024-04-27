@@ -1,5 +1,5 @@
 {% set name = "qcs-sdk-python" %}
-{% set version = "0.17.4" %}
+{% set version = "0.17.8" %}
 
 package:
   name: qcs-sdk-python_and_grpc-web
@@ -7,11 +7,13 @@ package:
 
 source:
   url: https://github.com/rigetti/qcs-sdk-rust/archive/refs/tags/python/v{{ version }}.tar.gz
-  sha256: fb7714d8533c4227a7db40992c1fce947628c011541b0647e9245cce6c055f6a
+  sha256: 0151a649dd670cdc85c7659bc6c82066f15259bf9b9cc1151e72fea9dc58ddd2
+#  patches:
+#    - fix-grpc-modulename.patch
 
 build:
   number: 0
-  skip: true  # [not linux and py != 39]
+  skip: true  # [not linux]
 
 requirements:
   build:
@@ -21,55 +23,73 @@ requirements:
     - maturin >=1.0.0,<2.0.0
     - cargo-bundle-licenses
     - python
-    - quil
     - toml
   host:
     - python
-    - pip
-  run:
-    - python
-    - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx and x86_64]
 
 outputs:
   - name: qcs-sdk-python
     script: install.sh  # [unix]
     script: install.bat  # [win]
+    build:
+      missing_dso_whitelist:  # [linux]
+        - "*/libstdc++.so.6"  # [linux]
+      run_exports:
+        - {{ pin_subpackage("qcs-sdk-python", max_pin="x.x") }}
     requirements:
-     build:
-      - {{ compiler('c') }}
-      - {{ compiler('cxx') }}
-     host:
+      build:
+        # Defines the runtime requirements for the package
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+      host:
         - pip
         - python
+      run:
+        - libgcc-ng
+        - quil
+        - python
+        - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx and x86_64]
     test:
       imports:
         - qcs_sdk.qcs_sdk
       requires:
         - cargo-make
         - pip
+        # - rust
       commands:
         - pip check
-        - makers
+        # - makers
 
-  - name: qcs-sdk-python-grpc-web
-    script: install_grpc.sh  # [unix]
-    script: install_grpc.bat  # [win]
-    requirements:
-     build:
-      - {{ compiler('c') }}
-      - {{ compiler('cxx') }}
-     host:
-        - pip
-        - python
-    test:
-      imports:
-        - qcs_sdk.qcs_sdk
-      requires:
-        - cargo-make
-        - pip
-      commands:
-        - pip check
-        - makers
+#  - name: qcs-sdk-python-grpc-web
+#    script: install_grpc.sh  # [unix]
+#    script: install_grpc.bat  # [win]
+#    build:
+#      missing_dso_whitelist:  # [linux]
+#        - "*/libstdc++.so.6"  # [linux]
+#      run_exports:
+#        - {{ pin_subpackage("qcs-sdk-python-grpc-web", max_pin="x.x") }}
+#    requirements:
+#      build:
+#        # Defines the runtime requirements for the package
+#        - {{ compiler('c') }}
+#        - {{ compiler('cxx') }}
+#      host:
+#        - pip
+#        - python
+#      run:
+#        - libgcc-ng
+#        - quil
+#        - python
+#        - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx and x86_64]
+#    test:
+#      imports:
+#        - qcs_sdk.qcs_sdk_grpc_web
+#      requires:
+#        - cargo-make
+#        - pip
+#      commands:
+#        - pip check
+#        - makers
 
   # - Naming conversion
   - name: qcs_sdk_python
@@ -82,15 +102,15 @@ outputs:
       imports:
         - qcs_sdk.qcs_sdk
 
-  - name: qcs_sdk_python_grpc_web
-    build:
-      noarch: python
-    requirements:
-      run:
-        - {{ pin_subpackage("qcs-sdk-python-grpc-web", exact=True) }}
-    test:
-      imports:
-        - qcs_sdk.qcs_sdk
+#  - name: qcs_sdk_python_grpc_web
+#    build:
+#      noarch: python
+#    requirements:
+#      run:
+#        - {{ pin_subpackage("qcs-sdk-python-grpc-web", exact=True) }}
+#    test:
+#      imports:
+#        - qcs_sdk.qcs_sdk_grpc_web
 
 
 about:
