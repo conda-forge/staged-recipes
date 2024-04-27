@@ -1,40 +1,124 @@
 {% set name = "quil" %}
-{% set version = "0.10.0" %}
+{% set version = "0.26.0" %}
+
+{% set py_version = "0.10.0" %}
+{% set cli_version = "0.3.0" %}
 
 package:
-  name: {{ name|lower }}
+  name: quil-split
   version: {{ version }}
 
 source:
-  url: https://github.com/rigetti/quil-rs/archive/refs/tags/quil-py/v{{ version }}.tar.gz
-  sha256: 18e6b715652b7083931c54f4e571207cce080ddc8ecd8bfc5980a28de1657d93
-  patches:
-    - fix-syrupy-dependent-test.patch
+  # Upstream maintains different versions for these, however, the source code is the same
+  # The concern about maintaining separate recipes was a possible disconnect between the artifacts
+  - url: https://github.com/rigetti/quil-rs/archive/refs/tags/quil-rs/v{{ version }}.tar.gz
+    sha256: a34114c68c0de9865c3665dad2777fbdf0357611a1d7d48c552249194c83d7ed
+    patches:
+      - fix-syrupy-dependent-test.patch
+  # Adding this to see if that triggers regro-cf-autotick-bot to update the recipe
+  - url: https://github.com/rigetti/quil-rs/archive/refs/tags/quil-py/v{{ py_version }}.tar.gz
+    sha256: 18e6b715652b7083931c54f4e571207cce080ddc8ecd8bfc5980a28de1657d93
+    folder: unused-quil-py
+  - url: https://github.com/rigetti/quil-rs/archive/refs/tags/quil-cli/v{{ cli_version }}.tar.gz
+    sha256: 163c474ae2c153ef05d0e69354a1e60ba472fda25d57fecfe16ca85e7718d82a
+    folder: unused-quil-cli
 
 build:
   number: 0
 
 requirements:
   build:
-    - {{ compiler('c') }}
     - {{ compiler('rust') }}
     - cargo-bundle-licenses
-    - pip
+    - maturin >=1.0.0,<2.0.0
+    - python
   host:
-    - maturin >=1.0.0, <2.0.0
     - python
 
-test:
-  imports:
-    - quil
-  source_files:
-    - quil-py/test
-  requires:
-    - numpy
-    - pytest
-    - syrupy
-  commands:
-    - pytest quil-py/test
+outputs:
+  - name: quil
+    version: {{ py_version }}
+    script: install-py.sh  # [unix]
+    build:
+      missing_dso_whitelist:   # [linux]
+        - /lib64/librt.so.1  # [linux]
+        - /lib64/libpthread.so.0  # [linux]
+        - /lib64/libm.so.6  # [linux]
+        - /lib64/libc.so.6  # [linux]
+        - /lib64/ld-linux-x86-64.so.2  # [linux]
+      run_exports:
+        - {{ pin_subpackage('quil', max_pin='x.x') }}
+    requirements:
+      host:
+        - pip
+        - python
+      run:
+        - libgcc-ng
+        - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx and x86_64]
+    test:
+      imports:
+        - quil
+      source_files:
+        - quil-py/test
+      requires:
+        - numpy
+        - pytest
+        - syrupy
+      commands:
+        - pytest quil-py/test
+
+  - name: quil-py
+    version: {{ py_version }}
+    build:
+      noarch: python
+    requirements:
+      run:
+        - {{ pin_subpackage('quil', exact=True) }}
+    test:
+      imports:
+        - quil
+
+  - name: quil_py
+    version: {{ py_version }}
+    build:
+      noarch: python
+    requirements:
+      run:
+        - {{ pin_subpackage('quil', exact=True) }}
+    test:
+      imports:
+        - quil
+
+  - name: quil-cli
+    version: {{ cli_version }}
+    script: install-cli.sh  # [unix]
+    build:
+      missing_dso_whitelist:   # [linux]
+        - /lib64/librt.so.1  # [linux]
+        - /lib64/libpthread.so.0  # [linux]
+        - /lib64/libc.so.6  # [linux]
+    requirements:
+      host:
+        - pip
+        - python
+      run:
+        - libgcc-ng
+        - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx and x86_64]
+    test:
+      commands:
+        - quil-cli --help
+
+  - name: quil_cli
+    version: {{ cli_version }}
+    build:
+      noarch: python
+    requirements:
+      run:
+        - {{ pin_subpackage('quil-cli', exact=True) }}
+    test:
+      commands:
+        - quil-cli --help
+
 
 about:
   home: https://github.com/rigetti/quil-rs
