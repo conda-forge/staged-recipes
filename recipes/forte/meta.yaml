@@ -1,0 +1,93 @@
+{% set name = "forte" %}
+{% set version = "0.3.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/evangelistalab/{{ name }}/archive/v{{ version }}.tar.gz
+  sha256: "12b3f8ae7d717721c5109b4c2321ce107fa865f5c509854677c546559b3ab5de"
+
+build:
+  number: 0
+  binary_relocation: true
+  skip: true  # [py < 39]
+  # pyambit not available (builds but doesn't run) for Windows
+  skip: true  # [win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - cmake
+    - ninja
+    - llvm-openmp                            # [unix]
+  host:
+    - eigen
+    - libboost-headers
+    - pybind11
+    - pybind11-abi
+    - python
+    # qc
+    - psi4 >=1.9.1
+    - ambit
+    - pyambit
+  run:
+    - llvm-openmp                            # [unix]
+    - intel-openmp                           # [win]
+    - python
+    # qc
+    - {{ pin_compatible('psi4', min_pin='x.x.x', max_pin='x.x.x') }}
+    - {{ pin_compatible('pyambit', min_pin='x.x.x', max_pin='x.x.x') }}            # needed at runtime b/c "imported" by pb11
+  run_constrained:
+    - pytest >=7.0.1,<8
+
+test:
+  imports:
+    - psi4
+    - forte
+  requires:
+    - pip                                                                          # provides `pip check`
+    - pytest
+  files:
+    - test_forte.py
+  commands:
+    # Verify module
+    - test -f $SP_DIR/forte/_forte*.so                                   # [unix]
+    - test -f $SP_DIR/forte/pymodule.py                                  # [unix]
+    - if not exist %SP_DIR%\\forte\\_forte*.pyd exit 1                   # [win]
+    - if not exist %SP_DIR%\\forte\\pymodule.py exit 1                   # [win]
+    - python -c "import forte;print(forte.__file__, forte.__version__)"
+    # Inspect linkage
+    - ldd $SP_DIR/forte/_forte*.so                                       # [linux]
+    - otool -L $SP_DIR/forte/_forte*.so                                  # [osx]
+    - objdump.exe -p %SP_DIR%\\forte\\_forte.*.pyd | findstr /i "dll"    # [win]
+    # Actually test
+    - pip check
+    - python test_forte.py
+    - pytest -v -rws --color yes $SP_DIR/forte                           # [unix]
+    - pytest -v -rws --color yes %SP_DIR%\\forte                         # [win]
+
+about:
+  home: https://github.com/evangelistalab/forte
+  dev_url: https://github.com/evangelistalab/forte
+  doc_url: https://forte.readthedocs.io/en/latest/
+  doc_source_url: https://github.com/evangelistalab/forte/tree/main/docs/source
+  license: LGPL-3.0-only AND MIT
+  license_url: https://opensource.org/license/lgpl-3-0/
+  license_file:
+    - COPYING
+    - COPYING.LESSER
+    - THIRD-PARTY-LICENSES
+  license_family: LGPL
+  summary: Evangelista Lab's open-source suite of quantum chemistry methods for strongly correlated electrons
+  description: |
+    Forte is an open-source plugin to Psi4 (https://github.com/psi4/psi4) that
+    implements a variety of quantum chemistry methods for strongly correlated electrons.
+
+extra:
+  feedstock-name: forte
+  recipe-maintainers:
+    - fevangelista
+    - loriab
