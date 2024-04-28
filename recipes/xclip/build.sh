@@ -61,8 +61,8 @@ configure_args=(
     $CONFIG_FLAGS
     --disable-debug
     --disable-dependency-tracking
-    --prefix=$mprefix
-    --libdir=$mprefix/lib
+    --prefix="$mprefix"
+    --libdir="$mprefix/lib"
 )
 
 if [[ "${CONDA_BUILD_CROSS_COMPILATION}" == "1" ]] ; then
