@@ -1,0 +1,134 @@
+{% set name = "sbcl" %}
+{% set version = "2.4.3" %}
+
+package:
+  name: sbcl-split
+  version: {{ version }}
+
+source:
+  - folder: bootstrap
+    url: https://prdownloads.sourceforge.net/sbcl/sbcl-2.4.3-x86-64-linux-binary.tar.bz2  # [linux]
+    sha256: 4ffbb6949108878be7a44a5e6d7a4e92b8aba581f7e39f74a3d9352a1d4f4646
+  - url: https://prdownloads.sourceforge.net/sbcl/sbcl-2.2.9-x86-64-darwin-binary.tar.bz2  # [osx and x86_64]
+    sha256: 6f504b9282c83842c0601600f5e0663209b53b133125ec3334ff7a0bd0037ca6
+  - url: https://prdownloads.sourceforge.net/sbcl/sbcl-2.4.0-arm64-darwin-binary.tar.bz2  # [osx and arm64]
+    sha256: 1d01fac2d9748f769c9246a0a11a2c011d7843337f8f06ca144f5a500e10c117
+  - url: https://prdownloads.sourceforge.net/sbcl/sbcl-2.4.3-x86-64-windows-binary.msi  # [win]
+    sha256: 2a100f59aa9e9bb39031e40d884a4c3e94005a830feaadfe8616bbac28f172ab
+  - url: https://downloads.sourceforge.net/project/sbcl/sbcl/{{ version }}/sbcl-{{ version }}-source.tar.bz2
+    sha256: 89c9aadf92b82ad3c74a3d4f158a038893dea0e4f394dcafc963583c30b7c3f2
+
+build:
+  number: 0
+  skip: true  # [not linux or py != 39]
+
+requirements:
+  build:
+    - {{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - maturin >=1.0.0,<2.0.0
+    - python
+  host:
+    - python
+
+outputs:
+  - name: quil
+    version: {{ py_version }}
+    script: install-py.sh  # [unix]
+    script: install-py.bat  # [win]
+    build:
+      missing_dso_whitelist:  # [linux]
+        - /lib64/librt.so.1  # [linux]
+        - /lib64/libpthread.so.0  # [linux]
+        - /lib64/libm.so.6  # [linux]
+        - /lib64/libc.so.6  # [linux]
+        - /lib64/ld-linux-x86-64.so.2  # [linux]
+      run_exports:
+        - {{ pin_subpackage('quil', max_pin='x.x') }}
+    requirements:
+      host:
+        - pip
+        - python
+      run:
+        - libgcc-ng
+        - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx and x86_64]
+    test:
+      imports:
+        - quil
+      source_files:
+        - quil-py/test
+      requires:
+        - numpy
+        - pytest
+        - syrupy
+      commands:
+        - pytest quil-py/test
+
+  - name: quil-py
+    version: {{ py_version }}
+    build:
+      noarch: python
+    requirements:
+      run:
+        - {{ pin_subpackage('quil', exact=True) }}
+    test:
+      imports:
+        - quil
+
+  - name: quil_py
+    version: {{ py_version }}
+    build:
+      noarch: python
+    requirements:
+      run:
+        - {{ pin_subpackage('quil', exact=True) }}
+    test:
+      imports:
+        - quil
+
+  - name: quil-cli
+    version: {{ cli_version }}
+    script: install-cli.sh  # [unix]
+    script: install-cli.bat  # [win]
+    build:
+      missing_dso_whitelist:  # [linux]
+        - /lib64/librt.so.1  # [linux]
+        - /lib64/libpthread.so.0  # [linux]
+        - /lib64/libc.so.6  # [linux]
+    requirements:
+      host:
+        - pip
+        - python
+      run:
+        - libgcc-ng
+        - __osx >={{ MACOSX_DEPLOYMENT_TARGET|default("10.9") }}  # [osx and x86_64]
+    test:
+      commands:
+        - quil-cli --help
+
+  - name: quil_cli
+    version: {{ cli_version }}
+    build:
+      noarch: python
+    requirements:
+      run:
+        - {{ pin_subpackage('quil-cli', exact=True) }}
+    test:
+      commands:
+        - quil-cli --help
+
+
+about:
+  home: https://github.com/rigetti/quil-rs
+  summary: 'Quil Parser & Program Builder'
+  description: |
+    The quil package provides tools for constructing, manipulating, parsing, and printing Quil programs.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  doc_url: https://rigetti.github.io/quil-rs/quil.html
+
+extra:
+  recipe-maintainers:
+    - MementoRC
