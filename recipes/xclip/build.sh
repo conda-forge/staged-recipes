@@ -33,6 +33,7 @@ if [ -n "$CYGWIN_PREFIX" ] ; then
     export ACLOCAL=aclocal-$am_version
     export AUTOMAKE=automake-$am_version
     export CPPFLAGS="-I $mprefix/include -lX11 -lXmu"
+    export CFLAGS="-I $mprefix/include"
     autoreconf_args=(
         --force
         --install
