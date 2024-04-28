@@ -35,6 +35,7 @@ if [ -n "$CYGWIN_PREFIX" ] ; then
     autoreconf_args=(
         --force
         --install
+        --include=$mprefix/include
         -I "$mprefix/share/aclocal"
         -I "$BUILD_PREFIX_M/Library/mingw-w64/share/aclocal"
     )
@@ -48,6 +49,7 @@ else
     autoreconf_args=(
         --force
         --install
+        --include=$mprefix/include
     )
     autoreconf "${autoreconf_args[@]}"
 
@@ -57,6 +59,8 @@ fi
 export PKG_CONFIG_LIBDIR=$uprefix/lib/pkgconfig:$uprefix/share/pkgconfig
 configure_args=(
     $CONFIG_FLAGS
+    --disable-debug
+    --disable-dependency-tracking
     --prefix=$mprefix
     --libdir=$mprefix/lib
 )
