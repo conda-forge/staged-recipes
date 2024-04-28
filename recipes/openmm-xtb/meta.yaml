@@ -1,0 +1,70 @@
+{% set name = "openmm-xtb" %}
+{% set version = "0.1" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/openmm/openmm-xtb/archive/refs/tags/{{ version }}.tar.gz
+  sha256: 94778d570977f2f67df9330775c01b749bf6323cae76120067e39fc8601ed9f6
+
+build:
+  number: 0
+  skip: true  # [win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - swig                                   # [build_platform != target_platform]
+    - openmm >=8.1.1                         # [build_platform != target_platform]
+    - cmake
+    - make
+    - conda-build  # [osx]
+  host:
+    - python
+    - pip
+    - openmm >=8.1.1
+    - xtb
+    - swig                                   # [not arm64]
+  run:
+    - python
+    - {{ pin_compatible('openmm', min_pin='x.x', max_pin='x.x') }}
+    - {{ pin_compatible('xtb', min_pin='x.x', max_pin='x.x') }}
+
+test:
+  imports:
+    - openmmxtb
+  commands: |
+    cd ${PREFIX}/share/openmm-xtb/tests
+    set +e
+    for f in Test*; do
+      if ! [[ $f =~ py$ ]]; then
+        ./${f}
+      else
+        python $f
+      fi
+      ((exitcode+=$?))
+    done
+    exit $exitcode
+
+
+about:
+  home: https://github.com/openmm/openmm-xtb
+  license: MIT
+  license_file: README.md
+  summary: 'A connection between OpenMM and XTB'
+  description: |
+    This project provides a connection between OpenMM and XTB.
+    It lets you compute forces and energies with the semi-empirical
+    quantum chemistry methods provided by XTB.
+  doc_url: https://github.com/openmm/openmm-xtb
+  dev_url: https://github.com/openmm/openmm-xtb
+
+extra:
+  recipe-maintainers:
+    - RaulPPelaez
+    - peastman
