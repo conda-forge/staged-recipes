@@ -35,7 +35,7 @@ if [ -n "$CYGWIN_PREFIX" ] ; then
     autoreconf_args=(
         --force
         --install
-        --include=$mprefix/include
+        -I "$mprefix/include"
         -I "$mprefix/share/aclocal"
         -I "$BUILD_PREFIX_M/Library/mingw-w64/share/aclocal"
     )
@@ -49,7 +49,7 @@ else
     autoreconf_args=(
         --force
         --install
-        --include=$mprefix/include
+        -I "$mprefix/include"
     )
     autoreconf "${autoreconf_args[@]}"
 
