@@ -51,8 +51,6 @@ if [ -n "$CYGWIN_PREFIX" ] ; then
         --disable-dependency-tracking
         --disable-selective-werror
         --disable-silent-rules
-        --enable-tcp-transport
-        --enable-ipv6
         --prefix=$mprefix
         --sysconfdir=$mprefix/etc
         --localstatedir=$mprefix/var
