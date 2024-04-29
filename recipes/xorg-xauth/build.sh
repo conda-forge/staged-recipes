@@ -33,6 +33,7 @@ if [ -n "$CYGWIN_PREFIX" ] ; then
     export ACLOCAL=aclocal-$am_version
     export AUTOMAKE=automake-$am_version
     export CPPFLAGS="-DWIN32=0"
+    export LDFLAGS="$mprefix/lib"
     autoreconf_args=(
         --force
         --install
