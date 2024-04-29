@@ -44,6 +44,21 @@ if [ -n "$CYGWIN_PREFIX" ] ; then
     # msys2 stub libraries for ws2_32.
     platlibs=$(cd $(dirname $(gcc --print-prog-name=ld))/../lib && pwd -W)
     export LDFLAGS="$LDFLAGS -L$platlibs"
+
+    export PKG_CONFIG_LIBDIR=$uprefix/lib/pkgconfig:$uprefix/share/pkgconfig
+    configure_args=(
+        $CONFIG_FLAGS
+        --disable-dependency-tracking
+        --disable-selective-werror
+        --disable-silent-rules
+        --enable-tcp-transport
+        --enable-ipv6
+        --enable-local-transport
+        --prefix=$mprefix
+        --sysconfdir=$mprefix/etc
+        --localstatedir=$mprefix/var
+        --libdir=$mprefix/lib
+    )
 else
     # for other platforms we just need to reconf to get the correct achitecture
     echo libtoolize
@@ -56,23 +71,23 @@ else
     automake --force-missing --add-missing --include-deps
 
     export CONFIG_FLAGS="--build=${BUILD}"
-fi
 
-export PKG_CONFIG_LIBDIR=$uprefix/lib/pkgconfig:$uprefix/share/pkgconfig
-configure_args=(
-    $CONFIG_FLAGS
-    --disable-dependency-tracking
-    --disable-selective-werror
-    --disable-silent-rules
-    --enable-unix-transport
-    --enable-tcp-transport
-    --enable-ipv6
-    --enable-local-transport
-    --prefix=$mprefix
-    --sysconfdir=$mprefix/etc
-    --localstatedir=$mprefix/var
-    --libdir=$mprefix/lib
-)
+    export PKG_CONFIG_LIBDIR=$uprefix/lib/pkgconfig:$uprefix/share/pkgconfig
+    configure_args=(
+        $CONFIG_FLAGS
+        --disable-dependency-tracking
+        --disable-selective-werror
+        --disable-silent-rules
+        --enable-unix-transport
+        --enable-tcp-transport
+        --enable-ipv6
+        --enable-local-transport
+        --prefix=$mprefix
+        --sysconfdir=$mprefix/etc
+        --localstatedir=$mprefix/var
+        --libdir=$mprefix/lib
+    )
+fi
 
 if [[ "${CONDA_BUILD_CROSS_COMPILATION}" == "1" ]] ; then
     configure_args+=(
