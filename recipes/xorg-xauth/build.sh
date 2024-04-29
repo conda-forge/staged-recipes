@@ -32,6 +32,7 @@ if [ -n "$CYGWIN_PREFIX" ] ; then
     am_version=1.15 # keep sync'ed with meta.yaml
     export ACLOCAL=aclocal-$am_version
     export AUTOMAKE=automake-$am_version
+    export CPPFLAGS="-DWIN32=0"
     autoreconf_args=(
         --force
         --install
@@ -51,6 +52,9 @@ if [ -n "$CYGWIN_PREFIX" ] ; then
         --disable-dependency-tracking
         --disable-selective-werror
         --disable-silent-rules
+        --enable-tcp-transport
+        --enable-ipv6
+        --enable-local-transport
         --prefix=$mprefix
         --sysconfdir=$mprefix/etc
         --localstatedir=$mprefix/var
