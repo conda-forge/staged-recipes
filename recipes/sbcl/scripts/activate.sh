@@ -1,0 +1,2 @@
+export _SBCL_HOME_CONDA_BACKUP=${SBCL_HOME:-}
+export SBCL_HOME=$CONDA_PREFIX/lib/sbcl
