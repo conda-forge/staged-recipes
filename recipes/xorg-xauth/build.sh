@@ -32,8 +32,7 @@ if [ -n "$CYGWIN_PREFIX" ] ; then
     am_version=1.15 # keep sync'ed with meta.yaml
     export ACLOCAL=aclocal-$am_version
     export AUTOMAKE=automake-$am_version
-    export CPPFLAGS="-DWIN32=0"
-    export LDFLAGS="$mprefix/lib"
+    export CPPFLAGS="-UWIN32"
     autoreconf_args=(
         --force
         --install
