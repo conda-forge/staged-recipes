@@ -53,7 +53,6 @@ if [ -n "$CYGWIN_PREFIX" ] ; then
         --disable-silent-rules
         --enable-tcp-transport
         --enable-ipv6
-        --enable-local-transport
         --prefix=$mprefix
         --sysconfdir=$mprefix/etc
         --localstatedir=$mprefix/var
