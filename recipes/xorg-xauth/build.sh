@@ -52,6 +52,7 @@ if [ -n "$CYGWIN_PREFIX" ] ; then
         --disable-dependency-tracking
         --disable-selective-werror
         --disable-silent-rules
+        --disable-unix-transport
         --enable-tcp-transport
         --enable-ipv6
         --enable-local-transport
