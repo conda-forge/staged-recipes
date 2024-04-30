@@ -22,9 +22,9 @@ cd ${SRC_DIR}/sbcl-from-source
   sh make.sh --fancy --prefix=${SRC_DIR}/_from_source
   INSTALL_ROOT=${SRC_DIR}/_installed SBCL_HOME=${INSTALL_ROOT}/lib/sbcl sh install.sh
 
-  cd ./doc/manual && make && cd ..
+  cd ./doc/manual && make
 
-  cd ./tests && rm elfcore.test.sh futex-wait.test.sh && sh run-tests.sh > _tests.log 2>&1 && cd ..
+  cd ./tests && rm elfcore.test.sh futex-wait.test.sh && sh run-tests.sh > _tests.log 2>&1
 
   cp COPYING ${SRC_DIR}
 cd ${SRC_DIR}
