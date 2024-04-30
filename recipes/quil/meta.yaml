@@ -1,0 +1,123 @@
+{% set name = "quil" %}
+{% set version = "0.26.0" %}
+
+{% set py_version = "0.10.0" %}
+{% set cli_version = "0.3.0" %}
+
+package:
+  name: quil-split
+  version: {{ version }}
+
+source:  # Upstream maintains different versions for these, however, the source code is the same  # The concern about maintaining separate recipes was a possible disconnect between the artifacts
+  - url: https://github.com/rigetti/quil-rs/archive/refs/tags/quil-rs/v{{ version }}.tar.gz
+    sha256: a34114c68c0de9865c3665dad2777fbdf0357611a1d7d48c552249194c83d7ed
+    patches:
+      - fix-syrupy-dependent-test.patch  # Adding this to see if that triggers regro-cf-autotick-bot to update the recipe
+  - url: https://github.com/rigetti/quil-rs/archive/refs/tags/quil-py/v{{ py_version }}.tar.gz
+    sha256: 18e6b715652b7083931c54f4e571207cce080ddc8ecd8bfc5980a28de1657d93
+    folder: unused-quil-py
+  - url: https://github.com/rigetti/quil-rs/archive/refs/tags/quil-cli/v{{ cli_version }}.tar.gz
+    sha256: 163c474ae2c153ef05d0e69354a1e60ba472fda25d57fecfe16ca85e7718d82a
+    folder: unused-quil-cli
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('rust') }}
+    - cargo-bundle-licenses
+    - maturin >=1.0.0,<2.0.0
+    - python
+  host:
+    - python
+
+outputs:
+  - name: quil
+    version: {{ py_version }}
+    script: install-py.sh  # [unix]
+    script: install-py.bat  # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage('quil', max_pin='x.x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+      host:
+        - pip
+        - python
+      run:
+        - python
+    test:
+      imports:
+        - quil
+      source_files:
+        - quil-py/test
+      requires:
+        - numpy
+        - pytest
+        - syrupy
+      commands:
+        - pytest quil-py/test
+
+  - name: quil-py
+    version: {{ py_version }}
+    build:
+      noarch: python
+    requirements:
+      run:
+        - quil {{ py_version }}
+    test:
+      imports:
+        - quil
+
+  - name: quil_py
+    version: {{ py_version }}
+    build:
+      noarch: python
+    requirements:
+      run:
+        - quil {{ py_version }}
+    test:
+      imports:
+        - quil
+
+  - name: quil-cli
+    version: {{ cli_version }}
+    script: install-cli.sh  # [unix]
+    script: install-cli.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+      host:
+        - pip
+        - python
+    test:
+      commands:
+        - quil-cli --help
+
+  - name: quil_cli
+    version: {{ cli_version }}
+    build:
+      noarch: python
+    requirements:
+      run:
+        - quil-cli {{ cli_version }}
+    test:
+      commands:
+        - quil-cli --help
+
+about:
+  home: https://github.com/rigetti/quil-rs
+  summary: 'Quil Parser & Program Builder'
+  description: |
+    The quil package provides tools for constructing, manipulating, parsing, and printing Quil programs.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+    - THIRDPARTY.yml
+  doc_url: https://rigetti.github.io/quil-rs/quil.html
+
+extra:
+  recipe-maintainers:
+    - MementoRC
