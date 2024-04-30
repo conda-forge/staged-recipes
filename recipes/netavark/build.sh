@@ -2,16 +2,17 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-export RUST_BACKTRACE=1
-export OPENSSL_DIR=$PREFIX
-
 # build
 cargo install --locked \
     --root "$PREFIX/lib/podman" \
-    --path netavark
+    --path .
+
+mv $PREFIX/lib/podman/bin/* $PREFIX/lib/podman/
+rmdir $PREFIX/lib/podman/bin
 
 # strip debug symbols
 "$STRIP" "$PREFIX/lib/podman/netavark"
+"$STRIP" "$PREFIX/lib/podman/netavark-dhcp-proxy-client"
 
 cargo-bundle-licenses \
     --format yaml \
