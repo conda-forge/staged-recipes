@@ -4,7 +4,6 @@ set -ex
 
 export LIBC_INTERPRETER=${BUILD_PREFIX}/x86_64-conda-linux-gnu/sysroot/lib64/ld-2.28.so
 export LIBC_RPATH="${BUILD_PREFIX}/x86_64-conda-linux-gnu/sysroot/lib64:${BUILD_PREFIX}/lib64:${BUILD_PREFIX}/lib"
-export LIBC_LINK_ARG="-Wl,--dynamic-linker=${BUILD_PREFIX}/x86_64-conda-linux-gnu/sysroot/lib64/ld-linux-x86-64.so.2"
 
 cd ${SRC_DIR}/bootstrapping
   export INSTALL_ROOT=${SRC_DIR}/_bootstrapped
@@ -19,15 +18,15 @@ cd ${SRC_DIR}/bootstrapping
 cd ${SRC_DIR}
 
 cd ${SRC_DIR}/sbcl-from-source
-  sh make.sh --fancy --prefix=${SRC_DIR}/_from_source
+  sh make.sh --fancy --prefix=${SRC_DIR}/_from_source > _compilation.log
   INSTALL_ROOT=${SRC_DIR}/_installed SBCL_HOME=${INSTALL_ROOT}/lib/sbcl sh install.sh
 
   # This depends upon TeX, which does not seem to have a good toolset on conda-forge
   # cd ./doc/manual && make
 
-  cd ./tests && rm elfcore.test.sh futex-wait.test.sh && sh run-tests.sh > _tests.log 2>&1
+  cd ./tests && rm elfcore.test.sh futex-wait.test.sh && sh run-tests.sh > _tests.log && cd ..
 
-  cp COPYING ${SRC_DIR}
+  cp ./COPYING ${SRC_DIR}
 cd ${SRC_DIR}
 
 ls -lR ${SRC_DIR}/_installed > _installed.log
