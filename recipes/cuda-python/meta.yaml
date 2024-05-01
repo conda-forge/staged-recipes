@@ -1,0 +1,88 @@
+{% set name = "cuda-python" %}
+{% set version = "12.0.0" %}
+{% set major_version = version.split(".")[0]|int %}
+{% set minor_version = version.split(".")[1]|int %}
+{% set patch_version = version.split(".")[2]|int %}
+{% set target_name = "x86_64-linux" %}  # [linux64]
+{% set target_name = "ppc64le-linux" %}  # [ppc64le]
+{% set target_name = "sbsa-linux" %}  # [aarch64]
+{% set target_name = "x64" %}  # [win]
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/NVIDIA/cuda-python/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 7df0f84c4b6210112353374a7d992bfd5bba9c97358b39ea03b61bd634ce9c8a
+
+build:
+  number: 4
+  # Cython 0.29.x seems not to be fully compatible with Python 3.12, skipping for now.
+  # This can be removed in a later CUDA Python that supports Cython 3.x.
+  # xref: https://github.com/conda-forge/cuda-python-feedstock/issues/57
+  skip: true  # [py == 312]
+  {% if not (environ.get("cuda_compiler_version")|string()).startswith(major_version|string()) %}
+  skip: true
+  {% endif %}
+  script:
+    - set "INCLUDE=%INCLUDE%;%BUILD_PREFIX%\Library\include"  # [win64]
+    - {{ PYTHON }} -m pip install . --no-deps -vv
+  script_env:
+    # Ensure that CUDA includes can be found by the host compiler
+    - CUDA_HOME="${PREFIX}/targets/{{ target_name }}"  # [linux]
+    - CUDA_HOME=%PREFIX%\Library                       # [win64]
+  run_exports:
+    - {{ pin_subpackage('cuda-python', min_pin='x', max_pin='x') }}
+  ignore_run_exports_from:
+    - {{ compiler('cuda') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - cuda-version {{ major_version }}.{{ minor_version }}
+    - sysroot_{{ target_platform }} 2.17  # [linux]
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+    - python                              # [build_platform != target_platform]
+    - cython <3                           # [build_platform != target_platform]
+  host:
+    - cuda-cudart-dev
+    - cuda-nvrtc-dev
+    - cuda-profiler-api
+    - cython <3
+    - pip
+    - pyclibrary
+    - python
+    - setuptools
+    - cuda-version {{ major_version }}.{{ minor_version }}
+  run:
+    - python
+    - {{ pin_compatible('cuda-version', min_pin='x', max_pin='x') }}
+    - pywin32  # [win]
+
+test:
+  imports:
+    - cuda
+    - cuda.cuda
+    - cuda.cudart
+
+about:
+  home: https://github.com/NVIDIA/cuda-python
+  license: LicenseRef-NVIDIA-SOFTWARE-LICENSE
+  license_file: LICENSE
+  license_url: https://github.com/NVIDIA/cuda-python/blob/main/LICENSE
+  summary: CUDA Python Low-level Bindings
+  description: |
+    CUDA Python provides a standard set of low-level interfaces,
+    providing full coverage of and access to the CUDA host APIs from Python.
+  doc_url: https://nvidia.github.io/cuda-python/
+  dev_url: https://github.com/NVIDIA/cuda-python
+
+extra:
+  recipe-maintainers:
+    - m3vaz
+    - jakirkham
+    - mmccarty
+    - leofang
