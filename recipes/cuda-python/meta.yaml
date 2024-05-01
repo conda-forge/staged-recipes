@@ -1,0 +1,72 @@
+{% set name = "cuda-python" %}
+{% set version = "11.8.3" %}
+{% set major_version = version.split(".")[0]|int %}
+{% set minor_version = version.split(".")[1]|int %}
+{% set patch_version = version.split(".")[2]|int %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/NVIDIA/cuda-python/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: f2bba3e2c7b32e2931cfcb9c85ac7fa2a051152d3b946ff4248cc7a8cb1ea553
+
+build:
+  number: 2
+  skip: true  # [py<37 or osx or cuda_compiler_version != "11.8"]
+  script:
+    - {{ PYTHON }} -m pip install . --no-deps -vv
+  run_exports:
+    - cuda-python >=11.7.1,<12  # we need this because CUDA Python 11.7.1 has ABI breaks, see conda-forge/cuda-python-feedstock#15
+  ignore_run_exports_from:
+    - {{ compiler('cuda') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - {{ stdlib('c') }}
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+    - python                              # [build_platform != target_platform]
+    - cython                              # [build_platform != target_platform]
+  host:
+    - cython
+    - pip
+    - pyclibrary
+    - python
+    - setuptools
+    - cuda-version {{ major_version }}
+  run:
+    - python
+    - {{ pin_compatible('cuda-version', min_pin='x', max_pin='x') }}
+    - cudatoolkit
+    - pywin32  # [win]
+
+test:
+  imports:
+    - cuda
+    - cuda.cuda
+    - cuda.cudart
+
+about:
+  home: https://github.com/NVIDIA/cuda-python
+  license: LicenseRef-NVIDIA-SOFTWARE-LICENSE
+  license_file: LICENSE
+  license_url: https://github.com/NVIDIA/cuda-python/blob/main/LICENSE
+  summary: CUDA Python Low-level Bindings
+  description: |
+    CUDA Python provides a standard set of low-level interfaces,
+    providing full coverage of and access to the CUDA host APIs from Python.
+  doc_url: https://nvidia.github.io/cuda-python/
+  dev_url: https://github.com/NVIDIA/cuda-python
+
+extra:
+  recipe-maintainers:
+    - bdice
+    - jakirkham
+    - leofang
+    - m3vaz
+    - mmccarty
+    - vyasr
