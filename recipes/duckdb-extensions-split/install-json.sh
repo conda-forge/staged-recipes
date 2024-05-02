@@ -4,7 +4,7 @@ set -exuo pipefail
 
 env | grep duckdb-extension-
 
-EXTENSION_NAME="${1}"
+EXTENSION_NAME="json"
 
 if [ "${target_platform}" = "linux-64" ]; then
     DUCKDB_ARCH='linux_amd64'
