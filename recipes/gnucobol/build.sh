@@ -7,7 +7,7 @@
     --with-libintl-prefix=$PREFIX \
     --with-json=json-c \
     --with-xml2=libxml2 \
-    --with-curses=ncurses \
+    --with-curses=ncursesw \
     --with-db=db
 
 make install
