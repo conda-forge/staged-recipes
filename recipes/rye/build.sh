@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eux
 
-cd crates/rye
+cd rye
 
 cargo install \
   --locked \
@@ -13,5 +13,5 @@ cargo-bundle-licenses \
   --format yaml
 #  --output "${SRC_DIR}/THIRDPARTY.yml"
 
-rm -f "${PREFIX}/.crates2.json"
-rm -f "${PREFIX}/.crates.toml"
+#rm -f "${PREFIX}/.crates2.json"
+#rm -f "${PREFIX}/.crates.toml"
