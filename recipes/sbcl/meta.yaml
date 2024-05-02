@@ -4,7 +4,7 @@
 {% set glibc_min_version = "2.28" %}
 
 package:
-  name: sbcl-split
+  name: {{ name }}
   version: {{ version }}
 
 source:
@@ -22,7 +22,6 @@ source:
     sha256: 2a100f59aa9e9bb39031e40d884a4c3e94005a830feaadfe8616bbac28f172ab  # [win]
 
   - url: https://downloads.sourceforge.net/project/sbcl/sbcl/{{ version }}/sbcl-{{ version }}-source.tar.bz2
-    # sha256: 89c9aadf92b82ad3c74a3d4f158a038893dea0e4f394dcafc963583c30b7c3f2 (2.4.3)
     sha256: 8a932627b3f1d8e9618f1cdc225edcb002456804697e2c87d140683764a106d5
     folder: sbcl-from-source
     patches:
@@ -32,31 +31,36 @@ source:
 build:
   number: 0
   skip: true  # [not linux]
+  # run_exports:
+  #   strong:
+  #     - __glibc >={{ glibc_min_version }}
 
 requirements:
   build:
     - {{ compiler('c') }}
+    - {{ stdlib("c") }}
     - make
-    - sysroot_{{ target_platform }} >={{ glibc_min_version }}
+    - patchelf  # [linux]
     - zstd
   host:
-    - sysroot_{{ target_platform }} >={{ glibc_min_version }}
     - zstd
-  run:
-    - sysroot_{{ target_platform }} >={{ glibc_min_version }}
 
 test:
-  requires:
-    # - anaconda::strace_linux-64
   source_files:
     - sbcl-from-source/tests
   commands:
     - test -f ${PREFIX}/etc/conda/activate.d/sbcl-activate.sh  # [unix]
     - test -f ${PREFIX}/etc/conda/deactivate.d/sbcl-deactivate.sh  # [unix]
+    - if not exist %PREFIX%\\etc\\conda\\activate.d\\sbcl-activate.bat exit 1  # [win]
+    - if not exist %PREFIX%\\etc\\conda\\deactivate.d\\sbcl-deactivate.bat exit 1  # [win]
 
     - test -f ${PREFIX}/bin/sbcl  # [unix]
     - test -f ${PREFIX}/lib/sbcl/contrib/asdf.fasl  # [unix]
     - test -f ${PREFIX}/lib/sbcl/contrib/uiop.fasl  # [unix]
+    - if not exist %PREFIX%\\bin\\sbcl.exe exit 1  # [win]
+    - if not exist %PREFIX%\\lib\\sbcl\\contrib\\asdf.fasl exit 1  # [win]
+    - if not exist %PREFIX%\\lib\\sbcl\\contrib\\uiop.fasl exit 1  # [win]
+
     {% set contribs = [
       "sb-aclrepl", "sb-bsd-sockets", "sb-capstone", "sb-cltl2", "sb-concurrency", "sb-cover",
       "sb-executable", "sb-gmp", "sb-grovel", "sb-introspect", "sb-md5", "sb-mpfr", "sb-perf",
@@ -65,7 +69,10 @@ test:
     {% for contrib in contribs %}
     - test -f ${PREFIX}/lib/sbcl/contrib/{{ contrib }}.asd  # [unix]
     - test -f ${PREFIX}/lib/sbcl/contrib/{{ contrib }}.fasl  # [unix]
+    - if not exist %PREFIX%\\lib\\sbcl\\contrib\\{{ contrib }}.asd exit 1  # [win]
+    - if not exist %PREFIX%\\lib\\sbcl\\contrib\\{{ contrib }}.fasl exit 1  # [win]
     {% endfor %}
+
     - test -f ${PREFIX}/lib/sbcl/sbcl.core  # [unix]
     - test -f ${PREFIX}/lib/sbcl/sbcl.mk  # [unix]
     - test -f ${PREFIX}/share/doc/sbcl/BUGS  # [unix]
@@ -73,10 +80,19 @@ test:
     - test -f ${PREFIX}/share/doc/sbcl/CREDITS  # [unix]
     - test -f ${PREFIX}/share/doc/sbcl/NEWS  # [unix]
     - test -f ${PREFIX}/share/man/man1/sbcl.1  # [unix]
+    - if not exist %PREFIX%\\lib\\sbcl\\sbcl.core exit 1  # [win]
+    - if not exist %PREFIX%\\lib\\sbcl\\sbcl.mk exit 1  # [win]
+    - if not exist %PREFIX%\\share\\doc\\sbcl\\BUGS exit 1  # [win]
+    - if not exist %PREFIX%\\share\\doc\\sbcl\\COPYING exit 1  # [win]
+    - if not exist %PREFIX%\\share\\doc\\sbcl\\CREDITS exit 1  # [win]
+    - if not exist %PREFIX%\\share\\doc\\sbcl\\NEWS exit 1  # [win]
+    - if not exist %PREFIX%\\share\\man\\man1\\sbcl.1 exit 1  # [win]
 
     # Empty due to TeX requirements unmet on conda-forge
-    - test -d ${PREFIX}/share/info
-    - test -d ${PREFIX}/share/doc/sbcl/html
+    - test -d ${PREFIX}/share/info  # [unix]
+    - test -d ${PREFIX}/share/doc/sbcl/html  # [unix]
+    - if not exist %PREFIX%\\share\\info exit 1  # [win]
+    - if not exist %PREFIX%\\share\\doc\\sbcl\\html exit 1  # [win]
 
     # Remove failing test - TEMPORARY
     - rm -rf sbcl-from-source/tests/elfcore.test.sh
@@ -100,4 +116,3 @@ about:
 extra:
   recipe-maintainers:
     - MementoRC
-  feedstock-name: sbcl
