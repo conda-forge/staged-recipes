@@ -1,0 +1,90 @@
+{% set name = "auto-ts" %}
+{% set version = "0.0.90" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/auto_ts-{{ version }}.tar.gz
+  sha256: 9e1ea178ee19e874a3ffa747b877594b68d01bb7c8b4f2346fa12bab6257a137
+
+build:
+  number: 0
+  noarch: python
+  script: 
+    ## Show the rendered recipe
+    - echo -e "\n>>> Show recipe '{{ name }}/meta.yaml' <<<\n\n"
+    - echo -e $(cat $RECIPE_DIR/meta.yaml)  # [not win]
+    ## Ensure inclusion of requirements.txt
+    {% set reqfile = "requirements.txt" %}
+    {% set reqsource = name ~ ".egg-info/requires.txt" %}
+    # IF {{ reqfile }} is NOT PRESENT, COPY {{ reqfile }} from {{ reqsource }}
+    - echo -e "\n>>> ENSURE INCLUSION OF '{{ reqfile }}' <<<\n\n"
+    - if [ ! -f {{ reqfile }} ] && [ -f {{ reqsource }} ]; then cp {{ reqsource }} {{ reqfile }}; fi  # [not win]
+    #- copy {{ name }}.egg-info\requires.txt {{ reqfile }}  # [win]
+    - copy {{ reqsource | replace('/', '\\') }} {{ reqfile }}  # [win]
+    ## Ensure exclusion of tests folder
+    {% set testsfolder = "test" %}
+    - echo -e "\n>>> ENSURE EXCLUSION OF '{{ testsfolder }}' <<<\n\n"
+    - rm -rf {{ testsfolder }}  # [not win]
+    - rmdir /s /q "{{ testsfolder | replace('/', '\\') }}"  # [win] 
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python >=3.7
+    - pip
+  run:
+    - python >=3.7
+    - ipython
+    - jupyter
+    - pmdarima
+    - numpy
+    - xlrd
+    - pandas
+    - matplotlib-base
+    - seaborn
+    - prophet
+    - scikit-learn >=0.24.0
+    - statsmodels
+    - xgboost >=2.0
+    - prettytable
+    - dask-core >=2022.1.0
+    - pyyaml >=5.4.1
+    - gputil >=1.4.0
+    - distributed >=2022.2.0
+
+test:
+  imports:
+    - auto_ts
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/AutoViML/Auto_TS
+  summary: Automatically Build Multiple Time Series models fast - now with Facebook Prophet!
+  license: Apache-2.0
+  license_file: LICENSE
+  description: |
+    Automatically build multiple Time Series models using a Single Line of Code. Now updated with Dask.
+
+    ![banner](https://github.com/AutoViML/Auto_TS/raw/master/images/logo.png)
+
+    `auto_timeseries` is a complex model building utility for time series data. Since it automates many
+    Tasks involved in a complex endeavor, it assumes many intelligent defaults. But you can change them.
+    Auto_Timeseries will rapidly build predictive models based on Statsmodels ARIMA, Seasonal ARIMA, Prophet
+    and Scikit-Learn ML. It will automatically select the best model which gives best score specified.
+
+    PyPI: [https://pypi.org/project/{{ name | lower }}/](https://pypi.org/project/{{ name | lower }}/)
+    ---
+    :fire: The conda-forge recipe was generated with [Conda-Forger App](https://sugatoray-conda-forger.streamlit.app/).
+
+  dev_url: https://github.com/AutoViML/Auto_TS
+  doc_url: https://github.com/AutoViML/Auto_TS
+
+extra:
+  recipe-maintainers:
+    - sugatoray
