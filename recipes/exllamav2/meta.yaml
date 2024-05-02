@@ -11,7 +11,11 @@ source:
 
 build:
   # noarch: python
-  script: TORCH_CUDA_ARCH_LIST="7.5" {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  script_env:
+    - TORCH_CUDA_ARCH_LIST=3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX      # [cuda_compiler_version == "11.2"]
+    - TORCH_CUDA_ARCH_LIST=3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9+PTX  # [cuda_compiler_version == "11.8"]
+    - TORCH_CUDA_ARCH_LIST=5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0+PTX  # [(cuda_compiler_version or "").startswith("12")]
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   number: 0
   skip: true  # [win]
   skip: true  # [cuda_compiler_version == "None"]
@@ -22,27 +26,24 @@ build:
     # PyTorch libs are in site-packages intead of with other shared objects
     - {{ SP_DIR }}/torch/lib/
   missing_dso_whitelist:
-    - "*/libc10.so"
-    - "*/libtorch_cpu.so"
     - "*/libtorch_python.so"
-    - "*/libcudart.so.11.0"
-    - "*/libc10_cuda.so"
-    - "*/libtorch_cuda.so"
-    - "*/libstdc++.so.6"
-    - "*/libm.so.6"
-    - "*/libgcc_s.so.1"
-    - "*/libc.so.6"
 
 requirements:
   build:
+    - cmake
+    - make
+    - {{ stdlib("c") }}
     - {{ compiler('c') }}
     - {{ compiler('cxx') }}
     - {{ compiler('cuda') }}
+    
   host:
+    - cuda-version {{ cuda_compiler_version }}
     - python
     - pip
     - pytorch
     - ninja
+    
   run:
     - python
     - pandas
@@ -55,13 +56,13 @@ requirements:
     - websockets
     - regex
     - pytorch ~=2.1.0
-    - libtorch
+    # - libtorch
     - libcusparse
-    - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
-    - cuda-cupti-dev    # [(cuda_compiler_version or "").startswith("12")]
-    - cuda-cudart-dev   # [(cuda_compiler_version or "").startswith("12")]
-    - cuda-nvml-dev     # [(cuda_compiler_version or "").startswith("12")]
-    - cuda-nvtx-dev     # [(cuda_compiler_version or "").startswith("12")]
+    # - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+    # - cuda-cupti-dev    # [(cuda_compiler_version or "").startswith("12")]
+    # - cuda-cudart-dev   # [(cuda_compiler_version or "").startswith("12")]
+    # - cuda-nvml-dev     # [(cuda_compiler_version or "").startswith("12")]
+    # - cuda-nvtx-dev     # [(cuda_compiler_version or "").startswith("12")]
 
 test:
   imports:
