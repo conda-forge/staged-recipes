@@ -2,7 +2,7 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-cd cmd/tailscale
+cd cmd/tailscaled
 
 go-licenses save . \
     --save_path ../../library_licenses
@@ -10,4 +10,4 @@ go-licenses save . \
 export CGO_ENABLED=0
 go build -v \
     -ldflags "-s -w -X 'tailscale.com/version.shortStamp=$PKG_VERSION'" \
-    -o $PREFIX/bin/tailscale
+    -o $PREFIX/bin/tailscaled

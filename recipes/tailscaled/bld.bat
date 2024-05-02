@@ -1,6 +1,6 @@
 @echo on
 
-cd cmd/tailscale
+cd cmd/tailscaled
 
 go-licenses save . ^
     --save_path ../../library_licenses
