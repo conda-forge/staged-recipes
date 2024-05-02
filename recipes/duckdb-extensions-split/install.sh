@@ -2,11 +2,9 @@
 
 set -exuo pipefail
 
+env | grep duckdb-extension-
 
-# PKG_PREFIX="duckdb-extension-"
-# EXTENSION_NAME="${PKG_NAME#$PKG_PREFIX}"  # This doesn't seem to work.
-# env | grep 'duckdb-extension-json'
-EXTENSION_NAME='json'
+EXTENSION_NAME="${1}"
 
 if [ "${target_platform}" = "linux-64" ]; then
     DUCKDB_ARCH='linux_amd64'
