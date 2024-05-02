@@ -19,4 +19,5 @@ else
     exit 1
 fi
 
+mkdir -p "${PREFIX}"/duckdb/extensions/"v${PKG_VERSION}"/"${DUCKDB_ARCH}"/
 cp ./build/release/repository/v"${PKG_VERSION}"/"${DUCKDB_ARCH}"/"${EXTENSION_NAME}".duckdb_extension "${PREFIX}"/duckdb/extensions/"v${PKG_VERSION}"/"${DUCKDB_ARCH}"/
