@@ -19,11 +19,4 @@ else
     exit 1
 fi
 
-make \
-    BUILD_EXTENSIONS="${EXTENSION_NAME}" \
-    SKIP_EXTENSIONS="parquet;jemalloc" \
-    BUILD_EXTENSIONS_ONLY="1" \
-    OVERRIDE_GIT_DESCRIBE="v${PKG_VERSION}-0-g4a89d97"
-
-mkdir -p "${PREFIX}"/duckdb/extensions/"v${PKG_VERSION}"/"${DUCKDB_ARCH}"/
-# cp ./build/release/repository/v"${PKG_VERSION}"/"${DUCKDB_ARCH}"/"${EXTENSION_NAME}".duckdb_extension "${PREFIX}"/duckdb/extensions/"v${PKG_VERSION}"/"${DUCKDB_ARCH}"/
+cp ./build/release/repository/v"${PKG_VERSION}"/"${DUCKDB_ARCH}"/"${EXTENSION_NAME}".duckdb_extension "${PREFIX}"/duckdb/extensions/"v${PKG_VERSION}"/"${DUCKDB_ARCH}"/
