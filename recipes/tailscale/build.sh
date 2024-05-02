@@ -7,7 +7,6 @@ cd cmd/tailscale
 go-licenses save . \
     --save_path ../../library_licenses
 
-export CGO_ENABLED=0
 go build -v \
     -ldflags "-s -w -X 'tailscale.com/version.shortStamp=$PKG_VERSION'" \
     -o $PREFIX/bin/tailscale
