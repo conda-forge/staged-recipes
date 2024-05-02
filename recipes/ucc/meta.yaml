@@ -1,0 +1,79 @@
+{% set version = "1.2.0" %}
+
+package:
+  name: ucc
+  version: {{ version }}
+
+source:
+  url: https://github.com/openucx/ucc/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: c1552797600835c0cf401b82dc89c4d27d5717f4fb805d41daca8e19f65e509d
+  patches:
+    # Apply upstream fix for CUDA versions pre-12.2
+    # xref: https://github.com/openucx/ucc/pull/847
+    - 0001-EC-CUDA-fix-build-with-12.2-and-older-arch-847.patch
+
+build:
+  skip: True  # [not linux]
+  skip: True  # [cuda_compiler_version == "None"]
+  skip: True  # [cuda_compiler_version == "11.2"]
+  number: 0
+  run_exports:
+    - {{ pin_subpackage("ucc") }}
+  missing_dso_whitelist:
+    - '*libcuda.so*'
+  ignore_run_exports_from:
+    # CXX standard library is unused
+    - {{ compiler('cxx') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ stdlib('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - automake
+    - libtool
+    - make
+  host:
+    - ucx
+    - cuda-version {{ cuda_compiler_version }}
+    - cuda-cudart-dev  # [(cuda_compiler_version or "None").startswith("12")]
+  run:
+    - {{ pin_compatible("ucx", max_pin="x.x.x") }}
+
+test:
+  commands:
+    - test -f $PREFIX/bin/ucc_info
+    - test -f $PREFIX/include/ucc/api/ucc_def.h
+    - test -f $PREFIX/include/ucc/api/ucc_status.h
+    - test -f $PREFIX/include/ucc/api/ucc_version.h
+    - test -f $PREFIX/include/ucc/api/ucc.h
+    - test -f $PREFIX/lib/cmake/ucc/ucc-targets.cmake
+    - test -f $PREFIX/lib/cmake/ucc/ucc-config-version.cmake
+    - test -f $PREFIX/lib/cmake/ucc/ucc-config.cmake
+    - test -f $PREFIX/lib/libucc.so.1
+    - test -f $PREFIX/lib/ucc/libucc_mc_cuda.so.1
+    - test -f $PREFIX/lib/ucc/libucc_mc_cpu.so.1
+    - test -f $PREFIX/lib/ucc/libucc_tl_self.so.1
+    - test -f $PREFIX/lib/ucc/libucc_tl_ucp.so.1
+    - test -f $PREFIX/lib/ucc/libucc_cl_basic.so.1
+    - test -f $PREFIX/lib/ucc/libucc_cl_hier.so.1
+    - test -f $PREFIX/lib/ucc/libucc_ec_cuda.so.1
+    - test -f $PREFIX/lib/ucc/libucc_ec_cpu.so.1
+
+
+about:
+  home: https://github.com/openucx/ucc
+  summary: 'UCC is a collective communication operations API and library.'
+  description: |
+    UCC is a collective communication operations API and library that is
+    flexible, complete, and feature-rich for current and emerging
+    programming models and runtimes.
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - sandeepd-nv
+    - leofang
