@@ -23,6 +23,7 @@ if [[ "${CONDA_BUILD_CROSS_COMPILATION}" == "1" ]] ; then
         --enable-malloc0returnsnull
     )
 fi
+
 ./configure "${configure_args[@]}"
 make -j$CPU_COUNT
 make install
