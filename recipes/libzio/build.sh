@@ -15,6 +15,7 @@ make \
   tests testt testx \
   -j$CPU_COUNT
 
+rm ${PREFIX}/lib/libzio.a
 
 # Testing code taken from
 # https://build.opensuse.org/projects/home:dirkmueller:branches:openSUSE:Factory:Rings:1-MinimalX/packages/libzio/files/libzio.spec?expand=1
