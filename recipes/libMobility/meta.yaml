@@ -1,0 +1,73 @@
+{% set name = "libmobility" %}
+{% set version = "0.1.0" %}
+
+{% if cuda_compiler_version in (None, "None", True, False) %}
+{% set cuda_major = 0 %}
+{% else %}
+{% set cuda_major = environ.get("cuda_compiler_version", "11.8").split(".")[0] | int %}
+{% endif %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/stochasticHydroTools/libMobility/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 115305ff8a1210c164fdda75b4cfa8a7e166e2d55cd8b0b40436ef7e6f710953
+build:
+  skip: true  # [win]
+  skip: true  # [cuda_compiler_version == "None"]
+  number: 0
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+  
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != 'None']
+    - sysroot_linux-64  2.17  # [linux64]
+    - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version not in (undefined, 'None')]
+    - make
+    - cmake >=3.23
+    - pybind11
+  host:
+    - python
+    - numpy
+    - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version not in (undefined, 'None')]
+    {% if cuda_major >= 12 %}
+    - cuda-cudart-dev
+    # No cuda-driver-dev in windows
+    - cuda-driver-dev  # [linux]
+    - libcufft-dev
+    - libcurand-dev
+    - libcublas-dev
+    - cuda-nvrtc-dev
+    - cuda-nvtx-dev
+    - cuda-profiler-api
+    - cuda-nvrtc-dev
+    - libcusparse-dev
+    - libcusolver-dev
+    {% endif %}
+
+test:
+  requires:
+    - pytest
+    - scipy
+  imports:
+    - libMobility
+  source_files:
+    - tests
+  commands:
+    - pytest -vs -k SelfMobility tests/test_*py
+    
+about:
+  home: https://github.com/stochasticHydroTools/libmobility
+  license: MIT
+  summary: Compute the action of the hydrodynamic mobility (at the RPY/FCM level) of a group of particles (in different geometries) with forces acting on them. Requires a CUDA compatible GPU.
+
+extra:
+  recipe-maintainers:
+    - rykerfish
+    - brennansprinkle
+    - RaulPPelaez
