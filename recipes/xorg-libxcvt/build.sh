@@ -2,7 +2,7 @@
 IFS=$' \t\n' # workaround for conda 4.2.13+toolchain bug
 
 # Adopt a Unix-friendly path if we're on Windows (see bld.bat).
-[ -n "$PATH_OVERRIDE" ] && export PATH="${PATH:+${PATH}:}${PATH_OVERRIDE}"
+[ -n "$PATH_OVERRIDE" ] && export PATH="$PATH_OVERRIDE"
 
 # On Windows we want $LIBRARY_PREFIX in both "mixed" (C:/Conda/...) and Unix
 # (/c/Conda) forms, but Unix form is often "/" which can cause problems.
