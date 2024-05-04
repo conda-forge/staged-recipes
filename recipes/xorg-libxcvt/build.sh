@@ -2,9 +2,6 @@
 set -ex
 IFS=$' \t\n' # workaround for conda 4.2.13+toolchain bug
 
-# Adopt a Unix-friendly path if we're on Windows (see bld.bat).
-[ -n "$PATH_OVERRIDE" ] && export PATH="$PATH_OVERRIDE"
-
 # On Windows we want $LIBRARY_PREFIX in both "mixed" (C:/Conda/...) and Unix
 # (/c/Conda) forms, but Unix form is often "/" which can cause problems.
 if [ -n "$LIBRARY_PREFIX_M" ] ; then
@@ -30,6 +27,9 @@ else
     bmprefix="$BUILD_PREFIX"
     buprefix="$BUILD_PREFIX"
 fi
+
+# Adopt a Unix-friendly path if we're on Windows (see bld.bat).
+[ -n "$PATH_OVERRIDE" ] && export PATH="$PATH_OVERRIDE:$buprefix/bin"
 
 # Cf. https://github.com/conda-forge/staged-recipes/issues/673, we're in the
 # process of excising Libtool files from our packages. Existing ones can break
