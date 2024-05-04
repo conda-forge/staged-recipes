@@ -11,8 +11,14 @@ source:
 
 build:
   number: 0
-  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
-  skip: true                          # [cuda_compiler_version in (undefined, "None")]
+  script: {{ PYTHON }} -m pip install . -vvv --no-deps --no-build-isolation
+  script_env:
+    - FLASH_ATTENTION_FORCE_BUILD=TRUE
+    - FLASH_ATTENTION_SKIP_CUDA_BUILD=FALSE
+    - FLASH_ATTENTION_FORCE_CXX11_ABI=FALSE
+    - MAX_JOBS=$CPU_COUNT
+  skip: true  # [cuda_compiler_version in (undefined, "None")]
+  skip: true  # [not linux]
 
 requirements:
   build:
@@ -20,18 +26,25 @@ requirements:
     - {{ compiler('cxx') }}
     - {{ compiler('cuda') }}
     - {{ stdlib('c') }}
+    - ninja
   host:
-    - libcublas-dev                   # [(cuda_compiler_version or "").startswith("12")]
-    - libcusolver-dev                 # [(cuda_compiler_version or "").startswith("12")]
-    - libcusparse-dev                 # [(cuda_compiler_version or "").startswith("12")]
+    - cuda-version {{ cuda_compiler_version }}
+    - libcublas-dev    # [(cuda_compiler_version or "").startswith("12")]
+    - libcusolver-dev  # [(cuda_compiler_version or "").startswith("12")]
+    - libcusparse-dev  # [(cuda_compiler_version or "").startswith("12")]
     - packaging
     - pip
     - psutil
     - python
     - pytorch
+    - pytorch =*=cuda*
+    - libtorch  # required until pytorch run_exports libtorch
+    - setuptools
     - wheel
   run:
+    - pytorch =*=cuda*
     - python
+    - einops
 
 test:
   imports:
