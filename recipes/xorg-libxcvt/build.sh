@@ -1,4 +1,5 @@
-#!/bin/bash -ex
+#!/bin/bash
+set -ex
 IFS=$' \t\n' # workaround for conda 4.2.13+toolchain bug
 
 # Adopt a Unix-friendly path if we're on Windows (see bld.bat).
@@ -23,7 +24,7 @@ if [ -n "$LIBRARY_PREFIX_M" ] ; then
     else
         buprefix="$BUILD_PREFIX_U"
     fi
-    export NINJA="ninja.exe"
+    export NINJA="ninja.EXE"
 else
     mprefix="$PREFIX"
     uprefix="$PREFIX"
@@ -48,7 +49,7 @@ if [[ $CONDA_BUILD_CROSS_COMPILATION == "1" ]]; then
   EXTRA_FLAGS="--cross-file $bmprefix/meson_cross_file.txt"
 fi
 
-meson setup --prefix=$mprefix --buildtype=release --libdir=$mprefix/lib $EXTRA_FLAGS ..
+meson setup --buildtype=release --default-library=shared --prefix=$mprefix --libdir=$mprefix/lib $EXTRA_FLAGS ..
 ${NINJA} -j${CPU_COUNT}
 ${NINJA} install
 
