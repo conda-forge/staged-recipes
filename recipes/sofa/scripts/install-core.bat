@@ -3,7 +3,7 @@ setlocal EnableDelayedExpansion
 
 cd build
 
-if [%PKG_NAME%] == [libsofa-core] (
+if [%PKG_NAME%] == [libsofa] (
     REM only the libraries (don't copy CMake metadata)
     REM XXX move to xcopy instead ?
     move temp_prefix\lib\Sofa* %LIBRARY_LIB%
@@ -27,7 +27,7 @@ if [%PKG_NAME%] == [libsofa-core] (
       :: Copy unix shell activation scripts, needed by Windows Bash users
       copy %RECIPE_DIR%\%%F.sh %PREFIX%\etc\conda\%%F.d\%PKG_NAME%_%%F.sh
     )
-) else if [%PKG_NAME%] == [libsofa-core-devel] (
+) else if [%PKG_NAME%] == [sofa-devel] (
     REM headers
     robocopy temp_prefix\include %LIBRARY_INC% /E >nul
     REM CMake metadata

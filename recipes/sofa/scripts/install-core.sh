@@ -3,7 +3,7 @@ set -ex
 
 cd build
 
-if [[ "$PKG_NAME" == "libsofa-core" ]]; then
+if [[ "$PKG_NAME" == "libsofa" ]]; then
     # only the libraries (don't copy CMake metadata)
     cp -R temp_prefix/lib/libSofa*${SHLIB_EXT}* $PREFIX/lib
 
@@ -23,12 +23,12 @@ if [[ "$PKG_NAME" == "libsofa-core" ]]; then
         cp "${RECIPE_DIR}/${CHANGE}.sh" "${PREFIX}/etc/conda/${CHANGE}.d/${PKG_NAME}_${CHANGE}.sh"
     done
 
-elif [[ "$PKG_NAME" == "libsofa-core-devel" ]]; then
+elif [[ "$PKG_NAME" == "sofa-devel" ]]; then
     # headers
     cp -R temp_prefix/include/. $PREFIX/include
     # CMake metadata
     cp -R temp_prefix/lib/cmake/Sofa* $PREFIX/lib/cmake
-    # and plugins 
+    # and plugins
     cd temp_prefix/plugins
     for plugin_dir in */ ; do
         # headers

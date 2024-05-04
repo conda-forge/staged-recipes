@@ -13,8 +13,8 @@ rm -rf build
 mkdir build
 cd build
 
-# We install to a temp directory to avoid duplicate compilation for libsofa-core and 
-# libsofa-core-devel. This is inspired from:
+# We install to a temp directory to avoid duplicate compilation for libsofa and
+# sofa-devel. This is inspired from:
 # https://github.com/conda-forge/boost-feedstock/blob/main/recipe/meta.yaml
 mkdir temp_prefix
 

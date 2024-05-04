@@ -6,8 +6,8 @@ rmdir /S /Q build
 mkdir build
 cd build
 
-:: We install to a temp directory to avoid duplicate compilation for libsofa-core and
-:: libsofa-core-devel. This is inspired from:
+:: We install to a temp directory to avoid duplicate compilation for libsofa and
+:: sofa-devel. This is inspired from:
 :: https://github.com/conda-forge/boost-feedstock/blob/main/recipe/meta.yaml
 mkdir temp_prefix
 
@@ -45,7 +45,7 @@ if errorlevel 1 exit 1
 
 :: For Windows build, as we don't have rpath like in Unix systems to store
 :: paths to internal Sofa plugins dynamic libraries and as each plugin is stored
-:: into a separated folder, we have to copy all plugins libaries into the main 
+:: into a separated folder, we have to copy all plugins libaries into the main
 :: Sofa binary folder. This should change in Sofa in future releases and will enable
 :: to avoid this.
 :: for /D %%f in ("%LIBRARY_PREFIX%\plugins\*") do copy "%%f\bin\*.dll" "%LIBRARY_BIN%"
