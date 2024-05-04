@@ -23,11 +23,13 @@ if [ -n "$LIBRARY_PREFIX_M" ] ; then
     else
         buprefix="$BUILD_PREFIX_U"
     fi
+    export NINJA="ninja.exe"
 else
     mprefix="$PREFIX"
     uprefix="$PREFIX"
     bmprefix="$BUILD_PREFIX"
     buprefix="$BUILD_PREFIX"
+    export NINJA="ninja"
 fi
 
 # Cf. https://github.com/conda-forge/staged-recipes/issues/673, we're in the
@@ -47,8 +49,8 @@ if [[ $CONDA_BUILD_CROSS_COMPILATION == "1" ]]; then
 fi
 
 meson setup --prefix=$mprefix --buildtype=release --libdir=$mprefix/lib $EXTRA_FLAGS ..
-ninja -j${CPU_COUNT}
-ninja install
+${NINJA} -j${CPU_COUNT}
+${NINJA} install
 
 rm -rf $uprefix/share/man $uprefix/share/doc/xcvt
 
