@@ -1,7 +1,4 @@
-#! /bin/bash
-
-set -e
-set -x
+#!/bin/bash -ex
 IFS=$' \t\n' # workaround for conda 4.2.13+toolchain bug
 
 # Adopt a Unix-friendly path if we're on Windows (see bld.bat).
