@@ -13,11 +13,11 @@ fi
 
 export PKG_CONFIG=$(which pkg-config)
 
-meson setup --prefix=${PREFIX} --buildtype=release --libdir=$PREFIX/lib $EXTRA_FLAGS ..
+meson setup --buildtype=release --default_library=shared --prefix=${PREFIX} --libdir=$PREFIX/lib $EXTRA_FLAGS ..
 ninja -j${CPU_COUNT}
 ninja install
 
-rm -rf $PREFIX/share/man $PREFIX/share/doc/xcvt
+rm -rf $PREFIX/share/man
 
 # Remove any new Libtool files we may have installed. It is intended that
 # conda-build will eventually do this automatically.
