@@ -17,4 +17,3 @@ ninja -C builddir install -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
 rmdir /s /q %LIBRARY_PREFIX%\share\man
-del /f /s /q %LIBRARY_PREFIX%\lib\*.a
