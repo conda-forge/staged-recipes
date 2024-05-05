@@ -13,7 +13,7 @@ fi
 
 export PKG_CONFIG=$(which pkg-config)
 
-meson setup --buildtype=release --default_library=shared --prefix=${PREFIX} --libdir=$PREFIX/lib $EXTRA_FLAGS ..
+meson setup --buildtype=release --prefix=${PREFIX} --libdir=$PREFIX/lib $EXTRA_FLAGS ..
 ninja -j${CPU_COUNT}
 ninja install
 

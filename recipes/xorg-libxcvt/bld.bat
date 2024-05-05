@@ -7,7 +7,7 @@ set "PKG_CONFIG_PATH=%LIBRARY_LIB%\pkgconfig;%LIBRARY_PREFIX%\share\pkgconfig;%B
 :: get mixed path (forward slash) form of prefix so host prefix replacement works
 set "LIBRARY_PREFIX_M=%LIBRARY_PREFIX:\=/%"
 
-%BUILD_PREFIX%\Scripts\meson.exe setup builddir --buildtype=release --default_library=shared --prefix=%LIBRARY_PREFIX_M% --backend=ninja
+%BUILD_PREFIX%\Scripts\meson.exe setup builddir --buildtype=release --prefix=%LIBRARY_PREFIX_M% --backend=ninja
 if errorlevel 1 exit 1
 
 ninja -v -C builddir -j %CPU_COUNT%
@@ -17,3 +17,4 @@ ninja -C builddir install -j %CPU_COUNT%
 if errorlevel 1 exit 1
 
 del %LIBRARY_PREFIX%\share\man
+del %LIBRARY_PREFIX%\lib\*.a
