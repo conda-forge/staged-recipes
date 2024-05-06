@@ -1,5 +1,5 @@
-#!/bin/bash -ex
-IFS=$' \t\n' # workaround for conda 4.2.13+toolchain bug
+#!/bin/bash
+set -ex
 
 # Adopt a Unix-friendly path if we're on Windows (see bld.bat).
 [ -n "$PATH_OVERRIDE" ] && export PATH="$PATH_OVERRIDE"
@@ -26,7 +26,7 @@ find $uprefix/. -name '*.la' -delete
 
 # On Windows we need to regenerate the configure scripts.
 if [ -n "$CYGWIN_PREFIX" ] ; then
-    am_version=1.16 # keep sync'ed with meta.yaml
+    am_version=1.15 # keep sync'ed with meta.yaml
     export ACLOCAL=aclocal-$am_version
     export AUTOMAKE=automake-$am_version
     autoreconf_args=(
