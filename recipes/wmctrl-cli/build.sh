@@ -30,7 +30,7 @@ if [ -n "$CYGWIN_PREFIX" ] ; then
     export ACLOCAL=aclocal-$am_version
     export AUTOMAKE=automake-$am_version
     export CPPFLAGS="${CPPFLAGS} -I${mprefix}/include -I${mprefix}/include/glib-2.0 -I${mprefix}/lib/glib-2.0/include"
-    export LDFLAGS="${LDFLAGS} -L${mprefix}/lib"
+    export LDFLAGS="${LDFLAGS} -L${mprefix}/lib -lglib-2.0"
     autoreconf_args=(
         --force
         --install
