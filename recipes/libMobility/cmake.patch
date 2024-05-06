@@ -1,12 +1,69 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index efe45a0..4219cf0 100644
+index efe45a0..9f68202 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -30,6 +30,7 @@ if(BLAS_FOUND)
-   )
-   find_path(BLAS_INCLUDE_DIRS mkl.h
-     $ENV{CONDA_PREFIX}/include
-+    $ENV{PREFIX}/include
-     /usr/include
-     /usr/local/include
-     $ENV{MKLROOT}/include
+@@ -20,42 +20,30 @@ set(UAMMD_INCLUDE include/third_party/uammd/src include/third_party/uammd/src/th
+ # find_package(UAMMD REQUIRED)
+ # set(UAMMD_INCLUDE ${UAMMD_INCLUDE_DIR})
+ set(BLA_STATIC OFF)
+-set(BLA_VENDOR Intel10_64lp)
++if(NOT DEFINED BLA_VENDOR)
++  set(BLA_VENDOR Intel10_64lp)  # Default to Intel MKL LP64
++endif()
++
++# Try to find BLAS and LAPACK
+ find_package(BLAS)
+-if(BLAS_FOUND)
+-  message("mkl environment detected")
+-  add_compile_definitions(PUBLIC USE_MKL)
+-  link_libraries(
+-    BLAS::BLAS
+-  )
+-  find_path(BLAS_INCLUDE_DIRS mkl.h
+-    $ENV{CONDA_PREFIX}/include
+-    /usr/include
+-    /usr/local/include
+-    $ENV{MKLROOT}/include
+-    $ENV{BLAS_HOME}/include
+-  )
+-else()
+-  unset(BLA_VENDOR)
+-  find_package(LAPACK REQUIRED)
+-  find_package(LAPACKE REQUIRED)
+-  find_package(BLAS REQUIRED)
+-  link_libraries(${LAPACK_LIBRARIES} ${LAPACKE_LIBRARIES})
+-  find_path(BLAS_INCLUDE_DIRS cblas.h
+-    $ENV{CONDA_PREFIX}/include
+-    /usr/include
+-    /usr/local/include
+-    $ENV{MKLROOT}/include
+-    $ENV{BLAS_HOME}/include
+-  )
+-  find_path(LAPACKE_INCLUDE_DIRS lapacke.h
+-    $ENV{CONDA_PREFIX}/include
+-    /usr/include
+-    /usr/local/include
+-    $ENV{MKLROOT}/include
+-    $ENV{LAPACKE_HOME}/include
+-  )
++find_package(LAPACK)
++
++if(BLAS_FOUND AND LAPACK_FOUND)
++  message(STATUS "BLAS and LAPACK found")
+ 
++  # Additional check for MKL
++  find_path(MKL_INCLUDE_DIR NAMES mkl.h PATHS $ENV{MKLROOT}/include)
++  if(MKL_INCLUDE_DIR)
++    message(STATUS "Intel MKL environment detected")
++    add_compile_definitions(USE_MKL)
++    include_directories(${MKL_INCLUDE_DIR})
++  endif()
++
++  # Linking BLAS and LAPACK libraries
++  link_libraries(${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
++
++else()
++  message(FATAL_ERROR "BLAS and LAPACK not found. Please install them.")
+ endif()
+ find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+ include_directories(${Python3_INCLUDE_DIRS})
