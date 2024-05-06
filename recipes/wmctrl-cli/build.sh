@@ -29,7 +29,7 @@ if [ -n "$CYGWIN_PREFIX" ] ; then
     am_version=1.15 # keep sync'ed with meta.yaml
     export ACLOCAL=aclocal-$am_version
     export AUTOMAKE=automake-$am_version
-    export CPPFLAGS="${CPPFLAGS} -I${mprefix}/include -I${mprefix}/include/glib-2.0 -I${mprefix}/include/glib-2.0/include"
+    export CPPFLAGS="${CPPFLAGS} -I${mprefix}/include -I${mprefix}/include/glib-2.0 -I${mprefix}/lib/glib-2.0/include"
     autoreconf_args=(
         --force
         --install
