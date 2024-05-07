@@ -32,9 +32,11 @@ export SBCL_HOME=${INSTALL_ROOT}/lib/sbcl
 bootstrap_sbcl "${SRC_DIR}/bootstrapping" "${BUILD_PREFIX}"
 
 # Define linker and 2.28 version of GLIBC
+export LD="${BUILD_PREFIX}/x86_64-conda-linux-gnu/sysroot/lib64/ld-${LIBC_CONDA_VERSION-2.28}.so"
+
 cd ${SRC_DIR}/sbcl-from-source
   # Uses $INSTALL_ROOT to find bootstrapped SBCL
-  bash make.sh --fancy
+  bash make.sh --fancy > _sbcl_build_log.txt 2>&1
 
   # Set the environment variables to install SBCL in $PREFIX
   INSTALL_ROOT=${PREFIX} SBCL_HOME=${INSTALL_ROOT}/lib/sbcl bash install.sh
@@ -48,9 +50,10 @@ cd ${SRC_DIR}/sbcl-from-source
   #   --add-needed libm.so.6 \
   #   --add-needed libc.so.6 \
   #   ${INSTALL_ROOT}/bin/sbcl
+  python ${RECIPE_DIR}/build_helpers/elf_reader.py -a --debug ${INSTALL_ROOT}/bin/sbcl > _sbcl_elf_info_pre.txt 2>&1
   patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 --remove-rpath ${INSTALL_ROOT}/bin/sbcl
+  python ${RECIPE_DIR}/build_helpers/elf_reader.py -a --debug ${INSTALL_ROOT}/bin/sbcl > _sbcl_elf_info_post.txt 2>&1
 
-  python ${RECIPE_DIR}/build_helpers/elf_reader.py -a --debug ${INSTALL_ROOT}/bin/sbcl > _sbcl_elf_info.txt 2>&1
   ldd ${INSTALL_ROOT}/bin/sbcl > _ldd_installed_sbcl.txt
 
   # This depends upon TeX, which does not seem to have a good toolset on conda-forge
