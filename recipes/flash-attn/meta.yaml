@@ -1,0 +1,78 @@
+{% set name = "flash-attn" %}
+{% set version = "2.5.8" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/flash_attn-{{ version }}.tar.gz
+    sha256: 2e5b2bcff6d5cff40d494af91ecd1eb3c5b4520a6ce7a0a8b1f9c1ed129fb402
+  # Overwrite with a simpler build script that doesn't try to revend pre-compiled binaries
+  - path: pyproject.toml
+  - path: setup.py
+
+build:
+  number: 0
+  script: {{ PYTHON }} -m pip install . -vvv --no-deps --no-build-isolation
+  script_env:
+    # Temporarily reduce ARCHs and JOBS to debug build
+    # - MAX_JOBS=$CPU_COUNT
+    - MAX_JOBS=1
+    # - TORCH_CUDA_ARCH_LIST=8.0;8.6;8.9;9.0+PTX
+    - TORCH_CUDA_ARCH_LIST=8.0+PTX
+  skip: true           # [cuda_compiler_version in (undefined, "None")]
+  skip: true           # [not linux]
+  ignore_run_exports_from:
+    - libcublas-dev    # [(cuda_compiler_version or "").startswith("12")]
+    - libcusolver-dev  # [(cuda_compiler_version or "").startswith("12")]
+    - libcusparse-dev  # [(cuda_compiler_version or "").startswith("12")]
+  rpaths:
+    - lib/
+  # PyTorch libs are in site-packages instead of with other shared objects
+    - {{ SP_DIR }}/torch/lib/
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - {{ stdlib('c') }}
+    - ninja
+  host:
+    - cuda-version {{ cuda_compiler_version }}  # same cuda for host and build
+    - cuda-cudart-dev  # [(cuda_compiler_version or "").startswith("12")]
+    - libcublas-dev    # [(cuda_compiler_version or "").startswith("12")]
+    - libcusolver-dev  # [(cuda_compiler_version or "").startswith("12")]
+    - libcusparse-dev  # [(cuda_compiler_version or "").startswith("12")]
+    - libtorch         # required until pytorch run_exports libtorch
+    - pip
+    - python
+    - pytorch
+    - pytorch =*=cuda*
+    - setuptools
+  run:
+    - einops
+    - python
+    - pytorch =*=cuda*
+
+test:
+  imports:
+    - flash_attn
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/Dao-AILab/flash-attention
+  summary: 'Flash Attention: Fast and Memory-Efficient Exact Attention'
+  license: BSD-3-Clause
+  license_file:
+    - LICENSE
+    - LICENSE_CUTLASS.txt
+
+extra:
+  recipe-maintainers:
+    - carterbox
+    - weiji14
