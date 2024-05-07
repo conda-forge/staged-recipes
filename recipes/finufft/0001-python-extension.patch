@@ -1,0 +1,132 @@
+From fc9c26950a49fe4ed7e8206dfabf7cb262df4192 Mon Sep 17 00:00:00 2001
+From: Dan F-M <foreman.mackey@gmail.com>
+Date: Thu, 2 May 2024 15:37:33 -0400
+Subject: [PATCH] Patch Python extension for conda
+
+---
+ python/finufft/finufft/_finufft.py |  9 ++--
+ python/finufft/setup.py            | 66 ++----------------------------
+ 2 files changed, 7 insertions(+), 68 deletions(-)
+
+diff --git a/python/finufft/finufft/_finufft.py b/python/finufft/finufft/_finufft.py
+index 96308db1..5bd5adb8 100644
+--- a/python/finufft/finufft/_finufft.py
++++ b/python/finufft/finufft/_finufft.py
+@@ -7,13 +7,11 @@ differentiated by 'f' suffix.
+ """
+ 
+ import ctypes
++import ctypes.util
+ import os
+-import warnings
+ import platform
+ import importlib.util
+ 
+-import numpy as np
+-
+ from ctypes import c_double
+ from ctypes import c_int
+ from ctypes import c_float
+@@ -26,13 +24,14 @@ c_float_p = ctypes.POINTER(c_float)
+ c_double_p = ctypes.POINTER(c_double)
+ c_longlong_p = ctypes.POINTER(c_longlong)
+ 
+-# TODO: See if there is a way to improve this so it is less hacky.
+ lib = None
+ # Try to load a local library directly.
+ try:
+     lib = ctypes.cdll.LoadLibrary('libfinufft.so')
+ except OSError:
+-    pass
++    libname = ctypes.util.find_library('finufft')
++    if libname is not None:
++        lib = ctypes.cdll.LoadLibrary(libname)
+ 
+ # Should that not work, try to find the full path of a packaged lib.
+ #   The packaged lib should have a py/platform decorated name,
+diff --git a/python/finufft/setup.py b/python/finufft/setup.py
+index c2bf12f8..e4eab0d4 100644
+--- a/python/finufft/setup.py
++++ b/python/finufft/setup.py
+@@ -7,59 +7,10 @@
+ 
+ __version__ = '2.2.0'
+ 
+-from setuptools import setup, Extension
+-import os
+-import platform
+-from pathlib import Path
++from setuptools import setup
+ 
+-from tempfile import mkstemp
+-
+-finufft_dir = os.environ.get('FINUFFT_DIR')
+-
+-# Note: This will not work if run through pip install since setup.py is copied
+-# to a different location.
+-if finufft_dir == None or finufft_dir == '':
+-    finufft_dir = Path(__file__).resolve().parents[2]
+-
+-# Set include and library paths relative to FINUFFT root directory.
+-inc_dir = os.path.join(finufft_dir, 'include')
+-lib_dir = os.path.join(finufft_dir, 'lib')
+-lib_dir_cmake = os.path.join(finufft_dir, 'build')   # lib may be only here
+-
+-# Read in long description from README.md.
+-with open(os.path.join(finufft_dir, 'python', 'finufft', 'README.md'), 'r') as f:
+-        long_description = f.read()
+-
+-finufft_dlib = 'finufft'
+-
+-# Windows does not have the concept of rpath and as a result, MSVC crashes if
+-# supplied with one.
+-if platform.system() != "Windows":
+-    runtime_library_dirs = [lib_dir, lib_dir_cmake]
+-else:
+-    runtime_library_dirs = []
+-
+-# For certain platforms (e.g. Ubuntu 20.04), we need to create a dummy source
+-# that calls one of the functions in the FINUFFT dynamic library. The reason
+-# is that these platforms override the default --no-as-needed flag for ld,
+-# which means that the linker will only link to those dynamic libraries for
+-# which there are unresolved symbols in the object files. Since we do not have
+-# a real source, the result is that no dynamic libraries are linked. To
+-# prevent this, we create a dummy source so that the library will link as
+-# expected.
+-fd, source_filename = mkstemp(suffix='.c', text=True)
+-
+-with open(fd, 'w') as f:
+-    f.write( \
+-"""
+-#include <finufft.h>
+-
+-void PyInit_finufftc(void) {
+-    finufft_opts opt;
+-
+-    finufft_default_opts(&opt);
+-}
+-""")
++with open('README.md', 'r') as f:
++    long_description = f.read()
+ 
+ 
+ ########## SETUP ###########
+@@ -85,15 +36,4 @@ setup(
+     install_requires=['numpy>=1.12.0'],
+     python_requires='>=3.6',
+     zip_safe=False,
+-    py_modules=['finufft.finufftc'],
+-    ext_modules=[
+-        Extension(name='finufft.finufftc',
+-                  sources=[source_filename],
+-                  include_dirs=[inc_dir, '/usr/local/include'],
+-                  library_dirs=[lib_dir, lib_dir_cmake, '/usr/local/lib'],
+-                  libraries=[finufft_dlib],
+-                  runtime_library_dirs=runtime_library_dirs)
+-        ]
+ )
+-
+-os.unlink(source_filename)
+-- 
+2.39.3 (Apple Git-146)
+

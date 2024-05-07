@@ -1,0 +1,136 @@
+{% set name = "finufft" %}
+{% set version = "2.2.0" %}
+
+package:
+  name: finufft-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/flatironinstitute/finufft/archive/v{{ version }}.tar.gz
+  sha256: 0dac7f8f2648fbf5c448cf23a331766e29a7c87b86365d28efb1793b4b023ac1
+  patches:
+    - 0001-python-extension.patch
+    - 0002-cufinufft-no-static.patch
+    - 0003-cufinufft-python-extension.patch
+
+build:
+  number: 0
+
+outputs:
+  - name: libfinufft
+    version: {{ version }}
+    script: build_finufft.sh   # [unix]
+    script: build_finufft.bat  # [win]
+    build:
+      skip: True  # [cuda_compiler_version != "None"]
+      run_exports:
+        - {{ pin_subpackage('libfinufft', max_pin='x.x') }}
+      ignore_run_exports:
+        - python  # [win]
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - cmake
+        - ninja
+        - python  # [win]
+      host:
+        - fftw
+        - llvm-openmp  # [osx]
+        - libgomp  # [linux]
+    test:
+      commands:
+        - test -f ${PREFIX}/include/finufft.h  # [unix]
+        - if not exist %LIBRARY_PREFIX%\include\finufft.h (exit 1)  # [win]
+
+        - test -e ${PREFIX}/lib/libfinufft${SHLIB_EXT}  # [unix]
+        - test ! -f ${PREFIX}/lib/libfinufft_static.a   # [unix]
+
+        - if not exist %LIBRARY_PREFIX%\bin\finufft.dll (exit 1)  # [win]
+        - if not exist %LIBRARY_PREFIX%\lib\finufft.lib (exit 1)  # [win]
+
+  - name: finufft
+    version: {{ version }}
+    script: build_finufft.sh   # [unix]
+    script: build_finufft.bat  # [win]
+    build:
+      skip: True  # [cuda_compiler_version != "None"]
+      noarch: python
+    requirements:
+      host:
+        - python
+        - pip
+      run:
+        - python
+        - numpy
+        - {{ pin_subpackage('libfinufft', exact=True) }}
+    test:
+      imports:
+        - finufft
+      source_files:
+        - python/finufft/test
+      commands:
+        - python python/finufft/test/run_accuracy_tests.py
+
+  - name: libcufinufft
+    version: {{ version }}
+    script: build_finufft.sh   # [unix]
+    script: build_finufft.bat  # [win]
+    build:
+      skip: True  # [cuda_compiler_version == "None"]
+      run_exports:
+        - {{ pin_subpackage('libcufinufft', max_pin='x.x') }}
+      ignore_run_exports:
+        - nccl
+        - fftw
+        - libgomp
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}
+        - cmake
+        - ninja
+      host:
+        - nccl
+        - cuda-cupti-dev    # [(cuda_compiler_version or "").startswith("12")]
+        - cuda-cudart-dev   # [(cuda_compiler_version or "").startswith("12")]
+        - cuda-nvml-dev     # [(cuda_compiler_version or "").startswith("12")]
+        - cuda-nvtx-dev     # [(cuda_compiler_version or "").startswith("12")]
+        - libcufft-dev      # [(cuda_compiler_version or "").startswith("12")]
+        - cuda-version {{ cuda_compiler_version }}
+        - fftw
+        - libgomp
+    test:
+      commands:
+        - test -f ${PREFIX}/include/cufinufft.h
+        - test -e ${PREFIX}/lib/libcufinufft${SHLIB_EXT}
+
+  - name: cufinufft
+    version: {{ version }}
+    script: build_finufft.sh
+    build:
+      skip: True  # [cuda_compiler_version == "None"]
+      noarch: python
+    requirements:
+      host:
+        - python
+        - pip
+      run:
+        - python
+        - numpy
+        - {{ pin_subpackage('libcufinufft', exact=True) }}
+    test:
+      imports:
+        - cufinufft
+
+about:
+  home: https://github.com/flatironinstitute/finufft
+  summary: 'Non-uniform fast Fourier transform library of types 1,2,3 in dimensions 1,2,3'
+  license: Apache-2.0
+  license_file: LICENSE
+  doc_url: https://finufft.readthedocs.io
+  dev_url: https://github.com/flatironinstitute/finufft
+
+extra:
+  recipe-maintainers:
+    - dfm
+    - lgarrison
