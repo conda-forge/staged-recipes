@@ -11,8 +11,13 @@ import textwrap
 import traceback
 
 import lief
+from conda_build.os_utils.liefldd import EXE_FORMATS, ensure_binary, have_lief, _get_resolved_location, get_libraries, \
+    get_rpaths
+from conda_build.os_utils.pyldd import codefile_class, DLLfile, EXEfile, _trim_sysroot
 from lief import ELF
 import argparse
+
+from lief.ELF import Binary
 
 terminal_rows, terminal_columns = 100, 110
 try:
@@ -135,13 +140,13 @@ def print_segments(binary):
             sections = segment.sections
             s = ", ".join([section.name for section in sections])
             flags_str = ["-"] * 3
-            if ELF.Segment.flags.R in segment:
+            if ELF.SEGMENT_FLAGS.R in segment.flags:
                 flags_str[0] = "r"
 
-            if ELF.Segment.flags.W in segment:
+            if ELF.SEGMENT_FLAGS.W in segment.flags:
                 flags_str[1] = "w"
 
-            if ELF.Segment.flags.X in segment:
+            if ELF.SEGMENT_FLAGS.X in segment.flags:
                 flags_str[2] = "x"
             flags_str = "".join(flags_str)
 
@@ -178,10 +183,10 @@ def print_dynamic_entries(binary):
         elif type(entry) is ELF.DynamicEntryArray:  # [ELF.DynamicEntry.tag.INIT_ARRAY,ELF.DynamicEntry.tag.FINI_ARRAY]:
             print(f_value.format(str(entry.tag).split(".")[-1], entry.value, ", ".join(map(hex, entry.array))))
         elif entry.tag == ELF.DynamicEntry.tag.FLAGS:
-            flags_str = " - ".join([str(ELF.DynamicEntryFlags.FLAG(s)).split(".")[-1] for s in entry.flags])
+            flags_str = " - ".join([str(ELF.DYNAMIC_FLAGS(s)).split(".")[-1] for s in entry.flags])
             print(f_value.format(str(entry.tag).split(".")[-1], entry.value, flags_str))
         elif entry.tag == ELF.DynamicEntry.tag.FLAGS_1:
-            flags_str = " - ".join([str(ELF.DynamicEntryFlags.FLAG(s)).split(".")[-1] for s in entry.flags])
+            flags_str = " - ".join([str(ELF.DYNAMIC_FLAGS(s)).split(".")[-1] for s in entry.flags])
             print(f_value.format(str(entry.tag).split(".")[-1], entry.value, flags_str))
         else:
             print(f_value.format(str(entry.tag).split(".")[-1], entry.value, ""))
@@ -384,7 +389,7 @@ def print_sysv_hash(binary):
 
 
 @exceptions_handler(Exception)
-def print_notes(binary):
+def print_notes(binary: Binary):
     print("== Notes ==\n")
 
     format_str = "{:<19} {}"
@@ -399,7 +404,7 @@ def print_notes(binary):
             description_str += " ..."
 
         print("Note #{:d}".format(idx))
-
+        print(f"DBG: {dir(note)}")
         type_str = note.type_core if note.is_core else note.type
         type_str = str(type_str).split(".")[-1]
 
@@ -457,6 +462,198 @@ def print_functions(binary):
     print("Functions: ({:d})".format(len(functions)))
     for idx, f in enumerate(functions):
         print("    [{:d}] {}: 0x{:x}".format(idx, f.name, f.address))
+
+
+def inspect_linkages_lief(
+        filename,
+        resolve_filenames=True,
+        recurse=True,
+        sysroot="",
+        envroot="",
+        arch="native",
+):
+    # Already seen is partly about implementing single SONAME
+    # rules and its appropriateness on macOS is TBD!
+    already_seen = set()
+    exedir = os.path.dirname(filename)
+    binary = lief.parse(filename)
+    todo = [[filename, binary]]
+    sysroot = _trim_sysroot(sysroot)
+
+    default_paths = []
+    if not binary:
+        default_paths = []
+    elif binary.format == EXE_FORMATS.ELF:
+        if binary.type == lief.ELF.ELF_CLASS.CLASS64:
+            default_paths = [
+                "$SYSROOT/lib64",
+                "$SYSROOT/usr/lib64",
+                "$SYSROOT/lib",
+                "$SYSROOT/usr/lib",
+            ]
+        else:
+            default_paths = ["$SYSROOT/lib", "$SYSROOT/usr/lib"]
+    elif binary.format == EXE_FORMATS.MACHO:
+        default_paths = ["$SYSROOT/usr/lib"]
+    elif binary.format == EXE_FORMATS.PE:
+        # We do not include C:\Windows nor C:\Windows\System32 in this list. They are added in
+        # get_rpaths() instead since we need to carefully control the order.
+        default_paths = [
+            "$SYSROOT/System32/Wbem",
+            "$SYSROOT/System32/WindowsPowerShell/v1.0",
+        ]
+    results = {}
+    rpaths_by_binary = dict()
+    parents_by_filename = dict({filename: None})
+    while todo:
+        for element in todo:
+            todo.pop(0)
+            filename2 = element[0]
+            binary = element[1]
+            if not binary:
+                continue
+            uniqueness_key = get_uniqueness_key(binary)
+            if uniqueness_key not in already_seen:
+                parent_exe_dirname = None
+                if binary.format == EXE_FORMATS.PE:
+                    tmp_filename = filename2
+                    while tmp_filename:
+                        if (
+                                not parent_exe_dirname
+                                and codefile_class(tmp_filename, skip_symlinks=True)
+                                == EXEfile
+                        ):
+                            parent_exe_dirname = os.path.dirname(tmp_filename)
+                        tmp_filename = parents_by_filename[tmp_filename]
+                else:
+                    parent_exe_dirname = exedir
+                # This is a hack for Python on Windows. Sorry.
+                if ".pyd" in filename2 or (os.sep + "DLLs" + os.sep) in filename2:
+                    parent_exe_dirname = envroot.replace(os.sep, "/") + "/DLLs"
+                rpaths_by_binary[filename2] = get_rpaths(
+                    binary, parent_exe_dirname, envroot.replace(os.sep, "/"), sysroot
+                )
+                tmp_filename = filename2
+                rpaths_transitive = []
+                if binary.format == EXE_FORMATS.PE:
+                    rpaths_transitive = rpaths_by_binary[tmp_filename]
+                else:
+                    while tmp_filename:
+                        rpaths_transitive[:0] = rpaths_by_binary[tmp_filename]
+                        tmp_filename = parents_by_filename[tmp_filename]
+                libraries = get_libraries(binary)
+                if filename2 in libraries:  # Happens on macOS, leading to cycles.
+                    libraries.remove(filename2)
+                # RPATH is implicit everywhere except macOS, make it explicit to simplify things.
+                these_orig = [
+                    (
+                        "$RPATH/" + lib
+                        if not lib.startswith("/")
+                           and not lib.startswith("$")
+                           and binary.format != EXE_FORMATS.MACHO  # noqa
+                        else lib
+                    )
+                    for lib in libraries
+                ]
+                for lib, orig in zip(libraries, these_orig):
+                    resolved = _get_resolved_location(
+                        binary,
+                        orig,
+                        exedir,
+                        exedir,
+                        rpaths_transitive=rpaths_transitive,
+                        default_paths=default_paths,
+                        sysroot=sysroot,
+                    )
+                    path_fixed = os.path.normpath(resolved[0])
+                    # Test, randomise case. We only allow for the filename part to be random, and we allow that
+                    # only for Windows DLLs. We may need a special case for Lib (from Python) vs lib (from R)
+                    # too, but in general we want to enforce case checking as much as we can since even Windows
+                    # can be run case-sensitively if the user wishes.
+                    #
+                    """
+                    if binary.format == EXE_FORMATS.PE:
+                        import random
+                        path_fixed = (
+                            os.path.dirname(path_fixed)
+                            + os.sep
+                            +  ''.join(
+                                random.choice((str.upper, str.lower))(c)
+                                for c in os.path.basename(path_fixed)
+                            )
+                        )
+                        if random.getrandbits(1):
+                            path_fixed = path_fixed.replace(os.sep + 'lib' + os.sep, os.sep + 'Lib' + os.sep)
+                        else:
+                            path_fixed = path_fixed.replace(os.sep + 'Lib' + os.sep, os.sep + 'lib' + os.sep)
+                    """
+                    if resolve_filenames:
+                        rec = {
+                            "orig": orig,
+                            "resolved": path_fixed,
+                            "rpaths": rpaths_transitive,
+                        }
+                    else:
+                        rec = {"orig": orig, "rpaths": rpaths_transitive}
+                    results[lib] = rec
+                    parents_by_filename[resolved[0]] = filename2
+                    if recurse:
+                        if os.path.exists(resolved[0]):
+                            todo.append([resolved[0], lief.parse(resolved[0])])
+                already_seen.add(get_uniqueness_key(binary))
+    return results
+
+
+def get_linkages(
+        filename,
+        resolve_filenames=True,
+        recurse=True,
+        sysroot="",
+        envroot="",
+        arch="native",
+):
+    # When we switch to lief, want to ensure these results do not change.
+    # We do not support Windows yet with pyldd.
+    result_pyldd = []
+    debug = False
+    result_lief = inspect_linkages_lief(
+        filename,
+        resolve_filenames=resolve_filenames,
+        recurse=recurse,
+        sysroot=sysroot,
+        envroot=envroot,
+        arch=arch,
+    )
+    if debug and result_pyldd and set(result_lief) != set(result_pyldd):
+        print(
+            f"WARNING: Disagreement in get_linkages({filename=}, "
+            f"{resolve_filenames=}, {recurse=}, {sysroot=}, {envroot=}, {arch=}):\n"
+            f" lief: {result_lief}\n"
+            f"pyldd: {result_pyldd}\n"
+            "  (using lief)"
+        )
+    return result_lief
+
+
+def get_uniqueness_key(file):
+    binary = ensure_binary(file)
+    if not binary:
+        return EXE_FORMATS.UNKNOWN
+    elif binary.format == EXE_FORMATS.MACHO:
+        return str(file)
+    elif binary.format == EXE_FORMATS.ELF and (  # noqa
+            binary.type == lief.ELF.ELF_CLASS.CLASS32
+            or binary.type == lief.ELF.ELF_CLASS.CLASS64
+    ):
+        dynamic_entries = binary.dynamic_entries
+        result = [
+            e.name for e in dynamic_entries if e.tag == lief.ELF.DYNAMIC_TAGS.SONAME
+        ]
+        if result:
+            return result[0]
+        print(f"**** DBG ****: {file}:{len(str(file))}")
+        return str(file)
+    return str(file)
 
 
 def main():
@@ -643,6 +840,8 @@ def main():
 
     if args.show_functions:
         print_functions(binary)
+
+    print(f"**** DBG ****: {get_linkages(args.elf_file)}")
 
 
 if __name__ == "__main__":
