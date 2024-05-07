@@ -34,7 +34,7 @@ bootstrap_sbcl "${SRC_DIR}/bootstrapping" "${BUILD_PREFIX}"
 # Define linker and 2.28 version of GLIBC
 cd ${SRC_DIR}/sbcl-from-source
   # Uses $INSTALL_ROOT to find bootstrapped SBCL
-  bash make.sh --fancy > _sbcl_compilation.txt 2>&1
+  bash make.sh --fancy
 
   # Set the environment variables to install SBCL in $PREFIX
   INSTALL_ROOT=${PREFIX} SBCL_HOME=${INSTALL_ROOT}/lib/sbcl bash install.sh
