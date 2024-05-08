@@ -26,16 +26,14 @@ find $uprefix/. -name '*.la' -delete
 
 # On Windows we need to regenerate the configure scripts.
 if [ -n "$CYGWIN_PREFIX" ] ; then
-    am_version=1.15 # keep sync'ed with meta.yaml
+    am_version=1.16 # keep sync'ed with meta.yaml
     export ACLOCAL=aclocal-$am_version
     export AUTOMAKE=automake-$am_version
-    export CPPFLAGS="${CPPFLAGS} -I${mprefix}/include -I${mprefix}/include/glib-2.0 -I${mprefix}/lib/glib-2.0/include"
-    export LDFLAGS="${LDFLAGS} -L${mprefix}/lib -lglib-2.0"
     autoreconf_args=(
         --force
         --install
         -I "$mprefix/share/aclocal"
-        -I "$BUILD_PREFIX_M/Library/mingw-w64/share/aclocal"
+        -I "$BUILD_PREFIX_M/Library/usr/share/aclocal"
     )
     autoreconf "${autoreconf_args[@]}"
 
