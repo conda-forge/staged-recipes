@@ -18,12 +18,6 @@ else
     uprefix="$PREFIX"
 fi
 
-# Cf. https://github.com/conda-forge/staged-recipes/issues/673, we're in the
-# process of excising Libtool files from our packages. Existing ones can break
-# the build while this happens. We have "/." at the end of $uprefix to be safe
-# in case the variable is empty.
-find $uprefix/. -name '*.la' -delete
-
 # On Windows we need to regenerate the configure scripts.
 if [ -n "$CYGWIN_PREFIX" ] ; then
     am_version=1.16 # keep sync'ed with meta.yaml
