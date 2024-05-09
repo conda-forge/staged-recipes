@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+set -exuo pipefail
 ./configure \
     --prefix=$PREFIX \
     --disable-silent-rules \
