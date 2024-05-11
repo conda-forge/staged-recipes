@@ -1,0 +1,51 @@
+{% set name = "cime_gen_domain" %}
+{% set version = "6.0.234" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/ESMCI/cime/archive/refs/tags/cime{{ version }}.tar.gz
+    sha256: 9596339ac0dcec4d2b2817d526ea8eabc27bdfcd6903bd58a14add21f2f1afcd
+
+build:
+  skip: true  # [not linux]
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('fortran') }}
+    - {{ stdlib("c") }}
+    - cmake
+    - make
+  host:
+    - netcdf-fortran
+    - netcdf-fortran * nompi_*
+
+test:
+  requires:
+    - curl
+    - nccmp
+  commands:
+    - curl -O https://web.lcrc.anl.gov/public/e3sm/inputdata/cpl/gridmaps/IcoswISC30E3r5/map_IcoswISC30E3r5_to_ne30pg2_traave.20231121.nc
+    - curl -O https://web.lcrc.anl.gov/public/e3sm/inputdata/share/domains/domain.ocn.IcoswISC30E3r5.231121.nc
+    - curl -O https://web.lcrc.anl.gov/public/e3sm/inputdata/share/domains/domain.lnd.ne30pg2_IcoswISC30E3r5.231121.nc
+    - curl -O https://web.lcrc.anl.gov/public/e3sm/inputdata/share/domains/domain.ocn.ne30pg2_IcoswISC30E3r5.231121.nc
+    - gen_domain -o IcoswISC30E3r5 -l ne30pg2 -m map_IcoswISC30E3r5_to_ne30pg2_traave.20231121.nc
+    - nccmp -d -T 0.0 domain.ocn.IcoswISC30E3r5.*.nc
+    - nccmp -d -T 0.0 domain.lnd.ne30pg2_IcoswISC30E3r5.*.nc
+    - nccmp -d -T 0.0 domain.ocn.ne30pg2_IcoswISC30E3r5.*.nc
+
+about:
+  home: https://github.com/ESMCI/cime
+  license: NCSA
+  license_family: OTHER
+  license_file: LICENSE.TXT
+  summary: The gen_domain tool from Common Infrastructure for Modeling the Earth (CIME)
+  doc_url: http://esmci.github.io/cime
+  dev_url: https://github.com/ESMCI/cime
+
+extra:
+  recipe-maintainers:
+    - xylar
