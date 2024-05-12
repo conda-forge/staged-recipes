@@ -5,6 +5,9 @@ set -e
 
 cp -r ${RECIPE_DIR}/cmake ${RECIPE_DIR}/cmake_macros ${RECIPE_DIR}/CMakeLists.txt .
 
+# remove static libpng and zlib to prevent static linking
+rm -rf ${PREFIX}/lib/libpng.a ${PREFIX}/lib/libz.a
+
 rm -rf build
 mkdir build
 cd build
