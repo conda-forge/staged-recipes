@@ -39,6 +39,6 @@ include_directories(${netcdf_c_incdir})
 
 include_directories(${SRC})
 add_executable(SQuadGen ${SQUADGEN_SRC})
-target_link_libraries(SQuadGen ${netcdf_c_libs} ${PNG_LIBRARIES})
+target_link_libraries(SQuadGen PUBLIC ${netcdf_c_libs} ${PNG_LIBRARIES})
 
 install(TARGETS SQuadGen DESTINATION bin)

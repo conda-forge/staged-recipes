@@ -12,6 +12,7 @@ cmake \
   -D CMAKE_INSTALL_PREFIX="${PREFIX}" \
   -D NETCDF_PATH="${PREFIX}" \
   -D CMAKE_BUILD_TYPE=Release \
+  -D BUILD_SHARED_LIBS=ON \
   ..
 cmake --build .
 cmake --install .
