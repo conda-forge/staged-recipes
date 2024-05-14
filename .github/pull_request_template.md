@@ -15,6 +15,7 @@ right people know. There are language-specific teams for reviewing recipes.
 | perl            | `@conda-forge/help-perl`      |
 | Julia           | `@conda-forge/help-julia`     |
 | ruby            | `@conda-forge/help-ruby`      |
+| Rust            | `@conda-forge/help-rust`      |
 | other           | `@conda-forge/staged-recipes` |
 
 Once the PR is ready for review, please mention one of the teams above in a
@@ -29,6 +30,13 @@ if your recipe isn't reviewed promptly.
 
 [1]: https://conda-forge.org/docs/maintainer/infrastructure.html#conda-forge-admin-please-ping-team
 [2]: https://gitter.im/conda-forge/conda-forge.github.io
+
+All apologies in advance if your recipe PR does not receive prompt attention.
+This is a high volume repository and the reviewers are volunteers. Review times
+vary depending on the number of reviewers on a given language team and may be days
+or weeks. We are always looking for more staged-recipe reviewers. If you are
+interested in volunteering, please contact a member of @conda-forge/core.
+We'd love to have the help!
 -->
 
 Checklist
