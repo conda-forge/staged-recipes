@@ -1,0 +1,209 @@
+From e0fcc34f29633e8d4213581ad1c40575f9d2a0f1 Mon Sep 17 00:00:00 2001
+From: Samuel Debionne <samuel.debionne@esrf.fr>
+Date: Wed, 23 Aug 2023 16:13:36 +0200
+Subject: [PATCH 1/2] Add CMake support
+
+---
+ CMakeLists.txt                | 95 +++++++++++++++++++++++++++++++++++
+ cmake/PackageConfig.cmake     | 35 +++++++++++++
+ cmake/project-config.cmake.in | 16 ++++++
+ src/cbor.h                    |  2 +-
+ tests/CMakeLists.txt          |  3 ++
+ 5 files changed, 150 insertions(+), 1 deletion(-)
+ create mode 100644 CMakeLists.txt
+ create mode 100644 cmake/PackageConfig.cmake
+ create mode 100644 cmake/project-config.cmake.in
+ create mode 100644 tests/CMakeLists.txt
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+new file mode 100644
+index 0000000..08d5d45
+--- /dev/null
++++ b/CMakeLists.txt
+@@ -0,0 +1,95 @@
++# /****************************************************************************
++# **
++# ** Copyright (C) 2015 Intel Corporation
++# **
++# ** Permission is hereby granted, free of charge, to any person obtaining a copy
++# ** of this software and associated documentation files (the "Software"), to deal
++# ** in the Software without restriction, including without limitation the rights
++# ** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++# ** copies of the Software, and to permit persons to whom the Software is
++# ** furnished to do so, subject to the following conditions:
++# **
++# ** The above copyright notice and this permission notice shall be included in
++# ** all copies or substantial portions of the Software.
++# **
++# ** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++# ** IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++# ** FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++# ** AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++# ** LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++# ** OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
++# ** THE SOFTWARE.
++# **
++# ****************************************************************************/
++
++cmake_minimum_required(VERSION 3.10)
++
++project(tinycbor LANGUAGES C VERSION 0.6.0)
++
++# Set path to additional cmake scripts
++set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
++
++set(TARGETS_EXPORT_NAME "tinycbor-targets")
++
++# Include additional modules that are used unconditionally
++include(GNUInstallDirs)
++include(GenerateExportHeader)
++
++add_library(tinycbor SHARED
++  src/cborencoder.c
++  src/cborencoder_close_container_checked.c
++  src/cborerrorstrings.c
++  src/cborparser.c
++  src/cborparser_dup_string.c
++  src/cborpretty.c
++  src/cborpretty_stdio.c
++  src/cbortojson.c
++  src/cborvalidation.c
++  src/cbor.h
++  src/tinycbor-version.h
++)
++
++# Generate export macros
++generate_export_header(tinycbor BASE_NAME "cbor" EXPORT_MACRO_NAME "CBOR_API" EXPORT_FILE_NAME "tinycbor-export.h")
++
++# Check for open_memstream and store the result in HAVE_OPEN_MEMSTREAM
++include (CheckSymbolExists)
++check_symbol_exists(open_memstream stdio.h HAVE_OPEN_MEMSTREAM)
++check_symbol_exists(funopen stdio.h HAVE_OPEN_FUNOPEN)
++check_symbol_exists(fopencookie stdio.h HAVE_OPEN_FOPENCOOKIE)
++
++if(NOT HAVE_OPEN_MEMSTREAM)
++  if (HAVE_OPEN_FUNOPEN AND HAVE_OPEN_FOPENCOOKIE)
++    message(STATUS "using open_memstream implementation")
++    target_sources(tinycbor PRIVATE src/open_memstream.c)
++  else()
++    target_compile_definitions(tinycbor PRIVATE WITHOUT_OPEN_MEMSTREAM)
++    message(WARNING "funopen and fopencookie unavailable, open_memstream can not be implemented and conversion to JSON will not work properly!")
++  endif()
++endif()
++
++target_include_directories(tinycbor
++  PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
++  PUBLIC "$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}>"
++  PUBLIC "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
++
++# Set version and output name
++set_target_properties(tinycbor PROPERTIES
++  VERSION "${PROJECT_VERSION}"
++  SOVERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
++
++install(FILES src/cbor.h src/tinycbor-version.h ${CMAKE_BINARY_DIR}/tinycbor-export.h TYPE INCLUDE)
++install(
++  TARGETS tinycbor
++  EXPORT "${TARGETS_EXPORT_NAME}"
++  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}   # import library
++  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}   # .so files are libraries
++  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}   # .dll files are binaries
++  INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}  # this does not actually install anything (but used by downstream projects)
++)
++
++set (PROJECT_LIBRARIES tinycbor)
++include(PackageConfig)
++
++enable_testing()
++add_subdirectory(tests)
+diff --git a/cmake/PackageConfig.cmake b/cmake/PackageConfig.cmake
+new file mode 100644
+index 0000000..ec9cff8
+--- /dev/null
++++ b/cmake/PackageConfig.cmake
+@@ -0,0 +1,35 @@
++# This cmake code creates the configuration that is found and used by
++# find_package() of another cmake project
++
++# get lower and upper case project name for the configuration files
++
++# configure and install the configuration files
++include(CMakePackageConfigHelpers)
++
++configure_package_config_file(
++  "${CMAKE_SOURCE_DIR}/cmake/project-config.cmake.in"
++  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
++  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
++  #PATH_VARS CMAKE_INSTALL_DIR
++)
++
++write_basic_package_version_file(
++  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake"
++  VERSION ${PROJECT_VERSION}
++  COMPATIBILITY SameMinorVersion
++)
++
++install(FILES
++  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
++  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake"
++  COMPONENT devel
++  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
++)
++
++if (PROJECT_LIBRARIES OR PROJECT_STATIC_LIBRARIES)
++  install(
++    EXPORT "${TARGETS_EXPORT_NAME}"
++    FILE ${TARGETS_EXPORT_NAME}.cmake
++    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
++  )
++endif ()
+diff --git a/cmake/project-config.cmake.in b/cmake/project-config.cmake.in
+new file mode 100644
+index 0000000..6729c5c
+--- /dev/null
++++ b/cmake/project-config.cmake.in
+@@ -0,0 +1,16 @@
++# Config file for @PROJECT_NAME_LOWER@
++#
++# It defines the following variables:
++#
++# @PROJECT_NAME_UPPER@_INCLUDE_DIRS     - include directory
++# @PROJECT_NAME_UPPER@_LIBRARIES        - all dynamic libraries
++# @PROJECT_NAME_UPPER@_STATIC_LIBRARIES - all static libraries
++
++@PACKAGE_INIT@
++
++include(CMakeFindDependencyMacro)
++
++# Add optional dependencies here
++
++include("${CMAKE_CURRENT_LIST_DIR}/@TARGETS_EXPORT_NAME@.cmake")
++check_required_components("@PROJECT_NAME@")
+diff --git a/src/cbor.h b/src/cbor.h
+index be5bbc7..1868e9e 100644
+--- a/src/cbor.h
++++ b/src/cbor.h
+@@ -35,6 +35,7 @@
+ #include <stdio.h>
+ 
+ #include "tinycbor-version.h"
++#include "tinycbor-export.h"
+ 
+ #define TINYCBOR_VERSION            ((TINYCBOR_VERSION_MAJOR << 16) | (TINYCBOR_VERSION_MINOR << 8) | TINYCBOR_VERSION_PATCH)
+ 
+@@ -721,4 +722,3 @@ CBOR_INLINE_API CborError cbor_value_to_pretty(FILE *out, const CborValue *value
+ #endif
+ 
+ #endif /* CBOR_H */
+-
+diff --git a/tests/CMakeLists.txt b/tests/CMakeLists.txt
+new file mode 100644
+index 0000000..92a2be0
+--- /dev/null
++++ b/tests/CMakeLists.txt
+@@ -0,0 +1,3 @@
++add_executable(tst_c90 c90/tst_c90.c)
++target_link_libraries(tst_c90 tinycbor)
++add_test(NAME c90 COMMAND tst_c90)
+-- 
+2.34.1
