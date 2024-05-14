@@ -1,3 +1,0 @@
-#!/bin/bash
-cmake -Bbuild -H. -G "Ninja" ${CMAKE_ARGS} -DCMAKE_FIND_ROOT_PATH:PATH=${PREFIX} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY
-cmake --build build --target install
