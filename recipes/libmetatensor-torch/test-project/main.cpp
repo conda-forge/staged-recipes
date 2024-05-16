@@ -3,7 +3,7 @@
 #include <metatensor/torch.hpp>
 
 int main() {
-    std::cout << "found metatensor-torch v" << metatensor_torch::version() << std::endl;
+    std::cout << " ++++ Found metatensor-torch v" << metatensor_torch::version() << " in test" <<  std::endl;
 
     return 0;
 }
