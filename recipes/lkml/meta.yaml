@@ -1,0 +1,65 @@
+{% set version = "1.3.4" %}
+
+package:
+  name: lkml
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/l/lkml/lkml-{{ version }}.tar.gz
+  sha256: c70f9e9dfba8fcff033c53d7074f861c88eacfa8eb78f849be0f244fe653bdae
+
+build:
+  number: 0
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  entry_points:
+    - lkml = lkml.__init__:cli
+
+requirements:
+  host:
+    - pip
+    - python >=3.7
+  run:
+    - python >=3.7
+
+# test_* which use fixtures not in PyPI sdist
+{% set skips = [
+  "absence_of_debug_flag_is_parsed_to_log_level_warn",
+  "block_with_multiple_quoted_fields",
+  "block_with_nested_block",
+  "block_with_single_quoted_field",
+  "debug_flag_is_parsed_to_log_level_debug",
+  "duplicate_non_top_level_keys",
+  "duplicate_top_level_keys",
+  "lists_with_comma_configurations",
+  "model_with_all_fields",
+  "reserved_dimension_names",
+  "view_with_all_fields",
+] %}
+
+test:
+  source_files:
+    - tests
+    - setup.cfg
+  imports:
+    - lkml
+  commands:
+    - pip check
+    - lkml --help
+    - coverage run --source=lkml --branch -m pytest -vv --tb=long --color=yes -k "not ({{ skips | join(' or ') }})"
+    - coverage report --show-missing --skip-covered --fail-under=90
+  requires:
+    - pip
+    - pytest
+    - coverage
+
+about:
+  home: https://github.com/joshtemple/lkml
+  summary: A speedy LookML parser implemented in pure Python.
+  license: MIT
+  license_file: LICENSE.md
+  doc_url: https://lkml.readthedocs.io
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
