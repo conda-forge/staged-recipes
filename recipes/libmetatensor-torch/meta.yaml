@@ -1,0 +1,64 @@
+{% set version = "0.5.1" %}
+{% set url_base = "https://github.com/lab-cosmo/metatensor/releases/download" %}
+
+package:
+  name: libmetatensor-torch
+  version: {{ version }}
+
+source:
+  url: {{ url_base }}/metatensor-torch-v{{ version }}/metatensor-torch-cxx-{{ version }}.tar.gz
+  sha256: 82811a23dcd4a7842c960ef730bbcb87fe3fe745552bbc27440fecbf59099337
+
+build:
+  # conda-forge's libtorch is not yet available on Windows
+  skip: true  # [win]
+  number: 0
+  script: |
+    cmake -G Ninja $CMAKE_ARGS -DBUILD_SHARED_LIBS=ON  .
+    cmake --build . --config Release --target install
+  run_exports:
+    - {{ pin_subpackage('libmetatensor-torch', max_pin='x.x') }}
+
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ stdlib("c") }}
+    - cmake
+    - ninja
+  host:
+    - libmetatensor >=0.1.8,<0.2
+    # We build against the CPU version of torch to not have to deal with CUDA
+    # compilers (torch's CMake targets tries to find CUDA compilers even when
+    # there is no CUDA code to build). This does not impact the `run`
+    # dependency, since libtorch `run_exports` are variant agnostic
+    - libtorch  =*=cpu*
+
+test:
+  requires:
+    - cmake
+    - ninja
+    - {{ compiler('cxx') }}
+    - libtorch  =*=cpu*
+  files:
+    - test-project/
+  commands:
+    - test -f $PREFIX/lib/libmetatensor_torch$SHLIB_EXT
+    - cmake -G Ninja -S test-project -B test-project
+    - cmake --build test-project
+    - ctest --verbose --test-dir test-project
+
+about:
+  home: https://github.com/lab-cosmo/metatensor
+  summary: TorchScript/C++ bindings to metatensor
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file:
+    - LICENSE
+    - _deps/nlohmann_json-src/LICENSE.MIT
+  doc_url: https://lab-cosmo.github.io/metatensor/
+
+extra:
+  recipe-maintainers:
+    - Luthaf
+    - PicoCentauri
