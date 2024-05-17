@@ -1,138 +1,136 @@
-  name: 'Automated review labels'
+name: 'Automated review labels'
 
-  on:
-    issue_comment:
-      types: [created]
-    issues:
-      types: [unlabeled, labeled]
-    pull_request_target:
-      types: [unlabeled, labeled]
+on:
+  issue_comment:
+    types: [ created ]
+  issues:
+    types: [ unlabeled, labeled ]
+  pull_request_target:
+    types: [ unlabeled, labeled ]
 
-  permissions:
-    issues: write # for adding label to an issue
-    pull-requests: write # for adding label to a pr
+permissions:
+  issues: write # for adding label to an issue
+  pull-requests: write # for adding label to a pr
 
-  jobs:
+jobs:
 
-    add-review-team-label:
-      name: 'When pinged, label a PR with review team'
-      if: >
-        github.event.issue
-        && github.event.issue.pull_request
-      runs-on: ubuntu-latest
-      steps:
-        - name: check-teams
-          id: check_teams
-          uses: actions/github-script@v6
-          with:
-            script: |
-              const teams = [
-                '@conda-forge/staged-recipes',
-                '@conda-forge/help-c-cpp',
-                '@conda-forge/help-cdts',
-                '@conda-forge/help-go',
-                '@conda-forge/help-java',
-                '@conda-forge/help-julia',
-                '@conda-forge/help-nodejs',
-                '@conda-forge/help-perl',
-                '@conda-forge/help-python',
-                '@conda-forge/help-python-c',
-                '@conda-forge/help-r',
-                '@conda-forge/help-ruby'
-              ];
-              let found_label = false;
-              for (const team of teams) {
-                  let text = context.payload.comment.body;
-                  const regex = new RegExp(team + '[^\-]|' + team + '$');
-                  let result = regex.test(text);
-                  if (result) {
-                      const slug = team.replace("@conda-forge/", "");
-                      const label = slug.replace("help-", "");
-                      found_label = true;
-                      github.rest.issues.addLabels({
-                          issue_number: context.issue.number,
-                          owner: context.repo.owner,
-                          repo: context.repo.repo,
-                          labels: [label, 'review-requested']
+  add-review-team-label:
+    name: 'When pinged, label a PR with review team'
+    if: >
+      github.event.issue && github.event.issue.pull_request
+    runs-on: ubuntu-latest
+    steps:
+      - name: check-teams
+        id: check_teams
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
+        with:
+          script: |
+            const teams = [
+              '@conda-forge/staged-recipes',
+              '@conda-forge/help-c-cpp',
+              '@conda-forge/help-cdts',
+              '@conda-forge/help-go',
+              '@conda-forge/help-java',
+              '@conda-forge/help-julia',
+              '@conda-forge/help-nodejs',
+              '@conda-forge/help-perl',
+              '@conda-forge/help-python',
+              '@conda-forge/help-python-c',
+              '@conda-forge/help-r',
+              '@conda-forge/help-ruby',
+              '@conda-forge/help-rust'
+            ];
+            let found_label = false;
+            for (const team of teams) {
+                let text = context.payload.comment.body;
+                const regex = new RegExp(team + '[^\w-]|' + team + '$');
+                let result = regex.test(text);
+                if (result) {
+                    const slug = team.replace("@conda-forge/", "");
+                    const label = slug.replace("help-", "");
+                    found_label = true;
+                    github.rest.issues.addLabels({
+                        issue_number: context.issue.number,
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        labels: [label, 'review-requested']
+                    });
+                    // NOTE: GitHub Actions default token lacks permission to
+                    // assign teams for review; external bot required for
+                    // that feature.
+                    //
+                    https://github.com/conda-forge/staged-recipes/issues/18023#issuecomment-1080451231
+                    console.log(`Somebody mentioned ${slug}.`);
+                    if (label == "staged-recipes") {
+                      github.rest.issues.createComment({
+                        issue_number: context.issue.number,
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        body: 'To help direct your pull request to the best reviewers, ' +
+                              'please mention a topic-specifc team if your recipe matches any of the following: ' +
+                              'conda-forge/help-c-cpp, ' +
+                              'conda-forge/help-cdts, ' +
+                              'conda-forge/help-go, ' +
+                              'conda-forge/help-java, ' +
+                              'conda-forge/help-julia, ' +
+                              'conda-forge/help-nodejs, ' +
+                              'conda-forge/help-perl, ' +
+                              'conda-forge/help-python, ' +
+                              'conda-forge/help-python-c, ' +
+                              'conda-forge/help-r, ' +
+                              'conda-forge/help-ruby,' +
+                              'or ' +
+                              'conda-forge/help-rust' +
+                              '. ' +
+                              'Thanks!'
                       });
-                      // NOTE: GitHub Actions default token lacks permission to
-                      // assign teams for review; external bot required for
-                      // that feature.
-                      //
-                      https://github.com/conda-forge/staged-recipes/issues/18023#issuecomment-1080451231
-                      console.log(`Somebody mentioned ${slug}.`);
-                      if (label == "staged-recipes") {
-                        github.rest.issues.createComment({
-                          issue_number: context.issue.number,
-                          owner: context.repo.owner,
-                          repo: context.repo.repo,
-                          body: 'To help direct your pull request to the best reviewers, ' +
-                                'please mention a topic-specifc team if your recipe matches any of the following: ' +
-                                'conda-forge/help-c-cpp, ' +
-                                'conda-forge/help-cdts, ' +
-                                'conda-forge/help-go, ' +
-                                'conda-forge/help-java, ' +
-                                'conda-forge/help-julia, ' +
-                                'conda-forge/help-nodejs, ' +
-                                'conda-forge/help-perl, ' +
-                                'conda-forge/help-python, ' +
-                                'conda-forge/help-python-c, ' +
-                                'conda-forge/help-r, ' +
-                                'or ' +
-                                'conda-forge/help-ruby' +
-                                '. ' +
-                                'Thanks!'
-                        });
-                      }
-                  }
-              }
-              return found_label;
-        - name: remove-labels
-          if: >
-            (steps.check_teams.outputs.result == 'true')
-            && contains(github.event.issue.labels.*.name, 'Awaiting author contribution')
-          uses: actions/github-script@v6
-          with:
-            script: |
-              github.rest.issues.removeLabel({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  name: ['Awaiting author contribution']
-              })
+                    }
+                }
+            }
+            return found_label;
+      - name: remove-labels
+        if: >
+          (steps.check_teams.outputs.result == 'true') && contains(github.event.issue.labels.*.name, 'Awaiting author contribution')
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
+        with:
+          script: |
+            github.rest.issues.removeLabel({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: ['Awaiting author contribution']
+            })
 
-    add-await-when-review-removed:
-      name: 'Add awaiting-author when review-requested removed'
-      if: >
-        github.event.action == 'unlabeled'
-        && github.event.label.name == 'review-requested'
-      runs-on: ubuntu-latest
-      steps:
-        - name: add-labels
-          uses: actions/github-script@v6
-          with:
-            script: |
-              github.rest.issues.addLabels({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  labels: ['Awaiting author contribution']
-              });
+  add-await-when-review-removed:
+    name: 'Add awaiting-author when review-requested removed'
+    if: >
+      github.event.action == 'unlabeled' && github.event.label.name == 'review-requested'
+    runs-on: ubuntu-latest
+    steps:
+      - name: add-labels
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
+        with:
+          script: |
+            github.rest.issues.addLabels({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: ['Awaiting author contribution']
+            });
 
-    remove-review-when-await-added:
-      name: 'Removed review-requested when awaiting-author added'
-      if: >
-        github.event.action == 'labeled'
-        && github.event.label.name == 'Awaiting author contribution'
-      runs-on: ubuntu-latest
-      steps:
-        - name: remove-labels
-          uses: actions/github-script@v6
-          with:
-            script: |
-              github.rest.issues.removeLabel({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  name: ['review-requested']
-              })
+  remove-review-when-await-added:
+    name: 'Removed review-requested when awaiting-author added'
+    if: >
+      github.event.action == 'labeled' && github.event.label.name == 'Awaiting author contribution'
+    runs-on: ubuntu-latest
+    steps:
+      - name: remove-labels
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
+        with:
+          script: |
+            github.rest.issues.removeLabel({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: ['review-requested']
+            })
