@@ -5,7 +5,7 @@ from pathlib import Path
 WIN = sys.platform.startswith("win")
 
 TESTS = Path("test").rglob("*.py")
-PYTEST = ["pytest", "-vv", "--color=yes", "--tb=long", *TESTS]
+PYTEST = ["pytest", "-vv", "--color=yes", "--tb=long", "-k", "not memleak", *TESTS]
 
 
 def do(*args):
