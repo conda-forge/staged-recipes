@@ -6,6 +6,7 @@ mkdir build
 cd build
 
 cmake ${CMAKE_ARGS} \
+    -DCMAKE_INSTALL_DATAROOTDIR=${PREFIX}/share \
     -DCARMA_INSTALL_LIB:BOOL=ON \
     ..
 
