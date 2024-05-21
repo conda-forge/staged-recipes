@@ -2,7 +2,7 @@ from subprocess import call
 import sys
 from pathlib import Path
 
-WIN = sys.platform().startswith("win")
+WIN = sys.platform.startswith("win")
 
 TESTS = Path("test").rglob("*.py")
 PYTEST = ["pytest", "-vv", "--color=yes", "--tb=long", *TESTS]
