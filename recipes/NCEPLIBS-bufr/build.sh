@@ -15,8 +15,8 @@ cmake \
 make -j"${CPU_COUNT}"
 make install
 
-# On osx64, disable tests that fail when building shared libraries. As a kluge,
-# we check an env var set by the conda-forge build process to detect this.
+On osx64, disable tests that fail when building shared libraries. As a kluge,
+we check an env var set by the conda-forge build process to detect this.
 if [[ -z "${OSX_ARCH}" ]]; then
     ctest --output-on-failure -j"${CPU_COUNT}"
 else
