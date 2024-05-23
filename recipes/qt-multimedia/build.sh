@@ -1,4 +1,5 @@
 #!/bin/sh
+set -ex
 
 CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 
