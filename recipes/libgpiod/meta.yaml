@@ -1,0 +1,72 @@
+{% set name = "libgpiod" %}
+{% set version = "2.1.2" %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  url: https://git.kernel.org/pub/scm/libs/{{ name }}/{{ name }}.git/snapshot/{{ name }}-{{ version }}.tar.gz
+  sha256: b1bdf1e3f75238695f93e442062bafc069170f2bf4f0cd4b8e049ca67131a1f0
+
+build:
+  number: 0
+  skip: True  # [not linux]
+
+outputs:
+  - name: {{ name }}
+    script: build_base.sh
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+        - make
+        - autoconf
+        - autoconf-archive
+        - pkg-config
+        - automake
+        - libtool
+    test:
+      commands:
+        - test -f "${PREFIX}/lib/libgpiod.so"
+        - test -f "${PREFIX}/include/gpiod.h"
+  - name: gpiod-python
+    script: build_py.sh
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+        - autoconf
+        - swig
+      host:
+        - {{ pin_subpackage('libgpiod', exact=True) }}
+        - wheel
+        - setuptools
+        - python >=3.9
+        - pip
+        - packaging
+      run:
+        - python >=3.9
+        - {{ pin_subpackage('libgpiod', exact=True) }}
+    test:
+      imports:
+        - gpiod
+      commands:
+        - pip check
+      requires:
+        - pip
+
+about:
+  home: https://git.kernel.org/pub/scm/libs/libgpiod/libgpiod.git/about
+  summary: C library and tools for interacting with the linux GPIO character device (gpiod stands for GPIO device)
+  license: LGPL-2.1-or-later AND GPL-2.0-or-later
+  license_file:
+    - LICENSES/LGPL-2.1-or-later.txt
+    # used in gpio-tools
+    - LICENSES/GPL-2.0-or-later.txt
+
+extra:
+  recipe-maintainers:
+    - pavelzw
+    - ytausch
+    - freundTech
