@@ -1,0 +1,64 @@
+{% set provider = "kubectl" %}
+{% set goname = "github.com/alekc/terraform-provider-"+provider.lower() %}
+{% set version = "2.0.4" %}
+
+{% set name = goname.split('/')[-1] %}
+
+{% set plugin_dir = os.sep.join(["plugins", "registry.terraform.io", "hashicorp", provider.lower(), version]) %}
+{% set x4_plugin = name + '_v' + version %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://{{ goname }}/archive/v{{ version }}.tar.gz
+  sha256: 70efbbb75c12d958c489a781f5063e1c1a7fa38e44012489856c554d3278e990
+
+
+build:
+  number: 0
+  script: |
+    go build -v -o {{ target_gobin }}..{{ os.sep }}{{ plugin_dir }}{{ os.sep }}{{ target_goos }}_{{ target_goarch }}{{ os.sep }}{{ x4_plugin }}{{ target_goexe }}
+    go-licenses save --save_path licenses --ignore github.com/alekc/terraform-provider-kubectl . 
+    
+    # Clear out cache to avoid file not removable warnings
+    chmod -R u+w $(go env GOPATH) && rm -r $(go env GOPATH)  # [not win]
+requirements:
+  build:
+    - {{ compiler('go') }}
+    - go-licenses
+
+test:
+  requires:
+    - terraform >=1
+
+  commands:
+    # Create a sample init.tf loading the provider
+    - echo 'provider "{{ provider|lower }}" { version="{{ version }}" }' > init.tf  # [unix]
+    - echo provider "{{ provider|lower }}" { version="{{ version }}" } > init.tf    # [win]
+
+    # Initialize
+    - terraform init --plugin-dir={{ target_gobin }}..{{ os.sep }}plugins
+
+    # Tests that init was successful
+    - test -f .terraform.lock.hcl              # [unix]
+    - if not exist .terraform.lock.hcl exit 1  # [win]
+
+    # Test that the provider was not downloaded
+    - test ! -f .terraform/plugins/{{ plugin_dir }}/{{ target_goos }}_{{ target_goarch }}/README.md  # [unix]
+    - if exist .terraform\plugins\{{ plugin_dir }}\{{ target_goos }}_{{ target_goarch }}/README.md exit 1  # [win]
+
+about:
+  home: https://www.terraform.io
+  license: MPL-2.0
+  license_file: 
+    - LICENSE
+    - licenses/
+  summary: The Terraform {{ provider }} provider
+  doc_url: https://registry.terraform.io/providers/alekc/{{ provider|lower }}/latest/docs
+  dev_url: https://github.com/alekc/{{ name }}
+
+extra:
+  recipe-maintainers:
+    - mediocretech
