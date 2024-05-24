@@ -9,5 +9,11 @@ mkdir -p ${MVN_REPOSITORY}
 ./install.sh -i ${INSTALL_DIR} -r ${MVN_REPOSITORY}
 
 # delete hard-coded memory limit
-find ${INSTALL_DIR} -name "st-*" | xargs sed -i '/Xmx/d'
+TMP_FILE="${INSTALL_DIR}/tmp.txt"
+for f in ${INSTALL_DIR}/st-*;
+do
+    sed '/Xmx/d' "${f}" > "${TMP_FILE}"
+    cat "${TMP_FILE}" > "${f}"
+done
+rm $TMP_FILE
 
