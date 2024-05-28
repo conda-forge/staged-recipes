@@ -2,5 +2,5 @@
 
 set -euo pipefail
 
-go build .
+make kustomize
 
