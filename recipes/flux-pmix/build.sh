@@ -1,5 +1,4 @@
 #!/bin/bash
-./autogen.sh
 ./configure
 
 make V=1
