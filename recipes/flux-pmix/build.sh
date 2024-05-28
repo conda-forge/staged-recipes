@@ -1,5 +1,6 @@
 #!/bin/bash
-cmake ${CMAKE_ARGS} .
+./autogen.sh
+./configure
 
 make V=1
 
