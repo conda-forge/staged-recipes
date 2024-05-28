@@ -8,5 +8,6 @@ go build -ldflags \
     -X sigs.k8s.io/kustomize/api/provenance.version=v${PKG_VERSION}" \
     .
 
-mkdir "${PREFIX}/bin"
-cp kustomize "${PREFIX}/bin/"
+INSTALLDIR="${LIBRARY_BIN:$PREFIX/bin}"
+mkdir "${INSTALLDIR}"
+cp kustomize "${INSTALLDIR}/"
