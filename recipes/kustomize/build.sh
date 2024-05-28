@@ -10,4 +10,4 @@ go build -ldflags \
 
 INSTALLDIR="${LIBRARY_BIN:-$PREFIX/bin}"
 mkdir "${INSTALLDIR}"
-cp kustomize "${INSTALLDIR}/"
+cp kustomize "${INSTALLDIR}/kustomize${LIBRARY_BIN:+.exe}"
