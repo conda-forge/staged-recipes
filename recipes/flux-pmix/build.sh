@@ -1,5 +1,5 @@
 #!/bin/bash
-./configure
+./configure --prefix=$PREFIX
 
 make V=1
 
