@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -eu
+set -xeu
 
 cd kustomize
 go build -ldflags \
