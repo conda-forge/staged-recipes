@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-set -xeu
+set -xeuo pipefail
 
 cd kustomize
 go build -ldflags \
