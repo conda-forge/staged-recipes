@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e -x
 
-export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib -lglib-2.0 -lX11 -lXmu -lICE -lSM"
-export CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include -I${PREFIX}/include/glib-2.0 -I${PREFIX}/lib/glib-2.0/include"
+export LDFLAGS="-L${PREFIX}/lib -lglib-2.0 -lX11 -lXmu -lICE -lSM ${LDFLAGS}"
+export CPPFLAGS="-I${PREFIX}/include -I${PREFIX}/include/glib-2.0 -I${PREFIX}/lib/glib-2.0/include ${CPPFLAGS}"
 
 export CONFIG_FLAGS="--build=${BUILD}"
 
@@ -11,9 +11,6 @@ configure_args=(
     ${CONFIG_FLAGS}
     --disable-debug
     --disable-dependency-tracking
-    --with-x
-    --x-includes="${PREFIX}/include"
-    --x-libraries="${PREFIX}/lib"
     --prefix="${PREFIX}"
 )
 
