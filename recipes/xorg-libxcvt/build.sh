@@ -13,12 +13,12 @@ fi
 
 export PKG_CONFIG=$(which pkg-config)
 
-meson setup --buildtype=release --prefix=${PREFIX} --libdir=$PREFIX/lib $EXTRA_FLAGS ..
+meson setup --buildtype=release --prefix=${PREFIX} --libdir=${PREFIX}/lib ${EXTRA_FLAGS} ..
 ninja -j${CPU_COUNT}
 ninja install
 
-rm -rf $PREFIX/share/man
+rm -rf ${PREFIX}/share/man
 
 # Remove any new Libtool files we may have installed. It is intended that
 # conda-build will eventually do this automatically.
-find $PREFIX/. -name '*.la' -delete
+find ${PREFIX}/. -name '*.la' -delete
