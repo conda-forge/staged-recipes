@@ -1,0 +1,2 @@
+set CMAKE_ARGS=-DCMAKE_PREFIX_PATH=%PREFIX% -DCMAKE_INSTALL_PREFIX=%PREFIX%
+python -m pip install . -vv
