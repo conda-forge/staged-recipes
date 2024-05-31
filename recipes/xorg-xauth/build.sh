@@ -63,8 +63,8 @@ else
         --force
         --verbose
         --install
-        -I "$PREFIX/share/aclocal"
-        -I "$BUILD_PREFIX/share/aclocal"
+        -I "${PREFIX}/share/aclocal"
+        -I "${BUILD_PREFIX}/share/aclocal"
     )
     autoreconf "${autoreconf_args[@]}"
 
