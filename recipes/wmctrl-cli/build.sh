@@ -1,5 +1,5 @@
 #!/bin/bash
-set -ex
+set -e -x
 
 # Cf. https://github.com/conda-forge/staged-recipes/issues/673, we're in the
 # process of excising Libtool files from our packages. Existing ones can break
@@ -7,13 +7,9 @@ set -ex
 # in case the variable is empty.
 find ${PREFIX}/. -name '*.la' -delete
 
-echo libtoolize
 libtoolize
-echo aclocal -I ${PREFIX}/share/aclocal -I ${BUILD_PREFIX}/share/aclocal
 aclocal -I ${PREFIX}/share/aclocal -I ${BUILD_PREFIX}/share/aclocal
-echo autoconf
 autoconf
-echo automake --force-missing --add-missing --include-deps
 automake --force-missing --add-missing --include-deps
 
 export CONFIG_FLAGS="--build=${BUILD}"
