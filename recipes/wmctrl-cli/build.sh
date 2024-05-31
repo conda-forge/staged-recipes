@@ -5,6 +5,8 @@ autoreconf_args=(
     --force
     --verbose
     --install
+    -I $PREFIX/share/aclocal
+    -I $BUILD_PREFIX/share/aclocal
 )
 autoreconf "${autoreconf_args[@]}"
 
@@ -16,7 +18,6 @@ configure_args=(
     --disable-debug
     --disable-dependency-tracking
     --prefix="${PREFIX}"
-    --libdir="${PREFIX}/lib"
 )
 
 if [[ "${CONDA_BUILD_CROSS_COMPILATION}" == "1" ]] ; then
