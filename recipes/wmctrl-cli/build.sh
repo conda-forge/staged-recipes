@@ -1,15 +1,6 @@
 #!/bin/bash
 set -e -x
 
-autoreconf_args=(
-    --force
-    --verbose
-    --install
-    -I $PREFIX/share/aclocal
-    -I $BUILD_PREFIX/share/aclocal
-)
-autoreconf "${autoreconf_args[@]}"
-
 export CONFIG_FLAGS="--build=${BUILD}"
 
 export PKG_CONFIG_LIBDIR=${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig
