@@ -1,8 +1,6 @@
 #!/bin/bash
 set -e -x
 
-export PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig"
-
 autoupdate configure.in
 
 autoreconf_args=(
@@ -14,8 +12,9 @@ autoreconf_args=(
 )
 autoreconf "${autoreconf_args[@]}"
 
-export CONFIG_FLAGS="--build=${BUILD}"
+export CONFIG_FLAGS=""
 
+export PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig"
 configure_args=(
     ${CONFIG_FLAGS}
     --disable-debug
