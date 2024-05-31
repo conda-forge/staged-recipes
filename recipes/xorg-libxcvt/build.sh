@@ -1,5 +1,5 @@
 #!/bin/bash
-set -ex
+set -e -x
 
 mkdir build
 pushd build
