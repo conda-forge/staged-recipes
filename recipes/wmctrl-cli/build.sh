@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e -x
 
-export LDFLAGS="-L${PREFIX}/lib -lglib-2.0 -lX11 -lXmu -lICE -lSM ${LDFLAGS}"
+export LDFLAGS="-L${PREFIX}/lib ${LDFLAGS}"
 export CPPFLAGS="-I${PREFIX}/include -I${PREFIX}/include/glib-2.0 -I${PREFIX}/lib/glib-2.0/include ${CPPFLAGS}"
 
 export CONFIG_FLAGS="--build=${BUILD}"
