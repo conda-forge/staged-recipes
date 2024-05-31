@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e -x
 
-export ACLOCAL_PATH="${PREFIX}/share/aclocal:${BUILD_PREFIX}/share/aclocal"
+autoupdate configure.in
+
 autoreconf_args=(
     --force
     --verbose
