@@ -31,6 +31,7 @@ if [ -n "$CYGWIN_PREFIX" ] ; then
     export AUTOMAKE=automake-$am_version
     autoreconf_args=(
         --force
+        --verbose
         --install
         -I "$mprefix/share/aclocal"
         -I "$BUILD_PREFIX_M/Library/mingw-w64/share/aclocal"
