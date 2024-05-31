@@ -1,24 +1,17 @@
 #!/bin/bash
 set -e -x
 
-autoupdate configure.in
+export LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
+export CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include -I${PREFIX}/include/glib-2.0 -I${PREFIX}/lib/glib-2.0/include"
 
-autoreconf_args=(
-    --force
-    --verbose
-    --install
-    -I "${PREFIX}/share/aclocal"
-    -I "${BUILD_PREFIX}/share/aclocal"
-)
-autoreconf "${autoreconf_args[@]}"
-
-export CONFIG_FLAGS=""
+export CONFIG_FLAGS="--build=${BUILD}"
 
 export PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig:${PREFIX}/share/pkgconfig"
 configure_args=(
     ${CONFIG_FLAGS}
     --disable-debug
     --disable-dependency-tracking
+    --with-x
     --prefix="${PREFIX}"
 )
 
@@ -34,6 +27,4 @@ make install
 
 rm -rf ${PREFIX}/share/man ${PREFIX}/share/doc/wmctrl
 
-# Remove any new Libtool files we may have installed. It is intended that
-# conda-build will eventually do this automatically.
 find ${PREFIX}/. -name '*.la' -delete
