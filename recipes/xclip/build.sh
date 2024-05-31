@@ -1,4 +1,5 @@
-#!/bin/bash -ex
+#!/bin/bash
+set -e -x
 
 autoreconf_args=(
     --force
