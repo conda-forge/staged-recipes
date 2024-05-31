@@ -1,16 +1,14 @@
 #!/bin/bash
 set -e -x
 
-# Cf. https://github.com/conda-forge/staged-recipes/issues/673, we're in the
-# process of excising Libtool files from our packages. Existing ones can break
-# the build while this happens. We have "/." at the end of $PREFIX to be safe
-# in case the variable is empty.
-find $PREFIX/. -name '*.la' -delete
-
-libtoolize
-aclocal -I $PREFIX/share/aclocal -I $BUILD_PREFIX/share/aclocal
-autoconf
-automake --force-missing --add-missing --include-deps
+autoreconf_args=(
+    --force
+    --verbose
+    --install
+    -I $PREFIX/share/aclocal
+    -I $BUILD_PREFIX/share/aclocal
+)
+autoreconf "${autoreconf_args[@]}"
 
 export PKG_CONFIG_LIBDIR=$PREFIX/lib/pkgconfig:$PREFIX/share/pkgconfig
 configure_args=(
