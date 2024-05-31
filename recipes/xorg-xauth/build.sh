@@ -1,5 +1,5 @@
 #!/bin/bash
-set -ex
+set -e -x
 
 # Adopt a Unix-friendly path if we're on Windows (see bld.bat).
 [ -n "$PATH_OVERRIDE" ] && export PATH="$PATH_OVERRIDE"
@@ -45,7 +45,7 @@ if [ -n "$CYGWIN_PREFIX" ] ; then
 
     export PKG_CONFIG_LIBDIR=$uprefix/lib/pkgconfig:$uprefix/share/pkgconfig
     configure_args=(
-        $CONFIG_FLAGS
+        ${CONFIG_FLAGS}
         --disable-dependency-tracking
         --disable-selective-werror
         --disable-silent-rules
@@ -72,7 +72,7 @@ else
 
     export PKG_CONFIG_LIBDIR=$uprefix/lib/pkgconfig:$uprefix/share/pkgconfig
     configure_args=(
-        $CONFIG_FLAGS
+        ${CONFIG_FLAGS}
         --disable-dependency-tracking
         --disable-selective-werror
         --disable-silent-rules
@@ -93,7 +93,7 @@ if [[ "${CONDA_BUILD_CROSS_COMPILATION}" == "1" ]] ; then
     )
 fi
 ./configure "${configure_args[@]}"
-make -j$CPU_COUNT
+make -j${CPU_COUNT}
 make install
 
 rm -rf $uprefix/share/man $uprefix/share/doc/${PKG_NAME#xorg-}
