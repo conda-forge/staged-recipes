@@ -13,6 +13,11 @@ if [[ $(uname) == "Linux" ]]; then
   CMAKE_ARGS="${CMAKE_ARGS} -DFEATURE_vulkan=ON"
 fi
 
+# Ensure headers get packaged before package splits
+if test -d $PREFIX/include/qt6/QtQuick3d; then
+  rm -rf $PREFIX/include/qt6/QtQuick3d
+fi
+
 mkdir build
 cd build
 
