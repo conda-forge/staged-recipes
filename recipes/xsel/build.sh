@@ -5,7 +5,7 @@ set -e -x
 # process of excising Libtool files from our packages. Existing ones can break
 # the build while this happens. We have "/." at the end of $PREFIX to be safe
 # in case the variable is empty.
-find $PREFIX/. -name '*.la' -delete
+find ${PREFIX}/. -name '*.la' -delete
 
 autoreconf_args=(
     --force
