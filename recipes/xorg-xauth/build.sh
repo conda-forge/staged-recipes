@@ -63,8 +63,8 @@ else
         --force
         --verbose
         --install
-        -I "$mprefix/share/aclocal"
-        -I "$BUILD_PREFIX_M/Library/mingw-w64/share/aclocal"
+        -I "${PREFIX}/share/aclocal"
+        -I "${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
     )
     autoreconf "${autoreconf_args[@]}"
 
