@@ -43,7 +43,7 @@ if [ -n "$CYGWIN_PREFIX" ] ; then
     platlibs=$(cd $(dirname $(gcc --print-prog-name=ld))/../lib && pwd -W)
     export LDFLAGS="$LDFLAGS -L$platlibs"
 
-    export PKG_CONFIG_LIBDIR=$uprefix/lib/pkgconfig:$uprefix/share/pkgconfig
+    export PKG_CONFIG_LIBDIR="$uprefix/lib/pkgconfig:$uprefix/share/pkgconfig"
     configure_args=(
         ${CONFIG_FLAGS}
         --disable-dependency-tracking
@@ -70,7 +70,7 @@ else
 
     export CONFIG_FLAGS="--build=${BUILD}"
 
-    export PKG_CONFIG_LIBDIR=$uprefix/lib/pkgconfig:$uprefix/share/pkgconfig
+    export PKG_CONFIG_LIBDIR="$uprefix/lib/pkgconfig:$uprefix/share/pkgconfig"
     configure_args=(
         ${CONFIG_FLAGS}
         --disable-dependency-tracking
@@ -87,7 +87,7 @@ else
     )
 fi
 
-if [[ "${CONDA_BUILD_CROSS_COMPILATION}" == "1" ]] ; then
+if [ "${CONDA_BUILD_CROSS_COMPILATION}" = "1" ] ; then
     configure_args+=(
         --enable-malloc0returnsnull
     )
