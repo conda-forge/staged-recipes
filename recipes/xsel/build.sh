@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e -x
 
+# Cf. https://github.com/conda-forge/staged-recipes/issues/673, we're in the
+# process of excising Libtool files from our packages. Existing ones can break
+# the build while this happens. We have "/." at the end of $PREFIX to be safe
+# in case the variable is empty.
+find $PREFIX/. -name '*.la' -delete
+
 autoreconf_args=(
     --force
     --verbose
