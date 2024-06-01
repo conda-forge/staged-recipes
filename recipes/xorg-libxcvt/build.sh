@@ -4,7 +4,7 @@ set -e -x
 mkdir build
 pushd build
 
-export XDG_DATA_DIRS=${XDG_DATA_DIRS}:${PREFIX}/share:${BUILD_PREFIX/share
+export XDG_DATA_DIRS="${XDG_DATA_DIRS}:${PREFIX}/share:${BUILD_PREFIX}/share"
 export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:${PREFIX}/lib/pkgconfig:${BUILD_PREFIX}/lib/pkgconfig"
 EXTRA_FLAGS=""
 if [ "${CONDA_BUILD_CROSS_COMPILATION}" = "1" ]; then
