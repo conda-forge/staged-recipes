@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e -x
 
+# Cf. https://github.com/conda-forge/staged-recipes/issues/673, we're in the
+# process of excising Libtool files from our packages. Existing ones can break
+# the build while this happens. We have "/." at the end of $PREFIX to be safe
+# in case the variable is empty.
+find ${PREFIX}/. -name '*.la' -delete
+
 autoreconf_args=(
     --force
     --verbose
@@ -17,11 +23,12 @@ configure_args=(
     ${CONFIG_FLAGS}
     --disable-debug
     --disable-dependency-tracking
+    --disable-selective-werror
+    --disable-silent-rules
     --prefix="${PREFIX}"
-    --libdir="${PREFIX}/lib"
 )
 
-if [[ "${CONDA_BUILD_CROSS_COMPILATION}" == "1" ]] ; then
+if [ "${CONDA_BUILD_CROSS_COMPILATION}" = "1" ] ; then
     configure_args+=(
         --enable-malloc0returnsnull
     )
