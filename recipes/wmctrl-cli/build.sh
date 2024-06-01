@@ -28,7 +28,7 @@ configure_args=(
     --prefix="${PREFIX}"
 )
 
-if [[ "${CONDA_BUILD_CROSS_COMPILATION}" == "1" ]] ; then
+if [ "${CONDA_BUILD_CROSS_COMPILATION}" = "1" ] ; then
     configure_args+=(
         --enable-malloc0returnsnull
     )
