@@ -46,6 +46,7 @@ if [ -n "$CYGWIN_PREFIX" ] ; then
     export PKG_CONFIG_LIBDIR="$uprefix/lib/pkgconfig:$uprefix/share/pkgconfig"
     configure_args=(
         ${CONFIG_FLAGS}
+        --disable-debug
         --disable-dependency-tracking
         --disable-selective-werror
         --disable-silent-rules
@@ -64,7 +65,7 @@ else
         --verbose
         --install
         -I "${PREFIX}/share/aclocal"
-        -I "${BUILD_PREFIX}/Library/mingw-w64/share/aclocal"
+        -I "${BUILD_PREFIX}/share/aclocal"
     )
     autoreconf "${autoreconf_args[@]}"
 
@@ -73,6 +74,7 @@ else
     export PKG_CONFIG_LIBDIR="$uprefix/lib/pkgconfig:$uprefix/share/pkgconfig"
     configure_args=(
         ${CONFIG_FLAGS}
+        --disable-debug
         --disable-dependency-tracking
         --disable-selective-werror
         --disable-silent-rules
