@@ -1,0 +1,65 @@
+{% set xorg_name = "xauth" %}
+{% set xorg_category = "app" %}
+{% set name = "xorg-" ~ xorg_name %}
+{% set version = "1.1.2" %}
+{% set sha256 = "84d27a1023d8da524c134f424b312e53cb96e08871f96868aa20316bfcbbc054" %}
+{% set am_version = "1.15" %} # keep synchronized with build.sh
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://www.x.org/releases/individual/{{ xorg_category }}/{{ xorg_name }}-{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+  patches:
+    - windows.patch  # [win]
+
+build:
+  number: 0
+  detect_binary_files_with_prefix: true
+
+requirements:
+  build:
+    - m2-autoconf  # [win]
+    - m2-automake{{ am_version }}  # [win]
+    - m2-libtool  # [win]
+    - m2w64-pkg-config  # [win]
+    - pkg-config  # [not win]
+    - posix  # [win]
+    - gnuconfig  # [unix]
+    - make
+    - {{ stdlib('c') }}             # [unix]
+    - {{ compiler('c') }}           # [unix]
+    - {{ compiler('m2w64_c') }}     # [win]
+    - autoconf                      # [unix]
+    - automake                      # [unix]
+    - gettext                       # [unix]
+    - libtool                       # [unix]
+  host:
+    - pthread-stubs
+    - xorg-libx11 >=1.6,<2
+    # Additional constraintless xorg-libx11 dep below is for conda-build to add potential pinning to.
+    - xorg-libx11
+    - xorg-libxau
+    - xorg-libxext
+    - xorg-libxmu
+    - xorg-xtrans
+    - xorg-util-macros
+
+test:
+  commands:
+    - 'xauth -h 2>&1 | grep -q "usage:  xauth \[-options ...\] \[command arg ...\]"'  # [unix]
+    - 'xauth -h 2>&1 | findstr /C:"usage:  xauth \[-options ...\] \[command arg ...\]" >nul'  # [win]
+
+about:
+  home: https://www.x.org/
+  license: MIT
+  license_family: MIT
+  license_file: COPYING
+  summary: X.Org authorization settings program
+  dev_url: https://gitlab.freedesktop.org/xorg/app/xauth
+
+extra:
+  recipe-maintainers:
+    - ehfd
