@@ -6,7 +6,10 @@ package:
 
 source:
   git_url: https://github.com/mingw-w64/mingw-w64
-  git_rev: 05598db
+  git_rev: dc42231f0
+  patches:
+    - 0001-Allow-to-use-bessel-and-complex-functions-without-un.patch
+    - 0002-heades-add-full-name-winrt.patch
 
 build:
   number: 0
@@ -22,23 +25,10 @@ test:
     - echo "hello"
 
 outputs:
-  - name: mingw-w64-ucrt-x86_64-windows-default-manifest
-    version: 6.4.4
-    build:
-      noarch: generic
-    requirements:
-      host:
-      run:
-        - __unix   # [unix]
-        - __win    # [win]
-
-    about:
-      home: https://cygwin.com/
-      license: BSD
-      summary: |
-        Default Windows application manifest (mingw-w64)
-
   - name: mingw-w64-ucrt-x86_64-headers-git
+    script: install.sh
+    files:
+      - x86_64-w64-mingw32/sysroot/usr/include
     build:
       noarch: generic
     requirements:
@@ -46,25 +36,41 @@ outputs:
       run:
         - __unix   # [unix]
         - __win    # [win]
+      run_constrained:
+        - mingw-w64-ucrt-x86_64-crt-git {{ PKG_VERSION }}.*
+        - mingw-w64-ucrt-x86_64-winpthreads-git {{ PKG_VERSION }}.*
     about:
       home: https://www.mingw-w64.org/
       license: ZPL-2.1 AND LGPL-2.1-or-later
       license_file:
+        - mingw-w64-headers/ddk/readme.txt
         - COPYING
         - COPYING.MinGW-w64/COPYING.MinGW-w64.txt
       summary: |
         MinGW-w64 headers for Windows (mingw-w64)
 
   - name: mingw-w64-ucrt-x86_64-winpthreads-git
+    script: install.sh
+    files:
+      - x86_64-w64-mingw32/sysroot/usr/include/semaphore.h
+      - x86_64-w64-mingw32/sysroot/usr/include/sched.h
+      - x86_64-w64-mingw32/sysroot/usr/include/pthread_*.h
+      - x86_64-w64-mingw32/sysroot/usr/lib/lib*pthread*.a
+      - Library/x86_64-w64-mingw32/sysroot/usr/include/semaphore.h
+      - Library/x86_64-w64-mingw32/sysroot/usr/include/sched.h
+      - Library/x86_64-w64-mingw32/sysroot/usr/include/pthread_*.h
+      - Library/x86_64-w64-mingw32/sysroot/usr/lib/lib*pthread*.a
     build:
       noarch: generic
     requirements:
       host:
-        - mingw-w64-ucrt-x86_64-crt-git
+        - {{ pin_subpackage("mingw-w64-ucrt-x86_64-headers-git", exact=True) }}
       run:
+        - {{ pin_subpackage("mingw-w64-ucrt-x86_64-headers-git", exact=True) }}
         - __unix   # [unix]
         - __win    # [win]
-        - mingw-w64-ucrt-x86_64-crt-git
+      run_constrained:
+        - mingw-w64-ucrt-x86_64-crt-git {{ PKG_VERSION }}.*
     about:
       home: https://www.mingw-w64.org/
       license: MIT AND BSD-3-Clause-Clear
@@ -75,6 +81,9 @@ outputs:
         MinGW-w64 winpthreads library (mingw-w64)
 
   - name: mingw-w64-ucrt-x86_64-libwinpthread-git
+    script: install.sh
+    files:
+      - Library/bin/libwinpthread-1.dll
     build:
       skip: True  # [not win]
     requirements:
@@ -90,15 +99,23 @@ outputs:
         MinGW-w64 winpthreads library (mingw-w64)
 
   - name: mingw-w64-ucrt-x86_64-crt-git
+    script: install.sh
+    files:
+      - x86_64-w64-mingw32/sysroot/usr/include/*.c
+      - x86_64-w64-mingw32/sysroot/usr/lib
+      - Library/x86_64-w64-mingw32/sysroot/usr/include/*.c
+      - Library/x86_64-w64-mingw32/sysroot/usr/lib
     build:
       noarch: generic
     requirements:
       host:
-        - mingw-w64-ucrt-x86_64-headers-git
+        - {{ pin_subpackage("mingw-w64-ucrt-x86_64-headers-git", exact=True) }}
       run:
         - __unix   # [unix]
         - __win    # [win]
-        - mingw-w64-ucrt-x86_64-headers-git
+        - {{ pin_subpackage("mingw-w64-ucrt-x86_64-headers-git", exact=True) }}
+      run_constrained:
+        - mingw-w64-ucrt-x86_64-winpthreads-git {{ PKG_VERSION }}.*
     about:
       home: https://www.mingw-w64.org/
       license: ZPL-2.1
@@ -107,13 +124,19 @@ outputs:
         MinGW-w64 CRT for Windows (mingw-w64)
 
   - name: m2w64-sysroot_win-64
+    script: copy.sh
     build:
       noarch: generic
     requirements:
+      host:
+        - mingw-w64-ucrt-x86_64-windows-default-manifest
+        - {{ pin_subpackage("mingw-w64-ucrt-x86_64-crt-git", exact=True) }}
+        - {{ pin_subpackage("mingw-w64-ucrt-x86_64-headers-git", exact=True) }}
+        - {{ pin_subpackage("mingw-w64-ucrt-x86_64-winpthreads-git", exact=True) }}
       run:
         - __unix   # [unix]
         - __win    # [win]
-        - {{ pin_subpackage("mingw-w64-ucrt-x86_64-windows-default-manifest", exact=True) }}
+        - mingw-w64-ucrt-x86_64-windows-default-manifest
         - {{ pin_subpackage("mingw-w64-ucrt-x86_64-crt-git", exact=True) }}
         - {{ pin_subpackage("mingw-w64-ucrt-x86_64-headers-git", exact=True) }}
         - {{ pin_subpackage("mingw-w64-ucrt-x86_64-winpthreads-git", exact=True) }}
