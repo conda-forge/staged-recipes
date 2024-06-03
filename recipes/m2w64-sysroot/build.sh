@@ -6,6 +6,14 @@ else
   INSTALL_PREFIX=${PREFIX}/${HOST}/sysroot/usr
 fi
 
+# Need to build gcc_bootstrap_win-64 in order to
+# remove this hack, but let's build this package
+# first to remove binary re-packaging
+conda create -p $SRC_DIR/cf-compilers gcc_impl_win-64 make \
+  --yes --quiet -c conda-forge/label/m2w64-experimental -c conda-forge
+
+export PATH=$SRC_DIR/cf-compilers/bin:$PATH
+
 AR=${HOST}-ar
 
 pushd mingw-w64-headers

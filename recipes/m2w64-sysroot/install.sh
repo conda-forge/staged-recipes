@@ -4,6 +4,7 @@ if [[ "$target_platform" == "win-64" ]]; then
 else
   INSTALL_PREFIX=${PREFIX}/${HOST}/sysroot/usr
 fi
+export PATH=$SRC_DIR/cf-compilers/bin:$PATH
 
 make install-strip
 
