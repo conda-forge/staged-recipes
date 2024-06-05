@@ -1,3 +1,5 @@
+@echo on
+setlocal enabledelayedexpansion
 
 set "REPO=urschrei/rdp"
 for /f "tokens=*" %%i in ('curl --silent "https://api.github.com/repos/%REPO%/releases/latest" ^| findstr /i "tag_name"') do (
@@ -7,10 +9,10 @@ for /f "tokens=*" %%i in ('curl --silent "https://api.github.com/repos/%REPO%/re
     set "TAG=!TAG:~0,-1!"
 )
 
-set filename="rdp-${tag}-x86_64-pc-windows-msvc.tar.gz"
-set "url=https://github.com/urschrei/rdp/releases/download/%TAG%/%filename%"
-curl -L %url% -o %filename%
-tar -xzvf %filename% -C src\simplification
+set FILENAME="rdp-${tag}-x86_64-pc-windows-msvc.tar.gz"
+set "URL=https://github.com/urschrei/rdp/releases/download/%TAG%/%FILENAME%"
+curl -L %URL% -o %FILENAME%
+tar -xzvf %FILENAME% -C src\simplification
 
 %PYTHON% -m pip install . -vv --no-deps --no-build-isolation
 if errorlevel 1 exit 1
