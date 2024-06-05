@@ -7,6 +7,6 @@ export GOPATH=$(pwd)/gopath
 
 make build VERSION=${PKG_VERSION}
 mkdir -p ${PREFIX}/bin
-make install
+make install VERSION=${PKG_VERSION}
 
 chmod -R u+w ${GOPATH}
