@@ -1,4 +1,5 @@
 #!/bin/bash
+set -ex
 
 git_latest_version() {
 	curl --silent "https://api.github.com/repos/$1/releases/latest" |
@@ -14,7 +15,7 @@ elif [ ${target_platform} == "linux-aarch64" ]; then
 	filename="rdp-${tag}-aarch64-unknown-linux-gnu.tar.gz"
 elif [ ${target_platform} == "osx-arm64" ]; then
 	filename="rdp-${tag}-aarch64-apple-darwin.tar.gz"
-elif [ ${target_platform} == "osx-x86" ]; then
+elif [ ${target_platform} == "osx-64" ]; then
 	filename="rdp-${tag}-x86_64-apple-darwin.tar.gz"
 fi
 
