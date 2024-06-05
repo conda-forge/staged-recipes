@@ -12,5 +12,5 @@ set "url=https://github.com/urschrei/rdp/releases/download/%TAG%/%filename%"
 curl -L %url% -o %filename%
 tar -xzvf %filename% -C src\simplification
 
-"%PYTHON%" -m pip install . -vv --no-deps --no-build-isolation
+%PYTHON% -m pip install . -vv --no-deps --no-build-isolation
 if errorlevel 1 exit 1
