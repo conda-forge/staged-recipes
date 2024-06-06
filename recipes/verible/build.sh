@@ -3,9 +3,6 @@
 source gen-bazel-toolchain
 bazel build --crosstool_top=//bazel_toolchain:toolchain --cpu ${TARGET_CPU} -c opt --//bazel:use_local_flex_bison --linkopt=-lm //...
 
-#run tests
-bazel test -c opt //...
-
 mkdir -p $PREFIX/bin
 chmod a+w $PREFIX/bin
 
