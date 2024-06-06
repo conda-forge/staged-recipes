@@ -1,0 +1,110 @@
+{% set version = "0.2.1.427" %}
+{% set lib_version = version.split(".")[0]+"."+version.split(".")[1]+"."+version.split(".")[2] %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-sbsa" %}    # [aarch64]
+{% set extension = "tar.xz" %}
+
+package:
+  name: libcublasmp
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cublasmp/redist/libcublasmp/{{ platform }}/libcublasmp-{{ platform }}-{{ version }}_cuda{{ cuda_version }}-archive.{{ extension }}
+  sha256: 891e86a28cfe08772f2485e4db7ec8d28292e6a1b0e78967d08404c8371925b5  # [linux64 and cuda_version == 11]
+  sha256: d86648a6e1f1d35eb25af258e1828e483aa07c568b95941f349fc68316f56290  # [linux64 and cuda_version == 12]
+  sha256: 5f5813814343e83eeb743ddb4b1df0b346cdbf2b2026b32a0bc4a349361ec8e4  # [aarch64 and cuda_version == 11]
+  sha256: d6cacf073bf87987b0f20a7a5a168ec503264d295e3aebf9df177326e8fcb286  # [aarch64 and cuda_version == 12]
+
+build:
+  number: 0
+  skip: true  # [not (linux64 or aarch64)]
+  script:
+    - cp -rv include $PREFIX
+    - cp -rv lib $PREFIX
+
+test:
+  commands:
+    - test -L $PREFIX/lib/libcublasmp.so.0
+    - test -f $PREFIX/lib/libcublasmp.so.{{ lib_version }}
+
+outputs:
+  - name: libcublasmp
+    files:
+      - lib/libcublasmp.so.*
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+        - {{ stdlib("c") }}
+      host:
+        - cuda-version {{ cuda_version }}
+        - libcublas   # [cuda_version == 12]
+        - cudatoolkit # [cuda_version == 11]
+        - libcal
+      run:
+        - {{ pin_compatible("cuda-version", max_pin="x") }}
+        - libcublas   # [cuda_version == 12]
+        - cudatoolkit # [cuda_version == 11]
+        - libcal
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    # Tests are defined at the top level, due to package/output name conflicts.
+    about:
+      home: https://docs.nvidia.com/cuda/cublasmp/
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      license_url: https://docs.nvidia.com/cuda/cublasmp/license/index.html
+      summary: NVIDIA cublasMp is a high performance, multi-process, GPU accelerated library for distributed basic dense linear algebra.
+      description: |
+        NVIDIA cublasMp is a high performance, multi-process, GPU accelerated library for distributed basic dense linear algebra.
+        cuBLASMp is compatible with 2D block-cyclic data layout and provides PBLAS-like C APIs.
+        A companion library, CAL, contains utilities to manage communicators and to synchronize processes in a safe way.
+      doc_url: https://docs.nvidia.com/cuda/cublas/
+
+  - name: libcublasmp-dev
+    build:
+      run_exports:
+        - {{ pin_subpackage("libcublasmp", max_pin="x") }}
+    files:
+      - lib/libcublasmp.so
+      - include/cublasmp.h
+    requirements:
+      host:
+        - cuda-version {{ cuda_version }}
+      run:
+        - {{ pin_compatible("cuda-version", max_pin="x") }}
+        - {{ pin_subpackage("libcublasmp", exact=True) }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -f $PREFIX/include/cublasmp.h
+        - test -L $PREFIX/lib/libcublasmp.so
+    about:
+      home: https://docs.nvidia.com/cuda/cublasmp/
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      license_url: https://docs.nvidia.com/cuda/cublasmp/license/index.html
+      summary: NVIDIA cublasMp is a high performance, multi-process, GPU accelerated library for distributed basic dense linear algebra.
+      description: |
+        NVIDIA cublasMp is a high performance, multi-process, GPU accelerated library for distributed basic dense linear algebra.
+        cuBLASMp is compatible with 2D block-cyclic data layout and provides PBLAS-like C APIs.
+        A companion library, CAL, contains utilities to manage communicators and to synchronize processes in a safe way.
+      doc_url: https://docs.nvidia.com/cuda/cublas/
+
+about:
+  home: https://docs.nvidia.com/cuda/cublasmp/
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_file: LICENSE
+  license_url: https://docs.nvidia.com/cuda/cublasmp/license/index.html
+  summary: NVIDIA cublasMp is a high performance, multi-process, GPU accelerated library for distributed basic dense linear algebra.
+  description: |
+    NVIDIA cublasMp is a high performance, multi-process, GPU accelerated library for distributed basic dense linear algebra.
+    cuBLASMp is compatible with 2D block-cyclic data layout and provides PBLAS-like C APIs.
+    A companion library, CAL, contains utilities to manage communicators and to synchronize processes in a safe way.
+  doc_url: https://docs.nvidia.com/cuda/cublas/
+
+extra:
+  recipe-maintainers:
+    - conda-forge/cuda
