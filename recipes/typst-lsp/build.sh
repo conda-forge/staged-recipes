@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-if [[ "${build_platform}" == linux-* ]]; then
+if [[ "${target_platform}" == linux-* ]]; then
     export OPENSSL_DIR=$PREFIX
 fi
 
