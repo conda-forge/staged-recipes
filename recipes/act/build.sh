@@ -10,3 +10,5 @@ mkdir -p ${PREFIX}/bin
 make install VERSION=${PKG_VERSION}
 
 chmod -R u+w ${GOPATH}
+
+go-licenses save . --save-path="./license-files/"
