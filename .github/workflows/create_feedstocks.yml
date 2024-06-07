@@ -5,30 +5,35 @@ on:
     branches:
       - main
   schedule:
-    - cron:  '*/10 * * * *'
+    - cron: '*/10 * * * *'
   workflow_dispatch: null
 
+permissions: {}
 jobs:
   create-feedstocks:
+    permissions:
+      contents: write # for git push
+      actions: read # to read runs
+
     if: github.repository == 'conda-forge/staged-recipes'
     name: Create feedstocks
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
         with:
           token: ${{ github.token }}
 
       - name: Prevent multiple jobs running in parallel
         id: conversion_lock
-        uses: beckermr/turnstyle-python@v1
+        uses: beckermr/turnstyle-python@e997c7ea75032a98f3b515ef8ee0ca89cf172713 # v1
         with:
           abort-after-seconds: 3
           poll-interval-seconds: 2
           github-token: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
-        
+
       - name: commit any changes upon checkout
         run: |
           git config --global user.email "pelson.pub+conda-forge@gmail.com"
@@ -44,21 +49,17 @@ jobs:
         # outcome is evaluated before continue-on-error above
         if: ${{ steps.conversion_lock.outcome == 'success' }}
         run: |
-            # Avoid wasting CI time if there are no recipes ready for conversion
-            if [ "$(ls recipes/*/meta.yaml | grep -v recipes/example/meta.yaml --count)" -eq 0 ]; then
-              echo "No new recipes found, exiting..."
-              exit 0
-            fi
+          # Avoid wasting CI time if there are no recipes ready for conversion
+          if [ "$(ls recipes/*/meta.yaml | grep -v recipes/example/meta.yaml --count)" -eq 0 ]; then
+            echo "No new recipes found, exiting..."
+            exit 0
+          fi
 
-            echo "Creating feedstocks from the recipe(s)."
+          echo "Creating feedstocks from the recipe(s)."
 
-            source ./.github/workflows/scripts/create_feedstocks
+          source ./.github/workflows/scripts/create_feedstocks
         env:
           STAGING_BINSTAR_TOKEN: ${{ secrets.STAGING_BINSTAR_TOKEN }}
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          CIRCLE_TOKEN: ${{ secrets.CIRCLE_TOKEN }}
+          GH_TOKEN: ${{ secrets.CF_ADMIN_GITHUB_TOKEN }}
           TRAVIS_TOKEN: ${{ secrets.ORGWIDE_TRAVIS_TOKEN }}
-          GH_TRAVIS_TOKEN: ${{ secrets.ORGWIDE_GH_TRAVIS_TOKEN }}
           AZURE_TOKEN: ${{ secrets.AZURE_TOKEN }}
-          DRONE_TOKEN: ${{ secrets.DRONE_TOKEN }}
-          GH_DRONE_TOKEN: ${{ secrets.GH_DRONE_TOKEN }}
