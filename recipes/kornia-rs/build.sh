@@ -1,6 +1,6 @@
 set -ex
 
-make build-python-release
+maturin develop -m kornia-py/Cargo.toml --release
 
 cd target/wheels
 
