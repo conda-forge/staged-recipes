@@ -8,13 +8,15 @@ fi
 # Don't use pre-built gyp packages
 export npm_config_build_from_source=true
 
-if [[ "${target_platform}" == linux-* ]]; then
-  # We need to be more permissive to get the code compiling
-  export CFLAGS="${CFLAGS} -fpermissive"
-  export CXXFLAGS="${CXXFLAGS} -fpermissive"
-fi
-
 rm $PREFIX/bin/node
 ln -s $BUILD_PREFIX/bin/node $PREFIX/bin/node
 
-yarn add playwright@$PKG_VERSION
+NPM_CONFIG_USERCONFIG=/tmp/nonexistentrc
+
+pnpm import
+# Without a `yarn install` first, this package cannot install its prod dependencies.
+yarn install
+pnpm install
+pnpm pack
+npm install -g ${PKG_NAME}-${PKG_VERSION}.tgz
+pnpm licenses list --json | pnpm-licenses generate-disclaimer --json-input --output-file=ThirdPartyLicenses.txt
