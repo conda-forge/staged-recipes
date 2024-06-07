@@ -1,7 +1,7 @@
 #!/bin/bash
 
 source gen-bazel-toolchain
-bazel build --crosstool_top=//bazel_toolchain:toolchain --cpu ${TARGET_CPU} -c opt --//bazel:use_local_flex_bison --linkopt=-lm //...
+bazel build --crosstool_top=//bazel_toolchain:toolchain --cpu ${TARGET_CPU} -c opt --//bazel:use_local_flex_bison --linkopt=-lm --cxxopt=-D_LIBCPP_DISABLE_AVAILABILITY //...
 
 mkdir -p $PREFIX/bin
 chmod a+w $PREFIX/bin
