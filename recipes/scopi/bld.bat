@@ -1,4 +1,4 @@
-cmake %CMAKE_ARGS% -G "Ninja" -D CMAKE_SYSTEM_PROCESSOR=x64 -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% %SRC_DIR% -B build
+cmake %CMAKE_ARGS% -G "Ninja" -D CMAKE_SYSTEM_PROCESSOR=x64 -D CMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% -D CMAKE_CXX_STANDARD=17 %SRC_DIR% -B build
 if errorlevel 1 exit 1
 
 cmake --build build --target install
