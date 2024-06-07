@@ -11,4 +11,4 @@ make install VERSION=${PKG_VERSION}
 
 chmod -R u+w ${GOPATH}
 
-go-licenses save . --save-path="./license-files/"
+go-licenses save . --save_path="./license-files/"
