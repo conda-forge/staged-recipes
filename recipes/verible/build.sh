@@ -27,7 +27,9 @@ for exe in "${executables[@]}"; do
   if [ -f "$SRC_DIR/$exe" ]; then
     cp "$SRC_DIR/$exe" "$PREFIX/bin/"
     chmod a+wx "$PREFIX/bin/$(basename $exe)"
-    patchelf --set-rpath "$PREFIX/lib" "$PREFIX/bin/$(basename $exe)"
+    if [[ "$target_platform" == linux-* ]]; then
+      patchelf --set-rpath "$PREFIX/lib" "$PREFIX/bin/$(basename $exe)"
+    fi
   else
     echo "Executable $exe not found, skipping."
   fi
