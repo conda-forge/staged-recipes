@@ -1,3 +1,3 @@
 ./gradlew zipKernel
-CALL unzip build\distributions\ijava-*.zip
+CALL tar -xf build\distributions\ijava-*.zip
 CALL python3 install.py --prefix=%PREFIX%
