@@ -35,3 +35,15 @@ mkdir %ACTIVATE_DIR%
 copy %RECIPE_DIR%\scripts\activate.bat %ACTIVATE_DIR%\lein-activate.bat > nul
 if errorlevel 1 exit 1
 echo copied :ACTIVATE_DIR:\lein-activate.bat
+
+:: At this point we have a working Leiningen
+:: We rebuild from source to add the THIRD-PARTY.txt file
+cd "%SRC_DIR%"\leiningen-src\leiningen-core
+  %PREFIX%\Scripts\lein.bat bootstrap
+  mvn license:add-third-party -Dlicense.thirdPartyFile=THIRD-PARTY.txt
+  cp target\generated-sources\license\THIRD-PARTY.txt "${RECIPE_DIR}"\THIRD-PARTY.txt
+
+cd "%SRC_DIR%"\leiningen-src
+  bin\lein uberjar
+  install -m644 target\leiningen-"%PKG_VERSION%"-standalone.jar %LIBEXEC_DIR%\leiningen-%PKG_VERSION%-standalone.jar
+
