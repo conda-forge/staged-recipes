@@ -2,5 +2,7 @@ set CMAKE_GENERATOR_PLATFORM=
 set CMAKE_GENERATOR_TOOLSET=
 set CMAKE_GENERATOR=Ninja
 
+reg query HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\FileSystem /v LongPathsEnabled
+
 set CMAKE_ARGS=-DCMAKE_PREFIX_PATH=%PREFIX% -DCMAKE_INSTALL_PREFIX=%PREFIX%
 python -m pip install . -vv
