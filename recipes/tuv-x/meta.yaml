@@ -10,14 +10,7 @@ source:
   sha256: eae3534c13d14576f0427b855973fad0ebef1f88378a142c7a1d1e197fcda7d2
 
 build:
-  skip: true  # [win]
-  script:
-    - set -ex
-    - cmake ${CMAKE_ARGS} -B _build -D ENABLE_MEMCHECK=OFF
-    - cmake --build _build
-    - cmake --install _build
   number: 0
-
   run_exports:
     - {{ pin_subpackage(name, max_pin='x.x') }}
   ignore_run_exports:
@@ -40,9 +33,39 @@ requirements:
     - json-fortran
     - "netcdf-fortran * nompi_*"
 
-test:
-  commands:
-    - tuv-x --version
+outputs:
+  - name: tuv-x
+    test:
+      commands:
+        - tuv-x --version
+
+  - name: tuv-x-static
+    build:
+      skip: true  # [win]
+    script:
+      - set -ex
+      - cmake ${CMAKE_ARGS} -B _build -D ENABLE_MEMCHECK=OFF
+      - cmake --build _build
+      - cmake --install _build
+    requirements:
+      build:
+        - {{ stdlib('c') }}
+        - {{ compiler('fortran') }}
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - make
+        - pkg-config
+      host:
+        - libblas
+        - liblapack
+        - json-fortran
+        - "netcdf-fortran * nompi_*"
+      run:
+        - {{ pin_subpackage(name, exact=True) }}
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libk5crypto.a  # [unix]
 
 about:
   home: https://github.com/NCAR/tuv-x
