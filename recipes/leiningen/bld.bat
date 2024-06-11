@@ -40,11 +40,11 @@ echo copied :ACTIVATE_DIR:\lein-activate.bat
 :: We rebuild from source to add the THIRD-PARTY.txt file
 cd "%SRC_DIR%"\leiningen-src\leiningen-core
   echo "Bootstrapping ...
-  call %ACTIVATE_DIR%\lein-activate.bat
+  set "LEIN_JAR=%PREFIX%\lib\leiningen\libexec\leiningen-%PKG_VERSION%-standalone.jar"
   call lein bootstrap
   if errorlevel 1 exit 1
   echo "Third party licenses ...
-  call mvn license:add-third-party -Dlicense.thirdPartyFile=THIRD-PARTY.txt
+  call mvn license:add-third-party -Dlicense.thirdPartyFile=THIRD-PARTY.txt > nul
   if errorlevel 1 exit 1
   copy target\generated-sources\license\THIRD-PARTY.txt "%RECIPE_DIR%"\THIRD-PARTY.txt > nul
 
