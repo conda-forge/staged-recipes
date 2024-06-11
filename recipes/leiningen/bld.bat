@@ -39,11 +39,18 @@ echo copied :ACTIVATE_DIR:\lein-activate.bat
 :: At this point we have a working Leiningen
 :: We rebuild from source to add the THIRD-PARTY.txt file
 cd "%SRC_DIR%"\leiningen-src\leiningen-core
-  %PREFIX%\Scripts\lein.bat bootstrap
-  mvn license:add-third-party -Dlicense.thirdPartyFile=THIRD-PARTY.txt
-  cp target\generated-sources\license\THIRD-PARTY.txt "${RECIPE_DIR}"\THIRD-PARTY.txt
+  echo "Bootstrapping ...
+  call %ACTIVATE_DIR%\lein-activate.bat
+  call lein bootstrap
+  if errorlevel 1 exit 1
+  echo "Third party licenses ...
+  call mvn license:add-third-party -Dlicense.thirdPartyFile=THIRD-PARTY.txt
+  if errorlevel 1 exit 1
+  copy target\generated-sources\license\THIRD-PARTY.txt "%RECIPE_DIR%"\THIRD-PARTY.txt > nul
 
 cd "%SRC_DIR%"\leiningen-src
-  bin\lein uberjar
+  echo "Uberjar ...
+  call bin\lein uberjar
+  if errorlevel 1 exit 1
+  echo "Update standalone jar ...
   install -m644 target\leiningen-"%PKG_VERSION%"-standalone.jar %LIBEXEC_DIR%\leiningen-%PKG_VERSION%-standalone.jar
-
