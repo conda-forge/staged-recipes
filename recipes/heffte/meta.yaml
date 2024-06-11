@@ -1,0 +1,75 @@
+{% set name = "heFFTe" %}
+{% set version = "2.4.0" %}
+{% set build = 0 %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/icl-utk-edu/heffte/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 02310fb4f9688df02f7181667e61c3adb7e38baf79611d80919d47452ff7881d
+  patches:
+    # macOS build error in aligned_alloc
+    # https://github.com/icl-utk-edu/heffte/pull/49
+    - 49.patch
+
+build:
+  number: {{ build }}
+
+  # heFFTe depends on MPI, but we do not yet build a Windows-MPI that we trust
+  skip: true  # [win]
+
+  # add build string so packages can depend on specific mpi variants
+  # dependencies:
+  # `pkg * mpi_mpich_*` for MPICH
+  # `pkg * mpi_openmpi_*` for OpenMPI
+  # `pkg * mpi_*` for any mpi
+  {% set mpi_prefix = "mpi_" + mpi %}
+  string: {{ mpi_prefix }}_h{{ PKG_HASH }}_{{ build }}
+
+requirements:
+  build:
+    - {{ compiler("c") }}
+    - {{ compiler("cxx") }}
+    - {{ stdlib("c") }}
+    - cmake
+    - make  # [unix]
+    - pkgconfig
+  host:
+    - fftw * mpi_{{ mpi }}_*
+    - {{ mpi }}
+  run:
+    - fftw * mpi_{{ mpi }}_*
+    - {{ mpi }}
+
+test:
+  requires:
+    - {{ compiler("c") }}
+    - {{ compiler("cxx") }}
+    - {{ stdlib("c") }}
+    - cmake
+    - make  # [unix]
+    - pkgconfig
+
+about:
+  home: https://icl.utk.edu/publications/fft-ecp-fast-fourier-transform
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: Distributed fast-Fourier transforms in on a heterogeneous systems.
+
+  description: |
+    The Highly Efficient FFT for Exascale (heFFTe) library is being developed
+    as part of the Exascale Computing Project (ECP), which is a joint project
+    of the U.S. Department of Energy's Office of Science and National Nuclear
+    Security Administration (NNSA). HeFFTe delivers algorithms for distributed
+    fast-Fourier transforms in on a heterogeneous systems, targeting the
+    upcoming exascale machines.
+
+  doc_url: https://icl-utk-edu.github.io/heffte/
+  dev_url: https://github.com/icl-utk-edu/heffte
+
+extra:
+  recipe-maintainers:
+    - ax3l
