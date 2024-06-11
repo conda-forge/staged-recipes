@@ -1,4 +1,6 @@
+echo on
 ./gradlew zipKernel
-tar -xvf build\distributions\ijava-*.zip
+tar -xvf build/distributions/ijava-*.zip
+dir /s
 "%PYTHON%" install.py --prefix="%PREFIX%"
 if errorlevel 1 exit 1
