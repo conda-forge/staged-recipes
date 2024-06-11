@@ -53,4 +53,4 @@ cd "%SRC_DIR%"\leiningen-src
   call bin\lein uberjar
   if errorlevel 1 exit 1
   echo "Update standalone jar ...
-  install -m644 target\leiningen-"%PKG_VERSION%"-standalone.jar %LIBEXEC_DIR%\leiningen-%PKG_VERSION%-standalone.jar
+  install -m644 %SRC_DIR%\leiningen-src\target\leiningen-"%PKG_VERSION%"-standalone.jar %LIBEXEC_DIR%\leiningen-%PKG_VERSION%-standalone.jar
