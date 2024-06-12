@@ -42,8 +42,8 @@ echo copied :DEACTIVATE_DIR:\clojure-deactivate.ps1
 :: Licenses
 cp %SRC_DIR%\clojure-src\epl-v10.html %RECIPE_DIR%
 cd %SRC_DIR%\clojure-src
-mvn license:add-third-party -DlicenseFile=THIRD-PARTY.txt > nul
-copy %SRC_DIR%\clojure-src\target\generated-sources\license\THIRD-PARTY.txt %RECIPE_DIR%
+call mvn license:add-third-party -DlicenseFile=THIRD-PARTY.txt > nul
+copy %SRC_DIR%\clojure-src\target\generated-sources\license\THIRD-PARTY.txt %RECIPE_DIR%\THIRD-PARTY.txt > nul
 
 :: Possibly prefer registering the module during activation?
 ::powershell Register-PSRepository -Name ClojureTools -SourceLocation "%PREFIX%\WindowsPowerShell\Modules\ClojureTools" -InstallationPolicy Trusted
