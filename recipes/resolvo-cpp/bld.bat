@@ -1,6 +1,6 @@
 @echo on
 
-cmake %CMAKE_ARGS% -GNinja %SRC_DIR% -DRust_CARGO_TARGET=%CARGO_BUILD_TARGET%
+cmake %CMAKE_ARGS% -GNinja %SRC_DIR%
 if errorlevel 1 exit 1
 
 ninja install
