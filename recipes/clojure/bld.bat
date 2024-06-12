@@ -40,7 +40,7 @@ if errorlevel 1 exit 1
 echo copied :DEACTIVATE_DIR:\clojure-deactivate.ps1
 
 :: Licenses
-cp %SRC_DIR%\clojure-src\epl-v10.html %RECIPE_DIR%
+copy %SRC_DIR%\clojure-src\epl-v10.html %RECIPE_DIR%\epl-v10.html > nul
 cd %SRC_DIR%\clojure-src
 call mvn license:add-third-party -DlicenseFile=THIRD-PARTY.txt > nul
 copy %SRC_DIR%\clojure-src\target\generated-sources\license\THIRD-PARTY.txt %RECIPE_DIR%\THIRD-PARTY.txt > nul
