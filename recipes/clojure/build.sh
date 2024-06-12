@@ -5,7 +5,6 @@ set -ex
 install_clojure() {
   local _prefix=$1
   local _clojure_pkg_dir=$2
-  local _version=$3
 
   lib_dir="$_prefix/lib"
   bin_dir="$_prefix/bin"
@@ -19,29 +18,59 @@ install_clojure() {
   install -m644 "$_clojure_pkg_dir"/example-deps.edn "$clojure_lib_dir/example-deps.edn"
   install -m644 "$_clojure_pkg_dir"/tools.edn "$clojure_lib_dir/tools.edn"
 
-  install -m644 "$_clojure_pkg_dir"/clojure-tools-*\.*\.*\.*\.jar "$clojure_lib_dir/libexec/clojure-tools-${_version}.jar"
+  # install -m644 "$_clojure_pkg_dir"/clojure-tools-*\.*\.*\.*\.jar "$clojure_lib_dir/libexec/clojure-tools-${_version}.jar"
+  install -m644 "$_clojure_pkg_dir"/clojure-tools-*\.*\.*\.*\.jar "$clojure_lib_dir/libexec/"
   install -m644 "$_clojure_pkg_dir"/exec.jar "$clojure_lib_dir/libexec/exec.jar"
 
   install -m755 "$_clojure_pkg_dir"/clojure "$bin_dir/clojure"
   install -m755 "$_clojure_pkg_dir"/clj "$bin_dir/clj"
   sed -i -e 's@PREFIX@'"$clojure_lib_dir"'@g' "$bin_dir"/clojure
   sed -i -e 's@BINDIR@'"$bin_dir"'@g' "$bin_dir"/clj
-  sed -i -e 's@version=.*@version='"${_version}"'@g' "$bin_dir"/clojure
+  # sed -i -e 's@version=.*@version='"${_version}"'@g' "$bin_dir"/clojure
 
   install -m644 "$_clojure_pkg_dir"/clojure.1 "$man_dir/clojure.1"
   install -m644 "$_clojure_pkg_dir"/clj.1 "$man_dir/clj.1"
 }
 
-# --- Installation bootstrap ---
-install_clojure "$PREFIX" "$SRC_DIR"/clojure-tools "$PKG_VERSION"
-cp "$SRC_DIR"/clojure-src/epl-v10.html "$RECIPE_DIR"
-cd "$SRC_DIR"/clojure-src && mvn license:add-third-party -DlicenseFile=THIRD-PARTY.txt > _clojure-license.log
-cp "$SRC_DIR"/clojure-src/target/generated-sources/license/THIRD-PARTY.txt "$RECIPE_DIR"
+extract_licenses() {
+  local _clojure_src=$1
 
-# --- Build from source ---
-# This is not how clojure is built from source. It needs to be built with Clojure-Tools
-# mkdir -p "$SRC_DIR"/_conda-build-local
-# cp -r "$SRC_DIR"/clojure-src/* "$SRC_DIR"/_conda-build-local
-# cd "$SRC_DIR"/_conda-build-local
-#   mvn -Plocal -Dmaven.test.skip=true package > _clojure-build-local.log
-#   install -m644 target/"clojure-${PKG_VERSION}.jar" "$clojure_lib_dir/libexec/clojure-tools-${PKG_VERSION}.${PKG_BUILD}.jar"
+  cp "${_clojure_src}"/epl-v10.html "$RECIPE_DIR"
+  cd "${_clojure_src}" && mvn license:add-third-party -DlicenseFile=THIRD-PARTY.txt > _clojure-license.log 2>&1
+  cp "${_clojure_src}"/target/generated-sources/license/THIRD-PARTY.txt "$RECIPE_DIR"
+}
+
+build_clojure_from_source() {
+  local _clojure_src=$1
+  local _build_dir=$2
+
+  local current_dir
+  current_dir=$(pwd)
+
+  mkdir -p "${_build_dir}"
+  cd "${_build_dir}"
+    cp -r "${_clojure_src}"/* .
+    mvn -Dmaven.test.skip=true package > _clojure-build-local.log 2>&1
+    mvn install:install-file -Dfile=target/clojure-"${PKG_SRC_VERSION}".jar -DgroupId=org.clojure -DartifactId=clojure -Dversion="${PKG_SRC_VERSION}" -Dpackaging=jar
+cd "$current_dir"
+}
+
+build_clojure_from_tools() {
+  local _clojure_tools_src=$1
+
+  local current_dir
+  current_dir=$(pwd)
+
+  cd "$_clojure_tools_src"
+    export VERSION="${PKG_SRC_VERSION}"
+    sed -i -E 's@(org.clojure/clojure \{:mvn/version).*?\}@\1 '\""${PKG_SRC_VERSION}"\"'}@g' deps.edn
+    sed -i -e 's@ :aliases@ :mvn/repos\n {"local" {:url "file://~/.m2/repository"}}\n\n :aliases@g' deps.edn
+    "${SRC_DIR}"/_conda-bootstrapped/bin/clojure -T:build release > _clojure-tools-build.log 2>&1
+  cd "$current_dir"
+}
+# --- Installation bootstrap, licenses, clojure, clojure-tools, install ---
+install_clojure "${SRC_DIR}"/_conda-bootstrapped "$SRC_DIR"/clojure-tools
+extract_licenses "$SRC_DIR"/clojure-src
+build_clojure_from_source "$SRC_DIR"/clojure-src "$SRC_DIR"/_conda-build
+build_clojure_from_tools "$SRC_DIR"/clojure-tools-src
+install_clojure "$PREFIX" "$SRC_DIR"/clojure-tools-src/target/clojure-tools
