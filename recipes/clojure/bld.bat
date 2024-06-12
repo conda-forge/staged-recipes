@@ -45,7 +45,6 @@ cd %SRC_DIR%\clojure-src
 
 copy %SRC_DIR%\clojure-src\epl-v10.html %RECIPE_DIR%\epl-v10.html > nul
 copy %SRC_DIR%\clojure-src\target\generated-sources\license\THIRD-PARTY.txt %RECIPE_DIR%\THIRD-PARTY.txt > nul
-dir %RECIPE_DIR%
 
 :: Possibly prefer registering the module during activation?
 ::powershell Register-PSRepository -Name ClojureTools -SourceLocation "%PREFIX%\WindowsPowerShell\Modules\ClojureTools" -InstallationPolicy Trusted
