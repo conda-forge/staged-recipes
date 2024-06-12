@@ -23,21 +23,21 @@ set DEACTIVATE_DIR=%PREFIX%\etc\conda\deactivate.d
 mkdir %ACTIVATE_DIR%
 mkdir %DEACTIVATE_DIR%
 
-:: copy %RECIPE_DIR%\scripts\activate.bat %ACTIVATE_DIR%\clojure-activate.bat > nul
-:: if errorlevel 1 exit 1
-:: echo copied :ACTIVATE_DIR:\clojure-activate.bat
+copy %RECIPE_DIR%\scripts\activate.bat %ACTIVATE_DIR%\clojure-activate.bat > nul
+if errorlevel 1 exit 1
+echo copied :ACTIVATE_DIR:\clojure-activate.bat
 
-:: copy %RECIPE_DIR%\scripts\activate.ps1 %ACTIVATE_DIR%\clojure-activate.ps1 > nul
-:: if errorlevel 1 exit 1
-:: echo copied :ACTIVATE_DIR:\clojure-activate.ps1
-::
-:: copy %RECIPE_DIR%\scripts\deactivate.bat %DEACTIVATE_DIR%\clojure-deactivate.bat > nul
-:: if errorlevel 1 exit 1
-:: echo copied :DEACTIVATE_DIR:\clojure-deactivate.bat
-::
-:: copy %RECIPE_DIR%\scripts\deactivate.ps1 %DEACTIVATE_DIR%\clojure-deactivate.ps1 > nul
-:: if errorlevel 1 exit 1
-:: echo copied :DEACTIVATE_DIR:\clojure-deactivate.ps1
+copy %RECIPE_DIR%\scripts\activate.ps1 %ACTIVATE_DIR%\clojure-activate.ps1 > nul
+if errorlevel 1 exit 1
+echo copied :ACTIVATE_DIR:\clojure-activate.ps1
+
+copy %RECIPE_DIR%\scripts\deactivate.bat %DEACTIVATE_DIR%\clojure-deactivate.bat > nul
+if errorlevel 1 exit 1
+echo copied :DEACTIVATE_DIR:\clojure-deactivate.bat
+
+copy %RECIPE_DIR%\scripts\deactivate.ps1 %DEACTIVATE_DIR%\clojure-deactivate.ps1 > nul
+if errorlevel 1 exit 1
+echo copied :DEACTIVATE_DIR:\clojure-deactivate.ps1
 
 :: Licenses
 copy %SRC_DIR%\clojure-src\epl-v10.html %RECIPE_DIR%\epl-v10.html > nul
