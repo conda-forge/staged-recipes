@@ -57,11 +57,15 @@ cd "$current_dir"
 
 build_clojure_from_tools() {
   local _clojure_tools_src=$1
+  local _build_dir=$2
 
   local current_dir
   current_dir=$(pwd)
 
-  cd "$_clojure_tools_src"
+  mkdir -p "${_build_dir}"
+  cd "${_build_dir}"
+    cp -r "${_clojure_tools_src}"/* .
+
     export VERSION="${PKG_SRC_VERSION}"
     # MacOS has a different sed command
     case "$(uname)" in
@@ -81,6 +85,6 @@ build_clojure_from_tools() {
 # --- Installation bootstrap, licenses, clojure, clojure-tools, install ---
 install_clojure "${SRC_DIR}"/_conda-bootstrapped "$SRC_DIR"/clojure-tools
 extract_licenses "$SRC_DIR"/clojure-src
-build_clojure_from_source "$SRC_DIR"/clojure-src "$SRC_DIR"/_conda-build
-build_clojure_from_tools "$SRC_DIR"/clojure-tools-src
+build_clojure_from_source "$SRC_DIR"/clojure-src "$SRC_DIR"/_conda-clojure-build
+build_clojure_from_tools "$SRC_DIR"/clojure-tools-src "$SRC_DIR"/_conda-tools-build
 install_clojure "$PREFIX" "$SRC_DIR"/clojure-tools-src/target/clojure-tools
