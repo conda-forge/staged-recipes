@@ -38,7 +38,7 @@ extract_licenses() {
   cp "${_clojure_src}"/epl-v10.html "${RECIPE_DIR}"
   cd "${_clojure_src}" && mvn license:add-third-party -DlicenseFile=THIRD-PARTY.txt > _clojure-license.log 2>&1
   cp "${_clojure_src}"/target/generated-sources/license/THIRD-PARTY.txt "${RECIPE_DIR}"
-  ls "${RECIPE_DIR}"/{THIRD-PARTY.txt,epl-v10.html} || { echo "Failed to extract licenses"; exit 1;
+  ls "${RECIPE_DIR}"/{THIRD-PARTY.txt,epl-v10.html} || { echo "Failed to extract licenses"; exit 1; }
 }
 
 build_clojure_from_source() {

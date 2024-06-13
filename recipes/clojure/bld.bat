@@ -6,8 +6,8 @@ call :create_activation_scripts
 
 call :install_clojure_module "%SRC_DIR%\clojure-tools" "%SRC_DIR%\_conda-bootstrapped"
 call :install_clojure_scripts "%SRC_DIR%\_conda-bootstrapped"
-@set "PSModulePath=%SRC_DIR%/_conda-bootstrapped\WindowsPowerShell\Modules;%PSModulePath%"
-@set "PATH=%SRC_DIR%/_conda-bootstrapped\Scripts;%PATH%"
+@set "PSModulePath=%SRC_DIR%\_conda-bootstrapped\WindowsPowerShell\Modules;%PSModulePath%"
+@set "PATH=%SRC_DIR%\_conda-bootstrapped\Scripts;%PATH%"
 call :build_clojure_from_source "%SRC_DIR%\clojure-src" "%SRC_DIR%\_conda-clojure-build"
 call :build_clojure_from_source "%SRC_DIR%\clojure-tools-src" "%SRC_DIR%\_conda-tools-build"
 
