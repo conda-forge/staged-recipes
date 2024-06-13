@@ -50,8 +50,8 @@ build_clojure_from_source() {
   mkdir -p "${_build_dir}"
   cd "${_build_dir}"
     cp -r "${_clojure_src}"/* .
-    mvn -Dmaven.test.skip=true package > _clojure-build-local.log 2>&1
-    mvn install:install-file -Dfile=target/clojure-"${PKG_SRC_VERSION}".jar -DgroupId=org.clojure -DartifactId=clojure -Dversion="${PKG_SRC_VERSION}" -Dpackaging=jar
+    mvn -Dmaven.test.skip=true package > _clojure-build.log 2>&1
+    mvn install:install-file -Dfile=target/clojure-"${PKG_SRC_VERSION}".jar -DgroupId=org.clojure -DartifactId=clojure -Dversion="${PKG_SRC_VERSION}" -Dpackaging=jar > _clojure-maven-install.log 2>&1
 cd "$current_dir"
 }
 
@@ -66,7 +66,7 @@ build_clojure_from_tools() {
     # MacOS has a different sed command
     case "$(uname)" in
       Darwin)
-        sed -i '' -E 's@(org.clojure/clojure \{:mvn/version).*?\}@\1 '\""${PKG_SRC_VERSION}"\"'}@g' deps.edn
+        sed -i '' -E 's@(org.clojure/clojure \{:mvn/version).*\}@\1 '\""${PKG_SRC_VERSION}"\"'}@g' deps.edn
         sed -i '' -e 's@ :aliases@ :mvn/repos\n {"local" {:url "file://~/.m2/repository"}}\n\n :aliases@g' deps.edn
         ;;
       *)
