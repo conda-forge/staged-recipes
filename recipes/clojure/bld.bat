@@ -26,6 +26,15 @@ cd %SRC_DIR%
 
 copy %SRC_DIR%\clojure-src\epl-v10.html %RECIPE_DIR%\epl-v10.html > nul
 copy %SRC_DIR%\clojure-src\target\generated-sources\license\THIRD-PARTY.txt %RECIPE_DIR%\THIRD-PARTY.txt > nul
+dir %RECIPE_DIR%\epl-v10.html %RECIPE_DIR%\THIRD-PARTY.txt
+if not exist %RECIPE_DIR%\epl-v10.html (
+    echo "Failed to copy epl-v10.html"
+    exit 1
+    )
+if not exist %RECIPE_DIR%\THIRD-PARTY.txt (
+    echo "Failed to copy epl-v10.html"
+    exit 1
+    )
 goto :EOF
 
 :create_activation_scripts

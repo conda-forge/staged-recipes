@@ -35,9 +35,10 @@ install_clojure() {
 extract_licenses() {
   local _clojure_src=$1
 
-  cp "${_clojure_src}"/epl-v10.html "$RECIPE_DIR"
+  cp "${_clojure_src}"/epl-v10.html "${RECIPE_DIR}"
   cd "${_clojure_src}" && mvn license:add-third-party -DlicenseFile=THIRD-PARTY.txt > _clojure-license.log 2>&1
-  cp "${_clojure_src}"/target/generated-sources/license/THIRD-PARTY.txt "$RECIPE_DIR"
+  cp "${_clojure_src}"/target/generated-sources/license/THIRD-PARTY.txt "${RECIPE_DIR}"
+  ls "${RECIPE_DIR}"/{THIRD-PARTY.txt,epl-v10.html} || { echo "Failed to extract licenses"; exit 1;
 }
 
 build_clojure_from_source() {
@@ -87,4 +88,4 @@ install_clojure "${SRC_DIR}"/_conda-bootstrapped "$SRC_DIR"/clojure-tools
 extract_licenses "$SRC_DIR"/clojure-src
 build_clojure_from_source "$SRC_DIR"/clojure-src "$SRC_DIR"/_conda-clojure-build
 build_clojure_from_tools "$SRC_DIR"/clojure-tools-src "$SRC_DIR"/_conda-tools-build
-install_clojure "$PREFIX" "$SRC_DIR"/clojure-tools-src/target/clojure-tools
+install_clojure "$PREFIX" "$SRC_DIR"/_conda-tools-build/target/clojure-tools
