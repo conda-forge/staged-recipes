@@ -6,10 +6,18 @@ call :create_activation_scripts
 
 call :install_clojure_module "%SRC_DIR%\clojure-tools" "%SRC_DIR%\_conda-bootstrapped"
 call :install_clojure_scripts "%SRC_DIR%\_conda-bootstrapped"
-@set "PSModulePath=%SRC_DIR%\_conda-bootstrapped\WindowsPowerShell\Modules;%PSModulePath%"
-@set "PATH=%SRC_DIR%\_conda-bootstrapped\Scripts;%PATH%"
+set "PSModulePath=%SRC_DIR%\_conda-bootstrapped\WindowsPowerShell\Modules;%PSModulePath%"
+set "PATH=%SRC_DIR%\_conda-bootstrapped\Scripts;%PATH%"
 call :build_clojure_from_source "%SRC_DIR%\clojure-src" "%SRC_DIR%\_conda-clojure-build"
-call :build_clojure_from_source "%SRC_DIR%\clojure-tools-src" "%SRC_DIR%\_conda-tools-build"
+if not exist %RECIPE_DIR%\epl-v10.html (
+    echo "Failed to build from source"
+    exit 1
+    )
+call :build_clojure_tools "%SRC_DIR%\clojure-tools-src" "%SRC_DIR%\_conda-tools-build"
+if not exist %RECIPE_DIR%\epl-v10.html (
+    echo "Failed to build tools"
+    exit 1
+    )
 
 :: This is temporary, just to have a working version while debugging the build from source on windows
 call :install_clojure_module "%SRC_DIR%\clojure-tools" "%PREFIX%"
