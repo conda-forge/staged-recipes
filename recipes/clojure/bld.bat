@@ -94,7 +94,7 @@ set "_BUILD_DIR=%~2
 mkdir %_BUILD_DIR%
 cd %_BUILD_DIR%
   xcopy /E %_CLOJURE_SRC%\* . > nul
-  call mvn package -DskipTests
+  call mvn package -DskipTests > nul
   if errorlevel 1 exit 1
 cd %SRC_DIR%
 goto :EOF
@@ -126,9 +126,14 @@ set "_BUILD_DIR=%~2"
 mkdir %_BUILD_DIR%
 cd %_BUILD_DIR%
   xcopy /E %_CLOJURE_TOOLS_SRC%\* . > nul
-  call replace_repository_deps
+  call :replace_repository_deps
+  where clojure
   call clojure -T:build release
   if errorlevel 1 exit 1
+  if not exist target (
+    echo "Failed to build clojure-tools: target directory not found"
+    exit 1
+  )
   dir target
 cd %SRC_DIR%
 goto :EOF
