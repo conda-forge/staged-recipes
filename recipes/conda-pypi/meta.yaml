@@ -10,9 +10,13 @@ source:
   sha256: d5c4872ba7bde71262904d37c4cfc4e13175e102727eccc37d00e2970d5cb4dd
 
 build:
-  noarch: python
-  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  # can't be noarch because we can't place EXTERNALLY-MANAGED in stdlib (first level is site-packages)
   number: 0
+  script:
+    - set -x  # [unix]
+    - "@ECHO ON"  # [win]
+    - {{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
+    - {{ PYTHON }} -c "from conda_pypi.main import ensure_externally_managed; ensure_externally_managed()"
 
 requirements:
   host:
@@ -33,8 +37,9 @@ test:
     - conda_pypi.main
   commands:
     - pip check
-  requires:
-    - pip
+    - conda pip --help
+    - python -c "from conda_pypi.utils import get_env_stdlib; assert (get_env_stdlib() / 'EXTERNALLY-MANAGED').exists()"
+    - pip install requests && exit 1 || exit 0
 
 about:
   summary: Better PyPI interoperability for the conda ecosystem.
