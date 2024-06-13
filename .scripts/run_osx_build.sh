@@ -54,7 +54,7 @@ source run_conda_forge_build_setup
 set -e
 
 # make sure there is a package directory so that artifact publishing works
-mkdir -p "${MINIFORGE_ROOT}/conda-bld/osx-64/"
+mkdir -p "${MINIFORGE_ROOT}/conda-bld/osx-64/" "${MINIFORGE_ROOT}/conda-bld/noarch/"
 
 # Find the recipes from main in this PR and remove them.
 echo ""
