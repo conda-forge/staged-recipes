@@ -95,7 +95,7 @@ mkdir %_BUILD_DIR%
 cd %_BUILD_DIR%
   xcopy /E %_CLOJURE_SRC%\* . > nul
   call mvn package -DskipTests > nul
-  call mvn install:install-file -Dfile=target/clojure-"${PKG_SRC_VERSION}".jar -DgroupId=org.clojure -DartifactId=clojure -Dversion="%PKG_SRC_VERSION%" -Dpackaging=jar
+  call mvn install:install-file -Dfile="target/clojure-%PKG_SRC_VERSION%.jar" -DgroupId=org.clojure -DartifactId=clojure -Dversion="%PKG_SRC_VERSION%" -Dpackaging=jar
   if errorlevel 1 exit 1
 cd %SRC_DIR%
 goto :EOF
