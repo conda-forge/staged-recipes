@@ -2,10 +2,13 @@
 setlocal EnableDelayedExpansion
 
 powershell New-Item -ItemType Directory -Path "%PREFIX%\WindowsPowerShell\Modules\ClojureTools" -Force
+if errorlevel 1 exit 1
 
-powershell Move-Item -Path %SRC_DIR%\win-clojure-tools -Destination %PKG_VERSION% -Force
+powershell Move-Item -Path %SRC_DIR%\clojure-tools -Destination %PKG_VERSION% -Force
+if errorlevel 1 exit 1
 
 powershell Move-Item -Path %PKG_VERSION% -Destination "%PREFIX%\WindowsPowerShell\Modules\ClojureTools" -Force
+if errorlevel 1 exit 1
 
 mkdir %PREFIX%\Scripts
 
