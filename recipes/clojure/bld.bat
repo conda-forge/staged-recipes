@@ -9,16 +9,15 @@ call :install_clojure_scripts "%SRC_DIR%\_conda-bootstrapped"
 set "PSModulePath=%SRC_DIR%\_conda-bootstrapped\WindowsPowerShell\Modules;%PSModulePath%"
 set "PATH=%SRC_DIR%\_conda-bootstrapped\Scripts;%PATH%"
 call :build_clojure_from_source "%SRC_DIR%\clojure-src" "%SRC_DIR%\_conda-clojure-build"
-if not exist %RECIPE_DIR%\epl-v10.html (
-    echo "Failed to build from source"
+if errorlevel 1 (
+    echo "Failed to build clojure from source"
     exit 1
     )
 call :build_clojure_tools "%SRC_DIR%\clojure-tools-src" "%SRC_DIR%\_conda-tools-build"
-if not exist %RECIPE_DIR%\epl-v10.html (
-    echo "Failed to build tools"
+if errorlevel 1 (
+    echo "Failed to build clojure-tools from source"
     exit 1
     )
-
 :: This is temporary, just to have a working version while debugging the build from source on windows
 call :install_clojure_module "%SRC_DIR%\clojure-tools" "%PREFIX%"
 
@@ -40,7 +39,7 @@ if not exist %RECIPE_DIR%\epl-v10.html (
     exit 1
     )
 if not exist %RECIPE_DIR%\THIRD-PARTY.txt (
-    echo "Failed to copy epl-v10.html"
+    echo "Failed to copy THIRD-PARTY.txt"
     exit 1
     )
 goto :EOF
@@ -95,7 +94,7 @@ set "_BUILD_DIR=%~2
 mkdir %_BUILD_DIR%
 cd %_BUILD_DIR%
   xcopy /E %_CLOJURE_SRC%\* . > nul
-  call mvn package -DskipTests > nul
+  call mvn package -DskipTests
   if errorlevel 1 exit 1
 cd %SRC_DIR%
 goto :EOF
