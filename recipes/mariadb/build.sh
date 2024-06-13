@@ -7,5 +7,5 @@ export MARIADB_CC_INCLUDE_DIR=${PREFIX}/include/mariadb
 export MARIADB_CC_LIB_DIR=${PREFIX}/lib/mariadb
 
 pushd mysql-connector-python
-${PYTHON} -m pip install . --no-deps --verbose
+${PYTHON} -m pip install -vv --no-deps --ignore-installed .
 popd

@@ -5,5 +5,4 @@ set "MARIADB_CC_INCLUDE_DIR=%PREFIX%\include\mariadb"
 set "MARIADB_CC_LIB_DIR=%PREFIX%\lib\mariadb"
 set "SKIP_VENDOR=1"
 
-cd mariadb
-%PYTHON% -m pip install . --no-deps --verbose
+%PYTHON% -m pip install -vv --no-deps --ignore-installed .
