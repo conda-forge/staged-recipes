@@ -3,7 +3,7 @@
 set "MARIADB_CC_LIB=%PREFIX%\Library\lib\mariadb"
 set "MARIADB_CC_LIBRARY=%PREFIX%\Library\include\mariadb"
 
-setx PATH "%PATH%;%MARIADB_CC_LIB%;%MARIADB_CC_LIBRARY%"
+setx PATH "%PATH%;%PREFIX%\Library\lib\mariadb;%PREFIX%\Library\include\mariadb"
 
 set "SKIP_VENDOR=1"
 
