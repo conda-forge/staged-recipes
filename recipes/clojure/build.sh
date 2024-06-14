@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
-set -ex
+# Clojure-tools provides official Clojure releases: https://github.com/clojure/brew-install/releases
+# However, for sake of reproducibility, we prefer to build clojure from source. The build is a bit convoluted:
+# 1. Install clojure-tools as a bootstrapping Clojure environment
+# 2. Extract licenses (third-party) from the clojure source
+# 3. Build clojure from source and install into the local maven repository: ~/.m2/repository
+# 4. Build clojure-tools from source: This packages the clojure.jar into an installable/callable bundle
+# 5. Install clojure-tools bundle
 
 # --- Functions ---
 install_clojure() {
+  # Installs a clojure-tools bundle
+  # Clojure-tools provides official Clojure releases: https://github.com/clojure/brew-install/releases
+  # However, for sake of reproducibility, we prefer to build clojure from source
+  # $1: Installation PREFIX, $2: clojure-tools bundle path
   local _prefix=$1
   local _clojure_pkg_dir=$2
 
@@ -18,7 +28,6 @@ install_clojure() {
   install -m644 "$_clojure_pkg_dir"/example-deps.edn "$clojure_lib_dir/example-deps.edn"
   install -m644 "$_clojure_pkg_dir"/tools.edn "$clojure_lib_dir/tools.edn"
 
-  # install -m644 "$_clojure_pkg_dir"/clojure-tools-*\.*\.*\.*\.jar "$clojure_lib_dir/libexec/clojure-tools-${_version}.jar"
   install -m644 "$_clojure_pkg_dir"/clojure-tools-*\.*\.*\.*\.jar "$clojure_lib_dir/libexec/"
   install -m644 "$_clojure_pkg_dir"/exec.jar "$clojure_lib_dir/libexec/exec.jar"
 
@@ -26,13 +35,14 @@ install_clojure() {
   install -m755 "$_clojure_pkg_dir"/clj "$bin_dir/clj"
   sed -i -e 's@PREFIX@'"$clojure_lib_dir"'@g' "$bin_dir"/clojure
   sed -i -e 's@BINDIR@'"$bin_dir"'@g' "$bin_dir"/clj
-  # sed -i -e 's@version=.*@version='"${_version}"'@g' "$bin_dir"/clojure
 
   install -m644 "$_clojure_pkg_dir"/clojure.1 "$man_dir/clojure.1"
   install -m644 "$_clojure_pkg_dir"/clj.1 "$man_dir/clj.1"
 }
 
 extract_licenses() {
+  # Extracts licenses from the clojure source
+  # $1: clojure source path
   local _clojure_src=$1
 
   cp "${_clojure_src}"/epl-v10.html "${RECIPE_DIR}"
@@ -42,6 +52,9 @@ extract_licenses() {
 }
 
 build_clojure_from_source() {
+  # Builds clojure from source: Creates a target/clojure-*.jar
+  # Installs the clojure jar into the local maven repository
+  # $1: clojure source path, $2: build directory
   local _clojure_src=$1
   local _build_dir=$2
 
@@ -57,6 +70,8 @@ cd "$current_dir"
 }
 
 build_clojure_from_tools() {
+  # Builds clojure-tools bundle from source using clojure from the local maven repository (setup with a patched deps.edn)
+  # $1: clojure-tools source path, $2: build directory
   local _clojure_tools_src=$1
   local _build_dir=$2
 
@@ -72,7 +87,9 @@ build_clojure_from_tools() {
   cd "$current_dir"
 }
 
-# --- Installation bootstrap, licenses, clojure, clojure-tools, install ---
+# --- Main: Installation bootstrap, licenses, clojure, clojure-tools, install ---
+set -euxo pipefail
+
 install_clojure "${SRC_DIR}"/_conda-bootstrapped "$SRC_DIR"/clojure-tools
 extract_licenses "$SRC_DIR"/clojure-src
 build_clojure_from_source "$SRC_DIR"/clojure-src "$SRC_DIR"/_conda-clojure-build

@@ -28,7 +28,7 @@ goto :EOF
 
 :: --- Functions ---
 
-:extractLicenses
+:extract_licenses
 cd %SRC_DIR%\clojure-src
   call mvn license:add-third-party -DlicenseFile=THIRD-PARTY.txt > nul
   if errorlevel 1 exit 1
@@ -111,7 +111,7 @@ mkdir %_BUILD_DIR%
 cd %_BUILD_DIR%
   xcopy /E %_CLOJURE_TOOLS_SRC%\* . > nul
   powershell Import-Module ClojureTools
-  powershell -Command "ClojureTools\clojure -T:build release"
+  powershell -Command "ClojureTools\clojure -T:build release" > nul
   if errorlevel 1 exit 1
   if not exist target (
     echo "Failed to build clojure-tools: target directory not found"
