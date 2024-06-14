@@ -18,7 +18,7 @@ if errorlevel 1 (
     echo "Failed to build clojure-tools from source"
     exit 1
     )
-call :install_clojure_module "%SRC_DIR%\clojure-tools-src\target" "%PREFIX%"
+call :install_clojure_module "%SRC_DIR%\_conda-tools-build\target" "%PREFIX%"
 if errorlevel 1 (
     echo "Failed to install clojure built from source"
     exit 1
@@ -112,7 +112,6 @@ cd %_BUILD_DIR%
   xcopy /E %_CLOJURE_TOOLS_SRC%\* . > nul
   powershell Import-Module ClojureTools
   powershell -Command "ClojureTools\clojure -T:build release"
-  :: call clojure -T:build release
   if errorlevel 1 exit 1
   if not exist target (
     echo "Failed to build clojure-tools: target directory not found"
