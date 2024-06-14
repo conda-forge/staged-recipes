@@ -95,7 +95,7 @@ mkdir %_BUILD_DIR%
 cd %_BUILD_DIR%
   xcopy /E %_CLOJURE_SRC%\* . > nul
   call mvn package -DskipTests > nul
-  call mvn install:install-file -Dfile="target/clojure-%PKG_SRC_VERSION%.jar" -DgroupId=org.clojure -DartifactId=clojure -Dversion="%PKG_SRC_VERSION%" -Dpackaging=jar
+  call mvn install:install-file -Dfile="target/clojure-%PKG_SRC_VERSION%.jar" -DgroupId=org.clojure -DartifactId=clojure -Dversion="%PKG_SRC_VERSION%" -Dpackaging=jar > nul
   if errorlevel 1 exit 1
 cd %SRC_DIR%
 goto :EOF
@@ -104,7 +104,7 @@ goto :EOF
 set "search= :aliases"
 set "replace=^
  :mvn/repos^
- {"local" {:url "file://~/.m2/repository"}}^
+ {"local" {:url "file:C:\Users\VssAdministrator\~\.m2\repository"}}^
  ^
  :aliases"
 set "textfile=deps.edn"
@@ -116,7 +116,7 @@ set "newfile=_deps.edn"
     echo(!line:%search%=%replace%!
     endlocal
 )) > %newfile%
-
+type %newfile%
 move /y %newfile% %textfile% > nul
 goto :EOF
 
