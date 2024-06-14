@@ -8,7 +8,8 @@ go build -ldflags \
     -X sigs.k8s.io/kustomize/api/provenance.version=v${PKG_VERSION}" \
     .
 
-go-licenses save . --save_path="./license-files/"
+go-licenses save . --save_path="./license-files/" \
+    --ignore "sigs.k8s.io/kustomize" # All submodules are licensed by the same top level LICENSE, but go-licenses doesn't understand this
 
 INSTALLDIR="${PREFIX}/bin"
 mkdir "${INSTALLDIR}"
