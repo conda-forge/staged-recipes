@@ -68,17 +68,6 @@ build_clojure_from_tools() {
     cp -r "${_clojure_tools_src}"/* .
 
     export VERSION="${PKG_SRC_VERSION}"
-    # MacOS has a different sed command
-    case "$(uname)" in
-      Darwin)
-        sed -i '' -E 's@(org.clojure/clojure \{:mvn/version).*\}@\1 '\""${PKG_SRC_VERSION}"\"'}@g' deps.edn
-        sed -i '' -e 's@ :aliases@ :mvn/repos\n {"local" {:url "file://~/.m2/repository"}}\n\n :aliases@g' deps.edn
-        ;;
-      *)
-        sed -i -E 's@(org.clojure/clojure \{:mvn/version).*?\}@\1 '\""${PKG_SRC_VERSION}"\"'}@g' deps.edn
-        sed -i -e 's@ :aliases@ :mvn/repos\n {"local" {:url "file://~/.m2/repository"}}\n\n :aliases@g' deps.edn
-        ;;
-    esac
     "${SRC_DIR}"/_conda-bootstrapped/bin/clojure -T:build release > _clojure-tools-build.log 2>&1
   cd "$current_dir"
 }

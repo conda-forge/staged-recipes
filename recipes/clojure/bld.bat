@@ -100,26 +100,6 @@ cd %_BUILD_DIR%
 cd %SRC_DIR%
 goto :EOF
 
-:replace_repository_deps
-set "search= :aliases"
-set "replace=^
- :mvn/repos^
- {"local" {:url "file:C:\Users\VssAdministrator\~\.m2\repository"}}^
- ^
- :aliases"
-set "textfile=deps.edn"
-set "newfile=_deps.edn"
-
-(for /f "delims=" %%i in (%textfile%) do (
-    set "line=%%i"
-    setlocal enabledelayedexpansion
-    echo(!line:%search%=%replace%!
-    endlocal
-)) > %newfile%
-type %newfile%
-move /y %newfile% %textfile% > nul
-goto :EOF
-
 :build_clojure_tools
 set "_CLOJURE_TOOLS_SRC=%~1"
 set "_BUILD_DIR=%~2"
@@ -127,15 +107,12 @@ set "_BUILD_DIR=%~2"
 mkdir %_BUILD_DIR%
 cd %_BUILD_DIR%
   xcopy /E %_CLOJURE_TOOLS_SRC%\* . > nul
-  call :replace_repository_deps
-  where clojure
   call clojure -T:build release
   if errorlevel 1 exit 1
   if not exist target (
     echo "Failed to build clojure-tools: target directory not found"
     exit 1
   )
-  dir target
 cd %SRC_DIR%
 goto :EOF
 
