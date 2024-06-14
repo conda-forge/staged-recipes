@@ -107,7 +107,9 @@ set "_BUILD_DIR=%~2"
 mkdir %_BUILD_DIR%
 cd %_BUILD_DIR%
   xcopy /E %_CLOJURE_TOOLS_SRC%\* . > nul
-  call clojure -T:build release
+  powershell Import-Module ClojureTools
+  powershell -Command "ClojureTools\clojure
+  :: call clojure -T:build release
   if errorlevel 1 exit 1
   if not exist target (
     echo "Failed to build clojure-tools: target directory not found"
