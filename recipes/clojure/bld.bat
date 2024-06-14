@@ -1,7 +1,15 @@
+:: Clojure-tools provides official Clojure releases: https://github.com/clojure/brew-install/releases
+:: However, for sake of reproducibility, we prefer to build clojure from source. The build is a bit convoluted:
+:: 1. Install clojure-tools as a bootstrapping Clojure powershell Module
+:: 2. Extract licenses (third-party) from the clojure source
+:: 3. Build clojure from source and install into the local maven repository: ~/.m2/repository
+:: 4. Build clojure-tools from source: This packages the clojure.jar into an installable/callable Module
+:: 5. Install clojure-tools Module
+
 @echo off
 setlocal EnableDelayedExpansion
 
-call :extract_licences
+call :extract_licenses
 call :create_activation_scripts
 
 call :install_clojure_module "%SRC_DIR%\clojure-tools" "%SRC_DIR%\_conda-bootstrapped"
