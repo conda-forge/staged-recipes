@@ -1,5 +1,5 @@
 {% set name = "conda-pypi" %}
-{% set version = "0.1.0" %}
+{% set version = "0.1.1" %}
 
 package:
   name: {{ name|lower }}
@@ -7,34 +7,31 @@ package:
 
 source:
   url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/conda_pypi-{{ version }}.tar.gz
-  sha256: d5c4872ba7bde71262904d37c4cfc4e13175e102727eccc37d00e2970d5cb4dd
+  sha256: e8b923e3cbb7f2df83b73a65d272e268a72dea92381236092fa9c776f616715c
 
 build:
+  skip: true  # [py<38]
   # can't be noarch because we can't place EXTERNALLY-MANAGED in stdlib (first level is site-packages)
   number: 0
   script:
     - set -x  # [unix]
     - "@ECHO ON"  # [win]
     - {{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
-    - {{ PYTHON }} -c "from conda_pypi.main import ensure_externally_managed; ensure_externally_managed()"
+    - {{ PYTHON }} -c "from conda_pypi.python_paths import ensure_externally_managed; ensure_externally_managed()"
 
 requirements:
   host:
     - python
+    - pip
     - hatchling >=1.12.2
     - hatch-vcs >=0.2.0
-    - pip
-    # We need to execute some code during build time, so we need all runtime deps here too
-    - conda >=23.9.0
-    - grayskull
-    - importlib-resources
-    - packaging
+    - importlib_resources  # [py<39]
   run:
     - python
     - conda >=23.9.0
     - pip >=23.0.1
     - grayskull
-    - importlib-resources
+    - importlib_resources  # [py<39]
     - packaging
 
 test:
@@ -42,16 +39,16 @@ test:
     - conda_pypi
     - conda_pypi.main
   commands:
-    - pip check
     - conda pip --help
-    - python -c "from conda_pypi.utils import get_env_stdlib; assert (get_env_stdlib() / 'EXTERNALLY-MANAGED').exists()"
+    - python -c "from conda_pypi.python_paths import get_env_stdlib; assert (get_env_stdlib() / 'EXTERNALLY-MANAGED').exists()"
     - pip install requests && exit 1 || exit 0
 
 about:
-  summary: Better PyPI interoperability for the conda ecosystem.
+  home: https://github.com/conda-incubator/conda-pypi
   license: MIT
   license_file: LICENSE
-  home: https://github.com/conda-incubator/conda-pypi
+  summary: Better PyPI interoperability for the conda ecosystem
+  dev_url: https://github.com/conda-incubator/conda-pypi
   doc_url: https://conda-incubator.github.io/conda-pypi
 
 extra:
