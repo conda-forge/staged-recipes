@@ -7,7 +7,7 @@ cargo-bundle-licenses \
   --format yaml \
   --output ${SRC_DIR}/THIRDPARTY.yml
 
-cargo install --locked --root "$PREFIX" --path .
+cargo install --no-track --locked --root "$PREFIX" --path .
 
 # strip debug symbols
 "$STRIP" "$PREFIX/bin/silicon"
