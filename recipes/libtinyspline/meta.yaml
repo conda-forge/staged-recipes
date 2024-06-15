@@ -1,0 +1,60 @@
+{% set name = "libtinyspline" %}
+{% set version = "0.6.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/msteinbeck/tinyspline/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 3ea31b610dd279266f26fd7ad5b5fca7a20c0bbe05c7c32430ed6aa54d57097a
+
+build:
+  script: 
+    - mkdir -p build
+    - cd build
+    - cmake ${CMAKE_ARGS} .. -G Ninja -DCMAKE_INSTALL_PREFIX=${PREFIX}        -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DTINYSPLINE_BUILD_EXAMPLES=OFF -DTINYSPLINE_BUILD_DOCS=OFF -DTINYSPLINE_INSTALL_LIBRARY_DIR=lib  # [unix]
+    - cmake %CMAKE_ARGS%  .. -G Ninja -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DTINYSPLINE_BUILD_EXAMPLES=OFF -DTINYSPLINE_BUILD_DOCS=OFF -DTINYSPLINE_INSTALL_LIBRARY_DIR=lib  # [win]
+    - cmake --build .
+    - ctest
+    - cmake --install . --strip
+  number: 0
+  run_exports:
+    - {{ pin_subpackage('libtinyspline', max_pin='x') }}
+
+requirements:
+  build:
+    - cmake
+    - ninja
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ stdlib("c") }}
+
+test:
+  commands:
+    # C 
+    - test -f "${PREFIX}/include/tinyspline.h"  # [unix]
+    - test -f "${PREFIX}/lib/libtinyspline${SHLIB_EXT}"  # [unix]
+    - if not exist %LIBRARY_INC%\tinyspline.h exit 1  # [win]
+    - if not exist %LIBRARY_BIN%\tinyspline%SHLIB_EXT% exit 1  # [win]
+    # C++
+    - test -f "${PREFIX}/include/tinysplinecxx.h"  # [unix]
+    - test -f "${PREFIX}/lib/libtinysplinecxx${SHLIB_EXT}"  # [unix]
+    - if not exist %LIBRARY_INC%\tinysplinecxx.h exit 1  # [win]
+    - if not exist %LIBRARY_BIN%\tinysplinecxx%SHLIB_EXT% exit 1  # [win]
+
+about:
+  home: https://msteinbeck.github.io/tinyspline/
+  summary: 'TinySpline is a small, yet powerful library for interpolating, transforming, and querying arbitrary NURBS, B-Splines, and Bézier curves.'
+  description: |
+    TinySpline is a small, yet powerful library for interpolating, transforming, and querying arbitrary NURBS, B-Splines, and Bézier curves. 
+    The core of the library is written in ANSI C (C89) with a C++ wrapper for an object-oriented programming model.
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  doc_url: https://msteinbeck.github.io/tinyspline/
+  dev_url: https://github.com/msteinbeck/tinyspline/
+
+extra:
+  recipe-maintainers:
+    - mantkiew
