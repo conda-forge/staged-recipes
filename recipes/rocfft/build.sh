@@ -17,7 +17,6 @@ cmake ${CMAKE_ARGS} \
     -DGPU_TARGETS="$GPU_LIST" \
     ..
 
-make
-make mytest
+make -j${CPU_COUNT}
 
 make install
