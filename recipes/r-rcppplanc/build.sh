@@ -9,6 +9,9 @@
 # https://github.com/jeroen/autobrew/issues/3
 export DISABLE_AUTOBREW=1
 
+#disable clang availability checks
+export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+
 # R refuses to build packages that mark themselves as Priority: Recommended
 mv DESCRIPTION DESCRIPTION.old
 grep -va '^Priority: ' DESCRIPTION.old > DESCRIPTION
