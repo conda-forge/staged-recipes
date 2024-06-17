@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
-./autogen.sh --enable-tools=yes --prefix=$PREFIX
-make
 make install
+# add the binaries to a separate package gpiod-tools as they are GPL
+rm $PREFIX/bin/gpio*
