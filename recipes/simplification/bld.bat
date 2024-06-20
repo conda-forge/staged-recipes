@@ -13,10 +13,10 @@ set TARGET=x86_64-pc-windows-msvc
 cargo build --release --target=%TARGET% --features headers
 
 REM Copy the built library to the Python package
-copy include\header.h ..\
-copy target\%TARGET%\release\deps\rdp.dll.lib target\target\%TARGET%\release\deps\rdp.lib
+copy target\%TARGET%\release\deps\rdp.dll.lib target\%TARGET%\release\deps\rdp.lib
 copy target\%TARGET%\release\rdp* ..\
 copy target\%TARGET%\release\deps\rdp* ..\
+copy include\header.h ..\
 
 REM Remove the build directory
 cd %SRC_DIR%
