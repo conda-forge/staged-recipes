@@ -28,7 +28,7 @@ case ${target_platform} in
 		install_name_tool -id "@rpath/librdp.dylib" $lib
 		otool -L $lib
 	done
-    cp target/${TARGET}release/librdp.dylib ../
+    cp target/${TARGET}/release/librdp.dylib ../
     ;;
   osx-arm64)
 	xcodebuild -showsdks
@@ -47,6 +47,8 @@ case ${target_platform} in
 	exit 1
 	;;
 esac
+
+cp include/header.h ../
 
 cd ${SRC_DIR}
 rm -rf src/simplification/rdp
