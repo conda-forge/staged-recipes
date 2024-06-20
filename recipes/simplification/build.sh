@@ -19,6 +19,19 @@ elif [ ${target_platform} == *"osx"* ]; then
 	cp target/release/librdp.dylib ../
 fi
 
+case ${target_platform} in                                  
+  *linux*)
+    cp target/release/librdp.so ../
+    ;;
+  *osx*)
+    cp target/release/librdp.dylib ../
+    ;;
+  *)
+    echo "Unsupported platform: ${target_platform}"
+	exit 1
+	;;
+esac
+
 cd ${SRC_DIR}
 rm -rf src/simplification/rdp
 
