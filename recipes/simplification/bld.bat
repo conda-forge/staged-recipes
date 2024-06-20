@@ -1,10 +1,24 @@
 @echo on
 
-set "TAG=v%RDPTAG%"
-set "FILENAME=rdp-%TAG%-x86_64-pc-windows-msvc.tar.gz"
-set "URL=https://github.com/urschrei/rdp/releases/download/%TAG%/%FILENAME%"
-curl -L %URL% -o %FILENAME%
-tar -xvf %FILENAME% -C src\simplification
+REM Bundle all downstream library licenses
+cargo-bundle-licenses ^
+    --format yaml ^
+    --output %SRC_DIR%\THIRDPARTY_LICENSES.yaml ^
+    || goto :error
 
+REM Build the Rust library
+CARGO_INCREMENTAL="0" cargo build --release
+
+REM Copy the built library to the Python package
+cp include\header.h ..\
+cp target\release\deps\rdp.dll.lib target\target\release\deps\rdp.lib
+cp target\release\rdp* ..\
+cp target\release\deps\rdp* ..\
+
+REM Remove the build directory
+cd ..
+rm -rf rdp
+
+REM Build the Python package
 %PYTHON% -m pip install . -vv --no-deps --no-build-isolation
 if errorlevel 1 exit 1

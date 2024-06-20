@@ -1,19 +1,25 @@
 #!/bin/bash
 set -ex
 
-TAG="v${RDPTAG}"
-if [ ${target_platform} == "linux-64" ]; then
-	FILENAME="rdp-${TAG}-x86_64-unknown-linux-gnu.tar.gz"
-elif [ ${target_platform} == "linux-aarch64" ]; then
-	FILENAME="rdp-${TAG}-aarch64-unknown-linux-gnu.tar.gz"
-elif [ ${target_platform} == "osx-arm64" ]; then
-	FILENAME="rdp-${TAG}-aarch64-apple-darwin.tar.gz"
-elif [ ${target_platform} == "osx-64" ]; then
-	FILENAME="rdp-${TAG}-x86_64-apple-darwin.tar.gz"
+# Bundle all downstream library licenses
+cargo-bundle-licenses \
+  --format yaml \
+  --output ${SRC_DIR}/THIRDPARTY_LICENSES.yaml
+
+# Build the Rust library
+cd src/simplification/rdp
+CARGO_INCREMENTAL="0" cargo build --release
+
+# Copy the built library and header to the root of the source directory
+cp include/header.h ../
+if [ ${target_platform} == *"linux"* ]; then
+	cp target/release/librdp.so ../
+elif [ ${target_platform} == *"osx"* ]; then
+	cp target/release/librdp.dylib ../
 fi
 
-URL="https://github.com/urschrei/rdp/releases/download/${TAG}/${FILENAME}"
-curl -L $URL -o $FILENAME
-tar -xvf $FILENAME -C src/simplification
+cd ../
+rm -rf rdp
 
+# Build the Python package
 $PYTHON -m pip install . -vv --no-deps --no-build-isolation
