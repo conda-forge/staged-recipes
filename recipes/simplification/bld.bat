@@ -9,18 +9,18 @@ cargo-bundle-licenses ^
     || goto :error
 
 REM Build the Rust library
-set CARGO_INCREMENTAL=0
-cargo build --release
+set TARGET=x86_64-pc-windows-msvc
+cargo build --release --target=%TARGET% --features headers
 
 REM Copy the built library to the Python package
-cp include\header.h ..\
-cp target\release\deps\rdp.dll.lib target\target\release\deps\rdp.lib
-cp target\release\rdp* ..\
-cp target\release\deps\rdp* ..\
+copy include\header.h ..\
+copy target\%TARGET%\release\deps\rdp.dll.lib target\target\%TARGET%\release\deps\rdp.lib
+copy target\%TARGET%\release\rdp* ..\
+copy target\%TARGET%\release\deps\rdp* ..\
 
 REM Remove the build directory
 cd %SRC_DIR%
-rm -rf src\simplification\rdp
+rmdir /S /Q -rf src\simplification\rdp
 
 REM Build the Python package
 %PYTHON% -m pip install . -vv --no-deps --no-build-isolation
