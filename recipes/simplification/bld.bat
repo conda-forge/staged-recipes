@@ -9,7 +9,8 @@ cargo-bundle-licenses ^
     || goto :error
 
 REM Build the Rust library
-CARGO_INCREMENTAL="0" cargo build --release
+set CARGO_INCREMENTAL=0
+cargo build --release
 
 REM Copy the built library to the Python package
 cp include\header.h ..\
