@@ -19,8 +19,8 @@ elif [ ${target_platform} == *"osx"* ]; then
 	cp target/release/librdp.dylib ../
 fi
 
-cd ../
-rm -rf rdp
+cd ${SRC_DIR}
+rm -rf src/simplification/rdp
 
 # Build the Python package
 $PYTHON -m pip install . -vv --no-deps --no-build-isolation

@@ -18,8 +18,8 @@ cp target\release\rdp* ..\
 cp target\release\deps\rdp* ..\
 
 REM Remove the build directory
-cd ..
-rm -rf rdp
+cd %SRC_DIR%
+rm -rf src\simplification\rdp
 
 REM Build the Python package
 %PYTHON% -m pip install . -vv --no-deps --no-build-isolation
