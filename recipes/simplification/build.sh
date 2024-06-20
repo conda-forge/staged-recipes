@@ -1,13 +1,14 @@
 #!/bin/bash
 set -ex
 
+cd src/simplification/rdp
+
 # Bundle all downstream library licenses
 cargo-bundle-licenses \
   --format yaml \
   --output ${SRC_DIR}/THIRDPARTY_LICENSES.yaml
 
 # Build the Rust library
-cd src/simplification/rdp
 CARGO_INCREMENTAL="0" cargo build --release
 
 # Copy the built library and header to the root of the source directory

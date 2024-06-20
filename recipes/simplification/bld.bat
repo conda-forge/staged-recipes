@@ -1,5 +1,7 @@
 @echo on
 
+cd src\simplification\rdp
+
 REM Bundle all downstream library licenses
 cargo-bundle-licenses ^
     --format yaml ^
