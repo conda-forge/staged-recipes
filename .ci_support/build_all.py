@@ -6,6 +6,7 @@ import conda_index.api
 import networkx as nx
 from compute_build_graph import construct_graph
 import argparse
+import re
 import os
 from collections import OrderedDict
 import sys
@@ -54,10 +55,28 @@ def build_all(recipes_dir, arch):
                     found_cuda = True
                 if 'sysroot_linux-64' in text:
                     found_centos7 = True
+        cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
+        if os.path.exists(cbc):
+            with open(cbc, "r") as f:
+                lines = f.readlines()
+            pat = re.compile(r"^([^\#]*?)\s+\#\s\[.*(not\s(linux|unix)|(?<!not\s)(osx|win)).*\]\s*$")
+            # remove lines with selectors that don't apply to linux, i.e. if they contain
+            # "not linux", "not unix", "osx" or "win"; this also removes trailing newlines
+            lines = [pat.sub("", x) for x in lines]
+            text = "\n".join(lines)
+            if platform == 'linux' and ('c_stdlib_version' in text):
+                config = load(text, Loader=BaseLoader)
+                if 'c_stdlib_version' in config:
+                    for version in config['c_stdlib_version']:
+                        version = tuple([int(x) for x in version.split('.')])
+                        print(f"Found c_stdlib_version for linux: {version=}")
+                        found_centos7 |= version == (2, 17)
+
     if found_cuda:
         print('##vso[task.setvariable variable=NEED_CUDA;isOutput=true]1')
     if found_centos7:
         os.environ["DEFAULT_LINUX_VERSION"] = "cos7"
+        print("Overriding DEFAULT_LINUX_VERSION to be cos7")
 
     deployment_version = (0, 0)
     sdk_version = (0, 0)
@@ -66,15 +85,26 @@ def build_all(recipes_dir, arch):
         cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
         if os.path.exists(cbc):
             with open(cbc, "r") as f:
-                text = ''.join(f.readlines())
+                lines = f.readlines()
+            pat = re.compile(r"^([^\#]*?)\s+\#\s\[.*(not\s(osx|unix)|(?<!not\s)(linux|win)).*\]\s*$")
+            # remove lines with selectors that don't apply to osx, i.e. if they contain
+            # "not osx", "not unix", "linux" or "win"; this also removes trailing newlines
+            lines = [pat.sub("", x) for x in lines]
+            text = "\n".join(lines)
             if platform == 'osx' and (
                     'MACOSX_DEPLOYMENT_TARGET' in text or
-                    'MACOSX_SDK_VERSION' in text):
+                    'MACOSX_SDK_VERSION' in text or
+                    'c_stdlib_version' in text):
                 config = load(text, Loader=BaseLoader)
 
                 if 'MACOSX_DEPLOYMENT_TARGET' in config:
                     for version in config['MACOSX_DEPLOYMENT_TARGET']:
                         version = tuple([int(x) for x in version.split('.')])
+                        deployment_version = max(deployment_version, version)
+                if 'c_stdlib_version' in config:
+                    for version in config['c_stdlib_version']:
+                        version = tuple([int(x) for x in version.split('.')])
+                        print(f"Found c_stdlib_version for osx: {version=}")
                         deployment_version = max(deployment_version, version)
                 if 'MACOSX_SDK_VERSION' in config:
                     for version in config['MACOSX_SDK_VERSION']:
