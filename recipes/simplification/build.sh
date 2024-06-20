@@ -51,7 +51,6 @@ esac
 cp include/header.h ../
 
 cd ${SRC_DIR}
-rm -rf src/simplification/rdp
 
 # Build the Python package
-$PYTHON -m pip install . -vv --no-deps --no-build-isolation
+$PYTHON -m pip install . -vv --no-deps --no-build-isolation || exit 1
