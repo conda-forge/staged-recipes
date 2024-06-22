@@ -15,4 +15,4 @@ cmake --build build --parallel --config Release
 
 ctest --test-dir build --output-on-failure --build-config Release
 
-cmake --build build --target install
+cmake --build build --target install --config Release
