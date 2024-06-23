@@ -1,5 +1,3 @@
-#!/bin/bash
-
-set -euxo pipefail
+@echo on
 
 pip install -e .
