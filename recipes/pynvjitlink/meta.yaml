@@ -1,0 +1,69 @@
+{% set name = "pynvjitlink" %}
+{% set version = "0.1.0.dev1" %}
+
+package:
+  name: pynvjitlink
+  version: {{ version }}
+
+source:
+  git_url: https://github.com/rapidsai/pynvjitlink
+  git_rev: e489f502eefaf006d7b6dddf546e6a68154d950f
+  git_depth: 1
+
+
+build:
+  script: {{ PYTHON }} -m pip install . -vv
+  number: 0
+  skip: true  # [(cuda_compiler_version or "").startswith("11") or py<39 or (not linux)]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+    - cmake >=3.26.4
+    - sysroot_{{ target_platform }} 2.17
+    - make
+  host:
+    - libnvjitlink-dev
+    - libnvjitlink-static
+    - python
+    - pip
+    - scikit-build-core
+  run:
+    - python
+    - numba >=0.57
+    - {{ pin_compatible('cuda-version', max_pin='x', min_pin='x') }}
+
+test:
+  imports:
+    - pynvjitlink
+  source_files:
+    - test_binary_generation/Makefile
+    - test_binary_generation/test.cu
+    - test_binary_generation/undefined_extern.cu
+    - pynvjitlink/tests/test_pynvjitlink_api.py
+    - pynvjitlink/tests/test_pynvjitlink.py
+  requires:
+    - pytest
+    - make
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}
+  commands: 
+    - cd test_binary_generation && make
+    - cd .. && pytest -v
+
+about:
+  home: https://rapids.ai/
+  dev_url: https://github.com/rapidsai/pynvjitlink
+  doc_url: https://github.com/rapidsai/pynvjitlink/blob/main/README.md
+  license: Apache-2.0
+  license_family: Apache
+  license_file: LICENSE
+  license_url: https://github.com/rapidsai/pynvjitlink/blob/main/LICENSE
+  summary: nvJitLink Python binding
+
+extra:
+  recipe-maintainers:
+    - brandon-b-miller
