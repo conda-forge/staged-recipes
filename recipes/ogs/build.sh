@@ -17,6 +17,8 @@ cmake -LAH -G Ninja ${CMAKE_ARGS} \
     -DOGS_VERSION=${PKG_VERSION} \
     -DOGS_INSTALL_DEPENDENCIES=OFF \
     -DOGS_CPU_ARCHITECTURE=OFF \
+    -DBUILD_SHARED_LIBS=ON \
+    -DCONDA_BUILD=ON \
     ..
 
 cmake --build . --target install -j${CPU_COUNT}
