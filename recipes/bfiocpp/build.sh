@@ -6,7 +6,7 @@ PY_ABIFLAGS=$(python -c "import sys; print('' if sys.version_info.major == 2 els
 PY_ABI=${PY_VER}${PY_ABIFLAGS}
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
-	export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY -DPNG_INCLUDE_DIR=$PREFIX/include"
+	export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY -DPNG_INCLUDE_DIRS=$PREFIX/include"
 fi
 
 
