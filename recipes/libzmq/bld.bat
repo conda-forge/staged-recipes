@@ -22,6 +22,8 @@ cd %_build_dir%
     -Wno-dev ^
     -D CMAKE_BUILD_TYPE=Release ^
     -D BUILD_STATIC=OFF ^
+    -D ZMQ_BUILD_TESTS=OFF ^
+    -D ENABLE_CPACK=OFF ^
     -D CMAKE_INSTALL_PREFIX="%_install_dir%" ^
     %SRC_DIR%
   if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%

@@ -59,7 +59,10 @@ cmake_build_dir="${SRC_DIR}/build-release"
 
 configure_platform
 mkdir -p "${cmake_build_dir}"
-EXTRA_CMAKE_ARGS=("${CMAKE_ARGS}")
-EXTRA_CMAKE_ARGS=("-DBUILD_STATIC=OFF")
+# EXTRA_CMAKE_ARGS=("${CMAKE_ARGS}")
+EXTRA_CMAKE_ARGS+=( \
+  "-DBUILD_STATIC=OFF" \
+  "-DZMQ_BUILD_TESTS=OFF" \
+)
 configure_cmake "${cmake_build_dir}" "${PREFIX}"
 cmake_build_install "${cmake_build_dir}"
