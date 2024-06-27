@@ -19,7 +19,7 @@ cd %_build_dir%
 
   cmake %CMAKE_ARGS% ^
     -G "Ninja" ^
-    -Wno-dev
+    -Wno-dev ^
     -D CMAKE_BUILD_TYPE=Release ^
     -D BUILD_STATIC=OFF ^
     -D CMAKE_INSTALL_PREFIX="%_install_dir%" ^
