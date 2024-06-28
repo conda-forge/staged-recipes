@@ -16,4 +16,12 @@ case "${target_platform}" in
     ;;
 esac
 
-zig build "${TARGET:-}" -Doptimize=ReleaseFast
+./configure
+make -j"${CPU_COUNT}" && make check && make install prefix="${PREFIX}"
+
+# Remove static lib
+rm -f "${PREFIX}/lib/libsodium.la"
+rm -f "${PREFIX}/lib/libsodium.a"
+
+# ZIG requires glibc 2.28
+# zig build "${TARGET:-}" -Doptimize=ReleaseFast
