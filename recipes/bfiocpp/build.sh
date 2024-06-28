@@ -7,12 +7,10 @@ PY_ABI=${PY_VER}${PY_ABIFLAGS}
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
 	export CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
+    if [[ -d "$CONDA_BUILD_SYSROOT/usr/include/curl" ]]; then
+        mv "$CONDA_BUILD_SYSROOT/usr/include/curl" "$CONDA_BUILD_SYSROOT/usr/include/curl.do-not-use"
+    fi
 fi
-
-if [[ $target_platform =~ osx.* && -d "$CONDA_BUILD_SYSROOT/usr/include/curl" ]]; then
-    mv "$CONDA_BUILD_SYSROOT/usr/include/curl" "$CONDA_BUILD_SYSROOT/usr/include/curl.do-not-use"
-fi
-
 
 CMAKE_USE_SYSTEM_LIBS="-DTENSORSTORE_USE_SYSTEM_AOM=ON"
 CMAKE_USE_SYSTEM_LIBS+=" -DTENSORSTORE_USE_SYSTEM_AVIF=ON" 
