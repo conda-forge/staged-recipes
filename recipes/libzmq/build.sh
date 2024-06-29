@@ -57,12 +57,18 @@ set -euxo pipefail
 
 cmake_build_dir="${SRC_DIR}/build-release"
 
+export LIBSODIUM_ROOT="${PREFIX}"
+
 configure_platform
 mkdir -p "${cmake_build_dir}"
 # EXTRA_CMAKE_ARGS=("${CMAKE_ARGS}")
+cmake -L
 EXTRA_CMAKE_ARGS+=( \
   "-DBUILD_STATIC=OFF" \
   "-DZMQ_BUILD_TESTS=OFF" \
+  "-DENABLE_CURVE=ON" \
+  "-DWITH_LIBSODIUM=ON" \
+  "-DENABLE_LIBSODIUM_RANDOMBYTES_CLOSE=ON" \
 )
 configure_cmake "${cmake_build_dir}" "${PREFIX}"
 cmake_build_install "${cmake_build_dir}"
