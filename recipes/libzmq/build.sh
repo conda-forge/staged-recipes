@@ -62,7 +62,6 @@ export LIBSODIUM_ROOT="${PREFIX}"
 configure_platform
 mkdir -p "${cmake_build_dir}"
 # EXTRA_CMAKE_ARGS=("${CMAKE_ARGS}")
-cmake -L
 EXTRA_CMAKE_ARGS+=( \
   "-DBUILD_STATIC=OFF" \
   "-DZMQ_BUILD_TESTS=OFF" \
