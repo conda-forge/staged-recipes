@@ -33,7 +33,6 @@ case ${target_platform} in
 	xcodebuild -showsdks
 	SDKROOT=$(xcrun -sdk macosx14.0 --show-sdk-path)
   	TARGET=aarch64-apple-darwin
-	export MACOSX_DEPLOYMENT_TARGET=11.0
 	cargo build --release --target=${TARGET} --features headers
 	for lib in target/${TARGET}/release/*.dylib; do
 		install_name_tool -id "@rpath/librdp.dylib" $lib
