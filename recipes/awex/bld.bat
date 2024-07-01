@@ -1,3 +1,3 @@
 
 set CMAKE_GENERATOR="MinGW Makefiles"
-python -m pip install .
+python -m pip install "%SRC_DIR%"

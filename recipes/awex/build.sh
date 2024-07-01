@@ -12,4 +12,4 @@ cat > "$SRC_DIR/setup.cfg" << EOF
 cmake_opts=${CMAKE_PLATFORM_FLAGS[@]}
 EOF
 
-python -m pip .
+python -m pip install "${SRC_DIR}"
