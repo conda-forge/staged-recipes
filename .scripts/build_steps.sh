@@ -57,8 +57,8 @@ fi
 git ls-tree --name-only main -- . | xargs -I {} sh -c "rm -rf ~/staged-recipes-copy/recipes/{} && echo Removing recipe: {}"
 popd > /dev/null
 
-
-
+# Prevent permission errors in ~/.cache/conda
+export CONDA_NUMBER_CHANNEL_NOTICES=0
 conda install --quiet --file ${FEEDSTOCK_ROOT}/.ci_support/requirements.txt
 
 setup_conda_rc "${FEEDSTOCK_ROOT}" "/home/conda/staged-recipes-copy/recipes" "${CI_SUPPORT}/${CONFIG}.yaml"
