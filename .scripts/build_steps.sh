@@ -41,7 +41,11 @@ CONDARC
 git config --global --add safe.directory "${FEEDSTOCK_ROOT}"
 
 # Copy the host recipes folder so we don't ever muck with it
-cp -r ${FEEDSTOCK_ROOT} ~/staged-recipes-copy
+# Skip build_artifacts because it gets huge with time
+mkdir -p ~/staged-recipes-copy
+shopt -s extglob dotglob
+cp -r "${FEEDSTOCK_ROOT}/!(build_artifacts)" ~/staged-recipes-copy
+shopt -u extglob dotglob
 
 # Remove any macOS system files
 find ~/staged-recipes-copy/recipes -maxdepth 1 -name ".DS_Store" -delete
