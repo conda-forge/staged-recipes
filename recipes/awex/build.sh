@@ -9,7 +9,7 @@ fi
 
 cat > "$SRC_DIR/setup.cfg" << EOF
 [build_ext]
-cmake_opts=${CMAKE_PLATFORM_FLAGS[@]}
+cmake_opts=-DPython3_EXECUTABLE="${PYTHON}" ${CMAKE_PLATFORM_FLAGS[@]}
 EOF
 
 python -m pip install "${SRC_DIR}"
