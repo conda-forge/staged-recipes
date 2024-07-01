@@ -30,7 +30,7 @@ setup(
     name='airbyte_protocol_models_pdv2',
     version=VERSION,
     description="Declares the Airbyte Protocol.",
-    # long_description=README,
+    long_description=README,
     long_description_content_type="text/markdown",
     author="Airbyte",
     author_email="contact@airbyte.io",
