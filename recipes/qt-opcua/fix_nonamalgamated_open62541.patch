@@ -1,0 +1,128 @@
+From e12cb2a448af3d4e6d742f686dac63ebf23e2961 Mon Sep 17 00:00:00 2001
+From: Silvio Traversaro <silvio@traversaro.it>
+Date: Sat, 24 Feb 2024 23:15:30 +0100
+Subject: [PATCH] Fix for use non-amalgamated open62541
+
+---
+ cmake/FindOpen62541.cmake                  | 45 ++++++++++++++--------
+ src/opcua/configure.cmake                  |  5 ++-
+ src/plugins/opcua/open62541/CMakeLists.txt |  2 +-
+ src/plugins/opcua/open62541/qopen62541.h   |  4 +-
+ 4 files changed, 36 insertions(+), 20 deletions(-)
+
+diff --git a/cmake/FindOpen62541.cmake b/cmake/FindOpen62541.cmake
+index b4fcea41..7c56ad96 100644
+--- a/cmake/FindOpen62541.cmake
++++ b/cmake/FindOpen62541.cmake
+@@ -21,31 +21,44 @@
+ # ``open62541``
+ #     The open62541 library
+ 
+-find_path(Open62541_INCLUDE_DIRS
+-    NAMES open62541.h
+-    HINTS "${OPEN62541_INCDIR}")
++# first try to find the official open62541 CMake config files
++find_package(open62541 NO_MODULE QUIET)
++set(Open62541_FOUND ${open62541_FOUND})
+ 
+-find_library(Open62541_LIBRARIES
+-    NAMES open62541
+-    HINTS "${OPEN62541_LIBDIR}")
++if (NOT TARGET open62541::open62541)
++    find_path(Open62541_INCLUDE_DIRS
++        NAMES open62541.h
++        HINTS "${OPEN62541_INCDIR}")
+ 
+-if (NOT Open62541_INCLUDE_DIRS STREQUAL "Open62541_INCLUDE_DIRS-NOTFOUND" AND NOT Open62541_LIBRARIES STREQUAL "Open62541_LIBRARIES-NOTFOUND")
++    find_library(Open62541_LIBRARIES
++        NAMES open62541
++        HINTS "${OPEN62541_LIBDIR}")
++    mark_as_advanced(Open62541_INCLUDE_DIRS Open62541_LIBRARIES)
++else()
++  get_property(Open62541_INCLUDE_DIRS TARGET open62541::open62541 PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
++  set(Open62541_LIBRARIES open62541::open62541)
++endif()
++
++if (NOT Open62541_FOUND AND NOT Open62541_INCLUDE_DIRS STREQUAL "Open62541_INCLUDE_DIRS-NOTFOUND" AND NOT Open62541_LIBRARIES STREQUAL "Open62541_LIBRARIES-NOTFOUND")
+     set(Open62541_FOUND ON)
+ endif()
+ 
+ if (Open62541_FOUND)
+-    add_library(open62541 UNKNOWN IMPORTED)
+-    set_target_properties(open62541 PROPERTIES
+-        IMPORTED_LOCATION "${Open62541_LIBRARIES}"
+-        INTERFACE_INCLUDE_DIRECTORIES "${Open62541_INCLUDE_DIRS}")
+-
+-    if (WIN32)
+-        set_property(TARGET open62541 APPEND PROPERTY
+-            INTERFACE_LINK_LIBRARIES ws2_32)
++    if(NOT TARGET open62541::open62541)
++        add_library(open62541 UNKNOWN IMPORTED)
++        set_target_properties(open62541 PROPERTIES
++            IMPORTED_LOCATION "${Open62541_LIBRARIES}"
++            INTERFACE_INCLUDE_DIRECTORIES "${Open62541_INCLUDE_DIRS}")
++
++        if (WIN32)
++            set_property(TARGET open62541 APPEND PROPERTY
++                INTERFACE_LINK_LIBRARIES ws2_32)
++        endif()
++    else()
++        add_library(open62541 ALIAS open62541::open62541)
+     endif()
+ endif()
+ 
+-mark_as_advanced(Open62541_INCLUDE_DIRS Open62541_LIBRARIES)
+ 
+ include(FeatureSummary)
+ set_package_properties(Open62541 PROPERTIES
+diff --git a/src/opcua/configure.cmake b/src/opcua/configure.cmake
+index 91e679f7..2b73d3a4 100644
+--- a/src/opcua/configure.cmake
++++ b/src/opcua/configure.cmake
+@@ -29,7 +29,8 @@ if (INPUT_open62541 STREQUAL "system")
+             open62541
+         CODE
+     "#include <stdio.h>
+-    #include <open62541.h>
++    #include <open62541/client_config_default.h>
++    #include <open62541/client_highlevel.h>
+ 
+     int main(int argc, char *argv[])
+     {
+@@ -88,7 +89,7 @@ int main(int /*argc*/, char ** /*argv*/)
+ # Find out if the system open62541 is built with encryption support
+ include(CheckSymbolExists)
+ if (Open62541_FOUND)
+-    check_symbol_exists(UA_ENABLE_ENCRYPTION ${Open62541_INCLUDE_DIRS}/open62541.h OPEN62541_SYSTEM_ENCRYPTION)
++    check_symbol_exists(UA_ENABLE_ENCRYPTION ${Open62541_INCLUDE_DIRS}/open62541/config.h OPEN62541_SYSTEM_ENCRYPTION)
+ endif()
+ 
+ #### Features
+diff --git a/src/plugins/opcua/open62541/CMakeLists.txt b/src/plugins/opcua/open62541/CMakeLists.txt
+index 2a3cae86..da425a65 100644
+--- a/src/plugins/opcua/open62541/CMakeLists.txt
++++ b/src/plugins/opcua/open62541/CMakeLists.txt
+@@ -88,7 +88,7 @@ endif()
+ 
+ qt_internal_extend_target(QOpen62541Plugin CONDITION QT_FEATURE_system_open62541 OR NOT QT_FEATURE_open62541
+     LIBRARIES
+-        open62541
++        open62541::open62541
+ )
+ 
+ #qt_internal_extend_target(QOpen62541Plugin CONDITION WIN32 AND MSVC AND (QT_FEATURE_system_open62541 OR NOT QT_FEATURE_open62541)
+diff --git a/src/plugins/opcua/open62541/qopen62541.h b/src/plugins/opcua/open62541/qopen62541.h
+index a4f63df7..fbe21ae1 100644
+--- a/src/plugins/opcua/open62541/qopen62541.h
++++ b/src/plugins/opcua/open62541/qopen62541.h
+@@ -18,7 +18,9 @@
+ #pragma clang diagnostic ignored "-Wunused-parameter"
+ #endif
+ 
+-#include <open62541.h>
++#include <open62541/client_config_default.h>
++#include <open62541/client_highlevel.h>
++#include <open62541/client_subscriptions.h>
+ 
+ #if defined(_MSC_VER)
+ #pragma warning(pop)
