@@ -1,0 +1,332 @@
+{% set name = "libbip3x" %}
+{% set version = "3.0.0" %}
+
+{% set so_major_version = version.split('.')[0] %}
+{% set bip3x_h = ["bip3x_config.h", "bip3x_crypto.h", "bip3x_hdkey_encoder.h", "bip3x_mnemonic.h"] %}
+{% set cbip3x_h = ["cbip3x_config.h", "cbip3x.h", "cbip3x_hdkey_encoder.h"] %}
+{% set details_h = ["PCGRand.hpp", "uint256.h", "uint256_t.hpp", "utils.h"] %}
+{% set crypto_h = [
+  "address.h", "base58.h", "bignum.h", "bip39_english.h", "bip39.h",
+  "blake256.h", "check_mem.h", "common.h", "ecdsa.h", "hasher.h",
+  "hmac.h", "hmac_sha256.h", "hmac_sha512.h", "memzero.h", "options.h",
+  "packed_attr.h", "pbkdf2.hpp", "rand.h", "rfc6979.h", "ripemd160.h",
+  "secp256k1.h", "secp256k1.table", "sha256.h", "sha2.hpp", "sha3.h",
+  "sha512.h", "win_endian.h",
+] %}
+
+package:
+  name: libbip3x-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/edwardstock/bip3x/archive/refs/tags/{{ version }}.tar.gz
+  sha256: ef663ad90c6251452509943e621c337d88ea9afb9e14432dcad1f4bb7b175fb8
+  patches:
+    - patches/0001-add-so-version.patch
+    - patches/0002-add-so-version-c.patch
+    - patches/0003-add-so-version-jni.patch
+
+build:
+  number: 0
+
+requirements:
+  host:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - cmake
+    - ninja
+    - openjdk
+    - openssl
+
+outputs:
+  - name: libbip3x
+    build:
+      run_exports:
+        - {{ pin_subpackage('libbip3x-' ~ so_major_version) }}
+    files:
+      {% for header in bip3x_h %}
+      - include/bip3x/{{ header }}
+      {% endfor %}
+      {% for header in crypto_h %}
+      - include/bip3x/crypto/{{ header }}
+      {% endfor %}
+      {% for header in details_h %}
+      - include/bip3x/details/{{ header }}
+      {% endfor %}
+      - lib/libbip3x.so
+      - lib/pkgconfig/bip3x.pc
+      - lib/cmake/bip3x-config.cmake
+      - lib/cmake/bip3x-config-version.cmake
+      - lib/cmake/bip3x-targets.cmake
+      - lib/cmake/bip3x-targets-noconfig.cmake
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib('c') }}
+      run:
+        - {{ pin_subpackage('libbip3x-' ~ so_major_version, exact=True) }}
+    test:
+      requires:
+        - {{ compiler('c') }}
+        - cmake >=3.26
+        - make
+      commands:
+        # Installation files
+        {% for header in bip3x_h %}
+        - test -f ${PREFIX}/include/bip3x/{{ header }}
+        {% endfor %}
+
+        {% for header in crypto_h %}
+        - test -f ${PREFIX}/include/bip3x/crypto/{{ header }}
+        {% endfor %}
+
+        {% for header in details_h %}
+        - test -f ${PREFIX}/include/bip3x/details/{{ header }}
+        {% endfor %}
+
+        - test -f ${PREFIX}/lib/pkgconfig/bip3x.pc
+        {% set bip3_cmake = [
+          "bip3x-config.cmake", "bip3x-config-version.cmake",
+          "bip3x-targets.cmake", "bip3x-targets-noconfig.cmake",
+        ] %}
+        {% for cmake in bip3_cmake %}
+        - test -f ${PREFIX}/lib/cmake/{{ cmake }}
+        {% endfor %}
+
+        - test -f ${PREFIX}/lib/libbip3x${SHLIB_EXT}
+
+  - name: libcbip3x
+    build:
+      run_exports:
+        - {{ pin_subpackage('libbip3x-' ~ so_major_version) }}
+        - {{ pin_subpackage('libcbip3x-' ~ so_major_version) }}
+    files:
+      {% for header in cbip3x_h %}
+      - include/cbip3x/{{ header }}
+      {% endfor %}
+      - lib/libcbip3x.so
+      - lib/pkgconfig/cbip3x.pc
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib('c') }}
+      host:
+        - {{ pin_subpackage('libbip3x-' ~ so_major_version, exact=True) }}
+      run:
+        - {{ pin_subpackage('libbip3x-' ~ so_major_version, exact=True) }}
+        - {{ pin_subpackage('libcbip3x-' ~ so_major_version, exact=True) }}
+    test:
+      source_files:
+        - test-release
+      requires:
+        - {{ compiler('c') }}
+        - cmake >=3.26
+        - make
+      commands:
+        # Installation files
+        {% for header in cbip3x_h %}
+        - test -f ${PREFIX}/include/cbip3x/{{ header }}
+        {% endfor %}
+
+        - test -f ${PREFIX}/lib/libcbip3x${SHLIB_EXT}
+        - test -f ${PREFIX}/lib/pkgconfig/cbip3x.pc
+
+        # Key testing phase: This test needs both libbbip3x.so.3 and libcbip3x.so.3
+        - (cd test-release && LD_PRELOAD="${PREFIX}/lib/libbip3x.so.3:${PREFIX}/lib/libcbip3x.so.3:${PREFIX}/lib/libstdc++.so.6" ./bin/bip3x-test)
+
+  - name: libbip3x_jni
+    build:
+      run_exports:
+        - {{ pin_subpackage('libbip3x-' ~ so_major_version) }}
+        - {{ pin_subpackage('libbip3x_jni-' ~ so_major_version) }}
+    files:
+      - lib64/libbip3x_jni.so
+      - lib/pkgconfig/bip3x_jni.pc
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib('c') }}
+      host:
+        - {{ pin_subpackage('libbip3x-' ~ so_major_version, exact=True) }}
+      run:
+        - {{ pin_subpackage('libbip3x-' ~ so_major_version, exact=True) }}
+        - {{ pin_subpackage('libbip3x_jni-' ~ so_major_version, exact=True) }}
+        - openjdk
+    test:
+      requires:
+        - {{ compiler('c') }}
+        - cmake >=3.26
+        - make
+      commands:
+        # Installation files
+        - test -f ${PREFIX}/lib64/libbip3x_jni${SHLIB_EXT}
+        - test -f ${PREFIX}/lib/pkgconfig/bip3x_jni.pc
+
+  - name: libbip3x-{{ so_major_version }}
+    build:
+      run_exports:
+        - {{ pin_subpackage('libbip3x-' ~ so_major_version) }}
+    files:
+      - lib/libbip3x.so.{{ so_major_version }}
+      - lib/libbip3x.so.{{ version }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+    test:
+      source_files:
+        - test-release
+      commands:
+        {% for header in bip3x_h %}
+        - test ! -f ${PREFIX}/include/bip3x/{{ header }}
+        {% endfor %}
+
+        {% for header in crypto_h %}
+        - test ! -f ${PREFIX}/include/bip3x/crypto/{{ header }}
+        {% endfor %}
+
+        {% for header in cbip3x_h %}
+        - test ! -f ${PREFIX}/include/cbip3x/{{ header }}
+        {% endfor %}
+
+        {% for header in details_h %}
+        - test ! -f ${PREFIX}/include/bip3x/details/{{ header }}
+        {% endfor %}
+
+        - test -f ${PREFIX}/lib/libbip3x${SHLIB_EXT}.{{ so_major_version }}
+        - test -f ${PREFIX}/lib/libbip3x${SHLIB_EXT}.{{ version }}
+
+        - test ! -f ${PREFIX}/lib/libbip3x${SHLIB_EXT}
+        - test ! -f ${PREFIX}/lib/libcbip3x${SHLIB_EXT}
+        - test ! -f ${PREFIX}/lib64/libbip3x_jni${SHLIB_EXT}
+
+        - test ! -f ${PREFIX}/lib/libcbip3x${SHLIB_EXT}.{{ so_major_version }}
+        - test ! -f ${PREFIX}/lib/libcbip3x${SHLIB_EXT}.{{ version }}
+        - test ! -f ${PREFIX}/lib64/libbip3x_jni${SHLIB_EXT}.{{ so_major_version }}
+        - test ! -f ${PREFIX}/lib64/libbip3x_jni${SHLIB_EXT}.{{ version }}
+
+  - name: libcbip3x-{{ so_major_version }}
+    build:
+      run_exports:
+        - {{ pin_subpackage('libcbip3x-' ~ so_major_version) }}
+    files:
+      - lib/libcbip3x.so.{{ so_major_version }}
+      - lib/libcbip3x.so.{{ version }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+      host:
+        - {{ pin_subpackage('libbip3x-' ~ so_major_version, exact=True) }}
+      run:
+        - {{ pin_subpackage('libbip3x-' ~ so_major_version, exact=True) }}
+    test:
+      source_files:
+        - test-release
+      commands:
+        {% for header in bip3x_h %}
+        - test ! -f ${PREFIX}/include/bip3x/{{ header }}
+        {% endfor %}
+
+        {% for header in crypto_h %}
+        - test ! -f ${PREFIX}/include/bip3x/crypto/{{ header }}
+        {% endfor %}
+
+        {% for header in cbip3x_h %}
+        - test ! -f ${PREFIX}/include/cbip3x/{{ header }}
+        {% endfor %}
+
+        {% for header in details_h %}
+        - test ! -f ${PREFIX}/include/bip3x/details/{{ header }}
+        {% endfor %}
+
+        - test -f ${PREFIX}/lib/libcbip3x${SHLIB_EXT}.{{ so_major_version }}
+        - test -f ${PREFIX}/lib/libcbip3x${SHLIB_EXT}.{{ version }}
+        - test -f ${PREFIX}/lib/libbip3x${SHLIB_EXT}.{{ so_major_version }}
+        - test -f ${PREFIX}/lib/libbip3x${SHLIB_EXT}.{{ version }}
+
+        - test ! -f ${PREFIX}/lib/libbip3x${SHLIB_EXT}
+        - test ! -f ${PREFIX}/lib/libcbip3x${SHLIB_EXT}
+        - test ! -f ${PREFIX}/lib64/libbip3x_jni${SHLIB_EXT}
+
+        - test ! -f ${PREFIX}/lib64/libbip3x_jni${SHLIB_EXT}.{{ so_major_version }}
+        - test ! -f ${PREFIX}/lib64/libbip3x_jni${SHLIB_EXT}.{{ version }}
+
+        # Key testing phase: This test needs both libbbip3x.so.3 and libcbip3x.so.3
+        - (cd test-release && LD_PRELOAD="${PREFIX}/lib/libbip3x.so.3:${PREFIX}/lib/libcbip3x.so.3:${PREFIX}/lib/libstdc++.so.6" ./bin/bip3x-test)
+
+  - name: libbip3x_jni-{{ so_major_version }}
+    build:
+      run_exports:
+        - {{ pin_subpackage('libbip3x_jni-' ~ so_major_version) }}
+    files:
+      - lib64/libbip3x_jni.so.{{ so_major_version }}
+      - lib64/libbip3x_jni.so.{{ version }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+      host:
+        - {{ pin_subpackage('libbip3x-' ~ so_major_version, exact=True) }}
+      run:
+        - {{ pin_subpackage('libbip3x-' ~ so_major_version, exact=True) }}
+        - openjdk
+    test:
+      commands:
+        {% for header in bip3x_h %}
+        - test ! -f ${PREFIX}/include/bip3x/{{ header }}
+        {% endfor %}
+
+        {% for header in crypto_h %}
+        - test ! -f ${PREFIX}/include/bip3x/crypto/{{ header }}
+        {% endfor %}
+
+        {% for header in cbip3x_h %}
+        - test ! -f ${PREFIX}/include/cbip3x/{{ header }}
+        {% endfor %}
+
+        {% for header in details_h %}
+        - test ! -f ${PREFIX}/include/bip3x/details/{{ header }}
+        {% endfor %}
+
+        - test -f ${PREFIX}/lib64/libbip3x_jni${SHLIB_EXT}.{{ so_major_version }}
+        - test -f ${PREFIX}/lib64/libbip3x_jni${SHLIB_EXT}.{{ version }}
+        - test -f ${PREFIX}/lib/libbip3x${SHLIB_EXT}.{{ so_major_version }}
+        - test -f ${PREFIX}/lib/libbip3x${SHLIB_EXT}.{{ version }}
+
+        - test ! -f ${PREFIX}/lib/libbip3x${SHLIB_EXT}
+        - test ! -f ${PREFIX}/lib/libcbip3x${SHLIB_EXT}
+        - test ! -f ${PREFIX}/lib64/libbip3x_jni${SHLIB_EXT}
+
+        - test ! -f ${PREFIX}/lib/libcbip3x${SHLIB_EXT}.{{ so_major_version }}
+        - test ! -f ${PREFIX}/lib/libcbip3x${SHLIB_EXT}.{{ version }}
+
+  # Naming conversion (upstream github repo is called bip3x)
+  - name: bip3x
+    build:
+      run_exports:
+        - {{ pin_subpackage('libbip3x-' ~ so_major_version) }}
+    host:
+      - {{ pin_compatible('libbip3x', exact=True) }}
+    run:
+      - {{ pin_compatible('libbip3x', exact=True) }}
+
+about:
+  home: https://github.com/edwardstock/bip3x
+  summary: 'Bip39 mnemonic C++ implementation. Contains java and C bindings.'
+  description: |
+    Logic almost completely taken from bitcoin-js library for generating mnemonic phrases.
+  license: MIT
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+  feedstock-name: libbip3x
