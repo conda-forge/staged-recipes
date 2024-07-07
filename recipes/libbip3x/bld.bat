@@ -8,17 +8,17 @@ call :configBuildInstall "%build_dir%" "%pre_install_dir%"
 if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 
 :: Remove 'toolbox' files
-powershell -Command "& { Get-ChildItem -Path (Join-Path 'env:SRC_DIR' 'pre-install') -Recurse -Filter '*toolbox*' | Remove-Item -Force -Recurse }"
+powershell -Command "& { Get-ChildItem -Path (Join-Path '$env:SRC_DIR' 'pre-install') -Recurse -Filter '*toolbox*' | Remove-Item -Force -Recurse }"
 
 :: Prepare test area
-powershell -Command "& { New-Item -Path (Join-Path 'env:SRC_DIR' 'test-release') -ItemType Directory -Force | Out-Null }"
-powershell -Command "& { Copy-Item -Path (Join-Path 'env:SRC_DIR' 'build-release/bin') -Destination (Join-Path 'env:SRC_DIR' 'test-release') -Recurse }"
+powershell -Command "& { New-Item -Path (Join-Path '$env:SRC_DIR' 'test-release') -ItemType Directory -Force | Out-Null }"
+powershell -Command "& { Copy-Item -Path (Join-Path '$env:SRC_DIR' 'build-release/bin') -Destination (Join-Path '$env:SRC_DIR' 'test-release') -Recurse }"
 
 :: Process '[Gg][Tt]est' files
-powershell -Command "& { Get-ChildItem -Path (Join-Path 'env:SRC_DIR' 'pre-install') -Recurse | Where-Object { $_.Name -match '[Gg][Tt]est' } | ForEach-Object { $tarFile = $_.FullName; $destination = Join-Path 'env:SRC_DIR' 'test-release'; tar -cf $tarFile | tar -xf - --transform='s,^.*/,,' -C $destination; Remove-Item -Path $tarFile -Force } }"
+powershell -Command "& { Get-ChildItem -Path (Join-Path '$env:SRC_DIR' 'pre-install') -Recurse | Where-Object { $_.Name -match '[Gg][Tt]est' } | ForEach-Object { $tarFile = $_.FullName; $destination = Join-Path '$env:SRC_DIR' 'test-release'; tar -cf $tarFile | tar -xf - --transform='s,^.*/,,' -C $destination; Remove-Item -Path $tarFile -Force } }"
 
 :: Transfer pre-install to PREFIX
-powershell -Command "& { tar -cf (Join-Path 'env:SRC_DIR' 'pre-install') -C (Join-Path 'env:SRC_DIR' 'pre-install') ./* | tar -xvf - -C 'env:PREFIX' }"
+powershell -Command "& { tar -cf (Join-Path '$env:SRC_DIR' 'pre-install') -C (Join-Path '$env:SRC_DIR' 'pre-install') ./* | tar -xvf - -C '$env:PREFIX' }"
 
 :: Exit main script
 GOTO :EOF
