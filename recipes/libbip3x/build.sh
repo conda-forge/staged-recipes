@@ -4,7 +4,7 @@ set -ex
 
 build_dir="${SRC_DIR}"/build-release
 pre_install_dir="${SRC_DIR}"/pre-install
-test-release_dir="${SRC_DIR}"/test-release
+test_release_dir="${SRC_DIR}"/test-release
 
 mkdir -p "${build_dir}"
 mkdir -p "${pre_install_dir}"
@@ -28,18 +28,18 @@ find "${pre_install_dir}" -name '*toolbox*' -print0 | while IFS= read -r -d '' f
 done
 
 # Prepare test area
-mkdir -p "${test-release_dir}"
-cp -r "${build_dir}"/bin "${test-release_dir}"
+mkdir -p "${test_release_dir}"
+cp -r "${build_dir}"/bin "${test_release_dir}"
 find "${pre_install_dir}" -name '*[Gg][Tt]est*' -print0 | while IFS= read -r -d '' file; do
-  tar cf - "${file}" | (cd "${test-release_dir}" && tar xf - --transform='s,^.*/,,')
+  tar cf - "${file}" | (cd "${test_release_dir}" && tar xf - --transform='s,^.*/,,')
   rm -rf "${file}"
 done
 
 # Fix rpath for test binary
 if [[ "${build_platform}" == "osx-64" ]]; then
-  install_name_tool -add_rpath "${PREFIX}/lib" "${test-release_dir}"/bin/*
+  install_name_tool -add_rpath "${PREFIX}/lib" "${test_release_dir}"/bin/*
 else
-  patchelf --set-rpath "${PREFIX}/lib" "${test-release_dir}"/bin/*
+  patchelf --set-rpath "${PREFIX}/lib" "${test_release_dir}"/bin/*
 fi
 
 # Transfer pre-install to PREFIX
