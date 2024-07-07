@@ -85,10 +85,6 @@ outputs:
       run:
         - {{ pin_subpackage('libbip3x-' ~ so_major_version, exact=True) }}
     test:
-      requires:
-        - {{ compiler('c') }}
-        - cmake >=3.26
-        - make
       commands:
         # Core Headers
         {% for path, headers in bip3x_header_paths.items() %}
@@ -111,8 +107,8 @@ outputs:
         {% endfor %}
 
         - test -f ${PREFIX}/lib/libbip3x${SHLIB_EXT}  # [unix]
-        - if not exist %PREFIX%\\Library\\bin\\libbip3x.${SHLIB_EXT} exit 1  # [win]
-        - if not exist %PREFIX%\\Library\\bin\\bip3x.${SHLIB_EXT} exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\libbip3x${SHLIB_EXT} exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\bip3x${SHLIB_EXT} exit 1  # [win]
         - if not exist %PREFIX%\\Library\\lib\\libbip3x.lib exit 1  # [win]
         - if not exist %PREFIX%\\Library\\lib\\bip3x.lib exit 1  # [win]
 
@@ -147,8 +143,7 @@ outputs:
         - test-release
       requires:
         - {{ compiler('c') }}
-        - cmake >=3.26
-        - make
+        - {{ compiler('cxx') }}
       commands:
         # C-binding headers
         {% for header in cbip3x_h %}
@@ -157,16 +152,18 @@ outputs:
         {% endfor %}
 
         - test -f ${PREFIX}/lib/libcbip3x${SHLIB_EXT}  # [unix]
-        - if not exist %PREFIX%\\Library\\bin\\cbip3x.${SHLIB_EXT} exit 1  # [win]
-        - if not exist %PREFIX%\\Library\\bin\\libcbip3x.${SHLIB_EXT} exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\cbip3x${SHLIB_EXT} exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\libcbip3x${SHLIB_EXT} exit 1  # [win]
         - if not exist %PREFIX%\\Library\\lib\\cbip3x.lib exit 1  # [win]
         - if not exist %PREFIX%\\Library\\lib\\libcbip3x.lib exit 1  # [win]
         - test -f ${PREFIX}/lib/pkgconfig/cbip3x.pc  # [unix]
         - if not exist %PREFIX%\\lib\\pkgconfig\\cbip3x.pc exit 1  # [win]
 
         # Key testing phase: This test needs both libbbip3x.so.3 and libcbip3x.so.3
-        - (cd test-release && LD_PRELOAD="${PREFIX}/lib/libbip3x.so.3:${PREFIX}/lib/libcbip3x.so.3:${PREFIX}/lib/libstdc++.so.6" ./bin/bip3x-test)  # [linux]
-        - (cd test-release && DYLD_INSERT_LIBRARIES="${PREFIX}/lib/libbip3x.dylib:${PREFIX}/lib/libcbip3x.dylib:${PREFIX}/lib/libstdc++.dylib" ./bin/bip3x-test)  # [osx]
+        # - (cd test-release && LD_PRELOAD="${PREFIX}/lib/libbip3x.so.3:${PREFIX}/lib/libcbip3x.so.3:${PREFIX}/lib/libstdc++.so.6" ./bin/bip3x-test)  # [linux]
+        # - (cd test-release && DYLD_INSERT_LIBRARIES="${PREFIX}/lib/libbip3x.dylib:${PREFIX}/lib/libcbip3x.dylib:${PREFIX}/lib/libstdc++.dylib" ./bin/bip3x-test)  # [osx]
+        - (cd test-release && ./bin/bip3x-test)  # [linux]
+        - (cd test-release && ./bin/bip3x-test)  # [osx]
         - (cd test-release && .\\bin\\bip3x-test)  # [win]
 
   - name: libbip3x_jni
@@ -202,8 +199,8 @@ outputs:
       commands:
         # Installation files
         - test -f ${PREFIX}/lib64/libbip3x_jni${SHLIB_EXT}  # [unix]
-        - if not exist %PREFIX%\\Library\\bin\\bip3x_jni.${SHLIB_EXT} exit 1  # [win]
-        - if not exist %PREFIX%\\Library\\bin\\libbip3x_jni.${SHLIB_EXT} exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\bip3x_jni${SHLIB_EXT} exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\libbip3x_jni${SHLIB_EXT} exit 1  # [win]
         - if not exist %PREFIX%\\Library\\lib\\bip3x_jni.lib exit 1  # [win]
         - if not exist %PREFIX%\\Library\\lib\\libbip3x_jni.lib exit 1  # [win]
         - test -f ${PREFIX}/lib/pkgconfig/bip3x_jni.pc  # [unix]
@@ -396,12 +393,48 @@ outputs:
       run:
         - {{ pin_subpackage('libbip3x', exact=True) }}
     test:
+      commands:
+        - test -f ${PREFIX}/lib/libbip3x${SHLIB_EXT}  # [unix]
+        - if not exist %PREFIX%\\Library\\bin\\libbip3x${SHLIB_EXT} exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\bip3x${SHLIB_EXT} exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\libbip3x.lib exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\bip3x.lib exit 1  # [win]
+
+  - name: cbip3x
+    build:
+      run_exports:
+        - {{ pin_subpackage('libbip3x-' ~ so_major_version) }}
+        - {{ pin_subpackage('libcbip3x-' ~ so_major_version) }}
+    requirements:
+      host:
+        - {{ pin_subpackage('libcbip3x', exact=True) }}
+      run:
+        - {{ pin_subpackage('libcbip3x', exact=True) }}
+    test:
       source_files:
         - test-release
       commands:
-        # Key testing phase: This test needs both libbbip3x.so.3 and libcbip3x.so.3
-        - (cd test-release && LD_PRELOAD="${PREFIX}/lib/libbip3x.so.3:${PREFIX}/lib/libcbip3x.so.3:${PREFIX}/lib/libstdc++.so.6" ./bin/bip3x-test)  # [linux]
-        - (cd test-release && DYLD_INSERT_LIBRARIES="${PREFIX}/lib/libbip3x.dylib:${PREFIX}/lib/libcbip3x.dylib:${PREFIX}/lib/libstdc++.dylib" ./bin/bip3x-test)  # [osx]
+        - (cd test-release && ./bin/bip3x-test)  # [linux]
+        - (cd test-release && ./bin/bip3x-test)  # [osx]
+        - (cd test-release && .\\bin\\bip3x-test)  # [win]
+
+  - name: bip3x_jni
+    build:
+      run_exports:
+        - {{ pin_subpackage('libbip3x-' ~ so_major_version) }}
+        - {{ pin_subpackage('libbip3x_jni-' ~ so_major_version) }}
+    requirements:
+      host:
+        - {{ pin_subpackage('libbip3x_jni', exact=True) }}
+      run:
+        - {{ pin_subpackage('libbip3x_jni', exact=True) }}
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libbip3x_jni${SHLIB_EXT}  # [unix]
+        - if not exist %PREFIX%\\Library\\bin\\libbip3x_jni$${SHLIB_EXT} exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\bip3x_jni${SHLIB_EXT} exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\libbip3x_jni.lib exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\bip3x_jni.lib exit 1  # [win]
 
 about:
   home: https://github.com/edwardstock/bip3x
