@@ -1,8 +1,9 @@
 @echo off
 
-set "%build_dir=%SRC_DIR%\build-release"
-set "%pre_install_dir=%SRC_DIR%\pre-install"
-set "%test_release_dir=%SRC_DIR%\test-release"
+set "build_dir=%SRC_DIR%\build-release"
+set "pre_install_dir=%SRC_DIR%\pre-install"
+set "test_release_dir=%SRC_DIR%\test-release"
+
 call :configBuildInstall "%build_dir%" "%pre_install_dir%"
 if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 
@@ -36,8 +37,6 @@ cd %_build_dir%
   set "_prefix=%PREFIX:\=\\%"
   set "_install_dir=%_install_dir:\=\\%"
 
-  set "CLANG_MAXIMUM_CONCURRENT_JOBS=1"
-  set "CMAKE_BUILD_PARALLEL_LEVEL=1"
   cmake %CMAKE_ARGS% ^
     -G "Ninja" ^
     -D CMAKE_BUILD_TYPE=Release ^
