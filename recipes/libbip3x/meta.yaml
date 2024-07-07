@@ -242,7 +242,7 @@ outputs:
 
         # Versioned bip3x library
         - test -f ${PREFIX}/lib/libbip3x${SHLIB_EXT}.{{ so_major_version }}  # [linux]
-        - test -f ${PREFIX}/lib/libbip3x-{{ so_major_version }}${SHLIB_EXT} # [osx]
+        - test -f ${PREFIX}/lib/libbip3x-{{ so_major_version }}${SHLIB_EXT}  # [osx]
         - if not exist %PREFIX%\\Library\\bin\\libbip3x-{{ so_major_version }}${SHLIB_EXT} exit 1  # [win]
         - if not exist %PREFIX%\\Library\\bin\\bip3x-{{ so_major_version }}${SHLIB_EXT} exit 1  # [win]
         - test -f ${PREFIX}/lib/libbip3x${SHLIB_EXT}.{{ version }}  # [linux]
@@ -390,10 +390,18 @@ outputs:
     build:
       run_exports:
         - {{ pin_subpackage('libbip3x-' ~ so_major_version) }}
-    host:
-      - {{ pin_compatible('libbip3x', exact=True) }}
-    run:
-      - {{ pin_compatible('libbip3x', exact=True) }}
+    requirements:
+      host:
+        - {{ pin_subpackage('libbip3x', exact=True) }}
+      run:
+        - {{ pin_subpackage('libbip3x', exact=True) }}
+    test:
+      source_files:
+        - test-release
+      commands:
+        # Key testing phase: This test needs both libbbip3x.so.3 and libcbip3x.so.3
+        - (cd test-release && LD_PRELOAD="${PREFIX}/lib/libbip3x.so.3:${PREFIX}/lib/libcbip3x.so.3:${PREFIX}/lib/libstdc++.so.6" ./bin/bip3x-test)  # [linux]
+        - (cd test-release && DYLD_INSERT_LIBRARIES="${PREFIX}/lib/libbip3x.dylib:${PREFIX}/lib/libcbip3x.dylib:${PREFIX}/lib/libstdc++.dylib" ./bin/bip3x-test)  # [osx]
 
 about:
   home: https://github.com/edwardstock/bip3x
