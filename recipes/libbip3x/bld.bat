@@ -8,17 +8,17 @@ call :configBuildInstall "%build_dir%" "%pre_install_dir%"
 if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 
 :: Remove 'toolbox' files
-powershell -Command "& { Get-ChildItem -Path (Join-Path $ENV:SRC_DIR 'pre-install') -Recurse -Filter '*toolbox*' | Remove-Item -Force -Recurse }"
+powershell -Command "& { Get-ChildItem -Path '%pre_install_dir%' -Recurse -Filter '*toolbox*' | Remove-Item -Force -Recurse }"
 
 :: Prepare test area
-powershell -Command "& { New-Item -Path (Join-Path $ENV:SRC_DIR 'test-release') -ItemType Directory -Force | Out-Null }"
-powershell -Command "& { Copy-Item -Path (Join-Path $ENV:SRC_DIR 'build-release/bin') -Destination (Join-Path $ENV:SRC_DIR 'test-release') -Recurse }"
+powershell -Command "& { New-Item -Path '%test_release_dir%' -ItemType Directory -Force | Out-Null }"
+powershell -Command "& { Copy-Item -Path (Join-Path '%build_dir%' 'bin') -Destination '%test_release_dir%' -Recurse }"
 
 :: Process '[Gg][Tt]est' files
-powershell -Command "& { Get-ChildItem -Path (Join-Path $ENV:SRC_DIR 'pre-install') -Recurse | Where-Object { $_.Name -match '[Gg][Tt]est' } | ForEach-Object { $tarFile = $_.FullName; $destination = Join-Path $ENV:SRC_DIR 'test-release'; tar -cf $tarFile | tar -xf - --transform='s,^.*/,,' -C $destination; Remove-Item -Path $tarFile -Force } }"
+powershell -Command "& { Get-ChildItem -Path '%pre_install_dir%' -Recurse -Filter '*[Gg][Tt]est*' | ForEach-Object { tar -cf - $_.FullName | tar -xf - -C '%test_release_dir%'; Remove-Item $_.FullName -Force -Recurse } }"
 
 :: Transfer pre-install to PREFIX
-powershell -Command "& { tar -cf (Join-Path $ENV:SRC_DIR 'pre-install') -C (Join-Path $ENV:SRC_DIR 'pre-install') ./* | tar -xvf - -C $ENV:PREFIX }"
+powershell -Command "& { tar -cf '%pre_install_dir%'-C '%pre_install_dir%' ./* | tar -xvf - -C $ENV:PREFIX }"
 
 :: Exit main script
 GOTO :EOF
