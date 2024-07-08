@@ -9,16 +9,17 @@ if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 
 :: Remove 'toolbox' files
 powershell -Command "& { Get-ChildItem -Path '%pre_install_dir%' -Recurse -Filter '*toolbox*' | Remove-Item -Force -Recurse }"
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 
 :: Prepare test area
 powershell -Command "& { New-Item -Path '%test_release_dir%' -ItemType Directory -Force | Out-Null }"
 powershell -Command "& { Copy-Item -Path (Join-Path '%build_dir%' 'bin') -Destination '%test_release_dir%' -Recurse }"
-
-:: Process '[Gg][Tt]est' files
 powershell -Command "& { Get-ChildItem -Path '%pre_install_dir%' -Recurse -Filter '*[Gg][Tt]est*' | ForEach-Object { tar -cf - $_.FullName | tar -xf - -C '%test_release_dir%'; Remove-Item $_.FullName -Force -Recurse } }"
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 
 :: Transfer pre-install to PREFIX
 powershell -Command "& { tar -cf '%pre_install_dir%.tar' -C '%pre_install_dir%' . ; tar -xf '%pre_install_dir%.tar' -C $ENV:PREFIX }"
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 
 :: Exit main script
 GOTO :EOF
