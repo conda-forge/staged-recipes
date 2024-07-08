@@ -29,7 +29,7 @@ GOTO :EOF
 :: --- Functions ---
 
 :configBuildInstall
-setlocal
+setlocal emabledelayedexpansion
 set "_build_dir=%~1"
 set "_install_dir=%~2"
 
@@ -37,7 +37,6 @@ mkdir %_build_dir%
 mkdir %_install_dir%
 if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 cd %_build_dir%
-  set "_prefix=%PREFIX:\=\\%"
   set "_install_dir=%_install_dir:\=\\%"
 
   cmake %CMAKE_ARGS% ^
