@@ -18,8 +18,10 @@ powershell -Command "& { Get-ChildItem -Path '%pre_install_dir%' -Recurse -Filte
 if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 
 :: Transfer pre-install to PREFIX
-powershell -Command "& { tar -cf '%pre_install_dir%.tar' -C '%pre_install_dir%' . ; tar -xf '%pre_install_dir%.tar' -C $ENV:PREFIX }"
+cd "%pre_install_dir%"
+powershell -Command "& { Copy-Item -Path '.\*' -Destination $env:PREFIX -Recurse -Force }"
 if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+cd "%SRC_DIR%"
 
 :: Exit main script
 GOTO :EOF
