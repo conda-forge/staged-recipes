@@ -42,6 +42,7 @@ if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 
 :: Transfer pre-install to PREFIX
 cd "%pre_install_dir%"
-powershell -Command "& { Copy-Item -Path '.\*' -Destination $env:PREFIX -Recurse -Force }"
+powershell -Command "& { Copy-Item -Path '.\*' -Destination $ENV:PREFIX -Recurse -Force -PassThru | Select-Object -ExpandProperty FullName }"
 if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
+
 cd "%SRC_DIR%"
