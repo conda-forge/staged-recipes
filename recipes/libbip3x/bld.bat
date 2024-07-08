@@ -18,7 +18,7 @@ powershell -Command "& { Copy-Item -Path (Join-Path '%build_dir%' 'bin') -Destin
 powershell -Command "& { Get-ChildItem -Path '%pre_install_dir%' -Recurse -Filter '*[Gg][Tt]est*' | ForEach-Object { tar -cf - $_.FullName | tar -xf - -C '%test_release_dir%'; Remove-Item $_.FullName -Force -Recurse } }"
 
 :: Transfer pre-install to PREFIX
-powershell -Command "& { tar -cf '%pre_install_dir%'-C '%pre_install_dir%' ./* | tar -xvf - -C $ENV:PREFIX }"
+powershell -Command "& { tar -cf '%pre_install_dir%.tar' -C '%pre_install_dir%' . ; tar -xf '%pre_install_dir%.tar' -C `$ENV:PREFIX }"
 
 :: Exit main script
 GOTO :EOF
