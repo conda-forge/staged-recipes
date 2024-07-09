@@ -43,6 +43,9 @@ if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 powershell -Command "& { Get-ChildItem -Path '%pre_install_dir%' -Recurse | Where-Object { $_.FullName -match 'GTest' -or $_.FullName -match 'gtest' } | Remove-Item -Force -Recurse }"
 if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 
+:: Test binary is not installed on windows, apparently
+powershell -Command "& { Get-ChildItem -Path (Join-Path '%build_dir%' 'bip3x-test.exe') -Recurse | Copy-Item -Path $_.FullName -Destination (Join-Path '%test_release_dir%' 'bin') -Recurse }"
+
 :: CMake was patched to create versionned windows DLLs, but the side-effect is that it creates bip3x.3.lib as well
 :: Converting bip3x.3.lib to bip3x.lib. It will still refer to bip3x.3.dll, but that should be fine.
 powershell -Command "& { Get-ChildItem -Path '%pre_install_dir%' -Recurse -Include 'bip3x.3.lib', 'cbip3x.3.lib', 'bip3x_jni.3.lib' | Rename-Item -NewName { $_.Name -replace '.3.lib', '.lib' } }"
