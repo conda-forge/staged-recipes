@@ -4,6 +4,7 @@ set "build_dir=%SRC_DIR%\build-release"
 set "pre_install_dir=%SRC_DIR%\pre-install"
 set "test_release_dir=%SRC_DIR%\test-release"
 
+set "PATH=%PREFIX%\bin;%PATH%"
 :: Build and install
 mkdir %build_dir%
 mkdir %pre_install_dir%
