@@ -44,7 +44,8 @@ powershell -Command "& { Get-ChildItem -Path '%pre_install_dir%' -Recurse | Wher
 if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 
 :: Test binary is not installed on windows, apparently
-powershell -Command "& { Get-ChildItem -Path (Join-Path '%build_dir%' 'bip3x-test.exe') -Recurse | Copy-Item -Path $_.FullName -Destination (Join-Path '%test_release_dir%' 'bin') -Recurse }"
+powershell -Command "& { Get-ChildItem -Path (Join-Path '%build_dir%' 'bip3x-test.exe') -Recurse | Where-Object { $_ -ne $null } | ForEach-Object { Copy-Item -Path $_.FullName -Destination (Join-Path '%test_release_dir%' 'bin') -Recurse } }"
+if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 
 :: CMake was patched to create versionned windows DLLs, but the side-effect is that it creates bip3x.3.lib as well
 :: Converting bip3x.3.lib to bip3x.lib. It will still refer to bip3x.3.dll, but that should be fine.
