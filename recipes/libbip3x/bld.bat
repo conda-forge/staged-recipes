@@ -37,14 +37,7 @@ if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 :: Prepare test area
 powershell -Command "& { New-Item -Path '%test_release_dir%' -ItemType Directory -Force | Out-Null }"
 powershell -Command "& { Copy-Item -Path (Join-Path '%build_dir%' 'bin') -Destination '%test_release_dir%' -Recurse }"
-powershell -Command "& {
-    Get-ChildItem -Path '.\*' -Recurse |
-    Where-Object {
-        -not ($_.FullName -match 'GTest' -or $_.FullName -match 'gtest')
-    } |
-    Copy-Item -Destination $ENV:PREFIX -Recurse -Force -PassThru |
-    Select-Object -ExpandProperty FullName
-}"
+powershell -Command "& { Get-ChildItem -Path '.\*' -Recurse | Where-Object { -not ($_.FullName -match 'GTest' -or $_.FullName -match 'gtest') } | Copy-Item -Destination $ENV:PREFIX -Recurse -Force -PassThru | Select-Object -ExpandProperty FullName }"
 if %ERRORLEVEL% neq 0 exit /b %ERRORLEVEL%
 
 :: CMake was patched to create versionned windows DLLs, but the side-effect is that it creates bip3x.3.lib as well
