@@ -1,6 +1,5 @@
-cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+cargo-bundle-licenses --format yaml --output THIRDPARTY.yml || goto :error
 cargo install --locked --root "%LIBRARY_PREFIX%" --path . || goto :error
-strip "%LIBRARY_PREFIX%\bin\pixi-pack.exe" || goto :error
 goto :EOF
 
 :error
