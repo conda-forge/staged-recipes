@@ -1,2 +1,2 @@
 @echo off
-powershell -File "%SRC_DIR%\scripts\build.ps1"
+powershell -File "%SRC_DIR%\scripts\bld.ps1"
