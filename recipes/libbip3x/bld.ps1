@@ -45,7 +45,7 @@ Get-ChildItem -Path (Join-Path $build_dir 'bip3x-test.exe') -Recurse | Where-Obj
 
 # CMake was patched to create versioned windows DLLs, but the side-effect is that it creates bip3x.3.lib as well
 # Converting bip3x.3.lib to bip3x.lib. It will still refer to bip3x.3.dll, but that should be fine.
-Get-ChildItem -Path pre_install_dir -Recurse -Include 'bip3x.3.lib', 'cbip3x.3.lib', 'bip3x_jni.3.lib' | Rename-Item -NewName { $_.Name -replace '.3.lib', '.lib' }
+Get-ChildItem -Path $pre_install_dir -Recurse -Include 'bip3x.3.lib', 'cbip3x.3.lib', 'bip3x_jni.3.lib' | Rename-Item -NewName { $_.Name -replace '.3.lib', '.lib' }
 
 # Transfer pre-install to PREFIX
 Set-Location $pre_install_dir
