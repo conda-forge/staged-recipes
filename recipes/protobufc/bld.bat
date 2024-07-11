@@ -9,7 +9,7 @@ cmake -G "Ninja" ^
       -DCMAKE_BUILD_TYPE:STRING=Release ^
       -DCMAKE_LIBRARY_PATH="%LIBRARY_LIB%" ^
       -DCMAKE_INCLUDE_PATH="%INCLUDE_INC%" ^
-      %SRC_DIR%
+      ..
 
 ninja -j %CPU_COUNT%
 
