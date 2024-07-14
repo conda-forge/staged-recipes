@@ -12,6 +12,7 @@ Set-Location $build_dir
     cmake $env:CMAKE_ARGS `
       -G "Ninja" `
       -D CMAKE_BUILD_TYPE=Release `
+      -D CMAKE_VERBOSE_MAKEFILE=ON `
       -D CMAKE_INSTALL_PREFIX="$env:PREFIX" `
       -D toolbox_BUILD_SHARED_LIBS=ON `
       -D toolbox_BUILD_TESTS=ON `
