@@ -16,7 +16,7 @@ cp com/google/googlejavaformat/google-java-format/${PKG_VERSION}/google-java-for
 # Create bash and batch wrappers
 tee ${PREFIX}/bin/google-java-format << EOF
 #!/bin/sh
-exec \${JAVA_HOME}/bin/java -jar \${PREFIX}/libexec/google-java-format/google-java-format.jar "\$@"
+exec \${JAVA_HOME}/bin/java -jar \${CONDA_PREFIX}/libexec/google-java-format/google-java-format.jar "\$@"
 EOF
 
 tee ${PREFIX}/bin/google-java-format.cmd << EOF
