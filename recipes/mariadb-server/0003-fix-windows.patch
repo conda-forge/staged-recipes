@@ -1,0 +1,59 @@
+From 3ea1311783c4b93e2c5ade87e2e3ce5f36231d32 Mon Sep 17 00:00:00 2001
+From: danielnachun <daniel.nachun@gmail.com>
+Date: Sat, 6 Jul 2024 17:05:52 -0700
+Subject: [PATCH 3/3] fix windows
+
+---
+ .../hashicorp_key_management_plugin.cc        | 29 ++++---------------
+ 1 file changed, 5 insertions(+), 24 deletions(-)
+
+diff --git a/plugin/hashicorp_key_management/hashicorp_key_management_plugin.cc b/plugin/hashicorp_key_management/hashicorp_key_management_plugin.cc
+index bdc2f734..fcd8253f 100644
+--- a/plugin/hashicorp_key_management/hashicorp_key_management_plugin.cc
++++ b/plugin/hashicorp_key_management/hashicorp_key_management_plugin.cc
+@@ -978,29 +978,6 @@ struct st_mariadb_encryption hashicorp_key_management_plugin= {
+   0, 0, 0, 0, 0
+ };
+ 
+-#ifdef _MSC_VER
+-
+-static int setenv (const char *name, const char *value, int overwrite)
+-{
+-  if (!overwrite)
+-  {
+-    size_t len= 0;
+-    int rc= getenv_s(&len, NULL, 0, name);
+-    if (rc)
+-    {
+-      return rc;
+-    }
+-    if (len)
+-    {
+-      errno = EINVAL;
+-      return EINVAL;
+-    }
+-  }
+-  return _putenv_s(name, value);
+-}
+-
+-#endif
+-
+ #define MAX_URL_SIZE 32768
+ 
+ int HCData::init ()
+@@ -1053,7 +1030,11 @@ int HCData::init ()
+     bool not_equal= token_env != NULL && strcmp(token_env, token) != 0;
+     if (token_env == NULL || not_equal)
+     {
+-      setenv("VAULT_TOKEN", token, 1);
++#if defined(HAVE_SETENV) || !defined(_WIN32)
++        setenv("VAULT_TOKEN", token, 1);
++#else
++        _putenv_s("VAULT_TOKEN", token);
++#endif
+       if (not_equal)
+       {
+         my_printf_error(ER_UNKNOWN_ERROR, PLUGIN_ERROR_HEADER
+-- 
+2.45.2
+
