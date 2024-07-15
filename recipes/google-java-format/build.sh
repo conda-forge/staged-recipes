@@ -20,12 +20,12 @@ exec \${JAVA_HOME}/bin/java -jar \${CONDA_PREFIX}/libexec/google-java-format/goo
 EOF
 
 tee ${PREFIX}/bin/google-java-format.cmd << EOF
-call %JAVA_HOME%\bin\java -jar %CONDA_PREFIX\libexec\google-java-format\google-java-format.jar %*
+call %JAVA_HOME%\bin\java -jar %CONDA_PREFIX%\libexec\google-java-format\google-java-format.jar %*
 EOF
 
 install -m 755 scripts/google-java-format-diff.py ${PREFIX}/bin/google-java-format-diff
 tee ${PREFIX}/bin/google-java-format-diff.cmd << EOF
-call %CONDA_PREFIX%\bin\python3 %CONDA_PREFIX\bin\google-java-format-diff %*
+call %CONDA_PREFIX%\bin\python3 %CONDA_PREFIX%\bin\google-java-format-diff %*
 EOF
 
 # Download licenses and gather them from subdirectories.
