@@ -11,8 +11,8 @@ Such as:
 
 """
 from __future__ import print_function
-
 from conda_build.metadata import MetaData
+from rattler_build_conda_compat.render import MetaData as RattlerBuildMetaData
 from conda_smithy.utils import get_feedstock_name_from_meta
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -37,8 +37,17 @@ recipe_directory_name = 'recipes'
 
 
 def list_recipes():
-    if os.path.isdir(recipe_directory_name):
-        recipes = os.listdir(recipe_directory_name)
+    """
+    Locates all the recipes in the `recipes/` folder at the root of the repository.
+
+    For each found recipe this function returns a tuple consisting of 
+    * the path to the recipe directory
+    * the name of the feedstock
+    """
+    repository_root = os.path.abspath(os.path.join(os.path.dirname(os.path.join(__file__)), f"../../../"))
+    abs_recipe_dir = os.path.join(repository_root, recipe_directory_name)
+    if os.path.isdir(abs_recipe_dir):
+        recipes = os.listdir(abs_recipe_dir)
     else:
         recipes = []
 
@@ -49,8 +58,17 @@ def list_recipes():
         # containing folder.
         if recipe_dir in ['example', '.DS_Store']:
             continue
-        path = os.path.abspath(os.path.join(recipe_directory_name, recipe_dir))
-        yield path, get_feedstock_name_from_meta(MetaData(path))
+
+        # Try to look for a conda-build recipe.
+        path = os.path.abspath(os.path.join(abs_recipe_dir, recipe_dir))
+        try:
+            yield path, get_feedstock_name_from_meta(MetaData(path))
+            continue
+        except OSError:
+            pass
+
+        # If no conda-build recipe was found, try to load a rattler-build recipe.
+        yield path, get_feedstock_name_from_meta(RattlerBuildMetaData(path))
 
 
 @contextmanager
