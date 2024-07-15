@@ -13,7 +13,7 @@ cp -r pmd-bin-*-SNAPSHOT/* ${PREFIX}/libexec/${PKG_NAME}
 
 # Create bash and batch wrappers
 tee ${PREFIX}/bin/pmd << EOF
-exec ${PREFIX}/libexec/${PKG_NAME}/bin/pmd "\$@"
+exec \${CONDA_PREFIX}/libexec/pmd/bin/pmd "\$@"
 EOF
 
 tee ${PREFIX}/bin/pmd.cmd << EOF
