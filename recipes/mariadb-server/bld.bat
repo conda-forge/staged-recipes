@@ -12,7 +12,6 @@ cmake -S . -B build -G Ninja ^
     -DDEFAULT_CHARSET=utf8mb4 ^
     -DDEFAULT_COLLATION=utf8mb4_general_ci ^
     -DINSTALL_SYSCONFDIR="%LIBRARY_PREFIX%\etc" ^
-    -DALL_ON_WINDOWS="" ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_VERBOSE_MAKEFILE=ON ^
     -Wno-dev ^
