@@ -8,7 +8,7 @@ go mod init github.com/docker/cli
 go mod edit -replace github.com/imdario/mergo@v1.0.0=github.com/imdario/mergo@v0.3.16
 go mod tidy -e
 go mod vendor -e
-go build -buildmode=pie -trimpath -o=${PREFIX}/bin/${PKG_NAME} -ldflags="${LDFLAGS}" ./cmd/docker
+go build -buildmode=pie -trimpath -o=${PREFIX}/bin/docker -ldflags="${LDFLAGS}" ./cmd/docker
 
 mkdir -p ${PREFIX}/etc/bash_completion.d
 mkdir -p ${PREFIX}/share/zsh/site-functions
