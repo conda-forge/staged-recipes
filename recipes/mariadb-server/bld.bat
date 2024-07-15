@@ -1,3 +1,6 @@
+:: Disable creation of initial database because CI runner does not have permissions for this to work
+sed -i "s/ALL_ON_WINDOWS ALL/ALL_ON_WINDOWS/" sql\CMakeLists.txt
+
 :: Build with CMake
 cmake -S . -B build -G Ninja ^
     -DMYSQL_DATADIR="%LIBRARY_PREFIX%\var\mysql" ^
