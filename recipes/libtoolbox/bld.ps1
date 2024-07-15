@@ -2,9 +2,6 @@
 $build_dir = Join-Path $env:SRC_DIR "build-release"
 $test_release_dir = Join-Path $env:SRC_DIR "test-release"
 
-# Update PATH
-$env:PATH = "$env:PREFIX\bin;" + $env:PATH
-
 # Build and install
 New-Item -Path $build_dir -ItemType Directory -Force
 
@@ -40,7 +37,10 @@ Get-ChildItem -Path (Join-Path $build_dir 'toolbox-test.exe') -Recurse | Where-O
 
 # CMake was patched to create versioned windows DLLs, but the side-effect is that it creates toolbox.3.lib as well
 # Converting toolbox.3.lib to toolbox.lib. It will still refer to toolbox.3.dll, but that should be fine.
-Get-ChildItem -Path $env:PREFIX -Recurse -Filter "*.lib" | Where-Object { $_.Name -match "\.\d+\.lib$" } | Rename-Item -NewName { $_.Name -replace "\.\d+(\.lib)$", '$1' }
+Get-ChildItem -Path $env:PREFIX -Recurse -Filter "toolbox.*.lib" | Where-Object { $_.Name -match "\.\d+\.lib$" } | Rename-Item -NewName { $_.Name -replace "\.\d+(\.lib)$", '$1' }
 
 # Clean up
 Remove-Item -Path $build_dir -Recurse -Force
+dir $env:PREFIX
+dir $env:PREFX\bin
+dir $env:PREFX\lib
