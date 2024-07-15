@@ -55,17 +55,17 @@ exec \${CONDA_PREFIX}/libexec/scala3/bin/scaladoc "\$@"
 EOF
 
 tee ${PREFIX}/bin/common.cmd << EOF
-call %CONDA_PREFIX%\libexec\scala3\bin\common %*
+call %CONDA_PREFIX%\libexec\scala3\bin\common.bat %*
 EOF
 
 tee ${PREFIX}/bin/scala.cmd << EOF
-call %CONDA_PREFIX%\libexec\scala3\bin\scala %*
+call %CONDA_PREFIX%\libexec\scala3\bin\scala.bat %*
 EOF
 
 tee ${PREFIX}/bin/scalac.cmd << EOF
-call %CONDA_PREFIX%\libexec\scala3\bin\scalac %*
+call %CONDA_PREFIX%\libexec\scala3\bin\scalac.bat %*
 EOF
 
 tee ${PREFIX}/bin/scaladoc.cmd << EOF
-call %CONDA_PREFIX%\libexec\scala3\bin\scaladoc %*
+call %CONDA_PREFIX%\libexec\scala3\bin\scaladoc.bat %*
 EOF
