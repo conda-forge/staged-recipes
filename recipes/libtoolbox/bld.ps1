@@ -10,6 +10,9 @@ Set-Location $build_dir
       -G "Ninja" `
       -D CMAKE_BUILD_TYPE=Release `
       -D CMAKE_VERBOSE_MAKEFILE=ON `
+      -D CMAKE_INSTALL_LIBDIR="$env:PREFIX/Library/lib" `
+      -D CMAKE_INSTALL_BINDIR="$env:PREFIX/Library/bin" `
+      -D CMAKE_INSTALL_INCLUDEDIR="$env:PREFIX/Library/include" `
       -D CMAKE_INSTALL_PREFIX="$env:PREFIX" `
       -D toolbox_BUILD_SHARED_LIBS=ON `
       -D toolbox_BUILD_TESTS=ON `
@@ -41,6 +44,3 @@ Get-ChildItem -Path $env:PREFIX -Recurse -Filter "toolbox.*.lib" | Where-Object 
 
 # Clean up
 Remove-Item -Path $build_dir -Recurse -Force
-dir $env:PREFIX
-dir $env:PREFX\bin
-dir $env:PREFX\lib
