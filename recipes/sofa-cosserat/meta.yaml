@@ -1,0 +1,81 @@
+{% set name = "sofa-cosserat" %}
+{% set version = "23.12.01" %}
+{% set major_minor = ".".join(version.split(".")[:2]) %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/SofaDefrost/Cosserat/archive/refs/tags/release-v{{ version }}.tar.gz
+  sha256: d5844d4746639b4df89e9227e8b94d7a94210722118333287c625f9c1cd13e05
+
+  patches:
+  # Python 3 packages are forced to be installed into a python3/site-package
+  # path, which is not automatically parsed by the site module.
+  # This patch enables to install in a more common python<X.Y>/site-package directory,
+  # where X.Y is the Python version, making them automatically available by the interpreter.
+  # https://github.com/SofaDefrost/Cosserat/pull/100 (merged, will be in 24.06 release)
+  - patches/0001-Allow-re-use-of-already-defined-SP3_PYTHON_PACKAGES_.patch
+  # Python 2.7 support in SOFA is officially deprecated since v20.12 release
+  # and this conda package requires at least Python 3.8. This patch
+  # prevents from polluting the environment with deprecated Python 2 packages.
+  - patches/0002-Remove-Python2.7-support-as-deprecated-in-SOFA.patch
+
+build:
+  number: 0
+  run_exports:
+    - {{ pin_subpackage(name, max_pin='x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - cmake
+    - make                           # [not win]
+    - ninja                          # [win]
+    - {{ cdt('mesa-libgl-devel') }}  # [linux]
+
+  host:
+    - {{ pin_compatible("sofa-devel", min_pin='x.x', max_pin='x.x') }}
+    - {{ pin_compatible("sofa-gl", min_pin='x.x', max_pin='x.x') }}
+    - {{ pin_compatible("sofa-python3", min_pin='x.x', max_pin='x.x') }}
+    - {{ pin_compatible("sofa-stlib", min_pin='x.x', max_pin='x.x') }}
+    - {{ pin_compatible("sofa-softrobots", min_pin='x.x', max_pin='x.x') }}
+    - eigen
+    - libboost-devel
+    - zlib
+    - pybind11
+    - python
+
+  run:
+    - python
+
+test:
+  commands:
+    - test -f $PREFIX/include/Cosserat/config.h                                            # [unix]
+    - test -f $PREFIX/lib/cmake/Cosserat/CosseratConfig.cmake                              # [unix]
+    - test -f $PREFIX/lib/cmake/Cosserat/CosseratConfigVersion.cmake                       # [unix]
+    - test -f $PREFIX/lib/libCosserat${SHLIB_EXT}                                          # [unix]
+    - if not exist %LIBRARY_PREFIX%\include\Cosserat\config.h exit 1                       # [win]
+    - if not exist %LIBRARY_PREFIX%\lib\cmake\Cosserat\CosseratConfig.cmake exit 1         # [win]
+    - if not exist %LIBRARY_PREFIX%\lib\cmake\Cosserat\CosseratConfigVersion.cmake exit 1  # [win]
+    - if not exist %LIBRARY_PREFIX%\lib\Cosserat.lib exit 1                                # [win]
+    - if not exist %LIBRARY_PREFIX%\bin\Cosserat.dll exit 1                                # [win]
+  imports:
+    - Sofa
+    - Cosserat
+
+about:
+  home: https://www.sofa-framework.org/applications/marketplace/cosserat-beam-model/
+  summary: A SOFA plugin to simulate linear structures using Cosserat theory.
+  license: LGPL-3.0-or-later
+  license_family: LGPL
+  license_file: LICENSE
+  doc_url: https://softrobots.readthedocs.io/
+  dev_url: https://github.com/SofaDefrost/plugin.Cosserat
+
+extra:
+  recipe-maintainers:
+    - olivier-roussel
+    - hugtalbot
