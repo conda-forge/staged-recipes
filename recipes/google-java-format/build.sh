@@ -28,7 +28,7 @@ tee ${PREFIX}/bin/google-java-format-diff.cmd << EOF
 call %CONDA_PREFIX%\bin\python3 %CONDA_PREFIX\bin\google-java-format-diff %*
 EOF
 
-# Download licenses 
+# Download licenses and gather them from subdirectories.
 pushd core
     mvn license:download-licenses -Dgoal=download-licenses
 popd
