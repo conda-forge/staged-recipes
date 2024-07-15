@@ -8,8 +8,8 @@ set -o xtrace -o nounset -o pipefail -o errexit
 # Unpack archive and install JAR files
 mkdir -p ${PREFIX}/libexec/${PKG_NAME}
 mkdir -p ${PREFIX}/bin
-unzip pmd-dist/target/pmd-dist-*-SNAPSHOT-bin.zip
-cp -r pmd-bin-*-SNAPSHOT/* ${PREFIX}/libexec/${PKG_NAME}
+unzip pmd-dist/target/pmd-dist-${PKG_VERSION}-bin.zip
+cp -r pmd-bin-${PKG_VERSION}/* ${PREFIX}/libexec/${PKG_NAME}
 
 # Create bash and batch wrappers
 tee ${PREFIX}/bin/pmd << EOF
