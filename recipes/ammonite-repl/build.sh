@@ -2,20 +2,6 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-# Declare function for downloading licenses associated with each pom.xml using maven
-download_licenses() {
-    pom_file=$1
-    pom_xml=$(dirname ${pom_file})/pom.xml
-    mv ${pom_file} ${pom_xml}
-    pushd $(dirname ${pom_xml})
-    mvn license:download-licenses -Dgoal=download-licenses
-    popd
-}
-
-export -f download_licenses
-
-mkdir -p .ivy2
-mkdir -p .sbt
 mkdir -p ${PREFIX}/libexec/${PKG_NAME}
 mkdir -p ${PREFIX}/bin
 
@@ -23,12 +9,6 @@ mkdir -p ${PREFIX}/bin
 latest_version=$(./mill resolve amm[__] | tail -n 1 | sed -e 's/amm\[//' | sed -e 's/\]//')
 ./mill -i amm[${latest_version}].assembly
 install -m 644 out/amm/${latest_version}/assembly.dest/out.jar ${PREFIX}/libexec/${PKG_NAME}/ammonite-repl.jar
-
-# Create pom.xml files so maven can be used to download licenses
-./mill -i amm[${latest_version}].publishM2Local ${SRC_DIR}/m2
-find -name "*.pom" | xargs -I % bash -c 'download_licenses %'
-mkdir -p ${SRC_DIR}/target/generated-resources/licenses
-find -type d -name "licenses" | grep generated-resources | grep -v "^./target" | xargs -I % bash -c 'cp %/* ./target/generated-resources/licenses'
 
 # Create bash and batch wrappers
 tee ${PREFIX}/bin/amm << EOF
@@ -39,3 +19,15 @@ EOF
 tee ${PREFIX}/bin/amm.cmd << EOF
 exec %JAVA_HOME%\bin\java -jar %CONDA_PREFIX%\libexec\ammonite-repl\ammonite-repl.jar %*
 EOF
+
+# Create pom.xml files so maven can be used to download licenses
+./mill -i amm[${latest_version}].publishM2Local ${SRC_DIR}/m2
+pom_file=$(find ${SRC_DIR}/m2 -name "*.pom")
+mv ${pom_file} $(dirname ${pom_file})/pom.xml
+
+# Download licenses and move them to ${SRC_DIR}
+cd $(dirname ${pom_file})
+mvn license:download-licenses -Dgoal=download-licenses
+mv target ${SRC_DIR}
+
+exit 1
