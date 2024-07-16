@@ -10,7 +10,12 @@ Such as:
     export GH_TOKEN=$(cat ~/.conda-smithy/github.token)
 
 """
+
 from __future__ import print_function
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Iterator
 from conda_build.metadata import MetaData
 from rattler_build_conda_compat.render import MetaData as RattlerBuildMetaData
 from conda_smithy.utils import get_feedstock_name_from_meta
@@ -33,42 +38,48 @@ DEBUG = False
 
 REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch", "systems", "ctx"]
 
-recipe_directory_name = 'recipes'
+recipe_directory_name = "recipes"
 
 
-def list_recipes():
+def list_recipes() -> Iterator[tuple[Path, str]]:
     """
     Locates all the recipes in the `recipes/` folder at the root of the repository.
 
-    For each found recipe this function returns a tuple consisting of 
+    For each found recipe this function returns a tuple consisting of
     * the path to the recipe directory
     * the name of the feedstock
     """
-    repository_root = os.path.abspath(os.path.join(os.path.dirname(os.path.join(__file__)), f"../../../"))
-    abs_recipe_dir = os.path.join(repository_root, recipe_directory_name)
-    if os.path.isdir(abs_recipe_dir):
-        recipes = os.listdir(abs_recipe_dir)
-    else:
-        recipes = []
+    repository_root = Path(__file__).parent.parent.parent.parent.absolute()
+    repository_recipe_dir = repository_root / recipe_directory_name
 
-    for recipe_dir in recipes:
+    # Ignore if the recipe directory does not exist.
+    if not repository_recipe_dir.is_dir:
+        return
+
+    for recipe_dir in repository_recipe_dir.iterdir():
         # We don't list the "example" feedstock. It is an example, and is there
         # to be helpful.
         # .DS_Store is created by macOS to store custom attributes of its
         # containing folder.
-        if recipe_dir in ['example', '.DS_Store']:
+        if recipe_dir.name in ["example", ".DS_Store"]:
             continue
 
         # Try to look for a conda-build recipe.
-        path = os.path.abspath(os.path.join(abs_recipe_dir, recipe_dir))
+        absolute_feedstock_path = repository_recipe_dir / recipe_dir
         try:
-            yield path, get_feedstock_name_from_meta(MetaData(path))
+            yield (
+                absolute_feedstock_path,
+                get_feedstock_name_from_meta(MetaData(absolute_feedstock_path)),
+            )
             continue
         except OSError:
             pass
 
         # If no conda-build recipe was found, try to load a rattler-build recipe.
-        yield path, get_feedstock_name_from_meta(RattlerBuildMetaData(path))
+        yield (
+            absolute_feedstock_path,
+            get_feedstock_name_from_meta(RattlerBuildMetaData(absolute_feedstock_path)),
+        )
 
 
 @contextmanager
