@@ -29,5 +29,3 @@ mv ${pom_file} $(dirname ${pom_file})/pom.xml
 cd $(dirname ${pom_file})
 mvn license:download-licenses -Dgoal=download-licenses
 mv target ${SRC_DIR}
-
-exit 1
