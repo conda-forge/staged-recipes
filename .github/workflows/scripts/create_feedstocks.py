@@ -41,7 +41,7 @@ REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch", "systems", "ctx"]
 recipe_directory_name = "recipes"
 
 
-def list_recipes() -> Iterator[tuple[Path, str]]:
+def list_recipes() -> Iterator[tuple[str, str]]:
     """
     Locates all the recipes in the `recipes/` folder at the root of the repository.
 
@@ -68,7 +68,7 @@ def list_recipes() -> Iterator[tuple[Path, str]]:
         absolute_feedstock_path = repository_recipe_dir / recipe_dir
         try:
             yield (
-                absolute_feedstock_path,
+                str(absolute_feedstock_path),
                 get_feedstock_name_from_meta(MetaData(absolute_feedstock_path)),
             )
             continue
@@ -77,7 +77,7 @@ def list_recipes() -> Iterator[tuple[Path, str]]:
 
         # If no conda-build recipe was found, try to load a rattler-build recipe.
         yield (
-            absolute_feedstock_path,
+            str(absolute_feedstock_path),
             get_feedstock_name_from_meta(RattlerBuildMetaData(absolute_feedstock_path)),
         )
 
