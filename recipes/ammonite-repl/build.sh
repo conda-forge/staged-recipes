@@ -20,11 +20,12 @@ mkdir -p ${PREFIX}/libexec/${PKG_NAME}
 mkdir -p ${PREFIX}/bin
 
 # Build JAR files with mill
-./mill -i amm[3.0.0].assembly
-install -m 644 out/amm/3.0.0/assembly.dest/out.jar ${PREFIX}/libexec/${PKG_NAME}/ammonite-repl.jar
+latest_version=$(./mill resolve amm[__] | tail -n 1 | sed -e 's/amm\[//' | sed -e 's/\]//')
+./mill -i amm[${latest_version}].assembly
+install -m 644 out/amm/${latest_version}/assembly.dest/out.jar ${PREFIX}/libexec/${PKG_NAME}/ammonite-repl.jar
 
 # Create pom.xml files so maven can be used to download licenses
-./mill -i amm[3.0.0].publishM2Local ${SRC_DIR}/m2
+./mill -i amm[${latest_version}].publishM2Local ${SRC_DIR}/m2
 find -name "*.pom" | xargs -I % bash -c 'download_licenses %'
 mkdir -p ${SRC_DIR}/target/generated-resources/licenses
 find -type d -name "licenses" | grep generated-resources | grep -v "^./target" | xargs -I % bash -c 'cp %/* ./target/generated-resources/licenses'
