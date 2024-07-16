@@ -37,7 +37,7 @@ Get-ChildItem -Path (Join-Path $build_dir 'toolbox-test.exe') -Recurse | Where-O
 
 # CMake was patched to create versioned windows DLLs, but the side-effect is that it creates toolbox.3.lib as well
 # Converting toolbox.3.lib to toolbox.lib. It will still refer to toolbox.3.dll, but that should be fine.
-Get-ChildItem -Path $env:PREFIX -Recurse -Filter "toolbox.*.lib" | Where-Object { $_.Name -match "\.\d+\.lib$" } | Copy-Item -NewName { $_.Name -replace "\.\d+(\.lib)$", '$1' }
+Copy-Item -Path (Join-Path $env:PREFIX "Library\lib\toolbox.$so_major_version.lib") -Destination $env:PREFIX "Library\lib\toolbox.lib"
 
 # Clean up
 Remove-Item -Path $build_dir -Recurse -Force
