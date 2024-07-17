@@ -16,7 +16,7 @@ pushd "${SRC_DIR}"/build-release
   cmake --build . -- -j"${CPU_COUNT}"
   cmake --build . --target toolbox-test
   cmake --install .
-cd "${SRC_DIR}"
+popd
 
 # Prepare test area
 mkdir -p "${test_release_dir}"
