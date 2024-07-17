@@ -2,9 +2,7 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-export CGO_ENABLED=0
-export LDFLAGS="-s -w"
-go build -buildmode=pie -trimpath -o=${PREFIX}/bin/${PKG_NAME} -ldflags="${LDFLAGS}" ./cmd/colima
+go build -buildmode=pie -trimpath -o=${PREFIX}/bin/${PKG_NAME} -ldflags="-s -w" ./cmd/colima
 mkdir -p ${PREFIX}/etc/bash_completion.d
 mkdir -p ${PREFIX}/share/zsh/site-functions
 mkdir -p ${PREFIX}/share/fish/vendor_completions.d
