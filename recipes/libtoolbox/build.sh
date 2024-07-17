@@ -6,7 +6,7 @@ build_dir="${SRC_DIR}"/build-release
 test_release_dir="${SRC_DIR}"/test-release
 
 mkdir -p "${build_dir}"
-cd "${SRC_DIR}"/build-release
+pushd "${SRC_DIR}"/build-release
   cmake -S "${SRC_DIR}" -B . \
   -D CMAKE_BUILD_TYPE=Release \
   -D CMAKE_INSTALL_PREFIX="${PREFIX}" \
