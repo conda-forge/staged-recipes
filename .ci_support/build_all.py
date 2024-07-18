@@ -1,5 +1,6 @@
 from itertools import chain
 import json
+from shutil import rmtree
 import tempfile
 import conda.base.context
 import conda.core.index
@@ -21,6 +22,9 @@ try:
     from ruamel_yaml import BaseLoader, load
 except ImportError:
     from yaml import BaseLoader, load
+
+
+EXAMPLE_RECIPE_FOLDERS = ["example", "example-new-recipe"]
 
 
 def get_host_platform():
@@ -238,6 +242,10 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
 
 def build_folders_rattler_build(recipes_dir: str, platform, arch, channel_urls: list[str]):
     config = get_config(arch, channel_urls)
+
+    # Remove the example recipes to ensure that they are not also build.
+    for example_recipe in EXAMPLE_RECIPE_FOLDERS:
+        rmtree(os.path.join(recipes_dir, example_recipe), ignore_errors=True)
     
     # Determine the locations for the variant config files.
     specs = OrderedDict()
@@ -291,7 +299,7 @@ def read_mambabuild(recipes_dir):
     folders = os.listdir(recipes_dir)
     conda_build_tools = []
     for folder in folders:
-        if folder == "example":
+        if folder in EXAMPLE_RECIPE_FOLDERS:
             continue
         cf = os.path.join(recipes_dir, folder, "conda-forge.yml")
         if os.path.exists(cf):
