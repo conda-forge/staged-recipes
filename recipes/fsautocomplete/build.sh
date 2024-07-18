@@ -27,5 +27,5 @@ tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
 call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\fsautocomplete\fsautocomplete.dll %*
 EOF
 
-# Download dependency licneses with dotnet-project-licenses
-dotnet-project-licenses -e --input . -f license-files
+# Download dependency licenses with dotnet-project-licenses
+dotnet-project-licenses --input src/FsAutoComplete/FsAutoComplete.fsproj -t -d license-files
