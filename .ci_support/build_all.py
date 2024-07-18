@@ -1,3 +1,5 @@
+from itertools import chain
+import json
 import conda.base.context
 import conda.core.index
 import conda.resolve
@@ -44,17 +46,32 @@ def build_all(recipes_dir, arch):
     script_dir = os.path.dirname(os.path.realpath(__file__))
     variant_config_file = os.path.join(script_dir, "{}.yaml".format(get_config_name(arch)))
 
+    has_meta_yaml = False
+    has_recipe_yaml = False
+
     found_cuda = False
     found_centos7 = False
     for folder in folders:
         meta_yaml = os.path.join(recipes_dir, folder, "meta.yaml")
         if os.path.exists(meta_yaml):
+            has_meta_yaml = True
             with(open(meta_yaml, "r", encoding="utf-8")) as f:
                 text = ''.join(f.readlines())
                 if 'cuda' in text:
                     found_cuda = True
                 if 'sysroot_linux-64' in text:
                     found_centos7 = True
+
+        recipe_yaml = os.path.join(recipes_dir, folder, "recipe.yaml")
+        if os.path.exists(recipe_yaml):
+            has_recipe_yaml = True
+            with(open(recipe_yaml, "r", encoding="utf-8")) as f:
+                text = ''.join(f.readlines())
+                if 'cuda' in text:
+                    found_cuda = True
+                if 'sysroot_linux-64' in text:
+                    found_centos7 = True
+
         cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
         if os.path.exists(cbc):
             with open(cbc, "r") as f:
@@ -71,6 +88,11 @@ def build_all(recipes_dir, arch):
                         version = tuple([int(x) for x in version.split('.')])
                         print(f"Found c_stdlib_version for linux: {version=}")
                         found_centos7 |= version == (2, 17)
+
+    if has_meta_yaml and has_recipe_yaml:
+        raise ValueError('Mixing meta.yaml and recipe.yaml recipes is not supported')
+    if not has_meta_yaml and not has_recipe_yaml:
+        raise ValueError('Neither a meta.yaml or a recipe.yaml recipes was found')
 
     if found_cuda:
         print('##vso[task.setvariable variable=NEED_CUDA;isOutput=true]1')
@@ -147,8 +169,13 @@ def build_all(recipes_dir, arch):
 
     if 'conda-forge' not in channel_urls:
         raise ValueError('conda-forge needs to be part of channel_sources')
-    print("Building {} with {}".format(','.join(folders), ','.join(channel_urls)))
-    build_folders(recipes_dir, folders, arch, channel_urls)
+    
+    if has_meta_yaml:
+        print("Building {} with {} using conda-build".format(','.join(folders), ','.join(channel_urls)))
+        build_folders(recipes_dir, folders, arch, channel_urls)
+    elif has_recipe_yaml:
+        print("Building {} with {} using rattler-build".format(','.join(folders), ','.join(channel_urls)))
+        build_folders_rattler_build(recipes_dir, platform, arch, channel_urls)
 
 
 def get_config(arch, channel_urls):
@@ -207,9 +234,26 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
         conda_build.api.build([recipe], config=get_config(arch, channel_urls))
 
 
+def build_folders_rattler_build(recipes_dir: str, platform, arch, channel_urls: list[str]):
+    # Define the arguments for rattler-build
+    args = [
+        "rattler-build",
+        "build", 
+        "--recipe-dir", recipes_dir,
+        "--target-platform", f"{platform}-{arch}",
+    ]
+    for channel_url in channel_urls:
+        # Local is automatically added by rattler-build so we just remove it.
+        if channel_url != "local":
+            args.extend(["-c", channel_url])
+    
+    # Execute rattler-build.
+    subprocess.run(args, check=True)
+
+
 def check_recipes_in_correct_dir(root_dir, correct_dir):
     from pathlib import Path
-    for path in Path(root_dir).rglob('meta.yaml'):
+    for path in chain(Path(root_dir).rglob('meta.yaml'), Path(root_dir).rglob('recipe.yaml')):
         path = path.absolute().relative_to(root_dir)
         if path.parts[0] == 'build_artifacts':
             # ignore pkg_cache in build_artifacts
