@@ -21,4 +21,4 @@ call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\nuke\Nuke.GlobalTool.dll %
 EOF
 
 # Download dependency licenses with dotnet-project-licenses
-dotnet-project-licenses -e --input . -f license-files
+dotnet-project-licenses --input source/Nuke.GlobalTool/Nuke.GlobalTool.csproj -t -d license-files
