@@ -4,6 +4,7 @@ import conda.base.context
 import conda.core.index
 import conda.resolve
 import conda_build.api
+import conda_build.variants
 import conda_index.api
 import networkx as nx
 from compute_build_graph import construct_graph
@@ -178,7 +179,7 @@ def build_all(recipes_dir, arch):
         build_folders_rattler_build(recipes_dir, platform, arch, channel_urls)
 
 
-def get_config(platform, arch, channel_urls):
+def get_config(arch, channel_urls):
     exclusive_config_files = [os.path.join(conda.base.context.context.root_prefix,
                                            'conda_build_config.yaml')]
     script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -191,14 +192,10 @@ def get_config(platform, arch, channel_urls):
     if os.path.exists(exclusive_config_file):
         exclusive_config_files.append(exclusive_config_file)
 
-    config = conda_build.config.get_or_merge_config(
-            None,
-            exclusive_config_file=exclusive_config_files,
-            platform=platform,
-            arch=arch,
-            channel_urls=channel_urls
-        )
-
+    config = conda_build.api.Config(
+        arch=arch, exclusive_config_files=exclusive_config_files,
+        channel_urls=channel_urls, error_overlinking=True,
+    )
     return config
 
 
@@ -210,8 +207,8 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
     index = conda.core.index.get_index(channel_urls=channel_urls)
     conda_resolve = conda.resolve.Resolve(index)
 
+    config = get_config(arch, channel_urls)
     platform = get_host_platform()
-    config = get_config(platform, arch, channel_urls)
 
     worker = {'platform': platform, 'arch': arch,
               'label': '{}-{}'.format(platform, arch)}
@@ -235,21 +232,20 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
         d[G.nodes[node]['meta'].meta_path] = 1
 
     for recipe in d.keys():
-        conda_build.api.build([recipe], config=get_config(platform, arch, channel_urls))
+        conda_build.api.build([recipe], config=get_config(arch, channel_urls))
 
 
 def build_folders_rattler_build(recipes_dir: str, platform, arch, channel_urls: list[str]):
-    config = get_config(platform, arch, channel_urls)
+    config = get_config(arch, channel_urls)
+    
+    # Determine the locations for the variant config files.
+    specs = OrderedDict()
+    for f in config.exclusive_config_files:
+        print(f"Using variants from {f}")
+        specs[f] = conda_build.variants.parse_config_file(os.path.abspath(os.path.expanduser(os.path.expandvars(f))), config)
+    combined_spec = conda_build.variants.combine_specs(specs, log_output=config.verbose)
 
-    # Get the combined variants from normal variant locations prior to running migrations
-    (
-        combined_variant_spec,
-        _,
-    ) = conda_build.variants.get_package_combined_spec(
-        None, config=config
-    )
-
-    variants = yaml.dump(sorted(combined_variant_spec))
+    variants = yaml.dump(sorted(combined_spec))
     print(f"-- VARIANTS:\n\n{variants}\n\n")
 
     # Define the arguments for rattler-build
