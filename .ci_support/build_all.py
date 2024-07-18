@@ -1,5 +1,6 @@
 from itertools import chain
 import json
+import tempfile
 import conda.base.context
 import conda.core.index
 import conda.resolve
@@ -241,12 +242,11 @@ def build_folders_rattler_build(recipes_dir: str, platform, arch, channel_urls: 
     # Determine the locations for the variant config files.
     specs = OrderedDict()
     for f in config.exclusive_config_files:
-        print(f"Using variants from {f}")
         specs[f] = conda_build.variants.parse_config_file(os.path.abspath(os.path.expanduser(os.path.expandvars(f))), config)
-    combined_spec = conda_build.variants.combine_specs(specs, log_output=config.verbose)
 
-    variants = yaml.dump(sorted(combined_spec))
-    print(f"-- VARIANTS:\n\n{variants}\n\n")
+    # Combine all the variant config files together
+    combined_spec = conda_build.variants.combine_specs(specs, log_output=config.verbose)
+    variant_config = yaml.dump(combined_spec)
 
     # Define the arguments for rattler-build
     args = [
@@ -260,8 +260,14 @@ def build_folders_rattler_build(recipes_dir: str, platform, arch, channel_urls: 
         if channel_url != "local":
             args.extend(["-c", channel_url])
     
-    # Execute rattler-build.
-    subprocess.run(args, check=True)
+    # Construct a temporary file where we write the combined variant config. We can then pass that
+    # to rattler-build.
+    with tempfile.NamedTemporaryFile(delete=False) as fp:
+        fp.write(variant_config.encode('utf-8'))
+        fp.close()
+
+        # Execute rattler-build.
+        subprocess.run(args + ["--variant-config", fp.name], check=True)
 
 
 def check_recipes_in_correct_dir(root_dir, correct_dir):
