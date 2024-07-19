@@ -21,4 +21,4 @@ exec %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\dotnet-script\dotnet-scrip
 EOF
 
 # Download dependency licenses wtih dotnet-project-licenses
-dotnet-project-licenses -e --input . -f license-files
+dotnet-project-licenses --input src/Dotnet.Script/Dotnet.Script.csproj -t -d license-files
