@@ -21,4 +21,7 @@ call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\nuke\Nuke.GlobalTool.dll %
 EOF
 
 # Download dependency licenses with dotnet-project-licenses
-dotnet-project-licenses --input source/Nuke.GlobalTool/Nuke.GlobalTool.csproj -t -d license-files
+tee ignored_packages.json << EOF
+["Humanizer.Core", "YamlDotNet"]
+EOF
+dotnet-project-licenses --input source/Nuke.GlobalTool/Nuke.GlobalTool.csproj -t -d license-files -ignore ignored_packages.json
