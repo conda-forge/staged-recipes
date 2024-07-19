@@ -21,4 +21,7 @@ exec %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\dotnet-script\dotnet-scrip
 EOF
 
 # Download dependency licenses wtih dotnet-project-licenses
-dotnet-project-licenses --input src/Dotnet.Script/Dotnet.Script.csproj -t -d license-files
+tee ignored_packages.json << EOF
+["Microsoft.DotNet.PlatformAbstractions"]
+EOF
+dotnet-project-licenses --input src/Dotnet.Script/Dotnet.Script.csproj -t -d license-files -ignore ignored_packages.json
