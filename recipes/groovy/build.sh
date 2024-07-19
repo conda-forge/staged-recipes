@@ -33,6 +33,7 @@ EOF
 
 export -f env_script_win
 
+
 # Build artifact with gradle and extract zip file
 ./gradlew clean dist
 mv subprojects/groovy-binary/build/distributions/apache-groovy-binary-${PKG_VERSION}.zip .
