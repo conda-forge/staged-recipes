@@ -16,7 +16,7 @@ popd
 # Use newly built leiningen-core to build uberjar
 ./bin/lein uberjar
 
-install -m 644 target/leiningen-2.11.2-standalone.jar ${PREFIX}/libexec/${PKG_NAME}/lib
+install -m 644 target/leiningen-${PKG_VERSION}-standalone.jar ${PREFIX}/libexec/${PKG_NAME}/lib
 sed -i "s?/usr/share/java?${PREFIX}/libexec/${PKG_NAME}/lib?g" bin/lein-pkg
 install -m 755 bin/lein-pkg ${PREFIX}/libexec/${PKG_NAME}/bin/lein
 
