@@ -22,5 +22,6 @@ tee ${PREFIX}/bin/dotnet-csharpier.cmd << EOF
 call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX\libexec\csharpier\dotnet-csharpier.dll %*
 EOF
 
+
 # Download dependency licenses with dotnet-project-licenses
 dotnet-project-licenses --input Src/CSharpier.Cli/CSharpier.Cli.csproj -t -d license-files
