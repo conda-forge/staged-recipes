@@ -24,4 +24,3 @@ EOF
 tee ${PREFIX}/bin/gradle-language-server.cmd << EOF
 call %CONDA_PREFIX%\libexec\gradle-language-server\bin\gradle-language-server.bat %*
 EOF
-
