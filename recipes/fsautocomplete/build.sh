@@ -25,7 +25,7 @@ rm -rf ${PREFIX}/libexec/${PKG_NAME}/${PKG_NAME}
 # Create bash and batch wrappers
 tee ${PREFIX}/bin/${PKG_NAME} << EOF
 #!/bin/sh
-exec \${DOTNET_ROOT}\dotnet exec \${CONDA_PREFIX}/libexec/fsautocomplete/fsautocomplete.dll "\$@"
+exec \${DOTNET_ROOT}/dotnet exec \${CONDA_PREFIX}/libexec/fsautocomplete/fsautocomplete.dll "\$@"
 EOF
 
 tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
