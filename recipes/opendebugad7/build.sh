@@ -21,7 +21,7 @@ mkdir -p ${PREFIX}/bin
 # Create bash and batch wrappers
 tee ${PREFIX}/bin/OpenDebugAD7 << EOF
 #!/bin/sh
-exec ${DOTNET_ROOT}/dotnet exec ${PREFIX}/libexec/opendebugad7/OpenDebugAD7.dll "\$@"
+exec \${DOTNET_ROOT}/dotnet exec \${CONDA_PREFIX}/libexec/opendebugad7/OpenDebugAD7.dll "\$@"
 EOF
 
 tee ${PREFIX}/bin/OpenDebugAD7.cmd << EOF
