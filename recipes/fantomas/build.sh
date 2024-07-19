@@ -21,4 +21,7 @@ call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\fantomas\fantomas.dll %*
 EOF
 
 # Download dependency licenses with dotnet-project-licenses
-dotnet-project-licenses --input src/Fantomas/Fantomas.fsproj -t -d license-files
+tee ignored_packages.json << EOF
+["Ignore", "Ionide.KeepAChangelog.Tasks"]
+EOF
+dotnet-project-licenses --input src/Fantomas/Fantomas.fsproj -t -d license-files -ignore ignored_packages.json
