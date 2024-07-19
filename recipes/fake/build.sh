@@ -23,5 +23,6 @@ tee ${PREFIX}/bin/fake-cli.cmd << EOF
 call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\fake\fake-cli.dll %*
 EOF
 
+
 # Download dependency licenses with dotnet-project-licenses
 dotnet-project-licenses --input src/app/fake-cli/fake-cli.fsproj -t -d license-files
