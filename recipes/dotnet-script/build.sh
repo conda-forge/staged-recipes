@@ -9,6 +9,7 @@ mkdir -p ${PREFIX}/libexec/${PKG_NAME}
 rm -rf global.json
 framework_version="$(dotnet --version | sed -e 's/\..*//g').0"
 dotnet publish --no-self-contained src/Dotnet.Script/Dotnet.Script.csproj --output ${PREFIX}/libexec/${PKG_NAME} --framework "net${framework_version}"
+mkdir -p ${PREFIX}/libexec/${PKG_NAME}/dotnet-script
 
 # Create bash and batch wrappers
 tee ${PREFIX}/bin/dotnet-script << EOF
