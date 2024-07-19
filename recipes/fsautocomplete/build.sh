@@ -5,6 +5,10 @@ set -o xtrace -o nounset -o pipefail -o errexit
 rm -rf global.json
 framework_version="$(dotnet --version | sed -e 's/\..*//g').0"
 
+# Update System.Text.Json to newest version to fix security warning
+# Remove with next release
+sed -i "s/System.Text.Json (7.0.3)/System.Text.Json (8.0.4)/" paket.lock
+
 # Overwrite hardcoded .NET version
 sed -i "s?<TargetFrameworks>.*</TargetFrameworks>?<TargetFrameworks>net${framework_version}</TargetFrameworks>?" \
     src/FsAutoComplete/FsAutoComplete.fsproj
@@ -29,4 +33,7 @@ call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\fsautocomplete\fsautocompl
 EOF
 
 # Download dependency licenses with dotnet-project-licenses
-dotnet-project-licenses --input src/FsAutoComplete/FsAutoComplete.fsproj -t -d license-files
+tee ignored_packages.json << EOF
+["FSharp.Control.Reactive", "FSharp.UMX", "FsToolkit.*", "IcedTasks", "Ionide.KeepAChangelog.Tasks", "LinkDotNet.StringBuilder", "Microsoft.DotNet.PlatformAbstractions"]
+EOF
+dotnet-project-licenses --input src/FsAutoComplete/FsAutoComplete.fsproj -t -d license-files -ignore ignored_packages.json
