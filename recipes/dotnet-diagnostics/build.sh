@@ -34,7 +34,6 @@ rm -rf global.json
 mv global.json.new global.json
 tools=(dotnet-counters dotnet-dsrouter dotnet-dump dotnet-gcdump dotnet-sos dotnet-stack dotnet-trace)
 
-
 # Call functions to build each tool,create wrappers
 printf "%s\n" "${tools[@]}" | xargs -I % bash -c "build %"
 printf "%s\n" "${tools[@]}" | xargs -I % bash -c "env_script %"
