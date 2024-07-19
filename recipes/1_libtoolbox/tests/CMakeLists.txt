@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.14)
+project(test-find-packages)
+find_package(toolbox ${PKG_VERSION} REQUIRED)
+message("toolbox_INCLUDE_DIRS: ${toolbox_INCLUDE_DIRS}")
+message("   toolbox_LIBRARIES: ${toolbox_LIBRARIES}")
+message("     toolbox_VERSION: ${toolbox_VERSION}")
+message("       toolbox_FOUND: ${toolbox_FOUND}")
