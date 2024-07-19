@@ -14,6 +14,7 @@ mkdir -p "${PREFIX}/bin"
 mkdir -p "${PREFIX}/libexec/${PKG_NAME}"
 
 # Build package with dotnet publish
+dotnet tool restore
 dotnet publish --no-self-contained src/FsAutoComplete/FsAutoComplete.fsproj --output ${PREFIX}/libexec/${PKG_NAME} --framework net${framework_version}
 rm -rf ${PREFIX}/libexec/${PKG_NAME}/${PKG_NAME}
 
