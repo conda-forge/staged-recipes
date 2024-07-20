@@ -45,5 +45,9 @@ Get-ChildItem -Path $env:PREFIX -Recurse -Filter "*.lib" |
         Copy-Item -Path $_.FullName -Destination $newPath
     }
 
+# CMake files installed in the wrong directory
+New-Item -Path (Join-Path $env:PREFIX 'toolbox/cmake') -ItemType Directory -Force | Out-Null
+Copy-Item -Path (Join-Path $env:PREFIX 'Library/lib/cmake/toolbox/*') -Destination (Join-Path $env:PREFIX 'toolbox/cmake') -Recurse
+
 # Clean up
 Remove-Item -Path $build_dir -Recurse -Force
