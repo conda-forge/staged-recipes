@@ -1,6 +1,7 @@
 #!/bin/bash
 set -exuo pipefail
 
+export CGO_ENABLED=0
 export GODEBUG="tarinsecurepath=0,zipinsecurepath=0"
 
 echo "PKG_VERSION = ${PKG_VERSION}"
