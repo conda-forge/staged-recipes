@@ -11,6 +11,9 @@ cargo install --locked --root ${PREFIX} --path .
 
 # strip debug symbols
 "$STRIP" "$PREFIX/bin/rga"
+"$STRIP" "$PREFIX/bin/rga-fzf"
+"$STRIP" "$PREFIX/bin/rga-fzf-open"
+"$STRIP" "$PREFIX/bin/rga-preproc"
 
 # remove extra build file
 rm -f "${PREFIX}/.crates.toml"
