@@ -12,7 +12,8 @@ PACKAGE='github.com/argoproj/argo-cd/v2/common'
 go build \
     -v \
     -ldflags "-X ${PACKAGE}.version=${PKG_VERSION}" \
-    -o "${PREFIX}/bin/argocd"
+    -o "${PREFIX}/bin/argocd" \
+    ./cmd
 
 
 # save thirdparty licenses
