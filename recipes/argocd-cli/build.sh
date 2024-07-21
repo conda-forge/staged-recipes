@@ -17,7 +17,7 @@ go build \
 
 
 # save thirdparty licenses
-go-licenses save . --save_path ./thirdparty
+go-licenses save ./cmd --save_path ./thirdparty
 
 # Clear out cache to avoid file not removable warnings
 chmod -R u+w $(go env GOPATH) && rm -r $(go env GOPATH)
