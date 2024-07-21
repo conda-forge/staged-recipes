@@ -1,6 +1,6 @@
-set "CGO_ENABLED=0"
-set "LDFLAGS=-s -w -X main.version=%PKG_VERSION%"
-go build -trimpath -o="%LIBRARY_BIN%\%PKG_NAME%.exe" -ldflags="%LDFLAGS%" || goto :error
+go build -buildmode=pie -trimpath -o="%LIBRARY_BIN%\%PKG_NAME%.exe" -ldflags="-s -X main.version=%PKG_VERSION%" || goto :error
+go-licenses save . --save_path=license-files --ignore github.com/mattn/go-localereader || goto :error
+
 goto :EOF
 
 :error
