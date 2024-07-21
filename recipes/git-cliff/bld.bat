@@ -7,9 +7,6 @@ cargo install --locked --root %LIBRARY_PREFIX% --path %PKG_NAME% || goto :error
 :: remove extra build file
 del /F /Q "%LIBRARY_PREFIX%\.crates.toml" || goto :error
 
-:: strip debug symbols
-%STRIP% %LIBRARY_PREFIX%\bin\%PKG_NAME%.exe || goto :error
-
 goto :EOF
 
 :error

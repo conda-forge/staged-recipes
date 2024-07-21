@@ -18,6 +18,8 @@ install -m 644 _${PKG_NAME} ${PREFIX}/share/zsh/site-functions/_${PKG_NAME}
 
 # strip debug symbols
 "$STRIP" "$PREFIX/bin/${PKG_NAME}"
+"$STRIP" "$PREFIX/bin/${PKG_NAME}-completions"
+"$STRIP" "$PREFIX/bin/${PKG_NAME}-mangen"
 
 # remove extra build file
 rm -f "${PREFIX}/.crates.toml"
