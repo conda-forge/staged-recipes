@@ -1,7 +1,6 @@
 #!/bin/bash
 set -exuo pipefail
 
-export CGO_ENABLED=0
 export GO111MODULE=on
 
 echo "PKG_VERSION = ${PKG_VERSION}"
