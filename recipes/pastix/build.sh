@@ -3,4 +3,4 @@ cmake -G "Ninja" -B build -S . \
       -D CMAKE_INSTALL_PREFIX:FILEPATH=$PREFIX \
       -D PASTIX_ORDERING_SCOTCH:BOOL=OFF
 
-ninja install
+ninja -C build install
