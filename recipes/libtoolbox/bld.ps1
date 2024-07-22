@@ -35,8 +35,8 @@ Get-ChildItem -Path $env:PREFIX -Recurse | Where-Object { $_.FullName -match 'GT
 # Test binary is not installed on windows, apparently
 Get-ChildItem -Path (Join-Path $build_dir 'toolbox-test.exe') -Recurse | Where-Object { $_ -ne $null } | ForEach-Object { Copy-Item -Path $_.FullName -Destination (Join-Path $test_release_dir 'bin') -Recurse }
 
-# CMake was patched to create versioned windows DLLs, but the side-effect is that it creates toolbox.3.lib as well
-# Converting toolbox.3.lib to toolbox.lib. It will still refer to toolbox.3.dll, but that should be fine.
+# CMake was patched to create versioned windows DLLs, but the side-effect is that it creates toolbox.x.lib as well
+# Converting toolbox.x.lib to toolbox.lib. It will still refer to toolbox.x.dll, but that should be fine.
 Get-ChildItem -Path $env:PREFIX -Recurse -Filter "*.lib" |
     Where-Object { $_.Name -match "\.\d+\.lib$" } |
     ForEach-Object {
