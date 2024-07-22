@@ -30,7 +30,7 @@ pushd v4-proto-js
   if [[ "$(uname)" == "Darwin" ]]; then
     find "src/codegen" -name "*.ts" -exec sed -i '' 's/\(e\) =>/(\1: any) =>/g' {} \;
   else
-   find "src/codegen" -name "*.ts" -exec sed -i 's/\(e\) =>/(\1: any) =>/g' {} \;
+    find "src/codegen" -name "*.ts" -exec sed -i 's/\(e\) =>/(\1: any) =>/g' {} \;
   fi
 
   pnpm add @cosmjs/tendermint-rpc @types/node
