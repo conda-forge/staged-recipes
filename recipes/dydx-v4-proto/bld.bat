@@ -3,7 +3,7 @@
 powershell -Command "(Get-Content v4-proto-py\setup.py) -replace 'version=0.0.0', 'version=%PKG_VERSION%' | Set-Content v4-proto-py\setup.py"
 if errorlevel 1 exit 1
 
-make v4-proto-py-gen
+call bash make v4-proto-py-gen
 if errorlevel 1 exit 1
 
 :: JavaScript client
