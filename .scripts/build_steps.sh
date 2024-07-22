@@ -36,8 +36,16 @@ show_channel_urls: true
 solver: libmamba
 CONDARC
 
+# Workaround for errors related to "unsafe" directories:
+# https://github.blog/2022-04-12-git-security-vulnerability-announced/#cve-2022-24765 
+git config --global --add safe.directory "${FEEDSTOCK_ROOT}"
+
 # Copy the host recipes folder so we don't ever muck with it
-cp -r ${FEEDSTOCK_ROOT} ~/staged-recipes-copy
+# Skip build_artifacts because it gets huge with time
+mkdir -p ~/staged-recipes-copy
+shopt -s extglob dotglob
+cp -r "${FEEDSTOCK_ROOT}"/!(build_artifacts) ~/staged-recipes-copy
+shopt -u extglob dotglob
 
 # Remove any macOS system files
 find ~/staged-recipes-copy/recipes -maxdepth 1 -name ".DS_Store" -delete
@@ -53,8 +61,8 @@ fi
 git ls-tree --name-only main -- . | xargs -I {} sh -c "rm -rf ~/staged-recipes-copy/recipes/{} && echo Removing recipe: {}"
 popd > /dev/null
 
-
-
+# Prevent permission errors in ~/.cache/conda
+export CONDA_NUMBER_CHANNEL_NOTICES=0
 conda install --quiet --file ${FEEDSTOCK_ROOT}/.ci_support/requirements.txt
 
 setup_conda_rc "${FEEDSTOCK_ROOT}" "/home/conda/staged-recipes-copy/recipes" "${CI_SUPPORT}/${CONFIG}.yaml"
