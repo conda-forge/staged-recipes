@@ -7,5 +7,5 @@ set -o xtrace -o nounset -o pipefail -o errexit
     --disable-debug \
     --disable-dependency-tracking \
     --prefix=${PREFIX}
-make
+make -j${CPU_COUNT}
 make install
