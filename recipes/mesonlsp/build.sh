@@ -15,9 +15,6 @@ if [[ ${target_platform} =~ .*linux.* ]]; then
     export CXXFLAGS="${CXXFLAGS} -pthread"
 fi
 
-meson --prefix=${PREFIX} \
-    --libdir=${PREFIX}/lib \
-    --buildtype=release \
-    build
+meson ${MESON_ARGS} build
 meson compile -C build -v
 meson install -C build
