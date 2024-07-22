@@ -9,5 +9,5 @@ cmake -S . -B build \
     -DBUILD_TESTING=OFF \
     ${CMAKE_ARGS}
 
-cmake --build build
+cmake --build build -j${CPU_COUNT}
 cmake --install build
