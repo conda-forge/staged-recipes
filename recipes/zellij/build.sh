@@ -8,7 +8,10 @@ cargo-bundle-licenses \
 
 # build statically linked binary with Rust
 cargo install --locked --root ${PREFIX} --path .
-install -Dd ${PREFIX}/etc/bash_completion.d ${PREFIX}/share/fish/vendor_completions.d ${PREFIX}/share/zsh/site-functions
+
+mkdir -p ${PREFIX}/etc/bash_completion.d
+mkdir -p ${PREFIX}/share/fish/vendor_completions.d
+mkdir -p ${PREFIX}/share/zsh/site-functions
 zellij setup --generate-completion bash > ${PREFIX}/etc/bash_completion.d/zellij
 zellij setup --generate-completion fish > ${PREFIX}/share/fish/vendor_completions.d/zellij.fish
 zellij setup --generate-completion zsh > ${PREFIX}/share/zsh/site-functions/_zellij
