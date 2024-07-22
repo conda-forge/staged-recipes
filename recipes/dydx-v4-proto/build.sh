@@ -3,11 +3,16 @@
 set -euxo pipefail
 
 # Python client
-sed -i "s/version=0.0.0/${PKG_VERSION}/g" v4-proto-py/setup.py
+if [[ "$(uname)" == "Darwin" ]]; then
+  sed -i '' "s/version=0.0.0/version=${PKG_VERSION}/g" v4-proto-py/setup.py
+else
+  sed -i "s/version=0.0.0/version=${PKG_VERSION}/g" v4-proto-py/setup.py
+fi
+
 make v4-proto-py-gen
 
 # JavaScript client
-cd v4-proto-js
+pushd v4-proto-js
   # Don't use pre-built gyp packages
   export npm_config_build_from_source=true
 
@@ -27,4 +32,4 @@ cd v4-proto-js
   pnpm add long@5.2.3
 
   pnpm run build
-cd ..
+popd

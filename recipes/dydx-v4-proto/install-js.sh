@@ -11,9 +11,10 @@ export npm_config_build_from_source=true
 
 NPM_CONFIG_USERCONFIG=/tmp/nonexistentrc
 
-cd v4-proto-js
+pushd v4-proto-js
   pnpm install
-  tgz=$(pnpm pack)
+  pnpm pack
   pnpm licenses list --json | pnpm-licenses generate-disclaimer --json-input --output-file="$SRC_DIR"/ThirdPartyLicenses.txt
 
-  npm install "${tgz}"
+  npm install -g "dydxprotocol-v4-proto-${PKG_VERSION}.tgz"
+popd
