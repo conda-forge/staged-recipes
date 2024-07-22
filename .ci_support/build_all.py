@@ -1,8 +1,12 @@
-import conda_build.conda_interface
-import networkx as nx
+import conda.base.context
+import conda.core.index
+import conda.resolve
 import conda_build.api
+import conda_index.api
+import networkx as nx
 from compute_build_graph import construct_graph
 import argparse
+import re
 import os
 from collections import OrderedDict
 import sys
@@ -32,8 +36,6 @@ def get_config_name(arch):
 
 def build_all(recipes_dir, arch):
     folders = list(filter(lambda d: os.path.isdir(os.path.join(recipes_dir, d)), os.listdir(recipes_dir)))
-    old_comp_folders = []
-    new_comp_folders = []
     if not folders:
         print("Found no recipes to build")
         return
@@ -53,10 +55,28 @@ def build_all(recipes_dir, arch):
                     found_cuda = True
                 if 'sysroot_linux-64' in text:
                     found_centos7 = True
+        cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
+        if os.path.exists(cbc):
+            with open(cbc, "r") as f:
+                lines = f.readlines()
+            pat = re.compile(r"^([^\#]*?)\s+\#\s\[.*(not\s(linux|unix)|(?<!not\s)(osx|win)).*\]\s*$")
+            # remove lines with selectors that don't apply to linux, i.e. if they contain
+            # "not linux", "not unix", "osx" or "win"; this also removes trailing newlines
+            lines = [pat.sub("", x) for x in lines]
+            text = "\n".join(lines)
+            if platform == 'linux' and ('c_stdlib_version' in text):
+                config = load(text, Loader=BaseLoader)
+                if 'c_stdlib_version' in config:
+                    for version in config['c_stdlib_version']:
+                        version = tuple([int(x) for x in version.split('.')])
+                        print(f"Found c_stdlib_version for linux: {version=}")
+                        found_centos7 |= version == (2, 17)
+
     if found_cuda:
         print('##vso[task.setvariable variable=NEED_CUDA;isOutput=true]1')
     if found_centos7:
         os.environ["DEFAULT_LINUX_VERSION"] = "cos7"
+        print("Overriding DEFAULT_LINUX_VERSION to be cos7")
 
     deployment_version = (0, 0)
     sdk_version = (0, 0)
@@ -65,15 +85,26 @@ def build_all(recipes_dir, arch):
         cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
         if os.path.exists(cbc):
             with open(cbc, "r") as f:
-                text = ''.join(f.readlines())
+                lines = f.readlines()
+            pat = re.compile(r"^([^\#]*?)\s+\#\s\[.*(not\s(osx|unix)|(?<!not\s)(linux|win)).*\]\s*$")
+            # remove lines with selectors that don't apply to osx, i.e. if they contain
+            # "not osx", "not unix", "linux" or "win"; this also removes trailing newlines
+            lines = [pat.sub("", x) for x in lines]
+            text = "\n".join(lines)
             if platform == 'osx' and (
                     'MACOSX_DEPLOYMENT_TARGET' in text or
-                    'MACOSX_SDK_VERSION' in text):
+                    'MACOSX_SDK_VERSION' in text or
+                    'c_stdlib_version' in text):
                 config = load(text, Loader=BaseLoader)
 
                 if 'MACOSX_DEPLOYMENT_TARGET' in config:
                     for version in config['MACOSX_DEPLOYMENT_TARGET']:
                         version = tuple([int(x) for x in version.split('.')])
+                        deployment_version = max(deployment_version, version)
+                if 'c_stdlib_version' in config:
+                    for version in config['c_stdlib_version']:
+                        version = tuple([int(x) for x in version.split('.')])
+                        print(f"Found c_stdlib_version for osx: {version=}")
                         deployment_version = max(deployment_version, version)
                 if 'MACOSX_SDK_VERSION' in config:
                     for version in config['MACOSX_SDK_VERSION']:
@@ -100,13 +131,13 @@ def build_all(recipes_dir, arch):
         deployment_version = '.'.join([str(x) for x in deployment_version])
         print("Overriding MACOSX_DEPLOYMENT_TARGET to be ", deployment_version)
         variant_text += '\nMACOSX_DEPLOYMENT_TARGET:\n'
-        variant_text += f'- {deployment_version}\n'
+        variant_text += f'- "{deployment_version}"\n'
 
     if sdk_version != (0, 0):
         sdk_version = '.'.join([str(x) for x in sdk_version])
         print("Overriding MACOSX_SDK_VERSION to be ", sdk_version)
         variant_text += '\nMACOSX_SDK_VERSION:\n'
-        variant_text += f'- {sdk_version}\n'
+        variant_text += f'- "{sdk_version}"\n'
 
     with open(variant_config_file, 'w') as f:
         f.write(variant_text)
@@ -121,9 +152,8 @@ def build_all(recipes_dir, arch):
 
 
 def get_config(arch, channel_urls):
-    exclusive_config_files = [os.path.join(conda_build.conda_interface.root_dir,
+    exclusive_config_files = [os.path.join(conda.base.context.context.root_prefix,
                                            'conda_build_config.yaml')]
-    platform = get_host_platform()
     script_dir = os.path.dirname(os.path.realpath(__file__))
     # since variant builds override recipe/conda_build_config.yaml, see
     # https://github.com/conda/conda-build/blob/3.21.8/conda_build/variants.py#L175-L181
@@ -134,11 +164,9 @@ def get_config(arch, channel_urls):
     if os.path.exists(exclusive_config_file):
         exclusive_config_files.append(exclusive_config_file)
 
-    error_overlinking = (get_host_platform() != "win")
-
     config = conda_build.api.Config(
         arch=arch, exclusive_config_files=exclusive_config_files,
-        channel_urls=channel_urls, error_overlinking=error_overlinking,
+        channel_urls=channel_urls, error_overlinking=True,
     )
     return config
 
@@ -147,9 +175,9 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
 
     index_path = os.path.join(sys.exec_prefix, 'conda-bld')
     os.makedirs(index_path, exist_ok=True)
-    conda_build.api.update_index(index_path)
-    index = conda_build.conda_interface.get_index(channel_urls=channel_urls)
-    conda_resolve = conda_build.conda_interface.Resolve(index)
+    conda_index.api.update_index(index_path)
+    index = conda.core.index.get_index(channel_urls=channel_urls)
+    conda_resolve = conda.resolve.Resolve(index)
 
     config = get_config(arch, channel_urls)
     platform = get_host_platform()
@@ -186,22 +214,32 @@ def check_recipes_in_correct_dir(root_dir, correct_dir):
         if path.parts[0] == 'build_artifacts':
             # ignore pkg_cache in build_artifacts
             continue
-        if path.parts[0] != correct_dir:
+        if path.parts[0] != correct_dir and path.parts[0] != "broken-recipes":
             raise RuntimeError(f"recipe {path.parts} in wrong directory")
         if len(path.parts) != 3:
             raise RuntimeError(f"recipe {path.parts} in wrong directory")
 
 
 def read_mambabuild(recipes_dir):
+    """
+    Only use mambabuild if all the recipes require so via
+    'conda_build_tool: mambabuild' in 'recipes/<recipe>/conda-forge.yml'
+    """
     folders = os.listdir(recipes_dir)
-    use_it = True
+    conda_build_tools = []
     for folder in folders:
+        if folder == "example":
+            continue
         cf = os.path.join(recipes_dir, folder, "conda-forge.yml")
         if os.path.exists(cf):
             with open(cf, "r") as f:
                 cfy = yaml.safe_load(f.read())
-            use_it = use_it and cfy.get("build_with_mambabuild", True)
-    return use_it
+            conda_build_tools.append(cfy.get("conda_build_tool", "conda-build"))
+        else:
+            conda_build_tools.append("conda-build")
+    if conda_build_tools:
+        return all([tool == "mambabuild" for tool in conda_build_tools])
+    return False
 
 
 def use_mambabuild():

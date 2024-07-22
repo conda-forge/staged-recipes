@@ -10,12 +10,17 @@ Such as:
     export GH_TOKEN=$(cat ~/.conda-smithy/github.token)
 
 """
-from __future__ import print_function
 
+from __future__ import print_function
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Iterator
 from conda_build.metadata import MetaData
+from rattler_build_conda_compat.render import MetaData as RattlerBuildMetaData
 from conda_smithy.utils import get_feedstock_name_from_meta
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from github import Github, GithubException
 import os.path
 import shutil
@@ -33,24 +38,48 @@ DEBUG = False
 
 REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch", "systems", "ctx"]
 
-recipe_directory_name = 'recipes'
+recipe_directory_name = "recipes"
 
 
-def list_recipes():
-    if os.path.isdir(recipe_directory_name):
-        recipes = os.listdir(recipe_directory_name)
-    else:
-        recipes = []
+def list_recipes() -> Iterator[tuple[str, str]]:
+    """
+    Locates all the recipes in the `recipes/` folder at the root of the repository.
 
-    for recipe_dir in recipes:
+    For each found recipe this function returns a tuple consisting of
+    * the path to the recipe directory
+    * the name of the feedstock
+    """
+    repository_root = Path(__file__).parent.parent.parent.parent.absolute()
+    repository_recipe_dir = repository_root / recipe_directory_name
+
+    # Ignore if the recipe directory does not exist.
+    if not repository_recipe_dir.is_dir:
+        return
+
+    for recipe_dir in repository_recipe_dir.iterdir():
         # We don't list the "example" feedstock. It is an example, and is there
         # to be helpful.
         # .DS_Store is created by macOS to store custom attributes of its
         # containing folder.
-        if recipe_dir in ['example', '.DS_Store']:
+        if recipe_dir.name in ["example", ".DS_Store"]:
             continue
-        path = os.path.abspath(os.path.join(recipe_directory_name, recipe_dir))
-        yield path, get_feedstock_name_from_meta(MetaData(path))
+
+        # Try to look for a conda-build recipe.
+        absolute_feedstock_path = repository_recipe_dir / recipe_dir
+        try:
+            yield (
+                str(absolute_feedstock_path),
+                get_feedstock_name_from_meta(MetaData(absolute_feedstock_path)),
+            )
+            continue
+        except OSError:
+            pass
+
+        # If no conda-build recipe was found, try to load a rattler-build recipe.
+        yield (
+            str(absolute_feedstock_path),
+            get_feedstock_name_from_meta(RattlerBuildMetaData(absolute_feedstock_path)),
+        )
 
 
 @contextmanager
@@ -103,6 +132,12 @@ def _set_default_branch(feedstock_dir, default_branch):
     ):
         cfg["upload_on_branch"] = default_branch
 
+    if "conda_build" not in cfg:
+        cfg["conda_build"] = {}
+
+    if "error_overlinking" not in cfg["conda_build"]:
+        cfg["conda_build"]["error_overlinking"] = True
+
     with open(os.path.join(feedstock_dir, "conda-forge.yml"), "w") as fp:
         yaml.dump(cfg, fp)
 
@@ -133,7 +168,7 @@ def print_rate_limiting_info(gh, user):
 
     # Compute time until GitHub API Rate Limit reset
     gh_api_reset_time = gh.get_rate_limit().core.reset
-    gh_api_reset_time -= datetime.utcnow()
+    gh_api_reset_time -= datetime.now(timezone.utc)
 
     print("")
     print("GitHub API Rate Limit Info:")
@@ -155,7 +190,7 @@ def sleep_until_reset(gh):
     if gh_api_remaining == 0:
         # Compute time until GitHub API Rate Limit reset
         gh_api_reset_time = gh.get_rate_limit().core.reset
-        gh_api_reset_time -= datetime.utcnow()
+        gh_api_reset_time -= datetime.now(timezone.utc)
 
         mins_to_sleep = int(gh_api_reset_time.total_seconds() / 60)
         mins_to_sleep += 2
@@ -198,8 +233,9 @@ if __name__ == '__main__':
     # gh_drone = Github(os.environ['GH_DRONE_TOKEN'])
     # gh_drone_remaining = print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
 
-    gh_travis = Github(os.environ['GH_TRAVIS_TOKEN'])
-
+    # gh_travis = Github(os.environ['GH_TRAVIS_TOKEN'])
+    gh_travis = None
+    
     gh = None
     if 'GH_TOKEN' in os.environ:
         write_token('github', os.environ['GH_TOKEN'])
@@ -342,11 +378,11 @@ if __name__ == '__main__':
             try:
                 subprocess.check_call(
                     ['conda', 'smithy', 'register-ci', '--without-appveyor',
-                     '--without-circle', '--without-drone',
+                     '--without-circle', '--without-drone', '--without-cirun',
                      '--without-webservice', '--feedstock_directory',
                      feedstock_dir] + owner_info)
                 subprocess.check_call(
-                    ['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
+                    ['conda', 'smithy', 'rerender', '--no-check-uptodate'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
                 exit_code = 0
                 traceback.print_exception(*sys.exc_info())
@@ -390,7 +426,7 @@ if __name__ == '__main__':
                     cwd=feedstock_dir
                 )
                 subprocess.check_call(
-                    ['conda', 'smithy', 'rerender'], cwd=feedstock_dir)
+                    ['conda', 'smithy', 'rerender', '--no-check-uptodate'], cwd=feedstock_dir)
             except subprocess.CalledProcessError:
                 exit_code = 0
                 traceback.print_exception(*sys.exc_info())
@@ -518,7 +554,7 @@ if __name__ == '__main__':
         print_rate_limiting_info(gh, 'GH_TOKEN')
     # if gh_drone:
     #     print_rate_limiting_info(gh_drone, 'GH_DRONE_TOKEN')
-    if gh_travis:
-        print_rate_limiting_info(gh_travis, 'GH_TRAVIS_TOKEN')
+    # if gh_travis:
+    #     print_rate_limiting_info(gh_travis, 'GH_TRAVIS_TOKEN')
 
     sys.exit(exit_code)

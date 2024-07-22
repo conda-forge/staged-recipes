@@ -1,0 +1,36 @@
+name: directory_linter
+
+on:
+  pull_request_target:
+    paths:
+      - 'recipes/*.yml'
+      - 'recipes/*.yaml'
+
+jobs:
+  comment:
+    if: '!contains(github.event.pull_request.labels.*.name, ''maintenance'') && !contains(github.event.pull_request.title,
+      ''[ci skip]'') && !contains(github.event.pull_request.title, ''[skip ci]'')
+      && !contains(github.event.pull_request.title, ''[lint skip]'') && !contains(github.event.pull_request.title,
+      ''[skip lint]'') && !contains(github.event.commits.*.message, ''[ci skip]'')
+      && !contains(github.event.commits.*.message, ''[skip ci]'') && !contains(github.event.commits.*.message,
+      ''[lint skip]'') && !contains(github.event.commits.*.message, ''[skip lint]'')'
+    name: Notify user about wrong dir
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Comment on PR
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'Hi! Thanks for your contribution to conda-forge.' +
+                    '\nUnfortunately, the recipe was added directly in the `recipes` folder without its own subfolder.\n' +
+                    'Please move the recipe file into a folder with the name of the package you want to submit.\n\n' +
+                    'For example: if your recipe is currently under `recipes/<your_package>.yaml`, ' +
+                    'it should be moved to `recipes/<your_package>/meta.yaml`.\n' +
+                    'Thanks!'
+            })
