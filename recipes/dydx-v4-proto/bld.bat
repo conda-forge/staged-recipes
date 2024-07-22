@@ -8,7 +8,7 @@ if errorlevel 1 exit 1
 
 set "SHELL=bash"
 
-call %BUILD_PREFIX%\Library\bin\gnumake.exe -f %SRC_DIR%\Makefile v4-proto-py-gen
+call %BUILD_PREFIX%\Library\bin\gnumake.exe -e -w debug -f %SRC_DIR%\Makefile v4-proto-py-gen
 if errorlevel 1 exit 1
 
 :: JavaScript client
