@@ -27,7 +27,12 @@ pushd v4-proto-js
   pnpm install
   pnpm run transpile
 
-  find "src/codegen" -name "*.ts" -exec sed -i 's/\(e\) =>/(\1: any) =>/g' {} \;
+  if [[ "$(uname)" == "Darwin" ]]; then
+    find "src/codegen" -name "*.ts" -exec sed -i '' 's/\(e\) =>/(\1: any) =>/g' {} \;
+  else
+   find "src/codegen" -name "*.ts" -exec sed -i 's/\(e\) =>/(\1: any) =>/g' {} \;
+  fi
+
   pnpm add @cosmjs/tendermint-rpc @types/node
   pnpm add long@5.2.3
 
