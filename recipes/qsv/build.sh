@@ -7,7 +7,10 @@ cargo-bundle-licenses \
     --output THIRDPARTY.yml
 
 # build statically linked binary with Rust
-export LIBCLANG_PATH="${PREFIX}/lib"
+export LIBCLANG_PATH="${BUILD_PREFIX}/lib"
+if [[ ${target_platform} =~ .*osx.* ]]; then
+    export CFLAGS="${CFLAGS} -fno-define-target-os-macros"
+fi
 cargo install --features all_features --locked --root ${PREFIX} --path .
 
 # strip debug symbols
