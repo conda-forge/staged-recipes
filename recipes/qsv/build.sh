@@ -18,10 +18,7 @@ if [[ ${build_platform} == ${target_platform} ]]; then
     export PYO3_PYTHON=${PYTHON}
 fi
 
-cargo install --features all_features --locked --root ${PREFIX} --path .
+cargo install --features all_features --no-track --locked --root ${PREFIX} --path .
 
 # strip debug symbols
 "$STRIP" "$PREFIX/bin/${PKG_NAME}"
-
-# remove extra build file
-rm -f "${PREFIX}/.crates.toml"
