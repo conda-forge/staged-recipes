@@ -18,6 +18,5 @@ cd %SRC_DIR%
   call pnpm licenses list --json | pnpm-licenses generate-disclaimer --json-input --output-file=%SRC_DIR%\ThirdPartyLicenses.txt
   if errorlevel 1 exit 1
 
-  call npm install --userconfig nonexistentrc --global "dydxprotocol-node-service-base-dev-%PKG_VERSION%.tgz" --dry-run
   call npm install --userconfig nonexistentrc --global "dydxprotocol-node-service-base-dev-%PKG_VERSION%.tgz"
   if errorlevel 1 exit 1
