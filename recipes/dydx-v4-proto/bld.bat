@@ -9,7 +9,7 @@ if errorlevel 1 exit 1
 powershell -Command "(Get-Content %SRC_DIR%/v4-proto-js/package.json) -replace '0.0.0', '%PKG_VERSION%' | Set-Content %SRC_DIR%/v4-proto-js/package.json"
 if errorlevel 1 exit 1
 
-docker info
+call docker info
 
 bash -c make -e -w debug -f %SRC_DIR%\\Makefile v4-proto-py-gen
 if errorlevel 1 exit 1
