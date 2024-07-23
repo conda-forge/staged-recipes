@@ -7,6 +7,7 @@ cargo-bundle-licenses \
     --output THIRDPARTY.yml
 
 # build statically linked binary with Rust
+export LIBCLANG_PATH="${PREFIX}/lib"
 cargo install --features all_features --locked --root ${PREFIX} --path .
 
 # strip debug symbols

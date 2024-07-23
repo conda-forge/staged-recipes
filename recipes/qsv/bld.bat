@@ -2,6 +2,7 @@
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml || goto :error
 
 :: build
+set LIBCLANG_PATH="%PREFIX%\lib"
 cargo install --locked --root "%PREFIX%" --path . || goto :error
 
 :: remove extra build file
