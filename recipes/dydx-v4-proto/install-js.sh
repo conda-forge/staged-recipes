@@ -16,5 +16,5 @@ pushd v4-proto-js
   pnpm pack
   pnpm licenses list --json | pnpm-licenses generate-disclaimer --json-input --output-file="$SRC_DIR"/ThirdPartyLicenses.txt
 
-  npm install -g "dydxprotocol-v4-proto-${PKG_VERSION}.tgz"
+  npm install -g "dydxprotocol-v4-proto-${PKG_VERSION}.tgz" --verbose
 popd
