@@ -1,11 +1,11 @@
 :: check licenses
-cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+cargo-bundle-licenses --format yaml --output THIRDPARTY.yml || goto :error
 
 :: build
 cargo install --locked --root "%PREFIX%" --path . || goto :error
 
 :: remove extra build file
-del /F /Q "%PREFIX%\.crates.toml"
+del /F /Q "%PREFIX%\.crates.toml" || goto :error
 
 goto :EOF
 
