@@ -1,5 +1,6 @@
-go build -buildmode=pie -trimpath -o="%LIBRARY_BIN%\%PKG_NAME%.exe" -ldflags="-s" .\gopls || goto :error
-go-licenses save .\gopls --save_path=license-files --ignore golang.org/x/tools/gopls || goto :error
+cd gopls
+go build -buildmode=pie -trimpath -o="%LIBRARY_BIN%\%PKG_NAME%.exe" -ldflags="-s" || goto :error
+go-licenses save . --save_path=license-files --ignore golang.org/x/tools/gopls || goto :error
 
 goto :EOF
 
