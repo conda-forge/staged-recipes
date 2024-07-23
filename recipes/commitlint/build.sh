@@ -16,6 +16,7 @@ npm install -ddd \
 # Create license report for dependencies
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
+# Create batch wrapper
 tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
 call %CONDA_PREFIX%\bin\node %CONDA_PREFIX%\bin\commitlint %*
 EOF
