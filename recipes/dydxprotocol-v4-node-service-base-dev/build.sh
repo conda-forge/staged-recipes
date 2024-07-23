@@ -12,7 +12,7 @@ export NPM_CONFIG_USERCONFIG=/tmp/nonexistentrc
 rm "${PREFIX}"/bin/node
 ln -s "${BUILD_PREFIX}"/bin/node "${PREFIX}"/bin/node
 
-rm package-lock.json pnpm-lock.yaml
+rm -f package-lock.json
 
 pnpm install
 pnpm install --save-dev @types/jest
