@@ -1,0 +1,120 @@
+{% set version = "0.14.0" %}
+
+# handle undefined PYTHON in `noarch: generic` outputs
+{% if PYTHON is not defined %}{% set PYTHON = "$PYTHON" %}{% endif %}
+
+package:
+  name: ariadne-codegen
+  version: {{ version }}
+
+source:
+  - folder: dist
+    url: https://pypi.io/packages/source/a/ariadne-codegen/ariadne_codegen-{{ version }}.tar.gz
+    sha256: d5b15470195c3858b88a2bae855b5c04602ffae40228077b6cfb26a57d3f14f6
+  - folder: src
+    url: https://github.com/mirumee/ariadne-codegen/archive/refs/tags/{{ version }}.tar.gz
+    sha256: 86d79970c8260fa8292e40ada695babcf47560d6ac599611d039daedaae8543c
+
+build:
+  number: 0
+  noarch: python
+  script: cd dist && {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  entry_points:
+    - ariadne-codegen = ariadne_codegen.main:main
+
+requirements:
+  host:
+    - hatchling
+    - pip
+    - python >=3.9
+  run:
+    - autoflake
+    - black
+    - click >=8.1,<9.0
+    - graphql-core >=3.2.0,<3.3
+    - httpx >=0.23,<1.0
+    - isort
+    - pydantic >=2.0.0,<3.0.0
+    - python >=3.9
+    - toml >=0.10,<1.0
+  run_constrained:
+    - websockets >=11.0,<12.0
+
+test:
+  requires:
+    - pip
+  imports:
+    - ariadne_codegen
+  commands:
+    - pip check
+    - ariadne-codegen --help
+
+outputs:
+  - name: ariadne-codegen
+  - name: ariadne-codegen-with-websockets
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage("ariadne-codegen", max_pin="x.x.x") }}
+        - websockets
+    test:
+      requires:
+        - pip
+      imports:
+        - ariadne_codegen
+      commands:
+        - pip check
+        - ariadne-codegen --help
+  - name: ariadne-codegen-with-opentelemetry
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage("ariadne-codegen", max_pin="x.x.x") }}
+        - opentelemetry-api
+    test:
+      requires:
+        - pip
+      imports:
+        - ariadne_codegen
+      commands:
+        - pip check
+        - ariadne-codegen --help
+  - name: ariadne-codegen-with-all
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage("ariadne-codegen-with-opentelemetry", max_pin="x.x.x") }}
+        - {{ pin_subpackage("ariadne-codegen-with-websockets", max_pin="x.x.x") }}
+    test:
+      source_files:
+        - src/tests
+      requires:
+        - ariadne
+        - coverage
+        - freezegun
+        - pip
+        - pytest
+        - pytest-asyncio
+        - pytest-httpx
+        - pytest-mock
+        - requests-toolbelt
+      imports:
+        - ariadne_codegen
+      commands:
+        - pip check
+        - ariadne-codegen --help
+        - cd src && coverage run --source=ariadne_codegen --branch -m pytest -vv --tb=long --color=yes
+        - coverage report --show-missing --skip-covered --fail-under=89
+
+about:
+  home: https://github.com/mirumee/ariadne-codegen
+  summary: Generate fully typed GraphQL client from schema, queries and mutations!
+  license: BSD-3-Clause
+  license_file: dist/LICENSE
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
