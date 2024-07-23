@@ -12,6 +12,12 @@ if [[ ${target_platform} =~ .*osx.* ]]; then
     export CFLAGS="${CFLAGS} -fno-define-target-os-macros"
 fi
 
+# If we are NOT cross compiling, supply the path to the python interpreter in ${PREFIX}
+# If we are cross compiling, the cross-python package will provide these variables instead.
+if [[ ${build_platform} == ${target_platform} ]]; then
+    export PYO3_PYTHON=${PYTHON}
+fi
+
 cargo install --features all_features --locked --root ${PREFIX} --path .
 
 # strip debug symbols
