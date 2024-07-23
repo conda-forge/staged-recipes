@@ -1,7 +1,7 @@
 @echo on
 setlocal enabledelayedexpansion
 
-call yarn install
+call pnpm install
 if errorlevel 1 exit 1
 
 call pnpm install --save-dev @types/jest

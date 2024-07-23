@@ -12,7 +12,9 @@ export NPM_CONFIG_USERCONFIG=/tmp/nonexistentrc
 rm "${PREFIX}"/bin/node
 ln -s "${BUILD_PREFIX}"/bin/node "${PREFIX}"/bin/node
 
-yarn install
+rm package-lock.json pnpm-lock.yaml
+
+pnpm install
 pnpm install --save-dev @types/jest
 pnpm run build
 # Audit fails for the latest request version
