@@ -1,10 +1,10 @@
-:: Check licenses
+:: check licenses
 cargo-bundle-licenses ^
     --format yaml ^
     --output THIRDPARTY.yml || goto :error
 
 :: build statically linked binary with Rust
-cargo install --no-track --locked --root %LIBRARY_PREFIX% --path selene || goto :error
+cargo install --no-target --locked --root %LIBRARY_PREFIX% --path selene || goto :error
 
 goto :EOF
 
