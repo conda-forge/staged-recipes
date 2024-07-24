@@ -46,6 +46,15 @@ outputs:
     script: install_bolt.bat  # [win]
     build:
       activate_in_script: true
+      always_include_files:
+        # Must overwrite CMake targets from llvmdev
+        {% set prefix = "Library/" if win else "" %}
+        - {{ prefix }}lib/cmake/llvm/LLVM-Config.cmake
+        - {{ prefix }}lib/cmake/llvm/LLVMConfig.cmake
+        - {{ prefix }}lib/cmake/llvm/LLVMConfigVersion.cmake
+        - {{ prefix }}lib/cmake/llvm/LLVMExports-release.cmake
+        - {{ prefix }}lib/cmake/llvm/LLVMExports.cmake
+
     requirements:
       build:
         - {{ stdlib('c') }}
@@ -70,6 +79,15 @@ outputs:
         # only on linux-64
         - test -f $PREFIX/lib/libbolt_rt_hugify.a                       # [linux64]
         - test -f $PREFIX/lib/libbolt_rt_instr.a                        # [linux64]
+
+      {% for each_file in [
+          "-Config", "Config", "ConfigVersion",
+          "LLVMExports-release", "LLVMExports"
+      ] %}
+        # CMake metadata
+        - test -f $PREFIX/lib/cmake/llvm/LLVM{{ each_file }}.cmake                  # [unix]
+        - if not exist %LIBRARY_LIB%/cmake/llvm/LLVM{{ each_file }}.cmake exit 1    # [win]
+      {% endfor %}
 
   # Contains bolt
   - name: bolt
