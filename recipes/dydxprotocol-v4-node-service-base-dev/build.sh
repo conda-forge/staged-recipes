@@ -15,6 +15,7 @@ ln -s "${BUILD_PREFIX}"/bin/node "${PREFIX}"/bin/node
 pnpm install
 pnpm install --save-dev @types/jest
 pnpm run build
+
 # Audit fails for the latest request version
 # pnpm audit fix
 

@@ -10,7 +10,16 @@ if errorlevel 1 exit 1
 call pnpm install
 if errorlevel 1 exit 1
 
+call pnpm run build
+if errorlevel 1 exit 1
+
+:: call pnpm audit fix
+:: if errorlevel 1 exit 1
+
 call pnpm licenses list --json | pnpm-licenses generate-disclaimer --json-input --output-file=%SRC_DIR%\ThirdPartyLicenses.txt
+if errorlevel 1 exit 1
+
+pnpm install --prod --no-frozen-lockfile
 if errorlevel 1 exit 1
 
 call pnpm pack
