@@ -1,4 +1,4 @@
-cmake -S . -B build ^
+cmake -S . -G Ninja -B build ^
     -DCMAKE_CXX_FLAGS="-D_LIBCPP_DISABLE_AVAILABILITY" ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_VERBOSE_MAKEFILE=ON ^
