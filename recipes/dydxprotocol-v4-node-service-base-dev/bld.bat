@@ -25,6 +25,6 @@ if errorlevel 1 exit 1
 call pnpm pack
 if errorlevel 1 exit 1
 
-npm install --userconfig nonexistentrc --global .\dydxprotocol-node-service-base-dev-0.3.2 .tgz
+npm install --userconfig nonexistentrc --global .\dydxprotocol-node-service-base-dev-0.3.2.tgz
 npm install --userconfig nonexistentrc --global .\dydxprotocol-node-service-base-dev-%PKG_VERSION%.tgz
 if errorlevel 1 exit 1
