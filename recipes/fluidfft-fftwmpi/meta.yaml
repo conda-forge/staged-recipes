@@ -1,0 +1,62 @@
+{% set name = "fluidfft-fftwmpi" %}
+{% set version = "0.0.1" %}
+{% set mpi = mpi or 'mpich' %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/fluidfft_fftwmpi-{{ version }}.tar.gz
+  sha256: af3c606852e991c2c1b3ea4f7558c69ab9138b713a7166a6eedf48ef1af660d3
+
+build:
+  number: 0
+  skip: true  # [py<39 or win or py>311]
+  script: '{{ PYTHON }} -m pip install . --no-deps --ignore-installed -vv'
+
+requirements:
+  build:
+    - {{ stdlib("c") }}
+    - {{ compiler('cxx') }}
+    # as in https://github.com/conda-forge/mpi4py-feedstock
+    - python                                 # [build_platform != target_platform]
+    - cython                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - {{ mpi }}                              # [build_platform != target_platform and mpi == "openmpi"]
+  host:
+    - pkg-config
+    - python
+    - meson-python
+    - numpy
+    - fluidfft-builder >=0.0.1
+    - cython
+    - transonic >=0.6.1
+    - pip
+    - fftw =*=mpi_{{ mpi }}_*
+    - {{ mpi }}
+    - mpi4py
+  run:
+    - python
+    - fluidfft
+    - fftw =*=mpi_{{ mpi }}_*
+    - {{ mpi }}
+    - mpi4py
+
+test:
+  imports:
+    - fluidfft_fftwmpi
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  summary: Fluidfft plugin for parallel FFTs using fftwmpi
+  license: GPL-3.0-or-later
+  license_file: LICENSE
+  home: https://foss.heptapod.net/fluiddyn/fluidfft
+
+extra:
+  recipe-maintainers:
+    - paugier
