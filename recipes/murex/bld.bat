@@ -1,6 +1,6 @@
-set "CGO_ENABLED=0"
-set "LDFLAGS=-s -w"
-go build -trimpath -o="%LIBRARY_BIN%\%PKG_NAME%.exe" -ldflags="%LDFLAGS%" || goto :error
+go build -buildmode=pie -trimpath -o=%PREFIX%\bin\%PKG_NAME%.exe -ldflags="-s" || goto :error
+go-licenses save . --save_path=license-files --ignore github.com/lmorg/murex --ignore modernc.org/mathutil || goto :error
+
 goto :EOF
 
 :error
