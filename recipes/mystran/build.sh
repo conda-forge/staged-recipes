@@ -3,4 +3,4 @@ cmake -B build -S . \
       -D CMAKE_INSTALL_PREFIX:FILEPATH=$PREFIX
 
 make -C build install
-cp Binaries/mystran $PREFIX/bin/mystran
+cp $SRC_DIR/Binaries/mystran $PREFIX/bin/mystran
