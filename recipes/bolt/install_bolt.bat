@@ -3,7 +3,7 @@
 :: temporary prefix to be able to install files more granularly
 mkdir temp_prefix
 
-if "%PKG_NAME%" == "libbolt" (
+if "%PKG_NAME%" == "libbolt-devel" (
     cmake --install ./build --prefix=./temp_prefix
     if %ERRORLEVEL% neq 0 exit 1
     REM only bolt libraries

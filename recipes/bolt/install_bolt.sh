@@ -4,7 +4,7 @@ set -ex
 # temporary prefix to be able to install files more granularly
 mkdir temp_prefix
 
-if [[ "${PKG_NAME}" == "libbolt" ]]; then
+if [[ "${PKG_NAME}" == "libbolt-devel" ]]; then
     cmake --install ./build --prefix=./temp_prefix
     # only bolt libraries
     mkdir -p $PREFIX/lib
