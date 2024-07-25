@@ -9,3 +9,4 @@ SET WHEEL_PATH=
 FOR /f "delims=" %%a in ('dir /b/s !WHEEL_PATH_PATTERN!') DO (SET "WHEEL_PATH=!WHEEL_PATH!%%a")
 pip "install" "--no-dependencies" "!WHEEL_PATH!" || exit /b %errorlevel%
 bazel "clean" "--expunge" || exit /b %errorlevel%
+bazel "shutdown" || exit /b %errorlevel%
