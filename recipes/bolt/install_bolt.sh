@@ -11,8 +11,8 @@ if [[ "${PKG_NAME}" == "libbolt-devel" ]]; then
     mv ./temp_prefix/lib/libLLVMBOLT* $PREFIX/lib
     # only on linux-64
     mv ./temp_prefix/lib/libbolt* $PREFIX/lib || true
-    # copy CMake metadata
-    mv ./temp_prefix/lib/cmake/llvm $PREFIX/lib/cmake/llvm
+    # move CMake metadata
+    mv ./temp_prefix/lib/cmake/llvm/* $PREFIX/lib/cmake/llvm/
 else
     # bolt: install everything else
     cmake --install ./build --prefix=$PREFIX
