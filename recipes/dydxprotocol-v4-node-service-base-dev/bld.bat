@@ -25,9 +25,11 @@ if errorlevel 1 exit 1
 call pnpm pack
 if errorlevel 1 exit 1
 
-call npm config set prefix=%PREFIX%
-if errorlevel 1 exit 1
+pushd %PREFIX%\lib
+  call npm install %SRC_DIR%\dydxprotocol-v4-proto-%PKG_VERSION%.tgz
+  if errorlevel 1 exit 1
+popd
 
-call npm install --prefix %PREFIX%\lib --userconfig nonexistentrc --global dydxprotocol-node-service-base-dev-%PKG_VERSION%.tgz --verbose
-if errorlevel 1 exit 1
+:: call npm install --prefix %PREFIX%\lib dydxprotocol-node-service-base-dev-%PKG_VERSION%.tgz
+:: if errorlevel 1 exit 1
 
