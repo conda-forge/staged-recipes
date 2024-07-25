@@ -1,4 +1,4 @@
-cmake -B build -S . \
+cmake -B build -S ${SRC_DIR} \
       -D CMAKE_BUILD_TYPE="Release" \
       -D CMAKE_INSTALL_PREFIX:FILEPATH=$PREFIX
 

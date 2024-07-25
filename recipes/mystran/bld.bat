@@ -1,4 +1,4 @@
-cmake -G "MinGW Makefiles" -B build -S . ^
+cmake -G "MinGW Makefiles" -B build -S %SRC_DIR% ^
       -D CMAKE_BUILD_TYPE="Release" ^
       -D CMAKE_INSTALL_PREFIX:FILEPATH=%LIBRARY_PREFIX%
 
