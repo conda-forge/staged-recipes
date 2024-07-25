@@ -28,6 +28,6 @@ if errorlevel 1 exit 1
 :: Path too long error: call install from PREFIX/lib
 mkdir %PREFIX%\lib
 pushd %PREFIX%\lib
-  call npm install %SRC_DIR%\dydxprotocol-node-service-base-dev-%PKG_VERSION%.tgz
+  call npm install --global %SRC_DIR%\dydxprotocol-node-service-base-dev-%PKG_VERSION%.tgz
   if errorlevel 1 exit 1
 popd
