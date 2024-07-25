@@ -25,6 +25,7 @@ if errorlevel 1 exit 1
 call pnpm pack
 if errorlevel 1 exit 1
 
+mkdir %PREFIX%\lib
 pushd %PREFIX%\lib
   call npm install %SRC_DIR%\dydxprotocol-v4-proto-%PKG_VERSION%.tgz
   if errorlevel 1 exit 1
