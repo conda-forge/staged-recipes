@@ -1,0 +1,87 @@
+{% set version = "0.1.0" %}
+{% set build = 0 %}
+
+{% if cuda_compiler_version in (None, "None", True, False) %}
+{% set cuda_major = 0 %}
+{% else %}
+{% set cuda_major = environ.get("cuda_compiler_version", "11.8").split(".")[0] | int %}
+# Prioritize over GPU builds
+{% set build = build + 200 %}
+{% endif %}
+
+package:
+  name: nvmath  # dummy
+  version: {{ version }}
+
+source:
+  - url: https://github.com/NVIDIA/nvmath-python/archive/refs/tags/v{{ ".".join(version.split(".")[:3]) }}.tar.gz
+    sha256: 151ce8f50b9e65082efc1edaf0aa01b5a96650f7226ae18a3b47af286dfd62fb
+
+build:
+  number: {{ build }}
+  skip: true  # [not (cuda_compiler_version == "12.0" and linux64)]
+
+outputs:
+
+  - name: nvmath-python
+    version: {{ ".".join(version.split(".")[:3]) }}
+    build:
+      number: {{ build }}
+      string: cuda{{ cuda_major }}_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ build }}  # [cuda_compiler_version != "None"]
+      string: core_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ build }}                  # [cuda_compiler_version == "None"]
+      skip: true  # [py != 39 or not (cuda_compiler_version == "12.0" and linux64)]
+      script:
+        - export CUDA_PATH=$BUILD_PREFIX/targets/x86_64-linux/   # [linux64]
+        - $PREFIX/bin/python -m pip install --no-deps --no-build-isolation -v .
+      ignore_run_exports:
+        - cuda-version
+        - cuda-cudart                            # [cuda_compiler_version == "None"]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}                 # [cuda_compiler_version != "None"]
+        - {{ stdlib('c') }}
+        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+        - python                                 # [build_platform != target_platform]
+        - cython <3                              # [build_platform != target_platform]
+      host:
+        - python
+        - pip
+        - cython <3
+        # We use headers from CUDA 12 for simplicity, but they can come from any version.
+        # On conda-forge using the CUDA 12 packages is more lightweight.
+        - cuda-version {{ cuda_major }}.*        # [cuda_compiler_version != "None"]
+      run:
+        - python
+        - numpy >=1.23,<2  # TODO: relax me in the next release
+        - pywin32  # [win64]
+        - cuda-version >={{ cuda_major }}.0.*,<{{ cuda_major+1 }}.0.a0  # [cuda_compiler_version != "None"]
+        - cupy  # TODO: remove me in the next release
+        - libcublas
+        - libcusolver
+        - libcusparse
+        - libcufft
+        - libcurand
+    test:
+      imports:
+        - nvmath
+
+
+about:
+  home: https://developer.nvidia.com/nvmath-python
+  license: Apache-2.0
+  license_url: https://docs.nvidia.com/cuda/nvmath-python/latest/license.html
+  license_file: LICENSE
+  summary: "nvmath-python: NVIDIA Math Libraries for the Python Ecosystem"
+  description: |
+    nvmath-python aims to bring the power and performance of the NVIDIA math libraries
+    to the Python ecosystem with intuitive, pythonic APIs. The ultimate goal is to
+    provide users full access to all of the available library features in a variety
+    of execution spaces.
+  doc_url: https://docs.nvidia.com/cuda/nvmath-python
+  dev_url: https://github.com/NVIDIA/nvmath-python
+
+extra:
+  recipe-maintainers:
+    - leofang
