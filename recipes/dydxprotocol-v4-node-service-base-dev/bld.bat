@@ -25,12 +25,9 @@ if errorlevel 1 exit 1
 call pnpm pack
 if errorlevel 1 exit 1
 
+:: Path too long error: call install from PREFIX/lib
 mkdir %PREFIX%\lib
 pushd %PREFIX%\lib
   call npm install %SRC_DIR%\dydxprotocol-node-service-base-dev-%PKG_VERSION%.tgz
   if errorlevel 1 exit 1
 popd
-
-:: call npm install --prefix %PREFIX%\lib dydxprotocol-node-service-base-dev-%PKG_VERSION%.tgz
-:: if errorlevel 1 exit 1
-
