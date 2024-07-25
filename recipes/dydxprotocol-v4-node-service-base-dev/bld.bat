@@ -25,5 +25,9 @@ if errorlevel 1 exit 1
 call pnpm pack
 if errorlevel 1 exit 1
 
-call npm install --userconfig nonexistentrc --global .\dydxprotocol-node-service-base-dev-%PKG_VERSION%.tgz --verbose
+call npm config set prefix=%PREFIX%
 if errorlevel 1 exit 1
+
+call npm install --userconfig nonexistentrc --global dydxprotocol-node-service-base-dev-%PKG_VERSION%.tgz --verbose
+if errorlevel 1 exit 1
+
