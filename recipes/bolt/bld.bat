@@ -2,15 +2,10 @@
 
 :: until https://github.com/llvm/llvm-project/pull/97130 lands,
 :: follow https://github.com/conda-forge/llvmdev-feedstock/blob/main/recipe/build.sh,
-:: minus the tests and plus LLVM_ENABLE_PROJECTS="bolt" / LLVM_TARGETS_TO_BUILD=...
+:: with a reduced set of targets, no tests, plus LLVM_ENABLE_PROJECTS="bolt"
 
 mkdir build
 cd build
-
-REM remove GL flag for now
-set "CXXFLAGS=-MD"
-set "CC=cl.exe"
-set "CXX=cl.exe"
 
 cmake -G "Ninja" ^
     -DCMAKE_BUILD_TYPE="Release" ^
@@ -34,7 +29,6 @@ cmake -G "Ninja" ^
     -DLLVM_USE_SYMLINKS=OFF ^
     -DLLVM_UTILS_INSTALL_DIR=libexec\llvm ^
     -DLLVM_BUILD_LLVM_C_DYLIB=ON ^
-    -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=WebAssembly ^
     -DCMAKE_POLICY_DEFAULT_CMP0111=NEW ^
     %SRC_DIR%/llvm
 if %ERRORLEVEL% neq 0 exit 1

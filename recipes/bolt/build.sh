@@ -3,7 +3,7 @@ set -ex
 
 # until https://github.com/llvm/llvm-project/pull/97130 lands,
 # follow https://github.com/conda-forge/llvmdev-feedstock/blob/main/recipe/build.sh,
-# minus the tests and plus LLVM_ENABLE_PROJECTS="bolt" / LLVM_TARGETS_TO_BUILD=...
+# with a reduced set of targets, no tests, plus LLVM_ENABLE_PROJECTS="bolt"
 
 # Make osx work like linux.
 sed -i.bak "s/NOT APPLE AND ARG_SONAME/ARG_SONAME/g" llvm/cmake/modules/AddLLVM.cmake
@@ -62,7 +62,6 @@ cmake -G Ninja \
     -DLLVM_UTILS_INSTALL_DIR=libexec/llvm \
     -DLLVM_BUILD_LLVM_DYLIB=yes \
     -DLLVM_LINK_LLVM_DYLIB=yes \
-    -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=WebAssembly \
     ${CMAKE_ARGS} \
     ../llvm
 
