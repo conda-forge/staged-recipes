@@ -7,17 +7,21 @@ function reference_conda_packages() {
   shift
   local pkgs=("$@")
 
-  local filter_str="["
+  local licenses_filter="["
+  local install_filter=()
   for pkg in "${pkgs[@]}"; do
     # Simulating the installation environment so that the relative path works
     (cd "${PREFIX}"/lib/node_modules && tar cf - "${pkg}" | (cd  "${SRC_DIR}" && tar xf -)) > /dev/null 2>&1
-    (cd "${SRC_DIR}"/"${main_pkg}" && pnpm install --save "${pkg}@file:../${pkg}") > /dev/null 2>&1
-    filter_str="${filter_str}\"!${pkg}\","
+    # Install in devDepedencies to avoid adding unnecessary dependencies
+    (cd "${SRC_DIR}"/"${main_pkg}" && pnpm install --save-dev "${pkg}@file:../${pkg}") > /dev/null 2>&1
+    licenses_filter="${licenses_filter}\"!${pkg}\","
+    install_filter+=("--filter" "\!${pkg}")
   done
-  filter_str="${filter_str%,}"
-  filter_str="${filter_str}]"
+  licenses_filter="${licenses_filter%,}"
+  licenses_filter="${licenses_filter}]"
 
-  echo "${filter_str}"
+  echo "${licenses_filter}"
+  echo "${install_filter[@]}"
 }
 
 function replace_null_versions() {
@@ -58,7 +62,8 @@ rm "${PREFIX}"/bin/node
 ln -s "${BUILD_PREFIX}"/bin/node "${PREFIX}"/bin/node
 
 filter_conda_packages=$(reference_conda_packages "${main_package}" "${conda_packages[@]}")
-echo "Filtering conda packages: ${filter_conda_packages}"
+licenses_filter_conda_pkgs=$(echo "${filter_conda_packages}" | sed -n '1p')
+install_filter_conda_pkgs=$(echo "${filter_conda_packages}" | sed -n '2p')
 
 pushd ${main_package}
   rm -f package-lock.json
@@ -69,15 +74,15 @@ pushd ${main_package}
   # pnpm audit fix
 
   # Install
-  pnpm install
+  eval pnpm install "${install_filter_conda_pkgs}"
 
-  pnpm licenses list --prod --json > _licenses.json
-  replace_null_versions _licenses.json "0.0.0" > /dev/null 2>&1
+  pnpm licenses list --prod --json > "${SRC_DIR}"/_conda-licenses.json
+  replace_null_versions "${SRC_DIR}"/_conda-licenses.json "0.0.0" > /dev/null 2>&1
   pnpm-licenses generate-disclaimer \
     --prod \
-    --filter="${filter_conda_packages}" \
+    --filter="${licenses_filter_conda_pkgs}" \
     --json-input \
-    --output-file="$SRC_DIR"/ThirdPartyLicenses.txt < _licenses.json > _licenses.txt 2>&1
+    --output-file="$SRC_DIR"/ThirdPartyLicenses.txt < "${SRC_DIR}"/_conda-licenses.json > "${SRC_DIR}"/_conda-licenses.txt 2>&1
   cp LICENSE "$SRC_DIR"/LICENSE
 
   pnpm pack

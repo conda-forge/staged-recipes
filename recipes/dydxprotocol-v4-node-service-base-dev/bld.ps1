@@ -7,20 +7,22 @@ function Reference-CondaPackages {
     )
 
     $filterStr = "["
+    $installFilter = "--filter"
     foreach ($pkg in $pkgs) {
         # Simulating the installation environment so that the relative path works
         Push-Location "$env:PREFIX/lib/node_modules"
-        tar -cf - $pkg | tar -xf - -C "$env:SRC_DIR"
+            tar -cf - $pkg | tar -xf - -C "$env:SRC_DIR"
         Pop-Location
 
         Push-Location "$env:SRC_DIR/$mainPkg"
-        pnpm install --save "$pkg@file:../$pkg"
+            pnpm install --save-dev "$pkg@file:../$pkg"
         Pop-Location
 
         $filterStr += "`"!$pkg`", "
+        $installFilter += " $pkg"
     }
     $filterStr = $filterStr.TrimEnd(", ") + "]"
-    return $filterStr
+    return @($filterStr, $installFilter)
 }
 
 function Replace-NullVersions {
@@ -60,6 +62,8 @@ New-Item -ItemType SymbolicLink -Path "$env:PREFIX/bin/node" -Target "$env:BUILD
 
 # Call function and store result
 $filterCondaPackages = Reference-CondaPackages -mainPkg "node-service-base-dev" -pkgs $condaPackages
+$licensesFilterCondaPkgs = $filterCondaPackages[0]
+$installFilterCondaPkgs = $filterCondaPackages[1]
 
 # Navigate to directory and run commands
 Push-Location $main_package
@@ -72,16 +76,16 @@ Push-Location $main_package
     # pnpm audit fix
 
     # Install
-    pnpm install
+    pnpm install $installFilterCondaPkgs
 
     # Generate licenses
-    pnpm licenses list --prod --json > _licenses.json
-    Replace-NullVersions -filePath _licenses.json -newVersion "0.0.0"
+    pnpm licenses list --prod --json > %SRC_DIR%/_conda-licenses.json
+    Replace-NullVersions -filePath %SRC_DIR%/_conda-licenses.json -newVersion "0.0.0"
     pnpm-licenses generate-disclaimer `
         --prod `
-        --filter="$filterCondaPackages" `
+        --filter="$licensesFilterCondaPkgs" `
         --json-input `
-        --output-file="$env:SRC_DIR/ThirdPartyLicenses.txt" > _licenses.txt 2>&1
+        --output-file="$env:SRC_DIR/ThirdPartyLicenses.txt" > %SRC_DIR%/_conda-licenses.txt 2>&1
     Copy-Item -Path "LICENSE" "$env:SRC_DIR/LICENSE"
 
     # Pack and install
