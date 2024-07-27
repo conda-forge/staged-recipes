@@ -18,9 +18,13 @@ pushd v4-proto-js
     sed -i "s/0.0.0/${PKG_VERSION}/g" package.json
   fi
 
-  # Use npm to link-in the conda packages
+  # Update package.json with conda packages: eslint, typescript-eslint, etc.
   rm -f package-lock.json
-  npm link @dydxprotocol/node-service-base-dev
+  for pkg in eslint @dydxprotocol/node-service-base-dev @typescript-eslint/eslint-plugin @typescript-eslint/parser; do
+    pnpm install --save "${pkg}@file:${PREFIX}/lib/node_modules/${pkg}"
+  done
+
+  pnpm add @cosmjs/tendermint-rpc @types/node long@5.2.3
 
   # pnpm import
   pnpm install
@@ -31,9 +35,6 @@ pushd v4-proto-js
   else
     find "src/codegen" -name "*.ts" -exec sed -i 's/\(e\) =>/(\1: any) =>/g' {} \;
   fi
-
-  pnpm add @cosmjs/tendermint-rpc @types/node
-  pnpm add long@5.2.3
 
   pnpm run build
 popd
