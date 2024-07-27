@@ -1,33 +1,3 @@
-@echo on
-setlocal enabledelayedexpansion
-
-call pnpm install
+@echo off
+powershell -Command "Invoke-Expression -Command (Get-Content -Path %~dp0\bld.ps1 -Raw)"
 if errorlevel 1 exit 1
-
-call pnpm install --save-dev @types/jest
-if errorlevel 1 exit 1
-
-call pnpm install
-if errorlevel 1 exit 1
-
-call pnpm run build
-if errorlevel 1 exit 1
-
-:: call pnpm audit fix
-:: if errorlevel 1 exit 1
-
-call pnpm licenses list --json | pnpm-licenses generate-disclaimer --json-input --output-file=%SRC_DIR%\ThirdPartyLicenses.txt
-if errorlevel 1 exit 1
-
-call pnpm install --prod --no-frozen-lockfile
-if errorlevel 1 exit 1
-
-call pnpm pack
-if errorlevel 1 exit 1
-
-:: Path too long error: call install from PREFIX/lib
-mkdir %PREFIX%\lib
-pushd %PREFIX%\lib
-  call npm install --global %SRC_DIR%\dydxprotocol-node-service-base-dev-%PKG_VERSION%.tgz
-  if errorlevel 1 exit 1
-popd
