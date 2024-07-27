@@ -69,7 +69,7 @@ Push-Location $main_package
     pnpm install
     Remove-Item -Recurse -Force build
     pnpm run compile
-    pnpm audit fix
+    # pnpm audit fix
 
     # Install
     pnpm install

@@ -66,7 +66,7 @@ pushd ${main_package}
   # Build
   pnpm install
   rm -rf build && pnpm run compile
-  pnpm audit fix
+  # pnpm audit fix
 
   # Install
   pnpm install
