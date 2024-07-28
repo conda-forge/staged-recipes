@@ -1,5 +1,4 @@
 #!/bin/bash
-
 set -e -x
 
 # get meson to find pkg-config when cross compiling
