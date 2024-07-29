@@ -41,5 +41,5 @@ pushd ${main_package}
 
   pnpm pack
 
-  npm install --global "${PKG_NAME}-${PKG_VERSION}.tgz"
+  npm install --prod --global "${PKG_NAME}-${PKG_VERSION}.tgz"
 popd
