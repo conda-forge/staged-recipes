@@ -3,6 +3,6 @@
 # Conda-forge recommended build recipe
 set -euxo pipefail
 
-pushd @dydyprotocol/v4-proto
-  npm install --prod --global "${PKG_NAME}-${PKG_VERSION}.tgz"
+pushd "${SRC_DIR}"/@dydxprotocol/v4-proto
+  npm install --omit=dev --global "${PKG_NAME}-${PKG_VERSION}.tgz"
 popd

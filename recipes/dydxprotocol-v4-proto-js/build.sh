@@ -2,10 +2,6 @@
 
 set -euxo pipefail
 
-ls -lrt "helpers"
-ls -lrt "${RECIPE_DIR}"
-ls -lrt "${RECIPE_DIR}/helpers"
-ls -lrt "${RECIPE_DIR}/helpers/js_build.sh"
 source "${RECIPE_DIR}"/helpers/js_build.sh
 
 # Don't use pre-built gyp packages
@@ -31,7 +27,7 @@ ln -s "${BUILD_PREFIX}"/bin/node "${PREFIX}"/bin/node
 analyze_dependencies "${SRC_DIR}/${main_package}/package.json"
 reference_conda_packages "${main_package}" "${conda_packages[@]}"
 
-pushd ${main_package}
+pushd "${SRC_DIR}/${main_package}"
   # Patch version
   if [[ "$(uname)" == "Darwin" ]]; then
     sed -i '' "s/0.0.0/${PKG_VERSION}/g" package.json

@@ -8,8 +8,13 @@ function analyze_dependencies() {
     exit 1
   fi
 
-  mapfile -t dep < <(jq -r '.dependencies // {} | keys[]' "$package_json_path")
-  mapfile -t dev < <(jq -r '.devDependencies // {} | keys[]' "$package_json_path")
+  while IFS= read -r line; do
+    dep+=("$line")
+  done < <(jq -r '.dependencies // {} | keys[]' "$package_json_path")
+
+  while IFS= read -r line; do
+    dev+=("$line")
+  done < <(jq -r '.devDependencies // {} | keys[]' "$package_json_path")
 
   declare -g dependencies=("${dep[@]:-()}")
   declare -g devDependencies=("${dev[@]:-()}")
