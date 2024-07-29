@@ -3,6 +3,6 @@
 # Conda-forge recommended build recipe
 set -euxo pipefail
 
-pushd v4-proto-js
-  npm install -global "${PKG_NAME}-${PKG_VERSION}.tgz"
+pushd @dydyprotocol/v4-proto
+  npm install --prod --global "${PKG_NAME}-${PKG_VERSION}.tgz"
 popd

@@ -2,6 +2,10 @@
 
 set -euxo pipefail
 
+ls -lrt "helpers"
+ls -lrt "${RECIPE_DIR}"
+ls -lrt "${RECIPE_DIR}/helpers"
+ls -lrt "${RECIPE_DIR}/helpers/js_build.sh"
 source "${RECIPE_DIR}"/helpers/js_build.sh
 
 # Don't use pre-built gyp packages
