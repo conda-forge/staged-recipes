@@ -26,7 +26,7 @@ $licensesFilterCondaPkgs = $filterCondaPackages[0]
 $installFilterCondaPkgs = $filterCondaPackages[1]
 
 # Navigate to directory and run commands
-Push-Location $main_package
+Push-Location $env:SRC_DIR/$main_package
     Remove-Item "package-lock.json" -Force
 
     # Build

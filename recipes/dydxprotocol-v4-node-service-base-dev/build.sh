@@ -25,7 +25,7 @@ ln -s "${BUILD_PREFIX}"/bin/node "${PREFIX}"/bin/node
 analyze_dependencies ${main_package}/package.json
 reference_conda_packages "${main_package}" "${conda_packages[@]}"
 
-pushd ${main_package}
+pushd "${SRC_DIR}/${main_package}"
   rm -f package-lock.json
 
   # Build
@@ -41,5 +41,5 @@ pushd ${main_package}
 
   pnpm pack
 
-  npm install --prod --global "${PKG_NAME}-${PKG_VERSION}.tgz"
+  npm install --omit=dev --global "${PKG_NAME}-${PKG_VERSION}.tgz"
 popd
