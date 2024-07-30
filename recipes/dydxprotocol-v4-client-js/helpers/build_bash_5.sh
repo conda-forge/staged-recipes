@@ -1,3 +1,5 @@
+set -euxo pipefail
+
 source "${RECIPE_DIR}"/helpers/js_build.sh
 
 # Don't use pre-built gyp packages
@@ -16,7 +18,7 @@ conda_packages=(
 )
 
 mkdir -p "${SRC_DIR}/${main_package}"
-(cd "${SRC_DIR}/js_module_source" && tar cf - . | (cd "${SRC_DIR}/@dydxprotocol" && tar xf -))
+(cd "${SRC_DIR}/js_module_source/v4-client-js" && tar cf - . | (cd "${SRC_DIR}/${main_package}" && tar xf -))
 
 rm "${PREFIX}"/bin/node
 ln -s "${BUILD_PREFIX}"/bin/node "${PREFIX}"/bin/node
@@ -25,12 +27,11 @@ analyze_dependencies "${SRC_DIR}/${main_package}/package.json"
 reference_conda_packages "${main_package}" "${conda_packages[@]}"
 
 pushd "${SRC_DIR}/${main_package}" || exit 1
-  rm -f package-lock.json
+  rm -f package-lock.json pnpm-lock.yaml
 
-  pnpm install --save-dev long@latest typescript@latest @types/node
+  pnpm install --save-dev typescript@latest @types/node @grpc/grpc-js @osmonauts/telescope@latest
+  pnpm install --save long@latest
 
-  # pnpm import
-  pnpm install
   pnpm run transpile
 
   if [[ "$(uname)" == "Darwin" ]]; then
@@ -39,6 +40,7 @@ pushd "${SRC_DIR}/${main_package}" || exit 1
     find "src/codegen" -name "*.ts" -exec sed -i 's/\(e\) =>/(\1: any) =>/g' {} \;
   fi
   pnpm run build
+  pnpm run test
 
   # Install
   eval pnpm install "${install_filter_conda_pkgs}"
