@@ -1,4 +1,5 @@
 import argparse
+import atexit
 import os
 import re
 import subprocess
@@ -315,11 +316,11 @@ def build_folders_rattler_build(
     # Construct a temporary file where we write the combined variant config. We can then pass that
     # to rattler-build.
     with tempfile.NamedTemporaryFile(delete=False) as fp:
-        fp.write(variant_config.encode("utf-8"))
-        fp.close()
+        fp.write(variant_config.encode("utf-8"))   
+        atexit.register(os.unlink, fp.name)
 
-        # Execute rattler-build.
-        subprocess.run(args + ["--variant-config", fp.name], check=True)
+    # Execute rattler-build.
+    subprocess.run(args + ["--variant-config", fp.name], check=True)
 
 
 def check_recipes_in_correct_dir(root_dir, correct_dir):
