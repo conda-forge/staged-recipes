@@ -98,7 +98,7 @@ def build_all(recipes_dir, arch):
             # "not linux", "not unix", "osx" or "win"; this also removes trailing newlines
             lines = [pat.sub("", x) for x in lines]
             text = "\n".join(lines)
-            if platform == "linux" and ("c_stdlib_version" in text):
+            if platform == "linux" and "c_stdlib_version" in text:
                 config = load(text, Loader=BaseLoader)
                 if "c_stdlib_version" in config:
                     for version in config["c_stdlib_version"]:
