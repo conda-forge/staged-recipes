@@ -299,6 +299,11 @@ def build_folders_rattler_build(
     combined_spec = conda_build.variants.combine_specs(specs, log_output=config.verbose)
     variant_config = yaml.dump(combined_spec)
 
+    # The `variants.yaml` file next to a recipe.yaml file is automatically 
+    # picked up by rattler-build so there is no need to merge that in here 
+    # as well. See:
+    # https://prefix-dev.github.io/rattler-build/latest/variants/#automatic-variantsyaml-discovery
+
     # Define the arguments for rattler-build
     args = [
         "rattler-build",
