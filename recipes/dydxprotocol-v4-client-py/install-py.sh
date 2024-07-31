@@ -3,7 +3,7 @@
 set -ex
 
 # Install
-pushd v4-clients-py-v2
+pushd v4-client-py-v2
   ${PYTHON} -m pip install . \
     --no-build-isolation \
     --no-deps \
