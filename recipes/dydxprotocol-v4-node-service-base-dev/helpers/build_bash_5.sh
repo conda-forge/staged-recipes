@@ -20,6 +20,7 @@ mkdir -p "${SRC_DIR}/${main_package}"
 rm "${PREFIX}"/bin/node
 ln -s "${BUILD_PREFIX}"/bin/node "${PREFIX}"/bin/node
 
+install_filter_conda_pkgs=()
 analyze_dependencies ${main_package}/package.json
 reference_conda_packages "${main_package}" "${conda_packages[@]}"
 
@@ -32,7 +33,7 @@ pushd "${SRC_DIR}/${main_package}"
   # pnpm audit fix
 
   # Install
-  eval pnpm install "${install_filter_conda_pkgs}"
+  eval pnpm install "${install_filter_conda_pkgs[*]}"
 
   third_party_licenses "${SRC_DIR}"/${main_package}
   cp LICENSE "$SRC_DIR"/LICENSE

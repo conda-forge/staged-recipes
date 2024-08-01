@@ -26,7 +26,6 @@ function reference_conda_packages() {
   local pkgs=("$@")
 
   licenses_filter="["
-  install_filter=()
 
   (cd "${BUILD_PREFIX}"/lib/node_modules && tar cf - . | (cd  "${SRC_DIR}" && tar xf -)) > /dev/null 2>&1
   (cd "${PREFIX}"/lib/node_modules && tar cf - . | (cd  "${SRC_DIR}" && tar xf -)) > /dev/null 2>&1
@@ -34,12 +33,14 @@ function reference_conda_packages() {
   for pkg in "${pkgs[@]}"; do
     mkdir -p "${SRC_DIR}"/_conda-logs
 
+    set +x
     rpath=".." # Default relative path
     for ((i=0; i<${#main_pkg}; i++)); do
       if [[ "${main_pkg:$i:1}" == "/" ]]; then
         rpath="${rpath}/.."
       fi
     done
+    set -x
 
     if [[ " ${dependencies[*]} " == *" ${pkg} "* ]]; then
       (cd "${SRC_DIR}"/"${main_pkg}" && pnpm install --save "${pkg}@file:${rpath}/${pkg}") > "${SRC_DIR}"/_conda-logs/dep.log 2>&1
@@ -50,12 +51,11 @@ function reference_conda_packages() {
     fi
 
     licenses_filter="${licenses_filter}\"!${pkg}\","
-    install_filter+=("--filter" "!${pkg}")
+    install_filter_conda_pkgs+=("--filter" "!${pkg}")
   done
   licenses_filter="${licenses_filter%,}"
 
   declare -g licenses_filter_conda_pkgs="${licenses_filter}]"
-  declare -g install_filter_conda_pkgs=("${install_filter[@]}")
 }
 
 function replace_null_versions() {
@@ -81,6 +81,7 @@ function third_party_licenses() {
     mkdir -p "${SRC_DIR}"/_conda-logs
 
     pnpm licenses list --prod --json > "${SRC_DIR}"/_conda-licenses.json
+    cat "${SRC_DIR}"/_conda-licenses.json
     replace_null_versions "${SRC_DIR}"/_conda-licenses.json "0.0.0" > "${SRC_DIR}"/_conda-logs/replace_null.log 2>&1
     pnpm-licenses generate-disclaimer \
       --prod \
