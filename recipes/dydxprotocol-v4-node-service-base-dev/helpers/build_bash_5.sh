@@ -24,7 +24,7 @@ analyze_dependencies ${main_package}/package.json
 reference_conda_packages "${main_package}" "${conda_packages[@]}"
 
 pushd "${SRC_DIR}/${main_package}"
-  rm -f package-lock.json
+  # rm -f package-lock.json
 
   # Build
   pnpm install
