@@ -18,8 +18,6 @@ ln -s "${BUILD_PREFIX}"/bin/node "${PREFIX}"/bin/node
 install_filter_conda_pkgs=()
 
 pushd "${SRC_DIR}/${main_package}"
-  # rm -f package-lock.json
-
   # Build
   pnpm install
   rm -rf build && pnpm run compile
