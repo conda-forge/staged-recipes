@@ -46,8 +46,6 @@ from conda.models.records import PackageRecord
 from conda_build import api
 from conda_build.metadata import find_recipe, MetaData
 
-# from conda_build.utils import HashableDict
-
 
 log = logging.getLogger(__file__)
 CONDA_BUILD_CACHE = os.environ.get("CONDA_BUILD_CACHE")
