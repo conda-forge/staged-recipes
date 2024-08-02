@@ -5,11 +5,6 @@ $env:NPM_CONFIG_USERCONFIG = "/tmp/nonexistentrc"
 
 # Define conda packages
 $main_package="@dydxprotocol/node-service-base-dev"
-$condaPackages = @(
-    "eslint",
-    "@typescript-eslint/eslint-plugin",
-    "@typescript-eslint/parser"
-)
 
 New-Item -ItemType Directory -Path "$env:SRC_DIR/$main_package" -Force
 Push-Location "$env:SRC_DIR/js_module_source"
@@ -20,20 +15,12 @@ Pop-Location
 Remove-Item "$env:PREFIX/bin/node" -Force
 New-Item -ItemType SymbolicLink -Path "$env:PREFIX/bin/node" -Target "$env:BUILD_PREFIX/bin/node"
 
-# Call function and store result
-$filterCondaPackages = Reference-CondaPackages -mainPkg "node-service-base-dev" -pkgs $condaPackages
-$licensesFilterCondaPkgs = $filterCondaPackages[0]
-$installFilterCondaPkgs = $filterCondaPackages[1]
-
 # Navigate to directory and run commands
 Push-Location $env:SRC_DIR/$main_package
-    Remove-Item "package-lock.json" -Force
-
     # Build
     pnpm install
     Remove-Item -Recurse -Force build
     pnpm run compile
-    # pnpm audit fix
 
     # Install
     Invoke-Expression "pnpm install $global:install_filter_conda_pkgs"
