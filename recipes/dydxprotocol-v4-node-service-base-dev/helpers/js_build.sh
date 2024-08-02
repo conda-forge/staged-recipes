@@ -80,6 +80,7 @@ function third_party_licenses() {
   pushd "${main_pkg}" || exit 1
     mkdir -p "${SRC_DIR}"/_conda-logs
 
+    pnpm licenses list --prod --json
     pnpm licenses list --prod --json > "${SRC_DIR}"/_conda-licenses.json
     cat "${SRC_DIR}"/_conda-licenses.json
     replace_null_versions "${SRC_DIR}"/_conda-licenses.json "0.0.0" > "${SRC_DIR}"/_conda-logs/replace_null.log 2>&1
