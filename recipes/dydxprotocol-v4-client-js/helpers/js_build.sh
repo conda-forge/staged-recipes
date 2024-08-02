@@ -34,12 +34,14 @@ function reference_conda_packages() {
   for pkg in "${pkgs[@]}"; do
     mkdir -p "${SRC_DIR}"/_conda-logs
 
+    set +x
     rpath=".." # Default relative path
     for ((i=0; i<${#main_pkg}; i++)); do
       if [[ "${main_pkg:$i:1}" == "/" ]]; then
         rpath="${rpath}/.."
       fi
     done
+    set -x
 
     if [[ " ${dependencies[*]} " == *" ${pkg} "* ]]; then
       (cd "${SRC_DIR}"/"${main_pkg}" && pnpm install --save "${pkg}@file:${rpath}/${pkg}") > "${SRC_DIR}"/_conda-logs/dep.log 2>&1

@@ -27,10 +27,10 @@ analyze_dependencies "${SRC_DIR}/${main_package}/package.json"
 reference_conda_packages "${main_package}" "${conda_packages[@]}"
 
 pushd "${SRC_DIR}/${main_package}" || exit 1
-  rm -f package-lock.json pnpm-lock.yaml
+  # rm -f package-lock.json pnpm-lock.yaml
 
-  pnpm install --save-dev typescript@latest @types/node @grpc/grpc-js @osmonauts/telescope@latest
-  pnpm install --save long@latest
+  # pnpm install --save-dev typescript@latest @types/jest @types/node @types/long
+  pnpm install
 
   pnpm run transpile
 
@@ -39,7 +39,7 @@ pushd "${SRC_DIR}/${main_package}" || exit 1
   else
     find "src/codegen" -name "*.ts" -exec sed -i 's/\(e\) =>/(\1: any) =>/g' {} \;
   fi
-  pnpm run build
+  pnpm run compile
   pnpm run test
 
   # Install
