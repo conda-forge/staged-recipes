@@ -35,7 +35,7 @@ Pop-Location
 
 New-Item -ItemType Directory -Path "${env:SRC_DIR}/${main_package}" -Force
 Push-Location "${env:SRC_DIR}/js_module_source/v4-proto-js"
-  tar -cf - . | (cd "${env:SRC_DIR}/${main_package}" && tar -xf -)
+  tar -cf - . | tar -xf - -C "${env:SRC_DIR}/${main_package}"
 Pop-Location
 
 Push-Location "${env:SRC_DIR}/${main_package}"
@@ -49,7 +49,7 @@ Push-Location "${env:SRC_DIR}/${main_package}"
   pnpm tsc --project ./tsconfig.json --traceResolution > "${env:SRC_DIR}/_conda-logs/tsc.log" 2>&1
   pnpm install
 
-  third_party_licenses "${env:SRC_DIR}/${main_package}"
+  Third-Party-Licenses "${env:SRC_DIR}/${main_package}"
   Copy-Item -Path "LICENSE" -Destination "${env:SRC_DIR}/LICENSE"
 
   pnpm pack
