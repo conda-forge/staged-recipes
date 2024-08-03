@@ -18,4 +18,3 @@ meson setup builddir \
     -Dheaders=true
 meson configure builddir
 ninja -v -C builddir
-ninja -C builddir install
