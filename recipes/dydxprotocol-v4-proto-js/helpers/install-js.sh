@@ -4,5 +4,5 @@
 set -euxo pipefail
 
 pushd "${SRC_DIR}"/@dydxprotocol/v4-proto
-  npm install --omit=dev --global "${PKG_NAME}-${PKG_VERSION}.tgz"
+  npm install --omit=dev --global "dydxprotocol-v4-proto-${PKG_VERSION}.tgz"
 popd
