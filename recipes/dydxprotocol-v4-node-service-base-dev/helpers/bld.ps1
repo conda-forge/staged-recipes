@@ -8,7 +8,10 @@ $main_package="@dydxprotocol/node-service-base-dev"
 
 New-Item -ItemType Directory -Path "$env:SRC_DIR/$main_package" -Force
 Push-Location "$env:SRC_DIR/js_module_source"
-    tar -cf - . | tar -xf - -C "$env:SRC_DIR/$main_package"
+    $tempTarFile = [System.IO.Path]::GetTempFileName()
+    tar -cf $tempTarFile .
+    tar -xf $tempTarFile -C "$env:SRC_DIR/$main_package"
+    Remove-Item $tempTarFile
 Pop-Location
 
 # Navigate to directory and run commands
