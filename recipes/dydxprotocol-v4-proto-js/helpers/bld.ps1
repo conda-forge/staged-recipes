@@ -32,7 +32,10 @@ Pop-Location
 
 New-Item -ItemType Directory -Path "${env:SRC_DIR}/${main_package}" -Force
 Push-Location "${env:SRC_DIR}/js_module_source/v4-proto-js"
-  tar -cf - . | tar -xf - -C "${env:SRC_DIR}/${main_package}"
+    $tempTarFile = [System.IO.Path]::GetTempFileName()
+    tar -cf $tempTarFile .
+    tar -xf $tempTarFile -C "$env:SRC_DIR/$main_package"
+    Remove-Item $tempTarFile
 Pop-Location
 
 Push-Location "${env:SRC_DIR}/${main_package}"
