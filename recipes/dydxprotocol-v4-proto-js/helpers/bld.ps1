@@ -13,9 +13,6 @@ New-Item -ItemType Directory -Path "${env:SRC_DIR}/_conda-logs" -Force
 # Define conda packages
 $main_package="@dydxprotocol/v4-proto"
 
-Remove-Item "$env:PREFIX/bin/node" -Force
-New-Item -ItemType SymbolicLink -Path "$env:PREFIX/bin/node" -Target "$env:BUILD_PREFIX/bin/node"
-
 # Build process contains reference to the main directory, but module name is different
 # So we build in 2 phases: prepare the package then build the main package
 Push-Location "${env:SRC_DIR}/js_module_source/v4-proto-js"
