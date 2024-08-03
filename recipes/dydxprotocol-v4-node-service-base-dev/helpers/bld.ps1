@@ -11,19 +11,15 @@ Push-Location "$env:SRC_DIR/js_module_source"
     tar -cf - . | tar -xf - -C "$env:SRC_DIR/$main_package"
 Pop-Location
 
-# Remove and create symlink for node
-Remove-Item "$env:PREFIX/bin/node" -Force
-New-Item -ItemType SymbolicLink -Path "$env:PREFIX/bin/node" -Target "$env:BUILD_PREFIX/bin/node"
-
 # Navigate to directory and run commands
 Push-Location $env:SRC_DIR/$main_package
+    Get-ChildItem -Path . -Recurse
     # Build
     pnpm install
-    Remove-Item -Recurse -Force build
     pnpm run compile
 
     # Install
-    Invoke-Expression "pnpm install $global:install_filter_conda_pkgs"
+    pnpm install
 
     # Generate licenses
     . "${env:RECIPE_DIR}/helpers/js_build.ps1"

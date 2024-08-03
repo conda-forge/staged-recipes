@@ -15,7 +15,7 @@ mkdir -p "${SRC_DIR}/${main_package}"
 rm "${PREFIX}"/bin/node
 ln -s "${BUILD_PREFIX}"/bin/node "${PREFIX}"/bin/node
 
-  # Build
+pushd "${SRC_DIR}/${main_package}"
   pnpm install
   rm -rf build && pnpm run compile
 
