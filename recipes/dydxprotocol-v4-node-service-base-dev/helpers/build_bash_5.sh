@@ -15,15 +15,12 @@ mkdir -p "${SRC_DIR}/${main_package}"
 rm "${PREFIX}"/bin/node
 ln -s "${BUILD_PREFIX}"/bin/node "${PREFIX}"/bin/node
 
-install_filter_conda_pkgs=()
-
-pushd "${SRC_DIR}/${main_package}"
   # Build
   pnpm install
   rm -rf build && pnpm run compile
 
   # Install
-  eval pnpm install "${install_filter_conda_pkgs[*]}"
+  pnpm install
 
   third_party_licenses "${SRC_DIR}"/${main_package}
   cp LICENSE "$SRC_DIR"/LICENSE

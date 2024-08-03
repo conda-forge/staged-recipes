@@ -26,7 +26,8 @@ Push-Location $env:SRC_DIR/$main_package
     Invoke-Expression "pnpm install $global:install_filter_conda_pkgs"
 
     # Generate licenses
-    third_party_licenses "$env:SRC_DIR/$main_package"
+    . "${env:RECIPE_DIR}/helpers/js_build.ps1"
+    Third-Party-Licenses "$env:SRC_DIR/$main_package"
     Copy-Item -Path "LICENSE" "$env:SRC_DIR/LICENSE"
 
     # Pack and install
