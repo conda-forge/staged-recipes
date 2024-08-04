@@ -18,10 +18,16 @@ Pop-Location
 
 # Navigate to directory and run commands
 Push-Location $env:SRC_DIR/$main_package
-    Get-ChildItem -Path . -Recurse
-    # Build
+    pnpm remove grpc-tools
+    pnpm install --save-dev @grpc/grpc-js typescript@4.8.4 @types/jest @types/long@4.0.2 @types/node@18.15.13 @types/lodash @cosmjs/crypto
     pnpm install
+
+    pnpm run transpile
+
     pnpm run compile
+    pnpm install --save-dev jest
+    $NODE_ENV="test"
+    pnpm exec jest --testPathIgnorePatterns=__tests__/modules/client/*
 
     # Install
     pnpm install

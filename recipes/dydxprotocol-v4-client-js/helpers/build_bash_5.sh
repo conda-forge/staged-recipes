@@ -17,7 +17,6 @@ rm "${PREFIX}"/bin/node
 ln -s "${BUILD_PREFIX}"/bin/node "${PREFIX}"/bin/node
 
 pushd "${SRC_DIR}/${main_package}" || exit 1
-  # pnpm install --save-dev typescript@latest @types/jest @types/node @types/long
   pnpm remove grpc-tools
   pnpm install --save-dev @grpc/grpc-js typescript@4.8.4 @types/jest @types/long@4.0.2 @types/node@18.15.13 @types/lodash @cosmjs/crypto
   pnpm install
@@ -34,7 +33,7 @@ pushd "${SRC_DIR}/${main_package}" || exit 1
   NODE_ENV=test pnpm exec jest --testPathIgnorePatterns=__tests__/modules/client/*
 
   # Install
-  eval pnpm install
+  pnpm install
 
   third_party_licenses "${SRC_DIR}"/${main_package}
   cp LICENSE "$SRC_DIR"/LICENSE
