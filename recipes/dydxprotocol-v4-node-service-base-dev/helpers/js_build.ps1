@@ -24,15 +24,16 @@ function Third-Party-Licenses {
     )
 
     Push-Location $main_pkg
-    New-Item -ItemType Directory -Path "${env:SRC_DIR}/_conda-logs" -Force
 
-    pnpm licenses list --prod --json > "${env:SRC_DIR}/_conda-licenses.json"
-    Replace-Null-Versions "${env:SRC_DIR}/_conda-licenses.json" "0.0.0" > "${env:SRC_DIR}/_conda-logs/replace_null.log" 2>&1
+    $jsonContent = pnpm licenses list --prod --json
+    $jsonContent | Set-Content -Path "${env:SRC_DIR}/_conda-licenses.json"
+    Replace-Null-Versions "${env:SRC_DIR}/_conda-licenses.json" "0.0.0"
+
     $jsonContent = Get-Content -Path "${env:SRC_DIR}/_conda-licenses.json" -Raw
     pnpm-licenses generate-disclaimer `
         --prod `
         --json-input `
         --output-file="${env:SRC_DIR}/ThirdPartyLicenses.txt" `
-        --input-data=$jsonContent > "${env:SRC_DIR}/_conda-logs/licenses.log" 2>&1
+        --input-data=$jsonContent
     Pop-Location
 }
