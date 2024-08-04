@@ -47,21 +47,7 @@ $env:npm_config_legacy_peer_deps = $true
 $env:NPM_CONFIG_USERCONFIG = "/tmp/nonexistentrc"
 
 # Define conda packages
-$main_package="node-service-base-dev"
-$condaPackages = @(
-    "eslint",
-    "@typescript-eslint/eslint-plugin",
-    "@typescript-eslint/parser"
-)
-
-# Remove and create symlink for node
-Remove-Item "$env:PREFIX/bin/node" -Force
-New-Item -ItemType SymbolicLink -Path "$env:PREFIX/bin/node" -Target "$env:BUILD_PREFIX/bin/node"
-
-# Call function and store result
-$filterCondaPackages = Reference-CondaPackages -mainPkg "node-service-base-dev" -pkgs $condaPackages
-$licensesFilterCondaPkgs = $filterCondaPackages[0]
-$installFilterCondaPkgs = $filterCondaPackages[1]
+$main_package="@dydxprotocol/v4-client-js"
 
 # Navigate to directory and run commands
 Push-Location "$env:SRC_DIR/$main_package"
@@ -81,7 +67,6 @@ Push-Location "$env:SRC_DIR/$main_package"
     Replace-NullVersions -filePath %SRC_DIR%/_conda-licenses.json -newVersion "0.0.0"
     pnpm-licenses generate-disclaimer `
         --prod `
-        --filter="$licensesFilterCondaPkgs" `
         --json-input `
         --output-file="$env:SRC_DIR/ThirdPartyLicenses.txt" > %SRC_DIR%/_conda-licenses.txt 2>&1
     Copy-Item -Path "LICENSE" "$env:SRC_DIR/LICENSE"
