@@ -36,7 +36,7 @@ Push-Location $env:SRC_DIR/$main_package
 
     New-Item -ItemType Directory -Path "$env:PREFIX\lib"
     Push-Location "$env:PREFIX\lib"
-        Invoke-Expression "npm install --global $env:SRC_DIR/$main_package/$env:PKG_NAME-$env:PKG_VERSION.tgz"
+        Invoke-Expression "npm install --global --prefix $env:PREFIX\lib $env:SRC_DIR/$main_package/$env:PKG_NAME-$env:PKG_VERSION.tgz"
         if ($LASTEXITCODE -ne 0) {
             exit 1
         }
