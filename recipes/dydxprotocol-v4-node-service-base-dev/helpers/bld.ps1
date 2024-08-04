@@ -32,6 +32,8 @@ Push-Location $env:SRC_DIR/$main_package
     # Pack and install
     pnpm pack
 
+    tar -tf $env:SRC_DIR/$main_package/$env:PKG_NAME-$env:PKG_VERSION.tgz
+
     New-Item -ItemType Directory -Path "$env:PREFIX\lib"
     Push-Location "$env:PREFIX\lib"
         Invoke-Expression "npm install --global $env:SRC_DIR/$main_package/$env:PKG_NAME-$env:PKG_VERSION.tgz"
