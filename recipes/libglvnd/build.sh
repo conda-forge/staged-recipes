@@ -6,7 +6,6 @@ export PKG_CONFIG="${BUILD_PREFIX}/bin/pkg-config"
 
 meson setup builddir \
     ${MESON_ARGS} \
-    --prefix="${PREFIX}" \
     -Dasm=enabled \
     -Dx11=enabled \
     -Degl=true \
