@@ -7,15 +7,17 @@ function Replace-Null-Versions {
     )
 
     # Read JSON file
-    $json_content = Get-Content -Path $file_path -Raw
+    $json_content = Get-Content -Path $file_path -Raw | ConvertFrom-Json
 
     # Replace null values in versions
-    $modified_json = $json_content | jq --arg new_version $new_version '
-        (.. | objects | select(has("versions")) | .versions) |= map(if . == null then $new_version else . end)
-    '
+    $json_content.PSObject.Properties.ForEach({
+        if ($_.Name -eq "versions" -and $_.Value -eq $null) {
+            $_.Value = $new_version
+        }
+    })
 
     # Write JSON file
-    $modified_json | Set-Content -Path $file_path
+    $json_content | ConvertTo-Json -Depth 100 | Set-Content -Path $file_path
 }
 
 function Third-Party-Licenses {
