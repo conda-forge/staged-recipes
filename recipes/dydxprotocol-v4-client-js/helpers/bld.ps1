@@ -9,7 +9,7 @@ $env:NPM_CONFIG_USERCONFIG = "/tmp/nonexistentrc"
 $main_package="@dydxprotocol/v4-client-js"
 
 New-Item -ItemType Directory -Path "$env:SRC_DIR/$main_package" -Force
-Push-Location "$env:SRC_DIR/js_module_source"
+Push-Location "$env:SRC_DIR/js_module_source/v4-client-js"
     $tempTarFile = [System.IO.Path]::GetTempFileName()
     tar -cf $tempTarFile .
     tar -xf $tempTarFile -C "$env:SRC_DIR/$main_package"
