@@ -58,30 +58,19 @@ outputs:
         - test ! -f $PREFIX/lib/pkgconfig/glx.pc
         - test ! -f $PREFIX/lib/pkgconfig/opengl.pc
         - test ! -f $PREFIX/lib/pkgconfig/libglvnd.pc
-        - test ! -f $PREFIX/include/EGL/egl.h
-        - test ! -f $PREFIX/include/EGL/eglext.h
-        - test ! -f $PREFIX/include/EGL/eglplatform.h
-        - test ! -f $PREFIX/include/GL/gl.h
-        - test ! -f $PREFIX/include/GL/glcorearb.h
-        - test ! -f $PREFIX/include/GL/glext.h
-        - test ! -f $PREFIX/include/GL/glx.h
-        - test ! -f $PREFIX/include/GL/glxext.h
-        - test ! -f $PREFIX/include/GLES/egl.h
-        - test ! -f $PREFIX/include/GLES/gl.h
-        - test ! -f $PREFIX/include/GLES/glext.h
-        - test ! -f $PREFIX/include/GLES/glplatform.h
-        - test ! -f $PREFIX/include/GLES2/gl2.h
-        - test ! -f $PREFIX/include/GLES2/gl2ext.h
-        - test ! -f $PREFIX/include/GLES2/gl2platform.h
-        - test ! -f $PREFIX/include/GLES3/gl3.h
-        - test ! -f $PREFIX/include/GLES3/gl31.h
-        - test ! -f $PREFIX/include/GLES3/gl32.h
-        - test ! -f $PREFIX/include/GLES3/gl3ext.h
-        - test ! -f $PREFIX/include/GLES3/gl3platform.h
-        - test ! -f $PREFIX/include/KHR/khrplatform.h
-        - test ! -f $PREFIX/include/glvnd/GLdispatchABI.h
-        - test ! -f $PREFIX/include/glvnd/libeglabi.h
-        - test ! -f $PREFIX/include/glvnd/libglxabi.h
+        # absence of headers (need to go into -devel output)
+        {% set headers = [
+            'EGL/egl.h', 'EGL/eglext.h', 'EGL/eglplatform.h',
+            'GL/gl.h', 'GL/glcorearb.h', 'GL/glext.h', 'GL/glx.h', 'GL/glxext.h',
+            'GLES/egl.h', 'GLES/gl.h', 'GLES/glext.h', 'GLES/glplatform.h',
+            'GLES2/gl2.h', 'GLES2/gl2ext.h', 'GLES2/gl2platform.h',
+            'GLES3/gl3.h', 'GLES3/gl31.h', 'GLES3/gl32.h', 'GLES3/gl3ext.h',
+            'GLES3/gl3platform.h', 'KHR/khrplatform.h',
+            'glvnd/GLdispatchABI.h', 'glvnd/libeglabi.h', 'glvnd/libglxabi.h'
+        ] %}
+        {% for each_header in headers %}
+        - test ! -f $PREFIX/include/{{ each_header }}
+        {% endfor %}
   - name: libgl-devel
     script: build_libgl_devel.sh
     build:
@@ -99,44 +88,19 @@ outputs:
         - xorg-libxext
         - xorg-xextproto
         - xorg-glproto
-        - libglvnd
+        - {{ pin_subpackage('libglvnd', exact=True) }}
       run:
-        - xorg-xextproto
-        - xorg-glproto
         - {{ pin_subpackage('libglvnd', exact=True) }}
     test:
+      requires:
+        - pkg-config
       commands:
-        - test -f $PREFIX/lib/pkgconfig/egl.pc
-        - test -f $PREFIX/lib/pkgconfig/gl.pc
-        - test -f $PREFIX/lib/pkgconfig/glesv1_cm.pc
-        - test -f $PREFIX/lib/pkgconfig/glesv2.pc
-        - test -f $PREFIX/lib/pkgconfig/glx.pc
-        - test -f $PREFIX/lib/pkgconfig/opengl.pc
-        - test -f $PREFIX/lib/pkgconfig/libglvnd.pc
-        - test -f $PREFIX/include/EGL/egl.h
-        - test -f $PREFIX/include/EGL/eglext.h
-        - test -f $PREFIX/include/EGL/eglplatform.h
-        - test -f $PREFIX/include/GL/gl.h
-        - test -f $PREFIX/include/GL/glcorearb.h
-        - test -f $PREFIX/include/GL/glext.h
-        - test -f $PREFIX/include/GL/glx.h
-        - test -f $PREFIX/include/GL/glxext.h
-        - test -f $PREFIX/include/GLES/egl.h
-        - test -f $PREFIX/include/GLES/gl.h
-        - test -f $PREFIX/include/GLES/glext.h
-        - test -f $PREFIX/include/GLES/glplatform.h
-        - test -f $PREFIX/include/GLES2/gl2.h
-        - test -f $PREFIX/include/GLES2/gl2ext.h
-        - test -f $PREFIX/include/GLES2/gl2platform.h
-        - test -f $PREFIX/include/GLES3/gl3.h
-        - test -f $PREFIX/include/GLES3/gl31.h
-        - test -f $PREFIX/include/GLES3/gl32.h
-        - test -f $PREFIX/include/GLES3/gl3ext.h
-        - test -f $PREFIX/include/GLES3/gl3platform.h
-        - test -f $PREFIX/include/KHR/khrplatform.h
-        - test -f $PREFIX/include/glvnd/GLdispatchABI.h
-        - test -f $PREFIX/include/glvnd/libeglabi.h
-        - test -f $PREFIX/include/glvnd/libglxabi.h
+        {% for each_lib in libraries %}
+        - pkg-config --print-errors --exact-version "{{ version }}" {{ each_lib | lower }}
+        {% endfor %}
+        {% for each_header in headers %}
+        - test -f $PREFIX/include/{{ each_header }}
+        {% endfor %}
 
 about:
   home: https://gitlab.freedesktop.org/glvnd/libglvnd
