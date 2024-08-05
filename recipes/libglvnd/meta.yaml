@@ -44,18 +44,21 @@ outputs:
         - xorg-glproto
     test:
       commands:
-        - test -f $PREFIX/lib/libEGL.so.1
-        - test -f $PREFIX/lib/libGL.so.1
-        - test -f $PREFIX/lib/libGLESv1_CM.so.1
-        - test -f $PREFIX/lib/libGLESv2.so.2
-        - test -f $PREFIX/lib/libGLX.so.0
-        - test -f $PREFIX/lib/libOpenGL.so.0
-        - test -f $PREFIX/lib/libGLdispatch.so.0
-        {% set libraries = ["EGL", "GL", "GLESv1_CM", "GLESv2", "GLX", "OpenGL", "GLdispatch"] %}
-        {% for each_library in libraries %}
-        - test ! -f $PREFIX/lib/pkgconfig/{{ each_library | lower }}.pc
+        # shared libraries (change in any SOVER means we need to react on run-export)
+        {% set libraries = [
+            "EGL.so.1", "GL.so.1", "GLESv1_CM.so.1", "GLESv2.so.2",
+            "GLX.so.0", "OpenGL.so.0", "GLdispatch.so.0"
+        ] %}
+        {% for each_lib in libraries %}
+        - test -f $PREFIX/lib/lib{{ each_lib }}
+        {% endfor %}
+
+        # absence of pkg-config metadata (needs to go into -devel output)
+        {% for each_lib in libraries %}
+        - test ! -f $PREFIX/lib/pkgconfig/{{ each_lib.split(".")[0]|lower }}.pc
         {% endfor %}
         - test ! -f $PREFIX/lib/pkgconfig/libglvnd.pc
+
         # absence of headers (need to go into -devel output)
         {% set headers = [
             'EGL/egl.h', 'EGL/eglext.h', 'EGL/eglplatform.h',
@@ -94,7 +97,7 @@ outputs:
         - pkg-config
       commands:
         {% for each_lib in libraries %}
-        - pkg-config --print-errors --exact-version "{{ version }}" {{ each_lib | lower }}
+        - pkg-config --print-errors --exact-version "{{ version }}" {{ each_lib.split(".")[0]|lower }}
         {% endfor %}
         {% for each_header in headers %}
         - test -f $PREFIX/include/{{ each_header }}
