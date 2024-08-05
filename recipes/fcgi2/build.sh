@@ -2,7 +2,8 @@
 
 set -ex
 
+
 ./autogen.sh
-./configure --prefix=$CONDA_PREFIX
+./configure --prefix=$PREFIX
 make -j $CPU_COUNT
 make install
