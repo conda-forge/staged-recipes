@@ -29,7 +29,28 @@ requirements:
 
 outputs:
   - name: libglvnd
-    script: install_libglvnd.sh
+    files:
+      - lib/libGLdispatch.so.*
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+        - meson
+        - pkg-config
+        - ninja
+    test:
+      commands:
+        # Shared libraries (change in any SOVER means we need to react on run-export)
+        - test -f $PREFIX/lib/libGLdispatch.so.0
+
+  - name: libglvnd-devel
+    files:
+      - lib/pkgconfig/libglvnd.pc
+      - lib/libGLdispatch.so
+      - include/glvnd
+    build:
+      run_exports:
+        - {{ pin_subpackage('libglvnd', max_pin='x') }}
     requirements:
       build:
         - {{ compiler('c') }}
@@ -38,45 +59,19 @@ outputs:
         - pkg-config
         - ninja
       host:
-        - xorg-libx11
-        - xorg-libxext
-        - xorg-xextproto
-        - xorg-glproto
+        - {{ pin_subpackage('libglvnd', exact=True) }}
+      run:
+        - {{ pin_subpackage('libglvnd', exact=True) }}
     test:
+      requires:
+        - pkg-config
       commands:
-        # Shared libraries (change in any SOVER means we need to react on run-export)
-        # OpenGL applications typically link to the shared object library with the major SOVER attached
-        {% set libraries = [
-            "EGL.so.1", "GL.so.1", "GLESv1_CM.so.1", "GLESv2.so.2",
-            "GLX.so.0", "OpenGL.so.0", "GLdispatch.so.0"
-        ] %}
-        {% for each_lib in libraries %}
-        - test -f $PREFIX/lib/lib{{ each_lib }}
-        {% endfor %}
+        - pkg-config --print-errors libglvnd
+        - test -f $PREFIX/include/glvnd/GLdispatchABI.h
 
-        # Absence of pkg-config metadata (needs to go into -devel output)
-        {% for each_lib in libraries %}
-        - test ! -f $PREFIX/lib/pkgconfig/{{ "libglvnd" if each_lib == "GLdispatch.so.0" else each_lib.split(".")[0]|lower }}.pc
-        {% endfor %}
-
-        # Absence of headers (need to go into -devel output)
-        {% set headers = [
-            'EGL/egl.h', 'EGL/eglext.h', 'EGL/eglplatform.h',
-            'GL/gl.h', 'GL/glcorearb.h', 'GL/glext.h', 'GL/glx.h', 'GL/glxext.h',
-            'GLES/egl.h', 'GLES/gl.h', 'GLES/glext.h', 'GLES/glplatform.h',
-            'GLES2/gl2.h', 'GLES2/gl2ext.h', 'GLES2/gl2platform.h',
-            'GLES3/gl3.h', 'GLES3/gl31.h', 'GLES3/gl32.h', 'GLES3/gl3ext.h',
-            'GLES3/gl3platform.h', 'KHR/khrplatform.h',
-            'glvnd/GLdispatchABI.h', 'glvnd/libeglabi.h', 'glvnd/libglxabi.h'
-        ] %}
-        {% for each_header in headers %}
-        - test ! -f $PREFIX/include/{{ each_header }}
-        {% endfor %}
-  - name: libglvnd-devel
-    script: install_libglvnd_devel.sh
-    build:
-      run_exports:
-        - {{ pin_subpackage('libglvnd', max_pin='x') }}
+  - name: libglx
+    files:
+      - lib/libGLX.so.*
     requirements:
       build:
         - {{ compiler('c') }}
@@ -91,22 +86,38 @@ outputs:
         - xorg-glproto
         - {{ pin_subpackage('libglvnd', exact=True) }}
       run:
-        # xorg-xextproto and xorg-glproto are dependencies to the libglvnd headers
-        - xorg-xextproto
-        - xorg-glproto
         - {{ pin_subpackage('libglvnd', exact=True) }}
+    test:
+      commands:
+        # Shared libraries (change in any SOVER means we need to react on run-export)
+        - test -f $PREFIX/lib/libGLX.so.0
+
+  - name: libglx-devel
+    files:
+      - lib/pkgconfig/libglx.pc
+      - lib/libGLX.so
+      - include/GL/glx*
+    build:
+      run_exports:
+        - {{ pin_subpackage('libglx', max_pin='x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+        - meson
+        - pkg-config
+        - ninja
+      host:
+        - {{ pin_subpackage('libglx', exact=True) }}
+      run:
+        - {{ pin_subpackage('libglx', exact=True) }}
     test:
       requires:
         - pkg-config
       commands:
-        {% for each_lib in libraries %}
-        {% set libname = "libglvnd" if each_lib == "GLdispatch.so.0" else each_lib.split(".")[0]|lower %}
-        - pkg-config --print-errors {{ libname }}
-        {% endfor %}
-
-        {% for each_header in headers %}
-        - test -f $PREFIX/include/{{ each_header }}
-        {% endfor %}
+        - pkg-config --print-errors libglx
+        - test -f $PREFIX/include/GL/glx.h
+        - test -f $PREFIX/include/GL/glxext.h
 
 about:
   home: https://gitlab.freedesktop.org/glvnd/libglvnd
