@@ -50,6 +50,7 @@ cd ..
 
 :: make sure there is a package directory so that artifact publishing works
 if not exist "%CONDA_BLD_PATH%\win-64\" mkdir "%CONDA_BLD_PATH%\win-64\"
+if not exist "%CONDA_BLD_PATH%\noarch\" mkdir "%CONDA_BLD_PATH%\noarch\"
 
 echo Index %CONDA_BLD_PATH%
 conda.exe index "%CONDA_BLD_PATH%"
@@ -60,6 +61,13 @@ call :end_group
 echo Building all recipes
 python .ci_support\build_all.py --arch 64
 if errorlevel 1 exit 1
+
+call :start_group "Inspecting artifacts"
+
+:: inspect_artifacts was only added in conda-forge-ci-setup 4.6.0
+WHERE inspect_artifacts >nul 2>nul && inspect_artifacts || echo "inspect_artifacts needs conda-forge-ci-setup >=4.6.0"
+
+call :end_group
 
 exit
 
