@@ -7,5 +7,5 @@ if errorlevel 1 exit 1
 copy cgi-fcgi\Release\cgi-fcgi.exe %PREFIX%\bin
 copy libfcgi\Release\libfcgi.dll %PREFIX%\bin
 
-robocopy include\*.h %PREFIX%\include
+robocopy include %PREFIX%\include "*.h"
 
