@@ -7,7 +7,6 @@ export GOPATH=${SRC_DIR}/go
 export PATH=$GOPATH/bin:$PATH
 export CGO_ENABLED=0
 
-# PATH を更新
 go mod vendor
 
 go build -a -v \
