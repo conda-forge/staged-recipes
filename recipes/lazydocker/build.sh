@@ -3,11 +3,7 @@
 set -exuo pipefail
 
 export GO111MODULE=on
-export GOPATH=${SRC_DIR}/go
-export PATH=$GOPATH/bin:$PATH
 export CGO_ENABLED=0
-
-go mod vendor
 
 go build -a -v \
     -mod=vendor \
