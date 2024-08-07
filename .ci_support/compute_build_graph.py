@@ -47,7 +47,6 @@ from conda_build import api
 from conda_build.metadata import find_recipe, MetaData
 
 
-
 log = logging.getLogger(__file__)
 CONDA_BUILD_CACHE = os.environ.get("CONDA_BUILD_CACHE")
 hash_length = api.Config().hash_length
