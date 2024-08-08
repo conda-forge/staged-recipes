@@ -7,6 +7,6 @@ cargo-bundle-licenses \
     --output THIRDPARTY_LICENSES.yaml
 
 # TODO: add --locked
-cargo install --root "$PREFIX" --path .
+cargo install --no-track --root "$PREFIX" --path .
 
 "$STRIP" "$PREFIX/bin/jnv"

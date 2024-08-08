@@ -3,7 +3,7 @@ cargo-bundle-licenses ^
     --output THIRDPARTY_LICENSES.yaml || goto :error
 
 REM TODO: add --locked
-cargo install --root "%PREFIX%" --path . || goto :error
+cargo install --no-track --root "%PREFIX%" --path . || goto :error
 
 goto :EOF
 
