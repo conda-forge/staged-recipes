@@ -31,5 +31,5 @@ cmake -DCMAKE_INSTALL_PREFIX=${PREFIX} \
       -DENABLE_SPATIAL=ON \
       -DWITH_CPP_NAMESPACE=ON \
       ..
-make
+make -j"${CPU_COUNT}"
 make install
