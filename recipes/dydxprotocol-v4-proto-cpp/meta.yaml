@@ -1,0 +1,129 @@
+{% set name = "dydxprotocol-v4-proto-cpp" %}
+{% set version = "1.1.31" %}
+
+{% set so_version = "0.0.1" %}
+{% set so_major_version = so_version.split('.')[0] %}
+
+package:
+  name: dydxprotocol-v4-proto-cpp-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/dydxprotocol/v4-clients/archive/refs/tags/v4-client-js@{{ version }}.tar.gz
+  sha256: eb6ffc4e53aa0a22f195092f2102fb5233c5c4dda7b11700208a1974d1428297
+  patches:
+    - patches/0001-cpp-add-abseil.patch
+    - patches/0002-cpp-remove-beast-specification.patch
+    - patches/0003-cpp-support-protobuf_MODULE_COMPATIBLE.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ stdlib("c") }}
+    - cmake >=3.25
+    - ninja
+  host:
+    - catch2
+    - fmt
+    - libabseil >=20240116
+    - libbip3x
+    - libboost-devel
+    - libprotobuf
+    - libtoolbox
+    - make
+    - nlohmann_json
+    - openssl
+    - pkg-config
+    - zlib
+
+outputs:
+  - name: libdydx_v4_proto
+    build:
+      run_exports:
+        - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
+      missing_dso_whitelist:
+        - "*/libabsl_hash.so.*"
+        - "*/libabsl_log_internal_nullguard.so.*"
+        - "*/libabsl_log_internal_message.so.*"
+        - "*/libprotobuf.so.*"
+    files:
+      - lib/libdydx_v4_proto.so  # [linux]
+      - lib/libdydx_v4_proto.dylib  # [osx]
+      - Library/lib/dydx_v4_proto.lib  # [win]
+      - Library/lib/dydx_v4_proto.{{ so_major_version }}.lib  # [win]
+      - Library/bin/dydx_v4_proto.dll  # [win]
+      - lib/pkgconfig/dydx_v4_proto.pc
+      - Library/lib/pkgconfig/dydx_v4_proto.pc  # [win]
+      - lib/cmake/dydx_v4_proto/dydx_v4_proto-config.cmake
+      - Library/lib/cmake/dydx_v4_proto/dydx_v4_proto-config.cmake  # [win]
+      - dydx_v4_proto/cmake/dydx_v4_proto-config.cmake
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+      host:
+        - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
+      run:
+        - libabseil >=20240116
+        - libprotobuf
+    test:
+      commands:
+        - echo "Testing dydx_v4_proto"
+
+  - name: libdydx_v4_proto-{{ so_major_version }}
+    build:
+      run_exports:
+        - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
+      missing_dso_whitelist:
+        - "*/libabsl_hash.so.*"
+        - "*/libabsl_log_internal_nullguard.so.*"
+        - "*/libabsl_log_internal_message.so.*"
+        - "*/libprotobuf.so.*"
+    files:
+      - lib/libdydx_v4_proto.so.{{ so_major_version }}  # [linux]
+      - lib/libdydx_v4_proto.{{ so_major_version }}.dylib  # [osx]
+      - Library\\bin\\dydx_v4_proto.{{ so_major_version }}.dll  # [win]
+      - lib/libdydx_v4_proto.so.{{ so_version }}  # [linux]
+      - lib/libdydx_v4_proto.{{ so_version }}.dylib  # [osx]
+      - Library\\bin\\dydx_v4_proto.{{ so_version }}.dll  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+      run:
+        - libabseil >=20240116
+        - libprotobuf
+    test:
+      commands:
+        # Versioned dydx_v4_proto library
+        - test -f ${PREFIX}/lib/libdydx_v4_proto${SHLIB_EXT}.{{ so_major_version }}  # [linux]
+        - test -f ${PREFIX}/lib/libdydx_v4_proto.{{ so_major_version }}${SHLIB_EXT}  # [osx]
+        - if not exist %PREFIX%\\Library\\bin\\dydx_v4_proto.{{ so_major_version }}%SHLIB_EXT% exit 1  # [win]
+        - test -f ${PREFIX}/lib/libdydx_v4_proto${SHLIB_EXT}.{{ so_version }}  # [linux]
+        - test -f ${PREFIX}/lib/libdydx_v4_proto.{{ so_version }}${SHLIB_EXT}  # [osx]
+        - if not exist %PREFIX%\\Library\\bin\\dydx_v4_proto.{{ so_version }}%SHLIB_EXT% exit 1  # [win]
+
+        # No non-versioned library
+        - test ! -f ${PREFIX}/lib/libdydx_v4_proto${SHLIB_EXT}  # [unix]
+        - if exist %PREFIX%\\Library\\bin\\dydx_v4_proto%SHLIB_EXT% exit 1  # [win]
+        - if exist %PREFIX%\\Library\\lib\\dydx_v4_proto.lib exit 1  # [win]
+
+about:
+  home: https://github.com/dydxprotocol/v4-clients
+  summary: 'The dYdX Chain Clients used for placing transactions and querying the dYdX chain.'
+  description: |
+    The dYdX Chain Clients used for placing transactions and querying the dYdX chain.
+  license: AGPL-3.0-only
+  license_file:
+    - LICENSE
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+  feedstock-name: dydxprotocol-v4-proto-cpp
