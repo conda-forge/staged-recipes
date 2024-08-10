@@ -2,9 +2,6 @@
 
 export GO111MODULE=on
 
-mv ${SRC_DIR} ${GOPATH}/src
-cd ${GOPATH}/src/peco
-
 make build
 
 go build \
