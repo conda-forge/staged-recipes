@@ -11,6 +11,5 @@ make build
 
 go build ^
     -ldflags "-s -w" ^
-    -o "%LIBRARY_BIN%\bin\%PKG_NAME%" ^
+    -o "%LIBRARY_BIN%\%PKG_NAME%.exe" ^
     cmd\%PKG_NAME%\%PKG_NAME%.go
-
