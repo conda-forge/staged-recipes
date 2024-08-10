@@ -10,6 +10,6 @@ cd $GOPATH/src/github.com/peco/peco
 make build
 
 go build \
-    -ldflags "-s -w -X main.Version=${PKG_VERSION}" \
+    -ldflags "-s -w" \
     -o ${PREFIX}/bin/${PKG_NAME} \
     cmd/${PKG_NAME}/${PKG_NAME}.go
