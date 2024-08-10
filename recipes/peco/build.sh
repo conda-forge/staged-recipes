@@ -3,7 +3,7 @@
 export GO111MODULE=on
 export GOPATH=${PREFIX}/go
 
-sudo mkdir -p $GOPATH/src/github.com/peco
+mkdir -p $GOPATH/src/github.com/peco
 cp -r ${SRC_DIR} $GOPATH/src/github.com/peco/peco
 cd $GOPATH/src/github.com/peco/peco
 
