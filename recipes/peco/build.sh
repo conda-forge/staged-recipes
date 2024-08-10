@@ -1,6 +1,11 @@
 #!/bin/sh
 
 export GO111MODULE=on
+export GOPATH=${PREFIX}/go
+
+mkdir -p $GOPATH/src/github.com/peco
+cp -r ${SRC_DIR} $GOPATH/src/github.com/peco/peco
+cd $GOPATH/src/github.com/peco/peco
 
 make build
 
