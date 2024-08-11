@@ -2,7 +2,7 @@
 set -e -x
 
 # Get meson to find pkg-config when cross compiling
-export PKG_CONFIG="${PREFIX}/bin/pkg-config:${BUILD_PREFIX}/bin/pkg-config"
+export PKG_CONFIG="${BUILD_PREFIX}/bin/pkg-config"
 
 meson setup builddir \
     ${MESON_ARGS} \
