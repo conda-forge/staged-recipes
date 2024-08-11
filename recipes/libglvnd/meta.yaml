@@ -30,7 +30,7 @@ requirements:
 outputs:
   - name: libglvnd
     files:
-      - lib/libGLdispatch.so.*
+      - "lib/libGLdispatch.so.*"
     requirements:
       build:
         - {{ compiler('c') }}
@@ -43,11 +43,30 @@ outputs:
         # Shared libraries (change in any SOVER means we need to react on run-export)
         - test -f $PREFIX/lib/libGLdispatch.so.0
 
-  - name: libglvnd-devel
+  - name: libglvnd-core-devel
     files:
       - lib/pkgconfig/libglvnd.pc
-      - lib/libGLdispatch.so
       - include/glvnd
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+        - meson
+        - pkg-config
+        - ninja
+    test:
+      commands:
+        # The libglvnd-core-devel package is a bootstrap trick for Mesa
+        # which wants to build against the libglvnd headers
+        # but does not link against any of its libraries
+        - test -f $PREFIX/lib/pkgconfig/libglvnd.pc
+        - test -f $PREFIX/include/glvnd/GLdispatchABI.h
+        - test -f $PREFIX/include/glvnd/libeglabi.h
+        - test -f $PREFIX/include/glvnd/libglxabi.h
+
+  - name: libglvnd-devel
+    files:
+      - lib/libGLdispatch.so
     build:
       run_exports:
         - {{ pin_subpackage('libglvnd', max_pin='x') }}
@@ -60,18 +79,19 @@ outputs:
         - ninja
       host:
         - {{ pin_subpackage('libglvnd', exact=True) }}
+        - {{ pin_subpackage('libglvnd-core-devel', exact=True) }}
       run:
         - {{ pin_subpackage('libglvnd', exact=True) }}
+        - {{ pin_subpackage('libglvnd-core-devel', exact=True) }}
     test:
       requires:
         - pkg-config
       commands:
         - pkg-config --print-errors libglvnd
-        - test -f $PREFIX/include/glvnd/GLdispatchABI.h
 
-  - name: libglx
+  - name: libopengl
     files:
-      - lib/libGLX.so.*
+      - "lib/libOpenGL.so.*"
     requirements:
       build:
         - {{ compiler('c') }}
@@ -80,11 +100,51 @@ outputs:
         - pkg-config
         - ninja
       host:
-        - xorg-libx11
-        - xorg-libxext
-        - xorg-xextproto
-        - xorg-glproto
         - {{ pin_subpackage('libglvnd', exact=True) }}
+      run:
+        - {{ pin_subpackage('libglvnd', exact=True) }}
+    test:
+      commands:
+        # Shared libraries (change in any SOVER means we need to react on run-export)
+        - test -f $PREFIX/lib/libOpenGL.so.0
+
+  - name: libopengl-devel
+    files:
+      - lib/libOpenGL.so
+      - lib/pkgconfig/opengl.pc
+    build:
+      run_exports:
+        - {{ pin_subpackage('libopengl', max_pin='x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+        - meson
+        - pkg-config
+        - ninja
+      host:
+        - {{ pin_subpackage('libopengl', exact=True) }}
+      run:
+        - {{ pin_subpackage('libopengl', exact=True) }}
+    test:
+      requires:
+        - pkg-config
+      commands:
+        - pkg-config --print-errors opengl
+
+  - name: libglx
+    files:
+      - "lib/libGLX.so.*"
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+        - meson
+        - pkg-config
+        - ninja
+      host:
+        - {{ pin_subpackage('libglvnd', exact=True) }}
+        - xorg-libx11
       run:
         - {{ pin_subpackage('libglvnd', exact=True) }}
     test:
@@ -94,9 +154,9 @@ outputs:
 
   - name: libglx-devel
     files:
-      - lib/pkgconfig/libglx.pc
       - lib/libGLX.so
-      - include/GL/glx*
+      - lib/pkgconfig/libglx.pc
+      - "include/GL/glx*"
     build:
       run_exports:
         - {{ pin_subpackage('libglx', max_pin='x') }}
@@ -108,8 +168,13 @@ outputs:
         - pkg-config
         - ninja
       host:
+        - xorg-libxext
+        - xorg-xextproto
+        - xorg-glproto
         - {{ pin_subpackage('libglx', exact=True) }}
       run:
+        - xorg-xextproto
+        - xorg-glproto
         - {{ pin_subpackage('libglx', exact=True) }}
     test:
       requires:
@@ -118,6 +183,183 @@ outputs:
         - pkg-config --print-errors libglx
         - test -f $PREFIX/include/GL/glx.h
         - test -f $PREFIX/include/GL/glxext.h
+
+  - name: libgl
+    files:
+      - "lib/libGL.so.*"
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+        - meson
+        - pkg-config
+        - ninja
+      host:
+        - {{ pin_subpackage('libglvnd', exact=True) }}
+        - {{ pin_subpackage('libglx', exact=True) }}
+      run:
+        - {{ pin_subpackage('libglvnd', exact=True) }}
+        - {{ pin_subpackage('libglx', exact=True) }}
+    test:
+      commands:
+        # Shared libraries (change in any SOVER means we need to react on run-export)
+        - test -f $PREFIX/lib/libGL.so.0
+
+  - name: libgl-devel
+    files:
+      - lib/libGL.so
+      - lib/pkgconfig/libgl.pc
+      - include/GL
+      - include/KHR
+    build:
+      run_exports:
+        - {{ pin_subpackage('libgl', max_pin='x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+        - meson
+        - pkg-config
+        - ninja
+      host:
+        - {{ pin_subpackage('libgl', exact=True) }}
+        - {{ pin_subpackage('libglx-devel', exact=True) }}
+      run:
+        - {{ pin_subpackage('libgl', exact=True) }}
+        - {{ pin_subpackage('libglx-devel', exact=True) }}
+    test:
+      requires:
+        - pkg-config
+      commands:
+        - pkg-config --print-errors libgl
+        - test -f $PREFIX/include/GL/gl.h
+        - test -f $PREFIX/include/GL/glcorearb.h
+        - test -f $PREFIX/include/GL/glext.h
+        - test -f $PREFIX/include/KHR/khrplatform.h
+
+  - name: libegl
+    files:
+      - "lib/libEGL.so.*"
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+        - meson
+        - pkg-config
+        - ninja
+      host:
+        - {{ pin_subpackage('libglvnd', exact=True) }}
+      run:
+        - {{ pin_subpackage('libglvnd', exact=True) }}
+    test:
+      commands:
+        # Shared libraries (change in any SOVER means we need to react on run-export)
+        - test -f $PREFIX/lib/libEGL.so.0
+
+  - name: libegl-devel
+    files:
+      - lib/libEGL.so
+      - lib/pkgconfig/libegl.pc
+      - include/EGL
+    build:
+      run_exports:
+        - {{ pin_subpackage('libegl', max_pin='x') }}
+      ignore_run_exports_from:
+        - libgl-devel
+        - xorg-libx11
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+        - meson
+        - pkg-config
+        - ninja
+      host:
+        - {{ pin_subpackage('libegl', exact=True) }}
+        - {{ pin_subpackage('libgl-devel', exact=True) }}
+        - xorg-libx11
+      run:
+        - {{ pin_subpackage('libegl', exact=True) }}
+        - {{ pin_subpackage('libgl-devel', exact=True) }}
+        - xorg-libx11
+    test:
+      requires:
+        - pkg-config
+      commands:
+        - pkg-config --print-errors libegl
+        - test -f $PREFIX/include/EGL/egl.h
+        - test -f $PREFIX/include/EGL/eglext.h
+        - test -f $PREFIX/include/EGL/eglplatform.h
+
+  - name: libgles
+    files:
+      - "lib/libGLESv1_CM.so.*"
+      - "lib/libGLESv2.so.*"
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+        - meson
+        - pkg-config
+        - ninja
+      host:
+        - {{ pin_subpackage('libglvnd', exact=True) }}
+      run:
+        - {{ pin_subpackage('libglvnd', exact=True) }}
+    test:
+      commands:
+        # Shared libraries (change in any SOVER means we need to react on run-export)
+        - test -f $PREFIX/lib/libGLESv1_CM.so.1
+        - test -f $PREFIX/lib/libGLESv2.so.2
+
+  - name: libgles-devel
+    files:
+      - lib/libGLESv1_CM.so
+      - lib/libGLESv2.so
+      - lib/pkgconfig/glesv1_cm.pc
+      - lib/pkgconfig/glesv2.pc
+      - include/GLES
+      - include/GLES2
+      - include/GLES3
+    build:
+      run_exports:
+        - {{ pin_subpackage('libgles', max_pin='x') }}
+      ignore_run_exports_from:
+        - libegl-devel
+        - libgl-devel
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+        - meson
+        - pkg-config
+        - ninja
+      host:
+        - {{ pin_subpackage('libgles', exact=True) }}
+        - {{ pin_subpackage('libegl-devel', exact=True) }}
+        - {{ pin_subpackage('libgl-devel', exact=True) }}
+      run:
+        - {{ pin_subpackage('libgles', exact=True) }}
+        - {{ pin_subpackage('libegl-devel', exact=True) }}
+        - {{ pin_subpackage('libgl-devel', exact=True) }}
+    test:
+      requires:
+        - pkg-config
+      commands:
+        - pkg-config --print-errors glesv1_cm
+        - pkg-config --print-errors glesv2
+        - test -f $PREFIX/include/GLES/egl.h
+        - test -f $PREFIX/include/GLES/gl.h
+        - test -f $PREFIX/include/GLES/glext.h
+        - test -f $PREFIX/include/GLES/glplatform.h
+        - test -f $PREFIX/include/GLES2/gl2.h
+        - test -f $PREFIX/include/GLES2/gl2ext.h
+        - test -f $PREFIX/include/GLES2/gl2platform.h
+        - test -f $PREFIX/include/GLES3/gl3.h
+        - test -f $PREFIX/include/GLES3/gl31.h
+        - test -f $PREFIX/include/GLES3/gl32.h
+        - test -f $PREFIX/include/GLES3/gl3ext.h
+        - test -f $PREFIX/include/GLES3/gl3platform.h
 
 about:
   home: https://gitlab.freedesktop.org/glvnd/libglvnd
@@ -132,3 +374,4 @@ extra:
     - traversaro
     - hmaarrfk
     - h-vetinari
+    - isuruf
