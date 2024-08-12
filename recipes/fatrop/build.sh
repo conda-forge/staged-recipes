@@ -8,6 +8,7 @@ cmake ${CMAKE_ARGS} -GNinja .. \
       -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_TESTING:BOOL=ON \
       -DBUILD_SHARED_LIBS:BOOL=ON \
+      -DBUILD_WITH_BLASFEO:BOOL=OFF
 
 cmake --build . --config Release
 cmake --build . --config Release --target install
