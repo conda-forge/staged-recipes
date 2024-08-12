@@ -17,7 +17,7 @@ make -j${CPU_COUNT}
 
 make install
 
-# Fix some overlinking warnings/errors
-for lib in ${PREFIX}/lib/plugins/libOpenMM*HIP*${SHLIB_EXT}; do
-    ln -s $lib ${PREFIX}/lib/$(basename $lib) || true
-done
+# # Fix some overlinking warnings/errors
+# for lib in ${PREFIX}/lib/plugins/libOpenMM*HIP*${SHLIB_EXT}; do
+#     ln -s $lib ${PREFIX}/lib/$(basename $lib) || true
+# done
