@@ -1,4 +1,6 @@
 pushd src/socketify/native
+CC="${CC} ${CPPFLAGS} ${CFLAGS}"
+CXX="${CXX} ${CPPFLAGS} ${CXXFLAGS}"
 if [[ "$target_platform" == "linux-"* ]]; then
   make linux
 elif [[ "$target_platform" == "osx-64" ]]; then
