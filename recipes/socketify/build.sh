@@ -1,3 +1,6 @@
+rm -rf src/socketify/*.so
+rm -rf src/socketify/*.dll
+
 pushd src/socketify/native
 CC="${CC} ${CPPFLAGS} ${CFLAGS} ${LDFLAGS}"
 CXX="${CXX} ${CPPFLAGS} ${CXXFLAGS} ${LDFLAGS}"
