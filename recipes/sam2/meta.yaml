@@ -22,10 +22,18 @@ source:
 build:
   string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version == "None"]
   string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
-  script: {{ PYTHON }} -m pip install . -vv
+  script:
+    # Ensure to add PTX at the end, always
+    - export TORCH_CUDA_ARCH_LIST="5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0+PTX"  # [cuda_compiler_version != "None"]
+    - export CUDA_TOOLKIT_ROOT_DIR="${PREFIX}"                               # [cuda_compiler_version != "None"]
+    - export FORCE_CUDA=1
+    - {{ PYTHON }} -m pip install . -vv
   number: 0
   skip: true  # [win]
   skip: true  # [py<310]
+  missing_dso_whitelist:
+    # https://github.com/conda-forge/pytorch-cpu-feedstock/pull/246
+    - $RPATH/libtorch_python.so
 
 requirements:
   build:
@@ -37,12 +45,20 @@ requirements:
     - libcublas-dev                          # [build_platform != target_platform]
     - libcusolver-dev                        # [build_platform != target_platform]
     - libcusparse-dev                        # [build_platform != target_platform]
+    - cuda-cudart-dev                        # [build_platform != target_platform]
     {% endif %}
   host:
     - python
     - pip
     - pytorch
     - libtorch *=cuda*                       # [cuda_compiler_version != "None"]
+    {% if cuda_major >= 12 %}
+    - libcublas-dev
+    - libcusolver-dev
+    - libcusparse-dev
+    - cuda-cudart-dev
+    {% endif %}
+    - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
   run:
     - python
     - hydra-core
@@ -55,6 +71,8 @@ requirements:
     # - iopath >=0.1.10
     - tqdm
     - pillow
+    # avoid that people without GPUs needlessly download ~0.5-1GB
+    - __cuda  # [cuda_compiler_version != "None"]
   run_constrained:
     # Let the run_export from pytorch take effect
     # so put their requirement here
