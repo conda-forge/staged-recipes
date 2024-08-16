@@ -1,0 +1,81 @@
+{% set git_hash_date = "20240814" %}
+{% set git_hash = "7e1596c0b6462eb1d1ba7e1492430fed95023598" %}
+{% set version = "0.0.0." + git_hash_date + "." + git_hash %}
+
+{% if cuda_compiler_version in (None, "None", True, False) %}
+{% set cuda_major = 0 %}
+{% else %}
+{% set cuda_major = environ.get("cuda_compiler_version", "11.2").split(".")[0] | int %}
+{% endif %}
+
+package:
+  name: sam2
+  version: {{ version }}
+
+source:
+  url: https://github.com/facebookresearch/segment-anything-2/archive/7e1596c0b6462eb1d1ba7e1492430fed95023598.tar.gz
+  sha256: 409d0ed6157f58a75d177b2425914f6daf714cd22ac96fc77fab88a6dac3bc07
+
+build:
+  string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version == "None"]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+  script: {{ PYTHON }} -m pip install . -vv
+  number: 0
+  skip: true  # [win]
+  skip: true  # [py!=310]
+
+requirements:
+  build:
+    - {{ stdlib('c') }}
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}                 # [cuda_compiler_version != "None"]
+    {% if cuda_major >= 12 %}
+    - libcublas-dev                          # [build_platform != target_platform]
+    - libcusolver-dev                        # [build_platform != target_platform]
+    - libcusparse-dev                        # [build_platform != target_platform]
+    {% endif %}
+  host:
+    - python
+    - pip
+    - pytorch
+    - libtorch *=cuda*                       # [cuda_compiler_version != "None"]
+  run:
+    - python
+    - hydra-core
+    - torchvision >=0.18.1
+    # Fallback for the cuda compiled code
+    # https://github.com/facebookresearch/segment-anything-2/pull/216
+    - scikit-image                           # [cuda_compiler_version != "None"]
+  run_constrained:
+    # Let the run_export from pytorch take effect
+    # so put their requirement here
+    - pytorch >=2.3.1
+
+test:
+  imports:
+    - sam2
+  requires:
+    - pip
+  commands:
+    - pip check
+
+about:
+  home: https://github.com/facebookresearch/segment-anything-2
+  summary: 'SAM 2: Segment Anything in Images and Videos'
+  description: |
+    Segment Anything Model 2 (SAM 2) is a foundation model towards solving
+    promptable visual segmentation in images and videos. We extend SAM to video
+    by considering images as a video with a single frame. The model design is a
+    simple transformer architecture with streaming memory for real-time video
+    processing. We build a model-in-the-loop data engine, which improves model
+    and data via user interaction, to collect our SA-V dataset, the largest
+    video segmentation dataset to date. SAM 2 trained on our data provides
+    strong performance across a wide range of tasks and visual domains.
+  license: Apache-2.0
+  license_family: Apache
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
