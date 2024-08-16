@@ -1,0 +1,99 @@
+{% set version = "4.0.0" %}
+
+package:
+  name: mpdecimal
+  version: {{ version }}
+
+source:
+  url: https://www.bytereef.org/software/mpdecimal/releases/mpdecimal-{{ version }}.tar.gz
+  sha256: 942445c3245b22730fd41a67a7c5c231d11cb1b9936b9c0f76334fb7d0b4468c
+
+build:
+  number: 0
+  skip: True  # [win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ stdlib('c') }}
+    - {{ compiler('cxx') }}
+    - make
+    - wget
+    - unzip
+  host:
+  run:
+
+outputs:
+  - name: libmpdec
+    files:
+      - lib/libmpdec.so.*
+      - lib/libmpdec.*.dylib
+      - Library/bin/libmpdec.dll
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libmpdec.so.4     # [linux]
+        - test -f ${PREFIX}/lib/libmpdec.4.dylib  # [osx]
+
+  - name: libmpdecxx
+    files:
+      - lib/libmpdec++.so.*
+      - lib/libmpdec++.*.dylib
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ stdlib('c') }}
+      host:
+        - {{ pin_subpackage("libmpdec", exact=True) }}
+      run:
+        - {{ pin_subpackage("libmpdec", exact=True) }}
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libmpdec++.so.4     # [linux]
+        - test -f ${PREFIX}/lib/libmpdec++.4.dylib  # [osx]
+
+  - name: libmpdec-devel
+    build:
+      run_exports:
+        - {{ pin_subpackage("libmpdec") }}
+    files:
+      - lib/libmpdec.so
+      - lib/libmpdec.dylib
+      - lib/pkgconfig/libmpdec.pc
+      - include/mpdecimal.h
+    requirements:
+      - {{ pin_subpackage("libmpdec", exact=True) }}
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libmpdec.so     # [linux]
+        - test -f ${PREFIX}/lib/libmpdec.dylib  # [osx]
+
+  - name: libmpdecxx-devel
+    build:
+      run_exports:
+        - {{ pin_subpackage("libmpdecxx") }}
+    files:
+      - lib/libmpdec++.so
+      - lib/libmpdec++.dylib
+      - lib/pkgconfig/libmpdec++.pc
+      - include/decimal.hh
+    requirements:
+      - {{ pin_subpackage("libmpdecxx", exact=True) }}
+      - {{ pin_subpackage("libmpdec-devel", exact=True) }}
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libmpdec++.so     # [linux]
+        - test -f ${PREFIX}/lib/libmpdec++.dylib  # [osx]
+
+about:
+  home: https://github.com/simplejson/simplejson
+  summary: A package for correctly-rounded arbitrary precision decimal floating point arithmetic
+  license: BSD-2-Clause
+  license_file: COPYRIGHT.txt
+
+extra:
+  recipe-maintainers:
+    - isuruf
