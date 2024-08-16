@@ -1,5 +1,5 @@
 PKG_CONFIG_PATH=${BUILD_PREFIX}/share/pkgconfig:${PKG_CONFIG_PATH}
-CUDA_HOME=${BUILD_PREFIX} CXX=g++ meson setup --reconfigure --buildtype=release --prefix=${PREFIX} --libdir=lib -Ddefault_library=shared -Dinclude-python-api=enabled meson
+CUDA_HOME=${BUILD_PREFIX} meson setup --reconfigure --buildtype=release --prefix=${PREFIX} --libdir=lib -Ddefault_library=shared -Dinclude-python-api=enabled meson
 cd meson
 meson compile
 meson install
