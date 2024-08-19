@@ -7,7 +7,10 @@ cargo-bundle-licenses \
     --output THIRDPARTY.yml
 
 # build statically linked binary with Rust
-cargo install --locked --root ${PREFIX} --path .
+cargo install --no-track --locked --root ${PREFIX} --path .
+
+# strip debug symbols
+"${STRIP}" "${PREFIX}/bin/${PKG_NAME}"
 
 mkdir -p ${PREFIX}/etc/bash_completion.d
 mkdir -p ${PREFIX}/share/fish/vendor_completions.d
