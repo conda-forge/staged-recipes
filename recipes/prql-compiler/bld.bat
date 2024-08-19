@@ -4,4 +4,10 @@ cargo-bundle-licenses ^
     --output THIRDPARTY.yml || goto :error
 
 :: build statically linked binary with Rust
-cargo install --no-track --locked --root %LIBRARY_PREFIX% --path prqlc/prqlc || goto :error
+cargo install --no-track --locked --root %LIBRARY_PREFIX% --path prqlc\prqlc || goto :error
+
+goto :EOF
+
+:error
+echo Failed with error #%errorlevel%.
+exit 1
