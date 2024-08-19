@@ -3,10 +3,7 @@ cargo-bundle-licenses ^
     --output THIRDPARTY.yml || goto :error
 
 :: build statically linked binary with Rust
-cargo install --locked --root "%LIBRARY_PREFIX%" --path . || goto :error
-
-:: remove extra build file
-del /F /Q "%LIBRARY_PREFIX%\.crates.toml"
+cargo install --no-track --locked --root "%LIBRARY_PREFIX%" --path . || goto :error
 
 goto :EOF
 
