@@ -81,6 +81,7 @@ outputs:
   - name: libdydx_v4_client_lib
     build:
       run_exports:
+        - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
         - {{ pin_subpackage('libdydx_v4_client_lib-' ~ so_major_version) }}
     files:
       {% for path, headers in dydx_v4_client_header_paths.items() %}
@@ -95,10 +96,14 @@ outputs:
       - Library/lib/dydx_v4_client_lib.lib  # [win]
       - Library/lib/dydx_v4_client_lib.{{ so_major_version }}.lib  # [win]
       - Library/bin/dydx_v4_client_lib.dll  # [win]
-      - lib/pkgconfig/dydx_v4_client_lib.pc
+
+      - lib/pkgconfig/dydx_v4_client_lib.pc  # [unix]
       - Library/lib/pkgconfig/dydx_v4_client_lib.pc  # [win]
-      - lib/cmake/dydx_v4_client_lib/dydx_v4_client_lib-config.cmake
+      - lib/cmake/dydx_v4_client_lib/dydx_v4_client_lib-config.cmake  # [unix]
       - Library/lib/cmake/dydx_v4_client_lib/dydx_v4_client_lib-config.cmake  # [win]
+
+      - bin/dydx_v4_client_lib_tests  # [unix]
+      - bin\\dydx_v4_client_lib_tests.exe  # [win]
     requirements:
       build:
         - {{ compiler('c') }}
@@ -107,16 +112,31 @@ outputs:
       host:
         - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
         - fmt
-        - libprotobuf
         - openssl
       run:
         - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
         - {{ pin_subpackage('libdydx_v4_client_lib-' ~ so_major_version) }}
     test:
-      source_files:
-        - dydx_v4_client_lib_tests
       commands:
-        - LD_PRELOAD="${PREFIX}/lib/libdydx_v4_client_lib.so ${PREFIX}/lib/libcrypto.so" ./dydx_v4_client_lib_tests
+        {% for path, headers in dydx_v4_client_header_paths.items() %}
+          {% for header in headers %}
+        - test -f ${PREFIX}/include/{{ path }}/{{ header }}  # [unix]
+        - if not exist %PREFIX%\\Library\\include\\{{ path | replace('/', '\\\\') }}\\{{ header }} exit 1  # [win]
+          {% endfor %}
+        {% endfor %}
+
+        - test -f ${PREFIX}/lib/libdydx_v4_client_lib.so  # [linux]
+        - test -f ${PREFIX}/lib/libdydx_v4_client_lib.dylib  # [osx]
+        - if not exist %PREFIX%\\Library/lib/dydx_v4_client_lib.lib exit 1  # [win]
+        - if not exist %PREFIX%\\Library/lib/dydx_v4_client_lib.{{ so_major_version }}.lib exit 1  # [win]
+        - if not exist %PREFIX%\\Library/bin/dydx_v4_client_lib.dll exit 1  # [win]
+
+        - test -f ${PREFIX}/lib/pkgconfig/dydx_v4_client_lib.pc  # [unix]
+        - if not exist %PREFIX%\\Library/lib/pkgconfig/dydx_v4_client_lib.pc exit 1  # [win]
+        - test -f ${PREFIX}/lib/cmake/dydx_v4_client_lib/dydx_v4_client_lib-config.cmake  # [unix]
+        - if not exist %PREFIX%\\Library/lib/cmake/dydx_v4_client_lib/dydx_v4_client_lib-config.cmake exit 1  # [win]
+
+        - dydx_v4_client_lib_tests
 
 
 
@@ -141,25 +161,17 @@ outputs:
       host:
         - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
         - fmt
-        - libbip3x-3
-        - libprotobuf
         - openssl
       run:
         - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
     test:
       commands:
-        # Versioned dydx_v4_client library
         - test -f ${PREFIX}/lib/libdydx_v4_client_lib${SHLIB_EXT}.{{ so_major_version }}  # [linux]
         - test -f ${PREFIX}/lib/libdydx_v4_client_lib.{{ so_major_version }}${SHLIB_EXT}  # [osx]
         - if not exist %PREFIX%\\Library\\bin\\dydx_v4_client_lib.{{ so_major_version }}%SHLIB_EXT% exit 1  # [win]
         - test -f ${PREFIX}/lib/libdydx_v4_client_lib${SHLIB_EXT}.{{ so_version }}  # [linux]
         - test -f ${PREFIX}/lib/libdydx_v4_client_lib.{{ so_version }}${SHLIB_EXT}  # [osx]
         - if not exist %PREFIX%\\Library\\bin\\dydx_v4_client_lib.{{ so_version }}%SHLIB_EXT% exit 1  # [win]
-
-        # No non-versioned library
-        - test ! -f ${PREFIX}/lib/libdydx_v4_client_lib${SHLIB_EXT}  # [unix]
-        - if exist %PREFIX%\\Library\\bin\\dydx_v4_client_lib%SHLIB_EXT% exit 1  # [win]
-        - if exist %PREFIX%\\Library\\lib\\dydx_v4_client_lib.lib exit 1  # [win]
 
 
 
@@ -180,16 +192,11 @@ outputs:
       - Library/lib/dydx_v4_proto.lib  # [win]
       - Library/lib/dydx_v4_proto.{{ so_major_version }}.lib  # [win]
       - Library/bin/dydx_v4_proto.dll  # [win]
-      - lib/pkgconfig/dydx_v4_proto.pc
+
+      - lib/pkgconfig/dydx_v4_proto.pc  # [unix]
       - Library/lib/pkgconfig/dydx_v4_proto.pc  # [win]
-      - lib/cmake/dydx_v4_proto/dydx_v4_proto-config.cmake
+      - lib/cmake/dydx_v4_proto/dydx_v4_proto-config.cmake  # [unix]
       - Library/lib/cmake/dydx_v4_proto/dydx_v4_proto-config.cmake  # [win]
-      
-      - lib/libdydx_v4_proto.so  # [linux]
-      - lib/libdydx_v4_proto.dylib  # [osx]
-      - Library/lib/dydx_v4_proto.lib  # [win]
-      - Library/lib/dydx_v4_proto.{{ so_major_version }}.lib  # [win]
-      - Library/bin/dydx_v4_proto.dll  # [win]
     requirements:
       build:
         - {{ compiler('c') }}
@@ -204,9 +211,21 @@ outputs:
         - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
     test:
       commands:
+        {% for path, headers in dydx_v4_proto_header_paths.items() %}
+          {% for header in headers %}
+        - test -f ${PREFIX}/include/dydx_v4_proto/{{ path }}/{{ header }}  # [unix]
+        - if not exist %PREFIX%\\Library\\include\\dydx_v4_proto\\{{ path | replace('/', '\\\\') }}\\{{ header }} exit 1  # [win]
+          {% endfor %}
+        {% endfor %}
+
         - test -f ${PREFIX}/lib/libdydx_v4_proto${SHLIB_EXT}  # [unix]
         - if not exist %PREFIX%\\Library\\bin\\dydx_v4_proto%SHLIB_EXT% exit 1  # [win]
         - if not exist %PREFIX%\\Library\\lib\\dydx_v4_proto.lib exit 1  # [win]
+
+        - test -f ${PREFIX}/lib/pkgconfig/dydx_v4_proto.pc  # [unix]
+        - if not exist %PREFIX%\\Library/lib/pkgconfig/dydx_v4_proto.pc exit 1  # [win]
+        - test -f ${PREFIX}/lib/cmake/dydx_v4_proto/dydx_v4_proto-config.cmake  # [unix]
+        - if not exist %PREFIX%\\Library/lib/cmake/dydx_v4_proto/dydx_v4_proto-config.cmake exit 1  # [win]
 
 
 
@@ -231,18 +250,12 @@ outputs:
         - libprotobuf
     test:
       commands:
-        # Versioned dydx_v4_proto library
         - test -f ${PREFIX}/lib/libdydx_v4_proto${SHLIB_EXT}.{{ so_major_version }}  # [linux]
         - test -f ${PREFIX}/lib/libdydx_v4_proto.{{ so_major_version }}${SHLIB_EXT}  # [osx]
         - if not exist %PREFIX%\\Library\\bin\\dydx_v4_proto.{{ so_major_version }}%SHLIB_EXT% exit 1  # [win]
         - test -f ${PREFIX}/lib/libdydx_v4_proto${SHLIB_EXT}.{{ so_version }}  # [linux]
         - test -f ${PREFIX}/lib/libdydx_v4_proto.{{ so_version }}${SHLIB_EXT}  # [osx]
         - if not exist %PREFIX%\\Library\\bin\\dydx_v4_proto.{{ so_version }}%SHLIB_EXT% exit 1  # [win]
-
-        # No non-versioned library
-        - test ! -f ${PREFIX}/lib/libdydx_v4_proto${SHLIB_EXT}  # [unix]
-        - if exist %PREFIX%\\Library\\bin\\dydx_v4_proto%SHLIB_EXT% exit 1  # [win]
-        - if exist %PREFIX%\\Library\\lib\\dydx_v4_proto.lib exit 1  # [win]
 
 about:
   home: https://github.com/dydxprotocol/v4-clients

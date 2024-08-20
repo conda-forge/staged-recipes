@@ -45,6 +45,6 @@ pushd _conda-build-client
   cp "${SRC_DIR}"/_conda-build-protocol/lib/libdydx_v4_client_lib_static.a lib/proto
   cmake --build . --target dydx_v4_client_lib_tests -- -j"${CPU_COUNT}"
   lib/dydx_v4_client_lib_tests
-  cp lib/dydx_v4_client_lib_tests "${SRC_DIR}"
-  chmod 755 "${SRC_DIR}"/dydx_v4_client_lib_tests
+  cp lib/dydx_v4_client_lib_tests "${PREFIX}"/bin
+  chmod 755 "${PREFIX}"/bin/dydx_v4_client_lib_tests
 popd
