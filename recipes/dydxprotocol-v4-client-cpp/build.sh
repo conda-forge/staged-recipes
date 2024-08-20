@@ -31,7 +31,8 @@ pushd _conda-build-client
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     -DBUILD_SHARED_LIBS=ON \
     -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON \
-    -G Ninja > "${SRC_DIR}"/_conda-logs/_cmake_configure-client.log 2>&1
+    -G Ninja
+    # > "${SRC_DIR}"/_conda-logs/_cmake_configure-client.log 2>&1
 
   cmake --build . --target dydx_v4_client_lib -- -j"${CPU_COUNT}"
   cmake --install . --component client
