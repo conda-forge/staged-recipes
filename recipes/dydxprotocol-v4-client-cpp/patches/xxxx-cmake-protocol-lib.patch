@@ -1,0 +1,97 @@
+--- v4-client-cpp/lib/proto/CMakeLists.txt.orig	2021-10-14 15:00:00.000000000 +0000
++++ v4-client-cpp/lib/proto/CMakeLists.txt	2021-10-14 15:00:00.000000000 +0000
+@@ -3,6 +3,80 @@
+ file(GLOB_RECURSE proto_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.proto)
+-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${proto_files})
+
+-add_library(dydx_v4_proto ${BALOO_BIN_TYPE} ${PROTO_SRCS} ${PROTO_HDRS})
+-target_include_directories(dydx_v4_proto PUBLIC ${Protobuf_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
+-target_link_libraries(dydx_v4_proto PUBLIC ${Protobuf_LIBRARIES})
+\ No newline at end of file
++add_library(dydx_v4_proto_obj OBJECT ${proto_files})
++set_property(TARGET dydx_v4_proto_obj PROPERTY POSITION_INDEPENDENT_CODE 1)
++if(protobuf_MODULE_COMPATIBLE)
++    # Legacy Support
++    protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${proto_files})
++    target_include_directories(dydx_v4_proto_obj PUBLIC ${Protobuf_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
++else()
++    set(PROTO_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/_generated")
++    target_sources(dydx_v4_proto_obj PRIVATE ${proto_files})
++    target_include_directories(dydx_v4_proto_obj PUBLIC ${PROTO_BINARY_DIR})
++    protobuf_generate(TARGET dydx_v4_proto_obj PROTOC_OUT_DIR ${PROTO_BINARY_DIR} OUT_VAR PROTO_GENERATED_FILES)
++
++    # Collect generated headers for installation
++    set(protobuf_HEADERS)
++    foreach(_file ${PROTO_GENERATED_FILES})
++      if(_file MATCHES ".h$")
++        list(APPEND protobuf_HEADERS ${_file})
++      endif()
++    endforeach()
++
++    add_custom_target(generate_headers ALL DEPENDS ${protobuf_HEADERS})
++    set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include/dydx_v4_proto")
++    install(DIRECTORY ${PROTO_BINARY_DIR}/ DESTINATION ${INCLUDE_INSTALL_DIR} COMPONENT protocol FILES_MATCHING PATTERN "*.h" PATTERN "CMakeFiles" EXCLUDE)
++endif()
++
++add_library(dydx_v4_proto SHARED $<TARGET_OBJECTS:dydx_v4_proto_obj>)
++add_library(dydx_v4_proto_static STATIC $<TARGET_OBJECTS:dydx_v4_proto_obj>)
++
++set_target_properties(dydx_v4_proto PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
++
++if(protobuf_MODULE_COMPATIBLE)
++    target_link_libraries(dydx_v4_proto PUBLIC ${Protobuf_LIBRARIES})
++    target_link_libraries(dydx_v4_proto_static PUBLIC ${Protobuf_LIBRARIES})
++else()
++    target_link_libraries(dydx_v4_proto PUBLIC protobuf::libprotobuf)
++    target_link_libraries(dydx_v4_proto_static PUBLIC protobuf::libprotobuf)
++endif()
++
++install(TARGETS dydx_v4_proto EXPORT dydx_v4_proto-config DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT protocol)
++
++# CMake config files
++include(GNUInstallDirs)
++include(CMakePackageConfigHelpers)
++file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dydx_v4_proto-config.cmake.in
++    "
++set(dydx_v4_proto_VERSION \"${PROJECT_VERSION}\")
++@PACKAGE_INIT@
++set_and_check(dydx_v4_proto_INCLUDE_DIRS \"\${PACKAGE_PREFIX_DIR}/include/dydx_v4_proto\")
++set_and_check(dydx_v4_proto_LIBRARIES \"\${PACKAGE_PREFIX_DIR}/lib/libdydx_v4_proto.so\")
++"
++)
++
++configure_package_config_file(${CMAKE_CURRENT_BINARY_DIR}/dydx_v4_proto-config.cmake.in
++                              ${CMAKE_CURRENT_BINARY_DIR}/dydx_v4_proto-config.cmake
++                              INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/dydx_v4_proto
++                              PATH_VARS INCLUDE_INSTALL_DIR)
++write_basic_package_version_file(
++  ${CMAKE_CURRENT_BINARY_DIR}/dydx_v4_proto-config-version.cmake
++  VERSION ${PROJECT_VERSION}
++  COMPATIBILITY SameMajorVersion )
++install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dydx_v4_proto-config.cmake
++              ${CMAKE_CURRENT_BINARY_DIR}/dydx_v4_proto-config-version.cmake
++        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/dydx_v4_proto
++        COMPONENT protocol)
++
++# pkg-config file
++file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dydx_v4_proto.pc
++    "
++Name: dydx_v4_proto
++Description: DYDX Cosmos SDK application responsible for running the chain and the associated indexer services.
++Version: ${PROJECT_VERSION}
++Requires:
++Libs: -L${CMAKE_INSTALL_PREFIX}/lib -ldydx_v4_proto
++Cflags: -I${CMAKE_INSTALL_PREFIX}/include/dydx_v4_proto
++    "
++)
++
++install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dydx_v4_proto.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig COMPONENT protocol)
+
+--- v4-client-cpp/CMakeLists.txt.orig	2021-10-14 15:00:00.000000000 +0000
++++ v4-client-cpp/CMakeLists.txt	2021-10-14 15:00:00.000000000 +0000
+@@ -24,3 +24,2 @@
+
+-add_subdirectory(lib)
+-add_subdirectory(examples)
+\ No newline at end of file
++add_subdirectory(lib/proto)
