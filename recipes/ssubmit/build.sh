@@ -8,6 +8,3 @@ cargo install --locked --no-track --root "$PREFIX" --path .
 
 # strip debug symbols
 "$STRIP" "$PREFIX/bin/ssubmit"
-
-# remove extra build file
-rm -f "${PREFIX}/.crates.toml"
