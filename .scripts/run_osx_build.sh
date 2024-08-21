@@ -31,7 +31,7 @@ CONDARC
 source "${MINIFORGE_ROOT}/etc/profile.d/conda.sh"
 conda activate base
 
-echo -e "\n\nInstalling conda-forge-ci-setup=3, conda-build."
+echo -e "\n\nInstalling conda-forge-ci-setup, conda-build."
 conda install --quiet --file .ci_support/requirements.txt
 
 echo -e "\n\nSetting up the condarc and mangling the compiler."
@@ -54,7 +54,7 @@ source run_conda_forge_build_setup
 set -e
 
 # make sure there is a package directory so that artifact publishing works
-mkdir -p "${MINIFORGE_ROOT}/conda-bld/osx-64/"
+mkdir -p "${MINIFORGE_ROOT}/conda-bld/osx-64/" "${MINIFORGE_ROOT}/conda-bld/noarch/"
 
 # Find the recipes from main in this PR and remove them.
 echo ""
@@ -70,3 +70,8 @@ echo ""
 # We just want to build all of the recipes.
 echo "Building all recipes"
 python .ci_support/build_all.py
+
+( startgroup "Inspecting artifacts" ) 2> /dev/null
+# inspect_artifacts was only added in conda-forge-ci-setup 4.6.0
+command -v inspect_artifacts >/dev/null 2>&1 && inspect_artifacts || echo "inspect_artifacts needs conda-forge-ci-setup >=4.6.0"
+( endgroup "Inspecting artifacts" ) 2> /dev/null

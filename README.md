@@ -16,7 +16,7 @@ If the issue persists, support can be found [on Gitter](https://gitter.im/conda-
 ## Getting started
 
 1. Fork this repository.
-2. Make a new folder in `recipes` for your package. Look at the example recipe, our [documentation](http://conda-forge.org/docs/maintainer/adding_pkgs.html#) and the [FAQ](https://github.com/conda-forge/staged-recipes#faq)  for help.
+2. Make a new folder in `recipes` for your package. Look at the example recipes, our [documentation](http://conda-forge.org/docs/maintainer/adding_pkgs.html#) and the [FAQ](https://github.com/conda-forge/staged-recipes#faq) for help.
 3. Open a pull request. Building of your package will be tested on Windows, Mac and Linux.
 4. When your pull request is merged a new repository, called a feedstock, will be created in the github conda-forge organization, and build/upload of your package will automatically be triggered. Once complete, the package is available on conda-forge.
 
@@ -170,10 +170,10 @@ if your recipe isn't reviewed promptly.
 [1]: https://conda-forge.org/docs/maintainer/infrastructure.html#conda-forge-admin-please-ping-team
 [2]: https://gitter.im/conda-forge/conda-forge.github.io
 
-All apologies in advance if your recipe PR does not recieve prompt attention.
+All apologies in advance if your recipe PR does not receive prompt attention.
 This is a high volume repository and the reviewers are volunteers. Review times vary depending on the number of reviewers on a given language team and may be days or weeks. We are always
 looking for more staged-recipe reviewers. If you are interested in volunteering,
-please contact a member of @conda-forge/core. We'd love to have the help!
+please contact a member of @conda-forge/core. We'd love to have your help!
 
 
 ### 13. Is there a changelog for this repository?

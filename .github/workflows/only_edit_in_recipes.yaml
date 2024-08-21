@@ -1,0 +1,37 @@
+name: do_not_edit_other_files
+
+on:
+  pull_request_target:
+    paths-ignore:
+      - 'recipes/**'
+      - 'broken-recipes/**'
+
+jobs:
+  comment:
+    if: '!contains(github.event.pull_request.labels.*.name, ''maintenance'') && !contains(github.event.pull_request.title,
+      ''[ci skip]'') && !contains(github.event.pull_request.title, ''[skip ci]'')
+      && !contains(github.event.pull_request.title, ''[lint skip]'') && !contains(github.event.pull_request.title,
+      ''[skip lint]'') && !contains(github.event.commits.*.message, ''[ci skip]'')
+      && !contains(github.event.commits.*.message, ''[skip ci]'') && !contains(github.event.commits.*.message,
+      ''[lint skip]'') && !contains(github.event.commits.*.message, ''[skip lint]'')'
+    name: Notify user about changing files outside recipes directory
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
+
+      - name: Comment on PR
+        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'Hi! Thanks for your contribution to conda-forge.' +
+                    '\nWe appreciate your effort in improving our project.' +
+                    '\nHowever, it looks like some changes were made outside the `recipes` directory.' +
+                    '\nTo ensure everything runs smoothly, please make sure that recipes are only added to the `recipes` folder and no other files are changed.' +
+                    '\nPlease make sure that any changes are reverted before you submit your pull request for review.' +
+                    '\n\nIf these changes are intentional (and you aren\'t submitting a recipe), please attach a  `maintenance` label to the PR.' +
+                    '\nThanks!'
+            })
