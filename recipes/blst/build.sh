@@ -21,20 +21,4 @@ fi
 pushd bindings/python
   export CXX="${CXX}"
   ./run.me
-
-  PY_IMPL=$(${PYTHON} -c "import sysconfig; print(sysconfig.get_config_var('IMPLEMENTATION').lower())")
-  PY_VER=$(${PYTHON} -c "import sysconfig; print(sysconfig.get_config_var('py_version_nodot'))")
-  PY_HOST=$(${PYTHON} -c "import sysconfig; print(f'{sysconfig.get_platform().split(\"-\")[1]}-{sysconfig.get_platform().split(\"-\")[0]}')")
-
-  # Install Python bindings to site-packages
-  mkdir -p "${PREFIX}/lib/python${PY_VER}/site-packages/blst"
-  if [[ "${target_platform}" == osx-* ]]; then
-    # cp _blst."${PY_IMPL}-${PY_VER}-${PY_HOST}"*.dylib "${PREFIX}/lib/python${PY_VER}/site-packages/blst"
-    cp _blst*.dylib "${PREFIX}/lib/python${PY_VER}/site-packages/blst"
-  else
-    # cp _blst."${PY_IMPL}-${PY_VER}-${PY_HOST}"*.so "${PREFIX}/lib/python${PY_VER}/site-packages/blst/"
-    cp _blst*.so "${PREFIX}/lib/python${PY_VER}/site-packages/blst/"
-  fi
-  cp blst.py "${PREFIX}/lib/python${PY_VER}/site-packages/blst"
-  touch "${PREFIX}/lib/python${PY_VER}/site-packages/blst/__init__.py"
 popd

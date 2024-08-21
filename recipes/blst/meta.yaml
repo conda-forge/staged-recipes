@@ -13,7 +13,8 @@ source:
     - patches/0001-unix-add-libversion.patch  # [unix]
     - patches/0002-unix-substitute-c++.patch  # [unix]
     - patches/0003-unix-substitute-static-lib.patch  # [unix]
-    - patches/0001-build-with-gcc.patch  # [win]
+    - patches/0001-win-build-with-gcc.patch  # [win]
+    - patches/0004-add-setup.py.patch
 
 build:
   number: 0
@@ -93,14 +94,13 @@ outputs:
         - test -f ${PREFIX}/lib/libblst.so.{{ version }}  # [linux]
         - test -f ${PREFIX}/lib/libblst.{{ so_major_version }}.dylib  # [osx]
         - if not exist %LIBRARY_BIN%\\blst-{{ so_major_version }}.dll exit 1  # [win]
-        - python helpers\\load_dll.py %LIBRARY_BIN%\\blst-{{ so_major_version }}.dll  # [win]
+        - python %RECIPE_DIR%\\helpers\\load_dll.py %LIBRARY_BIN%\\blst-{{ so_major_version }}.dll  # [win]
 
 
 
   - name: blst
-    files:
-      - lib/python{{ py }}/site-packages/blst/__init__.py
-      - lib/python{{ py }}/site-packages/blst/blst.cpython-{{ py }}-{{ target_platform }}.so
+    script: install-py.sh  # [unix]
+    script: install-py.bat  # [win]
     requirements:
       build:
         - {{ compiler('c') }}  # [not win]
@@ -111,9 +111,12 @@ outputs:
         - {{ stdlib('m2w64_c') }}  # [win]
         - cross-python_{{ target_platform }}  # [build_platform != target_platform]
       host:
+        - {{ pin_subpackage('libblst-' ~ so_major_version) }}
         - libxcrypt
+        - pip
         - python
       run:
+        - {{ pin_subpackage('libblst-' ~ so_major_version) }}
         - python
     test:
       imports:
