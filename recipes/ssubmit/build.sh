@@ -7,7 +7,7 @@ cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
 cargo install --locked --root "$PREFIX" --path .
 
 # strip debug symbols
-"$STRIP" "$PREFIX/bin/rg"
+"$STRIP" "$PREFIX/bin/ssubmit"
 
 # remove extra build file
 rm -f "${PREFIX}/.crates.toml"
