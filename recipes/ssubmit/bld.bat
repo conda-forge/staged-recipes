@@ -7,8 +7,6 @@ cargo install --locked --no-track  --root "%LIBRARY_PREFIX%" --path . || goto :e
 :: strip debug symbols
 strip "%LIBRARY_PREFIX%\bin\ssubmit.exe" || goto :error
 
-:: remove extra build file
-del /F /Q "%LIBRARY_PREFIX%\.crates.toml"
 
 goto :EOF
 
