@@ -29,9 +29,11 @@ pushd bindings/python
   # Install Python bindings to site-packages
   mkdir -p "${PREFIX}/lib/python${PY_VER}/site-packages/blst"
   if [[ "${target_platform}" == osx-* ]]; then
-    cp _blst."${PY_IMPL}-${PY_VER}-${PY_HOST}"*.dylib "${PREFIX}/lib/python${PY_VER}/site-packages/blst"
+    # cp _blst."${PY_IMPL}-${PY_VER}-${PY_HOST}"*.dylib "${PREFIX}/lib/python${PY_VER}/site-packages/blst"
+    cp _blst*.dylib "${PREFIX}/lib/python${PY_VER}/site-packages/blst"
   else
-    cp _blst."${PY_IMPL}-${PY_VER}-${PY_HOST}"*.so "${PREFIX}/lib/python${PY_VER}/site-packages/blst/"
+    # cp _blst."${PY_IMPL}-${PY_VER}-${PY_HOST}"*.so "${PREFIX}/lib/python${PY_VER}/site-packages/blst/"
+    cp _blst*.so "${PREFIX}/lib/python${PY_VER}/site-packages/blst/"
   fi
   cp blst.py "${PREFIX}/lib/python${PY_VER}/site-packages/blst"
   touch "${PREFIX}/lib/python${PY_VER}/site-packages/blst/__init__.py"
