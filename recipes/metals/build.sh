@@ -31,8 +31,6 @@ sbt -sbt-dir $SRC_DIR/.sbt -ivy $SRC_DIR/.ivy2 compile 'show metals/dependencyCl
     grep .jar | \
     xargs -I % cp -r % ${PREFIX}/libexec/${PKG_NAME}
 
-ls ${PREFIX}/libexec/${PKG_NAME}
-
 # Find .pom files and extract licenses
 find .ivy2/local/org.scalameta -name "*.pom" | xargs -I % bash -c 'download_licenses %'
 mkdir -p ${SRC_DIR}/target/generated-resources/licenses
@@ -40,9 +38,9 @@ find -type d -name "licenses" | grep generated-resources | grep -v "^./target" |
 
 tee ${PREFIX}/bin/${PKG_NAME} << EOF
 #!/bin/sh
-exec \${JAVA_HOME}/bin/java -cp \${CONDA_PREFIX}/libexec/metals/* scala.meta.metals.Main "\$@"
+exec \${JAVA_HOME}/bin/java -cp "\${CONDA_PREFIX}/libexec/metals/*" scala.meta.metals.Main "\$@"
 EOF
 
 tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
-call %JAVA_HOME%\bin\java -cp %CONDA_PREFIX%\libexec\metals\* scala.meta.metals.Main %*
+call %JAVA_HOME%\bin\java -cp "%CONDA_PREFIX%\libexec\metals\*" scala.meta.metals.Main %*
 EOF
