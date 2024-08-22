@@ -1,6 +1,6 @@
 @echo off
 
-call build.bat -shared
+build.bat -shared
 if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
 mkdir "%PREFIX%\Library\lib"
