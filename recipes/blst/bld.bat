@@ -1,6 +1,8 @@
 @echo off
 
-build.bat -shared
+set CC=gcc
+
+call build.bat -shared
 if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
 mkdir "%PREFIX%\Library\lib"
