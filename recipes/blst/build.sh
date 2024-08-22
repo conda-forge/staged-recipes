@@ -21,7 +21,6 @@ fi
 mkdir -p "${PREFIX}"/include
 cp bindings/blst.h "${PREFIX}"/include
 cp bindings/blst_aux.h "${PREFIX}"/include
-cp bindings/blst.hpp "${PREFIX}"/include
 
 # Python bindings
 pushd bindings/python
