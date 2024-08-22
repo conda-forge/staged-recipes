@@ -17,6 +17,12 @@ else
   ln -s "${PREFIX}"/lib/libblst.so."${PKG_MAJOR_VERSION}" "${PREFIX}"/lib/libblst.so."${PKG_VERSION}"
 fi
 
+# Headers
+mkdir -p "${PREFIX}"/include
+cp bindings/blst.h "${PREFIX}"/include
+cp bindings/blst_aux.h "${PREFIX}"/include
+cp bindings/blst.hpp "${PREFIX}"/include
+
 # Python bindings
 pushd bindings/python
   export CXX="${CXX}"

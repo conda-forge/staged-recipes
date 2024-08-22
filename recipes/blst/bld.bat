@@ -1,16 +1,17 @@
 @echo off
 
-rem This batch file builds the BLST library.
-call build.bat -dll flavor=mingw64
+call build.bat -shared
+if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
-mkdir "%PREFIX%\lib"
-copy blst.dll %PREFIX%\lib\blst.dll
-:: copy libblst.dll %PREFIX%\lib\libblst.so."%PKG_MAJOR_VERSION%"
-:: copy libblst.dll %PREFIX%\lib\libblst.so."%PKG_VERSION%"
+mkdir "%PREFIX%\Library\lib"
+copy blst-%PKG_MAJOR_VERSION%.dll %PREFIX%\Library\lib\blst-%PKG_MAJOR_VERSION%.dll
+copy blst-%PKG_MAJOR_VERSION%.lib %PREFIX%\Library\lib\blst-%PKG_MAJOR_VERSION%.lib
+copy blst-%PKG_MAJOR_VERSION%.lib %PREFIX%\Library\lib\blst.lib
+
+copy blst.h %PREFIX%\Library\include\blst.h
+copy blst.hpp %PREFIX%\Library\include\blst.hpp
+copy blst_aux.h %PREFIX%\Library\include\blst/blst_aux.h
 
 pushd bindings\python
   %PYTHON% run.me
-  mkdir "%PREFIX%\lib\python%PY_VER%\site-packages"
-  copy blst.py "%PREFIX%\lib\python%PY_VER%\site-packages\blst.py"
-  copy _blst.pyd "%PREFIX%\lib\python%PY_VER%\site-packages\_blst.pyd"
 popd
