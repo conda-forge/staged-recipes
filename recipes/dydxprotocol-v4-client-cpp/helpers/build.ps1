@@ -35,6 +35,8 @@ Push-Location _conda-build-client
   cmake --install . --component client
 Pop-Location
 
+Invoke-Expression "patch -p0 < ${env:RECIPE_DIR}/patches/xxxx-cmake-tests.patch"
+
 Push-Location _conda-build-protocol
   cmake --build . --target dydx_v4_client_lib_static -- -j"$env:CPU_COUNT"
 Pop-Location

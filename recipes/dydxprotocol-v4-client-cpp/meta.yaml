@@ -52,6 +52,7 @@ source:
   sha256: eb6ffc4e53aa0a22f195092f2102fb5233c5c4dda7b11700208a1974d1428297
   patches:
     - patches/0001-remove-beast-specification.patch
+    - patches/0002-add-cstdint-header.patch
 
 build:
   number: 0
@@ -63,6 +64,7 @@ requirements:
     - {{ stdlib("c") }}
     - cmake >=3.25
     - ninja
+    - patch
   host:
     - catch2
     - fmt
@@ -81,13 +83,13 @@ outputs:
   - name: libdydx_v4_client_lib
     build:
       run_exports:
-        - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
         - {{ pin_subpackage('libdydx_v4_client_lib-' ~ so_major_version) }}
+        - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
     files:
       {% for path, headers in dydx_v4_client_header_paths.items() %}
         {% for header in headers %}
-      - include/{{ path }}/{{ header }}  # [unix]
-      - Library\\include\\{{ path | replace('/', '\\\\') }}\\{{ header }}  # [win]
+      - include/dydx_v4_client/{{ path }}/{{ header }}  # [unix]
+      - Library\\include\\dydx_v4_client\\{{ path | replace('/', '\\\\') }}\\{{ header }}  # [win]
         {% endfor %}
       {% endfor %}
 
@@ -110,18 +112,20 @@ outputs:
         - {{ compiler('cxx') }}
         - {{ stdlib("c") }}
       host:
+        - {{ pin_subpackage('libdydx_v4_client_lib-' ~ so_major_version) }}
         - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
         - fmt
+        - libbip3x-3
         - openssl
       run:
-        - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
         - {{ pin_subpackage('libdydx_v4_client_lib-' ~ so_major_version) }}
+        - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
     test:
       commands:
         {% for path, headers in dydx_v4_client_header_paths.items() %}
           {% for header in headers %}
-        - test -f ${PREFIX}/include/{{ path }}/{{ header }}  # [unix]
-        - if not exist %PREFIX%\\Library\\include\\{{ path | replace('/', '\\\\') }}\\{{ header }} exit 1  # [win]
+        - test -f ${PREFIX}/include/dydx_v4_client/{{ path }}/{{ header }}  # [unix]
+        - if not exist %PREFIX%\\Library\\include\\dydx_v4_client\\{{ path | replace('/', '\\\\') }}\\{{ header }} exit 1  # [win]
           {% endfor %}
         {% endfor %}
 
@@ -161,6 +165,7 @@ outputs:
       host:
         - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
         - fmt
+        - libbip3x
         - openssl
       run:
         - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
@@ -204,9 +209,6 @@ outputs:
         - {{ stdlib("c") }}
       host:
         - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
-        - fmt
-        - libprotobuf
-        - openssl
       run:
         - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
     test:

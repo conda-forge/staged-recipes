@@ -38,6 +38,7 @@ pushd _conda-build-client
   cmake --install . --component client
 popd
 
+patch -p0 < "${RECIPE_DIR}"/patches/xxxx-cmake-tests.patch
 pushd _conda-build-protocol
   cmake --build . --target dydx_v4_client_lib_static -- -j"${CPU_COUNT}"
 popd
