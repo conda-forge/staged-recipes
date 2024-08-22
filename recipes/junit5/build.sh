@@ -2,6 +2,8 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
+env
+
 # Build with maven
 mkdir -p ${PREFIX}/libexec/${PKG_NAME}
 mkdir -p ${PREFIX}/bin
