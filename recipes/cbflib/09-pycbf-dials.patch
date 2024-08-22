@@ -1,0 +1,619 @@
+Taken from DIALS's pycbf, in particular:
+
+  https://github.com/dials/pycbf/blob/main/swig/make_pycbf.py
+  https://github.com/dials/pycbf/blob/main/swig/pycbf.i
+  https://github.com/dials/pycbf/blob/main/tests/test_1.py
+  https://github.com/dials/pycbf/blob/main/tests/test_4.py
+  https://github.com/dials/pycbf/blob/main/src/pycbf/__init__.py
+  https://github.com/dials/pycbf/blob/main/src/pycbf/utils.py
+--- a/pycbf/make_pycbf.py
++++ b/pycbf/make_pycbf.py
+@@ -1,3 +1,4 @@
++#!/usr/bin/env python3
+ 
+ print("\\begin{verbatim}")
+ print("This output comes from make_pycbf.py which generates the wrappers")
+@@ -54,9 +55,42 @@ print("pycbf Copyright (C) 2005  Jonathan Wright, no warranty, LGPL")
+ #                                                                    #
+ ######################################################################
+ 
+-
+-# Get the ascii text as a list of strings 
+-lines = open("CBFlib.txt","r").readlines()
++import argparse
++import sys
++from pathlib import Path
++
++# Look for CBFlib.txt
++candidate_cbflib = Path(__file__).parent.parent / "cbflib" / "pycbf" / "CBFlib.txt"
++if not candidate_cbflib.is_file():
++    candidate_cbflib = None
++
++parser = argparse.ArgumentParser(description="Regenerate pycbf SWIG bindings")
++parser.add_argument(
++    "cbflib_txt",
++    help="Path to CBFlib.txt file. Defaults to bundled cbflib.",
++    nargs="?",
++    type=Path,
++    default=candidate_cbflib,
++)
++parser.add_argument(
++    "-o",
++    help="Output Folder. Defaults to same location as this script.",
++    default=Path(__file__).parent,
++    type=Path,
++    dest="output",
++)
++
++args = parser.parse_args()
++
++if not args.cbflib_txt:
++    sys.exit("Error: could not find default CBFlib.txt, please provide path")
++if not args.cbflib_txt.is_file():
++    sys.exit(f"Error: Could {args.cbflib_doc} appears not to be a valid file")
++
++print(f"Generating SWIG wrappers from {args.cbflib_txt}")
++
++# Get the ascii text as a list of strings
++lines = args.cbflib_txt.read_text().splitlines()
+ 
+ # Variables to hold the useful things we find in the file
+ docstring = "\n"
+@@ -136,6 +170,18 @@ while i<len(lines)-1:
+ 
+ # End of CBFlib.txt file - now generate wrapper code for swig
+ 
++# Inject functions directly, bypassing the "write to CBFlib.html" stage
++name_dict["cbf_read_buffered_file"] = [
++    "int cbf_read_buffered_file (cbf_handle handle, FILE *stream, int flags, const char * buffer, size_t buffer_len)",
++    """
++Read from a bytes buffer instead of a file.
++
++Args:
++   buffer (bytes): The python bytes-buffer to read from.
++   flags (int): Same meaning as for read_file
++""",
++]
++
+ 
+ def myformat(s,l,indent=0,breakon=" "):
+    """
+@@ -481,9 +527,7 @@ cbfhandle_specials = {
+ 
+ %cstring_output_allocate_size(char ** s, int *slen, free(*$1))
+        get_integerarray_as_string;
+-%{
+-#define SWIG_PYTHON_STRICT_BYTE_CHAR
+-%}
++
+ // Get the length correct
+ 
+     void get_integerarray_as_string(char **s, int *slen){
+@@ -513,9 +557,7 @@ cbfhandle_specials = {
+ 
+ "cbf_get_image":["""
+ // Ensure we free the local temporary
+-%{
+-#define SWIG_PYTHON_STRICT_BYTE_CHAR
+-%}
++
+ %cstring_output_allocate_size(char ** s, int *slen, free(*$1))
+        get_image_as_string;
+ // Get the length correct
+@@ -542,9 +584,7 @@ cbfhandle_specials = {
+ 
+ "cbf_get_image_fs":["""
+ // Ensure we free the local temporary
+-%{
+-#define SWIG_PYTHON_STRICT_BYTE_CHAR
+-%}
++
+ %cstring_output_allocate_size(char ** s, int *slen, free(*$1))
+        get_image_fs_as_string;
+ // Get the length correct
+@@ -571,9 +611,7 @@ cbfhandle_specials = {
+ 
+ "cbf_get_image_sf":["""
+ // Ensure we free the local temporary
+-%{
+-#define SWIG_PYTHON_STRICT_BYTE_CHAR
+-%}
++
+ %cstring_output_allocate_size(char ** s, int *slen, free(*$1))
+        get_image_fs_as_string;
+ // Get the length correct
+@@ -600,9 +638,7 @@ cbfhandle_specials = {
+ 
+ "cbf_get_real_image":["""
+ // Ensure we free the local temporary
+-%{
+-#define SWIG_PYTHON_STRICT_BYTE_CHAR
+-%}
++
+ %cstring_output_allocate_size(char ** s, int *slen, free(*$1))
+        get_real_image_as_string;
+ // Get the length correct
+@@ -629,9 +665,7 @@ cbfhandle_specials = {
+ 
+ "cbf_get_real_image_fs":["""
+ // Ensure we free the local temporary
+-%{
+-#define SWIG_PYTHON_STRICT_BYTE_CHAR
+-%}
++
+ %cstring_output_allocate_size(char ** s, int *slen, free(*$1))
+        get_real_image_fs_as_string;
+ // Get the length correct
+@@ -658,9 +692,7 @@ cbfhandle_specials = {
+ 
+ "cbf_get_real_image_sf":["""
+ // Ensure we free the local temporary
+-%{
+-#define SWIG_PYTHON_STRICT_BYTE_CHAR
+-%}
++
+ %cstring_output_allocate_size(char ** s, int *slen, free(*$1))
+        get_real_image_sf_as_string;
+ // Get the length correct
+@@ -687,9 +719,7 @@ cbfhandle_specials = {
+ 
+ "cbf_get_3d_image":["""
+ // Ensure we free the local temporary
+-%{
+-#define SWIG_PYTHON_STRICT_BYTE_CHAR
+-%}
++
+ %cstring_output_allocate_size(char ** s, int *slen, free(*$1))
+        get_3d_image_as_string;
+ // Get the length correct
+@@ -716,9 +746,7 @@ cbfhandle_specials = {
+ 
+ "cbf_get_3d_image_fs":["""
+ // Ensure we free the local temporary
+-%{
+-#define SWIG_PYTHON_STRICT_BYTE_CHAR
+-%}
++
+ %cstring_output_allocate_size(char ** s, int *slen, free(*$1))
+        get_3d_image_fs_as_string;
+ // Get the length correct
+@@ -747,9 +775,6 @@ cbfhandle_specials = {
+ // Ensure we free the local temporary
+ %cstring_output_allocate_size(char ** s, int *slen, free(*$1))
+        get_3d_image_sf_as_string;
+-%{
+-#define SWIG_PYTHON_STRICT_BYTE_CHAR
+-%}
+ 
+ // Get the length correct
+ 
+@@ -777,9 +802,6 @@ cbfhandle_specials = {
+ // Ensure we free the local temporary
+ %cstring_output_allocate_size(char ** s, int *slen, free(*$1))
+        get_real_3d_image_as_string;
+-%{
+-#define SWIG_PYTHON_STRICT_BYTE_CHAR
+-%}
+ 
+ // Get the length correct
+ 
+@@ -805,9 +827,7 @@ cbfhandle_specials = {
+ 
+ "cbf_get_real_3d_image_fs":["""
+ // Ensure we free the local temporary
+-%{
+-#define SWIG_PYTHON_STRICT_BYTE_CHAR
+-%}
++
+ %cstring_output_allocate_size(char ** s, int *slen, free(*$1))
+        get_real_3d_image_fs_as_string;
+ // Get the length correct
+@@ -833,9 +853,7 @@ cbfhandle_specials = {
+ 
+ "cbf_get_real_3d_image_sf":["""
+ // Ensure we free the local temporary
+-%{
+-#define SWIG_PYTHON_STRICT_BYTE_CHAR
+-%}
++
+ %cstring_output_allocate_size(char ** s, int *slen, free(*$1))
+        get_real_3d_image_sf_as_string;
+ 
+@@ -863,9 +881,7 @@ cbfhandle_specials = {
+ 
+ "cbf_get_realarray":["""
+ // Ensure we free the local temporary
+-%{
+-#define SWIG_PYTHON_STRICT_BYTE_CHAR
+-%}
++
+ %cstring_output_allocate_size(char ** s, int *slen, free(*$1))
+        get_realarray_as_string;
+ // Get the length correct
+@@ -1637,7 +1653,7 @@ cbfhandle_specials = {
+ 
+ 
+ "cbf_write_file" : ["""
+-    void write_file(char* filename, int ciforcbf, int headers, 
++    void write_file(const char* filename, int ciforcbf, int headers,
+                     int encoding){
+        FILE *stream;
+        int readable;
+@@ -1657,7 +1673,7 @@ cbfhandle_specials = {
+ 
+ 
+ "cbf_write_widefile" : ["""
+-    void write_widefile(char* filename, int ciforcbf, int headers, 
++    void write_widefile(const char* filename, int ciforcbf, int headers,
+                     int encoding){
+        FILE *stream;
+        int readable;
+@@ -1705,9 +1721,34 @@ cbfhandle_specials = {
+     }
+        }
+ ""","read_file",["String filename","Integer headers"],[],],
++    "cbf_read_buffered_file": [
++        """
++    %exception read_buffer {
++        $function
++        if (PyErr_Occurred()) {
++            return NULL;
++        }
++    }
++
++    void read_buffer(PyObject *buffer, int flags = 0) {
++        if (!PyBytes_Check(buffer)) {
++            PyErr_SetString(PyExc_ValueError, "buffer must be a bytes-like object");
++        }
+ 
++        Py_ssize_t buffer_length = PyBytes_Size(buffer);
++        char *cbuffer = PyBytes_AsString(buffer);
+ 
++        int err = cbf_read_buffered_file(self, NULL /*nullptr*/, flags, cbuffer, buffer_length);
+ 
++        if (err) {
++            PyErr_Format(PyExc_RuntimeError, "cbflib read_file returned error %d", err);
++        }
++    }
++""",
++        "read_buffer",
++        ["Bytes object", "Integer Flags"],
++        [],
++    ],
+ "cbf_read_widefile" : ["""
+     void read_widefile(char* filename, int headers){
+        /* CBFlib needs a stream that will remain open 
+@@ -3406,11 +3447,23 @@ def generate_wrappers(name_dict):
+ 
+ 
+ generate_wrappers(name_dict)
+-open("cbfgoniometerwrappers.i","w").write(cbf_goniometer_wrapper.get_code())
+-open("cbfdetectorwrappers.i","w").write(cbf_detector_wrapper.get_code())
+-open("cbfpositionerwrappers.i","w").write(cbf_positioner_wrapper.get_code())
+-open("cbfhandlewrappers.i","w").write(cbf_handle_wrapper.get_code())
+-open("cbfgenericwrappers.i","w").write(generic_wrapper.get_code())
++header = """
++// THIS FILE IS AUTOGENERATED BY make_pycbf.py
++//
++// DO NOT MAKE CHANGES DIRECTLY TO THIS FILE
++
++""".lstrip()
++
++for name, wrapper in {
++    "cbfgoniometerwrappers": cbf_goniometer_wrapper,
++    "cbfdetectorwrappers": cbf_detector_wrapper,
++    "cbfpositionerwrappers": cbf_positioner_wrapper,
++    "cbfhandlewrappers": cbf_handle_wrapper,
++    "cbfgenericwrappers": generic_wrapper,
++}.items():
++    print(f"Writing {name}.i")
++    output = "\n".join(line.rstrip() for line in wrapper.get_code().splitlines())
++    args.output.joinpath(f"{name}.i").write_text(header + output)
+ 
+ print("End of output from make_pycbf.py")
+ print("\\end{verbatim}")
+--- a/pycbf/pycbf.i
++++ b/pycbf/pycbf.i
+@@ -1,8 +1,11 @@
+ 
+ /* File: pycbf.i */
+ 
+-// Indicate that we want to generate a module call pycbf
+-%module pycbf
++// Indicate that we want to generate a module called _wrapper
++%module _wrapper
++%begin %{
++#define SWIG_PYTHON_STRICT_BYTE_CHAR
++%}
+ 
+ %pythoncode %{
+ __author__ = "Jon Wright <wright@esrf.fr>"
+@@ -164,70 +167,172 @@ static int convert_darray(PyObject *input, double *ptr, int size) {
+     $1 = &temp[0];
+ }
+ 
++// Define an alternate str->char * input conversion
++//
++// This version conversion accepts both str and bytes objects, and
++// passes them through to the CBFlib function as a char *. This is
++// intended to make it easier to transition from SWIG_PYTHON_STRICT_BYTE_CHAR
++%fragment("PYCBF_AsCharPtrAndSize", "header") {
++int PYCBF_AsCharPtrAndSize(PyObject *obj, char **cptr, size_t *psize,
++                                     int *alloc) {
++%#if PY_VERSION_HEX >= 0x03000000
++  if (PyBytes_Check(obj) || PyUnicode_Check(obj))
++%#else
++  if (PyString_Check(obj))
++%#endif
++  {
++    char *cstr;
++    Py_ssize_t len;
++    int ret = SWIG_OK;
++    int created_obj = 0;
++%#if PY_VERSION_HEX >= 0x03000000
++    // If we've been given a string, convert to bytes
++    if(PyUnicode_Check(obj)) {
++      if (!alloc && cptr) {
++        /* We can't allow converting without allocation, since the internal
++          representation of string in Python 3 is UCS-2/UCS-4 but we require
++          a UTF-8 representation.
++          TODO(bhy) More detailed explanation */
++        return SWIG_RuntimeError;
++      }
++      obj = PyUnicode_AsUTF8String(obj);
++      if (!obj)
++        return SWIG_TypeError;
++      created_obj = 1;
++      if (alloc)
++        *alloc = SWIG_NEWOBJ;
++    }
++    if (PyBytes_AsStringAndSize(obj, &cstr, &len) == -1)
++      return SWIG_TypeError;
++%#else
++    if (PyString_AsStringAndSize(obj, &cstr, &len) == -1)
++      return SWIG_TypeError;
++%#endif
++    // Now we have a bytes object. If we allocated it, *alloc==SWIG_NEWOBJ
++    // ...
++    if (cptr) {
++      if (alloc) {
++        if (*alloc == SWIG_NEWOBJ) {
++          // We created a new object, so copy the memory so we own it
++          *cptr = (char *)memcpy(malloc((len + 1) * sizeof(char)), cstr,
++                                 sizeof(char) * (len + 1));
++          *alloc = SWIG_NEWOBJ;
++        } else {
++          // We're just pointing inside the bytes object
++          *cptr = cstr;
++          *alloc = SWIG_OLDOBJ;
++        }
++      } else {
++        // alloc hasn't been passed in - use the internal object buffer instead
++%#if PY_VERSION_HEX >= 0x03000000
++        assert(0); /* Should never reach here with Unicode strings in Python 3, as we must convert*/
++%#else
++        *cptr = SWIG_Python_str_AsChar(obj);
++        if (!*cptr)
++          ret = SWIG_TypeError;
++%#endif
++      }
++    }
++    // Have we asked to get the size?
++    if (psize)
++      *psize = len + 1;
++%#if PY_VERSION_HEX >= 0x03000000
++    // We might, or might not have created an object in py3 (we didn't, if python2)
++    if (created_obj > 0) {
++      Py_XDECREF(obj);
++    }
++%#endif
++    return ret;
++  } else {
++    // Full SWIG does stuff here - but we aren't
++    return SWIG_RuntimeError;
++  }
++  return SWIG_TypeError;
++}
++} // fragment end
++
++// Anything that is a char* or const char*, that isn't overridden
++// by further typemaps (e.g. DATASTRING), should use our new custom
++// conversion function.
++%typemap(in,noblock=1,fragment="PYCBF_AsCharPtrAndSize")
++  char * (int res, char *buf = 0, int alloc = 0),
++  const char * (int res, char *buf = 0, int alloc = 0) {
++  res = PYCBF_AsCharPtrAndSize($input, &buf, NULL, &alloc);
++  if (!SWIG_IsOK(res)) {
++    %argument_fail(res,"$type",$symname, $argnum);
++  }
++  $1 = %reinterpret_cast(buf, $1_ltype);
++}
++
++%{  // Here is the c code needed to compile the wrappers, but not
++    // to be wrapped
+ 
+-%{  // Here is the c code needed to compile the wrappers, but not 
+-    // to be wrapped 
++#include <stdbool.h>
+ 
+-#include "../include/cbf.h"          
+-#include "../include/cbf_simple.h"
++#include "cbf.h"
++#include "cbf_simple.h"
+ 
+ // Helper functions to generate error message
+  
+ 
+ static int error_status = 0;
+-static char error_message1[17] ;
+-static char error_message[1042] ; // hope that is long enough
++static char error_message[1024] ; // hope that is long enough
+ 
+ /* prototype */
+ void get_error_message(void);
+ 
+ void get_error_message(){
+-  sprintf(error_message1,"%s","CBFlib Error(s):");
++  sprintf(error_message,"%s","CBFlib Error(s):");
+   if (error_status & CBF_FORMAT        )
+-    sprintf(error_message,"%s %s",error_message1,"CBF_FORMAT       "); 
++    sprintf(error_message,"%s %s",error_message,"CBF_FORMAT       ");
+   if (error_status & CBF_ALLOC         )
+-    sprintf(error_message,"%s %s",error_message1,"CBF_ALLOC        ");
++    sprintf(error_message,"%s %s",error_message,"CBF_ALLOC        ");
+   if (error_status & CBF_ARGUMENT      )
+-    sprintf(error_message,"%s %s",error_message1,"CBF_ARGUMENT     ");
++    sprintf(error_message,"%s %s",error_message,"CBF_ARGUMENT     ");
+   if (error_status & CBF_ASCII         )
+-    sprintf(error_message,"%s %s",error_message1,"CBF_ASCII        ");
++    sprintf(error_message,"%s %s",error_message,"CBF_ASCII        ");
+   if (error_status & CBF_BINARY        )
+-    sprintf(error_message,"%s %s",error_message1,"CBF_BINARY       ");
++    sprintf(error_message,"%s %s",error_message,"CBF_BINARY       ");
+   if (error_status & CBF_BITCOUNT      )
+-    sprintf(error_message,"%s %s",error_message1,"CBF_BITCOUNT     ");
++    sprintf(error_message,"%s %s",error_message,"CBF_BITCOUNT     ");
+   if (error_status & CBF_ENDOFDATA     )
+-    sprintf(error_message,"%s %s",error_message1,"CBF_ENDOFDATA    ");
++    sprintf(error_message,"%s %s",error_message,"CBF_ENDOFDATA    ");
+   if (error_status & CBF_FILECLOSE     )
+-    sprintf(error_message,"%s %s",error_message1,"CBF_FILECLOSE    ");
++    sprintf(error_message,"%s %s",error_message,"CBF_FILECLOSE    ");
+   if (error_status & CBF_FILEOPEN      )
+-    sprintf(error_message,"%s %s",error_message1,"CBF_FILEOPEN     ");
++    sprintf(error_message,"%s %s",error_message,"CBF_FILEOPEN     ");
+   if (error_status & CBF_FILEREAD      )
+-    sprintf(error_message,"%s %s",error_message1,"CBF_FILEREAD     ");
++    sprintf(error_message,"%s %s",error_message,"CBF_FILEREAD     ");
+   if (error_status & CBF_FILESEEK      )
+-    sprintf(error_message,"%s %s",error_message1,"CBF_FILESEEK     ");
++    sprintf(error_message,"%s %s",error_message,"CBF_FILESEEK     ");
+   if (error_status & CBF_FILETELL      )
+-    sprintf(error_message,"%s %s",error_message1,"CBF_FILETELL     ");
++    sprintf(error_message,"%s %s",error_message,"CBF_FILETELL     ");
+   if (error_status & CBF_FILEWRITE     )
+-    sprintf(error_message,"%s %s",error_message1,"CBF_FILEWRITE    ");
++    sprintf(error_message,"%s %s",error_message,"CBF_FILEWRITE    ");
+   if (error_status & CBF_IDENTICAL     )
+-    sprintf(error_message,"%s %s",error_message1,"CBF_IDENTICAL    ");
++    sprintf(error_message,"%s %s",error_message,"CBF_IDENTICAL    ");
+   if (error_status & CBF_NOTFOUND      )
+-    sprintf(error_message,"%s %s",error_message1,"CBF_NOTFOUND     ");
++    sprintf(error_message,"%s %s",error_message,"CBF_NOTFOUND     ");
+   if (error_status & CBF_OVERFLOW      )
+-    sprintf(error_message,"%s %s",error_message1,"CBF_OVERFLOW     ");
++    sprintf(error_message,"%s %s",error_message,"CBF_OVERFLOW     ");
+   if (error_status & CBF_UNDEFINED     )
+-    sprintf(error_message,"%s %s",error_message1,"CBF_UNDEFINED    ");
++    sprintf(error_message,"%s %s",error_message,"CBF_UNDEFINED    ");
+   if (error_status & CBF_NOTIMPLEMENTED)
+-    sprintf(error_message,"%s %s",error_message1,"CBF_NOTIMPLEMENTED");
++    sprintf(error_message,"%s %s",error_message,"CBF_NOTIMPLEMENTED");
+   if (error_status & CBF_NOCOMPRESSION)
+-    sprintf(error_message,"%s %s",error_message1,"CBF_NOCOMPRESSION");
++    sprintf(error_message,"%s %s",error_message,"CBF_NOCOMPRESSION");
+ }
+ 
++#ifdef SWIG_PYTHON_STRICT_BYTE_CHAR
++const bool HAS_SWIG_PYTHON_STRICT_BYTE_CHAR = true;
++#else
++const bool HAS_SWIG_PYTHON_STRICT_BYTE_CHAR = false;
++#endif
+ 
+ %} // End of code which is not wrapped but needed to compile
+ 
+ 
+ // The actual wrappers 
+ 
+ // Constants needed from header files
+ 
+@@ -355,3 +460,5 @@ void get_error_message(){
+ // cbfhandle object
+ %include "cbfhandlewrappers.i"
+ 
++%immutable;
++extern bool HAS_SWIG_PYTHON_STRICT_BYTE_CHAR;
+--- a/pycbf/pycbf_test1.py
++++ b/pycbf/pycbf_test1.py
+@@ -39,14 +39,11 @@ for i in range(categories):
+             typeofvalue=object.get_typeofvalue()
+             print("type:",typeofvalue)
+             if typeofvalue.find(b"bnry") > -1:
+-                print("Found the binary!!", end=' ')
+                 s=object.get_integerarray_as_string()
+-                print(type(str(s)))
+-                print(dir(str(s)))
+-                print(len(str(s)))
++                print(len(s))
+                 try:
+                    import numpy 
+-                   d = numpy.frombuffer(bytes(s),numpy.uint32)
++                   d = numpy.frombuffer(s,numpy.uint32)
+                    # Hard wired Unsigned Int32
+                    print(d.shape)
+                    print(d[0:10],d[int(d.shape[0]/2)],d[len(d)-1])
+@@ -63,5 +60,4 @@ for i in range(categories):
+     print()
+ del(object)
+ #
+-print(dir())
+ #object.free_handle(handle)
+--- a/pycbf/pycbf_test4.py
++++ b/pycbf/pycbf_test4.py
+@@ -45,10 +45,7 @@ for i in range(categories):
+             typeofvalue=object.get_typeofvalue()
+             print("type:",typeofvalue)
+             if typeofvalue.find(b"bnry") > -1:
+-                print("Found the binary!!",end=' ')
+                 s=object.get_integerarray_as_string()
+-                print(type(s))
+-                print(dir(s))
+                 print(len(s))
+                 (compression, binaryid, elsize, elsigned, \
+                     elunsigned, elements, minelement, maxelement, \
+@@ -98,5 +95,4 @@ del(object)
+ newobject.write_widefile(b"newtest1.cbf",pycbf.CBF,\
+     pycbf.MIME_HEADERS|pycbf.MSG_DIGEST|pycbf.PAD_4K,0)
+ #
+-print(dir())
+ #object.free_handle(handle)
+--- a/pycbf/__init__.py
++++ b/pycbf/__init__.py
+@@ -0,0 +1,4 @@
++# Include the CBF wrapper here directly
++from ._wrapper import *  # noqa F403
++from ._wrapper import __version__  # noqa F401
++from .utils import cbf2str  # noqa: F401
+--- a/pycbf/utils.py
++++ b/pycbf/utils.py
+@@ -0,0 +1,30 @@
++from typing import Union
++
++import pycbf
++
++
++def cbf2str(string: Union[str, bytes]) -> str:
++    """
++    Convert whatever the native string return type of pycbf is, to str.
++
++    To help compatibility moving away from pycbf.SWIG_PYTHON_STRICT_BYTE_CHAR -
++    if bytes is used strictly, then although we can accept both - return
++    types will still be bytes, so we want to be able to convert them.
++
++    Args:
++        string: The string-ish object returned from pycbf
++    """
++
++    if not isinstance(string, (str, bytes)):
++        raise ValueError(f"Unrecognised pycbf string type: {type(string)}")
++
++    if pycbf.HAS_SWIG_PYTHON_STRICT_BYTE_CHAR:
++        if isinstance(string, bytes):
++            return string.decode()
++        return string
++
++    if isinstance(string, bytes):
++        # We got passed a bytes!?!? this is probably an actual data object
++        raise ValueError("Cannot convert bytes objects - str should be native?")
++
++    return string

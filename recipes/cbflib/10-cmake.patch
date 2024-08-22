@@ -1,0 +1,147 @@
+--- a/examples/batch_convert_minicbf.cmake
++++ b/examples/batch_convert_minicbf.cmake
+@@ -0,0 +1,77 @@
++function(usage)
++  message("usage:")
++  message("  CBF_CONVERT_MINICBF_PATH=\"path_to_convert_minicbf_directory\"")
++  message("  export CBF_CONVERT_MINICBF_PATH")
++  message("  cmake -P batch_convert_minicbf.cbf [input_directory [output_directory\\")
++  message("  [name_template [cbf_template]]]]")
++endfunction()
++
++foreach(n RANGE ${CMAKE_ARGC})
++  if("${CMAKE_ARGV${n}}" STREQUAL "--")
++    set(m "0")
++  elseif(m GREATER_EQUAL "0")
++    math(EXPR m "${m} + 1")
++    set(argv${m} "${CMAKE_ARGV${n}}")
++  endif()
++endforeach()
++
++set(program "convert_minicbf")
++if(argv1 STREQUAL "--help")
++  usage()
++elseif(argv1 STREQUAL "-h")
++  usage()
++else()
++  if(CBF_CONVERT_MINICBF_PATH)
++    set(program "${CBF_CONVERT_MINICBF_PATH}/convert_minicbf")
++  endif()
++
++  if(argv1)
++    set(input_directory "${argv1}")
++  else()
++    set(input_directory ".")
++  endif()
++
++  if(argv2)
++    set(output_directory "${argv2}")
++  else()
++    set(output_directory "./full_cbf")
++  endif()
++
++  if(argv3)
++    set(name_template "${argv3}")
++  else()
++    set(name_template "*.cbf")
++  endif()
++
++  if(argv4)
++    set(cbf_template "-p;${argv4}")
++  else()
++    set(cbf_template "${argv4}")
++  endif()
++
++  message("program:          ${program}")
++  message("input_directory:  ${input_directory}")
++  message("output_directory: ${output_directory}")
++  message("name_template:    ${name_template}")
++  message("cbf_template:     ${cbf_template}")
++
++  if(input_directory STREQUAL output_directory)
++    message(FATAL_ERROR "The input directory will be clobbered, run aborted.")
++  endif()
++
++  message("processing files")
++  file(GLOB files "${input_directory}/${name_template}")
++  foreach(name ${files})
++    get_filename_component(output_name "${name}" NAME)
++    message("${program} -i ${name} -o ${output_directory}/${output_name} ${cbf_template}")
++
++    execute_process(
++      COMMAND ${program} -i ${name} -o ${output_directory}/${output_name} ${cbf_template}
++      ERROR_VARIABLE error
++      RESULT_VARIABLE result)
++    if (result)
++      message(FATAL_ERROR "${program}: ${error}")
++    endif()
++  endforeach()
++  message("completed")
++endif()
+--- a/redirect.cmake
++++ b/redirect.cmake
+@@ -0,0 +1,29 @@
++if(input)
++  if(input-file)
++    message(FATAL_ERROR "Both input and input-file")
++  endif()
++  execute_process(
++    COMMAND ${CMAKE_ARGV0} -E echo ${input}
++    COMMAND ${command}
++    OUTPUT_FILE ${output-file}
++    RESULTS_VARIABLE results
++    ERROR_VARIABLE error)
++elseif(input-file)
++  execute_process(
++    COMMAND ${CMAKE_ARGV0} -E cat ${input-file}
++    COMMAND ${command}
++    OUTPUT_FILE ${output-file}
++    RESULTS_VARIABLE results
++    ERROR_VARIABLE error)
++else()
++  execute_process(
++    COMMAND ${command}
++    OUTPUT_FILE ${output-file}
++    RESULTS_VARIABLE results
++    ERROR_VARIABLE error)
++endif()
++foreach(result IN LISTS results)
++  if(result)
++    message(FATAL_ERROR "${command}: ${error}")
++  endif()
++endforeach()
+--- a/Config.cmake.in
++++ b/Config.cmake.in
+@@ -0,0 +1,6 @@
++@PACKAGE_INIT@
++
++include(CMakeFindDependencyMacro)
++find_dependency(HDF5)
++
++include("${CMAKE_CURRENT_LIST_DIR}/CBFlibTargets.cmake")
+--- a/h5dump.cmake
++++ b/h5dump.cmake
+@@ -1,13 +1,11 @@
+-message("input: ${input}")
+-message("output: ${output}")
+ execute_process(
+-	COMMAND @HDF5_BINARY_DIR@/h5dump ${input}
+-	COMMAND @CMAKE_RUNTIME_OUTPUT_DIRECTORY@/cbf_tail -n 1
+-	OUTPUT_FILE ${output}
+-	RESULT_VARIABLE result
+-	ERROR_VARIABLE error
+-)
+-if (result)
+-	message("${error}")
+-	message(FATAL_ERROR "failed: ${result}")
+-endif ()
++  COMMAND "$<TARGET_FILE:h5dump>" "${input-file}"
++  COMMAND "$<TARGET_FILE:cbf_tail>" -n 1
++  OUTPUT_FILE "${output-file}"
++  RESULTS_VARIABLE results
++  ERROR_VARIABLE error)
++foreach(result IN LISTS results)
++  if(result)
++    message(FATAL_ERROR "failed: ${error}")
++  endif()
++endforeach()
