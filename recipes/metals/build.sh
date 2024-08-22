@@ -31,6 +31,8 @@ sbt -sbt-dir $SRC_DIR/.sbt -ivy $SRC_DIR/.ivy2 compile 'show metals/dependencyCl
     grep .jar | \
     xargs -I % cp -r % ${PREFIX}/libexec/${PKG_NAME}
 
+ls ${PREFIX}/libexec/${PKG_NAME}
+
 # Find .pom files and extract licenses
 find .ivy2/local/org.scalameta -name "*.pom" | xargs -I % bash -c 'download_licenses %'
 mkdir -p ${SRC_DIR}/target/generated-resources/licenses
