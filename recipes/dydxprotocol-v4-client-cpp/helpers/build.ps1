@@ -4,7 +4,7 @@ Copy-Item -Recurse all-sources/v4-client-cpp $env:SRC_DIR
 
 New-Item -ItemType Directory -Force -Path _conda-build-protocol, _conda-build-client, _conda-logs
 
-Invoke-Expression "patch -p0 < ${env:RECIPE_DIR}/patches/xxxx-cmake-protocol-lib.patch"
+Invoke-Expression "patch -p0 -i ${env:RECIPE_DIR}/patches/xxxx-cmake-protocol-lib.patch"
 
 Push-Location _conda-build-protocol
   cmake "$env:SRC_DIR/v4-client-cpp" `
@@ -19,7 +19,7 @@ Push-Location _conda-build-protocol
   cmake --install . --component protocol
 Pop-Location
 
-Invoke-Expression "patch -p0 < ${env:RECIPE_DIR}/patches/xxxx-cmake-client-lib.patch"
+Invoke-Expression "patch -p0 -i ${env:RECIPE_DIR}/patches/xxxx-cmake-client-lib.patch"
 
 Push-Location _conda-build-client
   cmake "$env:SRC_DIR/v4-client-cpp" `
@@ -35,7 +35,7 @@ Push-Location _conda-build-client
   cmake --install . --component client
 Pop-Location
 
-Invoke-Expression "patch -p0 < ${env:RECIPE_DIR}/patches/xxxx-cmake-tests.patch"
+Invoke-Expression "patch -p0 -i ${env:RECIPE_DIR}/patches/xxxx-cmake-tests.patch"
 
 Push-Location _conda-build-protocol
   cmake --build . --target dydx_v4_client_lib_static -- -j"$env:CPU_COUNT"
