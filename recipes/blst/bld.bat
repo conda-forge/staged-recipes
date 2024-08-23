@@ -2,8 +2,10 @@
 
 set CC=gcc
 set "AS=yasm -f win64"
-:: set "AS=gcc -S"
-:: set "AS=ml64 /nologo /c /Cp /Cx /Zi"
+
+mkdir %SRC_DIR%\build\win64_nasm
+call %SRC_DIR%\helpers\masm_nasm %SRC_DIR%\build\win64 %SRC_DIR%\build\win64_nasm
+
 call build.bat -shared
 if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
