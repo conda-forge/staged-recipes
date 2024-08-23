@@ -13,7 +13,7 @@ Push-Location _conda-build-protocol
     -DCMAKE_INSTALL_PREFIX="${env:PREFIX}" `
     -DBUILD_SHARED_LIBS=ON `
     -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON `
-    -G Ninja > "$env:SRC_DIR/_conda-logs/_cmake_configure-protocol.log" 2>&1
+    -G Ninja --trace
 
   cmake --build . --target dydx_v4_proto -- -j"$env:CPU_COUNT"
   cmake --install . --component protocol
@@ -29,7 +29,6 @@ Push-Location _conda-build-client
     -DBUILD_SHARED_LIBS=ON `
     -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON `
     -G Ninja
-    # > "$env:SRC_DIR/_conda-logs/_cmake_configure-client.log" 2>&1
 
   cmake --build . --target dydx_v4_client_lib -- -j"$env:CPU_COUNT"
   cmake --install . --component client
