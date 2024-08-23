@@ -16,8 +16,11 @@ function Convert-MasmToNasm {
         [string]$OutputFile
     )
 
-    Write-Host "Converting $InputFile to $OutputFile"
-    Get-Content $InputFile | ForEach-Object {
+     Write-Host "Reading content from $InputFile"
+    $content = Get-Content $InputFile
+    Write-Host "Content of $InputFile:`n$content"
+
+    $convertedContent = $content | ForEach-Object {
         $_ -replace '\.code', 'section .text' `
            -replace '\.data', 'section .data' `
            -replace 'PUBLIC', 'global' `
@@ -27,7 +30,10 @@ function Convert-MasmToNasm {
            -replace 'PTR', '' `
            -replace 'ifdef', '%ifdef' `
            -replace 'endif', '%endif'
-    } | Set-Content $OutputFile
+    }
+
+    Write-Host "Converted content to be written to $OutputFile:`n$convertedContent"
+    $convertedContent | Set-Content $OutputFile
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host "Successfully converted $InputFile to $OutputFile"
