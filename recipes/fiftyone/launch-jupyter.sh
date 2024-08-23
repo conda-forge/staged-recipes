@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-ENV_NAME=test-fiftyone
+ENV_NAME=conda-forge-test-fiftyone
 
 rm ~/.conda/envs/$ENV_NAME -rf || true
 
 conda create -y -n $ENV_NAME \
-  -c ./build_artifacts/channeldata.json \
+  -c "$(git rev-parse --show-toplevel)"/build_artifacts/channeldata.json \
   -c conda-forge \
   fiftyone jupyter
 
