@@ -1,7 +1,7 @@
 :: @echo off
 
 set CC=gcc
-set "AS=nasm -f win64"
+set "AS=yasm -f win64"
 :: set "AS=gcc -S"
 :: set "AS=ml64 /nologo /c /Cp /Cx /Zi"
 call build.bat -shared
