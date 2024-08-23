@@ -32,4 +32,5 @@ Get-ChildItem "$ASM_DIR\*.asm" | ForEach-Object {
 
     # Convert MASM to NASM
     Convert-MasmToNasm -InputFile $_.FullName -OutputFile $NasmFile
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
