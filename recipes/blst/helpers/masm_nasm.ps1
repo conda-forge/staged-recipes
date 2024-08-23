@@ -16,6 +16,7 @@ function Convert-MasmToNasm {
         [string]$OutputFile
     )
 
+    Write-Host "Converting $InputFile to $OutputFile"
     Get-Content $InputFile | ForEach-Object {
         $_ -replace '\.code', 'section .text' `
            -replace '\.data', 'section .data' `
@@ -27,6 +28,12 @@ function Convert-MasmToNasm {
            -replace 'ifdef', '%ifdef' `
            -replace 'endif', '%endif'
     } | Set-Content $OutputFile
+
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Successfully converted $InputFile to $OutputFile"
+    } else {
+        Write-Host "Failed to convert $InputFile to $OutputFile"
+    }
 }
 
 # Convert and compile each .asm file
