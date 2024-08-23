@@ -5,7 +5,7 @@ cmake -S . -B build ^
     -DCMAKE_VERBOSE_MAKEFILE=ON ^
     -Wno-dev ^
     -DBUILD_TESTING=OFF ^
-    -DLLDB_PACKAGE=%BUILD_PREFIX% ^
+    -DLLDB_PACKAGE=%LIBRARY_PREFIX% ^
     %CMAKE_ARGS% || goto :error
 
 cmake --build build -j%CPU_COUNT% || goto :error
