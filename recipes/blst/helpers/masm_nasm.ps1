@@ -4,6 +4,11 @@ param (
     [string]$OUTPUT_DIR = "build/win64_nasm"
 )
 
+# Ensure the output directory exists
+if (-Not (Test-Path -Path $OUTPUT_DIR)) {
+    New-Item -ItemType Directory -Path $OUTPUT_DIR
+}
+
 # Function to convert MASM to NASM syntax
 function Convert-MasmToNasm {
     param (
@@ -27,8 +32,7 @@ function Convert-MasmToNasm {
 # Convert and compile each .asm file
 Get-ChildItem "$ASM_DIR\*.asm" | ForEach-Object {
     $BaseName = $_.BaseName
-    $NasmFile = "$OUTPUT_DIR\$BaseName.nasm"
-    $ObjFile = "$BaseName.o"
+    $NasmFile = "$OUTPUT_DIR\$BaseName.asm"
 
     # Convert MASM to NASM
     Convert-MasmToNasm -InputFile $_.FullName -OutputFile $NasmFile
