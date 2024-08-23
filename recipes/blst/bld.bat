@@ -1,8 +1,8 @@
 :: @echo off
 
 set CC=gcc
-:: set "AS=nasm -f win64 -DWIN64"
-set "AS=ml64 /nologo /c /Cp /Cx /Zi"
+set "AS=gcc -S"
+:: set "AS=ml64 /nologo /c /Cp /Cx /Zi"
 call build.bat -shared
 if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
