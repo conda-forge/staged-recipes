@@ -2,7 +2,7 @@
 
 set CC=gcc
 :: set "AS=nasm -f win64"
-set "AS=llvm-ml /c /Cp /Cx /Zi"
+set "AS=llvm-ml64 /c /Cp /Cx /Zi"
 mkdir %SRC_DIR%\build\win64_nasm
 :: call powershell -File %RECIPE_DIR%\helpers\masm_nasm.ps1 -ASM_DIR %SRC_DIR%\build\win64 -OUTPUT_DIR %SRC_DIR%\build\win64_nasm
 call build.bat -shared
