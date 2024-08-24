@@ -2,9 +2,9 @@
 
 set CC=gcc
 :: set "AS=nasm -f win64"
-set "AS=llvm-ml -m64 /c /Cp /Cx /Zi"
-mkdir %SRC_DIR%\build\win64_nasm
-:: call powershell -File %RECIPE_DIR%\helpers\masm_nasm.ps1 -ASM_DIR %SRC_DIR%\build\win64 -OUTPUT_DIR %SRC_DIR%\build\win64_nasm
+set "AS=llvm-ml -m64 /c"
+mkdir %SRC_DIR%\build\win64_llvm
+call powershell -File %RECIPE_DIR%\helpers\masm_llvm.ps1 -ASM_DIR %SRC_DIR%\build\win64 -OUTPUT_DIR %SRC_DIR%\build\win64_llvm
 call build.bat -shared
 if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
