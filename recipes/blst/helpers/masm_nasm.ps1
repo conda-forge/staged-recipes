@@ -19,7 +19,7 @@ function Convert-MasmToNasm {
     try {
         Write-Host "Reading content from $InputFile"
         $content = Get-Content $InputFile
-        Write-Host "Content of ${InputFile}:`n${content}"
+        Write-Host "Content of ${InputFile}"
 
         $convertedContent = $content | ForEach-Object {
             $_ -replace '\.code', 'section .text' `
@@ -33,7 +33,7 @@ function Convert-MasmToNasm {
                -replace 'endif', '%endif'
         }
 
-        Write-Host "Converted content to be written to ${OutputFile}:`n${convertedContent}"
+        Write-Host "Converted content to be written to ${OutputFile}"
         $convertedContent | Set-Content $OutputFile
 
         Write-Host "Successfully converted $InputFile to $OutputFile"
@@ -43,12 +43,19 @@ function Convert-MasmToNasm {
     }
 }
 
-# Convert and compile each .asm file
-Get-ChildItem "$ASM_DIR\*.asm" | ForEach-Object {
+# Convert each .asm file
+$asmFiles = Get-ChildItem "$ASM_DIR\*.asm"
+Write-Host "Found $($asmFiles.Count) .asm files to convert."
+
+$asmFiles | ForEach-Object {
     $BaseName = $_.BaseName
     $NasmFile = "$OUTPUT_DIR\$BaseName.asm"
 
     # Convert MASM to NASM
-    Convert-MasmToNasm -InputFile $_.FullName -OutputFile $NasmFile
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    try {
+        Convert-MasmToNasm -InputFile $_.FullName -OutputFile $NasmFile
+    } catch {
+        Write-Host "Error converting $_ to $NasmFile"
+        Write-Host "Error details: $_"
+    }
 }
