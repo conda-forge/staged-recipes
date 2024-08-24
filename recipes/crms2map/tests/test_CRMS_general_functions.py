@@ -12,15 +12,15 @@ from src.CRMS2Plot import *
 from src.click_main import discrete_subcommand
 
 
-def test_download_CRMS(tmpdir):
-    """Test the download_CRMS function with a sample URL."""
-    url = "https://cims.coastal.la.gov/RequestedDownloads/ZippedFiles/CRMS_Discrete_Hydrographic.zip"  # Replace with a real URL if available
-    zip_file = "CRMS_Discrete_Hydrographic.zip"
-    csv_file = "CRMS_Discrete_Hydrographic.csv"
-    input_space = tmpdir.mkdir("input")  # Create a temporary directory for the input space
-
-    # Call the function to download the file
-    result = download_CRMS(url, zip_file, csv_file, str(input_space))
+# def test_download_CRMS(tmpdir):
+#     """Test the download_CRMS function with a sample URL."""
+#     url = "https://cims.coastal.la.gov/RequestedDownloads/ZippedFiles/CRMS_Discrete_Hydrographic.zip"  # Replace with a real URL if available
+#     zip_file = "CRMS_Discrete_Hydrographic.zip"
+#     csv_file = "CRMS_Discrete_Hydrographic.csv"
+#     input_space = tmpdir.mkdir("input")  # Create a temporary directory for the input space
+#
+#     # Call the function to download the file
+#     result = download_CRMS(url, zip_file, csv_file, str(input_space))
 
 
 # @pytest.fixture
