@@ -16,29 +16,30 @@ function Convert-MasmToNasm {
         [string]$OutputFile
     )
 
-     Write-Host "Reading content from $InputFile"
-    $content = Get-Content $InputFile
-    Write-Host "Content of ${InputFile}:`n${content}"
+    try {
+        Write-Host "Reading content from $InputFile"
+        $content = Get-Content $InputFile
+        Write-Host "Content of ${InputFile}:`n${content}"
 
-    $convertedContent = $content | ForEach-Object {
-        $_ -replace '\.code', 'section .text' `
-           -replace '\.data', 'section .data' `
-           -replace 'PUBLIC', 'global' `
-           -replace 'PROC', ':' `
-           -replace 'ENDP', '' `
-           -replace 'DWORD', 'dd' `
-           -replace 'PTR', '' `
-           -replace 'ifdef', '%ifdef' `
-           -replace 'endif', '%endif'
-    }
+        $convertedContent = $content | ForEach-Object {
+            $_ -replace '\.code', 'section .text' `
+               -replace '\.data', 'section .data' `
+               -replace 'PUBLIC', 'global' `
+               -replace 'PROC', ':' `
+               -replace 'ENDP', '' `
+               -replace 'DWORD', 'dd' `
+               -replace 'PTR', '' `
+               -replace 'ifdef', '%ifdef' `
+               -replace 'endif', '%endif'
+        }
 
-    Write-Host "Converted content to be written to ${OutputFile}:`n${convertedContent}"
-    $convertedContent | Set-Content $OutputFile
+        Write-Host "Converted content to be written to ${OutputFile}:`n${convertedContent}"
+        $convertedContent | Set-Content $OutputFile
 
-    if ($LASTEXITCODE -eq 0) {
         Write-Host "Successfully converted $InputFile to $OutputFile"
-    } else {
-        Write-Host "Failed to convert $InputFile to $OutputFile"
+    } catch {
+        Write-Host "Error converting $InputFile to $OutputFile"
+        Write-Host "Error details: $_"
     }
 }
 
