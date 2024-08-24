@@ -7,6 +7,8 @@ cmake ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DBOOST_STATIC=OFF ^
     -DCMAKE_CXX_FLAGS=-DNOMINMAX ^
+    -DFETCH_COLMAP=OFF ^
+    -DFETCH_POSELIB=OFF ^
     %SRC_DIR%
 if errorlevel 1 exit 1
 
