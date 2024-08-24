@@ -21,9 +21,31 @@ function Convert-MasmToNasm {
         $content = Get-Content $InputFile
         Write-Host "Content of ${InputFile}"
 
+        $rules = @{
+            'OPTION\s+DOTNAME' = ''
+            # '\.code' = 'section .text'
+            # '\.data' = 'section .data'
+            # 'PUBLIC' = 'global'
+            # 'PROC' = ':'
+            # 'ENDP' = ''
+            # 'DWORD' = 'dd'
+            # 'PTR' = ''
+            # 'ifdef' = '%ifdef'
+            # 'endif' = '%endif'
+            # 'ALIGN' = 'align'
+            # '\|' = ''
+            # '\.text\$' = 'section .text'
+            # "SEGMENT\s+ALIGN\(256\)\s+'CODE'" = ''
+            # '(cmovc|sbb|mov|sub)\s+(\w+),(\w+)' = '$1 $2, $3'
+            # '(mov)\s+QWORD\s+PTR\[(\d+)\+(\w+)\],(\w+)' = '$1 [$3+$2], $4'
+            # '(mov|lea|sbb|adc)\s+(\w+),QWORD\s+PTR\[(\d+)\+(\w+)\]' = '$1 $2, [$4+$3]'
+            # '(jmp|pop|push)\s+(\w+)' = '$1 $2'
+            # '(DB)\s+(\w+),(\w+)' = 'db $2, $3'
+        }
+
         $convertedContent = "%use masm`n" + $content
 
-        Write-Host "Converted content to be written to ${OutputFile}"
+        Write-Host "Converted content to be written to ${OutputFile}:`n${convertedContent}"
         $convertedContent | Set-Content $OutputFile
 
         Write-Host "Successfully converted $InputFile to $OutputFile"
