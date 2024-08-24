@@ -32,7 +32,7 @@ function Convert-MasmToNasm {
            -replace 'endif', '%endif'
     }
 
-    Write-Host "Converted content to be written to $OutputFile:`n$convertedContent"
+    Write-Host "Converted content to be written to ${OutputFile}:`n${convertedContent}"
     $convertedContent | Set-Content $OutputFile
 
     if ($LASTEXITCODE -eq 0) {
