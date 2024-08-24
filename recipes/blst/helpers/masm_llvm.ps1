@@ -17,25 +17,19 @@ function Convert-MasmToNasm {
     )
 
     try {
-        Write-Host "Reading content from $InputFile"
         $content = Get-Content $InputFile
-        Write-Host "Content of ${InputFile}"
 
         $rules = @{
             'OPTION\s+DOTNAME' = ''
-            '::' = ';'
+            '::' = ':'
         }
-
-        $convertedContent = "%use masm`n" + $content
 
         foreach ($rule in $rules.GetEnumerator()) {
             $convertedContent = $convertedContent -replace $rule.Key, $rule.Value
         }
 
-        Write-Host "Converted content to be written to ${OutputFile}:`n${convertedContent}"
         $convertedContent | Set-Content $OutputFile
 
-        Write-Host "Successfully converted $InputFile to $OutputFile"
     } catch {
         Write-Host "Error converting $InputFile to $OutputFile"
         Write-Host "Error details: $_"
