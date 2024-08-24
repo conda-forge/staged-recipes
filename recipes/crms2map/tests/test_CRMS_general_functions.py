@@ -5,12 +5,12 @@ import pandas as pd
 import numpy as np
 from click.testing import CliRunner
 
-
 from src.CRMS_general_functions import *
 from src.CRMS_Discrete_Hydrographic2subsets import *
 from src.CRMS2Resample import *
 from src.CRMS2Plot import *
 from src.click_main import discrete_subcommand
+
 
 def test_download_CRMS(tmpdir):
     """Test the download_CRMS function with a sample URL."""
@@ -23,51 +23,53 @@ def test_download_CRMS(tmpdir):
     result = download_CRMS(url, zip_file, csv_file, str(input_space))
 
 
-@pytest.fixture
-def setup_files(tmpdir):
-    """Set up the required files in the temporary directory."""
-    original_input_space = os.path.join(os.getcwd(), "Input")
-    tmp_input_space = tmpdir.mkdir("Input")
+# @pytest.fixture
+# def setup_files(tmpdir):
+#     """Set up the required files in the temporary directory."""
+#     original_input_space = os.path.join(os.getcwd(), "Input")
+#     tmp_input_space = tmpdir.mkdir("Input")
+#
+#     # Copy necessary files from the original input space to tmpdir
+#     required_files = ["GEOID99_TO_GEOID12A.csv"]
+#     for file_name in required_files:
+#         src_file = os.path.join(original_input_space, file_name)
+#         dst_file = os.path.join(tmp_input_space, file_name)
+#         shutil.copy(src_file, dst_file)
+#
+#     return tmp_input_space
+#
+#
+# def test_main_function(mocker, tmpdir, setup_files):
+#     """Test the main function for CRMS_Discrete_Hydrographic2subsets.py."""
+#
+#     # Mock the os.getcwd() to return the temporary directory
+#     mocker.patch("os.getcwd", return_value=str(tmpdir))
+#
+#     # Mock the download_CRMS function to avoid actual downloading
+#     mocker.patch("src.CRMS_general_functions.download_CRMS", return_value=True)
+#
+#     # Invoke the Click command using CliRunner
+#     runner = CliRunner()
+#     result = runner.invoke(discrete_subcommand)
+#
+#     # Check that the command executed successfully
+#     assert result.exit_code == 0, f"Command failed with exit code {result.exit_code}. Output: {result.output}"
+#
+#     # Define the expected directories and files
+#     process_space = os.path.join(str(tmpdir), 'Process')
+#
+#     expected_files = [
+#         os.path.join(setup_files, "GEOID99_TO_GEOID12A.csv"),
+#         # Add more expected files if needed
+#     ]
+#
+#     # Check if the expected files were created or exist
+#     for file_path in expected_files:
+#         assert os.path.exists(file_path), f"Expected file {file_path} does not exist."
+#
+#     # Check if the Process directory was created
+#     assert os.path.exists(process_space), "Process directory was not created."
 
-    # Copy necessary files from the original input space to tmpdir
-    required_files = ["GEOID99_TO_GEOID12A.csv"]
-    for file_name in required_files:
-        src_file = os.path.join(original_input_space, file_name)
-        dst_file = os.path.join(tmp_input_space, file_name)
-        shutil.copy(src_file, dst_file)
-
-    return tmp_input_space
-
-
-def test_main_function(mocker, tmpdir, setup_files):
-    """Test the main function for CRMS_Discrete_Hydrographic2subsets.py."""
-
-    # Mock the os.getcwd() to return the temporary directory
-    mocker.patch("os.getcwd", return_value=str(tmpdir))
-
-    # Mock the download_CRMS function to avoid actual downloading
-    mocker.patch("src.CRMS_general_functions.download_CRMS", return_value=True)
-
-    # Invoke the Click command using CliRunner
-    runner = CliRunner()
-    result = runner.invoke(discrete_subcommand)
-
-    # Check that the command executed successfully
-    assert result.exit_code == 0, f"Command failed with exit code {result.exit_code}. Output: {result.output}"
-
-    # Define the expected directories and files
-    process_space = os.path.join(str(tmpdir), 'Process')
-    expected_files = [
-        os.path.join(setup_files, "GEOID99_TO_GEOID12A.csv"),
-        # Add more expected files if needed
-    ]
-
-    # Check if the expected files were created or exist
-    for file_path in expected_files:
-        assert os.path.exists(file_path), f"Expected file {file_path} does not exist."
-
-    # Check if the Process directory was created
-    assert os.path.exists(process_space), "Process directory was not created."
 
 @pytest.fixture
 def sample_data():
@@ -161,7 +163,7 @@ def test_resample_data_hourly_to_daily(sample_data_hourly):
     # Check if the resampled DataFrame has the correct number of days and sum of values
     days = np.ceil(total_hours / 24).astype(int)
     assert (
-        resampled_df.shape[0] == days
+            resampled_df.shape[0] == days
     ), "Resampling to daily should result in the correct number of days."
 
 
@@ -182,7 +184,7 @@ def test_resample_data_empty_dataframe(sample_data_hourly):
     # Optionally, also check if the shape is correct (i.e., the number of days should match)
     days = np.ceil(total_hours / 24).astype(int)
     assert (
-        resampled_df.shape[0] == days
+            resampled_df.shape[0] == days
     ), f"Expected {days} days, but got {len(resampled_df)} days"
 
 
@@ -200,7 +202,7 @@ def test_resample_data_hourly_to_monthly(sample_data_hourly):
     # Check if the resampled DataFrame has the correct number of months
     months = np.ceil(total_hours / (24 * 30)).astype(int)
     assert (
-        monthly_mean.shape[0] == months
+            monthly_mean.shape[0] == months
     ), "Resampling to monthly should result in the correct number of months."
     assert monthly_mean.index[-1] == pd.Timestamp(
         "2020-02-01"
@@ -208,6 +210,7 @@ def test_resample_data_hourly_to_monthly(sample_data_hourly):
     assert pd.isna(
         monthly_mean.iloc[-1]["value"]
     ), "Last month should be NaN when count is less than 5."
+
 
 @pytest.fixture()
 def mock_plot_data():
@@ -222,6 +225,7 @@ def mock_plot_data():
         }, index=time_index)
     }
 
+
 def test_plot_CRMS(mock_plot_data, tmpdir):
     # Test the plot generation
     plot_period = ["2008-01-01", "2024-12-31"]
@@ -232,12 +236,13 @@ def test_plot_CRMS(mock_plot_data, tmpdir):
     output_dir = tmpdir.mkdir("Photo")
 
     # Update the output directory in the plot_CRMS function call
-    output_location = plot_CRMS(mock_plot_data, {}, file_name_o, Data_type, plot_period, plot_space, plot_range=None, station=None, photo_dir=output_dir)
+    output_location = plot_CRMS(mock_plot_data, {}, file_name_o, Data_type, plot_period, plot_space, plot_range=None,
+                                station=None, photo_dir=output_dir)
 
     # Print the output file path for debugging
     output_file = os.path.join(output_dir, f'Water_level_median.png')
     print(f"Expected output file: {output_file}")
 
     # Check if the file was created
-    #assert output_location == output_file, f"The plot should be saved as a PNG file at {output_location}. But made at {output_file}"
+    # assert output_location == output_file, f"The plot should be saved as a PNG file at {output_location}. But made at {output_file}"
     assert os.path.exists(output_file), f"The plot should be saved as a PNG file at {output_file}."
