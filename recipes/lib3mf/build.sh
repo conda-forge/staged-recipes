@@ -8,4 +8,5 @@ cmake -DCMAKE_BUILD_TYPE="Release" \
     ${CMAKE_ARGS} \
     ..
 
-ninja install
+cmake --build .
+cmake --build . --target=install
