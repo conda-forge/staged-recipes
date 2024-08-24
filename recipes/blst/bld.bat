@@ -1,11 +1,10 @@
 :: @echo off
 
 set CC=gcc
-set "AS=yasm -f win64"
+set "AS=nasm -f win64"
 
 mkdir %SRC_DIR%\build\win64_nasm
 call powershell -File %RECIPE_DIR%\helpers\masm_nasm.ps1 -ASM_DIR %SRC_DIR%\build\win64 -OUTPUT_DIR %SRC_DIR%\build\win64_nasm
-dir %SRC_DIR%\build\win64_nasm
 call build.bat -shared
 if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
