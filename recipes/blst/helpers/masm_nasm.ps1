@@ -18,7 +18,7 @@ function Convert-MasmToNasm {
 
      Write-Host "Reading content from $InputFile"
     $content = Get-Content $InputFile
-    Write-Host "Content of $InputFile:`n$content"
+    Write-Host "Content of ${InputFile}:`n${content}"
 
     $convertedContent = $content | ForEach-Object {
         $_ -replace '\.code', 'section .text' `
