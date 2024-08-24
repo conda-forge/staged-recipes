@@ -21,17 +21,7 @@ function Convert-MasmToNasm {
         $content = Get-Content $InputFile
         Write-Host "Content of ${InputFile}"
 
-        $convertedContent = $content | ForEach-Object {
-            $_ -replace '\.code', 'section .text' `
-               -replace '\.data', 'section .data' `
-               -replace 'PUBLIC', 'global' `
-               -replace 'PROC', ':' `
-               -replace 'ENDP', '' `
-               -replace 'DWORD', 'dd' `
-               -replace 'PTR', '' `
-               -replace 'ifdef', '%ifdef' `
-               -replace 'endif', '%endif'
-        }
+        $convertedContent = "%use masm`n" + $content
 
         Write-Host "Converted content to be written to ${OutputFile}"
         $convertedContent | Set-Content $OutputFile
