@@ -13,10 +13,10 @@ fi
 
 # Install
 if [[ "${target_platform}" == win-* ]]; then
-  cp blst."${PKG_MAJOR_VERSION}".dll "${PREFIX}"/Library/bin
-  cp blst."${PKG_MAJOR_VERSION}".lib "${PREFIX}"/Library/lib
-  cp blst."${PKG_MAJOR_VERSION}".dll "${PREFIX}"/Library/bin/blst.dll
-  cp blst."${PKG_MAJOR_VERSION}".lib "${PREFIX}"/Library/lib/blst.lib
+  cp blst-"${PKG_MAJOR_VERSION}".dll "${PREFIX}"/Library/bin
+  cp blst-"${PKG_MAJOR_VERSION}".lib "${PREFIX}"/Library/lib
+  cp blst-"${PKG_MAJOR_VERSION}".dll "${PREFIX}"/Library/bin/blst.dll
+  cp blst-"${PKG_MAJOR_VERSION}".lib "${PREFIX}"/Library/lib/blst.lib
 elif [[ "${target_platform}" == osx-* ]]; then
   mkdir -p "${PREFIX}"/lib
   cp libblst."${PKG_MAJOR_VERSION}".dylib "${PREFIX}"/lib
