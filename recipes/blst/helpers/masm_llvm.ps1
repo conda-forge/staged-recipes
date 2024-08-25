@@ -22,10 +22,11 @@ function Convert-MasmToNasm {
         $rules = @{
             'OPTION\s+DOTNAME' = ''
             '\s+PROC\s+PRIVATE' = ':'
+            '::' = ':'
             'ENDP' = ''
             '\$L\$' = '.L'
+            'imagerel\s+(\w+)' = 'rel $1'
         }
-            # '::' = ':'
             # 'imagerel\s+(\w+)' = 'rel $1'
 
         foreach ($rule in $rules.GetEnumerator()) {
