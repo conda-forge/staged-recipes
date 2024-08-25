@@ -9,6 +9,7 @@ if [[ "${target_platform}" == win-* ]]; then
   sed -i 's/-fPIC//g' build.sh
   bash ./build.sh -dll flavour=mingw64 CC=x86_64-w64-mingw32-gcc AR=llvm-ar
 else
+  export CXX="${CXX}"
   bash ./build.sh -shared
 fi
 
@@ -43,6 +44,5 @@ fi
 
 # Python bindings
 pushd bindings/python
-  export CXX="${CXX}"
-  ./run.me
+  ${PYTHON} ./run.me
 popd
