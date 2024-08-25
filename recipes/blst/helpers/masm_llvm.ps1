@@ -25,11 +25,11 @@ function Convert-MasmToNasm {
         }
 
         foreach ($rule in $rules.GetEnumerator()) {
-            $convertedContent = $convertedContent -replace $rule.Key, $rule.Value
+            $content = $content -replace $rule.Key, $rule.Value
         }
 
-        Write-Host "Converted content to be written to ${OutputFile}:`n${convertedContent}"
-        $convertedContent | Set-Content $OutputFile
+        Write-Host "Converted content to be written to ${OutputFile}:`n${content}"
+        $content | Set-Content $OutputFile
 
     } catch {
         Write-Host "Error converting $InputFile to $OutputFile"
