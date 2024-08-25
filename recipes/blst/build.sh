@@ -3,7 +3,11 @@
 set -euxo pipefail
 
 # C lib
-bash ./build.sh -shared
+if [[ "${target_platform}" == win-* ]]; then
+  bash ./build.sh -dll -flavour=mingw64 CC=x86_64-w64-mingw32-gcc AR=x86_64-w64-mingw32-ar RANLIB=x86_64-w64-mingw32-ranlib
+else
+  bash ./build.sh -shared
+fi
 
 # Install
 mkdir -p "${PREFIX}"/lib
