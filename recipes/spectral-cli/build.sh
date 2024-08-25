@@ -2,12 +2,11 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-mv package.json package.json.bak
+mv package.json package_old.json.bak
 jq "del(.scripts.prepare)" < package.json.bak > package.json
 
 # Run pnpm so that pnpm-licenses can create report
 pnpm install
-pnpm pack
 
 # Create package archive and install globally
 npm pack --ignore-scripts
