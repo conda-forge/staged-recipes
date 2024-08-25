@@ -8,7 +8,7 @@ cp -r all-sources/v4-client-cpp "${SRC_DIR}"
 
 mkdir -p _conda-build-protocol _conda-build-client  _conda-logs
 
-patch -p0 < "${RECIPE_DIR}"/patches/xxxx-cmake-protocol-lib.patch
+# patch -p0 < "${RECIPE_DIR}"/patches/xxxx-cmake-protocol-lib.patch
 
 pushd _conda-build-protocol
   cmake "${SRC_DIR}"/v4-client-cpp \
