@@ -24,10 +24,9 @@ function Convert-MasmToNasm {
             '\s+PROC\s+PRIVATE' = ':'
             '::' = ':'
             'ENDP' = ''
-            '\$L\$' = '.L'
             'imagerel\s+(\w+)' = 'rel $1'
+            '\$L\$' = '.L'
         }
-            # 'imagerel\s+(\w+)' = 'rel $1'
 
         foreach ($rule in $rules.GetEnumerator()) {
             $content = $content -replace $rule.Key, $rule.Value
