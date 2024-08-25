@@ -2,11 +2,11 @@
 
 set CC=gcc
 :: set "AS=nasm -f win64"
-set "AS=llvm-ml -m64 --assemble /c"
-:: set "AS=ml64 /nologo /c /Cp /Cx /Zi"
-mkdir %SRC_DIR%\build\win64_llvm
-call powershell -File %RECIPE_DIR%\helpers\masm_llvm.ps1 -ASM_DIR %SRC_DIR%\build\win64 -OUTPUT_DIR %SRC_DIR%\build\win64_llvm
-dir %SRC_DIR%\build\win64_llvm
+:: set "AS=llvm-ml -m64 --assemble /c"
+set "AS=ml64 /nologo /c /Cp /Cx /Zi"
+:: mkdir %SRC_DIR%\build\win64_llvm
+:: call powershell -File %RECIPE_DIR%\helpers\masm_llvm.ps1 -ASM_DIR %SRC_DIR%\build\win64 -OUTPUT_DIR %SRC_DIR%\build\win64_llvm
+:: dir %SRC_DIR%\build\win64_llvm
 call build.bat -shared
 if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
