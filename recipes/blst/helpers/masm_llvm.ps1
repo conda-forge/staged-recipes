@@ -28,6 +28,7 @@ function Convert-MasmToNasm {
             $convertedContent = $convertedContent -replace $rule.Key, $rule.Value
         }
 
+        Write-Host "Converted content to be written to ${OutputFile}:`n${convertedContent}"
         $convertedContent | Set-Content $OutputFile
 
     } catch {
