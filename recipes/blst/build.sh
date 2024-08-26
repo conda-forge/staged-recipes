@@ -5,7 +5,7 @@ set -euxo pipefail
 # C lib
 if [[ "${target_platform}" == win-* ]]; then
   # Remove -fPIC from CFLAGS
-  export CXX="x86_64-w64-mingw32-g++ -std=c++11"
+  export CXX=x86_64-w64-mingw32-g++
   sed -i 's/-fPIC//g' build.sh
   bash ./build.sh -dll flavour=mingw64 CC=x86_64-w64-mingw32-gcc AR=llvm-ar
 else
