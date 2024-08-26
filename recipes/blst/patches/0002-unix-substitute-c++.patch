@@ -4,13 +4,15 @@
  import sysconfig
 +import platform
  import hashlib
-@@ -37,12 +37,20 @@
+@@ -37,12 +37,23 @@
      print("compiling _blst.so...") or sys.stdout.flush()
 +    cxx = os.environ.get('CXX', 'c++')
 +    py_impl = platform.python_implementation().lower()
 +    py_ver = sysconfig.get_config_var('py_version_nodot')
-+    py_host = f'{platform.machine()}-{sysconfig.get_platform().split("-")[0]}'
-+    py_host += '-gnu' if sysconfig.get_platform().split("-")[0] == 'linux' else '-unknown'
++    py_mach, py_syst = platform.machine(), sysconfig.get_platform().split("-")[0]
++    py_mach = "x86_64" if py_mach in ["x86_64", "AMD64"] else "i686"
++    py_host = f'{py_mach}-{py_syst}'
++    py_host += '-gnu' if py_syst == 'linux' else '-unknown'
 +    py_host = 'darwin' if sysconfig.get_config_var('MACHDEP') == 'darwin' else py_host
 +    ext = '.so' if sysconfig.get_config_var('MACHDEP') == 'darwin' else '.so'
      if sysconfig.get_config_var('MACHDEP') == 'darwin':
@@ -20,8 +22,9 @@
 -        cmd = ["c++", "-shared", "-Wl,-Bsymbolic"]
 +        cmd = [cxx, "-shared", "-Wl,-Bsymbolic"]
 -    cmd.extend(["-o", "_blst.so", "-fPIC", "-fvisibility=hidden",
-+    print(f"_blst.{py_impl}-{py_ver}-{py_host}{ext}")
-+    cmd.extend(["-o", f"_blst.{py_impl}-{py_ver}-{py_host}{ext}", "-fPIC", "-fvisibility=hidden", "-std=c++11",
++    print(f"generated: _blst.{py_impl}-{py_ver}-{py_host}{ext}")
++    extras = ["-fPIC", "-fvisibility=hidden", "-std=c++11"] if py_syst != 'win' else ["-fvisibility=hidden", "-std=c++11", "-lpython"]
++    cmd.extend(["-o", f"_blst.{py_impl}-{py_ver}-{py_host}{ext}", *extras,
                  "-I"+sysconfig.get_config_var('INCLUDEPY'), "-I..",
                  "-O", "-Wall", "blst_wrap.cpp", "../libblst.a"])
      try:
