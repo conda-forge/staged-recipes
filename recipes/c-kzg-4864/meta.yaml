@@ -1,6 +1,7 @@
 {% set name = "c-kzg-4844" %}
 {% set version = "1.03" %}
 
+{% set blst_so_major_version = 0 %}
 package:
   name: {{ name|lower }}
   version: {{ version }}
@@ -8,35 +9,49 @@ package:
 source:
   url: https://github.com/ethereum/c-kzg-4844/archive/refs/tags/v1.0.3.tar.gz
   sha256: d9b8bd960d7072cf5dba6ecd9f01bfb82513e75bf5170d6de5ca508ee1abc385
+  patches:
+    - patches/0001-remove-blst-build.patch
 
 build:
   script: {{ PYTHON }} -m pip install . -vv
+  script_env:
+    - BLST_MAJOR_VERSION={{ blst_so_major_version }}
   number: 0
+  ignore_run_exports:
+    - python
 
 requirements:
   build:
-    - {{ compiler('c') }}
-    - {{ compiler('rust') }}
-    - python-build
+    - {{ compiler('c') }}  # [not win]
+    - {{ compiler('m2w64_c') }}  # [win]
+    - {{ stdlib('c') }}  # [not win]
+    - {{ stdlib('m2w64_c') }}  # [win]
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+    - libblst
   host:
-    - blst
-    - make
+    - libblst-{{ blst_so_major_version }}
     - pip
     - python
-    - PyYAML
+    - setuptools
   run:
+    - libblst-{{ blst_so_major_version }}
     - python
+    - PyYAML
 
 test:
   source_files:
-    - tests.py
+    - bindings/python/tests.py
+    - src/trusted_setup.txt
+    - tests
   imports:
     - ckzg
   requires:
     - pip
+    - python
   commands:
     - pip check
-    - python tests.py
+    - cd bindings/python/ && ${PYTHON} tests.py  # [unix]
+    - cd bindings\\python\\ && %PYTHON% tests.py  # [win]
 
 about:
   home: https://github.com/ethereum/c-kzg-4844
@@ -49,7 +64,6 @@ about:
   license: Apache-2.0
   license_file:
     - LICENSE
-    - blst/LICENSE
 
 extra:
   recipe-maintainers:

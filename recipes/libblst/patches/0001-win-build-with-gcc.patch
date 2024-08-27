@@ -1,0 +1,45 @@
+--- build.bat.orig    2024-08-20 10:40:17.860801638 -0500
++++ build.bat         2024-08-20 10:40:08.708639616 -0500
+@@ -5,3 +5 @@
+-cl /nologo /c /O2 /Zi /Fdblst.pdb /W4 /MT /Zl %TOP%src\server.c || EXIT /B
+-cl 2>&1 | find "for ARM64" > nul:
+-IF ERRORLEVEL 1 (
++IF "%target_platform%" == "win-64" (
+@@ -8,0 +7 @@
++    set libname=blst
+@@ -13,0 +13 @@
++    set libname=blst_arm64
+@@ -19 +18,0 @@
+-set static=/out:blst.lib
+@@ -31,0 +31,7 @@
++IF DEFINED PKG_MAJOR_VERSION (
++    set shared_libname=!libname!.!PKG_MAJOR_VERSION!.dll
++    set shared_libname_lib=!libname!.!PKG_MAJOR_VERSION!.lib
++) ELSE (
++    set shared_libname=!libname!.0.dll
++    set shared_libname_lib=!libname!.0.lib
++)
+@@ -33,16 +39,3 @@
+-    cl /nologo /c /O2 /Oi- /MD %TOP%build\win64\dll.c || EXIT /B
+-    IF [%arm64x%] NEQ [yes] (
+-        link /nologo /debug /dll /entry:DllMain /incremental:no %shared% ^
+-             /def:%TOP%build\win64\blst.def *.obj kernel32.lib && del *.obj
+-    ) ELSE (
+-        lib /nologo /out:blst_arm64.lib *.obj && del *.obj || EXIT /B
+-        cl /nologo /arm64EC /c /O2 /Zi /Fdblst.pdb /W4 /MT /Zl %TOP%src\server.c || EXIT /B
+-        FOR %%F IN (%TOP%build\win64\*-armv8.asm) DO (
+-            armasm64 -nologo -machine arm64ec -nowarn %%F || EXIT /B
+-        )
+-        cl /nologo /arm64EC /c /O2 /Oi- /MD %TOP%build\win64\dll.c || EXIT /B
+-        link /nologo /machine:arm64x /dll /noentry %shared% ^
+-             /def:%TOP%build\win64\blst.def *.obj ^
+-             /defArm64Native:%TOP%build\win64\blst.def blst_arm64.lib ^
+-             kernel32.lib && del *.obj blst_arm64.lib
+-    )
++    %CC% %CFLAGS% -c %TOP%src\server.c || EXIT /B
++    echo Compiling shared lib
++    %CC% -shared -o %shared_libname% *.o *.obj %TOP%build\win64\blst.def -Wl,--out-implib,%shared_libname_lib% --entry=DllMain ${TOP}/build/win64/dll.c" -nostdlib -lgcc -Wl,-Bsymbolic
+@@ -50 +43,2 @@
+-    lib /nologo %static% *.obj && del *.obj
++    echo Only SHARED lib supported
++    EXIT /B

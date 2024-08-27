@@ -1,0 +1,45 @@
+--- bindings/python/run.me.orig    2021-03-02 16:00:00.000000000 +0000
++++ bindings/python/run.me         2021-03-02 16:00:00.000000000 +0000
+@@ -7,2 +7,3 @@
+ import sysconfig
++import platform
+ import hashlib
+@@ -37,12 +37,27 @@
+     print("compiling _blst.so...") or sys.stdout.flush()
++    cxx = os.environ.get('CXX', 'c++')
++    py_impl = platform.python_implementation().lower()
++    py_ver = sysconfig.get_config_var('py_version_nodot')
++    py_mach, py_syst = platform.machine(), sysconfig.get_platform().split("-")[0]
++    py_mach = "x86_64" if py_mach in ["x86_64", "AMD64"] else "i686"
++    py_host = f'{py_mach}-{py_syst}'
++    py_host += '-gnu' if py_syst == 'linux' else '-unknown'
++    py_host = 'darwin' if sysconfig.get_config_var('MACHDEP') == 'darwin' else py_host
++    ext = '.so' if sysconfig.get_config_var('MACHDEP') == 'darwin' else '.so'
+     if sysconfig.get_config_var('MACHDEP') == 'darwin':
+-        cmd = ["c++", "-bundle", "-undefined", "dynamic_lookup"]
++        cmd = [cxx, "-bundle", "-undefined", "dynamic_lookup"]
+     else:
+-        cmd = ["c++", "-shared", "-Wl,-Bsymbolic"]
++        cmd = [cxx, "-shared", "-Wl,-Bsymbolic"]
+-    cmd.extend(["-o", "_blst.so", "-fPIC", "-fvisibility=hidden",
++    print(f"generated: _blst.{py_impl}-{py_ver}-{py_host}{ext}")
++    extras = ["-fvisibility=hidden", "-std=c++11"]
++    if py_syst != 'win':
++        extras.append("-fPIC")
++    else:
++        extras.append(sysconfig.get_config_var('LDLIBRARY'))
++    cmd.extend(["-o", f"_blst.{py_impl}-{py_ver}-{py_host}{ext}", *extras,
+                 "-I"+sysconfig.get_config_var('INCLUDEPY'), "-I..",
+                 "-O", "-Wall", "blst_wrap.cpp", "../libblst.a"])
+     try:
+-        pre = subprocess.check_output(["c++", "-dM", "-E", "-x", "c++", "/dev/null"],
+-                                      stderr=subprocess.STDOUT)
++        pre = subprocess.check_output([cxx, "-dM", "-E", "-x", "c++", "/dev/null"],
++                                      stderr=subprocess.STDOUT)
+         std = re.search(r'\b__cplusplus\s+([0-9]+)L', pre.decode('ascii'))
+@@ -52,3 +53,4 @@
+         pass
+-    subprocess.check_call(cmd)
++    subprocess.check_call(cmd, stderr=subprocess.STDOUT)
++    print("done.") or sys.stdout.flush()
+
