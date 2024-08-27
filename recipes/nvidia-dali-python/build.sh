@@ -1,7 +1,12 @@
 #!/bin/bash
 
 mkdir -p third_party/boost/preprocessor/include
-ln -sf $PREFIX/include/boost third_party/boost/preprocessor/include
+ln -sf $PREFIX/include/boost third_party/boost/preprocessor/include/
+
+mkdir -p third_party/dlpack/include/
+ln -sf $PREFIX/include/dlpack third_party/dlpack/include/
+
+export CXXFLAGS="$CXXFLAGS -isystem $PREFIX/include/opencv4"
 
 mkdir -p build
 cd build
@@ -15,7 +20,7 @@ cmake ${CMAKE_ARGS} \
   -DBUILD_CFITSIO=ON \
   -DBUILD_BENCHMARK=OFF \
   -DBUILD_TEST=OFF \
-  -DBUILD_OPENCV=OFF \
+  -DBUILD_OPENCV=ON \
   -DBUILD_LMDB=OFF \
   -DBUILD_LIBSND=OFF \
   -DBUILD_LIBTAR=OFF \
