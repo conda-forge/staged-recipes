@@ -1,0 +1,1 @@
+bash build_for_windows.sh
