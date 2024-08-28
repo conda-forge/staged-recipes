@@ -8,7 +8,7 @@ if errorlevel 1 exit 1
 popd
 
 pushd %LIBRARY_PREFIX%\bin
-for %%c in (marp-cli) do (
+for %%c in (marp) do (
   echo @echo off >> %%c.bat
   echo "%LIBRARY_PREFIX%\share\marp-cli\node_modules\.bin\%%c.cmd" %%* >> %%c.bat
 )
