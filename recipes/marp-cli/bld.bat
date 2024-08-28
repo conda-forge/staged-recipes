@@ -8,8 +8,10 @@ if errorlevel 1 exit 1
 popd
 
 pushd %LIBRARY_PREFIX%\bin
-echo @echo off >> marp.bat
-echo "%LIBRARY_PREFIX%\share\marp\node_modules\.bin\marp-cli.cmd" %%* >> marp.bat
+for %%c in (marp-cli) do (
+  echo @echo off >> %%c.bat
+  echo "%LIBRARY_PREFIX%\share\marp-cli\node_modules\.bin\%%c.cmd" %%* >> %%c.bat
+)
 popd
 
 @rem port yarn.lock to pnpm-lock.yaml
