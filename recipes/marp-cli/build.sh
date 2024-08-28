@@ -14,7 +14,7 @@ ln -s $BUILD_PREFIX/bin/node $PREFIX/bin/node
 # install marp-cli globally from the npm registry (the name of the executable is `marp`, not `marp-cli`)
 # all things coming after this are just concerned with generating the third-party-licenses file
 NPM_CONFIG_USERCONFIG=/tmp/nonexistentrc
-npm install -g marp-cli
+npm install -g @marp-team/marp-cli
 
 pnpm import
 pnpm install --prod

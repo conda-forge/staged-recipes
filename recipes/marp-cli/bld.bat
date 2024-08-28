@@ -3,7 +3,7 @@
 md %LIBRARY_PREFIX%\share\marp
 pushd %LIBRARY_PREFIX%\share\marp
 md node_modules
-cmd /c "npm install marp-cli@%PKG_VERSION%"
+cmd /c "npm install @marp-team/marp-cli@%PKG_VERSION%"
 if errorlevel 1 exit 1
 popd
 
