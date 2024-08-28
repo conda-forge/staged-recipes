@@ -1,8 +1,7 @@
 --- setup.py.orig  2024-07-19 14:52:16.008520276 -0500
 +++ setup.py       2024-07-19 14:54:03.834496484 -0500
-@@ -8,13 +8,2 @@
-
--class CustomBuild(build_ext):
+@@ -9,10 +9,10 @@
+ class CustomBuild(build_ext):
 -    def run(self):
 -        if system() == "Windows":
 -            try:
@@ -11,9 +10,15 @@
 -                pass
 -        check_call(["make", "-C", "src", "blst"])
 -        super().run()
--
--
- def main():
++    def build_extensions(self):
++        if os.getenv('CC'):
++            self.compiler.compiler_so = [os.getenv('CC')]
++        if os.getenv('CXX'):
++            self.compiler.compiler_cxx = [os.getenv('CXX')]
++        if os.getenv('LD'):
++            self.compiler.linker_so = [os.getenv('LD')]
++        super().build_extensions()
+
 @@ -24,2 +13,16 @@
 
 +    so = os.getenv('BLST_MAJOR_VERSION')
@@ -27,7 +32,7 @@
 +    blst = os.path.join(h_prefix, "bin", f"blst-{so}.dll") if system() == "Windows" else None
 +    blst = os.path.join(h_prefix, "lib", f"libblst.so.{so}") if system() == "Linux" else blst
 +    blst = os.path.join(h_prefix, "lib", f"libblst.{so}.dylib") if system() == "Darwin" else blst
-+    print(f"Using {blst} as the blst library ({system()}).")
++    print(f"Using {blst} as the blst library ({system()}).  {self.compiler}")
 +    blst = "blst" if blst is None else blst
 +
      setup(
@@ -41,8 +46,3 @@
 +                extra_objects=[blst],
 +                # libraries=[blst],
              )
-@@ -44,3 +44,3 @@
-         cmdclass={
--            "build_ext": CustomBuild,
-+            "build_ext": build_ext,
-         }
