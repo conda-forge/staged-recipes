@@ -1,20 +1,20 @@
 --- setup.py.orig  2024-07-19 14:52:16.008520276 -0500
 +++ setup.py       2024-07-19 14:54:03.834496484 -0500
-@@ -9,10 +9,5 @@
+@@ -9,10 +9,6 @@
  class CustomBuild(build_ext):
 -    def run(self):
--        if system() == "Windows":
++    def finalize_options(self):
++        super().build_extensions()
+         if system() == "Windows":
 -            try:
 -                check_call(["blst\\build.bat"])
 -            except Exception:
 -                pass
 -        check_call(["make", "-C", "src", "blst"])
 -        super().run()
-+    def finalize_options(self):
-+        super().build_extensions()
-+        self.compiler = "mingw32"
++            self.compiler = "mingw32"
 
-@@ -24,2 +19,19 @@
+@@ -24,2 +20,28 @@
 
 +    so = os.getenv('BLST_MAJOR_VERSION')
 +
@@ -31,20 +31,28 @@
 +    blst = os.path.join(h_prefix, "lib", f"libblst.so.{so}") if system() == "Linux" else blst
 +    blst = os.path.join(h_prefix, "lib", f"libblst.{so}.dylib") if system() == "Darwin" else blst
 +    blst = "blst" if blst is None else blst
-+    print(f"Using {blst} as the blst library ({system()}).")
 +
-     setup(
-@@ -38,5 +50,5 @@
-                 sources=["bindings/python/ckzg_wrap.c", "src/ckzg.c"],
--                include_dirs=["inc", "src"],
--                library_dirs=["lib"],
--                libraries=["blst"]
++    extension = Extension(
++                "ckzg",
++                sources=["bindings/python/ckzg_wrap.c", "src/ckzg.c"],
 +                include_dirs=["inc", "src", os.path.join(b_prefix, "include"), os.path.join(h_prefix, "include")],
 +                library_dirs=["lib", os.path.join(b_prefix, "lib"), os.path.join(h_prefix, "lib")],
 +                extra_objects=[blst],
-             )
-@@ -44,3 +56,3 @@
++            )
++    print(f"Using {blst} as the blst library ({system()}).")
++    print(f"{extension}")
++
+     setup(
+@@ -34,11 +56,3 @@
+         license="Apache-2.0",
+-        ext_modules=[
+-            Extension(
+-                "ckzg",
+-                sources=["bindings/python/ckzg_wrap.c", "src/ckzg.c"],
+-                include_dirs=["inc", "src"],
+-                library_dirs=["lib"],
+-                libraries=["blst"]
+-            )
+-        ],
++        ext_modules=[extension],
          cmdclass={
--            "build_ext": CustomBuild,
-+            "build_ext": CustomBuild if system() == "Windows" else build_ext,
-         }
