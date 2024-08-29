@@ -12,5 +12,5 @@ if errorlevel 1 exit 1
 cmake --build build_test
 if errorlevel 1 exit 1
 
-cmake --build build_test --target test
+ctest --test-dir build_test --output-on-failure
 if errorlevel 1 exit 1

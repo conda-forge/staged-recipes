@@ -11,4 +11,4 @@ cmake    \
     -DCMAKE_VERBOSE_MAKEFILE=ON
 
 cmake --build build_test
-cmake --build build_test --target test
+ctest --test-dir build_test --output-on-failure
