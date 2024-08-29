@@ -1,0 +1,96 @@
+{% set name = "dydxprotocol-v4-proto-py" %}
+{% set version = "5.0.6" %}
+
+package:
+  name: dydxprotocol-v4-proto-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/dydxprotocol/v4-chain/archive/refs/tags/protocol/v{{ version }}.tar.gz
+  sha256: c787e4221bf65546996876b795efd2268eae40b1cfc3adcf74277c63883dc712
+  patches:
+    - patches/0001-win-docker-experimental.patch  # [win]
+
+build:
+  number: 0
+  # Windows needs docker in experimental mode to build the proto files
+  skip: true  # [win]
+
+requirements:
+  build:
+    - docker  # [win]
+    - make
+    - sed
+  host:
+    - buf
+    - grpcio-tools >=1.54
+    - grpcio >=1.54
+    - python >=3.9
+
+outputs:
+  - name: dydxprotocol-v4-proto-py
+    script: install-py.sh  # [unix]
+    script: install-py.bat  # [win]
+    build:
+      noarch: python
+    requirements:
+      host:
+        - pip
+        - python >=3.9
+      run:
+        - grpcio-tools >=1.54
+        - grpcio >=1.54
+        - protobuf >=4.23
+        - python >=3.9
+    test:
+      imports:
+        - v4_proto
+      requires:
+        - pip
+      commands:
+        - pip check
+      downstreams:
+        - dydxprotocol-v4-client-py
+
+  # - Naming conversion
+  - name: dydxprotocol_v4_proto_py
+    requirements:
+      run:
+        - {{ pin_subpackage('dydxprotocol-v4-proto-py', exact=True) }}
+    test:
+      imports:
+        - v4_proto
+      requires:
+        - pip
+      commands:
+        - pip check
+
+  # Package name required by v4-client upstream pyproject.toml
+  - name: v4-proto
+    requirements:
+      run:
+        - {{ pin_subpackage('dydxprotocol-v4-proto-py', exact=True) }}
+    test:
+      imports:
+        - v4_proto
+      requires:
+        - pip
+      commands:
+        - pip check
+
+about:
+  home: https://github.com/dydxprotocol/v4-chain
+  summary: 'The dYdX v4 software (the ”dYdX Chain”) is a sovereign blockchain software built using Cosmos SDK and CometBFT.'
+  description: |
+    The dYdX v4 software (the ”dYdX Chain”) is a sovereign blockchain software built using
+    Cosmos SDK and CometBFT. It powers a robust decentralized perpetual futures exchange
+    with a high-performance orderbook and matching engine for a feature-rich, self-custodial
+    perpetual trading experience on any market.
+  license: AGPL-3.0-only
+  license_file:
+    - LICENSE
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+  feedstock-name: dydxprotocol-v4-proto-py
