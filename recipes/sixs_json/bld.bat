@@ -13,5 +13,3 @@ if errorlevel 1 exit 1
 :: Install.
 make install
 if errorlevel 1 exit 1
-
-%PYTHON% -m pip install . --no-deps -vv

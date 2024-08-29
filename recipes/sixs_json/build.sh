@@ -6,5 +6,3 @@ cmake ${CMAKE_ARGS} -D CMAKE_INSTALL_PREFIX=$PREFIX $SRC_DIR
 
 make -j${CPU_COUNT}
 make install
-
-$PYTHON -m pip install . --no-deps -vv
