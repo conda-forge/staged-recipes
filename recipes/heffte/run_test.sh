@@ -4,6 +4,8 @@ set -eu -x -o pipefail
 
 export OMP_NUM_THREADS=2
 
+export OMPI_MCA_plm=^rsh
+
 cmake    \
     -S ${PREFIX}/share/heffte/testing  \
     -B build_test                      \
