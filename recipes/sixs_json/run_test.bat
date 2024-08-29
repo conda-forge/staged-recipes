@@ -1,1 +1,1 @@
-sixs < test_params.txt
+sixs_json < test_params.txt
