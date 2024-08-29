@@ -1,0 +1,106 @@
+{% set name = "blst" %}
+{% set version = "0.3.13" %}
+
+{% set so_major_version = version.split('.')[0] %}
+package:
+  name: blst-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/supranational/blst/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 89772cef338e93bc0348ae531462752906e8fa34738e38035308a7931dd2948f
+  patches:
+    - patches/0002-unix-substitute-c++.patch
+    - patches/0003-unix-substitute-static-lib.patch
+    - patches/0004-add-setup.py.patch
+
+build:
+  number: 0
+  script_env:
+    - PKG_MAJOR_VERSION={{ so_major_version }}
+  skip: True  # [py<39]
+
+requirements:
+  build:
+    - {{ compiler('c') }}  # [not win]
+    - {{ compiler('m2w64_c') }}  # [win]
+    - {{ compiler('cxx') }}  # [not win]
+    - {{ compiler('m2w64_cxx') }}  # [win]
+    - {{ stdlib('c') }}  # [not win]
+    - {{ stdlib('m2w64_c') }}  # [win]
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+    - swig
+  host:
+    - libblst-0
+    - python
+  run:
+    - python
+
+outputs:
+  - name: blst
+    script: install-py.sh  # [unix]
+    script: install-py.bat  # [win]
+    build:
+      ignore_run_exports:
+          - python
+    requirements:
+      build:
+        - {{ compiler('c') }}  # [not win]
+        - {{ compiler('cxx') }}  # [not win]
+        - {{ compiler('m2w64_c') }}  # [win]
+        - {{ compiler('m2w64_cxx') }}  # [win]
+        - {{ stdlib('c') }}  # [not win]
+        - {{ stdlib('m2w64_c') }}  # [win]
+        - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+      host:
+        - libblst-{{ so_major_version }}
+        - pip
+        - python
+        - setuptools
+      run:
+        - libblst-{{ so_major_version }}
+        - python
+    test:
+      source_files:
+        - test_blst.py
+      imports:
+        - blst
+        - blst.blst
+        - blst._blst
+      requires:
+        - pip
+        - python
+      commands:
+        - pip check
+        - python -c "import blst._blst; import inspect; print('File path:', inspect.getfile(blst._blst))"
+        - python -c "import blst.blst; import inspect; print('File path:', inspect.getfile(blst.blst))"
+        - python -c "import blst; import inspect; print('File path:', inspect.getfile(blst))"
+        - python test_blst.py
+
+  - name: blst-py
+    requirements:
+      host:
+        - {{ pin_subpackage('blst') }}
+      run:
+        - {{ pin_subpackage('blst') }}
+    test:
+      imports:
+        - blst
+      requires:
+        - pip
+      commands:
+        - pip check
+
+about:
+  home: https://github.com/supranational/blst
+  summary: 'Multilingual BLS12-381 signature library'
+  description: |
+    blst (pronounced 'blast') is a BLS12-381 signature library focused
+    on performance and security. It is written in C and assembly.'
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+  feedstock-name: blst
