@@ -1,0 +1,185 @@
+{% set name = "E3SM-Unified" %}
+{% set version = "1.10.0" %}
+{% set build = 0 %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/E3SM-Project/e3sm-unified/archive/{{ version }}.tar.gz
+  sha256: 2d011540184580e25edebd160109dfdec6f63ca3bf4df529621e4dc6b4e37d50
+
+build:
+  number: {{ build }}
+  skip: true  # [win or py>=311]
+
+  # add build string so packages can depend on
+  # mpi or nompi variants explicitly:
+  # `e3sm-unified * mpi_mpich_*` for mpich
+  # `e3sm-unified * mpi_*` for any mpi
+  # `e3sm-unified * nompi_*` for no mpi
+
+  {% if mpi == 'nompi' or mpi == 'hpc' %}
+  {% set mpi_prefix = "nompi" %}
+  {% set build_prefix = mpi %}
+  {% else %}
+  {% set mpi_prefix = "mpi_" + mpi %}
+  {% set build_prefix = mpi_prefix %}
+  {% endif %}
+  string: "{{ build_prefix }}_py{{ CONDA_PY }}_h{{ PKG_HASH }}_{{ build }}"
+
+requirements:
+  host:
+    - python
+  run:
+    ### main packages ###
+    - python
+    - r
+    - cime_gen_domain  # [linux]
+    - chemdyg 1.0.1
+    - e3sm_diags 2.12.0
+    - e3sm_to_cmip 1.11.2
+    - e3sm-tools 3.0.0  # [linux]
+    - geometric_features 1.3.0
+    - globus-cli >=3.15.0
+    - ilamb 2.7  # [mpi != 'nompi' and mpi != 'hpc']
+    - ipython
+    - jupyter
+    - livvkit 3.0.1
+    - mache 1.22.0
+    - moab 5.5.1 {{ mpi_prefix }}_tempest_*  # [mpi != 'hpc']
+    - mpas-analysis 1.11.0
+    - mpas_tools 0.33.0
+    - nco 5.2.4  # [mpi != 'hpc']
+    - pcmdi_metrics 2.3.1
+    - squadgen  # [linux]
+    - tempest-remap 2.2.0  # [mpi != 'hpc']
+    - tempest-extremes 2.2.1 {{ mpi_prefix }}_*  # [mpi != 'hpc']
+    - uxarray >=2024.04.0
+    - xcdat 0.7.0
+    - zppy 2.5.0
+    - zstash 1.4.2  # [linux]
+
+    ### mkdocs
+    - mkdocs-material
+    - pymdown-extensions
+    - mkdocs-monorepo-plugin
+    - mdutils
+    - mkdocs-bibtex
+    - mkdocs-redirects
+    - markdownlint-cli2
+
+    ### dependencies ###
+    - {{ mpi }}  # [mpi != 'nompi' and mpi != 'hpc']
+    - blas
+    - bottleneck
+    - cartopy >=0.17.0
+    - cdat_info 8.2.1
+    - cdms2 3.1.5
+    - cdtime 3.1.4
+    - cdutil 8.2.1
+    - cmocean
+    - dask 2023.6.0
+    - dogpile.cache
+    - eofs
+    - esmf 8.6.0 {{ mpi_prefix }}_*
+    - esmpy 8.6.0
+    - f90nml
+    - ffmpeg
+    - genutil 8.2.1
+    - globus-sdk
+    - gsw
+    - hdf5 1.14.3 {{ mpi_prefix }}_*
+    - ipygany
+    - libnetcdf 4.9.2 {{ mpi_prefix }}_*
+    - lxml
+    - matplotlib-base 3.8.2
+    - metpy
+    - mpi4py  # [mpi != 'nompi' and mpi != 'hpc']
+    - nb_conda
+    - nb_conda_kernels
+    - ncview 2.1.8
+    - ncvis-climate 2023.09.12
+    - nc-time-axis
+    - netcdf4 1.6.4 nompi_*
+    - notebook <7.0.0
+    - numpy >1.13
+    - openssh  # [mpi == 'openmpi']
+    - output_viewer 1.3.3
+    - pillow
+    - plotly
+    - progressbar2
+    - proj 9.3.1
+    - pyevtk
+    - pyproj 3.6.1
+    - pyremap
+    - pytest
+    - pywavelets
+    - r-tidyverse
+    - r-dplyr
+    - r-ggplot2
+    - scikit-image
+    - scipy >=0.9.0
+    - shapely
+    - sympy >=0.7.6
+    - tabulate
+    - windspharm  # [py<=310]
+    - xarray 2023.5.0
+    - xesmf
+
+    # addition ilamb 2.7 dependencies, for system MPI builds
+    - cython  # [mpi == 'hpc']
+    - cf-units >=2.0.0  # [mpi == 'hpc']
+    - psutil  # [mpi == 'hpc']
+    - pandas  # [mpi == 'hpc']
+
+test:
+  requires:
+    - pytest
+  imports:
+    - chemdyg
+    - e3sm_diags
+    - e3sm_to_cmip
+    - mpas_analysis
+    - ILAMB  # [mpi != 'nompi' and mpi != 'hpc']
+    - zstash  # [linux]
+    - IPython
+    - globus_cli
+    - livvkit
+    - mache
+    - zppy
+  commands:
+    - mpas_analysis --version
+    - livv --version
+    - e3sm_diags --help
+    - zstash --help  # [linux]
+    - ilamb-fetch -h  # [mpi != 'nompi' and mpi != 'hpc']
+    - ilamb-run -h  # [mpi != 'nompi' and mpi != 'hpc']
+    - ncks --help  # [mpi != 'hpc']
+    - ncap2 --help  # [mpi != 'hpc']
+    - jupyter --help
+    - jupyter nbextension list
+    - ipython -h
+    - ipython3 -h
+    - globus --help
+    - GenerateCSMesh --res 64 --alt --file gravitySam.000000.3d.cubedSphere.g  # [mpi != 'hpc']
+    - ESMF_RegridWeightGen --help  # [mpi != 'hpc']
+    - test -f ${PREFIX}/bin/Climatology  # [mpi != 'hpc']
+    - zppy --help
+
+about:
+  home: https://github.com/E3SM-Project/e3sm-unified
+  summary: |
+    A metapackage for a unified conda environment for analysis of results
+    from the Energy Exascale Earth System Model (E3SM).
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  dev_url: https://github.com/E3SM-Project/e3sm-unified
+  doc_url: https://github.com/E3SM-Project/e3sm-unified/blob/main/README.md
+
+
+extra:
+  recipe-maintainers:
+    - xylar
