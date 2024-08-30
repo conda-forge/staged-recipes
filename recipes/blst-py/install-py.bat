@@ -1,6 +1,6 @@
 @echo off
 
-pushd %SRC_DIR%\bindings/python
+pushd %SRC_DIR%\bindings\python
   %PYTHON% -m pip install . ^
     --no-build-isolation ^
     --no-deps ^
