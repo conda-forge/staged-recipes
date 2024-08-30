@@ -1,0 +1,83 @@
+From 7a7c4531aaa03169a09d3bbd0180a5a6dc1687b2 Mon Sep 17 00:00:00 2001
+From: Axel Huebl <axel.huebl@plasma.ninja>
+Date: Wed, 28 Aug 2024 17:41:16 -0700
+Subject: [PATCH] Fix CMake: FFTW Threads
+
+Trying to fix build issues on Linux in Conda-Forge in which
+pthreads are over-linked and ill-resolved from FFTW.
+---
+ cmake/FindHeffteFFTW.cmake | 19 ++++++++++++++++++-
+ cmake/HeffteConfig.cmake   | 19 +++++++++++++++----
+ 2 files changed, 33 insertions(+), 5 deletions(-)
+
+diff --git a/cmake/FindHeffteFFTW.cmake b/cmake/FindHeffteFFTW.cmake
+index 3e96d91..4143320 100644
+--- a/cmake/FindHeffteFFTW.cmake
++++ b/cmake/FindHeffteFFTW.cmake
+@@ -73,6 +73,11 @@ if (NOT FFTW_LIBRARIES)
+         PREFIX ${FFTW_ROOT}
+         VAR FFTW_LIBRARIES
+         REQUIRED "fftw3" "fftw3f"
++        OPTIONAL "")
++    heffte_find_fftw_libraries(
++        PREFIX ${FFTW_ROOT}
++        VAR FFTW_THREADS_LIBRARIES
++        REQUIRED ""
+         OPTIONAL "fftw3_threads" "fftw3f_threads")
+     heffte_find_fftw_libraries(
+         PREFIX ${FFTW_ROOT}
+@@ -80,8 +85,20 @@ if (NOT FFTW_LIBRARIES)
+         REQUIRED ""
+         OPTIONAL "fftw3_omp" "fftw3f_omp")
+ 
++    if (FFTW_THREADS_LIBRARIES)
++        list(APPEND FFTW_LIBRARIES "${FFTW_THREADS_LIBRARIES}")
++        set(THREADS_PREFER_PTHREAD_FLAG TRUE)
++        if(WIN32)  # Windows has an internal pthreads lib we can use
++            find_package(Threads)
++        else()
++            find_package(Threads REQUIRED)
++        endif()
++        if(Threads_FOUND)
++            list(APPEND FFTW_LIBRARIES Threads::Threads)
++        endif()
++    endif()
+     if (FFTW_OMP_LIBRARIES)
+-        list(APPEND FFTW_OMP_LIBRARIES "${FFTW_LIBRARIES}")
++        list(APPEND FFTW_LIBRARIES "${FFTW_OMP_LIBRARIES}")
+         if (Heffte_FFTW_LIBOMP)
+             list(APPEND FFTW_LIBRARIES "${Heffte_FFTW_LIBOMP}")
+         else()
+diff --git a/cmake/HeffteConfig.cmake b/cmake/HeffteConfig.cmake
+index dc7b432..1ddf470 100644
+--- a/cmake/HeffteConfig.cmake
++++ b/cmake/HeffteConfig.cmake
+@@ -8,13 +8,24 @@ endif()
+ 
+ include("${CMAKE_CURRENT_LIST_DIR}/HeffteTargets.cmake")
+ 
+-if (@Heffte_ENABLE_FFTW@ AND NOT TARGET Heffte::FFTW)
+-    add_library(Heffte::FFTW INTERFACE IMPORTED GLOBAL)
++if (@Heffte_ENABLE_FFTW@)
++    if (NOT "@FFTW_THREADS_LIBRARIES@" STREQUAL "")
++        set(THREADS_PREFER_PTHREAD_FLAG TRUE)
++        if(WIN32)  # Windows has an internal pthreads lib we can use
++            find_package(Threads)
++        else()
++            find_package(Threads REQUIRED)
++        endif()
++    endif()
+     if ("@OpenMP_FOUND@")
+         find_package(OpenMP REQUIRED)
+     endif()
+-    target_link_libraries(Heffte::FFTW INTERFACE @FFTW_LIBRARIES@)
+-    set_target_properties(Heffte::FFTW PROPERTIES INTERFACE_INCLUDE_DIRECTORIES @FFTW_INCLUDES@)
++
++    if(NOT TARGET Heffte::FFTW)
++        add_library(Heffte::FFTW INTERFACE IMPORTED GLOBAL)
++        target_link_libraries(Heffte::FFTW INTERFACE @FFTW_LIBRARIES@)
++        set_target_properties(Heffte::FFTW PROPERTIES INTERFACE_INCLUDE_DIRECTORIES @FFTW_INCLUDES@)
++    endif()
+ endif()
+ 
+ if (@Heffte_ENABLE_MKL@ AND NOT TARGET Heffte::MKL)
