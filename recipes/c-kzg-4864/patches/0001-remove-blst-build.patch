@@ -3,16 +3,15 @@
 @@ -1,7 +1,8 @@
 -from os import chdir
 +import os
-+import sysconfig
  from pathlib import Path
  from platform import system
++import sysconfig
 +
  from setuptools import setup, Extension
--from setuptools.command.build_ext import build_ext
-+from setuptools.command.build_ext import build_ext
+ from setuptools.command.build_ext import build_ext
 -from subprocess import check_call
 
-@@ -9,10 +9,6 @@
+@@ -9,10 +10,6 @@
  class CustomBuild(build_ext):
 -    def run(self):
 +    def finalize_options(self):
@@ -26,38 +25,39 @@
 -        super().run()
 +            self.compiler = "mingw32"
 
-@@ -22,3 +18,29 @@
+@@ -22,3 +19,30 @@
      setup_dir = Path(__file__).parent.resolve()
 -    chdir(setup_dir)
 +    os.chdir(setup_dir)
 +
 +    so = os.getenv('BLST_MAJOR_VERSION')
++    is_win = (system() == "Windows")
 +
 +    h_prefix = os.getenv('PREFIX')
-+    h_prefix = os.path.join(h_prefix, "Library") if system() == "Windows" else h_prefix
++    h_prefix = os.path.join(h_prefix, "Library") if is_win else h_prefix
 +
 +    b_prefix = os.getenv('BUILD_PREFIX')
-+    b_prefix = os.path.join(b_prefix, "Library") if system() == "Windows" else b_prefix
++    b_prefix = os.path.join(b_prefix, "Library") if is_win else b_prefix
 +
 +    for key, value in os.environ.items():
 +        print(f"{key}: {value}") if key in ['CC', 'LD'] else None
 +
-+    blst = os.path.join(h_prefix, "bin", f"blst-{so}.dll") if system() == "Windows" else None
++    blst = os.path.join(h_prefix, "bin", f"blst-{so}.dll") if is_win else None
 +    blst = os.path.join(h_prefix, "lib", f"libblst.so.{so}") if system() == "Linux" else blst
 +    blst = os.path.join(h_prefix, "lib", f"libblst.{so}.dylib") if system() == "Darwin" else blst
 +    blst = "blst" if blst is None else blst
 +
 +    extension = Extension(
-+                "ckzg",
-+                sources=["bindings/python/ckzg.c", "src/c_kzg_4844.c"],
-+                include_dirs=["inc", "src", os.path.join(b_prefix, "include"), os.path.join(h_prefix, "include")],
-+                library_dirs=["lib", os.path.join(b_prefix, "lib"), os.path.join(h_prefix, "lib")],
-+                extra_objects=[blst, sysconfig.get_config_var('LDLIBRARY')] if system() == "Windows" else [blst],
-+            )
++        "ckzg",
++        sources=["bindings/python/ckzg.c", "src/c_kzg_4844.c"],
++        include_dirs=["inc", "src", os.path.join(b_prefix, "include"), os.path.join(h_prefix, "include")],
++        library_dirs=["lib", os.path.join(b_prefix, "lib"), os.path.join(h_prefix, "lib")],
++        extra_objects=[blst] + ([sysconfig.get_config_var('LDLIBRARY')] if is_win else []),
++    )
++
 +    print(f"Using {blst} as the blst library ({system()}).")
-+    print(f"{extension}")
 
-@@ -34,11 +56,3 @@
+@@ -34,11 +58,3 @@
          license="Apache-2.0",
 -        ext_modules=[
 -            Extension(
