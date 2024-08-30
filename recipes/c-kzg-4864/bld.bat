@@ -1,5 +1,5 @@
 
-%PYTHON% -m sysconfig --generate-posix-vars
+%PYTHON% -m sysconfig
 
 %PYTHON% -m pip install . ^
   --no-build-isolation ^
