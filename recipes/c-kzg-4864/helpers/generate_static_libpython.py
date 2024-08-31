@@ -4,8 +4,8 @@ import sysconfig
 
 
 def find_python_dlls(lib_dir):
-    # List all files in the specified directory
     files = os.listdir(lib_dir)
+    print(files)
     return [f for f in files if f.endswith('.dll') if 'ython' in f]
 
 
@@ -29,7 +29,7 @@ def generate_libpython():
                 cwd=lib_dir,
             )
 
-            print(f"Library {libpython} generated and moved successfully.")
+            print(f"Library {libpython} generated.")
         except subprocess.CalledProcessError as e:
             print(f"An error occurred: {e}")
 
