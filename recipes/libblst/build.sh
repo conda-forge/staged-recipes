@@ -39,3 +39,27 @@ else
   cp bindings/blst.h "${PREFIX}"/include
   cp bindings/blst_aux.h "${PREFIX}"/include
 fi
+
+# libblst.pc
+if [[ "${target_platform}" == win-* ]]; then
+  pkgdir="${PREFIX}"/Library/lib/pkgconfig
+else
+  pkgdir="${PREFIX}"/lib/pkgconfig
+fi
+mkdir -p "${pkgdir}"
+cat > "${pkgdir}"/libblst.pc <<EOF
+fi
+mkdir -p "${PREFIX}"/lib/pkgconfig
+cat > "${PREFIX}"/lib/pkgconfig/libblst.pc <<EOF
+prefix=${PREFIX}
+exec_prefix=\${prefix}
+libdir=\${exec_prefix}/lib
+includedir=\${prefix}/include
+
+Name: libblst
+Description: BLS12-381 signature library
+Version: ${PKG_VERSION}
+Libs: -L\${libdir} -lblst
+Cflags: -I\${includedir}
+EOF
+ln -s "${pkgdir}"/libblst.pc "${pkgdir}"/blst.pc
