@@ -1,5 +1,6 @@
 
 %PYTHON% -m sysconfig
+dir %PREFIX%\lib\*python*
 
 %PYTHON% -m pip install . ^
   --no-build-isolation ^
