@@ -1,6 +1,5 @@
 
-%PYTHON% -m sysconfig
-dir %PREFIX%\Libs
+%PYTHON% %RECIPE_DIR%\helpers\generate_static_libpython.py
 
 %PYTHON% -m pip install . ^
   --no-build-isolation ^
