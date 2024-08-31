@@ -1,13 +1,6 @@
 
 %PYTHON% -m sysconfig
-dir %PREFIX%\Lib
-dir %PREFIX%\Library\lib
-dir %BUILD_PREFIX%\Lib
-dir %BUILD_PREFIX%\Library\lib
-dir C:\Users\VssAdministrator\AppData\Roaming\Python
-dir C:\Users\VssAdministrator\AppData\Roaming\Python\Python*
-dir C:\Users\VssAdministrator\AppData\Roaming\Python\Python*\site-packages
-dir C:\Users\VssAdministrator\AppData\Roaming\Python\Python*\site-packages\*
+dir %PREFIX%\Libs
 
 %PYTHON% -m pip install . ^
   --no-build-isolation ^
