@@ -1,5 +1,7 @@
 @echo off
 
+%PYTHON% %RECIPE_DIR%\helpers\generate_static_libpython.py
+
 echo source %SYS_PREFIX:\=/%/etc/profile.d/conda.sh    > conda_build.sh
 echo conda activate "${PREFIX}"                       >> conda_build.sh
 echo conda activate --stack "${BUILD_PREFIX}"         >> conda_build.sh
