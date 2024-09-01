@@ -1,7 +1,7 @@
 
 %PYTHON% %RECIPE_DIR%\helpers\generate_static_libpython.py
 
-%PYTHON% -m pip wheel -w wheels . ^
+%PYTHON% -m pip wheel -w %SRC_DIR%\wheels . ^
   --no-build-isolation ^
   --no-deps ^
   --only-binary :all:
