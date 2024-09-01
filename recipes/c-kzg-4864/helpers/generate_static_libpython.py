@@ -28,7 +28,7 @@ def generate_libpython():
         try:
             # Run gendef.exe to generate the .def file
             subprocess.run(
-                ['gendef.exe', "-", os.path.join(root, python_dll)],
+                ['gendef.exe', os.path.join(root, python_dll)],
                 check=True,
                 cwd=lib_dir,
             )
