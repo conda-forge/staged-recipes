@@ -3,7 +3,7 @@
 
 {% set blst_so_major_version = 0 %}
 package:
-  name: {{ name|lower }}
+  name: c-kzg-4844-split
   version: {{ version }}
 
 source:
@@ -15,15 +15,13 @@ source:
     - patches/0001-remove-blst-build.patch
 
 build:
-  script: {{ PYTHON }} -m pip install . -vv  # [unix]
+  script: {{ PYTHON }} -m pip wheel -w wheels . -vv  # [unix]
   script_env:
     - BLST_MAJOR_VERSION={{ blst_so_major_version }}
     - CC=x86_64-w64-mingw32-gcc  # [win]
     - CXX=x86_64-w64-mingw32-g++  # [win]
     - LD=x86_64-w64-mingw32-ld  # [win]
   number: 0
-  ignore_run_exports:
-    - python
 
 requirements:
   build:
@@ -33,31 +31,63 @@ requirements:
     - {{ stdlib('m2w64_c') }}  # [win]
     - cross-python_{{ target_platform }}  # [build_platform != target_platform]
     - libblst
-    - python
   host:
     - libblst-{{ blst_so_major_version }}
     - pip
     - python
     - setuptools
-  run:
-    - libblst-{{ blst_so_major_version }}
-    - python
-    - PyYAML
 
-test:
-  source_files:
-    - bindings/python/tests.py
-    - src/trusted_setup.txt
-    - tests
-  imports:
-    - ckzg
-  requires:
-    - pip
-    - python
-  commands:
-    - pip check
-    - cd bindings/python && ${PYTHON} tests.py  # [unix]
-    - cd bindings\\python && %PYTHON% tests.py  # [win]
+outputs:
+  - name: ckzg
+    script: install-py.sh  # [unix]
+    script: install-py.bat  # [win]
+    build:
+      ignore_run_exports:
+        - python
+    requirements:
+      build:
+        # - {{ compiler('c') }}  # [not win]
+        # - {{ compiler('m2w64_c') }}  # [win]
+        # - {{ stdlib('c') }}  # [not win]
+        # - {{ stdlib('m2w64_c') }}  # [win]
+        # - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+      host:
+        - libblst-{{ blst_so_major_version }}
+        - pip
+        - python
+      run:
+        - libblst-{{ blst_so_major_version }}
+        - python
+        - PyYAML
+    test:
+      source_files:
+        - bindings/python/tests.py
+        - src/trusted_setup.txt
+        - tests
+      imports:
+        - ckzg
+      requires:
+        - pip
+        - python
+      commands:
+        - pip check
+        - cd bindings/python && python tests.py  # [unix]
+        - cd bindings\\python && python tests.py  # [win]
+
+
+  - name: c-kzg-4844
+    requirements:
+      host:
+        - {{ pin_subpackage('ckzg') }}
+      run:
+        - {{ pin_subpackage('ckzg') }}
+    test:
+      imports:
+        - ckzg
+      requires:
+        - pip
+      commands:
+        - pip check
 
 about:
   home: https://github.com/ethereum/c-kzg-4844
@@ -74,3 +104,4 @@ about:
 extra:
   recipe-maintainers:
     - MementoRC
+  feedstock-name: c-kzg-4844
