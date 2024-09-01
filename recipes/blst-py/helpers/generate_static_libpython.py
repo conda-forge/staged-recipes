@@ -40,7 +40,7 @@ def generate_libpython():
             cwd=lib_dir,
         )
 
-        print(f"Library {libpython} generated.")
+        print(f"Library {libpython} generated: {os.path.exists(os.path.join(lib_dir, libpython))}.")
     except subprocess.CalledProcessError as e:
         print(f"An error occurred: {e}")
 
