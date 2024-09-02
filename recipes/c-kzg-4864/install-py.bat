@@ -1,8 +1,9 @@
 @echo off
 
-for /f "delims=" %%i in ('python %RECIPE_DIR%\helpers\get_abi.py') do set TAG=%%i
+:: Find exact wheel file name
+for /f "delims=" %%i in ('dir /b %SRC_DIR%\wheels\%PKG_NAME%-%PKG_VERSION%-*.whl') do set "WHEELS_NAME=%%i"
 
-%PYTHON% -m pip install %SRC_DIR%\wheels\%PKG_NAME%-%PKG_VERSION%-%TAG%.whl ^
+%PYTHON% -m pip install %SRC_DIR%\wheels\%WHEELS_NAME%.whl ^
 --no-build-isolation ^
 --no-deps ^
 --only-binary :all: ^
