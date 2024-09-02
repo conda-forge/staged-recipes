@@ -6,3 +6,5 @@
   --no-deps ^
   --only-binary :all:
 if errorlevel 1 exit 1
+
+dir %SRC_DIR%\wheels
