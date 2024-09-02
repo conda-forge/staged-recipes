@@ -12,8 +12,6 @@ pushd "${SRC_DIR}"/bindings/python
 
   ${PYTHON} ./run.me
   cat > __init__.py << EOF
-from blst import _blst
-
 from blst.blst import (
     SecretKey,
     Scalar,
