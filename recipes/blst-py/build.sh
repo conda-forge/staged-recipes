@@ -12,9 +12,9 @@ pushd "${SRC_DIR}"/bindings/python
 
   ${PYTHON} ./run.me
   cat > __init__.py << EOF
-from . import _blst
+from blst import _blst
 
-from .blst import (
+from blst.blst import (
     SecretKey,
     Scalar,
     P1_Affine,
@@ -42,6 +42,5 @@ from .blst import (
     BLS12_381_G2,
     BLS12_381_NEG_G2
 )
-
 EOF
 popd
