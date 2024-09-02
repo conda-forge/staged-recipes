@@ -11,6 +11,11 @@ pushd "${SRC_DIR}"/bindings/python
   fi
 
   ${PYTHON} ./run.me
+
+  # Replace from . _blst import
+  sed -i.bak 's/from . import _blst/import ._blst/g' blst.py
+  rm blst.py.bak
+
   cat > __init__.py << EOF
 from blst.blst import (
     SecretKey,
