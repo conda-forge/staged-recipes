@@ -32,10 +32,13 @@ def generate_libpython():
             check=True,
             cwd=lib_dir,
         )
+        # inspect the generated .def file
+        with open(os.path.join(lib_dir, python_def), 'r') as f:
+            print(f"Generated .def file: {f.read()}")
 
         # Run dlltool.exe to generate the .a file
         subprocess.run(
-            ['dlltool.exe', '--dllname', os.path.join(root, python_dll), '--def', python_def, '--output-lib', libpython],
+            ['dlltool.exe', '--dllname', os.path.join(root, python_dll), '--add-stdcall-alias', '--def', python_def, '--output-lib', libpython],
             check=True,
             cwd=lib_dir,
         )
