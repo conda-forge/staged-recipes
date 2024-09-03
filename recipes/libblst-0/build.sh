@@ -6,6 +6,7 @@ set -euxo pipefail
 if [[ "${target_platform}" == win-* ]]; then
   # Remove -fPIC from CFLAGS
   sed -i 's/-fPIC//g' build.sh
+  sed "s/LIBRARY blst/LIBRARY blst-${PKG_MAJOR_VERSION}/g" build/win64/blst.def > build/win64/blst-"${PKG_MAJOR_VERSION}".def
   bash ./build.sh -dll flavour=mingw64 CC=x86_64-w64-mingw32-gcc AR=llvm-ar
 else
   bash ./build.sh -shared
