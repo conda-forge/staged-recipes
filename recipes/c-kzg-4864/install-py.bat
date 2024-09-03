@@ -18,4 +18,5 @@ dumpbin /exports %PREFIX%\Lib\site-packages\%PKG_NAME%*.pyd
 dumpbin /dependents %PREFIX%\Lib\site-packages\%PKG_NAME%*.pyd
 dumpbin /exports %PREFIX%\Lib\blst*.pyd
 
+%PYTHON% -c "import psfile, glob; dll_path = glob.glob(r'%PREFIX%\Lib\site-packages\ckzg*pyd')[0]; pe = pefile.PE(dll_path); print([entry.dll.decode('utf-8') for entry in pe.DIRECTORY_ENTRY_IMPORT])"
 %PYTHON% -c "import ctypes, glob; dll_path = glob.glob(r'%PREFIX%\Lib\site-packages\ckzg*pyd')[0]; ctypes.CDLL(dll_path)"
