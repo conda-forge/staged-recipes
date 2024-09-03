@@ -1,0 +1,17 @@
+export _OLD_FC=$FC
+export _OLD_CPATH=$CPATH
+export _OLD_FFLAGS=$FFLAGS
+export _OLD_LIBRARY_PATH=$LIBRARY_PATH
+export _OLD_FORTRANFLAGS=$FORTRANFLAGS
+
+if [ -z "$CONDA_PREFIX" ]; then
+    export CPATH=$CPATH:$PREFIX/include
+    export LIBRARY_PATH=$LIBRARY_PATH:$PREFIX/lib
+else
+    export CPATH=$CPATH:$CONDA_PREFIX/include
+    export LIBRARY_PATH=$LIBRARY_PATH:$CONDA_PREFIX/lib
+    export FORTRANFLAGS="$FORTRANFLAGS --sysroot=$CONDA_BUILD_SYSROOT"
+fi
+
+export FC="flang-new"
+export FFLAGS=$FORTRANFLAGS

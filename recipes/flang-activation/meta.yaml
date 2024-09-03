@@ -1,0 +1,64 @@
+{% set version = "19.1.0.rc3" %}
+
+package:
+  name: flang-activation
+  version: {{ version }}
+
+build:
+  number: 0
+  # intentionally only windows (main target) & linux (debuggability)
+  skip: true  # [osx]
+
+requirements:
+  build:
+    - clangdev =={{ version }}
+
+outputs:
+  - name: flang_impl_{{ cross_target_platform }}
+    script: install_flang_impl.sh   # [unix]
+    # we don't cross-compile on windows -> no symlinks
+    requirements:
+      - flang ={{ version }}
+      - lld ={{ version }}
+      - compiler-rt ={{ version }}
+      - compiler-rt_{{ cross_target_platform }} ={{ version }}
+    test:
+      commands:
+        - {{ CBUILD }}-flang --version  # [unix]
+        - {{ CHOST }}-flang --version   # [unix]
+
+  - name: flang_{{ cross_target_platform }}
+    script: install_flang.sh   # [unix]
+    script: install_flang.bat  # [win]
+    run_exports:
+      strong:
+        - libflang >={{ version }}
+    requirements:
+      run:
+        - {{ pin_subpackage("flang_impl_" ~ cross_target_platform, exact=True) }}
+    test:
+      requires:
+        - grep                      # [unix]
+        - m2-grep                   # [win]
+      files:
+        - hello_world.f90
+      commands:
+        # see naming discussion: https://discourse.llvm.org/t/reviving-rename-flang-new-to-flang/68130/2
+        # - flang hello_world.f90
+        - flang-new hello_world.f90
+        - ./a.out   # [unix]
+        - a.exe     # [win]
+        # check if activation worked
+        - env | grep "FC="
+
+about:
+  home: https://flang.llvm.org
+  license: Apache-2.0
+  license_file: flang/LICENSE.TXT
+  summary: Flang is a Fortran compiler targeting LLVM.
+  dev_url: https://github.com/llvm/llvm-project
+
+extra:
+  recipe-maintainers:
+    - isuruf
+    - h-vetinari
