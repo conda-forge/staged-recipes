@@ -26,17 +26,12 @@ def generate_libpython():
     python_def = python_dll.replace(".dll", ".def")
     libpython = f"lib{python_dll.replace('.dll', '.a')}"
     try:
-        # Run gendef.exe to generate the .def file
         subprocess.run(
             ['gendef.exe', os.path.join(root, python_dll)],
             check=True,
             cwd=lib_dir,
         )
-        # inspect the generated .def file
-        with open(os.path.join(lib_dir, python_def), 'r') as f:
-            print(f"Generated .def file: {f.read()}")
 
-        # Run dlltool.exe to generate the .a file
         subprocess.run(
             ['dlltool.exe', '--dllname', os.path.join(root, python_dll), '--add-stdcall-alias', '--def', python_def, '--output-lib', libpython],
             check=True,

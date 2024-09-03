@@ -12,17 +12,13 @@ pushd "${SRC_DIR}"/bindings/python
 
   ${PYTHON} ./run.me
 
-  # # Replace from . _blst import
-  # sed -i.bak 's/from . import _blst/from blst import _blst/g' blst.py
-  # rm blst.py.bak
-
   cat > __init__.py << EOF
-try:
-    import blst._blst as _blst
-except ImportError as e:
-    print(f"Unable to load blst library. {e}")
-    _blst = None
-
+# try:
+#     import blst._blst as _blst
+# except ImportError as e:
+#     print(f"Unable to load blst library. {e}")
+#     _blst = None
+#
 from blst.blst import (
     SecretKey,
     Scalar,
