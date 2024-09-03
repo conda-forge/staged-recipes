@@ -1,0 +1,79 @@
+{% set version = '0.3-5' %}
+
+{% set posix = 'm2-' if win else '' %}
+{% set native = 'm2w64-' if win else '' %}
+
+package:
+  name: r-gsignal
+  version: {{ version|replace("-", "_") }}
+
+source:
+  # curl -sL https://cran.r-project.org/src/contrib/gsignal_0.3-5.tar.gz | openssl sha256
+  url:
+    - {{ cran_mirror }}/src/contrib/gsignal_{{ version }}.tar.gz
+    - {{ cran_mirror }}/src/contrib/Archive/gsignal/gsignal_{{ version }}.tar.gz
+  sha256: 4ebf509626ad7f7ed7e67269958cf135c1de22a703acf8a6e94e9fb7d145cb63
+
+build:
+  merge_build_host: True  # [win]
+  # If this is a new build for the same version, increment the build number.
+  number: 0
+  # no skip
+
+  # This is required to make R link correctly on Linux.
+  rpaths:
+    - lib/R/lib/
+    - lib/
+
+# Suggests: knitr, rmarkdown, testthat, ggplot2, gridExtra, microbenchmark, imager, covr
+requirements:
+  build:
+    - {{ compiler('c') }}              # [not win]
+    - {{ stdlib("c") }}                # [not win]
+    - {{ compiler('m2w64_c') }}        # [win]
+    - {{ stdlib("m2w64_c") }}          # [win]
+    - {{ compiler('cxx') }}            # [not win]
+    - {{ compiler('m2w64_cxx') }}      # [win]
+    - cross-r-base {{ r_base }}    # [build_platform != target_platform]
+
+  host:
+    - r-rcpp
+    - r-pracma
+
+  run:
+    - r-base
+    - {{ native }}gcc-libs         # [win]
+    - r-rcpp
+    - r-pracma
+
+test:
+  commands:
+    # You can put additional test commands to be run here.
+    - $R -e "library('gsignal')"           # [not win]
+    - "\"%R%\" -e \"library('gsignal')\""  # [win]
+
+  # You can also put a file called run_test.py, run_test.sh, or run_test.bat
+  # in the recipe that will be run at test time.
+
+  # requires:
+    # Put any additional test requirements here.
+
+about:
+  home: https://github.com/gjmvanboxtel/gsignal
+  license: GPL-3.0-only
+  summary: |
+    R implementation of the 'Octave' package 'signal', containing a 
+    variety of signal processing tools, such as signal generation and 
+    measurement, correlation and convolution, filtering, filter design, 
+    filter analysis and conversion, power spectrum analysis, system 
+    identification, decimation and sample rate change, and windowing.
+  license_family: GPL3
+  license_file:
+    - '{{ environ["PREFIX"] }}/lib/R/share/licenses/GPL-3'
+
+extra:
+  recipe-maintainers:
+    - conda-forge/r
+    - gjmvanboxtel
+    - dipterix
+
