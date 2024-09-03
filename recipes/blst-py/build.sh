@@ -19,7 +19,8 @@ pushd "${SRC_DIR}"/bindings/python
   cat > __init__.py << EOF
 try:
     import blst._blst as _blst
-except ImportError:
+except ImportError as e:
+    print(f"Unable to load blst library. {e}")
     _blst = None
 
 from blst.blst import (
