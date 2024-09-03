@@ -11,5 +11,5 @@ for /f "delims=" %%i in ('dir /b %SRC_DIR%\wheels\%PKG_NAME%-%PKG_VERSION%-*.whl
     --prefix "%PREFIX%"
 if errorlevel 1 exit 1
 
-%PYTHON% -c "import psfile, glob; dll_path = glob.glob(r'%PREFIX%\Lib\site-packages\ckzg*pyd')[0]; pe = pefile.PE(dll_path); print([entry.dll.decode('utf-8') for entry in pe.DIRECTORY_ENTRY_IMPORT])"
+%PYTHON% -c "import pefile, glob; dll_path = glob.glob(r'%PREFIX%\Lib\site-packages\ckzg*pyd')[0]; pe = pefile.PE(dll_path); print([entry.dll.decode('utf-8') for entry in pe.DIRECTORY_ENTRY_IMPORT])"
 %PYTHON% -c "import ctypes, glob; dll_path = glob.glob(r'%PREFIX%\Lib\site-packages\ckzg*pyd')[0]; ctypes.CDLL(dll_path)"
