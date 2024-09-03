@@ -13,4 +13,9 @@ if errorlevel 1 exit 1
 
 dir %PREFIX%\Lib\site-packages
 dir %PREFIX%\Lib\site-packages\%PKG_NAME%*
+dir %PREFIX%\Lib\blst*
+dumpbin /exports %PREFIX%\Lib\site-packages\%PKG_NAME%*.pyd
+dumpbin /dependents %PREFIX%\Lib\site-packages\%PKG_NAME%*.pyd
+dumpbin /exports %PREFIX%\Lib\blst*.pyd
+
 %PYTHON% -c "import ctypes, glob; dll_path = glob.glob(r'%PREFIX%\Lib\site-packages\ckzg*pyd')[0]; ctypes.CDLL(dll_path)"
