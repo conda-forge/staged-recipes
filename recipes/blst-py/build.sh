@@ -13,7 +13,7 @@ pushd "${SRC_DIR}"/bindings/python
   ${PYTHON} ./run.me
 
   # Replace from . _blst import
-  sed -i.bak 's/from . import _blst/import blst._blst/g' blst.py
+  sed -i.bak 's/from . import _blst/from blst import _blst/g' blst.py
   rm blst.py.bak
 
   cat > __init__.py << EOF
