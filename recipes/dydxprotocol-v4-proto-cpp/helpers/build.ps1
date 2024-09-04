@@ -6,7 +6,7 @@ New-Item -ItemType Directory -Force -Path _conda-build-protocol, _conda-build-cl
 
 Push-Location _conda-build-protocol
   cmake "$env:SRC_DIR/v4-client-cpp" `
-    %CMAKE_ARGS% ^
+    %CMAKE_ARGS% `
     -DCMAKE_BUILD_TYPE=Release `
     -DCMAKE_PREFIX_PATH="${env:PREFIX}/lib" `
     -DCMAKE_INSTALL_PREFIX="${env:PREFIX}" `
