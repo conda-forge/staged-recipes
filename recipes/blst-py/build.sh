@@ -13,7 +13,7 @@ pushd "${SRC_DIR}"/bindings/python
   fi
 
   # Assembly refresh
-  bash ./build/refresh.sh
+  bash "${SRC_DIR}"/build/refresh.sh
 
   ${PYTHON} ./run.me
 
