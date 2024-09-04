@@ -13,6 +13,7 @@ import os
 INKSCAPE = os.environ.get("NO_INKSCAPE") is not None and (
     shutil.which("inkscape") or shutil.which("inkscape.exe")
 )
+TECTONIC = shutil.which("tectonic") or shutil.which("tectonic.exe")
 CONVERTERS = [
     "cairosvgconverter",
     "rsvgconverter",
@@ -104,7 +105,7 @@ def test_convert(a_project: Path, script_runner):
     assert res.returncode == 0
     build = cwd / "build"
     pdf = build / "test.pdf"
-    rc = call(["tectonic", "-X", "compile", "test.tex"], cwd=str(build), env=ENV)
+    rc = call([TECTONIC, "-X", "compile", "test.tex"], cwd=str(build), env=ENV)
     assert rc == 0
     assert pdf.exists()
 
