@@ -12,11 +12,13 @@ for /f "delims=" %%i in ('dir /b %SRC_DIR%\wheels\%PKG_NAME%-%PKG_VERSION%-*.whl
 if errorlevel 1 exit 1
 
 :: Prepare post-install test
+setlocal enabledelayedexpansion
 set "file_path=%SRC_DIR%\bindings\python\tests.py"
 set "temp_file=%file_path%.tmp"
-for /f "delims=" %%i in ('type "%file_path%"') do (
+(for /f "delims=" %%i in ('type "%file_path%"') do (
     set "line=%%i"
     set "line=!line:/=\!"
-    echo !line!>>"%temp_file%"
-)
+    echo !line!
+)) > "%temp_file%"
 move /y "%temp_file%" "%file_path%"
+endlocal
