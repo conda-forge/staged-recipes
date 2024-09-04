@@ -1,0 +1,100 @@
+{% set version = "1.2.2" %}
+
+# handle undefined PYTHON in `noarch: generic` outputs
+{% if PYTHON is not defined %}{% set PYTHON = "$PYTHON" %}{% endif %}
+
+package:
+  name: sphinxcontrib-svg2pdfconverter
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/s/sphinxcontrib-svg2pdfconverter/sphinxcontrib-svg2pdfconverter-{{ version }}.tar.gz
+  sha256: 80a55ca61f70eae93efc65f3814f2f177c86ba55934a9f6c5022f1778b62146b
+
+build:
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+
+requirements:
+  host:
+    - python >=3.4
+    - pip
+    - setuptools
+  run:
+    - python >=3.4
+    - sphinx >=1.6.3
+
+test:
+  imports:
+    - sphinxcontrib.cairosvgconverter
+    - sphinxcontrib.inkscapeconverter
+    - sphinxcontrib.rsvgconverter
+  commands:
+    - pip check
+  requires:
+    - pip
+
+outputs:
+  - name: sphinxcontrib-svg2pdfconverter
+
+  - name: sphinxcontrib-svg2pdfconverter-with-cairosvg
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage("sphinxcontrib-svg2pdfconverter", max_pin="x.x.x") }}
+        - cairosvg >=1.0
+    test:
+      imports:
+        - sphinxcontrib.cairosvgconverter
+      commands:
+        - pip check
+      requires:
+        - pip
+
+  - name: sphinxcontrib-svg2pdfconverter-with-rsvg
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage("sphinxcontrib-svg2pdfconverter", max_pin="x.x.x") }}
+        - librsvg
+    test:
+      imports:
+        - sphinxcontrib.rsvgconverter
+      commands:
+        - pip check
+      requires:
+        - pip
+
+  - name: sphinxcontrib-svg2pdfconverter-with-all
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage("sphinxcontrib-svg2pdfconverter-with-rsvg", max_pin="x.x.x") }}
+        - {{ pin_subpackage("sphinxcontrib-svg2pdfconverter-with-cairosvg", max_pin="x.x.x") }}
+    test:
+      files:
+        - converter_test.py
+      imports:
+        - sphinxcontrib
+      commands:
+        - python converter_test.py
+      requires:
+        - coverage
+        - inkscape  # [win]
+        - pytest
+        - pytest-console-scripts
+        - tectonic
+
+about:
+  home: https://github.com/missinglinkelectronics/sphinxcontrib-svg2pdfconverter
+  summary: Sphinx SVG to PDF converter extension
+  license: BSD-2-Clause
+  license_file: LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - bollwyvl
