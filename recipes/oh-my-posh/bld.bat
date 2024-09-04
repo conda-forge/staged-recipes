@@ -9,7 +9,7 @@ go-licenses save . --save_path=..\license-files ^
 cd %SRC_DIR% || goto :error
 xcopy /s /t /e themes %LIBRARY_PREFIX% || goto :error
 mkdir %LIBRARY_PREFIX%\share\%PKG_NAME% || goto :error
-mklink %LIBRARY_PREFIX%\share\%PKG_NAME% %PREFIX%\themes || goto :error
+mklink %LIBRARY_PREFIX%\share\%PKG_NAME% %LIBRARY_PREFIX%\themes || goto :error
 
 goto :EOF
 
