@@ -39,7 +39,8 @@ REPORT_ARGS = [
     str(64 if INKSCAPE else 68),
 ]
 HERE = Path(__file__).parent
-TECTONIC_CACHE_DIR = HERE / ".tectonic"
+
+ENV = {"TECTONIC_CACHE_DIR": str(HERE / ".tectonic")}
 
 FILES: dict[str, str] = {}
 
@@ -83,8 +84,6 @@ FILES["example.svg"] = """<?xml version="1.0" encoding="utf-8" standalone="no"?>
 
 # another copy of the svg
 FILES["example-copy.svg"] = FILES["example.svg"]
-
-ENV = {TECTONIC_CACHE_DIR: str(TECTONIC_CACHE_DIR)}
 
 
 @pytest.fixture(params=CONVERTERS)
