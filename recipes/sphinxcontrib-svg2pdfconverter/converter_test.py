@@ -10,9 +10,7 @@ import os
 
 # `inkscape` is not generally available or maintined on conda-forge, but worth
 # trying if available.
-INKSCAPE = os.environ.get("NO_INKSCAPE") is not None and (
-    shutil.which("inkscape") or shutil.which("inkscape.exe")
-)
+INKSCAPE = shutil.which("inkscape") or shutil.which("inkscape.exe")
 TECTONIC = shutil.which("tectonic") or shutil.which("tectonic.exe")
 CONVERTERS = [
     "cairosvgconverter",
@@ -37,7 +35,8 @@ REPORT_ARGS = [
     "report",
     "--show-missing",
     "--skip-covered",
-    "--fail-under=41",
+    "--fail-under",
+    str(64 if INKSCAPE else 68),
 ]
 HERE = Path(__file__).parent
 TECTONIC_CACHE_DIR = HERE / ".tectonic"
@@ -85,7 +84,7 @@ FILES["example.svg"] = """<?xml version="1.0" encoding="utf-8" standalone="no"?>
 # another copy of the svg
 FILES["example-copy.svg"] = FILES["example.svg"]
 
-ENV = {TECTONIC_CACHE_DIR: str(TECTONIC_CACHE_DIR), **os.environ}
+ENV = {TECTONIC_CACHE_DIR: str(TECTONIC_CACHE_DIR)}
 
 
 @pytest.fixture(params=CONVERTERS)
@@ -105,11 +104,15 @@ def test_convert(a_project: Path, script_runner):
     assert res.returncode == 0
     build = cwd / "build"
     pdf = build / "test.pdf"
-    rc = call([TECTONIC, "-X", "compile", "test.tex"], cwd=str(build), env=ENV)
+    rc = call(
+        [TECTONIC, "-X", "compile", "test.tex"],
+        cwd=str(build),
+        env={**ENV, **os.environ},
+    )
     assert rc == 0
     assert pdf.exists()
 
 
 if __name__ == "__main__":
     print(">>>", *TEST_ARGS, flush=True)
-    sys.exit(call(TEST_ARGS) or call(REPORT_ARGS))
+    sys.exit(max([call(TEST_ARGS), call(REPORT_ARGS)]))
