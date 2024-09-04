@@ -5,10 +5,15 @@ set -ex
 # Install
 pushd "${SRC_DIR}"/bindings/python
   if [[ "${target_platform}" == win-* ]]; then
+    export CC=x86_64-w64-mingw32-gcc
     export CXX=x86_64-w64-mingw32-g++
   else
+    export CC="${CC}"
     export CXX="${CXX}"
   fi
+
+  # Assembly refresh
+  bash ./build/refresh.sh
 
   ${PYTHON} ./run.me
 
