@@ -7,4 +7,5 @@ set -o xtrace -o nounset -o pipefail -o errexit
 
 export CFLAGS="${CFLAGS} -Wno-incompatible-function-pointer-types"
 make CC=${CC} -j${CPU_COUNT}
+mkdir -p ${PREFIX}/bin
 ./install
