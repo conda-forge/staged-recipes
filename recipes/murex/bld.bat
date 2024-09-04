@@ -1,4 +1,4 @@
-go build -buildmode=pie -trimpath -o=%PREFIX%\bin\%PKG_NAME%.exe -ldflags="-s" || goto :error
+go build -buildmode=pie -trimpath -o=%LIBRARY_PREFIX%\bin\%PKG_NAME%.exe -ldflags="-s" || goto :error
 go-licenses save . --save_path=license-files --ignore github.com/lmorg/murex --ignore modernc.org/mathutil || goto :error
 
 goto :EOF
