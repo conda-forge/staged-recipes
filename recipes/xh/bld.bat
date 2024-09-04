@@ -5,7 +5,7 @@ cargo-bundle-licenses ^
 
 :: build statically linked binary with Rust
 cargo install --no-track --locked --root %LIBRARY_PREFIX% --path . || goto :error
-mklink %LIBRARY_PREFIX%\bin\xhs.exe %LIBRARY_PREFIX%\bin\xh.exe || goto :error
+mklink %LIBRARY_PREFIX%\bin\xh.exe %LIBRARY_PREFIX%\bin\xhs.exe || goto :error
 
 goto :EOF
 
