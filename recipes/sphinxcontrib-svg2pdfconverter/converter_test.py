@@ -69,16 +69,18 @@ There should be an image above and below this.
 
 .. image:: example-copy.svg
 
-There should be an image below this.
+There should be an image above this.
 
 """
 
 # simple svg
 FILES["example.svg"] = """<?xml version="1.0" encoding="utf-8" standalone="no"?>
 <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="200" height="200">
-  <text x="10" y="10">CONVERTER</text>
+  <rect width="200" height="200" rx="10" fill="red"/>
+  <text x="20" y="20">CONVERTER</text>
 </svg>
 """
+
 # another copy of the svg
 FILES["example-copy.svg"] = FILES["example.svg"]
 
