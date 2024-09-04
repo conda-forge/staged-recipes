@@ -13,6 +13,7 @@ pushd "${SRC_DIR}"/bindings/python
   fi
 
   # Assembly refresh
+  mkdir -p "${SRC_DIR}"/build/win64-nasm
   bash "${SRC_DIR}"/build/refresh.sh
 
   ${PYTHON} ./run.me
