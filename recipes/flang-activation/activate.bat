@@ -1,7 +1,7 @@
-set "_OLD_FC=%FC%"
-set "_OLD_FFLAGS=%FFLAGS%"
-set "_OLD_LD=%LD%"
-set "_OLD_LDFLAGS=%LDFLAGS%"
+set "CONDA_BACKUP_FC=%FC%"
+set "CONDA_BACKUP_FFLAGS=%FFLAGS%"
+set "CONDA_BACKUP_LD=%LD%"
+set "CONDA_BACKUP_LDFLAGS=%LDFLAGS%"
 
 :: flang 19 still uses "temporary" name
 set "FC=flang-new"
