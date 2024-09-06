@@ -6,14 +6,21 @@ New-Item -ItemType Directory -Force -Path _conda-build-protocol, _conda-logs
 
 Push-Location _conda-build-protocol
 
-  $gcc = Get-ChildItem -Path $env:PREFIX -Recurse -Filter *gcc.exe | Select-Object -First 1
-  $gxx = Get-ChildItem -Path $env:PREFIX -Recurse -Filter *g++.exe | Select-Object -First 1
+  $gccPath = Get-ChildItem -Path $env:PREFIX -Recurse -Filter *-gcc.exe | Select-Object -First 1
+  $gxxPath = Get-ChildItem -Path $env:PREFIX -Recurse -Filter *-g++.exe | Select-Object -First 1
+
+  if ($null -eq $gxxPath) {
+      $gxxPath = Get-ChildItem -Path $env:PREFIX -Recurse -Filter *-g++.exe | Select-Object -First 1
+  }
+
+  Write-Output "g++ or gxx found at: $($gxxPath.Path)"
+  Write-Output "gcc found at: $($gccPath.Path)"
 
   cmake "$env:SRC_DIR/v4-client-cpp" `
     "${env:CMAKE_ARGS}" `
     -DCMAKE_BUILD_TYPE=Release `
-    -DCMAKE_C_COMPILER=$gcc `
-    -DCMAKE_CXX_COMPILER=$gxx `
+    -DCMAKE_C_COMPILER=$gccPath.Path `
+    -DCMAKE_CXX_COMPILER=$gxxPath.Path `
     -DCMAKE_PREFIX_PATH="${env:PREFIX}/lib" `
     -DCMAKE_INSTALL_PREFIX="${env:PREFIX}" `
     -DBUILD_SHARED_LIBS=ON `
