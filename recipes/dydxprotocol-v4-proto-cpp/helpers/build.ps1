@@ -1,4 +1,5 @@
 $env:PKG_CONFIG_PATH = "${env:PREFIX}/lib/pkgconfig"
+$env:LD_LIBRARY_PATH = "${env:PREFIX}/lib"
 
 Copy-Item -Recurse all-sources/v4-client-cpp $env:SRC_DIR
 
@@ -16,6 +17,8 @@ Push-Location _conda-build-protocol
   Write-Output "g++ found at: $gxxPath"
   Write-Output "gcc found at: $gccPath"
 
+  $env:PROTOBUF_LIB_DIR = "${PREFIX}/lib"
+
   cmake "$env:SRC_DIR/v4-client-cpp" `
     "${env:CMAKE_ARGS}" `
     -DCMAKE_BUILD_TYPE=Release `
@@ -29,4 +32,10 @@ Push-Location _conda-build-protocol
 
   cmake --build . --target dydx_v4_proto -- -j"$env:CPU_COUNT"
   cmake --install . --component protocol
+
+  # Rename dll.a into .lib
+  Get-ChildItem -Path "${env:PREFIX}/lib" -Filter *.dll.a | ForEach-Object {
+      $newName = $_.FullName -replace '\.dll\.a$', '.lib'
+      Move-Item -Path $_.FullName -Destination $newName
+  }
 Pop-Location
