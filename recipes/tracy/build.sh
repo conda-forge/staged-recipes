@@ -15,7 +15,7 @@ cmake --build . --parallel ${CPU_COUNT}
 # install
 cmake --build . --target install
 
-cd ../python
-# this will also install headers again
-# but without the Tracy(Targets*|Config).cmake files
-pip install .
+# cd ../python
+# # this will also install headers again
+# # but without the Tracy(Targets*|Config).cmake files
+# pip install .
