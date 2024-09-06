@@ -6,9 +6,7 @@ export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig"
 
 cp -r all-sources/v4-client-cpp "${SRC_DIR}"
 
-mkdir -p _conda-build-protocol _conda-build-client  _conda-logs
-
-# patch -p0 < "${RECIPE_DIR}"/patches/xxxx-cmake-protocol-lib.patch
+mkdir -p _conda-build-protocol  _conda-logs
 
 pushd _conda-build-protocol
   cmake "${SRC_DIR}"/v4-client-cpp \
