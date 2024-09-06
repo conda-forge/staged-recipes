@@ -20,4 +20,4 @@ cmake --build . --target install
 cd ../python
 # # this will also install headers again
 # # but without the Tracy(Targets*|Config).cmake files
-pip install . --target $PREFIX
+$PYTHON -m pip install . --no-deps --ignore-installed
