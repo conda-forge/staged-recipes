@@ -19,8 +19,8 @@ Push-Location _conda-build-protocol
   cmake "$env:SRC_DIR/v4-client-cpp" `
     "${env:CMAKE_ARGS}" `
     -DCMAKE_BUILD_TYPE=Release `
-    -DCMAKE_C_COMPILER=$gccPath `
-    -DCMAKE_CXX_COMPILER=$gxxPath `
+    -DCMAKE_C_COMPILER="$gccPath" `
+    -DCMAKE_CXX_COMPILER="$gxxPath" `
     -DCMAKE_PREFIX_PATH="${env:PREFIX}/lib" `
     -DCMAKE_INSTALL_PREFIX="${env:PREFIX}" `
     -DBUILD_SHARED_LIBS=ON `
