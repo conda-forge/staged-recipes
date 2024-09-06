@@ -6,11 +6,11 @@ New-Item -ItemType Directory -Force -Path _conda-build-protocol, _conda-logs
 
 Push-Location _conda-build-protocol
 
-  $gccPath = Get-ChildItem -Path $env:PREFIX -Recurse -Filter *-gcc.exe | Select-Object -First 1
-  $gxxPath = Get-ChildItem -Path $env:PREFIX -Recurse -Filter *-g++.exe | Select-Object -First 1
+  $gccPath = Get-ChildItem -Path $env:BUILD_PREFIX -Recurse -Filter *-gcc.exe | Select-Object -First 1
+  $gxxPath = Get-ChildItem -Path $env:BUILD_PREFIX -Recurse -Filter *-g++.exe | Select-Object -First 1
 
   if ($null -eq $gxxPath) {
-      $gxxPath = Get-ChildItem -Path $env:PREFIX -Recurse -Filter *-g++.exe | Select-Object -First 1
+      $gxxPath = Get-ChildItem -Path $env:BUILD_PREFIX -Recurse -Filter *-g++.exe | Select-Object -First 1
   }
 
   Write-Output "g++ found at: $gxxPath"
