@@ -10,7 +10,7 @@ Push-Location _conda-build-protocol
     "${env:CMAKE_ARGS}" `
     -DCMAKE_BUILD_TYPE=Release `
     -DCMAKE_C_COMPILER=gcc `
-    -DCMAKE_CXX_COMPILER=g++ `
+    -DCMAKE_CXX_COMPILER=gxx `
     -DCMAKE_PREFIX_PATH="${env:PREFIX}/lib" `
     -DCMAKE_INSTALL_PREFIX="${env:PREFIX}" `
     -DBUILD_SHARED_LIBS=ON `
