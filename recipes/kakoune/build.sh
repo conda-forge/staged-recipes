@@ -2,7 +2,7 @@
 
 set -exo pipefail
 
-link -s ${CXX} ${BUILD_PREFIX}/bin/c++
+ln -s ${CXX} ${BUILD_PREFIX}/bin/c++
 
 make install debug=no PREFIX=${PREFIX} -j{CPU_COUNT}
 
