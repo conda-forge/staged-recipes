@@ -14,6 +14,6 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
     make install -j${CPU_COUNT} \
         debug=no \
         PREFIX=${PREFIX} \
-        CPPFLAGS-os-Darwin="-I${BUILD_PREFIX}/include" \
-        LDFLAGS-os-Darwin="-L${BUILD_PREFIX}/lib"
+        CPPFLAGS-os-Darwin="-I${CONDA_PREFIX}/include" \
+        LDFLAGS-os-Darwin="-L${CONDA_PREFIX}/lib"
 fi
