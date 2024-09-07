@@ -27,6 +27,7 @@ Push-Location _conda-build-protocol
     -DCMAKE_PREFIX_PATH="${env:PREFIX}/lib" `
     -DCMAKE_INSTALL_PREFIX="${env:PREFIX}" `
     -DBUILD_SHARED_LIBS=ON `
+    -DProtobuf_LIBRARIES=$env:PREFIX\libprotobuf.lib `
     -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON `
     -G Ninja
 
