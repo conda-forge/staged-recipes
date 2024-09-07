@@ -17,5 +17,3 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
         CPPFLAGS-os-Darwin="-I${BUILD_PREFIX}/include" \
         LDFLAGS-os-Darwin="-L${BUILD_PREFIX}/lib"
 fi
-
-unlink ${BUILD_PREFIX}/bin/c++
