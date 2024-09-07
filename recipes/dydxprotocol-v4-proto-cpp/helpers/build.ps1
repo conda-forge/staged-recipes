@@ -19,7 +19,7 @@ Push-Location _conda-build-protocol
 
   $env:PROTOBUF_LIB_DIR = "${PREFIX}/lib"
 
-  _PREFIX = $env:PREFIX -replace '\\', '/'
+  $_PREFIX = $env:PREFIX -replace '\\', '/'
 
   cmake "$env:SRC_DIR/v4-client-cpp" `
     "${env:CMAKE_ARGS}" `
@@ -29,7 +29,7 @@ Push-Location _conda-build-protocol
     -DCMAKE_PREFIX_PATH="$_PREFIX/lib" `
     -DCMAKE_INSTALL_PREFIX="$_PREFIX" `
     -DBUILD_SHARED_LIBS=ON `
-    -DProtobuf_LIBRARIES=$_PREFIX/libprotobuf.lib `
+    -DProtobuf_LIBRARIES="$_PREFIX/libprotobuf.lib" `
     -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON `
     -G Ninja
 
