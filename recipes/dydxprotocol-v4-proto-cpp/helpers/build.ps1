@@ -29,7 +29,6 @@ Push-Location _conda-build-protocol
     -DBUILD_SHARED_LIBS=ON `
     -DCMAKE_VERBOSE_MAKEFILE=ON `
     -G Ninja
-    # -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON `
 
   cmake --build . --target dydx_v4_proto -- -j"$env:CPU_COUNT"
   cmake --install . --component protocol
