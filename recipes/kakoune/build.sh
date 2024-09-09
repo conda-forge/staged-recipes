@@ -2,7 +2,7 @@
 
 set -exo pipefail
 
-ln -s ${CXX} ${BUILD_PREFIX}/bin/c++
+ln -s ${GXX} ${BUILD_PREFIX}/bin/c++
 
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     make install -j${CPU_COUNT} \
