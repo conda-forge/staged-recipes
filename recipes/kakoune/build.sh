@@ -8,10 +8,10 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         PREFIX=${PREFIX} \
         CXX=${CXX}
 elif [[ "$OSTYPE" == "darwin"* ]]; then
-    make install -j${CPU_COUNT} \
+    make install \
         debug=no \
         PREFIX=${PREFIX} \
-        CXX=${CC} \
+        CXX=${CLANG} \
         CPPFLAGS-os-Darwin="-I${BUILD_PREFIX}/include" \
         LDFLAGS-os-Darwin="-L${BUILD_PREFIX}/lib"
 fi
