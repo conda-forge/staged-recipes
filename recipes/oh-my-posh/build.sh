@@ -14,3 +14,6 @@ popd
 cp -r themes ${PREFIX}
 mkdir -p ${PREFIX}/share/${PKG_NAME}
 ln -sf ${PREFIX}/theme ${PREFIX}/share/${PKG_NAME}
+
+# Manually copy licenses that go-licenses could not download
+cp -r ${RECIPE_DIR}/license-files/* ${SRC_DIR}/license-files
