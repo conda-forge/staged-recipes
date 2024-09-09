@@ -10,11 +10,10 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         PREFIX=${PREFIX} \
         CXX=${CXX}
 elif [[ "$OSTYPE" == "darwin"* ]]; then
-    ls ${BUILD_PREFIX}/bin
     export CXX="${CC_FOR_BUILD}-cpp"
 
-    make install -j${CPU_COUNT}\
-        debug=yes \
+    make install \
+        debug=no \
         PREFIX=${PREFIX} \
         CXX=${CXX} \
         CPPFLAGS-os-Darwin="-I${BUILD_PREFIX}/include" \
