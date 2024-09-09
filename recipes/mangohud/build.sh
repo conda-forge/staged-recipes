@@ -9,7 +9,7 @@ meson build ${MESON_ARGS} \
     -Dinclude_doc=false \
     -Dwith_nvml=disabled \
     -Dwith_xnvctrl=disabled \
-    -Dmangoplot=enabled \
+    -Dmangoplot=disabled \
     -Ddynamic_string_tokens=false
 
 ninja -j${CPU_COUNT} -C build
