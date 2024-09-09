@@ -6,12 +6,12 @@ cd ${SRC_DIR}
 
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     make install -j${CPU_COUNT} \
-        debug=yes \
+        debug=no \
         PREFIX=${PREFIX} \
         CXX=${CXX}
 
 elif [[ "$OSTYPE" == "darwin"* ]]; then
-    export CXX="${CC_FOR_BUILD}-cpp"
+    export CXX="${CC_FOR_BUILD}++"
     make install -j${CPU_COUNT} \
         debug=no \
         PREFIX=${PREFIX} \
