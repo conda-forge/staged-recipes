@@ -10,11 +10,15 @@ Push-Location _conda-build-protocol
   $gccPath = Get-ChildItem -Path $env:BUILD_PREFIX -Recurse -Filter *-gcc.exe | Select-Object -First 1
   $gxxPath = Get-ChildItem -Path $env:BUILD_PREFIX -Recurse -Filter *-g++.exe | Select-Object -First 1
 
-  $protobufDLL = Get-ChildItem -Path $env:PREFIX -Recurse -Filter *rotobuf.* | Select-Object -First 5
-  $protobufLib = Get-ChildItem -Path $env:PREFIX -Recurse -Filter *rotobuf.* | Select-Object -First 5
+  $protobufDLL = Get-ChildItem -Path $env:PREFIX -Recurse -Filter *rotobuf.* | Select-Object -First 5 | Select-Object -ExpandProperty FullName
+  $protobufLib = Get-ChildItem -Path $env:PREFIX -Recurse -Filter *rotobuf.* | Select-Object -First 5 | Select-Object -ExpandProperty FullName
+  Write-Output "Protobuf DLLs in PREFIX: $protobufDLL"
+  Write-Output "Protobuf Libraries in PREFIX: $protobufLib"
 
-  $protobufDLL = Get-ChildItem -Path $env:BUILD_PREFIX -Recurse -Filter *rotobuf.* | Select-Object -First 5
+  $protobufDLL = Get-ChildItem -Path $env:BUILD_PREFIX -Recurse -Filter *rotobuf.* | Select-Object -First 5 | Select-Object -ExpandProperty FullName
   $protobufLib = Get-ChildItem -Path $env:BUILD_PREFIX -Recurse -Filter *rotobuf.* | Select-Object -First 5
+  Write-Output "Protobuf DLLs in BUILD_PREFIX: $protobufDLL"
+  Write-Output "Protobuf Libraries in BUILD_PREFIX: $protobufLib"
 
   if ($null -eq $gxxPath) {
       $gxxPath = Get-ChildItem -Path $env:BUILD_PREFIX -Recurse -Filter *-g++.exe | Select-Object -First 1
@@ -28,7 +32,6 @@ Push-Location _conda-build-protocol
   cmake "$env:SRC_DIR/v4-client-cpp" `
     "${env:CMAKE_ARGS}" `
     -DCMAKE_BUILD_TYPE=Release `
-    -DCMAKE_C_COMPILER="$gccPath" `
     -DCMAKE_CXX_COMPILER="$gxxPath" `
     -DCMAKE_PREFIX_PATH="$_PREFIX/lib;$_PREFIX/Library/lib;$_PREFIX/Library/bin" `
     -DCMAKE_INSTALL_PREFIX="$_PREFIX" `
