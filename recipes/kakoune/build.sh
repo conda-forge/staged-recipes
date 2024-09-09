@@ -2,6 +2,8 @@
 
 set -exo pipefail
 
+cd ${SRC_DIR}
+
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     make install -j${CPU_COUNT} \
         debug=no \
@@ -10,10 +12,10 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     export CXX=${GXX}
 
-    make install \
-        debug=no \
+    make install -j${CPU_COUNT}\
+        debug=yes \
         PREFIX=${PREFIX} \
-        CXX="${CXX}" \
+        CXX=${CXX} \
         CPPFLAGS-os-Darwin="-I${BUILD_PREFIX}/include" \
         LDFLAGS-os-Darwin="-L${BUILD_PREFIX}/lib"
 fi
