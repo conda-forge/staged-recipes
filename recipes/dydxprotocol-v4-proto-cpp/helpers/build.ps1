@@ -1,5 +1,5 @@
 $env:PKG_CONFIG_PATH = "${env:PREFIX}/lib/pkgconfig"
-$env:PATH = "${env:BUILD_PREFIX}/Library/bin;$env:PATH"
+$env:PATH = "${env:PREFIX}/Library/bin;$env:PATH"
 
 Copy-Item -Recurse all-sources/v4-client-cpp $env:SRC_DIR
 
@@ -10,8 +10,11 @@ Push-Location _conda-build-protocol
   $gccPath = Get-ChildItem -Path $env:BUILD_PREFIX -Recurse -Filter *-gcc.exe | Select-Object -First 1
   $gxxPath = Get-ChildItem -Path $env:BUILD_PREFIX -Recurse -Filter *-g++.exe | Select-Object -First 1
 
-  $protobufDLL = Get-ChildItem -Path $env:PREFIX -Recurse -Filter *protobuf.* | Select-Object -First 5
-  $protobufLib = Get-ChildItem -Path $env:PREFIX -Recurse -Filter *protobuf.* | Select-Object -First 5
+  $protobufDLL = Get-ChildItem -Path $env:PREFIX -Recurse -Filter *rotobuf.* | Select-Object -First 5
+  $protobufLib = Get-ChildItem -Path $env:PREFIX -Recurse -Filter *rotobuf.* | Select-Object -First 5
+
+  $protobufDLL = Get-ChildItem -Path $env:BUILD_PREFIX -Recurse -Filter *rotobuf.* | Select-Object -First 5
+  $protobufLib = Get-ChildItem -Path $env:BUILD_PREFIX -Recurse -Filter *rotobuf.* | Select-Object -First 5
 
   if ($null -eq $gxxPath) {
       $gxxPath = Get-ChildItem -Path $env:BUILD_PREFIX -Recurse -Filter *-g++.exe | Select-Object -First 1
