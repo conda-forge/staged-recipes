@@ -16,6 +16,6 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
         debug=no \
         PREFIX=${PREFIX} \
         CXX=${CXX} \
-        CPPFLAGS-os-Darwin="-I${BUILD_PREFIX}/include" \
-        LDFLAGS-os-Darwin="-L${BUILD_PREFIX}/lib"
+        CPPFLAGS-os-Darwin="-I${PREFIX}/include" \
+        LDFLAGS-os-Darwin="-L${PREFIX}/lib"
 fi
