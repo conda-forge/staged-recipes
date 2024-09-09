@@ -1,6 +1,9 @@
 #!/bin/sh
 
 rm -rf build
+# Python module from previous build can be copied in the source directory.
+# We must remove them to avoid binary conflict.
+rm -rf python/tracy_client/*.so* python/tracy_client/__pycache__
 
 mkdir build && cd build
 
@@ -18,6 +21,6 @@ cmake --build . --parallel ${CPU_COUNT}
 cmake --build . --target install
 
 cd ../python
-# # this will also install headers again
-# # but without the Tracy(Targets*|Config).cmake files
+# this will also install headers again
+# but without the Tracy(Targets*|Config).cmake files
 $PYTHON -m pip install . --no-deps --ignore-installed
