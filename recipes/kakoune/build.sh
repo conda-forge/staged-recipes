@@ -14,8 +14,8 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
 
     make install \
         debug=no \
-        PREFIX=${PREFIX} \
+        PREFIX=${SRC_DIR} \
         CXX=${CXX} \
-        CPPFLAGS-os-Darwin="-I${PREFIX}/include" \
-        LDFLAGS-os-Darwin="-L${PREFIX}/lib"
+        CPPFLAGS-os-Darwin="-I${BUILD_PREFIX}/include" \
+        LDFLAGS-os-Darwin="-L${BUILD_PREFIX}/lib"
 fi
