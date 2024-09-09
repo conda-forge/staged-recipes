@@ -1,6 +1,6 @@
 set -ex
-configure
 
-ninja -j${CPU_COUNT}
+meson build -Dwith_xnvctrl=disabled
+ninja -j${CPU_COUNT} -C build
 
-ninja install
+ninja -C build install
