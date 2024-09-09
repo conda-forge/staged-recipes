@@ -9,3 +9,6 @@ go-licenses save . --save_path=license-files \
 	--ignore github.com/reconquest/prefixwriter-go \
 	--ignore github.com/reconquest/runcmd \
 	--ignore github.com/zazab/zhash
+
+# Manually copy licenses that go-licenses could not download
+cp -r ${RECIPE_DIR}/license-files/* ${SRC_DIR}/license-files

@@ -6,6 +6,9 @@ go-licenses save . --save_path=license-files ^
 	--ignore github.com/reconquest/runcmd ^
 	--ignore github.com/zazab/zhash || goto :error
 
+:: Manually copy licenses that go-licenses could not download
+xcopy /s %RECIPE_DIR%\license-files\* %SRC_DIR%\license-files || goto :error
+
 goto :EOF
 
 :error
