@@ -10,7 +10,8 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         PREFIX=${PREFIX} \
         CXX=${CXX}
 elif [[ "$OSTYPE" == "darwin"* ]]; then
-    export CXX=${GXX}
+    ls ${BUILD_PREFIX}/bin
+    export CXX="${CLANG}++"
 
     make install -j${CPU_COUNT}\
         debug=yes \
