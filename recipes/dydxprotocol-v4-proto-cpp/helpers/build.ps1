@@ -10,8 +10,8 @@ Push-Location _conda-build-protocol
   $gccPath = Get-ChildItem -Path $env:BUILD_PREFIX -Recurse -Filter *-gcc.exe | Select-Object -First 1
   $gxxPath = Get-ChildItem -Path $env:BUILD_PREFIX -Recurse -Filter *-g++.exe | Select-Object -First 1
 
-  $protobufDLL = Get-ChildItem -Path $env:PREFIX -Recurse -Filter libprotobuf.dll | Select-Object -First 1
-  $protobufLib = Get-ChildItem -Path $env:PREFIX -Recurse -Filter libprotobuf.lib | Select-Object -First 1
+  $protobufDLL = Get-ChildItem -Path $env:PREFIX -Recurse -Filter *protobuf.* | Select-Object -First 5
+  $protobufLib = Get-ChildItem -Path $env:PREFIX -Recurse -Filter *protobuf.* | Select-Object -First 5
 
   if ($null -eq $gxxPath) {
       $gxxPath = Get-ChildItem -Path $env:BUILD_PREFIX -Recurse -Filter *-g++.exe | Select-Object -First 1
