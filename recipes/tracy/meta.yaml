@@ -3,7 +3,7 @@
 
 
 package:
-  name:  {{ name | lower }}
+  name:  {{ name | lower }}-split
   version: {{ version }}
 
 source:
@@ -13,27 +13,26 @@ source:
 build:
   number: 0
   skip: true  # [win]
-  run_exports:
-    - {{ pin_subpackage('tracy', max_pin='x.x.x') }}
-
-
-requirements:
-  build:
-    - cmake
-    - ninja
-    - {{ compiler('cxx') }}
-    - {{ stdlib("c") }}
-  host:
-  run:
-  
-test:
-  commands:
-    - test -f $PREFIX/lib/libTracyClient${SHLIB_EXT}
 
 outputs:
-  - name: tracy
-  - name: tracy-python
-    script: build_python.sh
+  - name: tracy-client
+    build:
+      run_exports:
+        - {{ pin_subpackage('tracy-client', max_pin='x.x.x') }}
+    script: build_tracy_client.sh
+    requirements:
+      build:
+        - cmake
+        - ninja
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+      host:
+      run:
+    test:
+      commands:
+        - test -f $PREFIX/lib/libTracyClient${SHLIB_EXT}
+  - name: tracy-client-python
+    script: build_tracy_client_python.sh
     requirements:
       build:
         - python                                 # [build_platform != target_platform]
@@ -47,11 +46,23 @@ outputs:
         - python
         - setuptools
         - pip
-        - {{ pin_subpackage('tracy', exact=true) }}
+        - {{ pin_subpackage('tracy-client', exact=true) }}
       run:
         - python
-        - {{ pin_subpackage('tracy', exact=true) }}
+        - {{ pin_subpackage('tracy-client', exact=true) }}
     test:
+      imports:
+        - tracy_client
+  - name: tracy
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage('tracy-client', exact=true) }}
+        - {{ pin_subpackage('tracy-client-python', exact=true) }}
+    test:
+      commands:
+        - test -f $PREFIX/lib/libTracyClient${SHLIB_EXT}
       imports:
         - tracy_client
 
