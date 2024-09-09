@@ -7,6 +7,7 @@ meson build %MESON_ARGS% ^
     -Dwith_nvml=disabled ^
     -Dwith_xnvctrl=disabled ^
     -Dmangoplot=disabled ^
+    -Dpython=%PYTHON% ^
     -Ddynamic_string_tokens=false
 if errorlevel 1 exit 1
 
