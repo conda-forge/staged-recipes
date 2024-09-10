@@ -15,8 +15,7 @@ pushd _conda-build-protocol
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     -DBUILD_SHARED_LIBS=ON \
     -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON \
-    -G Ninja
-     # > "${SRC_DIR}"/_conda-logs/_cmake_configure-protocol.log 2>&1
+    -G Ninja > "${SRC_DIR}"/_conda-logs/_cmake_configure-protocol.log 2>&1
 
   cmake --build . --target dydx_v4_proto -- -j"${CPU_COUNT}"
   cmake --install . --component protocol
