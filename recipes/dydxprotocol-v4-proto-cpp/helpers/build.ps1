@@ -20,10 +20,6 @@ Push-Location _conda-build-protocol
   Write-Output "Protobuf DLLs in BUILD_PREFIX: $protobufDLL"
   Write-Output "Protobuf Libraries in BUILD_PREFIX: $protobufLib"
 
-  if ($null -eq $gxxPath) {
-      $gxxPath = Get-ChildItem -Path $env:BUILD_PREFIX -Recurse -Filter *-g++.exe | Select-Object -First 1
-  }
-
   Write-Output "g++ found at: $gxxPath"
   Write-Output "gcc found at: $gccPath"
 
@@ -39,6 +35,7 @@ Push-Location _conda-build-protocol
     -DCMAKE_VERBOSE_MAKEFILE=ON `
     -G Ninja
 
+  type CMakeFiles\dydx_v4_proto.rsp
   cmake --build . --target dydx_v4_proto -- -j"$env:CPU_COUNT"
   cmake --install . --component protocol
 
