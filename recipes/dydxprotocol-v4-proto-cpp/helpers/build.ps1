@@ -35,7 +35,6 @@ Push-Location _conda-build-protocol
     -DCMAKE_VERBOSE_MAKEFILE=ON `
     -G Ninja
 
-  type CMakeFiles\dydx_v4_proto.rsp
   cmake --build . --target dydx_v4_proto_obj -- -j"$env:CPU_COUNT"
   cmake --build . --target dydx_v4_proto -- -j"$env:CPU_COUNT"
   cmake --install . --component protocol
