@@ -34,10 +34,28 @@ Push-Location _conda-build-protocol
     -DBUILD_SHARED_LIBS=ON `
     -DCMAKE_VERBOSE_MAKEFILE=ON `
     -G Ninja
+  if ($LASTEXITCODE -ne 0) {
+    Write-Output "CMake failed with exit code $LASTEXITCODE"
+    exit $LASTEXITCODE
+  }
 
   cmake --build . --target dydx_v4_proto_obj -- -j"$env:CPU_COUNT"
+  if ($LASTEXITCODE -ne 0) {
+    Write-Output "CMake failed with exit code $LASTEXITCODE"
+    exit $LASTEXITCODE
+  }
+
   cmake --build . --target dydx_v4_proto -- -j"$env:CPU_COUNT"
+  if ($LASTEXITCODE -ne 0) {
+    Write-Output "CMake failed with exit code $LASTEXITCODE"
+    exit $LASTEXITCODE
+  }
+
   cmake --install . --component protocol
+  if ($LASTEXITCODE -ne 0) {
+    Write-Output "CMake failed with exit code $LASTEXITCODE"
+    exit $LASTEXITCODE
+  }
 
   # Rename dll.a into .lib
   Get-ChildItem -Path "${env:PREFIX}/lib" -Filter *.dll.a | ForEach-Object {
