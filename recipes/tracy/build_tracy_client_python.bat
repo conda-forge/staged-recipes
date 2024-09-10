@@ -2,7 +2,7 @@ rm -rf build
 
 :: Python module from previous build can be copied in the source directory.
 :: We must remove them to avoid binary conflict.
-rm -rf python/tracy_client/*.so* python/build python/tracy_client.egg-info
+rm -rf python/tracy_client/*.pyd python/build python/tracy_client.egg-info
 
 mkdir build
 cd build
