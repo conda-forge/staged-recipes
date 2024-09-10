@@ -6,8 +6,7 @@ pushd build
 
 cmake .. ^
     %CMAKE_ARGS% ^
-    -DVOLK_INSTALL=ON ^
-    -DBUILD_SHARED_LIBS=ON
+    -DVOLK_INSTALL=ON
 if errorlevel 1 exit 1
 
 cmake --build . --target install
