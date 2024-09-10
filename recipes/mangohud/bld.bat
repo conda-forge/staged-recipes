@@ -1,7 +1,8 @@
 @echo on
 setlocal EnableDelayedExpansion
 
-set PYTHON=%BUILD_PREFIX%\bin\python.exe
+set PYTHON=%BUILD_PREFIX%\python.exe
+echo %PYTHON%
 where python
 python --version
 meson setup ^
