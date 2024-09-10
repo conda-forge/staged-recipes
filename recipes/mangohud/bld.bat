@@ -2,6 +2,8 @@
 setlocal EnableDelayedExpansion
 
 set PYTHON=%BUILD_PREFIX%\bin\python.exe
+where python
+python --version
 meson setup ^
     build ^
     %MESON_ARGS% ^
