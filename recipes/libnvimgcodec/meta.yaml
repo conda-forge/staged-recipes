@@ -1,0 +1,144 @@
+# Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+{% set version = '0.3.0' %}
+
+package:
+  name: libnvimgcodec-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/NVIDIA/nvImageCodec/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 4bba949d6cf4e88fcd6b2d86bff960c9ed68eb25b6c4dde3b7772615480ab9fb
+  patches:
+    - patches/0001-BUG-Add-missing-headers-from-standard-library.patch
+    - patches/0002-BLD-pybind11-dlpack-only-needed-when-building-for-py.patch
+    - patches/0003-DOC-Add-Fatal-Error-if-extensions-are-built-without-.patch
+    - patches/0004-BLD-Let-end-user-set-libdir-using-CMake-variables.patch
+    - patches/0005-BLD-Make-moving-libraries-to-python-directory-option.patch
+    - patches/0006-BLD-Use-consistent-install-directory-for-cmake-confi.patch
+    - patches/0007-BLD-Let-python-versions-be-user-selectable.patch
+    - patches/0008-BLD-Decouple-nvimgcodec-and-dynlink_-targets.patch
+    - patches/0009-BLD-Link-system-nvimgcodec-to-python-module.patch
+
+build:
+  skip: true  # [not linux]
+  skip: true  # [cuda_compiler_version in (None, 'None')]
+  # Debug skips below
+  # skip: true  # [py != 312]
+  # skip: true  # [cuda_compiler_version != '12.0']
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cuda') }}
+    - {{ compiler('cxx')}}
+    - {{ stdlib('c') }}
+    - cmake >=3.18
+    - ninja
+    - pkg-config
+    - python-clang
+  host:
+    - cuda-version {{ cuda_compiler_version }}
+    - libboost-headers
+    - libjpeg-turbo
+    - libnvjpeg-dev
+    - libopencv
+    - libtiff
+    - nvtx-c
+    - setuptools
+    - zlib
+    - zstd
+
+outputs:
+
+  - name: libnvimgcodec-dev
+    build:
+      run_exports:
+        - {{ pin_subpackage('libnvimgcodec') }}
+    files:
+      # This recipe requires conda-build 24.7 or later
+      include:
+        - include/**
+        - lib/libnvimgcodec.so
+        - lib/cmake/nvimgcodec
+        - etc/**
+        - extensions/*.so
+        # FIXME: Drop static libraries once CMake config supports it
+        - extensions/*.a
+        - lib/libnvimgcodec_static.a
+      exclude:
+        - lib/python*
+        - lib/libnvimgcodec.so.*
+        - extensions/*.so.*
+    requirements:
+      host:
+        - {{ pin_subpackage('libnvimgcodec', exact=True) }}
+      run:
+        - {{ pin_subpackage('libnvimgcodec', exact=True) }}
+    test:
+      files:
+        - test
+      requires:  # [build_platform == target_platform]
+        - {{ compiler('c') }}  # [build_platform == target_platform]
+        - {{ compiler('cxx') }}  # [build_platform == target_platform]
+        - {{ compiler('cuda') }}  # [build_platform == target_platform]
+        - {{ stdlib('c') }}  # [build_platform == target_platform]
+        - cmake   # [build_platform == target_platform]
+        - ninja  # [build_platform == target_platform]
+        - cuda-cudart-dev  # [build_platform == target_platform]
+      commands:
+        - cmake ${CMAKE_ARGS} -GNinja test  # [build_platform == target_platform]
+        - cmake --build .  # [build_platform == target_platform]
+        - test -f ${PREFIX}/include/nvimgcodec.h  # [unix]
+        - test -f ${PREFIX}/lib/libnvimgcodec.so.0  # [linux]
+        - test -f ${PREFIX}/lib/libnvimgcodec.so.{{ version }}.0  # [linux]
+        - test -f ${PREFIX}/etc/ld.so.conf.d/nvimgcodec.conf  # [unix]
+        - test -f ${PREFIX}/lib/cmake/nvimgcodec/nvimgcodecConfig.cmake  # [unix]
+        # - test ! -f ${PREFIX}/lib/libnvimgcodec_static.a  # [unix]
+
+  - name: libnvimgcodec
+    build:
+      run_exports:
+        - {{ pin_subpackage('libnvimgcodec') }}
+    files:
+      - lib/libnvimgcodec.so.*
+      - extensions/*.so.*
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cuda') }}
+        - {{ compiler('cxx')}}
+        - {{ stdlib('c') }}
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+        - libjpeg-turbo
+        - libnvjpeg-dev
+        - libopencv
+        - libtiff
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libnvimgcodec.so.0  # [linux]
+        - test -f ${PREFIX}/lib/libnvimgcodec.so.{{ version }}.0  # [linux]
+
+about:
+  home: https://github.com/NVIDIA/nvImageCodec
+  description: >
+    The nvImageCodec is an open-source library of accelerated codecs with
+    unified interface. This package is the C-API only. See nvimgcodec for the
+    Python-API.
+  license: Apache-2.0 license
+  license_family: APACHE
+  license_file:
+    - LICENSE.txt
+    - Acknowledgements.txt
+  feedstock_name: libnvimgcodec
