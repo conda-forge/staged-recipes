@@ -1,0 +1,153 @@
+
+{% set version = "0.3.0.9" %}
+{% set lib_version = version.split(".")[0]+"."+version.split(".")[1]+"."+version.split(".")[2] %}
+{% set platform = "linux-sbsa" %}  # [aarch64]
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set extension = "tar.xz" %}  # [linux]
+{% set platform = "windows-x86_64" %}  # [win64]
+{% set extension = "zip" %}  # [win64]
+
+{% set cuda_major = environ.get("cuda_compiler_version", "12.0").split(".")[0] %}
+
+package:
+  name: libcudss-split
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/cudss/redist/libcudss/{{ platform }}/libcudss-{{ platform }}-{{ version }}_cuda{{ cuda_major }}-archive.{{ extension }}
+  sha256: 6eadd70e6442b43194e697c13080dae3cf1771257a334e7d7b658825a3e73a3b  # [aarch64 and (cuda_compiler_version or "").startswith("12")]
+  sha256: acc90b40334cd2e4409ec9e4200c8276f7acd50d61b7349b4ffdaeda4b2bf515  # [linux64 and (cuda_compiler_version or "").startswith("12")]
+  sha256: ac0979610d3eda9e6ce803380587118c6ec72b7dc580e6e96392ac065010196f  # [win64   and (cuda_compiler_version or "").startswith("12")]
+
+build:
+  number: 0
+  skip: true  # [cuda_compiler_version in (None, "None", "11.8")]
+  skip: true  # [not (linux64 or aarch64 or win64)]
+  script:
+    - cp -rv include $PREFIX  # [linux]
+    - cp -rv lib $PREFIX  # [linux]
+    - cp -rv include %PREFIX%  # [win]
+    - cp -rv lib %PREFIX%  # [win]
+    - cp -rv bin %PREFIX%  # [win]
+
+outputs:
+
+  - name: libcudss
+    build:
+      run_exports:
+        # Breaking changes every version until 1.0
+        - {{ pin_subpackage("libcudss", max_pin="x.x.x") }}
+    files:
+      - lib/libcudss.so.*  # [linux]
+      - lib/libcudss_commlayer_nccl.so.*  # [linux]
+      - lib/libcudss_commlayer_openmpi.so.*  # [linux]
+      - lib/libcudss.so.*  # [linux]
+      - bin/cudss64_0.dll  # [win64]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ compiler('cuda') }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+        - {{ stdlib("c") }}
+      host:
+        - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+        - nccl
+        - openmpi
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -f $PREFIX/lib/libcudss.so.{{ lib_version }}  # [linux]
+        - test -f $PREFIX/lib/libcudss_commlayer_nccl.so.{{ lib_version }}  # [linux]
+        - test -f $PREFIX/lib/libcudss_commlayer_openmpi.so.{{ lib_version }}  # [linux]
+        - test -L $PREFIX/lib/libcudss_commlayer_nccl.so.0  # [linux]
+        - test -L $PREFIX/lib/libcudss_commlayer_openmpi.so.0  # [linux]
+        - test -L $PREFIX/lib/libcudss.so.0  # [linux]
+        - test ! -f $PREFIX/lib/libcudss_static.a  # [linux]
+        - if not exist %PREFIX%\\bin\\cudss64_0.dll exit 1  # [win]
+    about:
+      home: https://developer.nvidia.com/cudss
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      license_url: https://docs.nvidia.com/cuda/cudss/license.html
+      summary: >-
+        NVIDIA cuDSS is an optimized, first-generation
+        GPU-accelerated Direct Sparse Solver library for solving linear systems
+        with very sparse matrices.
+      description: |-
+        NVIDIA cuDSS is an optimized, first-generation
+        GPU-accelerated Direct Sparse Solver library for solving linear systems
+        with very sparse matrices. Direct Sparse Solvers are an important part
+        of numerical computing for real-time applications like autonomous
+        driving and process simulation, where increasing complexity and high
+        throughput demands a robust direct solver.
+      doc_url: https://docs.nvidia.com/cuda/cudss/
+
+  - name: libcudss-dev
+    build:
+      run_exports:
+        - {{ pin_subpackage("libcudss", max_pin="x.x.x") }}
+    files:
+      - lib/libcudss.so  # [linux]
+      - lib/libcudss_commlayer_nccl.so  # [linux]
+      - lib/libcudss_commlayer_openmpi.so  # [linux]
+      - lib/cudss.lib  # [win]
+      - include/cudss*
+      - lib/cmake/cudss
+    requirements:
+      host:
+        - {{ pin_subpackage("libcudss", exact=True) }}
+      run:
+        - {{ pin_subpackage("libcudss", exact=True) }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -f $PREFIX/include/cudss.h
+        - test -f $PREFIX/include/cudss_distributed_interface.h
+        - test -L $PREFIX/lib/libcudss_commlayer_nccl.so  # [linux]
+        - test -L $PREFIX/lib/libcudss_commlayer_openmpi.so  # [linux]
+        - test -L $PREFIX/lib/libcudss.so  # [linux]
+        - test ! -f $PREFIX/lib/libcudss_static.a  # [linux]
+        - if not exist %PREFIX%\\lib\\cudss.lib exit 1  # [win]
+    about:
+      home: https://developer.nvidia.com/cudss
+      license: LicenseRef-NVIDIA-End-User-License-Agreement
+      license_file: LICENSE
+      license_url: https://docs.nvidia.com/cuda/cudss/license.html
+      summary: >-
+        NVIDIA cuDSS is an optimized, first-generation
+        GPU-accelerated Direct Sparse Solver library for solving linear systems
+        with very sparse matrices.
+      description: |-
+        NVIDIA cuDSS is an optimized, first-generation
+        GPU-accelerated Direct Sparse Solver library for solving linear systems
+        with very sparse matrices. Direct Sparse Solvers are an important part
+        of numerical computing for real-time applications like autonomous
+        driving and process simulation, where increasing complexity and high
+        throughput demands a robust direct solver.
+      doc_url: https://docs.nvidia.com/cuda/cudss/
+
+about:
+  home: https://developer.nvidia.com/cudss
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_file: LICENSE
+  license_url: https://docs.nvidia.com/cuda/cudss/license.html
+  summary: >-
+    NVIDIA cuDSS is an optimized, first-generation
+    GPU-accelerated Direct Sparse Solver library for solving linear systems
+    with very sparse matrices.
+  description: |-
+    NVIDIA cuDSS is an optimized, first-generation
+    GPU-accelerated Direct Sparse Solver library for solving linear systems
+    with very sparse matrices. Direct Sparse Solvers are an important part
+    of numerical computing for real-time applications like autonomous
+    driving and process simulation, where increasing complexity and high
+    throughput demands a robust direct solver.
+  doc_url: https://docs.nvidia.com/cuda/cudss/
+
+extra:
+  recipe-maintainers:
+    - conda-forge/cuda
+  feedstock-name: libcudss
