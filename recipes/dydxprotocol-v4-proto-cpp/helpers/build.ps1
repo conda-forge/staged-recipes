@@ -13,7 +13,7 @@ Push-Location _conda-build-protocol
     "${env:CMAKE_ARGS}" `
     -DCMAKE_BUILD_TYPE=Release `
     -DCMAKE_PREFIX_PATH="$_PREFIX/lib;$_PREFIX/Library/lib" `
-    -DCMAKE_INSTALL_PREFIX="$_PREFIX" `
+    -DCMAKE_INSTALL_PREFIX="$_PREFIX/Library" `
     -DBUILD_SHARED_LIBS=ON `
     -DCMAKE_VERBOSE_MAKEFILE=ON `
     -G Ninja
