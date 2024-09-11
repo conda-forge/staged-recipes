@@ -1,0 +1,240 @@
+From d062794e03a8e167718b7ecd05776216cd338a75 Mon Sep 17 00:00:00 2001
+From: Daniel Ching <dching@nvidia.com>
+Date: Thu, 31 Oct 2024 13:09:10 -0500
+Subject: [PATCH 4/9] BLD: Let end user set libdir using CMake variables
+
+---
+ CMakeLists.txt                          | 13 +++++++++++++
+ cpack/ld.so.conf.in                     |  6 +-----
+ extensions/libjpeg_turbo/CMakeLists.txt |  5 ++---
+ extensions/libtiff/CMakeLists.txt       |  5 ++---
+ extensions/nvbmp/CMakeLists.txt         |  5 ++---
+ extensions/nvjpeg/CMakeLists.txt        |  5 ++---
+ extensions/nvjpeg2k/CMakeLists.txt      |  5 ++---
+ extensions/nvpnm/CMakeLists.txt         |  5 ++---
+ extensions/opencv/CMakeLists.txt        |  5 ++---
+ src/CMakeLists.txt                      | 14 +-------------
+ 10 files changed, 29 insertions(+), 39 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 5e4162b..941a033 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -114,6 +114,19 @@ propagate_option(WITH_DYNAMIC_NVJPEG2K)
+ 
+ string(TOLOWER ${CMAKE_SYSTEM_NAME} SYS_NAME)
+ 
++# Introduce variables:
++# * CMAKE_INSTALL_LIBDIR
++# * CMAKE_INSTALL_BINDIR
++# * CMAKE_INSTALL_INCLUDEDIR
++if(NOT DEFINED CMAKE_INSTALL_LIBDIR)
++    if(UNIX)
++        set(CMAKE_INSTALL_LIBDIR "lib64")  # use lib64 instead of lib
++    else()
++        set(CMAKE_INSTALL_LIBDIR "lib")
++    endif()
++endif()
++include(GNUInstallDirs)
++
+ if(WIN32)
+     set(CPACK_GENERATOR "ZIP")
+     if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+diff --git a/cpack/ld.so.conf.in b/cpack/ld.so.conf.in
+index def1924..389dc26 100644
+--- a/cpack/ld.so.conf.in
++++ b/cpack/ld.so.conf.in
+@@ -13,8 +13,4 @@
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ 
+-if(UNIX)
+-    @CMAKE_INSTALL_PREFIX@/lib64
+-else()
+-    @CMAKE_INSTALL_PREFIX@/lib
+-endif()
+\ No newline at end of file
++@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@
+diff --git a/extensions/libjpeg_turbo/CMakeLists.txt b/extensions/libjpeg_turbo/CMakeLists.txt
+index 6b75f9f..b157f66 100644
+--- a/extensions/libjpeg_turbo/CMakeLists.txt
++++ b/extensions/libjpeg_turbo/CMakeLists.txt
+@@ -48,15 +48,14 @@ endif()
+ if(UNIX)
+   install(TARGETS ${NVIMGCODEC_LIBJPEG_TURBO_EXT_LIBRARY_NAME} ${NVIMGCODEC_LIBJPEG_TURBO_EXT_LIBRARY_NAME}_static
+     LIBRARY DESTINATION extensions NAMELINK_SKIP COMPONENT lib
+-    ARCHIVE DESTINATION lib64 COMPONENT lib
+     PUBLIC_HEADER DESTINATION include COMPONENT lib
+   )
+ 
+ else()
+   install(TARGETS ${NVIMGCODEC_LIBJPEG_TURBO_EXT_LIBRARY_NAME}
+     RUNTIME DESTINATION extensions COMPONENT lib
+-    LIBRARY DESTINATION lib COMPONENT lib
+-    ARCHIVE DESTINATION lib COMPONENT lib
++    LIBRARY COMPONENT lib
++    ARCHIVE COMPONENT lib
+     PUBLIC_HEADER DESTINATION include COMPONENT lib
+   )
+ endif()
+diff --git a/extensions/libtiff/CMakeLists.txt b/extensions/libtiff/CMakeLists.txt
+index 25ecae0..092fdba 100644
+--- a/extensions/libtiff/CMakeLists.txt
++++ b/extensions/libtiff/CMakeLists.txt
+@@ -47,14 +47,13 @@ endif()
+ if(UNIX)
+   install(TARGETS ${NVIMGCODEC_LIBTIFF_EXT_LIBRARY_NAME} ${NVIMGCODEC_LIBTIFF_EXT_LIBRARY_NAME}_static
+     LIBRARY DESTINATION extensions NAMELINK_SKIP COMPONENT lib
+-    ARCHIVE DESTINATION lib64 COMPONENT lib
+     PUBLIC_HEADER DESTINATION include COMPONENT lib
+   )
+ else()
+   install(TARGETS ${NVIMGCODEC_LIBTIFF_EXT_LIBRARY_NAME}
+     RUNTIME DESTINATION extensions COMPONENT lib
+-    LIBRARY DESTINATION lib COMPONENT lib
+-    ARCHIVE DESTINATION lib COMPONENT lib
++    LIBRARY COMPONENT lib
++    ARCHIVE COMPONENT lib
+     PUBLIC_HEADER DESTINATION include COMPONENT lib
+   )
+ endif()
+diff --git a/extensions/nvbmp/CMakeLists.txt b/extensions/nvbmp/CMakeLists.txt
+index 4cf1b97..a408ce6 100644
+--- a/extensions/nvbmp/CMakeLists.txt
++++ b/extensions/nvbmp/CMakeLists.txt
+@@ -44,12 +44,11 @@ endif()
+ if(UNIX)
+   install(TARGETS ${NVIMGCODEC_NVBMP_EXT_LIBRARY_NAME} ${NVIMGCODEC_NVBMP_EXT_LIBRARY_NAME}_static
+           LIBRARY DESTINATION extensions NAMELINK_SKIP COMPONENT lib
+-          ARCHIVE DESTINATION lib64 COMPONENT lib
+           PUBLIC_HEADER DESTINATION include COMPONENT lib)
+ else()
+   install(TARGETS ${NVIMGCODEC_NVBMP_EXT_LIBRARY_NAME}
+           RUNTIME DESTINATION extensions COMPONENT lib
+-          LIBRARY DESTINATION lib COMPONENT lib
+-          ARCHIVE DESTINATION lib COMPONENT lib
++          LIBRARY COMPONENT lib
++          ARCHIVE COMPONENT lib
+           PUBLIC_HEADER DESTINATION include COMPONENT lib)
+ endif()
+diff --git a/extensions/nvjpeg/CMakeLists.txt b/extensions/nvjpeg/CMakeLists.txt
+index dc302de..f888288 100644
+--- a/extensions/nvjpeg/CMakeLists.txt
++++ b/extensions/nvjpeg/CMakeLists.txt
+@@ -91,15 +91,14 @@ endif()
+ if(UNIX)
+   install(TARGETS ${NVIMGCODEC_NVJPEG_EXT_LIBRARY_NAME} ${NVIMGCODEC_NVJPEG_EXT_LIBRARY_NAME}_static
+     LIBRARY DESTINATION extensions NAMELINK_SKIP COMPONENT lib
+-    ARCHIVE DESTINATION lib64 COMPONENT lib
+     PUBLIC_HEADER DESTINATION include COMPONENT lib
+   )
+ 
+ else()
+   install(TARGETS ${NVIMGCODEC_NVJPEG_EXT_LIBRARY_NAME}
+     RUNTIME DESTINATION extensions COMPONENT lib
+-    LIBRARY DESTINATION lib COMPONENT lib
+-    ARCHIVE DESTINATION lib COMPONENT lib
++    LIBRARY COMPONENT lib
++    ARCHIVE COMPONENT lib
+     PUBLIC_HEADER DESTINATION include COMPONENT lib
+   )
+ endif()
+diff --git a/extensions/nvjpeg2k/CMakeLists.txt b/extensions/nvjpeg2k/CMakeLists.txt
+index 18c99c9..8e569e0 100644
+--- a/extensions/nvjpeg2k/CMakeLists.txt
++++ b/extensions/nvjpeg2k/CMakeLists.txt
+@@ -60,15 +60,14 @@ endif()
+ if(UNIX)
+   install(TARGETS ${NVIMGCODEC_NVJPEG2K_EXT_LIBRARY_NAME} ${NVIMGCODEC_NVJPEG2K_EXT_LIBRARY_NAME}_static
+     LIBRARY DESTINATION extensions NAMELINK_SKIP COMPONENT lib
+-    ARCHIVE DESTINATION lib64 COMPONENT lib
+     PUBLIC_HEADER DESTINATION include COMPONENT lib
+   )
+ 
+ else()
+   install(TARGETS ${NVIMGCODEC_NVJPEG2K_EXT_LIBRARY_NAME}
+     RUNTIME DESTINATION extensions COMPONENT lib
+-    LIBRARY DESTINATION lib COMPONENT lib
+-    ARCHIVE DESTINATION lib COMPONENT lib
++    LIBRARY COMPONENT lib
++    ARCHIVE COMPONENT lib
+     PUBLIC_HEADER DESTINATION include COMPONENT lib
+   )
+ endif()
+diff --git a/extensions/nvpnm/CMakeLists.txt b/extensions/nvpnm/CMakeLists.txt
+index 4ed5134..66b1093 100644
+--- a/extensions/nvpnm/CMakeLists.txt
++++ b/extensions/nvpnm/CMakeLists.txt
+@@ -43,15 +43,14 @@ endif()
+ if(UNIX)
+         install(TARGETS ${NVIMGCODEC_NVPNM_EXT_LIBRARY_NAME} ${NVIMGCODEC_NVPNM_EXT_LIBRARY_NAME}_static
+                 LIBRARY DESTINATION extensions NAMELINK_SKIP COMPONENT lib
+-                ARCHIVE DESTINATION lib64 COMPONENT lib
+                 PUBLIC_HEADER DESTINATION include COMPONENT lib
+         )
+ 
+ else()
+         install(TARGETS ${NVIMGCODEC_NVPNM_EXT_LIBRARY_NAME}
+                 RUNTIME DESTINATION extensions COMPONENT lib
+-                LIBRARY DESTINATION lib COMPONENT lib
+-                ARCHIVE DESTINATION lib COMPONENT lib
++                LIBRARY COMPONENT lib
++                ARCHIVE COMPONENT lib
+                 PUBLIC_HEADER DESTINATION include COMPONENT lib
+         )
+ endif()
+diff --git a/extensions/opencv/CMakeLists.txt b/extensions/opencv/CMakeLists.txt
+index 36ec99f..ba956a9 100644
+--- a/extensions/opencv/CMakeLists.txt
++++ b/extensions/opencv/CMakeLists.txt
+@@ -49,15 +49,14 @@ endif()
+ if(UNIX)
+   install(TARGETS ${NVIMGCODEC_OPENCV_EXT_LIBRARY_NAME} ${NVIMGCODEC_OPENCV_EXT_LIBRARY_NAME}_static
+     LIBRARY DESTINATION extensions NAMELINK_SKIP COMPONENT lib
+-    ARCHIVE DESTINATION lib64 COMPONENT lib
+     PUBLIC_HEADER DESTINATION include COMPONENT lib
+   )
+ 
+ else()
+   install(TARGETS ${NVIMGCODEC_OPENCV_EXT_LIBRARY_NAME}
+     RUNTIME DESTINATION extensions COMPONENT lib
+-    LIBRARY DESTINATION lib COMPONENT lib
+-    ARCHIVE DESTINATION lib COMPONENT lib
++    LIBRARY COMPONENT lib
++    ARCHIVE COMPONENT lib
+     PUBLIC_HEADER DESTINATION include COMPONENT lib
+   )
+ endif()
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 5d8aeb0..940e2a6 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -109,18 +109,6 @@ endif()
+ 
+ # Installation (https://github.com/forexample/package-example) {
+ 
+-# Introduce variables:
+-# * CMAKE_INSTALL_LIBDIR
+-# * CMAKE_INSTALL_BINDIR
+-# * CMAKE_INSTALL_INCLUDEDIR
+-include(GNUInstallDirs)
+-if(UNIX)
+-    set(CMAKE_INSTALL_LIBDIR "lib64")  # use lib64 instead of lib
+-else()
+-    set(CMAKE_INSTALL_LIBDIR "lib")
+-endif()
+-set(CMAKE_INSTALL_FULL_LIBDIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")  # adjust accordingly
+-
+ # Layout. This works for all platforms:
+ #   * <prefix>/cmake/
+ #   * <prefix>/lib*/
+@@ -190,4 +178,4 @@ install(
+     COMPONENT lib
+ )
+ 
+-# }
+\ No newline at end of file
++# }
+-- 
+2.34.1
+
