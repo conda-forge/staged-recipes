@@ -1,6 +1,6 @@
 --- v4-client-cpp/lib/proto/CMakeLists.txt.orig	2021-10-14 15:00:00.000000000 +0000
 +++ v4-client-cpp/lib/proto/CMakeLists.txt	2021-10-14 15:00:00.000000000 +0000
-@@ -3,6 +3,107 @@
+@@ -3,6 +3,112 @@
  file(GLOB_RECURSE proto_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.proto)
 -protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${proto_files})
 
@@ -13,6 +13,7 @@
 +set_property(TARGET dydx_v4_proto_obj PROPERTY POSITION_INDEPENDENT_CODE 1)
 +include_directories(${Protobuf_INCLUDE_DIRS})
 +message(STATUS "protobuf_INCLUDE_DIRS: ${Protobuf_INCLUDE_DIRS}")
++include(GNUInstallDirs)
 +if(protobuf_MODULE_COMPATIBLE)
 +    # Legacy Support
 +    protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${proto_files})
@@ -32,7 +33,7 @@
 +    endforeach()
 +
 +    add_custom_target(generate_headers ALL DEPENDS ${protobuf_HEADERS})
-+    set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/include/dydx_v4_proto")
++    set(INCLUDE_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/include/dydx_v4_proto")
 +    install(DIRECTORY ${PROTO_BINARY_DIR}/ DESTINATION ${INCLUDE_INSTALL_DIR} COMPONENT protocol FILES_MATCHING PATTERN "*.h" PATTERN "CMakeFiles" EXCLUDE)
 +endif()
 +
@@ -61,22 +62,26 @@
 +    COMMAND ${CMAKE_COMMAND} -E copy_if_different
 +            "${MAJOR_DLL_PATH}.dll"
 +            "dydx_v4_proto.dll"
++    COMMAND ${CMAKE_COMMAND} -E copy_if_different
++            "${MAJOR_DLL_PATH}.lib"
++            "dydx_v4_proto.lib"
 +    COMMENT "Copying dydx_v4_proto.${PROJECT_VERSION_MAJOR}.dll to versioned filenames"
 +  )
 +  add_custom_target(CopyVersionedDLL ALL DEPENDS dydx_v4_proto)
-+  install(FILES "dydx_v4_proto.dll"
-+                "${MAJOR_DLL_PATH}.dll"
-+          DESTINATION bin
-+          COMPONENT Runtime
++  install(FILES "dydx_v4_proto.dll" "dydx_v4_proto.lib"
++          DESTINATION ${CMAKE_INSTALL_LIBDIR}/bin
++          COMPONENT protocol
 +  )
 +else ()
 +  set_target_properties(dydx_v4_proto PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
 +endif ()
 +
 +install(TARGETS dydx_v4_proto EXPORT dydx_v4_proto-config DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT protocol)
++if(WIN32)
++  install(FILES $<TARGET_FILE:dydx_v4_proto> DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT protocol)
++endif()
 +
 +# CMake config files
-+include(GNUInstallDirs)
 +include(CMakePackageConfigHelpers)
 +file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dydx_v4_proto-config.cmake.in
 +    "
