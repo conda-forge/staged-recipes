@@ -9,7 +9,7 @@ meson setup \
     ${MESON_ARGS} \
     -Duse_system_spdlog=enabled \
     -Dinclude_doc=false \
-    -Dwith_nvml=disabled \
+    -Dwith_nvml=enabled \
     -Dwith_xnvctrl=disabled \
     -Dmangoplot=disabled \
     -Ddynamic_string_tokens=false
