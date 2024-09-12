@@ -34,6 +34,12 @@ Push-Location _conda-build-protocol
     exit $LASTEXITCODE
   }
 
+  cmake --build . --target copy_version_to_generic_dll -- -j"$env:CPU_COUNT"
+  if ($LASTEXITCODE -ne 0) {
+    Write-Output "CMake failed with exit code $LASTEXITCODE"
+    exit $LASTEXITCODE
+  }
+
   cmake --install . --component protocol
   if ($LASTEXITCODE -ne 0) {
     Write-Output "CMake failed with exit code $LASTEXITCODE"
