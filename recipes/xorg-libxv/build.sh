@@ -56,6 +56,11 @@ configure_args=(
     --disable-silent-rules
 )
 
+if [[ "${CONDA_BUILD_CROSS_COMPILATION}" == "1" ]] ; then
+    configure_args+=(
+        --enable-malloc0returnsnull
+    )
+fi
 ./configure "${configure_args[@]}"
 make -j$CPU_COUNT
 make install
