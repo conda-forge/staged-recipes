@@ -22,7 +22,7 @@ Push-Location _conda-build-protocol
     exit $LASTEXITCODE
   }
 
-  cmake --build . --target dydx_v4_proto_obj -- -j"$env:CPU_COUNT"
+  cmake --build . --target dydx_v4_proto_obj -- -j"$env:CPU_COUNT" > $env:SRC_DIR/_conda-logs/build.log
   if ($LASTEXITCODE -ne 0) {
     Write-Output "CMake failed with exit code $LASTEXITCODE"
     exit $LASTEXITCODE
