@@ -1,4 +1,5 @@
 turbo-turtle -h
+turbo-turtle docs --print-local-path
 turbo-turtle fetch --destination turbo_turtle_fetch
 cd %SP_DIR%\%PKG_NAME%
 REM TODO: Remove test_wrapper.py ignore when Turbo-Turtle releases a mocked cubit module
