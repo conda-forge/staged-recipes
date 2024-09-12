@@ -2,8 +2,6 @@
 
 set -exo pipefail
 
-cd ${SRC_DIR}
-
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     make install -j${CPU_COUNT} \
         debug=no \
