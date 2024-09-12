@@ -34,15 +34,15 @@ Push-Location _conda-build-protocol
     exit $LASTEXITCODE
   }
 
-  cmake --build . --target copy_version_to_generic_dll -- -j"$env:CPU_COUNT"
-  if ($LASTEXITCODE -ne 0) {
-    Write-Output "CMake failed with exit code $LASTEXITCODE"
-    exit $LASTEXITCODE
-  }
-
   cmake --install . --component protocol
   if ($LASTEXITCODE -ne 0) {
     Write-Output "CMake failed with exit code $LASTEXITCODE"
     exit $LASTEXITCODE
   }
 Pop-Location
+
+# Duplicate install xxx-0.(dll|lib) to xxx.(dll|lib) for Windows
+if ($env:OS == "Windows") {
+  Copy-Item -Path "$env:PREFIX/Library/bin/dydx_v4_proto-0.dll" -Destination "$env:PREFIX/Library/bin/dydx_v4_proto.dll"
+  Copy-Item -Path "$env:PREFIX/Library/lib/dydx_v4_proto-0.lib" -Destination "$env:PREFIX/Library/lib/dydx_v4_proto.lib"
+}
