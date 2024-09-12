@@ -42,7 +42,5 @@ Push-Location _conda-build-protocol
 Pop-Location
 
 # Duplicate install xxx-0.(dll|lib) to xxx.(dll|lib) for Windows
-if ($env:OS == "Windows") {
-  Copy-Item -Path "$env:PREFIX/Library/bin/dydx_v4_proto-0.dll" -Destination "$env:PREFIX/Library/bin/dydx_v4_proto.dll"
-  Copy-Item -Path "$env:PREFIX/Library/lib/dydx_v4_proto-0.lib" -Destination "$env:PREFIX/Library/lib/dydx_v4_proto.lib"
-}
+Copy-Item -Path "$env:PREFIX/Library/bin/dydx_v4_proto-0.dll" -Destination "$env:PREFIX/Library/bin/dydx_v4_proto.dll"
+Copy-Item -Path "$env:PREFIX/Library/lib/dydx_v4_proto-0.lib" -Destination "$env:PREFIX/Library/lib/dydx_v4_proto.lib"
