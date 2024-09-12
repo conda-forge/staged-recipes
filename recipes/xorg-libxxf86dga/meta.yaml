@@ -1,0 +1,64 @@
+{% set xorg_name = "libXxf86dga" %}
+{% set xorg_category = "lib" %}
+{% set name = "xorg-" ~ xorg_name %}
+{% set version = "1.1.6" %}
+{% set sha256 = "87c7482b1e29b4eeb415815641c4f69c00545a8138e1b73ff1f361f7d9c22ac4" %}
+{% set am_version = "1.15" %} # keep synchronized with build.sh
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  fn: {{ name }}-{{ version }}.tar.gz
+  url: https://www.x.org/releases/individual/{{ xorg_category }}/{{ xorg_name }}-{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  # libXxf86dga currently has complex POSIX-only dependencies such as fork() or waitpid(), as well as mmap()
+  skip: true  # [win]
+  number: 0
+  detect_binary_files_with_prefix: true
+  run_exports:
+    - {{ pin_subpackage(name|lower) }}
+
+requirements:
+  build:
+    - m2-autoconf  # [win]
+    - m2-automake{{ am_version }}  # [win]
+    - m2-libtool  # [win]
+    - m2w64-pkg-config  # [win]
+    - make
+    - pkg-config  # [not win]
+    - posix  # [win]
+    - gnuconfig  # [unix]
+    - {{ stdlib('c') }}          # [unix]
+    - {{ compiler('c') }}        # [unix]
+    - {{ compiler('m2w64_c') }}  # [win]
+  host:
+    - xorg-libx11
+    - xorg-libxext
+    - xorg-xf86dgaproto
+    - xorg-xproto
+    - xorg-util-macros
+
+test:
+  commands:
+    {% set lib_idents = [ "Xxf86dga" ] %}
+    {% for lib_ident in lib_idents %}
+    - test -f $PREFIX/lib/lib{{ lib_ident }}.dylib  # [osx]
+    - test -f $PREFIX/lib/lib{{ lib_ident }}.so  # [linux]
+    - if not exist %PREFIX%/Library/lib/lib{{ lib_ident }}.dll.a exit /b 1  # [win]
+    - if not exist %PREFIX%/Library/bin/msys-{{ lib_ident }}-*.dll exit /b 1  # [win]
+    {% endfor %}
+
+about:
+  home: https://www.x.org/
+  license: MIT
+  license_family: MIT
+  license_file: COPYING
+  summary: Xlib-based library for the XFree86-DGA extension
+
+extra:
+  recipe-maintainers:
+    - ehfd
