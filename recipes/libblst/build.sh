@@ -6,26 +6,36 @@ set -euxo pipefail
 if [[ "${target_platform}" == win-* ]]; then
   # Remove -fPIC from CFLAGS
   sed -i 's/-fPIC//g' build.sh
-  sed "s@LIBRARY blst@LIBRARY blst-${PKG_MAJOR_VERSION}@g" build/win64/blst.def > build/win64/blst-"${PKG_MAJOR_VERSION}".def
-  bash ./build.sh -dll flavour=mingw64 CC=x86_64-w64-mingw32-gcc AR=llvm-ar
+  B_ARGS=('-dll' 'flavour=mingw64' 'CC=x86_64-w64-mingw32-gcc' 'AR=llvm-ar')
+elif [[ "${target_platform}" == linux-* ]]; then
+  B_ARGS=('-shared' "-Wl,-soname=libblst.so.${PKG_MAJOR_VERSION}")
 else
-  bash ./build.sh -shared
+  B_ARGS=('-shared')
 fi
+
+bash ./build.sh "${B_ARGS[@]}"
 
 # Install
 if [[ "${target_platform}" == win-* ]]; then
-  cp blst-"${PKG_MAJOR_VERSION}".dll "${PREFIX}"/Library/bin
-  cp blst-"${PKG_MAJOR_VERSION}".lib "${PREFIX}"/Library/lib
-  cp blst-"${PKG_MAJOR_VERSION}".dll "${PREFIX}"/Library/bin/blst.dll
-  cp blst-"${PKG_MAJOR_VERSION}".lib "${PREFIX}"/Library/lib/blst.lib
+  install -Dm755 blst.dll "${PREFIX}"/Library/bin/blst-"${PKG_MAJOR_VERSION}".dll
+
+  sed "s@LIBRARY blst@LIBRARY blst-${PKG_MAJOR_VERSION}@g" build/win64/blst.def > build/win64/blst-"${PKG_MAJOR_VERSION}".def
+  dlltool \
+    -d build/win64/blst-"${PKG_MAJOR_VERSION}".def\
+    -l "${PREFIX}"/Library/lib/blst.lib \
+    -D "${PREFIX}"/Library/bin/blst-"${PKG_MAJOR_VERSION}".dll
+
 elif [[ "${target_platform}" == osx-* ]]; then
   mkdir -p "${PREFIX}"/lib
-  cp libblst."${PKG_MAJOR_VERSION}".dylib "${PREFIX}"/lib
+  install -Dm755 libblst.dylib "${PREFIX}"/lib/libblst."${PKG_MAJOR_VERSION}".dylib
+
   ln -s "${PREFIX}"/lib/libblst."${PKG_MAJOR_VERSION}".dylib "${PREFIX}"/lib/libblst.dylib
   ln -s "${PREFIX}"/lib/libblst."${PKG_MAJOR_VERSION}".dylib "${PREFIX}"/lib/libblst."${PKG_VERSION}".dylib
+
 else
   mkdir -p "${PREFIX}"/lib
-  cp libblst.so."${PKG_MAJOR_VERSION}" "${PREFIX}"/lib
+  install -Dm755 libblst.so "${PREFIX}"/lib/libblst.so."${PKG_MAJOR_VERSION}"
+
   ln -s "${PREFIX}"/lib/libblst.so."${PKG_MAJOR_VERSION}" "${PREFIX}"/lib/libblst.so
   ln -s "${PREFIX}"/lib/libblst.so."${PKG_MAJOR_VERSION}" "${PREFIX}"/lib/libblst.so."${PKG_VERSION}"
 fi
@@ -33,12 +43,12 @@ fi
 # Headers
 if [[ "${target_platform}" == win-* ]]; then
   mkdir -p "${PREFIX}"/Library/include
-  cp bindings/blst.h "${PREFIX}"/Library/include
-  cp bindings/blst_aux.h "${PREFIX}"/Library/include
+  install -Dm644 bindings/blst.h "${PREFIX}"/Library/include
+  install -Dm644 bindings/blst_aux.h "${PREFIX}"/Library/include
 else
   mkdir -p "${PREFIX}"/include
-  cp bindings/blst.h "${PREFIX}"/include
-  cp bindings/blst_aux.h "${PREFIX}"/include
+  install -Dm644 bindings/blst.h "${PREFIX}"/include
+  install -Dm644 bindings/blst_aux.h "${PREFIX}"/include
 fi
 
 # libblst.pc
@@ -48,10 +58,8 @@ else
   pkgdir="${PREFIX}"/lib/pkgconfig
 fi
 mkdir -p "${pkgdir}"
-cat > "${pkgdir}"/libblst.pc <<EOF
-fi
-mkdir -p "${PREFIX}"/lib/pkgconfig
-cat > "${PREFIX}"/lib/pkgconfig/libblst.pc <<EOF
+
+cat > libblst.pc <<EOF
 prefix=${PREFIX}
 exec_prefix=\${prefix}
 libdir=\${exec_prefix}/lib
@@ -63,4 +71,5 @@ Version: ${PKG_VERSION}
 Libs: -L\${libdir} -lblst
 Cflags: -I\${includedir}
 EOF
-ln -s "${pkgdir}"/libblst.pc "${pkgdir}"/blst.pc
+
+install -Dm644 libblst.pc "${pkgdir}"/libblst.pc
