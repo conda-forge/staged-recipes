@@ -41,16 +41,21 @@ Push-Location _conda-build-protocol
 Pop-Location
 
 # Create .lib file for Windows
-$env:DLL = Get-ChildItem -Path "$env:PREFIX" -Filter "*.dll" -Recurse | Where-Object { $_.Name -match "dydx_v4_proto" }
-$env:DEF = $env:DLL.FullName -replace ".dll", ".def"
-$env:LIB = $env:DLL.FullName -replace "-*.dll", ".lib"
+$DLL = Get-ChildItem -Path "$env:PREFIX" -Filter "*.dll" -Recurse | Where-Object { $_.Name -match "dydx_v4_proto" }
+if ($DLL) {
+  $DEF = $DLL.FullName -replace ".dll", ".def"
+  $LIB = $DLL.FullName -replace "-*.dll", ".lib"
 
-dumpbin /exports $env:LIB.FullName | Select-String -Pattern "^[0-9A-F]+\s+[0-9A-F]+\s+.*$" | ForEach-Object { $_.ToString().Split(" ")[3] } | Out-File -FilePath $env:DEF
+  dumpbin /exports $DLL.FullName | Select-String -Pattern "^[0-9A-F]+\s+[0-9A-F]+\s+.*$" | ForEach-Object { $_.ToString().Split(" ")[3] } | Out-File -FilePath $DEF
 
-if ($env:target_platform -eq "win-64") {
-  lib /def:$env:DEF /out:$env:LIB /machine:x64
+  if ($env:target_platform -eq "win-64") {
+      lib /def:$DEF /out:$LIB /machine:x64
+  } else {
+      lib /def:$DEF /out:$LIB /machine:aarch64
+  }
+
+  Remove-Item $DEF
 } else {
-  lib /def:$env:DEF /out:$env:LIB /machine:aarch64
+  Write-Output "DLL file not found."
+  exit 1
 }
-
-Remove-Item $env:DEF
