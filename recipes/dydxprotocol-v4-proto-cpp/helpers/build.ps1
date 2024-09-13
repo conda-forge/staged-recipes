@@ -33,10 +33,6 @@ Push-Location _conda-build-protocol
     exit $LASTEXITCODE
   }
 
-# Find .lib associated with .dll
-$env:LIB = Get-ChildItem -Path "." -Filter "*.lib" -Recurse | Where-Object { $_.Name -match "dydx_v4_proto" }
-Write-Output "Found lib: $env:LIB"
-
   cmake --install . --component protocol
   if ($LASTEXITCODE -ne 0) {
     Write-Output "CMake failed with exit code $LASTEXITCODE"
@@ -44,6 +40,17 @@ Write-Output "Found lib: $env:LIB"
   }
 Pop-Location
 
-# Duplicate install xxx-0.(dll|lib) to xxx.(dll|lib) for Windows
-# Copy-Item -Path "$env:PREFIX/Library/bin/dydx_v4_proto-0.dll" -Destination "$env:PREFIX/Library/bin/dydx_v4_proto.dll"
-Copy-Item -Path "$env:PREFIX/Library/lib/dydx_v4_proto-0.lib" -Destination "$env:PREFIX/Library/lib/dydx_v4_proto.lib"
+# Create .lib file for Windows
+$env:DLL = Get-ChildItem -Path "$env:PREFIX" -Filter "*.dll" -Recurse | Where-Object { $_.Name -match "dydx_v4_proto" }
+$env:DEF = $env:LIB.FullName -replace ".dll", ".def"
+$env:LIB = $env:LIB.FullName -replace "-*.dll", ".lib"
+
+dumpbin /exports $env:LIB.FullName | Select-String -Pattern "^[0-9A-F]+\s+[0-9A-F]+\s+.*$" | ForEach-Object { $_.ToString().Split(" ")[3] } | Out-File -FilePath $env:DEF
+
+if ($env:target_platform -eq "win-64") {
+  lib /def:$env:DEF /out:$env:LIB /machine:x64
+} else {
+  lib /def:$env:DEF /out:$env:LIB /machine:aarch64
+}
+
+Remove-Item $env:DEF
