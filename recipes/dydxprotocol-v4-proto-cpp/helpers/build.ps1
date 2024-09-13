@@ -14,9 +14,7 @@ Push-Location _conda-build-protocol
     -DCMAKE_BUILD_TYPE=Release `
     -DCMAKE_PREFIX_PATH="$_PREFIX/lib;$_PREFIX/Library/lib" `
     -DCMAKE_INSTALL_PREFIX="$_PREFIX/Library" `
-    -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON `
     -DBUILD_SHARED_LIBS=ON `
-    -DCMAKE_VERBOSE_MAKEFILE=ON `
     -G Ninja
   if ($LASTEXITCODE -ne 0) {
     Write-Output "CMake failed with exit code $LASTEXITCODE"
@@ -34,6 +32,10 @@ Push-Location _conda-build-protocol
     Write-Output "CMake failed with exit code $LASTEXITCODE"
     exit $LASTEXITCODE
   }
+
+# Find .lib associated with .dll
+$env:LIB = Get-ChildItem -Path "." -Filter "*.lib" -Recurse | Where-Object { $_.Name -match "dydx_v4_proto" }
+Write-Output "Found lib: $env:LIB"
 
   cmake --install . --component protocol
   if ($LASTEXITCODE -ne 0) {
