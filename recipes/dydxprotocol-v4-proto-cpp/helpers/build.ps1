@@ -45,7 +45,7 @@ $DLL = Get-ChildItem -Path "$env:PREFIX" -Filter "*.dll" -Recurse | Where-Object
 if ($DLL) {
   $DEF = $DLL.BaseName -replace ".dll", ".def"
   $LIB = $DLL.FullName -replace "-\d+.dll", ".lib"
-  $LIB = $LIB -replace "-Library/bin", "Library/liblib"
+  $LIB = $LIB -replace "-Library\\bin", "Library\\lib"
 
   dumpbin /exports $DLL.FullName | Select-String -Pattern "^[0-9A-F]+\s+[0-9A-F]+\s+.*$" | ForEach-Object { $_.ToString().Split(" ")[3] } | Out-File -FilePath $DEF
 
