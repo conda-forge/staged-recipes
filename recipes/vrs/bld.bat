@@ -5,7 +5,8 @@ cmake %SRC_DIR% ^
   -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
   -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
   -DBUILD_SHARED_LIBS=OFF ^
-  -DUNIT_TESTS=OFF
+  -DUNIT_TESTS=OFF ^
+  -DBUILD_SAMPLES=OFF
 if errorlevel 1 exit 1
 
 cmake --build build --parallel --config Release
