@@ -1,0 +1,62 @@
+{% set version = "3.1.58" %}
+# emscripten expects specific clang version, see
+# https://github.com/emscripten-core/emscripten/blob/3.1.58/tools/shared.py#L62
+{% set clang_version = 19 %}
+
+package:
+  name: emscripten-activation
+  version: {{ version }}
+
+build:
+  number: 0
+  skip: true  # [win]
+
+outputs:
+  - name: emscripten_impl_{{ cross_target_platform }}
+    script: install_emscripten_impl.sh   # [unix]
+    requirements:
+      - emscripten ={{ version }}
+      - clang {{ clang_version }}
+      - clangxx {{ clang_version }}
+    test:
+      commands:
+        - {{ CBUILD }}-emcc --version   # [unix]
+        - {{ CHOST }}-emcc --version    # [unix]
+
+  - name: emscripten_{{ cross_target_platform }}
+    script: install_emscripten.sh   # [unix]
+    run_exports:
+      strong:
+        - {{ pin_subpackage("emscripten-abi", lower_bound="x.x.x", upper_bound="x.x.x") }}
+    requirements:
+      run:
+        - {{ pin_subpackage("emscripten_impl_" ~ cross_target_platform, exact=True) }}
+    test:
+      files:
+        - testfile.c
+      commands:
+        - emcc ./testfile.c
+        - node a.out.js
+
+  - name: emscripten-abi
+    build:
+      noarch: generic
+    test:
+      commands:
+        - echo "emscripten abi is built."
+
+about:
+  home: https://emscripten.org
+  license: MIT
+  license_file: LICENSE.txt
+  summary: An LLVM-to-WebAssembly Compiler
+  description: Emscripten compiles C and C++ to WebAssembly using LLVM and Binaryen. Emscripten output can run on the Web, in Node.js, and in wasm runtimes.
+  dev_url: https://github.com/emscripten-core/emscripten
+  doc_url: https://emscripten.org/
+
+extra:
+  recipe-maintainers:
+    - DerThorsten
+    - wolfv
+    - h-vetinari
+    - conda-forge/emscripten
