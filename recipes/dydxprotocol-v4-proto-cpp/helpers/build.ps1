@@ -43,8 +43,9 @@ Pop-Location
 # Create .lib file for Windows
 $DLL = Get-ChildItem -Path "$env:PREFIX" -Filter "*.dll" -Recurse | Where-Object { $_.Name -match "dydx_v4_proto" }
 if ($DLL) {
-  $DEF = $DLL.FullName -replace ".dll", ".def"
-  $LIB = $DLL.FullName -replace "-*.dll", ".lib"
+  $DEF = $DLL.BaseName -replace ".dll", ".def"
+  $LIB = $DLL.FullName -replace "-\d+.dll", ".lib"
+  $LIB = $LIB -replace "-Library/bin", "Library/liblib"
 
   dumpbin /exports $DLL.FullName | Select-String -Pattern "^[0-9A-F]+\s+[0-9A-F]+\s+.*$" | ForEach-Object { $_.ToString().Split(" ")[3] } | Out-File -FilePath $DEF
 
