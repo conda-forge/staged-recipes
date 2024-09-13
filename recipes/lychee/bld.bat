@@ -1,6 +1,5 @@
 @echo on
 
-set OPENSSL_DIR=%PREFIX%
 set OPENSSL_NO_VENDOR=1
 set CARGO_PROFILE_RELEASE_STRIP=debuginfo
 
