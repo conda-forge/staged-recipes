@@ -10,6 +10,7 @@ cd lychee-bin
 cargo install \
   --bins \
   --locked \
+  --no-track \
   --path . \
   --profile release \
   --root "${PREFIX}"
@@ -17,6 +18,3 @@ cargo install \
 cargo-bundle-licenses \
   --format yaml \
   --output "${SRC_DIR}/THIRDPARTY.yml"
-
-rm -f "${PREFIX}/.crates2.json"
-rm -f "${PREFIX}/.crates.toml"
