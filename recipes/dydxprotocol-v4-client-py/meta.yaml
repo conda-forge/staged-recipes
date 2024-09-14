@@ -1,0 +1,90 @@
+{% set name = "dydx-v4-client" %}
+{% set version = "0.1.1" %}
+
+# github repo only tags the JS version release (which includes the python client)
+# This should help having regro PR updates, but will require manual inspection to
+# verify the python client version number.
+{% set repo_version = "1.1.31" %}
+package:
+  name: dydx-v4-client-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/dydxprotocol/v4-clients/archive/refs/tags/v4-client-js@{{ repo_version }}.tar.gz
+  sha256: eb6ffc4e53aa0a22f195092f2102fb5233c5c4dda7b11700208a1974d1428297
+  patches:
+    - patches/0001-update-v4-proto-version.patch
+    - patches/0002-use-pyext-over-_ubp.patch
+
+build:
+  number: 0
+  noarch: python
+
+outputs:
+  - name: dydx-v4-client
+    script: install-py.sh  # [unix]
+    script: install-py.bat  # [win]
+    build:
+      noarch: python
+    requirements:
+      host:
+        - dydxprotocol-v4-proto-py ==5.0.6
+        - pip
+        - poetry
+        - python >=3.9
+        - typing-extensions ==4.12
+      run:
+        - dydxprotocol-v4-proto-py ==5.0.6
+        - bech32 ==1.2
+        - bip-utils ==2.9.3
+        - ecdsa ==0.19
+        - httpx ==0.27
+        - protobuf >=4.23,<4.25
+        - pycryptodome ==3.20
+        - python >=3.9
+        - websocket-client ==1.7
+    test:
+      source_files:
+        - v4-client-py-v2/pyproject.toml
+        - v4-client-py-v2/tests
+      imports:
+        - dydx_v4_client
+      requires:
+        - pip
+        - poetry
+        - pytest
+        - pytest-asyncio
+        - pytest-dotenv
+      commands:
+        - pip check
+        - cd v4-client-py-v2 && poetry run pytest || true
+
+  # - PYPI naming conversion
+  - name: dydx_v4_client
+    requirements:
+      run:
+        - {{ pin_subpackage('dydx-v4-client', exact=True) }}
+    test:
+      imports:
+        - dydx_v4_client
+      requires:
+        - pip
+      commands:
+        - pip check
+
+about:
+  home: https://github.com/dydxprotocol/v4-clients
+  summary: 'Python client for dYdX Chain. Developed and maintained by the Nethermind team.'
+  description: |
+    The dYdX v4 software (the ”dYdX Chain”) is a sovereign blockchain software built using
+    Cosmos SDK and CometBFT. It powers a robust decentralized perpetual futures exchange
+    with a high-performance orderbook and matching engine for a feature-rich, self-custodial
+    perpetual trading experience on any market.
+  license: AGPL-3.0-only
+  license_file:
+    - LICENSE
+  doc_url: https://docs.dydx.exchange/
+
+extra:
+  recipe-maintainers:
+    - MementoRC
