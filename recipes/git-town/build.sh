@@ -2,7 +2,7 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-go build -trimpath -buildmode=pie -o=${PREFIX}/bin/${PKG_NAME} -ldflags="-s -w -X github.com/git-town/git-town/v7/src/cmd.version=v${PKG_VERSION}"
+go build -trimpath -buildmode=pie -o=${PREFIX}/bin/${PKG_NAME} -ldflags="-s -w"
 go-licenses save . --save_path=license-files
 
 mkdir -p ${PREFIX}/etc/bash_completion.d
