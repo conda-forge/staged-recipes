@@ -8,7 +8,7 @@ cargo-bundle-licenses \
     --output THIRDPARTY.yml
 
 # build statically linked binary with Rust
-cargo install --no-target --locked --root ${PREFIX} --path spr
+cargo install --no-track --locked --root ${PREFIX} --path spr
 
 # strip debug symbols
 "$STRIP" "$PREFIX/bin/${PKG_NAME}"
