@@ -1,8 +1,8 @@
 set GOPROXY=https://proxy.golang.org
 go mod init flint
 go mod edit -replace github.com/codegangsta/cli=github.com/urfave/cli@v1
-go mod tidy
-go mod vendor
+go mod tidy -e
+go mod vendor -e
 
 go build -buildmode=pie -trimpath -o=%LIBRARY_PREFIX%\bin\%PKG_NAME%.exe -ldflags="-s" || goto :error
 go-licenses save . --save_path=license-files || goto :error
