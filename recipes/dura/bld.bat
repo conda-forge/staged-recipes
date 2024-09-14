@@ -1,6 +1,6 @@
 :: check licenses
-cargo-bundle-licenses \
-    --format yaml \
+cargo-bundle-licenses ^
+    --format yaml ^
     --output THIRDPARTY.yml || goto :error
 
 :: build statically linked binary with Rust
