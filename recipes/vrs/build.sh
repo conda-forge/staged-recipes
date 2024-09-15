@@ -12,7 +12,6 @@ cmake $SRC_DIR \
   -G Ninja \
   -B build \
   -DCMAKE_BUILD_TYPE=Release \
-  -DBUILD_SHARED_LIBS=ON \
   -DUNIT_TESTS=OFF \
   -DBUILD_SAMPLES=OFF
 
