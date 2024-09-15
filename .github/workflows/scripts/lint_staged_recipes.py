@@ -20,10 +20,9 @@ def _lint_recipes(gh, pr):
     labels = set(label.name for label in pr.get_labels())
 
     # 1. Do not edit or delete example recipes
-    if "maintenance" not in labels:
-        for fname in fnames:
-            if fname in ["recipes/example/meta.yaml", "recipes/example-v1/recipe.yaml"]:
-                lints[fname].append("Do not edit or delete example recipes in `recipes/example/` or `recipe/example-v1/`.")
+    for fname in fnames:
+        if fname in ["recipes/example/meta.yaml", "recipes/example-v1/recipe.yaml"]:
+            lints[fname].append("Do not edit or delete example recipes in `recipes/example/` or `recipe/example-v1/`.")
 
     # 2. Make sure the new recipe is in the right directory
     for fname in fnames:
@@ -39,9 +38,10 @@ def _lint_recipes(gh, pr):
             )
 
     # 3. Only edit recipe files
-    for fname in fnames:
-        if not fname.startswith("recipes/"):
-            lints[fname].append("Do not edit files outside of the `recipes/` directory.")
+    if "maintenance" not in labels:
+        for fname in fnames:
+            if not fname.startswith("recipes/"):
+                lints[fname].append("Do not edit files outside of the `recipes/` directory.")
 
     # Recipe-specific lints/hints
     for fname in fnames:
@@ -187,19 +187,19 @@ def _comment_on_pr(pr, lints, hints):
         hint_message = ""
 
         if fname in lints and lints[fname]:
-            lint_message = "### lints\n"
+            lint_message = "**lints**\n"
             for lint in lints[fname]:
                 if lint:
                     lint_message += f"- {lint}\n"
 
         if fname in hints and hints[fname]:
-            hint_message = "### hints\n"
+            hint_message = "**hints**\n"
             for hint in hints[fname]:
                 if hint:
                     hint_message += f"- {hint}\n"
 
         if lint_message or hint_message:
-            summary += f"## {fname}\n"
+            summary += f"#### {fname}:\n"
             summary += lint_message + hint_message + "\n"
 
     print(summary)
