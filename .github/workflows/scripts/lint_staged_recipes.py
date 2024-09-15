@@ -214,8 +214,7 @@ please add a `maintenance` label to the PR.\n"""
             summary += lint_message + hint_message + "\n"
 
     print(summary)
-
-    pr.create_issue_comment(summary)
+    print(summary, file=sys.stderr)
 
 
 if __name__ == "__main__":
