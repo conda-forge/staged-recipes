@@ -183,7 +183,7 @@ def _comment_on_pr(pr, lints, hints, extra_edits):
 
     if extra_edits:
         summary += """\
-\nIt looks like some changes were made outside the recipes directory. \
+\nIt looks like some changes were made outside the `recipes/` directory. \
 To ensure everything runs smoothly, please make sure that recipes are only \
 added to the `recipes/` directory and no other files are changed.
 
