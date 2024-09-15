@@ -49,7 +49,7 @@ if __name__ == "__main__":
         commit = repo.get_commit(args.head_sha)
         pr = None
         for _pr in commit.get_pulls():
-            if _pr.base.full_name == repo.full_name:
+            if _pr.base.repo.full_name == repo.full_name:
                 pr = _pr
                 break
 
