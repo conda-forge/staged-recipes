@@ -37,7 +37,7 @@ if [ -z ${CONDA_FORGE_EMSCRIPTEN_ACTIVATED+x} ]; then
     export DBGFLAGS_USED="-g0"
 
     # basics ld
-    export LDFLAGS_BASE="-s MODULARIZE=1 -s LINKABLE=1 -s EXPORT_ALL=1 -s WASM=1 -std=c++14 -s LZ4=1"
+    export LDFLAGS_BASE="-sMODULARIZE=1 -sLINKABLE=1 -sEXPORT_ALL=1 -sWASM=1 -sLZ4=1"
     export LDFLAGS_BASE="${OPTFLAGS_USED} ${DBGFLAGS_USED} ${LDFLAGS_BASE}"
 
     # basics cflags
