@@ -3,12 +3,8 @@ if [ -z ${CONDA_FORGE_EMSCRIPTEN_ACTIVATED+x} ]; then
     export CONDA_FORGE_EMSCRIPTEN_ACTIVATED=1
 
     export EMSDK_PYTHON=${CONDA_PREFIX}/bin/python3
-    export PYTHON=${CONDA_PREFIX}/bin/python3
 
-    CONDA_EMSDK_DIR=$CONDA_PREFIX/opt/emsdk
- 
-    export EMSCRIPTEN_VERSION=$PKG_VERSION
-    export EMSCRIPTEN_FORGE_EMSDK_DIR=$CONDA_EMSDK_DIR
+    export CONDA_EMSDK_DIR=${CONDA_PREFIX}/opt/emsdk
 
     # clear all prexisting cmake args / CC / CXX / AR / RANLIB
     export CC="emcc"
@@ -32,10 +28,6 @@ if [ -z ${CONDA_FORGE_EMSCRIPTEN_ACTIVATED+x} ]; then
 
     # fpic
     export CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=true"
-
-    cmake () {
-        emcmake cmake "$@"
-    }
 
     # useful variables
     export PY_SIDE_LD_FLAGV
