@@ -19,11 +19,12 @@ def _lint_recipes(gh, pr):
     fnames = set(f.filename for f in pr.get_files())
     labels = set(label.name for label in pr.get_labels())
     extra_edits = False
+    example_recipes = ["recipes/example/meta.yaml", "recipes/example-v1/recipe.yaml"]
 
     # 1. Do not edit or delete example recipes and only edit recipe files
     if "maintenance" not in labels:
         for fname in fnames:
-            if fname in ["recipes/example/meta.yaml", "recipes/example-v1/recipe.yaml"]:
+            if fname in example_recipes:
                 lints[fname].append("Do not edit or delete example recipes in `recipes/example/` or `recipe/example-v1/`.")
                 extra_edits = True
             if not fname.startswith("recipes/"):
@@ -37,7 +38,7 @@ def _lint_recipes(gh, pr):
             or fname.startswith("recipes/example-v1/")
             or fname.startswith("recipes/meta.y")
             or fname.startswith("recipes/recipe.y")
-        ):
+        ) and fname not in example_recipes:
             lints[fname].append(
                 "Please put your recipe in its own directory in the `recipes/` directory as "
                 "`recipe/<name of feedstock>/<your recipe file>.yaml`."
@@ -47,8 +48,7 @@ def _lint_recipes(gh, pr):
     for fname in fnames:
         if (
             (not fname.startswith("recipes/"))
-            or fname == "recipes/example/meta.yaml"
-            or fname == "recipes/example-v1/recipe.yaml"
+            or fname in example_recipes
         ):
             continue
 
