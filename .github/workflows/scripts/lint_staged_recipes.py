@@ -223,12 +223,13 @@ please add a `maintenance` label to the PR.\n"""
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Lint staged recipes.')
+    parser.add_argument('--owner', type=str, required=True, help='the repo owner')
     parser.add_argument('--pr-num', type=int, required=True, help='the PR number')
 
     args = parser.parse_args()
 
     gh = github.Github(auth=github.Auth.Token(os.getenv("GH_TOKEN")))
-    repo = gh.get_repo("conda-forge/staged-recipes")
+    repo = gh.get_repo(f"{args.owner}/staged-recipes")
     pr = repo.get_pull(args.pr_num)
 
     lints, hints, extra_edits = _lint_recipes(gh, pr)
