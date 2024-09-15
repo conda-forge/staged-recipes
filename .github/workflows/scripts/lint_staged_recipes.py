@@ -1,7 +1,6 @@
 import argparse
 from collections import defaultdict
 from pathlib import Path
-import pprint
 import os
 import sys
 
@@ -174,14 +173,36 @@ def _lint_recipes(gh, pr):
 
 
 def _comment_on_pr(pr, lints, hints):
-    print("lints:\n", pprint.pformat(lints))
-    print("hints:\n", pprint.pformat(hints))
-    for fname, messages in lints.items():
-        message = "\n".join(set(messages))
-        print(f"::notice file={fname}::lints:\n{message}")
-    for fname, messages in hints.items():
-        message = "\n".join(set(messages))
-        print(f"::notice file={fname}::hints:\n{message}")
+    if lints:
+        topline = "I found some lint."
+    elif hints:
+        topline = "your PR looks excellent but I have some suggestions."
+    else:
+        topline = "your PR looks excellent! :rocket:"
+    summary = f"Hi! This is the staged-recipes linter and {topline}\n"
+
+    all_fnames = set(lints.keys()) | set(hints.keys())
+    for fname in all_fnames:
+        lint_message = ""
+        hint_message = ""
+
+        if fname in lints and lints[fname]:
+            lint_message = "### lints\n"
+            for lint in lints[fname]:
+                if lint:
+                    lint_message += f"- {lint}\n"
+
+        if fname in hints and hints[fname]:
+            hint_message = "### hints\n"
+            for hint in hints[fname]:
+                if hint:
+                    hint_message += f"- {hint}\n"
+
+        if lint_message or hint_message:
+            summary += f"## {fname}\n"
+            summary += lint_message + hint_message + "\n"
+
+    print(summary)
 
 
 if __name__ == "__main__":
