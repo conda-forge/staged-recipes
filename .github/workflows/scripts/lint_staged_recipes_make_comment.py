@@ -6,20 +6,8 @@ import github
 import requests
 
 
-def _get_latest_run_summary(pr):
-    all_runs = []
-    for r in repo.get_workflow_runs(head_sha=pr.head.sha):
-        if r.name == "staged-recipes linter":
-            all_runs.append(r)
-
-    all_times = [r.created_at for r in all_runs]
-
-    latest_time = max(all_times)
-
-    for r in all_runs:
-        if r.created_at == latest_time:
-            latest_run = r
-
+def _get_latest_run_summary(repo, workflow_run_id):
+    latest_run = repo.get_workflow_run(workflow_run_id)
     for job in latest_run.jobs():
         pass
 
@@ -48,7 +36,8 @@ def _get_latest_run_summary(pr):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Lint staged recipes.')
     parser.add_argument('--owner', type=str, required=True, help='the repo owner')
-    parser.add_argument('--pr-num', type=int, required=True, help='the PR number')
+    parser.add_argument('--workflow-run-id', type=int, required=True, help='the ID of the workflor run')
+    parser.add_argument('--head-sha', type=str, required=True, help='the head SHA of the PR')
 
     args = parser.parse_args()
 
@@ -57,9 +46,11 @@ if __name__ == "__main__":
 
     gh = github.Github(auth=github.Auth.Token(os.environ["GH_TOKEN"]))
     repo = gh.get_repo(f"{args.owner}/staged-recipes")
-    pr = repo.get_pull(args.pr_num)
 
-    summary = _get_latest_run_summary(pr)
+    summary = _get_latest_run_summary(repo, args.workflow_run_id)
     if summary:
+        commit = repo.get_commit(args.head_sha)
+        for pr in commit.get_pulls():
+            pass
         print(summary)
         pr.create_issue_comment(summary)

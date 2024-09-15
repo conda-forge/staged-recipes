@@ -1,17 +1,10 @@
 name: make comment for staged-recipes linter
 
 on:
-  pull_request_target:
+  workflow_run:
+    workflows: ["staged-recipes linter"]
     types:
-      - opened
-      - synchronize
-      - reopened
-      - labeled
-      - unlabeled
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+      - completed
 
 jobs:
   make-comment:
@@ -22,9 +15,6 @@ jobs:
         shell: bash -leo pipefail {0}
 
     steps:
-      - name: checkout code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
-
       - name: install code
         uses: mamba-org/setup-micromamba@f8b8a1e23a26f60a44c853292711bacfd3eac822
         with:
@@ -43,6 +33,7 @@ jobs:
         run: |
           python .github/workflows/scripts/lint_staged_recipes_make_comment.py \
             --owner=${{ github.repository_owner }} \
-            --pr-num=${{ github.event.number }}
+            --workflow-run=id=${{ github.event.id }} \
+            --head-sha=${{ github.event.head_sha }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
