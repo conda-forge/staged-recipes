@@ -215,6 +215,8 @@ please add a `maintenance` label to the PR.\n"""
 
     print(summary)
 
+    pr.create_comment(summary)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Lint staged recipes.')
