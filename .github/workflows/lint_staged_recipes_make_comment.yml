@@ -1,0 +1,47 @@
+name: make comment for staged-recipes linter
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+      - unlabeled
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  make-comment:
+    name: make comment
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -leo pipefail {0}
+
+    steps:
+      - name: checkout code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+
+      - name: install code
+        uses: mamba-org/setup-micromamba@f8b8a1e23a26f60a44c853292711bacfd3eac822
+        with:
+          environment-name: lint
+          condarc: |
+            show_channel_urls: true
+            channel_priority: strict
+            channels:
+              - conda-forge
+          create-args: >-
+            conda-smithy
+            pygithub
+            requests
+
+      - name: make comment
+        run: |
+          python .github/workflows/scripts/lint_staged_recipes_make_comment.py \
+            --pr-num=${{ github.event.number }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
