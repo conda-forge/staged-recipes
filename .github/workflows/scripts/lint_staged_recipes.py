@@ -18,12 +18,17 @@ def _lint_recipes(gh, pr):
     hints = defaultdict(list)
     fnames = set(f.filename for f in pr.get_files())
     labels = set(label.name for label in pr.get_labels())
+    extra_edits = False
 
-    # 1. Do not edit or delete example recipes
+    # 1. Do not edit or delete example recipes and only edit recipe files
     if "maintenance" not in labels:
         for fname in fnames:
             if fname in ["recipes/example/meta.yaml", "recipes/example-v1/recipe.yaml"]:
                 lints[fname].append("Do not edit or delete example recipes in `recipes/example/` or `recipe/example-v1/`.")
+                extra_edits = True
+            if not fname.startswith("recipes/"):
+                lints[fname].append("Do not edit files outside of the `recipes/` directory.")
+                extra_edits = True
 
     # 2. Make sure the new recipe is in the right directory
     for fname in fnames:
@@ -37,12 +42,6 @@ def _lint_recipes(gh, pr):
                 "Please put your recipe in its own directory in the `recipes/` directory as "
                 "`recipe/<name of feedstock>/<your recipe file>.yaml`."
             )
-
-    # 3. Only edit recipe files
-    if "maintenance" not in labels:
-        for fname in fnames:
-            if not fname.startswith("recipes/"):
-                lints[fname].append("Do not edit files outside of the `recipes/` directory.")
 
     # Recipe-specific lints/hints
     for fname in fnames:
@@ -170,10 +169,10 @@ def _lint_recipes(gh, pr):
                     f"{', '.join(non_participating_maintainers)}. Please ask them to comment on this PR if they are."
                 )
 
-    return dict(lints), dict(hints)
+    return dict(lints), dict(hints), extra_edits
 
 
-def _comment_on_pr(pr, lints, hints):
+def _comment_on_pr(pr, lints, hints, extra_edits):
     if lints:
         topline = "I found some lint."
     elif hints:
@@ -181,6 +180,15 @@ def _comment_on_pr(pr, lints, hints):
     else:
         topline = "your PR looks excellent! :rocket:"
     summary = f"Hi! This is the staged-recipes linter and {topline}\n"
+
+    if extra_edits:
+        summary += """\
+\nIt looks like some changes were made outside the recipes directory. \
+To ensure everything runs smoothly, please make sure that recipes are only \
+added to the `recipes/` directory and no other files are changed.
+
+If these changes are intentional (and you aren't submitting a recipe), \
+please add a `maintenance` label to the PR.\n"""
 
     all_fnames = set(lints.keys()) | set(hints.keys())
     for fname in all_fnames:
