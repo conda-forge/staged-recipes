@@ -215,7 +215,7 @@ please add a `maintenance` label to the PR.\n"""
 
     print(summary)
 
-    pr.create_comment(summary)
+    pr.create_issue_comment(summary)
 
 
 if __name__ == "__main__":
