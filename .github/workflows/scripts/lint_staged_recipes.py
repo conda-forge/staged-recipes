@@ -216,8 +216,7 @@ if __name__ == "__main__":
     pr = repo.get_pull(args.pr_num)
 
     lints, hints = _lint_recipes(gh, pr)
-    if lints or hints:
-        _comment_on_pr(pr, lints, hints)
-        if lints:
-            sys.exit(1)
+    _comment_on_pr(pr, lints, hints)
+    if lints:
+        sys.exit(1)
 
