@@ -26,6 +26,9 @@ source:
   patches:
     - patches/0001-remove-beast-specification.patch
     - patches/0002-add-cstdint-header.patch
+    - patches/0003-add-shared-client-lib.patch
+    - patches/0004-remove-FetchContent.patch
+    - patches/0005-build-client-only.patch
 
 build:
   number: 0
@@ -33,47 +36,30 @@ build:
 
 requirements:
   build:
-    - {{ compiler('c') }}  # [not win]
-    - {{ compiler('cxx') }}  # [not win]
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
     - {{ stdlib("c") }}
-    # # Using experimental m2w64 toolchain for now
-    # - mingw-w64-ucrt-x86_64-gcc  # [win and x86_64]
-    # - mingw-w64-ucrt-x86_64-g++  # [win and x86_64]
-    - {{ compiler('m2w64_c') }}  # [win]
-    - {{ compiler('m2w64_cxx') }}  # [win]
-    - {{ stdlib("m2w64_c") }}  # [win]
     - cmake >=3.25
+    - m2-patch  # [win]
     - ninja
     - patch  # [unix]
-    - m2-patch  # [win]
   host:
     - catch2
     - fmt
-    - libabseil >=20240116
     - libbip3x
     - libboost-devel
-    - libdydx_v4_proto
-    - libprotobuf
+    - libdydx_v4_proto-devel
     - libtoolbox
-    # - make
     - nlohmann_json
     - openssl
-    # - pkg-config
     - zlib
 
 outputs:
-  - name: libdydx_v4_client_lib
+  - name: libdydx_v4_client_lib-devel
     build:
       run_exports:
         - {{ pin_subpackage('libdydx_v4_client_lib-' ~ so_major_version) }}
     files:
-      {% for path, headers in dydx_v4_client_header_paths.items() %}
-        {% for header in headers %}
-      - include/dydx_v4_client/{{ path }}/{{ header }}  # [unix]
-      - Library\\include\\dydx_v4_client\\{{ path | replace('/', '\\\\') }}\\{{ header }}  # [win]
-        {% endfor %}
-      {% endfor %}
-
       - lib/libdydx_v4_client_lib.so  # [linux]
       - lib/libdydx_v4_client_lib.dylib  # [osx]
       - Library/lib/dydx_v4_client_lib.lib  # [win]
@@ -89,29 +75,17 @@ outputs:
       - bin\\dydx_v4_client_lib_tests.exe  # [win]
     requirements:
       build:
-        - {{ compiler('c') }}  # [not win]
-        - {{ compiler('cxx') }}  # [not win]
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
         - {{ stdlib("c") }}
-        # Using experimental m2w64 toolchain for now
-        - mingw-w64-ucrt-x86_64-gcc  # [win and x86_64]
-        - mingw-w64-ucrt-x86_64-g++  # [win and x86_64]
       host:
         - {{ pin_subpackage('libdydx_v4_client_lib-' ~ so_major_version) }}
-        - fmt
-        - libbip3x-3
-        - libdydx_v4_proto-{{ so_major_version }}
-        - openssl
+        - {{ pin_subpackage('libdydx_v4_client_lib-headers-' ~ so_major_version) }}
       run:
         - {{ pin_subpackage('libdydx_v4_client_lib-' ~ so_major_version) }}
+        - {{ pin_subpackage('libdydx_v4_client_lib-headers-' ~ so_major_version) }}
     test:
       commands:
-        {% for path, headers in dydx_v4_client_header_paths.items() %}
-          {% for header in headers %}
-        - test -f ${PREFIX}/include/dydx_v4_client/{{ path }}/{{ header }}  # [unix]
-        - if not exist %PREFIX%\\Library\\include\\dydx_v4_client\\{{ path | replace('/', '\\\\') }}\\{{ header }} exit 1  # [win]
-          {% endfor %}
-        {% endfor %}
-
         - test -f ${PREFIX}/lib/libdydx_v4_client_lib.so  # [linux]
         - test -f ${PREFIX}/lib/libdydx_v4_client_lib.dylib  # [osx]
         - if not exist %PREFIX%\\Library/lib/dydx_v4_client_lib.lib exit 1  # [win]
@@ -127,6 +101,28 @@ outputs:
 
 
 
+  - name: libdydx_v4_client_lib-headers-{{ so_major_version }}
+    files:
+      {% for path, headers in dydx_v4_client_header_paths.items() %}
+        {% for header in headers %}
+      - include/dydx_v4_client/{{ path }}/{{ header }}  # [unix]
+      - Library\\include\\dydx_v4_client\\{{ path | replace('/', '\\\\') }}\\{{ header }}  # [win]
+        {% endfor %}
+      {% endfor %}
+    requirements:
+      host:
+      run:
+    test:
+      commands:
+        {% for path, headers in dydx_v4_client_header_paths.items() %}
+          {% for header in headers %}
+        - test -f ${PREFIX}/include/dydx_v4_client/{{ path }}/{{ header }}  # [unix]
+        - if not exist %PREFIX%\\Library\\include\\dydx_v4_client\\{{ path | replace('/', '\\\\') }}\\{{ header }} exit 1  # [win]
+          {% endfor %}
+        {% endfor %}
+
+
+
   - name: libdydx_v4_client_lib-{{ so_major_version }}
     build:
       run_exports:
@@ -134,24 +130,19 @@ outputs:
     files:
       - lib/libdydx_v4_client_lib.so.{{ so_major_version }}  # [linux]
       - lib/libdydx_v4_client_lib.{{ so_major_version }}.dylib  # [osx]
-      - Library\\bin\\dydx_v4_client_lib.{{ so_major_version }}.dll  # [win]
       - lib/libdydx_v4_client_lib.so.{{ so_version }}  # [linux]
       - lib/libdydx_v4_client_lib.{{ so_version }}.dylib  # [osx]
-      - Library\\bin\\dydx_v4_client_lib.{{ so_version }}.dll  # [win]
+      - Library\\bin\\dydx_v4_client_lib-{{ so_version }}.dll  # [win]
     requirements:
       build:
-        - {{ compiler('c') }}  # [not win]
-        - {{ compiler('cxx') }}  # [not win]
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
         - {{ stdlib("c") }}
-        # Using experimental m2w64 toolchain for now
-        - mingw-w64-ucrt-x86_64-gcc  # [win and x86_64]
-        - mingw-w64-ucrt-x86_64-g++  # [win and x86_64]
       host:
         - fmt
         - libbip3x-3
         - libboost-devel
         - libdydx_v4_proto-{{ so_major_version }}
-        - libprotobuf
         - openssl
       run:
         - libdydx_v4_proto-{{ so_major_version }}
@@ -159,10 +150,9 @@ outputs:
       commands:
         - test -f ${PREFIX}/lib/libdydx_v4_client_lib${SHLIB_EXT}.{{ so_major_version }}  # [linux]
         - test -f ${PREFIX}/lib/libdydx_v4_client_lib.{{ so_major_version }}${SHLIB_EXT}  # [osx]
-        - if not exist %PREFIX%\\Library\\bin\\dydx_v4_client_lib.{{ so_major_version }}%SHLIB_EXT% exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\dydx_v4_client_lib-{{ so_major_version }}%SHLIB_EXT% exit 1  # [win]
         - test -f ${PREFIX}/lib/libdydx_v4_client_lib${SHLIB_EXT}.{{ so_version }}  # [linux]
         - test -f ${PREFIX}/lib/libdydx_v4_client_lib.{{ so_version }}${SHLIB_EXT}  # [osx]
-        - if not exist %PREFIX%\\Library\\bin\\dydx_v4_client_lib.{{ so_version }}%SHLIB_EXT% exit 1  # [win]
 
 
 about:

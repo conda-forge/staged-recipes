@@ -1,0 +1,37 @@
+--- v4-client-cpp/lib/CMakeLists.txt.orig	2021-10-14 15:00:00.000000000 +0000
++++ v4-client-cpp/lib/CMakeLists.txt	2021-10-14 15:00:00.000000000 +0000
+@@ -3,3 +3,3 @@
+ # Proto files
+-add_subdirectory(proto)
++find_package(dydx_v4_proto)
+
+@@ -12,5 +13,20 @@
+ file(GLOB_RECURSE SOURCES ${SOURCE_DIR}/*.cpp)
+-add_library(dydx_v4_client_lib ${SOURCES})
+-target_include_directories(dydx_v4_client_lib PUBLIC ${INCLUDE_DIR})
+-target_link_libraries(dydx_v4_client_lib PUBLIC dydx_v4_proto Boost::beast OpenSSL::SSL bip3x fmt nlohmann_json::nlohmann_json)
++
++add_library(dydx_v4_client_lib_obj OBJECT ${SOURCES})
++set_property(TARGET dydx_v4_client_lib_obj PROPERTY POSITION_INDEPENDENT_CODE 1)
++target_include_directories(dydx_v4_client_lib_obj PUBLIC ${INCLUDE_DIR} ${dydx_v4_proto_INCLUDE_DIRS})
++
++add_library(dydx_v4_client_lib SHARED $<TARGET_OBJECTS:dydx_v4_client_lib_obj>)
++target_include_directories(dydx_v4_client_lib PUBLIC ${INCLUDE_DIR} ${dydx_v4_proto_INCLUDE_DIRS})
++set_target_properties(dydx_v4_client_lib PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
++target_link_libraries(dydx_v4_client_lib PUBLIC dydx_v4_proto Boost::boost OpenSSL::SSL crypto boost_context bip3x fmt nlohmann_json::nlohmann_json)
++
++include(GNUInstallDirs)
++install(TARGETS dydx_v4_client_lib EXPORT dydx_v4_client_lib-config DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT client)
++install(DIRECTORY include/common DESTINATION include/dydx_v4_client COMPONENT client)
++install(DIRECTORY include/dydx_v4_futures DESTINATION include/dydx_v4_client COMPONENT client)
++
++include($ENV{RECIPE_DIR}/cmake/InstallLibraryVersion.txt)
++include($ENV{RECIPE_DIR}/cmake/InstallCmakeConfigFiles.txt)
++include($ENV{RECIPE_DIR}/cmake/InstallPkgConfigFiles.txt)
+
+@@ -20,3 +36,4 @@
+ add_executable(dydx_v4_client_lib_tests ${TEST_SOURCES})
+-target_link_libraries(dydx_v4_client_lib_tests PRIVATE Catch2::Catch2WithMain dydx_v4_client_lib)
++target_link_libraries(dydx_v4_client_lib_tests PRIVATE Catch2::Catch2WithMain dydx_v4_client_lib Boost::boost crypto OpenSSL::SSL bip3x fmt nlohmann_json::nlohmann_json)
++target_include_directories(dydx_v4_client_lib_tests PUBLIC ${INCLUDE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+ catch_discover_tests(dydx_v4_client_lib_tests)

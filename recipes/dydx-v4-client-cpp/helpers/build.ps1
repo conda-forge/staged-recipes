@@ -14,9 +14,22 @@ Push-Location _conda-build-client
     -DBUILD_SHARED_LIBS=ON `
     -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON `
     -G Ninja
+  if ($LASTEXITCODE -ne 0) {
+    Write-Output "CMake failed with exit code $LASTEXITCODE"
+    exit $LASTEXITCODE
+  }
 
   cmake --build . --target dydx_v4_client_lib -- -j"$env:CPU_COUNT"
+  if ($LASTEXITCODE -ne 0) {
+    Write-Output "CMake failed with exit code $LASTEXITCODE"
+    exit $LASTEXITCODE
+  }
+
   cmake --install . --component client
+  if ($LASTEXITCODE -ne 0) {
+    Write-Output "CMake failed with exit code $LASTEXITCODE"
+    exit $LASTEXITCODE
+  }
 Pop-Location
 
 Invoke-Expression "patch -p0 -i ${env:RECIPE_DIR}/patches/xxxx-cmake-tests.patch"
