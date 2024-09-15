@@ -15,34 +15,32 @@ import requests
 
 
 def _lint_recipes(gh, pr):
-    lints = []
-    hints = []
-    recipe_lints = defaultdict(list)
-    recipe_hints = defaultdict(list)
+    lints = defaultdict(list)
+    hints = defaultdict(list)
     fnames = set(f.filename for f in pr.get_files())
 
     # 1. Do not edit or delete example recipes
-    if "recipes/example/meta.yaml" in fnames or "recipes/example-v1/recipe.yaml" in fnames:
-        lints.append("Do not edit or delete example recipes in `recipes/example/` or `recipe/example-v1/`.")
+    for fname in fnames:
+        if fname in ["recipes/example/meta.yaml", "recipes/example-v1/recipe.yaml"]:
+            lints[fname].append("Do not edit or delete example recipes in `recipes/example/` or `recipe/example-v1/`.")
 
     # 2. Make sure the new recipe is in the right directory
-    if any(
-        (
-            f.startswith("recipes/example/")
-            or f.startswith("recipes/example-v1/")
-            or f.startswith("recipes/meta.y")
-            or f.startswith("recipes/recipe.y")
-        )
-        for f in fnames
-    ):
-        lints.append(
-            "Please put your recipe in its own directory in the `recipes/` directory as "
-            "`recipe/<name of feedstock>/<your recipe file>.yaml`."
-        )
+    for fname in fnames:
+        if (
+            fname.startswith("recipes/example/")
+            or fname.startswith("recipes/example-v1/")
+            or fname.startswith("recipes/meta.y")
+            or fname.startswith("recipes/recipe.y")
+        ):
+            lints[fname].append(
+                "Please put your recipe in its own directory in the `recipes/` directory as "
+                "`recipe/<name of feedstock>/<your recipe file>.yaml`."
+            )
 
     # 3. Only edit recipe files
-    if not all(f.startswith("recipes/") for f in fnames):
-        lints.append("Do not edit files outside of the `recipes/` directory.")
+    for fname in fnames:
+        if not fname.startswith("recipes/"):
+            lints[fname].append("Do not edit files outside of the `recipes/` directory.")
 
     # Recipe-specific lints/hints
     for fname in fnames:
@@ -101,9 +99,9 @@ def _lint_recipes(gh, pr):
                     feedstock_exists = False
 
             if feedstock_exists and existing_recipe_name == recipe_name:
-                recipe_lints[fname].append("Feedstock with the same name exists in conda-forge.")
+                lints[fname].append("Feedstock with the same name exists in conda-forge.")
             elif feedstock_exists:
-                recipe_hints[fname].append(
+                hints[fname].append(
                     f"Feedstock with the name {existing_recipe_name} exists in conda-forge. "
                     f"Is it the same as this package ({recipe_name})?"
                 )
@@ -114,7 +112,7 @@ def _lint_recipes(gh, pr):
             except github.UnknownObjectException:
                 pass
             else:
-                recipe_hints[fname].append(
+                hints[fname].append(
                     "Recipe with the same name exists in bioconda: "
                     "please discuss with @conda-forge/bioconda-recipes."
                 )
@@ -142,7 +140,7 @@ def _lint_recipes(gh, pr):
                     for pkg in mapping:
                         if pkg.get("pypi_name", "") == pypi_name:
                             conda_name = pkg["conda_name"]
-                            recipe_hints[fname].append(
+                            hints[fname].append(
                                 f"A conda package with same name ({conda_name}) already exists."
                             )
 
@@ -165,20 +163,23 @@ def _lint_recipes(gh, pr):
 
             # Add a lint message if there are any non-participating maintainers
             if non_participating_maintainers:
-                recipe_lints[fname].append(
+                lints[fname].append(
                     f"The following maintainers have not yet confirmed that they are willing to be listed here: "
                     f"{', '.join(non_participating_maintainers)}. Please ask them to comment on this PR if they are."
                 )
 
-    return lints, hints, recipe_lints, recipe_lints
+    return lints, hints
 
 
-def _comment_on_pr(pr, lints, hints, recipe_lints, recipe_hints):
+def _comment_on_pr(pr, lints, hints):
     print("lints:\n", pprint.pformat(lints))
     print("hints:\n", pprint.pformat(hints))
-    print("recipe_lints:\n", pprint.pformat(recipe_lints))
-    print("recipe_hints:\n", pprint.pformat(recipe_hints))
-    print("::notice title=test::what does this do?")
+    for fname, messages in lints.items():
+        for message in messages:
+            print(f"::notice file={fname}::**lint**:{message}")
+    for fname, messages in hints.items():
+        for message in messages:
+            print(f"::notice file={fname}::hint:{message}")
 
 
 if __name__ == "__main__":
@@ -191,8 +192,9 @@ if __name__ == "__main__":
     repo = gh.get_repo("conda-forge/staged-recipes")
     pr = repo.get_pull(args.pr_num)
 
-    lints, hints, recipe_lints, recipe_hints = _lint_recipes(gh, pr)
-    if lints or hints or recipe_lints or recipe_hints:
-        _comment_on_pr(pr, lints, hints, recipe_lints, recipe_hints)
-        sys.exit(1)
+    lints, hints = _lint_recipes(gh, pr)
+    if lints or hints:
+        _comment_on_pr(pr, lints, hints)
+        if lints:
+            sys.exit(1)
 
