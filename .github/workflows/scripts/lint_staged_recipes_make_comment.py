@@ -48,6 +48,6 @@ if __name__ == "__main__":
         print(summary)
         commit = repo.get_commit(args.head_sha)
         for pr in commit.get_pulls():
-            if pr.base.full_name == repo.full_name:
+            if pr.base.repo.full_name == repo.full_name:
                 pr.create_issue_comment(summary)
                 break
