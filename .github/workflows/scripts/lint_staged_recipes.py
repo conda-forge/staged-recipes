@@ -18,11 +18,13 @@ def _lint_recipes(gh, pr):
     lints = defaultdict(list)
     hints = defaultdict(list)
     fnames = set(f.filename for f in pr.get_files())
+    labels = set(label.name for label in pr.get_labels())
 
     # 1. Do not edit or delete example recipes
-    for fname in fnames:
-        if fname in ["recipes/example/meta.yaml", "recipes/example-v1/recipe.yaml"]:
-            lints[fname].append("Do not edit or delete example recipes in `recipes/example/` or `recipe/example-v1/`.")
+    if "maintenance" not in labels:
+        for fname in fnames:
+            if fname in ["recipes/example/meta.yaml", "recipes/example-v1/recipe.yaml"]:
+                lints[fname].append("Do not edit or delete example recipes in `recipes/example/` or `recipe/example-v1/`.")
 
     # 2. Make sure the new recipe is in the right directory
     for fname in fnames:
@@ -168,18 +170,18 @@ def _lint_recipes(gh, pr):
                     f"{', '.join(non_participating_maintainers)}. Please ask them to comment on this PR if they are."
                 )
 
-    return lints, hints
+    return dict(lints), dict(hints)
 
 
 def _comment_on_pr(pr, lints, hints):
     print("lints:\n", pprint.pformat(lints))
     print("hints:\n", pprint.pformat(hints))
     for fname, messages in lints.items():
-        for message in messages:
-            print(f"::notice file={fname}::**lint**:{message}")
+        message = "\n".join(set(messages))
+        print(f"::notice file={fname}::lints:\n{message}")
     for fname, messages in hints.items():
-        for message in messages:
-            print(f"::notice file={fname}::hint:{message}")
+        message = "\n".join(set(messages))
+        print(f"::notice file={fname}::hints:\n{message}")
 
 
 if __name__ == "__main__":
