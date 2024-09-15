@@ -190,8 +190,7 @@ added to the `recipes/` directory and no other files are changed.
 If these changes are intentional (and you aren't submitting a recipe), \
 please add a `maintenance` label to the PR.\n"""
 
-    summary += "\nfile-specific lints and/or hints:\n"
-
+    added_lint_hint_header = False
     all_fnames = set(lints.keys()) | set(hints.keys())
     for fname in all_fnames:
         lint_message = ""
@@ -210,11 +209,16 @@ please add a `maintenance` label to the PR.\n"""
                     hint_message += f"    - {hint}\n"
 
         if lint_message or hint_message:
+            if not added_lint_hint_header:
+                summary += "\nfile-specific lints and/or hints:\n"
+                added_lint_hint_header = True
             summary += f"\n- `{fname}`:\n"
             summary += lint_message + hint_message + "\n"
 
     print(summary)
+    print("###START-OF-SUMMARY###", file=sys.stderr)
     print(summary, file=sys.stderr)
+    print("###END-OF-SUMMARY###", file=sys.stderr)
 
 
 if __name__ == "__main__":
