@@ -1,5 +1,4 @@
 import argparse
-import time
 import os
 
 import github
@@ -41,16 +40,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # hack to wait for the workflow to finish
-    time.sleep(60)
-
     gh = github.Github(auth=github.Auth.Token(os.environ["GH_TOKEN"]))
     repo = gh.get_repo(f"{args.owner}/staged-recipes")
 
     summary = _get_latest_run_summary(repo, args.workflow_run_id)
     if summary:
+        print(summary)
         commit = repo.get_commit(args.head_sha)
         for pr in commit.get_pulls():
-            pass
-        print(summary)
-        pr.create_issue_comment(summary)
+            if pr.base.full_name == repo.full_name:
+                pr.create_issue_comment(summary)
+                break
