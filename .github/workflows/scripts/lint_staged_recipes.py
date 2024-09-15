@@ -200,7 +200,7 @@ def _comment_on_pr(pr, lints, hints):
                     hint_message += f"  - {hint}\n"
 
         if lint_message or hint_message:
-            summary += f"{fname}:\n"
+            summary += f"\nfile `{fname}`:\n"
             summary += lint_message + hint_message + "\n"
 
     print(summary)
