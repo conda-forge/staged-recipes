@@ -210,7 +210,7 @@ please add a `maintenance` label to the PR.\n"""
 
         if lint_message or hint_message:
             if not added_lint_hint_header:
-                summary += "\nfile-specific lints and/or hints:\n"
+                summary += "\nFile-specific lints and/or hints:\n"
                 added_lint_hint_header = True
             summary += f"\n- `{fname}`:\n"
             summary += lint_message + hint_message + "\n"
