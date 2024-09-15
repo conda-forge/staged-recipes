@@ -190,25 +190,27 @@ added to the `recipes/` directory and no other files are changed.
 If these changes are intentional (and you aren't submitting a recipe), \
 please add a `maintenance` label to the PR.\n"""
 
+    summary += "\nfile-specific lints and/or hints:\n"
+
     all_fnames = set(lints.keys()) | set(hints.keys())
     for fname in all_fnames:
         lint_message = ""
         hint_message = ""
 
         if fname in lints and lints[fname]:
-            lint_message = "- lints:\n"
+            lint_message = "  - lints:\n"
             for lint in lints[fname]:
                 if lint:
-                    lint_message += f"  - {lint}\n"
+                    lint_message += f"    - {lint}\n"
 
         if fname in hints and hints[fname]:
-            hint_message = "- hints:\n"
+            hint_message = "  - hints:\n"
             for hint in hints[fname]:
                 if hint:
-                    hint_message += f"  - {hint}\n"
+                    hint_message += f"    - {hint}\n"
 
         if lint_message or hint_message:
-            summary += f"\nfile `{fname}`:\n"
+            summary += f"\n`- {fname}`:\n"
             summary += lint_message + hint_message + "\n"
 
     print(summary)
