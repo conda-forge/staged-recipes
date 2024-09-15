@@ -224,8 +224,8 @@ if __name__ == "__main__":
     repo = gh.get_repo("conda-forge/staged-recipes")
     pr = repo.get_pull(args.pr_num)
 
-    lints, hints = _lint_recipes(gh, pr)
-    _comment_on_pr(pr, lints, hints)
+    lints, hints, extra_edits = _lint_recipes(gh, pr)
+    _comment_on_pr(pr, lints, hints, extra_edits)
     if lints:
         sys.exit(1)
 
