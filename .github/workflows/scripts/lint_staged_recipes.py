@@ -210,7 +210,7 @@ please add a `maintenance` label to the PR.\n"""
                     hint_message += f"    - {hint}\n"
 
         if lint_message or hint_message:
-            summary += f"\n`- {fname}`:\n"
+            summary += f"\n- `{fname}`:\n"
             summary += lint_message + hint_message + "\n"
 
     print(summary)
