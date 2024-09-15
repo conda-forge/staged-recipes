@@ -47,7 +47,22 @@ if __name__ == "__main__":
     if summary:
         print(summary)
         commit = repo.get_commit(args.head_sha)
-        for pr in commit.get_pulls():
-            if pr.base.full_name == repo.full_name:
-                pr.create_issue_comment(summary)
+        pr = None
+        for _pr in commit.get_pulls():
+            if _pr.base.full_name == repo.full_name:
+                pr = _pr
                 break
+
+        if pr is not None:
+
+            comment = None
+            for _comment in pr.get_issue_comments():
+                if "Hi! This is the staged-recipes linter" in _comment.body:
+                    comment = _comment
+                    break
+
+            if comment:
+                if comment.body != summary:
+                    comment.edit(summary)
+            else:
+                pr.create_issue_comment(summary)
