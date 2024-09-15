@@ -66,3 +66,5 @@ if __name__ == "__main__":
                     comment.edit(summary)
             else:
                 pr.create_issue_comment(summary)
+        else:
+            print("No PR found for the given commit. No comment being made!")
