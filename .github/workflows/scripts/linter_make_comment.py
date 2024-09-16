@@ -59,15 +59,15 @@ if __name__ == "__main__":
             for _comment in pr.get_issue_comments():
                 if "Hi! This is the staged-recipes linter" in _comment.body:
                     comment = _comment
-                    break
 
-            if comment and comment.body != summary:
-                curr_fline = comment.body.splitlines()[0].strip()
-                new_fl = summary.splitlines()[0].strip()
-                if curr_fline == new_fl:
-                    comment.edit(summary)
-                else:
-                    pr.create_issue_comment(summary)
+            if comment:
+                if comment.body != summary:
+                    curr_fline = comment.body.splitlines()[0].strip()
+                    new_fl = summary.splitlines()[0].strip()
+                    if curr_fline == new_fl:
+                        comment.edit(summary)
+                    else:
+                        pr.create_issue_comment(summary)
             else:
                 pr.create_issue_comment(summary)
         else:
