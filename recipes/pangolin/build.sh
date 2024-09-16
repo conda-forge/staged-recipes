@@ -1,17 +1,21 @@
 #!/bin/sh
 
-mkdir build
-cd build
+set -euxo pipefail
 
-cmake .. \
-    -G "Ninja" \
+cmake $SRC_DIR \
+    ${CMAKE_ARGS} \
+    -G Ninja \
+    -B build \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_LIBDIR="lib" \
-    -DCMAKE_INSTALL_PREFIX=$PREFIX \
-    -DCMAKE_PREFIX_PATH=$PREFIX \
     -DBUILD_EXAMPLES=OFF \
-    -DBUILD_TESTS=OFF \
+    -DBUILD_TESTS=ON \
     -DBUILD_TOOLS=OFF
 
-cmake --build . --config Release
-ninja install -j${CPU_COUNT}
+cmake --build build --parallel
+
+if [[ "${CONDA_BUILD_CROSS_COMPILATION:-}" != "1" ]]; then
+  ctest --test-dir build --output-on-failure
+fi
+
+cmake --build build --parallel --target install
