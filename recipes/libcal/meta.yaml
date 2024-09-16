@@ -9,7 +9,7 @@
 {% set cuda_major = environ.get("cuda_compiler_version", "11.2").split(".")[0] %}
 
 package:
-  name: libcal
+  name: libcal-split
   version: {{ version }}
 
 source:
@@ -23,23 +23,18 @@ build:
   number: 0
   skip: true  # [cuda_compiler_version in (None, "None")]
   skip: true  # [not (linux64 or aarch64)]
-  missing_dso_whitelist:
-    - "*/libcuda.so.*"
   script:
     - cp -rv include $PREFIX
     - cp -rv lib $PREFIX
     - mkdir -p $PREFIX/share/libcal
-
-test:
-  commands:
-    - test -L $PREFIX/lib/libcal.so.0
-    - test -f $PREFIX/lib/libcal.so.{{ lib_version }}
 
 outputs:
   - name: libcal
     build:
       run_exports:
         - {{ pin_subpackage("libcal", max_pin="x") }}
+      missing_dso_whitelist:
+        - "*/libcuda.so.*"
     files:
       - lib/libcal.so.*
     requirements:
@@ -57,7 +52,10 @@ outputs:
         - ucc
       run_constrained:
         - arm-variant * {{ arm_variant_type }}  # [aarch64]
-    # Tests are defined at the top level, due to package/output name conflicts.
+    test:
+      commands:
+        - test -L $PREFIX/lib/libcal.so.0
+        - test -f $PREFIX/lib/libcal.so.{{ lib_version }}
     about:
       home: https://docs.nvidia.com/cuda/cublasmp/
       license: LicenseRef-NVIDIA-End-User-License-Agreement
