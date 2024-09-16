@@ -1,7 +1,7 @@
 @echo on
 
 cmake -LAH -G "Ninja" ^
-    -DCMAKE_BUILD_TYPE=Release ^
+    %CMAKE_ARGS% ^
     -DCMAKE_PREFIX_PATH="%LIBRARY_PREFIX%" ^
     -DCMAKE_INSTALL_PREFIX="%LIBRARY_PREFIX%" ^
     -DCMAKE_UNITY_BUILD=ON ^
