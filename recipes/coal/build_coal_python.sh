@@ -1,5 +1,6 @@
 #!/bin/sh
 
+rm -rf build
 mkdir build
 cd build
 
@@ -29,10 +30,3 @@ cmake ${CMAKE_ARGS} .. \
 
 ninja
 ninja install
-
-if [[ $CONDA_BUILD_CROSS_COMPILATION == 1 ]]; then
-  echo $BUILD_PREFIX
-  echo $PREFIX
-  sed -i.back 's|'"$BUILD_PREFIX"'|'"$PREFIX"'|g' $PREFIX/lib/cmake/coal/coalTargets.cmake
-  rm $PREFIX/lib/cmake/coal/coalTargets.cmake.back
-fi
