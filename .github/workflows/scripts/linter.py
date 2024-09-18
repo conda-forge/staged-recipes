@@ -50,6 +50,7 @@ def _lint_recipes(gh, pr):
     for fname in fnames:
         if (
             (not fname.startswith("recipes/"))
+            or (not fname.endswith(".yaml"))
             or fname in example_recipes
         ):
             continue
