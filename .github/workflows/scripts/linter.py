@@ -12,6 +12,8 @@ from conda_smithy.utils import get_yaml, render_meta_yaml
 import github
 import requests
 
+NOCOMMENT_REQ_TEAMS = ["conda-forge/r"]
+
 
 def _lint_recipes(gh, pr):
     lints = defaultdict(list)
@@ -159,7 +161,11 @@ def _lint_recipes(gh, pr):
             # Check if all maintainers have either commented or are the PR author
             non_participating_maintainers = set()
             for maintainer in maintainers:
-                if maintainer not in commenters and maintainer != pr_author:
+                if (
+                    maintainer not in commenters 
+                    and maintainer != pr_author
+                    and maintainer not in NOCOMMENT_REQ_TEAMS
+                ):
                     non_participating_maintainers.add(maintainer)
 
             # Add a lint message if there are any non-participating maintainers
