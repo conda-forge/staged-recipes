@@ -1,0 +1,57 @@
+{% set name = "MinkowskiEngine" %}
+{% set version = "0.5.4" %}
+# see github.com/conda-forge/conda-forge.github.io/issues/1059 for naming discussion
+{% set torch_proc_type = "cuda" if cuda_compiler_version != "None" else "cpu" %}
+
+package:
+  name: "{{ name|lower }}"
+  version: {{ version }}
+
+source:
+  url: https://github.com/NVIDIA/MinkowskiEngine/archive/refs/heads/master.zip
+  sha256: abee075f774d6a9deae3cbaa0e7da2968d40284b2147c687d2127c5ae1732386
+  patches:
+    - 0001-fix-build-with-CUDA-12.0.patch
+
+build:
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }} # [cuda_compiler_version != "None"]
+  string: cpu_py{{ CONDA_PY }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }} # [cuda_compiler_version == "None"]
+
+requirements:
+  build:
+    - python # [build_platform != target_platform]
+    - cross-python_{{ target_platform }} # [build_platform != target_platform]
+    - pytorch ={{ pytorch }}={{ torch_proc_type }}* # [build_platform != target_platform]
+    - ninja
+    - blas-devel
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }} # [cuda_compiler_version != "None"]
+  host:
+    - python
+    - pip
+    - setuptools
+    - numpy
+    - pytorch
+    - pytorch =*={{ torch_proc_type }}*
+    - cuda-version {{ cuda_compiler_version }} # [cuda_compiler_version != "None"]
+    - cuda-nvtx-dev # [(cuda_compiler_version or "").startswith("12")]
+    - libcublas-dev # [(cuda_compiler_version or "").startswith("12")]
+    - libcurand-dev # [(cuda_compiler_version or "").startswith("12")]
+    - libcusolver-dev # [(cuda_compiler_version or "").startswith("12")]
+    - libcusparse-dev # [(cuda_compiler_version or "").startswith("12")]
+  run:
+    - python
+    - pytorch
+    - numpy
+  run_constrained:
+    - pytorch =*={{ torch_proc_type }}*
+
+test:
+  imports:
+    - MinkowskiEngine
+
+about:
+  homepage: https://nvidia.github.io/MinkowskiEngine/
+  license_file: LICENSE
+  license: MIT
+  summary: Minkowski Engine is an auto-diff neural network library for high-dimensional sparse tensors
