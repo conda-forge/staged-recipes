@@ -34,22 +34,23 @@ def _get_latest_run_summary(repo, workflow_run_id):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Lint staged recipes.')
-    parser.add_argument('--owner', type=str, required=True, help='the repo owner')
+    parser.add_argument('--head-repo-owner', type=str, required=True, help='the head repo owner')
     parser.add_argument('--workflow-run-id', type=int, required=True, help='the ID of the workflor run')
     parser.add_argument('--head-sha', type=str, required=True, help='the head SHA of the PR')
 
     args = parser.parse_args()
 
     gh = github.Github(auth=github.Auth.Token(os.environ["GH_TOKEN"]))
-    repo = gh.get_repo(f"{args.owner}/staged-recipes")
+    head_repo = gh.get_repo(f"{args.head_repo_owner}/staged-recipes")
+    base_repo = gh.get_repo("conda-forge/staged-recipes")
 
-    summary = _get_latest_run_summary(repo, args.workflow_run_id)
+    summary = _get_latest_run_summary(base_repo, args.workflow_run_id)
     if summary:
         print(summary)
-        commit = repo.get_commit(args.head_sha)
+        commit = head_repo.get_commit(args.head_sha)
         pr = None
         for _pr in commit.get_pulls():
-            if _pr.base.repo.full_name == repo.full_name:
+            if _pr.base.repo.full_name == base_repo.full_name:
                 pr = _pr
                 break
 
