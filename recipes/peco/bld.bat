@@ -13,3 +13,5 @@ go build ^
     -ldflags "-s -w" ^
     -o "%LIBRARY_BIN%\%PKG_NAME%.exe" ^
     cmd\%PKG_NAME%\%PKG_NAME%.go
+
+go-licenses save . --save_path=./license-files
