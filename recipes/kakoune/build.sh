@@ -4,13 +4,13 @@ set -exo pipefail
 
 echo "${target_platform}"
 
-if [[ "${target_platform}" == "linux-"* ]]; then
+if [[ "${target_platform}" == "linux-"* || "${target_platform}" == "win"* ]]; then
     make install -j${CPU_COUNT} \
         debug=no \
         PREFIX=${PREFIX} \
         CXX=${CXX}
 
-elif [[ "${target_platform}" == "darwin"* ]]; then
+elif [[ "${target_platform}" == "osx-"* ]]; then
     make install -j${CPU_COUNT} \
         debug=no \
         PREFIX=${PREFIX} \
