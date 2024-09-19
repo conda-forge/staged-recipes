@@ -37,3 +37,6 @@ cmake ${CMAKE_ARGS} \
 
 make -j${CPU_COUNT}
 make install
+
+cd dali/python
+${PYTHON} -m pip install .
