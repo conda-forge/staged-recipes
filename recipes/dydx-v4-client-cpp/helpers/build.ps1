@@ -4,6 +4,13 @@ Copy-Item -Recurse all-sources/v4-client-cpp $env:SRC_DIR
 
 New-Item -ItemType Directory -Force -Path _conda-build-client, _conda-logs
 
+# Check if the symbol exists in the .lib
+$libSymbols = dumpbin /linkermember:1 $PREFIX\Library\lib\dydx_v4_proto.lib | Select-String -Pattern "cosmos::base::v1beta1"
+if (-not $libSymbols) {
+  Write-Output "Symbol 'cosmos::base::v1beta1' not found in $PREFIX\Library\lib\dydx_v4_proto.lib"
+  exit 1
+}
+
 Push-Location _conda-build-client
   cmake "$env:SRC_DIR/v4-client-cpp" `
     -DCMAKE_BUILD_TYPE=Release `
