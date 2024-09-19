@@ -1,0 +1,95 @@
+{% set name = "tracy" %}
+{% set version = "0.11.1" %}
+
+
+package:
+  name:  {{ name | lower }}-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/wolfpld/{{ name }}/archive/refs/tags/v{{ version }}.zip
+  sha256: 2213f8c39ccbda555ec646a6bfa77daabce5837733770937578c06ad20e747cd
+  patches:
+    # Avoid installation issue on Windows.
+    - patches/0001-Install-bindings-on-Windows-and-allow-__init__.py-to.patch
+    # Avoid linking issue on MacOS
+    - patches/0002-Don-t-link-against-Python-library-in-Python-module.patch
+
+build:
+  number: 0
+
+outputs:
+  - name: tracy-client
+    build:
+      run_exports:
+        - {{ pin_subpackage('tracy-client', max_pin='x.x.x') }}
+    script: build_tracy_client.sh   # [not win]
+    script: build_tracy_client.bat  # [win]
+    requirements:
+      build:
+        - cmake
+        - ninja
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+      host:
+      run:
+    test:
+      commands:
+        - test -f $PREFIX/lib/libTracyClient${SHLIB_EXT}               # [not win]
+        - if not exist %PREFIX%\\Library\\bin\\TracyClient.dll exit 1  # [win]
+  - name: tracy-client-python
+    script: build_tracy_client_python.sh   # [not win]
+    script: build_tracy_client_python.bat  # [win]
+    requirements:
+      build:
+        - python                                 # [build_platform != target_platform]
+        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+        - cmake
+        - ninja
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+      host:
+        - python
+        - setuptools
+        - pip
+        - {{ pin_subpackage('tracy-client', exact=true) }}
+      run:
+        - python
+        - {{ pin_subpackage('tracy-client', exact=true) }}
+    test:
+      commands:
+        # TRACY_NO_INVARIANT_CHECK must be set on CI machine because the CPU
+        # doesn't support some instructions.
+        - TRACY_NO_INVARIANT_CHECK=1 python -c "import tracy_client"         # [not_win]
+        - set TRACY_NO_INVARIANT_CHECK=1 && python -c "import tracy_client"  # [win]
+  - name: tracy
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage('tracy-client', max_pin="x.x.x") }}
+        - {{ pin_subpackage('tracy-client-python', max_pin="x.x.x") }}
+    test:
+      commands:
+        - test -f $PREFIX/lib/libTracyClient${SHLIB_EXT}                     # [not win]
+        - if not exist %PREFIX%\\Library\\bin\\TracyClient.dll exit 1        # [win]
+        - TRACY_NO_INVARIANT_CHECK=1 python -c "import tracy_client"         # [not_win]
+        - set TRACY_NO_INVARIANT_CHECK=1 && python -c "import tracy_client"  # [win]
+
+about:
+  home: https://github.com/wolfpld/tracy
+  summary: |
+    A real time, nanosecond resolution, remote telemetry, hybrid frame and 
+    sampling profiler for games and other applications.
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  license_url: https://github.com/wolfpld/tracy/blob/master/LICENSE
+  dev_url: https://github.com/wolfpld/tracy
+
+extra:
+  feedstock-name: tracy
+  recipe-maintainers:
+    - ManifoldFR
+    - jorisv
+    - jcarpent
