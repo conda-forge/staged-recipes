@@ -14,4 +14,5 @@ go build \
     -o ${PREFIX}/bin/${PKG_NAME} \
     cmd/${PKG_NAME}/${PKG_NAME}.go
 
+cd ${SRC_DIR}
 go-licenses save . --save_path=./license-files

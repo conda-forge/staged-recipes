@@ -14,4 +14,5 @@ go build ^
     -o "%LIBRARY_BIN%\%PKG_NAME%.exe" ^
     cmd\%PKG_NAME%\%PKG_NAME%.go
 
+cd ${SRC_DIR}
 go-licenses save . --save_path=./license-files
