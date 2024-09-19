@@ -2,13 +2,13 @@
 
 set -exo pipefail
 
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+if [[ "${target_platform}" == linux-* ]]; then
     make install -j${CPU_COUNT} \
         debug=no \
         PREFIX=${PREFIX} \
         CXX=${CXX}
 
-elif [[ "$OSTYPE" == "darwin"* ]]; then
+elif [[ "${target_platform}" == "darwin"* ]]; then
     make install -j${CPU_COUNT} \
         debug=no \
         PREFIX=${PREFIX} \
