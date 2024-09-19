@@ -2,9 +2,7 @@
 
 set -exo pipefail
 
-echo "${target_platform}"
-
-if [[ "${target_platform}" == "linux-"* || "${target_platform}" == "win"* ]]; then
+if [[ "${target_platform}" == "linux-"* || "${target_platform}" == "win-"* ]]; then
     make install -j${CPU_COUNT} \
         debug=no \
         PREFIX=${PREFIX} \
