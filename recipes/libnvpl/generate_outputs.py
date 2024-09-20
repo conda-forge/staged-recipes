@@ -6,7 +6,7 @@ import itertools
 
 def generate_text_for_one_module(
     name: str,
-    version: list[str],
+    soversions: list[str],
     libraries: list[list[str]],
     deps: list[str] = [],
     build: list[str] = [],
@@ -21,7 +21,7 @@ def generate_text_for_one_module(
     lib_match_expanded0 = "\n".join(
         f"""      - lib/libnvpl_{lib}*.so.*""" for lib in lib_match
     )
-    name_with_somajor = f"libnvpl-{name}{version[0].split('.')[0]}"
+    name_with_somajor = f"libnvpl-{name}{soversions[0].split('.')[0]}"
     deps_expanded = "\n".join(
         f"""        - {{{{ pin_subpackage("{dep}") }}}}""" for dep in deps
     )
@@ -31,7 +31,7 @@ def generate_text_for_one_module(
         for lib in itertools.chain(*libraries)
     )
     lib0_tests_expanded = ""
-    for libs, v in zip(libraries, version):
+    for libs, v in zip(libraries, soversions):
         lib0_tests_expanded += "".join(
             f"""
         - test -f $PREFIX/lib/libnvpl_{lib}.so.{v.split('.')[0]}
@@ -90,7 +90,7 @@ if __name__ == "__main__":
     nvpl_packages = [
         {
             "name": "blas",
-            "version": ["0.3.0"],
+            "soversions": ["0.3.0"],
             "libraries": [
                 [
                     "blas_core",
@@ -103,7 +103,7 @@ if __name__ == "__main__":
         },
         {
             "name": "fft",
-            "version": ["0.3.0"],
+            "soversions": ["0.3.0"],
             "libraries": [
                 [
                     "fftw",
@@ -113,7 +113,7 @@ if __name__ == "__main__":
         },
         {
             "name": "lapack",
-            "version": ["0.2.3"],
+            "soversions": ["0.2.3"],
             "libraries": [
                 [
                     "lapack_core",
@@ -129,7 +129,7 @@ if __name__ == "__main__":
         },
         {
             "name": "rand",
-            "version": ["0.5.0"],
+            "soversions": ["0.5.0"],
             "libraries": [
                 [
                     "rand",
@@ -139,7 +139,7 @@ if __name__ == "__main__":
         },
         {
             "name": "scalapack",
-            "version": ["0.2.0"],
+            "soversions": ["0.2.0"],
             "libraries": [
                 [
                     "scalapack_ilp64",
@@ -158,7 +158,7 @@ if __name__ == "__main__":
         },
         {
             "name": "sparse",
-            "version": ["0.3.0"],
+            "soversions": ["0.3.0"],
             "libraries": [
                 [
                     "sparse",
@@ -167,7 +167,7 @@ if __name__ == "__main__":
         },
         {
             "name": "tensor",
-            "version": ["0.2.0"],
+            "soversions": ["0.2.0"],
             "libraries": [
                 [
                     "tensor",
