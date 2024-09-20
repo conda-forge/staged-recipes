@@ -1,0 +1,164 @@
+--- CMakeLists.txt
++++ CMakeLists.txt
+@@ -0,0 +1,142 @@
++# ${CMAKE_COMMAND} -E rm was introduced in CMake 3.17.
++cmake_minimum_required(VERSION 3.17)
++project(CQRlib
++  LANGUAGES C CXX
++  VERSION 1.1.4)
++set(VERSION_INFO "3:0:1")
++
++
++# Under the (Linux) libtool convention, the single-component SOVERSION
++# is the difference between the current and age components of
++# VERSION_INFO.
++string(REPLACE ":" ";" _cra "${VERSION_INFO}")
++list(GET _cra 0 _current)
++list(GET _cra 2 _age)
++math(EXPR SOVERSION "${_current} - ${_age}")
++
++
++#
++# libm
++set(libm "$<$<NOT:$<C_COMPILER_ID:MSVC>>:m>")
++
++
++#
++# CQR, builds and installs a shared libCQRlib unless configured with
++# BUILD_SHARED_LIBS=OFF.  Do not set VERSION, because it is already
++# quite different from SOVERSION.
++option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
++add_library(CQR
++  "cqrlib.c")
++set_target_properties(CQR PROPERTIES
++  OUTPUT_NAME "CQRlib"
++  PUBLIC_HEADER "cqrlib.h"
++  SOVERSION "${SOVERSION}")
++target_compile_definitions(CQR
++  PRIVATE USE_LOCAL_HEADERS)
++target_include_directories(CQR
++  PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>"
++         "$<INSTALL_INTERFACE:include>")
++target_link_libraries(CQR
++  "${libm}")
++
++include(GNUInstallDirs)
++install(
++  TARGETS CQR
++  EXPORT CQRlibTargets)
++
++
++#
++# CMake configuration files, targets are emitted in the CQR::
++# namespace.
++export(EXPORT CQRlibTargets
++  FILE "${CMAKE_CURRENT_BINARY_DIR}/CQRlibTargets.cmake")
++install(
++  EXPORT CQRlibTargets
++  FILE CQRlibTargets.cmake
++  NAMESPACE "CQR::"
++  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
++
++include(CMakePackageConfigHelpers)
++configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
++  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
++  INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
++  NO_CHECK_REQUIRED_COMPONENTS_MACRO
++  NO_SET_AND_CHECK_MACRO)
++write_basic_package_version_file(
++  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
++  COMPATIBILITY SameMajorVersion
++  VERSION "${PROJECT_VERSION}")
++install(
++  FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
++        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
++  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
++
++
++#
++# Testing
++#
++# The test executables are not installed.
++enable_testing()
++
++add_executable(CQRlibTest
++  "CQRlibTest.c")
++target_compile_definitions(CQRlibTest
++  PRIVATE USE_LOCAL_HEADERS)
++target_link_libraries(CQRlibTest
++  CQR
++  "${libm}")
++
++add_executable(CPPQRTest
++  "CPPQRTest.cpp")
++target_compile_definitions(CPPQRTest
++  PRIVATE CQR_NOCCODE)
++target_link_libraries(CPPQRTest
++  "${libm}")
++
++
++#
++# CQRlibTest
++add_test(NAME CQRlibTest
++  COMMAND ${CMAKE_COMMAND}
++    "-Dcommand=$<TARGET_FILE:CQRlibTest>"
++    "-Doutput-file=CQRlibTest.lst"
++    -P "${CMAKE_CURRENT_SOURCE_DIR}/redirect.cmake")
++set_tests_properties(CQRlibTest PROPERTIES
++  FIXTURES_SETUP CQRlibTest)
++
++add_test(NAME CQRlibTest-cmp
++  COMMAND ${CMAKE_COMMAND} -E compare_files
++    "${CMAKE_CURRENT_SOURCE_DIR}/CQRlibTest_orig.lst"
++    "CQRlibTest.lst")
++set_tests_properties(CQRlibTest-cmp PROPERTIES
++  FIXTURES_REQUIRED CQRlibTest
++  REQUIRED_FILES ${CMAKE_CURRENT_SOURCE_DIR}/CQRlibTest_orig.lst)
++
++add_test(NAME CQRlibTest-cleanup
++  COMMAND ${CMAKE_COMMAND} -E rm "CQRlibTest.lst")
++set_tests_properties(CQRlibTest-cleanup PROPERTIES
++  FIXTURES_CLEANUP CQRlibTest)
++
++
++#
++# CPPQRTest
++add_test(NAME CPPQRTest
++  COMMAND ${CMAKE_COMMAND}
++    "-Dcommand=$<TARGET_FILE:CPPQRTest>"
++    "-Doutput-file=CPPQRTest.lst"
++    -P "${CMAKE_CURRENT_SOURCE_DIR}/redirect.cmake")
++set_tests_properties(CPPQRTest PROPERTIES
++  FIXTURES_SETUP CPPQRTest)
++
++add_test(NAME CPPQRTest-cmp
++  COMMAND ${CMAKE_COMMAND} -E compare_files
++    "${CMAKE_CURRENT_SOURCE_DIR}/CPPQRTest_orig.lst"
++    "CPPQRTest.lst")
++set_tests_properties(CPPQRTest-cmp PROPERTIES
++  FIXTURES_REQUIRED CPPQRTest
++  REQUIRED_FILES ${CMAKE_CURRENT_SOURCE_DIR}/CPPQRTest_orig.lst)
++
++add_test(NAME CPPQRTest-cleanup
++  COMMAND ${CMAKE_COMMAND} -E rm "CPPQRTest.lst")
++set_tests_properties(CPPQRTest-cleanup PROPERTIES
++  FIXTURES_CLEANUP CPPQRTest)
+--- Config.cmake.in
++++ Config.cmake.in
+@@ -0,0 +1,3 @@
++@PACKAGE_INIT@
++
++include("${CMAKE_CURRENT_LIST_DIR}/CQRlibTargets.cmake")
+--- redirect.cmake
++++ redirect.cmake
+@@ -0,0 +1,10 @@
++execute_process(
++  COMMAND "${command}"
++  OUTPUT_FILE ${output-file}
++  RESULTS_VARIABLE results
++  ERROR_VARIABLE error)
++foreach(result IN LISTS results)
++  if(result)
++    message(FATAL_ERROR "${command}: ${error}")
++  endif()
++endforeach()
