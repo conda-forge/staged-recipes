@@ -1,0 +1,518 @@
+mkstemp(3) implementation for MSVC.  The replacement implementation
+somewhat arbitrarily fails with EEXIST after 65536 attempts.  Note
+that MSYS2 (UCRT64) has both mkstemp(3) and /tmp.
+--- a/examples/cbf2nexus.c
++++ b/examples/cbf2nexus.c
+@@ -257,9 +257,9 @@
+ 
+ #define C2CBUFSIZ 8192
+ 
+-#ifdef __MINGW32__
+-#define NOMKSTEMP
+-#define NOTMPDIR
++#ifndef HAVE_MKSTEMP
++int
++mkstemp(char *templ);
+ #endif
+ 
+ int local_exit (int status);
+@@ -648,26 +648,13 @@
+         
+         for (f = 0; CBF_SUCCESS == error && f != cifid; ++f) {
+ 			cbf_handle cif = NULL;
+-#ifdef NOTMPDIR
+-			char ciftmp[] = "cif2cbfXXXXXX";
+-#else
+ 			char ciftmp[] = "/tmp/cif2cbfXXXXXX";
+     		int ciftmpfd;
+-#endif
+ 			/* Get suitable file - reading from stdin to a temporary file if needed */
+ 			if (!(cifin[f]) || strcmp(cifin[f]?cifin[f]:"","-") == 0) {
+ 				FILE *file = NULL;
+ 				int nbytes;
+ 				char buf[C2CBUFSIZ];
+-#ifdef NOMKSTEMP
+-				if (mktemp(ciftmp) == NULL ) {
+-                    fprintf(stderr,"%s: Can't create temporary file name %s.\n%s\n", argv[0], ciftmp,strerror(errno));
+-					error |= CBF_FILEOPEN;
+-				} else if ((file = fopen(ciftmp,"wb+")) == NULL) {
+-                    fprintf(stderr,"Can't open temporary file %s.\n%s\n", ciftmp,strerror(errno));
+-					error |= CBF_FILEOPEN;
+-                }
+-#else
+                 if ((ciftmpfd = mkstemp(ciftmp)) == -1 ) {
+                     fprintf(stderr,"%s: Can't create temporary file %s.\n%s\n", argv[0], ciftmp,strerror(errno));
+ 					error |= CBF_FILEOPEN;
+@@ -675,7 +662,6 @@
+                     fprintf(stderr,"Can't open temporary file %s.\n%s\n", ciftmp,strerror(errno));
+ 					error |= CBF_FILEOPEN;
+                 }
+-#endif
+                 while ((nbytes = fread(buf, 1, C2CBUFSIZ, stdin))) {
+                     if((size_t)nbytes != fwrite(buf, 1, nbytes, file)) {
+                         fprintf(stderr,"Failed to write %s.\n", ciftmp);
+--- a/examples/cif2cbf.c
++++ b/examples/cif2cbf.c
+@@ -478,9 +478,9 @@
+ #define C2CBUFSIZ 8192
+ #define NUMDICTS 50
+ 
+-#ifdef __MINGW32__
+-#define NOMKSTEMP
+-#define NOTMPDIR
++#ifndef HAVE_MKSTEMP
++int
++mkstemp(char *templ);
+ #endif
+ 
+ #define HDR_FINDDIMS    0x0040  /* On read, find header dims          */
+@@ -740,9 +740,7 @@
+     const char *dictionary[NUMDICTS];
+     int dqrflags[NUMDICTS];
+     char *ciftmp=NULL;
+-#ifndef NOMKSTEMP
+     int ciftmpfd;
+-#endif
+     int ciftmpused;
+     int padflag;
+     int dimflag;
+@@ -1489,23 +1487,7 @@
+ 
+     if (!cifin || strcmp(cifin?cifin:"","-") == 0) {
+         ciftmp = (char *)malloc(strlen("/tmp/cif2cbfXXXXXX")+1);
+-#ifdef NOTMPDIR
+-        strcpy(ciftmp, "cif2cbfXXXXXX");
+-#else
+         strcpy(ciftmp, "/tmp/cif2cbfXXXXXX");
+-#endif
+-#ifdef NOMKSTEMP
+-        if ((ciftmp = mktemp(ciftmp)) == NULL ) {
+-            fprintf(stderr,"\n cif2cbf: Can't create temporary file name %s.\n", ciftmp);
+-            fprintf(stderr,"%s\n",strerror(errno));
+-            exit(1);
+-        }
+-        if ( (file = fopen(ciftmp,"wb+")) == NULL) {
+-            fprintf(stderr,"Can't open temporary file %s.\n", ciftmp);
+-            fprintf(stderr,"%s\n",strerror(errno));
+-            exit(1);
+-        }
+-#else
+         if ((ciftmpfd = mkstemp(ciftmp)) == -1 ) {
+             fprintf(stderr,"\n cif2cbf: Can't create temporary file %s.\n", ciftmp);
+             fprintf(stderr,"%s\n",strerror(errno));
+@@ -1516,7 +1498,6 @@
+             fprintf(stderr,"%s\n",strerror(errno));
+             exit(1);
+         }
+-#endif
+         while ((nbytes = fread(buf, 1, C2CBUFSIZ, stdin))) {
+             if(nbytes != fwrite(buf, 1, nbytes, file)) {
+                 fprintf(stderr,"Failed to write %s.\n", ciftmp);
+--- a/examples/cif2c.c
++++ b/examples/cif2c.c
+@@ -307,9 +307,9 @@
+ 
+ #define C2CBUFSIZ 8192
+ 
+-#ifdef __MINGW32__
+-#define NOMKSTEMP
+-#define NOTMPDIR
++#ifndef HAVE_MKSTEMP
++int
++mkstemp(char *templ);
+ #endif
+ 
+ 
+@@ -338,12 +338,7 @@
+   int errflg = 0;
+   const char *cifin, *codeout, *function_name;
+   char ciftmp[19];
+-#ifdef NOMKSTEMP
+-  char *xciftmp;
+-#endif
+-#ifndef NOMKSTEMP
+   int ciftmpfd;
+-#endif
+   int ciftmpused;
+   unsigned int nbytes;
+   char buf[C2CBUFSIZ];
+@@ -432,23 +427,7 @@
+     /* Read the cif */
+ 
+    if (!cifin || strcmp(cifin?cifin:"","-") == 0) {
+-#ifdef NOTMPDIR
+-     strcpy(ciftmp, "cif2cXXXXXX");
+-#else
+      strcpy(ciftmp, "/tmp/cif2cXXXXXX");
+-#endif
+-#ifdef NOMKSTEMP
+-     if ((xciftmp=mktemp(ciftmp)) == NULL ) {
+-       fprintf(stderr,"\n cif2c: Can't create temporary file name %s.\n", ciftmp);
+-       fprintf(stderr,"%s\n",strerror(errno));
+-       exit(1);
+-     }
+-     if ( (file = fopen(ciftmp,"wb+")) == NULL) {
+-       fprintf(stderr,"Can't open temporary file %s.\n", ciftmp);
+-       fprintf(stderr,"%s\n",strerror(errno));
+-       exit(1);     	
+-     }
+-#else
+      if ((ciftmpfd = mkstemp(ciftmp)) == -1 ) {
+        fprintf(stderr,"Can't create temporary file %s.\n", ciftmp);
+        fprintf(stderr,"%s\n",strerror(errno));
+@@ -459,7 +438,6 @@
+        fprintf(stderr,"%s\n",strerror(errno));
+        exit(1);
+      }
+-#endif
+      while ((nbytes = fread(buf, 1, C2CBUFSIZ, stdin))) {
+        if(nbytes != fwrite(buf, 1, nbytes, file)) {
+          fprintf(stderr,"Failed to write %s.\n", ciftmp);
+--- a/examples/convert_image.c
++++ b/examples/convert_image.c
+@@ -307,6 +307,11 @@
+ #include "cbf_getopt.h"
+ #include <unistd.h>
+ 
++#ifndef HAVE_MKSTEMP
++int
++mkstemp(char *templ);
++#endif
++
+ 
+ 
+ double rint(double);
+@@ -524,7 +529,7 @@
+   int copt;
+   int errflg = 0;
+   char * imgtmp=NULL;
+-  int imgtmpused = 0;
++  int imgtmpfd = -1;
+   const char *imgin, *cbfout, *template, *distancestr, *alias;
+   cbf_detector detector;
+   char *tag, *data, *root;
+@@ -669,12 +674,13 @@
+   if (!imgin || strcmp(imgin?imgin:"","-") == 0) {
+      imgtmp = (char *)malloc(strlen("/tmp/cvt_imgXXXXXX")+1);
+      strcpy(imgtmp, "/tmp/cvt_imgXXXXXX");
+-     if ((imgin = mktemp(imgtmp)) == NULL ) {
++     if ((imgtmpfd = mkstemp(imgtmp)) == -1 ) {
+        fprintf(stderr,"\n convert_image: Can't create temporary file name %s.\n", imgtmp);
+        fprintf(stderr,"%s\n",strerror(errno));
+        exit(1);
+      }
+-     imgtmpused = 1;
++     close(imgtmpfd);
++     imgin = imgtmp;
+   }
+ 
+     /* Read the image */
+@@ -683,7 +689,7 @@
+ 
+   cbf_failnez (img_read (img, imgin))
+ 
+-  if (imgtmpused)
++  if (imgtmpfd != -1)
+   {
+        if (unlink(imgtmp) != 0 ) {
+        fprintf(stderr," convert_image:  Can't unlink temporary file %s.\n", imgtmp);
+--- a/examples/convert_minicbf.c
++++ b/examples/convert_minicbf.c
+@@ -319,9 +319,9 @@
+ 
+ #define CVTBUFSIZ 8192
+ 
+-#ifdef __MINGW32__
+-#define NOMKSTEMP
+-#define NOTMPDIR
++#ifndef HAVE_MKSTEMP
++int
++mkstemp(char *templ);
+ #endif
+ 
+ int outusage ( void );
+@@ -1845,9 +1845,7 @@
+     int copt;
+     int errflg = 0;
+     char cbfintmp[19];
+-#ifndef NOMKSTEMP
+     int cbfintmpfd;
+-#endif
+     int cbfintmpused = 0;
+     char buf[CVTBUFSIZ];
+     const char *cbfin, *cbfout, *template, *distancestr, *alias;
+@@ -2028,23 +2026,7 @@
+     
+     
+     if (!cbfin || strcmp(cbfin?cbfin:"","-") == 0) {
+-#ifdef NOTMPDIR
+-        strcpy(cbfintmp, "cif2cbfXXXXXX");
+-#else
+         strcpy(cbfintmp, "/tmp/cif2cbfXXXXXX");
+-#endif
+-#ifdef NOMKSTEMP
+-        if (mktemp(cbfintmp) == NULL ) {
+-            fprintf(stderr,"\n convert_minicbf: Can't create temporary file name %s.\n", cbfintmp);
+-            fprintf(stderr,"%s\n",strerror(errno));
+-            exit(1);
+-        }
+-        if ( (file = fopen(cbfintmp,"wb+")) == NULL) {
+-            fprintf(stderr,"Can't open temporary file %s.\n", cbfintmp);
+-            fprintf(stderr,"%s\n",strerror(errno));
+-            exit(1);
+-        }
+-#else
+         if ((cbfintmpfd = mkstemp(cbfintmp)) == -1 ) {
+             fprintf(stderr,"\n convert_minicbf: Can't create temporary file name %s.\n", cbfintmp);
+             fprintf(stderr,"%s\n",strerror(errno));
+@@ -2055,7 +2037,6 @@
+             fprintf(stderr,"%s\n",strerror(errno));
+             exit(1);
+         }
+-#endif
+         while ((nbytes = fread(buf, 1, CVTBUFSIZ, stdin))) {
+             if(nbytes != fwrite(buf, 1, nbytes, file)) {
+                 fprintf(stderr,"Failed to write %s.\n", cbfintmp);
+--- a/examples/img2cif.c
++++ b/examples/img2cif.c
+@@ -296,9 +296,9 @@
+ 
+ #define I2CBUFSIZ 8192
+ 
+-#ifdef __MINGW32__
+-#define NOMKSTEMP
+-#define NOTMPDIR
++#ifndef HAVE_MKSTEMP
++int
++mkstemp(char *templ);
+ #endif
+ 
+ 
+@@ -330,9 +330,7 @@
+   int errflg = 0;
+   const char *imgin, *imgout;
+   char *imgtmp=NULL;
+-#ifndef NOMKSTEMP
+   int imgtmpfd;
+-#endif
+   int imgtmpused;
+   int nbytes;
+   char buf[I2CBUFSIZ];
+@@ -542,23 +540,7 @@
+   
+   if (!imgin || strcmp(imgin?imgin:"","-") == 0) {
+      imgtmp=(char *)malloc(strlen("/tmp/img2cifXXXXXX")+1);
+-#ifdef NOTMPDIR
+-     strcpy(imgtmp, "img2cifXXXXXX");
+-#else
+      strcpy(imgtmp, "/tmp/img2cifXXXXXX");
+-#endif
+-#ifdef NOMKSTEMP
+-     if ((imgtmp = mktemp(imgtmp)) == NULL ) {
+-       fprintf(stderr,"\n img2cif: Can't create temporary file name %s.\n", imgtmp);
+-       fprintf(stderr,"%s\n",strerror(errno));
+-       exit(1);
+-     }
+-     if ( (file = fopen(imgtmp,"wb+")) == NULL) {
+-       fprintf(stderr,"Can't open temporary file %s.\n", imgtmp);
+-       fprintf(stderr,"%s\n",strerror(errno));
+-       exit(1);     	
+-     }
+-#else
+     if ((imgtmpfd = mkstemp(imgtmp)) == -1 ) {
+       fprintf(stderr,"Can't create temporary file %s.\n", imgtmp);
+       fprintf(stderr,"%s\n",strerror(errno));
+@@ -569,7 +551,6 @@
+       fprintf(stderr,"%s\n",strerror(errno));
+       exit(1);
+     }
+-#endif
+     while ((nbytes = fread(buf, 1, 8192, stdin))) {
+       if(nbytes != fwrite(buf, 1, nbytes, file)) {
+         fprintf(stderr,"img2cif:  Failed to write %s.\n", imgtmp);
+--- a/examples/minicbf2nexus.c
++++ b/examples/minicbf2nexus.c
+@@ -272,9 +272,9 @@
+ 
+ #define C2CBUFSIZ 8192
+ 
+-#ifdef __MINGW32__
+-#define NOMKSTEMP
+-#define NOTMPDIR
++#ifndef HAVE_MKSTEMP
++int
++mkstemp(char *templ);
+ #endif
+ 
+ 
+@@ -519,15 +519,6 @@
+ 				FILE *file = NULL;
+ 				int nbytes;
+ 				char buf[C2CBUFSIZ];
+-#ifdef NOMKSTEMP
+-				if (mktemp(ciftmp) == NULL ) {
+-                    fprintf(stderr,"%s: Can't create temporary file name %s.\n%s\n", argv[0], ciftmp,strerror(errno));
+-					error |= CBF_FILEOPEN;
+-				} else if ((file = fopen(ciftmp,"wb+")) == NULL) {
+-                    fprintf(stderr,"Can't open temporary file %s.\n%s\n", ciftmp,strerror(errno));
+-					error |= CBF_FILEOPEN;
+-                }
+-#else
+                 if ((ciftmpfd = mkstemp(ciftmp)) == -1 ) {
+                     fprintf(stderr,"%s: Can't create temporary file %s.\n%s\n", argv[0], ciftmp,strerror(errno));
+ 					error |= CBF_FILEOPEN;
+@@ -535,7 +526,6 @@
+                     fprintf(stderr,"Can't open temporary file %s.\n%s\n", ciftmp,strerror(errno));
+ 					error |= CBF_FILEOPEN;
+                 }
+-#endif
+                 while ((nbytes = fread(buf, 1, C2CBUFSIZ, stdin))) {
+                     if(nbytes != fwrite(buf, 1, nbytes, file)) {
+                         fprintf(stderr,"Failed to write %s.\n", ciftmp);
+--- a/examples/nexus2cbf.c
++++ b/examples/nexus2cbf.c
+@@ -256,11 +256,6 @@
+ 
+ #define C2CBUFSIZ 8192
+ 
+-#ifdef __MINGW32__
+-#define NOMKSTEMP
+-#define NOTMPDIR
+-#endif
+-
+ 
+ int main (int argc, char *argv [])
+ {
+--- a/examples/sequence_match.c
++++ b/examples/sequence_match.c
+@@ -41,9 +41,9 @@
+ #define C2CBUFSIZ 8192
+ 
+ 
+-#ifdef __MINGW32__
+-#define NOMKSTEMP
+-#define NOTMPDIR
++#ifndef HAVE_MKSTEMP
++int
++mkstemp(char *templ);
+ #endif
+ 
+ int local_exit (int status);
+@@ -432,9 +432,7 @@
+     int numleftch, numrightch;
+     int iii, jjj;
+     int errflg = 0;
+-#ifndef NOMKSTEMP
+     int leftintmpfd, rightintmpfd;
+-#endif
+     int leftintmpused, rightintmpused;
+     
+     const char * optarg;
+@@ -562,23 +560,7 @@
+     
+     if (!leftinstr || strcmp(leftinstr?leftinstr:"","-") == 0) {
+         leftintmpstr = (char *)malloc(strlen("/tmp/seqmatchlXXXXXX")+1);
+-#ifdef NOTMPDIR
+-        strcpy(leftintmpstr, "seqmatchlXXXXXX");
+-#else
+         strcpy(leftintmpstr, "/tmp/seqmatchlXXXXXX");
+-#endif
+-#ifdef NOMKSTEMP
+-        if ((leftintmpstr = mktemp(leftintmpstr)) == NULL ) {
+-            fprintf(stderr,"\n seqmatch: Can't create temporary file name %s.\n", leftintmpstr);
+-            fprintf(stderr,"%s\n",strerror(errno));
+-            exit(1);
+-        }
+-        if ( (leftin = fopen(leftintmpstr,"wb+")) == NULL) {
+-            fprintf(stderr,"Can't open temporary file %s.\n", leftintmpstr);
+-            fprintf(stderr,"%s\n",strerror(errno));
+-            exit(1);     	
+-        }
+-#else
+         if ((leftintmpfd = mkstemp(leftintmpstr)) == -1 ) {
+             fprintf(stderr,"\n seqmatch: Can't create temporary file %s.\n", leftintmpstr);
+             fprintf(stderr,"%s\n",strerror(errno));
+@@ -589,7 +571,6 @@
+             fprintf(stderr,"%s\n",strerror(errno));
+             exit(1);
+         }
+-#endif
+         while ((nbytes = fread(buf, 1, C2CBUFSIZ, stdin))) {
+             if(nbytes != fwrite(buf, 1, nbytes, leftin)) {
+                 fprintf(stderr,"Failed to write %s.\n", leftintmpstr);
+@@ -622,23 +603,7 @@
+     
+     if (!rightinstr || strcmp(rightinstr?rightinstr:"","-") == 0) {
+         rightintmpstr = (char *)malloc(strlen("/tmp/seqmatchrXXXXXX")+1);
+-#ifdef NOTMPDIR
+-        strcpy(rightintmpstr, "seqmatchrXXXXXX");
+-#else
+         strcpy(rightintmpstr, "/tmp/seqmatchrXXXXXX");
+-#endif
+-#ifdef NOMKSTEMP
+-        if ((rightintmpstr = mktemp(rightintmpstr)) == NULL ) {
+-            fprintf(stderr,"\n seqmatch: Can't create temporary file name %s.\n", rightintmpstr);
+-            fprintf(stderr,"%s\n",strerror(errno));
+-            exit(1);
+-        }
+-        if ( (rightin = fopen(rightintmpstr,"wb+")) == NULL) {
+-            fprintf(stderr,"Can't open temporary file %s.\n", rightintmpstr);
+-            fprintf(stderr,"%s\n",strerror(errno));
+-            exit(1);     	
+-        }
+-#else
+         if ((rightintmpfd = mkstemp(rightintmpstr)) == -1 ) {
+             fprintf(stderr,"\n seqmatch: Can't create temporary file %s.\n", rightintmpstr);
+             fprintf(stderr,"%s\n",strerror(errno));
+@@ -649,7 +614,6 @@
+             fprintf(stderr,"%s\n",strerror(errno));
+             exit(1);
+         }
+-#endif
+         while ((nbytes = fread(buf, 1, C2CBUFSIZ, stdin))) {
+             if(nbytes != fwrite(buf, 1, nbytes, rightin)) {
+                 fprintf(stderr,"Failed to write %s.\n", rightintmpstr);
+--- a/src/mkstemp.c
++++ b/src/mkstemp.c
+@@ -0,0 +1,41 @@
++#ifdef _WIN32
++#    include <sys/stat.h>
++#    include <fcntl.h>
++#    include <io.h>
++#    include <windows.h>
++#endif
++
++int
++mkstemp(char *templ)
++{
++#ifdef _WIN32
++    char path[MAX_PATH + 1];
++    int errno_save, fd;
++    unsigned i;
++
++    errno_save = errno;
++    strncpy(path, templ, MAX_PATH);
++    path[MAX_PATH] = '\0';
++    for (i = 0; i < 65536; i++) {
++        strncpy(templ, path, MAX_PATH + 1);
++        if (_mktemp(templ) == NULL) {
++            if (errno == EEXIST)
++                continue;
++            return (-1);
++        }
++        fd = open(templ, _O_CREAT | _O_EXCL | _O_RDWR,  _S_IREAD | _S_IWRITE);
++        if (fd >= 0) {
++            errno = errno_save;
++            return (fd);
++        }
++        if (errno != EEXIST)
++            return (-1);
++    }
++
++    errno = EEXIST;
++    return (-1);
++#else
++    errno = ENOSYS;
++    return (-1);
++#endif
++}

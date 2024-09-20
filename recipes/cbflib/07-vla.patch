@@ -1,0 +1,268 @@
+Avoid variable-length arrays; MSVC does not support them.
+--- a/examples/adscimg2cbf.c
++++ b/examples/adscimg2cbf.c
+@@ -12,6 +12,7 @@
+ #include	<stdlib.h>
+ #include	<string.h>
+ #include	"cbf.h"
++#include        "cbf_alloc.h"
+ #include        "cbf_string.h"
+ 
+ /****************************************************************/
+@@ -155,8 +156,7 @@
+ 	char		header_bytes[6];
+     int     numargs = argc;
+     int     iarg;
+-    int     argtype_array[argc];
+-    int     *argtype=argtype_array;
++    int     *argtype;
+     int     filec;
+     int		file_size, header_size_char, actread;
+     int		cbf_status;
+@@ -174,8 +174,7 @@
+     int     *new_int_data, *old_int_data;
+     size_t  new_int_data_size, old_int_data_size;
+     double  thickness=0.;
+-    const char *    argval_array[argc];
+-    const char * *  argval=argval_array;
++    const char * *  argval;
+     const char *    roi=NULL;
+     const char *    thickstr=NULL;
+     const char *    polarstr=NULL;
+@@ -232,6 +231,11 @@
+         CBF_UNUSED( cbf_status );
+         CBF_UNUSED( thickness );
+ 
++        CBF_START_ARRAY(int, argtype_array, argc);
++        argtype = argtype_array;
++        CBF_START_ARRAY(const char *, argval_array, argc);
++        argval = argval_array;
++
+ 	if(argc < 2)
+ 	{
+ 		usage();
+@@ -641,5 +645,7 @@
+             filec--;
+         }
+     }
++	CBF_END_ARRAY(argval_array);
++	CBF_END_ARRAY(argtype_array);
+ 	exit(0);
+ }
+--- a/examples/cbf_standardize_numbers.c
++++ b/examples/cbf_standardize_numbers.c
+@@ -7,6 +7,7 @@
+ //
+ 
+ #include "cbf.h"
++#include "cbf_alloc.h"
+ #include "cbf_standardize_numbers.h"
+ #include <stdio.h>
+ #include <stdlib.h>
+@@ -105,7 +106,7 @@
+                 continue;
+             }
+             if (isdigit(c) || c == '.' || c == '-' || c == '+') {
+-                char text[lineln+1];
++                CBF_START_ARRAY(char, text, lineln+1);
+                 char * endptr;
+                 for (ii=0; ii < lineln; ii++) text[ii] = line[ii];
+                 text[lineln] = '\0';
+@@ -137,6 +138,7 @@
+                     spacestarted = 1;
+                     numcomp++;
+                 }
++                CBF_END_ARRAY(text);
+                 continue;
+             }
+             if (c == ',' || (termc && c == termc)) {
+--- a/examples/dps_peaksearch.c
++++ b/examples/dps_peaksearch.c
+@@ -69,6 +69,8 @@
+ #include <stdlib.h>
+ #include <math.h>
+ #include <string.h>
++#include "cbf.h"
++#include "cbf_alloc.h"
+ #include "dps_peaksearch.h"
+ 
+ 
+@@ -235,7 +237,6 @@
+     int	nxfer;
+     DPS_Peak dps_temp;
+     int peakfw, peakfh;
+-    int next_good_y[nx];
+     int collide;
+     
+     stepx = (min_spacing+1)/2;  /* Initial stepsize for scanning through the image */
+@@ -267,6 +268,7 @@
+     }
+     
+     /* Initialize the next_good_y  array to 0 */
++    CBF_START_ARRAY(int, next_good_y, nx);
+     for (i=0; i < nx; i++) next_good_y[i]= 0;
+     
+     /* The next two loops go over the whole frame with stepsize
+@@ -444,6 +446,7 @@
+             }
+         }
+     }
++    CBF_END_ARRAY(next_good_y);
+     
+     if (min_spacing > 0) {
+         for(i=0;i<npeaks;i++)
+--- a/examples/testhdf5.c
++++ b/examples/testhdf5.c
+@@ -53,6 +53,7 @@
+ #include <stdint.h>
+ 
+ #include "cbf.h"
++#include "cbf_alloc.h"
+ #include "cbf_hdf5.h"
+ #include "unittest.h"
+ 
+@@ -901,8 +902,6 @@ static testResult_t testDataset_read_write(const hid_t grp)
+ 	const int N2 = N*2;
+ 	int dataWrite0[] = {42};
+ 	int dataRead0[] = {0};
+-	int dataWrite2[N2];
+-	int dataRead2[N2];
+ 	const int rank = 2;
+ 	const hsize_t offset[] = {0,0};
+ 	const hsize_t offset_1[] = {1,0};
+@@ -915,6 +916,9 @@
+ 	const hsize_t chunk[] = {1,N2};
+ 	TEST(H5I_GROUP==H5Iget_type(grp));
+     
++	CBF_START_ARRAY(int, dataWrite2, N2);
++	CBF_START_ARRAY(int, dataRead2, N2);
++
+ 	{/* populate the data */
+ 		int i;
+ 		for (i = 0; i < N2; ++i) dataWrite2[i] = i*i;
+@@ -1035,6 +1039,9 @@
+ 	if (CBF_SUCCESS!=error)
+ 		fprintf(stderr,"%s: Error: %s\n",__WHERE__,cbf_strerror(error));
+     
++	CBF_END_ARRAY(dataRead2);
++	CBF_END_ARRAY(dataWrite2);
++
+ 	/* free the handle after using it */
+ 	cbf_H5Dfree(handle0);
+ 	cbf_H5Dfree(handle2);
+--- a/src/cbf_hdf5.c
++++ b/src/cbf_hdf5.c
+@@ -11822,12 +11822,12 @@
+ 
+             size_t ii, rank, adim;
+ 
+-            double oldvec[dimension];
+-
+             CBF_UNUSED( adim );
+ 
+             CBF_UNUSED( attribsize );
+             
++            CBF_START_ARRAY(double, oldvec, dimension);
++
+             for (ii = 0; ii < dimension; ii++) oldvec[ii] = -1.e38;
+ 
+             cbf_h5failneg(attribid = H5Aopen(hid, attribname, H5P_DEFAULT),CBF_H5ERROR);
+@@ -11863,6 +11863,8 @@
+ 
+             if (cbf_H5Ivalid(attribid)) H5Aclose(attribid);
+ 
++            CBF_END_ARRAY(oldvec);
++
+             return errorcode;
+ 
+         }
+@@ -22073,7 +22075,7 @@
+                                 cbf_debug_print("error: problem getting the rank of a dataset");
+                                 error |= CBF_H5ERROR;
+                             } else if (rank > 0) {
+-                                hsize_t dims[rank];
++                                CBF_START_ARRAY(hsize_t, dims, rank);
+                                 if (rank != H5Sget_simple_extent_dims(data_space,dims,0)) {
+                                     cbf_debug_print("error: problem getting the dimensions of a dataset");
+                                     error |= CBF_H5ERROR;
+@@ -22088,8 +22090,8 @@
+                                      - assume that it's a uniformly spaced array of pixels in 3D space, so ignore subsequent values
+                                      - store it (and dependency chain) in the key, to be converted along with other axes
+                                      */
+-                                    hsize_t off[rank];
+-                                    hsize_t cnt[rank];
++                                    CBF_START_ARRAY(hsize_t, off, rank);
++                                    CBF_START_ARRAY(hsize_t, cnt, rank);
+                                     size_t ir;
+                                     double disp2[] = {0.,0.};
+                                     double factor = 0./0.;
+@@ -22123,11 +22125,15 @@
+                                         free((void*)long_name_string);
+                                         cbf_H5Afree(long_name);
+                                     }
++                                    CBF_END_ARRAY(cnt);
++                                    CBF_END_ARRAY(off);
++
+                                 }
+                             } else {
+                                 cbf_debug_print("error: unsupported rank of a 'pixel_offset' field");
+                                 error |= CBF_NOTIMPLEMENTED;
+                             }
++                            CBF_END_ARRAY(dims);
+                         }
+                         cbf_H5Sfree(data_space);
+                         cbf_H5Dfree(pixel_data);
+@@ -28856,7 +28862,7 @@
+ 
+                 if (type_class==H5T_STRING) {
+ 
+-                    char element[type_size+1];
++                    CBF_START_ARRAY(char, element, type_size+1);
+ 
+                     size_t ii, jj;;
+ 
+@@ -28886,6 +28892,7 @@
+ 
+                     }
+ 
++                    CBF_END_ARRAY(element);
+                 } else if (type_class==H5T_INTEGER){
+ 
+                     /* Read of a single integer or an integer array of
+--- a/src/cbf_minicbf_header.c
++++ b/src/cbf_minicbf_header.c
+@@ -476,7 +476,7 @@
+         while (cbf_find_nextrow (cbf, array_id) == 0) {
+             
+             int i, index;
+-            const char * direction[rank];
++            CBF_START_ARRAY(const char *, direction, rank);
+             
+             cbf_failnez (cbf_find_column      (cbf, "index"))
+             cbf_failnez (cbf_get_integervalue (cbf, &index))
+@@ -493,6 +493,8 @@
+             cbf_failnez (cbf_get_value        (cbf, &direction[i-1]))
+             
+             cbf_failnez (cbf_find_column      (cbf, "array_id"))
++
++            CBF_END_ARRAY(direction);
+             
+         }
+         
+@@ -891,7 +893,7 @@
+         
+         {
+             
+-            double psizes[rank];
++            CBF_START_ARRAY(double, psizes, rank);
+             
+             if (!cbf_get_array_section_pixel_sizes(cbf,array_id,rank,psizes)) {
+                 
+@@ -921,6 +923,7 @@
+                 
+                 
+             }
++            CBF_END_ARRAY(psizes);
+             
+         }
+         
