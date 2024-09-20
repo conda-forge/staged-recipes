@@ -3,6 +3,7 @@ many patterns are repeated."""
 
 import itertools
 
+
 def generate_text_for_one_module(
     name: str,
     version: list[str],
@@ -10,10 +11,16 @@ def generate_text_for_one_module(
     deps: list[str] = [],
     build: list[str] = [],
     include: str | None = None,
-    lib_match: str | None = None,
+    lib_match: list[str] | None = None,
 ) -> str:
     include = name if include is None else include
-    lib_match = name if lib_match is None else lib_match
+    lib_match = [name] if lib_match is None else lib_match
+    lib_match_expanded = "\n".join(
+        f"""      - lib/libnvpl_{lib}*.so""" for lib in lib_match
+    )
+    lib_match_expanded0 = "\n".join(
+        f"""      - lib/libnvpl_{lib}*.so.*""" for lib in lib_match
+    )
     name_with_somajor = f"libnvpl-{name}{version[0].split('.')[0]}"
     deps_expanded = "\n".join(
         f"""        - {{{{ pin_subpackage("{dep}") }}}}""" for dep in deps
@@ -41,7 +48,7 @@ def generate_text_for_one_module(
       - include/nvpl_{name}*
       - include/nvpl_{name}*/**
       - lib/cmake/nvpl_{name}*/**
-      - lib/libnvpl_{lib_match}*.so
+{lib_match_expanded}
     requirements:
       host:
         - {{{{ pin_subpackage("{name_with_somajor}", exact=True) }}}}
@@ -61,7 +68,7 @@ def generate_text_for_one_module(
       run_exports:
         - {{{{ pin_subpackage("{name_with_somajor}") }}}}
     files:
-      - lib/libnvpl_{lib_match}*.so.*
+{lib_match_expanded0}
     requirements:
       build:
         - {{{{ compiler('c') }}}}
@@ -83,10 +90,7 @@ if __name__ == "__main__":
     nvpl_packages = [
         {
             "name": "blas",
-            "version": [
-                "0.3.0",
-                "0.2.0",
-            ],
+            "version": ["0.3.0"],
             "libraries": [
                 [
                     "blas_core",
@@ -95,18 +99,7 @@ if __name__ == "__main__":
                     "blas_lp64_gomp",
                     "blas_lp64_seq",
                 ],
-                [
-                    "blacs_ilp64_mpich",
-                    "blacs_ilp64_openmpi3",
-                    "blacs_ilp64_openmpi4",
-                    "blacs_ilp64_openmpi5",
-                    "blacs_lp64_mpich",
-                    "blacs_lp64_openmpi3",
-                    "blacs_lp64_openmpi4",
-                    "blacs_lp64_openmpi5",
-                ],
             ],
-            "lib_match": "bla",
         },
         {
             "name": "fft",
@@ -151,8 +144,17 @@ if __name__ == "__main__":
                 [
                     "scalapack_ilp64",
                     "scalapack_lp64",
+                    "blacs_ilp64_mpich",
+                    "blacs_ilp64_openmpi3",
+                    "blacs_ilp64_openmpi4",
+                    "blacs_ilp64_openmpi5",
+                    "blacs_lp64_mpich",
+                    "blacs_lp64_openmpi3",
+                    "blacs_lp64_openmpi4",
+                    "blacs_lp64_openmpi5",
                 ]
             ],
+            "lib_match": ["scalapack", "blacs"],
         },
         {
             "name": "sparse",
