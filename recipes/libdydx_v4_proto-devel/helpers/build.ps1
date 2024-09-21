@@ -14,14 +14,15 @@ Push-Location _conda-build-protocol
     -DCMAKE_BUILD_TYPE=Release `
     -DCMAKE_PREFIX_PATH="$_PREFIX/lib;$_PREFIX/Library/lib" `
     -DCMAKE_INSTALL_PREFIX="$_PREFIX/Library" `
+    -DCMAKE_VERBOSE_MAKEFILE=ON `
     -DBUILD_SHARED_LIBS=ON `
-    -G Ninja
+    -G Ninja --debug-output
   if ($LASTEXITCODE -ne 0) {
     Write-Output "CMake failed with exit code $LASTEXITCODE"
     exit $LASTEXITCODE
   }
 
-  cmake --build . --target dydx_v4_proto_obj --trace -- -j"$env:CPU_COUNT"
+  cmake --build . --target dydx_v4_proto_obj -- -j"$env:CPU_COUNT"
   if ($LASTEXITCODE -ne 0) {
     Write-Output "CMake failed with exit code $LASTEXITCODE"
     exit $LASTEXITCODE
