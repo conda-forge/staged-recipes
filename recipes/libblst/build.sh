@@ -19,12 +19,11 @@ bash ./build.sh "${B_ARGS[@]}"
 if [[ "${target_platform}" == win-* ]]; then
   mkdir -p "${PREFIX}"/Library/bin
   install -m755 blst.dll "${PREFIX}"/Library/bin/blst.dll
-  install -m755 blst.lib "${PREFIX}"/Library/lib/blst.lib
 
-  # dlltool \
-  #   -d build/win64/blst.def\
-  #   -l "${PREFIX}"/Library/lib/blst.lib \
-  #   -D "${PREFIX}"/Library/bin/blst.dll
+  dlltool \
+    -d build/win64/blst.def\
+    -l "${PREFIX}"/Library/lib/blst.lib \
+    -D "${PREFIX}"/Library/bin/blst.dll
 
 elif [[ "${target_platform}" == osx-* ]]; then
   mkdir -p "${PREFIX}"/lib
