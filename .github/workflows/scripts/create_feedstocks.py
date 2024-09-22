@@ -458,7 +458,7 @@ if __name__ == '__main__':
 
                 # pre-register outputs
                 print("registering outputs...")
-                _, pkg_names, _ = parse_package_and_feedstock_names(feedstock_dir)
+                _, pkg_names, _ = parse_package_and_feedstock_names(feedstock_dir, use_container=False)
                 for pkg_name in pkg_names:
                     _register_package_for_feedstock(name, pkg_name, gh)
             except subprocess.CalledProcessError:
