@@ -1,7 +1,6 @@
 {% set name = "libblst" %}
 {% set version = "0.3.13" %}
 
-{% set so_major_version = version.split('.')[0] %}
 package:
   name: libblst-split
   version: {{ version }}
@@ -14,8 +13,6 @@ source:
 
 build:
   number: 0
-  script_env:
-    - PKG_MAJOR_VERSION={{ so_major_version }}
 
 requirements:
   build:
@@ -28,29 +25,26 @@ requirements:
     - sed  # [unix]
 
 outputs:
-  - name: libblst-devel
+  - name: libblst
     files:
       - lib/libblst.so  # [linux]
       - lib/libblst.dylib  # [osx]
       - Library\\lib\\blst.lib  # [win]
+      - Library\\bin\\blst.dll  # [win]
 
       - lib/pkgconfig/blst.pc  # [unix]
       - Library\\lib\\pkgconfig\\blst.pc  # [win]
       - lib/pkgconfig/libblst.pc  # [unix]
       - Library\\lib\\pkgconfig\\libblst.pc  # [win]
     build:
-      run_exports:
-        - {{ pin_subpackage('libblst-' ~ so_major_version) }}
     requirements:
       build:
         - {{ stdlib('c') }}  # [not win]
         - {{ stdlib('m2w64_c') }}  # [win]
       host:
-        - {{ pin_subpackage('libblst-' ~ so_major_version, exact=True) }}
-        - {{ pin_subpackage('libblst-headers-' ~ so_major_version, exact=True) }}
+        - {{ pin_subpackage('libblst-headers', exact=True) }}
       run:
-        - {{ pin_subpackage('libblst-' ~ so_major_version, exact=True) }}
-        - {{ pin_subpackage('libblst-headers-' ~ so_major_version, exact=True) }}
+        - {{ pin_subpackage('libblst-headers', exact=True) }}
     test:
       requires:
         - pkg-config
@@ -63,12 +57,19 @@ outputs:
         - test -f ${PREFIX}/lib/libblst.so  # [linux]
         - test -f ${PREFIX}/lib/libblst.dylib  # [osx]
         - if not exist %LIBRARY_LIB%\\blst.lib exit 1  # [win]
+        - if not exist %LIBRARY_BIN%\\blst.dll exit 1  # [win]
 
         - pkg-config --exists libblst  # [unix]
 
+        - python -c "import ctypes; ctypes.CDLL('${PREFIX}/lib/libblst.so')"  # [linux]
+        - python -c "import ctypes; ctypes.CDLL('${PREFIX}/lib/libblst.dylib')"  # [osx]
+        - cd %LIBRARY_BIN% && python -c "import ctypes; ctypes.CDLL('blst.dll')"  # [win]
+      downstreams:
+        - ckzg
+        - blst-py
 
 
-  - name: libblst-headers-{{ so_major_version }}
+  - name: libblst-headers
     files:
       - include/blst.h  # [unix]
       - include/blst_aux.h  # [unix]
@@ -80,39 +81,6 @@ outputs:
         - test -f ${PREFIX}/include/blst_aux.h  # [unix]
         - if not exist %LIBRARY_INC%\\blst.h exit 1  # [win]
         - if not exist %LIBRARY_INC%\\blst_aux.h exit 1  # [win]
-
-
-
-  - name: libblst-{{ so_major_version }}
-    files:
-      - lib/libblst.so.{{ so_major_version }}  # [linux]
-      - lib/libblst.so.{{ version }}  # [linux]
-      - lib/libblst.{{ so_major_version }}.dylib  # [osx]
-      - lib/libblst.{{ version }}.dylib  # [osx]
-      - Library\\bin\\blst-{{ so_major_version }}.dll  # [win]
-    build:
-      run_exports:
-        - {{ pin_subpackage('libblst-' ~ so_major_version) }}
-    requirements:
-      build:
-        - {{ stdlib('c') }}  # [not win]
-        - {{ stdlib('m2w64_c') }}  # [win]
-    test:
-      requires:
-        - python
-      commands:
-        - test -f ${PREFIX}/lib/libblst.so.{{ so_major_version }}  # [linux]
-        - test -f ${PREFIX}/lib/libblst.so.{{ version }}  # [linux]
-        - test -f ${PREFIX}/lib/libblst.{{ so_major_version }}.dylib  # [osx]
-        - if not exist %LIBRARY_BIN%\\blst-{{ so_major_version }}.dll exit 1  # [win]
-
-        - python -c "import ctypes; ctypes.CDLL('${PREFIX}/lib/libblst.so.{{ so_major_version }}')"  # [linux]
-        - python -c "import ctypes; ctypes.CDLL('${PREFIX}/lib/libblst.so.{{ version }}')"  # [linux]
-        - python -c "import ctypes; ctypes.CDLL('${PREFIX}/lib/libblst.{{ so_major_version }}.dylib')"  # [osx]
-        - cd %LIBRARY_BIN% && python -c "import ctypes; ctypes.CDLL('blst-{{ so_major_version }}.dll')"  # [win]
-      downstreams:
-        - ckzg
-        - blst-py
 
 about:
   home: https://github.com/supranational/blst

@@ -18,27 +18,19 @@ bash ./build.sh "${B_ARGS[@]}"
 # Install
 if [[ "${target_platform}" == win-* ]]; then
   mkdir -p "${PREFIX}"/Library/bin
-  install -m755 blst.dll "${PREFIX}"/Library/bin/blst-"${PKG_MAJOR_VERSION}".dll
+  install -m755 blst.dll "${PREFIX}"/Library/bin/blst.dll
 
-  sed "s@LIBRARY blst@LIBRARY blst-${PKG_MAJOR_VERSION}@g" build/win64/blst.def > build/win64/blst-"${PKG_MAJOR_VERSION}".def
   dlltool \
-    -d build/win64/blst-"${PKG_MAJOR_VERSION}".def\
+    -d build/win64/blst.def\
     -l "${PREFIX}"/Library/lib/blst.lib \
-    -D "${PREFIX}"/Library/bin/blst-"${PKG_MAJOR_VERSION}".dll
+    -D "${PREFIX}"/Library/bin/blst.dll
 
 elif [[ "${target_platform}" == osx-* ]]; then
   mkdir -p "${PREFIX}"/lib
-  install -m755 libblst.dylib "${PREFIX}"/lib/libblst."${PKG_MAJOR_VERSION}".dylib
-
-  ln -s "${PREFIX}"/lib/libblst."${PKG_MAJOR_VERSION}".dylib "${PREFIX}"/lib/libblst.dylib
-  ln -s "${PREFIX}"/lib/libblst."${PKG_MAJOR_VERSION}".dylib "${PREFIX}"/lib/libblst."${PKG_VERSION}".dylib
-
+  install -m755 libblst.dylib "${PREFIX}"/lib/libblst.dylib
 else
   mkdir -p "${PREFIX}"/lib
-  install -m755 libblst.so "${PREFIX}"/lib/libblst.so."${PKG_MAJOR_VERSION}"
-
-  ln -s "${PREFIX}"/lib/libblst.so."${PKG_MAJOR_VERSION}" "${PREFIX}"/lib/libblst.so
-  ln -s "${PREFIX}"/lib/libblst.so."${PKG_MAJOR_VERSION}" "${PREFIX}"/lib/libblst.so."${PKG_VERSION}"
+  install -m755 libblst.so "${PREFIX}"/lib/libblst.so
 fi
 
 # Headers
