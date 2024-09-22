@@ -4,20 +4,28 @@ file(MAKE_DIRECTORY ${DLL_EXPORT_HEADER_DIR})
 
 foreach(_file ${PROTO_GENERATED_FILES})
   get_filename_component(_filename ${_file} NAME)
-  set(_new_file "${DLL_EXPORT_HEADER_DIR}/${_filename}")
+  string(MD5 _md5 ${_file})
+  set(_new_file "${DLL_EXPORT_HEADER_DIR}/${_filename}_${_md5}")
 
   if(_file MATCHES ".h$")
-    if(NOT _new_file IN_LIST dydx_protobuf_HEADERS)
+    if(NOT _file IN_LIST dydx_protobuf_HEADERS)
+      list(APPEND dydx_protobuf_HEADERS ${_file})
       list(APPEND dydx_protobuf_HEADERS ${_new_file})
       if(WIN32)
-          add_custom_command(
-            OUTPUT ${_new_file}
-            COMMAND ${CMAKE_COMMAND} -E cat $ENV{RECIPE_DIR}/cmake/dll_export.h > ${_new_file}
-            COMMAND ${CMAKE_COMMAND} -E cat ${_file} >> ${_new_file}
-            COMMAND ${CMAKE_COMMAND} -E copy ${_new_file} ${_file}
-            DEPENDS ${_file}
-            COMMENT "Pre-pending EXPORT_MACRO to ${_new_file}")
-       endif()
+        add_custom_command(
+          OUTPUT ${_new_file}
+          COMMAND ${CMAKE_COMMAND} -E cat $ENV{RECIPE_DIR}/cmake/dll_export.h > ${_new_file}
+          COMMAND ${CMAKE_COMMAND} -E cat ${_file} >> ${_new_file}
+          COMMAND ${CMAKE_COMMAND} -E copy ${_new_file} ${_file}
+          DEPENDS ${_file}
+          COMMENT "Pre-pending EXPORT_MACRO to ${_new_file}")
+      else()
+        add_custom_command(
+          OUTPUT ${_new_file}
+          COMMAND ${CMAKE_COMMAND} -E touch ${_new_file}
+          DEPENDS ${_file}
+          COMMENT "Touching ${_new_file}")
+      endif()
     endif()
   endif()
 endforeach()
