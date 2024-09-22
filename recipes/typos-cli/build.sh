@@ -8,7 +8,7 @@ cargo-bundle-licenses \
     --output THIRDPARTY.yml
 
 # build statically linked binary with Rust
-cargo install --no-target --locked --root ${PREFIX} --path crates/typos-cli
+cargo install --bins --no-target --locked --root ${PREFIX} --path .
 
 # strip debug symbols
 "$STRIP" "$PREFIX/bin/typos"
