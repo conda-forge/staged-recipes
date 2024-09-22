@@ -1,4 +1,4 @@
-go build -buildmode=pie -trimpath -o=%LIBRARY_PREFIX%\bin\%PKG_NAME%.exe -ldflags="-s -w -X main.Version=%PKG_VERSION%" || goto :error
+go build -buildmode=pie -trimpath -o=%LIBRARY_PREFIX%\bin\%PKG_NAME%.exe -ldflags="-s -X main.Version=%PKG_VERSION%" || goto :error
 go-licenses save . --save_path=license-files --ignore github.com/mattn/go-localereader || goto :error
 
 :: Manually copy licenses that go-licenses could not download
