@@ -8,7 +8,7 @@ if [[ "${target_platform}" == win-* ]]; then
   sed -i 's/-fPIC//g' build.sh
   B_ARGS=('-dll' 'flavour=mingw64' 'CC=x86_64-w64-mingw32-gcc' 'AR=llvm-ar')
 elif [[ "${target_platform}" == linux-* ]]; then
-  B_ARGS=('-shared' "-Wl,-soname=libblst.so.${PKG_MAJOR_VERSION}")
+  B_ARGS=('-shared' "-Wl,-soname=libblst.so")
 else
   B_ARGS=('-shared')
 fi
