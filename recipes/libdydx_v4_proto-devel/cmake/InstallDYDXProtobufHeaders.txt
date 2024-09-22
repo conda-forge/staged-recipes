@@ -2,25 +2,22 @@ set(dydx_protobuf_HEADERS)
 set(DLL_EXPORT_HEADER_DIR "${CMAKE_BINARY_DIR}/_dll_export_headers")
 file(MAKE_DIRECTORY ${DLL_EXPORT_HEADER_DIR})
 
-if (WIN32)
-  set(EXPORT_MACRO "#ifdef _WIN32\n  #ifdef BUILDING_DLL\n    #define DLL_EXPORT_API __declspec(dllexport)\n  #else\n    #define DLL_EXPORT_API __declspec(dllimport)\n  #endif\n#else\n  #define DLL_EXPORT_API\n#endif\n")
-else()
-  set(EXPORT_MACRO "")
-endif()
-
 foreach(_file ${PROTO_GENERATED_FILES})
+  get_filename_component(_filename ${_file} NAME)
+  set(_new_file "${DLL_EXPORT_HEADER_DIR}/${_filename}")
+
   if(_file MATCHES ".h$")
-    get_filename_component(_filename ${_file} NAME)
-    set(_new_file "${DLL_EXPORT_HEADER_DIR}/${_filename}")
     if(NOT _new_file IN_LIST dydx_protobuf_HEADERS)
       list(APPEND dydx_protobuf_HEADERS ${_new_file})
-      string(MD5 sanitized_file "${_file}")
-      add_custom_command(
-        OUTPUT ${_new_file}
-        COMMAND ${CMAKE_COMMAND} -E copy ${_file} ${_new_file}
-        COMMAND ${CMAKE_COMMAND} -E cat $ENV{RECIPE_DIR}/cmake/dll_export.h >> ${_new_file}
-        DEPENDS ${_file}
-        COMMENT "Copying and appending EXPORT_MACRO to ${_new_file}")
+      if(WIN32)
+          add_custom_command(
+            OUTPUT ${_new_file}
+            COMMAND ${CMAKE_COMMAND} -E cat $ENV{RECIPE_DIR}/cmake/dll_export.h > ${_new_file}
+            COMMAND ${CMAKE_COMMAND} -E cat ${_file} >> ${_new_file}
+            COMMAND ${CMAKE_COMMAND} -E copy ${_new_file} ${_file}
+            DEPENDS ${_file}
+            COMMENT "Pre-pending EXPORT_MACRO to ${_new_file}")
+       endif()
     endif()
   endif()
 endforeach()
