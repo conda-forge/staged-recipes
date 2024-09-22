@@ -72,6 +72,6 @@ echo "Building all recipes"
 python .ci_support/build_all.py
 
 ( startgroup "Inspecting artifacts" ) 2> /dev/null
-# inspect_artifacts was only added in conda-forge-ci-setup 4.6.0
-command -v inspect_artifacts >/dev/null 2>&1 && inspect_artifacts || echo "inspect_artifacts needs conda-forge-ci-setup >=4.6.0"
+# inspect_artifacts was only added in conda-forge-ci-setup 4.6.0; --all-packages in 4.9.3
+command -v inspect_artifacts >/dev/null 2>&1 && inspect_artifacts --all-packages || echo "inspect_artifacts needs conda-forge-ci-setup >=4.9.3"
 ( endgroup "Inspecting artifacts" ) 2> /dev/null
