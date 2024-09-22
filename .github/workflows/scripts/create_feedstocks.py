@@ -14,6 +14,7 @@ Such as:
 from __future__ import print_function
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Iterator
 from conda_build.metadata import MetaData
@@ -30,8 +31,13 @@ import tempfile
 import traceback
 import time
 
+import github
 import requests
 from ruamel.yaml import YAML
+from conda_forge_feedstock_ops.parse_package_and_feedstock_names import (
+    parse_package_and_feedstock_names
+)
+from conda_forge_metadata.feedstock_outputs import sharded_path as _get_sharded_path
 
 # Enable DEBUG to run the diagnostics, without actually creating new feedstocks.
 DEBUG = False
@@ -39,6 +45,28 @@ DEBUG = False
 REPO_SKIP_LIST = ["core", "bot", "staged-recipes", "arm-arch", "systems", "ctx"]
 
 recipe_directory_name = "recipes"
+
+
+def _register_package_for_feedstock(feedstock, pkg_name, gh):
+    repo = gh.get_repo("conda-forge/feedstock-outputs")
+    try:
+        contents = repo.get_contents(_get_sharded_path(pkg_name))
+    except github.UnknownObjectException:
+        contents = None
+
+    if contents is None:
+        data = {"feedstocks": [feedstock]}
+        repo.create_file(
+            _get_sharded_path(pkg_name),
+            f"[cf admin skip] ***NO_CI*** add output {pkg_name} for conda-forge/{feedstock}-feedstock",
+            json.dumps(data),
+        )
+        print(f"    output {pkg_name} added for feedstock {feedstock}", flush=True)
+    else:
+        # we proceed anyways and do not raise since it could be a rerun of staged recipes
+        # print a warning for the users
+        data = json.loads(contents.decoded_content.decode("utf-8"))
+        print(f"    WARNING: output {pkg_name} already exists from feedstock(s) {data["feedstocks"]}", flush=True)
 
 
 def list_recipes() -> Iterator[tuple[str, str]]:
@@ -235,7 +263,7 @@ if __name__ == '__main__':
 
     # gh_travis = Github(os.environ['GH_TRAVIS_TOKEN'])
     gh_travis = None
-    
+
     gh = None
     if 'GH_TOKEN' in os.environ:
         write_token('github', os.environ['GH_TOKEN'])
@@ -427,6 +455,12 @@ if __name__ == '__main__':
                 )
                 subprocess.check_call(
                     ['conda', 'smithy', 'rerender', '--no-check-uptodate'], cwd=feedstock_dir)
+
+                # pre-register outputs
+                print("registering outputs...")
+                _, pkg_names, _ = parse_package_and_feedstock_names(feedstock_dir, use_container=False)
+                for pkg_name in pkg_names:
+                    _register_package_for_feedstock(name, pkg_name, gh)
             except subprocess.CalledProcessError:
                 exit_code = 0
                 traceback.print_exception(*sys.exc_info())
