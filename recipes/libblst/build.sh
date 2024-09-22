@@ -66,4 +66,18 @@ Cflags: -I\${includedir}
 EOF
 
 install -m644 libblst.pc "${pkgdir}"/libblst.pc
-install -m644 libblst.pc "${pkgdir}"/blst.pc
+
+cat > blst.pc <<EOF
+prefix=${PREFIX}
+exec_prefix=\${prefix}
+libdir=\${exec_prefix}/lib
+includedir=\${prefix}/include
+
+Name: blst
+Description: BLS12-381 signature library
+Version: ${PKG_VERSION}
+Libs: -L\${libdir} -lblst
+Cflags: -I\${includedir}
+EOF
+
+install -m644 blst.pc "${pkgdir}"/blst.pc
