@@ -7,6 +7,8 @@ package:
 source:
   - url: https://github.com/robotology/icub-main/archive/refs/tags/v{{ version }}.tar.gz
     sha256: 346d3301da028dfe9e9d31bda259b39c8f6189a69d8bc713389ff0a0e42c02bb
+    patches:
+      - 985.patch
 
 build:
   number: 0
@@ -37,7 +39,6 @@ outputs:
         - libdc1394
         - freeglut
         - libglu
-        - ycm-cmake-modules
         - libyarp
         - libicub-firmware-shared
         - libgl-devel  # [linux]
@@ -54,6 +55,32 @@ outputs:
         - test -f ${PREFIX}/lib/libiKin.so  # [unix]
         - if not exist %LIBRARY_LIB%\\iKin.lib exit 1  # [win]
         - if not exist %LIBRARY_BIN%\\iKin.dll exit 1  # [win]
+        - cmake-package-check ICUB --targets iKin ctrlLib
+      requires:
+        - cmake-package-check
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+
+  - name: icub-main-python
+    script: build_py.sh  # [unix]
+    script: bld_py.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib("c") }}
+        - {{ compiler('cxx') }}
+        - swig
+      host:
+        - {{ pin_subpackage(namecxx, exact=True) }}
+        - python
+        - libyarp
+      run:
+        - {{ pin_subpackage(namecxx, exact=True) }}
+        - yarp-python
+    test:
+      imports:
+        - icub
 
   - name: icub-main
     build:
@@ -62,16 +89,25 @@ outputs:
     requirements:
       run:
         - {{ pin_subpackage("libicub-main", exact=True) }}
+        - {{ pin_subpackage("icub-main-python", max_pin='x.x.x') }}
     test:
       commands:
         - test -f ${PREFIX}/lib/libiKin.so  # [unix]
         - if not exist %LIBRARY_LIB%\\iKin.lib exit 1  # [win]
         - if not exist %LIBRARY_BIN%\\iKin.dll exit 1  # [win]
+        - cmake-package-check ICUB --targets iKin ctrlLib
+      requires:
+        - cmake-package-check
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+      imports:
+        - icub
 
 
 about:
   home: https://github.com/robotology/icub-main
-  license: LGPL-2.1-or-later
+  license: BSD-3-Clause AND GPL-2.1-or-later
   license_file: LICENSE
   summary: 'The iCub Main Software Repository'
 
