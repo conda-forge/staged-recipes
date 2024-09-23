@@ -1,0 +1,186 @@
+From c1b007ac630b687bc6e52b8f1abd252c427a5fed Mon Sep 17 00:00:00 2001
+From: Silvio Traversaro <silvio@traversaro.it>
+Date: Mon, 23 Sep 2024 12:49:54 +0200
+Subject: [PATCH 1/3] Fix use double leading underscore in python swig bindings
+ library name
+
+Fix https://github.com/robotology/icub-main/issues/984
+---
+ bindings/CMakeLists.txt | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/bindings/CMakeLists.txt b/bindings/CMakeLists.txt
+index ea477e8f54..38d836de1c 100644
+--- a/bindings/CMakeLists.txt
++++ b/bindings/CMakeLists.txt
+@@ -58,7 +58,6 @@ if(CREATE_PYTHON)
+                      LANGUAGE python
+                      SOURCES icub.i)
+     target_link_libraries(${SWIG_MODULE_icub_python_REAL_NAME} Python::Python ${ICUB_SWIG_LIBRARIES})
+-    set_target_properties(${SWIG_MODULE_icub_python_REAL_NAME} PROPERTIES OUTPUT_NAME "_icub")
+ 
+     # installation path is determined reliably on most platforms using distutils
+     execute_process(COMMAND ${Python_EXECUTABLE} -c "from distutils import sysconfig; print(sysconfig.get_python_lib(1,0,prefix=''))"
+
+From 1f02858bb678f7fc9de45e0ce4c890b3398caf69 Mon Sep 17 00:00:00 2001
+From: Silvio Traversaro <silvio@traversaro.it>
+Date: Fri, 20 Sep 2024 08:59:43 +0200
+Subject: [PATCH 2/3] Support compiling bindings as standalone project using an
+ external ICUB CMake package
+
+---
+ bindings/CMakeLists.txt | 37 +++++++++++++++++++++----------------
+ 1 file changed, 21 insertions(+), 16 deletions(-)
+
+diff --git a/bindings/CMakeLists.txt b/bindings/CMakeLists.txt
+index 38d836de1c..f187f2ca90 100644
+--- a/bindings/CMakeLists.txt
++++ b/bindings/CMakeLists.txt
+@@ -2,7 +2,17 @@
+ # Authors: Paul Fitzpatrick
+ # CopyPolicy: Released under the terms of the GNU GPL v2.0.
+ 
+-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR})
++# Detect if we are doing a standalone build of the bindings, using an external icub-main
++if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
++  set(ICUB_BINDINGS_BUILD_STANDALONE TRUE)
++else()
++  set(ICUB_BINDINGS_BUILD_STANDALONE FALSE)
++endif()
++
++if(ICUB_BINDINGS_BUILD_STANDALONE)
++  cmake_minimum_required(VERSION 3.16)
++  project(ICUBBindings)
++endif()
+ 
+ # Find YARP for bindings-only builds
+ find_package(YARP COMPONENTS conf os sig dev math gsl REQUIRED)
+@@ -11,10 +21,9 @@ foreach(_component conf os sig dev math gsl)
+   include_directories(${YARP_${_component}_INCLUDE_DIRS})
+ endforeach()
+ 
+-# Work-around for missing paths to OpenCV libraries
+-find_package(OpenCV)
+-if(OpenCV_FOUND)
+-    link_directories(${OpenCV_LINK_DIRECTORIES} ${OPENCV_LINK_DIRECTORIES})
++# Find ICUB for bindings-only builds
++if(ICUB_BINDINGS_BUILD_STANDALONE)
++  find_package(ICUB REQUIRED)
+ endif()
+ 
+ set(ICUB_SWIG_LIBRARIES ctrlLib
+@@ -23,14 +32,6 @@ set(ICUB_SWIG_LIBRARIES ctrlLib
+                         skinDynLib
+                         optimization)
+ 
+-#TODO this has to been removed as soon as swig fully support target_include_directories
+-include_directories(${CMAKE_SOURCE_DIR}/src/libraries/iDyn/include)
+-include_directories(${CMAKE_SOURCE_DIR}/src/libraries/iKin/include)
+-include_directories(${CMAKE_SOURCE_DIR}/src/libraries/ctrlLib/include)
+-include_directories(${CMAKE_SOURCE_DIR}/src/libraries/skinDynLib/include)
+-include_directories(${CMAKE_SOURCE_DIR}/src/libraries/optimization/include)
+-
+-
+ # for yarp.i
+ include_directories(${YARP_BINDINGS})
+ 
+@@ -58,6 +59,7 @@ if(CREATE_PYTHON)
+                      LANGUAGE python
+                      SOURCES icub.i)
+     target_link_libraries(${SWIG_MODULE_icub_python_REAL_NAME} Python::Python ${ICUB_SWIG_LIBRARIES})
++    set_target_properties(${SWIG_MODULE_icub_python_REAL_NAME} PROPERTIES SWIG_USE_TARGET_INCLUDE_DIRECTORIES TRUE)
+ 
+     # installation path is determined reliably on most platforms using distutils
+     execute_process(COMMAND ${Python_EXECUTABLE} -c "from distutils import sysconfig; print(sysconfig.get_python_lib(1,0,prefix=''))"
+@@ -101,7 +103,9 @@ if(CREATE_RUBY)
+     target_link_libraries(${SWIG_MODULE_icub_ruby_REAL_NAME} ${RUBY_LIBRARY} ${ICUB_SWIG_LIBRARIES})
+     target_include_directories(${SWIG_MODULE_icub_ruby_REAL_NAME} SYSTEM PRIVATE ${RUBY_INCLUDE_PATH})
+     set_target_properties(${SWIG_MODULE_icub_ruby_REAL_NAME} PROPERTIES OUTPUT_NAME "icub"
+-                                                                      LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/ruby")
++                                                                      LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/ruby"
++                                                                      SWIG_USE_TARGET_INCLUDE_DIRECTORIES TRUE)
++
+ endif()
+ 
+ if(CREATE_JAVA)
+@@ -119,6 +123,7 @@ if(CREATE_JAVA)
+     if(APPLE)
+       set_target_properties(${SWIG_MODULE_icub_java_REAL_NAME} PROPERTIES SUFFIX ".jnilib")
+     endif(APPLE)
++    set_target_properties(${SWIG_MODULE_icub_python_REAL_NAME} PROPERTIES SWIG_USE_TARGET_INCLUDE_DIRECTORIES TRUE)
+ endif()
+ 
+ if(CREATE_CSHARP)
+@@ -128,7 +133,7 @@ if(CREATE_CSHARP)
+                      SOURCES icub.i)
+ 
+   target_link_libraries(${SWIG_MODULE_icub_csharp_REAL_NAME} ${SWIG_ICUB_LIBRARIES})
+-  set_target_properties(${SWIG_MODULE_icub_csharp_REAL_NAME} PROPERTIES OUTPUT_NAME "icub" LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/csharp")
++  set_target_properties(${SWIG_MODULE_icub_csharp_REAL_NAME} PROPERTIES OUTPUT_NAME "icub" LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/csharp" SWIG_USE_TARGET_INCLUDE_DIRECTORIES TRUE)
+ endif()
+ 
+ if(CREATE_LUA)
+@@ -139,5 +144,5 @@ if(CREATE_LUA)
+                    LANGUAGE lua
+                    SOURCES icub.i)
+   target_link_libraries(${SWIG_MODULE_icub_lua_REAL_NAME} ${LUA_LIBRARY} ${ICUB_SWIG_LIBRARIES})
+-  set_target_properties(${SWIG_MODULE_icub_lua_REAL_NAME} PROPERTIES OUTPUT_NAME "icub" LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/lua")
++  set_target_properties(${SWIG_MODULE_icub_lua_REAL_NAME} PROPERTIES OUTPUT_NAME "icub" LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/lua" SWIG_USE_TARGET_INCLUDE_DIRECTORIES TRUE)
+ endif()
+
+From 8eac01933c0df534a5c0eff51c409f7fc99808cb Mon Sep 17 00:00:00 2001
+From: Silvio Traversaro <silvio@traversaro.it>
+Date: Mon, 23 Sep 2024 12:51:02 +0200
+Subject: [PATCH 3/3] Remove references to iDyn in bindings
+
+---
+ bindings/CMakeLists.txt |  1 -
+ bindings/icub.i         | 16 ----------------
+ 2 files changed, 17 deletions(-)
+
+diff --git a/bindings/CMakeLists.txt b/bindings/CMakeLists.txt
+index f187f2ca90..9d47b06b79 100644
+--- a/bindings/CMakeLists.txt
++++ b/bindings/CMakeLists.txt
+@@ -27,7 +27,6 @@ if(ICUB_BINDINGS_BUILD_STANDALONE)
+ endif()
+ 
+ set(ICUB_SWIG_LIBRARIES ctrlLib
+-                        iDyn
+                         iKin
+                         skinDynLib
+                         optimization)
+diff --git a/bindings/icub.i b/bindings/icub.i
+index 09aabefd7a..eb22a0194e 100644
+--- a/bindings/icub.i
++++ b/bindings/icub.i
+@@ -57,13 +57,6 @@ using namespace yarp::sig;
+ #include <iCub/optimization/matrixTransformation.h>
+ #include <iCub/optimization/neuralNetworks.h>
+ 
+-// iDyn
+-//#include <iCub/iDyn/iDynInv.h>
+-//#include <iCub/iDyn/iDyn.h>
+-//#include <iCub/iDyn/iDynContact.h>
+-//#include <iCub/iDyn/iDynTransform.h>
+-//#include <iCub/iDyn/iDynBody.h>
+-
+ %}
+ 
+ %include <std_vector.i>
+@@ -133,15 +126,6 @@ using namespace yarp::sig;
+ %include <iCub/optimization/neuralNetworks.h>
+ 
+ 
+-// iDyn
+-//%include <iCub/iDyn/iDynInv.h>
+-
+-//%ignore notImplemented;
+-//%include <iCub/iDyn/iDyn.h>
+-//%include <iCub/iDyn/iDynContact.h>
+-//%include <iCub/iDyn/iDynTransform.h>
+-//%include <iCub/iDyn/iDynBody.h>
+-
+ %{
+ typedef yarp::os::TypedReader<iCub::skinDynLib::skinContactList> TypedReaderSkinContactList;
+ typedef yarp::os::TypedReaderCallback<iCub::skinDynLib::skinContactList> TypedReaderCallbackSkinContactList;
