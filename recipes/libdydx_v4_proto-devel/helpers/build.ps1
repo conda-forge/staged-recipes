@@ -42,13 +42,6 @@ if ($DLL) {
   $LIB = $DLL.FullName -replace "-\d+.dll", ".lib"
   $LIB = $LIB -replace "Library\\bin", "Library\\lib"
 
-  # Check if the symbol exists in the .dll
-  $dllExports = dumpbin /exports $DLL.FullName | Select-String -Pattern "cosmos::base::v1beta1"
-  if (-not $dllExports) {
-    Write-Output "Symbol 'cosmos::base::v1beta1' not found in $($DLL.FullName)"
-    exit 1
-  }
-
   dumpbin /exports $DLL.FullName | Select-String -Pattern "^[0-9A-F]+\s+[0-9A-F]+\s+.*$" | ForEach-Object { $_.ToString().Split(" ")[3] } | Out-File -FilePath $DEF
 
   if ($env:target_platform -eq "win-64") {
@@ -69,3 +62,6 @@ if ($DLL) {
   Write-Output "DLL file not found."
   exit 1
 }
+
+# Install .lib in the library
+Copy-Item -Path $LIB -Destination "$env:PREFIX/Library/lib"
