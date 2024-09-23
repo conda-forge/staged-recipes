@@ -42,24 +42,36 @@ if ($DLL) {
   $LIB = $DLL.FullName -replace "-\d+.dll", ".lib"
   $LIB = $LIB -replace "Library\\bin", "Library\\lib"
 
-  dumpbin /exports $DLL.FullName | Select-String -Pattern "^[0-9A-F]+\s+[0-9A-F]+\s+.*$" | ForEach-Object { $_.ToString().Split(" ")[3] } | Out-File -FilePath $DEF
+  $exports = dumpbin /exports $DLL.FullName | Select-String -Pattern "^[0-9A-F]+\s+[0-9A-F]+\s+.*$"
+  if ($exports) {
+    # Create the .def file header
+    "LIBRARY $($DLL.BaseName)" | Out-File -FilePath $DEF
+    "EXPORTS" | Out-File -FilePath $DEF -Append
 
-  if ($env:target_platform -eq "win-64") {
-      lib /def:$DEF /out:$LIB /machine:x64
+    # Add each symbol to the .def file
+    $exports | ForEach-Object { $_.ToString().Split(" ")[3] } | Out-File -FilePath $DEF -Append
+
+    # Create the import library
+    if ($env:target_platform -eq "win-64") {
+        lib /def:$DEF /out:$LIB /machine:x64
+    } else {
+        lib /def:$DEF /out:$LIB /machine:aarch64
+    }
+
+    # Check if the symbol exists in the .lib
+    $libSymbols = dumpbin /linkermember:1 $LIB | Select-String -Pattern "cosmos::base::v1beta1"
+    if (-not $libSymbols) {
+      Write-Output "Symbol 'cosmos::base::v1beta1' not found in $($LIB)"
+      # Display the content of the .def file
+      Get-Content $DEF
+      exit 1
+    }
+
+    Remove-Item $DEF
   } else {
-      lib /def:$DEF /out:$LIB /machine:aarch64
-  }
-
-  # Check if the symbol exists in the .lib
-  $libSymbols = dumpbin /linkermember:1 $LIB | Select-String -Pattern "cosmos::base::v1beta1"
-  if (-not $libSymbols) {
-    Write-Output "Symbol 'cosmos::base::v1beta1' not found in $($LIB)"
-    # Display the content of the .def file
-    Get-Content $DEF
+    Write-Output "No exported symbols found in $($DLL.FullName)"
     exit 1
   }
-
-  Remove-Item $DEF
 } else {
   Write-Output "DLL file not found."
   exit 1
