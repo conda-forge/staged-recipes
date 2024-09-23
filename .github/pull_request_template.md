@@ -16,6 +16,7 @@ right people know. There are language-specific teams for reviewing recipes.
 | Julia           | `@conda-forge/help-julia`     |
 | ruby            | `@conda-forge/help-ruby`      |
 | Rust            | `@conda-forge/help-rust`      |
+| Go              | `@conda-forge/help-go`        |
 | other           | `@conda-forge/staged-recipes` |
 
 Once the PR is ready for review, please mention one of the teams above in a
