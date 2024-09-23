@@ -2,6 +2,9 @@ echo "Environment:"
 env
 echo "Location of nvcc:"
 which nvcc
+echo "Package config:"
+pkg-config --list-all
+echo "Calling meson:"
 meson setup $MESON_ARGS --reconfigure -Ddefault_library=shared -Dinclude-python-api=enabled meson
 cd meson
 meson compile
