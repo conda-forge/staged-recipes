@@ -1,4 +1,4 @@
-CUDA_HOME=${BUILD_PREFIX} meson setup --reconfigure --buildtype=release --prefix=${PREFIX} --libdir=lib -Ddefault_library=shared -Dinclude-python-api=enabled meson $MESON_ARGS
+CUDA_HOME=${BUILD_PREFIX} meson setup $MESON_ARGS --reconfigure -Ddefault_library=shared -Dinclude-python-api=enabled meson
 cd meson
 meson compile
 meson install
