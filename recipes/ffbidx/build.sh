@@ -1,3 +1,7 @@
+echo "Environment:"
+env
+echo "Location of nvcc:"
+which nvcc
 meson setup $MESON_ARGS --reconfigure -Ddefault_library=shared -Dinclude-python-api=enabled meson
 cd meson
 meson compile
