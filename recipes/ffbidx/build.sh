@@ -5,7 +5,9 @@ which nvcc
 echo "Package config:"
 pkg-config --list-all
 echo "Calling meson:"
-meson setup $MESON_ARGS --reconfigure -Ddefault_library=shared -Dinclude-python-api=enabled meson
+cuda_home=$(which nvcc)
+cuda_home=${cuda_home%/bin/nvcc}
+CUDA_HOME=${cuda_home} meson setup $MESON_ARGS --reconfigure -Ddefault_library=shared -Dinclude-python-api=enabled meson
 cd meson
 meson compile
 meson install
