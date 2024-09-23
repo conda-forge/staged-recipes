@@ -54,6 +54,8 @@ if ($DLL) {
   $libSymbols = dumpbin /linkermember:1 $LIB | Select-String -Pattern "cosmos::base::v1beta1"
   if (-not $libSymbols) {
     Write-Output "Symbol 'cosmos::base::v1beta1' not found in $($LIB)"
+    # Display the content of the .def file
+    Get-Content $DEF
     exit 1
   }
 
