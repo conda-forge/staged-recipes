@@ -5,6 +5,6 @@ fi
 mkdir -p build
 cd build
 cmake ${SRC_DIR} ${CMAKE_ARGS}
-make
+make -j${CPU_COUNT}
 make install
 
