@@ -1,5 +1,9 @@
 echo "Cuda version:"
 echo "${cuda_compiler_version}"
+echo "cuda_runtime include:"
+find ${PREFIX} -name cuda_runtime.h
+echo "libcudart library:"
+find ${PREFIX} -name "libcudart*"
 
 if [[ "${cuda_compiler_version}" =~ "11" ]]; then
     echo 'cudaroot='${PREFIX}'
