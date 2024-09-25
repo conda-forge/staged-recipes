@@ -38,9 +38,10 @@ Pop-Location
 # Create .lib file for Windows
 $DLL = Get-ChildItem -Path "$env:PREFIX" -Filter "*.dll" -Recurse | Where-Object { $_.Name -match "dydx_v4_proto" }
 if ($DLL) {
-  $DEF = $DLL.BaseName -replace ".dll", ".def"
   $LIB = $DLL.FullName -replace "-\d+.dll", ".lib"
   $LIB = $LIB -replace "Library\\bin", "Library\\lib"
+  Write-Output ".dll file: $($DLL)"
+  Write-Output ".lib file: $($LIB)"
 
   if ($env:target_platform -eq "win-64") {
       dlltool --export-all-symbols --output-lib $LIB --dllname $DLL.FullName
@@ -51,8 +52,6 @@ if ($DLL) {
   $libSymbols = dumpbin /linkermember:1 $LIB | Select-String -Pattern "cosmos::base::v1beta1"
   if (-not $libSymbols) {
     Write-Output "Symbol 'cosmos::base::v1beta1' not found in $($LIB)"
-    # Display the content of the .def file
-    Get-Content $DEF
     exit 1
   }
 
