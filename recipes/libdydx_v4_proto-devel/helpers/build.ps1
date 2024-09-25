@@ -37,6 +37,7 @@ Pop-Location
 
 # Create .lib file for Windows
 $DLL = Get-ChildItem -Path "$env:PREFIX" -Filter "*.dll" -Recurse | Where-Object { $_.Name -match "dydx_v4_proto" }
+Write-Output ".dll file: $($DLL)"
 if ($DLL) {
   $LIB = $DLL.FullName -replace "-\d+.dll", ".lib"
   $LIB = $LIB -replace "Library\\bin", "Library\\lib"
@@ -60,6 +61,3 @@ if ($DLL) {
   Write-Output "DLL file not found."
   exit 1
 }
-
-# Install .lib in the library
-Copy-Item -Path $LIB -Destination "$env:PREFIX/Library/lib"
