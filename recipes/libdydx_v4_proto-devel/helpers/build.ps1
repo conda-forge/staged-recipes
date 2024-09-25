@@ -42,12 +42,10 @@ if ($DLL) {
   $LIB = $DLL.FullName -replace "-\d+.dll", ".lib"
   $LIB = $LIB -replace "Library\\bin", "Library\\lib"
 
-  dlltool --export-all-symbols --output-def $DEF --input-def $DLL.FullName
-
   if ($env:target_platform -eq "win-64") {
-      dlltool --def $DEF --output-lib $LIB --dllname $DLL.FullName --machine x64
+      dlltool --export-all-symbols --output-lib $LIB --dllname $DLL.FullName
   } else {
-      dlltool --def $DEF --output-lib $LIB --dllname $DLL.FullName --machine aarch64
+      dlltool --export-all-symbols --output-lib $LIB --dllname $DLL.FullName --machine aarch64
   }
 
   $libSymbols = dumpbin /linkermember:1 $LIB | Select-String -Pattern "cosmos::base::v1beta1"
