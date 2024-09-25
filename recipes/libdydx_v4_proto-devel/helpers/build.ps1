@@ -37,11 +37,11 @@ Pop-Location
 
 # Create .lib file for Windows
 $DLL = Get-ChildItem -Path "$env:PREFIX" -Filter "*.dll" -Recurse | Where-Object { $_.Name -match "dydx_v4_proto" }
-Write-Output ".dll file: $($DLL)"
+Write-Output ".dll file: $($DLL.FullName)"
 if ($DLL) {
   $DLLFullPath = Join-Path -Path $env:PREFIX -ChildPath $DLL.FullName
   $LIB = $DLLFullPath -replace "-\d+.dll", ".lib"
-  $LIB = $LIB -replace "Library\\bin", "Library\\lib"
+  $LIB = $LIB -replace "Library\bin", "Library\lib"
 
   if ($env:target_platform -eq "win-64") {
       dlltool --export-all-symbols --output-lib $LIB --dllname $DLLFullPath
