@@ -11,17 +11,11 @@ export npm_config_build_from_source=true
 rm $PREFIX/bin/node
 ln -s $BUILD_PREFIX/bin/node $PREFIX/bin/node
 
-# source.url in meta.yaml references a tgz file which contains a fully-built pnpm-licenses
-# version, we now want to turn this back into a tgz file using pnpm pack and install it
-# globally from that.
-# as we are doing pnpm pack we still need to include the node_modules which we retrieve
-# using pnpm install
-pnpm install
-pnpm pack
-
-# install pnpm-licenses globally from file (as opposed to from a registry as you'd do normally)
 NPM_CONFIG_USERCONFIG=/tmp/nonexistentrc
-npm install -g quantco-${PKG_NAME}-${PKG_VERSION}.tgz
+npm install -g speedscope
 
-# generate license disclaimer for pnpm-licenses itself :)
-pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
+pnpm import
+pnpm install --prod
+
+# generate third party licenses file
+pnpm licenses list --json --prod | pnpm-licenses generate-disclaimer --prod --json-input --output-file=third-party-licenses.txt
