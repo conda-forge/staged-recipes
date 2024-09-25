@@ -42,7 +42,6 @@ if ($DLL) {
   $LIB = $DLL.FullName -replace "-\d+.dll", ".lib"
   $LIB = $LIB -replace "Library\\bin", "Library\\lib"
 
-  $env:PATH = "$env:BUILD_PREFIX;$env:PATH"
   dlltool --export-all-symbols --output-def $DEF --input-def $DLL.FullName
 
   if ($env:target_platform -eq "win-64") {
