@@ -1,0 +1,125 @@
+{% set name = "intel-pti-gpu" %}
+{% set version = "0.10.0" %}
+{% set so_version = "0.10" %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  git_url: https://github.com/intel/pti-gpu.git
+  # url: https://github.com/intel/pti-gpu/archive/refs/tags/unitrace-${{ version }}.tar.gz
+  # sha256: 73e974dc5b6c16b4340be6a87706d134f0e308292d1a2a11e4d1b12b4cadd1cd
+
+build:
+  number: 0
+  skip: true  # [not linux]
+  ignore_run_exports:
+    - dpcpp-cpp-rt
+  script_env:
+    - http_proxy
+    - https_proxy
+    - no_proxy
+
+requirements:
+  build:
+    - cmake >=3.29
+    - ninja >=1.11.1
+    - {{ compiler('cxx') }}
+    - {{ compiler('dpcpp') }} >=2024.2.0
+    - {{ stdlib('c') }}
+  host:
+    - level-zero-devel >=1.17.6
+    - ocl-icd  # [linux]
+    - khronos-opencl-icd-loader  # [not linux]
+    # These packages are not required during build, but we want proper version
+    # export for runtime:
+    - intel-cmplr-lib-rt
+
+outputs:
+  - name: lib{{name}}{{ so_version }}
+    script: install.sh
+    requirements:
+      build:
+        - cmake >=3.29
+        - ninja >=1.11.1
+        - {{ compiler('cxx') }}
+        - {{ compiler('dpcpp') }} >=2024.2.0
+        - {{ stdlib('c') }}
+      host:
+        - level-zero-devel >=1.17.6
+        - ocl-icd  # [linux]
+        - khronos-opencl-icd-loader  # [not linux]
+        # These packages are not required during build, but we want proper version
+        # export for runtime:
+        - intel-cmplr-lib-rt
+    files:
+      # Need to filter files to install only SO Version libraries
+      - lib/libpti*.so.*
+    test:
+      commands:
+        - test ! -f $PREFIX/lib/libpti.so  #[linux]
+        - test ! -f $PREFIX/lib/libpti_view.so  #[linux]
+        - test -f $PREFIX/lib/libpti.so.{{so_version}}  #[linux]
+        - test -f $PREFIX/lib/libpti_view.so.{{so_version}}  #[linux]
+    about:
+      home: https://github.com/intel/pti-gpu
+      summary: 'Profiling Tools Interfaces for GPU'
+      description: |
+        This a PTI library for Intel(R) oneAPI applications. 
+      license: MIT
+      license_family: MIT
+      license_file: LICENSE
+      doc_url: https://github.com/intel/pti-gpu
+      dev_url: https://github.com/intel/pti-gpu
+
+  - name: {{ name }}
+    script: install.sh
+    version: {{ version }}
+    requirements:
+      build:
+        - cmake >=3.29
+        - ninja >=1.11.1
+        - {{ compiler('cxx') }}
+        - {{ compiler('dpcpp') }} >=2024.2.0
+        - {{ stdlib('c') }}
+      host:
+        - level-zero-devel >=1.17.6
+        - ocl-icd  # [linux]
+        - khronos-opencl-icd-loader  # [not linux]
+        # Installing it to prevent clobbering
+        - {{ pin_subpackage("lib" ~ name ~ so_version, exact=True) }}
+      run:
+        - {{ pin_subpackage("lib" ~ name ~ so_version, exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/lib/libpti.so  #[linux]
+        - test -f $PREFIX/lib/libpti_view.so  #[linux]
+        - test -f $PREFIX/lib/libpti.so.{{so_version}}  #[linux]
+        - test -f $PREFIX/lib/libpti_view.so.{{so_version}}  #[linux]
+    about:
+      home: https://github.com/intel/pti-gpu
+      summary: 'Profiling Tools Interfaces for GPU2'
+      description: |
+        This a PTI library for Intel(R) oneAPI applications. 
+      license: MIT
+      license_family: MIT
+      license_file: LICENSE
+      doc_url: https://github.com/intel/pti-gpu
+      dev_url: https://github.com/intel/pti-gpu
+
+about:
+  home: https://github.com/intel/pti-gpu
+  summary: 'Profiling Tools Interfaces for GPU'
+  description: |
+    This a PTI library for Intel(R) oneAPI applications. 
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  doc_url: https://github.com/intel/pti-gpu
+  dev_url: https://github.com/intel/pti-gpu
+
+extra:
+  recipe-maintainers:
+    - ZzEeKkAa
+    - oleksandr-pavlyk
