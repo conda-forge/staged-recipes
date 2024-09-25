@@ -1,3 +1,4 @@
+pip check
 turbo-turtle -h
 turbo-turtle docs --print-local-path
 turbo-turtle fetch --destination turbo_turtle_fetch
