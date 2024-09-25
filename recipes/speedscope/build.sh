@@ -13,7 +13,7 @@ ln -s $BUILD_PREFIX/bin/node $PREFIX/bin/node
 
 export NPM_CONFIG_USERCONFIG=/tmp/nonexistentrc
 pnpm import
-pnpm install --prod
+pnpm install
 pnpm pack
 npm install -g speedscope-${PKG_VERSION}.tar.gz
 
