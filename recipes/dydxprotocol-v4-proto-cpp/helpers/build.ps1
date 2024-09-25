@@ -21,12 +21,6 @@ Push-Location _conda-build-protocol
     exit $LASTEXITCODE
   }
 
-  cmake --build . --target dydx_v4_proto_obj -- -j"$env:CPU_COUNT" > $env:SRC_DIR/_conda-logs/build.log
-  if ($LASTEXITCODE -ne 0) {
-    Write-Output "CMake failed with exit code $LASTEXITCODE"
-    exit $LASTEXITCODE
-  }
-
   cmake --build . --target dydx_v4_proto -- -j"$env:CPU_COUNT"
   if ($LASTEXITCODE -ne 0) {
     Write-Output "CMake failed with exit code $LASTEXITCODE"
@@ -55,8 +49,17 @@ if ($DLL) {
       lib /def:$DEF /out:$LIB /machine:aarch64
   }
 
+  # Check if the symbol exists in the .lib
+  $libSymbols = dumpbin /linkermember:1 $LIB | Select-String -Pattern "cosmos::base::v1beta1"
+  if (-not $libSymbols) {
+    Write-Output "Symbol 'cosmos::base::v1beta1' not found in $($LIB)"
+    exit 1
+  }
   Remove-Item $DEF
 } else {
   Write-Output "DLL file not found."
   exit 1
 }
+
+# Install .lib in the library
+Copy-Item -Path $LIB -Destination "$env:PREFIX/Library/lib"
