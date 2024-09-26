@@ -1,9 +1,11 @@
 {% set date = "24.7" %}
 {% set version = "0.3.0" %}
-{% set arm_variant_type = "sbsa" %}
+{% set soversion = ".".join(version.split(".")[:3]) %}
+{% set somajor = version.split(".")[0] %}
+{% set arm_variant_type = arm_variant_type|default("sbsa") %}
 
 package:
-  name: libnvpl-split
+  name: libnvpl-blas-split
   version: {{ date }}
 
 source:
@@ -23,7 +25,7 @@ outputs:
   - name: libnvpl-blas-dev
     build:
       run_exports:
-        - {{ pin_subpackage("libnvpl-blas0") }}
+        - {{ pin_subpackage("libnvpl-blas" ~ somajor) }}
     files:
       - include/nvpl_blas*
       - include/nvpl_blas*/**
@@ -31,10 +33,10 @@ outputs:
       - lib/libnvpl_blas*.so
     requirements:
       host:
-        - {{ pin_subpackage("libnvpl-blas0", exact=True) }}
+        - {{ pin_subpackage("libnvpl-blas" ~ somajor, exact=True) }}
         - libnvpl-common-dev {{ date }}
       run:
-        - {{ pin_subpackage("libnvpl-blas0", exact=True) }}
+        - {{ pin_subpackage("libnvpl-blas" ~ somajor, exact=True) }}
         - {{ pin_compatible("libnvpl-common-dev", exact=True) }}
       run_constrained:
         - arm-variant * {{ arm_variant_type }}
@@ -42,11 +44,11 @@ outputs:
       files:
         - test
       requires:
-        - {{ compiler("c") }}  # [build_platform == target_platform]
-        - {{ compiler("cxx") }}  # [build_platform == target_platform]
-        - {{ stdlib("c") }}  # [build_platform == target_platform]
-        - cmake  # [build_platform == target_platform]
-        - ninja  # [build_platform == target_platform]
+        - {{ compiler("c") }}
+        - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
+        - cmake
+        - ninja
       commands:
         - test -f $PREFIX/include/nvpl_blas.h
         - test -f $PREFIX/lib/cmake/nvpl_blas/nvpl_blas-config.cmake
@@ -55,13 +57,13 @@ outputs:
         - test -f $PREFIX/lib/libnvpl_blas_ilp64_seq.so
         - test -f $PREFIX/lib/libnvpl_blas_lp64_gomp.so
         - test -f $PREFIX/lib/libnvpl_blas_lp64_seq.so
-        - cmake ${CMAKE_ARGS} -GNinja test  # [build_platform == target_platform]
-        - cmake --build test  # [build_platform == target_platform]
+        - cmake ${CMAKE_ARGS} -GNinja test
+        - cmake --build .
 
-  - name: libnvpl-blas0
+  - name: libnvpl-blas{{ somajor }}
     build:
       run_exports:
-        - {{ pin_subpackage("libnvpl-blas0") }}
+        - {{ pin_subpackage("libnvpl-blas" ~ somajor) }}
     files:
       - lib/libnvpl_blas*.so.*
     requirements:
@@ -69,25 +71,20 @@ outputs:
         - {{ compiler('c') }}
         - {{ stdlib('c') }}
         - arm-variant * {{ arm_variant_type }}
-
-      host:
-
-      run:
-
       run_constrained:
         - arm-variant * {{ arm_variant_type }}
     test:
       commands:
-        - test -f $PREFIX/lib/libnvpl_blas_core.so.0
-        - test -f $PREFIX/lib/libnvpl_blas_core.so.0.3.0
-        - test -f $PREFIX/lib/libnvpl_blas_ilp64_gomp.so.0
-        - test -f $PREFIX/lib/libnvpl_blas_ilp64_gomp.so.0.3.0
-        - test -f $PREFIX/lib/libnvpl_blas_ilp64_seq.so.0
-        - test -f $PREFIX/lib/libnvpl_blas_ilp64_seq.so.0.3.0
-        - test -f $PREFIX/lib/libnvpl_blas_lp64_gomp.so.0
-        - test -f $PREFIX/lib/libnvpl_blas_lp64_gomp.so.0.3.0
-        - test -f $PREFIX/lib/libnvpl_blas_lp64_seq.so.0
-        - test -f $PREFIX/lib/libnvpl_blas_lp64_seq.so.0.3.0
+        - test -f $PREFIX/lib/libnvpl_blas_core.so.{{ somajor }}
+        - test -f $PREFIX/lib/libnvpl_blas_core.so.{{ soversion }}
+        - test -f $PREFIX/lib/libnvpl_blas_ilp64_gomp.so.{{ somajor }}
+        - test -f $PREFIX/lib/libnvpl_blas_ilp64_gomp.so.{{ soversion }}
+        - test -f $PREFIX/lib/libnvpl_blas_ilp64_seq.so.{{ somajor }}
+        - test -f $PREFIX/lib/libnvpl_blas_ilp64_seq.so.{{ soversion }}
+        - test -f $PREFIX/lib/libnvpl_blas_lp64_gomp.so.{{ somajor }}
+        - test -f $PREFIX/lib/libnvpl_blas_lp64_gomp.so.{{ soversion }}
+        - test -f $PREFIX/lib/libnvpl_blas_lp64_seq.so.{{ somajor }}
+        - test -f $PREFIX/lib/libnvpl_blas_lp64_seq.so.{{ soversion }}
 
 about:
   home: https://developer.nvidia.com/nvpl
