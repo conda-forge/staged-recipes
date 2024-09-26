@@ -1,0 +1,98 @@
+{% set version = "1.1.0" %}
+
+# handle undefined PYTHON in `noarch: generic` outputs
+{% if PYTHON is not defined %}{% set PYTHON = "$PYTHON" %}{% endif %}
+
+
+package:
+  name: icnsutil
+  version: {{ version }}
+
+source:
+  - folder: dist
+    url: https://pypi.org/packages/source/i/icnsutil/icnsutil-{{ version }}.tar.gz
+    sha256: fb1556edf0077af5d78934d8da887d3810acc29ee28716df70b7f805f781ed77
+    patches:
+      - 0001-readme-encoding.patch
+  - folder: src
+    url: https://github.com/relikd/icnsutil/archive/refs/tags/v{{ version }}.tar.gz
+    sha256: 066c860f7686dfbdaa5832330aa4208fda5b01a0ffbc8173b51318e717171b80
+    patches:
+      - 0000-test-as-installed.patch
+
+build:
+  number: 0
+  noarch: python
+  script: cd dist && {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  entry_points:
+    - icnsutil = icnsutil.cli:main
+    - icnsutil-autosize = icnsutil.autosize.cli:main
+
+requirements:
+  host:
+    - pip
+    - python >=3.5
+    - setuptools
+  run:
+    - pillow
+    - python >=3.5
+
+test:
+  imports:
+    - icnsutil
+  requires:
+    - pip
+    - m2-grep  # [win]
+  commands:
+    - pip check
+    - icnsutil --version
+    - icnsutil --help
+    - icnsutil-autosize --help
+    - icnsutil --version | grep -iE "{{ version.replace('.', '\.') }}"
+
+outputs:
+  - name: icnsutil
+
+  - name: icnsutil-with-convert
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage("icnsutil", max_pin="x.x.x") }}
+        - pillow
+    test:
+      requires:
+        - pip
+      commands:
+        - pip check
+        - python -c "from icnsutil.autosize.PixelResizer import PILLOW_ENABLED; assert PILLOW_ENABLED"
+
+  - name: icnsutil-with-all
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage("icnsutil", max_pin="x.x.x") }}
+        - {{ pin_subpackage("icnsutil-with-convert", max_pin="x.x.x") }}
+    test:
+      source_files:
+        - src/tests/fixtures
+        - src/tests/*.py
+      requires:
+        - coverage
+        - pytest
+      commands:
+        - cd src/tests/fixtures && coverage run --source icnsutil --branch -m pytest -vv --tb=long --color=yes ..
+        - coverage report --show-missing --skip-covered --fail-under=57
+
+about:
+  home: https://github.com/relikd/icnsutil
+  summary: A fully-featured python library to handle reading and writing icns files.
+  license: MIT
+  # TODO: use dist after release with https://github.com/relikd/icnsutil/pull/2
+  license_file: src/LICENSE
+
+extra:
+  feedstock-name: icnsutil
+  recipe-maintainers:
+    - bollwyvl
