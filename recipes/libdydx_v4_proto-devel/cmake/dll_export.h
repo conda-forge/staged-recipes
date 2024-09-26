@@ -1,4 +1,4 @@
-#ifdef _WIN32
+#ifdef _WIN32 || defined(WIN32)
   #ifdef BUILDING_DLL
     #define DLL_EXPORT_API __declspec(dllexport)
   #else
