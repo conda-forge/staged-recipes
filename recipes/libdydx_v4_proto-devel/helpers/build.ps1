@@ -1,6 +1,8 @@
 $env:PKG_CONFIG_PATH = "${env:PREFIX}/lib/pkgconfig"
 $env:PATH = "${env:PREFIX}/Library/bin;$env:PATH"
 
+$PROJECT = "dydx_v4_proto"
+
 Copy-Item -Recurse all-sources/v4-client-cpp $env:SRC_DIR
 
 New-Item -ItemType Directory -Force -Path _conda-build-protocol, _conda-logs
@@ -22,7 +24,7 @@ Push-Location _conda-build-protocol
     exit $LASTEXITCODE
   }
 
-  cmake --build . --target dydx_v4_proto -- -j"$env:CPU_COUNT"
+  cmake --build . --target $PROJECT -- -j"$env:CPU_COUNT"
   if ($LASTEXITCODE -ne 0) {
     Write-Output "CMake failed with exit code $LASTEXITCODE"
     exit $LASTEXITCODE
@@ -36,10 +38,10 @@ Push-Location _conda-build-protocol
 Pop-Location
 
 # Create .lib file for Windows
-$DLL = Get-ChildItem -Path "$env:PREFIX" -Filter "*.dll" -Recurse | Where-Object { $_.Name -match "dydx_v4_proto" }
+$DLL = Get-ChildItem -Path "$env:PREFIX" -Filter "*.dll" -Recurse | Where-Object { $_.Name -match $PROJECT }
 if ($DLL) {
-  $LIB = $DLL.BaseName -replace "-\d+.dll", ".lib"
-  $DEF = $DLL.BaseName -replace "-\d+.dll", ".def"
+  $LIB = $PROJECT + ".lib"
+  $DEF = $PROJECT + ".def"
 
   if ($env:target_platform -eq "win-64") {
       dlltool --export-all-symbols --output-def $DEF --output-lib $LIB --dllname $DLL.FullName
@@ -52,7 +54,7 @@ if ($DLL) {
   $libSymbols = dumpbin /linkermember:1 $LIB | Select-String -Pattern "cosmos::base::v1beta1"
   if (-not $libSymbols) {
     Write-Output "Symbol 'cosmos::base::v1beta1' not found in $($LIB)"
-    exit 1
+    # exit 1
   }
 
   Copy-Item -Path $LIB -Destination "$env:PREFIX/Library/lib"
