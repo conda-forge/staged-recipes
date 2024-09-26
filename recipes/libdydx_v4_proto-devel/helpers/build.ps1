@@ -39,8 +39,7 @@ Pop-Location
 $DLL = Get-ChildItem -Path "$env:PREFIX" -Filter "*.dll" -Recurse | Where-Object { $_.Name -match "dydx_v4_proto" }
 Write-Output ".dll file: $($DLL.FullName)"
 if ($DLL) {
-  $LIB = $DLL.FullName -replace "-\d+.dll", ".lib"
-  $LIB = $LIB -replace "bin", "lib"
+  $LIB = $DLL.BaseName -replace "-\d+.dll", ".lib"
   Write-Output ".lib file: $($LIB)"
 
   if ($env:target_platform -eq "win-64") {
@@ -55,7 +54,7 @@ if ($DLL) {
     exit 1
   }
 
-  Remove-Item $DEF
+  Copy-Item -Path $LIB -Destination "$env:PREFIX/Library/lib"
 } else {
   Write-Output "DLL file not found."
   exit 1
