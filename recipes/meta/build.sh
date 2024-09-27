@@ -41,6 +41,6 @@ cmake --install .
 rm -rf $SRC_DIR/build
 
 ## install MeTA package
-$PREFIX/bin/python -m pip install $SRC_DIR
-# cd ${SRC_DIR}
-# ${PYTHON} -m pip install . --no-deps -vv
+# $PREFIX/bin/python -m pip install $SRC_DIR
+cd ${SRC_DIR}
+${PYTHON} -m pip install . --no-deps -vv
