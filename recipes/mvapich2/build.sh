@@ -4,11 +4,9 @@ set -ex
 
 unset F77 F90
 
-export CC=$(basename "$CC")
-export CXX=$(basename "$CXX")
-export FC=$(basename "$FC")
-
-export FFLAGS="-fallow-argument-mismatch ${FFLAGS}"
+#export CC=${CC:-gcc}
+#export CXX=${CXX:-g++}
+#export FC=${FC:-gfortran}
 
 ./configure --prefix=$PREFIX \
             --enable-fast=none \
