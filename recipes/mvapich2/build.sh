@@ -16,10 +16,18 @@ export FFLAGS="-fallow-argument-mismatch ${FFLAGS}"
             --enable-fast=none \
             --enable-g=all \
             --with-device=ch4:ofi \
+            --with-hwloc-prefix=$PREFIX \
+            --with-rdma=$PREFIX \
+            --enable-fortran=all \
+            --enable-romio \
+            --enable-rdma-cm \
+            --enable-nemesis-shm-collectives \
             --disable-gl \
             --disable-nvml \
             --disable-cl \
-            --disable-opencl
+            --disable-opencl \
+	    --disable-dependency-tracking \
+	    --with-sysroot
 
 make -j"${CPU_COUNT:-1}"
 make install
