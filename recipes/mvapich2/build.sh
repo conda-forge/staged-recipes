@@ -2,13 +2,11 @@
 
 set -ex
 
-unset F90
+unset F77 F90
 
-export CC=${CC:-gcc}
-export CXX=${CXX:-g++}
-export FC=${FC:-gfortran}
-export F77=${FC}
-echo "Compiler versions: " ${CC} --version " " ${CXX} --version " "${FC} --version
+export CC=$(basename "$CC")
+export CXX=$(basename "$CXX")
+export FC=$(basename "$FC")
 
 export FFLAGS="-fallow-argument-mismatch ${FFLAGS}"
 
