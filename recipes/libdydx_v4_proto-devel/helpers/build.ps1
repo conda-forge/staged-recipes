@@ -16,10 +16,10 @@ Push-Location _conda-build-protocol
     -DCMAKE_BUILD_TYPE=Release `
     -DCMAKE_PREFIX_PATH="$_PREFIX/lib;$_PREFIX/Library/lib" `
     -DCMAKE_INSTALL_PREFIX="$_PREFIX/Library" `
-    -DCMAKE_EXPORT_ALL_SYMBOLS=ON `
     -DCMAKE_VERBOSE_MAKEFILE=ON `
     -DBUILD_SHARED_LIBS=ON `
     -G Ninja --debug-output
+    # -DCMAKE_EXPORT_ALL_SYMBOLS=ON `
   if ($LASTEXITCODE -ne 0) {
     Write-Output "CMake failed with exit code $LASTEXITCODE"
     exit $LASTEXITCODE
