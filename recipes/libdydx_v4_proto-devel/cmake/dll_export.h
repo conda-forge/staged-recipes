@@ -1,4 +1,5 @@
 #if defined(_WIN32) || defined(WIN32)
+  #define PROTOBUF_USE_DLLS
   #ifdef BUILDING_DLL
     #define DLL_EXPORT_API __declspec(dllexport)
   #else
