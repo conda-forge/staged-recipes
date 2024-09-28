@@ -10,24 +10,29 @@ export CC=$(basename "$CC")
 export CXX=$(basename "$CXX")
 export FC=$(basename "$FC")
 
+build_with_rdma=""
+if [[ "$target_platform" == linux-* ]]; then
+    echo "Build with UCX/UCC support"
+    build_with_rdma="--with-rdma=$PREFIX --enable-rdma-cm "
+fi
+
 ./configure --prefix=$PREFIX \
             --enable-fast=none \
+            --enable-shared \
+	    --with-sysroot \
             --enable-g=all \
             --with-device=ch4:ofi \
             --with-hwloc-prefix=$PREFIX \
-            --with-rdma=$PREFIX \
             --enable-fortran=all \
             --enable-romio \
-            --enable-rdma-cm \
             --enable-nemesis-shm-collectives \
-            --disable-gl \
+            --disable-dependency-tracking \
+            --disable-opencl \
+            --disable-static +
             --disable-nvml \
             --disable-cl \
-            --disable-opencl \
-            --disable-dependency-tracking \
-	    --with-sysroot \
-            --enable-shared \
-            --disable-static	    
+            --disable-gl \
+	    $build_with_rdma
 
 make -j"${CPU_COUNT:-1}"
 make install
