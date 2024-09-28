@@ -7,6 +7,8 @@ set -x
 unset LD LINK ARCH
 
 # Set RPATH to use $ORIGIN
+export LDFLAGS="-L$ORIGIN/../lib"
+export LINKFLAGS="-L$ORIGIN/../lib -Wl,-rpath,$ORIGIN/../lib"
 export CMAKE_INSTALL_RPATH='$ORIGIN/../lib'
 export CMAKE_BUILD_WITH_INSTALL_RPATH=ON
 
