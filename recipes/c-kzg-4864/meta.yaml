@@ -1,0 +1,105 @@
+{% set name = "c-kzg-4844" %}
+{% set version = "1.0.3" %}
+
+{% set blst_so_major_version = 0 %}
+package:
+  name: c-kzg-4844-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/ethereum/c-kzg-4844/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: d9b8bd960d7072cf5dba6ecd9f01bfb82513e75bf5170d6de5ca508ee1abc385
+  patches:
+    - patches/0001-remove-blst-build.patch
+
+build:
+  script_env:
+    - BLST_MAJOR_VERSION={{ blst_so_major_version }}
+    - CC=x86_64-w64-mingw32-gcc  # [win]
+    - CXX=x86_64-w64-mingw32-g++  # [win]
+    - LD=x86_64-w64-mingw32-ld  # [win]
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}  # [not win]
+    - {{ compiler('m2w64_c') }}  # [win]
+    - {{ stdlib('c') }}  # [not win]
+    - {{ stdlib('m2w64_c') }}  # [win]
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+  host:
+    - libblst-{{ blst_so_major_version }}
+    - libblst-headers-{{ blst_so_major_version }}
+    - pip
+    - python
+    - setuptools
+
+outputs:
+  - name: ckzg
+    script: install-py.sh  # [unix]
+    script: install-py.bat  # [win]
+    build:
+      ignore_run_exports:  # [unix]
+          - python  # [unix]
+    requirements:
+      build:
+        - {{ stdlib('c') }}  # [not win]
+        - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+      host:
+        - libblst-{{ blst_so_major_version }}
+        - pefile  # [win]
+        - pip
+        - python
+        - setuptools
+      run:
+        - libblst-{{ blst_so_major_version }}
+        - python
+        - PyYAML
+    test:
+      source_files:
+        - bindings/python/tests.py
+        - src/trusted_setup.txt
+        - tests
+      imports:
+        - ckzg
+      requires:
+        - pip
+        - python
+      commands:
+        - pip check
+        - cd bindings/python && python tests.py  # [unix]
+        # Upstream tests fail on windows due to PyUnicode_AsUTF8(f) translation of the src/trusted_setup.txt file
+        # - cd bindings\\python && dir ..\..\src\trusted_setup.txt && python tests.py  # [win]
+      downstreams:
+        - eth-account
+
+  - name: c-kzg-4844
+    requirements:
+      host:
+        - {{ pin_subpackage('ckzg') }}
+      run:
+        - {{ pin_subpackage('ckzg') }}
+    test:
+      imports:
+        - ckzg
+      requires:
+        - pip
+      commands:
+        - pip check
+
+about:
+  home: https://github.com/ethereum/c-kzg-4844
+  summary: 'A minimal implementation of the Polynomial Commitments API for EIP-4844 and EIP-7594, written in C.'
+  description: |
+    The C-KZG-4844 library provides implementations of the public
+    KZG functions that are defined in the Polynomial Commitments
+    specification. The aim is to align these functions as closely
+    as possible with the specification.
+  license: Apache-2.0
+  license_file:
+    - LICENSE
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+  feedstock-name: c-kzg-4844
