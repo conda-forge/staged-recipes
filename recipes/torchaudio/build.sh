@@ -35,4 +35,8 @@ export BUILD_ALIGN="True"
 export USE_FFMPEG="True"
 export USE_OPENMP="True"
 
+export CMAKE_C_COMPILER="$CC"
+export CMAKE_CXX_COMPILER="$CXX"
+export CMAKE_GENERATOR="Ninja"
+
 python -m pip install . -vv
