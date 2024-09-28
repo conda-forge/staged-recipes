@@ -7,8 +7,11 @@ set -x
 unset LD LINK ARCH
 
 # Set RPATH to use $ORIGIN
-export LDFLAGS="-L$PREFIX/lib"
-export CXXFLAGS="-I$PREFIX/include"
+# export LDFLAGS="-L$PREFIX/lib"
+# export CXXFLAGS="-idirafter $PREFIX/include"
+
+export LDFLAGS="-Wl,-rpath,'$ORIGIN/../lib' -L$PREFIX/lib"
+export CXXFLAGS="-idirafter $PREFIX/include"
 
 export CMAKE_BUILD_WITH_INSTALL_RPATH=ON
 export CMAKE_INSTALL_RPATH_USE_LINK_PATH=ON
@@ -29,8 +32,8 @@ cmake -S $SRC_DIR -B $SRC_DIR/build  \
     -DCMAKE_MODULE_PATH=$PREFIX/share/cmake \
     -DCMAKE_PREFIX_PATH=$PREFIX \
     -DCMAKE_INSTALL_RPATH=$CMAKE_INSTALL_RPATH \
-    -DCMAKE_BUILD_WITH_INSTALL_RPATH=$CMAKE_BUILD_WITH_INSTALL_RPATH \
-    -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=FALSE
+    -DCMAKE_BUILD_WITH_INSTALL_RPATH=$CMAKE_BUILD_WITH_INSTALL_RPATH #\
+    # -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=FALSE
 
 cmake --build . --config Release
 cmake --install .
