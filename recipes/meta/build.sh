@@ -27,8 +27,7 @@ cmake -S $SRC_DIR -B $SRC_DIR/build  \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
     -DENABLE_PYTHON=OFF \
-    -DCMAKE_CXX_FLAGS="-Wno-deprecated" \
-    -DCMAKE_CXX_STANDARD=11 \
+    -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_MODULE_PATH=$PREFIX/share/cmake \
     -DCMAKE_PREFIX_PATH=$PREFIX \
     -DCMAKE_INSTALL_RPATH=$CMAKE_INSTALL_RPATH \
@@ -45,3 +44,4 @@ cd ${SRC_DIR}
 ${PYTHON} -m pip install . --no-deps -vv
 
 ## -DPYTHON_EXECUTABLE=$PREFIX/bin/python \
+## -DCMAKE_CXX_FLAGS="-Wno-deprecated" \
