@@ -1,0 +1,165 @@
+context:
+  name: torchaudio
+  version: "2.4.1"
+  build_number: 0
+  cuda_build_string: cuda_${{ cuda_version | version_to_buildstring }}
+  string_prefix: ${{ cuda_build_string if cuda else "cpu_" }}
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/pytorch/audio/archive/refs/tags/v${{ version }}.tar.gz
+    sha256: a6b7e1b606ae353b9c4db1c8e754263f53f0457e9ab538e9669c0af0c46a0d5c
+    patches:
+      - patches/0001-point-to-correct-prefix.patch
+
+build:
+  number: ${{ build_number}}
+  skip:
+    - win
+  string: ${{ string_prefix }}py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
+  variant:
+    use_keys:
+      # use cuda from the variant config, e.g. to build multiple CUDA variants
+      - cuda
+    # this will down-prioritize the cuda variant versus other variants of the package
+    down_prioritize_variant: ${{ 1 if cuda else 0 }}
+  dynamic_linking:
+    rpaths:
+      - lib/
+  script:
+    file: build
+    env:
+      cuda_compiler_version: ${{ cuda_version | default('None') }}
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_{{ target_platform }}
+
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - ninja
+
+    - if: cuda
+      then:
+        - ${{ compiler('cuda') }}
+        - cuda-version ==${{ cuda_version }}
+
+    - if: cuda and match(cuda_version, ">=12") and build_platform != target_platform
+      then:
+        - cuda-driver-dev
+        - cuda-cudart-dev
+        - cuda-nvrtc-dev
+        - cuda-nvtx-dev
+        - cuda-nvml-dev
+        - libcublas-dev
+        - libcufft-dev
+        - libcurand-dev
+        - libcusolver-dev
+        - libcusparse-dev
+
+  host:
+    - python
+    - pip
+    - setuptools
+    - pytorch
+    - ${{ "pytorch =*=cuda*" if cuda == "yes" }}
+    - ${{ "pytorch =*=cpu*" if cuda == "no" }}
+
+    - bzip2
+    - kaldi
+    - pybind11
+    - sox
+    - xz
+    - zlib
+
+    - ${{ "cuda-version =={{ cuda_version }}" if cuda }}
+
+    - if: cuda and match(cuda_version, ">=12")
+      then:
+        - cuda-driver-dev
+        - cuda-cudart-dev
+        - cuda-nvrtc-dev
+        - cuda-nvtx-dev
+        - cuda-nvml-dev
+        - libcublas-dev
+        - libcufft-dev
+        - libcurand-dev
+        - libcusolver-dev
+        - libcusparse-dev
+  run:
+    - python
+    - numpy
+    - kaldi
+    - ${{ "pytorch =*=cuda*" if cuda == "yes" }}
+    - ${{ "pytorch =*=cpu*" if cuda == "no" }}
+
+  ignore_run_exports:
+    from_package:
+      - if: cuda and match(cuda_version, ">=12")
+        then:
+          - cuda-nvrtc-dev
+          - cuda-nvtx-dev
+          - libcublas-dev
+          - libcufft-dev
+          - libcurand-dev
+          - libcusolver-dev
+          - libcusparse-dev
+
+tests:
+  - python:
+      imports:
+        - torchaudio
+        - torchaudio.backend
+        - torchaudio.compliance
+        - torchaudio.datasets
+        - torchaudio.functional
+        - torchaudio.models
+        - torchaudio.pipelines
+        - torchaudio.kaldi_io
+        - torchaudio.utils
+        - torchaudio.sox_effects
+        - torchaudio.transforms
+      pip_check: true
+
+  - requirements:
+      run:
+        - pytest
+        - scipy
+        - numpy
+        - librosa
+        - expecttest
+        - requests
+        - fairseq
+        - hypothesis
+        - inflect
+        - kaldi_io
+        - parameterized
+        - pysoundfile
+        - transformers
+        - unidecode
+        - inflect
+    files:
+      source:
+        - test/
+        - examples/
+    script:
+      # remove example tests that are not importable out-of-tree
+      - rm -rf test/torchaudio_unittest/example
+      - pytest -v test/
+
+about:
+  homepage: https://github.com/pytorch/audio
+  license: BSD-2-Clause
+  license_file: LICENSE
+  summary: Data manipulation and transformation for audio signal processing, powered by PyTorch
+
+extra:
+  recipe-maintainers:
+    - hadim
