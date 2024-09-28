@@ -26,8 +26,7 @@ cd $SRC_DIR/build
 cmake -S $SRC_DIR -B $SRC_DIR/build  \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
-    -DENABLE_PYTHON=ON \
-    -DPYTHON_EXECUTABLE=$PREFIX/bin/python \
+    -DENABLE_PYTHON=OFF \
     -DCMAKE_CXX_FLAGS="-Wno-deprecated" \
     -DCMAKE_CXX_STANDARD=11 \
     -DCMAKE_MODULE_PATH=$PREFIX/share/cmake \
@@ -44,3 +43,5 @@ rm -rf $SRC_DIR/build
 # $PREFIX/bin/python -m pip install $SRC_DIR
 cd ${SRC_DIR}
 ${PYTHON} -m pip install . --no-deps -vv
+
+## -DPYTHON_EXECUTABLE=$PREFIX/bin/python \
