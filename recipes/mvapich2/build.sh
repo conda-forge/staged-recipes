@@ -19,7 +19,7 @@ fi
 ./configure --prefix=$PREFIX \
             --enable-fast=none \
             --enable-shared \
-	    --with-sysroot \
+            --with-sysroot \
             --enable-g=all \
             --with-device=ch4:ofi \
             --with-hwloc-prefix=$PREFIX \
@@ -32,7 +32,7 @@ fi
             --disable-nvml \
             --disable-cl \
             --disable-gl \
-	    $build_with_rdma
+             $build_with_rdma
 
 make -j"${CPU_COUNT:-1}"
 make install
