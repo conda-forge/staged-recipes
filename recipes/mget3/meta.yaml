@@ -10,7 +10,12 @@ source:
   sha256: e722414b869f5c7775b9b4472db6a0ca42790ca0706b91b4551cdfa87c8b6621
 
 build:
-  skip: true  # [py<39 or py>=313 or py2k or osx]
+  # Our main reason for releasing mget3 on conda-forge is to support users of
+  # ArcGIS Pro 3.2.2 and later. ArcGIS Pro includes Anaconda Python 3.9 or
+  # later and only runs on Windows. So we're skipping Python < 3.9, osx, and
+  # linux. We depend on some packages that don't support Python 3.13 yet, so
+  # skipping Python >= 3.13.
+  skip: true  # [py<39 or py>=313 or py2k or osx or linux]
   script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   number: 0
 
@@ -40,7 +45,31 @@ requirements:
     - pyparsing
     - python-dateutil
     - requests
-    - scikit-fmm <=2023.4.2  # [win]
+    # After scikit-fmm 2023.4.2, the scikit-fmm team added support for Python
+    # 3.12 but could not figure out how to build wheels yet with their new
+    # tooling. Thus in our pyproject.toml, we have a constraint that installs
+    # scikit-fmm 2023.4.2 on Python < 3.12, and skips it on Python >= 3.12
+    # (the portions of our package that need it fail gracefully if it is not
+    # importable). It does appear that conda-forge somehow contains Windows
+    # builds of later versions of scikit-fmm, indicating that conda-forge is
+    # capable of building these later versions. Therefore, we'd *like* to not
+    # list a constraint for scikit-fmm in our meta.yaml recipe below, and thus
+    # allow conda-forge users to gain the benefit of scikit-fmm on Python
+    # 3.12. However, when testing our package, the conda-forge CI build script
+    # somehow also applies the constraints in pyproject.toml, not just those
+    # in the "run" section of meta.yaml here--maybe it invokes pip and pip
+    # applies pyproject.toml? Anyway, when the conda-forge CI script tries to
+    # install our mget3 package, after previously installing a scikit-fmm
+    # version > 2023.4.2 (because we didn't constrain it in meta.yaml), the
+    # script fails due to the pyproject.toml constraint on scikit-fmm
+    # <=2023.4.2.
+    #
+    # To fix this, I'm adjusting the meta.yaml constraint on scikit-fmm to
+    # match that of pyproject.toml, which is on Windows we install scikit-fmm
+    # 2023.4.2 or earlier, but only if we have Python earlier than 3.12. Even
+    # though we currently skip builds for linux and osx, I'll leave in the
+    # line that does not constrain scikit-fmm on non-Windows platforms.
+    - scikit-fmm <=2023.4.2  # [win and py<312]
     - scikit-fmm  # [not win]
     - scipy
 
