@@ -44,19 +44,32 @@ if ($DLL) {
   $LIB = $PROJECT + ".lib"
   $DEF = $PROJECT + ".def"
 
+  $dumpOutput = & dumpbin /exports $DLL.FullName
+
+  $exports = $dumpOutput |
+      Select-String -Pattern '(?:\s*\d+\s+[\dA-F]+\s+[\dA-F]+\s+)?(??[\w@]+)' |
+      ForEach-Object { $_.Matches.Groups[1].Value } |
+      Where-Object { $_ -ne '' }
+
+  "EXPORTS" | Set-Content $DEF
+  $exports | ForEach-Object { "    $_" } | Add-Content $DEF
+
   if ($env:target_platform -eq "win-64") {
-      dlltool --export-all-symbols --output-def $DEF --output-lib $LIB --dllname $DLL.FullName
+      $libResult = lib /def:$DEF /out:$LIB /machine:x64
   } else {
-      dlltool --export-all-symbols --output-def $DEF --output-lib $LIB --dllname $DLL.FullName --machine aarch64
+      $libResult = lib /def:$DEF /out:$LIB /machine:aarch64
+  }
+  if ($LASTEXITCODE -ne 0) {
+      Write-Output "Failed to create .lib file: $libResult"
+      exit 1
   }
 
   Get-Content $DEF
-  dumpbin /EXPORTS $DLL.FullName
 
   $libSymbols = dumpbin /linkermember:1 $LIB | Select-String -Pattern "v1beta1"
   if (-not $libSymbols) {
     Write-Output "Symbol 'v1beta1' not found in $($LIB)"
-    # exit 1
+    exit 1
   }
 
   Copy-Item -Path $LIB -Destination "$env:PREFIX/Library/lib"
