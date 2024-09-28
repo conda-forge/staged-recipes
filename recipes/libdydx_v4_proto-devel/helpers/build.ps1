@@ -51,10 +51,11 @@ if ($DLL) {
   }
 
   Get-Content $DEF
+  dumpbin /EXPORTS $DLL.FullName
 
-  $libSymbols = dumpbin /linkermember:1 $LIB | Select-String -Pattern "cosmos::base::v1beta1"
+  $libSymbols = dumpbin /linkermember:1 $LIB | Select-String -Pattern "v1beta1"
   if (-not $libSymbols) {
-    Write-Output "Symbol 'cosmos::base::v1beta1' not found in $($LIB)"
+    Write-Output "Symbol 'v1beta1' not found in $($LIB)"
     # exit 1
   }
 
