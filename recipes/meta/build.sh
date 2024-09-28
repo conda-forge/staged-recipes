@@ -1,16 +1,26 @@
 #!/bin/bash
-
 set -e
 set -x
-
-# Remove unused variables and ensure consistency
 unset LD LINK ARCH
 
-# Set RPATH to use $ORIGIN
-export LDFLAGS="-L$ORIGIN/../lib"
-export LINKFLAGS="-L$ORIGIN/../lib -Wl,-rpath,$ORIGIN/../lib"
-export CMAKE_INSTALL_RPATH='$ORIGIN/../lib'
+export CXXFLAGS="-idirafter $PREFIX/include"
+export LDFLAGS="-L$PREFIX/lib"
+export LINKFLAGS="-L$PREFIX/lib -Wl,-rpath,${PREFIX}/lib"
+# export EIGEN_CFLAGS="-idirafter $PREFIX/include/eigen3"
+
+# export CXXFLAGS="${CXXFLAGS} -I${PREFIX}/include/eigen3"
+
+# export LD_LIBRARY_PATH=$PREFIX/lib:$LD_LIBRARY_PATH
+export CMAKE_INSTALL_RPATH="$PREFIX/lib"
 export CMAKE_BUILD_WITH_INSTALL_RPATH=ON
+
+
+
+# # Set RPATH to use $ORIGIN
+# export LDFLAGS="-L$ORIGIN/../lib"
+# export LINKFLAGS="-L$ORIGIN/../lib -Wl,-rpath,$ORIGIN/../lib"
+# export CMAKE_INSTALL_RPATH='$ORIGIN/../lib'
+# export CMAKE_BUILD_WITH_INSTALL_RPATH=ON
 
 mkdir -p "$PREFIX/bin"
 mkdir -p "$PREFIX/lib"
