@@ -47,7 +47,7 @@ if ($DLL) {
   $dumpOutput = & dumpbin /exports $DLL.FullName
 
   $exports = $dumpOutput |
-      Select-String -Pattern '(?:\s*\d+\s+[\dA-F]+\s+[\dA-F]+\s+)?(??[\w@]+)' |
+      Select-String -Pattern '(?:\s*\d+\s+[\dA-F]+\s+[\dA-F]+\s+)?(\?+[\w@]+)' |
       ForEach-Object { $_.Matches.Groups[1].Value } |
       Where-Object { $_ -ne '' }
 
