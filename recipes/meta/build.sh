@@ -1,18 +1,13 @@
 #!/bin/bash
 
-set -e  
-set -x  
+set -e
+set -x
 
+# Remove unused variables and ensure consistency
 unset LD LINK ARCH
-export CXXFLAGS="-idirafter $PREFIX/include"
-export LDFLAGS="-L$PREFIX/lib"
-export LINKFLAGS="-L$PREFIX/lib -Wl,-rpath,${PREFIX}/lib"
-export EIGEN_CFLAGS="-idirafter $PREFIX/include/eigen3"
 
-# export CXXFLAGS="${CXXFLAGS} -I${PREFIX}/include/eigen3"
-
-# export LD_LIBRARY_PATH=$PREFIX/lib:$LD_LIBRARY_PATH
-export CMAKE_INSTALL_RPATH="$PREFIX/lib"
+# Set RPATH to use $ORIGIN
+export CMAKE_INSTALL_RPATH='$ORIGIN/../lib'
 export CMAKE_BUILD_WITH_INSTALL_RPATH=ON
 
 mkdir -p "$PREFIX/bin"
@@ -22,11 +17,9 @@ mkdir -p "$PREFIX/share"
 mkdir -p $SRC_DIR/build
 cd $SRC_DIR/build
 
-
 cmake -S $SRC_DIR -B $SRC_DIR/build  \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=$PREFIX \
-    -DENABLE_PYTHON=OFF \
     -DCMAKE_CXX_STANDARD=17 \
     -DCMAKE_MODULE_PATH=$PREFIX/share/cmake \
     -DCMAKE_PREFIX_PATH=$PREFIX \
@@ -38,10 +31,7 @@ cmake --install .
 
 rm -rf $SRC_DIR/build
 
-## install MeTA package
-# $PREFIX/bin/python -m pip install $SRC_DIR
+# Install MeTA package
 cd ${SRC_DIR}
 ${PYTHON} -m pip install . --no-deps -vv
 
-## -DPYTHON_EXECUTABLE=$PREFIX/bin/python \
-## -DCMAKE_CXX_FLAGS="-Wno-deprecated" \
