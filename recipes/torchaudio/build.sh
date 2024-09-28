@@ -17,23 +17,23 @@ if [[ ${cuda_compiler_version} != "None" ]]; then
     exit 1
   fi
 
-  export USE_ROCM="True"
-  export USE_CUDA="True"
-  export BUILD_CUDA_CTC_DECODER="True"
+  export USE_ROCM="true"
+  export USE_CUDA="true"
+  export BUILD_CUDA_CTC_DECODER="true"
 
 else
-  export USE_ROCM="False"
-  export USE_CUDA="False"
-  export BUILD_CUDA_CTC_DECODER="False"
+  export USE_ROCM="false"
+  export USE_CUDA="false"
+  export BUILD_CUDA_CTC_DECODER="false"
 fi
 
-export BUILD_CPP_TEST="False"
-export BUILD_SOX="True"
-export BUILD_RIR="True"
-export BUILD_RNNT="True"
-export BUILD_ALIGN="True"
-export USE_FFMPEG="True"
-export USE_OPENMP="True"
+export BUILD_CPP_TEST="false"
+export BUILD_SOX="true"
+export BUILD_RIR="true"
+export BUILD_RNNT="true"
+export BUILD_ALIGN="true"
+export USE_FFMPEG="true"
+export USE_OPENMP="true"
 
 export CMAKE_C_COMPILER="$CC"
 export CMAKE_CXX_COMPILER="$CXX"
