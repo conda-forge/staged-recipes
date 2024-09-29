@@ -39,13 +39,13 @@
         class DYDX_V4_PROTO_EXPORT absl::lts_20240722::Cord::CharIterator;
 
         // Specific function exports
-        extern DYDX_V4_PROTO_EXPORT std::string* cosmos::base::v1beta1::Coin::mutable_denom();
-        extern DYDX_V4_PROTO_EXPORT std::string* cosmos::base::v1beta1::Coin::mutable_amount();
-        extern DYDX_V4_PROTO_EXPORT std::string* cosmos::tx::v1beta1::SignDoc::mutable_body_bytes();
-        extern DYDX_V4_PROTO_EXPORT std::string* cosmos::tx::v1beta1::SignDoc::mutable_auth_info_bytes();
-        extern DYDX_V4_PROTO_EXPORT std::string* cosmos::tx::v1beta1::SignDoc::mutable_chain_id();
-        extern DYDX_V4_PROTO_EXPORT std::string* cosmos::crypto::secp256k1::PubKey::mutable_key();
-        extern DYDX_V4_PROTO_EXPORT std::string* dydxprotocol::subaccounts::SubaccountId::mutable_owner();
     #endif
 */
+        DYDX_V4_PROTO_EXPORT std::string* cosmos::base::v1beta1::Coin::mutable_denom();
+        DYDX_V4_PROTO_EXPORT std::string* cosmos::base::v1beta1::Coin::mutable_amount();
+        DYDX_V4_PROTO_EXPORT std::string* cosmos::tx::v1beta1::SignDoc::mutable_body_bytes();
+        DYDX_V4_PROTO_EXPORT std::string* cosmos::tx::v1beta1::SignDoc::mutable_auth_info_bytes();
+        DYDX_V4_PROTO_EXPORT std::string* cosmos::tx::v1beta1::SignDoc::mutable_chain_id();
+        DYDX_V4_PROTO_EXPORT std::string* cosmos::crypto::secp256k1::PubKey::mutable_key();
+        DYDX_V4_PROTO_EXPORT std::string* dydxprotocol::subaccounts::SubaccountId::mutable_owner();
 #endif // DYDX_V4_PROTO_EXPORT_H
