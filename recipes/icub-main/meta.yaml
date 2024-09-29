@@ -1,0 +1,128 @@
+{% set version = "2.6.3" %}
+
+package:
+  name: icub-main-split
+  version: {{ version }}
+
+source:
+  - url: https://github.com/robotology/icub-main/archive/refs/tags/v{{ version }}.tar.gz
+    sha256: fe2a197372e06ff8596188a749c273ab13325826144a7d462867155fc10c5aad
+    patches:
+      - 985.patch
+
+build:
+  number: 0
+
+outputs:
+  - name: libicub-main
+    script: build_cxx.sh  # [unix]
+    script: bld_cxx.bat  # [win]
+    build:
+      run_exports:
+        - {{ pin_subpackage("libicub-main", max_pin='x.x.x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib("c") }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - pkg-config
+        - ninja
+        - multisheller
+      host:
+        - ycm-cmake-modules
+        - ace
+        - libopencv
+        # icub-main links to gslcblas library that is symbolic link to cblas
+        # we need to explicit list the cblas dependency so that the generic
+        # netlib cblas that has cblas.so as SONAME actually gets installed,
+        # otherwise the openblas or mkl cblas with specific soname gets installed,
+        # resulting in an error reported in https://github.com/conda-forge/staged-recipes/pull/27692#issuecomment-2374227755
+        - libcblas
+        - gsl
+        - ipopt
+        - qt-main
+        - sdl
+        - libdc1394  # [not win]
+        - freeglut  # [not osx]
+        - libglu  # [linux]
+        - libyarp
+        - libicub-firmware-shared
+        - libgl-devel  # [linux]
+      run:
+        # Workaround for https://github.com/conda-forge/libglu-feedstock/issues/25
+        - libglu  # [linux]
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libiKin${SHLIB_EXT}  # [unix]
+        - if not exist %LIBRARY_LIB%\\iKin.lib exit 1  # [win]
+        - if not exist %LIBRARY_BIN%\\iKin.dll exit 1  # [win]
+        - cmake-package-check ICUB --targets iKin ctrlLib
+      requires:
+        - cmake-package-check
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+
+  - name: icub-main-python
+    script: build_py.sh  # [unix]
+    script: bld_py.bat  # [win]
+    build:
+      # workaround for https://github.com/conda-forge/staged-recipes/pull/27692#issuecomment-2375285069
+      skip: true  # [osx]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib("c") }}
+        - {{ compiler('cxx') }}
+        - swig
+        - cmake
+        - pkg-config
+        - ninja
+      host:
+        - {{ pin_subpackage('libicub-main', exact=True) }}
+        - python
+        - libyarp
+      run:
+        - {{ pin_subpackage('libicub-main', exact=True) }}
+        - python
+        - yarp-python
+    test:
+      imports:
+        - icub
+
+  - name: icub-main
+    build:
+      run_exports:
+        - {{ pin_subpackage("libicub-main", max_pin='x.x.x') }}
+      # workaround for https://github.com/conda-forge/staged-recipes/pull/27692#issuecomment-2375285069
+      skip: true  # [osx]
+    requirements:
+      run:
+        - {{ pin_subpackage("libicub-main", exact=True) }}
+        - {{ pin_subpackage("icub-main-python", max_pin='x.x.x') }}
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libiKin${SHLIB_EXT}  # [unix]
+        - if not exist %LIBRARY_LIB%\\iKin.lib exit 1  # [win]
+        - if not exist %LIBRARY_BIN%\\iKin.dll exit 1  # [win]
+        - cmake-package-check ICUB --targets iKin ctrlLib
+      requires:
+        - cmake-package-check
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+      imports:
+        - icub
+
+
+about:
+  home: https://github.com/robotology/icub-main
+  license: BSD-3-Clause AND GPL-2.0-or-later
+  license_file: LICENSE
+  summary: 'The iCub Main Software Repository'
+
+extra:
+  feedstock-name: icub-main
+  recipe-maintainers:
+    - traversaro
