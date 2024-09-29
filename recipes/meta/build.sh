@@ -1,33 +1,12 @@
 #!/bin/bash
 
-set -e
-set -x
-
-# Remove unused variables and ensure consistency
 unset LD LINK ARCH
-
-# Set RPATH to use $ORIGIN
-# export LDFLAGS="-L$PREFIX/lib"
-# export CXXFLAGS="-idirafter $PREFIX/include"
-
-# export LDFLAGS="-Wl,-rpath,'$ORIGIN/../lib' -L$PREFIX/lib"
-# export CXXFLAGS="-idirafter $PREFIX/include"
-
-# export CMAKE_BUILD_WITH_INSTALL_RPATH=ON
-# export CMAKE_INSTALL_RPATH_USE_LINK_PATH=ON
-# export CMAKE_INSTALL_RPATH='$ORIGIN/../lib'
-
-
-export CFLAGS="-idirafter $CONDA_PREFIX/include"
-export CXXFLAGS="-idirafter $CONDA_PREFIX/include" 
-export LDFLAGS="-L$CONDA_PREFIX/lib"
-export LINKFLAGS="-L$CONDA_PREFIX/lib -Wl,-rpath,${CONDA_PREFIX}/lib"
-
+export CMAKE_INSTALL_RPATH='$ORIGIN/../lib'
+export CMAKE_BUILD_WITH_INSTALL_RPATH=ON
 
 mkdir -p "$PREFIX/bin"
 mkdir -p "$PREFIX/lib"
 mkdir -p "$PREFIX/share"
-
 mkdir -p $SRC_DIR/build
 cd $SRC_DIR/build
 
@@ -42,7 +21,6 @@ cmake -S $SRC_DIR -B $SRC_DIR/build  \
 
 cmake --build . --config Release
 cmake --install .
-
 rm -rf $SRC_DIR/build
 
 # Install MeTA package
