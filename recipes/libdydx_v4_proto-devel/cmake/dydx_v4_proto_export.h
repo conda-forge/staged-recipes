@@ -11,6 +11,7 @@
     #define DYDX_V4_PROTO_EXPORT
 #endif
 
+/*
     #ifdef dydx_v4_proto_EXPORTS
         #include <string>
         #include <atomic>
@@ -46,4 +47,5 @@
         extern DYDX_V4_PROTO_EXPORT std::string* cosmos::crypto::secp256k1::PubKey::mutable_key();
         extern DYDX_V4_PROTO_EXPORT std::string* dydxprotocol::subaccounts::SubaccountId::mutable_owner();
     #endif
+*/
 #endif // DYDX_V4_PROTO_EXPORT_H
