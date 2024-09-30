@@ -17,8 +17,6 @@ if [[ "$target_platform" == linux-* ]]; then
 fi
 
 ./configure --prefix=$PREFIX \
-            --enable-fast=none \
-            --enable-g=all \
             --with-device=ch4:ofi \
             --with-hwloc-prefix=$PREFIX \
             $build_with_rdma \
