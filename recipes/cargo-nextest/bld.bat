@@ -1,3 +1,6 @@
+:: check licenses
+cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+
 :: build
 cargo install --locked --root "%PREFIX%" --path cargo-nextest || goto :error
 
