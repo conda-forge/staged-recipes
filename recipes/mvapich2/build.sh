@@ -33,6 +33,5 @@ fi
             --with-sysroot \
             --enable-static=no
 
-make -j 16
-#make -j"${CPU_COUNT:-1}"
+make -j"${CPU_COUNT}"
 make install
