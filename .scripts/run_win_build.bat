@@ -64,8 +64,8 @@ if errorlevel 1 exit 1
 
 call :start_group "Inspecting artifacts"
 
-:: inspect_artifacts was only added in conda-forge-ci-setup 4.6.0
-WHERE inspect_artifacts >nul 2>nul && inspect_artifacts || echo "inspect_artifacts needs conda-forge-ci-setup >=4.6.0"
+:: inspect_artifacts was only added in conda-forge-ci-setup 4.6.0; --all-packages in 4.9.3
+WHERE inspect_artifacts >nul 2>nul && inspect_artifacts --all-packages || echo "inspect_artifacts needs conda-forge-ci-setup >=4.9.3"
 
 call :end_group
 
