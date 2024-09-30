@@ -1,0 +1,211 @@
+{% set name = 'qemu-execve' %}
+{% set version = '9.1.0' %}
+
+{% set posix = 'm2-' if win else '' %}
+{% set os_platform = build_platform.split('-')[0] %}
+
+{% set qemu_bins = [
+    "bios.bin", "bios-256k.bin", "bios-microvm.bin", "qboot.rom", "vgabios.bin", "vgabios-cirrus.bin",
+    "vgabios-stdvga.bin", "vgabios-vmware.bin", "vgabios-qxl.bin", "vgabios-virtio.bin", "vgabios-ramfb.bin",
+    "vgabios-bochs-display.bin", "vgabios-ati.bin", "openbios-sparc32", "openbios-sparc64", "openbios-ppc",
+    "QEMU,tcx.bin", "QEMU,cgthree.bin", "pxe-e1000.rom", "pxe-eepro100.rom", "pxe-ne2k_pci.rom", "pxe-pcnet.rom",
+    "pxe-rtl8139.rom", "pxe-virtio.rom", "efi-e1000.rom", "efi-eepro100.rom", "efi-ne2k_pci.rom", "efi-pcnet.rom",
+    "efi-rtl8139.rom", "efi-virtio.rom", "efi-e1000e.rom", "efi-vmxnet3.rom", "qemu-nsis.bmp", "multiboot.bin",
+    "multiboot_dma.bin", "linuxboot.bin", "linuxboot_dma.bin", "kvmvapic.bin", "pvh.bin", "s390-ccw.img",
+    "s390-netboot.img", "slof.bin", "skiboot.lid", "palcode-clipper", "u-boot.e500", "u-boot-sam460-20100605.bin",
+    "qemu_vga.ndrv", "edk2-licenses.txt", "hppa-firmware.img", "hppa-firmware64.img",
+    "opensbi-riscv32-generic-fw_dynamic.bin", "opensbi-riscv64-generic-fw_dynamic.bin", "npcm7xx_bootrom.bin",
+    "vof.bin", "vof-nvram.bin", "bamboo.dtb", "canyonlands.dtb", "petalogix-s3adsp1800.dtb", "petalogix-ml605.dtb"
+  ]
+%}
+
+{% set qemu_keymaps = [
+    "ar", "bepo", "cz", "da", "de", "de-ch", "en-gb", "en-us", "es", "et", "fi", "fo", "fr", "fr-be", "fr-ca",
+    "fr-ch", "hr", "hu", "is", "it", "ja", "lt", "lv", "mk", "nl", "no", "pl", "pt", "pt-br", "ru", "th", "tr"
+  ]
+%}
+
+package:
+  name: qemu-execve-split
+  version: {{ version }}
+
+source:
+  url: https://gitlab.com/qemu-project/qemu/-/archive/v9.1.0/qemu-v{{ version }}.tar.gz
+  sha256: 7a0d0e6b7e955d03c0d418025d8551146dbd4ec0128c1fb7dec791b94de7bbb7
+  patches:
+    - patches/0001-intercept-qexecve.patch
+  folder: qemu-source
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}  # [unix]
+    - {{ compiler('m2w64_c') }}  # [win]
+    - {{ cross_c_stdlib }}_{{ os_platform }}-aarch64 {{ cross_c_stdlib_version }}.*
+    - {{ cross_c_stdlib }}_{{ os_platform }}-ppc64le {{ cross_c_stdlib_version }}.*
+    - {{ stdlib('c') }}  # [unix]
+    - {{ stdlib('m2w64_c') }}  # [win]
+    - {{ posix }}autoconf
+    - {{ posix }}automake-wrapper  # [win]
+    - {{ posix }}libtool
+    - {{ posix }}make
+    - automake  # [unix]
+    - ninja
+    - gcc_impl_{{ os_platform }}-aarch64
+    - gcc_impl_{{ os_platform }}-ppc64le
+    - glib
+    - pkg-config
+  host:
+    - glib
+    - meson >=1.1.0
+    - python ==3.12
+    - sphinx >=3.4.3
+    - sphinx-rtd-theme >=0.5
+    - zlib
+
+outputs:
+  - name: qemu-execve-headers
+    script: install-share.sh  # [unix]
+    files:
+      - include/qemu-plugin.h  # [unix]
+      - Library\\include\\qemu-plugin.h  # [win]
+
+      {% for bin in qemu_bins %}
+      - share/qemu/{{ bin }}  # [unix]
+      - share\\qemu\\{{ bin }}  # [win]
+      {% endfor %}
+      {% for keymap in qemu_keymaps %}
+      - share/qemu/keymaps/{{ keymap }}  # [unix]
+      - share\\qemu\\keymaps\\{{ keymap }}  # [win]
+      {% endfor %}
+
+      - share/qemu/trace-events-all  # [unix]
+      - share\\qemu\\trace-events-all  # [win]
+
+      - share/man/man1/qemu.1 # [unix]
+      - share\\man\\man1\\qemu.1  # [win]
+      - share/man/man7/qemu-block-drivers.7  # [unix]
+      - share/man/man7/qemu-cpu-models.7  # [unix]
+      - share/man/man7/qemu-qmp-ref.7  # [unix]
+      - share\\man\\man7\\qemu-block-drivers.7  # [win]
+      - share\\man\\man7\\qemu-cpu-models.7  # [win]
+      - share\\man\\man7\\qemu-qmp-ref.7  # [win]
+    requirements:
+      host:
+      run:
+    test:
+      commands:
+        - test -f ${PREFIX}/include/qemu-plugin.h  # [unix]
+        - if not exist %PREFIX%\\Library\\include\\qemu-plugin.h exit 1  # [win]
+
+        - test -d ${PREFIX}/share/qemu
+        {% for bin in qemu_bins %}
+        - test -f ${PREFIX}/share/qemu/{{ bin }}  # [unix]
+        - if not exist %PREFIX%\\share\\qemu\\{{ bin }} exit 1  # [win]
+        {% endfor %}
+        {% for keymap in qemu_keymaps %}
+        - test -f ${PREFIX}/share/qemu/keymaps/{{ keymap }}  # [unix]
+        - if not exist %PREFIX%\\share\\qemu\\keymaps\\{{ keymap }}.map exit 1  # [win]
+        {% endfor %}
+        - test -f ${PREFIX}/share/qemu/trace-events-all  # [unix]
+        - if not exist %PREFIX%\\share\\qemu\\trace-events-all exit 1  # [win]
+
+        - test -f ${PREFIX}/share/man/man1/qemu.1 # [unix]
+        - test -f ${PREFIX}/share/man/man7/qemu-block-drivers.7  # [unix]
+        - test -f ${PREFIX}/share/man/man7/qemu-cpu-models.7  # [unix]
+        - test -f ${PREFIX}/share/man/man7/qemu-qmp-ref.7  # [unix]
+        - if not exist %PREFIX%\\share\\man\\man1\\qemu.1 exit 1  # [win]
+        - if not exist %PREFIX%\\share\\man\\man7\\qemu-block-drivers.7 exit 1  # [win]
+        - if not exist %PREFIX%\\share\\man\\man7\\qemu-cpu-models.7 exit 1  # [win]
+        - if not exist %PREFIX%\\share\\man\\man7\\qemu-qmp-ref.7 exit 1  # [win]
+
+  - name: qemu-execve-aarch64
+    script: install-aarch64.sh  # [unix]
+    files:
+      - bin/qemu-execve-aarch64  # [unix]
+      - bin\\qemu-execve-aarch64.exe  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}  # [unix]
+        - {{ compiler('m2w64_c') }}  # [win]
+        - {{ cross_c_stdlib }}_{{ os_platform }}-aarch64 {{ cross_c_stdlib_version }}.*
+        - {{ stdlib('c') }}  # [unix]
+        - {{ stdlib('m2w64_c') }}  # [win]
+      host:
+        - {{ pin_subpackage('qemu-execve-headers') }}
+        - glib
+        - zlib
+      run:
+        - {{ c_stdlib }}_{{ target_platform }} {{ c_stdlib_version }}.*
+        - {{ cross_c_stdlib }}_{{ os_platform }}-aarch64 {{ cross_c_stdlib_version }}.*
+        - {{ pin_subpackage('qemu-execve-headers') }}
+    test:
+      files:
+        - tests
+      requires:
+        - {{ c_stdlib }}_{{ target_platform }} {{ c_stdlib_version }}.*
+        - {{ cross_c_stdlib }}_{{ os_platform }}-aarch64 {{ cross_c_stdlib_version }}.*
+        - gcc_impl_{{ os_platform }}-aarch64
+      commands:
+        - test -f ${PREFIX}/bin/qemu-execve-aarch64  # [unix]
+        - if not exist %PREFIX%\\Library\\bin\\qemu-execve-aarch64.exe exit 1  # [win]
+
+        - aarch64-linux-gnu-gcc -o test tests/test.c
+        - qemu-execve-aarch64 ./test
+        - aarch64-linux-gnu-gcc -o qexecve_native_call tests/qexecve_native_call.c
+        - qemu-execve-aarch64 ./qexecve_native_call
+        - aarch64-linux-gnu-gcc -o qexecve_emulated_call tests/qexecve_emulated_call.c
+        - qemu-execve-aarch64 ./qexecve_emulated_call
+
+
+  {% if os_platform == 'linux' %}
+  - name: qemu-execve-ppc64le
+    script: install-ppc64le.sh
+    files:
+      - bin/qemu-execve-ppc64le
+      - bin\\qemu-execve-ppc64le.exe
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ cross_c_stdlib }}_{{ os_platform }}-ppc64le {{ cross_c_stdlib_version }}.*
+        - {{ stdlib('c') }} 
+      host:
+        - {{ pin_subpackage('qemu-execve-headers') }}
+        - glib
+      run:
+        - {{ c_stdlib }}_{{ target_platform }} {{ c_stdlib_version }}.*
+        - {{ cross_c_stdlib }}_{{ os_platform }}-aarch64 {{ cross_c_stdlib_version }}.*
+        - {{ pin_subpackage('qemu-execve-headers') }}
+    test:
+      files:
+        - tests
+      requires:
+        - {{ c_stdlib }}_{{ target_platform }} {{ c_stdlib_version }}.*
+        - {{ cross_c_stdlib }}_{{ os_platform }}-aarch64 {{ cross_c_stdlib_version }}.*
+        - gcc_impl_{{ os_platform }}-ppc64le
+      commands:
+        - test -f ${PREFIX}/bin/qemu-execve-ppc64le
+        - powerpc64le-linux-gnu-gcc -o test tests/test.c
+        - qemu-execve-aarch64 ./test
+        - powerpc64le-linux-gnu-gcc -o qexecve_native_call tests/qexecve_native_call.c
+        - qemu-execve-ppc64le ./qexecve_native_call
+        - powerpc64le-linux-gnu-gcc -o qexecve_emulated_call tests/qexecve_emulated_call.c
+        - qemu-execve-ppc64le ./qexecve_emulated_call
+    {% endif %}
+
+about:
+  home: https://gitlab.com/qemu-project/qemu
+  summary: 'QEMU is a generic and open source machine & userspace emulator and virtualizer.'
+  description: |
+    Patched QEMU to intercept and log execve calls.
+  license: GPL-2.0-only
+  license_file: qemu-source/LICENSE
+  doc_url: https://www.qemu.org/documentation/
+  dev_url: https://www.qemu.org/docs/master/
+
+extra:
+  recipe-maintainers:
+    -  MementoRC
+  feedstock-name: qemu-execve
