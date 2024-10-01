@@ -2,7 +2,7 @@
 #define DYDX_V4_PROTO_EXPORT_H
 
 #if defined(_MSC_VER)
-    #ifdef dydx_v4_proto_EXPORTS
+    #if defined(dydx_v4_proto_EXPORTS)
         #define DYDX_V4_PROTO_EXPORT __declspec(dllexport)
     #else
         #define DYDX_V4_PROTO_EXPORT __declspec(dllimport)
