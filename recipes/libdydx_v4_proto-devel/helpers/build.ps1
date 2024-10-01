@@ -25,6 +25,13 @@ Push-Location _conda-build-protocol
     exit $LASTEXITCODE
   }
 
+  $env:PATH = "${env:SRC_DIR}/_conda-build-protocol;$env:PATH"
+  ${CXX} -std=c++11 -o add_protoc_export "$env:RECIPE_DIR/helpers/add_protoc_export.cc" `pkg-config --cflags --libs protobuf`
+  if ($LASTEXITCODE -ne 0) {
+      Write-Output "Failed to compile add_protoc_export.cc"
+      exit $LASTEXITCODE
+  }
+
   cmake --build . --target $PROJECT -- -j"$env:CPU_COUNT"
   if ($LASTEXITCODE -ne 0) {
     Write-Output "CMake failed with exit code $LASTEXITCODE"
@@ -64,7 +71,7 @@ if ($DLL) {
       exit 1
   }
 
-  Get-Content $DEF
+  dumpbin /exports dydx_v4_proto.dll | findstr mutable_denom
 
   $libSymbols = dumpbin /linkermember:1 $LIB | Select-String -Pattern "v1beta1"
   if (-not $libSymbols) {
