@@ -8,7 +8,7 @@ cargo-bundle-licenses \
     --output THIRDPARTY.yml
 
 # build statically linked binary with Rust
-cargo install --no-track --locked --root ${PREFIX} --path fclones
+cargo install --bins --no-track --locked --root ${PREFIX} --path fclones
 
 # strip debug symbols
 "$STRIP" "$PREFIX/bin/${PKG_NAME}"
