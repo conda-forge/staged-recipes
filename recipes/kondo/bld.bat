@@ -4,7 +4,7 @@ cargo-bundle-licenses ^
     --output THIRDPARTY.yml || goto :error
 
 :: build statically linked binary with Rust
-cargo install --no-track --locked --root %LIBRARY_PREFIX% --path %PKG_NAME% || goto :error
+cargo install --bins --no-track --locked --root %LIBRARY_PREFIX% --path %PKG_NAME% || goto :error
 
 goto :EOF
 
