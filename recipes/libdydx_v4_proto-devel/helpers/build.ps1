@@ -26,9 +26,35 @@ Push-Location _conda-build-protocol
   }
 
   $env:PATH = "${env:SRC_DIR}/_conda-build-protocol;$env:PATH"
-  & ${CXX} -std=c++11 -o add_protoc_export "$env:RECIPE_DIR/helpers/add_protoc_export.cc" `pkg-config --cflags --libs protobuf`
+
+  # Ensure CXX is set and is a valid path
+  if (-not $env:CXX) {
+      Write-Error "CXX environment variable is not set"
+      exit 1
+  }
+
+  $cxxPath = (Get-Command $env:CXX -ErrorAction SilentlyContinue).Path
+  if (-not $cxxPath) {
+      Write-Error "Could not find CXX compiler at path: $env:CXX"
+      exit 1
+  }
+
+  # Get pkg-config output
+  $pkgConfigOutput = & pkg-config --cflags --libs protobuf
   if ($LASTEXITCODE -ne 0) {
-      Write-Output "Failed to compile add_protoc_export.cc"
+      Write-Error "pkg-config failed with exit code $LASTEXITCODE"
+      exit $LASTEXITCODE
+  }
+
+  # Construct the compile command
+  $compileCommand = "$cxxPath -std=c++11 -o add_protoc_export `"$env:RECIPE_DIR/helpers/add_protoc_export.cc`" $pkgConfigOutput"
+
+  # Execute the compile command
+  Write-Output "Executing: $compileCommand"
+  Invoke-Expression $compileCommand
+
+  if ($LASTEXITCODE -ne 0) {
+      Write-Error "Compilation failed with exit code $LASTEXITCODE"
       exit $LASTEXITCODE
   }
 
