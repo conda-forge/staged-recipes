@@ -1,4 +1,3 @@
-{% set date = "24.7" %}
 {% set version = "0.3.0" %}
 {% set soversion = ".".join(version.split(".")[:3]) %}
 {% set somajor = version.split(".")[0] %}
@@ -6,7 +5,7 @@
 
 package:
   name: libnvpl-blas-split
-  version: {{ date }}
+  version: {{ version }}
 
 source:
   url: https://developer.download.nvidia.com/compute/nvpl/redist/nvpl_blas/linux-sbsa/nvpl_blas-linux-sbsa-{{ version }}-archive.tar.xz
@@ -34,10 +33,12 @@ outputs:
     requirements:
       host:
         - {{ pin_subpackage("libnvpl-blas" ~ somajor, exact=True) }}
-        - libnvpl-common-dev {{ date }}
+        - _nvpl_dev_mutex
+        - libnvpl-common-dev
       run:
-        - {{ pin_subpackage("libnvpl-blas" ~ somajor, exact=True) }}
+        - {{ pin_compatible("_nvpl_dev_mutex", exact=True) }}
         - {{ pin_compatible("libnvpl-common-dev", exact=True) }}
+        - {{ pin_subpackage("libnvpl-blas" ~ somajor, exact=True) }}
       run_constrained:
         - arm-variant * {{ arm_variant_type }}
     test:
@@ -50,6 +51,8 @@ outputs:
         - cmake
         - ninja
       commands:
+        - cmake ${CMAKE_ARGS} -GNinja test
+        - cmake --build .
         - test -f $PREFIX/include/nvpl_blas.h
         - test -f $PREFIX/lib/cmake/nvpl_blas/nvpl_blas-config.cmake
         - test -f $PREFIX/lib/libnvpl_blas_core.so
@@ -57,8 +60,6 @@ outputs:
         - test -f $PREFIX/lib/libnvpl_blas_ilp64_seq.so
         - test -f $PREFIX/lib/libnvpl_blas_lp64_gomp.so
         - test -f $PREFIX/lib/libnvpl_blas_lp64_seq.so
-        - cmake ${CMAKE_ARGS} -GNinja test
-        - cmake --build .
 
   - name: libnvpl-blas{{ somajor }}
     build:
