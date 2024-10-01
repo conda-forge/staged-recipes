@@ -46,8 +46,15 @@ Push-Location _conda-build-protocol
       exit $LASTEXITCODE
   }
 
+  $msvcFlags = $pkgConfigOutput -replace "-I", "/I" -replace "-L", "/LIBPATH:" -replace "-l", ""
+  $msvcLibs = $pkgConfigOutput -split " " | Where-Object { $_ -match "^-l" } | ForEach-Object { $_ -replace "^-l", "" + ".lib" }
+
+  # Convert forward slashes to backslashes in paths
+  $cxxPath = $cxxPath -replace "/", "\"
+  $sourceFile = "$env:RECIPE_DIR\helpers\add_protoc_export.cc" -replace "/", "\"
+
   # Construct the compile command
-  $compileCommand = "$cxxPath -std=c++11 -o add_protoc_export `"$env:RECIPE_DIR/helpers/add_protoc_export.cc`" $pkgConfigOutput"
+  $compileCommand = "& `"$cxxPath`" /EHsc /MD /std:c++14 /Fe:add_protoc_export.exe `"$sourceFile`" $msvcFlags $msvcLibs"
 
   # Execute the compile command
   Write-Output "Executing: $compileCommand"
