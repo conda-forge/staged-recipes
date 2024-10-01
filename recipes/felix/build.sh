@@ -8,9 +8,10 @@ cargo-bundle-licenses \
     --output THIRDPARTY.yml
 
 # build statically linked binary with Rust
-cargo install --no-track --locked --root ${PREFIX} --path .
+cargo install --bins --no-track --locked --root ${PREFIX} --path .
 
 # strip debug symbols
 "$STRIP" "$PREFIX/bin/fx"
 
+# Avoid conflict with other binaries named fx
 mv ${PREFIX}/bin/fx ${PREFIX}/bin/felix
