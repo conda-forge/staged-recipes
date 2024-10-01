@@ -12,6 +12,8 @@ ln -sf $PREFIX/include/cutlass third_party/cutlass/include/
 
 export CXXFLAGS="$CXXFLAGS -isystem $PREFIX/include/opencv4"
 
+sed -i.bak "s/@DALI_INSTALL_REQUIRES_NVIMGCODEC@//g" dali/python/setup.py.in
+
 mkdir -p build
 cd build
 
