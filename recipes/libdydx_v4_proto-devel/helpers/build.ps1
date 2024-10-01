@@ -26,7 +26,7 @@ Push-Location _conda-build-protocol
   }
 
   $env:PATH = "${env:SRC_DIR}/_conda-build-protocol;$env:PATH"
-  ${CXX} -std=c++11 -o add_protoc_export "$env:RECIPE_DIR/helpers/add_protoc_export.cc" `pkg-config --cflags --libs protobuf`
+  & ${CXX} -std=c++11 -o add_protoc_export "$env:RECIPE_DIR/helpers/add_protoc_export.cc" `pkg-config --cflags --libs protobuf`
   if ($LASTEXITCODE -ne 0) {
       Write-Output "Failed to compile add_protoc_export.cc"
       exit $LASTEXITCODE
