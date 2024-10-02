@@ -39,8 +39,11 @@ if "%CONDA_BLD_PATH%" == "" (
 )
 
 :: Activate the base conda environment
-call "%MINIFORGE_ROOT%\Scripts\activate" base
+echo Activating "%MINIFORGE_ROOT%"
+call "%MINIFORGE_ROOT%\Scripts\activate" "%MINIFORGE_ROOT%"
 
+:: Set basic configuration
+echo Setting up configuration
 conda.exe config --set always_yes yes
 if errorlevel 1 exit 1
 conda.exe config --set channel_priority strict
@@ -48,8 +51,6 @@ if errorlevel 1 exit 1
 conda.exe config --set solver libmamba
 if errorlevel 1 exit 1
 
-:: Set basic configuration
-echo Setting up configuration
 setup_conda_rc .\ ".\recipes" .\.ci_support\%CONFIG%.yaml
 if errorlevel 1 exit 1
 
