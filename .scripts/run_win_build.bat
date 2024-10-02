@@ -11,23 +11,22 @@ setlocal enableextensions enabledelayedexpansion
 
 call :start_group "Installing conda"
 
-set "MICROMAMBA_VERSION=1.5.10-0"
-set "MICROMAMBA_URL=https://github.com/mamba-org/micromamba-releases/releases/download/%MICROMAMBA_VERSION%/micromamba-win-64"
-set "MICROMAMBA_TMPDIR=%TMP%\micromamba-%RANDOM%"
-set "MICROMAMBA_TMP=%MICROMAMBA_TMPDIR%\micromamba.exe"
-if "%MINIFORGE_ROOT%"=="" (
-    set "MINIFORGE_ROOT=%USERPROFILE%\Miniforge"
-)
+PIXI_VERSION="0.30.0"
+PIXI_URL="https://github.com/prefix-dev/pixi/releases/download/v${PIXI_VERSION}/pixi-x86_64-pc-windows-msvc.exe"
+set "PIXI_TMPDIR=%TMP%\pixi-%RANDOM%"
+set "PIXI_TMP=%PIXI_TMPDIR%\pixi.exe"
+set "MINIFORGE_ROOT=%CD%\.pixi\envs\default"
 
-echo Downloading micromamba %MICROMAMBA_VERSION%
-if not exist "%MICROMAMBA_TMPDIR%" mkdir "%MICROMAMBA_TMPDIR%"
-certutil -urlcache -split -f "%MICROMAMBA_URL%" "%MICROMAMBA_TMP%"
+echo Downloading pixi %PIXI_VERSION%
+if not exist "%PIXI_TMPDIR%" mkdir "%PIXI_TMPDIR%"
+certutil -urlcache -split -f "%PIXI_URL%" "%PIXI_TMP%"
 if errorlevel 1 exit 1
 
+echo Importing environment
+call "%PIXI_TMP%" init --import .ci_support\requirements.yaml --platform win-64
+if errorlevel 1 exit 1
 echo Creating environment
-call "%MICROMAMBA_TMP%" create --yes --root-prefix "%USERPROFILE%\.conda" --prefix "%MINIFORGE_ROOT%" ^
-    --channel conda-forge ^
-    --file .ci_support\requirements.txt
+call "%PIXI_TMP%" install
 if errorlevel 1 exit 1
 
 call :end_group

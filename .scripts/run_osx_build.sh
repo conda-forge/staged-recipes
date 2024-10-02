@@ -6,21 +6,20 @@ source .scripts/logging_utils.sh
 
 ( startgroup "Ensuring Miniforge" ) 2> /dev/null
 
-MICROMAMBA_VERSION="1.5.10-0"
-MICROMAMBA_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${MICROMAMBA_VERSION}/micromamba-osx-64"
-MINIFORGE_ROOT="${MINIFORGE_ROOT:-${HOME}/Miniforge3}"
+PIXI_VERSION="0.30.0"
+PIXI_URL="https://github.com/prefix-dev/pixi/releases/download/v${PIXI_VERSION}/pixi-x86_64-apple-darwin"
+MINIFORGE_ROOT="$CWD/.pixi/envs/default"
 
 if [[ -d "${MINIFORGE_ROOT}" ]]; then
   echo "Miniforge already installed at ${MINIFORGE_ROOT}."
 else
-  echo "Downloading micromamba %MICROMAMBA_VERSION%"
-  micromamba_tmp="$(mktemp -d)/micromamba"
-  curl -L -o "${micromamba_tmp}" "${MICROMAMBA_URL}"
-  chmod +x "${micromamba_tmp}"
+  echo "Downloading pixi ${PIXI_VERSION}"
+  pixi_tmp="$(mktemp -d)/pixi"
+  curl -L -o "${pixi_tmp}" "${PIXI_URL}"
+  chmod +x "${pixi_tmp}"
   echo "Creating environment"
-  "${micromamba_tmp}" create --yes --root-prefix ~/.conda --prefix "${MINIFORGE_ROOT}" \
-    --channel conda-forge \
-    --file .ci_support/requirements.txt
+  "${pixi_tmp}" init --import .ci_support/requirements.yaml --platform osx-64
+  "${pixi_tmp}" install
 fi
 
 ( endgroup "Ensuring Miniforge" ) 2> /dev/null
