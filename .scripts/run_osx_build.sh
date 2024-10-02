@@ -6,16 +6,21 @@ source .scripts/logging_utils.sh
 
 ( startgroup "Ensuring Miniforge" ) 2> /dev/null
 
-MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download"
-MINIFORGE_FILE="Miniforge3-MacOSX-x86_64.sh"
+MICROMAMBA_VERSION="1.5.10-0"
+MICROMAMBA_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${MICROMAMBA_VERSION}/micromamba-osx-64"
 MINIFORGE_ROOT="${MINIFORGE_ROOT:-${HOME}/Miniforge3}"
 
 if [[ -d "${MINIFORGE_ROOT}" ]]; then
   echo "Miniforge already installed at ${MINIFORGE_ROOT}."
 else
-  echo "Installing Miniforge"
-  curl -L -O "${MINIFORGE_URL}/${MINIFORGE_FILE}"
-  bash $MINIFORGE_FILE -bp "${MINIFORGE_ROOT}"
+  echo "Downloading micromamba %MICROMAMBA_VERSION%"
+  micromamba_tmp="$(mktemp -d)/micromamba"
+  curl -L -o "${micromamba_tmp}" "${MICROMAMBA_URL}"
+  chmod +x "${micromamba_tmp}"
+  mkdir -p "${MINIFORGE_ROOT}"
+  echo "Creating environment"
+  "${micromamba_tmp}" create --yes --root-prefix "${MINIFORGE_ROOT}" --prefix "${MINIFORGE_ROOT}" \
+    --file .ci_support/requirements.txt
 fi
 
 ( endgroup "Ensuring Miniforge" ) 2> /dev/null
@@ -30,9 +35,6 @@ CONDARC
 
 source "${MINIFORGE_ROOT}/etc/profile.d/conda.sh"
 conda activate base
-
-echo -e "\n\nInstalling conda-forge-ci-setup, conda-build."
-conda install --quiet --file .ci_support/requirements.txt
 
 echo -e "\n\nSetting up the condarc and mangling the compiler."
 setup_conda_rc ./ ./recipes ./.ci_support/${CONFIG}.yaml
