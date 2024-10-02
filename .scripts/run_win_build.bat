@@ -11,8 +11,8 @@ setlocal enableextensions enabledelayedexpansion
 
 call :start_group "Installing conda"
 
-PIXI_VERSION="0.30.0"
-PIXI_URL="https://github.com/prefix-dev/pixi/releases/download/v%PIXI_VERSION%/pixi-x86_64-pc-windows-msvc.exe"
+set "PIXI_VERSION=0.30.0"
+set "PIXI_URL=https://github.com/prefix-dev/pixi/releases/download/v%PIXI_VERSION%/pixi-x86_64-pc-windows-msvc.exe"
 set "PIXI_TMPDIR=%TMP%\pixi-%RANDOM%"
 set "PIXI_TMP=%PIXI_TMPDIR%\pixi.exe"
 set "MINIFORGE_ROOT=%CD%\.pixi\envs\default"
