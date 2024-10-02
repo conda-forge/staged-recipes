@@ -17,9 +17,9 @@ else
   micromamba_tmp="$(mktemp -d)/micromamba"
   curl -L -o "${micromamba_tmp}" "${MICROMAMBA_URL}"
   chmod +x "${micromamba_tmp}"
-  mkdir -p "${MINIFORGE_ROOT}"
   echo "Creating environment"
   "${micromamba_tmp}" create --yes --root-prefix ~/.conda --prefix "${MINIFORGE_ROOT}" \
+    --channel conda-forge \
     --file .ci_support/requirements.txt
 fi
 
