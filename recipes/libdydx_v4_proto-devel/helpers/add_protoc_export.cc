@@ -17,9 +17,14 @@ class AddExportsGenerator : public google::protobuf::compiler::CodeGenerator {
         const google::protobuf::FieldDescriptor* field = message->field(j);
         output += "DYDX_V4_PROTO_EXPORT void " + message->name() +
                   "::set_" + field->name() + "();\n";
-        output += "DYDX_V4_PROTO_EXPORT " +
-                  (field->is_repeated() ? "google::protobuf::RepeatedPtrField<std::string>*" : "std::string*") +
-                  " " + message->name() + "::mutable_" + field->name() + "();\n";
+        std::string temp_output = "DYDX_V4_PROTO_EXPORT ";
+        temp_output.append(field->is_repeated() ? "google::protobuf::RepeatedPtrField<std::string>*" : "std::string*");
+        temp_output.append(" ");
+        temp_output.append(message->name());
+        temp_output.append("::mutable_");
+        temp_output.append(field->name());
+        temp_output.append("();\n");
+        output.append(temp_output);
       }
     }
 
