@@ -19,7 +19,7 @@ else
   chmod +x "${micromamba_tmp}"
   mkdir -p "${MINIFORGE_ROOT}"
   echo "Creating environment"
-  "${micromamba_tmp}" create --yes --root-prefix "${MINIFORGE_ROOT}" --prefix "${MINIFORGE_ROOT}" \
+  "${micromamba_tmp}" create --yes --root-prefix ~/.conda --prefix "${MINIFORGE_ROOT}" \
     --file .ci_support/requirements.txt
 fi
 

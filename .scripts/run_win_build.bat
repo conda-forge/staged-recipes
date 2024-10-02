@@ -14,7 +14,7 @@ call :start_group "Installing conda"
 set "MICROMAMBA_VERSION=1.5.10-0"
 set "MICROMAMBA_URL=https://github.com/mamba-org/micromamba-releases/releases/download/%MICROMAMBA_VERSION%/micromamba-win-64"
 set "MICROMAMBA_TMPDIR=%TMP%\micromamba-%RANDOM%"
-set "MICROMAMBA_TMP=%MICROMAMBA_TMPDIR%\micromamba"
+set "MICROMAMBA_TMP=%MICROMAMBA_TMPDIR%\micromamba.exe"
 if "%MINIFORGE_ROOT%"=="" (
     set "MINIFORGE_ROOT=%HOME%\Miniforge"
 )
@@ -25,7 +25,7 @@ certutil -urlcache -split -f "%MICROMAMBA_URL%" "%MICROMAMBA_TMP%"
 if errorlevel 1 exit 1
 
 echo Creating environment
-call "%MICROMAMBA_TMP%" create --yes --root-prefix "%MINIFORGE_ROOT%" --prefix %MINIFORGE_ROOT% ^
+call "%MICROMAMBA_TMP%" create --yes --root-prefix "%HOME%\.conda" --prefix "%MINIFORGE_ROOT%" ^
     --file .ci_support\requirements.txt
 if errorlevel 1 exit 1
 
