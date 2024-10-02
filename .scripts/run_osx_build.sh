@@ -8,7 +8,7 @@ source .scripts/logging_utils.sh
 
 PIXI_VERSION="0.30.0"
 PIXI_URL="https://github.com/prefix-dev/pixi/releases/download/v${PIXI_VERSION}/pixi-x86_64-apple-darwin"
-MINIFORGE_ROOT="$CWD/.pixi/envs/default"
+MINIFORGE_ROOT="$PWD/.pixi/envs/default"
 
 if [[ -d "${MINIFORGE_ROOT}" ]]; then
   echo "Miniforge already installed at ${MINIFORGE_ROOT}."
