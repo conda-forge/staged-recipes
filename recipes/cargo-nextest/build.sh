@@ -8,10 +8,7 @@ cargo-bundle-licenses \
     --output THIRDPARTY.yml
 
 # build statically linked binary with Rust
-cargo install --locked --root "$PREFIX" --path cargo-nextest
+cargo install --locked --root "$PREFIX" --path cargo-nextest --no-track
 
 # strip debug symbols
 "$STRIP" "$PREFIX/bin/cargo-nextest"
-
-# remove extra build file
-rm -f "${PREFIX}/.crates.toml"
