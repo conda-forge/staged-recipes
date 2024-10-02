@@ -15,7 +15,8 @@ set "PIXI_VERSION=0.30.0"
 set "PIXI_URL=https://github.com/prefix-dev/pixi/releases/download/v%PIXI_VERSION%/pixi-x86_64-pc-windows-msvc.exe"
 set "PIXI_TMPDIR=%TMP%\pixi-%RANDOM%"
 set "PIXI_TMP=%PIXI_TMPDIR%\pixi.exe"
-set "MINIFORGE_ROOT=%CD%\.pixi\envs\default"
+set "REPO_ROOT=%~dp0.."
+set "MINIFORGE_ROOT=%REPO_ROOT%\.pixi\envs\default"
 
 echo Downloading pixi %PIXI_VERSION%
 if not exist "%PIXI_TMPDIR%" mkdir "%PIXI_TMPDIR%"
@@ -23,11 +24,16 @@ certutil -urlcache -split -f "%PIXI_URL%" "%PIXI_TMP%"
 if errorlevel 1 exit 1
 
 echo Importing environment
+pushd "%REPO_ROOT%"
 call "%PIXI_TMP%" init --import .ci_support\requirements.yaml --platform win-64
 if errorlevel 1 exit 1
 echo Creating environment
 call "%PIXI_TMP%" install
 if errorlevel 1 exit 1
+echo Listing environment
+call "%PIXI_TMP%" list
+if errorlevel 1 exit 1
+popd
 
 call :end_group
 

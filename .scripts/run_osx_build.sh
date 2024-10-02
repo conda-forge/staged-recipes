@@ -8,7 +8,8 @@ source .scripts/logging_utils.sh
 
 PIXI_VERSION="0.30.0"
 PIXI_URL="https://github.com/prefix-dev/pixi/releases/download/v${PIXI_VERSION}/pixi-x86_64-apple-darwin"
-MINIFORGE_ROOT="$PWD/.pixi/envs/default"
+REPO_ROOT=$(dirname -- $(dirname -- "$(readlink -f -- "$BASH_SOURCE")"))
+MINIFORGE_ROOT="$REPO_ROOT/.pixi/envs/default"
 
 if [[ -d "${MINIFORGE_ROOT}" ]]; then
   echo "Miniforge already installed at ${MINIFORGE_ROOT}."
@@ -18,8 +19,11 @@ else
   curl -L -o "${pixi_tmp}" "${PIXI_URL}"
   chmod +x "${pixi_tmp}"
   echo "Creating environment"
+  pushd "$REPO_ROOT"
   "${pixi_tmp}" init --import .ci_support/requirements.yaml --platform osx-64
   "${pixi_tmp}" install
+  "${pixi_tmp}" list
+  popd
 fi
 
 ( endgroup "Ensuring Miniforge" ) 2> /dev/null
