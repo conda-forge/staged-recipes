@@ -45,7 +45,8 @@ if "%CONDA_BLD_PATH%" == "" (
 
 :: Activate the base conda environment
 echo Activating "%MINIFORGE_ROOT%"
-call "%MINIFORGE_ROOT%\Scripts\activate" "%MINIFORGE_ROOT%"
+call "%MINIFORGE_ROOT%\Scripts\activate"
+if errorlevel 1 exit 1
 
 :: Set basic configuration
 echo Setting up configuration
@@ -64,8 +65,9 @@ call run_conda_forge_build_setup
 if errorlevel 1 exit 1
 
 echo Force fetch origin/main
-git fetch --force origin main:main
-if errorlevel 1 exit 1
+:: Temporary
+:: git fetch --force origin main:main
+:: if errorlevel 1 exit 1
 echo Removing recipes also present in main
 cd recipes
 for /f "tokens=*" %%a in ('git ls-tree --name-only main -- .') do rmdir /s /q %%a && echo Removing recipe: %%a
