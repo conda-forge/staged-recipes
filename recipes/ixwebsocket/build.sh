@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -xeo pipefail
+
 mkdir build
 cd build
 
@@ -8,6 +10,6 @@ cmake \
   ${CMAKE_ARGS} \
   ..
 
-cmake build
+make -j ${CPU_COUNT}
 
-cmake install
+make install
