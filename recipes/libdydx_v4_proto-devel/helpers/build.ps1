@@ -25,46 +25,6 @@ Push-Location _conda-build-protocol
     exit $LASTEXITCODE
   }
 
-  $env:PATH = "${env:SRC_DIR}/_conda-build-protocol;$env:PATH"
-
-  # Ensure CXX is set and is a valid path
-  if (-not $env:CXX) {
-      Write-Error "CXX environment variable is not set"
-      exit 1
-  }
-
-  $cxxPath = (Get-Command $env:CXX -ErrorAction SilentlyContinue).Path
-  if (-not $cxxPath) {
-      Write-Error "Could not find CXX compiler at path: $env:CXX"
-      exit 1
-  }
-
-  # Get pkg-config output
-  $pkgConfigOutput = & pkg-config --cflags --libs protobuf
-  if ($LASTEXITCODE -ne 0) {
-      Write-Error "pkg-config failed with exit code $LASTEXITCODE"
-      exit $LASTEXITCODE
-  }
-
-  $msvcFlags = $pkgConfigOutput -replace "-I", "/I" -replace "-L", "/LIBPATH:" -replace "-l", ""
-  $msvcLibs = $pkgConfigOutput -split " " | Where-Object { $_ -match "^-l" } | ForEach-Object { $_ -replace "^-l", "" + ".lib" }
-
-  # Convert forward slashes to backslashes in paths
-  $cxxPath = $cxxPath -replace "/", "\"
-  $sourceFile = "$env:RECIPE_DIR\helpers\add_protoc_export.cc" -replace "/", "\"
-
-  # Construct the compile command
-  $compileCommand = "& `"$cxxPath`" /EHsc /MD /std:c++14 /Fe:add_protoc_export.exe `"$sourceFile`" $msvcFlags $msvcLibs"
-
-  # Execute the compile command
-  Write-Output "Executing: $compileCommand"
-  Invoke-Expression $compileCommand
-
-  if ($LASTEXITCODE -ne 0) {
-      Write-Error "Compilation failed with exit code $LASTEXITCODE"
-      exit $LASTEXITCODE
-  }
-
   cmake --build . --target $PROJECT -- -j"$env:CPU_COUNT"
   if ($LASTEXITCODE -ne 0) {
     Write-Output "CMake failed with exit code $LASTEXITCODE"
