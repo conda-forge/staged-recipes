@@ -123,9 +123,9 @@ def _lint_recipes(gh, pr):
 
             url = None
             if recipe_version == 1:
-                for source_url in sources_section:
-                    if source_url.startswith("https://pypi.io/packages/source/"):
-                        url = source_url
+                for source_section in sources_section:
+                    if str(source_section.get("url")).startswith("https://pypi.io/packages/source/"):
+                        url = source_section["url"]
             else:
                 for source_section in sources_section:
                     if str(source_section.get("url")).startswith(
