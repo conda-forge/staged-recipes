@@ -16,7 +16,7 @@ set "MICROMAMBA_URL=https://github.com/mamba-org/micromamba-releases/releases/do
 set "MICROMAMBA_TMPDIR=%TMP%\micromamba-%RANDOM%"
 set "MICROMAMBA_TMP=%MICROMAMBA_TMPDIR%\micromamba.exe"
 if "%MINIFORGE_ROOT%"=="" (
-    set "MINIFORGE_ROOT=%HOME%\Miniforge"
+    set "MINIFORGE_ROOT=%USERPROFILE%\Miniforge"
 )
 
 echo Downloading micromamba %MICROMAMBA_VERSION%
@@ -25,7 +25,7 @@ certutil -urlcache -split -f "%MICROMAMBA_URL%" "%MICROMAMBA_TMP%"
 if errorlevel 1 exit 1
 
 echo Creating environment
-call "%MICROMAMBA_TMP%" create --yes --root-prefix "%HOME%\.conda" --prefix "%MINIFORGE_ROOT%" ^
+call "%MICROMAMBA_TMP%" create --yes --root-prefix "%USERPROFILE%\.conda" --prefix "%MINIFORGE_ROOT%" ^
     --channel conda-forge ^
     --file .ci_support\requirements.txt
 if errorlevel 1 exit 1
