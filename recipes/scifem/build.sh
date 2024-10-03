@@ -15,6 +15,10 @@ if [[ "${CONDA_BUILD_CROSS_COMPILATION:-0}" == "1" ]]; then
   # make sure these exist
   test -d ${BUILD_SPDIR}/dolfinx/wrappers
   test -d ${BUILD_SPDIR}/petsc4py/include
+
+  # needed for cross-compile openmpi
+  export OPAL_CC="$CC"
+  export OPAL_PREFIX="$PREFIX"
 fi
 
 export CMAKE_ARGS="${CMAKE_ARGS} -DPython3_FIND_STRATEGY=LOCATION"
