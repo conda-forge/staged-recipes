@@ -26,6 +26,7 @@ if errorlevel 1 exit 1
 
 echo Creating environment
 call "%MICROMAMBA_TMP%" create --yes --root-prefix "%USERPROFILE%\.conda" --prefix "%MINIFORGE_ROOT%" ^
+    --no-exp-repodata-parsing ^
     --channel conda-forge ^
     --file .ci_support\requirements.txt
 if errorlevel 1 exit 1

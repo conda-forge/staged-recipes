@@ -13,12 +13,13 @@ MINIFORGE_ROOT="${MINIFORGE_ROOT:-${HOME}/Miniforge3}"
 if [[ -d "${MINIFORGE_ROOT}" ]]; then
   echo "Miniforge already installed at ${MINIFORGE_ROOT}."
 else
-  echo "Downloading micromamba %MICROMAMBA_VERSION%"
+  echo "Downloading micromamba ${MICROMAMBA_VERSION}"
   micromamba_tmp="$(mktemp -d)/micromamba"
   curl -L -o "${micromamba_tmp}" "${MICROMAMBA_URL}"
   chmod +x "${micromamba_tmp}"
   echo "Creating environment"
   "${micromamba_tmp}" create --yes --root-prefix ~/.conda --prefix "${MINIFORGE_ROOT}" \
+    --no-exp-repodata-parsing \
     --channel conda-forge \
     --file .ci_support/requirements.txt
 fi
