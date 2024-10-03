@@ -11,7 +11,7 @@ setlocal enableextensions enabledelayedexpansion
 
 call :start_group "Installing conda"
 
-set "MICROMAMBA_VERSION=1.5.10-0"
+set "MICROMAMBA_VERSION=2.0.2-0"
 set "MICROMAMBA_URL=https://github.com/mamba-org/micromamba-releases/releases/download/%MICROMAMBA_VERSION%/micromamba-win-64"
 set "MICROMAMBA_TMPDIR=%TMP%\micromamba-%RANDOM%"
 set "MICROMAMBA_TMP=%MICROMAMBA_TMPDIR%\micromamba.exe"

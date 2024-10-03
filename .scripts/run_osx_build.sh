@@ -6,7 +6,7 @@ source .scripts/logging_utils.sh
 
 ( startgroup "Ensuring Miniforge" ) 2> /dev/null
 
-MICROMAMBA_VERSION="1.5.10-0"
+MICROMAMBA_VERSION="2.0.2-0"
 MICROMAMBA_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${MICROMAMBA_VERSION}/micromamba-osx-64"
 MINIFORGE_ROOT="${MINIFORGE_ROOT:-${HOME}/Miniforge3}"
 
