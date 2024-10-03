@@ -17,16 +17,16 @@ if [[ "${build_platform}" == "linux-64" ]] || [[ "${build_platform}" == "win-64"
     "${SRC_DIR}/_conda-install-${qemu_arch}"
 fi
 
-# if [[ "${build_platform}" == "linux-64" ]]; then
-#   qemu_arch="ppc64le"
-#   sysroot_arch="powerpc64le"
-#   build_qemu \
-#     ${qemu_arch} \
-#     "${sysroot_arch}-conda-linux-gnu-" \
-#     "${BUILD_PREFIX}/${sysroot_arch}-conda-linux-gnu/sysroot" \
-#     "${SRC_DIR}/_conda-build-${qemu_arch}" \
-#     "${SRC_DIR}/_conda-install-${qemu_arch}"
-#
+if [[ "${build_platform}" == "linux-64" ]]; then
+  qemu_arch="ppc64le"
+  sysroot_arch="powerpc64le"
+  build_qemu \
+    ${qemu_arch} \
+    "${sysroot_arch}-conda-linux-gnu-" \
+    "${BUILD_PREFIX}/${sysroot_arch}-conda-linux-gnu/sysroot" \
+    "${SRC_DIR}/_conda-build-${qemu_arch}" \
+    "${SRC_DIR}/_conda-install-${qemu_arch}"
+
 #   qemu_arch="win64"
 #   sysroot_arch="win64"
 #   build_qemu \
@@ -44,4 +44,4 @@ fi
 #     "${BUILD_PREFIX}/${sysroot_arch}-conda-linux-gnu/sysroot" \
 #     "${SRC_DIR}/_conda-build-${qemu_arch}" \
 #     "${SRC_DIR}/_conda-install-${qemu_arch}"
-# fi
+fi

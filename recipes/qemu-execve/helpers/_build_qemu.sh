@@ -1,7 +1,7 @@
 build_qemu() {
   local qemu_arch=${1:-aarch64}
   local cross_prefix=${2:-"$qemu_arch"-conda-linux-gnu-}
-  local cross_sysroot=${3:-"${BUILD_PREFIX}"/"${qemu_arch}"-conda-linux-gnu/sysroot}
+  local interpreter_prefix=${3:-"${BUILD_PREFIX}"/"${qemu_arch}"-conda-linux-gnu/sysroot/lib64}
 
   local build_dir=${4:-"${SRC_DIR}"/_conda-build}
   local install_dir=${5:-"${PREFIX}"}
@@ -14,7 +14,7 @@ build_qemu() {
 
     ../qemu-source/configure \
       --prefix="${install_dir}" \
-      --interp-prefix="${cross_sysroot}" \
+      --interp-prefix="${interpreter_prefix}" \
       --enable-linux-user \
       --target-list="${qemu_arch}"-linux-user \
       --cross-prefix-"${qemu_arch}"="${cross_prefix}" \

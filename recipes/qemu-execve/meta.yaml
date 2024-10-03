@@ -128,6 +128,11 @@ outputs:
     files:
       - bin/qemu-execve-aarch64  # [unix]
       - bin\\qemu-execve-aarch64.exe  # [win]
+
+      - etc/conda/activate.d/qemu-execve-aarch64-activate.sh  # [unix]
+      - etc/conda/deactivate.d/qemu-execve-aarch64-deactivate.sh  # [unix]
+      - etc\\conda\\activate.d\\qemu-execve-aarch64-activate.bat exit /b 1  # [win]
+      - etc\\conda\\deactivate.d\\qemu-execve-aarch64-deactivate.bat exit /b 1  # [win]
     requirements:
       build:
         - {{ compiler('c') }}  # [unix]
@@ -151,64 +156,89 @@ outputs:
         - test -f ${PREFIX}/bin/qemu-execve-aarch64  # [unix]
         - if not exist %PREFIX%\\Library\\bin\\qemu-execve-aarch64.exe exit 1  # [win]
 
-        {% if os_platform == 'linux' %}
-        - aarch64-conda-linux-gnu-gcc -o hello_arm tests/hello_arm.c
-        - aarch64-conda-linux-gnu-gcc -o execve_call tests/execve_call.c
+        - test -f ${QEMU_LD_PREFIX}/ld-linux-aarch64.so.1
+        - test -f ${QEMU_LD_PREFIX}/ld-2.28.so
 
-        # Print "hello_arm" and exit - qemu returns exit code 41 - need to figure out why - true for now
-        - qemu-execve-aarch64 ./hello_arm > hello.txt 2>&1 || true
-        - bash -c 'if grep -q "ARM64" hello.txt; then echo "PASS"; else echo "FAIL"; fi'
+        - test -f ${PREFIX}/etc/conda/activate.d/qemu-execve-aarch64-activate.sh  # [unix]
+        - test -f ${PREFIX}/etc/conda/deactivate.d/qemu-execve-aarch64-deactivate.sh  # [unix]
+        - if not exist %PREFIX%\\etc\\conda\\activate.d\\qemu-execve-aarch64-activate.bat exit /b 1  # [win]
+        - if not exist %PREFIX%\\etc\\conda\\deactivate.d\\qemu-execve-aarch64-deactivate.bat exit /b 1  # [win]
+
+        {% if os_platform == 'linux' %}
+        - aarch64-conda-linux-gnu-gcc -Wl,-dynamic-linker,${QEMU_LD_PREFIX}/ld-linux-aarch64.so.1 -Wl,-rpath,${QEMU_LD_PREFIX} -o hello_from tests/hello_from.c
+        - aarch64-conda-linux-gnu-gcc -Wl,-dynamic-linker,${QEMU_LD_PREFIX}/ld-linux-aarch64.so.1 -Wl,-rpath,${QEMU_LD_PREFIX} -o execve_call tests/execve_call.c
+
+        # Print "hello_from" and exit - qemu returns exit code 41 - need to figure out why - true for now
+        - qemu-execve-aarch64 ./hello_from "AARCH64" > hello.txt 2>&1 || true
+        - grep "AARCH64" hello.txt || exit 1
 
         # Call execve() passes to x86_64 and interprets system /bin/ls
-        - qemu-execve-aarch64 ./execve_call "/bin/ls" > ls-x86_64.txt 2>&1 || true
-        - bash -c 'if grep -q "hello_arm" ls-x86_64.txt; then echo "PASS"; else echo "FAIL"; fi'
+        - qemu-execve-aarch64 ./execve_call "/bin/ls" > ls_x86_64.txt 2>&1 || true
+        - grep "hello_from" ls_x86_64.txt || exit 1
 
         # Call execve() passes to aarch64 interpreter and fails on system /bin/ls
-        - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-aarch64 qemu-execve-aarch64 ./execve_call "/bin/ls" > ls-aarch64.txt 2>&1 || true
-        - bash -c 'if grep -q "hello_arm" ls-aarch64.txt; then echo "FAIL"; else echo "PASS"; fi'
+        - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-aarch64 qemu-execve-aarch64 ./execve_call "/bin/ls" > ls_aarch64.txt 2>&1 || true
+        - grep "Invalid ELF image" ls_aarch64.txt || exit 1
 
-        # Call execve() passes to aarch64 interpreter and execute aarch64 ./hello_arm
-        - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-aarch64 qemu-execve-aarch64 ./execve_call "./hello_arm" || true
-        - bash -c 'if grep -q "Hello, I'm executing ARM64 instructions!" hello.txt; then echo "PASS"; else echo "FAIL"; fi'
+        # Call hello_from (AARCH64) with execve(), which passes to aarch64 interpreter and execute aarch64 ./hello_from
+        - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-aarch64 qemu-execve-aarch64 ./execve_call "./hello_from" "EXECVE" > execve_call.txt 2>&1 || true
+        - grep "EXECVE" execve_call.txt || exit 1
         {% endif %}
 
 
-  # {% if os_platform == 'linux' %}
-  # - name: qemu-execve-ppc64le
-  #   script: install-ppc64le.sh
-  #   files:
-  #     - bin/qemu-execve-ppc64le
-  #     - bin\\qemu-execve-ppc64le.exe
-  #   requirements:
-  #     build:
-  #       - {{ compiler('c') }}
-  #       - {{ cross_c_stdlib }}_{{ os_platform }}-ppc64le {{ cross_c_stdlib_version }}.*
-  #       - {{ stdlib('c') }}
-  #     host:
-  #       - {{ pin_subpackage('qemu-execve-headers') }}
-  #       - glib
-  #     run:
-  #       - {{ c_stdlib }}_{{ target_platform }} {{ c_stdlib_version }}.*
-  #       - {{ cross_c_stdlib }}_{{ os_platform }}-aarch64 {{ cross_c_stdlib_version }}.*
-  #       - {{ pin_subpackage('qemu-execve-headers') }}
-  #     run_constrained:
-  #       - {{ c_stdlib }}_{{ target_platform }} {{ c_stdlib_version }}.*
-  #   test:
-  #     files:
-  #       - tests
-  #     requires:
-  #       - {{ c_stdlib }}_{{ target_platform }} {{ c_stdlib_version }}.*
-  #       - {{ cross_c_stdlib }}_{{ os_platform }}-aarch64 {{ cross_c_stdlib_version }}.*
-  #       - gcc_impl_{{ os_platform }}-ppc64le
-  #     commands:
-  #       - test -f ${PREFIX}/bin/qemu-execve-ppc64le
-  #       - powerpc64le-linux-gnu-gcc -o test tests/test.c
-  #       - qemu-execve-aarch64 ./test
-  #       - powerpc64le-linux-gnu-gcc -o qexecve_native_call tests/qexecve_native_call.c
-  #       - qemu-execve-ppc64le ./qexecve_native_call
-  #       - powerpc64le-linux-gnu-gcc -o qexecve_emulated_call tests/qexecve_emulated_call.c
-  #       - qemu-execve-ppc64le ./qexecve_emulated_call
-  # {% endif %}
+  {% if os_platform == 'linux' %}
+  - name: qemu-execve-ppc64le
+    script: install-ppc64le.sh
+    files:
+      - bin/qemu-execve-ppc64le
+
+      - etc/conda/activate.d/qemu-execve-ppc64le-activate.sh
+      - etc/conda/deactivate.d/qemu-execve-ppc64le-deactivate.sh
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ cross_c_stdlib }}_{{ os_platform }}-ppc64le {{ cross_c_stdlib_version }}.*
+        - {{ stdlib('c') }}
+      host:
+        - {{ pin_subpackage('qemu-execve-headers') }}
+        - glib
+      run:
+        - {{ c_stdlib }}_{{ target_platform }} {{ c_stdlib_version }}.*
+        - {{ cross_c_stdlib }}_{{ os_platform }}-ppc64le {{ cross_c_stdlib_version }}.*
+        - {{ pin_subpackage('qemu-execve-headers') }}
+    test:
+      files:
+        - tests
+      requires:
+        - gcc_impl_{{ os_platform }}-ppc64le
+      commands:
+        - test -f ${PREFIX}/bin/qemu-execve-ppc64le
+
+        - test -f ${PREFIX}/etc/conda/activate.d/qemu-execve-ppc64le-activate.sh
+        - test -f ${PREFIX}/etc/conda/deactivate.d/qemu-execve-ppc64le-deactivate.sh
+
+        - test -f ${QEMU_LD_PREFIX}/ld64.so.2
+        - test -f ${QEMU_LD_PREFIX}/ld-2.28.so
+
+        - powerpc64le-conda-linux-gnu-gcc -Wl,-dynamic-linker,${QEMU_LD_PREFIX}/ld64.so.2 -Wl,-rpath,${QEMU_LD_PREFIX} -o hello_from tests/hello_from.c
+        - powerpc64le-conda-linux-gnu-gcc -Wl,-dynamic-linker,${QEMU_LD_PREFIX}/ld64.so.2 -Wl,-rpath,${QEMU_LD_PREFIX} -o execve_call tests/execve_call.c
+
+        # Print "hello_from" and exit - qemu returns exit code 41 - need to figure out why - true for now
+        - qemu-execve-ppc64le ./hello_from "PPC64LE" > hello.txt 2>&1 || true
+        - grep "PPC64LE" hello.txt || exit 1
+
+        # Call execve() passes to x86_64 and interprets system /bin/ls
+        - qemu-execve-ppc64le ./execve_call "/bin/ls" > ls_x86_64.txt 2>&1 || true
+        - grep "hello_from" ls_x86_64.txt || exit 1
+
+        # Call execve() passes to ppc64le interpreter and fails on system /bin/ls
+        - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-ppc64le qemu-execve-ppc64le ./execve_call "/bin/ls" > ls_ppc64le.txt 2>&1 || true
+        - grep "Invalid ELF image" ls_ppc64le.txt || exit 1
+
+        # Call execve() passes to ppc64le interpreter and execute ppc64le ./hello_from
+        - QEMU_EXECVE=${PREFIX}/bin/qemu-execve-ppc64le qemu-execve-ppc64le ./execve_call "./hello_from" "EXECVE" > execve_call.txt 2>&1 || true
+        - grep "EXECVE" execve_call.txt || exit 1
+  {% endif %}
 
 about:
   home: https://gitlab.com/qemu-project/qemu

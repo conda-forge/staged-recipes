@@ -17,7 +17,13 @@ int main(int argc, char *argv[]) {
     if (pid == 0) {
         // Child process
         char *envp[] = {NULL}; // Environment variables (can be empty)
-        if (execve(argv[1], &argv[1], envp) == -1) {
+        char *exec_args[argc];
+        for (int i = 1; i < argc; i++) {
+            exec_args[i - 1] = argv[i];
+        }
+        exec_args[argc - 1] = NULL; // Null-terminate the array
+
+        if (execve(exec_args[0], exec_args, envp) == -1) {
             perror("execve failed");
             return 1;
         }
