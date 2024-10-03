@@ -4,6 +4,9 @@ context:
   name: scifem
   version: 0.2.5
   fenics_version: "0.8"
+  # move to conda_build_config after merge,
+  # staged-recipes can't handle variables from variants
+  scalar: real
 
 package:
   name: ${{ name|lower }}
@@ -27,8 +30,6 @@ requirements:
     - cmake
     - make
     - pkg-config
-    - if: mpi == 'openmpi' and build_platform != target_platform
-      then: ${{ mpi }}
     - if: build_platform != target_platform
       then:
         - cross-python_${{ target_platform }}
@@ -39,7 +40,6 @@ requirements:
     - fenics-basix ${{ fenics_version }}
     - fenics-libdolfinx ${{ fenics_version }}
     - fenics-dolfinx ${{ fenics_version }}
-    - ${{ mpi }}
     - petsc
     - petsc * ${{ scalar }}_*
     - pip
@@ -49,11 +49,10 @@ requirements:
   run:
     - fenics-basix
     - fenics-dolfinx
-    - ${{ mpi }}
-    - adios2 * mpi_${{ mpi }}_*
+    - adios2 * mpi_*
   run_constraints:
     # require mpi build of h5py
-    - h5py * mpi_${{ mpi }}_*
+    - h5py * mpi_*
 
 tests:
   - python:
@@ -72,10 +71,7 @@ tests:
       - pwd
       - ls -la
       - pytest -vs tests
-      - if: "mpi != 'openmpi'"
-        then: MPIEXEC_TIMEOUT=300 mpiexec -n 2 pytest -m "not serial" tests
-      - if: "mpi == 'openmpi'"
-        then: mpiexec --timeout=300 -n 2 pytest -m "not serial" tests
+      - MPIEXEC_TIMEOUT=300 mpiexec -n 2 pytest -m "not serial" tests
 
 about:
   summary: Scientific Computing Tools for Finite Element Methods
