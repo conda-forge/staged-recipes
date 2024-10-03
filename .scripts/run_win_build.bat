@@ -15,9 +15,10 @@ set "MICROMAMBA_VERSION=2.0.2-0"
 set "MICROMAMBA_URL=https://github.com/mamba-org/micromamba-releases/releases/download/%MICROMAMBA_VERSION%/micromamba-win-64"
 set "MICROMAMBA_TMPDIR=%TMP%\micromamba-%RANDOM%"
 set "MICROMAMBA_TMP=%MICROMAMBA_TMPDIR%\micromamba.exe"
-if "%MINIFORGE_ROOT%"=="" (
-    set "MINIFORGE_ROOT=%USERPROFILE%\Miniforge"
+if "%MINIFORGE_HOME%"=="" (
+    set "MINIFORGE_HOME=%USERPROFILE%\Miniforge"
 )
+set "MAMBA_ROOT_PREFIX=%MINIFORGE_HOME%\..\micromamba"
 
 echo Downloading micromamba %MICROMAMBA_VERSION%
 if not exist "%MICROMAMBA_TMPDIR%" mkdir "%MICROMAMBA_TMPDIR%"
@@ -25,7 +26,7 @@ certutil -urlcache -split -f "%MICROMAMBA_URL%" "%MICROMAMBA_TMP%"
 if errorlevel 1 exit 1
 
 echo Creating environment
-call "%MICROMAMBA_TMP%" create --yes --root-prefix "%USERPROFILE%\.conda" --prefix "%MINIFORGE_ROOT%" ^
+call "%MICROMAMBA_TMP%" create --yes --root-prefix "%MAMBA_ROOT_PREFIX%" --prefix "%MINIFORGE_HOME%" ^
     --no-exp-repodata-parsing ^
     --channel conda-forge ^
     --file .ci_support\requirements.txt
@@ -40,8 +41,8 @@ if "%CONDA_BLD_PATH%" == "" (
 )
 
 :: Activate the base conda environment
-echo Activating "%MINIFORGE_ROOT%"
-call "%MINIFORGE_ROOT%\Scripts\activate" "%MINIFORGE_ROOT%"
+echo Activating "%MINIFORGE_HOME%"
+call "%MINIFORGE_HOME%\Scripts\activate"
 
 :: Set basic configuration
 echo Setting up configuration
