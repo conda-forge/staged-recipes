@@ -1,6 +1,7 @@
 
 {% set version = "0.3.0.9" %}
-{% set lib_version = version.split(".")[0]+"."+version.split(".")[1]+"."+version.split(".")[2] %}
+{% set soversion = ".".join(version.split(".")[:3]) %}
+{% set somajor = version.split(".")[0] %}
 {% set platform = "linux-sbsa" %}  # [aarch64]
 {% set platform = "linux-x86_64" %}  # [linux64]
 {% set platform = "placeholder" %}  # [osx]
@@ -34,11 +35,11 @@ build:
 
 outputs:
 
-  - name: libcudss
+  - name: libcudss{{ somajor }}
     build:
       run_exports:
         # Breaking changes every version until 1.0
-        - {{ pin_subpackage("libcudss", max_pin="x.x.x") }}
+        - {{ pin_subpackage("libcudss" ~ somajor, max_pin="x.x.x") }}
     files:
       - lib/libcudss.so.*  # [linux]
       - lib/libcudss_commlayer_nccl.so.*  # [linux]
@@ -60,14 +61,14 @@ outputs:
         - arm-variant * {{ arm_variant_type }}  # [aarch64]
     test:
       commands:
-        - test -f $PREFIX/lib/libcudss.so.{{ lib_version }}  # [linux]
-        - test -f $PREFIX/lib/libcudss_commlayer_nccl.so.{{ lib_version }}  # [linux]
-        - test -f $PREFIX/lib/libcudss_commlayer_openmpi.so.{{ lib_version }}  # [linux]
-        - test -L $PREFIX/lib/libcudss_commlayer_nccl.so.0  # [linux]
-        - test -L $PREFIX/lib/libcudss_commlayer_openmpi.so.0  # [linux]
-        - test -L $PREFIX/lib/libcudss.so.0  # [linux]
+        - test -f $PREFIX/lib/libcudss.so.{{ soversion }}  # [linux]
+        - test -f $PREFIX/lib/libcudss_commlayer_nccl.so.{{ soversion }}  # [linux]
+        - test -f $PREFIX/lib/libcudss_commlayer_openmpi.so.{{ soversion }}  # [linux]
+        - test -L $PREFIX/lib/libcudss_commlayer_nccl.so.{{ somajor }}  # [linux]
+        - test -L $PREFIX/lib/libcudss_commlayer_openmpi.so.{{ somajor }}  # [linux]
+        - test -L $PREFIX/lib/libcudss.so.{{ somajor }}  # [linux]
         - test ! -f $PREFIX/lib/libcudss_static.a  # [linux]
-        - if not exist %LIBRARY_BIN%\\cudss64_0.dll exit 1  # [win]
+        - if not exist %LIBRARY_BIN%\\cudss64_{{ somajor }}.dll exit 1  # [win]
     about:
       home: https://developer.nvidia.com/cudss
       license: LicenseRef-NVIDIA-End-User-License-Agreement
@@ -89,7 +90,7 @@ outputs:
   - name: libcudss-dev
     build:
       run_exports:
-        - {{ pin_subpackage("libcudss", max_pin="x.x.x") }}
+        - {{ pin_subpackage("libcudss" ~ somajor, max_pin="x.x.x") }}
     files:
       - lib/libcudss.so  # [linux]
       - lib/libcudss_commlayer_nccl.so  # [linux]
@@ -99,9 +100,9 @@ outputs:
       - lib/cmake/cudss
     requirements:
       host:
-        - {{ pin_subpackage("libcudss", exact=True) }}
+        - {{ pin_subpackage("libcudss" ~ somajor, exact=True) }}
       run:
-        - {{ pin_subpackage("libcudss", exact=True) }}
+        - {{ pin_subpackage("libcudss" ~ somajor, exact=True) }}
       run_constrained:
         - arm-variant * {{ arm_variant_type }}  # [aarch64]
     test:
