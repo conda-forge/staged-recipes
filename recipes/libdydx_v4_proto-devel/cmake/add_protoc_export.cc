@@ -2,7 +2,7 @@
 #include <google/protobuf/compiler/plugin.h>
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/io/printer.h>
-#include <google/protobuf/io/zero_copy_stream.h>
+#include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <fstream>
 #include <string>
 
@@ -12,7 +12,7 @@ class AddExportsGenerator : public google::protobuf::compiler::CodeGenerator {
                 const std::string& parameter,
                 google::protobuf::compiler::GeneratorContext* generator_context,
                 std::string* error) const override {
-    std::string output = "#ifdef DYDX_V4_PROTO_EXPORT\n";
+    std::string output = "\n#ifdef DYDX_V4_PROTO_EXPORT\n";
     for (int i = 0; i < file->message_type_count(); ++i) {
       const google::protobuf::Descriptor* message = file->message_type(i);
       output += "class DYDX_V4_PROTO_EXPORT " + message->name() + ";\n";
@@ -26,11 +26,11 @@ class AddExportsGenerator : public google::protobuf::compiler::CodeGenerator {
 
     std::string file_name = file->name() + ".pb.h";
     std::unique_ptr<google::protobuf::io::ZeroCopyOutputStream> stream(
-        generator_context->OpenForInsert(file_name, "includes"));
+        generator_context->Open(file_name));
 
     if (stream) {
-      google::protobuf::io::Printer printer(stream.get(), '$');
-      printer.Print(output.c_str());
+      google::protobuf::io::CodedOutputStream coded_stream(stream.get());
+      coded_stream.WriteString(output);
     } else {
       *error = "Failed to open file for writing: " + file_name;
       return false;
