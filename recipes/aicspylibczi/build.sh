@@ -1,2 +1,2 @@
 export CMAKE_GENERATOR=Ninja
-{{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+python3 -m pip install . -vv --no-deps --no-build-isolation
