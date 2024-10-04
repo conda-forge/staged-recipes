@@ -12,7 +12,7 @@ cmake \
 
 cmake --build . --clean-first
 
-ctest
+ctest -C Release
 
 install -m 775 -d ${PREFIX}/include/otf/uk_co_real_logic_sbe_ir_generated
 install -m 664 ${SRC_DIR}/sbe-tool/src/main/cpp/otf/*.h ${PREFIX}/include/otf
