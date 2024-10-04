@@ -2,8 +2,10 @@ context:
   name: torchaudio
   version: "2.4.1"
   build_number: 0
+  cuda_version: ${{ env.get("CONDA_OVERRIDE_CUDA", default="None")}}
+  cuda: ${{ "true" if cuda_version != "None" else "false" }}
   cuda_build_string: cuda_${{ cuda_version | version_to_buildstring }}
-  string_prefix: ${{ cuda_build_string if cuda else "cpu_" }}
+  string_prefix: ${{ cuda_build_string if cuda ==  "true" else "cpu_" }}
 
 package:
   name: ${{ name|lower }}
@@ -19,13 +21,14 @@ build:
   number: ${{ build_number}}
   skip:
     - win
+    - match(cuda_version, ">=12")
   string: ${{ string_prefix }}py${{ python | version_to_buildstring }}h${{ hash }}_${{ build_number }}
   variant:
     use_keys:
       # use cuda from the variant config, e.g. to build multiple CUDA variants
-      - cuda
+      - ${{ "cuda" if cuda == "true" }}
     # this will down-prioritize the cuda variant versus other variants of the package
-    down_prioritize_variant: ${{ 1 if cuda else 0 }}
+    down_prioritize_variant: ${{ 1 if cuda == "true" else 0 }}
   script:
     file: build
     env:
@@ -37,48 +40,55 @@ requirements:
       then:
         - python
         - cross-python_${{ target_platform }}
+        - pytorch
+
+        - if: match(cuda_version, ">=12")
+          then:
+            - cuda-driver-dev
+            - cuda-cudart-dev
+            - cuda-nvrtc-dev
+            - cuda-nvtx-dev
+            - cuda-nvml-dev
+            - libcublas-dev
+            - libcufft-dev
+            - libcurand-dev
+            - libcusolver-dev
+            - libcusparse-dev
 
     - ${{ compiler('cxx') }}
+    - ${{ compiler('c') }}
     - ${{ stdlib("c") }}
     - cmake
     - ninja
+    - ccache
+    - git
 
-    - if: cuda
+    - if: cuda == "true"
       then:
         - ${{ compiler('cuda') }}
         - cuda-version ==${{ cuda_version }}
-
-    - if: cuda and match(cuda_version, ">=12") and build_platform != target_platform
-      then:
-        - cuda-driver-dev
-        - cuda-cudart-dev
-        - cuda-nvrtc-dev
-        - cuda-nvtx-dev
-        - cuda-nvml-dev
-        - libcublas-dev
-        - libcufft-dev
-        - libcurand-dev
-        - libcusolver-dev
-        - libcusparse-dev
 
   host:
     - python
     - pip
     - setuptools
     - pytorch
-    - ${{ "pytorch =*=cuda*" if cuda == "yes" }}
-    - ${{ "pytorch =*=cpu*" if cuda == "no" }}
+    - ${{ "pytorch * cuda*" if cuda == "true" }}
+    - ${{ "pytorch * cpu*" if cuda == "false" }}
 
     - bzip2
     - kaldi
     - pybind11
     - sox
+    - ffmpeg
     - xz
     - zlib
 
-    - ${{ "cuda-version =={{ cuda_version }}" if cuda }}
+    - if: cuda == "true"
+      then:
+        - cuda-version ==${{ cuda_version }}
 
-    - if: cuda and match(cuda_version, ">=12")
+    - if: match(cuda_version, ">=12")
       then:
         - cuda-driver-dev
         - cuda-cudart-dev
@@ -94,12 +104,12 @@ requirements:
     - python
     - numpy
     - kaldi
-    - ${{ "pytorch =*=cuda*" if cuda == "yes" }}
-    - ${{ "pytorch =*=cpu*" if cuda == "no" }}
+    - ${{ "pytorch * cuda*" if cuda == "true" }}
+    - ${{ "pytorch * cpu*" if cuda == "false" }}
 
   ignore_run_exports:
     from_package:
-      - if: cuda and match(cuda_version, ">=12")
+      - if: match(cuda_version, ">=12")
         then:
           - cuda-nvrtc-dev
           - cuda-nvtx-dev
@@ -141,17 +151,15 @@ tests:
         - transformers
         - unidecode
         - inflect
+        - sox
     files:
       source:
         - test/
         - examples/
+      recipe:
+        - run_tests.sh
     script:
-      # remove example tests that are not importable out-of-tree
-      - rm -rf test/torchaudio_unittest/example
-      - CI=true pytest -v test/
-
-      # Note: Tests take too long to run and some are not importable out-of-tree
-      #- echo "Hello World"
+      - bash run_tests.sh
 
 about:
   homepage: https://github.com/pytorch/audio
