@@ -8,13 +8,12 @@ cd build
 cmake \
   -LAH \
   ${CMAKE_ARGS} \
-  -DSBE_TESTS:BOOL=OFF \
-  -DSBE_BUILD_BENCHMARKS:BOOL=OFF \
-  -DSBE_BUILD_SAMPLES:BOOL=OFF \
   ..
 
 cmake --build . --clean-first
 
 ctest
 
-exit 1
+install -m 775 -d ${PREFIX}/include/otf/uk_co_real_logic_sbe_ir_generated
+install -m 664 ${SRC_DIR}/sbe-tool/src/main/cpp/otf/*.h ${PREFIX}/include/otf
+install -m 664 ${SRC_DIR}/sbe-tool/src/main/cpp/uk_co_real_logic_sbe_ir_generated/*.h ${PREFIX}/include/otf/uk_co_real_logic_sbe_ir_generated
