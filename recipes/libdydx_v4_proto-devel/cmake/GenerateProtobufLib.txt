@@ -1,8 +1,7 @@
 set(PROTO_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/_generated")
 file(MAKE_DIRECTORY ${PROTO_BINARY_DIR})
 
-add_library(_proto_objects OBJECT ${proto_files})
-target_include_directories(_proto_objects PUBLIC ${PROTO_BINARY_DIR})
+add_custom_target(generate_proto_files)
 
 if(WIN32)
     file(TO_CMAKE_PATH "$ENV{RECIPE_DIR}/cmake/add_protoc_export.cc" PROTOC_EXPORT_PATH)
@@ -10,29 +9,36 @@ if(WIN32)
     target_include_directories(add_protoc_export PRIVATE ${Protobuf_INCLUDE_DIRS})
     target_compile_definitions(add_protoc_export PRIVATE PROTOBUF_USE_DLLS PUBLIC PROTOBUF_USE_DLLS)
     target_link_libraries(add_protoc_export PRIVATE ${Protobuf_LIBRARIES} abseil_dll ${Protobuf_PROTOC_LIBRARIES})
-    set_target_properties(add_protoc_export PROPERTIES OUTPUT_NAME protoc-gen-add_exports CXX_STANDARD_REQUIRED ON)
-
-    add_dependencies(_proto_objects add_protoc_export)
+    set_target_properties(add_protoc_export PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+        OUTPUT_NAME protoc-gen-add_export
+        CXX_STANDARD_REQUIRED ON)
 
     protobuf_generate(
-        TARGET _proto_objects
+        APPEND_PATH
         PROTOC_OUT_DIR ${PROTO_BINARY_DIR}
         OUT_VAR PROTO_GENERATED_FILES
         EXPORT_MACRO DYDX_V4_PROTO_EXPORT
-        LANGUAGE cpp)
+        LANGUAGE cpp
+        PROTOS ${proto_files})
+
+    # Run add_protoc_export after standard protobuf generation
     add_custom_command(
-        TARGET _proto_objects
-        POST_BUILD
+        OUTPUT ${PROTO_BINARY_DIR}/exports_added.stamp
         COMMAND ${CMAKE_COMMAND} -E echo "Running add_protoc_export"
         COMMAND $<TARGET_FILE:add_protoc_export> --add_exports_out=${PROTO_BINARY_DIR} -I ${CMAKE_SOURCE_DIR}/lib/proto ${proto_files}
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        DEPENDS add_protoc_export
+        COMMAND ${CMAKE_COMMAND} -E touch ${PROTO_BINARY_DIR}/exports_added.stamp
+        DEPENDS ${PROTO_GENERATED_FILES} add_protoc_export
+        COMMENT "Adding custom exports to protocol buffer files"
     )
+    add_custom_target(add_exports DEPENDS ${PROTO_BINARY_DIR}/exports_added.stamp)
+    add_dependencies(generate_proto_files add_exports)
 else()
     protobuf_generate(
         TARGET _proto_objects
         PROTOC_OUT_DIR ${PROTO_BINARY_DIR}
-        OUT_VAR PROTO_GENERATED_FILES)
+        OUT_VAR PROTO_GENERATED_FILES
+        PROTOS ${proto_files})
 endif()
 
 add_library(dydx_v4_proto SHARED ${PROTO_GENERATED_FILES})
