@@ -1,0 +1,121 @@
+# Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+{% set version = "0.3.0" %}
+
+package:
+  name: libnvimgcodec-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/NVIDIA/nvImageCodec/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 4bba949d6cf4e88fcd6b2d86bff960c9ed68eb25b6c4dde3b7772615480ab9fb
+  patches:
+    - missing-includes.patch
+    - no-overwrite-libdir.patch
+
+build:
+  skip: true  # [not linux]
+  skip: true  # [ppc64le]
+  skip: true  # [cuda_compiler_version in (None, "None")]
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cuda') }}
+    - {{ compiler('cxx')}}
+    - {{ stdlib('c') }}
+    - cmake >=3.18
+    - ninja
+    - python-clang
+  host:
+    - cuda-version {{ cuda_compiler_version }}
+    - libboost-devel
+    - libjpeg-turbo
+    - libnvjpeg-dev
+    - libopencv
+    - libtiff
+    - nvtx-c
+    - zlib
+    - zstd
+
+outputs:
+
+  - name: libnvimgcodec-dev
+    build:
+      run_exports:
+        - {{ pin_subpackage('libnvimgcodec') }}
+    files:
+      # This recipe requires conda-build 24.7 or later
+      include:
+        - include/**
+        - lib/libnvimgcodec.so
+        - lib/cmake/nvimgcodec
+        # ld config contains wrong path (lib64 instead of lib)
+        # - etc/**
+      exclude:
+        - lib/libnvimgcodec_static.a
+        - lib/libnvimgcodec.so.*
+    requirements:
+      host:
+        - {{ pin_subpackage('libnvimgcodec', exact=True) }}
+      run:
+        - {{ pin_subpackage('libnvimgcodec', exact=True) }}
+    test:
+      commands:
+        - test -f ${PREFIX}/include/nvimgcodec.h  # [unix]
+        - test -f ${PREFIX}/lib/libnvimgcodec.so.0  # [linux]
+        - test -f ${PREFIX}/lib/libnvimgcodec.so.{{ version }}.0  # [linux]
+        - test ! -f ${PREFIX}/etc/ld.so.conf.d/nvimgcodec.conf  # [unix]
+        - test -f ${PREFIX}/lib/cmake/nvimgcodec/nvimgcodecConfig.cmake  # [unix]
+        - test ! -f ${PREFIX}/lib/libnvimgcodec_static.a  # [unix]
+
+  - name: libnvimgcodec
+    build:
+      run_exports:
+        - {{ pin_subpackage('libnvimgcodec') }}
+    files:
+      - lib/libnvimgcodec.so.*
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cuda') }}
+        - {{ compiler('cxx')}}
+        - {{ stdlib('c') }}
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+        - libboost-devel
+        - libjpeg-turbo
+        - libnvjpeg-dev
+        - libopencv
+        - libtiff
+        - nvtx-c
+        - zlib
+        - zstd
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libnvimgcodec.so.0  # [linux]
+        - test -f ${PREFIX}/lib/libnvimgcodec.so.{{ version }}.0  # [linux]
+
+about:
+  home: https://github.com/NVIDIA/nvImageCodec
+  description: >
+    The nvImageCodec is an open-source library of accelerated codecs with
+    unified interface. This package is the C-API only. See nvimagecodec for the
+    Python-API.
+  license: Apache-2.0 license
+  license_family: APACHE
+  license_file:
+    - LICENSE.txt
+    - Acknowledgements.txt
+  feedstock_name: libnvimgcodec
