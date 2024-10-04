@@ -1,0 +1,27 @@
+add_custom_target(generate_proto_files DEPENDS ${PROTO_GENERATED_FILES})
+
+if(WIN32)
+    file(TO_CMAKE_PATH "$ENV{RECIPE_DIR}/cmake/add_protoc_export.cc" PROTOC_EXPORT_PATH)
+    add_executable(add_protoc_export ${PROTOC_EXPORT_PATH})
+    target_include_directories(add_protoc_export PRIVATE ${Protobuf_INCLUDE_DIRS})
+    target_compile_definitions(add_protoc_export PRIVATE PROTOBUF_USE_DLLS PUBLIC PROTOBUF_USE_DLLS)
+    target_link_libraries(add_protoc_export PRIVATE ${Protobuf_LIBRARIES} abseil_dll ${Protobuf_PROTOC_LIBRARIES})
+    set_target_properties(add_protoc_export PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+        OUTPUT_NAME protoc-gen-add_export
+        CXX_STANDARD_REQUIRED ON)
+
+    # Run add_protoc_export after standard protobuf generation
+    add_custom_command(
+        OUTPUT ${PROTO_BINARY_DIR}/exports_added.stamp
+        COMMAND ${CMAKE_COMMAND} -E echo "Running add_protoc_export"
+        COMMAND $<TARGET_FILE:add_protoc_export> --add_exports_out=${PROTO_BINARY_DIR} -I ${CMAKE_SOURCE_DIR}/lib/proto ${proto_files}
+        COMMAND ${CMAKE_COMMAND} -E touch ${PROTO_BINARY_DIR}/exports_added.stamp
+        DEPENDS ${PROTO_GENERATED_FILES} add_protoc_export
+        COMMENT "Adding custom exports to protocol buffer files"
+    )
+    add_custom_target(add_exports DEPENDS ${PROTO_BINARY_DIR}/exports_added.stamp)
+    add_dependencies(generate_proto_files add_exports)
+endif()
+
+add_dependencies(dydx_v4_proto generate_proto_files)
