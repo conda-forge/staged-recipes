@@ -22,4 +22,4 @@ export TORCHAUDIO_TEST_ALLOW_SKIP_IF_NO_SOX_ENCODER="true"
 export TORCHAUDIO_TEST_ALLOW_SKIP_IF_NO_FFMPEG="true"
 export TORCHAUDIO_TEST_ALLOW_SKIP_IF_NO_SOX="true"
 
-pytest -v test/torchaudio_unittest/
+pytest -x -v test/torchaudio_unittest/
