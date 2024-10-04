@@ -43,9 +43,9 @@ requirements:
   build:
     - {{ compiler('c') }}  # [unix]
     - {{ compiler('m2w64_c') }}  # [win]
-    - {{ c_stdlib }}_{{ os_platform }}-aarch64 {{ c_stdlib_version }}.*
+    - {{ c_stdlib }}_{{ os_platform }}-aarch64 {{ c_stdlib_version }}.*  # [linux]
+    - {{ c_stdlib }}_{{ os_platform }}-arm64 {{ c_stdlib_version }}.*  # [win]
     - {{ c_stdlib }}_{{ os_platform }}-ppc64le {{ c_stdlib_version }}.*  # [linux]
-    # - {{ m2w64_c_stdlib }}_win-64 {{ m2w64_c_stdlib_version }}.*  # [linux]
     - {{ stdlib('c') }}  # [unix]
     - {{ stdlib('m2w64_c') }}  # [win]
     - {{ posix }}autoconf
@@ -56,7 +56,6 @@ requirements:
     - ninja
     - gcc_impl_{{ os_platform }}-aarch64
     - gcc_impl_{{ os_platform }}-ppc64le  # [linux]
-    # - gcc_impl_win-64  # [linux]
     - glib
     - pkg-config
   host:
@@ -70,6 +69,8 @@ requirements:
 outputs:
   - name: qemu-execve-headers
     script: install-share.sh  # [unix]
+    build:
+      noarch: generic
     files:
       - include/qemu-plugin.h  # [unix]
       - Library\\include\\qemu-plugin.h  # [win]
@@ -137,7 +138,8 @@ outputs:
       build:
         - {{ compiler('c') }}  # [unix]
         - {{ compiler('m2w64_c') }}  # [win]
-        - {{ cross_c_stdlib }}_{{ os_platform }}-aarch64 {{ cross_c_stdlib_version }}.*
+        - {{ cross_c_stdlib }}_{{ os_platform }}-aarch64 {{ cross_c_stdlib_version }}.*  # [linux]
+        - {{ cross_c_stdlib }}_{{ os_platform }}-amd64 {{ cross_c_stdlib_version }}.*  # [win]
         - {{ stdlib('c') }}  # [unix]
         - {{ stdlib('m2w64_c') }}  # [win]
       host:
@@ -145,19 +147,21 @@ outputs:
         - glib
         - zlib
       run:
-        - {{ cross_c_stdlib }}_{{ os_platform }}-aarch64 {{ cross_c_stdlib_version }}.*
+        - {{ cross_c_stdlib }}_{{ os_platform }}-aarch64 {{ cross_c_stdlib_version }}.*  # [linux]
+        - {{ cross_c_stdlib }}_{{ os_platform }}-amd64 {{ cross_c_stdlib_version }}.*  # [win]
         - {{ pin_subpackage('qemu-execve-headers') }}
     test:
       files:
         - tests
       requires:
-        - gcc_impl_{{ os_platform }}-aarch64
+        - gcc_impl_{{ os_platform }}-aarch64  # [linux]
+        - gcc_impl_win-amd64  # [win]
       commands:
         - test -f ${PREFIX}/bin/qemu-execve-aarch64  # [unix]
         - if not exist %PREFIX%\\Library\\bin\\qemu-execve-aarch64.exe exit 1  # [win]
 
-        - test -f ${QEMU_LD_PREFIX}/ld-linux-aarch64.so.1
-        - test -f ${QEMU_LD_PREFIX}/ld-2.28.so
+        - test -f ${QEMU_LD_PREFIX}/ld-linux-aarch64.so.1  # [linux]
+        - test -f ${QEMU_LD_PREFIX}/ld-2.28.so  # [linux]
 
         - test -f ${PREFIX}/etc/conda/activate.d/qemu-execve-aarch64-activate.sh  # [unix]
         - test -f ${PREFIX}/etc/conda/deactivate.d/qemu-execve-aarch64-deactivate.sh  # [unix]

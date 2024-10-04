@@ -1,10 +1,52 @@
-build_qemu() {
+build_linux_qemu() {
   local qemu_arch=${1:-aarch64}
   local cross_prefix=${2:-"$qemu_arch"-conda-linux-gnu-}
   local interpreter_prefix=${3:-"${BUILD_PREFIX}"/"${qemu_arch}"-conda-linux-gnu/sysroot/lib64}
-
   local build_dir=${4:-"${SRC_DIR}"/_conda-build}
   local install_dir=${5:-"${PREFIX}"}
+
+  qemu_args=(
+    "--interp-prefix=${interpreter_prefix}"
+    "--target-list=${qemu_arch}-linux-user"
+    "--cross-prefix-${qemu_arch}=${cross_prefix}"
+    "--enable-linux-user"
+  )
+
+  _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]}"
+}
+
+build_osx_qemu() {
+  local qemu_arch=${1:-aarch64}
+  local build_dir=${2:-"${SRC_DIR}"/_conda-build}
+  local install_dir=${3:-"${PREFIX}"}
+
+  qemu_args=(
+    "--target-list=${qemu_arch}-softmmu"
+    "--enable-linux-user"
+  )
+
+  _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]}"
+}
+
+build_win_qemu() {
+  local qemu_arch=${1:-aarch64}
+  local build_dir=${2:-"${SRC_DIR}"/_conda-build}
+  local install_dir=${3:-"${PREFIX}"}
+
+  qemu_args=(
+    "--target-list=${qemu_arch}-softmmu"
+    "--enable-linux-user"
+  )
+
+  _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]}"
+}
+
+_build_qemu() {
+  local qemu_arch=$1
+  local build_dir=$2
+  local install_dir=$3
+  shift 3
+  local qemu_args=("$@")
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
@@ -12,12 +54,11 @@ build_qemu() {
     export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig"
     export PKG_CONFIG_LIBDIR="${BUILD_PREFIX}/lib/pkgconfig"
 
+    ../qemu-source/configure --help
+
     ../qemu-source/configure \
       --prefix="${install_dir}" \
-      --interp-prefix="${interpreter_prefix}" \
-      --enable-linux-user \
-      --target-list="${qemu_arch}"-linux-user \
-      --cross-prefix-"${qemu_arch}"="${cross_prefix}" \
+      "${qemu_args[@]}" \
       --disable-bsd-user --disable-guest-agent --disable-strip --disable-werror --disable-gcrypt --disable-pie \
       --disable-debug-info --disable-debug-tcg --enable-docs --disable-tcg-interpreter --enable-attr \
       --disable-brlapi --disable-linux-aio --disable-bzip2 --disable-cap-ng --disable-curl --disable-fdt \
