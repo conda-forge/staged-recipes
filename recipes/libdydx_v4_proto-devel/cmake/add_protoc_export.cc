@@ -2,8 +2,9 @@
 #include <google/protobuf/compiler/plugin.h>
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/io/printer.h>
-#include <google/protobuf/io/zero_copy_output_stream.h>
+#include <google/protobuf/io/zero_copy_stream.h>
 #include <fstream>
+#include <string>
 
 class AddExportsGenerator : public google::protobuf::compiler::CodeGenerator {
  public:
@@ -27,17 +28,12 @@ class AddExportsGenerator : public google::protobuf::compiler::CodeGenerator {
     std::unique_ptr<google::protobuf::io::ZeroCopyOutputStream> stream(
         generator_context->OpenForInsert(file_name, "includes"));
 
-    if (!stream) {
-      // If the file doesn't exist, create it
-      std::ofstream file(file_name);
-      if (!file) {
-        *error = "Failed to create file: " + file_name;
-        return false;
-      }
-      file << output;
-    } else {
+    if (stream) {
       google::protobuf::io::Printer printer(stream.get(), '$');
       printer.Print(output.c_str());
+    } else {
+      *error = "Failed to open file for writing: " + file_name;
+      return false;
     }
 
     return true;
