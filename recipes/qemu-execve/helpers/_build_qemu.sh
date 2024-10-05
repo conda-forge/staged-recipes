@@ -10,6 +10,7 @@ build_linux_qemu() {
     "--target-list=${qemu_arch}-linux-user"
     "--cross-prefix-${qemu_arch}=${cross_prefix}"
     "--enable-linux-user"
+    "--enable-attr"
   )
 
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]}"
@@ -21,7 +22,7 @@ build_osx_qemu() {
   local install_dir=${3:-"${PREFIX}"}
 
   qemu_args=(
-    # "--target-list=aarch64-softmmu"
+    "--disable-attr"
   )
 
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
@@ -58,8 +59,9 @@ _build_qemu() {
     ../qemu-source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
+      --enable-docs \
       --disable-bsd-user --disable-guest-agent --disable-strip --disable-werror --disable-gcrypt --disable-pie \
-      --disable-debug-info --disable-debug-tcg --enable-docs --disable-tcg-interpreter --enable-attr \
+      --disable-debug-info --disable-debug-tcg --disable-tcg-interpreter \
       --disable-brlapi --disable-linux-aio --disable-bzip2 --disable-cap-ng --disable-curl --disable-fdt \
       --disable-glusterfs --disable-gnutls --disable-nettle --disable-gtk --disable-rdma --disable-libiscsi \
       --disable-vnc-jpeg --disable-kvm --disable-lzo --disable-curses --disable-libnfs --disable-numa \
