@@ -1,0 +1,112 @@
+{% set version = "2.0.2" %}
+
+package:
+  name: torchaudio
+  version: {{ version }}
+
+source:
+  - url: https://github.com/pytorch/audio/archive/refs/tags/v{{ version }}.tar.gz
+    sha256: b3a572ba33f3836e2dfada21ac113699242231587b474efc237bee70bd6cf961
+    patches:
+      - patches/0001-don-t-rebuild-libs-we-have-already.patch
+      - patches/0002-point-to-correct-prefix.patch
+  # submodules
+  # https://github.com/pytorch/audio/tree/v{{ version }}/third_party/kenlm
+  # does not have any tagged versions, does not seem like a good idea to package ATM
+  - git_url: https://github.com/kpu/kenlm.git
+    git_rev: 5cea457db26950a73d638425c183b368c06ed7c6
+    folder: third_party/kenlm/kenlm
+  # https://github.com/pytorch/audio/tree/v{{ version }}/third_party/flashlight-text
+  - git_url: https://github.com/flashlight/text.git
+    git_rev: 98028c7da83d66c2aba6f5f8708c063d266ca5a4
+    folder: third_party/flashlight-text/submodule
+
+build:
+  number: 0
+  merge_build_host: false
+  # missing dependency: https://github.com/conda-forge/pytorch-cpu-feedstock/issues/32
+  skip: true  # [win]
+  missing_dso_whitelist:
+    # pytorch builds put the libs in the wrong place, but hard to unbundle, see
+    # https://github.com/conda-forge/staged-recipes/pull/17082#issuecomment-1189149813
+    - "*/libc10{{ SHLIB_EXT }}"
+    - "*/libc10_cuda{{ SHLIB_EXT }}"
+    - "*/libtorch{{ SHLIB_EXT }}"
+    - "*/libtorch_cpu{{ SHLIB_EXT }}"
+    - "*/libtorch_cuda{{ SHLIB_EXT }}"
+    - "*/libtorch_python{{ SHLIB_EXT }}"
+    # this feedstock also puts its so into site-packages
+    - "*/libtorchaudio{{ SHLIB_EXT }}"
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != "None"]
+    - sysroot_linux-64 2.17   # [linux64]
+    - cmake
+    - ninja
+    - pkg-config
+    - git-lfs
+  host:
+    - python
+    - pip
+    - bzip2
+    # - kaldi
+    - pybind11
+    # migrator isn't finished yet
+    - pytorch =2
+    # - sox
+    - xz
+    - zlib
+  run:
+    - python
+    # - kaldi
+    - numpy
+
+test:
+  imports:
+    - torchaudio
+    - torchaudio.backend
+    - torchaudio.compliance
+    - torchaudio.datasets
+    - torchaudio.functional
+    - torchaudio.models
+    - torchaudio.pipelines
+    - torchaudio.kaldi_io
+    - torchaudio.utils
+    - torchaudio.sox_effects
+    - torchaudio.transforms
+  requires:
+    # test requiremens listed in
+    # https://github.com/pytorch/audio/blob/main/CONTRIBUTING.md#development-installation
+    - pytest
+    - librosa
+    - expecttest
+    - fairseq
+    - hypothesis
+    - inflect
+    # wait for https://github.com/conda-forge/kaldi_io-feedstock/issues/1
+    # - kaldi_io
+    - parameterized
+    - pysoundfile
+    - scipy
+    - transformers
+    - unidecode
+  source_files:
+    - test/
+  commands:
+    # remove example tests that are not importable out-of-tree
+    - rm -rf test/torchaudio_unittest/example
+    {% set tests_to_skip = "_not_a_real_test" %}
+    - pytest -v test/ -k "not ({{ tests_to_skip }})"
+
+about:
+  home: https://github.com/pytorch/audio
+  license: BSD-2-Clause
+  license_file: LICENSE
+  summary: Data manipulation and transformation for audio signal processing, powered by PyTorch
+  dev_url: https://github.com/pytorch/audio
+
+extra:
+  recipe-maintainers:
+    - h-vetinari
