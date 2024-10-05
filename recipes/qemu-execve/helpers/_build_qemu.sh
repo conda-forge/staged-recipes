@@ -68,12 +68,12 @@ _build_qemu() {
       --disable-opengl --disable-rbd --disable-vnc-sasl --disable-sdl --disable-seccomp \
       --disable-smartcard --disable-snappy --disable-spice --disable-libusb --disable-usb-redir --disable-vde \
       --disable-vhost-net --disable-virglrenderer --disable-virtfs --disable-vnc --disable-vte --disable-xen \
-      --disable-xen-pci-passthrough --disable-system --disable-tools
-       # > "${SRC_DIR}"/_configure-"${qemu_arch}".log 2>&1
+      --disable-xen-pci-passthrough --disable-system --disable-tools > "${SRC_DIR}"/_configure-"${qemu_arch}".log 2>&1
 
     make -j"${CPU_COUNT}" > "${SRC_DIR}"/_make-"${qemu_arch}".log 2>&1
     make check > "${SRC_DIR}"/_check-"${qemu_arch}".log 2>&1
-    make install > "${SRC_DIR}"/_install-"${qemu_arch}".log 2>&1
+    make install
+     #> "${SRC_DIR}"/_install-"${qemu_arch}".log 2>&1
 
   popd || exit 1
 }

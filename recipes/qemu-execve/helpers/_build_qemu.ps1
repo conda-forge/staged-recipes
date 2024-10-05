@@ -6,6 +6,7 @@ function Build-WinQemu {
 
     $qemu_args = @("--target-list=aarch64-softmmu")
 
+    Write-Host "Building QEMU with args: $qemu_args"
     _Build-Qemu -build_dir $build_dir -install_dir $install_dir -qemu_args $qemu_args
 }
 
@@ -16,6 +17,7 @@ function _Build-Qemu {
         [string[]]$qemu_args
     )
 
+    Write-Host "Building QEMU in $build_dir"
     New-Item -ItemType Directory -Force -Path $build_dir
     Push-Location $build_dir
 
