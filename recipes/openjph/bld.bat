@@ -1,8 +1,9 @@
 mkdir build
 cd build
 
-cmake -GNinja ^
-    %CMAKE_ARGS% ^
+cmake -GNinja                                   ^
+    %CMAKE_ARGS%                                ^
+    -DOJPH_BUILD_EXECUTABLES=OFF                ^
     ..
 
 if errorlevel 1 exit 1

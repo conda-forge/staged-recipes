@@ -3,7 +3,11 @@ set -ex
 mkdir -p build
 pushd build
 
-cmake ${CMAKE_ARGS} ..
+# OJPH_BUILD_EXECUTABLES would require libtiff which creates a circular
+# dependency
+cmake ${CMAKE_ARGS}                          \
+    -DOJPH_BUILD_EXECUTABLES=OFF             \
+    ..
 
 make -j ${CPU_COUNT}
 
