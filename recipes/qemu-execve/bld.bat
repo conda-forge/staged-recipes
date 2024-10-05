@@ -12,5 +12,7 @@ set SRC_DIR=%SRC_DIR:\=/%
 set MSYSTEM=UCRT64
 set MSYS2_PATH_TYPE=inherit
 set CHERE_INVOKING=1
+set build_platform=%build_platform%
+set target_platform=%target_platform%
 bash -lc "./conda_build.sh"
 if errorlevel 1 exit 1

@@ -44,7 +44,7 @@ _build_qemu() {
   local build_dir=$2
   local install_dir=$3
   shift 3
-  local qemu_args=("$@")
+  local qemu_args=("${@:-}")
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
