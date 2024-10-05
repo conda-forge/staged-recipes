@@ -54,6 +54,7 @@ _build_qemu() {
 
     ../qemu-source/configure --help
 
+    export CFLAGS="${CFLAGS} -D__APPLE__"
     ../qemu-source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
