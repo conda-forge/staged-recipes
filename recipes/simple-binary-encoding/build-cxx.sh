@@ -2,8 +2,6 @@
 
 set -xeo pipefail
 
-mkdir -p sbe-all/build/libs
-ln -s ${PREFIX}/lib/sbe-all-${PKG_VERSION}.jar sbe-all/build/libs
 
 mkdir build
 cd build
