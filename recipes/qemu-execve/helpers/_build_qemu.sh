@@ -24,7 +24,7 @@ build_osx_qemu() {
     # "--target-list=aarch64-softmmu"
   )
 
-  _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]}"
+  _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 }
 
 build_win_qemu() {
@@ -36,7 +36,7 @@ build_win_qemu() {
     "--target-list=${qemu_arch}-softmmu"
   )
 
-  _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]}"
+  _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 }
 
 _build_qemu() {
