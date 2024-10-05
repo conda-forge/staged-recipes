@@ -21,7 +21,7 @@ build_osx_qemu() {
   local install_dir=${3:-"${PREFIX}"}
 
   qemu_args=(
-    "--target-list=${qemu_arch}-softmmu"
+    # "--target-list=aarch64-softmmu"
   )
 
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]}"
