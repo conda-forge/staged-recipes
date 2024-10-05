@@ -2,7 +2,11 @@
 
 set -euxo pipefail
 
-export build_platform target_platform
+export build_platform="${build_platform}"
+export target_platform="${target_platform}"
+
+echo "build_platform: ${build_platform}"
+echo "target_platform: ${target_platform}"
 source "${RECIPE_DIR}/helpers/_build_qemu.sh"
 
 # --- Main ---
