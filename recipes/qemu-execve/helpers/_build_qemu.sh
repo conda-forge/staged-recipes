@@ -11,6 +11,7 @@ build_linux_qemu() {
     "--cross-prefix-${qemu_arch}=${cross_prefix}"
     "--enable-linux-user"
     "--enable-attr"
+    "--disable-system"
   )
 
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]}"
@@ -23,6 +24,8 @@ build_osx_qemu() {
 
   qemu_args=(
     "--disable-attr"
+    "--target-list=aarch64-softmmu,arm-softmmu"
+    "--extra-cflags=-maxv2"
   )
 
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
@@ -59,7 +62,7 @@ _build_qemu() {
     ../qemu-source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
-      --enable-docs \
+      --disable-docs \
       --disable-bsd-user --disable-guest-agent --disable-strip --disable-werror --disable-gcrypt --disable-pie \
       --disable-debug-info --disable-debug-tcg --disable-tcg-interpreter \
       --disable-brlapi --disable-linux-aio --disable-bzip2 --disable-cap-ng --disable-curl --disable-fdt \
@@ -68,10 +71,12 @@ _build_qemu() {
       --disable-opengl --disable-rbd --disable-vnc-sasl --disable-sdl --disable-seccomp \
       --disable-smartcard --disable-snappy --disable-spice --disable-libusb --disable-usb-redir --disable-vde \
       --disable-vhost-net --disable-virglrenderer --disable-virtfs --disable-vnc --disable-vte --disable-xen \
-      --disable-xen-pci-passthrough --disable-system --disable-tools > "${SRC_DIR}"/_configure-"${qemu_arch}".log 2>&1
+      --disable-xen-pci-passthrough --disable-tools > "${SRC_DIR}"/_configure-"${qemu_arch}".log 2>&1
 
-    make -j"${CPU_COUNT}" > "${SRC_DIR}"/_make-"${qemu_arch}".log 2>&1
-    make check > "${SRC_DIR}"/_check-"${qemu_arch}".log 2>&1
+    make -j"${CPU_COUNT}"
+     #> "${SRC_DIR}"/_make-"${qemu_arch}".log 2>&1
+    make check
+     #> "${SRC_DIR}"/_check-"${qemu_arch}".log 2>&1
     make install
      #> "${SRC_DIR}"/_install-"${qemu_arch}".log 2>&1
 
