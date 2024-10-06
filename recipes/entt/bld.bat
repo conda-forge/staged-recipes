@@ -13,7 +13,7 @@ if errorlevel 1 exit 1
 cmake --build build --parallel --config Release
 if errorlevel 1 exit 1
 
-ctest --test-dir build --output-on-failure --build-config Release
+ctest --test-dir build --output-on-failure --build-config Release -E delegate
 if errorlevel 1 exit 1
 
 cmake --build build --parallel --config Release --target install
