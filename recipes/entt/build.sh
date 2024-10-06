@@ -8,7 +8,8 @@ cmake $SRC_DIR \
   -B build \
   -DBUILD_SHARED_LIBS=ON \
   -DCMAKE_BUILD_TYPE=Release \
-  -DENTT_BUILD_TESTING=ON
+  -DENTT_BUILD_TESTING=ON \
+  -DENTT_FIND_GTEST_PACKAGE=ON
 
 cmake --build build --parallel
 

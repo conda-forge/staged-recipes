@@ -6,7 +6,8 @@ cmake %SRC_DIR% ^
   -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
   -DCMAKE_PREFIX_PATH=%LIBRARY_PREFIX% ^
   -DENTT_BUILD_LIB=ON ^
-  -DENTT_BUILD_TESTING=ON
+  -DENTT_BUILD_TESTING=ON ^
+  -DENTT_FIND_GTEST_PACKAGE=ON
 if errorlevel 1 exit 1
 
 cmake --build build --parallel --config Release
