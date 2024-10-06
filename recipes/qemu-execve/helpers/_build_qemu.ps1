@@ -7,7 +7,7 @@ function Invoke-CommandWithLogging {
     }
 }
 
-function _Build-Qemu {
+function Build-Qemu {
     param (
         [string]$build_dir,
         [string]$install_dir,
