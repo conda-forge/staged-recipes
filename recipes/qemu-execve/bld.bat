@@ -2,12 +2,9 @@
 setlocal enabledelayedexpansion
 
 set "PS_SCRIPT=%RECIPE_DIR%\helpers\_build_qemu.ps1"
-set "BUILD_DIR=%build_dir%"
-set "INSTALL_DIR=%install_dir%"
-set "QEMU_ARGS=--target-list=aarch64-softmmu"
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "& '%PS_SCRIPT%' -build_dir '%BUILD_DIR%' -install_dir '%INSTALL_DIR%' -qemu_args '%QEMU_ARGS%'" ^
+    "& '%PS_SCRIPT%' " ^
     > build_qemu_output.log 2>&1
 
 if %ERRORLEVEL% neq 0 (

@@ -32,19 +32,6 @@ build_osx_qemu() {
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 }
 
-build_win_qemu() {
-  local qemu_arch=${1:-aarch64}
-  local build_dir=${2:-"${SRC_DIR}"/_conda-build}
-  local install_dir=${3:-"${PREFIX}"}
-
-  qemu_args=(
-    "--target-list=${qemu_arch}-softmmu"
-    "--disable-fdt"
-  )
-
-  _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
-}
-
 _build_qemu() {
   local qemu_arch=$1
   local build_dir=$2
@@ -58,6 +45,8 @@ _build_qemu() {
     export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig"
     export PKG_CONFIG_LIBDIR="${BUILD_PREFIX}/lib/pkgconfig"
 
+    export CFLAGS="${CFLAGS} -Wimplicit-function-declaration"
+    export LDFLAGS="${LDFLAGS} -framework IOKit -framework CoreFoundation"
     ../qemu-source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \

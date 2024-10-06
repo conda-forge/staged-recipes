@@ -1,14 +1,6 @@
-function Build-WinQemu {
-    param (
-        [string]$build_dir = "$env:SRC_DIR/_conda-build",
-        [string]$install_dir = "$env:PREFIX"
-    )
+$qemu_args = @("--target-list=aarch64-softmmu")
 
-    $qemu_args = @("--target-list=aarch64-softmmu")
-
-    Write-Host "Building QEMU with args: $qemu_args"
-    _Build-Qemu -build_dir $build_dir -install_dir $install_dir -qemu_args $qemu_args
-}
+_Build-Qemu -build_dir $env:SRC_DIR/_conda-build-win-64 -install_dir $env:SRC_DIR/_conda-install-win-64 $qemu_args
 
 function _Build-Qemu {
     param (
