@@ -25,8 +25,8 @@ build_osx_qemu() {
   qemu_args=(
     "--disable-attr"
     "--target-list=aarch64-softmmu"
-    "--extra-cflags=-maxv2"
   )
+    #"--extra-cflags=-maxv2"
 
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 }

@@ -1,13 +1,18 @@
-setlocal
+@echo off
+setlocal enabledelayedexpansion
 
-echo Building QEMU for win-64...
-set "build_dir=%SRC_DIR%\_conda-build-win-64"
-set "install_dir=%SRC_DIR%\_conda-install-%qemu_arch%"
+set "PS_SCRIPT=%RECIPE_DIR%\helpers\_build_qemu.ps1"
+set "BUILD_DIR=%build_dir%"
+set "INSTALL_DIR=%install_dir%"
+set "QEMU_ARGS=--target-list=aarch64-softmmu"
 
-call powershell -Command "& {& '%RECIPE_DIR%\helpers\_build_qemu.ps1' -build_dir '%build_dir%' -install_dir '%install_dir%' -qemu_args @('--target-list=aarch64-softmmu')}" > build_qemu_output.log 2>&1
-if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
-type build_qemu_output.log
-echo Done
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    "& '%PS_SCRIPT%' -build_dir '%BUILD_DIR%' -install_dir '%INSTALL_DIR%' -qemu_args '%QEMU_ARGS%'" ^
+    > build_qemu_output.log 2>&1
 
-endlocal
+if %ERRORLEVEL% neq 0 (
+    echo Error occurred during QEMU build. Check build_qemu_output.log for details.
+    exit /b %ERRORLEVEL%
+)
 
+echo QEMU build completed successfully.
