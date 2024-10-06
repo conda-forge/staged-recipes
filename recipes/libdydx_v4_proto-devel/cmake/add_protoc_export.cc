@@ -40,7 +40,25 @@ class AddExportsGenerator : public google::protobuf::compiler::CodeGenerator {
   }
 };
 
+bool AddExportsGenerator::ParseCommandLineArguments(int argc, char* argv[], std::string& output_dir) {
+  for (int i = 1; i < argc; ++i) {
+    std::string arg = argv[i];
+    if (arg.substr(0, 18) == "--add_exports_out=") {
+      output_dir = arg.substr(18);
+      return true;
+    }
+  }
+  return false;
+}
 int main(int argc, char* argv[]) {
+  std::string output_dir;
   AddExportsGenerator generator;
-  return google::protobuf::compiler::PluginMain(argc, argv, &generator);
+  if (generator.ParseCommandLineArguments(argc, argv, output_dir)) {
+    // Use output_dir in your generator
+    // You might need to modify your Generate method to use this
+    return google::protobuf::compiler::PluginMain(argc, argv, &generator);
+  } else {
+    std::cerr << "Usage: " << argv[0] << " --add_exports_out=<output_directory>" << std::endl;
+    return 1;
+  }
 }
