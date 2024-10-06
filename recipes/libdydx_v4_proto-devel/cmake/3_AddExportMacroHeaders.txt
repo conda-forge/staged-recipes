@@ -1,0 +1,53 @@
+set(MACRO_DIR "${CMAKE_CURRENT_BINARY_DIR}/_export_macro")
+file(MAKE_DIRECTORY ${MACRO_DIR})
+
+set(EXPORT_MACRO_HEADERS)
+set(EXPORT_MACRO_CCFILES)
+set(EXPORT_MACRO_FILES)
+
+foreach(FILE ${EXPORT_MUTABLE_FILES})
+    file(RELATIVE_PATH REL_PATH ${CMAKE_CURRENT_BINARY_DIR}/_export_mutable ${FILE})
+    get_filename_component(REL_DIR ${REL_PATH} DIRECTORY)
+    get_filename_component(FILE_NAME ${FILE} NAME)
+    get_filename_component(FILE_EXT ${FILE} EXT)
+
+    set(MACRO_FILE "${MACRO_DIR}/${REL_PATH}")
+    list(APPEND EXPORT_MACRO_FILES "${MACRO_FILE}")
+
+    if(FILE_EXT STREQUAL ".h")
+        list(APPEND EXPORT_MACRO_HEADERS "${MACRO_FILE}")
+    elseif(FILE_EXT STREQUAL ".cc")
+        list(APPEND EXPORT_MACRO_CCFILES "${MACRO_FILE}")
+    endif()
+
+    # Create the directory structure
+    file(MAKE_DIRECTORY "${MACRO_DIR}/${REL_DIR}")
+endforeach()
+
+if(WIN32)
+    add_custom_command(
+        OUTPUT ${EXPORT_MACRO_HEADERS}
+        COMMAND ${CMAKE_COMMAND} -E touch ${MACRO_DIR}/processed_files.txt
+        COMMAND_EXPAND_LIST
+        COMMAND ${CMAKE_COMMAND}
+            -D EXPORT_HEADER=$ENV{RECIPE_DIR}/cmake/dydx_v4_proto_export.h
+            -D INPUT_HEADERS="${EXPORT_MUTABLE_FILES}"
+            -D OUTPUT_DIR=${MACRO_DIR}
+            -D PROCESSED_LIST=${MACRO_DIR}/processed_files.txt
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ProcessHeaders.cmake
+        DEPENDS ${EXPORT_MUTABLE_FILES}
+        COMMENT "Creating exported headers for Windows"
+    )
+else()
+    add_custom_command(
+        OUTPUT ${EXPORT_MACRO_FILES}
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_BINARY_DIR}/_export_mutable ${MACRO_DIR}
+        DEPENDS ${EXPORT_MUTABLE_FILES}
+        COMMENT "Copying headers for non-Windows platforms"
+    )
+endif()
+
+add_custom_target(generate_export_macro_headers DEPENDS ${EXPORT_MACRO_FILES})
+list(GET EXPORT_MACRO_FILES 0 2 FIRST_THREE)
+string(JOIN ", " FIRST_THREE_STR ${FIRST_THREE})
+message(STATUS "Generated macro headers: ${FIRST_THREE_STR}")

@@ -1,0 +1,57 @@
+set(MUTABLE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_export_mutable")
+file(MAKE_DIRECTORY ${MUTABLE_DIR})
+
+set(EXPORT_MUTABLE_HEADERS)
+set(EXPORT_MUTABLE_CCFILES)
+set(EXPORT_MUTABLE_FILES)
+
+foreach(FILE ${PROTO_GENERATED_FILES})
+    file(RELATIVE_PATH REL_PATH ${CMAKE_CURRENT_BINARY_DIR}/_generated ${FILE})
+    get_filename_component(REL_DIR ${REL_PATH} DIRECTORY)
+    get_filename_component(FILE_NAME ${FILE} NAME)
+    get_filename_component(FILE_EXT ${FILE} EXT)
+
+    set(MUTABLE_FILE "${MUTABLE_DIR}/${REL_PATH}")
+    list(APPEND EXPORT_MUTABLE_FILES "${MUTABLE_FILE}")
+
+    if(FILE_EXT STREQUAL ".h")
+        list(APPEND EXPORT_MUTABLE_HEADERS "${MUTABLE_FILE}")
+    elseif(FILE_EXT STREQUAL ".cc")
+        list(APPEND EXPORT_MUTABLE_CCFILES "${MUTABLE_FILE}")
+    endif()
+
+    # Create the directory structure
+    file(MAKE_DIRECTORY "${MUTABLE_DIR}/${REL_DIR}")
+endforeach()
+
+if(WIN32)
+    file(TO_CMAKE_PATH "$ENV{RECIPE_DIR}/cmake/add_protoc_export.cc" PROTOC_EXPORT_PATH)
+    add_executable(add_protoc_export ${PROTOC_EXPORT_PATH})
+    target_include_directories(add_protoc_export PRIVATE ${Protobuf_INCLUDE_DIRS})
+    target_compile_definitions(add_protoc_export PRIVATE PROTOBUF_USE_DLLS PUBLIC PROTOBUF_USE_DLLS)
+    target_link_libraries(add_protoc_export PRIVATE ${Protobuf_LIBRARIES} abseil_dll ${Protobuf_PROTOC_LIBRARIES})
+    set_target_properties(add_protoc_export PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+        OUTPUT_NAME protoc-gen-add_export
+        CXX_STANDARD_REQUIRED ON)
+
+    add_custom_command(
+        OUTPUT ${EXPORT_MUTABLE_FILES}
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_BINARY_DIR}/_generated ${MUTABLE_DIR}
+        COMMAND $<TARGET_FILE:add_protoc_export> --add_exports_out=${MUTABLE_DIR} -I ${CMAKE_SOURCE_DIR}/lib/proto ${EXPORT_MUTABLE_HEADERS}
+        DEPENDS ${PROTO_GENERATED_FILES} add_protoc_export
+        COMMENT "Copying and processing protocol buffer files"
+    )
+else()
+    add_custom_command(
+        OUTPUT ${EXPORT_MUTABLE_FILES}
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_BINARY_DIR}/_generated ${MUTABLE_DIR}
+        DEPENDS ${PROTO_GENERATED_FILES}
+        COMMENT "Copying and processing protocol buffer files"
+    )
+endif()
+
+add_custom_target(generate_export_mutable_headers ALL DEPENDS ${EXPORT_MUTABLE_FILES})
+list(GET EXPORT_MUTABLE_FILES 0 2 FIRST_THREE)
+string(JOIN ", " FIRST_THREE_STR ${FIRST_THREE})
+message(STATUS "Generated mutable headers: ${FIRST_THREE_STR}")
