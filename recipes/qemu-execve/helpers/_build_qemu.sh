@@ -12,6 +12,7 @@ build_linux_qemu() {
     "--enable-linux-user"
     "--enable-attr"
     "--disable-system"
+    "--disable-fdt"
   )
 
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]}"
@@ -38,6 +39,7 @@ build_win_qemu() {
 
   qemu_args=(
     "--target-list=${qemu_arch}-softmmu"
+    "--disable-fdt"
   )
 
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
@@ -62,7 +64,7 @@ _build_qemu() {
       --disable-docs \
       --disable-bsd-user --disable-guest-agent --disable-strip --disable-werror --disable-gcrypt --disable-pie \
       --disable-debug-info --disable-debug-tcg --disable-tcg-interpreter \
-      --disable-brlapi --disable-linux-aio --disable-bzip2 --disable-cap-ng --disable-curl --disable-fdt \
+      --disable-brlapi --disable-linux-aio --disable-bzip2 --disable-cap-ng --disable-curl \
       --disable-glusterfs --disable-gnutls --disable-nettle --disable-gtk --disable-rdma --disable-libiscsi \
       --disable-vnc-jpeg --disable-kvm --disable-lzo --disable-curses --disable-libnfs --disable-numa \
       --disable-opengl --disable-rbd --disable-vnc-sasl --disable-sdl --disable-seccomp \

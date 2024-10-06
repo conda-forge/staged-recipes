@@ -15,4 +15,6 @@ if %ERRORLEVEL% neq 0 (
     exit /b %ERRORLEVEL%
 )
 
+echo QEMU build log:
+type build_qemu_output.log
 echo QEMU build completed successfully.
