@@ -24,7 +24,7 @@ build_osx_qemu() {
 
   qemu_args=(
     "--disable-attr"
-    "--target-list=aarch64-softmmu,arm-softmmu"
+    "--target-list=aarch64-softmmu"
     "--extra-cflags=-maxv2"
   )
 
@@ -56,9 +56,6 @@ _build_qemu() {
     export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig"
     export PKG_CONFIG_LIBDIR="${BUILD_PREFIX}/lib/pkgconfig"
 
-    ../qemu-source/configure --help
-
-    export CFLAGS="${CFLAGS} -D__APPLE__"
     ../qemu-source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
