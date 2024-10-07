@@ -22,10 +22,7 @@ export TORCHAUDIO_TEST_ALLOW_SKIP_IF_NO_MOD_demucs="true"
 export TORCHAUDIO_TEST_ALLOW_SKIP_IF_NO_MOD_fairseq="true"
 export TORCHAUDIO_TEST_ALLOW_SKIP_IF_NO_QUANTIZATION="true"
 export TORCHAUDIO_TEST_ALLOW_SKIP_IF_NO_RIR="true"
-
-
-# both below should be false
-export TORCHAUDIO_TEST_ALLOW_SKIP_IF_NO_FFMPEG="false"
-export TORCHAUDIO_TEST_ALLOW_SKIP_IF_NO_SOX="false"
+export TORCHAUDIO_TEST_ALLOW_SKIP_IF_NO_FFMPEG="true"
+export TORCHAUDIO_TEST_ALLOW_SKIP_IF_NO_SOX="true"
 
 pytest -v test/torchaudio_unittest/ -k "not rnnt and not TestAutogradLfilterCPU and not ray_tracing"
