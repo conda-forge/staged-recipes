@@ -41,4 +41,34 @@ if [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64" 
     ${qemu_arch} \
     "${SRC_DIR}/_conda-build-${qemu_arch}" \
     "${SRC_DIR}/_conda-install-${qemu_arch}"
+
+  # Create blank image
+  "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-img create \
+     -f qcow2 \
+     -o compression_type=zlib \
+     "${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/user-disk-image.qcow2" 10G
+
+  # Initialize qemu image
+  mkdir -p "${SRC_DIR}"/_conda-init-${qemu_arch}
+  "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-system-aarch64 \
+    -name "Alpine AArch64" \
+    -M virt \
+    -accel tcg,thread=single \
+    -cpu cortex-a57 \
+    -m 2048 \
+    -nographic \
+    -drive if=pflash,format=raw,file="${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/edk2-aarch64-code.fd",readonly=on \
+    -drive if=pflash,format=raw,file="${SRC_DIR}_conda-init-${qemu_arch}/edk2-aarch64-vars.fd" \
+    -drive file="${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/user-disk-image.qcow2",format=qcow2 \
+    -drive file="${RECIPE_DIR}/alpine-virt-${ALPINE_ISO_VERSION}-aarch64.iso",format=raw,readonly=on \
+    -boot menu=on \
+    -qmp unix:./qmp-sock,server \
+    --monitor stdio \
+    & echo $! > qemu_pid.txt
+
+  cat '{"execute":"qmp_capabilities"}' | rlwrap socat - UNIX-CONNECT:qmp-sock STDIO
+  cat '{"execute":"shutdown"}' | rlwrap socat - UNIX-CONNECT:qmp-sock STDIO
+
+  sleep 15
+  kill $(cat qemu_pid.txt)
 fi

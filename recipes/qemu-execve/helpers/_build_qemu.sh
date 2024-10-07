@@ -13,6 +13,8 @@ build_linux_qemu() {
     "--enable-attr"
     "--disable-system"
     "--disable-fdt"
+    "--disable-guest-agent"
+    "--disable-tools"
   )
 
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]}"
@@ -26,6 +28,8 @@ build_osx_qemu() {
   qemu_args=(
     "--disable-attr"
     "--target-list=aarch64-softmmu"
+    "--enable-tools"
+    "--enable-guest-agent"
   )
     #"--extra-cflags=-maxv2"  # Makes compilation fail
 
@@ -51,7 +55,7 @@ _build_qemu() {
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
       --disable-docs \
-      --disable-bsd-user --disable-guest-agent --disable-strip --disable-werror --disable-gcrypt --disable-pie \
+      --disable-bsd-user --disable-strip --disable-werror --disable-gcrypt --disable-pie \
       --disable-debug-info --disable-debug-tcg --disable-tcg-interpreter \
       --disable-brlapi --disable-linux-aio --disable-bzip2 --disable-cap-ng --disable-curl \
       --disable-glusterfs --disable-gnutls --disable-nettle --disable-gtk --disable-rdma --disable-libiscsi \
@@ -59,7 +63,7 @@ _build_qemu() {
       --disable-opengl --disable-rbd --disable-vnc-sasl --disable-sdl --disable-seccomp \
       --disable-smartcard --disable-snappy --disable-spice --disable-libusb --disable-usb-redir --disable-vde \
       --disable-vhost-net --disable-virglrenderer --disable-virtfs --disable-vnc --disable-vte --disable-xen \
-      --disable-xen-pci-passthrough --disable-tools
+      --disable-xen-pci-passthrough
        #> "${SRC_DIR}"/_configure-"${qemu_arch}".log 2>&1
 
     make -j"${CPU_COUNT}"

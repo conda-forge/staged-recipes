@@ -3,6 +3,7 @@ function Invoke-CommandWithLogging {
     Write-Host "Executing: $Command"
     Invoke-Expression $Command *>&1 | Tee-Object -Append -FilePath "$env:SRC_DIR\build_qemu_detailed.log"
     if ($LASTEXITCODE -ne 0) {
+        type "$env:SRC_DIR\build_qemu_detailed.log"
         throw "Command failed with exit code $LASTEXITCODE"
     }
 }
