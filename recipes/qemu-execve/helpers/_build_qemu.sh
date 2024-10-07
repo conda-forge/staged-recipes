@@ -29,8 +29,8 @@ build_osx_qemu() {
     "--disable-attr"
     "--target-list=aarch64-softmmu"
     "--enable-tools"
-    "--enable-guest-agent"
   )
+    # "--enable-guest-agent"  # Not supported
     #"--extra-cflags=-maxv2"  # Makes compilation fail
 
   # export CFLAGS="${CFLAGS} -Wimplicit-function-declaration"

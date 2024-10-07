@@ -23,7 +23,7 @@ function Build-Qemu {
     $env:PKG_CONFIG_PATH = "$env:BUILD_PREFIX/lib/pkgconfig"
     $env:PKG_CONFIG_LIBDIR = "$env:BUILD_PREFIX/lib/pkgconfig"
 
-    Invoke-CommandWithLogging "../qemu-source/configure --help"
+    Invoke-CommandWithLogging "$env:SRC_DIR\qemu-source\configure --help"
 
     $configureArgs = @(
         "--prefix=$install_dir",
@@ -39,11 +39,11 @@ function Build-Qemu {
         "--disable-xen-pci-passthrough", "--disable-system", "--disable-tools"
     )
 
-    Invoke-CommandWithLogging "../qemu-source/configure $($configureArgs -join ' ')"
+    Invoke-CommandWithLogging "$env:SRC_DIR\qemu-source\configure $($configureArgs -join ' ')"
 
-    & make -j$env:CPU_COUNT > "$env:SRC_DIR/_make-$qemu_arch.log" 2>&1
-    & make check > "$env:SRC_DIR/_check-$qemu_arch.log" 2>&1
-    & make install > "$env:SRC_DIR/_install-$qemu_arch.log" 2>&1
+    & make -j$env:CPU_COUNT > "$env:SRC_DIR\_make-$qemu_arch.log" 2>&1
+    & make check > "$env:SRC_DIR\_check-$qemu_arch.log" 2>&1
+    & make install > "$env:SRC_DIR\_install-$qemu_arch.log" 2>&1
 
     Pop-Location
 }
@@ -51,4 +51,4 @@ function Build-Qemu {
 # --- Main ---
 
 $qemu_args = @("--target-list=aarch64-softmmu")
-Build-Qemu -build_dir $env:SRC_DIR/_conda-build-win-64 -install_dir $env:SRC_DIR/_conda-install-win-64 $qemu_args
+Build-Qemu -build_dir $env:SRC_DIR\_conda-build-win-64 -install_dir $env:SRC_DIR\_conda-install-win-64 $qemu_args
