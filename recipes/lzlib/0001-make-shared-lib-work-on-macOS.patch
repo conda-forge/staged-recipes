@@ -1,0 +1,55 @@
+From ac5f00567290575b974e83c848ef10e8a9460e5f Mon Sep 17 00:00:00 2001
+From: danielnachun <daniel.nachun@gmail.com>
+Date: Fri, 21 Jul 2023 00:39:41 -0700
+Subject: [PATCH] make shared lib work on macOS
+
+---
+ Makefile.in | 21 ++++++---------------
+ 1 file changed, 6 insertions(+), 15 deletions(-)
+
+diff --git a/Makefile.in b/Makefile.in
+index 81b404b..b372f77 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -25,14 +25,14 @@ all : $(progname_static) $(progname_shared)
+ lib$(libname).a : lzlib.o
+ 	$(AR) $(ARFLAGS) $@ $<
+ 
+-lib$(libname).so.$(pkgversion) : lzlib_sh.o
+-	$(CC) $(CFLAGS) $(LDFLAGS) -fpic -fPIC -shared -Wl,--soname=lib$(libname).so.$(soversion) -o $@ $<
++lib$(libname).$(soversion).dylib : lzlib_sh.o
++	$(CC) $(CFLAGS) $(LDFLAGS) -fpic -fPIC -shared -install_name lib$(libname).$(soversion).dylib -o $@ $<
+ 
+ $(progname) : $(objs) lib$(libname).a
+ 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(objs) lib$(libname).a
+ 
+-$(progname)_shared : $(objs) lib$(libname).so.$(pkgversion)
+-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(objs) lib$(libname).so.$(pkgversion)
++$(progname)_shared : $(objs) lib$(libname).$(soversion).dylib
++	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(objs) lib$(libname).$(soversion).dylib
+ 
+ bbexample : bbexample.o lib$(libname).a
+ 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ bbexample.o lib$(libname).a
+@@ -105,17 +105,8 @@ install-lib : all
+ 	  $(INSTALL_DATA) ./lib$(libname).a "$(DESTDIR)$(libdir)/lib$(libname).a" ; \
+ 	fi
+ 	if [ -n "$(progname_shared)" ] ; then \
+-	  $(INSTALL_PROGRAM) ./lib$(libname).so.$(pkgversion) "$(DESTDIR)$(libdir)/lib$(libname).so.$(pkgversion)" ; \
+-	  if [ -e "$(DESTDIR)$(libdir)/lib$(libname).so.$(soversion)" ] ; then \
+-	    run_ldconfig=no ; \
+-	  else run_ldconfig=yes ; \
+-	  fi ; \
+-	  rm -f "$(DESTDIR)$(libdir)/lib$(libname).so" ; \
+-	  rm -f "$(DESTDIR)$(libdir)/lib$(libname).so.$(soversion)" ; \
+-	  cd "$(DESTDIR)$(libdir)" && ln -s lib$(libname).so.$(pkgversion) lib$(libname).so ; \
+-	  cd "$(DESTDIR)$(libdir)" && ln -s lib$(libname).so.$(pkgversion) lib$(libname).so.$(soversion) ; \
+-	  if [ "${disable_ldconfig}" != yes ] && [ $${run_ldconfig} = yes ] && \
+-	     [ -x "$(LDCONFIG)" ] ; then "$(LDCONFIG)" -n "$(DESTDIR)$(libdir)" || true ; fi ; \
++	  $(INSTALL_PROGRAM) ./lib$(libname).$(soversion).dylib "$(DESTDIR)$(libdir)/lib$(libname).$(soversion).dylib" ; \
++	  cd "$(DESTDIR)$(libdir)" && ln -s lib$(libname).$(soversion).dylib lib$(libname).dylib ; \
+ 	fi
+ 
+ install-lib-strip : all
+-- 
+2.41.0
+
