@@ -21,18 +21,22 @@ if [[ ${cuda_compiler_version} != "None" ]]; then
 
   export USE_CUDA=1
   export BUILD_CUDA_CTC_DECODER=1
-
 else
   export USE_CUDA=0
   export BUILD_CUDA_CTC_DECODER=0
 fi
 
 export USE_ROCM=0
-
-export BUILD_CPP_TEST=0
-export FFMPEG_ROOT="${PREFIX}"
-export USE_FFMPEG=1
 export USE_OPENMP=1
+export BUILD_CPP_TEST=0
+
+# sox is buggy
+export BUILD_SOX=0
+# FFMPEG is buggy
+# export FFMPEG_ROOT="${PREFIX}"
+export USE_FFMPEG=0
+# RNNT loss is buggy
+export BUILD_RNNT=0
 
 export CMAKE_C_COMPILER="$CC"
 export CMAKE_CXX_COMPILER="$CXX"
