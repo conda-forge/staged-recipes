@@ -3,7 +3,7 @@
 XVFB_PID=$!
 # Export display
 export DISPLAY=:99
-Xvfb :99 -screen 0 1280x1024x24 &
+Xvfb :99 -screen 0 1024x768x16 &
 
 # Run pytest
 pytest
