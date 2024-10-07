@@ -1,7 +1,7 @@
 :: check licenses
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml || goto :error
 
-:: build
+:: build statically linked binary with Rust
 cargo install --bins --no-track --locked --root "%LIBRARY_PREFIX%" --path crates\ark || goto :error
 
 goto :EOF

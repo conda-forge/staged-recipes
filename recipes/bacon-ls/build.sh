@@ -2,6 +2,7 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
+# check licenses
 cargo-bundle-licenses \
     --format yaml \
     --output THIRDPARTY.yml
