@@ -2,9 +2,6 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-# Run pnpm so that pnpm-licenses can create report
-pnpm install
-
 npm pack --ignore-scripts
 npm install -ddd \
     --global \
@@ -12,6 +9,7 @@ npm install -ddd \
     ${PKG_NAME}-${PKG_VERSION}.tgz
 
 # Create license report for dependencies
+pnpm install
 pnpm-licenses generate-disclaimer --prod --output-file=third-party-licenses.txt
 
 tee ${PREFIX}/bin/${PKG_NAME}.cmd << EOF
