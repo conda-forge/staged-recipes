@@ -25,6 +25,17 @@
   ]
 %}
 
+{% set qemu_system_share = [
+    "edk2-aarch64-code.fd", "edk2-arm-code.fd", "edk2-arm-vars.fd", "edk2-riscv-code.fd", "edk2-riscv-vars.fd",
+    "edk2-i386-code.fd", "edk2-i386-secure-code.fd", "edk2-i386-vars.fd", "edk2-x86_64-code.fd",
+    "edk2-x86_64-secure-code.fd",
+  ]
+%}
+{% set qemu_system_firmware = [
+    "50-edk2-i386-secure.json", "50-edk2-x86_64-secure.json", "60-edk2-aarch64.json", "60-edk2-arm.json",
+    "60-edk2-i386.json", "60-edk2-x86_64.json",
+  ]
+%}
 package:
   name: qemu-execve-split
   version: {{ version }}
@@ -59,11 +70,12 @@ requirements:
     - {{ posix }}pkg-config
     - {{ posix }}which  # [win]
     - automake  # [unix]
-    - ninja
+    - libfdt
+    - clang_{{ os_platform }}-arm64  # [osx]
     - gcc_impl_{{ os_platform }}-aarch64  # [linux]
     - gcc_impl_{{ os_platform }}-ppc64le  # [linux]
-    - clang_{{ os_platform }}-arm64  # [osx]
     - glib
+    - ninja
   host:
     - glib
     - llvmdev  # [osx]
@@ -92,14 +104,14 @@ outputs:
       - share/qemu/trace-events-all  # [unix]
       - share\\qemu\\trace-events-all  # [win]
 
-      - share/man/man1/qemu.1  # [unix]
-      - share\\man\\man1\\qemu.1  # [win]
-      - share/man/man7/qemu-block-drivers.7  # [unix]
-      - share/man/man7/qemu-cpu-models.7  # [unix]
-      - share/man/man7/qemu-qmp-ref.7  # [unix]
-      - share\\man\\man7\\qemu-block-drivers.7  # [win]
-      - share\\man\\man7\\qemu-cpu-models.7  # [win]
-      - share\\man\\man7\\qemu-qmp-ref.7  # [win]
+      {% for share in qemu_system_share %}
+      - share/qemu/{{ share }}  # [osx]
+      - share\\qemu\\{{ share }}.map exit 1  # [win]
+      {% endfor %}
+      {% for firmware in qemu_system_firmware %}
+      - share/qemu/firmware/{{ firmware }}  # [osx]
+      - share\\qemu\\firmware\\{{ firmware }}.map exit 1  # [win]
+      {% endfor %}
     requirements:
       host:
       run:
@@ -120,19 +132,20 @@ outputs:
         - test -f ${PREFIX}/share/qemu/trace-events-all  # [unix]
         - if not exist %PREFIX%\\share\\qemu\\trace-events-all exit 1  # [win]
 
-        - test -f ${PREFIX}/share/man/man1/qemu.1  # [unix]
-        - test -f ${PREFIX}/share/man/man7/qemu-block-drivers.7  # [unix]
-        - test -f ${PREFIX}/share/man/man7/qemu-cpu-models.7  # [unix]
-        - test -f ${PREFIX}/share/man/man7/qemu-qmp-ref.7  # [unix]
-        - if not exist %PREFIX%\\share\\man\\man1\\qemu.1 exit 1  # [win]
-        - if not exist %PREFIX%\\share\\man\\man7\\qemu-block-drivers.7 exit 1  # [win]
-        - if not exist %PREFIX%\\share\\man\\man7\\qemu-cpu-models.7 exit 1  # [win]
-        - if not exist %PREFIX%\\share\\man\\man7\\qemu-qmp-ref.7 exit 1  # [win]
+        {% for share in qemu_system_share %}
+        - test -f ${PREFIX}/share/qemu/{{ share }}  # [osx]
+        - if not exist %PREFIX%\\share\\qemu\\{{ share }}.map exit 1  # [win]
+        {% endfor %}
+        {% for firmware in qemu_system_firmware %}
+        - test -f ${PREFIX}/share/qemu/firmware/{{ firmware }}  # [osx]
+        - if not exist %PREFIX%\\share\\qemu\\firmware\\{{ firmware }}.map exit 1  # [win]
+        {% endfor %}
 
   - name: qemu-execve-aarch64
     script: install-aarch64.sh  # [unix]
     files:
-      - bin/qemu-execve-aarch64  # [unix]
+      - bin/qemu-execve-aarch64  # [linux]
+      - bin/qemu-system-aarch64  # [osx]
       - bin\\qemu-execve-aarch64.exe  # [win]
 
       - etc/conda/activate.d/qemu-execve-aarch64-activate.sh  # [unix]
@@ -160,7 +173,8 @@ outputs:
         - gcc_impl_{{ os_platform }}-aarch64  # [linux]
         - gcc_impl_win-amd64  # [win]
       commands:
-        - test -f ${PREFIX}/bin/qemu-execve-aarch64  # [unix]
+        - test -f ${PREFIX}/bin/qemu-execve-aarch64  # [linux]
+        - test -f ${PREFIX}/bin/qemu-system-aarch64  # [osx]
         - if not exist %PREFIX%\\Library\\bin\\qemu-execve-aarch64.exe exit 1  # [win]
 
         - test -f ${QEMU_LD_PREFIX}/ld-linux-aarch64.so.1  # [linux]

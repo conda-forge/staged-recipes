@@ -9,9 +9,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 
 if %ERRORLEVEL% neq 0 (
     echo Error occurred during QEMU build. Check build_qemu_output.log for details.
+    type build_qemu_output.log
     exit /b %ERRORLEVEL%
 )
 
 echo QEMU build log:
-type build_qemu_output.log
 echo QEMU build completed successfully.
