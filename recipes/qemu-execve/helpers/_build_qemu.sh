@@ -27,8 +27,10 @@ build_osx_qemu() {
     "--disable-attr"
     "--target-list=aarch64-softmmu"
   )
-    #"--extra-cflags=-maxv2"
+    #"--extra-cflags=-maxv2"  # Makes compilation fail
 
+  # export CFLAGS="${CFLAGS} -Wimplicit-function-declaration"
+  # export LDFLAGS="${LDFLAGS} -framework IOKit -framework CoreFoundation"
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 }
 
@@ -45,8 +47,6 @@ _build_qemu() {
     export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig"
     export PKG_CONFIG_LIBDIR="${BUILD_PREFIX}/lib/pkgconfig"
 
-    export CFLAGS="${CFLAGS} -Wimplicit-function-declaration"
-    export LDFLAGS="${LDFLAGS} -framework IOKit -framework CoreFoundation"
     ../qemu-source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
