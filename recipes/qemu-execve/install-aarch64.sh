@@ -3,7 +3,11 @@
 set -euxo pipefail
 
 mkdir -p "${PREFIX}"/bin
-install -m 0755 "${SRC_DIR}/_conda-install-aarch64/bin/qemu-aarch64" "${PREFIX}/bin/qemu-execve-aarch64"
+if [[ "${build_platform}" == "linux-x86_64" ]]; then
+  install -m 0755 "${SRC_DIR}/_conda-install-aarch64/bin/qemu-aarch64" "${PREFIX}/bin/qemu-execve-aarch64"
+else
+  install -m 0755 "${SRC_DIR}/_conda-install-aarch64/bin/qemu-system-aarch64" "${PREFIX}/bin/qemu-system-aarch64"
+fi
 
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
 # This will allow them to be run on environment activation.
