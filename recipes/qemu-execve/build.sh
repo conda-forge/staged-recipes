@@ -66,8 +66,7 @@ if [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64" 
     --monitor stdio \
     & echo $! > qemu_pid.txt
 
-  cat '{"execute":"qmp_capabilities"}' | rlwrap socat - UNIX-CONNECT:qmp-sock STDIO
-  cat '{"execute":"shutdown"}' | rlwrap socat - UNIX-CONNECT:qmp-sock STDIO
+  python "${RECIPE_DIR}/helpers/qmp-connect.py"
 
   sleep 15
   kill $(cat qemu_pid.txt)

@@ -30,7 +30,7 @@ build_osx_qemu() {
     "--target-list=aarch64-softmmu"
     "--enable-tools"
   )
-    # "--enable-guest-agent"  # Not supported
+    #"--enable-guest-agent"  # Not supported
     #"--extra-cflags=-maxv2"  # Makes compilation fail
 
   # export CFLAGS="${CFLAGS} -Wimplicit-function-declaration"
@@ -51,7 +51,7 @@ _build_qemu() {
     export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig"
     export PKG_CONFIG_LIBDIR="${BUILD_PREFIX}/lib/pkgconfig"
 
-    ../qemu-source/configure \
+    "${SRC_DIR}"/qemu-source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
       --disable-docs \
