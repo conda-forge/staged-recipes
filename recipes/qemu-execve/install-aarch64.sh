@@ -3,7 +3,7 @@
 set -euxo pipefail
 
 mkdir -p "${PREFIX}"/bin
-if [[ "${build_platform}" == "linux-x86_64" ]]; then
+if [[ "${build_platform}" == "linux-64" ]]; then
   install -m 0755 "${SRC_DIR}/_conda-install-aarch64/bin/qemu-aarch64" "${PREFIX}/bin/qemu-execve-aarch64"
 else
   install -m 0755 "${SRC_DIR}/_conda-install-aarch64/bin/qemu-system-aarch64" "${PREFIX}/bin/qemu-system-aarch64"
