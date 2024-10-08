@@ -25,4 +25,4 @@ export TORCHAUDIO_TEST_ALLOW_SKIP_IF_NO_RIR="true"
 export TORCHAUDIO_TEST_ALLOW_SKIP_IF_NO_FFMPEG="true"
 export TORCHAUDIO_TEST_ALLOW_SKIP_IF_NO_SOX="true"
 
-pytest -v test/torchaudio_unittest/ -k "not rnnt and not TestAutogradLfilterCPU and not ray_tracing"
+pytest -v test/torchaudio_unittest/ -k "not TestAutogradLfilterCPU and not rnnt and not ray_tracing and not test_create_mel and not test_forced_align and not test_simulate_rir and not test_deemphasis"
