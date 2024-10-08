@@ -6,7 +6,7 @@ export CARGO_PROFILE_RELEASE_STRIP=symbols
 export CARGO_PROFILE_RELEASE_LTO=fat
 
 # build statically linked binary with Rust
-cargo install --no-track --locked --root "$PREFIX" --path .
+cargo install --no-track --locked --root "$PREFIX" --path numbat-cli
 
 cargo-bundle-licenses \
     --format yaml \
