@@ -13,7 +13,8 @@ if [[ ${cuda_compiler_version} != "None" ]]; then
     # $CUDA_HOME not set in CUDA 12.0. Using $PREFIX
     export CUDA_TOOLKIT_ROOT_DIR="${PREFIX}"
     # CUDA_HOME must be set for the build to work in torchaudio
-    # export CUDA_HOME="${PREFIX}"
+    export CUDA_HOME="${PREFIX}"
+    CMAKE_ARGS+=" -DCUDA_INCLUDE_DIRS=$CUDA_HOME/include"
     NVCC="$(command -v nvcc)"
     export CUDACXX="$NVCC"
   else
