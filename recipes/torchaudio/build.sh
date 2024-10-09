@@ -2,7 +2,6 @@
 set -ex
 
 if [[ ${cuda_compiler_version} != "None" ]]; then
-  CMAKE_ARGS+=" -DCMAKE_CUDA_HOST_COMPILER=\${CXX}"
   # Set the CUDA arch list from
   # https://github.com/conda-forge/pytorch-cpu-feedstock/blob/main/recipe/build_pytorch.sh
   if [[ ${cuda_compiler_version} == 11.8 ]]; then
