@@ -17,7 +17,7 @@ if [[ ${cuda_compiler_version} != "None" ]]; then
     export CUDA_HOME="${PREFIX}"
     NVCC="$(command -v nvcc)"
     echo "NVCC IS $NVCC"
-    export CMAKE_CXX_COMPILER="$NVCC"
+    export CMAKE_CUDA_COMPILER="$NVCC"
   else
     echo "unsupported cuda version. edit build.sh"
     exit 1
