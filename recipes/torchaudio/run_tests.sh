@@ -63,5 +63,6 @@ tests_to_skip="test_souden_mvdr or ${tests_to_skip}"
 # Segfault on CI (probably due to limited memory):
 tests_to_skip="test_pitch_shift_shape_2 or ${tests_to_skip}"
 tests_to_skip="test_paper_configuration or ${tests_to_skip}"
+tests_to_skip="test_oscillator_bank or ${tests_to_skip}"
 
 pytest -v test/torchaudio_unittest/ -k "not (${tests_to_skip})"
