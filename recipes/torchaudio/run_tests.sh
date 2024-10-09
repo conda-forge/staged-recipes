@@ -52,6 +52,8 @@ tests_to_skip="test_forced_align or ${tests_to_skip}"
 # Very slow on CI:
 tests_to_skip="hubert_large or ${tests_to_skip}"
 tests_to_skip="hubert_xlarge or ${tests_to_skip}"
+tests_to_skip="hubert_pretrain_large or ${tests_to_skip}"
+tests_to_skip="hubert_pretrain_xlarge or ${tests_to_skip}"
 tests_to_skip="wavlm_large or ${tests_to_skip}"
 tests_to_skip="test_masking_iid or ${tests_to_skip}"
 tests_to_skip="test_mvdr_0_ref_channel or ${tests_to_skip}"
