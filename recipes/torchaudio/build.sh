@@ -2,10 +2,9 @@
 set -ex
 
 if [[ ${cuda_compiler_version} != "None" ]]; then
+  CMAKE_ARGS+=" -DCMAKE_CUDA_HOST_COMPILER=\${CXX}"
   # Set the CUDA arch list from
   # https://github.com/conda-forge/pytorch-cpu-feedstock/blob/main/recipe/build_pytorch.sh
-  CMAKE_ARGS+=" -DCMAKE_CUDA_HOST_COMPILER=\${CXX}"
-
   if [[ ${cuda_compiler_version} == 11.8 ]]; then
     export TORCH_CUDA_ARCH_LIST="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6;8.9+PTX"
     export CUDA_TOOLKIT_ROOT_DIR=$CUDA_HOME
@@ -17,6 +16,9 @@ if [[ ${cuda_compiler_version} != "None" ]]; then
     export CUDA_HOME="${PREFIX}"
     NVCC="$(command -v nvcc)"
     export CUDACXX="$NVCC"
+    if [[ "${target_platform}" != "${build_platform}" ]]; then
+      export CUDA_TOOLKIT_ROOT=${PREFIX}
+    fi
   else
     echo "unsupported cuda version. edit build.sh"
     exit 1
