@@ -54,6 +54,8 @@ if [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64" 
 
   # Initialize qemu image
   mkdir -p "${SRC_DIR}_conda-init-${qemu_arch}"
+  cp "${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/edk2-arm-vars.fd" "${SRC_DIR}_conda-init-${qemu_arch}/edk2-aarch64-vars.fd"
+
   "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-system-aarch64 \
     -name "Alpine AArch64" \
     -M virt \
@@ -62,8 +64,9 @@ if [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64" 
     -m 2048 \
     -nographic \
     -drive if=pflash,format=raw,file="${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/edk2-aarch64-code.fd",readonly=on \
+    -drive if=pflash,format=raw,file="${SRC_DIR}_conda-init-${qemu_arch}/edk2-aarch64-vars.fd" \
     -drive file="${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/user-disk-image.qcow2",format=qcow2 \
-    -drive file="${RECIPE_DIR}/alpine-virt-${ALPINE_ISO_VERSION}-aarch64.iso",format=raw,readonly=on \
+    -drive file="${SRC_DIR}/alpine-virt-${ALPINE_ISO_VERSION}-aarch64.iso",format=raw,readonly=on \
     -boot menu=on \
     -qmp unix:./qmp-sock,server \
     --monitor stdio \
