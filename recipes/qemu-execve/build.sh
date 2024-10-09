@@ -53,6 +53,7 @@ if [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64" 
      "${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/user-disk-image.qcow2" 10G
 
   # Initialize qemu image
+  mkdir -p "${SRC_DIR}_conda-init-${qemu_arch}"
   "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-system-aarch64 \
     -name "Alpine AArch64" \
     -M virt \
