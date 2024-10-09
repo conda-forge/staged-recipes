@@ -42,14 +42,17 @@ if [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64" 
     "${SRC_DIR}/_conda-build-${qemu_arch}" \
     "${SRC_DIR}/_conda-install-${qemu_arch}"
 
-  # Create blank image
+  # Changer RPATH to $PREFIX for qemu-img and qemu-system-aarch64 (for zstd)
+  install_name_tool -add_rpath "${PREFIX}/lib" "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-img
+  install_name_tool -add_rpath "${PREFIX}/lib" "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-system-aarch64
+
+  # Create image
   "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-img create \
      -f qcow2 \
      -o compression_type=zlib \
      "${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/user-disk-image.qcow2" 10G
 
   # Initialize qemu image
-  mkdir -p "${SRC_DIR}"/_conda-init-${qemu_arch}
   "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-system-aarch64 \
     -name "Alpine AArch64" \
     -M virt \
