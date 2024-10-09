@@ -29,33 +29,33 @@ export TORCHAUDIO_TEST_ALLOW_SKIP_IF_NO_SOX="true"
 ## OVERVIEW OF SKIPPED TESTS
 
 
-# Output 0 of UnbindBackward0 is a view and is being modified inplace. This view is the output of a function that returns multiple views. Such functions do not allow the output views to be modified inplace. You should replace the inplace operation by an out-of-place one.
-# TestAutogradLfilterCPU
-# test_deemphasis
+# Output 0 of UnbindBackward0 is a view and is being modified inplace. 
+# This view is the output of a function that returns multiple views. 
+# Such functions do not allow the output views to be modified inplace. 
+# You should replace the inplace operation by an out-of-place one.
+tests_to_skip="TestAutogradLfilterCPU"
+tests_to_skip="test_deemphasis or ${tests_to_skip}"
 
 # 'torchaudio' object has no attribute 'rnnt_loss'
-# rnnt
-
+tests_to_skip="rnnt or ${tests_to_skip}"
 # 'torchaudio' object has no attribute 'ray_tracing'
-# ray_tracing
-
+tests_to_skip="ray_tracing or ${tests_to_skip}"
 # ValueError: invalid version number '0.10.2.post1'
-# test_create_mel
+tests_to_skip="test_create_mel or ${tests_to_skip}"
 
 # RuntimeError: torchaudio.functional._alignment.forced_align Requires alignment extension, but TorchAudio is not compiled with it.         Please build TorchAudio with alignment support.
-# test_forced_align
+tests_to_skip="test_forced_align or ${tests_to_skip}"
 
 # Very slow on CI:
-# hubert_large
-# hubert_xlarge
-# wavlm_large
-# test_masking_iid
-# test_mvdr_0_ref_channel
-# test_rtf_mvdr
-# test_souden_mvdr
+tests_to_skip="hubert_large or ${tests_to_skip}"
+tests_to_skip="hubert_xlarge or ${tests_to_skip}"
+tests_to_skip="wavlm_large or ${tests_to_skip}"
+tests_to_skip="test_masking_iid or ${tests_to_skip}"
+tests_to_skip="test_mvdr_0_ref_channel or ${tests_to_skip}"
+tests_to_skip="test_rtf_mvdr or ${tests_to_skip}"
+tests_to_skip="test_souden_mvdr or ${tests_to_skip}"
 
 # Segfault on CI (probably due to limited memory):
-# test_pitch_shift_shape_2
-# test_paper_configuration
-
-pytest -v test/torchaudio_unittest/ -k "not TestAutogradLfilterCPU and not test_deemphasis and not rnnt and not ray_tracing and not test_create_mel and not test_forced_align and not hubert_large and not hubert_xlarge and not wavlm_large and not test_masking_iid and not test_mvdr_0_ref_channel and not test_rtf_mvdr and not test_souden_mvdr and not test_pitch_shift_shape_2 and not test_paper_configuration"
+tests_to_skip="test_pitch_shift_shape_2 or ${tests_to_skip}"
+tests_to_skip="test_paper_configuration or ${tests_to_skip}"
+pytest -v test/torchaudio_unittest/ -k "not (${tests_to_skip})"
