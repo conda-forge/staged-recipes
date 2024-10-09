@@ -1,0 +1,102 @@
+
+
+{% set version = "0.3.0" %}
+{% set soversion = ".".join(version.split(".")[:3]) %}
+{% set somajor = version.split(".")[0] %}
+{% set arm_variant_type = arm_variant_type|default("sbsa") %}
+
+package:
+  name: libnvpl-sparse-split
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/nvpl/redist/nvpl_sparse/linux-sbsa/nvpl_sparse-linux-sbsa-{{ version }}-archive.tar.xz
+  sha256: 27fe32b7da18b1be13e95402188bfb0248709a466692d7a6ee92957344b42dfb
+
+build:
+  number: 0
+  # nvpl is only for ARM architecture
+  skip: true  # [not aarch64]
+  script:
+    - cp -rv include $PREFIX
+    - cp -rv lib $PREFIX
+
+outputs:
+
+  - name: libnvpl-sparse-dev
+    build:
+      run_exports:
+        - {{ pin_subpackage("libnvpl-sparse" ~ somajor ) }}
+    files:
+      - include/nvpl_sparse*
+      - include/nvpl_sparse*/**
+      - lib/cmake/nvpl_sparse*/**
+      - lib/libnvpl_sparse*.so
+    requirements:
+      host:
+        - {{ pin_subpackage("libnvpl-sparse" ~ somajor, exact=True) }}
+        - _nvpl_dev_mutex
+        - libnvpl-common-dev
+      run:
+        - _nvpl_dev_mutex
+        - {{ pin_compatible("libnvpl-common-dev", exact=True) }}
+        - {{ pin_subpackage("libnvpl-sparse" ~ somajor, exact=True) }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}
+    test:
+      files:
+        - test
+      requires:    # [build_platform == target_platform]
+        - {{ compiler("c") }}  # [build_platform == target_platform]
+        - {{ compiler("cxx") }}  # [build_platform == target_platform]
+        - {{ stdlib("c") }}  # [build_platform == target_platform]
+        - cmake   # [build_platform == target_platform]
+        - ninja  # [build_platform == target_platform]
+      commands:
+        - cmake ${CMAKE_ARGS} -GNinja test  # [build_platform == target_platform]
+        - cmake --build .  # [build_platform == target_platform]
+        - test -f $PREFIX/include/nvpl_sparse.h
+        - test -f $PREFIX/lib/cmake/nvpl_sparse/nvpl_sparse-config.cmake
+        - test -f $PREFIX/lib/libnvpl_sparse.so
+
+  - name: libnvpl-sparse{{ somajor }}
+    build:
+      run_exports:
+        - {{ pin_subpackage("libnvpl-sparse" ~ somajor ) }}
+    files:
+      - lib/libnvpl_sparse*.so.*
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ stdlib("c") }}
+        - arm-variant * {{ arm_variant_type }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}
+    test:
+      commands:
+        - test -f $PREFIX/lib/libnvpl_sparse.so.{{ somajor }}
+        - test -f $PREFIX/lib/libnvpl_sparse.so.{{ soversion }}
+
+about:
+  home: https://developer.nvidia.com/nvpl
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_file: LICENSE
+  license_url: https://docs.nvidia.com/nvpl/license.html
+  summary: >-
+    The NVIDIA Performance Libraries (NVPL) are a collection of high
+    performance mathematical libraries optimized for the NVIDIA Grace Armv9.0
+    architecture.
+  description: >-
+    The NVIDIA Performance Libraries (NVPL) are a collection of high
+    performance mathematical libraries optimized for the NVIDIA Grace Armv9.0
+    architecture.
+
+    These CPU-only libraries have no dependencies on CUDA or CTK, and are drop
+    in replacements for standard C and Fortran mathematical APIs allowing HPC
+    applications to achieve maximum performance on the Grace platform.
+  doc_url: https://docs.nvidia.com/nvpl/
+
+extra:
+  feedstock-name: libnvpl-sparse
+  recipe-maintainers:
+    - conda-forge/cuda
