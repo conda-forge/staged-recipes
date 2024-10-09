@@ -1,0 +1,107 @@
+{% set version = "0.2.0" %}
+{% set soversion = ".".join(version.split(".")[:3]) %}
+{% set somajor = version.split(".")[0] %}
+{% set arm_variant_type = arm_variant_type|default("sbsa") %}
+
+package:
+  name: libnvpl-tensor-split
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/nvpl/redist/nvpl_tensor/linux-sbsa/nvpl_tensor-linux-sbsa-{{ version }}-archive.tar.xz
+  sha256: 74b0752772e6dd561d030d39739cca6ffc77b5b19abb1e9a9db9700c487d56d6
+
+build:
+  number: 0
+  # nvpl is only for ARM architecture
+  skip: true  # [not aarch64]
+  script:
+    - cp -rv include $PREFIX
+    - cp -rv lib $PREFIX
+
+outputs:
+
+  - name: libnvpl-tensor-dev
+    build:
+      run_exports:
+        - {{ pin_subpackage("libnvpl-tensor" ~ somajor ) }}
+    files:
+      - include/nvpl_tensor*
+      - include/nvpl_tensor*/**
+      - lib/cmake/nvpl_tensor*/**
+      - lib/libnvpl_tensor*.so
+    requirements:
+      host:
+        - {{ pin_subpackage("libnvpl-tensor" ~ somajor, exact=True) }}
+        - _nvpl_dev_mutex
+        - libnvpl-common-dev
+        - libnvpl-blas-dev
+      run:
+        - _nvpl_dev_mutex
+        - {{ pin_compatible("libnvpl-common-dev", exact=True) }}
+        - {{ pin_compatible("libnvpl-blas-dev", exact=True) }}
+        - {{ pin_subpackage("libnvpl-tensor" ~ somajor, exact=True) }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}
+    test:
+      files:
+        - test
+      requires:    # [build_platform == target_platform]
+        - {{ compiler("c") }}  # [build_platform == target_platform]
+        - {{ compiler("cxx") }}  # [build_platform == target_platform]
+        - {{ stdlib("c") }}  # [build_platform == target_platform]
+        - cmake   # [build_platform == target_platform]
+        - ninja  # [build_platform == target_platform]
+      commands:
+        - cmake ${CMAKE_ARGS} -GNinja test  # [build_platform == target_platform]
+        - cmake --build .  # [build_platform == target_platform]
+        - test -f $PREFIX/include/nvpl_tensor.h
+        - test -f $PREFIX/lib/cmake/nvpl_tensor/nvpl_tensor-config.cmake
+        - test -f $PREFIX/lib/libnvpl_tensor.so
+
+  - name: libnvpl-tensor{{ somajor }}
+    build:
+      run_exports:
+        - {{ pin_subpackage("libnvpl-tensor" ~ somajor ) }}
+    files:
+      - lib/libnvpl_tensor*.so.*
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ stdlib("c") }}
+        - arm-variant * {{ arm_variant_type }}
+        - libgomp
+      host:
+        - _nvpl_dev_mutex
+        - libnvpl-common-dev
+        - libnvpl-blas-dev
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}
+    test:
+      commands:
+        - test -f $PREFIX/lib/libnvpl_tensor.so.{{ somajor }}
+        - test -f $PREFIX/lib/libnvpl_tensor.so.{{ soversion }}
+
+about:
+  home: https://developer.nvidia.com/nvpl
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_file: LICENSE
+  license_url: https://docs.nvidia.com/nvpl/license.html
+  summary: >-
+    The NVIDIA Performance Libraries (NVPL) are a collection of high
+    performance mathematical libraries optimized for the NVIDIA Grace Armv9.0
+    architecture.
+  description: >-
+    The NVIDIA Performance Libraries (NVPL) are a collection of high
+    performance mathematical libraries optimized for the NVIDIA Grace Armv9.0
+    architecture.
+
+    These CPU-only libraries have no dependencies on CUDA or CTK, and are drop
+    in replacements for standard C and Fortran mathematical APIs allowing HPC
+    applications to achieve maximum performance on the Grace platform.
+  doc_url: https://docs.nvidia.com/nvpl/
+
+extra:
+  feedstock-name: libnvpl-tensor
+  recipe-maintainers:
+    - conda-forge/cuda
