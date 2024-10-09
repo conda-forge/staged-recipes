@@ -40,10 +40,13 @@ tests_to_skip="test_deemphasis or ${tests_to_skip}"
 tests_to_skip="rnnt or ${tests_to_skip}"
 # 'torchaudio' object has no attribute 'ray_tracing'
 tests_to_skip="ray_tracing or ${tests_to_skip}"
+# object has no attribute _simulate_rir:
+tests_to_skip="test_simulate_rir or ${tests_to_skip}"
 # ValueError: invalid version number '0.10.2.post1'
 tests_to_skip="test_create_mel or ${tests_to_skip}"
 
-# RuntimeError: torchaudio.functional._alignment.forced_align Requires alignment extension, but TorchAudio is not compiled with it.         Please build TorchAudio with alignment support.
+# RuntimeError: torchaudio.functional._alignment.forced_align Requires alignment extension, but TorchAudio is not compiled with it.
+# Please build TorchAudio with alignment support.
 tests_to_skip="test_forced_align or ${tests_to_skip}"
 
 # Very slow on CI:
@@ -58,4 +61,5 @@ tests_to_skip="test_souden_mvdr or ${tests_to_skip}"
 # Segfault on CI (probably due to limited memory):
 tests_to_skip="test_pitch_shift_shape_2 or ${tests_to_skip}"
 tests_to_skip="test_paper_configuration or ${tests_to_skip}"
+
 pytest -v test/torchaudio_unittest/ -k "not (${tests_to_skip})"
