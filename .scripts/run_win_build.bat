@@ -3,13 +3,39 @@
 :: changes to this script, consider a proposal to conda-smithy so that other feedstocks can also
 :: benefit from the improvement.
 
-:: Note: we assume a Miniforge installation is available
-
 :: INPUTS (required environment variables)
 :: CONDA_BLD_PATH: path for the conda-build workspace
 :: CI: azure, or unset
 
 setlocal enableextensions enabledelayedexpansion
+
+call :start_group "Installing conda"
+
+set "PIXI_VERSION=0.30.0"
+set "PIXI_URL=https://github.com/prefix-dev/pixi/releases/download/v%PIXI_VERSION%/pixi-x86_64-pc-windows-msvc.exe"
+set "PIXI_TMPDIR=%TMP%\pixi-%RANDOM%"
+set "PIXI_TMP=%PIXI_TMPDIR%\pixi.exe"
+set "REPO_ROOT=%~dp0.."
+set "MINIFORGE_ROOT=%REPO_ROOT%\.pixi\envs\default"
+
+echo Downloading pixi %PIXI_VERSION%
+if not exist "%PIXI_TMPDIR%" mkdir "%PIXI_TMPDIR%"
+certutil -urlcache -split -f "%PIXI_URL%" "%PIXI_TMP%"
+if errorlevel 1 exit 1
+
+echo Importing environment
+pushd "%REPO_ROOT%"
+call "%PIXI_TMP%" init --import .ci_support\requirements.yaml --platform win-64
+if errorlevel 1 exit 1
+echo Creating environment
+call "%PIXI_TMP%" install
+if errorlevel 1 exit 1
+echo Listing environment
+call "%PIXI_TMP%" list
+if errorlevel 1 exit 1
+popd
+
+call :end_group
 
 call :start_group "Configuring conda"
 
@@ -18,8 +44,12 @@ if "%CONDA_BLD_PATH%" == "" (
 )
 
 :: Activate the base conda environment
-call activate base
+echo Activating "%MINIFORGE_ROOT%"
+call "%MINIFORGE_ROOT%\Scripts\activate"
+if errorlevel 1 exit 1
 
+:: Set basic configuration
+echo Setting up configuration
 conda.exe config --set always_yes yes
 if errorlevel 1 exit 1
 conda.exe config --set channel_priority strict
@@ -27,12 +57,6 @@ if errorlevel 1 exit 1
 conda.exe config --set solver libmamba
 if errorlevel 1 exit 1
 
-echo Installing dependencies
-conda.exe install --file .\.ci_support\requirements.txt
-if errorlevel 1 exit 1
-
-:: Set basic configuration
-echo Setting up configuration
 setup_conda_rc .\ ".\recipes" .\.ci_support\%CONFIG%.yaml
 if errorlevel 1 exit 1
 
@@ -41,8 +65,9 @@ call run_conda_forge_build_setup
 if errorlevel 1 exit 1
 
 echo Force fetch origin/main
-git fetch --force origin main:main
-if errorlevel 1 exit 1
+:: Temporary
+:: git fetch --force origin main:main
+:: if errorlevel 1 exit 1
 echo Removing recipes also present in main
 cd recipes
 for /f "tokens=*" %%a in ('git ls-tree --name-only main -- .') do rmdir /s /q %%a && echo Removing recipe: %%a
