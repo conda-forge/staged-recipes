@@ -16,9 +16,7 @@ if [[ ${cuda_compiler_version} != "None" ]]; then
     # CUDA_HOME must be set for the build to work in torchaudio
     export CUDA_HOME="${PREFIX}"
     NVCC="$(command -v nvcc)"
-    echo "NVCC IS $NVCC"
     export CUDACXX="$NVCC"
-    ln -s $NVCC $PREFIX/bin/nvcc
   else
     echo "unsupported cuda version. edit build.sh"
     exit 1
