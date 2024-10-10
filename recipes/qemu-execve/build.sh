@@ -73,6 +73,6 @@ if [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64" 
 
   python "${RECIPE_DIR}/helpers/qmp-connect.py"
 
-  sleep 120
+  sleep 300
   kill $(cat qemu_pid.txt)
 fi
