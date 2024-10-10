@@ -7,7 +7,7 @@ mkdir -p build
 cd build
 
 if [[ "${target_platform}" == "linux-"* ]]; then
-    cmake \
+    cmake $CMAKE_ARGS \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=${PREFIX} \
         ..
