@@ -12,6 +12,7 @@ cmake $SRC_DIR \
     -G Ninja \
     -B build \
     -DBUILD_SHARED_LIBS=ON \
+    -DDCMAKE_INSTALL_LIBDIR=lib \
     -DCMAKE_BUILD_TYPE=Release
 
 cmake --build build --parallel
