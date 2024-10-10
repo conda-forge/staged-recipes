@@ -1,3 +1,5 @@
+set RUSTC_BOOTSTRAP=1
+
 :: check licenses
 cargo-bundle-licenses ^
     --format yaml ^
