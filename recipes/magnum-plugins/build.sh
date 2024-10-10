@@ -13,7 +13,8 @@ cmake $SRC_DIR \
     -B build \
     -DBUILD_SHARED_LIBS=ON \
     -DCMAKE_BUILD_TYPE=Release \
-    -DLIB_SUFFIX=""
+    -DLIB_SUFFIX="" \
+    -DBUILD_TESTS=OFF
 
 cmake --build build --parallel
 

@@ -13,6 +13,7 @@ export CMAKE_ARGS="\
     -DUSE_SYSTEM_PYBIND11=ON \
     -DUSE_SYSTEM_RAPIDJSON=ON \
     -DUSE_SYSTEM_BULLET=ON \
-    -DUSE_SYSTEM_ZSTD=ON"
+    -DUSE_SYSTEM_ZSTD=ON" \
+    -DLIB_SUFFIX=""
 
 python -m pip install . -vv
