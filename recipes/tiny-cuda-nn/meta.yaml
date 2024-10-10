@@ -1,0 +1,91 @@
+{% set name = "tiny-cuda-nn" %}
+{% set version = "1.6" %}
+
+{% if cuda_compiler_version in (None, "None", True, False) %}
+{% set cuda_major = 0 %}
+{% else %}
+{% set cuda_major = environ.get("cuda_compiler_version", "11.8").split(".")[0] | int %}
+{% endif %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/NVlabs/tiny-cuda-nn/archive/v{{ version }}.tar.gz
+    sha256: 490c944b58af1b376bfaaa3695f86d16eef81c3f903b67acdbd4d08612b099c5
+
+build:
+  number: 0
+  skip: true  # [osx]
+  skip: true  # [win]
+  string: cpu_py{{ CONDA_PY }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version == "None"]
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}_py{{ CONDA_PY }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [cuda_compiler_version != "None"]
+
+requirements:
+  build:
+    - {{ compiler("cxx") }}
+    - {{ compiler("cuda") }}    # [cuda_compiler_version != "None"]
+    - {{ stdlib("c") }}
+    {% if cuda_major >= 12 %}
+    - cuda-driver-dev           # [build_platform != target_platform]
+    - cuda-cudart-dev           # [build_platform != target_platform]
+    - cuda-nvrtc-dev            # [build_platform != target_platform]
+    - cuda-nvtx-dev             # [build_platform != target_platform]
+    - cuda-nvml-dev             # [build_platform != target_platform]
+    - cuda-profiler-api         # [build_platform != target_platform]
+    - libcublas-dev             # [build_platform != target_platform]
+    - libcufft-dev              # [build_platform != target_platform]
+    - libcurand-dev             # [build_platform != target_platform]
+    - libcusolver-dev           # [build_platform != target_platform]
+    - libcusparse-dev           # [build_platform != target_platform]
+    {% endif %}
+    - cmake
+    - pybind11
+    - pytorch
+  host:
+    # GPU requirements
+    - cudnn                                     # [cuda_compiler_version != "None"]
+    - nccl                                      # [cuda_compiler_version != "None"]
+    - magma                                     # [cuda_compiler_version != "None"]
+    - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version != "None"]
+    {% if cuda_major >= 12 %}
+    - cuda-driver-dev
+    - cuda-cudart-dev
+    - cuda-nvrtc-dev
+    - cuda-nvtx-dev
+    - cuda-nvml-dev
+    - cuda-profiler-api
+    - libcublas-dev
+    - libcufft-dev
+    - libcurand-dev
+    - libcusolver-dev
+    - libcusparse-dev
+    {% endif %}
+    # other requirements
+    - pip
+    - python
+    - pytorch
+    - setuptools
+    - setuptools_scm
+  run:
+    - python
+    - pytorch
+
+test:
+  imports:
+    - tinycudann
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/NVlabs/tiny-cuda-nn
+  summary: Lightning fast C++/CUDA neural network framework
+  license: BSD-3-Clause
+  license_file: LICENSE.txt
+
+extra:
+  recipe-maintainers:
+    - jeongseok-meta
