@@ -1,0 +1,68 @@
+{% set name = "swmm-toolkit" %}
+{% set version = "0.15.2" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/swmm-toolkit-{{ version }}.tar.gz
+  sha256: bc3d36e6cca656a6d18c4077b9fc429b54b65f8f7f9091dac5f5b7cd5a66f6dc
+
+build:
+  script:
+    - export CFLAGS="${CFLAGS} -D_FORTIFY_SOURCE=2"  # [osx]
+    - export CXXFLAGS="${CXXFLAGS} -D_FORTIFY_SOURCE=2"  # [osx]
+    - {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+    
+  number: 0
+  skip: true  # [py<38]
+  missing_dso_whitelist:  # [win]
+    - "*/swmm5.dll"  # [win]
+    - "*/swmm-output.dll"  # [win]
+
+requirements:
+  build:
+    - python  # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}  # [build_platform != target_platform]
+    - cmake >=3.21
+    - make  # [linux]
+    - swig ==4.0.2
+    - ninja ==1.11.1  # [osx]
+    - {{ stdlib('c') }}
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - llvm-openmp  # [osx]
+    - libgomp  # [linux]
+  host:
+    - python
+    - setuptools >=42
+    - scikit-build >=0.13
+    - pip
+    - llvm-openmp  # [osx]
+    - libgomp  # [linux]
+  run:
+    - python
+    - aenum ==3.1.11
+
+test:
+  imports:
+    - swmm.toolkit.solver
+    - swmm.toolkit.output
+  commands:
+    - pip check
+  requires:
+    - pip
+
+about:
+  home: https://github.com/OpenWaterAnalytics/swmm-python
+  summary: OWA SWMM Python Toolkit
+  license: CC0-1.0
+  license_file:
+    - LICENSE.md
+    - swmm-solver/LICENSE
+
+extra:
+  recipe-maintainers:
+    - karosc
+    - cheginit
