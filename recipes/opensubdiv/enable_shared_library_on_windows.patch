@@ -1,0 +1,132 @@
+From fe072e6142689b10af11cb7120f67009e0366420 Mon Sep 17 00:00:00 2001
+From: Silvio Traversaro <silvio@traversaro.it>
+Date: Mon, 7 Oct 2024 15:17:21 +0200
+Subject: [PATCH] Add support for building shared libraries on Windows
+
+---
+ CMakeLists.txt            |  8 --------
+ opensubdiv/CMakeLists.txt | 34 +++++++++++++++++++++++++++++++---
+ opensubdiv/sdc/crease.h   |  4 ++--
+ opensubdiv/version.h      |  6 ++++++
+ 4 files changed, 39 insertions(+), 13 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 8620cf3df4..19f7dd11bc 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -680,14 +680,6 @@ if (WIN32)
+         )
+     endif()
+ 
+-    # Link examples & regressions statically against Osd for
+-    # Windows until all the kinks can be worked out.
+-    if( OSD_GPU )
+-        set( OSD_LINK_TARGET osd_static_cpu osd_static_gpu )
+-    else()
+-        set( OSD_LINK_TARGET osd_static_cpu )
+-    endif()
+-
+ endif()
+ 
+ 
+diff --git a/opensubdiv/CMakeLists.txt b/opensubdiv/CMakeLists.txt
+index 2ab3f34a69..6bbc174d9e 100644
+--- a/opensubdiv/CMakeLists.txt
++++ b/opensubdiv/CMakeLists.txt
+@@ -178,9 +178,11 @@ if (NOT NO_LIB)
+         install( TARGETS osd_static_gpu EXPORT opensubdiv-targets DESTINATION "${CMAKE_LIBDIR_BASE}" )
+     endif()
+ 
+-
+     # Build dynamic libs  ----------------------------------
+-    if (BUILD_SHARED_LIBS AND NOT WIN32 AND NOT IOS)
++    if (BUILD_SHARED_LIBS AND WIN32)
++        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
++    endif ()
++    if (BUILD_SHARED_LIBS AND NOT IOS)
+ 
+         # generate dynamic-link targets
+ 
+@@ -216,11 +218,26 @@ if (NOT NO_LIB)
+             INTERFACE
+                 $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+         )
+-
+         target_link_libraries(osd_dynamic_cpu
+             ${PLATFORM_CPU_LIBRARIES}
+         )
+ 
++        if (WIN32)
++            target_compile_definitions(osd_dynamic_cpu INTERFACE OPENSUBDIR_CONSUMED_AS_SHARED)
++            # Workaround for https://gitlab.kitware.com/cmake/cmake/-/issues/26356
++            file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/static_attributes_exports.def
++"EXPORTS
++    ?SHARPNESS_SMOOTH@Crease@Sdc@${OpenSubdiv_VERSION}@OpenSubdiv@@2MB 	 DATA
++    ?SHARPNESS_INFINITE@Crease@Sdc@${OpenSubdiv_VERSION}@OpenSubdiv@@2MB 	 DATA
++")
++            target_sources(osd_dynamic_cpu PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/static_attributes_exports.def)
++
++            set_target_properties(osd_dynamic_cpu
++                PROPERTIES
++                    ARCHIVE_OUTPUT_NAME osdCPU_import
++                )
++        endif()
++
+         install( TARGETS osd_dynamic_cpu EXPORT opensubdiv-targets LIBRARY DESTINATION "${CMAKE_LIBDIR_BASE}" )
+ 
+         #---------------------------------------------------
+@@ -250,6 +267,13 @@ if (NOT NO_LIB)
+                     )
+             endif()
+ 
++            if(WIN32)
++                set_target_properties(osd_dynamic_gpu
++                    PROPERTIES
++                        ARCHIVE_OUTPUT_NAME osdGPU_import
++                    )
++            endif()
++
+             target_include_directories(osd_dynamic_gpu
+                 INTERFACE
+                     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+@@ -260,6 +284,10 @@ if (NOT NO_LIB)
+                 ${PLATFORM_CPU_LIBRARIES} ${PLATFORM_GPU_LIBRARIES}
+             )
+ 
++            if (WIN32)
++                target_compile_definitions(osd_dynamic_gpu PUBLIC OPENSUBDIR_SHARED)
++            endif()
++
+             install( TARGETS osd_dynamic_gpu EXPORT opensubdiv-targets LIBRARY DESTINATION "${CMAKE_LIBDIR_BASE}" )
+         endif()
+ 
+diff --git a/opensubdiv/sdc/crease.h b/opensubdiv/sdc/crease.h
+index 2d7fba368e..bcac83e033 100644
+--- a/opensubdiv/sdc/crease.h
++++ b/opensubdiv/sdc/crease.h
+@@ -64,8 +64,8 @@ class Crease {
+     //@{
+     ///  Constants and related queries of sharpness values:
+     ///
+-    static float const SHARPNESS_SMOOTH;    // =  0.0f, do we really need this?
+-    static float const SHARPNESS_INFINITE;  // = 10.0f;
++    OPENSUBDIR_EXPORT static float const SHARPNESS_SMOOTH;    // =  0.0f, do we really need this?
++    OPENSUBDIR_EXPORT static float const SHARPNESS_INFINITE;  // = 10.0f;
+ 
+     static bool IsSmooth(float sharpness)    { return sharpness <= SHARPNESS_SMOOTH; }
+     static bool IsSharp(float sharpness)     { return sharpness > SHARPNESS_SMOOTH; }
+diff --git a/opensubdiv/version.h b/opensubdiv/version.h
+index 6042e65f0a..677d8a843a 100644
+--- a/opensubdiv/version.h
++++ b/opensubdiv/version.h
+@@ -42,4 +42,10 @@ using namespace OPENSUBDIV_VERSION;
+ 
+ } // end namespace OpenSubdiv
+ 
++#if defined(_WIN32) && defined(OPENSUBDIR_CONSUMED_AS_SHARED)
++#define OPENSUBDIR_EXPORT __declspec(dllimport)
++#else
++#define OPENSUBDIR_EXPORT
++#endif /* defined(_WIN32) */
++
+ #endif /* OPENSUBDIV3_VERSION_H */

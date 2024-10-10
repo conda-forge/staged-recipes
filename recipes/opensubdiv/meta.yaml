@@ -1,0 +1,54 @@
+{% set name = "libopensubdiv" %}
+{% set version = "3.6.0" %}
+{% set version_tag = version.replace('.', "_") %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/PixarAnimationStudios/OpenSubdiv/archive/v{{ version_tag }}.tar.gz
+    sha256: bebfd61ab6657a4f4ff27845fb66a167d00395783bfbd253254d87447ed1d879
+    patches:
+      - disable_install_of_static_libraries.patch
+      - enable_shared_library_on_windows.patch
+
+build:
+  number: 0
+  # SONAME is x.x.x
+  run_exports:
+    - {{ pin_subpackage(name, max_pin='x.x.x') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ stdlib('c') }}
+    - {{ compiler('cxx') }}
+    - ninja
+    - cmake
+  host:
+    - tbb-devel
+
+
+test:
+  commands:
+    - test -f ${PREFIX}/include/opensubdiv/far/topologyRefiner.h  # [not win]
+    - test -f ${PREFIX}/lib/libosdCPU${SHLIB_EXT}  # [unix]
+    - test ! -f ${PREFIX}/lib/libosdCPU.a  # [unix]
+    - test -f ${PREFIX}/lib/cmake/OpenSubdiv/OpenSubdivConfig.cmake  # [not win]
+    - if not exist %PREFIX%\\Library\\include\\opensubdiv\\far\\topologyRefiner.h exit 1  # [win]
+    - if exist %PREFIX%\\Library\\lib\\osdCPU.lib exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\lib\\osdCPU_import.lib exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\bin\\osdCPU.dll exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\lib\\cmake\\OpenSubdiv\\OpenSubdivConfig.cmake exit 1  # [win]
+
+about:
+  home: https://github.com/PixarAnimationStudios/OpenSubdiv
+  license: Pixar
+  license_file: LICENSE.txt
+  summary: An Open-Source subdivision surface library.
+
+extra:
+  feedstock-name: opensubdiv
+  recipe-maintainers:
+    - traversaro
