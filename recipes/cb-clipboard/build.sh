@@ -2,8 +2,6 @@
 
 set -exuo pipefail
 
-export CFLAGS="${CFLAGS/-Os/-O3}"
-export CXXFLAGS="${CXXFLAGS/-Os/-O3}"
 
 mkdir -p build
 cd build
