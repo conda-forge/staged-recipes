@@ -19,10 +19,10 @@ cmake $SRC_DIR \
     -DBUILD_TESTS=OFF \
     -DWITH_EIGEN=ON
 
-cmake --build build --parallel
+cmake --build $build_dir --parallel
 
 if [[ "${CONDA_BUILD_CROSS_COMPILATION:-}" != "1" || "${CROSSCOMPILING_EMULATOR}" != "" ]]; then
-    ctest --test-dir build --output-on-failure
+    ctest --test-dir $build_dir --output-on-failure
 fi
 
-cmake --build build --target install
+cmake --build $build_dir --target install
