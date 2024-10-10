@@ -13,9 +13,9 @@ if [[ ${cuda_compiler_version} != "None" ]]; then
     export CUDA_TOOLKIT_ROOT_DIR="${PREFIX}"
     # CUDA_HOME must be set for the build to work in torchaudio
     export CUDA_HOME="${PREFIX}"
-    CMAKE_ARGS+=" -DCUDA_INCLUDE_DIRS=$CUDA_HOME/include"
-    NVCC="$(command -v nvcc)"
-    export CUDACXX="$NVCC"
+    # CMAKE_ARGS+=" -DCUDA_INCLUDE_DIRS=$CUDA_HOME/include"
+    # NVCC="$(command -v nvcc)"
+    # export CUDACXX="$NVCC"
   else
     echo "unsupported cuda version. edit build.sh"
     exit 1
@@ -44,13 +44,13 @@ export USE_FFMPEG=0
 # RNNT loss is buggy
 export BUILD_RNNT=0
 
-export CMAKE_C_COMPILER="$CC"
-export CMAKE_CXX_COMPILER="$CXX"
-export CMAKE_GENERATOR="Ninja"
+# export CMAKE_C_COMPILER="$CC"
+# export CMAKE_CXX_COMPILER="$CXX"
+# export CMAKE_GENERATOR="Ninja"
 
 # workaround for cmake-vs-nvcc: make sure we pick up the our own c-compiler
-ln -s $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-cc $BUILD_PREFIX/bin/gcc
-ln -s $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-c++ $BUILD_PREFIX/bin/c++
-ln -s $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-g++ $BUILD_PREFIX/bin/g++
+# ln -s $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-cc $BUILD_PREFIX/bin/gcc
+# ln -s $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-c++ $BUILD_PREFIX/bin/c++
+# ln -s $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-g++ $BUILD_PREFIX/bin/g++
 
 python -m pip install . -vv
