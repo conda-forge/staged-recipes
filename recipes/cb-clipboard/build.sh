@@ -12,7 +12,6 @@ if [[ "${target_platform}" == "linux-"* ]]; then
         -DCMAKE_INSTALL_PREFIX=${PREFIX} \
         ..
 elif [[ "${target_platform}" == "osx-"* ]]; then
-    export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
     
     cmake \
         -DCMAKE_BUILD_TYPE=Release \
