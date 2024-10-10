@@ -19,10 +19,10 @@ cmake $SRC_DIR \
     -DBUILD_TESTS=OFF \
     -DMAGNUM_WITH_ASSIMPIMPORTER=ON
 
-cmake --build $build_dir --parallel
+cmake --build build --parallel
 
 if [[ "${CONDA_BUILD_CROSS_COMPILATION:-}" != "1" || "${CROSSCOMPILING_EMULATOR}" != "" ]]; then
-    ctest --test-dir $build_dir --output-on-failure
+    ctest --test-dir build --output-on-failure
 fi
 
-cmake --build $build_dir --target install
+cmake --build build --target install
