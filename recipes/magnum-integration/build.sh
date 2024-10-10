@@ -7,12 +7,10 @@ if [[ "${target_platform}" == osx-* ]]; then
     CXXFLAGS="${CXXFLAGS} -D_LIBCPP_DISABLE_AVAILABILITY"
 fi
 
-build_dir=$SRC_DIR-build
-
 cmake $SRC_DIR \
     ${CMAKE_ARGS} \
     -G Ninja \
-    -B $build_dir \
+    -B build \
     -DBUILD_SHARED_LIBS=ON \
     -DCMAKE_BUILD_TYPE=Release \
     -DLIB_SUFFIX="" \
