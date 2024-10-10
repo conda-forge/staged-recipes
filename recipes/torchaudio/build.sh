@@ -44,10 +44,9 @@ export USE_FFMPEG=0
 # RNNT loss is buggy
 export BUILD_RNNT=0
 
-# export CMAKE_C_COMPILER="$CC"
-# export CMAKE_CXX_COMPILER="$CXX"
+export CMAKE_C_COMPILER="$CC"
+export CMAKE_CXX_COMPILER="$CXX"
 # export CMAKE_GENERATOR="Ninja"
-
 
 # workaround for cmake-vs-nvcc: make sure we pick up the our own c-compiler
 # ln -s $BUILD_PREFIX/bin/x86_64-conda-linux-gnu-cc $BUILD_PREFIX/bin/gcc
