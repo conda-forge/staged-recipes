@@ -1,0 +1,97 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 8345623..23c2a4a 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -2,7 +2,15 @@
+ # It should also work without this option, but we do not test with it.
+ cmake_minimum_required(VERSION 3.5)
+ 
+-project(basisu)
++project(basisu
++        VERSION 1.16.3
++        LANGUAGES C CXX)
++
++if (NOT CMAKE_CXX_STANDARD)
++    set(CMAKE_CXX_STANDARD 11)
++    set(CMAKE_CXX_STANDARD_REQUIRED ON)
++endif()
++
+ option(STATIC "static linking" FALSE)
+ option(SAN "sanitize" FALSE)
+ 
+@@ -167,7 +175,12 @@ if (ZSTD)
+ endif()
+ 
+ # Create the static library
+-add_library(basisu_encoder STATIC ${ENCODER_LIB_SRC_LIST})
++add_library(basisu_encoder ${ENCODER_LIB_SRC_LIST})
++set_target_properties(basisu_encoder PROPERTIES OUTPUT_NAME "basisu")
++target_include_directories(basisu_encoder PUBLIC
++                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/transcoder>
++                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/encoder>
++                           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+ 
+ # Create the basisu executable and link against the static library
+ add_executable(basisu basisu_tool.cpp)
+@@ -252,3 +265,61 @@ if (MSVC)
+         RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+     )	
+ endif()
++
++# GNU filesystem conventions
++include(GNUInstallDirs)
++
++set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
++
++# Windows build shared libraries
++set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
++
++option(INSTALL_LIB "Whether to install the library and its include files" ON)
++if (INSTALL_LIB )
++
++    file(GLOB BASISU_LIB_ENCODER_PUBLIC_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "encoder/basisu*.h*")
++    file(GLOB BASISU_LIB_TRANSCODER_PUBLIC_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "transcoder/basisu*.h*")
++    set_target_properties(basisu_encoder PROPERTIES PUBLIC_HEADER
++                          "${BASISU_LIB_ENCODER_PUBLIC_HEADERS};${BASISU_LIB_TRANSCODER_PUBLIC_HEADERS}")
++
++    include(CMakePackageConfigHelpers)
++
++    install(TARGETS basisu_encoder
++            EXPORT basisu_lib_export
++            PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/basisu")
++
++    set(namespace "basisu")
++    set(install_cmake_config "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
++
++    install(EXPORT basisu_lib_export
++        FILE "${PROJECT_NAME}Targets.cmake"
++        NAMESPACE ${namespace}::
++        DESTINATION "${install_cmake_config}"
++    )
++
++    # generate the version file for the config file
++    write_basic_package_version_file(
++        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
++        VERSION "${version}"
++        COMPATIBILITY ExactVersion
++    )
++
++    # create config file
++    configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Config.cmake.in
++        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
++        INSTALL_DESTINATION "${install_cmake_config}"
++    )
++
++    # install config files
++    install(FILES
++        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
++        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
++        DESTINATION "${install_cmake_config}"
++    )
++
++    # generate the export targets for the build tree
++    export(EXPORT basisu_lib_export
++        FILE "${CMAKE_CURRENT_BINARY_DIR}/cmake/${PROJECT_NAME}Targets.cmake"
++        NAMESPACE ${namespace}::
++    )
++endif()
