@@ -68,8 +68,7 @@ if [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64" 
     -drive file="${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/user-disk-image.qcow2",format=qcow2 \
     -drive file="${SRC_DIR}/alpine-virt-${ALPINE_ISO_VERSION}-aarch64.iso",format=raw,readonly=on \
     -boot menu=on \
-    -qmp unix:./qmp-sock,server \
-    --monitor stdio \
+    -qmp unix:./qmp-sock,server
     & echo $! > qemu_pid.txt
 
   python "${RECIPE_DIR}/helpers/qmp-connect.py"
