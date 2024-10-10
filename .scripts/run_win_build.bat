@@ -3,13 +3,36 @@
 :: changes to this script, consider a proposal to conda-smithy so that other feedstocks can also
 :: benefit from the improvement.
 
-:: Note: we assume a Miniforge installation is available
-
 :: INPUTS (required environment variables)
 :: CONDA_BLD_PATH: path for the conda-build workspace
 :: CI: azure, or unset
 
 setlocal enableextensions enabledelayedexpansion
+
+call :start_group "Installing conda"
+
+set "MICROMAMBA_VERSION=2.0.2-0"
+set "MICROMAMBA_URL=https://github.com/mamba-org/micromamba-releases/releases/download/%MICROMAMBA_VERSION%/micromamba-win-64"
+set "MICROMAMBA_TMPDIR=%TMP%\micromamba-%RANDOM%"
+set "MICROMAMBA_TMP=%MICROMAMBA_TMPDIR%\micromamba.exe"
+if "%MINIFORGE_HOME%"=="" (
+    set "MINIFORGE_HOME=%USERPROFILE%\Miniforge"
+)
+set "MAMBA_ROOT_PREFIX=%MINIFORGE_HOME%\..\micromamba"
+
+echo Downloading micromamba %MICROMAMBA_VERSION%
+if not exist "%MICROMAMBA_TMPDIR%" mkdir "%MICROMAMBA_TMPDIR%"
+certutil -urlcache -split -f "%MICROMAMBA_URL%" "%MICROMAMBA_TMP%"
+if errorlevel 1 exit 1
+
+echo Creating environment
+call "%MICROMAMBA_TMP%" create --yes --root-prefix "%MAMBA_ROOT_PREFIX%" --prefix "%MINIFORGE_HOME%" ^
+    --no-exp-repodata-parsing ^
+    --channel conda-forge ^
+    --file .ci_support\requirements.txt
+if errorlevel 1 exit 1
+
+call :end_group
 
 call :start_group "Configuring conda"
 
@@ -18,8 +41,11 @@ if "%CONDA_BLD_PATH%" == "" (
 )
 
 :: Activate the base conda environment
-call activate base
+echo Activating "%MINIFORGE_HOME%"
+call "%MINIFORGE_HOME%\Scripts\activate"
 
+:: Set basic configuration
+echo Setting up configuration
 conda.exe config --set always_yes yes
 if errorlevel 1 exit 1
 conda.exe config --set channel_priority strict
@@ -27,12 +53,6 @@ if errorlevel 1 exit 1
 conda.exe config --set solver libmamba
 if errorlevel 1 exit 1
 
-echo Installing dependencies
-conda.exe install --file .\.ci_support\requirements.txt
-if errorlevel 1 exit 1
-
-:: Set basic configuration
-echo Setting up configuration
 setup_conda_rc .\ ".\recipes" .\.ci_support\%CONFIG%.yaml
 if errorlevel 1 exit 1
 

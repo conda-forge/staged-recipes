@@ -6,16 +6,22 @@ source .scripts/logging_utils.sh
 
 ( startgroup "Ensuring Miniforge" ) 2> /dev/null
 
-MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download"
-MINIFORGE_FILE="Miniforge3-MacOSX-x86_64.sh"
-MINIFORGE_ROOT="${MINIFORGE_ROOT:-${HOME}/Miniforge3}"
+MICROMAMBA_VERSION="2.0.2-0"
+MICROMAMBA_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${MICROMAMBA_VERSION}/micromamba-osx-64"
+MINIFORGE_HOME="${MINIFORGE_HOME:-${HOME}/Miniforge3}"
 
-if [[ -d "${MINIFORGE_ROOT}" ]]; then
-  echo "Miniforge already installed at ${MINIFORGE_ROOT}."
+if [[ -d "${MINIFORGE_HOME}" ]]; then
+  echo "Miniforge already installed at ${MINIFORGE_HOME}."
 else
-  echo "Installing Miniforge"
-  curl -L -O "${MINIFORGE_URL}/${MINIFORGE_FILE}"
-  bash $MINIFORGE_FILE -bp "${MINIFORGE_ROOT}"
+  echo "Downloading micromamba ${MICROMAMBA_VERSION}"
+  micromamba_tmp="$(mktemp -d)/micromamba"
+  curl -L -o "${micromamba_tmp}" "${MICROMAMBA_URL}"
+  chmod +x "${micromamba_tmp}"
+  echo "Creating environment"
+  "${micromamba_tmp}" create --yes --root-prefix ~/.conda --prefix "${MINIFORGE_HOME}" \
+    --no-exp-repodata-parsing \
+    --channel conda-forge \
+    --file .ci_support/requirements.txt
 fi
 
 ( endgroup "Ensuring Miniforge" ) 2> /dev/null
@@ -28,11 +34,8 @@ show_channel_urls: true
 solver: libmamba
 CONDARC
 
-source "${MINIFORGE_ROOT}/etc/profile.d/conda.sh"
+source "${MINIFORGE_HOME}/etc/profile.d/conda.sh"
 conda activate base
-
-echo -e "\n\nInstalling conda-forge-ci-setup, conda-build."
-conda install --quiet --file .ci_support/requirements.txt
 
 echo -e "\n\nSetting up the condarc and mangling the compiler."
 setup_conda_rc ./ ./recipes ./.ci_support/${CONFIG}.yaml
@@ -54,7 +57,7 @@ source run_conda_forge_build_setup
 set -e
 
 # make sure there is a package directory so that artifact publishing works
-mkdir -p "${MINIFORGE_ROOT}/conda-bld/osx-64/" "${MINIFORGE_ROOT}/conda-bld/noarch/"
+mkdir -p "${MINIFORGE_HOME}/conda-bld/osx-64/" "${MINIFORGE_HOME}/conda-bld/noarch/"
 
 # Find the recipes from main in this PR and remove them.
 echo ""
