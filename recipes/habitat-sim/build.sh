@@ -2,6 +2,14 @@
 
 set -exo pipefail
 
+ls
+
+ls src
+
+ls src/deps
+
+ls src/deps/recastnavigation
+
 export CMAKE_ARGS="\
     -DBUILD_WITH_CUDA=OFF \
     -DBUILD_TEST=OFF \
