@@ -14,7 +14,8 @@ cmake $SRC_DIR \
     -DBUILD_SHARED_LIBS=ON \
     -DCMAKE_BUILD_TYPE=Release \
     -DLIB_SUFFIX="" \
-    -DBUILD_TESTS=OFF
+    -DBUILD_TESTS=OFF \
+    -DWITH_EIGEN=ON
 
 cmake --build build --parallel
 
