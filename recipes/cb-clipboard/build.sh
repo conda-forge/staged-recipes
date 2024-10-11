@@ -3,7 +3,6 @@
 set -exuo pipefail
 
 export OPENSSL_ROOT_DIR=${PREFIX}
-export MACOSX_DEPLOYMENT_TARGET=10.15
 
 mkdir -p build
 cd build
@@ -19,6 +18,7 @@ elif [[ "${target_platform}" == "osx-"* ]]; then
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=${PREFIX} \
         -DCMAKE_OSX_ARCHITECTURES=${OSX_ARCH} \
+        -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15 \
         ..
 fi
 
