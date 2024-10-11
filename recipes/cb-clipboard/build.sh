@@ -3,6 +3,7 @@
 set -exuo pipefail
 
 export OPENSSL_ROOT_DIR=${PREFIX}
+export MACOSX_DEPLOYMENT_TARGET=10.15
 
 mkdir -p build
 cd build
