@@ -3,8 +3,7 @@
 set -exuo pipefail
 
 export OPENSSL_ROOT_DIR=${PREFIX}
-export OPENSSL_INCLUDE_DIR=${OPENSSL_ROOT_DIR}/include/openssl
-export OPENSSL_CRYPTO_LIBRARY=${OPENSSL_ROOT_DIR}/lib/libcrypto.so.3
+
 mkdir -p build
 cd build
 
