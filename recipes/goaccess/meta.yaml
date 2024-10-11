@@ -1,0 +1,59 @@
+{% set name = "goaccess" %}
+{% set version = "1.9.3" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://tar.goaccess.io/goaccess-{{ version }}.tar.gz
+  sha256: 49f0ee49e3c4a95f5f75f6806b0406746fcbf2f9ad971cae23e2ea95d3ec7837
+  patches:
+    - 0001-Patch-libncursesw-naming-on-darwin.patch
+
+build:
+  skip: true  # [win]
+  script: |
+    ./configure \
+      --disable-debug \
+      --disable-dependency-tracking \
+      --enable-utf8 \
+      --enable-geoip=mmdb \
+      --prefix="$PREFIX"
+    make
+    make install
+  number: 0
+
+requirements:
+  build:
+    - {{ stdlib("c") }}
+    - {{ compiler('c') }}
+    - make
+  host:
+    - libmaxminddb
+    - ncurses
+
+test:
+  requires:
+    - jq
+  commands:
+    - goaccess --version
+    - goaccess --storage
+    - echo '127.0.0.1 - - [04/May/2015:15:48:17 +0200] "GET / HTTP/1.1" 200 612 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36"' > access.log
+    - LC_TIME="en_US.UTF-8" goaccess access.log --time-format=%T --date-format=%d/%b/%Y --log-format='%h %^[%d:%t %^] "%r" %s %b "%R" "%u"' -o output.json
+    - "[ $(jq -r '.browsers.data[0].data' output.json) = 'Chrome' ] || exit 1"
+
+about:
+  home: https://goaccess.io/
+  summary: 'Real-time web log analyzer and interactive viewer'
+  description: |
+    GoAccess is a real-time web log analyzer and interactive viewer that
+    runs in a terminal in *nix systems or through your browser.
+  license: MIT
+  license_family: MIT
+  license_file: COPYING
+  dev_url: https://github.com/allinurl/goaccess
+
+extra:
+  recipe-maintainers:
+    - dbast
