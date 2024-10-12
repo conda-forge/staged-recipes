@@ -8,7 +8,7 @@ async def main():
     res = await qmp.execute('query-status')
     print(f"VM status: {res['status']}")
 
-    await asyncio.sleep(300)
+    await asyncio.sleep(600)
     res = await qmp.execute('system_powerdown')
     print(f"VM response: {res}")
 
