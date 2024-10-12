@@ -1,18 +1,26 @@
 #!/bin/bash
 set -ex
 
+# in contrast to the usual build orchestrators (which pass LDFLAGS to the
+# compiler), the hand-spun upstream build script passes them directly to the
+# linker, so strip the `-Wl,...` bits that are meant to tell the compiler to
+# forward to the linker (but which make no sense for the linker itself)
+export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,//g')"
+# to help find libgfortran (osx) and libgcc_s (linux)
+export LDFLAGS="-L$PREFIX/lib -rpath=$PREFIX/lib"
+
 if [[ "$target_platform" == linux-* ]]; then
     # where libquadmath is found in our setup
-    export LDFLAGS="-L$CONDA_BUILD_SYSROOT/../lib"
+    export LDFLAGS="$LDFLAGS -L$CONDA_BUILD_SYSROOT/../lib"
     # needs to explicitly link glibc & libm
     export LDFLAGS="$LDFLAGS -L$CONDA_BUILD_SYSROOT/lib64 -lc -lm"
     # also needs compiler runtime
     export LDFLAGS="$LDFLAGS -lgcc_s"
 else
-    export LDFLAGS="-framework CoreFoundation"
+    export LDFLAGS="$LDFLAGS -framework CoreFoundation"
 fi
-# to help find libgfortran (osx) and libgcc_s (linux)
-export LDFLAGS="-L$PREFIX/lib -rpath $PREFIX/lib $LDFLAGS -lgfortran"
+# both platforms need to link libgfortran
+export LDFLAGS="$LDFLAGS -lgfortran"
 
 cd ascii
 # the makefiles are only makefile _templates_, but basically functional;
