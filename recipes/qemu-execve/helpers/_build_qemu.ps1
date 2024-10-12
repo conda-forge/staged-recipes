@@ -50,7 +50,7 @@ function Build-Qemu {
         Write-Host "BUILD_PREFIX: $env:BUILD_PREFIX"
         Write-Host "PATH: $env:PATH"
 
-        Invoke-CommandWithLogging "$env:SRC_DIR\qemu-source\configure --help"
+        Invoke-CommandWithLogging "bash -c $env:SRC_DIR\qemu-source\configure --help"
 
         $configureArgs = @(
             "--prefix=$install_dir",
