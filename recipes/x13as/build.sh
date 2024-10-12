@@ -7,7 +7,7 @@ set -ex
 # forward to the linker (but which make no sense for the linker itself)
 export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,//g')"
 # to help find libgfortran (osx) and libgcc_s (linux)
-export LDFLAGS="-L$PREFIX/lib"
+export LDFLAGS="$LDFLAGS -L$PREFIX/lib"
 
 if [[ "$target_platform" == linux-* ]]; then
     # where libquadmath is found in our setup
