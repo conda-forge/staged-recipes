@@ -17,13 +17,13 @@ function Invoke-CommandWithLogging {
         $output = Invoke-Expression $Command -ErrorVariable cmdError 2>&1
         $output | Tee-Object -Append -FilePath "$env:SRC_DIR\build_qemu_detailed.log" | ForEach-Object { Write-Host $_ }
         if ($LASTEXITCODE -ne 0) {
-            throw "Command failed with exit code $LASTEXITCODE"
+            if ($cmdError) {
+                Write-Host "Command error details: $cmdError" -ForegroundColor Red
+            }
+            throw "Command failed with exit code >$LASTEXITCODE<"
         }
     } catch {
         Write-Host "Error executing command: $_" -ForegroundColor Red
-        if ($cmdError) {
-            Write-Host "Command error details: $cmdError" -ForegroundColor Red
-        }
         throw
     }
 }
