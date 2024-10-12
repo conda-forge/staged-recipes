@@ -5,7 +5,7 @@ if [[ "$target_platform" == linux-* ]]; then
     # where libquadmath is found in our setup
     export LDFLAGS="-L$CONDA_BUILD_SYSROOT/../lib"
 else
-    export LDFLAGS=""
+    export LDFLAGS="-lgfortran -framework CoreFoundation"
 fi
 
 cd ascii
