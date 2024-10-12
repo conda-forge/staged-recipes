@@ -6,8 +6,10 @@ set -ex
 # linker, so strip the `-Wl,...` bits that are meant to tell the compiler to
 # forward to the linker (but which make no sense for the linker itself)
 export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,//g')"
-# to help find libgfortran (osx) and libgcc_s (linux)
-export LDFLAGS="$LDFLAGS -L$PREFIX/lib"
+# also replace `-Wl,rpath,...` formulation; the linker expects separation
+# by space, i.e. `-rpath[,-link] ...`
+export LDFLAGS="$(echo $LDFLAGS | sed 's/-rpath,/-rpath /g')"
+export LDFLAGS="$(echo $LDFLAGS | sed 's/-rpath-link,/-rpath-link /g')"
 
 if [[ "$target_platform" == linux-* ]]; then
     # where libquadmath is found in our setup
@@ -15,7 +17,7 @@ if [[ "$target_platform" == linux-* ]]; then
     # needs to explicitly link glibc & libm
     export LDFLAGS="$LDFLAGS -L$CONDA_BUILD_SYSROOT/lib64 -lc -lm"
     # also needs compiler runtime
-    export LDFLAGS="$LDFLAGS -rpath=$PREFIX/lib -lgcc_s"
+    export LDFLAGS="$LDFLAGS -lgcc_s"
 else
     export LDFLAGS="$LDFLAGS -framework CoreFoundation"
 fi
