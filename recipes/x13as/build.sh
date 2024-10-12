@@ -7,7 +7,7 @@ set -ex
 # forward to the linker (but which make no sense for the linker itself)
 export LDFLAGS="$(echo $LDFLAGS | sed 's/-Wl,//g')"
 # to help find libgfortran (osx) and libgcc_s (linux)
-export LDFLAGS="-L$PREFIX/lib -rpath=$PREFIX/lib"
+export LDFLAGS="-L$PREFIX/lib"
 
 if [[ "$target_platform" == linux-* ]]; then
     # where libquadmath is found in our setup
@@ -15,7 +15,7 @@ if [[ "$target_platform" == linux-* ]]; then
     # needs to explicitly link glibc & libm
     export LDFLAGS="$LDFLAGS -L$CONDA_BUILD_SYSROOT/lib64 -lc -lm"
     # also needs compiler runtime
-    export LDFLAGS="$LDFLAGS -lgcc_s"
+    export LDFLAGS="$LDFLAGS -rpath=$PREFIX/lib -lgcc_s"
 else
     export LDFLAGS="$LDFLAGS -framework CoreFoundation"
 fi
