@@ -7,12 +7,12 @@ if [[ "$target_platform" == linux-* ]]; then
     # needs to explicitly link glibc & libm
     export LDFLAGS="$LDFLAGS -L$CONDA_BUILD_SYSROOT/lib64 -lc -lm"
     # also needs compiler runtime
-    export LDFLAGS="$LDFLAGS -L$PREFIX/lib -lgcc_s"
+    export LDFLAGS="$LDFLAGS -lgcc_s"
 else
-    export LDFLAGS="-L$PREFIX/lib -framework CoreFoundation"
+    export LDFLAGS="-framework CoreFoundation"
 fi
-# need to link to libgfortran
-export LDFLAGS="$LDFLAGS -lgfortran"
+# to help find libgfortran (osx) and libgcc_s (linux)
+export LDFLAGS="-L$PREFIX/lib -rpath $PREFIX/lib $LDFLAGS -lgfortran"
 
 cd ascii
 # the makefiles are only makefile _templates_, but basically functional;
