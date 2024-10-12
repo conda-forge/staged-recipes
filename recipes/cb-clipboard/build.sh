@@ -17,7 +17,7 @@ elif [[ "${target_platform}" == "osx-"* ]]; then
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=${PREFIX} \
         -DCMAKE_OSX_ARCHITECTURES=${OSX_ARCH} \
-        -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET} \
+        -DCMAKE_OSX_DEPLOYMENT_TARGET=${OSX_DEPLOYMENT_TARGET} \
         ..
 fi
 
