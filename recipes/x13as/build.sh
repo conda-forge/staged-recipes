@@ -7,7 +7,7 @@ if [[ "$target_platform" == linux-* ]]; then
     # needs to explicitly link glibc
     export LDFLAGS="-lc -lm -L$CONDA_BUILD_SYSROOT/lib64 $LDFLAGS"
 else
-    export LDFLAGS="-framework CoreFoundation"
+    export LDFLAGS="-framework CoreFoundation -L$PREFIX/lib"
 fi
 # need to link to libgfortran
 export LDFLAGS="-lgfortran $LDFLAGS"
