@@ -46,6 +46,9 @@ function Build-Qemu {
         Write-Host "PKG_CONFIG: $env:PKG_CONFIG" -ForegroundColor Cyan
         Write-Host "PKG_CONFIG_PATH: $env:PKG_CONFIG_PATH" -ForegroundColor Cyan
         Write-Host "PKG_CONFIG_LIBDIR: $env:PKG_CONFIG_LIBDIR" -ForegroundColor Cyan
+        Write-Host "SRC_DIR: $env:SRC_DIR"
+        Write-Host "BUILD_PREFIX: $env:BUILD_PREFIX"
+        Write-Host "PATH: $env:PATH"
 
         Invoke-CommandWithLogging "$env:SRC_DIR\qemu-source\configure --help"
 
