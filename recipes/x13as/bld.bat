@@ -11,11 +11,11 @@ sed -i "s/\\r//g" mxpeak.f
 :: do the installation step manually
 make FC="%FC% -w" LINKER=lld-link LDFLAGS="" install -f makefile.gf
 if %ERRORLEVEL% neq 0 exit 1
-copy .\x13as_ascii.exe %LIBRARY_BIN%
+copy .\x13as_ascii %LIBRARY_BIN%\x13as_ascii.exe
 if %ERRORLEVEL% neq 0 exit 1
 
 cd ..\html
 make FC="%FC% -w" LINKER=lld-link LDFLAGS="" install -f makefile.gf
 if %ERRORLEVEL% neq 0 exit 1
-copy .\x13as_html.exe %LIBRARY_BIN%
+copy .\x13as_html %LIBRARY_BIN%\x13as_html.exe
 if %ERRORLEVEL% neq 0 exit 1
