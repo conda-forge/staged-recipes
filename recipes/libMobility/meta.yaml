@@ -1,0 +1,101 @@
+{% set name = "libmobility" %}
+{% set version = "0.1.0" %}
+
+{% if cuda_compiler_version in (None, "None", True, False) %}
+{% set cuda_major = 0 %}
+{% else %}
+{% set cuda_major = environ.get("cuda_compiler_version", "11.8").split(".")[0] | int %}
+{% endif %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/stochasticHydroTools/libMobility/archive/refs/tags/v{{ version }}.tar.gz
+    sha256: 115305ff8a1210c164fdda75b4cfa8a7e166e2d55cd8b0b40436ef7e6f710953
+    patches:
+      - cmake.patch
+  - url: https://github.com/stochasticHydroTools/LanczosAlgorithm/archive/refs/tags/v1.0.1.tar.gz
+    sha256: 9142307e4b927563c52de70cedbb4e0ae5d88adfc6cd28b22b81eb065a340caf
+    folder: include/third_party/LanczosAlgorithm
+  - url: https://github.com/RaulPPelaez/UAMMD/archive/refs/tags/v2.5.3.tar.gz
+    sha256: 3e7448df00ce8529e65bda045aea22a4e284bc1916bb1b7a016c84589f85bfde
+    folder: include/third_party/uammd
+
+build:
+  skip: true  # [win]
+  skip: true  # [cuda_compiler_version == "None"]
+  number: 0
+  string: cuda{{ cuda_compiler_version | replace('.', '') }}py{{ CONDA_PY }}blas{{ blas_impl }}h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
+  rpaths:
+    - lib/
+  missing_dso_whitelist:
+    - '*/libcuda.*'  # [linux64]
+
+  
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - {{ stdlib("c") }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('cuda') }}  # [cuda_compiler_version != 'None']
+    - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version not in (undefined, 'None')]
+    - make
+    - cmake >=3.23
+    - pybind11
+    - numpy
+  host:
+    - python
+    - numpy
+    - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version not in (undefined, 'None')]
+    {% if cuda_major >= 12 %}
+    - cuda-cudart-dev
+    - libcufft-dev
+    - libcublas-dev
+    {% endif %}
+    - mkl-devel {{ mkl }}   # [blas_impl == "mkl"]
+    - libcblas * *_mkl      # [blas_impl == "mkl"]
+    - libcblas              # [blas_impl != "mkl"]
+    - liblapack             # [blas_impl != "mkl"]
+    - liblapacke            # [blas_impl != "mkl"]
+    - libblas               # [blas_impl != "mkl"]
+
+  run:
+    - python
+    - cuda-version {{ cuda_compiler_version }}  # [cuda_compiler_version not in (undefined, 'None')]
+    {% if cuda_major >= 12 %}
+    - cuda-cudart
+    - libcufft
+    - libcublas
+    {% endif %}
+    - llvm-openmp
+    - liblapack             # [blas_impl != "mkl"]
+    - libblas              # [blas_impl != "mkl"]
+    - libcblas              # [blas_impl != "mkl"]
+    - mkl {{ mkl }}   # [blas_impl == "mkl"]
+    - libcblas * *_mkl      # [blas_impl == "mkl"]
+
+test:
+  requires:
+    - pytest
+    - scipy
+  imports:
+    - libMobility
+  source_files:
+    - tests
+  commands:
+    - pytest -vs -k SelfMobility tests/test_*py
+    
+about:
+  home: https://github.com/stochasticHydroTools/libmobility
+  license: MIT
+  license_file: LICENSE
+  summary: Compute the action of the hydrodynamic mobility (at the RPY/FCM level) of a group of particles (in different geometries) with forces acting on them. Requires a CUDA compatible GPU.
+
+extra:
+  recipe-maintainers:
+    - rykerfish
+    - brennansprinkle
+    - RaulPPelaez
