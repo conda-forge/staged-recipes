@@ -5,14 +5,14 @@ if [[ "$target_platform" == linux-* ]]; then
     # where libquadmath is found in our setup
     export LDFLAGS="-L$CONDA_BUILD_SYSROOT/../lib"
     # needs to explicitly link glibc & libm
-    export LDFLAGS="-lc -lm -L$CONDA_BUILD_SYSROOT/lib64 $LDFLAGS"
+    export LDFLAGS="$LDFLAGS -L$CONDA_BUILD_SYSROOT/lib64 -lc -lm"
     # also needs compiler runtime
-    export LDFLAGS="-lgcc_s -L$PREFIX/lib $LDFLAGS"
+    export LDFLAGS="$LDFLAGS -L$PREFIX/lib -lgcc_s"
 else
-    export LDFLAGS="-framework CoreFoundation -L$PREFIX/lib"
+    export LDFLAGS="-L$PREFIX/lib -framework CoreFoundation"
 fi
 # need to link to libgfortran
-export LDFLAGS="-lgfortran $LDFLAGS"
+export LDFLAGS="$LDFLAGS -lgfortran"
 
 cd ascii
 # the makefiles are only makefile _templates_, but basically functional;
