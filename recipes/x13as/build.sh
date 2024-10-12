@@ -5,7 +5,7 @@ if [[ "$target_platform" == linux-* ]]; then
     # where libquadmath is found in our setup
     export LDFLAGS="-L$CONDA_BUILD_SYSROOT/../lib"
     # needs to explicitly link glibc
-    export LDFLAGS="-lc -L$CONDA_BUILD_SYSROOT/lib64 $LDFLAGS"
+    export LDFLAGS="-lc -lm -L$CONDA_BUILD_SYSROOT/lib64 $LDFLAGS"
 else
     export LDFLAGS="-framework CoreFoundation"
 fi
