@@ -6,18 +6,26 @@ async def main():
     await qmp.connect('qmp-sock')
 
     await qmp.execute('human-monitor-command', command_line='logfile boot_log.txt')
-    await qmp.execute('human-monitor-command', command_line='log guest_errors')
+    await qmp.execute('guest-set-vcpus', data={'vcpus': [{'logical-id': 0, 'online': True}]})
 
+    print("Waiting for VM to boot...")
     while True:
         status = await qmp.execute('query-status')
         if status['status'] == 'running':
-            # Check if the boot process is complete
-            with open('boot_log.txt', 'r') as f:
-                log = f.read()
-                if 'login:' in log:
+            try:
+                # Check if we can execute a command in the guest
+                response = await qmp.execute('guest-exec', data={
+                    'path': '/bin/true',
+                    'arg': [],
+                    'capture-output': False
+                })
+                if 'pid' in response:
                     print("VM has finished booting")
                     break
-        await asyncio.sleep(10)
+            except Exception as e:
+                # Guest command execution not available yet
+                pass
+        await asyncio.sleep(1)
 
     res = await qmp.execute('system_powerdown')
     print(f"VM response: {res}")
