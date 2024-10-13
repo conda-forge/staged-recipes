@@ -5,8 +5,6 @@ async def main():
     qmp = QMPClient('aarch64-vm')
     await qmp.connect('qmp-sock')
 
-    await qmp.execute('guest-set-vcpus', data={'vcpus': [{'logical-id': 0, 'online': True}]})
-
     print("Waiting for VM to boot...")
     while True:
         status = await qmp.execute('query-status')
