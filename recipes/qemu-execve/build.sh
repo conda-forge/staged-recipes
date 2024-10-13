@@ -77,3 +77,10 @@ if [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64" 
   sleep 300
   kill $(cat qemu_pid.txt)
 fi
+
+if [[ "${build_platform}" == "win-64" ]] && [[ "${target_platform}" == "win-64" ]]; then
+  qemu_arch="aarch64"
+  build_win_qemu \
+    "${SRC_DIR}/_conda-build-${qemu_arch}" \
+    "${SRC_DIR}/_conda-install-${qemu_arch}"
+fi

@@ -39,6 +39,24 @@ build_osx_qemu() {
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 }
 
+build_win_qemu() {
+  local build_dir=${1:-"${SRC_DIR}"/_conda-build}
+  local install_dir=${2:-"${PREFIX}"}
+
+  qemu_args=(
+    "--disable-attr"
+    "--target-list=aarch64-softmmu"
+    "--enable-tools"
+    "--enable-kvm"
+  )
+    #"--enable-guest-agent"  # Not supported
+    #"--extra-cflags=-maxv2"  # Makes compilation fail
+
+  # export CFLAGS="${CFLAGS} -Wimplicit-function-declaration"
+  # export LDFLAGS="${LDFLAGS} -framework IOKit -framework CoreFoundation"
+  _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
+}
+
 _build_qemu() {
   local qemu_arch=$1
   local build_dir=$2
