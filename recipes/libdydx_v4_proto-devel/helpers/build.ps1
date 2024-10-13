@@ -87,7 +87,7 @@ if ($DLL) {
       Write-Output "Coin::mutable_denom not found in $LIB"
       exit 1
   } else {
-      Write-Output "Found Coin::mutable_denom in $LIB:"
+      Write-Output "Found Coin::mutable_denom in $LIB"
       $coinMutableDenom | ForEach-Object { Write-Output $_.Line }
   }
 
@@ -97,7 +97,7 @@ if ($DLL) {
       Write-Output "No v1beta1:: symbols found in $LIB"
       exit 1
   } else {
-      Write-Output "Found v1beta1:: symbols in $LIB:"
+      Write-Output "Found v1beta1:: symbols in $LIB"
       $v1beta1Symbols | Select-Object -First 5 | ForEach-Object { Write-Output $_.Line }
       Write-Output "... (and more)"
   }
