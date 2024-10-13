@@ -8,6 +8,7 @@ else
     export LDFLAGS="$LDFLAGS -framework CoreFoundation"
 fi
 
+mkdir -p $PREFIX/bin
 
 cd ascii
 # Link in shared instead of static
