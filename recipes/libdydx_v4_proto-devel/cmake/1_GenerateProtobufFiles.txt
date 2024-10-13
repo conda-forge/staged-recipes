@@ -1,22 +1,32 @@
-set(PROTO_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/_generated")
-file(MAKE_DIRECTORY ${PROTO_BINARY_DIR})
+set(GENERATED_PROTO_DIR "${CMAKE_CURRENT_BINARY_DIR}/_generated")
+file(MAKE_DIRECTORY ${GENERATED_PROTO_DIR})
+
+set(PLUGIN_OUT_DIR "${GENERATED_PROTO_DIR}")
+file(MAKE_DIRECTORY ${PLUGIN_OUT_DIR})
+set(PROTOC_OPTIONS "--add_export_out=${PLUGIN_OUT_DIR}")
 
 if(WIN32)
     protobuf_generate(
-        PROTOC_OUT_DIR ${PROTO_BINARY_DIR}
+        PROTOC_OUT_DIR ${GENERATED_PROTO_DIR}
         OUT_VAR PROTO_GENERATED_FILES
-        EXPORT_MACRO DYDX_V4_PROTO_EXPORT
+        EXPORT_MACRO DYDX_V4_PROTO_API
         LANGUAGE cpp
+        PLUGIN add_export
         PROTOS ${proto_files})
 else()
     protobuf_generate(
-        PROTOC_OUT_DIR ${PROTO_BINARY_DIR}
+        PROTOC_OUT_DIR ${GENERATED_PROTO_DIR}
         OUT_VAR PROTO_GENERATED_FILES
+        EXPORT_MACRO DYDX_V4_PROTO_API
         LANGUAGE cpp
+        PLUGIN "protoc-gen-add_export=${PROTOC_GEN_ADD_EXPORT_PATH}"
+        PROTOC_OPTIONS ${PROTOC_OPTIONS}
         PROTOS ${proto_files})
 endif()
 
 add_custom_target(generate_proto_files DEPENDS ${PROTO_GENERATED_FILES})
+add_dependencies(generate_proto_files protoc-gen-add_export)
+
 list(GET PROTO_GENERATED_FILES 0 2 FIRST_THREE)
 string(JOIN ", " FIRST_THREE_STR ${FIRST_THREE})
 message(STATUS "Generated protobuf files: ${FIRST_THREE_STR}")
