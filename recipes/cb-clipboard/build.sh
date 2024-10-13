@@ -13,11 +13,12 @@ if [[ "${target_platform}" == "linux-"* ]]; then
         -DCMAKE_INSTALL_PREFIX=${PREFIX} \
         ..
 elif [[ "${target_platform}" == "osx-"* ]]; then
-    echo MACOSX_DEPLOYMENT_TARGET
+    echo ${MACOSX_DEPLOYMENT_TARGET}
     cmake ${CMAKE_ARGS} \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=${PREFIX} \
         -DCMAKE_OSX_ARCHITECTURES=${OSX_ARCH} \
+        -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET} \
         ..
 fi
 
