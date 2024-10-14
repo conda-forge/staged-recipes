@@ -23,6 +23,16 @@ Push-Location _conda-build-client
     Write-Output "CMake failed with exit code $LASTEXITCODE"
     exit $LASTEXITCODE
   }
+  dumpbin /headers $PREFIX/Library/lib/dydx_v4_proto.lib | Select-String "DLL name"
+
+  $coinMutableDenom = dumpbin /linkermember:1 $PREFIX/Library/lib/dydx_v4_proto.lib | Select-String -Pattern "\?mutable_denom@Coin"
+  if (-not $coinMutableDenom) {
+      Write-Output "Coin::mutable_denom not found in $LIB"
+      exit 1
+  } else {
+      Write-Output "Found Coin::mutable_denom in $LIB"
+      $coinMutableDenom | ForEach-Object { Write-Output $_.Line }
+  }
 
   cmake --build . --target dydx_v4_client_lib -- -j"$env:CPU_COUNT"
   if ($LASTEXITCODE -ne 0) {
