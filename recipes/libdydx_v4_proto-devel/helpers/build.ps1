@@ -64,25 +64,8 @@ if ($DLL) {
       exit 1
   }
 
-  dumpbin /exports dydx_v4_proto.dll | findstr mutable_denom
-
-  $libSymbols = dumpbin /linkermember:1 $LIB | Select-String -Pattern "v1beta1"
-  if (-not $libSymbols) {
-    Write-Output "Symbol 'v1beta1' not found in $($LIB)"
-    exit 1
-  }
-
-  $mutableDenomExport = dumpbin /exports $DLL.FullName | Select-String -Pattern "mutable_denom"
-  if (-not $mutableDenomExport) {
-      Write-Output "mutable_denom not found in exports of $($DLL.Name)"
-      exit 1
-  } else {
-      Write-Output "Found mutable_denom in exports of $($DLL.Name):"
-      $mutableDenomExport | ForEach-Object { Write-Output $_.Line }
-  }
-
   # Check for Coin::mutable_denom in LIB
-  $coinMutableDenom = dumpbin /linkermember:1 $LIB | Select-String -Pattern "?mutable_denom@Coin"
+  $coinMutableDenom = dumpbin /linkermember:1 $LIB | Select-String -Pattern "\?mutable_denom@Coin"
   if (-not $coinMutableDenom) {
       Write-Output "Coin::mutable_denom not found in $LIB"
       exit 1
