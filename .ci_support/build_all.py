@@ -1,3 +1,5 @@
+from shutil import rmtree
+import tempfile
 import conda.base.context
 import conda.core.index
 import conda.resolve
@@ -6,6 +8,7 @@ import conda_index.api
 import networkx as nx
 from compute_build_graph import construct_graph
 import argparse
+import atexit
 import re
 import os
 from collections import OrderedDict
@@ -17,6 +20,9 @@ try:
     from ruamel_yaml import BaseLoader, load
 except ImportError:
     from yaml import BaseLoader, load
+
+
+EXAMPLE_RECIPE_FOLDERS = ["example", "example-v1"]
 
 
 def get_host_platform():
@@ -44,17 +50,32 @@ def build_all(recipes_dir, arch):
     script_dir = os.path.dirname(os.path.realpath(__file__))
     variant_config_file = os.path.join(script_dir, "{}.yaml".format(get_config_name(arch)))
 
+    has_meta_yaml = False
+    has_recipe_yaml = False
+
     found_cuda = False
     found_centos7 = False
     for folder in folders:
         meta_yaml = os.path.join(recipes_dir, folder, "meta.yaml")
         if os.path.exists(meta_yaml):
+            has_meta_yaml = True
             with(open(meta_yaml, "r", encoding="utf-8")) as f:
                 text = ''.join(f.readlines())
                 if 'cuda' in text:
                     found_cuda = True
                 if 'sysroot_linux-64' in text:
                     found_centos7 = True
+
+        recipe_yaml = os.path.join(recipes_dir, folder, "recipe.yaml")
+        if os.path.exists(recipe_yaml):
+            has_recipe_yaml = True
+            with open(recipe_yaml, "r", encoding="utf-8") as f:
+                text = "".join(f.readlines())
+                if "cuda" in text:
+                    found_cuda = True
+                if "sysroot_linux-64" in text:
+                    found_centos7 = True
+
         cbc = os.path.join(recipes_dir, folder, "conda_build_config.yaml")
         if os.path.exists(cbc):
             with open(cbc, "r") as f:
@@ -71,6 +92,11 @@ def build_all(recipes_dir, arch):
                         version = tuple([int(x) for x in version.split('.')])
                         print(f"Found c_stdlib_version for linux: {version=}")
                         found_centos7 |= version == (2, 17)
+
+    if has_meta_yaml and has_recipe_yaml:
+        raise ValueError("Mixing meta.yaml and recipe.yaml recipes is not supported")
+    if not has_meta_yaml and not has_recipe_yaml:
+        raise ValueError("Neither a meta.yaml or a recipe.yaml recipes was found")
 
     if found_cuda:
         print('##vso[task.setvariable variable=NEED_CUDA;isOutput=true]1')
@@ -147,8 +173,17 @@ def build_all(recipes_dir, arch):
 
     if 'conda-forge' not in channel_urls:
         raise ValueError('conda-forge needs to be part of channel_sources')
-    print("Building {} with {}".format(','.join(folders), ','.join(channel_urls)))
-    build_folders(recipes_dir, folders, arch, channel_urls)
+    
+    if has_meta_yaml:
+        print("Building {} with {}".format(','.join(folders), ','.join(channel_urls)))
+        build_folders(recipes_dir, folders, arch, channel_urls)
+    elif has_recipe_yaml:
+        print(
+            "Building {} with {} using rattler-build".format(
+                ",".join(folders), ",".join(channel_urls)
+            )
+        )
+        build_folders_rattler_build(recipes_dir, platform, arch, channel_urls)
 
 
 def get_config(arch, channel_urls):
@@ -207,6 +242,50 @@ def build_folders(recipes_dir, folders, arch, channel_urls):
         conda_build.api.build([recipe], config=get_config(arch, channel_urls))
 
 
+def build_folders_rattler_build(
+    recipes_dir: str, platform, arch, channel_urls: list[str]
+):
+    config = get_config(arch, channel_urls)
+
+    # Remove the example recipes to ensure that they are not also build.
+    for example_recipe in EXAMPLE_RECIPE_FOLDERS:
+        rmtree(os.path.join(recipes_dir, example_recipe), ignore_errors=True)
+
+    # Determine the locations for the variant config files.
+    specs = OrderedDict()
+    for f in config.exclusive_config_files:
+        specs[f] = conda_build.variants.parse_config_file(
+            os.path.abspath(os.path.expanduser(os.path.expandvars(f))), config
+        )
+
+    # Combine all the variant config files together
+    combined_spec = conda_build.variants.combine_specs(specs, log_output=config.verbose)
+    variant_config = yaml.dump(combined_spec)
+
+    # Define the arguments for rattler-build
+    args = [
+        "rattler-build",
+        "build",
+        "--recipe-dir",
+        recipes_dir,
+        "--target-platform",
+        f"{platform}-{arch}",
+    ]
+    for channel_url in channel_urls:
+        # Local is automatically added by rattler-build so we just remove it.
+        if channel_url != "local":
+            args.extend(["-c", channel_url])
+
+    # Construct a temporary file where we write the combined variant config. We can then pass that
+    # to rattler-build.
+    with tempfile.NamedTemporaryFile(delete=False) as fp:
+        fp.write(variant_config.encode("utf-8"))   
+        atexit.register(os.unlink, fp.name)
+
+    # Execute rattler-build.
+    subprocess.run(args + ["--variant-config", fp.name], check=True)
+
+
 def check_recipes_in_correct_dir(root_dir, correct_dir):
     from pathlib import Path
     for path in Path(root_dir).rglob('meta.yaml'):
@@ -228,7 +307,7 @@ def read_mambabuild(recipes_dir):
     folders = os.listdir(recipes_dir)
     conda_build_tools = []
     for folder in folders:
-        if folder == "example":
+        if folder in EXAMPLE_RECIPE_FOLDERS:
             continue
         cf = os.path.join(recipes_dir, folder, "conda-forge.yml")
         if os.path.exists(cf):
