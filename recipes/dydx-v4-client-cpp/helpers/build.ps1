@@ -4,11 +4,13 @@ Copy-Item -Recurse all-sources/v4-client-cpp $env:SRC_DIR
 
 New-Item -ItemType Directory -Force -Path _conda-build-client, _conda-logs
 
-# Check if the symbol exists in the .lib
-$libSymbols = dumpbin /linkermember:1 $env:PREFIX\Library\lib\dydx_v4_proto.lib | Select-String -Pattern "cosmos::base::v1beta1"
-if (-not $libSymbols) {
-  Write-Output "Symbol 'cosmos::base::v1beta1' not found in $env:PREFIX\Library\lib\dydx_v4_proto.lib"
-  # exit 1
+$coinMutableDenom = dumpbin /linkermember:1 $PREFIX/Library/lib/dydx_v4_proto.lib | Select-String -Pattern "mutable_denom@Coin"
+if (-not $coinMutableDenom) {
+    Write-Output "Coin::mutable_denom not found in $PREFIX/Library/lib/dydx_v4_proto.lib"
+    exit 1
+} else {
+    Write-Output "Found Coin::mutable_denom in $PREFIX/Library/lib/dydx_v4_proto.lib"
+    $coinMutableDenom | ForEach-Object { Write-Output $_.Line }
 }
 
 Push-Location _conda-build-client
@@ -22,16 +24,6 @@ Push-Location _conda-build-client
   if ($LASTEXITCODE -ne 0) {
     Write-Output "CMake failed with exit code $LASTEXITCODE"
     exit $LASTEXITCODE
-  }
-  dumpbin /headers $PREFIX/Library/lib/dydx_v4_proto.lib | Select-String "DLL name"
-
-  $coinMutableDenom = dumpbin /linkermember:1 $PREFIX/Library/lib/dydx_v4_proto.lib | Select-String -Pattern "\?mutable_denom@Coin"
-  if (-not $coinMutableDenom) {
-      Write-Output "Coin::mutable_denom not found in $LIB"
-      exit 1
-  } else {
-      Write-Output "Found Coin::mutable_denom in $LIB"
-      $coinMutableDenom | ForEach-Object { Write-Output $_.Line }
   }
 
   cmake --build . --target dydx_v4_client_lib -- -j"$env:CPU_COUNT"
