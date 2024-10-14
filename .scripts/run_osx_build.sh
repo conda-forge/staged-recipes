@@ -6,16 +6,24 @@ source .scripts/logging_utils.sh
 
 ( startgroup "Ensuring Miniforge" ) 2> /dev/null
 
-MINIFORGE_URL="https://github.com/conda-forge/miniforge/releases/latest/download"
-MINIFORGE_FILE="Miniforge3-MacOSX-x86_64.sh"
-MINIFORGE_ROOT="${MINIFORGE_ROOT:-${HOME}/Miniforge3}"
+PIXI_VERSION="0.30.0"
+PIXI_URL="https://github.com/prefix-dev/pixi/releases/download/v${PIXI_VERSION}/pixi-x86_64-apple-darwin"
+REPO_ROOT=$(dirname -- $(dirname -- "$(readlink -f -- "$BASH_SOURCE")"))
+MINIFORGE_ROOT="$REPO_ROOT/.pixi/envs/default"
 
 if [[ -d "${MINIFORGE_ROOT}" ]]; then
   echo "Miniforge already installed at ${MINIFORGE_ROOT}."
 else
-  echo "Installing Miniforge"
-  curl -L -O "${MINIFORGE_URL}/${MINIFORGE_FILE}"
-  bash $MINIFORGE_FILE -bp "${MINIFORGE_ROOT}"
+  echo "Downloading pixi ${PIXI_VERSION}"
+  pixi_tmp="$(mktemp -d)/pixi"
+  curl -L -o "${pixi_tmp}" "${PIXI_URL}"
+  chmod +x "${pixi_tmp}"
+  echo "Creating environment"
+  pushd "$REPO_ROOT"
+  "${pixi_tmp}" init --import .ci_support/requirements.yaml --platform osx-64
+  "${pixi_tmp}" install
+  "${pixi_tmp}" list
+  popd
 fi
 
 ( endgroup "Ensuring Miniforge" ) 2> /dev/null
@@ -30,9 +38,6 @@ CONDARC
 
 source "${MINIFORGE_ROOT}/etc/profile.d/conda.sh"
 conda activate base
-
-echo -e "\n\nInstalling conda-forge-ci-setup, conda-build."
-conda install --quiet --file .ci_support/requirements.txt
 
 echo -e "\n\nSetting up the condarc and mangling the compiler."
 setup_conda_rc ./ ./recipes ./.ci_support/${CONFIG}.yaml
