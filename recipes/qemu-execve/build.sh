@@ -6,8 +6,14 @@ source "${RECIPE_DIR}/helpers/_build_qemu.sh"
 
 # --- Main ---
 
+if [[ "${build_platform:-"win-64"}" == "win-64" ]] && [[ "${target_platform:-"win-64"}" == "win-64" ]]; then
+  qemu_arch="aarch64"
+  build_win_qemu \
+    "${SRC_DIR}/_conda-build-${qemu_arch}" \
+    "${SRC_DIR}/_conda-install-${qemu_arch}"
+
 # Build aarch64 on linux and windows with gcc
-if [[ "${build_platform}" == "linux-64" ]] && [[ "${target_platform}" == "linux-64" ]]; then
+elif [[ "${build_platform}" == "linux-64" ]] && [[ "${target_platform}" == "linux-64" ]]; then
   qemu_arch="aarch64"
   build_linux_qemu \
     ${qemu_arch} \
@@ -33,9 +39,8 @@ if [[ "${build_platform}" == "linux-64" ]] && [[ "${target_platform}" == "linux-
 #     "${BUILD_PREFIX}/${sysroot_arch}-conda-linux-gnu/sysroot" \
 #     "${SRC_DIR}/_conda-build-${qemu_arch}" \
 #     "${SRC_DIR}/_conda-install-${qemu_arch}"
-fi
 
-if [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64" ]]; then
+elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64" ]]; then
   qemu_arch="aarch64"
   build_osx_qemu \
     ${qemu_arch} \
@@ -76,13 +81,4 @@ if [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64" 
 
   sleep 300
   kill $(cat qemu_pid.txt)
-fi
-
-# build_platform may not be defined on windows
-
-if [[ "${build_platform:-"win-64"}" == "win-64" ]] && [[ "${target_platform:-"win-64"}" == "win-64" ]]; then
-  qemu_arch="aarch64"
-  build_win_qemu \
-    "${SRC_DIR}/_conda-build-${qemu_arch}" \
-    "${SRC_DIR}/_conda-install-${qemu_arch}"
 fi

@@ -27,10 +27,10 @@ set BUILD_PREFIX=%BUILD_PREFIX:\=/%
 set CONDA_PREFIX=%CONDA_PREFIX:\=/%
 set SRC_DIR=%SRC_DIR:\=/%
 set RECIPE_DIR=%RECIPE_DIR:\=/%
-set build_platform=%build_platform%
-set target_platform=%target_platform%
 set MSYSTEM=UCRT64
 set MSYS2_PATH_TYPE=inherit
 set CHERE_INVOKING=1
+set build_platform=win-64
+set target_platform=win-64
 bash -lc "./conda_build.sh"
 if errorlevel 1 exit 1
