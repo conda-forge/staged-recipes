@@ -39,14 +39,12 @@ import subprocess
 import functools
 from functools import lru_cache
 
-from frozendict import frozendict
+from frozendict import frozendict, deepfreeze
 import networkx as nx
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
 from conda_build import api
 from conda_build.metadata import find_recipe, MetaData
-
-from conda_build.utils import HashableDict
 
 
 log = logging.getLogger(__file__)
@@ -347,7 +345,7 @@ def collapse_subpackage_nodes(graph):
             if master_meta.name() == meta.name():
                 master = True
             group = node_groups.get(meta_path, {})
-            subgroup = group.get(HashableDict(meta.config.variant), {})
+            subgroup = group.get(deepfreeze(meta.config.variant), {})
             if master:
                 if 'master' in subgroup:
                     raise ValueError("tried to set more than one node in a group as master")
@@ -356,7 +354,7 @@ def collapse_subpackage_nodes(graph):
                 sps = subgroup.get('subpackages', [])
                 sps.append(node)
                 subgroup['subpackages'] = sps
-            group[HashableDict(meta.config.variant)] = subgroup
+            group[deepfreeze(meta.config.variant)] = subgroup
             node_groups[meta_path] = group
 
     for recipe_path, group in node_groups.items():
