@@ -19,10 +19,10 @@ async def main():
                 if 'pid' in response:
                     print("VM has finished booting")
                     break
+                print(f"Waiting for VM to boot... (status: {status['status']} - response: {response})")
             except Exception as e:
-                # Guest command execution not available yet
-                pass
-        await asyncio.sleep(1)
+                print(f"Error: {e}")
+        await asyncio.sleep(60)
 
     res = await qmp.execute('system_powerdown')
     print(f"VM response: {res}")
