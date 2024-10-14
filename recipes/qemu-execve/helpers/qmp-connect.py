@@ -6,23 +6,23 @@ async def main():
     await qmp.connect('qmp-sock')
 
     print("Waiting for VM to boot...")
-    while True:
-        status = await qmp.execute('query-status')
-        if status['status'] == 'running':
-            try:
-                # Check if we can execute a command in the guest
-                response = await qmp.execute('guest-exec', data={
-                    'path': '/bin/true',
-                    'arg': [],
-                    'capture-output': False
-                })
-                if 'pid' in response:
-                    print("VM has finished booting")
-                    break
-                print(f"Waiting for VM to boot... (status: {status['status']} - response: {response})")
-            except Exception as e:
-                print(f"Error: {e}")
-        await asyncio.sleep(60)
+    boot_completed = False
+    while not boot_completed:
+        try:
+            status = await qmp.execute('query-status')
+            if status['status'] == 'running':
+                # VM is running, now let's check if it's responsive
+                info = await qmp.execute('query-name')
+                if info:
+                    print(f"VM has finished booting. VM name: {info.get('name', 'Unknown')}")
+                    boot_completed = True
+            else:
+                print(f"VM status: {status['status']}")
+        except Exception as e:
+            print(f"Error querying VM: {e}")
+
+        if not boot_completed:
+            await asyncio.sleep(60)
 
     res = await qmp.execute('system_powerdown')
     print(f"VM response: {res}")

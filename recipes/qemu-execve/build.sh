@@ -72,13 +72,15 @@ if [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64" 
     & echo $! > qemu_pid.txt
 
   sleep 60
-  python "${RECIPE_DIR}/helpers/qmp-connect.py"
+  python "${RECIPE_DIR}/helpers/qmp-connect.py" &
 
   sleep 300
   kill $(cat qemu_pid.txt)
 fi
 
-if [[ "${build_platform}" == "win-64" ]] && [[ "${target_platform}" == "win-64" ]]; then
+# build_platform may not be defined on windows
+
+if [[ "${build_platform:-"win-64"}" == "win-64" ]] && [[ "${target_platform:-"win-64"}" == "win-64" ]]; then
   qemu_arch="aarch64"
   build_win_qemu \
     "${SRC_DIR}/_conda-build-${qemu_arch}" \
