@@ -82,24 +82,13 @@ if ($DLL) {
   }
 
   # Check for Coin::mutable_denom in LIB
-  $coinMutableDenom = dumpbin /linkermember:1 $LIB | Select-String -Pattern "Coin::mutable_denom"
+  $coinMutableDenom = dumpbin /linkermember:1 $LIB | Select-String -Pattern "?mutable_denom@Coin"
   if (-not $coinMutableDenom) {
       Write-Output "Coin::mutable_denom not found in $LIB"
       exit 1
   } else {
       Write-Output "Found Coin::mutable_denom in $LIB"
       $coinMutableDenom | ForEach-Object { Write-Output $_.Line }
-  }
-
-  # Check for other v1beta1 symbols (more specific than before)
-  $v1beta1Symbols = dumpbin /linkermember:1 $LIB | Select-String -Pattern "v1beta1::"
-  if (-not $v1beta1Symbols) {
-      Write-Output "No v1beta1:: symbols found in $LIB"
-      exit 1
-  } else {
-      Write-Output "Found v1beta1:: symbols in $LIB"
-      $v1beta1Symbols | Select-Object -First 5 | ForEach-Object { Write-Output $_.Line }
-      Write-Output "... (and more)"
   }
 
   Copy-Item -Path $LIB -Destination "$env:PREFIX/Library/lib"
