@@ -1,0 +1,94 @@
+{% set name = "libblst" %}
+{% set version = "0.3.13" %}
+
+package:
+  name: libblst-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/supranational/blst/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: 89772cef338e93bc0348ae531462752906e8fa34738e38035308a7931dd2948f
+  patches:
+    - patches/0001-win-simplify-build.sh.patch  # [win]
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}  # [not win]
+    - {{ compiler('m2w64_c') }}  # [win]
+    - {{ stdlib('c') }}
+    - libxcrypt  # [unix]
+    - llvm-tools  # [win]
+    - sed  # [unix]
+
+outputs:
+  - name: libblst
+    build:
+      ignore_run_exports:
+        - ucrt  # [win]
+        - vc14_runtime  # [win]
+    files:
+      - lib/libblst.so  # [linux]
+      - lib/libblst.dylib  # [osx]
+      - Library\\lib\\blst.lib  # [win]
+      - Library\\bin\\blst.dll  # [win]
+
+      - lib/pkgconfig/blst.pc  # [unix]
+      - Library\\lib\\pkgconfig\\blst.pc  # [win]
+      - lib/pkgconfig/libblst.pc  # [unix]
+      - Library\\lib\\pkgconfig\\libblst.pc  # [win]
+    requirements:
+      build:
+        - {{ stdlib('c') }}
+      host:
+        - {{ pin_subpackage('libblst-headers', exact=True) }}
+      run:
+        - {{ pin_subpackage('libblst-headers', exact=True) }}
+    test:
+      requires:
+        - pkg-config
+      commands:
+        - test -f ${PREFIX}/lib/libblst.so  # [linux]
+        - test -f ${PREFIX}/lib/libblst.dylib  # [osx]
+        - if not exist %LIBRARY_LIB%\\blst.lib exit 1  # [win]
+        - if not exist %LIBRARY_BIN%\\blst.dll exit 1  # [win]
+
+        - pkg-config --print-errors --exact-version {{ version }} libblst
+        - pkg-config --print-errors --exact-version {{ version }} blst
+
+        - python -c "import ctypes; ctypes.CDLL('${PREFIX}/lib/libblst.so')"  # [linux]
+        - python -c "import ctypes; ctypes.CDLL('${PREFIX}/lib/libblst.dylib')"  # [osx]
+        - python -c "import ctypes; import os; ctypes.CDLL(os.path.join(os.getenv('LIBRARY_BIN'), 'blst.dll'))"  # [win]
+      downstreams:
+        - ckzg
+        - blst-py
+
+
+  - name: libblst-headers
+    files:
+      - include/blst.h  # [unix]
+      - include/blst_aux.h  # [unix]
+      - Library\\include\\blst.h  # [win]
+      - Library\\include\\blst_aux.h  # [win]
+    test:
+      commands:
+        - test -f ${PREFIX}/include/blst.h  # [unix]
+        - test -f ${PREFIX}/include/blst_aux.h  # [unix]
+        - if not exist %LIBRARY_INC%\\blst.h exit 1  # [win]
+        - if not exist %LIBRARY_INC%\\blst_aux.h exit 1  # [win]
+
+about:
+  home: https://github.com/supranational/blst
+  summary: 'Multilingual BLS12-381 signature library'
+  description: |
+    blst (pronounced 'blast') is a BLS12-381 signature library focused
+    on performance and security. It is written in C and assembly.'
+  license: Apache-2.0
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+  feedstock-name: libblst
