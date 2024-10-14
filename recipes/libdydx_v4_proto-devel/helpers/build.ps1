@@ -74,7 +74,7 @@ if ($DLL) {
       $coinMutableDenom | ForEach-Object { Write-Output $_.Line }
   }
 
-  Copy-Item -Path $LIB -Destination "$env:PREFIX/Library/lib"
+  Copy-Item -Path $LIB -Destination "$env:PREFIX/Library/lib" -Force
 } else {
   Write-Output "DLL file not found."
   exit 1
