@@ -79,6 +79,6 @@ elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64
   sleep 60
   python "${RECIPE_DIR}/helpers/qmp-connect.py" &
 
-  sleep 300
-  kill $(cat qemu_pid.txt)
+  # Safety kill qemu if we have not been able to shutdown cleanly
+  kill $(cat qemu_pid.txt) || true
 fi
