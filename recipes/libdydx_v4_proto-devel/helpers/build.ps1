@@ -19,7 +19,6 @@ Push-Location _conda-build-protocol
     -DCMAKE_VERBOSE_MAKEFILE=ON `
     -DBUILD_SHARED_LIBS=ON `
     -G Ninja
-    # -DCMAKE_EXPORT_ALL_SYMBOLS=ON `
   if ($LASTEXITCODE -ne 0) {
     Write-Output "CMake failed with exit code $LASTEXITCODE"
     exit $LASTEXITCODE
@@ -40,7 +39,20 @@ Pop-Location
 
 # Create .lib file for Windows
 $DLL = Get-ChildItem -Path "$env:PREFIX" -Filter "*.dll" -Recurse | Where-Object { $_.Name -match $PROJECT }
-if ($DLL) {
+$LIB = Get-ChildItem -Path "$env:PREFIX" -Filter "*.lib" -Recurse | Where-Object { $_.Name -match $PROJECT }
+# Check for Coin::mutable_denom in LIB
+$coinMutableDenom = dumpbin /linkermember:1 $LIB | Select-String -Pattern "\?mutable_denom@Coin"
+if (-not $coinMutableDenom) {
+    Write-Output "Coin::mutable_denom not found in $LIB"
+    exit 1
+} else {
+    Write-Output "Found Coin::mutable_denom in $LIB"
+    $coinMutableDenom | ForEach-Object { Write-Output $_.Line }
+}
+
+if ($LIB) {
+  Write-Output "Valid .lib found: $LIB"
+} else {
   $LIB = $PROJECT + ".lib"
   $DEF = $PROJECT + ".def"
 
@@ -75,7 +87,4 @@ if ($DLL) {
   }
 
   Copy-Item -Path $LIB -Destination "$env:PREFIX/Library/lib" -Force
-} else {
-  Write-Output "DLL file not found."
-  exit 1
 }
