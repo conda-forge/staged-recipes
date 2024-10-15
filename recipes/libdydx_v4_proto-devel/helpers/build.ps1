@@ -50,6 +50,17 @@ if (-not $coinMutableDenom) {
     $coinMutableDenom | ForEach-Object { Write-Output $_.Line }
 }
 
+$HEADER = Get-ChildItem -Path "$env:PREFIX" -Filter "Coin.pb.h" -Recurse
+# Check that Coin mutable_denom is exported in the header file
+$coinMutableDenom = Get-Content $HEADER.FullName | Select-String -Pattern "Coin::mutable_denom"
+if (-not $coinMutableDenom) {
+    Write-Output "Coin::mutable_denom not found in $HEADER"
+    exit 1
+} else {
+    Write-Output "Found Coin::mutable_denom in $HEADER"
+    $coinMutableDenom | ForEach-Object { Write-Output $_.Line }
+}
+
 if ($LIB) {
   Write-Output "Valid .lib found: $LIB"
 } else {
