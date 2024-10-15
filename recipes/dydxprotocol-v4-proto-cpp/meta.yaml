@@ -1,9 +1,6 @@
 {% set name = "dydx-v4-proto-cpp" %}
 {% set version = "1.1.31" %}
 
-{% set so_version = "0.0.1" %}
-{% set so_major_version = so_version.split('.')[0] %}
-
 {% set dydx_v4_proto_header_paths = {
   'dydxprotocol/clob': ["order.pb.h", "query.pb.h", "operation.pb.h", "order_removals.pb.h", "genesis.pb.h", "tx.pb.h",
                         "equity_tier_limit_config.pb.h", "clob_pair.pb.h", "matches.pb.h", "liquidations_config.pb.h",
@@ -62,6 +59,8 @@ requirements:
     - {{ compiler('cxx') }}
     - {{ stdlib("c") }}
     - cmake >=3.25
+    - libprotobuf >=4.22  # [build_platform == target_platform]
+    - m2w64-binutils  # [win]
     - ninja
     - pkg-config
     - zlib
@@ -71,15 +70,17 @@ requirements:
     - libprotobuf >=4.22
 
 outputs:
-  - name: libdydx_v4_proto-devel
+  - name: libdydx_v4_proto
     build:
-      run_exports:
-        - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
+      ignore_run_exports:
+        - ucrt  # [win]
+        - vc14_runtime  # [win]
+        - libzlib
     files:
       - lib/libdydx_v4_proto.so  # [linux]
       - lib/libdydx_v4_proto.dylib  # [osx]
       - Library\\lib\\dydx_v4_proto.lib  # [win]
-      # - Library\\bin\\dydx_v4_proto.dll  # [win]
+      - Library\\bin\\dydx_v4_proto.dll  # [win]
 
       - lib/pkgconfig/dydx_v4_proto.pc  # [unix]
       - lib/cmake/dydx_v4_proto/dydx_v4_proto-config.cmake  # [unix]
@@ -91,15 +92,20 @@ outputs:
         - {{ compiler('cxx') }}
         - {{ stdlib("c") }}
       host:
-        - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
-        - {{ pin_subpackage('libdydx_v4_proto-headers-' ~ so_major_version) }}
+        - {{ pin_subpackage('libdydx_v4_proto-headers') }}
+        - libabseil >=20240116
+        - libprotobuf >=4.22
       run:
-        - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
-        - {{ pin_subpackage('libdydx_v4_proto-headers-' ~ so_major_version) }}
+        - {{ pin_subpackage('libdydx_v4_proto-headers') }}
+        - libprotobuf >=4.22  # [win]
     test:
+      files:
+        - helpers/verify_installed_lib.ps1  # [win]
+      requires:
+        - m2w64-binutils  # [win]
       commands:
         - test -f ${PREFIX}/lib/libdydx_v4_proto${SHLIB_EXT}  # [unix]
-        # - if not exist %PREFIX%\\Library\\bin\\dydx_v4_proto%SHLIB_EXT% exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\dydx_v4_proto%SHLIB_EXT% exit 1  # [win]
         - if not exist %PREFIX%\\Library\\lib\\dydx_v4_proto.lib exit 1  # [win]
 
         - test -f ${PREFIX}/lib/pkgconfig/dydx_v4_proto.pc  # [unix]
@@ -107,6 +113,7 @@ outputs:
         - test -f ${PREFIX}/lib/cmake/dydx_v4_proto/dydx_v4_proto-config.cmake  # [unix]
         - if not exist %PREFIX%\\Library/lib/cmake/dydx_v4_proto/dydx_v4_proto-config.cmake exit 1  # [win]
 
+        - powershell -ExecutionPolicy Bypass -File "helpers\\verify_installed_lib.ps1"  # [win]
 
 
   - name: libdydx_v4_proto-headers
@@ -141,40 +148,6 @@ outputs:
 
 
 
-  - name: libdydx_v4_proto-{{ so_major_version }}
-    build:
-      run_exports:
-        - {{ pin_subpackage('libdydx_v4_proto-' ~ so_major_version) }}
-      ignore_run_exports:
-        - ucrt  # [win]
-        - vc14_runtime  # [win]
-        - libzlib
-    files:
-      - lib/libdydx_v4_proto.so.{{ so_major_version }}  # [linux]
-      - lib/libdydx_v4_proto.{{ so_major_version }}.dylib  # [osx]
-      - Library\\bin\\dydx_v4_proto-{{ so_major_version }}.dll  # [win]
-      - lib/libdydx_v4_proto.so.{{ so_version }}  # [linux]
-      - lib/libdydx_v4_proto.{{ so_version }}.dylib  # [osx]
-    requirements:
-      build:
-        - {{ compiler('c') }}
-        - {{ compiler('cxx') }}
-        - {{ stdlib("c") }}
-      host:
-        - libabseil >=20240116
-        - libprotobuf >=4.22
-      run:
-        - libprotobuf >=4.22  # [win]
-    test:
-      commands:
-        - test -f ${PREFIX}/lib/libdydx_v4_proto${SHLIB_EXT}.{{ so_major_version }}  # [linux]
-        - test -f ${PREFIX}/lib/libdydx_v4_proto.{{ so_major_version }}${SHLIB_EXT}  # [osx]
-        - if not exist %PREFIX%\\Library\\bin\\dydx_v4_proto-{{ so_major_version }}%SHLIB_EXT% exit 1  # [win]
-        - test -f ${PREFIX}/lib/libdydx_v4_proto${SHLIB_EXT}.{{ so_version }}  # [linux]
-        - test -f ${PREFIX}/lib/libdydx_v4_proto.{{ so_version }}${SHLIB_EXT}  # [osx]
-
-
-
   - name: libdydx_v4_proto
     build:
       run_exports:
@@ -194,9 +167,9 @@ outputs:
 
 about:
   home: https://github.com/dydxprotocol/v4-clients
-  summary: 'The dYdX Chain Clients used for placing transactions and querying the dYdX chain.'
+  summary: 'The dYdX Chain Protocol used for placing transactions and querying the dYdX chain.'
   description: |
-    The dYdX Chain Clients used for placing transactions and querying the dYdX chain.
+    The dYdX Chain Protocol used for placing transactions and querying the dYdX chain.
   license: AGPL-3.0-only
   license_file:
     - all-sources/LICENSE
