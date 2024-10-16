@@ -14,15 +14,6 @@ endif()
 
 file(READ ${INSERTED_FILE} INSERTED_CONTENT)
 
-set(MISSING_METHODS
-    "Coin::mutable_denom"
-    "Coin::mutable_amount"
-    "SignDoc::mutable_body_bytes"
-    "SignDoc::mutable_auth_info_bytes"
-    "SignDoc::mutable_chain_id"
-    "PubKey::mutable_key"
-    "SubaccountId::mutable_owner"
-)
 set(METHODS_TO_MODIFY
     "Coin::mutable_denom"
     "Coin::mutable_amount"
@@ -61,20 +52,6 @@ foreach(INPUT_FILE IN LISTS INPUT_FILES)
                 string(REPLACE "${METHOD_DEFINITION}" "${MODIFIED_DEFINITION}" MODIFIED_CONTENT "${MODIFIED_CONTENT}")
             endif()
         endforeach()
-        # set(INSERTION_DONE FALSE)
-        # foreach(METHOD ${MISSING_METHODS})
-        #     string(REGEX MATCH "${METHOD}" METHOD_FOUND "${INSERTED_CONTENT}")
-        #     if(METHOD_FOUND)
-        #         string(REGEX REPLACE "(.*)::.*" "\\1" CLASS_NAME ${METHOD})
-        #         string(REGEX MATCH "class[^\n]*${CLASS_NAME}[^\n]*\\{" CLASS_START "${INPUT_CONTENT}")
-        #         if(CLASS_START)
-        #             # Insert the new method after the class opening brace
-        #             string(REPLACE "${CLASS_START}" "${CLASS_START}\n  DYDX_V4_PROTO_API std::string* ${METHOD}();" MODIFIED_CONTENT "${MODIFIED_CONTENT}")
-        #             set(INSERTION_DONE TRUE)
-        #             break()
-        #         endif()
-        #     endif()
-        # endforeach()
 
     else()
         message(FATAL_ERROR "Invalid OPERATION: ${OPERATION}. Must be either PREPEND or APPEND.")

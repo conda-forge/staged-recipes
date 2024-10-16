@@ -1,5 +1,4 @@
-$DLL = Get-ChildItem -Path "$env:PREFIX" -Filter "*.dll" -Recurse | Where-Object { $_.Name -match $PROJECT }
-$LIB = Get-ChildItem -Path "$env:PREFIX" -Filter "*.lib" -Recurse | Where-Object { $_.Name -match $PROJECT }
+$LIB = Get-ChildItem -Path "$env:PREFIX" -Filter "*.lib" -Recurse | Where-Object { $_.Name -match "dydx_v4_proto" }
 
 $coinMutableDenom = dumpbin /linkermember:1 $LIB | Select-String -Pattern "\?mutable_denom@Coin"
 if (-not $coinMutableDenom) {
