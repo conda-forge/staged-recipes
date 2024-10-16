@@ -4,7 +4,7 @@ set -x
 
 source .scripts/logging_utils.sh
 
-( startgroup "Ensuring Miniforge" ) 2> /dev/null
+( startgroup "Provisioning base env with micromamba" ) 2> /dev/null
 
 MICROMAMBA_VERSION="2.0.2-0"
 MICROMAMBA_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${MICROMAMBA_VERSION}/micromamba-osx-64"
@@ -24,7 +24,7 @@ else
     --file .ci_support/requirements.txt
 fi
 
-( endgroup "Ensuring Miniforge" ) 2> /dev/null
+( endgroup "Provisioning base env with micromamba" ) 2> /dev/null
 
 ( startgroup "Configuring conda" ) 2> /dev/null
 
