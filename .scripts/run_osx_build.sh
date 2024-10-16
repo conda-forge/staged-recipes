@@ -6,20 +6,25 @@ source .scripts/logging_utils.sh
 
 ( startgroup "Provisioning base env with micromamba" ) 2> /dev/null
 
-MICROMAMBA_VERSION="2.0.2-0"
-MICROMAMBA_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${MICROMAMBA_VERSION}/micromamba-osx-64"
-MINIFORGE_HOME="${MINIFORGE_HOME:-${HOME}/Miniforge3}"
+MINIFORGE_HOME=${MINIFORGE_HOME:-${HOME}/miniforge3}
+MINIFORGE_HOME=${MINIFORGE_HOME%/} # remove trailing slash
 
 if [[ -d "${MINIFORGE_HOME}" ]]; then
   echo "Miniforge already installed at ${MINIFORGE_HOME}."
 else
+  MICROMAMBA_VERSION="1.5.10-0"
+  if [[ "$(uname -m)" == "arm64" ]]; then
+    osx_arch="osx-arm64"
+  else
+    osx_arch="osx-64"
+  fi
+  MICROMAMBA_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${MICROMAMBA_VERSION}/micromamba-${osx_arch}"
   echo "Downloading micromamba ${MICROMAMBA_VERSION}"
-  micromamba_tmp="$(mktemp -d)/micromamba"
-  curl -L -o "${micromamba_tmp}" "${MICROMAMBA_URL}"
-  chmod +x "${micromamba_tmp}"
+  micromamba_exe="$(mktemp -d)/micromamba"
+  curl -L -o "${micromamba_exe}" "${MICROMAMBA_URL}"
+  chmod +x "${micromamba_exe}"
   echo "Creating environment"
-  "${micromamba_tmp}" create --yes --root-prefix ~/.conda --prefix "${MINIFORGE_HOME}" \
-    --no-exp-repodata-parsing \
+  "${micromamba_exe}" create --yes --root-prefix ~/.conda --prefix "${MINIFORGE_HOME}" \
     --channel conda-forge \
     --file .ci_support/requirements.txt
 fi
