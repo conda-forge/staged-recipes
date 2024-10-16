@@ -1,4 +1,4 @@
-set RUSTC_BOOTSTRAP=1
+set RUSTC_BOOTSTRAP=1 || goto :error
 :: check licenses
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml || goto :error
 
