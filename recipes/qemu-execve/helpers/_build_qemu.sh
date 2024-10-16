@@ -70,7 +70,7 @@ _build_qemu() {
     export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig"
     export PKG_CONFIG_LIBDIR="${BUILD_PREFIX}/lib/pkgconfig"
 
-    configure \
+    ./configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
       --disable-docs \
