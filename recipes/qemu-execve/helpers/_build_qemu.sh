@@ -17,6 +17,10 @@ build_linux_qemu() {
     "--disable-tools"
   )
 
+  export PKG_CONFIG="${BUILD_PREFIX}/bin/pkg-config"
+  export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig"
+  export PKG_CONFIG_LIBDIR="${BUILD_PREFIX}/lib/pkgconfig"
+
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]}"
 }
 
@@ -34,8 +38,10 @@ build_osx_qemu() {
     #"--enable-guest-agent"  # Not supported
     #"--extra-cflags=-maxv2"  # Makes compilation fail
 
-  # export CFLAGS="${CFLAGS} -Wimplicit-function-declaration"
-  # export LDFLAGS="${LDFLAGS} -framework IOKit -framework CoreFoundation"
+  export PKG_CONFIG="${BUILD_PREFIX}/bin/pkg-config"
+  export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig"
+  export PKG_CONFIG_LIBDIR="${BUILD_PREFIX}/lib/pkgconfig"
+
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 }
 
@@ -53,8 +59,10 @@ build_win_qemu() {
     #"--enable-guest-agent"  # Not supported
     #"--extra-cflags=-maxv2"  # Makes compilation fail
 
-  # export CFLAGS="${CFLAGS} -Wimplicit-function-declaration"
-  # export LDFLAGS="${LDFLAGS} -framework IOKit -framework CoreFoundation"
+  export PKG_CONFIG="${BUILD_PREFIX}/Library/bin/pkg-config"
+  export PKG_CONFIG_PATH="${BUILD_PREFIX}/Library/lib/pkgconfig"
+  export PKG_CONFIG_LIBDIR="${BUILD_PREFIX}/Library/lib/pkgconfig"
+
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 }
 
@@ -67,10 +75,6 @@ _build_qemu() {
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
-    export PKG_CONFIG="${BUILD_PREFIX}/bin/pkg-config"
-    export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig"
-    export PKG_CONFIG_LIBDIR="${BUILD_PREFIX}/lib/pkgconfig"
-
     ./configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
