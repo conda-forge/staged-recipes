@@ -24,19 +24,6 @@ async def main():
         if not boot_completed:
             await asyncio.sleep(60)
 
-    await qmp.execute('system_powerdown')
-    print("VM is shutting down...")
-    await asyncio.sleep(60)
-
-    res = await qmp.execute('quit')
-    print(f"VM response: {res}")
-
-    try:
-        await qmp.connect('qmp-sock')
-        print("Warning: VM is still running after shutdown commands")
-    except Exception as e:
-        print("VM has successfully shut down")
-
     try:
         await qmp.disconnect()
     except:
