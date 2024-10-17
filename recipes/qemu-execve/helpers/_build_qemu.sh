@@ -48,6 +48,7 @@ build_win_qemu() {
     "--target-list=aarch64-softmmu"
     "--enable-tools"
     "--enable-kvm"
+    "--disable-install-blobs"
   )
     #"--enable-guest-agent"  # Not supported
     #"--extra-cflags=-maxv2"  # Makes compilation fail
