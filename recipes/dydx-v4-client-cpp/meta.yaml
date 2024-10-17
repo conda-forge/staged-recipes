@@ -1,9 +1,6 @@
 {% set name = "dydx-v4-client-cpp" %}
 {% set version = "1.1.31" %}
 
-{% set so_version = "0.0.1" %}
-{% set so_major_version = so_version.split('.')[0] %}
-
 {% set dydx_v4_client_header_paths = {
   'common': ["types.h"],
   'common/streams': ["base.h"],
@@ -45,49 +42,47 @@ requirements:
     - fmt
     - libbip3x
     - libboost-devel
-    - libdydx_v4_proto-devel
+    - libdydx_v4_proto
     - libtoolbox
     - nlohmann_json
     - openssl
     - zlib
 
 outputs:
-  - name: libdydx_v4_client-devel
-    build:
-      run_exports:
-        - {{ pin_subpackage('libdydx_v4_client-' ~ so_major_version) }}
+  - name: libdydx-v4-client
     files:
       - lib/libdydx_v4_client_lib.so  # [linux]
       - lib/libdydx_v4_client_lib.dylib  # [osx]
       - Library/lib/dydx_v4_client_lib.lib  # [win]
-      - Library/lib/dydx_v4_client_lib.{{ so_major_version }}.lib  # [win]
       - Library/bin/dydx_v4_client_lib.dll  # [win]
 
       - lib/pkgconfig/dydx_v4_client_lib.pc  # [unix]
       - Library/lib/pkgconfig/dydx_v4_client_lib.pc  # [win]
       - lib/cmake/dydx_v4_client_lib/dydx_v4_client_lib-config.cmake  # [unix]
       - Library/lib/cmake/dydx_v4_client_lib/dydx_v4_client_lib-config.cmake  # [win]
-
-      - bin/dydx_v4_client_lib_tests  # [unix]
-      - bin\\dydx_v4_client_lib_tests.exe  # [win]
     requirements:
       build:
         - {{ compiler('c') }}
         - {{ compiler('cxx') }}
         - {{ stdlib("c") }}
       host:
-        - {{ pin_subpackage('libdydx_v4_client-' ~ so_major_version) }}
         - {{ pin_subpackage('libdydx_v4_client-headers') }}
+        - fmt
+        - libbip3x-3
+        - libboost-devel
+        - libdydx_v4_proto
         - openssl
       run:
-        - {{ pin_subpackage('libdydx_v4_client-' ~ so_major_version) }}
         - {{ pin_subpackage('libdydx_v4_client-headers') }}
+        - libdydx_v4_proto
+        - libprotobuf  # [osx]
     test:
+      source_files:
+        - tests
       commands:
         - test -f ${PREFIX}/lib/libdydx_v4_client_lib.so  # [linux]
         - test -f ${PREFIX}/lib/libdydx_v4_client_lib.dylib  # [osx]
         - if not exist %PREFIX%\\Library/lib/dydx_v4_client_lib.lib exit 1  # [win]
-        - if not exist %PREFIX%\\Library/lib/dydx_v4_client_lib.{{ so_major_version }}.lib exit 1  # [win]
         - if not exist %PREFIX%\\Library/bin/dydx_v4_client_lib.dll exit 1  # [win]
 
         - test -f ${PREFIX}/lib/pkgconfig/dydx_v4_client_lib.pc  # [unix]
@@ -95,7 +90,8 @@ outputs:
         - test -f ${PREFIX}/lib/cmake/dydx_v4_client_lib/dydx_v4_client_lib-config.cmake  # [unix]
         - if not exist %PREFIX%\\Library/lib/cmake/dydx_v4_client_lib/dydx_v4_client_lib-config.cmake exit 1  # [win]
 
-        - dydx_v4_client_lib_tests
+        - tests/dydx_v4_client_lib_tests  # [unix]
+        - tests\\dydx_v4_client_lib_tests.exe  # [win]
 
 
 
@@ -121,54 +117,18 @@ outputs:
 
 
 
-  - name: libdydx_v4_client-{{ so_major_version }}
-    build:
-      run_exports:
-        - {{ pin_subpackage('libdydx_v4_client-' ~ so_major_version) }}
-    files:
-      - lib/libdydx_v4_client_lib.so.{{ so_major_version }}  # [linux]
-      - lib/libdydx_v4_client_lib.{{ so_major_version }}.dylib  # [osx]
-      - lib/libdydx_v4_client_lib.so.{{ so_version }}  # [linux]
-      - lib/libdydx_v4_client_lib.{{ so_version }}.dylib  # [osx]
-      - Library\\bin\\dydx_v4_client_lib-{{ so_version }}.dll  # [win]
-    requirements:
-      build:
-        - {{ compiler('c') }}
-        - {{ compiler('cxx') }}
-        - {{ stdlib("c") }}
-      host:
-        - fmt
-        - libbip3x-3
-        - libboost-devel
-        # - libdydx_v4_proto-{{ so_major_version }}
-        - libdydx_v4_proto-devel
-        - openssl
-      run:
-        # - libdydx_v4_proto-{{ so_major_version }}
-        - libdydx_v4_proto-devel
-        - libprotobuf  # [osx]
-    test:
-      commands:
-        - test -f ${PREFIX}/lib/libdydx_v4_client_lib${SHLIB_EXT}.{{ so_major_version }}  # [linux]
-        - test -f ${PREFIX}/lib/libdydx_v4_client_lib.{{ so_major_version }}${SHLIB_EXT}  # [osx]
-        - if not exist %PREFIX%\\Library\\bin\\dydx_v4_client_lib-{{ so_major_version }}%SHLIB_EXT% exit 1  # [win]
-        - test -f ${PREFIX}/lib/libdydx_v4_client_lib${SHLIB_EXT}.{{ so_version }}  # [linux]
-        - test -f ${PREFIX}/lib/libdydx_v4_client_lib.{{ so_version }}${SHLIB_EXT}  # [osx]
-
-
-
   - name: libdydx_v4_client
-    build:
-      run_exports:
-        - {{ pin_subpackage('libdydx_v4_client-' ~ so_major_version) }}
     requirements:
       host:
-        - {{ pin_subpackage('libdydx_v4_client-' ~ so_major_version) }}
+        - {{ pin_subpackage('libdydx-v4-client') }}
       run:
-        - {{ pin_subpackage('libdydx_v4_client-' ~ so_major_version) }}
+        - {{ pin_subpackage('libdydx-v4-client') }}
     test:
       commands:
-        - echo "libdydx_v4_client is a meta-package and has no tests."
+        - test -f ${PREFIX}/lib/libdydx_v4_client_lib.so  # [linux]
+        - test -f ${PREFIX}/lib/libdydx_v4_client_lib.dylib  # [osx]
+        - if not exist %PREFIX%\\Library/lib/dydx_v4_client_lib.lib exit 1  # [win]
+        - if not exist %PREFIX%\\Library/bin/dydx_v4_client_lib.dll exit 1  # [win]
 
 
 about:

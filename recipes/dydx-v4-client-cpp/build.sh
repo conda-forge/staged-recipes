@@ -14,8 +14,8 @@ pushd _conda-build-client
     -DCMAKE_PREFIX_PATH="${PREFIX}/lib" \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     -DBUILD_SHARED_LIBS=ON \
-    -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON \
     -G Ninja
+#    -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON \
     # > "${SRC_DIR}"/_conda-logs/_cmake_configure-client.log 2>&1
 
   cmake --build . --target dydx_v4_client_lib -- -j"${CPU_COUNT}"
@@ -25,6 +25,6 @@ popd
 pushd _conda-build-client
   cmake --build . --target dydx_v4_client_lib_tests -- -j"${CPU_COUNT}"
   lib/dydx_v4_client_lib_tests
-  cp lib/dydx_v4_client_lib_tests "${PREFIX}"/bin
-  chmod 755 "${PREFIX}"/bin/dydx_v4_client_lib_tests
+  mkdir -p "${SRC_DIR}"/tests
+  cp lib/dydx_v4_client_lib_tests "${SRC_DIR}"/tests
 popd

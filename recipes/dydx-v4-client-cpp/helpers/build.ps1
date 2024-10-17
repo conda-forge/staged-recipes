@@ -53,7 +53,8 @@ Pop-Location
 
 Push-Location _conda-build-client
   cmake --build . --target dydx_v4_client_lib_tests -- -j"$env:CPU_COUNT"
-  .\lib\dydx_v4_client_lib_tests
-  Copy-Item lib/dydx_v4_client_lib_tests "$env:PREFIX/bin"
-  icacls "$env:PREFIX/bin/dydx_v4_client_lib_tests" /grant Everyone:F
+  .\lib\dydx_v4_client_lib_tests.exe
+  New-Item -ItemType Directory -Force -Path "$env:SRC_DIR/tests"
+  Copy-Item lib/dydx_v4_client_lib_tests.exe "$env:SRC_DIR/tests"
+  icacls "$env:SRC_DIR/tests/dydx_v4_client_lib_tests.exe" /grant Everyone:F
 Pop-Location
