@@ -26,10 +26,12 @@ if (-not $coinMutableDenom) {
 }
 
 Push-Location _conda-build-client
+  $_PREFIX = $env:PREFIX -replace '\\', '/'
+
   cmake "$env:SRC_DIR/v4-client-cpp" `
     -DCMAKE_BUILD_TYPE=Release `
-    -DCMAKE_PREFIX_PATH="${env:PREFIX}/lib" `
-    -DCMAKE_INSTALL_PREFIX="${env:PREFIX}" `
+    -DCMAKE_PREFIX_PATH="$_PREFIX/lib;$_PREFIX/Library/lib" `
+    -DCMAKE_INSTALL_PREFIX="$_PREFIX/Library" `
     -DBUILD_SHARED_LIBS=ON `
     -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON `
     -G Ninja
