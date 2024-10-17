@@ -80,5 +80,6 @@ elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64
   python "${RECIPE_DIR}/helpers/qmp-vm-build.py" &
 
   # Safety kill qemu if we have not been able to shutdown cleanly
+  sleep 120
   kill $(cat qemu_pid.txt) || true
 fi
