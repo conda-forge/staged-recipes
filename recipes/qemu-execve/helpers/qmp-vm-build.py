@@ -98,7 +98,7 @@ class AlpineVMManager:
 
 
 async def main():
-    vm_manager = AlpineVMManager('alpine-vm', 'qmp-sock')
+    vm_manager = AlpineVMManager('aarch64-vm', 'qmp-sock')
 
     try:
         await vm_manager.connect()
