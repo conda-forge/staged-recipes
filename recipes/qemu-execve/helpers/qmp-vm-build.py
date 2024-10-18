@@ -40,7 +40,7 @@ class AlpineVMManager:
     async def check_status(self):
         status = await self.qmp.execute('query-status')
         print(f"VM status: {status['status']}")
-        return status['status']
+        return status
 
     async def execute_command(self, command):
         response = await self.qmp.execute('guest-exec', command=command)

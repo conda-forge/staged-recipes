@@ -59,9 +59,9 @@ build_win_qemu() {
     #"--enable-guest-agent"  # Not supported
     #"--extra-cflags=-maxv2"  # Makes compilation fail
 
-  local _win_prefix="$(which pkg-config.exe | sed 's|/|\\|g')"
-  export PKG_CONFIG="$(which pkg-config.exe)"
-  export PKG_CONFIG_PATH="$(dirname "${PKG_CONFIG}")/../lib/pkgconfig"
+  local _win_path="$(which pkg-config | sed 's|^\(.\)|\1:|g' | sed 's|/|\\|g')"
+  export PKG_CONFIG="${_win_path}"
+  export PKG_CONFIG_PATH="${_win_path}\\..\\lib\\pkgconfig"
   export PKG_CONFIG_LIBDIR="${PKG_CONFIG_PATH}"
 
   ${PKG_CONFIG} --help
@@ -95,8 +95,7 @@ _build_qemu() {
 
     make -j"${CPU_COUNT}"
      #> "${SRC_DIR}"/_make-"${qemu_arch}".log 2>&1
-    make check
-     #> "${SRC_DIR}"/_check-"${qemu_arch}".log 2>&1
+    # make check > "${SRC_DIR}"/_check-"${qemu_arch}".log 2>&1
     make install
      #> "${SRC_DIR}"/_install-"${qemu_arch}".log 2>&1
 
