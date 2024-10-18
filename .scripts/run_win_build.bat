@@ -21,8 +21,9 @@ if "%MINIFORGE_HOME%"=="" (
 :: Remove trailing backslash, if present
 if "%MINIFORGE_HOME:~-1%"=="\" set "MINIFORGE_HOME=%MINIFORGE_HOME:~0,-1%"
 
-if NOT WHERE pixi >nul 2>nul (
-    echo Downloading pixi
+WHERE /Q pixi && set "_install_pixi=no" || set "_install_pixi=yes"
+if "%_install_pixi%"="yes" (
+    echo Installing pixi
     powershell -NoProfile -ExecutionPolicy unrestricted -Command "iwr -useb https://pixi.sh/install.ps1 | iex"
     if !errorlevel! neq 0 exit /b !errorlevel!
     set "PATH=%USERPROFILE%\.pixi\bin;%PATH%"
