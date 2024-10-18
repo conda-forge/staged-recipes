@@ -4,29 +4,30 @@ set -x
 
 source .scripts/logging_utils.sh
 
-( startgroup "Ensuring Miniforge" ) 2> /dev/null
+( startgroup "Ensuring conda" ) 2> /dev/null
 
-PIXI_VERSION="0.30.0"
-PIXI_URL="https://github.com/prefix-dev/pixi/releases/download/v${PIXI_VERSION}/pixi-x86_64-apple-darwin"
 REPO_ROOT=$(dirname -- $(dirname -- "$(readlink -f -- "$BASH_SOURCE")"))
-MINIFORGE_ROOT="$REPO_ROOT/.pixi/envs/default"
+MINIFORGE_ROOT="${REPO_ROOT}/.pixi/envs/default"
 
-if [[ -d "${MINIFORGE_ROOT}" ]]; then
-  echo "Miniforge already installed at ${MINIFORGE_ROOT}."
-else
-  echo "Downloading pixi ${PIXI_VERSION}"
-  pixi_tmp="$(mktemp -d)/pixi"
-  curl -L -o "${pixi_tmp}" "${PIXI_URL}"
-  chmod +x "${pixi_tmp}"
-  echo "Creating environment"
-  pushd "$REPO_ROOT"
-  "${pixi_tmp}" init --import .ci_support/requirements.yaml --platform osx-64
-  "${pixi_tmp}" install
-  "${pixi_tmp}" list
-  popd
+if [[ ! command -v pixi >/dev/null 2>&1 ]]
+  curl -fsSL https://pixi.sh/install.sh | bash
+  export PATH="~/.pixi/bin:$PATH"
 fi
+echo "Creating environment"
+pushd "$REPO_ROOT"
+arch=$(uname -m)
+if [[ "$arch" == "x86_64" ]]; then
+  arch="64"
+fi
+sed -i.bak "s/platforms = .*/platforms = [\"osx-${arch}\"]/" pixi.toml
+pixi install
+pixi list
+mv pixi.toml.bak pixi.toml
+echo "Activating environment"
+eval "$(pixi shell-hook)"
+popd
 
-( endgroup "Ensuring Miniforge" ) 2> /dev/null
+( endgroup "Ensuring conda" ) 2> /dev/null
 
 ( startgroup "Configuring conda" ) 2> /dev/null
 
@@ -35,9 +36,6 @@ always_yes: true
 show_channel_urls: true
 solver: libmamba
 CONDARC
-
-source "${MINIFORGE_ROOT}/etc/profile.d/conda.sh"
-conda activate base
 
 echo -e "\n\nSetting up the condarc and mangling the compiler."
 setup_conda_rc ./ ./recipes ./.ci_support/${CONFIG}.yaml

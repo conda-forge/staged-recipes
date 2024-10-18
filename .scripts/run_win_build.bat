@@ -9,30 +9,31 @@
 
 setlocal enableextensions enabledelayedexpansion
 
-call :start_group "Installing conda"
+call :start_group "Ensuring conda"
 
-set "PIXI_VERSION=0.30.0"
-set "PIXI_URL=https://github.com/prefix-dev/pixi/releases/download/v%PIXI_VERSION%/pixi-x86_64-pc-windows-msvc.exe"
-set "PIXI_TMPDIR=%TMP%\pixi-%RANDOM%"
-set "PIXI_TMP=%PIXI_TMPDIR%\pixi.exe"
 set "REPO_ROOT=%~dp0.."
 set "MINIFORGE_ROOT=%REPO_ROOT%\.pixi\envs\default"
 
-echo Downloading pixi %PIXI_VERSION%
-if not exist "%PIXI_TMPDIR%" mkdir "%PIXI_TMPDIR%"
-certutil -urlcache -split -f "%PIXI_URL%" "%PIXI_TMP%"
-if errorlevel 1 exit 1
+if NOT WHERE pixi >nul 2>nul (
+    echo Downloading pixi
+    powershell -NoProfile -ExecutionPolicy unrestricted -Command "iwr -useb https://pixi.sh/install.ps1 | iex"
+    if !errorlevel! neq 0 exit /b !errorlevel!
+    set "PATH=%USERPROFILE%\.pixi\bin;%PATH%"
+)
 
-echo Importing environment
 pushd "%REPO_ROOT%"
-call "%PIXI_TMP%" init --import .ci_support\requirements.yaml --platform win-64
-if errorlevel 1 exit 1
 echo Creating environment
-call "%PIXI_TMP%" install
-if errorlevel 1 exit 1
+pixi install
+if !errorlevel! neq 0 exit /b !errorlevel!
 echo Listing environment
-call "%PIXI_TMP%" list
-if errorlevel 1 exit 1
+pixi list
+if !errorlevel! neq 0 exit /b !errorlevel!
+:: Activate the base conda environment
+echo Activating environment
+set "ACTIVATE_PIXI=%TMP%\pixi-activate-%RANDOM%.bat"
+pixi shell-hook > %ACTIVATE_PIXI%
+call %ACTIVATE_PIXI%
+if !errorlevel! neq 0 exit /b !errorlevel!
 popd
 
 call :end_group
@@ -43,31 +44,26 @@ if "%CONDA_BLD_PATH%" == "" (
     set "CONDA_BLD_PATH=C:\bld"
 )
 
-:: Activate the base conda environment
-echo Activating "%MINIFORGE_ROOT%"
-call "%MINIFORGE_ROOT%\Scripts\activate"
-if errorlevel 1 exit 1
-
 :: Set basic configuration
 echo Setting up configuration
 conda.exe config --set always_yes yes
-if errorlevel 1 exit 1
+if !errorlevel! neq 0 exit /b !errorlevel!
 conda.exe config --set channel_priority strict
-if errorlevel 1 exit 1
+if !errorlevel! neq 0 exit /b !errorlevel!
 conda.exe config --set solver libmamba
-if errorlevel 1 exit 1
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 setup_conda_rc .\ ".\recipes" .\.ci_support\%CONFIG%.yaml
-if errorlevel 1 exit 1
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 echo Run conda_forge_build_setup
 call run_conda_forge_build_setup
-if errorlevel 1 exit 1
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 echo Force fetch origin/main
 :: Temporary
 :: git fetch --force origin main:main
-:: if errorlevel 1 exit 1
+:: if !errorlevel! neq 0 exit /b !errorlevel!
 echo Removing recipes also present in main
 cd recipes
 for /f "tokens=*" %%a in ('git ls-tree --name-only main -- .') do rmdir /s /q %%a && echo Removing recipe: %%a
@@ -79,13 +75,13 @@ if not exist "%CONDA_BLD_PATH%\noarch\" mkdir "%CONDA_BLD_PATH%\noarch\"
 
 echo Index %CONDA_BLD_PATH%
 conda.exe index "%CONDA_BLD_PATH%"
-if errorlevel 1 exit 1
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 call :end_group
 
 echo Building all recipes
 python .ci_support\build_all.py --arch 64
-if errorlevel 1 exit 1
+if !errorlevel! neq 0 exit /b !errorlevel!
 
 call :start_group "Inspecting artifacts"
 

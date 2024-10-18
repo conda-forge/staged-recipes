@@ -61,9 +61,24 @@ fi
 git ls-tree --name-only main -- . | xargs -I {} sh -c "rm -rf ~/staged-recipes-copy/recipes/{} && echo Removing recipe: {}"
 popd > /dev/null
 
-# Prevent permission errors in ~/.cache/conda
-export CONDA_NUMBER_CHANNEL_NOTICES=0
-conda install --quiet --file ${FEEDSTOCK_ROOT}/.ci_support/requirements.txt
+if [[ ! command -v pixi >/dev/null 2>&1 ]]
+  curl -fsSL https://pixi.sh/install.sh | bash
+  export PATH="~/.pixi/bin:$PATH"
+fi
+echo "Creating environment"
+pushd "${FEEDSTOCK_ROOT}"
+ln -s /opt/conda/pkgs/cache /opt/conda/repodata
+arch=$(uname -m)
+if [[ "$arch" == "x86_64" ]]; then
+  arch="64"
+fi
+sed -i.bak "s/platforms = .*/platforms = [\"linux-${arch}\"]/" pixi.toml
+PIXI_CACHE_DIR=/opt/conda pixi install
+pixi list
+mv pixi.toml.bak pixi.toml
+echo "Activating environment"
+eval "$(pixi shell-hook)"
+popd
 
 setup_conda_rc "${FEEDSTOCK_ROOT}" "/home/conda/staged-recipes-copy/recipes" "${CI_SUPPORT}/${CONFIG}.yaml"
 source run_conda_forge_build_setup
