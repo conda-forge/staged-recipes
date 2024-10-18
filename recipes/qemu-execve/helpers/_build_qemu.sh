@@ -61,7 +61,7 @@ build_win_qemu() {
 
   local _win_prefix="$(which pkg-config.exe | sed 's|/|\\|g')"
   export PKG_CONFIG="$(which pkg-config.exe)"
-  export PKG_CONFIG_PATH="$(dirname "${PKG_CONFIG}")../lib/pkgconfig"
+  export PKG_CONFIG_PATH="$(dirname "${PKG_CONFIG}")/../lib/pkgconfig"
   export PKG_CONFIG_LIBDIR="${PKG_CONFIG_PATH}"
 
   ${PKG_CONFIG} --help
