@@ -83,8 +83,8 @@ if !errorlevel! neq 0 exit /b !errorlevel!
 echo Force fetch origin/main
 set GIT_SSL_NO_VERIFY=true
 git fetch --force origin main:main
-set "GIT_SSL_NO_VERIFY="
 if !errorlevel! neq 0 exit /b !errorlevel!
+set "GIT_SSL_NO_VERIFY="
 echo Removing recipes also present in main
 cd recipes
 for /f "tokens=*" %%a in ('git ls-tree --name-only main -- .') do rmdir /s /q %%a && echo Removing recipe: %%a
