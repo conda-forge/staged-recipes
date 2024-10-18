@@ -6,13 +6,20 @@
 :: INPUTS (required environment variables)
 :: CONDA_BLD_PATH: path for the conda-build workspace
 :: CI: azure, or unset
+:: MINIFORGE_HOME: where to install the base conda environment
 
 setlocal enableextensions enabledelayedexpansion
 
 call :start_group "Ensuring conda"
 
-set "REPO_ROOT=%~dp0.."
-set "MINIFORGE_ROOT=%REPO_ROOT%\.pixi\envs\default"
+FOR %%A IN ("%~dp0.") DO SET "REPO_ROOT=%%~dpA"
+if "%MINIFORGE_HOME%"=="" (
+    set "MINIFORGE_HOME=%REPO_ROOT%\.pixi\envs\default"
+) else (
+    set "PIXI_CACHE_DIR=%MINIFORGE_HOME%"
+)
+:: Remove trailing backslash, if present
+if "%MINIFORGE_HOME:~-1%"=="\" set "MINIFORGE_HOME=%MINIFORGE_HOME:~0,-1%"
 
 if NOT WHERE pixi >nul 2>nul (
     echo Downloading pixi
@@ -21,8 +28,18 @@ if NOT WHERE pixi >nul 2>nul (
     set "PATH=%USERPROFILE%\.pixi\bin;%PATH%"
 )
 
-pushd "%REPO_ROOT%"
 echo Creating environment
+if "%PIXI_CACHE_DIR%"=="%MINIFORGE_HOME%" (
+    mkdir "%MINIFORGE_HOME%"
+    copy /Y pixi.toml "%MINIFORGE_HOME%"
+    pushd "%MINIFORGE_HOME%"
+) else (
+    pushd "%REPO_ROOT%"
+)
+ren pixi.toml pixi.toml.bak
+set "arch=64"
+if "%PROCESSOR_ARCHITECTURE%"=="ARM64" set "arch=arm64"
+powershell -NoProfile -ExecutionPolicy unrestricted -Command "(Get-Content pixi.toml.bak) -replace 'platforms = .*', 'platforms = [''win-%arch%'']' | Out-File pixi.toml"
 pixi install
 if !errorlevel! neq 0 exit /b !errorlevel!
 echo Listing environment
@@ -32,8 +49,10 @@ if !errorlevel! neq 0 exit /b !errorlevel!
 echo Activating environment
 set "ACTIVATE_PIXI=%TMP%\pixi-activate-%RANDOM%.bat"
 pixi shell-hook > %ACTIVATE_PIXI%
+if !errorlevel! neq 0 exit /b !errorlevel!
 call %ACTIVATE_PIXI%
 if !errorlevel! neq 0 exit /b !errorlevel!
+ren pixi.toml.bak pixi.toml
 popd
 
 call :end_group
@@ -61,9 +80,8 @@ call run_conda_forge_build_setup
 if !errorlevel! neq 0 exit /b !errorlevel!
 
 echo Force fetch origin/main
-:: Temporary
-:: git fetch --force origin main:main
-:: if !errorlevel! neq 0 exit /b !errorlevel!
+git fetch --force origin main:main
+if !errorlevel! neq 0 exit /b !errorlevel!
 echo Removing recipes also present in main
 cd recipes
 for /f "tokens=*" %%a in ('git ls-tree --name-only main -- .') do rmdir /s /q %%a && echo Removing recipe: %%a

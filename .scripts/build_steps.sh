@@ -67,7 +67,6 @@ if [[ ! command -v pixi >/dev/null 2>&1 ]]
 fi
 echo "Creating environment"
 pushd "${FEEDSTOCK_ROOT}"
-ln -s /opt/conda/pkgs/cache /opt/conda/repodata
 arch=$(uname -m)
 if [[ "$arch" == "x86_64" ]]; then
   arch="64"
