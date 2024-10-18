@@ -36,10 +36,10 @@ if "%PIXI_CACHE_DIR%"=="%MINIFORGE_HOME%" (
 ) else (
     pushd "%REPO_ROOT%"
 )
-ren pixi.toml pixi.toml.bak
+move /y pixi.toml pixi.toml.bak
 set "arch=64"
 if "%PROCESSOR_ARCHITECTURE%"=="ARM64" set "arch=arm64"
-powershell -NoProfile -ExecutionPolicy unrestricted -Command "(Get-Content pixi.toml.bak) -replace 'platforms = .*', 'platforms = [''win-%arch%'']' | Out-File pixi.toml"
+powershell -NoProfile -ExecutionPolicy unrestricted -Command "(Get-Content pixi.toml.bak -Encoding UTF8) -replace 'platforms = .*', 'platforms = [''win-%arch%'']' | Out-File -Encoding UTF8 pixi.toml"
 pixi install
 if !errorlevel! neq 0 exit /b !errorlevel!
 echo Listing environment
@@ -52,7 +52,7 @@ pixi shell-hook > %ACTIVATE_PIXI%
 if !errorlevel! neq 0 exit /b !errorlevel!
 call %ACTIVATE_PIXI%
 if !errorlevel! neq 0 exit /b !errorlevel!
-ren pixi.toml.bak pixi.toml
+move /y pixi.toml.bak pixi.toml
 popd
 
 call :end_group
