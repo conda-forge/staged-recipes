@@ -81,7 +81,9 @@ call run_conda_forge_build_setup
 if !errorlevel! neq 0 exit /b !errorlevel!
 
 echo Force fetch origin/main
+set GIT_SSL_NO_VERIFY=true
 git fetch --force origin main:main
+set "GIT_SSL_NO_VERIFY="
 if !errorlevel! neq 0 exit /b !errorlevel!
 echo Removing recipes also present in main
 cd recipes
