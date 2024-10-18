@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import contextlib
 from qemu.qmp import QMPClient
 
@@ -43,43 +44,56 @@ class AlpineVMManager:
         return status
 
     async def execute_command(self, command):
-        response = await self.qmp.execute('guest-exec', command=command)
-        print(f"guest-exec response: {response}")  # Debug print
-        if isinstance(response, dict) and 'pid' in response:
-            while True:
-                status = await self.qmp.execute('guest-exec-status', pid=response['pid'])
-                if status['exited']:
-                    return status
-                await asyncio.sleep(1)
-        else:
-            print(f"Unexpected guest-exec response format: {response}")
-        return None
+        try:
+            response = await self.qmp.execute('guest-exec', {
+                "path": "/bin/sh",
+                "arg": ["-c", command],
+                "capture-output": True
+            })
+
+            if 'pid' in response:
+                while True:
+                    status = await self.qmp.execute('guest-exec-status', {'pid': response['pid']})
+                    if status['exited']:
+                        if 'out-data' in status:
+                            output = base64.b64decode(status['out-data']).decode('utf-8', errors='replace')
+                            return output
+                        return None
+                    await asyncio.sleep(0.1)
+            else:
+                print(f"Unexpected guest-exec response: {response}")
+                return None
+        except Exception as e:
+            print(f"Error running command: {e}")
+            return None
 
     async def install_miniconda(self):
         print("Installing Miniconda...")
+        try:
+            print("Downloading Miniconda installer...")
+            result = await self.execute_command(
+                "wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh -O /tmp/miniconda.sh")
+            print(f"Download result: {result}")
 
-        print("Downloading Miniconda installer...")
-        await self.execute_command(f"wget {self.MINICONDA_URL} -O /tmp/miniconda.sh")
+            print("Making installer executable...")
+            result = await self.execute_command("chmod +x /tmp/miniconda.sh")
+            print(f"Chmod result: {result}")
 
-        print("Making installer executable...")
-        await self.execute_command("chmod +x /tmp/miniconda.sh")
+            print("Running Miniconda installer...")
+            result = await self.execute_command("/tmp/miniconda.sh -b -p /root/miniconda")
+            print(f"Installation result: {result}")
 
-        print("Running Miniconda installer...")
-        result = await self.execute_command("/tmp/miniconda.sh -b -p /root/miniconda")
-        if result and result['exitcode'] == 0:
-            print("Miniconda installed successfully")
-        else:
-            print("Failed to install Miniconda")
-            return False
+            print("Adding Miniconda to PATH...")
+            result = await self.execute_command("echo 'export PATH=/root/miniconda/bin:$PATH' >> /root/.bashrc")
+            print(f"PATH update result: {result}")
 
-        print("Adding Miniconda to PATH...")
-        await self.execute_command("echo 'export PATH=/root/miniconda/bin:$PATH' >> /root/.bashrc")
+            print("Activating Conda...")
+            result = await self.execute_command("source /root/.bashrc && conda init")
+            print(f"Conda init result: {result}")
 
-        print("Activating Conda...")
-        await self.execute_command("source /root/.bashrc && conda init")
-
-        print("Miniconda installation and setup complete")
-        return True
+            print("Miniconda installation complete")
+        except Exception as e:
+            print(f"Error during Miniconda installation: {e}")
 
     async def shutdown_vm(self):
         print("Initiating VM shutdown...")

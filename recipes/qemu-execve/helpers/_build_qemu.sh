@@ -59,9 +59,10 @@ build_win_qemu() {
     #"--enable-guest-agent"  # Not supported
     #"--extra-cflags=-maxv2"  # Makes compilation fail
 
-  local _win_path="$(which pkg-config | sed 's|^/\(.\)|\1:|g' | sed 's|/|\\|g')"
-  export PKG_CONFIG="${_win_path}"
-  export PKG_CONFIG_PATH="${_win_path}\\..\\lib\\pkgconfig"
+  local _pkg_config="$(which pkg-config | sed 's|^/\(.\)|\1:|g' | sed 's|/|\\|g')"
+  local _pkg_config_path="$(echo '${PREFIX}/Library/lib/pkgconfig' | sed 's|^/\(.\)|\1:|g' | sed 's|/|\\|g')"
+  export PKG_CONFIG="${_pkg_config}"
+  export PKG_CONFIG_PATH="${_pkg_config_path}"
   export PKG_CONFIG_LIBDIR="${PKG_CONFIG_PATH}"
 
   ${PKG_CONFIG} --help
