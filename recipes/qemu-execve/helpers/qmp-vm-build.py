@@ -89,7 +89,7 @@ class AlpineVMManager:
             await asyncio.sleep(1)
             try:
                 status = await self.check_status()
-                if status == 'shutdown':
+                if status['status'] == 'shutdown':
                     print("VM has shut down successfully")
                     return True
             except Exception:
@@ -107,7 +107,7 @@ async def main():
         await vm_manager.connect()
 
         status = await vm_manager.check_status()
-        if status != 'running':
+        if status['status'] != 'running':
             print("VM is not running. Cannot proceed with installation.")
             return
 
