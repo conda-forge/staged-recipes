@@ -32,6 +32,8 @@ class AlpineVMManager:
 
             if not boot_completed:
                 await asyncio.sleep(10)
+        print("VM is ready. Commands:")
+        print(self.qmp.execute('query-commands'))
 
     async def disconnect(self):
         with contextlib.suppress(Exception):
