@@ -58,7 +58,8 @@ build_win_qemu() {
   )
     #"--enable-guest-agent"  # Not supported
     #"--extra-cflags=-maxv2"  # Makes compilation fail
-  find "$BUILD_PREFIX" -name 'pkg-config*' \;
+  which pkg-config
+  which pkg-config.exe
 
   local _win_prefix="$(whe "${BUILD_PREFIX}" | sed 's|/|\\|g')"
   export PKG_CONFIG="${_win_prefix}\\bin\\pkg-config.exe"

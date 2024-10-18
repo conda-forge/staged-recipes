@@ -44,12 +44,15 @@ class AlpineVMManager:
 
     async def execute_command(self, command):
         response = await self.qmp.execute('guest-exec', command=command)
-        if 'pid' in response:
+        print(f"guest-exec response: {response}")  # Debug print
+        if isinstance(response, dict) and 'pid' in response:
             while True:
                 status = await self.qmp.execute('guest-exec-status', pid=response['pid'])
                 if status['exited']:
                     return status
                 await asyncio.sleep(1)
+        else:
+            print(f"Unexpected guest-exec response format: {response}")
         return None
 
     async def install_miniconda(self):
