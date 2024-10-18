@@ -46,28 +46,13 @@ class AlpineVMManager:
         return status
 
     async def execute_command(self, command):
-        try:
-            response = await self.qmp.execute('guest-exec', {
-                "path": "/bin/sh",
-                "arg": ["-c", command],
-                "capture-output": True
-            })
-
-            if 'pid' in response:
-                while True:
-                    status = await self.qmp.execute('guest-exec-status', {'pid': response['pid']})
-                    if status['exited']:
-                        if 'out-data' in status:
-                            output = base64.b64decode(status['out-data']).decode('utf-8', errors='replace')
-                            return output
-                        return None
-                    await asyncio.sleep(0.1)
-            else:
-                print(f"Unexpected guest-exec response: {response}")
-                return None
-        except Exception as e:
-            print(f"Error running command: {e}")
-            return None
+        escaped_command = command.replace('"', '\\"')
+        monitor_command = f'sendkey ret; keyboard_send_string "{escaped_command}"; sendkey ret'
+        response = await self.qmp.execute('human-monitor-command', {'command-line': monitor_command})
+        print(f"Command sent: {command}")
+        print(f"Monitor response: {response}")
+        await asyncio.sleep(2)  # Give some time for the command to execute
+        return response
 
     async def install_miniconda(self):
         print("Installing Miniconda...")
