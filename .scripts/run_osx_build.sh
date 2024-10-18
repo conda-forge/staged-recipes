@@ -7,7 +7,8 @@ source .scripts/logging_utils.sh
 ( startgroup "Provisioning base env with pixi" ) 2> /dev/null
 
 REPO_ROOT=$(dirname -- $(dirname -- "$(readlink -f -- "$BASH_SOURCE")"))
-MINIFORGE_ROOT="${REPO_ROOT}/.pixi/envs/default"
+MINIFORGE_HOME="${MINIFORGE_HOME:-${REPO_ROOT}/.pixi/envs/default}"
+CONDA_BLD_PATH="${CONDA_BLD_PATH:-${MINIFORGE_HOME}/conda-bld}"
 
 if ! command -v pixi >/dev/null 2>&1; then
   echo "Installing pixi"
@@ -58,7 +59,7 @@ source run_conda_forge_build_setup
 set -e
 
 # make sure there is a package directory so that artifact publishing works
-mkdir -p "${MINIFORGE_HOME}/conda-bld/osx-64/" "${MINIFORGE_HOME}/conda-bld/noarch/"
+mkdir -p "${CONDA_BLD_PATH}/osx-64/" "${CONDA_BLD_PATH}/noarch/"
 
 # Find the recipes from main in this PR and remove them.
 echo ""
