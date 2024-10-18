@@ -1,0 +1,152 @@
+{% set name = "dydx-v4-client-cpp" %}
+{% set version = "1.1.31" %}
+
+{% set dydx_v4_client_header_paths = {
+  'common': ["types.h"],
+  'common/streams': ["base.h"],
+  'common/encoding': ["base64.h", "bech32.h"],
+  'common/requests': ["util.h", "base.h"],
+  'dydx_v4_futures': ["types.h", "composite_client.h", "constants.h", "instrument_info.h", "exchange_info.h", "example_configs.h", "account_info.h", "enums.h"],
+  'dydx_v4_futures/requests': ["faucet.h", "node_grpc_gateway.h", "indexer.h"],
+  'dydx_v4_futures/streams': ["indexer.h"],
+  'dydx_v4_futures/encoding': ["signing.h", "proto.h", "proto_constructors.h"],
+} %}
+
+package:
+  name: dydx-v4-client-cpp-split
+  version: {{ version }}
+
+source:
+  folder: all-sources
+  url: https://github.com/dydxprotocol/v4-clients/archive/refs/tags/v4-client-js@{{ version }}.tar.gz
+  sha256: eb6ffc4e53aa0a22f195092f2102fb5233c5c4dda7b11700208a1974d1428297
+  patches:
+    - patches/0001-remove-beast-specification.patch
+    - patches/0002-add-cstdint-header.patch
+    - patches/0003-add-shared-client-lib.patch
+    - patches/0004-remove-FetchContent.patch
+    - patches/0005-build-client-only.patch
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+    - {{ stdlib("c") }}
+    - cmake >=3.25
+    - ninja
+  host:
+    - catch2
+    - fmt
+    - libbip3x
+    - libboost-devel
+    - libdydx_v4_proto
+    - libtoolbox
+    - nlohmann_json
+    - openssl
+    - zlib
+
+outputs:
+  - name: libdydx-v4-client
+    build:
+      ignore_run_exports:
+        - ucrt  # [win]
+        - vcruntime  # [win]
+    files:
+      - lib/libdydx_v4_client_lib.so  # [linux]
+      - lib/libdydx_v4_client_lib.dylib  # [osx]
+      - Library/lib/dydx_v4_client_lib.lib  # [win]
+      - Library/bin/dydx_v4_client_lib.dll  # [win]
+
+      - lib/pkgconfig/dydx_v4_client_lib.pc  # [unix]
+      - Library/lib/pkgconfig/dydx_v4_client_lib.pc  # [win]
+      - lib/cmake/dydx_v4_client_lib/dydx_v4_client_lib-config.cmake  # [unix]
+      - Library/lib/cmake/dydx_v4_client_lib/dydx_v4_client_lib-config.cmake  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+      host:
+        - {{ pin_subpackage('libdydx_v4_client-headers') }}
+        - fmt
+        - libbip3x-3
+        - libboost-devel
+        - libdydx_v4_proto
+        - openssl
+      run:
+        - {{ pin_subpackage('libdydx_v4_client-headers') }}
+        - libdydx_v4_proto
+        - libprotobuf  # [osx or win]
+        - libtoolbox-3  # [win]
+    test:
+      source_files:
+        - tests
+      commands:
+        - test -f ${PREFIX}/lib/libdydx_v4_client_lib.so  # [linux]
+        - test -f ${PREFIX}/lib/libdydx_v4_client_lib.dylib  # [osx]
+        - if not exist %PREFIX%\\Library/lib/dydx_v4_client_lib.lib exit 1  # [win]
+        - if not exist %PREFIX%\\Library/bin/dydx_v4_client_lib.dll exit 1  # [win]
+
+        - test -f ${PREFIX}/lib/pkgconfig/dydx_v4_client_lib.pc  # [unix]
+        - if not exist %PREFIX%\\Library/lib/pkgconfig/dydx_v4_client_lib.pc exit 1  # [win]
+        - test -f ${PREFIX}/lib/cmake/dydx_v4_client_lib/dydx_v4_client_lib-config.cmake  # [unix]
+        - if not exist %PREFIX%\\Library/lib/cmake/dydx_v4_client_lib/dydx_v4_client_lib-config.cmake exit 1  # [win]
+
+        - LD_PRELOAD="${CONDA_PREFIX}/lib/libdydx_v4_client_lib.so ${CONDA_PREFIX}/lib/libcrypto.so ${CONDA_PREFIX}/lib/libstdc++.so" tests/dydx_v4_client_lib_tests  # [linux]
+        - DYLD_INSERT_LIBRARIES="${CONDA_PREFIX}/lib/libdydx_v4_client_lib.dylib:${CONDA_PREFIX}/lib/libcrypto.dylib" tests/dydx_v4_client_lib_tests  # [osx]
+        - tests\\dydx_v4_client_lib_tests.exe  # [win]
+
+
+
+  - name: libdydx_v4_client-headers
+    files:
+      {% for path, headers in dydx_v4_client_header_paths.items() %}
+        {% for header in headers %}
+      - include/dydx_v4_client/{{ path }}/{{ header }}  # [unix]
+      - Library\\include\\dydx_v4_client\\{{ path | replace('/', '\\\\') }}\\{{ header }}  # [win]
+        {% endfor %}
+      {% endfor %}
+    requirements:
+      host:
+      run:
+    test:
+      commands:
+        {% for path, headers in dydx_v4_client_header_paths.items() %}
+          {% for header in headers %}
+        - test -f ${PREFIX}/include/dydx_v4_client/{{ path }}/{{ header }}  # [unix]
+        - if not exist %PREFIX%\\Library\\include\\dydx_v4_client\\{{ path | replace('/', '\\\\') }}\\{{ header }} exit 1  # [win]
+          {% endfor %}
+        {% endfor %}
+
+
+
+  - name: libdydx_v4_client
+    requirements:
+      host:
+        - {{ pin_subpackage('libdydx-v4-client') }}
+      run:
+        - {{ pin_subpackage('libdydx-v4-client') }}
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libdydx_v4_client_lib.so  # [linux]
+        - test -f ${PREFIX}/lib/libdydx_v4_client_lib.dylib  # [osx]
+        - if not exist %PREFIX%\\Library/lib/dydx_v4_client_lib.lib exit 1  # [win]
+        - if not exist %PREFIX%\\Library/bin/dydx_v4_client_lib.dll exit 1  # [win]
+
+
+about:
+  home: https://github.com/dydxprotocol/v4-clients
+  summary: 'The dYdX Chain Clients used for placing transactions and querying the dYdX chain.'
+  description: |
+    The dYdX Chain Clients used for placing transactions and querying the dYdX chain.
+  license: AGPL-3.0-only
+  license_file:
+    - all-sources/LICENSE
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+  feedstock-name: dydx-v4-client-cpp
