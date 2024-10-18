@@ -65,7 +65,7 @@ build_win_qemu() {
   export PKG_CONFIG_PATH="${_pkg_config_path}"
   export PKG_CONFIG_LIBDIR="${PKG_CONFIG_PATH}"
 
-  ${PKG_CONFIG} --libs glib-2.0
+  ${PKG_CONFIG} --libs glib
 
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 }
