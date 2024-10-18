@@ -9,7 +9,7 @@ source .scripts/logging_utils.sh
 REPO_ROOT=$(dirname -- $(dirname -- "$(readlink -f -- "$BASH_SOURCE")"))
 MINIFORGE_ROOT="${REPO_ROOT}/.pixi/envs/default"
 
-if [[ ! command -v pixi >/dev/null 2>&1 ]]; then
+if ! command -v pixi >/dev/null 2>&1; then
   echo "Installing pixi"
   curl -fsSL https://pixi.sh/install.sh | bash
   export PATH="~/.pixi/bin:$PATH"

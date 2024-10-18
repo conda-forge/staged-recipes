@@ -61,7 +61,7 @@ fi
 git ls-tree --name-only main -- . | xargs -I {} sh -c "rm -rf ~/staged-recipes-copy/recipes/{} && echo Removing recipe: {}"
 popd > /dev/null
 
-if [[ ! command -v pixi >/dev/null 2>&1 ]]; then
+if ! command -v pixi >/dev/null 2>&1; then
   echo "Installing pixi"
   curl -fsSL https://pixi.sh/install.sh | bash
   export PATH="~/.pixi/bin:$PATH"
