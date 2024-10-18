@@ -45,14 +45,40 @@ class AlpineVMManager:
         print(f"VM status: {status['status']}")
         return status
 
+    async def send_key(self, key):
+        await self.qmp.execute('human-monitor-command', {'command-line': f'sendkey {key}'})
+        await asyncio.sleep(0.1)  # Small delay between keystrokes
+
     async def execute_command(self, command):
-        escaped_command = command.replace('"', '\\"')
-        monitor_command = f'sendkey ret; keyboard_send_string "{escaped_command}"; sendkey ret'
-        response = await self.qmp.execute('human-monitor-command', {'command-line': monitor_command})
-        print(f"Command sent: {command}")
-        print(f"Monitor response: {response}")
-        await asyncio.sleep(2)  # Give some time for the command to execute
-        return response
+        print(f"Sending command: {command}")
+
+        # Send 'Enter' key to ensure we're at the start of a new line
+        await self.send_key('ret')
+
+        # Send each character of the command
+        for char in command:
+            if char == ' ':
+                await self.send_key('spc')
+            elif char == '-':
+                await self.send_key('minus')
+            elif char == '=':
+                await self.send_key('equal')
+            elif char == '/':
+                await self.send_key('slash')
+            elif char == '.':
+                await self.send_key('dot')
+            elif char == ':':
+                await self.send_key('shift-semicolon')
+            elif char.isupper():
+                await self.send_key(f'shift-{char.lower()}')
+            else:
+                await self.send_key(char)
+
+        # Send 'Enter' key to execute the command
+        await self.send_key('ret')
+
+        # Wait for command to complete
+        await asyncio.sleep(2)
 
     async def install_miniconda(self):
         print("Installing Miniconda...")
