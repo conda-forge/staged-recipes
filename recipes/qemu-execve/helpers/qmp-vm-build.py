@@ -39,7 +39,7 @@ class QEMUUserEmulator:
             "-nographic",
             "-drive", f"if=pflash,format=raw,file={self.ro_edk2},readonly=on",
             "-drive", f"if=pflash,format=raw,file={self.rw_edk2}",
-            "-drive", f"file={self.image},format={self.image_format},readonly=on",
+            "-drive", f"file={self.image},format=iso,readonly=on",
             "-drive", f"file={self.user_image},format={self.image_format}",
             "-qmp", f"unix:{self.socket_path},server,nowait",
             "-serial", f"pty,path={self.console_path}"
