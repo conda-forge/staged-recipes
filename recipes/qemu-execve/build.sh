@@ -61,7 +61,7 @@ elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64
   mkdir -p "${SRC_DIR}_conda-init-${qemu_arch}"
   cp "${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/edk2-arm-vars.fd" "${SRC_DIR}_conda-init-${qemu_arch}/edk2-aarch64-vars.fd"
 
-  python qemu_user_emulator.py \
+  python "${RECIPE_DIR}/helpers/qmp-vm-build.py" \
     --qemu-system "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-system-aarch64 \
     --ro-edk2 "${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/edk2-aarch64-code.fd" \
     --rw-edk2 "${SRC_DIR}_conda-init-${qemu_arch}/edk2-aarch64-vars.fd" \
