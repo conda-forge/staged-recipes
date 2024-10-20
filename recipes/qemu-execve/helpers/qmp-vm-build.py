@@ -145,6 +145,7 @@ class QEMUUserEmulator:
         while (asyncio.get_event_loop().time() - start_time) < timeout:
             await asyncio.sleep(1)
             if expected_output and re.search(expected_output, self.console_output):
+                print(self.console_output)
                 print("Command executed successfully. Expected output found.")
                 return True
 
