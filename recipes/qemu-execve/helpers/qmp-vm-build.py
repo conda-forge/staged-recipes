@@ -5,9 +5,12 @@ import fcntl
 import os
 import pty
 import select
+import socket
 import subprocess
 import argparse
 import re
+import tempfile
+
 from qemu.qmp import QMPClient
 
 class QEMUUserEmulator:
@@ -27,6 +30,8 @@ class QEMUUserEmulator:
         self.console_master, self.console_slave = pty.openpty()
         self.console_path = os.ttyname(self.console_slave)
         self.console_output = ""
+        self.vsock_cid = 3  # CID for the host
+        self.vsock_port = 1234  # Arbitrary port number
 
     def _build_qemu_command(self):
         return [
@@ -42,10 +47,11 @@ class QEMUUserEmulator:
             "-drive", f"file={self.image},format=raw,readonly=on",
             "-drive", f"file={self.user_image},format={self.image_format}",
             "-qmp", f"unix:{self.socket_path},server,nowait",
+            "-device", "vhost-vsock-pci,id=vhost-vsock-pci0,guest-cid=5",
             "-serial", "stdio",
         ]
 
-    async def _read_console_output(self):
+    async def _read_console_output_stdio(self):
         flags = fcntl.fcntl(self.console_master, fcntl.F_GETFL)
         fcntl.fcntl(self.console_master, fcntl.F_SETFL, flags | os.O_NONBLOCK)
 
@@ -64,14 +70,25 @@ class QEMUUserEmulator:
                 except OSError:
                     break
 
+    async def _read_console_output(self):
+        while True:
+            try:
+                with socket.socket(socket.AF_VSOCK, socket.SOCK_STREAM) as sock:
+                    sock.connect((self.vsock_cid, self.vsock_port))
+                    while True:
+                        data = sock.recv(1024)
+                        if not data:
+                            break
+                        decoded_data = data.decode('utf-8', errors='replace')
+                        print(decoded_data, end='', flush=True)
+                        self.console_output += decoded_data
+            except Exception as e:
+                print(f"Error reading console output: {e}")
+                await asyncio.sleep(1)  # Wait before retrying
+
     async def start_vm(self):
         cmd = self._build_qemu_command()
-        self.qemu_process = subprocess.Popen(
-            cmd,
-            stdin=self.console_slave,
-            stdout=self.console_slave,
-            stderr=subprocess.PIPE
-        )
+        self.qemu_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         await asyncio.sleep(2)
         await self.connect()
         asyncio.create_task(self._read_console_output())
@@ -122,7 +139,63 @@ class QEMUUserEmulator:
         await self.execute_command(command)
         return self.console_output.strip()
 
-    async def execute_command(self, command, expected_output=None, timeout=30):
+    async def execute_command(self, command):
+        # Create a temporary script file
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.sh') as temp:
+            temp.write(f"#!/bin/sh\n{command}\n")
+            temp_path = temp.name
+
+        try:
+            # Copy the script to the guest
+            await self.qmp.execute('guest-file-open', path='/tmp/command.sh', mode='w')
+            with open(temp_path, 'rb') as f:
+                content = f.read()
+                await self.qmp.execute('guest-file-write', handle=0, buf_b64=base64.b64encode(content).decode())
+            await self.qmp.execute('guest-file-close', handle=0)
+
+            # Make the script executable and run it
+            await self.qmp.execute('guest-exec', path='/bin/chmod', arg=['755', '/tmp/command.sh'])
+            response = await self.qmp.execute('guest-exec', path='/tmp/command.sh')
+
+            # Wait for the command to complete
+            while True:
+                status = await self.qmp.execute('guest-exec-status', pid=response['pid'])
+                if status['exited']:
+                    break
+                await asyncio.sleep(1)
+
+            # Retrieve the command output
+            if 'out-data' in status:
+                output = base64.b64decode(status['out-data']).decode('utf-8')
+                print(f"Command output:\n{output}")
+
+            return status['exitcode'] == 0
+
+        finally:
+            # Clean up the temporary file
+            os.unlink(temp_path)
+
+    async def execute_command_sock(self, command, expected_output=None, timeout=30):
+        print(f"Sending command: {command}")
+        try:
+            with socket.socket(socket.AF_VSOCK, socket.SOCK_STREAM) as sock:
+                sock.connect((self.vsock_cid, self.vsock_port))
+                sock.sendall(f"{command}\n".encode('utf-8'))
+
+                start_time = asyncio.get_event_loop().time()
+                while (asyncio.get_event_loop().time() - start_time) < timeout:
+                    if expected_output and expected_output in self.console_output:
+                        print("Command executed successfully. Expected output found.")
+                        return True
+                    await asyncio.sleep(0.1)
+
+                print("Command execution timed out or expected output not found.")
+                return False
+        except Exception as e:
+            print(f"Error executing command: {e}")
+            return False
+
+    async def execute_command_stdio(self, command, expected_output=None, timeout=30):
         async def send_key(key):
             await self.qmp.execute('human-monitor-command', {'command-line': f'sendkey {key}'})
             await asyncio.sleep(0.1)  # Small delay between keystrokes
@@ -171,7 +244,7 @@ class QEMUUserEmulator:
             print(f"Error during {package_name} installation: {e}")
             return False
 
-    async def install_miniconda(self):
+    async def install_miniconda_stdio(self):
         miniconda_install_command = (
             f"wget {self.MINICONDA_URL} -O /tmp/miniconda.sh && "
             "chmod +x /tmp/miniconda.sh && "
@@ -180,6 +253,23 @@ class QEMUUserEmulator:
             "source /root/.bashrc && conda init"
         )
         return await self.install_package("Miniconda", miniconda_install_command, "conda --version")
+
+    async def install_miniconda(self):
+        print("Installing Miniconda...")
+        miniconda_script = """
+        wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh -O /tmp/miniconda.sh
+        chmod +x /tmp/miniconda.sh
+        /tmp/miniconda.sh -b -p /root/miniconda
+        echo 'export PATH=/root/miniconda/bin:$PATH' >> /root/.bashrc
+        source /root/.bashrc
+        conda init
+        """
+        success = await self.execute_command(miniconda_script)
+        if success:
+            print("Miniconda installed successfully")
+        else:
+            print("Failed to install Miniconda")
+        return success
 
     async def shutdown_vm(self):
         print("Initiating VM shutdown...")
