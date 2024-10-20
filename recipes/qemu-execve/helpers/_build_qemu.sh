@@ -67,6 +67,7 @@ build_win_qemu() {
 
   $(dir "${PKG_CONFIG_PATH}"\\*.pc) || true
   ${PKG_CONFIG} --libs glib-2.0 || true
+  echo "${MESONINTROSPECT}"
 
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 }
