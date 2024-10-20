@@ -161,6 +161,7 @@ class QEMUUserEmulator:
             print(f"Verifying {package_name} installation...")
             version_output = await self.capture_command_output(version_command)
             if package_name.lower() not in version_output.lower():
+                print(f"Output: {version_output}")
                 raise Exception(f"{package_name} installation verification failed")
 
             print(f"{package_name} installation complete. Version: {version_output}")
