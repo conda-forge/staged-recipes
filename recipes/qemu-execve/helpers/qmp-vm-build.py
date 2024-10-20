@@ -73,7 +73,7 @@ class QEMUUserEmulator:
             stderr=subprocess.PIPE
         )
         await asyncio.sleep(2)
-        await self.qmp.connect(self.socket_path)
+        await self.connect()
         asyncio.create_task(self._read_console_output())
 
     async def connect(self):
@@ -213,7 +213,6 @@ async def main(args):
     try:
         print("Starting VM...")
         await emulator.start_vm()
-        await emulator.connect()
 
         if args.install_miniconda:
             await emulator.install_miniconda()
