@@ -1,0 +1,70 @@
+schema_version: 1
+
+context:
+  version: 0.18.2
+
+package:
+  name: aerc
+  version: ${{ version }}
+
+source:
+  - url: https://git.sr.ht/~rjarry/aerc/archive/${{ version }}.tar.gz
+    sha256: 78408b3fe7a4991a6097c961c348fb7583af52dff80cbfcd99808415cf3d7586
+    patches:
+      - 0001-config-fix-system-paths-when-relocating-aerc.patch
+
+build:
+  number: 0
+  skip:
+    - win
+  script:
+    - make VERSION=${{ version }} BUILD_OPTS="-buildmode=pie -trimpath" GO_EXTRA_LDFLAGS="-s -w"
+    - make install
+    - go-licenses save . --save_path=license-files
+
+requirements:
+  build:
+    - ${{ compiler("go-cgo") }}
+    - ${{ compiler("c") }}
+    - ${{ stdlib("c") }}
+    - go-licenses
+    - make
+    - scdoc
+
+tests:
+  - package_contents:
+      files:
+        - share/aerc/aerc.conf
+        - share/aerc/stylesets/default
+        - share/man/man1/aerc.1
+        - libexec/aerc/filters/calendar
+      bin:
+        - aerc
+  - script:
+      - aerc -h
+      - mkdir ./mail
+      - aerc -A test-accounts.conf -I ':quit'
+    files:
+      recipe:
+        - test-accounts.conf
+
+about:
+  summary: aerc is an email client for your terminal
+  description: |
+    aerc is an email client for your terminal.
+
+    This is a fork of the original aerc by Drew DeVault.
+
+    A short demonstration can be found on https://aerc-mail.org/
+
+    Join the IRC channel: #aerc on irc.libera.chat for end-user support, and development.
+  license: MIT
+  license_file:
+    - LICENSE
+    - license-files/
+  homepage: https://aerc-mail.org/
+  repository: https://git.sr.ht/~rjarry/aerc
+
+extra:
+  recipe-maintainers:
+    - blmaier
