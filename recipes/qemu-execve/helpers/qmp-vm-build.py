@@ -47,7 +47,7 @@ class QEMUUserEmulator:
             "-drive", f"file={self.image},format=raw,readonly=on",
             "-drive", f"file={self.user_image},format={self.image_format}",
             "-qmp", f"unix:{self.socket_path},server,nowait",
-            "-device", "vhost-vsock-pci,id=vhost-vsock-pci0,guest-cid=5",
+            # "-device", "vhost-vsock-pci,id=vhost-vsock-pci0,guest-cid=5",
             "-serial", "stdio",
         ]
 
