@@ -42,7 +42,7 @@ class QEMUUserEmulator:
             "-drive", f"file={self.image},format=raw,readonly=on",
             "-drive", f"file={self.user_image},format={self.image_format}",
             "-qmp", f"unix:{self.socket_path},server,nowait",
-            "-serial", f"pty,path={self.console_path}"
+            "-serial", "stdio",
         ]
 
     async def _read_console_output(self):
@@ -54,7 +54,8 @@ class QEMUUserEmulator:
             r, _, _ = select.select([self.console_master], [], [], 0)
             if r:
                 try:
-                    if data := os.read(self.console_master, 1024):
+                    data = os.read(self.console_master, 1024)
+                    if data:
                         decoded_data = data.decode('utf-8', errors='replace')
                         print(decoded_data, end='', flush=True)
                         self.console_output += decoded_data
@@ -65,8 +66,13 @@ class QEMUUserEmulator:
 
     async def start_vm(self):
         cmd = self._build_qemu_command()
-        self.qemu_process = subprocess.Popen(cmd)
-        await asyncio.sleep(2)  # Give QEMU some time to start up
+        self.qemu_process = subprocess.Popen(
+            cmd,
+            stdin=self.console_slave,
+            stdout=self.console_slave,
+            stderr=subprocess.PIPE
+        )
+        await asyncio.sleep(2)
         await self.qmp.connect(self.socket_path)
         asyncio.create_task(self._read_console_output())
 

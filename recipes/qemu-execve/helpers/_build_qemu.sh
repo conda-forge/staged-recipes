@@ -65,9 +65,10 @@ build_win_qemu() {
   export PKG_CONFIG_PATH="${_pkg_config_path}"
   export PKG_CONFIG_LIBDIR="${PKG_CONFIG_PATH}"
 
-  $(dir "${PKG_CONFIG_PATH}"\\*.pc) || true
-  ${PKG_CONFIG} --libs glib-2.0 || true
-  echo "${MESONINTROSPECT}"
+  export MESONINTROSPECT="${BUILD_PREFIX}/Library/bin/mesonintrospect"
+  export MESON="${BUILD_PREFIX}/Library/bin/meson"
+  export MESONCONFIG="${BUILD_PREFIX}/Library/bin/mesonconf"
+  export MESONCROSSFILE="${BUILD_PREFIX}/Library/share/meson/cross/conda-win-64.txt"
 
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 }
