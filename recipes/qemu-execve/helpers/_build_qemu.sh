@@ -65,9 +65,8 @@ build_win_qemu() {
   export PKG_CONFIG_PATH="${_pkg_config_path}"
   export PKG_CONFIG_LIBDIR="${PKG_CONFIG_PATH}"
 
-  export MESONINTROSPECT="${BUILD_PREFIX}/Library/bin/mesonintrospect"
+  export MESONINTROSPECT="${build_dir}/pyvenv/Scripts/meson introspect"
   echo "MESONINTROSPECT: ${MESONINTROSPECT}"
-  ls -l "${MESONINTROSPECT}"
 
   # export MESON="${BUILD_PREFIX}/Library/bin/meson"
   # export MESONCONFIG="${BUILD_PREFIX}/Library/bin/mesonconf"
