@@ -9,10 +9,5 @@ go build -v ^
     . ^
     || exit 1
 
-
-md library_licenses
-
-cd library_licenses
-
-go-licenses save ".." --save_path "." ^
+go-licenses save "." --save_path "library_licenses" ^
     || exit 1
