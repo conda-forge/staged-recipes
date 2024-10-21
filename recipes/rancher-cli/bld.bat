@@ -1,7 +1,5 @@
 @echo ON
 
-if not exist "%SCRIPTS%" mkdir "%SCRIPTS%"
-
 go build -v ^
     -buildmode=pie ^
     -trimpath ^
@@ -11,7 +9,10 @@ go build -v ^
     . ^
     || exit 1
 
-go-licenses save ^
-    "." ^
-    --save_path "%SRC_DIR%\library_licenses\" ^
+
+md library_licenses
+
+cd library_licenses
+
+go-licenses save ".." --save_path "." ^
     || exit 1
