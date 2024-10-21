@@ -9,7 +9,7 @@ source "${RECIPE_DIR}/helpers/_build_qemu.sh"
 if [[ "${build_platform:-"win-64"}" == "win-64" ]] && [[ "${target_platform:-"win-64"}" == "win-64" ]]; then
   qemu_arch="aarch64"
   build_win_qemu \
-    "${SRC_DIR}/qemu-source" \
+    "${SRC_DIR}/qemu_source" \
     "${SRC_DIR}/_conda-install-${qemu_arch}"
 
 # Build aarch64 on linux and windows with gcc
@@ -19,7 +19,7 @@ elif [[ "${build_platform}" == "linux-64" ]] && [[ "${target_platform}" == "linu
     ${qemu_arch} \
     "${qemu_arch}-conda-linux-gnu-" \
     "${BUILD_PREFIX}/${qemu_arch}-conda-linux-gnu/sysroot" \
-    "${SRC_DIR}/qemu-source" \
+    "${SRC_DIR}/qemu_source" \
     "${SRC_DIR}/_conda-install-${qemu_arch}"
 
   qemu_arch="ppc64le"
@@ -28,7 +28,7 @@ elif [[ "${build_platform}" == "linux-64" ]] && [[ "${target_platform}" == "linu
     ${qemu_arch} \
     "${sysroot_arch}-conda-linux-gnu-" \
     "${BUILD_PREFIX}/${sysroot_arch}-conda-linux-gnu/sysroot" \
-    "${SRC_DIR}/qemu-source" \
+    "${SRC_DIR}/qemu_source" \
     "${SRC_DIR}/_conda-install-${qemu_arch}"
 
 #   qemu_arch="riscv64"
@@ -44,7 +44,7 @@ elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64
   qemu_arch="aarch64"
   build_osx_qemu \
     ${qemu_arch} \
-    "${SRC_DIR}/qemu-source" \
+    "${SRC_DIR}/qemu_source" \
     "${SRC_DIR}/_conda-install-${qemu_arch}"
 
   # Changer RPATH to $PREFIX for qemu-img and qemu-system-aarch64 (for zstd)
