@@ -22,7 +22,7 @@ build_linux_qemu() {
   export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig"
   export PKG_CONFIG_LIBDIR="${BUILD_PREFIX}/lib/pkgconfig"
 
-  _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]}"
+  _config_build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]}"
 }
 
 build_osx_qemu() {
@@ -45,7 +45,7 @@ build_osx_qemu() {
   export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig"
   export PKG_CONFIG_LIBDIR="${BUILD_PREFIX}/lib/pkgconfig"
 
-  _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
+  _config_build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 }
 
 build_win_qemu() {
@@ -56,7 +56,7 @@ build_win_qemu() {
     "--disable-attr"
     "--target-list=aarch64-softmmu"
     "--enable-tools"
-    "--enable-virtfs"
+    "--enable-guest-agent"
     "--disable-install-blobs"
   )
     #"--enable-guest-agent"  # Not supported
@@ -76,10 +76,16 @@ build_win_qemu() {
   # export MESONCONFIG="${BUILD_PREFIX}/Library/bin/mesonconf"
   # export MESONCROSSFILE="${BUILD_PREFIX}/Library/share/meson/cross/conda-win-64.txt"
 
+  _configure_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
+  pushd "${build_dir}" || exit 1
+    # Patch windows d: for bash /d/.. with PS1, case-insensitive
+    dir
+    powershell -Command "(Get-Content config-host.mak) -replace 'D:/', '/d/' | Set-Content config-host.mak"
+  popd || exit 1
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 }
 
-_build_qemu() {
+_configure_qemu() {
   local qemu_arch=$1
   local build_dir=$2
   local install_dir=$3
@@ -102,11 +108,18 @@ _build_qemu() {
       --disable-vhost-net --disable-virglrenderer --disable-vnc --disable-vte --disable-xen \
       --disable-xen-pci-passthrough
        #> "${SRC_DIR}"/_configure-"${qemu_arch}".log 2>&1
+  popd || exit 1
+}
 
-    # Patch windows d: for bash /d/.. with PS1, case-insensitive
-    dir
-    powershell -Command "(Get-Content config-host.mak) -replace 'D:/', '/d/' | Set-Content config-host.mak"
+_build_qemu() {
+  local qemu_arch=$1
+  local build_dir=$2
+  local install_dir=$3
+  shift 3
+  local qemu_args=("${@:-}")
 
+  mkdir -p "${build_dir}"
+  pushd "${build_dir}" || exit 1
     make -j"${CPU_COUNT}"
      #> "${SRC_DIR}"/_make-"${qemu_arch}".log 2>&1
     # make check > "${SRC_DIR}"/_check-"${qemu_arch}".log 2>&1
@@ -116,7 +129,7 @@ _build_qemu() {
   popd || exit 1
 }
 
-_build_qemu_ga() {
+_config_build_qemu() {
   local qemu_arch=$1
   local build_dir=$2
   local install_dir=$3
@@ -136,7 +149,7 @@ _build_qemu_ga() {
       --disable-vnc-jpeg --disable-kvm --disable-lzo --disable-curses --disable-libnfs --disable-numa \
       --disable-opengl --disable-rbd --disable-vnc-sasl --disable-sdl --disable-seccomp \
       --disable-smartcard --disable-snappy --disable-spice --disable-libusb --disable-usb-redir --disable-vde \
-      --disable-vhost-net --disable-virglrenderer --disable-virtfs --disable-vnc --disable-vte --disable-xen \
+      --disable-vhost-net --disable-virglrenderer --disable-vnc --disable-vte --disable-xen \
       --disable-xen-pci-passthrough
        #> "${SRC_DIR}"/_configure-"${qemu_arch}".log 2>&1
 
