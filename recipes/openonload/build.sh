@@ -1,8 +1,5 @@
 #!/bin/bash
 
-tar -xf onload-${PKG_VERSION}.tgz
-cd onload-${PKG_VERSION}
-
 ln -sf $(which $CC) $BUILD_PREFIX/bin/gcc
 export CFLAGS="$CFLAGS ${LDFLAGS/-Wl,--gc-sections/}"
 
