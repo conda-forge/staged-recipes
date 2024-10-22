@@ -15,6 +15,7 @@ build_linux_qemu() {
     "--disable-fdt"
     "--disable-guest-agent"
     "--disable-tools"
+    "--disable-virtfs"
   )
 
   export PKG_CONFIG="${BUILD_PREFIX}/bin/pkg-config"
@@ -32,8 +33,10 @@ build_osx_qemu() {
   qemu_args=(
     "--disable-attr"
     "--target-list=aarch64-softmmu"
+    "--enable-hvf"
+    "--enable-slirp"
     "--enable-tools"
-    "--enable-kvm"
+    "--enable-virtfs"
   )
     #"--enable-guest-agent"  # Not supported
     #"--extra-cflags=-maxv2"  # Makes compilation fail
@@ -97,7 +100,7 @@ _build_qemu() {
       --disable-vnc-jpeg --disable-kvm --disable-lzo --disable-curses --disable-libnfs --disable-numa \
       --disable-opengl --disable-rbd --disable-vnc-sasl --disable-sdl --disable-seccomp \
       --disable-smartcard --disable-snappy --disable-spice --disable-libusb --disable-usb-redir --disable-vde \
-      --disable-vhost-net --disable-virglrenderer --disable-virtfs --disable-vnc --disable-vte --disable-xen \
+      --disable-vhost-net --disable-virglrenderer --disable-vnc --disable-vte --disable-xen \
       --disable-xen-pci-passthrough
        #> "${SRC_DIR}"/_configure-"${qemu_arch}".log 2>&1
 

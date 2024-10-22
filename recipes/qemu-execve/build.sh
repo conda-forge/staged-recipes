@@ -51,24 +51,22 @@ elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64
   install_name_tool -add_rpath "${PREFIX}/lib" "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-img || true
   install_name_tool -add_rpath "${PREFIX}/lib" "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-system-aarch64 || true
 
-  # Create image
+  # Create empty image
   "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-img create \
      -f qcow2 \
      -o compression_type=zlib \
-     "${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/user-disk-image.qcow2" 10G
+     "${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/alpine-conda-vm.qcow2" 10G
 
   # Initialize qemu image
-  mkdir -p "${SRC_DIR}_conda-init-${qemu_arch}"
-  cp "${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/edk2-arm-vars.fd" "${SRC_DIR}_conda-init-${qemu_arch}/edk2-aarch64-vars.fd"
+  python "${RECIPE_DIR}/helpers/qemu-user-aarch64.py" \
+    --cdrom ${SRC_DIR}/alpine-virt-${ALPINE_ISO_VERSION}-aarch64.iso \
+    --drive ${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/alpine-conda-vm.qcow2 \
+    --setup
 
-  python "${RECIPE_DIR}/helpers/qmp-vm-build.py" \
-    --qemu-system "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-system-aarch64 \
-    --ro-edk2 "${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/edk2-aarch64-code.fd" \
-    --rw-edk2 "${SRC_DIR}_conda-init-${qemu_arch}/edk2-aarch64-vars.fd" \
-    --image "${SRC_DIR}/alpine-virt-${ALPINE_ISO_VERSION}-aarch64.iso" \
-    --user-image "${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/user-disk-image.qcow2" \
-    --install-miniconda \
-    --runtime 120
+  # Test qemu image
+  python "${RECIPE_DIR}/helpers/qemu-user-aarch64.py" \
+    --drive ${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/alpine-conda-vm.qcow2 \
+    --run "conda --version"
 
   # "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-system-aarch64 \
   #   -name "Alpine AArch64" \
