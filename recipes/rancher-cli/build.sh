@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -ex
+set -eux
 
 go build -v \
     -buildmode=pie \
@@ -10,6 +10,6 @@ go build -v \
     -o "${PREFIX}/bin/rancher" \
     .
 
-go-licenses save \
-    "." \
-    --save_path "$SRC_DIR/library_licenses/"
+ls "${PREFIX}/bin/rancher"
+
+go-licenses save . --save_path library_licenses
