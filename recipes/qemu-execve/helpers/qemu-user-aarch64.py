@@ -74,7 +74,7 @@ class QEMUSnapshotMixin(QMPProtocol):
         return True
 
 
-class ARM64Runner(QMPProtocol, QEMUSnapshotMixin):
+class ARM64Runner(QEMUSnapshotMixin):
     DEFAULT_SNAPSHOT = "conda"
 
     def __init__(self, qcow2_path, socket_path, iso_image=None, ssh_port=10022):
