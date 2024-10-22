@@ -34,8 +34,6 @@ build_osx_qemu() {
     "--target-list=aarch64-softmmu"
     "--enable-tools"
     "--enable-kvm"
-    "--enable-guest-agent"
-    "--enable-guest-agent-msi"
   )
     #"--enable-guest-agent"  # Not supported
     #"--extra-cflags=-maxv2"  # Makes compilation fail
@@ -57,6 +55,7 @@ build_win_qemu() {
     "--enable-tools"
     "--enable-kvm"
     "--disable-install-blobs"
+    "--python=${PYTHON}"
   )
     #"--enable-guest-agent"  # Not supported
     #"--extra-cflags=-maxv2"  # Makes compilation fail
