@@ -104,7 +104,6 @@ _build_qemu() {
     make -j"${CPU_COUNT}"
      #> "${SRC_DIR}"/_make-"${qemu_arch}".log 2>&1
     # make check > "${SRC_DIR}"/_check-"${qemu_arch}".log 2>&1
-    make qemu-ga
     make install
      #> "${SRC_DIR}"/_install-"${qemu_arch}".log 2>&1
 
