@@ -56,9 +56,8 @@ build_win_qemu() {
     "--disable-attr"
     "--target-list=aarch64-softmmu"
     "--enable-tools"
-    "--enable-kvm"
+    "--enable-virtfs"
     "--disable-install-blobs"
-    "--python=${PYTHON}"
   )
     #"--enable-guest-agent"  # Not supported
     #"--extra-cflags=-maxv2"  # Makes compilation fail
@@ -103,6 +102,10 @@ _build_qemu() {
       --disable-vhost-net --disable-virglrenderer --disable-vnc --disable-vte --disable-xen \
       --disable-xen-pci-passthrough
        #> "${SRC_DIR}"/_configure-"${qemu_arch}".log 2>&1
+
+    # Patch windows d: for bash /d/.. with PS1, case-insensitive
+    dir
+    powershell -Command "(Get-Content config-host.mak) -replace 'D:/', '/d/' | Set-Content config-host.mak"
 
     make -j"${CPU_COUNT}"
      #> "${SRC_DIR}"/_make-"${qemu_arch}".log 2>&1

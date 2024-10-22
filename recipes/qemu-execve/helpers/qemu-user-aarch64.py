@@ -198,7 +198,7 @@ class ARM64Runner(QEMUSnapshotMixin):
 
     async def setup_vm(self):
         """Initial VM setup with Conda and snapshot creation"""
-        if not self.iso_path:
+        if not self.iso_image:
             raise ValueError("ISO path is required for setup")
 
         cmd = self._build_qemu_command(load_snapshot=False)
