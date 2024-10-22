@@ -1,10 +1,9 @@
-import asyncio
-import os
-import platform
-from qemu.qmp import QMPClient
 import argparse
+import asyncio
+import platform
+from typing import Protocol
 
-from typing_extensions import Protocol
+from qemu.qmp import QMPClient
 
 
 class QMPProtocol(Protocol):
