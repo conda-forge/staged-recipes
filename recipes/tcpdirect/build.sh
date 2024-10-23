@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ln -sf $(which $CC) $BUILD_PREFIX/bin/gcc
-#export CFLAGS="$CFLAGS ${LDFLAGS/-Wl,--gc-sections/}"
+export CFLAGS="$CFLAGS -Wno-error"
 
 export ONLOAD_TREE=${SRC_DIR}/onload
 cd tcpdirect
