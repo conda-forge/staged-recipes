@@ -1,0 +1,76 @@
+{% set version = '1.0-1' %}
+{% set posix = 'm2-' if win else '' %}
+{% set native = 'm2w64-' if win else '' %}
+
+package:
+  name: r-twdtw
+  version: {{ version|replace("-", "_") }}
+
+source:
+  url:
+    - {{ cran_mirror }}/src/contrib/twdtw_{{ version }}.tar.gz
+    - {{ cran_mirror }}/src/contrib/Archive/twdtw/twdtw_{{ version }}.tar.gz
+  sha256: ced3131a1d66db08e242286eeac0b0a36e9e70fda92377010cbe17e7054920f1
+
+build:
+  merge_build_host: True  # [win]
+  number: 0
+  rpaths:
+    - lib/R/lib/
+    - lib/
+  missing_dso_whitelist:
+    - '*/R.dll'        # [win]
+    - '*/Rblas.dll'    # [win]
+    - '*/Rlapack.dll'  # [win]
+
+requirements:
+  build:
+    - {{ compiler('c') }}              # [not win]
+    - {{ compiler('m2w64_c') }}        # [win]
+    - {{ stdlib('c') }}                # [not win]
+    - {{ stdlib('m2w64_c') }}          # [win]
+    - {{ compiler('cxx') }}            # [not win]
+    - {{ compiler('m2w64_cxx') }}      # [win]
+    - {{ compiler('fortran') }}        # [not win]
+    - {{ compiler('m2w64_fortran') }}  # [win]
+    - {{ posix }}filesystem        # [win]
+    - {{ posix }}make
+    - {{ posix }}sed               # [win]
+    - {{ posix }}coreutils         # [win]
+    - {{ posix }}zip               # [win]
+    - cross-r-base {{ r_base }}    # [build_platform != target_platform]
+  host:
+    - r-base
+    - r-rcpp
+    - r-proxy
+  run:
+    - r-base
+    - r-rcpp
+    - r-proxy
+    ## NB: win gcc-libgfortran dep likely needs manual removal in UCRT migration
+    - {{ native }}gcc-libgfortran  # [win]
+
+test:
+  commands:
+    - $R -e "library('twdtw')"           # [not win]
+    - "\"%R%\" -e \"library('twdtw')\""  # [win]
+
+about:
+  home: https://github.com/vwmaus/twdtw/
+  license: GPL-3.0-or-later
+  summary: Implements Time-Weighted Dynamic Time Warping (TWDTW), a measure for quantifying time
+    series similarity. The TWDTW algorithm, described in Maus et al. (2016) <doi:10.1109/JSTARS.2016.2517118>
+    and Maus et al. (2019) <doi:10.18637/jss.v088.i05>, is applicable to multi-dimensional
+    time series of various resolutions. It is particularly suitable for comparing time
+    series with seasonality for environmental and ecological data analysis, covering
+    domains such as remote sensing imagery, climate data, hydrology, and animal movement.
+    The 'twdtw' package offers a user-friendly 'R' interface, efficient 'Fortran' routines
+    for TWDTW calculations, flexible time weighting definitions, as well as utilities
+    for time series preprocessing and visualization.
+  license_family: GPL3
+  license_file:
+    - '{{ environ["PREFIX"] }}/lib/R/share/licenses/GPL-3'
+
+extra:
+  recipe-maintainers:
+    - conda-forge/r
