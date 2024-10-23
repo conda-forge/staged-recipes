@@ -112,7 +112,10 @@ class ARM64Runner(QEMUSnapshotMixin):
 
     async def await_boot_sequence(self):
         print("[QMP]: Connecting to VM...")
-        await self.qmp.connect(self.socket_path)
+        try:
+            await self.qmp.connect(self.socket_path)
+        except Exception as e:
+            raise Exception(f"[QMP]: Error connecting to VM: {e}")
 
         print("[QMP]: Waiting for VM to boot...")
         boot_completed = False
@@ -203,7 +206,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             raise ValueError("ISO path is required for setup")
 
         cmd = self._build_qemu_command(load_snapshot=False)
-        print("[QMP]: Starting VM for setup...")
+        print("Starting VM for setup...")
 
         self.qemu_process = await asyncio.create_subprocess_exec(
             *cmd,
@@ -249,7 +252,7 @@ async def main():
     parser.add_argument("--qemu-system", required=True, help="qemu-system-aarch64 binary path")
     parser.add_argument("--cdrom", required=True, help="Path to ISO image")
     parser.add_argument("--drive", required=True, help="Path to QEMU QCOW2 disk image")
-    parser.add_argument("--socket", default="/tmp/qmp.sock", help="Path for QMP socket")
+    parser.add_argument("--socket", default="./qmp.sock", help="Path for QMP socket")
     parser.add_argument("--setup", action="store_true", help="Perform initial setup and create snapshot")
     parser.add_argument("--run", help="Command to execute in the VM")
     parser.add_argument("--load-snapshot", default=None, help="Load snapshot from file")
