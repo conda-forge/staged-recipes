@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import os
 import platform
 from typing import Protocol
 
@@ -110,7 +111,19 @@ class ARM64Runner(QEMUSnapshotMixin):
 
         return cmd
 
+    async def check_status(self):
+        return await self.qmp.execute('query-status')
+
     async def await_boot_sequence(self):
+        """Wait for VM to boot and connect to QMP"""
+        # Await creation of QMP socket
+        retry_count = 0
+        while not os.path.exists(self.socket_path):
+            retry_count += 1
+            await asyncio.sleep(1)
+            if retry_count > 30:
+                raise TimeoutError("QMP socket not ready after 30 seconds")
+
         print("[QMP]: Connecting to VM...")
         try:
             await self.qmp.connect(self.socket_path)
@@ -139,9 +152,6 @@ class ARM64Runner(QEMUSnapshotMixin):
             raise Exception("VM failed to boot within timeout period")
 
         print("[QMP]: VM is ready")
-
-    async def check_status(self):
-        return await self.qmp.execute('query-status')
 
     async def execute_ssh_command(self, command, timeout=300):
         """Execute command via SSH and return output"""

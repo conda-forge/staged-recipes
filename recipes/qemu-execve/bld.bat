@@ -25,11 +25,7 @@ type "%RECIPE_DIR%\build.sh"                          >> conda_build.sh
 set PREFIX=%PREFIX:\=/%
 set BUILD_PREFIX=%BUILD_PREFIX:\=/%
 set CONDA_PREFIX=%CONDA_PREFIX:\=/%
-:: Replace leading drive letter C or D with /c or /d
-set SRC_DIR=%SRC_DIR:C:=/c%
-set SRC_DIR=%SRC_DIR:D:=/d%
 set SRC_DIR=%SRC_DIR:\=/%
-
 set RECIPE_DIR=%RECIPE_DIR:\=/%
 set PYTHON=%PYTHON:\=/%
 set MSYSTEM=UCRT64

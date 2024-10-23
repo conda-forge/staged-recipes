@@ -68,19 +68,14 @@ build_win_qemu() {
   export PKG_CONFIG_PATH="${_pkg_config_path}"
   export PKG_CONFIG_LIBDIR="${PKG_CONFIG_PATH}"
 
-  export MESONINTROSPECT="${build_dir}/pyvenv/Scripts/meson introspect"
-  ls "${build_dir}/pyvenv/Scripts/meson" || true
-  echo "MESONINTROSPECT: ${MESONINTROSPECT}"
-
-  # export MESON="${BUILD_PREFIX}/Library/bin/meson"
-  # export MESONCONFIG="${BUILD_PREFIX}/Library/bin/mesonconf"
-  # export MESONCROSSFILE="${BUILD_PREFIX}/Library/share/meson/cross/conda-win-64.txt"
-
   _configure_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
-  # Update PYTHON with unix volume D: -> /d
+
   echo "PYTHON: ${PYTHON}"
-  export PYTHON="${PYTHON/D:/\/d}"
-  echo "PYTHON: ${PYTHON}"
+  PYTHON_WIN="${build_dir}/pyvenv/Scripts/python.exe"
+  PYTHON_WIN=$(echo "${PYTHON_WIN}" | sed 's|^\([a-zA-Z]\):|/\1|g')
+  export PYTHON_WIN
+  echo "PYTHON: ${PYTHON_WIN}"
+
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 }
 
