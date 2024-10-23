@@ -77,7 +77,8 @@ class QEMUSnapshotMixin(QMPProtocol):
 class ARM64Runner(QEMUSnapshotMixin):
     DEFAULT_SNAPSHOT = "conda"
 
-    def __init__(self, qcow2_path, socket_path, iso_image=None, ssh_port=10022):
+    def __init__(self, qemu_system, qcow2_path, socket_path, iso_image=None, ssh_port=10022):
+        self.qemu_system = qemu_system
         self.iso_image = iso_image
         self.qcow2_path = qcow2_path
         self.socket_path = socket_path
@@ -87,7 +88,7 @@ class ARM64Runner(QEMUSnapshotMixin):
 
     def _build_qemu_command(self, load_snapshot=None):
         cmd = [
-            "qemu-system-aarch64",
+            self.qemu_system,
             "-M", "virt,secure=on",
             "-cpu", "max",
             "-m", "2048",
@@ -245,6 +246,7 @@ class ARM64Runner(QEMUSnapshotMixin):
 
 async def main():
     parser = argparse.ArgumentParser(description="QEMU ARM64 Runner with Conda")
+    parser.add_argument("--qemu-system", required=True, help="qemu-system-aarch64 binary path")
     parser.add_argument("--cdrom", required=True, help="Path to ISO image")
     parser.add_argument("--drive", required=True, help="Path to QEMU QCOW2 disk image")
     parser.add_argument("--socket", default="/tmp/qmp.sock", help="Path for QMP socket")
@@ -255,6 +257,7 @@ async def main():
     args = parser.parse_args()
 
     runner = ARM64Runner(
+        qemu_system=args.qemu_system,
         iso_image=args.cdrom,
         qcow2_path=args.drive,
         socket_path=args.socket

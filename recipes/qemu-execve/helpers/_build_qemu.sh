@@ -77,11 +77,10 @@ build_win_qemu() {
   # export MESONCROSSFILE="${BUILD_PREFIX}/Library/share/meson/cross/conda-win-64.txt"
 
   _configure_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
-  pushd "${build_dir}" || exit 1
-    # Patch windows d: for bash /d/.. with PS1, case-insensitive
-    dir
-    powershell -Command "(Get-Content config-host.mak) -replace 'D:/', '/d/' | Set-Content config-host.mak"
-  popd || exit 1
+  # Update PYTHON with unix volume D: -> /d
+  echo "PYTHON: ${PYTHON}"
+  export PYTHON="${PYTHON/D:/\/d}"
+  echo "PYTHON: ${PYTHON}"
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 }
 
