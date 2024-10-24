@@ -1,1 +1,0 @@
-from default.test_sighandler import test_sighandler

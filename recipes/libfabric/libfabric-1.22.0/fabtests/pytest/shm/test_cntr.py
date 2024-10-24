@@ -1,1 +1,0 @@
-from default.test_cntr import test_cntr
