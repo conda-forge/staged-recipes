@@ -1,0 +1,43 @@
+image:
+  - Visual Studio 2019
+
+build:
+  project: libfabric.sln
+
+configuration:
+  - Debug-v142
+  - Release-v142
+
+before_build:
+  - ps: .appveyor.ps1 -Verbose
+
+after_build:
+  - set PATH=%CD%\x64\%CONFIGURATION%;%PATH%
+
+before_test:
+  - cd fabtests
+  - msbuild fabtests.sln
+
+for:
+- matrix:
+    only:
+      - image: Visual Studio 2019
+        configuration: Debug-v142
+      - image: Visual Studio 2019
+        configuration: Release-v142
+
+test_script:
+  - scripts\runfabtests.cmd -v -v -v -p %CD%\x64\%CONFIGURATION% -t unit tcp
+  - scripts\runfabtests.cmd -v -v -v -p %CD%\x64\%CONFIGURATION% -t functional tcp
+  - scripts\runfabtests.cmd -v -v -v -p %CD%\x64\%CONFIGURATION% -C "-I 10" -L "-I 10" -t standard tcp
+  - scripts\runfabtests.cmd -v -v -v -p %CD%\x64\%CONFIGURATION% -C "-I 10" -L "-I 10" -t multinode tcp
+
+skip_commits:
+  files:
+    - man/*
+    - prov/opx/*
+    - prov/psm.?/*
+    - prov/ucx/*
+    - prov/shm/*
+    - prov/sm2/*
+    - contrib/*

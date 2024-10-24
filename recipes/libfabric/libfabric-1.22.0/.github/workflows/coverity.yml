@@ -1,0 +1,99 @@
+name: Nightly Coverity Scan
+on:
+  schedule:
+  # UTC time, 'minute hour day-of-month month day-of-week'
+  - cron: '0 5 * * *'
+
+permissions:
+  contents: read
+  
+env:
+  APT_PACKAGES: >-
+    abi-compliance-checker
+    abi-dumper
+    build-essential
+    debhelper
+    fakeroot
+    gcc
+    git
+    libnl-3-200 libnl-3-dev libnl-route-3-200 libnl-route-3-dev
+    libnuma-dev
+    libudev-dev
+    uuid-dev
+    make
+    ninja-build
+    pandoc
+    pkg-config
+    python-is-python3
+    rpm
+    sparse
+    valgrind
+    wget
+  OFI_PROVIDER_FLAGS: >-
+    --enable-efa=rdma-core/build
+    --enable-mrail
+    --enable-psm3=rdma-core/build
+    --enable-rxd
+    --enable-rxm
+    --enable-shm
+    --enable-tcp
+    --enable-udp
+    --enable-usnic
+    --enable-verbs=rdma-core/build
+    --enable-sm2
+  RDMA_CORE_PATH: 'rdma-core/build'
+  RDMA_CORE_VERSION: v34.1
+jobs:
+  coverity:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Install dependencies (Linux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ env.APT_PACKAGES }}
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Download Coverity tools
+        run: |
+          wget https://scan.coverity.com/download/linux64 --post-data "token=${{ secrets.COVERITY_SCAN_TOKEN }}&project=ofiwg%2Flibfabric" -O coverity_tool.tgz
+          mkdir cov-analysis-linux64-2020.09
+          tar xzf coverity_tool.tgz --strip 1 -C cov-analysis-linux64-2020.09
+      - name: Run Coverity Build
+        run: |
+          set -x
+          git clone --depth 1 -b ${{ env.RDMA_CORE_VERSION }} https://github.com/linux-rdma/rdma-core.git
+          pushd rdma-core; bash build.sh; popd
+          export LD_LIBRARY_PATH="$PWD/${{ env.RDMA_CORE_PATH }}/lib:$LD_LIBRARY_PATH"
+
+          # We use a compiler extension that supports broader complex type
+          # definitions than what's defined in C99 standard (which only defines
+          # complex floats). For some reason, the version of GCC in this
+          # container does not provide that extension, but clang does. Until we
+          # know better, this action will use the clang compiler to generate the
+          # cov-build bundle needed for the coverity scan.
+          export PATH=$PWD/cov-analysis-linux64-2020.09/bin:$PATH
+          cov-configure --clang
+
+          ./autogen.sh
+          ./configure --prefix=$PWD/install ${{ env.OFI_PROVIDER_FLAGS }} CC=clang
+          make install
+          make clean
+          pushd fabtests
+          ./autogen.sh
+          ./configure --with-libfabric=$PWD/../install CC=clang
+          popd
+          cov-build --dir cov-int bash -c "make && make -C fabtests LDFLAGS=\"-L$PWD/${{ env.RDMA_CORE_PATH }}/lib -L$PWD/install/lib\""
+      - name: Submit results
+        run: |
+          tar czvf libfabric.tgz cov-int
+          curl \
+            --form token=${{ secrets.COVERITY_SCAN_TOKEN }} \
+            --form email=ofiwg@lists.openfabrics.org \
+            --form file=@libfabric.tgz \
+            --form version="main" \
+            --form description="`$PWD/install/bin/fi_info -l`" \
+            https://scan.coverity.com/builds?project=ofiwg%2Flibfabric
+      - name: Upload build logs
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+        with:
+          name: coverity-build-log.txt
+          path: cov-int/build-log.txt

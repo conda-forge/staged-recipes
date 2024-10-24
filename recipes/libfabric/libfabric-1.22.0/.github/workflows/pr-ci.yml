@@ -1,0 +1,144 @@
+name: Build Checks
+on: [push, pull_request]
+permissions:
+  contents: read
+  pull-requests: read
+env:
+  APT_PACKAGES: >-
+    abi-compliance-checker
+    abi-dumper
+    build-essential
+    debhelper
+    fakeroot
+    gcc
+    git
+    liblttng-ust-dev
+    libnl-3-200 libnl-3-dev libnl-route-3-200 libnl-route-3-dev
+    libnuma-dev
+    libudev-dev
+    uuid-dev
+    make
+    ninja-build
+    pandoc
+    pkg-config
+    python-is-python3
+    rpm
+    sparse
+    valgrind
+    wget
+  OFI_PROVIDER_FLAGS: >-
+    --enable-efa=$PWD/rdma-core/build
+    --enable-mrail
+    --enable-psm3=$PWD/rdma-core/build
+    --enable-rxd
+    --enable-rxm
+    --enable-shm
+    --enable-tcp
+    --enable-udp
+    --enable-usnic
+    --enable-verbs=$PWD/rdma-core/build
+  RDMA_CORE_PATH: '$PWD/rdma-core/build'
+  RDMA_CORE_VERSION: v34.1
+jobs:
+  linux:
+    runs-on: '${{ matrix.os }}'
+    strategy:
+      matrix:
+        os:
+          - ubuntu-22.04
+        cc:
+          - gcc
+          - clang
+      fail-fast: false
+    steps:
+      - name: Install dependencies (Linux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ env.APT_PACKAGES }}
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Build Check
+        run: |
+          set -x
+          git clone --depth 1 -b ${{ env.RDMA_CORE_VERSION }} https://github.com/linux-rdma/rdma-core.git
+          pushd rdma-core; bash build.sh; popd
+          export LD_LIBRARY_PATH="${{ env.RDMA_CORE_PATH }}/lib:$LD_LIBRARY_PATH"
+          ./autogen.sh
+          ./configure --prefix=$PWD/install ${{ env.OFI_PROVIDER_FLAGS }} CC=${{ matrix.cc }} --with-lttng
+          make -j 2 AM_CFLAGS="-Wall -Werror"; make install
+          DISTCHECK_CONFIGURE_FLAGS="${{ env.OFI_PROVIDER_FLAGS }}" make -j 2 distcheck
+          $PWD/install/bin/fi_info -l
+      - name: Upload build logs
+        if: failure()
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+        with:
+          name: ${{ matrix.os }}-${{ matrix.cc }}-config.log
+          path: config.log
+  hmem:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Install dependencies (Linux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ env.APT_PACKAGES }}
+      - name: Install CUDA
+        run: |
+          sudo apt-get install -y nvidia-cuda-toolkit
+      - name: Install ROCm
+        run: |
+          echo "Installing ROCm SDK"
+          # TODO: Install ROCm dependencies and add --with-rocm to build in next step
+      - name: Install Ze
+        run: |
+          echo "Installing Ze SDK"
+          sudo apt-get install -y gpg-agent wget
+          wget -qO - https://repositories.intel.com/graphics/intel-graphics.key | sudo apt-key add -
+          sudo apt-add-repository 'deb [arch=amd64] https://repositories.intel.com/graphics/ubuntu focal main'
+          sudo apt-get update
+          sudo apt-get install -y level-zero level-zero-dev
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: HMEM Checks
+        run: |
+          set -x
+          # We could use 'upload-artifact' and persist the rdma-core build
+          # across jobs, but this is just as quick.
+          git clone --depth 1 -b ${{ env.RDMA_CORE_VERSION }} https://github.com/linux-rdma/rdma-core.git
+          pushd rdma-core; bash build.sh; popd
+          export LD_LIBRARY_PATH="${{ env.RDMA_CORE_PATH }}/lib:$LD_LIBRARY_PATH"
+          ./autogen.sh
+          ./configure --prefix=$PWD/install ${{ env.OFI_PROVIDER_FLAGS }} \
+                                            --with-cuda=/usr/local/cuda --with-ze \
+                                            --with-lttng \
+                                            CC=${{ matrix.cc }}
+          make -j 2 AM_CFLAGS="-Wall -Werror"; make install
+          $PWD/install/bin/fi_info -l
+          $PWD/install/bin/fi_info -c FI_HMEM
+      - name: Upload build logs
+        if: failure()
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+        with:
+          name: hmem-config.log
+          path: config.log
+  macos:
+    runs-on: macos-12
+    steps:
+      - name: Install dependencies (Mac OS)
+        run: |
+           brew install automake
+           brew install libtool
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Build Check
+        run: |
+          ./autogen.sh
+          ./configure --prefix=$PWD/install
+          make -j 2; make install
+          $PWD/install/bin/fi_info -l
+          cd fabtests
+          ./autogen.sh
+          ./configure --with-libfabric=$PWD/../install
+          make -j2
+      - name: Upload build logs
+        if: failure()
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+        with:
+          name: macos-12-config.log
+          path: config.log
