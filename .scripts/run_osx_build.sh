@@ -4,32 +4,32 @@ set -x
 
 source .scripts/logging_utils.sh
 
-( startgroup "Provisioning base env with micromamba" ) 2> /dev/null
+( startgroup "Provisioning base env with pixi" ) 2> /dev/null
 
-MINIFORGE_HOME=${MINIFORGE_HOME:-${HOME}/miniforge3}
-MINIFORGE_HOME=${MINIFORGE_HOME%/} # remove trailing slash
+REPO_ROOT=$(dirname -- $(dirname -- "$(readlink -f -- "$BASH_SOURCE")"))
+MINIFORGE_HOME="${MINIFORGE_HOME:-${REPO_ROOT}/.pixi/envs/default}"
+CONDA_BLD_PATH="${CONDA_BLD_PATH:-${MINIFORGE_HOME}/conda-bld}"
 
-if [[ -d "${MINIFORGE_HOME}" ]]; then
-  echo "Miniforge already installed at ${MINIFORGE_HOME}."
-else
-  MICROMAMBA_VERSION="1.5.10-0"
-  if [[ "$(uname -m)" == "arm64" ]]; then
-    osx_arch="osx-arm64"
-  else
-    osx_arch="osx-64"
-  fi
-  MICROMAMBA_URL="https://github.com/mamba-org/micromamba-releases/releases/download/${MICROMAMBA_VERSION}/micromamba-${osx_arch}"
-  echo "Downloading micromamba ${MICROMAMBA_VERSION}"
-  micromamba_exe="$(mktemp -d)/micromamba"
-  curl -L -o "${micromamba_exe}" "${MICROMAMBA_URL}"
-  chmod +x "${micromamba_exe}"
-  echo "Creating environment"
-  "${micromamba_exe}" create --yes --root-prefix ~/.conda --prefix "${MINIFORGE_HOME}" \
-    --channel conda-forge \
-    --file .ci_support/requirements.txt
+if ! command -v pixi >/dev/null 2>&1; then
+  echo "Installing pixi"
+  curl -fsSL https://pixi.sh/install.sh | bash
+  export PATH="~/.pixi/bin:$PATH"
 fi
+echo "Creating environment"
+pushd "$REPO_ROOT"
+arch=$(uname -m)
+if [[ "$arch" == "x86_64" ]]; then
+  arch="64"
+fi
+sed -i.bak "s/platforms = .*/platforms = [\"osx-${arch}\"]/" pixi.toml
+pixi install
+pixi list
+mv pixi.toml.bak pixi.toml
+echo "Activating environment"
+eval "$(pixi shell-hook)"
+popd
 
-( endgroup "Provisioning base env with micromamba" ) 2> /dev/null
+( endgroup "Provisioning base env with pixi" ) 2> /dev/null
 
 ( startgroup "Configuring conda" ) 2> /dev/null
 
@@ -38,9 +38,6 @@ always_yes: true
 show_channel_urls: true
 solver: libmamba
 CONDARC
-
-source "${MINIFORGE_HOME}/etc/profile.d/conda.sh"
-conda activate base
 
 echo -e "\n\nSetting up the condarc and mangling the compiler."
 setup_conda_rc ./ ./recipes ./.ci_support/${CONFIG}.yaml
@@ -62,7 +59,7 @@ source run_conda_forge_build_setup
 set -e
 
 # make sure there is a package directory so that artifact publishing works
-mkdir -p "${MINIFORGE_HOME}/conda-bld/osx-64/" "${MINIFORGE_HOME}/conda-bld/noarch/"
+mkdir -p "${CONDA_BLD_PATH}/osx-64/" "${CONDA_BLD_PATH}/noarch/"
 
 # Find the recipes from main in this PR and remove them.
 echo ""

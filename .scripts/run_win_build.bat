@@ -10,32 +10,52 @@
 
 setlocal enableextensions enabledelayedexpansion
 
-if "%MINIFORGE_HOME%"=="" set "MINIFORGE_HOME=%USERPROFILE%\Miniforge3"
+call :start_group "Ensuring conda"
+
+FOR %%A IN ("%~dp0.") DO SET "REPO_ROOT=%%~dpA"
+if "%MINIFORGE_HOME%"=="" (
+    set "MINIFORGE_HOME=%REPO_ROOT%\.pixi\envs\default"
+) else (
+    set "PIXI_CACHE_DIR=%MINIFORGE_HOME%"
+)
 :: Remove trailing backslash, if present
 if "%MINIFORGE_HOME:~-1%"=="\" set "MINIFORGE_HOME=%MINIFORGE_HOME:~0,-1%"
-call :start_group "Provisioning base env with micromamba"
-set "MAMBA_ROOT_PREFIX=%MINIFORGE_HOME%-micromamba-%RANDOM%"
-set "MICROMAMBA_VERSION=1.5.10-0"
-set "MICROMAMBA_URL=https://github.com/mamba-org/micromamba-releases/releases/download/%MICROMAMBA_VERSION%/micromamba-win-64"
-set "MICROMAMBA_TMPDIR=%TMP%\micromamba-%RANDOM%"
-set "MICROMAMBA_EXE=%MICROMAMBA_TMPDIR%\micromamba.exe"
 
-echo Downloading micromamba %MICROMAMBA_VERSION%
-if not exist "%MICROMAMBA_TMPDIR%" mkdir "%MICROMAMBA_TMPDIR%"
-certutil -urlcache -split -f "%MICROMAMBA_URL%" "%MICROMAMBA_EXE%"
-if !errorlevel! neq 0 exit /b !errorlevel!
+WHERE /Q pixi && set "_install_pixi=no" || set "_install_pixi=yes"
+if "%_install_pixi%"=="yes" (
+    echo Installing pixi
+    powershell -NoProfile -ExecutionPolicy unrestricted -Command "iwr -useb https://pixi.sh/install.ps1 | iex"
+    if !errorlevel! neq 0 exit /b !errorlevel!
+    set "PATH=%USERPROFILE%\.pixi\bin;%PATH%"
+)
 
 echo Creating environment
-call "%MICROMAMBA_EXE%" create --yes --root-prefix "%MAMBA_ROOT_PREFIX%" --prefix "%MINIFORGE_HOME%" ^
-    --channel conda-forge ^
-    --file .ci_support\requirements.txt
+if "%PIXI_CACHE_DIR%"=="%MINIFORGE_HOME%" (
+    mkdir "%MINIFORGE_HOME%"
+    copy /Y pixi.toml "%MINIFORGE_HOME%"
+    pushd "%MINIFORGE_HOME%"
+) else (
+    pushd "%REPO_ROOT%"
+)
+move /y pixi.toml pixi.toml.bak
+set "arch=64"
+if "%PROCESSOR_ARCHITECTURE%"=="ARM64" set "arch=arm64"
+powershell -NoProfile -ExecutionPolicy unrestricted -Command "(Get-Content pixi.toml.bak -Encoding UTF8) -replace 'platforms = .*', 'platforms = [''win-%arch%'']' | Out-File -Encoding UTF8 pixi.toml"
+pixi install
 if !errorlevel! neq 0 exit /b !errorlevel!
-echo Moving pkgs cache from %MAMBA_ROOT_PREFIX% to %MINIFORGE_HOME%
-move /Y "%MAMBA_ROOT_PREFIX%\pkgs" "%MINIFORGE_HOME%"
+echo Listing environment
+pixi list
 if !errorlevel! neq 0 exit /b !errorlevel!
-echo Removing %MAMBA_ROOT_PREFIX%
-del /S /Q "%MAMBA_ROOT_PREFIX%"
-del /S /Q "%MICROMAMBA_TMPDIR%"
+:: Activate the base conda environment
+echo Activating environment
+set "ACTIVATE_PIXI=%TMP%\pixi-activate-%RANDOM%.bat"
+pixi shell-hook > %ACTIVATE_PIXI%
+if !errorlevel! neq 0 exit /b !errorlevel!
+call %ACTIVATE_PIXI%
+if !errorlevel! neq 0 exit /b !errorlevel!
+move /y pixi.toml.bak pixi.toml
+popd
+
 call :end_group
 
 call :start_group "Configuring conda"
@@ -43,10 +63,6 @@ call :start_group "Configuring conda"
 if "%CONDA_BLD_PATH%" == "" (
     set "CONDA_BLD_PATH=C:\bld"
 )
-
-:: Activate the base conda environment
-echo Activating "%MINIFORGE_HOME%"
-call "%MINIFORGE_HOME%\Scripts\activate"
 
 :: Set basic configuration
 echo Setting up configuration
@@ -65,8 +81,10 @@ call run_conda_forge_build_setup
 if !errorlevel! neq 0 exit /b !errorlevel!
 
 echo Force fetch origin/main
+set GIT_SSL_NO_VERIFY=true
 git fetch --force origin main:main
 if !errorlevel! neq 0 exit /b !errorlevel!
+set "GIT_SSL_NO_VERIFY="
 echo Removing recipes also present in main
 cd recipes
 for /f "tokens=*" %%a in ('git ls-tree --name-only main -- .') do rmdir /s /q %%a && echo Removing recipe: %%a
