@@ -2,8 +2,6 @@
 
 set -ex
 
-unset FC F77 F90
-
 export CC=$(basename "$CC")
 
 ./autogen.sh
