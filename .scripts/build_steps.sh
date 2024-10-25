@@ -23,6 +23,8 @@ always_yes: true
 
 channels:
  - conda-forge
+ - bioconda
+ - default
 
 conda-build:
   root-dir: ${FEEDSTOCK_ROOT}/build_artifacts
