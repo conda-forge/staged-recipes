@@ -71,7 +71,7 @@ build_win_qemu() {
   _configure_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 
   echo "PYTHON: ${PYTHON}"
-  PYTHON_WIN="${build_dir}/pyvenv/Scripts/python.exe"
+  PYTHON_WIN="${build_dir}/build/pyvenv/Scripts/python.exe"
   PYTHON_WIN=$(echo "${PYTHON_WIN}" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
   export PYTHON_WIN
   echo "PYTHON: ${PYTHON_WIN}"

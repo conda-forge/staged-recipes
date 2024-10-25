@@ -88,6 +88,14 @@ class ARM64Runner(QEMUSnapshotMixin):
         self.qemu_process = None
 
     def _build_qemu_command(self, load_snapshot=None):
+        if not os.path.exists(self.qemu_system):
+            raise FileNotFoundError(f"QEMU executable not found at {self.qemu_system}")
+
+        socket_dir = os.path.dirname(self.socket_path)
+        if not os.path.exists(socket_dir):
+            os.makedirs(socket_dir, exist_ok=True)
+            print(f"[DEBUG]: Created socket directory: {socket_dir}")
+
         cmd = [
             self.qemu_system,
             "-M", "virt,secure=on",
@@ -100,6 +108,10 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-qmp", f"unix:{self.socket_path},server,nowait"
         ]
 
+        print(f"[DEBUG]: Socket path: {self.socket_path}")
+        print(f"[DEBUG]: Socket directory exists: {os.path.exists(socket_dir)}")
+        print(f"[DEBUG]: Socket directory permissions: {oct(os.stat(socket_dir).st_mode)}")
+
         if self.iso_image:
             cmd.extend(["-cdrom", self.iso_image])
 
@@ -110,6 +122,14 @@ class ARM64Runner(QEMUSnapshotMixin):
             cmd.extend(["-loadvm", load_snapshot])
 
         return cmd
+
+    async def _log_output(self, stream, prefix):
+        """Log output from a stream with a prefix"""
+        while True:
+            line = await stream.readline()
+            if not line:
+                break
+            print(f"[{prefix}]: {line.decode().strip()}")
 
     async def check_status(self):
         return await self.qmp.execute('query-status')
@@ -216,13 +236,15 @@ class ARM64Runner(QEMUSnapshotMixin):
             raise ValueError("ISO path is required for setup")
 
         cmd = self._build_qemu_command(load_snapshot=False)
-        print("Starting VM for setup...")
+        print("Starting VM with command:", ' '.join(cmd))
 
         self.qemu_process = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
+        stdout_task = asyncio.create_task(self._log_output(self.qemu_process.stdout, "QEMU"))
+        stderr_task = asyncio.create_task(self._log_output(self.qemu_process.stderr, "QEMU ERR"))
 
         await self.await_boot_sequence()
         await self.setup_conda()
@@ -268,6 +290,9 @@ async def main():
     parser.add_argument("--load-snapshot", default=None, help="Load snapshot from file")
 
     args = parser.parse_args()
+
+    if not os.path.exists(args.qemu_system):
+        raise FileNotFoundError(f"QEMU executable not found at {args.qemu_system}")
 
     runner = ARM64Runner(
         qemu_system=args.qemu_system,
