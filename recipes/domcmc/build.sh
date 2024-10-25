@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # install package
-$PYTHON -m pip install --no-deps . -vv
+$PYTHON -m pip install . -vv
 
 # copy activate script that will be sourced upon env activation
 mkdir -p "${PREFIX}/etc/conda/activate.d"
