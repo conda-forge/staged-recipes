@@ -120,9 +120,9 @@ class ARM64Runner(QEMUSnapshotMixin):
         retry_count = 0
         while not os.path.exists(self.socket_path):
             retry_count += 1
-            await asyncio.sleep(1)
-            if retry_count > 30:
-                raise TimeoutError("QMP socket not ready after 30 seconds")
+            await asyncio.sleep(10)
+            if retry_count > 300:
+                raise TimeoutError("QMP socket not ready after 300 seconds")
 
         print("[QMP]: Connecting to VM...")
         try:
