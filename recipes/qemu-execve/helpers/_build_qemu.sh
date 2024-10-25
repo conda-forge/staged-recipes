@@ -64,7 +64,7 @@ build_win_qemu() {
 
   local _pkg_config="$(which pkg-config | sed 's|^/\(.\)|\1:|g' | sed 's|/|\\|g')"
   local _pkg_config_path="$(echo ${PREFIX}/Library/lib/pkgconfig | sed 's|^/\(.\)|\1:|g' | sed 's|/|\\|g')"
-  export PKG_CONFIG="${_pkg_config} --msvc-syntax"
+  export PKG_CONFIG="${_pkg_config}"
   export PKG_CONFIG_PATH="${_pkg_config_path}"
   export PKG_CONFIG_LIBDIR="${PKG_CONFIG_PATH}"
 
