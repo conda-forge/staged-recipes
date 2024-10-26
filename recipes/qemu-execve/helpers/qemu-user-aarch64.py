@@ -106,7 +106,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
             "-nic", f"socket,listen=:{self.nic_port}",  # Simple socket networking
             # "-netdev", f"user,id=net1,hostfwd=tcp:127.0.0.1:{self.ssh_port}-:22",
-            "-device", "virtio-net-pci,netdev=net1",
+            # "-device", "virtio-net-pci,netdev=net1",
             "-qmp", f"unix:{self.socket_path},server,nowait"
         ]
 
