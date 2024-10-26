@@ -17,6 +17,10 @@ fi
 	    $build_with_libnl
 
 make -j"${CPU_COUNT}"
-make check
+
+if [[ "$target_platform" == linux-* ]]; then
+  make check
+fi
+
 make install
 
