@@ -68,7 +68,8 @@ build_win_qemu() {
   export PKG_CONFIG_PATH="${_pkg_config_path}"
   export PKG_CONFIG_LIBDIR="${PKG_CONFIG_PATH}"
 
-  cp "${BUILD_PREFIX}/bin/x86_64-w64-mingw32-windres*" "${BUILD_PREFIX}/Library/bin"
+  ls ${WINDRES}* || true
+  export WINDRES=$(echo "${WINDRES}" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
   _configure_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 
   echo "PYTHON: ${PYTHON}"

@@ -78,11 +78,12 @@ class QEMUSnapshotMixin(QMPProtocol):
 class ARM64Runner(QEMUSnapshotMixin):
     DEFAULT_SNAPSHOT = "conda"
 
-    def __init__(self, qemu_system, qcow2_path, socket_path, iso_image=None, ssh_port=10022):
+    def __init__(self, qemu_system, qcow2_path, socket_path, iso_image=None, ssh_port=10022, nic_port=2000):
         self.qemu_system = qemu_system
         self.iso_image = iso_image
         self.qcow2_path = qcow2_path
         self.socket_path = socket_path
+        self.nic_port = nic_port
         self.ssh_port = ssh_port
         self.qmp = QMPClient('ARM64 VM')
         self.qemu_process = None
@@ -103,7 +104,8 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-m", "2048",
             "-nographic",
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
-            "-netdev", f"user,id=net1,hostfwd=tcp:127.0.0.1:{self.ssh_port}-:22",
+            "-nic", f"socket,listen=:{self.nic_port}",  # Simple socket networking
+            # "-netdev", f"user,id=net1,hostfwd=tcp:127.0.0.1:{self.ssh_port}-:22",
             "-device", "virtio-net-pci,netdev=net1",
             "-qmp", f"unix:{self.socket_path},server,nowait"
         ]
@@ -193,6 +195,30 @@ class ARM64Runner(QEMUSnapshotMixin):
         except asyncio.TimeoutError as e:
             process.kill()
             raise TimeoutError(f"Command timed out after {timeout} seconds") from e
+
+    async def execute_nic_command(self, command):
+        """Execute command via network socket instead of SSH"""
+        try:
+            # Open socket connection to VM
+            reader, writer = await asyncio.open_connection(
+                'localhost', self.nic_port
+            )
+
+            # Send command
+            writer.write(f"{command}\n".encode())
+            await writer.drain()
+
+            # Read response
+            response = await reader.read(4096)
+            decoded_response = response.decode()
+
+            writer.close()
+            await writer.wait_closed()
+
+            return decoded_response, "", 0  # stdout, stderr, returncode
+        except Exception as e:
+            print(f"Error executing command: {e}")
+            return "", str(e), 1
 
     async def setup_conda(self):
         """Install and configure Conda in the VM"""
@@ -285,6 +311,7 @@ async def main():
     parser.add_argument("--cdrom", required=True, help="Path to ISO image")
     parser.add_argument("--drive", required=True, help="Path to QEMU QCOW2 disk image")
     parser.add_argument("--socket", default="./qmp.sock", help="Path for QMP socket")
+    parser.add_argument("--nic-port", type=int, default=2000, help="Port for NIC socket")
     parser.add_argument("--setup", action="store_true", help="Perform initial setup and create snapshot")
     parser.add_argument("--run", help="Command to execute in the VM")
     parser.add_argument("--load-snapshot", default=None, help="Load snapshot from file")
@@ -298,7 +325,8 @@ async def main():
         qemu_system=args.qemu_system,
         iso_image=args.cdrom,
         qcow2_path=args.drive,
-        socket_path=args.socket
+        socket_path=args.socket,
+        nic_port=args.nic_port,
     )
 
     try:
