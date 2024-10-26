@@ -155,7 +155,7 @@ class ARM64Runner(QEMUSnapshotMixin):
         print("[QMP]: Waiting for VM to boot...")
         boot_completed = False
         retry_count = 0
-        while not boot_completed and retry_count < 60:
+        while not boot_completed and retry_count < 600:
             try:
                 status = await self.check_status()
                 if status['status'] == 'running':
