@@ -68,16 +68,12 @@ build_win_qemu() {
   export PKG_CONFIG_PATH="${_pkg_config_path}"
   export PKG_CONFIG_LIBDIR="${PKG_CONFIG_PATH}"
 
-  cp ${WINDRES}.exe ${WINDRES} || true
+  export WINDRES=$(echo "${WINDRES}" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
   _configure_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 
-  echo "PYTHON: ${PYTHON}"
   PYTHON_WIN="${build_dir}/build/pyvenv/Scripts/python.exe"
   PYTHON_WIN=$(echo "${PYTHON_WIN}" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
   export PYTHON_WIN
-  # export WINDRES=$(echo "${WINDRES}.exe" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
-  # ls ${WINDRES}* || true
-  echo "PYTHON: ${PYTHON_WIN}"
 
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 }

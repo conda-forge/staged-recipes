@@ -103,6 +103,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-cpu", "max",
             "-m", "2048",
             "-nographic",
+            "-boot_menu", "on",
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
             "-nic", f"socket,listen=:{self.nic_port}",  # Simple socket networking
             # "-netdev", f"user,id=net1,hostfwd=tcp:127.0.0.1:{self.ssh_port}-:22",
@@ -158,6 +159,7 @@ class ARM64Runner(QEMUSnapshotMixin):
         while not boot_completed and retry_count < 600:
             try:
                 status = await self.check_status()
+                print(f"[DEBUG]: Status: {status}")
                 if status['status'] == 'running':
                     info = await self.qmp.execute('query-name')
                     if info:
