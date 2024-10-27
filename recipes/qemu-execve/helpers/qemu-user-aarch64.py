@@ -111,7 +111,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             # "-device", "virtio-net-pci,netdev=net1",
             "-qmp", f"unix:{self.socket_path},server,nowait",
             "-serial", "stdio",  # Simplify to just stdio for serial
-            "-monitor", "none"   # Disable monitor to avoid confusion
+            "-monitor", "none",   # Disable monitor to avoid confusion
             # "-chardev", "stdio,id=console,mux=on",
             # "-mon", "chardev=console",
             # "-serial", "chardev:console",
@@ -215,23 +215,20 @@ class ARM64Runner(QEMUSnapshotMixin):
         print("[QMP]: VM is running, waiting for boot messages...")
 
         retry_count = 0
-        boot_timeout = 300  # 5 minutes timeout
-        while retry_count < boot_timeout:
+        boot_timeout = 10
+        boot_completed = False
+        while not boot_completed or retry_count < boot_timeout:
             if self.qemu_process.stdout:
                 try:
-                    line = await self.qemu_process.stdout.readline()
-                    if line:
-                        decoded = line.decode().strip()
-                        print(f"[Boot]: {decoded}")
-                        # Look for typical Alpine boot messages
-                        if "Welcome to Alpine" in decoded or "login:" in decoded:
-                            print("[QMP]: Boot sequence completed")
-                            return True
+                    info = await self.qmp.execute('query-name')
+                    if info:
+                        print(f"[QMP]: VM has finished booting. VM name: {info.get('name', 'Unknown')}")
+                        boot_completed = True
                 except Exception as e:
                     print(f"[Boot]: Error reading output: {e}")
 
             retry_count += 1
-            await asyncio.sleep(1)
+            await asyncio.sleep(30)
 
             # Check if process is still alive
             if self.qemu_process.returncode is not None:
