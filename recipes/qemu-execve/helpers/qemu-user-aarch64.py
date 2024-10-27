@@ -154,6 +154,8 @@ class ARM64Runner(QEMUSnapshotMixin):
         print("[QMP]: Connecting to VM...")
         try:
             await self.qmp.connect(self.socket_path)
+            print("[QMP]:   '-> Connected to QMP socket")
+            await self.qmp.execute('qmp_capabilities')
         except Exception as e:
             raise Exception(f"[QMP]: Error connecting to VM: {e}")
 
@@ -179,7 +181,25 @@ class ARM64Runner(QEMUSnapshotMixin):
             await asyncio.sleep(10)
 
         if not boot_completed:
-            raise Exception("VM failed to boot within timeout period")
+            # Try to get some diagnostic information
+            try:
+                print("\n=== Diagnostic Information ===")
+                print("1. VM Status:")
+                status = await self.qmp.execute('query-status')
+                print(f"   {status}")
+
+                print("\n2. Available QMP Commands:")
+                commands = await self.qmp.execute('query-commands')
+                print(f"   {commands}")
+
+                print("\n3. Machine Information:")
+                machine = await self.qmp.execute('query-machines')
+                print(f"   {machine}")
+
+            except Exception as e:
+                print(f"Failed to get diagnostic info: {e}")
+
+            raise TimeoutError("VM boot sequence incomplete after 600 seconds")
 
         print("[QMP]: VM is ready")
 
