@@ -155,7 +155,12 @@ class ARM64Runner(QEMUSnapshotMixin):
         try:
             await self.qmp.connect(self.socket_path)
             print("[QMP]:   '-> Connected to QMP socket")
-            await self.qmp.execute('qmp_capabilities')
+
+            with contextlib.suppress(Exception):
+                print("[QMP]: Negotiating QMP capabilities... (May raise an exception)")
+                await self.qmp.execute('qmp_capabilities')
+                print("[QMP]:   '-> Capabilities negotiated")
+
         except Exception as e:
             raise Exception(f"[QMP]: Error connecting to VM: {e}")
 

@@ -70,7 +70,8 @@ build_win_qemu() {
 
   _configure_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 
-  $(grep -i "WINDRES" "*") || true
+  $(grep -i "WINDRES" "config.status") || true
+  $(grep -i "WINDRES" "Makefile") || true
 
   # export WINDRES=$(echo "${WINDRES}" | sed 's|^\([a-zA-Z]\):|/\L\1|g' | sed 's|/|\\|g')
   export WINDRES=$(which windres)
