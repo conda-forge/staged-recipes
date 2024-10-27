@@ -59,8 +59,6 @@ build_win_qemu() {
     "--enable-guest-agent"
     "--disable-install-blobs"
   )
-    #"--enable-guest-agent"  # Not supported
-    #"--extra-cflags=-maxv2"  # Makes compilation fail
 
   local _pkg_config="$(which pkg-config | sed 's|^/\(.\)|\1:|g' | sed 's|/|\\|g')"
   local _pkg_config_path="$(echo ${PREFIX}/Library/lib/pkgconfig | sed 's|^/\(.\)|\1:|g' | sed 's|/|\\|g')"
@@ -68,13 +66,13 @@ build_win_qemu() {
   export PKG_CONFIG_PATH="${_pkg_config_path}"
   export PKG_CONFIG_LIBDIR="${PKG_CONFIG_PATH}"
 
+  export WINDRES=$(which windres | sed 's|^/\([a-zA-Z]\)/|/\L\1:|g' | sed 's|/|\\|g')
   _configure_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 
-  $(grep -i "WINDRES" "config.status") || true
-  $(grep -i "WINDRES" "Makefile") || true
+  powershell -Command "Select-String -Path "config.status" -Pattern "WINDRES" -CaseSensitive:$false"
+  powershell -Command "Select-String -Path "Makefile" -Pattern "WINDRES" -CaseSensitive:$false"
 
   # export WINDRES=$(echo "${WINDRES}" | sed 's|^\([a-zA-Z]\):|/\L\1|g' | sed 's|/|\\|g')
-  export WINDRES=$(which windres)
   PYTHON_WIN="${build_dir}/build/pyvenv/Scripts/python.exe"
   PYTHON_WIN=$(echo "${PYTHON_WIN}" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
   export PYTHON_WIN

@@ -109,6 +109,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             # "-netdev", f"user,id=net1,hostfwd=tcp:127.0.0.1:{self.ssh_port}-:22",
             # "-device", "virtio-net-pci,netdev=net1",
             "-qmp", f"unix:{self.socket_path},server,nowait"
+            "-serial", "mon:stdio"
         ]
 
         print(f"[DEBUG]: Socket path: {self.socket_path}")
@@ -137,6 +138,18 @@ class ARM64Runner(QEMUSnapshotMixin):
             except Exception as e:
                 print(f"Error reading {prefix} stream: {e}")
                 break
+
+    async def _log_console(self):
+        """Monitor VM console output"""
+        while True:
+            try:
+                # Try to read console through QMP's human-monitor-command
+                response = await self.qmp.execute('human-monitor-command',
+                                                {'command-line': 'info chardev'})
+                print(f"[Console]: {response}")
+            except Exception as e:
+                print(f"[Console]: Error reading console: {e}")
+            await asyncio.sleep(1)
 
     async def check_status(self):
         return await self.qmp.execute('query-status')
@@ -304,6 +317,7 @@ class ARM64Runner(QEMUSnapshotMixin):
         )
         stdout_task = asyncio.create_task(self._log_output(self.qemu_process.stdout, "QEMU"))
         stderr_task = asyncio.create_task(self._log_output(self.qemu_process.stderr, "QEMU ERR"))
+        console_task = asyncio.create_task(self._log_console())
 
         try:
             await self.await_boot_sequence()
@@ -316,13 +330,10 @@ class ARM64Runner(QEMUSnapshotMixin):
                 print(f"QEMU process exited with status: {status}")
             raise
         finally:
-            # Cancel output reader tasks
-            stdout_task.cancel()
-            stderr_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await stdout_task
-                await stderr_task
-
+            for task in [stdout_task, stderr_task, console_task]:
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
         await self.setup_conda()
         await self.save_snapshot(self.DEFAULT_SNAPSHOT)
 
