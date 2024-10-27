@@ -104,7 +104,6 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-cpu", "max",
             "-m", "2048",
             "-nographic",
-            "-boot", "menu=on,splash-time=0",
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
             "-nic", f"socket,listen=:{self.nic_port}",  # Simple socket networking
             # "-netdev", f"user,id=net1,hostfwd=tcp:127.0.0.1:{self.ssh_port}-:22",
@@ -161,16 +160,18 @@ class ARM64Runner(QEMUSnapshotMixin):
         print("[QMP]: Waiting for VM to boot...")
         boot_completed = False
         retry_count = 0
-        while not boot_completed and retry_count < 600:
+        while not boot_completed and retry_count < 60:
             try:
                 status = await self.check_status()
-                print(f"[DEBUG]: Status: {status}")
                 if status['status'] == 'running':
                     info = await self.qmp.execute('query-name')
                     if info:
                         print(f"[QMP]: VM has finished booting. Name: {info.get('name', 'Unknown')}")
                         boot_completed = True
                         break
+                    print(f"[DEBUG]: ... awaiting info: {info}")
+                else:
+                    print(f"[DEBUG]: ... awaiting running Status: {status}")
             except Exception as e:
                 print(f"[QMP]: Error during boot check: {e}")
 

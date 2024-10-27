@@ -70,9 +70,13 @@ build_win_qemu() {
 
   _configure_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 
+  $(which windres) || true
   $(grep -q "WINDRES" "${build_dir}/*") || true
+  # Transform unix path in windows path
+  $(grep -q "WINDRES" "${build_dir/\\//}\\*" | sed 's|^\([a-zA-Z]\):|/\L\1|g') || true
+  $(grep -q "windres" "${build_dir/\\//}\\*" | sed 's|^\([a-zA-Z]\):|/\L\1|g') || true
 
-  export WINDRES=$(echo "${WINDRES}" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
+  export WINDRES=$(echo "${WINDRES}" | sed 's|^\([a-zA-Z]\):|/\L\1|g' | sed 's|/|\\|g')
   PYTHON_WIN="${build_dir}/build/pyvenv/Scripts/python.exe"
   PYTHON_WIN=$(echo "${PYTHON_WIN}" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
   export PYTHON_WIN
