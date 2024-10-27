@@ -109,9 +109,11 @@ class ARM64Runner(QEMUSnapshotMixin):
             # "-netdev", f"user,id=net1,hostfwd=tcp:127.0.0.1:{self.ssh_port}-:22",
             # "-device", "virtio-net-pci,netdev=net1",
             "-qmp", f"unix:{self.socket_path},server,nowait",
-            "-chardev", "stdio,id=char0,mux=on",
-            "-mon", "chardev=char0",
-            "-serial", "chardev:char0",
+            "-chardev", "file,id=log,path=vm.log",  # Log to file
+            "-chardev", "stdio,id=console,mux=on",
+            "-mon", "chardev=console",
+            "-serial", "chardev:console",
+            "-debugcon", "chardev:log"
         ]
 
         print(f"[DEBUG]: Socket path: {self.socket_path}")
@@ -157,15 +159,26 @@ class ARM64Runner(QEMUSnapshotMixin):
         """Monitor VM console output through QMP"""
         while True:
             try:
-                response = await self.qmp.execute('human-monitor-command',
-                                                  {'command-line': 'info console'})
-                if response and response.strip():
-                    print(f"[Console]: {response}")
-                    if "login:" in response:
-                        print("[Console]: Login prompt detected")
+                commands = [
+                    'info status',
+                    'info qtree',
+                    'info chardev',
+                    'system_reset',
+                    'sendkey ret',
+                ]
+                for cmd in commands:
+                    response = await self.qmp.execute('human-monitor-command',
+                                                      {'command-line': cmd})
+                    print(f"[Monitor {cmd}]: {response}")
+
+                # Try reading directly from the chardev
+                response = await self.qmp.execute('query-chardev')
+                print(f"[Chardev Status]: {response}")
+
             except Exception as e:
                 print(f"[Console Monitor]: {e}")
-            await asyncio.sleep(1)
+
+            await asyncio.sleep(5)
 
     async def check_status(self):
         return await self.qmp.execute('query-status')

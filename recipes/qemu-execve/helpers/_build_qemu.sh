@@ -68,8 +68,8 @@ build_win_qemu() {
 
   _configure_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 
-  powershell -Command "Select-String -Path "config.status" -Pattern "WINDRES" -CaseSensitive:$false"
-  powershell -Command "Select-String -Path "Makefile" -Pattern "WINDRES" -CaseSensitive:$false"
+  powershell -Command "Select-String -Path 'config.status' -Pattern 'WINDRES' -CaseSensitive:\$false"
+  powershell -Command "Select-String -Path 'Makefile' -Pattern 'WINDRES' -CaseSensitive:\$false"
 
   # export WINDRES=$(echo "${WINDRES}" | sed 's|^\([a-zA-Z]\):|/\L\1|g' | sed 's|/|\\|g')
   PYTHON_WIN="${build_dir}/build/pyvenv/Scripts/python.exe"
