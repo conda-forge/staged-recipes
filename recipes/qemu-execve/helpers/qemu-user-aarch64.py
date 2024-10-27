@@ -109,7 +109,9 @@ class ARM64Runner(QEMUSnapshotMixin):
             # "-netdev", f"user,id=net1,hostfwd=tcp:127.0.0.1:{self.ssh_port}-:22",
             # "-device", "virtio-net-pci,netdev=net1",
             "-qmp", f"unix:{self.socket_path},server,nowait"
-            "-serial", "mon:stdio"
+            "-chardev", "stdio,id=char0,mux=on",
+            "-mon", "chardev=char0",
+            "-serial", "chardev:char0",
         ]
 
         print(f"[DEBUG]: Socket path: {self.socket_path}")
@@ -151,6 +153,20 @@ class ARM64Runner(QEMUSnapshotMixin):
                 print(f"[Console]: Error reading console: {e}")
             await asyncio.sleep(1)
 
+    async def _monitor_console(self):
+        """Monitor VM console output through QMP"""
+        while True:
+            try:
+                response = await self.qmp.execute('human-monitor-command',
+                                                  {'command-line': 'info console'})
+                if response and response.strip():
+                    print(f"[Console]: {response}")
+                    if "login:" in response:
+                        print("[Console]: Login prompt detected")
+            except Exception as e:
+                print(f"[Console Monitor]: {e}")
+            await asyncio.sleep(1)
+
     async def check_status(self):
         return await self.qmp.execute('query-status')
 
@@ -184,12 +200,19 @@ class ARM64Runner(QEMUSnapshotMixin):
             try:
                 status = await self.check_status()
                 if status['status'] == 'running':
-                    info = await self.qmp.execute('query-name')
-                    if info:
-                        print(f"[QMP]: VM has finished booting. Name: {info.get('name', 'Unknown')}")
-                        boot_completed = True
-                        break
-                    print(f"[DEBUG]: ... awaiting info: {info}")
+                    try:
+                        # Try to read console output through chardev
+                        response = await self.qmp.execute('human-monitor-command',
+                                                          {'command-line': 'info chardev'})
+                        print(f"[QMP]: Chardev info: {response}")
+
+                        # If we see boot messages or login prompt, consider it booted
+                        if "login:" in response or "Welcome to Alpine" in response:
+                            print("[QMP]: VM has finished booting")
+                            boot_completed = True
+                            break
+                    except Exception as e:
+                        print(f"[QMP]: Error checking console: {e}")
                 else:
                     print(f"[DEBUG]: ... awaiting running Status: {status}")
             except Exception as e:
@@ -317,11 +340,10 @@ class ARM64Runner(QEMUSnapshotMixin):
         )
         stdout_task = asyncio.create_task(self._log_output(self.qemu_process.stdout, "QEMU"))
         stderr_task = asyncio.create_task(self._log_output(self.qemu_process.stderr, "QEMU ERR"))
-        console_task = asyncio.create_task(self._log_console())
+        console_task = asyncio.create_task(self._monitor_console())
 
         try:
             await self.await_boot_sequence()
-            # ... rest of setup ...
         except Exception as e:
             print(f"Setup failed: {e}")
             # Make sure we see any remaining output

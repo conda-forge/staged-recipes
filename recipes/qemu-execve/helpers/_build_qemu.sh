@@ -66,7 +66,7 @@ build_win_qemu() {
   export PKG_CONFIG_PATH="${_pkg_config_path}"
   export PKG_CONFIG_LIBDIR="${PKG_CONFIG_PATH}"
 
-  export WINDRES=$(which windres | sed 's|^/\([a-zA-Z]\)/|/\L\1:|g' | sed 's|/|\\|g')
+  export WINDRES=$(which windres | sed 's|^/\([a-zA-Z]\)/|\L\1:|g' | sed 's|/|\\|g')
   _configure_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 
   powershell -Command "Select-String -Path "config.status" -Pattern "WINDRES" -CaseSensitive:$false"
