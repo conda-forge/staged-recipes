@@ -104,14 +104,17 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-cpu", "max",
             "-m", "2048",
             "-nographic",
+            "-boot", "menu=on,splash-time=5",
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
             "-nic", f"socket,listen=:{self.nic_port}",  # Simple socket networking
             # "-netdev", f"user,id=net1,hostfwd=tcp:127.0.0.1:{self.ssh_port}-:22",
             # "-device", "virtio-net-pci,netdev=net1",
             "-qmp", f"unix:{self.socket_path},server,nowait",
-            "-chardev", "stdio,id=console,mux=on",
-            "-mon", "chardev=console",
-            "-serial", "chardev:console",
+            "-serial", "stdio",  # Simplify to just stdio for serial
+            "-monitor", "none"   # Disable monitor to avoid confusion
+            # "-chardev", "stdio,id=console,mux=on",
+            # "-mon", "chardev=console",
+            # "-serial", "chardev:console",
         ]
 
         print(f"[DEBUG]: Socket path: {self.socket_path}")
@@ -205,55 +208,36 @@ class ARM64Runner(QEMUSnapshotMixin):
             raise Exception(f"[QMP]: Error connecting to VM: {e}")
 
         print("[QMP]: Waiting for VM to boot...")
-        boot_completed = False
-        retry_count = 0
-        while not boot_completed and retry_count < 60:
-            try:
-                status = await self.check_status()
-                if status['status'] == 'running':
-                    try:
-                        # Try to read console output through chardev
-                        response = await self.qmp.execute('human-monitor-command',
-                                                          {'command-line': 'info chardev'})
-                        print(f"[QMP]: Chardev info: {response}")
+        status = await self.qmp.execute('query-status')
+        if status['status'] != 'running':
+            raise RuntimeError(f"VM failed to start: {status}")
 
-                        # If we see boot messages or login prompt, consider it booted
-                        if "login:" in response or "Welcome to Alpine" in response:
-                            print("[QMP]: VM has finished booting")
-                            boot_completed = True
-                            break
-                    except Exception as e:
-                        print(f"[QMP]: Error checking console: {e}")
-                else:
-                    print(f"[DEBUG]: ... awaiting running Status: {status}")
-            except Exception as e:
-                print(f"[QMP]: Error during boot check: {e}")
+        print("[QMP]: VM is running, waiting for boot messages...")
+
+        retry_count = 0
+        boot_timeout = 300  # 5 minutes timeout
+        while retry_count < boot_timeout:
+            if self.qemu_process.stdout:
+                try:
+                    line = await self.qemu_process.stdout.readline()
+                    if line:
+                        decoded = line.decode().strip()
+                        print(f"[Boot]: {decoded}")
+                        # Look for typical Alpine boot messages
+                        if "Welcome to Alpine" in decoded or "login:" in decoded:
+                            print("[QMP]: Boot sequence completed")
+                            return True
+                except Exception as e:
+                    print(f"[Boot]: Error reading output: {e}")
 
             retry_count += 1
-            await asyncio.sleep(10)
+            await asyncio.sleep(1)
 
-        if not boot_completed:
-            # Try to get some diagnostic information
-            try:
-                print("\n=== Diagnostic Information ===")
-                print("1. VM Status:")
-                status = await self.qmp.execute('query-status')
-                print(f"   {status}")
+            # Check if process is still alive
+            if self.qemu_process.returncode is not None:
+                raise RuntimeError(f"QEMU process died during boot with code {self.qemu_process.returncode}")
 
-                print("\n2. Available QMP Commands:")
-                commands = await self.qmp.execute('query-commands')
-                print(f"   {commands}")
-
-                print("\n3. Machine Information:")
-                machine = await self.qmp.execute('query-machines')
-                print(f"   {machine}")
-
-            except Exception as e:
-                print(f"Failed to get diagnostic info: {e}")
-
-            raise TimeoutError("VM boot sequence incomplete after 600 seconds")
-
-        print("[QMP]: VM is ready")
+        raise TimeoutError(f"Boot sequence not completed after {boot_timeout} seconds")
 
     async def execute_ssh_command(self, command, timeout=300):
         """Execute command via SSH and return output"""
@@ -349,24 +333,21 @@ class ARM64Runner(QEMUSnapshotMixin):
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
-        stdout_task = asyncio.create_task(self._log_output(self.qemu_process.stdout, "QEMU"))
         stderr_task = asyncio.create_task(self._log_output(self.qemu_process.stderr, "QEMU ERR"))
-        console_task = asyncio.create_task(self._monitor_console())
 
         try:
             await self.await_boot_sequence()
         except Exception as e:
             print(f"Setup failed: {e}")
-            # Make sure we see any remaining output
-            if self.qemu_process:
-                status = await self.qemu_process.wait()
-                print(f"QEMU process exited with status: {status}")
+            # Try to get any remaining stderr
+            if self.qemu_process and not self.qemu_process.stderr.at_eof():
+                remaining_error = await self.qemu_process.stderr.read()
+                print(f"[DEBUG]: Remaining QEMU errors: {remaining_error.decode()}")
             raise
         finally:
-            for task in [stdout_task, stderr_task, console_task]:
-                task.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await task
+            stderr_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await stderr_task
         await self.setup_conda()
         await self.save_snapshot(self.DEFAULT_SNAPSHOT)
 

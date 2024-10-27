@@ -69,8 +69,9 @@ build_win_qemu() {
   _configure_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 
   pushd "${build_dir}" || exit 1
-    powershell -Command "Select-String -Path 'config.status' -Pattern 'WINDRES' -CaseSensitive:\$false"
-    powershell -Command "Select-String -Path 'Makefile' -Pattern 'WINDRES' -CaseSensitive:\$false"
+    ls -l
+    powershell -Command "Select-String -Path 'config.status' -Pattern 'WINDRES' -CaseSensitive:\$false" || true
+    powershell -Command "Select-String -Path 'Makefile' -Pattern 'WINDRES' -CaseSensitive:\$false" || true
   popd || exit 1
 
   # export WINDRES=$(echo "${WINDRES}" | sed 's|^\([a-zA-Z]\):|/\L\1|g' | sed 's|/|\\|g')
