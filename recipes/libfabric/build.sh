@@ -4,23 +4,17 @@ set -ex
 
 export CC=$(basename "$CC")
 
-build_with_numa=""
 build_with_libnl=""
 if [[ "$target_platform" == linux-* ]]; then
-  echo "Build with numa and libnl support"
-  build_with_numa=" --with-numa=$PREFIX "
+  echo "Build with libnl support"
   build_with_libnl=" --with-libnl=$PREFIX "
 fi
 
-echo "==============================================="
-./configure --help
-echo "==============================================="
-
 ./configure --prefix=$PREFIX \
-            $build_with_numa  \
             $build_with_libnl \
             --disable-static \
-	    --disable-psm3
+	    --disable-psm3 \
+	    --disable-opx
 
 make -j"${CPU_COUNT}"
 
