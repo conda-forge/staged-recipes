@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import contextlib
 import os
 import platform
 from typing import Protocol
@@ -103,7 +104,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-cpu", "max",
             "-m", "2048",
             "-nographic",
-            "-boot_menu", "on",
+            "-boot", "menu=on,splash-time=0",
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
             "-nic", f"socket,listen=:{self.nic_port}",  # Simple socket networking
             # "-netdev", f"user,id=net1,hostfwd=tcp:127.0.0.1:{self.ssh_port}-:22",
@@ -129,10 +130,14 @@ class ARM64Runner(QEMUSnapshotMixin):
     async def _log_output(self, stream, prefix):
         """Log output from a stream with a prefix"""
         while True:
-            line = await stream.readline()
-            if not line:
+            try:
+                line = await stream.readline()
+                if not line:
+                    break
+                print(f"[{prefix}]: {line.decode().rstrip()}")
+            except Exception as e:
+                print(f"Error reading {prefix} stream: {e}")
                 break
-            print(f"[{prefix}]: {line.decode().strip()}")
 
     async def check_status(self):
         return await self.qmp.execute('query-status')
@@ -274,7 +279,24 @@ class ARM64Runner(QEMUSnapshotMixin):
         stdout_task = asyncio.create_task(self._log_output(self.qemu_process.stdout, "QEMU"))
         stderr_task = asyncio.create_task(self._log_output(self.qemu_process.stderr, "QEMU ERR"))
 
-        await self.await_boot_sequence()
+        try:
+            await self.await_boot_sequence()
+            # ... rest of setup ...
+        except Exception as e:
+            print(f"Setup failed: {e}")
+            # Make sure we see any remaining output
+            if self.qemu_process:
+                status = await self.qemu_process.wait()
+                print(f"QEMU process exited with status: {status}")
+            raise
+        finally:
+            # Cancel output reader tasks
+            stdout_task.cancel()
+            stderr_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await stdout_task
+                await stderr_task
+
         await self.setup_conda()
         await self.save_snapshot(self.DEFAULT_SNAPSHOT)
 
@@ -289,7 +311,7 @@ class ARM64Runner(QEMUSnapshotMixin):
         )
 
         await self.await_boot_sequence()
-        stdout, stderr, returncode = await self.execute_ssh_command(command)
+        stdout, stderr, returncode = await self.execute_nic_command(command)
         return stdout, stderr, returncode
 
     async def stop_vm(self):
