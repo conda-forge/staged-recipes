@@ -218,14 +218,13 @@ class ARM64Runner(QEMUSnapshotMixin):
         boot_timeout = 10
         boot_completed = False
         while not boot_completed or retry_count < boot_timeout:
-            if self.qemu_process.stdout:
-                try:
-                    info = await self.qmp.execute('query-name')
-                    if info:
-                        print(f"[QMP]: VM has finished booting. VM name: {info.get('name', 'Unknown')}")
-                        boot_completed = True
-                except Exception as e:
-                    print(f"[Boot]: Error reading output: {e}")
+            try:
+                info = await self.qmp.execute('query-name')
+                if info:
+                    print(f"[QMP]: VM has finished booting. VM name: {info.get('name', 'Unknown')}")
+                    boot_completed = True
+            except Exception as e:
+                print(f"[Boot]: Error reading output: {e}")
 
             retry_count += 1
             await asyncio.sleep(30)
