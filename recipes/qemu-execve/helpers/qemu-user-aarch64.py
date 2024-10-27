@@ -109,11 +109,9 @@ class ARM64Runner(QEMUSnapshotMixin):
             # "-netdev", f"user,id=net1,hostfwd=tcp:127.0.0.1:{self.ssh_port}-:22",
             # "-device", "virtio-net-pci,netdev=net1",
             "-qmp", f"unix:{self.socket_path},server,nowait",
-            "-chardev", "file,id=log,path=vm.log",  # Log to file
             "-chardev", "stdio,id=console,mux=on",
             "-mon", "chardev=console",
             "-serial", "chardev:console",
-            "-debugcon", "chardev:log"
         ]
 
         print(f"[DEBUG]: Socket path: {self.socket_path}")
