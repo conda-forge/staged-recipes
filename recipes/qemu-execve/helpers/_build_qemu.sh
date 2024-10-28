@@ -70,8 +70,7 @@ build_win_qemu() {
 
   WINDRES=$(echo "${WINDRES}" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
 
-  pushd "${build_dir}" || exit 1
-    ls -l
+  pushd "${build_dir}/build" || exit 1
     sed -i 's|^\([a-zA-Z]\):.*?windres|'"${WINDRES}"'|g' build.ninja
     powershell -Command "Get-ChildItem -Recurse -File | Select-String -Pattern 'WINDRES' -CaseSensitive:\$false" || true
   popd || exit 1

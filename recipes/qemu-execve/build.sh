@@ -64,6 +64,7 @@ elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64
     -cpu cortex-a57 \
     -m 2048 \
     -nographic \
+    -boot menu=on \
     -drive if=pflash,format=raw,file="${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/edk2-aarch64-code.fd",readonly=on \
     -drive if=pflash,format=raw,file="${SRC_DIR}_conda-init-${qemu_arch}/edk2-aarch64-vars.fd" \
     -drive file="${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/user-disk-image.qcow2",format=qcow2 \

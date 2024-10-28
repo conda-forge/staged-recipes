@@ -103,7 +103,6 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-M", "virt,secure=on",
             "-cpu", "max",
             "-m", "2048",
-            "-rtc base=utc,clock=host,driftfix=slew",
             "-nographic",
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
             "-nic", f"socket,listen=:{self.nic_port}",  # Simple socket networking
