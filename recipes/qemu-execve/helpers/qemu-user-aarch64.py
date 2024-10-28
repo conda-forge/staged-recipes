@@ -106,10 +106,12 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-m", "2048",
             "-nographic",
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
-            "-nic", f"socket,listen=:{self.nic_port}",  # Simple socket networking
+            "-nic", f"socket,listen=:{self.nic_port}",
             "-qmp", f"unix:{self.socket_path},server,nowait",
-            "-serial", "stdio",  # Simplify to just stdio for serial
-            "-monitor", "none",   # Disable monitor to avoid confusion
+            "-device", "virtio-net,netdev=net0",
+            "-netdev", "stream,id=net0,server=on,addr.type=inet,"
+                      f"addr.host=localhost,addr.port={self.nic_port}",
+            "-serial", "stdio",
         ]
 
         print(f"[DEBUG]: Socket path: {self.socket_path}")
@@ -254,39 +256,43 @@ class ARM64Runner(QEMUSnapshotMixin):
             raise TimeoutError(f"Command timed out after {timeout} seconds") from e
 
     async def execute_nic_command(self, command):
-        """Execute command via network socket instead of SSH"""
+        """Execute command via network stream"""
+        print(f"[Command]: Attempting to connect to stream on localhost:{self.nic_port}")
         try:
-            # Open socket connection to VM
             reader, writer = await asyncio.open_connection(
-                'localhost', self.nic_port,
-                limit=4096,
+                'localhost',
+                self.nic_port,
+                limit=4096
             )
-            print("[Command]: Connected to socket")
+            print("[Command]: Connected to stream")
 
             # Send command
-            writer.write(f"{command}\n".encode())
+            command_bytes = f"{command}\n".encode()
+            print(f"[Command]: Sending ({len(command_bytes)} bytes): {command}")
+            writer.write(command_bytes)
             await writer.drain()
-            print("[Command]: Command sent")
+            print("[Command]: Command sent, awaiting response")
 
-            # Read response
+            # Read response with timeout
             try:
-                response = await asyncio.wait_for(reader.read(4096), timeout=10.0)
-                decoded_response = response.decode()
-                print(f"[Command]: Received response: {decoded_response}")
+                response = await asyncio.wait_for(reader.read(4096), timeout=30.0)
+                decoded = response.decode()
+                print(f"[Command]: Received ({len(response)} bytes): {decoded}")
             except asyncio.TimeoutError:
                 print("[Command]: Timeout waiting for response")
-                decoded_response = ""
+                decoded = ""
 
             writer.close()
             await writer.wait_closed()
             print("[Command]: Connection closed")
 
-            return decoded_response, "", 0
+            return decoded, "", 0
+
         except ConnectionRefusedError:
             print(f"[Command]: Connection refused on port {self.nic_port}")
             return "", "Connection refused", 1
         except Exception as e:
-            print(f"[Command]: Error: {e}")
+            print(f"[Command]: Error: {type(e).__name__} - {e}")
             return "", str(e), 1
 
     async def setup_conda(self):
