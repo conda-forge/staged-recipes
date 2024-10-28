@@ -234,6 +234,33 @@ class ARM64Runner(QEMUSnapshotMixin):
         if retry_count == boot_timeout:
             raise TimeoutError(f"Boot sequence not completed after {30 * boot_timeout} seconds")
 
+    async def setup_networking(self):
+        """Configure networking in the VM"""
+        print("[Setup]: Configuring networking...")
+        setup_commands = [
+            "setup-interfaces",  # Configure network interfaces
+            "rc-service networking start",  # Start networking
+            "/etc/init.d/networking start",
+            "ip link set eth0 up",  # Bring up interface
+            "ip addr show eth0",  # Verify interface
+        ]
+
+        # Send these through QMP since networking isn't working yet
+        for cmd in setup_commands:
+            await self.qmp.execute(
+                'human-monitor-command', {'command-line': 'sendkey ret'}
+            )
+            for char in cmd:
+                if char == ' ':
+                    await self.qmp.execute('human-monitor-command',
+                                           {'command-line': 'sendkey spc'})
+                else:
+                    await self.qmp.execute('human-monitor-command',
+                                           {'command-line': f'sendkey {char}'})
+            await self.qmp.execute('human-monitor-command',
+                                   {'command-line': 'sendkey ret'})
+            await asyncio.sleep(1)
+
     async def _execute_ssh_command(self, command, timeout=300):
         """Execute command via SSH and return output"""
         ssh_cmd = [
@@ -359,6 +386,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             stderr_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await stderr_task
+        await self.setup_networking()
         await self.setup_conda()
         await self.save_snapshot(self.DEFAULT_SNAPSHOT)
 
