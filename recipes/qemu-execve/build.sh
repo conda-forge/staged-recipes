@@ -58,23 +58,6 @@ elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64
      "${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/alpine-conda-vm.qcow2" \
      10G
 
-  "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-system-aarch64 \
-    -name "Alpine AArch64" \
-    -M virt \
-    -accel tcg,thread=single \
-    -cpu cortex-a57 \
-    -m 2048 \
-    -nographic \
-    -boot menu=on \
-    -drive if=pflash,format=raw,file="${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/edk2-aarch64-code.fd",readonly=on \
-    -drive if=pflash,format=raw,file="${SRC_DIR}_conda-init-${qemu_arch}/edk2-aarch64-vars.fd" \
-    -drive file="${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/user-disk-image.qcow2",format=qcow2 \
-    -drive file="${SRC_DIR}/alpine-virt-${ALPINE_ISO_VERSION}-aarch64.iso",format=raw,readonly=on \
-    -qmp unix:./qmp-sock,server \
-    -serial stdio \
-    & echo $! > qemu_pid.txt
-  sleep 300
-
   # Initialize qemu image
   python "${RECIPE_DIR}/helpers/qemu-user-aarch64.py" \
     --qemu-system "${SRC_DIR}/_conda-install-${qemu_arch}/bin/qemu-system-aarch64" \

@@ -232,7 +232,7 @@ class ARM64Runner(QEMUSnapshotMixin):
         if retry_count == boot_timeout:
             raise TimeoutError(f"Boot sequence not completed after {30 * boot_timeout} seconds")
 
-    async def execute_ssh_command(self, command, timeout=300):
+    async def _execute_ssh_command(self, command, timeout=300):
         """Execute command via SSH and return output"""
         ssh_cmd = [
             "ssh", "-p", str(self.ssh_port),
@@ -298,7 +298,7 @@ class ARM64Runner(QEMUSnapshotMixin):
 
         for cmd in commands:
             print(f"[Setup]: Executing: {cmd}")
-            stdout, stderr, returncode = await self.execute_ssh_command(cmd)
+            stdout, stderr, returncode = await self.execute_nic_command(cmd)
             if returncode != 0:
                 print("[Setup]: Error executing command:")
                 print(f"stdout: {stdout}")
@@ -307,7 +307,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             print("[Setup]: Command completed successfully")
 
         # Verify Conda installation
-        stdout, stderr, returncode = await self.execute_ssh_command("/root/miniconda/bin/conda --version")
+        stdout, stderr, returncode = await self.execute_nic_command("/root/miniconda/bin/conda --version")
         if returncode == 0:
             print(f"[Setup]: Conda installed successfully: {stdout.strip()}")
         else:
