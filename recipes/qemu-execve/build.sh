@@ -55,7 +55,8 @@ elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64
   "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-img create \
      -f qcow2 \
      -o compression_type=zlib \
-     "${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/alpine-conda-vm.qcow2" 10G
+     "${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/alpine-conda-vm.qcow2" \
+     10G
 
   "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-system-aarch64 \
     -name "Alpine AArch64" \
@@ -71,6 +72,7 @@ elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64
     -drive file="${SRC_DIR}/alpine-virt-${ALPINE_ISO_VERSION}-aarch64.iso",format=raw,readonly=on \
     -qmp unix:./qmp-sock,server \
     & echo $! > qemu_pid.txt
+  sleep 300
 
   # Initialize qemu image
   python "${RECIPE_DIR}/helpers/qemu-user-aarch64.py" \
@@ -90,6 +92,6 @@ elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64
   # python "${RECIPE_DIR}/helpers/qmp-vm-build.py"
 
   # Safety kill qemu if we have not been able to shutdown cleanly
-  # sleep 120
-  # kill $(cat qemu_pid.txt) || true
+  sleep 120
+  kill $(cat qemu_pid.txt) || true
 fi

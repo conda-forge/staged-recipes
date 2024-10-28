@@ -106,14 +106,9 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-nographic",
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
             "-nic", f"socket,listen=:{self.nic_port}",  # Simple socket networking
-            # "-netdev", f"user,id=net1,hostfwd=tcp:127.0.0.1:{self.ssh_port}-:22",
-            # "-device", "virtio-net-pci,netdev=net1",
             "-qmp", f"unix:{self.socket_path},server,nowait",
             "-serial", "stdio",  # Simplify to just stdio for serial
             "-monitor", "none",   # Disable monitor to avoid confusion
-            # "-chardev", "stdio,id=console,mux=on",
-            # "-mon", "chardev=console",
-            # "-serial", "chardev:console",
         ]
 
         print(f"[DEBUG]: Socket path: {self.socket_path}")
@@ -234,7 +229,7 @@ class ARM64Runner(QEMUSnapshotMixin):
                 raise RuntimeError(f"QEMU process died during boot with code {self.qemu_process.returncode}")
 
         if retry_count == boot_timeout:
-            raise TimeoutError(f"Boot sequence not completed after {boot_timeout} seconds")
+            raise TimeoutError(f"Boot sequence not completed after {30 * boot_timeout} seconds")
 
     async def execute_ssh_command(self, command, timeout=300):
         """Execute command via SSH and return output"""
