@@ -100,6 +100,7 @@ class ARM64Runner(QEMUSnapshotMixin):
 
         cmd = [
             self.qemu_system,
+            "-name", f"QEMU User ({os.path.basename(self.qemu_system)})",
             "-M", "virt,secure=on",
             "-cpu", "max",
             "-m", "2048",
