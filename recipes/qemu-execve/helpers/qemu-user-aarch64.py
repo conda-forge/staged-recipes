@@ -103,8 +103,8 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-M", "virt,secure=on",
             "-cpu", "max",
             "-m", "2048",
+            "-rtc base=utc,clock=host,driftfix=slew",
             "-nographic",
-            "-boot", "menu=on,splash-time=5",
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
             "-nic", f"socket,listen=:{self.nic_port}",  # Simple socket networking
             # "-netdev", f"user,id=net1,hostfwd=tcp:127.0.0.1:{self.ssh_port}-:22",
@@ -126,6 +126,8 @@ class ARM64Runner(QEMUSnapshotMixin):
 
         if platform.machine() == 'arm64':
             cmd.extend(["-accel", "hvf"])
+        else:
+            cmd.extend(["-accel", "tcg,thread=single"])
 
         if load_snapshot:
             cmd.extend(["-loadvm", load_snapshot])
@@ -216,13 +218,12 @@ class ARM64Runner(QEMUSnapshotMixin):
 
         retry_count = 0
         boot_timeout = 10
-        boot_completed = False
-        while not boot_completed or retry_count < boot_timeout:
+        while retry_count < boot_timeout:
             try:
                 info = await self.qmp.execute('query-name')
                 if info:
                     print(f"[QMP]: VM has finished booting. VM name: {info.get('name', 'Unknown')}")
-                    boot_completed = True
+                    break
             except Exception as e:
                 print(f"[Boot]: Error reading output: {e}")
 
@@ -233,7 +234,8 @@ class ARM64Runner(QEMUSnapshotMixin):
             if self.qemu_process.returncode is not None:
                 raise RuntimeError(f"QEMU process died during boot with code {self.qemu_process.returncode}")
 
-        raise TimeoutError(f"Boot sequence not completed after {boot_timeout} seconds")
+        if retry_count == boot_timeout:
+            raise TimeoutError(f"Boot sequence not completed after {boot_timeout} seconds")
 
     async def execute_ssh_command(self, command, timeout=300):
         """Execute command via SSH and return output"""
