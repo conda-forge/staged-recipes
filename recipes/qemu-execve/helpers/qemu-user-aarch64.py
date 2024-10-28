@@ -258,23 +258,35 @@ class ARM64Runner(QEMUSnapshotMixin):
         try:
             # Open socket connection to VM
             reader, writer = await asyncio.open_connection(
-                'localhost', self.nic_port
+                'localhost', self.nic_port,
+                limit=4096,
             )
+            print("[Command]: Connected to socket")
 
             # Send command
             writer.write(f"{command}\n".encode())
             await writer.drain()
+            print("[Command]: Command sent")
 
             # Read response
-            response = await reader.read(4096)
-            decoded_response = response.decode()
+            try:
+                response = await asyncio.wait_for(reader.read(4096), timeout=10.0)
+                decoded_response = response.decode()
+                print(f"[Command]: Received response: {decoded_response}")
+            except asyncio.TimeoutError:
+                print("[Command]: Timeout waiting for response")
+                decoded_response = ""
 
             writer.close()
             await writer.wait_closed()
+            print("[Command]: Connection closed")
 
-            return decoded_response, "", 0  # stdout, stderr, returncode
+            return decoded_response, "", 0
+        except ConnectionRefusedError:
+            print(f"[Command]: Connection refused on port {self.nic_port}")
+            return "", "Connection refused", 1
         except Exception as e:
-            print(f"Error executing command: {e}")
+            print(f"[Command]: Error: {e}")
             return "", str(e), 1
 
     async def setup_conda(self):
@@ -297,14 +309,14 @@ class ARM64Runner(QEMUSnapshotMixin):
         ]
 
         for cmd in commands:
-            print(f"[Setup]: Executing: {cmd}")
+            print(f"[Setup]:    Executing: {cmd}")
             stdout, stderr, returncode = await self.execute_nic_command(cmd)
             if returncode != 0:
-                print("[Setup]: Error executing command:")
+                print("[Setup]:     '-> Error executing command:")
                 print(f"stdout: {stdout}")
                 print(f"stderr: {stderr}")
                 raise Exception(f"Failed to execute: {cmd}")
-            print("[Setup]: Command completed successfully")
+            print("[Setup]:     '-> Command completed successfully")
 
         # Verify Conda installation
         stdout, stderr, returncode = await self.execute_nic_command("/root/miniconda/bin/conda --version")
