@@ -22,7 +22,8 @@ build_linux_qemu() {
   export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig"
   export PKG_CONFIG_LIBDIR="${BUILD_PREFIX}/lib/pkgconfig"
 
-  _config_build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]}"
+  _configure_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
+  _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 }
 
 build_osx_qemu() {
@@ -51,7 +52,8 @@ build_osx_qemu() {
   export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig"
   export PKG_CONFIG_LIBDIR="${BUILD_PREFIX}/lib/pkgconfig"
 
-  _config_build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
+  _configure_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
+  _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 }
 
 build_win_qemu() {
@@ -97,7 +99,7 @@ _configure_qemu() {
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
-    ./configure \
+    "${SRC_DIR}"/qemu_source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
       --disable-docs \
@@ -127,39 +129,6 @@ _build_qemu() {
      #> "${SRC_DIR}"/_make-"${qemu_arch}".log 2>&1
     # make check > "${SRC_DIR}"/_check-"${qemu_arch}".log 2>&1
     ninja install --no-rebuild
-     #> "${SRC_DIR}"/_install-"${qemu_arch}".log 2>&1
-
-  popd || exit 1
-}
-
-_config_build_qemu() {
-  local qemu_arch=$1
-  local build_dir=$2
-  local install_dir=$3
-  shift 3
-  local qemu_args=("${@:-}")
-
-  mkdir -p "${build_dir}"
-  pushd "${build_dir}" || exit 1
-    ./configure \
-      --prefix="${install_dir}" \
-      "${qemu_args[@]}" \
-      --disable-docs \
-      --disable-bsd-user --disable-strip --disable-werror --disable-gcrypt --disable-pie \
-      --disable-debug-info --disable-debug-tcg --disable-tcg-interpreter \
-      --disable-brlapi --disable-linux-aio --disable-bzip2 --disable-cap-ng --disable-curl \
-      --disable-glusterfs --disable-gnutls --disable-nettle --disable-gtk --disable-rdma --disable-libiscsi \
-      --disable-vnc-jpeg --disable-kvm --disable-lzo --disable-curses --disable-libnfs --disable-numa \
-      --disable-opengl --disable-rbd --disable-vnc-sasl --disable-sdl --disable-seccomp \
-      --disable-smartcard --disable-snappy --disable-spice --disable-libusb --disable-usb-redir --disable-vde \
-      --disable-vhost-net --disable-virglrenderer --disable-vnc --disable-vte --disable-xen \
-      --disable-xen-pci-passthrough
-       #> "${SRC_DIR}"/_configure-"${qemu_arch}".log 2>&1
-
-    make -j"${CPU_COUNT}"
-     #> "${SRC_DIR}"/_make-"${qemu_arch}".log 2>&1
-    # make check > "${SRC_DIR}"/_check-"${qemu_arch}".log 2>&1
-    make install
      #> "${SRC_DIR}"/_install-"${qemu_arch}".log 2>&1
 
   popd || exit 1
