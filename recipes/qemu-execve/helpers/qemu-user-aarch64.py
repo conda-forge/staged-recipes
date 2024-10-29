@@ -106,12 +106,18 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-m", "2048",
             "-nographic",
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
-            "-nic", f"socket,listen=:{self.nic_port}",
             "-qmp", f"unix:{self.socket_path},server,nowait",
-            "-device", "virtio-net,netdev=net0",
-            "-netdev", "stream,id=net0,server=on,addr.type=inet,"
-                      f"addr.host=localhost,addr.port={self.nic_port}",
-            "-serial", "stdio",
+            # virtio-serial for commands
+            "-device", "virtio-serial",
+            "-chardev", "socket,path=./vm_console,server=on,wait=off,id=console0-char",
+            "-device", "virtserialport,id=consol0,chardev=console0-char,name=conda.console0",
+            # Network for internet access
+            "-net", "user,hostfwd=tcp::10022-:22",
+            "-net", "nic",
+            # networking for internet access
+            # "-netdev", "user,id=net0",
+            # "-device", "virtio-net-pci,netdev=net0",
+            # "-device", "virtserialport,chardev=console0,name=console0",
         ]
 
         print(f"[DEBUG]: Socket path: {self.socket_path}")
@@ -234,66 +240,15 @@ class ARM64Runner(QEMUSnapshotMixin):
         if retry_count == boot_timeout:
             raise TimeoutError(f"Boot sequence not completed after {30 * boot_timeout} seconds")
 
-    async def setup_networking(self):
-        """Configure networking in the VM"""
-        print("[Setup]: Configuring networking...")
-        setup_commands = [
-            "setup-interfaces",  # Configure network interfaces
-            "rc-service networking start",  # Start networking
-            "/etc/init.d/networking start",
-            "ip link set eth0 up",  # Bring up interface
-            "ip addr show eth0",  # Verify interface
-        ]
-
-        # Send these through QMP since networking isn't working yet
-        for cmd in setup_commands:
-            await self.qmp.execute(
-                'human-monitor-command', {'command-line': 'sendkey ret'}
-            )
-            for char in cmd:
-                if char == ' ':
-                    await self.qmp.execute('human-monitor-command',
-                                           {'command-line': 'sendkey spc'})
-                else:
-                    await self.qmp.execute('human-monitor-command',
-                                           {'command-line': f'sendkey {char}'})
-            await self.qmp.execute('human-monitor-command',
-                                   {'command-line': 'sendkey ret'})
-            await asyncio.sleep(1)
-
-    async def _execute_ssh_command(self, command, timeout=300):
-        """Execute command via SSH and return output"""
-        ssh_cmd = [
-            "ssh", "-p", str(self.ssh_port),
-            "-o", "StrictHostKeyChecking=no",
-            "-o", "ConnectTimeout=10",
-            "root@localhost",
-            command
-        ]
-        process = await asyncio.create_subprocess_exec(
-            *ssh_cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
+    async def execute_command(self, command):
+        """Execute command via virtio-serial port"""
+        print("[Command]: Connecting to virtio-serial at /tmp/port1")
         try:
-            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout)
-            return stdout.decode(), stderr.decode(), process.returncode
-        except asyncio.TimeoutError as e:
-            process.kill()
-            raise TimeoutError(f"Command timed out after {timeout} seconds") from e
+            # Connect to Unix domain socket created by QEMU for virtio-serial
+            reader, writer = await asyncio.open_unix_connection('/tmp/port1')
+            print("[Command]: Connected to virtio-serial")
 
-    async def execute_nic_command(self, command):
-        """Execute command via network stream"""
-        print(f"[Command]: Attempting to connect to stream on localhost:{self.nic_port}")
-        try:
-            reader, writer = await asyncio.open_connection(
-                'localhost',
-                self.nic_port,
-                limit=4096
-            )
-            print("[Command]: Connected to stream")
-
-            # Send command
+            # Send command with newline
             command_bytes = f"{command}\n".encode()
             print(f"[Command]: Sending ({len(command_bytes)} bytes): {command}")
             writer.write(command_bytes)
@@ -315,9 +270,9 @@ class ARM64Runner(QEMUSnapshotMixin):
 
             return decoded, "", 0
 
-        except ConnectionRefusedError:
-            print(f"[Command]: Connection refused on port {self.nic_port}")
-            return "", "Connection refused", 1
+        except FileNotFoundError:
+            print("[Command]: virtio-serial socket not found at /tmp/port1")
+            return "", "virtio-serial socket not found", 1
         except Exception as e:
             print(f"[Command]: Error: {type(e).__name__} - {e}")
             return "", str(e), 1
@@ -343,7 +298,7 @@ class ARM64Runner(QEMUSnapshotMixin):
 
         for cmd in commands:
             print(f"[Setup]:    Executing: {cmd}")
-            stdout, stderr, returncode = await self.execute_nic_command(cmd)
+            stdout, stderr, returncode = await self.execute_command(cmd)
             if returncode != 0:
                 print("[Setup]:     '-> Error executing command:")
                 print(f"stdout: {stdout}")
@@ -352,7 +307,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             print("[Setup]:     '-> Command completed successfully")
 
         # Verify Conda installation
-        stdout, stderr, returncode = await self.execute_nic_command("/root/miniconda/bin/conda --version")
+        stdout, stderr, returncode = await self.execute_command("/root/miniconda/bin/conda --version")
         if returncode == 0:
             print(f"[Setup]: Conda installed successfully: {stdout.strip()}")
         else:
@@ -386,7 +341,6 @@ class ARM64Runner(QEMUSnapshotMixin):
             stderr_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await stderr_task
-        await self.setup_networking()
         await self.setup_conda()
         await self.save_snapshot(self.DEFAULT_SNAPSHOT)
 
