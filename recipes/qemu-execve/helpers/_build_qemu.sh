@@ -30,11 +30,17 @@ build_osx_qemu() {
   local build_dir=${2:-"${SRC_DIR}"/_conda-build}
   local install_dir=${3:-"${PREFIX}"}
 
+  git clone https://gitlab.freedesktop.org/slirp/libslirp.git
+  pushd libslirp || exit 1
+    meson build
+    ninja -C build install
+  popd || exit 1
+
   qemu_args=(
     "--disable-attr"
     "--target-list=aarch64-softmmu"
     "--enable-hvf"
-    # "--enable-slirp"
+    "--enable-slirp=system"
     "--enable-tools"
     "--enable-virtfs"
   )

@@ -112,8 +112,8 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-chardev", "socket,path=./vm_console,server=on,wait=off,id=console0-char",
             "-device", "virtserialport,id=consol0,chardev=console0-char,name=conda.console0",
             # Network for internet access
-            "-net", "user,hostfwd=tcp::10022-:22",
-            "-net", "nic",
+            # "-net", "user,hostfwd=tcp::10022-:22",
+            # "-net", "nic",
             # networking for internet access
             # "-netdev", "user,id=net0",
             # "-device", "virtio-net-pci,netdev=net0",
