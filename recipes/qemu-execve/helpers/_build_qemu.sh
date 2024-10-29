@@ -32,7 +32,7 @@ build_osx_qemu() {
 
   git clone https://gitlab.freedesktop.org/slirp/libslirp.git
   pushd libslirp || exit 1
-    meson build
+    meson build --prefix="${install_dir}"
     ninja -C build install
   popd || exit 1
 
@@ -123,10 +123,10 @@ _build_qemu() {
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
-    make -j"${CPU_COUNT}"
+    ninja -j"${CPU_COUNT}" --no-rebuild
      #> "${SRC_DIR}"/_make-"${qemu_arch}".log 2>&1
     # make check > "${SRC_DIR}"/_check-"${qemu_arch}".log 2>&1
-    make install
+    ninja install --no-rebuild
      #> "${SRC_DIR}"/_install-"${qemu_arch}".log 2>&1
 
   popd || exit 1
