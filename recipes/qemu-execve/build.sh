@@ -50,6 +50,7 @@ elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64
   # Changer RPATH to $PREFIX for qemu-img and qemu-system-aarch64 (for zstd)
   install_name_tool -add_rpath "${PREFIX}/lib" "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-img || true
   install_name_tool -add_rpath "${PREFIX}/lib" "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-system-aarch64 || true
+  install_name_tool -add_rpath "${SRC_DIR}/_conda-install-${qemu_arch}"/lib "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-system-aarch64 || true
 
   # Create empty image
   "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-img create \

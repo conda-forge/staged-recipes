@@ -79,7 +79,8 @@ build_win_qemu() {
   WINDRES=$(echo "${WINDRES}" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
 
   pushd "${build_dir}" || exit 1
-    sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' build.ninja build.ninja.stamp config.status config-meson.cross meson-info/intro-targets.json
+    sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' build.ninja config.status config-meson.cross meson-info/intro-targets.json
+    touch -a -m ../meson.build build.ninja config.status config-meson.cross meson-info/intro-targets.json
     powershell -Command "Get-ChildItem -Recurse -File | Select-String -Pattern 'WINDRES' -CaseSensitive:\$false" || true
   popd || exit 1
 
@@ -125,7 +126,7 @@ _build_qemu() {
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
-    ninja -j"${CPU_COUNT}"
+    ninja -j"${CPU_COUNT}" -d explain
      #> "${SRC_DIR}"/_make-"${qemu_arch}".log 2>&1
     # make check > "${SRC_DIR}"/_check-"${qemu_arch}".log 2>&1
     ninja install
