@@ -12,7 +12,7 @@ from conda_smithy.utils import get_yaml, render_meta_yaml
 import github
 import requests
 
-NOCOMMENT_REQ_TEAMS = ["conda-forge/r"]
+NOCOMMENT_REQ_TEAMS = ["conda-forge/r", "conda-forge/cuda"]
 
 
 def _lint_recipes(gh, pr):
@@ -123,9 +123,9 @@ def _lint_recipes(gh, pr):
 
             url = None
             if recipe_version == 1:
-                for source_url in sources_section:
-                    if source_url.startswith("https://pypi.io/packages/source/"):
-                        url = source_url
+                for source_section in sources_section:
+                    if str(source_section.get("url")).startswith("https://pypi.io/packages/source/"):
+                        url = source_section["url"]
             else:
                 for source_section in sources_section:
                     if str(source_section.get("url")).startswith(
@@ -163,7 +163,7 @@ def _lint_recipes(gh, pr):
             non_participating_maintainers = set()
             for maintainer in maintainers:
                 if (
-                    maintainer not in commenters 
+                    maintainer not in commenters
                     and maintainer != pr_author
                     and maintainer not in NOCOMMENT_REQ_TEAMS
                 ):
@@ -175,6 +175,24 @@ def _lint_recipes(gh, pr):
                     f"The following maintainers have not yet confirmed that they are willing to be listed here: "
                     f"{', '.join(non_participating_maintainers)}. Please ask them to comment on this PR if they are."
                 )
+
+        # 4. Only conda-forge teams can be maintainers
+        if maintainers:
+            for maintainer in maintainers:
+                if "/" in maintainer:
+                    res = maintainer.split("/", 1)
+                    if len(res) == 2:
+                        org, team = res
+                        if org != "conda-forge":
+                            lints[fname].append(
+                                "Only conda-forge teams can be team maintainers."
+                                f" {maintainer} is not a team in conda-forge."
+                            )
+                    else:
+                        lints[fname].append(
+                            f'Maintainer team "{maintainer}" is not in the '
+                            'correct format. Please use "org/team" format.'
+                        )
 
     return dict(lints), dict(hints), extra_edits
 
