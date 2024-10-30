@@ -110,7 +110,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             # virtio-serial for commands
             "-device", "virtio-serial",
             "-chardev", "socket,path=./vm_console,server=on,wait=off,id=console0-char",
-            "-device", "virtserialport,id=consol0,chardev=console0-char,name=conda.console0",
+            "-device", "virtserialport,id=console0,chardev=console0-char,name=conda.console0",
             # Network for internet access
             # "-net", "user,hostfwd=tcp::10022-:22",
             # "-net", "nic",
@@ -242,10 +242,10 @@ class ARM64Runner(QEMUSnapshotMixin):
 
     async def execute_command(self, command):
         """Execute command via virtio-serial port"""
-        print("[Command]: Connecting to virtio-serial at /tmp/port1")
+        print("[Command]: Connecting to virtio-serial at ./vm_comsole")
         try:
             # Connect to Unix domain socket created by QEMU for virtio-serial
-            reader, writer = await asyncio.open_unix_connection('/tmp/port1')
+            reader, writer = await asyncio.open_unix_connection('./vm_comsole')
             print("[Command]: Connected to virtio-serial")
 
             # Send command with newline
@@ -271,7 +271,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             return decoded, "", 0
 
         except FileNotFoundError:
-            print("[Command]: virtio-serial socket not found at /tmp/port1")
+            print("[Command]: virtio-serial socket not found at ./vm_comsole")
             return "", "virtio-serial socket not found", 1
         except Exception as e:
             print(f"[Command]: Error: {type(e).__name__} - {e}")

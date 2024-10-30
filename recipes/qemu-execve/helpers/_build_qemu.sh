@@ -79,8 +79,8 @@ build_win_qemu() {
   WINDRES=$(echo "${WINDRES}" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
 
   pushd "${build_dir}" || exit 1
-    sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' build.ninja config.status config-meson.cross meson-info/intro-targets.json
-    touch -a -m ../meson.build build.ninja config.status config-meson.cross meson-info/intro-targets.json
+    sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' config-meson.cross build.ninja config.status meson-info/intro-targets.json
+    touch config-meson.cross ../meson.build build.ninja config.status meson-info/intro-targets.json
     powershell -Command "Get-ChildItem -Recurse -File | Select-String -Pattern 'WINDRES' -CaseSensitive:\$false" || true
   popd || exit 1
 
