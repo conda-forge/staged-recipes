@@ -1,0 +1,78 @@
+{% set name = "delphes" %}
+{% set version = "3.5.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/delphes/{{ name }}/archive/refs/tags/{{ version }}.tar.gz
+  sha256: 30a2536e0c8f47d633ecf3b4d51ec9924af54538e492470ad47b4ed34342f063
+  patches:
+    # Fixes builds for macOS
+    # c.f. https://github.com/delphes/delphes/pull/128
+    - Delphes-ClosestPair2D-fwdDeclaration.patch
+    # c.f. https://github.com/delphes/delphes/commit/64de5a479b94beba357e73c926cdc6ee9114ceec
+    - remove_binary_function.patch
+
+build:
+  skip: true  # [win]
+  script:
+    # Make the examples location independent by removing the 'external/' prefix
+    # in includes to instead use the installed versions
+    - grep -r -l "external/" examples/ | xargs sed -i 's|external/||g'  # [linux]
+    - grep -r -l "external/" examples/ | xargs sed -i '' 's|external/||g'  # [osx]
+
+    - CXXFLAGS="${CXXFLAGS}" cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DPYTHIA8_DATA=$(pythia8-config --datadir) -S . -B build
+    - cmake build -LH
+    - cmake --build build --clean-first --parallel="${CPU_COUNT}"
+    - cmake --install build
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - cmake
+    - make
+  host:
+    # TODO: After the feedstock is made
+    #   * Remove the version constraint from root_base
+    #   * pick up the migration file manaully
+    #   * re-render the repository
+    - root_base 6.32.2
+    - pythia8
+
+test:
+  requires:
+    - {{ compiler('cxx') }}
+    - root_base
+    - pythia8
+    - gzip
+    - curl
+    - grep
+    - sed
+
+about:
+  home: https://github.com/delphes/delphes
+  summary: 'A framework for fast simulation of a generic collider experiment'
+  description: |
+    Delphes is a C++ framework, performing a fast multipurpose detector
+    response simulation. The simulation includes a tracking system, embedded
+    into a magnetic field, calorimeters and a muon system. The framework is
+    interfaced to standard file formats (e.g. Les Houches Event File or HepMC)
+    and outputs observables such as isolated leptons, missing transverse energy
+    and collection of jets which can be used for dedicated analyses.
+    The simulation of the detector response takes into account the effect of
+    magnetic field, the granularity of the calorimeters and sub-detector resolutions.
+    Visualisation of the final state particles is also built-in using the
+    corresponding ROOT library.
+  license: GPL-3.0-or-later
+  license_file: COPYING
+  doc_url: https://cp3.irmp.ucl.ac.be/projects/delphes
+  dev_url: https://github.com/delphes/delphes
+
+extra:
+  recipe-maintainers:
+    - matthewfeickert
+    - kratsg
