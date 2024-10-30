@@ -355,7 +355,7 @@ class ARM64Runner(QEMUSnapshotMixin):
         )
 
         await self.await_boot_sequence()
-        stdout, stderr, returncode = await self.execute_nic_command(command)
+        stdout, stderr, returncode = await self.execute_command(command)
         return stdout, stderr, returncode
 
     async def stop_vm(self):
