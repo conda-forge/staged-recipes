@@ -113,8 +113,8 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-chardev", f"socket,path={self.virtio_path},server=on,id=console0",
             "-device", "virtserialport,chardev=console0,name=conda.console.0",
             # Network for internet access
-            # "-net", "user,hostfwd=tcp::10022-:22",
-            # "-net", "nic",
+            "-net", "user,hostfwd=tcp::10022-:22",
+            "-net", "nic",
             # networking for internet access
             # "-netdev", "user,id=net0",
             # "-device", "virtio-net-pci,netdev=net0",
@@ -127,7 +127,6 @@ class ARM64Runner(QEMUSnapshotMixin):
 
         print(f"[DEBUG]: Socket path: {self.virtio_path}")
         print(f"[DEBUG]: Socket path exists: {os.path.exists(f'{self.virtio_path}')}")
-        print(f"[DEBUG]: Socket directory permissions: {oct(os.stat(f'{self.virtio_path}').st_mode)}")
 
         if self.iso_image:
             cmd.extend(["-cdrom", self.iso_image])
@@ -194,6 +193,22 @@ class ARM64Runner(QEMUSnapshotMixin):
     async def check_status(self):
         return await self.qmp.execute('query-status')
 
+    async def check_qemu_features(self):
+        """Check if QEMU has virtio-serial support"""
+        cmd = [self.qemu_system, "-device", "help"]
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await process.communicate()
+        devices = stdout.decode()
+
+        print("[DEBUG] Available QEMU devices:")
+        print(devices)
+
+        return "virtserialport" in devices
+
     async def await_boot_sequence(self):
         """Wait for VM to boot and connect to QMP"""
         # Await creation of QMP socket
@@ -244,6 +259,43 @@ class ARM64Runner(QEMUSnapshotMixin):
 
         if retry_count == boot_timeout:
             raise TimeoutError(f"Boot sequence not completed after {30 * boot_timeout} seconds")
+
+    async def execute_nic_command(self, command):
+        """Execute command via network socket instead of SSH"""
+        try:
+            # Open socket connection to VM
+            reader, writer = await asyncio.open_connection(
+                'localhost', self.nic_port,
+                limit=4096,
+            )
+            print("[Command]: Connected to socket")
+
+            # Send command
+            print(f"[Command]: Sending: {command}")
+            writer.write(f"{command}\n".encode())
+            await writer.drain()
+            print("[Command]: Command sent")
+
+            # Read response
+            try:
+                response = await asyncio.wait_for(reader.read(4096), timeout=10.0)
+                decoded_response = response.decode()
+                print(f"[Command]: Received response: {decoded_response}")
+            except asyncio.TimeoutError:
+                print("[Command]: Timeout waiting for response")
+                decoded_response = ""
+
+            writer.close()
+            await writer.wait_closed()
+            print("[Command]: Connection closed")
+
+            return decoded_response, "", 0
+        except ConnectionRefusedError:
+            print(f"[Command]: Connection refused on port {self.nic_port}")
+            return "", "Connection refused", 1
+        except Exception as e:
+            print(f"[Command]: Error: {e}")
+            return "", str(e), 1
 
     async def execute_command(self, command):
         """Execute command via virtio-serial port"""
@@ -322,6 +374,9 @@ class ARM64Runner(QEMUSnapshotMixin):
         """Initial VM setup with Conda and snapshot creation"""
         if not self.iso_image:
             raise ValueError("ISO path is required for setup")
+
+        if not await self.check_qemu_features():
+            raise RuntimeError("QEMU does not have virtio-serial support. Need to rebuild with virtio support.")
 
         cmd = self._build_qemu_command(load_snapshot=False)
         print("Starting VM with command:", ' '.join(cmd))

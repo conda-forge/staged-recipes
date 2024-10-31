@@ -78,13 +78,12 @@ build_win_qemu() {
   _configure_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 
   ls -l "${WINDRES:-''}" || true
-  WINDRES=$(echo "${WINDRES}" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
-  WINDRES_WIN=$(echo "${WINDRES}" | sed 's|/|\\|g')
+  WINDRES=$(echo "${WINDRES}.exe" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
   ls -l "${WINDRES:-''}" || true
 
   pushd "${build_dir}" || exit 1
     # sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' config-meson.cross
-    sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES_WIN}"'|g' build.ninja
+    sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' build.ninja
     # sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' config.status
     # sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' meson-info/intro-targets.json
     touch config-meson.cross ../meson.build build.ninja config.status meson-info/intro-targets.json
