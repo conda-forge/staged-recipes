@@ -79,10 +79,9 @@ build_win_qemu() {
   WINDRES=$(echo "${WINDRES}" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
 
   pushd "${build_dir}" || exit 1
-    ls -l "${WINDRES}"
     sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' config-meson.cross build.ninja config.status meson-info/intro-targets.json
     touch config-meson.cross ../meson.build build.ninja config.status meson-info/intro-targets.json
-    powershell -Command "Get-ChildItem -Recurse -File | Select-String -Pattern 'WINDRES' -CaseSensitive:\$false" || true
+    # powershell -Command "Get-ChildItem -Recurse -File | Select-String -Pattern 'WINDRES' -CaseSensitive:\$false" || true
   popd || exit 1
 
   PYTHON_WIN="${build_dir}/pyvenv/Scripts/python.exe"
@@ -127,6 +126,7 @@ _build_qemu() {
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
+    ls -l "${WINDRES}"
     ninja -j"${CPU_COUNT}"
      #> "${SRC_DIR}"/_make-"${qemu_arch}".log 2>&1
     # make check > "${SRC_DIR}"/_check-"${qemu_arch}".log 2>&1

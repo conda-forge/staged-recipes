@@ -88,7 +88,7 @@ class ARM64Runner(QEMUSnapshotMixin):
         self.ssh_port = ssh_port
         self.qmp = QMPClient('ARM64 VM')
         self.qemu_process = None
-        self.virtio_path = "vm_console"
+        self.virtio_path = "./vm_console"
 
     def _build_qemu_command(self, load_snapshot=None):
         if not os.path.exists(self.qemu_system):
@@ -334,6 +334,16 @@ class ARM64Runner(QEMUSnapshotMixin):
         stderr_task = asyncio.create_task(self._log_output(self.qemu_process.stderr, "QEMU ERR"))
 
         try:
+            await asyncio.sleep(2)
+            print(f"[DEBUG]: Checking if virtio socket was created: {os.path.exists(self.virtio_path)}")
+
+            if self.qemu_process.returncode is not None:
+                # If QEMU has already exited, get the stderr
+                stderr = await self.qemu_process.stderr.read()
+                print(f"[DEBUG]: QEMU exited with code {self.qemu_process.returncode}")
+                print(f"[DEBUG]: QEMU stderr: {stderr.decode()}")
+                raise RuntimeError("QEMU failed to start")
+
             await self.await_boot_sequence()
         except Exception as e:
             print(f"Setup failed: {e}")
