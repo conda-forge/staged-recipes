@@ -110,8 +110,8 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-qmp", f"unix:{self.socket_path},server,nowait",
             # virtio-serial for commands
             "-device", "virtio-serial",
-            "-chardev", f"socket,path={self.virtio_path},server=on,wait=off,id=console0-char",
-            "-device", "virtserialport,id=console0,chardev=console0-char,name=conda.console0",
+            "-chardev", f"socket,path={self.virtio_path},server=on,id=console0",
+            "-device", "virtserialport,chardev=console0,name=conda.console.0",
             # Network for internet access
             # "-net", "user,hostfwd=tcp::10022-:22",
             # "-net", "nic",
