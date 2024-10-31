@@ -14,6 +14,9 @@ cd build
 
 export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
 
+export CFLAGS="${CFLAGS} -I ${PREFIX}/include/eigen3"
+export CXXFLAGS="${CXXFLAGS} -I ${PREFIX}/include/eigen3"
+
 
 cmake  ../greedy \
       -DITK_DIR="${CONDA_PREFIX}/lib/cmake/ITK" \
