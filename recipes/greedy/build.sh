@@ -18,7 +18,7 @@ export CFLAGS="${CFLAGS} -I ${PREFIX}/include/eigen3"
 export CXXFLAGS="${CXXFLAGS} -I ${PREFIX}/include/eigen3"
 
 
-ccmake  $CMAKE_ARGS -GNinja ../greedy \
+cmake  $CMAKE_ARGS ../greedy \
       -DITK_DIR="${CONDA_PREFIX}/lib/cmake/ITK" \
       -DCMAKE_BUILD_TYPE=Release \
       -DUSE_FFTW=OFF \
