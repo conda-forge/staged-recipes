@@ -57,7 +57,7 @@ build_osx_qemu() {
 }
 
 build_win_qemu() {
-  local build_dir=${1:-"${SRC_DIR}"/_conda-build}
+  local build_dir=${1:-"${SRC_DIR}"/_conda_build}
   local install_dir=${2:-"${PREFIX}"}
 
   qemu_args=(
@@ -79,7 +79,10 @@ build_win_qemu() {
   WINDRES=$(echo "${WINDRES}" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
 
   pushd "${build_dir}" || exit 1
-    sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' config-meson.cross build.ninja config.status meson-info/intro-targets.json
+    # sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' config-meson.cross
+    sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' build.ninja
+    # sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' config.status
+    # sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' meson-info/intro-targets.json
     touch config-meson.cross ../meson.build build.ninja config.status meson-info/intro-targets.json
     # powershell -Command "Get-ChildItem -Recurse -File | Select-String -Pattern 'WINDRES' -CaseSensitive:\$false" || true
   popd || exit 1
@@ -126,7 +129,7 @@ _build_qemu() {
 
   mkdir -p "${build_dir}"
   pushd "${build_dir}" || exit 1
-    ls -l "${WINDRES}"
+    ls -l "${WINDRES}*" || true
     ninja -j"${CPU_COUNT}"
      #> "${SRC_DIR}"/_make-"${qemu_arch}".log 2>&1
     # make check > "${SRC_DIR}"/_check-"${qemu_arch}".log 2>&1
