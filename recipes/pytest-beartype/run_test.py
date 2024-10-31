@@ -20,6 +20,4 @@ EXCURSIONS = [
 CMDS = [*[[*RUN, *PYTEST, *ex] for ex in EXCURSIONS], REPORT]
 
 if __name__ == "__main__":
-    exit(
-        max([[print("\n", *cmd, flush=True), call(cmd, cwd="src")][1] for cmd in CMDS])
-    )
+    exit(max([[print("\n", *cmd, flush=True), call(cmd)][1] for cmd in CMDS]))
