@@ -88,6 +88,7 @@ class ARM64Runner(QEMUSnapshotMixin):
         self.ssh_port = ssh_port
         self.qmp = QMPClient('ARM64 VM')
         self.qemu_process = None
+        self.virtio_path = "vm_console"
 
     def _build_qemu_command(self, load_snapshot=None):
         if not os.path.exists(self.qemu_system):
@@ -109,7 +110,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-qmp", f"unix:{self.socket_path},server,nowait",
             # virtio-serial for commands
             "-device", "virtio-serial",
-            "-chardev", "socket,path=./vm_console,server=on,wait=off,id=console0-char",
+            "-chardev", f"socket,path={self.virtio_path},server=on,wait=off,id=console0-char",
             "-device", "virtserialport,id=console0,chardev=console0-char,name=conda.console0",
             # Network for internet access
             # "-net", "user,hostfwd=tcp::10022-:22",
@@ -123,6 +124,10 @@ class ARM64Runner(QEMUSnapshotMixin):
         print(f"[DEBUG]: Socket path: {self.socket_path}")
         print(f"[DEBUG]: Socket directory exists: {os.path.exists(socket_dir)}")
         print(f"[DEBUG]: Socket directory permissions: {oct(os.stat(socket_dir).st_mode)}")
+
+        print(f"[DEBUG]: Socket path: {self.virtio_path}")
+        print(f"[DEBUG]: Socket path exists: {os.path.exists(f'{self.virtio_path}')}")
+        print(f"[DEBUG]: Socket directory permissions: {oct(os.stat(f'{self.virtio_path}').st_mode)}")
 
         if self.iso_image:
             cmd.extend(["-cdrom", self.iso_image])
@@ -242,10 +247,10 @@ class ARM64Runner(QEMUSnapshotMixin):
 
     async def execute_command(self, command):
         """Execute command via virtio-serial port"""
-        print("[Command]: Connecting to virtio-serial at ./vm_comsole")
+        print(f"[Command]: Connecting to virtio-serial at {self.virtio_path}")
         try:
             # Connect to Unix domain socket created by QEMU for virtio-serial
-            reader, writer = await asyncio.open_unix_connection('./vm_comsole')
+            reader, writer = await asyncio.open_unix_connection(self.virtio_path)
             print("[Command]: Connected to virtio-serial")
 
             # Send command with newline
@@ -271,7 +276,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             return decoded, "", 0
 
         except FileNotFoundError:
-            print("[Command]: virtio-serial socket not found at ./vm_comsole")
+            print(f"[Command]: virtio-serial socket not found at {self.virtio_path}")
             return "", "virtio-serial socket not found", 1
         except Exception as e:
             print(f"[Command]: Error: {type(e).__name__} - {e}")
