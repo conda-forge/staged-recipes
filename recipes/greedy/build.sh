@@ -18,12 +18,12 @@ export CFLAGS="${CFLAGS} -I ${PREFIX}/include/eigen3"
 export CXXFLAGS="${CXXFLAGS} -I ${PREFIX}/include/eigen3"
 
 
-cmake  ../greedy \
+cmake  $CMAKE_ARGS -GNinja ../greedy \
       -DITK_DIR="${CONDA_PREFIX}/lib/cmake/ITK" \
       -DCMAKE_BUILD_TYPE=Release \
       -DUSE_FFTW=OFF \
-      -DEigen3_DIR="${CONDA_PREFIX}/include/eigen3" \
-      -DVTK_DIR="${CONDA_PREFIX}/include/vtk-9.3" \
+      -DEigen3_DIR="${PREFIX}/include/eigen3" \
+      -DVTK_DIR="${PREFIX}/include/vtk-9.3" \
       ..
 
 make
