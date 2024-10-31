@@ -83,7 +83,7 @@ build_win_qemu() {
 
   pushd "${build_dir}" || exit 1
     # sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' config-meson.cross
-    sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' build.ninja
+    # sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' build.ninja
     # sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' config.status
     # sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' meson-info/intro-targets.json
     touch config-meson.cross ../meson.build build.ninja config.status meson-info/intro-targets.json
@@ -134,7 +134,7 @@ _build_qemu() {
   pushd "${build_dir}" || exit 1
 
     ls -l "${WINDRES:-''}"* || true
-    ninja -j"${CPU_COUNT}"
+    MSYS2_ARG_CONV_EXCL="*" ninja -j"${CPU_COUNT}"
      #> "${SRC_DIR}"/_make-"${qemu_arch}".log 2>&1
     # make check > "${SRC_DIR}"/_check-"${qemu_arch}".log 2>&1
     ninja install

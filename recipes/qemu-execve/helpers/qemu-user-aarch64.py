@@ -108,10 +108,12 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-nographic",
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
             "-qmp", f"unix:{self.socket_path},server,nowait",
-            # virtio-serial for commands
-            "-device", "virtio-serial",
-            "-chardev", f"socket,path={self.virtio_path},server=on,id=console0",
-            "-device", "virtserialport,chardev=console0,name=conda.console.0",
+            # Create the virtio-serial PCI device first
+            "-device", "virtio-serial-pci",
+            # Then create chardev for our console
+            "-chardev", f"socket,id=console0,path={self.virtio_path},server=on",
+            # Finally attach the serial port to the virtio-serial bus
+            "-device", "virtserialport,chardev=console0,name=console.0",
             # Network for internet access
             "-net", "user,hostfwd=tcp::10022-:22",
             "-net", "nic",
@@ -375,8 +377,8 @@ class ARM64Runner(QEMUSnapshotMixin):
         if not self.iso_image:
             raise ValueError("ISO path is required for setup")
 
-        if not await self.check_qemu_features():
-            raise RuntimeError("QEMU does not have virtio-serial support. Need to rebuild with virtio support.")
+        # if not await self.check_qemu_features():
+        #     raise RuntimeError("QEMU does not have virtio-serial support. Need to rebuild with virtio support.")
 
         cmd = self._build_qemu_command(load_snapshot=False)
         print("Starting VM with command:", ' '.join(cmd))
