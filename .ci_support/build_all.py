@@ -22,7 +22,7 @@ except ImportError:
     from yaml import BaseLoader, load
 
 
-EXAMPLE_RECIPE_FOLDERS = ["example", "example-new-recipe"]
+EXAMPLE_RECIPE_FOLDERS = ["example", "example-v1"]
 
 
 def get_host_platform():
