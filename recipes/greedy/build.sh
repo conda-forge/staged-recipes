@@ -24,7 +24,6 @@ cmake  $CMAKE_ARGS ../greedy \
       -DUSE_FFTW=OFF \
       -DEigen3_DIR="${PREFIX}/include/eigen3" \
       -DVTK_DIR="${PREFIX}/include/vtk-9.3" \
-      -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
       ..
 
 make
