@@ -353,7 +353,7 @@ class ARM64Runner(QEMUSnapshotMixin):
 
         for cmd in commands:
             print(f"[Setup]:    Executing: {cmd}")
-            stdout, stderr, returncode = await self.execute_command(cmd)
+            stdout, stderr, returncode = await self.execute_nic_command(cmd)
             if returncode != 0:
                 print("[Setup]:     '-> Error executing command:")
                 print(f"stdout: {stdout}")
@@ -362,7 +362,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             print("[Setup]:     '-> Command completed successfully")
 
         # Verify Conda installation
-        stdout, stderr, returncode = await self.execute_command("/root/miniconda/bin/conda --version")
+        stdout, stderr, returncode = await self.execute_nic_command("/root/miniconda/bin/conda --version")
         if returncode == 0:
             print(f"[Setup]: Conda installed successfully: {stdout.strip()}")
         else:
@@ -423,7 +423,7 @@ class ARM64Runner(QEMUSnapshotMixin):
         )
 
         await self.await_boot_sequence()
-        stdout, stderr, returncode = await self.execute_command(command)
+        stdout, stderr, returncode = await self.execute_nic_command(command)
         return stdout, stderr, returncode
 
     async def stop_vm(self):
