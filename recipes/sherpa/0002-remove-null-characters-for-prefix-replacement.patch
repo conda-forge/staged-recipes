@@ -1,0 +1,53 @@
+From 4838851ff45792f93c1959f0949c5424c6843651 Mon Sep 17 00:00:00 2001
+From: Matthew Feickert <matthew.feickert@cern.ch>
+Date: Wed, 6 Nov 2024 00:15:16 -0700
+Subject: [PATCH] remove null characters for prefix replacement
+
+* At build time conda uses a long environment name (the "placeholder" strings)
+  so that any hardcoded strings inside binaries are very long. Then at install
+  time it replaces '$PREFIX/...' with '$CONDA_PREFIX/...'. The install prefix
+  ($CONDA_PREFIX) is shorter than the build time prefix ($PREFIX) and any
+  extra characters on the end of the string are padded with null bytes.
+  This works well for c-style strings (which cannot contain null bytes as that
+  terminates the string by definition) however C++ strings have a known size so
+  they contain null bytes. So when you do '$PREFIX/lib/SHERPA-MC' + '/libSherpaSM.so'
+  you get '$CONDA_PREFIX/lib/SHERPA-MC/\x00\x00...\x00\x00/libSherpaSM.so'.
+  By removing null characters anywhere in the string this results in
+  the final desired path of e.g. '$CONDA_PREFIX/lib/SHERPA-MC/libSherpaSM.so'.
+
+Co-authored-by: Chris Burr <chrisburr@users.noreply.github.com>
+---
+ ATOOLS/Org/Run_Parameter.C | 13 +++++++++----
+ 1 file changed, 9 insertions(+), 4 deletions(-)
+
+diff --git a/ATOOLS/Org/Run_Parameter.C b/ATOOLS/Org/Run_Parameter.C
+index bdd3b4a67..01ff2c8c4 100644
+--- a/ATOOLS/Org/Run_Parameter.C
++++ b/ATOOLS/Org/Run_Parameter.C
+@@ -1,4 +1,5 @@
+-#include <iostream> 
++#include <algorithm>
++#include <iostream>
+ #include "ATOOLS/Org/Run_Parameter.H"
+ #include "ATOOLS/Math/MathTools.H"
+ #include "ATOOLS/Org/Message.H"
+@@ -440,9 +441,13 @@ void  Run_Parameter::Gen::SetBeam2(const Flavour b) {
+   m_beam2  = b;   
+ }
+ 
+-std::string Run_Parameter::Gen::Variable(const std::string &key,const std::string &def) 
+-{ 
+-  return m_variables.find(key)!=m_variables.end()?m_variables[key]:def; 
++std::string Run_Parameter::Gen::Variable(const std::string &key,const std::string &def)
++{
++  std::string str = (m_variables.find(key)!=m_variables.end()?m_variables[key]:def);
++  // remove all null characters anywhere in string
++  str.erase(std::remove(str.begin(), str.end(), '\0'), str.end());
++
++  return str;
+ }
+ 
+ void Run_Parameter::Gen::PrintGitVersion(std::ostream &str,const int mode,
+-- 
+2.47.0
+

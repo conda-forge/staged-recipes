@@ -1,0 +1,87 @@
+{% set name = "sherpa" %}
+{% set version = "v2.2.16" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://gitlab.com/sherpa-team/sherpa/-/archive/{{ version }}/sherpa-{{ version }}.tar.gz
+  sha256: b2680da5682c78623635ae88a5ff5af346cf74c1be95ee9177e8f9080d418e76
+  patches:
+    # Avoid issue with compiling .pyc files during packaging step post build
+    - 0001-convert-print-statements-using-2to3.patch
+    # Avoid issue with null characters in the prefix replacement
+    - 0002-remove-null-characters-for-prefix-replacement.patch
+
+build:
+  # FIXME: Get macOS builds working
+  skip: true  # [not linux]
+  number: 0
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - {{ stdlib('c') }}
+    - {{ compiler('fortran') }}
+    - gnuconfig  # [unix]
+    - autoconf
+    - libtool
+    - make
+    - automake
+    - which
+    - sed  # needed only to patch LDFLAGS
+    - diffutils
+    - texinfo  # can't skip build of manual
+  host:
+    - sqlite
+    - lhapdf
+    - hepmc2
+  # note https://conda-forge.org/docs/maintainer/knowledge_base/#compilers
+  # so don't add compilers to run or test requirements
+  run:
+    - lhapdf
+    - hepmc2
+
+test:
+  requires:
+    - lhapdf
+    - hepmc2
+  files:
+    - $PREFIX/bin/Sherpa
+    - $PREFIX/bin/Sherpa-config
+  source_files:
+    - Examples
+  commands:
+    - Sherpa-config
+    - Sherpa-config --version
+    - Sherpa-config --prefix
+    - Sherpa-config --incdir
+    - Sherpa-config --libs
+    - Sherpa-config --datadir
+    - Sherpa-config --ldflags
+    - Sherpa-config --cppflags
+
+    - Sherpa --help
+    - cd Examples/CI/LO_Z
+    - Sherpa
+
+about:
+  home: https://gitlab.com/sherpa-team/sherpa
+  summary: 'A Monte Carlo event generator for the Simulation of High-Energy Reactions of PArticles '
+  description: |
+    Sherpa is a Monte Carlo event generator for the Simulation of High-Energy
+    Reactions of PArticles in lepton-lepton, lepton-photon, photon-photon,
+    lepton-hadron and hadron-hadron collisions. Simulation programs - also
+    dubbed event generators - like Sherpa are indispensable work horses for
+    current particle physics phenomenology and are (at) the interface between
+    theory and experiment.
+  license: GPL-3.0-or-later
+  license_family: GPL
+  license_file: COPYING
+  doc_url: https://sherpa-team.gitlab.io/
+  dev_url: https://gitlab.com/sherpa-team/sherpa
+
+extra:
+  recipe-maintainers:
+    - matthewfeickert
