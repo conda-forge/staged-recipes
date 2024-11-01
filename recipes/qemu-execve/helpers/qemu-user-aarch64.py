@@ -108,6 +108,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-nographic",
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
             "-qmp", f"unix:{self.socket_path},server,nowait",
+            "-serial", "stdio",
             # "-device", "virtio-serial-pci",
             # "-chardev", f"socket,id=console0,path={self.virtio_path},server=on",
             # "-device", "virtserialport,chardev=console0,name=console.0",
@@ -303,7 +304,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-o", "StrictHostKeyChecking=no",  # Don't ask about host key
             "-o", "UserKnownHostsFile=/dev/null",  # Don't store host key
             # "-o", "ConnectTimeout=10",  # Don't hang forever
-            "root@localhost",  # Alpine default root login
+            "vmuser@localhost",  # Alpine default root login
             command
         ]
 
