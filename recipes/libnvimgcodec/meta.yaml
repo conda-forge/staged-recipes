@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 {% set version = '0.3.0' %}
+{% set somajor = version.split('.')[0] %}
 {% set cuda_major = environ.get("cuda_compiler_version", "11.8").split(".")[0]|int %}
 
 package:
@@ -31,9 +32,11 @@ source:
     - patches/0007-BLD-Let-python-versions-be-user-selectable.patch
     - patches/0008-BLD-Decouple-nvimgcodec-and-dynlink_-targets.patch
     - patches/0009-BLD-Link-system-nvimgcodec-to-python-module.patch
+    - patches/0010-BLD-Find-libclang-for-conda-forge.patch
+    - patches/0011-BLD-Fix-import-of-nvimgcodec-as-external-target-for-.patch
 
 build:
-  skip: true  # [not linux]
+  skip: true  # [not (linux or win)]
   skip: true  # [cuda_compiler_version in (None, 'None')]
   # Debug skips below
   # skip: true  # [py != 312]
@@ -58,7 +61,6 @@ requirements:
     - libopencv
     - libtiff
     - nvtx-c
-    - setuptools
     - zlib
     - zstd
 
@@ -67,22 +69,28 @@ outputs:
   - name: libnvimgcodec-dev
     build:
       run_exports:
-        - {{ pin_subpackage('libnvimgcodec') }}
+        - {{ pin_subpackage('libnvimgcodec' ~ somajor) }}
     files:
       # This recipe requires conda-build 24.7 or later
       include:
-        - include/**
-        - lib/libnvimgcodec.so
-        - lib/cmake/nvimgcodec
-        - etc/**
-        - extensions/*.so
+        - include/**  # [linux]
+        - Library/include/**  # [win]
+        - lib/libnvimgcodec.so  # [linux]
+        - Library/lib/nvimagecodec.lib  # [linux]
+        - lib/cmake/nvimgcodec  # [linux]
+        - Library/lib/cmake/nvimgcodec  # [win]
+        - etc/**  # [linux]
+        - Library/etc/**  # [win]
+        - extensions/*.so  # [linux]
         # FIXME: Drop static libraries once CMake config supports it
-        - extensions/*.a
-        - lib/libnvimgcodec_static.a
+        - extensions/*.a  # [linux]
+        - Library/extensions/*static.lib
+        - lib/libnvimgcodec_static.a  # [linux]
+        - Library/lib/nvimagecodec_static.lib  # [linux]
       exclude:
-        - lib/python*
-        - lib/libnvimgcodec.so.*
-        - extensions/*.so.*
+        - lib/python*  # [linux]
+        - lib/libnvimgcodec.so.*  # [linux]
+        - extensions/*.so.*  # [linux]
     requirements:
       host:
         - {{ pin_subpackage('libnvimgcodec', exact=True) }}
@@ -104,20 +112,24 @@ outputs:
       commands:
         - cmake ${CMAKE_ARGS} -GNinja test  # [build_platform == target_platform]
         - cmake --build .  # [build_platform == target_platform]
-        - test -f ${PREFIX}/include/nvimgcodec.h  # [unix]
-        - test -f ${PREFIX}/lib/libnvimgcodec.so.0  # [linux]
+        - test -f ${PREFIX}/include/nvimgcodec.h  # [linux]
+        - if not exist %LIBRARY_INC%\\nvimgcodec.h exit 1  # [win]
+        - test -f ${PREFIX}/lib/libnvimgcodec.so.{{ somajor }}  # [linux]
         - test -f ${PREFIX}/lib/libnvimgcodec.so.{{ version }}.0  # [linux]
+        - if not exist %LIBRARY_LIB%\\nvimgcodec.lib exit 1  # [win]
         - test -f ${PREFIX}/etc/ld.so.conf.d/nvimgcodec.conf  # [unix]
         - test -f ${PREFIX}/lib/cmake/nvimgcodec/nvimgcodecConfig.cmake  # [unix]
         # - test ! -f ${PREFIX}/lib/libnvimgcodec_static.a  # [unix]
 
-  - name: libnvimgcodec
+  - name: libnvimgcodec{{ somajor }}
     build:
       run_exports:
-        - {{ pin_subpackage('libnvimgcodec') }}
+        - {{ pin_subpackage('libnvimgcodec' ~ somajor) }}
     files:
-      - lib/libnvimgcodec.so.*
-      - extensions/*.so.*
+      - lib/libnvimgcodec.so.*  # [linux]
+      - Library/bin/nvimgcodec_{{ somajor }}.dll  # [win]
+      - extensions/*.so.*  # [linux]
+      - Library/extensions/*.dll  # [win]
     requirements:
       build:
         - {{ compiler('c') }}
@@ -134,8 +146,9 @@ outputs:
         - libtiff
     test:
       commands:
-        - test -f ${PREFIX}/lib/libnvimgcodec.so.0  # [linux]
+        - test -f ${PREFIX}/lib/libnvimgcodec.so.{{ somajor }}  # [linux]
         - test -f ${PREFIX}/lib/libnvimgcodec.so.{{ version }}.0  # [linux]
+        - if not exist %LIBRARY_BIN%\\nvimgcodec_{{ somajor }}.dll exit 1  # [win]
 
 about:
   home: https://github.com/NVIDIA/nvImageCodec
