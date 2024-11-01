@@ -108,13 +108,9 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-nographic",
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
             "-qmp", f"unix:{self.socket_path},server,nowait",
-            # Create the virtio-serial PCI device first
-            "-device", "virtio-serial-pci",
-            # Then create chardev for our console
-            "-chardev", f"socket,id=console0,path={self.virtio_path},server=on",
-            # Finally attach the serial port to the virtio-serial bus
-            "-device", "virtserialport,chardev=console0,name=console.0",
-            # Network for internet access
+            # "-device", "virtio-serial-pci",
+            # "-chardev", f"socket,id=console0,path={self.virtio_path},server=on",
+            # "-device", "virtserialport,chardev=console0,name=console.0",
             "-net", "user,hostfwd=tcp::10022-:22",
             "-net", "nic",
             # networking for internet access
