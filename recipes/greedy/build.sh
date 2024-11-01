@@ -27,3 +27,5 @@ cmake  $CMAKE_ARGS ../greedy \
       ..
 
 make
+
+make install
