@@ -295,6 +295,32 @@ class ARM64Runner(QEMUSnapshotMixin):
             print(f"[Command]: Error: {e}")
             return "", str(e), 1
 
+    async def execute_ssh_command(self, command):
+        """Execute command via SSH"""
+        ssh_cmd = [
+            "ssh",
+            "-p", "10022",
+            "-o", "StrictHostKeyChecking=no",  # Don't ask about host key
+            "-o", "UserKnownHostsFile=/dev/null",  # Don't store host key
+            "-o", "ConnectTimeout=10",  # Don't hang forever
+            "root@localhost",  # Alpine default root login
+            command
+        ]
+
+        print(f"[Command]: Executing via SSH: {command}")
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *ssh_cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await process.communicate()
+            return stdout.decode(), stderr.decode(), process.returncode
+
+        except Exception as e:
+            print(f"[Command]: SSH Error: {e}")
+            return "", str(e), 1
+
     async def execute_command(self, command):
         """Execute command via virtio-serial port"""
         print(f"[Command]: Connecting to virtio-serial at {self.virtio_path}")
@@ -353,7 +379,7 @@ class ARM64Runner(QEMUSnapshotMixin):
 
         for cmd in commands:
             print(f"[Setup]:    Executing: {cmd}")
-            stdout, stderr, returncode = await self.execute_nic_command(cmd)
+            stdout, stderr, returncode = await self.execute_ssh_command(cmd)
             if returncode != 0:
                 print("[Setup]:     '-> Error executing command:")
                 print(f"stdout: {stdout}")
@@ -362,7 +388,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             print("[Setup]:     '-> Command completed successfully")
 
         # Verify Conda installation
-        stdout, stderr, returncode = await self.execute_nic_command("/root/miniconda/bin/conda --version")
+        stdout, stderr, returncode = await self.execute_ssh_command("/root/miniconda/bin/conda --version")
         if returncode == 0:
             print(f"[Setup]: Conda installed successfully: {stdout.strip()}")
         else:
@@ -423,7 +449,7 @@ class ARM64Runner(QEMUSnapshotMixin):
         )
 
         await self.await_boot_sequence()
-        stdout, stderr, returncode = await self.execute_nic_command(command)
+        stdout, stderr, returncode = await self.execute_ssh_command(command)
         return stdout, stderr, returncode
 
     async def stop_vm(self):

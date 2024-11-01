@@ -135,6 +135,7 @@ _build_qemu() {
   pushd "${build_dir}" || exit 1
 
     ls -l "${WINDRES:-''}"* || true
+    powershell -Command "Get-ChildItem -Recurse -File | Select-String -Pattern 'WINDRES' -CaseSensitive:\$false" || true
     MSYS2_ARG_CONV_EXCL="*" ninja -j"${CPU_COUNT}"
      #> "${SRC_DIR}"/_make-"${qemu_arch}".log 2>&1
     # make check > "${SRC_DIR}"/_check-"${qemu_arch}".log 2>&1
