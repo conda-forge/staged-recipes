@@ -302,7 +302,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-p", "10022",
             "-o", "StrictHostKeyChecking=no",  # Don't ask about host key
             "-o", "UserKnownHostsFile=/dev/null",  # Don't store host key
-            "-o", "ConnectTimeout=10",  # Don't hang forever
+            # "-o", "ConnectTimeout=10",  # Don't hang forever
             "root@localhost",  # Alpine default root login
             command
         ]
