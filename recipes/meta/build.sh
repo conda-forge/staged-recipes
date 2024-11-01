@@ -23,6 +23,13 @@ cmake -S $SRC_DIR -B $SRC_DIR/build  \
 cmake --build . --config Release --parallel ${CPU_COUNT} --verbose
 cmake --install .
 
+# Clean up build directory
+rm -rf $SRC_DIR/build
+
 # Install MeTA package
 cd ${SRC_DIR}
 ${PYTHON} -m pip install . --no-deps -vv
+
+## copy small test data:
+mkdir -p $PREFIX/share/meta/example
+cp $SRC_DIR/resources/CST_R.nii.gz $PREFIX/share/meta/example/
