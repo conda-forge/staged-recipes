@@ -299,11 +299,11 @@ class ARM64Runner(QEMUSnapshotMixin):
 
     async def execute_ssh_command(self, command):
         """Execute command via SSH"""
-        # ssh_cmd = [
-        #     "ssh-keyscan",
-        #     "-H", "localhost",
-        #     "-p", "10022",
-        # ]
+        keyscan = [
+            "ssh-keyscan",
+            "-H", "localhost",
+            "-p", "10022",
+        ]
 
         ssh_cmd = [
             "ssh",
@@ -311,13 +311,19 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-p", "10022",
             "-o", "StrictHostKeyChecking=accept-new",  # Don't ask about host key
             "-o", "UserKnownHostsFile=/dev/null",  # Don't store host key
-            # "-o", "ConnectTimeout=10",  # Don't hang forever
             "root@localhost",  # Alpine default root login
             command
         ]
 
         print(f"[Command]: Executing via SSH: {command}")
         try:
+            process = await asyncio.create_subprocess_exec(
+                *keyscan,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await process.communicate()
+            print(f"[Command]: SSH Keyscan stdout: {stdout.decode()}")
             process = await asyncio.create_subprocess_exec(
                 *ssh_cmd,
                 stdout=asyncio.subprocess.PIPE,
