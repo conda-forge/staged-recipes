@@ -299,6 +299,13 @@ class ARM64Runner(QEMUSnapshotMixin):
 
     async def execute_ssh_command(self, command):
         """Execute command via SSH"""
+        keygen = [
+            "ssh-keygen",
+            "-t", "rsa",
+            "-N", "",  # No passphrase
+            "-f", "/Users/runner/.ssh/id_rsa"
+        ]
+
         keyscan = [
             "ssh-keyscan",
             "-v",
@@ -307,16 +314,28 @@ class ARM64Runner(QEMUSnapshotMixin):
         ]
 
         ssh_cmd = [
+            "sshpass",
+            "-p", "root",
             "ssh",
             "-v",
             "-p", "10022",
             "-o", "StrictHostKeyChecking=accept-new",
+            "-o", "UserKnownHostsFile=/dev/null",
+            "-o", "PasswordAuthentication=yes",  # Enable password auth
+            "-o", "PubkeyAuthentication=no",     # Disable pubkey auth
             "user@localhost",
             command
         ]
 
         print(f"[Command]: Executing via SSH: {command}")
         try:
+            process = await asyncio.create_subprocess_exec(
+                *keygen,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await process.communicate()
+            print(f"[Command]: SSH Keygen stdout: {stdout.decode()}")
             process = await asyncio.create_subprocess_exec(
                 *keyscan,
                 stdout=asyncio.subprocess.PIPE,
