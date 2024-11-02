@@ -310,7 +310,6 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-v",
             "-p", "10022",
             "-o", "StrictHostKeyChecking=accept-new",  # Don't ask about host key
-            "-o", "UserKnownHostsFile=/dev/null",  # Don't store host key
             "root@localhost",  # Alpine default root login
             command
         ]
