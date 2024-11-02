@@ -299,22 +299,22 @@ class ARM64Runner(QEMUSnapshotMixin):
 
     async def execute_ssh_command(self, command):
         """Execute command via SSH"""
-        ssh_cmd = [
-            "ssh-keyscan",
-            "-H", "localhost",
-            "-p", "10022",
-        ]
-
         # ssh_cmd = [
-        #     "ssh",
-        #     "-v",
+        #     "ssh-keyscan",
+        #     "-H", "localhost",
         #     "-p", "10022",
-        #     "-o", "StrictHostKeyChecking=no",  # Don't ask about host key
-        #     "-o", "UserKnownHostsFile=/dev/null",  # Don't store host key
-        #     # "-o", "ConnectTimeout=10",  # Don't hang forever
-        #     "root@localhost",  # Alpine default root login
-        #     command
         # ]
+
+        ssh_cmd = [
+            "ssh",
+            "-v",
+            "-p", "10022",
+            "-o", "StrictHostKeyChecking=accept-new",  # Don't ask about host key
+            "-o", "UserKnownHostsFile=/dev/null",  # Don't store host key
+            # "-o", "ConnectTimeout=10",  # Don't hang forever
+            "root@localhost",  # Alpine default root login
+            command
+        ]
 
         print(f"[Command]: Executing via SSH: {command}")
         try:
