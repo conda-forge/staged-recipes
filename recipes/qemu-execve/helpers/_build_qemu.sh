@@ -77,9 +77,9 @@ build_win_qemu() {
 
   _configure_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
 
-  ls -l "${WINDRES:-''}" || true
-  WINDRES=$(echo "${WINDRES}.exe" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
-  ls -l "${WINDRES:-''}" || true
+  # ls -l "${WINDRES:-''}" || true
+  # WINDRES=$(echo "${WINDRES}.exe" | sed 's|^\([a-zA-Z]\):|/\L\1|g')
+  # ls -l "${WINDRES:-''}" || true
 
   pushd "${build_dir}" || exit 1
     # sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' config-meson.cross
@@ -135,7 +135,6 @@ _build_qemu() {
   pushd "${build_dir}" || exit 1
 
     ls -l "${WINDRES:-''}"* || true
-    powershell -Command "Get-ChildItem -Recurse -File | Select-String -Pattern 'WINDRES' -CaseSensitive:\$false" || true
     MSYS2_ARG_CONV_EXCL="*" ninja -j"${CPU_COUNT}"
      #> "${SRC_DIR}"/_make-"${qemu_arch}".log 2>&1
     # make check > "${SRC_DIR}"/_check-"${qemu_arch}".log 2>&1
