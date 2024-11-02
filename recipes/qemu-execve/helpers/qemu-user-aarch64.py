@@ -106,6 +106,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-cpu", "max",
             "-m", "2048",
             "-nographic",
+            "-boot", "menu=on",
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
             "-qmp", f"unix:{self.socket_path},server,nowait",
             "-serial", "stdio",
@@ -197,8 +198,8 @@ class ARM64Runner(QEMUSnapshotMixin):
         cmd = [self.qemu_system, "-device", "help"]
         process = await asyncio.create_subprocess_exec(
             *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            # stdout=asyncio.subprocess.PIPE,
+            # stderr=asyncio.subprocess.PIPE
         )
         stdout, stderr = await process.communicate()
         devices = stdout.decode()

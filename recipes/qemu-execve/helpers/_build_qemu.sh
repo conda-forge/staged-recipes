@@ -88,7 +88,7 @@ build_win_qemu() {
     # sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' config.status
     # sed -i 's|\([a-zA-Z]\)\$*:[^ ]*windres|'"${WINDRES}"'|g' meson-info/intro-targets.json
     touch config-meson.cross ../meson.build build.ninja config.status meson-info/intro-targets.json
-    # powershell -Command "Get-ChildItem -Recurse -File | Select-String -Pattern 'WINDRES' -CaseSensitive:\$false" || true
+    powershell -Command "Get-ChildItem -Recurse -File | Select-String -Pattern 'commands_authz_trace_events' -CaseSensitive:\$false" || true
   popd || exit 1
 
   PYTHON_WIN="${build_dir}/pyvenv/Scripts/python.exe"
