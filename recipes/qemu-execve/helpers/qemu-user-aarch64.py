@@ -479,7 +479,7 @@ class ARM64Runner(QEMUSnapshotMixin):
 async def main():
     parser = argparse.ArgumentParser(description="QEMU ARM64 Runner with Conda")
     parser.add_argument("--qemu-system", required=True, help="qemu-system-aarch64 binary path")
-    parser.add_argument("--cdrom", required=True, help="Path to ISO image")
+    parser.add_argument("--cdrom", help="Path to ISO image")
     parser.add_argument("--drive", required=True, help="Path to QEMU QCOW2 disk image")
     parser.add_argument("--socket", default="./qmp.sock", help="Path for QMP socket")
     parser.add_argument("--nic-port", type=int, default=2000, help="Port for NIC socket")
