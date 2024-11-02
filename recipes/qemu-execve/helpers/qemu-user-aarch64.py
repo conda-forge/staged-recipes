@@ -314,16 +314,13 @@ class ARM64Runner(QEMUSnapshotMixin):
         ]
 
         ssh_cmd = [
-            "sshpass",
-            "-p", "root",
             "ssh",
             "-v",
             "-p", "10022",
+            "-i", "/Users/runner/.ssh/id_rsa",  # Use the generated key
             "-o", "StrictHostKeyChecking=accept-new",
             "-o", "UserKnownHostsFile=/dev/null",
-            "-o", "PasswordAuthentication=yes",  # Enable password auth
-            "-o", "PubkeyAuthentication=no",     # Disable pubkey auth
-            "user@localhost",
+            "root@localhost",
             command
         ]
 
