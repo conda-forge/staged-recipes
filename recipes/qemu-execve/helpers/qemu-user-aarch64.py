@@ -301,6 +301,7 @@ class ARM64Runner(QEMUSnapshotMixin):
         """Execute command via SSH"""
         keyscan = [
             "ssh-keyscan",
+            "-v",
             "-H", "localhost",
             "-p", "10022",
         ]
@@ -309,8 +310,8 @@ class ARM64Runner(QEMUSnapshotMixin):
             "ssh",
             "-v",
             "-p", "10022",
-            "-o", "StrictHostKeyChecking=accept-new",  # Don't ask about host key
-            "root@localhost",  # Alpine default root login
+            "-o", "StrictHostKeyChecking=accept-new",
+            "user@localhost",
             command
         ]
 
