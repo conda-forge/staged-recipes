@@ -108,17 +108,15 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-nographic",
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
             "-qmp", f"unix:{self.socket_path},server,nowait",
-            "-chardev", "stdio,id=char0,mux=on",
-            "-monitor", "chardev=char0",
-            "-serial", "chardev=char0",
+            "-serial", "stdio",
             # "-device", "virtio-serial-pci",
             # "-chardev", f"socket,id=console0,path={self.virtio_path},server=on",
             # "-device", "virtserialport,chardev=console0,name=console.0",
-            "-net", "user,hostfwd=tcp::10022-:22",
-            "-net", "nic",
+            # "-net", "user,hostfwd=tcp::10022-:22",
+            # "-net", "nic",
             # networking for internet access
-            # "-netdev", "user,id=net0",
-            # "-device", "virtio-net-pci,netdev=net0",
+            "-netdev", "user,id=net0,hostfwd=tcp::10022-:22",
+            "-device", "virtio-net-pci,netdev=net0",
             # "-device", "virtserialport,chardev=console0,name=console0",
         ]
 
