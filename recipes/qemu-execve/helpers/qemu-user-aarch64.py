@@ -299,6 +299,47 @@ class ARM64Runner(QEMUSnapshotMixin):
 
     async def execute_ssh_command(self, command):
         """Execute command via SSH"""
+        print("[DEBUG] Checking QEMU network info...")
+        try:
+            netinfo = await self.qmp.execute('human-monitor-command',
+                                             {'command-line': 'info network'})
+            print(f"[DEBUG] QEMU network info: {netinfo}")
+        except Exception as e:
+            print(f"[DEBUG] QEMU network info error: {e}")
+
+        # Try multiple connection tests with delays
+        for i in range(3):
+            print(f"\n[DEBUG] Connection test {i + 1}:")
+            try:
+                # Test with netcat
+                process = await asyncio.create_subprocess_exec(
+                    "nc", "-zv", "localhost", "10022",
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await process.communicate()
+                print(f"[DEBUG] Netcat output: {stdout.decode()}{stderr.decode()}")
+
+                await asyncio.sleep(2)  # Wait between tests
+
+                # Test with ssh connection only (no command)
+                process = await asyncio.create_subprocess_exec(
+                    "ssh", "-v", "-p", "10022",
+                    "-o", "ConnectTimeout=5",
+                    "-o", "StrictHostKeyChecking=no",
+                    "root@localhost",
+                    "exit",
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await process.communicate()
+                print(f"[DEBUG] SSH test output: {stdout.decode()}{stderr.decode()}")
+
+            except Exception as e:
+                print(f"[DEBUG] Test {i + 1} error: {e}")
+
+            await asyncio.sleep(2)
+
         keygen = [
             "ssh-keygen",
             "-t", "rsa",
