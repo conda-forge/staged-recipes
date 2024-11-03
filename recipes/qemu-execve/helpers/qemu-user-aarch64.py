@@ -3,6 +3,8 @@ import asyncio
 import contextlib
 import os
 import platform
+import shutil
+import subprocess
 from typing import Protocol
 
 from qemu.qmp import QMPClient
@@ -203,6 +205,116 @@ class ARM64Runner(QEMUSnapshotMixin):
                 print(f"[Console Monitor]: {e}")
 
             await asyncio.sleep(5)
+
+    async def create_alpine_overlay(self):
+        """Create Alpine overlay with automation scripts"""
+        ovl_dir = "ovl"
+        os.makedirs(f"{ovl_dir}/etc/runlevels/default", exist_ok=True)
+        os.makedirs(f"{ovl_dir}/etc/local.d", exist_ok=True)
+        os.makedirs(f"{ovl_dir}/etc/apk", exist_ok=True)
+
+        # Enable default boot services
+        open(f"{ovl_dir}/etc/.default_boot_services", 'w').close()
+
+        # Enable local service
+        if not os.path.exists(f"{ovl_dir}/etc/runlevels/default/local"):
+            os.symlink("/etc/init.d/local", f"{ovl_dir}/etc/runlevels/default/local")
+
+        # Create APK repositories file
+        with open(f"{ovl_dir}/etc/apk/repositories", 'w') as f:
+            f.write("""
+/media/cdrom/apks
+https://dl-cdn.alpinelinux.org/alpine/latest-stable/main
+https://dl-cdn.alpinelinux.org/alpine/latest-stable/community
+""")
+
+        # Create our setup script
+        with open(f"{ovl_dir}/etc/local.d/auto-setup-alpine.start", 'w') as f:
+            f.write("""#!/bin/sh
+set -e
+
+# Setup SSH and Conda
+apk update
+apk add openssh
+rc-update add sshd
+echo 'root:alpine' | chpasswd
+echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
+/etc/init.d/sshd start
+
+# Get and install Miniconda
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh -O /tmp/miniconda.sh
+chmod +x /tmp/miniconda.sh
+/tmp/miniconda.sh -b -p /root/miniconda
+echo 'export PATH=/root/miniconda/bin:$PATH' >> /root/.bashrc
+
+# Run only once
+rm -f /etc/local.d/auto-setup-alpine.start
+""")
+        os.chmod(f"{ovl_dir}/etc/local.d/auto-setup-alpine.start", 0o755)
+
+        # Create answers file
+        with open(f"{ovl_dir}/etc/auto-setup-alpine/answers", 'w') as f:
+            f.write("""
+KEYMAPOPTS=none
+HOSTNAMEOPTS=alpine
+INTERFACESOPTS="auto lo
+iface lo inet loopback
+auto eth0
+iface eth0 inet dhcp"
+""")
+
+        # Create overlay tarball
+        subprocess.run(["tar", "--owner=0", "--group=0", "-czf", "alpine.apkovl.tar.gz", "-C", ovl_dir, "."], check=True)
+
+        return "alpine.apkovl.tar.gz"
+
+    async def create_custom_alpine_iso(self, original_iso, overlay_file):
+        """Create custom Alpine ISO with overlay"""
+        # Create mount point
+        mount_point = "/tmp/alpine-mount"
+        work_dir = "/tmp/alpine-work"
+
+        try:
+            # Mount original ISO
+            os.makedirs(mount_point, exist_ok=True)
+            os.makedirs(work_dir, exist_ok=True)
+
+            subprocess.run([
+                "hdiutil", "attach",
+                original_iso,
+                "-mountpoint", mount_point
+            ], check=True)
+
+            # Copy contents
+            subprocess.run([
+                "cp", "-r",
+                f"{mount_point}/",
+                work_dir
+            ], check=True)
+
+            # Copy overlay file
+            subprocess.run([
+                "cp",
+                overlay_file,
+                f"{work_dir}/alpine.apkovl.tar.gz"
+            ], check=True)
+
+            # Create new ISO
+            custom_iso = "custom-alpine.iso"
+            subprocess.run([
+                "hdiutil", "makehybrid",
+                "-o", custom_iso,
+                "-hfs", "-joliet", "-iso", "-udf",
+                "-default-volume-name", "ALPINE",
+                work_dir
+            ], check=True)
+
+            return custom_iso
+
+        finally:
+            # Cleanup
+            subprocess.run(["hdiutil", "detach", mount_point], check=True)
+            shutil.rmtree(work_dir)
 
     async def check_status(self):
         return await self.qmp.execute('query-status')
@@ -501,6 +613,10 @@ class ARM64Runner(QEMUSnapshotMixin):
         """Initial VM setup with Conda and snapshot creation"""
         if not self.iso_image:
             raise ValueError("ISO path is required for setup")
+
+        overlay = await self.create_alpine_overlay()
+        custom_iso = await self.create_custom_alpine_iso(self.iso_image, overlay)
+        self.iso_image = custom_iso  # Use the custom ISO
 
         # if not await self.check_qemu_features():
         #     raise RuntimeError("QEMU does not have virtio-serial support. Need to rebuild with virtio support.")
