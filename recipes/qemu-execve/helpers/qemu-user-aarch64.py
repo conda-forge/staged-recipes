@@ -90,6 +90,18 @@ class ARM64Runner(QEMUSnapshotMixin):
         self.qemu_process = None
         self.virtio_path = "./vm_console"
 
+    def create_init_script(self):
+        with open('init.sh', 'w') as f:
+            f.write("""#!/bin/sh
+    apk update
+    apk add openssh
+    rc-update add sshd
+    echo 'root:alpine' | chpasswd
+    echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
+    /etc/init.d/sshd start
+    """)
+        os.chmod('init.sh', 0o755)
+
     def _build_qemu_command(self, load_snapshot=None):
         if not os.path.exists(self.qemu_system):
             raise FileNotFoundError(f"QEMU executable not found at {self.qemu_system}")
@@ -108,6 +120,8 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-nographic",
             "-boot", "menu=on",
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
+            "-drive", f"file=init.sh,format=raw,if=virtio",
+            "-append", "init=/init.sh",
             "-qmp", f"unix:{self.socket_path},server,nowait",
             "-serial", "stdio",
             # "-device", "virtio-serial-pci",
@@ -309,6 +323,21 @@ class ARM64Runner(QEMUSnapshotMixin):
 
         # Try multiple connection tests with delays
         for i in range(3):
+            keygen = [
+                "ssh-keygen",
+                "-t", "rsa",
+                "-N", "",  # No passphrase
+                "-f", "/Users/runner/.ssh/id_rsa"
+            ]
+
+            keyscan = [
+                "ssh-keyscan",
+                "-v",
+                "-H", "localhost",
+                "-p", "10022",
+                "-T", "60"
+            ]
+
             print(f"\n[DEBUG] Connection test {i + 1}:")
             try:
                 # Test with netcat
@@ -325,7 +354,7 @@ class ARM64Runner(QEMUSnapshotMixin):
                 # Test with ssh connection only (no command)
                 process = await asyncio.create_subprocess_exec(
                     "ssh", "-v", "-p", "10022",
-                    "-o", "ConnectTimeout=5",
+                    "-o", "ConnectTimeout=60",
                     "-o", "StrictHostKeyChecking=no",
                     "root@localhost",
                     "exit",
@@ -339,21 +368,6 @@ class ARM64Runner(QEMUSnapshotMixin):
                 print(f"[DEBUG] Test {i + 1} error: {e}")
 
             await asyncio.sleep(2)
-
-        keygen = [
-            "ssh-keygen",
-            "-t", "rsa",
-            "-N", "",  # No passphrase
-            "-f", "/Users/runner/.ssh/id_rsa"
-        ]
-
-        keyscan = [
-            "ssh-keyscan",
-            "-v",
-            "-H", "localhost",
-            "-p", "10022",
-            "-T", "60"
-        ]
 
         ssh_cmd = [
             "ssh",
@@ -491,6 +505,7 @@ class ARM64Runner(QEMUSnapshotMixin):
         # if not await self.check_qemu_features():
         #     raise RuntimeError("QEMU does not have virtio-serial support. Need to rebuild with virtio support.")
 
+        self.create_init_script()
         cmd = self._build_qemu_command(load_snapshot=False)
         print("Starting VM with command:", ' '.join(cmd))
 
