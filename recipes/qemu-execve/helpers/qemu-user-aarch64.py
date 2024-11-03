@@ -468,7 +468,7 @@ iface eth0 inet dhcp"
                     "ssh", "-v", "-p", "10022",
                     "-o", "ConnectTimeout=60",
                     "-o", "StrictHostKeyChecking=no",
-                    "root@localhost",
+                    "conda_build@localhost",
                     "exit",
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE
@@ -488,7 +488,7 @@ iface eth0 inet dhcp"
             "-i", "/Users/runner/.ssh/id_rsa",
             "-o", "StrictHostKeyChecking=accept-new",
             "-o", "UserKnownHostsFile=/dev/null",
-            "root@localhost",
+            "conda_build@localhost",
             command
         ]
 
