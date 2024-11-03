@@ -311,21 +311,38 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-v",
             "-H", "localhost",
             "-p", "10022",
+            "-T", "60"
         ]
 
         ssh_cmd = [
             "ssh",
             "-v",
             "-p", "10022",
-            "-i", "/Users/runner/.ssh/id_rsa",  # Use the generated key
+            "-i", "/Users/runner/.ssh/id_rsa",
             "-o", "StrictHostKeyChecking=accept-new",
             "-o", "UserKnownHostsFile=/dev/null",
             "root@localhost",
             command
         ]
 
+        netcat = [
+            "nc",
+            "-zv",  # Verbose scan
+            "localhost",
+            "10022"
+        ]
+
         print(f"[Command]: Executing via SSH: {command}")
         try:
+            print("[DEBUG] Testing port with netcat...")
+            process = await asyncio.create_subprocess_exec(
+                *netcat,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await process.communicate()
+            print(f"[DEBUG] Netcat result: {stdout.decode()}\n{stderr.decode()}")
+
             process = await asyncio.create_subprocess_exec(
                 *keygen,
                 stdout=asyncio.subprocess.PIPE,
