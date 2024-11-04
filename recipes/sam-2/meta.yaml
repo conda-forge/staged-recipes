@@ -1,0 +1,86 @@
+{% set git_hash_date = "20240814" %}
+{% set git_hash = "7e1596c0b6462eb1d1ba7e1492430fed95023598" %}
+# They claim version 1.0 but they don't really release anything on pypi
+{% set version = "1.0.0." + git_hash_date + "." + git_hash %}
+
+package:
+  # Their package name is "SAM 2" pip claims it is "SAM-2"
+  # the lower case is thus "sam-2"
+  name: sam-2
+  version: {{ version }}
+
+source:
+  url: https://github.com/facebookresearch/segment-anything-2/archive/{{ git_hash }}.tar.gz
+  sha256: 30a317999fa4eae5f239a0ae41e464f1394ecc387d40c16047118c70c5459aa8
+  patches:
+    - 216_be_compatible_with_cpu_only.patch
+    - remove_torchvision_minimum_requirement.patch
+
+{% set build = 0 %}
+
+build:
+  script:
+    - python -m pip install . -vv
+  number: {{ build }}
+  noarch: python
+  # skip: true      # [win]
+  # skip: true      # [py<310]
+
+requirements:
+  host:
+    - python >=3.10
+    - pip
+    - setuptools
+    - pytorch
+  run:
+    - python >=3.10
+    - hydra-core
+    - pytorch
+    - torchvision >=0.18.1
+    # https://github.com/facebookresearch/segment-anything-2/pull/216
+    - scikit-image
+    # It doesn't seem to be used anywhere in their code...
+    # https://github.com/conda-forge/iopath-feedstock/pull/3
+    # - iopath >=0.1.10
+    - tqdm
+    - pillow
+  run_constrained:
+    # Let the run_export from pytorch take effect
+    # so put their requirement here
+    - pytorch >=2.3.1
+    # There seems to be an other package on conda-forge with
+    # a similar name that wasn't packaged from the official
+    # source
+    # https://github.com/conda-forge/sam2-feedstock/issues/4
+    # I will be working with them to ensure that
+    # we have a cohesive version at conda-forge but the 0.4.1
+    # version should not be co-installed with this package
+    - sam2 >=1.0.0
+
+test:
+  imports:
+    - sam2
+  requires:
+    - pip
+  commands:
+    - pip check
+
+about:
+  home: https://github.com/facebookresearch/segment-anything-2
+  summary: 'SAM 2: Segment Anything in Images and Videos'
+  description: |
+    Segment Anything Model 2 (SAM 2) is a foundation model towards solving
+    promptable visual segmentation in images and videos. We extend SAM to video
+    by considering images as a video with a single frame. The model design is a
+    simple transformer architecture with streaming memory for real-time video
+    processing. We build a model-in-the-loop data engine, which improves model
+    and data via user interaction, to collect our SA-V dataset, the largest
+    video segmentation dataset to date. SAM 2 trained on our data provides
+    strong performance across a wide range of tasks and visual domains.
+  license: Apache-2.0
+  license_family: Apache
+  license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - hmaarrfk
