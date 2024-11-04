@@ -269,6 +269,14 @@ iface eth0 inet dhcp"
 
     async def create_custom_alpine_iso(self, original_iso, overlay_file):
         """Create custom Alpine ISO with overlay"""
+        def remove_readonly(func, path, exc_info):
+            """Error handler for shutil.rmtree to handle read-only files"""
+            import stat
+            # Make the file writable
+            os.chmod(path, stat.S_IWRITE)
+            # Try the removal again
+            func(path)
+
         # Create mount point
         mount_point = "/tmp/alpine-mount"
         work_dir = "/tmp/alpine-work"
@@ -315,9 +323,16 @@ iface eth0 inet dhcp"
                 src = os.path.join(mount_point, item)
                 dst = os.path.join(work_dir, item)
                 if os.path.isdir(src):
-                    shutil.copytree(src, dst)
+                    shutil.copytree(src, dst, dirs_exist_ok=True)
+                    # Make copied directory and contents writable
+                    for root, dirs, files in os.walk(dst):
+                        for d in dirs:
+                            os.chmod(os.path.join(root, d), 0o755)
+                        for f in files:
+                            os.chmod(os.path.join(root, f), 0o644)
                 else:
                     shutil.copy2(src, dst)
+                    os.chmod(dst, 0o644)
 
             # Add overlay file
             shutil.copy2(overlay_file, os.path.join(work_dir, "alpine.apkovl.tar.gz"))
@@ -340,7 +355,7 @@ iface eth0 inet dhcp"
             # Cleanup
             subprocess.run(["hdiutil", "detach", device], check=False)
             if os.path.exists(work_dir):
-                shutil.rmtree(work_dir)
+                shutil.rmtree(work_dir, onerror=remove_readonly)
 
     async def check_status(self):
         return await self.qmp.execute('query-status')
