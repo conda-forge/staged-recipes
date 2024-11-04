@@ -263,7 +263,7 @@ iface eth0 inet dhcp"
 """)
 
         # Create overlay tarball
-        subprocess.run(["tar", "--owner=0", "--group=0", "-czf", "alpine.apkovl.tar.gz", "-C", ovl_dir, "."], check=True)
+        subprocess.run(["tar", "-czf", "alpine.apkovl.tar.gz", "-C", ovl_dir, "."], check=True)
 
         return "alpine.apkovl.tar.gz"
 
