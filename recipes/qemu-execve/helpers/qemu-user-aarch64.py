@@ -289,9 +289,13 @@ iface eth0 inet dhcp"
                 "-nomount", original_iso
             ], check=True, capture_output=True, text=True).stdout.splitlines()
 
+            print("[DEBUG] Full hdiutil output:")
+            for line in attach_output:
+                print(f"[DEBUG] {line}")
+
             for line in attach_output:
                 parts = line.split()
-                if len(parts) >= 3 and "Apple_HFS" in line:
+                if len(parts) >= 3 and "_map" not in line and "_scheme" not in line:
                     device = parts[0]
                     break
 
