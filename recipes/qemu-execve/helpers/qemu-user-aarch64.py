@@ -278,11 +278,24 @@ iface eth0 inet dhcp"
             os.makedirs(mount_point, exist_ok=True)
             os.makedirs(work_dir, exist_ok=True)
 
-            subprocess.run([
+            # Attach and capture the /dev/xxx device from stdout, i.e. /dev/disk2
+            # /dev/disk2              Apple_partition_scheme
+            # /dev/disk2s1            Apple_partition_map
+            # /dev/disk2s2            Apple_HFS
+
+            device = subprocess.run([
                 "hdiutil", "attach",
-                original_iso,
-                "-mountpoint", mount_point,
-                "-noverify"
+                "-nomount", original_iso
+            ], check=True, capture_output=True, text=True).stdout.splitlines()[-1].split()[0]
+            if not device:
+                raise RuntimeError("Failed to get device name from hdiutil attach")
+
+            print(f"[DEBUG] Attached ISO to device: {device}")
+
+            subprocess.run([
+                "mount",
+                "-t", "cd9660",
+                device, mount_point,
             ], check=True)
 
             # Copy contents to work dir
@@ -305,6 +318,12 @@ iface eth0 inet dhcp"
                 "-hfs", "-joliet", "-iso", "-udf",
                 "-default-volume-name", "ALPINE",
                 work_dir
+            ], check=True)
+
+            subprocess.run([
+                "umount",
+                "-t", "cd9660",
+                original_iso, mount_point,
             ], check=True)
 
             return custom_iso
