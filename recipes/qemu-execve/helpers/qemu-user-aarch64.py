@@ -272,6 +272,7 @@ iface eth0 inet dhcp"
         # Create mount point
         mount_point = "/tmp/alpine-mount"
         work_dir = "/tmp/alpine-work"
+        device = None
 
         try:
             # Mount original ISO
@@ -287,7 +288,6 @@ iface eth0 inet dhcp"
                 "hdiutil", "attach",
                 "-nomount", original_iso
             ], check=True, capture_output=True, text=True).stdout.splitlines()[-1].split()[0]
-            device = None
             for line in attach_output:
                 parts = line.split()
                 if len(parts) >= 3 and "Apple_HFS" in line:
@@ -323,17 +323,13 @@ iface eth0 inet dhcp"
                 work_dir
             ], check=True)
 
-            subprocess.run([
-                "umount",
-                "-t", "cd9660",
-                original_iso, mount_point,
-            ], check=True)
+            subprocess.run(["umount", original_iso, mount_point], check=True)
 
             return custom_iso
 
         finally:
             # Cleanup
-            subprocess.run(["hdiutil", "detach", mount_point], check=False)
+            subprocess.run(["hdiutil", "detach", device], check=False)
             if os.path.exists(work_dir):
                 shutil.rmtree(work_dir)
 
