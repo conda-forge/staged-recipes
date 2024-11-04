@@ -281,22 +281,21 @@ iface eth0 inet dhcp"
             subprocess.run([
                 "hdiutil", "attach",
                 original_iso,
-                "-mountpoint", mount_point
+                "-mountpoint", mount_point,
+                "-noverify"
             ], check=True)
 
-            # Copy contents
-            subprocess.run([
-                "cp", "-r",
-                f"{mount_point}/",
-                work_dir
-            ], check=True)
+            # Copy contents to work dir
+            for item in os.listdir(mount_point):
+                src = os.path.join(mount_point, item)
+                dst = os.path.join(work_dir, item)
+                if os.path.isdir(src):
+                    shutil.copytree(src, dst)
+                else:
+                    shutil.copy2(src, dst)
 
-            # Copy overlay file
-            subprocess.run([
-                "cp",
-                overlay_file,
-                f"{work_dir}/alpine.apkovl.tar.gz"
-            ], check=True)
+            # Add overlay file
+            shutil.copy2(overlay_file, os.path.join(work_dir, "alpine.apkovl.tar.gz"))
 
             # Create new ISO
             custom_iso = "custom-alpine.iso"
@@ -312,8 +311,9 @@ iface eth0 inet dhcp"
 
         finally:
             # Cleanup
-            subprocess.run(["hdiutil", "detach", mount_point], check=True)
-            shutil.rmtree(work_dir)
+            subprocess.run(["hdiutil", "detach", mount_point], check=False)
+            if os.path.exists(work_dir):
+                shutil.rmtree(work_dir)
 
     async def check_status(self):
         return await self.qmp.execute('query-status')
