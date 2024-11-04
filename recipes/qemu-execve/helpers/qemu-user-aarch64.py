@@ -122,8 +122,6 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-nographic",
             "-boot", "menu=on",
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
-            "-drive", f"file=init.sh,format=raw,if=virtio",
-            "-append", "init=/init.sh",
             "-qmp", f"unix:{self.socket_path},server,nowait",
             "-serial", "stdio",
             # "-device", "virtio-serial-pci",
@@ -212,6 +210,7 @@ class ARM64Runner(QEMUSnapshotMixin):
         os.makedirs(f"{ovl_dir}/etc/runlevels/default", exist_ok=True)
         os.makedirs(f"{ovl_dir}/etc/local.d", exist_ok=True)
         os.makedirs(f"{ovl_dir}/etc/apk", exist_ok=True)
+        os.makedirs(f"{ovl_dir}/etc/auto-setup-alpine", exist_ok=True)
 
         # Enable default boot services
         open(f"{ovl_dir}/etc/.default_boot_services", 'w').close()
