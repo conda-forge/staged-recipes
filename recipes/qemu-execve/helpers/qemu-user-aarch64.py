@@ -283,20 +283,23 @@ iface eth0 inet dhcp"
             # /dev/disk2s1            Apple_partition_map
             # /dev/disk2s2            Apple_HFS
 
-            device = subprocess.run([
+            attach_output = subprocess.run([
                 "hdiutil", "attach",
                 "-nomount", original_iso
             ], check=True, capture_output=True, text=True).stdout.splitlines()[-1].split()[0]
+            device = None
+            for line in attach_output:
+                parts = line.split()
+                if len(parts) >= 3 and "Apple_HFS" in line:
+                    device = parts[0]
+                    break
+
             if not device:
-                raise RuntimeError("Failed to get device name from hdiutil attach")
+                raise RuntimeError("Failed to find HFS partition in hdiutil output")
 
             print(f"[DEBUG] Attached ISO to device: {device}")
 
-            subprocess.run([
-                "mount",
-                "-t", "cd9660",
-                device, mount_point,
-            ], check=True)
+            subprocess.run(["mount", device, mount_point,], check=True)
 
             # Copy contents to work dir
             for item in os.listdir(mount_point):
