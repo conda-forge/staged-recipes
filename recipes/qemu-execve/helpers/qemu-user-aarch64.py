@@ -287,7 +287,8 @@ iface eth0 inet dhcp"
             attach_output = subprocess.run([
                 "hdiutil", "attach",
                 "-nomount", original_iso
-            ], check=True, capture_output=True, text=True).stdout.splitlines()[-1].split()[0]
+            ], check=True, capture_output=True, text=True).stdout.splitlines()
+
             for line in attach_output:
                 parts = line.split()
                 if len(parts) >= 3 and "Apple_HFS" in line:
