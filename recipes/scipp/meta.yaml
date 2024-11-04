@@ -1,9 +1,10 @@
-{% set name = "scipp" %}
-{% set version = "24.09.1" %}
+context:
+  name: scipp
+  version: 24.09.1
 
 package:
-  name: {{ name|lower }}
-  version: {{ version }}
+  name: ${{ name|lower }}
+  version: ${{ version }}
 
 source:
   url: https://github.com/scipp/scipp/archive/{{ version }}.tar.gz
@@ -11,61 +12,68 @@ source:
 
 build:
   number: 0
-  skip: true  # [py<310 and py>312]
-  script_env:
-    - GIT_VERSION_INFO: ${{ version }}
   script:
-    - cmake --preset package-{{ target_platform }} -DPython_EXECUTABLE=$PYTHON  # [unix]
-    - cmake --preset package-{{ target_platform }} -DPython_EXECUTABLE=%PYTHON%  # [win]
-    - cmake --build --preset build
-    - ctest --preset test
+    env:
+      GIT_VERSION_INFO: ${{ version }}
+    content:
+      - cmake --preset package-${{ target_platform }} -DPython_EXECUTABLE=$PYTHON -DCMAKE_CXX_COMPILER=$CXX -DCMAKE_C_COMPILER=$CC
+      - cmake --build --preset build
+      - ctest --preset test
+  skip:
+    - match(python, "<3.10")
+    - match(python, ">3.12")
 
 requirements:
   build:
     - ${{ stdlib("c") }}
     - ${{ compiler('c') }}
     - ${{ compiler('cxx') }}
-    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
-    - python                                 # [build_platform != target_platform]
+    - if: build_platform != target_platform
+      then:
+        - cross-python_${{ target_platform }}
+        - python
     - cmake
-    - conan ==1.64.1
+    - conan ==1.65.0
     - ninja
     - ccache
-    - git
+    - ${{ "m2-git" if win }}
+    - ${{ "git" if unix }}
+    - llvm ==17.0.6
   host:
     - python
     - numpy
     - tbb-devel
+    - llvm ==17.0.6
   run:
     - python
 
-test:
-  imports:
-    - scipp
-  requires:
-    - bs4
-    - h5py
-    - hypothesis
-    - numba
-    - pandas
-    - pytest
-    - python-graphviz
-    - scipy
-    - xarray
-  source_files:
-    - pyproject.toml
-    - tests/
-  commands:
-    - python -m pytest -v tests
+tests:
+  - files:
+      source:
+        - pyproject.toml
+        - tests/
+    requirements:
+      run:
+        - bs4
+        - h5py
+        - hypothesis
+        - numba
+        - pandas
+        - pytest
+        - python-graphviz
+        - scipy
+        - xarray
+    script:
+      - python -m pytest -v tests
 
 about:
-  home: https://scipp.github.io/
   license: BSD-3-Clause
   summary: Multi-dimensional data arrays with labeled dimensions
   description: Multi-dimensional data arrays with labeled dimensions
-  dev_url: https://github.com/scipp/scipp
-  doc_url: https://scipp.github.io/
   license_file: LICENSE
+  homepage: https://scipp.github.io/
+  repository: https://github.com/scipp/scipp
+  documentation: https://scipp.github.io/
 
 extra:
   recipe-maintainers:
