@@ -1,0 +1,96 @@
+schema_version: 1
+
+context:
+  name: fasttext-for-deepsearch-glm
+  version: 0.1.0
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/PeterStaar-IBM/fastText/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: f5772a90dc30893dfcd99efbd4fb0dc46f5d7a8388e9da5cc41a8bd8b4d94e1e
+
+build:
+  number: 0
+  skip: win
+  script: |
+    cmake -GNinja \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DBUILD_SHARED_LIBS=ON \
+          $SRC_DIR
+    ninja install
+    python -m pip install --no-deps --no-build-isolation -vv .
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then:
+        - python
+        - cross-python_${{ target_platform }}
+        - numpy
+        - pybind11
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - ninja
+  host:
+    - python
+    - pip
+    - setuptools >=0.7.0
+    - numpy
+    - pybind11 >=2.2
+  run:
+    - python
+    - numpy
+    - pybind11 >=2.2
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound='x.x.x') }}
+  run_constraints:
+    - fasttext <0 # see https://github.com/conda-forge/fasttext-feedstock/pull/23 for context
+
+tests:
+  - python:
+      imports:
+        - fasttext
+      pip_check: false
+  - script:
+      - fasttext supervised -h || [[ $? == 1 ]]
+  - package_contents:
+      include:
+        - fasttext/args.h
+        - fasttext/autotune.h
+        - fasttext/densematrix.h
+        - fasttext/dictionary.h
+        - fasttext/fasttext.h
+        - fasttext/loss.h
+        - fasttext/matrix.h
+        - fasttext/meter.h
+        - fasttext/model.h
+        - fasttext/productquantizer.h
+        - fasttext/quantmatrix.h
+        - fasttext/real.h
+        - fasttext/utils.h
+        - fasttext/vector.h
+      bin:
+        - fasttext
+      lib:
+        - fasttext
+      site_packages:
+        - fasttext
+        - fasttext.util
+      files:
+        - "*/pkgconfig/fasttext.pc"
+
+about:
+  license: MIT
+  license_file: LICENSE
+  summary: fastText - Library for efficient text classification and representation learning
+  homepage: https://fasttext.cc/
+  repository: https://github.com/facebookresearch/fastText
+  documentation: https://fasttext.cc/docs/en/support.html
+
+extra:
+  recipe-maintainers:
+    - hadim
