@@ -304,7 +304,7 @@ iface eth0 inet dhcp"
 
             print(f"[DEBUG] Attached ISO to device: {device}")
 
-            subprocess.run(["mount", device, mount_point,], check=True)
+            subprocess.run(["mount", "-t", "cd9660", device, mount_point,], check=True)
 
             # Copy contents to work dir
             for item in os.listdir(mount_point):
