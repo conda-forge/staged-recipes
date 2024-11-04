@@ -272,14 +272,12 @@ iface eth0 inet dhcp"
         def remove_readonly(func, path, exc_info):
             """Error handler for shutil.rmtree to handle read-only files"""
             import stat
-            # Make the file writable
             os.chmod(path, stat.S_IWRITE)
-            # Try the removal again
             func(path)
 
         # Create mount point
-        mount_point = "/tmp/alpine-mount"
-        work_dir = "/tmp/alpine-work"
+        mount_point = "./alpine-mount"
+        work_dir = "./alpine-work"
         device = None
 
         try:
@@ -287,27 +285,16 @@ iface eth0 inet dhcp"
             os.makedirs(mount_point, exist_ok=True)
             os.makedirs(work_dir, exist_ok=True)
 
-            # Attach and capture the /dev/xxx device from stdout, i.e. /dev/disk2
-            # /dev/disk2              Apple_partition_scheme
-            # /dev/disk2s1            Apple_partition_map
-            # /dev/disk2s2            Apple_HFS
-
             attach_output = subprocess.run(
                 ["hdiutil", "attach", "-nomount", original_iso],
                 check=True,
                 capture_output=True,
                 text=True
             ).stdout.splitlines()
-
-            print("[DEBUG] Full hdiutil output:")
-            for line in attach_output:
-                print(f"[DEBUG] {line}")
-
             device = attach_output[0].split()[0]  # First line, first column (/dev/disk2)
 
             if not device:
                 raise RuntimeError("Failed to find HFS partition in hdiutil output")
-
             print(f"[DEBUG] Attached ISO to device: {device}")
 
             subprocess.run([
