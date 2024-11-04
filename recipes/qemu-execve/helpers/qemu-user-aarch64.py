@@ -332,7 +332,7 @@ iface eth0 inet dhcp"
                 work_dir
             ], check=True)
 
-            subprocess.run(["umount", original_iso, mount_point], check=True)
+            subprocess.run(["umount", mount_point], check=True)
 
             return custom_iso
 
