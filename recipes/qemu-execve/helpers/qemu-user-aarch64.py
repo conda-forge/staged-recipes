@@ -124,23 +124,13 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
             "-qmp", f"unix:{self.socket_path},server,nowait",
             "-serial", "stdio",
-            # "-device", "virtio-serial-pci",
-            # "-chardev", f"socket,id=console0,path={self.virtio_path},server=on",
-            # "-device", "virtserialport,chardev=console0,name=console.0",
-            # "-net", "user,hostfwd=tcp::10022-:22",
-            # "-net", "nic",
-            # networking for internet access
             "-netdev", "user,id=net0,hostfwd=tcp::10022-:22",
             "-device", "virtio-net-pci,netdev=net0",
-            # "-device", "virtserialport,chardev=console0,name=console0",
         ]
 
         print(f"[DEBUG]: Socket path: {self.socket_path}")
         print(f"[DEBUG]: Socket directory exists: {os.path.exists(socket_dir)}")
         print(f"[DEBUG]: Socket directory permissions: {oct(os.stat(socket_dir).st_mode)}")
-
-        print(f"[DEBUG]: Socket path: {self.virtio_path}")
-        print(f"[DEBUG]: Socket path exists: {os.path.exists(f'{self.virtio_path}')}")
 
         if self.iso_image:
             cmd.extend(["-cdrom", self.iso_image])
@@ -166,43 +156,6 @@ class ARM64Runner(QEMUSnapshotMixin):
             except Exception as e:
                 print(f"Error reading {prefix} stream: {e}")
                 break
-
-    async def _log_console(self):
-        """Monitor VM console output"""
-        while True:
-            try:
-                # Try to read console through QMP's human-monitor-command
-                response = await self.qmp.execute('human-monitor-command',
-                                                {'command-line': 'info chardev'})
-                print(f"[Console]: {response}")
-            except Exception as e:
-                print(f"[Console]: Error reading console: {e}")
-            await asyncio.sleep(1)
-
-    async def _monitor_console(self):
-        """Monitor VM console output through QMP"""
-        while True:
-            try:
-                commands = [
-                    'info status',
-                    'info qtree',
-                    'info chardev',
-                    'system_reset',
-                    'sendkey ret',
-                ]
-                for cmd in commands:
-                    response = await self.qmp.execute('human-monitor-command',
-                                                      {'command-line': cmd})
-                    print(f"[Monitor {cmd}]: {response}")
-
-                # Try reading directly from the chardev
-                response = await self.qmp.execute('query-chardev')
-                print(f"[Chardev Status]: {response}")
-
-            except Exception as e:
-                print(f"[Console Monitor]: {e}")
-
-            await asyncio.sleep(5)
 
     async def create_alpine_overlay(self):
         """Create Alpine overlay with automation scripts"""
@@ -234,8 +187,8 @@ set -e
 
 # Setup SSH and Conda
 apk update
-apk add openssh
-rc-update add sshd
+# apk add openssh
+# rc-update add sshd
 echo 'root:alpine' | chpasswd
 echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
 /etc/init.d/sshd start
@@ -248,6 +201,10 @@ echo 'export PATH=/root/miniconda/bin:$PATH' >> /root/.bashrc
 
 # Run only once
 rm -f /etc/local.d/auto-setup-alpine.start
+rm -f /etc/runlevels/default/local
+
+timeout 300 setup-alpine -ef /etc/auto-setup-alpine/answers
+rm -rf /etc/auto-setup-alpine
 """)
         os.chmod(f"{ovl_dir}/etc/local.d/auto-setup-alpine.start", 0o755)
 
@@ -256,10 +213,19 @@ rm -f /etc/local.d/auto-setup-alpine.start
             f.write("""
 KEYMAPOPTS=none
 HOSTNAMEOPTS=alpine
+DEVDOPTS=mdev
 INTERFACESOPTS="auto lo
 iface lo inet loopback
 auto eth0
 iface eth0 inet dhcp"
+TIMEZONEOPTS=none
+PROXYOPTS=none
+APKREPOSOPTS="-1"
+SSHDOPTS=openssh
+NTPOPTS=none
+DISKOPTS=none
+LBUOPTS=none
+APKCACHEOPTS=none
 """)
 
         # Create overlay tarball
@@ -345,25 +311,6 @@ iface eth0 inet dhcp"
                 shutil.rmtree(work_dir, ignore_errors=True,)
                               # onerror=remove_readonly)
 
-    async def check_status(self):
-        return await self.qmp.execute('query-status')
-
-    async def check_qemu_features(self):
-        """Check if QEMU has virtio-serial support"""
-        cmd = [self.qemu_system, "-device", "help"]
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            # stdout=asyncio.subprocess.PIPE,
-            # stderr=asyncio.subprocess.PIPE
-        )
-        stdout, stderr = await process.communicate()
-        devices = stdout.decode()
-
-        print("[DEBUG] Available QEMU devices:")
-        print(devices)
-
-        return "virtserialport" in devices
-
     async def await_boot_sequence(self):
         """Wait for VM to boot and connect to QMP"""
         # Await creation of QMP socket
@@ -414,43 +361,6 @@ iface eth0 inet dhcp"
 
         if retry_count == boot_timeout:
             raise TimeoutError(f"Boot sequence not completed after {30 * boot_timeout} seconds")
-
-    async def execute_nic_command(self, command):
-        """Execute command via network socket instead of SSH"""
-        try:
-            # Open socket connection to VM
-            reader, writer = await asyncio.open_connection(
-                'localhost', self.nic_port,
-                limit=4096,
-            )
-            print("[Command]: Connected to socket")
-
-            # Send command
-            print(f"[Command]: Sending: {command}")
-            writer.write(f"{command}\n".encode())
-            await writer.drain()
-            print("[Command]: Command sent")
-
-            # Read response
-            try:
-                response = await asyncio.wait_for(reader.read(4096), timeout=10.0)
-                decoded_response = response.decode()
-                print(f"[Command]: Received response: {decoded_response}")
-            except asyncio.TimeoutError:
-                print("[Command]: Timeout waiting for response")
-                decoded_response = ""
-
-            writer.close()
-            await writer.wait_closed()
-            print("[Command]: Connection closed")
-
-            return decoded_response, "", 0
-        except ConnectionRefusedError:
-            print(f"[Command]: Connection refused on port {self.nic_port}")
-            return "", "Connection refused", 1
-        except Exception as e:
-            print(f"[Command]: Error: {e}")
-            return "", str(e), 1
 
     async def execute_ssh_command(self, command):
         """Execute command via SSH"""
@@ -565,79 +475,6 @@ iface eth0 inet dhcp"
             print(f"[Command]: SSH Error: {e}")
             return "", str(e), 1
 
-    async def execute_command(self, command):
-        """Execute command via virtio-serial port"""
-        print(f"[Command]: Connecting to virtio-serial at {self.virtio_path}")
-        try:
-            # Connect to Unix domain socket created by QEMU for virtio-serial
-            reader, writer = await asyncio.open_unix_connection(self.virtio_path)
-            print("[Command]: Connected to virtio-serial")
-
-            # Send command with newline
-            command_bytes = f"{command}\n".encode()
-            print(f"[Command]: Sending ({len(command_bytes)} bytes): {command}")
-            writer.write(command_bytes)
-            await writer.drain()
-            print("[Command]: Command sent, awaiting response")
-
-            # Read response with timeout
-            try:
-                response = await asyncio.wait_for(reader.read(4096), timeout=30.0)
-                decoded = response.decode()
-                print(f"[Command]: Received ({len(response)} bytes): {decoded}")
-            except asyncio.TimeoutError:
-                print("[Command]: Timeout waiting for response")
-                decoded = ""
-
-            writer.close()
-            await writer.wait_closed()
-            print("[Command]: Connection closed")
-
-            return decoded, "", 0
-
-        except FileNotFoundError:
-            print(f"[Command]: virtio-serial socket not found at {self.virtio_path}")
-            return "", "virtio-serial socket not found", 1
-        except Exception as e:
-            print(f"[Command]: Error: {type(e).__name__} - {e}")
-            return "", str(e), 1
-
-    async def setup_conda(self):
-        """Install and configure Conda in the VM"""
-        print("[Setup]: Installing Conda...")
-        commands = [
-            # Update system and install dependencies
-            "apk update",
-            "apk add wget ca-certificates bash",
-
-            # Download and install Miniconda
-            "wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh -O /tmp/miniconda.sh",
-            "chmod +x /tmp/miniconda.sh",
-            "/tmp/miniconda.sh -b -p /root/miniconda",
-
-            # Configure Conda
-            "echo 'export PATH=/root/miniconda/bin:$PATH' >> /root/.bashrc",
-            "source /root/.bashrc",
-            "/root/miniconda/bin/conda init"
-        ]
-
-        for cmd in commands:
-            print(f"[Setup]:    Executing: {cmd}")
-            stdout, stderr, returncode = await self.execute_ssh_command(cmd)
-            if returncode != 0:
-                print("[Setup]:     '-> Error executing command:")
-                print(f"stdout: {stdout}")
-                print(f"stderr: {stderr}")
-                raise Exception(f"Failed to execute: {cmd}")
-            print("[Setup]:     '-> Command completed successfully")
-
-        # Verify Conda installation
-        stdout, stderr, returncode = await self.execute_ssh_command("/root/miniconda/bin/conda --version")
-        if returncode == 0:
-            print(f"[Setup]: Conda installed successfully: {stdout.strip()}")
-        else:
-            raise Exception("Failed to verify Conda installation")
-
     async def setup_vm(self):
         """Initial VM setup with Conda and snapshot creation"""
         if not self.iso_image:
@@ -646,9 +483,6 @@ iface eth0 inet dhcp"
         overlay = await self.create_alpine_overlay()
         custom_iso = await self.create_custom_alpine_iso(self.iso_image, overlay)
         self.iso_image = custom_iso  # Use the custom ISO
-
-        # if not await self.check_qemu_features():
-        #     raise RuntimeError("QEMU does not have virtio-serial support. Need to rebuild with virtio support.")
 
         self.create_init_script()
         cmd = self._build_qemu_command(load_snapshot=False)
@@ -684,7 +518,6 @@ iface eth0 inet dhcp"
             stderr_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await stderr_task
-        await self.setup_conda()
         await self.save_snapshot(self.DEFAULT_SNAPSHOT)
 
     async def run_command(self, command, load_snapshot=True):

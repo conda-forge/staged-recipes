@@ -64,7 +64,22 @@ elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64
     --qemu-system "${SRC_DIR}/_conda-install-${qemu_arch}/bin/qemu-system-aarch64" \
     --cdrom ${SRC_DIR}/alpine-virt-${ALPINE_ISO_VERSION}-aarch64.iso \
     --drive ${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/alpine-conda-vm.qcow2 \
-    --setup
+    --setup || true
+
+  "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-system-aarch64 \
+            -name f"QEMU User ({Alpine AArch64})" \
+            -M virt,secure=on \
+            -cpu max \
+            -m 2048 \
+            -nographic \
+            -boot menu=on \
+            -cdrom custom-alpine.iso \
+            -drive file=${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/alpine-conda-vm.qcow2,format=qcow2,if=virtio \
+            -serial stdio \
+            -netdev user,id=net0,hostfwd=tcp::10022-:22 \
+            -device virtio-net-pci,netdev=net0 \
+    & echo $! > qemu_pid.txt
+  sleep 300
 
   # Test qemu image
   python "${RECIPE_DIR}/helpers/qemu-user-aarch64.py" \
