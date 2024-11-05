@@ -342,7 +342,8 @@ iface eth0 inet dhcp"
             # Cleanup
             subprocess.run(["hdiutil", "detach", device], check=False)
             if os.path.exists(work_dir):
-                shutil.rmtree(work_dir, onerror=remove_readonly)
+                shutil.rmtree(work_dir, ignore_errors=True,)
+                              # onerror=remove_readonly)
 
     async def check_status(self):
         return await self.qmp.execute('query-status')
