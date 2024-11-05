@@ -73,6 +73,9 @@ git ls-tree --name-only main -- . | xargs -I {} sh -c "rm -rf {} && echo Removin
 popd > /dev/null
 echo ""
 
+echo "conda-build-config.yaml from pinnings:"
+cat ${MINIFORGE_HOME}/conda_build_config.yaml
+
 ( endgroup "Configuring conda" ) 2> /dev/null
 
 # We just want to build all of the recipes.
