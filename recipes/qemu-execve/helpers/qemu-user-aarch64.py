@@ -81,55 +81,45 @@ class QEMUSnapshotMixin(QMPProtocol):
 class ARM64Runner(QEMUSnapshotMixin):
     DEFAULT_SNAPSHOT = "conda"
 
-    def __init__(self, qemu_system, qcow2_path, socket_path, iso_image=None, ssh_port=10022, nic_port=2000):
+    def __init__(self, qemu_system, qcow2_path, socket_path, iso_image=None, ssh_port=10022):
         self.qemu_system = qemu_system
         self.iso_image = iso_image
         self.qcow2_path = qcow2_path
         self.socket_path = socket_path
-        self.nic_port = nic_port
         self.ssh_port = ssh_port
         self.qmp = QMPClient('ARM64 VM')
         self.qemu_process = None
         self.virtio_path = "./vm_console"
-
-    def create_init_script(self):
-        with open('init.sh', 'w') as f:
-            f.write("""#!/bin/sh
-    apk update
-    apk add openssh
-    rc-update add sshd
-    echo 'root:alpine' | chpasswd
-    echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
-    /etc/init.d/sshd start
-    """)
-        os.chmod('init.sh', 0o755)
 
     def _build_qemu_command(self, load_snapshot=None):
         if not os.path.exists(self.qemu_system):
             raise FileNotFoundError(f"QEMU executable not found at {self.qemu_system}")
 
         socket_dir = os.path.dirname(self.socket_path)
-        if not os.path.exists(socket_dir):
-            os.makedirs(socket_dir, exist_ok=True)
-            print(f"[DEBUG]: Created socket directory: {socket_dir}")
+        os.makedirs(socket_dir, exist_ok=True)
 
         cmd = [
             self.qemu_system,
             "-name", f"QEMU User ({os.path.basename(self.qemu_system)})",
-            "-M", "virt,secure=on",
+            "-M", "virt",
             "-cpu", "max",
-            "-m", "2048",
+            "-m", 2048,
             "-nographic",
-            "-boot", "menu=on",
-            "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
+            "-drive", f"file={self.qcow2_path},format=qcow2",
             "-qmp", f"unix:{self.socket_path},server,nowait",
-            "-netdev", "user,id=net0,hostfwd=tcp::10022-:22",
+            "-netdev", f"user,id=net0,hostfwd=tcp::{self.ssh_port}-:22",
             "-device", "virtio-net-pci,netdev=net0",
         ]
 
-        print(f"[DEBUG]: Socket path: {self.socket_path}")
-        print(f"[DEBUG]: Socket directory exists: {os.path.exists(socket_dir)}")
-        print(f"[DEBUG]: Socket directory permissions: {oct(os.stat(socket_dir).st_mode)}")
+        # Add UEFI firmware if available
+        edk2_code = os.path.join(os.path.dirname(self.qemu_system), "../share/qemu/edk2-aarch64-code.fd")
+        edk2_vars = os.path.join(os.path.dirname(self.qemu_system), "../share/qemu/edk2-aarch64-vars.fd")
+
+        if os.path.exists(edk2_code) and os.path.exists(edk2_vars):
+            cmd.extend([
+                "-drive", f"if=pflash,format=raw,file={edk2_code},readonly=on",
+                "-drive", f"if=pflash,format=raw,file={edk2_vars}"
+            ])
 
         if self.iso_image:
             cmd.extend(["-cdrom", self.iso_image])
@@ -143,18 +133,6 @@ class ARM64Runner(QEMUSnapshotMixin):
             cmd.extend(["-loadvm", load_snapshot])
 
         return cmd
-
-    async def _log_output(self, stream, prefix):
-        """Log output from a stream with a prefix"""
-        while True:
-            try:
-                line = await stream.readline()
-                if not line:
-                    break
-                print(f"[{prefix}]: {line.decode().rstrip()}")
-            except Exception as e:
-                print(f"Error reading {prefix} stream: {e}")
-                break
 
     async def create_alpine_overlay(self):
         """Create Alpine overlay with automation scripts"""
@@ -312,13 +290,18 @@ APKCACHEOPTS=none
 
     async def await_boot_sequence(self):
         """Wait for VM to boot and connect to QMP"""
+        print("[QMP]: Waiting for QMP socket...")
+
         # Await creation of QMP socket
         retry_count = 0
         while not os.path.exists(self.socket_path):
-            retry_count += 1
             await asyncio.sleep(10)
-            if retry_count > 300:
-                raise TimeoutError("QMP socket not ready after 300 seconds")
+            retry_count += 1
+            if retry_count > 30:
+                raise TimeoutError("QMP socket not ready after 30 seconds")
+
+        # Wait for socket to be ready for connection
+        await asyncio.sleep(2)
 
         print("[QMP]: Connecting to VM...")
         try:
@@ -346,7 +329,7 @@ APKCACHEOPTS=none
             try:
                 info = await self.qmp.execute('query-name')
                 if info:
-                    print(f"[QMP]: VM has finished booting. VM name: {info.get('name', 'Unknown')}")
+                    print(f"[QMP]:   '-> VM has finished booting. VM name: {info.get('name', 'Unknown')}")
                     break
             except Exception as e:
                 print(f"[Boot]: Error reading output: {e}")
@@ -481,9 +464,8 @@ APKCACHEOPTS=none
 
         overlay = await self.create_alpine_overlay()
         custom_iso = await self.create_custom_alpine_iso(self.iso_image, overlay)
-        self.iso_image = custom_iso  # Use the custom ISO
 
-        self.create_init_script()
+        self.iso_image = custom_iso
         cmd = self._build_qemu_command(load_snapshot=False)
         print("Starting VM with command:", ' '.join(cmd))
 
@@ -492,50 +474,45 @@ APKCACHEOPTS=none
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
-        stderr_task = asyncio.create_task(self._log_output(self.qemu_process.stderr, "QEMU ERR"))
 
         try:
-            await asyncio.sleep(2)
-            print(f"[DEBUG]: Checking if virtio socket was created: {os.path.exists(self.virtio_path)}")
-
-            if self.qemu_process.returncode is not None:
-                # If QEMU has already exited, get the stderr
-                stderr = await self.qemu_process.stderr.read()
-                print(f"[DEBUG]: QEMU exited with code {self.qemu_process.returncode}")
-                print(f"[DEBUG]: QEMU stderr: {stderr.decode()}")
-                raise RuntimeError("QEMU failed to start")
-
             await self.await_boot_sequence()
+            await self.save_snapshot(self.DEFAULT_SNAPSHOT)
         except Exception as e:
             print(f"Setup failed: {e}")
-            # Try to get any remaining stderr
-            if self.qemu_process and not self.qemu_process.stderr.at_eof():
-                remaining_error = await self.qemu_process.stderr.read()
-                print(f"[DEBUG]: Remaining QEMU errors: {remaining_error.decode()}")
+            if self.qemu_process:
+                try:
+                    stdout, stderr = await self.qemu_process.communicate()
+                    print(f"QEMU stdout: {stdout.decode()}")
+                    print(f"QEMU stderr: {stderr.decode()}")
+                except Exception:
+                    pass
             raise
-        finally:
-            stderr_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await stderr_task
-        await self.save_snapshot(self.DEFAULT_SNAPSHOT)
 
     async def run_command(self, command, load_snapshot=True):
         """Run a command in the VM using the saved snapshot"""
-        cmd = self._build_qemu_command(load_snapshot=load_snapshot)
+        try:
+            cmd = self._build_qemu_command(load_snapshot=load_snapshot)
+            print(f"Starting VM for command: {command}")
 
-        self.qemu_process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
+            self.qemu_process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
 
-        await self.await_boot_sequence()
-        stdout, stderr, returncode = await self.execute_ssh_command(command)
-        return stdout, stderr, returncode
+            await self.await_boot_sequence()
+            # Wait for system to be ready
+            await asyncio.sleep(10)
+
+            stdout, stderr, returncode = await self.execute_ssh_command(command)
+            return stdout, stderr, returncode
+        finally:
+            await self.stop_vm()
 
     async def stop_vm(self):
         """Stop the QEMU VM"""
-        if self.qmp:
+        if self.qmp and self.qmp.is_connected():
             try:
                 await self.qmp.execute('quit')
             except Exception as e:
@@ -544,9 +521,15 @@ APKCACHEOPTS=none
                 await self.qmp.disconnect()
 
         if self.qemu_process:
-            self.qemu_process.terminate()
-            await self.qemu_process.wait()
-
+            try:
+                self.qemu_process.terminate()
+                await asyncio.wait_for(self.qemu_process.wait(), timeout=5)
+            except asyncio.TimeoutError:
+                self.qemu_process.kill()
+                await self.qemu_process.wait()
+        # Clean up socket file
+        if os.path.exists(self.socket_path):
+            os.unlink(self.socket_path)
 
 async def main():
     parser = argparse.ArgumentParser(description="QEMU ARM64 Runner with Conda")
@@ -554,7 +537,7 @@ async def main():
     parser.add_argument("--cdrom", help="Path to ISO image")
     parser.add_argument("--drive", required=True, help="Path to QEMU QCOW2 disk image")
     parser.add_argument("--socket", default="./qmp.sock", help="Path for QMP socket")
-    parser.add_argument("--nic-port", type=int, default=2000, help="Port for NIC socket")
+    parser.add_argument("--ssh-port", type=int, default=10020, help="Port for NIC socket")
     parser.add_argument("--setup", action="store_true", help="Perform initial setup and create snapshot")
     parser.add_argument("--run", help="Command to execute in the VM")
     parser.add_argument("--load-snapshot", default=None, help="Load snapshot from file")
@@ -569,7 +552,7 @@ async def main():
         iso_image=args.cdrom,
         qcow2_path=args.drive,
         socket_path=args.socket,
-        nic_port=args.nic_port,
+        ssh_port=args.ssh_port,
     )
 
     try:
