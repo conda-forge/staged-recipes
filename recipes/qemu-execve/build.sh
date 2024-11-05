@@ -64,6 +64,7 @@ elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64
     --qemu-system "${SRC_DIR}/_conda-install-${qemu_arch}/bin/qemu-system-aarch64" \
     --cdrom ${SRC_DIR}/alpine-virt-${ALPINE_ISO_VERSION}-aarch64.iso \
     --drive ${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/alpine-conda-vm.qcow2 \
+    --socket ./qmp-sock-build \
     --setup || true
 
   "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-system-aarch64 \
@@ -78,9 +79,8 @@ elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64
     -drive if=pflash,format=raw,file="${SRC_DIR}_conda-init-${qemu_arch}/edk2-aarch64-vars.fd" \
     -drive file="${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/user-disk-image.qcow2",format=qcow2 \
     -drive file="${SRC_DIR}/custom-alpine.iso",format=raw,readonly=on \
-    -netdev user,id=net0,hostfwd=tcp::10022-:22 \
-    -device virtio-net-pci,netdev=net0 \
     -qmp unix:./qmp-sock,server \
+    -boot menu=on \
     & echo $! > qemu_pid.txt
   sleep 300
 
@@ -88,6 +88,7 @@ elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64
   python "${RECIPE_DIR}/helpers/qemu-user-aarch64.py" \
     --qemu-system "${SRC_DIR}/_conda-install-${qemu_arch}/bin/qemu-system-aarch64" \
     --drive ${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/alpine-conda-vm.qcow2 \
+    --socket ./qmp-sock-run \
     --run "conda --version"
 
 
