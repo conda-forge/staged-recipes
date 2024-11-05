@@ -123,7 +123,6 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-boot", "menu=on",
             "-drive", f"file={self.qcow2_path},format=qcow2,if=virtio",
             "-qmp", f"unix:{self.socket_path},server,nowait",
-            "-serial", "stdio",
             "-netdev", "user,id=net0,hostfwd=tcp::10022-:22",
             "-device", "virtio-net-pci,netdev=net0",
         ]
