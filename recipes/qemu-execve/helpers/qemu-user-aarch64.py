@@ -183,33 +183,48 @@ class ARM64Runner(QEMUSnapshotMixin):
 
     async def _wait_for_socket(self, timeout: int = 30) -> bool:
         """Wait for QMP socket to become available"""
-        retry_count = 0
-        while not os.path.exists(self.socket_path):
-            if retry_count >= timeout:
+        start_time = asyncio.get_event_loop().time()
+        while True:
+            if os.path.exists(self.socket_path):
+                try:
+                    # Test if socket is actually ready
+                    reader, writer = await asyncio.open_unix_connection(self.socket_path)
+                    writer.close()
+                    await writer.wait_closed()
+                    print("[Socket]: Socket is ready for connection")
+                    return True
+                except Exception:
+                    pass
+
+            elapsed = asyncio.get_event_loop().time() - start_time
+            if elapsed >= timeout:
+                print(f"[Socket]: Timeout waiting for socket after {elapsed:.1f}s")
                 return False
+
+            if not self.qemu_process or self.qemu_process.returncode is not None:
+                print("[Socket]: QEMU process is not running")
+                return False
+
             await asyncio.sleep(1)
-            retry_count += 1
-            if retry_count % 5 == 0:
-                print(f"[Socket]: Waiting for socket file... ({retry_count}s)")
-        return True
+            if int(elapsed) % 5 == 0:
+                print(f"[Socket]: Waiting for socket... ({int(elapsed)}s)")
 
     async def _connect_qmp(self) -> bool:
         """Establish QMP connection with retries"""
-        for attempt in range(3):
-            try:
-                await self.qmp.connect(self.socket_path)
-                print("[QMP]: Connected to socket")
+        try:
+            await self.qmp.connect(self.socket_path)
+            print("[QMP]: Connected to socket")
 
-                await asyncio.sleep(1)
-                with contextlib.suppress(Exception):
-                    await self.qmp.execute('qmp_capabilities')
-                    print("[QMP]: Capabilities negotiated")
+            await asyncio.sleep(1)
+            with contextlib.suppress(Exception):
+                await self.qmp.execute('qmp_capabilities')
+                print("[QMP]: Capabilities negotiated")
 
-                return True
-            except Exception as e:
-                print(f"[QMP]: Connection attempt {attempt + 1} failed: {e}")
-                await asyncio.sleep(2)
-        return False
+            return True
+        except Exception as e:
+            print(f"[QMP]: Connection failed: {e}")
+            await asyncio.sleep(2)
+            return False
 
     async def create_alpine_overlay(self):
         """Create Alpine overlay with automation scripts"""
@@ -519,17 +534,34 @@ APKCACHEOPTS=none
             self.process_manager.save_pid(self.qemu_process.pid)
             print(f"[Process]: QEMU started with PID {self.qemu_process.pid}")
 
-            # Wait for socket and establish QMP connection
-            if not await self._wait_for_socket():
-                raise TimeoutError("Socket creation timeout")
+            await asyncio.sleep(2)
 
-            if not await self._connect_qmp():
-                raise ConnectionError("Failed to establish QMP connection")
+            # Attempt QMP connection with retries
+            for attempt in range(5):  # Increased retry attempts
+                try:
+                    if await self._connect_qmp():
+                        print("[QMP]: Successfully connected and negotiated capabilities")
 
-            return True
+                        # Verify VM is running
+                        status = await self.qmp.execute('query-status')
+                        if status['status'] != 'running':
+                            raise RuntimeError(f"VM is not running: {status}")
+
+                        return True
+                except Exception as e:
+                    print(f"[QMP]: Connection attempt {attempt + 1} failed: {e}")
+                    if attempt < 4:  # Don't sleep on last attempt
+                        await asyncio.sleep(5)  # Increased delay between attempts
+
+            raise ConnectionError("Failed to establish QMP connection after all attempts")
 
         except Exception as e:
             print(f"[Error]: Failed to start VM: {e}")
+            if self.qemu_process and self.qemu_process.returncode is not None:
+                stdout, stderr = await self.qemu_process.communicate()
+                print("[QEMU] Process output:")
+                print(f"stdout: {stdout.decode()}")
+                print(f"stderr: {stderr.decode()}")
             await self.stop_vm()
             return False
 
@@ -581,6 +613,7 @@ APKCACHEOPTS=none
     async def run_command(self, command, load_snapshot=True):
         """Run a command in the VM using the saved snapshot"""
         try:
+            print(f"[Command]: Starting VM to execute: {command}")
             if not await self.start_vm(load_snapshot or self.DEFAULT_SNAPSHOT):
                 return "", "Failed to start VM", 1
 
@@ -597,7 +630,7 @@ APKCACHEOPTS=none
 
     async def stop_vm(self):
         """Stop the QEMU VM"""
-        if self.qmp and self.qmp.is_connected():
+        if self.qmp and self.qmp.execute('query-status')['status'] == 'running':
             try:
                 await self.qmp.execute('quit')
             except Exception as e:
