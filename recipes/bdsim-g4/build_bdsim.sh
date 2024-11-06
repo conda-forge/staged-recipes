@@ -4,7 +4,8 @@ set -eux
 mkdir bdsim-build
 cd bdsim-build
 
-cmake -DCMAKE_PREFIX_PATH=${PREFIX}/lib/cmake/Geant4/ \
+cmake $CMAKE_ARGS \
+      -DCMAKE_PREFIX_PATH=${PREFIX}/lib/cmake/Geant4/ \
       -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
       "${SRC_DIR}"
 
