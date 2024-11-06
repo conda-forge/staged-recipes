@@ -50,8 +50,17 @@ def _lint_recipes(gh, pr):
 
     # 3. Ensure environment.yaml and pixi.toml are in sync
     original_environment_yaml = (ROOT / "environment.yaml").read_text()
-    pixi_exported_env_yaml = check_output(["pixi", "project", "export", "conda-environment"])
+    pixi_exported_env_yaml = check_output(
+        ["pixi", "project", "export", "conda-environment"],
+        text=True,
+    )
     if original_environment_yaml != pixi_exported_env_yaml:
+        import difflib
+
+        _orig_lines = original_environment_yaml.splitlines(keepends=True)
+        _expt_lines = pixi_exported_env_yaml.splitlines(keepends=True)
+        print("environment diff:", flush=True)
+        print(''.join(difflib.unified_diff(_orig_lines, _expt_lines)), flush=True)
         lints["environment.yaml"].append(
             "Environment file is out of sync with pixi.toml. "
             "Fix by running `pixi project export conda-environment > environment.yaml`."
