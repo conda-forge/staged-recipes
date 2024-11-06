@@ -1,0 +1,162 @@
+{% set version = "2022.0.0" %}
+
+{% set vmajor = version.split('.')[0]|int %}
+{% set vminor = version.split('.')[1]|int %}
+{% set vpatch = version.split('.')[2]|int %}
+{% set vbinary = vmajor - 2009 %}
+
+{% set vtag = "v" ~ version.replace(".rc", "-rc") %}
+
+# Official patch version for the first release of 2021 is 1,
+# but internal patch version is 0, handle it for interface version.
+{% set vinterface = "%d" % (vbinary * 1000 + vminor * 10 + (vpatch if vmajor != 2021 or vminor != 1 else 0)) %}
+
+# Libraries on Windows are expected to be installed into LIBRARY_PREFIX.
+# tbb4py files should be installed into PREFIX.
+# See https://docs.conda.io/projects/conda-build/en/latest/user-guide/environment-variables.html.
+# On non-Windows CMAKE_ARGS already contains CMAKE_INSTALL_PREFIX.
+# CMAKE_PREFIX_PATH is needed to discover libhwloc with PkgConfig.
+{% set cmake_args = "%CMAKE_ARGS% -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX%" %}
+
+# Use specific test list agreed with TBB team to cover core functionality on high level.
+# Execution of all tests is too heavy task for packaging CI.
+# test_malloc_compliance is temporary excluded from the list since it causes failures that likely appear due to test implementation or env misconfiguration.
+# oneTBB issue: https://github.com/oneapi-src/oneTBB/issues/700
+# Agreed with oneTBB developers that it is suitable approach since the product is fully tested on oneTBB side.
+{% set tests = "test_parallel_for test_tbb_header conformance_version test_flow_graph test_arena_constraints" %}
+{% set ctest_regex = "^(%s)$" % (tests.replace(' ', '|')) %}
+
+package:
+  name: m2w64-tbb
+  version: {{ version }}
+
+source:
+  url: https://github.com/oneapi-src/oneTBB/archive/refs/tags/{{ vtag }}.tar.gz
+  sha256: e8e89c9c345415b17b30a2db3095ba9d47647611662073f7fbf54ad48b7f3c2a
+
+build:
+  number: 0
+  skip: True  # [not win]
+
+requirements:
+  build:
+    - python *
+    - {{ compiler('m2w64_cxx') }}
+    - {{ stdlib("m2w64_c") }}
+    - ninja
+    - cmake
+    - pkg-config
+  host:
+    - libhwloc >=2.5
+  run_constrained:
+    - tbb >=2021
+
+outputs:
+  - name: m2w64-tbb
+    about:
+      summary: TBB Libraries
+      license_file:
+        - LICENSE.txt
+        - third-party-programs.txt
+    build:
+      script:
+        - set CMAKE_GENERATOR=Ninja
+        # unset option that ninja complains about
+        - set CMAKE_GENERATOR_TOOLSET=
+        - set CMAKE_GENERATOR_PLATFORM=
+        - set CMAKE_CXX_COMPILER=g++
+        - set CMAKE_C_COMPILER=gcc
+        - cmake {{ cmake_args }} -DTBB_TEST=OFF -S . -B build
+        - cmake --build build --parallel
+        - cmake -DCOMPONENT=runtime -P build/cmake_install.cmake
+    requirements:
+      host:
+        - libhwloc >=2.5
+    test:
+      requires:
+        # any python version is ok for sake of testing of shared libraries
+        - python *
+      commands:
+        {% set libname = "tbb" ~ vbinary ~ ".dll" %}                       # [win]
+        {% set win_extra = "os.add_dll_directory(os.environ['LIBRARY_BIN']); " if win else "" %}
+        - python -c "import ctypes, os; {{ win_extra }} assert {{ vinterface }} == ctypes.cdll[r'{{ libname }}']['TBB_runtime_interface_version']()"
+
+  - name: m2w64-tbb-devel
+    about:
+      summary: TBB Development files
+      license_file:
+        - LICENSE.txt
+        - third-party-programs.txt
+    build:
+      script:
+        - set CMAKE_GENERATOR=Ninja
+        - set CMAKE_GENERATOR_TOOLSET=
+        - set CMAKE_GENERATOR_PLATFORM=
+        - set CMAKE_CXX_COMPILER=g++
+        - set CMAKE_C_COMPILER=gcc
+        - cmake {{ cmake_args }} -DTBB_TEST=OFF -S . -B build
+        - cmake --build build --parallel
+        - cmake -DCOMPONENT=devel -P build/cmake_install.cmake
+      run_exports:
+        - tbb >={{ version }}
+      ignore_run_exports:
+        - libhwloc
+    requirements:
+      build:
+        - python *
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+        - ninja
+        - cmake >=3.13
+        - pkg-config
+      host:
+        - libhwloc
+      run:
+        - {{ pin_subpackage('tbb', exact=True) }}        # development package is for specific version of tbb
+    test:
+      requires:
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+        - ninja
+        - cmake
+        - pkg-config
+        - libhwloc
+        # When cross-compiling we need to get uname from coreutils so that
+        # CMAKE_SYSTEM_PROCESSOR is set to the correct value
+        - coreutils  # [build_platform != target_platform]
+      source_files:
+        - cmake
+        - test
+        - CMakeLists.txt
+        - include  # some tests depend on files from include
+        - integration  # same
+        - src      # some tests depend on files from src
+      commands:
+        - set CMAKE_GENERATOR=Ninja
+        - set CMAKE_GENERATOR_TOOLSET=
+        - set CMAKE_GENERATOR_PLATFORM=
+        - set CMAKE_CXX_COMPILER=g++
+        - set CMAKE_C_COMPILER=gcc
+        # Setting TBB_DIR=ON and TBB_FIND_PACKAGE=ON is needed to use libraries from the tested package,
+        # but do not build them from sources; real path to TBBConfig files is not required,
+        # because CMake will successfully find installed tested package.
+        - cmake {{ cmake_args }} -DTBB_TEST=ON -DTBB_DIR=ON -DTBB_FIND_PACKAGE=ON -S . -B test_build
+        - cmake --build test_build --target {{ tests }} --parallel  # build tests
+        - cd test_build
+        - ctest -R "{{ ctest_regex }}" --output-on-failure
+
+
+
+about:
+  home: https://github.com/oneapi-src/oneTBB
+  license: Apache-2.0
+  license_file:
+    - LICENSE.txt
+    - third-party-programs.txt
+  summary: High level abstract threading library
+  dev_url: https://github.com/oneapi-src/oneTBB
+  doc_url: https://software.intel.com/en-us/oneapi-tbb-documentation
+
+extra:
+  recipe-maintainers:
+    - WardBrian
