@@ -63,7 +63,7 @@ popd > /dev/null
 
 if ! command -v pixi >/dev/null 2>&1; then
   echo "Installing pixi"
-  curl -fsSL https://pixi.sh/install.sh | bash
+  curl -fsSL https://pixi.sh/install.sh | sed 's/--no-progress-meter//g' | bash
   export PATH="~/.pixi/bin:$PATH"
 fi
 echo "Creating environment"
