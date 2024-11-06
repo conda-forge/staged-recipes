@@ -150,7 +150,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-name", f"QEMU User ({os.path.basename(self.qemu_system)})",
             "-M", "virt",
             "-cpu", "max",
-            "-m", 2048,
+            "-m", "2048",
             "-nographic",
             "-drive", f"file={self.qcow2_path},format=qcow2",
             "-qmp", f"unix:{self.socket_path},server,nowait",
