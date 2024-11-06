@@ -1,0 +1,68 @@
+context:
+  name: loguru-cpp
+  # The upstream repo is not very active anymore and contain commits since the last release
+  # from 09/2019. A proper git tag has been asked at https://github.com/emilk/loguru/issues/253.
+  # In the meantime, we use the last version with the commit hash and date as the version string.
+  git_hash_date: "20230406"
+  git_hash: 4adaa18
+  version: ${{ "2.1.0.post" + git_hash_date + "." + git_hash }}
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  # See https://github.com/emilk/loguru/issues/253
+  url: https://github.com/emilk/loguru/archive/${{ git_hash }}.zip
+  sha256: da272cae7a177217a02fbb2622bd0ce80f3b0b6a4ffb71579c186d80ecf81f2e
+
+build:
+  number: 0
+  script:
+    - if: win
+      then: |
+        cmake -GNinja ^
+            -DCMAKE_INSTALL_PREFIX=%LIBRARY_PREFIX% ^
+            -DBUILD_SHARED_LIBS=ON ^
+            -DLOGURU_WITH_STREAMS=ON ^
+            %SRC_DIR%
+        ninja install
+      else: |
+        cmake -GNinja \
+              -DCMAKE_INSTALL_PREFIX=$PREFIX \
+              -DBUILD_SHARED_LIBS=ON \
+              -DLOGURU_WITH_STREAMS=ON \
+              $SRC_DIR
+        ninja install
+
+requirements:
+  build:
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib("c") }}
+    - cmake
+    - ninja
+  run_exports:
+    - ${{ pin_subpackage(name, upper_bound='x.x.x') }}
+
+tests:
+  - package_contents:
+      include:
+        - loguru/loguru.hpp
+      lib:
+        - ${{ "loguru" if unix }}
+      files:
+        - "*/loguru.pc"
+        - "*/loguru-config-version.cmake"
+        - "*/loguru-config.cmake"
+        - "*/loguru-targets.cmake"
+        - ${{ "Library/bin/logurud.dll" if win }}
+
+about:
+  summary: A lightweight C++ logging library
+  license: Unlicense
+  license_file: LICENSE
+  homepage: https://github.com/emilk/loguru
+
+extra:
+  recipe-maintainers:
+    - hadim
