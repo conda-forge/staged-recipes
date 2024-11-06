@@ -630,7 +630,7 @@ APKCACHEOPTS=none
 
     async def stop_vm(self):
         """Stop the QEMU VM"""
-        if self.qmp and self.qmp.execute('query-status')['status'] == 'running':
+        if self.qmp and await self.qmp.execute('query-status')['status'] == 'running':
             try:
                 await self.qmp.execute('quit')
             except Exception as e:
