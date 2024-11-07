@@ -116,7 +116,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             qcow2_path,
             socket_path,
             iso_image=None,
-            ssh_port=10022
+            ssh_port=10022,
     ):
         self.qemu_system = qemu_system
         self.iso_image = iso_image
@@ -148,14 +148,22 @@ class ARM64Runner(QEMUSnapshotMixin):
         cmd = [
             self.qemu_system,
             "-name", f"QEMU User ({os.path.basename(self.qemu_system)})",
-            "-M", "virt",
-            "-cpu", "max",
+            "-M", "virt,secure=on",
+            "-cpu", "cortex-a57",
             "-m", "2048",
             "-nographic",
-            "-drive", f"file={self.qcow2_path},format=qcow2",
-            "-qmp", f"unix:{self.socket_path},server,nowait",
+
+            # Storage configuration
+            "-device", "virtio-scsi-pci,id=scsi0",
+            "-drive", f"file={self.qcow2_path},format=qcow2,if=none,id=drive0",
+            "-device", "scsi-hd,drive=drive0,bus=scsi0.0",
+
+            # Network configuration
             "-netdev", f"user,id=net0,hostfwd=tcp::{self.ssh_port}-:22",
-            "-device", "virtio-net-pci,netdev=net0",
+            "-device", "virtio-net-pci,netdev=net0,id=net0",
+
+            # QMP configuration
+            "-qmp", f"unix:{self.socket_path},server,nowait",
         ]
 
         # Add UEFI firmware if available
@@ -168,8 +176,12 @@ class ARM64Runner(QEMUSnapshotMixin):
                 "-drive", f"if=pflash,format=raw,file={edk2_vars}"
             ])
 
-        if iso_to_use := self.custom_iso_path or self.iso_image:
-            cmd.extend(["-cdrom", iso_to_use])
+        if (iso_to_use := self.custom_iso_path or self.iso_image) and not load_snapshot:
+            cmd.extend([
+                "-drive", f"file={self.iso_image},format=raw,if=none,id=cdrom0,readonly=on",
+                "-device", "scsi-cd,drive=cdrom0,bus=scsi0.0"
+            ])
+            #cmd.extend(["-cdrom", iso_to_use])
 
         if platform.machine() == 'arm64':
             cmd.extend(["-accel", "hvf"])
