@@ -643,7 +643,6 @@ APKCACHEOPTS=none
             return False
         finally:
             await self.stop_vm()
-            raise
 
     async def run_command(self, command, load_snapshot=True):
         """Run a command in the VM using the saved snapshot"""
