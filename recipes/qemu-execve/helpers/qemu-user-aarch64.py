@@ -547,6 +547,29 @@ APKCACHEOPTS=none
                         if status['status'] != 'running':
                             raise RuntimeError(f"VM is not running: {status}")
 
+                        retry_count = 0
+                        boot_timeout = 10
+                        while retry_count < boot_timeout:
+                            try:
+                                info = await self.qmp.execute('query-name')
+                                if info:
+                                    print(
+                                        f"[QMP]: VM has finished booting. VM name: {info.get('name', 'Unknown')}")
+                                    break
+                            except Exception as e:
+                                print(f"[Boot]: Error reading output: {e}")
+
+                            retry_count += 1
+                            await asyncio.sleep(30)
+
+                            # Check if process is still alive
+                            if self.qemu_process.returncode is not None:
+                                raise RuntimeError(
+                                    f"QEMU process died during boot with code {self.qemu_process.returncode}")
+
+                        if retry_count == boot_timeout:
+                            raise TimeoutError(f"Boot sequence not completed after {30 * boot_timeout} seconds")
+
                         return True
                 except Exception as e:
                     print(f"[QMP]: Connection attempt {attempt + 1} failed: {e}")
@@ -630,7 +653,7 @@ APKCACHEOPTS=none
 
     async def stop_vm(self):
         """Stop the QEMU VM"""
-        if self.qmp and await self.qmp.execute('query-status')['status'] == 'running':
+        if self.qmp and await self.qmp.execute('query-name'):
             try:
                 await self.qmp.execute('quit')
             except Exception as e:
