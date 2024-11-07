@@ -1,0 +1,78 @@
+{% set name = "collier" %}
+{% set version = "1.2.8" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://collier.hepforge.org/downloads/?f={{ name }}-{{ version }}.tar.gz
+  sha256: 5cb24ce24ba1f62b7a96c655b31e9fddccc603eff31e60f9033b16354a6afd89
+  folder: source
+
+build:
+  skip: true  # [win]
+  number: 0
+  run_exports:
+    - {{ pin_subpackage('collier', max_pin='x.x') }}
+  script:
+    - cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_Fortran_COMPILER=$FC -S source -B build
+    - cmake -LH build
+    - cmake --build build --clean-first --parallel="${CPU_COUNT}"
+    - cmake --install build
+
+requirements:
+  build:
+    - {{ stdlib('c') }}
+    - {{ compiler('cxx') }}  # Not used, but needed for CMake to not error
+    - {{ compiler('fortran') }}
+    - cmake
+    - make
+
+test:
+  files:
+    - $PREFIX/lib/cmake/collierConfig.cmake
+    - $PREFIX/lib/cmake/collierConfigVersion.cmake
+    - $PREFIX/lib/libcollier.so
+    - $PREFIX/include/collier.mod
+  source_files:
+    - source/demos
+  requires:
+    - {{ compiler('fortran') }}
+  commands:
+    - cd source/demos
+    - $FC demo.f90 -o demo -I$PREFIX/include -lcollier
+    - $FC democache.f90 -o democache -I$PREFIX/include -lcollier
+    - ./democache
+
+about:
+  home: https://collier.hepforge.org/
+  summary: 'COLLIER: A Complex One-Loop LIbrary with Extended Regularizations'
+  description: |
+    COLLIER is a fortran library for the numerical evaluation of one-loop
+    scalar and tensor integrals appearing in perturbative relativistic
+    quantum field theory with the following features:
+    * scalar and tensor integrals for high particle multiplicities
+    * dimensional regularization for ultraviolet divergences
+    * dimensional regularization for soft infrared divergences (mass
+      regularization for abelian soft divergences is supported as well)
+    * dimensional regularization or mass regularization for collinear mass
+      singularities
+    * complex internal masses (for unstable particles) fully supported
+      (external momenta and virtualities are expected to be real)
+    * numerically dangerous regions (small Gram or other kinematical
+      determinants) cured by dedicated expansions
+    * two independent implementations of all basic building blocks allow
+      for internal cross-checks
+    * cache system to speed up calculations
+
+    If you use Collier for a publication, please cite all the references
+    listed [here](https://collier.hepforge.org/documentation.html).
+  license: GPL-3.0-only
+  license_family: GPL
+  license_file: source/COPYING
+  doc_url: https://collier.hepforge.org/documentation.html
+
+extra:
+  recipe-maintainers:
+    - matthewfeickert
