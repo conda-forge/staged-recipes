@@ -172,20 +172,22 @@ class ARM64Runner(QEMUSnapshotMixin):
 
         # Drive configuration
         cmd.extend([
-            "-drive", f"file={self.qcow2_path},format=qcow2"
+            "-device", "virtio-blk-pci,drive=hd0,addr=0x3",
+            "-drive", f"file={self.qcow2_path},if=none,id=hd0,format=qcow2"
         ])
 
         if (iso_to_use := self.custom_iso_path or self.iso_image) and not load_snapshot:
             cmd.extend([
-                "-drive", f"file={iso_to_use},format=raw,readonly=on"
+                "-device", "virtio-blk-pci,drive=cd0,addr=0x4",
+                "-drive", f"file={iso_to_use},if=none,id=cd0,format=raw,readonly=on"
             ])
             # cmd.extend(["-cdrom", iso_to_use])
 
         # QMP/network configuration
         cmd.extend([
-            "-qmp", f"unix:{self.socket_path},server,nowait",
+            "-device", "virtio-net-pci,netdev=net0,addr=0x5",
             "-netdev", f"user,id=net0,hostfwd=tcp::{self.ssh_port}-:22",
-            "-device", "virtio-net-pci,netdev=net0"
+            "-qmp", f"unix:{self.socket_path},server,nowait"
         ])
 
         if platform.machine() == 'arm64':
