@@ -145,6 +145,11 @@ class ARM64Runner(QEMUSnapshotMixin):
         socket_dir = os.path.dirname(self.socket_path)
         os.makedirs(socket_dir, exist_ok=True)
 
+        # Get paths for UEFI firmware
+        qemu_dir = os.path.dirname(self.qemu_system)
+        edk2_code = os.path.join(qemu_dir, "share/qemu/edk2-aarch64-code.fd")
+        edk2_vars = os.path.join(qemu_dir, "../edk2-aarch64-vars.fd")
+
         cmd = [
             self.qemu_system,
             "-name", f"QEMU User ({os.path.basename(self.qemu_system)})",
@@ -152,15 +157,36 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-cpu", "cortex-a57",
             "-m", "2048",
             "-nographic",
-            "-drive", f"file={self.qcow2_path},format=qcow2,if=none,id=drive0",
-            "-netdev", f"user,id=net0,hostfwd=tcp::{self.ssh_port}-:22",
-            "-device", "virtio-net-pci,netdev=net0,id=net0",
-            "-qmp", f"unix:{self.socket_path},server,nowait",
+            "-boot", "d",
         ]
 
-        if (iso_to_use := self.custom_iso_path or self.iso_image) and not load_snapshot:
-            cmd.extend(["-cdrom", iso_to_use])
+        # Add UEFI firmware if available
+        if os.path.exists(edk2_code):
+            cmd.extend([
+                "-drive", f"if=pflash,format=raw,file={edk2_code},readonly=on"
+            ])
+            if os.path.exists(edk2_vars):
+                cmd.extend([
+                    "-drive", f"if=pflash,format=raw,file={edk2_vars}"
+                ])
 
+        # Drive configuration
+        cmd.extend([
+            "-drive", f"file={self.qcow2_path},format=qcow2"
+        ])
+
+        if (iso_to_use := self.custom_iso_path or self.iso_image) and not load_snapshot:
+            cmd.extend([
+                "-drive", f"file={iso_to_use},format=raw,readonly=on"
+            ])
+            # cmd.extend(["-cdrom", iso_to_use])
+
+        # QMP/network configuration
+        cmd.extend([
+            "-qmp", f"unix:{self.socket_path},server,nowait",
+            "-netdev", f"user,id=net0,hostfwd=tcp::{self.ssh_port}-:22",
+            "-device", "virtio-net-pci,netdev=net0"
+        ])
         if platform.machine() == 'arm64':
             cmd.extend(["-accel", "hvf"])
         else:
@@ -202,6 +228,21 @@ class ARM64Runner(QEMUSnapshotMixin):
     async def _connect_qmp(self) -> bool:
         """Establish QMP connection with retries"""
         try:
+            print("[QEMU]: Waiting for QMP socket...")
+            socket_timeout = 30
+            start_time = asyncio.get_event_loop().time()
+
+            while not os.path.exists(self.socket_path):
+                if self.qemu_process.returncode is not None:
+                    stdout, stderr = await self.qemu_process.communicate()
+                    print(f"[QEMU] Process terminated:\nstdout: {stdout.decode()}\nstderr: {stderr.decode()}")
+                    raise RuntimeError("QEMU process terminated unexpectedly")
+
+                if asyncio.get_event_loop().time() - start_time > socket_timeout:
+                    raise TimeoutError(f"Socket not created after {socket_timeout} seconds")
+
+                await asyncio.sleep(1)
+
             await self.qmp.connect(self.socket_path)
             print("[QMP]: Connected to socket")
 
@@ -519,6 +560,9 @@ APKCACHEOPTS=none
             )
 
             if self.qemu_process.returncode is not None:
+                stdout, stderr = await self.qemu_process.communicate()
+                print(f"[QEMU] stdout: {stdout.decode()}")
+                print(f"[QEMU] stderr: {stderr.decode()}")
                 raise RuntimeError(f"QEMU process failed to start (code: {self.qemu_process.returncode})")
 
             self.process_manager.save_pid(self.qemu_process.pid)
