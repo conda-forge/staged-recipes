@@ -43,71 +43,7 @@ class ProcessManager:
                 os.remove(self.pid_file)
 
 
-class QEMUSnapshotMixin(QMPProtocol):
-    """Mixin class for QEMU snapshot management.
-
-    Required attributes from parent class:
-    - qmp: QMPClient instance
-    """
-
-    async def list_snapshots(self) -> str:
-        """List all available snapshots in the VM."""
-        try:
-            response = await self.qmp.execute('human-monitor-command',
-                                              {'command-line': 'info snapshots'})
-            print("[QMP]: Available snapshots:")
-            print(response)
-            return response
-        except Exception as e:
-            print(f"[QMP]: Error listing snapshots: {e}")
-            return ""
-
-    async def save_snapshot(self, name: str) -> bool:
-        try:
-            print(f"[QMP]: Creating snapshot '{name}'...")
-            await self.qmp.execute('human-monitor-command',
-                                   {'command-line': f'savevm {name}'})
-            print("[QMP]: Snapshot created successfully")
-            return True
-        except Exception as e:
-            print(f"[QMP]: Error creating snapshot: {e}")
-            return False
-
-    async def load_snapshot(self, name: str) -> bool:
-        try:
-            print(f"[QMP]: Loading snapshot '{name}'...")
-            await self.qmp.execute('human-monitor-command',
-                                   {'command-line': f'loadvm {name}'})
-            print("[QMP]: Snapshot loaded successfully")
-            return True
-        except Exception as e:
-            print(f"[QMP]: Error loading snapshot: {e}")
-            return False
-
-    async def delete_snapshot(self, name: str) -> bool:
-        try:
-            print(f"[QMP]: Deleting snapshot '{name}'...")
-            await self.qmp.execute('human-monitor-command',
-                                   {'command-line': f'delvm {name}'})
-            print("[QMP]: Snapshot deleted successfully")
-            return True
-        except Exception as e:
-            print(f"[QMP]: Error deleting snapshot: {e}")
-            return False
-
-    async def snapshot_exists(self, name: str) -> bool:
-        snapshots = await self.list_snapshots()
-        return name in snapshots
-
-    async def ensure_snapshot(self, name: str, setup_func) -> bool:
-        if not await self.snapshot_exists(name):
-            print(f"[QMP]: Snapshot '{name}' not found, creating...")
-            await setup_func()
-            return await self.save_snapshot(name)
-        return True
-
-
-class ARM64Runner(QEMUSnapshotMixin):
+class ARM64Runner:
     DEFAULT_SNAPSHOT = "conda"
 
     def __init__(
@@ -152,36 +88,14 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-cpu", "cortex-a57",
             "-m", "2048",
             "-nographic",
-
-            # Storage configuration
-            "-device", "virtio-scsi-pci,id=scsi0",
             "-drive", f"file={self.qcow2_path},format=qcow2,if=none,id=drive0",
-            "-device", "scsi-hd,drive=drive0,bus=scsi0.0",
-
-            # Network configuration
             "-netdev", f"user,id=net0,hostfwd=tcp::{self.ssh_port}-:22",
             "-device", "virtio-net-pci,netdev=net0,id=net0",
-
-            # QMP configuration
             "-qmp", f"unix:{self.socket_path},server,nowait",
         ]
 
-        # Add UEFI firmware if available
-        edk2_code = os.path.join(os.path.dirname(self.qemu_system), "../share/qemu/edk2-aarch64-code.fd")
-        edk2_vars = os.path.join(os.path.dirname(self.qemu_system), "../share/qemu/edk2-aarch64-vars.fd")
-
-        if os.path.exists(edk2_code) and os.path.exists(edk2_vars):
-            cmd.extend([
-                "-drive", f"if=pflash,format=raw,file={edk2_code},readonly=on",
-                "-drive", f"if=pflash,format=raw,file={edk2_vars}"
-            ])
-
         if (iso_to_use := self.custom_iso_path or self.iso_image) and not load_snapshot:
-            cmd.extend([
-                "-drive", f"file={self.iso_image},format=raw,if=none,id=cdrom0,readonly=on",
-                "-device", "scsi-cd,drive=cdrom0,bus=scsi0.0"
-            ])
-            #cmd.extend(["-cdrom", iso_to_use])
+            cmd.extend(["-cdrom", iso_to_use])
 
         if platform.machine() == 'arm64':
             cmd.extend(["-accel", "hvf"])
