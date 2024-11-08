@@ -62,10 +62,10 @@ elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64
   # Initialize qemu image
   python "${RECIPE_DIR}/helpers/qemu-user-aarch64.py" \
     --qemu-system "${SRC_DIR}/_conda-install-${qemu_arch}/bin/qemu-system-aarch64" \
-    --cdrom ${SRC_DIR}/alpine-virt-${ALPINE_ISO_VERSION}-aarch64.iso \
+    --cdrom "${SRC_DIR}/alpine-virt-${ALPINE_ISO_VERSION}-aarch64.iso" \
     --drive "${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/alpine-conda-vm.qcow2" \
-    --socket ./qmp-sock-build \
-    --setup || true
+    --socket "./qmp-sock" \
+    --setup
   ls -lrt
 
   # "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-system-aarch64 \
@@ -89,9 +89,8 @@ elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64
   python "${RECIPE_DIR}/helpers/qemu-user-aarch64.py" \
     --qemu-system "${SRC_DIR}/_conda-install-${qemu_arch}/bin/qemu-system-aarch64" \
     --drive "${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/alpine-conda-vm.qcow2" \
-    --socket ./qmp-sock-run \
+    --socket "./qmp-sock" \
     --run "conda --version"
-
 
   # sleep 60
   # python "${RECIPE_DIR}/helpers/qmp-vm-build.py"
