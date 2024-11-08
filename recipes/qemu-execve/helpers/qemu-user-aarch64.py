@@ -43,7 +43,71 @@ class ProcessManager:
                 os.remove(self.pid_file)
 
 
-class ARM64Runner:
+class QEMUSnapshotMixin(QMPProtocol):
+    """Mixin class for QEMU snapshot management.
+
+    Required attributes from parent class:
+    - qmp: QMPClient instance
+    """
+
+    async def list_snapshots(self) -> str:
+        """List all available snapshots in the VM."""
+        try:
+            response = await self.qmp.execute('human-monitor-command',
+                                              {'command-line': 'info snapshots'})
+            print("[QMP]: Available snapshots:")
+            print(response)
+            return response
+        except Exception as e:
+            print(f"[QMP]: Error listing snapshots: {e}")
+            return ""
+
+    async def save_snapshot(self, name: str) -> bool:
+        try:
+            print(f"[QMP]: Creating snapshot '{name}'...")
+            await self.qmp.execute('human-monitor-command',
+                                   {'command-line': f'savevm {name}'})
+            print("[QMP]: Snapshot created successfully")
+            return True
+        except Exception as e:
+            print(f"[QMP]: Error creating snapshot: {e}")
+            return False
+
+    async def load_snapshot(self, name: str) -> bool:
+        try:
+            print(f"[QMP]: Loading snapshot '{name}'...")
+            await self.qmp.execute('human-monitor-command',
+                                   {'command-line': f'loadvm {name}'})
+            print("[QMP]: Snapshot loaded successfully")
+            return True
+        except Exception as e:
+            print(f"[QMP]: Error loading snapshot: {e}")
+            return False
+
+    async def delete_snapshot(self, name: str) -> bool:
+        try:
+            print(f"[QMP]: Deleting snapshot '{name}'...")
+            await self.qmp.execute('human-monitor-command',
+                                   {'command-line': f'delvm {name}'})
+            print("[QMP]: Snapshot deleted successfully")
+            return True
+        except Exception as e:
+            print(f"[QMP]: Error deleting snapshot: {e}")
+            return False
+
+    async def snapshot_exists(self, name: str) -> bool:
+        snapshots = await self.list_snapshots()
+        return name in snapshots
+
+    async def ensure_snapshot(self, name: str, setup_func) -> bool:
+        if not await self.snapshot_exists(name):
+            print(f"[QMP]: Snapshot '{name}' not found, creating...")
+            await setup_func()
+            return await self.save_snapshot(name)
+        return True
+
+
+class ARM64Runner(QEMUSnapshotMixin):
     DEFAULT_SNAPSHOT = "conda"
 
     def __init__(
