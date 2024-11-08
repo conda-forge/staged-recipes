@@ -145,11 +145,6 @@ class ARM64Runner(QEMUSnapshotMixin):
         socket_dir = os.path.dirname(self.socket_path)
         os.makedirs(socket_dir, exist_ok=True)
 
-        # Get paths for UEFI firmware
-        qemu_dir = os.path.dirname(self.qemu_system)
-        edk2_code = os.path.join(qemu_dir, "share/qemu/edk2-aarch64-code.fd")
-        edk2_vars = os.path.join(qemu_dir, "../edk2-aarch64-vars.fd")
-
         cmd = [
             self.qemu_system,
             "-name", f"QEMU User ({os.path.basename(self.qemu_system)})",
@@ -157,8 +152,13 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-cpu", "cortex-a57",
             "-m", "2048",
             "-nographic",
-            "-boot", "d",
+            "-boot", "menu=on",
         ]
+
+        # Get paths for UEFI firmware
+        qemu_dir = os.path.dirname(self.qemu_system)
+        edk2_code = os.path.join(qemu_dir, "share/qemu/edk2-aarch64-code.fd")
+        edk2_vars = os.path.join(qemu_dir, "../edk2-aarch64-vars.fd")
 
         # Add UEFI firmware if available
         if os.path.exists(edk2_code):
@@ -187,6 +187,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-netdev", f"user,id=net0,hostfwd=tcp::{self.ssh_port}-:22",
             "-device", "virtio-net-pci,netdev=net0"
         ])
+
         if platform.machine() == 'arm64':
             cmd.extend(["-accel", "hvf"])
         else:
@@ -636,6 +637,16 @@ APKCACHEOPTS=none
             custom_iso = await self.create_custom_alpine_iso(self.iso_image, overlay)
             self.custom_iso_path = custom_iso
 
+            if not os.path.exists(self.qcow2_path):
+                print(f"[Setup]: Creating new disk image at {self.qcow2_path}")
+                os.makedirs(os.path.dirname(self.qcow2_path), exist_ok=True)
+                subprocess.run([
+                    "qemu-img", "create",
+                    "-f", "qcow2",
+                    self.qcow2_path,
+                    "20G"
+                ], check=True)
+
             # Start VM with custom ISO
             print("[Setup]: Starting VM with custom ISO...")
             if not await self.start_vm():
@@ -649,6 +660,15 @@ APKCACHEOPTS=none
             print("[Setup]: Creating initial snapshot...")
             if not await self.save_snapshot(self.DEFAULT_SNAPSHOT):
                 raise RuntimeError("Failed to create snapshot")
+
+            print("[Setup]: Stopping VM to verify snapshot...")
+            await self.stop_vm()
+            await asyncio.sleep(5)  # Wait for cleanup
+
+            # Verify snapshot by loading it
+            print("[Setup]: Verifying snapshot by loading it...")
+            if not await self.start_vm(load_snapshot=self.DEFAULT_SNAPSHOT):
+                raise RuntimeError("Failed to verify snapshot - unable to load it")
 
             print("[Setup]: Setup completed successfully")
             return True
