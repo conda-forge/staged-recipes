@@ -1,7 +1,7 @@
 
 :: Relocate CUDA major specific libraries to single prefix layout
 
-for /f "tokens=1 delims=." %%a in ("%cuda_version%") do (
+for /f "tokens=1 delims=." %%a in ("%cuda_compiler_version%") do (
     set "CUDA_MAJOR=%%a"
     break
 )

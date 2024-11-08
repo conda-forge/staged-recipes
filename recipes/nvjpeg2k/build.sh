@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Relocate CUDA major specific libraries to single prefix layout
-export CUDA_MAJOR=${cuda_version%%.*}
+export CUDA_MAJOR=${cuda_compiler_version%%.*}
 mv -v lib lib.backup
 mv -v lib.backup/${CUDA_MAJOR} lib
 rm -rv lib.backup
