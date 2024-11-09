@@ -498,6 +498,11 @@ APKCACHEOPTS=none
         """Wait for SSH to become available with retries"""
         print("[SSH]: Waiting for SSH service to become available...")
 
+        # Ensure SSH key exists
+        if not await self.generate_ssh_key():
+            print("[SSH]: Failed to generate SSH key")
+            return False
+
         for attempt in range(max_attempts):
             try:
                 # Try to connect with netcat first to check if port is open
@@ -547,6 +552,43 @@ APKCACHEOPTS=none
             await asyncio.sleep(delay)
 
         return False
+
+    async def generate_ssh_key(self) -> bool:
+        """Generate SSH key if it doesn't exist"""
+        ssh_key_path = "/Users/runner/.ssh/id_rsa"
+        ssh_dir = os.path.dirname(ssh_key_path)
+
+        try:
+            # Create .ssh directory if it doesn't exist
+            os.makedirs(ssh_dir, mode=0o700, exist_ok=True)
+
+            if not os.path.exists(ssh_key_path):
+                print("[SSH]: Generating new SSH key...")
+                keygen_cmd = [
+                    "ssh-keygen",
+                    "-t", "rsa",
+                    "-N", "",  # No passphrase
+                    "-f", ssh_key_path
+                ]
+                process = await asyncio.create_subprocess_exec(
+                    *keygen_cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await process.communicate()
+                if process.returncode != 0:
+                    print(f"[SSH]: Key generation failed: {stderr.decode()}")
+                    return False
+                print(f"[SSH]: Key generation output: {stdout.decode()}")
+
+                # Set correct permissions
+                os.chmod(ssh_key_path, 0o600)
+                os.chmod(f"{ssh_key_path}.pub", 0o644)
+
+            return True
+        except Exception as e:
+            print(f"[SSH]: Error during key generation: {e}")
+            return False
 
     async def execute_ssh_command(self, command):
         """Execute command via SSH"""
