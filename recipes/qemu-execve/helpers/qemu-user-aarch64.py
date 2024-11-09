@@ -267,6 +267,26 @@ class ARM64Runner(QEMUSnapshotMixin):
         except asyncio.CancelledError:
             return
 
+    async def check_console_output(self) -> str:
+        """Get console output from VM via QMP"""
+        try:
+            response = await self.qmp.execute('human-monitor-command',
+                                            {'command-line': 'info chardev'})
+            print(f"[Debug] Chardev info: {response}")
+
+            response = await self.qmp.execute('human-monitor-command',
+                                            {'command-line': 'info status'})
+            print(f"[Debug] VM status: {response}")
+
+            response = await self.qmp.execute('human-monitor-command',
+                                            {'command-line': 'info network'})
+            print(f"[Debug] Network info: {response}")
+
+            return response
+        except Exception as e:
+            print(f"[Debug] Error getting console output: {e}")
+            return ""
+
     async def create_alpine_overlay(self):
         """Create Alpine overlay with automation scripts"""
         ovl_dir = "ovl"
@@ -293,7 +313,7 @@ https://dl-cdn.alpinelinux.org/alpine/latest-stable/community
         # Create our setup script
         with open(f"{ovl_dir}/etc/local.d/auto-setup-alpine.start", 'w') as f:
             f.write("""#!/bin/sh
-set -e
+set -ex
 
 # Setup SSH and Conda
 apk update
@@ -308,6 +328,24 @@ chmod 700 /root/.ssh
 
 echo "[Setup] Starting SSH service..."
 /etc/init.d/sshd start
+ps aux | grep sshd
+netstat -tln
+
+# Setup system logging
+echo "[Setup] Configuring system logging..."
+apk add syslog-ng
+rc-update add syslog-ng
+/etc/init.d/syslog-ng start
+
+# Log network status
+echo "[Setup] Network status:"
+ip addr
+ip route
+cat /etc/resolv.conf
+
+# Monitor SSH logs
+echo "[Setup] SSH logs:"
+tail -f /var/log/messages | grep sshd &
 
 # Get and install Miniconda
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh -O /tmp/miniconda.sh
@@ -511,9 +549,13 @@ APKCACHEOPTS=none
 
         for attempt in range(max_attempts):
             try:
+                # Check VM status
+                print(f"\n[Debug] Checking VM status (attempt {attempt + 1})...")
+                await self.check_console_output()
+
                 # Try to connect with netcat first to check if port is open
                 nc_cmd = [
-                    "nc", "-zv", "localhost", str(self.ssh_port),
+                    "nc", "-zv", "-w", "5", "localhost", str(self.ssh_port),
                 ]
                 process = await asyncio.create_subprocess_exec(
                     *nc_cmd,
@@ -534,8 +576,9 @@ APKCACHEOPTS=none
                     "-o", "StrictHostKeyChecking=no",
                     "-o", "UserKnownHostsFile=/dev/null",
                     "-o", "ConnectTimeout=5",
+                    "-o", "BatchMode=yes",
                     "root@localhost",
-                    "echo 'SSH test'"
+                    "set -x; ps aux | grep sshd; netstat -tln; cat /var/log/messages | grep sshd || true"
                 ]
 
                 process = await asyncio.create_subprocess_exec(
@@ -773,6 +816,10 @@ APKCACHEOPTS=none
             # Wait for system to boot and stabilize
             print("[Setup]: Waiting for system to initialize...")
             await asyncio.sleep(60)  # Give more time for initial boot
+
+            # Check VM status
+            print("[Setup]: Checking VM status...")
+            await self.check_console_output()
 
             # Verify SSH connection
             print("[Setup]: Waiting for SSH service...")
