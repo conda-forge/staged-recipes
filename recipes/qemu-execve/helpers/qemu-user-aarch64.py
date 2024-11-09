@@ -152,6 +152,9 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-cpu", "cortex-a57",
             "-m", "2048",
             "-nographic",
+            "-chardev", "stdio,id=char0,mux=on,logfile=serial.log",
+            "-serial", "chardev:char0",
+            "-mon", "chardev=char0",
             "-boot", "menu=on",
         ]
 
@@ -266,6 +269,18 @@ class ARM64Runner(QEMUSnapshotMixin):
                 print(f"[QMP Event]: {event['event']}")
         except asyncio.CancelledError:
             return
+
+    async def check_vm_boot_log(self):
+        """Check the VM boot log"""
+        try:
+            print("[Debug] Checking boot log...")
+            if os.path.exists("serial.log"):
+                with open("serial.log", "r") as f:
+                    log_content = f.read()
+                    print("[Boot Log]:")
+                    print(log_content)
+        except Exception as e:
+            print(f"[Debug] Error reading boot log: {e}")
 
     async def check_console_output(self) -> str:
         """Get console output from VM via QMP"""
@@ -552,6 +567,7 @@ APKCACHEOPTS=none
                 # Check VM status
                 print(f"\n[Debug] Checking VM status (attempt {attempt + 1})...")
                 await self.check_console_output()
+                await self.check_vm_boot_log()
 
                 # Try to connect with netcat first to check if port is open
                 nc_cmd = [
@@ -594,6 +610,7 @@ APKCACHEOPTS=none
 
                 print(f"[SSH]: Service not ready (attempt {attempt + 1}/{max_attempts})")
                 print(f"[SSH]: stderr: {stderr.decode()}")
+                await self.check_vm_boot_log()
 
             except Exception as e:
                 print(f"[SSH]: Connection attempt {attempt + 1} failed: {e}")
@@ -721,6 +738,9 @@ APKCACHEOPTS=none
         self.process_manager.cleanup_existing_process()
         self._cleanup_socket()
 
+        if os.path.exists("serial.log"):
+            os.unlink("serial.log")
+
         cmd = self._build_qemu_command(load_snapshot)
         print(f"[QEMU]: Starting VM with command: {' '.join(cmd)}")
 
@@ -741,6 +761,7 @@ APKCACHEOPTS=none
             print(f"[Process]: QEMU started with PID {self.qemu_process.pid}")
 
             await asyncio.sleep(2)
+            await self.check_vm_boot_log()
 
             # Attempt QMP connection with retries
             for attempt in range(5):  # Increased retry attempts
