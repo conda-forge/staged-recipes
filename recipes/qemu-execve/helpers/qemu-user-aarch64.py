@@ -494,6 +494,60 @@ APKCACHEOPTS=none
         if retry_count == boot_timeout:
             raise TimeoutError(f"Boot sequence not completed after {30 * boot_timeout} seconds")
 
+    async def wait_for_ssh(self, max_attempts: int = 30, delay: int = 10) -> bool:
+        """Wait for SSH to become available with retries"""
+        print("[SSH]: Waiting for SSH service to become available...")
+
+        for attempt in range(max_attempts):
+            try:
+                # Try to connect with netcat first to check if port is open
+                nc_cmd = [
+                    "nc", "-zv", "localhost", str(self.ssh_port),
+                ]
+                process = await asyncio.create_subprocess_exec(
+                    *nc_cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await process.communicate()
+                if process.returncode != 0:
+                    print(f"[SSH]: Port {self.ssh_port} not ready (attempt {attempt + 1}/{max_attempts})")
+                    await asyncio.sleep(delay)
+                    continue
+
+                # Try a test SSH connection
+                test_cmd = [
+                    "ssh",
+                    "-p", str(self.ssh_port),
+                    "-i", "/Users/runner/.ssh/id_rsa",
+                    "-o", "StrictHostKeyChecking=no",
+                    "-o", "UserKnownHostsFile=/dev/null",
+                    "-o", "ConnectTimeout=5",
+                    "root@localhost",
+                    "echo 'SSH test'"
+                ]
+
+                process = await asyncio.create_subprocess_exec(
+                    *test_cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await process.communicate()
+
+                if process.returncode == 0:
+                    print("[SSH]: Service is now available")
+                    return True
+
+                print(f"[SSH]: Service not ready (attempt {attempt + 1}/{max_attempts})")
+                print(f"[SSH]: stderr: {stderr.decode()}")
+
+            except Exception as e:
+                print(f"[SSH]: Connection attempt {attempt + 1} failed: {e}")
+
+            await asyncio.sleep(delay)
+
+        return False
+
     async def execute_ssh_command(self, command):
         """Execute command via SSH"""
         print("[DEBUG] Checking QEMU network info...")
@@ -673,9 +727,14 @@ APKCACHEOPTS=none
             await asyncio.sleep(60)  # Give more time for initial boot
 
             # Verify SSH connection
+            print("[Setup]: Waiting for SSH service...")
+            if not await self.wait_for_ssh():
+                raise RuntimeError("Timeout waiting for SSH service")
+
             print("[Setup]: Verifying SSH connection...")
             stdout, stderr, returncode = await self.execute_ssh_command("echo '[SSH] connection established'")
             if returncode != 0:
+                print(f"[Setup]: SSH stderr: {stderr}")
                 raise RuntimeError(f"SSH verification failed: {stderr}")
             print(f"[Setup]: SSH test output: {stdout.strip()}")
 
