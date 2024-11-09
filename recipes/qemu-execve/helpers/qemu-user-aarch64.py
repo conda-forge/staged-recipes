@@ -297,10 +297,16 @@ set -e
 
 # Setup SSH and Conda
 apk update
-# apk add openssh
-# rc-update add sshd
+apk add openssh
+rc-update add sshd
 echo 'root:alpine' | chpasswd
 echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
+echo 'Port 22' >> /etc/ssh/sshd_config
+echo 'ListenAddress 0.0.0.0' >> /etc/ssh/sshd_config
+mkdir -p /root/.ssh
+chmod 700 /root/.ssh
+
+echo "[Setup] Starting SSH service..."
 /etc/init.d/sshd start
 
 # Get and install Miniconda
