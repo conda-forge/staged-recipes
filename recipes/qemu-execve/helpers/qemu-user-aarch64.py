@@ -421,6 +421,22 @@ APKCACHEOPTS=none
                 shutil.rmtree(work_dir, ignore_errors=True,)
                               # onerror=remove_readonly)
 
+    async def eject_cdrom(self) -> bool:
+        """Eject the CDROM while VM is running"""
+        try:
+            print("[CDROM]: Ejecting ISO...")
+            await self.qmp.execute('human-monitor-command',
+                                  {'command-line': 'eject -f cd0'})
+            print("[CDROM]: ISO ejected successfully")
+
+            # Verify device state
+            await self.qmp.execute('human-monitor-command',
+                                  {'command-line': 'info block'})
+            return True
+        except Exception as e:
+            print(f"[CDROM]: Error ejecting ISO: {e}")
+            return False
+
     async def await_boot_sequence(self):
         """Wait for VM to boot and connect to QMP"""
         print("[QMP]: Waiting for QMP socket...")
@@ -647,16 +663,6 @@ APKCACHEOPTS=none
             custom_iso = await self.create_custom_alpine_iso(self.iso_image, overlay)
             self.custom_iso_path = custom_iso
 
-            if not os.path.exists(self.qcow2_path):
-                print(f"[Setup]: Creating new disk image at {self.qcow2_path}")
-                os.makedirs(os.path.dirname(self.qcow2_path), exist_ok=True)
-                subprocess.run([
-                    "qemu-img", "create",
-                    "-f", "qcow2",
-                    self.qcow2_path,
-                    "20G"
-                ], check=True)
-
             # Start VM with custom ISO
             print("[Setup]: Starting VM with custom ISO...")
             if not await self.start_vm():
@@ -665,6 +671,18 @@ APKCACHEOPTS=none
             # Wait for system to boot and stabilize
             print("[Setup]: Waiting for system to initialize...")
             await asyncio.sleep(60)  # Give more time for initial boot
+
+            # Verify SSH connection
+            print("[Setup]: Verifying SSH connection...")
+            stdout, stderr, returncode = await self.execute_ssh_command("echo '[SSH] connection established'")
+            if returncode != 0:
+                raise RuntimeError(f"SSH verification failed: {stderr}")
+            print(f"[Setup]: SSH test output: {stdout.strip()}")
+
+            # Eject CDROM
+            print("[Setup]: Ejecting CDROM...")
+            if not await self.eject_cdrom():
+                raise RuntimeError("Failed to eject CDROM")
 
             # Save initial snapshot
             print("[Setup]: Creating initial snapshot...")
@@ -682,7 +700,11 @@ APKCACHEOPTS=none
 
             # Verify SSH connection
             print("[Setup]: Verifying SSH connection...")
-            await self.execute_ssh_command("echo '[SSH] connection established'")
+            stdout, stderr, returncode = await self.execute_ssh_command("echo '[SSH] connection established'")
+            if returncode != 0:
+                raise RuntimeError(f"SSH verification failed: {stderr}")
+            print(f"[Setup]: SSH test output: {stdout.strip()}")
+
             print("[Setup]: Setup completed successfully")
             return True
 

@@ -66,7 +66,27 @@ elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64
     --drive "${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/alpine-conda-vm.qcow2" \
     --socket "./qmp-sock" \
     --setup
-  ls -lrt
+
+  # Test qemu image
+  python "${RECIPE_DIR}/helpers/qemu-user-aarch64.py" \
+    --qemu-system "${SRC_DIR}/_conda-install-${qemu_arch}/bin/qemu-system-aarch64" \
+    --drive "${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/alpine-conda-vm.qcow2" \
+    --socket "./qmp-sock" \
+    --run "conda --version"
+    # --cdrom "${SRC_DIR}/custom-alpine.iso" \
+
+  # sleep 60
+  # python "${RECIPE_DIR}/helpers/qmp-vm-build.py"
+
+  # Safety kill qemu if we have not been able to shutdown cleanly
+  # sleep 120
+  # kill $(cat qemu_pid.txt) || true
+fi
+
+
+
+
+
 
   # "${SRC_DIR}/_conda-install-${qemu_arch}"/bin/qemu-system-aarch64 \
   #   -name "Alpine AArch64" \
@@ -85,17 +105,3 @@ elif [[ "${build_platform}" == "osx-64" ]] && [[ "${target_platform}" == "osx-64
   #   & echo $! > qemu_pid.txt
   # sleep 300
 
-  # Test qemu image
-  python "${RECIPE_DIR}/helpers/qemu-user-aarch64.py" \
-    --qemu-system "${SRC_DIR}/_conda-install-${qemu_arch}/bin/qemu-system-aarch64" \
-    --drive "${SRC_DIR}/_conda-install-${qemu_arch}/share/qemu/alpine-conda-vm.qcow2" \
-    --socket "./qmp-sock" \
-    --run "conda --version"
-
-  # sleep 60
-  # python "${RECIPE_DIR}/helpers/qmp-vm-build.py"
-
-  # Safety kill qemu if we have not been able to shutdown cleanly
-  # sleep 120
-  # kill $(cat qemu_pid.txt) || true
-fi
