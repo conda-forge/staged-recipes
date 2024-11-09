@@ -176,7 +176,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-drive", f"file={self.qcow2_path},if=none,id=hd0,format=qcow2"
         ])
 
-        if (iso_to_use := self.custom_iso_path or self.iso_image) and not load_snapshot:
+        if (iso_to_use := self.custom_iso_path or self.iso_image):
             cmd.extend([
                 "-device", "virtio-blk-pci,drive=cd0,addr=0x4",
                 "-drive", f"file={iso_to_use},if=none,id=cd0,format=raw,readonly=on"
