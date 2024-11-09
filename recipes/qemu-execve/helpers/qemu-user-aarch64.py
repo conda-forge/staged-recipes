@@ -260,6 +260,13 @@ class ARM64Runner(QEMUSnapshotMixin):
             await asyncio.sleep(2)
             return False
 
+    async def watch_events(self):
+        try:
+            async for event in self.qmp.events:
+                print(f"[QMP Event]: {event['event']}")
+        except asyncio.CancelledError:
+            return
+
     async def create_alpine_overlay(self):
         """Create Alpine overlay with automation scripts"""
         ovl_dir = "ovl"
@@ -438,6 +445,7 @@ APKCACHEOPTS=none
                 print("[QMP]: Negotiating QMP capabilities... (May raise an exception)")
                 await self.qmp.execute('qmp_capabilities')
                 print("[QMP]:   '-> Capabilities negotiated")
+            asyncio.create_task(self.watch_events())
 
         except Exception as e:
             raise Exception(f"[QMP]: Error connecting to VM: {e}")
@@ -672,6 +680,9 @@ APKCACHEOPTS=none
             if not await self.start_vm(load_snapshot=self.DEFAULT_SNAPSHOT):
                 raise RuntimeError("Failed to verify snapshot - unable to load it")
 
+            # Verify SSH connection
+            print("[Setup]: Verifying SSH connection...")
+            await self.execute_ssh_command("echo '[SSH] connection established'")
             print("[Setup]: Setup completed successfully")
             return True
 
@@ -710,22 +721,36 @@ APKCACHEOPTS=none
         """Stop the QEMU VM"""
         if self.qmp:
             try:
+                print("[Shutdown]: Attempting QMP quit command...")
                 await self.qmp.execute('quit')
+                print("[Shutdown]: QMP quit command sent successfully")
             except Exception as e:
-                print(f"[QMP]: Shutdown error: {e}")
+                print(f"[Shutdown]: QMP quit command failed: {e}")
             finally:
-                await self.qmp.disconnect()
+                try:
+                    print("[Shutdown]: Disconnecting QMP client...")
+                    await self.qmp.disconnect()
+                    print("[Shutdown]: QMP client disconnected")
+                except Exception as e:
+                    print(f"[Shutdown]: Error during QMP disconnect: {e}")
 
         if self.qemu_process:
             try:
-                self.qemu_process.terminate()
-                await asyncio.wait_for(self.qemu_process.wait(), timeout=5)
-            except asyncio.TimeoutError:
-                print("[Process]: Force killing QEMU process...")
-                self.qemu_process.kill()
-                await self.qemu_process.wait()
+                if self.qemu_process.returncode is None:
+                    print("[Shutdown]: Terminating QEMU process...")
+                    self.qemu_process.terminate()
+                    try:
+                        await asyncio.wait_for(self.qemu_process.wait(), timeout=5)
+                        print("[Shutdown]: QEMU process terminated normally")
+                    except asyncio.TimeoutError:
+                        print("[Shutdown]: Timeout waiting for termination, force killing...")
+                        self.qemu_process.kill()
+                        await self.qemu_process.wait()
+                        print("[Shutdown]: QEMU process killed")
+                else:
+                    print(f"[Shutdown]: QEMU process already exited with code {self.qemu_process.returncode}")
             except Exception as e:
-                print(f"[Process]: Error during cleanup: {e}")
+                print(f"[Shutdown]: Error during process cleanup: {e}")
 
         self._cleanup_socket()
 
