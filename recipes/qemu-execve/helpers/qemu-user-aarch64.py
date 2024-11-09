@@ -783,7 +783,7 @@ async def main():
     parser.add_argument("--cdrom", help="Path to ISO image")
     parser.add_argument("--drive", required=True, help="Path to QEMU QCOW2 disk image")
     parser.add_argument("--socket", default="./qmp.sock", help="Path for QMP socket")
-    parser.add_argument("--ssh-port", type=int, default=10020, help="Port for NIC socket")
+    parser.add_argument("--ssh-port", type=int, default=10022, help="Port for NIC socket")
     parser.add_argument("--setup", action="store_true", help="Perform initial setup and create snapshot")
     parser.add_argument("--run", help="Command to execute in the VM")
     parser.add_argument("--load-snapshot", default=None, help="Load snapshot from file")
