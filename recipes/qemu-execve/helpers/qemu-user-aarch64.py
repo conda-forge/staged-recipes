@@ -154,8 +154,8 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-nographic",
             "-chardev", "stdio,id=char0,mux=on,logfile=serial.log",
             "-serial", "file:console.log",
+            "-monitor", "none",
             "-boot", "menu=on",
-            "-append", "console=ttyS0,115200n8 debug ignore_loglevel",
         ]
 
         # Get paths for UEFI firmware
