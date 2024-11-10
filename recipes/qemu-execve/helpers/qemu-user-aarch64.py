@@ -152,9 +152,13 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-cpu", "cortex-a57",
             "-m", "2048",
             "-nographic",
-            "-chardev", "stdio,id=char0,mux=on,logfile=serial.log",
-            "-serial", "file:console.log",
-            "-monitor", "none",
+            # "-chardev", "stdio,id=char0,mux=on,logfile=serial.log",
+            # "-serial", "file:console.log",
+            # "-monitor", "none",
+            "-device", "virtio-serial",
+            "-chardev", "stdio,mux=on,id=console,signal=off",
+            "-device", "virtconsole,chardev=console",
+            "-serial", "mon:stdio",
             "-boot", "menu=on",
         ]
 
@@ -262,6 +266,14 @@ class ARM64Runner(QEMUSnapshotMixin):
             print(f"[QMP]: Connection failed: {e}")
             await asyncio.sleep(2)
             return False
+
+    async def _monitor_output(self, stream, name):
+        """Monitor QEMU output stream"""
+        while True:
+            line = await stream.readline()
+            if not line:
+                break
+            print(f"[QEMU {name}]: {line.decode().strip()}")
 
     async def watch_events(self):
         try:
@@ -777,6 +789,10 @@ APKCACHEOPTS=none
 
             self.process_manager.save_pid(self.qemu_process.pid)
             print(f"[Process]: QEMU started with PID {self.qemu_process.pid}")
+
+            # Start output monitoring tasks
+            stdout_task = asyncio.create_task(self._monitor_output(self.qemu_process.stdout, "stdout"))
+            stderr_task = asyncio.create_task(self._monitor_output(self.qemu_process.stderr, "stderr"))
 
             await asyncio.sleep(2)
             await self.check_vm_boot_log()
