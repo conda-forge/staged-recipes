@@ -1,6 +1,6 @@
 go build -buildmode=pie -trimpath -o=%LIBRARY_PREFIX%\bin\%PKG_NAME%.exe -ldflags="-s" || goto :error
-go-licenses save . --save_path=license-files \
-    --ignore github.com/mattn/go-localereader \
+go-licenses save . --save_path=license-files ^
+    --ignore github.com/mattn/go-localereader ^
     --ignore gitlab.com/abhimanyusharma003/go-ordered-json || goto :error
 
 :: Manually copy licenses that go-licenses could not download
