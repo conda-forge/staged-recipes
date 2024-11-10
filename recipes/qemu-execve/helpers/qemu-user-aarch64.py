@@ -153,9 +153,9 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-m", "2048",
             "-nographic",
             "-chardev", "stdio,id=char0,mux=on,logfile=serial.log",
-            "-serial", "chardev:char0",
-            "-mon", "chardev=char0",
+            "-serial", "file:console.log",
             "-boot", "menu=on",
+            "-append", "console=ttyS0,115200n8 debug ignore_loglevel",
         ]
 
         # Get paths for UEFI firmware
@@ -271,16 +271,20 @@ class ARM64Runner(QEMUSnapshotMixin):
             return
 
     async def check_vm_boot_log(self):
-        """Check the VM boot log"""
+        """Check the VM console log"""
         try:
-            print("[Debug] Checking boot log...")
-            if os.path.exists("serial.log"):
-                with open("serial.log", "r") as f:
+            print("[Debug] Checking console log...")
+            if os.path.exists("console.log"):
+                with open("console.log", "r") as f:
                     log_content = f.read()
-                    print("[Boot Log]:")
+                    print("[Console Log]:")
                     print(log_content)
+
+                # Try to get syslog output from guest
+                await self.qmp.execute('human-monitor-command',
+                                       {'command-line': 'guest-exec cat /var/log/messages'})
         except Exception as e:
-            print(f"[Debug] Error reading boot log: {e}")
+            print(f"[Debug] Error reading console log: {e}")
 
     async def check_console_output(self) -> str:
         """Get console output from VM via QMP"""
@@ -310,6 +314,18 @@ class ARM64Runner(QEMUSnapshotMixin):
         os.makedirs(f"{ovl_dir}/etc/apk", exist_ok=True)
         os.makedirs(f"{ovl_dir}/etc/auto-setup-alpine", exist_ok=True)
 
+        with open(f"{ovl_dir}/etc/local.d/logging.start", 'w') as f:
+            f.write("""#!/bin/sh
+# Configure serial console logging
+echo 'ttyS0::respawn:/sbin/getty -L ttyS0 115200 vt100' >> /etc/inittab
+# Start syslog
+rc-service syslog start
+# Redirect output to console and log
+exec 1> >(tee /dev/ttyS0)
+exec 2>&1
+""")
+        os.chmod(f"{ovl_dir}/etc/local.d/logging.start", 0o755)
+
         # Enable default boot services
         open(f"{ovl_dir}/etc/.default_boot_services", 'w').close()
 
@@ -330,10 +346,18 @@ https://dl-cdn.alpinelinux.org/alpine/latest-stable/community
             f.write("""#!/bin/sh
 set -ex
 
+# Setup system logging
+echo "[Setup] Configuring system logging..."
+apk add syslog-ng
+rc-update add syslog-ng boot
+/etc/init.d/syslog-ng start
+
 # Setup SSH and Conda
 apk update
-apk add openssh
+apk add openssh openrc
 rc-update add sshd
+mkdir -p /run/openrc
+touch /run/openrc/softlevel
 echo 'root:alpine' | chpasswd
 echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
 echo 'Port 22' >> /etc/ssh/sshd_config
@@ -345,12 +369,6 @@ echo "[Setup] Starting SSH service..."
 /etc/init.d/sshd start
 ps aux | grep sshd
 netstat -tln
-
-# Setup system logging
-echo "[Setup] Configuring system logging..."
-apk add syslog-ng
-rc-update add syslog-ng
-/etc/init.d/syslog-ng start
 
 # Log network status
 echo "[Setup] Network status:"
@@ -738,8 +756,8 @@ APKCACHEOPTS=none
         self.process_manager.cleanup_existing_process()
         self._cleanup_socket()
 
-        if os.path.exists("serial.log"):
-            os.unlink("serial.log")
+        if os.path.exists("console.log"):
+            os.unlink("console.log")
 
         cmd = self._build_qemu_command(load_snapshot)
         print(f"[QEMU]: Starting VM with command: {' '.join(cmd)}")
