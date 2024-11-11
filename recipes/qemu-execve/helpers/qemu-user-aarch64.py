@@ -155,10 +155,9 @@ class ARM64Runner(QEMUSnapshotMixin):
             # "-chardev", "stdio,id=char0,mux=on,logfile=serial.log",
             # "-serial", "file:console.log",
             # "-monitor", "none",
-            "-device", "virtio-serial",
-            "-chardev", "stdio,mux=on,id=console,signal=off",
-            "-device", "virtconsole,chardev=console",
-            "-serial", "mon:stdio",
+            "-chardev", "stdio,id=console,mux=on,logfile=console.log",
+            "-serial", "chardev:console",
+            "-monitor", "none",
             "-boot", "menu=on",
         ]
 
@@ -298,25 +297,19 @@ class ARM64Runner(QEMUSnapshotMixin):
         except Exception as e:
             print(f"[Debug] Error reading console log: {e}")
 
-    async def check_console_output(self) -> str:
-        """Get console output from VM via QMP"""
+    async def check_console_log(self):
+        """Check the console log file"""
         try:
-            response = await self.qmp.execute('human-monitor-command',
-                                            {'command-line': 'info chardev'})
-            print(f"[Debug] Chardev info: {response}")
-
-            response = await self.qmp.execute('human-monitor-command',
-                                            {'command-line': 'info status'})
-            print(f"[Debug] VM status: {response}")
-
-            response = await self.qmp.execute('human-monitor-command',
-                                            {'command-line': 'info network'})
-            print(f"[Debug] Network info: {response}")
-
-            return response
+            if os.path.exists("console.log"):
+                with open("console.log", "r") as f:
+                    content = f.read()
+                    if content:
+                        print("[Console Log]:")
+                        print(content)
+                    else:
+                        print("[Console Log]: Empty")
         except Exception as e:
-            print(f"[Debug] Error getting console output: {e}")
-            return ""
+            print(f"[Debug] Error reading console log: {e}")
 
     async def create_alpine_overlay(self):
         """Create Alpine overlay with automation scripts"""
@@ -596,7 +589,7 @@ APKCACHEOPTS=none
             try:
                 # Check VM status
                 print(f"\n[Debug] Checking VM status (attempt {attempt + 1})...")
-                await self.check_console_output()
+                await self.check_console_log()
                 await self.check_vm_boot_log()
 
                 # Try to connect with netcat first to check if port is open
