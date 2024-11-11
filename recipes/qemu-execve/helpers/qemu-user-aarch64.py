@@ -96,8 +96,16 @@ class QEMUSnapshotMixin(QMPProtocol):
             return False
 
     async def snapshot_exists(self, name: str) -> bool:
-        snapshots = await self.list_snapshots()
-        return name in snapshots
+        """Check if snapshot exists with better error handling"""
+        try:
+            print(f"[QMP]: Checking if snapshot '{name}' exists...")
+            snapshots = await self.list_snapshots()
+            exists = name in snapshots
+            print(f"[QMP]: Snapshot '{name}' {'exists' if exists else 'not found'}")
+            return exists
+        except Exception as e:
+            print(f"[QMP]: Error checking snapshot: {e}")
+            return False
 
     async def ensure_snapshot(self, name: str, setup_func) -> bool:
         if not await self.snapshot_exists(name):
@@ -867,7 +875,7 @@ APKCACHEOPTS=none
 
             # Check VM status
             print("[Setup]: Checking VM status...")
-            await self.check_console_output()
+            await self.check_console_log()
 
             # Verify SSH connection
             print("[Setup]: Waiting for SSH service...")
@@ -924,16 +932,24 @@ APKCACHEOPTS=none
             await self.stop_vm()
 
     async def run_command(self, command, load_snapshot=True):
-        """Run a command in the VM using the saved snapshot"""
+        """Run command with snapshot verification"""
         try:
+            # First check if snapshot exists
+            print("[Command]: Verifying snapshot...")
+            exists = await self.snapshot_exists(self.DEFAULT_SNAPSHOT)
+            if not exists:
+                raise RuntimeError(f"Snapshot '{self.DEFAULT_SNAPSHOT}' not found")
+
+            # Start VM with snapshot
             print(f"[Command]: Starting VM to execute: {command}")
-            if not await self.start_vm(load_snapshot or self.DEFAULT_SNAPSHOT):
-                return "", "Failed to start VM", 1
+            if not await self.start_vm(load_snapshot=self.DEFAULT_SNAPSHOT if load_snapshot else None):
+                raise RuntimeError("Failed to start VM")
 
             print(f"[Command]: Executing: {command}")
             await asyncio.sleep(20)
 
-            return await self.execute_ssh_command(command)
+            stdout, stderr, returncode = await self.execute_ssh_command(command)
+            return stdout, stderr, returncode
 
         except Exception as e:
             print(f"[Command]: Failed: {e}")
