@@ -1,0 +1,134 @@
+{% set name = "qpsolvers-eigen" %}
+{% set version = "0.1.0" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  - url: https://github.com/ami-iit/qpsolvers-eigen/archive/refs/tags/v{{ version }}.tar.gz
+    sha256: 149eb35d9729aedd8236bf5ad3511a0605dd4411213460f1a490e834a71edc63
+
+build:
+  number: 0
+
+outputs:
+  - name: libqpsolvers-eigen
+    script: build_core.sh  # [unix]
+    script: bld_core.bat  # [win]
+    build:
+      run_exports:
+        # Upstream compatibility documented in https://github.com/ami-iit/qpsolvers-eigen?tab=readme-ov-file#versioning-policy
+        - {{ pin_subpackage('libqpsolvers-eigen', max_pin='x.x') }}
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+        - {{ compiler('cxx') }}
+        - cmake
+        - pkg-config
+        - ninja
+        - ycm-cmake-modules
+      host:
+        - libsharedlibpp
+        - eigen
+
+    test:
+      commands:
+        - test -f ${PREFIX}/include/QpSolversEigen/QpSolversEigen.hpp  # [not win]
+        - test -f ${PREFIX}/lib/libqpsolvers-eigen${SHLIB_EXT}  # [not win]
+        - if not exist %PREFIX%\\Library\\include\\QpSolversEigen\\QpSolversEigen.hpp exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\qpsolvers-eigen.lib exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\qpsolvers-eigen.dll exit 1  # [win]
+        - cmake-package-check QpSolversEigen
+      requires:
+        - cmake-package-check
+        - eigen
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+
+  - name: libqpsolvers-eigen-osqp
+    script: build_osqp.sh  # [unix]
+    script: bld_osqp.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+        - {{ compiler('cxx') }}
+        - ninja
+        - cmake
+        - pkg-config
+      host:
+        - libqpsolvers-eigen
+        - libosqp
+        - osqp-eigen
+          # Workaround as run_exports for some reason do not work correctly for multiple-output recipes
+        - {{ pin_subpackage('libqpsolvers-eigen', max_pin='x.x') }}
+      run:
+        - {{ pin_subpackage('libqpsolvers-eigen', max_pin='x.x') }}
+
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libqpsolvers-eigen-osqp${SHLIB_EXT}  # [not win]
+        - if not exist %PREFIX%\\Library\\bin\\qpsolvers-eigen-osqp.dll exit 1  # [win]
+
+  - name: libqpsolvers-eigen-proxqp
+    script: build_proxqp.sh  # [unix]
+    script: bld_proxqp.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('c') }}
+        - {{ stdlib('c') }}
+        - {{ compiler('cxx') }}
+        - ninja
+        - cmake
+        - pkg-config
+        # proxqp requires clang-cl on VS2019,
+        # see https://github.com/conda-forge/proxsuite-feedstock/blob/f72cea3da7297181ce0ff8733dd998b5bd675d02/recipe/bld.bat#L4
+        - clang  # [win]
+      host:
+        - libqpsolvers-eigen
+        - proxsuite
+        # Workaround as run_exports for some reason do not work correctly for multiple-output recipes
+        - {{ pin_subpackage('libqpsolvers-eigen', max_pin='x.x') }}
+      run:
+        - {{ pin_subpackage('libqpsolvers-eigen', max_pin='x.x') }}
+    test:
+      commands:
+        - test -f ${PREFIX}/lib/libqpsolvers-eigen-proxqp${SHLIB_EXT}  # [not win]
+        - if not exist %PREFIX%\\Library\\bin\\qpsolvers-eigen-proxqp.dll exit 1  # [win]
+
+
+  - name: {{ name }}
+    build:
+      run_exports:
+        - {{ pin_subpackage('libqpsolvers-eigen', max_pin='x') }}
+    requirements:
+      run:
+        - {{ pin_subpackage('libqpsolvers-eigen', exact=True) }}
+        - {{ pin_subpackage('libqpsolvers-eigen-osqp', max_pin='x.x.x') }}
+        - {{ pin_subpackage('libqpsolvers-eigen-proxqp', max_pin='x.x.x') }}
+    test:
+      commands:
+        - test -f ${PREFIX}/include/QpSolversEigen/QpSolversEigen.hpp  # [not win]
+        - test -f ${PREFIX}/lib/libqpsolvers-eigen${SHLIBEXT}  # [not win]
+        - if not exist %PREFIX%\\Library\\include\\QpSolversEigen\\QpSolversEigen.hpp exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\lib\\qpsolvers-eigen.lib exit 1  # [win]
+        - if not exist %PREFIX%\\Library\\bin\\qpsolvers-eigen.dll exit 1  # [win]
+        - cmake-package-check QpSolversEigen
+      requires:
+        - cmake-package-check
+        - eigen
+        - {{ compiler('c') }}
+        - {{ compiler('cxx') }}
+
+about:
+  home: https://github.com/gazebosim/gz-math
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: General purpose math library for robot applications.
+
+extra:
+  feedstock-name: qpsolvers-eigen
+  recipe-maintainers:
+    - traversaro
