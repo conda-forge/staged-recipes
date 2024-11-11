@@ -126,6 +126,7 @@ class ARM64Runner(QEMUSnapshotMixin):
             iso_image=None,
             ssh_port=10022,
     ):
+        self._log_monitor = None
         self._stderr_task = None
         self._stdout_task = None
         self.qemu_system = qemu_system
@@ -154,6 +155,7 @@ class ARM64Runner(QEMUSnapshotMixin):
 
         socket_dir = os.path.dirname(self.socket_path)
         os.makedirs(socket_dir, exist_ok=True)
+        log_file = f"qemu_console_{os.getpid()}.log"
 
         cmd = [
             self.qemu_system,
@@ -162,6 +164,11 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-cpu", "cortex-a57",
             "-m", "2048",
             "-nographic",
+            "-D", log_file,
+            "-d", "guest_errors,unimp",
+            # Serial and logging setup
+            "-chardev", f"file,id=char0,path={log_file}",
+            "-serial", "chardev:char0"
             # "-chardev", "stdio,id=char0,mux=on,logfile=serial.log",
             # "-serial", "file:console.log",
             # "-monitor", "none",
@@ -214,7 +221,7 @@ class ARM64Runner(QEMUSnapshotMixin):
         if load_snapshot:
             cmd.extend(["-loadvm", load_snapshot])
 
-        return cmd
+        return cmd, log_file
 
     async def _wait_for_socket(self, timeout: int = 30) -> bool:
         """Wait for QMP socket to become available"""
@@ -290,6 +297,30 @@ class ARM64Runner(QEMUSnapshotMixin):
                 print(f"[QMP Event]: {event['event']}")
         except asyncio.CancelledError:
             return
+
+    async def monitor_log_file(self, log_file: str):
+        """Monitor the log file for new content"""
+        try:
+            position = 0
+            while True:
+                if not os.path.exists(log_file):
+                    await asyncio.sleep(1)
+                    continue
+
+                with open(log_file, 'r') as f:
+                    f.seek(position)
+                    new_content = f.read()
+                    if new_content:
+                        print(f"[VM Console]:\n{new_content}")
+                    position = f.tell()
+
+                # Check if process is still running
+                if self.qemu_process.returncode is not None:
+                    break
+
+                await asyncio.sleep(1)
+        except Exception as e:
+            print(f"[Log Monitor]: Error: {e}")
 
     async def check_vm_boot_log(self):
         """Check the VM console log"""
@@ -774,8 +805,11 @@ APKCACHEOPTS=none
         if os.path.exists("console.log"):
             os.unlink("console.log")
 
-        cmd = self._build_qemu_command(load_snapshot)
+        cmd, log_file = self._build_qemu_command(load_snapshot)
         print(f"[QEMU]: Starting VM with command: {' '.join(cmd)}")
+
+        if os.path.exists(log_file):
+            os.unlink(log_file)
 
         try:
             self.qemu_process = await asyncio.create_subprocess_exec(
@@ -794,8 +828,7 @@ APKCACHEOPTS=none
             print(f"[Process]: QEMU started with PID {self.qemu_process.pid}")
 
             # Start output monitoring tasks
-            self._stdout_task = asyncio.create_task(self._monitor_output(self.qemu_process.stdout, "stdout"))
-            self._stderr_task = asyncio.create_task(self._monitor_output(self.qemu_process.stderr, "stderr"))
+            self._log_monitor = asyncio.create_task(self.monitor_log_file(log_file))
 
             await asyncio.sleep(2)
             await self.check_vm_boot_log()
@@ -961,6 +994,9 @@ APKCACHEOPTS=none
 
     async def stop_vm(self):
         """Stop the QEMU VM"""
+        if hasattr(self, '_log_monitor'):
+            self._log_monitor.cancel()
+
         if self.qmp:
             try:
                 print("[Shutdown]: Attempting QMP quit command...")
