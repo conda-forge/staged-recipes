@@ -37,16 +37,27 @@ requirements:
     - fftw * mpi_openmpi*
     - openmpi-mpicxx
     - eigen
-  run:
-    - hdf5 * mpi_openmpi*
-    - fftw * mpi_openmpi*
-    - openmpi-mpicxx
-    - eigen
 
 tests:
   - package_contents:
       bin:
         - FANS
+  - script:
+    - mkdir -p $(dirname "$PREFIX/etc/conda/test-files/$PKG_NAME/0/test/microstructures/sphere32.h5") && curl -L -o "$PREFIX/etc/conda/test-files/$PKG_NAME/0/test/microstructures/sphere32.h5" https://raw.githubusercontent.com/DataAnalyticsEngineering/FANS/main/test/microstructures/sphere32.h5
+    - echo "Download of missing file complete!"
+    - JSON_FILE="$PREFIX/etc/conda/test-files/$PKG_NAME/0/test/input_files/test_LinearElastic.json"
+    - MODIFIED_JSON_FILE="$PREFIX/etc/conda/test-files/$PKG_NAME/0/test/input_files/test_LinearElastic_mod.json"
+    - NEW_MS_FILENAME="$PREFIX/etc/conda/test-files/$PKG_NAME/0/test/microstructures/sphere32.h5"
+    # Use jq to create a modified copy of the JSON file
+    - jq --arg new_filename "$NEW_MS_FILENAME" '.ms_filename = $new_filename' "$JSON_FILE" > "$MODIFIED_JSON_FILE"
+    # Run tests
+    - mpiexec -n 2 FANS "$MODIFIED_JSON_FILE" "$PREFIX/etc/conda/test-files/$PKG_NAME/0//test/test_results.h5"
+    requirements:
+      run:
+        - jq
+    files:
+      source:
+        - test/
 
 about:
   homepage: https://github.com/DataAnalyticsEngineering/FANS
