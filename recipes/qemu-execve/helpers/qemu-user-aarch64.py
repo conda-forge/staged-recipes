@@ -126,6 +126,8 @@ class ARM64Runner(QEMUSnapshotMixin):
             iso_image=None,
             ssh_port=10022,
     ):
+        self._stderr_task = None
+        self._stdout_task = None
         self.qemu_system = qemu_system
         self.iso_image = iso_image
         self.qcow2_path = qcow2_path
@@ -163,10 +165,10 @@ class ARM64Runner(QEMUSnapshotMixin):
             # "-chardev", "stdio,id=char0,mux=on,logfile=serial.log",
             # "-serial", "file:console.log",
             # "-monitor", "none",
-            "-chardev", "stdio,id=console,mux=on,logfile=console.log",
-            "-serial", "chardev:console",
-            "-monitor", "none",
-            "-boot", "menu=on",
+            # "-chardev", "stdio,id=console,mux=on,logfile=console.log",
+            # "-serial", "chardev:console",
+            # "-monitor", "none",
+            # "-boot", "menu=on",
         ]
 
         # Get paths for UEFI firmware
@@ -792,8 +794,8 @@ APKCACHEOPTS=none
             print(f"[Process]: QEMU started with PID {self.qemu_process.pid}")
 
             # Start output monitoring tasks
-            stdout_task = asyncio.create_task(self._monitor_output(self.qemu_process.stdout, "stdout"))
-            stderr_task = asyncio.create_task(self._monitor_output(self.qemu_process.stderr, "stderr"))
+            self._stdout_task = asyncio.create_task(self._monitor_output(self.qemu_process.stdout, "stdout"))
+            self._stderr_task = asyncio.create_task(self._monitor_output(self.qemu_process.stderr, "stderr"))
 
             await asyncio.sleep(2)
             await self.check_vm_boot_log()
