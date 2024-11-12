@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -ex
 # Create the destination directories
 mkdir -p $PREFIX/share/solr
 mkdir -p $PREFIX/bin
