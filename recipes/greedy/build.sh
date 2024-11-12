@@ -1,13 +1,5 @@
 #!/usr/bin/env bash
 
-# A dummy greedy repo is cloned because CMakeLists.txt requires
-# .git dir
-
-# Clone the repository into a temporary directory
-git clone https://github.com/pyushkevich/greedy /tmp/greedy
-
-# Change to the directory where the source is located
-cd /tmp/greedy
 
 mkdir build
 cd build
