@@ -1,4 +1,4 @@
-@echo off
+@echo on
 setlocal enabledelayedexpansion
 
 :: Create the destination directories
@@ -14,3 +14,6 @@ xcopy * %PREFIX%\share\solr /s /e /y || exit /b
     echo set SOLR_HOME=%PREFIX%\share\solr
     echo %PREFIX%\share\solr\bin\solr.cmd %%*
 ) > %PREFIX%\Scripts\solr.cmd
+
+:: Smoke test
+type %PREFIX%\Scripts\solr.cmd

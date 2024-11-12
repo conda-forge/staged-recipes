@@ -14,3 +14,5 @@ echo "exec $PREFIX/share/solr/bin/solr \"\$@\"" >> $PREFIX/bin/solr
 
 # Make the wrapper script executable
 chmod +x $PREFIX/bin/solr
+# Smoke test
+cat $PREFIX/bin/solr
