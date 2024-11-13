@@ -1,36 +1,137 @@
-import argparse
-import asyncio
 import contextlib
 import os
 import platform
 import shutil
 import signal
 import subprocess
-from typing import Protocol, Optional
-
+from typing import Protocol, Optional, AsyncGenerator, runtime_checkable
+import asyncio
 from qemu.qmp import QMPClient
 
 
-class QMPProtocol(Protocol):
-    qmp: QMPClient
+#    .----------------.
+# ---| Core Protocols |---
+#    '----------------'
 
+@runtime_checkable
+class ProcessProtocol(Protocol):
+    """Required attributes for process management"""
+    async def setup_vm(self) -> bool: ...
+
+    async def run_command(self, command: str, load_snapshot: bool = True) -> tuple[str, str, int]: ...
+
+
+@runtime_checkable
+class QMPProtocol(Protocol):
+    """Required attributes for QMP communication"""
+
+    @property
+    def qmp(self) -> QMPClient: ...
+
+    @property
+    def socket_path(self) -> str: ...
+
+    async def connect_qmp(self) -> bool: ...
+
+    async def execute_qmp(self, command: str, arguments: Optional[dict] = None) -> dict: ...
+
+    def cleanup_qmp_socket(self: ProcessProtocol) -> bool: ...
+
+@runtime_checkable
+class QEMUProtocol(Protocol):
+    """Required attributes for QEMU process management"""
+    @property
+    def qemu_system(self) -> str: ...
+
+    @property
+    def qcow2_path(self) -> str: ...
+
+    @property
+    def qemu_process(self) -> Optional[asyncio.subprocess.Process]: ...
+
+    def build_qemu_command(self, load_snapshot: Optional[str] = None) -> tuple[list[str], str]: ...
+
+    async def start_process(self, load_snapshot: Optional[str] = None) -> bool: ...
+
+    async def stop_process(self) -> None: ...
+
+@runtime_checkable
+class SSHProtocol(Protocol):
+    @property
+    def ssh_port(self) -> int: ...
+
+    @staticmethod
+    async def generate_ssh_key() -> bool: ...
+
+    async def wait_for_ssh(self, max_attempts: int = 30, delay: int = 10) -> bool: ...
+
+    async def execute_ssh_command(self, command: str) -> tuple[str, str, int]: ...
+
+
+@runtime_checkable
+class MonitoringProtocol(Protocol):
+    async def monitor_output(self, stream, name): ...
+
+    async def monitor_log_file(self: QEMUProtocol, log_file: str): ...
+
+    async def check_vm_boot_log(self: QMPProtocol) -> None: ...
+
+    async def check_console_log(self) -> None: ...
+
+@runtime_checkable
+class ISOProtocol(Protocol):
+    @property
+    def iso_image(self) -> str: ...
+
+    @property
+    def custom_iso_path(self) -> Optional[str]: ...
+
+    @staticmethod
+    async def create_alpine_overlay() -> str: ...
+
+    async def create_custom_alpine_iso(self, overlay_file: str) -> str: ...
+
+    async def extract_kernel_from_iso(self, iso_path: str) -> str: ...
+
+@runtime_checkable
+class SnapshotProtocol(Protocol):
+    """Required attributes for snapshot management"""
+    DEFAULT_SNAPSHOT: str
+    async def list_snapshots(self) -> str: ...
+
+    async def save_snapshot(self, name: str) -> bool: ...
+
+    async def load_snapshot(self, name: str) -> bool: ...
+
+    async def delete_snapshot(self, name: str) -> bool: ...
+
+    async def snapshot_exists(self, name: str) -> bool: ...
+
+    async def ensure_snapshot(self, name: str, setup_func) -> bool: ...
+
+
+#    .-----------------------.
+# ---| Mixin Implementations |---
+#    '-----------------------'
 
 class ProcessManager:
+    """Manages QEMU process lifecycle"""
+
     def __init__(self, pid_file: str = "qemu_pid.txt"):
         self.pid_file = pid_file
-        
-    def save_pid(self, pid: int):
+
+    def save_pid(self, pid: int) -> None:
         with open(self.pid_file, 'w') as f:
             f.write(str(pid))
-            
+
     def read_pid(self) -> Optional[int]:
         try:
             with open(self.pid_file, 'r') as f:
                 return int(f.read().strip())
         except (FileNotFoundError, ValueError):
             return None
-            
-    def cleanup_existing_process(self):
+
+    def cleanup_existing_process(self) -> None:
         if pid := self.read_pid():
             try:
                 os.kill(pid, signal.SIGTERM)
@@ -43,120 +144,67 @@ class ProcessManager:
                 os.remove(self.pid_file)
 
 
-class QEMUSnapshotMixin(QMPProtocol):
-    """Mixin class for QEMU snapshot management.
+class QEMUQMPProtocol(
+    QEMUProtocol,
+    QMPProtocol,
+    MonitoringProtocol,
+    Protocol,
+):
+    """Combined Protocol for use in method annotations"""
+    pass
 
-    Required attributes from parent class:
-    - qmp: QMPClient instance
-    """
+class QEMUProcessMixin(QEMUProtocol):
+    """QEMU process management functionality"""
+    # Combined Protocol for use in method annotations
+    class _SelfQMPProtocol(QEMUQMPProtocol, Protocol):
+        """Combined protocol including both required attributes and mixin methods"""
+        _stdout_task: Optional[asyncio.Task]
+        _stderr_task: Optional[asyncio.Task]
+        _log_monitor: Optional[asyncio.Task]
+        _qcow2_path: str
+        _kernel_path: Optional[str]
+        _custom_iso_path: Optional[str]
+        _process_manager: ProcessManager
 
-    async def list_snapshots(self) -> str:
-        """List all available snapshots in the VM."""
-        try:
-            response = await self.qmp.execute('human-monitor-command',
-                                              {'command-line': 'info snapshots'})
-            print("[QMP]: Available snapshots:")
-            print(response)
-            return response
-        except Exception as e:
-            print(f"[QMP]: Error listing snapshots: {e}")
-            return ""
-
-    async def save_snapshot(self, name: str) -> bool:
-        try:
-            print(f"[QMP]: Creating snapshot '{name}'...")
-            await self.qmp.execute('human-monitor-command',
-                                   {'command-line': f'savevm {name}'})
-            print("[QMP]: Snapshot created successfully")
-            return True
-        except Exception as e:
-            print(f"[QMP]: Error creating snapshot: {e}")
-            return False
-
-    async def load_snapshot(self, name: str) -> bool:
-        try:
-            print(f"[QMP]: Loading snapshot '{name}'...")
-            await self.qmp.execute('human-monitor-command',
-                                   {'command-line': f'loadvm {name}'})
-            print("[QMP]: Snapshot loaded successfully")
-            return True
-        except Exception as e:
-            print(f"[QMP]: Error loading snapshot: {e}")
-            return False
-
-    async def delete_snapshot(self, name: str) -> bool:
-        try:
-            print(f"[QMP]: Deleting snapshot '{name}'...")
-            await self.qmp.execute('human-monitor-command',
-                                   {'command-line': f'delvm {name}'})
-            print("[QMP]: Snapshot deleted successfully")
-            return True
-        except Exception as e:
-            print(f"[QMP]: Error deleting snapshot: {e}")
-            return False
-
-    async def snapshot_exists(self, name: str) -> bool:
-        """Check if snapshot exists with better error handling"""
-        try:
-            print(f"[QMP]: Checking if snapshot '{name}' exists...")
-            snapshots = await self.list_snapshots()
-            exists = name in snapshots
-            print(f"[QMP]: Snapshot '{name}' {'exists' if exists else 'not found'}")
-            return exists
-        except Exception as e:
-            print(f"[QMP]: Error checking snapshot: {e}")
-            return False
-
-    async def ensure_snapshot(self, name: str, setup_func) -> bool:
-        if not await self.snapshot_exists(name):
-            print(f"[QMP]: Snapshot '{name}' not found, creating...")
-            await setup_func()
-            return await self.save_snapshot(name)
-        return True
-
-
-class ARM64Runner(QEMUSnapshotMixin):
-    DEFAULT_SNAPSHOT = "conda"
 
     def __init__(
             self,
-            qemu_system,
-            qcow2_path,
-            socket_path,
-            iso_image=None,
-            ssh_port=10022,
+            *,
+            qemu_system: str,
+            qcow2_path: str,
+            kernel_path: Optional[str] = None,
+            **kwargs
     ):
-        self._log_monitor = None
-        self._stderr_task = None
-        self._stdout_task = None
-        self.qemu_system = qemu_system
-        self.iso_image = iso_image
-        self.qcow2_path = qcow2_path
-        self.socket_path = socket_path
-        self.ssh_port = ssh_port
-        self.qemu_process = None
+        super().__init__(**kwargs)
+        self._qemu_system = qemu_system
+        self._qcow2_path = qcow2_path
+        self._kernel_path = kernel_path
 
-        self.qmp = QMPClient('ARM64 VM')
-        self.custom_iso_path = None
-        self.process_manager = ProcessManager()
+        self._process_manager = ProcessManager()
+        self._qemu_process: Optional[asyncio.subprocess.Process] = None
+        self._stdout_task: Optional[asyncio.Task] = None
+        self._stderr_task: Optional[asyncio.Task] = None
 
-    def _cleanup_socket(self):
-        """Clean up the socket file if it exists"""
-        try:
-            if os.path.exists(self.socket_path):
-                os.unlink(self.socket_path)
-                print(f"[Socket]: Removed existing socket file: {self.socket_path}")
-        except Exception as e:
-            print(f"[Socket]: Error cleaning up socket: {e}")
+    @property
+    def qemu_system(self) -> str:
+        return self._qemu_system
 
-    def _build_qemu_command(self, load_snapshot=None):
+    @property
+    def qemu_process(self) -> Optional[asyncio.subprocess.Process]:
+        return self._qemu_process
+
+    def build_qemu_command(self: _SelfQMPProtocol, load_snapshot: Optional[str] = None) -> tuple[list[str], str]:
+        """Build QEMU command with proper parameters"""
         if not os.path.exists(self.qemu_system):
             raise FileNotFoundError(f"QEMU executable not found at {self.qemu_system}")
 
-        socket_dir = os.path.dirname(self.socket_path)
-        os.makedirs(socket_dir, exist_ok=True)
+        # Create unique log file for this process
         log_file = f"qemu_console_{os.getpid()}.log"
 
+        socket_dir = os.path.dirname(self.socket_path)
+        os.makedirs(socket_dir, exist_ok=True)
+
+        # Base command
         cmd = [
             self.qemu_system,
             "-name", f"QEMU User ({os.path.basename(self.qemu_system)})",
@@ -164,126 +212,287 @@ class ARM64Runner(QEMUSnapshotMixin):
             "-cpu", "cortex-a57",
             "-m", "2048",
             "-nographic",
+            # Logging setup
             "-D", log_file,
             "-d", "guest_errors,unimp",
-            # Serial and logging setup
             "-chardev", f"file,id=char0,path={log_file}",
             "-serial", "chardev:char0"
-            # "-chardev", "stdio,id=char0,mux=on,logfile=serial.log",
-            # "-serial", "file:console.log",
-            # "-monitor", "none",
-            # "-chardev", "stdio,id=console,mux=on,logfile=console.log",
-            # "-serial", "chardev:console",
-            # "-monitor", "none",
-            # "-boot", "menu=on",
         ]
 
-        # Get paths for UEFI firmware
-        qemu_dir = os.path.dirname(self.qemu_system)
-        edk2_code = os.path.join(qemu_dir, "share/qemu/edk2-aarch64-code.fd")
-        edk2_vars = os.path.join(qemu_dir, "../edk2-aarch64-vars.fd")
-
-        # Add UEFI firmware if available
-        if os.path.exists(edk2_code):
+        # Add kernel if available
+        if getattr(self, 'kernel_path', None) and os.path.exists(self._kernel_path):
             cmd.extend([
-                "-drive", f"if=pflash,format=raw,file={edk2_code},readonly=on"
+                "-kernel", self._kernel_path,
+                "-append", "console=ttyAMA0 root=/dev/vda3 modules=loop,squashfs,sd-mod,usb-storage,ext4 quiet"
             ])
-            if os.path.exists(edk2_vars):
-                cmd.extend([
-                    "-drive", f"if=pflash,format=raw,file={edk2_vars}"
-                ])
 
         # Drive configuration
         cmd.extend([
             "-device", "virtio-blk-pci,drive=hd0,addr=0x3",
-            "-drive", f"file={self.qcow2_path},if=none,id=hd0,format=qcow2"
+            "-drive", f"file={self._qcow2_path},if=none,id=hd0,format=qcow2"
         ])
 
-        if (iso_to_use := self.custom_iso_path or self.iso_image):
+        # Add ISO if in setup mode
+        if not load_snapshot and (iso_to_use := self._custom_iso_path or self.iso_image):
             cmd.extend([
                 "-device", "virtio-blk-pci,drive=cd0,addr=0x4",
                 "-drive", f"file={iso_to_use},if=none,id=cd0,format=raw,readonly=on"
             ])
-            # cmd.extend(["-cdrom", iso_to_use])
 
-        # QMP/network configuration
+        # QMP configuration
         cmd.extend([
-            "-device", "virtio-net-pci,netdev=net0,addr=0x5",
-            "-netdev", f"user,id=net0,hostfwd=tcp::{self.ssh_port}-:22",
             "-qmp", f"unix:{self.socket_path},server,nowait"
         ])
 
+        # Platform-specific acceleration
         if platform.machine() == 'arm64':
             cmd.extend(["-accel", "hvf"])
         else:
             cmd.extend(["-accel", "tcg,thread=single"])
 
+        # Load snapshot if specified
         if load_snapshot:
             cmd.extend(["-loadvm", load_snapshot])
 
+        print(f"[QEMU]: Command: {' '.join(cmd)}")
         return cmd, log_file
 
-    async def _wait_for_socket(self, timeout: int = 30) -> bool:
+
+    async def start_process(self: _SelfQMPProtocol, load_snapshot: Optional[str] = None) -> bool:
+        """Start QEMU process with output monitoring"""
+        try:
+            # Build command and prepare log file
+            cmd, log_file = self.build_qemu_command(load_snapshot)
+
+            # Clean up any existing process or files
+            self._process_manager.cleanup_existing_process()
+            self.cleanup_qmp_socket()
+            if os.path.exists(log_file):
+                os.unlink(log_file)
+
+            # Start QEMU process
+            print("[QEMU]: Starting process...")
+            self._qemu_process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+
+            if self.qemu_process.returncode is not None:
+                stdout, stderr = await self.qemu_process.communicate()
+                print(f"[QEMU] Process failed:\nstdout: {stdout.decode()}\nstderr: {stderr.decode()}")
+                return False
+
+            # Save PID and start monitoring
+            self._process_manager.save_pid(self.qemu_process.pid)
+            print(f"[Process]: QEMU started with PID {self.qemu_process.pid}")
+
+            # Start output monitoring tasks
+            self._stdout_task = asyncio.create_task(
+                self._monitor_output(self.qemu_process.stdout, "stdout"))
+            self._stderr_task = asyncio.create_task(
+                self._monitor_output(self.qemu_process.stderr, "stderr"))
+            self._log_monitor = asyncio.create_task(
+                self.monitor_log_file(log_file))
+
+            return True
+
+        except Exception as e:
+            print(f"[Process]: Failed to start QEMU: {e}")
+            return False
+
+    async def stop_process(self: _SelfQMPProtocol) -> None:
+        """Stop QEMU process and cleanup"""
+        # Cancel monitoring tasks
+        for task in [self._stdout_task, self._stderr_task, self._log_monitor]:
+            if task:
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
+        # Stop QEMU process
+        if self.qemu_process:
+            try:
+                if self.qemu_process.returncode is None:
+                    print("[Process]: Terminating QEMU process...")
+                    self.qemu_process.terminate()
+                    try:
+                        await asyncio.wait_for(self.qemu_process.wait(), timeout=5)
+                        print("[Process]: QEMU process terminated normally")
+                    except asyncio.TimeoutError:
+                        print("[Process]: Force killing QEMU process...")
+                        self.qemu_process.kill()
+                        await self.qemu_process.wait()
+                        print("[Process]: QEMU process killed")
+                else:
+                    print(f"[Process]: QEMU process already exited with code {self.qemu_process.returncode}")
+            except Exception as e:
+                print(f"[Process]: Error during cleanup: {e}")
+
+        # Cleanup socket
+        self.cleanup_qmp_socket()
+
+
+class QMPControlMixin:
+    """QMP communication functionality"""
+
+    class _SelfQMPProtocol(QEMUProtocol, QMPProtocol, Protocol):
+        """Combined protocol including both required attributes and mixin methods"""
+        _events_task: Optional[asyncio.Task]
+
+        async def wait_qmp_socket(self, timeout: int = 30) -> bool: ...
+
+        async def watch_events(self) -> AsyncGenerator[dict, None]: ...
+
+    def __init__(
+            self,
+            *,
+            socket_path: str = "/tmp/qmp_socket",
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+
+        self._socket_path = socket_path
+
+        self._qmp = QMPClient('ARM64 VM')
+        self._events_task: Optional[asyncio.Task] = None
+
+    @property
+    def qmp(self) -> QMPClient:
+        return self._qmp
+
+    @property
+    def socket_path(self) -> str:
+        return self._socket_path
+
+    def cleanup_qmp_socket(self: _SelfQMPProtocol):
+        """Clean up the socket file if it exists"""
+        try:
+            if os.path.exists(self.socket_path):
+                os.unlink(self.socket_path)
+                print(f"[Socket]: Removed existing socket file: {self.socket_path}")
+        except Exception as e:
+            print(f"[Socket]: Error cleaning up socket: {e}")
+            
+    async def wait_qmp_socket(self: _SelfQMPProtocol, timeout: int = 30) -> bool:
         """Wait for QMP socket to become available"""
         start_time = asyncio.get_event_loop().time()
         while True:
             if os.path.exists(self.socket_path):
-                try:
+                with contextlib.suppress(Exception):
                     # Test if socket is actually ready
                     reader, writer = await asyncio.open_unix_connection(self.socket_path)
                     writer.close()
                     await writer.wait_closed()
-                    print("[Socket]: Socket is ready for connection")
+                    print("[QMP]: Socket is ready for connection")
                     return True
-                except Exception:
-                    pass
-
             elapsed = asyncio.get_event_loop().time() - start_time
             if elapsed >= timeout:
-                print(f"[Socket]: Timeout waiting for socket after {elapsed:.1f}s")
+                print(f"[QMP]: Socket timeout after {elapsed:.1f}s")
                 return False
 
-            if not self.qemu_process or self.qemu_process.returncode is not None:
-                print("[Socket]: QEMU process is not running")
+            if self.qemu_process and self.qemu_process.returncode is not None:
+                print("[QMP]: QEMU process terminated while waiting for socket")
                 return False
 
             await asyncio.sleep(1)
             if int(elapsed) % 5 == 0:
-                print(f"[Socket]: Waiting for socket... ({int(elapsed)}s)")
+                print(f"[QMP]: Waiting for socket... ({int(elapsed)}s)")
 
-    async def _connect_qmp(self) -> bool:
+    async def connect_qmp(self: _SelfQMPProtocol) -> bool:
         """Establish QMP connection with retries"""
-        try:
-            print("[QEMU]: Waiting for QMP socket...")
-            socket_timeout = 30
-            start_time = asyncio.get_event_loop().time()
+        for attempt in range(5):
+            try:
+                if not await self.wait_qmp_socket(timeout=30):
+                    raise TimeoutError("Socket not available")
 
-            while not os.path.exists(self.socket_path):
-                if self.qemu_process.returncode is not None:
-                    stdout, stderr = await self.qemu_process.communicate()
-                    print(f"[QEMU] Process terminated:\nstdout: {stdout.decode()}\nstderr: {stderr.decode()}")
-                    raise RuntimeError("QEMU process terminated unexpectedly")
-
-                if asyncio.get_event_loop().time() - start_time > socket_timeout:
-                    raise TimeoutError(f"Socket not created after {socket_timeout} seconds")
+                await self.qmp.connect(self.socket_path)
+                print("[QMP]: Connected to socket")
 
                 await asyncio.sleep(1)
-
-            await self.qmp.connect(self.socket_path)
-            print("[QMP]: Connected to socket")
-
-            await asyncio.sleep(1)
-            with contextlib.suppress(Exception):
                 await self.qmp.execute('qmp_capabilities')
                 print("[QMP]: Capabilities negotiated")
 
-            return True
+                # Start event monitoring
+                self._events_task = asyncio.create_task(self.watch_events())
+                return True
+
+            except Exception as e:
+                print(f"[QMP]: Connection attempt {attempt + 1} failed: {e}")
+                if attempt < 4:
+                    await asyncio.sleep(2 ** attempt)  # Exponential backoff
+
+                if self.qmp.is_connected():
+                    await self.qmp.disconnect()
+
+        return False
+
+    async def watch_events(self: _SelfQMPProtocol) -> AsyncGenerator[dict, None]:
+        """Watch QMP events with error handling"""
+        try:
+            async for event in self.qmp.events:
+                print(f"[QMP Event]: {event['event']}")
+                yield event
+        except asyncio.CancelledError:
+            print("[QMP]: Event monitoring cancelled")
+            return
         except Exception as e:
-            print(f"[QMP]: Connection failed: {e}")
-            await asyncio.sleep(2)
+            print(f"[QMP]: Event monitoring error: {e}")
+            return
+        finally:
+            print("[QMP]: Event monitoring stopped")
+
+    async def execute_qmp(
+            self: _SelfQMPProtocol,
+            command: str,
+            arguments: Optional[dict] = None
+    ) -> dict:
+        """Execute QMP command with error handling"""
+        try:
+            if not self.qmp.is_connected():
+                print("[QMP]: Not connected, attempting reconnection...")
+                if not await self.connect_qmp():
+                    raise ConnectionError("Failed to establish QMP connection")
+
+            return await self.qmp.execute(command, arguments or {})
+        except Exception as e:
+            error_msg = f"QMP command '{command}' failed: {e}"
+            print(f"[QMP]: {error_msg}")
+            raise RuntimeError(error_msg) from e
+
+    async def check_vm_status(self: _SelfQMPProtocol) -> bool:
+        """Check VM status via QMP"""
+        try:
+            status = await self.execute_qmp('query-status')
+            running = status.get('status') == 'running'
+            print(f"[QMP]: VM status: {'running' if running else 'not running'}")
+            return running
+        except Exception as e:
+            print(f"[QMP]: Status check failed: {e}")
             return False
 
-    async def _monitor_output(self, stream, name):
+    async def cleanup_qmp(self: _SelfQMPProtocol) -> None:
+        """Clean up QMP resources"""
+        if self._events_task:
+            self._events_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._events_task
+
+        if self.qmp.is_connected():
+            try:
+                await self.qmp.execute('quit')
+            except Exception as e:
+                print(f"[QMP]: Quit command failed: {e}")
+            finally:
+                await self.qmp.disconnect()
+
+
+class MonitoringMixin:
+    """SSH functionality"""
+
+    def __init__(self):
+        super().__init__()
+        
+    async def monitor_output(self, stream, name):
         """Monitor QEMU output stream"""
         while True:
             line = await stream.readline()
@@ -291,14 +500,7 @@ class ARM64Runner(QEMUSnapshotMixin):
                 break
             print(f"[QEMU {name}]: {line.decode().strip()}")
 
-    async def watch_events(self):
-        try:
-            async for event in self.qmp.events:
-                print(f"[QMP Event]: {event['event']}")
-        except asyncio.CancelledError:
-            return
-
-    async def monitor_log_file(self, log_file: str):
+    async def monitor_log_file(self: QEMUProtocol, log_file: str):
         """Monitor the log file for new content"""
         try:
             position = 0
@@ -309,8 +511,7 @@ class ARM64Runner(QEMUSnapshotMixin):
 
                 with open(log_file, 'r') as f:
                     f.seek(position)
-                    new_content = f.read()
-                    if new_content:
+                    if new_content := f.read():
                         print(f"[VM Console]:\n{new_content}")
                     position = f.tell()
 
@@ -322,7 +523,7 @@ class ARM64Runner(QEMUSnapshotMixin):
         except Exception as e:
             print(f"[Log Monitor]: Error: {e}")
 
-    async def check_vm_boot_log(self):
+    async def check_vm_boot_log(self: QMPProtocol):
         """Check the VM console log"""
         try:
             print("[Debug] Checking console log...")
@@ -343,8 +544,7 @@ class ARM64Runner(QEMUSnapshotMixin):
         try:
             if os.path.exists("console.log"):
                 with open("console.log", "r") as f:
-                    content = f.read()
-                    if content:
+                    if content := f.read():
                         print("[Console Log]:")
                         print(content)
                     else:
@@ -352,25 +552,236 @@ class ARM64Runner(QEMUSnapshotMixin):
         except Exception as e:
             print(f"[Debug] Error reading console log: {e}")
 
-    async def create_alpine_overlay(self):
+
+
+class SSHControlMixin(SSHProtocol):
+    """SSH functionality"""
+
+    class _SelfSSHProtocol(
+        SSHProtocol,
+        MonitoringProtocol,
+        QMPProtocol,
+        Protocol
+    ):
+        _ssh_port: int
+
+    def __init__(
+            self,
+            *,
+            ssh_port: int = 10022,
+            **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self._ssh_port = ssh_port
+
+    @property
+    def ssh_port(self) -> int:
+        return self._ssh_port
+
+    @staticmethod
+    async def generate_ssh_key() -> bool:
+        """Generate SSH key if it doesn't exist"""
+        ssh_key_path = "/Users/runner/.ssh/id_rsa"
+        ssh_dir = os.path.dirname(ssh_key_path)
+
+        try:
+            # Create .ssh directory if it doesn't exist
+            os.makedirs(ssh_dir, mode=0o700, exist_ok=True)
+
+            if not os.path.exists(ssh_key_path):
+                print("[SSH]: Generating new SSH key...")
+                keygen_cmd = [
+                    "ssh-keygen",
+                    "-t", "rsa",
+                    "-N", "",  # No passphrase
+                    "-f", ssh_key_path
+                ]
+                process = await asyncio.create_subprocess_exec(
+                    *keygen_cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await process.communicate()
+                if process.returncode != 0:
+                    print(f"[SSH]: Key generation failed: {stderr.decode()}")
+                    return False
+                print(f"[SSH]: Key generation output: {stdout.decode()}")
+
+                # Set correct permissions
+                os.chmod(ssh_key_path, 0o600)
+                os.chmod(f"{ssh_key_path}.pub", 0o644)
+
+            return True
+        except Exception as e:
+            print(f"[SSH]: Error during key generation: {e}")
+            return False
+
+    async def wait_for_ssh(self: _SelfSSHProtocol, max_attempts: int = 30, delay: int = 10) -> bool:
+        """Wait for SSH with original working functionality"""
+        print("[SSH]: Waiting for SSH service to become available...")
+
+        # Ensure SSH key exists
+        if not (await self.generate_ssh_key()):
+            print("[SSH]: Failed to generate SSH key")
+            return False
+
+        for attempt in range(max_attempts):
+            try:
+                # Check VM status
+                print(f"\n[Debug] Checking VM status (attempt {attempt + 1})...")
+                await self.check_console_log()
+                await self.check_vm_boot_log()
+
+                # Try to connect with netcat first to check if port is open
+                nc_cmd = [
+                    "nc", "-zv", "-w", "5", "localhost", str(self.ssh_port)
+                ]
+                process = await asyncio.create_subprocess_exec(
+                    *nc_cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await process.communicate()
+                if process.returncode != 0:
+                    print(f"[SSH]: Port {self.ssh_port} not ready (attempt {attempt + 1}/{max_attempts})")
+                    await asyncio.sleep(delay)
+                    continue
+
+                # Try a test SSH connection
+                test_cmd = [
+                    "ssh",
+                    "-p", str(self.ssh_port),
+                    "-i", "/Users/runner/.ssh/id_rsa",
+                    "-o", "StrictHostKeyChecking=no",
+                    "-o", "UserKnownHostsFile=/dev/null",
+                    "-o", "ConnectTimeout=5",
+                    "-o", "BatchMode=yes",
+                    "root@localhost",
+                    "set -x; ps aux | grep sshd; netstat -tln; cat /var/log/messages | grep sshd || true"
+                ]
+
+                process = await asyncio.create_subprocess_exec(
+                    *test_cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await process.communicate()
+
+                if process.returncode == 0:
+                    print("[SSH]: Service is now available")
+                    return True
+
+                print(f"[SSH]: Service not ready (attempt {attempt + 1}/{max_attempts})")
+                print(f"[SSH]: stderr: {stderr.decode()}")
+                await self.check_vm_boot_log()
+
+            except Exception as e:
+                print(f"[SSH]: Connection attempt {attempt + 1} failed: {e}")
+
+            await asyncio.sleep(delay)
+
+        return False
+
+    async def execute_ssh_command(self: _SelfSSHProtocol, command: str) -> tuple[str, str, int]:
+        """Execute command via SSH with original working functionality"""
+        print("[DEBUG] Checking QEMU network info...")
+        try:
+            netinfo = await self.qmp.execute('human-monitor-command',
+                                             {'command-line': 'info network'})
+            print(f"[DEBUG] QEMU network info: {netinfo}")
+        except Exception as e:
+            print(f"[DEBUG] QEMU network info error: {e}")
+
+        # Ensure SSH key exists
+        ssh_key_path = "/Users/runner/.ssh/id_rsa"
+        if not os.path.exists(ssh_key_path):
+            await self.generate_ssh_key()
+
+        # Try connecting multiple times
+        for attempt in range(3):
+            try:
+                # Test SSH connection first
+                test_cmd = [
+                    "ssh",
+                    "-p", str(self.ssh_port),
+                    "-i", ssh_key_path,
+                    "-o", "StrictHostKeyChecking=no",
+                    "-o", "UserKnownHostsFile=/dev/null",
+                    "-o", "ConnectTimeout=10",
+                    "root@localhost",
+                    "echo test"
+                ]
+
+                process = await asyncio.create_subprocess_exec(
+                    *test_cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await process.communicate()
+                if process.returncode == 0:
+                    break
+            except Exception as e:
+                print(f"[SSH]: Connection attempt {attempt + 1} failed: {e}")
+            await asyncio.sleep(10)
+
+        # Execute actual command
+        ssh_cmd = [
+            "ssh",
+            "-p", str(self.ssh_port),
+            "-i", ssh_key_path,
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "UserKnownHostsFile=/dev/null",
+            "root@localhost",
+            command
+        ]
+
+        print(f"[Command]: Executing via SSH: {command}")
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *ssh_cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await process.communicate()
+            return stdout.decode(), stderr.decode(), process.returncode
+        except Exception as e:
+            print(f"[Command]: SSH Error: {e}")
+            return "", str(e), 1
+
+
+class AlpineISOBuilderMixin(ISOProtocol):
+    """Alpine ISO customization functionality"""
+    class _SelfISOProtocol(ISOProtocol, Protocol):
+        _iso_image: Optional[str]
+        _custom_iso_path: Optional[str]
+
+    def __init__(
+            self,
+            *,
+            iso_image: str,
+            custom_iso_path: Optional[str] = None,
+            **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self._iso_image = iso_image
+        self._custom_iso_path = custom_iso_path
+
+    @property
+    def iso_image(self) -> str:
+        return self._iso_image
+
+    @property
+    def custom_iso_path(self) -> Optional[str]:
+        return self._custom_iso_path
+
+    @staticmethod
+    async def create_alpine_overlay() -> str:
         """Create Alpine overlay with automation scripts"""
         ovl_dir = "ovl"
         os.makedirs(f"{ovl_dir}/etc/runlevels/default", exist_ok=True)
         os.makedirs(f"{ovl_dir}/etc/local.d", exist_ok=True)
         os.makedirs(f"{ovl_dir}/etc/apk", exist_ok=True)
         os.makedirs(f"{ovl_dir}/etc/auto-setup-alpine", exist_ok=True)
-
-        with open(f"{ovl_dir}/etc/local.d/logging.start", 'w') as f:
-            f.write("""#!/bin/sh
-# Configure serial console logging
-echo 'ttyS0::respawn:/sbin/getty -L ttyS0 115200 vt100' >> /etc/inittab
-# Start syslog
-rc-service syslog start
-# Redirect output to console and log
-exec 1> >(tee /dev/ttyS0)
-exec 2>&1
-""")
-        os.chmod(f"{ovl_dir}/etc/local.d/logging.start", 0o755)
 
         # Enable default boot services
         open(f"{ovl_dir}/etc/.default_boot_services", 'w').close()
@@ -387,7 +798,7 @@ https://dl-cdn.alpinelinux.org/alpine/latest-stable/main
 https://dl-cdn.alpinelinux.org/alpine/latest-stable/community
 """)
 
-        # Create our setup script
+        # Create setup script
         with open(f"{ovl_dir}/etc/local.d/auto-setup-alpine.start", 'w') as f:
             f.write("""#!/bin/sh
 set -ex
@@ -466,14 +877,8 @@ APKCACHEOPTS=none
 
         return "alpine.apkovl.tar.gz"
 
-    async def create_custom_alpine_iso(self, original_iso, overlay_file) -> str:
+    async def create_custom_alpine_iso(self, overlay_file: str) -> str:
         """Create custom Alpine ISO with overlay"""
-        def remove_readonly(func, path, exc_info):
-            """Error handler for shutil.rmtree to handle read-only files"""
-            import stat
-            os.chmod(path, stat.S_IWRITE)
-            func(path)
-
         # Create mount point
         mount_point = "./alpine-mount"
         work_dir = "./alpine-work"
@@ -485,7 +890,7 @@ APKCACHEOPTS=none
             os.makedirs(work_dir, exist_ok=True)
 
             attach_output = subprocess.run(
-                ["hdiutil", "attach", "-nomount", original_iso],
+                ["hdiutil", "attach", "-nomount", self._iso_image],
                 check=True,
                 capture_output=True,
                 text=True
@@ -524,10 +929,10 @@ APKCACHEOPTS=none
             shutil.copy2(overlay_file, os.path.join(work_dir, "alpine.apkovl.tar.gz"))
 
             # Create new ISO
-            custom_iso = "custom-alpine.iso"
+            self._custom_iso_path = self._custom_iso_path or "custom-alpine.iso"
             subprocess.run([
                 "hdiutil", "makehybrid",
-                "-o", custom_iso,
+                "-o", self._custom_iso_path,
                 "-hfs", "-joliet", "-iso", "-udf",
                 "-default-volume-name", "ALPINE",
                 work_dir
@@ -535,358 +940,196 @@ APKCACHEOPTS=none
 
             subprocess.run(["umount", mount_point], check=True)
 
-            return custom_iso
+            return self._custom_iso_path
 
         finally:
             # Cleanup
             subprocess.run(["hdiutil", "detach", device], check=False)
             if os.path.exists(work_dir):
-                shutil.rmtree(work_dir, ignore_errors=True,)
-                              # onerror=remove_readonly)
+                shutil.rmtree(work_dir, ignore_errors=True)
 
-    async def eject_cdrom(self) -> bool:
-        """Eject the CDROM while VM is running"""
+    async def extract_kernel_from_iso(self, iso_path: str) -> str:
+        """Extract kernel from Alpine ISO"""
         try:
-            print("[CDROM]: Ejecting ISO...")
-            await self.qmp.execute('human-monitor-command',
-                                  {'command-line': 'eject -f cd0'})
-            print("[CDROM]: ISO ejected successfully")
+            print("[Setup]: Extracting kernel from ISO...")
+            mount_point = "./iso-mount"
+            os.makedirs(mount_point, exist_ok=True)
 
-            # Verify device state
+            # Mount the ISO
+            device = None
+            try:
+                # Attach ISO
+                attach_output = subprocess.run(
+                    ["hdiutil", "attach", "-nomount", iso_path],
+                    check=True, capture_output=True, text=True
+                ).stdout.splitlines()
+                device = attach_output[0].split()[0]
+                print(f"[Setup]: Attached ISO to device: {device}")
+
+                # Mount the ISO
+                subprocess.run([
+                    "mount", "-t", "cd9660", "-o", "ro",
+                    device, mount_point
+                ], check=True)
+
+                # Find and copy the kernel
+                kernel_path = os.path.join(mount_point, "boot/vmlinuz-virt")
+                if not os.path.exists(kernel_path):
+                    raise FileNotFoundError("Kernel not found in ISO")
+
+                # Copy kernel to local directory
+                local_kernel = "vmlinuz-virt"
+                shutil.copy2(kernel_path, local_kernel)
+
+                print(f"[Setup]: Extracted kernel to {local_kernel}")
+                return os.path.abspath(local_kernel)
+
+            finally:
+                # Cleanup
+                with contextlib.suppress(Exception):
+                    subprocess.run(["umount", mount_point], check=False)
+                if device:
+                    subprocess.run(["hdiutil", "detach", device], check=False)
+                with contextlib.suppress(Exception):
+                    os.rmdir(mount_point)
+        except Exception as e:
+            print(f"[Setup]: Failed to extract kernel: {e}")
+            raise
+
+
+class SnapshotManagementMixin(SnapshotProtocol):
+    """Snapshot management functionality"""
+
+    class _SelfSnapshotProtocol(SnapshotProtocol, QMPProtocol, Protocol):
+        """Combined protocol including snapshot-specific attributes and methods"""
+
+        ...
+
+    def __init__(self, **kwargs, ):
+        super().__init__(**kwargs)
+
+    async def list_snapshots(self: _SelfSnapshotProtocol) -> str:
+        """List all available snapshots in the VM"""
+        try:
+            print("[QMP]: Getting snapshot list...")
+            response = await self.qmp.execute('human-monitor-command',
+                                              {'command-line': 'info snapshots'})
+            print("[QMP]: Available snapshots:")
+            print(response)
+            return response
+        except Exception as e:
+            print(f"[QMP]: Error listing snapshots: {e}")
+            return ""
+
+    async def save_snapshot(self: _SelfSnapshotProtocol, name: str) -> bool:
+        """Save VM snapshot"""
+        try:
+            print(f"[QMP]: Creating snapshot '{name}'...")
             await self.qmp.execute('human-monitor-command',
-                                  {'command-line': 'info block'})
+                                   {'command-line': f'savevm {name}'})
+            print("[QMP]: Snapshot created successfully")
             return True
         except Exception as e:
-            print(f"[CDROM]: Error ejecting ISO: {e}")
+            print(f"[QMP]: Error creating snapshot: {e}")
             return False
 
-    async def await_boot_sequence(self):
-        """Wait for VM to boot and connect to QMP"""
-        print("[QMP]: Waiting for QMP socket...")
-
-        # Await creation of QMP socket
-        retry_count = 0
-        while not os.path.exists(self.socket_path):
-            await asyncio.sleep(10)
-            retry_count += 1
-            if retry_count > 30:
-                raise TimeoutError("QMP socket not ready after 30 seconds")
-
-        # Wait for socket to be ready for connection
-        await asyncio.sleep(2)
-
-        print("[QMP]: Connecting to VM...")
+    async def load_snapshot(self: _SelfSnapshotProtocol, name: str) -> bool:
+        """Load VM snapshot"""
         try:
-            await self.qmp.connect(self.socket_path)
-            print("[QMP]:   '-> Connected to QMP socket")
-
-            with contextlib.suppress(Exception):
-                print("[QMP]: Negotiating QMP capabilities... (May raise an exception)")
-                await self.qmp.execute('qmp_capabilities')
-                print("[QMP]:   '-> Capabilities negotiated")
-            asyncio.create_task(self.watch_events())
-
-        except Exception as e:
-            raise Exception(f"[QMP]: Error connecting to VM: {e}")
-
-        print("[QMP]: Waiting for VM to boot...")
-        status = await self.qmp.execute('query-status')
-        if status['status'] != 'running':
-            raise RuntimeError(f"VM failed to start: {status}")
-
-        print("[QMP]: VM is running, waiting for boot messages...")
-
-        retry_count = 0
-        boot_timeout = 10
-        while retry_count < boot_timeout:
-            try:
-                info = await self.qmp.execute('query-name')
-                if info:
-                    print(f"[QMP]:   '-> VM has finished booting. VM name: {info.get('name', 'Unknown')}")
-                    break
-            except Exception as e:
-                print(f"[Boot]: Error reading output: {e}")
-
-            retry_count += 1
-            await asyncio.sleep(30)
-
-            # Check if process is still alive
-            if self.qemu_process.returncode is not None:
-                raise RuntimeError(f"QEMU process died during boot with code {self.qemu_process.returncode}")
-
-        if retry_count == boot_timeout:
-            raise TimeoutError(f"Boot sequence not completed after {30 * boot_timeout} seconds")
-
-    async def wait_for_ssh(self, max_attempts: int = 30, delay: int = 10) -> bool:
-        """Wait for SSH to become available with retries"""
-        print("[SSH]: Waiting for SSH service to become available...")
-
-        # Ensure SSH key exists
-        if not await self.generate_ssh_key():
-            print("[SSH]: Failed to generate SSH key")
-            return False
-
-        for attempt in range(max_attempts):
-            try:
-                # Check VM status
-                print(f"\n[Debug] Checking VM status (attempt {attempt + 1})...")
-                await self.check_console_log()
-                await self.check_vm_boot_log()
-
-                # Try to connect with netcat first to check if port is open
-                nc_cmd = [
-                    "nc", "-zv", "-w", "5", "localhost", str(self.ssh_port),
-                ]
-                process = await asyncio.create_subprocess_exec(
-                    *nc_cmd,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE
-                )
-                stdout, stderr = await process.communicate()
-                if process.returncode != 0:
-                    print(f"[SSH]: Port {self.ssh_port} not ready (attempt {attempt + 1}/{max_attempts})")
-                    await asyncio.sleep(delay)
-                    continue
-
-                # Try a test SSH connection
-                test_cmd = [
-                    "ssh",
-                    "-p", str(self.ssh_port),
-                    "-i", "/Users/runner/.ssh/id_rsa",
-                    "-o", "StrictHostKeyChecking=no",
-                    "-o", "UserKnownHostsFile=/dev/null",
-                    "-o", "ConnectTimeout=5",
-                    "-o", "BatchMode=yes",
-                    "root@localhost",
-                    "set -x; ps aux | grep sshd; netstat -tln; cat /var/log/messages | grep sshd || true"
-                ]
-
-                process = await asyncio.create_subprocess_exec(
-                    *test_cmd,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE
-                )
-                stdout, stderr = await process.communicate()
-
-                if process.returncode == 0:
-                    print("[SSH]: Service is now available")
-                    return True
-
-                print(f"[SSH]: Service not ready (attempt {attempt + 1}/{max_attempts})")
-                print(f"[SSH]: stderr: {stderr.decode()}")
-                await self.check_vm_boot_log()
-
-            except Exception as e:
-                print(f"[SSH]: Connection attempt {attempt + 1} failed: {e}")
-
-            await asyncio.sleep(delay)
-
-        return False
-
-    async def generate_ssh_key(self) -> bool:
-        """Generate SSH key if it doesn't exist"""
-        ssh_key_path = "/Users/runner/.ssh/id_rsa"
-        ssh_dir = os.path.dirname(ssh_key_path)
-
-        try:
-            # Create .ssh directory if it doesn't exist
-            os.makedirs(ssh_dir, mode=0o700, exist_ok=True)
-
-            if not os.path.exists(ssh_key_path):
-                print("[SSH]: Generating new SSH key...")
-                keygen_cmd = [
-                    "ssh-keygen",
-                    "-t", "rsa",
-                    "-N", "",  # No passphrase
-                    "-f", ssh_key_path
-                ]
-                process = await asyncio.create_subprocess_exec(
-                    *keygen_cmd,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE
-                )
-                stdout, stderr = await process.communicate()
-                if process.returncode != 0:
-                    print(f"[SSH]: Key generation failed: {stderr.decode()}")
-                    return False
-                print(f"[SSH]: Key generation output: {stdout.decode()}")
-
-                # Set correct permissions
-                os.chmod(ssh_key_path, 0o600)
-                os.chmod(f"{ssh_key_path}.pub", 0o644)
-
+            print(f"[QMP]: Loading snapshot '{name}'...")
+            await self.qmp.execute('human-monitor-command',
+                                   {'command-line': f'loadvm {name}'})
+            print("[QMP]: Snapshot loaded successfully")
             return True
         except Exception as e:
-            print(f"[SSH]: Error during key generation: {e}")
+            print(f"[QMP]: Error loading snapshot: {e}")
             return False
 
-    async def execute_ssh_command(self, command):
-        """Execute command via SSH"""
-        print("[DEBUG] Checking QEMU network info...")
+    async def delete_snapshot(self: _SelfSnapshotProtocol, name: str) -> bool:
+        """Delete VM snapshot"""
         try:
-            netinfo = await self.qmp.execute('human-monitor-command',
-                                             {'command-line': 'info network'})
-            print(f"[DEBUG] QEMU network info: {netinfo}")
+            print(f"[QMP]: Deleting snapshot '{name}'...")
+            await self.qmp.execute('human-monitor-command',
+                                   {'command-line': f'delvm {name}'})
+            print("[QMP]: Snapshot deleted successfully")
+            return True
         except Exception as e:
-            print(f"[DEBUG] QEMU network info error: {e}")
-
-        ssh_key_path = "/Users/runner/.ssh/id_rsa"
-        if not os.path.exists(ssh_key_path):
-            keygen_cmd = [
-                "ssh-keygen",
-                "-t", "rsa",
-                "-N", "",  # No passphrase
-                "-f", ssh_key_path
-            ]
-            process = await asyncio.create_subprocess_exec(
-                *keygen_cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            stdout, stderr = await process.communicate()
-            print(f"[SSH]: Key generation output: {stdout.decode()}")
-
-        for attempt in range(3):
-            try:
-                # Test SSH connection
-                test_cmd = [
-                    "ssh",
-                    "-p", str(self.ssh_port),
-                    "-i", ssh_key_path,
-                    "-o", "StrictHostKeyChecking=no",
-                    "-o", "UserKnownHostsFile=/dev/null",
-                    "-o", "ConnectTimeout=10",
-                    "root@localhost",
-                    "echo test"
-                ]
-
-                process = await asyncio.create_subprocess_exec(
-                    *test_cmd,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE
-                )
-                stdout, stderr = await process.communicate()
-                if process.returncode == 0:
-                    break
-            except Exception as e:
-                print(f"[SSH]: Connection attempt {attempt + 1} failed: {e}")
-            await asyncio.sleep(10)
-
-        # Execute actual command
-        ssh_cmd = [
-            "ssh",
-            "-p", str(self.ssh_port),
-            "-i", ssh_key_path,
-            "-o", "StrictHostKeyChecking=no",
-            "-o", "UserKnownHostsFile=/dev/null",
-            "root@localhost",
-            command
-        ]
-
-        print(f"[Command]: Executing via SSH: {command}")
-        try:
-            process = await asyncio.create_subprocess_exec(
-                *ssh_cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            stdout, stderr = await process.communicate()
-            return stdout.decode(), stderr.decode(), process.returncode
-        except Exception as e:
-            print(f"[Command]: SSH Error: {e}")
-            return "", str(e), 1
-
-    async def start_vm(self, load_snapshot: Optional[str] = None) -> bool:
-        """Start VM with proper cleanup and initialization"""
-        # Cleanup any existing processes and sockets
-        self.process_manager.cleanup_existing_process()
-        self._cleanup_socket()
-
-        if os.path.exists("console.log"):
-            os.unlink("console.log")
-
-        cmd, log_file = self._build_qemu_command(load_snapshot)
-        print(f"[QEMU]: Starting VM with command: {' '.join(cmd)}")
-
-        if os.path.exists(log_file):
-            os.unlink(log_file)
-
-        try:
-            self.qemu_process = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-
-            if self.qemu_process.returncode is not None:
-                stdout, stderr = await self.qemu_process.communicate()
-                print(f"[QEMU] stdout: {stdout.decode()}")
-                print(f"[QEMU] stderr: {stderr.decode()}")
-                raise RuntimeError(f"QEMU process failed to start (code: {self.qemu_process.returncode})")
-
-            self.process_manager.save_pid(self.qemu_process.pid)
-            print(f"[Process]: QEMU started with PID {self.qemu_process.pid}")
-
-            # Start output monitoring tasks
-            self._log_monitor = asyncio.create_task(self.monitor_log_file(log_file))
-
-            await asyncio.sleep(2)
-            await self.check_vm_boot_log()
-
-            # Attempt QMP connection with retries
-            for attempt in range(5):  # Increased retry attempts
-                try:
-                    if await self._connect_qmp():
-                        print("[QMP]: Successfully connected and negotiated capabilities")
-
-                        # Verify VM is running
-                        status = await self.qmp.execute('query-status')
-                        if status['status'] != 'running':
-                            raise RuntimeError(f"VM is not running: {status}")
-
-                        retry_count = 0
-                        boot_timeout = 10
-                        while retry_count < boot_timeout:
-                            try:
-                                info = await self.qmp.execute('query-name')
-                                if info:
-                                    print(
-                                        f"[QMP]: VM has finished booting. VM name: {info.get('name', 'Unknown')}")
-                                    break
-                            except Exception as e:
-                                print(f"[Boot]: Error reading output: {e}")
-
-                            retry_count += 1
-                            await asyncio.sleep(30)
-
-                            # Check if process is still alive
-                            if self.qemu_process.returncode is not None:
-                                raise RuntimeError(
-                                    f"QEMU process died during boot with code {self.qemu_process.returncode}")
-
-                        if retry_count == boot_timeout:
-                            raise TimeoutError(f"Boot sequence not completed after {30 * boot_timeout} seconds")
-
-                        return True
-                except Exception as e:
-                    print(f"[QMP]: Connection attempt {attempt + 1} failed: {e}")
-                    if attempt < 4:  # Don't sleep on last attempt
-                        await asyncio.sleep(5)  # Increased delay between attempts
-
-            raise ConnectionError("Failed to establish QMP connection after all attempts")
-
-        except Exception as e:
-            print(f"[Error]: Failed to start VM: {e}")
-            if self.qemu_process and self.qemu_process.returncode is not None:
-                stdout, stderr = await self.qemu_process.communicate()
-                print("[QEMU] Process output:")
-                print(f"stdout: {stdout.decode()}")
-                print(f"stderr: {stderr.decode()}")
-            await self.stop_vm()
+            print(f"[QMP]: Error deleting snapshot: {e}")
             return False
 
-    async def setup_vm(self):
-        """Initial VM setup with Conda and snapshot creation"""
+    async def snapshot_exists(self: _SelfSnapshotProtocol, name: str) -> bool:
+        """Check if snapshot exists with better error handling"""
+        try:
+            print(f"[QMP]: Checking if snapshot '{name}' exists...")
+            snapshots = await self.list_snapshots()
+            exists = name in snapshots
+            print(f"[QMP]: Snapshot '{name}' {'exists' if exists else 'not found'}")
+            return exists
+        except Exception as e:
+            print(f"[QMP]: Error checking snapshot: {e}")
+            return False
+
+    async def ensure_snapshot(self: _SelfSnapshotProtocol, name: str, setup_func) -> bool:
+        """Ensure snapshot exists, create if necessary"""
+        if not await self.snapshot_exists(name):
+            print(f"[QMP]: Snapshot '{name}' not found, creating...")
+            await setup_func()
+            return await self.save_snapshot(name)
+        print(f"[QMP]: Snapshot '{name}' already exists")
+        return True
+
+    async def verify_snapshot(self: _SelfSnapshotProtocol, name: str) -> bool:
+        """Verify snapshot integrity"""
+        try:
+            # First check if snapshot exists
+            if not await self.snapshot_exists(name):
+                print(f"[QMP]: Cannot verify non-existent snapshot '{name}'")
+                return False
+
+            # Try to load the snapshot
+            if not await self.load_snapshot(name):
+                print(f"[QMP]: Failed to load snapshot '{name}' during verification")
+                return False
+
+            print(f"[QMP]: Successfully verified snapshot '{name}'")
+            return True
+
+        except Exception as e:
+            print(f"[QMP]: Error during snapshot verification: {e}")
+            return False
+
+#    .-------------------.
+# ---| Main Runner Class |---
+#    '-------------------'
+
+class ARM64Runner(
+    AlpineISOBuilderMixin,
+    SnapshotManagementMixin,
+    SSHControlMixin,
+    QMPControlMixin,
+    QEMUProcessMixin,
+):
+    """QEMU ARM64 Runner implementation"""
+    DEFAULT_SNAPSHOT = "conda"
+
+    def __init__(
+            self,
+            qemu_system: str,
+            qcow2_path: str,
+            socket_path: str,
+            iso_image: Optional[str] = None,
+            ssh_port: int = 10022,
+    ):
+        super().__init__(
+            qemu_system=qemu_system,
+            qcow2_path=qcow2_path,
+            socket_path=socket_path,
+            iso_image=iso_image,
+            ssh_port=ssh_port,
+        )
+
+    async def setup_vm(self) -> bool:
+        """Setup VM with all components"""
         if not self.iso_image:
             raise ValueError("ISO path is required for setup")
 
@@ -896,27 +1139,32 @@ APKCACHEOPTS=none
             overlay = await self.create_alpine_overlay()
 
             print("[Setup]: Creating custom Alpine ISO...")
-            custom_iso = await self.create_custom_alpine_iso(self.iso_image, overlay)
-            self.custom_iso_path = custom_iso
+            await self.create_custom_alpine_iso(overlay)
+
+            # Extract kernel from custom ISO
+            print("[Setup]: Extracting kernel from custom ISO...")
+            kernel_path =await self.extract_kernel_from_iso(self.custom_iso_path)
+            print(f"[Setup]: Using kernel from custom ISO: {kernel_path}")
 
             # Start VM with custom ISO
             print("[Setup]: Starting VM with custom ISO...")
-            if not await self.start_vm():
+            if not await self.start_process():
                 raise RuntimeError("Failed to start VM")
 
             # Wait for system to boot and stabilize
-            print("[Setup]: Waiting for system to initialize...")
+            print("[Setup]: Waiting for system initialization...")
             await asyncio.sleep(60)  # Give more time for initial boot
 
             # Check VM status
-            print("[Setup]: Checking VM status...")
-            await self.check_console_log()
+            print("[Setup]: Checking system status...")
+            await self.check_vm_status()
 
-            # Verify SSH connection
+            # Wait for SSH service
             print("[Setup]: Waiting for SSH service...")
             if not await self.wait_for_ssh():
-                raise RuntimeError("Timeout waiting for SSH service")
+                raise RuntimeError("Failed to establish SSH connection")
 
+            # Verify SSH connection
             print("[Setup]: Verifying SSH connection...")
             stdout, stderr, returncode = await self.execute_ssh_command("echo '[SSH] connection established'")
             if returncode != 0:
@@ -924,31 +1172,31 @@ APKCACHEOPTS=none
                 raise RuntimeError(f"SSH verification failed: {stderr}")
             print(f"[Setup]: SSH test output: {stdout.strip()}")
 
-            # Eject CDROM
+            # Eject CDROM before creating snapshot
             print("[Setup]: Ejecting CDROM...")
-            if not await self.eject_cdrom():
-                raise RuntimeError("Failed to eject CDROM")
+            await self.qmp.execute('human-monitor-command',
+                                 {'command-line': 'eject -f cd0'})
 
-            # Save initial snapshot
-            print("[Setup]: Creating initial snapshot...")
+            # Create initial snapshot
+            print("[Setup]: Creating snapshot...")
             if not await self.save_snapshot(self.DEFAULT_SNAPSHOT):
                 raise RuntimeError("Failed to create snapshot")
 
             print("[Setup]: Stopping VM to verify snapshot...")
-            await self.stop_vm()
+            await self.stop_process()
             await asyncio.sleep(5)  # Wait for cleanup
 
             # Verify snapshot by loading it
             print("[Setup]: Verifying snapshot by loading it...")
-            if not await self.start_vm(load_snapshot=self.DEFAULT_SNAPSHOT):
+            if not await self.start_process(load_snapshot=self.DEFAULT_SNAPSHOT):
                 raise RuntimeError("Failed to verify snapshot - unable to load it")
 
-            # Verify SSH connection
-            print("[Setup]: Verifying SSH connection...")
-            stdout, stderr, returncode = await self.execute_ssh_command("echo '[SSH] connection established'")
+            # Verify SSH still works after snapshot load
+            print("[Setup]: Verifying SSH connection after snapshot...")
+            stdout, stderr, returncode = await self.execute_ssh_command("echo '[SSH] snapshot verified'")
             if returncode != 0:
-                raise RuntimeError(f"SSH verification failed: {stderr}")
-            print(f"[Setup]: SSH test output: {stdout.strip()}")
+                raise RuntimeError(f"Post-snapshot SSH verification failed: {stderr}")
+            print(f"[Setup]: Post-snapshot test: {stdout.strip()}")
 
             print("[Setup]: Setup completed successfully")
             return True
@@ -964,10 +1212,10 @@ APKCACHEOPTS=none
                     print(f"[Setup] Failed to get QEMU output: {comm_error}")
             return False
         finally:
-            await self.stop_vm()
+            await self.stop_process()
 
-    async def run_command(self, command, load_snapshot=True):
-        """Run command with snapshot verification"""
+    async def run_command(self, command: str, load_snapshot: bool = True) -> tuple[str, str, int]:
+        """Run command in VM"""
         try:
             # First check if snapshot exists
             print("[Command]: Verifying snapshot...")
@@ -977,12 +1225,14 @@ APKCACHEOPTS=none
 
             # Start VM with snapshot
             print(f"[Command]: Starting VM to execute: {command}")
-            if not await self.start_vm(load_snapshot=self.DEFAULT_SNAPSHOT if load_snapshot else None):
+            if not await self.start_process(load_snapshot=self.DEFAULT_SNAPSHOT if load_snapshot else None):
                 raise RuntimeError("Failed to start VM")
 
-            print(f"[Command]: Executing: {command}")
+            # Wait for system to be ready
+            print("[Command]: Waiting for system to be ready...")
             await asyncio.sleep(20)
 
+            # Execute command via SSH
             stdout, stderr, returncode = await self.execute_ssh_command(command)
             return stdout, stderr, returncode
 
@@ -990,93 +1240,5 @@ APKCACHEOPTS=none
             print(f"[Command]: Failed: {e}")
             return "", str(e), 1
         finally:
-            await self.stop_vm()
-
-    async def stop_vm(self):
-        """Stop the QEMU VM"""
-        if hasattr(self, '_log_monitor'):
-            self._log_monitor.cancel()
-
-        if self.qmp:
-            try:
-                print("[Shutdown]: Attempting QMP quit command...")
-                await self.qmp.execute('quit')
-                print("[Shutdown]: QMP quit command sent successfully")
-            except Exception as e:
-                print(f"[Shutdown]: QMP quit command failed: {e}")
-            finally:
-                try:
-                    print("[Shutdown]: Disconnecting QMP client...")
-                    await self.qmp.disconnect()
-                    print("[Shutdown]: QMP client disconnected")
-                except Exception as e:
-                    print(f"[Shutdown]: Error during QMP disconnect: {e}")
-
-        if self.qemu_process:
-            try:
-                if self.qemu_process.returncode is None:
-                    print("[Shutdown]: Terminating QEMU process...")
-                    self.qemu_process.terminate()
-                    try:
-                        await asyncio.wait_for(self.qemu_process.wait(), timeout=5)
-                        print("[Shutdown]: QEMU process terminated normally")
-                    except asyncio.TimeoutError:
-                        print("[Shutdown]: Timeout waiting for termination, force killing...")
-                        self.qemu_process.kill()
-                        await self.qemu_process.wait()
-                        print("[Shutdown]: QEMU process killed")
-                else:
-                    print(f"[Shutdown]: QEMU process already exited with code {self.qemu_process.returncode}")
-            except Exception as e:
-                print(f"[Shutdown]: Error during process cleanup: {e}")
-
-        self._cleanup_socket()
-
-
-async def main():
-    parser = argparse.ArgumentParser(description="QEMU ARM64 Runner with Conda")
-    parser.add_argument("--qemu-system", required=True, help="qemu-system-aarch64 binary path")
-    parser.add_argument("--cdrom", help="Path to ISO image")
-    parser.add_argument("--drive", required=True, help="Path to QEMU QCOW2 disk image")
-    parser.add_argument("--socket", default="./qmp.sock", help="Path for QMP socket")
-    parser.add_argument("--ssh-port", type=int, default=10022, help="Port for NIC socket")
-    parser.add_argument("--setup", action="store_true", help="Perform initial setup and create snapshot")
-    parser.add_argument("--run", help="Command to execute in the VM")
-    parser.add_argument("--load-snapshot", default=None, help="Load snapshot from file")
-
-    args = parser.parse_args()
-
-    if not os.path.exists(args.qemu_system):
-        raise FileNotFoundError(f"QEMU executable not found at {args.qemu_system}")
-
-    runner = ARM64Runner(
-        qemu_system=args.qemu_system,
-        iso_image=args.cdrom,
-        qcow2_path=args.drive,
-        socket_path=args.socket,
-        ssh_port=args.ssh_port,
-    )
-
-    try:
-        if args.setup:
-            print("Performing initial setup...")
-            await runner.setup_vm()
-        elif args.run:
-            print(f"Executing command: {args.run}")
-            stdout, stderr, returncode = await runner.run_command(
-                args.run,
-                load_snapshot=args.load_snapshot or ARM64Runner.DEFAULT_SNAPSHOT)
-            print("Command output:")
-            print(stdout)
-            if stderr:
-                print("Errors:")
-                print(stderr)
-            print(f"Return code: {returncode}")
-        else:
-            print("No action specified. Use --setup/--run")
-    finally:
-        await runner.stop_vm()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+            await self.stop_process()
+            
