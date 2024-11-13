@@ -1,12 +1,56 @@
+import argparse
 import contextlib
+import logging
 import os
 import platform
 import shutil
 import signal
 import subprocess
-from typing import Protocol, Optional, AsyncGenerator, runtime_checkable
+from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
+from typing import Protocol, Optional, AsyncGenerator, runtime_checkable, Callable, Awaitable, Dict, List
 import asyncio
-from qemu.qmp import QMPClient
+
+#    .----------------.
+# ---| QMPClient Mock |---
+#    '----------------'
+
+try:
+    from qemu.qmp import QMPClient as RealQMPClient
+    USE_REAL_QMP = True
+except ImportError:
+    USE_REAL_QMP = False
+
+def get_qmp_client(dry_run: bool = False):
+    """Get appropriate QMP client based on mode"""
+    return QMPClient if dry_run or not USE_REAL_QMP else RealQMPClient
+
+class QMPClient:
+    """Mock QMP Client base class"""
+    def __init__(self, name: str):
+        self.name = name
+        self._connected = False
+
+    def is_connected(self) -> bool:
+        return self._connected
+
+    async def connect(self, socket_path: str) -> None:
+        self._connected = True
+        print(f"[Mock QMP] Connected to {socket_path}")
+
+    async def disconnect(self) -> None:
+        self._connected = False
+        print("[Mock QMP] Disconnected")
+
+    async def execute(self, command: str, arguments: dict = None) -> dict:
+        print(f"[Mock QMP] Executing: {command} with args: {arguments}")
+        return {"status": "running"}
+
+    @property
+    async def events(self):
+        while False:  # Never yields anything in dry run
+            yield {}
 
 
 #    .----------------.
@@ -14,7 +58,7 @@ from qemu.qmp import QMPClient
 #    '----------------'
 
 @runtime_checkable
-class ProcessProtocol(Protocol):
+class MainProtocol(Protocol):
     """Required attributes for process management"""
     async def setup_vm(self) -> bool: ...
 
@@ -35,16 +79,13 @@ class QMPProtocol(Protocol):
 
     async def execute_qmp(self, command: str, arguments: Optional[dict] = None) -> dict: ...
 
-    def cleanup_qmp_socket(self: ProcessProtocol) -> bool: ...
+    def cleanup_qmp_socket(self: MainProtocol) -> bool: ...
 
 @runtime_checkable
 class QEMUProtocol(Protocol):
     """Required attributes for QEMU process management"""
     @property
     def qemu_system(self) -> str: ...
-
-    @property
-    def qcow2_path(self) -> str: ...
 
     @property
     def qemu_process(self) -> Optional[asyncio.subprocess.Process]: ...
@@ -70,7 +111,7 @@ class SSHProtocol(Protocol):
 
 @runtime_checkable
 class MonitoringProtocol(Protocol):
-    async def monitor_output(self, stream, name): ...
+    async def monitor_output(self, stream: asyncio.StreamReader, name: str) -> None: ...
 
     async def monitor_log_file(self: QEMUProtocol, log_file: str): ...
 
@@ -80,9 +121,6 @@ class MonitoringProtocol(Protocol):
 
 @runtime_checkable
 class ISOProtocol(Protocol):
-    @property
-    def iso_image(self) -> str: ...
-
     @property
     def custom_iso_path(self) -> Optional[str]: ...
 
@@ -96,7 +134,9 @@ class ISOProtocol(Protocol):
 @runtime_checkable
 class SnapshotProtocol(Protocol):
     """Required attributes for snapshot management"""
-    DEFAULT_SNAPSHOT: str
+    @property
+    def current_snapshot(self) -> str: ...
+
     async def list_snapshots(self) -> str: ...
 
     async def save_snapshot(self, name: str) -> bool: ...
@@ -156,7 +196,7 @@ class QEMUQMPProtocol(
 class QEMUProcessMixin(QEMUProtocol):
     """QEMU process management functionality"""
     # Combined Protocol for use in method annotations
-    class _SelfQMPProtocol(QEMUQMPProtocol, Protocol):
+    class _SelfQMPProtocol(QEMUQMPProtocol, ISOProtocol, Protocol):
         """Combined protocol including both required attributes and mixin methods"""
         _stdout_task: Optional[asyncio.Task]
         _stderr_task: Optional[asyncio.Task]
@@ -233,10 +273,10 @@ class QEMUProcessMixin(QEMUProtocol):
         ])
 
         # Add ISO if in setup mode
-        if not load_snapshot and (iso_to_use := self._custom_iso_path or self.iso_image):
+        if not load_snapshot and self.custom_iso_path:
             cmd.extend([
                 "-device", "virtio-blk-pci,drive=cd0,addr=0x4",
-                "-drive", f"file={iso_to_use},if=none,id=cd0,format=raw,readonly=on"
+                "-drive", f"file={self.custom_iso_path},if=none,id=cd0,format=raw,readonly=on"
             ])
 
         # QMP configuration
@@ -288,10 +328,10 @@ class QEMUProcessMixin(QEMUProtocol):
             print(f"[Process]: QEMU started with PID {self.qemu_process.pid}")
 
             # Start output monitoring tasks
-            self._stdout_task = asyncio.create_task(
-                self._monitor_output(self.qemu_process.stdout, "stdout"))
-            self._stderr_task = asyncio.create_task(
-                self._monitor_output(self.qemu_process.stderr, "stderr"))
+            # self._stdout_task = asyncio.create_task(
+            #     self._monitor_output(self.qemu_process.stdout, "stdout"))
+            # self._stderr_task = asyncio.create_task(
+            #     self._monitor_output(self.qemu_process.stderr, "stderr"))
             self._log_monitor = asyncio.create_task(
                 self.monitor_log_file(log_file))
 
@@ -353,7 +393,9 @@ class QMPControlMixin:
 
         self._socket_path = socket_path
 
-        self._qmp = QMPClient('ARM64 VM')
+        QMPClientClass = get_qmp_client(dry_run=False)
+        self._qmp = QMPClientClass('ARM64 VM')
+
         self._events_task: Optional[asyncio.Task] = None
 
     @property
@@ -489,68 +531,150 @@ class QMPControlMixin:
 class MonitoringMixin:
     """SSH functionality"""
 
-    def __init__(self):
-        super().__init__()
-        
-    async def monitor_output(self, stream, name):
-        """Monitor QEMU output stream"""
-        while True:
-            line = await stream.readline()
-            if not line:
-                break
-            print(f"[QEMU {name}]: {line.decode().strip()}")
+    class _SelfMonitoringProtocol(
+        MonitoringProtocol,
+        QEMUProtocol,
+        QMPProtocol,
+        Protocol
+    ):
+        """Combined protocol including monitoring-specific attributes and methods"""
+        _stdout_task: Optional[asyncio.Task]
+        _stderr_task: Optional[asyncio.Task]
+        _log_monitor_task: Optional[asyncio.Task]
 
-    async def monitor_log_file(self: QEMUProtocol, log_file: str):
-        """Monitor the log file for new content"""
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._stdout_task: Optional[asyncio.Task] = None
+        self._stderr_task: Optional[asyncio.Task] = None
+        self._log_monitor_task: Optional[asyncio.Task] = None
+
+    async def start_monitoring(self: _SelfMonitoringProtocol) -> None:
+        """Start all monitoring tasks"""
+        if self.qemu_process:
+            self._stdout_task = asyncio.create_task(
+                self.monitor_output(self.qemu_process.stdout, "stdout")
+            )
+            self._stderr_task = asyncio.create_task(
+                self.monitor_output(self.qemu_process.stderr, "stderr")
+            )
+
+    async def stop_monitoring(self) -> None:
+        """Stop all monitoring tasks"""
+        for task in [self._stdout_task, self._stderr_task, self._log_monitor_task]:
+            if task:
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
+
+    async def monitor_output(self, stream: asyncio.StreamReader, name: str) -> None:
+        """Monitor QEMU output stream with improved error handling"""
         try:
+            print(f"[Monitor]: Starting {name} monitoring...")
+            while True:
+                line = await stream.readline()
+                if not line:
+                    print(f"[Monitor]: {name} stream ended")
+                    break
+                print(f"[QEMU {name}]: {line.decode().strip()}")
+        except asyncio.CancelledError:
+            print(f"[Monitor]: {name} monitoring cancelled")
+            raise
+        except Exception as e:
+            print(f"[Monitor]: Error monitoring {name}: {e}")
+        finally:
+            print(f"[Monitor]: {name} monitoring stopped")
+
+
+    async def monitor_log_file(self: _SelfMonitoringProtocol, log_file: str) -> None:
+        """Monitor QEMU log file with improved error handling"""
+        try:
+            print(f"[Monitor]: Starting log file monitoring: {log_file}")
             position = 0
             while True:
+                # Check if process is still running
+                if self.qemu_process.returncode is not None:
+                    print("[Monitor]: QEMU process ended, stopping log monitoring")
+                    break
+
                 if not os.path.exists(log_file):
                     await asyncio.sleep(1)
                     continue
 
-                with open(log_file, 'r') as f:
-                    f.seek(position)
-                    if new_content := f.read():
-                        print(f"[VM Console]:\n{new_content}")
-                    position = f.tell()
-
-                # Check if process is still running
-                if self.qemu_process.returncode is not None:
+                try:
+                    with open(log_file, 'r') as f:
+                        f.seek(position)
+                        content = f.read()
+                        if content:
+                            print(f"[VM Console]:\n{content}")
+                        position = f.tell()
+                except FileNotFoundError:
+                    print(f"[Monitor]: Log file not found: {log_file}")
                     break
+                except IOError as e:
+                    print(f"[Monitor]: Error reading log file: {e}")
+                    await asyncio.sleep(5)  # Back off on errors
+                    continue
 
                 await asyncio.sleep(1)
+
+        except asyncio.CancelledError:
+            print("[Monitor]: Log monitoring cancelled")
+            raise
         except Exception as e:
-            print(f"[Log Monitor]: Error: {e}")
+            print(f"[Monitor]: Log monitoring error: {e}")
+        finally:
+            print("[Monitor]: Log monitoring stopped")
 
-    async def check_vm_boot_log(self: QMPProtocol):
-        """Check the VM console log"""
+    async def check_vm_boot_log(self: _SelfMonitoringProtocol) -> None:
+        """Check VM boot log with enhanced error handling and QMP integration"""
         try:
-            print("[Debug] Checking console log...")
-            if os.path.exists("console.log"):
-                with open("console.log", "r") as f:
-                    log_content = f.read()
-                    print("[Console Log]:")
-                    print(log_content)
+            print("[Monitor]: Checking VM boot log...")
 
-                # Try to get syslog output from guest
-                await self.qmp.execute('human-monitor-command',
-                                       {'command-line': 'guest-exec cat /var/log/messages'})
+            # Check console log file
+            if os.path.exists("console.log"):
+                try:
+                    with open("console.log", "r") as f:
+                        log_content = f.read()
+                        print("[Console Log]:")
+                        print(log_content)
+                except IOError as e:
+                    print(f"[Monitor]: Error reading console log: {e}")
+
+            # Try to get syslog from guest via QMP
+            try:
+                print("[Monitor]: Requesting guest syslog via QMP...")
+                response = await self.execute_qmp(
+                    'human-monitor-command',
+                    {'command-line': 'guest-exec cat /var/log/messages'}
+                )
+                if response:
+                    print("[Guest Syslog]:")
+                    print(response)
+            except Exception as e:
+                print(f"[Monitor]: Failed to get guest syslog: {e}")
+
         except Exception as e:
-            print(f"[Debug] Error reading console log: {e}")
+            print(f"[Monitor]: Boot log check failed: {e}")
 
-    async def check_console_log(self):
-        """Check the console log file"""
+    async def check_console_log(self) -> None:
+        """Check console log file with improved error handling"""
         try:
-            if os.path.exists("console.log"):
+            if not os.path.exists("console.log"):
+                print("[Monitor]: Console log file not found")
+                return
+
+            try:
                 with open("console.log", "r") as f:
                     if content := f.read():
                         print("[Console Log]:")
                         print(content)
                     else:
-                        print("[Console Log]: Empty")
+                        print("[Console Log]: File is empty")
+            except IOError as e:
+                print(f"[Monitor]: Error reading console log: {e}")
+
         except Exception as e:
-            print(f"[Debug] Error reading console log: {e}")
+            print(f"[Monitor]: Console log check failed: {e}")
 
 
 
@@ -765,10 +889,6 @@ class AlpineISOBuilderMixin(ISOProtocol):
         super().__init__(**kwargs)
         self._iso_image = iso_image
         self._custom_iso_path = custom_iso_path
-
-    @property
-    def iso_image(self) -> str:
-        return self._iso_image
 
     @property
     def custom_iso_path(self) -> Optional[str]:
@@ -1000,20 +1120,29 @@ APKCACHEOPTS=none
 class SnapshotManagementMixin(SnapshotProtocol):
     """Snapshot management functionality"""
 
+    # Define the default snapshot as a class variable
+    DEFAULT_SNAPSHOT: str = "conda"
+
     class _SelfSnapshotProtocol(SnapshotProtocol, QMPProtocol, Protocol):
         """Combined protocol including snapshot-specific attributes and methods"""
+        DEFAULT_SNAPSHOT: str
+        _current_snapshot: Optional[str]
 
-        ...
-
-    def __init__(self, **kwargs, ):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self._current_snapshot: Optional[str] = None
+
+    @property
+    def current_snapshot(self) -> Optional[str]:
+        """Get the name of the currently loaded snapshot"""
+        return self._current_snapshot
 
     async def list_snapshots(self: _SelfSnapshotProtocol) -> str:
         """List all available snapshots in the VM"""
         try:
             print("[QMP]: Getting snapshot list...")
             response = await self.qmp.execute('human-monitor-command',
-                                              {'command-line': 'info snapshots'})
+                                            {'command-line': 'info snapshots'})
             print("[QMP]: Available snapshots:")
             print(response)
             return response
@@ -1021,83 +1150,102 @@ class SnapshotManagementMixin(SnapshotProtocol):
             print(f"[QMP]: Error listing snapshots: {e}")
             return ""
 
-    async def save_snapshot(self: _SelfSnapshotProtocol, name: str) -> bool:
-        """Save VM snapshot"""
+    async def save_snapshot(self: _SelfSnapshotProtocol, name: Optional[str] = None) -> bool:
+        """Save VM snapshot, using DEFAULT_SNAPSHOT if no name provided"""
+        snapshot_name = name or self.DEFAULT_SNAPSHOT
         try:
-            print(f"[QMP]: Creating snapshot '{name}'...")
+            print(f"[QMP]: Creating snapshot '{snapshot_name}'...")
             await self.qmp.execute('human-monitor-command',
-                                   {'command-line': f'savevm {name}'})
+                                 {'command-line': f'savevm {snapshot_name}'})
             print("[QMP]: Snapshot created successfully")
+            self._current_snapshot = snapshot_name
             return True
         except Exception as e:
             print(f"[QMP]: Error creating snapshot: {e}")
             return False
 
-    async def load_snapshot(self: _SelfSnapshotProtocol, name: str) -> bool:
-        """Load VM snapshot"""
+    async def load_snapshot(self: _SelfSnapshotProtocol, name: Optional[str] = None) -> bool:
+        """Load VM snapshot, using DEFAULT_SNAPSHOT if no name provided"""
+        snapshot_name = name or self.DEFAULT_SNAPSHOT
         try:
-            print(f"[QMP]: Loading snapshot '{name}'...")
+            print(f"[QMP]: Loading snapshot '{snapshot_name}'...")
             await self.qmp.execute('human-monitor-command',
-                                   {'command-line': f'loadvm {name}'})
+                                 {'command-line': f'loadvm {snapshot_name}'})
             print("[QMP]: Snapshot loaded successfully")
+            self._current_snapshot = snapshot_name
             return True
         except Exception as e:
             print(f"[QMP]: Error loading snapshot: {e}")
             return False
 
-    async def delete_snapshot(self: _SelfSnapshotProtocol, name: str) -> bool:
-        """Delete VM snapshot"""
+    async def delete_snapshot(self: _SelfSnapshotProtocol, name: Optional[str] = None) -> bool:
+        """Delete VM snapshot, using DEFAULT_SNAPSHOT if no name provided"""
+        snapshot_name = name or self.DEFAULT_SNAPSHOT
         try:
-            print(f"[QMP]: Deleting snapshot '{name}'...")
+            print(f"[QMP]: Deleting snapshot '{snapshot_name}'...")
             await self.qmp.execute('human-monitor-command',
-                                   {'command-line': f'delvm {name}'})
+                                 {'command-line': f'delvm {snapshot_name}'})
             print("[QMP]: Snapshot deleted successfully")
+            if self._current_snapshot == snapshot_name:
+                self._current_snapshot = None
             return True
         except Exception as e:
             print(f"[QMP]: Error deleting snapshot: {e}")
             return False
 
-    async def snapshot_exists(self: _SelfSnapshotProtocol, name: str) -> bool:
-        """Check if snapshot exists with better error handling"""
+    async def snapshot_exists(self: _SelfSnapshotProtocol, name: Optional[str] = None) -> bool:
+        """Check if snapshot exists, using DEFAULT_SNAPSHOT if no name provided"""
+        snapshot_name = name or self.DEFAULT_SNAPSHOT
         try:
-            print(f"[QMP]: Checking if snapshot '{name}' exists...")
+            print(f"[QMP]: Checking if snapshot '{snapshot_name}' exists...")
             snapshots = await self.list_snapshots()
-            exists = name in snapshots
-            print(f"[QMP]: Snapshot '{name}' {'exists' if exists else 'not found'}")
+            exists = snapshot_name in snapshots
+            print(f"[QMP]: Snapshot '{snapshot_name}' {'exists' if exists else 'not found'}")
             return exists
         except Exception as e:
             print(f"[QMP]: Error checking snapshot: {e}")
             return False
 
-    async def ensure_snapshot(self: _SelfSnapshotProtocol, name: str, setup_func) -> bool:
-        """Ensure snapshot exists, create if necessary"""
-        if not await self.snapshot_exists(name):
-            print(f"[QMP]: Snapshot '{name}' not found, creating...")
-            await setup_func()
-            return await self.save_snapshot(name)
-        print(f"[QMP]: Snapshot '{name}' already exists")
-        return True
+    async def ensure_snapshot(
+        self: _SelfSnapshotProtocol,
+        name: Optional[str] = None,
+        setup_func: Optional[Callable[[], Awaitable[bool]]] = None
+    ) -> bool:
+        """Ensure snapshot exists, create if necessary using setup_func"""
+        snapshot_name = name or self.DEFAULT_SNAPSHOT
+        try:
+            if not await self.snapshot_exists(snapshot_name):
+                print(f"[QMP]: Snapshot '{snapshot_name}' not found, creating...")
+                if setup_func and not await setup_func():
+                    raise RuntimeError("Setup function failed")
+                return await self.save_snapshot(snapshot_name)
+            print(f"[QMP]: Snapshot '{snapshot_name}' already exists")
+            return True
+        except Exception as e:
+            print(f"[QMP]: Error ensuring snapshot: {e}")
+            return False
 
-    async def verify_snapshot(self: _SelfSnapshotProtocol, name: str) -> bool:
-        """Verify snapshot integrity"""
+    async def verify_snapshot(self: _SelfSnapshotProtocol, name: Optional[str] = None) -> bool:
+        """Verify snapshot integrity, using DEFAULT_SNAPSHOT if no name provided"""
+        snapshot_name = name or self.DEFAULT_SNAPSHOT
         try:
             # First check if snapshot exists
-            if not await self.snapshot_exists(name):
-                print(f"[QMP]: Cannot verify non-existent snapshot '{name}'")
+            if not await self.snapshot_exists(snapshot_name):
+                print(f"[QMP]: Cannot verify non-existent snapshot '{snapshot_name}'")
                 return False
 
             # Try to load the snapshot
-            if not await self.load_snapshot(name):
-                print(f"[QMP]: Failed to load snapshot '{name}' during verification")
+            if not await self.load_snapshot(snapshot_name):
+                print(f"[QMP]: Failed to load snapshot '{snapshot_name}' during verification")
                 return False
 
-            print(f"[QMP]: Successfully verified snapshot '{name}'")
+            print(f"[QMP]: Successfully verified snapshot '{snapshot_name}'")
             return True
 
         except Exception as e:
             print(f"[QMP]: Error during snapshot verification: {e}")
             return False
-
+        
 #    .-------------------.
 # ---| Main Runner Class |---
 #    '-------------------'
@@ -1131,9 +1279,6 @@ class ARM64Runner(
 
     async def setup_vm(self) -> bool:
         """Setup VM with all components"""
-        if not self.iso_image:
-            raise ValueError("ISO path is required for setup")
-
         try:
             # Create custom Alpine ISO with overlay
             print("[Setup]: Creating Alpine overlay...")
@@ -1242,4 +1387,318 @@ class ARM64Runner(
             return "", str(e), 1
         finally:
             await self.stop_process()
-            
+
+
+#    .---------------------.
+# ---| DryRun Runner Class |---
+#    '---------------------'
+
+@dataclass
+class DryRunState:
+    """Track the state of the dry run simulation"""
+    vm_running: bool = False
+    current_snapshot: Optional[str] = None
+    snapshots: Dict[str, datetime] = field(default_factory=dict)
+    qmp_connected: bool = False
+    ssh_available: bool = False
+    iso_created: bool = False
+    kernel_extracted: bool = False
+    logs: List[str] = field(default_factory=list)
+
+
+def get_imports(dry_run: bool = False):
+    """Get required imports based on dry run mode"""
+    imports = {
+        'asyncio': __import__('asyncio'),
+        'os': __import__('os'),
+        'platform': __import__('platform'),
+        'shutil': __import__('shutil'),
+        'signal': __import__('signal'),
+        'subprocess': __import__('subprocess'),
+        'contextlib': __import__('contextlib'),
+        'typing': __import__('typing'),
+    }
+
+    if not dry_run:
+        try:
+            from qemu.qmp import QMPClient
+            imports['QMPClient'] = QMPClient
+        except ImportError:
+            raise ImportError("QMP client required for non-dry-run mode")
+    else:
+        # Mock QMPClient for dry run
+        class MockQMPClient:
+            def __init__(self, name: str):
+                self.name = name
+                self._connected = False
+
+            def is_connected(self) -> bool:
+                return self._connected
+
+            async def connect(self, socket_path: str) -> None:
+                self._connected = True
+                print(f"[Mock QMP] Connected to {socket_path}")
+
+            async def disconnect(self) -> None:
+                self._connected = False
+                print("[Mock QMP] Disconnected")
+
+            async def execute(self, command: str, arguments: dict = None) -> dict:
+                print(f"[Mock QMP] Executing: {command} with args: {arguments}")
+                return {"status": "running"}
+
+            @property
+            async def events(self):
+                while False:  # Never yields anything in dry run
+                    yield {}
+
+        imports['QMPClient'] = MockQMPClient
+
+    return imports
+
+
+class DryRunOnlyRunner:
+    """Minimal runner implementation for dry run mode"""
+    # Match the default snapshot name from the main runner
+    DEFAULT_SNAPSHOT = "conda"
+
+    def __init__(
+            self,
+            qemu_system: str,
+            qcow2_path: str,
+            socket_path: str,
+            iso_image: Optional[str] = None,
+            ssh_port: int = 10022
+    ):
+        # Basic configuration
+        self.qemu_system = qemu_system
+        self.qcow2_path = qcow2_path
+        self.socket_path = socket_path
+        self.iso_image = iso_image
+        self.ssh_port = ssh_port
+
+        # State tracking
+        self.state = DryRunState()
+        self._setup_logging()
+
+        # Create mock QMP client
+        self.qmp = QMPClient("DryRun")  # Using the mock QMPClient defined at the top
+
+    def _setup_logging(self):
+        """Setup logging for dry run mode"""
+        self.logger = logging.getLogger('DryRun')
+        self.logger.setLevel(logging.INFO)
+        handler = logging.StreamHandler()
+        handler.setFormatter(
+            logging.Formatter('[%(levelname)s] %(message)s')
+        )
+        self.logger.addHandler(handler)
+
+    async def _simulate_delay(self, operation: str, duration: float = 1.0):
+        """Simulate operation delay"""
+        self.logger.info(f"Simulating {operation} delay ({duration}s)...")
+        await asyncio.sleep(duration)
+
+    async def setup_vm(self) -> bool:
+        """Simulate VM setup"""
+        try:
+            self.logger.info("=== Starting VM Setup (Dry Run) ===")
+
+            # Simulate ISO creation
+            self.logger.info("Creating Alpine overlay...")
+            await self._simulate_delay("overlay creation")
+            self.state.iso_created = True
+
+            # Simulate kernel extraction
+            self.logger.info("Extracting kernel...")
+            await self._simulate_delay("kernel extraction")
+            self.state.kernel_extracted = True
+
+            # Simulate VM startup
+            self.logger.info("Starting VM...")
+            await self._simulate_delay("VM startup", 2.0)
+            self.state.vm_running = True
+
+            # Simulate SSH availability
+            self.logger.info("Waiting for SSH...")
+            await self._simulate_delay("SSH initialization", 3.0)
+            self.state.ssh_available = True
+
+            # Simulate snapshot creation
+            self.logger.info(f"Creating snapshot '{self.DEFAULT_SNAPSHOT}'...")
+            await self._simulate_delay("snapshot creation")
+            self.state.snapshots[self.DEFAULT_SNAPSHOT] = datetime.now()
+            self.state.current_snapshot = self.DEFAULT_SNAPSHOT
+
+            self.logger.info("=== VM Setup Complete (Dry Run) ===")
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Setup failed: {e}")
+            return False
+
+    async def run_command(
+            self,
+            command: str,
+            load_snapshot: bool = True
+    ) -> tuple[str, str, int]:
+        """Simulate command execution"""
+        try:
+            self.logger.info("=== Starting Command Execution (Dry Run) ===")
+
+            # Verify snapshot
+            if load_snapshot:
+                if self.DEFAULT_SNAPSHOT not in self.state.snapshots:
+                    raise RuntimeError(f"Snapshot '{self.DEFAULT_SNAPSHOT}' not found")
+                self.logger.info(f"Loading snapshot '{self.DEFAULT_SNAPSHOT}'...")
+                await self._simulate_delay("snapshot loading")
+                self.state.current_snapshot = self.DEFAULT_SNAPSHOT
+
+            # Simulate VM startup
+            self.logger.info("Starting VM...")
+            await self._simulate_delay("VM startup", 2.0)
+            self.state.vm_running = True
+
+            # Simulate command execution
+            self.logger.info(f"Executing command: {command}")
+            await self._simulate_delay("command execution")
+
+            stdout = f"[Dry Run] Simulated output for: {command}"
+            stderr = ""
+            returncode = 0
+
+            self.logger.info("=== Command Execution Complete (Dry Run) ===")
+            return stdout, stderr, returncode
+
+        except Exception as e:
+            self.logger.error(f"Command execution failed: {e}")
+            return "", str(e), 1
+
+    async def verify_configuration(self) -> dict:
+        """Verify the runner configuration and return status"""
+        required_paths = {
+            'QEMU System': Path(self.qemu_system),
+            'QCOW2 Image': Path(self.qcow2_path),
+            'ISO Image': Path(self.iso_image) if self.iso_image else None,
+            'Socket Path': Path(self.socket_path).parent,
+        }
+
+        return {
+            'paths': {
+                name: {
+                    'path': str(path),
+                    'exists': path.exists() if path else False,
+                    'is_file': path.is_file() if path else False,
+                    'is_dir': path.is_dir() if path else False,
+                }
+                for name, path in required_paths.items()
+                if path is not None
+            },
+            'network': {
+                'ssh_port': self.ssh_port,
+                'port_available': self._check_port_available(self.ssh_port),
+            },
+            'state': {
+                'vm_running': self.state.vm_running,
+                'current_snapshot': self.state.current_snapshot,
+                'snapshots': [
+                    {'name': name, 'created': str(timestamp)}
+                    for name, timestamp in self.state.snapshots.items()
+                ],
+                'qmp_connected': self.state.qmp_connected,
+                'ssh_available': self.state.ssh_available,
+            }
+        }
+
+    def _check_port_available(self, port: int) -> bool:
+        """Check if a port is available"""
+        import socket
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(('localhost', port))
+                return True
+            except OSError:
+                return False
+
+#    .------.
+# ---| Main |---
+#    '------'
+
+async def test_dry_run(runner: DryRunOnlyRunner):
+    """Test the dry run functionality"""
+    # Verify configuration
+    config = await runner.verify_configuration()
+    print("\nConfiguration Status:")
+    print(f"Paths checked: {len(config['paths'])}")
+    print(f"SSH port {config['network']['ssh_port']} " +
+          ("available" if config['network']['port_available'] else "in use"))
+
+    # Test VM setup
+    print("\nTesting VM setup...")
+    if await runner.setup_vm():
+        print("VM setup successful")
+    else:
+        print("VM setup failed")
+
+    # Test command execution
+    print("\nTesting command execution...")
+    stdout, stderr, rc = await runner.run_command("echo 'test'")
+    print(f"Command output: {stdout}")
+    print(f"Return code: {rc}")
+
+async def main():
+    parser = argparse.ArgumentParser(description="QEMU ARM64 Runner with Conda")
+    parser.add_argument("--qemu-system", required=True, help="qemu-system-aarch64 binary path")
+    parser.add_argument("--cdrom", help="Path to ISO image")
+    parser.add_argument("--drive", required=True, help="Path to QEMU QCOW2 disk image")
+    parser.add_argument("--socket", default="./qmp.sock", help="Path for QMP socket")
+    parser.add_argument("--ssh-port", type=int, default=10022, help="Port for NIC socket")
+    parser.add_argument("--setup", action="store_true", help="Perform initial setup and create snapshot")
+    parser.add_argument("--run", help="Command to execute in the VM")
+    parser.add_argument("--load-snapshot", default=None, help="Load snapshot from file")
+    parser.add_argument("--dry-run", action="store_true", help="Enable dry run mode")
+
+    args = parser.parse_args()
+
+    if args.dry_run:
+        runner = DryRunOnlyRunner(
+            qemu_system=args.qemu_system,
+            qcow2_path=args.drive,
+            socket_path=args.socket,
+            iso_image=args.cdrom,
+            ssh_port=args.ssh_port
+        )
+        await test_dry_run(runner)
+        return
+
+    if not os.path.exists(args.qemu_system):
+        raise FileNotFoundError(f"QEMU executable not found at {args.qemu_system}")
+
+    runner = ARM64Runner(
+        qemu_system=args.qemu_system,
+        iso_image=args.cdrom,
+        qcow2_path=args.drive,
+        socket_path=args.socket,
+        ssh_port=args.ssh_port,
+    )
+
+    if args.setup:
+        print("Performing initial setup...")
+        await runner.setup_vm()
+    elif args.run:
+        print(f"Executing command: {args.run}")
+        stdout, stderr, returncode = await runner.run_command(
+            args.run,
+            load_snapshot=args.load_snapshot or ARM64Runner.DEFAULT_SNAPSHOT)
+        print("Command output:")
+        print(stdout)
+        if stderr:
+            print("Errors:")
+            print(stderr)
+        print(f"Return code: {returncode}")
+    else:
+        print("No action specified. Use --setup/--run")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
