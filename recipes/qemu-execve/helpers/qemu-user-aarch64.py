@@ -1105,6 +1105,7 @@ class SnapshotManagementMixin(SnapshotProtocol):
 class ARM64Runner(
     AlpineISOBuilderMixin,
     SnapshotManagementMixin,
+    MonitoringMixin,
     SSHControlMixin,
     QMPControlMixin,
     QEMUProcessMixin,
