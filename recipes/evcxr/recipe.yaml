@@ -13,12 +13,19 @@ source:
 build:
   number: 0
   script:
-    content: |
-      cargo install --locked --root "${PREFIX}" --no-track evcxr_repl
-      cargo install --locked --root "${PREFIX}" --no-track evcxr_jupyter
-      export JUPYTER_PATH="${PREFIX}/share/jupyter/"
-      "${PREFIX}/bin/evcxr_jupyter" --install
-      cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
+    - if: unix
+      then: cargo install --locked --root "${PREFIX}" --no-track evcxr_repl
+      else: cargo install --locked --root "%PREFIX%" --no-track evcxr_repl
+    - if: unix
+      then: cargo install --locked --root "${PREFIX}" --no-track evcxr_jupyter
+      else: cargo install --locked --root "%PREFIX%" --no-track evcxr_jupyter
+    - if: unix
+      then: export JUPYTER_PATH="${PREFIX}/share/jupyter/"
+      else: set JUPYTER_PATH="%PREFIX%/share/jupyter/"
+    - if: unix
+      then: '"${PREFIX}/bin/evcxr_jupyter" --install'
+      else: '"%PREFIX%/bin/evcxr_jupyter.exe" --install'
+    - cargo-bundle-licenses --format yaml --output THIRDPARTY.yml
 
 requirements:
   build:
@@ -32,13 +39,19 @@ requirements:
 tests:
   - package_contents:
       bin:
-        - evcxr
-        - evcxr_jupyter
+        - if: unix
+          then: evcxr
+          else: evcxr.exe
+        - if: unix
+          then: evcxr_jupyter
+          else: evcxr_jupyter.exe
       files:
         - share/jupyter/kernels/rust/kernel.json
   - script:
     - evcxr --help
-    - echo '7 + 6' | evcxr | grep 13
+    - if: unix
+      then: echo '7 + 6' | evcxr | grep 13
+      else: echo 7 + 6 | evcxr | findstr "13"
     - evcxr_jupyter --help
 
 
