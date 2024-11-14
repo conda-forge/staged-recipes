@@ -201,6 +201,8 @@ class QEMUProcessMixin(QEMUProtocol):
         _stdout_task: Optional[asyncio.Task]
         _stderr_task: Optional[asyncio.Task]
         _log_monitor: Optional[asyncio.Task]
+        _qemu_system: str
+        _qemu_process: Optional[asyncio.subprocess.Process]
         _qcow2_path: str
         _kernel_path: Optional[str]
         _custom_iso_path: Optional[str]
@@ -226,11 +228,11 @@ class QEMUProcessMixin(QEMUProtocol):
         self._stderr_task: Optional[asyncio.Task] = None
 
     @property
-    def qemu_system(self) -> str:
+    def qemu_system(self: _SelfQMPProtocol) -> str:
         return self._qemu_system
 
     @property
-    def qemu_process(self) -> Optional[asyncio.subprocess.Process]:
+    def qemu_process(self: _SelfQMPProtocol) -> Optional[asyncio.subprocess.Process]:
         return self._qemu_process
 
     def build_qemu_command(self: _SelfQMPProtocol, load_snapshot: Optional[str] = None) -> tuple[list[str], str]:
