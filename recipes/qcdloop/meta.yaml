@@ -1,0 +1,89 @@
+{% set name = "qcdloop" %}
+{% set version = "2.0.9" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/scarrazza/{{ name }}/archive/{{ version }}.tar.gz
+  sha256: 6ffbd371658726054b903dce9a7855ac02b258eac59e2ee13524dda9e278f23b
+  folder: source
+  patches:
+    # Avoid egrep warning breaking qcdloop-config
+    - 0001-fix-Use-grep-E-over-egrep.patch
+
+build:
+  # FIXME: clang does not yet support quadmath, so macOS builds are broken
+  skip: true  # [not linux]
+  number: 0
+  run_exports:
+    - {{ pin_subpackage('qcdloop', max_pin='x.x') }}
+  script:
+    # FIXME: Remove unknown argument: '-fext-numeric-literals' CMAKE_CXX_FLAGS for macOS builds
+    # Note that conda-forge sed is gsed even on macOS
+    - sed -i 's/ -fext-numeric-literals//g' source/CMakeLists.txt  # [osx]
+    - cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DENABLE_EXAMPLES=ON -S source -B build
+    - cmake -LH build
+    - cmake --build build --clean-first --parallel="${CPU_COUNT}"
+    - cmake --install build
+
+requirements:
+  build:
+    - {{ stdlib('c') }}
+    - {{ compiler('cxx') }}
+    - {{ compiler('fortran') }}
+    - cmake
+    - make
+    - sed  # [osx]
+  run:
+    - grep  # for qcdloop-config
+
+test:
+  files:
+    - $PREFIX/bin/qcdloop-config
+    - $PREFIX/lib/pkgconfig/qcdloop.pc
+    - $PREFIX/include/qcdloop/bubble.h
+    - $PREFIX/include/qcdloop/maths.h
+    - $PREFIX/include/qcdloop/types.h
+    - $PREFIX/include/qcdloop/config.h.in
+    - $PREFIX/include/qcdloop/timer.h
+    - $PREFIX/include/qcdloop/qcdloop.h
+    - $PREFIX/include/qcdloop/wrapper.h
+    - $PREFIX/include/qcdloop/cache.h
+    - $PREFIX/include/qcdloop/topology.h
+    - $PREFIX/include/qcdloop/triangle.h
+    - $PREFIX/include/qcdloop/tools.h
+    - $PREFIX/include/qcdloop/exceptions.h
+    - $PREFIX/include/qcdloop/tadpole.h
+    - $PREFIX/include/qcdloop/box.h
+    - $PREFIX/include/qcdloop/config.h
+    - $PREFIX/lib/libqcdloop.so  # [linux]
+    - $PREFIX/lib/libqcdloop.dylib  # [osx]
+  source_files:
+    - build
+  commands:
+    - qcdloop-config --help
+    - qcdloop-config --prefix
+    - qcdloop-config --incdir
+    - qcdloop-config --libdir
+    - qcdloop-config --cppflags
+    - qcdloop-config --ldflags
+    - qcdloop-config --version
+
+    - cd build
+    - ./cache_test  # [build_platform == target_platform]
+    - ./cmass_test  # [build_platform == target_platform]
+    - ./trigger_test  # [build_platform == target_platform]
+
+about:
+  home: https://github.com/scarrazza/qcdloop
+  summary: 'QCDLoop: an object-oriented one-loop scalar Feynman integrals framework'
+  license: GPL-3.0-only
+  license_family: GPL
+  license_file: source/LICENSE
+  dev_url: https://github.com/scarrazza/qcdloop
+
+extra:
+  recipe-maintainers:
+    - matthewfeickert
