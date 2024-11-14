@@ -137,7 +137,7 @@ class SnapshotProtocol(Protocol):
     @property
     def current_snapshot(self) -> str: ...
 
-    async def list_snapshots(self) -> str: ...
+    async def list_snapshots(self) -> dict: ...
 
     async def save_snapshot(self, name: str) -> bool: ...
 
@@ -198,9 +198,6 @@ class QEMUProcessMixin(QEMUProtocol):
     # Combined Protocol for use in method annotations
     class _SelfQMPProtocol(QEMUQMPProtocol, ISOProtocol, Protocol):
         """Combined protocol including both required attributes and mixin methods"""
-        _stdout_task: Optional[asyncio.Task]
-        _stderr_task: Optional[asyncio.Task]
-        _log_monitor: Optional[asyncio.Task]
         _qemu_system: str
         _qemu_process: Optional[asyncio.subprocess.Process]
         _qcow2_path: str
@@ -215,17 +212,14 @@ class QEMUProcessMixin(QEMUProtocol):
             qemu_system: str,
             qcow2_path: str,
             kernel_path: Optional[str] = None,
-            **kwargs
+            **kwargs,
     ):
-        super().__init__(**kwargs)
         self._qemu_system = qemu_system
         self._qcow2_path = qcow2_path
         self._kernel_path = kernel_path
 
         self._process_manager = ProcessManager()
         self._qemu_process: Optional[asyncio.subprocess.Process] = None
-        self._stdout_task: Optional[asyncio.Task] = None
-        self._stderr_task: Optional[asyncio.Task] = None
 
     @property
     def qemu_system(self: _SelfQMPProtocol) -> str:
@@ -329,14 +323,6 @@ class QEMUProcessMixin(QEMUProtocol):
             self._process_manager.save_pid(self.qemu_process.pid)
             print(f"[Process]: QEMU started with PID {self.qemu_process.pid}")
 
-            # Start output monitoring tasks
-            # self._stdout_task = asyncio.create_task(
-            #     self._monitor_output(self.qemu_process.stdout, "stdout"))
-            # self._stderr_task = asyncio.create_task(
-            #     self._monitor_output(self.qemu_process.stderr, "stderr"))
-            self._log_monitor = asyncio.create_task(
-                self.monitor_log_file(log_file))
-
             return True
 
         except Exception as e:
@@ -345,12 +331,6 @@ class QEMUProcessMixin(QEMUProtocol):
 
     async def stop_process(self: _SelfQMPProtocol) -> None:
         """Stop QEMU process and cleanup"""
-        # Cancel monitoring tasks
-        for task in [self._stdout_task, self._stderr_task, self._log_monitor]:
-            if task:
-                task.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await task
         # Stop QEMU process
         if self.qemu_process:
             try:
@@ -389,10 +369,8 @@ class QMPControlMixin:
             self,
             *,
             socket_path: str = "/tmp/qmp_socket",
-            **kwargs
+            **kwargs,
     ):
-        super().__init__(**kwargs)
-
         self._socket_path = socket_path
 
         QMPClientClass = get_qmp_client(dry_run=False)
@@ -545,7 +523,6 @@ class MonitoringMixin:
         _log_monitor_task: Optional[asyncio.Task]
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
         self._stdout_task: Optional[asyncio.Task] = None
         self._stderr_task: Optional[asyncio.Task] = None
         self._log_monitor_task: Optional[asyncio.Task] = None
@@ -605,8 +582,7 @@ class MonitoringMixin:
                 try:
                     with open(log_file, 'r') as f:
                         f.seek(position)
-                        content = f.read()
-                        if content:
+                        if content := f.read():
                             print(f"[VM Console]:\n{content}")
                         position = f.tell()
                 except FileNotFoundError:
@@ -679,7 +655,6 @@ class MonitoringMixin:
             print(f"[Monitor]: Console log check failed: {e}")
 
 
-
 class SSHControlMixin(SSHProtocol):
     """SSH functionality"""
 
@@ -697,7 +672,6 @@ class SSHControlMixin(SSHProtocol):
             ssh_port: int = 10022,
             **kwargs,
     ):
-        super().__init__(**kwargs)
         self._ssh_port = ssh_port
 
     @property
@@ -888,7 +862,6 @@ class AlpineISOBuilderMixin(ISOProtocol):
             custom_iso_path: Optional[str] = None,
             **kwargs,
     ):
-        super().__init__(**kwargs)
         self._iso_image = iso_image
         self._custom_iso_path = custom_iso_path
 
@@ -1131,7 +1104,6 @@ class SnapshotManagementMixin(SnapshotProtocol):
         _current_snapshot: Optional[str]
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
         self._current_snapshot: Optional[str] = None
 
     @property
@@ -1139,7 +1111,7 @@ class SnapshotManagementMixin(SnapshotProtocol):
         """Get the name of the currently loaded snapshot"""
         return self._current_snapshot
 
-    async def list_snapshots(self: _SelfSnapshotProtocol) -> str:
+    async def list_snapshots(self: _SelfSnapshotProtocol) -> dict:
         """List all available snapshots in the VM"""
         try:
             print("[QMP]: Getting snapshot list...")
@@ -1150,7 +1122,7 @@ class SnapshotManagementMixin(SnapshotProtocol):
             return response
         except Exception as e:
             print(f"[QMP]: Error listing snapshots: {e}")
-            return ""
+            return {}
 
     async def save_snapshot(self: _SelfSnapshotProtocol, name: Optional[str] = None) -> bool:
         """Save VM snapshot, using DEFAULT_SNAPSHOT if no name provided"""
@@ -1271,13 +1243,44 @@ class ARM64Runner(
             iso_image: Optional[str] = None,
             ssh_port: int = 10022,
     ):
-        super().__init__(
+        QEMUProcessMixin.__init__(
+            self,
             qemu_system=qemu_system,
             qcow2_path=qcow2_path,
-            socket_path=socket_path,
-            iso_image=iso_image,
-            ssh_port=ssh_port,
+            kernel_path=None,
         )
+        QMPControlMixin.__init__(self, socket_path=socket_path,)
+        SSHControlMixin.__init__(self, ssh_port=ssh_port,)
+        MonitoringMixin.__init__(self)
+        SnapshotManagementMixin.__init__(self)
+        AlpineISOBuilderMixin.__init__(self, iso_image=iso_image, custom_iso_path=None,)
+
+        self.DEFAULT_SNAPSHOT = "conda"
+        self._verify_initialization()
+        
+    def _verify_initialization(self) -> None:
+        """Verify that all required attributes are properly initialized"""
+        required_attrs = {
+            '_qemu_system': 'QEMU system path',
+            '_qcow2_path': 'QCOW2 image path',
+            '_kernel_path': 'Kernel path',
+            '_qemu_process': 'QEMU process',
+            '_stdout_task': 'Stdout monitoring task',
+            '_stderr_task': 'Stderr monitoring task',
+            '_socket_path': 'QMP socket path',
+            '_ssh_port': 'SSH port',
+            '_iso_image': 'ISO image path',
+        }
+
+        if missing := [
+            f"{attr} ({description})"
+            for attr, description in required_attrs.items()
+            if not hasattr(self, attr)
+        ]:
+            raise AttributeError(
+                "Runner initialization incomplete. Missing attributes:\n" +
+                "\n".join(f"- {attr}" for attr in missing)
+            )
 
     async def setup_vm(self) -> bool:
         """Setup VM with all components"""
