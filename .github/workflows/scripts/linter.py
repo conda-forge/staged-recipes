@@ -51,7 +51,7 @@ def _lint_recipes(gh, pr):
     # 3. Ensure environment.yaml and pixi.toml are in sync
     original_environment_yaml = (ROOT / "environment.yaml").read_text()
     pixi_exported_env_yaml = check_output(
-        ["pixi", "project", "export", "conda-environment"],
+        ["pixi", "project", "export", "conda-environment", "-e", "build"],
         text=True,
     )
     if original_environment_yaml != pixi_exported_env_yaml:
