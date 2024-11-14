@@ -1,0 +1,125 @@
+{% set version = "0.1.0" %}
+{% set python_min = python_min | default("3.9") %}
+{% set PYTHON = PYTHON | default("$PYTHON") %}
+
+package:
+  name: urljsf
+  version: {{ version }}
+
+source:
+  - folder: dist
+    url: https://pypi.org/packages/source/u/urljsf/urljsf-{{ version }}.tar.gz
+    sha256: fd658994518684bad3ed5a60e9e964efdcbc284e356035c6bb6e5a3a59659778
+  - folder: src
+    url: https://github.com/deathbeds/urljsf/archive/refs/tags/v{{ version }}.tar.gz
+    sha256: 953be767fd036e138b0aa70459fd49e32ffc4bf26172580f7256df6378f194b4
+
+build:
+  number: 0
+  noarch: python
+  script:
+    - cd dist && {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation --disable-pip-version-check
+  entry_points:
+    - urljsf = urljsf.cli:main
+
+requirements:
+  host:
+    - flit-core >=3.9.0,<4.0.0
+    - pip
+    - python {{ python_min }}
+  run:
+    - jinja2
+    - jsonschema >=4.18
+    - python >={{ python_min }}
+    - tomli
+    - typing_extensions >=4.0.0
+
+test:
+  requires:
+    - pip
+    - python {{ python_min }}
+  imports:
+    - urljsf
+  commands:
+    - pip check
+    - urljsf --version
+    - urljsf --help
+
+outputs:
+  - name: urljsf
+
+  - name: urljsf-with-yaml
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage("urljsf", max_pin="x.x.x") }}
+        - ruamel.yaml
+    test:
+      requires:
+        - pip
+      imports:
+        - urljsf
+      commands:
+        - pip check
+        - urljsf --version
+        - urljsf --help
+
+  - name: urljsf-with-sphinx
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage("urljsf", max_pin="x.x.x") }}
+        - sphinx >=6.1
+    test:
+      requires:
+        - pip
+      imports:
+        - urljsf
+      commands:
+        - pip check
+        - urljsf --version
+        - urljsf --help
+
+  - name: urljsf-with-all
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage("urljsf", max_pin="x.x.x") }}
+        - {{ pin_subpackage("urljsf-with-yaml", max_pin="x.x.x") }}
+        - {{ pin_subpackage("urljsf-with-sphinx", max_pin="x.x.x") }}
+    test:
+      source_files:
+        - src/tests
+        - src/pyproject.toml
+      requires:
+        - coverage
+        - pip
+        - pytest-cov
+        - pytest-html
+        - pytest-console-scripts
+        - tomli-w
+      imports:
+        - urljsf
+      commands:
+        - pip check
+        - urljsf --version
+        - urljsf --help
+        - cd src
+        - pytest -vv --color=yes --tb=long --cov=urljsf --cov-branch --cov-report=term-missing:skip-covered --no-cov-on-fail --cov-fail-under=97
+
+about:
+  home: https://github.com/deathbeds/urljsf
+  summary: Build declarative, interactive HTML forms with JSON Schema
+  license: BSD-3-Clause
+  license_file:
+    - dist/LICENSE
+    - dist/src/urljsf/_static/urljsf/third-party-licenses.json
+  doc_url: https://urljsf.rtfd.org
+
+extra:
+  feedstock-name: urljsf
+  recipe-maintainers:
+    - bollwyvl
