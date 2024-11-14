@@ -9,36 +9,52 @@ source:
   url: https://github.com/CastillonMiguel/phasefieldx/archive/v{{ version }}.tar.gz
   sha256: f434c699c92575ed79576f7b266631e4e8bfc4c2b2b0d940b9efb715361339c6
 
-build:
-  noarch: python
-  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
-  number: 0
-
 requirements:
+  build:
+    - ${{ compiler('c') }}
+    - ${{ stdlib('c') }}
+    - ${{ compiler('cxx') }}
+    - cmake
+    - make
+    - pkg-config
+    - if: mpi == 'openmpi' and build_platform != target_platform
+      then: ${{ mpi }}
+    - if: build_platform != target_platform
+      then:
+        - cross-python_${{ target_platform }}
+        - python
+        - nanobind
   host:
-    - python >=3.8
-    - hatchling
+    - fenics-libbasix ${{ fenics_version }}
+    - fenics-basix ${{ fenics_version }}
+    - fenics-libdolfinx ${{ fenics_version }}
+    - fenics-dolfinx ${{ fenics_version }}
+    - ${{ mpi }}
+    - petsc
+    - petsc * ${{ scalar }}_*
     - pip
+    - python
+    - scikit-build-core
+    - nanobind
   run:
-    - python >=3.8
-    - fenics-dolfinx ==0.9.0
+    - python
+    - fenics-basix
+    - fenics-dolfinx
+    - packaging
+    - adios2 * mpi_${{ mpi }}_*
     - gmsh
-    - matplotlib-base
-    - mpi4py
-    - mpich
     - pandas
-    - petsc4py
-    - numpy
     - pyvista
-    - time
+    - numpy
+  run_constraints:
+    # require mpi build of h5py
+    - h5py * mpi_${{ mpi }}_*
 
-test:
-  imports:
-    - phasefieldx
-  commands:
-    - pip check
-  requires:
-    - pip
+tests:
+  - python:
+      imports:
+        - scifem
+      pip_check: true
 
 about:
   home: https://github.com/CastillonMiguel/phasefieldx
