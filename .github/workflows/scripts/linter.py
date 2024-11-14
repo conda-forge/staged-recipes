@@ -62,8 +62,8 @@ def _lint_recipes(gh, pr):
         print("environment diff:", flush=True)
         print(''.join(difflib.unified_diff(_orig_lines, _expt_lines)), flush=True)
         lints["environment.yaml"].append(
-            "Environment file is out of sync with pixi.toml. "
-            "Fix by running `pixi project export conda-environment > environment.yaml`."
+            "The `environment.yaml` file is out of sync with `pixi.toml`. "
+            "Fix by running `pixi project export conda-environment -e build > environment.yaml`."
         )
 
     # Recipe-specific lints/hints
