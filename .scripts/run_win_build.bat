@@ -16,7 +16,7 @@ if "%MINIFORGE_HOME%"=="" set "MINIFORGE_HOME=%USERPROFILE%\Miniforge3"
 if "%MINIFORGE_HOME:~-1%"=="\" set "MINIFORGE_HOME=%MINIFORGE_HOME:~0,-1%"
 
 if exist "%MINIFORGE_HOME%\conda-meta\history" (
-    echo "Build tools already installed at %MINIFORGE_HOME%."
+    echo Build tools already installed at %MINIFORGE_HOME%.
 ) else (
     where micromamba.exe >nul 2>nul
     if !errorlevel! == 0 (
@@ -42,7 +42,7 @@ if exist "%MINIFORGE_HOME%\conda-meta\history" (
         --file environment.yaml
     if !errorlevel! neq 0 exit /b !errorlevel!
     echo Moving pkgs cache from !MAMBA_ROOT_PREFIX! to !MINIFORGE_HOME!
-    move /Y "!MAMBA_ROOT_PREFIX!\pkgs" "!MINIFORGE_HOME!"
+    move /Y "!MAMBA_ROOT_PREFIX!\pkgs" "!MINIFORGE_HOME!" >nul
     if !errorlevel! neq 0 exit /b !errorlevel!
     echo Removing !MAMBA_ROOT_PREFIX!
     del /S /Q "!MAMBA_ROOT_PREFIX!" >nul

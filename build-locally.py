@@ -46,7 +46,7 @@ def run_osx_build(ns):
 
 def run_win_build(ns):
     script = ".scripts/run_win_build.bat"
-    subprocess.check_call(["cmd", "/D", "/C", f"CALL {script}"])
+    subprocess.check_call(["cmd", "/D", "/Q", "/C", f"CALL {script}"])
 
 
 def verify_config(ns):
