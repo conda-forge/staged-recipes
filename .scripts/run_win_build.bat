@@ -23,28 +23,30 @@ if exist "%MINIFORGE_HOME%\conda-meta\history" (
         set "MICROMAMBA_EXE=micromamba.exe"
         echo "Found micromamba in PATH"
     ) else (
-        set "MAMBA_ROOT_PREFIX=%MINIFORGE_HOME%-micromamba-%RANDOM%"
+        set "MAMBA_ROOT_PREFIX=!MINIFORGE_HOME!-micromamba-!RANDOM!"
         set "MICROMAMBA_VERSION=1.5.10-0"
-        set "MICROMAMBA_URL=https://github.com/mamba-org/micromamba-releases/releases/download/%MICROMAMBA_VERSION%/micromamba-win-64"
-        set "MICROMAMBA_TMPDIR=%TMP%\micromamba-%RANDOM%"
-        set "MICROMAMBA_EXE=%MICROMAMBA_TMPDIR%\micromamba.exe"
+        set "MICROMAMBA_URL=https://github.com/mamba-org/micromamba-releases/releases/download/!MICROMAMBA_VERSION!/micromamba-win-64"
+        set "MICROMAMBA_TMPDIR=!TMP!\micromamba-!RANDOM!"
+        set "MICROMAMBA_EXE=!MICROMAMBA_TMPDIR!\micromamba.exe"
 
-        echo Downloading micromamba %MICROMAMBA_VERSION%
-        if not exist "%MICROMAMBA_TMPDIR%" mkdir "%MICROMAMBA_TMPDIR%"
-        certutil -urlcache -split -f "%MICROMAMBA_URL%" "%MICROMAMBA_EXE%"
+        echo Downloading micromamba !MICROMAMBA_VERSION!
+        echo if not exist "!MICROMAMBA_TMPDIR!" mkdir "!MICROMAMBA_TMPDIR!"
+        echo certutil -urlcache -split -f "!MICROMAMBA_URL!" "!MICROMAMBA_EXE!"
+        if not exist "!MICROMAMBA_TMPDIR!" mkdir "!MICROMAMBA_TMPDIR!"
+        certutil -urlcache -split -f "!MICROMAMBA_URL!" "!MICROMAMBA_EXE!"
         if !errorlevel! neq 0 exit /b !errorlevel!
     )
     echo Creating environment
-    call "%MICROMAMBA_EXE%" create --yes --root-prefix "%MAMBA_ROOT_PREFIX%" --prefix "%MINIFORGE_HOME%" ^
+    call "!MICROMAMBA_EXE!" create --yes --root-prefix "!MAMBA_ROOT_PREFIX!" --prefix "!MINIFORGE_HOME!" ^
         --channel conda-forge ^
         --file environment.yaml
     if !errorlevel! neq 0 exit /b !errorlevel!
-    echo Moving pkgs cache from %MAMBA_ROOT_PREFIX% to %MINIFORGE_HOME%
-    move /Y "%MAMBA_ROOT_PREFIX%\pkgs" "%MINIFORGE_HOME%"
+    echo Moving pkgs cache from !MAMBA_ROOT_PREFIX! to !MINIFORGE_HOME!
+    move /Y "!MAMBA_ROOT_PREFIX!\pkgs" "!MINIFORGE_HOME!"
     if !errorlevel! neq 0 exit /b !errorlevel!
-    echo Removing %MAMBA_ROOT_PREFIX%
-    del /S /Q "%MAMBA_ROOT_PREFIX%" >nul
-    del /S /Q "%MICROMAMBA_TMPDIR%" >nul
+    echo Removing !MAMBA_ROOT_PREFIX!
+    del /S /Q "!MAMBA_ROOT_PREFIX!" >nul
+    del /S /Q "!MICROMAMBA_TMPDIR!" >nul
 )
 call :end_group
 
