@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
 
-# Clone the nighres repository
-git clone https://github.com/nighres/nighres /tmp/nighres
-cd /tmp/nighres
+export PATH=$PATH:/usr/lib/jvm/java-8-openjdk-amd64/bin
 
-# Set JCC_JDK to the Java path in the conda environment
-export JCC_JDK="${CONDA_PREFIX}/bin"
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/jvm/java-8-openjdk-amd64/lib
 
-# Ensure the JVM shared library is in the library path
-export LD_LIBRARY_PATH="${CONDA_PREFIX}/jre/lib/amd64/server:$LD_LIBRARY_PATH"
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/
+
+export JCC_JDK=/usr/lib/jvm/java-8-openjdk-amd64/
 
 # Run the build script
 ./build.sh
