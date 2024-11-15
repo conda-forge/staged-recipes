@@ -33,6 +33,11 @@ end
 
 export CPPFLAGS="$CPPFLAGS -I$PREFIX/include"
 export CXXFLAGS="${CXXFLAGS} -std=gnu++17"
+# TODO: remove once fixed
+export CFLAGS="${CFLAGS} -Wno-error=incompatible-pointer-types"
+export CFLAGS="${CFLAGS} -Wno-error=implicit-function-declaration"
+export CXXFLAGS="${CXXFLAGS} -Wno-error=incompatible-pointer-types"
+export CXXFLAGS="${CXXFLAGS} -Wno-error=implicit-function-declaration"
 
 # Setting /usr/lib/debug as debug dir makes it possible to debug the system's
 # python on most Linux distributions
