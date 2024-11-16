@@ -3,6 +3,11 @@ set -ex
 # show available configure options
 ./configure --help
 
+# seems to be running autoreconf for some reason
+# try 'touch' to update timestamps to prevent autoreconf
+ls -la
+touch aclocal.m4 configure Makefile.am Makefile.in
+
 ./configure \
   --with-libevent=$PREFIX \
   --with-hwloc=$PREFIX \
