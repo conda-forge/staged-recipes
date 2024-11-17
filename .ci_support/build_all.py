@@ -23,7 +23,7 @@ except ImportError:
 
 
 EXAMPLE_RECIPE_FOLDERS = ["example", "example-v1"]
-
+LOCAL_CHANNELS = os.environ.get("CONDA_BLD_PATH", "local").split(",")
 
 def get_host_platform():
     from sys import platform
@@ -41,7 +41,12 @@ def get_config_name(arch):
 
 
 def build_all(recipes_dir, arch):
-    folders = list(filter(lambda d: os.path.isdir(os.path.join(recipes_dir, d)), os.listdir(recipes_dir)))
+    folders = [
+        d
+        for d in os.listdir(recipes_dir)
+        if os.path.isdir(os.path.join(recipes_dir, d))
+        and d not in EXAMPLE_RECIPE_FOLDERS
+    ]
     if not folders:
         print("Found no recipes to build")
         return
@@ -138,17 +143,17 @@ def build_all(recipes_dir, arch):
                         sdk_version = max(sdk_version, deployment_version, version)
 
             if 'channel_sources' not in text:
-                new_channel_urls = ['local', 'conda-forge']
+                new_channel_urls = [*LOCAL_CHANNELS, 'conda-forge']
             else:
                 config = load(text, Loader=BaseLoader)
-                new_channel_urls = ['local'] + config['channel_sources'][0].split(',')
+                new_channel_urls = [*LOCAL_CHANNELS, *config['channel_sources'][0].split(',')]
             if channel_urls is None:
                 channel_urls = new_channel_urls
             elif channel_urls != new_channel_urls:
                 raise ValueError(f'Detected different channel_sources in the recipes: {channel_urls} vs. {new_channel_urls}. Consider submitting them in separate PRs')
 
     if channel_urls is None:
-        channel_urls = ['local', 'conda-forge']
+        channel_urls = [*LOCAL_CHANNELS, 'conda-forge']
 
     with open(variant_config_file, 'r') as f:
         variant_text = ''.join(f.readlines())
