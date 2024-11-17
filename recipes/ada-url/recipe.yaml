@@ -1,0 +1,84 @@
+context:
+  version: "2.9.2"
+  build: 0
+
+package:
+  name: ada-url
+  version: ${{ version }}
+
+source:
+  url: "https://github.com/ada-url/ada/archive/refs/tags/v${{ version }}.tar.gz"
+  sha256: f41575ad7eec833afd9f6a0d6101ee7dc2f947fdf19ae8f1b54a71d59f4ba5ec
+
+build:
+  number: ${{ build|int + (microarch_level|int) * 100 }}
+  script:
+    - if: win
+      then: |
+        cmake -G Ninja ^
+          %CMAKE_ARGS% ^
+          -DADA_TESTING=OFF ^
+          -DADA_TOOLS=OFF ^
+          -DADA_BENCHMARKS=OFF ^
+          -B build -S %SRC_DIR%
+        cmake --build build --target install
+      else: |
+        cmake -G Ninja \
+          $CMAKE_ARGS \
+          -DADA_TESTING=OFF \
+          -DADA_TOOLS=OFF \
+          -DADA_BENCHMARKS=OFF \
+          -S $SRC_DIR -B build
+        cmake --build build --target install
+
+requirements:
+  build:
+    - if: microarch_level|int > 0
+      then: x86_64-microarch-level ${{ microarch_level }}
+    - "${{ compiler('cxx') }}"
+    - "${{ stdlib('c') }}"
+    - cmake
+    - ninja
+
+tests:
+  - script:
+    - if: win
+      then: |
+        cmake -GNinja %CMAKE_ARGS% -B build -S .
+        cmake --build build
+        .\build\main.exe
+      else: |
+        cmake -GNinja $CMAKE_ARGS -B build -S .
+        cmake --build build
+        ./build/main
+    requirements:
+      build:
+        - "${{ compiler('cxx') }}"
+        - "${{ stdlib('c') }}"
+        - cmake
+        - ninja
+
+    files:
+      recipe:
+        - CMakeLists.txt
+
+  - package_contents:
+      include:
+        - ada.h
+
+about:
+  homepage: "https://ada-url.com/"
+  summary: 'WHATWG-compliant and fast URL parser written in modern C++'
+  description: |
+    WHATWG-compliant and fast URL parser written in modern C++, part of
+    Node.js, Clickhouse, Redpanda, Kong, Telegram and Cloudflare Workers.
+  license: "MIT OR Apache-2.0"
+  license_file:
+    - LICENSE-APACHE
+    - LICENSE-MIT
+  documentation: https://ada-url.com/introduction/
+  repository: https://github.com/ada-url/ada
+
+extra:
+  recipe-maintainers:
+    - rHermes
