@@ -43,6 +43,8 @@ cat >~/.condarc <<CONDARC
 always_yes: true
 show_channel_urls: true
 solver: libmamba
+conda-build:
+    root-dir: ${CONDA_BLD_PATH}
 CONDARC
 
 source "${MINIFORGE_HOME}/etc/profile.d/conda.sh"
@@ -68,7 +70,7 @@ source run_conda_forge_build_setup
 set -e
 
 # make sure there is a package directory so that artifact publishing works
-mkdir -p "${CONDA_BLD_PATH}/osx-64/" "${CONDA_BLD_PATH}/osx-arm64/" "${CONDA_BLD_PATH}/noarch/"
+mkdir -p "${CONDA_BLD_PATH}" "${CONDA_BLD_PATH}/osx-64/" "${CONDA_BLD_PATH}/osx-arm64/" "${CONDA_BLD_PATH}/noarch/"
 
 # Find the recipes from upstream:main in this PR and remove them.
 echo ""
