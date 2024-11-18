@@ -81,7 +81,7 @@ if [ "${CI:-}" != "" ]; then
   git fetch --force origin main:main
 fi
 shopt -s extglob dotglob
-# git ls-tree --name-only main -- !(example|example-v1) | xargs -I {} sh -c "rm -rf {} && echo Removing recipe: {}"
+git ls-tree --name-only main -- !(example|example-v1) | xargs -I {} sh -c "rm -rf {} && echo Removing recipe: {}"
 shopt -u extglob dotglob
 popd > /dev/null
 echo ""
