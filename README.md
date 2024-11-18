@@ -20,6 +20,27 @@ If the issue persists, support can be found [on Gitter](https://gitter.im/conda-
 4. When your pull request is merged a new repository, called a feedstock, will be created in the github conda-forge organization, and build/upload of your package will automatically be triggered. Once complete, the package is available on conda-forge.
 
 
+## Local debugging with `build-locally.py`
+
+The script `build-locally.py` will guide you through the local debugging process. This script
+will then launch the platform-specific scripts, which support some key environment variables in
+macOS and Windows:
+
+- `MINIFORGE_HOME`: Where the build tools will be installed. Defaults to `~/Miniforge3`.
+- `CONDA_BLD_PATH`: Where the build artifacts will be kept. Defaults to `~/Miniforge3/conda-bld`
+  on macOS and `C:\bld` on Windows.
+
+On Linux, everything runs in a Docker container. The `staged-recipes` directory is mounted as a volume. The resulting artifacts will be available under `build_artifacts` in the repository directory.
+
+`build-locally.py` can be run with any recent Python, or via a Pixi task. Assuming you have already [installed Pixi](https://pixi.sh/latest/#installation), you can do:
+
+* `pixi run build-linux`: will launch a Docker container, provision all the necessary tools and build your recipe for Linux.
+* `pixi run build-osx`: will provision a conda environment with the necessary tools to build your recipe for macOS. This involves fetching and caching the necessary Apple SDKs.
+* `pixi run build-win`: will provision a conda environment with the necessary tools to build your recipe for Windows.
+
+These tasks will pass any extra arguments to `build-locally.py`, including `--help`. The resulting
+artifacts will be available under `build_artifacts`.
+
 ## Grayskull - recipe generator for Python packages on `pypi`
 
 For Python packages available on `pypi` it is possible to use [grayskull](https://github.com/conda-incubator/grayskull) to generate the recipe. The user should review the recipe generated, specially the license and dependencies.
@@ -64,7 +85,7 @@ build:
 
 A full description of selectors is [in the conda docs](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#preprocessing-selectors).
 
-If the package can otherwise be `noarch` you can also skip it by using [virtual packages](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-virtual.html). 
+If the package can otherwise be `noarch` you can also skip it by using [virtual packages](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-virtual.html).
 
 _Note_: As the package will always be built on linux, it needs to be at least available on there.
 
@@ -180,5 +201,5 @@ please contact a member of @conda-forge/core. We'd love to have your help!
 There's no changelog file, but the following `git` command gives a good overview of the recent changes in the repository:
 
 ```bash
-$ git log --merges -- ':!recipes' 
+$ git log --merges -- ':!recipes'
 ```
