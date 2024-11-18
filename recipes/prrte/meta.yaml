@@ -27,21 +27,22 @@ requirements:
   host:
     - libevent
     - libhwloc
-    - libpmix
-    # - pmix-bin
+    - libpmix-devel
 
 outputs:
   - name: libprrte
     files:
       # libprrte has everything except for specific exclusions
-      # reserved for bin
       include:
         - '**/*'
       exclude:
-        # bin/ and man are in prrte-bin
+        # bin/ and man are in -bin
         - bin/
         - share/man/
-        # exclude built HTML docs
+        # headers in -devel
+        - include
+        # exclude RST/HTML docs
+        - share/prte/rst
         - share/doc/
     build:
       run_exports:
@@ -56,7 +57,7 @@ outputs:
       host:
         - libevent
         - libhwloc
-        - libpmix
+        - libpmix-devel
 
     test:
       commands:
@@ -64,8 +65,23 @@ outputs:
         - test ! -f $PREFIX/lib/libprrte.a
         - test ! -f $PREFIX/bin/prte_info
         - test ! -f $PREFIX/bin/prun
-        # - test ! -d $PREFIX/include/prte/src
+        - test ! -d $PREFIX/include/prte/src
         - test ! -d $PREFIX/share/doc/prte
+
+  - name: libprrte-devel
+    build:
+      run_exports:
+        - {{ pin_subpackage('libprrte', max_pin='x.x') }}
+    files:
+      include:
+        - include
+    requirements:
+      run:
+        - {{ pin_subpackage('libprrte', exact=True) }}
+    test:
+      commands:
+        - test -f $PREFIX/include/prte.h
+        - test -d $PREFIX/include/prte/src
 
   - name: prrte-bin
     files:
@@ -81,7 +97,7 @@ outputs:
       host:
         - libevent
         - libhwloc
-        - libpmix
+        - libpmix-devel
         - {{ pin_subpackage('libprrte', exact=True) }}
       run:
         - {{ pin_subpackage('libprrte', exact=True) }}

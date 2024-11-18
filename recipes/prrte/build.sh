@@ -7,8 +7,8 @@ set -ex
   --with-libevent=$PREFIX \
   --with-hwloc=$PREFIX \
   --with-pmix=$PREFIX \
+  --with-sge \
   --enable-ipv6 \
-  --enable-sge \
   --disable-dependency-tracking \
   --prefix=$PREFIX
 

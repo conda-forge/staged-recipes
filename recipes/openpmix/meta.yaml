@@ -13,7 +13,6 @@ source:
   sha256: f72d50a5ae9315751684ade8a8e9ac141ae5dd64a8652d594b9bee3531a91376
 
 build:
-  # TODO: unskip osx on feedstock, staged-recipes mac builds don't work right now
   skip: true  # [win]
   number: 0
 
@@ -38,13 +37,15 @@ outputs:
   - name: libpmix
     files:
       # libpmix has everything except for specific exclusions
-      # reserved for bin
       include:
         - '**/*'
       exclude:
-        # bin/ and man are in pmix-bin
+        # bin/ and man are in -bin
         - bin/
         - share/man/
+        # include, pkgconfig are in -devel
+        - include/
+        - lib/pkgconfig/
         # exclude built HTML docs
         - share/doc/
     build:
@@ -73,8 +74,28 @@ outputs:
         - test -f $PREFIX/lib/libpmix${SHLIB_EXT}
         - test ! -f $PREFIX/lib/libpmpix.a
         - test ! -f $PREFIX/bin/pmix_info
-        # - test ! -d $PREFIX/include/pmix/src
+        - test ! -d $PREFIX/include/pmix/src
         - test ! -d $PREFIX/share/doc/pmix
+        - pkg-config --cflags --libs pmix
+
+  - name: libpmix-devel
+    build:
+      run_exports:
+        - {{ pin_subpackage('libpmix', max_pin='x.x') }}
+    files:
+      include:
+        - include/
+        - lib/pkgconfig/
+    requirements:
+      run:
+        - {{ pin_subpackage('libpmix', exact=True) }}
+    test:
+      requires:
+        - pkg-config
+      commands:
+        - test -f $PREFIX/include/pmix.h
+        - test -d $PREFIX/include/pmix/src
+        - test -f $PREFIX/lib/libpmix${SHLIB_EXT}
         - pkg-config --cflags --libs pmix
 
   - name: pmix-bin
