@@ -1,23 +1,26 @@
-{% set name = "qemu.qmp" %}
-{% set version = "0.0.3" %}
+context:
+  name: qemu.qmp
+  version: "0.0.3"
 
 package:
-  name: {{ name|lower }}
-  version: {{ version }}
+  name: ${{ name|lower }}
+  version: ${{ version }}
 
 source:
-  url: https://pypi.org/packages/source/q/qemu.qmp/qemu.qmp-{{ version }}.tar.gz
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
   sha256: cbc88fbcc115ee943d84447d172c642da120220451416c2f621acf33df1e1010
   patches:
     - update-setup.cfg-version.patch
 
 build:
-  skip: true  # [py>=313]
+  noarch: python
+  skip:
+    - match(python, ">=3.13")
   script:
     # Verify that setup.cfg version matches meta.yaml version
     - grep -q "version = {{ version }}" ${SRC_DIR}/setup.cfg || (echo "Version mismatch" && exit 1)  # [unix]
     - findstr /C:"version = {{ version }}" %SRC_DIR%\setup.cfg >nul || (echo Version mismatch && exit /b 1)  # [win]
-    - {{ PYTHON }} -m pip install . -vv
+    - python -m pip install --no-deps --ignore-installed . -vv
   number: 0
   entry_points:
     - qemu-shell = qemu.qmp.qmp_shell:main
@@ -27,31 +30,29 @@ build:
 
 requirements:
   host:
-    - python {{ python_min }}
+    - python ${{ python_min }}
     - pip
     - setuptools
     # Upstream mentions version set by setuptools_scm, but requires using a custom packaging script
     # - setuptools_scm
   run:
     - pygments
-    - pyreadline  # [win]
-    - python {{ python_min }}
+    - ${{ "pyreadline" if win }}
+    - python ${{ python_min }}
 
-test:
-  imports:
-    - qemu.qmp
-  requires:
-    - pip
-    - python {{ python_min }}
-  commands:
-    - pip check
-    - qemu-shell --help
-    - qemu-shell-wrap --help
-    # This requires missing conda package urwind
-    # - qemu-tui --help
+tests:
+  - python:
+      imports:
+      - qemu.qmp
+      pip_check: true
+  - commands:
+      - qemu-shell --help
+      - qemu-shell-wrap --help
+      # This requires missing conda package urwind
+      # - qemu-tui --help
 
 about:
-  home: https://gitlab.com/qemu-project/python-qemu-qmp
+  homepage: https://gitlab.com/qemu-project/python-qemu-qmp
   summary: 'qemu.qmp: QEMU Monitor Protocol Library'
   description: |
     qemu.qmp is a QEMU Monitor Protocol (“QMP”) library written in Python, using asyncio. It is used to send
