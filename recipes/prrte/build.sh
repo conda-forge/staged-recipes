@@ -9,6 +9,7 @@ set -ex
   --with-pmix=$PREFIX \
   --with-sge \
   --enable-ipv6 \
+  --enable-prte-prefix-by-default \
   --disable-dependency-tracking \
   --prefix=$PREFIX
 
