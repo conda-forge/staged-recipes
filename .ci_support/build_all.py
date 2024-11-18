@@ -295,7 +295,7 @@ def check_recipes_in_correct_dir(root_dir, correct_dir):
     from pathlib import Path
     for path in Path(root_dir).rglob('meta.yaml'):
         path = path.absolute().relative_to(root_dir)
-        if path.parts[0] == 'build_artifacts':
+        if path.parts[0] in ('.pixi', 'build_artifacts', 'miniforge3'):
             # ignore pkg_cache in build_artifacts
             continue
         if path.parts[0] != correct_dir and path.parts[0] != "broken-recipes":
