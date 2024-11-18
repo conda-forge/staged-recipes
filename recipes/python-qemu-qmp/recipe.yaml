@@ -1,5 +1,5 @@
 context:
-  name: "qemu.qmp"
+  name: qemu.qmp
   version: "0.0.3"
   python_min: "3.7"
 
@@ -11,44 +11,71 @@ source:
   url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
   sha256: cbc88fbcc115ee943d84447d172c642da120220451416c2f621acf33df1e1010
 
-build:
-  noarch: python
-  script:
-    env:
-      SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
-    content: python -m pip install --no-deps --ignore-installed . -vv
-  number: 0
-  python:
-    entry_points:
-      - qemu-shell = qemu.qmp.qmp_shell:main
-      - qemu-shell-wrap = qemu.qmp.qmp_shell:main_wrap
-    # This requires missing conda package urwind
-    # - qemu-tui = qemu.qmp.qmp_tui:main
+cache:
+  requirements:
+    host:
+      - python ${{ python_min }}
+      - pip
+      - setuptools
+      - setuptools_scm
+  build:
+    noarch: python
+    script:
+      env:
+        SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+      content: python -m pip wheel --no-deps --ignore-installed -w wheelhouse . -vv
+    number: 0
+    python:
+      entry_points:
+        - qemu-shell = qemu.qmp.qmp_shell:main
+        - qemu-shell-wrap = qemu.qmp.qmp_shell:main_wrap
+      # This requires missing conda package urwind
+      # - qemu-tui = qemu.qmp.qmp_tui:main
 
-requirements:
-  host:
-    - python ${{ python_min }}
-    - pip
-    - setuptools
-    - setuptools_scm
-  run:
-    - pygments
-    - ${{ "pyreadline" if win }}
-    - python >=${{ python_min }}
-
-tests:
-  - python:
-      imports:
-      - qemu.qmp
-      pip_check: true
-  - script: |
-        qemu-shell --help
-        qemu-shell-wrap --help
-    # This requires missing conda package urwind
-    # qemu-tui --help
+outputs:
+  - package:
+      name: qemu.qmp
+      version: ${{ version }}
+    build:
+      script: install_wheel.sh
     requirements:
-      run:
+      host:
         - python ${{ python_min }}
+        - pip
+        - setuptools
+        - setuptools_scm
+      run:
+        - pygments
+        - ${{ "pyreadline" if win }}
+        - python >=${{ python_min }}
+    tests:
+      - python:
+          imports:
+          - qemu.qmp
+          pip_check: true
+      - script: |
+            qemu-shell --help
+            qemu-shell-wrap --help
+        # This requires missing conda package urwind
+        # qemu-tui --help
+        requirements:
+          run:
+            - python ${{ python_min }}
+
+  - package:
+      # Naming convention for the github repo
+      name: python-qemu-qmp
+      version: ${{ version }}
+    requirements:
+      host:
+        - ${{ pin_subpackage('qemu.qmp', exact=True) }}
+      run:
+        - ${{ pin_subpackage('qemu.qmp', exact=True) }}
+    tests:
+      - python:
+          imports:
+          - qemu.qmp
+          pip_check: true
 
 about:
   homepage: https://gitlab.com/qemu-project/python-qemu-qmp
@@ -66,3 +93,4 @@ about:
 extra:
   recipe-maintainers:
     - MementoRC
+feedstock-name: qemu.qmp
