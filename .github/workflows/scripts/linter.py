@@ -1,8 +1,9 @@
 import argparse
-from collections import defaultdict
-from pathlib import Path
 import os
 import sys
+from collections import defaultdict
+from pathlib import Path
+from subprocess import check_output
 
 from conda_smithy.linter import conda_recipe_v1_linter
 from conda_smithy.linter.utils import (
@@ -12,8 +13,9 @@ from conda_smithy.utils import get_yaml, render_meta_yaml
 import github
 import requests
 
-NOCOMMENT_REQ_TEAMS = ["conda-forge/r"]
-
+NOCOMMENT_REQ_TEAMS = ["conda-forge/r", "conda-forge/cuda"]
+HERE = Path(__file__).parent
+ROOT = (HERE / ".." / ".." / "..").absolute()
 
 def _lint_recipes(gh, pr):
     lints = defaultdict(list)
@@ -45,6 +47,24 @@ def _lint_recipes(gh, pr):
                 "Please put your recipe in its own directory in the `recipes/` directory as "
                 "`recipe/<name of feedstock>/<your recipe file>.yaml`."
             )
+
+    # 3. Ensure environment.yaml and pixi.toml are in sync
+    original_environment_yaml = (ROOT / "environment.yaml").read_text()
+    pixi_exported_env_yaml = check_output(
+        ["pixi", "project", "export", "conda-environment", "-e", "build"],
+        text=True,
+    )
+    if original_environment_yaml != pixi_exported_env_yaml:
+        import difflib
+
+        _orig_lines = original_environment_yaml.splitlines(keepends=True)
+        _expt_lines = pixi_exported_env_yaml.splitlines(keepends=True)
+        print("environment diff:", flush=True)
+        print(''.join(difflib.unified_diff(_orig_lines, _expt_lines)), flush=True)
+        lints["environment.yaml"].append(
+            "The `environment.yaml` file is out of sync with `pixi.toml`. "
+            "Fix by running `pixi project export conda-environment -e build > environment.yaml`."
+        )
 
     # Recipe-specific lints/hints
     for fname in fnames:
@@ -163,7 +183,7 @@ def _lint_recipes(gh, pr):
             non_participating_maintainers = set()
             for maintainer in maintainers:
                 if (
-                    maintainer not in commenters 
+                    maintainer not in commenters
                     and maintainer != pr_author
                     and maintainer not in NOCOMMENT_REQ_TEAMS
                 ):
@@ -175,6 +195,24 @@ def _lint_recipes(gh, pr):
                     f"The following maintainers have not yet confirmed that they are willing to be listed here: "
                     f"{', '.join(non_participating_maintainers)}. Please ask them to comment on this PR if they are."
                 )
+
+        # 6. Only conda-forge teams can be maintainers
+        if maintainers:
+            for maintainer in maintainers:
+                if "/" in maintainer:
+                    res = maintainer.split("/", 1)
+                    if len(res) == 2:
+                        org, team = res
+                        if org != "conda-forge":
+                            lints[fname].append(
+                                "Only conda-forge teams can be team maintainers."
+                                f" {maintainer} is not a team in conda-forge."
+                            )
+                    else:
+                        lints[fname].append(
+                            f'Maintainer team "{maintainer}" is not in the '
+                            'correct format. Please use "org/team" format.'
+                        )
 
     return dict(lints), dict(hints), extra_edits
 
