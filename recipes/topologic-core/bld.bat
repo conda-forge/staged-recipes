@@ -14,11 +14,11 @@ cmake -B "build" -G "Ninja" ^
 
 if errorlevel 1 exit 1
 
-cmake --build "build" --config %TGT_BUILD_TYPE%
+cmake --build "build"
 
 if errorlevel 1 exit 1
 
-cmake --install "build" --config %TGT_BUILD_TYPE%
+cmake --install "build"
 
 if errorlevel 1 exit 1
 

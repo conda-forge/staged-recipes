@@ -12,10 +12,10 @@ cmake -B "build" -G "Ninja" \
   .
 
 # Build the project
-cmake --build "build" --config "${TGT_BUILD_TYPE}"
+cmake --build "build"
 
 # Install the built files
-cmake --install "build" --config "${TGT_BUILD_TYPE}"
+cmake --install "build"
 
 # Move output files to appropriate directories
 mv "${PREFIX}/lib/TopologicCore/"*.so* "${PREFIX}/lib" || true
