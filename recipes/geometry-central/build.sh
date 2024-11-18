@@ -14,5 +14,5 @@ cmake \
     -DCMAKE_INSTALL_LIBDIR=lib \
     ..
 
-cmake --build .
+cmake --build . -j${CPU_COUNT}
 cmake --build . --target install

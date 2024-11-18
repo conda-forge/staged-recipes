@@ -13,5 +13,5 @@ cmake ^
     -DCMAKE_INSTALL_LIBDIR=lib ^
     ..
 
-cmake --build .
+cmake --build . -j %NUMBER_OF_PROCESSORS%
 cmake --build . --target install
