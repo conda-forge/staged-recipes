@@ -2,10 +2,8 @@
 
 
 # Run cmake configuration
-cmake -B "build" -G "Ninja" \
-  -D CMAKE_INSTALL_PREFIX:FILEPATH="${PREFIX}" \
+cmake ${CMAKE_ARGS} -B "build" -G "Ninja" \
   -D CMAKE_PREFIX_PATH:FILEPATH="${PREFIX}" \
-  -D CMAKE_SYSTEM_PREFIX_PATH:FILEPATH="${PREFIX}" \
   -D USE_CONDA_PYBIND11:BOOL=ON \
   -D PYTHON_INCLUDE_DIR="${PREFIX}/include" \
   -D PYTHON_EXECUTABLE:FILEPATH="${PREFIX}/bin/python" \
