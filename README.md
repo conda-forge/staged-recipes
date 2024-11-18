@@ -19,6 +19,18 @@ If the issue persists, support can be found [on Gitter](https://gitter.im/conda-
 3. Open a pull request. Building of your package will be tested on Windows, Mac and Linux.
 4. When your pull request is merged a new repository, called a feedstock, will be created in the github conda-forge organization, and build/upload of your package will automatically be triggered. Once complete, the package is available on conda-forge.
 
+### `pixi`
+
+`pixi` is a project based environment and task runner optimized for `conda`. Several of
+the local workflows and their dependencies described below are captured in
+`pixi.toml`. Install `pixi` via the [documented approaches](https://pixi.sh/latest/#installation),
+or via `conda`/`mamba`/`micromamba`:
+
+```bash
+$CONDA_EXE install -c conda-forge pixi
+```
+
+See the available tasks with `pixi task list`.
 
 ## Local debugging with `build-locally.py`
 
@@ -32,7 +44,7 @@ macOS and Windows:
 
 On Linux, everything runs in a Docker container. The `staged-recipes` directory is mounted as a volume. The resulting artifacts will be available under `build_artifacts` in the repository directory.
 
-`build-locally.py` can be run with any recent Python, or via a Pixi task. Assuming you have already [installed Pixi](https://pixi.sh/latest/#installation), you can do:
+`build-locally.py` can be run with any recent Python, or via a [`pixi`](#pixi) task:
 
 * `pixi run build-linux`: will launch a Docker container, provision all the necessary tools and build your recipe for Linux.
 * `pixi run build-osx`: will provision a conda environment with the necessary tools to build your recipe for macOS. This involves fetching and caching the necessary Apple SDKs.
@@ -41,14 +53,43 @@ On Linux, everything runs in a Docker container. The `staged-recipes` directory 
 These tasks will pass any extra arguments to `build-locally.py`, including `--help`. The resulting
 artifacts will be available under `build_artifacts`.
 
-## Grayskull - recipe generator for Python packages on `pypi`
+## Generating recipes with `grayskull`
 
-For Python packages available on `pypi` it is possible to use [grayskull](https://github.com/conda-incubator/grayskull) to generate the recipe. The user should review the recipe generated, specially the license and dependencies.
+[grayskull](https://github.com/conda-incubator/grayskull) can generate recipes from
+Python packages on [PyPI](https://pypi.org) or R packages on [CRAN](https://cran.r-project.org/).
+The user should review the recipe generated, specially the license and dependencies.
 
-Installing `grayskull`: `conda install -c conda-forge grayskull`
+Use one of:
 
-Generating recipe: `grayskull pypi PACKAGE_NAME_HERE`
+- manually
+  - install `grayskull`: `conda install -c conda-forge grayskull`
+  - generate recipe:
+    - `cd recipes && grayskull pypi PACKAGE_NAME_ON_PYPI_HERE`
+    - `cd recipes && grayskull cran PACKAGE_NAME_ON_CRAN_HERE`
+- with [`pixi`](#pixi):
+  - generate recipe `pixi run grayskull pypi PACKAGE_NAME_ON_PYPI_HERE`
+  - generate recipe `pixi run grayskull cran PACKAGE_NAME_ON_CRAN_HERE`
 
+## Linting recipes with `conda-smithy`
+
+The [`conda-smithy`](https://github.com/conda-forge/conda-smithy) package provides
+helpful linters that can save CI resources by catching known issues up-front.
+
+Use one of:
+- manually
+  - install `conda-smithy`: `conda install -c conda-forge conda-smithy`
+  - lint recipes: `conda-smithy recipe-lint --conda-forge recipes/*`
+- with [`pixi`](#pixi):
+  - lint recipes: `pixi run recipe-lint`
+
+> **NOTE**
+>
+> `conda-smithy` is
+> [frequently updated](https://github.com/conda-forge/conda-smithy/blob/main/CHANGELOG.rst)
+> with current best practices. Ensure using the latest with:
+>
+> - `$CONDA_EXE upgrade conda-smithy`
+> - `pixi upgrade --feature lint`
 
 ## FAQ
 
