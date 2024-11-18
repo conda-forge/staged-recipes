@@ -2,8 +2,7 @@
 
 This repo is a holding area for recipes destined for a conda-forge feedstock repo. To find out more about conda-forge, see https://github.com/conda-forge/conda-smithy.
 
-[![Join the chat at https://gitter.im/conda-forge/conda-forge.github.io](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/conda-forge/conda-forge.github.io)
-
+[![Join the chat at https://conda-forge.zulipchat.com](https://img.shields.io/badge/Zulip-join_chat-53bfad.svg)](https://conda-forge.zulipchat.com)
 
 ## Feedstock conversion status
 
@@ -16,10 +15,31 @@ If the issue persists, support can be found [on Gitter](https://gitter.im/conda-
 ## Getting started
 
 1. Fork this repository.
-2. Make a new folder in `recipes` for your package. Look at the example recipe, our [documentation](http://conda-forge.org/docs/maintainer/adding_pkgs.html#) and the [FAQ](https://github.com/conda-forge/staged-recipes#faq)  for help.
+2. Make a new folder in `recipes` for your package. Look at the [example recipe](recipes/example), our [documentation](http://conda-forge.org/docs/maintainer/adding_pkgs.html#) and the [FAQ](https://github.com/conda-forge/staged-recipes#faq) for help.
 3. Open a pull request. Building of your package will be tested on Windows, Mac and Linux.
 4. When your pull request is merged a new repository, called a feedstock, will be created in the github conda-forge organization, and build/upload of your package will automatically be triggered. Once complete, the package is available on conda-forge.
 
+
+## Local debugging with `build-locally.py`
+
+The script `build-locally.py` will guide you through the local debugging process. This script
+will then launch the platform-specific scripts, which support some key environment variables in
+macOS and Windows:
+
+- `MINIFORGE_HOME`: Where the build tools will be installed. Defaults to `~/Miniforge3`.
+- `CONDA_BLD_PATH`: Where the build artifacts will be kept. Defaults to `~/Miniforge3/conda-bld`
+  on macOS and `C:\bld` on Windows.
+
+On Linux, everything runs in a Docker container. The `staged-recipes` directory is mounted as a volume. The resulting artifacts will be available under `build_artifacts` in the repository directory.
+
+`build-locally.py` can be run with any recent Python, or via a Pixi task. Assuming you have already [installed Pixi](https://pixi.sh/latest/#installation), you can do:
+
+* `pixi run build-linux`: will launch a Docker container, provision all the necessary tools and build your recipe for Linux.
+* `pixi run build-osx`: will provision a conda environment with the necessary tools to build your recipe for macOS. This involves fetching and caching the necessary Apple SDKs.
+* `pixi run build-win`: will provision a conda environment with the necessary tools to build your recipe for Windows.
+
+These tasks will pass any extra arguments to `build-locally.py`, including `--help`. The resulting
+artifacts will be available under `build_artifacts`.
 
 ## Grayskull - recipe generator for Python packages on `pypi`
 
@@ -65,7 +85,7 @@ build:
 
 A full description of selectors is [in the conda docs](https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html#preprocessing-selectors).
 
-If the package can otherwise be `noarch` you can also skip it by using [virtual packages](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-virtual.html). 
+If the package can otherwise be `noarch` you can also skip it by using [virtual packages](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-virtual.html).
 
 _Note_: As the package will always be built on linux, it needs to be at least available on there.
 
@@ -170,10 +190,10 @@ if your recipe isn't reviewed promptly.
 [1]: https://conda-forge.org/docs/maintainer/infrastructure.html#conda-forge-admin-please-ping-team
 [2]: https://gitter.im/conda-forge/conda-forge.github.io
 
-All apologies in advance if your recipe PR does not recieve prompt attention.
+All apologies in advance if your recipe PR does not receive prompt attention.
 This is a high volume repository and the reviewers are volunteers. Review times vary depending on the number of reviewers on a given language team and may be days or weeks. We are always
 looking for more staged-recipe reviewers. If you are interested in volunteering,
-please contact a member of @conda-forge/core. We'd love to have the help!
+please contact a member of @conda-forge/core. We'd love to have your help!
 
 
 ### 13. Is there a changelog for this repository?
@@ -181,5 +201,5 @@ please contact a member of @conda-forge/core. We'd love to have the help!
 There's no changelog file, but the following `git` command gives a good overview of the recent changes in the repository:
 
 ```bash
-$ git log --merges -- ':!recipes' 
+$ git log --merges -- ':!recipes'
 ```
