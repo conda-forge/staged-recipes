@@ -80,7 +80,7 @@ Use one of:
   - install `conda-smithy`: `conda install -c conda-forge conda-smithy`
   - lint recipes: `conda-smithy recipe-lint --conda-forge recipes/*`
 - with [`pixi`](#pixi):
-  - lint recipes: `pixi run recipe-lint`
+  - lint recipes: `pixi run lint`
 
 > **NOTE**
 >
