@@ -57,18 +57,18 @@ artifacts will be available under `build_artifacts`.
 
 [grayskull](https://github.com/conda-incubator/grayskull) can generate recipes from
 Python packages on [PyPI](https://pypi.org) or R packages on [CRAN](https://cran.r-project.org/).
-The user should review the recipe generated, specially the license and dependencies.
+The user should review the recipe generated, especially the license and dependencies.
 
 Use one of:
 
 - manually
   - install `grayskull`: `conda install -c conda-forge grayskull`
   - generate recipe:
-    - `cd recipes && grayskull pypi PACKAGE_NAME_ON_PYPI_HERE`
-    - `cd recipes && grayskull cran PACKAGE_NAME_ON_CRAN_HERE`
+    - `cd recipes && grayskull pypi PACKAGE_NAME_ON_PYPI_HERE [PACKAGE_NAME_ON_PYPI_HERE...]`
+    - `cd recipes && grayskull cran PACKAGE_NAME_ON_CRAN_HERE [PACKAGE_NAME_ON_CRAN_HERE...]`
 - with [`pixi`](#pixi):
-  - generate recipe `pixi run pypi PACKAGE_NAME_ON_PYPI_HERE`
-  - generate recipe `pixi run cran PACKAGE_NAME_ON_CRAN_HERE`
+  - generate recipe `pixi run pypi PACKAGE_NAME_ON_PYPI_HERE [PACKAGE_NAME_ON_PYPI_HERE...]`
+  - generate recipe `pixi run cran PACKAGE_NAME_ON_CRAN_HERE [PACKAGE_NAME_ON_CRAN_HERE...]`
 
 ## Linting recipes with `conda-smithy`
 
