@@ -1,0 +1,108 @@
+{% set name = "oneloop" %}
+{% set version = "3.7.1" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://bitbucket.org/hameren/{{ name }}/get/v{{ version }}.tar.gz
+  sha256: e03ed0e852f360fb19803dc6aaf83812604059ff9ae6baac5d856dbdf9b8797d
+
+build:
+  skip: true  # [win]
+  number: 0
+  run_exports:
+    - {{ pin_subpackage('oneloop', max_pin='x.x') }}
+  script:
+    - sed -i "s|FC = gfortran|FC = $FC|g" Config
+    - sed -i "s|FFLAGS = -O|FFLAGS = $FFLAGS|g" Config
+    - python create.py dynamic
+    - mkdir -p $PREFIX/include/oneloop
+    - mv *.mod $PREFIX/include/oneloop/
+    - mv libavh_olo.so $PREFIX/lib/
+    - ./clean.sh
+
+requirements:
+  build:
+    - {{ stdlib('c') }}
+    - {{ compiler('fortran') }}
+    - sed
+    - python
+
+test:
+  source_files:
+    - src/
+    - example/
+  requires:
+    - {{ compiler('fortran') }}
+    - python
+  commands:
+    # The SHLIB_EXT is .so even for macOS given how the library is built, so
+    # need to hardcode '.so' instead of using ${SHLIB_EXT}
+    - test -f $PREFIX/lib/libavh_olo.so
+    - test -f $PREFIX/include/oneloop/avh_olo_version.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_units.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_dp_kinds.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_dp_arrays.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_dp_prec.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_dp_print.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_dp_auxfun.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_dp_olog.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_dp_dilog.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_dp_bnlog.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_dp_qmplx.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_dp_bub.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_dp_tri.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_dp_box.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_dp_boxc.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_qp_kinds.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_dp.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_qp_arrays.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_qp_prec.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_qp_print.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_qp_auxfun.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_qp_olog.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_qp_dilog.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_qp_bnlog.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_qp_qmplx.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_qp_bub.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_qp_tri.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_qp_box.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_qp_boxc.mod
+    - test -f $PREFIX/include/oneloop/avh_olo_qp.mod
+    - test -f $PREFIX/include/oneloop/avh_olo.mod
+
+    - cd example
+    - export WITHLT=no
+    - export LTVSNge26=yes
+    - export WITHCOLI=no
+    - ../src/avh_pc_exe.py "case" "LT" "${WITHLT}" example16.f
+    - ../src/avh_pc_exe.py "case" "LTVSNge26" "${WITHLT}${LTVSNge26}" example16.f
+    - ../src/avh_pc_exe.py "case" "COLI" "${WITHCOLI}" example16.f
+    - unset WITHLT
+    - unset LTVSNge26
+    - unset WITHCOLI
+    # Use $LDFLAGS for more generic solution to -L$PREFIX/lib
+    - $FC $FFLAGS example16.f -o example -I$PREFIX/include/oneloop $LDFLAGS -lavh_olo
+    - ./example < input  # [build_platform == target_platform]
+
+about:
+  home: https://bitbucket.org/hameren/oneloop/
+  summary: 'OneLOop: A library of one-loop scalar functions'
+  description: |
+    OneLOop is a program to evaluate the one-loop scalar 1-point, 2-point,
+    3-point and 4-point functions, for all kinematical configurations relevant
+    for collider-physics, and for any non-positive imaginary parts of the
+    internal squared masses. It deals with all UV and IR divergences within
+    dimensional regularization. Furthermore, it provides routines to evaluate
+    these functions using straightforward numerical integration.
+  license: GPL-3.0-only
+  license_family: GPL
+  license_file: COPYING
+  doc_url: https://helac-phegas.web.cern.ch/OneLOop.html
+  dev_url: https://bitbucket.org/hameren/oneloop/
+
+extra:
+  recipe-maintainers:
+    - matthewfeickert
