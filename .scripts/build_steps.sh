@@ -55,7 +55,7 @@ echo "Pending recipes."
 ls -la ~/staged-recipes-copy/recipes
 echo "Finding recipes merged in main and removing them from the build."
 pushd "${FEEDSTOCK_ROOT}/recipes" > /dev/null
-if [ "${CI}" != "" ]; then
+if [ "${CI:-}" != "" ]; then
     git fetch --force origin main:main
 fi
 shopt -s extglob dotglob
