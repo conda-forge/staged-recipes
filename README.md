@@ -67,8 +67,8 @@ Use one of:
     - `cd recipes && grayskull pypi PACKAGE_NAME_ON_PYPI_HERE`
     - `cd recipes && grayskull cran PACKAGE_NAME_ON_CRAN_HERE`
 - with [`pixi`](#pixi):
-  - generate recipe `pixi run grayskull pypi PACKAGE_NAME_ON_PYPI_HERE`
-  - generate recipe `pixi run grayskull cran PACKAGE_NAME_ON_CRAN_HERE`
+  - generate recipe `pixi run pypi PACKAGE_NAME_ON_PYPI_HERE`
+  - generate recipe `pixi run cran PACKAGE_NAME_ON_CRAN_HERE`
 
 ## Linting recipes with `conda-smithy`
 
@@ -89,7 +89,7 @@ Use one of:
 > with current best practices. Ensure using the latest with:
 >
 > - `$CONDA_EXE upgrade conda-smithy`
-> - `pixi upgrade --feature lint`
+> - `pixi upgrade --feature conda-smithy`
 
 ## FAQ
 
