@@ -11,7 +11,7 @@ cmake ${CMAKE_ARGS} -B "build" -G "Ninja" \
   -D CMAKE_PREFIX_PATH:FILEPATH="${PREFIX}" \
   -D USE_CONDA_PYBIND11:BOOL=ON \
   -D PYTHON_INCLUDE_DIR="${PREFIX}/include" \
-  -D PYTHON_EXECUTABLE:FILEPATH="${PREFIX}/bin/python" \
+  -D PYTHON_EXECUTABLE:FILEPATH="${PYTHON}" \
   .
 
 # Build the project
