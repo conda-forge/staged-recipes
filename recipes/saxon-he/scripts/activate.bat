@@ -1,10 +1,10 @@
 @echo off
-REM First backup the variables if they are set.
-REM The variables are allowed to be empty (Null).
-REM Then set the variables to the location of this package.
-REM The deactivate script restores the backed up variables.
+:: First backup the variables if they are set.
+:: The variables are allowed to be empty (Null).
+:: Then set the variables to the location of this package.
+:: The deactivate script restores the backed up variables.
 
-REM The CLASSPATH is set to the location of the jar files.
+:: The CLASSPATH is set to the location of the jar files.
 set "SaxonHE_HOME=%CONDA_PREFIX%\lib\SaxonHE"
 
 if defined LD_LIBRARY_PATH (

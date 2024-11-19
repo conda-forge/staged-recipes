@@ -19,8 +19,8 @@ mkdir %INSTALL_DIR%\notices
 move notices\* %INSTALL_DIR%\notices
 if errorlevel 1 exit 1
 
-rem Copy the [de]activate scripts to %PREFIX%\etc\conda\[de]activate.d.
-rem This will allow them to be run on environment activation.
+:: Copy the [de]activate scripts to %PREFIX%\etc\conda\[de]activate.d.
+:: This will allow them to be run on environment activation.
 for %%F in (activate deactivate) do (
     if not exist %PREFIX%\etc\conda\%%F.d mkdir %PREFIX%\etc\conda\%%F.d
     if errorlevel 1 exit 1
