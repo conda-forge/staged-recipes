@@ -1,0 +1,88 @@
+context:
+  name: qemu.qmp
+  version: "0.0.3"
+  python_min: "3.7"
+
+recipe:
+  name: qemu.qmp-split
+  version: ${{ version }}
+
+source:
+  url: https://pypi.org/packages/source/${{ name[0] }}/${{ name }}/${{ name }}-${{ version }}.tar.gz
+  sha256: cbc88fbcc115ee943d84447d172c642da120220451416c2f621acf33df1e1010
+
+build:
+  noarch: python
+  number: 0
+
+outputs:
+  - package:
+      name: "qemu.qmp"
+      version: ${{ version }}
+    build:
+      script:
+        env:
+          SETUPTOOLS_SCM_PRETEND_VERSION: ${{ version }}
+        content: python -m pip install --no-deps --ignore-installed . -vv
+      python:
+        entry_points:
+          - qemu-shell = qemu.qmp.qmp_shell:main
+          - qemu-shell-wrap = qemu.qmp.qmp_shell:main_wrap
+        # This requires missing conda package urwind
+        # - qemu-tui = qemu.qmp.qmp_tui:main
+    requirements:
+      host:
+        - python ${{ python_min }}
+        - pip
+        - setuptools
+        - setuptools_scm
+      run:
+        - pygments
+        - ${{ "pyreadline" if win }}
+        - python >=${{ python_min }}
+    tests:
+      - python:
+          imports:
+          - qemu.qmp
+          pip_check: true
+      - script: |
+            qemu-shell --help
+            qemu-shell-wrap --help
+        # This requires missing conda package urwind
+        # qemu-tui --help
+        requirements:
+          run:
+            - python ${{ python_min }}
+
+    # Naming convention for the github repo
+  - package:
+      name: python-qemu-qmp
+      version: ${{ version }}
+    requirements:
+      host:
+        - ${{ pin_subpackage('qemu.qmp', exact=True) }}
+      run:
+        - ${{ pin_subpackage('qemu.qmp', exact=True) }}
+    tests:
+      - python:
+          imports:
+          - qemu.qmp
+          pip_check: true
+
+about:
+  homepage: https://gitlab.com/qemu-project/python-qemu-qmp
+  summary: 'qemu.qmp: QEMU Monitor Protocol Library'
+  description: |
+    qemu.qmp is a QEMU Monitor Protocol (“QMP”) library written in Python, using asyncio. It is used to send
+    QMP messages to running QEMU emulators. It requires Python 3.7+ and has no mandatory dependencies.
+    This library can be used to communicate with QEMU emulators, the QEMU Guest Agent (QGA),
+    the QEMU Storage Daemon (QSD), or any other utility or application that speaks QMP.
+  license: GPL-2.0-only
+  license_file:
+    - LICENSE
+    - LICENSE_GPL2
+
+extra:
+  recipe-maintainers:
+    - MementoRC
+  feedstock-name: "qemu.qmp"
