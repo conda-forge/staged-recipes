@@ -31,7 +31,7 @@ def setup_environment(ns):
 
     # The default cache location might not be writable using docker on macOS.
     if ns.config.startswith("linux") and platform.system() == "Darwin":
-        os.environ["CONDA_FORGE_DOCKER_RUN_ARGS"] = "-e XDG_CACHE_HOME=/tmp/rattler_cache"
+        os.environ["CONDA_FORGE_DOCKER_RUN_ARGS"] = "-e RATTLER_CACHE_DIR=/tmp/rattler_cache"
 
 
 def run_docker_build(ns):
