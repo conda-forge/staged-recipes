@@ -10,7 +10,7 @@ This repo is a holding area for recipes destined for a conda-forge feedstock rep
 
 Failures with the above job are often caused by API rate limits from the various services used by conda-forge.
 This can result in empty feedstock repositories and will resolve itself automatically.
-If the issue persists, support can be found [on zulip](https://conda-forge.zulipchat.com).
+If the issue persists, support can be found [on Zulip](https://conda-forge.zulipchat.com).
 
 ## Getting started
 
@@ -225,7 +225,7 @@ Then, a bot will label the PR as 'review-requested'.
 Due to GitHub limitations, first time contributors to conda-forge are unable
 to ping conda-forge teams directly, but you can [ask a bot to ping the team][1]
 using a special command in a comment on the PR to get the attention of the
-`staged-recipes` team. You can also consider asking on our [Gitter channel][2]
+`staged-recipes` team. You can also consider asking on our [Zulip chat][2]
 if your recipe isn't reviewed promptly.
 
 [1]: https://conda-forge.org/docs/maintainer/infrastructure.html#conda-forge-admin-please-ping-team
