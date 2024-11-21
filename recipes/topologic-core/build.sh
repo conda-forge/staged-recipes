@@ -18,10 +18,10 @@ cmake --install "build"
 
 
 if [[ "${target_platform}" == osx-* ]]; then
-  mv "${PREFIX}/lib/TopologicCore/"*.dylib* "${PREFIX}/lib" || true
+  mv "${PREFIX}/lib/TopologicCore/"*.dylib* "${PREFIX}/lib"
 elif [[ "${target_platform}" == linux-* ]]; then
     # Move output files to appropriate directories
-  mv "${PREFIX}/lib/TopologicCore/"*.so* "${PREFIX}/lib" || true
+  mv "${PREFIX}/lib/TopologicCore/"*.so* "${PREFIX}/lib"
 fi
 
-mv "${PREFIX}/lib/TopologicPythonBindings/"*.so "${SP_DIR}" || true
+mv "${PREFIX}/lib/TopologicPythonBindings/"*.so "${SP_DIR}"
