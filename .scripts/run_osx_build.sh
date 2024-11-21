@@ -69,6 +69,9 @@ set -e
 
 # make sure there is a package directory so that artifact publishing works
 mkdir -p "${CONDA_BLD_PATH}/osx-64/" "${CONDA_BLD_PATH}/osx-arm64/" "${CONDA_BLD_PATH}/noarch/"
+# Make sure CONDA_BLD_PATH is a valid channel; only do it if noarch/repodata.json doesn't exist
+# to save some time running locally
+test -f "${CONDA_BLD_PATH}/noarch/repodata.json" || conda index "${CONDA_BLD_PATH}"
 
 # Find the recipes from upstream:main in this PR and remove them.
 echo ""
