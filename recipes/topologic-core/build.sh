@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# IF osx use file lib suffix .dylib
-# IF linux use file lib suffix .so
-# IF windows use file lib suffix .dll
-
-
 
 # Run cmake configuration
 cmake ${CMAKE_ARGS} -B "build" -G "Ninja" \
