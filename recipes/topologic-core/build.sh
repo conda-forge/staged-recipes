@@ -17,7 +17,7 @@ cmake --install "build"
 
 
 
-if [ "$(uname)" == "Darwin" ]; then
+if [[ "${target_platform}" == osx-* ]]; then
   mv "${PREFIX}/lib/TopologicCore/"*.dylib* "${PREFIX}/lib" || true
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
     # Move output files to appropriate directories
