@@ -19,7 +19,7 @@ cmake --install "build"
 
 if [[ "${target_platform}" == osx-* ]]; then
   mv "${PREFIX}/lib/TopologicCore/"*.dylib* "${PREFIX}/lib" || true
-elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+elif [[ "${target_platform}" == linux-* ]]; then
     # Move output files to appropriate directories
   mv "${PREFIX}/lib/TopologicCore/"*.so* "${PREFIX}/lib" || true
 fi
