@@ -1,0 +1,122 @@
+{% set name = "libnvjpeg2k" %}
+{% set version = "0.8.0.38" %}
+{% set platform = "linux-x86_64" %}  # [linux64]
+{% set platform = "linux-ppc64le" %}  # [ppc64le]
+{% set platform = "linux-sbsa" %}     # [aarch64 and arm_variant_type == "sbsa"]
+{% set platform = "linux-aarch64" %}  # [aarch64 and arm_variant_type == "tegra"]
+{% set platform = "windows-x86_64" %}  # [win]
+{% set target_name = "x86_64-linux" %}  # [linux64]
+{% set target_name = "ppc64le-linux" %}  # [ppc64le]
+{% set target_name = "sbsa-linux" %}  # [aarch64 and arm_variant_type == "sbsa"]
+{% set target_name = "aarch64-linux" %}  # [aarch64 and arm_variant_type == "tegra"]
+{% set target_name = "x64" %}  # [win]
+{% set extension = "tar.xz" %}  # [not win]
+{% set extension = "zip" %}  # [win]
+{% set cuda_compiler_version = cuda_compiler_version | default("None") %}
+
+package:
+  name: libnvjpeg2k-split
+  version: {{ version }}
+
+source:
+  url: https://developer.download.nvidia.com/compute/nvjpeg2000/redist/libnvjpeg_2k/{{ platform }}/libnvjpeg_2k-{{ platform }}-{{ version }}-archive.{{ extension }}
+  sha256: f0b4f0ab9e19579c547e96ce189c6a93731f662898751a88d62e3caa59472367  # [linux64]
+  sha256: 03a568305989b25be6def7d860b2519577ebef1538c703de0ad086fa2314a1e0  # [aarch64 and arm_variant_type == "sbsa"]
+  sha256: dac4f1d0c088c22155067b781142dc27ec1d3ced68b99d2180fcd1fcf02fe19e  # [aarch64 and arm_variant_type == "tegra"]
+  sha256: feabb2f4108805b251f44b0561b194a24041d01207b272a3aa42a664e938e5d4  # [win]
+
+build:
+  number: 0
+  skip: true  # [osx or ppc64le]
+  skip: true  # [cuda_compiler_version in (None, "None")]
+
+outputs:
+
+  - name: libnvjpeg2k{{ version.split(".")[0] }}
+    build:
+      run_exports:
+        # FIXME: Pin to patch version until 1.0
+        - {{ pin_subpackage("libnvjpeg2k" ~ version.split(".")[0], max_pin="x.x.x") }}
+      ignore_run_exports:
+        - cudatoolkit
+    files:
+      - lib/libnvjpeg2k.so.*            # [linux]
+      - Library\bin\nvjpeg2k*.dll       # [win]
+    requirements:
+      build:
+        - {{ compiler("c") }}
+        - {{ compiler("cuda") }}
+        - {{ stdlib("c") }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -L $PREFIX/lib/libnvjpeg2k.so.{{ version.split(".")[0] }}                            # [linux]
+        - test -f $PREFIX/lib/libnvjpeg2k.so.{{ version }}                                          # [linux]
+        - if not exist %LIBRARY_BIN%\nvjpeg2k_{{ version.split(".")[0] }}.dll exit 1                # [win]
+
+  - name: libnvjpeg2k-dev
+    build:
+      run_exports:
+        # FIXME: Pin to patch version until 1.0
+        - {{ pin_subpackage("libnvjpeg2k" ~ version.split(".")[0], max_pin="x.x.x") }}
+    files:
+      - lib/libnvjpeg2k.so                                  # [linux]
+      # - lib/pkgconfig/nvjpeg*.pc                          # [linux]
+      - include/nvjpeg*                                     # [linux]
+      - Library\include                                   # [win]
+      - Library\lib\nvjpeg.lib                            # [win]
+    requirements:
+      build:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+        - {{ pin_subpackage("libnvjpeg2k" ~ version.split(".")[0], exact=True) }}
+      run:
+        - {{ pin_subpackage("libnvjpeg2k" ~ version.split(".")[0], exact=True) }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -L $PREFIX/lib/libnvjpeg2k.so                                    # [linux]
+        # - test -f $PREFIX/lib/pkgconfig/nvjpeg*.pc                            # [linux]
+        - test -f $PREFIX/include/nvjpeg2k_version.h                            # [linux]
+        - test -f $PREFIX/include/nvjpeg2k.h                                    # [linux]
+        - if not exist %LIBRARY_INC%\nvjpeg2k_version.h exit 1                  # [win]
+        - if not exist %LIBRARY_INC%\nvjpeg2k.h exit 1                          # [win]
+        - if not exist %LIBRARY_LIB%\nvjpeg2k.lib exit 1                        # [win]
+
+  - name: libnvjpeg2k-static
+    build:
+      skip: True  # [not linux]
+    files:
+      - lib/libnvjpeg2k_static.a  # [linux]
+    requirements:
+      build:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+      host:
+        - cuda-version {{ cuda_compiler_version }}
+      run:
+        - {{ pin_subpackage("libnvjpeg2k-dev", exact=True) }}
+      run_constrained:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+    test:
+      commands:
+        - test -f $PREFIX/lib/libnvjpeg2k_static.a  # [linux]
+
+about:
+  home: https://docs.nvidia.com/cuda/nvjpeg2000/
+  license_file: LICENSE
+  license: LicenseRef-NVIDIA-End-User-License-Agreement
+  license_url: https://docs.nvidia.com/cuda/eula/index.html
+  summary: nvJPEG2000 native runtime libraries
+  description: |
+    nvJPEG2000 native runtime libraries
+  doc_url: https://docs.nvidia.com/cuda/nvjpeg2000/
+
+extra:
+  recipe-maintainers:
+    - conda-forge/cuda
