@@ -1,0 +1,114 @@
+{% set name = "coal" %}
+{% set cppname = "lib" + name %}
+{% set pythonname = name + "-python" %}
+{% set version = "3.0.0" %}
+
+package:
+  name: {{ name|lower }}-split
+  version: {{ version }}
+
+source:
+  url: https://github.com/coal-library/{{ name }}/releases/download/v{{ version }}/{{ name }}-{{ version }}.tar.gz
+  sha256: 6a9cbd4684e907fd16577e5227fbace06ac15ca861c0846dfe5bc81e565fb1e7
+
+build:
+  number: 0
+
+outputs:
+  - name: {{ cppname }}
+    build:
+      run_exports:
+        - {{ pin_subpackage(cppname, max_pin='x.x.x') }}
+    script: build_cppcoal.sh   # [not win]
+    script: build_cppcoal.bat  # [win]
+    requirements:
+      build:
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+        - clang  # [win]
+        - cmake
+        - ninja
+        - doxygen
+      host:
+        - eigen
+        - assimp
+        - octomap
+        - libboost-devel
+        - qhull
+        - qhull-static  # [not win]
+      run:
+        - libboost-devel
+        # Since qhullcpp is leaking in header file
+        # consumer will need it to build against coal
+        - qhull-static  # [not win]
+    test:
+      requires:
+        - pkg-config
+      commands:
+        - pkg-config --modversion {{ name }}
+        - test -f $PREFIX/lib/lib{{ name }}${SHLIB_EXT}  # [unix]
+
+  - name: {{ pythonname }}
+    script: build_coal_python.sh   # [not win]
+    script: build_coal_python.bat  # [win]
+    requirements:
+      build:
+        - python                                 # [build_platform != target_platform]
+        - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+        - numpy                                  # [build_platform != target_platform]
+        - {{ compiler('cxx') }}
+        - {{ stdlib("c") }}
+        - clang  # [win]
+        - cmake
+        - ninja
+        - doxygen
+        - pylatexenc  # [not win]
+        - lxml  # [not win]
+      host:
+        - eigen
+        - assimp
+        - octomap
+        - libboost-devel
+        - qhull
+        - qhull-static  # [not win]
+        - python
+        - libboost-python-devel
+        - eigenpy
+        - {{ pin_subpackage(cppname, exact=true) }}
+      run:
+        - python
+        - {{ pin_subpackage(cppname, exact=true) }}
+    test:
+      imports:
+        - coal
+  - name: {{ name }}
+    build:
+      noarch: generic
+    requirements:
+      run:
+        - {{ pin_subpackage(cppname, max_pin="x.x.x") }}
+        - {{ pin_subpackage(pythonname, max_pin="x.x.x") }}
+    test:
+      requires:
+        - pkg-config
+      imports:
+        - coal
+      commands:
+        - pkg-config --modversion {{ name }}
+        - test -f $PREFIX/lib/lib{{ name }}${SHLIB_EXT}  # [unix]
+
+about:
+  home: https://github.com/coal-library/coal
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: An extension of the Flexible Collision Library
+  dev_url: https://github.com/coal-library/coal
+
+extra:
+  feedstock-name: coal
+  recipe-maintainers:
+    - jorisv
+    - jcarpent
+    - ymontmarin
+    - lmontaut
