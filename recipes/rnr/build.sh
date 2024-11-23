@@ -2,6 +2,9 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
+export CARGO_PROFILE_RELEASE_STRIP=symbols
+export CARGO_PROFILE_RELEASE_LTO=fat
+
 # check licenses
 cargo-bundle-licenses \
     --format yaml \
@@ -18,6 +21,3 @@ fingerprint_dir=$(dirname $(find . -path "*/rnr-*/out" | head -n 1))
 install -m 644 ${fingerprint_dir}/out/rnr.bash ${PREFIX}/etc/bash_completion.d/rnr
 install -m 644 ${fingerprint_dir}/out/rnr.fish ${PREFIX}/share/fish/vendor_completions.d
 install -m 644 ${fingerprint_dir}/out/_rnr ${PREFIX}/share/zsh/site-functions
-
-# strip debug symbols
-"$STRIP" "$PREFIX/bin/${PKG_NAME}"
