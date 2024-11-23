@@ -2,6 +2,9 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
+export CARGO_PROFILE_RELEASE_STRIP=symbols
+export CARGO_PROFILE_RELEASE_LTO=fat
+
 # check licenses
 cargo-bundle-licenses \
     --format yaml \
@@ -24,6 +27,3 @@ install -m 644 shell/completion.zsh ${PREFIX}/share/zsh/site-functions/completio
 install -m 644 man/man1/sk.1 ${PREFIX}/share/man/man1/sk.1
 install -m 644 man/man1/sk-tmux.1 ${PREFIX}/share/man/man1/sk-tmux.1
 install -m 755 bin/sk-tmux ${PREFIX}/bin/sk-tmux
-
-# strip debug symbols
-"$STRIP" "$PREFIX/bin/sk"
