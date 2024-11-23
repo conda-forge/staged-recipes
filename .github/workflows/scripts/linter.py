@@ -1,8 +1,9 @@
 import argparse
-from collections import defaultdict
-from pathlib import Path
 import os
 import sys
+from collections import defaultdict
+from pathlib import Path
+from subprocess import check_output
 
 from conda_smithy.linter import conda_recipe_v1_linter
 from conda_smithy.linter.utils import (
@@ -13,7 +14,8 @@ import github
 import requests
 
 NOCOMMENT_REQ_TEAMS = ["conda-forge/r", "conda-forge/cuda"]
-
+HERE = Path(__file__).parent
+ROOT = (HERE / ".." / ".." / "..").absolute()
 
 def _lint_recipes(gh, pr):
     lints = defaultdict(list)
@@ -45,6 +47,24 @@ def _lint_recipes(gh, pr):
                 "Please put your recipe in its own directory in the `recipes/` directory as "
                 "`recipe/<name of feedstock>/<your recipe file>.yaml`."
             )
+
+    # 3. Ensure environment.yaml and pixi.toml are in sync
+    original_environment_yaml = (ROOT / "environment.yaml").read_text()
+    pixi_exported_env_yaml = check_output(
+        ["pixi", "project", "export", "conda-environment", "-e", "build"],
+        text=True,
+    )
+    if original_environment_yaml != pixi_exported_env_yaml:
+        import difflib
+
+        _orig_lines = original_environment_yaml.splitlines(keepends=True)
+        _expt_lines = pixi_exported_env_yaml.splitlines(keepends=True)
+        print("environment diff:", flush=True)
+        print(''.join(difflib.unified_diff(_orig_lines, _expt_lines)), flush=True)
+        lints["environment.yaml"].append(
+            "The `environment.yaml` file is out of sync with `pixi.toml`. "
+            "Fix by running `pixi project export conda-environment -e build > environment.yaml`."
+        )
 
     # Recipe-specific lints/hints
     for fname in fnames:
@@ -176,7 +196,7 @@ def _lint_recipes(gh, pr):
                     f"{', '.join(non_participating_maintainers)}. Please ask them to comment on this PR if they are."
                 )
 
-        # 4. Only conda-forge teams can be maintainers
+        # 6. Only conda-forge teams can be maintainers
         if maintainers:
             for maintainer in maintainers:
                 if "/" in maintainer:
