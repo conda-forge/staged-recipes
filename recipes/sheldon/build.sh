@@ -2,6 +2,9 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
+export CARGO_PROFILE_RELEASE_STRIP=symbols
+export CARGO_PROFILE_RELEASE_LTO=fat
+
 # check licenses
 cargo-bundle-licenses \
     --format yaml \
@@ -14,6 +17,3 @@ mkdir -p ${PREFIX}/etc/bash_completion.d
 mkdir -p ${PREFIX}/share/zsh/site-functions
 install -m 644 completions/sheldon.bash ${PREFIX}/etc/bash_completion.d/sheldon
 install -m 644 completions/sheldon.zsh ${PREFIX}/share/zsh/site-functions/_sheldon
-
-# strip debug symbols
-"$STRIP" "$PREFIX/bin/${PKG_NAME}"
