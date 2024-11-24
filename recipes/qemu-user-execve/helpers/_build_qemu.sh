@@ -16,32 +16,6 @@ build_linux_qemu() {
   _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]}"
 }
 
-build_osx_qemu() {
-  local qemu_arch=${1:-aarch64}
-  local build_dir=${2:-"${SRC_DIR}"/_conda-build}
-  local install_dir=${3:-"${PREFIX}"}
-
-  qemu_args=(
-    "--disable-attr"
-    "--target-list=aarch64-softmmu,arm-softmmu"
-    "--extra-cflags=-maxv2"
-  )
-
-  _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
-}
-
-build_win_qemu() {
-  local qemu_arch=${1:-aarch64}
-  local build_dir=${2:-"${SRC_DIR}"/_conda-build}
-  local install_dir=${3:-"${PREFIX}"}
-
-  qemu_args=(
-    "--target-list=${qemu_arch}-softmmu"
-  )
-
-  _build_qemu "${qemu_arch}" "${build_dir}" "${install_dir}" "${qemu_args[@]:-}"
-}
-
 _build_qemu() {
   local qemu_arch=$1
   local build_dir=$2
@@ -55,7 +29,7 @@ _build_qemu() {
     export PKG_CONFIG_PATH="${BUILD_PREFIX}/lib/pkgconfig"
     export PKG_CONFIG_LIBDIR="${BUILD_PREFIX}/lib/pkgconfig"
 
-    ../qemu-source/configure \
+    ${SRC_DIR}/qemu-source/configure \
       --prefix="${install_dir}" \
       "${qemu_args[@]}" \
       --disable-docs \
@@ -68,6 +42,27 @@ _build_qemu() {
       --disable-smartcard --disable-snappy --disable-spice --disable-libusb --disable-usb-redir --disable-vde \
       --disable-vhost-net --disable-virglrenderer --disable-virtfs --disable-vnc --disable-vte --disable-xen \
       --disable-xen-pci-passthrough --disable-tools > "${SRC_DIR}"/_configure-"${qemu_arch}".log 2>&1
+
+    pushd ${SRC_DIR}/qemu-source/subprojects/libvhost-user/standard-headers
+      ls -lrt linux
+      rm -rf linux
+      ln -s ../../../include/standard-headers/linux linux
+    popd
+    pushd ${SRC_DIR}/qemu-source/subprojects/libvduse/linux-headers
+      ls -lrt linux
+      rm -rf linux
+      ln -s ../../../linux-headers/linux linux
+    popd
+    pushd ${SRC_DIR}/qemu-source/subprojects/libvduse/standard-headers
+      ls -lrt linux
+      rm -rf linux
+      ln -s ../../../include/standard-headers/linux linux
+    popd
+    pushd ${SRC_DIR}/qemu-source/subprojects/libvduse/standard-headers
+      ls -lrt linux
+      rm -rf linux
+      ln -s ../../../include/standard-headers/linux linux
+    popd
 
     make -j"${CPU_COUNT}" > "${SRC_DIR}"/_make-"${qemu_arch}".log 2>&1
     make check > "${SRC_DIR}"/_check-"${qemu_arch}".log 2>&1

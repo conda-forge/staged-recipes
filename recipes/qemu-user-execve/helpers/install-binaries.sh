@@ -6,4 +6,5 @@ source "${RECIPE_DIR}/helpers/_install_qemu.sh"
 
 # --- Main ---
 
-install_qemu_arch "aarch64"
+arch=$1
+install_qemu_arch ${arch}
