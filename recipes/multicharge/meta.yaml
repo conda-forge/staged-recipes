@@ -1,0 +1,57 @@
+{% set name = "multicharge" %}
+{% set version = "0.3.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/grimme-lab/multicharge/releases/download/v{{ version }}/multicharge-{{ version }}.tar.xz
+  sha256: e8f6615d445264798b12d2854e25c93938373dc149bb79e6eddd23fc4309749d
+  patches:
+    - gh-39.patch  # https://github.com/grimme-lab/multicharge/pull/39
+
+build:
+  number: 0
+  skip: true  # [win]
+
+  run_exports:
+    - {{ pin_subpackage(name, max_pin='x.x') }}
+
+requirements:
+  build:
+    - {{ stdlib('c') }}  # [unix]
+    - {{ compiler('c') }}  # [unix]
+    - {{ compiler('fortran') }}  # [unix]
+    - {{ stdlib('m2w64_c') }}  # [win]
+    - {{ compiler('m2w64_c') }}  # [win]
+    - {{ compiler('m2w64_fortran') }}  # [win]
+    - meson
+    - ninja
+    - asciidoctor  # [unix]
+    - pkg-config
+    - llvm-openmp  # [osx]
+    - libgomp  # [linux]
+  host:
+    - libblas
+    - liblapack
+    - mctc-lib
+
+test:
+  requires:
+    - pkg-config
+  commands:
+    - {{ name }} --version  # [build_platform == target_platform]
+    - test -f $PREFIX/lib/lib{{ name }}$SHLIB_EXT  # [unix]
+    - pkg-config {{ name }} --exact-version {{ version }}
+    - if not exist %LIBRARY_BIN%\\lib{{ name }}-0.dll exit 1  # [win]
+
+about:
+  home: https://github.com/grimme-lab/multicharge
+  license: Apache-2.0
+  license_file: LICENSE
+  summary: Electronegativity equilibration model for atomic partial charges
+
+extra:
+  recipe-maintainers:
+    - awvwgk
