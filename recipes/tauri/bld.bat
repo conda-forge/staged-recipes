@@ -5,7 +5,7 @@ set CARGO_PROFILE_RELEASE_LTO=fat
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml || goto :error
 
 :: build
-cargo install --bins --no-track --locked --root "%LIBRARY_PREFIX%" --path . || goto :error
+cargo install --bins --no-track --locked --root "%LIBRARY_PREFIX%" --path tooling\cli || goto :error
 
 goto :EOF
 
