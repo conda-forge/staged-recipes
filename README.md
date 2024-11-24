@@ -62,13 +62,14 @@ The user should review the recipe generated, especially the license and dependen
 Use one of:
 
 - manually
-  - install `grayskull`: `conda install -c conda-forge grayskull`
-  - generate recipe:
+  1. install `grayskull`: `conda install -c conda-forge grayskull`
+  2. generate recipe:
     - `cd recipes && grayskull pypi PACKAGE_NAME_ON_PYPI_HERE [PACKAGE_NAME_ON_PYPI_HERE...]`
     - `cd recipes && grayskull cran PACKAGE_NAME_ON_CRAN_HERE [PACKAGE_NAME_ON_CRAN_HERE...]`
 - with [`pixi`](#pixi):
-  - generate recipe `pixi run pypi PACKAGE_NAME_ON_PYPI_HERE [PACKAGE_NAME_ON_PYPI_HERE...]`
-  - generate recipe `pixi run cran PACKAGE_NAME_ON_CRAN_HERE [PACKAGE_NAME_ON_CRAN_HERE...]`
+  1. generate recipe:
+    - `pixi run pypi PACKAGE_NAME_ON_PYPI_HERE [PACKAGE_NAME_ON_PYPI_HERE...]`
+    - `pixi run cran PACKAGE_NAME_ON_CRAN_HERE [PACKAGE_NAME_ON_CRAN_HERE...]`
 
 ## Linting recipes with `conda-smithy`
 
