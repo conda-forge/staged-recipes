@@ -1,5 +1,5 @@
-set CARGO_PROFILE_RELEASE_STRIP=symbols || goto :error
-set CARGO_PROFILE_RELEASE_LTO=fat || goto :error
+set CARGO_PROFILE_RELEASE_STRIP=symbols
+set CARGO_PROFILE_RELEASE_LTO=fat
 
 :: check licenses
 cargo-bundle-licenses --format yaml --output THIRDPARTY.yml || goto :error
