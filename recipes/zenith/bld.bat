@@ -1,5 +1,6 @@
 set CARGO_PROFILE_RELEASE_STRIP=symbols
 set CARGO_PROFILE_RELEASE_LTO=fat
+set LIBCLANG_PATH=%LIBRARY_PREFIX%\lib
 
 :: check licenses
 cargo-bundle-licenses ^
