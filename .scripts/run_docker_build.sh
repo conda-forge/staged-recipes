@@ -44,7 +44,7 @@ mkdir -p "$ARTIFACTS"
 DONE_CANARY="$ARTIFACTS/conda-forge-build-done"
 rm -f "$DONE_CANARY"
 
-DOCKER_RUN_ARGS="-it"
+DOCKER_RUN_ARGS="-it ${CONDA_FORGE_DOCKER_RUN_ARGS}"
 
 if [ "${AZURE}" == "True" ]; then
     DOCKER_RUN_ARGS=""
