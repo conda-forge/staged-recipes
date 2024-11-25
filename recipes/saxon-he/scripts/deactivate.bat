@@ -12,11 +12,6 @@
 :: One such situation occurs when deactivating the environment
 :: after installing openjdk for the first time.
 
-if defined LD_LIBRARY_PATH_BACKUP (
-    set "LD_LIBRARY_PATH=%LD_LIBRARY_PATH_BACKUP%"
-    set "LD_LIBRARY_PATH_BACKUP="
-)
-
 if defined CLASSPATH_CONDA_BACKUP (
     set "CLASSPATH=%CLASSPATH_CONDA_BACKUP%"
     set "CLASSPATH_CONDA_BACKUP="

@@ -11,11 +11,6 @@
 # One such situation occurs when deactivating the environment
 # after installing openjdk for the first time.
 
-if [ "${LD_LIBRARY_PATH_BACKUP+x}" ] ; then
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH_BACKUP
-    unset LD_LIBRARY_PATH_BACKUP
-fi
-
 if [ "${CLASSPATH_CONDA_BACKUP+x}" ] ; then
   export CLASSPATH=$CLASSPATH_CONDA_BACKUP
   unset CLASSPATH_CONDA_BACKUP
