@@ -4,17 +4,17 @@ context:
   emulated_c_stdlib: "sysroot"
   emulated_c_stdlib_version: "2.17"
   qemu_bins: ${{ [
-      "bios.bin", "bios-256k.bin", "bios-microvm.bin", "qboot.rom", "vgabios.bin", "vgabios-cirrus.bin"
+      "bios.bin", "bios-256k.bin", "bios-microvm.bin", "qboot.rom", "vgabios.bin", "vgabios-cirrus.bin",
       "vgabios-stdvga.bin", "vgabios-vmware.bin", "vgabios-qxl.bin", "vgabios-virtio.bin", "vgabios-ramfb.bin",
       "vgabios-bochs-display.bin", "vgabios-ati.bin", "openbios-sparc32", "openbios-sparc64", "openbios-ppc",
-      "QEMU","tcx.bin", "QEMU","cgthree.bin", "pxe-e1000.rom", "pxe-eepro100.rom", "pxe-ne2k_pci.rom", "pxe-pcnet.rom",
+      "QEMU,tcx.bin", "QEMU,cgthree.bin", "pxe-e1000.rom", "pxe-eepro100.rom", "pxe-ne2k_pci.rom", "pxe-pcnet.rom",
       "pxe-rtl8139.rom", "pxe-virtio.rom", "efi-e1000.rom", "efi-eepro100.rom", "efi-ne2k_pci.rom", "efi-pcnet.rom",
       "efi-rtl8139.rom", "efi-virtio.rom", "efi-e1000e.rom", "efi-vmxnet3.rom", "qemu-nsis.bmp", "multiboot.bin",
       "multiboot_dma.bin", "linuxboot.bin", "linuxboot_dma.bin", "kvmvapic.bin", "pvh.bin", "s390-ccw.img",
       "s390-netboot.img", "slof.bin", "skiboot.lid", "palcode-clipper", "u-boot.e500", "u-boot-sam460-20100605.bin",
       "qemu_vga.ndrv", "edk2-licenses.txt", "hppa-firmware.img", "hppa-firmware64.img",
       "opensbi-riscv32-generic-fw_dynamic.bin", "opensbi-riscv64-generic-fw_dynamic.bin", "npcm7xx_bootrom.bin",
-      "vof.bin", "vof-nvram.bin", "bamboo.dtb", "canyonlands.dtb", "petalogix-s3adsp1800.dtb", "petalogix-ml",
+      "vof.bin", "vof-nvram.bin", "bamboo.dtb", "canyonlands.dtb", "petalogix-s3adsp1800.dtb", "petalogix-ml605.dtb",
       ] | join(' ') }}
   qemu_keymaps: ${{ [
       "ar", "bepo", "cz", "da", "de", "de-ch", "en-gb", "en-us", "es", "et", "fi", "fo", "fr", "fr-be", "fr-ca",
@@ -84,8 +84,15 @@ outputs:
           test -f ${QEMU_LD_PREFIX}/ld-linux-aarch64.so.1
           test -f ${QEMU_LD_PREFIX}/ld-${{ emulated_c_stdlib_version }}.so
           
-          python -c 'import os; all([os.path.exists(os.path.join(os.environ["QEMU_LD_PREFIX"], bin)) for bin in "${{ qemu_bins }}".split()]) or exit(1)'
-          python -c 'import os; all([os.path.exists(os.path.join(os.environ["QEMU_LD_PREFIX"], keymaps, keymap)) for keymap in "${{ qemu_keymaps }}".split()]) or exit(1)'
+          _PREFIX="$PREFIX" python -c 'import os; from pathlib import Path; share = os.environ.get("_PREFIX"); print("CONDA_PREFIX:", share); \
+              share = f"{share}/share/qemu"; \
+              missing_bins = [f"{share}/{b}" for b in "${{ qemu_bins }}".split() if not Path(f"{share}/{b}").exists()]; \
+              print("Missing binaries:", missing_bins) or exit(1 if missing_bins else 0);'
+          
+          _PREFIX="$PREFIX" python -c 'import os; from pathlib import Path; share = os.environ.get("_PREFIX"); print("CONDA_PREFIX:", share); \
+              share = f"{share}/share/qemu/keymaps" \
+              missing_bins = [f"{share}/{b}" for b in "${{ qemu_keymaps }}".split() if not Path(f"{share}/{b}").exists()]; \
+              print("Missing binaries:", missing_bins) or exit(1 if missing_bins else 0)'
 
           aarch64-conda-linux-gnu-gcc -Wl,-dynamic-linker,${QEMU_LD_PREFIX}/ld-linux-aarch64.so.1 -Wl,-rpath,${QEMU_LD_PREFIX} -o hello_from tests/hello_from.c
           aarch64-conda-linux-gnu-gcc -Wl,-dynamic-linker,${QEMU_LD_PREFIX}/ld-linux-aarch64.so.1 -Wl,-rpath,${QEMU_LD_PREFIX} -o execve_call tests/execve_call.c
@@ -153,8 +160,15 @@ outputs:
           test -f ${QEMU_LD_PREFIX}/ld64.so.2
           test -f ${QEMU_LD_PREFIX}/ld-${{ emulated_c_stdlib_version }}.so
           
-          python -c 'import os; all([os.path.exists(os.path.join(os.environ["QEMU_LD_PREFIX"], bin)) for bin in "${{ qemu_bins }}".split()]) or exit(1)'
-          python -c 'import os; all([os.path.exists(os.path.join(os.environ["QEMU_LD_PREFIX"], keymaps, keymap)) for keymap in "${{ qemu_keymaps }}".split()]) or exit(1)'
+          _PREFIX="$PREFIX" python -c 'import os; from pathlib import Path; share = os.environ.get("_PREFIX"); print("CONDA_PREFIX:", share); \
+              share = f"{share}/share/qemu"; \
+              missing_bins = [f"{share}/{b}" for b in "${{ qemu_bins }}".split() if not Path(f"{share}/{b}").exists()]; \
+              print("Missing binaries:", missing_bins) or exit(1 if missing_bins else 0);'
+          
+          _PREFIX="$PREFIX" python -c 'import os; from pathlib import Path; share = os.environ.get("_PREFIX"); print("CONDA_PREFIX:", share); \
+              share = f"{share}/share/qemu/keymaps" \
+              missing_bins = [f"{share}/{b}" for b in "${{ qemu_keymaps }}".split() if not Path(f"{share}/{b}").exists()]; \
+              print("Missing binaries:", missing_bins) or exit(1 if missing_bins else 0)'
 
           ppc64le-conda-linux-gnu-gcc -Wl,-dynamic-linker,${QEMU_LD_PREFIX}/ld-linux-ppc64le.so.1 -Wl,-rpath,${QEMU_LD_PREFIX} -o hello_from tests/hello_from.c
           ppc64le-conda-linux-gnu-gcc -Wl,-dynamic-linker,${QEMU_LD_PREFIX}/ld-linux-ppc64le.so.1 -Wl,-rpath,${QEMU_LD_PREFIX} -o execve_call tests/execve_call.c
