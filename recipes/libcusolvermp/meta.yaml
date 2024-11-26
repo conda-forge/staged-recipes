@@ -6,6 +6,7 @@
 {% set extension = "tar.xz" %}
 
 {% set cuda_major = environ.get("cuda_compiler_version", "12.6").split(".")[0] %}
+{% set soname = version.split(".")[0] %}
 
 package:
   name: libcusolvermp-split
@@ -25,10 +26,10 @@ build:
     - cp -rv lib $PREFIX
 
 outputs:
-  - name: libcusolvermp
+  - name: libcusolvermp{{ soname }}
     build:
       run_exports:
-        - {{ pin_subpackage("libcusolvermp", max_pin="x") }}
+        - {{ pin_subpackage("libcusolvermp" ~ soname, max_pin="x") }}
     files:
       - lib/libcusolverMp.so.*
     requirements:
@@ -45,28 +46,24 @@ outputs:
         - libcublas-dev
         - libcal {{ libcal_version }}
       run:
-        - {{ pin_compatible("cuda-version", max_pin="x") }}
         - {{ pin_compatible("libcal", exact=True) }}
       run_constrained:
         - arm-variant * {{ arm_variant_type }}  # [aarch64]
     test:
       commands:
-        - test -L $PREFIX/lib/libcusolverMp.so.0
+        - test -L $PREFIX/lib/libcusolverMp.so.{{ soname }}
         - test -f $PREFIX/lib/libcusolverMp.so.{{ lib_version }}
 
   - name: libcusolvermp-dev
     build:
       run_exports:
-        - {{ pin_subpackage("libcusolvermp", max_pin="x") }}
+        - {{ pin_subpackage("libcusolvermp" ~ soname, max_pin="x") }}
     files:
       - lib/libcusolverMp.so
       - include/cusolverMp.h
     requirements:
-      host:
-        - cuda-version {{ cuda_compiler_version }}
       run:
-        - {{ pin_compatible("cuda-version", max_pin="x") }}
-        - {{ pin_subpackage("libcusolvermp", exact=True) }}
+        - {{ pin_subpackage("libcusolvermp" ~ soname, exact=True) }}
       run_constrained:
         - arm-variant * {{ arm_variant_type }}  # [aarch64]
     test:
