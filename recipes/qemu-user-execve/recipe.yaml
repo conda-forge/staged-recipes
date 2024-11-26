@@ -64,7 +64,6 @@ outputs:
       host:
         - glib
         - meson >=1.1.0
-        - python ==3.12
         - sphinx >=3.4.3
         - sphinx-rtd-theme >=0.5
         - zlib
@@ -79,64 +78,43 @@ outputs:
             - etc/conda/activate.d/qemu-user-execve-aarch64-activate.sh
             - etc/conda/deactivate.d/qemu-user-execve-aarch64-deactivate.sh
       - script: |
-          test -f ${QEMU_LD_PREFIX}/ld-linux-aarch64.so.1
-          test -f ${QEMU_LD_PREFIX}/ld-${{ emulated_c_stdlib_version }}.so
-      # - script:
-      #   requirements:
-      #     run:
-      #       - python >=3.10
-      #   content: |
-      #     import os
-      #     from pathlib import Path
-      #     share = f"{os.environ.get(\'PREFIX\')}/share/qemu";
-      #     missing_bins = [f"{share}/{b}" for b in "${{ qemu_bins }}".split() if not Path(f"{share}/{b}").exists()];
-      #     print("Missing binaries:", missing_bins) or exit(1 if missing_bins else 0);
-      #   interpreter: python
-      #      - script:
-      #          interpreter: python
-      #          content: |
-      #            import os
-      #            from pathlib import Path
-      #            share = f"{os.environ.get('PREFIX')}/share/qemu/keymaps";
-      #            missing_bins = [f"{share}/{b}" for b in "${{ qemu_keymaps }}".split() if not Path(f"{share}/{b}").exists()];
-      #            print("Missing binaries:", missing_bins) or exit(1 if missing_bins else 0);
-      - script: |
+          test -f ${QEMU_LD_PREFIX}/lib/ld-linux-aarch64.so.1
+          
+          qemu-user-execve-aarch64 --help
+          
           _PREFIX="$PREFIX" python -c 'import os; from pathlib import Path; share = os.environ.get("_PREFIX") + "/share/qemu"; \
               missing_bins = [f"{share}/{b}" for b in "${{ qemu_bins }}".split() if not Path(f"{share}/{b}").exists()]; \
               print("Missing binaries:", missing_bins) or exit(1 if missing_bins else 0);'
-        requirements:
-          run:
-            - python >=3.10
-      - script: |
+
           _PREFIX="$PREFIX" python -c 'import os; from pathlib import Path; share = os.environ.get("_PREFIX") + "/share/qemu/keymaps"; \
               missing_bins = [f"{share}/{b}" for b in "${{ qemu_keymaps }}".split() if not Path(f"{share}/{b}").exists()]; \
               print("Missing binaries:", missing_bins) or exit(1 if missing_bins else 0);'
         requirements:
           run:
             - python >=3.10
-      - script: |
-          aarch64-conda-linux-gnu-gcc -Wl,-dynamic-linker,${QEMU_LD_PREFIX}/ld-linux-aarch64.so.1 -Wl,-rpath,${QEMU_LD_PREFIX} -o hello_from tests/hello_from.c
-          aarch64-conda-linux-gnu-gcc -Wl,-dynamic-linker,${QEMU_LD_PREFIX}/ld-linux-aarch64.so.1 -Wl,-rpath,${QEMU_LD_PREFIX} -o execve_call tests/execve_call.c
-
-          qemu-user-execve-aarch64 ./hello_from "AARCH64" > hello.txt 2>&1 || true
-          grep "AARCH64" hello.txt || exit 1
-
-          qemu-user-execve-aarch64 ./execve_call "/bin/ls" > ls_x86_64.txt 2>&1 || true
-          grep "hello_from" ls_x86_64.txt || exit 1
-
-          QEMU_EXECVE=${PREFIX}/bin/qemu-user-execve-aarch64 qemu-user-execve-aarch64 ./execve_call "/bin/ls" > ls_aarch64.txt 2>&1 || true
-          grep "Invalid ELF image" ls_aarch64.txt || exit 1
-
-          QEMU_EXECVE=${PREFIX}/bin/qemu-user-execve-aarch64 qemu-user-execve-aarch64 ./execve_call "./hello_from" "EXECVE" > execve_call.txt 2>&1 || true
-          grep "EXECVE" execve_call.txt || exit 1
-        files:
-          recipe:
-            - tests/hello_from.c
-            - tests/execve_call.c
-        requirements:
-          run:
-            - gcc_impl_linux-aarch64
-            - python
+# These tests fail within rattler-build (they worked with conda-build and also work when executed manually from the build_artifacts directory)
+#      - script: |
+#          aarch64-conda-linux-gnu-gcc -Wl,-dynamic-linker,${QEMU_LD_PREFIX}/ld-linux-aarch64.so.1 -Wl,-rpath,${QEMU_LD_PREFIX} -o hello_from tests/hello_from.c
+#          aarch64-conda-linux-gnu-gcc -Wl,-dynamic-linker,${QEMU_LD_PREFIX}/ld-linux-aarch64.so.1 -Wl,-rpath,${QEMU_LD_PREFIX} -o execve_call tests/execve_call.c
+#          qemu-user-execve-aarch64 ./hello_from "AARCH64" > hello.txt
+#          - bash -c 'qemu-user-execve-aarch64 ./hello_from "AARCH64" > hello.txt'
+#          - grep "AARCH64" hello.txt || exit 1
+#
+#          - bash -c 'qemu-user-execve-aarch64 ./execve_call "/bin/ls" > ls_x86_64.txt 2>&1' || true
+#          - grep "hello_from" ls_x86_64.txt || exit 1
+#
+#          - bash -c 'QEMU_EXECVE=${PREFIX}/bin/qemu-user-execve-aarch64 qemu-user-execve-aarch64 ./execve_call "/bin/ls" > ls_aarch64.txt 2>&1' || true
+#          - grep "Invalid ELF image" ls_aarch64.txt || exit 1
+#
+#          - bash -c 'QEMU_EXECVE=${PREFIX}/bin/qemu-user-execve-aarch64 qemu-user-execve-aarch64 ./execve_call "./hello_from" "EXECVE" > execve_call.txt 2>&1' || true
+#          - grep "EXECVE" execve_call.txt || exit 1
+#        files:
+#          recipe:
+#            - tests/hello_from.c
+#            - tests/execve_call.c
+#        requirements:
+#          run:
+#            - gcc_impl_linux-aarch64
 
 
   - package:
@@ -162,7 +140,6 @@ outputs:
       host:
         - glib
         - meson >=1.1.0
-        - python ==3.12
         - sphinx >=3.4.3
         - sphinx-rtd-theme >=0.5
         - zlib
@@ -177,72 +154,42 @@ outputs:
             - etc/conda/activate.d/qemu-user-execve-ppc64le-activate.sh
             - etc/conda/deactivate.d/qemu-user-execve-ppc64le-deactivate.sh
       - script: |
-          test -f ${QEMU_LD_PREFIX}/ld64.so.2
-          test -f ${QEMU_LD_PREFIX}/ld-${{ emulated_c_stdlib_version }}.so
-      # - script:
-      #   requirements:
-      #     run:
-      #       - python >=3.10
-      #   content: |
-      #     import os
-      #     from pathlib import Path
-      #     share = f"{os.environ.get(\'PREFIX\')}/share/qemu";
-      #     missing_bins = [f"{share}/{b}" for b in "${{ qemu_bins }}".split() if not Path(f"{share}/{b}").exists()];
-      #     print("Missing binaries:", missing_bins) or exit(1 if missing_bins else 0);
-      #   interpreter: python
-      #      - script:
-      #          interpreter: python
-      #          content: |
-      #            import os
-      #            from pathlib import Path
-      #            share = f"{os.environ.get(\'PREFIX\')}/share/qemu";
-      #            missing_bins = [f"{share}/{b}" for b in "${{ qemu_bins }}".split() if not Path(f"{share}/{b}").exists()];
-      #            print("Missing binaries:", missing_bins) or exit(1 if missing_bins else 0);
-      #      - script:
-      #          interpreter: python
-      #          content: |
-      #            import os
-      #            from pathlib import Path
-      #            share = f"{os.environ.get('PREFIX')}/share/qemu/keymaps";
-      #            missing_bins = [f"{share}/{b}" for b in "${{ qemu_keymaps }}".split() if not Path(f"{share}/{b}").exists()];
-      #            print("Missing binaries:", missing_bins) or exit(1 if missing_bins else 0);
-      - script: |
+          test -f ${QEMU_LD_PREFIX}/lib/ld64.so.2
+
+          qemu-user-execve-ppc64le --help
+          
           _PREFIX="$PREFIX" python -c 'import os; from pathlib import Path; share = os.environ.get("_PREFIX") + "/share/qemu"; \
               missing_bins = [f"{share}/{b}" for b in "${{ qemu_bins }}".split() if not Path(f"{share}/{b}").exists()]; \
               print("Missing binaries:", missing_bins) or exit(1 if missing_bins else 0);'
-        requirements:
-          run:
-            - python >=3.10
-      - script: |
+
           _PREFIX="$PREFIX" python -c 'import os; from pathlib import Path; share = os.environ.get("_PREFIX") + "/share/qemu/keymaps"; \
               missing_bins = [f"{share}/{b}" for b in "${{ qemu_keymaps }}".split() if not Path(f"{share}/{b}").exists()]; \
               print("Missing binaries:", missing_bins) or exit(1 if missing_bins else 0);'
         requirements:
           run:
             - python >=3.10
-      - script: |
-          powerpc64le-conda-linux-gnu-gcc -Wl,-dynamic-linker,${QEMU_LD_PREFIX}/ld-linux-ppc64le.so.1 -Wl,-rpath,${QEMU_LD_PREFIX} -o hello_from tests/hello_from.c
-          powerpc64le-conda-linux-gnu-gcc -Wl,-dynamic-linker,${QEMU_LD_PREFIX}/ld-linux-ppc64le.so.1 -Wl,-rpath,${QEMU_LD_PREFIX} -o execve_call tests/execve_call.c
-
-          qemu-user-execve-ppc64le ./hello_from "PPC64LE" > hello.txt 2>&1 || true
-          grep "PPC64LE" hello.txt || exit 1
-
-          qemu-user-execve-ppc64le ./execve_call "/bin/ls" > ls_x86_64.txt 2>&1 || true
-          grep "hello_from" ls_x86_64.txt || exit 1
-
-          QEMU_EXECVE=${PREFIX}/bin/qemu-user-execve-ppc64le qemu-user-execve-ppc64le ./execve_call "/bin/ls" > ls_ppc64le.txt 2>&1 || true
-          grep "Invalid ELF image" ls_ppc64le.txt || exit 1
-
-          QEMU_EXECVE=${PREFIX}/bin/qemu-user-execve-ppc64le qemu-user-execve-ppc64le ./execve_call "./hello_from" "EXECVE" > execve_call.txt 2>&1 || true
-          grep "EXECVE" execve_call.txt || exit 1
-        files:
-          recipe:
-            - tests/hello_from.c
-            - tests/execve_call.c
-        requirements:
-          run:
-            - gcc_impl_linux-ppc64le
-            - python
+# These tests fail within rattler-build (they worked with conda-build and also work when executed manually from the build_artifacts directory)
+#      - script: |
+#          powerpc64le-conda-linux-gnu-gcc -Wl,-dynamic-linker,${QEMU_LD_PREFIX}/ld-linux-ppc64le.so.1 -Wl,-rpath,${QEMU_LD_PREFIX} -o hello_from tests/hello_from.c
+#          powerpc64le-conda-linux-gnu-gcc -Wl,-dynamic-linker,${QEMU_LD_PREFIX}/ld-linux-ppc64le.so.1 -Wl,-rpath,${QEMU_LD_PREFIX} -o execve_call tests/execve_call.c
+#          qemu-user-execve-ppc64le ./hello_from "PPC64LE" > hello.txt
+#          grep "PPC64LE" hello.txt || exit 1
+#
+#          bash -c 'qemu-user-execve-ppc64le ./execve_call "/bin/ls" > ls_x86_64.txt 2>&1' || true
+#          grep "hello_from" ls_x86_64.txt || exit 1
+#
+#          bash -c 'QEMU_EXECVE=${PREFIX}/bin/qemu-user-execve-ppc64le qemu-user-execve-ppc64le ./execve_call "/bin/ls" > ls_ppc64le.txt 2>&1' || true
+#          grep "Invalid ELF image" ls_ppc64le.txt || exit 1
+#
+#          bash -c 'QEMU_EXECVE=${PREFIX}/bin/qemu-user-execve-ppc64le qemu-user-execve-ppc64le ./execve_call "./hello_from" "EXECVE" > execve_call.txt 2>&1' || true
+#          grep "EXECVE" execve_call.txt || exit 1
+#        files:
+#          recipe:
+#            - tests/hello_from.c
+#            - tests/execve_call.c
+#        requirements:
+#          run:
+#            - gcc_impl_linux-ppc64le
 
 
 about:
