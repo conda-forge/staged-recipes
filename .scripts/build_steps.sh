@@ -44,7 +44,7 @@ git config --global --add safe.directory "${FEEDSTOCK_ROOT}"
 # Skip build_artifacts and other big items because it gets huge with time
 mkdir -p ~/staged-recipes-copy
 shopt -s extglob dotglob
-cp -r "${FEEDSTOCK_ROOT}"/!(build_artifacts|.pixi|miniforge3|MacOSX*.sdk.tar.xz|SDKs|output) ~/staged-recipes-copy
+cp -r "${FEEDSTOCK_ROOT}"/!(.|..|build_artifacts|.pixi|miniforge3|MacOSX*.sdk.tar.xz|SDKs|output) ~/staged-recipes-copy
 shopt -u extglob dotglob
 
 # Remove any macOS system files
@@ -55,7 +55,7 @@ echo "Pending recipes."
 ls -la ~/staged-recipes-copy/recipes
 echo "Finding recipes merged in main and removing them from the build."
 pushd "${FEEDSTOCK_ROOT}/recipes" > /dev/null
-if [ "${CI}" != "" ]; then
+if [ "${CI:-}" != "" ]; then
     git fetch --force origin main:main
 fi
 shopt -s extglob dotglob
