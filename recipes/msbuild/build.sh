@@ -18,7 +18,7 @@ exec \${DOTNET_ROOT}/dotnet exec \${CONDA_PREFIX}/libexec/msbuild/MSBuild.dll "\
 EOF
 
 tee ${PREFIX}/bin/MSBuild.cmd << EOF
-exec %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\msbuild\MSBuild.dll %*
+call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\msbuild\MSBuild.dll %*
 EOF
 
 # Download dependency licenses wtih dotnet-project-licenses

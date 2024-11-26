@@ -20,7 +20,7 @@ exec \${DOTNET_ROOT}/dotnet exec \${CONDA_PREFIX}/libexec/dotnet-monitor/dotnet-
 EOF
 
 tee ${PREFIX}/bin/dotnet-monitor.cmd << EOF
-exec %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\dotnet-monitor\dotnet-monitor.dll %*
+call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\dotnet-monitor\dotnet-monitor.dll %*
 EOF
 
 # Download dependency licenses wtih dotnet-project-licenses

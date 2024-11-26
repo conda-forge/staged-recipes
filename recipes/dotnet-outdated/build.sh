@@ -18,7 +18,7 @@ exec \${DOTNET_ROOT}/dotnet exec \${CONDA_PREFIX}/libexec/dotnet-outdated/dotnet
 EOF
 
 tee ${PREFIX}/bin/dotnet-outdated.cmd << EOF
-exec %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\dotnet-outdated\dotnet-outdated.dll %*
+call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\dotnet-outdated\dotnet-outdated.dll %*
 EOF
 
 dotnet-project-licenses --input src/DotNetOutdated/DotNetOutdated.csproj -t -d license-files

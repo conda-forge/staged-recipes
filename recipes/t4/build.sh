@@ -20,7 +20,7 @@ exec \${DOTNET_ROOT}/dotnet exec \${CONDA_PREFIX}/libexec/t4/t4.dll "\$@"
 EOF
 
 tee ${PREFIX}/bin/t4.cmd << EOF
-exec %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\t4\t4.dll %*
+call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\t4\t4.dll %*
 EOF
 
 # Download dependency licenses wtih dotnet-project-licenses
