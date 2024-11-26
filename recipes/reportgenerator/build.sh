@@ -18,7 +18,7 @@ exec \${DOTNET_ROOT}/dotnet exec \${CONDA_PREFIX}/libexec/reportgenerator/Report
 EOF
 
 tee ${PREFIX}/bin/reportgenerator.cmd << EOF
-exec %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\reportgenerator\ReportGenerator.dll %*
+call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\reportgenerator\ReportGenerator.dll %*
 EOF
 
 # Download dependency licenses wtih dotnet-project-licenses

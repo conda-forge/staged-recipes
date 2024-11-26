@@ -18,7 +18,7 @@ exec \${DOTNET_ROOT}/dotnet exec \${CONDA_PREFIX}/libexec/minicover/MiniCover.dl
 EOF
 
 tee ${PREFIX}/bin/minicover.cmd << EOF
-exec %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\minicover\MiniCover.dll %*
+call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\minicover\MiniCover.dll %*
 EOF
 
 # Download dependency licenses wtih dotnet-project-licenses

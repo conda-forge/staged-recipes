@@ -18,7 +18,7 @@ exec \${DOTNET_ROOT}/dotnet exec \${CONDA_PREFIX}/libexec/coverlet/coverlet.cons
 EOF
 
 tee ${PREFIX}/bin/coverlet.cmd << EOF
-exec %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\coverlet\coverlet.console.dll %*
+call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\coverlet\coverlet.console.dll %*
 EOF
 
 # Download dependency licenses wtih dotnet-project-licenses

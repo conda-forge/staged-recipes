@@ -23,7 +23,7 @@ exec \${DOTNET_ROOT}/dotnet exec \${CONDA_PREFIX}/libexec/sonar-scanner-msbuild/
 EOF
 
 tee ${PREFIX}/bin/sonar-scanner-msbuild.cmd << EOF
-exec %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\sonar-scanner-msbuild\SonarScanner.MSBuild.dll %*
+call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\sonar-scanner-msbuild\SonarScanner.MSBuild.dll %*
 EOF
 
 # Download dependency licenses wtih dotnet-project-licenses
