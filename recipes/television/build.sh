@@ -9,5 +9,4 @@ cargo-bundle-licenses \
     --format yaml \
     --output THIRDPARTY.yml
 
-# build statically linked binary with Rust
 cargo install --no-track --locked --root "$PREFIX" --path .
