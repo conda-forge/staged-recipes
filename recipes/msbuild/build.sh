@@ -6,6 +6,7 @@ mkdir -p ${PREFIX}/bin
 mkdir -p ${PREFIX}/libexec/${PKG_NAME}
 
 # Build package with dotnet publish
+rm NuGet.Config
 mv global.json global_old.json
 jq 'del(.tools)' global_old.json > global.json
 framework_version="$(dotnet --version | sed -e 's/\..*//g').0"
