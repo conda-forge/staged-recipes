@@ -18,7 +18,7 @@ exec \${DOTNET_ROOT}/dotnet exec \${CONDA_PREFIX}/libexec/minver/minver-cli.dll 
 EOF
 
 tee ${PREFIX}/bin/minver.cmd << EOF
-exec %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\minver\minver-cli.dll %*
+call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\minver\minver-cli.dll %*
 EOF
 
 dotnet-project-licenses --input minver-cli/minver-cli.csproj -t -d license-files
