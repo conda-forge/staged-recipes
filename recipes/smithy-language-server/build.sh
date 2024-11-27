@@ -16,9 +16,9 @@ install -m 644 ${SRC_DIR}/build/libs/${PKG_NAME}-${PKG_VERSION}.jar ${PREFIX}/li
 # Create bash and batch files
 tee ${PREFIX}/bin/smithy-language-server << EOF
 #!/bin/sh
-exec \${JAVA_HOME}/bin/java -jar \${CONDA_PREFIX}/libexec/smithy/smithy-language-server.jar "\$@"
+exec \${JAVA_HOME}/bin/java -jar \${CONDA_PREFIX}/libexec/smithy-language-server/smithy-language-server.jar "\$@"
 EOF
 
 tee ${PREFIX}/bin/smithy-language-server.cmd << EOF
-call %JAVA_HOME%\bin\java -jar %CONDA_PREFIX%\libexec\smithy\smithy-language-server.jar %*
+call %JAVA_HOME%\bin\java -jar %CONDA_PREFIX%\libexec\smithy-language-server\smithy-language-server.jar %*
 EOF
