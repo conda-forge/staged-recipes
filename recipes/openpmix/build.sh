@@ -3,9 +3,6 @@ set -ex
 # touch generated files to prevent unnecessary invocation of automake
 touch Makefile.in configure
 
-# show available configure options
-# ./configure --help
-
 ./configure \
   --with-libevent=$PREFIX \
   --with-hwloc=$PREFIX \

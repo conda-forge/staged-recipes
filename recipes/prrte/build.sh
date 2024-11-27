@@ -1,8 +1,5 @@
 set -ex
 
-# show available configure options
-# ./configure --help
-
 ./configure \
   --with-libevent=$PREFIX \
   --with-hwloc=$PREFIX \
