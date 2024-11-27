@@ -1,8 +1,6 @@
 set -ex
 
-echo $(which go)
-ci/release/build.sh --host-only --install
-# ls -lah ./ci/release/build/<version>/d2-<VERSION>-<OS>-<ARCH>.tar.gz
+go build -ldflags "-s -w -X oss.terrastruct.com/d2/lib/version.Version=$PKG_VERSION" -o $PREFIX/bin/d2
 
 
 # when specifying save_path directly, go-licenses runs into a recursion and throws a "file name too long" error
