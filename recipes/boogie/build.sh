@@ -19,7 +19,7 @@ exec \${DOTNET_ROOT}/dotnet exec \${CONDA_PREFIX}/libexec/boogie/BoogieDriver.dl
 EOF
 
 tee ${PREFIX}/bin/boogie.cmd << EOF
-exec %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\boogie\BoogieDriver.dll %*
+call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\boogie\BoogieDriver.dll %*
 EOF
 
 dotnet-project-licenses --input Source/BoogieDriver/BoogieDriver.csproj -t -d license-files

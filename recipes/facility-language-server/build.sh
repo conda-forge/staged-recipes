@@ -20,7 +20,7 @@ exec \${DOTNET_ROOT}/dotnet exec \${CONDA_PREFIX}/libexec/facility-language-serv
 EOF
 
 tee ${PREFIX}/bin/facility-language-server.cmd << EOF
-exec %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\facility-language-server\Facility.LanguageServer.dll %*
+call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\facility-language-server\Facility.LanguageServer.dll %*
 EOF
 
 # Download dependency licenses wtih dotnet-project-licenses
