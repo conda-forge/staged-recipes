@@ -19,5 +19,5 @@ exec \${DOTNET_ROOT}/dotnet exec \${CONDA_PREFIX}/libexec/coco/Coco.dll "\$@"
 EOF
 
 tee ${PREFIX}/bin/coco.cmd << EOF
-exec %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\coco\Coco.dll %*
+call %DOTNET_ROOT%\dotnet exec %CONDA_PREFIX%\libexec\coco\Coco.dll %*
 EOF
