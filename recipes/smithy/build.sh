@@ -2,16 +2,15 @@
 
 set -o xtrace -o nounset -o pipefail -o errexit
 
-# Build with maven
 mkdir -p ${PREFIX}/libexec/${PKG_NAME}
 mkdir -p ${PREFIX}/bin
 
+# Add dependency-license-report as a plugin to build.gradle
 sed -i 's/id "java-library"/id "java-library"\nid "com.github.jk1.dependency-license-report" version "latest.release"/' build.gradle
 
+# Build with gradle and copy outputs
 ./gradlew clean build
-
 ./gradlew generateLicenseReport
-
 find . -name '*.jar' | rg "build/libs" | xargs -I % cp % ${PREFIX}/libexec/${PKG_NAME}
 
 # Create bash and batch files

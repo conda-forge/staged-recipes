@@ -9,7 +9,7 @@ mvn clean install -DskipTests=True
 mkdir -p ${PREFIX}/bin
 cp org.eclipse.jgit.pgm/target/jgit ${PREFIX}/bin
 
-# Create bash and batch wrappers for ltex-ls and ltex-cli
+# Create batch wrapper for jgit
 tee ${PREFIX}/bin/jgit.cmd << EOF
 call %CONDA_PREFIX%\bin\jgit %*
 EOF
